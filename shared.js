@@ -44,7 +44,7 @@ const SETTINGS_DEFAULTS = {
   optPrivateDefault: false, optPrivateIncognito: false, optReadlaterDefault: false,
   optAutoDescription: true, optBlockquote: true, optIncludeReferrer: true,
   optAiAutoTags: false,
-  ctxAutoNotes: true, ctxBlockquote: true, ctxDefaultTags: "", ctxAiTags: false, ctxAiSummary: false,
+  ctxEnabled: true, ctxAutoNotes: true, ctxBlockquote: true, ctxDefaultTags: "", ctxAiTags: false, ctxAiSummary: false,
   qsAutoNotes: true, qsBlockquote: true, qsDefaultTags: "", qsAiTags: false, qsAiSummary: false,
   rlAutoNotes: true, rlBlockquote: true, rlDefaultTags: "", rlAiTags: false, rlAiSummary: false,
   optBatchTagEnabled: true, optBatchTag: "batch_saved",

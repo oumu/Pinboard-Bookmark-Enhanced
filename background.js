@@ -28,14 +28,6 @@ function cleanupStatusCache() {
 
 // ---- P2: Cached token + invalidation ----
 let _cachedToken = null;
-chrome.storage.onChanged.addListener((changes) => {
-  if (changes.pinboardToken) _cachedToken = null;
-  // Immediately clear or refresh badge when setting changes
-  if (changes.optShowBadge) {
-    if (changes.optShowBadge.newValue) updateBadge().catch(() => {});
-    else chrome.action.setBadgeText({ text: "" });
-  }
-});
 
 async function getCachedToken() {
   if (_cachedToken) return _cachedToken;
@@ -383,12 +375,26 @@ async function handleSaveTabSet(tabsData) {
 }
 
 // ===================== Context Menu =====================
-chrome.runtime.onInstalled.addListener(() => {
+async function setupContextMenu() {
+  await chrome.contextMenus.removeAll();
+  const s = await chrome.storage.sync.get({ ctxEnabled: true });
+  if (!s.ctxEnabled) return;
   chrome.contextMenus.create({
     id: "save-to-pinboard",
     title: "Save to Pinboard",
-    contexts: ["page", "link"]
+    contexts: ["page", "link", "selection"]
   });
+}
+
+chrome.runtime.onInstalled.addListener(() => setupContextMenu());
+// Re-create menu when setting changes
+chrome.storage.onChanged.addListener((changes) => {
+  if (changes.pinboardToken) _cachedToken = null;
+  if (changes.optShowBadge) {
+    if (changes.optShowBadge.newValue) updateBadge().catch(() => {});
+    else chrome.action.setBadgeText({ text: "" });
+  }
+  if (changes.ctxEnabled) setupContextMenu();
 });
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {

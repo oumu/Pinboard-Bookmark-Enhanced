@@ -52,6 +52,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     "opt-readlater-default": s.optReadlaterDefault, "opt-auto-description": s.optAutoDescription,
     "opt-blockquote": s.optBlockquote, "opt-include-referrer": s.optIncludeReferrer,
     "opt-ai-auto-tags": s.optAiAutoTags,
+    "ctx-enabled": s.ctxEnabled,
     "ctx-auto-notes": s.ctxAutoNotes, "ctx-blockquote": s.ctxBlockquote,
     "ctx-ai-tags": s.ctxAiTags, "ctx-ai-summary": s.ctxAiSummary,
     "qs-auto-notes": s.qsAutoNotes, "qs-blockquote": s.qsBlockquote,
@@ -112,6 +113,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       optRespectTagCase: document.getElementById("opt-respect-tag-case").checked,
       offlineQueueEnabled: document.getElementById("offline-queue-enabled").checked,
       // Quick Actions
+      ctxEnabled: document.getElementById("ctx-enabled").checked,
       ctxAutoNotes: document.getElementById("ctx-auto-notes").checked,
       ctxBlockquote: document.getElementById("ctx-blockquote").checked,
       ctxDefaultTags: document.getElementById("ctx-default-tags").value.trim(),
