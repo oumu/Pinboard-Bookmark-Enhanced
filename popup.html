@@ -19,7 +19,7 @@
   <div id="main-section" class="hidden">
     <div class="header-bar">
       <span id="user-info"></span>
-      <a href="#" id="options-link">settings</a>
+      <span><a href="#" id="options-link">settings</a> · <a href="#" id="logout-link">logout</a></span>
     </div>
 
     <div class="form-body">
@@ -85,10 +85,6 @@
     <div class="search-row">
       <input type="text" id="search-input" placeholder="Search your bookmarks..." class="search-field" aria-label="Search bookmarks" />
     </div>
-    <div class="quick-row">
-      <button id="save-tabset-btn" class="qbtn" title="Save all open tabs as a tab set">📑 Tabs</button>
-      <button id="batch-bookmark-btn" class="qbtn" title="Save each open tab as an individual bookmark">📌 Batch</button>
-    </div>
     <div class="quick-links">
       <a id="tabs-link" href="https://pinboard.in/tabs/" target="_blank" title="Tab Sets">Sets</a>
       <span class="ql-sep">·</span>
@@ -99,6 +95,10 @@
       <a href="https://pinboard.in/notes/" target="_blank" title="Notes">Notes</a>
       <span class="ql-sep">·</span>
       <a href="https://pinboard.in/popular/" target="_blank" title="Popular">Popular</a>
+    </div>
+    <div class="quick-row">
+      <button id="save-tabset-btn" class="qbtn" title="Save all open tabs as a tab set">📑 Save Tabs</button>
+      <button id="batch-bookmark-btn" class="qbtn" title="Save each open tab as an individual bookmark">📌 Batch Save</button>
     </div>
     <div id="offline-queue-bar" class="offline-bar hidden">
       <span id="offline-queue-text"></span>

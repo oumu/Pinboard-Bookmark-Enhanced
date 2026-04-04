@@ -9,6 +9,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   });
 
+  // ---- Accordion sections ----
+  document.querySelectorAll(".accordion-header").forEach((header) => {
+    header.addEventListener("click", () => {
+      header.closest(".accordion-section").classList.toggle("open");
+    });
+  });
+
   // ---- All settings with defaults (from shared.js) ----
   const s = await chrome.storage.sync.get(SETTINGS_DEFAULTS);
   deobfuscateSettings(s);

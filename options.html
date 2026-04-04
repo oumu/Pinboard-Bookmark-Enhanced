@@ -11,8 +11,8 @@
     .tabs { display: flex; gap: 0; border-bottom: 1px solid #ccc; margin-bottom: 0; }
     .tab-btn { padding: 6px 16px; border: 1px solid #ccc; border-bottom: none; background: #eee; cursor: pointer; font-size: 12px; margin-right: -1px; }
     .tab-btn.active { background: #fff; font-weight: bold; position: relative; top: 1px; }
-    .panel { display: none; background: #fff; border: 1px solid #ccc; border-top: none; padding: 16px; }
-    .panel.active { display: block; }
+    .panel { background: #fff; border: 1px solid #ccc; border-top: none; padding: 16px; visibility: hidden; height: 0; overflow: hidden; padding: 0; border-width: 0; }
+    .panel.active { visibility: visible; height: auto; overflow: visible; padding: 16px; border-width: 0 1px 1px 1px; }
     .fg { margin-bottom: 12px; }
     .fg label { display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; margin-bottom: 4px; }
     .fg label.bl { display: block; font-weight: bold; margin-bottom: 4px; cursor: default; font-size: 12px; color: #555; }
@@ -33,6 +33,22 @@
     .pf.hidden { display: none; }
     .pf h3 { font-size: 12px; color: #555; margin-bottom: 8px; font-weight: bold; }
     .section-title { font-size: 13px; font-weight: bold; color: #444; margin-bottom: 8px; margin-top: 4px; }
+    .accordion-section { border-bottom: 1px solid #e8e8e8; }
+    .accordion-section:last-child { border-bottom: none; }
+    .accordion-header {
+      display: flex; align-items: center; gap: 6px;
+      padding: 10px 0; cursor: pointer; font-size: 13px; font-weight: bold; color: #444;
+      user-select: none;
+    }
+    .accordion-header:hover { color: #2255aa; }
+    .accordion-arrow {
+      font-size: 10px; transition: transform 0.2s; display: inline-block; width: 12px;
+    }
+    .accordion-section.open .accordion-arrow { transform: rotate(90deg); }
+    .accordion-body {
+      display: none; padding: 0 0 12px 18px;
+    }
+    .accordion-section.open .accordion-body { display: block; }
     .auto-save-hint {
       float: right; font-size: 11px; color: #999; font-weight: normal;
       transition: color 0.3s;
@@ -75,57 +91,78 @@
 
     <!-- Tab 2: Quick Actions -->
     <div id="panel-quick" class="panel">
-      <div class="section-title">Context Menu Save</div>
-      <p class="hint" style="margin-bottom:8px">Right-click a page or link to save to Pinboard.</p>
-      <div class="fg"><label><input type="checkbox" id="ctx-auto-notes" checked /> Auto-add page description to notes</label></div>
-      <div class="fg"><label><input type="checkbox" id="ctx-blockquote" checked /> Wrap selected text with blockquote in notes</label></div>
-      <div class="fg">
-        <label class="bl">Default Tags (comma-separated)</label>
-        <input type="text" id="ctx-default-tags" placeholder="tag1, tag2" />
+      <div class="accordion-section">
+        <div class="accordion-header" data-target="acc-ctx">
+          <span class="accordion-arrow">▶</span> Context Menu Save
+        </div>
+        <div class="accordion-body" id="acc-ctx">
+          <p class="hint" style="margin-bottom:8px">Right-click a page or link to save to Pinboard.</p>
+          <div class="fg"><label><input type="checkbox" id="ctx-auto-notes" checked /> Auto-add page description to notes</label></div>
+          <div class="fg"><label><input type="checkbox" id="ctx-blockquote" checked /> Wrap selected text with blockquote in notes</label></div>
+          <div class="fg">
+            <label class="bl">Default Tags (comma-separated)</label>
+            <input type="text" id="ctx-default-tags" placeholder="tag1, tag2" />
+          </div>
+          <div class="fg"><label><input type="checkbox" id="ctx-ai-tags" /> Auto-generate AI tags</label></div>
+          <div class="fg"><label><input type="checkbox" id="ctx-ai-summary" /> Auto-generate AI summary in notes</label></div>
+        </div>
       </div>
-      <div class="fg"><label><input type="checkbox" id="ctx-ai-tags" /> Auto-generate AI tags</label></div>
-      <div class="fg"><label><input type="checkbox" id="ctx-ai-summary" /> Auto-generate AI summary in notes</label></div>
 
-      <div class="divider"></div>
-      <div class="section-title">Quick Save</div>
-      <p class="hint" style="margin-bottom:8px">Save the current page instantly via keyboard shortcut (without opening popup).</p>
-      <p style="margin-bottom:8px;"><a href="chrome://extensions/shortcuts" id="open-shortcuts-link" class="btn btn-sm" style="text-decoration:none;">Open Chrome Shortcut Settings</a></p>
-      <p class="hint" style="margin-bottom:8px">Or navigate manually: <code>chrome://extensions/shortcuts</code></p>
-      <div class="fg"><label><input type="checkbox" id="qs-auto-notes" checked /> Auto-add page description to notes</label></div>
-      <div class="fg"><label><input type="checkbox" id="qs-blockquote" checked /> Wrap selected text with blockquote</label></div>
-      <div class="fg">
-        <label class="bl">Default Tags (comma-separated)</label>
-        <input type="text" id="qs-default-tags" placeholder="tag1, tag2" />
+      <div class="accordion-section">
+        <div class="accordion-header" data-target="acc-qs">
+          <span class="accordion-arrow">▶</span> Quick Save
+        </div>
+        <div class="accordion-body" id="acc-qs">
+          <p class="hint" style="margin-bottom:8px">Save the current page instantly via keyboard shortcut (without opening popup).</p>
+          <p style="margin-bottom:8px;"><a href="chrome://extensions/shortcuts" id="open-shortcuts-link" class="btn btn-sm" style="text-decoration:none;">Open Chrome Shortcut Settings</a></p>
+          <p class="hint" style="margin-bottom:8px">Or navigate manually: <code>chrome://extensions/shortcuts</code></p>
+          <div class="fg"><label><input type="checkbox" id="qs-auto-notes" checked /> Auto-add page description to notes</label></div>
+          <div class="fg"><label><input type="checkbox" id="qs-blockquote" checked /> Wrap selected text with blockquote</label></div>
+          <div class="fg">
+            <label class="bl">Default Tags (comma-separated)</label>
+            <input type="text" id="qs-default-tags" placeholder="tag1, tag2" />
+          </div>
+          <div class="fg"><label><input type="checkbox" id="qs-ai-tags" /> Auto-generate AI tags</label></div>
+          <div class="fg"><label><input type="checkbox" id="qs-ai-summary" /> Auto-generate AI summary in notes</label></div>
+        </div>
       </div>
-      <div class="fg"><label><input type="checkbox" id="qs-ai-tags" /> Auto-generate AI tags</label></div>
-      <div class="fg"><label><input type="checkbox" id="qs-ai-summary" /> Auto-generate AI summary in notes</label></div>
 
-      <div class="divider"></div>
-      <div class="section-title">Read Later</div>
-      <p class="hint" style="margin-bottom:8px">Save current page as "Read Later" via keyboard shortcut. Automatically marks as unread.</p>
-      <p style="margin-bottom:8px;"><a href="chrome://extensions/shortcuts" id="open-shortcuts-link-rl" class="btn btn-sm" style="text-decoration:none;">Open Chrome Shortcut Settings</a></p>
-      <div class="fg"><label><input type="checkbox" id="rl-auto-notes" checked /> Auto-add page description to notes</label></div>
-      <div class="fg"><label><input type="checkbox" id="rl-blockquote" checked /> Wrap selected text with blockquote</label></div>
-      <div class="fg">
-        <label class="bl">Default Tags (comma-separated)</label>
-        <input type="text" id="rl-default-tags" placeholder="tag1, tag2" />
+      <div class="accordion-section">
+        <div class="accordion-header" data-target="acc-rl">
+          <span class="accordion-arrow">▶</span> Read Later
+        </div>
+        <div class="accordion-body" id="acc-rl">
+          <p class="hint" style="margin-bottom:8px">Save current page as "Read Later" via keyboard shortcut. Automatically marks as unread.</p>
+          <p style="margin-bottom:8px;"><a href="chrome://extensions/shortcuts" id="open-shortcuts-link-rl" class="btn btn-sm" style="text-decoration:none;">Open Chrome Shortcut Settings</a></p>
+          <div class="fg"><label><input type="checkbox" id="rl-auto-notes" checked /> Auto-add page description to notes</label></div>
+          <div class="fg"><label><input type="checkbox" id="rl-blockquote" checked /> Wrap selected text with blockquote</label></div>
+          <div class="fg">
+            <label class="bl">Default Tags (comma-separated)</label>
+            <input type="text" id="rl-default-tags" placeholder="tag1, tag2" />
+          </div>
+          <div class="fg"><label><input type="checkbox" id="rl-ai-tags" /> Auto-generate AI tags</label></div>
+          <div class="fg"><label><input type="checkbox" id="rl-ai-summary" /> Auto-generate AI summary in notes</label></div>
+        </div>
       </div>
-      <div class="fg"><label><input type="checkbox" id="rl-ai-tags" /> Auto-generate AI tags</label></div>
-      <div class="fg"><label><input type="checkbox" id="rl-ai-summary" /> Auto-generate AI summary in notes</label></div>
 
-      <div class="divider"></div>
-      <div class="section-title">Batch Save</div>
-      <p class="hint" style="margin-bottom:8px">Save each open tab as an individual bookmark.</p>
-      <div class="fg"><label><input type="checkbox" id="opt-batch-tag-enabled" checked /> Auto-add tags</label></div>
-      <div class="fg">
-        <label class="bl">Tags (comma-separated)</label>
-        <input type="text" id="opt-batch-tag" value="batch_saved" />
-        <p class="hint">Multiple tags separated by commas. E.g. <code>batch_saved, research</code></p>
+      <div class="accordion-section">
+        <div class="accordion-header" data-target="acc-batch">
+          <span class="accordion-arrow">▶</span> Batch Save
+        </div>
+        <div class="accordion-body" id="acc-batch">
+          <p class="hint" style="margin-bottom:8px">Save each open tab as an individual bookmark.</p>
+          <div class="fg"><label><input type="checkbox" id="opt-batch-tag-enabled" checked /> Auto-add tags</label></div>
+          <div class="fg">
+            <label class="bl">Tags (comma-separated)</label>
+            <input type="text" id="opt-batch-tag" value="batch_saved" />
+            <p class="hint">Multiple tags separated by commas. E.g. <code>batch_saved, research</code></p>
+          </div>
+          <div class="fg"><label><input type="checkbox" id="batch-ai-tags" /> Auto-generate AI tags for each tab</label></div>
+          <div class="fg"><label><input type="checkbox" id="batch-ai-summary" /> Auto-generate AI summary for each tab</label></div>
+          <div class="fg"><label><input type="checkbox" id="batch-skip-existing" /> Skip already bookmarked URLs</label></div>
+          <p class="hint">⚠ AI features in batch save will be slow — each tab needs a separate AI call with 3s rate limit between saves.</p>
+        </div>
       </div>
-      <div class="fg"><label><input type="checkbox" id="batch-ai-tags" /> Auto-generate AI tags for each tab</label></div>
-      <div class="fg"><label><input type="checkbox" id="batch-ai-summary" /> Auto-generate AI summary for each tab</label></div>
-      <div class="fg"><label><input type="checkbox" id="batch-skip-existing" /> Skip already bookmarked URLs</label></div>
-      <p class="hint">⚠ AI features in batch save will be slow — each tab needs a separate AI call with 3s rate limit between saves.</p>
     </div>
 
     <!-- Tab 3: AI -->

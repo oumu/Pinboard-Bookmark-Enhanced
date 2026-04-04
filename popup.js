@@ -33,6 +33,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("options-link").addEventListener("click", (e) => {
     e.preventDefault(); chrome.runtime.openOptionsPage();
   });
+  document.getElementById("logout-link").addEventListener("click", async (e) => {
+    e.preventDefault();
+    if (!confirm("Log out? Your API token will be removed.")) return;
+    await chrome.storage.sync.remove("pinboardToken");
+    settings.pinboardToken = "";
+    document.getElementById("main-section").classList.add("hidden");
+    showLogin();
+  });
 });
 
 // ===================== Login =====================
@@ -423,7 +431,12 @@ function setupTagsInput() {
     const matches = allUserTags.filter((t) =>
       t.toLowerCase().includes(val) &&
       !currentTags.some((ct) => ct.toLowerCase() === t.toLowerCase())
-    ).slice(0, 10);
+    ).sort((a, b) => {
+      const al = a.toLowerCase(), bl = b.toLowerCase();
+      const ap = al.startsWith(val), bp = bl.startsWith(val);
+      if (ap !== bp) return ap ? -1 : 1; // prefix matches first
+      return 0; // preserve original order (by usage count)
+    }).slice(0, 10);
     if (!matches.length) { dropdown.classList.add("hidden"); return; }
     dropdown.innerHTML = "";
     matches.forEach((tag) => {
