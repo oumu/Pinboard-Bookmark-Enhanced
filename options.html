@@ -54,6 +54,38 @@
       transition: color 0.3s;
     }
     .auto-save-hint.saved { color: #080; }
+
+    /* ---- Flexoki Dark Mode ---- */
+    html.dark body { background: #1C1B1A; color: #CECDC3; }
+    html.dark h1 { color: #CECDC3; border-color: #403E3C; }
+    html.dark .tabs { border-color: #403E3C; }
+    html.dark .tab-btn { background: #282726; border-color: #403E3C; color: #878580; }
+    html.dark .tab-btn.active { background: #1C1B1A; color: #CECDC3; }
+    html.dark .panel { background: #1C1B1A; border-color: #403E3C; }
+    html.dark .fg label { color: #CECDC3; }
+    html.dark .fg label.bl { color: #878580; }
+    html.dark .fg input[type="text"], html.dark .fg input[type="password"],
+    html.dark .fg input[type="number"], html.dark .fg select, html.dark .fg textarea {
+      background: #282726; border-color: #403E3C; color: #CECDC3;
+    }
+    html.dark .fg input:focus, html.dark .fg select:focus, html.dark .fg textarea:focus {
+      border-color: #4385BE;
+    }
+    html.dark .hint { color: #6F6E69; }
+    html.dark .hint a { color: #4385BE; }
+    html.dark .hint code { background: #343331; color: #878580; }
+    html.dark .divider { border-color: #403E3C; }
+    html.dark .btn { background: #343331; border-color: #403E3C; color: #CECDC3; }
+    html.dark .btn:hover { background: #403E3C; }
+    html.dark .pf { background: #282726; border-color: #403E3C; }
+    html.dark .pf h3 { color: #878580; }
+    html.dark .section-title { color: #878580; }
+    html.dark .save-status { color: #879A39; }
+    html.dark .auto-save-hint { color: #6F6E69; }
+    html.dark .auto-save-hint.saved { color: #879A39; }
+    html.dark .accordion-header { color: #878580; }
+    html.dark .accordion-header:hover { color: #4385BE; }
+    html.dark .accordion-section { border-color: #403E3C; }
   </style>
 </head>
 <body>
@@ -371,6 +403,14 @@
       </div>
     </div>
   </div>
+  <script>
+    // Apply theme before other scripts to prevent flash
+    chrome.storage.sync.get({ optTheme: "auto" }, (s) => {
+      const isDark = s.optTheme === "dark" ||
+        (s.optTheme === "auto" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+      document.documentElement.classList.toggle("dark", isDark);
+    });
+  </script>
   <script src="shared.js"></script>
   <script src="options.js"></script>
 </body>

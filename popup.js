@@ -120,7 +120,6 @@ async function showMain(token) {
 
   await checkExistingBookmark(token, pageInfo.url);
   setTimeout(() => fetchPinboardSuggestTags(token, pageInfo.url), 500);
-  setTimeout(() => fetchAllUserTags(token), 1000);
   setupTagsInput();
   setupSubmit(token);
   setupAIFeatures();
@@ -128,7 +127,10 @@ async function showMain(token) {
   setupTabSet();
   if (settings.optShowRecent) fetchRecentBookmarks(token);
   document.querySelector(".tags-input-wrap").addEventListener("click", () => document.getElementById("tags-input").focus());
-  if (settings.optAiAutoTags && hasAIKey(settings)) document.getElementById("ai-tags-btn").click();
+  // Fetch all user tags first (uses local cache, populates tagCaseMap), then trigger auto AI tags
+  fetchAllUserTags(token).then(() => {
+    if (settings.optAiAutoTags && hasAIKey(settings)) document.getElementById("ai-tags-btn").click();
+  });
   showOfflineQueueStatus();
 
   // Focus optimization: tags input for new bookmarks, description for existing
@@ -446,7 +448,7 @@ function setupTagsInput() {
       const count = allUserTagCounts[tag];
       if (count) {
         const countSpan = document.createElement("span");
-        countSpan.style.cssText = "color:#999;font-size:10px;margin-left:4px";
+        countSpan.className = "ac-count";
         countSpan.textContent = `(${count})`;
         item.appendChild(countSpan);
       }
@@ -588,6 +590,12 @@ function setupSubmit(token) {
       }
     }
   });
+
+  // Add Ctrl+Enter hint to submit bar
+  const hintSpan = document.createElement("span");
+  hintSpan.className = "submit-hint";
+  hintSpan.textContent = "Ctrl+Enter";
+  document.querySelector(".submit-bar").appendChild(hintSpan);
 
   document.getElementById("delete-btn").addEventListener("click", async () => {
     if (!confirm("Delete this bookmark?")) return;

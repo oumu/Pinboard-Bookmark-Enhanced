@@ -104,8 +104,10 @@ a:hover { text-decoration: underline; }
   background: #fff; border: 1px solid #ccc; border-top: none;
   max-height: 150px; overflow-y: auto; z-index: 100;
 }
-.ac-item { padding: 3px 6px; cursor: pointer; font-size: 12px; }
+.ac-item { padding: 3px 6px; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: space-between; }
 .ac-item:hover, .ac-item.selected { background: #d5e5f5; }
+.ac-count { color: #888; font-size: 10px; margin-left: 4px; flex-shrink: 0; }
+.submit-hint { color: #aaa; font-size: 10px; margin-left: auto; align-self: center; }
 
 .clear-all-link {
   font-size: 10px; color: #999; cursor: pointer;
@@ -335,6 +337,8 @@ html.dark .tag-item { background: #3a3a3a; color: #ddd; }
 html.dark .autocomplete-dropdown { background: #252525; border-color: #555; }
 html.dark .ac-item { color: #ddd; }
 html.dark .ac-item:hover, html.dark .ac-item.selected { background: #2a3f5f; }
+html.dark .ac-count { color: #777; }
+html.dark .submit-hint { color: #666; }
 html.dark .submit-bar button { background: #2a2a2a; border-color: #666; color: #ddd; }
 html.dark .submit-bar button:hover { background: #333; }
 html.dark .quick-actions .divider { border-color: #444; }
