@@ -312,13 +312,7 @@ a:hover { text-decoration: underline; }
 }
 .recent-bm-del:hover { color: #c00; }
 
-@keyframes save-flash {
-  0% { background: #d4edda; border-color: #28a745; }
-  100% { background: #f5f5f0; border-color: #999; }
-}
-.submit-bar button.save-success {
-  animation: save-flash 1.2s ease-out;
-}
+.submit-bar button.saved-success { background: #d4edda; border-color: #28a745; }
 
 /* ===================== Dark Mode ===================== */
 /* JS adds .dark to <html> based on theme setting (auto/dark/light) */
@@ -368,5 +362,6 @@ html.dark .quick-links a { color: #6699ff; }
 html.dark .ql-sep { color: #444; }
 html.dark .offline-bar { background: #2a2510; border-color: #4a4020; color: #d4a800; }
 html.dark .offline-clear { color: #ff6666; }
+html.dark .submit-bar button.saved-success { background: #1a3a1a; border-color: #2a6a2a; color: #88cc88; }
 html.dark .submit-bar button.loading { color: #666; }
 html.dark .submit-bar button.loading::before, html.dark .action-link.loading::before { border-color: #555; border-top-color: #aaa; }

@@ -255,7 +255,7 @@ function setupTabSet() {
                     const resp = await callAI(settings, prompt);
                     const rawTags = parseAITags(resp, settings.aiTagSeparator);
                     const aiTags = settings.optRespectTagCase
-                      ? rawTags.map(t => resolveTagCase(t, tagCaseMap))
+                      ? rawTags.map(tag => resolveTagCase(tag, tagCaseMap))
                       : rawTags;
                     await setAICache(t.url, "tags", aiTags, settings.aiCacheDuration);
                     tags = [...tags, ...aiTags];
@@ -277,7 +277,8 @@ function setupTabSet() {
             }
           }
 
-          const apiUrl = `https://api.pinboard.in/v1/posts/add?auth_token=${pinboardToken}&format=json&url=${enc(t.url)}&description=${enc(t.title || t.url)}&extended=${enc(notes)}&tags=${enc(tags.join(" "))}&replace=yes`;
+          const dedupedTags = [...new Set(tags.map(tag => tag.toLowerCase()))].map(lower => tags.find(tag => tag.toLowerCase() === lower));
+          const apiUrl = `https://api.pinboard.in/v1/posts/add?auth_token=${pinboardToken}&format=json&url=${enc(t.url)}&description=${enc(t.title || t.url)}&extended=${enc(notes)}&tags=${enc(dedupedTags.join(" "))}&replace=yes`;
           const data = await (await pinboardFetch(apiUrl)).json();
           if (data.result_code === "done") saved++;
           else failed++;
@@ -322,7 +323,7 @@ async function fetchExistingUrlSet(token) {
   } catch (_) {}
   // Cache miss — fetch from API
   try {
-    const recentData = await (await fetch(`https://api.pinboard.in/v1/posts/all?auth_token=${token}&format=json&results=1000`)).json();
+    const recentData = await (await pinboardFetch(`https://api.pinboard.in/v1/posts/all?auth_token=${token}&format=json&results=1000`)).json();
     const urls = recentData.map(p => p.href);
     await chrome.storage.local.set({ [cacheKey]: { urls, timestamp: Date.now() } });
     return new Set(urls);
@@ -334,7 +335,7 @@ async function fetchExistingUrlSet(token) {
 // ===================== Existing Bookmark =====================
 async function checkExistingBookmark(token, url) {
   try {
-    const data = await (await fetch(`https://api.pinboard.in/v1/posts/get?url=${enc(url)}&auth_token=${token}&format=json`)).json();
+    const data = await (await pinboardFetch(`https://api.pinboard.in/v1/posts/get?url=${enc(url)}&auth_token=${token}&format=json`)).json();
     if (data.posts?.length > 0) {
       existingBookmark = data.posts[0];
       document.getElementById("title-input").value = existingBookmark.description;
@@ -363,7 +364,7 @@ async function checkExistingBookmark(token, url) {
 async function fetchPinboardSuggestTags(token, url) {
   const container = document.getElementById("pinboard-suggest-tags");
   try {
-    const data = await (await fetch(`https://api.pinboard.in/v1/posts/suggest?url=${enc(url)}&auth_token=${token}&format=json`)).json();
+    const data = await (await pinboardFetch(`https://api.pinboard.in/v1/posts/suggest?url=${enc(url)}&auth_token=${token}&format=json`)).json();
     container.innerHTML = "";
     const popular = data[0]?.popular || [];
     const recommended = data[1]?.recommended || [];
@@ -411,7 +412,7 @@ async function fetchAllUserTags(token) {
   } catch (_) {}
   // Cache miss — fetch from API
   try {
-    const data = await (await fetch(`https://api.pinboard.in/v1/tags/get?auth_token=${token}&format=json`)).json();
+    const data = await (await pinboardFetch(`https://api.pinboard.in/v1/tags/get?auth_token=${token}&format=json`)).json();
     allUserTagCounts = data;
     // Sort by usage count descending, then alphabetically
     allUserTags = Object.entries(data)
@@ -571,9 +572,8 @@ function setupSubmit(token) {
       if (data.result_code === "done") {
         showStatus("status-msg", "Bookmark saved.", "success");
         btn.textContent = "✅ Saved!";
-        btn.style.background = "#d4edda";
-        btn.style.borderColor = "#28a745";
-        setTimeout(() => { btn.style.background = ""; btn.style.borderColor = ""; }, 1200);
+        btn.classList.add("saved-success");
+        setTimeout(() => { btn.classList.remove("saved-success"); }, 1200);
         // 通知 background 更新图标
         chrome.runtime.sendMessage({ type: "bookmark_saved", url: url });
         setTimeout(() => window.close(), 1200);
@@ -853,7 +853,7 @@ async function fetchRecentBookmarks(token) {
   const container = document.getElementById("recent-bookmarks");
   if (!container) return;
   try {
-    const data = await (await fetch(`https://api.pinboard.in/v1/posts/recent?auth_token=${token}&format=json&count=5`)).json();
+    const data = await (await pinboardFetch(`https://api.pinboard.in/v1/posts/recent?auth_token=${token}&format=json&count=5`)).json();
     const posts = data.posts || [];
     if (!posts.length) return;
     container.classList.remove("hidden");
@@ -911,7 +911,7 @@ async function showOfflineQueueStatus() {
     if (!confirm("Clear all queued bookmarks?")) return;
     await chrome.storage.local.set({ offlineQueue: [] });
     bar.classList.add("hidden");
-  });
+  }, { once: true });
 }
 
 // ===================== Helpers =====================

@@ -385,8 +385,8 @@
     </div>
   </div>
   <script>
-    // Apply theme before other scripts to prevent flash
-    chrome.storage.sync.get({ optTheme: "auto" }, (s) => {
+    // Apply theme early to prevent flash (promise-based for MV3 reliability)
+    chrome.storage.sync.get({ optTheme: "auto" }).then(s => {
       const isDark = s.optTheme === "dark" ||
         (s.optTheme === "auto" && window.matchMedia("(prefers-color-scheme: dark)").matches);
       document.documentElement.classList.toggle("dark", isDark);

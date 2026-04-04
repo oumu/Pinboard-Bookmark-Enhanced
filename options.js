@@ -73,6 +73,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (el) el.checked = val;
   }
 
+  // ---- Apply theme from loaded settings (robust fallback for inline script) ----
+  function applyOptionsTheme(theme) {
+    const isDark = theme === "dark" ||
+      (theme === "auto" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    document.documentElement.classList.toggle("dark", isDark);
+  }
+  applyOptionsTheme(s.optTheme);
+  // Real-time theme switch when dropdown changes
+  document.getElementById("opt-theme").addEventListener("change", () => {
+    applyOptionsTheme(document.getElementById("opt-theme").value);
+  });
+
   // ---- Provider field toggle ----
   const providers = ["gemini","openai","claude","deepseek","qwen","minimax","openrouter","ollama","custom"];
   function updateProviderFields() {
