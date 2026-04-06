@@ -1,8 +1,6 @@
 # Pinboard Bookmark Plus
 
-> 🔖 A modern Chrome extension for Pinboard — bookmark smarter with AI-powered tags and summaries.
->
-> 🔖 一款现代化的 Pinboard Chrome 扩展 —— 借助 AI 智能生成标签与摘要，让书签管理更高效。
+A Chrome extension that supercharges [Pinboard](https://pinboard.in) bookmarking with AI-powered tags, summaries, and a fully themeable interface.
 
 ![Chrome](https://img.shields.io/badge/Chrome-MV3-brightgreen?logo=googlechrome&logoColor=white)
 ![Version](https://img.shields.io/badge/version-2.1-blue)
@@ -10,175 +8,243 @@
 
 ---
 
-## ✨ Features / 功能特性
+## Highlights
 
-### 📌 Core Bookmarking / 核心书签功能
-
-- **One-click save** — Quickly save the current page to Pinboard with title, URL, tags, and description.
-  一键保存当前页面到 Pinboard，包含标题、URL、标签和描述。
-
-- **Editable URL** — URL field is fully editable, allowing you to modify the link before saving.
-  URL 字段可自由编辑，保存前可修改链接地址。
-
-- **Duplicate detection** — Automatically detects if the current URL has already been bookmarked, and switches to edit mode.
-  自动检测当前 URL 是否已收藏，若已存在则切换为编辑模式。
-
-- **Private & Read Later** — Toggle private/public and "read later" flags per bookmark, with configurable defaults.
-  支持逐条设置私有/公开和"稍后阅读"标记，可配置默认值。
-
-- **Selected text as description** — Automatically captures selected text on the page and uses it as the bookmark description (optionally wrapped in `<blockquote>`).
-  自动捕获页面选中文本作为书签描述（可选 `<blockquote>` 包裹）。
-
-### 🤖 AI-Powered / AI 智能功能
-
-- **AI tag suggestions** — Automatically generate relevant tags based on page content using LLM.
-  基于页面内容，利用大语言模型自动生成相关标签建议。
-
-- **AI summary generation** — Generate concise descriptions/summaries for bookmarks with one click.
-  一键生成书签的简洁描述/摘要。
-
-- **Multi-provider support** — Compatible with a wide range of AI providers:
-  支持多种 AI 服务商：
-
-  | Provider | Models |
-  |----------|--------|
-  | OpenAI | GPT-4o, GPT-4o-mini, etc. |
-  | Anthropic | Claude series |
-  | Google Gemini | Gemini series |
-  | DeepSeek | DeepSeek series |
-  | Alibaba Qwen | Qwen series |
-  | MiniMax | MiniMax models |
-  | OpenRouter | Access 100+ models |
-  | Local (Ollama) | Any local model |
-
-- **Customizable prompts** — Fully editable system prompts for both tag generation and summary generation.
-  标签生成和摘要生成的系统提示词均可完全自定义。
-
-- **Existing tags integration** — AI can reference your existing Pinboard tags to maintain consistency.
-  AI 可参考你已有的 Pinboard 标签，保持标签体系一致性。
-
-### 📑 Tab Set / 标签组功能
-
-- **Save Tab Set** — Save all open tabs as a Pinboard tab set with one click.
-  一键将所有打开的标签页保存为 Pinboard 标签组。
-
-- **View Tab Sets** — Quick link to view saved tab sets on Pinboard.
-  快速跳转查看已保存的标签组。
-
-### ⚙️ Settings / 设置选项
-
-- **General** — Default privacy, read later, blockquote wrapping, incognito behavior.
-  通用设置 — 默认隐私、稍后阅读、引用包裹、隐身模式行为。
-
-- **API Keys** — Manage Pinboard token and AI provider API keys in one place.
-  API 密钥 — 集中管理 Pinboard 令牌和各 AI 服务商密钥。
-
-- **AI Settings** — Choose provider, model, temperature, max tokens, and tag/summary language.
-  AI 设置 — 选择服务商、模型、温度、最大 token 数及标签/摘要语言。
-
-- **Prompts** — Customize system prompts for tag and summary generation.
-  提示词 — 自定义标签和摘要生成的系统提示词。
+- **AI tags & summaries** from 9 providers (OpenAI, Claude, Gemini, DeepSeek, Qwen, MiniMax, OpenRouter, Ollama, Custom)
+- **7 built-in themes** that style both Pinboard.in and the extension UI simultaneously
+- **Quick Actions** — one-click save, read-later, and batch-save all tabs
+- **Zero dependencies** — pure vanilla JS, no build step, no framework
 
 ---
 
-## 📸 Screenshots / 截图
+## Features
 
-> _Add your screenshots here / 在此添加截图_
->
-> ```
-> ![Main popup](screenshots/popup.png)
-> ![Settings](screenshots/settings.png)
-> ```
+### Bookmarking
+
+| Feature | Description |
+|---------|-------------|
+| One-click save | Title, URL, description, tags auto-filled from page |
+| Duplicate detection | Existing bookmarks auto-switch to edit mode |
+| Selected text capture | Page selection becomes description (optional blockquote wrap) |
+| Editable URL | Modify the link before saving |
+| Private & Read Later | Per-bookmark flags with configurable defaults |
+| Referrer tracking | Optionally append source page URL to description |
+| Batch save tabs | Save all open tabs as a Pinboard tab set |
+
+### AI
+
+| Feature | Description |
+|---------|-------------|
+| Smart tags | Generate 5-10 relevant tags from page content via LLM |
+| Smart summary | 2-4 sentence description from page content |
+| Existing tag matching | AI references your tag library for consistency |
+| Multi-language | Auto-detect or force zh/en/ja/ko/fr/de/es/ru |
+| Customizable prompts | Template variables: `{{title}}`, `{{url}}`, `{{content}}`, `{{description}}` |
+| Result caching | Configurable TTL (default 60 min), cache indicator with regenerate option |
+| Auto-generate on open | Optional: trigger AI tags when popup opens |
+
+**Supported providers:**
+
+| Provider | Default Model | Auth |
+|----------|---------------|------|
+| Google Gemini | gemini-2.0-flash | API Key |
+| OpenAI | gpt-4o-mini | API Key (custom base URL) |
+| Anthropic Claude | claude-sonnet-4-20250514 | API Key |
+| DeepSeek | deepseek-chat | API Key |
+| Alibaba Qwen | qwen-turbo | API Key |
+| MiniMax | MiniMax-Text-01 | API Key |
+| OpenRouter | gemini-2.0-flash-exp:free | API Key |
+| Ollama | llama3 | Local, no key |
+| Custom | configurable | Custom base URL + optional key |
+
+### Themes
+
+7 built-in presets that style **both** pinboard.in pages **and** the extension popup + settings page:
+
+| Theme | Style |
+|-------|-------|
+| Modern Card | Clean, Google-inspired light theme |
+| Nord Night | Cool blue arctic palette |
+| Terminal | Green-on-black monospace hacker aesthetic |
+| Paper & Ink | Warm parchment, classic readability |
+| Dracula | Gothic dark with vibrant accents |
+| Flexoki Adaptive | Auto light/dark based on system preference |
+
+Plus:
+- **Save custom themes** — name and reuse your CSS modifications
+- **Custom CSS editor** — full control over pinboard.in styling
+- **Custom font injection** — apply any font to pinboard.in
+- **Popup theme toggle** — choose whether popup follows Pinboard theme
+
+### Quick Actions
+
+- **Quick Save** — save current page with default tags, no form needed
+- **Read Later** — one-click mark as read-later with default tags
+- **Batch Save** — save all open tabs as individual bookmarks with AI tags/summaries
+- **Keyboard shortcuts** — configurable via `chrome://extensions/shortcuts`
+
+### Other
+
+- Toolbar icon changes when current page is already bookmarked
+- Tag autocomplete with frequency-sorted suggestions
+- Tag presets for common tag groups
+- Search bar in popup for quick Pinboard searches
+- Recent bookmarks display
+- Offline queue — saves are queued when offline, synced when back
+- Import/export settings
+- API connectivity test per provider
 
 ---
 
-## 🚀 Installation / 安装
+## Installation
 
-### From source / 从源码安装
-
-1. Clone or download this repository:
-   克隆或下载本仓库：
+1. Clone this repository:
 
    ```bash
-   git clone https://github.com/YOUR_USERNAME/pinboard-bookmark-plus.git
+   git clone https://github.com/oumu/Pinboard-Bookmark-Plus.git
    ```
 
-2. Open Chrome and navigate to `chrome://extensions/`
-   打开 Chrome，访问 `chrome://extensions/`
+2. Open `chrome://extensions/`, enable **Developer mode**
 
-3. Enable **Developer mode** (top right toggle)
-   启用右上角的 **开发者模式**
+3. Click **Load unpacked**, select the extension folder
 
-4. Click **Load unpacked** and select the extension folder
-   点击 **加载已解压的扩展程序**，选择扩展文件夹
+4. Pin the extension to your toolbar
 
-5. Pin the extension to your toolbar for easy access
-   将扩展固定到工具栏以便快速访问
+### Prerequisites
 
-### Prerequisites / 前置条件
-
-- A [Pinboard](https://pinboard.in) account
-  一个 Pinboard 账户
-
-- Your Pinboard API token (found at [settings/password](https://pinboard.in/settings/password))
-  你的 Pinboard API 令牌（在 [settings/password](https://pinboard.in/settings/password) 获取）
-
-- *(Optional)* An API key from any supported AI provider for smart tagging & summaries
-  *（可选）* 任一支持的 AI 服务商的 API 密钥，用于智能标签和摘要功能
+- A [Pinboard](https://pinboard.in) account + API token ([settings/password](https://pinboard.in/settings/password))
+- *(Optional)* API key from any supported AI provider
 
 ---
 
-## ⚡ Usage / 使用方法
+## Privacy
 
-1. Click the extension icon on any webpage.
-   在任意网页上点击扩展图标。
-
-2. The title, URL, and description are auto-filled.
-   标题、URL 和描述会自动填充。
-
-3. Click **AI Tags** to generate smart tag suggestions, or enter tags manually.
-   点击 **AI Tags** 生成智能标签建议，或手动输入标签。
-
-4. Click **AI Summary** to generate a description from page content.
-   点击 **AI Summary** 从页面内容生成描述。
-
-5. Toggle **Private** / **Read Later** as needed.
-   根据需要切换 **私有** / **稍后阅读**。
-
-6. Click **Save** to bookmark.
-   点击 **Save** 保存书签。
+- All keys stored **locally** in Chrome storage — never sent to third parties
+- Page content only sent to **your chosen AI provider** when you click AI buttons
+- No analytics, no tracking, no data collection
 
 ---
 
-## 🔒 Privacy / 隐私说明
-
-- All API keys and tokens are stored **locally** in `chrome.storage.local` — never sent to any third-party server.
-  所有 API 密钥和令牌均 **本地存储** 于 `chrome.storage.local`，绝不发送至任何第三方服务器。
-
-- Page content is only sent to **your chosen AI provider** when you explicitly click the AI buttons.
-  页面内容仅在你主动点击 AI 按钮时发送至 **你选择的 AI 服务商**。
-
-- No analytics, no tracking, no data collection.
-  无分析、无追踪、无数据收集。
-
----
-
-## 🛠️ Tech Stack / 技术栈
+## Tech Stack
 
 - Chrome Extension Manifest V3
-- Vanilla JavaScript (no framework dependencies)
+- Vanilla JavaScript — zero dependencies, no build step
+- Chrome Storage API (sync + local)
 - Pinboard API v1
 - Multiple LLM provider APIs
 
 ---
 
-## 📄 License / 许可证
+## License
 
-[MIT License](LICENSE)
+[MIT](LICENSE)
 
 ---
 
-## 🙏 Acknowledgments / 致谢
+## Acknowledgments
 
-- [Pinboard](https://pinboard.in) by Maciej Cegłowski
+- [Pinboard](https://pinboard.in) by Maciej Ceglowski
 - Inspired by the original [Pinboard Chrome extension](https://pinboard.in/resources/)
+
+---
+
+<details>
+<summary><strong>中文说明</strong></summary>
+
+# Pinboard Bookmark Plus
+
+一款为 [Pinboard](https://pinboard.in) 打造的 Chrome 扩展，支持 AI 智能标签、摘要生成和全面主题定制。
+
+---
+
+## 亮点
+
+- **AI 标签 & 摘要** — 支持 9 个 AI 服务商（OpenAI、Claude、Gemini、DeepSeek、通义千问、MiniMax、OpenRouter、Ollama、自定义）
+- **7 套内置主题** — 同时美化 Pinboard 网站和扩展界面
+- **快捷操作** — 一键保存、稍后阅读、批量保存所有标签页
+- **零依赖** — 纯原生 JS，无构建步骤，无框架
+
+---
+
+## 功能
+
+### 书签管理
+
+| 功能 | 说明 |
+|------|------|
+| 一键保存 | 自动填充标题、URL、描述、标签 |
+| 重复检测 | 已收藏页面自动切换为编辑模式 |
+| 选中文本捕获 | 页面选中内容作为描述（可选 blockquote 包裹） |
+| URL 可编辑 | 保存前可修改链接地址 |
+| 私有 & 稍后阅读 | 逐条设置，支持默认值配置 |
+| 来源追踪 | 可选在描述中追加来源页 URL |
+| 批量保存标签页 | 一键将所有打开的标签页保存为 Pinboard 标签组 |
+
+### AI 功能
+
+| 功能 | 说明 |
+|------|------|
+| 智能标签 | 基于页面内容通过 LLM 生成 5-10 个相关标签 |
+| 智能摘要 | 基于页面内容生成 2-4 句描述 |
+| 已有标签匹配 | AI 参考你的标签库保持一致性 |
+| 多语言支持 | 自动检测或指定 zh/en/ja/ko/fr/de/es/ru |
+| 自定义提示词 | 模板变量：`{{title}}`、`{{url}}`、`{{content}}`、`{{description}}` |
+| 结果缓存 | 可配置 TTL（默认 60 分钟），显示缓存状态和重新生成链接 |
+| 自动生成 | 可选：打开弹窗时自动触发 AI 标签 |
+
+### 主题系统
+
+7 套内置主题预设，**同时**美化 Pinboard 网站**和**扩展弹窗 + 设置页面：
+
+| 主题 | 风格 |
+|------|------|
+| Modern Card | 简洁现代，Google 风格浅色主题 |
+| Nord Night | 冷色系北极蓝调色板 |
+| Terminal | 黑底绿字等宽字体黑客风 |
+| Paper & Ink | 暖色羊皮纸，经典阅读体验 |
+| Dracula | 哥特暗色搭配鲜明强调色 |
+| Flexoki Adaptive | 自动跟随系统亮色/暗色偏好 |
+
+此外：
+- **自定义主题保存** — 命名并复用你的 CSS 修改
+- **CSS 编辑器** — 完全控制 pinboard.in 样式
+- **自定义字体** — 为 pinboard.in 注入任意字体
+- **弹窗主题开关** — 选择弹窗是否跟随 Pinboard 主题
+
+### 快捷操作
+
+- **快速保存** — 使用默认标签一键保存，无需填写表单
+- **稍后阅读** — 一键标记为稍后阅读
+- **批量保存** — 将所有标签页分别保存为独立书签，支持 AI 标签/摘要
+- **键盘快捷键** — 通过 `chrome://extensions/shortcuts` 配置
+
+---
+
+## 安装
+
+1. 克隆本仓库：
+
+   ```bash
+   git clone https://github.com/oumu/Pinboard-Bookmark-Plus.git
+   ```
+
+2. 打开 `chrome://extensions/`，启用**开发者模式**
+
+3. 点击**加载已解压的扩展程序**，选择扩展文件夹
+
+4. 将扩展固定到工具栏
+
+### 前置条件
+
+- [Pinboard](https://pinboard.in) 账户 + API 令牌（[settings/password](https://pinboard.in/settings/password)）
+- *（可选）* 任一支持的 AI 服务商 API 密钥
+
+---
+
+## 隐私
+
+- 所有密钥**本地存储**于 Chrome 存储，不发送至任何第三方
+- 页面内容仅在点击 AI 按钮时发送至**你选择的 AI 服务商**
+- 无分析、无追踪、无数据收集
+
+</details>
