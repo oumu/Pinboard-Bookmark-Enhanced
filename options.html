@@ -155,6 +155,15 @@
     html[data-theme] .accordion-header:hover { color: var(--opt-accent); }
     html[data-theme] .accordion-section { border-color: var(--opt-border-section); }
     html[data-theme] .theme-preset-btn.active { background: var(--opt-accent); border-color: var(--opt-accent); color: var(--opt-bg); }
+    /* Saved theme button with delete */
+    .saved-theme-wrap { position: relative; display: inline-flex; }
+    .saved-theme-del {
+      position: absolute; top: -6px; right: -6px; width: 14px; height: 14px;
+      border-radius: 50%; background: #c00; color: #fff; border: none;
+      font-size: 10px; line-height: 14px; text-align: center; cursor: pointer;
+      display: none; padding: 0;
+    }
+    .saved-theme-wrap:hover .saved-theme-del { display: block; }
     /* Terminal monospace font override */
     html[data-theme="terminal"] body { font-family: "Courier New", Consolas, monospace; }
     html[data-theme="terminal"] .fg textarea { font-family: "Courier New", Consolas, monospace; }
@@ -473,10 +482,17 @@
         </div>
         <p class="hint" style="margin-bottom:8px">Click a preset to load its CSS. You can further customize after loading.</p>
       </div>
+      <div class="fg" id="saved-themes-section" style="display:none">
+        <label class="bl">Saved Themes</label>
+        <div id="saved-themes-list" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;"></div>
+      </div>
       <div class="fg">
         <label class="bl">Custom CSS</label>
         <textarea id="opt-custom-css" rows="12" placeholder="/* Custom CSS for pinboard.in */&#10;body { line-height: 1.6; }&#10;.bookmark_title { font-size: 14px; }"></textarea>
-        <p class="hint">Injected as a <code>&lt;style&gt;</code> block on every pinboard.in page.</p>
+        <div style="display:flex;gap:8px;align-items:center;margin-top:6px;">
+          <button class="btn btn-sm" id="save-custom-theme">Save as theme</button>
+          <p class="hint" style="margin:0">Save current CSS as a reusable theme.</p>
+        </div>
       </div>
 
     </div>

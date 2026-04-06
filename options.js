@@ -419,6 +419,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (theme) cssEl.value = theme.css;
       }
       updateThemePresetButtons();
+      updateSavedThemeButtons();
       // Apply options page theme instantly
       applyOptionsPageTheme(key, document.getElementById("opt-theme").value);
       // Persist preset key for early-load detection
@@ -430,7 +431,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Update active state and options page theme when user manually edits CSS
   document.getElementById("opt-custom-css").addEventListener("input", () => {
     updateThemePresetButtons();
-    // Detect if edited CSS matches a preset, update options page theme accordingly
+    updateSavedThemeButtons();
+    // Detect if edited CSS matches a built-in preset, update options page theme accordingly
     const css = document.getElementById("opt-custom-css").value;
     let matchedKey = "";
     for (const [key, theme] of Object.entries(PINBOARD_THEMES)) {
@@ -439,6 +441,83 @@ document.addEventListener("DOMContentLoaded", async () => {
     applyOptionsPageTheme(matchedKey, document.getElementById("opt-theme").value);
     chrome.storage.sync.set({ themePresetKey: matchedKey });
   });
+
+  // ---- Saved custom themes ----
+  let savedThemes = []; // [{ name: "My Theme", css: "..." }, ...]
+
+  async function loadSavedThemes() {
+    const data = await chrome.storage.local.get({ savedThemes: [] });
+    savedThemes = data.savedThemes || [];
+    renderSavedThemes();
+  }
+
+  async function persistSavedThemes() {
+    await chrome.storage.local.set({ savedThemes });
+  }
+
+  function renderSavedThemes() {
+    const container = document.getElementById("saved-themes-list");
+    const section = document.getElementById("saved-themes-section");
+    while (container.firstChild) container.removeChild(container.firstChild);
+    section.style.display = savedThemes.length ? "" : "none";
+    const currentCSS = document.getElementById("opt-custom-css").value;
+    savedThemes.forEach((theme, idx) => {
+      const wrap = document.createElement("span");
+      wrap.className = "saved-theme-wrap";
+      const btn = document.createElement("button");
+      btn.className = "btn btn-sm saved-theme-btn";
+      btn.textContent = theme.name;
+      if (currentCSS.trim() === theme.css.trim()) btn.classList.add("active");
+      btn.addEventListener("click", () => {
+        document.getElementById("opt-custom-css").value = theme.css;
+        updateThemePresetButtons();
+        updateSavedThemeButtons();
+        // Custom saved themes do NOT affect options page styling — clear preset key
+        applyOptionsPageTheme("", document.getElementById("opt-theme").value);
+        chrome.storage.sync.set({ themePresetKey: "" });
+        scheduleAutoSave();
+      });
+      const del = document.createElement("button");
+      del.className = "saved-theme-del";
+      del.textContent = "\u00d7";
+      del.title = "Delete theme";
+      del.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        savedThemes.splice(idx, 1);
+        await persistSavedThemes();
+        renderSavedThemes();
+      });
+      wrap.append(btn, del);
+      container.appendChild(wrap);
+    });
+  }
+
+  function updateSavedThemeButtons() {
+    const currentCSS = document.getElementById("opt-custom-css").value;
+    document.querySelectorAll(".saved-theme-btn").forEach(btn => {
+      const theme = savedThemes.find(t => t.name === btn.textContent);
+      btn.classList.toggle("active", theme && currentCSS.trim() === theme.css.trim());
+    });
+  }
+
+  document.getElementById("save-custom-theme").addEventListener("click", async () => {
+    const css = document.getElementById("opt-custom-css").value.trim();
+    if (!css) return;
+    const name = prompt("Theme name:");
+    if (!name || !name.trim()) return;
+    const trimmedName = name.trim();
+    const existing = savedThemes.findIndex(t => t.name === trimmedName);
+    if (existing >= 0) {
+      if (!confirm(`"${trimmedName}" already exists. Overwrite?`)) return;
+      savedThemes[existing].css = css;
+    } else {
+      savedThemes.push({ name: trimmedName, css });
+    }
+    await persistSavedThemes();
+    renderSavedThemes();
+  });
+
+  await loadSavedThemes();
 
   // ---- Chrome shortcuts link ----
   document.getElementById("open-shortcuts-link")?.addEventListener("click", (e) => {
