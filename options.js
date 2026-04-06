@@ -20,6 +20,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   const s = await chrome.storage.sync.get(SETTINGS_DEFAULTS);
   deobfuscateSettings(s);
 
+  // ---- Load customCSS from local storage (too large for sync) ----
+  const localData = await chrome.storage.local.get({ customCSS: "" });
+  s.customCSS = localData.customCSS || "";
+  // One-time cleanup: remove stale customCSS from sync storage
+  chrome.storage.sync.remove("customCSS").catch(() => {});
+
   // ---- Fill text/password/select fields ----
   const fieldMap = {
     "opt-pinboard-token": s.pinboardToken,
@@ -77,16 +83,34 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (el) el.checked = val;
   }
 
-  // ---- Apply theme from loaded settings (robust fallback for inline script) ----
-  function applyOptionsTheme(theme) {
-    const isDark = theme === "dark" ||
-      (theme === "auto" && window.matchMedia("(prefers-color-scheme: dark)").matches);
-    document.documentElement.classList.toggle("dark", isDark);
+  // ---- Apply options page theme based on Pinboard theme preset ----
+  function applyOptionsPageTheme(presetKey, themeMode) {
+    const prefersDark = themeMode === "dark" ||
+      (themeMode === "auto" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    if (presetKey === "flexoki") {
+      document.documentElement.dataset.theme = prefersDark ? "flexoki-dark" : "flexoki-light";
+    } else if (presetKey) {
+      document.documentElement.dataset.theme = presetKey;
+    } else if (prefersDark) {
+      document.documentElement.dataset.theme = "flexoki-dark";
+    } else {
+      delete document.documentElement.dataset.theme;
+    }
   }
-  applyOptionsTheme(s.optTheme);
-  // Real-time theme switch when dropdown changes
+  // Detect active preset key from stored settings or CSS matching
+  let activePresetKey = s.themePresetKey || "";
+  if (!activePresetKey && s.customCSS) {
+    // Backward compat: detect from CSS text if themePresetKey not yet stored
+    for (const [key, theme] of Object.entries(PINBOARD_THEMES)) {
+      if (theme.css.trim() === s.customCSS.trim()) { activePresetKey = key; break; }
+    }
+  }
+  applyOptionsPageTheme(activePresetKey, s.optTheme);
+  // Real-time switch when theme dropdown changes (affects Flexoki Adaptive + no-preset dark)
   document.getElementById("opt-theme").addEventListener("change", () => {
-    applyOptionsTheme(document.getElementById("opt-theme").value);
+    const currentPreset = document.documentElement.dataset.theme
+      ? (document.querySelector(".theme-preset-btn.active")?.dataset.theme || "") : "";
+    applyOptionsPageTheme(currentPreset, document.getElementById("opt-theme").value);
   });
 
   // ---- Provider field toggle ----
@@ -183,9 +207,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       notifyTabSet: document.getElementById("notify-tab-set").checked,
       notifyBatchSave: document.getElementById("notify-batch-save").checked,
       notifyErrors: document.getElementById("notify-errors").checked,
-      // Custom Style
+      // Custom Style (font only — CSS stored in local)
       customFont: document.getElementById("opt-custom-font").value.trim(),
-      customCSS: document.getElementById("opt-custom-css").value,
       // New toggles
       optCheckBookmarkStatus: document.getElementById("opt-check-bookmark-status").checked,
       optShowSuggestTags: document.getElementById("opt-show-suggest-tags").checked,
@@ -193,6 +216,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       tagPresets: document.getElementById("opt-tag-presets").value
     };
     await chrome.storage.sync.set(data);
+    // Save customCSS to local storage (too large for sync's 8KB per-item limit)
+    await chrome.storage.local.set({ customCSS: document.getElementById("opt-custom-css").value });
     flashAutoSave();
   }
 
@@ -232,6 +257,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     const exportData = Object.fromEntries(
       Object.entries(raw).filter(([k]) => !sensitiveKeys.includes(k))
     );
+    // Include customCSS from local storage
+    const localData = await chrome.storage.local.get({ customCSS: "" });
+    if (localData.customCSS) exportData.customCSS = localData.customCSS;
     const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -247,10 +275,13 @@ document.addEventListener("DOMContentLoaded", async () => {
       const text = await file.text();
       const data = JSON.parse(text);
       const sensitiveKeys = ["pinboardToken","geminiApiKey","openaiApiKey","claudeApiKey","deepseekApiKey","qwenApiKey","minimaxApiKey","openrouterApiKey","customApiKey"];
+      // Route customCSS to local storage
+      const { customCSS, ...rest } = data;
       const safeData = Object.fromEntries(
-        Object.entries(data).filter(([k]) => !sensitiveKeys.includes(k))
+        Object.entries(rest).filter(([k]) => !sensitiveKeys.includes(k))
       );
       await chrome.storage.sync.set(safeData);
+      if (customCSS !== undefined) await chrome.storage.local.set({ customCSS });
       const status = document.getElementById("import-status");
       status.textContent = "✓ Imported — reload to see changes";
       setTimeout(() => { status.textContent = ""; }, 3000);
@@ -359,6 +390,54 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   ["gemini","openai","claude","deepseek","qwen","minimax","openrouter","ollama","custom"].forEach(p => {
     document.getElementById(`test-${p}`)?.addEventListener("click", () => testAIProvider(p));
+  });
+
+  // ---- Theme preset buttons ----
+  function updateThemePresetButtons() {
+    const css = document.getElementById("opt-custom-css").value;
+    document.querySelectorAll(".theme-preset-btn").forEach(btn => {
+      const key = btn.dataset.theme;
+      if (!key) {
+        // "None" button: active when CSS is empty
+        btn.classList.toggle("active", !css.trim());
+      } else {
+        const theme = PINBOARD_THEMES[key];
+        btn.classList.toggle("active", theme && css.trim() === theme.css.trim());
+      }
+    });
+  }
+  updateThemePresetButtons();
+
+  document.querySelectorAll(".theme-preset-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const key = btn.dataset.theme;
+      const cssEl = document.getElementById("opt-custom-css");
+      if (!key) {
+        cssEl.value = "";
+      } else {
+        const theme = PINBOARD_THEMES[key];
+        if (theme) cssEl.value = theme.css;
+      }
+      updateThemePresetButtons();
+      // Apply options page theme instantly
+      applyOptionsPageTheme(key, document.getElementById("opt-theme").value);
+      // Persist preset key for early-load detection
+      chrome.storage.sync.set({ themePresetKey: key || "" });
+      scheduleAutoSave();
+    });
+  });
+
+  // Update active state and options page theme when user manually edits CSS
+  document.getElementById("opt-custom-css").addEventListener("input", () => {
+    updateThemePresetButtons();
+    // Detect if edited CSS matches a preset, update options page theme accordingly
+    const css = document.getElementById("opt-custom-css").value;
+    let matchedKey = "";
+    for (const [key, theme] of Object.entries(PINBOARD_THEMES)) {
+      if (theme.css.trim() === css.trim()) { matchedKey = key; break; }
+    }
+    applyOptionsPageTheme(matchedKey, document.getElementById("opt-theme").value);
+    chrome.storage.sync.set({ themePresetKey: matchedKey });
   });
 
   // ---- Chrome shortcuts link ----

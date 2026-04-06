@@ -55,37 +55,109 @@
     }
     .auto-save-hint.saved { color: #080; }
 
-    /* ---- Flexoki Dark Mode ---- */
-    html.dark body { background: #1C1B1A; color: #CECDC3; }
-    html.dark h1 { color: #CECDC3; border-color: #403E3C; }
-    html.dark .tabs { border-color: #403E3C; }
-    html.dark .tab-btn { background: #282726; border-color: #403E3C; color: #878580; }
-    html.dark .tab-btn.active { background: #1C1B1A; color: #CECDC3; }
-    html.dark .panel { background: #1C1B1A; border-color: #403E3C; }
-    html.dark .fg label { color: #CECDC3; }
-    html.dark .fg label.bl { color: #878580; }
-    html.dark .fg input[type="text"], html.dark .fg input[type="password"],
-    html.dark .fg input[type="number"], html.dark .fg select, html.dark .fg textarea {
-      background: #282726; border-color: #403E3C; color: #CECDC3;
+    /* Theme preset button active state (default) */
+    .theme-preset-btn.active { background: #4477bb; color: #fff; border-color: #3366aa; }
+
+    /* ---- Options Page Theme System (CSS Custom Properties) ---- */
+    html[data-theme="modern-card"] {
+      --opt-bg: #f0f2f5; --opt-panel: #fff; --opt-tab: #e8eaed; --opt-tab-active: #fff;
+      --opt-fg: #333; --opt-fg-muted: #555; --opt-fg-hint: #999;
+      --opt-accent: #1a73e8; --opt-save: #1a73e8;
+      --opt-border: #d0d0d0; --opt-border-section: #e0e0e0;
+      --opt-input-bg: #fff; --opt-input-border: #d0d0d0;
+      --opt-btn-bg: #e8eaed; --opt-btn-hover: #d0d4d8;
+      --opt-pf-bg: #f8f9fa; --opt-code-bg: #e8eaed;
     }
-    html.dark .fg input:focus, html.dark .fg select:focus, html.dark .fg textarea:focus {
-      border-color: #4385BE;
+    html[data-theme="nord-night"] {
+      --opt-bg: #2e3440; --opt-panel: #3b4252; --opt-tab: #434c5e; --opt-tab-active: #3b4252;
+      --opt-fg: #d8dee9; --opt-fg-muted: #7b88a1; --opt-fg-hint: #6b7894;
+      --opt-accent: #88c0d0; --opt-save: #a3be8c;
+      --opt-border: #434c5e; --opt-border-section: #434c5e;
+      --opt-input-bg: #434c5e; --opt-input-border: #4c566a;
+      --opt-btn-bg: #434c5e; --opt-btn-hover: #4c566a;
+      --opt-pf-bg: #434c5e; --opt-code-bg: #434c5e;
     }
-    html.dark .hint { color: #6F6E69; }
-    html.dark .hint a { color: #4385BE; }
-    html.dark .hint code { background: #343331; color: #878580; }
-    html.dark .divider { border-color: #403E3C; }
-    html.dark .btn { background: #343331; border-color: #403E3C; color: #CECDC3; }
-    html.dark .btn:hover { background: #403E3C; }
-    html.dark .pf { background: #282726; border-color: #403E3C; }
-    html.dark .pf h3 { color: #878580; }
-    html.dark .section-title { color: #878580; }
-    html.dark .save-status { color: #879A39; }
-    html.dark .auto-save-hint { color: #6F6E69; }
-    html.dark .auto-save-hint.saved { color: #879A39; }
-    html.dark .accordion-header { color: #878580; }
-    html.dark .accordion-header:hover { color: #4385BE; }
-    html.dark .accordion-section { border-color: #403E3C; }
+    html[data-theme="terminal"] {
+      --opt-bg: #0a0a0a; --opt-panel: #111; --opt-tab: #0a0a0a; --opt-tab-active: #111;
+      --opt-fg: #33ff33; --opt-fg-muted: rgba(51,255,51,0.6); --opt-fg-hint: rgba(51,255,51,0.4);
+      --opt-accent: #33ff33; --opt-save: #33ff33;
+      --opt-border: rgba(51,255,51,0.25); --opt-border-section: rgba(51,255,51,0.15);
+      --opt-input-bg: #0a0a0a; --opt-input-border: rgba(51,255,51,0.25);
+      --opt-btn-bg: #111; --opt-btn-hover: #1a1a1a;
+      --opt-pf-bg: #0d0d0d; --opt-code-bg: #1a1a1a;
+    }
+    html[data-theme="paper-ink"] {
+      --opt-bg: #f5f0e8; --opt-panel: #faf8f5; --opt-tab: #f0ebe0; --opt-tab-active: #faf8f5;
+      --opt-fg: #2c2c2c; --opt-fg-muted: #7a6f60; --opt-fg-hint: #998f80;
+      --opt-accent: #1a3a5c; --opt-save: #1a3a5c;
+      --opt-border: #e8dfd0; --opt-border-section: #e8dfd0;
+      --opt-input-bg: #faf8f5; --opt-input-border: #d8cfc0;
+      --opt-btn-bg: #f0ebe0; --opt-btn-hover: #e8e0d0;
+      --opt-pf-bg: #f5f0e8; --opt-code-bg: #f0ebe0;
+    }
+    html[data-theme="dracula"] {
+      --opt-bg: #282a36; --opt-panel: #21222c; --opt-tab: #343746; --opt-tab-active: #21222c;
+      --opt-fg: #f8f8f2; --opt-fg-muted: #6272a4; --opt-fg-hint: #6272a4;
+      --opt-accent: #ff79c6; --opt-save: #50fa7b;
+      --opt-border: #44475a; --opt-border-section: #44475a;
+      --opt-input-bg: #343746; --opt-input-border: #44475a;
+      --opt-btn-bg: #343746; --opt-btn-hover: #44475a;
+      --opt-pf-bg: #343746; --opt-code-bg: #343746;
+    }
+    html[data-theme="flexoki-light"] {
+      --opt-bg: #FFFCF0; --opt-panel: #FFFCF0; --opt-tab: #F2F0E5; --opt-tab-active: #FFFCF0;
+      --opt-fg: #100F0F; --opt-fg-muted: #6F6E69; --opt-fg-hint: #878580;
+      --opt-accent: #205EA6; --opt-save: #66800B;
+      --opt-border: #E6E4D9; --opt-border-section: #E6E4D9;
+      --opt-input-bg: #FFFCF0; --opt-input-border: #E6E4D9;
+      --opt-btn-bg: #F2F0E5; --opt-btn-hover: #E6E4D9;
+      --opt-pf-bg: #F2F0E5; --opt-code-bg: #F2F0E5;
+    }
+    html[data-theme="flexoki-dark"] {
+      --opt-bg: #1C1B1A; --opt-panel: #1C1B1A; --opt-tab: #282726; --opt-tab-active: #1C1B1A;
+      --opt-fg: #CECDC3; --opt-fg-muted: #878580; --opt-fg-hint: #6F6E69;
+      --opt-accent: #4385BE; --opt-save: #879A39;
+      --opt-border: #403E3C; --opt-border-section: #403E3C;
+      --opt-input-bg: #282726; --opt-input-border: #403E3C;
+      --opt-btn-bg: #343331; --opt-btn-hover: #403E3C;
+      --opt-pf-bg: #282726; --opt-code-bg: #343331;
+    }
+
+    /* Shared themed rules — applied when any data-theme is set */
+    html[data-theme] body { background: var(--opt-bg); color: var(--opt-fg); }
+    html[data-theme] h1 { color: var(--opt-fg); border-color: var(--opt-border); }
+    html[data-theme] .tabs { border-color: var(--opt-border); }
+    html[data-theme] .tab-btn { background: var(--opt-tab); border-color: var(--opt-border); color: var(--opt-fg-muted); }
+    html[data-theme] .tab-btn.active { background: var(--opt-tab-active); color: var(--opt-fg); }
+    html[data-theme] .panel { background: var(--opt-panel); border-color: var(--opt-border); }
+    html[data-theme] .fg label { color: var(--opt-fg); }
+    html[data-theme] .fg label.bl { color: var(--opt-fg-muted); }
+    html[data-theme] .fg input[type="text"], html[data-theme] .fg input[type="password"],
+    html[data-theme] .fg input[type="number"], html[data-theme] .fg select, html[data-theme] .fg textarea {
+      background: var(--opt-input-bg); border-color: var(--opt-input-border); color: var(--opt-fg);
+    }
+    html[data-theme] .fg input:focus, html[data-theme] .fg select:focus, html[data-theme] .fg textarea:focus {
+      border-color: var(--opt-accent);
+    }
+    html[data-theme] .hint { color: var(--opt-fg-hint); }
+    html[data-theme] .hint a { color: var(--opt-accent); }
+    html[data-theme] .hint code { background: var(--opt-code-bg); color: var(--opt-fg-muted); }
+    html[data-theme] .divider { border-color: var(--opt-border-section); }
+    html[data-theme] .btn { background: var(--opt-btn-bg); border-color: var(--opt-border); color: var(--opt-fg); }
+    html[data-theme] .btn:hover { background: var(--opt-btn-hover); }
+    html[data-theme] .pf { background: var(--opt-pf-bg); border-color: var(--opt-border); }
+    html[data-theme] .pf h3 { color: var(--opt-fg-muted); }
+    html[data-theme] .section-title { color: var(--opt-fg-muted); }
+    html[data-theme] .save-status { color: var(--opt-save); }
+    html[data-theme] .auto-save-hint { color: var(--opt-fg-hint); }
+    html[data-theme] .auto-save-hint.saved { color: var(--opt-save); }
+    html[data-theme] .accordion-header { color: var(--opt-fg-muted); }
+    html[data-theme] .accordion-header:hover { color: var(--opt-accent); }
+    html[data-theme] .accordion-section { border-color: var(--opt-border-section); }
+    html[data-theme] .theme-preset-btn.active { background: var(--opt-accent); border-color: var(--opt-accent); color: var(--opt-bg); }
+    /* Terminal monospace font override */
+    html[data-theme="terminal"] body { font-family: "Courier New", Consolas, monospace; }
+    html[data-theme="terminal"] .fg textarea { font-family: "Courier New", Consolas, monospace; }
   </style>
 </head>
 <body>
@@ -389,22 +461,29 @@
         <p class="hint">Applied to <code>body</code> on pinboard.in. Leave empty to keep default.</p>
       </div>
       <div class="fg">
+        <label class="bl">Theme Presets</label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+          <button class="btn btn-sm theme-preset-btn" data-theme="">None</button>
+          <button class="btn btn-sm theme-preset-btn" data-theme="modern-card">Modern Card</button>
+          <button class="btn btn-sm theme-preset-btn" data-theme="nord-night">Nord Night</button>
+          <button class="btn btn-sm theme-preset-btn" data-theme="terminal">Terminal</button>
+          <button class="btn btn-sm theme-preset-btn" data-theme="paper-ink">Paper &amp; Ink</button>
+          <button class="btn btn-sm theme-preset-btn" data-theme="dracula">Dracula</button>
+          <button class="btn btn-sm theme-preset-btn" data-theme="flexoki">Flexoki Adaptive</button>
+        </div>
+        <p class="hint" style="margin-bottom:8px">Click a preset to load its CSS. You can further customize after loading.</p>
+      </div>
+      <div class="fg">
         <label class="bl">Custom CSS</label>
-        <textarea id="opt-custom-css" rows="6" placeholder="/* Custom CSS for pinboard.in */&#10;body { line-height: 1.6; }&#10;.bookmark_title { font-size: 14px; }"></textarea>
+        <textarea id="opt-custom-css" rows="12" placeholder="/* Custom CSS for pinboard.in */&#10;body { line-height: 1.6; }&#10;.bookmark_title { font-size: 14px; }"></textarea>
         <p class="hint">Injected as a <code>&lt;style&gt;</code> block on every pinboard.in page.</p>
       </div>
 
     </div>
   </div>
-  <script>
-    // Apply theme early to prevent flash (promise-based for MV3 reliability)
-    chrome.storage.sync.get({ optTheme: "auto" }).then(s => {
-      const isDark = s.optTheme === "dark" ||
-        (s.optTheme === "auto" && window.matchMedia("(prefers-color-scheme: dark)").matches);
-      document.documentElement.classList.toggle("dark", isDark);
-    });
-  </script>
+  <script src="options-theme-early.js"></script>
   <script src="shared.js"></script>
+  <script src="pinboard-themes.js"></script>
   <script src="options.js"></script>
 </body>
 </html>

@@ -51,11 +51,12 @@ const SETTINGS_DEFAULTS = {
   optShowRecent: true, optShowSearch: true, optTheme: "auto",
   notifyQuickSave: true, notifyReadLater: true,
   notifyTabSet: true, notifyBatchSave: true, notifyErrors: true,
-  customFont: "", customCSS: "",
+  customFont: "",
   optRespectTagCase: true, aiTagSeparator: "-",
   offlineQueueEnabled: true, optShowBadge: false,
   optCheckBookmarkStatus: true, optShowSuggestTags: true,
-  tagPresets: "", optAutoCloseAfterSave: true
+  tagPresets: "", optAutoCloseAfterSave: true,
+  themePresetKey: ""
 };
 
 // ---- Tag case normalization helpers ----

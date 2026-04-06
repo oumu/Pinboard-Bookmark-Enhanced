@@ -5,10 +5,18 @@
 
 (async () => {
   try {
-    const { customFont, customCSS } = await chrome.storage.sync.get({
-      customFont: "",
-      customCSS: ""
-    });
+    const [syncData, localData] = await Promise.all([
+      chrome.storage.sync.get({ customFont: "", optTheme: "auto" }),
+      chrome.storage.local.get({ customCSS: "" })
+    ]);
+
+    const { customFont, optTheme } = syncData;
+    const { customCSS } = localData;
+
+    // Inject pbp-dark class based on extension theme setting
+    const isDark = optTheme === "dark" ||
+      (optTheme === "auto" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    document.documentElement.classList.toggle("pbp-dark", isDark);
 
     if (!customFont && !customCSS) return;
 
