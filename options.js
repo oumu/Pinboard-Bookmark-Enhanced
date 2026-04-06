@@ -76,7 +76,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     "opt-show-badge": s.optShowBadge,
     "opt-check-bookmark-status": s.optCheckBookmarkStatus,
     "opt-show-suggest-tags": s.optShowSuggestTags,
-    "opt-auto-close": s.optAutoCloseAfterSave
+    "opt-auto-close": s.optAutoCloseAfterSave,
+    "opt-popup-follow-theme": s.optPopupFollowTheme
   };
   for (const [id, val] of Object.entries(checkMap)) {
     const el = document.getElementById(id);
@@ -97,20 +98,18 @@ document.addEventListener("DOMContentLoaded", async () => {
       delete document.documentElement.dataset.theme;
     }
   }
-  // Detect active preset key from stored settings or CSS matching
-  let activePresetKey = s.themePresetKey || "";
-  if (!activePresetKey && s.customCSS) {
+  // Track active preset key — used by saveAll() and theme dropdown listener
+  let currentPresetKey = s.themePresetKey || "";
+  if (!currentPresetKey && s.customCSS) {
     // Backward compat: detect from CSS text if themePresetKey not yet stored
     for (const [key, theme] of Object.entries(PINBOARD_THEMES)) {
-      if (theme.css.trim() === s.customCSS.trim()) { activePresetKey = key; break; }
+      if (theme.css.trim() === s.customCSS.trim()) { currentPresetKey = key; break; }
     }
   }
-  applyOptionsPageTheme(activePresetKey, s.optTheme);
+  applyOptionsPageTheme(currentPresetKey, s.optTheme);
   // Real-time switch when theme dropdown changes (affects Flexoki Adaptive + no-preset dark)
   document.getElementById("opt-theme").addEventListener("change", () => {
-    const currentPreset = document.documentElement.dataset.theme
-      ? (document.querySelector(".theme-preset-btn.active")?.dataset.theme || "") : "";
-    applyOptionsPageTheme(currentPreset, document.getElementById("opt-theme").value);
+    applyOptionsPageTheme(currentPresetKey, document.getElementById("opt-theme").value);
   });
 
   // ---- Provider field toggle ----
@@ -213,7 +212,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       optCheckBookmarkStatus: document.getElementById("opt-check-bookmark-status").checked,
       optShowSuggestTags: document.getElementById("opt-show-suggest-tags").checked,
       optAutoCloseAfterSave: document.getElementById("opt-auto-close").checked,
-      tagPresets: document.getElementById("opt-tag-presets").value
+      optPopupFollowTheme: document.getElementById("opt-popup-follow-theme").checked,
+      tagPresets: document.getElementById("opt-tag-presets").value,
+      themePresetKey: currentPresetKey
     };
     await chrome.storage.sync.set(data);
     // Save customCSS to local storage (too large for sync's 8KB per-item limit)
@@ -420,10 +421,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
       updateThemePresetButtons();
       updateSavedThemeButtons();
-      // Apply options page theme instantly
-      applyOptionsPageTheme(key, document.getElementById("opt-theme").value);
-      // Persist preset key for early-load detection
-      chrome.storage.sync.set({ themePresetKey: key || "" });
+      // Update tracked key and apply options page theme instantly
+      currentPresetKey = key || "";
+      applyOptionsPageTheme(currentPresetKey, document.getElementById("opt-theme").value);
       scheduleAutoSave();
     });
   });
@@ -438,8 +438,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     for (const [key, theme] of Object.entries(PINBOARD_THEMES)) {
       if (theme.css.trim() === css.trim()) { matchedKey = key; break; }
     }
-    applyOptionsPageTheme(matchedKey, document.getElementById("opt-theme").value);
-    chrome.storage.sync.set({ themePresetKey: matchedKey });
+    currentPresetKey = matchedKey;
+    applyOptionsPageTheme(currentPresetKey, document.getElementById("opt-theme").value);
   });
 
   // ---- Saved custom themes ----
@@ -473,8 +473,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         updateThemePresetButtons();
         updateSavedThemeButtons();
         // Custom saved themes do NOT affect options page styling — clear preset key
+        currentPresetKey = "";
         applyOptionsPageTheme("", document.getElementById("opt-theme").value);
-        chrome.storage.sync.set({ themePresetKey: "" });
         scheduleAutoSave();
       });
       const del = document.createElement("button");

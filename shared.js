@@ -56,7 +56,7 @@ const SETTINGS_DEFAULTS = {
   offlineQueueEnabled: true, optShowBadge: false,
   optCheckBookmarkStatus: true, optShowSuggestTags: true,
   tagPresets: "", optAutoCloseAfterSave: true,
-  themePresetKey: ""
+  themePresetKey: "", optPopupFollowTheme: true
 };
 
 // ---- Tag case normalization helpers ----

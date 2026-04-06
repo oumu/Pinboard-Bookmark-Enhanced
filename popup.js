@@ -16,11 +16,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   settings = await chrome.storage.sync.get(SETTINGS_DEFAULTS);
   deobfuscateSettings(settings);
 
-  // Apply theme: preset-based data-theme, or fallback to generic .dark
+  // Apply theme: preset-based data-theme (if enabled), or fallback to generic .dark
   function applyTheme() {
     const prefersDark = settings.optTheme === "dark" ||
       (settings.optTheme === "auto" && window.matchMedia("(prefers-color-scheme: dark)").matches);
-    const key = settings.themePresetKey || "";
+    const key = settings.optPopupFollowTheme !== false ? (settings.themePresetKey || "") : "";
     if (key === "flexoki") {
       document.documentElement.dataset.theme = prefersDark ? "flexoki-dark" : "flexoki-light";
       document.documentElement.classList.remove("dark");
