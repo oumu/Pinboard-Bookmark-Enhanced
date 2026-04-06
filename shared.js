@@ -2,7 +2,7 @@
 // Pinboard Bookmark Plus - Shared Constants
 // ============================================================
 
-const DEFAULT_TAG_PROMPT = `Suggest 5-10 bookmark tags for the following webpage. Tags should be lowercase, use hyphens for multi-word. Return ONLY a JSON array.
+const DEFAULT_TAG_PROMPT = `Suggest 5-10 bookmark tags for the following webpage. Tags should be lowercase, {{separator_instruction}}. Return ONLY a JSON array.
 
 Title: {{title}}
 URL: {{url}}
@@ -46,13 +46,13 @@ const SETTINGS_DEFAULTS = {
   aiSummaryLang: "auto", aiCacheDuration: 60,
   customTagPrompt: "", customSummaryPrompt: "",
   optPrivateDefault: false, optPrivateIncognito: false, optReadlaterDefault: false,
-  optAutoDescription: true, optBlockquote: true, optIncludeReferrer: true,
+  optAutoDescription: true, optBlockquote: true, optIncludeReferrer: false,
   optAiAutoTags: false,
   qsAutoNotes: true, qsBlockquote: true, qsDefaultTags: "", qsAiTags: false, qsAiSummary: false,
   rlAutoNotes: true, rlBlockquote: true, rlDefaultTags: "", rlAiTags: false, rlAiSummary: false,
   optBatchTagEnabled: true, optBatchTag: "batch_saved",
   batchAiTags: false, batchAiSummary: false, batchSkipExisting: false,
-  optShowRecent: true, optShowSearch: true, optTheme: "auto",
+  optShowRecent: false, optShowSearch: false, optTheme: "auto",
   notifyQuickSave: true, notifyReadLater: true,
   notifyTabSet: true, notifyBatchSave: true, notifyErrors: true,
   customFont: "",
@@ -126,6 +126,44 @@ async function _processPinboardQueue() {
     try { resolve(await fetch(url, options)); } catch (e) { reject(e); }
   }
   _pinboardProcessing = false;
+}
+
+// ---- Chunked sync storage for large values ----
+// chrome.storage.sync has 8KB per-key limit; split large strings into chunks
+const SYNC_CHUNK_SIZE = 7000; // bytes, leave margin under 8KB (QUOTA_BYTES_PER_ITEM)
+
+async function syncSetLarge(key, value) {
+  const str = typeof value === "string" ? value : JSON.stringify(value);
+  // Remove old chunks first
+  const meta = await chrome.storage.sync.get(key);
+  if (meta[key]?._chunks) {
+    const oldKeys = Array.from({ length: meta[key]._chunks }, (_, i) => `${key}_${i}`);
+    await chrome.storage.sync.remove(oldKeys);
+  }
+  if (!str) {
+    await chrome.storage.sync.remove(key);
+    return;
+  }
+  const chunks = [];
+  for (let i = 0; i < str.length; i += SYNC_CHUNK_SIZE) {
+    chunks.push(str.substring(i, i + SYNC_CHUNK_SIZE));
+  }
+  const data = { [key]: { _chunks: chunks.length } };
+  chunks.forEach((chunk, i) => { data[`${key}_${i}`] = chunk; });
+  await chrome.storage.sync.set(data);
+}
+
+async function syncGetLarge(key, defaultValue) {
+  const meta = await chrome.storage.sync.get(key);
+  if (!meta[key] || !meta[key]._chunks) return defaultValue;
+  const chunkKeys = Array.from({ length: meta[key]._chunks }, (_, i) => `${key}_${i}`);
+  const chunks = await chrome.storage.sync.get(chunkKeys);
+  let str = "";
+  for (const k of chunkKeys) str += (chunks[k] || "");
+  if (!str) return defaultValue;
+  // If defaultValue is string, return string; otherwise parse JSON
+  if (typeof defaultValue === "string") return str;
+  try { return JSON.parse(str); } catch (_) { return defaultValue; }
 }
 
 const API_KEY_FIELDS = ["pinboardToken","geminiApiKey","openaiApiKey","claudeApiKey","deepseekApiKey","qwenApiKey","minimaxApiKey","openrouterApiKey","groqApiKey","mistralApiKey","cohereApiKey","siliconflowApiKey","customApiKey"];

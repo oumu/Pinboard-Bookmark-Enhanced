@@ -4,14 +4,22 @@
 // ============================================================
 
 (async () => {
+  // Read chunked sync data (mirrors syncGetLarge from shared.js)
+  async function readChunkedSync(key, defaultValue) {
+    const meta = await chrome.storage.sync.get(key);
+    if (!meta[key] || !meta[key]._chunks) return defaultValue;
+    const chunkKeys = Array.from({ length: meta[key]._chunks }, (_, i) => `${key}_${i}`);
+    const chunks = await chrome.storage.sync.get(chunkKeys);
+    let str = "";
+    for (const k of chunkKeys) str += (chunks[k] || "");
+    return str || defaultValue;
+  }
+
   try {
-    const [syncData, localData] = await Promise.all([
-      chrome.storage.sync.get({ customFont: "", optTheme: "auto" }),
-      chrome.storage.local.get({ customCSS: "" })
-    ]);
+    const syncData = await chrome.storage.sync.get({ customFont: "", optTheme: "auto" });
+    const customCSS = await readChunkedSync("customCSS", "");
 
     const { customFont, optTheme } = syncData;
-    const { customCSS } = localData;
 
     // Inject pbp-dark class based on extension theme setting
     const isDark = optTheme === "dark" ||

@@ -21,7 +21,14 @@
     "https://dashscope.aliyuncs.com/*",
     "https://api.minimax.chat/*",
     "https://openrouter.ai/*",
-    "http://localhost:*/*"
+    "https://api.groq.com/*",
+    "https://api.mistral.ai/*",
+    "https://api.cohere.com/*",
+    "https://api.siliconflow.cn/*"
+  ],
+  "optional_host_permissions": [
+    "http://localhost:*/*",
+    "http://127.0.0.1:*/*"
   ],
   "background": {
     "service_worker": "background.js"

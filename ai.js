@@ -118,8 +118,11 @@ async function callOllama(s, prompt) {
 
 // ---- Prompt builders (no DOM dependency) ----
 function buildTagPrompt(s, title, url, content, description, userTags) {
+  const sep = s.aiTagSeparator || "-";
+  const sepMap = { "-": "use hyphens for multi-word (e.g. machine-learning)", "_": "use underscores for multi-word (e.g. machine_learning)", " ": "use spaces for multi-word tags" };
   const tmpl = s.customTagPrompt?.trim() || DEFAULT_TAG_PROMPT;
   let prompt = tmpl
+    .replace(/\{\{separator_instruction\}\}/g, sepMap[sep] || sepMap["-"])
     .replace(/\{\{title\}\}/g, title)
     .replace(/\{\{url\}\}/g, url)
     .replace(/\{\{content\}\}/g, (content || "").substring(0, 3000))

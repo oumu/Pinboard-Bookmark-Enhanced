@@ -9,6 +9,66 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   });
 
+  // ---- Reset current tab to defaults ----
+  const PANEL_DEFAULTS = {
+    bookmarks: {
+      fields: {
+        "opt-private-default": false, "opt-private-incognito": false, "opt-readlater-default": false,
+        "opt-auto-description": true, "opt-blockquote": true, "opt-include-referrer": false,
+        "opt-respect-tag-case": true, "opt-show-suggest-tags": true, "opt-tag-presets": "",
+        "opt-check-bookmark-status": true, "opt-auto-close": true, "offline-queue-enabled": true
+      },
+      skip: ["opt-pinboard-token"] // never reset token
+    },
+    ai: {
+      fields: {
+        "opt-ai-provider": "gemini", "opt-ai-summary-lang": "auto", "opt-ai-cache-duration": "60",
+        "opt-ai-auto-tags": false, "opt-ai-tag-separator": "-",
+        "opt-custom-tag-prompt": "", "opt-custom-summary-prompt": "",
+        "opt-gemini-model": "gemini-2.0-flash", "opt-openai-model": "gpt-4o-mini",
+        "opt-openai-baseurl": "https://api.openai.com/v1", "opt-claude-model": "claude-sonnet-4-20250514",
+        "opt-deepseek-model": "deepseek-chat", "opt-qwen-model": "qwen-turbo",
+        "opt-minimax-model": "MiniMax-Text-01", "opt-openrouter-model": "google/gemini-2.0-flash-exp:free",
+        "opt-groq-model": "llama-3.3-70b-versatile", "opt-mistral-model": "mistral-small-latest",
+        "opt-cohere-model": "command-r-plus", "opt-siliconflow-model": "Qwen/Qwen2.5-7B-Instruct",
+        "opt-ollama-baseurl": "http://localhost:11434", "opt-ollama-model": "llama3",
+        "opt-custom-name": "Custom", "opt-custom-baseurl": "", "opt-custom-model": ""
+      },
+      skip: ["opt-gemini-key","opt-openai-key","opt-claude-key","opt-deepseek-key","opt-qwen-key","opt-minimax-key","opt-openrouter-key","opt-groq-key","opt-mistral-key","opt-cohere-key","opt-siliconflow-key","opt-custom-key"]
+    },
+    quick: {
+      fields: {
+        "qs-auto-notes": true, "qs-blockquote": true, "qs-default-tags": "", "qs-ai-tags": false, "qs-ai-summary": false,
+        "rl-auto-notes": true, "rl-blockquote": true, "rl-default-tags": "", "rl-ai-tags": false, "rl-ai-summary": false,
+        "opt-batch-tag-enabled": true, "opt-batch-tag": "batch_saved",
+        "batch-ai-tags": false, "batch-ai-summary": false, "batch-skip-existing": false
+      }
+    },
+    appearance: {
+      fields: {
+        "opt-theme": "auto", "opt-popup-follow-theme": true, "opt-custom-font": "",
+        "opt-show-recent": false, "opt-show-search": false, "opt-show-badge": false,
+        "notify-quick-save": true, "notify-read-later": true, "notify-tab-set": true, "notify-batch-save": true, "notify-errors": true
+      }
+    }
+  };
+
+  document.getElementById("reset-panel-btn").addEventListener("click", () => {
+    const activeBtn = document.querySelector(".tab-btn.active");
+    if (!activeBtn) return;
+    const panel = activeBtn.dataset.panel;
+    const def = PANEL_DEFAULTS[panel];
+    if (!def) return;
+    if (!confirm(`Reset all "${activeBtn.textContent}" settings to defaults?\n\nAPI keys will not be affected.`)) return;
+    for (const [id, val] of Object.entries(def.fields)) {
+      const el = document.getElementById(id);
+      if (!el) continue;
+      if (el.type === "checkbox") el.checked = val;
+      else el.value = val;
+    }
+    saveAll();
+  });
+
   // ---- Accordion sections ----
   document.querySelectorAll(".accordion-header").forEach((header) => {
     header.addEventListener("click", () => {
@@ -32,11 +92,17 @@ document.addEventListener("DOMContentLoaded", async () => {
   const s = await chrome.storage.sync.get(SETTINGS_DEFAULTS);
   deobfuscateSettings(s);
 
-  // ---- Load customCSS from local storage (too large for sync) ----
-  const localData = await chrome.storage.local.get({ customCSS: "" });
-  s.customCSS = localData.customCSS || "";
-  // One-time cleanup: remove stale customCSS from sync storage
-  chrome.storage.sync.remove("customCSS").catch(() => {});
+  // ---- Load large sync data (chunked to bypass 8KB per-key limit) ----
+  s.customCSS = await syncGetLarge("customCSS", "");
+  // One-time migration: move customCSS from local to sync
+  if (!s.customCSS) {
+    const localData = await chrome.storage.local.get({ customCSS: "" });
+    if (localData.customCSS) {
+      s.customCSS = localData.customCSS;
+      await syncSetLarge("customCSS", s.customCSS);
+      await chrome.storage.local.remove("customCSS");
+    }
+  }
 
   // ---- Fill text/password/select fields ----
   const fieldMap = {
@@ -68,6 +134,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     const el = document.getElementById(id);
     if (el) el.value = val;
   }
+
+  // Show default prompts as placeholder so users see them when field is empty
+  document.getElementById("opt-custom-tag-prompt").placeholder = DEFAULT_TAG_PROMPT;
+  document.getElementById("opt-custom-summary-prompt").placeholder = DEFAULT_SUMMARY_PROMPT;
 
   // ---- Fill checkbox fields ----
   const checkMap = {
@@ -241,8 +311,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       themePresetKey: currentPresetKey
     };
     await chrome.storage.sync.set(data);
-    // Save customCSS to local storage (too large for sync's 8KB per-item limit)
-    await chrome.storage.local.set({ customCSS: document.getElementById("opt-custom-css").value });
+    // Save customCSS via chunked sync (supports cross-device sync)
+    await syncSetLarge("customCSS", document.getElementById("opt-custom-css").value);
     flashAutoSave();
   }
 
@@ -282,9 +352,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     const exportData = Object.fromEntries(
       Object.entries(raw).filter(([k]) => !sensitiveKeys.includes(k))
     );
-    // Include customCSS from local storage
-    const localData = await chrome.storage.local.get({ customCSS: "" });
-    if (localData.customCSS) exportData.customCSS = localData.customCSS;
+    // Include chunked sync data
+    const customCSS = await syncGetLarge("customCSS", "");
+    if (customCSS) exportData.customCSS = customCSS;
+    const savedThemesData = await syncGetLarge("savedThemes", []);
+    if (savedThemesData.length) exportData.savedThemes = savedThemesData;
+    // Remove chunk keys from export (they're internal)
+    Object.keys(exportData).forEach(k => { if (/^(customCSS|savedThemes)_\d+$/.test(k) || (exportData[k] && exportData[k]._chunks)) delete exportData[k]; });
     const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -300,13 +374,14 @@ document.addEventListener("DOMContentLoaded", async () => {
       const text = await file.text();
       const data = JSON.parse(text);
       const sensitiveKeys = ["pinboardToken","geminiApiKey","openaiApiKey","claudeApiKey","deepseekApiKey","qwenApiKey","minimaxApiKey","openrouterApiKey","groqApiKey","mistralApiKey","cohereApiKey","siliconflowApiKey","customApiKey"];
-      // Route customCSS to local storage
-      const { customCSS, ...rest } = data;
+      // Separate large data for chunked sync
+      const { customCSS, savedThemes: importedThemes, ...rest } = data;
       const safeData = Object.fromEntries(
-        Object.entries(rest).filter(([k]) => !sensitiveKeys.includes(k))
+        Object.entries(rest).filter(([k]) => !sensitiveKeys.includes(k) && !/^(customCSS|savedThemes)_\d+$/.test(k))
       );
       await chrome.storage.sync.set(safeData);
-      if (customCSS !== undefined) await chrome.storage.local.set({ customCSS });
+      if (customCSS !== undefined) await syncSetLarge("customCSS", customCSS);
+      if (importedThemes !== undefined) await syncSetLarge("savedThemes", importedThemes);
       const status = document.getElementById("import-status");
       status.textContent = "✓ Imported — reload to see changes";
       setTimeout(() => { status.textContent = ""; }, 3000);
@@ -478,13 +553,21 @@ document.addEventListener("DOMContentLoaded", async () => {
   let savedThemes = []; // [{ name: "My Theme", css: "..." }, ...]
 
   async function loadSavedThemes() {
-    const data = await chrome.storage.local.get({ savedThemes: [] });
-    savedThemes = data.savedThemes || [];
+    savedThemes = await syncGetLarge("savedThemes", []);
+    // One-time migration from local
+    if (!savedThemes.length) {
+      const local = await chrome.storage.local.get({ savedThemes: [] });
+      if (local.savedThemes?.length) {
+        savedThemes = local.savedThemes;
+        await syncSetLarge("savedThemes", savedThemes);
+        await chrome.storage.local.remove("savedThemes");
+      }
+    }
     renderSavedThemes();
   }
 
   async function persistSavedThemes() {
-    await chrome.storage.local.set({ savedThemes });
+    await syncSetLarge("savedThemes", savedThemes);
   }
 
   function renderSavedThemes() {
