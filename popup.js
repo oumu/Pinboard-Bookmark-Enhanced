@@ -128,12 +128,13 @@ async function showMain(token) {
   if (settings.optPrivateIncognito && tab.incognito) document.getElementById("private-check").checked = true;
   if (settings.optReadlaterDefault) document.getElementById("readlater-check").checked = true;
 
-  await checkExistingBookmark(token, pageInfo.url);
-  // Suggest tags — high priority, enqueue right after bookmark check
+  // Fire suggest tags first — it's the most visible to user, enqueue before bookmark check
   if (settings.optShowSuggestTags) {
     document.getElementById("suggest-row").classList.remove("hidden");
     fetchPinboardSuggestTags(token, pageInfo.url);
   }
+  // Bookmark check — uses background cache when available (instant), falls back to API
+  await checkExistingBookmark(token, pageInfo.url);
   setupTagsInput();
   setupSubmit(token);
   setupAIFeatures();
@@ -381,7 +382,18 @@ async function fetchExistingUrlSet(token) {
 // ===================== Existing Bookmark =====================
 async function checkExistingBookmark(token, url) {
   try {
-    const data = await (await pinboardFetch(`https://api.pinboard.in/v1/posts/get?url=${enc(url)}&auth_token=${token}&format=json`)).json();
+    // Try background cache first (background already checked this URL for icon status)
+    let data;
+    try {
+      const cached = await chrome.runtime.sendMessage({ type: "get_bookmark_data", url });
+      if (cached?.posts) data = { posts: cached.posts };
+    } catch (_) {}
+    // Fall back to API call on cache miss
+    if (!data) {
+      const resp = await pinboardFetch(`https://api.pinboard.in/v1/posts/get?url=${enc(url)}&auth_token=${token}&format=json`);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      data = await resp.json();
+    }
     if (data.posts?.length > 0) {
       existingBookmark = data.posts[0];
       document.getElementById("title-input").value = existingBookmark.description;
@@ -419,7 +431,9 @@ async function checkExistingBookmark(token, url) {
 async function fetchPinboardSuggestTags(token, url) {
   const container = document.getElementById("pinboard-suggest-tags");
   try {
-    const data = await (await pinboardFetch(`https://api.pinboard.in/v1/posts/suggest?url=${enc(url)}&auth_token=${token}&format=json`)).json();
+    const resp = await pinboardFetch(`https://api.pinboard.in/v1/posts/suggest?url=${enc(url)}&auth_token=${token}&format=json`);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
     container.innerHTML = "";
     const popular = data[0]?.popular || [];
     const recommended = data[1]?.recommended || [];
@@ -447,7 +461,7 @@ async function fetchPinboardSuggestTags(token, url) {
     document.getElementById("add-all-suggest")?.addEventListener("click", () => {
       container.querySelectorAll(".stag:not(.used)").forEach((el) => { addTag(el.dataset.tag); el.classList.add("used"); });
     });
-  } catch (e) { container.innerHTML = '<span class="muted">failed to load</span>'; }
+  } catch (e) { console.error("suggest tags error:", e); container.innerHTML = `<span class="muted">failed to load: ${esc(e.message || String(e))}</span>`; }
 }
 
 async function fetchAllUserTags(token) {
@@ -467,7 +481,9 @@ async function fetchAllUserTags(token) {
   } catch (_) {}
   // Cache miss — fetch from API
   try {
-    const data = await (await pinboardFetch(`https://api.pinboard.in/v1/tags/get?auth_token=${token}&format=json`)).json();
+    const resp = await pinboardFetch(`https://api.pinboard.in/v1/tags/get?auth_token=${token}&format=json`);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
     allUserTagCounts = data;
     // Sort by usage count descending, then alphabetically
     allUserTags = Object.entries(data)
@@ -677,8 +693,18 @@ function setupAIFeatures() {
   // ---- AI Summary ----
   document.getElementById("ai-summary-btn").addEventListener("click", async (e) => {
     e.preventDefault();
-    await doAISummary(false, false);
+    await doAISummary(false);
   });
+
+  // Auto-restore cached summary if description doesn't already contain one
+  if (!AI_BQ_REGEX.test(document.getElementById("description-input").value)) {
+    getAICache(pageInfo.url, "summary", settings.aiCacheDuration).then(cached => {
+      if (cached && !AI_BQ_REGEX.test(document.getElementById("description-input").value)) {
+        upsertSummary(cached);
+        showSummaryActions(true);
+      }
+    });
+  }
 
   // ---- AI Tags ----
   document.getElementById("ai-tags-btn").addEventListener("click", async (e) => {
@@ -691,39 +717,31 @@ function setupAIFeatures() {
 const AI_SUMMARY_TAG = "[AI Summary]";
 const AI_BQ_REGEX = /(\n\n)?\[AI Summary\]\n<blockquote>[\s\S]*?<\/blockquote>\s*$/;
 
-// ---- Append summary (add to end of description) ----
-function appendSummary(summary) {
+// ---- Insert or replace AI summary in description ----
+function upsertSummary(summary) {
   const di = document.getElementById("description-input");
   const cur = di.value.trim();
   const wrapped = `${AI_SUMMARY_TAG}\n<blockquote>${summary}</blockquote>`;
 
-  // If there's already an AI summary block, replace it; otherwise append
   if (AI_BQ_REGEX.test(cur)) {
     di.value = cur.replace(AI_BQ_REGEX, "\n\n" + wrapped).replace(/^\n\n/, "");
   } else {
     di.value = cur ? cur + "\n\n" + wrapped : wrapped;
   }
   updateCharCount();
+  autoResizeTextarea(di);
 }
 
-// ---- Replace only the AI-generated summary in description ----
-function replaceSummary(summary) {
+// ---- Remove AI summary block from description ----
+function removeSummary() {
   const di = document.getElementById("description-input");
-  const cur = di.value;
-  const wrapped = `${AI_SUMMARY_TAG}\n<blockquote>${summary}</blockquote>`;
-
-  if (AI_BQ_REGEX.test(cur)) {
-    di.value = cur.replace(AI_BQ_REGEX, "\n\n" + wrapped).replace(/^\n\n/, "");
-  } else {
-    const trimmed = cur.trim();
-    di.value = trimmed ? trimmed + "\n\n" + wrapped : wrapped;
-  }
+  di.value = di.value.replace(AI_BQ_REGEX, "").trim();
   updateCharCount();
+  autoResizeTextarea(di);
 }
 
-
-// ---- AI Summary core logic (forceRefresh = bypass cache, replace = replace mode) ----
-async function doAISummary(forceRefresh, replaceMode) {
+// ---- AI Summary core logic ----
+async function doAISummary(forceRefresh) {
   const btn = document.getElementById("ai-summary-btn");
   if (!hasAIKey(settings)) { showStatus("status-msg", "Set AI API key in settings", "error"); return; }
   if (!pageInfo.pageText) { showStatus("status-msg", "No page content to summarize", "error"); return; }
@@ -732,66 +750,62 @@ async function doAISummary(forceRefresh, replaceMode) {
   if (!forceRefresh) {
     const cached = await getAICache(pageInfo.url, "summary", settings.aiCacheDuration);
     if (cached) {
-      appendSummary(cached);
-      showSummaryCacheHint();
+      upsertSummary(cached);
+      showSummaryActions(true);
       return;
     }
   }
 
-  if (btn) {
+  if (btn && !btn.classList.contains("hidden")) {
     btn.textContent = "summarizing...";
     btn.classList.add("loading");
   }
   try {
     const summary = await callAI(settings, buildSummaryPrompt(settings, document.getElementById("title-input").value, document.getElementById("url-input").value, pageInfo.pageText, document.getElementById("description-input").value));
     await setAICache(pageInfo.url, "summary", summary, settings.aiCacheDuration);
-
-    if (replaceMode) {
-      replaceSummary(summary);
-    } else {
-      appendSummary(summary);
-    }
-
-    const msg = replaceMode ? "Summary replaced" : (forceRefresh ? "Summary regenerated" : "Summary generated");
-    showStatus("status-msg", msg, "success");
+    upsertSummary(summary);
+    showSummaryActions(false);
+    showStatus("status-msg", forceRefresh ? "Summary regenerated" : "Summary generated", "success");
   } catch (e) {
     showStatus("status-msg", `AI error: ${e.message}`, "error");
-  }
-  if (btn) {
-    btn.textContent = "🤖 AI summary";
-    btn.classList.remove("loading");
+    // On error during regenerate, restore actions so user can retry
+    if (forceRefresh) showSummaryActions(false);
   }
 }
 
-// ---- Show cache hint with regenerate + replace buttons ----
-function showSummaryCacheHint() {
-  const bar = document.getElementById("ai-summary-btn").parentElement;
-  // Remove old hint if exists
+// ---- Show regenerate + remove actions after summary is inserted ----
+function showSummaryActions(fromCache) {
+  const btn = document.getElementById("ai-summary-btn");
+  const bar = btn.parentElement;
+  // Hide the original button — regenerate/remove take over
+  btn.classList.add("hidden");
   bar.querySelector(".cache-hint-wrap")?.remove();
 
   const wrap = document.createElement("span");
   wrap.className = "cache-hint-wrap";
-  wrap.innerHTML = [
-    '<span class="cache-hint">cached</span>',
-    '<a href="#" class="regen-link" data-mode="append">↻ regenerate</a>',
-    '<a href="#" class="regen-link" data-mode="replace">↻ regenerate &amp; replace</a>'
-  ].join("");
+  const parts = [];
+  if (fromCache) parts.push('<span class="cache-hint">cached</span>');
+  parts.push('<a href="#" class="regen-link" data-action="regenerate">↻ regenerate</a>');
+  parts.push('<a href="#" class="regen-link" data-action="remove">✕ remove</a>');
+  wrap.innerHTML = parts.join("");
   bar.appendChild(wrap);
 
-  wrap.querySelectorAll(".regen-link").forEach((link) => {
+  wrap.querySelectorAll(".regen-link").forEach(link => {
     link.addEventListener("click", async (e) => {
       e.preventDefault();
-      const mode = e.currentTarget.dataset.mode;
-      const isReplace = mode === "replace";
-
-      // Disable all links in this hint
-      wrap.querySelectorAll(".regen-link").forEach((l) => {
-        l.classList.add("loading");
-      });
-      e.currentTarget.textContent = isReplace ? "replacing..." : "regenerating...";
-
-      await doAISummary(true, isReplace);
-      wrap.remove();
+      const action = e.currentTarget.dataset.action;
+      if (action === "remove") {
+        removeSummary();
+        wrap.remove();
+        btn.textContent = "🤖 AI summary";
+        btn.classList.remove("hidden", "loading");
+        showStatus("status-msg", "Summary removed", "success");
+        return;
+      }
+      // regenerate
+      wrap.querySelectorAll(".regen-link").forEach(l => l.classList.add("loading"));
+      e.currentTarget.textContent = "regenerating...";
+      await doAISummary(true);
     });
   });
 }
@@ -909,7 +923,9 @@ async function fetchRecentBookmarks(token) {
   const container = document.getElementById("recent-bookmarks");
   if (!container) return;
   try {
-    const data = await (await pinboardFetch(`https://api.pinboard.in/v1/posts/recent?auth_token=${token}&format=json&count=5`)).json();
+    const resp = await pinboardFetch(`https://api.pinboard.in/v1/posts/recent?auth_token=${token}&format=json&count=5`);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
     const posts = data.posts || [];
     if (!posts.length) return;
     container.classList.remove("hidden");
@@ -947,7 +963,7 @@ async function fetchRecentBookmarks(token) {
       row.appendChild(del);
       container.appendChild(row);
     });
-  } catch (e) { container.classList.remove("hidden"); container.innerHTML = '<div class="recent-bm-label">Recent:</div><span class="muted">failed to load</span>'; }
+  } catch (e) { console.error("recent bookmarks error:", e); container.classList.remove("hidden"); container.innerHTML = `<div class="recent-bm-label">Recent:</div><span class="muted">failed to load: ${esc(e.message || String(e))}</span>`; }
 }
 
 // ===================== Offline Queue Status =====================

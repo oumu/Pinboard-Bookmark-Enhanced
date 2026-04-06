@@ -117,10 +117,12 @@ async function _processPinboardQueue() {
     } catch (_) {}
     const now = Date.now();
     const wait = Math.max(0, 3100 - (now - lastCall));
+    // Reserve the time slot BEFORE waiting/fetching to prevent race conditions
+    // between popup and background contexts reading stale timestamps
+    const reservedTime = now + wait;
+    _pinboardLastCall = reservedTime;
+    try { await chrome.storage.local.set({ _pbRateLimitTs: reservedTime }); } catch (_) {}
     if (wait > 0) await new Promise(r => setTimeout(r, wait));
-    const callTime = Date.now();
-    _pinboardLastCall = callTime;
-    try { await chrome.storage.local.set({ _pbRateLimitTs: callTime }); } catch (_) {}
     try { resolve(await fetch(url, options)); } catch (e) { reject(e); }
   }
   _pinboardProcessing = false;

@@ -131,9 +131,11 @@ async function checkBookmarked(url) {
     const token = await getCachedToken();
     if (!token) return false;
     const resp = await pinboardFetch(`https://api.pinboard.in/v1/posts/get?auth_token=${token}&format=json&url=${encodeURIComponent(url)}`);
+    if (!resp.ok) return false;
     const data = await resp.json();
-    const bookmarked = data.posts && data.posts.length > 0;
-    statusCache.set(url, { bookmarked, timestamp: Date.now() });
+    const posts = data.posts || [];
+    const bookmarked = posts.length > 0;
+    statusCache.set(url, { bookmarked, timestamp: Date.now(), posts });
     cleanupStatusCache();
     return bookmarked;
   } catch (e) {
@@ -368,6 +370,16 @@ chrome.runtime.onStartup.addListener(() => {
 // ---- 监听来自 popup 的消息 ----
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (!message || typeof message !== "object") { sendResponse({ error: "invalid" }); return true; }
+
+  if (message.type === "get_bookmark_data" && message.url) {
+    const cached = statusCache.get(message.url);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL && cached.posts) {
+      sendResponse({ posts: cached.posts });
+    } else {
+      sendResponse({ posts: null });
+    }
+    return true;
+  }
 
   if (message.type === "bookmark_saved" && message.url) {
     statusCache.set(message.url, { bookmarked: true, timestamp: Date.now() });
