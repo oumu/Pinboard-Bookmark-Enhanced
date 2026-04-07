@@ -44,11 +44,13 @@ if [ -f "${ZIP_PATH}" ]; then
 fi
 
 cd "${REPO_ROOT}"
-python3 - "${ZIP_PATH}" "${INCLUDE[@]}" <<'PYEOF'
+python3 - "${ZIP_PATH}" "${VERSION}" "${INCLUDE[@]}" <<'PYEOF'
 import sys, zipfile, pathlib
 
 zip_path = sys.argv[1]
-targets = sys.argv[2:]
+version  = sys.argv[2]
+targets  = sys.argv[3:]
+prefix   = f"pinboard-bookmark-enhanced-v{version}/"
 
 with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
     for target in targets:
@@ -59,9 +61,9 @@ with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
         if p.is_dir():
             for file in sorted(p.rglob('*')):
                 if file.is_file() and '.DS_Store' not in file.name:
-                    zf.write(file)
+                    zf.write(file, prefix + str(file))
         else:
-            zf.write(p)
+            zf.write(p, prefix + str(p))
 PYEOF
 
 echo ""
