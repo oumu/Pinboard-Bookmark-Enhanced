@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "__MSG_extName__",
-  "version": "2.4",
+  "version": "2.4.1",
   "description": "__MSG_extDescription__",
   "default_locale": "en",
   "permissions": [
@@ -52,8 +52,13 @@
   "options_page": "options.html",
   "content_scripts": [
     {
-      "matches": ["https://pinboard.in/*", "https://*.pinboard.in/*"],
-      "js": ["pinboard-style.js"],
+      "matches": [
+        "https://pinboard.in/*",
+        "https://*.pinboard.in/*"
+      ],
+      "js": [
+        "pinboard-style.js"
+      ],
       "run_at": "document_start"
     }
   ],
