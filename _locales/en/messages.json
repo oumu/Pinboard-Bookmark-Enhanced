@@ -14,7 +14,6 @@
   "cmdReadLater": {
     "message": "Quick save as Read Later (no popup)"
   },
-
   "appName": {
     "message": "Pinboard Bookmark Plus"
   },
@@ -60,7 +59,6 @@
   "clear": {
     "message": "clear"
   },
-
   "loginPrompt": {
     "message": "Enter your API token from"
   },
@@ -76,7 +74,6 @@
   "settingsPassword": {
     "message": "settings/password"
   },
-
   "labelUrl": {
     "message": "URL"
   },
@@ -113,7 +110,6 @@
   "placeholderSearchBookmarks": {
     "message": "Search your bookmarks..."
   },
-
   "saving": {
     "message": "Saving..."
   },
@@ -138,35 +134,41 @@
   "hintCtrlEnter": {
     "message": "Ctrl+Enter"
   },
-
   "editingExisting": {
     "message": "✏️ Editing existing bookmark"
   },
   "savedOnDate": {
     "message": "saved $DATE$",
     "placeholders": {
-      "date": { "content": "$1" }
+      "date": {
+        "content": "$1"
+      }
     }
   },
   "tagCount": {
     "message": "$COUNT$ tag",
     "placeholders": {
-      "count": { "content": "$1" }
+      "count": {
+        "content": "$1"
+      }
     }
   },
   "tagCountPlural": {
     "message": "$COUNT$ tags",
     "placeholders": {
-      "count": { "content": "$1" }
+      "count": {
+        "content": "$1"
+      }
     }
   },
   "userInfoPrefix": {
     "message": "Pinboard — $USER$",
     "placeholders": {
-      "user": { "content": "$1" }
+      "user": {
+        "content": "$1"
+      }
     }
   },
-
   "aiSummaryBtn": {
     "message": "🤖 AI summary"
   },
@@ -227,13 +229,14 @@
   "aiError": {
     "message": "AI error: $ERROR$",
     "placeholders": {
-      "error": { "content": "$1" }
+      "error": {
+        "content": "$1"
+      }
     }
   },
   "addAll": {
     "message": "Add all"
   },
-
   "suggestNoSuggestions": {
     "message": "no suggestions"
   },
@@ -246,10 +249,11 @@
   "suggestFailed": {
     "message": "failed to load: $ERROR$",
     "placeholders": {
-      "error": { "content": "$1" }
+      "error": {
+        "content": "$1"
+      }
     }
   },
-
   "qlSets": {
     "message": "Sets"
   },
@@ -265,7 +269,6 @@
   "qlPopular": {
     "message": "Popular"
   },
-
   "saveTabsBtn": {
     "message": "📑 Save Tabs"
   },
@@ -290,74 +293,99 @@
   "batchProgress": {
     "message": "⏳ $CURRENT$/$TOTAL$ (✓$SAVED$ ✗$FAILED$)",
     "placeholders": {
-      "current": { "content": "$1" },
-      "total": { "content": "$2" },
-      "saved": { "content": "$3" },
-      "failed": { "content": "$4" }
+      "current": {
+        "content": "$1"
+      },
+      "total": {
+        "content": "$2"
+      },
+      "saved": {
+        "content": "$3"
+      },
+      "failed": {
+        "content": "$4"
+      }
     }
   },
   "batchDone": {
     "message": "Batch done: $SAVED$ saved, $FAILED$ failed",
     "placeholders": {
-      "saved": { "content": "$1" },
-      "failed": { "content": "$2" }
+      "saved": {
+        "content": "$1"
+      },
+      "failed": {
+        "content": "$2"
+      }
     }
   },
   "batchSkipped": {
     "message": ", $COUNT$ skipped",
     "placeholders": {
-      "count": { "content": "$1" }
+      "count": {
+        "content": "$1"
+      }
     }
   },
   "batchSavedCount": {
     "message": "✅ $COUNT$ saved",
     "placeholders": {
-      "count": { "content": "$1" }
+      "count": {
+        "content": "$1"
+      }
     }
   },
   "batchFailed": {
     "message": "Batch save failed: $ERROR$",
     "placeholders": {
-      "error": { "content": "$1" }
+      "error": {
+        "content": "$1"
+      }
     }
   },
   "batchSavedNotify": {
     "message": "$COUNT$ bookmarks saved$TAGS$.",
     "placeholders": {
-      "count": { "content": "$1" },
-      "tags": { "content": "$2" }
+      "count": {
+        "content": "$1"
+      },
+      "tags": {
+        "content": "$2"
+      }
     }
   },
   "batchTaggedSuffix": {
     "message": " (tagged: $TAGS$)",
     "placeholders": {
-      "tags": { "content": "$1" }
+      "tags": {
+        "content": "$1"
+      }
     }
   },
-
   "offlineQueued": {
     "message": "$COUNT$ bookmark(s) queued (offline)",
     "placeholders": {
-      "count": { "content": "$1" }
+      "count": {
+        "content": "$1"
+      }
     }
   },
   "offlineClearConfirm": {
     "message": "Clear all queued bookmarks?"
   },
-
   "recentLabel": {
     "message": "Recent:"
   },
   "recentFailed": {
     "message": "failed to load: $ERROR$",
     "placeholders": {
-      "error": { "content": "$1" }
+      "error": {
+        "content": "$1"
+      }
     }
   },
   "recentDeleteTitle": {
     "message": "Delete this bookmark"
   },
-
   "bgNotLoggedIn": {
     "message": "Pinboard: Not logged in"
   },
@@ -388,7 +416,9 @@
   "bgTabsSavedCount": {
     "message": "$COUNT$ tabs saved.",
     "placeholders": {
-      "count": { "content": "$1" }
+      "count": {
+        "content": "$1"
+      }
     }
   },
   "bgTabSetFailed": {
@@ -415,13 +445,17 @@
   "bgTitleSaved": {
     "message": "\"$TITLE$\" saved.",
     "placeholders": {
-      "title": { "content": "$1" }
+      "title": {
+        "content": "$1"
+      }
     }
   },
   "bgTitleQueued": {
     "message": "\"$TITLE$\" will be saved when online.",
     "placeholders": {
-      "title": { "content": "$1" }
+      "title": {
+        "content": "$1"
+      }
     }
   },
   "bgBatchSaved": {
@@ -430,7 +464,6 @@
   "bgUndo": {
     "message": "Undo"
   },
-
   "optTitle": {
     "message": "Pinboard Bookmark Plus — Settings"
   },
@@ -439,6 +472,9 @@
   },
   "optAutoSaved": {
     "message": "✓ Saved"
+  },
+  "tabGeneral": {
+    "message": "General"
   },
   "tabBookmarks": {
     "message": "Bookmarks"
@@ -461,13 +497,14 @@
   "resetConfirm": {
     "message": "Reset \"$TAB$\"?",
     "placeholders": {
-      "tab": { "content": "$1" }
+      "tab": {
+        "content": "$1"
+      }
     }
   },
   "resetKeysKept": {
     "message": " (keys kept)"
   },
-
   "secPinboardAccount": {
     "message": "Pinboard Account"
   },
@@ -549,7 +586,6 @@
   "importInvalid": {
     "message": "✗ Invalid file"
   },
-
   "secQuickSave": {
     "message": "Quick Save"
   },
@@ -580,14 +616,12 @@
   "qsAiSummary": {
     "message": "Auto-generate AI summary in notes"
   },
-
   "secReadLater": {
     "message": "Read Later"
   },
   "rlHint": {
     "message": "Save current page as \"Read Later\" via keyboard shortcut. Automatically marks as unread."
   },
-
   "secBatchSave": {
     "message": "Batch Save"
   },
@@ -615,7 +649,6 @@
   "batchWarning": {
     "message": "⚠ AI features in batch save will be slow — each tab needs a separate AI call with 3s rate limit between saves."
   },
-
   "secAiProvider": {
     "message": "AI Provider"
   },
@@ -643,7 +676,9 @@
   "testConnected": {
     "message": "✓ Connected ($RESULT$)",
     "placeholders": {
-      "result": { "content": "$1" }
+      "result": {
+        "content": "$1"
+      }
     }
   },
   "testTimeout": {
@@ -658,7 +693,6 @@
   "showHideKey": {
     "message": "Show/hide key"
   },
-
   "hintOpenAIBaseUrl": {
     "message": "Change for proxy or compatible endpoint"
   },
@@ -680,7 +714,6 @@
   "hintCustomKey": {
     "message": "Leave empty if not required"
   },
-
   "secAiBehavior": {
     "message": "AI Behavior"
   },
@@ -732,7 +765,6 @@
   "sepUnderscore": {
     "message": "underscore (machine_learning)"
   },
-
   "secPrompts": {
     "message": "Prompts"
   },
@@ -754,14 +786,12 @@
   "summaryPromptHint": {
     "message": "Leave empty to use the default prompt shown above. Use {{lang_instruction}} for auto language."
   },
-
   "secLanguage": {
     "message": "Language"
   },
   "langAuto": {
     "message": "Auto (follow browser)"
   },
-
   "secTheme": {
     "message": "Theme"
   },
@@ -867,10 +897,11 @@
   "themeOverwrite": {
     "message": "\"$NAME$\" already exists. Overwrite?",
     "placeholders": {
-      "name": { "content": "$1" }
+      "name": {
+        "content": "$1"
+      }
     }
   },
-
   "saveTabsTitle": {
     "message": "Save all open tabs as a tab set (requires pinboard.in login)"
   },

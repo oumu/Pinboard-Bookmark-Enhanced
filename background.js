@@ -415,6 +415,26 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     sendResponse({ status: "started" });
     return true;
   }
+
+  if (message.type === "pinboard_api_call" && message.url) {
+    // Proxy Pinboard fetch through service worker to avoid Chrome's native auth dialog on 401
+    pinboardFetch(message.url, message.options || undefined)
+      .then(async res => {
+        const text = await res.text();
+        sendResponse({ ok: res.ok, status: res.status, text });
+      })
+      .catch(err => sendResponse({ ok: false, status: 0, text: "", error: err.message }));
+    return true;
+  }
+
+  if (message.type === "test_pinboard_token" && message.token) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 15000);
+    fetch(`https://api.pinboard.in/v1/user/api_token/?auth_token=${encodeURIComponent(message.token)}&format=json`, { signal: ctrl.signal })
+      .then(res => { clearTimeout(timer); sendResponse({ ok: res.ok, status: res.status }); })
+      .catch(err => { clearTimeout(timer); sendResponse({ ok: false, error: err.name === "AbortError" ? "timeout" : "network" }); });
+    return true; // keep channel open for async response
+  }
 });
 
 // ===================== Tab Set 保存 =====================

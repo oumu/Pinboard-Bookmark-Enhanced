@@ -14,7 +14,6 @@
   "cmdReadLater": {
     "message": "Schnell als Später lesen speichern (ohne Popup)"
   },
-
   "appName": {
     "message": "Pinboard Bookmark Plus"
   },
@@ -60,7 +59,6 @@
   "clear": {
     "message": "Löschen"
   },
-
   "loginPrompt": {
     "message": "Geben Sie Ihren API Token ein von"
   },
@@ -76,7 +74,6 @@
   "settingsPassword": {
     "message": "Einstellungen/Passwort"
   },
-
   "labelUrl": {
     "message": "URL"
   },
@@ -113,7 +110,6 @@
   "placeholderSearchBookmarks": {
     "message": "Lesezeichen durchsuchen..."
   },
-
   "saving": {
     "message": "Speichern..."
   },
@@ -138,35 +134,41 @@
   "hintCtrlEnter": {
     "message": "Strg+Eingabe"
   },
-
   "editingExisting": {
     "message": "✏️ Vorhandenes Lesezeichen bearbeiten"
   },
   "savedOnDate": {
     "message": "Gespeichert am $DATE$",
     "placeholders": {
-      "date": { "content": "$1" }
+      "date": {
+        "content": "$1"
+      }
     }
   },
   "tagCount": {
     "message": "$COUNT$ Tag",
     "placeholders": {
-      "count": { "content": "$1" }
+      "count": {
+        "content": "$1"
+      }
     }
   },
   "tagCountPlural": {
     "message": "$COUNT$ Tags",
     "placeholders": {
-      "count": { "content": "$1" }
+      "count": {
+        "content": "$1"
+      }
     }
   },
   "userInfoPrefix": {
     "message": "Pinboard — $USER$",
     "placeholders": {
-      "user": { "content": "$1" }
+      "user": {
+        "content": "$1"
+      }
     }
   },
-
   "aiSummaryBtn": {
     "message": "🤖 AI Zusammenfassung"
   },
@@ -227,13 +229,14 @@
   "aiError": {
     "message": "AI-Fehler: $ERROR$",
     "placeholders": {
-      "error": { "content": "$1" }
+      "error": {
+        "content": "$1"
+      }
     }
   },
   "addAll": {
     "message": "Alle hinzufügen"
   },
-
   "suggestNoSuggestions": {
     "message": "Keine Vorschläge"
   },
@@ -246,10 +249,11 @@
   "suggestFailed": {
     "message": "Laden fehlgeschlagen: $ERROR$",
     "placeholders": {
-      "error": { "content": "$1" }
+      "error": {
+        "content": "$1"
+      }
     }
   },
-
   "qlSets": {
     "message": "Sets"
   },
@@ -265,7 +269,6 @@
   "qlPopular": {
     "message": "Beliebt"
   },
-
   "saveTabsBtn": {
     "message": "📑 Tabs speichern"
   },
@@ -290,74 +293,99 @@
   "batchProgress": {
     "message": "⏳ $CURRENT$/$TOTAL$ (✓$SAVED$ ✗$FAILED$)",
     "placeholders": {
-      "current": { "content": "$1" },
-      "total": { "content": "$2" },
-      "saved": { "content": "$3" },
-      "failed": { "content": "$4" }
+      "current": {
+        "content": "$1"
+      },
+      "total": {
+        "content": "$2"
+      },
+      "saved": {
+        "content": "$3"
+      },
+      "failed": {
+        "content": "$4"
+      }
     }
   },
   "batchDone": {
     "message": "Stapel abgeschlossen: $SAVED$ gespeichert, $FAILED$ fehlgeschlagen",
     "placeholders": {
-      "saved": { "content": "$1" },
-      "failed": { "content": "$2" }
+      "saved": {
+        "content": "$1"
+      },
+      "failed": {
+        "content": "$2"
+      }
     }
   },
   "batchSkipped": {
     "message": ", $COUNT$ übersprungen",
     "placeholders": {
-      "count": { "content": "$1" }
+      "count": {
+        "content": "$1"
+      }
     }
   },
   "batchSavedCount": {
     "message": "✅ $COUNT$ gespeichert",
     "placeholders": {
-      "count": { "content": "$1" }
+      "count": {
+        "content": "$1"
+      }
     }
   },
   "batchFailed": {
     "message": "Stapelspeicherung fehlgeschlagen: $ERROR$",
     "placeholders": {
-      "error": { "content": "$1" }
+      "error": {
+        "content": "$1"
+      }
     }
   },
   "batchSavedNotify": {
     "message": "$COUNT$ Lesezeichen gespeichert$TAGS$.",
     "placeholders": {
-      "count": { "content": "$1" },
-      "tags": { "content": "$2" }
+      "count": {
+        "content": "$1"
+      },
+      "tags": {
+        "content": "$2"
+      }
     }
   },
   "batchTaggedSuffix": {
     "message": " (Tags: $TAGS$)",
     "placeholders": {
-      "tags": { "content": "$1" }
+      "tags": {
+        "content": "$1"
+      }
     }
   },
-
   "offlineQueued": {
     "message": "$COUNT$ Lesezeichen in Warteschlange (offline)",
     "placeholders": {
-      "count": { "content": "$1" }
+      "count": {
+        "content": "$1"
+      }
     }
   },
   "offlineClearConfirm": {
     "message": "Alle Lesezeichen in der Warteschlange löschen?"
   },
-
   "recentLabel": {
     "message": "Kürzlich:"
   },
   "recentFailed": {
     "message": "Laden fehlgeschlagen: $ERROR$",
     "placeholders": {
-      "error": { "content": "$1" }
+      "error": {
+        "content": "$1"
+      }
     }
   },
   "recentDeleteTitle": {
     "message": "Dieses Lesezeichen löschen"
   },
-
   "bgNotLoggedIn": {
     "message": "Pinboard: Nicht angemeldet"
   },
@@ -388,7 +416,9 @@
   "bgTabsSavedCount": {
     "message": "$COUNT$ Tabs gespeichert.",
     "placeholders": {
-      "count": { "content": "$1" }
+      "count": {
+        "content": "$1"
+      }
     }
   },
   "bgTabSetFailed": {
@@ -415,13 +445,17 @@
   "bgTitleSaved": {
     "message": "\"$TITLE$\" gespeichert.",
     "placeholders": {
-      "title": { "content": "$1" }
+      "title": {
+        "content": "$1"
+      }
     }
   },
   "bgTitleQueued": {
     "message": "\"$TITLE$\" wird gespeichert, sobald Sie online sind.",
     "placeholders": {
-      "title": { "content": "$1" }
+      "title": {
+        "content": "$1"
+      }
     }
   },
   "bgBatchSaved": {
@@ -430,7 +464,6 @@
   "bgUndo": {
     "message": "Rückgängig"
   },
-
   "optTitle": {
     "message": "Pinboard Bookmark Plus — Einstellungen"
   },
@@ -439,6 +472,9 @@
   },
   "optAutoSaved": {
     "message": "✓ Gespeichert"
+  },
+  "tabGeneral": {
+    "message": "Allgemein"
   },
   "tabBookmarks": {
     "message": "Lesezeichen"
@@ -461,13 +497,14 @@
   "resetConfirm": {
     "message": "\"$TAB$\" zurücksetzen?",
     "placeholders": {
-      "tab": { "content": "$1" }
+      "tab": {
+        "content": "$1"
+      }
     }
   },
   "resetKeysKept": {
     "message": " (Schlüssel beibehalten)"
   },
-
   "secPinboardAccount": {
     "message": "Pinboard Konto"
   },
@@ -549,7 +586,6 @@
   "importInvalid": {
     "message": "✗ Ungültige Datei"
   },
-
   "secQuickSave": {
     "message": "Schnellspeicherung"
   },
@@ -580,14 +616,12 @@
   "qsAiSummary": {
     "message": "AI Zusammenfassung automatisch in Notizen generieren"
   },
-
   "secReadLater": {
     "message": "Später lesen"
   },
   "rlHint": {
-    "message": "Aktuelle Seite per Tastenkürzel als \u201ESpäter lesen\u201C speichern. Wird automatisch als ungelesen markiert."
+    "message": "Aktuelle Seite per Tastenkürzel als „Später lesen“ speichern. Wird automatisch als ungelesen markiert."
   },
-
   "secBatchSave": {
     "message": "Stapelspeicherung"
   },
@@ -615,7 +649,6 @@
   "batchWarning": {
     "message": "⚠ AI-Funktionen bei Stapelspeicherung sind langsam — jeder Tab benötigt einen separaten AI-Aufruf mit 3s Wartezeit zwischen den Speicherungen."
   },
-
   "secAiProvider": {
     "message": "AI Anbieter"
   },
@@ -643,7 +676,9 @@
   "testConnected": {
     "message": "✓ Verbunden ($RESULT$)",
     "placeholders": {
-      "result": { "content": "$1" }
+      "result": {
+        "content": "$1"
+      }
     }
   },
   "testTimeout": {
@@ -658,7 +693,6 @@
   "showHideKey": {
     "message": "Key anzeigen/verbergen"
   },
-
   "hintOpenAIBaseUrl": {
     "message": "Ändern für Proxy oder kompatiblen Endpunkt"
   },
@@ -680,7 +714,6 @@
   "hintCustomKey": {
     "message": "Leer lassen, wenn nicht erforderlich"
   },
-
   "secAiBehavior": {
     "message": "AI Verhalten"
   },
@@ -732,7 +765,6 @@
   "sepUnderscore": {
     "message": "Unterstrich (machine_learning)"
   },
-
   "secPrompts": {
     "message": "Prompts"
   },
@@ -754,14 +786,12 @@
   "summaryPromptHint": {
     "message": "Leer lassen für den oben angezeigten Standard-Prompt. {{lang_instruction}} für automatische Spracherkennung verwenden."
   },
-
   "secLanguage": {
     "message": "Sprache"
   },
   "langAuto": {
     "message": "Automatisch (Browser-Sprache)"
   },
-
   "secTheme": {
     "message": "Design"
   },
@@ -867,10 +897,11 @@
   "themeOverwrite": {
     "message": "\"$NAME$\" existiert bereits. Überschreiben?",
     "placeholders": {
-      "name": { "content": "$1" }
+      "name": {
+        "content": "$1"
+      }
     }
   },
-
   "saveTabsTitle": {
     "message": "Alle offenen Tabs als Tab-Set speichern (pinboard.in-Anmeldung erforderlich)"
   },

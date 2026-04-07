@@ -176,7 +176,7 @@ async function doAITags(forceRefresh) {
       showStatus("status-msg", t("aiTagsRegenerated"), "success");
     }
   } catch (e) {
-    container.textContent = e.message;
+    container.textContent = t("aiError", e.message);
     container.classList.add("muted");
   }
 

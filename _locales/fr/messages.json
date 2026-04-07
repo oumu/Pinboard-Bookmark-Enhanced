@@ -14,7 +14,6 @@
   "cmdReadLater": {
     "message": "Enregistrement rapide comme À lire (sans popup)"
   },
-
   "appName": {
     "message": "Pinboard Bookmark Plus"
   },
@@ -60,7 +59,6 @@
   "clear": {
     "message": "effacer"
   },
-
   "loginPrompt": {
     "message": "Entrez votre jeton API depuis"
   },
@@ -76,7 +74,6 @@
   "settingsPassword": {
     "message": "paramètres/mot de passe"
   },
-
   "labelUrl": {
     "message": "URL"
   },
@@ -113,7 +110,6 @@
   "placeholderSearchBookmarks": {
     "message": "Rechercher dans vos signets..."
   },
-
   "saving": {
     "message": "Enregistrement..."
   },
@@ -138,35 +134,41 @@
   "hintCtrlEnter": {
     "message": "Ctrl+Entrée"
   },
-
   "editingExisting": {
     "message": "✏️ Modification du signet existant"
   },
   "savedOnDate": {
     "message": "enregistré le $DATE$",
     "placeholders": {
-      "date": { "content": "$1" }
+      "date": {
+        "content": "$1"
+      }
     }
   },
   "tagCount": {
     "message": "$COUNT$ tag",
     "placeholders": {
-      "count": { "content": "$1" }
+      "count": {
+        "content": "$1"
+      }
     }
   },
   "tagCountPlural": {
     "message": "$COUNT$ tags",
     "placeholders": {
-      "count": { "content": "$1" }
+      "count": {
+        "content": "$1"
+      }
     }
   },
   "userInfoPrefix": {
     "message": "Pinboard — $USER$",
     "placeholders": {
-      "user": { "content": "$1" }
+      "user": {
+        "content": "$1"
+      }
     }
   },
-
   "aiSummaryBtn": {
     "message": "🤖 Résumé IA"
   },
@@ -227,13 +229,14 @@
   "aiError": {
     "message": "Erreur IA : $ERROR$",
     "placeholders": {
-      "error": { "content": "$1" }
+      "error": {
+        "content": "$1"
+      }
     }
   },
   "addAll": {
     "message": "Tout ajouter"
   },
-
   "suggestNoSuggestions": {
     "message": "aucune suggestion"
   },
@@ -246,10 +249,11 @@
   "suggestFailed": {
     "message": "échec du chargement : $ERROR$",
     "placeholders": {
-      "error": { "content": "$1" }
+      "error": {
+        "content": "$1"
+      }
     }
   },
-
   "qlSets": {
     "message": "Ensembles"
   },
@@ -265,7 +269,6 @@
   "qlPopular": {
     "message": "Populaire"
   },
-
   "saveTabsBtn": {
     "message": "📑 Enregistrer les onglets"
   },
@@ -290,74 +293,99 @@
   "batchProgress": {
     "message": "⏳ $CURRENT$/$TOTAL$ (✓$SAVED$ ✗$FAILED$)",
     "placeholders": {
-      "current": { "content": "$1" },
-      "total": { "content": "$2" },
-      "saved": { "content": "$3" },
-      "failed": { "content": "$4" }
+      "current": {
+        "content": "$1"
+      },
+      "total": {
+        "content": "$2"
+      },
+      "saved": {
+        "content": "$3"
+      },
+      "failed": {
+        "content": "$4"
+      }
     }
   },
   "batchDone": {
     "message": "Traitement terminé : $SAVED$ enregistrés, $FAILED$ échoués",
     "placeholders": {
-      "saved": { "content": "$1" },
-      "failed": { "content": "$2" }
+      "saved": {
+        "content": "$1"
+      },
+      "failed": {
+        "content": "$2"
+      }
     }
   },
   "batchSkipped": {
     "message": ", $COUNT$ ignorés",
     "placeholders": {
-      "count": { "content": "$1" }
+      "count": {
+        "content": "$1"
+      }
     }
   },
   "batchSavedCount": {
     "message": "✅ $COUNT$ enregistrés",
     "placeholders": {
-      "count": { "content": "$1" }
+      "count": {
+        "content": "$1"
+      }
     }
   },
   "batchFailed": {
     "message": "Échec de l'enregistrement groupé : $ERROR$",
     "placeholders": {
-      "error": { "content": "$1" }
+      "error": {
+        "content": "$1"
+      }
     }
   },
   "batchSavedNotify": {
     "message": "$COUNT$ signets enregistrés$TAGS$.",
     "placeholders": {
-      "count": { "content": "$1" },
-      "tags": { "content": "$2" }
+      "count": {
+        "content": "$1"
+      },
+      "tags": {
+        "content": "$2"
+      }
     }
   },
   "batchTaggedSuffix": {
     "message": " (tags : $TAGS$)",
     "placeholders": {
-      "tags": { "content": "$1" }
+      "tags": {
+        "content": "$1"
+      }
     }
   },
-
   "offlineQueued": {
     "message": "$COUNT$ signet(s) en file d'attente (hors ligne)",
     "placeholders": {
-      "count": { "content": "$1" }
+      "count": {
+        "content": "$1"
+      }
     }
   },
   "offlineClearConfirm": {
     "message": "Effacer tous les signets en file d'attente ?"
   },
-
   "recentLabel": {
     "message": "Récents :"
   },
   "recentFailed": {
     "message": "échec du chargement : $ERROR$",
     "placeholders": {
-      "error": { "content": "$1" }
+      "error": {
+        "content": "$1"
+      }
     }
   },
   "recentDeleteTitle": {
     "message": "Supprimer ce signet"
   },
-
   "bgNotLoggedIn": {
     "message": "Pinboard : Non connecté"
   },
@@ -388,7 +416,9 @@
   "bgTabsSavedCount": {
     "message": "$COUNT$ onglets enregistrés.",
     "placeholders": {
-      "count": { "content": "$1" }
+      "count": {
+        "content": "$1"
+      }
     }
   },
   "bgTabSetFailed": {
@@ -415,13 +445,17 @@
   "bgTitleSaved": {
     "message": "« $TITLE$ » enregistré.",
     "placeholders": {
-      "title": { "content": "$1" }
+      "title": {
+        "content": "$1"
+      }
     }
   },
   "bgTitleQueued": {
     "message": "« $TITLE$ » sera enregistré une fois en ligne.",
     "placeholders": {
-      "title": { "content": "$1" }
+      "title": {
+        "content": "$1"
+      }
     }
   },
   "bgBatchSaved": {
@@ -430,7 +464,6 @@
   "bgUndo": {
     "message": "Annuler"
   },
-
   "optTitle": {
     "message": "Pinboard Bookmark Plus — Paramètres"
   },
@@ -439,6 +472,9 @@
   },
   "optAutoSaved": {
     "message": "✓ Enregistré"
+  },
+  "tabGeneral": {
+    "message": "Général"
   },
   "tabBookmarks": {
     "message": "Signets"
@@ -461,13 +497,14 @@
   "resetConfirm": {
     "message": "Réinitialiser « $TAB$ » ?",
     "placeholders": {
-      "tab": { "content": "$1" }
+      "tab": {
+        "content": "$1"
+      }
     }
   },
   "resetKeysKept": {
     "message": " (clés conservées)"
   },
-
   "secPinboardAccount": {
     "message": "Compte Pinboard"
   },
@@ -549,7 +586,6 @@
   "importInvalid": {
     "message": "✗ Fichier invalide"
   },
-
   "secQuickSave": {
     "message": "Enregistrement rapide"
   },
@@ -580,14 +616,12 @@
   "qsAiSummary": {
     "message": "Générer automatiquement un résumé IA dans les notes"
   },
-
   "secReadLater": {
     "message": "À lire"
   },
   "rlHint": {
     "message": "Enregistrer la page actuelle comme « À lire » via un raccourci clavier. Marqué automatiquement comme non lu."
   },
-
   "secBatchSave": {
     "message": "Enregistrement groupé"
   },
@@ -615,7 +649,6 @@
   "batchWarning": {
     "message": "⚠ Les fonctionnalités IA en enregistrement groupé seront lentes — chaque onglet nécessite un appel IA séparé avec un délai de 3 s entre les enregistrements."
   },
-
   "secAiProvider": {
     "message": "Fournisseur IA"
   },
@@ -643,7 +676,9 @@
   "testConnected": {
     "message": "✓ Connecté ($RESULT$)",
     "placeholders": {
-      "result": { "content": "$1" }
+      "result": {
+        "content": "$1"
+      }
     }
   },
   "testTimeout": {
@@ -658,7 +693,6 @@
   "showHideKey": {
     "message": "Afficher/masquer la clé"
   },
-
   "hintOpenAIBaseUrl": {
     "message": "Modifier pour un proxy ou un endpoint compatible"
   },
@@ -680,7 +714,6 @@
   "hintCustomKey": {
     "message": "Laisser vide si non requis"
   },
-
   "secAiBehavior": {
     "message": "Comportement IA"
   },
@@ -732,7 +765,6 @@
   "sepUnderscore": {
     "message": "underscore (machine_learning)"
   },
-
   "secPrompts": {
     "message": "Prompts"
   },
@@ -754,14 +786,12 @@
   "summaryPromptHint": {
     "message": "Laissez vide pour utiliser le prompt par défaut affiché ci-dessus. Utilisez {{lang_instruction}} pour la langue automatique."
   },
-
   "secLanguage": {
     "message": "Langue"
   },
   "langAuto": {
     "message": "Auto (suivre le navigateur)"
   },
-
   "secTheme": {
     "message": "Thème"
   },
@@ -867,10 +897,11 @@
   "themeOverwrite": {
     "message": "« $NAME$ » existe déjà. Écraser ?",
     "placeholders": {
-      "name": { "content": "$1" }
+      "name": {
+        "content": "$1"
+      }
     }
   },
-
   "saveTabsTitle": {
     "message": "Enregistrer tous les onglets ouverts comme un ensemble d'onglets (nécessite une connexion à pinboard.in)"
   },

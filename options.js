@@ -25,14 +25,22 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // ---- Reset current tab to defaults ----
   const PANEL_DEFAULTS = {
+    general: {
+      fields: {
+        "opt-lang": "auto",
+        "opt-check-bookmark-status": true, "opt-auto-close": true, "offline-queue-enabled": true,
+        "opt-show-search": false, "opt-show-recent": false, "opt-show-badge": false,
+        "notify-quick-save": true, "notify-read-later": true, "notify-tab-set": true,
+        "notify-batch-save": true, "notify-errors": true
+      },
+      skip: ["opt-pinboard-token", "opt-sync-enabled"] // never reset token or sync toggle
+    },
     bookmarks: {
       fields: {
         "opt-private-default": false, "opt-private-incognito": false, "opt-readlater-default": false,
         "opt-auto-description": true, "opt-blockquote": true, "opt-include-referrer": false,
-        "opt-respect-tag-case": true, "opt-show-suggest-tags": true, "opt-tag-presets": "",
-        "opt-check-bookmark-status": true, "opt-auto-close": true, "offline-queue-enabled": true
-      },
-      skip: ["opt-pinboard-token"] // never reset token
+        "opt-respect-tag-case": true, "opt-show-suggest-tags": true, "opt-tag-presets": ""
+      }
     },
     ai: {
       fields: {
@@ -60,9 +68,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     },
     appearance: {
       fields: {
-        "opt-lang": "auto", "opt-theme": "auto", "opt-popup-follow-theme": true, "opt-custom-font": "",
-        "opt-show-recent": false, "opt-show-search": false, "opt-show-badge": false,
-        "notify-quick-save": true, "notify-read-later": true, "notify-tab-set": true, "notify-batch-save": true, "notify-errors": true
+        "opt-theme": "auto", "opt-popup-follow-theme": true, "opt-custom-font": ""
       }
     }
   };
@@ -233,7 +239,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Ensure pref is saved even if CSS migration failed
     await chrome.storage.local.set({ optSyncEnabled: enabling });
     // Fade out and reload
-    const activePanel = document.querySelector(".tab-btn.active")?.dataset.panel || "appearance";
+    const activePanel = document.querySelector(".tab-btn.active")?.dataset.panel || "general";
     sessionStorage.setItem("activeTab", activePanel);
     document.body.style.transition = "opacity 0.18s";
     document.body.style.opacity = "0";
@@ -272,7 +278,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Language change: save immediately and reload to apply
   document.getElementById("opt-lang").addEventListener("change", async () => {
     const lang = document.getElementById("opt-lang").value;
-    const activePanel = document.querySelector(".tab-btn.active")?.dataset.panel || "bookmarks";
+    const activePanel = document.querySelector(".tab-btn.active")?.dataset.panel || "general";
     await (await getSettingsStorage()).set({ optLang: lang });
     sessionStorage.setItem("activeTab", activePanel);
     document.body.style.transition = "opacity 0.18s";
@@ -600,6 +606,66 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   ["gemini","openai","claude","deepseek","qwen","minimax","openrouter","groq","mistral","cohere","siliconflow","ollama","custom"].forEach(p => {
     document.getElementById(`test-${p}`)?.addEventListener("click", () => testAIProvider(p));
+  });
+
+  // ---- Pinboard token: real-time format validation ----
+  function isValidTokenFormat(token) {
+    // Format: username:TOKEN — both parts non-empty, no spaces, token ≥ 8 chars
+    if (!token) return null; // empty — no warning
+    const idx = token.indexOf(":");
+    if (idx < 1) return false;
+    const user = token.slice(0, idx);
+    const key = token.slice(idx + 1);
+    return user.length > 0 && key.length >= 8 && !/\s/.test(token);
+  }
+
+  const tokenInput = document.getElementById("opt-pinboard-token");
+  const tokenWarn = document.getElementById("token-format-warn");
+  function validateTokenField() {
+    const val = tokenInput.value.trim();
+    const valid = isValidTokenFormat(val);
+    tokenWarn.classList.toggle("visible", valid === false);
+  }
+  tokenInput?.addEventListener("input", validateTokenField);
+  tokenInput?.addEventListener("blur", validateTokenField);
+  validateTokenField(); // run once on load
+
+  // ---- Test Pinboard API token (via background to avoid native auth dialog) ----
+  document.getElementById("test-pinboard-token")?.addEventListener("click", async () => {
+    const btn = document.getElementById("test-pinboard-token");
+    const statusEl = document.getElementById("test-pinboard-status");
+    const token = tokenInput.value.trim();
+    if (isValidTokenFormat(token) === false || !token) {
+      statusEl.textContent = `✗ ${t("loginInvalidFormat")}`;
+      statusEl.style.color = "#c00";
+      setTimeout(() => { statusEl.textContent = ""; statusEl.style.color = ""; }, 4000);
+      return;
+    }
+    btn.disabled = true;
+    statusEl.textContent = t("testTesting");
+    statusEl.style.color = "";
+    try {
+      const resp = await chrome.runtime.sendMessage({ type: "test_pinboard_token", token });
+      if (resp?.ok) {
+        statusEl.textContent = t("testConnected", token.split(":")[0]);
+        statusEl.style.color = "#080";
+      } else if (resp?.error === "timeout") {
+        statusEl.textContent = `✗ ${t("testTimeout")}`;
+        statusEl.style.color = "#c00";
+      } else if (resp?.error === "network") {
+        statusEl.textContent = `✗ ${t("networkError")}`;
+        statusEl.style.color = "#c00";
+      } else {
+        statusEl.textContent = `✗ ${t("loginFailed")}`;
+        statusEl.style.color = "#c00";
+      }
+    } catch (_) {
+      statusEl.textContent = `✗ ${t("networkError")}`;
+      statusEl.style.color = "#c00";
+    } finally {
+      btn.disabled = false;
+      setTimeout(() => { statusEl.textContent = ""; statusEl.style.color = ""; }, 5000);
+    }
   });
 
   // ---- Theme preset buttons ----

@@ -14,7 +14,6 @@
   "cmdReadLater": {
     "message": "Быстрое сохранение как Напочитать (без окна)"
   },
-
   "appName": {
     "message": "Pinboard Bookmark Plus"
   },
@@ -60,7 +59,6 @@
   "clear": {
     "message": "очистить"
   },
-
   "loginPrompt": {
     "message": "Введите ваш API-токен со страницы"
   },
@@ -76,7 +74,6 @@
   "settingsPassword": {
     "message": "settings/password"
   },
-
   "labelUrl": {
     "message": "Ссылка"
   },
@@ -99,7 +96,7 @@
     "message": "AI-метки"
   },
   "urlWarning": {
-    "message": "\u26a0 Эту страницу нельзя сохранить в Pinboard (неподдерживаемый URL)"
+    "message": "⚠ Эту страницу нельзя сохранить в Pinboard (неподдерживаемый URL)"
   },
   "urlCannotSave": {
     "message": "Невозможно сохранить: неподдерживаемый URL"
@@ -113,7 +110,6 @@
   "placeholderSearchBookmarks": {
     "message": "Поиск по закладкам..."
   },
-
   "saving": {
     "message": "Сохранение..."
   },
@@ -121,7 +117,7 @@
     "message": "Закладка сохранена."
   },
   "savedSuccess": {
-    "message": "\u2705 Сохранено!"
+    "message": "✅ Сохранено!"
   },
   "deleting": {
     "message": "Удаление..."
@@ -138,40 +134,46 @@
   "hintCtrlEnter": {
     "message": "Ctrl+Enter"
   },
-
   "editingExisting": {
-    "message": "\u270f\ufe0f Редактирование существующей закладки"
+    "message": "✏️ Редактирование существующей закладки"
   },
   "savedOnDate": {
     "message": "сохранено $DATE$",
     "placeholders": {
-      "date": { "content": "$1" }
+      "date": {
+        "content": "$1"
+      }
     }
   },
   "tagCount": {
     "message": "$COUNT$ метка",
     "placeholders": {
-      "count": { "content": "$1" }
+      "count": {
+        "content": "$1"
+      }
     }
   },
   "tagCountPlural": {
     "message": "$COUNT$ меток",
     "placeholders": {
-      "count": { "content": "$1" }
+      "count": {
+        "content": "$1"
+      }
     }
   },
   "userInfoPrefix": {
-    "message": "Pinboard \u2014 $USER$",
+    "message": "Pinboard — $USER$",
     "placeholders": {
-      "user": { "content": "$1" }
+      "user": {
+        "content": "$1"
+      }
     }
   },
-
   "aiSummaryBtn": {
-    "message": "\ud83e\udd16 AI-аннотация"
+    "message": "🤖 AI-аннотация"
   },
   "aiGenerateBtn": {
-    "message": "\ud83e\udd16 сгенерировать"
+    "message": "🤖 сгенерировать"
   },
   "aiSummarizing": {
     "message": "генерация аннотации..."
@@ -210,13 +212,13 @@
     "message": "из кэша"
   },
   "aiRegenerate": {
-    "message": "\u21bb пересоздать"
+    "message": "↻ пересоздать"
   },
   "aiReplace": {
-    "message": "\u21bb заменить"
+    "message": "↻ заменить"
   },
   "aiRemove": {
-    "message": "\u2715 удалить"
+    "message": "✕ удалить"
   },
   "aiRegenerating": {
     "message": "пересоздание..."
@@ -227,13 +229,14 @@
   "aiError": {
     "message": "Ошибка AI: $ERROR$",
     "placeholders": {
-      "error": { "content": "$1" }
+      "error": {
+        "content": "$1"
+      }
     }
   },
   "addAll": {
     "message": "Добавить все"
   },
-
   "suggestNoSuggestions": {
     "message": "нет рекомендаций"
   },
@@ -246,10 +249,11 @@
   "suggestFailed": {
     "message": "ошибка загрузки: $ERROR$",
     "placeholders": {
-      "error": { "content": "$1" }
+      "error": {
+        "content": "$1"
+      }
     }
   },
-
   "qlSets": {
     "message": "Sets"
   },
@@ -265,15 +269,14 @@
   "qlPopular": {
     "message": "популярные"
   },
-
   "saveTabsBtn": {
-    "message": "\ud83d\udcd1 Сохранить вкладки"
+    "message": "📑 Сохранить вкладки"
   },
   "batchSaveBtn": {
-    "message": "\ud83d\udccc Пакетное сохранение"
+    "message": "📌 Пакетное сохранение"
   },
   "batchSaving": {
-    "message": "\u231b Сохранение..."
+    "message": "⌛ Сохранение..."
   },
   "batchNoValidTabs": {
     "message": "Нет подходящих вкладок для сохранения"
@@ -285,79 +288,104 @@
     "message": "Вы не авторизованы"
   },
   "batchSent": {
-    "message": "\u2705 Отправлено!"
+    "message": "✅ Отправлено!"
   },
   "batchProgress": {
-    "message": "\u231b $CURRENT$/$TOTAL$ (\u2713$SAVED$ \u2717$FAILED$)",
+    "message": "⌛ $CURRENT$/$TOTAL$ (✓$SAVED$ ✗$FAILED$)",
     "placeholders": {
-      "current": { "content": "$1" },
-      "total": { "content": "$2" },
-      "saved": { "content": "$3" },
-      "failed": { "content": "$4" }
+      "current": {
+        "content": "$1"
+      },
+      "total": {
+        "content": "$2"
+      },
+      "saved": {
+        "content": "$3"
+      },
+      "failed": {
+        "content": "$4"
+      }
     }
   },
   "batchDone": {
     "message": "Готово: $SAVED$ сохранено, $FAILED$ с ошибкой",
     "placeholders": {
-      "saved": { "content": "$1" },
-      "failed": { "content": "$2" }
+      "saved": {
+        "content": "$1"
+      },
+      "failed": {
+        "content": "$2"
+      }
     }
   },
   "batchSkipped": {
     "message": ", $COUNT$ пропущено",
     "placeholders": {
-      "count": { "content": "$1" }
+      "count": {
+        "content": "$1"
+      }
     }
   },
   "batchSavedCount": {
-    "message": "\u2705 $COUNT$ сохранено",
+    "message": "✅ $COUNT$ сохранено",
     "placeholders": {
-      "count": { "content": "$1" }
+      "count": {
+        "content": "$1"
+      }
     }
   },
   "batchFailed": {
     "message": "Пакетное сохранение не удалось: $ERROR$",
     "placeholders": {
-      "error": { "content": "$1" }
+      "error": {
+        "content": "$1"
+      }
     }
   },
   "batchSavedNotify": {
     "message": "$COUNT$ закладок сохранено$TAGS$.",
     "placeholders": {
-      "count": { "content": "$1" },
-      "tags": { "content": "$2" }
+      "count": {
+        "content": "$1"
+      },
+      "tags": {
+        "content": "$2"
+      }
     }
   },
   "batchTaggedSuffix": {
     "message": " (метки: $TAGS$)",
     "placeholders": {
-      "tags": { "content": "$1" }
+      "tags": {
+        "content": "$1"
+      }
     }
   },
-
   "offlineQueued": {
     "message": "$COUNT$ закладок в очереди (офлайн)",
     "placeholders": {
-      "count": { "content": "$1" }
+      "count": {
+        "content": "$1"
+      }
     }
   },
   "offlineClearConfirm": {
     "message": "Очистить все закладки в очереди?"
   },
-
   "recentLabel": {
     "message": "Недавние:"
   },
   "recentFailed": {
     "message": "ошибка загрузки: $ERROR$",
     "placeholders": {
-      "error": { "content": "$1" }
+      "error": {
+        "content": "$1"
+      }
     }
   },
   "recentDeleteTitle": {
     "message": "Удалить эту закладку"
   },
-
   "bgNotLoggedIn": {
     "message": "Pinboard: Вы не авторизованы"
   },
@@ -388,7 +416,9 @@
   "bgTabsSavedCount": {
     "message": "$COUNT$ вкладок сохранено.",
     "placeholders": {
-      "count": { "content": "$1" }
+      "count": {
+        "content": "$1"
+      }
     }
   },
   "bgTabSetFailed": {
@@ -401,7 +431,7 @@
     "message": "Pinboard: Ошибка быстрого сохранения"
   },
   "bgReadLaterFailed": {
-    "message": "Pinboard: Ошибка сохранения \u00abНапочитать\u00bb"
+    "message": "Pinboard: Ошибка сохранения «Напочитать»"
   },
   "bgSaveFailed": {
     "message": "Pinboard: Ошибка сохранения"
@@ -413,15 +443,19 @@
     "message": "Pinboard: Добавлено в офлайн-очередь"
   },
   "bgTitleSaved": {
-    "message": "\u00ab$TITLE$\u00bb сохранено.",
+    "message": "«$TITLE$» сохранено.",
     "placeholders": {
-      "title": { "content": "$1" }
+      "title": {
+        "content": "$1"
+      }
     }
   },
   "bgTitleQueued": {
-    "message": "\u00ab$TITLE$\u00bb будет сохранено при подключении к сети.",
+    "message": "«$TITLE$» будет сохранено при подключении к сети.",
     "placeholders": {
-      "title": { "content": "$1" }
+      "title": {
+        "content": "$1"
+      }
     }
   },
   "bgBatchSaved": {
@@ -430,15 +464,17 @@
   "bgUndo": {
     "message": "Отменить"
   },
-
   "optTitle": {
-    "message": "Pinboard Bookmark Plus \u2014 Настройки"
+    "message": "Pinboard Bookmark Plus — Настройки"
   },
   "optAutoSave": {
     "message": "автосохранение включено"
   },
   "optAutoSaved": {
-    "message": "\u2713 Сохранено"
+    "message": "✓ Сохранено"
+  },
+  "tabGeneral": {
+    "message": "Общие"
   },
   "tabBookmarks": {
     "message": "Закладки"
@@ -459,15 +495,16 @@
     "message": "Сбросить настройки текущей вкладки на значения по умолчанию"
   },
   "resetConfirm": {
-    "message": "Сбросить \u00ab$TAB$\u00bb?",
+    "message": "Сбросить «$TAB$»?",
     "placeholders": {
-      "tab": { "content": "$1" }
+      "tab": {
+        "content": "$1"
+      }
     }
   },
   "resetKeysKept": {
     "message": " (ключи сохранены)"
   },
-
   "secPinboardAccount": {
     "message": "Аккаунт Pinboard"
   },
@@ -514,10 +551,10 @@
     "message": "Предустановки меток"
   },
   "tagPresetsPlaceholder": {
-    "message": "По одной предустановке на строку:\n\u0420\u0430\u0431\u043e\u0442\u0430: project, review, report\n\u0420\u0430\u0437\u0440\u0430\u0431\u043e\u0442\u043a\u0430: programming, tutorial, tool"
+    "message": "По одной предустановке на строку:\nРабота: project, review, report\nРазработка: programming, tutorial, tool"
   },
   "tagPresetsHint": {
-    "message": "Формат: Название: метка1, метка2, метка3 \u2014 отображаются как кнопки быстрого добавления."
+    "message": "Формат: Название: метка1, метка2, метка3 — отображаются как кнопки быстрого добавления."
   },
   "secPopupBehavior": {
     "message": "Поведение всплывающего окна"
@@ -544,12 +581,11 @@
     "message": "Импорт настроек"
   },
   "importedReload": {
-    "message": "\u2713 Импортировано \u2014 перезагрузите для применения"
+    "message": "✓ Импортировано — перезагрузите для применения"
   },
   "importInvalid": {
-    "message": "\u2717 Недопустимый файл"
+    "message": "✗ Недопустимый файл"
   },
-
   "secQuickSave": {
     "message": "Быстрое сохранение"
   },
@@ -580,14 +616,12 @@
   "qsAiSummary": {
     "message": "Автоматически генерировать AI-аннотацию в заметках"
   },
-
   "secReadLater": {
     "message": "Напочитать"
   },
   "rlHint": {
-    "message": "Сохраняйте текущую страницу как \u00abНапочитать\u00bb с помощью горячей клавиши. Автоматически отмечается как непрочитанное."
+    "message": "Сохраняйте текущую страницу как «Напочитать» с помощью горячей клавиши. Автоматически отмечается как непрочитанное."
   },
-
   "secBatchSave": {
     "message": "Пакетное сохранение"
   },
@@ -613,9 +647,8 @@
     "message": "Пропускать уже сохранённые URL"
   },
   "batchWarning": {
-    "message": "\u26a0 AI-функции при пакетном сохранении работают медленно \u2014 для каждой вкладки нужен отдельный AI-запрос с интервалом 3 сек между сохранениями."
+    "message": "⚠ AI-функции при пакетном сохранении работают медленно — для каждой вкладки нужен отдельный AI-запрос с интервалом 3 сек между сохранениями."
   },
-
   "secAiProvider": {
     "message": "AI-провайдер"
   },
@@ -641,9 +674,11 @@
     "message": "Проверка..."
   },
   "testConnected": {
-    "message": "\u2713 Подключено ($RESULT$)",
+    "message": "✓ Подключено ($RESULT$)",
     "placeholders": {
-      "result": { "content": "$1" }
+      "result": {
+        "content": "$1"
+      }
     }
   },
   "testTimeout": {
@@ -658,7 +693,6 @@
   "showHideKey": {
     "message": "Показать/скрыть ключ"
   },
-
   "hintOpenAIBaseUrl": {
     "message": "Измените для прокси или совместимого эндпоинта"
   },
@@ -680,7 +714,6 @@
   "hintCustomKey": {
     "message": "Оставьте пустым, если не требуется"
   },
-
   "secAiBehavior": {
     "message": "Поведение AI"
   },
@@ -694,25 +727,25 @@
     "message": "Авто (как у содержимого)"
   },
   "langZh": {
-    "message": "\u4e2d\u6587 (Китайский)"
+    "message": "中文 (Китайский)"
   },
   "langEn": {
     "message": "English (Английский)"
   },
   "langJa": {
-    "message": "\u65e5\u672c\u8a9e (Японский)"
+    "message": "日本語 (Японский)"
   },
   "langKo": {
-    "message": "\ud55c\uad6d\uc5b4 (Корейский)"
+    "message": "한국어 (Корейский)"
   },
   "langFr": {
-    "message": "Fran\u00e7ais (Французский)"
+    "message": "Français (Французский)"
   },
   "langDe": {
     "message": "Deutsch (Немецкий)"
   },
   "langEs": {
-    "message": "Espa\u00f1ol (Испанский)"
+    "message": "Español (Испанский)"
   },
   "langRu": {
     "message": "Русский"
@@ -732,7 +765,6 @@
   "sepUnderscore": {
     "message": "подчёркивание (machine_learning)"
   },
-
   "secPrompts": {
     "message": "Промпты"
   },
@@ -754,14 +786,12 @@
   "summaryPromptHint": {
     "message": "Оставьте пустым для использования промпта по умолчанию (показан выше). Используйте {{lang_instruction}} для автоопределения языка."
   },
-
   "secLanguage": {
     "message": "Язык"
   },
   "langAuto": {
     "message": "Авто (по настройкам браузера)"
   },
-
   "secTheme": {
     "message": "Тема"
   },
@@ -856,7 +886,7 @@
     "message": "Сохранить текущий CSS как многоразовую тему."
   },
   "customCSSPlaceholder": {
-    "message": "/* \u041f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044c\u0441\u043a\u0438\u0439 CSS \u0434\u043b\u044f pinboard.in */\nbody { line-height: 1.6; }\n.bookmark_title { font-size: 14px; }"
+    "message": "/* Пользовательский CSS для pinboard.in */\nbody { line-height: 1.6; }\n.bookmark_title { font-size: 14px; }"
   },
   "deleteTheme": {
     "message": "Удалить тему"
@@ -865,12 +895,13 @@
     "message": "Название темы:"
   },
   "themeOverwrite": {
-    "message": "\u00ab$NAME$\u00bb уже существует. Перезаписать?",
+    "message": "«$NAME$» уже существует. Перезаписать?",
     "placeholders": {
-      "name": { "content": "$1" }
+      "name": {
+        "content": "$1"
+      }
     }
   },
-
   "saveTabsTitle": {
     "message": "Сохранить все открытые вкладки как набор (требуется вход в pinboard.in)"
   },

@@ -14,7 +14,6 @@
   "cmdReadLater": {
     "message": "Szybki zapis jako Przeczytaj później (bez okna)"
   },
-
   "appName": {
     "message": "Pinboard Bookmark Plus"
   },
@@ -60,7 +59,6 @@
   "clear": {
     "message": "wyczyść"
   },
-
   "loginPrompt": {
     "message": "Wprowadź swój API Token z"
   },
@@ -76,7 +74,6 @@
   "settingsPassword": {
     "message": "settings/password"
   },
-
   "labelUrl": {
     "message": "URL"
   },
@@ -113,7 +110,6 @@
   "placeholderSearchBookmarks": {
     "message": "Szukaj w zakładkach..."
   },
-
   "saving": {
     "message": "Zapisywanie..."
   },
@@ -138,35 +134,41 @@
   "hintCtrlEnter": {
     "message": "Ctrl+Enter"
   },
-
   "editingExisting": {
     "message": "✏️ Edytowanie istniejącej zakładki"
   },
   "savedOnDate": {
     "message": "zapisano $DATE$",
     "placeholders": {
-      "date": { "content": "$1" }
+      "date": {
+        "content": "$1"
+      }
     }
   },
   "tagCount": {
     "message": "$COUNT$ tag",
     "placeholders": {
-      "count": { "content": "$1" }
+      "count": {
+        "content": "$1"
+      }
     }
   },
   "tagCountPlural": {
     "message": "$COUNT$ tagów",
     "placeholders": {
-      "count": { "content": "$1" }
+      "count": {
+        "content": "$1"
+      }
     }
   },
   "userInfoPrefix": {
     "message": "Pinboard — $USER$",
     "placeholders": {
-      "user": { "content": "$1" }
+      "user": {
+        "content": "$1"
+      }
     }
   },
-
   "aiSummaryBtn": {
     "message": "🤖 Podsumowanie AI"
   },
@@ -227,13 +229,14 @@
   "aiError": {
     "message": "Błąd AI: $ERROR$",
     "placeholders": {
-      "error": { "content": "$1" }
+      "error": {
+        "content": "$1"
+      }
     }
   },
   "addAll": {
     "message": "Dodaj wszystkie"
   },
-
   "suggestNoSuggestions": {
     "message": "brak sugestii"
   },
@@ -246,10 +249,11 @@
   "suggestFailed": {
     "message": "błąd ładowania: $ERROR$",
     "placeholders": {
-      "error": { "content": "$1" }
+      "error": {
+        "content": "$1"
+      }
     }
   },
-
   "qlSets": {
     "message": "Zestawy"
   },
@@ -265,7 +269,6 @@
   "qlPopular": {
     "message": "Popularne"
   },
-
   "saveTabsBtn": {
     "message": "📑 Zapisz karty"
   },
@@ -290,74 +293,99 @@
   "batchProgress": {
     "message": "⏳ $CURRENT$/$TOTAL$ (✓$SAVED$ ✗$FAILED$)",
     "placeholders": {
-      "current": { "content": "$1" },
-      "total": { "content": "$2" },
-      "saved": { "content": "$3" },
-      "failed": { "content": "$4" }
+      "current": {
+        "content": "$1"
+      },
+      "total": {
+        "content": "$2"
+      },
+      "saved": {
+        "content": "$3"
+      },
+      "failed": {
+        "content": "$4"
+      }
     }
   },
   "batchDone": {
     "message": "Gotowe: $SAVED$ zapisanych, $FAILED$ nieudanych",
     "placeholders": {
-      "saved": { "content": "$1" },
-      "failed": { "content": "$2" }
+      "saved": {
+        "content": "$1"
+      },
+      "failed": {
+        "content": "$2"
+      }
     }
   },
   "batchSkipped": {
     "message": ", $COUNT$ pominiętych",
     "placeholders": {
-      "count": { "content": "$1" }
+      "count": {
+        "content": "$1"
+      }
     }
   },
   "batchSavedCount": {
     "message": "✅ $COUNT$ zapisanych",
     "placeholders": {
-      "count": { "content": "$1" }
+      "count": {
+        "content": "$1"
+      }
     }
   },
   "batchFailed": {
     "message": "Zapis zbiorczy nie powiódł się: $ERROR$",
     "placeholders": {
-      "error": { "content": "$1" }
+      "error": {
+        "content": "$1"
+      }
     }
   },
   "batchSavedNotify": {
     "message": "Zapisano $COUNT$ zakładek$TAGS$.",
     "placeholders": {
-      "count": { "content": "$1" },
-      "tags": { "content": "$2" }
+      "count": {
+        "content": "$1"
+      },
+      "tags": {
+        "content": "$2"
+      }
     }
   },
   "batchTaggedSuffix": {
     "message": " (tagi: $TAGS$)",
     "placeholders": {
-      "tags": { "content": "$1" }
+      "tags": {
+        "content": "$1"
+      }
     }
   },
-
   "offlineQueued": {
     "message": "$COUNT$ zakładek w kolejce (offline)",
     "placeholders": {
-      "count": { "content": "$1" }
+      "count": {
+        "content": "$1"
+      }
     }
   },
   "offlineClearConfirm": {
     "message": "Wyczyścić wszystkie zakładki w kolejce?"
   },
-
   "recentLabel": {
     "message": "Ostatnie:"
   },
   "recentFailed": {
     "message": "błąd ładowania: $ERROR$",
     "placeholders": {
-      "error": { "content": "$1" }
+      "error": {
+        "content": "$1"
+      }
     }
   },
   "recentDeleteTitle": {
     "message": "Usuń tę zakładkę"
   },
-
   "bgNotLoggedIn": {
     "message": "Pinboard: Nie zalogowano"
   },
@@ -388,7 +416,9 @@
   "bgTabsSavedCount": {
     "message": "Zapisano $COUNT$ kart.",
     "placeholders": {
-      "count": { "content": "$1" }
+      "count": {
+        "content": "$1"
+      }
     }
   },
   "bgTabSetFailed": {
@@ -415,13 +445,17 @@
   "bgTitleSaved": {
     "message": "\"$TITLE$\" zapisano.",
     "placeholders": {
-      "title": { "content": "$1" }
+      "title": {
+        "content": "$1"
+      }
     }
   },
   "bgTitleQueued": {
     "message": "\"$TITLE$\" zostanie zapisane po przywróceniu połączenia.",
     "placeholders": {
-      "title": { "content": "$1" }
+      "title": {
+        "content": "$1"
+      }
     }
   },
   "bgBatchSaved": {
@@ -430,7 +464,6 @@
   "bgUndo": {
     "message": "Cofnij"
   },
-
   "optTitle": {
     "message": "Pinboard Bookmark Plus — Ustawienia"
   },
@@ -439,6 +472,9 @@
   },
   "optAutoSaved": {
     "message": "✓ Zapisano"
+  },
+  "tabGeneral": {
+    "message": "Ogólne"
   },
   "tabBookmarks": {
     "message": "Zakładki"
@@ -459,15 +495,16 @@
     "message": "Przywróć domyślne ustawienia bieżącej karty"
   },
   "resetConfirm": {
-    "message": "Zresetować \u201E$TAB$\u201D?",
+    "message": "Zresetować „$TAB$”?",
     "placeholders": {
-      "tab": { "content": "$1" }
+      "tab": {
+        "content": "$1"
+      }
     }
   },
   "resetKeysKept": {
     "message": " (klucze zachowane)"
   },
-
   "secPinboardAccount": {
     "message": "Konto Pinboard"
   },
@@ -549,7 +586,6 @@
   "importInvalid": {
     "message": "✗ Nieprawidłowy plik"
   },
-
   "secQuickSave": {
     "message": "Szybki zapis"
   },
@@ -580,14 +616,12 @@
   "qsAiSummary": {
     "message": "Automatycznie generuj podsumowanie AI w notkach"
   },
-
   "secReadLater": {
     "message": "Przeczytaj później"
   },
   "rlHint": {
-    "message": "Zapisz bieżącą stronę jako \u201EPrzeczytaj później\u201D skrótem klawiszowym. Automatycznie oznaczana jako nieprzeczytana."
+    "message": "Zapisz bieżącą stronę jako „Przeczytaj później” skrótem klawiszowym. Automatycznie oznaczana jako nieprzeczytana."
   },
-
   "secBatchSave": {
     "message": "Zapis zbiorczy"
   },
@@ -615,7 +649,6 @@
   "batchWarning": {
     "message": "⚠ Funkcje AI w zapisie zbiorczym będą wolne — każda karta wymaga osobnego wywołania AI z 3-sekundowym odstępem."
   },
-
   "secAiProvider": {
     "message": "Dostawca AI"
   },
@@ -643,7 +676,9 @@
   "testConnected": {
     "message": "✓ Połączono ($RESULT$)",
     "placeholders": {
-      "result": { "content": "$1" }
+      "result": {
+        "content": "$1"
+      }
     }
   },
   "testTimeout": {
@@ -658,7 +693,6 @@
   "showHideKey": {
     "message": "Pokaż/ukryj klucz"
   },
-
   "hintOpenAIBaseUrl": {
     "message": "Zmień dla proxy lub kompatybilnego endpointu"
   },
@@ -680,7 +714,6 @@
   "hintCustomKey": {
     "message": "Pozostaw puste, jeśli nie jest wymagane"
   },
-
   "secAiBehavior": {
     "message": "Zachowanie AI"
   },
@@ -732,7 +765,6 @@
   "sepUnderscore": {
     "message": "podkreślenie (machine_learning)"
   },
-
   "secPrompts": {
     "message": "Prompty"
   },
@@ -754,14 +786,12 @@
   "summaryPromptHint": {
     "message": "Pozostaw puste, aby użyć domyślnego promptu. Użyj {{lang_instruction}} dla automatycznego języka."
   },
-
   "secLanguage": {
     "message": "Język"
   },
   "langAuto": {
     "message": "Auto (według przeglądarki)"
   },
-
   "secTheme": {
     "message": "Motyw"
   },
@@ -867,10 +897,11 @@
   "themeOverwrite": {
     "message": "\"$NAME$\" już istnieje. Nadpisać?",
     "placeholders": {
-      "name": { "content": "$1" }
+      "name": {
+        "content": "$1"
+      }
     }
   },
-
   "saveTabsTitle": {
     "message": "Zapisz wszystkie karty jako zestaw kart (wymaga logowania na pinboard.in)"
   },

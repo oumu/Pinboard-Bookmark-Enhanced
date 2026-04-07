@@ -14,7 +14,6 @@
   "cmdReadLater": {
     "message": "あとで読むとしてクイック保存（ポップアップなし）"
   },
-
   "appName": {
     "message": "Pinboard Bookmark Plus"
   },
@@ -60,7 +59,6 @@
   "clear": {
     "message": "クリア"
   },
-
   "loginPrompt": {
     "message": "API Token を入力してください。取得先："
   },
@@ -76,7 +74,6 @@
   "settingsPassword": {
     "message": "設定/パスワード"
   },
-
   "labelUrl": {
     "message": "URL"
   },
@@ -113,7 +110,6 @@
   "placeholderSearchBookmarks": {
     "message": "ブックマークを検索..."
   },
-
   "saving": {
     "message": "保存中..."
   },
@@ -138,35 +134,41 @@
   "hintCtrlEnter": {
     "message": "Ctrl+Enter"
   },
-
   "editingExisting": {
     "message": "✏️ 既存のブックマークを編集中"
   },
   "savedOnDate": {
     "message": "$DATE$ に保存",
     "placeholders": {
-      "date": { "content": "$1" }
+      "date": {
+        "content": "$1"
+      }
     }
   },
   "tagCount": {
     "message": "$COUNT$ 個のタグ",
     "placeholders": {
-      "count": { "content": "$1" }
+      "count": {
+        "content": "$1"
+      }
     }
   },
   "tagCountPlural": {
     "message": "$COUNT$ 個のタグ",
     "placeholders": {
-      "count": { "content": "$1" }
+      "count": {
+        "content": "$1"
+      }
     }
   },
   "userInfoPrefix": {
     "message": "Pinboard — $USER$",
     "placeholders": {
-      "user": { "content": "$1" }
+      "user": {
+        "content": "$1"
+      }
     }
   },
-
   "aiSummaryBtn": {
     "message": "🤖 AI 要約"
   },
@@ -227,13 +229,14 @@
   "aiError": {
     "message": "AI エラー：$ERROR$",
     "placeholders": {
-      "error": { "content": "$1" }
+      "error": {
+        "content": "$1"
+      }
     }
   },
   "addAll": {
     "message": "すべて追加"
   },
-
   "suggestNoSuggestions": {
     "message": "おすすめなし"
   },
@@ -246,10 +249,11 @@
   "suggestFailed": {
     "message": "読み込みに失敗：$ERROR$",
     "placeholders": {
-      "error": { "content": "$1" }
+      "error": {
+        "content": "$1"
+      }
     }
   },
-
   "qlSets": {
     "message": "セット"
   },
@@ -265,7 +269,6 @@
   "qlPopular": {
     "message": "人気"
   },
-
   "saveTabsBtn": {
     "message": "📑 タブを保存"
   },
@@ -290,74 +293,99 @@
   "batchProgress": {
     "message": "⏳ $CURRENT$/$TOTAL$（✓$SAVED$ ✗$FAILED$）",
     "placeholders": {
-      "current": { "content": "$1" },
-      "total": { "content": "$2" },
-      "saved": { "content": "$3" },
-      "failed": { "content": "$4" }
+      "current": {
+        "content": "$1"
+      },
+      "total": {
+        "content": "$2"
+      },
+      "saved": {
+        "content": "$3"
+      },
+      "failed": {
+        "content": "$4"
+      }
     }
   },
   "batchDone": {
     "message": "一括完了：$SAVED$ 件保存、$FAILED$ 件失敗",
     "placeholders": {
-      "saved": { "content": "$1" },
-      "failed": { "content": "$2" }
+      "saved": {
+        "content": "$1"
+      },
+      "failed": {
+        "content": "$2"
+      }
     }
   },
   "batchSkipped": {
     "message": "、$COUNT$ 件スキップ",
     "placeholders": {
-      "count": { "content": "$1" }
+      "count": {
+        "content": "$1"
+      }
     }
   },
   "batchSavedCount": {
     "message": "✅ $COUNT$ 件保存",
     "placeholders": {
-      "count": { "content": "$1" }
+      "count": {
+        "content": "$1"
+      }
     }
   },
   "batchFailed": {
     "message": "一括保存に失敗：$ERROR$",
     "placeholders": {
-      "error": { "content": "$1" }
+      "error": {
+        "content": "$1"
+      }
     }
   },
   "batchSavedNotify": {
     "message": "$COUNT$ 件のブックマークを保存しました$TAGS$。",
     "placeholders": {
-      "count": { "content": "$1" },
-      "tags": { "content": "$2" }
+      "count": {
+        "content": "$1"
+      },
+      "tags": {
+        "content": "$2"
+      }
     }
   },
   "batchTaggedSuffix": {
     "message": "（タグ：$TAGS$）",
     "placeholders": {
-      "tags": { "content": "$1" }
+      "tags": {
+        "content": "$1"
+      }
     }
   },
-
   "offlineQueued": {
     "message": "$COUNT$ 件のブックマークを待機中（オフライン）",
     "placeholders": {
-      "count": { "content": "$1" }
+      "count": {
+        "content": "$1"
+      }
     }
   },
   "offlineClearConfirm": {
     "message": "待機中のブックマークをすべてクリアしますか？"
   },
-
   "recentLabel": {
     "message": "最近："
   },
   "recentFailed": {
     "message": "読み込みに失敗：$ERROR$",
     "placeholders": {
-      "error": { "content": "$1" }
+      "error": {
+        "content": "$1"
+      }
     }
   },
   "recentDeleteTitle": {
     "message": "このブックマークを削除"
   },
-
   "bgNotLoggedIn": {
     "message": "Pinboard：未ログイン"
   },
@@ -388,7 +416,9 @@
   "bgTabsSavedCount": {
     "message": "$COUNT$ 個のタブを保存しました。",
     "placeholders": {
-      "count": { "content": "$1" }
+      "count": {
+        "content": "$1"
+      }
     }
   },
   "bgTabSetFailed": {
@@ -415,13 +445,17 @@
   "bgTitleSaved": {
     "message": "\"$TITLE$\" を保存しました。",
     "placeholders": {
-      "title": { "content": "$1" }
+      "title": {
+        "content": "$1"
+      }
     }
   },
   "bgTitleQueued": {
     "message": "\"$TITLE$\" はオンライン復帰後に保存されます。",
     "placeholders": {
-      "title": { "content": "$1" }
+      "title": {
+        "content": "$1"
+      }
     }
   },
   "bgBatchSaved": {
@@ -430,7 +464,6 @@
   "bgUndo": {
     "message": "取り消し"
   },
-
   "optTitle": {
     "message": "Pinboard Bookmark Plus — 設定"
   },
@@ -439,6 +472,9 @@
   },
   "optAutoSaved": {
     "message": "✓ 保存しました"
+  },
+  "tabGeneral": {
+    "message": "一般"
   },
   "tabBookmarks": {
     "message": "ブックマーク"
@@ -461,13 +497,14 @@
   "resetConfirm": {
     "message": "「$TAB$」をリセットしますか？",
     "placeholders": {
-      "tab": { "content": "$1" }
+      "tab": {
+        "content": "$1"
+      }
     }
   },
   "resetKeysKept": {
     "message": "（キーは保持）"
   },
-
   "secPinboardAccount": {
     "message": "Pinboard アカウント"
   },
@@ -549,7 +586,6 @@
   "importInvalid": {
     "message": "✗ 無効なファイル"
   },
-
   "secQuickSave": {
     "message": "クイック保存"
   },
@@ -580,14 +616,12 @@
   "qsAiSummary": {
     "message": "メモに AI 要約を自動生成"
   },
-
   "secReadLater": {
     "message": "あとで読む"
   },
   "rlHint": {
     "message": "キーボードショートカットで現在のページを「あとで読む」として保存します。自動的に未読としてマークされます。"
   },
-
   "secBatchSave": {
     "message": "一括保存"
   },
@@ -615,7 +649,6 @@
   "batchWarning": {
     "message": "⚠ 一括保存での AI 機能は時間がかかります — 各タブに個別の AI 呼び出しが必要で、保存間隔が3秒あります。"
   },
-
   "secAiProvider": {
     "message": "AI プロバイダー"
   },
@@ -643,7 +676,9 @@
   "testConnected": {
     "message": "✓ 接続成功（$RESULT$）",
     "placeholders": {
-      "result": { "content": "$1" }
+      "result": {
+        "content": "$1"
+      }
     }
   },
   "testTimeout": {
@@ -658,7 +693,6 @@
   "showHideKey": {
     "message": "キーの表示/非表示"
   },
-
   "hintOpenAIBaseUrl": {
     "message": "プロキシや互換エンドポイントに変更可能"
   },
@@ -680,7 +714,6 @@
   "hintCustomKey": {
     "message": "不要な場合は空欄のままにしてください"
   },
-
   "secAiBehavior": {
     "message": "AI の動作"
   },
@@ -732,7 +765,6 @@
   "sepUnderscore": {
     "message": "アンダースコア（machine_learning）"
   },
-
   "secPrompts": {
     "message": "プロンプト"
   },
@@ -754,14 +786,12 @@
   "summaryPromptHint": {
     "message": "空欄の場合は上のデフォルトプロンプトを使用します。{{lang_instruction}} で自動言語設定が可能です。"
   },
-
   "secLanguage": {
     "message": "言語"
   },
   "langAuto": {
     "message": "自動（ブラウザに合わせる）"
   },
-
   "secTheme": {
     "message": "テーマ"
   },
@@ -867,10 +897,11 @@
   "themeOverwrite": {
     "message": "\"$NAME$\" は既に存在します。上書きしますか？",
     "placeholders": {
-      "name": { "content": "$1" }
+      "name": {
+        "content": "$1"
+      }
     }
   },
-
   "saveTabsTitle": {
     "message": "開いている全タブをタブセットとして保存（pinboard.in へのログインが必要）"
   },

@@ -14,7 +14,6 @@
   "cmdReadLater": {
     "message": "快速標記為稍後閱讀（無彈出窗口）"
   },
-
   "appName": {
     "message": "Pinboard 書籤增強"
   },
@@ -60,7 +59,6 @@
   "clear": {
     "message": "清除"
   },
-
   "loginPrompt": {
     "message": "請輸入你的 API Token，取得地址："
   },
@@ -76,7 +74,6 @@
   "settingsPassword": {
     "message": "settings/password"
   },
-
   "labelUrl": {
     "message": "網址"
   },
@@ -113,7 +110,6 @@
   "placeholderSearchBookmarks": {
     "message": "搜尋你的書籤..."
   },
-
   "saving": {
     "message": "儲存中..."
   },
@@ -138,35 +134,41 @@
   "hintCtrlEnter": {
     "message": "Ctrl+Enter"
   },
-
   "editingExisting": {
     "message": "✏️ 正在編輯已有書籤"
   },
   "savedOnDate": {
     "message": "儲存於 $DATE$",
     "placeholders": {
-      "date": { "content": "$1" }
+      "date": {
+        "content": "$1"
+      }
     }
   },
   "tagCount": {
     "message": "$COUNT$ 個標籤",
     "placeholders": {
-      "count": { "content": "$1" }
+      "count": {
+        "content": "$1"
+      }
     }
   },
   "tagCountPlural": {
     "message": "$COUNT$ 個標籤",
     "placeholders": {
-      "count": { "content": "$1" }
+      "count": {
+        "content": "$1"
+      }
     }
   },
   "userInfoPrefix": {
     "message": "Pinboard — $USER$",
     "placeholders": {
-      "user": { "content": "$1" }
+      "user": {
+        "content": "$1"
+      }
     }
   },
-
   "aiSummaryBtn": {
     "message": "🤖 AI 摘要"
   },
@@ -227,13 +229,14 @@
   "aiError": {
     "message": "AI 出錯：$ERROR$",
     "placeholders": {
-      "error": { "content": "$1" }
+      "error": {
+        "content": "$1"
+      }
     }
   },
   "addAll": {
     "message": "全部新增"
   },
-
   "suggestNoSuggestions": {
     "message": "暫無推薦"
   },
@@ -246,10 +249,11 @@
   "suggestFailed": {
     "message": "載入失敗：$ERROR$",
     "placeholders": {
-      "error": { "content": "$1" }
+      "error": {
+        "content": "$1"
+      }
     }
   },
-
   "qlSets": {
     "message": "標籤集"
   },
@@ -265,7 +269,6 @@
   "qlPopular": {
     "message": "熱門"
   },
-
   "saveTabsBtn": {
     "message": "📑 儲存標籤頁"
   },
@@ -290,74 +293,99 @@
   "batchProgress": {
     "message": "⏳ $CURRENT$/$TOTAL$（✓$SAVED$ ✗$FAILED$）",
     "placeholders": {
-      "current": { "content": "$1" },
-      "total": { "content": "$2" },
-      "saved": { "content": "$3" },
-      "failed": { "content": "$4" }
+      "current": {
+        "content": "$1"
+      },
+      "total": {
+        "content": "$2"
+      },
+      "saved": {
+        "content": "$3"
+      },
+      "failed": {
+        "content": "$4"
+      }
     }
   },
   "batchDone": {
     "message": "批量完成：$SAVED$ 已儲存，$FAILED$ 失敗",
     "placeholders": {
-      "saved": { "content": "$1" },
-      "failed": { "content": "$2" }
+      "saved": {
+        "content": "$1"
+      },
+      "failed": {
+        "content": "$2"
+      }
     }
   },
   "batchSkipped": {
     "message": "，$COUNT$ 已跳過",
     "placeholders": {
-      "count": { "content": "$1" }
+      "count": {
+        "content": "$1"
+      }
     }
   },
   "batchSavedCount": {
     "message": "✅ 已儲存 $COUNT$ 個",
     "placeholders": {
-      "count": { "content": "$1" }
+      "count": {
+        "content": "$1"
+      }
     }
   },
   "batchFailed": {
     "message": "批量儲存失敗：$ERROR$",
     "placeholders": {
-      "error": { "content": "$1" }
+      "error": {
+        "content": "$1"
+      }
     }
   },
   "batchSavedNotify": {
     "message": "已儲存 $COUNT$ 個書籤$TAGS$。",
     "placeholders": {
-      "count": { "content": "$1" },
-      "tags": { "content": "$2" }
+      "count": {
+        "content": "$1"
+      },
+      "tags": {
+        "content": "$2"
+      }
     }
   },
   "batchTaggedSuffix": {
     "message": "（標籤：$TAGS$）",
     "placeholders": {
-      "tags": { "content": "$1" }
+      "tags": {
+        "content": "$1"
+      }
     }
   },
-
   "offlineQueued": {
     "message": "$COUNT$ 個書籤排隊中（離線）",
     "placeholders": {
-      "count": { "content": "$1" }
+      "count": {
+        "content": "$1"
+      }
     }
   },
   "offlineClearConfirm": {
     "message": "確定清除所有排隊中的書籤？"
   },
-
   "recentLabel": {
     "message": "最近："
   },
   "recentFailed": {
     "message": "載入失敗：$ERROR$",
     "placeholders": {
-      "error": { "content": "$1" }
+      "error": {
+        "content": "$1"
+      }
     }
   },
   "recentDeleteTitle": {
     "message": "刪除此書籤"
   },
-
   "bgNotLoggedIn": {
     "message": "Pinboard：未登入"
   },
@@ -388,7 +416,9 @@
   "bgTabsSavedCount": {
     "message": "已儲存 $COUNT$ 個標籤頁。",
     "placeholders": {
-      "count": { "content": "$1" }
+      "count": {
+        "content": "$1"
+      }
     }
   },
   "bgTabSetFailed": {
@@ -415,13 +445,17 @@
   "bgTitleSaved": {
     "message": "\"$TITLE$\" 已儲存。",
     "placeholders": {
-      "title": { "content": "$1" }
+      "title": {
+        "content": "$1"
+      }
     }
   },
   "bgTitleQueued": {
     "message": "\"$TITLE$\" 將在聯網後自動儲存。",
     "placeholders": {
-      "title": { "content": "$1" }
+      "title": {
+        "content": "$1"
+      }
     }
   },
   "bgBatchSaved": {
@@ -430,7 +464,6 @@
   "bgUndo": {
     "message": "撤銷"
   },
-
   "optTitle": {
     "message": "Pinboard 書籤增強 — 設定"
   },
@@ -439,6 +472,9 @@
   },
   "optAutoSaved": {
     "message": "✓ 已儲存"
+  },
+  "tabGeneral": {
+    "message": "一般"
   },
   "tabBookmarks": {
     "message": "書籤"
@@ -461,13 +497,14 @@
   "resetConfirm": {
     "message": "確定重設「$TAB$」？",
     "placeholders": {
-      "tab": { "content": "$1" }
+      "tab": {
+        "content": "$1"
+      }
     }
   },
   "resetKeysKept": {
     "message": "（密鑰保留）"
   },
-
   "secPinboardAccount": {
     "message": "Pinboard 帳戶"
   },
@@ -549,7 +586,6 @@
   "importInvalid": {
     "message": "✗ 檔案格式無效"
   },
-
   "secQuickSave": {
     "message": "快速儲存"
   },
@@ -580,14 +616,12 @@
   "qsAiSummary": {
     "message": "自動在備註中產生 AI 摘要"
   },
-
   "secReadLater": {
     "message": "稍後閱讀"
   },
   "rlHint": {
     "message": "透過鍵盤快捷鍵將當前頁面標記為「稍後閱讀」，自動標記為未讀。"
   },
-
   "secBatchSave": {
     "message": "批量儲存"
   },
@@ -615,7 +649,6 @@
   "batchWarning": {
     "message": "⚠ 批量儲存中的 AI 功能會比較慢——每個標籤頁都需要單獨調用 AI，且儲存間隔為 3 秒。"
   },
-
   "secAiProvider": {
     "message": "AI 服務商"
   },
@@ -643,7 +676,9 @@
   "testConnected": {
     "message": "✓ 已連接（$RESULT$）",
     "placeholders": {
-      "result": { "content": "$1" }
+      "result": {
+        "content": "$1"
+      }
     }
   },
   "testTimeout": {
@@ -658,7 +693,6 @@
   "showHideKey": {
     "message": "顯示/隱藏密鑰"
   },
-
   "hintOpenAIBaseUrl": {
     "message": "可修改為代理或兼容接口地址"
   },
@@ -680,7 +714,6 @@
   "hintCustomKey": {
     "message": "無需密鑰時留空"
   },
-
   "secAiBehavior": {
     "message": "AI 行為"
   },
@@ -732,7 +765,6 @@
   "sepUnderscore": {
     "message": "下劃線（machine_learning）"
   },
-
   "secPrompts": {
     "message": "提示詞"
   },
@@ -754,14 +786,12 @@
   "summaryPromptHint": {
     "message": "留空則使用上方顯示的預設提示詞。使用 {{lang_instruction}} 控制自動語言。"
   },
-
   "secLanguage": {
     "message": "語言"
   },
   "langAuto": {
     "message": "自動（跟隨瀏覽器）"
   },
-
   "secTheme": {
     "message": "主題"
   },
@@ -867,10 +897,11 @@
   "themeOverwrite": {
     "message": "\"$NAME$\" 已存在，是否覆蓋？",
     "placeholders": {
-      "name": { "content": "$1" }
+      "name": {
+        "content": "$1"
+      }
     }
   },
-
   "saveTabsTitle": {
     "message": "將所有開啟的標籤頁儲存為標籤集（需登入 pinboard.in）"
   },

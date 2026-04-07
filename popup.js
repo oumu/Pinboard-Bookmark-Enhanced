@@ -2,6 +2,35 @@
 // Pinboard Bookmark Plus - Popup (v2.3)
 // ============================================================
 
+// Override pinboardFetch to route through background service worker.
+// This prevents Chrome's native credentials dialog when Pinboard returns 401.
+// (function declarations on window are writable, so reassignment works)
+pinboardFetch = function(url, options) {
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage({ type: "pinboard_api_call", url, options: options || null })
+      .then(resp => {
+        if (!resp) { reject(new Error("no background response")); return; }
+        if (resp.status === 401) {
+          // Invalid token — redirect to login instead of letting Chrome show the auth dialog
+          (async () => {
+            try { await (await getSettingsStorage()).remove("pinboardToken"); } catch (_) {}
+          })();
+          showLogin();
+          // Return a dummy resolved response so call sites don't also throw
+          resolve({ ok: false, status: 401, json: () => Promise.resolve({}), text: () => Promise.resolve("") });
+          return;
+        }
+        resolve({
+          ok: resp.ok,
+          status: resp.status,
+          json: () => { try { return Promise.resolve(JSON.parse(resp.text || "{}")); } catch { return Promise.resolve({}); } },
+          text: () => Promise.resolve(resp.text || "")
+        });
+      })
+      .catch(reject);
+  });
+};
+
 let currentTags = [];
 let allUserTags = [];
 let allUserTagCounts = {};

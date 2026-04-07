@@ -14,7 +14,6 @@
   "cmdReadLater": {
     "message": "快速标记为稍后阅读（无弹窗）"
   },
-
   "appName": {
     "message": "Pinboard 书签增强"
   },
@@ -60,7 +59,6 @@
   "clear": {
     "message": "清除"
   },
-
   "loginPrompt": {
     "message": "请输入你的 API Token，获取地址："
   },
@@ -76,7 +74,6 @@
   "settingsPassword": {
     "message": "settings/password"
   },
-
   "labelUrl": {
     "message": "网址"
   },
@@ -113,7 +110,6 @@
   "placeholderSearchBookmarks": {
     "message": "搜索你的书签..."
   },
-
   "saving": {
     "message": "保存中..."
   },
@@ -138,35 +134,41 @@
   "hintCtrlEnter": {
     "message": "Ctrl+Enter"
   },
-
   "editingExisting": {
     "message": "✏️ 正在编辑已有书签"
   },
   "savedOnDate": {
     "message": "保存于 $DATE$",
     "placeholders": {
-      "date": { "content": "$1" }
+      "date": {
+        "content": "$1"
+      }
     }
   },
   "tagCount": {
     "message": "$COUNT$ 个标签",
     "placeholders": {
-      "count": { "content": "$1" }
+      "count": {
+        "content": "$1"
+      }
     }
   },
   "tagCountPlural": {
     "message": "$COUNT$ 个标签",
     "placeholders": {
-      "count": { "content": "$1" }
+      "count": {
+        "content": "$1"
+      }
     }
   },
   "userInfoPrefix": {
     "message": "Pinboard — $USER$",
     "placeholders": {
-      "user": { "content": "$1" }
+      "user": {
+        "content": "$1"
+      }
     }
   },
-
   "aiSummaryBtn": {
     "message": "🤖 AI 摘要"
   },
@@ -227,13 +229,14 @@
   "aiError": {
     "message": "AI 出错：$ERROR$",
     "placeholders": {
-      "error": { "content": "$1" }
+      "error": {
+        "content": "$1"
+      }
     }
   },
   "addAll": {
     "message": "全部添加"
   },
-
   "suggestNoSuggestions": {
     "message": "暂无推荐"
   },
@@ -246,10 +249,11 @@
   "suggestFailed": {
     "message": "加载失败：$ERROR$",
     "placeholders": {
-      "error": { "content": "$1" }
+      "error": {
+        "content": "$1"
+      }
     }
   },
-
   "qlSets": {
     "message": "标签集"
   },
@@ -265,7 +269,6 @@
   "qlPopular": {
     "message": "热门"
   },
-
   "saveTabsBtn": {
     "message": "📑 保存标签页"
   },
@@ -290,74 +293,99 @@
   "batchProgress": {
     "message": "⏳ $CURRENT$/$TOTAL$（✓$SAVED$ ✗$FAILED$）",
     "placeholders": {
-      "current": { "content": "$1" },
-      "total": { "content": "$2" },
-      "saved": { "content": "$3" },
-      "failed": { "content": "$4" }
+      "current": {
+        "content": "$1"
+      },
+      "total": {
+        "content": "$2"
+      },
+      "saved": {
+        "content": "$3"
+      },
+      "failed": {
+        "content": "$4"
+      }
     }
   },
   "batchDone": {
     "message": "批量完成：$SAVED$ 已保存，$FAILED$ 失败",
     "placeholders": {
-      "saved": { "content": "$1" },
-      "failed": { "content": "$2" }
+      "saved": {
+        "content": "$1"
+      },
+      "failed": {
+        "content": "$2"
+      }
     }
   },
   "batchSkipped": {
     "message": "，$COUNT$ 已跳过",
     "placeholders": {
-      "count": { "content": "$1" }
+      "count": {
+        "content": "$1"
+      }
     }
   },
   "batchSavedCount": {
     "message": "✅ 已保存 $COUNT$ 个",
     "placeholders": {
-      "count": { "content": "$1" }
+      "count": {
+        "content": "$1"
+      }
     }
   },
   "batchFailed": {
     "message": "批量保存失败：$ERROR$",
     "placeholders": {
-      "error": { "content": "$1" }
+      "error": {
+        "content": "$1"
+      }
     }
   },
   "batchSavedNotify": {
     "message": "已保存 $COUNT$ 个书签$TAGS$。",
     "placeholders": {
-      "count": { "content": "$1" },
-      "tags": { "content": "$2" }
+      "count": {
+        "content": "$1"
+      },
+      "tags": {
+        "content": "$2"
+      }
     }
   },
   "batchTaggedSuffix": {
     "message": "（标签：$TAGS$）",
     "placeholders": {
-      "tags": { "content": "$1" }
+      "tags": {
+        "content": "$1"
+      }
     }
   },
-
   "offlineQueued": {
     "message": "$COUNT$ 个书签排队中（离线）",
     "placeholders": {
-      "count": { "content": "$1" }
+      "count": {
+        "content": "$1"
+      }
     }
   },
   "offlineClearConfirm": {
     "message": "确定清除所有排队中的书签？"
   },
-
   "recentLabel": {
     "message": "最近："
   },
   "recentFailed": {
     "message": "加载失败：$ERROR$",
     "placeholders": {
-      "error": { "content": "$1" }
+      "error": {
+        "content": "$1"
+      }
     }
   },
   "recentDeleteTitle": {
     "message": "删除此书签"
   },
-
   "bgNotLoggedIn": {
     "message": "Pinboard：未登录"
   },
@@ -388,7 +416,9 @@
   "bgTabsSavedCount": {
     "message": "已保存 $COUNT$ 个标签页。",
     "placeholders": {
-      "count": { "content": "$1" }
+      "count": {
+        "content": "$1"
+      }
     }
   },
   "bgTabSetFailed": {
@@ -415,13 +445,17 @@
   "bgTitleSaved": {
     "message": "\"$TITLE$\" 已保存。",
     "placeholders": {
-      "title": { "content": "$1" }
+      "title": {
+        "content": "$1"
+      }
     }
   },
   "bgTitleQueued": {
     "message": "\"$TITLE$\" 将在联网后自动保存。",
     "placeholders": {
-      "title": { "content": "$1" }
+      "title": {
+        "content": "$1"
+      }
     }
   },
   "bgBatchSaved": {
@@ -430,7 +464,6 @@
   "bgUndo": {
     "message": "撤销"
   },
-
   "optTitle": {
     "message": "Pinboard 书签增强 — 设置"
   },
@@ -439,6 +472,9 @@
   },
   "optAutoSaved": {
     "message": "✓ 已保存"
+  },
+  "tabGeneral": {
+    "message": "通用"
   },
   "tabBookmarks": {
     "message": "书签"
@@ -461,13 +497,14 @@
   "resetConfirm": {
     "message": "确定重置「$TAB$」？",
     "placeholders": {
-      "tab": { "content": "$1" }
+      "tab": {
+        "content": "$1"
+      }
     }
   },
   "resetKeysKept": {
     "message": "（密钥保留）"
   },
-
   "secPinboardAccount": {
     "message": "Pinboard 账户"
   },
@@ -549,7 +586,6 @@
   "importInvalid": {
     "message": "✗ 文件格式无效"
   },
-
   "secQuickSave": {
     "message": "快速保存"
   },
@@ -580,14 +616,12 @@
   "qsAiSummary": {
     "message": "自动在备注中生成 AI 摘要"
   },
-
   "secReadLater": {
     "message": "稍后阅读"
   },
   "rlHint": {
     "message": "通过键盘快捷键将当前页面标记为「稍后阅读」，自动标记为未读。"
   },
-
   "secBatchSave": {
     "message": "批量保存"
   },
@@ -615,7 +649,6 @@
   "batchWarning": {
     "message": "⚠ 批量保存中的 AI 功能会比较慢——每个标签页都需要单独调用 AI，且保存间隔为 3 秒。"
   },
-
   "secAiProvider": {
     "message": "AI 服务商"
   },
@@ -643,7 +676,9 @@
   "testConnected": {
     "message": "✓ 已连接（$RESULT$）",
     "placeholders": {
-      "result": { "content": "$1" }
+      "result": {
+        "content": "$1"
+      }
     }
   },
   "testTimeout": {
@@ -658,7 +693,6 @@
   "showHideKey": {
     "message": "显示/隐藏密钥"
   },
-
   "hintOpenAIBaseUrl": {
     "message": "可修改为代理或兼容接口地址"
   },
@@ -680,7 +714,6 @@
   "hintCustomKey": {
     "message": "无需密钥时留空"
   },
-
   "secAiBehavior": {
     "message": "AI 行为"
   },
@@ -732,7 +765,6 @@
   "sepUnderscore": {
     "message": "下划线（machine_learning）"
   },
-
   "secPrompts": {
     "message": "提示词"
   },
@@ -754,14 +786,12 @@
   "summaryPromptHint": {
     "message": "留空则使用上方显示的默认提示词。使用 {{lang_instruction}} 控制自动语言。"
   },
-
   "secLanguage": {
     "message": "语言"
   },
   "langAuto": {
     "message": "自动（跟随浏览器）"
   },
-
   "secTheme": {
     "message": "主题"
   },
@@ -867,10 +897,11 @@
   "themeOverwrite": {
     "message": "\"$NAME$\" 已存在，是否覆盖？",
     "placeholders": {
-      "name": { "content": "$1" }
+      "name": {
+        "content": "$1"
+      }
     }
   },
-
   "saveTabsTitle": {
     "message": "将所有打开的标签页保存为标签集（需登录 pinboard.in）"
   },
