@@ -53,20 +53,45 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   };
 
-  document.getElementById("reset-panel-btn").addEventListener("click", () => {
+  document.getElementById("reset-panel-btn").addEventListener("click", function () {
+    const resetBtn = this;
     const activeBtn = document.querySelector(".tab-btn.active");
     if (!activeBtn) return;
     const panel = activeBtn.dataset.panel;
     const def = PANEL_DEFAULTS[panel];
     if (!def) return;
-    if (!confirm(`Reset all "${activeBtn.textContent}" settings to defaults?\n\nAPI keys will not be affected.`)) return;
-    for (const [id, val] of Object.entries(def.fields)) {
-      const el = document.getElementById(id);
-      if (!el) continue;
-      if (el.type === "checkbox") el.checked = val;
-      else el.value = val;
-    }
-    saveAll();
+    // Prevent double-click while popover is showing
+    if (resetBtn.querySelector(".confirm-popover")) return;
+
+    const pop = document.createElement("div");
+    pop.className = "confirm-popover";
+    const msg = document.createElement("span");
+    msg.className = "confirm-msg";
+    msg.textContent = `Reset "${activeBtn.textContent}"?` + (def.skip ? " (keys kept)" : "");
+    const yes = document.createElement("button");
+    yes.className = "confirm-yes";
+    yes.textContent = "Reset";
+    const no = document.createElement("button");
+    no.className = "confirm-no";
+    no.textContent = "Cancel";
+    pop.appendChild(msg);
+    pop.appendChild(yes);
+    pop.appendChild(no);
+    resetBtn.appendChild(pop);
+
+    function dismiss() { pop.remove(); }
+    pop.addEventListener("click", (e) => e.stopPropagation());
+    no.addEventListener("click", dismiss);
+    yes.addEventListener("click", () => {
+      for (const [id, val] of Object.entries(def.fields)) {
+        const el = document.getElementById(id);
+        if (!el) continue;
+        if (el.type === "checkbox") el.checked = val;
+        else el.value = val;
+      }
+      saveAll();
+      dismiss();
+    });
   });
 
   // ---- Accordion sections ----

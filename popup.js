@@ -1,5 +1,5 @@
 // ============================================================
-// Pinboard Bookmark Plus - Popup (v2.2)
+// Pinboard Bookmark Plus - Popup (v2.3)
 // ============================================================
 
 let currentTags = [];
@@ -147,6 +147,7 @@ async function showMain(token) {
   });
   // Recent bookmarks — lowest priority, enqueue last
   if (settings.optShowRecent) fetchRecentBookmarks(token);
+
   document.querySelector(".tags-input-wrap").addEventListener("click", () => document.getElementById("tags-input").focus());
   showOfflineQueueStatus();
 
@@ -157,238 +158,14 @@ async function showMain(token) {
   }, 100);
 }
 
-
-
-/// ===================== Tab Set 保存功能 =====================
-function setupTabSet() {
-  const btn = document.getElementById("save-tabset-btn");
-  if (!btn) return;
-
-  btn.addEventListener("click", async () => {
-    btn.disabled = true;
-    const origText = btn.textContent;
-    btn.textContent = "⏳ Saving...";
-
-    try {
-      // 获取当前窗口所有有效标签页
-      const tabs = await chrome.tabs.query({ currentWindow: true });
-      const validTabs = tabs.filter(t =>
-        t.url && (t.url.startsWith("http://") || t.url.startsWith("https://"))
-      );
-
-      if (validTabs.length === 0) {
-        showStatus("status-msg", "No valid tabs to save", "error");
-        btn.textContent = origText;
-        btn.disabled = false;
-        return;
-      }
-
-      const tabsData = validTabs.map(t => ({
-        title: t.title || t.url,
-        url: t.url
-      }));
-
-      // 发送消息给 background service worker 执行保存
-      // background 不会因 popup 关闭而中断
-      chrome.runtime.sendMessage(
-        { action: "saveTabSet", tabsData: tabsData },
-        (response) => {
-          if (chrome.runtime.lastError) {
-            console.error("sendMessage error:", chrome.runtime.lastError);
-          }
-        }
-      );
-
-      // 立即显示成功（实际保存由 background 完成）
-      btn.textContent = "✅ Sent!";
-      setTimeout(() => {
-        btn.textContent = origText;
-        btn.disabled = false;
-      }, 2000);
-
-    } catch (e) {
-      console.error("Save tab set error:", e);
-      showStatus("status-msg", "Failed: " + e.message, "error");
-      btn.textContent = origText;
-      btn.disabled = false;
-    }
-  });
-
-  const batchBtn = document.getElementById("batch-bookmark-btn");
-  if (!batchBtn) return;
-  batchBtn.addEventListener("click", async () => {
-    batchBtn.disabled = true;
-    batchBtn.textContent = "⏳ Saving...";
-    try {
-      const rawToken = await chrome.storage.sync.get("pinboardToken");
-      const pinboardToken = deobfuscateKey(rawToken.pinboardToken);
-      if (!pinboardToken) {
-        showStatus("status-msg", "Not logged in", "error");
-        batchBtn.textContent = "📌 Batch Save"; batchBtn.disabled = false;
-        return;
-      }
-      const tabs = await chrome.tabs.query({ currentWindow: true });
-      const validTabs = tabs.filter(t => t.url && (t.url.startsWith("http://") || t.url.startsWith("https://")));
-      if (!validTabs.length) {
-        showStatus("status-msg", "No valid tabs", "error");
-        batchBtn.textContent = "📌 Batch Save"; batchBtn.disabled = false;
-        return;
-      }
-      // Parse comma-separated tags into space-separated format for Pinboard
-      const baseTags = settings.optBatchTagEnabled && settings.optBatchTag
-        ? settings.optBatchTag.split(/[,，]+/).map(t => t.trim().replace(/\s+/g, "-")).filter(Boolean)
-        : [];
-      const useAiTags = settings.batchAiTags && hasAIKey(settings);
-      const useAiSummary = settings.batchAiSummary && hasAIKey(settings);
-
-      let saved = 0, failed = 0, skipped = 0;
-      // If skip existing is enabled, check which URLs already exist (with local cache)
-      let existingUrls = new Set();
-      if (settings.batchSkipExisting) {
-        existingUrls = await fetchExistingUrlSet(pinboardToken);
-      }
-      for (let i = 0; i < validTabs.length; i++) {
-        const t = validTabs[i];
-        batchBtn.textContent = `⏳ ${i + 1}/${validTabs.length} (✓${saved} ✗${failed})`;
-        if (settings.batchSkipExisting && existingUrls.has(t.url)) {
-          skipped++;
-          continue;
-        }
-        try {
-          let tags = [...baseTags];
-          let notes = "";
-
-          // AI features per tab (parallel tags + summary)
-          if (useAiTags || useAiSummary) {
-            let tabPageInfo = null;
-            try { tabPageInfo = await getPageInfoFromTab(t.id); } catch (_) {}
-            if (tabPageInfo?.pageText) {
-              const aiJobs = [];
-              if (useAiTags) aiJobs.push((async () => {
-                try {
-                  const cached = await getAICache(t.url, "tags", settings.aiCacheDuration);
-                  if (cached) return { type: "tags", result: cached };
-                  const prompt = buildTagPrompt(settings, t.title || t.url, t.url, tabPageInfo.pageText, "", []);
-                  const resp = await callAI(settings, prompt);
-                  const rawTags = parseAITags(resp, settings.aiTagSeparator);
-                  const aiTags = settings.optRespectTagCase
-                    ? rawTags.map(tag => resolveTagCase(tag, tagCaseMap))
-                    : rawTags;
-                  await setAICache(t.url, "tags", aiTags, settings.aiCacheDuration);
-                  return { type: "tags", result: aiTags };
-                } catch (_) { return null; }
-              })());
-              if (useAiSummary) aiJobs.push((async () => {
-                try {
-                  const cached = await getAICache(t.url, "summary", settings.aiCacheDuration);
-                  if (cached) return { type: "summary", result: cached };
-                  const prompt = buildSummaryPrompt(settings, t.title || t.url, t.url, tabPageInfo.pageText, "");
-                  const summary = await callAI(settings, prompt);
-                  await setAICache(t.url, "summary", summary, settings.aiCacheDuration);
-                  return { type: "summary", result: summary };
-                } catch (_) { return null; }
-              })());
-              const results = await Promise.all(aiJobs);
-              for (const r of results) {
-                if (!r) continue;
-                if (r.type === "tags") tags = [...tags, ...r.result];
-                if (r.type === "summary") notes = `[AI Summary]\n<blockquote>${r.result}</blockquote>`;
-              }
-            }
-          }
-
-          const dedupedTags = [...new Set(tags.map(tag => tag.toLowerCase()))].map(lower => tags.find(tag => tag.toLowerCase() === lower));
-          const apiUrl = `https://api.pinboard.in/v1/posts/add?auth_token=${pinboardToken}&format=json&url=${enc(t.url)}&description=${enc(t.title || t.url)}&extended=${enc(notes)}&tags=${enc(dedupedTags.join(" "))}&replace=yes`;
-          const data = await (await pinboardFetch(apiUrl)).json();
-          if (data.result_code === "done") saved++;
-          else failed++;
-        } catch (_) { failed++; }
-      }
-      // Update local URL set cache after batch save
-      if (saved > 0) {
-        const newUrls = validTabs.filter(t => !existingUrls.has(t.url)).map(t => t.url);
-        newUrls.forEach(u => existingUrls.add(u));
-        try {
-          await chrome.storage.local.set({
-            cached_existing_urls: { urls: [...existingUrls], timestamp: Date.now() }
-          });
-        } catch (_) {}
-      }
-      const tagStr = baseTags.join(", ");
-      const skipMsg = skipped > 0 ? `, ${skipped} skipped` : "";
-      showStatus("status-msg", `Batch done: ${saved} saved, ${failed} failed${skipMsg}`, saved > 0 ? "success" : "error");
-      if (saved > 0) {
-        chrome.runtime.sendMessage({ type: "show_notification", id: "batch-saved-" + Date.now(), title: "Pinboard: Batch Saved!", message: `${saved} bookmarks saved${tagStr ? ` (tagged: ${tagStr})` : ""}.`, category: "batchSave" });
-      }
-      batchBtn.textContent = `✅ ${saved} saved`;
-      setTimeout(() => { batchBtn.textContent = "📌 Batch Save"; batchBtn.disabled = false; }, 3000);
-    } catch (e) {
-      showStatus("status-msg", "Batch save failed: " + e.message, "error");
-      batchBtn.textContent = "📌 Batch Save"; batchBtn.disabled = false;
-    }
-  });
-}
-
-// ===================== Tag Presets (F4) =====================
-function setupTagPresets() {
-  const raw = settings.tagPresets || "";
-  if (!raw.trim()) return;
-  const container = document.getElementById("tag-presets");
-  const presetsRow = document.getElementById("presets-row");
-  if (!container || !presetsRow) return;
-  const presets = raw.split("\n").map(line => {
-    const m = line.match(/^(.+?)[:：]\s*(.+)$/);
-    if (!m) return null;
-    return { name: m[1].trim(), tags: m[2].split(/[,，]+/).map(t => t.trim()).filter(Boolean) };
-  }).filter(Boolean);
-  if (!presets.length) return;
-  presetsRow.classList.remove("hidden");
-  presets.forEach(p => {
-    const btn = document.createElement("span");
-    btn.className = "preset-btn";
-    btn.textContent = p.name;
-    btn.title = p.tags.join(", ");
-    btn.addEventListener("click", () => {
-      p.tags.forEach(t => addTag(t));
-      btn.classList.add("used");
-    });
-    container.appendChild(btn);
-  });
-}
-
-// ===================== Existing URL Set Cache (for batch dedup) =====================
-async function fetchExistingUrlSet(token) {
-  const cacheKey = "cached_existing_urls";
-  try {
-    const cached = await chrome.storage.local.get(cacheKey);
-    if (cached[cacheKey]) {
-      const { urls, timestamp } = cached[cacheKey];
-      if (Date.now() - timestamp < 30 * 60 * 1000) {
-        return new Set(urls);
-      }
-    }
-  } catch (_) {}
-  // Cache miss — fetch from API
-  try {
-    const recentData = await (await pinboardFetch(`https://api.pinboard.in/v1/posts/all?auth_token=${token}&format=json&results=1000&meta=no`)).json();
-    const urls = recentData.map(p => p.href);
-    await chrome.storage.local.set({ [cacheKey]: { urls, timestamp: Date.now() } });
-    return new Set(urls);
-  } catch (_) {
-    return new Set();
-  }
-}
-
 // ===================== Existing Bookmark =====================
 async function checkExistingBookmark(token, url) {
   try {
-    // Try background cache first (background already checked this URL for icon status)
     let data;
     try {
       const cached = await chrome.runtime.sendMessage({ type: "get_bookmark_data", url });
       if (cached?.posts) data = { posts: cached.posts };
     } catch (_) {}
-    // Fall back to API call on cache miss
     if (!data) {
       const resp = await pinboardFetch(`https://api.pinboard.in/v1/posts/get?url=${enc(url)}&auth_token=${token}&format=json`);
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
@@ -407,7 +184,6 @@ async function checkExistingBookmark(token, url) {
       document.getElementById("delete-btn").classList.remove("hidden");
       updateCharCount();
       setTimeout(() => autoResizeTextarea(document.getElementById("description-input")), 50);
-      // F2: Show existing bookmark banner with save date and tag count
       const banner = document.getElementById("existing-banner");
       const timeStr = existingBookmark.time;
       if (banner) {
@@ -427,210 +203,6 @@ async function checkExistingBookmark(token, url) {
   } catch (e) { console.error(e); }
 }
 
-// ===================== Suggest Tags =====================
-async function fetchPinboardSuggestTags(token, url) {
-  const container = document.getElementById("pinboard-suggest-tags");
-  try {
-    const resp = await pinboardFetch(`https://api.pinboard.in/v1/posts/suggest?url=${enc(url)}&auth_token=${token}&format=json`);
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const data = await resp.json();
-    container.innerHTML = "";
-    const popular = data[0]?.popular || [];
-    const recommended = data[1]?.recommended || [];
-    if (!popular.length && !recommended.length) { container.innerHTML = '<span class="muted">no suggestions</span>'; return; }
-
-    // Resolve suggested tag case against user's existing tags
-    const resolveTag = (t) => (settings.optRespectTagCase && tagCaseMap) ? resolveTagCase(t, tagCaseMap) : t;
-
-    if (popular.length) {
-      const g = document.createElement("div"); g.className = "suggest-group";
-      let h = '<span class="group-label">popular:</span>';
-      popular.forEach((t) => { const resolved = resolveTag(t); h += `<span class="stag" data-tag="${esc(resolved)}">${esc(resolved)}</span> `; });
-      g.innerHTML = h; container.appendChild(g);
-    }
-    if (recommended.length) {
-      const g = document.createElement("div"); g.className = "suggest-group";
-      let h = '<span class="group-label">recommended:</span>';
-      recommended.forEach((t) => { const resolved = resolveTag(t); h += `<span class="stag" data-tag="${esc(resolved)}">${esc(resolved)}</span> `; });
-      h += '<span class="add-all-link" id="add-all-suggest">Add all</span>';
-      g.innerHTML = h; container.appendChild(g);
-    }
-    container.querySelectorAll(".stag").forEach((el) => {
-      el.addEventListener("click", () => { addTag(el.dataset.tag); el.classList.add("used"); });
-    });
-    document.getElementById("add-all-suggest")?.addEventListener("click", () => {
-      container.querySelectorAll(".stag:not(.used)").forEach((el) => { addTag(el.dataset.tag); el.classList.add("used"); });
-    });
-  } catch (e) { console.error("suggest tags error:", e); container.innerHTML = `<span class="muted">failed to load: ${esc(e.message || String(e))}</span>`; }
-}
-
-async function fetchAllUserTags(token) {
-  // Check local cache first (TTL: 10 minutes)
-  const cacheKey = "cached_user_tags";
-  try {
-    const cached = await chrome.storage.local.get(cacheKey);
-    if (cached[cacheKey]) {
-      const { tags, counts, timestamp } = cached[cacheKey];
-      if (Date.now() - timestamp < 10 * 60 * 1000) {
-        allUserTagCounts = counts;
-        allUserTags = tags;
-        tagCaseMap = buildTagCaseMap(counts);
-        return;
-      }
-    }
-  } catch (_) {}
-  // Cache miss — fetch from API
-  try {
-    const resp = await pinboardFetch(`https://api.pinboard.in/v1/tags/get?auth_token=${token}&format=json`);
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const data = await resp.json();
-    allUserTagCounts = data;
-    // Sort by usage count descending, then alphabetically
-    allUserTags = Object.entries(data)
-      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-      .map(([tag]) => tag);
-    tagCaseMap = buildTagCaseMap(data);
-    // Cache result
-    await chrome.storage.local.set({ [cacheKey]: { tags: allUserTags, counts: allUserTagCounts, timestamp: Date.now() } });
-  } catch (e) { console.error(e); }
-}
-
-// ===================== Tags Input =====================
-function setupTagsInput() {
-  const input = document.getElementById("tags-input");
-  const dropdown = document.getElementById("tags-autocomplete");
-  input.addEventListener("input", () => {
-    const val = input.value.trim().toLowerCase(); acIndex = -1;
-    if (!val) { dropdown.classList.add("hidden"); return; }
-    const matches = allUserTags.filter((t) =>
-      t.toLowerCase().includes(val) &&
-      !currentTags.some((ct) => ct.toLowerCase() === t.toLowerCase())
-    ).sort((a, b) => {
-      const al = a.toLowerCase(), bl = b.toLowerCase();
-      const ap = al.startsWith(val), bp = bl.startsWith(val);
-      if (ap !== bp) return ap ? -1 : 1; // prefix matches first
-      return 0; // preserve original order (by usage count)
-    }).slice(0, 10);
-    if (!matches.length) { dropdown.classList.add("hidden"); return; }
-    dropdown.innerHTML = "";
-    matches.forEach((tag) => {
-      const item = document.createElement("div"); item.className = "ac-item";
-      item.dataset.tag = tag;
-      item.textContent = tag;
-      const count = allUserTagCounts[tag];
-      if (count) {
-        const countSpan = document.createElement("span");
-        countSpan.className = "ac-count";
-        countSpan.textContent = `(${count})`;
-        item.appendChild(countSpan);
-      }
-      item.addEventListener("click", () => { addTag(tag); input.value = ""; dropdown.classList.add("hidden"); input.focus(); });
-      dropdown.appendChild(item);
-    });
-    dropdown.classList.remove("hidden");
-  });
-  input.addEventListener("paste", (e) => {
-    e.preventDefault();
-    const text = (e.clipboardData || window.clipboardData).getData("text");
-    if (text) {
-      text.split(/[,\s]+/).map(t => t.trim()).filter(Boolean).forEach(t => addTag(t));
-      input.value = "";
-      dropdown.classList.add("hidden");
-    }
-  });
-  input.addEventListener("keydown", (e) => {
-    const items = dropdown.querySelectorAll(".ac-item");
-    if (e.key === "ArrowDown") { e.preventDefault(); acIndex = acIndex >= items.length - 1 ? 0 : acIndex + 1; updateAc(items); }
-    else if (e.key === "ArrowUp") { e.preventDefault(); acIndex = acIndex <= 0 ? items.length - 1 : acIndex - 1; updateAc(items); }
-    else if (e.key === "Enter" || e.key === "Tab") {
-      e.preventDefault();
-      if (acIndex >= 0 && items[acIndex]) {
-        // 用户已用方向键选中了某项
-        addTag(items[acIndex].dataset.tag);
-      } else if (items.length > 0 && !dropdown.classList.contains("hidden")) {
-        addTag(items[0].dataset.tag);
-      } else if (input.value.trim()) {
-        // 没有匹配项，按原逻辑添加输入内容
-        input.value.trim().split(/[\s,]+/).filter(Boolean).forEach((t) => addTag(t));
-      }
-      input.value = ""; dropdown.classList.add("hidden");
-    } else if (e.key === " " || e.key === "," || e.key === "，") {
-      const v = input.value.replace(/[,，]/g, "").trim();
-      if (v) { e.preventDefault(); addTag(v); input.value = ""; dropdown.classList.add("hidden"); }
-      else if (e.key !== " ") e.preventDefault(); // swallow comma even if empty
-    } else if (e.key === "Backspace" && !input.value && currentTags.length) { removeTag(currentTags[currentTags.length - 1]); }
-    else if (e.key === "Escape") { dropdown.classList.add("hidden"); }
-  });
-  document.addEventListener("click", (e) => {
-    if (!e.target.closest(".tags-input-wrap") && !e.target.closest(".autocomplete-dropdown")) dropdown.classList.add("hidden");
-  });
-  document.getElementById("tags-clear-all")?.addEventListener("click", (e) => {
-    e.preventDefault();
-    currentTags = [];
-    renderTags();
-  });
-}
-function updateAc(items) { items.forEach((el, i) => el.classList.toggle("selected", i === acIndex)); }
-function addTag(tag) {
-  tag = tag.trim().replace(/\s+/g, settings.aiTagSeparator || "-");
-  if (!tag) return;
-  // Respect existing tag casing if enabled
-  if (settings.optRespectTagCase && tagCaseMap) {
-    tag = resolveTagCase(tag, tagCaseMap);
-  }
-  // 大小写不敏感去重：如果已存在相同 tag（忽略大小写），则跳过
-  if (currentTags.some((t) => t.toLowerCase() === tag.toLowerCase())) return;
-  currentTags.push(tag);
-  renderTags();
-}
-function removeTag(tag) {
-  currentTags = currentTags.filter((t) => t.toLowerCase() !== tag.toLowerCase());
-  renderTags();
-}
-function renderTags() {
-  const d = document.getElementById("tags-display"); d.innerHTML = "";
-  currentTags.forEach((tag, idx) => {
-    const el = document.createElement("span"); el.className = "tag-item";
-    el.draggable = true;
-    el.dataset.idx = idx;
-    el.innerHTML = `${esc(tag)}<span class="tag-remove">&times;</span>`;
-    el.querySelector(".tag-remove").addEventListener("click", () => removeTag(tag));
-    // Drag-and-drop reorder
-    el.addEventListener("dragstart", (e) => { e.dataTransfer.setData("text/plain", idx); el.classList.add("dragging"); });
-    el.addEventListener("dragend", () => el.classList.remove("dragging"));
-    el.addEventListener("dragover", (e) => { e.preventDefault(); el.classList.add("drag-over"); });
-    el.addEventListener("dragleave", () => el.classList.remove("drag-over"));
-    el.addEventListener("drop", (e) => {
-      e.preventDefault(); el.classList.remove("drag-over");
-      const fromIdx = parseInt(e.dataTransfer.getData("text/plain"));
-      const toIdx = idx;
-      if (fromIdx !== toIdx) {
-        const [moved] = currentTags.splice(fromIdx, 1);
-        currentTags.splice(toIdx, 0, moved);
-        renderTags();
-      }
-    });
-    d.appendChild(el);
-  });
-  // Show "clear all" link when there are 2+ tags
-  const clearBtn = document.getElementById("tags-clear-all");
-  if (clearBtn) clearBtn.classList.toggle("hidden", currentTags.length < 2);
-  // Sync .used state on suggest/AI tag elements
-  syncSuggestTagStates();
-}
-
-function syncSuggestTagStates() {
-  const lowerTags = new Set(currentTags.map(t => t.toLowerCase()));
-  document.querySelectorAll("#pinboard-suggest-tags .stag, #ai-suggest-tags .stag").forEach((el) => {
-    const tag = (el.dataset.tag || "").toLowerCase();
-    if (lowerTags.has(tag)) {
-      el.classList.add("used");
-    } else {
-      el.classList.remove("used");
-    }
-  });
-}
-
 // ===================== Submit / Delete =====================
 function setupSubmit(token) {
   document.getElementById("submit-btn").addEventListener("click", async () => {
@@ -646,7 +218,6 @@ function setupSubmit(token) {
         btn.textContent = "✅ Saved!";
         btn.classList.add("saved-success");
         setTimeout(() => { btn.classList.remove("saved-success"); }, 1200);
-        // 通知 background 更新图标
         chrome.runtime.sendMessage({ type: "bookmark_saved", url: url });
         if (settings.optAutoCloseAfterSave) setTimeout(() => window.close(), 1800);
       } else showStatus("status-msg", `Error: ${data.result_code}`, "error");
@@ -663,7 +234,6 @@ function setupSubmit(token) {
     }
   });
 
-  // Add Ctrl+Enter hint to submit bar
   const hintSpan = document.createElement("span");
   hintSpan.className = "submit-hint";
   hintSpan.textContent = "Ctrl+Enter";
@@ -679,243 +249,12 @@ function setupSubmit(token) {
       const data = await (await pinboardFetch(`https://api.pinboard.in/v1/posts/delete?url=${enc(url)}&auth_token=${token}&format=json`)).json();
       if (data.result_code === "done" || data.result_code === "item not found") {
         showStatus("status-msg", "Deleted.", "success");
-        // 通知 background 更新图标
         chrome.runtime.sendMessage({ type: "bookmark_deleted", url: url });
         setTimeout(() => window.close(), 800);
       } else showStatus("status-msg", `Error: ${data.result_code}`, "error");
     } catch (e) { showStatus("status-msg", "Network error", "error"); }
     delBtn.disabled = false; delBtn.classList.remove("loading"); delBtn.textContent = delOrig;
   });
-}
-
-// ===================== AI Features =====================
-function setupAIFeatures() {
-  // ---- AI Summary ----
-  document.getElementById("ai-summary-btn").addEventListener("click", async (e) => {
-    e.preventDefault();
-    await doAISummary(false);
-  });
-
-  // Auto-restore cached summary if description doesn't already contain one
-  if (!AI_BQ_REGEX.test(document.getElementById("description-input").value)) {
-    getAICache(pageInfo.url, "summary", settings.aiCacheDuration).then(cached => {
-      if (cached && !AI_BQ_REGEX.test(document.getElementById("description-input").value)) {
-        upsertSummary(cached);
-        showSummaryActions(true);
-      }
-    });
-  }
-
-  // ---- AI Tags ----
-  document.getElementById("ai-tags-btn").addEventListener("click", async (e) => {
-    e.preventDefault();
-    await doAITags(false);
-  });
-}
-
-// AI summary: 用前置标签行来标识，Pinboard 上显示为自然的纯文本标题
-const AI_SUMMARY_TAG = "[AI Summary]";
-const AI_BQ_REGEX = /(\n\n)?\[AI Summary\]\n<blockquote>[\s\S]*?<\/blockquote>\s*$/;
-
-// ---- Insert or replace AI summary in description ----
-function upsertSummary(summary) {
-  const di = document.getElementById("description-input");
-  const cur = di.value.trim();
-  const wrapped = `${AI_SUMMARY_TAG}\n<blockquote>${summary}</blockquote>`;
-
-  if (AI_BQ_REGEX.test(cur)) {
-    di.value = cur.replace(AI_BQ_REGEX, "\n\n" + wrapped).replace(/^\n\n/, "");
-  } else {
-    di.value = cur ? cur + "\n\n" + wrapped : wrapped;
-  }
-  updateCharCount();
-  autoResizeTextarea(di);
-}
-
-// ---- Remove AI summary block from description ----
-function removeSummary() {
-  const di = document.getElementById("description-input");
-  di.value = di.value.replace(AI_BQ_REGEX, "").trim();
-  updateCharCount();
-  autoResizeTextarea(di);
-}
-
-// ---- AI Summary core logic ----
-async function doAISummary(forceRefresh) {
-  const btn = document.getElementById("ai-summary-btn");
-  if (!hasAIKey(settings)) { showStatus("status-msg", "Set AI API key in settings", "error"); return; }
-  if (!pageInfo.pageText) { showStatus("status-msg", "No page content to summarize", "error"); return; }
-
-  // Check cache (unless forcing refresh)
-  if (!forceRefresh) {
-    const cached = await getAICache(pageInfo.url, "summary", settings.aiCacheDuration);
-    if (cached) {
-      upsertSummary(cached);
-      showSummaryActions(true);
-      return;
-    }
-  }
-
-  if (btn && !btn.classList.contains("hidden")) {
-    btn.textContent = "summarizing...";
-    btn.classList.add("loading");
-  }
-  try {
-    const summary = await callAI(settings, buildSummaryPrompt(settings, document.getElementById("title-input").value, document.getElementById("url-input").value, pageInfo.pageText, document.getElementById("description-input").value));
-    await setAICache(pageInfo.url, "summary", summary, settings.aiCacheDuration);
-    upsertSummary(summary);
-    showSummaryActions(false);
-    showStatus("status-msg", forceRefresh ? "Summary regenerated" : "Summary generated", "success");
-  } catch (e) {
-    showStatus("status-msg", `AI error: ${e.message}`, "error");
-    // On error during regenerate, restore actions so user can retry
-    if (forceRefresh) showSummaryActions(false);
-  }
-}
-
-// ---- Show regenerate + remove actions after summary is inserted ----
-function showSummaryActions(fromCache) {
-  const btn = document.getElementById("ai-summary-btn");
-  const bar = btn.parentElement;
-  // Hide the original button — regenerate/remove take over
-  btn.classList.add("hidden");
-  bar.querySelector(".cache-hint-wrap")?.remove();
-
-  const wrap = document.createElement("span");
-  wrap.className = "cache-hint-wrap";
-  const parts = [];
-  if (fromCache) parts.push('<span class="cache-hint">cached</span>');
-  parts.push('<a href="#" class="regen-link" data-action="regenerate">↻ regenerate</a>');
-  parts.push('<a href="#" class="regen-link" data-action="remove">✕ remove</a>');
-  wrap.innerHTML = parts.join("");
-  bar.appendChild(wrap);
-
-  wrap.querySelectorAll(".regen-link").forEach(link => {
-    link.addEventListener("click", async (e) => {
-      e.preventDefault();
-      const action = e.currentTarget.dataset.action;
-      if (action === "remove") {
-        removeSummary();
-        wrap.remove();
-        btn.textContent = "🤖 AI summary";
-        btn.classList.remove("hidden", "loading");
-        showStatus("status-msg", "Summary removed", "success");
-        return;
-      }
-      // regenerate
-      wrap.querySelectorAll(".regen-link").forEach(l => l.classList.add("loading"));
-      e.currentTarget.textContent = "regenerating...";
-      await doAISummary(true);
-    });
-  });
-}
-
-// ---- AI Tags core logic (forceRefresh = bypass cache) ----
-async function doAITags(forceRefresh) {
-  const btn = document.getElementById("ai-tags-btn");
-  const container = document.getElementById("ai-suggest-tags");
-
-  if (!hasAIKey(settings)) {
-    container.innerHTML = '<span class="muted">set AI key in <a href="#" class="go-settings">settings</a></span>';
-    container.querySelector(".go-settings")?.addEventListener("click", (ev) => { ev.preventDefault(); chrome.runtime.openOptionsPage(); });
-    return;
-  }
-
-  // Check cache (unless forcing refresh)
-  if (!forceRefresh) {
-    const cached = await getAICache(pageInfo.url, "tags", settings.aiCacheDuration);
-    if (cached) {
-      renderAITags(cached, true); // true = from cache
-      return;
-    }
-  }
-
-  // Only update button text if the button exists
-  if (btn) {
-    btn.textContent = "generating...";
-    btn.classList.add("loading");
-  }
-
-  try {
-    const resp = await callAI(settings, buildTagPrompt(settings, document.getElementById("title-input").value, document.getElementById("url-input").value, pageInfo.pageText, document.getElementById("description-input").value, allUserTags));
-    const rawTags = parseAITags(resp, settings.aiTagSeparator);
-    const tags = settings.optRespectTagCase
-      ? rawTags.map(t => resolveTagCase(t, tagCaseMap))
-      : rawTags;
-    await setAICache(pageInfo.url, "tags", tags, settings.aiCacheDuration);
-    renderAITags(tags, false); // false = freshly generated
-    if (forceRefresh) {
-      showStatus("status-msg", "Tags regenerated", "success");
-    }
-  } catch (e) {
-    container.innerHTML = `<span class="muted">${esc(e.message)}</span>`;
-  }
-
-  // Restore button text if the button still exists
-  if (btn) {
-    btn.textContent = "generate";
-    btn.classList.remove("loading");
-  }
-}
-
-
-function renderAITags(tags, fromCache) {
-  const container = document.getElementById("ai-suggest-tags");
-  container.innerHTML = "";
-
-  if (!tags.length) {
-    container.innerHTML = '<span class="muted">no tags generated</span>';
-    return;
-  }
-
-  // Tag items
-  tags.forEach((tag) => {
-    const el = document.createElement("span");
-    el.className = "stag ai";
-    el.textContent = tag;
-    el.dataset.tag = tag;
-    el.addEventListener("click", () => { addTag(tag); el.classList.add("used"); });
-    container.appendChild(el);
-  });
-
-  // "Add all" link
-  const aa = document.createElement("span");
-  aa.className = "add-all-link";
-  aa.textContent = "Add all";
-  aa.addEventListener("click", () => {
-    container.querySelectorAll(".stag:not(.used)").forEach((el) => { addTag(el.dataset.tag); el.classList.add("used"); });
-  });
-  container.appendChild(aa);
-
-  // Cache hint + regenerate/replace buttons (only when loaded from cache)
-  if (fromCache) {
-    const cachedTagSet = new Set(tags.map(t => t.toLowerCase()));
-    const hintWrap = document.createElement("span");
-    hintWrap.className = "cache-hint-wrap";
-    hintWrap.style.display = "inline-block";
-    hintWrap.style.marginLeft = "8px";
-    hintWrap.innerHTML = [
-      '<span class="cache-hint">cached</span>',
-      '<a href="#" class="regen-link" data-mode="append">↻ regenerate</a>',
-      '<a href="#" class="regen-link" data-mode="replace">↻ replace</a>'
-    ].join("");
-    container.appendChild(hintWrap);
-
-    hintWrap.querySelectorAll(".regen-link").forEach((link) => {
-      link.addEventListener("click", async (e) => {
-        e.preventDefault();
-        const mode = e.currentTarget.dataset.mode;
-        hintWrap.querySelectorAll(".regen-link").forEach((l) => l.classList.add("loading"));
-        e.currentTarget.textContent = mode === "replace" ? "replacing..." : "regenerating...";
-        if (mode === "replace") {
-          // Remove cached AI tags from currentTags before regenerating
-          currentTags = currentTags.filter(t => !cachedTagSet.has(t.toLowerCase()));
-          renderTags();
-        }
-        await doAITags(true);
-      });
-    });
-  }
 }
 
 // ===================== Recent Bookmarks =====================
@@ -992,7 +331,6 @@ async function showOfflineQueueStatus() {
 function setupDescriptionCounter() {
   const textarea = document.getElementById("description-input");
   textarea.addEventListener("input", () => { updateCharCount(); autoResizeTextarea(textarea); });
-  // Initial resize
   setTimeout(() => autoResizeTextarea(textarea), 50);
 }
 function autoResizeTextarea(el) {
@@ -1010,12 +348,11 @@ function showStatus(id, text, type) { const el = document.getElementById(id); el
 function esc(s) { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
 function enc(s) { return encodeURIComponent(s); }
 
-// F5: Alt+1~9 to add suggest/AI tags by index
+// Alt+1~9 to add suggest/AI tags by index
 document.addEventListener("keydown", (e) => {
   if (!e.altKey || e.ctrlKey || e.metaKey) return;
   const n = parseInt(e.key);
   if (n < 1 || n > 9 || isNaN(n)) return;
-  // Collect all visible, not-yet-used suggest + AI tags in order
   const allStags = [...document.querySelectorAll("#pinboard-suggest-tags .stag:not(.used), #ai-suggest-tags .stag:not(.used)")];
   if (n <= allStags.length) {
     e.preventDefault();
