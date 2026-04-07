@@ -187,7 +187,7 @@ a:hover { text-decoration: underline; }
 .quick-actions .divider {
   border: none;
   border-top: 1px solid #e8e8e8;
-  margin: 8px 0 6px;
+  margin: 8px 0 0;
 }
 .quick-row {
   display: flex;
@@ -273,7 +273,7 @@ a:hover { text-decoration: underline; }
   align-items: center;
   justify-content: center;
   gap: 4px;
-  padding: 4px 8px 2px;
+  padding: 6px 8px;
   font-size: 11px;
 }
 .quick-links a {

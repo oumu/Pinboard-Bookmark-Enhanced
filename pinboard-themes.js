@@ -154,7 +154,7 @@ input[type="submit"]:hover, input[type="button"]:hover { background: #1765cc !im
 .settings_tab_selected a { color: #1a73e8 !important; }
 [class*="settings_tab_spacer"] { border-bottom-color: #e8e8e8 !important; }
 .settings_heading { color: #3c4043 !important; font-size: 15px !important; margin-top: 16px !important; background: transparent !important; border-bottom: 1px solid #e8e8e8 !important; padding-bottom: 6px !important; }
-a.help { color: #9aa0a6 !important; text-decoration: none !important; }
+a.help { color: #9aa0a6 !important; background: #e4e6e9 !important; text-decoration: none !important; }
 .email_secret { color: #1a73e8 !important; }
 #settings_tab_panes { border: none !important; }
 #settings_tab_panes table td { color: #3c4043 !important; }
@@ -304,7 +304,7 @@ input[type="submit"]:hover, input[type="button"]:hover { background: #81a1c1 !im
 .settings_tab_selected a { color: #88c0d0 !important; }
 [class*="settings_tab_spacer"] { border-bottom-color: #434c5e !important; }
 .settings_heading { color: #81a1c1 !important; background: transparent !important; border-bottom: 1px solid #434c5e !important; padding-bottom: 6px !important; }
-a.help { color: #4c566a !important; }
+a.help { color: #4c566a !important; background: #3b4252 !important; }
 .email_secret { color: #88c0d0 !important; }
 #settings_tab_panes { border: none !important; }
 #settings_tab_panes table td { color: #d8dee9 !important; }
@@ -467,7 +467,7 @@ input[type="submit"]:hover, input[type="button"]:hover { background: #2a5a2a !im
 [class*="settings_tab_spacer"] { border-bottom-color: #33ff3340 !important; }
 .settings_heading { color: #33ff33 !important; background: transparent !important; border-bottom: 1px dashed #33ff3340 !important; padding-bottom: 6px !important; }
 .settings_heading::before { content: "$ " !important; }
-a.help { color: #336633 !important; }
+a.help { color: #336633 !important; background: #f0ede8 !important; }
 .email_secret { color: #00cccc !important; }
 #settings_tab_panes { border: none !important; }
 #settings_tab_panes table td { color: #33ff33 !important; }
@@ -626,7 +626,7 @@ input[type="submit"]:hover, input[type="button"]:hover { background: #8b6c5b !im
 .settings_tab_selected a { color: #1a3a5c !important; }
 [class*="settings_tab_spacer"] { border-bottom-color: #e8dfd0 !important; }
 .settings_heading { color: #6b4c3b !important; font-family: "Georgia", serif !important; background: transparent !important; border-bottom: 1px solid #e8dfd0 !important; padding-bottom: 6px !important; }
-a.help { color: #aaa !important; }
+a.help { color: #aaa !important; background: #1a1a1a !important; }
 .email_secret { color: #1a3a5c !important; }
 #settings_tab_panes { border: none !important; }
 #settings_tab_panes table td { color: #2c2c2c !important; }
@@ -778,7 +778,7 @@ input[type="submit"]:hover, input[type="button"]:hover { background: #caa8fb !im
 .settings_tab_selected a { color: #ff79c6 !important; }
 [class*="settings_tab_spacer"] { border-bottom-color: #44475a !important; }
 .settings_heading { color: #bd93f9 !important; background: transparent !important; border-bottom: 1px solid #44475a !important; padding-bottom: 6px !important; }
-a.help { color: #6272a4 !important; }
+a.help { color: #6272a4 !important; background: #343746 !important; }
 .email_secret { color: #8be9fd !important; }
 #settings_tab_panes { border: none !important; }
 #settings_tab_panes table td { color: #f8f8f2 !important; }
@@ -930,7 +930,7 @@ input[type="submit"]:hover, input[type="button"]:hover { background: #4385BE !im
 .settings_tab_selected a { color: #205EA6 !important; }
 [class*="settings_tab_spacer"] { border-bottom-color: #E6E4D9 !important; }
 .settings_heading { color: #5E409D !important; background: transparent !important; border-bottom: 1px solid #E6E4D9 !important; padding-bottom: 6px !important; }
-a.help { color: #B7B5AC !important; }
+a.help { color: #B7B5AC !important; background: #F2F0E5 !important; }
 .email_secret { color: #205EA6 !important; }
 #settings_tab_panes { border: none !important; }
 #settings_tab_panes table td { color: #100F0F !important; }
@@ -1043,7 +1043,7 @@ html.pbp-dark .settings_tab_selected { color: #4385BE !important; border: 1px so
 html.pbp-dark .settings_tab_selected a { color: #4385BE !important; }
 html.pbp-dark [class*="settings_tab_spacer"] { border-bottom-color: #403E3C !important; }
 html.pbp-dark .settings_heading { color: #8B7EC8 !important; background: transparent !important; border-bottom: 1px solid #403E3C !important; padding-bottom: 6px !important; }
-html.pbp-dark a.help { color: #575653 !important; }
+html.pbp-dark a.help { color: #6B6963 !important; background: #282726 !important; }
 html.pbp-dark .email_secret { color: #4385BE !important; }
 html.pbp-dark #settings_tab_panes { border: none !important; }
 html.pbp-dark #settings_tab_panes table td { color: #CECDC3 !important; }
@@ -1195,7 +1195,7 @@ input[type="submit"]:hover, input[type="button"]:hover { background: #2aa198 !im
 .settings_tab_selected a { color: #268bd2 !important; }
 [class*="settings_tab_spacer"] { border-bottom-color: #d6cdb5 !important; }
 .settings_heading { color: #586e75 !important; background: transparent !important; border-bottom: 1px solid #d6cdb5 !important; padding-bottom: 6px !important; text-transform: uppercase !important; font-size: 12px !important; letter-spacing: 0.08em !important; }
-a.help { color: #93a1a1 !important; }
+a.help { color: #93a1a1 !important; background: #eee8d5 !important; }
 .email_secret { color: #268bd2 !important; }
 #settings_tab_panes { border: none !important; }
 #settings_tab_panes table td { color: #657b83 !important; }
@@ -1346,7 +1346,7 @@ input[type="submit"]:hover, input[type="button"]:hover { background: #2aa198 !im
 .settings_tab_selected a { color: #268bd2 !important; }
 [class*="settings_tab_spacer"] { border-bottom-color: #094b5a !important; }
 .settings_heading { color: #93a1a1 !important; background: transparent !important; border-bottom: 1px solid #094b5a !important; padding-bottom: 6px !important; text-transform: uppercase !important; font-size: 12px !important; letter-spacing: 0.08em !important; }
-a.help { color: #586e75 !important; }
+a.help { color: #586e75 !important; background: #073642 !important; }
 .email_secret { color: #268bd2 !important; }
 #settings_tab_panes { border: none !important; }
 #settings_tab_panes table td { color: #839496 !important; }
@@ -1497,7 +1497,7 @@ input[type="submit"]:hover, input[type="button"]:hover { background: #179299 !im
 .settings_tab_selected a { color: #1e66f5 !important; }
 [class*="settings_tab_spacer"] { border-bottom-color: #ccd0da !important; }
 .settings_heading { color: #6c6f85 !important; background: transparent !important; border-bottom: 1px solid #ccd0da !important; padding-bottom: 6px !important; }
-a.help { color: #9ca0b0 !important; }
+a.help { color: #9ca0b0 !important; background: #e6e9ef !important; }
 .email_secret { color: #1e66f5 !important; }
 #settings_tab_panes { border: none !important; }
 #settings_tab_panes table td { color: #4c4f69 !important; }
@@ -1647,7 +1647,7 @@ input[type="submit"]:hover, input[type="button"]:hover { background: #cba6f7 !im
 .settings_tab_selected a { color: #89b4fa !important; }
 [class*="settings_tab_spacer"] { border-bottom-color: #45475a !important; }
 .settings_heading { color: #cba6f7 !important; background: transparent !important; border-bottom: 1px solid #45475a !important; padding-bottom: 6px !important; }
-a.help { color: #585b70 !important; }
+a.help { color: #585b70 !important; background: #313244 !important; }
 .email_secret { color: #89b4fa !important; }
 #settings_tab_panes { border: none !important; }
 #settings_tab_panes table td { color: #cdd6f4 !important; }
@@ -1800,7 +1800,7 @@ input[type="submit"]:hover, input[type="button"]:hover { background: #b8bb26 !im
 .settings_tab_selected a { color: #83a598 !important; }
 [class*="settings_tab_spacer"] { border-bottom-color: #504945 !important; }
 .settings_heading { color: #d3869b !important; background: transparent !important; border-bottom: 2px solid #504945 !important; padding-bottom: 6px !important; text-transform: uppercase !important; font-weight: 700 !important; letter-spacing: 0.05em !important; }
-a.help { color: #665c54 !important; }
+a.help { color: #665c54 !important; background: #3c3836 !important; }
 .email_secret { color: #83a598 !important; }
 #settings_tab_panes { border: none !important; }
 #settings_tab_panes table td { color: #ebdbb2 !important; }
@@ -1953,7 +1953,7 @@ input[type="submit"]:hover, input[type="button"]:hover { background: #ebbcba !im
 .settings_tab_selected a { color: #c4a7e7 !important; }
 [class*="settings_tab_spacer"] { border-bottom-color: #26233a !important; }
 .settings_heading { color: #ebbcba !important; background: transparent !important; border-bottom: 1px solid #26233a !important; padding-bottom: 6px !important; font-style: italic !important; }
-a.help { color: #6e6a86 !important; }
+a.help { color: #6e6a86 !important; background: #26233a !important; }
 .email_secret { color: #c4a7e7 !important; }
 #settings_tab_panes { border: none !important; }
 #settings_tab_panes table td { color: #e0def4 !important; }
@@ -2104,7 +2104,7 @@ input[type="submit"]:hover, input[type="button"]:hover { background: #0550ae !im
 .settings_tab_selected a { color: #0969da !important; }
 [class*="settings_tab_spacer"] { border-bottom-color: #d0d7de !important; }
 .settings_heading { color: #656d76 !important; background: transparent !important; border-bottom: 1px solid #d0d7de !important; padding-bottom: 6px !important; }
-a.help { color: #8c959f !important; }
+a.help { color: #8c959f !important; background: #e8ecf0 !important; }
 .email_secret { color: #0969da !important; }
 #settings_tab_panes { border: none !important; }
 #settings_tab_panes table td { color: #1f2328 !important; }

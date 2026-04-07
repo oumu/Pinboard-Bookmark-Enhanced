@@ -1,7 +1,13 @@
 // ============================================================
 // Pinboard Bookmark Plus - Custom Style Injector
-// Content script for pinboard.in pages
+// Content script for pinboard.in pages (runs at document_start)
 // ============================================================
+
+// Immediately hide page to prevent FOUC while loading custom theme
+const _pbpCloak = document.createElement("style");
+_pbpCloak.id = "pbp-cloak";
+_pbpCloak.textContent = "html { opacity: 0 !important; }";
+(document.head || document.documentElement).appendChild(_pbpCloak);
 
 (async () => {
   // Read chunked sync data (mirrors syncGetLarge from shared.js)
@@ -15,6 +21,14 @@
     return str || defaultValue;
   }
 
+  function uncloak() {
+    const el = document.getElementById("pbp-cloak");
+    if (el) el.remove();
+  }
+
+  // Safety: always uncloak after 800ms even if something fails
+  setTimeout(uncloak, 800);
+
   try {
     const syncData = await chrome.storage.sync.get({ customFont: "", optTheme: "auto" });
     const customCSS = await readChunkedSync("customCSS", "");
@@ -26,18 +40,19 @@
       (optTheme === "auto" && window.matchMedia("(prefers-color-scheme: dark)").matches);
     document.documentElement.classList.toggle("pbp-dark", isDark);
 
-    if (!customFont && !customCSS) return;
-
-    let css = "";
-    if (customFont) {
-      css += `body, .bookmark_title, .bookmark_description, .tag { font-family: ${customFont} !important; }\n`;
+    if (customFont || customCSS) {
+      let css = "";
+      if (customFont) {
+        css += `body, .bookmark_title, .bookmark_description, .tag { font-family: ${customFont} !important; }\n`;
+      }
+      if (customCSS) {
+        css += customCSS;
+      }
+      const style = document.createElement("style");
+      style.textContent = css;
+      (document.head || document.documentElement).appendChild(style);
     }
-    if (customCSS) {
-      css += customCSS;
-    }
-
-    const style = document.createElement("style");
-    style.textContent = css;
-    (document.head || document.documentElement).appendChild(style);
   } catch (_) {}
+
+  uncloak();
 })();
