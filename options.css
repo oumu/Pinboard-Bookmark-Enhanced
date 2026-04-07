@@ -10,14 +10,16 @@ h1 { font-size: 18px; color: #333; margin-bottom: 20px; border-bottom: 1px solid
 
 /* ---- Tabs ---- */
 .tabs { display: flex; gap: 0; border-bottom: 1px solid #ccc; margin-bottom: 0; align-items: center; }
-.tab-btn { padding: 6px 16px; border: 1px solid #ccc; border-bottom: none; background: #eee; cursor: pointer; font-size: 12px; margin-right: -1px; }
+.tab-btn { padding: 6px 16px; border: 1px solid #ccc; border-bottom: none; background: #eee; cursor: pointer; font-size: 12px; margin-right: -1px; transition: background 0.15s, color 0.15s; }
+.tab-btn:hover:not(.active) { background: #e0e0e0; }
 .tab-btn.active { background: #fff; font-weight: bold; position: relative; top: 1px; }
-.reset-tab-btn { margin-left: auto; padding: 3px 10px; font-size: 11px; color: #999; background: none; border: 1px solid #ddd; cursor: pointer; border-radius: 3px; white-space: nowrap; }
+.reset-tab-btn { margin-left: auto; padding: 3px 10px; font-size: 11px; color: #999; background: none; border: 1px solid #ddd; cursor: pointer; border-radius: 3px; white-space: nowrap; transition: color 0.15s, border-color 0.15s; }
 .reset-tab-btn:hover { color: #c00; border-color: #c00; }
 
 /* ---- Panels ---- */
 .panel { background: #fff; border: 1px solid #ccc; border-top: none; padding: 16px; visibility: hidden; height: 0; overflow: hidden; padding: 0; border-width: 0; }
-.panel.active { visibility: visible; height: auto; overflow: visible; padding: 16px; border-width: 0 1px 1px 1px; }
+.panel.active { visibility: visible; height: auto; overflow: visible; padding: 16px; border-width: 0 1px 1px 1px; animation: panelFadeIn 0.18s ease; }
+@keyframes panelFadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
 /* ---- Form groups ---- */
 .fg { margin-bottom: 12px; }
@@ -237,6 +239,7 @@ html[data-theme] body { background: var(--opt-bg); color: var(--opt-fg); }
 html[data-theme] h1 { color: var(--opt-fg); border-color: var(--opt-border); }
 html[data-theme] .tabs { border-color: var(--opt-border); }
 html[data-theme] .tab-btn { background: var(--opt-tab); border-color: var(--opt-border); color: var(--opt-fg-muted); }
+html[data-theme] .tab-btn:hover:not(.active) { background: var(--opt-tab-active); }
 html[data-theme] .tab-btn.active { background: var(--opt-tab-active); color: var(--opt-fg); }
 html[data-theme] .reset-tab-btn { color: var(--opt-fg-muted); border-color: var(--opt-border); }
 html[data-theme] .reset-tab-btn:hover { color: #e55; border-color: #e55; }

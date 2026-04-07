@@ -81,8 +81,15 @@ function showLogin() {
 async function showMain(token) {
   document.getElementById("login-section").classList.add("hidden");
   document.getElementById("main-section").classList.remove("hidden");
-  document.getElementById("user-info").textContent = t("userInfoPrefix", token.split(":")[0]);
   const username = token.split(":")[0];
+  const userInfo = document.getElementById("user-info");
+  userInfo.innerHTML = "";
+  const pbLink = document.createElement("a");
+  pbLink.href = "https://pinboard.in/";
+  pbLink.target = "_blank";
+  pbLink.textContent = "Pinboard";
+  userInfo.appendChild(pbLink);
+  userInfo.appendChild(document.createTextNode(` \u2014 ${username}`));
   const unreadLink = document.getElementById("unread-link");
   if (unreadLink) unreadLink.href = `https://pinboard.in/u:${encodeURIComponent(username)}/unread/`;
 
@@ -214,6 +221,8 @@ async function checkExistingBookmark(token, url) {
 
 // ===================== Submit / Delete =====================
 function setupSubmit(token) {
+  let autoCloseTimer = null;
+
   document.getElementById("submit-btn").addEventListener("click", async () => {
     const btn = document.getElementById("submit-btn"); btn.disabled = true; btn.classList.add("loading"); const orig = btn.textContent; btn.textContent = t("saving");
     const url = document.getElementById("url-input").value;
@@ -228,7 +237,10 @@ function setupSubmit(token) {
         btn.classList.add("saved-success");
         setTimeout(() => { btn.classList.remove("saved-success"); }, 1200);
         chrome.runtime.sendMessage({ type: "bookmark_saved", url: url });
-        if (settings.optAutoCloseAfterSave) setTimeout(() => window.close(), 1800);
+        if (settings.optAutoCloseAfterSave) {
+          autoCloseTimer = setTimeout(() => window.close(), 1800);
+          document.addEventListener("mousemove", () => { clearTimeout(autoCloseTimer); autoCloseTimer = null; }, { once: true });
+        }
       } else showStatus("status-msg", `Error: ${data.result_code}`, "error");
     } catch (e) { showStatus("status-msg", t("networkError"), "error"); }
     btn.disabled = false; btn.classList.remove("loading"); btn.textContent = orig;
@@ -240,6 +252,13 @@ function setupSubmit(token) {
       if (!mainSection.classList.contains("hidden")) {
         document.getElementById("submit-btn").click();
       }
+    } else if (e.key === "Escape") {
+      const delPop = document.querySelector(".del-confirm-popover");
+      if (delPop) { delPop.remove(); return; }
+      if (autoCloseTimer) { clearTimeout(autoCloseTimer); autoCloseTimer = null; return; }
+      const tagsInput = document.getElementById("tags-input");
+      if (tagsInput && document.activeElement === tagsInput) return;
+      window.close();
     }
   });
 
@@ -248,21 +267,43 @@ function setupSubmit(token) {
   hintSpan.textContent = t("hintCtrlEnter");
   document.querySelector(".submit-bar").appendChild(hintSpan);
 
-  document.getElementById("delete-btn").addEventListener("click", async () => {
-    if (!confirm(t("confirmDelete"))) return;
+  document.getElementById("delete-btn").addEventListener("click", () => {
     const delBtn = document.getElementById("delete-btn");
-    const delOrig = delBtn.textContent;
-    delBtn.disabled = true; delBtn.classList.add("loading"); delBtn.textContent = t("deleting");
-    const url = document.getElementById("url-input").value;
-    try {
-      const data = await (await pinboardFetch(`https://api.pinboard.in/v1/posts/delete?url=${enc(url)}&auth_token=${token}&format=json`)).json();
-      if (data.result_code === "done" || data.result_code === "item not found") {
-        showStatus("status-msg", t("deleted"), "success");
-        chrome.runtime.sendMessage({ type: "bookmark_deleted", url: url });
-        setTimeout(() => window.close(), 800);
-      } else showStatus("status-msg", `Error: ${data.result_code}`, "error");
-    } catch (e) { showStatus("status-msg", t("networkError"), "error"); }
-    delBtn.disabled = false; delBtn.classList.remove("loading"); delBtn.textContent = delOrig;
+    if (delBtn.querySelector(".del-confirm-popover")) return;
+
+    const pop = document.createElement("div");
+    pop.className = "del-confirm-popover";
+    const msg = document.createElement("span");
+    msg.textContent = t("confirmDelete");
+    const yes = document.createElement("button");
+    yes.className = "del-confirm-yes";
+    yes.textContent = t("delete");
+    const no = document.createElement("button");
+    no.className = "del-confirm-no";
+    no.textContent = t("cancel");
+    pop.appendChild(msg); pop.appendChild(yes); pop.appendChild(no);
+    delBtn.appendChild(pop);
+
+    function dismiss() { pop.remove(); }
+    pop.addEventListener("click", (e) => e.stopPropagation());
+    no.addEventListener("click", dismiss);
+    setTimeout(() => document.addEventListener("click", dismiss, { once: true }), 0);
+
+    yes.addEventListener("click", async () => {
+      dismiss();
+      const delOrig = delBtn.textContent;
+      delBtn.disabled = true; delBtn.classList.add("loading"); delBtn.textContent = t("deleting");
+      const url = document.getElementById("url-input").value;
+      try {
+        const data = await (await pinboardFetch(`https://api.pinboard.in/v1/posts/delete?url=${enc(url)}&auth_token=${token}&format=json`)).json();
+        if (data.result_code === "done" || data.result_code === "item not found") {
+          showStatus("status-msg", t("deleted"), "success");
+          chrome.runtime.sendMessage({ type: "bookmark_deleted", url: url });
+          setTimeout(() => window.close(), 800);
+        } else showStatus("status-msg", `Error: ${data.result_code}`, "error");
+      } catch (e) { showStatus("status-msg", t("networkError"), "error"); }
+      delBtn.disabled = false; delBtn.classList.remove("loading"); delBtn.textContent = delOrig;
+    });
   });
 }
 

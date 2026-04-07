@@ -49,8 +49,10 @@ async function fetchPinboardSuggestTags(token, url) {
     if (popular.length) container.appendChild(buildSuggestGroup(t("suggestPopular"), popular, null));
     if (recommended.length) container.appendChild(buildSuggestGroup(t("suggestRecommended"), recommended, "add-all-suggest"));
 
-    document.getElementById("add-all-suggest")?.addEventListener("click", () => {
+    const addAllSuggest = document.getElementById("add-all-suggest");
+    addAllSuggest?.addEventListener("click", () => {
       container.querySelectorAll(".stag:not(.used)").forEach((el) => { addTag(el.dataset.tag); el.classList.add("used"); });
+      if (addAllSuggest) { addAllSuggest.textContent = "✓"; addAllSuggest.style.pointerEvents = "none"; addAllSuggest.style.color = "#080"; }
     });
   } catch (e) {
     console.error("suggest tags error:", e);
@@ -103,7 +105,17 @@ function setupTagsInput() {
       if (ap !== bp) return ap ? -1 : 1;
       return 0;
     }).slice(0, 10);
-    if (!matches.length) { dropdown.classList.add("hidden"); return; }
+    if (!matches.length) {
+      dropdown.innerHTML = "";
+      const hint = document.createElement("div");
+      hint.className = "ac-item ac-new-hint";
+      const icon = document.createElement("span"); icon.className = "ac-new-icon"; icon.textContent = "+ ";
+      hint.appendChild(icon); hint.appendChild(document.createTextNode(input.value.trim()));
+      hint.addEventListener("click", () => { addTag(input.value.trim()); input.value = ""; dropdown.classList.add("hidden"); input.focus(); });
+      dropdown.appendChild(hint);
+      dropdown.classList.remove("hidden");
+      return;
+    }
     dropdown.innerHTML = "";
     matches.forEach((tag) => {
       const item = document.createElement("div"); item.className = "ac-item";
@@ -163,6 +175,8 @@ function setupTagsInput() {
 
 function updateAc(items) { items.forEach((el, i) => el.classList.toggle("selected", i === acIndex)); }
 
+let _newlyAddedTag = null;
+
 function addTag(tag) {
   tag = tag.trim().replace(/\s+/g, settings.aiTagSeparator || "-");
   if (!tag) return;
@@ -171,7 +185,9 @@ function addTag(tag) {
   }
   if (currentTags.some((t) => t.toLowerCase() === tag.toLowerCase())) return;
   currentTags.push(tag);
+  _newlyAddedTag = tag.toLowerCase();
   renderTags();
+  _newlyAddedTag = null;
 }
 
 function removeTag(tag) {
@@ -183,6 +199,7 @@ function renderTags() {
   const d = document.getElementById("tags-display"); d.innerHTML = "";
   currentTags.forEach((tag, idx) => {
     const el = document.createElement("span"); el.className = "tag-item";
+    if (_newlyAddedTag && tag.toLowerCase() === _newlyAddedTag) el.classList.add("is-new");
     el.draggable = true;
     el.dataset.idx = idx;
     const text = document.createTextNode(tag);

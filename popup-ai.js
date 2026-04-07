@@ -210,6 +210,7 @@ function renderAITags(tags, fromCache) {
   aa.textContent = t("addAll");
   aa.addEventListener("click", () => {
     container.querySelectorAll(".stag:not(.used)").forEach((el) => { addTag(el.dataset.tag); el.classList.add("used"); });
+    aa.textContent = "✓"; aa.style.pointerEvents = "none"; aa.style.color = "#080";
   });
   container.appendChild(aa);
 

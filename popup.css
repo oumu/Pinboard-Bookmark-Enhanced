@@ -119,9 +119,12 @@ a:hover { text-decoration: underline; }
 }
 .tag-remove { cursor: pointer; color: #888; font-size: 13px; line-height: 1; }
 .tag-remove:hover { color: #c00; }
+.tag-item:hover { filter: brightness(0.88); }
 .tag-item[draggable] { cursor: grab; }
 .tag-item.dragging { opacity: 0.4; }
 .tag-item.drag-over { border-left: 2px solid #4477bb; }
+.tag-item.is-new { animation: tagPopin 0.14s ease; }
+@keyframes tagPopin { from { transform: scale(0.75); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 .tags-input-wrap input {
   border: none !important; outline: none; padding: 1px 2px;
   font-size: 12px; flex: 1; min-width: 80px; background: transparent; font-family: inherit;
@@ -134,6 +137,9 @@ a:hover { text-decoration: underline; }
 .ac-item { padding: 3px 6px; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: space-between; }
 .ac-item:hover, .ac-item.selected { background: #d5e5f5; }
 .ac-count { color: #888; font-size: 10px; margin-left: 4px; flex-shrink: 0; }
+.ac-new-hint { color: #888; font-style: italic; cursor: pointer; }
+.ac-new-hint:hover { background: #d5e5f5; color: #333; font-style: normal; }
+.ac-new-icon { color: #4477bb; font-style: normal; font-weight: bold; margin-right: 3px; }
 .submit-hint { color: #aaa; font-size: 10px; margin-left: auto; align-self: center; }
 
 .clear-all-link {
@@ -163,8 +169,20 @@ a:hover { text-decoration: underline; }
 #submit-btn { background: #4477bb; color: #fff; border-color: #3366aa; font-weight: bold; }
 #submit-btn:hover { background: #3366aa; }
 #submit-btn:disabled { background: #aaa; border-color: #999; }
-.del-btn { color: #c00; border-color: #c00 !important; }
+.del-btn { position: relative; color: #c00; border-color: #c00 !important; }
 .del-btn:hover { background: #fee !important; }
+.del-confirm-popover {
+  position: absolute; bottom: calc(100% + 5px); right: 0;
+  background: #fff; border: 1px solid #ddd; border-radius: 4px;
+  padding: 5px 8px; font-size: 11px; white-space: nowrap;
+  display: flex; align-items: center; gap: 6px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15); animation: delConfirmIn 0.12s ease; z-index: 20;
+}
+.del-confirm-popover button { padding: 1px 10px; font-size: 11px; cursor: pointer; border: 1px solid #ccc; background: #f5f5f0; }
+.del-confirm-yes { color: #c00 !important; border-color: #c00 !important; }
+.del-confirm-yes:hover { background: #fee !important; }
+.del-confirm-no:hover { background: #eee; }
+@keyframes delConfirmIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
 .status-msg { padding: 3px 12px 4px 72px; font-size: 11px; }
 .status-msg.success { color: #080; }
 .status-msg.error { color: #c00; }
