@@ -137,7 +137,7 @@ Language can be set in Settings → Appearance, or auto-detected from browser lo
 ### Option 1 — Download ZIP (recommended)
 
 1. Go to [Releases](https://github.com/oumu/Pinboard-Bookmark-Enhanced/releases/latest) and download the latest `pinboard-bookmark-enhanced-vX.X.zip`
-2. Unzip to a local folder
+2. Unzip — a folder `pinboard-bookmark-enhanced-vX.X/` will be created automatically
 3. Open `chrome://extensions/`, enable **Developer mode**
 4. Click **Load unpacked**, select the unzipped folder
 5. Pin the extension to your toolbar
