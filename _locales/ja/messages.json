@@ -902,6 +902,12 @@
       }
     }
   },
+  "themeNameSave": {
+    "message": "保存"
+  },
+  "themeNameOverwriteBtn": {
+    "message": "上書き"
+  },
   "saveTabsTitle": {
     "message": "開いている全タブをタブセットとして保存（pinboard.in へのログインが必要）"
   },

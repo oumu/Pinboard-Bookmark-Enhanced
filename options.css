@@ -301,6 +301,45 @@ html[data-theme] .confirm-popover .confirm-yes:hover { background: #c33; }
 html[data-theme] .confirm-popover .confirm-no { color: var(--opt-fg-muted); border-color: var(--opt-border); background: none; }
 html[data-theme] .confirm-popover .confirm-no:hover { background: var(--opt-btn-hover); }
 
+/* ---- Theme name popover ---- */
+.save-theme-wrap { position: relative; display: inline-block; }
+.theme-name-popover {
+  position: absolute; left: 0; top: calc(100% + 6px); z-index: 20;
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 10px 12px; min-width: 220px;
+  background: #fff; border: 1px solid #ccc; border-radius: 4px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.14);
+  animation: confirmFadeIn 0.12s ease;
+}
+.theme-name-popover label { font-size: 12px; color: #555; margin: 0; }
+.theme-name-popover input[type="text"] {
+  font-size: 12px; padding: 3px 7px; border: 1px solid #ccc; border-radius: 3px; width: 100%; box-sizing: border-box;
+}
+.theme-name-popover input[type="text"]:focus { outline: none; border-color: #4477bb; }
+.theme-name-popover .tnp-overwrite {
+  font-size: 11px; color: #b85c00; margin: 0;
+}
+.theme-name-popover .tnp-actions { display: flex; gap: 6px; }
+.theme-name-popover .tnp-save {
+  padding: 2px 10px; font-size: 11px; cursor: pointer; border-radius: 3px;
+  background: #4477bb; color: #fff; border: 1px solid #2255aa;
+}
+.theme-name-popover .tnp-save:hover { background: #2255aa; }
+.theme-name-popover .tnp-cancel {
+  padding: 2px 10px; font-size: 11px; cursor: pointer; border-radius: 3px;
+  background: none; color: #666; border: 1px solid #ccc;
+}
+.theme-name-popover .tnp-cancel:hover { background: #eee; }
+
+html[data-theme] .theme-name-popover { background: var(--opt-panel); border-color: var(--opt-border); box-shadow: 0 2px 10px rgba(0,0,0,0.3); }
+html[data-theme] .theme-name-popover label { color: var(--opt-fg-muted); }
+html[data-theme] .theme-name-popover input[type="text"] { background: var(--opt-input-bg); border-color: var(--opt-border); color: var(--opt-fg); }
+html[data-theme] .theme-name-popover input[type="text"]:focus { border-color: var(--opt-accent); }
+html[data-theme] .theme-name-popover .tnp-overwrite { color: var(--opt-warn, #e08040); }
+html[data-theme] .theme-name-popover .tnp-save { background: var(--opt-accent); border-color: var(--opt-accent); }
+html[data-theme] .theme-name-popover .tnp-cancel { color: var(--opt-fg-muted); border-color: var(--opt-border); background: none; }
+html[data-theme] .theme-name-popover .tnp-cancel:hover { background: var(--opt-btn-hover); }
+
 /* ---- Terminal monospace override ---- */
 html[data-theme="terminal"] body { font-family: "Courier New", Consolas, monospace; }
 html[data-theme="terminal"] .fg textarea { font-family: "Courier New", Consolas, monospace; }

@@ -902,6 +902,12 @@
       }
     }
   },
+  "themeNameSave": {
+    "message": "Zapisz"
+  },
+  "themeNameOverwriteBtn": {
+    "message": "Nadpisz"
+  },
   "saveTabsTitle": {
     "message": "Zapisz wszystkie karty jako zestaw kart (wymaga logowania na pinboard.in)"
   },

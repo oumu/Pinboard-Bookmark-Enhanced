@@ -902,6 +902,12 @@
       }
     }
   },
+  "themeNameSave": {
+    "message": "Enregistrer"
+  },
+  "themeNameOverwriteBtn": {
+    "message": "Écraser"
+  },
   "saveTabsTitle": {
     "message": "Enregistrer tous les onglets ouverts comme un ensemble d'onglets (nécessite une connexion à pinboard.in)"
   },

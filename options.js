@@ -37,7 +37,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     },
     bookmarks: {
       fields: {
-        "opt-private-default": false, "opt-private-incognito": false, "opt-readlater-default": false,
+        "opt-private-default": false, "opt-private-incognito": true, "opt-readlater-default": false,
         "opt-auto-description": true, "opt-blockquote": true, "opt-include-referrer": false,
         "opt-respect-tag-case": true, "opt-show-suggest-tags": true, "opt-tag-presets": ""
       }
@@ -803,21 +803,81 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  document.getElementById("save-custom-theme").addEventListener("click", async () => {
+  document.getElementById("save-custom-theme").addEventListener("click", () => {
     const css = document.getElementById("opt-custom-css").value.trim();
     if (!css) return;
-    const name = prompt(t("themeName"));
-    if (!name || !name.trim()) return;
-    const trimmedName = name.trim();
-    const existing = savedThemes.findIndex(th => th.name === trimmedName);
-    if (existing >= 0) {
-      if (!confirm(t("themeOverwrite", trimmedName))) return;
-      savedThemes[existing].css = css;
-    } else {
-      savedThemes.push({ name: trimmedName, css });
-    }
-    await persistSavedThemes();
-    renderSavedThemes();
+
+    const wrap = document.querySelector(".save-theme-wrap");
+    if (wrap.querySelector(".theme-name-popover")) return; // already open
+
+    const pop = document.createElement("div");
+    pop.className = "theme-name-popover";
+
+    const lbl = document.createElement("label");
+    lbl.textContent = t("themeName");
+
+    const inp = document.createElement("input");
+    inp.type = "text";
+    inp.maxLength = 40;
+
+    const overwriteMsg = document.createElement("p");
+    overwriteMsg.className = "tnp-overwrite";
+    overwriteMsg.style.display = "none";
+
+    const actions = document.createElement("div");
+    actions.className = "tnp-actions";
+
+    const saveBtn = document.createElement("button");
+    saveBtn.className = "tnp-save";
+    saveBtn.textContent = t("themeNameSave");
+
+    const cancelBtn = document.createElement("button");
+    cancelBtn.className = "tnp-cancel";
+    cancelBtn.textContent = t("cancel");
+
+    actions.appendChild(saveBtn);
+    actions.appendChild(cancelBtn);
+    pop.appendChild(lbl);
+    pop.appendChild(inp);
+    pop.appendChild(overwriteMsg);
+    pop.appendChild(actions);
+    wrap.appendChild(pop);
+
+    inp.focus();
+
+    function dismiss() { pop.remove(); }
+
+    pop.addEventListener("click", (e) => e.stopPropagation());
+    cancelBtn.addEventListener("click", dismiss);
+
+    saveBtn.addEventListener("click", async () => {
+      const trimmedName = inp.value.trim();
+      if (!trimmedName) { inp.focus(); return; }
+      const existing = savedThemes.findIndex(th => th.name === trimmedName);
+      if (existing >= 0 && overwriteMsg.style.display === "none") {
+        overwriteMsg.textContent = t("themeOverwrite", trimmedName);
+        overwriteMsg.style.display = "";
+        saveBtn.textContent = t("themeNameOverwriteBtn");
+        return;
+      }
+      if (existing >= 0) {
+        savedThemes[existing].css = css;
+      } else {
+        savedThemes.push({ name: trimmedName, css });
+      }
+      await persistSavedThemes();
+      renderSavedThemes();
+      dismiss();
+    });
+
+    inp.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") dismiss();
+      if (e.key === "Enter") saveBtn.click();
+    });
+
+    // close on outside click
+    function outsideClick() { dismiss(); document.removeEventListener("click", outsideClick); }
+    setTimeout(() => document.addEventListener("click", outsideClick), 0);
   });
 
   await loadSavedThemes();

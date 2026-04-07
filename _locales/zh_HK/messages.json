@@ -902,6 +902,12 @@
       }
     }
   },
+  "themeNameSave": {
+    "message": "儲存"
+  },
+  "themeNameOverwriteBtn": {
+    "message": "覆蓋"
+  },
   "saveTabsTitle": {
     "message": "將所有開啟的標籤頁儲存為標籤集（需登入 pinboard.in）"
   },

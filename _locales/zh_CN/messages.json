@@ -902,6 +902,12 @@
       }
     }
   },
+  "themeNameSave": {
+    "message": "保存"
+  },
+  "themeNameOverwriteBtn": {
+    "message": "覆盖"
+  },
   "saveTabsTitle": {
     "message": "将所有打开的标签页保存为标签集（需登录 pinboard.in）"
   },

@@ -5,13 +5,34 @@
 // ---- Suggest Tags (Pinboard API) ----
 async function fetchPinboardSuggestTags(token, url) {
   const container = document.getElementById("pinboard-suggest-tags");
+  const cacheKey = "cached_suggest_" + url;
+  const SUGGEST_TTL = 10 * 60 * 1000; // 10 minutes
+
+  let data;
   try {
-    const resp = await pinboardFetch(`https://api.pinboard.in/v1/posts/suggest?url=${enc(url)}&auth_token=${token}&format=json`);
-    if (!resp.ok) {
-      if (resp.status === 500) { container.textContent = t("suggestNoSuggestions"); container.classList.add("muted"); return; }
-      throw new Error(`HTTP ${resp.status}`);
+    const stored = await chrome.storage.local.get(cacheKey);
+    if (stored[cacheKey] && Date.now() - stored[cacheKey].timestamp < SUGGEST_TTL) {
+      data = stored[cacheKey].data;
     }
-    const data = await resp.json();
+  } catch (_) {}
+
+  if (!data) {
+    try {
+      const resp = await pinboardFetch(`https://api.pinboard.in/v1/posts/suggest?url=${enc(url)}&auth_token=${token}&format=json`);
+      if (!resp.ok) {
+        if (resp.status === 500) { container.textContent = t("suggestNoSuggestions"); container.classList.add("muted"); return; }
+        throw new Error(`HTTP ${resp.status}`);
+      }
+      data = await resp.json();
+      chrome.storage.local.set({ [cacheKey]: { data, timestamp: Date.now() } }).catch(() => {});
+    } catch (e) {
+      container.textContent = t("suggestFailed", e.message || String(e));
+      container.classList.add("muted");
+      return;
+    }
+  }
+
+  try {
     container.innerHTML = "";
     const popular = data[0]?.popular || [];
     const recommended = data[1]?.recommended || [];

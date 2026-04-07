@@ -902,6 +902,12 @@
       }
     }
   },
+  "themeNameSave": {
+    "message": "Speichern"
+  },
+  "themeNameOverwriteBtn": {
+    "message": "Überschreiben"
+  },
   "saveTabsTitle": {
     "message": "Alle offenen Tabs als Tab-Set speichern (pinboard.in-Anmeldung erforderlich)"
   },

@@ -45,7 +45,7 @@ const SETTINGS_DEFAULTS = {
   customApiKey: "", customModel: "", customBaseUrl: "", customName: "Custom",
   aiSummaryLang: "auto", aiCacheDuration: 60,
   customTagPrompt: "", customSummaryPrompt: "",
-  optPrivateDefault: false, optPrivateIncognito: false, optReadlaterDefault: false,
+  optPrivateDefault: false, optPrivateIncognito: true, optReadlaterDefault: false,
   optAutoDescription: true, optBlockquote: true, optIncludeReferrer: false,
   optAiAutoTags: false,
   qsAutoNotes: true, qsBlockquote: true, qsDefaultTags: "", qsAiTags: false, qsAiSummary: false,

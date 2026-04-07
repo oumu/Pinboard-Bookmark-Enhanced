@@ -412,7 +412,9 @@
         <label class="bl" data-i18n="labelCustomCSS">Custom CSS</label>
         <textarea id="opt-custom-css" rows="12" placeholder="/* Custom CSS for pinboard.in */&#10;body { line-height: 1.6; }&#10;.bookmark_title { font-size: 14px; }" data-i18n-placeholder="customCSSPlaceholder"></textarea>
         <div style="display:flex;gap:8px;align-items:center;margin-top:6px;">
-          <button class="btn btn-sm" id="save-custom-theme" data-i18n="saveAsTheme">Save as theme</button>
+          <span class="save-theme-wrap">
+            <button class="btn btn-sm" id="save-custom-theme" data-i18n="saveAsTheme">Save as theme</button>
+          </span>
           <p class="hint" style="margin:0" data-i18n="saveAsThemeHint">Save current CSS as a reusable theme.</p>
         </div>
       </div>

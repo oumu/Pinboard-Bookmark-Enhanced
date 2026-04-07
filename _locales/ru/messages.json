@@ -902,6 +902,12 @@
       }
     }
   },
+  "themeNameSave": {
+    "message": "Сохранить"
+  },
+  "themeNameOverwriteBtn": {
+    "message": "Перезаписать"
+  },
   "saveTabsTitle": {
     "message": "Сохранить все открытые вкладки как набор (требуется вход в pinboard.in)"
   },
