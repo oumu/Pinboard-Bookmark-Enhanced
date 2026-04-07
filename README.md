@@ -97,7 +97,7 @@ Plus:
 ### Other
 
 - Toolbar icon changes when current page is already bookmarked
-- Tag autocomplete with frequency-sorted suggestions
+- Tag autocomplete with frequency-sorted suggestions; shows `+ tag` hint when no match found
 - Tag presets for common tag groups
 - Search bar in popup for quick Pinboard searches
 - Recent bookmarks display
@@ -107,6 +107,10 @@ Plus:
 - API key show/hide toggle for all provider inputs
 - Auto-growing notes field — starts compact, expands as you type
 - Enhanced duplicate detection — shows save date and tag count
+- `Escape` closes popup (or cancels pending auto-close after save); `Ctrl+Enter` saves
+- Auto-close after save is cancellable by moving the mouse or pressing Escape
+- Delete confirmation uses inline popover instead of browser dialog
+- "Add all" button shows ✓ after adding all suggested or AI tags
 
 ### Languages
 
@@ -256,6 +260,11 @@ Language can be set in Settings → Appearance, or auto-detected from browser lo
 - **稍后阅读** — 一键标记为稍后阅读
 - **批量保存** — 将所有标签页分别保存为独立书签，支持 AI 标签/摘要
 - **键盘快捷键** — 通过 `chrome://extensions/shortcuts` 配置
+- `Escape` 关闭弹窗（或取消保存成功后的自动关闭倒计时）；`Ctrl+Enter` 保存
+- 保存后自动关闭可通过移动鼠标或按 Escape 取消
+- 标签自动补全无匹配时显示 `+ 标签名` 提示行，可点击直接添加
+- 删除确认改为内联弹出框，与重置操作风格一致
+- "全部添加"按钮点击后显示 ✓ 反馈
 
 ### 多语言支持
 
