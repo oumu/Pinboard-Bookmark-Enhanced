@@ -54,8 +54,8 @@ function removeSummary() {
 // ---- AI Summary core logic ----
 async function doAISummary(forceRefresh) {
   const btn = document.getElementById("ai-summary-btn");
-  if (!hasAIKey(settings)) { showStatus("status-msg", "Set AI API key in settings", "error"); return; }
-  if (!pageInfo.pageText) { showStatus("status-msg", "No page content to summarize", "error"); return; }
+  if (!hasAIKey(settings)) { showStatus("status-msg", t("aiSetKey"), "error"); return; }
+  if (!pageInfo.pageText) { showStatus("status-msg", t("aiNoContent"), "error"); return; }
 
   if (!forceRefresh) {
     const cached = await getAICache(pageInfo.url, "summary", settings.aiCacheDuration);
@@ -67,7 +67,7 @@ async function doAISummary(forceRefresh) {
   }
 
   if (btn && !btn.classList.contains("hidden")) {
-    btn.textContent = "summarizing...";
+    btn.textContent = t("aiSummarizing");
     btn.classList.add("loading");
   }
   try {
@@ -75,9 +75,9 @@ async function doAISummary(forceRefresh) {
     await setAICache(pageInfo.url, "summary", summary, settings.aiCacheDuration);
     upsertSummary(summary);
     showSummaryActions(false);
-    showStatus("status-msg", forceRefresh ? "Summary regenerated" : "Summary generated", "success");
+    showStatus("status-msg", forceRefresh ? t("aiSummaryRegenerated") : t("aiSummaryGenerated"), "success");
   } catch (e) {
-    showStatus("status-msg", `AI error: ${e.message}`, "error");
+    showStatus("status-msg", t("aiError", e.message), "error");
     if (forceRefresh) showSummaryActions(false);
   }
 }
@@ -95,7 +95,7 @@ function showSummaryActions(fromCache) {
   if (fromCache) {
     const hint = document.createElement("span");
     hint.className = "cache-hint";
-    hint.textContent = "cached";
+    hint.textContent = t("aiCached");
     wrap.appendChild(hint);
   }
 
@@ -108,8 +108,8 @@ function showSummaryActions(fromCache) {
     return link;
   }
 
-  const regenLink = createActionLink("\u21bb regenerate", "regenerate");
-  const removeLink = createActionLink("\u2715 remove", "remove");
+  const regenLink = createActionLink(t("aiRegenerate"), "regenerate");
+  const removeLink = createActionLink(t("aiRemove"), "remove");
   wrap.appendChild(regenLink);
   wrap.appendChild(removeLink);
   bar.appendChild(wrap);
@@ -118,15 +118,15 @@ function showSummaryActions(fromCache) {
     e.preventDefault();
     removeSummary();
     wrap.remove();
-    btn.textContent = "\ud83e\udd16 AI summary";
+    btn.textContent = t("aiSummaryBtn");
     btn.classList.remove("hidden", "loading");
-    showStatus("status-msg", "Summary removed", "success");
+    showStatus("status-msg", t("aiSummaryRemoved"), "success");
   });
 
   regenLink.addEventListener("click", async (e) => {
     e.preventDefault();
     wrap.querySelectorAll(".regen-link").forEach(l => l.classList.add("loading"));
-    regenLink.textContent = "regenerating...";
+    regenLink.textContent = t("aiRegenerating");
     await doAISummary(true);
   });
 }
@@ -140,11 +140,11 @@ async function doAITags(forceRefresh) {
     container.textContent = "";
     const msg = document.createElement("span");
     msg.className = "muted";
-    msg.textContent = "set AI key in ";
+    msg.textContent = t("aiSetKeyIn");
     const link = document.createElement("a");
     link.href = "#";
     link.className = "go-settings";
-    link.textContent = "settings";
+    link.textContent = t("settings");
     link.addEventListener("click", (ev) => { ev.preventDefault(); chrome.runtime.openOptionsPage(); });
     msg.appendChild(link);
     container.appendChild(msg);
@@ -160,7 +160,7 @@ async function doAITags(forceRefresh) {
   }
 
   if (btn) {
-    btn.textContent = "generating...";
+    btn.textContent = t("aiGenerating");
     btn.classList.add("loading");
   }
 
@@ -173,7 +173,7 @@ async function doAITags(forceRefresh) {
     await setAICache(pageInfo.url, "tags", tags, settings.aiCacheDuration);
     renderAITags(tags, false);
     if (forceRefresh) {
-      showStatus("status-msg", "Tags regenerated", "success");
+      showStatus("status-msg", t("aiTagsRegenerated"), "success");
     }
   } catch (e) {
     container.textContent = e.message;
@@ -181,7 +181,7 @@ async function doAITags(forceRefresh) {
   }
 
   if (btn) {
-    btn.textContent = "generate";
+    btn.textContent = t("aiGenerate");
     btn.classList.remove("loading");
   }
 }
@@ -191,7 +191,7 @@ function renderAITags(tags, fromCache) {
   container.innerHTML = "";
 
   if (!tags.length) {
-    container.textContent = "no tags generated";
+    container.textContent = t("aiNoTags");
     container.classList.add("muted");
     return;
   }
@@ -207,7 +207,7 @@ function renderAITags(tags, fromCache) {
 
   const aa = document.createElement("span");
   aa.className = "add-all-link";
-  aa.textContent = "Add all";
+  aa.textContent = t("addAll");
   aa.addEventListener("click", () => {
     container.querySelectorAll(".stag:not(.used)").forEach((el) => { addTag(el.dataset.tag); el.classList.add("used"); });
   });
@@ -222,7 +222,7 @@ function renderAITags(tags, fromCache) {
 
     const cachedSpan = document.createElement("span");
     cachedSpan.className = "cache-hint";
-    cachedSpan.textContent = "cached";
+    cachedSpan.textContent = t("aiCached");
     hintWrap.appendChild(cachedSpan);
 
     ["append", "replace"].forEach(mode => {
@@ -230,11 +230,11 @@ function renderAITags(tags, fromCache) {
       link.href = "#";
       link.className = "regen-link";
       link.dataset.mode = mode;
-      link.textContent = mode === "append" ? "\u21bb regenerate" : "\u21bb replace";
+      link.textContent = mode === "append" ? t("aiRegenerate") : t("aiReplace");
       link.addEventListener("click", async (e) => {
         e.preventDefault();
         hintWrap.querySelectorAll(".regen-link").forEach((l) => l.classList.add("loading"));
-        link.textContent = mode === "replace" ? "replacing..." : "regenerating...";
+        link.textContent = mode === "replace" ? t("aiReplacing") : t("aiRegenerating");
         if (mode === "replace") {
           currentTags = currentTags.filter(t => !cachedTagSet.has(t.toLowerCase()));
           renderTags();

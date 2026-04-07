@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "Pinboard Bookmark Plus",
+  "name": "__MSG_extName__",
   "version": "2.1",
-  "description": "Bookmark to Pinboard with AI-powered tags and summaries",
+  "description": "__MSG_extDescription__",
+  "default_locale": "en",
   "permissions": [
     "activeTab",
     "storage",
@@ -62,21 +63,21 @@
         "default": "Alt+B",
         "mac": "MacCtrl+B"
       },
-      "description": "Open Pinboard Bookmark Plus"
+      "description": "__MSG_cmdOpenPopup__"
     },
     "quick_save": {
       "suggested_key": {
         "default": "Alt+Shift+B",
         "mac": "MacCtrl+Shift+B"
       },
-      "description": "Quick save to Pinboard (no popup)"
+      "description": "__MSG_cmdQuickSave__"
     },
     "read_later": {
       "suggested_key": {
         "default": "Alt+Shift+R",
         "mac": "MacCtrl+Shift+R"
       },
-      "description": "Quick save as Read Later (no popup)"
+      "description": "__MSG_cmdReadLater__"
     }
   }
 }

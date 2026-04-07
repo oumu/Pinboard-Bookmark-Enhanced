@@ -12,7 +12,7 @@ async function fetchPinboardSuggestTags(token, url) {
     container.innerHTML = "";
     const popular = data[0]?.popular || [];
     const recommended = data[1]?.recommended || [];
-    if (!popular.length && !recommended.length) { container.textContent = "no suggestions"; container.classList.add("muted"); return; }
+    if (!popular.length && !recommended.length) { container.textContent = t("suggestNoSuggestions"); container.classList.add("muted"); return; }
 
     const resolveTag = (t) => (settings.optRespectTagCase && tagCaseMap) ? resolveTagCase(t, tagCaseMap) : t;
 
@@ -37,21 +37,21 @@ async function fetchPinboardSuggestTags(token, url) {
         const aa = document.createElement("span");
         aa.className = "add-all-link";
         aa.id = addAllId;
-        aa.textContent = "Add all";
+        aa.textContent = t("addAll");
         g.appendChild(aa);
       }
       return g;
     }
 
-    if (popular.length) container.appendChild(buildSuggestGroup("popular:", popular, null));
-    if (recommended.length) container.appendChild(buildSuggestGroup("recommended:", recommended, "add-all-suggest"));
+    if (popular.length) container.appendChild(buildSuggestGroup(t("suggestPopular"), popular, null));
+    if (recommended.length) container.appendChild(buildSuggestGroup(t("suggestRecommended"), recommended, "add-all-suggest"));
 
     document.getElementById("add-all-suggest")?.addEventListener("click", () => {
       container.querySelectorAll(".stag:not(.used)").forEach((el) => { addTag(el.dataset.tag); el.classList.add("used"); });
     });
   } catch (e) {
     console.error("suggest tags error:", e);
-    container.textContent = "failed to load: " + (e.message || String(e));
+    container.textContent = t("suggestFailed", e.message || String(e));
     container.classList.add("muted");
   }
 }

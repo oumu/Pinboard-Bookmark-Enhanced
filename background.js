@@ -2,7 +2,10 @@
 // Pinboard Bookmark Plus - Background Service Worker (v4.0)
 // ============================================================
 
-importScripts("shared.js", "ai.js");
+importScripts("i18n.js", "shared.js", "ai.js");
+
+// Load manual language setting (async, t() falls back to browser locale until ready)
+initI18n();
 
 // 图标路径
 const ICONS_DEFAULT = {
@@ -92,7 +95,7 @@ async function showNotification(id, title, message, category, undoInfo) {
   const notifId = id + "-" + Date.now();
   const opts = { type: "basic", iconUrl: "icons/pin-default-48.png", title, message };
   if (undoInfo) {
-    opts.buttons = [{ title: "Undo" }];
+    opts.buttons = [{ title: t("bgUndo") }];
     _recentSaves.set(notifId, undoInfo);
     // Auto-expire undo after 30s
     setTimeout(() => _recentSaves.delete(notifId), 30000);
@@ -111,7 +114,7 @@ chrome.notifications.onButtonClicked.addListener(async (notifId, btnIndex) => {
     const data = await resp.json();
     if (data.result_code === "done") {
       statusCache.set(info.url, { bookmarked: false, timestamp: Date.now() });
-      showNotification("undo-done", "Pinboard: Undone", `Bookmark removed.`);
+      showNotification("undo-done", t("bgUndone"), t("bgBookmarkRemoved"));
     }
   } catch (_) {}
 });
@@ -199,7 +202,7 @@ async function saveFromBackground({ url, title, tab, settingsOverrides, toread, 
   if (settingsOverrides) Object.assign(s, settingsOverrides);
 
   if (!s.pinboardToken) {
-    showNotification(notifyId + "-error", "Pinboard: Not logged in", "Set your API token in extension settings.", "error");
+    showNotification(notifyId + "-error", t("bgNotLoggedIn"), t("bgSetToken"), "error");
     return;
   }
 
@@ -284,21 +287,21 @@ async function saveFromBackground({ url, title, tab, settingsOverrides, toread, 
     if (data.result_code === "done") {
       statusCache.set(url, { bookmarked: true, timestamp: Date.now() });
       if (tab?.id) setIcon(tab.id, true);
-      showNotification(notifyId + "-saved", notifyTitle, `"${title.substring(0, 60)}" saved.`, notifyCategory, { url, token: s.pinboardToken });
+      showNotification(notifyId + "-saved", notifyTitle, t("bgTitleSaved", title.substring(0, 60)), notifyCategory, { url, token: s.pinboardToken });
       // Opportunistic: process offline queue after successful save
       processOfflineQueue().catch(() => {});
       // Update badge if toread
       if (toread) updateBadge().catch(() => {});
     } else {
-      showNotification(notifyId + "-error", "Pinboard: Save failed", data.result_code || "Unknown error", "error");
+      showNotification(notifyId + "-error", t("bgSaveFailed"), data.result_code || "Unknown error", "error");
     }
   } catch (e) {
     // Network error — queue for offline retry if enabled
     if (s.offlineQueueEnabled) {
       await enqueueOfflineSave({ url, title, notes, tags: tagsStr, toread: !!toread, token: obfuscateKey(s.pinboardToken) });
-      showNotification(notifyId + "-queued", "Pinboard: Queued offline", `"${title.substring(0, 60)}" will be saved when online.`, notifyCategory);
+      showNotification(notifyId + "-queued", t("bgQueuedOffline"), t("bgTitleQueued", title.substring(0, 60)), notifyCategory);
     } else {
-      showNotification(notifyId + "-error", "Pinboard: Network error", e.message, "error");
+      showNotification(notifyId + "-error", t("bgNetworkError"), e.message, "error");
     }
   }
 }
@@ -424,14 +427,14 @@ async function handleSaveTabSet(tabsData) {
     const resp = await fetch("https://pinboard.in/tabs/save/", { method: "POST", body: formData, credentials: "include" });
     if (resp.ok) {
       chrome.tabs.create({ url: "https://pinboard.in/tabs/show/" });
-      showNotification("tabset-saved", "Pinboard: Tab Set Saved!", `${tabsData.length} tabs saved.`, "tabSet");
+      showNotification("tabset-saved", t("bgTabSetSaved"), t("bgTabsSavedCount", String(tabsData.length)), "tabSet");
     } else {
       const hint = resp.status === 401 || resp.status === 403
-        ? "Please log in to pinboard.in in your browser first." : `HTTP ${resp.status}`;
-      showNotification("tabset-error", "Pinboard: Tab Set Failed", hint, "error");
+        ? t("bgLoginRequired") : `HTTP ${resp.status}`;
+      showNotification("tabset-error", t("bgTabSetFailed"), hint, "error");
     }
   } catch (e) {
-    showNotification("tabset-error", "Pinboard: Tab Set Failed", e.message, "error");
+    showNotification("tabset-error", t("bgTabSetFailed"), e.message, "error");
   }
 }
 
@@ -450,7 +453,7 @@ chrome.commands.onCommand.addListener(async (command) => {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tab?.url || !tab.url.startsWith("http")) {
-      showNotification("rl-error", "Pinboard: Cannot save", "This page cannot be bookmarked.", "error");
+      showNotification("rl-error", t("bgCannotSave"), t("bgCannotBookmark"), "error");
       return;
     }
     const s = await loadSettings();
@@ -460,11 +463,11 @@ chrome.commands.onCommand.addListener(async (command) => {
       settingsOverrides: overrides,
       toread: true,
       notifyId: "rl",
-      notifyTitle: "Pinboard: Quick Read Later!",
+      notifyTitle: t("bgReadLater"),
       notifyCategory: "readLater"
     });
   } catch (e) {
-    showNotification("rl-error", "Pinboard: Read Later failed", e.message, "error");
+    showNotification("rl-error", t("bgReadLaterFailed"), e.message, "error");
   }
 });
 
@@ -474,7 +477,7 @@ chrome.commands.onCommand.addListener(async (command) => {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tab?.url || !tab.url.startsWith("http")) {
-      showNotification("qs-error", "Pinboard: Cannot save", "This page cannot be bookmarked.", "error");
+      showNotification("qs-error", t("bgCannotSave"), t("bgCannotBookmark"), "error");
       return;
     }
     const s = await loadSettings();
@@ -484,10 +487,10 @@ chrome.commands.onCommand.addListener(async (command) => {
       settingsOverrides: overrides,
       toread: false,
       notifyId: "qs",
-      notifyTitle: "Pinboard: Quick Saved!",
+      notifyTitle: t("bgQuickSaved"),
       notifyCategory: "quickSave"
     });
   } catch (e) {
-    showNotification("qs-error", "Pinboard: Quick Save failed", e.message, "error");
+    showNotification("qs-error", t("bgQuickSaveFailed"), e.message, "error");
   }
 });

@@ -1,0 +1,895 @@
+{
+  "extName": {
+    "message": "Pinboard 书签增强"
+  },
+  "extDescription": {
+    "message": "一键保存书签到 Pinboard，支持 AI 智能标签与摘要"
+  },
+  "cmdOpenPopup": {
+    "message": "打开 Pinboard 书签增强"
+  },
+  "cmdQuickSave": {
+    "message": "快速保存到 Pinboard（无弹窗）"
+  },
+  "cmdReadLater": {
+    "message": "快速标记为稍后阅读（无弹窗）"
+  },
+
+  "appName": {
+    "message": "Pinboard 书签增强"
+  },
+  "settings": {
+    "message": "设置"
+  },
+  "login": {
+    "message": "登录"
+  },
+  "logout": {
+    "message": "退出"
+  },
+  "cancel": {
+    "message": "取消"
+  },
+  "reset": {
+    "message": "重置"
+  },
+  "submit": {
+    "message": "保存"
+  },
+  "update": {
+    "message": "更新"
+  },
+  "delete": {
+    "message": "删除"
+  },
+  "clearAll": {
+    "message": "全部清除"
+  },
+  "loading": {
+    "message": "加载中..."
+  },
+  "private": {
+    "message": "私密"
+  },
+  "readLater": {
+    "message": "稍后阅读"
+  },
+  "networkError": {
+    "message": "网络错误"
+  },
+  "clear": {
+    "message": "清除"
+  },
+
+  "loginPrompt": {
+    "message": "请输入你的 API Token，获取地址："
+  },
+  "loginTokenPlaceholder": {
+    "message": "用户名:XXXXXXXXXXXXXX"
+  },
+  "loginInvalidFormat": {
+    "message": "格式错误，请使用 用户名:TOKEN 格式"
+  },
+  "loginFailed": {
+    "message": "认证失败"
+  },
+  "settingsPassword": {
+    "message": "settings/password"
+  },
+
+  "labelUrl": {
+    "message": "网址"
+  },
+  "labelTitle": {
+    "message": "标题"
+  },
+  "labelNotes": {
+    "message": "备注"
+  },
+  "labelTags": {
+    "message": "标签"
+  },
+  "labelPresets": {
+    "message": "预设"
+  },
+  "labelSuggest": {
+    "message": "推荐"
+  },
+  "labelAiTags": {
+    "message": "AI 标签"
+  },
+  "urlWarning": {
+    "message": "⚠ 此页面无法保存到 Pinboard（不支持的网址类型）"
+  },
+  "urlCannotSave": {
+    "message": "无法保存：不支持的网址类型"
+  },
+  "urlAndTitleRequired": {
+    "message": "网址和标题不能为空"
+  },
+  "placeholderAddTags": {
+    "message": "添加标签"
+  },
+  "placeholderSearchBookmarks": {
+    "message": "搜索你的书签..."
+  },
+
+  "saving": {
+    "message": "保存中..."
+  },
+  "bookmarkSaved": {
+    "message": "书签已保存"
+  },
+  "savedSuccess": {
+    "message": "✅ 已保存！"
+  },
+  "deleting": {
+    "message": "删除中..."
+  },
+  "deleted": {
+    "message": "已删除"
+  },
+  "confirmDelete": {
+    "message": "确定删除此书签？"
+  },
+  "confirmLogout": {
+    "message": "确定退出登录？API Token 将被移除。"
+  },
+  "hintCtrlEnter": {
+    "message": "Ctrl+Enter"
+  },
+
+  "editingExisting": {
+    "message": "✏️ 正在编辑已有书签"
+  },
+  "savedOnDate": {
+    "message": "保存于 $DATE$",
+    "placeholders": {
+      "date": { "content": "$1" }
+    }
+  },
+  "tagCount": {
+    "message": "$COUNT$ 个标签",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "tagCountPlural": {
+    "message": "$COUNT$ 个标签",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "userInfoPrefix": {
+    "message": "Pinboard — $USER$",
+    "placeholders": {
+      "user": { "content": "$1" }
+    }
+  },
+
+  "aiSummaryBtn": {
+    "message": "🤖 AI 摘要"
+  },
+  "aiGenerateBtn": {
+    "message": "🤖 生成"
+  },
+  "aiSummarizing": {
+    "message": "生成摘要中..."
+  },
+  "aiGenerating": {
+    "message": "生成标签中..."
+  },
+  "aiGenerate": {
+    "message": "生成"
+  },
+  "aiSummaryGenerated": {
+    "message": "摘要已生成"
+  },
+  "aiSummaryRegenerated": {
+    "message": "摘要已重新生成"
+  },
+  "aiSummaryRemoved": {
+    "message": "摘要已移除"
+  },
+  "aiTagsRegenerated": {
+    "message": "标签已重新生成"
+  },
+  "aiNoTags": {
+    "message": "未生成标签"
+  },
+  "aiNoContent": {
+    "message": "页面无可用内容"
+  },
+  "aiSetKey": {
+    "message": "请先在设置中配置 AI API Key"
+  },
+  "aiSetKeyIn": {
+    "message": "请在 "
+  },
+  "aiCached": {
+    "message": "已缓存"
+  },
+  "aiRegenerate": {
+    "message": "↻ 重新生成"
+  },
+  "aiReplace": {
+    "message": "↻ 替换"
+  },
+  "aiRemove": {
+    "message": "✕ 移除"
+  },
+  "aiRegenerating": {
+    "message": "重新生成中..."
+  },
+  "aiReplacing": {
+    "message": "替换中..."
+  },
+  "aiError": {
+    "message": "AI 出错：$ERROR$",
+    "placeholders": {
+      "error": { "content": "$1" }
+    }
+  },
+  "addAll": {
+    "message": "全部添加"
+  },
+
+  "suggestNoSuggestions": {
+    "message": "暂无推荐"
+  },
+  "suggestPopular": {
+    "message": "热门："
+  },
+  "suggestRecommended": {
+    "message": "推荐："
+  },
+  "suggestFailed": {
+    "message": "加载失败：$ERROR$",
+    "placeholders": {
+      "error": { "content": "$1" }
+    }
+  },
+
+  "qlSets": {
+    "message": "标签集"
+  },
+  "qlNetwork": {
+    "message": "关注"
+  },
+  "qlUnread": {
+    "message": "待读"
+  },
+  "qlNotes": {
+    "message": "笔记"
+  },
+  "qlPopular": {
+    "message": "热门"
+  },
+
+  "saveTabsBtn": {
+    "message": "📑 保存标签页"
+  },
+  "batchSaveBtn": {
+    "message": "📌 批量保存"
+  },
+  "batchSaving": {
+    "message": "⏳ 保存中..."
+  },
+  "batchNoValidTabs": {
+    "message": "没有可保存的标签页"
+  },
+  "batchNoTabs": {
+    "message": "没有可用的标签页"
+  },
+  "batchNotLoggedIn": {
+    "message": "尚未登录"
+  },
+  "batchSent": {
+    "message": "✅ 已发送！"
+  },
+  "batchProgress": {
+    "message": "⏳ $CURRENT$/$TOTAL$（✓$SAVED$ ✗$FAILED$）",
+    "placeholders": {
+      "current": { "content": "$1" },
+      "total": { "content": "$2" },
+      "saved": { "content": "$3" },
+      "failed": { "content": "$4" }
+    }
+  },
+  "batchDone": {
+    "message": "批量完成：$SAVED$ 已保存，$FAILED$ 失败",
+    "placeholders": {
+      "saved": { "content": "$1" },
+      "failed": { "content": "$2" }
+    }
+  },
+  "batchSkipped": {
+    "message": "，$COUNT$ 已跳过",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "batchSavedCount": {
+    "message": "✅ 已保存 $COUNT$ 个",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "batchFailed": {
+    "message": "批量保存失败：$ERROR$",
+    "placeholders": {
+      "error": { "content": "$1" }
+    }
+  },
+  "batchSavedNotify": {
+    "message": "已保存 $COUNT$ 个书签$TAGS$。",
+    "placeholders": {
+      "count": { "content": "$1" },
+      "tags": { "content": "$2" }
+    }
+  },
+  "batchTaggedSuffix": {
+    "message": "（标签：$TAGS$）",
+    "placeholders": {
+      "tags": { "content": "$1" }
+    }
+  },
+
+  "offlineQueued": {
+    "message": "$COUNT$ 个书签排队中（离线）",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "offlineClearConfirm": {
+    "message": "确定清除所有排队中的书签？"
+  },
+
+  "recentLabel": {
+    "message": "最近："
+  },
+  "recentFailed": {
+    "message": "加载失败：$ERROR$",
+    "placeholders": {
+      "error": { "content": "$1" }
+    }
+  },
+  "recentDeleteTitle": {
+    "message": "删除此书签"
+  },
+
+  "bgNotLoggedIn": {
+    "message": "Pinboard：未登录"
+  },
+  "bgSetToken": {
+    "message": "请先在扩展设置中配置 API Token。"
+  },
+  "bgUndone": {
+    "message": "Pinboard：已撤销"
+  },
+  "bgBookmarkRemoved": {
+    "message": "书签已移除。"
+  },
+  "bgQuickSaved": {
+    "message": "Pinboard：快速保存成功！"
+  },
+  "bgReadLater": {
+    "message": "Pinboard：已标记为稍后阅读！"
+  },
+  "bgCannotSave": {
+    "message": "Pinboard：无法保存"
+  },
+  "bgCannotBookmark": {
+    "message": "此页面无法添加书签。"
+  },
+  "bgTabSetSaved": {
+    "message": "Pinboard：标签集已保存！"
+  },
+  "bgTabsSavedCount": {
+    "message": "已保存 $COUNT$ 个标签页。",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "bgTabSetFailed": {
+    "message": "Pinboard：标签集保存失败"
+  },
+  "bgLoginRequired": {
+    "message": "请先在浏览器中登录 pinboard.in。"
+  },
+  "bgQuickSaveFailed": {
+    "message": "Pinboard：快速保存失败"
+  },
+  "bgReadLaterFailed": {
+    "message": "Pinboard：稍后阅读保存失败"
+  },
+  "bgSaveFailed": {
+    "message": "Pinboard：保存失败"
+  },
+  "bgNetworkError": {
+    "message": "Pinboard：网络错误"
+  },
+  "bgQueuedOffline": {
+    "message": "Pinboard：已加入离线队列"
+  },
+  "bgTitleSaved": {
+    "message": "\"$TITLE$\" 已保存。",
+    "placeholders": {
+      "title": { "content": "$1" }
+    }
+  },
+  "bgTitleQueued": {
+    "message": "\"$TITLE$\" 将在联网后自动保存。",
+    "placeholders": {
+      "title": { "content": "$1" }
+    }
+  },
+  "bgBatchSaved": {
+    "message": "Pinboard：批量保存完成！"
+  },
+  "bgUndo": {
+    "message": "撤销"
+  },
+
+  "optTitle": {
+    "message": "Pinboard 书签增强 — 设置"
+  },
+  "optAutoSave": {
+    "message": "自动保存已启用"
+  },
+  "optAutoSaved": {
+    "message": "✓ 已保存"
+  },
+  "tabBookmarks": {
+    "message": "书签"
+  },
+  "tabAI": {
+    "message": "AI"
+  },
+  "tabQuickActions": {
+    "message": "快捷操作"
+  },
+  "tabAppearance": {
+    "message": "外观"
+  },
+  "resetTabBtn": {
+    "message": "重置此页"
+  },
+  "resetTabTitle": {
+    "message": "将当前页面设置恢复为默认值"
+  },
+  "resetConfirm": {
+    "message": "确定重置「$TAB$」？",
+    "placeholders": {
+      "tab": { "content": "$1" }
+    }
+  },
+  "resetKeysKept": {
+    "message": "（密钥保留）"
+  },
+
+  "secPinboardAccount": {
+    "message": "Pinboard 账户"
+  },
+  "labelApiToken": {
+    "message": "API Token"
+  },
+  "hintApiToken": {
+    "message": "获取地址："
+  },
+  "secSaveDefaults": {
+    "message": "保存默认设置"
+  },
+  "optPrivateDefault": {
+    "message": "默认设为私密"
+  },
+  "optPrivateIncognito": {
+    "message": "无痕模式下自动设为私密"
+  },
+  "optReadlaterDefault": {
+    "message": "默认标记为稍后阅读"
+  },
+  "secNotesBehavior": {
+    "message": "备注行为"
+  },
+  "optAutoDescription": {
+    "message": "自动填充页面描述到备注"
+  },
+  "optBlockquote": {
+    "message": "以引用格式包裹选中文本"
+  },
+  "optIncludeReferrer": {
+    "message": "在备注中附加来源页地址"
+  },
+  "secTags": {
+    "message": "标签"
+  },
+  "optRespectTagCase": {
+    "message": "尊重已有标签大小写（匹配使用最多的写法）"
+  },
+  "optShowSuggestTags": {
+    "message": "在弹窗中显示 Pinboard 推荐标签"
+  },
+  "labelTagPresets": {
+    "message": "标签预设"
+  },
+  "tagPresetsPlaceholder": {
+    "message": "每行一组预设：\n工作: project, review, report\n开发: programming, tutorial, tool"
+  },
+  "tagPresetsHint": {
+    "message": "格式：名称: 标签1, 标签2, 标签3 — 在弹窗中显示为快捷添加按钮。"
+  },
+  "secPopupBehavior": {
+    "message": "弹窗行为"
+  },
+  "optCheckBookmarkStatus": {
+    "message": "通过图标显示收藏状态（检测当前页面是否已保存）"
+  },
+  "optAutoClose": {
+    "message": "保存后自动关闭弹窗"
+  },
+  "optOfflineQueue": {
+    "message": "启用离线保存队列"
+  },
+  "secBackupRestore": {
+    "message": "备份与恢复"
+  },
+  "backupHint": {
+    "message": "导出或导入设置（出于安全考虑，API 密钥不包含在导出文件中）。"
+  },
+  "exportSettings": {
+    "message": "导出设置"
+  },
+  "importSettings": {
+    "message": "导入设置"
+  },
+  "importedReload": {
+    "message": "✓ 已导入 — 刷新页面后生效"
+  },
+  "importInvalid": {
+    "message": "✗ 文件格式无效"
+  },
+
+  "secQuickSave": {
+    "message": "快速保存"
+  },
+  "qsHint": {
+    "message": "通过键盘快捷键即时保存当前页面（无需打开弹窗）。"
+  },
+  "openShortcuts": {
+    "message": "打开 Chrome 快捷键设置"
+  },
+  "shortcutsManual": {
+    "message": "或手动前往："
+  },
+  "qsAutoNotes": {
+    "message": "自动将页面描述添加到备注"
+  },
+  "qsBlockquote": {
+    "message": "以引用格式包裹选中文本"
+  },
+  "labelDefaultTags": {
+    "message": "默认标签（逗号分隔）"
+  },
+  "placeholderTags": {
+    "message": "标签1, 标签2"
+  },
+  "qsAiTags": {
+    "message": "自动生成 AI 标签"
+  },
+  "qsAiSummary": {
+    "message": "自动在备注中生成 AI 摘要"
+  },
+
+  "secReadLater": {
+    "message": "稍后阅读"
+  },
+  "rlHint": {
+    "message": "通过键盘快捷键将当前页面标记为「稍后阅读」，自动标记为未读。"
+  },
+
+  "secBatchSave": {
+    "message": "批量保存"
+  },
+  "batchHint": {
+    "message": "将每个已打开的标签页分别保存为独立书签。"
+  },
+  "batchAutoAddTags": {
+    "message": "自动添加标签"
+  },
+  "batchTagsLabel": {
+    "message": "标签（逗号分隔）"
+  },
+  "batchTagsHint": {
+    "message": "多个标签用逗号分隔，如 batch_saved, research"
+  },
+  "batchAiTags": {
+    "message": "为每个标签页自动生成 AI 标签"
+  },
+  "batchAiSummary": {
+    "message": "为每个标签页自动生成 AI 摘要"
+  },
+  "batchSkipExisting": {
+    "message": "跳过已收藏的网址"
+  },
+  "batchWarning": {
+    "message": "⚠ 批量保存中的 AI 功能会比较慢——每个标签页都需要单独调用 AI，且保存间隔为 3 秒。"
+  },
+
+  "secAiProvider": {
+    "message": "AI 服务商"
+  },
+  "labelApiKey": {
+    "message": "API Key"
+  },
+  "labelModel": {
+    "message": "模型"
+  },
+  "labelBaseUrl": {
+    "message": "接口地址"
+  },
+  "labelDisplayName": {
+    "message": "显示名称"
+  },
+  "getKey": {
+    "message": "获取 Key"
+  },
+  "testConnection": {
+    "message": "测试连接"
+  },
+  "testTesting": {
+    "message": "测试中..."
+  },
+  "testConnected": {
+    "message": "✓ 已连接（$RESULT$）",
+    "placeholders": {
+      "result": { "content": "$1" }
+    }
+  },
+  "testTimeout": {
+    "message": "连接超时（15秒）"
+  },
+  "testNoApiKey": {
+    "message": "未填写 API Key"
+  },
+  "testNoBaseUrl": {
+    "message": "未配置接口地址"
+  },
+  "showHideKey": {
+    "message": "显示/隐藏密钥"
+  },
+
+  "hintOpenAIBaseUrl": {
+    "message": "可修改为代理或兼容接口地址"
+  },
+  "hintClaudeModel": {
+    "message": "如 claude-sonnet-4-20250514, claude-3-5-haiku-20241022"
+  },
+  "hintOllamaModel": {
+    "message": "需先运行 ollama pull llama3"
+  },
+  "hintOpenRouterKey": {
+    "message": "通过一个 API 访问 100+ 模型。"
+  },
+  "hintOpenRouterModels": {
+    "message": "浏览可用模型："
+  },
+  "hintCustomBaseUrl": {
+    "message": "必须支持 /chat/completions 接口"
+  },
+  "hintCustomKey": {
+    "message": "无需密钥时留空"
+  },
+
+  "secAiBehavior": {
+    "message": "AI 行为"
+  },
+  "optAiAutoTags": {
+    "message": "打开弹窗时自动生成 AI 标签"
+  },
+  "labelAiSummaryLang": {
+    "message": "AI 摘要语言"
+  },
+  "langAuto": {
+    "message": "自动（与内容语言一致）"
+  },
+  "langZh": {
+    "message": "中文"
+  },
+  "langEn": {
+    "message": "English（英语）"
+  },
+  "langJa": {
+    "message": "日本語（日语）"
+  },
+  "langKo": {
+    "message": "한국어（韩语）"
+  },
+  "langFr": {
+    "message": "Français（法语）"
+  },
+  "langDe": {
+    "message": "Deutsch（德语）"
+  },
+  "langEs": {
+    "message": "Español（西班牙语）"
+  },
+  "langRu": {
+    "message": "Русский（俄语）"
+  },
+  "labelAiCache": {
+    "message": "AI 缓存时长（分钟）"
+  },
+  "aiCacheHint": {
+    "message": "按网址缓存，设为 0 则禁用。"
+  },
+  "labelTagSeparator": {
+    "message": "多词标签分隔符"
+  },
+  "sepHyphen": {
+    "message": "连字符（machine-learning）"
+  },
+  "sepUnderscore": {
+    "message": "下划线（machine_learning）"
+  },
+
+  "secPrompts": {
+    "message": "提示词"
+  },
+  "promptsHint": {
+    "message": "自定义发送给 AI 的提示词。可用变量：{{title}} {{url}} {{content}} {{description}} {{lang_instruction}} {{separator_instruction}}。留空则使用默认提示词。"
+  },
+  "labelTagPrompt": {
+    "message": "AI 标签提示词"
+  },
+  "tagPromptHint": {
+    "message": "留空则使用上方显示的默认提示词。需指示 AI 返回 [\"tag1\",\"tag2\"] 格式。"
+  },
+  "resetToDefault": {
+    "message": "恢复默认"
+  },
+  "labelSummaryPrompt": {
+    "message": "AI 摘要提示词"
+  },
+  "summaryPromptHint": {
+    "message": "留空则使用上方显示的默认提示词。使用 {{lang_instruction}} 控制自动语言。"
+  },
+
+  "secLanguage": {
+    "message": "语言"
+  },
+  "langAuto": {
+    "message": "自动（跟随浏览器）"
+  },
+
+  "secTheme": {
+    "message": "主题"
+  },
+  "themeAuto": {
+    "message": "自动（跟随系统）"
+  },
+  "themeLight": {
+    "message": "浅色"
+  },
+  "themeDark": {
+    "message": "深色"
+  },
+  "optPopupFollowTheme": {
+    "message": "弹窗跟随 Pinboard 主题预设"
+  },
+  "popupFollowHint": {
+    "message": "启用后，弹窗外观将与所选的 Pinboard CSS 主题保持一致。"
+  },
+  "secPopupElements": {
+    "message": "弹窗元素"
+  },
+  "optShowSearch": {
+    "message": "在弹窗中显示搜索栏"
+  },
+  "optShowRecent": {
+    "message": "在弹窗中显示最近书签"
+  },
+  "optShowBadge": {
+    "message": "在图标上显示未读数量角标"
+  },
+  "secNotifications": {
+    "message": "通知"
+  },
+  "notifyQuickSave": {
+    "message": "快速保存"
+  },
+  "notifyReadLater": {
+    "message": "稍后阅读"
+  },
+  "notifyTabSet": {
+    "message": "标签集保存"
+  },
+  "notifyBatchSave": {
+    "message": "批量保存"
+  },
+  "notifyErrors": {
+    "message": "错误通知"
+  },
+  "secCustomStyle": {
+    "message": "Pinboard.in 自定义样式"
+  },
+  "customStyleHint": {
+    "message": "为 pinboard.in 页面注入自定义 CSS，可用于调整字体、配色、布局等。"
+  },
+  "labelCustomFont": {
+    "message": "自定义字体"
+  },
+  "customFontPlaceholder": {
+    "message": "如 'Noto Sans SC', 'Fira Code', sans-serif"
+  },
+  "customFontHint": {
+    "message": "应用于 pinboard.in 页面 body 元素，留空则保持默认。"
+  },
+  "labelThemePresets": {
+    "message": "主题预设"
+  },
+  "themeGroupNone": {
+    "message": "无"
+  },
+  "themeGroupAdaptive": {
+    "message": "自适应"
+  },
+  "themeGroupLight": {
+    "message": "浅色"
+  },
+  "themeGroupDark": {
+    "message": "深色"
+  },
+  "themePresetsHint": {
+    "message": "点击预设加载对应 CSS。自适应主题会跟随你的浅色/深色设置自动切换。"
+  },
+  "labelSavedThemes": {
+    "message": "已保存的主题"
+  },
+  "labelCustomCSS": {
+    "message": "自定义 CSS"
+  },
+  "saveAsTheme": {
+    "message": "保存为主题"
+  },
+  "saveAsThemeHint": {
+    "message": "将当前 CSS 保存为可复用的主题。"
+  },
+  "customCSSPlaceholder": {
+    "message": "/* pinboard.in 自定义 CSS */\nbody { line-height: 1.6; }\n.bookmark_title { font-size: 14px; }"
+  },
+  "deleteTheme": {
+    "message": "删除主题"
+  },
+  "themeName": {
+    "message": "主题名称："
+  },
+  "themeOverwrite": {
+    "message": "\"$NAME$\" 已存在，是否覆盖？",
+    "placeholders": {
+      "name": { "content": "$1" }
+    }
+  },
+
+  "saveTabsTitle": {
+    "message": "将所有打开的标签页保存为标签集（需登录 pinboard.in）"
+  },
+  "batchSaveTitle": {
+    "message": "将每个打开的标签页分别保存为独立书签"
+  },
+  "qlSetsTitle": {
+    "message": "标签集"
+  },
+  "qlNetworkTitle": {
+    "message": "关注动态"
+  },
+  "qlUnreadTitle": {
+    "message": "未读书签"
+  },
+  "qlNotesTitle": {
+    "message": "笔记"
+  },
+  "qlPopularTitle": {
+    "message": "热门"
+  }
+}

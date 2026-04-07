@@ -1,0 +1,895 @@
+{
+  "extName": {
+    "message": "Pinboard Bookmark Plus"
+  },
+  "extDescription": {
+    "message": "Bookmark to Pinboard with AI-powered tags and summaries"
+  },
+  "cmdOpenPopup": {
+    "message": "Open Pinboard Bookmark Plus"
+  },
+  "cmdQuickSave": {
+    "message": "Quick save to Pinboard (no popup)"
+  },
+  "cmdReadLater": {
+    "message": "Quick save as Read Later (no popup)"
+  },
+
+  "appName": {
+    "message": "Pinboard Bookmark Plus"
+  },
+  "settings": {
+    "message": "settings"
+  },
+  "login": {
+    "message": "Login"
+  },
+  "logout": {
+    "message": "logout"
+  },
+  "cancel": {
+    "message": "Cancel"
+  },
+  "reset": {
+    "message": "Reset"
+  },
+  "submit": {
+    "message": "Submit"
+  },
+  "update": {
+    "message": "Update"
+  },
+  "delete": {
+    "message": "Delete"
+  },
+  "clearAll": {
+    "message": "Clear all"
+  },
+  "loading": {
+    "message": "loading..."
+  },
+  "private": {
+    "message": "private"
+  },
+  "readLater": {
+    "message": "read later"
+  },
+  "networkError": {
+    "message": "Network error"
+  },
+  "clear": {
+    "message": "clear"
+  },
+
+  "loginPrompt": {
+    "message": "Enter your API token from"
+  },
+  "loginTokenPlaceholder": {
+    "message": "username:XXXXXXXXXXXXXX"
+  },
+  "loginInvalidFormat": {
+    "message": "Invalid format. Use username:TOKEN"
+  },
+  "loginFailed": {
+    "message": "Authentication failed."
+  },
+  "settingsPassword": {
+    "message": "settings/password"
+  },
+
+  "labelUrl": {
+    "message": "URL"
+  },
+  "labelTitle": {
+    "message": "Title"
+  },
+  "labelNotes": {
+    "message": "Notes"
+  },
+  "labelTags": {
+    "message": "Tags"
+  },
+  "labelPresets": {
+    "message": "Presets"
+  },
+  "labelSuggest": {
+    "message": "Suggest"
+  },
+  "labelAiTags": {
+    "message": "AI Tags"
+  },
+  "urlWarning": {
+    "message": "⚠ This page cannot be saved to Pinboard (unsupported URL)"
+  },
+  "urlCannotSave": {
+    "message": "Cannot save: unsupported URL"
+  },
+  "urlAndTitleRequired": {
+    "message": "URL and Title required"
+  },
+  "placeholderAddTags": {
+    "message": "Add tags"
+  },
+  "placeholderSearchBookmarks": {
+    "message": "Search your bookmarks..."
+  },
+
+  "saving": {
+    "message": "Saving..."
+  },
+  "bookmarkSaved": {
+    "message": "Bookmark saved."
+  },
+  "savedSuccess": {
+    "message": "✅ Saved!"
+  },
+  "deleting": {
+    "message": "Deleting..."
+  },
+  "deleted": {
+    "message": "Deleted."
+  },
+  "confirmDelete": {
+    "message": "Delete this bookmark?"
+  },
+  "confirmLogout": {
+    "message": "Log out? Your API token will be removed."
+  },
+  "hintCtrlEnter": {
+    "message": "Ctrl+Enter"
+  },
+
+  "editingExisting": {
+    "message": "✏️ Editing existing bookmark"
+  },
+  "savedOnDate": {
+    "message": "saved $DATE$",
+    "placeholders": {
+      "date": { "content": "$1" }
+    }
+  },
+  "tagCount": {
+    "message": "$COUNT$ tag",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "tagCountPlural": {
+    "message": "$COUNT$ tags",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "userInfoPrefix": {
+    "message": "Pinboard — $USER$",
+    "placeholders": {
+      "user": { "content": "$1" }
+    }
+  },
+
+  "aiSummaryBtn": {
+    "message": "🤖 AI summary"
+  },
+  "aiGenerateBtn": {
+    "message": "🤖 generate"
+  },
+  "aiSummarizing": {
+    "message": "summarizing..."
+  },
+  "aiGenerating": {
+    "message": "generating..."
+  },
+  "aiGenerate": {
+    "message": "generate"
+  },
+  "aiSummaryGenerated": {
+    "message": "Summary generated"
+  },
+  "aiSummaryRegenerated": {
+    "message": "Summary regenerated"
+  },
+  "aiSummaryRemoved": {
+    "message": "Summary removed"
+  },
+  "aiTagsRegenerated": {
+    "message": "Tags regenerated"
+  },
+  "aiNoTags": {
+    "message": "no tags generated"
+  },
+  "aiNoContent": {
+    "message": "No page content to summarize"
+  },
+  "aiSetKey": {
+    "message": "Set AI API key in settings"
+  },
+  "aiSetKeyIn": {
+    "message": "set AI key in "
+  },
+  "aiCached": {
+    "message": "cached"
+  },
+  "aiRegenerate": {
+    "message": "↻ regenerate"
+  },
+  "aiReplace": {
+    "message": "↻ replace"
+  },
+  "aiRemove": {
+    "message": "✕ remove"
+  },
+  "aiRegenerating": {
+    "message": "regenerating..."
+  },
+  "aiReplacing": {
+    "message": "replacing..."
+  },
+  "aiError": {
+    "message": "AI error: $ERROR$",
+    "placeholders": {
+      "error": { "content": "$1" }
+    }
+  },
+  "addAll": {
+    "message": "Add all"
+  },
+
+  "suggestNoSuggestions": {
+    "message": "no suggestions"
+  },
+  "suggestPopular": {
+    "message": "popular:"
+  },
+  "suggestRecommended": {
+    "message": "recommended:"
+  },
+  "suggestFailed": {
+    "message": "failed to load: $ERROR$",
+    "placeholders": {
+      "error": { "content": "$1" }
+    }
+  },
+
+  "qlSets": {
+    "message": "Sets"
+  },
+  "qlNetwork": {
+    "message": "Network"
+  },
+  "qlUnread": {
+    "message": "Unread"
+  },
+  "qlNotes": {
+    "message": "Notes"
+  },
+  "qlPopular": {
+    "message": "Popular"
+  },
+
+  "saveTabsBtn": {
+    "message": "📑 Save Tabs"
+  },
+  "batchSaveBtn": {
+    "message": "📌 Batch Save"
+  },
+  "batchSaving": {
+    "message": "⏳ Saving..."
+  },
+  "batchNoValidTabs": {
+    "message": "No valid tabs to save"
+  },
+  "batchNoTabs": {
+    "message": "No valid tabs"
+  },
+  "batchNotLoggedIn": {
+    "message": "Not logged in"
+  },
+  "batchSent": {
+    "message": "✅ Sent!"
+  },
+  "batchProgress": {
+    "message": "⏳ $CURRENT$/$TOTAL$ (✓$SAVED$ ✗$FAILED$)",
+    "placeholders": {
+      "current": { "content": "$1" },
+      "total": { "content": "$2" },
+      "saved": { "content": "$3" },
+      "failed": { "content": "$4" }
+    }
+  },
+  "batchDone": {
+    "message": "Batch done: $SAVED$ saved, $FAILED$ failed",
+    "placeholders": {
+      "saved": { "content": "$1" },
+      "failed": { "content": "$2" }
+    }
+  },
+  "batchSkipped": {
+    "message": ", $COUNT$ skipped",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "batchSavedCount": {
+    "message": "✅ $COUNT$ saved",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "batchFailed": {
+    "message": "Batch save failed: $ERROR$",
+    "placeholders": {
+      "error": { "content": "$1" }
+    }
+  },
+  "batchSavedNotify": {
+    "message": "$COUNT$ bookmarks saved$TAGS$.",
+    "placeholders": {
+      "count": { "content": "$1" },
+      "tags": { "content": "$2" }
+    }
+  },
+  "batchTaggedSuffix": {
+    "message": " (tagged: $TAGS$)",
+    "placeholders": {
+      "tags": { "content": "$1" }
+    }
+  },
+
+  "offlineQueued": {
+    "message": "$COUNT$ bookmark(s) queued (offline)",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "offlineClearConfirm": {
+    "message": "Clear all queued bookmarks?"
+  },
+
+  "recentLabel": {
+    "message": "Recent:"
+  },
+  "recentFailed": {
+    "message": "failed to load: $ERROR$",
+    "placeholders": {
+      "error": { "content": "$1" }
+    }
+  },
+  "recentDeleteTitle": {
+    "message": "Delete this bookmark"
+  },
+
+  "bgNotLoggedIn": {
+    "message": "Pinboard: Not logged in"
+  },
+  "bgSetToken": {
+    "message": "Set your API token in extension settings."
+  },
+  "bgUndone": {
+    "message": "Pinboard: Undone"
+  },
+  "bgBookmarkRemoved": {
+    "message": "Bookmark removed."
+  },
+  "bgQuickSaved": {
+    "message": "Pinboard: Quick Saved!"
+  },
+  "bgReadLater": {
+    "message": "Pinboard: Quick Read Later!"
+  },
+  "bgCannotSave": {
+    "message": "Pinboard: Cannot save"
+  },
+  "bgCannotBookmark": {
+    "message": "This page cannot be bookmarked."
+  },
+  "bgTabSetSaved": {
+    "message": "Pinboard: Tab Set Saved!"
+  },
+  "bgTabsSavedCount": {
+    "message": "$COUNT$ tabs saved.",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "bgTabSetFailed": {
+    "message": "Pinboard: Tab Set Failed"
+  },
+  "bgLoginRequired": {
+    "message": "Please log in to pinboard.in in your browser first."
+  },
+  "bgQuickSaveFailed": {
+    "message": "Pinboard: Quick Save failed"
+  },
+  "bgReadLaterFailed": {
+    "message": "Pinboard: Read Later failed"
+  },
+  "bgSaveFailed": {
+    "message": "Pinboard: Save failed"
+  },
+  "bgNetworkError": {
+    "message": "Pinboard: Network error"
+  },
+  "bgQueuedOffline": {
+    "message": "Pinboard: Queued offline"
+  },
+  "bgTitleSaved": {
+    "message": "\"$TITLE$\" saved.",
+    "placeholders": {
+      "title": { "content": "$1" }
+    }
+  },
+  "bgTitleQueued": {
+    "message": "\"$TITLE$\" will be saved when online.",
+    "placeholders": {
+      "title": { "content": "$1" }
+    }
+  },
+  "bgBatchSaved": {
+    "message": "Pinboard: Batch Saved!"
+  },
+  "bgUndo": {
+    "message": "Undo"
+  },
+
+  "optTitle": {
+    "message": "Pinboard Bookmark Plus — Settings"
+  },
+  "optAutoSave": {
+    "message": "auto-save enabled"
+  },
+  "optAutoSaved": {
+    "message": "✓ Saved"
+  },
+  "tabBookmarks": {
+    "message": "Bookmarks"
+  },
+  "tabAI": {
+    "message": "AI"
+  },
+  "tabQuickActions": {
+    "message": "Quick Actions"
+  },
+  "tabAppearance": {
+    "message": "Appearance"
+  },
+  "resetTabBtn": {
+    "message": "Reset This Tab"
+  },
+  "resetTabTitle": {
+    "message": "Reset current tab settings to defaults"
+  },
+  "resetConfirm": {
+    "message": "Reset \"$TAB$\"?",
+    "placeholders": {
+      "tab": { "content": "$1" }
+    }
+  },
+  "resetKeysKept": {
+    "message": " (keys kept)"
+  },
+
+  "secPinboardAccount": {
+    "message": "Pinboard Account"
+  },
+  "labelApiToken": {
+    "message": "API Token"
+  },
+  "hintApiToken": {
+    "message": "From"
+  },
+  "secSaveDefaults": {
+    "message": "Save Defaults"
+  },
+  "optPrivateDefault": {
+    "message": "Private by default"
+  },
+  "optPrivateIncognito": {
+    "message": "Private in Incognito"
+  },
+  "optReadlaterDefault": {
+    "message": "Read Later by default"
+  },
+  "secNotesBehavior": {
+    "message": "Notes Behavior"
+  },
+  "optAutoDescription": {
+    "message": "Auto-fill meta description into notes"
+  },
+  "optBlockquote": {
+    "message": "Wrap selected text with <blockquote>"
+  },
+  "optIncludeReferrer": {
+    "message": "Include referrer in Notes"
+  },
+  "secTags": {
+    "message": "Tags"
+  },
+  "optRespectTagCase": {
+    "message": "Respect existing tag case (match most-used casing)"
+  },
+  "optShowSuggestTags": {
+    "message": "Show Pinboard suggested tags in popup"
+  },
+  "labelTagPresets": {
+    "message": "Tag Presets"
+  },
+  "tagPresetsPlaceholder": {
+    "message": "One preset per line:\nWork: project, review, report\nDev: programming, tutorial, tool"
+  },
+  "tagPresetsHint": {
+    "message": "Format: Name: tag1, tag2, tag3 — shown as quick-add buttons in popup."
+  },
+  "secPopupBehavior": {
+    "message": "Popup Behavior"
+  },
+  "optCheckBookmarkStatus": {
+    "message": "Show bookmark status via icon (check if current page is saved)"
+  },
+  "optAutoClose": {
+    "message": "Auto-close popup after save"
+  },
+  "optOfflineQueue": {
+    "message": "Enable offline save queue"
+  },
+  "secBackupRestore": {
+    "message": "Backup & Restore"
+  },
+  "backupHint": {
+    "message": "Export/import your settings (API keys are excluded from export for security)."
+  },
+  "exportSettings": {
+    "message": "Export Settings"
+  },
+  "importSettings": {
+    "message": "Import Settings"
+  },
+  "importedReload": {
+    "message": "✓ Imported — reload to see changes"
+  },
+  "importInvalid": {
+    "message": "✗ Invalid file"
+  },
+
+  "secQuickSave": {
+    "message": "Quick Save"
+  },
+  "qsHint": {
+    "message": "Save the current page instantly via keyboard shortcut (without opening popup)."
+  },
+  "openShortcuts": {
+    "message": "Open Chrome Shortcut Settings"
+  },
+  "shortcutsManual": {
+    "message": "Or navigate manually:"
+  },
+  "qsAutoNotes": {
+    "message": "Auto-add page description to notes"
+  },
+  "qsBlockquote": {
+    "message": "Wrap selected text with blockquote"
+  },
+  "labelDefaultTags": {
+    "message": "Default Tags (comma-separated)"
+  },
+  "placeholderTags": {
+    "message": "tag1, tag2"
+  },
+  "qsAiTags": {
+    "message": "Auto-generate AI tags"
+  },
+  "qsAiSummary": {
+    "message": "Auto-generate AI summary in notes"
+  },
+
+  "secReadLater": {
+    "message": "Read Later"
+  },
+  "rlHint": {
+    "message": "Save current page as \"Read Later\" via keyboard shortcut. Automatically marks as unread."
+  },
+
+  "secBatchSave": {
+    "message": "Batch Save"
+  },
+  "batchHint": {
+    "message": "Save each open tab as an individual bookmark."
+  },
+  "batchAutoAddTags": {
+    "message": "Auto-add tags"
+  },
+  "batchTagsLabel": {
+    "message": "Tags (comma-separated)"
+  },
+  "batchTagsHint": {
+    "message": "Multiple tags separated by commas. E.g. batch_saved, research"
+  },
+  "batchAiTags": {
+    "message": "Auto-generate AI tags for each tab"
+  },
+  "batchAiSummary": {
+    "message": "Auto-generate AI summary for each tab"
+  },
+  "batchSkipExisting": {
+    "message": "Skip already bookmarked URLs"
+  },
+  "batchWarning": {
+    "message": "⚠ AI features in batch save will be slow — each tab needs a separate AI call with 3s rate limit between saves."
+  },
+
+  "secAiProvider": {
+    "message": "AI Provider"
+  },
+  "labelApiKey": {
+    "message": "API Key"
+  },
+  "labelModel": {
+    "message": "Model"
+  },
+  "labelBaseUrl": {
+    "message": "Base URL"
+  },
+  "labelDisplayName": {
+    "message": "Display Name"
+  },
+  "getKey": {
+    "message": "Get key"
+  },
+  "testConnection": {
+    "message": "Test Connection"
+  },
+  "testTesting": {
+    "message": "Testing..."
+  },
+  "testConnected": {
+    "message": "✓ Connected ($RESULT$)",
+    "placeholders": {
+      "result": { "content": "$1" }
+    }
+  },
+  "testTimeout": {
+    "message": "Timeout (15s)"
+  },
+  "testNoApiKey": {
+    "message": "No API key"
+  },
+  "testNoBaseUrl": {
+    "message": "No base URL configured"
+  },
+  "showHideKey": {
+    "message": "Show/hide key"
+  },
+
+  "hintOpenAIBaseUrl": {
+    "message": "Change for proxy or compatible endpoint"
+  },
+  "hintClaudeModel": {
+    "message": "e.g. claude-sonnet-4-20250514, claude-3-5-haiku-20241022"
+  },
+  "hintOllamaModel": {
+    "message": "Run ollama pull llama3 first"
+  },
+  "hintOpenRouterKey": {
+    "message": "Access 100+ models from one API."
+  },
+  "hintOpenRouterModels": {
+    "message": "Browse models at"
+  },
+  "hintCustomBaseUrl": {
+    "message": "Must support /chat/completions endpoint"
+  },
+  "hintCustomKey": {
+    "message": "Leave empty if not required"
+  },
+
+  "secAiBehavior": {
+    "message": "AI Behavior"
+  },
+  "optAiAutoTags": {
+    "message": "Auto-generate AI tags on popup open"
+  },
+  "labelAiSummaryLang": {
+    "message": "AI Summary Language"
+  },
+  "langAuto": {
+    "message": "Auto (same as content)"
+  },
+  "langZh": {
+    "message": "中文 (Chinese)"
+  },
+  "langEn": {
+    "message": "English"
+  },
+  "langJa": {
+    "message": "日本語 (Japanese)"
+  },
+  "langKo": {
+    "message": "한국어 (Korean)"
+  },
+  "langFr": {
+    "message": "Français"
+  },
+  "langDe": {
+    "message": "Deutsch"
+  },
+  "langEs": {
+    "message": "Español"
+  },
+  "langRu": {
+    "message": "Русский"
+  },
+  "labelAiCache": {
+    "message": "AI Cache Duration (minutes)"
+  },
+  "aiCacheHint": {
+    "message": "Cached per URL. Set 0 to disable."
+  },
+  "labelTagSeparator": {
+    "message": "Multi-word tag separator"
+  },
+  "sepHyphen": {
+    "message": "hyphen (machine-learning)"
+  },
+  "sepUnderscore": {
+    "message": "underscore (machine_learning)"
+  },
+
+  "secPrompts": {
+    "message": "Prompts"
+  },
+  "promptsHint": {
+    "message": "Customize the prompts sent to the AI. Use placeholders: {{title}} {{url}} {{content}} {{description}} {{lang_instruction}} {{separator_instruction}}. Leave empty to use defaults."
+  },
+  "labelTagPrompt": {
+    "message": "AI Tags Prompt"
+  },
+  "tagPromptHint": {
+    "message": "Leave empty to use the default prompt shown above. Must instruct AI to return [\"tag1\",\"tag2\"] format."
+  },
+  "resetToDefault": {
+    "message": "Reset to default"
+  },
+  "labelSummaryPrompt": {
+    "message": "AI Summary Prompt"
+  },
+  "summaryPromptHint": {
+    "message": "Leave empty to use the default prompt shown above. Use {{lang_instruction}} for auto language."
+  },
+
+  "secLanguage": {
+    "message": "Language"
+  },
+  "langAuto": {
+    "message": "Auto (follow browser)"
+  },
+
+  "secTheme": {
+    "message": "Theme"
+  },
+  "themeAuto": {
+    "message": "Auto (follow system)"
+  },
+  "themeLight": {
+    "message": "Light"
+  },
+  "themeDark": {
+    "message": "Dark"
+  },
+  "optPopupFollowTheme": {
+    "message": "Popup follows Pinboard theme preset"
+  },
+  "popupFollowHint": {
+    "message": "When enabled, the popup appearance matches the selected Pinboard CSS theme."
+  },
+  "secPopupElements": {
+    "message": "Popup Elements"
+  },
+  "optShowSearch": {
+    "message": "Show search bar in popup"
+  },
+  "optShowRecent": {
+    "message": "Show recent bookmarks in popup"
+  },
+  "optShowBadge": {
+    "message": "Show unread count badge on icon"
+  },
+  "secNotifications": {
+    "message": "Notifications"
+  },
+  "notifyQuickSave": {
+    "message": "Quick save"
+  },
+  "notifyReadLater": {
+    "message": "Read Later save"
+  },
+  "notifyTabSet": {
+    "message": "Tab Set save"
+  },
+  "notifyBatchSave": {
+    "message": "Batch save"
+  },
+  "notifyErrors": {
+    "message": "Error notifications"
+  },
+  "secCustomStyle": {
+    "message": "Pinboard.in Custom Style"
+  },
+  "customStyleHint": {
+    "message": "Inject custom CSS into pinboard.in pages. Useful for changing fonts, colors, layout etc."
+  },
+  "labelCustomFont": {
+    "message": "Custom Font"
+  },
+  "customFontPlaceholder": {
+    "message": "e.g. 'Noto Sans SC', 'Fira Code', sans-serif"
+  },
+  "customFontHint": {
+    "message": "Applied to body on pinboard.in. Leave empty to keep default."
+  },
+  "labelThemePresets": {
+    "message": "Theme Presets"
+  },
+  "themeGroupNone": {
+    "message": "None"
+  },
+  "themeGroupAdaptive": {
+    "message": "Adaptive"
+  },
+  "themeGroupLight": {
+    "message": "Light"
+  },
+  "themeGroupDark": {
+    "message": "Dark"
+  },
+  "themePresetsHint": {
+    "message": "Click a preset to load its CSS. Adaptive themes follow your Theme (light/dark) setting."
+  },
+  "labelSavedThemes": {
+    "message": "Saved Themes"
+  },
+  "labelCustomCSS": {
+    "message": "Custom CSS"
+  },
+  "saveAsTheme": {
+    "message": "Save as theme"
+  },
+  "saveAsThemeHint": {
+    "message": "Save current CSS as a reusable theme."
+  },
+  "customCSSPlaceholder": {
+    "message": "/* Custom CSS for pinboard.in */\nbody { line-height: 1.6; }\n.bookmark_title { font-size: 14px; }"
+  },
+  "deleteTheme": {
+    "message": "Delete theme"
+  },
+  "themeName": {
+    "message": "Theme name:"
+  },
+  "themeOverwrite": {
+    "message": "\"$NAME$\" already exists. Overwrite?",
+    "placeholders": {
+      "name": { "content": "$1" }
+    }
+  },
+
+  "saveTabsTitle": {
+    "message": "Save all open tabs as a tab set (requires pinboard.in login)"
+  },
+  "batchSaveTitle": {
+    "message": "Save each open tab as an individual bookmark"
+  },
+  "qlSetsTitle": {
+    "message": "Tab Sets"
+  },
+  "qlNetworkTitle": {
+    "message": "Network"
+  },
+  "qlUnreadTitle": {
+    "message": "Unread bookmarks"
+  },
+  "qlNotesTitle": {
+    "message": "Notes"
+  },
+  "qlPopularTitle": {
+    "message": "Popular"
+  }
+}

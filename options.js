@@ -1,4 +1,7 @@
 document.addEventListener("DOMContentLoaded", async () => {
+  await initI18n();
+  applyI18n();
+
   // ---- Tab switching ----
   document.querySelectorAll(".tab-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -46,7 +49,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     },
     appearance: {
       fields: {
-        "opt-theme": "auto", "opt-popup-follow-theme": true, "opt-custom-font": "",
+        "opt-lang": "auto", "opt-theme": "auto", "opt-popup-follow-theme": true, "opt-custom-font": "",
         "opt-show-recent": false, "opt-show-search": false, "opt-show-badge": false,
         "notify-quick-save": true, "notify-read-later": true, "notify-tab-set": true, "notify-batch-save": true, "notify-errors": true
       }
@@ -67,13 +70,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     pop.className = "confirm-popover";
     const msg = document.createElement("span");
     msg.className = "confirm-msg";
-    msg.textContent = `Reset "${activeBtn.textContent}"?` + (def.skip ? " (keys kept)" : "");
+    msg.textContent = t("resetConfirm", activeBtn.textContent) + (def.skip ? t("resetKeysKept") : "");
     const yes = document.createElement("button");
     yes.className = "confirm-yes";
-    yes.textContent = "Reset";
+    yes.textContent = t("reset");
     const no = document.createElement("button");
     no.className = "confirm-no";
-    no.textContent = "Cancel";
+    no.textContent = t("cancel");
     pop.appendChild(msg);
     pop.appendChild(yes);
     pop.appendChild(no);
@@ -149,7 +152,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     "opt-custom-key": s.customApiKey, "opt-custom-model": s.customModel,
     "opt-ai-summary-lang": s.aiSummaryLang, "opt-ai-cache-duration": s.aiCacheDuration,
     "opt-custom-tag-prompt": s.customTagPrompt, "opt-custom-summary-prompt": s.customSummaryPrompt,
-    "opt-batch-tag": s.optBatchTag, "opt-theme": s.optTheme,
+    "opt-batch-tag": s.optBatchTag, "opt-lang": s.optLang, "opt-theme": s.optTheme,
     "qs-default-tags": s.qsDefaultTags, "rl-default-tags": s.rlDefaultTags,
     "opt-custom-font": s.customFont, "opt-custom-css": s.customCSS,
     "opt-ai-tag-separator": s.aiTagSeparator,
@@ -224,6 +227,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
   applyOptionsPageTheme(currentPresetKey, s.optTheme);
+  // Language change: save immediately and reload to apply
+  document.getElementById("opt-lang").addEventListener("change", async () => {
+    const lang = document.getElementById("opt-lang").value;
+    await chrome.storage.sync.set({ optLang: lang });
+    location.reload();
+  });
   // Real-time switch when theme dropdown changes (affects Flexoki Adaptive + no-preset dark)
   document.getElementById("opt-theme").addEventListener("change", () => {
     const mode = document.getElementById("opt-theme").value;
@@ -336,6 +345,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       customTagPrompt: document.getElementById("opt-custom-tag-prompt").value,
       customSummaryPrompt: document.getElementById("opt-custom-summary-prompt").value,
       // Appearance
+      optLang: document.getElementById("opt-lang").value,
       optTheme: document.getElementById("opt-theme").value,
       optShowSearch: document.getElementById("opt-show-search").checked,
       optShowRecent: document.getElementById("opt-show-recent").checked,
@@ -382,11 +392,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   function flashAutoSave() {
     const el = document.getElementById("auto-save-status");
-    el.textContent = "✓ Saved";
+    el.textContent = t("optAutoSaved");
     el.classList.add("saved");
     clearTimeout(el._timer);
     el._timer = setTimeout(() => {
-      el.textContent = "auto-save enabled";
+      el.textContent = t("optAutoSave");
       el.classList.remove("saved");
     }, 1500);
   }
@@ -429,11 +439,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (customCSS !== undefined) await syncSetLarge("customCSS", customCSS);
       if (importedThemes !== undefined) await syncSetLarge("savedThemes", importedThemes);
       const status = document.getElementById("import-status");
-      status.textContent = "✓ Imported — reload to see changes";
+      status.textContent = t("importedReload");
       setTimeout(() => { status.textContent = ""; }, 3000);
     } catch (err) {
       const status = document.getElementById("import-status");
-      status.textContent = "✗ Invalid file";
+      status.textContent = t("importInvalid");
       status.style.color = "#c00";
       setTimeout(() => { status.textContent = ""; status.style.color = ""; }, 3000);
     }
@@ -444,7 +454,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   async function testAIProvider(provider) {
     const statusEl = document.getElementById(`test-${provider}-status`);
     if (!statusEl) return;
-    statusEl.textContent = "Testing...";
+    statusEl.textContent = t("testTesting");
     statusEl.style.color = "#888";
 
     const cs = {
@@ -489,7 +499,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       let result = "";
       if (provider === "gemini") {
-        if (!cs.geminiApiKey) throw new Error("No API key");
+        if (!cs.geminiApiKey) throw new Error(t("testNoApiKey"));
         const res = await doFetch(`https://generativelanguage.googleapis.com/v1beta/models/${cs.geminiModel}:generateContent?key=${cs.geminiApiKey}`, {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ contents: [{ parts: [{ text: testPrompt }] }], generationConfig: { temperature: 0, maxOutputTokens: 10 } })
@@ -497,7 +507,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error?.message || `HTTP ${res.status}`); }
         result = (await res.json()).candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "OK";
       } else if (provider === "claude") {
-        if (!cs.claudeApiKey) throw new Error("No API key");
+        if (!cs.claudeApiKey) throw new Error(t("testNoApiKey"));
         const res = await doFetch("https://api.anthropic.com/v1/messages", {
           method: "POST",
           headers: { "Content-Type": "application/json", "x-api-key": cs.claudeApiKey, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
@@ -519,8 +529,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         const modelMap = { openai: cs.openaiModel, deepseek: cs.deepseekModel, qwen: cs.qwenModel, minimax: cs.minimaxModel, openrouter: cs.openrouterModel, groq: cs.groqModel, mistral: cs.mistralModel, cohere: cs.cohereModel, siliconflow: cs.siliconflowModel, custom: cs.customModel };
         const baseUrl = baseUrlMap[provider];
         const apiKey = apiKeyMap[provider];
-        if (!baseUrl) throw new Error("No base URL configured");
-        if (!apiKey && provider !== "custom") throw new Error("No API key");
+        if (!baseUrl) throw new Error(t("testNoBaseUrl"));
+        if (!apiKey && provider !== "custom") throw new Error(t("testNoApiKey"));
         const headers = { "Content-Type": "application/json" };
         if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
         const res = await doFetch(`${baseUrl.replace(/\/+$/, "")}/chat/completions`, {
@@ -531,11 +541,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         result = (await res.json()).choices?.[0]?.message?.content?.trim() || "OK";
       }
 
-      statusEl.textContent = `✓ Connected (${result.substring(0, 20)})`;
+      statusEl.textContent = t("testConnected", result.substring(0, 20));
       statusEl.style.color = "#080";
       setTimeout(() => { statusEl.textContent = ""; statusEl.style.color = ""; }, 4000);
     } catch (err) {
-      const msg = err.name === "AbortError" ? "Timeout (15s)" : err.message;
+      const msg = err.name === "AbortError" ? t("testTimeout") : err.message;
       statusEl.textContent = `✗ ${msg}`;
       statusEl.style.color = "#c00";
       setTimeout(() => { statusEl.textContent = ""; statusEl.style.color = ""; }, 5000);
@@ -661,7 +671,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       const del = document.createElement("button");
       del.className = "saved-theme-del";
       del.textContent = "\u00d7";
-      del.title = "Delete theme";
+      del.title = t("deleteTheme");
       del.addEventListener("click", async (e) => {
         e.stopPropagation();
         savedThemes.splice(idx, 1);
@@ -684,12 +694,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("save-custom-theme").addEventListener("click", async () => {
     const css = document.getElementById("opt-custom-css").value.trim();
     if (!css) return;
-    const name = prompt("Theme name:");
+    const name = prompt(t("themeName"));
     if (!name || !name.trim()) return;
     const trimmedName = name.trim();
-    const existing = savedThemes.findIndex(t => t.name === trimmedName);
+    const existing = savedThemes.findIndex(th => th.name === trimmedName);
     if (existing >= 0) {
-      if (!confirm(`"${trimmedName}" already exists. Overwrite?`)) return;
+      if (!confirm(t("themeOverwrite", trimmedName))) return;
       savedThemes[existing].css = css;
     } else {
       savedThemes.push({ name: trimmedName, css });

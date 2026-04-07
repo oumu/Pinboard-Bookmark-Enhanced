@@ -13,6 +13,9 @@ let settings = {};
 
 
 document.addEventListener("DOMContentLoaded", async () => {
+  await initI18n();
+  applyI18n();
+
   settings = await chrome.storage.sync.get(SETTINGS_DEFAULTS);
   deobfuscateSettings(settings);
 
@@ -51,7 +54,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
   document.getElementById("logout-link").addEventListener("click", async (e) => {
     e.preventDefault();
-    if (!confirm("Log out? Your API token will be removed.")) return;
+    if (!confirm(t("confirmLogout"))) return;
     await chrome.storage.sync.remove("pinboardToken");
     settings.pinboardToken = "";
     document.getElementById("main-section").classList.add("hidden");
@@ -65,12 +68,12 @@ function showLogin() {
   document.getElementById("main-section").classList.add("hidden");
   document.getElementById("login-btn").addEventListener("click", async () => {
     const token = document.getElementById("token-input").value.trim();
-    if (!token || !token.includes(":")) { showElement("login-error", "Invalid format. Use username:TOKEN"); return; }
+    if (!token || !token.includes(":")) { showElement("login-error", t("loginInvalidFormat")); return; }
     try {
       const res = await fetch(`https://api.pinboard.in/v1/user/api_token/?auth_token=${token}&format=json`);
       if (res.ok) { await chrome.storage.sync.set({ pinboardToken: obfuscateKey(token) }); settings.pinboardToken = token; showMain(token); }
-      else showElement("login-error", "Authentication failed.");
-    } catch (e) { showElement("login-error", "Network error."); }
+      else showElement("login-error", t("loginFailed"));
+    } catch (e) { showElement("login-error", t("networkError")); }
   });
 }
 
@@ -78,7 +81,7 @@ function showLogin() {
 async function showMain(token) {
   document.getElementById("login-section").classList.add("hidden");
   document.getElementById("main-section").classList.remove("hidden");
-  document.getElementById("user-info").textContent = `Pinboard — ${token.split(":")[0]}`;
+  document.getElementById("user-info").textContent = t("userInfoPrefix", token.split(":")[0]);
   const username = token.split(":")[0];
   const unreadLink = document.getElementById("unread-link");
   if (unreadLink) unreadLink.href = `https://pinboard.in/u:${encodeURIComponent(username)}/unread/`;
@@ -109,7 +112,7 @@ async function showMain(token) {
   if (isUnsupportedUrl) {
     document.getElementById("url-warning").classList.remove("hidden");
     document.getElementById("submit-btn").disabled = true;
-    document.getElementById("submit-btn").title = "Cannot save: unsupported URL";
+    document.getElementById("submit-btn").title = t("urlCannotSave");
     document.getElementById("ai-summary-btn").classList.add("disabled-link");
     document.getElementById("ai-tags-btn").classList.add("disabled-link");
   }
@@ -186,21 +189,21 @@ async function checkExistingBookmark(token, url) {
       currentTags = [];
       renderTags();
       if (existingBookmark.tags?.trim()) existingBookmark.tags.split(" ").filter(Boolean).forEach((t) => { if (t.trim()) addTag(t.trim()); });
-      document.getElementById("submit-btn").textContent = "Update";
+      document.getElementById("submit-btn").textContent = t("update");
       document.getElementById("delete-btn").classList.remove("hidden");
       updateCharCount();
       setTimeout(() => autoResizeTextarea(document.getElementById("description-input")), 50);
       const banner = document.getElementById("existing-banner");
       const timeStr = existingBookmark.time;
       if (banner) {
-        let info = "✏️ Editing existing bookmark";
+        let info = t("editingExisting");
         const parts = [];
         if (timeStr) {
           const d = new Date(timeStr);
-          parts.push("saved " + d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }));
+          parts.push(t("savedOnDate", d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })));
         }
         const tagCount = existingBookmark.tags?.trim() ? existingBookmark.tags.trim().split(/\s+/).length : 0;
-        if (tagCount > 0) parts.push(tagCount + " tag" + (tagCount > 1 ? "s" : ""));
+        if (tagCount > 0) parts.push(tagCount > 1 ? t("tagCountPlural", String(tagCount)) : t("tagCount", String(tagCount)));
         if (parts.length) info += " (" + parts.join(", ") + ")";
         banner.textContent = info;
         banner.classList.remove("hidden");
@@ -212,22 +215,22 @@ async function checkExistingBookmark(token, url) {
 // ===================== Submit / Delete =====================
 function setupSubmit(token) {
   document.getElementById("submit-btn").addEventListener("click", async () => {
-    const btn = document.getElementById("submit-btn"); btn.disabled = true; btn.classList.add("loading"); const orig = btn.textContent; btn.textContent = "Saving...";
+    const btn = document.getElementById("submit-btn"); btn.disabled = true; btn.classList.add("loading"); const orig = btn.textContent; btn.textContent = t("saving");
     const url = document.getElementById("url-input").value;
     const title = document.getElementById("title-input").value;
-    if (!url || !title) { showStatus("status-msg", "URL and Title required", "error"); btn.disabled = false; btn.textContent = orig; return; }
+    if (!url || !title) { showStatus("status-msg", t("urlAndTitleRequired"), "error"); btn.disabled = false; btn.textContent = orig; return; }
     try {
       const apiUrl = `https://api.pinboard.in/v1/posts/add?auth_token=${token}&format=json&url=${enc(url)}&description=${enc(title)}&extended=${enc(document.getElementById("description-input").value)}&tags=${enc(currentTags.join(" "))}&shared=${document.getElementById("private-check").checked ? "no" : "yes"}&toread=${document.getElementById("readlater-check").checked ? "yes" : "no"}&replace=yes`;
       const data = await (await pinboardFetch(apiUrl)).json();
       if (data.result_code === "done") {
-        showStatus("status-msg", "Bookmark saved.", "success");
-        btn.textContent = "✅ Saved!";
+        showStatus("status-msg", t("bookmarkSaved"), "success");
+        btn.textContent = t("savedSuccess");
         btn.classList.add("saved-success");
         setTimeout(() => { btn.classList.remove("saved-success"); }, 1200);
         chrome.runtime.sendMessage({ type: "bookmark_saved", url: url });
         if (settings.optAutoCloseAfterSave) setTimeout(() => window.close(), 1800);
       } else showStatus("status-msg", `Error: ${data.result_code}`, "error");
-    } catch (e) { showStatus("status-msg", "Network error", "error"); }
+    } catch (e) { showStatus("status-msg", t("networkError"), "error"); }
     btn.disabled = false; btn.classList.remove("loading"); btn.textContent = orig;
   });
 
@@ -242,23 +245,23 @@ function setupSubmit(token) {
 
   const hintSpan = document.createElement("span");
   hintSpan.className = "submit-hint";
-  hintSpan.textContent = "Ctrl+Enter";
+  hintSpan.textContent = t("hintCtrlEnter");
   document.querySelector(".submit-bar").appendChild(hintSpan);
 
   document.getElementById("delete-btn").addEventListener("click", async () => {
-    if (!confirm("Delete this bookmark?")) return;
+    if (!confirm(t("confirmDelete"))) return;
     const delBtn = document.getElementById("delete-btn");
     const delOrig = delBtn.textContent;
-    delBtn.disabled = true; delBtn.classList.add("loading"); delBtn.textContent = "Deleting...";
+    delBtn.disabled = true; delBtn.classList.add("loading"); delBtn.textContent = t("deleting");
     const url = document.getElementById("url-input").value;
     try {
       const data = await (await pinboardFetch(`https://api.pinboard.in/v1/posts/delete?url=${enc(url)}&auth_token=${token}&format=json`)).json();
       if (data.result_code === "done" || data.result_code === "item not found") {
-        showStatus("status-msg", "Deleted.", "success");
+        showStatus("status-msg", t("deleted"), "success");
         chrome.runtime.sendMessage({ type: "bookmark_deleted", url: url });
         setTimeout(() => window.close(), 800);
       } else showStatus("status-msg", `Error: ${data.result_code}`, "error");
-    } catch (e) { showStatus("status-msg", "Network error", "error"); }
+    } catch (e) { showStatus("status-msg", t("networkError"), "error"); }
     delBtn.disabled = false; delBtn.classList.remove("loading"); delBtn.textContent = delOrig;
   });
 }
@@ -276,7 +279,7 @@ async function fetchRecentBookmarks(token) {
     container.classList.remove("hidden");
     const label = document.createElement("div");
     label.className = "recent-bm-label";
-    label.textContent = "Recent:";
+    label.textContent = t("recentLabel");
     container.appendChild(label);
     posts.forEach(p => {
       if (!/^https?:\/\//i.test(p.href)) return;
@@ -294,9 +297,9 @@ async function fetchRecentBookmarks(token) {
       const del = document.createElement("span");
       del.className = "recent-bm-del";
       del.textContent = "✕";
-      del.title = "Delete this bookmark";
+      del.title = t("recentDeleteTitle");
       del.addEventListener("click", async () => {
-        if (!confirm("Delete this bookmark?")) return;
+        if (!confirm(t("confirmDelete"))) return;
         try {
           const data = await (await pinboardFetch(`https://api.pinboard.in/v1/posts/delete?url=${enc(p.href)}&auth_token=${token}&format=json`)).json();
           if (data.result_code === "done" || data.result_code === "item not found") {
@@ -308,7 +311,7 @@ async function fetchRecentBookmarks(token) {
       row.appendChild(del);
       container.appendChild(row);
     });
-  } catch (e) { console.error("recent bookmarks error:", e); container.classList.remove("hidden"); container.innerHTML = `<div class="recent-bm-label">Recent:</div><span class="muted">failed to load: ${esc(e.message || String(e))}</span>`; }
+  } catch (e) { console.error("recent bookmarks error:", e); container.classList.remove("hidden"); container.innerHTML = `<div class="recent-bm-label">${esc(t("recentLabel"))}</div><span class="muted">${esc(t("recentFailed", e.message || String(e)))}</span>`; }
 }
 
 // ===================== Offline Queue Status =====================
@@ -319,7 +322,7 @@ async function showOfflineQueueStatus() {
     const { offlineQueue = [] } = await chrome.storage.local.get("offlineQueue");
     if (offlineQueue.length > 0) {
       bar.classList.remove("hidden");
-      document.getElementById("offline-queue-text").textContent = `${offlineQueue.length} bookmark${offlineQueue.length > 1 ? "s" : ""} queued (offline)`;
+      document.getElementById("offline-queue-text").textContent = t("offlineQueued", String(offlineQueue.length));
     } else {
       bar.classList.add("hidden");
     }
@@ -327,7 +330,7 @@ async function showOfflineQueueStatus() {
 
   document.getElementById("offline-queue-clear")?.addEventListener("click", async (e) => {
     e.preventDefault();
-    if (!confirm("Clear all queued bookmarks?")) return;
+    if (!confirm(t("offlineClearConfirm"))) return;
     await chrome.storage.local.set({ offlineQueue: [] });
     bar.classList.add("hidden");
   }, { once: true });

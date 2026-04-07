@@ -7,55 +7,55 @@
 </head>
 <body>
   <div class="container">
-    <h1>Pinboard Bookmark Plus — Settings <span class="auto-save-hint" id="auto-save-status">auto-save enabled</span></h1>
+    <h1><span data-i18n="optTitle">Pinboard Bookmark Plus — Settings</span> <span class="auto-save-hint" id="auto-save-status" data-i18n="optAutoSave">auto-save enabled</span></h1>
 
     <div class="tabs">
-      <button class="tab-btn active" data-panel="bookmarks">Bookmarks</button>
-      <button class="tab-btn" data-panel="ai">AI</button>
-      <button class="tab-btn" data-panel="quick">Quick Actions</button>
-      <button class="tab-btn" data-panel="appearance">Appearance</button>
-      <button class="reset-tab-btn" id="reset-panel-btn" title="Reset current tab settings to defaults">Reset This Tab</button>
+      <button class="tab-btn active" data-panel="bookmarks" data-i18n="tabBookmarks">Bookmarks</button>
+      <button class="tab-btn" data-panel="ai" data-i18n="tabAI">AI</button>
+      <button class="tab-btn" data-panel="quick" data-i18n="tabQuickActions">Quick Actions</button>
+      <button class="tab-btn" data-panel="appearance" data-i18n="tabAppearance">Appearance</button>
+      <button class="reset-tab-btn" id="reset-panel-btn" title="Reset current tab settings to defaults" data-i18n="resetTabBtn" data-i18n-title="resetTabTitle">Reset This Tab</button>
     </div>
 
     <!-- Tab 1: Bookmarks -->
     <div id="panel-bookmarks" class="panel active">
-      <div class="section-title">Pinboard Account</div>
+      <div class="section-title" data-i18n="secPinboardAccount">Pinboard Account</div>
       <div class="fg">
-        <label class="bl">API Token</label>
-        <input type="text" id="opt-pinboard-token" placeholder="username:XXXXXXXXXXXXXX" />
-        <p class="hint">From <a href="https://pinboard.in/settings/password" target="_blank">pinboard.in/settings/password</a></p>
+        <label class="bl" data-i18n="labelApiToken">API Token</label>
+        <input type="text" id="opt-pinboard-token" placeholder="username:XXXXXXXXXXXXXX" data-i18n-placeholder="loginTokenPlaceholder" />
+        <p class="hint"><span data-i18n="hintApiToken">From</span> <a href="https://pinboard.in/settings/password" target="_blank">pinboard.in/settings/password</a></p>
       </div>
       <div class="divider"></div>
-      <div class="section-title">Save Defaults</div>
-      <div class="fg"><label><input type="checkbox" id="opt-private-default" /> Private by default</label></div>
-      <div class="fg"><label><input type="checkbox" id="opt-private-incognito" /> Private in Incognito</label></div>
-      <div class="fg"><label><input type="checkbox" id="opt-readlater-default" /> Read Later by default</label></div>
+      <div class="section-title" data-i18n="secSaveDefaults">Save Defaults</div>
+      <div class="fg"><label><input type="checkbox" id="opt-private-default" /> <span data-i18n="optPrivateDefault">Private by default</span></label></div>
+      <div class="fg"><label><input type="checkbox" id="opt-private-incognito" /> <span data-i18n="optPrivateIncognito">Private in Incognito</span></label></div>
+      <div class="fg"><label><input type="checkbox" id="opt-readlater-default" /> <span data-i18n="optReadlaterDefault">Read Later by default</span></label></div>
       <div class="divider"></div>
-      <div class="section-title">Notes Behavior</div>
-      <div class="fg"><label><input type="checkbox" id="opt-auto-description" checked /> Auto-fill meta description into notes</label></div>
-      <div class="fg"><label><input type="checkbox" id="opt-blockquote" checked /> Wrap selected text with &lt;blockquote&gt;</label></div>
-      <div class="fg"><label><input type="checkbox" id="opt-include-referrer" /> Include referrer in Notes</label></div>
+      <div class="section-title" data-i18n="secNotesBehavior">Notes Behavior</div>
+      <div class="fg"><label><input type="checkbox" id="opt-auto-description" checked /> <span data-i18n="optAutoDescription">Auto-fill meta description into notes</span></label></div>
+      <div class="fg"><label><input type="checkbox" id="opt-blockquote" checked /> <span data-i18n="optBlockquote">Wrap selected text with &lt;blockquote&gt;</span></label></div>
+      <div class="fg"><label><input type="checkbox" id="opt-include-referrer" /> <span data-i18n="optIncludeReferrer">Include referrer in Notes</span></label></div>
       <div class="divider"></div>
-      <div class="section-title">Tags</div>
-      <div class="fg"><label><input type="checkbox" id="opt-respect-tag-case" /> Respect existing tag case (match most-used casing)</label></div>
-      <div class="fg"><label><input type="checkbox" id="opt-show-suggest-tags" checked /> Show Pinboard suggested tags in popup</label></div>
+      <div class="section-title" data-i18n="secTags">Tags</div>
+      <div class="fg"><label><input type="checkbox" id="opt-respect-tag-case" /> <span data-i18n="optRespectTagCase">Respect existing tag case (match most-used casing)</span></label></div>
+      <div class="fg"><label><input type="checkbox" id="opt-show-suggest-tags" checked /> <span data-i18n="optShowSuggestTags">Show Pinboard suggested tags in popup</span></label></div>
       <div class="fg">
-        <label class="bl">Tag Presets</label>
-        <textarea id="opt-tag-presets" rows="4" placeholder="One preset per line:&#10;Work: project, review, report&#10;Dev: programming, tutorial, tool"></textarea>
-        <p class="hint">Format: <code>Name: tag1, tag2, tag3</code> — shown as quick-add buttons in popup.</p>
+        <label class="bl" data-i18n="labelTagPresets">Tag Presets</label>
+        <textarea id="opt-tag-presets" rows="4" placeholder="One preset per line:&#10;Work: project, review, report&#10;Dev: programming, tutorial, tool" data-i18n-placeholder="tagPresetsPlaceholder"></textarea>
+        <p class="hint" data-i18n="tagPresetsHint">Format: <code>Name: tag1, tag2, tag3</code> — shown as quick-add buttons in popup.</p>
       </div>
       <div class="divider"></div>
-      <div class="section-title">Popup Behavior</div>
-      <div class="fg"><label><input type="checkbox" id="opt-check-bookmark-status" checked /> Show bookmark status via icon (check if current page is saved)</label></div>
-      <div class="fg"><label><input type="checkbox" id="opt-auto-close" checked /> Auto-close popup after save</label></div>
-      <div class="fg"><label><input type="checkbox" id="offline-queue-enabled" /> Enable offline save queue</label></div>
+      <div class="section-title" data-i18n="secPopupBehavior">Popup Behavior</div>
+      <div class="fg"><label><input type="checkbox" id="opt-check-bookmark-status" checked /> <span data-i18n="optCheckBookmarkStatus">Show bookmark status via icon (check if current page is saved)</span></label></div>
+      <div class="fg"><label><input type="checkbox" id="opt-auto-close" checked /> <span data-i18n="optAutoClose">Auto-close popup after save</span></label></div>
+      <div class="fg"><label><input type="checkbox" id="offline-queue-enabled" /> <span data-i18n="optOfflineQueue">Enable offline save queue</span></label></div>
       <div class="divider"></div>
-      <div class="section-title">Backup & Restore</div>
-      <p class="hint" style="margin-bottom:8px">Export/import your settings (API keys are excluded from export for security).</p>
+      <div class="section-title" data-i18n="secBackupRestore">Backup & Restore</div>
+      <p class="hint" style="margin-bottom:8px" data-i18n="backupHint">Export/import your settings (API keys are excluded from export for security).</p>
       <div style="display:flex;gap:8px;align-items:center;">
-        <button class="btn" id="export-settings">Export Settings</button>
+        <button class="btn" id="export-settings" data-i18n="exportSettings">Export Settings</button>
         <label class="btn" style="cursor:pointer;" title="Import settings from JSON file">
-          Import Settings
+          <span data-i18n="importSettings">Import Settings</span>
           <input type="file" id="import-settings-file" accept=".json" style="display:none;" />
         </label>
         <span class="save-status" id="import-status"></span>
@@ -66,64 +66,64 @@
     <div id="panel-quick" class="panel">
       <div class="accordion-section open">
         <div class="accordion-header" data-target="acc-qs">
-          <span class="accordion-arrow">▶</span> Quick Save
+          <span class="accordion-arrow">▶</span> <span data-i18n="secQuickSave">Quick Save</span>
         </div>
         <div class="accordion-body" id="acc-qs">
-          <p class="hint" style="margin-bottom:8px">Save the current page instantly via keyboard shortcut (without opening popup).</p>
-          <p style="margin-bottom:8px;"><a href="chrome://extensions/shortcuts" id="open-shortcuts-link" class="btn btn-sm" style="text-decoration:none;">Open Chrome Shortcut Settings</a></p>
-          <p class="hint" style="margin-bottom:8px">Or navigate manually: <code>chrome://extensions/shortcuts</code></p>
-          <div class="fg"><label><input type="checkbox" id="qs-auto-notes" checked /> Auto-add page description to notes</label></div>
-          <div class="fg"><label><input type="checkbox" id="qs-blockquote" checked /> Wrap selected text with blockquote</label></div>
+          <p class="hint" style="margin-bottom:8px" data-i18n="qsHint">Save the current page instantly via keyboard shortcut (without opening popup).</p>
+          <p style="margin-bottom:8px;"><a href="chrome://extensions/shortcuts" id="open-shortcuts-link" class="btn btn-sm" style="text-decoration:none;" data-i18n="openShortcuts">Open Chrome Shortcut Settings</a></p>
+          <p class="hint" style="margin-bottom:8px"><span data-i18n="shortcutsManual">Or navigate manually:</span> <code>chrome://extensions/shortcuts</code></p>
+          <div class="fg"><label><input type="checkbox" id="qs-auto-notes" checked /> <span data-i18n="qsAutoNotes">Auto-add page description to notes</span></label></div>
+          <div class="fg"><label><input type="checkbox" id="qs-blockquote" checked /> <span data-i18n="qsBlockquote">Wrap selected text with blockquote</span></label></div>
           <div class="fg">
-            <label class="bl">Default Tags (comma-separated)</label>
-            <input type="text" id="qs-default-tags" placeholder="tag1, tag2" />
+            <label class="bl" data-i18n="labelDefaultTags">Default Tags (comma-separated)</label>
+            <input type="text" id="qs-default-tags" placeholder="tag1, tag2" data-i18n-placeholder="placeholderTags" />
           </div>
-          <div class="fg"><label><input type="checkbox" id="qs-ai-tags" /> Auto-generate AI tags</label></div>
-          <div class="fg"><label><input type="checkbox" id="qs-ai-summary" /> Auto-generate AI summary in notes</label></div>
+          <div class="fg"><label><input type="checkbox" id="qs-ai-tags" /> <span data-i18n="qsAiTags">Auto-generate AI tags</span></label></div>
+          <div class="fg"><label><input type="checkbox" id="qs-ai-summary" /> <span data-i18n="qsAiSummary">Auto-generate AI summary in notes</span></label></div>
         </div>
       </div>
 
       <div class="accordion-section open">
         <div class="accordion-header" data-target="acc-rl">
-          <span class="accordion-arrow">▶</span> Read Later
+          <span class="accordion-arrow">▶</span> <span data-i18n="secReadLater">Read Later</span>
         </div>
         <div class="accordion-body" id="acc-rl">
-          <p class="hint" style="margin-bottom:8px">Save current page as "Read Later" via keyboard shortcut. Automatically marks as unread.</p>
-          <p style="margin-bottom:8px;"><a href="chrome://extensions/shortcuts" id="open-shortcuts-link-rl" class="btn btn-sm" style="text-decoration:none;">Open Chrome Shortcut Settings</a></p>
-          <div class="fg"><label><input type="checkbox" id="rl-auto-notes" checked /> Auto-add page description to notes</label></div>
-          <div class="fg"><label><input type="checkbox" id="rl-blockquote" checked /> Wrap selected text with blockquote</label></div>
+          <p class="hint" style="margin-bottom:8px" data-i18n="rlHint">Save current page as "Read Later" via keyboard shortcut. Automatically marks as unread.</p>
+          <p style="margin-bottom:8px;"><a href="chrome://extensions/shortcuts" id="open-shortcuts-link-rl" class="btn btn-sm" style="text-decoration:none;" data-i18n="openShortcuts">Open Chrome Shortcut Settings</a></p>
+          <div class="fg"><label><input type="checkbox" id="rl-auto-notes" checked /> <span data-i18n="qsAutoNotes">Auto-add page description to notes</span></label></div>
+          <div class="fg"><label><input type="checkbox" id="rl-blockquote" checked /> <span data-i18n="qsBlockquote">Wrap selected text with blockquote</span></label></div>
           <div class="fg">
-            <label class="bl">Default Tags (comma-separated)</label>
-            <input type="text" id="rl-default-tags" placeholder="tag1, tag2" />
+            <label class="bl" data-i18n="labelDefaultTags">Default Tags (comma-separated)</label>
+            <input type="text" id="rl-default-tags" placeholder="tag1, tag2" data-i18n-placeholder="placeholderTags" />
           </div>
-          <div class="fg"><label><input type="checkbox" id="rl-ai-tags" /> Auto-generate AI tags</label></div>
-          <div class="fg"><label><input type="checkbox" id="rl-ai-summary" /> Auto-generate AI summary in notes</label></div>
+          <div class="fg"><label><input type="checkbox" id="rl-ai-tags" /> <span data-i18n="qsAiTags">Auto-generate AI tags</span></label></div>
+          <div class="fg"><label><input type="checkbox" id="rl-ai-summary" /> <span data-i18n="qsAiSummary">Auto-generate AI summary in notes</span></label></div>
         </div>
       </div>
 
       <div class="accordion-section open">
         <div class="accordion-header" data-target="acc-batch">
-          <span class="accordion-arrow">▶</span> Batch Save
+          <span class="accordion-arrow">▶</span> <span data-i18n="secBatchSave">Batch Save</span>
         </div>
         <div class="accordion-body" id="acc-batch">
-          <p class="hint" style="margin-bottom:8px">Save each open tab as an individual bookmark.</p>
-          <div class="fg"><label><input type="checkbox" id="opt-batch-tag-enabled" checked /> Auto-add tags</label></div>
+          <p class="hint" style="margin-bottom:8px" data-i18n="batchHint">Save each open tab as an individual bookmark.</p>
+          <div class="fg"><label><input type="checkbox" id="opt-batch-tag-enabled" checked /> <span data-i18n="batchAutoAddTags">Auto-add tags</span></label></div>
           <div class="fg">
-            <label class="bl">Tags (comma-separated)</label>
+            <label class="bl" data-i18n="batchTagsLabel">Tags (comma-separated)</label>
             <input type="text" id="opt-batch-tag" value="batch_saved" />
-            <p class="hint">Multiple tags separated by commas. E.g. <code>batch_saved, research</code></p>
+            <p class="hint" data-i18n="batchTagsHint">Multiple tags separated by commas. E.g. <code>batch_saved, research</code></p>
           </div>
-          <div class="fg"><label><input type="checkbox" id="batch-ai-tags" /> Auto-generate AI tags for each tab</label></div>
-          <div class="fg"><label><input type="checkbox" id="batch-ai-summary" /> Auto-generate AI summary for each tab</label></div>
-          <div class="fg"><label><input type="checkbox" id="batch-skip-existing" /> Skip already bookmarked URLs</label></div>
-          <p class="hint">⚠ AI features in batch save will be slow — each tab needs a separate AI call with 3s rate limit between saves.</p>
+          <div class="fg"><label><input type="checkbox" id="batch-ai-tags" /> <span data-i18n="batchAiTags">Auto-generate AI tags for each tab</span></label></div>
+          <div class="fg"><label><input type="checkbox" id="batch-ai-summary" /> <span data-i18n="batchAiSummary">Auto-generate AI summary for each tab</span></label></div>
+          <div class="fg"><label><input type="checkbox" id="batch-skip-existing" /> <span data-i18n="batchSkipExisting">Skip already bookmarked URLs</span></label></div>
+          <p class="hint" data-i18n="batchWarning">⚠ AI features in batch save will be slow — each tab needs a separate AI call with 3s rate limit between saves.</p>
         </div>
       </div>
     </div>
 
     <!-- Tab 3: AI -->
     <div id="panel-ai" class="panel">
-      <div class="section-title">AI Provider</div>
+      <div class="section-title" data-i18n="secAiProvider">AI Provider</div>
       <div class="fg">
         <select id="opt-ai-provider">
           <option value="gemini">Google Gemini</option>
@@ -145,252 +145,262 @@
       <!-- Gemini -->
       <div class="pf" id="fields-gemini">
         <h3>Google Gemini</h3>
-        <div class="fg"><label class="bl">API Key</label><input type="password" id="opt-gemini-key" placeholder="AIza..." /><button type="button" class="key-toggle" data-target="opt-gemini-key" title="Show/hide key">👁</button><p class="hint"><a href="https://aistudio.google.com/apikey" target="_blank">Get key</a></p></div>
-        <div class="fg"><label class="bl">Model</label><input type="text" id="opt-gemini-model" value="gemini-2.0-flash" /></div>
-        <button class="btn btn-sm" id="test-gemini">Test Connection</button>
+        <div class="fg"><label class="bl" data-i18n="labelApiKey">API Key</label><input type="password" id="opt-gemini-key" placeholder="AIza..." /><button type="button" class="key-toggle" data-target="opt-gemini-key" title="Show/hide key" data-i18n-title="showHideKey">👁</button><p class="hint"><a href="https://aistudio.google.com/apikey" target="_blank" data-i18n="getKey">Get key</a></p></div>
+        <div class="fg"><label class="bl" data-i18n="labelModel">Model</label><input type="text" id="opt-gemini-model" value="gemini-2.0-flash" /></div>
+        <button class="btn btn-sm" id="test-gemini" data-i18n="testConnection">Test Connection</button>
         <span class="save-status" id="test-gemini-status"></span>
       </div>
 
       <!-- OpenAI -->
       <div class="pf hidden" id="fields-openai">
         <h3>OpenAI</h3>
-        <div class="fg"><label class="bl">API Key</label><input type="password" id="opt-openai-key" placeholder="sk-..." /><button type="button" class="key-toggle" data-target="opt-openai-key" title="Show/hide key">👁</button><p class="hint"><a href="https://platform.openai.com/api-keys" target="_blank">Get key</a></p></div>
-        <div class="fg"><label class="bl">Model</label><input type="text" id="opt-openai-model" value="gpt-4o-mini" /></div>
-        <div class="fg"><label class="bl">Base URL</label><input type="text" id="opt-openai-baseurl" value="https://api.openai.com/v1" /><p class="hint">Change for proxy or compatible endpoint</p></div>
-        <button class="btn btn-sm" id="test-openai">Test Connection</button>
+        <div class="fg"><label class="bl" data-i18n="labelApiKey">API Key</label><input type="password" id="opt-openai-key" placeholder="sk-..." /><button type="button" class="key-toggle" data-target="opt-openai-key" title="Show/hide key" data-i18n-title="showHideKey">👁</button><p class="hint"><a href="https://platform.openai.com/api-keys" target="_blank" data-i18n="getKey">Get key</a></p></div>
+        <div class="fg"><label class="bl" data-i18n="labelModel">Model</label><input type="text" id="opt-openai-model" value="gpt-4o-mini" /></div>
+        <div class="fg"><label class="bl" data-i18n="labelBaseUrl">Base URL</label><input type="text" id="opt-openai-baseurl" value="https://api.openai.com/v1" /><p class="hint" data-i18n="hintOpenAIBaseUrl">Change for proxy or compatible endpoint</p></div>
+        <button class="btn btn-sm" id="test-openai" data-i18n="testConnection">Test Connection</button>
         <span class="save-status" id="test-openai-status"></span>
       </div>
 
       <!-- Claude -->
       <div class="pf hidden" id="fields-claude">
         <h3>Anthropic Claude</h3>
-        <div class="fg"><label class="bl">API Key</label><input type="password" id="opt-claude-key" placeholder="sk-ant-..." /><button type="button" class="key-toggle" data-target="opt-claude-key" title="Show/hide key">👁</button><p class="hint"><a href="https://console.anthropic.com/settings/keys" target="_blank">Get key</a></p></div>
-        <div class="fg"><label class="bl">Model</label><input type="text" id="opt-claude-model" value="claude-sonnet-4-20250514" /><p class="hint">e.g. claude-sonnet-4-20250514, claude-3-5-haiku-20241022</p></div>
-        <button class="btn btn-sm" id="test-claude">Test Connection</button>
+        <div class="fg"><label class="bl" data-i18n="labelApiKey">API Key</label><input type="password" id="opt-claude-key" placeholder="sk-ant-..." /><button type="button" class="key-toggle" data-target="opt-claude-key" title="Show/hide key" data-i18n-title="showHideKey">👁</button><p class="hint"><a href="https://console.anthropic.com/settings/keys" target="_blank" data-i18n="getKey">Get key</a></p></div>
+        <div class="fg"><label class="bl" data-i18n="labelModel">Model</label><input type="text" id="opt-claude-model" value="claude-sonnet-4-20250514" /><p class="hint" data-i18n="hintClaudeModel">e.g. claude-sonnet-4-20250514, claude-3-5-haiku-20241022</p></div>
+        <button class="btn btn-sm" id="test-claude" data-i18n="testConnection">Test Connection</button>
         <span class="save-status" id="test-claude-status"></span>
       </div>
 
       <!-- DeepSeek -->
       <div class="pf hidden" id="fields-deepseek">
         <h3>DeepSeek</h3>
-        <div class="fg"><label class="bl">API Key</label><input type="password" id="opt-deepseek-key" placeholder="sk-..." /><button type="button" class="key-toggle" data-target="opt-deepseek-key" title="Show/hide key">👁</button><p class="hint"><a href="https://platform.deepseek.com/api_keys" target="_blank">Get key</a></p></div>
-        <div class="fg"><label class="bl">Model</label><input type="text" id="opt-deepseek-model" value="deepseek-chat" /></div>
-        <button class="btn btn-sm" id="test-deepseek">Test Connection</button>
+        <div class="fg"><label class="bl" data-i18n="labelApiKey">API Key</label><input type="password" id="opt-deepseek-key" placeholder="sk-..." /><button type="button" class="key-toggle" data-target="opt-deepseek-key" title="Show/hide key" data-i18n-title="showHideKey">👁</button><p class="hint"><a href="https://platform.deepseek.com/api_keys" target="_blank" data-i18n="getKey">Get key</a></p></div>
+        <div class="fg"><label class="bl" data-i18n="labelModel">Model</label><input type="text" id="opt-deepseek-model" value="deepseek-chat" /></div>
+        <button class="btn btn-sm" id="test-deepseek" data-i18n="testConnection">Test Connection</button>
         <span class="save-status" id="test-deepseek-status"></span>
       </div>
 
       <!-- Qwen -->
       <div class="pf hidden" id="fields-qwen">
         <h3>Qwen (通义千问)</h3>
-        <div class="fg"><label class="bl">API Key</label><input type="password" id="opt-qwen-key" placeholder="sk-..." /><button type="button" class="key-toggle" data-target="opt-qwen-key" title="Show/hide key">👁</button><p class="hint"><a href="https://dashscope.console.aliyun.com/apiKey" target="_blank">Get key</a></p></div>
-        <div class="fg"><label class="bl">Model</label><input type="text" id="opt-qwen-model" value="qwen-turbo" /></div>
-        <button class="btn btn-sm" id="test-qwen">Test Connection</button>
+        <div class="fg"><label class="bl" data-i18n="labelApiKey">API Key</label><input type="password" id="opt-qwen-key" placeholder="sk-..." /><button type="button" class="key-toggle" data-target="opt-qwen-key" title="Show/hide key" data-i18n-title="showHideKey">👁</button><p class="hint"><a href="https://dashscope.console.aliyun.com/apiKey" target="_blank" data-i18n="getKey">Get key</a></p></div>
+        <div class="fg"><label class="bl" data-i18n="labelModel">Model</label><input type="text" id="opt-qwen-model" value="qwen-turbo" /></div>
+        <button class="btn btn-sm" id="test-qwen" data-i18n="testConnection">Test Connection</button>
         <span class="save-status" id="test-qwen-status"></span>
       </div>
 
       <!-- MiniMax -->
       <div class="pf hidden" id="fields-minimax">
         <h3>MiniMax</h3>
-        <div class="fg"><label class="bl">API Key</label><input type="password" id="opt-minimax-key" /><button type="button" class="key-toggle" data-target="opt-minimax-key" title="Show/hide key">👁</button><p class="hint"><a href="https://platform.minimaxi.com/" target="_blank">Get key</a></p></div>
-        <div class="fg"><label class="bl">Model</label><input type="text" id="opt-minimax-model" value="MiniMax-Text-01" /></div>
-        <button class="btn btn-sm" id="test-minimax">Test Connection</button>
+        <div class="fg"><label class="bl" data-i18n="labelApiKey">API Key</label><input type="password" id="opt-minimax-key" /><button type="button" class="key-toggle" data-target="opt-minimax-key" title="Show/hide key" data-i18n-title="showHideKey">👁</button><p class="hint"><a href="https://platform.minimaxi.com/" target="_blank" data-i18n="getKey">Get key</a></p></div>
+        <div class="fg"><label class="bl" data-i18n="labelModel">Model</label><input type="text" id="opt-minimax-model" value="MiniMax-Text-01" /></div>
+        <button class="btn btn-sm" id="test-minimax" data-i18n="testConnection">Test Connection</button>
         <span class="save-status" id="test-minimax-status"></span>
       </div>
 
       <!-- OpenRouter -->
       <div class="pf hidden" id="fields-openrouter">
         <h3>OpenRouter</h3>
-        <div class="fg"><label class="bl">API Key</label><input type="password" id="opt-openrouter-key" placeholder="sk-or-..." /><button type="button" class="key-toggle" data-target="opt-openrouter-key" title="Show/hide key">👁</button><p class="hint"><a href="https://openrouter.ai/keys" target="_blank">Get key</a>. Access 100+ models from one API.</p></div>
-        <div class="fg"><label class="bl">Model</label><input type="text" id="opt-openrouter-model" value="google/gemini-2.0-flash-exp:free" /><p class="hint">Browse models at <a href="https://openrouter.ai/models" target="_blank">openrouter.ai/models</a></p></div>
-        <button class="btn btn-sm" id="test-openrouter">Test Connection</button>
+        <div class="fg"><label class="bl" data-i18n="labelApiKey">API Key</label><input type="password" id="opt-openrouter-key" placeholder="sk-or-..." /><button type="button" class="key-toggle" data-target="opt-openrouter-key" title="Show/hide key" data-i18n-title="showHideKey">👁</button><p class="hint"><a href="https://openrouter.ai/keys" target="_blank" data-i18n="getKey">Get key</a>. Access 100+ models from one API.</p></div>
+        <div class="fg"><label class="bl" data-i18n="labelModel">Model</label><input type="text" id="opt-openrouter-model" value="google/gemini-2.0-flash-exp:free" /><p class="hint">Browse models at <a href="https://openrouter.ai/models" target="_blank">openrouter.ai/models</a></p></div>
+        <button class="btn btn-sm" id="test-openrouter" data-i18n="testConnection">Test Connection</button>
         <span class="save-status" id="test-openrouter-status"></span>
       </div>
 
       <!-- Groq -->
       <div class="pf hidden" id="fields-groq">
         <h3>Groq</h3>
-        <div class="fg"><label class="bl">API Key</label><input type="password" id="opt-groq-key" placeholder="gsk_..." /><button type="button" class="key-toggle" data-target="opt-groq-key" title="Show/hide key">👁</button><p class="hint"><a href="https://console.groq.com/keys" target="_blank">Get key</a></p></div>
-        <div class="fg"><label class="bl">Model</label><input type="text" id="opt-groq-model" value="llama-3.3-70b-versatile" /></div>
-        <button class="btn btn-sm" id="test-groq">Test Connection</button>
+        <div class="fg"><label class="bl" data-i18n="labelApiKey">API Key</label><input type="password" id="opt-groq-key" placeholder="gsk_..." /><button type="button" class="key-toggle" data-target="opt-groq-key" title="Show/hide key" data-i18n-title="showHideKey">👁</button><p class="hint"><a href="https://console.groq.com/keys" target="_blank" data-i18n="getKey">Get key</a></p></div>
+        <div class="fg"><label class="bl" data-i18n="labelModel">Model</label><input type="text" id="opt-groq-model" value="llama-3.3-70b-versatile" /></div>
+        <button class="btn btn-sm" id="test-groq" data-i18n="testConnection">Test Connection</button>
         <span class="save-status" id="test-groq-status"></span>
       </div>
 
       <!-- Mistral -->
       <div class="pf hidden" id="fields-mistral">
         <h3>Mistral AI</h3>
-        <div class="fg"><label class="bl">API Key</label><input type="password" id="opt-mistral-key" /><button type="button" class="key-toggle" data-target="opt-mistral-key" title="Show/hide key">👁</button><p class="hint"><a href="https://console.mistral.ai/api-keys" target="_blank">Get key</a></p></div>
-        <div class="fg"><label class="bl">Model</label><input type="text" id="opt-mistral-model" value="mistral-small-latest" /></div>
-        <button class="btn btn-sm" id="test-mistral">Test Connection</button>
+        <div class="fg"><label class="bl" data-i18n="labelApiKey">API Key</label><input type="password" id="opt-mistral-key" /><button type="button" class="key-toggle" data-target="opt-mistral-key" title="Show/hide key" data-i18n-title="showHideKey">👁</button><p class="hint"><a href="https://console.mistral.ai/api-keys" target="_blank" data-i18n="getKey">Get key</a></p></div>
+        <div class="fg"><label class="bl" data-i18n="labelModel">Model</label><input type="text" id="opt-mistral-model" value="mistral-small-latest" /></div>
+        <button class="btn btn-sm" id="test-mistral" data-i18n="testConnection">Test Connection</button>
         <span class="save-status" id="test-mistral-status"></span>
       </div>
 
       <!-- Cohere -->
       <div class="pf hidden" id="fields-cohere">
         <h3>Cohere</h3>
-        <div class="fg"><label class="bl">API Key</label><input type="password" id="opt-cohere-key" /><button type="button" class="key-toggle" data-target="opt-cohere-key" title="Show/hide key">👁</button><p class="hint"><a href="https://dashboard.cohere.com/api-keys" target="_blank">Get key</a></p></div>
-        <div class="fg"><label class="bl">Model</label><input type="text" id="opt-cohere-model" value="command-r-plus" /></div>
-        <button class="btn btn-sm" id="test-cohere">Test Connection</button>
+        <div class="fg"><label class="bl" data-i18n="labelApiKey">API Key</label><input type="password" id="opt-cohere-key" /><button type="button" class="key-toggle" data-target="opt-cohere-key" title="Show/hide key" data-i18n-title="showHideKey">👁</button><p class="hint"><a href="https://dashboard.cohere.com/api-keys" target="_blank" data-i18n="getKey">Get key</a></p></div>
+        <div class="fg"><label class="bl" data-i18n="labelModel">Model</label><input type="text" id="opt-cohere-model" value="command-r-plus" /></div>
+        <button class="btn btn-sm" id="test-cohere" data-i18n="testConnection">Test Connection</button>
         <span class="save-status" id="test-cohere-status"></span>
       </div>
 
       <!-- SiliconFlow -->
       <div class="pf hidden" id="fields-siliconflow">
         <h3>SiliconFlow (硅基流动)</h3>
-        <div class="fg"><label class="bl">API Key</label><input type="password" id="opt-siliconflow-key" placeholder="sk-..." /><button type="button" class="key-toggle" data-target="opt-siliconflow-key" title="Show/hide key">👁</button><p class="hint"><a href="https://cloud.siliconflow.cn/account/ak" target="_blank">Get key</a></p></div>
-        <div class="fg"><label class="bl">Model</label><input type="text" id="opt-siliconflow-model" value="Qwen/Qwen2.5-7B-Instruct" /></div>
-        <button class="btn btn-sm" id="test-siliconflow">Test Connection</button>
+        <div class="fg"><label class="bl" data-i18n="labelApiKey">API Key</label><input type="password" id="opt-siliconflow-key" placeholder="sk-..." /><button type="button" class="key-toggle" data-target="opt-siliconflow-key" title="Show/hide key" data-i18n-title="showHideKey">👁</button><p class="hint"><a href="https://cloud.siliconflow.cn/account/ak" target="_blank" data-i18n="getKey">Get key</a></p></div>
+        <div class="fg"><label class="bl" data-i18n="labelModel">Model</label><input type="text" id="opt-siliconflow-model" value="Qwen/Qwen2.5-7B-Instruct" /></div>
+        <button class="btn btn-sm" id="test-siliconflow" data-i18n="testConnection">Test Connection</button>
         <span class="save-status" id="test-siliconflow-status"></span>
       </div>
 
       <!-- Ollama -->
       <div class="pf hidden" id="fields-ollama">
         <h3>Ollama (Local)</h3>
-        <div class="fg"><label class="bl">Base URL</label><input type="text" id="opt-ollama-baseurl" value="http://localhost:11434" /></div>
-        <div class="fg"><label class="bl">Model</label><input type="text" id="opt-ollama-model" value="llama3" /><p class="hint">Run <code>ollama pull llama3</code> first</p></div>
-        <button class="btn btn-sm" id="test-ollama">Test Connection</button>
+        <div class="fg"><label class="bl" data-i18n="labelBaseUrl">Base URL</label><input type="text" id="opt-ollama-baseurl" value="http://localhost:11434" /></div>
+        <div class="fg"><label class="bl" data-i18n="labelModel">Model</label><input type="text" id="opt-ollama-model" value="llama3" /><p class="hint" data-i18n="hintOllamaModel">Run <code>ollama pull llama3</code> first</p></div>
+        <button class="btn btn-sm" id="test-ollama" data-i18n="testConnection">Test Connection</button>
         <span class="save-status" id="test-ollama-status"></span>
       </div>
 
       <!-- Custom -->
       <div class="pf hidden" id="fields-custom">
         <h3>Custom OpenAI-compatible API</h3>
-        <div class="fg"><label class="bl">Display Name</label><input type="text" id="opt-custom-name" value="Custom" /></div>
-        <div class="fg"><label class="bl">Base URL</label><input type="text" id="opt-custom-baseurl" placeholder="https://api.example.com/v1" /><p class="hint">Must support <code>/chat/completions</code> endpoint</p></div>
-        <div class="fg"><label class="bl">API Key</label><input type="password" id="opt-custom-key" /><button type="button" class="key-toggle" data-target="opt-custom-key" title="Show/hide key">👁</button><p class="hint">Leave empty if not required</p></div>
-        <div class="fg"><label class="bl">Model</label><input type="text" id="opt-custom-model" placeholder="model-name" /></div>
-        <button class="btn btn-sm" id="test-custom">Test Connection</button>
+        <div class="fg"><label class="bl" data-i18n="labelDisplayName">Display Name</label><input type="text" id="opt-custom-name" value="Custom" /></div>
+        <div class="fg"><label class="bl" data-i18n="labelBaseUrl">Base URL</label><input type="text" id="opt-custom-baseurl" placeholder="https://api.example.com/v1" /><p class="hint" data-i18n="hintCustomBaseUrl">Must support <code>/chat/completions</code> endpoint</p></div>
+        <div class="fg"><label class="bl" data-i18n="labelApiKey">API Key</label><input type="password" id="opt-custom-key" /><button type="button" class="key-toggle" data-target="opt-custom-key" title="Show/hide key" data-i18n-title="showHideKey">👁</button><p class="hint" data-i18n="hintCustomKey">Leave empty if not required</p></div>
+        <div class="fg"><label class="bl" data-i18n="labelModel">Model</label><input type="text" id="opt-custom-model" placeholder="model-name" /></div>
+        <button class="btn btn-sm" id="test-custom" data-i18n="testConnection">Test Connection</button>
         <span class="save-status" id="test-custom-status"></span>
       </div>
 
       <div class="divider"></div>
-      <div class="section-title">AI Behavior</div>
-      <div class="fg"><label><input type="checkbox" id="opt-ai-auto-tags" /> Auto-generate AI tags on popup open</label></div>
+      <div class="section-title" data-i18n="secAiBehavior">AI Behavior</div>
+      <div class="fg"><label><input type="checkbox" id="opt-ai-auto-tags" /> <span data-i18n="optAiAutoTags">Auto-generate AI tags on popup open</span></label></div>
       <div class="fg">
-        <label class="bl">AI Summary Language</label>
+        <label class="bl" data-i18n="labelAiSummaryLang">AI Summary Language</label>
         <select id="opt-ai-summary-lang">
-          <option value="auto">Auto (same as content)</option>
-          <option value="zh">中文 (Chinese)</option>
-          <option value="en">English</option>
-          <option value="ja">日本語 (Japanese)</option>
-          <option value="ko">한국어 (Korean)</option>
-          <option value="fr">Français</option>
-          <option value="de">Deutsch</option>
-          <option value="es">Español</option>
-          <option value="ru">Русский</option>
+          <option value="auto" data-i18n="langAuto">Auto (same as content)</option>
+          <option value="zh" data-i18n="langZh">中文 (Chinese)</option>
+          <option value="en" data-i18n="langEn">English</option>
+          <option value="ja" data-i18n="langJa">日本語 (Japanese)</option>
+          <option value="ko" data-i18n="langKo">한국어 (Korean)</option>
+          <option value="fr" data-i18n="langFr">Français</option>
+          <option value="de" data-i18n="langDe">Deutsch</option>
+          <option value="es" data-i18n="langEs">Español</option>
+          <option value="ru" data-i18n="langRu">Русский</option>
         </select>
       </div>
       <div class="fg">
-        <label class="bl">AI Cache Duration (minutes)</label>
+        <label class="bl" data-i18n="labelAiCache">AI Cache Duration (minutes)</label>
         <input type="number" id="opt-ai-cache-duration" value="60" min="0" />
-        <p class="hint">Cached per URL. Set 0 to disable.</p>
+        <p class="hint" data-i18n="aiCacheHint">Cached per URL. Set 0 to disable.</p>
       </div>
       <div class="fg">
         <div class="row-inline">
-          <label class="bl">Multi-word tag separator</label>
+          <label class="bl" data-i18n="labelTagSeparator">Multi-word tag separator</label>
           <select id="opt-ai-tag-separator">
-            <option value="-">hyphen (machine-learning)</option>
-            <option value="_">underscore (machine_learning)</option>
+            <option value="-" data-i18n="sepHyphen">hyphen (machine-learning)</option>
+            <option value="_" data-i18n="sepUnderscore">underscore (machine_learning)</option>
           </select>
         </div>
       </div>
 
       <div class="divider"></div>
-      <div class="section-title">Prompts</div>
-      <p class="hint" style="margin-bottom:12px">Customize the prompts sent to the AI. Use placeholders: <code>{{title}}</code> <code>{{url}}</code> <code>{{content}}</code> <code>{{description}}</code> <code>{{lang_instruction}}</code> <code>{{separator_instruction}}</code>. Leave empty to use defaults.</p>
+      <div class="section-title" data-i18n="secPrompts">Prompts</div>
+      <p class="hint" style="margin-bottom:12px" data-i18n="promptsHint">Customize the prompts sent to the AI. Use placeholders: <code>{{title}}</code> <code>{{url}}</code> <code>{{content}}</code> <code>{{description}}</code> <code>{{lang_instruction}}</code> <code>{{separator_instruction}}</code>. Leave empty to use defaults.</p>
 
       <div class="fg">
-        <label class="bl">AI Tags Prompt</label>
+        <label class="bl" data-i18n="labelTagPrompt">AI Tags Prompt</label>
         <textarea id="opt-custom-tag-prompt" rows="8"></textarea>
-        <p class="hint">Leave empty to use the default prompt shown above. Must instruct AI to return <code>["tag1","tag2"]</code> format.</p>
-        <button class="btn btn-sm" id="reset-tag-prompt" style="margin-top:4px">Reset to default</button>
+        <p class="hint" data-i18n="tagPromptHint">Leave empty to use the default prompt shown above. Must instruct AI to return <code>["tag1","tag2"]</code> format.</p>
+        <button class="btn btn-sm" id="reset-tag-prompt" style="margin-top:4px" data-i18n="resetToDefault">Reset to default</button>
       </div>
 
       <div class="fg">
-        <label class="bl">AI Summary Prompt</label>
+        <label class="bl" data-i18n="labelSummaryPrompt">AI Summary Prompt</label>
         <textarea id="opt-custom-summary-prompt" rows="8"></textarea>
-        <p class="hint">Leave empty to use the default prompt shown above. Use <code>{{lang_instruction}}</code> for auto language.</p>
-        <button class="btn btn-sm" id="reset-summary-prompt" style="margin-top:4px">Reset to default</button>
+        <p class="hint" data-i18n="summaryPromptHint">Leave empty to use the default prompt shown above. Use <code>{{lang_instruction}}</code> for auto language.</p>
+        <button class="btn btn-sm" id="reset-summary-prompt" style="margin-top:4px" data-i18n="resetToDefault">Reset to default</button>
       </div>
     </div>
 
     <!-- Tab 4: Appearance & Notifications -->
     <div id="panel-appearance" class="panel">
-      <div class="section-title">Theme</div>
+      <div class="section-title" data-i18n="secLanguage">Language</div>
+      <div class="fg">
+        <select id="opt-lang">
+          <option value="auto" data-i18n="langAuto">Auto (follow browser)</option>
+          <option value="en">English</option>
+          <option value="zh_CN">中文（简体）</option>
+        </select>
+      </div>
+      <div class="divider"></div>
+      <div class="section-title" data-i18n="secTheme">Theme</div>
       <div class="fg">
         <select id="opt-theme">
-          <option value="auto">Auto (follow system)</option>
-          <option value="light">Light</option>
-          <option value="dark">Dark</option>
+          <option value="auto" data-i18n="themeAuto">Auto (follow system)</option>
+          <option value="light" data-i18n="themeLight">Light</option>
+          <option value="dark" data-i18n="themeDark">Dark</option>
         </select>
       </div>
 
-      <div class="fg"><label><input type="checkbox" id="opt-popup-follow-theme" checked /> Popup follows Pinboard theme preset</label></div>
-      <p class="hint" style="margin-top:-8px;margin-bottom:4px">When enabled, the popup appearance matches the selected Pinboard CSS theme.</p>
+      <div class="fg"><label><input type="checkbox" id="opt-popup-follow-theme" checked /> <span data-i18n="optPopupFollowTheme">Popup follows Pinboard theme preset</span></label></div>
+      <p class="hint" style="margin-top:-8px;margin-bottom:4px" data-i18n="popupFollowHint">When enabled, the popup appearance matches the selected Pinboard CSS theme.</p>
 
       <div class="divider"></div>
-      <div class="section-title">Popup Elements</div>
-      <div class="fg"><label><input type="checkbox" id="opt-show-search" /> Show search bar in popup</label></div>
-      <div class="fg"><label><input type="checkbox" id="opt-show-recent" /> Show recent bookmarks in popup</label></div>
-      <div class="fg"><label><input type="checkbox" id="opt-show-badge" /> Show unread count badge on icon</label></div>
+      <div class="section-title" data-i18n="secPopupElements">Popup Elements</div>
+      <div class="fg"><label><input type="checkbox" id="opt-show-search" /> <span data-i18n="optShowSearch">Show search bar in popup</span></label></div>
+      <div class="fg"><label><input type="checkbox" id="opt-show-recent" /> <span data-i18n="optShowRecent">Show recent bookmarks in popup</span></label></div>
+      <div class="fg"><label><input type="checkbox" id="opt-show-badge" /> <span data-i18n="optShowBadge">Show unread count badge on icon</span></label></div>
 
       <div class="divider"></div>
-      <div class="section-title">Notifications</div>
-      <div class="fg"><label><input type="checkbox" id="notify-quick-save" checked /> Quick save</label></div>
-      <div class="fg"><label><input type="checkbox" id="notify-read-later" checked /> Read Later save</label></div>
-      <div class="fg"><label><input type="checkbox" id="notify-tab-set" checked /> Tab Set save</label></div>
-      <div class="fg"><label><input type="checkbox" id="notify-batch-save" checked /> Batch save</label></div>
-      <div class="fg"><label><input type="checkbox" id="notify-errors" checked /> Error notifications</label></div>
+      <div class="section-title" data-i18n="secNotifications">Notifications</div>
+      <div class="fg"><label><input type="checkbox" id="notify-quick-save" checked /> <span data-i18n="notifyQuickSave">Quick save</span></label></div>
+      <div class="fg"><label><input type="checkbox" id="notify-read-later" checked /> <span data-i18n="notifyReadLater">Read Later save</span></label></div>
+      <div class="fg"><label><input type="checkbox" id="notify-tab-set" checked /> <span data-i18n="notifyTabSet">Tab Set save</span></label></div>
+      <div class="fg"><label><input type="checkbox" id="notify-batch-save" checked /> <span data-i18n="notifyBatchSave">Batch save</span></label></div>
+      <div class="fg"><label><input type="checkbox" id="notify-errors" checked /> <span data-i18n="notifyErrors">Error notifications</span></label></div>
 
       <div class="divider"></div>
-      <div class="section-title">Pinboard.in Custom Style</div>
-      <p class="hint" style="margin-bottom:8px">Inject custom CSS into pinboard.in pages. Useful for changing fonts, colors, layout etc.</p>
+      <div class="section-title" data-i18n="secCustomStyle">Pinboard.in Custom Style</div>
+      <p class="hint" style="margin-bottom:8px" data-i18n="customStyleHint">Inject custom CSS into pinboard.in pages. Useful for changing fonts, colors, layout etc.</p>
       <div class="fg">
-        <label class="bl">Custom Font</label>
-        <input type="text" id="opt-custom-font" placeholder="e.g. 'Noto Sans SC', 'Fira Code', sans-serif" />
-        <p class="hint">Applied to <code>body</code> on pinboard.in. Leave empty to keep default.</p>
+        <label class="bl" data-i18n="labelCustomFont">Custom Font</label>
+        <input type="text" id="opt-custom-font" placeholder="e.g. 'Noto Sans SC', 'Fira Code', sans-serif" data-i18n-placeholder="customFontPlaceholder" />
+        <p class="hint" data-i18n="customFontHint">Applied to <code>body</code> on pinboard.in. Leave empty to keep default.</p>
       </div>
       <div class="fg">
-        <label class="bl">Theme Presets</label>
+        <label class="bl" data-i18n="labelThemePresets">Theme Presets</label>
         <div class="theme-presets-group">
-          <button class="btn btn-sm theme-preset-btn" data-theme="">None</button>
+          <button class="btn btn-sm theme-preset-btn" data-theme="" data-i18n="themeGroupNone">None</button>
         </div>
         <div class="theme-presets-group">
-          <span class="theme-group-label">Adaptive</span>
+          <span class="theme-group-label" data-i18n="themeGroupAdaptive">Adaptive</span>
           <button class="btn btn-sm theme-preset-btn" data-theme="flexoki">Flexoki</button>
           <button class="btn btn-sm theme-preset-btn" data-theme="solarized">Solarized</button>
           <button class="btn btn-sm theme-preset-btn" data-theme="catppuccin">Catppuccin</button>
         </div>
         <div class="theme-presets-group">
-          <span class="theme-group-label">Light</span>
+          <span class="theme-group-label" data-i18n="themeGroupLight">Light</span>
           <button class="btn btn-sm theme-preset-btn" data-theme="modern-card">Modern Card</button>
           <button class="btn btn-sm theme-preset-btn" data-theme="paper-ink">Paper &amp; Ink</button>
           <button class="btn btn-sm theme-preset-btn" data-theme="github-light">GitHub Light</button>
         </div>
         <div class="theme-presets-group">
-          <span class="theme-group-label">Dark</span>
+          <span class="theme-group-label" data-i18n="themeGroupDark">Dark</span>
           <button class="btn btn-sm theme-preset-btn" data-theme="nord-night">Nord Night</button>
           <button class="btn btn-sm theme-preset-btn" data-theme="terminal">Terminal</button>
           <button class="btn btn-sm theme-preset-btn" data-theme="dracula">Dracula</button>
           <button class="btn btn-sm theme-preset-btn" data-theme="gruvbox-dark">Gruvbox Dark</button>
           <button class="btn btn-sm theme-preset-btn" data-theme="rose-pine">Rosé Pine</button>
         </div>
-        <p class="hint" style="margin-bottom:8px">Click a preset to load its CSS. Adaptive themes follow your Theme (light/dark) setting.</p>
+        <p class="hint" style="margin-bottom:8px" data-i18n="themePresetsHint">Click a preset to load its CSS. Adaptive themes follow your Theme (light/dark) setting.</p>
       </div>
       <div class="fg" id="saved-themes-section" style="display:none">
-        <label class="bl">Saved Themes</label>
+        <label class="bl" data-i18n="labelSavedThemes">Saved Themes</label>
         <div id="saved-themes-list" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;"></div>
       </div>
       <div class="fg">
-        <label class="bl">Custom CSS</label>
-        <textarea id="opt-custom-css" rows="12" placeholder="/* Custom CSS for pinboard.in */&#10;body { line-height: 1.6; }&#10;.bookmark_title { font-size: 14px; }"></textarea>
+        <label class="bl" data-i18n="labelCustomCSS">Custom CSS</label>
+        <textarea id="opt-custom-css" rows="12" placeholder="/* Custom CSS for pinboard.in */&#10;body { line-height: 1.6; }&#10;.bookmark_title { font-size: 14px; }" data-i18n-placeholder="customCSSPlaceholder"></textarea>
         <div style="display:flex;gap:8px;align-items:center;margin-top:6px;">
-          <button class="btn btn-sm" id="save-custom-theme">Save as theme</button>
-          <p class="hint" style="margin:0">Save current CSS as a reusable theme.</p>
+          <button class="btn btn-sm" id="save-custom-theme" data-i18n="saveAsTheme">Save as theme</button>
+          <p class="hint" style="margin:0" data-i18n="saveAsThemeHint">Save current CSS as a reusable theme.</p>
         </div>
       </div>
 
     </div>
   </div>
+  <script src="i18n.js"></script>
   <script src="options-theme-early.js"></script>
   <script src="shared.js"></script>
   <script src="pinboard-themes.js"></script>

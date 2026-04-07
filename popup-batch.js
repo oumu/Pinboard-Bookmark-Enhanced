@@ -10,7 +10,7 @@ function setupTabSet() {
   btn.addEventListener("click", async () => {
     btn.disabled = true;
     const origText = btn.textContent;
-    btn.textContent = "⏳ Saving...";
+    btn.textContent = t("batchSaving");
 
     try {
       const tabs = await chrome.tabs.query({ currentWindow: true });
@@ -19,7 +19,7 @@ function setupTabSet() {
       );
 
       if (validTabs.length === 0) {
-        showStatus("status-msg", "No valid tabs to save", "error");
+        showStatus("status-msg", t("batchNoValidTabs"), "error");
         btn.textContent = origText;
         btn.disabled = false;
         return;
@@ -39,7 +39,7 @@ function setupTabSet() {
         }
       );
 
-      btn.textContent = "✅ Sent!";
+      btn.textContent = t("batchSent");
       setTimeout(() => {
         btn.textContent = origText;
         btn.disabled = false;
@@ -47,7 +47,7 @@ function setupTabSet() {
 
     } catch (e) {
       console.error("Save tab set error:", e);
-      showStatus("status-msg", "Failed: " + e.message, "error");
+      showStatus("status-msg", t("batchFailed", e.message), "error");
       btn.textContent = origText;
       btn.disabled = false;
     }
@@ -57,20 +57,20 @@ function setupTabSet() {
   if (!batchBtn) return;
   batchBtn.addEventListener("click", async () => {
     batchBtn.disabled = true;
-    batchBtn.textContent = "⏳ Saving...";
+    batchBtn.textContent = t("batchSaving");
     try {
       const rawToken = await chrome.storage.sync.get("pinboardToken");
       const pinboardToken = deobfuscateKey(rawToken.pinboardToken);
       if (!pinboardToken) {
-        showStatus("status-msg", "Not logged in", "error");
-        batchBtn.textContent = "📌 Batch Save"; batchBtn.disabled = false;
+        showStatus("status-msg", t("batchNotLoggedIn"), "error");
+        batchBtn.textContent = t("batchSaveBtn"); batchBtn.disabled = false;
         return;
       }
       const tabs = await chrome.tabs.query({ currentWindow: true });
       const validTabs = tabs.filter(t => t.url && (t.url.startsWith("http://") || t.url.startsWith("https://")));
       if (!validTabs.length) {
-        showStatus("status-msg", "No valid tabs", "error");
-        batchBtn.textContent = "📌 Batch Save"; batchBtn.disabled = false;
+        showStatus("status-msg", t("batchNoTabs"), "error");
+        batchBtn.textContent = t("batchSaveBtn"); batchBtn.disabled = false;
         return;
       }
       const baseTags = settings.optBatchTagEnabled && settings.optBatchTag
@@ -86,7 +86,7 @@ function setupTabSet() {
       }
       for (let i = 0; i < validTabs.length; i++) {
         const t = validTabs[i];
-        batchBtn.textContent = `⏳ ${i + 1}/${validTabs.length} (✓${saved} ✗${failed})`;
+        batchBtn.textContent = t("batchProgress", String(i + 1), String(validTabs.length), String(saved), String(failed));
         if (settings.batchSkipExisting && existingUrls.has(t.url)) {
           skipped++;
           continue;
@@ -150,16 +150,17 @@ function setupTabSet() {
         } catch (_) {}
       }
       const tagStr = baseTags.join(", ");
-      const skipMsg = skipped > 0 ? `, ${skipped} skipped` : "";
-      showStatus("status-msg", `Batch done: ${saved} saved, ${failed} failed${skipMsg}`, saved > 0 ? "success" : "error");
+      const skipMsg = skipped > 0 ? t("batchSkipped", String(skipped)) : "";
+      showStatus("status-msg", t("batchDone", String(saved), String(failed)) + skipMsg, saved > 0 ? "success" : "error");
       if (saved > 0) {
-        chrome.runtime.sendMessage({ type: "show_notification", id: "batch-saved-" + Date.now(), title: "Pinboard: Batch Saved!", message: `${saved} bookmarks saved${tagStr ? ` (tagged: ${tagStr})` : ""}.`, category: "batchSave" });
+        const tagsSuffix = tagStr ? t("batchTaggedSuffix", tagStr) : "";
+        chrome.runtime.sendMessage({ type: "show_notification", id: "batch-saved-" + Date.now(), title: t("bgBatchSaved"), message: t("batchSavedNotify", String(saved), tagsSuffix), category: "batchSave" });
       }
-      batchBtn.textContent = `✅ ${saved} saved`;
-      setTimeout(() => { batchBtn.textContent = "📌 Batch Save"; batchBtn.disabled = false; }, 3000);
+      batchBtn.textContent = t("batchSavedCount", String(saved));
+      setTimeout(() => { batchBtn.textContent = t("batchSaveBtn"); batchBtn.disabled = false; }, 3000);
     } catch (e) {
-      showStatus("status-msg", "Batch save failed: " + e.message, "error");
-      batchBtn.textContent = "📌 Batch Save"; batchBtn.disabled = false;
+      showStatus("status-msg", t("batchFailed", e.message), "error");
+      batchBtn.textContent = t("batchSaveBtn"); batchBtn.disabled = false;
     }
   });
 }

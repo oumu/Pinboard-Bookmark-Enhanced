@@ -52,6 +52,7 @@ const SETTINGS_DEFAULTS = {
   rlAutoNotes: true, rlBlockquote: true, rlDefaultTags: "", rlAiTags: false, rlAiSummary: false,
   optBatchTagEnabled: true, optBatchTag: "batch_saved",
   batchAiTags: false, batchAiSummary: false, batchSkipExisting: false,
+  optLang: "auto",
   optShowRecent: false, optShowSearch: false, optTheme: "auto",
   notifyQuickSave: true, notifyReadLater: true,
   notifyTabSet: true, notifyBatchSave: true, notifyErrors: true,

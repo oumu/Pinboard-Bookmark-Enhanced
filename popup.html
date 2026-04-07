@@ -7,11 +7,11 @@
 </head>
 <body>
   <div id="login-section" class="hidden">
-    <div class="header-bar">Pinboard Bookmark Plus</div>
+    <div class="header-bar" data-i18n="appName">Pinboard Bookmark Plus</div>
     <div class="login-body">
-      <p>Enter your API token from <a href="https://pinboard.in/settings/password" target="_blank">settings/password</a></p>
-      <input type="text" id="token-input" placeholder="username:XXXXXXXXXXXXXX" />
-      <button id="login-btn">Login</button>
+      <p><span data-i18n="loginPrompt">Enter your API token from</span> <a href="https://pinboard.in/settings/password" target="_blank"><span data-i18n="settingsPassword">settings/password</span></a></p>
+      <input type="text" id="token-input" placeholder="username:XXXXXXXXXXXXXX" data-i18n-placeholder="loginTokenPlaceholder" />
+      <button id="login-btn" data-i18n="login">Login</button>
       <p id="login-error" class="error-text hidden"></p>
     </div>
   </div>
@@ -19,68 +19,68 @@
   <div id="main-section" class="hidden">
     <div class="header-bar">
       <span id="user-info"></span>
-      <span><a href="#" id="options-link">settings</a> · <a href="#" id="logout-link">logout</a></span>
+      <span><a href="#" id="options-link" data-i18n="settings">settings</a> · <a href="#" id="logout-link" data-i18n="logout">logout</a></span>
     </div>
 
     <div class="form-body">
       <div id="existing-banner" class="existing-banner hidden"></div>
       <div id="url-warning" class="url-warning hidden">
-        <span>⚠ This page cannot be saved to Pinboard (unsupported URL)</span>
+        <span>⚠ <span data-i18n="urlWarning">This page cannot be saved to Pinboard (unsupported URL)</span></span>
       </div>
       <div class="row">
-        <span class="label">URL</span>
+        <span class="label" data-i18n="labelUrl">URL</span>
         <div class="field"><input type="text" id="url-input" aria-label="Bookmark URL" /></div>
       </div>
       <div class="row">
-        <span class="label">Title</span>
+        <span class="label" data-i18n="labelTitle">Title</span>
         <div class="field"><input type="text" id="title-input" aria-label="Bookmark title" /></div>
       </div>
       <div class="row">
-        <span class="label top">Notes</span>
+        <span class="label top" data-i18n="labelNotes">Notes</span>
         <div class="field">
-          <textarea id="description-input" rows="3" aria-label="Notes"></textarea>
+          <textarea id="description-input" rows="3" aria-label="Notes" data-i18n-aria="labelNotes"></textarea>
           <div class="notes-bar">
             <span id="desc-char-count">0</span>
-            <a href="#" id="ai-summary-btn" class="action-link">🤖 AI summary</a>
+            <a href="#" id="ai-summary-btn" class="action-link" data-i18n="aiSummaryBtn">🤖 AI summary</a>
           </div>
         </div>
       </div>
       <div class="row">
-        <span class="label">Tags</span>
+        <span class="label" data-i18n="labelTags">Tags</span>
         <div class="field">
           <div class="tags-input-wrap">
             <div id="tags-display" class="tags-display"></div>
-            <input type="text" id="tags-input" autocomplete="off" aria-label="Add tags" />
+            <input type="text" id="tags-input" autocomplete="off" aria-label="Add tags" data-i18n-aria="placeholderAddTags" />
           </div>
           <div id="tags-autocomplete" class="autocomplete-dropdown hidden"></div>
-          <a href="#" id="tags-clear-all" class="clear-all-link hidden">Clear all</a>
+          <a href="#" id="tags-clear-all" class="clear-all-link hidden" data-i18n="clearAll">Clear all</a>
         </div>
       </div>
       <div id="presets-row" class="row hidden">
-        <span class="label top">Presets</span>
+        <span class="label top" data-i18n="labelPresets">Presets</span>
         <div class="field">
           <div id="tag-presets" class="suggest-area"></div>
         </div>
       </div>
       <div id="suggest-row" class="row hidden">
-        <span class="label top">Suggest</span>
+        <span class="label top" data-i18n="labelSuggest">Suggest</span>
         <div class="field">
-          <div id="pinboard-suggest-tags" class="suggest-area"><span class="muted">loading...</span></div>
+          <div id="pinboard-suggest-tags" class="suggest-area"><span class="muted" data-i18n="loading">loading...</span></div>
         </div>
       </div>
       <div class="row">
-        <span class="label top">AI Tags</span>
+        <span class="label top" data-i18n="labelAiTags">AI Tags</span>
         <div class="field">
-          <div id="ai-suggest-tags" class="suggest-area"><a href="#" id="ai-tags-btn" class="action-link">🤖 generate</a></div>
+          <div id="ai-suggest-tags" class="suggest-area"><a href="#" id="ai-tags-btn" class="action-link" data-i18n="aiGenerateBtn">🤖 generate</a></div>
         </div>
       </div>
       <div class="bottom-bar">
-        <label><input type="checkbox" id="private-check" /> private</label>
-        <label><input type="checkbox" id="readlater-check" /> read later</label>
+        <label><input type="checkbox" id="private-check" /> <span data-i18n="private">private</span></label>
+        <label><input type="checkbox" id="readlater-check" /> <span data-i18n="readLater">read later</span></label>
       </div>
       <div class="submit-bar">
-        <button id="submit-btn">Submit</button>
-        <button id="delete-btn" class="del-btn hidden">Delete</button>
+        <button id="submit-btn" data-i18n="submit">Submit</button>
+        <button id="delete-btn" class="del-btn hidden" data-i18n="delete">Delete</button>
       </div>
       <p id="status-msg" class="status-msg hidden"></p>
     </div>
@@ -90,30 +90,31 @@
   <div class="quick-actions">
     <hr class="divider">
     <div class="search-row">
-      <input type="text" id="search-input" placeholder="Search your bookmarks..." class="search-field" aria-label="Search bookmarks" />
+      <input type="text" id="search-input" placeholder="Search your bookmarks..." class="search-field" aria-label="Search bookmarks" data-i18n-placeholder="placeholderSearchBookmarks" data-i18n-aria="placeholderSearchBookmarks" />
     </div>
     <div class="quick-links">
-      <a id="tabs-link" href="https://pinboard.in/tabs/" target="_blank" title="Tab Sets">Sets</a>
+      <a id="tabs-link" href="https://pinboard.in/tabs/" target="_blank" title="Tab Sets" data-i18n="qlSets" data-i18n-title="qlSetsTitle">Sets</a>
       <span class="ql-sep">·</span>
-      <a href="https://pinboard.in/network/" target="_blank" title="Network">Network</a>
+      <a href="https://pinboard.in/network/" target="_blank" title="Network" data-i18n="qlNetwork" data-i18n-title="qlNetworkTitle">Network</a>
       <span class="ql-sep">·</span>
-      <a id="unread-link" href="#" target="_blank" title="Unread bookmarks">Unread</a>
+      <a id="unread-link" href="#" target="_blank" title="Unread bookmarks" data-i18n="qlUnread" data-i18n-title="qlUnreadTitle">Unread</a>
       <span class="ql-sep">·</span>
-      <a href="https://pinboard.in/notes/" target="_blank" title="Notes">Notes</a>
+      <a href="https://pinboard.in/notes/" target="_blank" title="Notes" data-i18n="qlNotes" data-i18n-title="qlNotesTitle">Notes</a>
       <span class="ql-sep">·</span>
-      <a href="https://pinboard.in/popular/" target="_blank" title="Popular">Popular</a>
+      <a href="https://pinboard.in/popular/" target="_blank" title="Popular" data-i18n="qlPopular" data-i18n-title="qlPopularTitle">Popular</a>
     </div>
     <div class="quick-row">
-      <button id="save-tabset-btn" class="qbtn" title="Save all open tabs as a tab set (requires pinboard.in login)">📑 Save Tabs</button>
-      <button id="batch-bookmark-btn" class="qbtn" title="Save each open tab as an individual bookmark">📌 Batch Save</button>
+      <button id="save-tabset-btn" class="qbtn" title="Save all open tabs as a tab set (requires pinboard.in login)" data-i18n="saveTabsBtn" data-i18n-title="saveTabsTitle">📑 Save Tabs</button>
+      <button id="batch-bookmark-btn" class="qbtn" title="Save each open tab as an individual bookmark" data-i18n="batchSaveBtn" data-i18n-title="batchSaveTitle">📌 Batch Save</button>
     </div>
     <div id="offline-queue-bar" class="offline-bar hidden">
       <span id="offline-queue-text"></span>
-      <a href="#" id="offline-queue-clear" class="offline-clear">clear</a>
+      <a href="#" id="offline-queue-clear" class="offline-clear" data-i18n="clear">clear</a>
     </div>
     <div id="recent-bookmarks" class="recent-bm-area hidden"></div>
   </div>
 
+  <script src="i18n.js"></script>
   <script src="shared.js"></script>
   <script src="ai.js"></script>
   <script src="popup-tags.js"></script>
