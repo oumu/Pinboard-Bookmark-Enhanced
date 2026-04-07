@@ -72,6 +72,8 @@ h1 { font-size: 18px; color: #333; margin-bottom: 20px; border-bottom: 1px solid
 .auto-save-hint.saved { color: #080; }
 
 /* ---- Theme preset buttons ---- */
+.theme-presets-group { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 6px; }
+.theme-group-label { font-size: 10px; color: #999; text-transform: uppercase; letter-spacing: 0.05em; width: 52px; flex-shrink: 0; }
 .theme-preset-btn.active { background: #4477bb; color: #fff; border-color: #3366aa; }
 
 /* ---- Saved theme buttons ---- */
@@ -156,11 +158,79 @@ html[data-theme="flexoki-dark"] {
   --opt-pf-bg: #282726; --opt-code-bg: #343331;
 }
 
+html[data-theme="solarized-light"] {
+  --opt-bg: #fdf6e3; --opt-panel: #fdf6e3; --opt-tab: #eee8d5; --opt-tab-active: #fdf6e3;
+  --opt-fg: #586e75; --opt-fg-muted: #657b83; --opt-fg-hint: #93a1a1;
+  --opt-accent: #268bd2; --opt-save: #859900;
+  --opt-border: #d3cbb7; --opt-border-section: #eee8d5;
+  --opt-input-bg: #fdf6e3; --opt-input-border: #d3cbb7;
+  --opt-btn-bg: #eee8d5; --opt-btn-hover: #d3cbb7;
+  --opt-pf-bg: #eee8d5; --opt-code-bg: #eee8d5;
+}
+html[data-theme="solarized-dark"] {
+  --opt-bg: #002b36; --opt-panel: #002b36; --opt-tab: #073642; --opt-tab-active: #002b36;
+  --opt-fg: #839496; --opt-fg-muted: #93a1a1; --opt-fg-hint: #586e75;
+  --opt-accent: #268bd2; --opt-save: #859900;
+  --opt-border: #094b5a; --opt-border-section: #073642;
+  --opt-input-bg: #0a3d4a; --opt-input-border: #0a4a5a;
+  --opt-btn-bg: #073642; --opt-btn-hover: #0a4a5a;
+  --opt-pf-bg: #073642; --opt-code-bg: #073642;
+}
+html[data-theme="catppuccin-latte"] {
+  --opt-bg: #eff1f5; --opt-panel: #eff1f5; --opt-tab: #e6e9ef; --opt-tab-active: #eff1f5;
+  --opt-fg: #4c4f69; --opt-fg-muted: #6c6f85; --opt-fg-hint: #8c8fa1;
+  --opt-accent: #1e66f5; --opt-save: #40a02b;
+  --opt-border: #ccd0da; --opt-border-section: #dce0e8;
+  --opt-input-bg: #eff1f5; --opt-input-border: #ccd0da;
+  --opt-btn-bg: #e6e9ef; --opt-btn-hover: #ccd0da;
+  --opt-pf-bg: #e6e9ef; --opt-code-bg: #e6e9ef;
+}
+html[data-theme="catppuccin-mocha"] {
+  --opt-bg: #1e1e2e; --opt-panel: #1e1e2e; --opt-tab: #313244; --opt-tab-active: #1e1e2e;
+  --opt-fg: #cdd6f4; --opt-fg-muted: #a6adc8; --opt-fg-hint: #7f849c;
+  --opt-accent: #89b4fa; --opt-save: #a6e3a1;
+  --opt-border: #45475a; --opt-border-section: #45475a;
+  --opt-input-bg: #262637; --opt-input-border: #45475a;
+  --opt-btn-bg: #313244; --opt-btn-hover: #45475a;
+  --opt-pf-bg: #313244; --opt-code-bg: #313244;
+}
+html[data-theme="gruvbox-dark"] {
+  --opt-bg: #282828; --opt-panel: #282828; --opt-tab: #3c3836; --opt-tab-active: #282828;
+  --opt-fg: #ebdbb2; --opt-fg-muted: #a89984; --opt-fg-hint: #928374;
+  --opt-accent: #83a598; --opt-save: #b8bb26;
+  --opt-border: #504945; --opt-border-section: #504945;
+  --opt-input-bg: #32302f; --opt-input-border: #504945;
+  --opt-btn-bg: #3c3836; --opt-btn-hover: #504945;
+  --opt-pf-bg: #3c3836; --opt-code-bg: #3c3836;
+}
+html[data-theme="rose-pine"] {
+  --opt-bg: #191724; --opt-panel: #191724; --opt-tab: #1f1d2e; --opt-tab-active: #191724;
+  --opt-fg: #e0def4; --opt-fg-muted: #908caa; --opt-fg-hint: #6e6a86;
+  --opt-accent: #c4a7e7; --opt-save: #9ccfd8;
+  --opt-border: #393552; --opt-border-section: #26233a;
+  --opt-input-bg: #26233a; --opt-input-border: #393552;
+  --opt-btn-bg: #1f1d2e; --opt-btn-hover: #26233a;
+  --opt-pf-bg: #1f1d2e; --opt-code-bg: #26233a;
+}
+html[data-theme="github-light"] {
+  --opt-bg: #f6f8fa; --opt-panel: #ffffff; --opt-tab: #eaeef2; --opt-tab-active: #ffffff;
+  --opt-fg: #1f2328; --opt-fg-muted: #656d76; --opt-fg-hint: #8b949e;
+  --opt-accent: #0969da; --opt-save: #1a7f37;
+  --opt-border: #d0d7de; --opt-border-section: #d8dee4;
+  --opt-input-bg: #ffffff; --opt-input-border: #d0d7de;
+  --opt-btn-bg: #eaeef2; --opt-btn-hover: #d0d7de;
+  --opt-pf-bg: #f6f8fa; --opt-code-bg: #eaeef2;
+}
+
 /* ---- Dark themes: adapt native controls (scrollbar, number spinner, etc.) ---- */
 html[data-theme="nord-night"],
 html[data-theme="terminal"],
 html[data-theme="dracula"],
-html[data-theme="flexoki-dark"] { color-scheme: dark; }
+html[data-theme="flexoki-dark"],
+html[data-theme="solarized-dark"],
+html[data-theme="catppuccin-mocha"],
+html[data-theme="gruvbox-dark"],
+html[data-theme="rose-pine"] { color-scheme: dark; }
 
 /* ---- Shared themed rules ---- */
 html[data-theme] body { background: var(--opt-bg); color: var(--opt-fg); }
@@ -196,6 +266,7 @@ html[data-theme] .accordion-header { color: var(--opt-fg-muted); }
 html[data-theme] .accordion-header:hover { color: var(--opt-accent); }
 html[data-theme] .accordion-section { border-color: var(--opt-border-section); }
 html[data-theme] .theme-preset-btn.active { background: var(--opt-accent); border-color: var(--opt-accent); color: var(--opt-bg); }
+html[data-theme] .theme-group-label { color: var(--opt-fg-hint); }
 html[data-theme] .key-toggle { color: var(--opt-fg-hint); }
 html[data-theme] .key-toggle:hover { color: var(--opt-fg); }
 

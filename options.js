@@ -199,8 +199,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   function applyOptionsPageTheme(presetKey, themeMode) {
     const prefersDark = themeMode === "dark" ||
       (themeMode === "auto" && window.matchMedia("(prefers-color-scheme: dark)").matches);
-    if (presetKey === "flexoki") {
-      document.documentElement.dataset.theme = prefersDark ? "flexoki-dark" : "flexoki-light";
+    const adaptiveMap = {
+      flexoki: ["flexoki-light", "flexoki-dark"],
+      solarized: ["solarized-light", "solarized-dark"],
+      catppuccin: ["catppuccin-latte", "catppuccin-mocha"]
+    };
+    if (adaptiveMap[presetKey]) {
+      const [light, dark] = adaptiveMap[presetKey];
+      document.documentElement.dataset.theme = prefersDark ? dark : light;
     } else if (presetKey) {
       document.documentElement.dataset.theme = presetKey;
     } else if (prefersDark) {
@@ -220,7 +226,22 @@ document.addEventListener("DOMContentLoaded", async () => {
   applyOptionsPageTheme(currentPresetKey, s.optTheme);
   // Real-time switch when theme dropdown changes (affects Flexoki Adaptive + no-preset dark)
   document.getElementById("opt-theme").addEventListener("change", () => {
-    applyOptionsPageTheme(currentPresetKey, document.getElementById("opt-theme").value);
+    const mode = document.getElementById("opt-theme").value;
+    applyOptionsPageTheme(currentPresetKey, mode);
+    // Adaptive pinboard themes: swap CSS when light/dark mode changes
+    const adaptivePinboard = {
+      solarized: ["solarized-light", "solarized-dark"],
+      catppuccin: ["catppuccin-latte", "catppuccin-mocha"]
+    };
+    if (adaptivePinboard[currentPresetKey]) {
+      const prefersDark = mode === "dark" || (mode === "auto" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+      const themeKey = adaptivePinboard[currentPresetKey][prefersDark ? 1 : 0];
+      const theme = PINBOARD_THEMES[themeKey];
+      if (theme) {
+        document.getElementById("opt-custom-css").value = theme.css;
+        scheduleAutoSave();
+      }
+    }
   });
 
   // ---- Provider field toggle ----
@@ -534,8 +555,17 @@ document.addEventListener("DOMContentLoaded", async () => {
         // "None" button: active when CSS is empty
         btn.classList.toggle("active", !css.trim());
       } else {
-        const theme = PINBOARD_THEMES[key];
-        btn.classList.toggle("active", theme && css.trim() === theme.css.trim());
+        // Adaptive themes: match either light or dark variant
+        const adaptivePinboard = {
+          solarized: ["solarized-light", "solarized-dark"],
+          catppuccin: ["catppuccin-latte", "catppuccin-mocha"]
+        };
+        const keysToCheck = adaptivePinboard[key] ? adaptivePinboard[key] : [key];
+        const isActive = keysToCheck.some(k => {
+          const theme = PINBOARD_THEMES[k];
+          return theme && css.trim() === theme.css.trim();
+        });
+        btn.classList.toggle("active", isActive);
       }
     });
   }
@@ -548,7 +578,18 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (!key) {
         cssEl.value = "";
       } else {
-        const theme = PINBOARD_THEMES[key];
+        // Adaptive themes: resolve to light/dark variant based on current theme mode
+        const adaptivePinboard = {
+          solarized: ["solarized-light", "solarized-dark"],
+          catppuccin: ["catppuccin-latte", "catppuccin-mocha"]
+        };
+        let themeKey = key;
+        if (adaptivePinboard[key]) {
+          const mode = document.getElementById("opt-theme").value;
+          const prefersDark = mode === "dark" || (mode === "auto" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+          themeKey = adaptivePinboard[key][prefersDark ? 1 : 0];
+        }
+        const theme = PINBOARD_THEMES[themeKey];
         if (theme) cssEl.value = theme.css;
       }
       updateThemePresetButtons();

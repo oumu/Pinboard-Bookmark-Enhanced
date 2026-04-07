@@ -21,8 +21,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     const prefersDark = settings.optTheme === "dark" ||
       (settings.optTheme === "auto" && window.matchMedia("(prefers-color-scheme: dark)").matches);
     const key = settings.optPopupFollowTheme !== false ? (settings.themePresetKey || "") : "";
-    if (key === "flexoki") {
-      document.documentElement.dataset.theme = prefersDark ? "flexoki-dark" : "flexoki-light";
+    const adaptiveMap = {
+      flexoki: ["flexoki-light", "flexoki-dark"],
+      solarized: ["solarized-light", "solarized-dark"],
+      catppuccin: ["catppuccin-latte", "catppuccin-mocha"]
+    };
+    if (adaptiveMap[key]) {
+      const [light, dark] = adaptiveMap[key];
+      document.documentElement.dataset.theme = prefersDark ? dark : light;
       document.documentElement.classList.remove("dark");
     } else if (key) {
       document.documentElement.dataset.theme = key;

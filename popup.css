@@ -513,7 +513,124 @@ html[data-theme="flexoki-dark"] {
   --pp-offline-bg: #2A2510; --pp-offline-bd: #403E3C; --pp-offline-fg: #D0A215;
 }
 
+html[data-theme="solarized-light"] {
+  --pp-bg: #fdf6e3; --pp-bg2: #eee8d5; --pp-fg: #586e75; --pp-fg-muted: #657b83; --pp-fg-hint: #93a1a1;
+  --pp-link: #268bd2; --pp-accent: #268bd2; --pp-accent2: #6c71c4;
+  --pp-border: #d3cbb7; --pp-divider: #eee8d5;
+  --pp-input-bg: #eee8d5; --pp-input-focus-bg: #fdf6e3;
+  --pp-tag-bg: #eee8d5; --pp-tag-fg: #586e75;
+  --pp-drop-hover: #eee8d5;
+  --pp-banner-bg: #e8f0f0; --pp-banner-bd: #c0d0d0; --pp-banner-fg: #268bd2;
+  --pp-warn-bg: #fdf0f0; --pp-warn-bd: #e8c0c0; --pp-warn-fg: #dc322f;
+  --pp-preset-bg: #eee8d5; --pp-preset-bd: #d3cbb7; --pp-preset-fg: #268bd2;
+  --pp-ok-bg: #e8f0e0; --pp-ok-bd: #859900; --pp-ok-fg: #859900;
+  --pp-danger: #dc322f;
+  --pp-spinner-bg: #d3cbb7; --pp-spinner-fg: #657b83;
+  --pp-offline-bg: #fdf5d8; --pp-offline-bd: #d3c890; --pp-offline-fg: #b58900;
+}
+html[data-theme="solarized-dark"] {
+  --pp-bg: #002b36; --pp-bg2: #073642; --pp-fg: #839496; --pp-fg-muted: #93a1a1; --pp-fg-hint: #586e75;
+  --pp-link: #268bd2; --pp-accent: #268bd2; --pp-accent2: #6c71c4;
+  --pp-border: #094b5a; --pp-divider: #0a4a5a;
+  --pp-input-bg: #0a3d4a; --pp-input-focus-bg: #0a4a5a;
+  --pp-tag-bg: #073642; --pp-tag-fg: #839496;
+  --pp-drop-hover: #073642;
+  --pp-banner-bg: #073642; --pp-banner-bd: #0a4a5a; --pp-banner-fg: #268bd2;
+  --pp-warn-bg: #2a1520; --pp-warn-bd: #4a2030; --pp-warn-fg: #dc322f;
+  --pp-preset-bg: #073642; --pp-preset-bd: #0a4a5a; --pp-preset-fg: #268bd2;
+  --pp-ok-bg: #0a3020; --pp-ok-bd: #859900; --pp-ok-fg: #859900;
+  --pp-danger: #dc322f;
+  --pp-spinner-bg: #073642; --pp-spinner-fg: #268bd2;
+  --pp-offline-bg: #1a2a10; --pp-offline-bd: #3a4a20; --pp-offline-fg: #b58900;
+}
+html[data-theme="catppuccin-latte"] {
+  --pp-bg: #eff1f5; --pp-bg2: #e6e9ef; --pp-fg: #4c4f69; --pp-fg-muted: #6c6f85; --pp-fg-hint: #8c8fa1;
+  --pp-link: #1e66f5; --pp-accent: #1e66f5; --pp-accent2: #8839ef;
+  --pp-border: #ccd0da; --pp-divider: #dce0e8;
+  --pp-input-bg: #e6e9ef; --pp-input-focus-bg: #eff1f5;
+  --pp-tag-bg: #dce0e8; --pp-tag-fg: #4c4f69;
+  --pp-drop-hover: #e6e9ef;
+  --pp-banner-bg: #dce4f5; --pp-banner-bd: #b0c0e8; --pp-banner-fg: #1e66f5;
+  --pp-warn-bg: #f5e0e5; --pp-warn-bd: #e0a0b0; --pp-warn-fg: #d20f39;
+  --pp-preset-bg: #e6e9ef; --pp-preset-bd: #ccd0da; --pp-preset-fg: #1e66f5;
+  --pp-ok-bg: #ddf0dd; --pp-ok-bd: #40a02b; --pp-ok-fg: #40a02b;
+  --pp-danger: #d20f39;
+  --pp-spinner-bg: #ccd0da; --pp-spinner-fg: #6c6f85;
+  --pp-offline-bg: #f5f0dd; --pp-offline-bd: #e0d0a0; --pp-offline-fg: #df8e1d;
+}
+html[data-theme="catppuccin-mocha"] {
+  --pp-bg: #1e1e2e; --pp-bg2: #313244; --pp-fg: #cdd6f4; --pp-fg-muted: #a6adc8; --pp-fg-hint: #7f849c;
+  --pp-link: #89b4fa; --pp-accent: #89b4fa; --pp-accent2: #cba6f7;
+  --pp-border: #45475a; --pp-divider: #45475a;
+  --pp-input-bg: #262637; --pp-input-focus-bg: #45475a;
+  --pp-tag-bg: #45475a; --pp-tag-fg: #cdd6f4;
+  --pp-drop-hover: #45475a;
+  --pp-banner-bg: #1e2a4a; --pp-banner-bd: #45475a; --pp-banner-fg: #89b4fa;
+  --pp-warn-bg: #3a1a2a; --pp-warn-bd: #5a2a3a; --pp-warn-fg: #f38ba8;
+  --pp-preset-bg: #313244; --pp-preset-bd: #45475a; --pp-preset-fg: #89b4fa;
+  --pp-ok-bg: #1a3a2a; --pp-ok-bd: #a6e3a1; --pp-ok-fg: #a6e3a1;
+  --pp-danger: #f38ba8;
+  --pp-spinner-bg: #45475a; --pp-spinner-fg: #89b4fa;
+  --pp-offline-bg: #2a2a10; --pp-offline-bd: #4a4a20; --pp-offline-fg: #f9e2af;
+}
+html[data-theme="gruvbox-dark"] {
+  --pp-bg: #282828; --pp-bg2: #3c3836; --pp-fg: #ebdbb2; --pp-fg-muted: #a89984; --pp-fg-hint: #928374;
+  --pp-link: #83a598; --pp-accent: #83a598; --pp-accent2: #d3869b;
+  --pp-border: #504945; --pp-divider: #504945;
+  --pp-input-bg: #32302f; --pp-input-focus-bg: #504945;
+  --pp-tag-bg: #504945; --pp-tag-fg: #ebdbb2;
+  --pp-drop-hover: #504945;
+  --pp-banner-bg: #2a3828; --pp-banner-bd: #504945; --pp-banner-fg: #83a598;
+  --pp-warn-bg: #3c2020; --pp-warn-bd: #5a3030; --pp-warn-fg: #fb4934;
+  --pp-preset-bg: #3c3836; --pp-preset-bd: #504945; --pp-preset-fg: #83a598;
+  --pp-ok-bg: #2a3a20; --pp-ok-bd: #b8bb26; --pp-ok-fg: #b8bb26;
+  --pp-danger: #fb4934;
+  --pp-spinner-bg: #504945; --pp-spinner-fg: #83a598;
+  --pp-offline-bg: #3a3520; --pp-offline-bd: #5a5030; --pp-offline-fg: #fabd2f;
+}
+html[data-theme="rose-pine"] {
+  --pp-bg: #191724; --pp-bg2: #1f1d2e; --pp-fg: #e0def4; --pp-fg-muted: #908caa; --pp-fg-hint: #6e6a86;
+  --pp-link: #c4a7e7; --pp-accent: #c4a7e7; --pp-accent2: #ebbcba;
+  --pp-border: #393552; --pp-divider: #26233a;
+  --pp-input-bg: #26233a; --pp-input-focus-bg: #393552;
+  --pp-tag-bg: #26233a; --pp-tag-fg: #e0def4;
+  --pp-drop-hover: #26233a;
+  --pp-banner-bg: #1f1d3e; --pp-banner-bd: #26233a; --pp-banner-fg: #c4a7e7;
+  --pp-warn-bg: #2a1a2a; --pp-warn-bd: #3a2030; --pp-warn-fg: #eb6f92;
+  --pp-preset-bg: #1f1d2e; --pp-preset-bd: #26233a; --pp-preset-fg: #c4a7e7;
+  --pp-ok-bg: #1a2a30; --pp-ok-bd: #9ccfd8; --pp-ok-fg: #9ccfd8;
+  --pp-danger: #eb6f92;
+  --pp-spinner-bg: #26233a; --pp-spinner-fg: #c4a7e7;
+  --pp-offline-bg: #2a2520; --pp-offline-bd: #3a3020; --pp-offline-fg: #f6c177;
+}
+html[data-theme="github-light"] {
+  --pp-bg: #ffffff; --pp-bg2: #f6f8fa; --pp-fg: #1f2328; --pp-fg-muted: #656d76; --pp-fg-hint: #8b949e;
+  --pp-link: #0969da; --pp-accent: #0969da; --pp-accent2: #8250df;
+  --pp-border: #d0d7de; --pp-divider: #d8dee4;
+  --pp-input-bg: #f6f8fa; --pp-input-focus-bg: #ffffff;
+  --pp-tag-bg: #ddf4ff; --pp-tag-fg: #0969da;
+  --pp-drop-hover: #f6f8fa;
+  --pp-banner-bg: #ddf4ff; --pp-banner-bd: #b0d0f0; --pp-banner-fg: #0969da;
+  --pp-warn-bg: #ffebe9; --pp-warn-bd: #f0b0a8; --pp-warn-fg: #cf222e;
+  --pp-preset-bg: #f6f8fa; --pp-preset-bd: #d0d7de; --pp-preset-fg: #0969da;
+  --pp-ok-bg: #dafbe1; --pp-ok-bd: #1a7f37; --pp-ok-fg: #1a7f37;
+  --pp-danger: #cf222e;
+  --pp-spinner-bg: #d0d7de; --pp-spinner-fg: #656d76;
+  --pp-offline-bg: #fff8c5; --pp-offline-bd: #e0d060; --pp-offline-fg: #bf8700;
+}
+
+/* Dark themes: adapt native controls (scrollbar, number spinner, etc.) */
+html[data-theme="nord-night"],
+html[data-theme="terminal"],
+html[data-theme="dracula"],
+html[data-theme="flexoki-dark"],
+html[data-theme="solarized-dark"],
+html[data-theme="catppuccin-mocha"],
+html[data-theme="gruvbox-dark"],
+html[data-theme="rose-pine"] { color-scheme: dark; }
+
 /* Shared popup themed rules */
+html[data-theme] { background: var(--pp-bg); }
 html[data-theme] body { background: var(--pp-bg); color: var(--pp-fg); }
 html[data-theme] a { color: var(--pp-link); }
 html[data-theme] .header-bar { background: var(--pp-bg2); border-color: var(--pp-border); color: var(--pp-fg-muted); }

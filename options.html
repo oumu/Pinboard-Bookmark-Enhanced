@@ -64,7 +64,7 @@
 
     <!-- Tab 2: Quick Actions -->
     <div id="panel-quick" class="panel">
-      <div class="accordion-section">
+      <div class="accordion-section open">
         <div class="accordion-header" data-target="acc-qs">
           <span class="accordion-arrow">▶</span> Quick Save
         </div>
@@ -83,7 +83,7 @@
         </div>
       </div>
 
-      <div class="accordion-section">
+      <div class="accordion-section open">
         <div class="accordion-header" data-target="acc-rl">
           <span class="accordion-arrow">▶</span> Read Later
         </div>
@@ -101,7 +101,7 @@
         </div>
       </div>
 
-      <div class="accordion-section">
+      <div class="accordion-section open">
         <div class="accordion-header" data-target="acc-batch">
           <span class="accordion-arrow">▶</span> Batch Save
         </div>
@@ -351,16 +351,30 @@
       </div>
       <div class="fg">
         <label class="bl">Theme Presets</label>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+        <div class="theme-presets-group">
           <button class="btn btn-sm theme-preset-btn" data-theme="">None</button>
+        </div>
+        <div class="theme-presets-group">
+          <span class="theme-group-label">Adaptive</span>
+          <button class="btn btn-sm theme-preset-btn" data-theme="flexoki">Flexoki</button>
+          <button class="btn btn-sm theme-preset-btn" data-theme="solarized">Solarized</button>
+          <button class="btn btn-sm theme-preset-btn" data-theme="catppuccin">Catppuccin</button>
+        </div>
+        <div class="theme-presets-group">
+          <span class="theme-group-label">Light</span>
           <button class="btn btn-sm theme-preset-btn" data-theme="modern-card">Modern Card</button>
+          <button class="btn btn-sm theme-preset-btn" data-theme="paper-ink">Paper &amp; Ink</button>
+          <button class="btn btn-sm theme-preset-btn" data-theme="github-light">GitHub Light</button>
+        </div>
+        <div class="theme-presets-group">
+          <span class="theme-group-label">Dark</span>
           <button class="btn btn-sm theme-preset-btn" data-theme="nord-night">Nord Night</button>
           <button class="btn btn-sm theme-preset-btn" data-theme="terminal">Terminal</button>
-          <button class="btn btn-sm theme-preset-btn" data-theme="paper-ink">Paper &amp; Ink</button>
           <button class="btn btn-sm theme-preset-btn" data-theme="dracula">Dracula</button>
-          <button class="btn btn-sm theme-preset-btn" data-theme="flexoki">Flexoki Adaptive</button>
+          <button class="btn btn-sm theme-preset-btn" data-theme="gruvbox-dark">Gruvbox Dark</button>
+          <button class="btn btn-sm theme-preset-btn" data-theme="rose-pine">Rosé Pine</button>
         </div>
-        <p class="hint" style="margin-bottom:8px">Click a preset to load its CSS. You can further customize after loading.</p>
+        <p class="hint" style="margin-bottom:8px">Click a preset to load its CSS. Adaptive themes follow your Theme (light/dark) setting.</p>
       </div>
       <div class="fg" id="saved-themes-section" style="display:none">
         <label class="bl">Saved Themes</label>
