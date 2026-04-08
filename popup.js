@@ -177,19 +177,21 @@ async function showMain(token) {
   if (settings.optPrivateIncognito && tab.incognito) document.getElementById("private-check").checked = true;
   if (settings.optReadlaterDefault) document.getElementById("readlater-check").checked = true;
 
-  // Fire suggest tags first — it's the most visible to user, enqueue before bookmark check
-  if (settings.optShowSuggestTags) {
-    document.getElementById("suggest-row").classList.remove("hidden");
-    fetchPinboardSuggestTags(token, pageInfo.url);
-  }
-  // Bookmark check — uses background cache when available (instant), falls back to API
-  await checkExistingBookmark(token, pageInfo.url);
+  // Setup UI features immediately — don't block on network requests
   setupTagsInput();
   setupSubmit(token);
   setupAIFeatures();
   setupDescriptionCounter();
   setupTabSet();
   setupTagPresets();
+
+  // Fire suggest tags — enqueue before bookmark check
+  if (settings.optShowSuggestTags) {
+    document.getElementById("suggest-row").classList.remove("hidden");
+    fetchPinboardSuggestTags(token, pageInfo.url);
+  }
+  // Bookmark check — non-blocking, updates UI when ready
+  checkExistingBookmark(token, pageInfo.url);
   // Fetch all user tags (uses local cache, populates tagCaseMap), then trigger auto AI tags
   fetchAllUserTags(token).then(() => {
     if (settings.optAiAutoTags && hasAIKey(settings)) document.getElementById("ai-tags-btn").click();

@@ -134,7 +134,11 @@ async function _processPinboardQueue() {
     _pinboardLastCall = reservedTime;
     try { await chrome.storage.local.set({ _pbRateLimitTs: reservedTime }); } catch (_) {}
     if (wait > 0) await new Promise(r => setTimeout(r, wait));
-    try { resolve(await fetch(url, options)); } catch (e) { reject(e); }
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 15000);
+      resolve(await fetch(url, { ...options, signal: ctrl.signal }).finally(() => clearTimeout(timer)));
+    } catch (e) { reject(e); }
   }
   _pinboardProcessing = false;
 }
