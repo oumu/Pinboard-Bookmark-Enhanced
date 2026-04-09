@@ -45,7 +45,6 @@ const _pendingChecks = new Map(); // url -> Promise
 
 async function debouncedCheck(tabId, url) {
   if (!url || !url.startsWith("http")) {
-    setIcon(tabId, false);
     return;
   }
   // Check if bookmark status icon is enabled
