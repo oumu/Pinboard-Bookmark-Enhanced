@@ -76,6 +76,15 @@
   document.getElementById("btn-copy-html").addEventListener("click", async (e) => {
     await copyToClipboard(renderedView.innerHTML, e.currentTarget); // nosec: reading back own generated HTML
   });
+
+  // Download buttons
+  const safeTitle = (title || "untitled").replace(/[^a-zA-Z0-9_\u4e00-\u9fff -]/g, "_").slice(0, 80);
+  document.getElementById("btn-dl-md").addEventListener("click", () => {
+    downloadFile(safeTitle + ".md", getMarkdown(), "text/markdown;charset=utf-8");
+  });
+  document.getElementById("btn-dl-html").addEventListener("click", () => {
+    downloadFile(safeTitle + ".html", renderedView.innerHTML, "text/html;charset=utf-8");
+  });
 })();
 
 // ---- Copy to clipboard with visual feedback ----
@@ -92,6 +101,16 @@ async function copyToClipboard(text, btn) {
     setLabel("Failed");
     setTimeout(() => { setLabel(orig); }, 1500);
   }
+}
+
+// ---- Download file helper ----
+function downloadFile(filename, content, mimeType) {
+  const blob = new Blob([content], { type: mimeType });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
 }
 
 // ---- Simple Markdown to HTML renderer ----
