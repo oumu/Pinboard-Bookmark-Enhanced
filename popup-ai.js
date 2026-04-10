@@ -2,6 +2,24 @@
 // Pinboard Bookmark Enhanced - AI Summary & Tags
 // ============================================================
 
+// ---- Enrich page content via Jina Reader if configured ----
+async function enrichPageTextIfJina() {
+  if (settings.aiContentSource !== "jina") return;
+  if (!pageInfo?.url) return;
+  try {
+    const jinaKey = settings.jinaApiKey ? deobfuscateKey(settings.jinaApiKey) : "";
+    const result = await fetchJinaMarkdown(pageInfo.url, {
+      apiKey: jinaKey,
+      cacheDuration: settings.aiCacheDuration
+    });
+    if (!result.error && result.markdown) {
+      pageInfo.pageText = markdownToPlainText(result.markdown);
+    }
+  } catch (e) {
+    console.warn("Jina content enrichment failed, using local content:", e.message);
+  }
+}
+
 const AI_SUMMARY_TAG = "[AI Summary]";
 const AI_BQ_REGEX = /(\n\n)?\[AI Summary\]\n<blockquote>[\s\S]*?<\/blockquote>\s*$/;
 
@@ -71,6 +89,7 @@ async function doAISummary(forceRefresh) {
     btn.classList.add("loading");
   }
   try {
+    await enrichPageTextIfJina();
     const summary = await callAI(settings, buildSummaryPrompt(settings, document.getElementById("title-input").value, document.getElementById("url-input").value, pageInfo.pageText, document.getElementById("description-input").value));
     await setAICache(pageInfo.url, "summary", summary, settings.aiCacheDuration);
     upsertSummary(summary);
@@ -165,6 +184,7 @@ async function doAITags(forceRefresh) {
   }
 
   try {
+    await enrichPageTextIfJina();
     const resp = await callAI(settings, buildTagPrompt(settings, document.getElementById("title-input").value, document.getElementById("url-input").value, pageInfo.pageText, document.getElementById("description-input").value, allUserTags));
     const rawTags = parseAITags(resp, settings.aiTagSeparator);
     const tags = settings.optRespectTagCase
