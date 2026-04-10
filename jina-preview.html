@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Markdown Preview</title>
+  <link rel="stylesheet" href="jina-preview.css" />
+</head>
+<body>
+  <header id="toolbar">
+    <div class="toolbar-left">
+      <h1 id="preview-title"></h1>
+      <a id="preview-url" href="#" target="_blank"></a>
+    </div>
+    <div class="toolbar-right">
+      <span id="token-count" class="token-badge"></span>
+      <div class="view-toggle">
+        <button id="btn-raw" class="toggle-btn">Raw</button>
+        <button id="btn-rendered" class="toggle-btn active">Rendered</button>
+      </div>
+      <button id="btn-copy-md" class="action-btn">&#x1F4CB; Copy Markdown</button>
+      <button id="btn-copy-html" class="action-btn">&#x1F4CB; Copy HTML</button>
+    </div>
+  </header>
+  <main>
+    <article id="rendered-view" class="content-view"></article>
+    <pre id="raw-view" class="content-view hidden"></pre>
+  </main>
+  <script src="jina-preview.js"></script>
+</body>
+</html>

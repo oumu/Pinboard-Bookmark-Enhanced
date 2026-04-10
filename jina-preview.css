@@ -1,0 +1,70 @@
+/* ============================================================
+   Jina Reader Markdown Preview — Styles
+   ============================================================ */
+
+:root {
+  --bg: #fff; --fg: #1a1a1a; --border: #e0e0e0;
+  --toolbar-bg: #f8f8f8; --code-bg: #f4f4f4;
+  --link: #0366d6; --badge-bg: #e8e8e8;
+  --btn-bg: #f0f0f0; --btn-hover: #e0e0e0;
+  --active-bg: #0366d6; --active-fg: #fff;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1a1a1a; --fg: #e0e0e0; --border: #333;
+    --toolbar-bg: #222; --code-bg: #2a2a2a;
+    --link: #58a6ff; --badge-bg: #333;
+    --btn-bg: #333; --btn-hover: #444;
+    --active-bg: #58a6ff; --active-fg: #1a1a1a;
+  }
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--fg); line-height: 1.6; }
+
+/* Toolbar */
+#toolbar { position: sticky; top: 0; z-index: 10; display: flex; justify-content: space-between; align-items: center; padding: 12px 24px; background: var(--toolbar-bg); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.toolbar-left { flex: 1; min-width: 200px; overflow: hidden; }
+.toolbar-left h1 { font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.toolbar-left a { font-size: 12px; color: var(--link); text-decoration: none; word-break: break-all; }
+.toolbar-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+/* Buttons */
+.action-btn, .toggle-btn { padding: 6px 12px; border: 1px solid var(--border); border-radius: 4px; background: var(--btn-bg); color: var(--fg); cursor: pointer; font-size: 13px; white-space: nowrap; }
+.action-btn:hover, .toggle-btn:hover { background: var(--btn-hover); }
+.toggle-btn.active { background: var(--active-bg); color: var(--active-fg); border-color: var(--active-bg); }
+.token-badge { font-size: 12px; color: #888; background: var(--badge-bg); padding: 2px 8px; border-radius: 10px; }
+.view-toggle { display: flex; gap: 0; }
+.view-toggle .toggle-btn { border-radius: 0; }
+.view-toggle .toggle-btn:first-child { border-radius: 4px 0 0 4px; }
+.view-toggle .toggle-btn:last-child { border-radius: 0 4px 4px 0; border-left: none; }
+
+/* Content */
+main { max-width: 900px; margin: 0 auto; padding: 32px 24px; }
+.content-view.hidden { display: none; }
+
+/* Raw view */
+#raw-view { font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; font-size: 13px; white-space: pre-wrap; word-break: break-word; background: var(--code-bg); padding: 20px; border-radius: 6px; }
+
+/* Rendered view — Markdown HTML */
+#rendered-view h1, #rendered-view h2, #rendered-view h3, #rendered-view h4, #rendered-view h5, #rendered-view h6 { margin: 1.2em 0 0.4em; font-weight: 600; }
+#rendered-view h1 { font-size: 1.8em; border-bottom: 1px solid var(--border); padding-bottom: 0.3em; }
+#rendered-view h2 { font-size: 1.4em; border-bottom: 1px solid var(--border); padding-bottom: 0.2em; }
+#rendered-view h3 { font-size: 1.2em; }
+#rendered-view p { margin: 0.8em 0; }
+#rendered-view a { color: var(--link); text-decoration: none; }
+#rendered-view a:hover { text-decoration: underline; }
+#rendered-view code { font-family: "SFMono-Regular", Consolas, monospace; background: var(--code-bg); padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
+#rendered-view pre { background: var(--code-bg); padding: 16px; border-radius: 6px; overflow-x: auto; margin: 1em 0; }
+#rendered-view pre code { background: none; padding: 0; }
+#rendered-view blockquote { border-left: 3px solid var(--border); padding: 4px 16px; margin: 1em 0; color: #666; }
+#rendered-view img { max-width: 100%; height: auto; border-radius: 4px; }
+#rendered-view ul, #rendered-view ol { margin: 0.8em 0; padding-left: 2em; }
+#rendered-view li { margin: 0.3em 0; }
+#rendered-view table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+#rendered-view th, #rendered-view td { border: 1px solid var(--border); padding: 6px 12px; text-align: left; }
+#rendered-view th { background: var(--code-bg); font-weight: 600; }
+#rendered-view hr { border: none; border-top: 1px solid var(--border); margin: 1.5em 0; }
+
+/* Copy feedback */
+.action-btn.copied { background: #28a745; color: #fff; border-color: #28a745; }
