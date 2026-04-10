@@ -13,7 +13,13 @@
   // Clear temporary data
   await chrome.storage.local.remove("md_preview_data");
 
-  const { markdown, title, url, tokens } = info;
+  const { contentHtml, title, url, tokens, source } = info;
+  // Lazy markdown conversion — only computed on first use (Raw view or Copy MD)
+  let _markdown = info.markdown || null;
+  function getMarkdown() {
+    if (_markdown === null) _markdown = contentHtml ? htmlToMarkdown(contentHtml) : "";
+    return _markdown;
+  }
 
   // Fill header
   document.getElementById("preview-title").textContent = title || "Untitled";
@@ -21,29 +27,33 @@
   urlEl.textContent = url || "";
   urlEl.href = url || "#";
   const tokenEl = document.getElementById("token-count");
-  if (tokens && info.hasApiKey) {
+  if (source === "jina" && tokens && info.hasApiKey) {
     tokenEl.textContent = `${tokens} tokens`;
   } else {
     tokenEl.style.display = "none";
   }
+  const sourceEl = document.getElementById("source-badge");
+  if (sourceEl) {
+    sourceEl.textContent = source === "jina" ? "Jina Reader" : "Defuddle";
+  }
   document.title = `${title || "Markdown"} — Preview`;
 
-  // Fill content
-  document.getElementById("raw-view").textContent = markdown;
-  const renderedHtml = renderMarkdown(markdown);
-  // Security note: renderMarkdown() HTML-escapes all input before processing.
-  // Content is from Defuddle or Jina Reader API (server-processed), not raw user input.
-  // This is an extension-internal page, not exposed to the web.
-  // nosec: intentional innerHTML for Markdown rendering
-  document.getElementById("rendered-view").innerHTML = renderedHtml; // nosec
+  // Rendered = Defuddle HTML directly (best quality), or Markdown fallback for Jina
+  const renderedView = document.getElementById("rendered-view");
+  if (contentHtml) {
+    renderedView.innerHTML = contentHtml;
+  } else {
+    renderedView.innerHTML = renderMarkdown(getMarkdown());
+  }
+  // Raw view populated lazily on first switch
 
   // View toggle
   const btnRaw = document.getElementById("btn-raw");
   const btnRendered = document.getElementById("btn-rendered");
   const rawView = document.getElementById("raw-view");
-  const renderedView = document.getElementById("rendered-view");
 
   btnRaw.addEventListener("click", () => {
+    if (!rawView.textContent) rawView.textContent = getMarkdown();
     rawView.classList.remove("hidden");
     renderedView.classList.add("hidden");
     btnRaw.classList.add("active");
@@ -58,7 +68,7 @@
 
   // Copy buttons
   document.getElementById("btn-copy-md").addEventListener("click", async (e) => {
-    await copyToClipboard(markdown, e.currentTarget);
+    await copyToClipboard(getMarkdown(), e.currentTarget);
   });
   document.getElementById("btn-copy-html").addEventListener("click", async (e) => {
     await copyToClipboard(renderedView.innerHTML, e.currentTarget); // nosec: reading back own generated HTML
@@ -93,16 +103,20 @@ function renderMarkdown(md) {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
 
-  // Code blocks (``` ... ```) — must be before inline processing
+  // Code blocks (``` ... ```) — extract and protect with placeholders before block splitting
+  const codeBlocks = [];
   html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => {
-    return `<pre><code class="lang-${lang}">${code.trimEnd()}</code></pre>`;
+    const idx = codeBlocks.length;
+    codeBlocks.push(`<pre><code class="lang-${lang}">${code.trimEnd()}</code></pre>`);
+    return `\n\nCODEBLOCK_${idx}\n\n`;
   });
 
   // Split into blocks for block-level processing
   const blocks = html.split(/\n\n+/);
   const rendered = blocks.map(block => {
-    // Skip pre blocks (already processed)
-    if (block.startsWith("<pre>")) return block;
+    // Restore protected code blocks
+    const cbMatch = block.match(/^CODEBLOCK_(\d+)$/);
+    if (cbMatch) return codeBlocks[parseInt(cbMatch[1])];
 
     // Headings
     block = block.replace(/^(#{1,6})\s+(.+)$/gm, (_, hashes, text) => {
@@ -179,4 +193,77 @@ function renderMarkdown(md) {
   });
 
   return rendered.join("\n");
+}
+
+// Convert HTML to Markdown via Turndown (for Raw view when only contentHtml is available)
+function htmlToMarkdown(html) {
+  if (typeof TurndownService === "undefined") return html;
+  const td = new TurndownService({ headingStyle: "atx", codeBlockStyle: "fenced", bulletListMarker: "-" });
+  td.addRule("preformattedCode", {
+    filter: (n) => n.nodeName === "PRE",
+    replacement: (content, node) => {
+      const code = node.querySelector("code");
+      let lang = "";
+      if (code) {
+        const cls = code.getAttribute("class") || "";
+        const m = cls.match(/language-(\S+)/);
+        lang = (m && m[1]) || code.getAttribute("data-lang") || code.getAttribute("data-language") || "";
+      }
+      if (!lang) lang = node.getAttribute("data-language") || "";
+      const text = (code || node).textContent || "";
+      return "\n\n```" + lang + "\n" + text.replace(/`/g, "\\`") + "\n```\n\n";
+    }
+  });
+  td.addRule("table", {
+    filter: "table",
+    replacement: (content, node) => {
+      const rows = Array.from(node.querySelectorAll("tr"));
+      if (!rows.length) return content;
+      const out = [];
+      rows.forEach((row, i) => {
+        const cells = Array.from(row.querySelectorAll("th, td"))
+          .map(c => (c.textContent || "").trim().replace(/\|/g, "\\|").replace(/\n/g, " "));
+        out.push("| " + cells.join(" | ") + " |");
+        if (i === 0) out.push("| " + cells.map(() => "---").join(" | ") + " |");
+      });
+      return "\n\n" + out.join("\n") + "\n\n";
+    }
+  });
+  td.addRule("highlight", { filter: "mark", replacement: (c) => "==" + c + "==" });
+  td.addRule("strikethrough", {
+    filter: (n) => n.nodeName === "DEL" || n.nodeName === "S" || n.nodeName === "STRIKE",
+    replacement: (c) => "~~" + c + "~~"
+  });
+  td.addRule("figure", {
+    filter: "figure",
+    replacement: (content, node) => {
+      const img = node.querySelector("img");
+      const caption = node.querySelector("figcaption");
+      if (!img) return content;
+      const alt = caption ? caption.textContent.trim() : (img.getAttribute("alt") || "");
+      const src = img.getAttribute("src") || "";
+      return "\n\n![" + alt + "](" + src + ")" + (caption ? "\n*" + caption.textContent.trim() + "*" : "") + "\n\n";
+    }
+  });
+  td.addRule("listItem", {
+    filter: "li",
+    replacement: (content, node) => {
+      content = content.replace(/^\n+/, "").replace(/\n+$/, "\n").replace(/\n/gm, "\n    ");
+      const parent = node.parentNode;
+      let prefix = "- ";
+      if (parent && parent.nodeName === "OL") {
+        const start = parseInt(parent.getAttribute("start") || "1", 10);
+        const index = Array.from(parent.children).indexOf(node);
+        prefix = (start + index) + ". ";
+      }
+      // Checkbox support
+      const cb = node.querySelector("input[type=checkbox]");
+      if (cb) {
+        prefix += cb.checked ? "[x] " : "[ ] ";
+        content = content.replace(/^\s*\[[ x]\]\s*/, "");
+      }
+      return prefix + content.trim() + "\n";
+    }
+  });
+  return td.turndown(html);
 }

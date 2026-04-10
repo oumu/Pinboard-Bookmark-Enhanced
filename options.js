@@ -452,6 +452,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.querySelectorAll('.panel select').forEach(el => {
     el.addEventListener("change", scheduleAutoSave);
   });
+  document.querySelectorAll('.panel input[type="radio"]').forEach(el => {
+    el.addEventListener("change", scheduleAutoSave);
+  });
 
   function flashAutoSave() {
     const el = document.getElementById("auto-save-status");
