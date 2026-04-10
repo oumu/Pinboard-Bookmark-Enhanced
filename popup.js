@@ -191,7 +191,32 @@ async function showMain(token) {
   setupDescriptionCounter();
   setupTagPresets();
 
-  // ---- Jina Reader Markdown button ----
+// ---- Local Markdown extraction via Defuddle ----
+async function extractLocalMarkdown(tabId) {
+  try {
+    await chrome.scripting.executeScript({ target: { tabId }, files: ["vendor/defuddle.js"] });
+  } catch (_) {
+    return { error: "Cannot access this page" };
+  }
+  try {
+    const results = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        if (typeof Defuddle === "undefined") return { error: "Defuddle not available" };
+        try {
+          const clone = document.cloneNode(true);
+          const result = new Defuddle(clone, { markdown: true }).parse();
+          if (!result?.contentMarkdown) return { error: "No content extracted" };
+          return { markdown: result.contentMarkdown, title: result.title || document.title, url: location.href };
+        } catch (e) { return { error: e.message }; }
+      }
+    });
+    if (results?.[0]?.result) return results[0].result;
+    return { error: "Script execution failed" };
+  } catch (e) { return { error: e.message }; }
+}
+
+  // ---- Markdown export button ----
   const jinaMdBtn = document.getElementById("jina-md-btn");
   if (jinaMdBtn) {
     // Disable on non-http pages
@@ -209,11 +234,15 @@ async function showMain(token) {
       jinaMdBtn.textContent = t("jinaConverting");
       jinaMdBtn.disabled = true;
 
-      const jinaKey = settings.jinaApiKey ? deobfuscateKey(settings.jinaApiKey) : "";
-      const result = await fetchJinaMarkdown(url, {
-        apiKey: jinaKey,
-        cacheDuration: settings.aiCacheDuration
-      });
+      let result;
+      if (settings.aiContentSource === "jina") {
+        const jinaKey = settings.jinaApiKey ? deobfuscateKey(settings.jinaApiKey) : "";
+        result = await fetchJinaMarkdown(url, { apiKey: jinaKey, cacheDuration: settings.aiCacheDuration });
+        if (!result.error) result._hasApiKey = !!jinaKey;
+      } else {
+        result = await extractLocalMarkdown(tab.id);
+        if (!result.error) result._hasApiKey = false;
+      }
 
       if (result.error) {
         jinaMdBtn.textContent = "❌ " + t("jinaFailed");
@@ -222,7 +251,6 @@ async function showMain(token) {
         return;
       }
 
-      // Copy to clipboard
       try {
         await navigator.clipboard.writeText(result.markdown);
       } catch (_) {
@@ -231,12 +259,10 @@ async function showMain(token) {
         return;
       }
 
-      // Show success with View link
       jinaMdBtn.textContent = "✅ " + t("jinaCopied");
       setTimeout(() => {
         jinaMdBtn.textContent = "👁 " + t("jinaViewBtn");
         jinaMdBtn.disabled = false;
-        // Rebind to open preview on next click
         jinaMdBtn.onclick = async () => {
           await chrome.storage.local.set({
             md_preview_data: {
@@ -244,7 +270,7 @@ async function showMain(token) {
               title: result.title || document.getElementById("title-input")?.value || "",
               url: result.url || url,
               tokens: result.tokens || 0,
-              hasApiKey: !!jinaKey
+              hasApiKey: !!result._hasApiKey
             }
           });
           chrome.tabs.create({ url: "md-preview.html" });
