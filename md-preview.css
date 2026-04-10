@@ -417,27 +417,11 @@ main {
   body { background: white; color: black; }
 }
 
-/* ---- GIF placeholder (click to play) ---- */
-.gif-placeholder {
-  min-height: 120px;
-  min-width: 200px;
-  background: var(--surface, #f5f5f5);
-  border: 1px dashed var(--border, #ccc);
-  border-radius: 6px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-}
-.gif-placeholder::after {
-  content: "▶ GIF";
-  font-size: 14px;
-  color: var(--fg-muted, #888);
-  background: rgba(255,255,255,0.85);
-  padding: 6px 16px;
-  border-radius: 20px;
-  pointer-events: none;
+/* ---- Content rendering optimization ---- */
+/* Skip layout/paint for off-screen content — massive scroll perf win on long pages */
+#rendered-view > * {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 200px;
 }
 
 /* ---- Reduced Motion ---- */
