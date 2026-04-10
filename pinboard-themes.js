@@ -584,7 +584,7 @@ a.url_link { color: #a0522d !important; background: #f5f0e8 !important; padding:
 .description { color: #555 !important; font-size: 13px !important; line-height: 1.6 !important; margin-top: 4px !important; }
 a.tag {
   color: #8b4513 !important; font-family: -apple-system, sans-serif !important;
-  font-size: 11px !important; text-decoration: none !important; text-transform: lowercase !important;
+  font-size: 11px !important; text-decoration: none !important;
 }
 a.tag:hover { color: #a0522d !important; text-decoration: underline !important; }
 a.cached { color: #aaa !important; }
@@ -1795,7 +1795,7 @@ a.url_display { color: #fabd2f !important; font-size: 12px !important; }
 a.url_link { color: #fabd2f !important; background: #282828 !important; padding: 1px 5px !important; border-radius: 0 !important; border: 1px solid #504945 !important; }
 .description { color: #d5c4a1 !important; line-height: 1.5 !important; }
 .description blockquote { color: #bdae93 !important; border-left: 3px solid #fabd2f !important; padding-left: 10px !important; margin: 4px 0 !important; }
-a.tag { color: #b8bb26 !important; text-decoration: none !important; font-size: 11px !important; font-weight: 700 !important; text-transform: lowercase !important; }
+a.tag { color: #b8bb26 !important; text-decoration: none !important; font-size: 11px !important; font-weight: 700 !important; }
 a.tag::before { content: "#" !important; }
 a.tag:hover { color: #83a598 !important; text-decoration: underline !important; }
 a.cached { color: #665c54 !important; }

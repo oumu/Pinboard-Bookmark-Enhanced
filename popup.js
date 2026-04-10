@@ -243,7 +243,8 @@ async function showMain(token) {
               markdown: result.markdown,
               title: result.title || document.getElementById("title-input")?.value || "",
               url: result.url || url,
-              tokens: result.tokens || 0
+              tokens: result.tokens || 0,
+              hasApiKey: !!jinaKey
             }
           });
           chrome.tabs.create({ url: "jina-preview.html" });
