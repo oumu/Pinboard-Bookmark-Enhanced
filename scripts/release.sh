@@ -38,7 +38,8 @@ INCLUDE=(
   popup-ai.js popup-batch.js popup-tags.js
   options.html options.js options.css options-theme-early.js
   background.js shared.js ai.js i18n.js
-  jina.js jina-preview.html jina-preview.js jina-preview.css
+  jina.js md-preview.html md-preview.js md-preview.css
+  vendor
   pinboard-style.js pinboard-themes.js
   _locales icons
 )
