@@ -137,6 +137,12 @@
   "editingExisting": {
     "message": "✏️ 正在编辑已有书签"
   },
+  "recentEditTitle": {
+    "message": "加载并编辑"
+  },
+  "editCancelTitle": {
+    "message": "退出编辑模式"
+  },
   "savedOnDate": {
     "message": "保存于 $DATE$",
     "placeholders": {

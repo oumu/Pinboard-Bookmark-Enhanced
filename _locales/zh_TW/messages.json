@@ -137,6 +137,12 @@
   "editingExisting": {
     "message": "✏️ 正在編輯已有書籤"
   },
+  "recentEditTitle": {
+    "message": "載入並編輯"
+  },
+  "editCancelTitle": {
+    "message": "離開編輯模式"
+  },
   "savedOnDate": {
     "message": "儲存於 $DATE$",
     "placeholders": {

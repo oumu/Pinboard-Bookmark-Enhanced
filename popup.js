@@ -519,6 +519,48 @@ function setupSubmit(token) {
   });
 }
 
+// ===================== Edit From Recent =====================
+async function loadBookmarkForEdit(url, token) {
+  // Reset current form state
+  existingBookmark = null;
+  currentTags = [];
+  renderTags();
+  document.getElementById("url-input").value = url;
+  document.getElementById("title-input").value = "";
+  document.getElementById("description-input").value = "";
+  document.getElementById("private-check").checked = false;
+  document.getElementById("readlater-check").checked = false;
+  document.getElementById("submit-btn").textContent = t("submit");
+  document.getElementById("delete-btn").classList.add("hidden");
+  // Mark edit mode so banner shows cancel affordance
+  document.body.dataset.editMode = "1";
+  // Reuse existing-bookmark path which will populate the form from posts/get
+  await checkExistingBookmark(token, url);
+  // Append cancel affordance to banner using safe DOM APIs (no innerHTML)
+  const banner = document.getElementById("existing-banner");
+  if (banner && !banner.querySelector(".edit-cancel")) {
+    const cancel = document.createElement("span");
+    cancel.className = "edit-cancel";
+    cancel.textContent = "×";
+    cancel.title = t("editCancelTitle");
+    cancel.setAttribute("role", "button");
+    cancel.setAttribute("tabindex", "0");
+    cancel.addEventListener("click", exitEditMode);
+    cancel.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); exitEditMode(); } });
+    banner.appendChild(document.createTextNode(" "));
+    banner.appendChild(cancel);
+  }
+  // Scroll form into view
+  document.getElementById("title-input")?.focus();
+  document.getElementById("title-input")?.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+function exitEditMode() {
+  delete document.body.dataset.editMode;
+  // Simplest reliable restore: reload popup so current-tab logic runs again
+  window.location.reload();
+}
+
 // ===================== Recent Bookmarks =====================
 async function fetchRecentBookmarks(token) {
   const container = document.getElementById("recent-bookmarks");
@@ -547,6 +589,15 @@ async function fetchRecentBookmarks(token) {
       try { const host = new URL(p.href).hostname.replace(/^www\./, ""); a.innerHTML = esc(titleText) + ` <span class="recent-bm-domain">${esc(host)}</span>`; }
       catch (_) { a.textContent = titleText; }
       row.appendChild(a);
+      const edit = document.createElement("span");
+      edit.className = "recent-bm-edit";
+      edit.textContent = "✏️";
+      edit.title = t("recentEditTitle");
+      edit.addEventListener("click", async (e) => {
+        e.preventDefault();
+        await loadBookmarkForEdit(p.href, token);
+      });
+      row.appendChild(edit);
       const del = document.createElement("span");
       del.className = "recent-bm-del";
       del.textContent = "✕";

@@ -137,6 +137,12 @@
   "editingExisting": {
     "message": "✏️ Edytowanie istniejącej zakładki"
   },
+  "recentEditTitle": {
+    "message": "Załaduj do edycji"
+  },
+  "editCancelTitle": {
+    "message": "Wyjdź z trybu edycji"
+  },
   "savedOnDate": {
     "message": "zapisano $DATE$",
     "placeholders": {

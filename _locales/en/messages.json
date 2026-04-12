@@ -137,6 +137,12 @@
   "editingExisting": {
     "message": "✏️ Editing existing bookmark"
   },
+  "recentEditTitle": {
+    "message": "Load for editing"
+  },
+  "editCancelTitle": {
+    "message": "Exit edit mode"
+  },
   "savedOnDate": {
     "message": "saved $DATE$",
     "placeholders": {

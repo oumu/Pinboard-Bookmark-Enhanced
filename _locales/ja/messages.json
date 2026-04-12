@@ -137,6 +137,12 @@
   "editingExisting": {
     "message": "✏️ 既存のブックマークを編集中"
   },
+  "recentEditTitle": {
+    "message": "読み込んで編集"
+  },
+  "editCancelTitle": {
+    "message": "編集モードを終了"
+  },
   "savedOnDate": {
     "message": "$DATE$ に保存",
     "placeholders": {

@@ -137,6 +137,12 @@
   "editingExisting": {
     "message": "✏️ Редактирование существующей закладки"
   },
+  "recentEditTitle": {
+    "message": "Загрузить для редактирования"
+  },
+  "editCancelTitle": {
+    "message": "Выйти из режима редактирования"
+  },
   "savedOnDate": {
     "message": "сохранено $DATE$",
     "placeholders": {

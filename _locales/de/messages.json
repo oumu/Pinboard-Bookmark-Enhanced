@@ -137,6 +137,12 @@
   "editingExisting": {
     "message": "✏️ Vorhandenes Lesezeichen bearbeiten"
   },
+  "recentEditTitle": {
+    "message": "Zum Bearbeiten laden"
+  },
+  "editCancelTitle": {
+    "message": "Bearbeitungsmodus beenden"
+  },
   "savedOnDate": {
     "message": "Gespeichert am $DATE$",
     "placeholders": {

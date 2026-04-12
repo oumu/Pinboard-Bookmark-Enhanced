@@ -137,6 +137,12 @@
   "editingExisting": {
     "message": "✏️ Modification du signet existant"
   },
+  "recentEditTitle": {
+    "message": "Charger pour modifier"
+  },
+  "editCancelTitle": {
+    "message": "Quitter le mode édition"
+  },
   "savedOnDate": {
     "message": "enregistré le $DATE$",
     "placeholders": {
