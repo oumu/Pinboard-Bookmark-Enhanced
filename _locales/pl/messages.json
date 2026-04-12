@@ -119,6 +119,9 @@
   "savedSuccess": {
     "message": "✅ Zapisano!"
   },
+  "saveRetry": {
+    "message": "Ponów"
+  },
   "deleting": {
     "message": "Usuwanie..."
   },
@@ -239,6 +242,35 @@
         "content": "$1"
       }
     }
+  },
+  "aiErrorTitle": {
+    "message": "Generowanie $OP$ nie powiodło się",
+    "placeholders": {
+      "op": {
+        "content": "$1"
+      }
+    }
+  },
+  "aiErrorOpSummary": {
+    "message": "Podsumowanie"
+  },
+  "aiErrorOpTags": {
+    "message": "Tagi"
+  },
+  "aiErrorRetry": {
+    "message": "Ponów"
+  },
+  "aiErrorDetails": {
+    "message": "Szczegóły"
+  },
+  "aiErrorHideDetails": {
+    "message": "Ukryj szczegóły"
+  },
+  "aiErrorDismiss": {
+    "message": "Zamknij"
+  },
+  "aiUnknownError": {
+    "message": "Nieznany błąd"
   },
   "addAll": {
     "message": "Dodaj wszystkie"

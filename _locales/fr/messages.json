@@ -119,6 +119,9 @@
   "savedSuccess": {
     "message": "✅ Enregistré !"
   },
+  "saveRetry": {
+    "message": "Réessayer"
+  },
   "deleting": {
     "message": "Suppression..."
   },
@@ -239,6 +242,35 @@
         "content": "$1"
       }
     }
+  },
+  "aiErrorTitle": {
+    "message": "Échec de la génération $OP$",
+    "placeholders": {
+      "op": {
+        "content": "$1"
+      }
+    }
+  },
+  "aiErrorOpSummary": {
+    "message": "Résumé"
+  },
+  "aiErrorOpTags": {
+    "message": "Tags"
+  },
+  "aiErrorRetry": {
+    "message": "Réessayer"
+  },
+  "aiErrorDetails": {
+    "message": "Détails"
+  },
+  "aiErrorHideDetails": {
+    "message": "Masquer les détails"
+  },
+  "aiErrorDismiss": {
+    "message": "Fermer"
+  },
+  "aiUnknownError": {
+    "message": "Erreur inconnue"
   },
   "addAll": {
     "message": "Tout ajouter"

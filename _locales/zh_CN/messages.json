@@ -119,6 +119,9 @@
   "savedSuccess": {
     "message": "✅ 已保存！"
   },
+  "saveRetry": {
+    "message": "重试"
+  },
   "deleting": {
     "message": "删除中..."
   },
@@ -239,6 +242,35 @@
         "content": "$1"
       }
     }
+  },
+  "aiErrorTitle": {
+    "message": "$OP$ 生成失败",
+    "placeholders": {
+      "op": {
+        "content": "$1"
+      }
+    }
+  },
+  "aiErrorOpSummary": {
+    "message": "摘要"
+  },
+  "aiErrorOpTags": {
+    "message": "标签"
+  },
+  "aiErrorRetry": {
+    "message": "重试"
+  },
+  "aiErrorDetails": {
+    "message": "详情"
+  },
+  "aiErrorHideDetails": {
+    "message": "收起详情"
+  },
+  "aiErrorDismiss": {
+    "message": "关闭"
+  },
+  "aiUnknownError": {
+    "message": "未知错误"
   },
   "addAll": {
     "message": "全部添加"

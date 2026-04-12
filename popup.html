@@ -74,6 +74,19 @@
           <div id="ai-suggest-tags" class="suggest-area"><a href="#" id="ai-tags-btn" class="action-link" data-i18n="aiGenerateBtn">🤖 generate</a></div>
         </div>
       </div>
+      <div id="ai-error-card" class="ai-error-card hidden" role="alert" aria-live="polite">
+        <div class="ai-error-header">
+          <span class="ai-error-icon">⚠️</span>
+          <span id="ai-error-title" class="ai-error-title"></span>
+          <a href="#" id="ai-error-dismiss" class="ai-error-dismiss" title="" data-i18n-title="aiErrorDismiss">×</a>
+        </div>
+        <div id="ai-error-message" class="ai-error-message"></div>
+        <div class="ai-error-actions">
+          <button type="button" id="ai-error-retry" class="ai-error-btn" data-i18n="aiErrorRetry">Retry</button>
+          <a href="#" id="ai-error-details-toggle" class="ai-error-details-toggle" data-i18n="aiErrorDetails">Details</a>
+        </div>
+        <pre id="ai-error-details" class="ai-error-details hidden"></pre>
+      </div>
       <div class="bottom-bar">
         <label><input type="checkbox" id="private-check" /> <span data-i18n="private">private</span></label>
         <label><input type="checkbox" id="readlater-check" /> <span data-i18n="readLater">read later</span></label>

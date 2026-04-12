@@ -430,32 +430,70 @@ async function checkExistingBookmark(token, url) {
 function setupSubmit(token) {
   let autoCloseTimer = null;
 
+  // Submit state machine: idle -> loading -> success -> idle / loading -> error -> idle (user retry resets)
+  const btn = document.getElementById("submit-btn");
+  let submitOriginalText = btn.textContent;
+  let submitErrorResetTimer = null;
+
+  function setSubmitState(state, label) {
+    btn.classList.remove("loading", "saved-success", "save-error");
+    if (state === "loading") {
+      btn.disabled = true;
+      btn.classList.add("loading");
+      btn.textContent = label || t("saving");
+    } else if (state === "success") {
+      btn.disabled = false;
+      btn.classList.add("saved-success");
+      btn.textContent = label || t("savedSuccess");
+    } else if (state === "error") {
+      btn.disabled = false;
+      btn.classList.add("save-error");
+      btn.textContent = label || `↻ ${t("saveRetry")}`;
+    } else { // idle
+      btn.disabled = false;
+      btn.textContent = submitOriginalText;
+    }
+  }
+
   document.getElementById("submit-btn").addEventListener("click", async () => {
-    const btn = document.getElementById("submit-btn"); btn.disabled = true; btn.classList.add("loading"); const orig = btn.textContent; btn.textContent = t("saving");
+    // Snapshot current label as "idle text" unless we're in a transient state
+    if (!btn.classList.contains("saved-success") && !btn.classList.contains("save-error") && !btn.classList.contains("loading")) {
+      submitOriginalText = btn.textContent;
+    }
+    clearTimeout(submitErrorResetTimer);
+    setSubmitState("loading");
+
     const url = document.getElementById("url-input").value;
     const title = document.getElementById("title-input").value;
-    if (!url || !title) { showStatus("status-msg", t("urlAndTitleRequired"), "error"); btn.disabled = false; btn.textContent = orig; return; }
+    if (!url || !title) {
+      showStatus("status-msg", t("urlAndTitleRequired"), "error");
+      setSubmitState("idle");
+      return;
+    }
     try {
       const apiUrl = `https://api.pinboard.in/v1/posts/add?auth_token=${token}&format=json&url=${enc(url)}&description=${enc(title)}&extended=${enc(document.getElementById("description-input").value)}&tags=${enc(currentTags.join(" "))}&shared=${document.getElementById("private-check").checked ? "no" : "yes"}&toread=${document.getElementById("readlater-check").checked ? "yes" : "no"}&replace=yes`;
       const data = await (await pinboardFetch(apiUrl)).json();
       if (data.result_code === "done") {
         showStatus("status-msg", t("bookmarkSaved"), "success");
-        btn.textContent = t("savedSuccess");
-        btn.classList.add("saved-success");
-        setTimeout(() => { btn.classList.remove("saved-success"); }, 1200);
+        setSubmitState("success");
         chrome.runtime.sendMessage({ type: "bookmark_saved", url: url });
         if (settings.optAutoCloseAfterSave) {
           autoCloseTimer = setTimeout(() => window.close(), 1800);
-          // Cancel auto-close on deliberate click, not mousemove
-          // (mousemove fires too easily during Ctrl+Enter keyboard save)
           document.addEventListener("mousedown", () => { clearTimeout(autoCloseTimer); autoCloseTimer = null; }, { once: true });
         }
-        btn.disabled = false; btn.classList.remove("loading");
-        setTimeout(() => { btn.textContent = orig; }, 1200);
+        setTimeout(() => { if (btn.classList.contains("saved-success")) setSubmitState("idle"); }, 1200);
         return;
-      } else showStatus("status-msg", `Error: ${data.result_code}`, "error");
-    } catch (e) { showStatus("status-msg", t("networkError"), "error"); }
-    btn.disabled = false; btn.classList.remove("loading"); btn.textContent = orig;
+      }
+      showStatus("status-msg", `Error: ${data.result_code}`, "error");
+      setSubmitState("error");
+    } catch (e) {
+      showStatus("status-msg", t("networkError"), "error");
+      setSubmitState("error");
+    }
+    // Auto-recover to idle so Ctrl+Enter keeps working after a visible error
+    submitErrorResetTimer = setTimeout(() => {
+      if (btn.classList.contains("save-error")) setSubmitState("idle");
+    }, 3000);
   });
 
   document.addEventListener("keydown", (e) => {

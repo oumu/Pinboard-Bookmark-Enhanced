@@ -119,6 +119,9 @@
   "savedSuccess": {
     "message": "✅ 保存しました！"
   },
+  "saveRetry": {
+    "message": "再試行"
+  },
   "deleting": {
     "message": "削除中..."
   },
@@ -239,6 +242,35 @@
         "content": "$1"
       }
     }
+  },
+  "aiErrorTitle": {
+    "message": "$OP$ の生成に失敗",
+    "placeholders": {
+      "op": {
+        "content": "$1"
+      }
+    }
+  },
+  "aiErrorOpSummary": {
+    "message": "要約"
+  },
+  "aiErrorOpTags": {
+    "message": "タグ"
+  },
+  "aiErrorRetry": {
+    "message": "再試行"
+  },
+  "aiErrorDetails": {
+    "message": "詳細"
+  },
+  "aiErrorHideDetails": {
+    "message": "詳細を隠す"
+  },
+  "aiErrorDismiss": {
+    "message": "閉じる"
+  },
+  "aiUnknownError": {
+    "message": "不明なエラー"
   },
   "addAll": {
     "message": "すべて追加"

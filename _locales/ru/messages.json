@@ -119,6 +119,9 @@
   "savedSuccess": {
     "message": "✅ Сохранено!"
   },
+  "saveRetry": {
+    "message": "Повторить"
+  },
   "deleting": {
     "message": "Удаление..."
   },
@@ -239,6 +242,35 @@
         "content": "$1"
       }
     }
+  },
+  "aiErrorTitle": {
+    "message": "Генерация $OP$ не удалась",
+    "placeholders": {
+      "op": {
+        "content": "$1"
+      }
+    }
+  },
+  "aiErrorOpSummary": {
+    "message": "Сводка"
+  },
+  "aiErrorOpTags": {
+    "message": "Теги"
+  },
+  "aiErrorRetry": {
+    "message": "Повторить"
+  },
+  "aiErrorDetails": {
+    "message": "Подробности"
+  },
+  "aiErrorHideDetails": {
+    "message": "Скрыть подробности"
+  },
+  "aiErrorDismiss": {
+    "message": "Закрыть"
+  },
+  "aiUnknownError": {
+    "message": "Неизвестная ошибка"
   },
   "addAll": {
     "message": "Добавить все"

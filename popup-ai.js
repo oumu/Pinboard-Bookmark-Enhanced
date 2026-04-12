@@ -24,7 +24,48 @@ const AI_SUMMARY_TAG = "[AI Summary]";
 const AI_BQ_REGEX = /(\n\n)?\[AI Summary\]\n<blockquote>[\s\S]*?<\/blockquote>\s*$/;
 
 // ---- Setup AI feature listeners ----
+// ---- AI Error Card ----
+let _aiErrorLastOp = null; // "summary" | "tags"
+
+function showAIError(op, err) {
+  _aiErrorLastOp = op;
+  const card = document.getElementById("ai-error-card");
+  if (!card) return;
+  const providerKey = (settings.aiProvider || "openai");
+  const provLabel = providerKey.charAt(0).toUpperCase() + providerKey.slice(1);
+  document.getElementById("ai-error-title").textContent = t("aiErrorTitle", op === "tags" ? t("aiErrorOpTags") : t("aiErrorOpSummary"));
+  const msgEl = document.getElementById("ai-error-message");
+  const short = (err && err.message) ? err.message : String(err || t("aiUnknownError"));
+  msgEl.textContent = `[${provLabel}] ${short}`;
+  const detailsEl = document.getElementById("ai-error-details");
+  detailsEl.textContent = (err && err.stack) ? err.stack : short;
+  detailsEl.classList.add("hidden");
+  document.getElementById("ai-error-details-toggle").textContent = t("aiErrorDetails");
+  card.classList.remove("hidden");
+}
+
+function hideAIError() {
+  const card = document.getElementById("ai-error-card");
+  if (card) card.classList.add("hidden");
+  _aiErrorLastOp = null;
+}
+
 function setupAIFeatures() {
+  // Wire error card controls once
+  document.getElementById("ai-error-dismiss")?.addEventListener("click", (e) => { e.preventDefault(); hideAIError(); });
+  document.getElementById("ai-error-retry")?.addEventListener("click", () => {
+    const op = _aiErrorLastOp;
+    hideAIError();
+    if (op === "tags") doAITags(true);
+    else if (op === "summary") doAISummary(true);
+  });
+  document.getElementById("ai-error-details-toggle")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    const d = document.getElementById("ai-error-details");
+    d.classList.toggle("hidden");
+    e.target.textContent = d.classList.contains("hidden") ? t("aiErrorDetails") : t("aiErrorHideDetails");
+  });
+
   document.getElementById("ai-summary-btn").addEventListener("click", async (e) => {
     e.preventDefault();
     await doAISummary(false);
@@ -74,6 +115,7 @@ async function doAISummary(forceRefresh) {
   const btn = document.getElementById("ai-summary-btn");
   if (!hasAIKey(settings)) { showStatus("status-msg", t("aiSetKey"), "error"); return; }
   if (!pageInfo.pageText) { showStatus("status-msg", t("aiNoContent"), "error"); return; }
+  hideAIError();
 
   if (!forceRefresh) {
     const cached = await getAICache(pageInfo.url, "summary", settings.aiCacheDuration, settings.aiContentSource);
@@ -96,7 +138,7 @@ async function doAISummary(forceRefresh) {
     showSummaryActions(false);
     showStatus("status-msg", forceRefresh ? t("aiSummaryRegenerated") : t("aiSummaryGenerated"), "success");
   } catch (e) {
-    showStatus("status-msg", t("aiError", e.message), "error");
+    showAIError("summary", e);
     if (forceRefresh) showSummaryActions(false);
   }
 }
@@ -154,6 +196,7 @@ function showSummaryActions(fromCache) {
 async function doAITags(forceRefresh) {
   const btn = document.getElementById("ai-tags-btn");
   const container = document.getElementById("ai-suggest-tags");
+  hideAIError();
 
   if (!hasAIKey(settings)) {
     container.textContent = "";
@@ -196,8 +239,9 @@ async function doAITags(forceRefresh) {
       showStatus("status-msg", t("aiTagsRegenerated"), "success");
     }
   } catch (e) {
-    container.textContent = t("aiError", e.message);
+    container.textContent = "";
     container.classList.add("muted");
+    showAIError("tags", e);
   }
 
   if (btn) {

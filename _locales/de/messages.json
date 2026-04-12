@@ -119,6 +119,9 @@
   "savedSuccess": {
     "message": "✅ Gespeichert!"
   },
+  "saveRetry": {
+    "message": "Wiederholen"
+  },
   "deleting": {
     "message": "Löschen..."
   },
@@ -239,6 +242,35 @@
         "content": "$1"
       }
     }
+  },
+  "aiErrorTitle": {
+    "message": "$OP$-Erstellung fehlgeschlagen",
+    "placeholders": {
+      "op": {
+        "content": "$1"
+      }
+    }
+  },
+  "aiErrorOpSummary": {
+    "message": "Zusammenfassung"
+  },
+  "aiErrorOpTags": {
+    "message": "Tags"
+  },
+  "aiErrorRetry": {
+    "message": "Wiederholen"
+  },
+  "aiErrorDetails": {
+    "message": "Details"
+  },
+  "aiErrorHideDetails": {
+    "message": "Details ausblenden"
+  },
+  "aiErrorDismiss": {
+    "message": "Schließen"
+  },
+  "aiUnknownError": {
+    "message": "Unbekannter Fehler"
   },
   "addAll": {
     "message": "Alle hinzufügen"

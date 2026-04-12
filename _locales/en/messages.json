@@ -119,6 +119,9 @@
   "savedSuccess": {
     "message": "✅ Saved!"
   },
+  "saveRetry": {
+    "message": "Retry"
+  },
   "deleting": {
     "message": "Deleting..."
   },
@@ -239,6 +242,35 @@
         "content": "$1"
       }
     }
+  },
+  "aiErrorTitle": {
+    "message": "$OP$ generation failed",
+    "placeholders": {
+      "op": {
+        "content": "$1"
+      }
+    }
+  },
+  "aiErrorOpSummary": {
+    "message": "Summary"
+  },
+  "aiErrorOpTags": {
+    "message": "Tags"
+  },
+  "aiErrorRetry": {
+    "message": "Retry"
+  },
+  "aiErrorDetails": {
+    "message": "Details"
+  },
+  "aiErrorHideDetails": {
+    "message": "Hide details"
+  },
+  "aiErrorDismiss": {
+    "message": "Dismiss"
+  },
+  "aiUnknownError": {
+    "message": "Unknown error"
   },
   "addAll": {
     "message": "Add all"
