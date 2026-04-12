@@ -130,6 +130,7 @@ async function fetchAllUserTags(token) {
   // Fetch from Pinboard (fresh or cached-expired or prewarmed-missing)
   try {
     const resp = await pinboardFetch(`https://api.pinboard.in/v1/tags/get?auth_token=${token}&format=json`);
+    if (resp.status === 401) return; // pinboardFetch already redirected to login
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
     applyTagData(data);

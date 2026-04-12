@@ -424,6 +424,7 @@ async function checkExistingBookmark(token, url) {
     } catch (_) {}
     if (!data) {
       const resp = await pinboardFetch(`https://api.pinboard.in/v1/posts/get?url=${enc(url)}&auth_token=${token}&format=json`);
+      if (resp.status === 401) return; // pinboardFetch already redirected to login
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       data = await resp.json();
     }
@@ -664,6 +665,7 @@ async function fetchRecentBookmarks(token) {
   if (!container) return;
   try {
     const resp = await pinboardFetch(`https://api.pinboard.in/v1/posts/recent?auth_token=${token}&format=json&count=5`);
+    if (resp.status === 401) return; // pinboardFetch already redirected to login
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
     const posts = data.posts || [];
