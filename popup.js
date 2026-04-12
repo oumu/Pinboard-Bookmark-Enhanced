@@ -477,6 +477,32 @@ function setupSubmit(token) {
         showStatus("status-msg", t("bookmarkSaved"), "success");
         setSubmitState("success");
         chrome.runtime.sendMessage({ type: "bookmark_saved", url: url });
+        // Persist "just-saved" state: upgrade banner to reflect current bookmark
+        existingBookmark = {
+          href: url,
+          description: title,
+          extended: document.getElementById("description-input").value,
+          tags: currentTags.join(" "),
+          shared: document.getElementById("private-check").checked ? "no" : "yes",
+          toread: document.getElementById("readlater-check").checked ? "yes" : "no",
+          time: new Date().toISOString(),
+        };
+        document.getElementById("submit-btn").textContent = t("update");
+        document.getElementById("delete-btn").classList.remove("hidden");
+        const bannerEl = document.getElementById("existing-banner");
+        if (bannerEl) {
+          const cancelEl = bannerEl.querySelector(".edit-cancel");
+          let info = t("editingExisting");
+          const parts = [t("offlineJustNow")];
+          const tc = currentTags.length;
+          if (tc > 0) parts.push(tc > 1 ? t("tagCountPlural", String(tc)) : t("tagCount", String(tc)));
+          info += " (" + parts.join(", ") + ")";
+          bannerEl.textContent = info;
+          if (cancelEl) { bannerEl.appendChild(document.createTextNode(" ")); bannerEl.appendChild(cancelEl); }
+          bannerEl.classList.remove("hidden");
+          bannerEl.classList.add("just-saved");
+          setTimeout(() => bannerEl.classList.remove("just-saved"), 2000);
+        }
         if (settings.optAutoCloseAfterSave) {
           autoCloseTimer = setTimeout(() => window.close(), 1800);
           document.addEventListener("mousedown", () => { clearTimeout(autoCloseTimer); autoCloseTimer = null; }, { once: true });
