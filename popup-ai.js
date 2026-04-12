@@ -29,59 +29,59 @@ let _aiErrorLastOp = null; // "summary" | "tags"
 
 function showAIError(op, err) {
   _aiErrorLastOp = op;
-  const card = document.getElementById("ai-error-card");
+  const card = $id("ai-error-card");
   if (!card) return;
   const providerKey = (settings.aiProvider || "openai");
   const provLabel = providerKey.charAt(0).toUpperCase() + providerKey.slice(1);
-  document.getElementById("ai-error-title").textContent = t("aiErrorTitle", op === "tags" ? t("aiErrorOpTags") : t("aiErrorOpSummary"));
-  const msgEl = document.getElementById("ai-error-message");
+  $id("ai-error-title").textContent = t("aiErrorTitle", op === "tags" ? t("aiErrorOpTags") : t("aiErrorOpSummary"));
+  const msgEl = $id("ai-error-message");
   const short = (err && err.message) ? err.message : String(err || t("aiUnknownError"));
   msgEl.textContent = `[${provLabel}] ${short}`;
-  const detailsEl = document.getElementById("ai-error-details");
+  const detailsEl = $id("ai-error-details");
   detailsEl.textContent = (err && err.stack) ? err.stack : short;
   detailsEl.classList.add("hidden");
-  document.getElementById("ai-error-details-toggle").textContent = t("aiErrorDetails");
+  $id("ai-error-details-toggle").textContent = t("aiErrorDetails");
   card.classList.remove("hidden");
 }
 
 function hideAIError() {
-  const card = document.getElementById("ai-error-card");
+  const card = $id("ai-error-card");
   if (card) card.classList.add("hidden");
   _aiErrorLastOp = null;
 }
 
 function setupAIFeatures() {
   // Wire error card controls once
-  document.getElementById("ai-error-dismiss")?.addEventListener("click", (e) => { e.preventDefault(); hideAIError(); });
-  document.getElementById("ai-error-retry")?.addEventListener("click", () => {
+  $id("ai-error-dismiss")?.addEventListener("click", (e) => { e.preventDefault(); hideAIError(); });
+  $id("ai-error-retry")?.addEventListener("click", () => {
     const op = _aiErrorLastOp;
     hideAIError();
     if (op === "tags") doAITags(true);
     else if (op === "summary") doAISummary(true);
   });
-  document.getElementById("ai-error-details-toggle")?.addEventListener("click", (e) => {
+  $id("ai-error-details-toggle")?.addEventListener("click", (e) => {
     e.preventDefault();
-    const d = document.getElementById("ai-error-details");
+    const d = $id("ai-error-details");
     d.classList.toggle("hidden");
     e.target.textContent = d.classList.contains("hidden") ? t("aiErrorDetails") : t("aiErrorHideDetails");
   });
 
-  document.getElementById("ai-summary-btn").addEventListener("click", async (e) => {
+  $id("ai-summary-btn").addEventListener("click", async (e) => {
     e.preventDefault();
     await doAISummary(false);
   });
 
   // Auto-restore cached summary if description doesn't already contain one
-  if (!AI_BQ_REGEX.test(document.getElementById("description-input").value)) {
+  if (!AI_BQ_REGEX.test($id("description-input").value)) {
     getAICache(pageInfo.url, "summary", settings.aiCacheDuration, settings.aiContentSource).then(cached => {
-      if (cached && !AI_BQ_REGEX.test(document.getElementById("description-input").value)) {
+      if (cached && !AI_BQ_REGEX.test($id("description-input").value)) {
         upsertSummary(cached);
         showSummaryActions(true);
       }
     });
   }
 
-  document.getElementById("ai-tags-btn").addEventListener("click", async (e) => {
+  $id("ai-tags-btn").addEventListener("click", async (e) => {
     e.preventDefault();
     await doAITags(false);
   });
@@ -89,7 +89,7 @@ function setupAIFeatures() {
 
 // ---- Insert or replace AI summary in description ----
 function upsertSummary(summary) {
-  const di = document.getElementById("description-input");
+  const di = $id("description-input");
   const cur = di.value.trim();
   const wrapped = `${AI_SUMMARY_TAG}\n<blockquote>${summary}</blockquote>`;
 
@@ -104,7 +104,7 @@ function upsertSummary(summary) {
 
 // ---- Remove AI summary block from description ----
 function removeSummary() {
-  const di = document.getElementById("description-input");
+  const di = $id("description-input");
   di.value = di.value.replace(AI_BQ_REGEX, "").trim();
   updateCharCount();
   autoResizeTextarea(di);
@@ -112,7 +112,7 @@ function removeSummary() {
 
 // ---- AI Summary core logic ----
 async function doAISummary(forceRefresh) {
-  const btn = document.getElementById("ai-summary-btn");
+  const btn = $id("ai-summary-btn");
   if (!hasAIKey(settings)) { showStatus("status-msg", t("aiSetKey"), "error"); return; }
   if (!pageInfo.pageText) { showStatus("status-msg", t("aiNoContent"), "error"); return; }
   hideAIError();
@@ -132,7 +132,7 @@ async function doAISummary(forceRefresh) {
   }
   try {
     await enrichPageTextIfJina();
-    const summary = await callAI(settings, buildSummaryPrompt(settings, document.getElementById("title-input").value, document.getElementById("url-input").value, pageInfo.pageText, document.getElementById("description-input").value));
+    const summary = await callAI(settings, buildSummaryPrompt(settings, $id("title-input").value, $id("url-input").value, pageInfo.pageText, $id("description-input").value));
     await setAICache(pageInfo.url, "summary", summary, settings.aiCacheDuration, settings.aiContentSource);
     upsertSummary(summary);
     showSummaryActions(false);
@@ -145,7 +145,7 @@ async function doAISummary(forceRefresh) {
 
 // ---- Show regenerate + remove actions after summary is inserted ----
 function showSummaryActions(fromCache) {
-  const btn = document.getElementById("ai-summary-btn");
+  const btn = $id("ai-summary-btn");
   const bar = btn.parentElement;
   btn.classList.add("hidden");
   bar.querySelector(".cache-hint-wrap")?.remove();
@@ -194,8 +194,8 @@ function showSummaryActions(fromCache) {
 
 // ---- AI Tags core logic ----
 async function doAITags(forceRefresh) {
-  const btn = document.getElementById("ai-tags-btn");
-  const container = document.getElementById("ai-suggest-tags");
+  const btn = $id("ai-tags-btn");
+  const container = $id("ai-suggest-tags");
   hideAIError();
 
   if (!hasAIKey(settings)) {
@@ -228,7 +228,7 @@ async function doAITags(forceRefresh) {
 
   try {
     await enrichPageTextIfJina();
-    const resp = await callAI(settings, buildTagPrompt(settings, document.getElementById("title-input").value, document.getElementById("url-input").value, pageInfo.pageText, document.getElementById("description-input").value, allUserTags));
+    const resp = await callAI(settings, buildTagPrompt(settings, $id("title-input").value, $id("url-input").value, pageInfo.pageText, $id("description-input").value, allUserTags));
     const rawTags = parseAITags(resp, settings.aiTagSeparator);
     const tags = settings.optRespectTagCase
       ? rawTags.map(t => resolveTagCase(t, tagCaseMap))
@@ -251,7 +251,7 @@ async function doAITags(forceRefresh) {
 }
 
 function renderAITags(tags, fromCache) {
-  const container = document.getElementById("ai-suggest-tags");
+  const container = $id("ai-suggest-tags");
   container.innerHTML = "";
 
   if (!tags.length) {

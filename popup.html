@@ -132,14 +132,15 @@
     <div id="recent-bookmarks" class="recent-bm-area hidden"></div>
   </div>
 
-  <script src="i18n.js"></script>
-  <script src="shared.js"></script>
-  <script src="ai.js"></script>
-  <script src="jina.js"></script>
-  <script src="popup-tags.js"></script>
-  <script src="popup-ai.js"></script>
-  <script src="popup-batch.js"></script>
-  <script src="popup-offline.js"></script>
-  <script src="popup.js"></script>
+  <!-- P2.9: defer — allow parallel fetch during HTML parse while preserving execution order -->
+  <script defer src="i18n.js"></script>
+  <script defer src="shared.js"></script>
+  <script defer src="ai.js"></script>
+  <script defer src="jina.js"></script>
+  <script defer src="popup-tags.js"></script>
+  <script defer src="popup-ai.js"></script>
+  <script defer src="popup-batch.js"></script>
+  <script defer src="popup-offline.js"></script>
+  <script defer src="popup.js"></script>
 </body>
 </html>

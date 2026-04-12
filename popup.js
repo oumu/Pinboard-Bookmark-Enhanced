@@ -73,27 +73,27 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (!settings.pinboardToken) showLogin();
   else showMain(settings.pinboardToken);
 
-  document.getElementById("options-link").addEventListener("click", (e) => {
+  $id("options-link").addEventListener("click", (e) => {
     e.preventDefault(); chrome.runtime.openOptionsPage();
   });
-  document.getElementById("logout-link").addEventListener("click", async (e) => {
+  $id("logout-link").addEventListener("click", async (e) => {
     e.preventDefault();
     if (!confirm(t("confirmLogout"))) return;
     await (await getSettingsStorage()).remove("pinboardToken");
     settings.pinboardToken = "";
-    document.getElementById("main-section").classList.add("hidden");
+    $id("main-section").classList.add("hidden");
     showLogin();
   });
 });
 
 // ===================== Login =====================
 function showLogin() {
-  document.getElementById("login-section").classList.remove("hidden");
-  document.getElementById("main-section").classList.add("hidden");
+  $id("login-section").classList.remove("hidden");
+  $id("main-section").classList.add("hidden");
 }
 // Login listener — bound once outside showLogin() to avoid duplicate listeners
-document.getElementById("login-btn").addEventListener("click", async () => {
-  const token = document.getElementById("token-input").value.trim();
+$id("login-btn").addEventListener("click", async () => {
+  const token = $id("token-input").value.trim();
   if (!token || !token.includes(":")) { showElement("login-error", t("loginInvalidFormat")); return; }
   try {
     const res = await new Promise((resolve, reject) => {
@@ -109,10 +109,10 @@ document.getElementById("login-btn").addEventListener("click", async () => {
 
 // ===================== Main =====================
 async function showMain(token) {
-  document.getElementById("login-section").classList.add("hidden");
-  document.getElementById("main-section").classList.remove("hidden");
+  $id("login-section").classList.add("hidden");
+  $id("main-section").classList.remove("hidden");
   const username = token.split(":")[0];
-  const userInfo = document.getElementById("user-info");
+  const userInfo = $id("user-info");
   userInfo.innerHTML = "";
   const pbLink = document.createElement("a");
   pbLink.href = "https://pinboard.in/";
@@ -120,14 +120,14 @@ async function showMain(token) {
   pbLink.textContent = "Pinboard";
   userInfo.appendChild(pbLink);
   userInfo.appendChild(document.createTextNode(` \u2014 ${username}`));
-  const unreadLink = document.getElementById("unread-link");
+  const unreadLink = $id("unread-link");
   if (unreadLink) unreadLink.href = `https://pinboard.in/u:${encodeURIComponent(username)}/unread/`;
 
   if (!settings.optShowSearch) {
     const searchRow = document.querySelector(".search-row");
     if (searchRow) searchRow.classList.add("hidden");
   }
-  const searchInput = document.getElementById("search-input");
+  const searchInput = $id("search-input");
   if (searchInput) {
     searchInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter" && searchInput.value.trim()) {
@@ -145,8 +145,8 @@ async function showMain(token) {
     };
   }
 
-  document.getElementById("url-input").value = pageInfo.url;
-  document.getElementById("title-input").value = pageInfo.title;
+  $id("url-input").value = pageInfo.url;
+  $id("title-input").value = pageInfo.title;
 
   // Check if URL is supported by Pinboard
   // Tab set & batch save work regardless of current page URL
@@ -154,21 +154,21 @@ async function showMain(token) {
 
   const isUnsupportedUrl = !pageInfo.url || (!pageInfo.url.startsWith("http://") && !pageInfo.url.startsWith("https://"));
   if (isUnsupportedUrl) {
-    document.getElementById("url-warning").classList.remove("hidden");
-    document.getElementById("url-input").value = "";
-    document.getElementById("title-input").value = "";
-    document.getElementById("submit-btn").disabled = true;
-    document.getElementById("submit-btn").title = t("urlCannotSave");
-    document.getElementById("ai-summary-btn").classList.add("disabled-link");
-    document.getElementById("ai-tags-btn").classList.add("disabled-link");
+    $id("url-warning").classList.remove("hidden");
+    $id("url-input").value = "";
+    $id("title-input").value = "";
+    $id("submit-btn").disabled = true;
+    $id("submit-btn").title = t("urlCannotSave");
+    $id("ai-summary-btn").classList.add("disabled-link");
+    $id("ai-tags-btn").classList.add("disabled-link");
     return;
   }
 
-  document.getElementById("url-input").addEventListener("input", () => {
-    const val = document.getElementById("url-input").value.trim();
+  $id("url-input").addEventListener("input", () => {
+    const val = $id("url-input").value.trim();
     const bad = !val || (!val.startsWith("http://") && !val.startsWith("https://"));
-    document.getElementById("url-warning").classList.toggle("hidden", !bad);
-    document.getElementById("submit-btn").disabled = bad;
+    $id("url-warning").classList.toggle("hidden", !bad);
+    $id("submit-btn").disabled = bad;
   });
 
   let desc = "";
@@ -176,13 +176,13 @@ async function showMain(token) {
     desc = settings.optBlockquote ? `<blockquote>${pageInfo.selectedText}</blockquote>` : pageInfo.selectedText;
   } else if (settings.optAutoDescription !== false && pageInfo.metaDescription) { desc = pageInfo.metaDescription; }
   if (settings.optIncludeReferrer && pageInfo.referrer) { desc += (desc ? "\n\n" : "") + `via: ${pageInfo.referrer}`; }
-  document.getElementById("description-input").value = desc;
+  $id("description-input").value = desc;
   updateCharCount();
-  setTimeout(() => autoResizeTextarea(document.getElementById("description-input")), 50);
+  setTimeout(() => autoResizeTextarea($id("description-input")), 50);
 
-  if (settings.optPrivateDefault) document.getElementById("private-check").checked = true;
-  if (settings.optPrivateIncognito && tab.incognito) document.getElementById("private-check").checked = true;
-  if (settings.optReadlaterDefault) document.getElementById("readlater-check").checked = true;
+  if (settings.optPrivateDefault) $id("private-check").checked = true;
+  if (settings.optPrivateIncognito && tab.incognito) $id("private-check").checked = true;
+  if (settings.optReadlaterDefault) $id("readlater-check").checked = true;
 
   // Setup UI features immediately — don't block on network requests
   setupTagsInput();
@@ -203,22 +203,23 @@ async function extractLocalMarkdown(tabId) {
       target: { tabId },
       func: () => {
         if (typeof Defuddle === "undefined") return { error: "Defuddle not available" };
-        // Swallow a known defuddle v0.16.0 async bug: `new URL(href)` on relative/weird
-        // hrefs (GitHub pages, etc.) throws asynchronously and escapes the try/catch below.
-        const swallowURL = (ev) => {
-          const msg = (ev && (ev.message || (ev.reason && ev.reason.message))) || "";
-          if (/Failed to construct 'URL'|Invalid URL/i.test(msg)) {
-            ev.preventDefault && ev.preventDefault();
-            ev.stopImmediatePropagation && ev.stopImmediatePropagation();
-            return true;
-          }
-        };
-        window.addEventListener("error", swallowURL, true);
-        window.addEventListener("unhandledrejection", swallowURL, true);
-        setTimeout(() => {
-          window.removeEventListener("error", swallowURL, true);
-          window.removeEventListener("unhandledrejection", swallowURL, true);
-        }, 1500);
+        // Patch window.URL in the ISOLATED world to prevent defuddle v0.16.0 from
+        // throwing "Failed to construct 'URL': Invalid URL" on relative/weird hrefs
+        // (GitHub pages etc.). Defuddle is UMD and resolves `URL` at runtime, so this
+        // interception works. Only affects isolated world; page's window.URL untouched.
+        const OriginalURL = window.URL;
+        if (!window.__pp_urlShimInstalled) {
+          const SafeURL = function(u, b) {
+            try { return b !== undefined ? new OriginalURL(u, b) : new OriginalURL(u); }
+            catch (_) { return new OriginalURL("about:blank"); }
+          };
+          SafeURL.prototype = OriginalURL.prototype;
+          try { SafeURL.createObjectURL = OriginalURL.createObjectURL.bind(OriginalURL); } catch (_) {}
+          try { SafeURL.revokeObjectURL = OriginalURL.revokeObjectURL.bind(OriginalURL); } catch (_) {}
+          try { SafeURL.canParse = OriginalURL.canParse && OriginalURL.canParse.bind(OriginalURL); } catch (_) {}
+          window.URL = SafeURL;
+          window.__pp_urlShimInstalled = true;
+        }
         try {
           const clone = document.cloneNode(true);
           const result = new Defuddle(clone).parse();
@@ -321,18 +322,18 @@ async function htmlToMarkdown(html) {
 }
 
   // ---- Markdown export button ----
-  const jinaMdBtn = document.getElementById("jina-md-btn");
+  const jinaMdBtn = $id("jina-md-btn");
   if (jinaMdBtn) {
     jinaMdBtn.title = settings.aiContentSource === "jina" ? t("jinaMarkdownTitleJina") : t("jinaMarkdownTitle");
     // Disable on non-http pages
-    const currentUrl = document.getElementById("url-input")?.value || "";
+    const currentUrl = $id("url-input")?.value || "";
     if (!currentUrl.startsWith("http://") && !currentUrl.startsWith("https://")) {
       jinaMdBtn.disabled = true;
       jinaMdBtn.title = "Only works on web pages";
     }
     jinaMdBtn.addEventListener("click", async () => {
       if (jinaMdBtn.disabled) return;
-      const url = document.getElementById("url-input").value;
+      const url = $id("url-input").value;
       if (!url) return;
 
       const origText = jinaMdBtn.textContent;
@@ -376,7 +377,7 @@ async function htmlToMarkdown(html) {
             md_preview_data: {
               markdown: result.markdown || "",
               contentHtml: result.contentHtml || "",
-              title: result.title || document.getElementById("title-input")?.value || "",
+              title: result.title || $id("title-input")?.value || "",
               url: result.url || url,
               tokens: result.tokens || 0,
               hasApiKey: !!result._hasApiKey,
@@ -391,11 +392,11 @@ async function htmlToMarkdown(html) {
 
   // Fetch all user tags first (cache hit is instant, populates tagCaseMap for case resolution)
   fetchAllUserTags(token).then(() => {
-    if (settings.optAiAutoTags && hasAIKey(settings)) document.getElementById("ai-tags-btn").click();
+    if (settings.optAiAutoTags && hasAIKey(settings)) $id("ai-tags-btn").click();
   });
   // Suggest tags — enqueue after user tags so tagCaseMap is ready
   if (settings.optShowSuggestTags) {
-    document.getElementById("suggest-row").classList.remove("hidden");
+    $id("suggest-row").classList.remove("hidden");
     fetchPinboardSuggestTags(token, pageInfo.url);
   }
   // Bookmark check — non-blocking, updates UI when ready
@@ -403,13 +404,13 @@ async function htmlToMarkdown(html) {
   // Recent bookmarks — lowest priority, enqueue last
   if (settings.optShowRecent) fetchRecentBookmarks(token);
 
-  document.querySelector(".tags-input-wrap")?.addEventListener("click", () => document.getElementById("tags-input").focus());
+  document.querySelector(".tags-input-wrap")?.addEventListener("click", () => $id("tags-input").focus());
   showOfflineQueueStatus();
 
   // Focus optimization: tags input for new bookmarks, description for existing
   setTimeout(() => {
-    if (existingBookmark) document.getElementById("description-input").focus();
-    else document.getElementById("tags-input").focus();
+    if (existingBookmark) $id("description-input").focus();
+    else $id("tags-input").focus();
   }, 100);
 }
 
@@ -428,18 +429,18 @@ async function checkExistingBookmark(token, url) {
     }
     if (data.posts?.length > 0) {
       existingBookmark = data.posts[0];
-      document.getElementById("title-input").value = existingBookmark.description;
-      document.getElementById("description-input").value = existingBookmark.extended;
-      document.getElementById("private-check").checked = existingBookmark.shared === "no";
-      document.getElementById("readlater-check").checked = existingBookmark.toread === "yes";
+      $id("title-input").value = existingBookmark.description;
+      $id("description-input").value = existingBookmark.extended;
+      $id("private-check").checked = existingBookmark.shared === "no";
+      $id("readlater-check").checked = existingBookmark.toread === "yes";
       currentTags = [];
       renderTags();
       if (existingBookmark.tags?.trim()) existingBookmark.tags.split(" ").filter(Boolean).forEach((t) => { if (t.trim()) addTag(t.trim()); });
-      document.getElementById("submit-btn").textContent = t("update");
-      document.getElementById("delete-btn").classList.remove("hidden");
+      $id("submit-btn").textContent = t("update");
+      $id("delete-btn").classList.remove("hidden");
       updateCharCount();
-      setTimeout(() => autoResizeTextarea(document.getElementById("description-input")), 50);
-      const banner = document.getElementById("existing-banner");
+      setTimeout(() => autoResizeTextarea($id("description-input")), 50);
+      const banner = $id("existing-banner");
       const timeStr = existingBookmark.time;
       if (banner) {
         let info = t("editingExisting");
@@ -463,7 +464,7 @@ function setupSubmit(token) {
   let autoCloseTimer = null;
 
   // Submit state machine: idle -> loading -> success -> idle / loading -> error -> idle (user retry resets)
-  const btn = document.getElementById("submit-btn");
+  const btn = $id("submit-btn");
   let submitOriginalText = btn.textContent;
   let submitErrorResetTimer = null;
 
@@ -487,7 +488,7 @@ function setupSubmit(token) {
     }
   }
 
-  document.getElementById("submit-btn").addEventListener("click", async () => {
+  $id("submit-btn").addEventListener("click", async () => {
     // Snapshot current label as "idle text" unless we're in a transient state
     if (!btn.classList.contains("saved-success") && !btn.classList.contains("save-error") && !btn.classList.contains("loading")) {
       submitOriginalText = btn.textContent;
@@ -495,15 +496,15 @@ function setupSubmit(token) {
     clearTimeout(submitErrorResetTimer);
     setSubmitState("loading");
 
-    const url = document.getElementById("url-input").value;
-    const title = document.getElementById("title-input").value;
+    const url = $id("url-input").value;
+    const title = $id("title-input").value;
     if (!url || !title) {
       showStatus("status-msg", t("urlAndTitleRequired"), "error");
       setSubmitState("idle");
       return;
     }
     try {
-      const apiUrl = `https://api.pinboard.in/v1/posts/add?auth_token=${token}&format=json&url=${enc(url)}&description=${enc(title)}&extended=${enc(document.getElementById("description-input").value)}&tags=${enc(currentTags.join(" "))}&shared=${document.getElementById("private-check").checked ? "no" : "yes"}&toread=${document.getElementById("readlater-check").checked ? "yes" : "no"}&replace=yes`;
+      const apiUrl = `https://api.pinboard.in/v1/posts/add?auth_token=${token}&format=json&url=${enc(url)}&description=${enc(title)}&extended=${enc($id("description-input").value)}&tags=${enc(currentTags.join(" "))}&shared=${$id("private-check").checked ? "no" : "yes"}&toread=${$id("readlater-check").checked ? "yes" : "no"}&replace=yes`;
       const data = await (await pinboardFetch(apiUrl)).json();
       if (data.result_code === "done") {
         showStatus("status-msg", t("bookmarkSaved"), "success");
@@ -513,15 +514,15 @@ function setupSubmit(token) {
         existingBookmark = {
           href: url,
           description: title,
-          extended: document.getElementById("description-input").value,
+          extended: $id("description-input").value,
           tags: currentTags.join(" "),
-          shared: document.getElementById("private-check").checked ? "no" : "yes",
-          toread: document.getElementById("readlater-check").checked ? "yes" : "no",
+          shared: $id("private-check").checked ? "no" : "yes",
+          toread: $id("readlater-check").checked ? "yes" : "no",
           time: new Date().toISOString(),
         };
-        document.getElementById("submit-btn").textContent = t("update");
-        document.getElementById("delete-btn").classList.remove("hidden");
-        const bannerEl = document.getElementById("existing-banner");
+        $id("submit-btn").textContent = t("update");
+        $id("delete-btn").classList.remove("hidden");
+        const bannerEl = $id("existing-banner");
         if (bannerEl) {
           const cancelEl = bannerEl.querySelector(".edit-cancel");
           let info = t("editingExisting");
@@ -556,15 +557,15 @@ function setupSubmit(token) {
 
   document.addEventListener("keydown", (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
-      const mainSection = document.getElementById("main-section");
+      const mainSection = $id("main-section");
       if (!mainSection.classList.contains("hidden")) {
-        document.getElementById("submit-btn").click();
+        $id("submit-btn").click();
       }
     } else if (e.key === "Escape") {
       const delPop = document.querySelector(".del-confirm-popover");
       if (delPop) { delPop.remove(); return; }
       if (autoCloseTimer) { clearTimeout(autoCloseTimer); autoCloseTimer = null; return; }
-      const tagsInput = document.getElementById("tags-input");
+      const tagsInput = $id("tags-input");
       if (tagsInput && document.activeElement === tagsInput) return;
       window.close();
     }
@@ -575,8 +576,8 @@ function setupSubmit(token) {
   hintSpan.textContent = t("hintCtrlEnter");
   document.querySelector(".submit-bar")?.appendChild(hintSpan);
 
-  document.getElementById("delete-btn").addEventListener("click", () => {
-    const delBtn = document.getElementById("delete-btn");
+  $id("delete-btn").addEventListener("click", () => {
+    const delBtn = $id("delete-btn");
     if (delBtn.querySelector(".del-confirm-popover")) return;
 
     const pop = document.createElement("div");
@@ -601,7 +602,7 @@ function setupSubmit(token) {
       dismiss();
       const delOrig = delBtn.textContent;
       delBtn.disabled = true; delBtn.classList.add("loading"); delBtn.textContent = t("deleting");
-      const url = document.getElementById("url-input").value;
+      const url = $id("url-input").value;
       try {
         const data = await (await pinboardFetch(`https://api.pinboard.in/v1/posts/delete?url=${enc(url)}&auth_token=${token}&format=json`)).json();
         if (data.result_code === "done" || data.result_code === "item not found") {
@@ -621,19 +622,19 @@ async function loadBookmarkForEdit(url, token) {
   existingBookmark = null;
   currentTags = [];
   renderTags();
-  document.getElementById("url-input").value = url;
-  document.getElementById("title-input").value = "";
-  document.getElementById("description-input").value = "";
-  document.getElementById("private-check").checked = false;
-  document.getElementById("readlater-check").checked = false;
-  document.getElementById("submit-btn").textContent = t("submit");
-  document.getElementById("delete-btn").classList.add("hidden");
+  $id("url-input").value = url;
+  $id("title-input").value = "";
+  $id("description-input").value = "";
+  $id("private-check").checked = false;
+  $id("readlater-check").checked = false;
+  $id("submit-btn").textContent = t("submit");
+  $id("delete-btn").classList.add("hidden");
   // Mark edit mode so banner shows cancel affordance
   document.body.dataset.editMode = "1";
   // Reuse existing-bookmark path which will populate the form from posts/get
   await checkExistingBookmark(token, url);
   // Append cancel affordance to banner using safe DOM APIs (no innerHTML)
-  const banner = document.getElementById("existing-banner");
+  const banner = $id("existing-banner");
   if (banner && !banner.querySelector(".edit-cancel")) {
     const cancel = document.createElement("span");
     cancel.className = "edit-cancel";
@@ -647,8 +648,8 @@ async function loadBookmarkForEdit(url, token) {
     banner.appendChild(cancel);
   }
   // Scroll form into view
-  document.getElementById("title-input")?.focus();
-  document.getElementById("title-input")?.scrollIntoView({ behavior: "smooth", block: "center" });
+  $id("title-input")?.focus();
+  $id("title-input")?.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
 function exitEditMode() {
@@ -659,7 +660,7 @@ function exitEditMode() {
 
 // ===================== Recent Bookmarks =====================
 async function fetchRecentBookmarks(token) {
-  const container = document.getElementById("recent-bookmarks");
+  const container = $id("recent-bookmarks");
   if (!container) return;
   try {
     const resp = await pinboardFetch(`https://api.pinboard.in/v1/posts/recent?auth_token=${token}&format=json&count=5`);
@@ -716,14 +717,14 @@ async function fetchRecentBookmarks(token) {
 
 // ===================== Offline Queue Status =====================
 async function showOfflineQueueStatus() {
-  const bar = document.getElementById("offline-queue-bar");
+  const bar = $id("offline-queue-bar");
   if (!bar) return;
   // Delegate list rendering + per-item actions to popup-offline.js
   if (window.PPOffline) {
     window.PPOffline.init();
     await window.PPOffline.refresh();
   }
-  document.getElementById("offline-queue-clear")?.addEventListener("click", async (e) => {
+  $id("offline-queue-clear")?.addEventListener("click", async (e) => {
     e.preventDefault();
     if (!confirm(t("offlineClearConfirm"))) return;
     await chrome.storage.local.set({ offlineQueue: [] });
@@ -733,22 +734,30 @@ async function showOfflineQueueStatus() {
 
 // ===================== Helpers =====================
 function setupDescriptionCounter() {
-  const textarea = document.getElementById("description-input");
+  const textarea = $id("description-input");
   textarea.addEventListener("input", () => { updateCharCount(); autoResizeTextarea(textarea); });
   setTimeout(() => autoResizeTextarea(textarea), 50);
 }
+// P1.4: Batch layout read/write into rAF — avoids sync reflow on every keystroke.
+// Coalesces rapid successive calls (e.g. input event flood) into one frame.
+let _autoResizeRaf = 0;
 function autoResizeTextarea(el) {
-  el.style.height = "auto";
-  el.style.height = Math.min(Math.max(el.scrollHeight, TEXTAREA_MIN_HEIGHT), TEXTAREA_MAX_HEIGHT) + "px";
+  if (!el) return;
+  if (_autoResizeRaf) cancelAnimationFrame(_autoResizeRaf);
+  _autoResizeRaf = requestAnimationFrame(() => {
+    _autoResizeRaf = 0;
+    el.style.height = "auto";
+    el.style.height = Math.min(Math.max(el.scrollHeight, TEXTAREA_MIN_HEIGHT), TEXTAREA_MAX_HEIGHT) + "px";
+  });
 }
 function updateCharCount() {
-  const len = document.getElementById("description-input").value.length;
-  const el = document.getElementById("desc-char-count");
+  const len = $id("description-input").value.length;
+  const el = $id("desc-char-count");
   el.textContent = len;
   el.style.color = len > 65000 ? "#c00" : len > 60000 ? "#e80" : "";
 }
-function showElement(id, text) { const el = document.getElementById(id); el.textContent = text; el.classList.remove("hidden"); }
-function showStatus(id, text, type) { const el = document.getElementById(id); el.textContent = text; el.className = `status-msg ${type}`; el.classList.remove("hidden"); }
+function showElement(id, text) { const el = $id(id); el.textContent = text; el.classList.remove("hidden"); }
+function showStatus(id, text, type) { const el = $id(id); el.textContent = text; el.className = `status-msg ${type}`; el.classList.remove("hidden"); }
 function esc(s) { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
 function enc(s) { return encodeURIComponent(s); }
 

@@ -79,23 +79,16 @@ function t(key, ...args) {
 function applyI18n(root) {
   root = root || document;
 
-  root.querySelectorAll("[data-i18n]").forEach(el => {
-    const key = el.getAttribute("data-i18n");
-    if (key) el.textContent = t(key);
-  });
-
-  root.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
-    const key = el.getAttribute("data-i18n-placeholder");
-    if (key) el.placeholder = t(key);
-  });
-
-  root.querySelectorAll("[data-i18n-title]").forEach(el => {
-    const key = el.getAttribute("data-i18n-title");
-    if (key) el.title = t(key);
-  });
-
-  root.querySelectorAll("[data-i18n-aria]").forEach(el => {
-    const key = el.getAttribute("data-i18n-aria");
-    if (key) el.setAttribute("aria-label", t(key));
+  // P1.5: Merged 4 separate querySelectorAll passes into 1 DOM walk.
+  // Each element may have multiple i18n attributes — apply whichever are present.
+  root.querySelectorAll("[data-i18n],[data-i18n-placeholder],[data-i18n-title],[data-i18n-aria]").forEach(el => {
+    const k1 = el.getAttribute("data-i18n");
+    if (k1) el.textContent = t(k1);
+    const k2 = el.getAttribute("data-i18n-placeholder");
+    if (k2) el.placeholder = t(k2);
+    const k3 = el.getAttribute("data-i18n-title");
+    if (k3) el.title = t(k3);
+    const k4 = el.getAttribute("data-i18n-aria");
+    if (k4) el.setAttribute("aria-label", t(k4));
   });
 }

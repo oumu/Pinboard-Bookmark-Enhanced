@@ -29,22 +29,37 @@ async function getPageInfoFromTab(tabId) {
 
         // Try Defuddle for high-quality content extraction
         if (typeof Defuddle !== "undefined") {
-          // Swallow a known defuddle v0.16.0 async bug where `new URL(href)` on
-          // relative/weird hrefs (GitHub pages, etc.) throws and escapes try/catch.
-          const swallowURL = (ev) => {
-            const msg = (ev && (ev.message || (ev.reason && ev.reason.message))) || "";
-            if (/Failed to construct 'URL'|Invalid URL/i.test(msg)) {
-              ev.preventDefault && ev.preventDefault();
-              ev.stopImmediatePropagation && ev.stopImmediatePropagation();
-              return true;
-            }
+          // Swallow defuddle v0.16.0 async errors that escape try/catch:
+          //   1. Sync `new URL(href)` on relative/weird hrefs (GitHub, etc.)
+          //   2. Async extractors (YouTube/Reddit) via __awaiter Promise chains
+          //      — these reject AFTER parse() returns, bypassing try/catch
+          // Match by URL-error text OR defuddle-origin filename/stack.
+          const swallowDefuddle = (ev) => {
+            try {
+              const reason = ev && ev.reason;
+              const msg = String((ev && ev.message) || (reason && reason.message) || reason || "");
+              const stack = String((ev && ev.error && ev.error.stack) || (reason && reason.stack) || "");
+              const filename = String((ev && ev.filename) || "");
+              const isURLError = /Failed to construct 'URL'|Invalid URL|URL constructor/i.test(msg + " " + stack);
+              const fromDefuddle = /defuddle/i.test(filename) || /defuddle/i.test(stack);
+              if (isURLError || fromDefuddle) {
+                ev.preventDefault && ev.preventDefault();
+                ev.stopImmediatePropagation && ev.stopImmediatePropagation();
+                ev.stopPropagation && ev.stopPropagation();
+                return false;
+              }
+            } catch (_) { /* never let the swallow handler itself throw */ }
           };
-          window.addEventListener("error", swallowURL, true);
-          window.addEventListener("unhandledrejection", swallowURL, true);
+          window.addEventListener("error", swallowDefuddle, true);
+          window.addEventListener("unhandledrejection", swallowDefuddle, true);
+          // Extend window to 3s — YouTube extractor's fetchPlayerData + pollFor
+          // (setTimeout 250ms × up to 20 tries) can run up to ~5s, but 3s covers
+          // the common failure path on non-YouTube pages where the async URL
+          // throws early. Cleanup prevents listener leakage on long sessions.
           setTimeout(() => {
-            window.removeEventListener("error", swallowURL, true);
-            window.removeEventListener("unhandledrejection", swallowURL, true);
-          }, 1500);
+            window.removeEventListener("error", swallowDefuddle, true);
+            window.removeEventListener("unhandledrejection", swallowDefuddle, true);
+          }, 3000);
           try {
             const clone = document.cloneNode(true);
             const result = new Defuddle(clone).parse();

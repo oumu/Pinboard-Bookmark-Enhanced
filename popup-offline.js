@@ -30,8 +30,8 @@
 
   async function refreshBar() {
     const q = await getQueue();
-    const bar = document.getElementById("offline-queue-bar");
-    const text = document.getElementById("offline-queue-text");
+    const bar = $id("offline-queue-bar");
+    const text = $id("offline-queue-text");
     if (!bar || !text) return;
     if (!q.length) {
       bar.classList.add("hidden");
@@ -45,9 +45,9 @@
 
   function hideList() {
     expanded = false;
-    const list = document.getElementById("offline-queue-list");
-    const chev = document.getElementById("offline-queue-chevron");
-    const toggle = document.getElementById("offline-queue-toggle");
+    const list = $id("offline-queue-list");
+    const chev = $id("offline-queue-chevron");
+    const toggle = $id("offline-queue-toggle");
     if (list) { list.classList.add("hidden"); clearChildren(list); }
     if (chev) chev.textContent = "▸";
     if (toggle) toggle.setAttribute("aria-expanded", "false");
@@ -58,9 +58,9 @@
   }
 
   function renderList(queue) {
-    const list = document.getElementById("offline-queue-list");
-    const chev = document.getElementById("offline-queue-chevron");
-    const toggle = document.getElementById("offline-queue-toggle");
+    const list = $id("offline-queue-list");
+    const chev = $id("offline-queue-chevron");
+    const toggle = $id("offline-queue-toggle");
     if (!list) return;
     list.classList.remove("hidden");
     if (chev) chev.textContent = "▾";
@@ -162,7 +162,7 @@
   }
 
   function init() {
-    const toggleEl = document.getElementById("offline-queue-toggle");
+    const toggleEl = $id("offline-queue-toggle");
     if (toggleEl) toggleEl.addEventListener("click", toggle);
     // React to storage changes so the list updates after background auto-retries
     if (chrome?.storage?.onChanged) {

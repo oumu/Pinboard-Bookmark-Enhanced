@@ -4,7 +4,7 @@
 
 // ---- Tab Set & Batch Bookmark Save ----
 function setupTabSet() {
-  const btn = document.getElementById("save-tabset-btn");
+  const btn = $id("save-tabset-btn");
   if (!btn) return;
 
   btn.addEventListener("click", async () => {
@@ -56,7 +56,7 @@ function setupTabSet() {
     }
   });
 
-  const batchBtn = document.getElementById("batch-bookmark-btn");
+  const batchBtn = $id("batch-bookmark-btn");
   if (!batchBtn) return;
   batchBtn.addEventListener("click", async () => {
     batchBtn.disabled = true;
@@ -187,8 +187,8 @@ function setupTabSet() {
 function setupTagPresets() {
   const raw = settings.tagPresets || "";
   if (!raw.trim()) return;
-  const container = document.getElementById("tag-presets");
-  const presetsRow = document.getElementById("presets-row");
+  const container = $id("tag-presets");
+  const presetsRow = $id("presets-row");
   if (!container || !presetsRow) return;
   const presets = raw.split("\n").map(line => {
     const m = line.match(/^(.+?)[:：]\s*(.+)$/);

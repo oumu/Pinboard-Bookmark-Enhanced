@@ -96,7 +96,8 @@ a:hover { text-decoration: underline; }
   color: #1a56db;
   font-size: 11px;
   line-height: 1.4;
-  transition: background 0.6s ease, color 0.6s ease, border-color 0.6s ease;
+  /* P2.8: dropped border-color from transition — border change is imperceptible during 600ms fade; reduces paint layer count */
+  transition: background 0.6s ease, color 0.6s ease;
 }
 .existing-banner.just-saved {
   background: #d4edda;

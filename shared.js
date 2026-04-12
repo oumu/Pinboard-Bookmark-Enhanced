@@ -219,3 +219,16 @@ function deobfuscateSettings(s) {
   API_KEY_FIELDS.forEach(k => { if (s[k]) s[k] = deobfuscateKey(s[k]); });
   return s;
 }
+
+// ---- DOM cache helper (P1.6) ----
+// Popup/options DOM is static — elements never removed, only toggled via classList.
+// Memoize getElementById to avoid repeated DOM tree walks on hot paths.
+// null results are NOT cached (lets later queries succeed if element is added).
+const _domRefs = {};
+function $id(id) {
+  const cached = _domRefs[id];
+  if (cached) return cached;
+  const el = document.getElementById(id);
+  if (el) _domRefs[id] = el;
+  return el;
+}

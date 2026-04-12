@@ -40,7 +40,19 @@ async function getCachedToken() {
 }
 
 // ---- P3: Debounce + dedup for tab switch ----
-let _checkDebounceTimer = null;
+// P2.7: Per-tab debounce bucket — previously a single shared timer meant a
+// background tab's completion could be cancelled by an unrelated tab-switch,
+// leaving the background tab's icon state stale. Per-tab timers decouple them.
+// _pendingChecks below handles network-layer dedup, so extra scheduling is cheap.
+const _checkDebounceTimers = new Map(); // tabId -> timeoutId
+function _scheduleTabCheck(tabId, fn, delay) {
+  const prev = _checkDebounceTimers.get(tabId);
+  if (prev) clearTimeout(prev);
+  _checkDebounceTimers.set(tabId, setTimeout(() => {
+    _checkDebounceTimers.delete(tabId);
+    fn();
+  }, delay));
+}
 const _pendingChecks = new Map(); // url -> Promise
 
 async function debouncedCheck(tabId, url) {
@@ -344,8 +356,7 @@ function resolvePrefixSettings(s, prefix) {
 
 // ---- 标签页激活/更新时刷新图标 (P3: debounced + deduped) ----
 chrome.tabs.onActivated.addListener(({ tabId }) => {
-  clearTimeout(_checkDebounceTimer);
-  _checkDebounceTimer = setTimeout(async () => {
+  _scheduleTabCheck(tabId, async () => {
     try {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       if (tab?.id === tabId && tab.url) await debouncedCheck(tabId, tab.url);
@@ -355,11 +366,16 @@ chrome.tabs.onActivated.addListener(({ tabId }) => {
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.status === "complete" && tab.url && tab.url.startsWith("http")) {
-    clearTimeout(_checkDebounceTimer);
-    _checkDebounceTimer = setTimeout(() => {
+    _scheduleTabCheck(tabId, () => {
       debouncedCheck(tabId, tab.url).catch(() => {});
     }, 150);
   }
+});
+
+// P2.7: Clean up per-tab timer when tab closes to prevent Map leak on long sessions.
+chrome.tabs.onRemoved.addListener((tabId) => {
+  const timer = _checkDebounceTimers.get(tabId);
+  if (timer) { clearTimeout(timer); _checkDebounceTimers.delete(tabId); }
 });
 
 // Keep service worker alive + periodic tasks

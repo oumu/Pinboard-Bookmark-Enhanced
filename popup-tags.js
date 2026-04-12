@@ -4,7 +4,7 @@
 
 // ---- Suggest Tags (Pinboard API) ----
 async function fetchPinboardSuggestTags(token, url) {
-  const container = document.getElementById("pinboard-suggest-tags");
+  const container = $id("pinboard-suggest-tags");
   const cacheKey = "cached_suggest_" + url;
   const SUGGEST_TTL = 10 * 60 * 1000; // 10 minutes
 
@@ -84,7 +84,7 @@ async function fetchPinboardSuggestTags(token, url) {
     if (popular.length) container.appendChild(buildSuggestGroup(t("suggestPopular"), popular, null));
     if (recommended.length) container.appendChild(buildSuggestGroup(t("suggestRecommended"), recommended, "add-all-suggest"));
 
-    const addAllSuggest = document.getElementById("add-all-suggest");
+    const addAllSuggest = $id("add-all-suggest");
     addAllSuggest?.addEventListener("click", () => {
       container.querySelectorAll(".stag:not(.used)").forEach((el) => { addTag(el.dataset.tag); el.classList.add("used"); });
       if (addAllSuggest) { addAllSuggest.textContent = "✓"; addAllSuggest.style.pointerEvents = "none"; addAllSuggest.style.color = "#080"; }
@@ -139,8 +139,8 @@ async function fetchAllUserTags(token) {
 
 // ---- Tags Input Setup ----
 function setupTagsInput() {
-  const input = document.getElementById("tags-input");
-  const dropdown = document.getElementById("tags-autocomplete");
+  const input = $id("tags-input");
+  const dropdown = $id("tags-autocomplete");
   let acDebounceTimer = null;
   input.addEventListener("input", () => {
     clearTimeout(acDebounceTimer);
@@ -219,7 +219,7 @@ function setupTagsInput() {
   document.addEventListener("click", (e) => {
     if (!e.target.closest(".tags-input-wrap") && !e.target.closest(".autocomplete-dropdown")) dropdown.classList.add("hidden");
   });
-  document.getElementById("tags-clear-all")?.addEventListener("click", (e) => {
+  $id("tags-clear-all")?.addEventListener("click", (e) => {
     e.preventDefault();
     currentTags = [];
     renderTags();
@@ -249,7 +249,7 @@ function removeTag(tag) {
 }
 
 function renderTags() {
-  const d = document.getElementById("tags-display"); d.innerHTML = "";
+  const d = $id("tags-display"); d.innerHTML = "";
   currentTags.forEach((tag, idx) => {
     const el = document.createElement("span"); el.className = "tag-item";
     if (_newlyAddedTag && tag.toLowerCase() === _newlyAddedTag) el.classList.add("is-new");
@@ -278,7 +278,7 @@ function renderTags() {
     });
     d.appendChild(el);
   });
-  const clearBtn = document.getElementById("tags-clear-all");
+  const clearBtn = $id("tags-clear-all");
   if (clearBtn) clearBtn.classList.toggle("hidden", currentTags.length < 2);
   syncSuggestTagStates();
 }
