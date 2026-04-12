@@ -589,6 +589,21 @@
   "optShowSuggestTags": {
     "message": "ポップアップに Pinboard のおすすめタグを表示"
   },
+  "tagSyncLabel": {
+    "message": "タグ同期モード"
+  },
+  "tagSyncCached": {
+    "message": "キャッシュ（既定、10 分 TTL）"
+  },
+  "tagSyncFresh": {
+    "message": "最新（毎回取得 — 最新、低速）"
+  },
+  "tagSyncPrewarmed": {
+    "message": "プリウォーム（バックグラウンド更新、即起動）"
+  },
+  "tagSyncHint": {
+    "message": "プリウォームは chrome.alarms を使用して 15 分毎にタグを更新します。"
+  },
   "labelTagPresets": {
     "message": "タグプリセット"
   },

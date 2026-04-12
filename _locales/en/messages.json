@@ -589,6 +589,21 @@
   "optShowSuggestTags": {
     "message": "Show Pinboard suggested tags in popup"
   },
+  "tagSyncLabel": {
+    "message": "Tag Sync Mode"
+  },
+  "tagSyncCached": {
+    "message": "Cached (default, 10-min TTL)"
+  },
+  "tagSyncFresh": {
+    "message": "Fresh (always fetch — latest, slower)"
+  },
+  "tagSyncPrewarmed": {
+    "message": "Prewarmed (background refresh, instant popup)"
+  },
+  "tagSyncHint": {
+    "message": "Prewarmed uses chrome.alarms to refresh tags every 15 min in the background."
+  },
   "labelTagPresets": {
     "message": "Tag Presets"
   },

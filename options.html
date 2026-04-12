@@ -98,6 +98,13 @@
       <div class="fg"><label><input type="checkbox" id="opt-respect-tag-case" /> <span data-i18n="optRespectTagCase">Respect existing tag case (match most-used casing)</span></label></div>
       <div class="fg"><label><input type="checkbox" id="opt-show-suggest-tags" checked /> <span data-i18n="optShowSuggestTags">Show Pinboard suggested tags in popup</span></label></div>
       <div class="fg">
+        <label class="bl" data-i18n="tagSyncLabel">Tag Sync Mode</label>
+        <div><label><input type="radio" name="tag-sync-mode" id="opt-tag-sync-cached" value="cached" checked /> <span data-i18n="tagSyncCached">Cached (default, 10-min TTL)</span></label></div>
+        <div><label><input type="radio" name="tag-sync-mode" id="opt-tag-sync-fresh" value="fresh" /> <span data-i18n="tagSyncFresh">Fresh (always fetch — latest, slower)</span></label></div>
+        <div><label><input type="radio" name="tag-sync-mode" id="opt-tag-sync-prewarmed" value="prewarmed" /> <span data-i18n="tagSyncPrewarmed">Prewarmed (background refresh, instant popup)</span></label></div>
+        <p class="hint" data-i18n="tagSyncHint">Prewarmed uses chrome.alarms to refresh tags every 15 min in the background.</p>
+      </div>
+      <div class="fg">
         <label class="bl" data-i18n="labelTagPresets">Tag Presets</label>
         <textarea id="opt-tag-presets" rows="4" placeholder="One preset per line:&#10;Work: project, review, report&#10;Dev: programming, tutorial, tool" data-i18n-placeholder="tagPresetsPlaceholder"></textarea>
         <p class="hint" data-i18n="tagPresetsHint">Format: <code>Name: tag1, tag2, tag3</code> — shown as quick-add buttons in popup.</p>

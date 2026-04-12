@@ -589,6 +589,21 @@
   "optShowSuggestTags": {
     "message": "Показывать рекомендуемые метки Pinboard во всплывающем окне"
   },
+  "tagSyncLabel": {
+    "message": "Режим синхронизации тегов"
+  },
+  "tagSyncCached": {
+    "message": "Кэш (по умолчанию, TTL 10 мин)"
+  },
+  "tagSyncFresh": {
+    "message": "Свежие (всегда запрос — актуально, медленнее)"
+  },
+  "tagSyncPrewarmed": {
+    "message": "Предзагруженный (фоновое обновление, мгновенный попап)"
+  },
+  "tagSyncHint": {
+    "message": "Предзагруженный режим использует chrome.alarms для обновления тегов каждые 15 мин в фоне."
+  },
   "labelTagPresets": {
     "message": "Предустановки меток"
   },

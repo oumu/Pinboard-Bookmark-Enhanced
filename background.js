@@ -361,6 +361,34 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 // Keep service worker alive + periodic tasks
 chrome.alarms.create("keepalive", { periodInMinutes: 4 });
 chrome.alarms.create("ai-cache-cleanup", { periodInMinutes: 60 * 24 }); // daily
+
+async function syncPrewarmTagsAlarm() {
+  const s = await loadSettings();
+  const existing = await chrome.alarms.get("prewarm-tags");
+  const shouldRun = s.tagSyncMode === "prewarmed" && !!s.pinboardToken;
+  if (shouldRun && !existing) {
+    chrome.alarms.create("prewarm-tags", { periodInMinutes: 15, delayInMinutes: 0.5 });
+  } else if (!shouldRun && existing) {
+    chrome.alarms.clear("prewarm-tags");
+  }
+}
+
+async function prewarmTagsNow() {
+  const s = await loadSettings();
+  if (!s.pinboardToken) return;
+  try {
+    const resp = await pinboardFetch(`https://api.pinboard.in/v1/tags/get?auth_token=${s.pinboardToken}&format=json`);
+    if (!resp.ok) return;
+    const data = await resp.json();
+    const tags = Object.entries(data)
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+      .map(([tag]) => tag);
+    await chrome.storage.local.set({
+      cached_user_tags: { tags, counts: data, timestamp: Date.now() }
+    });
+  } catch (_) {}
+}
+
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === "keepalive") {
     processOfflineQueue().catch(() => {});
@@ -369,7 +397,19 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === "ai-cache-cleanup") {
     cleanupExpiredAICache().catch(() => {});
   }
+  if (alarm.name === "prewarm-tags") {
+    prewarmTagsNow().catch(() => {});
+  }
 });
+
+// React to settings change: toggle the prewarm alarm on/off (settings live in sync or local based on optSyncEnabled)
+chrome.storage.onChanged.addListener((changes, area) => {
+  if ((area === "sync" || area === "local") && (changes.tagSyncMode || changes.pinboardToken)) {
+    syncPrewarmTagsAlarm().catch(() => {});
+  }
+});
+// Initial check
+syncPrewarmTagsAlarm().catch(() => {});
 
 // F1: Cleanup expired AI cache entries
 async function cleanupExpiredAICache() {

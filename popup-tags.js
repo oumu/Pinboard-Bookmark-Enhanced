@@ -97,29 +97,42 @@ async function fetchPinboardSuggestTags(token, url) {
 }
 
 // ---- Fetch All User Tags (with local cache) ----
+function applyTagData(counts) {
+  allUserTagCounts = counts;
+  allUserTags = Object.entries(counts)
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([tag]) => tag);
+  tagCaseMap = buildTagCaseMap(counts);
+}
+
 async function fetchAllUserTags(token) {
   const cacheKey = "cached_user_tags";
-  try {
-    const cached = await chrome.storage.local.get(cacheKey);
-    if (cached[cacheKey]) {
-      const { tags, counts, timestamp } = cached[cacheKey];
-      if (Date.now() - timestamp < TAG_CACHE_TTL) {
-        allUserTagCounts = counts;
-        allUserTags = tags;
-        tagCaseMap = buildTagCaseMap(counts);
-        return;
+  // Sync mode: "cached" (default, TTL-based) / "fresh" (bypass cache) / "prewarmed" (cache-only; alarm refreshes)
+  const mode = (settings && settings.tagSyncMode) || "cached";
+
+  // Try cache first for cached/prewarmed
+  if (mode !== "fresh") {
+    try {
+      const cached = await chrome.storage.local.get(cacheKey);
+      if (cached[cacheKey]) {
+        const { tags, counts, timestamp } = cached[cacheKey];
+        const fresh = Date.now() - timestamp < TAG_CACHE_TTL;
+        if (mode === "prewarmed" || fresh) {
+          applyTagData(counts);
+          allUserTags = tags; // preserve cached sort order
+          return;
+        }
       }
-    }
-  } catch (_) {}
+    } catch (_) {}
+    // In prewarmed mode without any cache yet, fall through to fetch once so UI is usable
+  }
+
+  // Fetch from Pinboard (fresh or cached-expired or prewarmed-missing)
   try {
     const resp = await pinboardFetch(`https://api.pinboard.in/v1/tags/get?auth_token=${token}&format=json`);
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
-    allUserTagCounts = data;
-    allUserTags = Object.entries(data)
-      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-      .map(([tag]) => tag);
-    tagCaseMap = buildTagCaseMap(data);
+    applyTagData(data);
     await chrome.storage.local.set({ [cacheKey]: { tags: allUserTags, counts: allUserTagCounts, timestamp: Date.now() } });
   } catch (e) { console.error(e); }
 }

@@ -589,6 +589,21 @@
   "optShowSuggestTags": {
     "message": "在弹窗中显示 Pinboard 推荐标签"
   },
+  "tagSyncLabel": {
+    "message": "标签同步模式"
+  },
+  "tagSyncCached": {
+    "message": "缓存（默认，10 分钟 TTL）"
+  },
+  "tagSyncFresh": {
+    "message": "实时（每次都请求 — 最新，稍慢）"
+  },
+  "tagSyncPrewarmed": {
+    "message": "预热（后台刷新，打开即用）"
+  },
+  "tagSyncHint": {
+    "message": "预热模式使用 chrome.alarms 每 15 分钟在后台刷新一次标签。"
+  },
   "labelTagPresets": {
     "message": "标签预设"
   },

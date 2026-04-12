@@ -589,6 +589,21 @@
   "optShowSuggestTags": {
     "message": "Pinboard-Tagvorschläge im Popup anzeigen"
   },
+  "tagSyncLabel": {
+    "message": "Tag-Synchronisationsmodus"
+  },
+  "tagSyncCached": {
+    "message": "Cache (Standard, 10 Min. TTL)"
+  },
+  "tagSyncFresh": {
+    "message": "Aktuell (immer abrufen — neueste Daten, langsamer)"
+  },
+  "tagSyncPrewarmed": {
+    "message": "Vorgewärmt (Hintergrund-Aktualisierung, sofortiges Popup)"
+  },
+  "tagSyncHint": {
+    "message": "Vorgewärmt nutzt chrome.alarms, um Tags alle 15 Minuten im Hintergrund zu aktualisieren."
+  },
   "labelTagPresets": {
     "message": "Tag-Vorlagen"
   },

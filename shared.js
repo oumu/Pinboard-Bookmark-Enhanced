@@ -72,6 +72,7 @@ const SETTINGS_DEFAULTS = {
   customFont: "",
   optRespectTagCase: true, aiTagSeparator: "-",
   offlineQueueEnabled: true, optShowBadge: false,
+  tagSyncMode: "cached", // "fresh" | "cached" | "prewarmed"
   optCheckBookmarkStatus: true, optShowSuggestTags: true,
   tagPresets: "", optAutoCloseAfterSave: true,
   themePresetKey: "", optPopupFollowTheme: true

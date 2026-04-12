@@ -589,6 +589,21 @@
   "optShowSuggestTags": {
     "message": "Afficher les tags suggérés par Pinboard dans le popup"
   },
+  "tagSyncLabel": {
+    "message": "Mode de synchronisation des tags"
+  },
+  "tagSyncCached": {
+    "message": "Cache (par défaut, TTL 10 min)"
+  },
+  "tagSyncFresh": {
+    "message": "Frais (toujours à jour — plus lent)"
+  },
+  "tagSyncPrewarmed": {
+    "message": "Préchauffé (rafraîchissement en arrière-plan, popup instantané)"
+  },
+  "tagSyncHint": {
+    "message": "Le mode préchauffé utilise chrome.alarms pour rafraîchir les tags toutes les 15 min en arrière-plan."
+  },
   "labelTagPresets": {
     "message": "Préréglages de tags"
   },

@@ -589,6 +589,21 @@
   "optShowSuggestTags": {
     "message": "在彈出式視窗中顯示 Pinboard 推薦標籤"
   },
+  "tagSyncLabel": {
+    "message": "標籤同步模式"
+  },
+  "tagSyncCached": {
+    "message": "快取（預設，10 分鐘 TTL）"
+  },
+  "tagSyncFresh": {
+    "message": "即時（每次都請求 — 最新，較慢）"
+  },
+  "tagSyncPrewarmed": {
+    "message": "預熱（背景更新，開啟即用）"
+  },
+  "tagSyncHint": {
+    "message": "預熱模式使用 chrome.alarms 每 15 分鐘在背景更新一次標籤。"
+  },
   "labelTagPresets": {
     "message": "標籤預設"
   },

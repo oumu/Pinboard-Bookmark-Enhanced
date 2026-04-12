@@ -192,6 +192,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   const srcRadio = document.querySelector(`input[name="ai-content-source"][value="${s.aiContentSource || 'local'}"]`);
   if (srcRadio) srcRadio.checked = true;
 
+  // Tag Sync Mode radio
+  const tsRadio = document.querySelector(`input[name="tag-sync-mode"][value="${s.tagSyncMode || 'cached'}"]`);
+  if (tsRadio) tsRadio.checked = true;
+
   // ---- Fill checkbox fields ----
   const checkMap = {
     "opt-private-default": s.optPrivateDefault, "opt-private-incognito": s.optPrivateIncognito,
@@ -404,6 +408,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       aiCacheDuration: Math.max(0, parseInt(document.getElementById("opt-ai-cache-duration").value) || 60),
       aiTagSeparator: document.getElementById("opt-ai-tag-separator").value,
       aiContentSource: document.querySelector('input[name="ai-content-source"]:checked')?.value || "local",
+      tagSyncMode: document.querySelector('input[name="tag-sync-mode"]:checked')?.value || "cached",
       jinaApiKey: obfuscateKey(document.getElementById("opt-jina-key").value.trim()),
       customTagPrompt: document.getElementById("opt-custom-tag-prompt").value,
       customSummaryPrompt: document.getElementById("opt-custom-summary-prompt").value,
