@@ -191,7 +191,23 @@ a.help { color: #9aa0a6 !important; background: #e4e6e9 !important; text-decorat
 #footer, .colophon, .colophon a { color: #9aa0a6 !important; }
 a { color: #1a73e8 !important; }
 a:hover { color: #174ea6 !important; }
-h2 { color: #3c4043 !important; }`
+h2 { color: #3c4043 !important; }
+
+/* ---- Bundles page (/u:/bundles/) — beats inline styles ---- */
+#main_column form[name="sort"] > table { width: 100% !important; max-width: 880px !important; border-collapse: separate !important; border-spacing: 0 4px !important; margin-top: 8px !important; }
+#main_column form[name="sort"] table tr { background: transparent !important; }
+#main_column form[name="sort"] table tr:hover { background: rgba(26,115,232,0.06) !important; }
+#main_column form[name="sort"] table td { padding: 6px 10px !important; vertical-align: middle !important; border: none !important; }
+#main_column form[name="sort"] table td[style*="text-align:right"] { min-width: 160px !important; padding-right: 14px !important; white-space: nowrap !important; }
+#main_column form[name="sort"] table input[name^="id_"] { width: 38px !important; min-width: 38px !important; max-width: 38px !important; padding: 3px 4px !important; margin-right: 10px !important; text-align: center !important; font-size: 12px !important; line-height: 1.2 !important; border-radius: 4px !important; box-sizing: border-box !important; vertical-align: middle !important; border: 1px solid #dadce0 !important; background: #fff !important; color: #1a1a2e !important; font-weight: 600 !important; }
+#main_column form[name="sort"] table input[name^="id_"]:focus { border-color: #1a73e8 !important; box-shadow: 0 0 0 2px rgba(26,115,232,0.15) !important; outline: none !important; }
+#main_column form[name="sort"] table a.bundle { font-weight: 600 !important; font-style: normal !important; letter-spacing: 0.01em !important; padding: 2px 4px !important; border-radius: 3px !important; }
+#main_column form[name="sort"] table a[style*="color:#aaa"], #main_column form[name="sort"] table a[style*="color: #aaa"] { color: #5f6368 !important; opacity: 1 !important; text-decoration: none !important; font-size: 12px !important; margin-left: 4px !important; }
+#main_column form[name="sort"] table a[style*="color:#aaa"]:hover { color: #1a73e8 !important; text-decoration: underline !important; }
+#main_column form[name="sort"] table td a.edit { color: #5f6368 !important; opacity: 0.7 !important; transition: opacity 0.15s ease !important; }
+#main_column form[name="sort"] table td a.destroy { color: #d93025 !important; opacity: 0.85 !important; font-weight: 600 !important; }
+#main_column form[name="sort"] table tr:hover td a.edit { color: #1a73e8 !important; opacity: 1 !important; }
+#main_column form[name="sort"] table tr:hover td a.destroy { opacity: 1 !important; }`
   },
 
   // ---- 2. Nord Night (Dark) ----
@@ -346,7 +362,23 @@ hr { border-color: #434c5e !important; }
 a { color: #81a1c1 !important; }
 a:hover { color: #88c0d0 !important; }
 h2 { color: #81a1c1 !important; }
-::selection { background: #434c5e !important; }`
+::selection { background: #434c5e !important; }
+
+/* ---- Bundles page (/u:/bundles/) ---- */
+#main_column form[name="sort"] > table { width: 100% !important; max-width: 880px !important; border-collapse: separate !important; border-spacing: 0 4px !important; margin-top: 8px !important; }
+#main_column form[name="sort"] table tr { background: transparent !important; }
+#main_column form[name="sort"] table tr:hover { background: rgba(136,192,208,0.08) !important; }
+#main_column form[name="sort"] table td { padding: 6px 10px !important; vertical-align: middle !important; border: none !important; }
+#main_column form[name="sort"] table td[style*="text-align:right"] { min-width: 160px !important; padding-right: 14px !important; white-space: nowrap !important; }
+#main_column form[name="sort"] table input[name^="id_"] { width: 38px !important; min-width: 38px !important; max-width: 38px !important; padding: 3px 4px !important; margin-right: 10px !important; text-align: center !important; font-size: 12px !important; line-height: 1.2 !important; border-radius: 4px !important; box-sizing: border-box !important; vertical-align: middle !important; border: 1px solid #4c566a !important; background: #3b4252 !important; color: #d8dee9 !important; font-weight: 600 !important; }
+#main_column form[name="sort"] table input[name^="id_"]:focus { border-color: #88c0d0 !important; box-shadow: 0 0 0 2px rgba(136,192,208,0.25) !important; outline: none !important; }
+#main_column form[name="sort"] table a.bundle { font-weight: 600 !important; font-style: normal !important; letter-spacing: 0.01em !important; padding: 2px 4px !important; border-radius: 3px !important; }
+#main_column form[name="sort"] table a[style*="color:#aaa"], #main_column form[name="sort"] table a[style*="color: #aaa"] { color: #4c566a !important; opacity: 1 !important; text-decoration: none !important; font-size: 12px !important; margin-left: 4px !important; }
+#main_column form[name="sort"] table a[style*="color:#aaa"]:hover { color: #88c0d0 !important; text-decoration: underline !important; }
+#main_column form[name="sort"] table td a.edit { color: #4c566a !important; opacity: 0.75 !important; transition: opacity 0.15s ease !important; }
+#main_column form[name="sort"] table td a.destroy { color: #bf616a !important; opacity: 0.85 !important; font-weight: 600 !important; }
+#main_column form[name="sort"] table tr:hover td a.edit { color: #88c0d0 !important; opacity: 1 !important; }
+#main_column form[name="sort"] table tr:hover td a.destroy { opacity: 1 !important; }`
   },
 
   // ---- 3. Terminal (Dark) ----
@@ -514,7 +546,24 @@ hr { border-color: #33ff3325 !important; }
 a { color: #33ff33 !important; }
 a:hover { color: #66ff66 !important; }
 h2 { color: #33ff33 !important; }
-::selection { background: #33ff3340 !important; color: #fff !important; }`
+::selection { background: #33ff3340 !important; color: #fff !important; }
+
+/* ---- Bundles page (/u:/bundles/) — retro CRT style ---- */
+#main_column form[name="sort"] > table { width: 100% !important; max-width: 880px !important; border-collapse: separate !important; border-spacing: 0 4px !important; margin-top: 8px !important; }
+#main_column form[name="sort"] table tr { background: transparent !important; }
+#main_column form[name="sort"] table tr:hover { background: rgba(51,255,51,0.1) !important; }
+#main_column form[name="sort"] table td { padding: 6px 10px !important; vertical-align: middle !important; border: none !important; font-family: "Fira Code", "Cascadia Code", "Consolas", monospace !important; }
+#main_column form[name="sort"] table td[style*="text-align:right"] { min-width: 160px !important; padding-right: 14px !important; white-space: nowrap !important; }
+#main_column form[name="sort"] table input[name^="id_"] { width: 38px !important; min-width: 38px !important; max-width: 38px !important; padding: 3px 4px !important; margin-right: 10px !important; text-align: center !important; font-size: 12px !important; line-height: 1.2 !important; border-radius: 0 !important; box-sizing: border-box !important; vertical-align: middle !important; border: 1px solid #33ff3380 !important; background: #0a0a0a !important; color: #33ff33 !important; font-family: "Fira Code", "Consolas", monospace !important; font-weight: 600 !important; }
+#main_column form[name="sort"] table input[name^="id_"]:focus { border-color: #33ff33 !important; box-shadow: 0 0 0 2px rgba(51,255,51,0.3), 0 0 8px rgba(51,255,51,0.4) !important; outline: none !important; }
+#main_column form[name="sort"] table a.bundle { font-weight: 700 !important; font-style: normal !important; letter-spacing: 0.02em !important; padding: 2px 4px !important; text-transform: uppercase !important; }
+#main_column form[name="sort"] table a.bundle::before { content: "> " !important; opacity: 0.6 !important; }
+#main_column form[name="sort"] table a[style*="color:#aaa"], #main_column form[name="sort"] table a[style*="color: #aaa"] { color: #22aa22 !important; opacity: 1 !important; text-decoration: none !important; font-size: 12px !important; margin-left: 4px !important; }
+#main_column form[name="sort"] table a[style*="color:#aaa"]:hover { color: #33ff33 !important; text-decoration: underline !important; }
+#main_column form[name="sort"] table td a.edit { color: #22aa22 !important; opacity: 0.75 !important; transition: opacity 0.15s ease, text-shadow 0.15s ease !important; }
+#main_column form[name="sort"] table td a.destroy { color: #ff5555 !important; opacity: 0.9 !important; font-weight: 700 !important; }
+#main_column form[name="sort"] table tr:hover td a.edit { color: #33ff33 !important; opacity: 1 !important; text-shadow: 0 0 4px rgba(51,255,51,0.6) !important; }
+#main_column form[name="sort"] table tr:hover td a.destroy { opacity: 1 !important; text-shadow: 0 0 4px rgba(255,85,85,0.6) !important; }`
   },
 
   // ---- 4. Paper & Ink (Light) ----
@@ -674,7 +723,23 @@ a.help { color: #aaa !important; background: #1a1a1a !important; }
 #footer, .colophon, .colophon a { color: #bbb !important; }
 a { color: #1a3a5c !important; }
 a:hover { color: #2a5a8c !important; }
-h2 { color: #6b4c3b !important; font-family: "Georgia", serif !important; }`
+h2 { color: #6b4c3b !important; font-family: "Georgia", serif !important; }
+
+/* ---- Bundles page (/u:/bundles/) — paper & ink ---- */
+#main_column form[name="sort"] > table { width: 100% !important; max-width: 880px !important; border-collapse: separate !important; border-spacing: 0 6px !important; margin-top: 8px !important; }
+#main_column form[name="sort"] table tr { background: transparent !important; }
+#main_column form[name="sort"] table tr:hover { background: rgba(139,69,19,0.07) !important; }
+#main_column form[name="sort"] table td { padding: 7px 10px !important; vertical-align: middle !important; border: none !important; font-family: "Georgia", "Noto Serif", serif !important; }
+#main_column form[name="sort"] table td[style*="text-align:right"] { min-width: 160px !important; padding-right: 14px !important; white-space: nowrap !important; }
+#main_column form[name="sort"] table input[name^="id_"] { width: 38px !important; min-width: 38px !important; max-width: 38px !important; padding: 3px 4px !important; margin-right: 10px !important; text-align: center !important; font-size: 12px !important; line-height: 1.2 !important; border-radius: 2px !important; box-sizing: border-box !important; vertical-align: middle !important; border: 1px solid #d4c5a9 !important; background: #fffdf6 !important; color: #2c2c2c !important; font-family: "Georgia", serif !important; font-weight: 600 !important; }
+#main_column form[name="sort"] table input[name^="id_"]:focus { border-color: #8b4513 !important; box-shadow: 0 0 0 2px rgba(139,69,19,0.18) !important; outline: none !important; }
+#main_column form[name="sort"] table a.bundle { font-weight: 700 !important; font-style: italic !important; letter-spacing: 0.02em !important; padding: 2px 4px !important; font-family: "Georgia", serif !important; }
+#main_column form[name="sort"] table a[style*="color:#aaa"], #main_column form[name="sort"] table a[style*="color: #aaa"] { color: #8b7c6a !important; opacity: 1 !important; text-decoration: none !important; font-size: 12px !important; font-style: italic !important; margin-left: 4px !important; }
+#main_column form[name="sort"] table a[style*="color:#aaa"]:hover { color: #8b4513 !important; text-decoration: underline !important; }
+#main_column form[name="sort"] table td a.edit { color: #8b7c6a !important; opacity: 0.75 !important; font-style: italic !important; transition: opacity 0.15s ease !important; }
+#main_column form[name="sort"] table td a.destroy { color: #a03024 !important; opacity: 0.85 !important; font-weight: 600 !important; font-style: italic !important; }
+#main_column form[name="sort"] table tr:hover td a.edit { color: #8b4513 !important; opacity: 1 !important; }
+#main_column form[name="sort"] table tr:hover td a.destroy { opacity: 1 !important; }`
   },
 
   // ---- 5. Dracula (Dark) ----
@@ -834,7 +899,23 @@ hr { border-color: #44475a !important; }
 a { color: #bd93f9 !important; }
 a:hover { color: #ff79c6 !important; }
 h2 { color: #bd93f9 !important; }
-::selection { background: #6272a4 !important; color: #f8f8f2 !important; }`
+::selection { background: #6272a4 !important; color: #f8f8f2 !important; }
+
+/* ---- Bundles page (/u:/bundles/) — Dracula ---- */
+#main_column form[name="sort"] > table { width: 100% !important; max-width: 880px !important; border-collapse: separate !important; border-spacing: 0 4px !important; margin-top: 8px !important; }
+#main_column form[name="sort"] table tr { background: transparent !important; border-radius: 6px !important; }
+#main_column form[name="sort"] table tr:hover { background: rgba(189,147,249,0.1) !important; }
+#main_column form[name="sort"] table td { padding: 6px 10px !important; vertical-align: middle !important; border: none !important; }
+#main_column form[name="sort"] table td[style*="text-align:right"] { min-width: 160px !important; padding-right: 14px !important; white-space: nowrap !important; }
+#main_column form[name="sort"] table input[name^="id_"] { width: 38px !important; min-width: 38px !important; max-width: 38px !important; padding: 3px 4px !important; margin-right: 10px !important; text-align: center !important; font-size: 12px !important; line-height: 1.2 !important; border-radius: 6px !important; box-sizing: border-box !important; vertical-align: middle !important; border: 1px solid #44475a !important; background: #21222c !important; color: #f8f8f2 !important; font-weight: 600 !important; }
+#main_column form[name="sort"] table input[name^="id_"]:focus { border-color: #ff79c6 !important; box-shadow: 0 0 0 2px rgba(255,121,198,0.25) !important; outline: none !important; }
+#main_column form[name="sort"] table a.bundle { font-weight: 700 !important; font-style: normal !important; letter-spacing: 0.01em !important; padding: 2px 4px !important; border-radius: 3px !important; }
+#main_column form[name="sort"] table a[style*="color:#aaa"], #main_column form[name="sort"] table a[style*="color: #aaa"] { color: #6272a4 !important; opacity: 1 !important; text-decoration: none !important; font-size: 12px !important; margin-left: 4px !important; }
+#main_column form[name="sort"] table a[style*="color:#aaa"]:hover { color: #ff79c6 !important; text-decoration: underline !important; }
+#main_column form[name="sort"] table td a.edit { color: #6272a4 !important; opacity: 0.75 !important; transition: opacity 0.15s ease !important; }
+#main_column form[name="sort"] table td a.destroy { color: #ff5555 !important; opacity: 0.9 !important; font-weight: 600 !important; }
+#main_column form[name="sort"] table tr:hover td a.edit { color: #ff79c6 !important; opacity: 1 !important; }
+#main_column form[name="sort"] table tr:hover td a.destroy { opacity: 1 !important; }`
   },
 
   // ---- 6. Flexoki Adaptive (Light + Dark) ----
@@ -1108,7 +1189,35 @@ html.pbp-dark #footer, html.pbp-dark .colophon, html.pbp-dark .colophon a { colo
 html.pbp-dark hr { border-color: #403E3C !important; }
 html.pbp-dark a { color: #4385BE !important; }
 html.pbp-dark a:hover { color: #5DA0D0 !important; }
-html.pbp-dark h2 { color: #8B7EC8 !important; }`
+html.pbp-dark h2 { color: #8B7EC8 !important; }
+
+/* ---- Bundles page (/u:/bundles/) — Flexoki adaptive ---- */
+#main_column form[name="sort"] > table { width: 100% !important; max-width: 880px !important; border-collapse: separate !important; border-spacing: 0 4px !important; margin-top: 8px !important; }
+#main_column form[name="sort"] table tr { background: transparent !important; }
+#main_column form[name="sort"] table td { padding: 6px 10px !important; vertical-align: middle !important; border: none !important; }
+#main_column form[name="sort"] table td[style*="text-align:right"] { min-width: 160px !important; padding-right: 14px !important; white-space: nowrap !important; }
+#main_column form[name="sort"] table a.bundle { font-weight: 600 !important; font-style: normal !important; letter-spacing: 0.01em !important; padding: 2px 4px !important; border-radius: 3px !important; }
+
+/* Flexoki — LIGHT mode */
+#main_column form[name="sort"] table tr:hover { background: rgba(32,94,166,0.08) !important; }
+#main_column form[name="sort"] table input[name^="id_"] { width: 38px !important; min-width: 38px !important; max-width: 38px !important; padding: 3px 4px !important; margin-right: 10px !important; text-align: center !important; font-size: 12px !important; line-height: 1.2 !important; border-radius: 4px !important; box-sizing: border-box !important; vertical-align: middle !important; border: 1px solid #E6E4D9 !important; background: #F2F0E5 !important; color: #100F0F !important; font-weight: 600 !important; }
+#main_column form[name="sort"] table input[name^="id_"]:focus { border-color: #205EA6 !important; box-shadow: 0 0 0 2px rgba(32,94,166,0.2) !important; outline: none !important; }
+#main_column form[name="sort"] table a[style*="color:#aaa"], #main_column form[name="sort"] table a[style*="color: #aaa"] { color: #6F6E69 !important; opacity: 1 !important; text-decoration: none !important; font-size: 12px !important; margin-left: 4px !important; }
+#main_column form[name="sort"] table a[style*="color:#aaa"]:hover { color: #205EA6 !important; text-decoration: underline !important; }
+#main_column form[name="sort"] table td a.edit { color: #6F6E69 !important; opacity: 0.75 !important; transition: opacity 0.15s ease !important; }
+#main_column form[name="sort"] table td a.destroy { color: #AF3029 !important; opacity: 0.85 !important; font-weight: 600 !important; }
+#main_column form[name="sort"] table tr:hover td a.edit { color: #205EA6 !important; opacity: 1 !important; }
+#main_column form[name="sort"] table tr:hover td a.destroy { opacity: 1 !important; }
+
+/* Flexoki — DARK mode overrides */
+html.pbp-dark #main_column form[name="sort"] table tr:hover { background: rgba(67,133,190,0.12) !important; }
+html.pbp-dark #main_column form[name="sort"] table input[name^="id_"] { border-color: #282726 !important; background: #1C1B1A !important; color: #CECDC3 !important; }
+html.pbp-dark #main_column form[name="sort"] table input[name^="id_"]:focus { border-color: #4385BE !important; box-shadow: 0 0 0 2px rgba(67,133,190,0.25) !important; }
+html.pbp-dark #main_column form[name="sort"] table a[style*="color:#aaa"], html.pbp-dark #main_column form[name="sort"] table a[style*="color: #aaa"] { color: #878580 !important; }
+html.pbp-dark #main_column form[name="sort"] table a[style*="color:#aaa"]:hover { color: #4385BE !important; }
+html.pbp-dark #main_column form[name="sort"] table td a.edit { color: #878580 !important; }
+html.pbp-dark #main_column form[name="sort"] table td a.destroy { color: #D14D41 !important; }
+html.pbp-dark #main_column form[name="sort"] table tr:hover td a.edit { color: #4385BE !important; }`
   },
 
   // ---- 7. Solarized Light ----
@@ -1263,7 +1372,23 @@ input[type="radio"] { accent-color: #268bd2 !important; }
 a { color: #268bd2 !important; }
 a:hover { color: #2aa198 !important; }
 h2 { color: #586e75 !important; }
-::selection { background: #eee8d5 !important; }`
+::selection { background: #eee8d5 !important; }
+
+/* ---- Bundles page (/u:/bundles/) — Solarized Light ---- */
+#main_column form[name="sort"] > table { width: 100% !important; max-width: 880px !important; border-collapse: separate !important; border-spacing: 0 4px !important; margin-top: 8px !important; }
+#main_column form[name="sort"] table tr { background: transparent !important; }
+#main_column form[name="sort"] table tr:hover { background: rgba(38,139,210,0.08) !important; }
+#main_column form[name="sort"] table td { padding: 6px 10px !important; vertical-align: middle !important; border: none !important; }
+#main_column form[name="sort"] table td[style*="text-align:right"] { min-width: 160px !important; padding-right: 14px !important; white-space: nowrap !important; }
+#main_column form[name="sort"] table input[name^="id_"] { width: 38px !important; min-width: 38px !important; max-width: 38px !important; padding: 3px 4px !important; margin-right: 10px !important; text-align: center !important; font-size: 12px !important; line-height: 1.2 !important; border-radius: 3px !important; box-sizing: border-box !important; vertical-align: middle !important; border: 1px solid #93a1a1 !important; background: #eee8d5 !important; color: #657b83 !important; font-weight: 600 !important; }
+#main_column form[name="sort"] table input[name^="id_"]:focus { border-color: #268bd2 !important; box-shadow: 0 0 0 2px rgba(38,139,210,0.25) !important; outline: none !important; }
+#main_column form[name="sort"] table a.bundle { font-weight: 600 !important; font-style: normal !important; letter-spacing: 0.02em !important; padding: 2px 4px !important; border-radius: 3px !important; }
+#main_column form[name="sort"] table a[style*="color:#aaa"], #main_column form[name="sort"] table a[style*="color: #aaa"] { color: #93a1a1 !important; opacity: 1 !important; text-decoration: none !important; font-size: 12px !important; margin-left: 4px !important; }
+#main_column form[name="sort"] table a[style*="color:#aaa"]:hover { color: #268bd2 !important; text-decoration: underline !important; }
+#main_column form[name="sort"] table td a.edit { color: #93a1a1 !important; opacity: 0.8 !important; transition: opacity 0.15s ease !important; }
+#main_column form[name="sort"] table td a.destroy { color: #dc322f !important; opacity: 0.85 !important; font-weight: 600 !important; }
+#main_column form[name="sort"] table tr:hover td a.edit { color: #268bd2 !important; opacity: 1 !important; }
+#main_column form[name="sort"] table tr:hover td a.destroy { opacity: 1 !important; }`
   },
 
   // ---- 8. Solarized Dark ----
@@ -1420,7 +1545,23 @@ hr { border-color: #094b5a !important; }
 a { color: #268bd2 !important; }
 a:hover { color: #2aa198 !important; }
 h2 { color: #93a1a1 !important; }
-::selection { background: #0a4a5a !important; color: #eee8d5 !important; }`
+::selection { background: #0a4a5a !important; color: #eee8d5 !important; }
+
+/* ---- Bundles page (/u:/bundles/) — Solarized Dark ---- */
+#main_column form[name="sort"] > table { width: 100% !important; max-width: 880px !important; border-collapse: separate !important; border-spacing: 0 4px !important; margin-top: 8px !important; }
+#main_column form[name="sort"] table tr { background: transparent !important; }
+#main_column form[name="sort"] table tr:hover { background: rgba(38,139,210,0.1) !important; }
+#main_column form[name="sort"] table td { padding: 6px 10px !important; vertical-align: middle !important; border: none !important; }
+#main_column form[name="sort"] table td[style*="text-align:right"] { min-width: 160px !important; padding-right: 14px !important; white-space: nowrap !important; }
+#main_column form[name="sort"] table input[name^="id_"] { width: 38px !important; min-width: 38px !important; max-width: 38px !important; padding: 3px 4px !important; margin-right: 10px !important; text-align: center !important; font-size: 12px !important; line-height: 1.2 !important; border-radius: 3px !important; box-sizing: border-box !important; vertical-align: middle !important; border: 1px solid #586e75 !important; background: #073642 !important; color: #839496 !important; font-weight: 600 !important; }
+#main_column form[name="sort"] table input[name^="id_"]:focus { border-color: #268bd2 !important; box-shadow: 0 0 0 2px rgba(38,139,210,0.3) !important; outline: none !important; }
+#main_column form[name="sort"] table a.bundle { font-weight: 600 !important; font-style: normal !important; letter-spacing: 0.02em !important; padding: 2px 4px !important; border-radius: 3px !important; }
+#main_column form[name="sort"] table a[style*="color:#aaa"], #main_column form[name="sort"] table a[style*="color: #aaa"] { color: #586e75 !important; opacity: 1 !important; text-decoration: none !important; font-size: 12px !important; margin-left: 4px !important; }
+#main_column form[name="sort"] table a[style*="color:#aaa"]:hover { color: #268bd2 !important; text-decoration: underline !important; }
+#main_column form[name="sort"] table td a.edit { color: #586e75 !important; opacity: 0.8 !important; transition: opacity 0.15s ease !important; }
+#main_column form[name="sort"] table td a.destroy { color: #dc322f !important; opacity: 0.85 !important; font-weight: 600 !important; }
+#main_column form[name="sort"] table tr:hover td a.edit { color: #268bd2 !important; opacity: 1 !important; }
+#main_column form[name="sort"] table tr:hover td a.destroy { opacity: 1 !important; }`
   },
 
   // ---- 9. Catppuccin Latte ----
@@ -1574,7 +1715,23 @@ input[type="radio"] { accent-color: #1e66f5 !important; }
 a { color: #1e66f5 !important; }
 a:hover { color: #179299 !important; }
 h2 { color: #6c6f85 !important; }
-::selection { background: #e6e9ef !important; }`
+::selection { background: #e6e9ef !important; }
+
+/* ---- Bundles page (/u:/bundles/) — Catppuccin Latte ---- */
+#main_column form[name="sort"] > table { width: 100% !important; max-width: 880px !important; border-collapse: separate !important; border-spacing: 0 4px !important; margin-top: 8px !important; }
+#main_column form[name="sort"] table tr { background: transparent !important; border-radius: 8px !important; }
+#main_column form[name="sort"] table tr:hover { background: rgba(30,102,245,0.06) !important; }
+#main_column form[name="sort"] table td { padding: 6px 10px !important; vertical-align: middle !important; border: none !important; }
+#main_column form[name="sort"] table td[style*="text-align:right"] { min-width: 160px !important; padding-right: 14px !important; white-space: nowrap !important; }
+#main_column form[name="sort"] table input[name^="id_"] { width: 38px !important; min-width: 38px !important; max-width: 38px !important; padding: 3px 4px !important; margin-right: 10px !important; text-align: center !important; font-size: 12px !important; line-height: 1.2 !important; border-radius: 8px !important; box-sizing: border-box !important; vertical-align: middle !important; border: 1px solid #ccd0da !important; background: #e6e9ef !important; color: #4c4f69 !important; font-weight: 600 !important; }
+#main_column form[name="sort"] table input[name^="id_"]:focus { border-color: #1e66f5 !important; box-shadow: 0 0 0 2px rgba(30,102,245,0.2) !important; outline: none !important; }
+#main_column form[name="sort"] table a.bundle { font-weight: 600 !important; font-style: normal !important; letter-spacing: 0.01em !important; padding: 2px 6px !important; border-radius: 6px !important; }
+#main_column form[name="sort"] table a[style*="color:#aaa"], #main_column form[name="sort"] table a[style*="color: #aaa"] { color: #8c8fa1 !important; opacity: 1 !important; text-decoration: none !important; font-size: 12px !important; margin-left: 4px !important; }
+#main_column form[name="sort"] table a[style*="color:#aaa"]:hover { color: #1e66f5 !important; text-decoration: underline !important; }
+#main_column form[name="sort"] table td a.edit { color: #8c8fa1 !important; opacity: 0.75 !important; transition: opacity 0.15s ease !important; }
+#main_column form[name="sort"] table td a.destroy { color: #d20f39 !important; opacity: 0.85 !important; font-weight: 600 !important; }
+#main_column form[name="sort"] table tr:hover td a.edit { color: #1e66f5 !important; opacity: 1 !important; }
+#main_column form[name="sort"] table tr:hover td a.destroy { opacity: 1 !important; }`
   },
 
   // ---- 10. Catppuccin Mocha ----
@@ -1730,7 +1887,23 @@ hr { border-color: #45475a !important; }
 a { color: #89b4fa !important; }
 a:hover { color: #cba6f7 !important; }
 h2 { color: #cba6f7 !important; }
-::selection { background: #585b70 !important; color: #cdd6f4 !important; }`
+::selection { background: #585b70 !important; color: #cdd6f4 !important; }
+
+/* ---- Bundles page (/u:/bundles/) — Catppuccin Mocha ---- */
+#main_column form[name="sort"] > table { width: 100% !important; max-width: 880px !important; border-collapse: separate !important; border-spacing: 0 4px !important; margin-top: 8px !important; }
+#main_column form[name="sort"] table tr { background: transparent !important; border-radius: 8px !important; }
+#main_column form[name="sort"] table tr:hover { background: rgba(137,180,250,0.08) !important; }
+#main_column form[name="sort"] table td { padding: 6px 10px !important; vertical-align: middle !important; border: none !important; }
+#main_column form[name="sort"] table td[style*="text-align:right"] { min-width: 160px !important; padding-right: 14px !important; white-space: nowrap !important; }
+#main_column form[name="sort"] table input[name^="id_"] { width: 38px !important; min-width: 38px !important; max-width: 38px !important; padding: 3px 4px !important; margin-right: 10px !important; text-align: center !important; font-size: 12px !important; line-height: 1.2 !important; border-radius: 8px !important; box-sizing: border-box !important; vertical-align: middle !important; border: 1px solid #45475a !important; background: #313244 !important; color: #cdd6f4 !important; font-weight: 600 !important; }
+#main_column form[name="sort"] table input[name^="id_"]:focus { border-color: #89b4fa !important; box-shadow: 0 0 0 2px rgba(137,180,250,0.25) !important; outline: none !important; }
+#main_column form[name="sort"] table a.bundle { font-weight: 600 !important; font-style: normal !important; letter-spacing: 0.01em !important; padding: 2px 6px !important; border-radius: 6px !important; }
+#main_column form[name="sort"] table a[style*="color:#aaa"], #main_column form[name="sort"] table a[style*="color: #aaa"] { color: #7f849c !important; opacity: 1 !important; text-decoration: none !important; font-size: 12px !important; margin-left: 4px !important; }
+#main_column form[name="sort"] table a[style*="color:#aaa"]:hover { color: #89b4fa !important; text-decoration: underline !important; }
+#main_column form[name="sort"] table td a.edit { color: #7f849c !important; opacity: 0.75 !important; transition: opacity 0.15s ease !important; }
+#main_column form[name="sort"] table td a.destroy { color: #f38ba8 !important; opacity: 0.9 !important; font-weight: 600 !important; }
+#main_column form[name="sort"] table tr:hover td a.edit { color: #89b4fa !important; opacity: 1 !important; }
+#main_column form[name="sort"] table tr:hover td a.destroy { opacity: 1 !important; }`
   },
 
   // ---- 11. Gruvbox Dark ----
@@ -1888,7 +2061,23 @@ hr { border-color: #504945 !important; }
 a { color: #83a598 !important; }
 a:hover { color: #d3869b !important; }
 h2 { color: #d3869b !important; }
-::selection { background: #665c54 !important; color: #fbf1c7 !important; }`
+::selection { background: #665c54 !important; color: #fbf1c7 !important; }
+
+/* ---- Bundles page (/u:/bundles/) — Gruvbox Dark ---- */
+#main_column form[name="sort"] > table { width: 100% !important; max-width: 880px !important; border-collapse: separate !important; border-spacing: 0 4px !important; margin-top: 8px !important; }
+#main_column form[name="sort"] table tr { background: transparent !important; }
+#main_column form[name="sort"] table tr:hover { background: rgba(168,153,132,0.12) !important; }
+#main_column form[name="sort"] table td { padding: 6px 10px !important; vertical-align: middle !important; border: none !important; font-family: "IBM Plex Sans", "Inter", sans-serif !important; }
+#main_column form[name="sort"] table td[style*="text-align:right"] { min-width: 160px !important; padding-right: 14px !important; white-space: nowrap !important; }
+#main_column form[name="sort"] table input[name^="id_"] { width: 38px !important; min-width: 38px !important; max-width: 38px !important; padding: 3px 4px !important; margin-right: 10px !important; text-align: center !important; font-size: 12px !important; line-height: 1.2 !important; border-radius: 2px !important; box-sizing: border-box !important; vertical-align: middle !important; border: 1px solid #504945 !important; background: #3c3836 !important; color: #ebdbb2 !important; font-weight: 600 !important; }
+#main_column form[name="sort"] table input[name^="id_"]:focus { border-color: #83a598 !important; box-shadow: 0 0 0 2px rgba(131,165,152,0.3) !important; outline: none !important; }
+#main_column form[name="sort"] table a.bundle { font-weight: 700 !important; font-style: normal !important; letter-spacing: 0.02em !important; padding: 2px 4px !important; border-radius: 2px !important; }
+#main_column form[name="sort"] table a[style*="color:#aaa"], #main_column form[name="sort"] table a[style*="color: #aaa"] { color: #a89984 !important; opacity: 1 !important; text-decoration: none !important; font-size: 12px !important; margin-left: 4px !important; }
+#main_column form[name="sort"] table a[style*="color:#aaa"]:hover { color: #83a598 !important; text-decoration: underline !important; }
+#main_column form[name="sort"] table td a.edit { color: #a89984 !important; opacity: 0.8 !important; transition: opacity 0.15s ease !important; }
+#main_column form[name="sort"] table td a.destroy { color: #fb4934 !important; opacity: 0.9 !important; font-weight: 700 !important; }
+#main_column form[name="sort"] table tr:hover td a.edit { color: #83a598 !important; opacity: 1 !important; }
+#main_column form[name="sort"] table tr:hover td a.destroy { opacity: 1 !important; }`
   },
 
   // ---- 12. Rose Pine ----
@@ -2046,7 +2235,23 @@ hr { border-color: #26233a !important; }
 a { color: #c4a7e7 !important; }
 a:hover { color: #ebbcba !important; }
 h2 { color: #ebbcba !important; }
-::selection { background: #3e3a5e !important; color: #e0def4 !important; }`
+::selection { background: #3e3a5e !important; color: #e0def4 !important; }
+
+/* ---- Bundles page (/u:/bundles/) — Rosé Pine ---- */
+#main_column form[name="sort"] > table { width: 100% !important; max-width: 880px !important; border-collapse: separate !important; border-spacing: 0 6px !important; margin-top: 8px !important; }
+#main_column form[name="sort"] table tr { background: transparent !important; }
+#main_column form[name="sort"] table tr:hover { background: rgba(196,167,231,0.08) !important; }
+#main_column form[name="sort"] table td { padding: 7px 10px !important; vertical-align: middle !important; border: none !important; font-family: "Lora", "Georgia", serif !important; }
+#main_column form[name="sort"] table td[style*="text-align:right"] { min-width: 160px !important; padding-right: 14px !important; white-space: nowrap !important; }
+#main_column form[name="sort"] table input[name^="id_"] { width: 38px !important; min-width: 38px !important; max-width: 38px !important; padding: 3px 4px !important; margin-right: 10px !important; text-align: center !important; font-size: 12px !important; line-height: 1.2 !important; border-radius: 4px !important; box-sizing: border-box !important; vertical-align: middle !important; border: 1px solid #26233a !important; background: #1f1d2e !important; color: #e0def4 !important; font-family: "Lora", "Georgia", serif !important; font-weight: 600 !important; }
+#main_column form[name="sort"] table input[name^="id_"]:focus { border-color: #c4a7e7 !important; box-shadow: 0 0 0 2px rgba(196,167,231,0.25) !important; outline: none !important; }
+#main_column form[name="sort"] table a.bundle { font-weight: 600 !important; font-style: italic !important; letter-spacing: 0.02em !important; padding: 2px 4px !important; border-radius: 3px !important; }
+#main_column form[name="sort"] table a[style*="color:#aaa"], #main_column form[name="sort"] table a[style*="color: #aaa"] { color: #908caa !important; opacity: 1 !important; text-decoration: none !important; font-size: 12px !important; font-style: italic !important; margin-left: 4px !important; }
+#main_column form[name="sort"] table a[style*="color:#aaa"]:hover { color: #c4a7e7 !important; text-decoration: underline !important; }
+#main_column form[name="sort"] table td a.edit { color: #908caa !important; opacity: 0.8 !important; font-style: italic !important; transition: opacity 0.15s ease !important; }
+#main_column form[name="sort"] table td a.destroy { color: #eb6f92 !important; opacity: 0.9 !important; font-weight: 600 !important; font-style: italic !important; }
+#main_column form[name="sort"] table tr:hover td a.edit { color: #c4a7e7 !important; opacity: 1 !important; }
+#main_column form[name="sort"] table tr:hover td a.destroy { opacity: 1 !important; }`
   },
 
   // ---- 13. GitHub Light ----
@@ -2200,7 +2405,23 @@ input[type="radio"] { accent-color: #0969da !important; }
 a { color: #0969da !important; }
 a:hover { color: #0550ae !important; }
 h2 { color: #656d76 !important; }
-::selection { background: #ddf4ff !important; }`
+::selection { background: #ddf4ff !important; }
+
+/* ---- Bundles page (/u:/bundles/) — GitHub Light ---- */
+#main_column form[name="sort"] > table { width: 100% !important; max-width: 880px !important; border-collapse: separate !important; border-spacing: 0 4px !important; margin-top: 8px !important; }
+#main_column form[name="sort"] table tr { background: transparent !important; border-radius: 6px !important; }
+#main_column form[name="sort"] table tr:hover { background: rgba(9,105,218,0.06) !important; }
+#main_column form[name="sort"] table td { padding: 6px 10px !important; vertical-align: middle !important; border: none !important; }
+#main_column form[name="sort"] table td[style*="text-align:right"] { min-width: 160px !important; padding-right: 14px !important; white-space: nowrap !important; }
+#main_column form[name="sort"] table input[name^="id_"] { width: 38px !important; min-width: 38px !important; max-width: 38px !important; padding: 3px 4px !important; margin-right: 10px !important; text-align: center !important; font-size: 12px !important; line-height: 1.2 !important; border-radius: 6px !important; box-sizing: border-box !important; vertical-align: middle !important; border: 1px solid #d0d7de !important; background: #ffffff !important; color: #1f2328 !important; font-weight: 600 !important; }
+#main_column form[name="sort"] table input[name^="id_"]:focus { border-color: #0969da !important; box-shadow: 0 0 0 2px rgba(9,105,218,0.2) !important; outline: none !important; }
+#main_column form[name="sort"] table a.bundle { font-weight: 600 !important; font-style: normal !important; letter-spacing: 0.01em !important; padding: 2px 4px !important; border-radius: 3px !important; }
+#main_column form[name="sort"] table a[style*="color:#aaa"], #main_column form[name="sort"] table a[style*="color: #aaa"] { color: #656d76 !important; opacity: 1 !important; text-decoration: none !important; font-size: 12px !important; margin-left: 4px !important; }
+#main_column form[name="sort"] table a[style*="color:#aaa"]:hover { color: #0969da !important; text-decoration: underline !important; }
+#main_column form[name="sort"] table td a.edit { color: #656d76 !important; opacity: 0.8 !important; transition: opacity 0.15s ease !important; }
+#main_column form[name="sort"] table td a.destroy { color: #cf222e !important; opacity: 0.85 !important; font-weight: 600 !important; }
+#main_column form[name="sort"] table tr:hover td a.edit { color: #0969da !important; opacity: 1 !important; }
+#main_column form[name="sort"] table tr:hover td a.destroy { opacity: 1 !important; }`
   }
 
 };
