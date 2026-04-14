@@ -1019,6 +1019,24 @@
   "deleteTheme": {
     "message": "テーマを削除"
   },
+  "deleteThemeNamed": {
+    "message": "テーマ $NAME$ を削除",
+    "placeholders": { "name": { "content": "$1" } }
+  },
+  "deleteThemeConfirm": {
+    "message": "テーマ「$NAME$」を削除しますか？",
+    "placeholders": { "name": { "content": "$1" } }
+  },
+  "loadTheme": {
+    "message": "テーマ $NAME$ を読み込む",
+    "placeholders": { "name": { "content": "$1" } }
+  },
+  "replaceCSSConfirm": {
+    "message": "現在の CSS を置き換えますか？"
+  },
+  "replace": {
+    "message": "置き換え"
+  },
   "themeName": {
     "message": "テーマ名："
   },

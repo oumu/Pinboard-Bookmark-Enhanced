@@ -646,9 +646,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     const css = document.getElementById("opt-custom-css").value;
     document.querySelectorAll(".theme-preset-btn").forEach(btn => {
       const key = btn.dataset.theme;
+      let isActive;
       if (!key) {
         // "None" button: active when CSS is empty
-        btn.classList.toggle("active", !css.trim());
+        isActive = !css.trim();
       } else {
         // Adaptive themes: match either light or dark variant
         const adaptivePinboard = {
@@ -656,50 +657,118 @@ document.addEventListener("DOMContentLoaded", async () => {
           catppuccin: ["catppuccin-latte", "catppuccin-mocha"]
         };
         const keysToCheck = adaptivePinboard[key] ? adaptivePinboard[key] : [key];
-        const isActive = keysToCheck.some(k => {
+        isActive = keysToCheck.some(k => {
           const theme = PINBOARD_THEMES[k];
           return theme && css.trim() === theme.css.trim();
         });
-        btn.classList.toggle("active", isActive);
       }
+      btn.classList.toggle("active", isActive);
+      btn.setAttribute("aria-pressed", isActive ? "true" : "false");
     });
   }
   updateThemePresetButtons();
 
+  // Check whether the current CSS matches any preset or saved theme. Used to
+  // detect "dirty" unsaved edits before overwriting them with a preset load.
+  function cssMatchesAnyKnownTheme(css) {
+    const trimmed = css.trim();
+    if (!trimmed) return true; // empty counts as "not dirty"
+    for (const theme of Object.values(PINBOARD_THEMES)) {
+      if (theme.css.trim() === trimmed) return true;
+    }
+    for (const theme of savedThemes) {
+      if (theme.css.trim() === trimmed) return true;
+    }
+    return false;
+  }
+
+  function applyPreset(key) {
+    const cssEl = document.getElementById("opt-custom-css");
+    if (!key) {
+      cssEl.value = "";
+    } else {
+      // Adaptive themes: resolve to light/dark variant based on current theme mode
+      const adaptivePinboard = {
+        solarized: ["solarized-light", "solarized-dark"],
+        catppuccin: ["catppuccin-latte", "catppuccin-mocha"]
+      };
+      let themeKey = key;
+      if (adaptivePinboard[key]) {
+        const mode = document.getElementById("opt-theme").value;
+        const prefersDark = mode === "dark" || (mode === "auto" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+        themeKey = adaptivePinboard[key][prefersDark ? 1 : 0];
+      }
+      const theme = PINBOARD_THEMES[themeKey];
+      if (theme) cssEl.value = theme.css;
+    }
+    updateThemePresetButtons();
+    updateSavedThemeButtons();
+    updateSaveThemeBtnState();
+    // Update tracked key and apply options page theme instantly
+    currentPresetKey = key || "";
+    applyOptionsPageTheme(currentPresetKey, document.getElementById("opt-theme").value);
+    scheduleAutoSave();
+  }
+
   document.querySelectorAll(".theme-preset-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       const key = btn.dataset.theme;
-      const cssEl = document.getElementById("opt-custom-css");
-      if (!key) {
-        cssEl.value = "";
-      } else {
-        // Adaptive themes: resolve to light/dark variant based on current theme mode
-        const adaptivePinboard = {
-          solarized: ["solarized-light", "solarized-dark"],
-          catppuccin: ["catppuccin-latte", "catppuccin-mocha"]
-        };
-        let themeKey = key;
-        if (adaptivePinboard[key]) {
-          const mode = document.getElementById("opt-theme").value;
-          const prefersDark = mode === "dark" || (mode === "auto" && window.matchMedia("(prefers-color-scheme: dark)").matches);
-          themeKey = adaptivePinboard[key][prefersDark ? 1 : 0];
+      const currentCSS = document.getElementById("opt-custom-css").value;
+
+      // Dirty-state guard: if user has hand-edited CSS that doesn't match any
+      // preset or saved theme, confirm before overwriting.
+      if (!cssMatchesAnyKnownTheme(currentCSS)) {
+        // Prevent stacking popovers
+        if (btn.querySelector(".confirm-popover")) return;
+
+        const pop = document.createElement("div");
+        pop.className = "confirm-popover";
+        const msg = document.createElement("span");
+        msg.className = "confirm-msg";
+        msg.textContent = t("replaceCSSConfirm");
+        const yes = document.createElement("button");
+        yes.className = "confirm-yes";
+        yes.textContent = t("replace");
+        const no = document.createElement("button");
+        no.className = "confirm-no";
+        no.textContent = t("cancel");
+        pop.appendChild(msg);
+        pop.appendChild(yes);
+        pop.appendChild(no);
+        btn.appendChild(pop);
+
+        function dismiss() {
+          pop.remove();
+          document.removeEventListener("keydown", onEsc);
         }
-        const theme = PINBOARD_THEMES[themeKey];
-        if (theme) cssEl.value = theme.css;
+        function onEsc(ev) { if (ev.key === "Escape") dismiss(); }
+        document.addEventListener("keydown", onEsc);
+        pop.addEventListener("click", (ev) => ev.stopPropagation());
+        no.addEventListener("click", dismiss);
+        yes.addEventListener("click", () => { applyPreset(key); dismiss(); });
+        no.focus();
+        return;
       }
-      updateThemePresetButtons();
-      updateSavedThemeButtons();
-      // Update tracked key and apply options page theme instantly
-      currentPresetKey = key || "";
-      applyOptionsPageTheme(currentPresetKey, document.getElementById("opt-theme").value);
-      scheduleAutoSave();
+
+      applyPreset(key);
     });
   });
+
+  // Toggle "Save as theme" button disabled state based on whether there's
+  // any non-whitespace CSS to save. Called from input handler, preset apply,
+  // and on initial load.
+  function updateSaveThemeBtnState() {
+    const saveBtn = document.getElementById("save-custom-theme");
+    if (!saveBtn) return;
+    const css = document.getElementById("opt-custom-css").value;
+    saveBtn.disabled = !css.trim();
+  }
 
   // Update active state and options page theme when user manually edits CSS
   document.getElementById("opt-custom-css").addEventListener("input", () => {
     updateThemePresetButtons();
     updateSavedThemeButtons();
+    updateSaveThemeBtnState();
     // Detect if edited CSS matches a built-in preset, update options page theme accordingly
     const css = document.getElementById("opt-custom-css").value;
     let matchedKey = "";
@@ -738,17 +807,22 @@ document.addEventListener("DOMContentLoaded", async () => {
     while (container.firstChild) container.removeChild(container.firstChild);
     section.style.display = savedThemes.length ? "" : "none";
     const currentCSS = document.getElementById("opt-custom-css").value;
-    savedThemes.forEach((theme, idx) => {
+    savedThemes.forEach((theme) => {
       const wrap = document.createElement("span");
       wrap.className = "saved-theme-wrap";
       const btn = document.createElement("button");
       btn.className = "btn btn-sm saved-theme-btn";
       btn.textContent = theme.name;
-      if (currentCSS.trim() === theme.css.trim()) btn.classList.add("active");
+      btn.title = theme.name; // Full-name tooltip in case label gets truncated
+      btn.setAttribute("aria-label", t("loadTheme", theme.name));
+      const isActive = currentCSS.trim() === theme.css.trim();
+      if (isActive) btn.classList.add("active");
+      btn.setAttribute("aria-pressed", isActive ? "true" : "false");
       btn.addEventListener("click", () => {
         document.getElementById("opt-custom-css").value = theme.css;
         updateThemePresetButtons();
         updateSavedThemeButtons();
+        updateSaveThemeBtnState();
         // Custom saved themes do NOT affect options page styling — clear preset key
         currentPresetKey = "";
         applyOptionsPageTheme("", document.getElementById("opt-theme").value);
@@ -758,11 +832,47 @@ document.addEventListener("DOMContentLoaded", async () => {
       del.className = "saved-theme-del";
       del.textContent = "\u00d7";
       del.title = t("deleteTheme");
-      del.addEventListener("click", async (e) => {
+      del.setAttribute("aria-label", t("deleteThemeNamed", theme.name));
+      del.addEventListener("click", (e) => {
         e.stopPropagation();
-        savedThemes.splice(idx, 1);
-        await persistSavedThemes();
-        renderSavedThemes();
+        // Prevent double-click while popover is showing
+        if (wrap.querySelector(".confirm-popover")) return;
+
+        const pop = document.createElement("div");
+        pop.className = "confirm-popover";
+        const msg = document.createElement("span");
+        msg.className = "confirm-msg";
+        msg.textContent = t("deleteThemeConfirm", theme.name);
+        const yes = document.createElement("button");
+        yes.className = "confirm-yes";
+        yes.textContent = t("delete");
+        const no = document.createElement("button");
+        no.className = "confirm-no";
+        no.textContent = t("cancel");
+        pop.appendChild(msg);
+        pop.appendChild(yes);
+        pop.appendChild(no);
+        wrap.appendChild(pop);
+
+        function dismiss() {
+          pop.remove();
+          document.removeEventListener("keydown", onEsc);
+        }
+        function onEsc(ev) { if (ev.key === "Escape") dismiss(); }
+        document.addEventListener("keydown", onEsc);
+        pop.addEventListener("click", (ev) => ev.stopPropagation());
+        no.addEventListener("click", dismiss);
+        yes.addEventListener("click", async () => {
+          // Re-find by name in case the array mutated while popover was open.
+          const current = savedThemes.findIndex(th => th.name === theme.name);
+          if (current >= 0) {
+            savedThemes.splice(current, 1);
+            await persistSavedThemes();
+            renderSavedThemes();
+          }
+          dismiss();
+        });
+        no.focus();
       });
       wrap.append(btn, del);
       container.appendChild(wrap);
@@ -773,7 +883,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     const currentCSS = document.getElementById("opt-custom-css").value;
     document.querySelectorAll(".saved-theme-btn").forEach(btn => {
       const theme = savedThemes.find(t => t.name === btn.textContent);
-      btn.classList.toggle("active", theme && currentCSS.trim() === theme.css.trim());
+      const isActive = !!(theme && currentCSS.trim() === theme.css.trim());
+      btn.classList.toggle("active", isActive);
+      btn.setAttribute("aria-pressed", isActive ? "true" : "false");
     });
   }
 
@@ -819,7 +931,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     inp.focus();
 
-    function dismiss() { pop.remove(); }
+    function dismiss() {
+      pop.remove();
+      document.removeEventListener("keydown", onEscGlobal);
+    }
+    // Document-level ESC so focus doesn't have to be inside the input.
+    function onEscGlobal(ev) { if (ev.key === "Escape") dismiss(); }
+    document.addEventListener("keydown", onEscGlobal);
 
     pop.addEventListener("click", (e) => e.stopPropagation());
     cancelBtn.addEventListener("click", dismiss);
@@ -845,7 +963,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 
     inp.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") dismiss();
       if (e.key === "Enter") saveBtn.click();
     });
 
@@ -855,6 +972,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   await loadSavedThemes();
+  updateSaveThemeBtnState();
 
   // ---- Chrome shortcuts link ----
   document.getElementById("open-shortcuts-link")?.addEventListener("click", (e) => {

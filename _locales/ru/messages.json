@@ -1019,6 +1019,24 @@
   "deleteTheme": {
     "message": "Удалить тему"
   },
+  "deleteThemeNamed": {
+    "message": "Удалить тему $NAME$",
+    "placeholders": { "name": { "content": "$1" } }
+  },
+  "deleteThemeConfirm": {
+    "message": "Удалить тему «$NAME$»?",
+    "placeholders": { "name": { "content": "$1" } }
+  },
+  "loadTheme": {
+    "message": "Загрузить тему $NAME$",
+    "placeholders": { "name": { "content": "$1" } }
+  },
+  "replaceCSSConfirm": {
+    "message": "Заменить текущий CSS?"
+  },
+  "replace": {
+    "message": "Заменить"
+  },
   "themeName": {
     "message": "Название темы:"
   },

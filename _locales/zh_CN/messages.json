@@ -1019,6 +1019,24 @@
   "deleteTheme": {
     "message": "删除主题"
   },
+  "deleteThemeNamed": {
+    "message": "删除主题 $NAME$",
+    "placeholders": { "name": { "content": "$1" } }
+  },
+  "deleteThemeConfirm": {
+    "message": "删除主题「$NAME$」？",
+    "placeholders": { "name": { "content": "$1" } }
+  },
+  "loadTheme": {
+    "message": "加载主题 $NAME$",
+    "placeholders": { "name": { "content": "$1" } }
+  },
+  "replaceCSSConfirm": {
+    "message": "替换当前 CSS？"
+  },
+  "replace": {
+    "message": "替换"
+  },
   "themeName": {
     "message": "主题名称："
   },

@@ -1019,6 +1019,24 @@
   "deleteTheme": {
     "message": "Delete theme"
   },
+  "deleteThemeNamed": {
+    "message": "Delete theme $NAME$",
+    "placeholders": { "name": { "content": "$1" } }
+  },
+  "deleteThemeConfirm": {
+    "message": "Delete theme \"$NAME$\"?",
+    "placeholders": { "name": { "content": "$1" } }
+  },
+  "loadTheme": {
+    "message": "Load theme $NAME$",
+    "placeholders": { "name": { "content": "$1" } }
+  },
+  "replaceCSSConfirm": {
+    "message": "Replace your current CSS?"
+  },
+  "replace": {
+    "message": "Replace"
+  },
   "themeName": {
     "message": "Theme name:"
   },

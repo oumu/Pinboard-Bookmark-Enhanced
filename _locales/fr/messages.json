@@ -1019,6 +1019,24 @@
   "deleteTheme": {
     "message": "Supprimer le thème"
   },
+  "deleteThemeNamed": {
+    "message": "Supprimer le thème $NAME$",
+    "placeholders": { "name": { "content": "$1" } }
+  },
+  "deleteThemeConfirm": {
+    "message": "Supprimer le thème « $NAME$ » ?",
+    "placeholders": { "name": { "content": "$1" } }
+  },
+  "loadTheme": {
+    "message": "Charger le thème $NAME$",
+    "placeholders": { "name": { "content": "$1" } }
+  },
+  "replaceCSSConfirm": {
+    "message": "Remplacer le CSS actuel ?"
+  },
+  "replace": {
+    "message": "Remplacer"
+  },
   "themeName": {
     "message": "Nom du thème :"
   },

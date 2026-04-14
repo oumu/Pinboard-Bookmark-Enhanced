@@ -1019,6 +1019,24 @@
   "deleteTheme": {
     "message": "Usuń motyw"
   },
+  "deleteThemeNamed": {
+    "message": "Usuń motyw $NAME$",
+    "placeholders": { "name": { "content": "$1" } }
+  },
+  "deleteThemeConfirm": {
+    "message": "Usunąć motyw „$NAME$”?",
+    "placeholders": { "name": { "content": "$1" } }
+  },
+  "loadTheme": {
+    "message": "Wczytaj motyw $NAME$",
+    "placeholders": { "name": { "content": "$1" } }
+  },
+  "replaceCSSConfirm": {
+    "message": "Zastąpić bieżący CSS?"
+  },
+  "replace": {
+    "message": "Zastąp"
+  },
   "themeName": {
     "message": "Nazwa motywu:"
   },

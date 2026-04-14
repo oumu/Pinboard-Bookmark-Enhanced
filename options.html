@@ -446,28 +446,29 @@
       </div>
       <div class="fg">
         <label class="bl" data-i18n="labelThemePresets">Theme Presets</label>
-        <div class="theme-presets-group">
-          <button class="btn btn-sm theme-preset-btn" data-theme="" data-i18n="themeGroupNone">None</button>
+        <div class="theme-presets-group" role="group" aria-labelledby="theme-group-none">
+          <span id="theme-group-none" class="sr-only" data-i18n="themeGroupNone">None</span>
+          <button class="btn btn-sm theme-preset-btn" data-theme="" data-i18n="themeGroupNone" aria-pressed="false">None</button>
         </div>
-        <div class="theme-presets-group">
-          <span class="theme-group-label" data-i18n="themeGroupAdaptive">Adaptive</span>
-          <button class="btn btn-sm theme-preset-btn" data-theme="flexoki">Flexoki</button>
-          <button class="btn btn-sm theme-preset-btn" data-theme="solarized">Solarized</button>
-          <button class="btn btn-sm theme-preset-btn" data-theme="catppuccin">Catppuccin</button>
+        <div class="theme-presets-group" role="group" aria-labelledby="theme-group-adaptive">
+          <span id="theme-group-adaptive" class="theme-group-label" data-i18n="themeGroupAdaptive">Adaptive</span>
+          <button class="btn btn-sm theme-preset-btn" data-theme="flexoki" aria-pressed="false">Flexoki</button>
+          <button class="btn btn-sm theme-preset-btn" data-theme="solarized" aria-pressed="false">Solarized</button>
+          <button class="btn btn-sm theme-preset-btn" data-theme="catppuccin" aria-pressed="false">Catppuccin</button>
         </div>
-        <div class="theme-presets-group">
-          <span class="theme-group-label" data-i18n="themeGroupLight">Light</span>
-          <button class="btn btn-sm theme-preset-btn" data-theme="modern-card">Modern Card</button>
-          <button class="btn btn-sm theme-preset-btn" data-theme="paper-ink">Paper &amp; Ink</button>
-          <button class="btn btn-sm theme-preset-btn" data-theme="github-light">GitHub Light</button>
+        <div class="theme-presets-group" role="group" aria-labelledby="theme-group-light">
+          <span id="theme-group-light" class="theme-group-label" data-i18n="themeGroupLight">Light</span>
+          <button class="btn btn-sm theme-preset-btn" data-theme="modern-card" aria-pressed="false">Modern Card</button>
+          <button class="btn btn-sm theme-preset-btn" data-theme="paper-ink" aria-pressed="false">Paper &amp; Ink</button>
+          <button class="btn btn-sm theme-preset-btn" data-theme="github-light" aria-pressed="false">GitHub Light</button>
         </div>
-        <div class="theme-presets-group">
-          <span class="theme-group-label" data-i18n="themeGroupDark">Dark</span>
-          <button class="btn btn-sm theme-preset-btn" data-theme="nord-night">Nord Night</button>
-          <button class="btn btn-sm theme-preset-btn" data-theme="terminal">Terminal</button>
-          <button class="btn btn-sm theme-preset-btn" data-theme="dracula">Dracula</button>
-          <button class="btn btn-sm theme-preset-btn" data-theme="gruvbox-dark">Gruvbox Dark</button>
-          <button class="btn btn-sm theme-preset-btn" data-theme="rose-pine">Rosé Pine</button>
+        <div class="theme-presets-group" role="group" aria-labelledby="theme-group-dark">
+          <span id="theme-group-dark" class="theme-group-label" data-i18n="themeGroupDark">Dark</span>
+          <button class="btn btn-sm theme-preset-btn" data-theme="nord-night" aria-pressed="false">Nord Night</button>
+          <button class="btn btn-sm theme-preset-btn" data-theme="terminal" aria-pressed="false">Terminal</button>
+          <button class="btn btn-sm theme-preset-btn" data-theme="dracula" aria-pressed="false">Dracula</button>
+          <button class="btn btn-sm theme-preset-btn" data-theme="gruvbox-dark" aria-pressed="false">Gruvbox Dark</button>
+          <button class="btn btn-sm theme-preset-btn" data-theme="rose-pine" aria-pressed="false">Rosé Pine</button>
         </div>
         <p class="hint" style="margin-bottom:8px" data-i18n="themePresetsHint">Click a preset to load its CSS. Adaptive themes follow your Theme (light/dark) setting.</p>
       </div>
@@ -480,7 +481,7 @@
         <textarea id="opt-custom-css" rows="12" placeholder="/* Custom CSS for pinboard.in */&#10;body { line-height: 1.6; }&#10;.bookmark_title { font-size: 14px; }" data-i18n-placeholder="customCSSPlaceholder"></textarea>
         <div style="display:flex;gap:8px;align-items:center;margin-top:6px;">
           <span class="save-theme-wrap">
-            <button class="btn btn-sm" id="save-custom-theme" data-i18n="saveAsTheme">Save as theme</button>
+            <button class="btn btn-sm" id="save-custom-theme" data-i18n="saveAsTheme" disabled>Save as theme</button>
           </span>
           <p class="hint" style="margin:0" data-i18n="saveAsThemeHint">Save current CSS as a reusable theme.</p>
         </div>
