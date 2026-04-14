@@ -301,6 +301,26 @@
           "type": "string",
           "enum": ["default", "small"],
           "description": "Font size for a.tag. small=typo.size-xs (fallback 12px). default=composer baseline."
+        },
+        "button-style": {
+          "type": "string",
+          "enum": ["default", "flat", "outlined", "rounded", "flat-rounded", "pill"],
+          "description": "Chrome of input[type=submit|button]. flat=strip native border only, outlined=transparent bg + 1px border (ghost), rounded=radius only (keeps composer border, uses ext.button-radius default 4px), flat-rounded=border:none + rounded radius, pill=borderless + fully-rounded + extra padding. default=composer baseline."
+        },
+        "footer-tone": {
+          "type": "string",
+          "enum": ["default", "muted", "faint"],
+          "description": "Tone for #footer, .colophon, .colophon a, .rss_link. muted=muted-soft color, faint=muted-soft + 0.75 opacity. default=composer baseline."
+        },
+        "edit-form-surface": {
+          "type": "string",
+          "enum": ["default", "panel", "card"],
+          "description": "Treatment of #edit_bookmark_form, #bulk_top_bar, #bulk_edit_box. panel=bg-surface + 1px border, card=panel + ext.edit-form-radius (default 12px). default=composer baseline."
+        },
+        "sort-order-style": {
+          "type": "string",
+          "enum": ["default", "tinted", "accent-bg", "surface"],
+          "description": "Treatment of a.sort_order_selected (active sort chip). tinted=accent-alpha bg, accent-bg=accent-alpha bg + accent text, surface=bg-surface (neutral). default=composer baseline."
         }
       }
     },

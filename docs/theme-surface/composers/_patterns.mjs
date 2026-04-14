@@ -287,6 +287,91 @@ export function patternsLayer(tokens) {
   }
   // "default" or missing → composer baseline
 
+  // ---- P5: button-style ----
+  // Every theme customizes `input[type="submit"]` and/or `input[type="button"]`:
+  // most strip the native border, some round corners, a few go pill. Radius
+  // tunable via `ext.button-radius` (default 4px). Color/bg stay driven by
+  // composer tokens (accent / accent-fg) — this pattern only shapes the chrome.
+  const buttonStyle = pat["button-style"];
+  if (buttonStyle === "flat") {
+    out.push(
+      `input[type="submit"], input[type="button"], .search_button input[type="submit"] { border: none !important; }`
+    );
+  } else if (buttonStyle === "outlined") {
+    out.push(
+      `input[type="submit"], input[type="button"], .search_button input[type="submit"] { background: transparent !important; border: 1px solid ${v("border")} !important; color: ${v("accent")} !important; }`
+    );
+  } else if (buttonStyle === "rounded") {
+    // Radius-only (keeps composer's border intact). Themes that also want
+    // border: none should use "flat-rounded".
+    const r = tokens.ext?.["button-radius"] || "4px";
+    out.push(
+      `input[type="submit"], input[type="button"], .search_button input[type="submit"] { border-radius: ${r} !important; }`
+    );
+  } else if (buttonStyle === "flat-rounded") {
+    const r = tokens.ext?.["button-radius"] || "4px";
+    out.push(
+      `input[type="submit"], input[type="button"], .search_button input[type="submit"] { border: none !important; border-radius: ${r} !important; }`
+    );
+  } else if (buttonStyle === "pill") {
+    out.push(
+      `input[type="submit"], input[type="button"], .search_button input[type="submit"] { border: none !important; border-radius: 9999px !important; padding: 4px 14px !important; }`
+    );
+  }
+  // "default" or missing → composer baseline
+
+  // ---- P5: footer-tone ----
+  // 13/13 themes set `#footer` (and usually `.colophon` / `.colophon a` /
+  // `.rss_link`) to a muted color. Centralizes that ~5-line repeat per theme.
+  const footerTone = pat["footer-tone"];
+  if (footerTone === "muted" || footerTone === "faint") {
+    const opacity = footerTone === "faint" ? " opacity: 0.75 !important;" : "";
+    out.push(
+      `#footer, .colophon, .colophon a, .rss_link, .rss_linkbox a { color: ${v("muted-soft")} !important;${opacity} }`
+    );
+  }
+  // "default" or missing → composer baseline
+
+  // ---- P5: edit-form-surface ----
+  // `#edit_bookmark_form`, `#bulk_top_bar`, `#bulk_edit_box` are the three
+  // "heavyweight panel" surfaces. Every theme gives them a bg+border; 2 themes
+  // round corners to 12px. Radius tunable via `ext.edit-form-radius`.
+  //   "panel" → bg-surface + 1px border (most themes)
+  //   "card"  → panel + radius (soft-themes: modern-card, paper-ink)
+  const editForm = pat["edit-form-surface"];
+  if (editForm === "panel" || editForm === "card") {
+    const radiusRule = editForm === "card"
+      ? ` border-radius: ${tokens.ext?.["edit-form-radius"] || "12px"} !important;`
+      : "";
+    out.push(
+      `#edit_bookmark_form, #bulk_top_bar, #bulk_edit_box { background: ${v("bg-surface")} !important; border: 1px solid ${v("border")} !important;${radiusRule} }`
+    );
+  }
+  // "default" or missing → composer baseline
+
+  // ---- P5: sort-order-style ----
+  // 13/13 themes style `a.sort_order_selected` — the "active sort" chip in
+  // bookmark-sort tables. Bg is always a subtle tint of accent or bg-surface;
+  // 6/13 additionally set color to accent for extra signal.
+  //   "tinted"    → bg: accent-alpha (subtle), color inherits
+  //   "accent-bg" → bg: accent-alpha, color: accent (high contrast)
+  //   "surface"   → bg: bg-surface (neutral, for low-contrast themes)
+  const sortOrder = pat["sort-order-style"];
+  if (sortOrder === "tinted") {
+    out.push(
+      `a.sort_order_selected { background: ${v("accent-alpha")} !important; }`
+    );
+  } else if (sortOrder === "accent-bg") {
+    out.push(
+      `a.sort_order_selected { background: ${v("accent-alpha")} !important; color: ${v("accent")} !important; }`
+    );
+  } else if (sortOrder === "surface") {
+    out.push(
+      `a.sort_order_selected { background: ${v("bg-surface")} !important; }`
+    );
+  }
+  // "default" or missing → composer baseline
+
   if (!out.length) return "";
   return `\n/* === patterns layer (tokens.patterns) === */\n` + out.join("\n") + "\n";
 }
