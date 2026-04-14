@@ -281,6 +281,26 @@
           "type": "string",
           "enum": ["none", "soft", "strong"],
           "description": "box-shadow on .bookmark rows. Only takes effect when bookmark-style is 'card'. soft=subtle lift, strong=pronounced drop shadow."
+        },
+        "blockquote-style": {
+          "type": "string",
+          "enum": ["plain", "left-accent", "left-muted"],
+          "description": "Left border treatment on .description blockquote. left-accent=border colored by palette.accent (high-signal), left-muted=palette.border (subtle). Width via ext.blockquote-border-width (default 3px)."
+        },
+        "banner-chrome": {
+          "type": "string",
+          "enum": ["plain", "rounded", "card"],
+          "description": "Treatment of top #banner. rounded=border-radius + padding, card=rounded + bg-surface + bottom border + soft shadow. Radius via ext.banner-radius (default 4px for rounded, 8px for card)."
+        },
+        "title-weight": {
+          "type": "string",
+          "enum": ["normal", "medium", "semibold", "bold"],
+          "description": "Override a.bookmark_title font-weight. normal=400, medium=500, semibold=600, bold=700. Overrides typo.weight-heading for this surface only."
+        },
+        "tag-size": {
+          "type": "string",
+          "enum": ["default", "small"],
+          "description": "Font size for a.tag. small=typo.size-xs (fallback 12px). default=composer baseline."
         }
       }
     },

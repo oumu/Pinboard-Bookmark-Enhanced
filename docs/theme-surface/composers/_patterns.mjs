@@ -228,6 +228,65 @@ export function patternsLayer(tokens) {
     );
   }
 
+  // ---- P4: blockquote-style ----
+  // 11/13 themes add a left border + padding to `.description blockquote`.
+  // Width tunable via `ext.blockquote-border-width` (default 3px).
+  // left-accent → uses `accent` (high-signal themes like dracula, catppuccin,
+  // solarized, terminal). left-muted → uses `border` (subtle themes like
+  // flexoki dark, nord-night, github-light).
+  const blockquote = pat["blockquote-style"];
+  if (blockquote === "left-accent" || blockquote === "left-muted") {
+    const w = tokens.ext?.["blockquote-border-width"] || "3px";
+    const color = blockquote === "left-accent" ? v("accent") : v("border");
+    out.push(
+      `.description blockquote { border-left: ${w} solid ${color} !important; padding-left: 12px !important; margin: 6px 0 !important; }`
+    );
+  }
+  // "plain" or missing → composer default
+
+  // ---- P4: banner-chrome ----
+  // 10/13 themes apply `border-radius + padding` to #banner with a recurring
+  // `padding: 8px 16px`. Radius tunable via `ext.banner-radius` (default 4px).
+  // "card" adds bg-surface + bottom border + soft shadow (modern-card style).
+  const bannerChrome = pat["banner-chrome"];
+  if (bannerChrome === "rounded") {
+    const r = tokens.ext?.["banner-radius"] || "4px";
+    out.push(
+      `#banner { border-radius: ${r} !important; padding: 8px 16px !important; }`
+    );
+  } else if (bannerChrome === "card") {
+    const r = tokens.ext?.["banner-radius"] || "8px";
+    out.push(
+      `#banner { border-radius: ${r} !important; padding: 12px 20px !important; background: ${v("bg-surface")} !important; border-bottom: 1px solid ${v("border")} !important; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06) !important; }`
+    );
+  }
+  // "plain" or missing → composer default
+
+  // ---- P4: title-weight ----
+  // 7/13 themes explicitly set `a.bookmark_title` weight (normal/500/600).
+  // Exposes the whole scale for full control. Baseline composer uses
+  // `typo.weight-heading`; this pattern overrides it for the title surface
+  // specifically so tags/headings can keep their own weights.
+  const titleWeight = pat["title-weight"];
+  const weightMap = { normal: 400, medium: 500, semibold: 600, bold: 700 };
+  if (titleWeight && titleWeight in weightMap) {
+    out.push(
+      `a.bookmark_title { font-weight: ${weightMap[titleWeight]} !important; }`
+    );
+  }
+
+  // ---- P4: tag-size ----
+  // 4/13 themes reduce `a.tag` font-size to 12px. Uses typo.size-xs when
+  // available; falls back to literal 12px to preserve shipped behavior.
+  const tagSize = pat["tag-size"];
+  if (tagSize === "small") {
+    const size = tokens.typo?.["size-xs"] || "12px";
+    out.push(
+      `a.tag { font-size: ${size} !important; }`
+    );
+  }
+  // "default" or missing → composer baseline
+
   if (!out.length) return "";
   return `\n/* === patterns layer (tokens.patterns) === */\n` + out.join("\n") + "\n";
 }

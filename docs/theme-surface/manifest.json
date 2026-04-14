@@ -731,7 +731,11 @@
       "hover-effect": { "values": ["underline", "lift", "color-shift", "fade-bg"], "affects": ".bookmark:hover + title underline" },
       "row-divider": { "values": ["none", "hairline", "dashed", "left-accent"], "affects": ".bookmark border treatment (border-bottom rule or border-left stripe)" },
       "heading-accent": { "values": ["plain", "caps", "dashed-underline"], "affects": ".settings_heading delta: uppercase+letter-spacing OR dashed bottom rule" },
-      "card-shadow": { "values": ["none", "soft", "strong"], "affects": ".bookmark box-shadow; pair with row-divider:none for card-like rows" }
+      "card-shadow": { "values": ["none", "soft", "strong"], "affects": ".bookmark box-shadow; pair with row-divider:none for card-like rows" },
+      "blockquote-style": { "values": ["plain", "left-accent", "left-muted"], "affects": ".description blockquote left border + padding; width via ext.blockquote-border-width (default 3px)" },
+      "banner-chrome": { "values": ["plain", "rounded", "card"], "affects": "#banner radius + padding (rounded) or bg-surface + bottom border + shadow (card); radius via ext.banner-radius" },
+      "title-weight": { "values": ["normal", "medium", "semibold", "bold"], "affects": "a.bookmark_title font-weight (400/500/600/700)" },
+      "tag-size": { "values": ["default", "small"], "affects": "a.tag font-size (uses typo.size-xs for small)" }
     },
     "when_to_add_new_pattern": [
       "Theme-personality rule you find in 3+ themes' overrides.css — promote it to a pattern",
