@@ -372,6 +372,105 @@ export function patternsLayer(tokens) {
   }
   // "default" or missing → composer baseline
 
+  // ---- P6: searchbox-style ----
+  // Unifies chrome across the four search inputs every theme customizes:
+  // `#search_query_field` (main column), `#banner_searchbox input[type="text"]`
+  // (when shown), `#right_bar input#key` (right bar filter), and
+  // `#tweet_searchbox #search_query_field` (tweet search). 13/13 themes ship
+  // repeated border + radius + color + focus-ring decls for these; this
+  // pattern centralizes them.
+  //   "boxed"          → 1px border + ext.searchbox-radius (default 4px)
+  //                      + bg-surface + text color + focus halo (accent-alpha)
+  //   "outlined-accent"→ boxed + focus also shifts border-color to accent
+  //   "minimal"        → no border + transparent bg (flat)
+  const searchbox = pat["searchbox-style"];
+  if (searchbox === "boxed" || searchbox === "outlined-accent") {
+    const r = tokens.ext?.["searchbox-radius"] || "4px";
+    const sel = `#search_query_field, #banner_searchbox input[type="text"], #right_bar input#key, #tweet_searchbox #search_query_field`;
+    out.push(
+      `${sel} { background: ${v("bg-surface")} !important; color: ${v("text")} !important; border: 1px solid ${v("border")} !important; border-radius: ${r} !important; }`
+    );
+    if (searchbox === "outlined-accent") {
+      out.push(
+        `${sel.split(", ").map(s => `${s}:focus`).join(", ")} { border-color: ${v("accent")} !important; box-shadow: 0 0 0 2px ${v("accent-alpha")} !important; outline: none !important; }`
+      );
+    }
+  } else if (searchbox === "minimal") {
+    const sel = `#search_query_field, #banner_searchbox input[type="text"], #right_bar input#key, #tweet_searchbox #search_query_field`;
+    out.push(
+      `${sel} { background: transparent !important; border: none !important; border-radius: 0 !important; }`
+    );
+  }
+  // "default" or missing → composer baseline
+
+  // ---- P6: sort-table-style ----
+  // Admin bookmark-sort table at `#main_column form[name="sort"]`. 13/13
+  // themes re-style the order-rank input (`input[name^="id_"]`) identically
+  // (38px fixed width, 3px/4px padding, 10px right margin, 12px font,
+  // weight 600) and apply a subtle accent-alpha tint on `tr:hover`. This
+  // pattern absorbs both, leaving background/border still token-driven.
+  //   "enabled" → emit full package (order input + row hover)
+  // Radius tunable via `ext.sort-input-radius` (default inherits from
+  // ext.searchbox-radius, else 3px).
+  const sortTable = pat["sort-table-style"];
+  if (sortTable === "enabled") {
+    const r = tokens.ext?.["sort-input-radius"] || tokens.ext?.["searchbox-radius"] || "3px";
+    out.push(
+      `#main_column form[name="sort"] table input[name^="id_"] { width: 38px !important; min-width: 38px !important; max-width: 38px !important; padding: 3px 4px !important; margin-right: 10px !important; font-size: 12px !important; line-height: 1.2 !important; font-weight: 600 !important; box-sizing: border-box !important; vertical-align: middle !important; background: ${v("bg-surface")} !important; color: ${v("text")} !important; border: 1px solid ${v("border")} !important; border-radius: ${r} !important; }`,
+      `#main_column form[name="sort"] table input[name^="id_"]:focus { border-color: ${v("accent")} !important; box-shadow: 0 0 0 2px ${v("accent-alpha")} !important; outline: none !important; }`,
+      `#main_column form[name="sort"] table tr:hover { background: ${v("accent-alpha")} !important; }`
+    );
+  }
+  // "default" or missing → composer baseline
+
+  // ---- P6: tag-hover-style ----
+  // Delta on top of composer's baseline `a.tag:hover` (which sets bg to
+  // accent-alpha, color to tag-fg, text-decoration:none). 10/13 shipped
+  // themes add extra emphasis — most commonly underline, some shift color
+  // to accent. This pattern emits the delta only.
+  //   "underline"       → restore text-decoration: underline
+  //   "accent-text"     → shift color to accent
+  //   "underline-accent"→ both
+  const tagHover = pat["tag-hover-style"];
+  if (tagHover === "underline") {
+    out.push(
+      `a.tag:hover { text-decoration: underline !important; }`
+    );
+  } else if (tagHover === "accent-text") {
+    out.push(
+      `a.tag:hover { color: ${v("accent")} !important; }`
+    );
+  } else if (tagHover === "underline-accent") {
+    out.push(
+      `a.tag:hover { color: ${v("accent")} !important; text-decoration: underline !important; }`
+    );
+  }
+  // "default" or missing → composer baseline (accent-alpha bg only)
+
+  // ---- P6: tag-selected-style ----
+  // `a.tag.selected` is the "currently filtered" tag chip. Composer baseline
+  // uses palette.destroy + bold for a strong "this is active" signal, but
+  // 12/13 themes actually prefer accent-colored or theme-specific chroma.
+  //   "accent"      → color: accent (keeps composer's bold weight)
+  //   "accent-soft" → color: accent + normal weight (subtle)
+  //   "bold-accent" → color: accent + explicit weight 600 (crisper than
+  //                   composer's `bold` keyword, aids monospace/serif themes)
+  const tagSelected = pat["tag-selected-style"];
+  if (tagSelected === "accent") {
+    out.push(
+      `a.tag.selected { color: ${v("accent")} !important; }`
+    );
+  } else if (tagSelected === "accent-soft") {
+    out.push(
+      `a.tag.selected { color: ${v("accent")} !important; font-weight: normal !important; }`
+    );
+  } else if (tagSelected === "bold-accent") {
+    out.push(
+      `a.tag.selected { color: ${v("accent")} !important; font-weight: 600 !important; }`
+    );
+  }
+  // "default" or missing → composer baseline (destroy color + bold)
+
   if (!out.length) return "";
   return `\n/* === patterns layer (tokens.patterns) === */\n` + out.join("\n") + "\n";
 }

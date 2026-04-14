@@ -321,6 +321,26 @@
           "type": "string",
           "enum": ["default", "tinted", "accent-bg", "surface"],
           "description": "Treatment of a.sort_order_selected (active sort chip). tinted=accent-alpha bg, accent-bg=accent-alpha bg + accent text, surface=bg-surface (neutral). default=composer baseline."
+        },
+        "searchbox-style": {
+          "type": "string",
+          "enum": ["default", "boxed", "outlined-accent", "minimal"],
+          "description": "Unified chrome for the four search inputs (#search_query_field, #banner_searchbox input, #right_bar input#key, #tweet_searchbox #search_query_field). boxed=bg-surface + 1px border + radius (ext.searchbox-radius, default 4px) + focus halo. outlined-accent=boxed + focus shifts border-color to accent. minimal=strip border/bg for a flat look. default=composer baseline."
+        },
+        "sort-table-style": {
+          "type": "string",
+          "enum": ["default", "enabled"],
+          "description": "Admin bookmark-sort table at #main_column form[name=\"sort\"]. enabled=style the rank input (38px fixed width, 12px font, 600 weight, bg-surface + border + radius) and tint tr:hover with accent-alpha. Radius via ext.sort-input-radius (falls back to ext.searchbox-radius, else 3px). default=composer baseline."
+        },
+        "tag-hover-style": {
+          "type": "string",
+          "enum": ["default", "underline", "accent-text", "underline-accent"],
+          "description": "Extra emphasis on a.tag:hover, layered on top of composer's accent-alpha background. underline=text-decoration underline, accent-text=shift color to accent, underline-accent=both. default=composer baseline (bg only)."
+        },
+        "tag-selected-style": {
+          "type": "string",
+          "enum": ["default", "accent", "accent-soft", "bold-accent"],
+          "description": "Color treatment of a.tag.selected (active filter chip). accent=color shifts to accent (keeps composer's bold). accent-soft=accent + normal weight. bold-accent=accent + explicit 600 weight (crisp for serif/mono themes). default=composer baseline (destroy color + bold)."
         }
       }
     },
