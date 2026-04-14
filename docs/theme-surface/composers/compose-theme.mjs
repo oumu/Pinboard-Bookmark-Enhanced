@@ -73,9 +73,19 @@ export function prefixSelectors(css, trigger) {
 
     if (!sel) { result += selectorRaw + block; i = braceClose + 1; continue; }
 
-    // Skip :root and @-rules — they shouldn't be prefixed
-    if (sel === ":root" || sel.startsWith("@")) {
+    // @-rules pass through unchanged.
+    if (sel.startsWith("@")) {
       result += selectorRaw + block;
+      i = braceClose + 1;
+      continue;
+    }
+
+    // :root inside a mode needs to become the trigger itself (e.g. `html.pbp-dark`),
+    // so the mode palette's CSS custom properties only apply when the trigger class
+    // is present. If we left :root unprefixed, the mode's :root would unconditionally
+    // override the base :root and the mode would be permanently active.
+    if (sel === ":root") {
+      result += lead + trigger + " " + block;
       i = braceClose + 1;
       continue;
     }
