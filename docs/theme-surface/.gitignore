@@ -23,5 +23,9 @@ aggregate-report.json
 # descend and negation of contained files doesn't work.
 snapshots/*
 theme-screenshots/
+# QA harness and screenshots are derived from snapshots/raw.html, so they
+# inherit the same privacy constraints (contain account bookmark data).
+qa-harness/
+qa-screenshots/
 # Negation: let the warning README through so it shows up in the repo.
 !snapshots/README.md
