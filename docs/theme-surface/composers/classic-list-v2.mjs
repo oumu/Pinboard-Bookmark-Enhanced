@@ -120,7 +120,7 @@ a.tag {
   font-size: ${sizeXs} !important;
   text-decoration: none !important;
 }
-a.tag:hover { color: ${v("btn-fg")} !important; background: ${v("accent")} !important; text-decoration: none !important; }
+a.tag:hover { color: ${v("tag-fg")} !important; background: ${v("accent-alpha")} !important; text-decoration: none !important; }
 a.tag.selected { color: ${v("destroy")} !important; font-weight: bold !important; }
 a.sort_order_selected { background: ${v("tag-bg")} !important; color: ${v("accent")} !important; }
 

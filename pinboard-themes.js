@@ -219,7 +219,7 @@ a.tag {
   font-size: 11px !important;
   text-decoration: none !important;
 }
-a.tag:hover { color: var(--pinboard-btn-fg) !important; background: var(--pinboard-accent) !important; text-decoration: none !important; }
+a.tag:hover { color: var(--pinboard-tag-fg) !important; background: var(--pinboard-accent-alpha) !important; text-decoration: none !important; }
 a.tag.selected { color: var(--pinboard-destroy) !important; font-weight: bold !important; }
 a.sort_order_selected { background: var(--pinboard-tag-bg) !important; color: var(--pinboard-accent) !important; }
 
@@ -747,7 +747,7 @@ a.tag {
   font-size: 11px !important;
   text-decoration: none !important;
 }
-a.tag:hover { color: var(--pinboard-btn-fg) !important; background: var(--pinboard-accent) !important; text-decoration: none !important; }
+a.tag:hover { color: var(--pinboard-tag-fg) !important; background: var(--pinboard-accent-alpha) !important; text-decoration: none !important; }
 a.tag.selected { color: var(--pinboard-destroy) !important; font-weight: bold !important; }
 a.sort_order_selected { background: var(--pinboard-tag-bg) !important; color: var(--pinboard-accent) !important; }
 
@@ -1229,7 +1229,7 @@ a.tag {
   font-size: 11px !important;
   text-decoration: none !important;
 }
-a.tag:hover { color: var(--pinboard-btn-fg) !important; background: var(--pinboard-accent) !important; text-decoration: none !important; }
+a.tag:hover { color: var(--pinboard-tag-fg) !important; background: var(--pinboard-accent-alpha) !important; text-decoration: none !important; }
 a.tag.selected { color: var(--pinboard-destroy) !important; font-weight: bold !important; }
 a.sort_order_selected { background: var(--pinboard-tag-bg) !important; color: var(--pinboard-accent) !important; }
 
@@ -1749,7 +1749,7 @@ a.tag {
   font-size: 11px !important;
   text-decoration: none !important;
 }
-a.tag:hover { color: var(--pinboard-btn-fg) !important; background: var(--pinboard-accent) !important; text-decoration: none !important; }
+a.tag:hover { color: var(--pinboard-tag-fg) !important; background: var(--pinboard-accent-alpha) !important; text-decoration: none !important; }
 a.tag.selected { color: var(--pinboard-destroy) !important; font-weight: bold !important; }
 a.sort_order_selected { background: var(--pinboard-tag-bg) !important; color: var(--pinboard-accent) !important; }
 
@@ -2284,7 +2284,7 @@ a.tag {
   font-size: 11px !important;
   text-decoration: none !important;
 }
-a.tag:hover { color: var(--pinboard-btn-fg) !important; background: var(--pinboard-accent) !important; text-decoration: none !important; }
+a.tag:hover { color: var(--pinboard-tag-fg) !important; background: var(--pinboard-accent-alpha) !important; text-decoration: none !important; }
 a.tag.selected { color: var(--pinboard-destroy) !important; font-weight: bold !important; }
 a.sort_order_selected { background: var(--pinboard-tag-bg) !important; color: var(--pinboard-accent) !important; }
 
@@ -2791,7 +2791,7 @@ a.tag {
   font-size: 11px !important;
   text-decoration: none !important;
 }
-a.tag:hover { color: var(--pinboard-btn-fg) !important; background: var(--pinboard-accent) !important; text-decoration: none !important; }
+a.tag:hover { color: var(--pinboard-tag-fg) !important; background: var(--pinboard-accent-alpha) !important; text-decoration: none !important; }
 a.tag.selected { color: var(--pinboard-destroy) !important; font-weight: bold !important; }
 a.sort_order_selected { background: var(--pinboard-tag-bg) !important; color: var(--pinboard-accent) !important; }
 
@@ -3198,7 +3198,7 @@ html.pbp-dark a.tag {
   font-size: 11px !important;
   text-decoration: none !important;
 }
-html.pbp-dark a.tag:hover { color: var(--pinboard-btn-fg) !important; background: var(--pinboard-accent) !important; text-decoration: none !important; }
+html.pbp-dark a.tag:hover { color: var(--pinboard-tag-fg) !important; background: var(--pinboard-accent-alpha) !important; text-decoration: none !important; }
 html.pbp-dark a.tag.selected { color: var(--pinboard-destroy) !important; font-weight: bold !important; }
 html.pbp-dark a.sort_order_selected { background: var(--pinboard-tag-bg) !important; color: var(--pinboard-accent) !important; }
 
@@ -3753,7 +3753,7 @@ a.tag {
   font-size: 11px !important;
   text-decoration: none !important;
 }
-a.tag:hover { color: var(--pinboard-btn-fg) !important; background: var(--pinboard-accent) !important; text-decoration: none !important; }
+a.tag:hover { color: var(--pinboard-tag-fg) !important; background: var(--pinboard-accent-alpha) !important; text-decoration: none !important; }
 a.tag.selected { color: var(--pinboard-destroy) !important; font-weight: bold !important; }
 a.sort_order_selected { background: var(--pinboard-tag-bg) !important; color: var(--pinboard-accent) !important; }
 
@@ -4216,7 +4216,7 @@ a.tag {
   font-size: 11px !important;
   text-decoration: none !important;
 }
-a.tag:hover { color: var(--pinboard-btn-fg) !important; background: var(--pinboard-accent) !important; text-decoration: none !important; }
+a.tag:hover { color: var(--pinboard-tag-fg) !important; background: var(--pinboard-accent-alpha) !important; text-decoration: none !important; }
 a.tag.selected { color: var(--pinboard-destroy) !important; font-weight: bold !important; }
 a.sort_order_selected { background: var(--pinboard-tag-bg) !important; color: var(--pinboard-accent) !important; }
 
@@ -4691,7 +4691,7 @@ a.tag {
   font-size: 11px !important;
   text-decoration: none !important;
 }
-a.tag:hover { color: var(--pinboard-btn-fg) !important; background: var(--pinboard-accent) !important; text-decoration: none !important; }
+a.tag:hover { color: var(--pinboard-tag-fg) !important; background: var(--pinboard-accent-alpha) !important; text-decoration: none !important; }
 a.tag.selected { color: var(--pinboard-destroy) !important; font-weight: bold !important; }
 a.sort_order_selected { background: var(--pinboard-tag-bg) !important; color: var(--pinboard-accent) !important; }
 
@@ -5168,7 +5168,7 @@ a.tag {
   font-size: 11px !important;
   text-decoration: none !important;
 }
-a.tag:hover { color: var(--pinboard-btn-fg) !important; background: var(--pinboard-accent) !important; text-decoration: none !important; }
+a.tag:hover { color: var(--pinboard-tag-fg) !important; background: var(--pinboard-accent-alpha) !important; text-decoration: none !important; }
 a.tag.selected { color: var(--pinboard-destroy) !important; font-weight: bold !important; }
 a.sort_order_selected { background: var(--pinboard-tag-bg) !important; color: var(--pinboard-accent) !important; }
 
@@ -5657,7 +5657,7 @@ a.tag {
   font-size: 11px !important;
   text-decoration: none !important;
 }
-a.tag:hover { color: var(--pinboard-btn-fg) !important; background: var(--pinboard-accent) !important; text-decoration: none !important; }
+a.tag:hover { color: var(--pinboard-tag-fg) !important; background: var(--pinboard-accent-alpha) !important; text-decoration: none !important; }
 a.tag.selected { color: var(--pinboard-destroy) !important; font-weight: bold !important; }
 a.sort_order_selected { background: var(--pinboard-tag-bg) !important; color: var(--pinboard-accent) !important; }
 
@@ -6137,7 +6137,7 @@ a.tag {
   font-size: 11px !important;
   text-decoration: none !important;
 }
-a.tag:hover { color: var(--pinboard-btn-fg) !important; background: var(--pinboard-accent) !important; text-decoration: none !important; }
+a.tag:hover { color: var(--pinboard-tag-fg) !important; background: var(--pinboard-accent-alpha) !important; text-decoration: none !important; }
 a.tag.selected { color: var(--pinboard-destroy) !important; font-weight: bold !important; }
 a.sort_order_selected { background: var(--pinboard-tag-bg) !important; color: var(--pinboard-accent) !important; }
 
@@ -6624,7 +6624,7 @@ a.tag {
   font-size: 11px !important;
   text-decoration: none !important;
 }
-a.tag:hover { color: var(--pinboard-btn-fg) !important; background: var(--pinboard-accent) !important; text-decoration: none !important; }
+a.tag:hover { color: var(--pinboard-tag-fg) !important; background: var(--pinboard-accent-alpha) !important; text-decoration: none !important; }
 a.tag.selected { color: var(--pinboard-destroy) !important; font-weight: bold !important; }
 a.sort_order_selected { background: var(--pinboard-tag-bg) !important; color: var(--pinboard-accent) !important; }
 
