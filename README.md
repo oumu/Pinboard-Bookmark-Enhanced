@@ -3,7 +3,7 @@
 A Chrome extension that supercharges [Pinboard](https://pinboard.in) bookmarking with AI-powered tags, summaries, and a fully themeable interface.
 
 ![Chrome](https://img.shields.io/badge/Chrome-MV3-brightgreen?logo=googlechrome&logoColor=white)
-![Version](https://img.shields.io/badge/version-2.32-blue)
+![Version](https://img.shields.io/badge/version-2.33-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 ---
