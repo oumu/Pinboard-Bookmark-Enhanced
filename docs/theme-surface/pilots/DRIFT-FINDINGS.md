@@ -60,3 +60,33 @@ To close the drift to near-zero across all 13 themes, either:
 - (C) Opinionated rewrite of the 13 shipped themes to the composer's opinionated output — visual regression by design, requires user buy-in
 
 Recommendation: **(B)** when the user wants any theme to hit 0-drift; **ship as-is** for any new theme where convergence-by-default is acceptable.
+
+---
+
+## Update — flexoki closed to 0 missing decls (2026-04-14)
+
+Proved the overrides.css path by running `tools/generate-overrides.mjs flexoki` — it emits a CSS patch containing the exact shipped declarations for every real-drift selector (skipping decls already covered by composer output or its var() resolution). Patch was injected into `flexoki.tokens.json` → `overrides.css`.
+
+### Before (composer only)
+```
+flexoki             36/301    107       160 DRIFT  166 missing  245 extra
+```
+
+### After (composer + overrides)
+```
+flexoki             36/301    107       0           245         OK
+```
+
+**166 missing decls → 0.** Composer + overrides now emits every declaration flexoki shipped explicitly. The 245 remaining "extras" are composer-side additions shipped didn't have:
+- 134 are **neutralized** at runtime (same property re-declared by overrides with shipped value, overrides wins cascade order)
+- 111 are **true composer additions** — defensive baseline hardening (explicit `border` on dark-mode inputs, `outline: none` on `:focus`, explicit `font-size: 13px` where shipped inherited). None look like regressions; most are improvements.
+
+### Drift-guard in place
+
+`tools/diff-all.mjs --strict` exits non-zero when any theme has `miss-decls > 0`. Wire it into the commit flow to prevent token edits from silently regressing to drift. Current matrix:
+
+- **1 theme at OK** (flexoki, 0 missing)
+- **1 theme at WARN** (github-light, 33 missing)
+- **11 themes at FAIL** (65–191 missing each)
+
+To close the remaining 12 themes: run `generate-overrides.mjs <slug>` on each, inspect the patch, merge into `<slug>.tokens.json` → `overrides.css`. Repeatable mechanical process — the same pattern that closed flexoki.

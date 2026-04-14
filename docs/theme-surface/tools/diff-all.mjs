@@ -156,12 +156,15 @@ writeFileSync(resolve(PILOTS, "drift-matrix.json"),
 
 const col = (s, w) => String(s).padEnd(w);
 console.log("\n=== DECL-LEVEL DRIFT MATRIX (post compose-theme fix) ===\n");
-console.log(col("theme", 20) + col("perfect", 10) + col("cosmetic", 10) + col("REAL", 8) + col("miss-decls", 12) + "extra-decls");
-console.log("-".repeat(75));
-rows.sort((a, b) => a.real_drift_sel - b.real_drift_sel);
+console.log(col("theme", 20) + col("perfect", 10) + col("cosmetic", 10) + col("miss-decls", 12) + col("extra-decls", 12) + "verdict");
+console.log("-".repeat(78));
+rows.sort((a, b) => b.real_missing_decls - a.real_missing_decls);
 for (const r of rows) {
-  const flag = r.real_drift_sel === 0 ? "OK" : r.real_drift_sel < 20 ? "WARN" : "DRIFT";
-  console.log(col(r.slug, 20) + col(`${r.perfect_sel}/${r.ship_sel}`, 10) + col(r.cosmetic_sel, 10) + col(`${r.real_drift_sel} ${flag}`, 8) + col(r.real_missing_decls, 12) + r.extra_decls);
+  // miss-decls is the drift-guard signal: composer+overrides MUST emit every
+  // declaration shipped explicitly sets. Extras are baseline hardening and
+  // are allowed (usually harmless) — tracked but not a gate.
+  const verdict = r.real_missing_decls === 0 ? "OK" : r.real_missing_decls < 50 ? "WARN" : "FAIL";
+  console.log(col(r.slug, 20) + col(`${r.perfect_sel}/${r.ship_sel}`, 10) + col(r.cosmetic_sel, 10) + col(r.real_missing_decls, 12) + col(r.extra_decls, 12) + verdict);
 }
 const total = rows.reduce((a, r) => ({
   perfect: a.perfect + r.perfect_sel,
@@ -171,5 +174,18 @@ const total = rows.reduce((a, r) => ({
   extra: a.extra + r.extra_decls,
   ship: a.ship + r.ship_sel
 }), { perfect: 0, cosmetic: 0, real: 0, miss: 0, extra: 0, ship: 0 });
-console.log("-".repeat(75));
-console.log(`TOTAL: ${total.perfect}/${total.ship} perfect, ${total.cosmetic} cosmetic, ${total.real} real-drift selectors | ${total.miss} missing decls, ${total.extra} extra decls`);
+console.log("-".repeat(78));
+console.log(`TOTAL: ${total.perfect}/${total.ship} perfect | ${total.miss} missing decls | ${total.extra} extra decls`);
+
+// Drift-guard mode: --strict causes exit 1 when any theme has miss-decls > 0.
+// Intended for git hook / CI. Without --strict the tool is informational.
+const STRICT = process.argv.includes("--strict");
+if (STRICT) {
+  const failed = rows.filter(r => r.real_missing_decls > 0);
+  if (failed.length) {
+    console.error(`\n[drift-guard] STRICT fail: ${failed.length}/${rows.length} themes have missing decls`);
+    console.error(failed.map(r => `  - ${r.slug}: ${r.real_missing_decls} missing`).join("\n"));
+    process.exit(1);
+  }
+  console.log(`\n[drift-guard] STRICT pass: all ${rows.length} themes have 0 missing decls`);
+}

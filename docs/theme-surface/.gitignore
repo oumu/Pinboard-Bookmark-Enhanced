@@ -11,6 +11,7 @@ pilots/flexoki-report.json
 pilots/nord-night-report.json
 pilots/drift-matrix.json
 pilots/*.apply-report.json
+pilots/*.overrides-patch.css
 aggregate-report.json
 
 # Dev-time reference fixtures (large PNG captures) — regenerate via capture tooling
