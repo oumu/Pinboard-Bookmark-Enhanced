@@ -127,6 +127,23 @@ async function showMain(token) {
     const searchRow = document.querySelector(".search-row");
     if (searchRow) searchRow.classList.add("hidden");
   }
+  if (settings.optShowAiSummary === false) {
+    const aiSummaryBtn = $id("ai-summary-btn");
+    if (aiSummaryBtn) aiSummaryBtn.classList.add("hidden");
+  }
+  if (settings.optShowAiTags === false) {
+    const aiTagsBox = $id("ai-suggest-tags");
+    const aiTagsRow = aiTagsBox ? aiTagsBox.closest(".row") : null;
+    if (aiTagsRow) aiTagsRow.classList.add("hidden");
+  }
+  if (settings.optShowQuickLinks === false) {
+    const ql = document.querySelector(".quick-links");
+    if (ql) ql.classList.add("hidden");
+  }
+  if (settings.optShowQuickRow === false) {
+    const qr = document.querySelector(".quick-row");
+    if (qr) qr.classList.add("hidden");
+  }
   const searchInput = $id("search-input");
   if (searchInput) {
     searchInput.addEventListener("keydown", (e) => {
@@ -392,7 +409,7 @@ async function htmlToMarkdown(html) {
 
   // Fetch all user tags first (cache hit is instant, populates tagCaseMap for case resolution)
   fetchAllUserTags(token).then(() => {
-    if (settings.optAiAutoTags && hasAIKey(settings)) $id("ai-tags-btn").click();
+    if (settings.optAiAutoTags && settings.optShowAiTags !== false && hasAIKey(settings)) $id("ai-tags-btn").click();
   });
   // Suggest tags — enqueue after user tags so tagCaseMap is ready
   if (settings.optShowSuggestTags) {

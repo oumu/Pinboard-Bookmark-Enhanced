@@ -636,6 +636,18 @@
   "optShowSuggestTags": {
     "message": "Afficher les tags suggérés par Pinboard dans le popup"
   },
+  "optShowAiSummary": {
+    "message": "Afficher le bouton résumé IA dans le popup"
+  },
+  "optShowAiTags": {
+    "message": "Afficher la zone de tags IA dans le popup"
+  },
+  "optShowQuickLinks": {
+    "message": "Afficher les liens rapides dans le popup (Sets · Network · Unread · Notes · Popular)"
+  },
+  "optShowQuickRow": {
+    "message": "Afficher les boutons d'actions rapides dans le popup (Enregistrer les onglets · Enregistrement par lot · Markdown)"
+  },
   "tagSyncLabel": {
     "message": "Mode de synchronisation des tags"
   },

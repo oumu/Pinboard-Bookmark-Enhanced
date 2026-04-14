@@ -636,6 +636,18 @@
   "optShowSuggestTags": {
     "message": "Pinboard-Tagvorschläge im Popup anzeigen"
   },
+  "optShowAiSummary": {
+    "message": "KI-Zusammenfassung-Schaltfläche im Popup anzeigen"
+  },
+  "optShowAiTags": {
+    "message": "KI-Tag-Bereich im Popup anzeigen"
+  },
+  "optShowQuickLinks": {
+    "message": "Schnelllinks im Popup anzeigen (Sets · Network · Unread · Notes · Popular)"
+  },
+  "optShowQuickRow": {
+    "message": "Schnellaktionsschaltflächen im Popup anzeigen (Tabs speichern · Batch-Speichern · Markdown)"
+  },
   "tagSyncLabel": {
     "message": "Tag-Synchronisationsmodus"
   },

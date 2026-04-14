@@ -636,6 +636,18 @@
   "optShowSuggestTags": {
     "message": "Показывать рекомендуемые метки Pinboard во всплывающем окне"
   },
+  "optShowAiSummary": {
+    "message": "Показывать кнопку AI-резюме во всплывающем окне"
+  },
+  "optShowAiTags": {
+    "message": "Показывать блок AI-меток во всплывающем окне"
+  },
+  "optShowQuickLinks": {
+    "message": "Показывать быстрые ссылки во всплывающем окне (Sets · Network · Unread · Notes · Popular)"
+  },
+  "optShowQuickRow": {
+    "message": "Показывать кнопки быстрых действий во всплывающем окне (Сохранить вкладки · Пакетное сохранение · Markdown)"
+  },
   "tagSyncLabel": {
     "message": "Режим синхронизации тегов"
   },

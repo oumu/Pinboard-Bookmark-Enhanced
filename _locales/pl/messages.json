@@ -636,6 +636,18 @@
   "optShowSuggestTags": {
     "message": "Pokaż sugerowane tagi Pinboard w okienku"
   },
+  "optShowAiSummary": {
+    "message": "Pokaż przycisk podsumowania AI w okienku"
+  },
+  "optShowAiTags": {
+    "message": "Pokaż panel tagów AI w okienku"
+  },
+  "optShowQuickLinks": {
+    "message": "Pokaż szybkie linki w okienku (Sets · Network · Unread · Notes · Popular)"
+  },
+  "optShowQuickRow": {
+    "message": "Pokaż przyciski szybkich akcji w okienku (Zapisz karty · Zapis zbiorczy · Markdown)"
+  },
   "tagSyncLabel": {
     "message": "Tryb synchronizacji tagów"
   },

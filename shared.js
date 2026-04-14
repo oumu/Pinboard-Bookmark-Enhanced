@@ -74,6 +74,8 @@ const SETTINGS_DEFAULTS = {
   offlineQueueEnabled: true, optShowBadge: false,
   tagSyncMode: "cached", // "fresh" | "cached" | "prewarmed"
   optCheckBookmarkStatus: true, optShowSuggestTags: true,
+  optShowAiSummary: true, optShowAiTags: true,
+  optShowQuickLinks: true, optShowQuickRow: true,
   tagPresets: "", optAutoCloseAfterSave: true,
   themePresetKey: "", optPopupFollowTheme: true
 };

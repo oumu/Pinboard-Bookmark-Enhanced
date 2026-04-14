@@ -636,6 +636,18 @@
   "optShowSuggestTags": {
     "message": "在弹窗中显示 Pinboard 推荐标签"
   },
+  "optShowAiSummary": {
+    "message": "在弹窗中显示 AI 摘要按钮"
+  },
+  "optShowAiTags": {
+    "message": "在弹窗中显示 AI 标签区"
+  },
+  "optShowQuickLinks": {
+    "message": "在弹窗中显示快捷链接（Sets · Network · Unread · Notes · Popular）"
+  },
+  "optShowQuickRow": {
+    "message": "在弹窗中显示快捷操作按钮（保存标签页 · 批量保存 · Markdown）"
+  },
   "tagSyncLabel": {
     "message": "标签同步模式"
   },

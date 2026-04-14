@@ -636,6 +636,18 @@
   "optShowSuggestTags": {
     "message": "ポップアップに Pinboard のおすすめタグを表示"
   },
+  "optShowAiSummary": {
+    "message": "ポップアップに AI 要約ボタンを表示"
+  },
+  "optShowAiTags": {
+    "message": "ポップアップに AI タグ欄を表示"
+  },
+  "optShowQuickLinks": {
+    "message": "ポップアップにクイックリンクを表示（Sets · Network · Unread · Notes · Popular）"
+  },
+  "optShowQuickRow": {
+    "message": "ポップアップにクイック操作ボタンを表示（タブセット保存 · 一括保存 · Markdown）"
+  },
   "tagSyncLabel": {
     "message": "タグ同期モード"
   },

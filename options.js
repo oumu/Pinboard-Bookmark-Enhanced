@@ -30,6 +30,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         "opt-lang": "auto",
         "opt-check-bookmark-status": true, "opt-auto-close": true, "offline-queue-enabled": true,
         "opt-show-search": false, "opt-show-recent": false, "opt-show-badge": false,
+        "opt-show-ai-summary": true, "opt-show-ai-tags": true,
+        "opt-show-quick-links": true, "opt-show-quick-row": true,
         "notify-quick-save": true, "notify-read-later": true, "notify-tab-set": true,
         "notify-batch-save": true, "notify-errors": true
       },
@@ -219,6 +221,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     "opt-show-badge": s.optShowBadge,
     "opt-check-bookmark-status": s.optCheckBookmarkStatus,
     "opt-show-suggest-tags": s.optShowSuggestTags,
+    "opt-show-ai-summary": s.optShowAiSummary,
+    "opt-show-ai-tags": s.optShowAiTags,
+    "opt-show-quick-links": s.optShowQuickLinks,
+    "opt-show-quick-row": s.optShowQuickRow,
     "opt-auto-close": s.optAutoCloseAfterSave,
     "opt-popup-follow-theme": s.optPopupFollowTheme
   };
@@ -429,6 +435,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       // New toggles
       optCheckBookmarkStatus: document.getElementById("opt-check-bookmark-status").checked,
       optShowSuggestTags: document.getElementById("opt-show-suggest-tags").checked,
+      optShowAiSummary: document.getElementById("opt-show-ai-summary").checked,
+      optShowAiTags: document.getElementById("opt-show-ai-tags").checked,
+      optShowQuickLinks: document.getElementById("opt-show-quick-links").checked,
+      optShowQuickRow: document.getElementById("opt-show-quick-row").checked,
       optAutoCloseAfterSave: document.getElementById("opt-auto-close").checked,
       optPopupFollowTheme: document.getElementById("opt-popup-follow-theme").checked,
       tagPresets: document.getElementById("opt-tag-presets").value,
