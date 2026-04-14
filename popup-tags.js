@@ -225,6 +225,71 @@ function setupTagsInput() {
     currentTags = [];
     renderTags();
   });
+  $id("tags-copy-all")?.addEventListener("click", async (e) => {
+    e.preventDefault();
+    if (!currentTags.length) return;
+    const text = currentTags.join(" ");
+    try { await navigator.clipboard.writeText(text); }
+    catch (_) {
+      const ta = document.createElement("textarea");
+      ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand("copy"); } catch (_) {}
+      document.body.removeChild(ta);
+    }
+    const btn = $id("tags-copy-all");
+    const orig = btn.textContent;
+    btn.textContent = t("tagsCopied", String(currentTags.length));
+    btn.classList.add("tag-copied-flash");
+    setTimeout(() => { btn.textContent = orig; btn.classList.remove("tag-copied-flash"); }, 1200);
+  });
+  $id("tags-last-used")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    const raw = e.currentTarget.dataset.tags || "";
+    if (!raw) return;
+    raw.split(/\s+/).filter(Boolean).forEach(tag => addTag(tag));
+  });
+  loadLastUsedTags();
+}
+
+// ---- Last-used tags memory ----
+let _lastUsedTagsCache = [];
+
+async function loadLastUsedTags() {
+  try {
+    const { lastUsedTags } = await chrome.storage.local.get("lastUsedTags");
+    if (Array.isArray(lastUsedTags) && lastUsedTags.length) {
+      _lastUsedTagsCache = lastUsedTags;
+      renderLastUsedHint();
+    }
+  } catch (_) {}
+}
+
+function renderLastUsedHint() {
+  const el = $id("tags-last-used");
+  if (!el) return;
+  if (!_lastUsedTagsCache.length || currentTags.length > 0) {
+    el.classList.add("hidden");
+    return;
+  }
+  while (el.firstChild) el.removeChild(el.firstChild);
+  const label = document.createElement("span");
+  label.className = "lu-label";
+  label.textContent = t("lastUsedTagsLabel");
+  const tags = document.createElement("span");
+  tags.className = "lu-tags";
+  tags.textContent = _lastUsedTagsCache.join(" ");
+  el.appendChild(label);
+  el.appendChild(tags);
+  el.dataset.tags = _lastUsedTagsCache.join(" ");
+  el.classList.remove("hidden");
+}
+
+function saveLastUsedTags(tags) {
+  if (!Array.isArray(tags) || !tags.length) return;
+  const snapshot = tags.slice();
+  _lastUsedTagsCache = snapshot;
+  try { chrome.storage.local.set({ lastUsedTags: snapshot }).catch(() => {}); } catch (_) {}
 }
 
 function updateAc(items) { items.forEach((el, i) => el.classList.toggle("selected", i === acIndex)); }
@@ -281,6 +346,9 @@ function renderTags() {
   });
   const clearBtn = $id("tags-clear-all");
   if (clearBtn) clearBtn.classList.toggle("hidden", currentTags.length < 2);
+  const copyBtn = $id("tags-copy-all");
+  if (copyBtn) copyBtn.classList.toggle("hidden", currentTags.length < 1);
+  renderLastUsedHint();
   syncSuggestTagStates();
 }
 

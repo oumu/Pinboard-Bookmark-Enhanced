@@ -44,6 +44,21 @@
   "clearAll": {
     "message": "Alle löschen"
   },
+  "copyAllTags": {
+    "message": "Kopieren"
+  },
+  "copyAllTagsTitle": {
+    "message": "Alle Tags in die Zwischenablage kopieren"
+  },
+  "tagsCopied": {
+    "message": "$COUNT$ kopiert",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "lastUsedTagsLabel": {
+    "message": "Zuletzt:"
+  },
   "loading": {
     "message": "Laden..."
   },

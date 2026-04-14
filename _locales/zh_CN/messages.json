@@ -44,6 +44,21 @@
   "clearAll": {
     "message": "全部清除"
   },
+  "copyAllTags": {
+    "message": "复制"
+  },
+  "copyAllTagsTitle": {
+    "message": "复制所有标签到剪贴板"
+  },
+  "tagsCopied": {
+    "message": "已复制 $COUNT$ 个",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "lastUsedTagsLabel": {
+    "message": "上次："
+  },
   "loading": {
     "message": "加载中..."
   },

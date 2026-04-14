@@ -165,6 +165,7 @@ function setupTabSet() {
             cached_existing_urls: { urls: [...existingUrls], timestamp: Date.now() }
           });
         } catch (_) {}
+        if (baseTags.length && typeof saveLastUsedTags === "function") saveLastUsedTags(baseTags);
       }
       const tagStr = baseTags.join(", ");
       const skipMsg = skipped > 0 ? t("batchSkipped", String(skipped)) : "";

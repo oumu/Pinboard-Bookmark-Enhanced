@@ -44,6 +44,21 @@
   "clearAll": {
     "message": "すべてクリア"
   },
+  "copyAllTags": {
+    "message": "コピー"
+  },
+  "copyAllTagsTitle": {
+    "message": "すべてのタグをクリップボードにコピー"
+  },
+  "tagsCopied": {
+    "message": "$COUNT$ 個コピー",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "lastUsedTagsLabel": {
+    "message": "前回："
+  },
   "loading": {
     "message": "読み込み中..."
   },

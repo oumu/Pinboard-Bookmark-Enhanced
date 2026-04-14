@@ -44,6 +44,21 @@
   "clearAll": {
     "message": "全部清除"
   },
+  "copyAllTags": {
+    "message": "複製"
+  },
+  "copyAllTagsTitle": {
+    "message": "複製所有標籤到剪貼簿"
+  },
+  "tagsCopied": {
+    "message": "已複製 $COUNT$ 個",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "lastUsedTagsLabel": {
+    "message": "上次："
+  },
   "loading": {
     "message": "載入中..."
   },

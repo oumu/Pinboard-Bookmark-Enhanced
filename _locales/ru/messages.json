@@ -44,6 +44,21 @@
   "clearAll": {
     "message": "Очистить всё"
   },
+  "copyAllTags": {
+    "message": "Копировать"
+  },
+  "copyAllTagsTitle": {
+    "message": "Копировать все теги в буфер обмена"
+  },
+  "tagsCopied": {
+    "message": "Скопировано $COUNT$",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "lastUsedTagsLabel": {
+    "message": "Недавние:"
+  },
   "loading": {
     "message": "загрузка..."
   },

@@ -44,6 +44,21 @@
   "clearAll": {
     "message": "Clear all"
   },
+  "copyAllTags": {
+    "message": "Copy"
+  },
+  "copyAllTagsTitle": {
+    "message": "Copy all tags to clipboard"
+  },
+  "tagsCopied": {
+    "message": "Copied $COUNT$",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "lastUsedTagsLabel": {
+    "message": "Last used:"
+  },
   "loading": {
     "message": "loading..."
   },

@@ -44,6 +44,21 @@
   "clearAll": {
     "message": "Tout effacer"
   },
+  "copyAllTags": {
+    "message": "Copier"
+  },
+  "copyAllTagsTitle": {
+    "message": "Copier toutes les étiquettes dans le presse-papiers"
+  },
+  "tagsCopied": {
+    "message": "$COUNT$ copié(s)",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "lastUsedTagsLabel": {
+    "message": "Dernière :"
+  },
   "loading": {
     "message": "chargement..."
   },

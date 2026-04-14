@@ -232,6 +232,18 @@ a:hover { text-decoration: underline; }
   margin-top: 2px; display: block;
 }
 .clear-all-link:hover { color: #c00; text-decoration: underline; }
+.tag-actions-row { display: flex; gap: 10px; align-items: center; }
+.tag-actions-row .clear-all-link { margin-top: 2px; }
+#tags-copy-all:hover { color: #2255aa; text-decoration: underline; }
+.last-used-hint {
+  font-size: 10px; color: #757575; cursor: pointer;
+  margin-top: 2px; padding: 2px 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.last-used-hint:hover { color: #2255aa; }
+.last-used-hint .lu-label { font-weight: bold; margin-right: 4px; }
+.last-used-hint .lu-tags { font-style: italic; }
+.tag-copied-flash { color: #2a8a2a !important; }
 
 .suggest-area { line-height: 1.9; word-wrap: break-word; overflow-wrap: break-word; }
 .suggest-group { margin-bottom: 2px; }
@@ -634,6 +646,9 @@ html.dark .search-field:focus { border-color: #4477bb; background: #1e2a3a; }
 html.dark .search-field:focus-visible { box-shadow: 0 0 0 2px rgba(68,119,187,0.25); }
 html.dark .clear-all-link { color: #666; }
 html.dark .clear-all-link:hover { color: #ff6666; }
+html.dark #tags-copy-all:hover { color: #6699ff; }
+html.dark .last-used-hint { color: #666; }
+html.dark .last-used-hint:hover { color: #6699ff; }
 html.dark .tag-item.drag-over { border-left-color: #6699ff; }
 html.dark .existing-banner { background: #1a2a3a; border-color: #2a4a6a; color: #6699ff; }
 html.dark .existing-banner.just-saved { background: #1a3a20; border-color: #2d5a34; color: #66ff99; }
@@ -989,6 +1004,9 @@ html[data-theme] .search-field:focus { border-color: var(--pp-accent); backgroun
 html[data-theme] .search-field:focus-visible { box-shadow: 0 0 0 2px color-mix(in srgb, var(--pp-accent) 25%, transparent); }
 html[data-theme] .clear-all-link { color: var(--pp-fg-hint); }
 html[data-theme] .clear-all-link:hover { color: var(--pp-danger); }
+html[data-theme] #tags-copy-all:hover { color: var(--pp-accent); }
+html[data-theme] .last-used-hint { color: var(--pp-fg-hint); }
+html[data-theme] .last-used-hint:hover { color: var(--pp-accent); }
 html[data-theme] .quick-links a { color: var(--pp-link); }
 html[data-theme] .ql-sep { color: var(--pp-fg-hint); }
 html[data-theme] .recent-bm-label { color: var(--pp-fg-hint); }

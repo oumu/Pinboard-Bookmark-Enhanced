@@ -53,7 +53,11 @@
             <input type="text" id="tags-input" autocomplete="off" aria-label="Add tags" data-i18n-aria="placeholderAddTags" />
           </div>
           <div id="tags-autocomplete" class="autocomplete-dropdown hidden"></div>
-          <a href="#" id="tags-clear-all" class="clear-all-link hidden" data-i18n="clearAll">Clear all</a>
+          <div class="tag-actions-row">
+            <a href="#" id="tags-copy-all" class="clear-all-link hidden" data-i18n="copyAllTags" data-i18n-title="copyAllTagsTitle">Copy</a>
+            <a href="#" id="tags-clear-all" class="clear-all-link hidden" data-i18n="clearAll">Clear all</a>
+          </div>
+          <div id="tags-last-used" class="last-used-hint hidden"></div>
         </div>
       </div>
       <div id="presets-row" class="row hidden">
