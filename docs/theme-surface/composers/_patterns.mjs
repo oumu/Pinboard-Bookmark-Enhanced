@@ -471,6 +471,81 @@ export function patternsLayer(tokens) {
   }
   // "default" or missing → composer baseline (destroy color + bold)
 
+  // ---- P7: title-hover-style ----
+  // Delta on composer's baseline `a.bookmark_title:hover`. 6/13 themes
+  // override — catppuccin-pair/flexoki-light drop the underline to keep the
+  // bookmark title flat-looking on hover; dracula shifts to a brighter accent
+  // tint; rose-pine/paper-ink go subtle-muted for a softer read.
+  //   "no-underline" → `text-decoration: none` (keeps composer's color)
+  //   "accent-color" → color shifts to `link-hover` with no underline
+  //   "muted"        → color shifts to `muted-soft` with no underline
+  const titleHover = pat["title-hover-style"];
+  if (titleHover === "no-underline") {
+    out.push(
+      `a.bookmark_title:hover { text-decoration: none !important; }`
+    );
+  } else if (titleHover === "accent-color") {
+    out.push(
+      `a.bookmark_title:hover { color: ${v("link-hover")} !important; text-decoration: none !important; }`
+    );
+  } else if (titleHover === "muted") {
+    out.push(
+      `a.bookmark_title:hover { color: ${v("muted-soft")} !important; text-decoration: none !important; }`
+    );
+  }
+  // "default" or missing → composer baseline
+
+  // ---- P7: description-tone ----
+  // Parallel to footer-tone. 9/13 themes override `.description` with a
+  // muted color and/or reduced opacity (catppuccin-pair, dracula, flexoki,
+  // paper-ink, rose-pine, terminal). Color always resolves to `muted-soft`
+  // so the tone stays token-driven; opacity is an extra "faint" tier for
+  // themes whose muted-soft isn't muted enough on their bg.
+  //   "muted" → color only
+  //   "faint" → color + opacity 0.75
+  const descTone = pat["description-tone"];
+  if (descTone === "muted" || descTone === "faint") {
+    const opacity = descTone === "faint" ? " opacity: 0.75 !important;" : "";
+    out.push(
+      `.description { color: ${v("muted-soft")} !important;${opacity} }`
+    );
+  }
+  // "default" or missing → composer baseline
+
+  // ---- P7: searchbox-width ----
+  // 7/13 themes force `#search_query_field { width: 100% }` to fight
+  // Pinboard's inline default width and fill the available column. This
+  // pattern centralizes that decl. Keep it separate from `searchbox-style`
+  // because a theme may want 100% width WITHOUT the boxed/outlined chrome
+  // (e.g. modern-card wants a full-width pill-style search).
+  //   "full" → width 100%
+  const searchboxWidth = pat["searchbox-width"];
+  if (searchboxWidth === "full") {
+    out.push(
+      `#search_query_field { width: 100% !important; }`
+    );
+  }
+  // "default" or missing → Pinboard's inline width stays
+
+  // ---- P7: input-radius ----
+  // 4/13 themes (catppuccin-pair, modern-card, paper-ink) apply the same
+  // radius to *every* form input (`text/password/not([type])/textarea/select`)
+  // en bloc. Value read from `ext.input-radius` (no default — pattern is a
+  // no-op if the token isn't set). Kept distinct from `searchbox-style` /
+  // `button-style` because those scope to specific selectors; this one is
+  // the catch-all for non-button inputs on settings/edit pages.
+  //   "rounded" → apply ext.input-radius to the form-input selector group
+  const inputRadius = pat["input-radius"];
+  if (inputRadius === "rounded") {
+    const r = tokens.ext?.["input-radius"];
+    if (r) {
+      out.push(
+        `input[type="text"], input:not([type]), input[type="password"], textarea, select { border-radius: ${r} !important; }`
+      );
+    }
+  }
+  // "default" or missing → composer baseline
+
   if (!out.length) return "";
   return `\n/* === patterns layer (tokens.patterns) === */\n` + out.join("\n") + "\n";
 }
