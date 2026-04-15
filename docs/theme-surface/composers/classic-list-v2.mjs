@@ -93,6 +93,7 @@ a.bundle:hover { color: ${v("link-hover")} !important; }
   display: flex !important;
   align-items: flex-start !important;
 }
+.bookmark { transition: background 0.2s ease !important; }
 .bookmark:hover { ${bookmarkStyle === "card" ? `border-color: ${v("accent-alpha")} !important;` : `background: ${v("row-hover")} !important;`} }
 .bookmark .display { float: none !important; flex: 1 !important; width: auto !important; min-width: 0 !important; }
 .star, .selected_star { margin-left: 0 !important; margin-right: 6px !important; float: none !important; flex-shrink: 0 !important; }

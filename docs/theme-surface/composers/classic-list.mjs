@@ -77,6 +77,7 @@ a:focus-visible { outline: 2px solid ${v("focus-ring")}; outline-offset: 2px; bo
   padding: calc(${v("space-bookmark-gap")} / 2) 0;
   border-radius: ${v("radius-md")};
 }
+#main_column .bookmark { transition: background 0.2s ease; }
 #main_column .bookmark:hover { background: ${v("row-hover")}; }
 
 #main_column .bookmark a.bookmark_title {
