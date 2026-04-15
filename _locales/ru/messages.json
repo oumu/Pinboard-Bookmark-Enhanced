@@ -295,6 +295,9 @@
   "suggestNoSuggestions": {
     "message": "нет рекомендаций"
   },
+  "suggestUnavailable": {
+    "message": "нет рекомендаций (Pinboard недоступен для этого URL)"
+  },
   "suggestPopular": {
     "message": "популярные:"
   },
@@ -308,6 +311,21 @@
         "content": "$1"
       }
     }
+  },
+  "pinboardErrorAuth": {
+    "message": "Ошибка авторизации, проверьте API-токен"
+  },
+  "pinboardErrorRateLimit": {
+    "message": "Слишком много запросов, повторите позже"
+  },
+  "pinboardErrorServer": {
+    "message": "Сервис Pinboard недоступен"
+  },
+  "pinboardErrorOffline": {
+    "message": "Ошибка сети, проверьте подключение"
+  },
+  "pinboardErrorTimeout": {
+    "message": "Превышено время ожидания, повторите позже"
   },
   "qlSets": {
     "message": "Sets"

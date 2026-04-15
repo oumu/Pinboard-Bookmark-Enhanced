@@ -295,6 +295,9 @@
   "suggestNoSuggestions": {
     "message": "no suggestions"
   },
+  "suggestUnavailable": {
+    "message": "no suggestions (Pinboard unavailable for this URL)"
+  },
   "suggestPopular": {
     "message": "popular:"
   },
@@ -308,6 +311,21 @@
         "content": "$1"
       }
     }
+  },
+  "pinboardErrorAuth": {
+    "message": "Authentication failed, check API token"
+  },
+  "pinboardErrorRateLimit": {
+    "message": "Too many requests, try again later"
+  },
+  "pinboardErrorServer": {
+    "message": "Pinboard service unavailable"
+  },
+  "pinboardErrorOffline": {
+    "message": "Network error, check connection"
+  },
+  "pinboardErrorTimeout": {
+    "message": "Request timed out, try again later"
   },
   "qlSets": {
     "message": "Sets"

@@ -295,6 +295,9 @@
   "suggestNoSuggestions": {
     "message": "brak sugestii"
   },
+  "suggestUnavailable": {
+    "message": "brak sugestii (Pinboard niedostępny dla tego URL)"
+  },
   "suggestPopular": {
     "message": "popularne:"
   },
@@ -308,6 +311,21 @@
         "content": "$1"
       }
     }
+  },
+  "pinboardErrorAuth": {
+    "message": "Błąd uwierzytelniania, sprawdź token API"
+  },
+  "pinboardErrorRateLimit": {
+    "message": "Zbyt wiele żądań, spróbuj później"
+  },
+  "pinboardErrorServer": {
+    "message": "Usługa Pinboard niedostępna"
+  },
+  "pinboardErrorOffline": {
+    "message": "Błąd sieci, sprawdź połączenie"
+  },
+  "pinboardErrorTimeout": {
+    "message": "Przekroczono limit czasu, spróbuj później"
   },
   "qlSets": {
     "message": "Zestawy"

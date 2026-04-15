@@ -118,10 +118,21 @@ const _pinboardQueue = [];
 let _pinboardLastCall = 0;
 let _pinboardProcessing = false;
 
+// Accepts options.timeoutMs (default 15000) to override abort timeout per call.
+// Non-critical endpoints (e.g. suggest) should pass a shorter value to fail fast.
 function pinboardFetch(url, options) {
   return new Promise((resolve, reject) => {
-    _pinboardQueue.push({ url, options, resolve, reject });
+    _pinboardQueue.push({ url, options: options || {}, resolve, reject });
     _processPinboardQueue();
+  });
+}
+
+// Fire immediately without joining the rate-limit queue.
+// Use only for non-critical read-only GET endpoints (e.g. posts/suggest) that already
+// handle 429 gracefully. Avoids the 3.1s+ rate-limit wait that the main queue imposes.
+function pinboardFetchImmediate(url, options) {
+  return new Promise((resolve, reject) => {
+    _executePinboardFetch(url, options || {}, resolve, reject);
   });
 }
 
@@ -144,13 +155,47 @@ async function _processPinboardQueue() {
     _pinboardLastCall = reservedTime;
     try { await chrome.storage.local.set({ _pbRateLimitTs: reservedTime }); } catch (_) {}
     if (wait > 0) await new Promise(r => setTimeout(r, wait));
-    try {
-      const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), 15000);
-      resolve(await fetch(url, { ...options, signal: ctrl.signal }).finally(() => clearTimeout(timer)));
-    } catch (e) { reject(e); }
+    // Fire without awaiting — rate limit is timing-based (gap between request starts),
+    // not completion-based. Awaiting each fetch caused queue starvation: a slow/hung
+    // request (e.g. suggest for a niche URL) would delay all subsequent queued requests
+    // by its full timeout duration.
+    _executePinboardFetch(url, options, resolve, reject);
   }
   _pinboardProcessing = false;
+}
+
+function _executePinboardFetch(url, options, resolve, reject) {
+  const ctrl = new AbortController();
+  const { timeoutMs = 15000, ...fetchOpts } = options;
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  fetch(url, { ...fetchOpts, signal: ctrl.signal })
+    .finally(() => clearTimeout(timer))
+    .then(resolve, reject);
+}
+
+// ---- Pinboard error classifier ----
+// Returns an i18n key describing a Pinboard API failure.
+// Input: HTTP Response, Error, or status number. Caller handles 401 (pinboardFetch redirects)
+// and 500 (Pinboard's quirk for niche URLs → "no suggestions") BEFORE calling this.
+function classifyPinboardError(input) {
+  if (input && typeof input === "object" && "status" in input && !("name" in input)) {
+    const s = input.status;
+    if (s === 401 || s === 403) return "pinboardErrorAuth";
+    if (s === 429) return "pinboardErrorRateLimit";
+    if (s >= 500) return "pinboardErrorServer";
+    return "pinboardErrorOffline";
+  }
+  if (typeof input === "number") {
+    if (input === 401 || input === 403) return "pinboardErrorAuth";
+    if (input === 429) return "pinboardErrorRateLimit";
+    if (input >= 500) return "pinboardErrorServer";
+    return "pinboardErrorOffline";
+  }
+  // Error instance (network failure, AbortError, etc.)
+  const name = input?.name;
+  if (name === "AbortError") return "pinboardErrorTimeout";
+  if (input instanceof TypeError) return "pinboardErrorOffline";
+  return "pinboardErrorOffline";
 }
 
 // ---- Settings storage selector (sync vs local based on user preference) ----

@@ -295,6 +295,9 @@
   "suggestNoSuggestions": {
     "message": "暫無推薦"
   },
+  "suggestUnavailable": {
+    "message": "暫無推薦（Pinboard 無法為此 URL 生成建議）"
+  },
   "suggestPopular": {
     "message": "熱門："
   },
@@ -308,6 +311,21 @@
         "content": "$1"
       }
     }
+  },
+  "pinboardErrorAuth": {
+    "message": "認證失敗，請檢查 API Token"
+  },
+  "pinboardErrorRateLimit": {
+    "message": "請求過於頻繁，請稍後重試"
+  },
+  "pinboardErrorServer": {
+    "message": "Pinboard 服務暫時無法使用"
+  },
+  "pinboardErrorOffline": {
+    "message": "網絡連線失敗，請檢查網絡"
+  },
+  "pinboardErrorTimeout": {
+    "message": "請求逾時，請稍後重試"
   },
   "qlSets": {
     "message": "標籤集"

@@ -18,15 +18,27 @@ async function fetchPinboardSuggestTags(token, url) {
 
   if (!data) {
     try {
-      const resp = await pinboardFetch(`https://api.pinboard.in/v1/posts/suggest?url=${enc(url)}&auth_token=${token}&format=json`);
+      // Suggest is non-critical read-only; bypass rate-limit queue so it fires immediately
+      // on popup open instead of waiting 3.1s+ behind fetchAllUserTags. 429 is handled.
+      const resp = await pinboardFetchImmediate(`https://api.pinboard.in/v1/posts/suggest?url=${enc(url)}&auth_token=${token}&format=json`, { timeoutMs: 8000 });
       if (!resp.ok) {
+        // 500: Pinboard's way of saying "no suggestions for this niche URL"
         if (resp.status === 500) { container.textContent = t("suggestNoSuggestions"); container.classList.add("muted"); return; }
-        throw new Error(`HTTP ${resp.status}`);
+        // Auth and rate-limit failures are actionable — show specific guidance
+        if (resp.status === 401 || resp.status === 403) { container.textContent = t("pinboardErrorAuth"); container.classList.add("muted"); return; }
+        if (resp.status === 429) { container.textContent = t("pinboardErrorRateLimit"); container.classList.add("muted"); return; }
+        // All other server errors: Pinboard cannot handle this URL
+        container.textContent = t("suggestUnavailable");
+        container.classList.add("muted");
+        return;
       }
       data = await resp.json();
       chrome.storage.local.set({ [cacheKey]: { data, timestamp: Date.now() } }).catch(() => {});
     } catch (e) {
-      container.textContent = t("suggestFailed", e.message || String(e));
+      // Network-level errors (TypeError from connection reset, AbortError from timeout)
+      // for the suggest endpoint typically mean Pinboard can't process this URL, not that
+      // the user's network is broken — surface a neutral "unavailable" message instead.
+      container.textContent = t("suggestUnavailable");
       container.classList.add("muted");
       return;
     }
@@ -131,11 +143,28 @@ async function fetchAllUserTags(token) {
   try {
     const resp = await pinboardFetch(`https://api.pinboard.in/v1/tags/get?auth_token=${token}&format=json`);
     if (resp.status === 401) return; // pinboardFetch already redirected to login
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    if (!resp.ok) {
+      showTagSyncError(classifyPinboardError(resp));
+      return;
+    }
     const data = await resp.json();
     applyTagData(data);
     await chrome.storage.local.set({ [cacheKey]: { tags: allUserTags, counts: allUserTagCounts, timestamp: Date.now() } });
-  } catch (e) { console.error(e); }
+  } catch (e) {
+    console.error(e);
+    showTagSyncError(classifyPinboardError(e));
+  }
+}
+
+// Surface user-tag sync errors in the same container as suggest errors (unified "tag help" area).
+// Does not overwrite when suggest has already rendered tags — muted class signals error state.
+function showTagSyncError(i18nKey) {
+  const container = $id("pinboard-suggest-tags");
+  if (!container) return;
+  // Don't overwrite suggest results or an already-shown error/timeout message
+  if (container.querySelector(".suggest-group") || container.textContent.trim()) return;
+  container.textContent = t(i18nKey);
+  container.classList.add("muted");
 }
 
 // ---- Tags Input Setup ----

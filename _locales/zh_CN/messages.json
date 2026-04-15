@@ -295,6 +295,9 @@
   "suggestNoSuggestions": {
     "message": "暂无推荐"
   },
+  "suggestUnavailable": {
+    "message": "暂无推荐（Pinboard 无法为此 URL 生成建议）"
+  },
   "suggestPopular": {
     "message": "热门："
   },
@@ -308,6 +311,21 @@
         "content": "$1"
       }
     }
+  },
+  "pinboardErrorAuth": {
+    "message": "认证失败，请检查 API Token"
+  },
+  "pinboardErrorRateLimit": {
+    "message": "请求过于频繁，请稍后重试"
+  },
+  "pinboardErrorServer": {
+    "message": "Pinboard 服务暂时不可用"
+  },
+  "pinboardErrorOffline": {
+    "message": "网络连接失败，请检查网络"
+  },
+  "pinboardErrorTimeout": {
+    "message": "请求超时，请稍后重试"
   },
   "qlSets": {
     "message": "标签集"

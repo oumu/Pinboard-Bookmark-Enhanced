@@ -295,6 +295,9 @@
   "suggestNoSuggestions": {
     "message": "aucune suggestion"
   },
+  "suggestUnavailable": {
+    "message": "aucune suggestion (Pinboard indisponible pour cette URL)"
+  },
   "suggestPopular": {
     "message": "populaire :"
   },
@@ -308,6 +311,21 @@
         "content": "$1"
       }
     }
+  },
+  "pinboardErrorAuth": {
+    "message": "Échec d'authentification, vérifiez le jeton API"
+  },
+  "pinboardErrorRateLimit": {
+    "message": "Trop de requêtes, réessayez plus tard"
+  },
+  "pinboardErrorServer": {
+    "message": "Service Pinboard indisponible"
+  },
+  "pinboardErrorOffline": {
+    "message": "Erreur réseau, vérifiez la connexion"
+  },
+  "pinboardErrorTimeout": {
+    "message": "Délai d'attente dépassé, réessayez plus tard"
   },
   "qlSets": {
     "message": "Ensembles"

@@ -295,6 +295,9 @@
   "suggestNoSuggestions": {
     "message": "おすすめなし"
   },
+  "suggestUnavailable": {
+    "message": "おすすめなし（PinboardはこのURLに対応できません）"
+  },
   "suggestPopular": {
     "message": "人気："
   },
@@ -308,6 +311,21 @@
         "content": "$1"
       }
     }
+  },
+  "pinboardErrorAuth": {
+    "message": "認証に失敗しました。APIトークンを確認してください"
+  },
+  "pinboardErrorRateLimit": {
+    "message": "リクエストが多すぎます。しばらくしてから再試行してください"
+  },
+  "pinboardErrorServer": {
+    "message": "Pinboardサービスが利用できません"
+  },
+  "pinboardErrorOffline": {
+    "message": "ネットワークエラー、接続を確認してください"
+  },
+  "pinboardErrorTimeout": {
+    "message": "リクエストがタイムアウトしました。後で再試行してください"
   },
   "qlSets": {
     "message": "セット"
