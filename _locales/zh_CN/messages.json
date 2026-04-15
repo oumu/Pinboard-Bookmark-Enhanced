@@ -302,7 +302,7 @@
     "message": "热门："
   },
   "suggestRecommended": {
-    "message": "推荐："
+    "message": "个人："
   },
   "suggestFailed": {
     "message": "加载失败：$ERROR$",

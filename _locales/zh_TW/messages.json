@@ -302,7 +302,7 @@
     "message": "熱門："
   },
   "suggestRecommended": {
-    "message": "推薦："
+    "message": "個人："
   },
   "suggestFailed": {
     "message": "載入失敗：$ERROR$",

@@ -302,7 +302,7 @@
     "message": "人気："
   },
   "suggestRecommended": {
-    "message": "おすすめ："
+    "message": "個人："
   },
   "suggestFailed": {
     "message": "読み込みに失敗：$ERROR$",
