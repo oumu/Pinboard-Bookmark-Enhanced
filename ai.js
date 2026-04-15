@@ -78,7 +78,11 @@ async function getPageInfoFromTab(tabId) {
           }, 3000);
           try {
             const clone = document.cloneNode(true);
-            const result = new Defuddle(clone).parse();
+            // Suppress Defuddle's internal console.error for malformed schema.org JSON on third-party pages
+            const _origCE = console.error;
+            console.error = (...a) => { if (!String(a[0]).startsWith("Defuddle:")) _origCE.apply(console, a); };
+            let result;
+            try { result = new Defuddle(clone).parse(); } finally { console.error = _origCE; }
             if (result?.textContent && result.textContent.length > 50) {
               info.pageText = result.textContent.substring(0, 8000);
               return info;

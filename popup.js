@@ -239,7 +239,11 @@ async function extractLocalMarkdown(tabId) {
         }
         try {
           const clone = document.cloneNode(true);
-          const result = new Defuddle(clone).parse();
+          // Suppress Defuddle's internal console.error for malformed schema.org JSON on third-party pages
+          const _origCE = console.error;
+          console.error = (...a) => { if (!String(a[0]).startsWith("Defuddle:")) _origCE.apply(console, a); };
+          let result;
+          try { result = new Defuddle(clone).parse(); } finally { console.error = _origCE; }
           if (!result?.content) return { error: "No content extracted" };
           return { contentHtml: result.content, title: result.title || document.title, url: location.href };
         } catch (e) { return { error: e.message }; }

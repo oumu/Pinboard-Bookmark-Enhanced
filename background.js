@@ -167,7 +167,8 @@ async function checkBookmarked(url) {
     cleanupStatusCache();
     return bookmarked;
   } catch (e) {
-    console.error("checkBookmarked error:", e);
+    // "Failed to fetch" is expected on network loss or API downtime — only warn for unexpected errors
+    if (!(e instanceof TypeError && /failed to fetch/i.test(e.message))) console.warn("checkBookmarked error:", e);
     return false;
   }
 }
