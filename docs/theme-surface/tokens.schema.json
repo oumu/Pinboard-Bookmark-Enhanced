@@ -264,8 +264,8 @@
         },
         "hover-effect": {
           "type": "string",
-          "enum": ["underline", "lift", "color-shift", "fade-bg"],
-          "description": "Bookmark row hover treatment. underline=title underlines only, lift=subtle translateY, color-shift=hover changes color, fade-bg=row background tints."
+          "enum": ["underline", "lift", "color-shift", "fade-bg", "left-bar"],
+          "description": "Bookmark row hover treatment. left-bar=accent left border, no bg change (reading themes, ΔE>35); fade-bg=bg tints with transition; underline=title underlines only; lift=subtle translateY; color-shift=hover changes color. Required when row-hover ΔE vs bg >35."
         },
         "row-divider": {
           "type": "string",
