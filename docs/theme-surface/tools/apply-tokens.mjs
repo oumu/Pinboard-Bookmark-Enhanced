@@ -27,6 +27,22 @@ const WRITE = flags.includes("--write");
 const tokens = JSON.parse(readFileSync(resolve(__dirname, "..", "pilots", `${slug}.tokens.json`), "utf8"));
 const generated = composeTheme(tokens, compose);
 
+// ---- Hover-contrast lint ----
+// Warn when row-hover ΔE vs bg is HIGH and no soft hover-effect is set.
+(function checkHoverContrast() {
+  const hexToRgb = h => { const x = h.replace('#',''); return [0,2,4].map(i=>parseInt(x.slice(i,i+2),16)); };
+  const deltaE   = (a,b) => Math.sqrt(a.reduce((s,v,i)=>(s+(v-b[i])**2),0));
+  const bg    = tokens.palette?.bg;
+  const hover = tokens.palette?.['row-hover'];
+  if (!bg || !hover || !bg.startsWith('#') || !hover.startsWith('#')) return;
+  const de = deltaE(hexToRgb(bg), hexToRgb(hover));
+  const effect = tokens.patterns?.['hover-effect'];
+  const softEffects = ['left-bar','underline','lift','color-shift'];
+  if (de > 35 && !softEffects.includes(effect)) {
+    console.warn(`\n⚠️  [hover-contrast] ${slug}: row-hover ΔE=${de.toFixed(1)} is HIGH — consider hover-effect:"left-bar" or "underline" to avoid jarring background flash\n`);
+  }
+})();
+
 // ---- Locate shipped block ----
 const src = readFileSync(THEMES_PATH, "utf8");
 const re = new RegExp(`("${slug}":\\s*\\{[\\s\\S]*?css:\\s*\`)([\\s\\S]*?)(\`\\s*\\})`, "m");
