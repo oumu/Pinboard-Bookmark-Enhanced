@@ -947,7 +947,7 @@ hr { border-color: var(--pinboard-border) !important; }
 ::-moz-selection { background: var(--pinboard-selection-bg) !important; color: var(--pinboard-selection-fg) !important; }
 
 /* === patterns layer (tokens.patterns) === */
-.private { background: var(--pinboard-bg-surface) !important; border-left: 3px solid var(--pinboard-private-accent) !important; padding-left: 10px !important; }
+.private { background: var(--pinboard-private-bg) !important; border-left: 3px solid var(--pinboard-private-accent) !important; padding-left: 10px !important; }
 #search_query_field:focus, #banner_searchbox input[type="text"]:focus, #right_bar input#key:focus, #tweet_searchbox #search_query_field:focus {
   box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important;
   outline: none !important;
@@ -1037,7 +1037,7 @@ a { color: #81a1c1 !important; }
   --pinboard-accent-soft: #1a3a1a;
   --pinboard-accent-alpha: rgba(51,255,51,0.3);
   --pinboard-input-bg: #111111;
-  --pinboard-private-bg: #0a0a0a;
+  --pinboard-private-bg: #111100;
   --pinboard-private-accent: #cccc00;
   --pinboard-selection-bg: #33ff3340;
   --pinboard-selection-fg: #ffffff;
@@ -1435,7 +1435,7 @@ hr { border-color: var(--pinboard-border) !important; }
 a.tag::before { content: "#" !important; }
 a.bookmark_title::before { content: "> " !important; color: var(--pinboard-muted-soft) !important; }
 .settings_heading::before { content: "$ " !important; opacity: 0.7 !important; }
-.private { background: var(--pinboard-bg-surface) !important; border-left: 2px solid var(--pinboard-private-accent) !important; padding-left: 10px !important; }
+.private { background: var(--pinboard-private-bg) !important; border-left: 2px solid var(--pinboard-private-accent) !important; padding-left: 10px !important; }
 #search_query_field:focus, #banner_searchbox input[type="text"]:focus, #right_bar input#key:focus, #tweet_searchbox #search_query_field:focus {
   box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important;
   outline: none !important;
@@ -1955,7 +1955,7 @@ hr { border-color: var(--pinboard-border) !important; }
 ::-moz-selection { background: var(--pinboard-selection-bg) !important; color: var(--pinboard-selection-fg) !important; }
 
 /* === patterns layer (tokens.patterns) === */
-.private { background: var(--pinboard-bg-surface) !important; border-left: 3px solid var(--pinboard-private-accent) !important; padding-left: 10px !important; }
+.private { background: var(--pinboard-private-bg) !important; border-left: 3px solid var(--pinboard-private-accent) !important; padding-left: 10px !important; }
 #search_query_field:focus, #banner_searchbox input[type="text"]:focus, #right_bar input#key:focus, #tweet_searchbox #search_query_field:focus {
   box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important;
   outline: none !important;
@@ -2099,7 +2099,7 @@ h2 { font-family: "Georgia", serif !important; }`
   --pinboard-accent-soft: #21222c;
   --pinboard-accent-alpha: rgba(139,233,253,0.25);
   --pinboard-input-bg: #44475a;
-  --pinboard-private-bg: #282a36;
+  --pinboard-private-bg: #44475a;
   --pinboard-private-accent: #f1fa8c;
   --pinboard-selection-bg: #6272a4;
   --pinboard-selection-fg: #f8f8f2;
@@ -2494,7 +2494,7 @@ hr { border-color: var(--pinboard-border) !important; }
 ::-moz-selection { background: var(--pinboard-selection-bg) !important; color: var(--pinboard-selection-fg) !important; }
 
 /* === patterns layer (tokens.patterns) === */
-.private { background: var(--pinboard-bg-surface) !important; border-left: 3px solid var(--pinboard-private-accent) !important; padding-left: 10px !important; }
+.private { background: var(--pinboard-private-bg) !important; border-left: 3px solid var(--pinboard-private-accent) !important; padding-left: 10px !important; }
 #search_query_field:focus, #banner_searchbox input[type="text"]:focus, #right_bar input#key:focus, #tweet_searchbox #search_query_field:focus {
   box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important;
   outline: none !important;
@@ -3005,7 +3005,7 @@ hr { border-color: var(--pinboard-border) !important; }
 ::-moz-selection { background: var(--pinboard-selection-bg) !important; color: var(--pinboard-selection-fg) !important; }
 
 /* === patterns layer (tokens.patterns) === */
-.private { background: var(--pinboard-bg-surface) !important; border-left: 3px solid var(--pinboard-private-accent) !important; padding-left: 10px !important; }
+.private { background: var(--pinboard-private-bg) !important; border-left: 3px solid var(--pinboard-private-accent) !important; padding-left: 10px !important; }
 #search_query_field:focus, #banner_searchbox input[type="text"]:focus, #right_bar input#key:focus, #tweet_searchbox #search_query_field:focus {
   box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important;
   outline: none !important;
@@ -3412,7 +3412,7 @@ html.pbp-dark ::selection { background: var(--pinboard-selection-bg) !important;
 html.pbp-dark ::-moz-selection { background: var(--pinboard-selection-bg) !important; color: var(--pinboard-selection-fg) !important; }
 
 /* === patterns layer (tokens.patterns) === */
-html.pbp-dark .private { background: var(--pinboard-bg-surface) !important; border-left: 3px solid var(--pinboard-private-accent) !important; padding-left: 10px !important; }
+html.pbp-dark .private { background: var(--pinboard-private-bg) !important; border-left: 3px solid var(--pinboard-private-accent) !important; padding-left: 10px !important; }
 html.pbp-dark #search_query_field:focus, html.pbp-dark #banner_searchbox input[type="text"]:focus, html.pbp-dark #right_bar input#key:focus, html.pbp-dark #tweet_searchbox #search_query_field:focus {
   box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important;
   outline: none !important;
@@ -3969,7 +3969,7 @@ hr { border-color: var(--pinboard-border) !important; }
 ::-moz-selection { background: var(--pinboard-selection-bg) !important; color: var(--pinboard-selection-fg) !important; }
 
 /* === patterns layer (tokens.patterns) === */
-.private { background: var(--pinboard-bg-surface) !important; border-left: 3px solid var(--pinboard-private-accent) !important; padding-left: 10px !important; }
+.private { background: var(--pinboard-private-bg) !important; border-left: 3px solid var(--pinboard-private-accent) !important; padding-left: 10px !important; }
 #search_query_field:focus, #banner_searchbox input[type="text"]:focus, #right_bar input#key:focus, #tweet_searchbox #search_query_field:focus {
   box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important;
   outline: none !important;
@@ -4435,7 +4435,7 @@ hr { border-color: var(--pinboard-border) !important; }
 ::-moz-selection { background: var(--pinboard-selection-bg) !important; color: var(--pinboard-selection-fg) !important; }
 
 /* === patterns layer (tokens.patterns) === */
-.private { background: var(--pinboard-bg-surface) !important; border-left: 2px solid var(--pinboard-private-accent) !important; padding-left: 10px !important; }
+.private { background: var(--pinboard-private-bg) !important; border-left: 2px solid var(--pinboard-private-accent) !important; padding-left: 10px !important; }
 #search_query_field:focus, #banner_searchbox input[type="text"]:focus, #right_bar input#key:focus, #tweet_searchbox #search_query_field:focus {
   box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important;
   outline: none !important;
@@ -4911,7 +4911,7 @@ hr { border-color: var(--pinboard-border) !important; }
 ::-moz-selection { background: var(--pinboard-selection-bg) !important; color: var(--pinboard-selection-fg) !important; }
 
 /* === patterns layer (tokens.patterns) === */
-.private { background: var(--pinboard-bg-surface) !important; border-left: 3px solid var(--pinboard-private-accent) !important; padding-left: 10px !important; }
+.private { background: var(--pinboard-private-bg) !important; border-left: 3px solid var(--pinboard-private-accent) !important; padding-left: 10px !important; }
 #search_query_field:focus, #banner_searchbox input[type="text"]:focus, #right_bar input#key:focus, #tweet_searchbox #search_query_field:focus {
   box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important;
   outline: none !important;
@@ -5389,7 +5389,7 @@ hr { border-color: var(--pinboard-border) !important; }
 ::-moz-selection { background: var(--pinboard-selection-bg) !important; color: var(--pinboard-selection-fg) !important; }
 
 /* === patterns layer (tokens.patterns) === */
-.private { background: var(--pinboard-bg-surface) !important; border-left: 3px solid var(--pinboard-private-accent) !important; padding-left: 10px !important; }
+.private { background: var(--pinboard-private-bg) !important; border-left: 3px solid var(--pinboard-private-accent) !important; padding-left: 10px !important; }
 #search_query_field:focus, #banner_searchbox input[type="text"]:focus, #right_bar input#key:focus, #tweet_searchbox #search_query_field:focus {
   box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important;
   outline: none !important;
@@ -5880,7 +5880,7 @@ hr { border-color: var(--pinboard-border) !important; }
 
 /* === patterns layer (tokens.patterns) === */
 a.tag::before { content: "#" !important; }
-.private { background: var(--pinboard-bg-surface) !important; border-left: 3px solid var(--pinboard-private-accent) !important; padding-left: 10px !important; }
+.private { background: var(--pinboard-private-bg) !important; border-left: 3px solid var(--pinboard-private-accent) !important; padding-left: 10px !important; }
 #search_query_field:focus, #banner_searchbox input[type="text"]:focus, #right_bar input#key:focus, #tweet_searchbox #search_query_field:focus {
   box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important;
   outline: none !important;
@@ -6362,7 +6362,7 @@ hr { border-color: var(--pinboard-border) !important; }
 ::-moz-selection { background: var(--pinboard-selection-bg) !important; color: var(--pinboard-selection-fg) !important; }
 
 /* === patterns layer (tokens.patterns) === */
-.private { background: var(--pinboard-bg-surface) !important; border-left: 3px solid var(--pinboard-private-accent) !important; padding-left: 10px !important; }
+.private { background: var(--pinboard-private-bg) !important; border-left: 3px solid var(--pinboard-private-accent) !important; padding-left: 10px !important; }
 #search_query_field:focus, #banner_searchbox input[type="text"]:focus, #right_bar input#key:focus, #tweet_searchbox #search_query_field:focus {
   box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important;
   outline: none !important;
@@ -6453,7 +6453,7 @@ h2 { color: #ebbcba !important; }`
   --pinboard-accent-alpha: rgba(9,105,218,0.2);
   --pinboard-accent-soft: #ddf4ff;
   --pinboard-input-bg: #ffffff;
-  --pinboard-private-bg: #ffffff;
+  --pinboard-private-bg: #fffbeb;
   --pinboard-private-accent: #bf8700;
   --pinboard-selection-bg: #ddf4ff;
   --pinboard-selection-fg: #1f2328;
@@ -6851,7 +6851,7 @@ hr { border-color: var(--pinboard-border) !important; }
 ::-moz-selection { background: var(--pinboard-selection-bg) !important; color: var(--pinboard-selection-fg) !important; }
 
 /* === patterns layer (tokens.patterns) === */
-.private { background: var(--pinboard-bg-surface) !important; border-left: 3px solid var(--pinboard-private-accent) !important; padding-left: 10px !important; }
+.private { background: var(--pinboard-private-bg) !important; border-left: 3px solid var(--pinboard-private-accent) !important; padding-left: 10px !important; }
 #search_query_field:focus, #banner_searchbox input[type="text"]:focus, #right_bar input#key:focus, #tweet_searchbox #search_query_field:focus {
   box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important;
   outline: none !important;

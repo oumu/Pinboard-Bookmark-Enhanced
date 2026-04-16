@@ -11,6 +11,8 @@
  *   node docs/theme-surface/tools/visual-qa.mjs --surface subscriptions-tags
  *   node docs/theme-surface/tools/visual-qa.mjs --surface home --hover
  *   node docs/theme-surface/tools/visual-qa.mjs --theme dracula --surface subscriptions-tags --hover
+ *   node docs/theme-surface/tools/visual-qa.mjs --surface home --force-private
+ *   node docs/theme-surface/tools/visual-qa.mjs --theme paper-ink --surface home --force-private
  */
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
@@ -36,6 +38,7 @@ function flag(name) {
 const surface = opt("surface", "home");
 const themeFilter = opt("theme", null);
 const forceHover = flag("hover");
+const forcePrivate = flag("force-private");
 
 const RAW = resolve(SNAPSHOTS, surface, "raw.html");
 if (!existsSync(RAW)) {
@@ -96,12 +99,29 @@ const HOVER_PATCH_JS = `
 })();
 `;
 
+// CSS + JS patch that activates forced-private mode (every other .bookmark gets .forced-private)
+const PRIVATE_PATCH_JS = `
+(function() {
+  // 1. Duplicate every .private rule in the theme <style> into a .forced-private variant.
+  const styleEl = document.getElementById('pinboard-theme-inject');
+  if (styleEl) {
+    const patched = styleEl.textContent
+      .replace(/(\\.private\\b)/g, '$1, .forced-private');
+    styleEl.textContent = patched;
+  }
+  // 2. Mark every other .bookmark so we see private vs. regular side by side.
+  const bookmarks = document.querySelectorAll('#main_column .bookmark');
+  bookmarks.forEach((el, i) => { if (i % 2 === 0) el.classList.add('forced-private'); });
+})();
+`;
+
 // --- Enumerate themes ------------------------------------------------------
 const themeIds = themeFilter
   ? themeFilter.split(",").map((s) => s.trim())
   : Object.keys(themes);
 const builtSurfacePrefix = surface === "home" ? "" : `${surface}-`;
 const hoverSuffix = forceHover ? "-hover" : "";
+const privateSuffix = forcePrivate ? "-private" : "";
 
 let built = 0;
 for (const id of themeIds) {
@@ -117,18 +137,22 @@ for (const id of themeIds) {
     const hoverBlock = forceHover
       ? `<style id="pinboard-hover-patch">${HOVER_PATCH_CSS}</style>\n<script>${HOVER_PATCH_JS}</script>`
       : "";
+    const privateBlock = forcePrivate
+      ? `<script>${PRIVATE_PATCH_JS}</script>`
+      : "";
     const injected = rewritten
       .replace(
         /<head>/i,
         `<head>\n<base href="https://pinboard.in/">\n<style id="pinboard-theme-inject">\n${theme.css}\n</style>\n${hoverBlock}`
       )
-      .replace(/<html\b([^>]*)>/i, `<html$1 class="${rootClass}">`);
+      .replace(/<html\b([^>]*)>/i, `<html$1 class="${rootClass}">`)
+      .replace(/<\/body>/i, `${privateBlock}\n</body>`);
 
-    const outName = `${builtSurfacePrefix}${id}-${mode}${hoverSuffix}.html`;
+    const outName = `${builtSurfacePrefix}${id}-${mode}${hoverSuffix}${privateSuffix}.html`;
     writeFileSync(resolve(OUT_DIR, outName), injected);
     built++;
   }
 }
 
-console.log(`built ${built} harness files for surface=${surface}${forceHover ? " (hover forced)" : ""}`);
+console.log(`built ${built} harness files for surface=${surface}${forceHover ? " (hover forced)" : ""}${forcePrivate ? " (private forced)" : ""}`);
 console.log(`out: ${OUT_DIR}`);

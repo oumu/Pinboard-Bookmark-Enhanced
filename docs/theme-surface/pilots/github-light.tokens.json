@@ -23,7 +23,7 @@
     "accent-alpha": "rgba(9,105,218,0.2)",
     "accent-soft": "#ddf4ff",
     "input-bg": "#ffffff",
-    "private-bg": "#ffffff",
+    "private-bg": "#fffbeb",
     "private-accent": "#bf8700",
     "selection-bg": "#ddf4ff",
     "selection-fg": "#1f2328",

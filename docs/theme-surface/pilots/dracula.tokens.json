@@ -26,7 +26,7 @@
     "accent-soft": "#21222c",
     "accent-alpha": "rgba(139,233,253,0.25)",
     "input-bg": "#44475a",
-    "private-bg": "#282a36",
+    "private-bg": "#44475a",
     "private-accent": "#f1fa8c",
     "selection-bg": "#6272a4",
     "selection-fg": "#f8f8f2",

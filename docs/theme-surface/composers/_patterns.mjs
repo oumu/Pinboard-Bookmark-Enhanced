@@ -79,7 +79,7 @@ export function patternsLayer(tokens) {
   if (privBadge === "border-left") {
     const w = tokens.ext?.["private-border-width"] || "3px";
     out.push(
-      `.private { background: ${v("bg-surface")} !important; border-left: ${w} solid ${v("private-accent")} !important; padding-left: 10px !important; }`
+      `.private { background: ${v("private-bg")} !important; border-left: ${w} solid ${v("private-accent")} !important; padding-left: 10px !important; }`
     );
   } else if (privBadge === "dashed") {
     out.push(
