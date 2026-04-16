@@ -23,7 +23,7 @@ const PINBOARD_THEMES = {
   --pinboard-accent-soft: #e8f0fe;
   --pinboard-accent-alpha: rgba(26,115,232,0.15);
   --pinboard-input-bg: #ffffff;
-  --pinboard-private-bg: #fff8e1;
+  --pinboard-private-bg: #fff0c8;
   --pinboard-private-accent: #ffeaa7;
   --pinboard-selection-bg: rgba(26,115,232,0.25);
   --pinboard-selection-fg: #ffffff;
@@ -230,8 +230,8 @@ a.unread { color: var(--pinboard-destroy) !important; font-weight: bold !importa
 a.copy_link { color: var(--pinboard-accent) !important; }
 a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 
-/* ---- Private bookmarks (composer default: tint-bg; patterns.private-badge overrides) ---- */
-.private { background: var(--pinboard-private-bg) !important; }
+/* ---- Private bookmarks ---- */
+.private { background: var(--pinboard-private-bg) !important; box-shadow: inset 3px 0 0 var(--pinboard-private-accent) !important; }
 
 /* ---- Right bar ---- */
 #right_bar {
@@ -464,7 +464,6 @@ a.tag:hover { background: #d2e3fc !important; }
 a.cached { text-decoration: none !important; font-size: 12px !important; }
 .edit_links a { font-size: 11px !important; }
 .edit_links a:hover { color: #5f6368 !important; }
-.private { border-color: #ffeaa7 !important; }
 a.unread { font-weight: 600 !important; }
 #right_bar { background: #fff !important; border: 1px solid #e8e8e8 !important; border-radius: 8px !important; }
 #right_bar h3 { color: #3c4043 !important; }
@@ -759,8 +758,8 @@ a.unread { color: var(--pinboard-destroy) !important; font-weight: bold !importa
 a.copy_link { color: var(--pinboard-accent) !important; }
 a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 
-/* ---- Private bookmarks (composer default: tint-bg; patterns.private-badge overrides) ---- */
-.private { background: var(--pinboard-private-bg) !important; }
+/* ---- Private bookmarks ---- */
+.private { background: var(--pinboard-private-bg) !important; box-shadow: inset 3px 0 0 var(--pinboard-private-accent) !important; }
 
 /* ---- Right bar ---- */
 #right_bar {
@@ -947,7 +946,6 @@ hr { border-color: var(--pinboard-border) !important; }
 ::-moz-selection { background: var(--pinboard-selection-bg) !important; color: var(--pinboard-selection-fg) !important; }
 
 /* === patterns layer (tokens.patterns) === */
-.private { background: var(--pinboard-private-bg) !important; border-left: 3px solid var(--pinboard-private-accent) !important; padding-left: 10px !important; }
 #search_query_field:focus, #banner_searchbox input[type="text"]:focus, #right_bar input#key:focus, #tweet_searchbox #search_query_field:focus {
   box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important;
   outline: none !important;
@@ -1037,7 +1035,7 @@ a { color: #81a1c1 !important; }
   --pinboard-accent-soft: #1a3a1a;
   --pinboard-accent-alpha: rgba(51,255,51,0.3);
   --pinboard-input-bg: #111111;
-  --pinboard-private-bg: #111100;
+  --pinboard-private-bg: #161600;
   --pinboard-private-accent: #cccc00;
   --pinboard-selection-bg: #33ff3340;
   --pinboard-selection-fg: #ffffff;
@@ -1244,8 +1242,8 @@ a.unread { color: var(--pinboard-destroy) !important; font-weight: bold !importa
 a.copy_link { color: var(--pinboard-accent) !important; }
 a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 
-/* ---- Private bookmarks (composer default: tint-bg; patterns.private-badge overrides) ---- */
-.private { background: var(--pinboard-private-bg) !important; }
+/* ---- Private bookmarks ---- */
+.private { background: var(--pinboard-private-bg) !important; box-shadow: inset 3px 0 0 var(--pinboard-private-accent) !important; }
 
 /* ---- Right bar ---- */
 #right_bar {
@@ -1435,7 +1433,6 @@ hr { border-color: var(--pinboard-border) !important; }
 a.tag::before { content: "#" !important; }
 a.bookmark_title::before { content: "> " !important; color: var(--pinboard-muted-soft) !important; }
 .settings_heading::before { content: "$ " !important; opacity: 0.7 !important; }
-.private { background: var(--pinboard-private-bg) !important; border-left: 2px solid var(--pinboard-private-accent) !important; padding-left: 10px !important; }
 #search_query_field:focus, #banner_searchbox input[type="text"]:focus, #right_bar input#key:focus, #tweet_searchbox #search_query_field:focus {
   box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important;
   outline: none !important;
@@ -1767,8 +1764,8 @@ a.unread { color: var(--pinboard-destroy) !important; font-weight: bold !importa
 a.copy_link { color: var(--pinboard-accent) !important; }
 a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 
-/* ---- Private bookmarks (composer default: tint-bg; patterns.private-badge overrides) ---- */
-.private { background: var(--pinboard-private-bg) !important; }
+/* ---- Private bookmarks ---- */
+.private { background: var(--pinboard-private-bg) !important; box-shadow: inset 3px 0 0 var(--pinboard-private-accent) !important; }
 
 /* ---- Right bar ---- */
 #right_bar {
@@ -1955,7 +1952,6 @@ hr { border-color: var(--pinboard-border) !important; }
 ::-moz-selection { background: var(--pinboard-selection-bg) !important; color: var(--pinboard-selection-fg) !important; }
 
 /* === patterns layer (tokens.patterns) === */
-.private { background: var(--pinboard-private-bg) !important; border-left: 3px solid var(--pinboard-private-accent) !important; padding-left: 10px !important; }
 #search_query_field:focus, #banner_searchbox input[type="text"]:focus, #right_bar input#key:focus, #tweet_searchbox #search_query_field:focus {
   box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important;
   outline: none !important;
@@ -2306,8 +2302,8 @@ a.unread { color: var(--pinboard-destroy) !important; font-weight: bold !importa
 a.copy_link { color: var(--pinboard-accent) !important; }
 a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 
-/* ---- Private bookmarks (composer default: tint-bg; patterns.private-badge overrides) ---- */
-.private { background: var(--pinboard-private-bg) !important; }
+/* ---- Private bookmarks ---- */
+.private { background: var(--pinboard-private-bg) !important; box-shadow: inset 3px 0 0 var(--pinboard-private-accent) !important; }
 
 /* ---- Right bar ---- */
 #right_bar {
@@ -2494,7 +2490,6 @@ hr { border-color: var(--pinboard-border) !important; }
 ::-moz-selection { background: var(--pinboard-selection-bg) !important; color: var(--pinboard-selection-fg) !important; }
 
 /* === patterns layer (tokens.patterns) === */
-.private { background: var(--pinboard-private-bg) !important; border-left: 3px solid var(--pinboard-private-accent) !important; padding-left: 10px !important; }
 #search_query_field:focus, #banner_searchbox input[type="text"]:focus, #right_bar input#key:focus, #tweet_searchbox #search_query_field:focus {
   box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important;
   outline: none !important;
@@ -2610,7 +2605,7 @@ a { color: #bd93f9 !important; }`
   --pinboard-accent-soft: #F2F0E5;
   --pinboard-accent-alpha: rgba(32,94,166,0.15);
   --pinboard-input-bg: #FFFCF0;
-  --pinboard-private-bg: #FBF7EE;
+  --pinboard-private-bg: #f5ebd0;
   --pinboard-private-accent: #D0A215;
   --pinboard-selection-bg: #F2F0E5;
   --pinboard-selection-fg: #100F0F;
@@ -2817,8 +2812,8 @@ a.unread { color: var(--pinboard-destroy) !important; font-weight: bold !importa
 a.copy_link { color: var(--pinboard-accent) !important; }
 a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 
-/* ---- Private bookmarks (composer default: tint-bg; patterns.private-badge overrides) ---- */
-.private { background: var(--pinboard-private-bg) !important; }
+/* ---- Private bookmarks ---- */
+.private { background: var(--pinboard-private-bg) !important; box-shadow: inset 3px 0 0 var(--pinboard-private-accent) !important; }
 
 /* ---- Right bar ---- */
 #right_bar {
@@ -3005,7 +3000,6 @@ hr { border-color: var(--pinboard-border) !important; }
 ::-moz-selection { background: var(--pinboard-selection-bg) !important; color: var(--pinboard-selection-fg) !important; }
 
 /* === patterns layer (tokens.patterns) === */
-.private { background: var(--pinboard-private-bg) !important; border-left: 3px solid var(--pinboard-private-accent) !important; padding-left: 10px !important; }
 #search_query_field:focus, #banner_searchbox input[type="text"]:focus, #right_bar input#key:focus, #tweet_searchbox #search_query_field:focus {
   box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important;
   outline: none !important;
@@ -3029,7 +3023,7 @@ html.pbp-dark {
   --pinboard-accent-soft: #343331;
   --pinboard-accent-alpha: rgba(67,133,190,0.2);
   --pinboard-input-bg: #282726;
-  --pinboard-private-bg: #282726;
+  --pinboard-private-bg: #2a2518;
   --pinboard-private-accent: #D0A215;
   --pinboard-selection-bg: #403E3C;
   --pinboard-selection-fg: #CECDC3;
@@ -3225,8 +3219,8 @@ html.pbp-dark .edit_links a:hover { color: var(--pinboard-fg) !important; }
 html.pbp-dark a.copy_link { color: var(--pinboard-accent) !important; }
 html.pbp-dark a.delete, html.pbp-dark a.destroy { color: var(--pinboard-destroy) !important; }
 
-/* ---- Private bookmarks (composer default: tint-bg; patterns.private-badge overrides) ---- */
-html.pbp-dark .private { background: var(--pinboard-private-bg) !important; }
+/* ---- Private bookmarks ---- */
+html.pbp-dark .private { background: var(--pinboard-private-bg) !important; box-shadow: inset 3px 0 0 var(--pinboard-private-accent) !important; }
 
 /* ---- Right bar ---- */
 html.pbp-dark #right_bar {
@@ -3412,7 +3406,6 @@ html.pbp-dark ::selection { background: var(--pinboard-selection-bg) !important;
 html.pbp-dark ::-moz-selection { background: var(--pinboard-selection-bg) !important; color: var(--pinboard-selection-fg) !important; }
 
 /* === patterns layer (tokens.patterns) === */
-html.pbp-dark .private { background: var(--pinboard-private-bg) !important; border-left: 3px solid var(--pinboard-private-accent) !important; padding-left: 10px !important; }
 html.pbp-dark #search_query_field:focus, html.pbp-dark #banner_searchbox input[type="text"]:focus, html.pbp-dark #right_bar input#key:focus, html.pbp-dark #tweet_searchbox #search_query_field:focus {
   box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important;
   outline: none !important;
@@ -3475,7 +3468,6 @@ html.pbp-dark a.cached { color: #575653 !important; }
 html.pbp-dark a.when { color: #575653 !important; }
 html.pbp-dark .edit_links a { color: #575653 !important; }
 html.pbp-dark .edit_links a:hover { color: #878580 !important; }
-html.pbp-dark .private { border-left-color: #D0A215 !important; }
 html.pbp-dark #right_bar h3 { color: #8B7EC8 !important; }
 html.pbp-dark #right_bar h4 { color: #8B7EC8 !important; }
 html.pbp-dark #right_bar b { color: #8B7EC8 !important; }
@@ -3574,7 +3566,7 @@ html.pbp-dark #tweet_searchbox input[type="submit"]:hover { background: #A8E4D5 
   --pinboard-accent-soft: #eee8d5;
   --pinboard-accent-alpha: rgba(38,139,210,0.25);
   --pinboard-input-bg: #fdf6e3;
-  --pinboard-private-bg: #eee8d5;
+  --pinboard-private-bg: #f0e0b8;
   --pinboard-private-accent: #b58900;
   --pinboard-selection-bg: #268bd2;
   --pinboard-selection-fg: #fdf6e3;
@@ -3781,8 +3773,8 @@ a.unread { color: var(--pinboard-destroy) !important; font-weight: bold !importa
 a.copy_link { color: var(--pinboard-accent) !important; }
 a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 
-/* ---- Private bookmarks (composer default: tint-bg; patterns.private-badge overrides) ---- */
-.private { background: var(--pinboard-private-bg) !important; }
+/* ---- Private bookmarks ---- */
+.private { background: var(--pinboard-private-bg) !important; box-shadow: inset 3px 0 0 var(--pinboard-private-accent) !important; }
 
 /* ---- Right bar ---- */
 #right_bar {
@@ -3969,7 +3961,6 @@ hr { border-color: var(--pinboard-border) !important; }
 ::-moz-selection { background: var(--pinboard-selection-bg) !important; color: var(--pinboard-selection-fg) !important; }
 
 /* === patterns layer (tokens.patterns) === */
-.private { background: var(--pinboard-private-bg) !important; border-left: 3px solid var(--pinboard-private-accent) !important; padding-left: 10px !important; }
 #search_query_field:focus, #banner_searchbox input[type="text"]:focus, #right_bar input#key:focus, #tweet_searchbox #search_query_field:focus {
   box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important;
   outline: none !important;
@@ -4040,7 +4031,7 @@ a.sort_order_selected { background: #eee8d5 !important; }
   --pinboard-accent-soft: #073642;
   --pinboard-accent-alpha: rgba(38,139,210,0.25);
   --pinboard-input-bg: #073642;
-  --pinboard-private-bg: #073642;
+  --pinboard-private-bg: #1a2a10;
   --pinboard-private-accent: #b58900;
   --pinboard-selection-bg: #0a4a5a;
   --pinboard-selection-fg: #eee8d5;
@@ -4247,8 +4238,8 @@ a.unread { color: var(--pinboard-destroy) !important; font-weight: bold !importa
 a.copy_link { color: var(--pinboard-accent) !important; }
 a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 
-/* ---- Private bookmarks (composer default: tint-bg; patterns.private-badge overrides) ---- */
-.private { background: var(--pinboard-private-bg) !important; }
+/* ---- Private bookmarks ---- */
+.private { background: var(--pinboard-private-bg) !important; box-shadow: inset 3px 0 0 var(--pinboard-private-accent) !important; }
 
 /* ---- Right bar ---- */
 #right_bar {
@@ -4435,7 +4426,6 @@ hr { border-color: var(--pinboard-border) !important; }
 ::-moz-selection { background: var(--pinboard-selection-bg) !important; color: var(--pinboard-selection-fg) !important; }
 
 /* === patterns layer (tokens.patterns) === */
-.private { background: var(--pinboard-private-bg) !important; border-left: 2px solid var(--pinboard-private-accent) !important; padding-left: 10px !important; }
 #search_query_field:focus, #banner_searchbox input[type="text"]:focus, #right_bar input#key:focus, #tweet_searchbox #search_query_field:focus {
   box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important;
   outline: none !important;
@@ -4516,7 +4506,7 @@ h2 { color: #93a1a1 !important; }
   --pinboard-accent-soft: #dce0e8;
   --pinboard-accent-alpha: rgba(30,102,245,0.25);
   --pinboard-input-bg: #eff1f5;
-  --pinboard-private-bg: #e6e9ef;
+  --pinboard-private-bg: #f0e6d0;
   --pinboard-private-accent: #df8e1d;
   --pinboard-selection-bg: #7287fd;
   --pinboard-selection-fg: #eff1f5;
@@ -4723,8 +4713,8 @@ a.unread { color: var(--pinboard-destroy) !important; font-weight: bold !importa
 a.copy_link { color: var(--pinboard-accent) !important; }
 a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 
-/* ---- Private bookmarks (composer default: tint-bg; patterns.private-badge overrides) ---- */
-.private { background: var(--pinboard-private-bg) !important; }
+/* ---- Private bookmarks ---- */
+.private { background: var(--pinboard-private-bg) !important; box-shadow: inset 3px 0 0 var(--pinboard-private-accent) !important; }
 
 /* ---- Right bar ---- */
 #right_bar {
@@ -4911,7 +4901,6 @@ hr { border-color: var(--pinboard-border) !important; }
 ::-moz-selection { background: var(--pinboard-selection-bg) !important; color: var(--pinboard-selection-fg) !important; }
 
 /* === patterns layer (tokens.patterns) === */
-.private { background: var(--pinboard-private-bg) !important; border-left: 3px solid var(--pinboard-private-accent) !important; padding-left: 10px !important; }
 #search_query_field:focus, #banner_searchbox input[type="text"]:focus, #right_bar input#key:focus, #tweet_searchbox #search_query_field:focus {
   box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important;
   outline: none !important;
@@ -4994,7 +4983,7 @@ a.help { background: #e6e9ef !important; }
   --pinboard-accent-soft: #313244;
   --pinboard-accent-alpha: rgba(137,180,250,0.25);
   --pinboard-input-bg: #1e1e2e;
-  --pinboard-private-bg: #313244;
+  --pinboard-private-bg: #2a2418;
   --pinboard-private-accent: #f9e2af;
   --pinboard-selection-bg: #585b70;
   --pinboard-selection-fg: #cdd6f4;
@@ -5201,8 +5190,8 @@ a.unread { color: var(--pinboard-destroy) !important; font-weight: bold !importa
 a.copy_link { color: var(--pinboard-accent) !important; }
 a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 
-/* ---- Private bookmarks (composer default: tint-bg; patterns.private-badge overrides) ---- */
-.private { background: var(--pinboard-private-bg) !important; }
+/* ---- Private bookmarks ---- */
+.private { background: var(--pinboard-private-bg) !important; box-shadow: inset 3px 0 0 var(--pinboard-private-accent) !important; }
 
 /* ---- Right bar ---- */
 #right_bar {
@@ -5389,7 +5378,6 @@ hr { border-color: var(--pinboard-border) !important; }
 ::-moz-selection { background: var(--pinboard-selection-bg) !important; color: var(--pinboard-selection-fg) !important; }
 
 /* === patterns layer (tokens.patterns) === */
-.private { background: var(--pinboard-private-bg) !important; border-left: 3px solid var(--pinboard-private-accent) !important; padding-left: 10px !important; }
 #search_query_field:focus, #banner_searchbox input[type="text"]:focus, #right_bar input#key:focus, #tweet_searchbox #search_query_field:focus {
   box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important;
   outline: none !important;
@@ -5484,7 +5472,7 @@ h2 { color: #cba6f7 !important; }`
   --pinboard-accent-soft: #3c3836;
   --pinboard-accent-alpha: rgba(131,165,152,0.3);
   --pinboard-input-bg: #282828;
-  --pinboard-private-bg: #3c3836;
+  --pinboard-private-bg: #32291a;
   --pinboard-private-accent: #fabd2f;
   --pinboard-selection-bg: #665c54;
   --pinboard-selection-fg: #fbf1c7;
@@ -5691,8 +5679,8 @@ a.unread { color: var(--pinboard-destroy) !important; font-weight: bold !importa
 a.copy_link { color: var(--pinboard-accent) !important; }
 a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 
-/* ---- Private bookmarks (composer default: tint-bg; patterns.private-badge overrides) ---- */
-.private { background: var(--pinboard-private-bg) !important; }
+/* ---- Private bookmarks ---- */
+.private { background: var(--pinboard-private-bg) !important; box-shadow: inset 3px 0 0 var(--pinboard-private-accent) !important; }
 
 /* ---- Right bar ---- */
 #right_bar {
@@ -5880,7 +5868,6 @@ hr { border-color: var(--pinboard-border) !important; }
 
 /* === patterns layer (tokens.patterns) === */
 a.tag::before { content: "#" !important; }
-.private { background: var(--pinboard-private-bg) !important; border-left: 3px solid var(--pinboard-private-accent) !important; padding-left: 10px !important; }
 #search_query_field:focus, #banner_searchbox input[type="text"]:focus, #right_bar input#key:focus, #tweet_searchbox #search_query_field:focus {
   box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important;
   outline: none !important;
@@ -5967,7 +5954,7 @@ h2 { color: #d3869b !important; }
   --pinboard-accent-soft: #26233a;
   --pinboard-accent-alpha: rgba(196,167,231,0.25);
   --pinboard-input-bg: #26233a;
-  --pinboard-private-bg: #1f1d2e;
+  --pinboard-private-bg: #261e1a;
   --pinboard-private-accent: #f6c177;
   --pinboard-selection-bg: #3e3a5e;
   --pinboard-selection-fg: #e0def4;
@@ -6174,8 +6161,8 @@ a.unread { color: var(--pinboard-destroy) !important; font-weight: bold !importa
 a.copy_link { color: var(--pinboard-accent) !important; }
 a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 
-/* ---- Private bookmarks (composer default: tint-bg; patterns.private-badge overrides) ---- */
-.private { background: var(--pinboard-private-bg) !important; }
+/* ---- Private bookmarks ---- */
+.private { background: var(--pinboard-private-bg) !important; box-shadow: inset 3px 0 0 var(--pinboard-private-accent) !important; }
 
 /* ---- Right bar ---- */
 #right_bar {
@@ -6362,7 +6349,6 @@ hr { border-color: var(--pinboard-border) !important; }
 ::-moz-selection { background: var(--pinboard-selection-bg) !important; color: var(--pinboard-selection-fg) !important; }
 
 /* === patterns layer (tokens.patterns) === */
-.private { background: var(--pinboard-private-bg) !important; border-left: 3px solid var(--pinboard-private-accent) !important; padding-left: 10px !important; }
 #search_query_field:focus, #banner_searchbox input[type="text"]:focus, #right_bar input#key:focus, #tweet_searchbox #search_query_field:focus {
   box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important;
   outline: none !important;
@@ -6663,8 +6649,8 @@ a.unread { color: var(--pinboard-destroy) !important; font-weight: bold !importa
 a.copy_link { color: var(--pinboard-accent) !important; }
 a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 
-/* ---- Private bookmarks (composer default: tint-bg; patterns.private-badge overrides) ---- */
-.private { background: var(--pinboard-private-bg) !important; }
+/* ---- Private bookmarks ---- */
+.private { background: var(--pinboard-private-bg) !important; box-shadow: inset 3px 0 0 var(--pinboard-private-accent) !important; }
 
 /* ---- Right bar ---- */
 #right_bar {
@@ -6851,7 +6837,6 @@ hr { border-color: var(--pinboard-border) !important; }
 ::-moz-selection { background: var(--pinboard-selection-bg) !important; color: var(--pinboard-selection-fg) !important; }
 
 /* === patterns layer (tokens.patterns) === */
-.private { background: var(--pinboard-private-bg) !important; border-left: 3px solid var(--pinboard-private-accent) !important; padding-left: 10px !important; }
 #search_query_field:focus, #banner_searchbox input[type="text"]:focus, #right_bar input#key:focus, #tweet_searchbox #search_query_field:focus {
   box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important;
   outline: none !important;

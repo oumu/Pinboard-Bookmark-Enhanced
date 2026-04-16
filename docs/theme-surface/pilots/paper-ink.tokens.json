@@ -72,9 +72,6 @@
     "width": "1px",
     "style": "solid"
   },
-  "ext": {
-    "private-border-width": "3px"
-  },
   "patterns": {
     "private-badge": "border-left",
     "focus-ring": "glow",

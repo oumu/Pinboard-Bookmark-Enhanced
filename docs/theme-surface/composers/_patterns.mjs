@@ -76,11 +76,10 @@ export function patternsLayer(tokens) {
 
   // ---- P1: private-badge ----
   const privBadge = pat["private-badge"];
-  if (privBadge === "border-left") {
-    const w = tokens.ext?.["private-border-width"] || "3px";
-    out.push(
-      `.private { background: ${v("private-bg")} !important; border-left: ${w} solid ${v("private-accent")} !important; padding-left: 10px !important; }`
-    );
+  if (privBadge === "border-left" || privBadge === "inset-bar") {
+    // Default composer rule already emits box-shadow: inset + background.
+    // border-left is deprecated (conflicts with hover-effect left-bar, ugly in dark).
+    // "inset-bar" is the successor — same visual as default, kept for explicitness.
   } else if (privBadge === "dashed") {
     out.push(
       `.private { background: transparent !important; outline: 1px dashed ${v("private-accent")} !important; outline-offset: -2px !important; }`

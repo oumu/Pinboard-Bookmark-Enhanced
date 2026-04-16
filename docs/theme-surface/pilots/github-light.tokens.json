@@ -71,7 +71,6 @@
     "style": "solid"
   },
   "ext": {
-    "private-border-width": "3px",
     "settings-tab-selected-border-width": "2px"
   },
   "patterns": {

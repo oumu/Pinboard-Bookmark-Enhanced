@@ -26,7 +26,7 @@
     "accent-soft": "#1a3a1a",
     "accent-alpha": "rgba(51,255,51,0.3)",
     "input-bg": "#111111",
-    "private-bg": "#111100",
+    "private-bg": "#161600",
     "private-accent": "#cccc00",
     "selection-bg": "#33ff3340",
     "selection-fg": "#ffffff",
@@ -71,9 +71,6 @@
   "border": {
     "width": "1px",
     "style": "solid"
-  },
-  "ext": {
-    "private-border-width": "2px"
   },
   "patterns": {
     "tag-style": "hash-prefix",

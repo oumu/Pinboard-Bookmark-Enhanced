@@ -244,8 +244,8 @@
         },
         "private-badge": {
           "type": "string",
-          "enum": ["tint-bg", "border-left", "dashed", "stripe"],
-          "description": "How .private is visually marked. tint-bg=colored background (default), border-left=accent stripe on left edge, dashed=dashed outline, stripe=diagonal stripe bg."
+          "enum": ["tint-bg", "inset-bar", "border-left", "dashed", "stripe"],
+          "description": "How .private is visually marked. Default: warm private-bg background + 3px inset accent shadow on left (no border, no layout shift). inset-bar=explicit alias for default. border-left=DEPRECATED (maps to inset-bar; was border-left which conflicts with hover-effect left-bar and looks harsh in dark). tint-bg=background tint only. dashed=dashed outline. stripe=diagonal stripe."
         },
         "focus-ring": {
           "type": "string",

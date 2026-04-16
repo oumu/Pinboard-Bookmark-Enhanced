@@ -131,8 +131,8 @@ a.unread { color: ${v("destroy")} !important; font-weight: bold !important; }
 a.copy_link { color: ${v("accent")} !important; }
 a.delete, a.destroy { color: ${v("destroy")} !important; }
 
-/* ---- Private bookmarks (composer default: tint-bg; patterns.private-badge overrides) ---- */
-.private { background: ${v("private-bg")} !important; }
+/* ---- Private bookmarks ---- */
+.private { background: ${v("private-bg")} !important; box-shadow: inset 3px 0 0 ${v("private-accent")} !important; }
 
 /* ---- Right bar ---- */
 #right_bar {

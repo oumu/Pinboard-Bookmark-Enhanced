@@ -26,7 +26,7 @@
     "accent-soft": "#26233a",
     "accent-alpha": "rgba(196,167,231,0.25)",
     "input-bg": "#26233a",
-    "private-bg": "#1f1d2e",
+    "private-bg": "#261e1a",
     "private-accent": "#f6c177",
     "selection-bg": "#3e3a5e",
     "selection-fg": "#e0def4",
@@ -73,7 +73,6 @@
     "style": "solid"
   },
   "ext": {
-    "private-border-width": "3px",
     "button-radius": "8px"
   },
   "patterns": {

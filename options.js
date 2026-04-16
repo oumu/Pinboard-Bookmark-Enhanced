@@ -704,7 +704,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       // Dirty-state guard: if user has hand-edited CSS that doesn't match any
       // preset or saved theme, confirm before overwriting.
-      if (!cssMatchesAnyKnownTheme(currentCSS)) {
+      if (!currentPresetKey && !cssMatchesAnyKnownTheme(currentCSS)) {
         showConfirmPopover(btn, {
           msg: t("replaceCSSConfirm"),
           yesText: t("replace"),
