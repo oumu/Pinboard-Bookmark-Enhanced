@@ -186,7 +186,9 @@ async function showMain(token) {
     const bad = !val || (!val.startsWith("http://") && !val.startsWith("https://"));
     $id("url-warning").classList.toggle("hidden", !bad);
     $id("submit-btn").disabled = bad;
+    updateCharCount();
   });
+  $id("title-input").addEventListener("input", updateCharCount);
 
   let desc = "";
   if (pageInfo.selectedText) {
@@ -533,7 +535,22 @@ function setupSubmit(token) {
     }
     try {
       const apiUrl = `https://api.pinboard.in/v1/posts/add?auth_token=${token}&format=json&url=${enc(url)}&description=${enc(title)}&extended=${enc($id("description-input").value)}&tags=${enc(currentTags.join(" "))}&shared=${$id("private-check").checked ? "no" : "yes"}&toread=${$id("readlater-check").checked ? "yes" : "no"}&replace=yes`;
-      const data = await (await pinboardFetch(apiUrl)).json();
+      if (apiUrl.length > URI_BUDGET) {
+        showStatus("status-msg", t("uriTooLong", String(apiUrl.length), String(URI_BUDGET)), "error");
+        setSubmitState("error");
+        submitErrorResetTimer = setTimeout(() => { if (btn.classList.contains("save-error")) setSubmitState("idle"); }, 3000);
+        return;
+      }
+      const resp = await pinboardFetch(apiUrl);
+      if (!resp.ok) {
+        let bodyText = "";
+        try { bodyText = (await resp.text()).slice(0, 120); } catch (_) {}
+        showStatus("status-msg", `HTTP ${resp.status}${bodyText ? ": " + bodyText : ""}`, "error");
+        setSubmitState("error");
+        submitErrorResetTimer = setTimeout(() => { if (btn.classList.contains("save-error")) setSubmitState("idle"); }, 3000);
+        return;
+      }
+      const data = await resp.json();
       if (data.result_code === "done") {
         showStatus("status-msg", t("bookmarkSaved"), "success");
         setSubmitState("success");
@@ -787,11 +804,28 @@ function autoResizeTextarea(el) {
     el.style.height = Math.min(Math.max(el.scrollHeight, TEXTAREA_MIN_HEIGHT), TEXTAREA_MAX_HEIGHT) + "px";
   });
 }
+// Pinboard CGI reads only query-string params (POST body is ignored, verified 2026-04-23),
+// so every field must fit in the URI. Server rejects with 414 around ~3KB; 2500 leaves headroom.
+const URI_BUDGET = 2500;
+function estimateApiUriLength() {
+  const token = settings.pinboardToken || "user:0000000000000000000000000000000000000000";
+  const shared = $id("private-check").checked ? "no" : "yes";
+  const toread = $id("readlater-check").checked ? "yes" : "no";
+  return (`https://api.pinboard.in/v1/posts/add?auth_token=${token}&format=json` +
+    `&url=${enc($id("url-input").value)}` +
+    `&description=${enc($id("title-input").value)}` +
+    `&extended=${enc($id("description-input").value)}` +
+    `&tags=${enc(currentTags.join(" "))}` +
+    `&shared=${shared}&toread=${toread}&replace=yes`).length;
+}
 function updateCharCount() {
   const len = $id("description-input").value.length;
+  const uriLen = estimateApiUriLength();
   const el = $id("desc-char-count");
-  el.textContent = len;
-  el.style.color = len > 65000 ? "#c00" : len > 60000 ? "#e80" : "";
+  el.textContent = `${len} · URI ${uriLen}/${URI_BUDGET}`;
+  const over = uriLen > URI_BUDGET || len > 65000;
+  const near = uriLen > URI_BUDGET * 0.8 || len > 60000;
+  el.style.color = over ? "#c00" : near ? "#e80" : "";
 }
 function showElement(id, text) { const el = $id(id); el.textContent = text; el.classList.remove("hidden"); }
 function showStatus(id, text, type) { const el = $id(id); el.textContent = text; el.className = `status-msg ${type}`; el.classList.remove("hidden"); }

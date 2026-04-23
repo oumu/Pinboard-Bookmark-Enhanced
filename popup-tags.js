@@ -379,6 +379,7 @@ function renderTags() {
   if (copyBtn) copyBtn.classList.toggle("hidden", currentTags.length < 1);
   renderLastUsedHint();
   syncSuggestTagStates();
+  if (typeof updateCharCount === "function") updateCharCount();
 }
 
 function syncSuggestTagStates() {

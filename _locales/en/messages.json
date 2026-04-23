@@ -73,6 +73,13 @@
   "networkError": {
     "message": "Network error"
   },
+  "uriTooLong": {
+    "message": "Request too long ($LEN$/$MAX$ chars). Shorten notes or tags.",
+    "placeholders": {
+      "len": { "content": "$1" },
+      "max": { "content": "$2" }
+    }
+  },
   "clear": {
     "message": "clear"
   },

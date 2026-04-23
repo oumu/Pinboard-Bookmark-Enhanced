@@ -73,6 +73,13 @@
   "networkError": {
     "message": "网络错误"
   },
+  "uriTooLong": {
+    "message": "请求过长（$LEN$/$MAX$ 字符），请缩短备注或标签",
+    "placeholders": {
+      "len": { "content": "$1" },
+      "max": { "content": "$2" }
+    }
+  },
   "clear": {
     "message": "清除"
   },
