@@ -137,6 +137,13 @@ else:
 
 commits = [line.strip() for line in result.stdout.splitlines() if line.strip()]
 
+# Skip release-infrastructure bookkeeping commits (auto-generated noise)
+skip_patterns = [
+    re.compile(r'^docs:\s*update version badge'),
+    re.compile(r'^chore:\s*sync manifest version'),
+]
+commits = [c for c in commits if not any(p.match(c) for p in skip_patterns)]
+
 groups = {
     "feat":     {"label": "New Features",   "items": []},
     "fix":      {"label": "Bug Fixes",      "items": []},
