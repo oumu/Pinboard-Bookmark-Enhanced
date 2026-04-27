@@ -206,6 +206,7 @@ a.delete, a.destroy { color: ${v("destroy")} !important; }
 input[type="text"], input:not([type]), input[type="password"], textarea, select {
   background: ${v("input-bg")} !important; color: ${v("fg")} !important;
   border: ${v("border-width")} ${v("border-style")} ${v("border")} !important;
+  box-sizing: border-box !important; max-width: 100% !important;
 }
 input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: ${v("accent")} !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
@@ -214,6 +215,14 @@ input[type="submit"], input[type="button"] {
   cursor: pointer !important;
 }
 input[type="submit"]:hover, input[type="button"]:hover { background: ${v("link-hover")} !important; }
+input[type="reset"], input[type="reset"].reset, button[type="reset"] {
+  background: ${v("bg-surface")} !important; color: ${v("fg")} !important;
+  border: ${v("border-width")} ${v("border-style")} ${v("border")} !important;
+  border-radius: ${v("radius-sm")} !important;
+  cursor: pointer !important;
+  padding: 4px 12px !important;
+}
+input[type="reset"]:hover, input[type="reset"].reset:hover, button[type="reset"]:hover { background: ${v("row-hover")} !important; border-color: ${v("accent")} !important; color: ${v("accent")} !important; }
 input[type="checkbox"], input[type="radio"] { accent-color: ${v("accent")} !important; }
 .suggested_tag { color: ${v("success")} !important; cursor: pointer !important; }
 #edit_bookmark_form { background: ${v("bg-surface")} !important; border: ${v("border-width")} ${v("border-style")} ${v("border")} !important; }

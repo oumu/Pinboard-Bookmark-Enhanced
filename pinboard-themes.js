@@ -308,6 +308,7 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 input[type="text"], input:not([type]), input[type="password"], textarea, select {
   background: var(--pinboard-input-bg) !important; color: var(--pinboard-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
+  box-sizing: border-box !important; max-width: 100% !important;
 }
 input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
@@ -316,6 +317,14 @@ input[type="submit"], input[type="button"] {
   cursor: pointer !important;
 }
 input[type="submit"]:hover, input[type="button"]:hover { background: var(--pinboard-link-hover) !important; }
+input[type="reset"], input[type="reset"].reset, button[type="reset"] {
+  background: var(--pinboard-bg-surface) !important; color: var(--pinboard-fg) !important;
+  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
+  border-radius: var(--pinboard-radius-sm) !important;
+  cursor: pointer !important;
+  padding: 4px 12px !important;
+}
+input[type="reset"]:hover, input[type="reset"].reset:hover, button[type="reset"]:hover { background: var(--pinboard-row-hover) !important; border-color: var(--pinboard-accent) !important; color: var(--pinboard-accent) !important; }
 input[type="checkbox"], input[type="radio"] { accent-color: var(--pinboard-accent) !important; }
 .suggested_tag { color: var(--pinboard-success) !important; cursor: pointer !important; }
 #edit_bookmark_form { background: var(--pinboard-bg-surface) !important; border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important; }
@@ -854,6 +863,7 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 input[type="text"], input:not([type]), input[type="password"], textarea, select {
   background: var(--pinboard-input-bg) !important; color: var(--pinboard-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
+  box-sizing: border-box !important; max-width: 100% !important;
 }
 input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
@@ -862,6 +872,14 @@ input[type="submit"], input[type="button"] {
   cursor: pointer !important;
 }
 input[type="submit"]:hover, input[type="button"]:hover { background: var(--pinboard-link-hover) !important; }
+input[type="reset"], input[type="reset"].reset, button[type="reset"] {
+  background: var(--pinboard-bg-surface) !important; color: var(--pinboard-fg) !important;
+  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
+  border-radius: var(--pinboard-radius-sm) !important;
+  cursor: pointer !important;
+  padding: 4px 12px !important;
+}
+input[type="reset"]:hover, input[type="reset"].reset:hover, button[type="reset"]:hover { background: var(--pinboard-row-hover) !important; border-color: var(--pinboard-accent) !important; color: var(--pinboard-accent) !important; }
 input[type="checkbox"], input[type="radio"] { accent-color: var(--pinboard-accent) !important; }
 .suggested_tag { color: var(--pinboard-success) !important; cursor: pointer !important; }
 #edit_bookmark_form { background: var(--pinboard-bg-surface) !important; border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important; }
@@ -1356,6 +1374,7 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 input[type="text"], input:not([type]), input[type="password"], textarea, select {
   background: var(--pinboard-input-bg) !important; color: var(--pinboard-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
+  box-sizing: border-box !important; max-width: 100% !important;
 }
 input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
@@ -1364,6 +1383,14 @@ input[type="submit"], input[type="button"] {
   cursor: pointer !important;
 }
 input[type="submit"]:hover, input[type="button"]:hover { background: var(--pinboard-link-hover) !important; }
+input[type="reset"], input[type="reset"].reset, button[type="reset"] {
+  background: var(--pinboard-bg-surface) !important; color: var(--pinboard-fg) !important;
+  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
+  border-radius: var(--pinboard-radius-sm) !important;
+  cursor: pointer !important;
+  padding: 4px 12px !important;
+}
+input[type="reset"]:hover, input[type="reset"].reset:hover, button[type="reset"]:hover { background: var(--pinboard-row-hover) !important; border-color: var(--pinboard-accent) !important; color: var(--pinboard-accent) !important; }
 input[type="checkbox"], input[type="radio"] { accent-color: var(--pinboard-accent) !important; }
 .suggested_tag { color: var(--pinboard-success) !important; cursor: pointer !important; }
 #edit_bookmark_form { background: var(--pinboard-bg-surface) !important; border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important; }
@@ -1895,6 +1922,7 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 input[type="text"], input:not([type]), input[type="password"], textarea, select {
   background: var(--pinboard-input-bg) !important; color: var(--pinboard-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
+  box-sizing: border-box !important; max-width: 100% !important;
 }
 input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
@@ -1903,6 +1931,14 @@ input[type="submit"], input[type="button"] {
   cursor: pointer !important;
 }
 input[type="submit"]:hover, input[type="button"]:hover { background: var(--pinboard-link-hover) !important; }
+input[type="reset"], input[type="reset"].reset, button[type="reset"] {
+  background: var(--pinboard-bg-surface) !important; color: var(--pinboard-fg) !important;
+  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
+  border-radius: var(--pinboard-radius-sm) !important;
+  cursor: pointer !important;
+  padding: 4px 12px !important;
+}
+input[type="reset"]:hover, input[type="reset"].reset:hover, button[type="reset"]:hover { background: var(--pinboard-row-hover) !important; border-color: var(--pinboard-accent) !important; color: var(--pinboard-accent) !important; }
 input[type="checkbox"], input[type="radio"] { accent-color: var(--pinboard-accent) !important; }
 .suggested_tag { color: var(--pinboard-success) !important; cursor: pointer !important; }
 #edit_bookmark_form { background: var(--pinboard-bg-surface) !important; border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important; }
@@ -2451,6 +2487,7 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 input[type="text"], input:not([type]), input[type="password"], textarea, select {
   background: var(--pinboard-input-bg) !important; color: var(--pinboard-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
+  box-sizing: border-box !important; max-width: 100% !important;
 }
 input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
@@ -2459,6 +2496,14 @@ input[type="submit"], input[type="button"] {
   cursor: pointer !important;
 }
 input[type="submit"]:hover, input[type="button"]:hover { background: var(--pinboard-link-hover) !important; }
+input[type="reset"], input[type="reset"].reset, button[type="reset"] {
+  background: var(--pinboard-bg-surface) !important; color: var(--pinboard-fg) !important;
+  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
+  border-radius: var(--pinboard-radius-sm) !important;
+  cursor: pointer !important;
+  padding: 4px 12px !important;
+}
+input[type="reset"]:hover, input[type="reset"].reset:hover, button[type="reset"]:hover { background: var(--pinboard-row-hover) !important; border-color: var(--pinboard-accent) !important; color: var(--pinboard-accent) !important; }
 input[type="checkbox"], input[type="radio"] { accent-color: var(--pinboard-accent) !important; }
 .suggested_tag { color: var(--pinboard-success) !important; cursor: pointer !important; }
 #edit_bookmark_form { background: var(--pinboard-bg-surface) !important; border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important; }
@@ -2979,6 +3024,7 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 input[type="text"], input:not([type]), input[type="password"], textarea, select {
   background: var(--pinboard-input-bg) !important; color: var(--pinboard-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
+  box-sizing: border-box !important; max-width: 100% !important;
 }
 input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
@@ -2987,6 +3033,14 @@ input[type="submit"], input[type="button"] {
   cursor: pointer !important;
 }
 input[type="submit"]:hover, input[type="button"]:hover { background: var(--pinboard-link-hover) !important; }
+input[type="reset"], input[type="reset"].reset, button[type="reset"] {
+  background: var(--pinboard-bg-surface) !important; color: var(--pinboard-fg) !important;
+  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
+  border-radius: var(--pinboard-radius-sm) !important;
+  cursor: pointer !important;
+  padding: 4px 12px !important;
+}
+input[type="reset"]:hover, input[type="reset"].reset:hover, button[type="reset"]:hover { background: var(--pinboard-row-hover) !important; border-color: var(--pinboard-accent) !important; color: var(--pinboard-accent) !important; }
 input[type="checkbox"], input[type="radio"] { accent-color: var(--pinboard-accent) !important; }
 .suggested_tag { color: var(--pinboard-success) !important; cursor: pointer !important; }
 #edit_bookmark_form { background: var(--pinboard-bg-surface) !important; border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important; }
@@ -3406,6 +3460,7 @@ html.pbp-dark #tweet_searchbox input[type="submit"]:hover { background: var(--pi
 html.pbp-dark input[type="text"], html.pbp-dark input:not([type]), html.pbp-dark input[type="password"], html.pbp-dark textarea, html.pbp-dark select {
   background: var(--pinboard-input-bg) !important; color: var(--pinboard-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
+  box-sizing: border-box !important; max-width: 100% !important;
 }
 html.pbp-dark input[type="text"]:focus, html.pbp-dark input:not([type]):focus, html.pbp-dark textarea:focus, html.pbp-dark select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 html.pbp-dark input[type="submit"], html.pbp-dark input[type="button"] {
@@ -3414,6 +3469,14 @@ html.pbp-dark input[type="submit"], html.pbp-dark input[type="button"] {
   cursor: pointer !important;
 }
 html.pbp-dark input[type="submit"]:hover, html.pbp-dark input[type="button"]:hover { background: var(--pinboard-link-hover) !important; }
+html.pbp-dark input[type="reset"], html.pbp-dark input[type="reset"].reset, html.pbp-dark button[type="reset"] {
+  background: var(--pinboard-bg-surface) !important; color: var(--pinboard-fg) !important;
+  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
+  border-radius: var(--pinboard-radius-sm) !important;
+  cursor: pointer !important;
+  padding: 4px 12px !important;
+}
+html.pbp-dark input[type="reset"]:hover, html.pbp-dark input[type="reset"].reset:hover, html.pbp-dark button[type="reset"]:hover { background: var(--pinboard-row-hover) !important; border-color: var(--pinboard-accent) !important; color: var(--pinboard-accent) !important; }
 html.pbp-dark input[type="checkbox"], html.pbp-dark input[type="radio"] { accent-color: var(--pinboard-accent) !important; }
 html.pbp-dark .suggested_tag { color: var(--pinboard-success) !important; cursor: pointer !important; }
 html.pbp-dark #edit_bookmark_form { background: var(--pinboard-bg-surface) !important; border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important; }
@@ -3980,6 +4043,7 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 input[type="text"], input:not([type]), input[type="password"], textarea, select {
   background: var(--pinboard-input-bg) !important; color: var(--pinboard-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
+  box-sizing: border-box !important; max-width: 100% !important;
 }
 input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
@@ -3988,6 +4052,14 @@ input[type="submit"], input[type="button"] {
   cursor: pointer !important;
 }
 input[type="submit"]:hover, input[type="button"]:hover { background: var(--pinboard-link-hover) !important; }
+input[type="reset"], input[type="reset"].reset, button[type="reset"] {
+  background: var(--pinboard-bg-surface) !important; color: var(--pinboard-fg) !important;
+  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
+  border-radius: var(--pinboard-radius-sm) !important;
+  cursor: pointer !important;
+  padding: 4px 12px !important;
+}
+input[type="reset"]:hover, input[type="reset"].reset:hover, button[type="reset"]:hover { background: var(--pinboard-row-hover) !important; border-color: var(--pinboard-accent) !important; color: var(--pinboard-accent) !important; }
 input[type="checkbox"], input[type="radio"] { accent-color: var(--pinboard-accent) !important; }
 .suggested_tag { color: var(--pinboard-success) !important; cursor: pointer !important; }
 #edit_bookmark_form { background: var(--pinboard-bg-surface) !important; border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important; }
@@ -4462,6 +4534,7 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 input[type="text"], input:not([type]), input[type="password"], textarea, select {
   background: var(--pinboard-input-bg) !important; color: var(--pinboard-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
+  box-sizing: border-box !important; max-width: 100% !important;
 }
 input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
@@ -4470,6 +4543,14 @@ input[type="submit"], input[type="button"] {
   cursor: pointer !important;
 }
 input[type="submit"]:hover, input[type="button"]:hover { background: var(--pinboard-link-hover) !important; }
+input[type="reset"], input[type="reset"].reset, button[type="reset"] {
+  background: var(--pinboard-bg-surface) !important; color: var(--pinboard-fg) !important;
+  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
+  border-radius: var(--pinboard-radius-sm) !important;
+  cursor: pointer !important;
+  padding: 4px 12px !important;
+}
+input[type="reset"]:hover, input[type="reset"].reset:hover, button[type="reset"]:hover { background: var(--pinboard-row-hover) !important; border-color: var(--pinboard-accent) !important; color: var(--pinboard-accent) !important; }
 input[type="checkbox"], input[type="radio"] { accent-color: var(--pinboard-accent) !important; }
 .suggested_tag { color: var(--pinboard-success) !important; cursor: pointer !important; }
 #edit_bookmark_form { background: var(--pinboard-bg-surface) !important; border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important; }
@@ -4956,6 +5037,7 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 input[type="text"], input:not([type]), input[type="password"], textarea, select {
   background: var(--pinboard-input-bg) !important; color: var(--pinboard-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
+  box-sizing: border-box !important; max-width: 100% !important;
 }
 input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
@@ -4964,6 +5046,14 @@ input[type="submit"], input[type="button"] {
   cursor: pointer !important;
 }
 input[type="submit"]:hover, input[type="button"]:hover { background: var(--pinboard-link-hover) !important; }
+input[type="reset"], input[type="reset"].reset, button[type="reset"] {
+  background: var(--pinboard-bg-surface) !important; color: var(--pinboard-fg) !important;
+  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
+  border-radius: var(--pinboard-radius-sm) !important;
+  cursor: pointer !important;
+  padding: 4px 12px !important;
+}
+input[type="reset"]:hover, input[type="reset"].reset:hover, button[type="reset"]:hover { background: var(--pinboard-row-hover) !important; border-color: var(--pinboard-accent) !important; color: var(--pinboard-accent) !important; }
 input[type="checkbox"], input[type="radio"] { accent-color: var(--pinboard-accent) !important; }
 .suggested_tag { color: var(--pinboard-success) !important; cursor: pointer !important; }
 #edit_bookmark_form { background: var(--pinboard-bg-surface) !important; border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important; }
@@ -5450,6 +5540,7 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 input[type="text"], input:not([type]), input[type="password"], textarea, select {
   background: var(--pinboard-input-bg) !important; color: var(--pinboard-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
+  box-sizing: border-box !important; max-width: 100% !important;
 }
 input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
@@ -5458,6 +5549,14 @@ input[type="submit"], input[type="button"] {
   cursor: pointer !important;
 }
 input[type="submit"]:hover, input[type="button"]:hover { background: var(--pinboard-link-hover) !important; }
+input[type="reset"], input[type="reset"].reset, button[type="reset"] {
+  background: var(--pinboard-bg-surface) !important; color: var(--pinboard-fg) !important;
+  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
+  border-radius: var(--pinboard-radius-sm) !important;
+  cursor: pointer !important;
+  padding: 4px 12px !important;
+}
+input[type="reset"]:hover, input[type="reset"].reset:hover, button[type="reset"]:hover { background: var(--pinboard-row-hover) !important; border-color: var(--pinboard-accent) !important; color: var(--pinboard-accent) !important; }
 input[type="checkbox"], input[type="radio"] { accent-color: var(--pinboard-accent) !important; }
 .suggested_tag { color: var(--pinboard-success) !important; cursor: pointer !important; }
 #edit_bookmark_form { background: var(--pinboard-bg-surface) !important; border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important; }
@@ -5956,6 +6055,7 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 input[type="text"], input:not([type]), input[type="password"], textarea, select {
   background: var(--pinboard-input-bg) !important; color: var(--pinboard-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
+  box-sizing: border-box !important; max-width: 100% !important;
 }
 input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
@@ -5964,6 +6064,14 @@ input[type="submit"], input[type="button"] {
   cursor: pointer !important;
 }
 input[type="submit"]:hover, input[type="button"]:hover { background: var(--pinboard-link-hover) !important; }
+input[type="reset"], input[type="reset"].reset, button[type="reset"] {
+  background: var(--pinboard-bg-surface) !important; color: var(--pinboard-fg) !important;
+  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
+  border-radius: var(--pinboard-radius-sm) !important;
+  cursor: pointer !important;
+  padding: 4px 12px !important;
+}
+input[type="reset"]:hover, input[type="reset"].reset:hover, button[type="reset"]:hover { background: var(--pinboard-row-hover) !important; border-color: var(--pinboard-accent) !important; color: var(--pinboard-accent) !important; }
 input[type="checkbox"], input[type="radio"] { accent-color: var(--pinboard-accent) !important; }
 .suggested_tag { color: var(--pinboard-success) !important; cursor: pointer !important; }
 #edit_bookmark_form { background: var(--pinboard-bg-surface) !important; border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important; }
@@ -6455,6 +6563,7 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 input[type="text"], input:not([type]), input[type="password"], textarea, select {
   background: var(--pinboard-input-bg) !important; color: var(--pinboard-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
+  box-sizing: border-box !important; max-width: 100% !important;
 }
 input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
@@ -6463,6 +6572,14 @@ input[type="submit"], input[type="button"] {
   cursor: pointer !important;
 }
 input[type="submit"]:hover, input[type="button"]:hover { background: var(--pinboard-link-hover) !important; }
+input[type="reset"], input[type="reset"].reset, button[type="reset"] {
+  background: var(--pinboard-bg-surface) !important; color: var(--pinboard-fg) !important;
+  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
+  border-radius: var(--pinboard-radius-sm) !important;
+  cursor: pointer !important;
+  padding: 4px 12px !important;
+}
+input[type="reset"]:hover, input[type="reset"].reset:hover, button[type="reset"]:hover { background: var(--pinboard-row-hover) !important; border-color: var(--pinboard-accent) !important; color: var(--pinboard-accent) !important; }
 input[type="checkbox"], input[type="radio"] { accent-color: var(--pinboard-accent) !important; }
 .suggested_tag { color: var(--pinboard-success) !important; cursor: pointer !important; }
 #edit_bookmark_form { background: var(--pinboard-bg-surface) !important; border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important; }
@@ -6960,6 +7077,7 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 input[type="text"], input:not([type]), input[type="password"], textarea, select {
   background: var(--pinboard-input-bg) !important; color: var(--pinboard-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
+  box-sizing: border-box !important; max-width: 100% !important;
 }
 input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
@@ -6968,6 +7086,14 @@ input[type="submit"], input[type="button"] {
   cursor: pointer !important;
 }
 input[type="submit"]:hover, input[type="button"]:hover { background: var(--pinboard-link-hover) !important; }
+input[type="reset"], input[type="reset"].reset, button[type="reset"] {
+  background: var(--pinboard-bg-surface) !important; color: var(--pinboard-fg) !important;
+  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
+  border-radius: var(--pinboard-radius-sm) !important;
+  cursor: pointer !important;
+  padding: 4px 12px !important;
+}
+input[type="reset"]:hover, input[type="reset"].reset:hover, button[type="reset"]:hover { background: var(--pinboard-row-hover) !important; border-color: var(--pinboard-accent) !important; color: var(--pinboard-accent) !important; }
 input[type="checkbox"], input[type="radio"] { accent-color: var(--pinboard-accent) !important; }
 .suggested_tag { color: var(--pinboard-success) !important; cursor: pointer !important; }
 #edit_bookmark_form { background: var(--pinboard-bg-surface) !important; border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important; }

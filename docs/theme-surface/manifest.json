@@ -322,7 +322,7 @@
 
     "form.input": {
       "sel": "input[type=\"text\"], input:not([type]), input[type=\"password\"], textarea, select",
-      "role": "form text inputs — bare selectors cover both body#pinboard and body:not(#pinboard)",
+      "role": "form text inputs — bare selectors cover both body#pinboard and body:not(#pinboard); composer enforces box-sizing:border-box + max-width:100% so inline width attributes (Pinboard sets width:490px on edit-form inputs) cannot overflow #edit_bookmark_form",
       "states": ["default", "hover", "focus-visible", "disabled", "placeholder"],
       "tokens": ["palette.input-bg", "palette.fg", "palette.border", "palette.accent"],
       "scope": "bare"
@@ -332,6 +332,13 @@
       "role": "primary submit button",
       "states": ["default", "hover", "focus-visible", "disabled"],
       "tokens": ["palette.accent", "palette.btn-fg", "palette.link-hover"],
+      "scope": "bare"
+    },
+    "form.cancel": {
+      "sel": "input[type=\"reset\"], input[type=\"reset\"].reset, button[type=\"reset\"]",
+      "role": "secondary cancel/reset button (Pinboard ships <input type=reset class=reset style=\"background:#eee\"> on edit-bookmark form); needs !important on background to defeat the inline #eee, uses bg-surface + border to read as a secondary action against the primary form.submit",
+      "states": ["default", "hover", "focus-visible"],
+      "tokens": ["palette.bg-surface", "palette.fg", "palette.border", "palette.row-hover"],
       "scope": "bare"
     },
     "form.checkbox": {
@@ -779,7 +786,7 @@
       "desc": "Form-first pages (add / edit / settings / profile)",
       "pages": ["add", "note-add", "settings", "profile"],
       "required_surfaces": ["shell.page","banner.root","banner.searchbox","banner.menu","main.column","form.input","form.submit","misc.colophon"],
-      "optional_surfaces": ["form.checkbox","form.suggested_tag","form.help_badge","form.email_secret","settings.panel","settings.tabs","settings.tab","settings.tab_selected","settings.heading","profile.columns","profile.heading","profile.service_box","sub_banner.root"]
+      "optional_surfaces": ["form.checkbox","form.cancel","form.suggested_tag","form.tag_completion","form.help_badge","form.email_secret","settings.panel","settings.tabs","settings.tab","settings.tab_selected","settings.heading","profile.columns","profile.heading","profile.service_box","sub_banner.root"]
     },
     "P3-rightbar-heavy": {
       "desc": "Pages where right_bar carries the primary UI",
