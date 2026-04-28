@@ -17,18 +17,8 @@ echo ""
 echo "  ZIP : ${ZIP_PATH}"
 echo ""
 
-# ---- Step 0: Sync version badge in README ----
-
-README="${REPO_ROOT}/README.md"
-if [ -f "${README}" ]; then
-  # Update static version badge to match manifest version
-  sed -i "s|version-[0-9][0-9.]*-blue|version-${VERSION}-blue|g" "${README}"
-  if ! git diff --quiet "${README}" 2>/dev/null; then
-    git add "${README}"
-    git commit -m "docs: update version badge to ${VERSION}" --no-verify
-    echo "  README version badge updated to ${VERSION}"
-  fi
-fi
+# Note: README version badge is dynamic (shields.io reads GitHub release tag),
+# so no manual sync step is required here.
 
 # ---- Step 1: Build ZIP ----
 
