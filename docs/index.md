@@ -13,6 +13,6 @@ A Chrome extension that supercharges [Pinboard](https://pinboard.in) bookmarking
 
 ## Source
 
-- [GitHub repository](https://github.com/oumu/Pinboard-Bookmark-Enhanced)
-- [Report an issue](https://github.com/oumu/Pinboard-Bookmark-Enhanced/issues)
-- [Latest release](https://github.com/oumu/Pinboard-Bookmark-Enhanced/releases/latest)
+- [GitHub repository](https://github.com/pine2D/Pinboard-Bookmark-Enhanced)
+- [Report an issue](https://github.com/pine2D/Pinboard-Bookmark-Enhanced/issues)
+- [Latest release](https://github.com/pine2D/Pinboard-Bookmark-Enhanced/releases/latest)

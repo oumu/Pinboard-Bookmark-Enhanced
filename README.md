@@ -3,7 +3,7 @@
 A Chrome extension that supercharges [Pinboard](https://pinboard.in) bookmarking with AI-powered tags, summaries, and a fully themeable interface.
 
 [![Chrome](https://img.shields.io/badge/Chrome-MV3-brightgreen?logo=googlechrome&logoColor=white)](https://developer.chrome.com/docs/extensions/)
-[![Version](https://img.shields.io/github/v/release/oumu/Pinboard-Bookmark-Enhanced?label=version)](https://github.com/oumu/Pinboard-Bookmark-Enhanced/releases/latest)
+[![Version](https://img.shields.io/github/v/release/pine2D/Pinboard-Bookmark-Enhanced?label=version)](https://github.com/pine2D/Pinboard-Bookmark-Enhanced/releases/latest)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 ![Popup demo](docs/screenshots/demo-popup.png)
@@ -22,14 +22,14 @@ A Chrome extension that supercharges [Pinboard](https://pinboard.in) bookmarking
 
 ## Install
 
-1. Download the latest [release ZIP](https://github.com/oumu/Pinboard-Bookmark-Enhanced/releases/latest)
+1. Download the latest [release ZIP](https://github.com/pine2D/Pinboard-Bookmark-Enhanced/releases/latest)
 2. Unzip
 3. `chrome://extensions/` → enable **Developer mode** → **Load unpacked** → select the unzipped folder
 4. Click the toolbar icon → paste your [Pinboard API token](https://pinboard.in/settings/password) → save
 
 ## Privacy
 
-No tracking, no analytics, no telemetry. All data lives on your device via `chrome.storage`. AI requests fire **only** when you click "AI tags" or "AI summary" and go directly to the provider you configured. Full policy: <https://oumu.github.io/Pinboard-Bookmark-Enhanced/privacy.html>
+No tracking, no analytics, no telemetry. All data lives on your device via `chrome.storage`. AI requests fire **only** when you click "AI tags" or "AI summary" and go directly to the provider you configured. Full policy: <https://pine2D.github.io/Pinboard-Bookmark-Enhanced/privacy.html>
 
 ## License
 

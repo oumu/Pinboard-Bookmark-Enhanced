@@ -62,4 +62,4 @@ If this privacy policy changes, the update will be included in the extension rel
 
 ## Contact
 
-For questions about this privacy policy, open an issue at: <https://github.com/oumu/Pinboard-Bookmark-Enhanced/issues>
+For questions about this privacy policy, open an issue at: <https://github.com/pine2D/Pinboard-Bookmark-Enhanced/issues>
