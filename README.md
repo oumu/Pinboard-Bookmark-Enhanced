@@ -6,6 +6,8 @@ A Chrome extension that supercharges [Pinboard](https://pinboard.in) bookmarking
 [![Version](https://img.shields.io/github/v/release/oumu/Pinboard-Bookmark-Enhanced?label=version)](https://github.com/oumu/Pinboard-Bookmark-Enhanced/releases/latest)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
+![Popup demo](docs/screenshots/demo-popup.png)
+
 ---
 
 ## Features
@@ -13,11 +15,10 @@ A Chrome extension that supercharges [Pinboard](https://pinboard.in) bookmarking
 - **Smart pre-fill** — title, URL, page meta description, selected text and referrer are auto-inserted into the bookmark form
 - **AI tags & summaries** — bring your own API key for OpenAI, Anthropic, Gemini, DeepSeek, Groq, Mistral, Cohere, Qwen, MiniMax, OpenRouter, Ollama, or any custom OpenAI-compatible endpoint
 - **Themes for `pinboard.in`** — multiple curated palettes (Modern Card · Dracula · Nord · Terminal · Paper-Ink · Solarized · Catppuccin · Gruvbox · Rose Pine · GitHub Light · Flexoki Adaptive · …) plus your own custom CSS
-- **Tag autocomplete** — recall your existing Pinboard tag cloud while typing
 - **Batch save** — capture all open tabs in one go
 - **Offline queue** — saves drafts when offline, syncs when reconnected
 - **9 languages** — en · de · fr · ja · pl · ru · zh-CN · zh-HK · zh-TW
-- **Keyboard shortcut** — `Alt+B` opens the popup. Two more (`quick_save`, `read_later`) are declared but unbound by default — assign them at `chrome://extensions/shortcuts`
+- **Customizable shortcuts** — bind keys for *open popup*, *quick save*, *read later* at `chrome://extensions/shortcuts`
 
 ## Install
 
@@ -29,22 +30,6 @@ A Chrome extension that supercharges [Pinboard](https://pinboard.in) bookmarking
 ## Privacy
 
 No tracking, no analytics, no telemetry. All data lives on your device via `chrome.storage`. AI requests fire **only** when you click "AI tags" or "AI summary" and go directly to the provider you configured. Full policy: <https://oumu.github.io/Pinboard-Bookmark-Enhanced/privacy.html>
-
-## Development
-
-Vanilla JavaScript, zero build step. Edit any source file and reload the extension at `chrome://extensions/`.
-
-```
-manifest.json       # MV3 manifest
-background.js       # service worker
-popup.html/js/css   # toolbar popup
-options.html/js     # settings page
-pinboard-style.js   # content script for pinboard.in
-pinboard-themes.js  # 13 generated themes
-docs/theme-surface/ # theme-factory composer + 13 token files
-```
-
-Theme changes regenerate via `node docs/theme-surface/tools/sync-all.mjs`.
 
 ## License
 
