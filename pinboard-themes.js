@@ -41,6 +41,7 @@ const PINBOARD_THEMES = {
   --pinboard-link-visited: #1a73e8;
   --pinboard-focus-ring: #1a73e8;
   --pinboard-unread: #d93025;
+  --pinboard-btn-bg-hover: #174ea6;
   --pinboard-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --pinboard-font-size-base: 13px;
   --pinboard-font-size-sm: 12px;
@@ -450,7 +451,7 @@ a.help { color: var(--pinboard-muted-soft) !important; background: var(--pinboar
   cursor: pointer !important;
   transition: background 0.15s ease, border-color 0.15s ease !important;
 }
-.signup_button:hover { background: var(--pinboard-link-hover) !important; border-color: var(--pinboard-link-hover) !important; }
+.signup_button:hover { background: var(--pinboard-btn-bg-hover) !important; border-color: var(--pinboard-btn-bg-hover) !important; }
 #blurb_div { color: var(--pinboard-fg) !important; }
 .blurb_column { color: var(--pinboard-fg) !important; }
 #blurb_div a { text-decoration: none !important; color: var(--pinboard-fg) !important; display: block !important; }
@@ -644,6 +645,7 @@ h2 { color: #3c4043 !important; }
   --pinboard-row-hover: #434c5e;
   --pinboard-destroy: #bf616a;
   --pinboard-btn-bg: #5e81ac;
+  --pinboard-btn-bg-hover: #81a1c1;
   --pinboard-btn-fg: #eceff4;
   --pinboard-success: #a3be8c;
   --pinboard-success-hover: #b5d19c;
@@ -1062,7 +1064,7 @@ a.help { color: var(--pinboard-muted-soft) !important; background: var(--pinboar
   cursor: pointer !important;
   transition: background 0.15s ease, border-color 0.15s ease !important;
 }
-.signup_button:hover { background: var(--pinboard-link-hover) !important; border-color: var(--pinboard-link-hover) !important; }
+.signup_button:hover { background: var(--pinboard-btn-bg-hover) !important; border-color: var(--pinboard-btn-bg-hover) !important; }
 #blurb_div { color: var(--pinboard-fg) !important; }
 .blurb_column { color: var(--pinboard-fg) !important; }
 #blurb_div a { text-decoration: none !important; color: var(--pinboard-fg) !important; display: block !important; }
@@ -1212,6 +1214,7 @@ a { color: #81a1c1 !important; }
   --pinboard-row-hover: #0f2a0f;
   --pinboard-destroy: #ff3333;
   --pinboard-btn-bg: #1a3a1a;
+  --pinboard-btn-bg-hover: #2a5a2a;
   --pinboard-btn-fg: #33ff33;
   --pinboard-success: #003300;
   --pinboard-success-hover: #005500;
@@ -1630,7 +1633,7 @@ a.help { color: var(--pinboard-muted-soft) !important; background: var(--pinboar
   cursor: pointer !important;
   transition: background 0.15s ease, border-color 0.15s ease !important;
 }
-.signup_button:hover { background: var(--pinboard-link-hover) !important; border-color: var(--pinboard-link-hover) !important; }
+.signup_button:hover { background: var(--pinboard-btn-bg-hover) !important; border-color: var(--pinboard-btn-bg-hover) !important; }
 #blurb_div { color: var(--pinboard-fg) !important; }
 .blurb_column { color: var(--pinboard-fg) !important; }
 #blurb_div a { text-decoration: none !important; color: var(--pinboard-fg) !important; display: block !important; }
@@ -1817,6 +1820,7 @@ h2 { color: #33ff33 !important; }
   --pinboard-row-hover: #ede4d0;
   --pinboard-destroy: #c0392b;
   --pinboard-btn-bg: #6b4c3b;
+  --pinboard-btn-bg-hover: #8b6c5b;
   --pinboard-btn-fg: #faf8f5;
   --pinboard-success: #8b4513;
   --pinboard-success-hover: #a0522d;
@@ -2235,7 +2239,7 @@ a.help { color: var(--pinboard-muted-soft) !important; background: var(--pinboar
   cursor: pointer !important;
   transition: background 0.15s ease, border-color 0.15s ease !important;
 }
-.signup_button:hover { background: var(--pinboard-link-hover) !important; border-color: var(--pinboard-link-hover) !important; }
+.signup_button:hover { background: var(--pinboard-btn-bg-hover) !important; border-color: var(--pinboard-btn-bg-hover) !important; }
 #blurb_div { color: var(--pinboard-fg) !important; }
 .blurb_column { color: var(--pinboard-fg) !important; }
 #blurb_div a { text-decoration: none !important; color: var(--pinboard-fg) !important; display: block !important; }
@@ -2439,6 +2443,7 @@ h2 { font-family: "Georgia", serif !important; }`
   --pinboard-row-hover: #44475a;
   --pinboard-destroy: #ff5555;
   --pinboard-btn-bg: #bd93f9;
+  --pinboard-btn-bg-hover: #caa8fb;
   --pinboard-btn-fg: #282a36;
   --pinboard-success: #50fa7b;
   --pinboard-success-hover: #69ff94;
@@ -2857,7 +2862,7 @@ a.help { color: var(--pinboard-muted-soft) !important; background: var(--pinboar
   cursor: pointer !important;
   transition: background 0.15s ease, border-color 0.15s ease !important;
 }
-.signup_button:hover { background: var(--pinboard-link-hover) !important; border-color: var(--pinboard-link-hover) !important; }
+.signup_button:hover { background: var(--pinboard-btn-bg-hover) !important; border-color: var(--pinboard-btn-bg-hover) !important; }
 #blurb_div { color: var(--pinboard-fg) !important; }
 .blurb_column { color: var(--pinboard-fg) !important; }
 #blurb_div a { text-decoration: none !important; color: var(--pinboard-fg) !important; display: block !important; }
@@ -3042,6 +3047,7 @@ a { color: #bd93f9 !important; }`
   --pinboard-link-visited: #205EA6;
   --pinboard-focus-ring: #205EA6;
   --pinboard-unread: #AF3029;
+  --pinboard-btn-bg-hover: #4385BE;
   --pinboard-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --pinboard-font-size-base: 13px;
   --pinboard-font-size-sm: 12px;
@@ -3451,7 +3457,7 @@ a.help { color: var(--pinboard-muted-soft) !important; background: var(--pinboar
   cursor: pointer !important;
   transition: background 0.15s ease, border-color 0.15s ease !important;
 }
-.signup_button:hover { background: var(--pinboard-link-hover) !important; border-color: var(--pinboard-link-hover) !important; }
+.signup_button:hover { background: var(--pinboard-btn-bg-hover) !important; border-color: var(--pinboard-btn-bg-hover) !important; }
 #blurb_div { color: var(--pinboard-fg) !important; }
 .blurb_column { color: var(--pinboard-fg) !important; }
 #blurb_div a { text-decoration: none !important; color: var(--pinboard-fg) !important; display: block !important; }
@@ -3547,6 +3553,7 @@ html.pbp-dark {
   --pinboard-link-visited: #4385BE;
   --pinboard-focus-ring: #4385BE;
   --pinboard-unread: #D14D41;
+  --pinboard-btn-bg-hover: #5DA0D0;
   --pinboard-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --pinboard-font-size-base: 13px;
   --pinboard-font-size-sm: 12px;
@@ -3942,7 +3949,7 @@ html.pbp-dark .signup_button, html.pbp-dark .signup_button[style*="background"] 
   cursor: pointer !important;
   transition: background 0.15s ease, border-color 0.15s ease !important;
 }
-html.pbp-dark .signup_button:hover { background: var(--pinboard-link-hover) !important; border-color: var(--pinboard-link-hover) !important; }
+html.pbp-dark .signup_button:hover { background: var(--pinboard-btn-bg-hover) !important; border-color: var(--pinboard-btn-bg-hover) !important; }
 html.pbp-dark #blurb_div { color: var(--pinboard-fg) !important; }
 html.pbp-dark .blurb_column { color: var(--pinboard-fg) !important; }
 html.pbp-dark #blurb_div a { text-decoration: none !important; color: var(--pinboard-fg) !important; display: block !important; }
@@ -4173,6 +4180,7 @@ html.pbp-dark #tweet_searchbox input[type="submit"]:hover { background: #A8E4D5 
   --pinboard-link-visited: #268bd2;
   --pinboard-focus-ring: #268bd2;
   --pinboard-unread: #dc322f;
+  --pinboard-btn-bg-hover: #2aa198;
   --pinboard-font-family: "Inter", -apple-system, sans-serif;
   --pinboard-font-size-base: 13px;
   --pinboard-font-size-sm: 12px;
@@ -4582,7 +4590,7 @@ a.help { color: var(--pinboard-muted-soft) !important; background: var(--pinboar
   cursor: pointer !important;
   transition: background 0.15s ease, border-color 0.15s ease !important;
 }
-.signup_button:hover { background: var(--pinboard-link-hover) !important; border-color: var(--pinboard-link-hover) !important; }
+.signup_button:hover { background: var(--pinboard-btn-bg-hover) !important; border-color: var(--pinboard-btn-bg-hover) !important; }
 #blurb_div { color: var(--pinboard-fg) !important; }
 .blurb_column { color: var(--pinboard-fg) !important; }
 #blurb_div a { text-decoration: none !important; color: var(--pinboard-fg) !important; display: block !important; }
@@ -4721,6 +4729,7 @@ a.sort_order_selected { background: #eee8d5 !important; }
   --pinboard-link-visited: #268bd2;
   --pinboard-focus-ring: #268bd2;
   --pinboard-unread: #dc322f;
+  --pinboard-btn-bg-hover: #2aa198;
   --pinboard-font-family: "Inter", -apple-system, sans-serif;
   --pinboard-font-size-base: 13px;
   --pinboard-font-size-sm: 12px;
@@ -5130,7 +5139,7 @@ a.help { color: var(--pinboard-muted-soft) !important; background: var(--pinboar
   cursor: pointer !important;
   transition: background 0.15s ease, border-color 0.15s ease !important;
 }
-.signup_button:hover { background: var(--pinboard-link-hover) !important; border-color: var(--pinboard-link-hover) !important; }
+.signup_button:hover { background: var(--pinboard-btn-bg-hover) !important; border-color: var(--pinboard-btn-bg-hover) !important; }
 #blurb_div { color: var(--pinboard-fg) !important; }
 .blurb_column { color: var(--pinboard-fg) !important; }
 #blurb_div a { text-decoration: none !important; color: var(--pinboard-fg) !important; display: block !important; }
@@ -5281,6 +5290,7 @@ h2 { color: #93a1a1 !important; }
   --pinboard-link-visited: #8839ef;
   --pinboard-focus-ring: #1e66f5;
   --pinboard-unread: #d20f39;
+  --pinboard-btn-bg-hover: #179299;
   --pinboard-font-family: "Nunito", "Inter", -apple-system, sans-serif;
   --pinboard-font-size-base: 13px;
   --pinboard-font-size-sm: 12px;
@@ -5690,7 +5700,7 @@ a.help { color: var(--pinboard-muted-soft) !important; background: var(--pinboar
   cursor: pointer !important;
   transition: background 0.15s ease, border-color 0.15s ease !important;
 }
-.signup_button:hover { background: var(--pinboard-link-hover) !important; border-color: var(--pinboard-link-hover) !important; }
+.signup_button:hover { background: var(--pinboard-btn-bg-hover) !important; border-color: var(--pinboard-btn-bg-hover) !important; }
 #blurb_div { color: var(--pinboard-fg) !important; }
 .blurb_column { color: var(--pinboard-fg) !important; }
 #blurb_div a { text-decoration: none !important; color: var(--pinboard-fg) !important; display: block !important; }
@@ -5841,6 +5851,7 @@ a.help { background: #e6e9ef !important; }
   --pinboard-link-visited: #89b4fa;
   --pinboard-focus-ring: #89b4fa;
   --pinboard-unread: #f38ba8;
+  --pinboard-btn-bg-hover: #cba6f7;
   --pinboard-font-family: "Nunito", "Inter", -apple-system, sans-serif;
   --pinboard-font-size-base: 13px;
   --pinboard-font-size-sm: 12px;
@@ -6250,7 +6261,7 @@ a.help { color: var(--pinboard-muted-soft) !important; background: var(--pinboar
   cursor: pointer !important;
   transition: background 0.15s ease, border-color 0.15s ease !important;
 }
-.signup_button:hover { background: var(--pinboard-link-hover) !important; border-color: var(--pinboard-link-hover) !important; }
+.signup_button:hover { background: var(--pinboard-btn-bg-hover) !important; border-color: var(--pinboard-btn-bg-hover) !important; }
 #blurb_div { color: var(--pinboard-fg) !important; }
 .blurb_column { color: var(--pinboard-fg) !important; }
 #blurb_div a { text-decoration: none !important; color: var(--pinboard-fg) !important; display: block !important; }
@@ -6413,6 +6424,7 @@ h2 { color: #cba6f7 !important; }`
   --pinboard-link-visited: #83a598;
   --pinboard-focus-ring: #83a598;
   --pinboard-unread: #fb4934;
+  --pinboard-btn-bg-hover: #d3869b;
   --pinboard-font-family: "IBM Plex Sans", "Inter", -apple-system, sans-serif;
   --pinboard-font-size-base: 13px;
   --pinboard-font-size-sm: 12px;
@@ -6822,7 +6834,7 @@ a.help { color: var(--pinboard-muted-soft) !important; background: var(--pinboar
   cursor: pointer !important;
   transition: background 0.15s ease, border-color 0.15s ease !important;
 }
-.signup_button:hover { background: var(--pinboard-link-hover) !important; border-color: var(--pinboard-link-hover) !important; }
+.signup_button:hover { background: var(--pinboard-btn-bg-hover) !important; border-color: var(--pinboard-btn-bg-hover) !important; }
 #blurb_div { color: var(--pinboard-fg) !important; }
 .blurb_column { color: var(--pinboard-fg) !important; }
 #blurb_div a { text-decoration: none !important; color: var(--pinboard-fg) !important; display: block !important; }
@@ -6978,6 +6990,7 @@ h2 { color: #d3869b !important; }
   --pinboard-link-visited: #c4a7e7;
   --pinboard-focus-ring: #c4a7e7;
   --pinboard-unread: #eb6f92;
+  --pinboard-btn-bg-hover: #ebbcba;
   --pinboard-font-family: "Lora", "Georgia", "Noto Serif", serif;
   --pinboard-font-size-base: 14px;
   --pinboard-font-size-sm: 12px;
@@ -7387,7 +7400,7 @@ a.help { color: var(--pinboard-muted-soft) !important; background: var(--pinboar
   cursor: pointer !important;
   transition: background 0.15s ease, border-color 0.15s ease !important;
 }
-.signup_button:hover { background: var(--pinboard-link-hover) !important; border-color: var(--pinboard-link-hover) !important; }
+.signup_button:hover { background: var(--pinboard-btn-bg-hover) !important; border-color: var(--pinboard-btn-bg-hover) !important; }
 #blurb_div { color: var(--pinboard-fg) !important; }
 .blurb_column { color: var(--pinboard-fg) !important; }
 #blurb_div a { text-decoration: none !important; color: var(--pinboard-fg) !important; display: block !important; }
@@ -7548,6 +7561,7 @@ h2 { color: #ebbcba !important; }`
   --pinboard-fg-strong: #1f2328;
   --pinboard-border-strong: #d0d7de;
   --pinboard-border-soft: #d0d7de;
+  --pinboard-btn-bg-hover: #0550ae;
   --pinboard-unread: #cf222e;
   --pinboard-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
   --pinboard-font-size-base: 13px;
@@ -7958,7 +7972,7 @@ a.help { color: var(--pinboard-muted-soft) !important; background: var(--pinboar
   cursor: pointer !important;
   transition: background 0.15s ease, border-color 0.15s ease !important;
 }
-.signup_button:hover { background: var(--pinboard-link-hover) !important; border-color: var(--pinboard-link-hover) !important; }
+.signup_button:hover { background: var(--pinboard-btn-bg-hover) !important; border-color: var(--pinboard-btn-bg-hover) !important; }
 #blurb_div { color: var(--pinboard-fg) !important; }
 .blurb_column { color: var(--pinboard-fg) !important; }
 #blurb_div a { text-decoration: none !important; color: var(--pinboard-fg) !important; display: block !important; }

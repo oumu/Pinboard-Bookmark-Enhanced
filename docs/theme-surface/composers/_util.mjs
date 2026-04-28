@@ -22,6 +22,7 @@ export function expandPalette(p) {
     "bg-surface":     p["bg-surface"]     || bg,
     // accent family
     "btn-bg":         p["btn-bg"]         || accent,
+    "btn-bg-hover":   p["btn-bg-hover"]   || p["link-hover"] || p["accent-hover"] || p["btn-bg"] || accent,
     "accent-hover":   p["accent-hover"]   || p["link-hover"] || accent,
     "accent-soft":    p["accent-soft"]    || p["tag-bg"] || accent,
     "link-hover":     p["link-hover"]     || p["accent-hover"] || accent,

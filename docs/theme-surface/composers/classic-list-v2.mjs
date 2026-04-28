@@ -348,7 +348,7 @@ a.help { color: ${v("muted-soft")} !important; background: ${v("accent-soft")} !
   cursor: pointer !important;
   transition: background 0.15s ease, border-color 0.15s ease !important;
 }
-.signup_button:hover { background: ${v("link-hover")} !important; border-color: ${v("link-hover")} !important; }
+.signup_button:hover { background: ${v("btn-bg-hover")} !important; border-color: ${v("btn-bg-hover")} !important; }
 #blurb_div { color: ${v("fg")} !important; }
 .blurb_column { color: ${v("fg")} !important; }
 #blurb_div a { text-decoration: none !important; color: ${v("fg")} !important; display: block !important; }

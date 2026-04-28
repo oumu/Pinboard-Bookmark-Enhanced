@@ -384,9 +384,9 @@
     },
     "landing.signup_button": {
       "sel": ".signup_button",
-      "role": "Login + Sign-up CTA buttons on landing — Pinboard ships them as <div class=signup_button> with inline style=\"background:#ddeeff\" (the login variant). Composer overrides with palette.btn-bg (NOT accent — terminal theme has accent==btn-fg, which would make button text vanish; btn-bg is the hand-tuned button surface color). Tokens-util fallback btn-bg → accent, so themes that don't set btn-bg explicitly still work.",
+      "role": "Login + Sign-up CTA buttons on landing — Pinboard ships them as <div class=signup_button> with inline style=\"background:#ddeeff\" (the login variant). Composer overrides with palette.btn-bg (NOT accent — terminal theme has accent==btn-fg, which would make button text vanish; btn-bg is the hand-tuned button surface color). Hover uses palette.btn-bg-hover (fallback chain: btn-bg-hover → link-hover → accent-hover → btn-bg → accent), so terminal can use #2a5a2a deeper green instead of link-hover #66ff66 which would still be too close to btn-fg #33ff33.",
       "states": ["default", "hover"],
-      "tokens": ["palette.btn-bg", "palette.btn-fg", "palette.link-hover", "radius.sm"],
+      "tokens": ["palette.btn-bg", "palette.btn-bg-hover", "palette.btn-fg", "radius.sm"],
       "scope": "bare"
     },
     "landing.blurb_root": {
