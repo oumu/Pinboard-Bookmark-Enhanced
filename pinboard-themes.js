@@ -490,14 +490,18 @@ a.help { color: var(--pinboard-muted-soft) !important; background: var(--pinboar
 /* ---- Footer / colophon ---- */
 #footer, .colophon, .colophon a { color: var(--pinboard-muted-soft) !important; }
 
-/* ---- Scrollbars (Webkit + Firefox standard) ---- */
+/* ---- Scrollbars (Webkit + Firefox standard) ----
+ * thumb uses muted (not muted-soft) so it stays visible against bg-surface
+ * across all 13 themes. Audited: muted-soft fell to 1.36:1 contrast on
+ * nord-night and 1.78:1 on gruvbox-dark — practically invisible. muted
+ * lifts every theme to 3:1+ with most reaching 5:1+. */
 html, body, textarea, .description, .pin-ac .bd {
   scrollbar-width: thin !important;
   scrollbar-color: var(--pinboard-muted) var(--pinboard-bg-surface) !important;
 }
 ::-webkit-scrollbar { width: 10px !important; height: 10px !important; }
 ::-webkit-scrollbar-track { background: var(--pinboard-bg-surface) !important; border-left: 1px solid var(--pinboard-border) !important; }
-::-webkit-scrollbar-thumb { background: var(--pinboard-muted-soft) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
+::-webkit-scrollbar-thumb { background: var(--pinboard-muted) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
 ::-webkit-scrollbar-thumb:hover { background: var(--pinboard-accent) !important; }
 ::-webkit-scrollbar-corner { background: var(--pinboard-bg-surface) !important; }
 
@@ -1113,14 +1117,18 @@ a.help { color: var(--pinboard-muted-soft) !important; background: var(--pinboar
 /* ---- Footer / colophon ---- */
 #footer, .colophon, .colophon a { color: var(--pinboard-muted-soft) !important; }
 
-/* ---- Scrollbars (Webkit + Firefox standard) ---- */
+/* ---- Scrollbars (Webkit + Firefox standard) ----
+ * thumb uses muted (not muted-soft) so it stays visible against bg-surface
+ * across all 13 themes. Audited: muted-soft fell to 1.36:1 contrast on
+ * nord-night and 1.78:1 on gruvbox-dark — practically invisible. muted
+ * lifts every theme to 3:1+ with most reaching 5:1+. */
 html, body, textarea, .description, .pin-ac .bd {
   scrollbar-width: thin !important;
   scrollbar-color: var(--pinboard-muted) var(--pinboard-bg-surface) !important;
 }
 ::-webkit-scrollbar { width: 10px !important; height: 10px !important; }
 ::-webkit-scrollbar-track { background: var(--pinboard-bg-surface) !important; border-left: 1px solid var(--pinboard-border) !important; }
-::-webkit-scrollbar-thumb { background: var(--pinboard-muted-soft) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
+::-webkit-scrollbar-thumb { background: var(--pinboard-muted) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
 ::-webkit-scrollbar-thumb:hover { background: var(--pinboard-accent) !important; }
 ::-webkit-scrollbar-corner { background: var(--pinboard-bg-surface) !important; }
 
@@ -1692,14 +1700,18 @@ a.help { color: var(--pinboard-muted-soft) !important; background: var(--pinboar
 /* ---- Footer / colophon ---- */
 #footer, .colophon, .colophon a { color: var(--pinboard-muted-soft) !important; }
 
-/* ---- Scrollbars (Webkit + Firefox standard) ---- */
+/* ---- Scrollbars (Webkit + Firefox standard) ----
+ * thumb uses muted (not muted-soft) so it stays visible against bg-surface
+ * across all 13 themes. Audited: muted-soft fell to 1.36:1 contrast on
+ * nord-night and 1.78:1 on gruvbox-dark — practically invisible. muted
+ * lifts every theme to 3:1+ with most reaching 5:1+. */
 html, body, textarea, .description, .pin-ac .bd {
   scrollbar-width: thin !important;
   scrollbar-color: var(--pinboard-muted) var(--pinboard-bg-surface) !important;
 }
 ::-webkit-scrollbar { width: 10px !important; height: 10px !important; }
 ::-webkit-scrollbar-track { background: var(--pinboard-bg-surface) !important; border-left: 1px solid var(--pinboard-border) !important; }
-::-webkit-scrollbar-thumb { background: var(--pinboard-muted-soft) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
+::-webkit-scrollbar-thumb { background: var(--pinboard-muted) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
 ::-webkit-scrollbar-thumb:hover { background: var(--pinboard-accent) !important; }
 ::-webkit-scrollbar-corner { background: var(--pinboard-bg-surface) !important; }
 
@@ -2308,14 +2320,18 @@ a.help { color: var(--pinboard-muted-soft) !important; background: var(--pinboar
 /* ---- Footer / colophon ---- */
 #footer, .colophon, .colophon a { color: var(--pinboard-muted-soft) !important; }
 
-/* ---- Scrollbars (Webkit + Firefox standard) ---- */
+/* ---- Scrollbars (Webkit + Firefox standard) ----
+ * thumb uses muted (not muted-soft) so it stays visible against bg-surface
+ * across all 13 themes. Audited: muted-soft fell to 1.36:1 contrast on
+ * nord-night and 1.78:1 on gruvbox-dark — practically invisible. muted
+ * lifts every theme to 3:1+ with most reaching 5:1+. */
 html, body, textarea, .description, .pin-ac .bd {
   scrollbar-width: thin !important;
   scrollbar-color: var(--pinboard-muted) var(--pinboard-bg-surface) !important;
 }
 ::-webkit-scrollbar { width: 10px !important; height: 10px !important; }
 ::-webkit-scrollbar-track { background: var(--pinboard-bg-surface) !important; border-left: 1px solid var(--pinboard-border) !important; }
-::-webkit-scrollbar-thumb { background: var(--pinboard-muted-soft) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
+::-webkit-scrollbar-thumb { background: var(--pinboard-muted) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
 ::-webkit-scrollbar-thumb:hover { background: var(--pinboard-accent) !important; }
 ::-webkit-scrollbar-corner { background: var(--pinboard-bg-surface) !important; }
 
@@ -2941,14 +2957,18 @@ a.help { color: var(--pinboard-muted-soft) !important; background: var(--pinboar
 /* ---- Footer / colophon ---- */
 #footer, .colophon, .colophon a { color: var(--pinboard-muted-soft) !important; }
 
-/* ---- Scrollbars (Webkit + Firefox standard) ---- */
+/* ---- Scrollbars (Webkit + Firefox standard) ----
+ * thumb uses muted (not muted-soft) so it stays visible against bg-surface
+ * across all 13 themes. Audited: muted-soft fell to 1.36:1 contrast on
+ * nord-night and 1.78:1 on gruvbox-dark — practically invisible. muted
+ * lifts every theme to 3:1+ with most reaching 5:1+. */
 html, body, textarea, .description, .pin-ac .bd {
   scrollbar-width: thin !important;
   scrollbar-color: var(--pinboard-muted) var(--pinboard-bg-surface) !important;
 }
 ::-webkit-scrollbar { width: 10px !important; height: 10px !important; }
 ::-webkit-scrollbar-track { background: var(--pinboard-bg-surface) !important; border-left: 1px solid var(--pinboard-border) !important; }
-::-webkit-scrollbar-thumb { background: var(--pinboard-muted-soft) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
+::-webkit-scrollbar-thumb { background: var(--pinboard-muted) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
 ::-webkit-scrollbar-thumb:hover { background: var(--pinboard-accent) !important; }
 ::-webkit-scrollbar-corner { background: var(--pinboard-bg-surface) !important; }
 
@@ -3546,14 +3566,18 @@ a.help { color: var(--pinboard-muted-soft) !important; background: var(--pinboar
 /* ---- Footer / colophon ---- */
 #footer, .colophon, .colophon a { color: var(--pinboard-muted-soft) !important; }
 
-/* ---- Scrollbars (Webkit + Firefox standard) ---- */
+/* ---- Scrollbars (Webkit + Firefox standard) ----
+ * thumb uses muted (not muted-soft) so it stays visible against bg-surface
+ * across all 13 themes. Audited: muted-soft fell to 1.36:1 contrast on
+ * nord-night and 1.78:1 on gruvbox-dark — practically invisible. muted
+ * lifts every theme to 3:1+ with most reaching 5:1+. */
 html, body, textarea, .description, .pin-ac .bd {
   scrollbar-width: thin !important;
   scrollbar-color: var(--pinboard-muted) var(--pinboard-bg-surface) !important;
 }
 ::-webkit-scrollbar { width: 10px !important; height: 10px !important; }
 ::-webkit-scrollbar-track { background: var(--pinboard-bg-surface) !important; border-left: 1px solid var(--pinboard-border) !important; }
-::-webkit-scrollbar-thumb { background: var(--pinboard-muted-soft) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
+::-webkit-scrollbar-thumb { background: var(--pinboard-muted) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
 ::-webkit-scrollbar-thumb:hover { background: var(--pinboard-accent) !important; }
 ::-webkit-scrollbar-corner { background: var(--pinboard-bg-surface) !important; }
 
@@ -4047,14 +4071,18 @@ html.pbp-dark .nav_nli:hover { color: var(--pinboard-link-hover) !important; }
 /* ---- Footer / colophon ---- */
 html.pbp-dark #footer, html.pbp-dark .colophon, html.pbp-dark .colophon a { color: var(--pinboard-muted-soft) !important; }
 
-/* ---- Scrollbars (Webkit + Firefox standard) ---- */
+/* ---- Scrollbars (Webkit + Firefox standard) ----
+ * thumb uses muted (not muted-soft) so it stays visible against bg-surface
+ * across all 13 themes. Audited: muted-soft fell to 1.36:1 contrast on
+ * nord-night and 1.78:1 on gruvbox-dark — practically invisible. muted
+ * lifts every theme to 3:1+ with most reaching 5:1+. */
 html.pbp-dark html, html.pbp-dark body, html.pbp-dark textarea, html.pbp-dark .description, html.pbp-dark .pin-ac .bd {
   scrollbar-width: thin !important;
   scrollbar-color: var(--pinboard-muted) var(--pinboard-bg-surface) !important;
 }
 html.pbp-dark ::-webkit-scrollbar { width: 10px !important; height: 10px !important; }
 html.pbp-dark ::-webkit-scrollbar-track { background: var(--pinboard-bg-surface) !important; border-left: 1px solid var(--pinboard-border) !important; }
-html.pbp-dark ::-webkit-scrollbar-thumb { background: var(--pinboard-muted-soft) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
+html.pbp-dark ::-webkit-scrollbar-thumb { background: var(--pinboard-muted) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
 html.pbp-dark ::-webkit-scrollbar-thumb:hover { background: var(--pinboard-accent) !important; }
 html.pbp-dark ::-webkit-scrollbar-corner { background: var(--pinboard-bg-surface) !important; }
 
@@ -4699,14 +4727,18 @@ a.help { color: var(--pinboard-muted-soft) !important; background: var(--pinboar
 /* ---- Footer / colophon ---- */
 #footer, .colophon, .colophon a { color: var(--pinboard-muted-soft) !important; }
 
-/* ---- Scrollbars (Webkit + Firefox standard) ---- */
+/* ---- Scrollbars (Webkit + Firefox standard) ----
+ * thumb uses muted (not muted-soft) so it stays visible against bg-surface
+ * across all 13 themes. Audited: muted-soft fell to 1.36:1 contrast on
+ * nord-night and 1.78:1 on gruvbox-dark — practically invisible. muted
+ * lifts every theme to 3:1+ with most reaching 5:1+. */
 html, body, textarea, .description, .pin-ac .bd {
   scrollbar-width: thin !important;
   scrollbar-color: var(--pinboard-muted) var(--pinboard-bg-surface) !important;
 }
 ::-webkit-scrollbar { width: 10px !important; height: 10px !important; }
 ::-webkit-scrollbar-track { background: var(--pinboard-bg-surface) !important; border-left: 1px solid var(--pinboard-border) !important; }
-::-webkit-scrollbar-thumb { background: var(--pinboard-muted-soft) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
+::-webkit-scrollbar-thumb { background: var(--pinboard-muted) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
 ::-webkit-scrollbar-thumb:hover { background: var(--pinboard-accent) !important; }
 ::-webkit-scrollbar-corner { background: var(--pinboard-bg-surface) !important; }
 
@@ -5258,14 +5290,18 @@ a.help { color: var(--pinboard-muted-soft) !important; background: var(--pinboar
 /* ---- Footer / colophon ---- */
 #footer, .colophon, .colophon a { color: var(--pinboard-muted-soft) !important; }
 
-/* ---- Scrollbars (Webkit + Firefox standard) ---- */
+/* ---- Scrollbars (Webkit + Firefox standard) ----
+ * thumb uses muted (not muted-soft) so it stays visible against bg-surface
+ * across all 13 themes. Audited: muted-soft fell to 1.36:1 contrast on
+ * nord-night and 1.78:1 on gruvbox-dark — practically invisible. muted
+ * lifts every theme to 3:1+ with most reaching 5:1+. */
 html, body, textarea, .description, .pin-ac .bd {
   scrollbar-width: thin !important;
   scrollbar-color: var(--pinboard-muted) var(--pinboard-bg-surface) !important;
 }
 ::-webkit-scrollbar { width: 10px !important; height: 10px !important; }
 ::-webkit-scrollbar-track { background: var(--pinboard-bg-surface) !important; border-left: 1px solid var(--pinboard-border) !important; }
-::-webkit-scrollbar-thumb { background: var(--pinboard-muted-soft) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
+::-webkit-scrollbar-thumb { background: var(--pinboard-muted) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
 ::-webkit-scrollbar-thumb:hover { background: var(--pinboard-accent) !important; }
 ::-webkit-scrollbar-corner { background: var(--pinboard-bg-surface) !important; }
 
@@ -5829,14 +5865,18 @@ a.help { color: var(--pinboard-muted-soft) !important; background: var(--pinboar
 /* ---- Footer / colophon ---- */
 #footer, .colophon, .colophon a { color: var(--pinboard-muted-soft) !important; }
 
-/* ---- Scrollbars (Webkit + Firefox standard) ---- */
+/* ---- Scrollbars (Webkit + Firefox standard) ----
+ * thumb uses muted (not muted-soft) so it stays visible against bg-surface
+ * across all 13 themes. Audited: muted-soft fell to 1.36:1 contrast on
+ * nord-night and 1.78:1 on gruvbox-dark — practically invisible. muted
+ * lifts every theme to 3:1+ with most reaching 5:1+. */
 html, body, textarea, .description, .pin-ac .bd {
   scrollbar-width: thin !important;
   scrollbar-color: var(--pinboard-muted) var(--pinboard-bg-surface) !important;
 }
 ::-webkit-scrollbar { width: 10px !important; height: 10px !important; }
 ::-webkit-scrollbar-track { background: var(--pinboard-bg-surface) !important; border-left: 1px solid var(--pinboard-border) !important; }
-::-webkit-scrollbar-thumb { background: var(--pinboard-muted-soft) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
+::-webkit-scrollbar-thumb { background: var(--pinboard-muted) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
 ::-webkit-scrollbar-thumb:hover { background: var(--pinboard-accent) !important; }
 ::-webkit-scrollbar-corner { background: var(--pinboard-bg-surface) !important; }
 
@@ -6400,14 +6440,18 @@ a.help { color: var(--pinboard-muted-soft) !important; background: var(--pinboar
 /* ---- Footer / colophon ---- */
 #footer, .colophon, .colophon a { color: var(--pinboard-muted-soft) !important; }
 
-/* ---- Scrollbars (Webkit + Firefox standard) ---- */
+/* ---- Scrollbars (Webkit + Firefox standard) ----
+ * thumb uses muted (not muted-soft) so it stays visible against bg-surface
+ * across all 13 themes. Audited: muted-soft fell to 1.36:1 contrast on
+ * nord-night and 1.78:1 on gruvbox-dark — practically invisible. muted
+ * lifts every theme to 3:1+ with most reaching 5:1+. */
 html, body, textarea, .description, .pin-ac .bd {
   scrollbar-width: thin !important;
   scrollbar-color: var(--pinboard-muted) var(--pinboard-bg-surface) !important;
 }
 ::-webkit-scrollbar { width: 10px !important; height: 10px !important; }
 ::-webkit-scrollbar-track { background: var(--pinboard-bg-surface) !important; border-left: 1px solid var(--pinboard-border) !important; }
-::-webkit-scrollbar-thumb { background: var(--pinboard-muted-soft) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
+::-webkit-scrollbar-thumb { background: var(--pinboard-muted) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
 ::-webkit-scrollbar-thumb:hover { background: var(--pinboard-accent) !important; }
 ::-webkit-scrollbar-corner { background: var(--pinboard-bg-surface) !important; }
 
@@ -6983,14 +7027,18 @@ a.help { color: var(--pinboard-muted-soft) !important; background: var(--pinboar
 /* ---- Footer / colophon ---- */
 #footer, .colophon, .colophon a { color: var(--pinboard-muted-soft) !important; }
 
-/* ---- Scrollbars (Webkit + Firefox standard) ---- */
+/* ---- Scrollbars (Webkit + Firefox standard) ----
+ * thumb uses muted (not muted-soft) so it stays visible against bg-surface
+ * across all 13 themes. Audited: muted-soft fell to 1.36:1 contrast on
+ * nord-night and 1.78:1 on gruvbox-dark — practically invisible. muted
+ * lifts every theme to 3:1+ with most reaching 5:1+. */
 html, body, textarea, .description, .pin-ac .bd {
   scrollbar-width: thin !important;
   scrollbar-color: var(--pinboard-muted) var(--pinboard-bg-surface) !important;
 }
 ::-webkit-scrollbar { width: 10px !important; height: 10px !important; }
 ::-webkit-scrollbar-track { background: var(--pinboard-bg-surface) !important; border-left: 1px solid var(--pinboard-border) !important; }
-::-webkit-scrollbar-thumb { background: var(--pinboard-muted-soft) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
+::-webkit-scrollbar-thumb { background: var(--pinboard-muted) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
 ::-webkit-scrollbar-thumb:hover { background: var(--pinboard-accent) !important; }
 ::-webkit-scrollbar-corner { background: var(--pinboard-bg-surface) !important; }
 
@@ -7559,14 +7607,18 @@ a.help { color: var(--pinboard-muted-soft) !important; background: var(--pinboar
 /* ---- Footer / colophon ---- */
 #footer, .colophon, .colophon a { color: var(--pinboard-muted-soft) !important; }
 
-/* ---- Scrollbars (Webkit + Firefox standard) ---- */
+/* ---- Scrollbars (Webkit + Firefox standard) ----
+ * thumb uses muted (not muted-soft) so it stays visible against bg-surface
+ * across all 13 themes. Audited: muted-soft fell to 1.36:1 contrast on
+ * nord-night and 1.78:1 on gruvbox-dark — practically invisible. muted
+ * lifts every theme to 3:1+ with most reaching 5:1+. */
 html, body, textarea, .description, .pin-ac .bd {
   scrollbar-width: thin !important;
   scrollbar-color: var(--pinboard-muted) var(--pinboard-bg-surface) !important;
 }
 ::-webkit-scrollbar { width: 10px !important; height: 10px !important; }
 ::-webkit-scrollbar-track { background: var(--pinboard-bg-surface) !important; border-left: 1px solid var(--pinboard-border) !important; }
-::-webkit-scrollbar-thumb { background: var(--pinboard-muted-soft) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
+::-webkit-scrollbar-thumb { background: var(--pinboard-muted) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
 ::-webkit-scrollbar-thumb:hover { background: var(--pinboard-accent) !important; }
 ::-webkit-scrollbar-corner { background: var(--pinboard-bg-surface) !important; }
 
@@ -8141,14 +8193,18 @@ a.help { color: var(--pinboard-muted-soft) !important; background: var(--pinboar
 /* ---- Footer / colophon ---- */
 #footer, .colophon, .colophon a { color: var(--pinboard-muted-soft) !important; }
 
-/* ---- Scrollbars (Webkit + Firefox standard) ---- */
+/* ---- Scrollbars (Webkit + Firefox standard) ----
+ * thumb uses muted (not muted-soft) so it stays visible against bg-surface
+ * across all 13 themes. Audited: muted-soft fell to 1.36:1 contrast on
+ * nord-night and 1.78:1 on gruvbox-dark — practically invisible. muted
+ * lifts every theme to 3:1+ with most reaching 5:1+. */
 html, body, textarea, .description, .pin-ac .bd {
   scrollbar-width: thin !important;
   scrollbar-color: var(--pinboard-muted) var(--pinboard-bg-surface) !important;
 }
 ::-webkit-scrollbar { width: 10px !important; height: 10px !important; }
 ::-webkit-scrollbar-track { background: var(--pinboard-bg-surface) !important; border-left: 1px solid var(--pinboard-border) !important; }
-::-webkit-scrollbar-thumb { background: var(--pinboard-muted-soft) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
+::-webkit-scrollbar-thumb { background: var(--pinboard-muted) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
 ::-webkit-scrollbar-thumb:hover { background: var(--pinboard-accent) !important; }
 ::-webkit-scrollbar-corner { background: var(--pinboard-bg-surface) !important; }
 

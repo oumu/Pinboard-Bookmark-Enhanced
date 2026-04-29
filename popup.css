@@ -909,7 +909,7 @@ html[data-theme="github-light"] {
   --pp-offline-bg: #fff8c5; --pp-offline-bd: #e0d060; --pp-offline-fg: #bf8700;
 }
 
-/* Dark themes: adapt native controls (scrollbar, number spinner, etc.) */
+/* Dark themes: adapt native controls (number spinner, calendar picker etc.) */
 html[data-theme="nord-night"],
 html[data-theme="terminal"],
 html[data-theme="dracula"],
@@ -918,6 +918,19 @@ html[data-theme="solarized-dark"],
 html[data-theme="catppuccin-mocha"],
 html[data-theme="gruvbox-dark"],
 html[data-theme="rose-pine"] { color-scheme: dark; }
+
+/* Themed scrollbars — light + dark themes share the same token contract,
+ * mirroring the pinboard.in content script. track=bg2, thumb=fg-muted,
+ * hover=accent. Webkit covers Chrome/Edge; scrollbar-color/-width covers Firefox. */
+html[data-theme] {
+  scrollbar-width: thin;
+  scrollbar-color: var(--pp-fg-muted) var(--pp-bg2);
+}
+html[data-theme] ::-webkit-scrollbar { width: 10px; height: 10px; }
+html[data-theme] ::-webkit-scrollbar-track { background: var(--pp-bg2); border-left: 1px solid var(--pp-border); }
+html[data-theme] ::-webkit-scrollbar-thumb { background: var(--pp-fg-muted); border: 2px solid var(--pp-bg2); border-radius: 6px; }
+html[data-theme] ::-webkit-scrollbar-thumb:hover { background: var(--pp-accent); }
+html[data-theme] ::-webkit-scrollbar-corner { background: var(--pp-bg2); }
 
 /* Shared popup themed rules */
 html[data-theme] { background: var(--pp-bg); }
