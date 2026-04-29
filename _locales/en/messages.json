@@ -691,19 +691,19 @@
     "message": "Show quick action buttons (Save Tabs · Batch Save · Markdown)"
   },
   "tagSyncLabel": {
-    "message": "Tag Sync Mode"
+    "message": "Tag Cache Strategy"
   },
   "tagSyncCached": {
-    "message": "Cached (default, 10-min TTL)"
+    "message": "Cached (default — refresh after 10 min)"
   },
   "tagSyncFresh": {
-    "message": "Fresh (always fetch — latest, slower)"
+    "message": "Live (fetch on every popup — slower)"
   },
   "tagSyncPrewarmed": {
-    "message": "Prewarmed (background refresh, instant popup)"
+    "message": "Prewarmed (background fetch every 15 min — instant popup)"
   },
   "tagSyncHint": {
-    "message": "Prewarmed uses chrome.alarms to refresh tags every 15 min in the background."
+    "message": "Controls how your existing Pinboard tag cloud is pulled into the popup for autocomplete. Tags are read-only; nothing is uploaded back to Pinboard."
   },
   "labelTagPresets": {
     "message": "Tag Presets"

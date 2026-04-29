@@ -691,19 +691,19 @@
     "message": "Schnellaktionsschaltflächen im Popup anzeigen (Tabs speichern · Batch-Speichern · Markdown)"
   },
   "tagSyncLabel": {
-    "message": "Tag-Synchronisationsmodus"
+    "message": "Tag-Cache-Strategie"
   },
   "tagSyncCached": {
-    "message": "Cache (Standard, 10 Min. TTL)"
+    "message": "Cached (Standard — alle 10 Min. neu laden)"
   },
   "tagSyncFresh": {
-    "message": "Aktuell (immer abrufen — neueste Daten, langsamer)"
+    "message": "Live (bei jedem Popup abrufen — langsamer)"
   },
   "tagSyncPrewarmed": {
-    "message": "Vorgewärmt (Hintergrund-Aktualisierung, sofortiges Popup)"
+    "message": "Vorgewärmt (Hintergrund alle 15 Min. — sofort verfügbar)"
   },
   "tagSyncHint": {
-    "message": "Vorgewärmt nutzt chrome.alarms, um Tags alle 15 Minuten im Hintergrund zu aktualisieren."
+    "message": "Steuert, wie deine vorhandene Pinboard-Tag-Cloud für die Autovervollständigung in das Popup geladen wird. Nur Lesezugriff; es werden keine Tags zu Pinboard hochgeladen."
   },
   "labelTagPresets": {
     "message": "Tag-Vorlagen"

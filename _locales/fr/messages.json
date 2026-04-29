@@ -691,19 +691,19 @@
     "message": "Afficher les boutons d'actions rapides dans le popup (Enregistrer les onglets · Enregistrement par lot · Markdown)"
   },
   "tagSyncLabel": {
-    "message": "Mode de synchronisation des tags"
+    "message": "Stratégie de cache des tags"
   },
   "tagSyncCached": {
-    "message": "Cache (par défaut, TTL 10 min)"
+    "message": "En cache (par défaut — actualiser après 10 min)"
   },
   "tagSyncFresh": {
-    "message": "Frais (toujours à jour — plus lent)"
+    "message": "En direct (récupérer à chaque popup — plus lent)"
   },
   "tagSyncPrewarmed": {
-    "message": "Préchauffé (rafraîchissement en arrière-plan, popup instantané)"
+    "message": "Préchauffé (récupération en arrière-plan toutes les 15 min — popup instantané)"
   },
   "tagSyncHint": {
-    "message": "Le mode préchauffé utilise chrome.alarms pour rafraîchir les tags toutes les 15 min en arrière-plan."
+    "message": "Contrôle comment votre nuage de tags Pinboard est chargé dans le popup pour l'autocomplétion. Lecture seule ; aucun tag n'est envoyé vers Pinboard."
   },
   "labelTagPresets": {
     "message": "Préréglages de tags"

@@ -691,19 +691,19 @@
     "message": "Pokaż przyciski szybkich akcji w okienku (Zapisz karty · Zapis zbiorczy · Markdown)"
   },
   "tagSyncLabel": {
-    "message": "Tryb synchronizacji tagów"
+    "message": "Strategia pamięci podręcznej tagów"
   },
   "tagSyncCached": {
-    "message": "Cache (domyślny, TTL 10 min)"
+    "message": "W pamięci podręcznej (domyślnie — odśwież po 10 min)"
   },
   "tagSyncFresh": {
-    "message": "Na bieżąco (zawsze pobierz — najświeższe, wolniej)"
+    "message": "Na żywo (pobierz przy każdym otwarciu — wolniej)"
   },
   "tagSyncPrewarmed": {
-    "message": "Przedrozgrzany (odświeżanie w tle, natychmiastowy popup)"
+    "message": "Wstępnie załadowane (tło co 15 min — natychmiastowy popup)"
   },
   "tagSyncHint": {
-    "message": "Tryb przedrozgrzany używa chrome.alarms do odświeżania tagów co 15 min w tle."
+    "message": "Kontroluje, jak istniejąca chmura tagów z Pinboard jest pobierana do popup dla autouzupełniania. Tylko odczyt; nic nie jest wysyłane z powrotem do Pinboard."
   },
   "labelTagPresets": {
     "message": "Predefiniowane tagi"

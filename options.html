@@ -103,11 +103,11 @@
       <div class="section-title" data-i18n="secTags">Tags</div>
       <div class="fg"><label><input type="checkbox" id="opt-respect-tag-case" /> <span data-i18n="optRespectTagCase">Respect existing tag case (match most-used casing)</span></label></div>
       <div class="fg">
-        <label class="bl" data-i18n="tagSyncLabel">Tag Sync Mode</label>
-        <div><label><input type="radio" name="tag-sync-mode" id="opt-tag-sync-cached" value="cached" checked /> <span data-i18n="tagSyncCached">Cached (default, 10-min TTL)</span></label></div>
-        <div><label><input type="radio" name="tag-sync-mode" id="opt-tag-sync-fresh" value="fresh" /> <span data-i18n="tagSyncFresh">Fresh (always fetch — latest, slower)</span></label></div>
-        <div><label><input type="radio" name="tag-sync-mode" id="opt-tag-sync-prewarmed" value="prewarmed" /> <span data-i18n="tagSyncPrewarmed">Prewarmed (background refresh, instant popup)</span></label></div>
-        <p class="hint" data-i18n="tagSyncHint">Prewarmed uses chrome.alarms to refresh tags every 15 min in the background.</p>
+        <label class="bl" data-i18n="tagSyncLabel">Tag Cache Strategy</label>
+        <div><label><input type="radio" name="tag-sync-mode" id="opt-tag-sync-cached" value="cached" checked /> <span data-i18n="tagSyncCached">Cached (default — refresh after 10 min)</span></label></div>
+        <div><label><input type="radio" name="tag-sync-mode" id="opt-tag-sync-fresh" value="fresh" /> <span data-i18n="tagSyncFresh">Live (fetch on every popup — slower)</span></label></div>
+        <div><label><input type="radio" name="tag-sync-mode" id="opt-tag-sync-prewarmed" value="prewarmed" /> <span data-i18n="tagSyncPrewarmed">Prewarmed (background fetch every 15 min — instant popup)</span></label></div>
+        <p class="hint" data-i18n="tagSyncHint">Controls how your existing Pinboard tag cloud is pulled into the popup for autocomplete. Tags are read-only; nothing is uploaded back to Pinboard.</p>
       </div>
       <div class="fg">
         <label class="bl" data-i18n="labelTagPresets">Tag Presets</label>

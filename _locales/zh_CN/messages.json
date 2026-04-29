@@ -691,19 +691,19 @@
     "message": "在弹窗中显示快捷操作按钮（保存标签页 · 批量保存 · Markdown）"
   },
   "tagSyncLabel": {
-    "message": "标签同步模式"
+    "message": "标签缓存策略"
   },
   "tagSyncCached": {
-    "message": "缓存（默认，10 分钟 TTL）"
+    "message": "缓存（默认 — 10 分钟过期后刷新）"
   },
   "tagSyncFresh": {
-    "message": "实时（每次都请求 — 最新，稍慢）"
+    "message": "实时（每次打开都请求 — 最新，较慢）"
   },
   "tagSyncPrewarmed": {
-    "message": "预热（后台刷新，打开即用）"
+    "message": "预热（后台每 15 分钟刷新 — 打开即用）"
   },
   "tagSyncHint": {
-    "message": "预热模式使用 chrome.alarms 每 15 分钟在后台刷新一次标签。"
+    "message": "控制如何从 Pinboard 拉取你已有的标签云用于自动补全。仅读取，不会向 Pinboard 上传任何标签。"
   },
   "labelTagPresets": {
     "message": "标签预设"
