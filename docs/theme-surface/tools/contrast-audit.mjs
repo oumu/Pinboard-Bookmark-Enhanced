@@ -54,14 +54,6 @@ const ALLOWLIST = new Set([
   "pinboard:solarized-dark:muted vs bg-surface",
   "pinboard:nord-night:btn-bg vs btn-fg",
   "pinboard:catppuccin-latte:btn-bg vs btn-fg",
-  // Hover state contrast — surfaced after the audit added btn-bg-hover. These
-  // are pre-existing token choices on themes already shipped; queued as a
-  // follow-up to retune btn-bg-hover so save:hover stays readable.
-  "pinboard:catppuccin-latte:btn-bg-hover vs btn-fg",
-  "pinboard:flexoki:btn-bg-hover vs btn-fg",
-  "pinboard:nord-night:btn-bg-hover vs btn-fg",
-  "pinboard:solarized-dark:btn-bg-hover vs btn-fg",
-  "pinboard:solarized-light:btn-bg-hover vs btn-fg",
 ]);
 
 const violations = [];

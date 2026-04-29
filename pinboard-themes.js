@@ -659,7 +659,7 @@ h2 { color: #3c4043 !important; }
   --pinboard-row-hover: #434c5e;
   --pinboard-destroy: #bf616a;
   --pinboard-btn-bg: #5e81ac;
-  --pinboard-btn-bg-hover: #81a1c1;
+  --pinboard-btn-bg-hover: #4c6f9a;
   --pinboard-btn-fg: #eceff4;
   --pinboard-success: #a3be8c;
   --pinboard-success-hover: #b5d19c;
@@ -3108,6 +3108,7 @@ a { color: #bd93f9 !important; }`
   --pinboard-row-hover: #F2F0E5;
   --pinboard-destroy: #AF3029;
   --pinboard-btn-bg: #205EA6;
+  --pinboard-btn-bg-hover: #205ea6;
   --pinboard-btn-fg: #FFFCF0;
   --pinboard-success: #66800B;
   --pinboard-success-hover: #879A39;
@@ -3117,7 +3118,6 @@ a { color: #bd93f9 !important; }`
   --pinboard-link-visited: #205EA6;
   --pinboard-focus-ring: #205EA6;
   --pinboard-unread: #AF3029;
-  --pinboard-btn-bg-hover: #4385BE;
   --pinboard-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --pinboard-font-size-base: 13px;
   --pinboard-font-size-sm: 12px;
@@ -3628,6 +3628,7 @@ html.pbp-dark {
   --pinboard-row-hover: #343331;
   --pinboard-destroy: #D14D41;
   --pinboard-btn-bg: #4385BE;
+  --pinboard-btn-bg-hover: #205ea6;
   --pinboard-btn-fg: #1C1B1A;
   --pinboard-success: #879A39;
   --pinboard-success-hover: #A7BA59;
@@ -3637,7 +3638,6 @@ html.pbp-dark {
   --pinboard-link-visited: #4385BE;
   --pinboard-focus-ring: #4385BE;
   --pinboard-unread: #D14D41;
-  --pinboard-btn-bg-hover: #5DA0D0;
   --pinboard-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --pinboard-font-size-base: 13px;
   --pinboard-font-size-sm: 12px;
@@ -4269,6 +4269,7 @@ html.pbp-dark #tweet_searchbox input[type="submit"]:hover { background: #A8E4D5 
   --pinboard-row-hover: #eee8d5;
   --pinboard-destroy: #dc322f;
   --pinboard-btn-bg: #268bd2;
+  --pinboard-btn-bg-hover: #1075bc;
   --pinboard-btn-fg: #fdf6e3;
   --pinboard-success: #2aa198;
   --pinboard-success-hover: #268bd2;
@@ -4278,7 +4279,6 @@ html.pbp-dark #tweet_searchbox input[type="submit"]:hover { background: #A8E4D5 
   --pinboard-link-visited: #268bd2;
   --pinboard-focus-ring: #268bd2;
   --pinboard-unread: #dc322f;
-  --pinboard-btn-bg-hover: #2aa198;
   --pinboard-font-family: "Inter", -apple-system, sans-serif;
   --pinboard-font-size-base: 13px;
   --pinboard-font-size-sm: 12px;
@@ -4832,6 +4832,7 @@ a.sort_order_selected { background: #eee8d5 !important; }
   --pinboard-row-hover: #073642;
   --pinboard-destroy: #dc322f;
   --pinboard-btn-bg: #268bd2;
+  --pinboard-btn-bg-hover: #1075bc;
   --pinboard-btn-fg: #fdf6e3;
   --pinboard-success: #859900;
   --pinboard-success-hover: #2aa198;
@@ -4841,7 +4842,6 @@ a.sort_order_selected { background: #eee8d5 !important; }
   --pinboard-link-visited: #268bd2;
   --pinboard-focus-ring: #268bd2;
   --pinboard-unread: #dc322f;
-  --pinboard-btn-bg-hover: #2aa198;
   --pinboard-font-family: "Inter", -apple-system, sans-serif;
   --pinboard-font-size-base: 13px;
   --pinboard-font-size-sm: 12px;
@@ -5407,6 +5407,7 @@ h2 { color: #93a1a1 !important; }
   --pinboard-row-hover: #ccd0da;
   --pinboard-destroy: #d20f39;
   --pinboard-btn-bg: #1e66f5;
+  --pinboard-btn-bg-hover: #1b63f2;
   --pinboard-btn-fg: #eff1f5;
   --pinboard-success: #40a02b;
   --pinboard-success-hover: #179299;
@@ -5416,7 +5417,6 @@ h2 { color: #93a1a1 !important; }
   --pinboard-link-visited: #8839ef;
   --pinboard-focus-ring: #1e66f5;
   --pinboard-unread: #d20f39;
-  --pinboard-btn-bg-hover: #179299;
   --pinboard-font-family: "Nunito", "Inter", -apple-system, sans-serif;
   --pinboard-font-size-base: 13px;
   --pinboard-font-size-sm: 12px;

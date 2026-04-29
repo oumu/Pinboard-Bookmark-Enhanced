@@ -35,6 +35,7 @@
     "row-hover": "#ccd0da",
     "destroy": "#d20f39",
     "btn-bg": "#1e66f5",
+    "btn-bg-hover": "#1b63f2",
     "btn-fg": "#eff1f5",
     "success": "#40a02b",
     "success-hover": "#179299",
