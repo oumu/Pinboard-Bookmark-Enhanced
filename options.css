@@ -317,6 +317,20 @@ html[data-theme] .fg input[type="checkbox"]:focus-visible { outline-color: var(-
 html[data-theme] .btn:focus-visible { outline-color: var(--opt-accent); }
 html[data-theme] .confirm-popover button:focus-visible { outline-color: var(--opt-accent); }
 
+/* ---- Themed scrollbars (light + dark themes share the same token contract,
+ * mirroring the popup + pinboard.in content-script approach). track=panel,
+ * thumb=fg-muted, hover=accent. Webkit covers Chrome/Edge; scrollbar-color/
+ * -width covers Firefox. ---- */
+html[data-theme] {
+  scrollbar-width: thin;
+  scrollbar-color: var(--opt-fg-muted) var(--opt-panel);
+}
+html[data-theme] ::-webkit-scrollbar { width: 10px; height: 10px; }
+html[data-theme] ::-webkit-scrollbar-track { background: var(--opt-panel); border-left: 1px solid var(--opt-border); }
+html[data-theme] ::-webkit-scrollbar-thumb { background: var(--opt-fg-muted); border: 2px solid var(--opt-panel); border-radius: 6px; }
+html[data-theme] ::-webkit-scrollbar-thumb:hover { background: var(--opt-accent); }
+html[data-theme] ::-webkit-scrollbar-corner { background: var(--opt-panel); }
+
 /* ---- Confirm popover (replaces native confirm()) ---- */
 .reset-tab-btn { position: relative; }
 .confirm-popover {

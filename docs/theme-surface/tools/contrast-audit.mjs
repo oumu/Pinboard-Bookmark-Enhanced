@@ -125,6 +125,18 @@ function auditCssThemes(label, varPrefix, cssPath) {
       const c = resolveColor(mutedS, bg);
       if (c) console.log(check(label, theme, "fg-muted vs bg", cr(c, bg), 4.5));
     }
+    // Scrollbar thumb (uses fg-muted) against scrollbar track (uses panel for options, bg2 for popup).
+    // Threshold 3:1 — UI components, not text.
+    const trackKey = label === "options" ? "panel" : "bg2";
+    const trackS = (() => {
+      const mm = body.match(new RegExp(varPrefix + "-" + trackKey + ":\\s*([^;]+)"));
+      return mm ? mm[1].trim() : null;
+    })();
+    if (mutedS && trackS) {
+      const trackBg = trackS.startsWith("#") ? hexRgb(trackS) : null;
+      const thumb = resolveColor(mutedS, bg);
+      if (trackBg && thumb) console.log(check(label, theme, "scrollbar thumb vs track", cr(thumb, trackBg), 3));
+    }
   }
 }
 auditCssThemes("popup", "--pp", resolve(ROOT, "popup.css"));
