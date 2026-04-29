@@ -891,7 +891,7 @@
     "message": "自動（與內容語言一致）"
   },
   "langZh": {
-    "message": "中文"
+    "message": "中文（簡體）"
   },
   "langZhTW": {
     "message": "中文（台灣）"
@@ -900,25 +900,25 @@
     "message": "中文（香港）"
   },
   "langEn": {
-    "message": "English（英語）"
+    "message": "English"
   },
   "langJa": {
-    "message": "日本語（日語）"
+    "message": "日本語"
   },
   "langKo": {
-    "message": "한국어（韓語）"
+    "message": "한국어"
   },
   "langFr": {
-    "message": "Français（法語）"
+    "message": "Français"
   },
   "langDe": {
-    "message": "Deutsch（德語）"
+    "message": "Deutsch"
   },
   "langEs": {
-    "message": "Español（西班牙語）"
+    "message": "Español"
   },
   "langRu": {
-    "message": "Русский（俄語）"
+    "message": "Русский"
   },
   "labelAiCache": {
     "message": "AI 快取時長（分鐘）"

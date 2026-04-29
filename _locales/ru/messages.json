@@ -891,31 +891,31 @@
     "message": "Авто (как у содержимого)"
   },
   "langZh": {
-    "message": "中文 (Китайский)"
+    "message": "中文（简体）"
   },
   "langZhTW": {
-    "message": "中文（台灣）(Традиционный, Тайвань)"
+    "message": "中文（台灣）"
   },
   "langZhHK": {
-    "message": "中文（香港）(Традиционный, Гонконг)"
+    "message": "中文（香港）"
   },
   "langEn": {
-    "message": "English (Английский)"
+    "message": "English"
   },
   "langJa": {
-    "message": "日本語 (Японский)"
+    "message": "日本語"
   },
   "langKo": {
-    "message": "한국어 (Корейский)"
+    "message": "한국어"
   },
   "langFr": {
-    "message": "Français (Французский)"
+    "message": "Français"
   },
   "langDe": {
-    "message": "Deutsch (Немецкий)"
+    "message": "Deutsch"
   },
   "langEs": {
-    "message": "Español (Испанский)"
+    "message": "Español"
   },
   "langRu": {
     "message": "Русский"

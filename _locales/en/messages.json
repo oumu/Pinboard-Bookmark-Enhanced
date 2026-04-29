@@ -891,22 +891,22 @@
     "message": "Auto (same as content)"
   },
   "langZh": {
-    "message": "中文 (Chinese)"
+    "message": "中文（简体）"
   },
   "langZhTW": {
-    "message": "中文（台灣）(Traditional Chinese, Taiwan)"
+    "message": "中文（台灣）"
   },
   "langZhHK": {
-    "message": "中文（香港）(Traditional Chinese, Hong Kong)"
+    "message": "中文（香港）"
   },
   "langEn": {
     "message": "English"
   },
   "langJa": {
-    "message": "日本語 (Japanese)"
+    "message": "日本語"
   },
   "langKo": {
-    "message": "한국어 (Korean)"
+    "message": "한국어"
   },
   "langFr": {
     "message": "Français"

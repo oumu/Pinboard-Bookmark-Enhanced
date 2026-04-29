@@ -891,34 +891,34 @@
     "message": "Auto (zgodnie z treścią)"
   },
   "langZh": {
-    "message": "中文 (chiński)"
+    "message": "中文（简体）"
   },
   "langZhTW": {
-    "message": "中文（台灣）(tradycyjny, Tajwan)"
+    "message": "中文（台灣）"
   },
   "langZhHK": {
-    "message": "中文（香港）(tradycyjny, Hongkong)"
+    "message": "中文（香港）"
   },
   "langEn": {
-    "message": "English (angielski)"
+    "message": "English"
   },
   "langJa": {
-    "message": "日本語 (japoński)"
+    "message": "日本語"
   },
   "langKo": {
-    "message": "한국어 (koreański)"
+    "message": "한국어"
   },
   "langFr": {
-    "message": "Français (francuski)"
+    "message": "Français"
   },
   "langDe": {
-    "message": "Deutsch (niemiecki)"
+    "message": "Deutsch"
   },
   "langEs": {
-    "message": "Español (hiszpański)"
+    "message": "Español"
   },
   "langRu": {
-    "message": "Русский (rosyjski)"
+    "message": "Русский"
   },
   "labelAiCache": {
     "message": "Czas pamięci podręcznej AI (minuty)"

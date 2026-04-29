@@ -891,34 +891,34 @@
     "message": "Auto (même langue que le contenu)"
   },
   "langZh": {
-    "message": "中文 (Chinois)"
+    "message": "中文（简体）"
   },
   "langZhTW": {
-    "message": "中文（台灣）(Traditionnel, Taïwan)"
+    "message": "中文（台灣）"
   },
   "langZhHK": {
-    "message": "中文（香港）(Traditionnel, Hong Kong)"
+    "message": "中文（香港）"
   },
   "langEn": {
-    "message": "English (Anglais)"
+    "message": "English"
   },
   "langJa": {
-    "message": "日本語 (Japonais)"
+    "message": "日本語"
   },
   "langKo": {
-    "message": "한국어 (Coréen)"
+    "message": "한국어"
   },
   "langFr": {
     "message": "Français"
   },
   "langDe": {
-    "message": "Deutsch (Allemand)"
+    "message": "Deutsch"
   },
   "langEs": {
-    "message": "Español (Espagnol)"
+    "message": "Español"
   },
   "langRu": {
-    "message": "Русский (Russe)"
+    "message": "Русский"
   },
   "labelAiCache": {
     "message": "Durée du cache IA (minutes)"
