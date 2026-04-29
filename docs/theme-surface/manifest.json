@@ -330,9 +330,9 @@
 
     "form.input": {
       "sel": "input[type=\"text\"], input:not([type]), input[type=\"password\"], textarea, select",
-      "role": "form text inputs — bare selectors cover both body#pinboard and body:not(#pinboard); composer enforces box-sizing:border-box + max-width:100% so inline width attributes (Pinboard sets width:490px on edit-form inputs) cannot overflow #edit_bookmark_form",
+      "role": "form text inputs — bare selectors cover both body#pinboard and body:not(#pinboard). Composer enforces box-sizing:border-box + max-width:100% so Pinboard inline widths cannot overflow. CONTRACT: padding (5px 10px) + border-radius (radius.sm) MUST match form.submit/form.cancel so input/button heights align and rounded corners do not crowd the text. line-height:1.4 keeps multi-line textareas readable.",
       "states": ["default", "hover", "focus-visible", "disabled", "placeholder"],
-      "tokens": ["palette.input-bg", "palette.fg", "palette.border", "palette.accent"],
+      "tokens": ["palette.input-bg", "palette.fg", "palette.border", "palette.accent", "radius.sm"],
       "scope": "bare"
     },
     "form.submit": {

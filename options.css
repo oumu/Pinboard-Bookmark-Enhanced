@@ -325,11 +325,20 @@ html[data-theme] {
   scrollbar-width: thin;
   scrollbar-color: var(--opt-fg-muted) var(--opt-panel);
 }
-html[data-theme] ::-webkit-scrollbar { width: 10px; height: 10px; }
-html[data-theme] ::-webkit-scrollbar-track { background: var(--opt-panel); border-left: 1px solid var(--opt-border); }
-html[data-theme] ::-webkit-scrollbar-thumb { background: var(--opt-fg-muted); border: 2px solid var(--opt-panel); border-radius: 6px; }
-html[data-theme] ::-webkit-scrollbar-thumb:hover { background: var(--opt-accent); }
-html[data-theme] ::-webkit-scrollbar-corner { background: var(--opt-panel); }
+html[data-theme] ::-webkit-scrollbar,
+html[data-theme] textarea::-webkit-scrollbar { width: 10px; height: 10px; }
+html[data-theme] ::-webkit-scrollbar-track,
+html[data-theme] textarea::-webkit-scrollbar-track { background: var(--opt-panel); border-left: 1px solid var(--opt-border); }
+html[data-theme] ::-webkit-scrollbar-thumb,
+html[data-theme] textarea::-webkit-scrollbar-thumb { background: var(--opt-fg-muted); border: 2px solid var(--opt-panel); border-radius: 6px; }
+html[data-theme] ::-webkit-scrollbar-thumb:hover,
+html[data-theme] textarea::-webkit-scrollbar-thumb:hover { background: var(--opt-accent); }
+html[data-theme] ::-webkit-scrollbar-corner,
+html[data-theme] textarea::-webkit-scrollbar-corner { background: var(--opt-panel); }
+html[data-theme] textarea {
+  scrollbar-width: thin;
+  scrollbar-color: var(--opt-fg-muted) var(--opt-panel);
+}
 
 /* ---- Confirm popover (replaces native confirm()) ---- */
 .reset-tab-btn { position: relative; }

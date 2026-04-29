@@ -305,11 +305,16 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 }
 #tweet_searchbox input[type="submit"]:hover { background: var(--pinboard-success-hover) !important; }
 
-/* ---- Forms (global) ---- */
+/* ---- Forms (global) ----
+ * input/textarea/select pair the same paddings + radius as form.submit/cancel
+ * so their box heights align and rounded corners do not crowd the text. */
 input[type="text"], input:not([type]), input[type="password"], textarea, select {
   background: var(--pinboard-input-bg) !important; color: var(--pinboard-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
   box-sizing: border-box !important; max-width: 100% !important;
+  padding: 5px 10px !important;
+  border-radius: var(--pinboard-radius-sm) !important;
+  line-height: 1.4 !important;
 }
 input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
@@ -976,11 +981,16 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 }
 #tweet_searchbox input[type="submit"]:hover { background: var(--pinboard-success-hover) !important; }
 
-/* ---- Forms (global) ---- */
+/* ---- Forms (global) ----
+ * input/textarea/select pair the same paddings + radius as form.submit/cancel
+ * so their box heights align and rounded corners do not crowd the text. */
 input[type="text"], input:not([type]), input[type="password"], textarea, select {
   background: var(--pinboard-input-bg) !important; color: var(--pinboard-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
   box-sizing: border-box !important; max-width: 100% !important;
+  padding: 5px 10px !important;
+  border-radius: var(--pinboard-radius-sm) !important;
+  line-height: 1.4 !important;
 }
 input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
@@ -1603,11 +1613,16 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 }
 #tweet_searchbox input[type="submit"]:hover { background: var(--pinboard-success-hover) !important; }
 
-/* ---- Forms (global) ---- */
+/* ---- Forms (global) ----
+ * input/textarea/select pair the same paddings + radius as form.submit/cancel
+ * so their box heights align and rounded corners do not crowd the text. */
 input[type="text"], input:not([type]), input[type="password"], textarea, select {
   background: var(--pinboard-input-bg) !important; color: var(--pinboard-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
   box-sizing: border-box !important; max-width: 100% !important;
+  padding: 5px 10px !important;
+  border-radius: var(--pinboard-radius-sm) !important;
+  line-height: 1.4 !important;
 }
 input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
@@ -2267,11 +2282,16 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 }
 #tweet_searchbox input[type="submit"]:hover { background: var(--pinboard-success-hover) !important; }
 
-/* ---- Forms (global) ---- */
+/* ---- Forms (global) ----
+ * input/textarea/select pair the same paddings + radius as form.submit/cancel
+ * so their box heights align and rounded corners do not crowd the text. */
 input[type="text"], input:not([type]), input[type="password"], textarea, select {
   background: var(--pinboard-input-bg) !important; color: var(--pinboard-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
   box-sizing: border-box !important; max-width: 100% !important;
+  padding: 5px 10px !important;
+  border-radius: var(--pinboard-radius-sm) !important;
+  line-height: 1.4 !important;
 }
 input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
@@ -2948,11 +2968,16 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 }
 #tweet_searchbox input[type="submit"]:hover { background: var(--pinboard-success-hover) !important; }
 
-/* ---- Forms (global) ---- */
+/* ---- Forms (global) ----
+ * input/textarea/select pair the same paddings + radius as form.submit/cancel
+ * so their box heights align and rounded corners do not crowd the text. */
 input[type="text"], input:not([type]), input[type="password"], textarea, select {
   background: var(--pinboard-input-bg) !important; color: var(--pinboard-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
   box-sizing: border-box !important; max-width: 100% !important;
+  padding: 5px 10px !important;
+  border-radius: var(--pinboard-radius-sm) !important;
+  line-height: 1.4 !important;
 }
 input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
@@ -3601,11 +3626,16 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 }
 #tweet_searchbox input[type="submit"]:hover { background: var(--pinboard-success-hover) !important; }
 
-/* ---- Forms (global) ---- */
+/* ---- Forms (global) ----
+ * input/textarea/select pair the same paddings + radius as form.submit/cancel
+ * so their box heights align and rounded corners do not crowd the text. */
 input[type="text"], input:not([type]), input[type="password"], textarea, select {
   background: var(--pinboard-input-bg) !important; color: var(--pinboard-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
   box-sizing: border-box !important; max-width: 100% !important;
+  padding: 5px 10px !important;
+  border-radius: var(--pinboard-radius-sm) !important;
+  line-height: 1.4 !important;
 }
 input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
@@ -4153,11 +4183,16 @@ html.pbp-dark #tweet_searchbox input[type="submit"] {
 }
 html.pbp-dark #tweet_searchbox input[type="submit"]:hover { background: var(--pinboard-success-hover) !important; }
 
-/* ---- Forms (global) ---- */
+/* ---- Forms (global) ----
+ * input/textarea/select pair the same paddings + radius as form.submit/cancel
+ * so their box heights align and rounded corners do not crowd the text. */
 html.pbp-dark input[type="text"], html.pbp-dark input:not([type]), html.pbp-dark input[type="password"], html.pbp-dark textarea, html.pbp-dark select {
   background: var(--pinboard-input-bg) !important; color: var(--pinboard-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
   box-sizing: border-box !important; max-width: 100% !important;
+  padding: 5px 10px !important;
+  border-radius: var(--pinboard-radius-sm) !important;
+  line-height: 1.4 !important;
 }
 html.pbp-dark input[type="text"]:focus, html.pbp-dark input:not([type]):focus, html.pbp-dark textarea:focus, html.pbp-dark select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 html.pbp-dark input[type="submit"], html.pbp-dark input[type="button"] {
@@ -4850,11 +4885,16 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 }
 #tweet_searchbox input[type="submit"]:hover { background: var(--pinboard-success-hover) !important; }
 
-/* ---- Forms (global) ---- */
+/* ---- Forms (global) ----
+ * input/textarea/select pair the same paddings + radius as form.submit/cancel
+ * so their box heights align and rounded corners do not crowd the text. */
 input[type="text"], input:not([type]), input[type="password"], textarea, select {
   background: var(--pinboard-input-bg) !important; color: var(--pinboard-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
   box-sizing: border-box !important; max-width: 100% !important;
+  padding: 5px 10px !important;
+  border-radius: var(--pinboard-radius-sm) !important;
+  line-height: 1.4 !important;
 }
 input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
@@ -5457,11 +5497,16 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 }
 #tweet_searchbox input[type="submit"]:hover { background: var(--pinboard-success-hover) !important; }
 
-/* ---- Forms (global) ---- */
+/* ---- Forms (global) ----
+ * input/textarea/select pair the same paddings + radius as form.submit/cancel
+ * so their box heights align and rounded corners do not crowd the text. */
 input[type="text"], input:not([type]), input[type="password"], textarea, select {
   background: var(--pinboard-input-bg) !important; color: var(--pinboard-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
   box-sizing: border-box !important; max-width: 100% !important;
+  padding: 5px 10px !important;
+  border-radius: var(--pinboard-radius-sm) !important;
+  line-height: 1.4 !important;
 }
 input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
@@ -6076,11 +6121,16 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 }
 #tweet_searchbox input[type="submit"]:hover { background: var(--pinboard-success-hover) !important; }
 
-/* ---- Forms (global) ---- */
+/* ---- Forms (global) ----
+ * input/textarea/select pair the same paddings + radius as form.submit/cancel
+ * so their box heights align and rounded corners do not crowd the text. */
 input[type="text"], input:not([type]), input[type="password"], textarea, select {
   background: var(--pinboard-input-bg) !important; color: var(--pinboard-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
   box-sizing: border-box !important; max-width: 100% !important;
+  padding: 5px 10px !important;
+  border-radius: var(--pinboard-radius-sm) !important;
+  line-height: 1.4 !important;
 }
 input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
@@ -6695,11 +6745,16 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 }
 #tweet_searchbox input[type="submit"]:hover { background: var(--pinboard-success-hover) !important; }
 
-/* ---- Forms (global) ---- */
+/* ---- Forms (global) ----
+ * input/textarea/select pair the same paddings + radius as form.submit/cancel
+ * so their box heights align and rounded corners do not crowd the text. */
 input[type="text"], input:not([type]), input[type="password"], textarea, select {
   background: var(--pinboard-input-bg) !important; color: var(--pinboard-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
   box-sizing: border-box !important; max-width: 100% !important;
+  padding: 5px 10px !important;
+  border-radius: var(--pinboard-radius-sm) !important;
+  line-height: 1.4 !important;
 }
 input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
@@ -7326,11 +7381,16 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 }
 #tweet_searchbox input[type="submit"]:hover { background: var(--pinboard-success-hover) !important; }
 
-/* ---- Forms (global) ---- */
+/* ---- Forms (global) ----
+ * input/textarea/select pair the same paddings + radius as form.submit/cancel
+ * so their box heights align and rounded corners do not crowd the text. */
 input[type="text"], input:not([type]), input[type="password"], textarea, select {
   background: var(--pinboard-input-bg) !important; color: var(--pinboard-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
   box-sizing: border-box !important; max-width: 100% !important;
+  padding: 5px 10px !important;
+  border-radius: var(--pinboard-radius-sm) !important;
+  line-height: 1.4 !important;
 }
 input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
@@ -7950,11 +8010,16 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 }
 #tweet_searchbox input[type="submit"]:hover { background: var(--pinboard-success-hover) !important; }
 
-/* ---- Forms (global) ---- */
+/* ---- Forms (global) ----
+ * input/textarea/select pair the same paddings + radius as form.submit/cancel
+ * so their box heights align and rounded corners do not crowd the text. */
 input[type="text"], input:not([type]), input[type="password"], textarea, select {
   background: var(--pinboard-input-bg) !important; color: var(--pinboard-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
   box-sizing: border-box !important; max-width: 100% !important;
+  padding: 5px 10px !important;
+  border-radius: var(--pinboard-radius-sm) !important;
+  line-height: 1.4 !important;
 }
 input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
@@ -8580,11 +8645,16 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 }
 #tweet_searchbox input[type="submit"]:hover { background: var(--pinboard-success-hover) !important; }
 
-/* ---- Forms (global) ---- */
+/* ---- Forms (global) ----
+ * input/textarea/select pair the same paddings + radius as form.submit/cancel
+ * so their box heights align and rounded corners do not crowd the text. */
 input[type="text"], input:not([type]), input[type="password"], textarea, select {
   background: var(--pinboard-input-bg) !important; color: var(--pinboard-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
   box-sizing: border-box !important; max-width: 100% !important;
+  padding: 5px 10px !important;
+  border-radius: var(--pinboard-radius-sm) !important;
+  line-height: 1.4 !important;
 }
 input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 input[type="submit"], input[type="button"] {

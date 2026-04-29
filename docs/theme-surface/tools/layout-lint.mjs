@@ -42,6 +42,32 @@ for (const path of TARGETS) {
   // Skip — too many legit uses; rule 1 covers the high-risk case.
 }
 
+// RULE 3: composer (classic-list-v2.mjs) form.input rule must declare padding + border-radius
+// so input/textarea/select align with form.submit/form.cancel heights and rounded corners.
+// Detection note: composer is a JS template literal so ${v(...)} interpolations contain
+// real `{`/`}` chars — naive [^{]/[^}] regexes break. Slice a window after the selector
+// header and scan within that window instead.
+const composerPath = resolve(__dirname, "..", "composers", "classic-list-v2.mjs");
+const composerSrc = readFileSync(composerPath, "utf8");
+const headerIdx = composerSrc.indexOf('input[type="text"], input:not([type])');
+if (headerIdx >= 0) {
+  // Take everything up to the next blank line + selector at column 0 (next CSS rule).
+  const after = composerSrc.slice(headerIdx);
+  const blockEnd = after.search(/\n\}\s*\n/);
+  const body = blockEnd > 0 ? after.slice(0, blockEnd) : after.slice(0, 600);
+  if (!/\bpadding\s*:/.test(body)) {
+    console.log("  composer  form.input rule missing `padding:` — input/button heights will not align");
+    blockers++;
+  }
+  if (!/\bborder-radius\s*:/.test(body)) {
+    console.log("  composer  form.input rule missing `border-radius:` — rounded corners will crowd the text");
+    blockers++;
+  }
+} else {
+  console.log("  composer  form.input rule could not be located — skipped padding/radius lint");
+  warnings++;
+}
+
 console.log("");
 if (blockers > 0) {
   console.log(`=== layout-lint: FAIL — ${blockers} blocker(s), ${warnings} warning(s) ===`);

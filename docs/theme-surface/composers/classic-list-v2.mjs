@@ -202,11 +202,16 @@ a.delete, a.destroy { color: ${v("destroy")} !important; }
 }
 #tweet_searchbox input[type="submit"]:hover { background: ${v("success-hover")} !important; }
 
-/* ---- Forms (global) ---- */
+/* ---- Forms (global) ----
+ * input/textarea/select pair the same paddings + radius as form.submit/cancel
+ * so their box heights align and rounded corners do not crowd the text. */
 input[type="text"], input:not([type]), input[type="password"], textarea, select {
   background: ${v("input-bg")} !important; color: ${v("fg")} !important;
   border: ${v("border-width")} ${v("border-style")} ${v("border")} !important;
   box-sizing: border-box !important; max-width: 100% !important;
+  padding: 5px 10px !important;
+  border-radius: ${v("radius-sm")} !important;
+  line-height: 1.4 !important;
 }
 input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: ${v("accent")} !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
