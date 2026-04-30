@@ -191,7 +191,9 @@ body:not(#pinboard) #popup_header { background: transparent !important; color: v
 #bmarks_page_nav .rss_linkbox { margin: 0 0 0 auto !important; padding-left: 12px !important; float: none !important; position: static !important; }
 #bmarks_page_nav a.filter { color: var(--pinboard-muted) !important; transition: color 0.15s ease !important; }
 #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
-#bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; margin: 0 -5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
+/* In flex layout, no need for negative margin compensation — pills lay out as discrete flex items
+   without affecting siblings. Negative margin would pull the adjacent " ‧ " text node under the pill bg. */
+#bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
 #bmarks_page_nav a.filter.selected:hover { background: var(--pinboard-link-hover) !important; color: var(--pinboard-btn-fg) !important; }
 /* RSS = feed export (semantically distinct from view-switch filters above): outlined chip in accent color. */
 #bmarks_page_nav a.rss_link { color: var(--pinboard-accent) !important; background: transparent !important; border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important; padding: 0 6px !important; border-radius: var(--pinboard-radius-sm) !important; font-size: 11px !important; font-weight: var(--pinboard-weight-heading) !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; transition: background 0.15s ease, color 0.15s ease !important; }
@@ -897,7 +899,9 @@ body:not(#pinboard) #popup_header { background: transparent !important; color: v
 #bmarks_page_nav .rss_linkbox { margin: 0 0 0 auto !important; padding-left: 12px !important; float: none !important; position: static !important; }
 #bmarks_page_nav a.filter { color: var(--pinboard-muted) !important; transition: color 0.15s ease !important; }
 #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
-#bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; margin: 0 -5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
+/* In flex layout, no need for negative margin compensation — pills lay out as discrete flex items
+   without affecting siblings. Negative margin would pull the adjacent " ‧ " text node under the pill bg. */
+#bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
 #bmarks_page_nav a.filter.selected:hover { background: var(--pinboard-link-hover) !important; color: var(--pinboard-btn-fg) !important; }
 /* RSS = feed export (semantically distinct from view-switch filters above): outlined chip in accent color. */
 #bmarks_page_nav a.rss_link { color: var(--pinboard-accent) !important; background: transparent !important; border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important; padding: 0 6px !important; border-radius: var(--pinboard-radius-sm) !important; font-size: 11px !important; font-weight: var(--pinboard-weight-heading) !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; transition: background 0.15s ease, color 0.15s ease !important; }
@@ -1559,7 +1563,9 @@ body:not(#pinboard) #popup_header { background: transparent !important; color: v
 #bmarks_page_nav .rss_linkbox { margin: 0 0 0 auto !important; padding-left: 12px !important; float: none !important; position: static !important; }
 #bmarks_page_nav a.filter { color: var(--pinboard-muted) !important; transition: color 0.15s ease !important; }
 #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
-#bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; margin: 0 -5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
+/* In flex layout, no need for negative margin compensation — pills lay out as discrete flex items
+   without affecting siblings. Negative margin would pull the adjacent " ‧ " text node under the pill bg. */
+#bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
 #bmarks_page_nav a.filter.selected:hover { background: var(--pinboard-link-hover) !important; color: var(--pinboard-btn-fg) !important; }
 /* RSS = feed export (semantically distinct from view-switch filters above): outlined chip in accent color. */
 #bmarks_page_nav a.rss_link { color: var(--pinboard-accent) !important; background: transparent !important; border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important; padding: 0 6px !important; border-radius: var(--pinboard-radius-sm) !important; font-size: 11px !important; font-weight: var(--pinboard-weight-heading) !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; transition: background 0.15s ease, color 0.15s ease !important; }
@@ -2258,7 +2264,9 @@ body:not(#pinboard) #popup_header { background: transparent !important; color: v
 #bmarks_page_nav .rss_linkbox { margin: 0 0 0 auto !important; padding-left: 12px !important; float: none !important; position: static !important; }
 #bmarks_page_nav a.filter { color: var(--pinboard-muted) !important; transition: color 0.15s ease !important; }
 #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
-#bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; margin: 0 -5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
+/* In flex layout, no need for negative margin compensation — pills lay out as discrete flex items
+   without affecting siblings. Negative margin would pull the adjacent " ‧ " text node under the pill bg. */
+#bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
 #bmarks_page_nav a.filter.selected:hover { background: var(--pinboard-link-hover) !important; color: var(--pinboard-btn-fg) !important; }
 /* RSS = feed export (semantically distinct from view-switch filters above): outlined chip in accent color. */
 #bmarks_page_nav a.rss_link { color: var(--pinboard-accent) !important; background: transparent !important; border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important; padding: 0 6px !important; border-radius: var(--pinboard-radius-sm) !important; font-size: 11px !important; font-weight: var(--pinboard-weight-heading) !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; transition: background 0.15s ease, color 0.15s ease !important; }
@@ -2974,7 +2982,9 @@ body:not(#pinboard) #popup_header { background: transparent !important; color: v
 #bmarks_page_nav .rss_linkbox { margin: 0 0 0 auto !important; padding-left: 12px !important; float: none !important; position: static !important; }
 #bmarks_page_nav a.filter { color: var(--pinboard-muted) !important; transition: color 0.15s ease !important; }
 #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
-#bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; margin: 0 -5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
+/* In flex layout, no need for negative margin compensation — pills lay out as discrete flex items
+   without affecting siblings. Negative margin would pull the adjacent " ‧ " text node under the pill bg. */
+#bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
 #bmarks_page_nav a.filter.selected:hover { background: var(--pinboard-link-hover) !important; color: var(--pinboard-btn-fg) !important; }
 /* RSS = feed export (semantically distinct from view-switch filters above): outlined chip in accent color. */
 #bmarks_page_nav a.rss_link { color: var(--pinboard-accent) !important; background: transparent !important; border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important; padding: 0 6px !important; border-radius: var(--pinboard-radius-sm) !important; font-size: 11px !important; font-weight: var(--pinboard-weight-heading) !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; transition: background 0.15s ease, color 0.15s ease !important; }
@@ -3662,7 +3672,9 @@ body:not(#pinboard) #popup_header { background: transparent !important; color: v
 #bmarks_page_nav .rss_linkbox { margin: 0 0 0 auto !important; padding-left: 12px !important; float: none !important; position: static !important; }
 #bmarks_page_nav a.filter { color: var(--pinboard-muted) !important; transition: color 0.15s ease !important; }
 #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
-#bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; margin: 0 -5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
+/* In flex layout, no need for negative margin compensation — pills lay out as discrete flex items
+   without affecting siblings. Negative margin would pull the adjacent " ‧ " text node under the pill bg. */
+#bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
 #bmarks_page_nav a.filter.selected:hover { background: var(--pinboard-link-hover) !important; color: var(--pinboard-btn-fg) !important; }
 /* RSS = feed export (semantically distinct from view-switch filters above): outlined chip in accent color. */
 #bmarks_page_nav a.rss_link { color: var(--pinboard-accent) !important; background: transparent !important; border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important; padding: 0 6px !important; border-radius: var(--pinboard-radius-sm) !important; font-size: 11px !important; font-weight: var(--pinboard-weight-heading) !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; transition: background 0.15s ease, color 0.15s ease !important; }
@@ -4250,7 +4262,9 @@ html.pbp-dark #bmarks_page_nav { color: var(--pinboard-muted) !important; flex: 
 html.pbp-dark #bmarks_page_nav .rss_linkbox { margin: 0 0 0 auto !important; padding-left: 12px !important; float: none !important; position: static !important; }
 html.pbp-dark #bmarks_page_nav a.filter { color: var(--pinboard-muted) !important; transition: color 0.15s ease !important; }
 html.pbp-dark #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
-html.pbp-dark #bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; margin: 0 -5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
+/* In flex layout, no need for negative margin compensation — pills lay out as discrete flex items
+   without affecting siblings. Negative margin would pull the adjacent " ‧ " text node under the pill bg. */
+html.pbp-dark #bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
 html.pbp-dark #bmarks_page_nav a.filter.selected:hover { background: var(--pinboard-link-hover) !important; color: var(--pinboard-btn-fg) !important; }
 /* RSS = feed export (semantically distinct from view-switch filters above): outlined chip in accent color. */
 html.pbp-dark #bmarks_page_nav a.rss_link { color: var(--pinboard-accent) !important; background: transparent !important; border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important; padding: 0 6px !important; border-radius: var(--pinboard-radius-sm) !important; font-size: 11px !important; font-weight: var(--pinboard-weight-heading) !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; transition: background 0.15s ease, color 0.15s ease !important; }
@@ -4981,7 +4995,9 @@ body:not(#pinboard) #popup_header { background: transparent !important; color: v
 #bmarks_page_nav .rss_linkbox { margin: 0 0 0 auto !important; padding-left: 12px !important; float: none !important; position: static !important; }
 #bmarks_page_nav a.filter { color: var(--pinboard-muted) !important; transition: color 0.15s ease !important; }
 #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
-#bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; margin: 0 -5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
+/* In flex layout, no need for negative margin compensation — pills lay out as discrete flex items
+   without affecting siblings. Negative margin would pull the adjacent " ‧ " text node under the pill bg. */
+#bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
 #bmarks_page_nav a.filter.selected:hover { background: var(--pinboard-link-hover) !important; color: var(--pinboard-btn-fg) !important; }
 /* RSS = feed export (semantically distinct from view-switch filters above): outlined chip in accent color. */
 #bmarks_page_nav a.rss_link { color: var(--pinboard-accent) !important; background: transparent !important; border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important; padding: 0 6px !important; border-radius: var(--pinboard-radius-sm) !important; font-size: 11px !important; font-weight: var(--pinboard-weight-heading) !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; transition: background 0.15s ease, color 0.15s ease !important; }
@@ -5623,7 +5639,9 @@ body:not(#pinboard) #popup_header { background: transparent !important; color: v
 #bmarks_page_nav .rss_linkbox { margin: 0 0 0 auto !important; padding-left: 12px !important; float: none !important; position: static !important; }
 #bmarks_page_nav a.filter { color: var(--pinboard-muted) !important; transition: color 0.15s ease !important; }
 #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
-#bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; margin: 0 -5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
+/* In flex layout, no need for negative margin compensation — pills lay out as discrete flex items
+   without affecting siblings. Negative margin would pull the adjacent " ‧ " text node under the pill bg. */
+#bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
 #bmarks_page_nav a.filter.selected:hover { background: var(--pinboard-link-hover) !important; color: var(--pinboard-btn-fg) !important; }
 /* RSS = feed export (semantically distinct from view-switch filters above): outlined chip in accent color. */
 #bmarks_page_nav a.rss_link { color: var(--pinboard-accent) !important; background: transparent !important; border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important; padding: 0 6px !important; border-radius: var(--pinboard-radius-sm) !important; font-size: 11px !important; font-weight: var(--pinboard-weight-heading) !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; transition: background 0.15s ease, color 0.15s ease !important; }
@@ -6277,7 +6295,9 @@ body:not(#pinboard) #popup_header { background: transparent !important; color: v
 #bmarks_page_nav .rss_linkbox { margin: 0 0 0 auto !important; padding-left: 12px !important; float: none !important; position: static !important; }
 #bmarks_page_nav a.filter { color: var(--pinboard-muted) !important; transition: color 0.15s ease !important; }
 #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
-#bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; margin: 0 -5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
+/* In flex layout, no need for negative margin compensation — pills lay out as discrete flex items
+   without affecting siblings. Negative margin would pull the adjacent " ‧ " text node under the pill bg. */
+#bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
 #bmarks_page_nav a.filter.selected:hover { background: var(--pinboard-link-hover) !important; color: var(--pinboard-btn-fg) !important; }
 /* RSS = feed export (semantically distinct from view-switch filters above): outlined chip in accent color. */
 #bmarks_page_nav a.rss_link { color: var(--pinboard-accent) !important; background: transparent !important; border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important; padding: 0 6px !important; border-radius: var(--pinboard-radius-sm) !important; font-size: 11px !important; font-weight: var(--pinboard-weight-heading) !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; transition: background 0.15s ease, color 0.15s ease !important; }
@@ -6931,7 +6951,9 @@ body:not(#pinboard) #popup_header { background: transparent !important; color: v
 #bmarks_page_nav .rss_linkbox { margin: 0 0 0 auto !important; padding-left: 12px !important; float: none !important; position: static !important; }
 #bmarks_page_nav a.filter { color: var(--pinboard-muted) !important; transition: color 0.15s ease !important; }
 #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
-#bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; margin: 0 -5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
+/* In flex layout, no need for negative margin compensation — pills lay out as discrete flex items
+   without affecting siblings. Negative margin would pull the adjacent " ‧ " text node under the pill bg. */
+#bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
 #bmarks_page_nav a.filter.selected:hover { background: var(--pinboard-link-hover) !important; color: var(--pinboard-btn-fg) !important; }
 /* RSS = feed export (semantically distinct from view-switch filters above): outlined chip in accent color. */
 #bmarks_page_nav a.rss_link { color: var(--pinboard-accent) !important; background: transparent !important; border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important; padding: 0 6px !important; border-radius: var(--pinboard-radius-sm) !important; font-size: 11px !important; font-weight: var(--pinboard-weight-heading) !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; transition: background 0.15s ease, color 0.15s ease !important; }
@@ -7597,7 +7619,9 @@ body:not(#pinboard) #popup_header { background: transparent !important; color: v
 #bmarks_page_nav .rss_linkbox { margin: 0 0 0 auto !important; padding-left: 12px !important; float: none !important; position: static !important; }
 #bmarks_page_nav a.filter { color: var(--pinboard-muted) !important; transition: color 0.15s ease !important; }
 #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
-#bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; margin: 0 -5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
+/* In flex layout, no need for negative margin compensation — pills lay out as discrete flex items
+   without affecting siblings. Negative margin would pull the adjacent " ‧ " text node under the pill bg. */
+#bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
 #bmarks_page_nav a.filter.selected:hover { background: var(--pinboard-link-hover) !important; color: var(--pinboard-btn-fg) !important; }
 /* RSS = feed export (semantically distinct from view-switch filters above): outlined chip in accent color. */
 #bmarks_page_nav a.rss_link { color: var(--pinboard-accent) !important; background: transparent !important; border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important; padding: 0 6px !important; border-radius: var(--pinboard-radius-sm) !important; font-size: 11px !important; font-weight: var(--pinboard-weight-heading) !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; transition: background 0.15s ease, color 0.15s ease !important; }
@@ -8256,7 +8280,9 @@ body:not(#pinboard) #popup_header { background: transparent !important; color: v
 #bmarks_page_nav .rss_linkbox { margin: 0 0 0 auto !important; padding-left: 12px !important; float: none !important; position: static !important; }
 #bmarks_page_nav a.filter { color: var(--pinboard-muted) !important; transition: color 0.15s ease !important; }
 #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
-#bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; margin: 0 -5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
+/* In flex layout, no need for negative margin compensation — pills lay out as discrete flex items
+   without affecting siblings. Negative margin would pull the adjacent " ‧ " text node under the pill bg. */
+#bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
 #bmarks_page_nav a.filter.selected:hover { background: var(--pinboard-link-hover) !important; color: var(--pinboard-btn-fg) !important; }
 /* RSS = feed export (semantically distinct from view-switch filters above): outlined chip in accent color. */
 #bmarks_page_nav a.rss_link { color: var(--pinboard-accent) !important; background: transparent !important; border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important; padding: 0 6px !important; border-radius: var(--pinboard-radius-sm) !important; font-size: 11px !important; font-weight: var(--pinboard-weight-heading) !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; transition: background 0.15s ease, color 0.15s ease !important; }
@@ -8921,7 +8947,9 @@ body:not(#pinboard) #popup_header { background: transparent !important; color: v
 #bmarks_page_nav .rss_linkbox { margin: 0 0 0 auto !important; padding-left: 12px !important; float: none !important; position: static !important; }
 #bmarks_page_nav a.filter { color: var(--pinboard-muted) !important; transition: color 0.15s ease !important; }
 #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
-#bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; margin: 0 -5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
+/* In flex layout, no need for negative margin compensation — pills lay out as discrete flex items
+   without affecting siblings. Negative margin would pull the adjacent " ‧ " text node under the pill bg. */
+#bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
 #bmarks_page_nav a.filter.selected:hover { background: var(--pinboard-link-hover) !important; color: var(--pinboard-btn-fg) !important; }
 /* RSS = feed export (semantically distinct from view-switch filters above): outlined chip in accent color. */
 #bmarks_page_nav a.rss_link { color: var(--pinboard-accent) !important; background: transparent !important; border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important; padding: 0 6px !important; border-radius: var(--pinboard-radius-sm) !important; font-size: 11px !important; font-weight: var(--pinboard-weight-heading) !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; transition: background 0.15s ease, color 0.15s ease !important; }

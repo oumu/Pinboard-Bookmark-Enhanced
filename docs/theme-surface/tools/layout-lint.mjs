@@ -106,10 +106,11 @@ if (filterBaseBody && /\bpadding\s*:/.test(filterBaseBody)) {
   blockers++;
 }
 if (filterSelBody) {
-  const padX = (filterSelBody.match(/\bpadding\s*:\s*[\d.]+\w*\s+([\d.]+)(\w+)/) || [])[1];
-  const marX = (filterSelBody.match(/\bmargin\s*:\s*[\d.]+\w*\s+(-?[\d.]+)(\w+)/) || [])[1];
-  if (padX && (!marX || Number(marX) !== -Number(padX))) {
-    console.log(`  composer  #bmarks_page_nav a.filter.selected has padding-x=${padX} but margin-x=${marX || 'missing'} — must be exact negative to neutralize inline drift.`);
+  // In flex layout the pill is a discrete flex item — negative margin would pull the
+  // sibling " ‧ " text node under the pill bg. Forbid any negative horizontal margin.
+  const negMarginMatch = filterSelBody.match(/\bmargin\s*:\s*\S+\s+(-[\d.]+)(\w+)/);
+  if (negMarginMatch) {
+    console.log(`  composer  #bmarks_page_nav a.filter.selected uses negative horizontal margin (${negMarginMatch[1]}${negMarginMatch[2]}) — would pull adjacent " ‧ " separator under the pill background in flex layout. Use padding only.`);
     blockers++;
   }
 }
