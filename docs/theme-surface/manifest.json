@@ -128,9 +128,14 @@
 
     "bmarks_nav.root": {
       "sel": "#bmarks_page_nav",
-      "role": "secondary filter row on /u:* and /u:*/unread (all/private/public/unread/untagged/starred/...)",
+      "role": "secondary filter row on /u:* and /u:*/unread (all/private/public/unread/untagged/starred/...). Uses position:relative + padding-right to host the absolutely-positioned RSS chip without inline-flow contention (themes with size-base 14px would otherwise wrap the float-right RSS).",
       "states": ["default"],
       "tokens": ["palette.muted"]
+    },
+    "bmarks_nav.rss_box": {
+      "sel": "#bmarks_page_nav .rss_linkbox",
+      "role": "RSS chip wrapper — absolutely positioned right edge so it never wraps regardless of filter row width or theme font size",
+      "states": ["default"]
     },
     "bmarks_nav.filter": {
       "sel": "#bmarks_page_nav a.filter",

@@ -174,8 +174,11 @@ body:not(#pinboard) #popup_header { background: transparent !important; color: v
 /* ---- Bookmarks page nav (#bmarks_page_nav: all/private/public/unread/untagged/starred/...) ---- */
 /* Pinboard's filter row is a single inline text line with " ‧ " separators between links — extra padding
    on every link overflows and wraps the row. Only the selected link gets a pill, with negative inline
-   margin to neutralize its added padding so siblings don't shift. */
-#bmarks_page_nav { color: var(--pinboard-muted) !important; }
+   margin to neutralize its added padding so siblings don't shift.
+   .rss_linkbox is positioned absolutely so themes with larger size-base (14px) don't push it to a 2nd line
+   when float:right runs out of horizontal space on the current line. */
+#bmarks_page_nav { color: var(--pinboard-muted) !important; position: relative !important; padding-right: 56px !important; }
+#bmarks_page_nav .rss_linkbox { position: absolute !important; right: 0 !important; top: 0 !important; float: none !important; }
 #bmarks_page_nav a.filter { color: var(--pinboard-muted) !important; transition: color 0.15s ease !important; }
 #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
 #bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; margin: 0 -5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
@@ -867,8 +870,11 @@ body:not(#pinboard) #popup_header { background: transparent !important; color: v
 /* ---- Bookmarks page nav (#bmarks_page_nav: all/private/public/unread/untagged/starred/...) ---- */
 /* Pinboard's filter row is a single inline text line with " ‧ " separators between links — extra padding
    on every link overflows and wraps the row. Only the selected link gets a pill, with negative inline
-   margin to neutralize its added padding so siblings don't shift. */
-#bmarks_page_nav { color: var(--pinboard-muted) !important; }
+   margin to neutralize its added padding so siblings don't shift.
+   .rss_linkbox is positioned absolutely so themes with larger size-base (14px) don't push it to a 2nd line
+   when float:right runs out of horizontal space on the current line. */
+#bmarks_page_nav { color: var(--pinboard-muted) !important; position: relative !important; padding-right: 56px !important; }
+#bmarks_page_nav .rss_linkbox { position: absolute !important; right: 0 !important; top: 0 !important; float: none !important; }
 #bmarks_page_nav a.filter { color: var(--pinboard-muted) !important; transition: color 0.15s ease !important; }
 #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
 #bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; margin: 0 -5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
@@ -1516,8 +1522,11 @@ body:not(#pinboard) #popup_header { background: transparent !important; color: v
 /* ---- Bookmarks page nav (#bmarks_page_nav: all/private/public/unread/untagged/starred/...) ---- */
 /* Pinboard's filter row is a single inline text line with " ‧ " separators between links — extra padding
    on every link overflows and wraps the row. Only the selected link gets a pill, with negative inline
-   margin to neutralize its added padding so siblings don't shift. */
-#bmarks_page_nav { color: var(--pinboard-muted) !important; }
+   margin to neutralize its added padding so siblings don't shift.
+   .rss_linkbox is positioned absolutely so themes with larger size-base (14px) don't push it to a 2nd line
+   when float:right runs out of horizontal space on the current line. */
+#bmarks_page_nav { color: var(--pinboard-muted) !important; position: relative !important; padding-right: 56px !important; }
+#bmarks_page_nav .rss_linkbox { position: absolute !important; right: 0 !important; top: 0 !important; float: none !important; }
 #bmarks_page_nav a.filter { color: var(--pinboard-muted) !important; transition: color 0.15s ease !important; }
 #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
 #bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; margin: 0 -5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
@@ -2202,8 +2211,11 @@ body:not(#pinboard) #popup_header { background: transparent !important; color: v
 /* ---- Bookmarks page nav (#bmarks_page_nav: all/private/public/unread/untagged/starred/...) ---- */
 /* Pinboard's filter row is a single inline text line with " ‧ " separators between links — extra padding
    on every link overflows and wraps the row. Only the selected link gets a pill, with negative inline
-   margin to neutralize its added padding so siblings don't shift. */
-#bmarks_page_nav { color: var(--pinboard-muted) !important; }
+   margin to neutralize its added padding so siblings don't shift.
+   .rss_linkbox is positioned absolutely so themes with larger size-base (14px) don't push it to a 2nd line
+   when float:right runs out of horizontal space on the current line. */
+#bmarks_page_nav { color: var(--pinboard-muted) !important; position: relative !important; padding-right: 56px !important; }
+#bmarks_page_nav .rss_linkbox { position: absolute !important; right: 0 !important; top: 0 !important; float: none !important; }
 #bmarks_page_nav a.filter { color: var(--pinboard-muted) !important; transition: color 0.15s ease !important; }
 #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
 #bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; margin: 0 -5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
@@ -2905,8 +2917,11 @@ body:not(#pinboard) #popup_header { background: transparent !important; color: v
 /* ---- Bookmarks page nav (#bmarks_page_nav: all/private/public/unread/untagged/starred/...) ---- */
 /* Pinboard's filter row is a single inline text line with " ‧ " separators between links — extra padding
    on every link overflows and wraps the row. Only the selected link gets a pill, with negative inline
-   margin to neutralize its added padding so siblings don't shift. */
-#bmarks_page_nav { color: var(--pinboard-muted) !important; }
+   margin to neutralize its added padding so siblings don't shift.
+   .rss_linkbox is positioned absolutely so themes with larger size-base (14px) don't push it to a 2nd line
+   when float:right runs out of horizontal space on the current line. */
+#bmarks_page_nav { color: var(--pinboard-muted) !important; position: relative !important; padding-right: 56px !important; }
+#bmarks_page_nav .rss_linkbox { position: absolute !important; right: 0 !important; top: 0 !important; float: none !important; }
 #bmarks_page_nav a.filter { color: var(--pinboard-muted) !important; transition: color 0.15s ease !important; }
 #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
 #bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; margin: 0 -5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
@@ -3580,8 +3595,11 @@ body:not(#pinboard) #popup_header { background: transparent !important; color: v
 /* ---- Bookmarks page nav (#bmarks_page_nav: all/private/public/unread/untagged/starred/...) ---- */
 /* Pinboard's filter row is a single inline text line with " ‧ " separators between links — extra padding
    on every link overflows and wraps the row. Only the selected link gets a pill, with negative inline
-   margin to neutralize its added padding so siblings don't shift. */
-#bmarks_page_nav { color: var(--pinboard-muted) !important; }
+   margin to neutralize its added padding so siblings don't shift.
+   .rss_linkbox is positioned absolutely so themes with larger size-base (14px) don't push it to a 2nd line
+   when float:right runs out of horizontal space on the current line. */
+#bmarks_page_nav { color: var(--pinboard-muted) !important; position: relative !important; padding-right: 56px !important; }
+#bmarks_page_nav .rss_linkbox { position: absolute !important; right: 0 !important; top: 0 !important; float: none !important; }
 #bmarks_page_nav a.filter { color: var(--pinboard-muted) !important; transition: color 0.15s ease !important; }
 #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
 #bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; margin: 0 -5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
@@ -4155,8 +4173,11 @@ html.pbp-dark #sub_banner a:hover, html.pbp-dark #sub_banner a.selected { color:
 /* ---- Bookmarks page nav (#bmarks_page_nav: all/private/public/unread/untagged/starred/...) ---- */
 /* Pinboard's filter row is a single inline text line with " ‧ " separators between links — extra padding
    on every link overflows and wraps the row. Only the selected link gets a pill, with negative inline
-   margin to neutralize its added padding so siblings don't shift. */
-html.pbp-dark #bmarks_page_nav { color: var(--pinboard-muted) !important; }
+   margin to neutralize its added padding so siblings don't shift.
+   .rss_linkbox is positioned absolutely so themes with larger size-base (14px) don't push it to a 2nd line
+   when float:right runs out of horizontal space on the current line. */
+html.pbp-dark #bmarks_page_nav { color: var(--pinboard-muted) !important; position: relative !important; padding-right: 56px !important; }
+html.pbp-dark #bmarks_page_nav .rss_linkbox { position: absolute !important; right: 0 !important; top: 0 !important; float: none !important; }
 html.pbp-dark #bmarks_page_nav a.filter { color: var(--pinboard-muted) !important; transition: color 0.15s ease !important; }
 html.pbp-dark #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
 html.pbp-dark #bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; margin: 0 -5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
@@ -4873,8 +4894,11 @@ body:not(#pinboard) #popup_header { background: transparent !important; color: v
 /* ---- Bookmarks page nav (#bmarks_page_nav: all/private/public/unread/untagged/starred/...) ---- */
 /* Pinboard's filter row is a single inline text line with " ‧ " separators between links — extra padding
    on every link overflows and wraps the row. Only the selected link gets a pill, with negative inline
-   margin to neutralize its added padding so siblings don't shift. */
-#bmarks_page_nav { color: var(--pinboard-muted) !important; }
+   margin to neutralize its added padding so siblings don't shift.
+   .rss_linkbox is positioned absolutely so themes with larger size-base (14px) don't push it to a 2nd line
+   when float:right runs out of horizontal space on the current line. */
+#bmarks_page_nav { color: var(--pinboard-muted) !important; position: relative !important; padding-right: 56px !important; }
+#bmarks_page_nav .rss_linkbox { position: absolute !important; right: 0 !important; top: 0 !important; float: none !important; }
 #bmarks_page_nav a.filter { color: var(--pinboard-muted) !important; transition: color 0.15s ease !important; }
 #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
 #bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; margin: 0 -5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
@@ -5502,8 +5526,11 @@ body:not(#pinboard) #popup_header { background: transparent !important; color: v
 /* ---- Bookmarks page nav (#bmarks_page_nav: all/private/public/unread/untagged/starred/...) ---- */
 /* Pinboard's filter row is a single inline text line with " ‧ " separators between links — extra padding
    on every link overflows and wraps the row. Only the selected link gets a pill, with negative inline
-   margin to neutralize its added padding so siblings don't shift. */
-#bmarks_page_nav { color: var(--pinboard-muted) !important; }
+   margin to neutralize its added padding so siblings don't shift.
+   .rss_linkbox is positioned absolutely so themes with larger size-base (14px) don't push it to a 2nd line
+   when float:right runs out of horizontal space on the current line. */
+#bmarks_page_nav { color: var(--pinboard-muted) !important; position: relative !important; padding-right: 56px !important; }
+#bmarks_page_nav .rss_linkbox { position: absolute !important; right: 0 !important; top: 0 !important; float: none !important; }
 #bmarks_page_nav a.filter { color: var(--pinboard-muted) !important; transition: color 0.15s ease !important; }
 #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
 #bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; margin: 0 -5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
@@ -6143,8 +6170,11 @@ body:not(#pinboard) #popup_header { background: transparent !important; color: v
 /* ---- Bookmarks page nav (#bmarks_page_nav: all/private/public/unread/untagged/starred/...) ---- */
 /* Pinboard's filter row is a single inline text line with " ‧ " separators between links — extra padding
    on every link overflows and wraps the row. Only the selected link gets a pill, with negative inline
-   margin to neutralize its added padding so siblings don't shift. */
-#bmarks_page_nav { color: var(--pinboard-muted) !important; }
+   margin to neutralize its added padding so siblings don't shift.
+   .rss_linkbox is positioned absolutely so themes with larger size-base (14px) don't push it to a 2nd line
+   when float:right runs out of horizontal space on the current line. */
+#bmarks_page_nav { color: var(--pinboard-muted) !important; position: relative !important; padding-right: 56px !important; }
+#bmarks_page_nav .rss_linkbox { position: absolute !important; right: 0 !important; top: 0 !important; float: none !important; }
 #bmarks_page_nav a.filter { color: var(--pinboard-muted) !important; transition: color 0.15s ease !important; }
 #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
 #bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; margin: 0 -5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
@@ -6784,8 +6814,11 @@ body:not(#pinboard) #popup_header { background: transparent !important; color: v
 /* ---- Bookmarks page nav (#bmarks_page_nav: all/private/public/unread/untagged/starred/...) ---- */
 /* Pinboard's filter row is a single inline text line with " ‧ " separators between links — extra padding
    on every link overflows and wraps the row. Only the selected link gets a pill, with negative inline
-   margin to neutralize its added padding so siblings don't shift. */
-#bmarks_page_nav { color: var(--pinboard-muted) !important; }
+   margin to neutralize its added padding so siblings don't shift.
+   .rss_linkbox is positioned absolutely so themes with larger size-base (14px) don't push it to a 2nd line
+   when float:right runs out of horizontal space on the current line. */
+#bmarks_page_nav { color: var(--pinboard-muted) !important; position: relative !important; padding-right: 56px !important; }
+#bmarks_page_nav .rss_linkbox { position: absolute !important; right: 0 !important; top: 0 !important; float: none !important; }
 #bmarks_page_nav a.filter { color: var(--pinboard-muted) !important; transition: color 0.15s ease !important; }
 #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
 #bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; margin: 0 -5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
@@ -7437,8 +7470,11 @@ body:not(#pinboard) #popup_header { background: transparent !important; color: v
 /* ---- Bookmarks page nav (#bmarks_page_nav: all/private/public/unread/untagged/starred/...) ---- */
 /* Pinboard's filter row is a single inline text line with " ‧ " separators between links — extra padding
    on every link overflows and wraps the row. Only the selected link gets a pill, with negative inline
-   margin to neutralize its added padding so siblings don't shift. */
-#bmarks_page_nav { color: var(--pinboard-muted) !important; }
+   margin to neutralize its added padding so siblings don't shift.
+   .rss_linkbox is positioned absolutely so themes with larger size-base (14px) don't push it to a 2nd line
+   when float:right runs out of horizontal space on the current line. */
+#bmarks_page_nav { color: var(--pinboard-muted) !important; position: relative !important; padding-right: 56px !important; }
+#bmarks_page_nav .rss_linkbox { position: absolute !important; right: 0 !important; top: 0 !important; float: none !important; }
 #bmarks_page_nav a.filter { color: var(--pinboard-muted) !important; transition: color 0.15s ease !important; }
 #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
 #bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; margin: 0 -5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
@@ -8083,8 +8119,11 @@ body:not(#pinboard) #popup_header { background: transparent !important; color: v
 /* ---- Bookmarks page nav (#bmarks_page_nav: all/private/public/unread/untagged/starred/...) ---- */
 /* Pinboard's filter row is a single inline text line with " ‧ " separators between links — extra padding
    on every link overflows and wraps the row. Only the selected link gets a pill, with negative inline
-   margin to neutralize its added padding so siblings don't shift. */
-#bmarks_page_nav { color: var(--pinboard-muted) !important; }
+   margin to neutralize its added padding so siblings don't shift.
+   .rss_linkbox is positioned absolutely so themes with larger size-base (14px) don't push it to a 2nd line
+   when float:right runs out of horizontal space on the current line. */
+#bmarks_page_nav { color: var(--pinboard-muted) !important; position: relative !important; padding-right: 56px !important; }
+#bmarks_page_nav .rss_linkbox { position: absolute !important; right: 0 !important; top: 0 !important; float: none !important; }
 #bmarks_page_nav a.filter { color: var(--pinboard-muted) !important; transition: color 0.15s ease !important; }
 #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
 #bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; margin: 0 -5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
@@ -8735,8 +8774,11 @@ body:not(#pinboard) #popup_header { background: transparent !important; color: v
 /* ---- Bookmarks page nav (#bmarks_page_nav: all/private/public/unread/untagged/starred/...) ---- */
 /* Pinboard's filter row is a single inline text line with " ‧ " separators between links — extra padding
    on every link overflows and wraps the row. Only the selected link gets a pill, with negative inline
-   margin to neutralize its added padding so siblings don't shift. */
-#bmarks_page_nav { color: var(--pinboard-muted) !important; }
+   margin to neutralize its added padding so siblings don't shift.
+   .rss_linkbox is positioned absolutely so themes with larger size-base (14px) don't push it to a 2nd line
+   when float:right runs out of horizontal space on the current line. */
+#bmarks_page_nav { color: var(--pinboard-muted) !important; position: relative !important; padding-right: 56px !important; }
+#bmarks_page_nav .rss_linkbox { position: absolute !important; right: 0 !important; top: 0 !important; float: none !important; }
 #bmarks_page_nav a.filter { color: var(--pinboard-muted) !important; transition: color 0.15s ease !important; }
 #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
 #bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; margin: 0 -5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
