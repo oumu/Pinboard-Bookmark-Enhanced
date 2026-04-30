@@ -119,8 +119,13 @@ if (navRootBody && !/display\s*:\s*flex/.test(navRootBody)) {
   console.log(`  composer  #bmarks_page_nav must declare display:flex — otherwise .rss_linkbox margin-left:auto won't pin RSS to right.`);
   blockers++;
 }
-if (rssBoxBody && !/margin-left\s*:\s*auto/.test(rssBoxBody)) {
-  console.log(`  composer  #bmarks_page_nav .rss_linkbox must declare margin-left:auto — otherwise RSS won't be right-aligned in flex layout.`);
+// margin-left:auto can be declared explicitly OR via the 4-value `margin: T R B auto` shorthand.
+const hasMarginLeftAuto = rssBoxBody && (
+  /margin-left\s*:\s*auto/.test(rssBoxBody) ||
+  /margin\s*:\s*\S+\s+\S+\s+\S+\s+auto\b/.test(rssBoxBody)
+);
+if (!hasMarginLeftAuto) {
+  console.log(`  composer  #bmarks_page_nav .rss_linkbox must declare margin-left:auto (explicit or 4-value shorthand) — otherwise RSS won't be right-aligned in flex layout.`);
   blockers++;
 }
 // Outer .user_navbar must ALSO be flex so the inner #bmarks_page_nav (flex item with BFC) doesn't

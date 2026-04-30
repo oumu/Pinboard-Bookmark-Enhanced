@@ -177,7 +177,10 @@ body:not(#pinboard) #popup_header { background: transparent !important; color: v
    BFC and clear those floats, dropping the filter row to a 2nd line. Solution: turn the OUTER .user_navbar
    into a flex container so all three siblings stay on one row, then nest a flex inside #bmarks_page_nav
    to pin the RSS chip right via margin-left:auto. ---- */
-.user_navbar { display: flex !important; flex-wrap: nowrap !important; align-items: baseline !important; }
+/* padding-left: 8px aligns .small_username with a.next_prev (Pinboard's pagination row underneath uses
+   8px gutter from #main_column's left edge); padding-right: 0 keeps RSS chip flush with #main_column's
+   right edge via the inner flex margin-left:auto. */
+.user_navbar { display: flex !important; flex-wrap: nowrap !important; align-items: baseline !important; padding: 0 0 0 8px !important; box-sizing: border-box !important; }
 .user_navbar > .small_username, .user_navbar > .bookmark_count_box { float: none !important; flex-shrink: 0 !important; }
 
 /* ---- Bookmarks page nav (#bmarks_page_nav: all/private/public/unread/untagged/starred/...) ---- */
@@ -185,7 +188,7 @@ body:not(#pinboard) #popup_header { background: transparent !important; color: v
    Only the selected filter gets a pill with negative margin to neutralize its padding (zero inline drift).
    flex:1 + min-width:0 lets nav shrink to fit available space after the leftward siblings. */
 #bmarks_page_nav { color: var(--pinboard-muted) !important; flex: 1 !important; min-width: 0 !important; display: flex !important; flex-wrap: wrap !important; align-items: center !important; box-sizing: border-box !important; }
-#bmarks_page_nav .rss_linkbox { margin-left: auto !important; padding-left: 12px !important; float: none !important; position: static !important; }
+#bmarks_page_nav .rss_linkbox { margin: 0 0 0 auto !important; padding-left: 12px !important; float: none !important; position: static !important; }
 #bmarks_page_nav a.filter { color: var(--pinboard-muted) !important; transition: color 0.15s ease !important; }
 #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
 #bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; margin: 0 -5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
@@ -880,7 +883,10 @@ body:not(#pinboard) #popup_header { background: transparent !important; color: v
    BFC and clear those floats, dropping the filter row to a 2nd line. Solution: turn the OUTER .user_navbar
    into a flex container so all three siblings stay on one row, then nest a flex inside #bmarks_page_nav
    to pin the RSS chip right via margin-left:auto. ---- */
-.user_navbar { display: flex !important; flex-wrap: nowrap !important; align-items: baseline !important; }
+/* padding-left: 8px aligns .small_username with a.next_prev (Pinboard's pagination row underneath uses
+   8px gutter from #main_column's left edge); padding-right: 0 keeps RSS chip flush with #main_column's
+   right edge via the inner flex margin-left:auto. */
+.user_navbar { display: flex !important; flex-wrap: nowrap !important; align-items: baseline !important; padding: 0 0 0 8px !important; box-sizing: border-box !important; }
 .user_navbar > .small_username, .user_navbar > .bookmark_count_box { float: none !important; flex-shrink: 0 !important; }
 
 /* ---- Bookmarks page nav (#bmarks_page_nav: all/private/public/unread/untagged/starred/...) ---- */
@@ -888,7 +894,7 @@ body:not(#pinboard) #popup_header { background: transparent !important; color: v
    Only the selected filter gets a pill with negative margin to neutralize its padding (zero inline drift).
    flex:1 + min-width:0 lets nav shrink to fit available space after the leftward siblings. */
 #bmarks_page_nav { color: var(--pinboard-muted) !important; flex: 1 !important; min-width: 0 !important; display: flex !important; flex-wrap: wrap !important; align-items: center !important; box-sizing: border-box !important; }
-#bmarks_page_nav .rss_linkbox { margin-left: auto !important; padding-left: 12px !important; float: none !important; position: static !important; }
+#bmarks_page_nav .rss_linkbox { margin: 0 0 0 auto !important; padding-left: 12px !important; float: none !important; position: static !important; }
 #bmarks_page_nav a.filter { color: var(--pinboard-muted) !important; transition: color 0.15s ease !important; }
 #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
 #bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; margin: 0 -5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
@@ -1539,7 +1545,10 @@ body:not(#pinboard) #popup_header { background: transparent !important; color: v
    BFC and clear those floats, dropping the filter row to a 2nd line. Solution: turn the OUTER .user_navbar
    into a flex container so all three siblings stay on one row, then nest a flex inside #bmarks_page_nav
    to pin the RSS chip right via margin-left:auto. ---- */
-.user_navbar { display: flex !important; flex-wrap: nowrap !important; align-items: baseline !important; }
+/* padding-left: 8px aligns .small_username with a.next_prev (Pinboard's pagination row underneath uses
+   8px gutter from #main_column's left edge); padding-right: 0 keeps RSS chip flush with #main_column's
+   right edge via the inner flex margin-left:auto. */
+.user_navbar { display: flex !important; flex-wrap: nowrap !important; align-items: baseline !important; padding: 0 0 0 8px !important; box-sizing: border-box !important; }
 .user_navbar > .small_username, .user_navbar > .bookmark_count_box { float: none !important; flex-shrink: 0 !important; }
 
 /* ---- Bookmarks page nav (#bmarks_page_nav: all/private/public/unread/untagged/starred/...) ---- */
@@ -1547,7 +1556,7 @@ body:not(#pinboard) #popup_header { background: transparent !important; color: v
    Only the selected filter gets a pill with negative margin to neutralize its padding (zero inline drift).
    flex:1 + min-width:0 lets nav shrink to fit available space after the leftward siblings. */
 #bmarks_page_nav { color: var(--pinboard-muted) !important; flex: 1 !important; min-width: 0 !important; display: flex !important; flex-wrap: wrap !important; align-items: center !important; box-sizing: border-box !important; }
-#bmarks_page_nav .rss_linkbox { margin-left: auto !important; padding-left: 12px !important; float: none !important; position: static !important; }
+#bmarks_page_nav .rss_linkbox { margin: 0 0 0 auto !important; padding-left: 12px !important; float: none !important; position: static !important; }
 #bmarks_page_nav a.filter { color: var(--pinboard-muted) !important; transition: color 0.15s ease !important; }
 #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
 #bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; margin: 0 -5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
@@ -2235,7 +2244,10 @@ body:not(#pinboard) #popup_header { background: transparent !important; color: v
    BFC and clear those floats, dropping the filter row to a 2nd line. Solution: turn the OUTER .user_navbar
    into a flex container so all three siblings stay on one row, then nest a flex inside #bmarks_page_nav
    to pin the RSS chip right via margin-left:auto. ---- */
-.user_navbar { display: flex !important; flex-wrap: nowrap !important; align-items: baseline !important; }
+/* padding-left: 8px aligns .small_username with a.next_prev (Pinboard's pagination row underneath uses
+   8px gutter from #main_column's left edge); padding-right: 0 keeps RSS chip flush with #main_column's
+   right edge via the inner flex margin-left:auto. */
+.user_navbar { display: flex !important; flex-wrap: nowrap !important; align-items: baseline !important; padding: 0 0 0 8px !important; box-sizing: border-box !important; }
 .user_navbar > .small_username, .user_navbar > .bookmark_count_box { float: none !important; flex-shrink: 0 !important; }
 
 /* ---- Bookmarks page nav (#bmarks_page_nav: all/private/public/unread/untagged/starred/...) ---- */
@@ -2243,7 +2255,7 @@ body:not(#pinboard) #popup_header { background: transparent !important; color: v
    Only the selected filter gets a pill with negative margin to neutralize its padding (zero inline drift).
    flex:1 + min-width:0 lets nav shrink to fit available space after the leftward siblings. */
 #bmarks_page_nav { color: var(--pinboard-muted) !important; flex: 1 !important; min-width: 0 !important; display: flex !important; flex-wrap: wrap !important; align-items: center !important; box-sizing: border-box !important; }
-#bmarks_page_nav .rss_linkbox { margin-left: auto !important; padding-left: 12px !important; float: none !important; position: static !important; }
+#bmarks_page_nav .rss_linkbox { margin: 0 0 0 auto !important; padding-left: 12px !important; float: none !important; position: static !important; }
 #bmarks_page_nav a.filter { color: var(--pinboard-muted) !important; transition: color 0.15s ease !important; }
 #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
 #bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; margin: 0 -5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
@@ -2948,7 +2960,10 @@ body:not(#pinboard) #popup_header { background: transparent !important; color: v
    BFC and clear those floats, dropping the filter row to a 2nd line. Solution: turn the OUTER .user_navbar
    into a flex container so all three siblings stay on one row, then nest a flex inside #bmarks_page_nav
    to pin the RSS chip right via margin-left:auto. ---- */
-.user_navbar { display: flex !important; flex-wrap: nowrap !important; align-items: baseline !important; }
+/* padding-left: 8px aligns .small_username with a.next_prev (Pinboard's pagination row underneath uses
+   8px gutter from #main_column's left edge); padding-right: 0 keeps RSS chip flush with #main_column's
+   right edge via the inner flex margin-left:auto. */
+.user_navbar { display: flex !important; flex-wrap: nowrap !important; align-items: baseline !important; padding: 0 0 0 8px !important; box-sizing: border-box !important; }
 .user_navbar > .small_username, .user_navbar > .bookmark_count_box { float: none !important; flex-shrink: 0 !important; }
 
 /* ---- Bookmarks page nav (#bmarks_page_nav: all/private/public/unread/untagged/starred/...) ---- */
@@ -2956,7 +2971,7 @@ body:not(#pinboard) #popup_header { background: transparent !important; color: v
    Only the selected filter gets a pill with negative margin to neutralize its padding (zero inline drift).
    flex:1 + min-width:0 lets nav shrink to fit available space after the leftward siblings. */
 #bmarks_page_nav { color: var(--pinboard-muted) !important; flex: 1 !important; min-width: 0 !important; display: flex !important; flex-wrap: wrap !important; align-items: center !important; box-sizing: border-box !important; }
-#bmarks_page_nav .rss_linkbox { margin-left: auto !important; padding-left: 12px !important; float: none !important; position: static !important; }
+#bmarks_page_nav .rss_linkbox { margin: 0 0 0 auto !important; padding-left: 12px !important; float: none !important; position: static !important; }
 #bmarks_page_nav a.filter { color: var(--pinboard-muted) !important; transition: color 0.15s ease !important; }
 #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
 #bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; margin: 0 -5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
@@ -3633,7 +3648,10 @@ body:not(#pinboard) #popup_header { background: transparent !important; color: v
    BFC and clear those floats, dropping the filter row to a 2nd line. Solution: turn the OUTER .user_navbar
    into a flex container so all three siblings stay on one row, then nest a flex inside #bmarks_page_nav
    to pin the RSS chip right via margin-left:auto. ---- */
-.user_navbar { display: flex !important; flex-wrap: nowrap !important; align-items: baseline !important; }
+/* padding-left: 8px aligns .small_username with a.next_prev (Pinboard's pagination row underneath uses
+   8px gutter from #main_column's left edge); padding-right: 0 keeps RSS chip flush with #main_column's
+   right edge via the inner flex margin-left:auto. */
+.user_navbar { display: flex !important; flex-wrap: nowrap !important; align-items: baseline !important; padding: 0 0 0 8px !important; box-sizing: border-box !important; }
 .user_navbar > .small_username, .user_navbar > .bookmark_count_box { float: none !important; flex-shrink: 0 !important; }
 
 /* ---- Bookmarks page nav (#bmarks_page_nav: all/private/public/unread/untagged/starred/...) ---- */
@@ -3641,7 +3659,7 @@ body:not(#pinboard) #popup_header { background: transparent !important; color: v
    Only the selected filter gets a pill with negative margin to neutralize its padding (zero inline drift).
    flex:1 + min-width:0 lets nav shrink to fit available space after the leftward siblings. */
 #bmarks_page_nav { color: var(--pinboard-muted) !important; flex: 1 !important; min-width: 0 !important; display: flex !important; flex-wrap: wrap !important; align-items: center !important; box-sizing: border-box !important; }
-#bmarks_page_nav .rss_linkbox { margin-left: auto !important; padding-left: 12px !important; float: none !important; position: static !important; }
+#bmarks_page_nav .rss_linkbox { margin: 0 0 0 auto !important; padding-left: 12px !important; float: none !important; position: static !important; }
 #bmarks_page_nav a.filter { color: var(--pinboard-muted) !important; transition: color 0.15s ease !important; }
 #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
 #bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; margin: 0 -5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
@@ -4218,7 +4236,10 @@ html.pbp-dark #sub_banner a:hover, html.pbp-dark #sub_banner a.selected { color:
    BFC and clear those floats, dropping the filter row to a 2nd line. Solution: turn the OUTER .user_navbar
    into a flex container so all three siblings stay on one row, then nest a flex inside #bmarks_page_nav
    to pin the RSS chip right via margin-left:auto. ---- */
-html.pbp-dark .user_navbar { display: flex !important; flex-wrap: nowrap !important; align-items: baseline !important; }
+/* padding-left: 8px aligns .small_username with a.next_prev (Pinboard's pagination row underneath uses
+   8px gutter from #main_column's left edge); padding-right: 0 keeps RSS chip flush with #main_column's
+   right edge via the inner flex margin-left:auto. */
+html.pbp-dark .user_navbar { display: flex !important; flex-wrap: nowrap !important; align-items: baseline !important; padding: 0 0 0 8px !important; box-sizing: border-box !important; }
 html.pbp-dark .user_navbar > .small_username, html.pbp-dark .user_navbar > .bookmark_count_box { float: none !important; flex-shrink: 0 !important; }
 
 /* ---- Bookmarks page nav (#bmarks_page_nav: all/private/public/unread/untagged/starred/...) ---- */
@@ -4226,7 +4247,7 @@ html.pbp-dark .user_navbar > .small_username, html.pbp-dark .user_navbar > .book
    Only the selected filter gets a pill with negative margin to neutralize its padding (zero inline drift).
    flex:1 + min-width:0 lets nav shrink to fit available space after the leftward siblings. */
 html.pbp-dark #bmarks_page_nav { color: var(--pinboard-muted) !important; flex: 1 !important; min-width: 0 !important; display: flex !important; flex-wrap: wrap !important; align-items: center !important; box-sizing: border-box !important; }
-html.pbp-dark #bmarks_page_nav .rss_linkbox { margin-left: auto !important; padding-left: 12px !important; float: none !important; position: static !important; }
+html.pbp-dark #bmarks_page_nav .rss_linkbox { margin: 0 0 0 auto !important; padding-left: 12px !important; float: none !important; position: static !important; }
 html.pbp-dark #bmarks_page_nav a.filter { color: var(--pinboard-muted) !important; transition: color 0.15s ease !important; }
 html.pbp-dark #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
 html.pbp-dark #bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; margin: 0 -5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
@@ -4946,7 +4967,10 @@ body:not(#pinboard) #popup_header { background: transparent !important; color: v
    BFC and clear those floats, dropping the filter row to a 2nd line. Solution: turn the OUTER .user_navbar
    into a flex container so all three siblings stay on one row, then nest a flex inside #bmarks_page_nav
    to pin the RSS chip right via margin-left:auto. ---- */
-.user_navbar { display: flex !important; flex-wrap: nowrap !important; align-items: baseline !important; }
+/* padding-left: 8px aligns .small_username with a.next_prev (Pinboard's pagination row underneath uses
+   8px gutter from #main_column's left edge); padding-right: 0 keeps RSS chip flush with #main_column's
+   right edge via the inner flex margin-left:auto. */
+.user_navbar { display: flex !important; flex-wrap: nowrap !important; align-items: baseline !important; padding: 0 0 0 8px !important; box-sizing: border-box !important; }
 .user_navbar > .small_username, .user_navbar > .bookmark_count_box { float: none !important; flex-shrink: 0 !important; }
 
 /* ---- Bookmarks page nav (#bmarks_page_nav: all/private/public/unread/untagged/starred/...) ---- */
@@ -4954,7 +4978,7 @@ body:not(#pinboard) #popup_header { background: transparent !important; color: v
    Only the selected filter gets a pill with negative margin to neutralize its padding (zero inline drift).
    flex:1 + min-width:0 lets nav shrink to fit available space after the leftward siblings. */
 #bmarks_page_nav { color: var(--pinboard-muted) !important; flex: 1 !important; min-width: 0 !important; display: flex !important; flex-wrap: wrap !important; align-items: center !important; box-sizing: border-box !important; }
-#bmarks_page_nav .rss_linkbox { margin-left: auto !important; padding-left: 12px !important; float: none !important; position: static !important; }
+#bmarks_page_nav .rss_linkbox { margin: 0 0 0 auto !important; padding-left: 12px !important; float: none !important; position: static !important; }
 #bmarks_page_nav a.filter { color: var(--pinboard-muted) !important; transition: color 0.15s ease !important; }
 #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
 #bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; margin: 0 -5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
@@ -5585,7 +5609,10 @@ body:not(#pinboard) #popup_header { background: transparent !important; color: v
    BFC and clear those floats, dropping the filter row to a 2nd line. Solution: turn the OUTER .user_navbar
    into a flex container so all three siblings stay on one row, then nest a flex inside #bmarks_page_nav
    to pin the RSS chip right via margin-left:auto. ---- */
-.user_navbar { display: flex !important; flex-wrap: nowrap !important; align-items: baseline !important; }
+/* padding-left: 8px aligns .small_username with a.next_prev (Pinboard's pagination row underneath uses
+   8px gutter from #main_column's left edge); padding-right: 0 keeps RSS chip flush with #main_column's
+   right edge via the inner flex margin-left:auto. */
+.user_navbar { display: flex !important; flex-wrap: nowrap !important; align-items: baseline !important; padding: 0 0 0 8px !important; box-sizing: border-box !important; }
 .user_navbar > .small_username, .user_navbar > .bookmark_count_box { float: none !important; flex-shrink: 0 !important; }
 
 /* ---- Bookmarks page nav (#bmarks_page_nav: all/private/public/unread/untagged/starred/...) ---- */
@@ -5593,7 +5620,7 @@ body:not(#pinboard) #popup_header { background: transparent !important; color: v
    Only the selected filter gets a pill with negative margin to neutralize its padding (zero inline drift).
    flex:1 + min-width:0 lets nav shrink to fit available space after the leftward siblings. */
 #bmarks_page_nav { color: var(--pinboard-muted) !important; flex: 1 !important; min-width: 0 !important; display: flex !important; flex-wrap: wrap !important; align-items: center !important; box-sizing: border-box !important; }
-#bmarks_page_nav .rss_linkbox { margin-left: auto !important; padding-left: 12px !important; float: none !important; position: static !important; }
+#bmarks_page_nav .rss_linkbox { margin: 0 0 0 auto !important; padding-left: 12px !important; float: none !important; position: static !important; }
 #bmarks_page_nav a.filter { color: var(--pinboard-muted) !important; transition: color 0.15s ease !important; }
 #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
 #bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; margin: 0 -5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
@@ -6236,7 +6263,10 @@ body:not(#pinboard) #popup_header { background: transparent !important; color: v
    BFC and clear those floats, dropping the filter row to a 2nd line. Solution: turn the OUTER .user_navbar
    into a flex container so all three siblings stay on one row, then nest a flex inside #bmarks_page_nav
    to pin the RSS chip right via margin-left:auto. ---- */
-.user_navbar { display: flex !important; flex-wrap: nowrap !important; align-items: baseline !important; }
+/* padding-left: 8px aligns .small_username with a.next_prev (Pinboard's pagination row underneath uses
+   8px gutter from #main_column's left edge); padding-right: 0 keeps RSS chip flush with #main_column's
+   right edge via the inner flex margin-left:auto. */
+.user_navbar { display: flex !important; flex-wrap: nowrap !important; align-items: baseline !important; padding: 0 0 0 8px !important; box-sizing: border-box !important; }
 .user_navbar > .small_username, .user_navbar > .bookmark_count_box { float: none !important; flex-shrink: 0 !important; }
 
 /* ---- Bookmarks page nav (#bmarks_page_nav: all/private/public/unread/untagged/starred/...) ---- */
@@ -6244,7 +6274,7 @@ body:not(#pinboard) #popup_header { background: transparent !important; color: v
    Only the selected filter gets a pill with negative margin to neutralize its padding (zero inline drift).
    flex:1 + min-width:0 lets nav shrink to fit available space after the leftward siblings. */
 #bmarks_page_nav { color: var(--pinboard-muted) !important; flex: 1 !important; min-width: 0 !important; display: flex !important; flex-wrap: wrap !important; align-items: center !important; box-sizing: border-box !important; }
-#bmarks_page_nav .rss_linkbox { margin-left: auto !important; padding-left: 12px !important; float: none !important; position: static !important; }
+#bmarks_page_nav .rss_linkbox { margin: 0 0 0 auto !important; padding-left: 12px !important; float: none !important; position: static !important; }
 #bmarks_page_nav a.filter { color: var(--pinboard-muted) !important; transition: color 0.15s ease !important; }
 #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
 #bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; margin: 0 -5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
@@ -6887,7 +6917,10 @@ body:not(#pinboard) #popup_header { background: transparent !important; color: v
    BFC and clear those floats, dropping the filter row to a 2nd line. Solution: turn the OUTER .user_navbar
    into a flex container so all three siblings stay on one row, then nest a flex inside #bmarks_page_nav
    to pin the RSS chip right via margin-left:auto. ---- */
-.user_navbar { display: flex !important; flex-wrap: nowrap !important; align-items: baseline !important; }
+/* padding-left: 8px aligns .small_username with a.next_prev (Pinboard's pagination row underneath uses
+   8px gutter from #main_column's left edge); padding-right: 0 keeps RSS chip flush with #main_column's
+   right edge via the inner flex margin-left:auto. */
+.user_navbar { display: flex !important; flex-wrap: nowrap !important; align-items: baseline !important; padding: 0 0 0 8px !important; box-sizing: border-box !important; }
 .user_navbar > .small_username, .user_navbar > .bookmark_count_box { float: none !important; flex-shrink: 0 !important; }
 
 /* ---- Bookmarks page nav (#bmarks_page_nav: all/private/public/unread/untagged/starred/...) ---- */
@@ -6895,7 +6928,7 @@ body:not(#pinboard) #popup_header { background: transparent !important; color: v
    Only the selected filter gets a pill with negative margin to neutralize its padding (zero inline drift).
    flex:1 + min-width:0 lets nav shrink to fit available space after the leftward siblings. */
 #bmarks_page_nav { color: var(--pinboard-muted) !important; flex: 1 !important; min-width: 0 !important; display: flex !important; flex-wrap: wrap !important; align-items: center !important; box-sizing: border-box !important; }
-#bmarks_page_nav .rss_linkbox { margin-left: auto !important; padding-left: 12px !important; float: none !important; position: static !important; }
+#bmarks_page_nav .rss_linkbox { margin: 0 0 0 auto !important; padding-left: 12px !important; float: none !important; position: static !important; }
 #bmarks_page_nav a.filter { color: var(--pinboard-muted) !important; transition: color 0.15s ease !important; }
 #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
 #bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; margin: 0 -5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
@@ -7550,7 +7583,10 @@ body:not(#pinboard) #popup_header { background: transparent !important; color: v
    BFC and clear those floats, dropping the filter row to a 2nd line. Solution: turn the OUTER .user_navbar
    into a flex container so all three siblings stay on one row, then nest a flex inside #bmarks_page_nav
    to pin the RSS chip right via margin-left:auto. ---- */
-.user_navbar { display: flex !important; flex-wrap: nowrap !important; align-items: baseline !important; }
+/* padding-left: 8px aligns .small_username with a.next_prev (Pinboard's pagination row underneath uses
+   8px gutter from #main_column's left edge); padding-right: 0 keeps RSS chip flush with #main_column's
+   right edge via the inner flex margin-left:auto. */
+.user_navbar { display: flex !important; flex-wrap: nowrap !important; align-items: baseline !important; padding: 0 0 0 8px !important; box-sizing: border-box !important; }
 .user_navbar > .small_username, .user_navbar > .bookmark_count_box { float: none !important; flex-shrink: 0 !important; }
 
 /* ---- Bookmarks page nav (#bmarks_page_nav: all/private/public/unread/untagged/starred/...) ---- */
@@ -7558,7 +7594,7 @@ body:not(#pinboard) #popup_header { background: transparent !important; color: v
    Only the selected filter gets a pill with negative margin to neutralize its padding (zero inline drift).
    flex:1 + min-width:0 lets nav shrink to fit available space after the leftward siblings. */
 #bmarks_page_nav { color: var(--pinboard-muted) !important; flex: 1 !important; min-width: 0 !important; display: flex !important; flex-wrap: wrap !important; align-items: center !important; box-sizing: border-box !important; }
-#bmarks_page_nav .rss_linkbox { margin-left: auto !important; padding-left: 12px !important; float: none !important; position: static !important; }
+#bmarks_page_nav .rss_linkbox { margin: 0 0 0 auto !important; padding-left: 12px !important; float: none !important; position: static !important; }
 #bmarks_page_nav a.filter { color: var(--pinboard-muted) !important; transition: color 0.15s ease !important; }
 #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
 #bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; margin: 0 -5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
@@ -8206,7 +8242,10 @@ body:not(#pinboard) #popup_header { background: transparent !important; color: v
    BFC and clear those floats, dropping the filter row to a 2nd line. Solution: turn the OUTER .user_navbar
    into a flex container so all three siblings stay on one row, then nest a flex inside #bmarks_page_nav
    to pin the RSS chip right via margin-left:auto. ---- */
-.user_navbar { display: flex !important; flex-wrap: nowrap !important; align-items: baseline !important; }
+/* padding-left: 8px aligns .small_username with a.next_prev (Pinboard's pagination row underneath uses
+   8px gutter from #main_column's left edge); padding-right: 0 keeps RSS chip flush with #main_column's
+   right edge via the inner flex margin-left:auto. */
+.user_navbar { display: flex !important; flex-wrap: nowrap !important; align-items: baseline !important; padding: 0 0 0 8px !important; box-sizing: border-box !important; }
 .user_navbar > .small_username, .user_navbar > .bookmark_count_box { float: none !important; flex-shrink: 0 !important; }
 
 /* ---- Bookmarks page nav (#bmarks_page_nav: all/private/public/unread/untagged/starred/...) ---- */
@@ -8214,7 +8253,7 @@ body:not(#pinboard) #popup_header { background: transparent !important; color: v
    Only the selected filter gets a pill with negative margin to neutralize its padding (zero inline drift).
    flex:1 + min-width:0 lets nav shrink to fit available space after the leftward siblings. */
 #bmarks_page_nav { color: var(--pinboard-muted) !important; flex: 1 !important; min-width: 0 !important; display: flex !important; flex-wrap: wrap !important; align-items: center !important; box-sizing: border-box !important; }
-#bmarks_page_nav .rss_linkbox { margin-left: auto !important; padding-left: 12px !important; float: none !important; position: static !important; }
+#bmarks_page_nav .rss_linkbox { margin: 0 0 0 auto !important; padding-left: 12px !important; float: none !important; position: static !important; }
 #bmarks_page_nav a.filter { color: var(--pinboard-muted) !important; transition: color 0.15s ease !important; }
 #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
 #bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; margin: 0 -5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
@@ -8868,7 +8907,10 @@ body:not(#pinboard) #popup_header { background: transparent !important; color: v
    BFC and clear those floats, dropping the filter row to a 2nd line. Solution: turn the OUTER .user_navbar
    into a flex container so all three siblings stay on one row, then nest a flex inside #bmarks_page_nav
    to pin the RSS chip right via margin-left:auto. ---- */
-.user_navbar { display: flex !important; flex-wrap: nowrap !important; align-items: baseline !important; }
+/* padding-left: 8px aligns .small_username with a.next_prev (Pinboard's pagination row underneath uses
+   8px gutter from #main_column's left edge); padding-right: 0 keeps RSS chip flush with #main_column's
+   right edge via the inner flex margin-left:auto. */
+.user_navbar { display: flex !important; flex-wrap: nowrap !important; align-items: baseline !important; padding: 0 0 0 8px !important; box-sizing: border-box !important; }
 .user_navbar > .small_username, .user_navbar > .bookmark_count_box { float: none !important; flex-shrink: 0 !important; }
 
 /* ---- Bookmarks page nav (#bmarks_page_nav: all/private/public/unread/untagged/starred/...) ---- */
@@ -8876,7 +8918,7 @@ body:not(#pinboard) #popup_header { background: transparent !important; color: v
    Only the selected filter gets a pill with negative margin to neutralize its padding (zero inline drift).
    flex:1 + min-width:0 lets nav shrink to fit available space after the leftward siblings. */
 #bmarks_page_nav { color: var(--pinboard-muted) !important; flex: 1 !important; min-width: 0 !important; display: flex !important; flex-wrap: wrap !important; align-items: center !important; box-sizing: border-box !important; }
-#bmarks_page_nav .rss_linkbox { margin-left: auto !important; padding-left: 12px !important; float: none !important; position: static !important; }
+#bmarks_page_nav .rss_linkbox { margin: 0 0 0 auto !important; padding-left: 12px !important; float: none !important; position: static !important; }
 #bmarks_page_nav a.filter { color: var(--pinboard-muted) !important; transition: color 0.15s ease !important; }
 #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
 #bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; margin: 0 -5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
