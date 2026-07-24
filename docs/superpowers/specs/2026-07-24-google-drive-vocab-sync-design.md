@@ -1,7 +1,19 @@
 # Google Drive 生词同步与备份加固设计
 
 日期：2026-07-24
-状态：设计已获用户确认，书面 spec 待用户审阅
+状态：设计已确认；Tasks 1-4、6-10 已实现并完成复核；OAuth Gate 与真实验收仍阻塞
+
+实施进度：
+
+- 已完成存储层抽取、确定性收敛、mutation 元数据、不可变 Drive batch、Drive 客户端、
+  同步编排、设置页状态、手工备份 schema v3，以及 Chrome Sync 大字段与 local
+  fallback 加固。
+- OAuth Gate 尚未执行。仓库缺少真实固定开发公钥及开发扩展 ID、开发 OAuth
+  client、生产 OAuth client，不能用占位值替代。
+- 两个真实 OAuth client 对同一 Google 账号的 `appDataFolder` 双向可见性测试尚未
+  运行。这不是“已共享”或“不共享”的结论。
+- Google Drive runtime、设置页和 release 集成边界已经具备，但在 OAuth Gate
+  完成前不得把连接和自动同步宣称为当前可用功能。
 
 ## 1. 背景
 
@@ -554,17 +566,10 @@ owner 变化立即停止旧 owner 路径，不推进游标、不上传、不把�
 
 ### 13.1 最小权限
 
-Manifest 增加：
-
-```json
-{
-  "optional_permissions": ["identity"],
-  "oauth2": {
-    "client_id": "<build-specific Chrome Extension OAuth client>",
-    "scopes": ["https://www.googleapis.com/auth/drive.appdata"]
-  }
-}
-```
+OAuth Gate 完成后，Manifest 增加可选 `identity`，并在 `oauth2` 中写入对应 build
+已核验的真实 Chrome Extension OAuth client ID。scope 只能是
+`https://www.googleapis.com/auth/drive.appdata`。当前缺少真实注册，因此这些字段
+继续不进入 manifest。
 
 `https://www.googleapis.com/*` 已被当前通用 `optional_host_permissions` 声明上限
 覆盖，但只能在用户点击“连接 Google Drive”时请求该精确 origin。后台路径只做
@@ -584,7 +589,7 @@ Manifest 增加：
 
 ### 13.3 开发版与 CWS 版
 
-当前未提交的发布 ID 方案是：
+当前发布 ID 方案是：
 
 - 源码 `manifest.json` 不含 `key`，本地源码版取得独立开发 ID；
 - `release.sh` 只在 Release ZIP 中注入 CWS 公钥，使 ZIP ID 固定为
@@ -593,20 +598,16 @@ Manifest 增加：
 该方案不能直接支持 `getAuthToken()`：Chrome Extension OAuth client 与扩展 ID
 绑定，而 keyless 开发 ID 可能随源码路径变化。
 
-施工时调整为：
+当前保留 key-free 源码与 ZIP 注入 CWS 公钥的既有语义。真实 OAuth 激活需要先
+补齐并核验：
 
-1. 源码 manifest 写入一把与 CWS 不同的固定开发公钥，得到稳定开发 ID；
-2. Google Cloud 同一项目创建两个 Chrome Extension OAuth client：
-   - 固定开发 ID client；
-   - CWS ID client；
-3. 源码 manifest 使用开发 client ID；
-4. `release.sh` 在 ZIP 中同时替换开发公钥和 client ID 为 CWS 对应值；
-5. smoke test 断言：
-   - 源码 ID 等于固定开发 ID；
-   - ZIP ID 等于 CWS ID；
-   - 源码 client ID 是开发 client；
-   - ZIP client ID 是生产 client；
-6. 开发版与 CWS 版 ID 不同，可继续共存。
+1. 与实际开发构建 ID 绑定的真实开发公钥、扩展 ID 和 Chrome Extension OAuth
+   client；
+2. 与 CWS ID 绑定的生产 OAuth client；
+3. 不向源码 manifest 写入 CWS 公钥，Release ZIP 仍只使用已核验的 CWS 公钥；
+4. release 阶段只注入已经核验的生产 OAuth client，不接受示例或占位值；
+5. smoke test 在存在真实值后才断言源码开发 ID/client、ZIP CWS ID/client 和唯一
+   `drive.appdata` scope。
 
 OAuth client ID 和 manifest 公钥不是 secret，可以进入仓库；不得提交任何 client
 secret。
@@ -620,6 +621,9 @@ secret。
 2. CWS-ID 测试构建使用同一 Google 账号列出并下载；
 3. 反向再测一次；
 4. 核验 Changes API 两边都能观察变化。
+
+实际门禁结果（2026-07-24）：未运行。原因是上述真实开发/生产注册均未提供，当前
+没有有效的两个 build/client 组合可用于测试。不得从未运行状态推断共享或不共享。
 
 若不共享：
 

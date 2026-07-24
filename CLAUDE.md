@@ -1,7 +1,7 @@
 # Pinboard Bookmark Enhanced 项目配置
 
 作者：pine2D
-更新：2026-07-22
+更新：2026-07-24
 
 ## 项目概述
 
@@ -13,7 +13,7 @@ Chrome Extension (Manifest V3)，一键将当前页面保存到 Pinboard，支�
 |------|------|
 | 平台 | Chrome Extension Manifest V3 |
 | 语言 | Vanilla JavaScript（无框架、无构建步骤） |
-| 存储 | Chrome Storage API（sync + local） |
+| 存储 | Chrome Storage API（sync + local）+ IndexedDB |
 | AI providers | OpenAI / Anthropic / Gemini / DeepSeek / Qwen / MiniMax / OpenRouter / Groq / Mistral / Cohere / SiliconFlow / Zhipu (BigModel) / Moonshot / Ollama (local) |
 | 页面正文抽取 | [Defuddle](vendor/) (本地化部署，懒注入) |
 | 备用抽取 | Jina Reader API (r.jina.ai) |
@@ -35,9 +35,12 @@ Chrome Extension (Manifest V3)，一键将当前页面保存到 Pinboard，支�
 │
 ├── options.html/css/js          # 设置页
 ├── options-connectivity.js      # 各 provider 联通性测试 UI（运行时，非 dev 测试页）
-├── options-backup.js            # 设置导出/导入
-├── options-vocab.js             # 生词 tab（当前 owner；搜索/筛选/排序/选择/分组/批删；100 条分批渲染；当前账号全量 TSV/Anki 与欧路支持语种发送；词典包管理）
+├── options-backup.js            # 手工 JSON schema v3 导出/预览/分项导入（设置 + 可选高亮/生词）
+├── options-vocab.js             # 生词 tab（当前 owner；搜索/筛选/排序/选择/分组/批删；Drive 状态；100 条分批渲染；全量 TSV/Anki/欧路）
 ├── options-theme-early.js       # 同 popup
+│
+├── vocab-store.js               # pbp-vocab IDB v2 唯一写边界（words + vector/outbox/tombstone/sync 状态）
+├── vocab-gdrive.js              # SW-only Google Drive appDataFolder 客户端与同步 runner（当前待 OAuth 激活）
 │
 ├── md-preview.html/css/js       # markdown 预览弹窗（摘要 / 全文翻译 / Ask-the-page / 阅读器）
 ├── md-ai-core.js                # md-preview AI 公共层（block 索引、占位符 shield、流式 JSON 解析、IDB 缓存）
@@ -99,13 +102,21 @@ Chrome Extension (Manifest V3)，一键将当前页面保存到 Pinboard，支�
 |------|------|
 | 加载方式 | `chrome://extensions/` → 加载已解压的扩展，选择项目根目录 |
 | 无构建流程 | 直接编辑源文件，刷新扩展即可生效（vendor/ 例外，由脚本同步） |
-| 存储分层 | `optSyncEnabled` 始终存于 `chrome.storage.local` 且按设备生效；普通设置按该标志选择 `sync` / `local`。凭据另受账号级 `syncApiKeys` 控制，但仅本机设置同步开启时参与；缓存、状态与离线队列始终用 `local` |
+| 存储分层 | `optSyncEnabled` 始终存于 `chrome.storage.local` 且按设备生效；普通设置按该标志选择 `sync` / `local`。凭据另受账号级 `syncApiKeys` 控制，但仅本机设置同步开启时参与。生词及其 Drive 协议状态在 IndexedDB，逐设备连接标记在 `chrome.storage.local`；缓存、瞬态状态与离线队列始终只在本机 |
 | 书签缓存 | URL 书签状态 TTL 为 5 分钟 |
 | Storage prime | 冷启动慢，靠 `chrome.alarms` 周期性预热 SETTINGS_DEFAULTS |
 | 提示词模板变量 | `{{title}}`、`{{url}}`、`{{content}}`、`{{lang_instruction}}` |
 | 图标状态 | 区分 default（未收藏）和 saved（已收藏）两套图标 |
 | DOM 查询 | 用 `shared.js` 的 `$id(id)`（记忆化），不要 `document.getElementById`；**例外**：`md-preview.html` 加载 shared.js（供 `SETTINGS_DEFAULTS`/`deobfuscate*` 使用），但 `md-preview.*` 与 `md-*.js` 仍一律用原生 `document.getElementById`，不用 `$id` |
 | Commit message | conventional commits（feat / fix / refactor / perf / docs / style / chore），英文 |
+
+### 同步与备份边界
+
+| 机制 | 数据 | 边界 |
+|------|------|------|
+| Chrome Sync | 普通设置；另行启用时包含凭据 | 每台设备通过 `optSyncEnabled` 参与；不含生词、高亮、缓存或任务状态 |
+| Google Drive | 当前 Pinboard owner 的生词 | runtime 已实现，真实 OAuth 注册和跨客户端 `appDataFolder` 门禁完成前不激活；不接管设置、凭据或高亮 |
+| 手工 JSON schema v3 | 设置、主题，以及用户选择的高亮/笔记和当前 owner 生词 | 导出为明文文件；导入前预览并分项选择；不含 secret、Drive 账号、vector、outbox 或 tombstone |
 
 ## Theme Factory 工作流
 
@@ -160,6 +171,7 @@ bash scripts/release.sh
 
 - **自动包含**（root 下匹配 glob）：`*.html` / `*.js` / `*.css` / `manifest.json`
 - **递归包含目录**：`vendor/` / `icons/` / `_locales/`
+- **扩展 ID 分层**：源码 `manifest.json` 必须不含 `key`，保证本地源码开发版可与 CWS 版并存；`release.sh` 只在 ZIP 内的 manifest 注入 CWS 公钥，使正式解压安装版固定为 CWS ID `pnjndmjhljjbdlbejeenkepdalokfooh`
 - **显式排除**：
   - `tests/`（dev 测试页整目录——不在 INCLUDE_DIRS，自动 skip）
   - `perf-baseline.json` / `perf-after-*.json`（measurement 数据）
@@ -179,6 +191,8 @@ bash scripts/release.sh
 - 解压 ZIP 到临时目录
 - 用 Playwright bundled Chromium + `--load-extension` 安装该 ZIP
 - 校验 Service Worker 注册成功（catch importScripts 404 等）
+- 校验 Release ZIP 的扩展 ID 精确等于 CWS ID（源码目录仍保持独立开发 ID）
+- 校验 `vocab-store.js` / `vocab-gdrive.js` 已由 SW 成功加载，设置页可定位 Drive 生词区
 - 校验 popup.html 打开无 pageerror（catch `ReferenceError` 等）
 - 校验 options.html 打开无 pageerror
 - 任一失败 → release.sh 中止，不发 GitHub release
@@ -197,6 +211,10 @@ bash scripts/release.sh
 - API key、token、password 与导出目标凭据不能硬编码。新用户默认保存在 `chrome.storage.local`；仅当本机 `optSyncEnabled=true` 且账号级 `syncApiKeys=true` 时使用 `chrome.storage.sync`。旧云端已有非空 secret 时迁移保留 `syncApiKeys=true`，避免升级丢失凭据
 - Defuddle 在 popup 打开时**懒注入**，避免冷启动开销；`site-rules.js` 与其成对注入且**先于** Defuddle 运行（命中站点规则即短路）
 - **网络端点与 host 权限不变量**：required host 仅 Pinboard；AI / Jina / Wayback / Gist / Webhook / Free Dictionary API / Eudic、AnkiConnect 精确回环 origin 与 Batch 所选站点，只能从对应的直接用户动作请求当前精确 origin。后台/自动路径只做 `permissions.contains`，禁止运行时申请 wildcard。可配置网络端点必须 HTTPS，HTTP 仅允许字面 `localhost` / `127.0.0.1` / `[::1]`；LAN/public HTTP、凭据 URL 与无权限请求一律阻断并保留配置。升级时一次性清理 legacy all-sites grant。
+- **Google Drive OAuth 激活门禁（当前阻塞）**：源码 manifest 继续无 `key`，Release ZIP 只注入已核验的 CWS 公钥。当前仓库没有真实固定开发公钥/开发扩展 ID、开发 OAuth client、生产 OAuth client，也未完成两个真实 client 对同一 Google 账号的 `appDataFolder` 双向可见性测试，因此 manifest 暂不声明 `identity` / `oauth2`，Drive 生词连接不得宣称可用。补齐真实注册后才可加入可选 `identity`、唯一 scope `drive.appdata` 与 Connect 动作申请的精确 `https://www.googleapis.com/*` origin；严禁占位 client ID 或 client secret。
+- **Google Drive 权限与断开语义**：激活后只有“连接 Google Drive”这一直接用户动作可申请 `identity` 和精确 Google API origin；后台同步只做 `permissions.contains`，SW 启动不得弹 OAuth。断开本设备时移除 token cache 与可选权限，但保留本地生词、outbox、tombstone 和远端 `appDataFolder` 文件。Drive 中保存的是当前 owner 生词的明文应用私有副本，不是端到端加密。
+- **生词同步不变量**：`vocab-store.js` 是 `pbp-vocab` 的唯一写入口。每次本地 mutation 在同一 IDB transaction 中核验 owner，并原子更新 word 或 tombstone、版本向量和 coalesced outbox；删除保留 tombstone，不自动 GC。远端批次用 owner hash 隔离，vector dominance 与稳定 dot 决定收敛；并发删除遇到新修改时 live 胜出并留下持久 notice，用户再次删除后 tombstone 才支配。每个网络 await 和 IDB commit 前都重核验 Pinboard owner 与 Drive `permissionId`，变化时不得推进游标或上传旧账号数据。
+- **手工备份 schema v3**：导出前 flush 待保存设置，payload 通过与导入相同的 preflight；备份含 `_backup` 元数据、设置/主题和可选的当前 owner 高亮/生词，只含运行时 word 字段。导入必须先预览，再由用户分项选择；生词按 100 条通过 store primitive 合并并在每批前后重核验 owner。API key、token、Webhook URL、OAuth、Drive 账号、vector、dot、outbox、tombstone 和 batch 一律不进入备份。
 - **WebDAV 删除清理临时代码（引入 2026-07-24；最早清理 2026-08-24）**：`background.js` 的 `pbpCleanupRemovedWebdav` 会清除旧 `webdav-push` alarm，以及 local/sync 中遗留的 WebDAV 配置和状态。至少保留一个月的升级覆盖；到期后先核查已发布版本和用户升级情况，再删除 `PBP_WEBDAV_REMOVAL_*`、清理函数及对应测试。不得按日期自动删除，历史审计文档继续保留。
 - **防盗链图片修复不变量（`declarativeNetRequestWithHostAccess`，改 md-embed / background 规则代码前必读）**：部分 CDN（实测 cdnfile.sspai.com）**只拒空 Referer**，而扩展页只能发空 Referer（且预览对图片强制 `no-referrer`——这对更常见的"封外站/放空"型防盗链是正确默认，勿改）。修复=**SW 独占**的临时 DNR session rule：① rule id 由 SW 在保留段 786001-786999 内分配，**页面绝不自行分配**（id 是扩展全局的，页面局部计数器必然跨 tab 冲突）；② install / remove / sweep **全部走同一条串行队列**，install 在临界区内用 `tabs.get` 重核验该 tab 仍是**同一预览文档**（否则规则会落到已导航走的普通网站 tab 上）；③ 规则条件必须含 `initiatorDomains:[chrome.runtime.id]`——这是"普通网页请求不可能命中"的**结构性**保证，不是靠清扫抢时间；④ tab 作用域取自 `sender.tab`；删除做 (tab, 文档) owner-check——但 owner 表是 SW 内存态，**SW 重启后降级为仅 tab 校验**（同 tab 跨文档的 id 复用在那个窗口内仍可能误删，属已知残留风险，非不变量）；⑤ 清扫三路：tab 关闭 / 离开预览文档 / 预览页加载时自清（同 URL reload 不触发 `changeInfo.url`，靠第三路兜底）；⑥ 重试取图必须 `cache:"reload"`——失败的 `<img>` 已把 403 写进 HTTP 缓存，`force-cache` 会直接复用它导致规则形同虚设。自动修复只对**已授权 origin** 生效（`permissions.contains`，绝不 prompt），批次在首个 await 前**冻结**（否则等待授权期间新入队的未授权 origin 会混进自动批次）。`zip-install-smoke.mjs` check 5 守护其中五条：跨 tab id 唯一、跨 tab 删除被拒、非预览 tab 拒装、规则带 `initiatorDomains`、离开预览即清扫（**不覆盖** SW 重启后的同 tab 跨文档删除）。
 - **关思考（thinking/reasoning）—— 勿凭记忆改 provider 表**：`ai.js` `OPENAI_COMPAT_PROVIDERS` 每家用 **per-provider `thinkingOff` 方言字段**（非 always-on `extraBody`），经 `_aiWithThinkingFallback` 在 **4xx(400/422) 时去字段重试一次 + `storage.local` 记忆**。根因：model 字段是自由文本，blanket 关思考会把用户切换的不兼容模型打 400。**custom/ollama/groq 不加 thinkingOff**；gemini 走 `thinkingBudget:0`；deepseek 也走 thinkingOff（reasoner 会拒收）。各家已核验字段勿凭记忆改（会 400），核验表见 CC 记忆 `reference_provider_thinking_disable_params`。

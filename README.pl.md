@@ -42,7 +42,7 @@ Rozszerzenie Chrome dla [Pinboard](https://pinboard.in): tagi i streszczenia od 
 ### Personalizacja
 - **13 motywów dla pinboard.in** (Dracula · Nord · Catppuccin · Solarized · …) plus własny CSS
 - **Automatyczna archiwizacja w [Wayback Machine](https://web.archive.org)** — opcjonalnie przy każdym zapisie; strony pozostają dostępne, nawet gdy oryginalny link przestanie działać
-- **Kopia ustawień** — eksport i import pliku JSON, opcjonalnie z wyróżnieniami i notatkami
+- **Kopie zapasowe i synchronizacja** — Chrome Sync udostępnia ustawienia między urządzeniami, na których włączono synchronizację. Synchronizację danych uwierzytelniających trzeba włączyć osobno. Ręczna kopia JSON zawiera ustawienia i może opcjonalnie obejmować zakreślenia, notatki oraz słówka bieżącego konta Pinboard. Synchronizacja tych słówek z Google Drive jest zaimplementowana, ale pozostaje niedostępna do czasu aktywacji OAuth.
 - **9 języków** · konfigurowalne skróty · pamięć lokalna w pierwszej kolejności · zero śledzenia
 
 ![13 motywów dla pinboard.in](docs/cws-assets/originals/screenshot-4-themes.png)
@@ -55,6 +55,8 @@ Lub załaduj rozpakowane z ZIP-a release:
 1. Pobierz najnowszy [ZIP z release](https://github.com/pine2D/Pinboard-Bookmark-Enhanced/releases/latest)
 2. Rozpakuj
 3. `chrome://extensions/` → włącz **Tryb dewelopera** → **Załaduj rozpakowane** → wybierz rozpakowany folder
+
+ZIP z release używa tego samego identyfikatora rozszerzenia co wersja z Chrome Web Store. Dzięki temu Chrome Sync może synchronizować ustawienia po włączeniu ich synchronizacji na każdym urządzeniu. Obu wersji nie można używać jednocześnie w tym samym profilu Chrome. Przed zastąpieniem starszego release wczytanego ręcznie wyeksportuj jego ustawienia, a po wczytaniu nowego release zaimportuj kopię zapasową.
 
 Po instalacji: kliknij ikonę paska narzędzi → wklej swój [token API Pinboard](https://pinboard.in/settings/password) → zapisz
 

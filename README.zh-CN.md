@@ -42,7 +42,7 @@
 ### 个性化
 - **13 套 pinboard.in 主题**（Dracula、Nord、Catppuccin、Solarized 等），支持叠加自定义 CSS
 - **自动存档到 [Wayback Machine](https://web.archive.org)**：可选择每次保存时同步提交；原链接失效后仍能找回网页
-- **设置备份**：通过 JSON 文件导出和导入，可选包含高亮和笔记
+- **备份与同步**：Chrome Sync 只在已开启设置同步的设备之间共享设置，凭据同步需另行开启。手动 JSON 备份包含设置，也可选择包含高亮、笔记和当前 Pinboard 账号的生词。Google Drive 生词同步已实现，但在 OAuth 配置启用前暂不可用；启用后也只同步当前 Pinboard 账号的生词。
 - **9 种语言**、可自定义快捷键、本地优先存储、零追踪
 
 ![13 套 pinboard.in 主题](docs/cws-assets/originals/screenshot-4-themes.png)
@@ -55,6 +55,8 @@
 1. 下载最新的 [release ZIP](https://github.com/pine2D/Pinboard-Bookmark-Enhanced/releases/latest)
 2. 解压
 3. `chrome://extensions/` → 开启**开发者模式** → **加载已解压的扩展程序** → 选择解压后的目录
+
+release ZIP 与 Chrome 网上应用店版本使用相同的扩展 ID；在每台设备上开启设置同步后，Chrome Sync 即可共享设置。两者不能同时安装在同一 Chrome 个人资料中。如果要替换较早的解压安装版，请先导出其设置，再加载新版并导入备份。
 
 安装完成后：点击工具栏图标 → 粘贴你的 [Pinboard API token](https://pinboard.in/settings/password) → 保存
 

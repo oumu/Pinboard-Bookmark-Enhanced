@@ -42,7 +42,7 @@
 ### カスタマイズ
 - **pinboard.in 用テーマ 13 種**（Dracula、Nord、Catppuccin、Solarized など）+ 独自のカスタム CSS
 - **[Wayback Machine](https://web.archive.org) へ自動アーカイブ**：保存のたびに自動送信するよう選べます。元のページが消えても、あとから参照できます
-- **設定のバックアップ**：JSON ファイルで書き出し・読み込み。ハイライトとメモも必要に応じて含められます
+- **バックアップと同期**：有効にしたデバイス間では Chrome Sync で設定を共有できます。認証情報の共有には別の有効化が必要です。手動の JSON バックアップには設定が含まれ、ハイライト、メモ、現在の Pinboard アカウントの単語帳も選択して含められます。Google Drive によるその単語帳の同期は実装済みですが、OAuth の有効化が完了するまでは利用できません。
 - **9 言語対応** · カスタマイズ可能なショートカット · ローカルファースト保存 · トラッキング一切なし
 
 ![pinboard.in 用テーマ 13 種](docs/cws-assets/originals/screenshot-4-themes.png)
@@ -55,6 +55,8 @@
 1. 最新の [リリース ZIP](https://github.com/pine2D/Pinboard-Bookmark-Enhanced/releases/latest) をダウンロード
 2. 解凍
 3. `chrome://extensions/` → **デベロッパーモード** を有効化 → **パッケージ化されていない拡張機能を読み込む** → 解凍したフォルダを選択
+
+リリース ZIP は Chrome ウェブストア版と同じ拡張機能 ID を使用します。各デバイスで設定の同期を有効にすると、Chrome Sync で設定を共有できます。2 つのバージョンを同じ Chrome プロフィールに共存させることはできません。以前のリリース ZIP から移行する場合は、先に設定をエクスポートし、新しいリリースを読み込んでからバックアップをインポートしてください。
 
 インストール後: ツールバーのアイコンをクリック → [Pinboard API トークン](https://pinboard.in/settings/password) を貼り付け → 保存
 

@@ -42,7 +42,7 @@ A Chrome extension for [Pinboard](https://pinboard.in): AI tags and summaries, a
 ### Make Pinboard yours
 - **13 themes for pinboard.in** (Dracula · Nord · Catppuccin · Solarized · …) plus your own custom CSS
 - **Auto-archive to the [Wayback Machine](https://web.archive.org)**: optionally submit every save, so pages stay reachable after the original link dies
-- **Settings backup**: export and import a JSON file, with optional reader highlights and notes
+- **Backup and sync**: Chrome Sync shares settings between devices where you enable it; credential sync is a separate opt-in. Manual JSON backups contain settings and can optionally include reader highlights, notes, and vocabulary from the current Pinboard account. Google Drive sync for that vocabulary is implemented but unavailable until OAuth activation is complete.
 - **9 languages** · configurable shortcuts · local-first storage · zero tracking
 
 ![13 themes for pinboard.in](docs/cws-assets/originals/screenshot-4-themes.png)
@@ -55,6 +55,8 @@ Or load unpacked from a release ZIP:
 1. Download the latest [release ZIP](https://github.com/pine2D/Pinboard-Bookmark-Enhanced/releases/latest)
 2. Unzip
 3. `chrome://extensions/` → enable **Developer mode** → **Load unpacked** → select the unzipped folder
+
+The release ZIP uses the same extension ID as the Chrome Web Store version, so Chrome Sync can share settings after you enable settings sync on each device. The two versions cannot coexist in one Chrome profile. Before replacing an older unpacked release, export its settings; after loading the new release, import that backup.
 
 After installing, click the toolbar icon → paste your [Pinboard API token](https://pinboard.in/settings/password) → save
 

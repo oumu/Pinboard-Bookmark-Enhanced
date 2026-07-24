@@ -5,7 +5,13 @@ title: Pinboard Bookmark Enhanced
 
 # Pinboard Bookmark Enhanced
 
-A Chrome extension that supercharges [Pinboard](https://pinboard.in) bookmarking with AI-powered tags, summaries, and a fully themeable interface.
+A Chrome extension for [Pinboard](https://pinboard.in) with AI tags and summaries, a reader with translation and highlights, and 13 themes for pinboard.in.
+
+## Sync and backup
+
+- Chrome Sync can share settings between devices where you enable it. Credential sync is a separate opt-in.
+- Manual schema v3 JSON backups contain settings and can optionally include reader highlights, notes, and vocabulary from the current Pinboard account.
+- Google Drive sync for the current Pinboard account's vocabulary is implemented but remains unavailable until OAuth activation and cross-client acceptance are complete.
 
 ## Documents
 

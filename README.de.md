@@ -42,7 +42,7 @@ Eine Chrome-Erweiterung für [Pinboard](https://pinboard.in): AI-Tags und Zusamm
 ### Pinboard nach deinem Geschmack
 - **13 Themes für pinboard.in** (Dracula · Nord · Catppuccin · Solarized · …) plus dein eigenes CSS
 - **Automatisch in die [Wayback Machine](https://web.archive.org) archivieren** – auf Wunsch bei jedem Speichern; Seiten bleiben erreichbar, auch wenn der Originallink tot ist
-- **Einstellungen sichern** – als JSON-Datei exportieren und wieder importieren, wahlweise mit Markierungen und Notizen
+- **Sicherung und Synchronisierung**: Chrome Sync teilt Einstellungen nur zwischen Geräten, auf denen du die Synchronisierung aktivierst. Die Synchronisierung von Zugangsdaten musst du separat einschalten. Manuelle JSON-Sicherungen enthalten Einstellungen und auf Wunsch Markierungen, Notizen sowie den Wortschatz des aktuellen Pinboard-Kontos. Die Google-Drive-Synchronisierung dieses Wortschatzes ist implementiert, bleibt aber bis zur Aktivierung von OAuth nicht verfügbar.
 - **9 Sprachen** · anpassbare Tastenkürzel · Speicherung primär lokal · kein Tracking
 
 ![13 Themes für pinboard.in](docs/cws-assets/originals/screenshot-4-themes.png)
@@ -55,6 +55,8 @@ Oder als entpackte Erweiterung aus einem Release-ZIP laden:
 1. Lade das neueste [Release-ZIP](https://github.com/pine2D/Pinboard-Bookmark-Enhanced/releases/latest) herunter
 2. Entpacken
 3. `chrome://extensions/` → **Entwicklermodus** aktivieren → **Entpackte Erweiterung laden** → entpackten Ordner auswählen
+
+Das Release-ZIP verwendet dieselbe Erweiterungs-ID wie die Version aus dem Chrome Web Store. Dadurch kann Chrome Sync die Einstellungen teilen, nachdem die Einstellungssynchronisierung auf jedem Gerät aktiviert wurde. Beide Versionen können nicht gleichzeitig im selben Chrome-Profil installiert sein. Vor dem Wechsel von einem älteren entpackten Release zuerst dessen Einstellungen exportieren und die Sicherung nach dem Laden des neuen Releases importieren.
 
 Nach der Installation: Auf das Symbol in der Symbolleiste klicken → deinen [Pinboard-API-Token](https://pinboard.in/settings/password) einfügen → speichern
 
