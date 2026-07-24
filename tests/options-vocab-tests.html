@@ -783,11 +783,13 @@ check("selection still covers all filtered results beyond rendered chunks", _voc
     window.chrome.runtime.sendMessage = async () => ({
       ok:false, error:"network", status:manualRetryStatus
     });
+    $id("vocab-drive-sync").focus();
     $id("vocab-drive-sync").click();
     await task(); await task();
     check("a failed manual sync renders the returned retry state",
       $id("vocab-drive-pending-words").textContent === "19" &&
-      $id("vocab-drive-error").textContent.includes("vocabDriveRetryAt"));
+      $id("vocab-drive-error").textContent.includes("vocabDriveRetryAt") &&
+      document.activeElement === $id("vocab-drive-sync"));
 
     const staleAliceStatus = {
       ...manualRetryStatus,
@@ -828,11 +830,21 @@ check("selection still covers all filtered results beyond rendered chunks", _voc
     $id("vocab-drive-sync").click();
     await task();
     ++_vocabRenderGen;
-    resolveMutationStale({ ok:true, status:driveStatus });
+    resolveMutationStale({
+      ok:true,
+      status:{
+        ...driveStatus,
+        owner:"stale-old",
+        emailAddress:"stale@example.test",
+        displayName:"Stale Account"
+      }
+    });
     await task(); await task();
     check("a mutation generation change lets its stale Drive action release its own busy state",
       _vocabDriveBusy === false && $id("vocab-drive-sync").disabled === false &&
-      $id("vocab-drive-owner").textContent === "alice");
+      $id("vocab-drive-owner").textContent === "alice" &&
+      $id("vocab-drive-account").textContent.includes("alice@example.test") &&
+      !$id("vocab-drive-account").textContent.includes("stale@example.test"));
 
     _pbpVocabDriveRender(driveStatus);
     window.chrome.runtime.sendMessage = async () => ({
