@@ -25,58 +25,8 @@ async function loadLocale(loc) {
   const msgs = {};
   for (const l of LOCALES) msgs[l] = await loadLocale(l);
 
-  const WEBDAV_STATUS_KEYS = [
-    "webdavSyncUnpaired",
-    "webdavSyncRemoteChanged",
-    "webdavSyncDiverged",
-    "webdavHashMode",
-    "webdavVerifyFailed",
-  ];
-  const WEBDAV_FOLDER_KEYS = [
-    "webdavUrlLabel",
-    "webdavHint",
-    "webdavFolderAdvanced",
-    "webdavFolderModeLabel",
-    "webdavFolderManaged",
-    "webdavFolderManagedHint",
-    "webdavFolderCustom",
-    "webdavRelativePathLabel",
-    "webdavRelativePathHint",
-    "webdavActualLocation",
-    "webdavRelativePathAbsolute",
-    "webdavRelativePathSegments",
-    "webdavRelativePathEncoding",
-    "webdavStageBaseFailed",
-    "webdavStageCreateFailed",
-    "webdavStageWriteFailed",
-    "webdavStageCleanupWarning",
-    "webdavStageLocatorFailed",
-    "webdavMigrationRequired",
-    "webdavMigrationSafety",
-    "webdavMigrationOldLocation",
-    "webdavMigrationNewBase",
-    "webdavMigrationFinalLocation",
-    "webdavMigrationKeepsTarget",
-    "webdavLocationConflict",
-    "webdavUseLocalLocation",
-    "webdavUseRemoteLocation",
-    "webdavClearConfig",
-    "webdavClearConfigConfirm",
-  ];
-  for (const loc of LOCALES) {
-    check(`WebDAV status messages present in ${loc}`,
-      [...WEBDAV_STATUS_KEYS, ...WEBDAV_FOLDER_KEYS].every((key) => !!msgs[loc][key]?.message),
-      `${loc} missing: ${[...WEBDAV_STATUS_KEYS, ...WEBDAV_FOLDER_KEYS]
-        .filter((key) => !msgs[loc][key]?.message).join(", ")}`);
-  }
-  const webdavPlaceholderShape = (message) => JSON.stringify(message?.placeholders || {});
-  check("WebDAV folder message placeholders match English in every locale",
-    LOCALES.every((loc) => WEBDAV_FOLDER_KEYS.every((key) =>
-      !!msgs[loc][key]?.message &&
-      webdavPlaceholderShape(msgs[loc][key]) === webdavPlaceholderShape(msgs.en[key]))));
-  check("Japanese WebDAV path validation names empty segments and consecutive slashes naturally",
-    msgs.ja.webdavRelativePathSegments?.message.includes("空のパス要素（連続するスラッシュ）") &&
-    !msgs.ja.webdavRelativePathSegments?.message.includes("空のパス区切り"));
+  check("Removed WebDAV messages stay absent in every locale",
+    LOCALES.every((loc) => !Object.keys(msgs[loc]).some((key) => key.startsWith("webdav"))));
 
   // H1: AI/Jina cluster must be present and translated (≠ English) in these
   // locales — EXCEPT values that are legitimately identical to English in that
