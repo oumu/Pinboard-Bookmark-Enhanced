@@ -730,7 +730,7 @@
         <div class="vocab-details-body" id="vocab-drive-body">
           <p class="hint vocab-drive-copy" data-i18n="vocabDriveScope">Syncs vocabulary for the current Pinboard account only. Settings and API keys are not synced.</p>
           <p class="hint vocab-drive-copy" id="vocab-drive-disclosure" data-i18n="vocabDriveDisclosure">The extension stores a plaintext copy in its private appDataFolder on your Google Drive. The copy is not end-to-end encrypted and may include words, definitions, notes, source URLs, article titles, and context excerpts.</p>
-          <p id="vocab-drive-state" class="save-status vocab-drive-state" role="status" aria-live="polite"></p>
+          <p id="vocab-drive-state" class="save-status vocab-drive-state" role="status" aria-live="polite" data-i18n="vocabDriveUnavailable">Google Drive vocabulary sync is not available in this build because OAuth activation is still pending.</p>
           <dl id="vocab-drive-fields" class="vocab-drive-fields" hidden>
             <dt data-i18n="vocabDriveAccountLabel">Google account</dt><dd id="vocab-drive-account"></dd>
             <dt data-i18n="vocabDriveOwnerLabel">Pinboard account</dt><dd id="vocab-drive-owner"></dd>
@@ -740,8 +740,8 @@
           </dl>
           <p id="vocab-drive-error" class="field-error" role="status" aria-live="polite"></p>
           <p id="vocab-drive-notices" class="vocab-drive-notices" role="status" aria-live="polite"></p>
-          <div class="vocab-drive-actions">
-            <button type="button" class="btn btn-sm" id="vocab-drive-connect" data-i18n="vocabDriveConnect">Connect Google Drive</button>
+          <div class="vocab-drive-actions" id="vocab-drive-actions" hidden>
+            <button type="button" class="btn btn-sm" id="vocab-drive-connect" data-i18n="vocabDriveConnect" hidden>Connect Google Drive</button>
             <button type="button" class="btn btn-sm" id="vocab-drive-sync" data-i18n="vocabDriveSyncNow" hidden>Sync now</button>
             <button type="button" class="btn btn-sm" id="vocab-drive-disconnect" data-i18n="vocabDriveDisconnect" hidden>Disconnect this device</button>
           </div>

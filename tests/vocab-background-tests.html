@@ -73,6 +73,16 @@ function check(name, ok) { ok ? pass++ : fail++; const row = document.createElem
       .test(boot) &&
     !connect.includes("pbpVocabSchedulePeriodic"));
   check("background never requests optional permissions", !source.includes("chrome.permissions.request(") && !source.includes("permissions.request("));
+  check("inactive OAuth capability gates boot and every Drive message path",
+    source.includes("pbpVocabDriveOAuthActive(chrome.runtime.getManifest())") &&
+    boot.includes("PBP_VOCAB_DRIVE_CAPABLE") &&
+    ["PBP_VOCAB_DIRTY", "vocabDriveConnect", "vocabDriveStatus",
+      "vocabDriveSyncNow", "vocabDriveDisconnect"].every((type) => {
+        const at = messages.indexOf(`message.type === "${type}"`);
+        const next = messages.indexOf("\n  if (message.type ===", at + 1);
+        const handler = messages.slice(at, next > at ? next : messages.length);
+        return handler.includes("PBP_VOCAB_DRIVE_CAPABLE");
+      }));
   document.getElementById("summary").textContent = `pass=${pass} fail=${fail}`;
 })();
 </script></body></html>

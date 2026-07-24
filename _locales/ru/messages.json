@@ -2797,6 +2797,9 @@
     "vocabDriveDisconnected": {
       "message": "Google Диск не подключён на этом устройстве."
     },
+    "vocabDriveUnavailable": {
+      "message": "Синхронизация словаря через Google Диск недоступна в этой сборке: активация OAuth ещё не завершена."
+    },
     "vocabDriveConnected": {
       "message": "Google Диск подключён на этом устройстве."
     },
@@ -2858,6 +2861,9 @@
     },
     "vocabDriveErrorAccountChanged": {
       "message": "Аккаунт Google или Pinboard изменился. Откройте раздел «Слова» заново и повторите попытку."
+    },
+    "vocabDriveErrorEntryTooLarge": {
+      "message": "Размер сохранённого слова или его контекста превышает допустимый для синхронизации. Сократите или удалите эту запись, затем нажмите «Синхронизировать сейчас»."
     },
     "vocabDriveRetryAt": {
       "message": "Следующая попытка: $TIME$.",

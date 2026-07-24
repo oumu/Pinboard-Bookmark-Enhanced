@@ -2797,6 +2797,9 @@
     "vocabDriveDisconnected": {
       "message": "此设备尚未连接 Google Drive。"
     },
+    "vocabDriveUnavailable": {
+      "message": "此版本尚未完成 OAuth 配置，因此暂不支持 Google Drive 生词同步。"
+    },
     "vocabDriveConnected": {
       "message": "此设备已连接 Google Drive。"
     },
@@ -2858,6 +2861,9 @@
     },
     "vocabDriveErrorAccountChanged": {
       "message": "Google 账号或 Pinboard 账号已切换。请重新打开“生词”后再试。"
+    },
+    "vocabDriveErrorEntryTooLarge": {
+      "message": "有一条生词或其上下文内容过大，无法同步。请缩短或删除该条内容，然后点击“立即同步”。"
     },
     "vocabDriveRetryAt": {
       "message": "下次重试：$TIME$。",

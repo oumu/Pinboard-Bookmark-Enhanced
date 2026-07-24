@@ -2797,6 +2797,9 @@
     "vocabDriveDisconnected": {
       "message": "Google Drive n'est pas connecté sur cet appareil."
     },
+    "vocabDriveUnavailable": {
+      "message": "La synchronisation du vocabulaire avec Google Drive n'est pas disponible dans cette version, car l'activation OAuth n'est pas terminée."
+    },
     "vocabDriveConnected": {
       "message": "Google Drive est connecté sur cet appareil."
     },
@@ -2858,6 +2861,9 @@
     },
     "vocabDriveErrorAccountChanged": {
       "message": "Le compte Google ou Pinboard a changé. Rouvrez l'onglet Vocabulaire et réessayez."
+    },
+    "vocabDriveErrorEntryTooLarge": {
+      "message": "Un mot enregistré ou son contexte est trop volumineux pour être synchronisé. Raccourcissez ou supprimez l'entrée, puis sélectionnez « Synchroniser maintenant »."
     },
     "vocabDriveRetryAt": {
       "message": "Prochaine tentative : $TIME$.",

@@ -777,6 +777,55 @@ function syncHarness(options = {}) {
       readerCancelled && !JSON.stringify(readerResult).includes("private reader message");
   });
 
+  await asyncCheck("request timeout aborts a fetch that never returns headers", async () => {
+    let signal = null;
+    const client = pbpCreateVocabDriveClient({
+      identity: identityFixture(),
+      timeoutMs: 1,
+      fetchImpl: (_url, init) => new Promise((_resolve, reject) => {
+        signal = init.signal;
+        signal.addEventListener("abort", () => reject(signal.reason), { once: true });
+      })
+    });
+    const result = await client.about();
+    return signal instanceof AbortSignal && signal.aborted &&
+      !result.ok && result.error === "network" && result.retryable === true;
+  });
+
+  await asyncCheck("request timeout aborts a stalled response body read", async () => {
+    let signal = null;
+    const client = pbpCreateVocabDriveClient({
+      identity: identityFixture(),
+      timeoutMs: 1,
+      fetchImpl: async (_url, init) => {
+        signal = init.signal;
+        return new Response(new ReadableStream({
+          start(controller) {
+            signal.addEventListener("abort", () => controller.error(signal.reason), { once: true });
+          }
+        }));
+      }
+    });
+    const result = await client.download(DRIVE_FILE_ID);
+    return signal instanceof AbortSignal && signal.aborted &&
+      !result.ok && result.error === "network" && result.retryable === true;
+  });
+
+  await asyncCheck("invalid timeout input falls back to a safe live signal", async () => {
+    let signal = null;
+    const client = pbpCreateVocabDriveClient({
+      identity: identityFixture(),
+      timeoutMs: 0.5,
+      fetchImpl: async (_url, init) => {
+        signal = init.signal;
+        return jsonResponse({ user: { permissionId: "perm-a" } });
+      }
+    });
+    const result = await client.about();
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    return result.ok && signal instanceof AbortSignal && !signal.aborted;
+  });
+
   await asyncCheck("generateIds uses exact one-ID appDataFolder query", async () => {
     const calls = [];
     const opaqueId = "opaque/+? id";
@@ -1235,6 +1284,43 @@ function syncHarness(options = {}) {
     const result = await h.runner()();
     return result.ok && h.calls.includes("freeze:generated-batch") &&
       h.outbox.length === 0 && h.pending.length === 0;
+  });
+
+  await asyncCheck("oversized local entry stays blocked and recoverable without leaving the outbox", async () => {
+    const oversized = sizedEntry(TEST_MAX_BYTES + 1, "Oversized");
+    const h = syncHarness({
+      outbox: [{
+        key: `outbox:${OWNER_SCOPE}:${oversized.recordKey}`,
+        owner: OWNER_SCOPE,
+        recordKey: oversized.recordKey,
+        event: oversized
+      }],
+      changePages: [
+        { changes: [], nextPageToken: null, newStartPageToken: "stable-one" },
+        { changes: [], nextPageToken: null, newStartPageToken: "stable-two" }
+      ]
+    });
+    const first = await h.runner()();
+    const blocked = h.preflight();
+    const blockedAccount = h.state();
+    const openCount = h.calls.filter((call) => call.startsWith("open-session:")).length;
+    const repeated = await h.runner()();
+    const repeatedOpenCount = h.calls.filter((call) => call.startsWith("open-session:")).length;
+    const corrected = live("Corrected");
+    h.outbox.splice(0, 1, {
+      key: `outbox:${OWNER_SCOPE}:${corrected.recordKey}`,
+      owner: OWNER_SCOPE,
+      recordKey: corrected.recordKey,
+      event: corrected
+    });
+    const recovered = await h.runner()({ force: true });
+    return !first.ok && first.error === "entry_too_large" &&
+      blocked?.lastError === "entry_too_large" && blocked.blocked === true &&
+      blockedAccount?.lastError === "entry_too_large" &&
+      !repeated.ok && repeated.error === "entry_too_large" &&
+      repeatedOpenCount === openCount &&
+      recovered.ok && h.preflight() === null && h.outbox.length === 0 &&
+      !h.calls.some((call) => call.includes(oversized.value.note));
   });
 
   await asyncCheck("a mutation after freeze remains in the outbox", async () => {

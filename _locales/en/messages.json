@@ -2797,6 +2797,9 @@
     "vocabDriveDisconnected": {
       "message": "Google Drive is not connected on this device."
     },
+    "vocabDriveUnavailable": {
+      "message": "Google Drive vocabulary sync is not available in this build because OAuth activation is still pending."
+    },
     "vocabDriveConnected": {
       "message": "Google Drive is connected on this device."
     },
@@ -2858,6 +2861,9 @@
     },
     "vocabDriveErrorAccountChanged": {
       "message": "The Google account or Pinboard account changed. Reopen Vocabulary and try again."
+    },
+    "vocabDriveErrorEntryTooLarge": {
+      "message": "A saved word or its context is too large to sync. Shorten or remove it, then click Sync now."
     },
     "vocabDriveRetryAt": {
       "message": "Next retry: $TIME$.",

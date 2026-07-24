@@ -2797,6 +2797,9 @@
     "vocabDriveDisconnected": {
       "message": "Dysk Google nie jest połączony na tym urządzeniu."
     },
+    "vocabDriveUnavailable": {
+      "message": "Synchronizacja słówek z Dyskiem Google nie jest dostępna w tej wersji, ponieważ aktywacja OAuth nie została jeszcze ukończona."
+    },
     "vocabDriveConnected": {
       "message": "Dysk Google jest połączony na tym urządzeniu."
     },
@@ -2858,6 +2861,9 @@
     },
     "vocabDriveErrorAccountChanged": {
       "message": "Konto Google lub Pinboard uległo zmianie. Otwórz ponownie kartę Słówka i spróbuj jeszcze raz."
+    },
+    "vocabDriveErrorEntryTooLarge": {
+      "message": "Jeden z zapisanych wpisów lub jego kontekst jest zbyt duży do synchronizacji. Skróć lub usuń ten wpis, a następnie wybierz „Synchronizuj teraz”."
     },
     "vocabDriveRetryAt": {
       "message": "Następna próba: $TIME$.",

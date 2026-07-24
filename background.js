@@ -1433,19 +1433,28 @@ pbpMigrateSecretsToLocal().catch(() => {});
 
 const PBP_VOCAB_DRIVE_CONNECTED_KEY = "vocabDriveConnected";
 const PBP_GOOGLE_API_ORIGIN = "https://www.googleapis.com/*";
+const PBP_VOCAB_DRIVE_CAPABLE =
+  pbpVocabDriveOAuthActive(chrome.runtime.getManifest());
 const queueVocabSync = pbpCreateRecoveringTail();
-const vocabDriveClient = pbpCreateVocabDriveClient();
-const runVocabDriveSync = pbpCreateVocabDriveSyncRunner({
-  client: vocabDriveClient,
-  getCurrentPinboardAuth,
-  pinboardAuthIsCurrent: pbpPinboardAuthIsCurrent
-});
+const vocabDriveClient = PBP_VOCAB_DRIVE_CAPABLE
+  ? pbpCreateVocabDriveClient() : null;
+const runVocabDriveSync = PBP_VOCAB_DRIVE_CAPABLE
+  ? pbpCreateVocabDriveSyncRunner({
+      client: vocabDriveClient,
+      getCurrentPinboardAuth,
+      pinboardAuthIsCurrent: pbpPinboardAuthIsCurrent
+    })
+  : null;
 
 function pbpQueueVocabDriveSync(options) {
+  if (!PBP_VOCAB_DRIVE_CAPABLE) {
+    return Promise.resolve({ ok: false, error: "unavailable", retryable: false });
+  }
   return queueVocabSync(async () => runVocabDriveSync(options));
 }
 
 async function pbpVocabDriveIsConnected() {
+  if (!PBP_VOCAB_DRIVE_CAPABLE) return false;
   const stored = await chrome.storage.local.get(PBP_VOCAB_DRIVE_CONNECTED_KEY);
   return stored[PBP_VOCAB_DRIVE_CONNECTED_KEY] === true;
 }
@@ -1499,6 +1508,7 @@ async function pbpVocabDriveResponse(result) {
 }
 
 async function pbpBootVocabDriveSync() {
+  if (!PBP_VOCAB_DRIVE_CAPABLE) return { ok: true };
   if (!await pbpVocabDriveIsConnected()) return { ok: true };
   const granted = await chrome.permissions.contains({
     permissions: ["identity"],
@@ -1517,6 +1527,9 @@ async function pbpBootVocabDriveSync() {
 }
 
 async function pbpDisconnectVocabDrive() {
+  if (!PBP_VOCAB_DRIVE_CAPABLE) {
+    return { ok: false, error: "unavailable" };
+  }
   let token = "";
   try {
     const result = await chrome.identity.getAuthToken({ interactive: false });
@@ -1714,6 +1727,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   noteActivity(); // using the popup keeps the SW warm for the next open
 
   if (message.type === "PBP_VOCAB_DIRTY") {
+    if (!PBP_VOCAB_DRIVE_CAPABLE) {
+      sendResponse({ ok: false, error: "unavailable" });
+      return true;
+    }
     pbpVocabDriveIsConnected()
       .then((connected) => connected
         ? pbpVocabScheduleDirty(chrome.alarms)
@@ -1724,6 +1741,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.type === "vocabDriveConnect") {
+    if (!PBP_VOCAB_DRIVE_CAPABLE) {
+      sendResponse({ ok: false, error: "unavailable" });
+      return true;
+    }
     chrome.storage.local.set({ [PBP_VOCAB_DRIVE_CONNECTED_KEY]: true })
       .then(() => pbpQueueVocabDriveSync({ interactive: true, force: true }))
       .then(async (result) => {
@@ -1738,6 +1759,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.type === "vocabDriveStatus") {
+    if (!PBP_VOCAB_DRIVE_CAPABLE) {
+      sendResponse({ ok: false, error: "unavailable" });
+      return true;
+    }
     pbpGetVocabDriveStatus()
       .then((status) => sendResponse({ ok: true, status }))
       .catch(() => sendResponse({ ok: false, error: "remote" }));
@@ -1745,6 +1770,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.type === "vocabDriveSyncNow") {
+    if (!PBP_VOCAB_DRIVE_CAPABLE) {
+      sendResponse({ ok: false, error: "unavailable" });
+      return true;
+    }
     pbpVocabDriveIsConnected()
       .then(async (connected) => {
         if (!connected) return { ok: false, error: "auth" };
@@ -1761,6 +1790,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.type === "vocabDriveDisconnect") {
+    if (!PBP_VOCAB_DRIVE_CAPABLE) {
+      sendResponse({ ok: false, error: "unavailable" });
+      return true;
+    }
     queueVocabSync(async () => pbpDisconnectVocabDrive())
       .then(sendResponse)
       .catch(() => sendResponse({ ok: false, error: "remote" }));

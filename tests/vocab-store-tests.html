@@ -241,6 +241,15 @@ async function runIdbChecks() {
     JSON.stringify(preflightPreserved) === JSON.stringify(preflight) &&
     preflightDeleted &&
     await pbpVocabGetPreflightState(OWNER_HASH_A) === null);
+  const oversizedPreflight = {
+    ...preflight, retryAttempt: 0, retryAt: null,
+    lastError: "entry_too_large", blocked: true
+  };
+  const oversizedPreflightPut = await pbpVocabPutPreflightState(oversizedPreflight);
+  const oversizedPreflightRead = await pbpVocabGetPreflightState(OWNER_HASH_A);
+  check("entry-too-large preflight state remains actionable across restarts",
+    oversizedPreflightPut &&
+    JSON.stringify(oversizedPreflightRead) === JSON.stringify(oversizedPreflight));
 
   const legacy = word("acct_legacy", "Migrate", { gloss: "legacy", createdAt: 1, updatedAt: 1 });
   await seedV1Word(legacy);

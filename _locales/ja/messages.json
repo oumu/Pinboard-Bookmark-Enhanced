@@ -2797,6 +2797,9 @@
     "vocabDriveDisconnected": {
       "message": "このデバイスは Google Drive に接続されていません。"
     },
+    "vocabDriveUnavailable": {
+      "message": "このビルドでは OAuth の有効化が完了していないため、Google Drive の単語帳同期は利用できません。"
+    },
     "vocabDriveConnected": {
       "message": "このデバイスは Google Drive に接続されています。"
     },
@@ -2858,6 +2861,9 @@
     },
     "vocabDriveErrorAccountChanged": {
       "message": "Google アカウントまたは Pinboard アカウントが変わりました。「単語」を開き直して、もう一度お試しください。"
+    },
+    "vocabDriveErrorEntryTooLarge": {
+      "message": "保存した単語またはその文脈が大きすぎるため同期できません。内容を短くするか削除してから、「今すぐ同期」をクリックしてください。"
     },
     "vocabDriveRetryAt": {
       "message": "次回の再試行：$TIME$。",

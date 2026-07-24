@@ -13,6 +13,22 @@ const TEXTAREA_MAX_HEIGHT = 300;
 const TAG_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
 const OVERLAY_BYTE_LIMIT = 50 * 1024;
 const PBP_JINA_ORIGIN_PATTERN = "https://r.jina.ai/*";
+const PBP_VOCAB_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.appdata";
+const PBP_VOCAB_DRIVE_ORIGIN_PATTERN = "https://www.googleapis.com/*";
+
+function pbpVocabDriveOAuthActive(manifest) {
+  const permissions = Array.isArray(manifest?.optional_permissions)
+    ? manifest.optional_permissions : [];
+  const scopes = Array.isArray(manifest?.oauth2?.scopes)
+    ? manifest.oauth2.scopes : [];
+  const hosts = Array.isArray(manifest?.optional_host_permissions)
+    ? manifest.optional_host_permissions : [];
+  return permissions.includes("identity") &&
+    typeof manifest?.oauth2?.client_id === "string" &&
+    manifest.oauth2.client_id.trim().length > 0 &&
+    scopes.length === 1 && scopes[0] === PBP_VOCAB_DRIVE_SCOPE &&
+    (hosts.includes(PBP_VOCAB_DRIVE_ORIGIN_PATTERN) || hosts.includes("*://*/*"));
+}
 // Inline SVG icons — replace emoji/color-glyphs that trigger a 1-3s Segoe UI Emoji
 // font-load stall on Windows high-DPI Chrome (DirectWrite system-font enumeration,
 // cached process-wide after first paint). currentColor = inherits theme text color.

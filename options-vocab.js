@@ -526,8 +526,26 @@ function _pbpVocabDriveErrorKey(code) {
     permission: "vocabDriveErrorPermission",
     corrupt: "vocabDriveErrorCorrupt",
     network: "vocabDriveErrorNetwork",
-    account_changed: "vocabDriveErrorAccountChanged"
+    account_changed: "vocabDriveErrorAccountChanged",
+    entry_too_large: "vocabDriveErrorEntryTooLarge"
   })[code] || "vocabDriveErrorRemote";
+}
+
+function _pbpVocabDriveAvailable() {
+  try {
+    return pbpVocabDriveOAuthActive(chrome.runtime.getManifest());
+  } catch (_) {
+    return false;
+  }
+}
+
+function _pbpVocabDriveRenderUnavailable() {
+  _pbpVocabDriveClear();
+  const actions = $id("vocab-drive-actions");
+  if (actions) actions.hidden = true;
+  const state = $id("vocab-drive-state");
+  if (state) state.textContent = t("vocabDriveUnavailable");
+  _pbpVocabDriveSetBusy(false);
 }
 
 function _pbpVocabDriveShowError(code, retryAt, blocked) {
@@ -536,7 +554,9 @@ function _pbpVocabDriveShowError(code, retryAt, blocked) {
   const parts = [t(_pbpVocabDriveErrorKey(code))];
   const retry = _pbpVocabDriveDate(retryAt);
   if (retry) parts.push(t("vocabDriveRetryAt", retry));
-  if (blocked) parts.push(t("vocabDriveReconnectRequired"));
+  if (blocked && code !== "entry_too_large") {
+    parts.push(t("vocabDriveReconnectRequired"));
+  }
   setStatusIcon(el, false, parts.join(" "));
 }
 
@@ -555,7 +575,13 @@ function _pbpVocabDriveSetBusy(busy, focusOwner) {
 }
 
 function _pbpVocabDriveRender(status) {
+  if (!_pbpVocabDriveAvailable()) {
+    _pbpVocabDriveRenderUnavailable();
+    return;
+  }
   _pbpVocabDriveClear();
+  const actions = $id("vocab-drive-actions");
+  if (actions) actions.hidden = false;
   const connected = status?.connected === true;
   const state = $id("vocab-drive-state");
   const connect = $id("vocab-drive-connect");
@@ -613,6 +639,10 @@ function _pbpVocabDriveApplyResponse(response, fallbackStatus) {
 }
 
 async function _pbpVocabDriveRefresh(gen, requestSync) {
+  if (!_pbpVocabDriveAvailable()) {
+    _pbpVocabDriveRenderUnavailable();
+    return;
+  }
   let actionSeq = 0;
   const loading = $id("vocab-drive-state");
   if (loading) loading.textContent = t("vocabDriveLoading");
@@ -646,6 +676,10 @@ async function _pbpVocabDriveRefresh(gen, requestSync) {
 }
 
 async function _pbpVocabDriveSend(type, force, gen, actionSeq, sourceButton, focusTargetId) {
+  if (!_pbpVocabDriveAvailable()) {
+    _pbpVocabDriveRenderUnavailable();
+    return;
+  }
   try {
     const message = { type };
     if (force === true) message.force = true;
@@ -670,7 +704,7 @@ async function _pbpVocabDriveSend(type, force, gen, actionSeq, sourceButton, foc
 }
 
 async function _pbpVocabDriveConnect() {
-  if (_vocabDriveBusy) return;
+  if (_vocabDriveBusy || !_pbpVocabDriveAvailable()) return;
   const gen = _vocabRenderGen;
   const actionSeq = ++_vocabDriveActionSeq;
   const sourceButton = $id("vocab-drive-connect");
@@ -698,7 +732,7 @@ async function _pbpVocabDriveConnect() {
 }
 
 async function _pbpVocabDriveAction(type, force, focusTargetId) {
-  if (_vocabDriveBusy) return;
+  if (_vocabDriveBusy || !_pbpVocabDriveAvailable()) return;
   const gen = _vocabRenderGen;
   const actionSeq = ++_vocabDriveActionSeq;
   const sourceButton = type === "vocabDriveDisconnect"
@@ -720,7 +754,8 @@ async function renderVocabPanel() {
   ++_vocabDriveActionSeq;
   _pbpVocabDriveClear();
   _pbpVocabDriveSetBusy(false);
-  _pbpVocabDriveRefresh(gen, true);
+  if (_pbpVocabDriveAvailable()) _pbpVocabDriveRefresh(gen, true);
+  else _pbpVocabDriveRenderUnavailable();
   // Clear first, before any await: an account-change render must never leave
   // the previous owner's rows, selection, or derived group names visible.
   _pbpVocabClearVisibleState();

@@ -579,7 +579,9 @@ function _pbpVocabValidOwnerHash(value) {
 }
 
 function _pbpVocabValidPreflightState(state) {
-  const errors = new Set(["auth", "permission", "corrupt", "remote", "network"]);
+  const errors = new Set([
+    "auth", "permission", "corrupt", "remote", "network", "entry_too_large"
+  ]);
   return _pbpVocabPlainObject(state) &&
     _pbpVocabOnlyKeys(state, [
       "key", "ownerHash", "retryAttempt", "retryAt", "lastError", "blocked"

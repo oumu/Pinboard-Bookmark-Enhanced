@@ -30,8 +30,8 @@ body{font-family:monospace;padding:16px}.case{padding:5px;border-bottom:1px soli
       </dl>
       <p id="vocab-drive-error" class="field-error" role="status" aria-live="polite"></p>
       <p id="vocab-drive-notices" class="vocab-drive-notices" role="status" aria-live="polite"></p>
-      <div class="vocab-drive-actions">
-        <button id="vocab-drive-connect"></button>
+      <div class="vocab-drive-actions" id="vocab-drive-actions" hidden>
+        <button id="vocab-drive-connect" hidden></button>
         <button id="vocab-drive-sync" hidden></button>
         <button id="vocab-drive-disconnect" hidden></button>
       </div>
@@ -70,6 +70,29 @@ const sample = [
   { id:"b", term:"word10", lemma:"", gloss:"Tenth item", note:"", groups:["Numbers"], contexts:[], updatedAt:10 },
   { id:"c", term:"word2", lemma:"", gloss:"Second item", note:"", groups:[], contexts:[], updatedAt:20 }
 ];
+const activeDriveManifest = {
+  optional_permissions:["identity"],
+  optional_host_permissions:["*://*/*"],
+  oauth2:{
+    client_id:"test-client.apps.googleusercontent.com",
+    scopes:["https://www.googleapis.com/auth/drive.appdata"]
+  }
+};
+check("Drive OAuth capability rejects the current inactive manifest",
+  typeof pbpVocabDriveOAuthActive === "function" &&
+  pbpVocabDriveOAuthActive({ optional_host_permissions:["*://*/*"] }) === false);
+check("Drive OAuth capability accepts only the complete exact contract",
+  typeof pbpVocabDriveOAuthActive === "function" &&
+  pbpVocabDriveOAuthActive(activeDriveManifest) === true &&
+  pbpVocabDriveOAuthActive({
+    ...activeDriveManifest,
+    oauth2:{ ...activeDriveManifest.oauth2, scopes:[
+      ...activeDriveManifest.oauth2.scopes, "https://www.googleapis.com/auth/drive.file"
+    ] }
+  }) === false &&
+  pbpVocabDriveOAuthActive({
+    ...activeDriveManifest, optional_permissions:[]
+  }) === false);
 
 check("vocabulary echo defaults on for new profiles",
   SETTINGS_DEFAULTS.dictEchoEnabled === true,
@@ -654,7 +677,29 @@ check("selection still covers all filtered results beyond rendered chunks", _voc
   try {
     window.chrome = {
       permissions:{ request: async (request) => { permissionRequests.push(request); return true; } },
-      runtime:{ sendMessage: driveResponse },
+      runtime:{
+        getManifest:() => ({ optional_host_permissions:["*://*/*"] }),
+        sendMessage:driveResponse
+      },
+      storage:{ onChanged:{ addListener(){} } }
+    };
+    pbpVocabCurrentOwner = async () => "acct_alice";
+    pbpVocabAll = async () => [];
+    await renderVocabPanel();
+    $id("vocab-drive-connect").click();
+    $id("vocab-drive-sync").click();
+    await task(); await task();
+    check("inactive OAuth build exposes a persistent unavailable state and no Drive actions",
+      $id("vocab-drive-state").textContent.includes("vocabDriveUnavailable") &&
+      $id("vocab-drive-actions").hidden &&
+      $id("vocab-drive-connect").hidden &&
+      getComputedStyle($id("vocab-drive-connect")).display === "none");
+    check("inactive OAuth build neither requests permissions nor sends Drive messages",
+      permissionRequests.length === 0 && driveMessages.length === 0);
+
+    window.chrome = {
+      permissions:{ request: async (request) => { permissionRequests.push(request); return true; } },
+      runtime:{ getManifest:() => activeDriveManifest, sendMessage: driveResponse },
       storage:{ onChanged:{ addListener(){} } }
     };
 
@@ -772,6 +817,13 @@ check("selection still covers all filtered results beyond rendered chunks", _voc
       !$id("vocab-drive-error").textContent.includes("vocabDriveErrorNetwork") &&
       $id("vocab-drive-error").textContent.includes("vocabDriveReconnectRequired") &&
       $id("vocab-drive-error").textContent.includes("vocabDriveRetryAt"));
+
+    _pbpVocabDriveRender({
+      ...driveStatus, retryAt:null, lastError:"entry_too_large", blocked:true
+    });
+    check("oversized vocabulary error gives correction guidance without reconnect advice",
+      $id("vocab-drive-error").textContent.includes("vocabDriveErrorEntryTooLarge") &&
+      !$id("vocab-drive-error").textContent.includes("vocabDriveReconnectRequired"));
 
     const manualRetryStatus = {
       ...driveStatus,
@@ -917,6 +969,8 @@ check("selection still covers all filtered results beyond rendered chunks", _voc
       /<details class="vocab-disclosure" data-acc-key="vocab-google-drive" open>/.test(optionsSource) &&
       /id="vocab-drive-disclosure" data-i18n="vocabDriveDisclosure"/.test(optionsSource) &&
       /id="vocab-drive-state"[^>]*role="status"[^>]*aria-live="polite"/.test(optionsSource) &&
+      /id="vocab-drive-actions"[^>]*hidden/.test(optionsSource) &&
+      /id="vocab-drive-connect"[^>]*hidden/.test(optionsSource) &&
       ["vocab-drive-connect", "vocab-drive-sync", "vocab-drive-disconnect"].every((id) =>
         new RegExp(`<button type="button"[^>]*id="${id}"`).test(optionsSource)));
 

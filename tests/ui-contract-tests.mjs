@@ -72,8 +72,11 @@ check(releaseSh.includes("RELEASE_EXTENSION_ID = 'pnjndmjhljjbdlbejeenkepdalokfo
 check(zipInstallSmoke.includes("const EXPECTED_EXTENSION_ID = 'pnjndmjhljjbdlbejeenkepdalokfooh';") &&
   zipInstallSmoke.includes("'vocab-store.js'") &&
   zipInstallSmoke.includes("'vocab-gdrive.js'") &&
-  zipInstallSmoke.includes('#vocab-drive-connect'),
-  "zip-install-smoke.mjs: release ID, vocabulary runtime files, or Drive options card are not verified");
+  zipInstallSmoke.includes("hasDriveOAuthCapability(packagedManifest)") &&
+  zipInstallSmoke.includes("simulatedActiveDriveManifest") &&
+  zipInstallSmoke.includes("OAuth-inactive manifest exposed Google Drive actions") &&
+  zipInstallSmoke.includes("OAuth-active manifest did not expose Connect Google Drive"),
+  "zip-install-smoke.mjs: release ID, vocabulary runtime, or both Drive OAuth UI states are not verified");
 {
   const storage = privacyMd.slice(
     privacyMd.indexOf("## Data storage"),

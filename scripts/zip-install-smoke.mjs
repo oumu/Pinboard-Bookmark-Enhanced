@@ -24,7 +24,7 @@
 //   2 → tooling/env error (no playwright, no ZIP, etc.)
 
 import { createRequire } from 'node:module';
-import { existsSync, mkdtempSync, readdirSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { tmpdir } from 'node:os';
@@ -97,7 +97,40 @@ if (subdirs.length !== 1) {
 }
 const extPath = join(extractDir, subdirs[0]);
 const userDataDir = join(tmpRoot, 'profile');
-
+const packagedManifest = JSON.parse(readFileSync(join(extPath, 'manifest.json'), 'utf8'));
+function hasDriveOAuthCapability(manifest) {
+  const scopes = Array.isArray(manifest.oauth2?.scopes) ? manifest.oauth2.scopes : [];
+  const hosts = Array.isArray(manifest.optional_host_permissions)
+    ? manifest.optional_host_permissions : [];
+  return Array.isArray(manifest.optional_permissions) &&
+    manifest.optional_permissions.includes('identity') &&
+    typeof manifest.oauth2?.client_id === 'string' &&
+    manifest.oauth2.client_id.trim().length > 0 &&
+    scopes.length === 1 &&
+    scopes[0] === 'https://www.googleapis.com/auth/drive.appdata' &&
+    (hosts.includes('https://www.googleapis.com/*') || hosts.includes('*://*/*'));
+}
+const driveOAuthActive = hasDriveOAuthCapability(packagedManifest);
+const simulatedActiveDriveManifest = {
+  optional_permissions: ['identity'],
+  optional_host_permissions: ['https://www.googleapis.com/*'],
+  oauth2: {
+    client_id: 'smoke-test.apps.googleusercontent.com',
+    scopes: ['https://www.googleapis.com/auth/drive.appdata'],
+  },
+};
+if (!hasDriveOAuthCapability(simulatedActiveDriveManifest) ||
+    hasDriveOAuthCapability({
+      ...simulatedActiveDriveManifest,
+      oauth2: {
+        ...simulatedActiveDriveManifest.oauth2,
+        scopes: [...simulatedActiveDriveManifest.oauth2.scopes, 'extra'],
+      },
+    })) {
+  console.error('[zip-smoke] Drive OAuth capability contract is inconsistent');
+  cleanup();
+  process.exit(1);
+}
 function cleanup() {
   if (KEEP_TMP) {
     console.log(`[zip-smoke] --keep-tmp: tmp preserved at ${tmpRoot}`);
@@ -238,9 +271,27 @@ async function checkExtensionPage(number, name, waitMs) {
   try {
     await page.goto(`${extensionBase}${name}.html`, { waitUntil: 'domcontentloaded', timeout: 10000 });
     await new Promise(r => setTimeout(r, waitMs));
-    if (name === 'options' &&
-        await page.locator('[data-acc-key="vocab-google-drive"] #vocab-drive-connect').count() !== 1) {
-      failures.push('Google Drive vocabulary controls not found');
+    if (name === 'options') {
+      await page.locator('#tab-vocab').click();
+      const connect = page.locator('#vocab-drive-connect');
+      const actions = page.locator('#vocab-drive-actions');
+      const state = page.locator('#vocab-drive-state');
+      if (await connect.count() !== 1) {
+        failures.push('Google Drive vocabulary control not found');
+      } else if (driveOAuthActive) {
+        if (!await connect.isVisible()) {
+          failures.push('OAuth-active manifest did not expose Connect Google Drive');
+        }
+      } else {
+        if (await connect.isVisible() || await actions.isVisible()) {
+          failures.push('OAuth-inactive manifest exposed Google Drive actions');
+        }
+        const expected = await page.evaluate(() =>
+          chrome.i18n.getMessage('vocabDriveUnavailable'));
+        if ((await state.textContent())?.trim() !== expected) {
+          failures.push('OAuth-inactive manifest did not show the unavailable status');
+        }
+      }
     }
   } catch (e) {
     failures.push(`navigation failed: ${e.message}`);

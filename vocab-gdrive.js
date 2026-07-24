@@ -143,11 +143,16 @@ function pbpCreateVocabDriveClient({
   fetchImpl = fetch,
   identity = chrome.identity,
   now = Date.now,
-  random = Math.random
+  random = Math.random,
+  timeoutMs = 30000
 } = {}) {
   const apiBase = "https://www.googleapis.com/drive/v3";
   const uploadBase = "https://www.googleapis.com/upload/drive/v3/files";
   const metadataFields = "id,name,appProperties,parents,mimeType";
+  const requestedTimeoutMs = Math.floor(timeoutMs);
+  const requestTimeoutMs = Number.isFinite(timeoutMs) && requestedTimeoutMs >= 1
+    ? Math.min(2147483647, requestedTimeoutMs) : 30000;
+  const responseSignals = new WeakMap();
   const filePrefix = (fileId) => typeof fileId === "string" ? fileId.slice(0, 8) : undefined;
   const failure = (error, retryable, status, fileId) => {
     const result = { ok: false, error, retryable };
@@ -160,14 +165,20 @@ function pbpCreateVocabDriveClient({
 
   async function requestWithToken(token, url, init = {}, fileId) {
     let response;
+    const timeoutSignal = AbortSignal.timeout(requestTimeoutMs);
+    const signal = init.signal
+      ? AbortSignal.any([init.signal, timeoutSignal])
+      : timeoutSignal;
     try {
       response = await fetchImpl(url, {
         ...init,
+        signal,
         headers: { ...(init.headers || {}), Authorization: `Bearer ${token}` }
       });
     } catch (_) {
       return failure("network", true, undefined, fileId);
     }
+    if (response && typeof response === "object") responseSignals.set(response, signal);
     return { ok: true, response };
   }
 
@@ -213,6 +224,9 @@ function pbpCreateVocabDriveClient({
           ) || "";
         }
       } catch (_) {}
+      if (responseSignals.get(response)?.aborted) {
+        return failure("network", true, undefined, fileId);
+      }
       if (reason === "rateLimitExceeded" || reason === "userRateLimitExceeded") {
         return failure("rate_limited", true, status, fileId);
       }
@@ -229,6 +243,9 @@ function pbpCreateVocabDriveClient({
     try {
       return { ok: true, value: await response.json() };
     } catch (_) {
+      if (responseSignals.get(response)?.aborted) {
+        return failure("network", true, undefined, fileId);
+      }
       return failure("invalid_response", false, response.status, fileId);
     }
   }
@@ -614,12 +631,15 @@ function pbpCreateVocabDriveSyncRunner({
     }
     if (source?.retryable) return { ok: false, error: "network", retryable: true };
     if (source?.error === "auth") return { ok: false, error: "auth", retryable: false };
+    if (source?.error === "entry_too_large") {
+      return { ok: false, error: "entry_too_large", retryable: false };
+    }
     if (source?.error === "permission" || source?.error === "corrupt" ||
         source?.error === "remote") {
       return { ok: false, error: source.error, retryable: false };
     }
     if (source?.error === "invalid_response" || source?.error === "id_collision" ||
-        source?.error === "remote_batch_too_large" || source?.error === "entry_too_large" ||
+        source?.error === "remote_batch_too_large" ||
         source?.error === "remote_batch") {
       return { ok: false, error: "corrupt", retryable: false };
     }
