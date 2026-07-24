@@ -3,10 +3,9 @@
 > Canonical archive of the Chrome Web Store developer-dashboard privacy tab.
 > Update this file whenever the dashboard text changes, and re-check it against
 > docs/privacy.md whenever a release adds a data exit or permission.
-> Last synced: 2026-07-16 (fixes: exact-origins instead of all-sites wildcard
-> x2, alarms do trigger offline/WebDAV transmissions, quick-save-with-AI added
-> to scripting, Embed/Fix image origins added to hosts, storage credential-sync
-> condition tightened; de-AI pass: dropped pseudo-markdown ** headers).
+> Last synced: 2026-07-24 (backup feature list, exact-origin permissions,
+> quick-save-with-AI, Embed/Fix image origins, and credential-sync conditions
+> are aligned with docs/privacy.md).
 
 ## Single purpose description (887/1000)
 
@@ -14,7 +13,7 @@ Save, enrich, read, and export Pinboard bookmarks. The extension captures the pa
 
 Workflow: toolbar or shortcut -> review the current page -> optional AI or Markdown preview/export -> save to Pinboard.
 
-Related features: AI tags/summaries, translation, Ask/Explain, key-points skim; batch save, offline queue, optional Wayback archiving; Send to Obsidian, GitHub Gist, or a webhook; WebDAV settings backup; tag autocomplete and cleanup; pinboard.in themes.
+Related features: AI tags/summaries, translation, Ask/Explain, key-points skim; batch save, offline queue, optional Wayback archiving; Send to Obsidian, GitHub Gist, or a webhook; file-based settings backup; tag autocomplete and cleanup; pinboard.in themes.
 
 Data: local-first. No developer servers, no analytics, no telemetry, no sale of data. Page URLs and content leave your device only when you take an action, and only to Pinboard or the service you configured.
 
@@ -24,7 +23,7 @@ Read the active tab's URL and title to pre-fill the bookmark form when you open 
 
 ## storage justification (tail sentence replaced)
 
-Persist settings, credentials, and local caches needed for the bookmark workflow: Pinboard token, AI provider keys, export-target tokens, WebDAV credentials, preferences, custom CSS/themes, bookmark-status cache, tag cache/tag-cleanup state, AI result cache, offline queue, Markdown preview data, highlights/notes, Wayback log, and backup state. Stored in chrome.storage.local by default; selected non-content settings sync via chrome.storage.sync only if you enable settings sync, and obfuscated credentials join only with the separate account-wide API-key sync option. Nothing is sent to any developer server.
+Persist settings, credentials, and local caches needed for the bookmark workflow: Pinboard token, AI provider keys, export-target tokens, preferences, custom CSS/themes, bookmark-status cache, tag cache/tag-cleanup state, AI result cache, offline queue, Markdown preview data, highlights/notes, and the Wayback log. Stored in chrome.storage.local by default; selected non-content settings sync via chrome.storage.sync only if you enable settings sync, and obfuscated credentials join only with the separate account-wide API-key sync option. Nothing is sent to any developer server.
 
 ## scripting justification (612/1000)
 
@@ -40,11 +39,11 @@ Show success/failure/queued feedback after save operations (quick-save, read-lat
 
 ## alarms justification (518/1000)
 
-Run recurring background tasks: keep the service worker warm during active use, re-prime the settings cache, expire the bookmark-status cache, retry the offline save queue, refresh the unread badge, optionally prewarm the Pinboard tag list, and run WebDAV backup pushes you have scheduled. Alarms themselves send nothing; a triggered task talks only to the service it belongs to (offline retries go to Pinboard, scheduled backups to your WebDAV server) and only while your configuration and permission grants allow it.
+Run recurring background tasks: keep the service worker warm during active use, re-prime the settings cache, expire the bookmark-status cache, retry the offline save queue, refresh the unread badge, and optionally prewarm the Pinboard tag list. Alarms themselves send nothing; tasks that contact Pinboard do so only while their configuration allows it.
 
 ## Host permission justification (~990/1000)
 
-Static hosts: api.pinboard.in and pinboard.in, for saving/fetching/managing bookmarks, pinboard.in themes and tag sorting, and cookie-based Save Tab Set. 13 user-selectable AI providers plus Jina Reader cover optional AI/extraction actions; each is contacted only when configured and only when you trigger the action. Optional hosts are requested at runtime as exact origins only: the selected tabs of a batch save, your custom OpenAI-compatible endpoint or non-loopback Ollama, GitHub Gist export, webhook export, WebDAV backup, web.archive.org for opt-in Wayback archiving, and the image origins needed when you choose the Embed (offline) export policy or click Fix on hotlink-blocked preview images. localhost/127.0.0.1 remain allowed for a local Ollama. The *://*/* manifest entry is only the declaration ceiling that lets Chrome offer these exact-origin prompts; the extension never requests that wildcard itself. Page content goes only to the service you selected, never to the developer.
+Static hosts: api.pinboard.in and pinboard.in, for saving/fetching/managing bookmarks, pinboard.in themes and tag sorting, and cookie-based Save Tab Set. 13 user-selectable AI providers plus Jina Reader cover optional AI/extraction actions; each is contacted only when configured and only when you trigger the action. Optional hosts are requested at runtime as exact origins only: the selected tabs of a batch save, your custom OpenAI-compatible endpoint or non-loopback Ollama, GitHub Gist export, webhook export, web.archive.org for opt-in Wayback archiving, and the image origins needed when you choose the Embed (offline) export policy or click Fix on hotlink-blocked preview images. localhost/127.0.0.1 remain allowed for a local Ollama. The *://*/* manifest entry is only the declaration ceiling that lets Chrome offer these exact-origin prompts; the extension never requests that wildcard itself. Page content goes only to the service you selected, never to the developer.
 
 ## declarativeNetRequestWithHostAccess justification (481/1000; field will appear on next submit)
 

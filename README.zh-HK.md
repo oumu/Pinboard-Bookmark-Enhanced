@@ -42,7 +42,7 @@
 ### 個人化
 - **13 套 pinboard.in 佈景主題**（Dracula、Nord、Catppuccin、Solarized 等），更可疊加自訂 CSS
 - **自動存檔至 [Wayback Machine](https://web.archive.org)**：可選擇每次儲存時一併提交；原連結失效後仍可尋回網頁
-- **設定備份**：匯出為檔案，或自動備份至自己的 WebDAV
+- **設定備份**：透過 JSON 檔案匯出及匯入，可選擇包含高亮及筆記
 - **9 種語言**、可自訂快捷鍵、本機優先儲存、零追蹤
 
 ![13 套 pinboard.in 佈景主題](docs/cws-assets/originals/screenshot-4-themes.png)
@@ -60,7 +60,7 @@
 
 ## 私隱
 
-零追蹤、零分析、零遙測。對新用戶，設定與憑據預設儲存在本機。一般設定同步需在每部裝置分別開啟。憑據同步是 Chrome 帳號層級的選項，但只有開啟了一般設定同步的裝置才會參與；關閉一般設定同步的裝置會繼續使用本機憑據。新用戶預設關閉憑據同步；如升級時 Chrome Sync 已有非空憑據，為免資料遺失會保持開啟。開啟後，API 金鑰、token、密碼與匯出憑據會透過 Chrome Sync 共享，只經混淆處理，並未加密。書籤內容、頁面內容與離線佇列不會透過 Chrome Sync 同步。AI 請求**只**會經你啟用或使用的功能發出——AI 標籤／摘要、頁面問答、翻譯、選取段落解釋，或 opt-in 的重點摘要——並直接傳送至你設定的服務商。安裝時只會授予 Pinboard 的存取權限；AI、Jina、批次操作所選的網站，以及可選的匯出、存檔與備份目的地，只會在你執行相應操作時申請目前確切網站的權限。自訂網絡端點必須使用 HTTPS；HTTP 只可用於 `localhost`、`127.0.0.1` 與 `[::1]`。擴充功能頁面實施嚴格的 Content-Security-Policy（不會執行遠端程式碼）。完整政策：<https://pine2d.github.io/Pinboard-Bookmark-Enhanced/privacy.html>
+零追蹤、零分析、零遙測。對新用戶，設定與憑據預設儲存在本機。一般設定同步需在每部裝置分別開啟。憑據同步是 Chrome 帳號層級的選項，但只有開啟了一般設定同步的裝置才會參與；關閉一般設定同步的裝置會繼續使用本機憑據。新用戶預設關閉憑據同步；如升級時 Chrome Sync 已有非空憑據，為免資料遺失會保持開啟。開啟後，API 金鑰、token、密碼與匯出憑據會透過 Chrome Sync 共享，只經混淆處理，並未加密。書籤內容、頁面內容與離線佇列不會透過 Chrome Sync 同步。AI 請求**只**會經你啟用或使用的功能發出——AI 標籤／摘要、頁面問答、翻譯、選取段落解釋，或 opt-in 的重點摘要——並直接傳送至你設定的服務商。安裝時只會授予 Pinboard 的存取權限；AI、Jina、批次操作所選的網站，以及可選的匯出與存檔目的地，只會在你執行相應操作時申請目前確切網站的權限。自訂網絡端點必須使用 HTTPS；HTTP 只可用於 `localhost`、`127.0.0.1` 與 `[::1]`。擴充功能頁面實施嚴格的 Content-Security-Policy（不會執行遠端程式碼）。完整政策：<https://pine2d.github.io/Pinboard-Bookmark-Enhanced/privacy.html>
 
 ## 授權
 
