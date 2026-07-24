@@ -34,6 +34,7 @@ const optionsConnectivityJs = read("options-connectivity.js");
 const optionsCss = read("options.css");
 const optionsJs = read("options.js");
 const optionsVocabJs = read("options-vocab.js");
+const vocabGdriveJs = read("vocab-gdrive.js");
 const mdDictJs = read("md-dict.js");
 const vocabStore = readFileSync("vocab-store.js", "utf8");
 const mdDict = readFileSync("md-dict.js", "utf8");
@@ -49,6 +50,11 @@ check(manifest.permissions.includes("alarms"), "shared alarms permission was rem
 check(manifest.optional_host_permissions.join(",") === "*://*/*",
   "shared optional-host declaration changed");
 check(!backgroundJs.includes('"webdav.js"'), "background.js still imports webdav.js");
+check(backgroundJs.includes('"vocab-store.js"') && backgroundJs.includes('"vocab-gdrive.js"') &&
+  backgroundJs.indexOf('"vocab-store.js"') < backgroundJs.indexOf('"vocab-gdrive.js"'),
+  "background.js does not load the vocabulary sync dependencies in order");
+check(vocabGdriveJs.includes("function pbpCreateVocabDriveSyncRunner("),
+  "vocab-gdrive.js is missing the serialized sync runner");
 check(backgroundJs.includes("async function pbpCleanupRemovedWebdav("),
   "background.js is missing the legacy cleanup migration");
 {
@@ -141,7 +147,7 @@ check(vocabStore.includes('const _PBP_VOCAB_DB_VERSION = 2'),
   "vocabulary database is upgraded through the dedicated store");
 check(!mdDict.includes('indexedDB.open(_PBP_VOCAB_DB_NAME'),
   "md-dict no longer owns vocabulary persistence");
-check(vocabStore.includes("function _pbpVocabBatchMutate") && vocabStore.includes("tx.abort()") &&
+check(vocabStore.includes("function _pbpVocabLocalMutation") && vocabStore.includes("tx.abort()") &&
   vocabStore.includes("tx.oncomplete") && vocabStore.includes("pbpVocabBatchAddGroup"),
   "vocab-store.js: vocabulary batch mutations are not one owner-checked atomic transaction");
 check(optionsCss.includes(".vocab-filter-toolbar") && optionsCss.includes(".vocab-batch-toolbar") &&

@@ -587,6 +587,25 @@ async function pbpVocabGetAccountState(drivePermissionId, ownerHash) {
     .get(_pbpVocabAccountKey(drivePermissionId, ownerHash)))) || null;
 }
 
+async function pbpVocabGetSyncMeta() {
+  const db = await _pbpVocabOpenDB();
+  const tx = db.transaction("sync", "readwrite");
+  const done = _pbpVocabTransactionDone(tx);
+  const sync = tx.objectStore("sync");
+  const stored = await _pbpVocabRequest(sync.get("meta"));
+  const meta = _pbpVocabMeta(stored);
+  if (stored === undefined) sync.put(meta);
+  await done;
+  return meta;
+}
+
+async function pbpVocabListAccountStates(ownerHash) {
+  if (!_pbpVocabValidOwnerHash(ownerHash)) return [];
+  return (await _pbpVocabSyncRows()).filter((row) =>
+    row && row.ownerHash === ownerHash && typeof row.key === "string" &&
+    row.key.startsWith("account:"));
+}
+
 async function pbpVocabPutAccountState(state) {
   if (!_pbpVocabPlainObject(state) ||
       state.key !== _pbpVocabAccountKey(state.drivePermissionId, state.ownerHash)) return false;

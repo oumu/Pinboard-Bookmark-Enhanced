@@ -63,8 +63,9 @@ const EXPECTED_RESULTS = Object.freeze({
   "tests/tag-gov-tests.html": 63,
   "tests/union-tags-tests.html": 12,
   "tests/url-strip-tests.html": 19,
-  "tests/vocab-gdrive-tests.html": 35,
-  "tests/vocab-store-tests.html": 44,
+  "tests/vocab-background-tests.html": 12,
+  "tests/vocab-gdrive-tests.html": 55,
+  "tests/vocab-store-tests.html": 45,
   "tests/wayback-tests.html": 40,
 });
 const expected = EXPECTED_RESULTS[rel];

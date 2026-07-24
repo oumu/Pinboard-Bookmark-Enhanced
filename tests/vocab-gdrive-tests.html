@@ -15,6 +15,7 @@ const OWNER_HASH = "a".repeat(64);
 const OTHER_OWNER_HASH = "b".repeat(64);
 const DEVICE_ID = "device-a";
 const DRIVE_FILE_ID = "file:opaque+id";
+const OWNER_SCOPE = "acct_pin-a";
 const ENVELOPE = { ownerHash: OWNER_HASH, deviceId: DEVICE_ID, createdAt: 123 };
 let pass = 0, fail = 0;
 function check(name, cond, detail) {
@@ -108,6 +109,145 @@ function readerResponse(chunks, onCancel, headers = {}) {
         };
       }
     }
+  };
+}
+function driveFile(fileId, term = fileId, deviceId = "device-b") {
+  const meta = pbpVocabDriveMetadata(fileId, OWNER_HASH, deviceId);
+  return { meta, body: bodyString([live(term, "en", {}, deviceId)], { ...ENVELOPE, deviceId }) };
+}
+function syncHarness(options = {}) {
+  const calls = [];
+  const ownerArgs = [];
+  const hashInputs = [];
+  const files = new Map((options.files || []).map((file) => [file.meta.id, file]));
+  const filePages = [...(options.filePages || [{ files: [], nextPageToken: null }])];
+  const changePages = [...(options.changePages || [{
+    changes: [], nextPageToken: null, newStartPageToken: "stable-new"
+  }])];
+  const aboutResults = [...(options.aboutResults || [])];
+  const seedResults = [...(options.seedResults || [0])];
+  const pending = [...(options.pending || [])];
+  const outbox = [...(options.outbox || [])];
+  let accountState = options.accountState ? { ...options.accountState } : null;
+  let authAccount = options.authAccount || "pin-a";
+  let authEpoch = 1;
+  const auth = () => ({ account: authAccount, epoch: authEpoch, token: "pin-token" });
+  const store = {
+    async getMeta() { return { deviceId: DEVICE_ID, counter: 1 }; },
+    async getAccountState() { return accountState && { ...accountState }; },
+    async putAccountState(state) {
+      calls.push(`put:${state.pageToken || ""}:${state.bootstrapComplete === true}`);
+      accountState = { ...state };
+      return true;
+    },
+    async seedLegacy(owner, limit) {
+      ownerArgs.push(owner);
+      calls.push(`seed:${limit}`);
+      const next = seedResults.shift();
+      if (next instanceof Error) throw next;
+      return { ok: true, processed: next ?? 0 };
+    },
+    async applyRemotePage(owner, _ownerHash, batches, cursorCommit) {
+      ownerArgs.push(owner);
+      calls.push(`apply:${batches.length}:${cursorCommit?.pageToken || cursorCommit?.bootstrapFilePageToken || cursorCommit?.bootstrapChangePageToken || ""}`);
+      if (options.failApply) return { ok: false, error: "remote_batch", batchIndex: 0 };
+      if (cursorCommit) accountState = { ...cursorCommit };
+      return { ok: true, applied: batches.length, merged: 0, ignored: 0 };
+    },
+    async checkpointOwner(owner) { ownerArgs.push(owner); calls.push("checkpoint"); return 1; },
+    async listPendingBatches() { return pending.map((row) => ({ ...row })); },
+    async deletePendingBatch(_permissionId, _ownerHash, fileId) {
+      calls.push(`delete-pending:${fileId}`);
+      const index = pending.findIndex((row) => row.driveFileId === fileId);
+      if (index >= 0) pending.splice(index, 1);
+      return true;
+    },
+    async listOutbox(owner) {
+      ownerArgs.push(owner);
+      return outbox.map((row) => ({ ...row }));
+    },
+    async freezeOutbox(owner, permissionId, ownerHash, fileId, envelope) {
+      ownerArgs.push(owner);
+      calls.push(`freeze:${fileId}`);
+      const parsed = JSON.parse(envelope.body);
+      for (const entry of parsed.entries) {
+        const index = outbox.findIndex((row) =>
+          row.owner === owner && row.recordKey === entry.recordKey &&
+          pbpVocabEventContentEqual(row.event, entry));
+        if (index >= 0) outbox.splice(index, 1);
+      }
+      const row = {
+        drivePermissionId: permissionId, ownerHash, driveFileId: fileId,
+        body: envelope.body, createdAt: 1
+      };
+      pending.push(row);
+      if (options.afterFreeze) options.afterFreeze({ outbox, row });
+      return row;
+    }
+  };
+  const client = {
+    async connect() { calls.push("connect"); return client.about(); },
+    async about() {
+      calls.push("about");
+      if (options.afterAbout) options.afterAbout({
+        setAccount(value) { authAccount = value; authEpoch++; }
+      });
+      return aboutResults.shift() ||
+        { ok: true, permissionId: "perm-a", emailAddress: "a@example.test", displayName: "A" };
+    },
+    async getStartPageToken() { calls.push("start"); return { ok: true, pageToken: "start-T" }; },
+    async listFiles(_ownerHash, pageToken) {
+      calls.push(`files:${pageToken || ""}`);
+      const page = filePages.shift();
+      return page
+        ? (page.ok === undefined ? { ok: true, ...page } : page)
+        : { ok: false, error: "unexpected", retryable: false };
+    },
+    async listChanges(pageToken) {
+      calls.push(`changes:${pageToken}`);
+      const page = changePages.shift();
+      return page
+        ? (page.ok === undefined ? { ok: true, ...page } : page)
+        : { ok: false, error: "unexpected", retryable: false };
+    },
+    async download(fileId) {
+      calls.push(`download:${fileId}`);
+      if (options.afterDownload) options.afterDownload({
+        setAccount(value) { authAccount = value; authEpoch++; }
+      });
+      const file = files.get(fileId);
+      return file ? { ok: true, body: file.body } : { ok: false, error: "remote", retryable: false };
+    },
+    async generateId() {
+      const fileId = options.generatedId || "generated-batch";
+      calls.push(`generate:${fileId}`);
+      return { ok: true, fileId };
+    },
+    async upload(meta, body) {
+      calls.push(`upload:${meta.id}:${body}`);
+      return options.uploadResult || { ok: true, fileId: meta.id };
+    }
+  };
+  const alarms = options.alarms || {
+    created: [],
+    async clear(name) { calls.push(`clear:${name}`); return true; },
+    create(name, info) { this.created.push({ name, info }); calls.push(`alarm:${name}`); }
+  };
+  const runner = () => pbpCreateVocabDriveSyncRunner({
+    client,
+    store,
+    alarms,
+    getCurrentPinboardAuth: async () => auth(),
+    pinboardAuthIsCurrent: (captured) =>
+      captured.account === authAccount && captured.epoch === authEpoch,
+    hashOwner: async (value) => { hashInputs.push(value); return OWNER_HASH; },
+    now: options.now || (() => 1_000_000),
+    random: options.random || (() => 0.5)
+  });
+  return {
+    calls, client, store, alarms, outbox, pending, ownerArgs, hashInputs, runner,
+    state: () => accountState && { ...accountState },
+    setAccount(value) { authAccount = value; authEpoch++; }
   };
 }
 
@@ -397,8 +537,12 @@ function readerResponse(chunks, onCancel, headers = {}) {
       })
     });
     const download = await oversized.download(DRIVE_FILE_ID);
+    const denied = await syncHarness({
+      aboutResults: [{ ok: false, error: "remote", status: 403, retryable: false }]
+    }).runner()();
     return permanent.every((result) => !result.ok && result.retryable === false) &&
-      !download.ok && download.error === "remote_batch_too_large" && !read && cancelled;
+      !download.ok && download.error === "remote_batch_too_large" && !read && cancelled &&
+      !denied.ok && denied.error === "permission" && denied.retryable === false;
   });
 
   await asyncCheck("429 is retryable and streamed overflow cancels", async () => {
@@ -722,6 +866,299 @@ function readerResponse(chunks, onCancel, headers = {}) {
       result.fileId === "opaque-s" &&
       !visible.includes("opaque-secret-file-id") &&
       secrets.every((secret) => !visible.includes(secret));
+  });
+
+  await asyncCheck("bootstrap captures start token before the full file scan", async () => {
+    const h = syncHarness();
+    const result = await h.runner()();
+    return result.ok && h.calls.indexOf("start") < h.calls.indexOf("files:") &&
+      h.hashInputs.join(",") === OWNER_SCOPE &&
+      h.ownerArgs.length > 0 && h.ownerArgs.every((owner) => owner === OWNER_SCOPE);
+  });
+
+  await asyncCheck("bootstrap scans every files.list page", async () => {
+    const first = driveFile("remote-a");
+    const second = driveFile("remote-b");
+    const h = syncHarness({
+      files: [first, second],
+      filePages: [
+        { ok: true, files: [first.meta], nextPageToken: "files-next" },
+        { ok: true, files: [second.meta], nextPageToken: null }
+      ]
+    });
+    const result = await h.runner()();
+    return result.ok &&
+      h.calls.filter((call) => call.startsWith("files:")).join(",") === "files:,files:files-next" &&
+      h.calls.includes("download:remote-a") && h.calls.includes("download:remote-b");
+  });
+
+  await asyncCheck("bootstrap downloads valid self-authored files", async () => {
+    const own = driveFile("own-bootstrap", "Own", DEVICE_ID);
+    const h = syncHarness({
+      files: [own],
+      filePages: [{ ok: true, files: [own.meta], nextPageToken: null }]
+    });
+    const result = await h.runner()();
+    return result.ok && h.calls.includes("download:own-bootstrap");
+  });
+
+  await asyncCheck("bootstrap consumes captured changes after the file scan", async () => {
+    const h = syncHarness();
+    const result = await h.runner()();
+    return result.ok &&
+      h.calls.indexOf("changes:start-T") > h.calls.indexOf("files:");
+  });
+
+  await asyncCheck("bootstrap commits only the terminal new start token", async () => {
+    const h = syncHarness({
+      changePages: [
+        { ok: true, changes: [], nextPageToken: "changes-next", newStartPageToken: null },
+        { ok: true, changes: [], nextPageToken: null, newStartPageToken: "stable-final" }
+      ]
+    });
+    const result = await h.runner()();
+    const state = h.state();
+    return result.ok && state.bootstrapComplete === true &&
+      state.pageToken === "stable-final" && state.bootstrapChangePageToken === undefined;
+  });
+
+  await asyncCheck("incremental sync skips valid self-authored changes", async () => {
+    const own = driveFile("own-change", "Own", DEVICE_ID);
+    const h = syncHarness({
+      files: [own],
+      accountState: {
+        key: `account:perm-a:${OWNER_HASH}`, drivePermissionId: "perm-a",
+        ownerHash: OWNER_HASH, bootstrapComplete: true, pageToken: "stable-old"
+      },
+      changePages: [{
+        ok: true, changes: [{ removed: false, fileId: own.meta.id, file: own.meta }],
+        nextPageToken: null, newStartPageToken: "stable-new"
+      }]
+    });
+    const result = await h.runner()();
+    return result.ok && !h.calls.includes("download:own-change") &&
+      h.state().pageToken === "stable-new";
+  });
+
+  await asyncCheck("incremental cursor advances after each page apply", async () => {
+    const remote = driveFile("incremental-page");
+    const h = syncHarness({
+      files: [remote],
+      accountState: {
+        key: `account:perm-a:${OWNER_HASH}`, drivePermissionId: "perm-a",
+        ownerHash: OWNER_HASH, bootstrapComplete: true, pageToken: "stable-old"
+      },
+      changePages: [
+        {
+          ok: true, changes: [{ removed: false, fileId: remote.meta.id, file: remote.meta }],
+          nextPageToken: "changes-next", newStartPageToken: null
+        },
+        { ok: true, changes: [], nextPageToken: null, newStartPageToken: "stable-new" }
+      ]
+    });
+    const result = await h.runner()();
+    const apply = h.calls.indexOf("apply:1:changes-next");
+    const next = h.calls.indexOf("changes:changes-next");
+    return result.ok && apply >= 0 && next > apply;
+  });
+
+  await asyncCheck("failed page apply leaves the previous cursor intact", async () => {
+    const remote = driveFile("bad-page");
+    const h = syncHarness({
+      failApply: true,
+      files: [remote],
+      accountState: {
+        key: `account:perm-a:${OWNER_HASH}`, drivePermissionId: "perm-a",
+        ownerHash: OWNER_HASH, bootstrapComplete: true, pageToken: "stable-old"
+      },
+      changePages: [{
+        ok: true, changes: [{ removed: false, fileId: remote.meta.id, file: remote.meta }],
+        nextPageToken: null, newStartPageToken: "must-not-commit"
+      }]
+    });
+    const result = await h.runner()();
+    const ok = !result.ok && result.error === "corrupt" &&
+      h.state().pageToken === "stable-old";
+    if (!ok) throw new Error(JSON.stringify({ result, state: h.state(), calls: h.calls }));
+    return true;
+  });
+
+  await asyncCheck("removed changes never become local deletes", async () => {
+    const h = syncHarness({
+      accountState: {
+        key: `account:perm-a:${OWNER_HASH}`, drivePermissionId: "perm-a",
+        ownerHash: OWNER_HASH, bootstrapComplete: true, pageToken: "stable-old"
+      },
+      changePages: [{
+        ok: true, changes: [{ removed: true, fileId: "removed" }],
+        nextPageToken: null, newStartPageToken: "stable-new"
+      }]
+    });
+    const result = await h.runner()();
+    return result.ok && !h.calls.some((call) => call.startsWith("download:")) &&
+      !h.calls.some((call) => call === "apply:1:stable-new");
+  });
+
+  await asyncCheck("removed changes checkpoint after remaining downloads", async () => {
+    const remote = driveFile("after-removal");
+    const h = syncHarness({
+      files: [remote],
+      accountState: {
+        key: `account:perm-a:${OWNER_HASH}`, drivePermissionId: "perm-a",
+        ownerHash: OWNER_HASH, bootstrapComplete: true, pageToken: "stable-old"
+      },
+      changePages: [
+        {
+          ok: true,
+          changes: [
+            { removed: true, fileId: "removed" },
+            { removed: false, fileId: remote.meta.id, file: remote.meta }
+          ],
+          nextPageToken: "after-removed", newStartPageToken: null
+        },
+        { ok: false, error: "server", retryable: true },
+        {
+          ok: true, changes: [],
+          nextPageToken: null, newStartPageToken: "stable-new"
+        }
+      ]
+    });
+    const interrupted = await h.runner()();
+    const persistedFlag = h.state()?.needsCheckpoint === true &&
+      h.state()?.pageToken === "after-removed";
+    const resumed = await h.runner()({ force: true });
+    return !interrupted.ok && interrupted.error === "network" && persistedFlag &&
+      resumed.ok && h.calls.filter((call) => call === "checkpoint").length === 1 &&
+      h.state().pageToken === "stable-new" &&
+      h.state().needsCheckpoint === undefined;
+  });
+
+  await asyncCheck("legacy seed loops in batches of one hundred", async () => {
+    const h = syncHarness({ seedResults: [100, 100, 0] });
+    const result = await h.runner()();
+    return result.ok &&
+      h.calls.filter((call) => call.startsWith("seed:")).join(",") === "seed:100,seed:100,seed:100" &&
+      h.calls.indexOf("start") > h.calls.lastIndexOf("seed:100");
+  });
+
+  await asyncCheck("interrupted legacy seed resumes from committed store work", async () => {
+    const h = syncHarness({ seedResults: [100, new Error("worker stopped"), 0] });
+    const first = await h.runner()();
+    const firstStarts = h.calls.filter((call) => call === "start").length;
+    const second = await h.runner()();
+    return !first.ok && second.ok && firstStarts === 0 &&
+      h.calls.filter((call) => call === "start").length === 1;
+  });
+
+  await asyncCheck("freezing a batch removes the outbox snapshot", async () => {
+    const event = live("Frozen");
+    const h = syncHarness({
+      outbox: [{ key: `outbox:${OWNER_SCOPE}:${event.recordKey}`, owner: OWNER_SCOPE, recordKey: event.recordKey, event }]
+    });
+    const result = await h.runner()();
+    return result.ok && h.calls.includes("freeze:generated-batch") &&
+      h.outbox.length === 0 && h.pending.length === 0;
+  });
+
+  await asyncCheck("a mutation after freeze remains in the outbox", async () => {
+    const event = live("Refrozen");
+    const newer = {
+      ...event,
+      vector: { [DEVICE_ID]: 2 },
+      dot: { deviceId: DEVICE_ID, counter: 2 },
+      value: { ...event.value, note: "newer" }
+    };
+    const h = syncHarness({
+      outbox: [{ key: `outbox:${OWNER_SCOPE}:${event.recordKey}`, owner: OWNER_SCOPE, recordKey: event.recordKey, event }],
+      afterFreeze({ outbox }) {
+        outbox.push({
+          key: `outbox:${OWNER_SCOPE}:${newer.recordKey}`, owner: OWNER_SCOPE,
+          recordKey: newer.recordKey, event: newer
+        });
+      }
+    });
+    const result = await h.runner()();
+    return result.ok && h.outbox.length === 1 &&
+      h.outbox[0].event.value.note === "newer";
+  });
+
+  await asyncCheck("pending upload reuses the frozen file ID and exact body", async () => {
+    const frozen = bodyString([live("Pending")]);
+    const h = syncHarness({
+      pending: [{
+        drivePermissionId: "perm-a", ownerHash: OWNER_HASH,
+        driveFileId: "pending-fixed", body: frozen, createdAt: 1
+      }]
+    });
+    const result = await h.runner()();
+    return result.ok && h.calls.includes(`upload:pending-fixed:${frozen}`) &&
+      !h.calls.some((call) => call.startsWith("generate:"));
+  });
+
+  await asyncCheck("periodic scheduling uses a fifteen-minute alarm", async () => {
+    const alarms = { created: [], create(name, info) { this.created.push({ name, info }); } };
+    await pbpVocabSchedulePeriodic(alarms);
+    return JSON.stringify(alarms.created) === JSON.stringify([{
+      name: "vocab-sync-periodic", info: { periodInMinutes: 15 }
+    }]);
+  });
+
+  await asyncCheck("dirty scheduling uses an earliest thirty-second one-shot", async () => {
+    const alarms = {
+      existing: null, created: [],
+      async get() { return this.existing; },
+      create(name, info) { this.created.push({ name, info }); this.existing = { scheduledTime: info.when }; }
+    };
+    await pbpVocabScheduleDirty(alarms, () => 1_000);
+    await pbpVocabScheduleDirty(alarms, () => 2_000);
+    return alarms.created.length === 1 &&
+      alarms.created[0].name === "vocab-sync-dirty" &&
+      alarms.created[0].info.when === 31_000;
+  });
+
+  await asyncCheck("retry delay follows 1/2/4/8/16/32/60 minute cap", async () => {
+    const delays = Array.from({ length: 9 }, (_, attempt) =>
+      pbpVocabRetryDelayMinutes(attempt, () => 0.5));
+    const h = syncHarness({
+      accountState: {
+        key: `account:perm-a:${OWNER_HASH}`, drivePermissionId: "perm-a",
+        ownerHash: OWNER_HASH, bootstrapComplete: true, pageToken: "stable-old",
+        retryAttempt: 6, retryAt: 9_999_999
+      },
+      changePages: [{ ok: false, error: "server", retryable: true }]
+    });
+    const result = await h.runner()({ force: true });
+    return delays.join(",") === "1,2,4,8,16,32,60,60,60" &&
+      !result.ok && result.error === "network" &&
+      h.state().retryAttempt === 1 && h.state().retryAt === 1_060_000 &&
+      h.calls.indexOf("put:stable-old:true") < h.calls.indexOf("alarm:vocab-sync-retry");
+  });
+
+  await asyncCheck("retry delay applies bounded twenty-percent jitter", async () => {
+    return Math.abs(pbpVocabRetryDelayMinutes(3, () => 0) - 6.4) < 1e-9 &&
+      Math.abs(pbpVocabRetryDelayMinutes(3, () => 1) - 9.6) < 1e-9;
+  });
+
+  await asyncCheck("owner change after a network await stops before local commit", async () => {
+    const remote = driveFile("owner-switch");
+    const h = syncHarness({
+      files: [remote],
+      filePages: [{ ok: true, files: [remote.meta], nextPageToken: null }],
+      afterDownload(control) { control.setAccount("pin-b"); }
+    });
+    const result = await h.runner()();
+    const drive = syncHarness({
+      aboutResults: [
+        { ok: true, permissionId: "perm-a", emailAddress: "a@example.test", displayName: "A" },
+        { ok: true, permissionId: "perm-b", emailAddress: "b@example.test", displayName: "B" }
+      ]
+    });
+    const driveResult = await drive.runner()();
+    return !result.ok && result.error === "account_changed" &&
+      !h.calls.some((call) => call.startsWith("apply:")) &&
+      !h.calls.some((call) => call.startsWith("upload:")) &&
+      !driveResult.ok && driveResult.error === "account_changed" &&
+      drive.calls.filter((call) => call === "about").length === 2;
   });
 
   document.getElementById("summary").textContent = `pass=${pass} fail=${fail}`;

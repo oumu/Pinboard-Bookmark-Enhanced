@@ -456,3 +456,361 @@ function pbpCreateVocabDriveClient({
     listChanges
   };
 }
+
+const PBP_VOCAB_DIRTY_ALARM = "vocab-sync-dirty";
+const PBP_VOCAB_PERIODIC_ALARM = "vocab-sync-periodic";
+const PBP_VOCAB_RETRY_ALARM = "vocab-sync-retry";
+
+function pbpVocabRetryDelayMinutes(attempt, random = Math.random) {
+  const index = Math.max(0, Number.isFinite(attempt) ? Math.floor(attempt) : 0);
+  const sample = Math.max(0, Math.min(1, Number(random()) || 0));
+  return Math.min(60, 2 ** index) * (0.8 + sample * 0.4);
+}
+
+function pbpVocabSchedulePeriodic(alarms = chrome.alarms) {
+  alarms.create(PBP_VOCAB_PERIODIC_ALARM, { periodInMinutes: 15 });
+}
+
+async function pbpVocabScheduleDirty(alarms = chrome.alarms, now = Date.now) {
+  const when = now() + 30000;
+  const existing = await alarms.get(PBP_VOCAB_DIRTY_ALARM);
+  if (existing && Number.isFinite(existing.scheduledTime) && existing.scheduledTime <= when) {
+    return false;
+  }
+  alarms.create(PBP_VOCAB_DIRTY_ALARM, { when });
+  return true;
+}
+
+function _pbpVocabDriveDefaultStore() {
+  return {
+    getMeta: pbpVocabGetSyncMeta,
+    getAccountState: pbpVocabGetAccountState,
+    putAccountState: pbpVocabPutAccountState,
+    seedLegacy: pbpVocabSeedLegacy,
+    applyRemotePage: pbpVocabApplyRemotePage,
+    checkpointOwner: pbpVocabCheckpointOwner,
+    listPendingBatches: pbpVocabListPendingBatches,
+    deletePendingBatch: pbpVocabDeletePendingBatch,
+    listOutbox: pbpVocabListOutbox,
+    freezeOutbox: pbpVocabFreezeOutbox
+  };
+}
+
+function pbpCreateVocabDriveSyncRunner({
+  client = pbpCreateVocabDriveClient(),
+  store = _pbpVocabDriveDefaultStore(),
+  alarms = chrome.alarms,
+  getCurrentPinboardAuth,
+  pinboardAuthIsCurrent,
+  hashOwner = pbpVocabOwnerHash,
+  now = Date.now,
+  random = Math.random
+} = {}) {
+  const accountKey = (permissionId, ownerHash) =>
+    `account:${permissionId}:${ownerHash}`;
+  const normalizedFailure = (source) => {
+    if (source?.error === "account_changed") {
+      return { ok: false, error: "account_changed", retryable: false };
+    }
+    if (source?.error === "auth") return { ok: false, error: "auth", retryable: false };
+    if (source?.status === 403) return { ok: false, error: "permission", retryable: false };
+    if (source?.error === "permission" || source?.error === "corrupt" ||
+        source?.error === "remote") {
+      return { ok: false, error: source.error, retryable: false };
+    }
+    if (source?.retryable) return { ok: false, error: "network", retryable: true };
+    if (source?.error === "invalid_response" || source?.error === "id_collision" ||
+        source?.error === "remote_batch_too_large" || source?.error === "entry_too_large" ||
+        source?.error === "remote_batch") {
+      return { ok: false, error: "corrupt", retryable: false };
+    }
+    return { ok: false, error: "remote", retryable: false };
+  };
+
+  return async function run({ interactive = false, force = false } = {}) {
+    let state = null;
+    let startAuth = null;
+    let owner = "";
+    let ownerHash = "";
+    const stateWith = (patch, remove = []) => {
+      const next = { ...state, ...patch };
+      for (const key of remove) delete next[key];
+      return next;
+    };
+    const stillCurrent = async () => {
+      const current = await getCurrentPinboardAuth();
+      return !!startAuth?.account && current?.account === startAuth.account &&
+        pinboardAuthIsCurrent(startAuth) && pinboardAuthIsCurrent(current);
+    };
+    const finishFailure = async (source) => {
+      const result = normalizedFailure(source);
+      if (result.retryable && state) {
+        const attempt = Number.isInteger(state.retryAttempt) && state.retryAttempt >= 0
+          ? state.retryAttempt : 0;
+        const retryAt = now() + pbpVocabRetryDelayMinutes(attempt, random) * 60000;
+        const failed = stateWith({
+          lastError: result.error,
+          retryAttempt: attempt + 1,
+          retryAt
+        });
+        if (await store.putAccountState(failed)) {
+          state = failed;
+          alarms.create(PBP_VOCAB_RETRY_ALARM, { when: retryAt });
+        }
+      } else if (state && result.error !== "account_changed") {
+        const failed = stateWith({ lastError: result.error });
+        if (await store.putAccountState(failed)) state = failed;
+      }
+      return result;
+    };
+    const applyPage = async (metadata, cursorCommit, skipSelf, deviceId) => {
+      const batches = [];
+      for (const meta of metadata) {
+        if (!_pbpVocabDriveValidMetadata(meta) ||
+            meta.appProperties.owner !== ownerHash) {
+          return normalizedFailure({ error: "invalid_response" });
+        }
+        if (skipSelf && meta.appProperties.device === deviceId) continue;
+        const downloaded = await client.download(meta.id);
+        if (!downloaded.ok) return normalizedFailure(downloaded);
+        if (!await stillCurrent()) return normalizedFailure({ error: "account_changed" });
+        if (!pbpVocabValidateDriveBatch(meta, downloaded.body, ownerHash)) {
+          return normalizedFailure({ error: "invalid_response" });
+        }
+        batches.push(JSON.parse(downloaded.body));
+      }
+      if (!await stillCurrent()) return normalizedFailure({ error: "account_changed" });
+      const applied = await store.applyRemotePage(
+        owner, ownerHash, batches, cursorCommit
+      );
+      return applied?.ok ? { ok: true } : normalizedFailure(applied);
+    };
+    const changesMetadata = (changes, skipSelf, deviceId) => {
+      const metadata = [];
+      let removed = false;
+      for (const change of changes) {
+        if (!change || typeof change !== "object" || Array.isArray(change)) {
+          return { ok: false };
+        }
+        if (change.removed === true) {
+          removed = true;
+          continue;
+        }
+        const properties = change.file?.appProperties;
+        if (!properties || properties.pbpKind !== "vocab-batch" ||
+            properties.schema !== String(PBP_VOCAB_BATCH_SCHEMA) ||
+            properties.owner !== ownerHash) {
+          continue;
+        }
+        if (!_pbpVocabDriveValidMetadata(change.file) ||
+            change.fileId !== change.file.id) return { ok: false };
+        if (!skipSelf || properties.device !== deviceId) metadata.push(change.file);
+      }
+      return { ok: true, metadata, removed };
+    };
+
+    try {
+      startAuth = await getCurrentPinboardAuth();
+      if (!startAuth?.account || !pinboardAuthIsCurrent(startAuth)) {
+        return { ok: false, error: "auth", retryable: false };
+      }
+      owner = pbpDictOwnerScope(startAuth.account);
+      ownerHash = await hashOwner(owner);
+      const about = interactive ? await client.connect() : await client.about();
+      if (!about.ok) return finishFailure(about);
+      if (!await stillCurrent()) return normalizedFailure({ error: "account_changed" });
+
+      state = await store.getAccountState(about.permissionId, ownerHash);
+      state = {
+        ...(state || {}),
+        key: accountKey(about.permissionId, ownerHash),
+        drivePermissionId: about.permissionId,
+        emailAddress: about.emailAddress || "",
+        displayName: about.displayName || "",
+        ownerHash,
+        bootstrapComplete: state?.bootstrapComplete === true,
+        pageToken: state?.pageToken || null
+      };
+      if (force && (state.retryAttempt || state.retryAt)) {
+        const reset = stateWith({ retryAttempt: 0, retryAt: null });
+        if (!await store.putAccountState(reset)) {
+          return finishFailure({ error: "remote_batch" });
+        }
+        state = reset;
+        await alarms.clear(PBP_VOCAB_RETRY_ALARM);
+      }
+      if (!force && Number.isFinite(state.retryAt) && state.retryAt > now()) {
+        return { ok: true, status: { ...state, waitingForRetry: true } };
+      }
+
+      const meta = await store.getMeta();
+      if (!meta?.deviceId) return finishFailure({ error: "invalid_response" });
+      const deviceId = meta.deviceId;
+      let needsCheckpoint = state.needsCheckpoint === true;
+
+      if (!state.bootstrapComplete) {
+        while (true) {
+          const seeded = await store.seedLegacy(owner, 100);
+          if (!seeded?.ok) return finishFailure({ error: "remote_batch" });
+          if (!seeded.processed) break;
+        }
+
+        if (!state.bootstrapStartToken) {
+          const token = await client.getStartPageToken();
+          if (!token.ok) return finishFailure(token);
+          if (!await stillCurrent()) return normalizedFailure({ error: "account_changed" });
+          const next = stateWith({ bootstrapStartToken: token.pageToken });
+          if (!await store.putAccountState(next)) {
+            return finishFailure({ error: "remote_batch" });
+          }
+          state = next;
+        }
+
+        if (state.bootstrapListComplete !== true) {
+          let pageToken = state.bootstrapFilePageToken || undefined;
+          while (true) {
+            const page = await client.listFiles(ownerHash, pageToken);
+            if (!page.ok) return finishFailure(page);
+            if (!await stillCurrent()) return normalizedFailure({ error: "account_changed" });
+            const next = page.nextPageToken
+              ? stateWith({ bootstrapFilePageToken: page.nextPageToken })
+              : stateWith({ bootstrapListComplete: true }, ["bootstrapFilePageToken"]);
+            const applied = await applyPage(page.files, next, false, deviceId);
+            if (!applied.ok) return finishFailure(applied);
+            state = next;
+            if (!page.nextPageToken) break;
+            pageToken = page.nextPageToken;
+          }
+        }
+
+        let changeToken = state.bootstrapChangePageToken || state.bootstrapStartToken;
+        while (true) {
+          const page = await client.listChanges(changeToken);
+          if (!page.ok) return finishFailure(page);
+          if (!await stillCurrent()) return normalizedFailure({ error: "account_changed" });
+          const selected = changesMetadata(page.changes, false, deviceId);
+          if (!selected.ok) return finishFailure({ error: "invalid_response" });
+          needsCheckpoint ||= selected.removed;
+          const terminal = !page.nextPageToken;
+          const next = terminal
+            ? stateWith({
+              bootstrapComplete: true,
+              pageToken: page.newStartPageToken
+            }, ["bootstrapStartToken", "bootstrapListComplete", "bootstrapChangePageToken"])
+            : stateWith({ bootstrapChangePageToken: page.nextPageToken });
+          if (needsCheckpoint) next.needsCheckpoint = true;
+          const applied = await applyPage(selected.metadata, next, false, deviceId);
+          if (!applied.ok) return finishFailure(applied);
+          state = next;
+          if (terminal) break;
+          changeToken = page.nextPageToken;
+        }
+      } else {
+        let changeToken = state.pageToken;
+        if (!changeToken) return finishFailure({ error: "invalid_response" });
+        while (true) {
+          const page = await client.listChanges(changeToken);
+          if (!page.ok) return finishFailure(page);
+          if (!await stillCurrent()) return normalizedFailure({ error: "account_changed" });
+          const selected = changesMetadata(page.changes, true, deviceId);
+          if (!selected.ok) return finishFailure({ error: "invalid_response" });
+          needsCheckpoint ||= selected.removed;
+          const terminal = !page.nextPageToken;
+          const next = stateWith({
+            pageToken: terminal ? page.newStartPageToken : page.nextPageToken
+          });
+          if (needsCheckpoint) next.needsCheckpoint = true;
+          const applied = await applyPage(selected.metadata, next, true, deviceId);
+          if (!applied.ok) return finishFailure(applied);
+          state = next;
+          if (terminal) break;
+          changeToken = page.nextPageToken;
+        }
+      }
+
+      if (needsCheckpoint) {
+        await store.checkpointOwner(owner);
+        const cleared = stateWith({}, ["needsCheckpoint"]);
+        if (!await store.putAccountState(cleared)) {
+          return finishFailure({ error: "remote_batch" });
+        }
+        state = cleared;
+      }
+
+      const uploadPending = async (pending) => {
+        let parsed;
+        try { parsed = JSON.parse(pending.body); } catch (_) {
+          return normalizedFailure({ error: "invalid_response" });
+        }
+        let metadata;
+        try {
+          metadata = pbpVocabDriveMetadata(
+            pending.driveFileId, ownerHash, parsed.deviceId
+          );
+        } catch (_) {
+          return normalizedFailure({ error: "invalid_response" });
+        }
+        if (!pbpVocabValidateDriveBatch(metadata, pending.body, ownerHash)) {
+          return normalizedFailure({ error: "invalid_response" });
+        }
+        if (!await stillCurrent()) return normalizedFailure({ error: "account_changed" });
+        const uploaded = await client.upload(metadata, pending.body);
+        if (!uploaded.ok) return normalizedFailure(uploaded);
+        if (!await stillCurrent()) return normalizedFailure({ error: "account_changed" });
+        if (!await store.deletePendingBatch(
+          state.drivePermissionId, ownerHash, pending.driveFileId
+        )) return normalizedFailure({ error: "remote_batch" });
+        return { ok: true };
+      };
+
+      for (const pending of await store.listPendingBatches(
+        state.drivePermissionId, ownerHash
+      )) {
+        const uploaded = await uploadPending(pending);
+        if (!uploaded.ok) return finishFailure(uploaded);
+      }
+
+      const outbox = await store.listOutbox(owner);
+      const split = pbpVocabSplitDriveEntries(
+        outbox.map((row) => row.event),
+        { ownerHash, deviceId, createdAt: now() }
+      );
+      if (!split.ok) return finishFailure(split);
+      for (const batch of split.batches) {
+        const generated = await client.generateId();
+        if (!generated.ok) return finishFailure(generated);
+        if (!await stillCurrent()) return normalizedFailure({ error: "account_changed" });
+        const frozen = await store.freezeOutbox(
+          owner,
+          state.drivePermissionId,
+          ownerHash,
+          generated.fileId,
+          batch
+        );
+        if (!frozen) return finishFailure({ error: "remote_batch" });
+        const uploaded = await uploadPending(frozen);
+        if (!uploaded.ok) return finishFailure(uploaded);
+      }
+
+      const confirmed = await client.about();
+      if (!confirmed.ok) return finishFailure(confirmed);
+      if (!await stillCurrent() || confirmed.permissionId !== state.drivePermissionId) {
+        return normalizedFailure({ error: "account_changed" });
+      }
+      const success = stateWith({
+        lastSuccessAt: now(),
+        lastError: null,
+        retryAttempt: 0,
+        retryAt: null
+      });
+      if (!await store.putAccountState(success)) {
+        return finishFailure({ error: "remote_batch" });
+      }
+      state = success;
+      await alarms.clear(PBP_VOCAB_RETRY_ALARM);
+      return { ok: true, status: { ...state } };
+    } catch (_) {
+      return finishFailure({ error: "remote_batch" });
+    }
+  };
+}

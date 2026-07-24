@@ -185,6 +185,24 @@ for (const name of task3Apis) {
 }
 
 async function runIdbChecks() {
+  await deleteVocabDb();
+  const firstIdentity = await pbpVocabGetSyncMeta();
+  const secondIdentity = await pbpVocabGetSyncMeta();
+  const persistedIdentity = await syncGet("meta");
+  const corruptIdentity = { key: "meta", deviceId: "", counter: 7 };
+  const corruptDb = await _pbpVocabOpenDB();
+  const corruptTx = corruptDb.transaction("sync", "readwrite");
+  corruptTx.objectStore("sync").put(corruptIdentity);
+  await idbTxDone(corruptTx);
+  const rejectedIdentity = await pbpVocabGetSyncMeta();
+  const preservedCorruptIdentity = await syncGet("meta");
+  check("sync identity is persistent and corrupt meta fails closed", firstIdentity &&
+    firstIdentity.deviceId === secondIdentity?.deviceId &&
+    firstIdentity.deviceId === persistedIdentity?.deviceId &&
+    firstIdentity.counter === 0 && persistedIdentity.counter === 0 &&
+    rejectedIdentity === null &&
+    JSON.stringify(preservedCorruptIdentity) === JSON.stringify(corruptIdentity));
+
   const legacy = word("acct_legacy", "Migrate", { gloss: "legacy", createdAt: 1, updatedAt: 1 });
   await seedV1Word(legacy);
   const migrated = await pbpVocabGet(legacy.id);
@@ -375,7 +393,7 @@ async function runIdbChecks() {
   try {
     await runIdbChecks();
   } catch (error) {
-    while (pass + fail < 44) check("IDB harness completed", false, error && (error.stack || error.message));
+    while (pass + fail < 45) check("IDB harness completed", false, error && (error.stack || error.message));
   }
   document.getElementById("summary").textContent = `pass=${pass} fail=${fail}`;
 })();

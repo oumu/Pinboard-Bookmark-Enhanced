@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Vocabulary Background Tests</title>
+<style>body{font-family:monospace;padding:16px}.case{padding:6px}.pass{color:#0a0}.fail{color:#c00}</style>
+</head><body><h1>Vocabulary Background Tests</h1><div id="summary"></div><div id="results"></div>
+<script>
+const root = document.getElementById("results"); let pass = 0, fail = 0;
+function check(name, ok) { ok ? pass++ : fail++; const row = document.createElement("div"); row.className = "case " + (ok ? "pass" : "fail"); row.textContent = `${ok ? "✓" : "✗"} ${name}`; root.appendChild(row); }
+(async () => {
+  const source = await fetch("../background.js").then((response) => response.text());
+  const imports = source.slice(source.indexOf("importScripts("), source.indexOf(");", source.indexOf("importScripts(")) + 2);
+  const alarms = source.slice(source.indexOf("chrome.alarms.onAlarm.addListener"), source.indexOf("// React to settings change"));
+  const messages = source.slice(source.indexOf("chrome.runtime.onMessage.addListener"));
+  const bootAt = source.indexOf("function pbpBootVocabDriveSync");
+  const boot = source.slice(bootAt, source.indexOf("\n}", bootAt) + 2);
+  const startupAt = source.indexOf("chrome.runtime.onStartup.addListener");
+  const startup = source.slice(startupAt, source.indexOf("chrome.runtime.onInstalled.addListener", startupAt));
+  const syncNowAt = messages.indexOf('message.type === "vocabDriveSyncNow"');
+  const syncNow = messages.slice(syncNowAt, messages.indexOf('message.type === "vocabDriveDisconnect"', syncNowAt));
+  check("store and Drive scripts are imported in dependency order", imports.indexOf('"vocab-store.js"') >= 0 && imports.indexOf('"vocab-gdrive.js"') > imports.indexOf('"vocab-store.js"'));
+  check("all three vocabulary alarm names are wired", ["vocab-sync-dirty", "vocab-sync-periodic", "vocab-sync-retry"].every((name) => source.includes(`"${name}"`)));
+  check("alarm listener is registered synchronously at top level", /chrome\.alarms\.onAlarm\.addListener\(\(alarm\) =>/.test(alarms) && !/addListener\(async/.test(alarms));
+  check("runtime message listener is not async", /chrome\.runtime\.onMessage\.addListener\(\(message, sender, sendResponse\) =>/.test(messages) && !/onMessage\.addListener\(async/.test(messages));
+  check("dirty message schedules synchronization", messages.includes('message.type === "PBP_VOCAB_DIRTY"') && messages.includes("pbpVocabScheduleDirty"));
+  check("connect message is handled", messages.includes('message.type === "vocabDriveConnect"'));
+  check("status message is handled", messages.includes('message.type === "vocabDriveStatus"'));
+  check("sync-now message preserves persisted backoff unless explicitly forced",
+    syncNowAt >= 0 &&
+    /pbpQueueVocabDriveSync\(\{\s*interactive: false,\s*force: message\.force === true\s*\}\)/
+      .test(syncNow) &&
+    /if \(message\.force === true\) await chrome\.alarms\.clear\("vocab-sync-retry"\)/.test(syncNow));
+  check("disconnect message is handled", messages.includes('message.type === "vocabDriveDisconnect"'));
+  check("one recovering promise tail serializes sync", source.includes("const queueVocabSync = pbpCreateRecoveringTail();") && source.includes("queueVocabSync(async () =>"));
+  check("boot invokes only one noninteractive cold-start sync",
+    bootAt >= 0 && boot.includes("interactive: false") && !boot.includes("interactive: true") &&
+    !startup.includes("pbpBootVocabDriveSync"));
+  check("background never requests optional permissions", !source.includes("chrome.permissions.request(") && !source.includes("permissions.request("));
+  document.getElementById("summary").textContent = `pass=${pass} fail=${fail}`;
+})();
+</script></body></html>

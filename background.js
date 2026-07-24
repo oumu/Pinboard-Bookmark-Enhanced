@@ -2,7 +2,10 @@
 // Pinboard Bookmark Enhanced - Background Service Worker (v4.0)
 // ============================================================
 
-importScripts("i18n.js", "shared.js", "ai-cache.js", "ai.js", "jina.js", "wayback.js");
+importScripts(
+  "i18n.js", "shared.js", "vocab-store.js", "vocab-gdrive.js",
+  "ai-cache.js", "ai.js", "jina.js", "wayback.js"
+);
 
 // Load manual language setting (async, t() falls back to browser locale until ready)
 initI18n();
@@ -1428,6 +1431,92 @@ pbpCleanupRemovedWebdav().catch((error) => {
 // storage-warm alarm retries either direction within 5 minutes.
 pbpMigrateSecretsToLocal().catch(() => {});
 
+const PBP_VOCAB_DRIVE_CONNECTED_KEY = "vocabDriveConnected";
+const PBP_GOOGLE_API_ORIGIN = "https://www.googleapis.com/*";
+const queueVocabSync = pbpCreateRecoveringTail();
+const vocabDriveClient = pbpCreateVocabDriveClient();
+const runVocabDriveSync = pbpCreateVocabDriveSyncRunner({
+  client: vocabDriveClient,
+  getCurrentPinboardAuth,
+  pinboardAuthIsCurrent: pbpPinboardAuthIsCurrent
+});
+
+function pbpQueueVocabDriveSync(options) {
+  return queueVocabSync(async () => runVocabDriveSync(options));
+}
+
+async function pbpVocabDriveIsConnected() {
+  const stored = await chrome.storage.local.get(PBP_VOCAB_DRIVE_CONNECTED_KEY);
+  return stored[PBP_VOCAB_DRIVE_CONNECTED_KEY] === true;
+}
+
+async function pbpGetVocabDriveStatus() {
+  const connected = await pbpVocabDriveIsConnected();
+  const auth = await getCurrentPinboardAuth();
+  if (!auth.account || !pbpPinboardAuthIsCurrent(auth)) {
+    return { connected, owner: "", pendingWords: 0, pendingBatches: 0, notices: 0 };
+  }
+  const ownerScope = pbpDictOwnerScope(auth.account);
+  const ownerHash = await pbpVocabOwnerHash(ownerScope);
+  const states = await pbpVocabListAccountStates(ownerHash);
+  states.sort((a, b) => (b.lastSuccessAt || 0) - (a.lastSuccessAt || 0));
+  const state = states[0] || null;
+  const [outbox, pending, notices] = await Promise.all([
+    pbpVocabListOutbox(ownerScope),
+    state ? pbpVocabListPendingBatches(state.drivePermissionId, ownerHash) : [],
+    pbpVocabReadNotices(ownerScope)
+  ]);
+  if (!pbpPinboardAuthIsCurrent(auth)) {
+    return { connected, owner: "", pendingWords: 0, pendingBatches: 0, notices: 0 };
+  }
+  return {
+    ...(state || {}),
+    connected,
+    owner: auth.account,
+    pendingWords: outbox.length,
+    pendingBatches: pending.length,
+    notices: notices.length
+  };
+}
+
+async function pbpBootVocabDriveSync() {
+  const options = { interactive: false };
+  if (!await pbpVocabDriveIsConnected()) return { ok: true, status: await pbpGetVocabDriveStatus() };
+  pbpVocabSchedulePeriodic(chrome.alarms);
+  const granted = await chrome.permissions.contains({
+    permissions: ["identity"],
+    origins: [PBP_GOOGLE_API_ORIGIN]
+  });
+  if (!granted) return { ok: false, error: "permission" };
+  return pbpQueueVocabDriveSync(options);
+}
+
+async function pbpDisconnectVocabDrive() {
+  let token = "";
+  try {
+    const result = await chrome.identity.getAuthToken({ interactive: false });
+    token = typeof result === "string" ? result : result?.token || "";
+  } catch (_) {}
+  if (token) {
+    try { await chrome.identity.removeCachedAuthToken({ token }); } catch (_) {}
+  }
+  try {
+    await chrome.permissions.remove({
+      permissions: ["identity"],
+      origins: [PBP_GOOGLE_API_ORIGIN]
+    });
+  } catch (_) {}
+  await chrome.storage.local.set({ [PBP_VOCAB_DRIVE_CONNECTED_KEY]: false });
+  await Promise.all([
+    chrome.alarms.clear("vocab-sync-dirty"),
+    chrome.alarms.clear("vocab-sync-periodic"),
+    chrome.alarms.clear("vocab-sync-retry")
+  ]);
+  return { ok: true, status: await pbpGetVocabDriveStatus() };
+}
+
+pbpBootVocabDriveSync().catch(() => {});
+
 const queuePrewarmAlarmSync = pbpCreateRecoveringTail();
 function syncPrewarmTagsAlarm() {
   return queuePrewarmAlarmSync(async () => {
@@ -1463,6 +1552,11 @@ async function prewarmTagsNow() {
 }
 
 chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === "vocab-sync-dirty" ||
+      alarm.name === "vocab-sync-periodic" ||
+      alarm.name === "vocab-sync-retry") {
+    pbpBootVocabDriveSync().catch(() => {});
+  }
   if (alarm.name === "keepalive") {
     processOfflineQueue().catch(() => {});
     updateBadge().catch(() => {});
@@ -1593,6 +1687,64 @@ chrome.runtime.onInstalled.addListener(({ reason }) => {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (!message || typeof message !== "object") { sendResponse({ error: "invalid" }); return true; }
   noteActivity(); // using the popup keeps the SW warm for the next open
+
+  if (message.type === "PBP_VOCAB_DIRTY") {
+    pbpVocabDriveIsConnected()
+      .then((connected) => connected
+        ? pbpVocabScheduleDirty(chrome.alarms)
+        : false)
+      .then(() => sendResponse({ ok: true }))
+      .catch(() => sendResponse({ ok: false, error: "remote" }));
+    return true;
+  }
+
+  if (message.type === "vocabDriveConnect") {
+    chrome.storage.local.set({ [PBP_VOCAB_DRIVE_CONNECTED_KEY]: true })
+      .then(() => pbpQueueVocabDriveSync({ interactive: true, force: true }))
+      .then(async (result) => {
+        if (!result.ok && (result.error === "auth" || result.error === "permission")) {
+          await chrome.storage.local.set({ [PBP_VOCAB_DRIVE_CONNECTED_KEY]: false });
+        } else {
+          pbpVocabSchedulePeriodic(chrome.alarms);
+        }
+        sendResponse(result.ok
+          ? { ok: true, status: await pbpGetVocabDriveStatus() }
+          : { ok: false, error: result.error });
+      })
+      .catch(() => sendResponse({ ok: false, error: "remote" }));
+    return true;
+  }
+
+  if (message.type === "vocabDriveStatus") {
+    pbpGetVocabDriveStatus()
+      .then((status) => sendResponse({ ok: true, status }))
+      .catch(() => sendResponse({ ok: false, error: "remote" }));
+    return true;
+  }
+
+  if (message.type === "vocabDriveSyncNow") {
+    pbpVocabDriveIsConnected()
+      .then(async (connected) => {
+        if (!connected) return { ok: false, error: "auth" };
+        if (message.force === true) await chrome.alarms.clear("vocab-sync-retry");
+        return pbpQueueVocabDriveSync({
+          interactive: false,
+          force: message.force === true
+        });
+      })
+      .then(async (result) => sendResponse(result.ok
+        ? { ok: true, status: await pbpGetVocabDriveStatus() }
+        : { ok: false, error: result.error }))
+      .catch(() => sendResponse({ ok: false, error: "remote" }));
+    return true;
+  }
+
+  if (message.type === "vocabDriveDisconnect") {
+    queueVocabSync(async () => pbpDisconnectVocabDrive())
+      .then(sendResponse)
+      .catch(() => sendResponse({ ok: false, error: "remote" }));
+    return true;
+  }
 
   if (message.type === "get_bookmark_data" && message.url) {
     getCurrentPinboardAuth().then((auth) => {
