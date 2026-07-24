@@ -192,7 +192,7 @@ bash scripts/release.sh
 - 用 Playwright bundled Chromium + `--load-extension` 安装该 ZIP
 - 校验 Service Worker 注册成功（catch importScripts 404 等）
 - 校验 Release ZIP 的扩展 ID 精确等于 CWS ID（源码目录仍保持独立开发 ID）
-- 校验 `vocab-store.js` / `vocab-gdrive.js` 已由 SW 成功加载，设置页可定位 Drive 生词区
+- 校验 `vocab-store.js` / `vocab-gdrive.js` 已由 SW 成功加载；根据 ZIP manifest 的 OAuth 能力，设置页要么显示可用的“连接 Google Drive”，要么显示不可用状态并隐藏全部 Drive 操作
 - 校验 popup.html 打开无 pageerror（catch `ReferenceError` 等）
 - 校验 options.html 打开无 pageerror
 - 任一失败 → release.sh 中止，不发 GitHub release

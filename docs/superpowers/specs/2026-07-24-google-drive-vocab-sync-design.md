@@ -606,8 +606,9 @@ OAuth Gate 完成后，Manifest 增加可选 `identity`，并在 `oauth2` 中写
 2. 与 CWS ID 绑定的生产 OAuth client；
 3. 不向源码 manifest 写入 CWS 公钥，Release ZIP 仍只使用已核验的 CWS 公钥；
 4. release 阶段只注入已经核验的生产 OAuth client，不接受示例或占位值；
-5. smoke test 在存在真实值后才断言源码开发 ID/client、ZIP CWS ID/client 和唯一
-   `drive.appdata` scope。
+5. smoke test 始终按 ZIP manifest 的实际能力校验 UI：未激活时必须显示不可用状态并
+   隐藏全部 Drive 操作；存在真实值后再额外断言源码开发 ID/client、ZIP CWS
+   ID/client、唯一 `drive.appdata` scope 和可用的 Connect 操作。
 
 OAuth client ID 和 manifest 公钥不是 secret，可以进入仓库；不得提交任何 client
 secret。
