@@ -52,7 +52,7 @@ check("concurrent live beats higher-dot tombstone", (() => { const m = pbpVocabM
 check("live-wins-delete emits notice", pbpVocabMergeEvents(live("a", 2), tombstone("b", 3)).notice === "delete-live-conflict");
 check("tombstones merge with stable winner", (() => { const m = pbpVocabMergeEvents(tombstone("a", 2), tombstone("b", 3)); return m.kind === "merged" && m.event.deleted && m.event.dot.deviceId === "b" && m.event.vector.a === 2 && m.event.vector.b === 3; })());
 check("equal vector with equal content is noop", pbpVocabMergeEvents(live("a", 2), live("a", 2)).kind === "noop");
-check("corruption and untrusted fields reject", (() => { const owner = live("b", 1); const sync = live("b", 1); const unsafe = live("b", 1, { sourceUrl: "javascript:alert(1)" }); const dot = live("b", 1); owner.value.owner = "acct_a"; sync.value.vector = { a: 1 }; dot.dot.extra = true; return pbpVocabMergeEvents(live("a", 2), live("a", 2, { gloss: "changed" })).kind === "corrupt" && pbpVocabMergeEvents(live("a", 2), live("a", 2, { term: "word", lemma: "word" })).kind === "corrupt" && !pbpVocabValidateEvent(owner) && !pbpVocabValidateEvent(sync) && !pbpVocabValidateEvent(unsafe) && !pbpVocabValidateEvent(dot); })());
+check("corruption and untrusted fields reject", (() => { const owner = live("b", 1); const sync = live("b", 1); const unsafe = live("b", 1, { sourceUrl: "javascript:alert(1)" }); const dot = live("b", 1); const blankTerm = live("b", 1, { term: "   " }); const blankLanguage = live("b", 1, { language: "   " }); const emptyTombstone = tombstone("b", 1); const noncanonicalTombstone = tombstone("b", 1); const pipeTerm = live("b", 1, { term: "A|B" }); owner.value.owner = "acct_a"; sync.value.vector = { a: 1 }; dot.dot.extra = true; blankTerm.recordKey = "en|"; blankLanguage.recordKey = "|word"; emptyTombstone.recordKey = "|"; noncanonicalTombstone.recordKey = "EN|Word"; pipeTerm.recordKey = "en|a|b"; return pbpVocabMergeEvents(live("a", 2), live("a", 2, { gloss: "changed" })).kind === "corrupt" && pbpVocabMergeEvents(live("a", 2), live("a", 2, { term: "word", lemma: "word" })).kind === "corrupt" && !pbpVocabValidateEvent(owner) && !pbpVocabValidateEvent(sync) && !pbpVocabValidateEvent(unsafe) && !pbpVocabValidateEvent(dot) && !pbpVocabValidateEvent(blankTerm) && !pbpVocabValidateEvent(blankLanguage) && !pbpVocabValidateEvent(emptyTombstone) && !pbpVocabValidateEvent(noncanonicalTombstone) && pbpVocabValidateEvent(pipeTerm); })());
 check("term mismatch rejects", (() => { const remote = live("b", 1, { term: "word", lemma: "word" }); return pbpVocabValidateEvent(remote) && pbpVocabMergeEvents(live("a", 2), remote).kind === "invalid"; })());
 check("language and recordKey mismatch reject", (() => { const local = live("a", 2, { language: "en-US" }); const remote = live("b", 1, { language: "en-GB" }); return pbpVocabValidateEvent(local) && pbpVocabValidateEvent(remote) && pbpVocabMergeEvents(local, remote).kind === "invalid" && !pbpVocabValidateEvent(local, "en|other"); })());
 check("cross-vector merge converges in both directions", (() => { const a = live("a", 2, {}, { a: 2, b: 5 }); const b = live("b", 4, {}, { a: 3, b: 4 }); const ab = pbpVocabMergeEvents(a, b); const ba = pbpVocabMergeEvents(b, a); return [ab, ba].every((m) => m.kind === "merged" && pbpVocabValidateEvent(m.event) && m.event.vector.a === 3 && m.event.vector.b === 5 && m.event.dot.deviceId === "b" && m.event.dot.counter === 4 && m.requeue) && pbpVocabEventContentEqual(ab.event, ba.event); })());
@@ -307,6 +307,13 @@ async function runIdbChecks() {
   ]);
   const rejectedNoWrite = JSON.stringify(await storeRows("words")) === badImportWords &&
     JSON.stringify(await storeRows("sync")) === badImportSync;
+  const blankRejectedImport = await pbpVocabImportRecords("acct_import", [
+    word("acct_import", "Valid But Atomic"),
+    word("acct_import", "   ", { language: "en" }),
+    word("acct_import", "Blank Language", { language: "   " })
+  ]);
+  const blankRejectedNoWrite = JSON.stringify(await storeRows("words")) === badImportWords &&
+    JSON.stringify(await storeRows("sync")) === badImportSync;
   let dirtyCalls = 0;
   const priorChrome = globalThis.chrome;
   globalThis.chrome = { runtime: { sendMessage: () => { dirtyCalls++; return Promise.reject(new Error("worker asleep")); } } };
@@ -331,7 +338,7 @@ async function runIdbChecks() {
   const existingStored = await pbpVocabGet(existingImport.id);
   const revivedStored = await pbpVocabGet(reviveImport.id);
   const revivedMeta = await syncGet("record:acct_import:fr|revive");
-  check("imported records use the local mutation and outbox path", task3ApiReady && !rejectedImport.ok && rejectedNoWrite && imported.processed === 3 && importedAgain.processed === 1 && exactStored.term === " Imported Exact " && exactStored.language === "en-US" && exactStored.createdAt === 0 && existingStored.term === "Case Term" && existingStored.language === "en" && existingStored.id === existingImport.id && revivedStored.gloss === "revived" && revivedMeta.deleted === false && importOutbox.length === 3 && dirtyCalls === 2);
+  check("imported records use the local mutation and outbox path", task3ApiReady && !rejectedImport.ok && rejectedNoWrite && !blankRejectedImport.ok && blankRejectedNoWrite && imported.processed === 3 && importedAgain.processed === 1 && exactStored.term === " Imported Exact " && exactStored.language === "en-US" && exactStored.createdAt === 0 && existingStored.term === "Case Term" && existingStored.language === "en" && existingStored.id === existingImport.id && revivedStored.gloss === "revived" && revivedMeta.deleted === false && importOutbox.length === 3 && dirtyCalls === 2);
 
   await deleteVocabDb();
 }

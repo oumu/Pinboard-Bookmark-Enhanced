@@ -128,9 +128,21 @@ function _pbpVocabCanonicalJson(value) {
   return JSON.stringify(value);
 }
 
+function _pbpVocabCanonicalRecordKey(recordKey) {
+  if (typeof recordKey !== "string") return false;
+  const separator = recordKey.indexOf("|");
+  if (separator <= 0) return false;
+  const language = recordKey.slice(0, separator);
+  const term = recordKey.slice(separator + 1);
+  const canonicalLanguage = pbpDictPrimaryLang(language);
+  const canonicalTerm = pbpDictNormalizeTerm(term).toLowerCase();
+  return !!canonicalLanguage && canonicalLanguage === language &&
+    !!canonicalTerm && canonicalTerm === term;
+}
+
 function pbpVocabValidateEvent(event, expectedRecordKey) {
   if (!_pbpVocabOnlyKeys(event, ["recordKey", "vector", "dot", "deleted", "value"]) ||
-      typeof event.recordKey !== "string" || !event.recordKey ||
+      !_pbpVocabCanonicalRecordKey(event.recordKey) ||
       (expectedRecordKey !== undefined && event.recordKey !== expectedRecordKey) ||
       !_pbpVocabValidVector(event.vector) || !_pbpVocabOnlyKeys(event.dot, ["deviceId", "counter"]) ||
       typeof event.deleted !== "boolean") return false;
@@ -142,8 +154,11 @@ function pbpVocabValidateEvent(event, expectedRecordKey) {
   if (event.deleted) return !Object.prototype.hasOwnProperty.call(event, "value");
   const value = event.value;
   const fields = ["term", "lemma", "language", "gloss", "ipa", "sourceUrl", "license", "contexts", "groups", "note", "status", "createdAt", "updatedAt"];
+  const primaryLanguage = pbpDictPrimaryLang(value && value.language);
+  const normalizedTerm = pbpDictNormalizeTerm(value && value.term);
   if (!_pbpVocabOnlyKeys(value, fields) || Object.keys(value).length !== fields.length ||
       typeof value.term !== "string" || !value.term || typeof value.language !== "string" || !value.language ||
+      !primaryLanguage || !normalizedTerm ||
       typeof value.gloss !== "string" || typeof value.note !== "string" || typeof value.status !== "string" ||
       !Number.isFinite(value.createdAt) || !Number.isFinite(value.updatedAt) ||
       !(value.lemma === null || typeof value.lemma === "string") || !(value.ipa === null || typeof value.ipa === "string") ||
@@ -151,7 +166,7 @@ function pbpVocabValidateEvent(event, expectedRecordKey) {
       !(value.sourceUrl === null || (typeof value.sourceUrl === "string" && pbpDictSafeUrl(value.sourceUrl) === value.sourceUrl)) ||
       !Array.isArray(value.groups) || !value.groups.every((group) => typeof group === "string") ||
       !Array.isArray(value.contexts) || !value.contexts.every(_pbpVocabValidContext)) return false;
-  return event.recordKey === pbpDictCacheKeyPublic(value.language, value.term);
+  return event.recordKey === primaryLanguage + "|" + normalizedTerm.toLowerCase();
 }
 
 function pbpVocabEventContentEqual(left, right) {
