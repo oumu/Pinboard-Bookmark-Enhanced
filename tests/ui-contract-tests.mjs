@@ -13,6 +13,7 @@ const backgroundJs = read("background.js");
 const optionsHtml = read("options.html");
 const releaseSh = read("scripts/release.sh");
 const zipInstallSmoke = read("scripts/zip-install-smoke.mjs");
+const privacyMd = read("docs/privacy.md");
 check(!optionsHtml.includes('Requires "Access all websites" permission'), "options Batch hint still advertises the retired all-sites request");
 check(optionsHtml.includes('data-i18n="secBackupRestore">Backup &amp; Restore</div>'),
   "options.html: backup section fallback still advertises sync");
@@ -73,6 +74,34 @@ check(zipInstallSmoke.includes("const EXPECTED_EXTENSION_ID = 'pnjndmjhljjbdlbej
   zipInstallSmoke.includes("'vocab-gdrive.js'") &&
   zipInstallSmoke.includes('#vocab-drive-connect'),
   "zip-install-smoke.mjs: release ID, vocabulary runtime files, or Drive options card are not verified");
+{
+  const storage = privacyMd.slice(
+    privacyMd.indexOf("## Data storage"),
+    privacyMd.indexOf("## Chrome Web Store data categories")
+  );
+  const rows = storage.split("\n").filter((line) => line.startsWith("|"));
+  const local = rows.find((line) => line.includes("Vocabulary sync runtime/account state"));
+  const pending = rows.find((line) => line.includes("Pending vocabulary upload data"));
+  const remote = rows.find((line) => line.includes("Convergence metadata sent to Google Drive"));
+  check(local && pending && remote &&
+    !/(version vector|dot|deletion marker|outbox|pending batch)/i.test(local) &&
+    ["record key", "version vector", "dot", "deletion marker"].every((field) =>
+      remote.toLowerCase().includes(field)) &&
+    !/\|\s*No\s*\|\s*$/.test(remote),
+  "privacy.md: local Drive state is conflated with uploaded convergence metadata");
+
+  const driveRequest = privacyMd.slice(
+    privacyMd.indexOf("16. **Google Drive API**"),
+    privacyMd.indexOf("\n\nFor configured AI", privacyMd.indexOf("16. **Google Drive API**"))
+  ).toLowerCase();
+  const driveThirdParty = privacyMd.slice(
+    privacyMd.indexOf("- **Google Drive**"),
+    privacyMd.indexOf("\n-", privacyMd.indexOf("- **Google Drive**") + 1)
+  ).toLowerCase();
+  check(["record keys", "version vectors", "dots", "deletion markers"].every((field) =>
+    driveRequest.includes(field) && driveThirdParty.includes(field)),
+  "privacy.md: Google Drive request or third-party disclosure omits convergence fields");
+}
 check(!backgroundJs.includes('"webdav.js"'), "background.js still imports webdav.js");
 check(backgroundJs.includes('"vocab-store.js"') && backgroundJs.includes('"vocab-gdrive.js"') &&
   backgroundJs.indexOf('"vocab-store.js"') < backgroundJs.indexOf('"vocab-gdrive.js"'),
