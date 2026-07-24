@@ -186,18 +186,18 @@ function _pbpVocabMergeLiveValues(winner, other) {
 function pbpVocabMergeEvents(localEvent, remoteEvent) {
   const invalid = { kind: "invalid", event: null, requeue: false, notice: null };
   if (!pbpVocabValidateEvent(localEvent) || !pbpVocabValidateEvent(remoteEvent, localEvent.recordKey)) return invalid;
-  if (!localEvent.deleted && !remoteEvent.deleted &&
-      (localEvent.value.term !== remoteEvent.value.term || localEvent.value.language !== remoteEvent.value.language)) return invalid;
   const relation = pbpVocabVectorRelation(localEvent.vector, remoteEvent.vector);
   if (relation === "equal") return pbpVocabEventContentEqual(localEvent, remoteEvent)
     ? { kind: "noop", event: localEvent, requeue: false, notice: null }
     : { kind: "corrupt", event: localEvent, requeue: false, notice: null };
+  if (!localEvent.deleted && !remoteEvent.deleted &&
+      (localEvent.value.term !== remoteEvent.value.term || localEvent.value.language !== remoteEvent.value.language)) return invalid;
   if (relation === "left") return { kind: "noop", event: localEvent, requeue: false, notice: null };
   if (relation === "right") return { kind: "apply", event: remoteEvent, requeue: false, notice: null };
   const winner = pbpVocabDotCompare(localEvent.dot, remoteEvent.dot) >= 0 ? localEvent : remoteEvent;
   const other = winner === localEvent ? remoteEvent : localEvent;
   const live = !localEvent.deleted ? localEvent : (!remoteEvent.deleted ? remoteEvent : null);
-  const provenance = live || winner;
+  const provenance = localEvent.deleted === remoteEvent.deleted ? winner : live;
   const event = {
     recordKey: localEvent.recordKey, vector: _pbpVocabMergedVector(localEvent.vector, remoteEvent.vector),
     dot: { deviceId: provenance.dot.deviceId, counter: provenance.dot.counter }, deleted: !live
