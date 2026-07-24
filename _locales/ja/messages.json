@@ -2655,6 +2655,94 @@
     "vocabReadingSection": {
       "message": "読書中のヒント"
     },
+    "vocabDriveSection": {
+      "message": "Google Drive で単語を同期"
+    },
+    "vocabDriveScope": {
+      "message": "現在の Pinboard アカウントの単語だけを同期します。設定と API キーは同期しません。"
+    },
+    "vocabDriveDisclosure": {
+      "message": "Google Drive のこの拡張機能専用 appDataFolder に、単語データのコピーを平文で保存します。エンドツーエンド暗号化はされません。単語、定義、メモ、参照元 URL、記事タイトル、文脈の抜粋が含まれる場合があります。"
+    },
+    "vocabDriveLoading": {
+      "message": "Google Drive の同期状態を読み込んでいます..."
+    },
+    "vocabDriveDisconnected": {
+      "message": "このデバイスは Google Drive に接続されていません。"
+    },
+    "vocabDriveConnected": {
+      "message": "このデバイスは Google Drive に接続されています。"
+    },
+    "vocabDriveAccountLabel": {
+      "message": "Google アカウント"
+    },
+    "vocabDriveOwnerLabel": {
+      "message": "Pinboard アカウント"
+    },
+    "vocabDriveLastSuccessLabel": {
+      "message": "前回の同期成功"
+    },
+    "vocabDrivePendingWordsLabel": {
+      "message": "同期待ちの単語"
+    },
+    "vocabDrivePendingBatchesLabel": {
+      "message": "アップロード待ちのバッチ"
+    },
+    "vocabDriveNever": {
+      "message": "まだ同期されていません"
+    },
+    "vocabDriveNotices": {
+      "message": "削除の競合に関する通知：$COUNT$ 件",
+      "placeholders": {
+        "count": {
+          "content": "$1"
+        }
+      }
+    },
+    "vocabDriveConnect": {
+      "message": "Google Drive に接続"
+    },
+    "vocabDriveSyncNow": {
+      "message": "今すぐ同期"
+    },
+    "vocabDriveDisconnect": {
+      "message": "このデバイスの接続を解除"
+    },
+    "vocabDrivePermissionDenied": {
+      "message": "Google Drive へのアクセスは許可されませんでした。同期するときに、もう一度接続してください。"
+    },
+    "vocabDriveStatusFailed": {
+      "message": "Google Drive の同期状態を読み込めませんでした。"
+    },
+    "vocabDriveErrorAuth": {
+      "message": "Google Drive の認証を利用できません。"
+    },
+    "vocabDriveErrorPermission": {
+      "message": "Google Drive の権限がありません。"
+    },
+    "vocabDriveErrorCorrupt": {
+      "message": "Google Drive の同期データを安全に読み込めませんでした。ローカルの単語は変更されていません。"
+    },
+    "vocabDriveErrorNetwork": {
+      "message": "Google Drive に接続できません。"
+    },
+    "vocabDriveErrorRemote": {
+      "message": "Google Drive との同期に失敗しました。"
+    },
+    "vocabDriveErrorAccountChanged": {
+      "message": "Google アカウントまたは Pinboard アカウントが変わりました。「単語」を開き直して、もう一度お試しください。"
+    },
+    "vocabDriveRetryAt": {
+      "message": "次回の再試行：$TIME$。",
+      "placeholders": {
+        "time": {
+          "content": "$1"
+        }
+      }
+    },
+    "vocabDriveReconnectRequired": {
+      "message": "続行するには、Google Drive との接続を解除してから再接続してください。"
+    },
     "vocabLearningSection": {
       "message": "エクスポートと連携"
     },

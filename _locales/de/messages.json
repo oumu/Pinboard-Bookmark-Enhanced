@@ -2655,6 +2655,94 @@
     "vocabReadingSection": {
       "message": "Lesehinweise"
     },
+    "vocabDriveSection": {
+      "message": "Vokabeln mit Google Drive synchronisieren"
+    },
+    "vocabDriveScope": {
+      "message": "Synchronisiert nur die Vokabeln des aktuellen Pinboard-Kontos. Einstellungen und API-Schlüssel werden nicht synchronisiert."
+    },
+    "vocabDriveDisclosure": {
+      "message": "Die Erweiterung speichert eine Klartextkopie im privaten appDataFolder der Erweiterung in deinem Google Drive. Sie ist nicht Ende-zu-Ende-verschlüsselt und kann Vokabeln, Definitionen, Notizen, Quell-URLs, Artikeltitel und Kontextauszüge enthalten."
+    },
+    "vocabDriveLoading": {
+      "message": "Google-Drive-Synchronisierungsstatus wird geladen..."
+    },
+    "vocabDriveDisconnected": {
+      "message": "Google Drive ist auf diesem Gerät nicht verbunden."
+    },
+    "vocabDriveConnected": {
+      "message": "Google Drive ist auf diesem Gerät verbunden."
+    },
+    "vocabDriveAccountLabel": {
+      "message": "Google-Konto"
+    },
+    "vocabDriveOwnerLabel": {
+      "message": "Pinboard-Konto"
+    },
+    "vocabDriveLastSuccessLabel": {
+      "message": "Letzte erfolgreiche Synchronisierung"
+    },
+    "vocabDrivePendingWordsLabel": {
+      "message": "Ausstehende Vokabeln"
+    },
+    "vocabDrivePendingBatchesLabel": {
+      "message": "Ausstehende Upload-Pakete"
+    },
+    "vocabDriveNever": {
+      "message": "Noch nicht synchronisiert"
+    },
+    "vocabDriveNotices": {
+      "message": "Hinweise zu Löschkonflikten: $COUNT$",
+      "placeholders": {
+        "count": {
+          "content": "$1"
+        }
+      }
+    },
+    "vocabDriveConnect": {
+      "message": "Google Drive verbinden"
+    },
+    "vocabDriveSyncNow": {
+      "message": "Jetzt synchronisieren"
+    },
+    "vocabDriveDisconnect": {
+      "message": "Dieses Gerät trennen"
+    },
+    "vocabDrivePermissionDenied": {
+      "message": "Der Zugriff auf Google Drive wurde nicht gewährt. Verbinde das Konto erneut, wenn du synchronisieren möchtest."
+    },
+    "vocabDriveStatusFailed": {
+      "message": "Der Google-Drive-Synchronisierungsstatus konnte nicht geladen werden."
+    },
+    "vocabDriveErrorAuth": {
+      "message": "Die Google-Drive-Autorisierung ist nicht verfügbar."
+    },
+    "vocabDriveErrorPermission": {
+      "message": "Die Berechtigung für Google Drive fehlt."
+    },
+    "vocabDriveErrorCorrupt": {
+      "message": "Die Google-Drive-Synchronisierungsdaten konnten nicht sicher gelesen werden. Die lokalen Vokabeln wurden nicht geändert."
+    },
+    "vocabDriveErrorNetwork": {
+      "message": "Google Drive ist nicht erreichbar."
+    },
+    "vocabDriveErrorRemote": {
+      "message": "Die Synchronisierung mit Google Drive ist fehlgeschlagen."
+    },
+    "vocabDriveErrorAccountChanged": {
+      "message": "Das Google- oder Pinboard-Konto hat sich geändert. Öffne „Vokabeln“ erneut und versuche es noch einmal."
+    },
+    "vocabDriveRetryAt": {
+      "message": "Nächster Versuch: $TIME$.",
+      "placeholders": {
+        "time": {
+          "content": "$1"
+        }
+      }
+    },
+    "vocabDriveReconnectRequired": {
+      "message": "Trenne Google Drive und verbinde es erneut, um fortzufahren."
+    },
     "vocabLearningSection": {
       "message": "Export und Integrationen"
     },

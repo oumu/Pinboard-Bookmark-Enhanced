@@ -2655,6 +2655,94 @@
     "vocabReadingSection": {
       "message": "Подсказки при чтении"
     },
+    "vocabDriveSection": {
+      "message": "Синхронизация слов с Google Диском"
+    },
+    "vocabDriveScope": {
+      "message": "Синхронизирует только слова текущего аккаунта Pinboard. Настройки и API-ключи не синхронизируются."
+    },
+    "vocabDriveDisclosure": {
+      "message": "Расширение сохраняет копию в виде открытого текста в своём закрытом каталоге appDataFolder на Google Диске. Эта копия не защищена сквозным шифрованием и может содержать слова, определения, заметки, URL источников, заголовки статей и фрагменты контекста."
+    },
+    "vocabDriveLoading": {
+      "message": "Загрузка состояния синхронизации с Google Диском..."
+    },
+    "vocabDriveDisconnected": {
+      "message": "Google Диск не подключён на этом устройстве."
+    },
+    "vocabDriveConnected": {
+      "message": "Google Диск подключён на этом устройстве."
+    },
+    "vocabDriveAccountLabel": {
+      "message": "Аккаунт Google"
+    },
+    "vocabDriveOwnerLabel": {
+      "message": "Аккаунт Pinboard"
+    },
+    "vocabDriveLastSuccessLabel": {
+      "message": "Последняя успешная синхронизация"
+    },
+    "vocabDrivePendingWordsLabel": {
+      "message": "Слова, ожидающие синхронизации"
+    },
+    "vocabDrivePendingBatchesLabel": {
+      "message": "Пакеты, ожидающие отправки"
+    },
+    "vocabDriveNever": {
+      "message": "Синхронизация ещё не выполнялась"
+    },
+    "vocabDriveNotices": {
+      "message": "Уведомления о конфликтах удаления: $COUNT$",
+      "placeholders": {
+        "count": {
+          "content": "$1"
+        }
+      }
+    },
+    "vocabDriveConnect": {
+      "message": "Подключить Google Диск"
+    },
+    "vocabDriveSyncNow": {
+      "message": "Синхронизировать сейчас"
+    },
+    "vocabDriveDisconnect": {
+      "message": "Отключить это устройство"
+    },
+    "vocabDrivePermissionDenied": {
+      "message": "Доступ к Google Диску не предоставлен. Подключите его снова, когда потребуется синхронизация."
+    },
+    "vocabDriveStatusFailed": {
+      "message": "Не удалось загрузить состояние синхронизации с Google Диском."
+    },
+    "vocabDriveErrorAuth": {
+      "message": "Авторизация Google Диска недоступна."
+    },
+    "vocabDriveErrorPermission": {
+      "message": "Нет разрешения на доступ к Google Диску."
+    },
+    "vocabDriveErrorCorrupt": {
+      "message": "Не удалось безопасно прочитать данные синхронизации с Google Диском. Локальные слова не изменены."
+    },
+    "vocabDriveErrorNetwork": {
+      "message": "Не удалось подключиться к Google Диску."
+    },
+    "vocabDriveErrorRemote": {
+      "message": "Не удалось синхронизировать данные с Google Диском."
+    },
+    "vocabDriveErrorAccountChanged": {
+      "message": "Аккаунт Google или Pinboard изменился. Откройте раздел «Слова» заново и повторите попытку."
+    },
+    "vocabDriveRetryAt": {
+      "message": "Следующая попытка: $TIME$.",
+      "placeholders": {
+        "time": {
+          "content": "$1"
+        }
+      }
+    },
+    "vocabDriveReconnectRequired": {
+      "message": "Отключите и снова подключите Google Диск, чтобы продолжить."
+    },
     "vocabLearningSection": {
       "message": "Экспорт и интеграции"
     },

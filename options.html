@@ -691,6 +691,29 @@
         </div>
       </details>
 
+      <details class="vocab-disclosure" data-acc-key="vocab-google-drive" open>
+        <summary data-i18n="vocabDriveSection">Google Drive vocabulary sync</summary>
+        <div class="vocab-details-body" id="vocab-drive-body">
+          <p class="hint vocab-drive-copy" data-i18n="vocabDriveScope">Syncs vocabulary for the current Pinboard account only. Settings and API keys are not synced.</p>
+          <p class="hint vocab-drive-copy" id="vocab-drive-disclosure" data-i18n="vocabDriveDisclosure">The extension stores a plaintext copy in its private appDataFolder on your Google Drive. The copy is not end-to-end encrypted and may include words, definitions, notes, source URLs, article titles, and context excerpts.</p>
+          <p id="vocab-drive-state" class="save-status vocab-drive-state" role="status" aria-live="polite"></p>
+          <dl id="vocab-drive-fields" class="vocab-drive-fields" hidden>
+            <dt data-i18n="vocabDriveAccountLabel">Google account</dt><dd id="vocab-drive-account"></dd>
+            <dt data-i18n="vocabDriveOwnerLabel">Pinboard account</dt><dd id="vocab-drive-owner"></dd>
+            <dt data-i18n="vocabDriveLastSuccessLabel">Last successful sync</dt><dd id="vocab-drive-last-success"></dd>
+            <dt data-i18n="vocabDrivePendingWordsLabel">Pending words</dt><dd id="vocab-drive-pending-words"></dd>
+            <dt data-i18n="vocabDrivePendingBatchesLabel">Pending batches</dt><dd id="vocab-drive-pending-batches"></dd>
+          </dl>
+          <p id="vocab-drive-error" class="field-error" role="status" aria-live="polite"></p>
+          <p id="vocab-drive-notices" class="vocab-drive-notices" role="status" aria-live="polite"></p>
+          <div class="vocab-drive-actions">
+            <button type="button" class="btn btn-sm" id="vocab-drive-connect" data-i18n="vocabDriveConnect">Connect Google Drive</button>
+            <button type="button" class="btn btn-sm" id="vocab-drive-sync" data-i18n="vocabDriveSyncNow" hidden>Sync now</button>
+            <button type="button" class="btn btn-sm" id="vocab-drive-disconnect" data-i18n="vocabDriveDisconnect" hidden>Disconnect this device</button>
+          </div>
+        </div>
+      </details>
+
       <details class="vocab-disclosure" data-acc-key="vocab-learning">
         <summary data-i18n="vocabLearningSection">Export and integrations</summary>
         <div class="vocab-details-body">

@@ -1581,6 +1581,41 @@ html[data-theme] .preset-preview-content { background: var(--opt-bg); color: var
 }
 .vocab-disclosure > summary:focus-visible { outline: 2px solid var(--opt-accent); outline-offset: 2px; }
 .vocab-details-body { padding: 0 0 var(--opt-sp-3); }
+.vocab-drive-copy {
+  max-width: 76ch;
+  overflow-wrap: anywhere;
+}
+.vocab-drive-state { display: block; min-height: 18px; margin: var(--opt-sp-3) 0; }
+.vocab-drive-fields {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: var(--opt-sp-2) var(--opt-sp-4);
+  margin: var(--opt-sp-3) 0;
+  padding: var(--opt-sp-3);
+  border: 1px solid var(--opt-border);
+  background: var(--opt-panel);
+  color: var(--opt-fg);
+}
+.vocab-drive-fields[hidden] { display: none; }
+.vocab-drive-fields dt { color: var(--opt-fg-muted); }
+.vocab-drive-fields dd { min-width: 0; margin: 0; overflow-wrap: anywhere; }
+.vocab-drive-notices {
+  margin: var(--opt-sp-2) 0;
+  color: var(--opt-fg-muted);
+  overflow-wrap: anywhere;
+}
+.vocab-drive-notices.bad { color: var(--opt-danger); }
+.vocab-drive-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--opt-sp-3);
+  margin-top: var(--opt-sp-3);
+}
+.vocab-drive-actions .btn { max-width: 100%; white-space: normal; }
+@media (max-width: 480px) {
+  .vocab-drive-fields { grid-template-columns: minmax(0, 1fr); }
+  .vocab-drive-fields dt:not(:first-child) { margin-top: var(--opt-sp-2); }
+}
 html[data-theme="flexoki-dark"] #panel-vocab .vocab-details-body > .hint {
   color: var(--opt-fg-muted);
 }

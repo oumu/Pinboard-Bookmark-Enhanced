@@ -2655,6 +2655,94 @@
     "vocabReadingSection": {
       "message": "閱讀提示"
     },
+    "vocabDriveSection": {
+      "message": "Google Drive 生詞同步"
+    },
+    "vocabDriveScope": {
+      "message": "只同步目前 Pinboard 帳戶的生詞，不會同步設定或 API 金鑰。"
+    },
+    "vocabDriveDisclosure": {
+      "message": "擴充功能會在 Google Drive 的專用 appDataFolder 內，以明文格式儲存一份生詞副本。資料並非端對端加密，可能包括詞語、釋義、筆記、來源 URL、文章標題及語境摘錄。"
+    },
+    "vocabDriveLoading": {
+      "message": "正在讀取 Google Drive 同步狀態..."
+    },
+    "vocabDriveDisconnected": {
+      "message": "這部裝置尚未連接 Google Drive。"
+    },
+    "vocabDriveConnected": {
+      "message": "這部裝置已連接 Google Drive。"
+    },
+    "vocabDriveAccountLabel": {
+      "message": "Google 帳戶"
+    },
+    "vocabDriveOwnerLabel": {
+      "message": "Pinboard 帳戶"
+    },
+    "vocabDriveLastSuccessLabel": {
+      "message": "最近成功同步"
+    },
+    "vocabDrivePendingWordsLabel": {
+      "message": "待同步生詞"
+    },
+    "vocabDrivePendingBatchesLabel": {
+      "message": "待上載批次"
+    },
+    "vocabDriveNever": {
+      "message": "尚未同步"
+    },
+    "vocabDriveNotices": {
+      "message": "刪除衝突提示：$COUNT$ 項",
+      "placeholders": {
+        "count": {
+          "content": "$1"
+        }
+      }
+    },
+    "vocabDriveConnect": {
+      "message": "連接 Google Drive"
+    },
+    "vocabDriveSyncNow": {
+      "message": "立即同步"
+    },
+    "vocabDriveDisconnect": {
+      "message": "中斷這部裝置的連接"
+    },
+    "vocabDrivePermissionDenied": {
+      "message": "未獲授權存取 Google Drive。需要同步時，可再次連接。"
+    },
+    "vocabDriveStatusFailed": {
+      "message": "無法讀取 Google Drive 同步狀態。"
+    },
+    "vocabDriveErrorAuth": {
+      "message": "Google Drive 授權暫時無法使用。"
+    },
+    "vocabDriveErrorPermission": {
+      "message": "缺少 Google Drive 權限。"
+    },
+    "vocabDriveErrorCorrupt": {
+      "message": "無法安全讀取 Google Drive 同步資料，本機生詞並無變更。"
+    },
+    "vocabDriveErrorNetwork": {
+      "message": "無法連接 Google Drive。"
+    },
+    "vocabDriveErrorRemote": {
+      "message": "Google Drive 同步失敗。"
+    },
+    "vocabDriveErrorAccountChanged": {
+      "message": "Google 帳戶或 Pinboard 帳戶已切換。請重新開啟「生詞」後再試。"
+    },
+    "vocabDriveRetryAt": {
+      "message": "下次重試：$TIME$。",
+      "placeholders": {
+        "time": {
+          "content": "$1"
+        }
+      }
+    },
+    "vocabDriveReconnectRequired": {
+      "message": "請中斷並重新連接 Google Drive 後繼續。"
+    },
     "vocabLearningSection": {
       "message": "匯出及整合"
     },

@@ -17,7 +17,9 @@ let _vocabRenderLimit = 100;
 let _vocabBatchBusy = false;
 let _vocabFlashTimer = 0; // guards two flashes racing to clear each other's text early
 let _vocabOwnerLabel = ""; // decoded non-secret Pinboard username for visible scope copy
+let _vocabDriveBusy = false;
 const PBP_VOCAB_RENDER_BATCH = 100;
+const PBP_VOCAB_GOOGLE_API_ORIGIN = "https://www.googleapis.com/*";
 const _vocabCollator = new Intl.Collator(undefined, { sensitivity: "base", numeric: true });
 
 function pbpVocabSearchText(value) {
@@ -485,6 +487,187 @@ async function _pbpVocabReloadAfterMutation(expectedOwner, requestedGen) {
   }
 }
 
+function _pbpVocabDriveClear() {
+  for (const id of [
+    "vocab-drive-state", "vocab-drive-account", "vocab-drive-owner",
+    "vocab-drive-last-success", "vocab-drive-pending-words",
+    "vocab-drive-pending-batches", "vocab-drive-error", "vocab-drive-notices"
+  ]) {
+    const el = $id(id);
+    if (el) {
+      el.replaceChildren();
+      el.classList.remove("ok", "bad");
+    }
+  }
+  const fields = $id("vocab-drive-fields");
+  if (fields) fields.hidden = true;
+  for (const id of ["vocab-drive-connect", "vocab-drive-sync", "vocab-drive-disconnect"]) {
+    const button = $id(id);
+    if (button) button.hidden = true;
+  }
+}
+
+function _pbpVocabDriveDate(value) {
+  if (!Number.isFinite(value) || value <= 0) return "";
+  try {
+    const locale = typeof uiLangToBCP47 === "function" ? uiLangToBCP47() : undefined;
+    return new Intl.DateTimeFormat(locale, {
+      dateStyle: "medium", timeStyle: "short"
+    }).format(new Date(value));
+  } catch (_) {
+    return new Date(value).toLocaleString();
+  }
+}
+
+function _pbpVocabDriveErrorKey(code) {
+  return ({
+    auth: "vocabDriveErrorAuth",
+    permission: "vocabDriveErrorPermission",
+    corrupt: "vocabDriveErrorCorrupt",
+    network: "vocabDriveErrorNetwork",
+    account_changed: "vocabDriveErrorAccountChanged"
+  })[code] || "vocabDriveErrorRemote";
+}
+
+function _pbpVocabDriveShowError(code, retryAt, blocked) {
+  const el = $id("vocab-drive-error");
+  if (!el) return;
+  const parts = [t(_pbpVocabDriveErrorKey(code))];
+  const retry = _pbpVocabDriveDate(retryAt);
+  if (retry) parts.push(t("vocabDriveRetryAt", retry));
+  if (blocked) parts.push(t("vocabDriveReconnectRequired"));
+  setStatusIcon(el, false, parts.join(" "));
+}
+
+function _pbpVocabDriveSetBusy(busy) {
+  _vocabDriveBusy = !!busy;
+  const body = $id("vocab-drive-body");
+  if (body) body.setAttribute("aria-busy", String(_vocabDriveBusy));
+  for (const id of ["vocab-drive-connect", "vocab-drive-sync", "vocab-drive-disconnect"]) {
+    const button = $id(id);
+    if (button) button.disabled = _vocabDriveBusy;
+  }
+}
+
+function _pbpVocabDriveRender(status) {
+  _pbpVocabDriveClear();
+  const connected = status?.connected === true;
+  const state = $id("vocab-drive-state");
+  const connect = $id("vocab-drive-connect");
+  const sync = $id("vocab-drive-sync");
+  const disconnect = $id("vocab-drive-disconnect");
+  if (connect) connect.hidden = connected;
+  if (sync) sync.hidden = !connected;
+  if (disconnect) disconnect.hidden = !connected;
+  if (!connected) {
+    if (state) state.textContent = t("vocabDriveDisconnected");
+    _pbpVocabDriveSetBusy(false);
+    return;
+  }
+
+  if (state) setStatusIcon(state, true, t("vocabDriveConnected"));
+  const fields = $id("vocab-drive-fields");
+  if (fields) fields.hidden = false;
+  const email = String(status.emailAddress || "");
+  const displayName = String(status.displayName || "");
+  const account = $id("vocab-drive-account");
+  if (account) account.textContent = displayName && email
+    ? `${displayName} (${email})` : (displayName || email);
+  const owner = $id("vocab-drive-owner");
+  if (owner) owner.textContent = String(status.owner || "");
+  const lastSuccess = $id("vocab-drive-last-success");
+  if (lastSuccess) lastSuccess.textContent =
+    _pbpVocabDriveDate(status.lastSuccessAt) || t("vocabDriveNever");
+  const pendingWords = $id("vocab-drive-pending-words");
+  if (pendingWords) pendingWords.textContent =
+    Math.max(0, Number(status.pendingWords) || 0).toLocaleString();
+  const pendingBatches = $id("vocab-drive-pending-batches");
+  if (pendingBatches) pendingBatches.textContent =
+    Math.max(0, Number(status.pendingBatches) || 0).toLocaleString();
+  const notices = $id("vocab-drive-notices");
+  if (notices) {
+    const count = Math.max(0, Number(status.notices) || 0);
+    notices.textContent = t("vocabDriveNotices", count.toLocaleString());
+    notices.classList.toggle("bad", count > 0);
+  }
+  if (status.lastError) {
+    _pbpVocabDriveShowError(status.lastError, status.retryAt, status.blocked === true);
+  }
+  _pbpVocabDriveSetBusy(false);
+}
+
+async function _pbpVocabDriveRefresh(gen, requestSync) {
+  const loading = $id("vocab-drive-state");
+  if (loading) loading.textContent = t("vocabDriveLoading");
+  try {
+    const response = await chrome.runtime.sendMessage({ type: "vocabDriveStatus" });
+    if (gen !== _vocabRenderGen) return;
+    if (!response?.ok) {
+      const state = $id("vocab-drive-state");
+      if (state) state.textContent = t("vocabDriveStatusFailed");
+      _pbpVocabDriveShowError(response?.error);
+      return;
+    }
+    _pbpVocabDriveRender(response.status);
+    if (!requestSync || response.status?.connected !== true) return;
+    _pbpVocabDriveSetBusy(true);
+    const synced = await chrome.runtime.sendMessage({ type: "vocabDriveSyncNow" });
+    if (gen !== _vocabRenderGen) return;
+    if (synced?.ok) _pbpVocabDriveRender(synced.status || response.status);
+    else _pbpVocabDriveShowError(synced?.error);
+    _pbpVocabDriveSetBusy(false);
+  } catch (_) {
+    if (gen !== _vocabRenderGen) return;
+    const state = $id("vocab-drive-state");
+    if (state) state.textContent = t("vocabDriveStatusFailed");
+    _pbpVocabDriveShowError("remote");
+    _pbpVocabDriveSetBusy(false);
+  }
+}
+
+async function _pbpVocabDriveConnect() {
+  if (_vocabDriveBusy) return;
+  let granted = false;
+  try {
+    const permission = chrome.permissions.request({
+      permissions: ["identity"],
+      origins: [PBP_VOCAB_GOOGLE_API_ORIGIN]
+    });
+    _pbpVocabDriveSetBusy(true);
+    granted = await permission;
+  } catch (_) {}
+  if (!granted) {
+    _pbpVocabDriveSetBusy(false);
+    setStatusIcon($id("vocab-drive-error"), false, t("vocabDrivePermissionDenied"));
+    return;
+  }
+  try {
+    const response = await chrome.runtime.sendMessage({ type: "vocabDriveConnect" });
+    if (response?.ok) _pbpVocabDriveRender(response.status);
+    else _pbpVocabDriveShowError(response?.error);
+  } catch (_) {
+    _pbpVocabDriveShowError("remote");
+  } finally {
+    _pbpVocabDriveSetBusy(false);
+  }
+}
+
+async function _pbpVocabDriveAction(type, force) {
+  if (_vocabDriveBusy) return;
+  _pbpVocabDriveSetBusy(true);
+  try {
+    const message = { type };
+    if (force === true) message.force = true;
+    const response = await chrome.runtime.sendMessage(message);
+    if (response?.ok) _pbpVocabDriveRender(response.status);
+    else _pbpVocabDriveShowError(response?.error);
+  } catch (_) {
+    _pbpVocabDriveShowError("remote");
+  } finally {
+    _pbpVocabDriveSetBusy(false);
+  }
+}
+
 // Called from options.js's activateTab -- the sole lazy-init line added
 // there, same convention as renderNotesPanel/renderStoragePanel (rescans
 // every activation, no "already inited" guard). _vocabRenderGen guards a
@@ -493,6 +676,8 @@ async function _pbpVocabReloadAfterMutation(expectedOwner, requestedGen) {
 async function renderVocabPanel() {
   if (!$id("vocab-list")) return;
   const gen = ++_vocabRenderGen;
+  _pbpVocabDriveClear();
+  _pbpVocabDriveRefresh(gen, true);
   // Clear first, before any await: an account-change render must never leave
   // the previous owner's rows, selection, or derived group names visible.
   _pbpVocabClearVisibleState();
@@ -856,6 +1041,14 @@ const _vocabAddGroup = $id("vocab-add-group");
 if (_vocabAddGroup) _vocabAddGroup.addEventListener("click", _pbpVocabAddSelectedToGroup);
 const _vocabBatchDelete = $id("vocab-batch-delete");
 if (_vocabBatchDelete) _vocabBatchDelete.addEventListener("click", _pbpVocabBatchDeleteSelected);
+const _vocabDriveConnect = $id("vocab-drive-connect");
+if (_vocabDriveConnect) _vocabDriveConnect.addEventListener("click", _pbpVocabDriveConnect);
+const _vocabDriveSync = $id("vocab-drive-sync");
+if (_vocabDriveSync) _vocabDriveSync.addEventListener("click", () =>
+  _pbpVocabDriveAction("vocabDriveSyncNow", true));
+const _vocabDriveDisconnect = $id("vocab-drive-disconnect");
+if (_vocabDriveDisconnect) _vocabDriveDisconnect.addEventListener("click", () =>
+  _pbpVocabDriveAction("vocabDriveDisconnect", false));
 
 // Account switch (token rotation, or the sync/keys-routing toggles that
 // change which area holds the effective token) invalidates every row

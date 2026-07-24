@@ -2655,6 +2655,94 @@
     "vocabReadingSection": {
       "message": "Podpowiedzi podczas czytania"
     },
+    "vocabDriveSection": {
+      "message": "Synchronizacja słówek z Dyskiem Google"
+    },
+    "vocabDriveScope": {
+      "message": "Synchronizuje tylko słówka bieżącego konta Pinboard. Ustawienia i klucze API nie są synchronizowane."
+    },
+    "vocabDriveDisclosure": {
+      "message": "Rozszerzenie zapisuje kopię w postaci zwykłego tekstu w swoim prywatnym folderze appDataFolder na Dysku Google. Kopia nie jest szyfrowana kompleksowo i może zawierać słowa, definicje, notatki, źródłowe adresy URL, tytuły artykułów oraz fragmenty kontekstu."
+    },
+    "vocabDriveLoading": {
+      "message": "Wczytywanie stanu synchronizacji z Dyskiem Google..."
+    },
+    "vocabDriveDisconnected": {
+      "message": "Dysk Google nie jest połączony na tym urządzeniu."
+    },
+    "vocabDriveConnected": {
+      "message": "Dysk Google jest połączony na tym urządzeniu."
+    },
+    "vocabDriveAccountLabel": {
+      "message": "Konto Google"
+    },
+    "vocabDriveOwnerLabel": {
+      "message": "Konto Pinboard"
+    },
+    "vocabDriveLastSuccessLabel": {
+      "message": "Ostatnia udana synchronizacja"
+    },
+    "vocabDrivePendingWordsLabel": {
+      "message": "Słówka oczekujące na synchronizację"
+    },
+    "vocabDrivePendingBatchesLabel": {
+      "message": "Partie oczekujące na wysłanie"
+    },
+    "vocabDriveNever": {
+      "message": "Jeszcze nie synchronizowano"
+    },
+    "vocabDriveNotices": {
+      "message": "Powiadomienia o konflikcie usuwania: $COUNT$",
+      "placeholders": {
+        "count": {
+          "content": "$1"
+        }
+      }
+    },
+    "vocabDriveConnect": {
+      "message": "Połącz z Dyskiem Google"
+    },
+    "vocabDriveSyncNow": {
+      "message": "Synchronizuj teraz"
+    },
+    "vocabDriveDisconnect": {
+      "message": "Odłącz to urządzenie"
+    },
+    "vocabDrivePermissionDenied": {
+      "message": "Nie udzielono dostępu do Dysku Google. Połącz go ponownie, gdy zechcesz rozpocząć synchronizację."
+    },
+    "vocabDriveStatusFailed": {
+      "message": "Nie udało się wczytać stanu synchronizacji z Dyskiem Google."
+    },
+    "vocabDriveErrorAuth": {
+      "message": "Autoryzacja Dysku Google jest niedostępna."
+    },
+    "vocabDriveErrorPermission": {
+      "message": "Brakuje uprawnienia do Dysku Google."
+    },
+    "vocabDriveErrorCorrupt": {
+      "message": "Nie udało się bezpiecznie odczytać danych synchronizacji z Dysku Google. Lokalne słówka nie zostały zmienione."
+    },
+    "vocabDriveErrorNetwork": {
+      "message": "Nie można połączyć się z Dyskiem Google."
+    },
+    "vocabDriveErrorRemote": {
+      "message": "Synchronizacja z Dyskiem Google nie powiodła się."
+    },
+    "vocabDriveErrorAccountChanged": {
+      "message": "Konto Google lub Pinboard uległo zmianie. Otwórz ponownie kartę Słówka i spróbuj jeszcze raz."
+    },
+    "vocabDriveRetryAt": {
+      "message": "Następna próba: $TIME$.",
+      "placeholders": {
+        "time": {
+          "content": "$1"
+        }
+      }
+    },
+    "vocabDriveReconnectRequired": {
+      "message": "Odłącz i ponownie połącz Dysk Google, aby kontynuować."
+    },
     "vocabLearningSection": {
       "message": "Eksport i integracje"
     },

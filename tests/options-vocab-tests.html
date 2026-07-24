@@ -16,6 +16,27 @@ body{font-family:monospace;padding:16px}.case{padding:5px;border-bottom:1px soli
   <div id="vocab-list" aria-busy="false"></div><button class="vocab-load-more" id="vocab-load-more" hidden></button>
   <input id="dict-anki-deck"><input id="dict-anki-port"><input id="dict-anki-key"><input id="dict-eudic-token">
   <button id="vocab-export-btn">export</button><button id="vocab-anki-btn">anki</button><button id="vocab-eudic-btn">eudic</button>
+  <details class="vocab-disclosure" data-acc-key="vocab-google-drive" open>
+    <summary>Google Drive sync</summary>
+    <div class="vocab-details-body" id="vocab-drive-body">
+      <p id="vocab-drive-disclosure">Copies in appDataFolder are not end-to-end encrypted and include words, definitions, notes, source URLs, article titles, and context excerpts.</p>
+      <p id="vocab-drive-state" role="status" aria-live="polite"></p>
+      <dl id="vocab-drive-fields" class="vocab-drive-fields" hidden>
+        <dt>Google</dt><dd id="vocab-drive-account"></dd>
+        <dt>Pinboard</dt><dd id="vocab-drive-owner"></dd>
+        <dt>Last success</dt><dd id="vocab-drive-last-success"></dd>
+        <dt>Pending words</dt><dd id="vocab-drive-pending-words"></dd>
+        <dt>Pending batches</dt><dd id="vocab-drive-pending-batches"></dd>
+      </dl>
+      <p id="vocab-drive-error" class="field-error" role="status" aria-live="polite"></p>
+      <p id="vocab-drive-notices" class="vocab-drive-notices" role="status" aria-live="polite"></p>
+      <div class="vocab-drive-actions">
+        <button id="vocab-drive-connect"></button>
+        <button id="vocab-drive-sync" hidden></button>
+        <button id="vocab-drive-disconnect" hidden></button>
+      </div>
+    </div>
+  </details>
   <p id="dict-pack-status"></p><button id="dict-pack-open"></button><button id="dict-pack-import"></button>
   <button id="dict-pack-delete" hidden></button><input type="file" id="dict-pack-file">
 </div>
@@ -606,6 +627,143 @@ check("selection still covers all filtered results beyond rendered chunks", _voc
     HTMLAnchorElement.prototype.click = realAnchorClick;
   }
 
+  const driveRealChrome = window.chrome;
+  const driveRealOwner = pbpVocabCurrentOwner;
+  const driveRealAll = pbpVocabAll;
+  const driveMessages = [];
+  const permissionRequests = [];
+  const driveStatus = {
+    connected:true,
+    displayName:"Alice Example",
+    emailAddress:"alice@example.test",
+    owner:"alice",
+    lastSuccessAt:Date.UTC(2026, 6, 24, 8, 30),
+    pendingWords:7,
+    pendingBatches:2,
+    retryAt:Date.UTC(2026, 6, 24, 9, 0),
+    lastError:"network",
+    notices:3
+  };
+  const driveResponse = (message) => {
+    driveMessages.push({ ...message });
+    if (message.type === "vocabDriveDisconnect") {
+      return Promise.resolve({ ok:true, status:{ connected:false, owner:"alice", pendingWords:7, pendingBatches:0, notices:0 } });
+    }
+    return Promise.resolve({ ok:true, status:driveStatus });
+  };
+  try {
+    window.chrome = {
+      permissions:{ request: async (request) => { permissionRequests.push(request); return true; } },
+      runtime:{ sendMessage: driveResponse },
+      storage:{ onChanged:{ addListener(){} } }
+    };
+
+    if (typeof _pbpVocabDriveRender === "function") _pbpVocabDriveRender({ connected:false });
+    check("Google Drive card renders a persistent disconnected state",
+      $id("vocab-drive-state").textContent.includes("vocabDriveDisconnected") &&
+      !$id("vocab-drive-connect").hidden && $id("vocab-drive-sync").hidden && $id("vocab-drive-disconnect").hidden);
+    check("Google Drive disclosure is visible before connection and names every plaintext field",
+      $id("vocab-drive-body").closest("details").open &&
+      /appDataFolder/.test($id("vocab-drive-disclosure").textContent) &&
+      /not end-to-end encrypted/.test($id("vocab-drive-disclosure").textContent) &&
+      /words/.test($id("vocab-drive-disclosure").textContent) &&
+      /definitions/.test($id("vocab-drive-disclosure").textContent) &&
+      /notes/.test($id("vocab-drive-disclosure").textContent) &&
+      /source URLs/.test($id("vocab-drive-disclosure").textContent) &&
+      /article titles/.test($id("vocab-drive-disclosure").textContent) &&
+      /context excerpts/.test($id("vocab-drive-disclosure").textContent));
+
+    $id("vocab-drive-connect").click();
+    await task(); await task();
+    check("Google Drive connect requests the optional identity permission in the click path",
+      permissionRequests[0]?.permissions?.length === 1 && permissionRequests[0].permissions[0] === "identity");
+    check("Google Drive connect requests only the exact Google API origin",
+      permissionRequests[0]?.origins?.length === 1 && permissionRequests[0].origins[0] === "https://www.googleapis.com/*");
+
+    permissionRequests.length = 0;
+    driveMessages.length = 0;
+    window.chrome.permissions.request = async (request) => { permissionRequests.push(request); return false; };
+    $id("vocab-drive-connect").click();
+    await task(); await task();
+    check("Google Drive permission denial remains visible in the card",
+      $id("vocab-drive-error").textContent.includes("vocabDrivePermissionDenied") &&
+      !driveMessages.some((message) => message.type === "vocabDriveConnect"));
+
+    if (typeof _pbpVocabDriveRender === "function") _pbpVocabDriveRender(driveStatus);
+    check("connected Google Drive status shows the account email",
+      $id("vocab-drive-account").textContent.includes("alice@example.test"));
+    check("connected Google Drive status shows the current Pinboard owner",
+      $id("vocab-drive-owner").textContent === "alice");
+    check("connected Google Drive status shows the last successful sync",
+      $id("vocab-drive-last-success").textContent &&
+      !$id("vocab-drive-last-success").textContent.includes("vocabDriveNever"));
+    check("connected Google Drive status shows pending words",
+      $id("vocab-drive-pending-words").textContent === "7");
+    check("connected Google Drive status shows pending batches",
+      $id("vocab-drive-pending-batches").textContent === "2");
+    check("Google Drive retry and last error stay visible",
+      $id("vocab-drive-error").textContent.includes("vocabDriveErrorNetwork") &&
+      $id("vocab-drive-error").textContent.includes("vocabDriveRetryAt"));
+    check("Google Drive conflict notices stay visible",
+      $id("vocab-drive-notices").textContent.includes("vocabDriveNotices:3"));
+
+    window.chrome.permissions.request = async () => true;
+    driveMessages.length = 0;
+    $id("vocab-drive-sync").click();
+    await task(); await task();
+    check("Sync now sends a forced vocabulary sync message",
+      driveMessages.some((message) => message.type === "vocabDriveSyncNow" && message.force === true));
+
+    const preserved = document.createElement("div");
+    preserved.id = "drive-preserved-word";
+    $id("vocab-list").appendChild(preserved);
+    driveMessages.length = 0;
+    $id("vocab-drive-disconnect").click();
+    await task(); await task();
+    check("Disconnect sends the device-only disconnect message",
+      driveMessages.some((message) => message.type === "vocabDriveDisconnect"));
+    check("Disconnecting Google Drive does not clear local vocabulary",
+      !!$id("drive-preserved-word"));
+
+    let resolveStale;
+    window.chrome.runtime.sendMessage = (message) => {
+      driveMessages.push({ ...message });
+      return message.type === "vocabDriveStatus"
+        ? new Promise((resolve) => { resolveStale = resolve; })
+        : Promise.resolve({ ok:true, status:driveStatus });
+    };
+    if (typeof _pbpVocabDriveClear === "function") _pbpVocabDriveClear();
+    const staleGen = ++_vocabRenderGen;
+    const staleRender = typeof _pbpVocabDriveRefresh === "function"
+      ? _pbpVocabDriveRefresh(staleGen, false) : Promise.resolve();
+    ++_vocabRenderGen;
+    if (resolveStale) resolveStale({ ok:true, status:driveStatus });
+    await staleRender;
+    check("vocabulary render generation prevents stale Drive status overwrite",
+      !$id("vocab-drive-account").textContent && !$id("vocab-drive-owner").textContent);
+
+    const optionsSource = await (await fetch("../options.html")).text();
+    check("production Google Drive disclosure has a persistent accordion key",
+      /<details class="vocab-disclosure" data-acc-key="vocab-google-drive" open>/.test(optionsSource) &&
+      /id="vocab-drive-disclosure" data-i18n="vocabDriveDisclosure"/.test(optionsSource) &&
+      /id="vocab-drive-state"[^>]*role="status"[^>]*aria-live="polite"/.test(optionsSource) &&
+      ["vocab-drive-connect", "vocab-drive-sync", "vocab-drive-disconnect"].every((id) =>
+        new RegExp(`<button type="button"[^>]*id="${id}"`).test(optionsSource)));
+
+    driveMessages.length = 0;
+    window.chrome.runtime.sendMessage = driveResponse;
+    pbpVocabCurrentOwner = async () => "acct_alice";
+    pbpVocabAll = async () => [];
+    await renderVocabPanel();
+    check("opening Vocabulary requests status and a noninteractive non-forced sync",
+      driveMessages.some((message) => message.type === "vocabDriveStatus") &&
+      driveMessages.some((message) => message.type === "vocabDriveSyncNow" && message.force !== true));
+  } finally {
+    pbpVocabCurrentOwner = driveRealOwner;
+    pbpVocabAll = driveRealAll;
+    if (driveRealChrome === undefined) delete window.chrome; else window.chrome = driveRealChrome;
+  }
+
   const locales = ["en","de","fr","pl","ru","zh_HK","zh_CN","zh_TW","ja"];
   const messages = {};
   for (const locale of locales) messages[locale] = await (await fetch(`../_locales/${locale}/messages.json`)).json();
@@ -617,6 +775,20 @@ check("selection still covers all filtered results beyond rendered chunks", _voc
       <div class="vocab-summary-row"><span class="notes-count">5000</span><div class="vocab-selection-actions"><button class="btn btn-sm" data-label="all"></button><button class="btn btn-sm" data-label="invert"></button></div></div>
       <div class="vocab-batch-toolbar"><span class="notes-count">5000</span><input type="text"><button class="btn btn-sm" data-label="add"></button><button class="btn btn-sm danger" data-label="batch-delete"></button></div>
       <article class="notes-card vocab-card"><div class="notes-card-top"><input class="vocab-row-select" type="checkbox"><button class="notes-card-head"><span class="notes-card-main"><span class="notes-row-title">Wortzusammensetzung mit außergewöhnlich langem ausgewähltem Begriff</span><span class="notes-row-meta"><span class="notes-meta-chip">Außergewöhnlich lange Definition und Gruppe</span></span></span></button><button class="btn btn-sm notes-row-del" data-label="remove"></button></div></article>
+      <details class="vocab-disclosure" open><summary data-label="drive-title"></summary><div class="vocab-details-body">
+        <p class="hint vocab-drive-copy" data-label="drive-copy"></p>
+        <p class="save-status vocab-drive-state">Connected</p>
+        <dl class="vocab-drive-fields">
+          <dt data-label="drive-account-label"></dt><dd>Very Long Google Display Name (long.email.address.for.layout.testing@example.test)</dd>
+          <dt data-label="drive-owner-label"></dt><dd>extraordinarily-long-pinboard-account-name-for-layout-testing</dd>
+          <dt data-label="drive-last-label"></dt><dd>24 September 2026, 20:30</dd>
+          <dt data-label="drive-words-label"></dt><dd>5000</dd>
+          <dt data-label="drive-batches-label"></dt><dd>125</dd>
+        </dl>
+        <p class="field-error">Google Drive could not be reached. Next retry: 24 September 2026, 20:30.</p>
+        <p class="vocab-drive-notices">Delete conflict notices: 125</p>
+        <div class="vocab-drive-actions"><button class="btn btn-sm" data-label="drive-connect"></button><button class="btn btn-sm" data-label="drive-sync"></button><button class="btn btn-sm" data-label="drive-disconnect"></button></div>
+      </div></details>
     </section></main></body></html>`;
   document.body.appendChild(frame);
   await new Promise((resolve) => frame.addEventListener("load", resolve, { once:true }));
@@ -634,6 +806,16 @@ check("selection still covers all filtered results beyond rendered chunks", _voc
         panel.querySelector('[data-label="add"]').textContent = m.vocabAddToGroup.message;
         panel.querySelector('[data-label="batch-delete"]').textContent = m.vocabBatchDelete.message;
         panel.querySelector('[data-label="remove"]').textContent = m.delete.message;
+        panel.querySelector('[data-label="drive-title"]').textContent = m.vocabDriveSection.message;
+        panel.querySelector('[data-label="drive-copy"]').textContent = m.vocabDriveDisclosure.message;
+        panel.querySelector('[data-label="drive-account-label"]').textContent = m.vocabDriveAccountLabel.message;
+        panel.querySelector('[data-label="drive-owner-label"]').textContent = m.vocabDriveOwnerLabel.message;
+        panel.querySelector('[data-label="drive-last-label"]').textContent = m.vocabDriveLastSuccessLabel.message;
+        panel.querySelector('[data-label="drive-words-label"]').textContent = m.vocabDrivePendingWordsLabel.message;
+        panel.querySelector('[data-label="drive-batches-label"]').textContent = m.vocabDrivePendingBatchesLabel.message;
+        panel.querySelector('[data-label="drive-connect"]').textContent = m.vocabDriveConnect.message;
+        panel.querySelector('[data-label="drive-sync"]').textContent = m.vocabDriveSyncNow.message;
+        panel.querySelector('[data-label="drive-disconnect"]').textContent = m.vocabDriveDisconnect.message;
         panel.querySelector(".vocab-summary-row > .notes-count").textContent = m.vocabResultCount.message
           .replace("$RESULTS$", "5000").replace("$TOTAL$", "5000");
         panel.querySelector('input[type="text"]').placeholder = m.vocabGroupNamePlaceholder.message;

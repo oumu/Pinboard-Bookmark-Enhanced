@@ -2655,6 +2655,94 @@
     "vocabReadingSection": {
       "message": "Reading hints"
     },
+    "vocabDriveSection": {
+      "message": "Google Drive vocabulary sync"
+    },
+    "vocabDriveScope": {
+      "message": "Syncs vocabulary for the current Pinboard account only. Settings and API keys are not synced."
+    },
+    "vocabDriveDisclosure": {
+      "message": "The extension stores a plaintext copy in its private appDataFolder on your Google Drive. The copy is not end-to-end encrypted and may include words, definitions, notes, source URLs, article titles, and context excerpts."
+    },
+    "vocabDriveLoading": {
+      "message": "Loading Google Drive sync status..."
+    },
+    "vocabDriveDisconnected": {
+      "message": "Google Drive is not connected on this device."
+    },
+    "vocabDriveConnected": {
+      "message": "Google Drive is connected on this device."
+    },
+    "vocabDriveAccountLabel": {
+      "message": "Google account"
+    },
+    "vocabDriveOwnerLabel": {
+      "message": "Pinboard account"
+    },
+    "vocabDriveLastSuccessLabel": {
+      "message": "Last successful sync"
+    },
+    "vocabDrivePendingWordsLabel": {
+      "message": "Pending words"
+    },
+    "vocabDrivePendingBatchesLabel": {
+      "message": "Pending batches"
+    },
+    "vocabDriveNever": {
+      "message": "Not synced yet"
+    },
+    "vocabDriveNotices": {
+      "message": "Delete conflict notices: $COUNT$",
+      "placeholders": {
+        "count": {
+          "content": "$1"
+        }
+      }
+    },
+    "vocabDriveConnect": {
+      "message": "Connect Google Drive"
+    },
+    "vocabDriveSyncNow": {
+      "message": "Sync now"
+    },
+    "vocabDriveDisconnect": {
+      "message": "Disconnect this device"
+    },
+    "vocabDrivePermissionDenied": {
+      "message": "Google Drive access was not granted. Connect again when you are ready."
+    },
+    "vocabDriveStatusFailed": {
+      "message": "Could not load Google Drive sync status."
+    },
+    "vocabDriveErrorAuth": {
+      "message": "Google Drive authorization is unavailable."
+    },
+    "vocabDriveErrorPermission": {
+      "message": "Google Drive permission is missing."
+    },
+    "vocabDriveErrorCorrupt": {
+      "message": "Google Drive sync data could not be read safely. Local vocabulary was not changed."
+    },
+    "vocabDriveErrorNetwork": {
+      "message": "Google Drive could not be reached."
+    },
+    "vocabDriveErrorRemote": {
+      "message": "Google Drive sync failed."
+    },
+    "vocabDriveErrorAccountChanged": {
+      "message": "The Google account or Pinboard account changed. Reopen Vocabulary and try again."
+    },
+    "vocabDriveRetryAt": {
+      "message": "Next retry: $TIME$.",
+      "placeholders": {
+        "time": {
+          "content": "$1"
+        }
+      }
+    },
+    "vocabDriveReconnectRequired": {
+      "message": "Disconnect and reconnect Google Drive to continue."
+    },
     "vocabLearningSection": {
       "message": "Export and integrations"
     },

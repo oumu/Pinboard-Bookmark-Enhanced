@@ -96,14 +96,14 @@ for (const id of ["vocab-search", "vocab-group-filter", "vocab-sort", "vocab-sel
   "vocab-batch-delete", "vocab-no-results", "vocab-load-more", "vocab-list"]) {
   check(optionsHtml.includes(`id="${id}"`), `options.html: scalable vocabulary control #${id} is missing`);
 }
-check((optionsHtml.match(/<details class="vocab-disclosure"/g) || []).length === 3 &&
+check((optionsHtml.match(/<details class="vocab-disclosure"/g) || []).length === 4 &&
   optionsHtml.indexOf('id="vocab-search"') < optionsHtml.indexOf('id="dict-anki-deck"'),
   "options.html: vocabulary management is not first or secondary settings are not collapsed");
 const vocabDisclosureKeys = [...optionsHtml.matchAll(
   /<details class="vocab-disclosure" data-acc-key="([^"]+)"/g
 )].map((match) => match[1]);
 check(vocabDisclosureKeys.join(",") ===
-  "vocab-reading,vocab-learning,vocab-dictionary-pack",
+  "vocab-reading,vocab-google-drive,vocab-learning,vocab-dictionary-pack",
   "options.html: vocabulary settings disclosures lack stable pp-acc keys");
 check(optionsJs.includes('querySelectorAll("details[data-acc-key]")') &&
   /addEventListener\("toggle",[\s\S]{0,500}pbpAccSet\(det\.dataset\.accKey, det\.open\)/.test(optionsJs),
