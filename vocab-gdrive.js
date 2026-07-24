@@ -138,3 +138,294 @@ function pbpVocabBuildMultipart(metadata, body) {
       `\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n${body}\r\n--${boundary}--`
   };
 }
+
+function pbpCreateVocabDriveClient({
+  fetchImpl = fetch,
+  identity = chrome.identity,
+  now = Date.now,
+  random = Math.random
+} = {}) {
+  const apiBase = "https://www.googleapis.com/drive/v3";
+  const uploadBase = "https://www.googleapis.com/upload/drive/v3/files";
+  const metadataFields = "id,name,appProperties,parents,mimeType";
+  const filePrefix = (fileId) => typeof fileId === "string" ? fileId.slice(0, 8) : undefined;
+  const failure = (error, retryable, status, fileId) => {
+    const result = { ok: false, error, retryable };
+    if (Number.isInteger(status)) result.status = status;
+    const prefix = filePrefix(fileId);
+    if (prefix) result.fileId = prefix;
+    return result;
+  };
+  const tokenValue = (value) => typeof value === "string" ? value : value && value.token;
+
+  async function request(url, init = {}, interactive = false, fileId) {
+    let token;
+    try {
+      token = tokenValue(await identity.getAuthToken({ interactive }));
+    } catch (_) {
+      return failure("auth", false, undefined, fileId);
+    }
+    if (typeof token !== "string" || !token) return failure("auth", false, undefined, fileId);
+
+    for (let attempt = 0; attempt < 2; attempt++) {
+      let response;
+      try {
+        response = await fetchImpl(url, {
+          ...init,
+          headers: { ...(init.headers || {}), Authorization: `Bearer ${token}` }
+        });
+      } catch (_) {
+        return failure("network", true, undefined, fileId);
+      }
+      if (response.status !== 401) return { ok: true, response };
+      if (attempt === 1) return failure("auth", false, 401, fileId);
+      try {
+        await identity.removeCachedAuthToken({ token });
+        token = tokenValue(await identity.getAuthToken({ interactive: false }));
+      } catch (_) {
+        return failure("auth", false, undefined, fileId);
+      }
+      if (typeof token !== "string" || !token) return failure("auth", false, undefined, fileId);
+    }
+    return failure("auth", false, 401, fileId);
+  }
+
+  function responseFailure(response, fileId) {
+    const status = response.status;
+    if (status === 429) return failure("rate_limited", true, status, fileId);
+    if (status >= 500 && status <= 599) return failure("server", true, status, fileId);
+    if (status === 403 || status === 404) return failure("remote", false, status, fileId);
+    return failure("remote", false, status, fileId);
+  }
+
+  async function json(response, fileId) {
+    try {
+      return { ok: true, value: await response.json() };
+    } catch (_) {
+      return failure("invalid_response", false, response.status, fileId);
+    }
+  }
+
+  async function about(interactive) {
+    const url = new URL(`${apiBase}/about`);
+    url.searchParams.set("fields", "user(permissionId,emailAddress,displayName)");
+    const requested = await request(url, { method: "GET" }, interactive);
+    if (!requested.ok) return requested;
+    if (!requested.response.ok) return responseFailure(requested.response);
+    const parsed = await json(requested.response);
+    const user = parsed.ok && parsed.value && parsed.value.user;
+    if (!parsed.ok) return parsed;
+    if (!user || typeof user.permissionId !== "string" || !user.permissionId) {
+      return failure("invalid_response", false, requested.response.status);
+    }
+    return {
+      ok: true,
+      permissionId: user.permissionId,
+      emailAddress: typeof user.emailAddress === "string" ? user.emailAddress : "",
+      displayName: typeof user.displayName === "string" ? user.displayName : ""
+    };
+  }
+
+  async function generateId() {
+    const url = new URL(`${apiBase}/files/generateIds`);
+    url.searchParams.set("count", "1");
+    url.searchParams.set("space", "appDataFolder");
+    const requested = await request(url, { method: "GET" });
+    if (!requested.ok) return requested;
+    if (!requested.response.ok) return responseFailure(requested.response);
+    const parsed = await json(requested.response);
+    if (!parsed.ok) return parsed;
+    const ids = parsed.value && parsed.value.ids;
+    if (!Array.isArray(ids) || ids.length !== 1 || typeof ids[0] !== "string" || !ids[0]) {
+      return failure("invalid_response", false, requested.response.status);
+    }
+    return { ok: true, fileId: ids[0] };
+  }
+
+  async function getMetadata(fileId) {
+    if (typeof fileId !== "string" || !fileId) return failure("invalid_input", false);
+    const url = new URL(`${apiBase}/files/${encodeURIComponent(fileId)}`);
+    url.searchParams.set("fields", metadataFields);
+    const requested = await request(url, { method: "GET" }, false, fileId);
+    if (!requested.ok) return requested;
+    if (!requested.response.ok) return responseFailure(requested.response, fileId);
+    const parsed = await json(requested.response, fileId);
+    if (!parsed.ok || !parsed.value || typeof parsed.value !== "object" || Array.isArray(parsed.value)) {
+      return parsed.ok
+        ? failure("invalid_response", false, requested.response.status, fileId)
+        : parsed;
+    }
+    return { ok: true, metadata: parsed.value };
+  }
+
+  function metadataMatches(actual, expected) {
+    if (!_pbpVocabDriveValidMetadata(actual)) return false;
+    return actual.id === expected.id && actual.name === expected.name &&
+      actual.mimeType === expected.mimeType &&
+      actual.parents.length === expected.parents.length &&
+      actual.parents.every((parent, index) => parent === expected.parents[index]) &&
+      Object.keys(expected.appProperties).every((key) =>
+        actual.appProperties[key] === expected.appProperties[key]);
+  }
+
+  async function upload(metadata, body) {
+    let multipart;
+    try {
+      multipart = pbpVocabBuildMultipart(metadata, body);
+    } catch (_) {
+      return failure("invalid_input", false);
+    }
+    const url = new URL(uploadBase);
+    url.searchParams.set("uploadType", "multipart");
+    const requested = await request(url, {
+      method: "POST",
+      headers: { "Content-Type": multipart.contentType },
+      body: multipart.body
+    }, false, metadata.id);
+    if (!requested.ok) return requested;
+    if (requested.response.status === 200 || requested.response.status === 201) {
+      return { ok: true, fileId: metadata.id };
+    }
+    if (requested.response.status !== 409) {
+      return responseFailure(requested.response, metadata.id);
+    }
+    const existing = await getMetadata(metadata.id);
+    if (existing.ok && metadataMatches(existing.metadata, metadata)) {
+      return { ok: true, fileId: metadata.id, idempotent: true };
+    }
+    return failure("id_collision", false, 409, metadata.id);
+  }
+
+  async function download(fileId) {
+    if (typeof fileId !== "string" || !fileId) return failure("invalid_input", false);
+    const url = new URL(`${apiBase}/files/${encodeURIComponent(fileId)}`);
+    url.searchParams.set("alt", "media");
+    const requested = await request(url, { method: "GET" }, false, fileId);
+    if (!requested.ok) return requested;
+    const response = requested.response;
+    if (!response.ok) return responseFailure(response, fileId);
+
+    const contentLength = response.headers && response.headers.get("Content-Length");
+    if (typeof contentLength === "string" && /^\d+$/.test(contentLength) &&
+        Number(contentLength) > PBP_VOCAB_BATCH_MAX_BYTES) {
+      try { await response.body?.cancel?.(); } catch (_) {}
+      return failure("remote_batch_too_large", false, response.status, fileId);
+    }
+    const reader = response.body && response.body.getReader && response.body.getReader();
+    if (!reader) return failure("invalid_response", false, response.status, fileId);
+    const cancel = async () => { try { await reader.cancel(); } catch (_) {} };
+
+    const decoder = new TextDecoder();
+    const parts = [];
+    let size = 0;
+    try {
+      while (true) {
+        const chunk = await reader.read();
+        if (chunk.done) break;
+        if (!(chunk.value instanceof Uint8Array)) {
+          await cancel();
+          return failure("invalid_response", false, response.status, fileId);
+        }
+        size += chunk.value.byteLength;
+        if (size > PBP_VOCAB_BATCH_MAX_BYTES) {
+          await cancel();
+          return failure("remote_batch_too_large", false, response.status, fileId);
+        }
+        parts.push(decoder.decode(chunk.value, { stream: true }));
+      }
+      parts.push(decoder.decode());
+      return { ok: true, body: parts.join("") };
+    } catch (_) {
+      await cancel();
+      return failure("network", true, undefined, fileId);
+    }
+  }
+
+  async function listFiles(ownerHash, pageToken) {
+    if (!_pbpVocabValidOwnerHash(ownerHash) ||
+        (pageToken !== undefined && (typeof pageToken !== "string" || !pageToken))) {
+      return failure("invalid_input", false);
+    }
+    const url = new URL(`${apiBase}/files`);
+    url.searchParams.set("spaces", "appDataFolder");
+    url.searchParams.set("pageSize", "1000");
+    url.searchParams.set("q",
+      "'appDataFolder' in parents and trashed = false and " +
+      "appProperties has { key='pbpKind' and value='vocab-batch' } and " +
+      `appProperties has { key='schema' and value='${PBP_VOCAB_BATCH_SCHEMA}' } and ` +
+      `appProperties has { key='owner' and value='${ownerHash}' }`);
+    url.searchParams.set("fields", `nextPageToken,files(${metadataFields})`);
+    if (pageToken !== undefined) url.searchParams.set("pageToken", pageToken);
+    const requested = await request(url, { method: "GET" });
+    if (!requested.ok) return requested;
+    if (!requested.response.ok) return responseFailure(requested.response);
+    const parsed = await json(requested.response);
+    if (!parsed.ok || !parsed.value || !Array.isArray(parsed.value.files || [])) {
+      return parsed.ok ? failure("invalid_response", false, requested.response.status) : parsed;
+    }
+    return {
+      ok: true,
+      files: parsed.value.files || [],
+      nextPageToken: typeof parsed.value.nextPageToken === "string"
+        ? parsed.value.nextPageToken
+        : null
+    };
+  }
+
+  async function getStartPageToken() {
+    const url = new URL(`${apiBase}/changes/startPageToken`);
+    url.searchParams.set("spaces", "appDataFolder");
+    const requested = await request(url, { method: "GET" });
+    if (!requested.ok) return requested;
+    if (!requested.response.ok) return responseFailure(requested.response);
+    const parsed = await json(requested.response);
+    const pageToken = parsed.ok && parsed.value && parsed.value.startPageToken;
+    if (!parsed.ok) return parsed;
+    if (typeof pageToken !== "string" || !pageToken) {
+      return failure("invalid_response", false, requested.response.status);
+    }
+    return { ok: true, pageToken };
+  }
+
+  async function listChanges(pageToken) {
+    if (typeof pageToken !== "string" || !pageToken) return failure("invalid_input", false);
+    const url = new URL(`${apiBase}/changes`);
+    url.searchParams.set("pageToken", pageToken);
+    url.searchParams.set("spaces", "appDataFolder");
+    url.searchParams.set("includeRemoved", "true");
+    url.searchParams.set("pageSize", "1000");
+    url.searchParams.set("fields",
+      `nextPageToken,newStartPageToken,changes(removed,fileId,file(${metadataFields}))`);
+    const requested = await request(url, { method: "GET" });
+    if (!requested.ok) return requested;
+    if (!requested.response.ok) return responseFailure(requested.response);
+    const parsed = await json(requested.response);
+    if (!parsed.ok || !parsed.value || !Array.isArray(parsed.value.changes || [])) {
+      return parsed.ok ? failure("invalid_response", false, requested.response.status) : parsed;
+    }
+    return {
+      ok: true,
+      changes: parsed.value.changes || [],
+      nextPageToken: typeof parsed.value.nextPageToken === "string"
+        ? parsed.value.nextPageToken
+        : null,
+      newStartPageToken: typeof parsed.value.newStartPageToken === "string"
+        ? parsed.value.newStartPageToken
+        : null
+    };
+  }
+
+  void now;
+  void random;
+  return {
+    connect: () => about(true),
+    about: () => about(false),
+    generateId,
+    upload,
+    getMetadata,
+    download,
+    listFiles,
+    getStartPageToken,
+    listChanges
+  };
+}

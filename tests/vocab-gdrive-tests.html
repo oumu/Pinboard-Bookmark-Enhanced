@@ -65,6 +65,51 @@ function splitBodiesValidate(result, envelope = ENVELOPE) {
   return result.ok && result.batches.every((batch) =>
     pbpVocabValidateDriveBatch(metadata(envelope.ownerHash, envelope.deviceId), batch.body, envelope.ownerHash));
 }
+async function asyncCheck(name, fn) {
+  try { check(name, await fn()); } catch (error) { check(name, false, error && error.message); }
+}
+function identityFixture(tokens = ["token-a"]) {
+  let index = 0;
+  const calls = [];
+  const removed = [];
+  return {
+    calls,
+    removed,
+    async getAuthToken(options) {
+      calls.push({ ...options });
+      const value = tokens[Math.min(index++, tokens.length - 1)];
+      if (value instanceof Error) throw value;
+      return { token: value };
+    },
+    async removeCachedAuthToken(details) { removed.push(details.token); }
+  };
+}
+function jsonResponse(value, status = 200, headers) {
+  return new Response(JSON.stringify(value), {
+    status,
+    headers: { "Content-Type": "application/json", ...headers }
+  });
+}
+function readerResponse(chunks, onCancel, headers = {}) {
+  let index = 0;
+  return {
+    ok: true,
+    status: 200,
+    headers: new Headers(headers),
+    body: {
+      getReader() {
+        return {
+          async read() {
+            return index < chunks.length
+              ? { done: false, value: chunks[index++] }
+              : { done: true, value: undefined };
+          },
+          async cancel() { if (onCancel) onCancel(); }
+        };
+      }
+    }
+  };
+}
 
 (async () => {
   let ownerHash = null;
@@ -243,6 +288,337 @@ function splitBodiesValidate(result, envelope = ENVELOPE) {
       multipart.body.includes("\r\n\r\n" + frozen + "\r\n--" + boundary + "--") &&
       multipart.body.indexOf(frozen) === multipart.body.lastIndexOf(frozen);
   }));
+
+  await asyncCheck("Drive auth is noninteractive by default", async () => {
+    const identity = identityFixture();
+    const client = pbpCreateVocabDriveClient({
+      identity,
+      fetchImpl: async () => jsonResponse({ user: { permissionId: "perm-a" } })
+    });
+    const result = await client.about();
+    return result.ok && identity.calls.length === 1 && identity.calls[0].interactive === false;
+  });
+
+  await asyncCheck("interactive auth is confined to explicit connect", async () => {
+    const identity = identityFixture(["connect-token", "background-token"]);
+    const client = pbpCreateVocabDriveClient({
+      identity,
+      fetchImpl: async (url) => String(url).includes("generateIds")
+        ? jsonResponse({ ids: ["generated-id"] })
+        : jsonResponse({ user: { permissionId: "perm-a" } })
+    });
+    const connected = await client.connect();
+    const generated = await client.generateId();
+    return connected.ok && generated.ok && identity.calls.length === 2 &&
+      identity.calls[0].interactive === true && identity.calls[1].interactive === false;
+  });
+
+  await asyncCheck("about.get requests exact minimal fields", async () => {
+    const calls = [];
+    const client = pbpCreateVocabDriveClient({
+      identity: identityFixture(),
+      fetchImpl: async (url, init) => {
+        calls.push({ url: String(url), init });
+        return jsonResponse({ user: {
+          permissionId: "perm-a", emailAddress: "a@example.test", displayName: "A"
+        } });
+      }
+    });
+    const result = await client.about();
+    const url = new URL(calls[0].url);
+    return result.ok && result.permissionId === "perm-a" &&
+      url.origin === "https://www.googleapis.com" && url.pathname === "/drive/v3/about" &&
+      url.searchParams.toString() ===
+        "fields=user%28permissionId%2CemailAddress%2CdisplayName%29" &&
+      calls[0].init.method === "GET";
+  });
+
+  await asyncCheck("about.get fails closed without permissionId", async () => {
+    const client = pbpCreateVocabDriveClient({
+      identity: identityFixture(),
+      fetchImpl: async () => jsonResponse({ user: { emailAddress: "a@example.test" } })
+    });
+    const result = await client.about();
+    return !result.ok && result.error === "invalid_response" && result.retryable === false;
+  });
+
+  await asyncCheck("first 401 evicts token and retries exactly once", async () => {
+    const identity = identityFixture(["old-token", "new-token"]);
+    let fetches = 0;
+    const client = pbpCreateVocabDriveClient({
+      identity,
+      fetchImpl: async () => ++fetches === 1
+        ? new Response(null, { status: 401 })
+        : jsonResponse({ user: { permissionId: "perm-a" } })
+    });
+    const result = await client.about();
+    return result.ok && fetches === 2 && identity.calls.length === 2 &&
+      identity.calls.every((call) => call.interactive === false) &&
+      identity.removed.length === 1 && identity.removed[0] === "old-token";
+  });
+
+  await asyncCheck("second 401 stops without a third request", async () => {
+    const identity = identityFixture(["old-token", "new-token"]);
+    let fetches = 0;
+    const client = pbpCreateVocabDriveClient({
+      identity,
+      fetchImpl: async () => {
+        fetches++;
+        return new Response(null, { status: 401 });
+      }
+    });
+    const result = await client.about();
+    return !result.ok && result.error === "auth" && result.status === 401 &&
+      result.retryable === false && fetches === 2 && identity.calls.length === 2 &&
+      identity.removed.length === 1;
+  });
+
+  await asyncCheck("403/404 are permanent and oversized headers fail before reading", async () => {
+    const permanent = [];
+    for (const status of [403, 404]) {
+      const client = pbpCreateVocabDriveClient({
+        identity: identityFixture(),
+        fetchImpl: async () => new Response("private-response-body", { status })
+      });
+      permanent.push(await client.about());
+    }
+    let read = false;
+    let cancelled = false;
+    const oversized = pbpCreateVocabDriveClient({
+      identity: identityFixture(),
+      fetchImpl: async () => ({
+        ok: true,
+        status: 200,
+        headers: new Headers({ "Content-Length": String(TEST_MAX_BYTES + 1) }),
+        body: {
+          cancel() { cancelled = true; },
+          getReader() { read = true; throw new Error("must not read"); }
+        }
+      })
+    });
+    const download = await oversized.download(DRIVE_FILE_ID);
+    return permanent.every((result) => !result.ok && result.retryable === false) &&
+      !download.ok && download.error === "remote_batch_too_large" && !read && cancelled;
+  });
+
+  await asyncCheck("429 is retryable and streamed overflow cancels", async () => {
+    const rateLimited = pbpCreateVocabDriveClient({
+      identity: identityFixture(),
+      fetchImpl: async () => new Response("private-response-body", { status: 429 })
+    });
+    const rateResult = await rateLimited.about();
+    let cancelled = false;
+    const overflow = pbpCreateVocabDriveClient({
+      identity: identityFixture(),
+      fetchImpl: async () => readerResponse(
+        [new Uint8Array(TEST_MAX_BYTES), new Uint8Array(1)],
+        () => { cancelled = true; throw new Error("cancel failed"); }
+      )
+    });
+    const download = await overflow.download(DRIVE_FILE_ID);
+    return !rateResult.ok && rateResult.error === "rate_limited" && rateResult.retryable === true &&
+      !download.ok && download.error === "remote_batch_too_large" && cancelled;
+  });
+
+  await asyncCheck("5xx is retryable and absent Content-Length can succeed", async () => {
+    const serverError = pbpCreateVocabDriveClient({
+      identity: identityFixture(),
+      fetchImpl: async () => new Response("private-response-body", { status: 503 })
+    });
+    const errorResult = await serverError.about();
+    const downloadClient = pbpCreateVocabDriveClient({
+      identity: identityFixture(),
+      fetchImpl: async () => readerResponse([new TextEncoder().encode("é-small")])
+    });
+    const download = await downloadClient.download(DRIVE_FILE_ID);
+    return !errorResult.ok && errorResult.error === "server" && errorResult.retryable === true &&
+      download.ok && download.body === "é-small";
+  });
+
+  await asyncCheck("network failure is retryable and exact 4 MiB succeeds", async () => {
+    const network = pbpCreateVocabDriveClient({
+      identity: identityFixture(),
+      fetchImpl: async () => { throw new Error("socket private body"); }
+    });
+    const errorResult = await network.about();
+    const exact = pbpCreateVocabDriveClient({
+      identity: identityFixture(),
+      fetchImpl: async () => readerResponse([new Uint8Array(TEST_MAX_BYTES).fill(97)])
+    });
+    const download = await exact.download(DRIVE_FILE_ID);
+    return !errorResult.ok && errorResult.error === "network" && errorResult.retryable === true &&
+      download.ok && bytes(download.body) === TEST_MAX_BYTES;
+  });
+
+  await asyncCheck("generateIds uses exact one-ID appDataFolder query", async () => {
+    const calls = [];
+    const opaqueId = "opaque/+? id";
+    const client = pbpCreateVocabDriveClient({
+      identity: identityFixture(),
+      fetchImpl: async (url, init) => {
+        calls.push({ url: String(url), init });
+        return jsonResponse({ ids: [opaqueId] });
+      }
+    });
+    const result = await client.generateId();
+    const url = new URL(calls[0].url);
+    return result.ok && result.fileId === opaqueId &&
+      url.pathname === "/drive/v3/files/generateIds" &&
+      url.searchParams.toString() === "count=1&space=appDataFolder" &&
+      calls[0].init.method === "GET";
+  });
+
+  await asyncCheck("multipart upload keeps pre-generated ID and exact body", async () => {
+    const calls = [];
+    const meta = metadata();
+    const frozen = bodyString([live("Frozen", "en", { note: "exact-frozen-body" })]);
+    const client = pbpCreateVocabDriveClient({
+      identity: identityFixture(),
+      fetchImpl: async (url, init) => {
+        calls.push({ url: String(url), init });
+        return jsonResponse({ id: DRIVE_FILE_ID }, 201);
+      }
+    });
+    const result = await client.upload(meta, frozen);
+    const call = calls[0];
+    const url = new URL(call.url);
+    return result.ok && result.fileId === DRIVE_FILE_ID && call.init.method === "POST" &&
+      url.pathname === "/upload/drive/v3/files" &&
+      url.searchParams.toString() === "uploadType=multipart" &&
+      call.init.body.includes(JSON.stringify(meta)) &&
+      call.init.body.includes(frozen) &&
+      call.init.body.indexOf(frozen) === call.init.body.lastIndexOf(frozen) &&
+      call.init.headers["Content-Type"].startsWith("multipart/related; boundary=");
+  });
+
+  await asyncCheck("multipart upload accepts 200 and 201", async () => {
+    const meta = metadata();
+    const frozen = bodyString([live("Statuses")]);
+    const results = [];
+    for (const status of [200, 201]) {
+      const client = pbpCreateVocabDriveClient({
+        identity: identityFixture(),
+        fetchImpl: async () => jsonResponse({ id: DRIVE_FILE_ID }, status)
+      });
+      results.push(await client.upload(meta, frozen));
+    }
+    return results.every((result) => result.ok && result.fileId === DRIVE_FILE_ID);
+  });
+
+  await asyncCheck("409 exact metadata match is idempotent success", async () => {
+    const meta = metadata();
+    const calls = [];
+    const client = pbpCreateVocabDriveClient({
+      identity: identityFixture(["upload-token", "metadata-token"]),
+      fetchImpl: async (url, init) => {
+        calls.push({ url: String(url), init });
+        return calls.length === 1
+          ? new Response(null, { status: 409 })
+          : jsonResponse(meta);
+      }
+    });
+    const result = await client.upload(meta, bodyString([live("Retry")]));
+    const metadataUrl = new URL(calls[1].url);
+    return result.ok && result.idempotent === true && result.fileId === DRIVE_FILE_ID &&
+      calls.length === 2 && calls[1].init.method === "GET" &&
+      metadataUrl.pathname === `/drive/v3/files/${encodeURIComponent(DRIVE_FILE_ID)}` &&
+      metadataUrl.searchParams.get("fields") === "id,name,appProperties,parents,mimeType";
+  });
+
+  await asyncCheck("409 metadata mismatch is hard id_collision", async () => {
+    const expected = metadata();
+    const mismatch = { ...expected, appProperties: { ...expected.appProperties, device: "device-b" } };
+    let fetches = 0;
+    const client = pbpCreateVocabDriveClient({
+      identity: identityFixture(["upload-token", "metadata-token"]),
+      fetchImpl: async () => ++fetches === 1
+        ? new Response(null, { status: 409 })
+        : jsonResponse(mismatch)
+    });
+    const result = await client.upload(expected, bodyString([live("Collision")]));
+    return !result.ok && result.error === "id_collision" && result.status === 409 &&
+      result.retryable === false && result.fileId === DRIVE_FILE_ID.slice(0, 8);
+  });
+
+  await asyncCheck("files.list carries filters, minimal fields and page tokens", async () => {
+    const calls = [];
+    const nextToken = "next/+? &=token";
+    const client = pbpCreateVocabDriveClient({
+      identity: identityFixture(["page-a", "page-b"]),
+      fetchImpl: async (url) => {
+        calls.push(String(url));
+        return calls.length === 1
+          ? jsonResponse({ files: [{ id: "batch-a" }], nextPageToken: nextToken })
+          : jsonResponse({ files: [{ id: "batch-b" }] });
+      }
+    });
+    const first = await client.listFiles(OWNER_HASH);
+    const second = await client.listFiles(OWNER_HASH, first.nextPageToken);
+    const firstUrl = new URL(calls[0]);
+    const secondUrl = new URL(calls[1]);
+    const query = firstUrl.searchParams.get("q");
+    return first.ok && second.ok && first.nextPageToken === nextToken &&
+      firstUrl.pathname === "/drive/v3/files" &&
+      firstUrl.searchParams.get("spaces") === "appDataFolder" &&
+      firstUrl.searchParams.get("fields") ===
+        "nextPageToken,files(id,name,appProperties,parents,mimeType)" &&
+      query.includes("'appDataFolder' in parents") && query.includes("trashed = false") &&
+      query.includes("key='pbpKind' and value='vocab-batch'") &&
+      query.includes("key='schema' and value='1'") &&
+      query.includes(`key='owner' and value='${OWNER_HASH}'`) &&
+      secondUrl.searchParams.get("pageToken") === nextToken;
+  });
+
+  await asyncCheck("changes APIs preserve next/new tokens and minimal removed metadata", async () => {
+    const calls = [];
+    const pageToken = "start/+? &=token";
+    const nextPageToken = "next/+? &=token";
+    const newStartPageToken = "new/+? &=token";
+    const client = pbpCreateVocabDriveClient({
+      identity: identityFixture(["start-token", "list-token"]),
+      fetchImpl: async (url) => {
+        calls.push(String(url));
+        return calls.length === 1
+          ? jsonResponse({ startPageToken: pageToken })
+          : jsonResponse({
+            changes: [{ removed: true, fileId: "removed-id" }],
+            nextPageToken,
+            newStartPageToken
+          });
+      }
+    });
+    const start = await client.getStartPageToken();
+    const page = await client.listChanges(start.pageToken);
+    const startUrl = new URL(calls[0]);
+    const listUrl = new URL(calls[1]);
+    return start.ok && page.ok && page.nextPageToken === nextPageToken &&
+      page.newStartPageToken === newStartPageToken &&
+      startUrl.pathname === "/drive/v3/changes/startPageToken" &&
+      startUrl.searchParams.toString() === "spaces=appDataFolder" &&
+      listUrl.pathname === "/drive/v3/changes" &&
+      listUrl.searchParams.get("pageToken") === pageToken &&
+      listUrl.searchParams.get("spaces") === "appDataFolder" &&
+      listUrl.searchParams.get("includeRemoved") === "true" &&
+      listUrl.searchParams.get("fields") ===
+        "nextPageToken,newStartPageToken,changes(removed,fileId,file(id,name,appProperties,parents,mimeType))";
+  });
+
+  await asyncCheck("error results expose no token or remote/user body", async () => {
+    const secrets = [
+      "secret-auth-token", "Défense", "private note", "secret gloss",
+      "https://private.example/article", "private-response-body"
+    ];
+    const client = pbpCreateVocabDriveClient({
+      identity: identityFixture([secrets[0]]),
+      fetchImpl: async () => new Response(secrets.slice(1).join(" "), { status: 503 })
+    });
+    const result = await client.download("opaque-secret-file-id");
+    const visible = JSON.stringify(result);
+    return !result.ok && result.retryable === true &&
+      result.fileId === "opaque-s" &&
+      !visible.includes("opaque-secret-file-id") &&
+      secrets.every((secret) => !visible.includes(secret));
+  });
 
   document.getElementById("summary").textContent = `pass=${pass} fail=${fail}`;
 })();
