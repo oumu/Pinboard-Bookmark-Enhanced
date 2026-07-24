@@ -14,6 +14,7 @@ const TEST_MAX_BYTES = 4 * 1024 * 1024;
 const OWNER_HASH = "a".repeat(64);
 const OTHER_OWNER_HASH = "b".repeat(64);
 const DEVICE_ID = "device-a";
+const DRIVE_FILE_ID = "file:opaque+id";
 const ENVELOPE = { ownerHash: OWNER_HASH, deviceId: DEVICE_ID, createdAt: 123 };
 let pass = 0, fail = 0;
 function check(name, cond, detail) {
@@ -24,6 +25,7 @@ function check(name, cond, detail) {
   root.appendChild(row);
 }
 function attempt(fn) { try { return fn(); } catch (_) { return false; } }
+function throws(fn) { try { fn(); return false; } catch (_) { return true; } }
 function bytes(value) { return new TextEncoder().encode(value).length; }
 function live(term = "Word", language = "en", patch = {}, deviceId = DEVICE_ID) {
   const recordKey = pbpDictPrimaryLang(language) + "|" + pbpDictNormalizeTerm(term).toLowerCase();
@@ -57,7 +59,11 @@ function sizedEntry(targetBodyBytes, term) {
   return entry;
 }
 function metadata(ownerHash = OWNER_HASH, deviceId = DEVICE_ID) {
-  return pbpVocabDriveMetadata("file_123", ownerHash, deviceId);
+  return pbpVocabDriveMetadata(DRIVE_FILE_ID, ownerHash, deviceId);
+}
+function splitBodiesValidate(result, envelope = ENVELOPE) {
+  return result.ok && result.batches.every((batch) =>
+    pbpVocabValidateDriveBatch(metadata(envelope.ownerHash, envelope.deviceId), batch.body, envelope.ownerHash));
 }
 
 (async () => {
@@ -71,14 +77,21 @@ function metadata(ownerHash = OWNER_HASH, deviceId = DEVICE_ID) {
     const entry = live();
     const body = bodyString([entry]);
     const exact = JSON.stringify(meta) === JSON.stringify({
-      id: "file_123", name: "pbp-vocab-file_123.json", parents: ["appDataFolder"], mimeType: "application/json",
+      id: DRIVE_FILE_ID, name: `pbp-vocab-${DRIVE_FILE_ID}.json`,
+      parents: ["appDataFolder"], mimeType: "application/json",
       appProperties: { pbpKind: "vocab-batch", schema: "1", owner: OWNER_HASH, device: DEVICE_ID }
     });
     const missingId = { ...meta };
     delete missingId.id;
+    const wrongKind = { ...meta, appProperties: { ...meta.appProperties, pbpKind: "other" } };
+    const wrongSchema = { ...meta, appProperties: { ...meta.appProperties, schema: "2" } };
     return exact && pbpVocabValidateDriveBatch(meta, body, OWNER_HASH) &&
       !pbpVocabValidateDriveBatch(missingId, body, OWNER_HASH) &&
-      !pbpVocabValidateDriveBatch({ ...meta, id: "file_999" }, body, OWNER_HASH) &&
+      !pbpVocabValidateDriveBatch({ ...meta, id: "other:id" }, body, OWNER_HASH) &&
+      !pbpVocabValidateDriveBatch({ ...meta, name: "pbp-vocab-other.json" }, body, OWNER_HASH) &&
+      !pbpVocabValidateDriveBatch({ ...meta, mimeType: "text/plain" }, body, OWNER_HASH) &&
+      !pbpVocabValidateDriveBatch(wrongKind, body, OWNER_HASH) &&
+      !pbpVocabValidateDriveBatch(wrongSchema, body, OWNER_HASH) &&
       !pbpVocabValidateDriveBatch({ ...meta, modifiedTime: "unexpected" }, body, OWNER_HASH) &&
       !pbpVocabValidateDriveBatch({ ...meta, parents: ["root"] }, body, OWNER_HASH);
   }));
@@ -101,7 +114,7 @@ function metadata(ownerHash = OWNER_HASH, deviceId = DEVICE_ID) {
       schema: 1, ownerHash: OWNER_HASH, deviceId: DEVICE_ID, createdAt: 123, entries: [entry]
     });
     const extra = JSON.stringify({ ...bodyObject([entry]), cursor: "secret" });
-    return split.ok && split.batches[0].body === exact &&
+    return splitBodiesValidate(split) && split.batches[0].body === exact &&
       !pbpVocabValidateDriveBatch(metadata(), "{bad json", OWNER_HASH) &&
       !pbpVocabValidateDriveBatch(metadata(), extra, OWNER_HASH);
   }));
@@ -125,21 +138,27 @@ function metadata(ownerHash = OWNER_HASH, deviceId = DEVICE_ID) {
     const ownerField = { ...entry, owner: "acct_alice" };
     const tokenField = { ...entry, token: "secret-token" };
     const valueOwner = { ...entry, value: { ...entry.value, owner: "acct_alice" } };
+    const sparseGroups = live("Sparse Groups");
+    const sparseContexts = live("Sparse Contexts");
+    sparseGroups.value.groups = new Array(1);
+    sparseContexts.value.contexts = new Array(1);
     return !body.includes("acct_alice") &&
       !pbpVocabValidateDriveBatch(metadata(), bodyString([ownerField]), OWNER_HASH) &&
       !pbpVocabValidateDriveBatch(metadata(), bodyString([tokenField]), OWNER_HASH) &&
-      !pbpVocabValidateDriveBatch(metadata(), bodyString([valueOwner]), OWNER_HASH);
+      !pbpVocabValidateDriveBatch(metadata(), bodyString([valueOwner]), OWNER_HASH) &&
+      !pbpVocabSplitDriveEntries([sparseGroups], ENVELOPE).ok &&
+      !pbpVocabSplitDriveEntries([sparseContexts], ENVELOPE).ok;
   }));
 
   check("UTF-8 byte count is exact for multibyte data", attempt(() => {
     const split = pbpVocabSplitDriveEntries([live("Défense", "fr", { gloss: "é中🙂" })], ENVELOPE);
-    return split.ok && split.batches[0].bytes === bytes(split.batches[0].body) &&
+    return splitBodiesValidate(split) && split.batches[0].bytes === bytes(split.batches[0].body) &&
       split.batches[0].bytes > split.batches[0].body.length;
   }));
 
   check("at-or-under 4 MiB boundary is accepted", attempt(() => {
     const split = pbpVocabSplitDriveEntries([sizedEntry(TEST_MAX_BYTES, "Limit")], ENVELOPE);
-    return split.ok && split.batches.length === 1 &&
+    return splitBodiesValidate(split) && split.batches.length === 1 &&
       split.batches[0].bytes === TEST_MAX_BYTES &&
       split.batches[0].bytes === PBP_VOCAB_BATCH_MAX_BYTES;
   }));
@@ -151,8 +170,10 @@ function metadata(ownerHash = OWNER_HASH, deviceId = DEVICE_ID) {
       return entry;
     });
     const split = pbpVocabSplitDriveEntries(entries, ENVELOPE);
+    const empty = pbpVocabSplitDriveEntries([], ENVELOPE);
     const keys = split.batches.flatMap((batch) => JSON.parse(batch.body).entries.map((entry) => entry.recordKey));
-    return split.ok && split.batches.length > 1 &&
+    return splitBodiesValidate(split) && empty.ok && empty.batches.length === 0 &&
+      split.batches.length > 1 &&
       keys.join(",") === entries.map((entry) => entry.recordKey).join(",") &&
       split.batches.every((batch) => batch.bytes <= TEST_MAX_BYTES);
   }));
@@ -161,7 +182,7 @@ function metadata(ownerHash = OWNER_HASH, deviceId = DEVICE_ID) {
     const entry = sizedEntry(TEST_MAX_BYTES - 1, "Whole");
     const split = pbpVocabSplitDriveEntries([entry], ENVELOPE);
     const stored = JSON.parse(split.batches[0].body).entries;
-    return split.ok && split.batches.length === 1 && stored.length === 1 &&
+    return splitBodiesValidate(split) && split.batches.length === 1 && stored.length === 1 &&
       JSON.stringify(stored[0]) === JSON.stringify(entry);
   }));
 
@@ -192,14 +213,21 @@ function metadata(ownerHash = OWNER_HASH, deviceId = DEVICE_ID) {
   check("metadata and body device mismatch rejects", attempt(() => {
     const mismatch = bodyString([live("Word", "en", {}, "device-b")], { ...ENVELOPE, deviceId: "device-b" });
     const nonNfcDevice = "e\u0301";
+    const longDevice = "界".repeat(40);
     const invalidBody = bodyString([live("Word", "en", {}, nonNfcDevice)], { ...ENVELOPE, deviceId: nonNfcDevice });
+    const longBody = bodyString([live("Word", "en", {}, longDevice)], { ...ENVELOPE, deviceId: longDevice });
     const nonNfcMetadata = metadata();
     const emptyMetadata = metadata();
+    const longMetadata = metadata();
     nonNfcMetadata.appProperties.device = nonNfcDevice;
     emptyMetadata.appProperties.device = "";
+    longMetadata.appProperties.device = longDevice;
     return !pbpVocabValidateDriveBatch(metadata(), mismatch, OWNER_HASH) &&
       !pbpVocabValidateDriveBatch(nonNfcMetadata, invalidBody, OWNER_HASH) &&
-      !pbpVocabValidateDriveBatch(emptyMetadata, bodyString([live()], { ...ENVELOPE, deviceId: "" }), OWNER_HASH);
+      !pbpVocabValidateDriveBatch(emptyMetadata, bodyString([live()], { ...ENVELOPE, deviceId: "" }), OWNER_HASH) &&
+      throws(() => pbpVocabDriveMetadata(DRIVE_FILE_ID, OWNER_HASH, longDevice)) &&
+      !pbpVocabValidateDriveBatch(longMetadata, longBody, OWNER_HASH) &&
+      !pbpVocabSplitDriveEntries([live()], { ...ENVELOPE, deviceId: longDevice }).ok;
   }));
 
   check("multipart contains metadata and exact frozen JSON body", attempt(() => {
@@ -208,7 +236,8 @@ function metadata(ownerHash = OWNER_HASH, deviceId = DEVICE_ID) {
     const multipart = pbpVocabBuildMultipart(meta, frozen);
     const boundary = multipart.contentType.match(/^multipart\/related; boundary=(.+)$/)[1];
     const metadataJson = JSON.stringify(meta);
-    return metadataJson.includes('"id":"file_123"') &&
+    return metadataJson.includes(`"id":"${DRIVE_FILE_ID}"`) &&
+      boundary.length === 40 && boundary.length <= 70 && /^pbp-[0-9a-f-]{36}$/i.test(boundary) &&
       !metadataJson.includes(boundary) && !frozen.includes(boundary) &&
       multipart.body.includes("\r\n\r\n" + metadataJson + "\r\n--" + boundary) &&
       multipart.body.includes("\r\n\r\n" + frozen + "\r\n--" + boundary + "--") &&

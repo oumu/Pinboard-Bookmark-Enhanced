@@ -68,6 +68,14 @@ function _pbpVocabOnlyKeys(value, keys) {
   return _pbpVocabPlainObject(value) && Object.keys(value).every((key) => keys.includes(key));
 }
 
+function _pbpVocabDenseArray(value) {
+  if (!Array.isArray(value)) return false;
+  for (let i = 0; i < value.length; i++) {
+    if (!Object.prototype.hasOwnProperty.call(value, i)) return false;
+  }
+  return true;
+}
+
 function _pbpVocabOwnValue(value, key) {
   return Object.prototype.hasOwnProperty.call(value, key) ? value[key] : undefined;
 }
@@ -164,8 +172,8 @@ function pbpVocabValidateEvent(event, expectedRecordKey) {
       !(value.lemma === null || typeof value.lemma === "string") || !(value.ipa === null || typeof value.ipa === "string") ||
       !(value.license === null || typeof value.license === "string") ||
       !(value.sourceUrl === null || (typeof value.sourceUrl === "string" && pbpDictSafeUrl(value.sourceUrl) === value.sourceUrl)) ||
-      !Array.isArray(value.groups) || !value.groups.every((group) => typeof group === "string") ||
-      !Array.isArray(value.contexts) || !value.contexts.every(_pbpVocabValidContext)) return false;
+      !_pbpVocabDenseArray(value.groups) || !value.groups.every((group) => typeof group === "string") ||
+      !_pbpVocabDenseArray(value.contexts) || !value.contexts.every(_pbpVocabValidContext)) return false;
   return event.recordKey === primaryLanguage + "|" + normalizedTerm.toLowerCase();
 }
 

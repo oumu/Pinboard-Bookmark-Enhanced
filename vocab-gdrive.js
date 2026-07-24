@@ -5,6 +5,11 @@ function _pbpVocabDriveBytes(value) {
   return new TextEncoder().encode(value).length;
 }
 
+function _pbpVocabDriveValidProperty(key, value) {
+  return typeof key === "string" && typeof value === "string" &&
+    _pbpVocabDriveBytes(key) + _pbpVocabDriveBytes(value) <= 124;
+}
+
 function _pbpVocabDriveBody(entries, envelope) {
   return JSON.stringify({
     schema: PBP_VOCAB_BATCH_SCHEMA,
@@ -19,14 +24,15 @@ function _pbpVocabDriveValidMetadata(metadata) {
   const properties = metadata && metadata.appProperties;
   return _pbpVocabOnlyKeys(metadata, ["id", "name", "parents", "mimeType", "appProperties"]) &&
     Object.keys(metadata).length === 5 &&
-    typeof metadata.id === "string" && /^[A-Za-z0-9_-]+$/.test(metadata.id) &&
+    typeof metadata.id === "string" && !!metadata.id &&
     metadata.name === `pbp-vocab-${metadata.id}.json` &&
     Array.isArray(metadata.parents) && metadata.parents.length === 1 &&
     metadata.parents[0] === "appDataFolder" && metadata.mimeType === "application/json" &&
     _pbpVocabOnlyKeys(properties, ["pbpKind", "schema", "owner", "device"]) &&
     Object.keys(properties).length === 4 && properties.pbpKind === "vocab-batch" &&
     properties.schema === String(PBP_VOCAB_BATCH_SCHEMA) &&
-    _pbpVocabValidOwnerHash(properties.owner) && _pbpVocabDeviceId(properties.device);
+    _pbpVocabValidOwnerHash(properties.owner) && _pbpVocabDeviceId(properties.device) &&
+    Object.entries(properties).every(([key, value]) => _pbpVocabDriveValidProperty(key, value));
 }
 
 async function pbpVocabOwnerHash(owner) {
@@ -36,8 +42,15 @@ async function pbpVocabOwnerHash(owner) {
 }
 
 function pbpVocabDriveMetadata(fileId, ownerHash, deviceId) {
-  if (typeof fileId !== "string" || !/^[A-Za-z0-9_-]+$/.test(fileId) ||
-      !_pbpVocabValidOwnerHash(ownerHash) || !_pbpVocabDeviceId(deviceId)) {
+  const appProperties = {
+    pbpKind: "vocab-batch",
+    schema: String(PBP_VOCAB_BATCH_SCHEMA),
+    owner: ownerHash,
+    device: deviceId
+  };
+  if (typeof fileId !== "string" || !fileId || !_pbpVocabValidOwnerHash(ownerHash) ||
+      !_pbpVocabDeviceId(deviceId) ||
+      !Object.entries(appProperties).every(([key, value]) => _pbpVocabDriveValidProperty(key, value))) {
     throw new TypeError("invalid Drive batch identity");
   }
   return {
@@ -45,12 +58,7 @@ function pbpVocabDriveMetadata(fileId, ownerHash, deviceId) {
     name: `pbp-vocab-${fileId}.json`,
     parents: ["appDataFolder"],
     mimeType: "application/json",
-    appProperties: {
-      pbpKind: "vocab-batch",
-      schema: String(PBP_VOCAB_BATCH_SCHEMA),
-      owner: ownerHash,
-      device: deviceId
-    }
+    appProperties
   };
 }
 
@@ -70,7 +78,10 @@ function pbpVocabSplitDriveEntries(entries, envelope) {
   if (!Array.isArray(entries) ||
       !_pbpVocabOnlyKeys(envelope, ["ownerHash", "deviceId", "createdAt"]) ||
       Object.keys(envelope).length !== 3 || !_pbpVocabValidOwnerHash(envelope.ownerHash) ||
-      !_pbpVocabDeviceId(envelope.deviceId) || !Number.isFinite(envelope.createdAt)) {
+      !_pbpVocabDeviceId(envelope.deviceId) ||
+      !_pbpVocabDriveValidProperty("owner", envelope.ownerHash) ||
+      !_pbpVocabDriveValidProperty("device", envelope.deviceId) ||
+      !Number.isFinite(envelope.createdAt)) {
     return { ok: false, error: "invalid_envelope" };
   }
   for (const entry of entries) {
@@ -112,8 +123,15 @@ function pbpVocabBuildMultipart(metadata, body) {
     throw new TypeError("invalid Drive batch");
   }
   const metadataJson = JSON.stringify(metadata);
-  let boundary = "pbp-vocab-boundary";
-  while (metadataJson.includes(boundary) || body.includes(boundary)) boundary += "-";
+  let boundary = "";
+  for (let i = 0; i < 8; i++) {
+    const candidate = `pbp-${crypto.randomUUID()}`;
+    if (!metadataJson.includes(candidate) && !body.includes(candidate)) {
+      boundary = candidate;
+      break;
+    }
+  }
+  if (!boundary) throw new Error("multipart boundary collision");
   return {
     contentType: `multipart/related; boundary=${boundary}`,
     body: `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadataJson}` +
