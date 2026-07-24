@@ -545,12 +545,23 @@ function _pbpVocabBatchKey(drivePermissionId, ownerHash, driveFileId) {
   return `batch:${String(drivePermissionId || "")}:${String(ownerHash || "")}:${String(driveFileId || "")}`;
 }
 
+function _pbpVocabValidOwnerHash(value) {
+  return typeof value === "string" && /^[0-9a-f]{64}$/.test(value);
+}
+
+function _pbpVocabValidBatchBody(body, expectedOwnerHash) {
+  return _pbpVocabValidOwnerHash(expectedOwnerHash) &&
+    _pbpVocabOnlyKeys(body, ["schema", "ownerHash", "deviceId", "createdAt", "entries"]) &&
+    Object.keys(body).length === 5 && body.schema === 1 &&
+    body.ownerHash === expectedOwnerHash && _pbpVocabDeviceId(body.deviceId) &&
+    Number.isFinite(body.createdAt) && Array.isArray(body.entries) &&
+    body.entries.every((event) => pbpVocabValidateEvent(event));
+}
+
 async function pbpVocabGetAccountState(drivePermissionId, ownerHash) {
-  try {
-    const db = await _pbpVocabOpenDB();
-    return (await _pbpVocabRequest(db.transaction("sync", "readonly").objectStore("sync")
-      .get(_pbpVocabAccountKey(drivePermissionId, ownerHash)))) || null;
-  } catch (_) { return null; }
+  const db = await _pbpVocabOpenDB();
+  return (await _pbpVocabRequest(db.transaction("sync", "readonly").objectStore("sync")
+    .get(_pbpVocabAccountKey(drivePermissionId, ownerHash)))) || null;
 }
 
 async function pbpVocabPutAccountState(state) {
@@ -573,27 +584,26 @@ async function _pbpVocabSyncRows() {
 
 async function pbpVocabListOutbox(owner) {
   const scope = owner || "ownerless";
-  try {
-    return (await _pbpVocabSyncRows()).filter((row) =>
-      row && row.owner === scope && row.key.startsWith(`outbox:${scope}:`));
-  } catch (_) { return []; }
+  return (await _pbpVocabSyncRows()).filter((row) =>
+    row && row.owner === scope && typeof row.key === "string" &&
+    row.key.startsWith(`outbox:${scope}:`));
 }
 
 async function pbpVocabListPendingBatches(drivePermissionId, ownerHash) {
-  try {
-    return (await _pbpVocabSyncRows()).filter((row) =>
-      row && row.drivePermissionId === drivePermissionId && row.ownerHash === ownerHash &&
-      row.key.startsWith(`batch:${drivePermissionId}:${ownerHash}:`));
-  } catch (_) { return []; }
+  return (await _pbpVocabSyncRows()).filter((row) =>
+    row && row.drivePermissionId === drivePermissionId && row.ownerHash === ownerHash &&
+    typeof row.key === "string" && row.key.startsWith(`batch:${drivePermissionId}:${ownerHash}:`));
 }
 
 async function pbpVocabFreezeOutbox(owner, drivePermissionId, ownerHash, driveFileId, envelope) {
   const scope = owner || "ownerless";
-  const entries = envelope && Array.isArray(envelope.entries) ? envelope.entries : [];
   const body = typeof envelope === "string" ? envelope
-    : (envelope && typeof envelope.body === "string" ? envelope.body : JSON.stringify(envelope));
-  if (!drivePermissionId || !ownerHash || !driveFileId || typeof body !== "string" ||
-      !entries.length || !entries.every((event) => pbpVocabValidateEvent(event))) return null;
+    : (envelope && typeof envelope.body === "string" ? envelope.body : null);
+  let parsed = null;
+  try { parsed = typeof body === "string" ? JSON.parse(body) : null; } catch (_) {}
+  if (!drivePermissionId || !driveFileId || !_pbpVocabValidBatchBody(parsed, ownerHash) ||
+      !parsed.entries.length) return null;
+  const entries = parsed.entries;
   try {
     const db = await _pbpVocabOpenDB();
     const tx = db.transaction("sync", "readwrite");
@@ -646,10 +656,10 @@ async function pbpVocabCheckpointOwner(owner) {
     }
     await done;
     return metadata.length;
-  } catch (_) {
+  } catch (error) {
     try { if (tx) tx.abort(); } catch (_) {}
     if (done) await done.catch(() => {});
-    return 0;
+    throw error;
   }
 }
 
@@ -659,13 +669,11 @@ function _pbpVocabRemoteError(batchIndex) {
 
 async function pbpVocabApplyRemotePage(owner, ownerHash, batches, cursorCommit) {
   const scope = owner || "ownerless";
-  if (!Array.isArray(batches)) return _pbpVocabRemoteError(-1);
+  if (!_pbpVocabValidOwnerHash(ownerHash) || !Array.isArray(batches)) return _pbpVocabRemoteError(-1);
   const entries = [];
   for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
     const batch = batches[batchIndex];
-    if (!_pbpVocabPlainObject(batch) || batch.schema !== 1 || batch.ownerHash !== ownerHash ||
-        !Array.isArray(batch.entries) ||
-        !batch.entries.every((event) => pbpVocabValidateEvent(event))) {
+    if (!_pbpVocabValidBatchBody(batch, ownerHash)) {
       return _pbpVocabRemoteError(batchIndex);
     }
     for (const event of batch.entries) entries.push({ event, batchIndex });
@@ -702,6 +710,9 @@ async function pbpVocabApplyRemotePage(owner, ownerHash, batches, cursorCommit) 
           local = _pbpVocabStoredEvent(metadata, word);
           if (!local) throw new Error("corrupt local state");
         } else {
+          if (await _pbpVocabRequest(words.get(scope + "|" + remote.recordKey))) {
+            throw new Error("unseeded local record");
+          }
           local = null;
         }
       }
@@ -777,9 +788,9 @@ async function pbpVocabSeedLegacy(owner, limit = 100) {
 
 function _pbpVocabImportedWord(owner, record) {
   if (!_pbpVocabPlainObject(record) || record.owner !== owner) return null;
-  const term = String(record.term || "").normalize("NFC").trim();
-  const language = pbpDictPrimaryLang(record.language) || "und";
-  const id = pbpDictVocabKey(owner, language, term);
+  const term = String(record.term || "");
+  const language = String(record.language || "");
+  const id = owner + "|" + pbpDictCacheKeyPublic(language, term);
   if (!term || record.id !== id || !Array.isArray(record.contexts) || !Array.isArray(record.groups)) return null;
   const sourceUrl = record.sourceUrl == null ? null : pbpDictSafeUrl(record.sourceUrl);
   if (record.sourceUrl != null && !sourceUrl) return null;
@@ -814,10 +825,15 @@ async function pbpVocabImportRecords(owner, records, limit = 100) {
       const incoming = item.imported;
       const word = current ? {
         ...incoming,
+        id: current.id, owner: current.owner, term: current.term, language: current.language,
         contexts: incoming.contexts.reduce((all, context) => pbpDictMergeContext(all, context), current.contexts || []),
         groups: pbpVocabGroups({ groups: [...pbpVocabGroups(current), ...incoming.groups] }),
-        createdAt: Math.min(current.createdAt || incoming.createdAt, incoming.createdAt),
-        updatedAt: Math.max(current.updatedAt || 0, incoming.updatedAt)
+        createdAt: Number.isFinite(current.createdAt)
+          ? Math.min(current.createdAt, incoming.createdAt)
+          : incoming.createdAt,
+        updatedAt: Number.isFinite(current.updatedAt)
+          ? Math.max(current.updatedAt, incoming.updatedAt)
+          : incoming.updatedAt
       } : incoming;
       return {
         changed: true, deleted: false, recordKey: pbpDictCacheKeyPublic(word.language, word.term),
@@ -829,8 +845,7 @@ async function pbpVocabImportRecords(owner, records, limit = 100) {
 
 async function pbpVocabReadNotices(owner) {
   const scope = owner || "ownerless";
-  try {
-    return (await _pbpVocabSyncRows()).filter((row) =>
-      row && row.owner === scope && row.key.startsWith(`notice:${scope}:`));
-  } catch (_) { return []; }
+  return (await _pbpVocabSyncRows()).filter((row) =>
+    row && row.owner === scope && typeof row.key === "string" &&
+    row.key.startsWith(`notice:${scope}:`));
 }
