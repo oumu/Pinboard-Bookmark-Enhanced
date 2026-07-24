@@ -20,6 +20,13 @@ function check(name, ok) { ok ? pass++ : fail++; const row = document.createElem
   const syncNow = messages.slice(syncNowAt, messages.indexOf('message.type === "vocabDriveDisconnect"', syncNowAt));
   const connectAt = messages.indexOf('message.type === "vocabDriveConnect"');
   const connect = messages.slice(connectAt, messages.indexOf('message.type === "vocabDriveStatus"', connectAt));
+  const responseAt = source.indexOf("async function pbpVocabDriveResponse");
+  const responseEnd = source.indexOf("\n\nasync function pbpBootVocabDriveSync", responseAt);
+  let responseFactory = null;
+  try {
+    responseFactory = new Function("pbpGetVocabDriveStatus",
+      `${source.slice(responseAt, responseEnd)}; return typeof pbpVocabDriveResponse === "function" ? pbpVocabDriveResponse : null;`);
+  } catch (_) {}
   check("store and Drive scripts are imported in dependency order", imports.indexOf('"vocab-store.js"') >= 0 && imports.indexOf('"vocab-gdrive.js"') > imports.indexOf('"vocab-store.js"'));
   check("all three vocabulary alarm names are wired", ["vocab-sync-dirty", "vocab-sync-periodic", "vocab-sync-retry"].every((name) => source.includes(`"${name}"`)));
   check("alarm listener is registered synchronously at top level", /chrome\.alarms\.onAlarm\.addListener\(\(alarm\) =>/.test(alarms) && !/addListener\(async/.test(alarms));
@@ -27,6 +34,28 @@ function check(name, ok) { ok ? pass++ : fail++; const row = document.createElem
   check("dirty message schedules synchronization", messages.includes('message.type === "PBP_VOCAB_DIRTY"') && messages.includes("pbpVocabScheduleDirty"));
   check("connect message is handled", messages.includes('message.type === "vocabDriveConnect"'));
   check("status message is handled", messages.includes('message.type === "vocabDriveStatus"'));
+  const failedHandler = responseFactory?.(async () => ({
+    connected:true, owner:"alice", retryAt:1234, blocked:true
+  }));
+  const failedResponse = failedHandler
+    ? await failedHandler({ ok:false, error:"network" }) : null;
+  check("failed Drive operations return the latest authoritative status",
+    failedResponse?.ok === false && failedResponse.error === "network" &&
+    failedResponse.status?.connected === true && failedResponse.status?.owner === "alice" &&
+    failedResponse.status?.retryAt === 1234 && failedResponse.status?.blocked === true);
+  const degradedHandler = responseFactory?.(async () => {
+    throw new Error("status unavailable");
+  });
+  const degradedResponse = degradedHandler
+    ? await degradedHandler({
+        ok:false, error:"permission", remoteBody:"must not escape"
+      }) : null;
+  check("status lookup failure degrades to a sanitized error response",
+    degradedResponse?.ok === false && degradedResponse.error === "permission" &&
+    !("status" in degradedResponse) && !("remoteBody" in degradedResponse));
+  check("connect and sync-now both use the shared authoritative response path",
+    (connect.match(/pbpVocabDriveResponse\(result\)/g) || []).length === 1 &&
+    (syncNow.match(/pbpVocabDriveResponse\(result\)/g) || []).length === 1);
   check("sync-now message preserves persisted backoff unless explicitly forced",
     syncNowAt >= 0 &&
     /pbpQueueVocabDriveSync\(\{\s*interactive: false,\s*force: message\.force === true\s*\}\)/

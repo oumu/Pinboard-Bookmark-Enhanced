@@ -1488,6 +1488,16 @@ async function pbpGetVocabDriveStatus() {
   };
 }
 
+async function pbpVocabDriveResponse(result) {
+  const response = result?.ok
+    ? { ok: true }
+    : { ok: false, error: result?.error || "remote" };
+  try {
+    response.status = await pbpGetVocabDriveStatus();
+  } catch (_) {}
+  return response;
+}
+
 async function pbpBootVocabDriveSync() {
   if (!await pbpVocabDriveIsConnected()) return { ok: true };
   const granted = await chrome.permissions.contains({
@@ -1720,10 +1730,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         if (!result.ok && (result.error === "auth" || result.error === "permission")) {
           await chrome.storage.local.set({ [PBP_VOCAB_DRIVE_CONNECTED_KEY]: false });
         }
-        sendResponse(result.ok
-          ? { ok: true, status: await pbpGetVocabDriveStatus() }
-          : { ok: false, error: result.error });
+        return pbpVocabDriveResponse(result);
       })
+      .then(sendResponse)
       .catch(() => sendResponse({ ok: false, error: "remote" }));
     return true;
   }
@@ -1745,9 +1754,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           force: message.force === true
         });
       })
-      .then(async (result) => sendResponse(result.ok
-        ? { ok: true, status: await pbpGetVocabDriveStatus() }
-        : { ok: false, error: result.error }))
+      .then((result) => pbpVocabDriveResponse(result))
+      .then(sendResponse)
       .catch(() => sendResponse({ ok: false, error: "remote" }));
     return true;
   }

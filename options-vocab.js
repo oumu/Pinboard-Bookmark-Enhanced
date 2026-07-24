@@ -18,6 +18,7 @@ let _vocabBatchBusy = false;
 let _vocabFlashTimer = 0; // guards two flashes racing to clear each other's text early
 let _vocabOwnerLabel = ""; // decoded non-secret Pinboard username for visible scope copy
 let _vocabDriveBusy = false;
+let _vocabDriveActionSeq = 0;
 const PBP_VOCAB_RENDER_BATCH = 100;
 const PBP_VOCAB_GOOGLE_API_ORIGIN = "https://www.googleapis.com/*";
 const _vocabCollator = new Intl.Collator(undefined, { sensitivity: "base", numeric: true });
@@ -539,13 +540,17 @@ function _pbpVocabDriveShowError(code, retryAt, blocked) {
   setStatusIcon(el, false, parts.join(" "));
 }
 
-function _pbpVocabDriveSetBusy(busy) {
+function _pbpVocabDriveSetBusy(busy, focusOwner) {
   _vocabDriveBusy = !!busy;
   const body = $id("vocab-drive-body");
   if (body) body.setAttribute("aria-busy", String(_vocabDriveBusy));
   for (const id of ["vocab-drive-connect", "vocab-drive-sync", "vocab-drive-disconnect"]) {
     const button = $id(id);
-    if (button) button.disabled = _vocabDriveBusy;
+    if (!button) continue;
+    const keepFocused = _vocabDriveBusy && button === focusOwner;
+    button.disabled = _vocabDriveBusy && !keepFocused;
+    if (keepFocused) button.setAttribute("aria-disabled", "true");
+    else button.removeAttribute("aria-disabled");
   }
 }
 
@@ -596,7 +601,19 @@ function _pbpVocabDriveRender(status) {
   _pbpVocabDriveSetBusy(false);
 }
 
+function _pbpVocabDriveApplyResponse(response, fallbackStatus) {
+  const status = response?.status || (response?.ok ? fallbackStatus : null);
+  if (status) _pbpVocabDriveRender(status);
+  if (!response?.ok) {
+    _pbpVocabDriveShowError(
+      status?.lastError || response?.error, status?.retryAt, status?.blocked === true
+    );
+  }
+  return status;
+}
+
 async function _pbpVocabDriveRefresh(gen, requestSync) {
+  let actionSeq = 0;
   const loading = $id("vocab-drive-state");
   if (loading) loading.textContent = t("vocabDriveLoading");
   try {
@@ -610,62 +627,86 @@ async function _pbpVocabDriveRefresh(gen, requestSync) {
     }
     _pbpVocabDriveRender(response.status);
     if (!requestSync || response.status?.connected !== true) return;
+    actionSeq = ++_vocabDriveActionSeq;
     _pbpVocabDriveSetBusy(true);
     const synced = await chrome.runtime.sendMessage({ type: "vocabDriveSyncNow" });
-    if (gen !== _vocabRenderGen) return;
-    if (synced?.ok) _pbpVocabDriveRender(synced.status || response.status);
-    else _pbpVocabDriveShowError(synced?.error);
-    _pbpVocabDriveSetBusy(false);
+    if (gen !== _vocabRenderGen || actionSeq !== _vocabDriveActionSeq) return;
+    _pbpVocabDriveApplyResponse(synced, response.status);
   } catch (_) {
-    if (gen !== _vocabRenderGen) return;
+    if (gen !== _vocabRenderGen ||
+        (actionSeq && actionSeq !== _vocabDriveActionSeq)) return;
     const state = $id("vocab-drive-state");
     if (state) state.textContent = t("vocabDriveStatusFailed");
     _pbpVocabDriveShowError("remote");
-    _pbpVocabDriveSetBusy(false);
+  } finally {
+    if (actionSeq && actionSeq === _vocabDriveActionSeq) {
+      _pbpVocabDriveSetBusy(false);
+    }
+  }
+}
+
+async function _pbpVocabDriveSend(type, force, gen, actionSeq, sourceButton, focusTargetId) {
+  try {
+    const message = { type };
+    if (force === true) message.force = true;
+    const response = await chrome.runtime.sendMessage(message);
+    if (gen !== _vocabRenderGen || actionSeq !== _vocabDriveActionSeq) return;
+    const moveFocus = document.activeElement === sourceButton;
+    _pbpVocabDriveApplyResponse(response);
+    const preferred = moveFocus && focusTargetId ? $id(focusTargetId) : null;
+    const target = preferred && !preferred.hidden
+      ? preferred : (moveFocus && sourceButton && !sourceButton.hidden ? sourceButton : null);
+    if (target && !target.hidden) {
+      try { target.focus({ preventScroll: true }); }
+      catch (_) { target.focus(); }
+    }
+  } catch (_) {
+    if (gen === _vocabRenderGen && actionSeq === _vocabDriveActionSeq) {
+      _pbpVocabDriveShowError("remote");
+    }
+  } finally {
+    if (actionSeq === _vocabDriveActionSeq) _pbpVocabDriveSetBusy(false);
   }
 }
 
 async function _pbpVocabDriveConnect() {
   if (_vocabDriveBusy) return;
+  const gen = _vocabRenderGen;
+  const actionSeq = ++_vocabDriveActionSeq;
+  const sourceButton = $id("vocab-drive-connect");
   let granted = false;
   try {
     const permission = chrome.permissions.request({
       permissions: ["identity"],
       origins: [PBP_VOCAB_GOOGLE_API_ORIGIN]
     });
-    _pbpVocabDriveSetBusy(true);
+    _pbpVocabDriveSetBusy(true, sourceButton);
     granted = await permission;
   } catch (_) {}
+  if (gen !== _vocabRenderGen || actionSeq !== _vocabDriveActionSeq) {
+    if (actionSeq === _vocabDriveActionSeq) _pbpVocabDriveSetBusy(false);
+    return;
+  }
   if (!granted) {
     _pbpVocabDriveSetBusy(false);
     setStatusIcon($id("vocab-drive-error"), false, t("vocabDrivePermissionDenied"));
     return;
   }
-  try {
-    const response = await chrome.runtime.sendMessage({ type: "vocabDriveConnect" });
-    if (response?.ok) _pbpVocabDriveRender(response.status);
-    else _pbpVocabDriveShowError(response?.error);
-  } catch (_) {
-    _pbpVocabDriveShowError("remote");
-  } finally {
-    _pbpVocabDriveSetBusy(false);
-  }
+  return _pbpVocabDriveSend(
+    "vocabDriveConnect", false, gen, actionSeq, sourceButton, "vocab-drive-sync"
+  );
 }
 
-async function _pbpVocabDriveAction(type, force) {
+async function _pbpVocabDriveAction(type, force, focusTargetId) {
   if (_vocabDriveBusy) return;
-  _pbpVocabDriveSetBusy(true);
-  try {
-    const message = { type };
-    if (force === true) message.force = true;
-    const response = await chrome.runtime.sendMessage(message);
-    if (response?.ok) _pbpVocabDriveRender(response.status);
-    else _pbpVocabDriveShowError(response?.error);
-  } catch (_) {
-    _pbpVocabDriveShowError("remote");
-  } finally {
-    _pbpVocabDriveSetBusy(false);
-  }
+  const gen = _vocabRenderGen;
+  const actionSeq = ++_vocabDriveActionSeq;
+  const sourceButton = type === "vocabDriveDisconnect"
+    ? $id("vocab-drive-disconnect") : $id("vocab-drive-sync");
+  _pbpVocabDriveSetBusy(true, sourceButton);
+  return _pbpVocabDriveSend(
+    type, force, gen, actionSeq, sourceButton, focusTargetId
+  );
 }
 
 // Called from options.js's activateTab -- the sole lazy-init line added
@@ -676,7 +717,9 @@ async function _pbpVocabDriveAction(type, force) {
 async function renderVocabPanel() {
   if (!$id("vocab-list")) return;
   const gen = ++_vocabRenderGen;
+  ++_vocabDriveActionSeq;
   _pbpVocabDriveClear();
+  _pbpVocabDriveSetBusy(false);
   _pbpVocabDriveRefresh(gen, true);
   // Clear first, before any await: an account-change render must never leave
   // the previous owner's rows, selection, or derived group names visible.
@@ -1048,7 +1091,7 @@ if (_vocabDriveSync) _vocabDriveSync.addEventListener("click", () =>
   _pbpVocabDriveAction("vocabDriveSyncNow", true));
 const _vocabDriveDisconnect = $id("vocab-drive-disconnect");
 if (_vocabDriveDisconnect) _vocabDriveDisconnect.addEventListener("click", () =>
-  _pbpVocabDriveAction("vocabDriveDisconnect", false));
+  _pbpVocabDriveAction("vocabDriveDisconnect", false, "vocab-drive-connect"));
 
 // Account switch (token rotation, or the sync/keys-routing toggles that
 // change which area holds the effective token) invalidates every row

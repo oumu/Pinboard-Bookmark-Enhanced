@@ -689,6 +689,164 @@ check("selection still covers all filtered results beyond rendered chunks", _voc
       $id("vocab-drive-error").textContent.includes("vocabDrivePermissionDenied") &&
       !driveMessages.some((message) => message.type === "vocabDriveConnect"));
 
+    const connectedAfterFailure = {
+      ...driveStatus,
+      pendingWords:11,
+      retryAt:Date.UTC(2026, 6, 24, 10, 0),
+      lastError:"network"
+    };
+    _pbpVocabDriveRender({ connected:false });
+    window.chrome.permissions.request = async () => true;
+    window.chrome.runtime.sendMessage = async () => ({
+      ok:false, error:"network", status:connectedAfterFailure
+    });
+    $id("vocab-drive-connect").focus();
+    $id("vocab-drive-connect").click();
+    await task(); await task();
+    check("failed initial sync renders its authoritative connected status before the error",
+      $id("vocab-drive-sync").hidden === false &&
+      $id("vocab-drive-pending-words").textContent === "11" &&
+      $id("vocab-drive-error").textContent.includes("vocabDriveErrorNetwork") &&
+      $id("vocab-drive-error").textContent.includes("vocabDriveRetryAt"));
+    check("connecting moves focus from the hidden initiator to Sync now",
+      document.activeElement === $id("vocab-drive-sync"));
+
+    _pbpVocabDriveRender({ connected:false });
+    let resolveDelayedConnect;
+    window.chrome.runtime.sendMessage = () => new Promise((resolve) => {
+      resolveDelayedConnect = resolve;
+    });
+    const outsideDriveControl = document.createElement("button");
+    outsideDriveControl.textContent = "outside";
+    document.body.appendChild(outsideDriveControl);
+    $id("vocab-drive-connect").focus();
+    $id("vocab-drive-connect").click();
+    await task();
+    outsideDriveControl.focus();
+    resolveDelayedConnect({ ok:false, error:"network", status:connectedAfterFailure });
+    await task(); await task();
+    check("a completed Drive action does not steal focus moved outside the card",
+      document.activeElement === outsideDriveControl);
+    outsideDriveControl.remove();
+
+    _pbpVocabDriveRender({ connected:false });
+    driveMessages.length = 0;
+    let resolvePermission;
+    window.chrome.permissions.request = () => new Promise((resolve) => {
+      resolvePermission = resolve;
+    });
+    window.chrome.runtime.sendMessage = driveResponse;
+    $id("vocab-drive-connect").click();
+    await task();
+    ++_vocabRenderGen;
+    const bobStatus = {
+      ...driveStatus,
+      owner:"bob",
+      emailAddress:"bob@example.test",
+      displayName:"Bob Example",
+      retryAt:null,
+      lastError:null,
+      notices:0
+    };
+    _pbpVocabDriveRender(bobStatus);
+    resolvePermission(true);
+    await task(); await task();
+    check("a stale permission grant cannot connect or overwrite a newer account render",
+      !driveMessages.some((message) => message.type === "vocabDriveConnect") &&
+      $id("vocab-drive-owner").textContent === "bob" &&
+      _vocabDriveBusy === false && $id("vocab-drive-sync").disabled === false);
+
+    const blockedStatus = {
+      ...driveStatus,
+      retryAt:Date.UTC(2026, 6, 24, 11, 0),
+      lastError:"permission",
+      blocked:true
+    };
+    window.chrome.runtime.sendMessage = async (message) => message.type === "vocabDriveStatus"
+      ? { ok:true, status:blockedStatus }
+      : { ok:false, error:"network", status:blockedStatus };
+    await _pbpVocabDriveRefresh(++_vocabRenderGen, true);
+    check("a failed automatic sync preserves authoritative blocked reconnect guidance",
+      $id("vocab-drive-owner").textContent === "alice" &&
+      $id("vocab-drive-error").textContent.includes("vocabDriveErrorPermission") &&
+      !$id("vocab-drive-error").textContent.includes("vocabDriveErrorNetwork") &&
+      $id("vocab-drive-error").textContent.includes("vocabDriveReconnectRequired") &&
+      $id("vocab-drive-error").textContent.includes("vocabDriveRetryAt"));
+
+    const manualRetryStatus = {
+      ...driveStatus,
+      pendingWords:19,
+      retryAt:Date.UTC(2026, 6, 24, 12, 0),
+      lastError:"network"
+    };
+    _pbpVocabDriveRender({ ...driveStatus, pendingWords:7, retryAt:null, lastError:null });
+    window.chrome.runtime.sendMessage = async () => ({
+      ok:false, error:"network", status:manualRetryStatus
+    });
+    $id("vocab-drive-sync").click();
+    await task(); await task();
+    check("a failed manual sync renders the returned retry state",
+      $id("vocab-drive-pending-words").textContent === "19" &&
+      $id("vocab-drive-error").textContent.includes("vocabDriveRetryAt"));
+
+    const staleAliceStatus = {
+      ...manualRetryStatus,
+      owner:"alice",
+      emailAddress:"alice@example.test"
+    };
+    _pbpVocabDriveRender({ ...driveStatus, retryAt:null, lastError:null });
+    let resolveStaleAction, resolveCurrentAction;
+    let actionRequestCount = 0;
+    window.chrome.runtime.sendMessage = () => new Promise((resolve) => {
+      actionRequestCount++;
+      if (actionRequestCount === 1) resolveStaleAction = resolve;
+      else resolveCurrentAction = resolve;
+    });
+    $id("vocab-drive-sync").click();
+    await task();
+    ++_vocabRenderGen;
+    if (typeof _vocabDriveActionSeq !== "undefined") ++_vocabDriveActionSeq;
+    _pbpVocabDriveRender(bobStatus);
+    $id("vocab-drive-sync").click();
+    await task();
+    resolveStaleAction({ ok:false, error:"network", status:staleAliceStatus });
+    await task(); await task();
+    check("a stale sync response and finally cannot overwrite a newer action or its busy state",
+      $id("vocab-drive-owner").textContent === "bob" &&
+      $id("vocab-drive-account").textContent.includes("bob@example.test") &&
+      _vocabDriveBusy === true && $id("vocab-drive-sync").disabled === false &&
+      $id("vocab-drive-sync").getAttribute("aria-disabled") === "true",
+      `owner=${$id("vocab-drive-owner").textContent} busy=${_vocabDriveBusy} disabled=${$id("vocab-drive-sync").disabled} aria=${$id("vocab-drive-sync").getAttribute("aria-disabled")}`);
+    resolveCurrentAction({ ok:true, status:bobStatus });
+    await task(); await task();
+
+    _pbpVocabDriveRender({ ...driveStatus, retryAt:null, lastError:null });
+    let resolveMutationStale;
+    window.chrome.runtime.sendMessage = () => new Promise((resolve) => {
+      resolveMutationStale = resolve;
+    });
+    $id("vocab-drive-sync").click();
+    await task();
+    ++_vocabRenderGen;
+    resolveMutationStale({ ok:true, status:driveStatus });
+    await task(); await task();
+    check("a mutation generation change lets its stale Drive action release its own busy state",
+      _vocabDriveBusy === false && $id("vocab-drive-sync").disabled === false &&
+      $id("vocab-drive-owner").textContent === "alice");
+
+    _pbpVocabDriveRender(driveStatus);
+    window.chrome.runtime.sendMessage = async () => ({
+      ok:true,
+      status:{ connected:false, owner:"alice", pendingWords:7, pendingBatches:0, notices:0 }
+    });
+    $id("vocab-drive-disconnect").focus();
+    $id("vocab-drive-disconnect").click();
+    await task(); await task();
+    check("disconnecting moves focus from the hidden initiator to Connect",
+      document.activeElement === $id("vocab-drive-connect"));
+
+    window.chrome.permissions.request = async () => true;
+    window.chrome.runtime.sendMessage = driveResponse;
     if (typeof _pbpVocabDriveRender === "function") _pbpVocabDriveRender(driveStatus);
     check("connected Google Drive status shows the account email",
       $id("vocab-drive-account").textContent.includes("alice@example.test"));
