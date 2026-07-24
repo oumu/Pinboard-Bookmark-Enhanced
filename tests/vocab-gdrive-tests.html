@@ -137,6 +137,9 @@ function syncHarness(options = {}) {
     async getMeta() { return { deviceId: DEVICE_ID, counter: 1 }; },
     async getPreflightState() {
       calls.push("get-preflight");
+      if (options.afterGetPreflight) options.afterGetPreflight({
+        setAccount(value) { authAccount = value; authEpoch++; }
+      });
       return preflightState && { ...preflightState };
     },
     async putPreflightState(value) {
@@ -149,7 +152,13 @@ function syncHarness(options = {}) {
       preflightState = null;
       return true;
     },
-    async getAccountState() { return accountState && { ...accountState }; },
+    async getAccountState() {
+      calls.push("get-account");
+      if (options.afterGetAccount) options.afterGetAccount({
+        setAccount(value) { authAccount = value; authEpoch++; }
+      });
+      return accountState && { ...accountState };
+    },
     async putAccountState(state) {
       calls.push(`put:${state.pageToken || ""}:${state.bootstrapComplete === true}`);
       accountState = { ...state };
@@ -1372,6 +1381,30 @@ function syncHarness(options = {}) {
       }
     });
     const sessionSwitchResult = await sessionSwitch.runner()();
+    const preflightSwitch = syncHarness({
+      preflightState: {
+        key: `preflight:${OWNER_HASH}`, ownerHash: OWNER_HASH,
+        retryAttempt: 1, retryAt: 9_999_999, lastError: "network", blocked: false
+      },
+      afterGetPreflight(control) { control.setAccount("pin-b"); }
+    });
+    const preflightSwitchResult = await preflightSwitch.runner()({ force: true });
+    const failureSwitch = syncHarness({
+      aboutResults: [{
+        ok: false, error: "server", retryable: true
+      }],
+      afterAbout(control) { control.setAccount("pin-b"); }
+    });
+    const failureSwitchResult = await failureSwitch.runner()();
+    const accountSwitch = syncHarness({
+      accountState: {
+        key: `account:perm-a:${OWNER_HASH}`, drivePermissionId: "perm-a",
+        ownerHash: OWNER_HASH, bootstrapComplete: true, pageToken: "stable-old",
+        retryAttempt: 1, retryAt: 9_999_999, lastError: "network"
+      },
+      afterGetAccount(control) { control.setAccount("pin-b"); }
+    });
+    const accountSwitchResult = await accountSwitch.runner()({ force: true });
     return !result.ok && result.error === "account_changed" &&
       !h.calls.some((call) => call.startsWith("apply:")) &&
       !h.calls.some((call) => call.startsWith("upload:")) &&
@@ -1380,7 +1413,15 @@ function syncHarness(options = {}) {
       !sessionSwitchResult.ok && sessionSwitchResult.error === "account_changed" &&
       !sessionSwitch.calls.some((call) =>
         call.startsWith("apply:") || call.startsWith("upload:") ||
-        call.startsWith("delete-pending:"));
+        call.startsWith("delete-pending:")) &&
+      !preflightSwitchResult.ok && preflightSwitchResult.error === "account_changed" &&
+      !preflightSwitch.calls.some((call) =>
+        call === "delete-preflight" || call.startsWith("open-session:")) &&
+      !failureSwitchResult.ok && failureSwitchResult.error === "account_changed" &&
+      !failureSwitch.calls.some((call) =>
+        call.startsWith("put-preflight:") || call.startsWith("alarm:")) &&
+      !accountSwitchResult.ok && accountSwitchResult.error === "account_changed" &&
+      !accountSwitch.calls.some((call) => call.startsWith("put:"));
   });
 
   document.getElementById("summary").textContent = `pass=${pass} fail=${fail}`;

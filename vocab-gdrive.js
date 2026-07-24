@@ -646,6 +646,9 @@ function pbpCreateVocabDriveSyncRunner({
     const finishFailure = async (source) => {
       const result = normalizedFailure(source);
       if (result.error === "account_changed") return result;
+      if (!await stillCurrent()) {
+        return normalizedFailure({ error: "account_changed" });
+      }
       const canPersistPreflight = /^[0-9a-f]{64}$/.test(ownerHash);
       if (result.retryable) {
         const attempts = [state?.retryAttempt, preflight?.retryAttempt]
@@ -753,6 +756,9 @@ function pbpCreateVocabDriveSyncRunner({
       owner = pbpDictOwnerScope(startAuth.account);
       ownerHash = await hashOwner(owner);
       preflight = await store.getPreflightState(ownerHash);
+      if (!await stillCurrent()) {
+        return normalizedFailure({ error: "account_changed" });
+      }
       if (force) {
         if (!await store.deletePreflightState(ownerHash)) {
           return finishFailure({ error: "remote_batch" });
@@ -779,6 +785,9 @@ function pbpCreateVocabDriveSyncRunner({
       if (!await stillCurrent()) return normalizedFailure({ error: "account_changed" });
 
       state = await store.getAccountState(session.permissionId, ownerHash);
+      if (!await stillCurrent()) {
+        return normalizedFailure({ error: "account_changed" });
+      }
       state = {
         ...(state || {}),
         key: accountKey(session.permissionId, ownerHash),

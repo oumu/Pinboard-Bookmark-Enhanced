@@ -11,11 +11,15 @@ function check(name, ok) { ok ? pass++ : fail++; const row = document.createElem
   const alarms = source.slice(source.indexOf("chrome.alarms.onAlarm.addListener"), source.indexOf("// React to settings change"));
   const messages = source.slice(source.indexOf("chrome.runtime.onMessage.addListener"));
   const bootAt = source.indexOf("function pbpBootVocabDriveSync");
-  const boot = source.slice(bootAt, source.indexOf("\n}", bootAt) + 2);
+  const boot = source.slice(
+    bootAt, source.indexOf("\nasync function pbpDisconnectVocabDrive", bootAt)
+  );
   const startupAt = source.indexOf("chrome.runtime.onStartup.addListener");
   const startup = source.slice(startupAt, source.indexOf("chrome.runtime.onInstalled.addListener", startupAt));
   const syncNowAt = messages.indexOf('message.type === "vocabDriveSyncNow"');
   const syncNow = messages.slice(syncNowAt, messages.indexOf('message.type === "vocabDriveDisconnect"', syncNowAt));
+  const connectAt = messages.indexOf('message.type === "vocabDriveConnect"');
+  const connect = messages.slice(connectAt, messages.indexOf('message.type === "vocabDriveStatus"', connectAt));
   check("store and Drive scripts are imported in dependency order", imports.indexOf('"vocab-store.js"') >= 0 && imports.indexOf('"vocab-gdrive.js"') > imports.indexOf('"vocab-store.js"'));
   check("all three vocabulary alarm names are wired", ["vocab-sync-dirty", "vocab-sync-periodic", "vocab-sync-retry"].every((name) => source.includes(`"${name}"`)));
   check("alarm listener is registered synchronously at top level", /chrome\.alarms\.onAlarm\.addListener\(\(alarm\) =>/.test(alarms) && !/addListener\(async/.test(alarms));
@@ -34,7 +38,11 @@ function check(name, ok) { ok ? pass++ : fail++; const row = document.createElem
     bootAt >= 0 && boot.includes("interactive: false") && !boot.includes("interactive: true") &&
     !startup.includes("pbpBootVocabDriveSync") &&
     boot.includes("if (!await pbpVocabDriveIsConnected()) return { ok: true };") &&
-    !boot.includes("status: await pbpGetVocabDriveStatus()"));
+    !boot.includes("status: await pbpGetVocabDriveStatus()") &&
+    !boot.includes("pbpVocabSchedulePeriodic") &&
+    /if \(!granted\) \{[\s\S]*PBP_VOCAB_DRIVE_CONNECTED_KEY[\s\S]*false[\s\S]*vocab-sync-dirty[\s\S]*vocab-sync-periodic[\s\S]*vocab-sync-retry[\s\S]*error: "permission"/
+      .test(boot) &&
+    !connect.includes("pbpVocabSchedulePeriodic"));
   check("background never requests optional permissions", !source.includes("chrome.permissions.request(") && !source.includes("permissions.request("));
   document.getElementById("summary").textContent = `pass=${pass} fail=${fail}`;
 })();

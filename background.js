@@ -1490,12 +1490,19 @@ async function pbpGetVocabDriveStatus() {
 
 async function pbpBootVocabDriveSync() {
   if (!await pbpVocabDriveIsConnected()) return { ok: true };
-  pbpVocabSchedulePeriodic(chrome.alarms);
   const granted = await chrome.permissions.contains({
     permissions: ["identity"],
     origins: [PBP_GOOGLE_API_ORIGIN]
   });
-  if (!granted) return { ok: false, error: "permission" };
+  if (!granted) {
+    await chrome.storage.local.set({ [PBP_VOCAB_DRIVE_CONNECTED_KEY]: false });
+    await Promise.all([
+      chrome.alarms.clear("vocab-sync-dirty"),
+      chrome.alarms.clear("vocab-sync-periodic"),
+      chrome.alarms.clear("vocab-sync-retry")
+    ]);
+    return { ok: false, error: "permission" };
+  }
   return pbpQueueVocabDriveSync({ interactive: false });
 }
 
@@ -1712,8 +1719,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       .then(async (result) => {
         if (!result.ok && (result.error === "auth" || result.error === "permission")) {
           await chrome.storage.local.set({ [PBP_VOCAB_DRIVE_CONNECTED_KEY]: false });
-        } else {
-          pbpVocabSchedulePeriodic(chrome.alarms);
         }
         sendResponse(result.ok
           ? { ok: true, status: await pbpGetVocabDriveStatus() }
