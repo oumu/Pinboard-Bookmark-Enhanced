@@ -431,8 +431,19 @@ function readerResponse(chunks, onCancel, headers = {}) {
       fetchImpl: async () => readerResponse([new TextEncoder().encode("é-small")])
     });
     const download = await downloadClient.download(DRIVE_FILE_ID);
+    let invalidCancelled = false;
+    const invalidUtf8 = pbpCreateVocabDriveClient({
+      identity: identityFixture(),
+      fetchImpl: async () => readerResponse(
+        [new Uint8Array([0xc3, 0x28])],
+        () => { invalidCancelled = true; }
+      )
+    });
+    const invalid = await invalidUtf8.download(DRIVE_FILE_ID);
     return !errorResult.ok && errorResult.error === "server" && errorResult.retryable === true &&
-      download.ok && download.body === "é-small";
+      download.ok && download.body === "é-small" &&
+      !invalid.ok && invalid.error === "invalid_response" && invalid.retryable === false &&
+      invalidCancelled;
   });
 
   await asyncCheck("network failure is retryable and exact 4 MiB succeeds", async () => {
@@ -446,8 +457,28 @@ function readerResponse(chunks, onCancel, headers = {}) {
       fetchImpl: async () => readerResponse([new Uint8Array(TEST_MAX_BYTES).fill(97)])
     });
     const download = await exact.download(DRIVE_FILE_ID);
+    let readerCancelled = false;
+    const readerFailure = pbpCreateVocabDriveClient({
+      identity: identityFixture(),
+      fetchImpl: async () => ({
+        ok: true,
+        status: 200,
+        headers: new Headers(),
+        body: {
+          getReader() {
+            return {
+              async read() { throw new Error("private reader message"); },
+              async cancel() { readerCancelled = true; }
+            };
+          }
+        }
+      })
+    });
+    const readerResult = await readerFailure.download(DRIVE_FILE_ID);
     return !errorResult.ok && errorResult.error === "network" && errorResult.retryable === true &&
-      download.ok && bytes(download.body) === TEST_MAX_BYTES;
+      download.ok && bytes(download.body) === TEST_MAX_BYTES &&
+      !readerResult.ok && readerResult.error === "network" && readerResult.retryable === true &&
+      readerCancelled && !JSON.stringify(readerResult).includes("private reader message");
   });
 
   await asyncCheck("generateIds uses exact one-ID appDataFolder query", async () => {
@@ -518,11 +549,21 @@ function readerResponse(chunks, onCancel, headers = {}) {
       }
     });
     const result = await client.upload(meta, bodyString([live("Retry")]));
+    let networkFetches = 0;
+    const networkClient = pbpCreateVocabDriveClient({
+      identity: identityFixture(["upload-token", "metadata-token"]),
+      fetchImpl: async () => {
+        if (++networkFetches === 1) return new Response(null, { status: 409 });
+        throw new Error("metadata network secret");
+      }
+    });
+    const network = await networkClient.upload(meta, bodyString([live("Network Retry")]));
     const metadataUrl = new URL(calls[1].url);
     return result.ok && result.idempotent === true && result.fileId === DRIVE_FILE_ID &&
       calls.length === 2 && calls[1].init.method === "GET" &&
       metadataUrl.pathname === `/drive/v3/files/${encodeURIComponent(DRIVE_FILE_ID)}` &&
-      metadataUrl.searchParams.get("fields") === "id,name,appProperties,parents,mimeType";
+      metadataUrl.searchParams.get("fields") === "id,name,appProperties,parents,mimeType" &&
+      !network.ok && network.error === "network" && network.retryable === true;
   });
 
   await asyncCheck("409 metadata mismatch is hard id_collision", async () => {
@@ -536,8 +577,18 @@ function readerResponse(chunks, onCancel, headers = {}) {
         : jsonResponse(mismatch)
     });
     const result = await client.upload(expected, bodyString([live("Collision")]));
+    let serverFetches = 0;
+    const serverClient = pbpCreateVocabDriveClient({
+      identity: identityFixture(["upload-token", "metadata-token"]),
+      fetchImpl: async () => ++serverFetches === 1
+        ? new Response(null, { status: 409 })
+        : new Response("private metadata body", { status: 503 })
+    });
+    const server = await serverClient.upload(expected, bodyString([live("Server Retry")]));
     return !result.ok && result.error === "id_collision" && result.status === 409 &&
-      result.retryable === false && result.fileId === DRIVE_FILE_ID.slice(0, 8);
+      result.retryable === false && result.fileId === DRIVE_FILE_ID.slice(0, 8) &&
+      !server.ok && server.error === "server" && server.status === 503 &&
+      server.retryable === true;
   });
 
   await asyncCheck("files.list carries filters, minimal fields and page tokens", async () => {
@@ -554,6 +605,18 @@ function readerResponse(chunks, onCancel, headers = {}) {
     });
     const first = await client.listFiles(OWNER_HASH);
     const second = await client.listFiles(OWNER_HASH, first.nextPageToken);
+    const listResult = async (payload) => pbpCreateVocabDriveClient({
+      identity: identityFixture(),
+      fetchImpl: async () => jsonResponse(payload)
+    }).listFiles(OWNER_HASH);
+    const empty = await listResult({});
+    const malformed = await Promise.all([
+      listResult({ files: null }),
+      listResult({ files: 0 }),
+      listResult({ files: {} }),
+      listResult({ files: [], nextPageToken: "" }),
+      listResult({ files: [], nextPageToken: 0 })
+    ]);
     const firstUrl = new URL(calls[0]);
     const secondUrl = new URL(calls[1]);
     const query = firstUrl.searchParams.get("q");
@@ -566,7 +629,9 @@ function readerResponse(chunks, onCancel, headers = {}) {
       query.includes("key='pbpKind' and value='vocab-batch'") &&
       query.includes("key='schema' and value='1'") &&
       query.includes(`key='owner' and value='${OWNER_HASH}'`) &&
-      secondUrl.searchParams.get("pageToken") === nextToken;
+      secondUrl.searchParams.get("pageToken") === nextToken &&
+      empty.ok && empty.files.length === 0 && empty.nextPageToken === null &&
+      malformed.every((result) => !result.ok && result.error === "invalid_response");
   });
 
   await asyncCheck("changes APIs preserve next/new tokens and minimal removed metadata", async () => {
@@ -575,24 +640,39 @@ function readerResponse(chunks, onCancel, headers = {}) {
     const nextPageToken = "next/+? &=token";
     const newStartPageToken = "new/+? &=token";
     const client = pbpCreateVocabDriveClient({
-      identity: identityFixture(["start-token", "list-token"]),
+      identity: identityFixture(["start-token", "list-token", "end-token"]),
       fetchImpl: async (url) => {
         calls.push(String(url));
         return calls.length === 1
           ? jsonResponse({ startPageToken: pageToken })
-          : jsonResponse({
+          : calls.length === 2 ? jsonResponse({
             changes: [{ removed: true, fileId: "removed-id" }],
-            nextPageToken,
-            newStartPageToken
-          });
+            nextPageToken
+          }) : jsonResponse({ newStartPageToken });
       }
     });
     const start = await client.getStartPageToken();
-    const page = await client.listChanges(start.pageToken);
+    const middle = await client.listChanges(start.pageToken);
+    const end = await client.listChanges(middle.nextPageToken);
+    const changesResult = async (payload) => pbpCreateVocabDriveClient({
+      identity: identityFixture(),
+      fetchImpl: async () => jsonResponse(payload)
+    }).listChanges(pageToken);
+    const empty = await changesResult({ nextPageToken });
+    const malformed = await Promise.all([
+      changesResult({ changes: null, nextPageToken }),
+      changesResult({ changes: 0, nextPageToken }),
+      changesResult({ changes: {}, nextPageToken }),
+      changesResult({ changes: [], nextPageToken: "" }),
+      changesResult({ changes: [], newStartPageToken: 0 }),
+      changesResult({ changes: [], nextPageToken, newStartPageToken }),
+      changesResult({ changes: [] })
+    ]);
     const startUrl = new URL(calls[0]);
     const listUrl = new URL(calls[1]);
-    return start.ok && page.ok && page.nextPageToken === nextPageToken &&
-      page.newStartPageToken === newStartPageToken &&
+    return start.ok && middle.ok && end.ok &&
+      middle.nextPageToken === nextPageToken && middle.newStartPageToken === null &&
+      end.nextPageToken === null && end.newStartPageToken === newStartPageToken &&
       startUrl.pathname === "/drive/v3/changes/startPageToken" &&
       startUrl.searchParams.toString() === "spaces=appDataFolder" &&
       listUrl.pathname === "/drive/v3/changes" &&
@@ -600,7 +680,9 @@ function readerResponse(chunks, onCancel, headers = {}) {
       listUrl.searchParams.get("spaces") === "appDataFolder" &&
       listUrl.searchParams.get("includeRemoved") === "true" &&
       listUrl.searchParams.get("fields") ===
-        "nextPageToken,newStartPageToken,changes(removed,fileId,file(id,name,appProperties,parents,mimeType))";
+        "nextPageToken,newStartPageToken,changes(removed,fileId,file(id,name,appProperties,parents,mimeType))" &&
+      empty.ok && empty.changes.length === 0 &&
+      malformed.every((result) => !result.ok && result.error === "invalid_response");
   });
 
   await asyncCheck("error results expose no token or remote/user body", async () => {
@@ -613,8 +695,30 @@ function readerResponse(chunks, onCancel, headers = {}) {
       fetchImpl: async () => new Response(secrets.slice(1).join(" "), { status: 503 })
     });
     const result = await client.download("opaque-secret-file-id");
-    const visible = JSON.stringify(result);
+    const invalidJson = await pbpCreateVocabDriveClient({
+      identity: identityFixture([secrets[0]]),
+      fetchImpl: async () => new Response(secrets.slice(1).join(" "), { status: 200 })
+    }).about();
+    const readerError = await pbpCreateVocabDriveClient({
+      identity: identityFixture([secrets[0]]),
+      fetchImpl: async () => ({
+        ok: true,
+        status: 200,
+        headers: new Headers(),
+        body: {
+          getReader() {
+            return {
+              async read() { throw new Error(secrets.slice(1).join(" ")); },
+              async cancel() {}
+            };
+          }
+        }
+      })
+    }).download("opaque-secret-file-id");
+    const visible = JSON.stringify([result, invalidJson, readerError]);
     return !result.ok && result.retryable === true &&
+      !invalidJson.ok && invalidJson.error === "invalid_response" &&
+      !readerError.ok && readerError.error === "network" &&
       result.fileId === "opaque-s" &&
       !visible.includes("opaque-secret-file-id") &&
       secrets.every((secret) => !visible.includes(secret));

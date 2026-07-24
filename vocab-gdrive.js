@@ -290,7 +290,8 @@ function pbpCreateVocabDriveClient({
       return responseFailure(requested.response, metadata.id);
     }
     const existing = await getMetadata(metadata.id);
-    if (existing.ok && metadataMatches(existing.metadata, metadata)) {
+    if (!existing.ok) return existing;
+    if (metadataMatches(existing.metadata, metadata)) {
       return { ok: true, fileId: metadata.id, idempotent: true };
     }
     return failure("id_collision", false, 409, metadata.id);
@@ -315,29 +316,40 @@ function pbpCreateVocabDriveClient({
     if (!reader) return failure("invalid_response", false, response.status, fileId);
     const cancel = async () => { try { await reader.cancel(); } catch (_) {} };
 
-    const decoder = new TextDecoder();
+    const decoder = new TextDecoder("utf-8", { fatal: true });
     const parts = [];
     let size = 0;
-    try {
-      while (true) {
-        const chunk = await reader.read();
-        if (chunk.done) break;
-        if (!(chunk.value instanceof Uint8Array)) {
-          await cancel();
-          return failure("invalid_response", false, response.status, fileId);
-        }
-        size += chunk.value.byteLength;
-        if (size > PBP_VOCAB_BATCH_MAX_BYTES) {
-          await cancel();
-          return failure("remote_batch_too_large", false, response.status, fileId);
-        }
-        parts.push(decoder.decode(chunk.value, { stream: true }));
+    while (true) {
+      let chunk;
+      try {
+        chunk = await reader.read();
+      } catch (_) {
+        await cancel();
+        return failure("network", true, undefined, fileId);
       }
+      if (chunk.done) break;
+      if (!(chunk.value instanceof Uint8Array)) {
+        await cancel();
+        return failure("invalid_response", false, response.status, fileId);
+      }
+      size += chunk.value.byteLength;
+      if (size > PBP_VOCAB_BATCH_MAX_BYTES) {
+        await cancel();
+        return failure("remote_batch_too_large", false, response.status, fileId);
+      }
+      try {
+        parts.push(decoder.decode(chunk.value, { stream: true }));
+      } catch (_) {
+        await cancel();
+        return failure("invalid_response", false, response.status, fileId);
+      }
+    }
+    try {
       parts.push(decoder.decode());
       return { ok: true, body: parts.join("") };
     } catch (_) {
       await cancel();
-      return failure("network", true, undefined, fileId);
+      return failure("invalid_response", false, response.status, fileId);
     }
   }
 
@@ -360,15 +372,22 @@ function pbpCreateVocabDriveClient({
     if (!requested.ok) return requested;
     if (!requested.response.ok) return responseFailure(requested.response);
     const parsed = await json(requested.response);
-    if (!parsed.ok || !parsed.value || !Array.isArray(parsed.value.files || [])) {
-      return parsed.ok ? failure("invalid_response", false, requested.response.status) : parsed;
+    if (!parsed.ok) return parsed;
+    const value = parsed.value;
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      return failure("invalid_response", false, requested.response.status);
+    }
+    const files = value.files === undefined ? [] : value.files;
+    const nextPageToken = value.nextPageToken;
+    if (!Array.isArray(files) ||
+        (nextPageToken !== undefined &&
+          (typeof nextPageToken !== "string" || !nextPageToken))) {
+      return failure("invalid_response", false, requested.response.status);
     }
     return {
       ok: true,
-      files: parsed.value.files || [],
-      nextPageToken: typeof parsed.value.nextPageToken === "string"
-        ? parsed.value.nextPageToken
-        : null
+      files,
+      nextPageToken: nextPageToken === undefined ? null : nextPageToken
     };
   }
 
@@ -400,18 +419,26 @@ function pbpCreateVocabDriveClient({
     if (!requested.ok) return requested;
     if (!requested.response.ok) return responseFailure(requested.response);
     const parsed = await json(requested.response);
-    if (!parsed.ok || !parsed.value || !Array.isArray(parsed.value.changes || [])) {
-      return parsed.ok ? failure("invalid_response", false, requested.response.status) : parsed;
+    if (!parsed.ok) return parsed;
+    const value = parsed.value;
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      return failure("invalid_response", false, requested.response.status);
+    }
+    const changes = value.changes === undefined ? [] : value.changes;
+    const nextPageToken = value.nextPageToken;
+    const newStartPageToken = value.newStartPageToken;
+    const hasNext = nextPageToken !== undefined;
+    const hasNew = newStartPageToken !== undefined;
+    if (!Array.isArray(changes) || hasNext === hasNew ||
+        (hasNext && (typeof nextPageToken !== "string" || !nextPageToken)) ||
+        (hasNew && (typeof newStartPageToken !== "string" || !newStartPageToken))) {
+      return failure("invalid_response", false, requested.response.status);
     }
     return {
       ok: true,
-      changes: parsed.value.changes || [],
-      nextPageToken: typeof parsed.value.nextPageToken === "string"
-        ? parsed.value.nextPageToken
-        : null,
-      newStartPageToken: typeof parsed.value.newStartPageToken === "string"
-        ? parsed.value.newStartPageToken
-        : null
+      changes,
+      nextPageToken: hasNext ? nextPageToken : null,
+      newStartPageToken: hasNew ? newStartPageToken : null
     };
   }
 
