@@ -566,9 +566,28 @@ async function runDictNoAiAndSavedStateTests() {
 async function runVocabIdbTests() {
   section("pbp-vocab IDB (runtime)");
   await new Promise((r) => { const del = indexedDB.deleteDatabase("pbp-vocab"); del.onsuccess = del.onerror = del.onblocked = r; });
+  const legacyWord = {
+    id: "acct_legacy|en|migrate", owner: "acct_legacy", term: "Migrate", language: "en",
+    gloss: "legacy gloss", contexts: [], groups: [], note: "", status: "new", createdAt: 1, updatedAt: 1
+  };
+  await new Promise((resolve, reject) => {
+    const req = indexedDB.open("pbp-vocab", 1);
+    req.onupgradeneeded = () => {
+      const store = req.result.createObjectStore("words", { keyPath: "id" });
+      store.createIndex("owner", "owner", { unique: false });
+      store.createIndex("updatedAt", "updatedAt", { unique: false });
+      store.put(legacyWord);
+    };
+    req.onsuccess = () => { req.result.close(); resolve(); };
+    req.onerror = () => reject(req.error);
+  });
+  _pbpVocabDbPromise = null;
   const db = await _pbpVocabOpenDB();
   assertEq(db.version, 2, "pbp-vocab migrates to version 2");
   assert(db.objectStoreNames.contains("sync"), "version 2 adds the sync store");
+  const legacyRead = await pbpVocabGet(legacyWord.id);
+  assert(legacyRead && legacyRead.gloss === legacyWord.gloss,
+    "v2 migration preserves and reads the v1 word record");
   const ctx1 = { quote: "q1", articleUrl: "u1", articleTitle: "t1", highlightId: null, createdAt: 1 };
   const e1 = await pbpVocabSaveWord("acct_a", { term: "Running", language: "en-US", gloss: "g1", ipa: "", sourceUrl: "https://en.wiktionary.org/wiki/run", license: "CC BY-SA 4.0", context: ctx1 });
   assert(e1 && e1.id === "acct_a|en|running", "save creates owner-scoped id");
