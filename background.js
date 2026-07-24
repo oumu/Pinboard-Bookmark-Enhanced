@@ -2,7 +2,7 @@
 // Pinboard Bookmark Enhanced - Background Service Worker (v4.0)
 // ============================================================
 
-importScripts("i18n.js", "shared.js", "ai-cache.js", "ai.js", "jina.js", "wayback.js", "webdav.js");
+importScripts("i18n.js", "shared.js", "ai-cache.js", "ai.js", "jina.js", "wayback.js");
 
 // Load manual language setting (async, t() falls back to browser locale until ready)
 initI18n();
@@ -212,16 +212,7 @@ async function loadSettings() {
     if (_settingsCache) return _settingsCache;
     const generation = _settingsCacheGeneration;
     if (!_settingsCachePending || _settingsCachePending.generation !== generation) {
-      const promise = pbpReadSettingsWithSecrets(SETTINGS_DEFAULTS).then(async (settings) => {
-        deobfuscateSettings(settings);
-        settings.webdavAutoPush = await pbpWebdavReadAutoPush({
-          baseUrl: settings.webdavUrl,
-          user: settings.webdavUser,
-          folderMode: settings.webdavFolderMode,
-          relativePath: settings.webdavRelativePath,
-        });
-        return settings;
-      });
+      const promise = pbpReadSettingsWithSecrets(SETTINGS_DEFAULTS).then(deobfuscateSettings);
       _settingsCachePending = { generation, promise };
     }
     const pending = _settingsCachePending;
@@ -1396,6 +1387,41 @@ async function pbpMigrateLegacyWildcardPermission() {
 }
 pbpMigrateLegacyWildcardPermission().catch(() => {});
 
+const PBP_WEBDAV_REMOVAL_SESSION_KEY = "_webdavRemovalCleanupV1";
+const PBP_WEBDAV_REMOVAL_SYNC_KEYS = [
+  "webdavUrl",
+  "webdavUser",
+  "webdavPass",
+  "webdavFolderMode",
+  "webdavRelativePath",
+  "webdavLayoutVersion",
+];
+const PBP_WEBDAV_REMOVAL_LOCAL_KEYS = PBP_WEBDAV_REMOVAL_SYNC_KEYS.concat([
+  "webdavAutoPush",
+  "_webdavAutoPushLocalV1",
+  "_webdavSyncState",
+  "_webdavEtagState",
+  "webdavLastPush",
+]);
+
+async function pbpCleanupRemovedWebdav({
+  alarms = chrome.alarms,
+  local = chrome.storage.local,
+  sync = chrome.storage.sync,
+  session = chrome.storage.session,
+} = {}) {
+  const done = await session.get(PBP_WEBDAV_REMOVAL_SESSION_KEY);
+  if (done[PBP_WEBDAV_REMOVAL_SESSION_KEY] === true) return false;
+  await alarms.clear("webdav-push");
+  await local.remove(PBP_WEBDAV_REMOVAL_LOCAL_KEYS);
+  await sync.remove(PBP_WEBDAV_REMOVAL_SYNC_KEYS);
+  await session.set({ [PBP_WEBDAV_REMOVAL_SESSION_KEY]: true });
+  return true;
+}
+pbpCleanupRemovedWebdav().catch((error) => {
+  console.warn("[webdav-removal] legacy cleanup failed", error?.name || "Error");
+});
+
 // Credential-routing maintenance (batch (4)): idempotent, best-effort,
 // fire-and-forget at boot. It mirrors the last keys-on cloud snapshot locally
 // and, while keys are off, migrates/scrubs any stale cloud secret. The existing
@@ -1413,25 +1439,6 @@ function syncPrewarmTagsAlarm() {
       prewarmTagsNow().catch(() => {}); // populate now; don't wait ~30s for the first alarm
     } else if (!shouldRun && existing) {
       chrome.alarms.clear("prewarm-tags");
-    }
-  });
-}
-
-// React to webdav settings: create/clear the "webdav-push" alarm. Mirrors
-// syncPrewarmTagsAlarm's gated create/clear above. chrome.alarms.create()
-// silently replaces any existing alarm of the same name, so no explicit
-// clear-then-recreate dance is needed when only the period changes.
-const queueWebdavAlarmSync = pbpCreateRecoveringTail();
-function syncWebdavPushAlarm() {
-  return queueWebdavAlarmSync(async () => {
-    const s = await loadSettings();
-    const existing = await chrome.alarms.get("webdav-push");
-    const wantedPeriod = pbpWebdavAutoPushPeriod(s);
-    const shouldRun = wantedPeriod > 0;
-    if (shouldRun && (!existing || existing.periodInMinutes !== wantedPeriod)) {
-      chrome.alarms.create("webdav-push", { periodInMinutes: wantedPeriod, delayInMinutes: wantedPeriod });
-    } else if (!shouldRun && existing) {
-      chrome.alarms.clear("webdav-push");
     }
   });
 }
@@ -1468,24 +1475,13 @@ chrome.alarms.onAlarm.addListener((alarm) => {
     _bgSaveModeMigration.then(() => primeSettings()).catch(() => {});
     pbpMigrateSecretsToLocal().catch(() => {});
   }
-  if (alarm.name === "webdav-push") {
-    // pbpWebdavPush() only ever chrome.permissions.contains()-checks --
-    // never request() -- so this never surfaces a permission prompt with
-    // no user gesture behind it (spec invariant #3). Re-check the effective
-    // schedule because a stale alarm may fire while its async clear is pending.
-    invalidateSettingsCache();
-    loadSettings().then((settings) =>
-      pbpWebdavAutoPushPeriod(settings) > 0
-        ? pbpWebdavPush(pbpWebdavCfgFromSettings(settings))
-        : undefined
-    ).catch(() => {});
-  }
 });
 
 // React to settings change: toggle the prewarm alarm on/off (settings live in sync or local based on optSyncEnabled)
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (((area === "sync" || area === "local") && pbpSettingsKeysChanged(changes)) ||
-      (area === "local" && changes.webdavAutoPush)) invalidateSettingsCache();
+  if ((area === "sync" || area === "local") && pbpSettingsKeysChanged(changes)) {
+    invalidateSettingsCache();
+  }
   if (area === "sync" || area === "local") scheduleEffectiveAuthRefresh(changes, area);
   if (area === "sync" && (changes.syncApiKeys || changes.exportTargets ||
       API_KEY_FIELDS.some((key) => !!changes[key]))) {
@@ -1497,16 +1493,9 @@ chrome.storage.onChanged.addListener((changes, area) => {
   if ((area === "sync" || area === "local") && (routingChanged || changes.tagSyncMode || changes.pinboardToken)) {
     syncPrewarmTagsAlarm().catch(() => {});
   }
-  if (((area === "sync" || area === "local") &&
-       (routingChanged || changes.webdavUrl || changes.webdavUser || changes.webdavPass ||
-        changes.webdavFolderMode || changes.webdavRelativePath || changes.webdavLayoutVersion)) ||
-      (area === "local" && changes.webdavAutoPush)) {
-    syncWebdavPushAlarm().catch(() => {});
-  }
 });
 // Initial check
 syncPrewarmTagsAlarm().catch(() => {});
-syncWebdavPushAlarm().catch(() => {});
 
 // Sweep expired migration backup (7 days)
 async function sweepAICacheMigrationBackup() {

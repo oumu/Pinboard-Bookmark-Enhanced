@@ -1568,44 +1568,21 @@ html[data-theme] .preset-preview-content { background: var(--opt-bg); color: var
   background: color-mix(in srgb, var(--opt-accent, #4477bb) 10%, transparent);
   color: var(--opt-fg, #333);
 }
-.vocab-disclosure,
-.webdav-disclosure {
+.vocab-disclosure {
   margin-top: var(--opt-sp-4);
   border-top: 1px solid var(--opt-border-section, var(--opt-border, #ddd));
 }
-.vocab-disclosure > summary,
-.webdav-disclosure > summary {
+.vocab-disclosure > summary {
   padding: var(--opt-sp-4) 0;
   color: var(--opt-fg-muted, #555);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
 }
-.vocab-disclosure > summary:focus-visible,
-.webdav-disclosure > summary:focus-visible { outline: 2px solid var(--opt-accent); outline-offset: 2px; }
+.vocab-disclosure > summary:focus-visible { outline: 2px solid var(--opt-accent); outline-offset: 2px; }
 .vocab-details-body { padding: 0 0 var(--opt-sp-3); }
 html[data-theme="flexoki-dark"] #panel-vocab .vocab-details-body > .hint {
   color: var(--opt-fg-muted);
-}
-.webdav-details-body { padding-bottom: var(--opt-sp-3); }
-.webdav-folder-mode { display: grid; gap: var(--opt-sp-2); margin: 0; padding: 0; border: 0; }
-.webdav-folder-mode .hint { margin: 0 0 var(--opt-sp-2) 22px; }
-.webdav-actual { margin: var(--opt-sp-3) 0 var(--opt-sp-4); overflow-wrap: anywhere; font-size: 12px; }
-.webdav-actual output { display: block; margin-top: var(--opt-sp-1); color: var(--opt-fg-muted, #555); }
-.webdav-migration { margin: 0 0 var(--opt-sp-4); padding: var(--opt-sp-3); border: 1px solid var(--opt-border); border-radius: var(--opt-radius-md); }
-.webdav-migration-title { margin: 0 0 var(--opt-sp-2); font-weight: 600; }
-.webdav-migration-locations,
-.webdav-migration-candidates dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--opt-sp-1) var(--opt-sp-2); margin: var(--opt-sp-3) 0; }
-.webdav-migration-locations dt,
-.webdav-migration-candidates dt { color: var(--opt-fg-muted); }
-.webdav-migration-locations dd,
-.webdav-migration-candidates dd { margin: 0; overflow-wrap: anywhere; }
-.webdav-migration-candidates { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--opt-sp-3); }
-.webdav-migration-candidates > div { padding: var(--opt-sp-2); border: 1px solid var(--opt-border); border-radius: var(--opt-radius-md); overflow-wrap: anywhere; }
-.webdav-migration-comparison { display: block; margin-bottom: var(--opt-sp-2); }
-.webdav-clear { margin-top: var(--opt-sp-3); }
-@media (max-width: 600px) {
-  .webdav-migration-candidates { grid-template-columns: 1fr; }
 }
 .field-error { margin: var(--opt-sp-2) 0 0; color: var(--opt-danger, #c00); font-size: 12px; }
 .field-error:empty { display: none; }

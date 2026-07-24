@@ -130,8 +130,8 @@ function pbpPreflightBackupPayload(data, exportableKeys) {
   };
 }
 
-// Applies a parsed backup JSON blob (from a file import OR a WebDAV pull) to
-// storage: whitelist-filters to exportableKeys, merges exportTargets per-target
+// Applies a parsed backup JSON blob from a file import to storage:
+// whitelist-filters to exportableKeys, merges exportTargets per-target
 // (protecting live secret fields the backup never carried), persists via
 // persistSettings, migrates v1->v2 CSS if needed, and imports savedThemes.
 // Returns { statusKey, highlightsSkipped }: statusKey is a t() key
@@ -147,7 +147,7 @@ async function pbpApplyBackupPayload(data, { exportableKeys, saveOverlayWithFall
   // cannot leave an otherwise valid settings batch half-applied.
   if (schemaVersion < 2 && loadThemes) await loadThemes();
   if (safeData.exportTargets) {
-    // Export/webdav-push strips nested secrets, so a raw key-set here would
+    // Export strips nested secrets, so a raw key-set here would
     // blast away live tokens (github PAT, webhook Authorization) with the
     // secret-less backup copy. Merge per target onto what's already stored
     // so untouched secret fields survive; only the backed-up (non-secret)
@@ -277,7 +277,7 @@ function setupBackup({ exportableKeys, saveOverlayWithFallback, loadThemes, befo
         savedThemes: savedThemesData,
         highlights,
         highlightsOwner,
-      }, { includeWebdavTransport: true });
+      });
       // The shared belt strips known nested credentials. Registry metadata
       // removes any additional secret field introduced by a future target.
       if (exportData.exportTargets && typeof PBP_EXPORT_TARGETS !== "undefined") {

@@ -356,10 +356,6 @@ const SETTINGS_DEFAULTS = {
   waybackSkipPrivate: true,
   waybackS3Key: "",
   waybackS3Secret: "",
-  // WebDAV settings backup (batch (5)): push is explicit-click or scheduled;
-  // pull is always behind a user confirm() -- see webdav.js.
-  webdavUrl: "", webdavUser: "", webdavPass: "",
-  webdavFolderMode: "managed", webdavRelativePath: "", webdavLayoutVersion: 0,
   backupIncludeHighlights: true,
   // md-preview in-page AI (explain / ask / translate)
   previewAiEnabled: true,
@@ -774,8 +770,7 @@ function pbpSanitizeBackupThemes(value) {
       throw pbpBackupValueError(`savedThemes[${index}]`);
     }
     // No size gate: legacy themes saved before the 50 KB form limit existed
-    // are still the user's data. Throwing here would kill every export and
-    // WebDAV push wholesale; the sync write path (syncSetLarge) already
+    // are still the user's data. The sync write path (syncSetLarge) already
     // chunks large values and falls back to local storage on quota.
     return { name: theme.name, css: theme.css };
   });
@@ -1390,7 +1385,7 @@ function pbpCloudHasMeaningfulSyncSettings(cloud) {
 
 // Options keeps a form snapshot and persists only values the user actually
 // changed. This prevents an old, still-open options page from overwriting a
-// newer import, WebDAV pull, or chrome.storage update in untouched fields.
+// newer import or chrome.storage update in untouched fields.
 function pbpSettingsDelta(current, baseline) {
   const delta = {};
   const previous = baseline && typeof baseline === "object" ? baseline : {};
@@ -1469,12 +1464,7 @@ async function persistSettings(data) {
   }
 }
 
-// webdavUrl/webdavUser are deliberately NOT here: they are a server address and
-// a username, not secrets, and previous releases synced them as ordinary
-// settings — reclassifying them would strand every other device of a
-// settings-sync account without a copy once migration scrubbed the cloud
-// value. Only webdavPass is credential-routed.
-const API_KEY_FIELDS = ["pinboardToken","geminiApiKey","openaiApiKey","claudeApiKey","deepseekApiKey","qwenApiKey","minimaxApiKey","openrouterApiKey","groqApiKey","mistralApiKey","cohereApiKey","siliconflowApiKey","zhipuApiKey","kimiApiKey","customApiKey","jinaApiKey","waybackS3Key","waybackS3Secret","webdavPass","dictAnkiKey","dictEudicToken"];
+const API_KEY_FIELDS = ["pinboardToken","geminiApiKey","openaiApiKey","claudeApiKey","deepseekApiKey","qwenApiKey","minimaxApiKey","openrouterApiKey","groqApiKey","mistralApiKey","cohereApiKey","siliconflowApiKey","zhipuApiKey","kimiApiKey","customApiKey","jinaApiKey","waybackS3Key","waybackS3Secret","dictAnkiKey","dictEudicToken"];
 
 function pbpExportTargetSecretKeys(targetId) {
   return targetId === "webhook" ? ["token", "url"] : ["token"];
@@ -1585,28 +1575,15 @@ function pbpStripExportTargetTokens(ets) {
   return cleaned;
 }
 
-// Shared schema-v2 snapshot used by both manual export and WebDAV. Transport
-// credentials and the device-local schedule never enter either file; a
-// WebDAV snapshot also omits its own URL/username so pulling it cannot retarget
-// the active transport.
-function pbpBuildBackupSnapshot(settings, extra, options) {
+// Shared schema-v2 snapshot used by manual settings export.
+function pbpBuildBackupSnapshot(settings, extra) {
   const s = settings || {};
   const x = extra || {};
-  const opts = options || {};
-  const omitTransport = opts.includeWebdavTransport === false;
   const payload = {};
   Object.keys(SETTINGS_DEFAULTS).forEach((key) => {
     if (API_KEY_FIELDS.includes(key)) return;
-    if (omitTransport && [
-      "webdavUrl", "webdavUser", "webdavFolderMode",
-      "webdavRelativePath", "webdavLayoutVersion",
-    ].includes(key)) return;
     if (Object.prototype.hasOwnProperty.call(s, key)) payload[key] = s[key];
   });
-  if (!omitTransport) {
-    if ("webdavUrl" in payload) payload.webdavUrl = deobfuscateKey(payload.webdavUrl || "");
-    if ("webdavUser" in payload) payload.webdavUser = deobfuscateKey(payload.webdavUser || "");
-  }
   if (payload.exportTargets) payload.exportTargets = pbpStripExportTargetTokens(payload.exportTargets);
   payload.customOverlayCSS = typeof x.overlay === "string" ? x.overlay : "";
   payload.savedThemes = pbpSanitizeBackupThemes(Array.isArray(x.savedThemes) ? x.savedThemes : []);
@@ -1615,12 +1592,6 @@ function pbpBuildBackupSnapshot(settings, extra, options) {
     if (x.highlightsOwner) payload._highlightsOwner = x.highlightsOwner;
   }
   payload._schemaVersion = 2;
-  if (opts.webdavMeta) {
-    payload._webdav = {
-      pushedAt: opts.webdavMeta.pushedAt,
-      appVersion: opts.webdavMeta.appVersion,
-    };
-  }
   return payload;
 }
 

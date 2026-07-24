@@ -2548,8 +2548,8 @@ function _pbpZipEntries(bytes) {
   return out;
 }
 
-// Async (Blob.arrayBuffer()) -- matches the webdav-tests.html convention: the
-// whole section runs inside one IIFE whose promise the trailing summary
+// Async (Blob.arrayBuffer()) -- the section runs inside one IIFE whose promise
+// the trailing summary
 // script awaits, so #summary/#results only settle once every check() below
 // has actually run (no false-early "N passed" while assertions are pending).
 window._pbpEpubIntegrationDone = (async () => {

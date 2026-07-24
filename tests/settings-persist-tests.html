@@ -15,11 +15,6 @@ document.addEventListener("DOMContentLoaded", (event) => event.stopImmediateProp
 <script src="../shared.js"></script>
 <script src="../options-backup.js"></script>
 <script src="../export-targets.js"></script>
-<script src="../webdav.js"></script>
-<script>
-async function pbpWebdavReadAutoPush() { return "off"; }
-async function pbpWebdavWriteAutoPush(value) { return value; }
-</script>
 <script src="../options.js"></script>
 <script>
 const root = document.getElementById("results");
@@ -76,263 +71,6 @@ async function run() {
   check("E1 settings delta: nested settings use value equality",
     Object.keys(pbpSettingsDelta({ ...baselineSettings, urlClean: { ...baselineSettings.urlClean } }, baselineSettings)).length === 0 &&
     pbpSettingsDelta({ ...baselineSettings, urlClean: { ...baselineSettings.urlClean, enabled: false } }, baselineSettings).urlClean.enabled === false);
-  check("E1 WebDAV folder settings default to managed, empty path and unconfirmed layout",
-    SETTINGS_DEFAULTS.webdavFolderMode === "managed" &&
-    SETTINGS_DEFAULTS.webdavRelativePath === "" &&
-    SETTINGS_DEFAULTS.webdavLayoutVersion === 0);
-  const webdavFolderDelta = pbpSettingsDelta({
-    webdavFolderMode: "custom",
-    webdavRelativePath: "Backups/Pinboard/",
-    webdavLayoutVersion: 2,
-  }, {
-    webdavFolderMode: "managed",
-    webdavRelativePath: "",
-    webdavLayoutVersion: 0,
-  });
-  check("E1 settings delta preserves WebDAV folder mode, path and layout version",
-    webdavFolderDelta.webdavFolderMode === "custom" &&
-    webdavFolderDelta.webdavRelativePath === "Backups/Pinboard/" &&
-    webdavFolderDelta.webdavLayoutVersion === 2);
-  const webdavPortableSettings = Object.assign({}, SETTINGS_DEFAULTS, {
-    webdavUrl: "https://dav.example.com/base/",
-    webdavUser: "alice",
-    webdavPass: "obf:secret",
-    webdavFolderMode: "custom",
-    webdavRelativePath: "Backups/Pinboard/",
-    webdavLayoutVersion: 2,
-    webdavAutoPush: "daily",
-  });
-  const manualWebdavSnapshot = pbpBuildBackupSnapshot(
-    webdavPortableSettings, {}, { includeWebdavTransport: true });
-  check("E1 manual backup keeps the portable WebDAV folder target",
-    manualWebdavSnapshot.webdavUrl === "https://dav.example.com/base/" &&
-    manualWebdavSnapshot.webdavUser === "alice" &&
-    manualWebdavSnapshot.webdavFolderMode === "custom" &&
-    manualWebdavSnapshot.webdavRelativePath === "Backups/Pinboard/" &&
-    manualWebdavSnapshot.webdavLayoutVersion === 2);
-  check("E1 manual backup excludes the WebDAV password and device schedule",
-    !("webdavPass" in manualWebdavSnapshot) &&
-    !("webdavAutoPush" in manualWebdavSnapshot));
-  const remoteWebdavSnapshot = pbpBuildBackupSnapshot(
-    webdavPortableSettings, {}, { includeWebdavTransport: false });
-  check("E1 WebDAV snapshot excludes its transport and folder target",
-    ["webdavUrl", "webdavUser", "webdavPass", "webdavAutoPush",
-      "webdavFolderMode", "webdavRelativePath", "webdavLayoutVersion"]
-      .every((key) => !(key in remoteWebdavSnapshot)));
-  const preparedWebdavPull = pbpWebdavPreparePullPayload(webdavPortableSettings);
-  check("E1 WebDAV pull discards legacy transport and folder target fields",
-    ["webdavUrl", "webdavUser", "webdavPass", "webdavAutoPush",
-      "webdavFolderMode", "webdavRelativePath", "webdavLayoutVersion"]
-      .every((key) => !(key in preparedWebdavPull)));
-
-  const migrationSettings = {
-    baseUrl: "https://dav.example.com/legacy/",
-    layoutVersion: 0,
-    webdavAutoPush: "daily",
-  };
-  const migrationRequired = typeof pbpWebdavMigrationRequired === "function"
-    ? pbpWebdavMigrationRequired(migrationSettings) : false;
-  check("E1 WebDAV migration state requires a non-empty pre-v2 URL and preserves the schedule",
-    migrationRequired &&
-    !pbpWebdavMigrationRequired({ baseUrl: "", layoutVersion: 0 }) &&
-    !pbpWebdavMigrationRequired({
-      baseUrl: "https://dav.example.com/base/", layoutVersion: 2,
-    }) &&
-    migrationSettings.webdavAutoPush === "daily");
-
-  const initialLegacy = {
-    baseUrl: "https://dav.example.com/legacy/",
-    folderMode: "managed",
-    relativePath: "",
-    layoutVersion: 0,
-  };
-  check("E1 only the unchanged non-empty configuration loaded as v0 is inspected as legacy",
-    typeof pbpWebdavShouldInspectLegacy === "function" &&
-    pbpWebdavShouldInspectLegacy(initialLegacy, {
-      ...initialLegacy, user: "new-credential",
-    }) &&
-    !pbpWebdavShouldInspectLegacy(initialLegacy, {
-      ...initialLegacy, folderMode: "custom", relativePath: "Device/Books/",
-    }));
-  check("E1 a new base or a target edited from loaded v2 is never split as legacy",
-    typeof pbpWebdavShouldInspectLegacy === "function" &&
-    !pbpWebdavShouldInspectLegacy({
-      baseUrl: "", folderMode: "managed", relativePath: "", layoutVersion: 0,
-    }, {
-      baseUrl: "https://dav.example.com/base/",
-      folderMode: "managed", relativePath: "", layoutVersion: 0,
-    }) &&
-    !pbpWebdavShouldInspectLegacy({
-      baseUrl: "https://dav.example.com/old/",
-      folderMode: "managed", relativePath: "", layoutVersion: 2,
-    }, {
-      baseUrl: "https://dav.example.com/new/",
-      folderMode: "managed", relativePath: "", layoutVersion: 0,
-    }));
-
-  const freshPendingCfg = {
-    baseUrl: "https://dav.example.com/base/",
-    folderMode: "managed",
-    relativePath: "",
-  };
-  const freshPendingVersion = typeof pbpWebdavLiveLayoutVersion === "function"
-    ? pbpWebdavLiveLayoutVersion({
-      baseUrl: "", folderMode: "managed", relativePath: "", layoutVersion: 0,
-    }, freshPendingCfg, false, 0)
-    : 0;
-  check("E1 a newly entered base persists v1 provenance and stays non-legacy after reload",
-    freshPendingVersion === 1 &&
-    !pbpWebdavShouldInspectLegacy({
-      ...freshPendingCfg, layoutVersion: freshPendingVersion,
-    }, {
-      ...freshPendingCfg, layoutVersion: freshPendingVersion,
-    }));
-
-  check("E1 v0 survives credential rotation only for a true unchanged legacy target",
-    typeof pbpWebdavLiveLayoutVersion === "function" &&
-    pbpWebdavLiveLayoutVersion(initialLegacy, {
-      ...initialLegacy, user: "rotated-user",
-    }, false, 0) === 0 &&
-    pbpWebdavLiveLayoutVersion({
-      ...initialLegacy, layoutVersion: 1,
-    }, {
-      ...initialLegacy, layoutVersion: 1, user: "rotated-user",
-    }, false, 1) === 1 &&
-    pbpWebdavLiveLayoutVersion(initialLegacy, {
-      ...initialLegacy, user: "rotated-after-promotion",
-    }, false, 2) === 1 &&
-    !pbpWebdavShouldInspectLegacy({
-      ...initialLegacy, layoutVersion: 1,
-    }, {
-      ...initialLegacy, layoutVersion: 1,
-    }));
-
-  check("E1 clear remains available for partial WebDAV configuration without a URL",
-    typeof pbpWebdavHasLocalConfig === "function" &&
-    !pbpWebdavHasLocalConfig({
-      baseUrl: "", user: "", pass: "", folderMode: "managed",
-      relativePath: "", layoutVersion: 0, autoPush: "off",
-    }) &&
-    [
-      { user: "alice" },
-      { pass: "secret" },
-      { folderMode: "custom" },
-      { relativePath: "Device/Books/" },
-      { autoPush: "hourly" },
-    ].every((delta) => pbpWebdavHasLocalConfig(Object.assign({
-      baseUrl: "", user: "", pass: "", folderMode: "managed",
-      relativePath: "", layoutVersion: 0, autoPush: "off",
-    }, delta))));
-
-  const busyAttributes = new Map();
-  const busyCard = {
-    setAttribute: (key, value) => busyAttributes.set(key, value),
-    removeAttribute: (key) => busyAttributes.delete(key),
-  };
-  const busyControls = [{ disabled: false }, { disabled: true }];
-  const unlockBusy = typeof pbpLockWebdavMigrationControls === "function"
-    ? pbpLockWebdavMigrationControls(busyCard, busyControls)
-    : null;
-  const lockedBusy = busyAttributes.get("aria-busy") === "true" &&
-    busyControls.every((control) => control.disabled);
-  if (unlockBusy) unlockBusy();
-  check("E1 WebDAV migration busy lock restores each control's previous disabled state",
-    lockedBusy &&
-    !busyAttributes.has("aria-busy") &&
-    busyControls[0].disabled === false &&
-    busyControls[1].disabled === true);
-
-  const clearSettings = {
-    optTheme: "nord",
-    webdavUrl: "https://dav.example.com/base/",
-    webdavUser: "alice",
-    webdavPass: "obf:secret",
-    webdavFolderMode: "custom",
-    webdavRelativePath: "Backups/Books/",
-    webdavLayoutVersion: 2,
-  };
-  let clearSchedule = "daily";
-  let clearFetches = 0;
-  let clearRemoved = [];
-  const realClearFetch = globalThis.fetch;
-  globalThis.fetch = async () => {
-    clearFetches++;
-    throw new Error("clear must not fetch");
-  };
-  const clearResult = typeof pbpClearWebdavLocalConfig === "function"
-    ? await pbpClearWebdavLocalConfig({
-      persist: async (patch) => {
-        Object.assign(clearSettings, patch);
-        return { ok: true };
-      },
-      writeAutoPush: async (value) => {
-        clearSchedule = value;
-        return value;
-      },
-      removeLocal: async (keys) => { clearRemoved = keys.slice(); },
-    }) : null;
-  globalThis.fetch = realClearFetch;
-  check("E1 WebDAV clear resets only transport, path, layout and the local schedule",
-    clearResult?.ok &&
-    clearSettings.optTheme === "nord" &&
-    clearSettings.webdavUrl === "" &&
-    clearSettings.webdavUser === "" &&
-    clearSettings.webdavPass === "" &&
-    clearSettings.webdavFolderMode === "managed" &&
-    clearSettings.webdavRelativePath === "" &&
-    clearSettings.webdavLayoutVersion === 0 &&
-    clearSchedule === "off");
-  check("E1 WebDAV clear removes only local sync state without any network request",
-    clearFetches === 0 &&
-    JSON.stringify(clearRemoved.sort()) === JSON.stringify(
-      [PBP_WEBDAV_SYNC_STATE_KEY, "_webdavEtagState", "webdavLastPush"].sort()));
-
-  const partialClearCalls = [];
-  let partialClear = null;
-  let partialClearError = null;
-  try {
-    partialClear = await pbpClearWebdavLocalConfig({
-      persist: async () => {
-        partialClearCalls.push("settings");
-        return { ok: true };
-      },
-      writeAutoPush: async () => {
-        partialClearCalls.push("schedule");
-        throw new Error("schedule failed");
-      },
-      removeLocal: async () => {
-        partialClearCalls.push("state");
-        throw new Error("state failed");
-      },
-    });
-  } catch (error) {
-    partialClearError = error;
-  }
-  check("E1 WebDAV clear reports post-persist failures and still attempts schedule and state cleanup",
-    partialClearError === null &&
-    partialClear?.ok === false &&
-    partialClear.settingsCleared === true &&
-    partialClear.autoPushCleared === false &&
-    partialClear.stateCleared === false &&
-    partialClearCalls.join(",") === "settings,schedule,state" &&
-    partialClear.errors?.length === 2);
-
-  let rejectedClear = null;
-  let rejectedClearError = null;
-  try {
-    rejectedClear = await pbpClearWebdavLocalConfig({
-      persist: async () => { throw new Error("settings failed"); },
-      writeAutoPush: async () => { throw new Error("must not run"); },
-      removeLocal: async () => { throw new Error("must not run"); },
-    });
-  } catch (error) {
-    rejectedClearError = error;
-  }
-  check("E1 WebDAV clear converts a settings persistence rejection into a handled result",
-    rejectedClearError === null &&
-    rejectedClear?.ok === false &&
-    rejectedClear.settingsCleared === false &&
-    rejectedClear.errors?.length === 1);
 
   let persistedDelta = null;
   let settingsSavedDelta = null;
@@ -440,157 +178,6 @@ async function run() {
     reportedQueueError?.message === "unexpected save crash" && recoveredQueueCalls === 1 &&
     await recoveringQueueState.chain === undefined);
 
-  const hasWebdavUiGuard = typeof pbpCreateWebdavUiGuard === "function";
-  check("E1 WebDAV UI guard: factory is available to Test, Push and Pull", hasWebdavUiGuard);
-  let webdavBinding = "target-a|user|pass-a";
-  const webdavTimers = new Map();
-  let nextWebdavTimer = 1;
-  const webdavUiGuard = hasWebdavUiGuard ? pbpCreateWebdavUiGuard(
-    () => webdavBinding,
-    {
-      setTimer(fn) {
-        const id = nextWebdavTimer++;
-        webdavTimers.set(id, fn);
-        return id;
-      },
-      clearTimer(id) { webdavTimers.delete(id); },
-    }
-  ) : null;
-  const firstWebdavOperation = webdavUiGuard?.begin();
-  const secondWebdavOperation = webdavUiGuard?.begin();
-  check("E1 WebDAV UI guard: a newer operation invalidates an older operation on the same target",
-    !!webdavUiGuard && !webdavUiGuard.isCurrent(firstWebdavOperation) &&
-    webdavUiGuard.isCurrent(secondWebdavOperation));
-  webdavBinding = "target-a|user|pass-b";
-  check("E1 WebDAV UI guard: a live credential change invalidates the frozen operation",
-    !!webdavUiGuard && !webdavUiGuard.isCurrent(secondWebdavOperation));
-  let staleWebdavTimerRan = false;
-  webdavBinding = "target-b|user|pass-b";
-  const timerOperation = webdavUiGuard?.begin();
-  webdavUiGuard?.schedule(timerOperation, () => { staleWebdavTimerRan = true; }, 5000);
-  webdavBinding = "target-c|user|pass-b";
-  webdavUiGuard?.begin();
-  for (const runTimer of webdavTimers.values()) runTimer();
-  check("E1 WebDAV UI guard: target changes cancel stale status timers",
-    !!webdavUiGuard && webdavTimers.size === 0 && staleWebdavTimerRan === false);
-
-  const hasWebdavPromotion = typeof pbpPromoteTestedWebdavLayoutV2 === "function";
-
-  let failedPromotionPersisted = false;
-  let failedPromotionCommitted = false;
-  const failedPromotion = hasWebdavPromotion
-    ? await pbpPromoteTestedWebdavLayoutV2("target-a|pass-a", {
-      getLiveBinding: () => "target-a|pass-a",
-      saveLive: async () => ({ ok: false, error: new Error("save failed") }),
-      persistVersion: async () => {
-        failedPromotionPersisted = true;
-        return { ok: true };
-      },
-      markPersisted: () => {},
-      commitLoaded: () => { failedPromotionCommitted = true; },
-    }) : null;
-  check("E1 failed or cancelled WebDAV migration cannot promote layout v2",
-    hasWebdavPromotion &&
-    failedPromotion?.ok === false &&
-    !failedPromotionPersisted &&
-    !failedPromotionCommitted);
-
-  let sameBindingGeneration = 1;
-  let sameBindingLoadedVersion = 0;
-  let sameBindingBaselineVersion = 0;
-  const sameBindingStorage = { target: "target-a", pass: "pass-a", layoutVersion: 0 };
-  const sameBindingOrder = [];
-  const sameBindingResult = hasWebdavPromotion
-    ? await pbpPromoteTestedWebdavLayoutV2("target-a|pass-a", {
-      getLiveBinding: () => "target-a|pass-a",
-      saveLive: async () => {
-        sameBindingOrder.push("save-live");
-        sameBindingStorage.layoutVersion = sameBindingLoadedVersion;
-        sameBindingBaselineVersion = sameBindingLoadedVersion;
-        return { ok: true };
-      },
-      persistVersion: async () => {
-        sameBindingOrder.push("persist-version");
-        sameBindingStorage.layoutVersion = 2;
-        sameBindingGeneration++;
-        return { ok: true };
-      },
-      markPersisted: () => {
-        sameBindingOrder.push("mark-persisted");
-        sameBindingBaselineVersion = 2;
-      },
-      commitLoaded: () => {
-        sameBindingOrder.push("commit-loaded");
-        sameBindingLoadedVersion = 2;
-      },
-    })
-    : null;
-  if (sameBindingLoadedVersion !== sameBindingBaselineVersion) {
-    sameBindingStorage.layoutVersion = sameBindingLoadedVersion;
-  }
-  check("E1 WebDAV layout promotion: same-binding operation generation cannot roll v2 back",
-    hasWebdavPromotion && sameBindingResult?.ok && sameBindingGeneration === 2 &&
-    sameBindingStorage.layoutVersion === 2 && sameBindingLoadedVersion === 2 &&
-    sameBindingBaselineVersion === 2 &&
-    sameBindingOrder.join(",") === "save-live,persist-version,mark-persisted,commit-loaded");
-
-  const newTargetStorage = { target: "old-target", pass: "old-pass", layoutVersion: 0 };
-  const newTargetLive = { target: "new-target", pass: "new-pass" };
-  const newTargetOrder = [];
-  let targetAtVersionPersist = "";
-  const newTargetResult = hasWebdavPromotion
-    ? await pbpPromoteTestedWebdavLayoutV2("new-target|new-pass", {
-      getLiveBinding: () => `${newTargetLive.target}|${newTargetLive.pass}`,
-      saveLive: async () => {
-        newTargetOrder.push("save-live");
-        Object.assign(newTargetStorage, newTargetLive, { layoutVersion: 0 });
-        return { ok: true };
-      },
-      persistVersion: async () => {
-        newTargetOrder.push("persist-version");
-        targetAtVersionPersist = `${newTargetStorage.target}|${newTargetStorage.pass}`;
-        newTargetStorage.layoutVersion = 2;
-        return { ok: true };
-      },
-      markPersisted: () => { newTargetOrder.push("mark-persisted"); },
-      commitLoaded: () => { newTargetOrder.push("commit-loaded"); },
-    })
-    : null;
-  check("E1 WebDAV layout promotion: unsaved live target commits before its v2 marker",
-    hasWebdavPromotion && newTargetResult?.ok &&
-    targetAtVersionPersist === "new-target|new-pass" &&
-    newTargetStorage.layoutVersion === 2 &&
-    newTargetOrder.join(",") === "save-live,persist-version,mark-persisted,commit-loaded");
-
-  let changedBinding = "target-a|pass-a";
-  let changedLoadedVersion = 0;
-  let changedBaselineVersion = 0;
-  let changedCommitted = false;
-  const changedStorage = { target: "target-a", pass: "pass-a", layoutVersion: 0 };
-  const changedResult = hasWebdavPromotion
-    ? await pbpPromoteTestedWebdavLayoutV2("target-a|pass-a", {
-      getLiveBinding: () => changedBinding,
-      saveLive: async () => ({ ok: true }),
-      persistVersion: async () => {
-        changedStorage.layoutVersion = 2;
-        changedBinding = "target-b|pass-b";
-        return { ok: true };
-      },
-      markPersisted: () => { changedBaselineVersion = 2; },
-      commitLoaded: () => {
-        changedCommitted = true;
-        changedLoadedVersion = 2;
-      },
-    })
-    : null;
-  Object.assign(changedStorage, { target: "target-b", pass: "pass-b" });
-  if (changedLoadedVersion !== changedBaselineVersion) {
-    changedStorage.layoutVersion = changedLoadedVersion;
-  }
-  check("E1 WebDAV layout promotion: changed binding resumes to a consistent v0 target",
-    hasWebdavPromotion && changedResult?.stale === true && changedResult.persisted === true &&
-    !changedCommitted && changedStorage.target === "target-b" &&
-    changedStorage.pass === "pass-b" && changedStorage.layoutVersion === 0);
 
   // ---------- E1b: real large-value codec round trips ----------
   await (async () => {
@@ -980,13 +567,6 @@ async function run() {
       state = await pbpReadSecretSyncState();
       check("E4 sync state: missing marker plus cloud target token initializes true",
         state.syncApiKeys === true && sync.syncApiKeys === true && sync.exportTargets.github.token === "obf:cloud-target");
-
-      local = { optSyncEnabled: true };
-      sync = { webdavUser: "legacy-ordinary-user" };
-      installState(local, sync);
-      state = await pbpReadSecretSyncState();
-      check("E4 sync state: a legacy WebDAV username alone does not infer credential-sync opt-in",
-        state.syncApiKeys === false && sync.syncApiKeys === false && sync.webdavUser === "legacy-ordinary-user");
 
       local = {
         optSyncEnabled: true, syncApiKeys: true, openaiApiKey: "obf:legacy-local",
@@ -1390,8 +970,6 @@ async function run() {
       optTheme: "nord",
       geminiApiKey: "obf:realgem",
       pinboardToken: "obf:realpb",
-      webdavUrl: "obf:webdav-capability",
-      webdavUser: "obf:webdav-user",
       exportTargets: {
         github: { enabled: true, token: "obf:ghtok", repo: "r" },
         webhook: { enabled: true, url: "obf:webhook-capability", token: "obf:webhook-auth" },
@@ -1400,9 +978,6 @@ async function run() {
     check("E4 persistSettings: reports ok", r.ok === true);
     check("E4 persistSettings: geminiApiKey NOT in the main-area batch", syncSet && !("geminiApiKey" in syncSet));
     check("E4 persistSettings: pinboardToken NOT in the main-area batch", syncSet && !("pinboardToken" in syncSet));
-    check("E4 persistSettings: WebDAV password NOT in the main-area batch, URL/username ride it as ordinary settings",
-      syncSet && !("webdavPass" in syncSet) &&
-      syncSet.webdavUrl === "obf:webdav-capability" && syncSet.webdavUser === "obf:webdav-user");
     check("E4 persistSettings: exportTargets in main-area batch is token-stripped",
       syncSet && syncSet.exportTargets && !("token" in syncSet.exportTargets.github));
     check("E4 persistSettings: webhook capability credentials NOT in the main-area batch",
@@ -1413,7 +988,7 @@ async function run() {
     check("E4 persistSettings: local exportTargets is the FULL (with-token) copy",
       localWrites[0].exportTargets.github.token === "obf:ghtok" &&
       localWrites[0].exportTargets.webhook.url === "obf:webhook-capability" &&
-      !("webdavUrl" in localWrites[0]) && !("webdavUser" in localWrites[0]));
+      localWrites[0].exportTargets.webhook.token === "obf:webhook-auth");
     globalThis.chrome = prevChromeE4d;
     delete globalThis.__pbpTestStorage;
     delete globalThis.__pbpTestSyncSetLarge;
@@ -2457,7 +2032,7 @@ async function run() {
       url: "https://x.test",
       title: "X",
       pinboardToken: "secret",
-      webdavPass: "secret",
+      jinaApiKey: "secret",
       exportTargets: { github: { token: "secret" } },
       extraField: "drop",
       items: [{ id: "a", n: 1, quote: "q", color: 4, ts: 123, note: "n", customApiKey: "secret", extra: "drop" }]
@@ -2473,7 +2048,7 @@ async function run() {
   check("E6 build highlights: skips non-highlight keys", !("not_hl" in builtHighlights));
   check("E6 build highlights: empty result returns null", pbpBuildHighlightBackup({ pbp_hl_bad: { items: "nope" } }) === null);
   check("E6 build highlights: strips secret-like top-level fields",
-    !("pinboardToken" in builtHighlights.pbp_hl_good) && !("webdavPass" in builtHighlights.pbp_hl_good) &&
+    !("pinboardToken" in builtHighlights.pbp_hl_good) && !("jinaApiKey" in builtHighlights.pbp_hl_good) &&
     !("exportTargets" in builtHighlights.pbp_hl_good) && !("extraField" in builtHighlights.pbp_hl_good));
   check("E6 build highlights: strips secret-like item fields",
     !("customApiKey" in builtHighlights.pbp_hl_good.items[0]) && !("extra" in builtHighlights.pbp_hl_good.items[0]));
@@ -2487,7 +2062,7 @@ async function run() {
   check("E6 clean highlights: skips malformed remote records", !("pbp_hl_bad" in cleanedHighlights));
   check("E6 clean highlights: skips non-highlight keys", !("not_hl" in cleanedHighlights));
   check("E6 clean highlights: strips secret-like top-level fields",
-    !("pinboardToken" in cleanedHighlights.pbp_hl_good) && !("webdavPass" in cleanedHighlights.pbp_hl_good) &&
+    !("pinboardToken" in cleanedHighlights.pbp_hl_good) && !("jinaApiKey" in cleanedHighlights.pbp_hl_good) &&
     !("exportTargets" in cleanedHighlights.pbp_hl_good) && !("extraField" in cleanedHighlights.pbp_hl_good));
   check("E6 clean highlights: strips secret-like item fields",
     !("customApiKey" in cleanedHighlights.pbp_hl_good.items[0]) && !("extra" in cleanedHighlights.pbp_hl_good.items[0]));
@@ -2506,10 +2081,6 @@ async function run() {
     const localArea = Object.assign({}, SETTINGS_DEFAULTS, {
       optSyncEnabled: false,
       backupIncludeHighlights: true,
-      webdavUrl: "obf:" + btoa("https://dav.example.com/secret-path"),
-      webdavUser: "alice",
-      webdavPass: "obf:password",
-      webdavAutoPush: "daily",
       dictAnkiKey: "obf:anki1",
       dictEudicToken: "obf:eudic1",
       exportTargets: {
@@ -2579,11 +2150,6 @@ async function run() {
         exported.exportTargets.webhook.enabled === true &&
         !("url" in exported.exportTargets.webhook) && !("token" in exported.exportTargets.webhook) &&
         !("token" in exported.exportTargets.github));
-      check("E7 manual export: WebDAV URL and username remain portable",
-        exported.webdavUrl === "https://dav.example.com/secret-path" &&
-        exported.webdavUser === "alice");
-      check("E7 manual export: WebDAV password and device schedule stay local",
-        !("webdavPass" in exported) && !("webdavAutoPush" in exported));
     } finally {
       globalThis.chrome = prevChromeE7;
       URL.createObjectURL = prevCreateObjectURL;
@@ -2688,6 +2254,7 @@ async function run() {
         _schemaVersion: 2,
         optTheme: "dark",
         webdavUrl: "https://attacker.example/secret",
+        webdavPass: "legacy-secret",
         webdavAutoPush: "daily",
         exportTargets: {
           webhook: { enabled: true, url: "https://attacker.example/hook", token: "attacker" },
@@ -2698,15 +2265,14 @@ async function run() {
         exportableKeys,
         saveOverlayWithFallback: async (value) => { overlayApplied = value; },
       });
-      check("E7b apply: imported non-secret target fields merge without replacing live credentials",
+      check("E7b apply: old WebDAV fields are ignored while supported fields restore safely",
         importedBatch.optTheme === "dark" && importedBatch.exportTargets.webhook.enabled === true &&
         importedBatch.exportTargets.webhook.url === "obf:live-capability" &&
         importedBatch.exportTargets.webhook.token === "obf:live-auth" &&
         importedBatch.exportTargets.github.enabled === false &&
         importedBatch.exportTargets.github.token === "obf:live-github" && overlayApplied === "" &&
-        // webdavUrl is an ordinary setting again (v2.96 parity): a backup may
-        // restore the server address, while password and scheduling stay local.
-        importedBatch.webdavUrl === "https://attacker.example/secret" &&
+        !("webdavUrl" in importedBatch) &&
+        !("webdavPass" in importedBatch) &&
         !("webdavAutoPush" in importedBatch));
 
       const writesBeforeInvalid = importedBatch;
@@ -2917,12 +2483,6 @@ async function run() {
       check("E9 saveAll converts rejected persistence into a visible resolved failure",
         /catch \(error\) \{\s*return reportAutoSaveFailure\(error\)/.test(optionsSource) &&
         /pbpQueueOptionsSave\(autoSaveState, saveAll\)\.catch\(reportAutoSaveFailure\)/.test(optionsSource));
-      const pullStart = optionsSource.indexOf('  $id("webdav-pull-btn")?.addEventListener');
-      const pullEnd = optionsSource.indexOf("  // ===================== Auto-save", pullStart);
-      const pullSource = optionsSource.slice(pullStart, pullEnd);
-      check("E9 WebDAV pull saves live excluded credentials before applying and reloading the backup",
-        pullSource.indexOf("await pauseOptionsAutoSave()") < pullSource.indexOf("const saved = await saveAll()") &&
-        pullSource.indexOf("const saved = await saveAll()") < pullSource.indexOf("await pbpApplyBackupPayload"));
       check("E9 over-limit CSS cannot be stored as a custom theme that backups would reject",
         optionsSource.includes("saveBtn.disabled = !css.trim() || pbpOverlayByteLength(css) > OVERLAY_BYTE_LIMIT") &&
         optionsSource.includes("if (!css || pbpOverlayByteLength(css) > OVERLAY_BYTE_LIMIT) return"));

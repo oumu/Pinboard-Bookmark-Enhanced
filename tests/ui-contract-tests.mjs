@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { runInNewContext } from "node:vm";
 
@@ -9,6 +9,7 @@ const check = (ok, msg) => { if (!ok) fail.push(msg); };
 
 const popupHtml = read("popup.html");
 const manifest = JSON.parse(read("manifest.json"));
+const backgroundJs = read("background.js");
 const optionsHtml = read("options.html");
 check(!optionsHtml.includes('Requires "Access all websites" permission'), "options Batch hint still advertises the retired all-sites request");
 const mdHtml = read("md-preview.html");
@@ -30,254 +31,36 @@ const popupCss = read("popup.css");
 const optionsConnectivityJs = read("options-connectivity.js");
 const optionsCss = read("options.css");
 const optionsJs = read("options.js");
-const webdavJs = read("webdav.js");
-const webdavTestsHtml = read("tests/webdav-tests.html");
 const optionsVocabJs = read("options-vocab.js");
 const mdDictJs = read("md-dict.js");
 const optionsThemeEarlyJs = read("options-theme-early.js");
 const popupTagsJs = read("popup-tags.js");
 
+check(!existsSync(resolve(root, "webdav.js")), "webdav.js still exists");
+check(!optionsHtml.includes('id="opt-webdav') &&
+  !optionsHtml.includes('src="webdav.js"'), "options.html still exposes WebDAV");
+check(!optionsJs.toLowerCase().includes("webdav"), "options.js still owns WebDAV behavior");
+check(!optionsCss.toLowerCase().includes("webdav"), "options.css still ships WebDAV styles");
+check(manifest.permissions.includes("alarms"), "shared alarms permission was removed");
+check(manifest.optional_host_permissions.join(",") === "*://*/*",
+  "shared optional-host declaration changed");
+check(!backgroundJs.includes('"webdav.js"'), "background.js still imports webdav.js");
+check(backgroundJs.includes("async function pbpCleanupRemovedWebdav("),
+  "background.js is missing the legacy cleanup migration");
 {
-  check(/<details[^>]+data-acc-key="webdav-folder"/.test(optionsHtml),
-    "options.html: WebDAV folder controls do not use the native persisted details pattern");
-  check(/<label[^>]+for="opt-webdav-relative-path"/.test(optionsHtml) &&
-    /id="opt-webdav-relative-path"[^>]+aria-describedby="webdav-relative-hint webdav-path-error"/.test(optionsHtml) &&
-    /id="webdav-path-error"[^>]+role="status"[^>]+aria-live="polite"/.test(optionsHtml),
-    "options.html: custom WebDAV path is missing its label, description or polite live error");
-  check(/id="webdav-actual-label"[^>]+data-i18n="webdavActualLocation"/.test(optionsHtml) &&
-    /<output[^>]+id="webdav-actual-location"[^>]+aria-labelledby="webdav-actual-label"/.test(optionsHtml),
-    "options.html: resolved WebDAV backup location is not a labelled output element");
-  const migrationCard = optionsHtml.slice(
-    optionsHtml.indexOf('id="webdav-migration"'),
-    optionsHtml.indexOf('id="webdav-clear-config"')
+  const cleanup = backgroundJs.slice(
+    backgroundJs.indexOf("const PBP_WEBDAV_REMOVAL_SESSION_KEY"),
+    backgroundJs.indexOf("pbpCleanupRemovedWebdav().catch")
   );
-  check(/id="webdav-migration"[^>]+role="alert"[^>]+hidden/.test(optionsHtml) &&
-    ["webdavMigrationRequired", "webdavMigrationSafety",
-      "webdavMigrationOldLocation", "webdavMigrationNewBase",
-      "webdavMigrationFinalLocation", "webdavMigrationKeepsTarget"]
-      .every((key) => migrationCard.includes(`data-i18n="${key}"`)) &&
-    /id="webdav-clear-config"[^>]+data-i18n="webdavClearConfig"/.test(optionsHtml),
-  "options.html: migration alert, distinct locations or local-only clear action is missing");
-}
-{
-  const targetRenderer = optionsJs.slice(
-    optionsJs.indexOf("function _pbpRenderWebdavTarget("),
-    optionsJs.indexOf("// Same-gesture permission request")
-  );
-  check(targetRenderer.includes("pbpWebdavResolveTarget(cfg)") &&
-    targetRenderer.includes('"webdav-test-btn"') &&
-    targetRenderer.includes('"webdav-push-btn"') &&
-    targetRenderer.includes('"webdav-pull-btn"') &&
-    targetRenderer.includes("disabled = !target.ok") &&
-    !/\bfetch\s*\(|pbpWebdav(Test|Push|Pull)\s*\(/.test(targetRenderer),
-    "options.js: live WebDAV location preview is not a local-only shared validity gate");
-  check(targetRenderer.includes('customPath.value === PBP_WEBDAV_APP_COLLECTION + "/"') &&
-    targetRenderer.includes("[value=\"managed\"]').checked = true") &&
-    targetRenderer.includes('$id("opt-webdav-relative-path").value = ""') &&
-    targetRenderer.includes("scheduleAutoSave()"),
-  "options.js: the managed folder entered as a custom path is not normalized and persisted as managed");
-  check(targetRenderer.includes("pbpWebdavMigrationRequired(cfg)") &&
-    targetRenderer.includes('id === "webdav-test-btn"') &&
-    targetRenderer.includes("migrationRequired"),
-  "options.js: a non-empty pre-v2 configuration does not gate Push/Pull while keeping Test available");
-  for (const [name, start, end] of [
-    ["Test", "// ---- WebDAV: Test ----", "// ---- WebDAV: Push now ----"],
-    ["Push", "async function _pbpWebdavRunPush(", "// ---- WebDAV: Pull now ----"],
-    ["Pull", "// ---- WebDAV: Pull now ----", "// ===================== Auto-save"],
-  ]) {
-    const handler = optionsJs.slice(optionsJs.indexOf(start), optionsJs.indexOf(end));
-    check(handler.includes("_pbpWebdavValidCfgFromForm()"),
-      `options.js: WebDAV ${name} bypasses the shared path-valid gate`);
-  }
-}
-{
-  const inspect = optionsJs.slice(
-    optionsJs.indexOf("async function _pbpInspectWebdavMigration("),
-    optionsJs.indexOf("async function _pbpConfirmWebdavMigration(")
-  );
-  const confirm = optionsJs.slice(
-    optionsJs.indexOf("async function _pbpConfirmWebdavMigration("),
-    optionsJs.indexOf("// ---- WebDAV: Test ----")
-  );
-  check(inspect.includes("pbpWebdavInspectLegacyLayout(cfg)") &&
-    inspect.includes("pbpWebdavReadLocator(") &&
-    inspect.includes("pbpWebdavDecideLocation(") &&
-    inspect.includes("pbpWebdavReadRemote(") &&
-    !inspect.includes("pbpWebdavWriteLocator(") &&
-    !inspect.includes("pbpWebdavProbeWritable(") &&
-    !inspect.includes("pbpWebdavTest("),
-  "options.js: migration inspection is not read-only apart from the core temp-file probe");
-  check(inspect.includes("chrome.permissions.contains") &&
-    !inspect.includes("chrome.permissions.request"),
-  "options.js: migration inspection requests runtime permission without a direct user action");
-  check(inspect.includes("pbpWebdavShouldInspectLegacy(") &&
-    inspect.includes("pbpWebdavInspectLegacyLayout(cfg)") &&
-    inspect.includes("await pbpWebdavFreezeTarget(cfg)") &&
-    inspect.includes('cfg.folderMode === "custom"') &&
-    inspect.indexOf("pbpWebdavShouldInspectLegacy(") <
-      inspect.indexOf("pbpWebdavInspectLegacyLayout(cfg)"),
-  "options.js: new or edited base/custom targets are still split as legacy or lose their local path");
-  const freezeAt = confirm.indexOf("await pbpWebdavFreezeTarget(");
-  const writableAt = confirm.indexOf("await pbpWebdavProbeWritable(");
-  const locatorAt = confirm.indexOf("await pbpWebdavWriteLocator(");
-  const persistAt = confirm.indexOf("await persistSettings(targetSettings)");
-  check(confirm.includes("consent.targetId") &&
-    confirm.includes("consent.backupFileUrl") &&
-    confirm.includes("consent.user") &&
-    confirm.includes("consent.generation") &&
-    confirm.includes("_webdavUiGuard.isCurrent(") &&
-    freezeAt >= 0 && writableAt > freezeAt && locatorAt > writableAt &&
-    persistAt > locatorAt,
-  "options.js: migration confirmation is not generation/target-bound or persists before test and locator CAS");
-  const lockHelper = optionsJs.slice(
-    optionsJs.indexOf("function pbpLockWebdavMigrationControls("),
-    optionsJs.indexOf("let _tagGovVisibleAccount")
-  );
-  const lockAt = confirm.indexOf("_pbpLockWebdavMigrationControls()");
-  const pauseAt = confirm.indexOf("await pauseOptionsAutoSave()");
-  const applyAt = confirm.indexOf('$id("opt-webdav-url").value = candidate.cfg.baseUrl');
-  check(lockAt >= 0 && pauseAt > lockAt &&
-    lockHelper.includes('setAttribute("aria-busy", "true")') &&
-    lockHelper.includes("control.disabled = true") &&
-    lockHelper.includes("control.disabled = disabled[index]") &&
-    writableAt > pauseAt && locatorAt > writableAt &&
-    persistAt > locatorAt && applyAt > persistAt &&
-    !confirm.includes("candidateApplied") &&
-    !confirm.includes("saveAll") &&
-    !confirm.includes("pbpPromoteTestedWebdavLayoutV2") &&
-    confirm.includes("unlockControls()"),
-  "options.js: migration confirmation still depends on a v0 DOM save and debounced rollback");
-  const targetBatch = confirm.slice(
-    confirm.indexOf("const targetSettings = {"),
-    persistAt
-  );
-  check(["webdavUrl", "webdavUser", "webdavPass", "webdavFolderMode",
-    "webdavRelativePath", "webdavLayoutVersion"]
-    .every((key) => targetBatch.includes(key)) &&
-    targetBatch.includes("obfuscateKey(liveCfg.pass)") &&
-    targetBatch.includes("PBP_WEBDAV_LAYOUT_VERSION") &&
-    confirm.indexOf("savedState.settings = Object.assign(", persistAt) > persistAt &&
-    confirm.indexOf("_loadedWebdavLayoutVersion = PBP_WEBDAV_LAYOUT_VERSION", persistAt) > persistAt,
-  "options.js: confirmed WebDAV target and layout v2 are not one routed settings batch");
-  const catchAt = confirm.indexOf("} catch (error) {");
-  const finallyAt = confirm.indexOf("} finally {", catchAt);
-  const catchBlock = confirm.slice(catchAt, finallyAt);
-  check(catchAt > persistAt && finallyAt > catchAt &&
-    confirm.indexOf('failureKey = "webdavStageLocatorFailed"') < locatorAt &&
-    confirm.indexOf('failureKey = "optSaveFailed"') < persistAt &&
-    catchBlock.includes("operation || state.operation") &&
-    catchBlock.includes("_webdavUiGuard.isCurrent(") &&
-    catchBlock.includes('t(failureKey)') &&
-    /if \(!persisted\.ok\) \{[\s\S]{0,240}t\("optSaveFailed"\)/.test(confirm) &&
-    confirm.indexOf("unlockControls()", finallyAt) > finallyAt,
-  "options.js: rejected migration probe, locator or persistence work escapes without guarded feedback");
-}
-{
-  const clear = optionsJs.slice(
-    optionsJs.indexOf('$id("webdav-clear-config")?.addEventListener("click"'),
-    optionsJs.indexOf("// ===================== Auto-save")
-  );
-  check(clear.includes("showConfirmPopover(") &&
-    clear.includes('t("webdavClearConfigConfirm")') &&
-    clear.includes("await pbpClearWebdavLocalConfig(") &&
-    !/\bfetch\s*\(|pbpWebdav(?:Push|Pull|Test|WriteLocator|ProbeWritable)\s*\(/.test(clear),
-  "options.js: clear configuration is not confirmed local-only state removal");
-  const targetRenderer = optionsJs.slice(
-    optionsJs.indexOf("function _pbpRenderWebdavTarget("),
-    optionsJs.indexOf("// Same-gesture permission request")
-  );
-  check(targetRenderer.includes("pbpWebdavHasLocalConfig(cfg)") &&
-    clear.includes("cleared.settingsCleared") &&
-    clear.includes("cleared.autoPushCleared") &&
-    clear.includes("if (!cleared.ok)"),
-  "options.js: partial WebDAV config cannot be cleared safely after local cleanup failures");
-  const autoPushHandler = optionsJs.slice(
-    optionsJs.indexOf('$id("opt-webdav-autopush")?.addEventListener("change"'),
-    optionsJs.indexOf("// ---- WebDAV: render only target-bound sync state")
-  );
-  check(autoPushHandler.includes("_pbpRenderWebdavTarget(cfg, false)"),
-  "options.js: changing an URL-less auto-push preference does not reveal the clear action");
-}
-{
-  const helper = optionsJs.slice(
-    optionsJs.indexOf("async function pbpPromoteTestedWebdavLayoutV2("),
-    optionsJs.indexOf("let _tagGovVisibleAccount")
-  );
-  const bindingChecks = [...helper.matchAll(/getLiveBinding\(\)/g)].map((match) => match.index);
-  const saveLiveAt = helper.indexOf("await saveLive()");
-  const persistVersionAt = helper.indexOf("await persistVersion()");
-  const markPersistedAt = helper.indexOf("markPersisted()");
-  const commitLoadedAt = helper.indexOf("commitLoaded()");
-  check(bindingChecks.length >= 3 &&
-    bindingChecks[0] < saveLiveAt &&
-    saveLiveAt < bindingChecks[1] &&
-    bindingChecks[1] < persistVersionAt &&
-    persistVersionAt < markPersistedAt &&
-    markPersistedAt < bindingChecks[2] &&
-    bindingChecks[2] < commitLoadedAt &&
-    !helper.includes("UiGuard"),
-  "options.js: WebDAV layout promotion helper does not commit live settings, v2 and loaded state in binding order");
-}
-{
-  const testHandler = optionsJs.slice(
-    optionsJs.indexOf("// ---- WebDAV: Test ----"),
-    optionsJs.indexOf("// ---- WebDAV: Push now ----")
-  );
-  const pushPull = optionsJs.slice(
-    optionsJs.indexOf("// ---- WebDAV: Push now ----"),
-    optionsJs.indexOf("// ===================== Auto-save")
-  );
-  const pauseAt = testHandler.indexOf("await pauseOptionsAutoSave()");
-  const promoteAt = testHandler.indexOf("await pbpPromoteTestedWebdavLayoutV2(");
-  const resumeAt = testHandler.indexOf("resumeOptionsAutoSave()", promoteAt);
-  check(testHandler.includes("pbpWebdavPrepareOperation(cfg)") &&
-    testHandler.includes("pbpWebdavTest(cfg)") &&
-    testHandler.includes("res.ok") &&
-    pauseAt >= 0 && promoteAt > pauseAt && resumeAt > promoteAt &&
-    testHandler.includes("saveLive: saveAll") &&
-    testHandler.includes("persistVersion: () => persistSettings({ webdavLayoutVersion: 2 })") &&
-    testHandler.includes("markPersisted:") &&
-    testHandler.includes("commitLoaded:") &&
-    testHandler.includes("_pbpWebdavOperationBinding") &&
-    testHandler.includes("_loadedWebdavLayoutVersion = 2") &&
-    !/webdav(?:Url|User|Pass|FolderMode|RelativePath)\s*:/.test(
-      testHandler.slice(promoteAt, resumeAt)) &&
-    !pushPull.includes("webdavLayoutVersion: 2"),
-    "options.js: Test layout v2 promotion is not mutexed, live-credential guarded and version-only");
-  check(["webdavStageBaseFailed", "webdavStageCreateFailed", "webdavStageWriteFailed",
-    "webdavStageCleanupWarning", "webdavStageLocatorFailed"]
-    .every((key) => testHandler.includes(key)) &&
-    testHandler.includes("[res.uiStage]") &&
-    !testHandler.includes("res.stage"),
-  "options.js: WebDAV Test feedback guesses low-level stages instead of using the stable UI stage");
-}
-{
-  const webdavUi = optionsHtml.slice(
-    optionsHtml.indexOf('data-i18n="webdavHint"'),
-    optionsHtml.indexOf('data-i18n="secNotifications"')
-  );
-  const localeWebdav = readdirSync(resolve(root, "_locales"))
-    .flatMap((locale) => Object.entries(JSON.parse(read(`_locales/${locale}/messages.json`)))
-      .filter(([key]) => key.startsWith("webdav"))
-      .map(([, value]) => value.message))
-    .join("\n");
-  check(!/jianguoyun|nextcloud|owncloud|koofr|yandex/i.test(
-    [webdavUi, optionsJs, webdavJs, webdavTestsHtml, localeWebdav].join("\n")),
-  "WebDAV UI, runtime or tests contain provider-specific routing, copy or hostnames");
+  const alarmAt = cleanup.indexOf('alarms.clear("webdav-push")');
+  const localAt = cleanup.indexOf("local.remove(PBP_WEBDAV_REMOVAL_LOCAL_KEYS)");
+  const syncAt = cleanup.indexOf("sync.remove(PBP_WEBDAV_REMOVAL_SYNC_KEYS)");
+  const markAt = cleanup.indexOf("session.set(");
+  check(alarmAt >= 0 && localAt > alarmAt && syncAt > localAt && markAt > syncAt &&
+    !/\bfetch\s*\(|permissions\.request|https?:\/\//.test(cleanup),
+    "background.js: legacy WebDAV cleanup is not local-only or marks completion too early");
 }
 
-{
-  const collect = optionsJs.slice(
-    optionsJs.indexOf("function collectSettingsFromForm()"),
-    optionsJs.indexOf("const savedState =")
-  );
-  const save = optionsJs.slice(
-    optionsJs.indexOf("async function saveAll()"),
-    optionsJs.indexOf("function reportAutoSaveFailure")
-  );
-  check(!collect.includes("webdavAutoPush:") && save.includes("pbpWebdavWriteAutoPush"),
-    "options.js: WebDAV auto-push still rides the ordinary settings snapshot instead of device-local storage");
-}
 
 {
   const readyAt = mdPreviewJs.indexOf("const pbpDeferredScriptsReady");
@@ -296,131 +79,6 @@ const popupTagsJs = read("popup-tags.js");
   );
   check(targetLink.includes('pbpOpenOptionsTab("reader")') && !targetLink.includes("openOptionsPage("),
     "md-translate.js: target-language link does not open the Reader settings tab");
-}
-{
-  const pullHandler = optionsJs.slice(
-    optionsJs.indexOf("// ---- WebDAV: Pull now ----"),
-    optionsJs.indexOf("// ===================== Auto-save")
-  );
-  const prepareAt = pullHandler.indexOf("pbpWebdavPreparePullPayload(res.data)");
-  const applyAt = pullHandler.indexOf("pbpApplyBackupPayload(pullData");
-  const rememberAt = pullHandler.indexOf("pbpWebdavRememberState(res.target");
-  const clearAt = pullHandler.indexOf('chrome.storage.local.remove("webdavLastPush")');
-  const reloadAt = pullHandler.indexOf("location.reload()");
-  check(prepareAt >= 0 && applyAt > prepareAt && rememberAt > applyAt &&
-    clearAt > rememberAt && reloadAt > clearAt &&
-    pullHandler.includes("remoteHash: res.remoteHash") &&
-    pullHandler.includes("settingsHash: res.settingsHash"),
-    "options.js: successful WebDAV pull does not preserve transport fields or commit the verified baseline after apply");
-}
-{
-  const autoPush = optionsJs.slice(
-    optionsJs.indexOf('$id("opt-webdav-autopush")?.addEventListener("change"'),
-    optionsJs.indexOf("// ---- WebDAV: render only target-bound sync state")
-  );
-  const beginAt = autoPush.indexOf("const operation = _webdavUiGuard.begin()");
-  const offAt = autoPush.indexOf('if (e.target.value === "off")');
-  const requestAt = autoPush.indexOf("await _pbpWebdavRequestPermission");
-  const currentAt = autoPush.indexOf("_webdavUiGuard.isCurrent(operation)", requestAt);
-  check(beginAt >= 0 && offAt > beginAt && requestAt > offAt && currentAt > requestAt &&
-    autoPush.includes("_pbpScheduleWebdavStatus(operation"),
-  "options.js: auto-push permission result can outlive an off/target change or bypass the guarded timer");
-}
-{
-  const statusBlock = optionsJs.slice(
-    optionsJs.indexOf("// ---- WebDAV: render only target-bound sync state"),
-    optionsJs.indexOf("const autoSaveState")
-  );
-  check(statusBlock.includes("pbpWebdavPrepareOperation(cfg)") &&
-    statusBlock.includes("pbpWebdavReadState(prepared.target)") &&
-    statusBlock.includes("state.lastSuccessAt") &&
-    !statusBlock.includes("webdavLastPush"),
-    "options.js: page-load WebDAV status still revives persisted operation errors instead of rendering target state");
-}
-{
-  const webdavOps = optionsJs.slice(
-    optionsJs.indexOf("// ---- WebDAV: Test ----"),
-    optionsJs.indexOf("// ===================== Auto-save")
-  );
-  const testOp = webdavOps.slice(0, webdavOps.indexOf("// ---- WebDAV: Push now ----"));
-  const pushOp = webdavOps.slice(
-    webdavOps.indexOf("async function _pbpWebdavRunPush("),
-    webdavOps.indexOf("// ---- WebDAV: Pull now ----")
-  );
-  const pullOp = webdavOps.slice(webdavOps.indexOf("// ---- WebDAV: Pull now ----"));
-  check([testOp, pushOp, pullOp].every((op) =>
-    op.includes("const operation = _webdavUiGuard.begin()") &&
-    op.includes("_webdavUiGuard.isCurrent(operation)")) &&
-    webdavOps.includes("_pbpScheduleWebdavStatus(operation") &&
-    !webdavOps.includes("_webdavPushStatusTimer") &&
-    !/setTimeout\(\(\) => \{\s*statusEl\.(?:textContent|style\.color)/.test(webdavOps) &&
-    /onConfirm:[\s\S]{0,300}_webdavUiGuard\.isCurrent\(operation\)/.test(pushOp),
-  "options.js: Test/Push/Pull do not share one generation/target guard and guarded status timer");
-}
-{
-  const handlerAt = optionsJs.indexOf("function _pbpHandleWebdavTargetChange(");
-  const listenersAt = optionsJs.indexOf('["opt-webdav-url"', handlerAt);
-  const endAt = optionsJs.indexOf("const autoSaveState", listenersAt);
-  const handler = optionsJs.slice(handlerAt, listenersAt);
-  const listeners = optionsJs.slice(listenersAt, endAt);
-  check(handlerAt >= 0 && listenersAt > handlerAt && endAt > listenersAt &&
-    (handler.match(/_pbpRenderWebdavTarget\(/g) || []).length === 1 &&
-    (handler.match(/_pbpRenderWebdavStatus\(/g) || []).length === 1 &&
-    handler.includes("_pbpRenderWebdavTarget(cfg, false)") &&
-    !handler.includes("scheduleAutoSave") &&
-    listeners.includes('"opt-webdav-relative-path"') &&
-    listeners.includes('"opt-webdav-pass"') &&
-    listeners.includes('addEventListener("input", _pbpHandleWebdavTargetChange)') &&
-    listeners.includes('input[name="webdav-folder-mode"]') &&
-    listeners.includes('addEventListener("change", _pbpHandleWebdavTargetChange)'),
-  "options.js: WebDAV relative-path and folder-mode changes do not refresh preview and target-bound status exactly once");
-}
-{
-  const cfgFromForm = optionsJs.slice(
-    optionsJs.indexOf("function _pbpWebdavCfgFromForm()"),
-    optionsJs.indexOf("// Same-gesture permission request")
-  );
-  check(cfgFromForm.includes("folderMode: _pbpWebdavFolderModeFromForm()") &&
-    cfgFromForm.includes('relativePath: $id("opt-webdav-relative-path").value') &&
-    cfgFromForm.includes("pbpWebdavLiveLayoutVersion(") &&
-    cfgFromForm.includes("_loadedWebdavLayoutVersion") &&
-    cfgFromForm.includes("_loadedWebdavTargetBinding") &&
-    !cfgFromForm.includes('folderMode: "managed"') &&
-    !cfgFromForm.includes('relativePath: ""') &&
-    cfgFromForm.includes("cfg.layoutVersion ="),
-    "options.js: live WebDAV actions discard the loaded folder target");
-}
-check(!webdavJs.includes("dav.jianguoyun.com") &&
-  !webdavJs.includes("pbpWebdavNormalizeEtag") &&
-  !webdavJs.includes('headers["If-Match"] = "*"'),
-  "webdav.js: provider/Apache special cases or unsafe If-Match:* compatibility path remain");
-check(!/jianguoyun|nextcloud/i.test(webdavJs),
-  "webdav.js: provider-specific routing returned");
-check(webdavJs.includes("pbpWebdavPrepareOperation") &&
-  webdavJs.includes("target.backupFileUrl") &&
-  !webdavJs.includes("pbpWebdavFileUrl(cfg.baseUrl)"),
-  "webdav.js: a production operation still bypasses the frozen target");
-{
-  const expectedLabels = {
-    en: "WebDAV base URL",
-    zh_CN: "WebDAV 基础地址",
-    zh_TW: "WebDAV 基礎網址",
-    zh_HK: "WebDAV 基礎網址",
-    ja: "WebDAV ベース URL",
-    de: "WebDAV-Basis-URL",
-    fr: "URL de base WebDAV",
-    pl: "Podstawowy adres URL WebDAV",
-    ru: "Базовый URL WebDAV",
-  };
-  for (const [locale, label] of Object.entries(expectedLabels)) {
-    const messages = JSON.parse(read(`_locales/${locale}/messages.json`));
-    check(messages.webdavUrlLabel?.message === label &&
-      messages.webdavFolderManagedHint?.message.includes("pinboard-bookmark-enhanced/") &&
-      !!messages.webdavActualLocation?.message &&
-      !messages.webdavHint?.message.includes("pinboard-bookmark-enhanced-settings.json") &&
-      !/jianguoyun|坚果|堅果/i.test(JSON.stringify(messages)),
-    `_locales/${locale}: WebDAV base URL and actual backup location are unclear`);
-  }
 }
 
 for (const id of ["vocab-search", "vocab-group-filter", "vocab-sort", "vocab-select-all",
@@ -825,26 +483,6 @@ check(trStart.indexOf("await pbpAiRetryWithPermission") >= 0 &&
   trStart.indexOf("await pbpAiRetryWithPermission") < trStart.indexOf("if (st.workReady) await st.workReady"),
   "md-translate.js: Continue does work before permission recovery");
 
-check(/async function _pbpWebdavRequestPermission[\s\S]{0,240}if \(!origin\) return null;[\s\S]{0,180}catch \(_\) \{ return false; \}/.test(optionsJs),
-  "options.js: WebDAV permission preflight does not distinguish invalid URL from denied permission");
-check(/function _pbpWebdavPermissionError[\s\S]{0,180}granted === null \? "mdTargetWebhookHttpWarn" : "webdavPermDenied"/.test(optionsJs),
-  "options.js: WebDAV permission errors do not map invalid and denied states separately");
-check((optionsJs.match(/const errorKey = _pbpWebdavPermissionError\(granted\);/g) || []).length === 4,
-  "options.js: WebDAV Test/Push/Pull/auto-push do not all use the permission-state mapping");
-// Conflict-choice consent binding (Codex r3 HIGH): the overwrite confirm
-// must compare the LIVE form target against the one that conflicted and
-// downgrade to a normal CAS push when they differ.
-check(/const conflictedTarget = res\.targetBinding[\s\S]{0,800}JSON\.stringify\(\[prepared\.target\.backupFileUrl, prepared\.target\.user\]\)[\s\S]{0,300}_pbpWebdavRunPush\(curTarget === conflictedTarget\);/.test(optionsJs),
-  "options.js: WebDAV overwrite consent is not bound to the conflicted target");
-check(/_webdavConflictKeys\[res\.error\] && !force/.test(optionsJs) &&
-  optionsJs.includes('yesText: t("webdavOverwriteRemote")'),
-  "options.js: WebDAV manual push conflict does not offer the overwrite choice");
-const webdavAutoStart = optionsJs.indexOf('$id("opt-webdav-autopush")?.addEventListener');
-const webdavAutoEnd = optionsJs.indexOf("// ---- WebDAV: render", webdavAutoStart);
-const webdavAutoHandler = optionsJs.slice(webdavAutoStart, webdavAutoEnd);
-check(webdavAutoStart >= 0 && webdavAutoEnd > webdavAutoStart &&
-  !/target\.value\s*=(?!=)|dispatchEvent\(/.test(webdavAutoHandler),
-  "options.js: WebDAV auto-push permission failure mutates the saved schedule");
 
 const waybackLoadStart = optionsJs.indexOf("// ---- Wayback: check permission on load");
 const waybackToggleStart = optionsJs.indexOf("// ---- Wayback: toggle permission", waybackLoadStart);
@@ -1024,14 +662,13 @@ check(!/\bconfirm\s*\(/.test(popupBatchJs) && !popupBatchJs.includes("BATCH_PERM
   !popupBatchJs.includes("batchPermMore") && !popupBatchJs.includes("*://*/*"),
   "popup-batch.js: native confirm, truncated disclosure, or broad wildcard remains");
 // Destructive micro-actions use the anchored confirm popover everywhere; the
-// ONLY sanctioned native confirm() calls are the two whole-profile modal
-// flows in options.js (sync-enable conflict chain, WebDAV pull overwrite).
+// only sanctioned native confirm() calls are the sync-enable conflict chain.
 check(!/\bconfirm\s*\(/.test(popupJs),
   "popup.js: a native confirm() dialog crept back in (use showConfirmPopover)");
 check(!/\bconfirm\s*\(/.test(read("options-notes.js")),
   "options-notes.js: a native confirm() dialog crept back in (use showConfirmPopover)");
-check((optionsJs.match(/\bconfirm\(t\(/g) || []).length === 3,
-  "options.js: native confirm() call count drifted from the three sanctioned modal-flow calls");
+check((optionsJs.match(/\bconfirm\(t\(/g) || []).length === 2,
+  "options.js: native confirm() call count drifted from the two sanctioned sync-conflict calls");
 check(/\.batch-permission-list\s*\{[\s\S]*?max-height:\s*92px;[\s\S]*?overflow:\s*auto;/.test(popupCss),
   "popup.css: complete Batch permission list is not bounded with scrolling");
 

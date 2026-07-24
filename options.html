@@ -106,104 +106,13 @@
       <div class="section-title" data-i18n="secBackupRestore">Backup &amp; Sync</div>
       <p class="hint" data-i18n="backupHint">Export/import your settings (API keys are excluded from export for security).</p>
       <div class="fg"><label><input type="checkbox" id="opt-backup-include-highlights" checked /> <span data-i18n="backupIncludeHighlightsLabel">Include highlights and notes in backups</span></label></div>
-      <p class="hint" data-i18n="backupIncludeHighlightsHint">Includes page URLs, titles, selected text, notes, colors, and timestamps in manual and WebDAV backups. API keys are still never included.</p>
+      <p class="hint" data-i18n="backupIncludeHighlightsHint">Includes page URLs, titles, selected text, notes, colors, and timestamps. API keys are never included.</p>
       <div style="display:flex;gap:8px;align-items:center;">
         <button class="btn" id="export-settings" data-i18n="exportSettings">Export Settings</button>
         <button type="button" class="btn" id="import-settings" title="Import settings from JSON file" data-i18n="importSettings" data-i18n-title="importSettingsTitle">Import Settings</button>
         <input type="file" id="import-settings-file" accept=".json" hidden />
         <span class="save-status" id="import-status" role="status" aria-live="polite"></span>
       </div>
-      <div class="fg">
-        <label class="bl" for="opt-webdav-url" data-i18n="webdavUrlLabel">WebDAV base URL</label>
-        <input type="text" id="opt-webdav-url" placeholder="https://dav.example.com/dav/" autocomplete="off" spellcheck="false" />
-        <p class="hint" id="webdav-url-hint" data-i18n="webdavHint">Enter the WebDAV address from your provider. The extension creates a dedicated backup folder instead of placing the backup in the service root.</p>
-      </div>
-      <p class="hint hint-warn" id="webdav-http-warn" hidden data-i18n="mdTargetWebhookHttpWarn"></p>
-      <details class="webdav-disclosure" data-acc-key="webdav-folder">
-        <summary data-i18n="webdavFolderAdvanced">Backup folder</summary>
-        <div class="webdav-details-body">
-          <fieldset class="webdav-folder-mode">
-            <legend data-i18n="webdavFolderModeLabel">Folder mode</legend>
-            <label><input type="radio" name="webdav-folder-mode" value="managed" checked /> <span data-i18n="webdavFolderManaged">Manage automatically</span></label>
-            <p class="hint" data-i18n="webdavFolderManagedHint">Uses pinboard-bookmark-enhanced/ under the base URL.</p>
-            <label><input type="radio" name="webdav-folder-mode" value="custom" /> <span data-i18n="webdavFolderCustom">Use a custom relative path</span></label>
-          </fieldset>
-          <div class="fg" id="webdav-relative-row" hidden>
-            <label class="bl" for="opt-webdav-relative-path" data-i18n="webdavRelativePathLabel">Relative folder path</label>
-            <input type="text" id="opt-webdav-relative-path" placeholder="Backups/Pinboard/" aria-describedby="webdav-relative-hint webdav-path-error" autocomplete="off" spellcheck="false" />
-            <p class="hint" id="webdav-relative-hint" data-i18n="webdavRelativePathHint">Relative to the base URL. Full URLs and parent paths are not allowed.</p>
-            <p class="field-error" id="webdav-path-error" role="status" aria-live="polite"></p>
-          </div>
-        </div>
-      </details>
-      <div class="webdav-actual">
-        <span id="webdav-actual-label" data-i18n="webdavActualLocation">Actual backup location</span>
-        <output id="webdav-actual-location" for="opt-webdav-url opt-webdav-relative-path" aria-labelledby="webdav-actual-label"></output>
-      </div>
-      <div class="webdav-migration" id="webdav-migration" role="alert" hidden>
-        <p class="webdav-migration-title" data-i18n="webdavMigrationRequired">This WebDAV setup must be checked before automatic backups can resume.</p>
-        <p class="hint" data-i18n="webdavMigrationSafety">The check does not move or delete your existing remote backup.</p>
-        <dl class="webdav-migration-locations">
-          <dt data-i18n="webdavMigrationOldLocation">Previous location</dt>
-          <dd><output id="webdav-migration-old"></output></dd>
-          <dt data-i18n="webdavMigrationNewBase">New base URL</dt>
-          <dd><output id="webdav-migration-base"></output></dd>
-          <dt data-i18n="webdavMigrationFolder">Backup folder</dt>
-          <dd><output id="webdav-migration-folder"></output></dd>
-          <dt data-i18n="webdavMigrationFinalLocation">Final backup location</dt>
-          <dd><output id="webdav-migration-final"></output></dd>
-        </dl>
-        <p class="hint" id="webdav-migration-keeps" data-i18n="webdavMigrationKeepsTarget" hidden>This keeps using the same remote backup file.</p>
-        <div id="webdav-migration-conflict" hidden>
-          <p data-i18n="webdavLocationConflict">This device and the remote location record point to different backup folders. Choose which one to use.</p>
-          <div class="webdav-migration-candidates">
-            <div>
-              <output id="webdav-migration-local-path"></output>
-              <dl>
-                <dt data-i18n="webdavMigrationBackupState">Backup</dt>
-                <dd><output id="webdav-migration-local-state"></output></dd>
-                <dt data-i18n="webdavMigrationPushedAt">Last remote push</dt>
-                <dd><output id="webdav-migration-local-time"></output></dd>
-                <dt data-i18n="webdavMigrationSemanticHash">Semantic hash</dt>
-                <dd><output id="webdav-migration-local-hash"></output></dd>
-              </dl>
-              <button type="button" class="btn" id="webdav-use-local-location" data-i18n="webdavUseLocalLocation">Use this device's folder</button>
-            </div>
-            <div>
-              <output id="webdav-migration-remote-path"></output>
-              <dl>
-                <dt data-i18n="webdavMigrationBackupState">Backup</dt>
-                <dd><output id="webdav-migration-remote-state"></output></dd>
-                <dt data-i18n="webdavMigrationPushedAt">Last remote push</dt>
-                <dd><output id="webdav-migration-remote-time"></output></dd>
-                <dt data-i18n="webdavMigrationSemanticHash">Semantic hash</dt>
-                <dd><output id="webdav-migration-remote-hash"></output></dd>
-              </dl>
-              <button type="button" class="btn" id="webdav-use-remote-location" data-i18n="webdavUseRemoteLocation">Use the recorded remote folder</button>
-            </div>
-          </div>
-          <output id="webdav-migration-comparison"></output>
-        </div>
-        <button type="button" class="btn" id="webdav-migration-confirm" data-i18n="webdavMigrationConfirm" hidden>Confirm backup folder</button>
-        <span class="save-status" id="webdav-migration-status" role="status" aria-live="polite"></span>
-      </div>
-      <div class="fg"><label class="bl" for="opt-webdav-user" data-i18n="webdavUserLabel">Username (optional)</label><input type="text" id="opt-webdav-user" autocomplete="off" spellcheck="false" /></div>
-      <div class="fg"><label class="bl" for="opt-webdav-pass" data-i18n="webdavPassLabel">Password (optional)</label><span class="key-wrap"><input type="password" id="opt-webdav-pass" autocomplete="off" spellcheck="false" /><button type="button" class="key-toggle" data-target="opt-webdav-pass" title="Show/hide key" data-i18n-title="showHideKey" data-i18n-aria="showHideKey" aria-label="Show/hide key"></button></span></div>
-      <div class="fg">
-        <label class="bl" for="opt-webdav-autopush" data-i18n="webdavAutoPushLabel">Automatic push</label>
-        <select id="opt-webdav-autopush">
-          <option value="off" data-i18n="webdavAutoPushOff">Off</option>
-          <option value="hourly" data-i18n="webdavAutoPushHourly">Every hour</option>
-          <option value="daily" data-i18n="webdavAutoPushDaily">Once a day</option>
-        </select>
-      </div>
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-        <button class="btn" id="webdav-test-btn" data-i18n="webdavTestBtn" disabled>Test</button>
-        <button class="btn" id="webdav-push-btn" data-i18n="webdavPushBtn" disabled>Push now</button>
-        <button class="btn" id="webdav-pull-btn" data-i18n="webdavPullBtn" disabled>Pull now</button>
-        <span class="save-status" id="webdav-status" role="status" aria-live="polite"></span>
-      </div>
-      <button type="button" class="btn webdav-clear" id="webdav-clear-config" data-i18n="webdavClearConfig" hidden>Stop using WebDAV and clear configuration</button>
       <div class="divider"></div>
       <div class="section-title" data-i18n="secNotifications">Notifications</div>
       <div class="fg"><label><input type="checkbox" id="notify-quick-save" checked /> <span data-i18n="notifyQuickSave">Quick save</span></label></div>
@@ -1007,7 +916,6 @@
   </div>
   <script defer src="i18n.js"></script>
   <script defer src="shared.js"></script>
-  <script defer src="webdav.js"></script>
   <script defer src="ai-cache.js"></script>
   <script defer src="ai.js"></script>
   <script defer src="options-connectivity.js"></script>
