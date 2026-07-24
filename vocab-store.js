@@ -68,9 +68,13 @@ function _pbpVocabOnlyKeys(value, keys) {
   return _pbpVocabPlainObject(value) && Object.keys(value).every((key) => keys.includes(key));
 }
 
+function _pbpVocabOwnValue(value, key) {
+  return Object.prototype.hasOwnProperty.call(value, key) ? value[key] : undefined;
+}
+
 function _pbpVocabValidVector(vector) {
   return _pbpVocabPlainObject(vector) && Object.keys(vector).length > 0 &&
-    Object.keys(vector).every((deviceId) => _pbpVocabDeviceId(deviceId) && _pbpVocabPositiveInteger(vector[deviceId]));
+    Object.keys(vector).every((deviceId) => _pbpVocabDeviceId(deviceId) && _pbpVocabPositiveInteger(_pbpVocabOwnValue(vector, deviceId)));
 }
 
 function pbpVocabVectorRelation(left, right) {
@@ -78,8 +82,8 @@ function pbpVocabVectorRelation(left, right) {
   let leftGreater = false;
   let rightGreater = false;
   for (const key of new Set([...Object.keys(left), ...Object.keys(right)])) {
-    const a = left[key] || 0;
-    const b = right[key] || 0;
+    const a = _pbpVocabOwnValue(left, key) || 0;
+    const b = _pbpVocabOwnValue(right, key) || 0;
     if (a > b) leftGreater = true;
     if (b > a) rightGreater = true;
   }
@@ -128,10 +132,12 @@ function pbpVocabValidateEvent(event, expectedRecordKey) {
   if (!_pbpVocabOnlyKeys(event, ["recordKey", "vector", "dot", "deleted", "value"]) ||
       typeof event.recordKey !== "string" || !event.recordKey ||
       (expectedRecordKey !== undefined && event.recordKey !== expectedRecordKey) ||
-      !_pbpVocabValidVector(event.vector) || !_pbpVocabPlainObject(event.dot) ||
+      !_pbpVocabValidVector(event.vector) || !_pbpVocabOnlyKeys(event.dot, ["deviceId", "counter"]) ||
       typeof event.deleted !== "boolean") return false;
   try {
-    if (pbpVocabDotCompare(event.dot, event.dot) !== 0 || event.vector[event.dot.deviceId] !== event.dot.counter) return false;
+    if (pbpVocabDotCompare(event.dot, event.dot) !== 0 ||
+        !_pbpVocabPositiveInteger(_pbpVocabOwnValue(event.vector, event.dot.deviceId)) ||
+        _pbpVocabOwnValue(event.vector, event.dot.deviceId) < event.dot.counter) return false;
   } catch (_) { return false; }
   if (event.deleted) return !Object.prototype.hasOwnProperty.call(event, "value");
   const value = event.value;
@@ -153,8 +159,10 @@ function pbpVocabEventContentEqual(left, right) {
 }
 
 function _pbpVocabMergedVector(left, right) {
-  const vector = {};
-  for (const key of new Set([...Object.keys(left), ...Object.keys(right)])) vector[key] = Math.max(left[key] || 0, right[key] || 0);
+  const vector = Object.create(null);
+  for (const key of new Set([...Object.keys(left), ...Object.keys(right)])) {
+    vector[key] = Math.max(_pbpVocabOwnValue(left, key) || 0, _pbpVocabOwnValue(right, key) || 0);
+  }
   return vector;
 }
 
@@ -178,6 +186,8 @@ function _pbpVocabMergeLiveValues(winner, other) {
 function pbpVocabMergeEvents(localEvent, remoteEvent) {
   const invalid = { kind: "invalid", event: null, requeue: false, notice: null };
   if (!pbpVocabValidateEvent(localEvent) || !pbpVocabValidateEvent(remoteEvent, localEvent.recordKey)) return invalid;
+  if (!localEvent.deleted && !remoteEvent.deleted &&
+      (localEvent.value.term !== remoteEvent.value.term || localEvent.value.language !== remoteEvent.value.language)) return invalid;
   const relation = pbpVocabVectorRelation(localEvent.vector, remoteEvent.vector);
   if (relation === "equal") return pbpVocabEventContentEqual(localEvent, remoteEvent)
     ? { kind: "noop", event: localEvent, requeue: false, notice: null }
@@ -187,9 +197,10 @@ function pbpVocabMergeEvents(localEvent, remoteEvent) {
   const winner = pbpVocabDotCompare(localEvent.dot, remoteEvent.dot) >= 0 ? localEvent : remoteEvent;
   const other = winner === localEvent ? remoteEvent : localEvent;
   const live = !localEvent.deleted ? localEvent : (!remoteEvent.deleted ? remoteEvent : null);
+  const provenance = live || winner;
   const event = {
     recordKey: localEvent.recordKey, vector: _pbpVocabMergedVector(localEvent.vector, remoteEvent.vector),
-    dot: { deviceId: winner.dot.deviceId, counter: winner.dot.counter }, deleted: !live
+    dot: { deviceId: provenance.dot.deviceId, counter: provenance.dot.counter }, deleted: !live
   };
   if (live) event.value = !localEvent.deleted && !remoteEvent.deleted
     ? _pbpVocabMergeLiveValues(winner, other)
