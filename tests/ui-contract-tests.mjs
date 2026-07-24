@@ -33,6 +33,7 @@ const popupCss = read("popup.css");
 const optionsConnectivityJs = read("options-connectivity.js");
 const optionsCss = read("options.css");
 const optionsJs = read("options.js");
+const optionsBackupJs = read("options-backup.js");
 const optionsVocabJs = read("options-vocab.js");
 const vocabGdriveJs = read("vocab-gdrive.js");
 const mdDictJs = read("md-dict.js");
@@ -40,6 +41,17 @@ const vocabStore = readFileSync("vocab-store.js", "utf8");
 const mdDict = readFileSync("md-dict.js", "utf8");
 const optionsThemeEarlyJs = read("options-theme-early.js");
 const popupTagsJs = read("popup-tags.js");
+
+{
+  const renderPreview = optionsBackupJs.slice(
+    optionsBackupJs.indexOf("const renderPreview ="),
+    optionsBackupJs.indexOf('  $id("export-settings")', optionsBackupJs.indexOf("const renderPreview =")),
+  );
+  check(renderPreview.includes("pbpLargeFallbackFieldLabel(key)") &&
+    !renderPreview.includes('customTagPrompt: "labelTagPrompt"') &&
+    !renderPreview.includes('savedThemes: "labelSavedThemes"'),
+    "options-backup.js: fallback field labels drifted from the shared mapping");
+}
 
 check(!existsSync(resolve(root, "webdav.js")), "webdav.js still exists");
 check(!optionsHtml.includes('id="opt-webdav') &&

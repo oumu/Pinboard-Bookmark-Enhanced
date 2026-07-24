@@ -374,16 +374,8 @@ function setupBackup({ exportableKeys, saveOverlayWithFallback, loadThemes, befo
     if (preview.highlightOwnerMismatch) warnings.push(t("backupPreviewHighlightOwnerMismatch"));
     if (preview.syncWarning) warnings.push(t("backupPreviewSyncWarning"));
     if (preview.localFallbackKeys.length) {
-      const labels = {
-        customTagPrompt: "labelTagPrompt",
-        customSummaryPrompt: "labelSummaryPrompt",
-        translateGlossary: "translateGlossaryLabel",
-        tagPresets: "labelTagPresets",
-        customOverlayCSS: "labelCustomCSSOverlay",
-        savedThemes: "labelSavedThemes",
-      };
       warnings.push(t("backupPreviewLocalWarning", preview.localFallbackKeys
-        .map((key) => t(labels[key] || key))
+        .map((key) => t(pbpLargeFallbackFieldLabel(key)))
         .join(", ")));
     }
     setPreviewText("backup-preview-warning", warnings.join(" "));
