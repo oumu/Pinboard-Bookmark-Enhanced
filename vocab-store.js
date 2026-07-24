@@ -48,6 +48,155 @@ function pbpDictOwnerScope(account) {
   return account ? "acct_" + encodeURIComponent(String(account)) : "ownerless";
 }
 
+// Pure sync protocol helpers. Keep them before IndexedDB so the service worker
+// can validate and converge remote entries without loading reader code.
+function _pbpVocabPlainObject(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const proto = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
+}
+
+function _pbpVocabPositiveInteger(value) {
+  return Number.isSafeInteger(value) && value > 0;
+}
+
+function _pbpVocabDeviceId(value) {
+  return typeof value === "string" && !!value && value === value.normalize("NFC");
+}
+
+function _pbpVocabOnlyKeys(value, keys) {
+  return _pbpVocabPlainObject(value) && Object.keys(value).every((key) => keys.includes(key));
+}
+
+function _pbpVocabValidVector(vector) {
+  return _pbpVocabPlainObject(vector) && Object.keys(vector).length > 0 &&
+    Object.keys(vector).every((deviceId) => _pbpVocabDeviceId(deviceId) && _pbpVocabPositiveInteger(vector[deviceId]));
+}
+
+function pbpVocabVectorRelation(left, right) {
+  if (!_pbpVocabValidVector(left) || !_pbpVocabValidVector(right)) throw new TypeError("invalid version vector");
+  let leftGreater = false;
+  let rightGreater = false;
+  for (const key of new Set([...Object.keys(left), ...Object.keys(right)])) {
+    const a = left[key] || 0;
+    const b = right[key] || 0;
+    if (a > b) leftGreater = true;
+    if (b > a) rightGreater = true;
+  }
+  return leftGreater ? (rightGreater ? "concurrent" : "left") : (rightGreater ? "right" : "equal");
+}
+
+function _pbpVocabCodePointCompare(left, right) {
+  const a = String(left).normalize("NFC");
+  const b = String(right).normalize("NFC");
+  const ai = a[Symbol.iterator]();
+  const bi = b[Symbol.iterator]();
+  for (;;) {
+    const an = ai.next();
+    const bn = bi.next();
+    if (an.done || bn.done) return an.done === bn.done ? 0 : (an.done ? -1 : 1);
+    const diff = an.value.codePointAt(0) - bn.value.codePointAt(0);
+    if (diff) return diff;
+  }
+}
+
+function pbpVocabDotCompare(left, right) {
+  if (!_pbpVocabPlainObject(left) || !_pbpVocabPlainObject(right) ||
+      !_pbpVocabDeviceId(left.deviceId) || !_pbpVocabDeviceId(right.deviceId) ||
+      !_pbpVocabPositiveInteger(left.counter) || !_pbpVocabPositiveInteger(right.counter)) {
+    throw new TypeError("invalid version dot");
+  }
+  return left.counter - right.counter || _pbpVocabCodePointCompare(left.deviceId, right.deviceId);
+}
+
+function _pbpVocabValidContext(context) {
+  if (!_pbpVocabOnlyKeys(context, ["quote", "articleUrl", "articleTitle", "highlightId", "createdAt"]) ||
+      typeof context.quote !== "string" || !context.quote || typeof context.articleUrl !== "string") return false;
+  return (context.articleTitle === undefined || typeof context.articleTitle === "string") &&
+    (context.highlightId === undefined || context.highlightId === null || typeof context.highlightId === "string") &&
+    (context.createdAt === undefined || Number.isFinite(context.createdAt));
+}
+
+function _pbpVocabCanonicalJson(value) {
+  if (Array.isArray(value)) return "[" + value.map(_pbpVocabCanonicalJson).join(",") + "]";
+  if (_pbpVocabPlainObject(value)) return "{" + Object.keys(value).sort(_pbpVocabCodePointCompare)
+    .map((key) => JSON.stringify(key) + ":" + _pbpVocabCanonicalJson(value[key])).join(",") + "}";
+  return JSON.stringify(value);
+}
+
+function pbpVocabValidateEvent(event, expectedRecordKey) {
+  if (!_pbpVocabOnlyKeys(event, ["recordKey", "vector", "dot", "deleted", "value"]) ||
+      typeof event.recordKey !== "string" || !event.recordKey ||
+      (expectedRecordKey !== undefined && event.recordKey !== expectedRecordKey) ||
+      !_pbpVocabValidVector(event.vector) || !_pbpVocabPlainObject(event.dot) ||
+      typeof event.deleted !== "boolean") return false;
+  try {
+    if (pbpVocabDotCompare(event.dot, event.dot) !== 0 || event.vector[event.dot.deviceId] !== event.dot.counter) return false;
+  } catch (_) { return false; }
+  if (event.deleted) return !Object.prototype.hasOwnProperty.call(event, "value");
+  const value = event.value;
+  const fields = ["term", "lemma", "language", "gloss", "ipa", "sourceUrl", "license", "contexts", "groups", "note", "status", "createdAt", "updatedAt"];
+  if (!_pbpVocabOnlyKeys(value, fields) || Object.keys(value).length !== fields.length ||
+      typeof value.term !== "string" || !value.term || typeof value.language !== "string" || !value.language ||
+      typeof value.gloss !== "string" || typeof value.note !== "string" || typeof value.status !== "string" ||
+      !Number.isFinite(value.createdAt) || !Number.isFinite(value.updatedAt) ||
+      !(value.lemma === null || typeof value.lemma === "string") || !(value.ipa === null || typeof value.ipa === "string") ||
+      !(value.license === null || typeof value.license === "string") ||
+      !(value.sourceUrl === null || (typeof value.sourceUrl === "string" && pbpDictSafeUrl(value.sourceUrl) === value.sourceUrl)) ||
+      !Array.isArray(value.groups) || !value.groups.every((group) => typeof group === "string") ||
+      !Array.isArray(value.contexts) || !value.contexts.every(_pbpVocabValidContext)) return false;
+  return event.recordKey === pbpDictCacheKeyPublic(value.language, value.term);
+}
+
+function pbpVocabEventContentEqual(left, right) {
+  return _pbpVocabCanonicalJson(left) === _pbpVocabCanonicalJson(right);
+}
+
+function _pbpVocabMergedVector(left, right) {
+  const vector = {};
+  for (const key of new Set([...Object.keys(left), ...Object.keys(right)])) vector[key] = Math.max(left[key] || 0, right[key] || 0);
+  return vector;
+}
+
+function _pbpVocabMergeLiveValues(winner, other) {
+  const value = winner.value;
+  const contexts = value.contexts.slice();
+  for (const context of other.value.contexts) {
+    const next = pbpDictMergeContext(contexts, context);
+    contexts.length = 0;
+    contexts.push(...next);
+  }
+  const groups = pbpVocabGroups({ groups: [...value.groups, ...other.value.groups] });
+  return {
+    term: value.term, lemma: value.lemma, language: value.language, gloss: value.gloss, ipa: value.ipa,
+    sourceUrl: value.sourceUrl, license: value.license, contexts, groups,
+    note: value.note || other.value.note, status: value.status,
+    createdAt: Math.min(value.createdAt, other.value.createdAt), updatedAt: Math.max(value.updatedAt, other.value.updatedAt)
+  };
+}
+
+function pbpVocabMergeEvents(localEvent, remoteEvent) {
+  const invalid = { kind: "invalid", event: null, requeue: false, notice: null };
+  if (!pbpVocabValidateEvent(localEvent) || !pbpVocabValidateEvent(remoteEvent, localEvent.recordKey)) return invalid;
+  const relation = pbpVocabVectorRelation(localEvent.vector, remoteEvent.vector);
+  if (relation === "equal") return pbpVocabEventContentEqual(localEvent, remoteEvent)
+    ? { kind: "noop", event: localEvent, requeue: false, notice: null }
+    : { kind: "corrupt", event: localEvent, requeue: false, notice: null };
+  if (relation === "left") return { kind: "noop", event: localEvent, requeue: false, notice: null };
+  if (relation === "right") return { kind: "apply", event: remoteEvent, requeue: false, notice: null };
+  const winner = pbpVocabDotCompare(localEvent.dot, remoteEvent.dot) >= 0 ? localEvent : remoteEvent;
+  const other = winner === localEvent ? remoteEvent : localEvent;
+  const live = !localEvent.deleted ? localEvent : (!remoteEvent.deleted ? remoteEvent : null);
+  const event = {
+    recordKey: localEvent.recordKey, vector: _pbpVocabMergedVector(localEvent.vector, remoteEvent.vector),
+    dot: { deviceId: winner.dot.deviceId, counter: winner.dot.counter }, deleted: !live
+  };
+  if (live) event.value = !localEvent.deleted && !remoteEvent.deleted
+    ? _pbpVocabMergeLiveValues(winner, other)
+    : { ...live.value, contexts: live.value.contexts.slice(), groups: live.value.groups.slice() };
+  return { kind: "merged", event, requeue: true, notice: live && (localEvent.deleted || remoteEvent.deleted) ? "delete-live-conflict" : null };
+}
+
 // NOT the ai-cache DB (vocab is permanent, never LRU'd, own version track).
 // Account-isolation invariant: every record carries the non-secret owner
 // scope and every read filters by it.
