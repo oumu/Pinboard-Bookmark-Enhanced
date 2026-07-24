@@ -1480,6 +1480,13 @@
   "syncApiKeysHint": {
     "message": "這是帳號層級的單一選項，但只有開啟設定同步的裝置才會參與；其他裝置會繼續使用本機憑證。新使用者預設關閉。若升級時 Chrome Sync 已有非空憑證，為避免資料遺失會保持開啟。同步的 API 金鑰、權杖、密碼與匯出憑證僅經過混淆處理，並未加密。"
   },
+  "syncLocalOnlyStatus": {
+    "message": "Chrome Sync 無法儲存以下項目，因此它們只會保留在此裝置：$FIELDS$。",
+    "placeholders": { "fields": { "content": "$1" } }
+  },
+  "syncApiKeysDisableConfirm": {
+    "message": "要關閉憑證同步嗎？此裝置將改用本機憑證，Chrome Sync 中的舊憑證會被清除。其他仍依賴這些雲端憑證的裝置可能無法正常運作。Google Drive OAuth 權杖不受影響。"
+  },
   "qlPopularTitle": {
     "message": "熱門"
   },

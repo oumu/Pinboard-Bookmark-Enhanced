@@ -1480,6 +1480,13 @@
   "syncApiKeysHint": {
     "message": "This is one account-wide choice, but only devices with settings sync enabled participate; other devices keep using local credentials. New users start off. If an upgrade finds non-empty credentials already in Chrome Sync, it stays on to avoid data loss. Synced API keys, tokens, passwords, and export credentials are obfuscated, not encrypted."
   },
+  "syncLocalOnlyStatus": {
+    "message": "Chrome Sync could not store these fields. They are available only on this device: $FIELDS$.",
+    "placeholders": { "fields": { "content": "$1" } }
+  },
+  "syncApiKeysDisableConfirm": {
+    "message": "Turn off credential sync? This device will use its local credentials, and old credentials in Chrome Sync will be cleared. Other devices that still rely on those cloud credentials may stop working. Your Google Drive OAuth token is not affected."
+  },
   "qlPopularTitle": {
     "message": "Popular"
   },

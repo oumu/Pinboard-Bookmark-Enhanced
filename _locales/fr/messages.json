@@ -1480,6 +1480,13 @@
   "syncApiKeysHint": {
     "message": "Il s'agit d'un choix unique à l'échelle du compte, mais seuls les appareils où la synchronisation des paramètres est activée y participent ; les autres continuent d'utiliser leurs identifiants locaux. Il est désactivé par défaut pour les nouveaux utilisateurs. Si une mise à niveau trouve déjà des identifiants non vides dans Chrome Sync, il reste activé afin d'éviter toute perte de données. Les clés API, jetons, mots de passe et identifiants d'exportation synchronisés sont obfusqués, pas chiffrés."
   },
+  "syncLocalOnlyStatus": {
+    "message": "Chrome Sync n’a pas pu enregistrer ces champs. Ils sont disponibles uniquement sur cet appareil : $FIELDS$.",
+    "placeholders": { "fields": { "content": "$1" } }
+  },
+  "syncApiKeysDisableConfirm": {
+    "message": "Désactiver la synchronisation des identifiants ? Cet appareil utilisera alors ses identifiants locaux et les anciens identifiants seront supprimés de Chrome Sync. Les autres appareils qui dépendent encore de ces identifiants dans le cloud risquent de ne plus fonctionner. Le jeton OAuth de Google Drive n’est pas affecté."
+  },
   "qlPopularTitle": {
     "message": "Populaire"
   },

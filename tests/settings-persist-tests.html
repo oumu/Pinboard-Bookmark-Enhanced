@@ -3210,6 +3210,291 @@ async function run() {
       task9Ready && pbpBackupImportResultKey(partialResult) !== "backupImportComplete");
   })();
 
+  // ---------- E12: Chrome Sync generation cleanup + persistent fallback state ----------
+  await (async () => {
+    const previousChrome = globalThis.chrome;
+    const previousStorage = globalThis.__pbpTestStorage;
+    const previousLarge = globalThis.__pbpTestSyncSetLarge;
+    const previousCache = _settingsStorageCache;
+    const previousT = globalThis.t;
+    const largeKey = "customTagPrompt";
+    const makeArea = (backing, calls) => ({
+      get: async (keys) => {
+        calls?.gets.push(keys);
+        if (keys === null) return { ...backing };
+        if (typeof keys === "string") return keys in backing ? { [keys]: backing[keys] } : {};
+        const out = Array.isArray(keys) ? {} : { ...(keys || {}) };
+        (Array.isArray(keys) ? keys : Object.keys(keys || {})).forEach((key) => {
+          if (key in backing) out[key] = backing[key];
+        });
+        return out;
+      },
+      set: async (data) => {
+        calls?.sets.push(data);
+        Object.assign(backing, data);
+      },
+      remove: async (keys) => {
+        const list = Array.isArray(keys) ? keys : [keys];
+        calls?.removes.push(list);
+        list.forEach((key) => delete backing[key]);
+      },
+    });
+
+    try {
+      const local = { optSyncEnabled: true };
+      const sync = {
+        [largeKey]: { _chunks: 2, _generation: "oldgen" },
+        [`${largeKey}_oldgen_0`]: "old-a",
+        [`${largeKey}_oldgen_1`]: "old-b",
+        [`${largeKey}_unknown_0`]: "foreign",
+      };
+      const calls = { gets: [], sets: [], removes: [] };
+      const syncArea = makeArea(sync, calls);
+      globalThis.chrome = {
+        storage: {
+          local: makeArea(local),
+          sync: syncArea,
+          onChanged: { addListener() {} },
+        },
+      };
+      _settingsStorageCache = syncArea;
+      await pbpSyncSetLargeUnlocked(largeKey, "new value");
+      const committed = sync[largeKey];
+      const removed = calls.removes.flat();
+      check("E12 large write never scans all Chrome Sync keys",
+        !calls.gets.includes(null) && calls.gets.every((keys) => keys === largeKey));
+      check("E12 new manifest records the generation it replaced",
+        committed?._previousGeneration === "oldgen");
+      check("E12 current manifest readback permits cleanup of its previous generation",
+        !(`${largeKey}_oldgen_0` in sync) && !(`${largeKey}_oldgen_1` in sync));
+      check("E12 cleanup never deletes an unknown concurrent generation",
+        sync[`${largeKey}_unknown_0`] === "foreign" &&
+        !removed.includes(`${largeKey}_unknown_0`));
+
+      const raceLocal = { optSyncEnabled: true };
+      const raceSync = {
+        [largeKey]: { _chunks: 1, _generation: "raceold" },
+        [`${largeKey}_raceold_0`]: "old",
+      };
+      const raceCalls = { gets: [], sets: [], removes: [] };
+      const raceArea = makeArea(raceSync, raceCalls);
+      const raceSet = raceArea.set;
+      raceArea.set = async (data) => {
+        await raceSet(data);
+        if (data[largeKey]?._generation) {
+          raceSync[largeKey] = { _chunks: 1, _generation: "foreign" };
+        }
+      };
+      globalThis.chrome = {
+        storage: {
+          local: makeArea(raceLocal),
+          sync: raceArea,
+          onChanged: { addListener() {} },
+        },
+      };
+      _settingsStorageCache = raceArea;
+      await pbpSyncSetLargeUnlocked(largeKey, "racing value");
+      check("E12 manifest race leaves every prior chunk untouched",
+        raceSync[`${largeKey}_raceold_0`] === "old");
+
+      const emptyLocal = {
+        optSyncEnabled: true,
+        [`${largeKey}_localFallback`]: "local",
+      };
+      const emptySync = {
+        [largeKey]: { _chunks: 1, _generation: "emptyold" },
+        [`${largeKey}_emptyold_0`]: "old",
+        [`${largeKey}_unknown_0`]: "foreign",
+      };
+      const emptyCalls = { gets: [], sets: [], removes: [] };
+      const emptyArea = makeArea(emptySync, emptyCalls);
+      globalThis.chrome = {
+        storage: {
+          local: makeArea(emptyLocal),
+          sync: emptyArea,
+          onChanged: { addListener() {} },
+        },
+      };
+      _settingsStorageCache = emptyArea;
+      await pbpSyncSetLargeUnlocked(largeKey, "");
+      check("E12 clearing an empty value removes only the current manifest and its chunks",
+        !(largeKey in emptySync) && !(`${largeKey}_emptyold_0` in emptySync) &&
+        emptySync[`${largeKey}_unknown_0`] === "foreign");
+
+      const legacyLocal = { optSyncEnabled: true };
+      const legacySync = {
+        [largeKey]: "legacy string",
+        [`${largeKey}_unknown_0`]: "foreign",
+      };
+      const legacyArea = makeArea(legacySync);
+      globalThis.chrome = {
+        storage: {
+          local: makeArea(legacyLocal),
+          sync: legacyArea,
+          onChanged: { addListener() {} },
+        },
+      };
+      _settingsStorageCache = legacyArea;
+      await pbpSyncSetLargeUnlocked(largeKey, "");
+      check("E12 clearing a legacy string leaves unrelated prefixed data intact",
+        !(largeKey in legacySync) && legacySync[`${largeKey}_unknown_0`] === "foreign");
+
+      const quotaLocal = { optSyncEnabled: true };
+      const quotaSync = {
+        [largeKey]: { _chunks: 1, _generation: "quotabase" },
+        [`${largeKey}_quotabase_0`]: "old",
+      };
+      const quotaArea = makeArea(quotaSync);
+      quotaArea.set = async (data) => {
+        if (!data[largeKey]) throw new Error("QUOTA_BYTES quota exceeded");
+        Object.assign(quotaSync, data);
+      };
+      globalThis.chrome = {
+        storage: {
+          local: makeArea(quotaLocal),
+          sync: quotaArea,
+          onChanged: { addListener() {} },
+        },
+      };
+      _settingsStorageCache = quotaArea;
+      try { await pbpSyncSetLargeUnlocked(largeKey, "quota value"); } catch (_) {}
+      check("E12 quota fallback retains the generation used for freshness",
+        quotaLocal[`${largeKey}_localFallback`]?._base === "quotabase" &&
+        quotaLocal[`${largeKey}_localFallback`]?.value === "quota value");
+
+      const task10Ready = typeof pbpDetectLargeLocalFallbacks === "function" &&
+        typeof pbpRefreshSyncLocalFallbackStatus === "function";
+      const statusLocal = {
+        optSyncEnabled: true,
+        customOverlayCSS_localFallback: "overlay",
+      };
+      const statusChrome = {
+        storage: {
+          local: makeArea(statusLocal),
+          sync: makeArea({}),
+          onChanged: { addListener() {} },
+        },
+      };
+      globalThis.chrome = statusChrome;
+      globalThis.t = (key, value) => key === "syncLocalOnlyStatus"
+        ? `local:${value}` : key;
+      const makeStatusHost = () => {
+        document.querySelector("#opt-sync-local-only")?.remove();
+        delete _domRefs["opt-sync-local-only"];
+        const host = document.createElement("p");
+        host.id = "opt-sync-local-only";
+        host.hidden = true;
+        document.body.appendChild(host);
+        return host;
+      };
+      let host = makeStatusHost();
+      if (task10Ready) await pbpRefreshSyncLocalFallbackStatus();
+      check("E12 persistent Chrome Sync status identifies an overlay kept locally",
+        task10Ready && !host.hidden && host.textContent.includes("labelCustomCSSOverlay"));
+
+      statusLocal.savedThemes_localFallback = [];
+      if (task10Ready) await pbpRefreshSyncLocalFallbackStatus();
+      check("E12 persistent Chrome Sync status identifies saved themes kept locally",
+        task10Ready && !host.hidden && host.textContent.includes("labelSavedThemes"));
+
+      host = makeStatusHost();
+      if (task10Ready) await pbpRefreshSyncLocalFallbackStatus();
+      check("E12 local-only status is rebuilt from storage after page reload",
+        task10Ready && !host.hidden &&
+        host.textContent.includes("labelCustomCSSOverlay") &&
+        host.textContent.includes("labelSavedThemes"));
+      host.remove();
+      delete _domRefs["opt-sync-local-only"];
+
+      const metadata = {
+        createdAt: "2026-07-24T00:00:00.000Z",
+        extensionVersion: "3.1.4",
+        source: "manual",
+      };
+      const detected = task10Ready
+        ? pbpDetectLargeLocalFallbacks(statusLocal) : [];
+      const localPreview = pbpBuildBackupPreview(pbpPreflightBackupPayload({
+        _schemaVersion: 3,
+        _backup: metadata,
+        customOverlayCSS: "overlay",
+        savedThemes: [{ name: "One", css: "a{}" }],
+      }, []), "", {
+        enabled: true,
+        localFallbackKeys: detected,
+      });
+      check("E12 backup preview uses the shared detector for local-only fields",
+        localPreview.localFallbackKeys.includes("customOverlayCSS") &&
+        localPreview.localFallbackKeys.includes("savedThemes"));
+
+      globalThis.chrome = statusChrome;
+      globalThis.__pbpTestStorage = {
+        get: async () => ({}),
+        set: async () => {},
+      };
+      globalThis.__pbpTestSyncSetLarge = async () => {};
+      const partial = await pbpApplyBackupPayload({
+        _schemaVersion: 3,
+        _backup: metadata,
+        customOverlayCSS: "overlay",
+        savedThemes: [{ name: "One", css: "a{}" }],
+      }, {
+        exportableKeys: [],
+        saveOverlayWithFallback: async () => ({ fellBackToLocal: false }),
+        sections: { settings: true, themes: true, highlights: false, vocabulary: false },
+      });
+      check("E12 backup apply reports each selected fallback section as local-only",
+        partial.settings === "local-only" && partial.themes === "local-only");
+
+      const optionsSource = await fetch("../options.js").then((response) => response.text());
+      const keysStart = optionsSource.indexOf('syncKeysToggle?.addEventListener("change", async () => {');
+      const keysEnd = optionsSource.indexOf("  // ---- Apply options page theme", keysStart);
+      const keysSource = optionsSource.slice(keysStart, keysEnd);
+      let keysHandler;
+      let confirms = 0;
+      let disables = 0;
+      const keysToggle = {
+        checked: false,
+        disabled: false,
+        addEventListener: (_type, handler) => { keysHandler = handler; },
+      };
+      const keysDeps = {
+        syncKeysToggle: keysToggle,
+        confirm: () => { confirms++; return false; },
+        t: (key) => key,
+        pbpEnableSyncApiKeys: async () => {},
+        pbpDisableSyncApiKeys: async () => { disables++; },
+        pbpReadSecretSyncState: async () => ({ optSyncEnabled: true, syncApiKeys: true }),
+        $id: () => null,
+        setTimeout: () => 0,
+        console,
+      };
+      new Function(...Object.keys(keysDeps), keysSource)(...Object.values(keysDeps));
+      if (keysHandler) await keysHandler();
+      check("E12 disabling credential sync confirms before mutation and cancel restores the checkbox",
+        confirms === 1 && disables === 0 && keysToggle.checked === true &&
+        keysSource.indexOf('confirm(t("syncApiKeysDisableConfirm"))') <
+          keysSource.indexOf("pbpDisableSyncApiKeys()"));
+
+      const enMessages = await fetch("../_locales/en/messages.json")
+        .then((response) => response.json());
+      const confirmCopy = enMessages.syncApiKeysDisableConfirm?.message || "";
+      check("E12 credential-sync confirmation warns about other devices",
+        /other devices/i.test(confirmCopy) && /may|might|could/i.test(confirmCopy));
+      check("E12 credential-sync confirmation says Google Drive OAuth token is unaffected",
+        /Google Drive OAuth token/i.test(confirmCopy) &&
+        /not affected|unaffected/i.test(confirmCopy));
+    } finally {
+      globalThis.chrome = previousChrome;
+      globalThis.__pbpTestStorage = previousStorage;
+      globalThis.__pbpTestSyncSetLarge = previousLarge;
+      _settingsStorageCache = previousCache;
+      if (previousT === undefined) delete globalThis.t;
+      else globalThis.t = previousT;
+      document.querySelector("#opt-sync-local-only")?.remove();
+      delete _domRefs["opt-sync-local-only"];
+    }
+  })();
+
   const summary = document.createElement("h2");
   summary.id = "summary";
   summary.textContent = `${pass} passed, ${fail} failed`;

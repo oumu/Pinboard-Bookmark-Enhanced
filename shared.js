@@ -379,9 +379,27 @@ const SETTINGS_DEFAULTS = {
 // sync is enabled. Keep this list shared by persistence, reads, and cache
 // invalidation so physical chunk keys never leak into business code.
 const PBP_CHUNKED_SETTING_KEYS = ["customTagPrompt", "customSummaryPrompt", "translateGlossary", "tagPresets"];
+const PBP_LARGE_FALLBACK_FIELDS = Object.freeze({
+  customTagPrompt: "labelTagPrompt",
+  customSummaryPrompt: "labelSummaryPrompt",
+  translateGlossary: "translateGlossaryLabel",
+  tagPresets: "labelTagPresets",
+  customOverlayCSS: "labelCustomCSSOverlay",
+  savedThemes: "labelSavedThemes",
+});
 const PBP_LARGE_FALLBACK_KEYS = new Set(
-  [...PBP_CHUNKED_SETTING_KEYS, "customOverlayCSS", "savedThemes"].map((key) => `${key}_localFallback`)
+  Object.keys(PBP_LARGE_FALLBACK_FIELDS).map((key) => `${key}_localFallback`)
 );
+
+function pbpDetectLargeLocalFallbacks(snapshot) {
+  if (!snapshot || typeof snapshot !== "object") return [];
+  return Object.keys(PBP_LARGE_FALLBACK_FIELDS).filter((key) =>
+    Object.prototype.hasOwnProperty.call(snapshot, `${key}_localFallback`));
+}
+
+function pbpLargeFallbackFieldLabel(key) {
+  return PBP_LARGE_FALLBACK_FIELDS[key] || key;
+}
 
 // True iff a storage.onChanged `changes` object touched at least one real
 // setting key. Transient keys (_pbRateLimitTs, offlineQueue, caches, _wayback*,
@@ -1441,15 +1459,15 @@ async function pbpSyncSetLargeUnlocked(key, value) {
     return;
   }
   const fallbackKey = pbpLargeFallbackKey(key);
-  const all = await chrome.storage.sync.get(null);
-  const oldChunkKeys = Object.keys(all).filter((storedKey) => storedKey.startsWith(`${key}_`));
+  const prior = await chrome.storage.sync.get(key);
+  const priorMeta = prior[key];
+  const priorChunkKeys = pbpChunkStorageKeys(key, priorMeta);
   if (!str) {
     await chrome.storage.local.remove(fallbackKey);
-    await chrome.storage.sync.remove([key, ...oldChunkKeys]);
+    await chrome.storage.sync.remove([key, ...priorChunkKeys]);
     return;
   }
   const generation = pbpNewChunkGeneration();
-  const priorMeta = all[key];
   const baseGeneration = priorMeta && typeof priorMeta === "object" && typeof priorMeta._generation === "string"
     ? priorMeta._generation : null;
   let existingFallback = {};
@@ -1465,7 +1483,13 @@ async function pbpSyncSetLargeUnlocked(key, value) {
   const newChunkKeys = Object.keys(chunkData);
   try {
     await chrome.storage.sync.set(chunkData);
-    await chrome.storage.sync.set({ [key]: { _chunks: chunks.length, _generation: generation } });
+    await chrome.storage.sync.set({
+      [key]: {
+        _chunks: chunks.length,
+        _generation: generation,
+        _previousGeneration: baseGeneration,
+      },
+    });
   } catch (e) {
     await chrome.storage.sync.remove(newChunkKeys).catch(() => {});
     if (/QUOTA|quota/i.test(e && e.message || "")) {
@@ -1480,16 +1504,14 @@ async function pbpSyncSetLargeUnlocked(key, value) {
     }
     throw e;
   }
-  // Known cross-DEVICE limitation: the Web Lock serializes writers on THIS
-  // device only. If another device's write of the same key is in flight (its
-  // chunks arrived in sync, its metadata not yet), this prefix cleanup can
-  // delete that generation and orphan its later metadata commit.
-  // chrome.storage.sync offers no CAS to close the window; the reader-side
-  // retry/rescue paths bound the damage to that rare same-key same-moment
-  // collision.
-  const staleChunkKeys = oldChunkKeys.filter((storedKey) => !newChunkKeys.includes(storedKey));
-  if (staleChunkKeys.length) await chrome.storage.sync.remove(staleChunkKeys).catch(() => {});
-  await chrome.storage.local.remove(fallbackKey).catch(() => {});
+  let readback;
+  try { readback = (await chrome.storage.sync.get(key))[key]; } catch (_) {}
+  if (readback && readback._generation === generation) {
+    if (priorChunkKeys.length) {
+      await chrome.storage.sync.remove(priorChunkKeys).catch(() => {});
+    }
+    await chrome.storage.local.remove(fallbackKey).catch(() => {});
+  }
 }
 
 function syncSetLarge(key, value) {

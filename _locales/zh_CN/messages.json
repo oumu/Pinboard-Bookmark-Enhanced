@@ -1480,6 +1480,13 @@
   "syncApiKeysHint": {
     "message": "这是一个账号级选项，但只有开启设置同步的设备才会参与；其他设备继续使用本地凭据。新用户默认关闭。若升级时 Chrome Sync 已有非空凭据，为避免数据丢失会保持开启。同步的 API 密钥、令牌、密码和导出凭据仅做混淆存储，并未加密。"
   },
+  "syncLocalOnlyStatus": {
+    "message": "Chrome Sync 无法保存以下项目，因此它们仅保存在此设备：$FIELDS$。",
+    "placeholders": { "fields": { "content": "$1" } }
+  },
+  "syncApiKeysDisableConfirm": {
+    "message": "要关闭凭据同步吗？本设备将改用本地凭据，Chrome Sync 中的旧凭据会被清除。仍依赖这些云端凭据的其他设备可能无法正常工作。Google Drive OAuth 令牌不受影响。"
+  },
   "qlPopularTitle": {
     "message": "热门"
   },

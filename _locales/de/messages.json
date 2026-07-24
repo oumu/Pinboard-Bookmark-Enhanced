@@ -1480,6 +1480,13 @@
   "syncApiKeysHint": {
     "message": "Dies ist eine kontoweite Auswahl, aber nur Geräte mit aktivierter Einstellungssynchronisierung nehmen teil; andere Geräte verwenden weiterhin lokale Zugangsdaten. Bei neuen Nutzern ist sie standardmäßig deaktiviert. Findet ein Upgrade bereits nicht leere Zugangsdaten in Chrome Sync, bleibt sie zur Vermeidung von Datenverlust aktiviert. Synchronisierte API-Schlüssel, Tokens, Passwörter und Export-Zugangsdaten sind nur verschleiert, nicht verschlüsselt."
   },
+  "syncLocalOnlyStatus": {
+    "message": "Chrome Sync konnte diese Felder nicht speichern. Sie sind nur auf diesem Gerät verfügbar: $FIELDS$.",
+    "placeholders": { "fields": { "content": "$1" } }
+  },
+  "syncApiKeysDisableConfirm": {
+    "message": "Synchronisierung der Zugangsdaten deaktivieren? Dieses Gerät verwendet danach lokale Zugangsdaten und alte Zugangsdaten in Chrome Sync werden gelöscht. Andere Geräte, die noch auf diese Cloud-Zugangsdaten angewiesen sind, funktionieren möglicherweise nicht mehr. Dein Google Drive OAuth-Token bleibt davon unberührt."
+  },
   "qlPopularTitle": {
     "message": "Beliebt"
   },

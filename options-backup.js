@@ -289,6 +289,24 @@ async function pbpApplyBackupPayload(data, {
     }
   }
 
+  try {
+    const local = await chrome.storage.local.get(["optSyncEnabled", ...PBP_LARGE_FALLBACK_KEYS]);
+    if (local.optSyncEnabled === true) {
+      const fallbacks = new Set(pbpBackupLocalFallbackFields(prepared, {
+        enabled: true,
+        localFallbackKeys: pbpDetectLargeLocalFallbacks(local),
+      }, Object.fromEntries(Object.entries(selected)
+        .map(([key, enabled]) => [key, { enabled: !!enabled }]))));
+      if (result.settings === "applied" &&
+          [...fallbacks].some((key) => key !== "savedThemes")) {
+        result.settings = "local-only";
+      }
+      if (result.themes === "applied" && fallbacks.has("savedThemes")) {
+        result.themes = "local-only";
+      }
+    }
+  } catch (_) {}
+
   result.highlightsSkipped = highlightsSkipped;
   result.statusKey = ["failed", "local-only"].includes(result.settings) ||
     ["failed", "local-only"].includes(result.themes) ||
@@ -513,8 +531,7 @@ function setupBackup({ exportableKeys, saveOverlayWithFallback, loadThemes, befo
       selectionText = text;
       const warningCount = renderPreview(pbpBuildBackupPreview(prepared, currentOwner, {
         enabled: local.optSyncEnabled === true,
-        localFallbackKeys: [...PBP_LARGE_FALLBACK_KEYS].filter((key) =>
-          Object.prototype.hasOwnProperty.call(local, key)),
+        localFallbackKeys: pbpDetectLargeLocalFallbacks(local),
       }));
       const status = $id("import-status");
       if (warningCount === 0) {
@@ -569,7 +586,7 @@ function setupBackup({ exportableKeys, saveOverlayWithFallback, loadThemes, befo
       }
     } finally {
       if (applyPaused && afterApply) {
-        try { afterApply(); } catch (_) {}
+        try { await afterApply(); } catch (_) {}
       }
       setApplyBusy(token, false);
     }

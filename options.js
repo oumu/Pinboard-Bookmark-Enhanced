@@ -71,6 +71,24 @@ async function saveOverlayWithFallback(value) {
   }
 }
 
+async function pbpRefreshSyncLocalFallbackStatus() {
+  const status = $id("opt-sync-local-only");
+  if (!status) return [];
+  let local;
+  try {
+    local = await chrome.storage.local.get(["optSyncEnabled", ...PBP_LARGE_FALLBACK_KEYS]);
+  } catch (_) {
+    return [];
+  }
+  const fields = local.optSyncEnabled === true
+    ? pbpDetectLargeLocalFallbacks(local) : [];
+  status.hidden = fields.length === 0;
+  status.textContent = fields.length
+    ? t("syncLocalOnlyStatus", fields.map((key) => t(pbpLargeFallbackFieldLabel(key))).join(", "))
+    : "";
+  return fields;
+}
+
 // One auto-save transaction with explicit mutable baselines. Ordinary
 // settings commit first; an invalid/failed overlay cannot roll their baseline
 // back or cause an unrelated stale form snapshot to be retried later.
@@ -1234,6 +1252,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     syncKeysToggle.checked = syncApiKeys;
     syncKeysToggle.disabled = !optSyncEnabled;
   }
+  await pbpRefreshSyncLocalFallbackStatus();
 
   // Sync toggle change: migrate settings then reload
   syncToggle?.addEventListener("change", async () => {
@@ -1411,6 +1430,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   // the current sync truth down, then flip the flag and scrub sync.
   syncKeysToggle?.addEventListener("change", async () => {
     const enabling = syncKeysToggle.checked;
+    if (!enabling && !confirm(t("syncApiKeysDisableConfirm"))) {
+      syncKeysToggle.checked = true;
+      return;
+    }
     try {
       if (enabling) {
         await pbpEnableSyncApiKeys();
@@ -1803,6 +1826,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           }
         },
       });
+      await pbpRefreshSyncLocalFallbackStatus();
       if (result.fellBackToLocal) {
         flashAutoSave("optSavedLocally", "Saved locally (sync quota full)", 4000);
       } else {
@@ -1866,7 +1890,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     loadThemes: _loadPinboardThemes,
     beforeExport: async () => (await flushOptionsAutoSave()).ok,
     beforeApply: pauseOptionsAutoSave,
-    afterApply: resumeOptionsAutoSave,
+    afterApply: async () => {
+      resumeOptionsAutoSave();
+      await pbpRefreshSyncLocalFallbackStatus();
+    },
   });
   setupApiTests();
 
@@ -1989,7 +2016,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   async function persistSavedThemes() {
-    await syncSetLarge("savedThemes", savedThemes);
+    try {
+      await syncSetLarge("savedThemes", savedThemes);
+    } finally {
+      await pbpRefreshSyncLocalFallbackStatus();
+    }
   }
 
   function renderSavedThemes() {

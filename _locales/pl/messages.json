@@ -1480,6 +1480,13 @@
   "syncApiKeysHint": {
     "message": "To jeden wybór dla całego konta, ale uczestniczą w nim tylko urządzenia z włączoną synchronizacją ustawień; pozostałe nadal używają lokalnych danych uwierzytelniających. Dla nowych użytkowników jest domyślnie wyłączony. Jeśli aktualizacja znajdzie w Chrome Sync istniejące niepuste dane uwierzytelniające, pozostaje włączony, aby uniknąć utraty danych. Synchronizowane klucze API, tokeny, hasła i dane uwierzytelniające eksportu są jedynie zaciemnione, a nie zaszyfrowane."
   },
+  "syncLocalOnlyStatus": {
+    "message": "Chrome Sync nie mógł zapisać tych pól. Są dostępne tylko na tym urządzeniu: $FIELDS$.",
+    "placeholders": { "fields": { "content": "$1" } }
+  },
+  "syncApiKeysDisableConfirm": {
+    "message": "Wyłączyć synchronizację danych uwierzytelniających? To urządzenie zacznie używać lokalnych danych uwierzytelniających, a stare dane w Chrome Sync zostaną usunięte. Inne urządzenia, które nadal korzystają z tych danych w chmurze, mogą przestać działać. Nie wpłynie to na token OAuth Dysku Google."
+  },
   "qlPopularTitle": {
     "message": "Popularne"
   },
