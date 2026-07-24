@@ -906,7 +906,7 @@
     "message": "Sauvegarde et restauration"
   },
   "backupHint": {
-    "message": "Exporter/importer vos paramètres (les clés API sont exclues de l'export pour des raisons de sécurité)."
+    "message": "Exportez ou importez les paramètres et les données sélectionnées. Les clés API sont exclues des exportations."
   },
   "backupIncludeHighlightsLabel": {
     "message": "Inclure les surlignages et les notes dans les sauvegardes"
@@ -941,15 +941,15 @@
     "message": "Inconnu"
   },
   "backupPreviewSettings": {
-    "message": "$COUNT$ champs",
+    "message": "Champs de paramètres : $COUNT$",
     "placeholders": { "count": { "content": "$1" } }
   },
   "backupPreviewThemes": {
-    "message": "$COUNT$ thèmes personnalisés",
+    "message": "Thèmes personnalisés : $COUNT$",
     "placeholders": { "count": { "content": "$1" } }
   },
   "backupPreviewHighlights": {
-    "message": "$PAGES$ pages, $ITEMS$ entrées ; compte Pinboard : $OWNER$",
+    "message": "Pages : $PAGES$ ; entrées : $ITEMS$ ; compte Pinboard : $OWNER$",
     "placeholders": {
       "pages": { "content": "$1" },
       "items": { "content": "$2" },
@@ -957,7 +957,7 @@
     }
   },
   "backupPreviewVocabulary": {
-    "message": "$COUNT$ mots ; compte Pinboard : $OWNER$",
+    "message": "Entrées de vocabulaire : $COUNT$ ; compte Pinboard : $OWNER$",
     "placeholders": {
       "count": { "content": "$1" },
       "owner": { "content": "$2" }
@@ -975,11 +975,17 @@
   "backupPreviewOwnerMismatch": {
     "message": "Le vocabulaire ne peut pas être importé, car cette sauvegarde appartient à un autre compte Pinboard."
   },
+  "backupPreviewHighlightOwnerMismatch": {
+    "message": "Les surlignages et les notes ne peuvent pas être importés, car cette sauvegarde appartient à un autre compte Pinboard."
+  },
+  "backupPreviewReady": {
+    "message": "L’aperçu de l’importation est prêt."
+  },
   "backupPreviewSyncWarning": {
     "message": "La synchronisation des paramètres est activée sur cet appareil. Les paramètres importés peuvent être transmis à d’autres appareils Chrome."
   },
   "backupPreviewLocalWarning": {
-    "message": "Ces champs volumineux devraient rester sur cet appareil : $FIELDS$.",
+    "message": "Ces champs sélectionnés sont actuellement stockés sur cet appareil uniquement ou nécessitent ce stockage en raison de leur taille : $FIELDS$.",
     "placeholders": { "fields": { "content": "$1" } }
   },
   "backupSectionSettings": {

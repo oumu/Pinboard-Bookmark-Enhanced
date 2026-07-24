@@ -40,8 +40,17 @@ check("zero negative fractional and unsafe counters reject", [0, -1, 1.5, Number
 check("dot sorts counter first", pbpVocabDotCompare({ deviceId: "z", counter: 1 }, { deviceId: "a", counter: 2 }) < 0);
 check("dot uses NFC code-point deviceId ties", pbpVocabDotCompare({ deviceId: "\uE000", counter: 2 }, { deviceId: "\u{10000}", counter: 2 }) < 0 && throws(() => pbpVocabDotCompare({ deviceId: "e\u0301", counter: 2 }, { deviceId: "z", counter: 2 })));
 check("groups union normalizes whitespace", pbpVocabMergeEvents(live("a", 2, { groups: [" English  "] }), live("b", 1, { groups: ["English", "French\tA"] })).event.value.groups.join(",") === "English,French A");
-check("contexts union", pbpVocabMergeEvents(live("a", 2, { contexts: [{ articleUrl: "u1", quote: "q1" }] }), live("b", 1, { contexts: [{ articleUrl: "u2", quote: "q2" }] })).event.value.contexts.length === 2);
-check("contexts dedupe articleUrl plus quote", pbpVocabMergeEvents(live("a", 2, { contexts: [{ articleUrl: "u1", quote: "q1" }] }), live("b", 1, { contexts: [{ articleUrl: "u1", quote: "q1" }] })).event.value.contexts.length === 1);
+check("contexts union", pbpVocabMergeEvents(live("a", 2, { contexts: [{ articleUrl: "https://u1.test/", quote: "q1" }] }), live("b", 1, { contexts: [{ articleUrl: "https://u2.test/", quote: "q2" }] })).event.value.contexts.length === 2);
+check("contexts dedupe articleUrl plus quote", pbpVocabMergeEvents(live("a", 2, { contexts: [{ articleUrl: "https://u1.test/", quote: "q1" }] }), live("b", 1, { contexts: [{ articleUrl: "https://u1.test/", quote: "q1" }] })).event.value.contexts.length === 1);
+check("context articleUrl accepts only empty or normalized credential-free HTTP(S)", (() => {
+  const context = (articleUrl) => live("a", 1, { contexts: [{ articleUrl, quote: "q" }] });
+  return pbpVocabValidateEvent(context("")) &&
+    pbpVocabValidateEvent(context("https://article.test/path")) &&
+    !pbpVocabValidateEvent(context("https://article.test")) &&
+    !pbpVocabValidateEvent(context("https://user:pass@article.test/")) &&
+    !pbpVocabValidateEvent(context("javascript:alert(1)")) &&
+    !pbpVocabValidateEvent(context("data:text/plain,private"));
+})());
 check("non-empty note beats higher-dot empty note", pbpVocabMergeEvents(live("a", 1, { note: "keep" }), live("b", 2, { note: "" })).event.value.note === "keep");
 check("two notes use stable winner", pbpVocabMergeEvents(live("a", 1, { note: "local" }), live("b", 2, { note: "remote" })).event.value.note === "remote");
 check("sourceUrl and license share winner", (() => { const m = pbpVocabMergeEvents(live("a", 1, { sourceUrl: "https://a.test/", license: "A" }), live("b", 2, { sourceUrl: "https://b.test/", license: "B" })); return m.event.value.sourceUrl === "https://b.test/" && m.event.value.license === "B"; })());

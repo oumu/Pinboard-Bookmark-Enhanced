@@ -267,18 +267,18 @@ async function pbpApplyBackupPayload(data, {
   }
 
   if (selected.vocabulary && prepared.vocabulary) {
-    const scope = pbpDictOwnerScope(prepared.vocabulary.owner);
+    const scope = pbpBackupOwnerScope(prepared.vocabulary.owner);
     const importer = importVocabulary || pbpVocabImportRecords;
     try {
-      if (pbpDictOwnerScope(await getOwner()) !== scope) throw new Error("vocabulary owner mismatch");
+      if (!scope || pbpBackupOwnerScope(await getOwner()) !== scope) throw new Error("vocabulary owner mismatch");
       for (let offset = 0; offset < prepared.vocabulary.records.length; offset += 100) {
-        if (pbpDictOwnerScope(await getOwner()) !== scope) throw new Error("vocabulary owner mismatch");
+        if (pbpBackupOwnerScope(await getOwner()) !== scope) throw new Error("vocabulary owner mismatch");
         const batch = prepared.vocabulary.records.slice(offset, offset + 100);
         const imported = await importer(scope, batch, 100);
         if (!imported || !imported.ok) throw new Error("vocabulary import failed");
         result.vocabularyApplied += imported.processed;
         if (onVocabularyProgress) onVocabularyProgress(result.vocabularyApplied, prepared.vocabulary.records.length);
-        if (pbpDictOwnerScope(await getOwner()) !== scope) throw new Error("vocabulary owner mismatch");
+        if (pbpBackupOwnerScope(await getOwner()) !== scope) throw new Error("vocabulary owner mismatch");
       }
       result.vocabulary = "applied";
     } catch (_) {
@@ -300,6 +300,7 @@ async function pbpApplyBackupPayload(data, {
 function setupBackup({ exportableKeys, saveOverlayWithFallback, loadThemes, beforeExport, beforeApply, afterApply }) {
   let selectionToken = 0;
   let selectionText = "";
+  let busyToken = null;
   const readOwner = async () => {
     const secret = await pbpReadSettingsWithSecrets({ pinboardToken: "" });
     return pbpPinboardAccountFromToken(secret.pinboardToken);
@@ -307,6 +308,22 @@ function setupBackup({ exportableKeys, saveOverlayWithFallback, loadThemes, befo
   const setPreviewText = (id, text) => {
     const element = $id(id);
     if (element) element.textContent = text;
+  };
+  const setApplyBusy = (token, busy) => {
+    if (busy) busyToken = token;
+    else if (busyToken !== token) return;
+    else busyToken = null;
+    const apply = $id("backup-import-apply");
+    const importButton = $id("import-settings");
+    if (importButton) importButton.disabled = busy;
+    if (apply) apply.disabled = busy;
+  };
+  const resetBusyForSelection = () => {
+    busyToken = null;
+    const apply = $id("backup-import-apply");
+    const importButton = $id("import-settings");
+    if (importButton) importButton.disabled = false;
+    if (apply) apply.disabled = true;
   };
   const renderPreview = (preview) => {
     const metadata = preview.metadata || {};
@@ -336,6 +353,7 @@ function setupBackup({ exportableKeys, saveOverlayWithFallback, loadThemes, befo
     setPreviewText("backup-preview-languages", languages || t("backupPreviewNone"));
     const warnings = [];
     if (preview.ownerMismatch) warnings.push(t("backupPreviewOwnerMismatch"));
+    if (preview.highlightOwnerMismatch) warnings.push(t("backupPreviewHighlightOwnerMismatch"));
     if (preview.syncWarning) warnings.push(t("backupPreviewSyncWarning"));
     if (preview.localFallbackKeys.length) {
       const labels = {
@@ -347,7 +365,7 @@ function setupBackup({ exportableKeys, saveOverlayWithFallback, loadThemes, befo
         savedThemes: "labelSavedThemes",
       };
       warnings.push(t("backupPreviewLocalWarning", preview.localFallbackKeys
-        .map((key) => t(labels[key.replace(/_localFallback$/, "")] || key))
+        .map((key) => t(labels[key] || key))
         .join(", ")));
     }
     setPreviewText("backup-preview-warning", warnings.join(" "));
@@ -367,6 +385,7 @@ function setupBackup({ exportableKeys, saveOverlayWithFallback, loadThemes, befo
     if (apply) apply.disabled = !Object.values(preview.sections).some((section) => section.enabled);
     const host = $id("backup-import-preview");
     if (host) host.hidden = false;
+    return warnings.length;
   };
   const renderResult = (result) => {
     const statusKeys = {
@@ -416,7 +435,7 @@ function setupBackup({ exportableKeys, saveOverlayWithFallback, loadThemes, befo
       let vocabulary = null;
       let owner = "";
       if (raw.backupIncludeHighlights !== false || includeVocabulary) {
-        try { owner = await readOwner(); } catch (_) {}
+        try { owner = pbpCanonicalBackupOwner(await readOwner()); } catch (_) {}
       }
       if (raw.backupIncludeHighlights !== false) {
         const allLocal = await chrome.storage.local.get(null);
@@ -430,7 +449,9 @@ function setupBackup({ exportableKeys, saveOverlayWithFallback, loadThemes, befo
         } else {
           const scope = pbpDictOwnerScope(owner);
           const records = await pbpVocabAll(scope);
-          if (await readOwner() !== owner) throw new Error("Pinboard account changed during backup");
+          if (pbpCanonicalBackupOwner(await readOwner()) !== owner) {
+            throw new Error("Pinboard account changed during backup");
+          }
           vocabulary = { owner, records };
           if (exportNote) exportNote.textContent = "";
         }
@@ -474,6 +495,7 @@ function setupBackup({ exportableKeys, saveOverlayWithFallback, loadThemes, befo
     if (!file) return;
     const token = ++selectionToken;
     selectionText = "";
+    resetBusyForSelection();
     const previewHost = $id("backup-import-preview");
     if (previewHost) previewHost.hidden = true;
     const resultHost = $id("backup-import-result");
@@ -489,14 +511,17 @@ function setupBackup({ exportableKeys, saveOverlayWithFallback, loadThemes, befo
       ]);
       if (token !== selectionToken) return;
       selectionText = text;
-      renderPreview(pbpBuildBackupPreview(prepared, currentOwner, {
+      const warningCount = renderPreview(pbpBuildBackupPreview(prepared, currentOwner, {
         enabled: local.optSyncEnabled === true,
         localFallbackKeys: [...PBP_LARGE_FALLBACK_KEYS].filter((key) =>
-          Object.prototype.hasOwnProperty.call(local, key))
-          .map((key) => key.replace(/_localFallback$/, "")),
+          Object.prototype.hasOwnProperty.call(local, key)),
       }));
       const status = $id("import-status");
-      if (status) status.textContent = "";
+      if (warningCount === 0) {
+        setStatusIcon(status, true, t("backupPreviewReady"));
+      } else if (status) {
+        status.textContent = "";
+      }
     } catch (err) {
       console.error("[import] failed", err);
       if (token !== selectionToken) return;
@@ -510,11 +535,8 @@ function setupBackup({ exportableKeys, saveOverlayWithFallback, loadThemes, befo
     const token = selectionToken;
     const text = selectionText;
     if (!text) return;
-    const applyButton = $id("backup-import-apply");
-    const importButton = $id("import-settings");
     let applyPaused = false;
-    if (applyButton) applyButton.disabled = true;
-    if (importButton) importButton.disabled = true;
+    setApplyBusy(token, true);
     try {
       const data = JSON.parse(text);
       pbpPreflightBackupPayload(data, exportableKeys);
@@ -549,10 +571,7 @@ function setupBackup({ exportableKeys, saveOverlayWithFallback, loadThemes, befo
       if (applyPaused && afterApply) {
         try { afterApply(); } catch (_) {}
       }
-      if (token === selectionToken) {
-        if (applyButton) applyButton.disabled = false;
-        if (importButton) importButton.disabled = false;
-      }
+      setApplyBusy(token, false);
     }
   });
 }

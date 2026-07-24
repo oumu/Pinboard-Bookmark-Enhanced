@@ -29,7 +29,8 @@ function pbpDictVocabKey(owner, lang, term) {
 function pbpDictSafeUrl(url) {
   try {
     const u = new URL(String(url || ""));
-    return (u.protocol === "https:" || u.protocol === "http:") ? u.href : "";
+    return (u.protocol === "https:" || u.protocol === "http:") &&
+      !u.username && !u.password ? u.href : "";
   } catch (_) { return ""; }
 }
 
@@ -124,7 +125,8 @@ function pbpVocabDotCompare(left, right) {
 function _pbpVocabValidContext(context) {
   if (!_pbpVocabOnlyKeys(context, ["quote", "articleUrl", "articleTitle", "highlightId", "createdAt"]) ||
       typeof context.quote !== "string" || !context.quote || typeof context.articleUrl !== "string") return false;
-  return (context.articleTitle === undefined || typeof context.articleTitle === "string") &&
+  return (context.articleUrl === "" || pbpDictSafeUrl(context.articleUrl) === context.articleUrl) &&
+    (context.articleTitle === undefined || typeof context.articleTitle === "string") &&
     (context.highlightId === undefined || context.highlightId === null || typeof context.highlightId === "string") &&
     (context.createdAt === undefined || Number.isFinite(context.createdAt));
 }

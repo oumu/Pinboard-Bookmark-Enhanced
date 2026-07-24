@@ -906,7 +906,7 @@
     "message": "備份與還原"
   },
   "backupHint": {
-    "message": "匯出或匯入設定（出於安全考慮，API 密鑰不包含在匯出檔案中）。"
+    "message": "匯出或匯入設定及所選資料。匯出檔案不包含 API 密鑰。"
   },
   "backupIncludeHighlightsLabel": {
     "message": "在備份中包含標記和筆記"
@@ -941,15 +941,15 @@
     "message": "未知"
   },
   "backupPreviewSettings": {
-    "message": "$COUNT$ 個欄位",
+    "message": "設定欄位：$COUNT$",
     "placeholders": { "count": { "content": "$1" } }
   },
   "backupPreviewThemes": {
-    "message": "$COUNT$ 個自訂主題",
+    "message": "自訂主題：$COUNT$",
     "placeholders": { "count": { "content": "$1" } }
   },
   "backupPreviewHighlights": {
-    "message": "$PAGES$ 個頁面，$ITEMS$ 項記錄；Pinboard 帳號：$OWNER$",
+    "message": "頁面：$PAGES$；記錄：$ITEMS$；Pinboard 帳號：$OWNER$",
     "placeholders": {
       "pages": { "content": "$1" },
       "items": { "content": "$2" },
@@ -957,7 +957,7 @@
     }
   },
   "backupPreviewVocabulary": {
-    "message": "$COUNT$ 個生詞；Pinboard 帳號：$OWNER$",
+    "message": "生詞記錄：$COUNT$；Pinboard 帳號：$OWNER$",
     "placeholders": {
       "count": { "content": "$1" },
       "owner": { "content": "$2" }
@@ -975,11 +975,17 @@
   "backupPreviewOwnerMismatch": {
     "message": "此備份屬於另一個 Pinboard 帳號，無法匯入當中的生詞。"
   },
+  "backupPreviewHighlightOwnerMismatch": {
+    "message": "此備份屬於另一個 Pinboard 帳號，無法匯入當中的標記和筆記。"
+  },
+  "backupPreviewReady": {
+    "message": "匯入預覽已準備好。"
+  },
   "backupPreviewSyncWarning": {
     "message": "本裝置已開啟設定同步。匯入的設定可能會同步到其他 Chrome 裝置。"
   },
   "backupPreviewLocalWarning": {
-    "message": "這些大型欄位預計只會儲存在本裝置：$FIELDS$。",
+    "message": "這些已選欄位目前只儲存在本裝置，或因大小限制只能儲存在本裝置：$FIELDS$。",
     "placeholders": { "fields": { "content": "$1" } }
   },
   "backupSectionSettings": {

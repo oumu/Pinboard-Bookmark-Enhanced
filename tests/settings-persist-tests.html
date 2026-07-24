@@ -2074,6 +2074,8 @@ async function run() {
   // ---------- E7: manual export uses the live highlight-backup checkbox ----------
   let e7ExportedVocabScope = "";
   let e7ExportOwnerReads = 0;
+  let e7VocabReadCalls = 0;
+  let e7ExportedWithoutVocab = false;
   await (async () => {
     const prevChromeE7 = globalThis.chrome;
     const prevCreateObjectURL = URL.createObjectURL;
@@ -2130,6 +2132,7 @@ async function run() {
       URL.createObjectURL = (blob) => { exportedBlob = blob; return "blob:pbp-test"; };
       URL.revokeObjectURL = () => {};
       globalThis.pbpVocabAll = async (scope) => {
+        e7VocabReadCalls++;
         e7ExportedVocabScope = scope;
         return [];
       };
@@ -2164,6 +2167,19 @@ async function run() {
         exported.exportTargets.webhook.enabled === true &&
         !("url" in exported.exportTargets.webhook) && !("token" in exported.exportTargets.webhook) &&
         !("token" in exported.exportTargets.github));
+      const vocabReadsBeforeDisabledExport = e7ExportOwnerReads;
+      const vocabStoreReadsBeforeDisabledExport = e7VocabReadCalls;
+      exportedBlob = null;
+      document.getElementById("opt-backup-include-vocabulary").checked = false;
+      document.getElementById("export-settings").click();
+      for (let i = 0; i < 20 && !exportedBlob; i++) {
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+      }
+      const exportedWithoutVocab = exportedBlob ? JSON.parse(await exportedBlob.text()) : null;
+      e7ExportedWithoutVocab = !!exportedWithoutVocab &&
+        !("_vocabulary" in exportedWithoutVocab) &&
+        e7ExportOwnerReads === vocabReadsBeforeDisabledExport &&
+        e7VocabReadCalls === vocabStoreReadsBeforeDisabledExport;
     } finally {
       globalThis.chrome = prevChromeE7;
       URL.createObjectURL = prevCreateObjectURL;
@@ -2173,6 +2189,8 @@ async function run() {
       wrap.remove();
     }
   })();
+  check("E7 manual export with vocabulary disabled neither reads nor exports vocabulary",
+    e7ExportedWithoutVocab);
 
   // ---------- E7b: backup schema/type/nested-secret preflight ----------
   await (async () => {
@@ -2648,6 +2666,9 @@ async function run() {
     let vectorRejected = false;
     let tombstoneRejected = false;
     let queueRejected = false;
+    let unsafeContextRejected = false;
+    let sparseRecordsRejected = false;
+    let whitespaceOwnerHandled = false;
     if (task9Ready) {
       try { pbpSanitizeBackupVocabulary({ owner: backupOwner, records: [makeRecord("vector", "en", { vector: { d: 1 }, dot: { deviceId: "d", counter: 1 } })] }); }
       catch (error) { vectorRejected = error instanceof TypeError; }
@@ -2655,10 +2676,43 @@ async function run() {
       catch (error) { tombstoneRejected = error instanceof TypeError; }
       try { pbpSanitizeBackupVocabulary({ owner: backupOwner, records: [makeRecord("queued", "en", { outbox: [], batch: {} })] }); }
       catch (error) { queueRejected = error instanceof TypeError; }
+      try {
+        pbpSanitizeBackupVocabulary({
+          owner: backupOwner,
+          records: [makeRecord("unsafe", "en", {
+            contexts: [{
+              quote: "unsafe",
+              articleUrl: "https://user:pass@example.test/",
+              articleTitle: "Unsafe",
+              highlightId: null,
+              createdAt: 1,
+            }],
+          })],
+        });
+      } catch (error) { unsafeContextRejected = error instanceof TypeError; }
+      const sparseRecords = [];
+      sparseRecords.length = 1;
+      try { pbpSanitizeBackupVocabulary({ owner: backupOwner, records: sparseRecords }); }
+      catch (error) { sparseRecordsRejected = error instanceof TypeError; }
+      let blankRejected = false;
+      let paddedOwner = null;
+      try { pbpSanitizeBackupVocabulary({ owner: " \t ", records: [] }); }
+      catch (error) { blankRejected = error instanceof TypeError; }
+      try {
+        paddedOwner = pbpSanitizeBackupVocabulary({
+          owner: `  ${backupOwner}  `,
+          records: [makeRecord("canonical-owner")],
+        });
+      } catch (_) {}
+      whitespaceOwnerHandled = blankRejected && paddedOwner?.owner === backupOwner;
     }
     check("E11 vocabulary backup rejects vectors and dots", vectorRejected);
     check("E11 vocabulary backup rejects tombstones", tombstoneRejected);
     check("E11 vocabulary backup rejects outbox and batch metadata", queueRejected);
+    check("E11 vocabulary backup rejects unsafe context article URLs", unsafeContextRejected);
+    check("E11 vocabulary backup rejects sparse records arrays", sparseRecordsRejected);
+    check("E11 vocabulary backup rejects blank owner and canonicalizes padded owner",
+      whitespaceOwnerHandled);
     check("E11 backup excludes OAuth tokens and Drive account data",
       !!snapshot && !/oauth|accessToken|refreshToken|driveAccount|drivePermissionId|vocabDriveConnected|permissionId/i
         .test(JSON.stringify(snapshot)));
@@ -2705,7 +2759,24 @@ async function run() {
     const preview = task9Ready
       ? pbpBuildBackupPreview(previewPrepared, backupOwner, {
           enabled: true,
-          localFallbackKeys: ["savedThemes"],
+          localFallbackKeys: ["savedThemes_localFallback"],
+        })
+      : null;
+    const predictedFallbackPreview = task9Ready
+      ? pbpBuildBackupPreview(pbpPreflightBackupPayload({
+          _schemaVersion: 3,
+          _backup: metadata,
+          customOverlayCSS: "中".repeat(Math.ceil(OVERLAY_BYTE_LIMIT / 3) + 1),
+        }, []), backupOwner, { enabled: true, localFallbackKeys: [] })
+      : null;
+    const unrelatedFallbackPreview = task9Ready
+      ? pbpBuildBackupPreview(pbpPreflightBackupPayload({
+          _schemaVersion: 3,
+          _backup: metadata,
+          optTheme: "dark",
+        }, ["optTheme"]), backupOwner, {
+          enabled: true,
+          localFallbackKeys: ["savedThemes_localFallback"],
         })
       : null;
 
@@ -2713,7 +2784,13 @@ async function run() {
     let beforeApplyCalls = 0;
     let writesBeforeApply = 0;
     let previewBeforeWrite = false;
+    let cleanPreviewAnnounced = false;
+    let highlightWarningRendered = false;
     let exactTextRepreflight = false;
+    let selectionRaceSafe = false;
+    let selectionRaceEvidence = {};
+    let deferApply = false;
+    let releaseDeferredApply = null;
     const originalParse = JSON.parse;
     const parsedTexts = [];
     const previousT = globalThis.t;
@@ -2774,11 +2851,14 @@ async function run() {
         set: async (data) => { writesBeforeApply++; Object.assign(local, data); },
       };
       globalThis.__pbpTestSyncSetLarge = async () => {};
-      globalThis.t = (key) => key;
+      globalThis.t = (key, ...args) => [key, ...args].join("|");
       setupBackup({
-        exportableKeys: ["optTheme"],
+        exportableKeys: ["optTheme", "customFont"],
         saveOverlayWithFallback: async () => ({ fellBackToLocal: false }),
-        beforeApply: async () => { beforeApplyCalls++; },
+        beforeApply: async () => {
+          beforeApplyCalls++;
+          if (deferApply) await new Promise((resolve) => { releaseDeferredApply = resolve; });
+        },
       });
       const oldText = JSON.stringify({
         _schemaVersion: 3,
@@ -2815,6 +2895,8 @@ async function run() {
       await new Promise((resolve) => requestAnimationFrame(resolve));
       previewBeforeWrite = !fixture.querySelector("#backup-import-preview").hidden &&
         beforeApplyCalls === 0 && writesBeforeApply === 0;
+      cleanPreviewAnnounced = fixture.querySelector("#import-status").textContent
+        .includes("backupPreviewReady");
       fixture.querySelector("#backup-section-settings").checked = true;
       fixture.querySelector("#backup-section-themes").checked = false;
       fixture.querySelector("#backup-section-highlights").checked = false;
@@ -2825,6 +2907,83 @@ async function run() {
       }
       exactTextRepreflight = parsedTexts.filter((value) => value === text).length === 2 &&
         !parsedTexts.includes(oldText) && beforeApplyCalls === 1 && local.optTheme === "dark";
+
+      const highlightMismatchText = JSON.stringify({
+        _schemaVersion: 3,
+        _backup: metadata,
+        _highlightsOwner: "different-owner",
+        _highlights: {
+          pbp_hl_mismatch: {
+            v: 1,
+            url: "https://mismatch.test/",
+            title: "Mismatch",
+            items: [{ id: "m", n: 1, quote: "mismatch", color: 1 }],
+          },
+        },
+      });
+      Object.defineProperty(fileInput, "files", {
+        configurable: true,
+        value: [{ text: async () => highlightMismatchText }],
+      });
+      fileInput.dispatchEvent(new Event("change"));
+      for (let i = 0; i < 20 && fixture.querySelector("#backup-import-preview").hidden; i++) {
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+      }
+      highlightWarningRendered = fixture.querySelector("#backup-preview-warning").textContent
+        .includes("backupPreviewHighlightOwnerMismatch");
+
+      const raceOldText = JSON.stringify({
+        _schemaVersion: 3,
+        _backup: metadata,
+        optTheme: "light",
+        customOverlayCSS: "",
+      });
+      const raceNewText = JSON.stringify({
+        _schemaVersion: 3,
+        _backup: metadata,
+        optTheme: "auto",
+        customFont: "Reader Sans",
+        customOverlayCSS: "",
+      });
+      Object.defineProperty(fileInput, "files", {
+        configurable: true,
+        value: [{ text: async () => raceOldText }],
+      });
+      fileInput.dispatchEvent(new Event("change"));
+      for (let i = 0; i < 20 && fixture.querySelector("#backup-import-preview").hidden; i++) {
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+      }
+      fixture.querySelector("#backup-section-settings").checked = true;
+      deferApply = true;
+      fixture.querySelector("#backup-import-apply").click();
+      for (let i = 0; i < 20 && !fixture.querySelector("#import-settings").disabled; i++) {
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+      }
+      Object.defineProperty(fileInput, "files", {
+        configurable: true,
+        value: [{ text: async () => raceNewText }],
+      });
+      fileInput.dispatchEvent(new Event("change"));
+      for (let i = 0; i < 20 && fixture.querySelector("#backup-import-preview").hidden; i++) {
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+      }
+      const newPreviewCount = fixture.querySelector("#backup-preview-settings").textContent;
+      releaseDeferredApply();
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      selectionRaceEvidence = {
+        importEnabled: !fixture.querySelector("#import-settings").disabled,
+        applyEnabled: !fixture.querySelector("#backup-import-apply").disabled,
+        newPreviewCount,
+        currentPreviewCount: fixture.querySelector("#backup-preview-settings").textContent,
+        resultHidden: fixture.querySelector("#backup-import-result").hidden,
+        currentTheme: local.optTheme,
+      };
+      selectionRaceSafe = selectionRaceEvidence.importEnabled &&
+        selectionRaceEvidence.applyEnabled &&
+        newPreviewCount.includes("2") &&
+        selectionRaceEvidence.currentPreviewCount === newPreviewCount &&
+        selectionRaceEvidence.resultHidden &&
+        selectionRaceEvidence.currentTheme === "dark";
     } catch (_) {
       previewBeforeWrite = false;
       exactTextRepreflight = false;
@@ -2838,6 +2997,7 @@ async function run() {
       fixture.remove();
     }
     check("E11 file selection renders preview before any write", previewBeforeWrite);
+    check("E11 clean preview announces readiness through the live status", cleanPreviewAnnounced);
     check("E11 preview counts settings fields", preview?.settingsCount === 2);
     check("E11 preview counts custom themes", preview?.themeCount === 2);
     check("E11 preview counts highlight pages and entries with owner",
@@ -2857,11 +3017,22 @@ async function run() {
           vocabulary: { owner: backupOwner, records: [] },
         }, "different-owner", { enabled: false, localFallbackKeys: [] })
       : null;
+    const highlightMismatchPreview = task9Ready
+      ? pbpBuildBackupPreview({
+          ...previewPrepared,
+          vocabulary: undefined,
+        }, "different-owner", { enabled: false, localFallbackKeys: [] })
+      : null;
     check("E11 owner mismatch disables vocabulary selection",
       mismatchPreview?.ownerMismatch === true &&
       mismatchPreview?.sections?.vocabulary?.enabled === false &&
       emptyMismatchPreview?.ownerMismatch === true &&
       emptyMismatchPreview?.sections?.vocabulary?.enabled === false);
+    check("E11 highlight owner mismatch has a distinct warning and disables only highlights",
+      highlightMismatchPreview?.highlightOwnerMismatch === true &&
+      highlightMismatchPreview?.ownerMismatch === false &&
+      highlightMismatchPreview?.sections?.highlights?.enabled === false &&
+      highlightWarningRendered);
     let mismatchImports = 0;
     const mismatchResult = task9Ready ? await pbpApplyBackupPayload({
       _schemaVersion: 3,
@@ -2882,6 +3053,10 @@ async function run() {
       preview?.syncWarning === true);
     check("E11 preview lists fields expected to remain local",
       Array.isArray(preview?.localFallbackKeys) && preview.localFallbackKeys.includes("savedThemes"));
+    check("E11 preview predicts deterministic first-import local fallback",
+      predictedFallbackPreview?.localFallbackKeys?.includes("customOverlayCSS"));
+    check("E11 preview excludes fallback markers unrelated to the selected backup",
+      unrelatedFallbackPreview?.localFallbackKeys?.length === 0);
 
     const priorStorage = globalThis.__pbpTestStorage;
     const priorLarge = globalThis.__pbpTestSyncSetLarge;
@@ -2948,6 +3123,8 @@ async function run() {
       sectionResults[3]?.vocabularyApplied === 1);
     check("E11 Apply reparses the exact selected file text before writing and ignores stale selection state",
       exactTextRepreflight);
+    check("E11 new file selection takes busy ownership from a stale pending apply",
+      selectionRaceSafe);
 
     const dbDelete = indexedDB.deleteDatabase("pbp-vocab");
     await new Promise((resolve) => {

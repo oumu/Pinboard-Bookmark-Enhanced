@@ -806,15 +806,24 @@ function pbpSanitizeBackupMetadata(value) {
   };
 }
 
+function pbpCanonicalBackupOwner(value) {
+  return typeof value === "string" ? value.normalize("NFC").trim() : "";
+}
+
+function pbpBackupOwnerScope(value) {
+  const owner = pbpCanonicalBackupOwner(value);
+  return owner ? pbpDictOwnerScope(owner) : "";
+}
+
 function pbpSanitizeBackupVocabulary(value) {
+  const owner = pbpCanonicalBackupOwner(value && value.owner);
   if (!pbpIsPlainRecord(value) ||
       Object.keys(value).some((key) => !["owner", "records"].includes(key)) ||
-      typeof value.owner !== "string" || !value.owner ||
-      !Array.isArray(value.records)) {
+      !owner || !Array.isArray(value.records) ||
+      !_pbpVocabDenseArray(value.records)) {
     throw pbpBackupValueError("_vocabulary");
   }
-  const owner = value.owner;
-  const scope = pbpDictOwnerScope(owner);
+  const scope = pbpBackupOwnerScope(owner);
   const seen = new Set();
   const fields = [
     "id", "owner", "term", "lemma", "language", "gloss", "ipa", "sourceUrl",
@@ -861,6 +870,33 @@ function pbpSanitizeBackupVocabulary(value) {
   return { owner, records };
 }
 
+function pbpBackupLocalFallbackFields(prepared, syncState, sections) {
+  if (!syncState || syncState.enabled !== true) return [];
+  const markers = new Set((Array.isArray(syncState.localFallbackKeys)
+    ? syncState.localFallbackKeys : [])
+    .filter((key) => typeof key === "string")
+    .map((key) => key.replace(/_localFallback$/, "")));
+  const selected = sections || {};
+  const safeData = prepared && prepared.safeData || {};
+  const present = (key) => {
+    if (key === "savedThemes") return prepared?.importedThemes !== undefined;
+    if (key === "customOverlayCSS") {
+      return prepared?.customOverlayCSS !== undefined || prepared?.customCSS !== undefined;
+    }
+    return Object.prototype.hasOwnProperty.call(safeData, key);
+  };
+  return [...PBP_LARGE_FALLBACK_KEYS]
+    .map((key) => key.replace(/_localFallback$/, ""))
+    .filter((key) => {
+      const section = key === "savedThemes" ? "themes" : "settings";
+      if (!selected[section]?.enabled || !present(key)) return false;
+      const deterministic = key === "customOverlayCSS" &&
+        prepared?.customOverlayCSS !== undefined &&
+        pbpOverlayByteLength(prepared.customOverlayCSS) > OVERLAY_BYTE_LIMIT;
+      return markers.has(key) || deterministic;
+    });
+}
+
 function pbpBuildBackupPreview(prepared, currentOwner, syncState) {
   const highlights = pbpCleanHighlightBackup(prepared && prepared.highlights);
   const highlightRows = Object.entries(highlights)
@@ -873,14 +909,22 @@ function pbpBuildBackupPreview(prepared, currentOwner, syncState) {
       languages[language] = (languages[language] || 0) + 1;
     });
   }
-  const currentScope = pbpDictOwnerScope(currentOwner);
-  const ownerMismatch = !!vocabulary && (!currentOwner ||
-    pbpDictOwnerScope(vocabulary.owner) !== currentScope);
+  const currentScope = pbpBackupOwnerScope(currentOwner);
+  const ownerMismatch = !!vocabulary && (!currentScope ||
+    pbpBackupOwnerScope(vocabulary.owner) !== currentScope);
   const highlightAllowed = !prepared?.highlights ||
     pbpHighlightBackupOwnerAllowed(prepared.highlightsOwner, currentOwner, true);
-  const localFallbackKeys = Array.isArray(syncState && syncState.localFallbackKeys)
-    ? syncState.localFallbackKeys.filter((key) => typeof key === "string")
-    : [];
+  const highlightOwnerMismatch = prepared?.highlights !== undefined && !highlightAllowed;
+  const sections = {
+    settings: {
+      enabled: !!(Object.keys(prepared.safeData || {}).length ||
+        prepared.customCSS !== undefined || prepared.customOverlayCSS !== undefined),
+    },
+    themes: { enabled: prepared.importedThemes !== undefined },
+    highlights: { enabled: prepared.highlights !== undefined && highlightAllowed },
+    vocabulary: { enabled: !!vocabulary && !ownerMismatch },
+  };
+  const localFallbackKeys = pbpBackupLocalFallbackFields(prepared, syncState, sections);
   return {
     schemaVersion: prepared.schemaVersion,
     metadata: prepared.metadata || null,
@@ -893,17 +937,10 @@ function pbpBuildBackupPreview(prepared, currentOwner, syncState) {
     vocabularyOwner: vocabulary ? vocabulary.owner : "",
     languages,
     ownerMismatch,
+    highlightOwnerMismatch,
     syncWarning: !!(syncState && syncState.enabled),
     localFallbackKeys,
-    sections: {
-      settings: {
-        enabled: !!(Object.keys(prepared.safeData || {}).length ||
-          prepared.customCSS !== undefined || prepared.customOverlayCSS !== undefined),
-      },
-      themes: { enabled: prepared.importedThemes !== undefined },
-      highlights: { enabled: prepared.highlights !== undefined && highlightAllowed },
-      vocabulary: { enabled: !!vocabulary && !ownerMismatch },
-    },
+    sections,
   };
 }
 

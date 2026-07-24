@@ -906,7 +906,7 @@
     "message": "Kopia zapasowa i przywracanie"
   },
   "backupHint": {
-    "message": "Eksportuj/importuj ustawienia (klucze API nie są eksportowane ze względów bezpieczeństwa)."
+    "message": "Eksportuj lub importuj ustawienia i wybrane dane. Klucze API są pomijane w eksporcie."
   },
   "backupIncludeHighlightsLabel": {
     "message": "Uwzględniaj zaznaczenia i notatki w kopiach zapasowych"
@@ -915,16 +915,16 @@
     "message": "Kopie zapasowe obejmują adresy URL stron, tytuły, zaznaczony tekst, notatki, kolory i znaczniki czasu. Klucze API nie są uwzględniane."
   },
   "backupPlaintextDisclosure": {
-    "message": "Kopie zapasowe są jawnymi plikami JSON. Mogą zawierać ustawienia, zaznaczenia, adresy URL stron, słownictwo i fragmenty kontekstu. Klucze API są wykluczone."
+    "message": "Kopie zapasowe są jawnymi plikami JSON. Mogą zawierać ustawienia, zaznaczenia, adresy URL stron, zapisane słówka i fragmenty kontekstu. Klucze API są wykluczone."
   },
   "backupIncludeVocabularyLabel": {
-    "message": "Uwzględniaj słownictwo w kopiach zapasowych"
+    "message": "Uwzględniaj zapisane słówka w kopiach zapasowych"
   },
   "backupIncludeVocabularyHint": {
-    "message": "Obejmuje tylko słownictwo z bieżącego konta Pinboard."
+    "message": "Obejmuje tylko słówka z bieżącego konta Pinboard."
   },
   "backupVocabOwnerMissing": {
-    "message": "Słownictwo nie zostało uwzględnione, ponieważ nie jest dostępne konto Pinboard. Pozostałe wybrane dane zostały wyeksportowane."
+    "message": "Zapisane słówka nie zostały uwzględnione, ponieważ nie jest dostępne konto Pinboard. Pozostałe wybrane dane zostały wyeksportowane."
   },
   "backupPreviewTitle": {
     "message": "Podgląd importu"
@@ -957,7 +957,7 @@
     }
   },
   "backupPreviewVocabulary": {
-    "message": "Słowa: $COUNT$; konto Pinboard: $OWNER$",
+    "message": "Zapisane słówka: $COUNT$; konto Pinboard: $OWNER$",
     "placeholders": {
       "count": { "content": "$1" },
       "owner": { "content": "$2" }
@@ -973,13 +973,19 @@
     "message": "Brak"
   },
   "backupPreviewOwnerMismatch": {
-    "message": "Nie można zaimportować słownictwa, ponieważ ta kopia należy do innego konta Pinboard."
+    "message": "Nie można zaimportować zapisanych słówek, ponieważ ta kopia należy do innego konta Pinboard."
+  },
+  "backupPreviewHighlightOwnerMismatch": {
+    "message": "Nie można zaimportować zaznaczeń i notatek, ponieważ ta kopia należy do innego konta Pinboard."
+  },
+  "backupPreviewReady": {
+    "message": "Podgląd importu jest gotowy."
   },
   "backupPreviewSyncWarning": {
     "message": "Synchronizacja ustawień jest włączona na tym urządzeniu. Zaimportowane ustawienia mogą trafić na inne urządzenia Chrome."
   },
   "backupPreviewLocalWarning": {
-    "message": "Te duże pola prawdopodobnie pozostaną tylko na tym urządzeniu: $FIELDS$.",
+    "message": "Te wybrane pola są obecnie przechowywane tylko na tym urządzeniu albo ze względu na rozmiar wymagają takiego zapisu: $FIELDS$.",
     "placeholders": { "fields": { "content": "$1" } }
   },
   "backupSectionSettings": {
@@ -992,7 +998,7 @@
     "message": "Zaznaczenia i notatki"
   },
   "backupSectionVocabulary": {
-    "message": "Słownictwo"
+    "message": "Słówka"
   },
   "backupChooseSections": {
     "message": "Wybierz dane do zaimportowania"
@@ -1013,7 +1019,7 @@
     "message": "Niepowodzenie"
   },
   "backupImportProgress": {
-    "message": "Zaimportowano $DONE$ z $TOTAL$ wpisów słownictwa.",
+    "message": "Postęp importu słówek: $DONE$ / $TOTAL$.",
     "placeholders": {
       "done": { "content": "$1" },
       "total": { "content": "$2" }

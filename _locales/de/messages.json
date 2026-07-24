@@ -906,7 +906,7 @@
     "message": "Sicherung & Wiederherstellung"
   },
   "backupHint": {
-    "message": "Einstellungen exportieren/importieren (API-Schlüssel werden aus Sicherheitsgründen nicht exportiert)."
+    "message": "Einstellungen und ausgewählte Daten exportieren oder importieren. API-Schlüssel werden nicht exportiert."
   },
   "backupIncludeHighlightsLabel": {
     "message": "Markierungen und Notizen in Sicherungen einschließen"
@@ -941,15 +941,15 @@
     "message": "Unbekannt"
   },
   "backupPreviewSettings": {
-    "message": "$COUNT$ Felder",
+    "message": "Einstellungsfelder: $COUNT$",
     "placeholders": { "count": { "content": "$1" } }
   },
   "backupPreviewThemes": {
-    "message": "$COUNT$ eigene Themes",
+    "message": "Eigene Themes: $COUNT$",
     "placeholders": { "count": { "content": "$1" } }
   },
   "backupPreviewHighlights": {
-    "message": "$PAGES$ Seiten, $ITEMS$ Einträge; Pinboard-Konto: $OWNER$",
+    "message": "Seiten: $PAGES$; Einträge: $ITEMS$; Pinboard-Konto: $OWNER$",
     "placeholders": {
       "pages": { "content": "$1" },
       "items": { "content": "$2" },
@@ -957,7 +957,7 @@
     }
   },
   "backupPreviewVocabulary": {
-    "message": "$COUNT$ Vokabeln; Pinboard-Konto: $OWNER$",
+    "message": "Vokabeleinträge: $COUNT$; Pinboard-Konto: $OWNER$",
     "placeholders": {
       "count": { "content": "$1" },
       "owner": { "content": "$2" }
@@ -975,11 +975,17 @@
   "backupPreviewOwnerMismatch": {
     "message": "Die Vokabeln können nicht importiert werden, weil diese Sicherung zu einem anderen Pinboard-Konto gehört."
   },
+  "backupPreviewHighlightOwnerMismatch": {
+    "message": "Markierungen und Notizen können nicht importiert werden, weil diese Sicherung zu einem anderen Pinboard-Konto gehört."
+  },
+  "backupPreviewReady": {
+    "message": "Die Importvorschau ist bereit."
+  },
   "backupPreviewSyncWarning": {
     "message": "Die Einstellungssynchronisierung ist auf diesem Gerät aktiv. Importierte Einstellungen können auf andere Chrome-Geräte übertragen werden."
   },
   "backupPreviewLocalWarning": {
-    "message": "Diese großen Felder bleiben voraussichtlich nur auf diesem Gerät: $FIELDS$.",
+    "message": "Diese ausgewählten Felder werden derzeit nur auf diesem Gerät gespeichert oder benötigen aufgrund ihrer Größe lokalen Speicher: $FIELDS$.",
     "placeholders": { "fields": { "content": "$1" } }
   },
   "backupSectionSettings": {

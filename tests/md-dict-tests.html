@@ -588,7 +588,7 @@ async function runVocabIdbTests() {
   const legacyRead = await pbpVocabGet(legacyWord.id);
   assert(legacyRead && legacyRead.gloss === legacyWord.gloss,
     "v2 migration preserves and reads the v1 word record");
-  const ctx1 = { quote: "q1", articleUrl: "u1", articleTitle: "t1", highlightId: null, createdAt: 1 };
+  const ctx1 = { quote: "q1", articleUrl: "https://u1.test/", articleTitle: "t1", highlightId: null, createdAt: 1 };
   const e1 = await pbpVocabSaveWord("acct_a", { term: "Running", language: "en-US", gloss: "g1", ipa: "", sourceUrl: "https://en.wiktionary.org/wiki/run", license: "CC BY-SA 4.0", context: ctx1 });
   assert(e1 && e1.id === "acct_a|en|running", "save creates owner-scoped id");
   assert(Array.isArray(e1.groups) && e1.groups.length === 0, "new vocab records default to an empty groups array");
@@ -605,7 +605,7 @@ async function runVocabIdbTests() {
   assertEq(e2b.license, "CC BY-SA 4.0 (CC-CEDICT)", "re-save overwrites license with the latest lookup's attribution");
   const e2c = await pbpVocabSaveWord("acct_a", { term: "running", language: "en", gloss: "g2", license: "MIT", context: { ...ctx1 } });
   assert(e2c.license === "MIT" && e2c.sourceUrl === null, "one-sided attribution nulls the other side (no mixed attribution)");
-  const e3 = await pbpVocabSaveWord("acct_a", { term: "running", language: "en", gloss: "", context: { ...ctx1, articleUrl: "u2" } });
+  const e3 = await pbpVocabSaveWord("acct_a", { term: "running", language: "en", gloss: "", context: { ...ctx1, articleUrl: "https://u2.test/" } });
   assertEq(e3.contexts.length, 2, "second article context appended");
   const got = await pbpVocabGet("acct_a|en|running");
   assert(got && got.contexts.length === 2 && got.gloss === "g2", "pbpVocabGet returns the merged record by id");

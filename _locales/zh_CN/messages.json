@@ -906,7 +906,7 @@
     "message": "备份与恢复"
   },
   "backupHint": {
-    "message": "导出或导入设置（出于安全考虑，API 密钥不包含在导出文件中）。"
+    "message": "导出或导入设置及所选数据。导出文件不包含 API 密钥。"
   },
   "backupIncludeHighlightsLabel": {
     "message": "在备份中包含高亮和笔记"
@@ -941,15 +941,15 @@
     "message": "未知"
   },
   "backupPreviewSettings": {
-    "message": "$COUNT$ 个字段",
+    "message": "设置字段：$COUNT$",
     "placeholders": { "count": { "content": "$1" } }
   },
   "backupPreviewThemes": {
-    "message": "$COUNT$ 个自定义主题",
+    "message": "自定义主题：$COUNT$",
     "placeholders": { "count": { "content": "$1" } }
   },
   "backupPreviewHighlights": {
-    "message": "$PAGES$ 个页面，$ITEMS$ 条记录；Pinboard 账号：$OWNER$",
+    "message": "页面：$PAGES$；记录：$ITEMS$；Pinboard 账号：$OWNER$",
     "placeholders": {
       "pages": { "content": "$1" },
       "items": { "content": "$2" },
@@ -957,7 +957,7 @@
     }
   },
   "backupPreviewVocabulary": {
-    "message": "$COUNT$ 个生词；Pinboard 账号：$OWNER$",
+    "message": "生词记录：$COUNT$；Pinboard 账号：$OWNER$",
     "placeholders": {
       "count": { "content": "$1" },
       "owner": { "content": "$2" }
@@ -975,11 +975,17 @@
   "backupPreviewOwnerMismatch": {
     "message": "该备份属于另一个 Pinboard 账号，无法导入其中的生词。"
   },
+  "backupPreviewHighlightOwnerMismatch": {
+    "message": "该备份属于另一个 Pinboard 账号，无法导入其中的高亮和笔记。"
+  },
+  "backupPreviewReady": {
+    "message": "导入预览已就绪。"
+  },
   "backupPreviewSyncWarning": {
     "message": "本设备已开启设置同步。导入的设置可能会同步到其他 Chrome 设备。"
   },
   "backupPreviewLocalWarning": {
-    "message": "这些大字段预计只会保存在本设备：$FIELDS$。",
+    "message": "这些已选字段目前仅保存在本设备，或因大小限制只能保存在本设备：$FIELDS$。",
     "placeholders": { "fields": { "content": "$1" } }
   },
   "backupSectionSettings": {

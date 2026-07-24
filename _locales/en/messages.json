@@ -906,7 +906,7 @@
     "message": "Backup & Restore"
   },
   "backupHint": {
-    "message": "Export/import your settings (API keys are excluded from export for security)."
+    "message": "Export or import settings and selected data. API keys are excluded from exports."
   },
   "backupIncludeHighlightsLabel": {
     "message": "Include highlights and notes in backups"
@@ -941,15 +941,15 @@
     "message": "Unknown"
   },
   "backupPreviewSettings": {
-    "message": "$COUNT$ fields",
+    "message": "Settings fields: $COUNT$",
     "placeholders": { "count": { "content": "$1" } }
   },
   "backupPreviewThemes": {
-    "message": "$COUNT$ custom themes",
+    "message": "Custom themes: $COUNT$",
     "placeholders": { "count": { "content": "$1" } }
   },
   "backupPreviewHighlights": {
-    "message": "$PAGES$ pages, $ITEMS$ entries; Pinboard account: $OWNER$",
+    "message": "Pages: $PAGES$; entries: $ITEMS$; Pinboard account: $OWNER$",
     "placeholders": {
       "pages": { "content": "$1" },
       "items": { "content": "$2" },
@@ -957,7 +957,7 @@
     }
   },
   "backupPreviewVocabulary": {
-    "message": "$COUNT$ words; Pinboard account: $OWNER$",
+    "message": "Vocabulary records: $COUNT$; Pinboard account: $OWNER$",
     "placeholders": {
       "count": { "content": "$1" },
       "owner": { "content": "$2" }
@@ -975,11 +975,17 @@
   "backupPreviewOwnerMismatch": {
     "message": "Vocabulary cannot be imported because this backup belongs to another Pinboard account."
   },
+  "backupPreviewHighlightOwnerMismatch": {
+    "message": "Highlights and notes cannot be imported because this backup belongs to another Pinboard account."
+  },
+  "backupPreviewReady": {
+    "message": "Import preview ready."
+  },
   "backupPreviewSyncWarning": {
     "message": "Imported settings may propagate to other Chrome devices because settings sync is enabled on this device."
   },
   "backupPreviewLocalWarning": {
-    "message": "These large fields are currently expected to remain on this device: $FIELDS$.",
+    "message": "These selected fields currently use or are known to require storage on this device only: $FIELDS$.",
     "placeholders": { "fields": { "content": "$1" } }
   },
   "backupSectionSettings": {
