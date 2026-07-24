@@ -1,5 +1,5 @@
-// Persistent, owner-scoped vocabulary storage. This stays free of DOM,
-// chrome.*, and fetch so options, previews, and the service worker can share it.
+// Persistent, owner-scoped vocabulary storage. This stays free of DOM and
+// fetch; chrome.runtime is only an optional post-commit dirty notification.
 
 // "en-US" / "ZH_cn" -> "en" / "zh"; falsy -> "".
 function pbpDictPrimaryLang(code) {
@@ -288,108 +288,549 @@ async function pbpVocabAll(owner) {
   return rows;
 }
 
-async function pbpVocabDelete(id, expectedOwner) {
-  try {
-    const db = await _pbpVocabOpenDB();
-    return await new Promise((resolve) => {
-      const tx = db.transaction(_PBP_VOCAB_STORE, "readwrite");
-      const store = tx.objectStore(_PBP_VOCAB_STORE);
-      let allowed = true;
-      const getReq = store.get(id);
-      getReq.onsuccess = () => {
-        const rec = getReq.result;
-        if (rec && rec.owner !== expectedOwner) allowed = false;
-        else store.delete(id);
-      };
-      tx.oncomplete = () => resolve(allowed);
-      tx.onabort = () => resolve(false);
-      tx.onerror = () => resolve(false);
-    });
-  } catch (_) { return false; }
-}
-
-async function _pbpVocabBatchMutate(ids, expectedOwner, mutate) {
-  const uniqueIds = [...new Set((Array.isArray(ids) ? ids : []).map(String).filter(Boolean))];
-  if (!uniqueIds.length) return false;
-  try {
-    const db = await _pbpVocabOpenDB();
-    return await new Promise((resolve) => {
-      const tx = db.transaction(_PBP_VOCAB_STORE, "readwrite");
-      const store = tx.objectStore(_PBP_VOCAB_STORE);
-      let allowed = true;
-      const abort = () => {
-        if (!allowed) return;
-        allowed = false;
-        try { tx.abort(); } catch (_) {}
-      };
-      for (const id of uniqueIds) {
-        const req = store.get(id);
-        req.onsuccess = () => {
-          const record = req.result;
-          if (!record || record.owner !== expectedOwner) { abort(); return; }
-          try { mutate(store, record); } catch (_) { abort(); }
-        };
-        req.onerror = abort;
-      }
-      tx.oncomplete = () => resolve(allowed);
-      tx.onabort = () => resolve(false);
-      tx.onerror = () => resolve(false);
-    });
-  } catch (_) { return false; }
-}
-
-function pbpVocabBatchDelete(ids, expectedOwner) {
-  return _pbpVocabBatchMutate(ids, expectedOwner, (store, record) => store.delete(record.id));
-}
-
-function pbpVocabBatchAddGroup(ids, expectedOwner, rawGroup) {
-  const group = pbpVocabNormalizeGroupName(rawGroup);
-  if (!group) return Promise.resolve(false);
-  const now = Date.now();
-  return _pbpVocabBatchMutate(ids, expectedOwner, (store, record) => {
-    const groups = pbpVocabGroups(record);
-    if (groups.includes(group)) return;
-    record.groups = [...groups, group];
-    record.updatedAt = now;
-    store.put(record);
+function _pbpVocabRequest(req) {
+  return new Promise((resolve, reject) => {
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error || new Error("vocab request failed"));
   });
 }
 
-async function pbpVocabSaveWord(owner, w) {
+function _pbpVocabTransactionDone(tx) {
+  return new Promise((resolve, reject) => {
+    tx.oncomplete = resolve;
+    tx.onabort = tx.onerror = () => reject(tx.error || new Error("vocab transaction failed"));
+  });
+}
+
+function _pbpVocabRecordKey(owner, record) {
+  if (!record || record.owner !== owner) return "";
+  const recordKey = pbpDictCacheKeyPublic(record.language, record.term);
+  return record.id === owner + "|" + recordKey ? recordKey : "";
+}
+
+function _pbpVocabWordValue(record) {
+  return {
+    term: String(record.term || ""),
+    lemma: record.lemma == null ? null : String(record.lemma),
+    language: String(record.language || "und"),
+    gloss: String(record.gloss || ""),
+    ipa: record.ipa == null ? null : String(record.ipa),
+    sourceUrl: record.sourceUrl ? (pbpDictSafeUrl(record.sourceUrl) || null) : null,
+    license: record.license == null ? null : String(record.license),
+    contexts: Array.isArray(record.contexts) ? record.contexts.map((context) => ({ ...context })) : [],
+    groups: Array.isArray(record.groups) ? record.groups.slice() : [],
+    note: String(record.note || ""),
+    status: String(record.status || "new"),
+    createdAt: Number.isFinite(record.createdAt) ? record.createdAt : 0,
+    updatedAt: Number.isFinite(record.updatedAt) ? record.updatedAt : 0
+  };
+}
+
+function _pbpVocabStoredEvent(metadata, word) {
+  if (!metadata || typeof metadata.recordKey !== "string") return null;
+  const event = {
+    recordKey: metadata.recordKey,
+    vector: metadata.vector,
+    dot: metadata.dot,
+    deleted: metadata.deleted === true
+  };
+  if (!event.deleted) {
+    if (!word) return null;
+    event.value = _pbpVocabWordValue(word);
+  }
+  return pbpVocabValidateEvent(event, metadata.recordKey) ? event : null;
+}
+
+function _pbpVocabWordFromEvent(owner, event) {
+  const value = event.value;
+  return {
+    id: owner + "|" + event.recordKey, owner,
+    term: value.term, lemma: value.lemma, language: value.language,
+    gloss: value.gloss, ipa: value.ipa, sourceUrl: value.sourceUrl,
+    license: value.license, contexts: value.contexts.map((context) => ({ ...context })),
+    groups: value.groups.slice(), note: value.note, status: value.status,
+    createdAt: value.createdAt, updatedAt: value.updatedAt
+  };
+}
+
+function _pbpVocabDirty(owner) {
+  try {
+    const pending = globalThis.chrome?.runtime?.sendMessage?.({ type: "PBP_VOCAB_DIRTY", owner });
+    if (pending && typeof pending.catch === "function") pending.catch(() => {});
+  } catch (_) {}
+}
+
+function _pbpVocabMeta(value) {
+  if (value === undefined) return { key: "meta", deviceId: crypto.randomUUID(), counter: 0 };
+  return _pbpVocabOnlyKeys(value, ["key", "deviceId", "counter"]) &&
+    Object.keys(value).length === 3 && value.key === "meta" &&
+    _pbpVocabDeviceId(value.deviceId) && Number.isSafeInteger(value.counter) && value.counter >= 0
+    ? { key: "meta", deviceId: value.deviceId, counter: value.counter }
+    : null;
+}
+
+// The sole local-write primitive: every logical mutation commits words,
+// vector/dot metadata, and the coalesced outbox in one transaction.
+async function _pbpVocabLocalMutation(owner, itemsOrLoad, mutate, requireExisting = false) {
+  const scope = owner || "ownerless";
+  let tx = null;
+  let done = null;
   try {
     const db = await _pbpVocabOpenDB();
-    const scope = owner || "ownerless";
-    const id = pbpDictVocabKey(scope, w.language, w.term);
-    const now = Date.now();
-    return await new Promise((resolve) => {
-      const tx = db.transaction(_PBP_VOCAB_STORE, "readwrite");
-      const store = tx.objectStore(_PBP_VOCAB_STORE);
-      let result = null;
-      const getReq = store.get(id);
-      getReq.onsuccess = () => {
-        const cur = getReq.result || {
-          id, owner: scope,
-          term: String(w.term || "").normalize("NFC").trim(),
-          lemma: null, language: pbpDictPrimaryLang(w.language) || "und",
-          gloss: "", ipa: null, sourceUrl: null, license: null,
-          contexts: [], groups: [], note: "", status: "new", createdAt: now, updatedAt: now
-        };
-        cur.groups = pbpVocabGroups(cur);
-        if (w.lemma && !cur.lemma) cur.lemma = String(w.lemma);
-        if (w.gloss) cur.gloss = String(w.gloss);
-        if (w.ipa && !cur.ipa) cur.ipa = String(w.ipa);
-        if (w.sourceUrl || w.license) {
-          cur.sourceUrl = w.sourceUrl ? (pbpDictSafeUrl(w.sourceUrl) || null) : null;
-          cur.license = w.license ? String(w.license) : null;
-        }
-        cur.contexts = pbpDictMergeContext(cur.contexts, w.context);
-        cur.updatedAt = now;
-        store.put(cur);
-        result = cur;
+    tx = db.transaction([_PBP_VOCAB_STORE, "sync"], "readwrite");
+    done = _pbpVocabTransactionDone(tx);
+    const words = tx.objectStore(_PBP_VOCAB_STORE);
+    const sync = tx.objectStore("sync");
+    const loaded = typeof itemsOrLoad === "function"
+      ? await itemsOrLoad(words, sync)
+      : itemsOrLoad;
+    const items = Array.isArray(loaded) ? loaded : [];
+    if (!items.length) {
+      await done;
+      return { ok: true, changed: 0, results: [] };
+    }
+
+    const current = await Promise.all(items.map((item) => item.current !== undefined
+      ? item.current
+      : _pbpVocabRequest(words.get(item.id))));
+    const actions = [];
+    for (let i = 0; i < items.length; i++) {
+      if ((requireExisting && !current[i]) || (current[i] && current[i].owner !== scope)) {
+        throw new Error("owner mismatch");
+      }
+      const action = mutate(current[i] || null, items[i]);
+      if (!action || action.invalid) throw new Error("invalid mutation");
+      actions.push(action);
+    }
+
+    const changed = actions.map((action, index) => ({ action, item: items[index], current: current[index] }))
+      .filter(({ action }) => action.changed);
+    if (!changed.length) {
+      await done;
+      return { ok: true, changed: 0, results: actions.map((action) => action.result) };
+    }
+
+    const meta = _pbpVocabMeta(await _pbpVocabRequest(sync.get("meta")));
+    if (!meta) throw new Error("invalid sync metadata");
+    const existing = await Promise.all(changed.map(({ action, current: word }) => {
+      const recordKey = action.recordKey || _pbpVocabRecordKey(scope, action.word || word);
+      if (!recordKey) return Promise.resolve({ recordKey: "", metadata: null });
+      return _pbpVocabRequest(sync.get(`record:${scope}:${recordKey}`))
+        .then((metadata) => ({ recordKey, metadata }));
+    }));
+
+    for (let i = 0; i < changed.length; i++) {
+      const { action, current: previousWord } = changed[i];
+      const { recordKey, metadata } = existing[i];
+      if (!recordKey || (metadata && (metadata.owner !== scope || metadata.recordKey !== recordKey))) {
+        throw new Error("invalid record metadata");
+      }
+      if (metadata && !_pbpVocabStoredEvent(metadata, metadata.deleted ? null : previousWord)) {
+        throw new Error("corrupt record metadata");
+      }
+      if (meta.counter >= Number.MAX_SAFE_INTEGER) throw new Error("counter exhausted");
+      meta.counter++;
+      const vector = metadata && _pbpVocabValidVector(metadata.vector)
+        ? _pbpVocabMergedVector(metadata.vector, { [meta.deviceId]: meta.counter })
+        : { [meta.deviceId]: meta.counter };
+      vector[meta.deviceId] = meta.counter;
+      const event = {
+        recordKey, vector,
+        dot: { deviceId: meta.deviceId, counter: meta.counter },
+        deleted: action.deleted === true
       };
-      tx.oncomplete = () => resolve(result);
-      tx.onabort = () => resolve(null);
-      tx.onerror = () => resolve(null);
-    });
+      if (!event.deleted) event.value = _pbpVocabWordValue(action.word);
+      if (!pbpVocabValidateEvent(event, recordKey)) throw new Error("invalid local event");
+      if (event.deleted) words.delete(scope + "|" + recordKey);
+      else words.put(action.word);
+      sync.put({
+        key: `record:${scope}:${recordKey}`, owner: scope, recordKey,
+        vector: event.vector, dot: event.dot, deleted: event.deleted
+      });
+      sync.put({ key: `outbox:${scope}:${recordKey}`, owner: scope, recordKey, event });
+    }
+    sync.put(meta);
+    await done;
+    _pbpVocabDirty(scope);
+    return { ok: true, changed: changed.length, results: actions.map((action) => action.result) };
+  } catch (_) {
+    try { if (tx) tx.abort(); } catch (_) {}
+    if (done) await done.catch(() => {});
+    return { ok: false, changed: 0, results: [] };
+  }
+}
+
+async function pbpVocabDelete(id, expectedOwner) {
+  const scope = expectedOwner || "ownerless";
+  const result = await _pbpVocabLocalMutation(scope, [{ id: String(id || "") }], (record) => {
+    if (!record) return { changed: false, result: true };
+    const recordKey = _pbpVocabRecordKey(scope, record);
+    return recordKey
+      ? { changed: true, deleted: true, recordKey, result: true }
+      : { invalid: true };
+  });
+  return result.ok;
+}
+
+function _pbpVocabBatchItems(ids) {
+  return [...new Set((Array.isArray(ids) ? ids : []).map(String).filter(Boolean))]
+    .map((id) => ({ id }));
+}
+
+async function pbpVocabBatchDelete(ids, expectedOwner) {
+  const scope = expectedOwner || "ownerless";
+  const items = _pbpVocabBatchItems(ids);
+  if (!items.length) return false;
+  const result = await _pbpVocabLocalMutation(scope, items, (record) => {
+    const recordKey = _pbpVocabRecordKey(scope, record);
+    return recordKey
+      ? { changed: true, deleted: true, recordKey, result: true }
+      : { invalid: true };
+  }, true);
+  return result.ok;
+}
+
+async function pbpVocabBatchAddGroup(ids, expectedOwner, rawGroup) {
+  const scope = expectedOwner || "ownerless";
+  const group = pbpVocabNormalizeGroupName(rawGroup);
+  const items = _pbpVocabBatchItems(ids);
+  if (!group || !items.length) return false;
+  const now = Date.now();
+  const result = await _pbpVocabLocalMutation(scope, items, (record) => {
+    const recordKey = _pbpVocabRecordKey(scope, record);
+    if (!recordKey) return { invalid: true };
+    const groups = pbpVocabGroups(record);
+    if (groups.includes(group)) return { changed: false, result: record };
+    const word = { ...record, groups: [...groups, group], updatedAt: now };
+    return { changed: true, deleted: false, recordKey, word, result: word };
+  }, true);
+  return result.ok;
+}
+
+async function pbpVocabSaveWord(owner, w) {
+  const scope = owner || "ownerless";
+  const id = pbpDictVocabKey(scope, w.language, w.term);
+  const now = Date.now();
+  const result = await _pbpVocabLocalMutation(scope, [{ id }], (record) => {
+    const cur = record ? { ...record } : {
+      id, owner: scope,
+      term: String(w.term || "").normalize("NFC").trim(),
+      lemma: null, language: pbpDictPrimaryLang(w.language) || "und",
+      gloss: "", ipa: null, sourceUrl: null, license: null,
+      contexts: [], groups: [], note: "", status: "new", createdAt: now, updatedAt: now
+    };
+    cur.groups = pbpVocabGroups(cur);
+    if (w.lemma && !cur.lemma) cur.lemma = String(w.lemma);
+    if (w.gloss) cur.gloss = String(w.gloss);
+    if (w.ipa && !cur.ipa) cur.ipa = String(w.ipa);
+    if (w.sourceUrl || w.license) {
+      cur.sourceUrl = w.sourceUrl ? (pbpDictSafeUrl(w.sourceUrl) || null) : null;
+      cur.license = w.license ? String(w.license) : null;
+    }
+    cur.contexts = pbpDictMergeContext(cur.contexts, w.context);
+    cur.updatedAt = now;
+    const recordKey = _pbpVocabRecordKey(scope, cur);
+    return recordKey
+      ? { changed: true, deleted: false, recordKey, word: cur, result: cur }
+      : { invalid: true };
+  });
+  return result.ok ? result.results[0] : null;
+}
+
+function _pbpVocabAccountKey(drivePermissionId, ownerHash) {
+  return `account:${String(drivePermissionId || "")}:${String(ownerHash || "")}`;
+}
+
+function _pbpVocabBatchKey(drivePermissionId, ownerHash, driveFileId) {
+  return `batch:${String(drivePermissionId || "")}:${String(ownerHash || "")}:${String(driveFileId || "")}`;
+}
+
+async function pbpVocabGetAccountState(drivePermissionId, ownerHash) {
+  try {
+    const db = await _pbpVocabOpenDB();
+    return (await _pbpVocabRequest(db.transaction("sync", "readonly").objectStore("sync")
+      .get(_pbpVocabAccountKey(drivePermissionId, ownerHash)))) || null;
   } catch (_) { return null; }
+}
+
+async function pbpVocabPutAccountState(state) {
+  if (!_pbpVocabPlainObject(state) ||
+      state.key !== _pbpVocabAccountKey(state.drivePermissionId, state.ownerHash)) return false;
+  try {
+    const db = await _pbpVocabOpenDB();
+    const tx = db.transaction("sync", "readwrite");
+    const done = _pbpVocabTransactionDone(tx);
+    tx.objectStore("sync").put({ ...state });
+    await done;
+    return true;
+  } catch (_) { return false; }
+}
+
+async function _pbpVocabSyncRows() {
+  const db = await _pbpVocabOpenDB();
+  return await _pbpVocabRequest(db.transaction("sync", "readonly").objectStore("sync").getAll());
+}
+
+async function pbpVocabListOutbox(owner) {
+  const scope = owner || "ownerless";
+  try {
+    return (await _pbpVocabSyncRows()).filter((row) =>
+      row && row.owner === scope && row.key.startsWith(`outbox:${scope}:`));
+  } catch (_) { return []; }
+}
+
+async function pbpVocabListPendingBatches(drivePermissionId, ownerHash) {
+  try {
+    return (await _pbpVocabSyncRows()).filter((row) =>
+      row && row.drivePermissionId === drivePermissionId && row.ownerHash === ownerHash &&
+      row.key.startsWith(`batch:${drivePermissionId}:${ownerHash}:`));
+  } catch (_) { return []; }
+}
+
+async function pbpVocabFreezeOutbox(owner, drivePermissionId, ownerHash, driveFileId, envelope) {
+  const scope = owner || "ownerless";
+  const entries = envelope && Array.isArray(envelope.entries) ? envelope.entries : [];
+  const body = typeof envelope === "string" ? envelope
+    : (envelope && typeof envelope.body === "string" ? envelope.body : JSON.stringify(envelope));
+  if (!drivePermissionId || !ownerHash || !driveFileId || typeof body !== "string" ||
+      !entries.length || !entries.every((event) => pbpVocabValidateEvent(event))) return null;
+  try {
+    const db = await _pbpVocabOpenDB();
+    const tx = db.transaction("sync", "readwrite");
+    const done = _pbpVocabTransactionDone(tx);
+    const sync = tx.objectStore("sync");
+    const current = await Promise.all(entries.map((event) =>
+      _pbpVocabRequest(sync.get(`outbox:${scope}:${event.recordKey}`))));
+    for (let i = 0; i < entries.length; i++) {
+      if (current[i] && current[i].owner === scope &&
+          pbpVocabEventContentEqual(current[i].event, entries[i])) sync.delete(current[i].key);
+    }
+    const pending = {
+      key: _pbpVocabBatchKey(drivePermissionId, ownerHash, driveFileId),
+      drivePermissionId, ownerHash, driveFileId, body, createdAt: Date.now()
+    };
+    sync.put(pending);
+    await done;
+    return pending;
+  } catch (_) { return null; }
+}
+
+async function pbpVocabDeletePendingBatch(drivePermissionId, ownerHash, driveFileId) {
+  try {
+    const db = await _pbpVocabOpenDB();
+    const tx = db.transaction("sync", "readwrite");
+    const done = _pbpVocabTransactionDone(tx);
+    tx.objectStore("sync").delete(_pbpVocabBatchKey(drivePermissionId, ownerHash, driveFileId));
+    await done;
+    return true;
+  } catch (_) { return false; }
+}
+
+async function pbpVocabCheckpointOwner(owner) {
+  const scope = owner || "ownerless";
+  let tx = null;
+  let done = null;
+  try {
+    const db = await _pbpVocabOpenDB();
+    tx = db.transaction([_PBP_VOCAB_STORE, "sync"], "readwrite");
+    done = _pbpVocabTransactionDone(tx);
+    const words = tx.objectStore(_PBP_VOCAB_STORE);
+    const sync = tx.objectStore("sync");
+    const metadata = (await _pbpVocabRequest(sync.getAll())).filter((row) =>
+      row && row.owner === scope && row.key.startsWith(`record:${scope}:`));
+    for (const row of metadata) {
+      const word = row.deleted ? null : await _pbpVocabRequest(words.get(scope + "|" + row.recordKey));
+      const event = _pbpVocabStoredEvent(row, word);
+      if (!event) throw new Error("corrupt record metadata");
+      sync.put({ key: `outbox:${scope}:${row.recordKey}`, owner: scope, recordKey: row.recordKey, event });
+    }
+    await done;
+    return metadata.length;
+  } catch (_) {
+    try { if (tx) tx.abort(); } catch (_) {}
+    if (done) await done.catch(() => {});
+    return 0;
+  }
+}
+
+function _pbpVocabRemoteError(batchIndex) {
+  return { ok: false, error: "invalid_remote_page", batchIndex };
+}
+
+async function pbpVocabApplyRemotePage(owner, ownerHash, batches, cursorCommit) {
+  const scope = owner || "ownerless";
+  if (!Array.isArray(batches)) return _pbpVocabRemoteError(-1);
+  const entries = [];
+  for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+    const batch = batches[batchIndex];
+    if (!_pbpVocabPlainObject(batch) || batch.schema !== 1 || batch.ownerHash !== ownerHash ||
+        !Array.isArray(batch.entries) ||
+        !batch.entries.every((event) => pbpVocabValidateEvent(event))) {
+      return _pbpVocabRemoteError(batchIndex);
+    }
+    for (const event of batch.entries) entries.push({ event, batchIndex });
+  }
+  if (cursorCommit !== null && cursorCommit !== undefined &&
+      (!_pbpVocabPlainObject(cursorCommit) || cursorCommit.ownerHash !== ownerHash ||
+       cursorCommit.key !== _pbpVocabAccountKey(cursorCommit.drivePermissionId, ownerHash))) {
+    return _pbpVocabRemoteError(-1);
+  }
+
+  let tx = null;
+  let done = null;
+  let badBatch = -1;
+  try {
+    const db = await _pbpVocabOpenDB();
+    tx = db.transaction([_PBP_VOCAB_STORE, "sync"], "readwrite");
+    done = _pbpVocabTransactionDone(tx);
+    const words = tx.objectStore(_PBP_VOCAB_STORE);
+    const sync = tx.objectStore("sync");
+    const state = new Map();
+    let applied = 0;
+    let merged = 0;
+    let ignored = 0;
+
+    for (const item of entries) {
+      badBatch = item.batchIndex;
+      const remote = item.event;
+      let local = state.get(remote.recordKey);
+      if (local === undefined) {
+        const metadata = await _pbpVocabRequest(sync.get(`record:${scope}:${remote.recordKey}`));
+        if (metadata) {
+          const word = metadata.deleted ? null
+            : await _pbpVocabRequest(words.get(scope + "|" + remote.recordKey));
+          local = _pbpVocabStoredEvent(metadata, word);
+          if (!local) throw new Error("corrupt local state");
+        } else {
+          local = null;
+        }
+      }
+      const outcome = local
+        ? pbpVocabMergeEvents(local, remote)
+        : { kind: "apply", event: remote, requeue: false, notice: null };
+      if (outcome.kind === "invalid" || outcome.kind === "corrupt") throw new Error("invalid remote event");
+      if (outcome.kind === "noop") {
+        ignored++;
+        state.set(remote.recordKey, local);
+        continue;
+      }
+
+      const event = outcome.event;
+      const id = scope + "|" + event.recordKey;
+      if (event.deleted) words.delete(id);
+      else words.put(_pbpVocabWordFromEvent(scope, event));
+      sync.put({
+        key: `record:${scope}:${event.recordKey}`, owner: scope, recordKey: event.recordKey,
+        vector: event.vector, dot: event.dot, deleted: event.deleted
+      });
+      if (outcome.requeue) {
+        sync.put({ key: `outbox:${scope}:${event.recordKey}`, owner: scope, recordKey: event.recordKey, event });
+        merged++;
+      } else {
+        sync.delete(`outbox:${scope}:${event.recordKey}`);
+        applied++;
+      }
+      if (outcome.notice) {
+        sync.put({
+          key: `notice:${scope}:${event.recordKey}`, owner: scope, recordKey: event.recordKey,
+          code: outcome.notice, createdAt: Date.now()
+        });
+      }
+      state.set(event.recordKey, event);
+    }
+    if (cursorCommit) sync.put({ ...cursorCommit });
+    await done;
+    return { ok: true, applied, merged, ignored };
+  } catch (_) {
+    try { if (tx) tx.abort(); } catch (_) {}
+    if (done) await done.catch(() => {});
+    return _pbpVocabRemoteError(badBatch);
+  }
+}
+
+async function pbpVocabSeedLegacy(owner, limit = 100) {
+  const scope = owner || "ownerless";
+  const max = Math.max(0, Math.min(100, Number.isFinite(limit) ? Math.floor(limit) : 100));
+  if (!max) return { ok: true, processed: 0 };
+  const result = await _pbpVocabLocalMutation(scope, async (words, sync) => {
+    // ponytail: one-time bootstrap scans local vocabulary; add a persisted
+    // cursor only if real large libraries make this measurable.
+    const rows = await _pbpVocabRequest(words.index("owner").getAll(scope));
+    const selected = [];
+    for (const record of rows) {
+      if (selected.length >= max) break;
+      const recordKey = _pbpVocabRecordKey(scope, record);
+      if (!recordKey) throw new Error("invalid legacy record");
+      if (!await _pbpVocabRequest(sync.get(`record:${scope}:${recordKey}`))) {
+        selected.push({ id: record.id, current: record });
+      }
+    }
+    return selected;
+  }, (record) => {
+    const recordKey = _pbpVocabRecordKey(scope, record);
+    return recordKey
+      ? { changed: true, deleted: false, recordKey, word: record, result: record }
+      : { invalid: true };
+  }, true);
+  return { ok: result.ok, processed: result.changed };
+}
+
+function _pbpVocabImportedWord(owner, record) {
+  if (!_pbpVocabPlainObject(record) || record.owner !== owner) return null;
+  const term = String(record.term || "").normalize("NFC").trim();
+  const language = pbpDictPrimaryLang(record.language) || "und";
+  const id = pbpDictVocabKey(owner, language, term);
+  if (!term || record.id !== id || !Array.isArray(record.contexts) || !Array.isArray(record.groups)) return null;
+  const sourceUrl = record.sourceUrl == null ? null : pbpDictSafeUrl(record.sourceUrl);
+  if (record.sourceUrl != null && !sourceUrl) return null;
+  const word = {
+    id, owner, term, language,
+    lemma: record.lemma == null ? null : String(record.lemma),
+    gloss: String(record.gloss || ""), ipa: record.ipa == null ? null : String(record.ipa),
+    sourceUrl,
+    license: record.license == null ? null : String(record.license),
+    contexts: record.contexts.map((context) => ({ ...context })),
+    groups: pbpVocabGroups(record), note: String(record.note || ""),
+    status: String(record.status || "new"),
+    createdAt: Number.isFinite(record.createdAt) ? record.createdAt : Date.now(),
+    updatedAt: Number.isFinite(record.updatedAt) ? record.updatedAt : Date.now()
+  };
+  return _pbpVocabRecordKey(owner, word) && pbpVocabValidateEvent({
+    recordKey: pbpDictCacheKeyPublic(language, term), vector: { import: 1 },
+    dot: { deviceId: "import", counter: 1 }, deleted: false, value: _pbpVocabWordValue(word)
+  }) ? word : null;
+}
+
+async function pbpVocabImportRecords(owner, records, limit = 100) {
+  const scope = owner || "ownerless";
+  const max = Math.max(0, Math.min(100, Number.isFinite(limit) ? Math.floor(limit) : 100));
+  const input = Array.isArray(records) ? records.slice(0, max) : [];
+  if (!input.length) return { ok: true, processed: 0, remaining: 0 };
+  const imported = input.map((record) => _pbpVocabImportedWord(scope, record));
+  if (imported.some((record) => !record)) return { ok: false, processed: 0, remaining: records.length };
+  const unique = [...new Map(imported.map((record) => [record.id, record])).values()];
+  const result = await _pbpVocabLocalMutation(scope, unique.map((record) => ({ id: record.id, imported: record })),
+    (current, item) => {
+      const incoming = item.imported;
+      const word = current ? {
+        ...incoming,
+        contexts: incoming.contexts.reduce((all, context) => pbpDictMergeContext(all, context), current.contexts || []),
+        groups: pbpVocabGroups({ groups: [...pbpVocabGroups(current), ...incoming.groups] }),
+        createdAt: Math.min(current.createdAt || incoming.createdAt, incoming.createdAt),
+        updatedAt: Math.max(current.updatedAt || 0, incoming.updatedAt)
+      } : incoming;
+      return {
+        changed: true, deleted: false, recordKey: pbpDictCacheKeyPublic(word.language, word.term),
+        word, result: word
+      };
+    });
+  return { ok: result.ok, processed: result.ok ? result.changed : 0, remaining: Math.max(0, records.length - input.length) };
+}
+
+async function pbpVocabReadNotices(owner) {
+  const scope = owner || "ownerless";
+  try {
+    return (await _pbpVocabSyncRows()).filter((row) =>
+      row && row.owner === scope && row.key.startsWith(`notice:${scope}:`));
+  } catch (_) { return []; }
 }

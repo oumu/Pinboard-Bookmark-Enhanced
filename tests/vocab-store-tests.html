@@ -56,5 +56,231 @@ check("corruption and untrusted fields reject", (() => { const owner = live("b",
 check("term mismatch rejects", (() => { const remote = live("b", 1, { term: "word", lemma: "word" }); return pbpVocabValidateEvent(remote) && pbpVocabMergeEvents(live("a", 2), remote).kind === "invalid"; })());
 check("language and recordKey mismatch reject", (() => { const local = live("a", 2, { language: "en-US" }); const remote = live("b", 1, { language: "en-GB" }); return pbpVocabValidateEvent(local) && pbpVocabValidateEvent(remote) && pbpVocabMergeEvents(local, remote).kind === "invalid" && !pbpVocabValidateEvent(local, "en|other"); })());
 check("cross-vector merge converges in both directions", (() => { const a = live("a", 2, {}, { a: 2, b: 5 }); const b = live("b", 4, {}, { a: 3, b: 4 }); const ab = pbpVocabMergeEvents(a, b); const ba = pbpVocabMergeEvents(b, a); return [ab, ba].every((m) => m.kind === "merged" && pbpVocabValidateEvent(m.event) && m.event.vector.a === 3 && m.event.vector.b === 5 && m.event.dot.deviceId === "b" && m.event.dot.counter === 4 && m.requeue) && pbpVocabEventContentEqual(ab.event, ba.event); })());
-document.getElementById("summary").textContent = `pass=${pass} fail=${fail}`;
+
+function idbReq(req) {
+  return new Promise((resolve, reject) => {
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+function idbTxDone(tx) {
+  return new Promise((resolve, reject) => {
+    tx.oncomplete = resolve;
+    tx.onabort = tx.onerror = () => reject(tx.error || new Error("transaction failed"));
+  });
+}
+async function closeVocabDb() {
+  if (_pbpVocabDbPromise) {
+    try { (await _pbpVocabDbPromise).close(); } catch (_) {}
+  }
+  _pbpVocabDbPromise = null;
+}
+async function deleteVocabDb() {
+  await closeVocabDb();
+  await new Promise((resolve) => {
+    const req = indexedDB.deleteDatabase("pbp-vocab");
+    req.onsuccess = req.onerror = req.onblocked = resolve;
+  });
+}
+async function seedV1Word(word) {
+  await deleteVocabDb();
+  await new Promise((resolve, reject) => {
+    const req = indexedDB.open("pbp-vocab", 1);
+    req.onupgradeneeded = () => {
+      const store = req.result.createObjectStore("words", { keyPath: "id" });
+      store.createIndex("owner", "owner", { unique: false });
+      store.createIndex("updatedAt", "updatedAt", { unique: false });
+      store.put(word);
+    };
+    req.onsuccess = () => { req.result.close(); resolve(); };
+    req.onerror = () => reject(req.error);
+  });
+}
+async function syncGet(key) {
+  const db = await _pbpVocabOpenDB();
+  return (await idbReq(db.transaction("sync", "readonly").objectStore("sync").get(key))) || null;
+}
+async function storeRows(name) {
+  const db = await _pbpVocabOpenDB();
+  return await idbReq(db.transaction(name, "readonly").objectStore(name).getAll());
+}
+async function putLegacyWords(words) {
+  const db = await _pbpVocabOpenDB();
+  const tx = db.transaction("words", "readwrite");
+  for (const word of words) tx.objectStore("words").put(word);
+  await idbTxDone(tx);
+}
+function word(owner, term, patch = {}) {
+  const language = patch.language || "en";
+  const now = patch.updatedAt || 10;
+  return {
+    id: pbpDictVocabKey(owner, language, term), owner, term,
+    lemma: null, language: pbpDictPrimaryLang(language), gloss: "", ipa: null,
+    sourceUrl: null, license: null, contexts: [], groups: [], note: "",
+    status: "new", createdAt: patch.createdAt || now, updatedAt: now, ...patch
+  };
+}
+function remoteLive(recordKey, deviceId, counter, value, vector = { [deviceId]: counter }) {
+  return { recordKey, vector, dot: { deviceId, counter }, deleted: false, value };
+}
+function eventValue(record, patch = {}) {
+  return {
+    term: record.term, lemma: record.lemma ?? null, language: record.language,
+    gloss: record.gloss || "", ipa: record.ipa ?? null, sourceUrl: record.sourceUrl ?? null,
+    license: record.license ?? null, contexts: record.contexts || [], groups: record.groups || [],
+    note: record.note || "", status: record.status || "new", createdAt: record.createdAt,
+    updatedAt: record.updatedAt, ...patch
+  };
+}
+function batch(ownerHash, entries, fileId = "file-safe") {
+  return { schema: 1, ownerHash, deviceId: "remote-device", createdAt: 1, fileId, entries };
+}
+
+const task3Apis = [
+  "pbpVocabGetAccountState", "pbpVocabPutAccountState", "pbpVocabListOutbox",
+  "pbpVocabListPendingBatches", "pbpVocabFreezeOutbox", "pbpVocabDeletePendingBatch",
+  "pbpVocabCheckpointOwner", "pbpVocabApplyRemotePage", "pbpVocabSeedLegacy",
+  "pbpVocabImportRecords", "pbpVocabReadNotices"
+];
+const task3ApiReady = task3Apis.every((name) => typeof globalThis[name] === "function");
+// Harness-only fallbacks keep all 20 cases observable during RED. They return
+// impossible results and implement no persistence, merge, or mutation behavior.
+for (const name of task3Apis) {
+  if (typeof globalThis[name] === "function") continue;
+  globalThis[name] = async () => name.includes("List") || name === "pbpVocabReadNotices"
+    ? [] : (name === "pbpVocabSeedLegacy" || name === "pbpVocabImportRecords"
+      ? { processed: 0 } : (name === "pbpVocabApplyRemotePage"
+        ? { ok: false, error: "missing_api" } : null));
+}
+
+async function runIdbChecks() {
+  const legacy = word("acct_legacy", "Migrate", { gloss: "legacy", createdAt: 1, updatedAt: 1 });
+  await seedV1Word(legacy);
+  const migrated = await pbpVocabGet(legacy.id);
+  const migratedSeed = await pbpVocabSeedLegacy("acct_legacy");
+  check("v1 to v2 preserves a legacy word", task3ApiReady && migrated && migrated.gloss === "legacy" && migratedSeed.processed === 1 && (await _pbpVocabOpenDB()).version === 2);
+
+  await deleteVocabDb();
+  const first = await pbpVocabSaveWord("acct_a", { term: "Word", language: "en", gloss: "one" });
+  const firstMeta = await syncGet("meta");
+  await pbpVocabSaveWord("acct_a", { term: "Word", language: "en", gloss: "two" });
+  const secondMeta = await syncGet("meta");
+  const recordKey = "en|word";
+  const recordMeta = await syncGet(`record:acct_a:${recordKey}`);
+  check("first mutation creates a stable deviceId", task3ApiReady && first && firstMeta && firstMeta.deviceId === secondMeta.deviceId && /^[0-9a-f-]{36}$/i.test(firstMeta.deviceId) && Object.keys(firstMeta).sort().join(",") === "counter,deviceId,key");
+  check("counter increments atomically", task3ApiReady && firstMeta.counter === 1 && secondMeta.counter === 2 && recordMeta.dot.counter === 2 && recordMeta.vector[firstMeta.deviceId] === 2);
+  check("live record metadata is complete", task3ApiReady && recordMeta.owner === "acct_a" && recordMeta.recordKey === recordKey && recordMeta.deleted === false && recordMeta.key === `record:acct_a:${recordKey}`);
+  const liveOutbox = await pbpVocabListOutbox("acct_a");
+  const frozen = await pbpVocabFreezeOutbox("acct_a", "drive-a", "hash-a", "file-a", { body: "{\"fixed\":true}", entries: liveOutbox.map((row) => row.event) });
+  const pending = await pbpVocabListPendingBatches("drive-a", "hash-a");
+  const pendingDeleted = await pbpVocabDeletePendingBatch("drive-a", "hash-a", "file-a");
+  check("live outbox persists and freezes exactly", task3ApiReady && liveOutbox.length === 1 && !liveOutbox[0].event.deleted && frozen && frozen.body === "{\"fixed\":true}" && pending.length === 1 && (await pbpVocabListOutbox("acct_a")).length === 0 && pendingDeleted && (await pbpVocabListPendingBatches("drive-a", "hash-a")).length === 0);
+  await pbpVocabSaveWord("acct_a", { term: "Word", language: "en", gloss: "three" });
+  const coalesced = await pbpVocabListOutbox("acct_a");
+  check("repeated same-word mutation coalesces outbox", task3ApiReady && coalesced.length === 1 && coalesced[0].event.value.gloss === "three");
+
+  await pbpVocabDelete(first.id, "acct_a");
+  const tombMeta = await syncGet(`record:acct_a:${recordKey}`);
+  check("delete removes word but retains tombstone metadata", task3ApiReady && (await pbpVocabGet(first.id)) === null && tombMeta && tombMeta.deleted === true);
+  const tombOutbox = await pbpVocabListOutbox("acct_a");
+  check("delete writes a tombstone outbox", task3ApiReady && tombOutbox.length === 1 && tombOutbox[0].event.deleted === true && !Object.prototype.hasOwnProperty.call(tombOutbox[0].event, "value"));
+
+  await deleteVocabDb();
+  const groupWord = await pbpVocabSaveWord("acct_a", { term: "Group", language: "en" });
+  await pbpVocabBatchAddGroup([groupWord.id], "acct_a", " Study  List ");
+  const grouped = await pbpVocabGet(groupWord.id);
+  const groupedMeta = await syncGet("record:acct_a:en|group");
+  const groupedOutbox = await pbpVocabListOutbox("acct_a");
+  await pbpVocabBatchAddGroup([groupWord.id], "acct_a", "Study List");
+  const groupedAgainMeta = await syncGet("record:acct_a:en|group");
+  const groupedAgainOutbox = await pbpVocabListOutbox("acct_a");
+  check("add-group updates vector and outbox", task3ApiReady && grouped.groups.join(",") === "Study List" && groupedMeta.dot.counter === 2 && groupedOutbox[0].event.value.groups.join(",") === "Study List" && groupedAgainMeta.dot.counter === 2 && pbpVocabEventContentEqual(groupedOutbox[0].event, groupedAgainOutbox[0].event));
+
+  await deleteVocabDb();
+  const a = await pbpVocabSaveWord("acct_a", { term: "Alpha", language: "en" });
+  const b = await pbpVocabSaveWord("acct_a", { term: "Beta", language: "en" });
+  const foreign = await pbpVocabSaveWord("acct_b", { term: "Foreign", language: "en" });
+  const beforeBatchWords = JSON.stringify(await storeRows("words"));
+  const beforeBatchSync = JSON.stringify(await storeRows("sync"));
+  const rejectedBatch = await pbpVocabBatchAddGroup([a.id, foreign.id], "acct_a", "Wrong");
+  check("batch mutation is all-or-nothing", task3ApiReady && rejectedBatch === false && JSON.stringify(await storeRows("words")) === beforeBatchWords && JSON.stringify(await storeRows("sync")) === beforeBatchSync);
+  await pbpVocabBatchAddGroup([a.id, b.id], "acct_a", "Batch");
+  const aMeta = await syncGet("record:acct_a:en|alpha");
+  const bMeta = await syncGet("record:acct_a:en|beta");
+  const batchMeta = await syncGet("meta");
+  check("each changed batch row gets a distinct counter", task3ApiReady && aMeta.dot.counter !== bMeta.dot.counter && Math.max(aMeta.dot.counter, bMeta.dot.counter) === batchMeta.counter && Math.min(aMeta.dot.counter, bMeta.dot.counter) === batchMeta.counter - 1);
+  const beforeWrongWords = JSON.stringify(await storeRows("words"));
+  const beforeWrongSync = JSON.stringify(await storeRows("sync"));
+  const wrongOwner = await pbpVocabDelete(a.id, "acct_wrong");
+  check("wrong owner changes neither words nor sync", task3ApiReady && wrongOwner === false && JSON.stringify(await storeRows("words")) === beforeWrongWords && JSON.stringify(await storeRows("sync")) === beforeWrongSync);
+
+  await deleteVocabDb();
+  const local = await pbpVocabSaveWord("acct_a", { term: "Word", language: "en", gloss: "local-1" });
+  await pbpVocabSaveWord("acct_a", { term: "Word", language: "en", gloss: "local-2" });
+  const localMeta = await syncGet("record:acct_a:en|word");
+  const localDevice = localMeta && localMeta.dot ? localMeta.dot.deviceId : "local-device";
+  const dominated = remoteLive("en|word", localDevice, 1, eventValue(local, { gloss: "old-remote" }));
+  const cursor = { key: "account:drive-a:hash-a", drivePermissionId: "drive-a", ownerHash: "hash-a", pageToken: "next-1" };
+  await pbpVocabPutAccountState({ ...cursor, pageToken: "before" });
+  const dominatedResult = await pbpVocabApplyRemotePage("acct_a", "hash-a", [batch("hash-a", [dominated])], cursor);
+  const account = await pbpVocabGetAccountState("drive-a", "hash-a");
+  check("remote dominated event is ignored", task3ApiReady && dominatedResult.ok && (await pbpVocabGet(local.id)).gloss === "local-2" && account.pageToken === "next-1");
+
+  const dominating = remoteLive("en|word", localDevice, 3, eventValue(local, { gloss: "remote-new", updatedAt: 99 }));
+  const regional = remoteLive("en|regional", "regional-device", 1,
+    eventValue(local, { term: " Regional ", language: "en-US", gloss: "regional", groups: [" Study  List "] }));
+  const dominatingResult = await pbpVocabApplyRemotePage("acct_a", "hash-a", [batch("hash-a", [dominating, regional])], null);
+  const regionalReplay = await pbpVocabApplyRemotePage("acct_a", "hash-a", [batch("hash-a", [regional])], null);
+  const dominatingMeta = await syncGet("record:acct_a:en|word");
+  check("remote dominating live event writes the word", task3ApiReady && dominatingResult.ok && regionalReplay.ok && regionalReplay.ignored === 1 && (await pbpVocabGet(local.id)).gloss === "remote-new" && dominatingMeta.vector[localDevice] === 3);
+
+  const concurrentDelete = { recordKey: "en|word", vector: { "remote-device": 1 }, dot: { deviceId: "remote-device", counter: 1 }, deleted: true };
+  const concurrentResult = await pbpVocabApplyRemotePage("acct_a", "hash-a", [batch("hash-a", [concurrentDelete])], null);
+  const converged = await pbpVocabListOutbox("acct_a");
+  const notices = await pbpVocabReadNotices("acct_a");
+  check("concurrent merge writes a converged outbox", task3ApiReady && concurrentResult.ok && converged.length === 1 && pbpVocabValidateEvent(converged[0].event) && converged[0].event.vector["remote-device"] === 1 && notices.length === 1);
+
+  const wordsBeforeCorrupt = JSON.stringify(await storeRows("words"));
+  const syncBeforeCorrupt = JSON.stringify(await storeRows("sync"));
+  const corrupt = remoteLive("en|secret", "remote-device", 2, eventValue(local, { term: "Secret Word", gloss: "private gloss", sourceUrl: "https://secret.test/" }));
+  const corruptResult = await pbpVocabApplyRemotePage("acct_a", "hash-a", [batch("hash-a", [dominating, corrupt], "file-secret")], { ...cursor, pageToken: "must-not-commit" });
+  const wrongOwnerResult = await pbpVocabApplyRemotePage("acct_a", "hash-a", [batch("hash-other", [dominating])], null);
+  check("corrupt remote event commits nothing", task3ApiReady && !corruptResult.ok && !wrongOwnerResult.ok && JSON.stringify(await storeRows("words")) === wordsBeforeCorrupt && JSON.stringify(await storeRows("sync")) === syncBeforeCorrupt);
+  const safeError = JSON.stringify(corruptResult);
+  check("corrupt remote event returns a file-safe error", task3ApiReady && corruptResult.error === "invalid_remote_page" && !/Secret Word|private gloss|secret\.test/i.test(safeError));
+
+  await deleteVocabDb();
+  const legacyRows = Array.from({ length: 105 }, (_, i) => word("acct_seed", `Seed ${i}`, { createdAt: i + 1, updatedAt: i + 1 }));
+  await putLegacyWords(legacyRows);
+  const seededFirst = await pbpVocabSeedLegacy("acct_seed");
+  check("legacy seed processes at most 100 rows per call", task3ApiReady && seededFirst.processed === 100 && (await pbpVocabListOutbox("acct_seed")).length === 100 && (await storeRows("words")).length === 105);
+  const seededSecond = await pbpVocabSeedLegacy("acct_seed");
+  const seededThird = await pbpVocabSeedLegacy("acct_seed");
+  const seedOutbox = await pbpVocabListOutbox("acct_seed");
+  await pbpVocabFreezeOutbox("acct_seed", "drive-seed", "hash-seed", "seed-file", { body: "seed", entries: seedOutbox.map((row) => row.event) });
+  await pbpVocabDeletePendingBatch("drive-seed", "hash-seed", "seed-file");
+  const checkpointed = await pbpVocabCheckpointOwner("acct_seed");
+  check("legacy seed is safely resumable", task3ApiReady && seededSecond.processed === 5 && seededThird.processed === 0 && (await syncGet("meta")).counter === 105 && checkpointed === 105 && (await pbpVocabListOutbox("acct_seed")).length === 105);
+
+  await deleteVocabDb();
+  let dirtyCalls = 0;
+  const priorChrome = globalThis.chrome;
+  globalThis.chrome = { runtime: { sendMessage: () => { dirtyCalls++; return Promise.reject(new Error("worker asleep")); } } };
+  const importedRows = [word("acct_import", "One"), word("acct_import", "Two")];
+  const imported = await pbpVocabImportRecords("acct_import", importedRows);
+  globalThis.chrome = priorChrome;
+  const importOutbox = await pbpVocabListOutbox("acct_import");
+  check("imported records use the local mutation and outbox path", task3ApiReady && imported.processed === 2 && (await pbpVocabAll("acct_import")).length === 2 && importOutbox.length === 2 && (await syncGet("meta")).counter === 2 && dirtyCalls === 1);
+
+  await deleteVocabDb();
+}
+
+(async () => {
+  try {
+    await runIdbChecks();
+  } catch (error) {
+    while (pass + fail < 44) check("IDB harness completed", false, error && (error.stack || error.message));
+  }
+  document.getElementById("summary").textContent = `pass=${pass} fail=${fail}`;
+})();
 </script></body></html>
