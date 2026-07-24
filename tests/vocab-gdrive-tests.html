@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Vocabulary Google Drive Tests</title>
+<style>
+body { font-family: monospace; padding: 16px; max-width: 1000px; }
+.case { padding: 6px; border-bottom: 1px solid #eee; white-space: pre-wrap; }
+.pass { color: #0a0; } .fail { color: #c00; font-weight: bold; }
+</style></head><body>
+<h1>Vocabulary Google Drive Tests</h1><div id="summary"></div><div id="results"></div>
+<script src="../vocab-store.js"></script>
+<script src="../vocab-gdrive.js"></script>
+<script>
+const root = document.getElementById("results");
+const TEST_MAX_BYTES = 4 * 1024 * 1024;
+const OWNER_HASH = "a".repeat(64);
+const OTHER_OWNER_HASH = "b".repeat(64);
+const DEVICE_ID = "device-a";
+const ENVELOPE = { ownerHash: OWNER_HASH, deviceId: DEVICE_ID, createdAt: 123 };
+let pass = 0, fail = 0;
+function check(name, cond, detail) {
+  const ok = !!cond; ok ? pass++ : fail++;
+  const row = document.createElement("div");
+  row.className = "case " + (ok ? "pass" : "fail");
+  row.textContent = `${ok ? "✓" : "✗"} ${name}${ok ? "" : "\n   " + (detail || "")}`;
+  root.appendChild(row);
+}
+function attempt(fn) { try { return fn(); } catch (_) { return false; } }
+function bytes(value) { return new TextEncoder().encode(value).length; }
+function live(term = "Word", language = "en", patch = {}, deviceId = DEVICE_ID) {
+  const recordKey = pbpDictPrimaryLang(language) + "|" + pbpDictNormalizeTerm(term).toLowerCase();
+  return {
+    recordKey, vector: { [deviceId]: 1 }, dot: { deviceId, counter: 1 }, deleted: false,
+    value: {
+      term, lemma: term.toLowerCase(), language, gloss: "gloss", ipa: null,
+      sourceUrl: "https://example.test/word", license: "CC0", contexts: [], groups: [],
+      note: "", status: "new", createdAt: 10, updatedAt: 20, ...patch
+    }
+  };
+}
+function tombstone(term = "Gone") {
+  const entry = live(term);
+  return { recordKey: entry.recordKey, vector: entry.vector, dot: entry.dot, deleted: true };
+}
+function bodyObject(entries, envelope = ENVELOPE) {
+  return {
+    schema: 1, ownerHash: envelope.ownerHash, deviceId: envelope.deviceId,
+    createdAt: envelope.createdAt, entries
+  };
+}
+function bodyString(entries, envelope = ENVELOPE) {
+  return JSON.stringify(bodyObject(entries, envelope));
+}
+function sizedEntry(targetBodyBytes, term) {
+  const entry = live(term);
+  const padding = targetBodyBytes - bytes(bodyString([entry]));
+  if (padding < 0) throw new Error("target body is too small");
+  entry.value.note = "x".repeat(padding);
+  return entry;
+}
+function metadata(ownerHash = OWNER_HASH, deviceId = DEVICE_ID) {
+  return pbpVocabDriveMetadata("file_123", ownerHash, deviceId);
+}
+
+(async () => {
+  let ownerHash = null;
+  try { ownerHash = await pbpVocabOwnerHash("abc"); } catch (_) {}
+  check("SHA-256 owner hash", ownerHash === "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+  check("owner hash is 64 lowercase hex", attempt(() => /^[0-9a-f]{64}$/.test(ownerHash) && ownerHash.length === 64));
+
+  check("metadata fixes Drive batch fields", attempt(() => {
+    const meta = metadata();
+    const entry = live();
+    const body = bodyString([entry]);
+    const exact = JSON.stringify(meta) === JSON.stringify({
+      id: "file_123", name: "pbp-vocab-file_123.json", parents: ["appDataFolder"], mimeType: "application/json",
+      appProperties: { pbpKind: "vocab-batch", schema: "1", owner: OWNER_HASH, device: DEVICE_ID }
+    });
+    const missingId = { ...meta };
+    delete missingId.id;
+    return exact && pbpVocabValidateDriveBatch(meta, body, OWNER_HASH) &&
+      !pbpVocabValidateDriveBatch(missingId, body, OWNER_HASH) &&
+      !pbpVocabValidateDriveBatch({ ...meta, id: "file_999" }, body, OWNER_HASH) &&
+      !pbpVocabValidateDriveBatch({ ...meta, modifiedTime: "unexpected" }, body, OWNER_HASH) &&
+      !pbpVocabValidateDriveBatch({ ...meta, parents: ["root"] }, body, OWNER_HASH);
+  }));
+
+  check("appProperties contain no username email or token", attempt(() => {
+    const meta = metadata();
+    const body = bodyString([live()]);
+    const serialized = JSON.stringify(meta);
+    const leaked = { ...meta, appProperties: { ...meta.appProperties, email: "alice@example.com" } };
+    const token = { ...meta, appProperties: { ...meta.appProperties, token: "secret-token" } };
+    return !serialized.includes("alice@example.com") && !serialized.includes("secret-token") &&
+      !pbpVocabValidateDriveBatch(leaked, body, OWNER_HASH) &&
+      !pbpVocabValidateDriveBatch(token, body, OWNER_HASH);
+  }));
+
+  check("body uses canonical schema and stable construction", attempt(() => {
+    const entry = live();
+    const split = pbpVocabSplitDriveEntries([entry], ENVELOPE);
+    const exact = JSON.stringify({
+      schema: 1, ownerHash: OWNER_HASH, deviceId: DEVICE_ID, createdAt: 123, entries: [entry]
+    });
+    const extra = JSON.stringify({ ...bodyObject([entry]), cursor: "secret" });
+    return split.ok && split.batches[0].body === exact &&
+      !pbpVocabValidateDriveBatch(metadata(), "{bad json", OWNER_HASH) &&
+      !pbpVocabValidateDriveBatch(metadata(), extra, OWNER_HASH);
+  }));
+
+  check("deleted entry has no value", attempt(() => {
+    const entry = tombstone();
+    const withValue = { ...entry, value: live().value };
+    return pbpVocabValidateDriveBatch(metadata(), bodyString([entry]), OWNER_HASH) &&
+      !pbpVocabValidateDriveBatch(metadata(), bodyString([withValue]), OWNER_HASH);
+  }));
+
+  check("live entry requires value", attempt(() => {
+    const entry = live();
+    delete entry.value;
+    return !pbpVocabValidateDriveBatch(metadata(), bodyString([entry]), OWNER_HASH);
+  }));
+
+  check("entry is owner-free", attempt(() => {
+    const entry = live();
+    const body = bodyString([entry]);
+    const ownerField = { ...entry, owner: "acct_alice" };
+    const tokenField = { ...entry, token: "secret-token" };
+    const valueOwner = { ...entry, value: { ...entry.value, owner: "acct_alice" } };
+    return !body.includes("acct_alice") &&
+      !pbpVocabValidateDriveBatch(metadata(), bodyString([ownerField]), OWNER_HASH) &&
+      !pbpVocabValidateDriveBatch(metadata(), bodyString([tokenField]), OWNER_HASH) &&
+      !pbpVocabValidateDriveBatch(metadata(), bodyString([valueOwner]), OWNER_HASH);
+  }));
+
+  check("UTF-8 byte count is exact for multibyte data", attempt(() => {
+    const split = pbpVocabSplitDriveEntries([live("Défense", "fr", { gloss: "é中🙂" })], ENVELOPE);
+    return split.ok && split.batches[0].bytes === bytes(split.batches[0].body) &&
+      split.batches[0].bytes > split.batches[0].body.length;
+  }));
+
+  check("at-or-under 4 MiB boundary is accepted", attempt(() => {
+    const split = pbpVocabSplitDriveEntries([sizedEntry(TEST_MAX_BYTES, "Limit")], ENVELOPE);
+    return split.ok && split.batches.length === 1 &&
+      split.batches[0].bytes === TEST_MAX_BYTES &&
+      split.batches[0].bytes === PBP_VOCAB_BATCH_MAX_BYTES;
+  }));
+
+  check("entries split across batches in order", attempt(() => {
+    const entries = ["First", "Second", "Third"].map((term) => {
+      const entry = live(term);
+      entry.value.note = "x".repeat(Math.floor(TEST_MAX_BYTES / 2) + 100);
+      return entry;
+    });
+    const split = pbpVocabSplitDriveEntries(entries, ENVELOPE);
+    const keys = split.batches.flatMap((batch) => JSON.parse(batch.body).entries.map((entry) => entry.recordKey));
+    return split.ok && split.batches.length > 1 &&
+      keys.join(",") === entries.map((entry) => entry.recordKey).join(",") &&
+      split.batches.every((batch) => batch.bytes <= TEST_MAX_BYTES);
+  }));
+
+  check("a single entry is never split", attempt(() => {
+    const entry = sizedEntry(TEST_MAX_BYTES - 1, "Whole");
+    const split = pbpVocabSplitDriveEntries([entry], ENVELOPE);
+    const stored = JSON.parse(split.batches[0].body).entries;
+    return split.ok && split.batches.length === 1 && stored.length === 1 &&
+      JSON.stringify(stored[0]) === JSON.stringify(entry);
+  }));
+
+  check("oversized entry is a permanent entry_too_large result", attempt(() => {
+    const entry = sizedEntry(TEST_MAX_BYTES + 1, "Oversized");
+    const result = pbpVocabSplitDriveEntries([entry], ENVELOPE);
+    return JSON.stringify(result) === JSON.stringify({
+      ok: false, error: "entry_too_large", recordKey: entry.recordKey, bytes: TEST_MAX_BYTES + 1
+    });
+  }));
+
+  check("invalid noncanonical recordKey rejects the batch", attempt(() => {
+    const entry = live();
+    entry.recordKey = "EN|Word";
+    return !pbpVocabValidateDriveBatch(metadata(), bodyString([entry]), OWNER_HASH);
+  }));
+
+  check("ownerHash mismatch rejects the whole batch", attempt(() => {
+    const body = bodyString([live()]);
+    const uppercase = OWNER_HASH.toUpperCase();
+    const uppercaseMeta = metadata();
+    uppercaseMeta.appProperties.owner = uppercase;
+    return !pbpVocabValidateDriveBatch(metadata(), body, OTHER_OWNER_HASH) &&
+      !pbpVocabValidateDriveBatch(uppercaseMeta, bodyString([live()], { ...ENVELOPE, ownerHash: uppercase }), uppercase) &&
+      !pbpVocabValidateDriveBatch(metadata(), body, "not-a-hash");
+  }));
+
+  check("metadata and body device mismatch rejects", attempt(() => {
+    const mismatch = bodyString([live("Word", "en", {}, "device-b")], { ...ENVELOPE, deviceId: "device-b" });
+    const nonNfcDevice = "e\u0301";
+    const invalidBody = bodyString([live("Word", "en", {}, nonNfcDevice)], { ...ENVELOPE, deviceId: nonNfcDevice });
+    const nonNfcMetadata = metadata();
+    const emptyMetadata = metadata();
+    nonNfcMetadata.appProperties.device = nonNfcDevice;
+    emptyMetadata.appProperties.device = "";
+    return !pbpVocabValidateDriveBatch(metadata(), mismatch, OWNER_HASH) &&
+      !pbpVocabValidateDriveBatch(nonNfcMetadata, invalidBody, OWNER_HASH) &&
+      !pbpVocabValidateDriveBatch(emptyMetadata, bodyString([live()], { ...ENVELOPE, deviceId: "" }), OWNER_HASH);
+  }));
+
+  check("multipart contains metadata and exact frozen JSON body", attempt(() => {
+    const meta = metadata();
+    const frozen = bodyString([live("Multipart", "en", { note: "pbp-vocab-boundary" })]);
+    const multipart = pbpVocabBuildMultipart(meta, frozen);
+    const boundary = multipart.contentType.match(/^multipart\/related; boundary=(.+)$/)[1];
+    const metadataJson = JSON.stringify(meta);
+    return metadataJson.includes('"id":"file_123"') &&
+      !metadataJson.includes(boundary) && !frozen.includes(boundary) &&
+      multipart.body.includes("\r\n\r\n" + metadataJson + "\r\n--" + boundary) &&
+      multipart.body.includes("\r\n\r\n" + frozen + "\r\n--" + boundary + "--") &&
+      multipart.body.indexOf(frozen) === multipart.body.lastIndexOf(frozen);
+  }));
+
+  document.getElementById("summary").textContent = `pass=${pass} fail=${fail}`;
+})();
+</script></body></html>

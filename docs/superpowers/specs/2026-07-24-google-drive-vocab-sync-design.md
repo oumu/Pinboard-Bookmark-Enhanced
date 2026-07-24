@@ -304,6 +304,7 @@ Drive 中。不得把提示藏在 hover。
 
 ```js
 {
+  id: "<driveFileId>",
   name: "pbp-vocab-<driveFileId>.json",
   parents: ["appDataFolder"],
   mimeType: "application/json",
@@ -315,6 +316,10 @@ Drive 中。不得把提示藏在 hover。
   }
 }
 ```
+
+`id` 必须使用 `files.generateIds` 预生成的值，并随 `files.create` metadata
+提交；文件名仅用于识别，不承担唯一性。只有 create 请求实际携带该 `id`，网络结果
+不确定时以相同 ID 重试并将匹配的 `409 Conflict` 视为已成功才成立。
 
 `appProperties` 只用于筛选和自写识别，不保存 token、邮箱或 Pinboard 用户名。
 字段数量和每项 UTF-8 长度必须低于 Drive 限制。
