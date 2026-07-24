@@ -35,6 +35,8 @@ const optionsCss = read("options.css");
 const optionsJs = read("options.js");
 const optionsVocabJs = read("options-vocab.js");
 const mdDictJs = read("md-dict.js");
+const vocabStore = readFileSync("vocab-store.js", "utf8");
+const mdDict = readFileSync("md-dict.js", "utf8");
 const optionsThemeEarlyJs = read("options-theme-early.js");
 const popupTagsJs = read("popup-tags.js");
 
@@ -135,9 +137,13 @@ check(optionsVocabJs.includes('select.setAttribute("aria-label", t("vocabSelectW
   optionsVocabJs.includes('head.setAttribute("aria-expanded", "false")') &&
   optionsVocabJs.includes('head.setAttribute("aria-expanded", open ? "true" : "false")'),
   "options-vocab.js: production vocabulary rows lost named selection or expansion state");
-check(mdDictJs.includes("function _pbpVocabBatchMutate") && mdDictJs.includes("tx.abort()") &&
-  mdDictJs.includes("tx.oncomplete") && mdDictJs.includes("pbpVocabBatchAddGroup"),
-  "md-dict.js: vocabulary batch mutations are not one owner-checked atomic transaction");
+check(vocabStore.includes('const _PBP_VOCAB_DB_VERSION = 2'),
+  "vocabulary database is upgraded through the dedicated store");
+check(!mdDict.includes('indexedDB.open(_PBP_VOCAB_DB_NAME'),
+  "md-dict no longer owns vocabulary persistence");
+check(vocabStore.includes("function _pbpVocabBatchMutate") && vocabStore.includes("tx.abort()") &&
+  vocabStore.includes("tx.oncomplete") && vocabStore.includes("pbpVocabBatchAddGroup"),
+  "vocab-store.js: vocabulary batch mutations are not one owner-checked atomic transaction");
 check(optionsCss.includes(".vocab-filter-toolbar") && optionsCss.includes(".vocab-batch-toolbar") &&
   optionsCss.includes(".vocab-card .notes-card-top"),
   "options.css: scalable vocabulary responsive layout is missing");
