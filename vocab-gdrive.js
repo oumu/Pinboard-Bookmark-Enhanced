@@ -158,6 +158,19 @@ function pbpCreateVocabDriveClient({
   };
   const tokenValue = (value) => typeof value === "string" ? value : value && value.token;
 
+  async function requestWithToken(token, url, init = {}, fileId) {
+    let response;
+    try {
+      response = await fetchImpl(url, {
+        ...init,
+        headers: { ...(init.headers || {}), Authorization: `Bearer ${token}` }
+      });
+    } catch (_) {
+      return failure("network", true, undefined, fileId);
+    }
+    return { ok: true, response };
+  }
+
   async function request(url, init = {}, interactive = false, fileId) {
     let token;
     try {
@@ -168,15 +181,9 @@ function pbpCreateVocabDriveClient({
     if (typeof token !== "string" || !token) return failure("auth", false, undefined, fileId);
 
     for (let attempt = 0; attempt < 2; attempt++) {
-      let response;
-      try {
-        response = await fetchImpl(url, {
-          ...init,
-          headers: { ...(init.headers || {}), Authorization: `Bearer ${token}` }
-        });
-      } catch (_) {
-        return failure("network", true, undefined, fileId);
-      }
+      const sent = await requestWithToken(token, url, init, fileId);
+      if (!sent.ok) return sent;
+      const response = sent.response;
       if (response.status !== 401) return { ok: true, response };
       if (attempt === 1) return failure("auth", false, 401, fileId);
       try {
@@ -190,11 +197,31 @@ function pbpCreateVocabDriveClient({
     return failure("auth", false, 401, fileId);
   }
 
-  function responseFailure(response, fileId) {
+  async function responseFailure(response, fileId) {
     const status = response.status;
     if (status === 429) return failure("rate_limited", true, status, fileId);
     if (status >= 500 && status <= 599) return failure("server", true, status, fileId);
-    if (status === 403 || status === 404) return failure("remote", false, status, fileId);
+    if (status === 403) {
+      let reason = "";
+      try {
+        const payload = await response.json();
+        const errors = payload && payload.error && payload.error.errors;
+        if (Array.isArray(errors)) {
+          reason = errors.map((entry) => entry && entry.reason).find((value) =>
+            value === "rateLimitExceeded" || value === "userRateLimitExceeded" ||
+            value === "insufficientPermissions" || value === "accessNotConfigured"
+          ) || "";
+        }
+      } catch (_) {}
+      if (reason === "rateLimitExceeded" || reason === "userRateLimitExceeded") {
+        return failure("rate_limited", true, status, fileId);
+      }
+      if (reason === "insufficientPermissions") {
+        return failure("permission", false, status, fileId);
+      }
+      return failure("remote", false, status, fileId);
+    }
+    if (status === 404) return failure("remote", false, status, fileId);
     return failure("remote", false, status, fileId);
   }
 
@@ -206,10 +233,10 @@ function pbpCreateVocabDriveClient({
     }
   }
 
-  async function about(interactive) {
+  async function about(interactive = false, requestFn = request) {
     const url = new URL(`${apiBase}/about`);
     url.searchParams.set("fields", "user(permissionId,emailAddress,displayName)");
-    const requested = await request(url, { method: "GET" }, interactive);
+    const requested = await requestFn(url, { method: "GET" }, interactive);
     if (!requested.ok) return requested;
     if (!requested.response.ok) return responseFailure(requested.response);
     const parsed = await json(requested.response);
@@ -226,11 +253,11 @@ function pbpCreateVocabDriveClient({
     };
   }
 
-  async function generateId() {
+  async function generateId(requestFn = request) {
     const url = new URL(`${apiBase}/files/generateIds`);
     url.searchParams.set("count", "1");
     url.searchParams.set("space", "appDataFolder");
-    const requested = await request(url, { method: "GET" });
+    const requested = await requestFn(url, { method: "GET" });
     if (!requested.ok) return requested;
     if (!requested.response.ok) return responseFailure(requested.response);
     const parsed = await json(requested.response);
@@ -242,11 +269,11 @@ function pbpCreateVocabDriveClient({
     return { ok: true, fileId: ids[0] };
   }
 
-  async function getMetadata(fileId) {
+  async function getMetadata(fileId, requestFn = request) {
     if (typeof fileId !== "string" || !fileId) return failure("invalid_input", false);
     const url = new URL(`${apiBase}/files/${encodeURIComponent(fileId)}`);
     url.searchParams.set("fields", metadataFields);
-    const requested = await request(url, { method: "GET" }, false, fileId);
+    const requested = await requestFn(url, { method: "GET" }, false, fileId);
     if (!requested.ok) return requested;
     if (!requested.response.ok) return responseFailure(requested.response, fileId);
     const parsed = await json(requested.response, fileId);
@@ -268,7 +295,7 @@ function pbpCreateVocabDriveClient({
         actual.appProperties[key] === expected.appProperties[key]);
   }
 
-  async function upload(metadata, body) {
+  async function upload(metadata, body, requestFn = request) {
     let multipart;
     try {
       multipart = pbpVocabBuildMultipart(metadata, body);
@@ -277,7 +304,7 @@ function pbpCreateVocabDriveClient({
     }
     const url = new URL(uploadBase);
     url.searchParams.set("uploadType", "multipart");
-    const requested = await request(url, {
+    const requested = await requestFn(url, {
       method: "POST",
       headers: { "Content-Type": multipart.contentType },
       body: multipart.body
@@ -289,7 +316,7 @@ function pbpCreateVocabDriveClient({
     if (requested.response.status !== 409) {
       return responseFailure(requested.response, metadata.id);
     }
-    const existing = await getMetadata(metadata.id);
+    const existing = await getMetadata(metadata.id, requestFn);
     if (!existing.ok) return existing;
     if (metadataMatches(existing.metadata, metadata)) {
       return { ok: true, fileId: metadata.id, idempotent: true };
@@ -297,11 +324,11 @@ function pbpCreateVocabDriveClient({
     return failure("id_collision", false, 409, metadata.id);
   }
 
-  async function download(fileId) {
+  async function download(fileId, requestFn = request) {
     if (typeof fileId !== "string" || !fileId) return failure("invalid_input", false);
     const url = new URL(`${apiBase}/files/${encodeURIComponent(fileId)}`);
     url.searchParams.set("alt", "media");
-    const requested = await request(url, { method: "GET" }, false, fileId);
+    const requested = await requestFn(url, { method: "GET" }, false, fileId);
     if (!requested.ok) return requested;
     const response = requested.response;
     if (!response.ok) return responseFailure(response, fileId);
@@ -353,7 +380,7 @@ function pbpCreateVocabDriveClient({
     }
   }
 
-  async function listFiles(ownerHash, pageToken) {
+  async function listFiles(ownerHash, pageToken, requestFn = request) {
     if (!_pbpVocabValidOwnerHash(ownerHash) ||
         (pageToken !== undefined && (typeof pageToken !== "string" || !pageToken))) {
       return failure("invalid_input", false);
@@ -368,7 +395,7 @@ function pbpCreateVocabDriveClient({
       `appProperties has { key='owner' and value='${ownerHash}' }`);
     url.searchParams.set("fields", `nextPageToken,files(${metadataFields})`);
     if (pageToken !== undefined) url.searchParams.set("pageToken", pageToken);
-    const requested = await request(url, { method: "GET" });
+    const requested = await requestFn(url, { method: "GET" });
     if (!requested.ok) return requested;
     if (!requested.response.ok) return responseFailure(requested.response);
     const parsed = await json(requested.response);
@@ -391,10 +418,10 @@ function pbpCreateVocabDriveClient({
     };
   }
 
-  async function getStartPageToken() {
+  async function getStartPageToken(requestFn = request) {
     const url = new URL(`${apiBase}/changes/startPageToken`);
     url.searchParams.set("spaces", "appDataFolder");
-    const requested = await request(url, { method: "GET" });
+    const requested = await requestFn(url, { method: "GET" });
     if (!requested.ok) return requested;
     if (!requested.response.ok) return responseFailure(requested.response);
     const parsed = await json(requested.response);
@@ -406,7 +433,7 @@ function pbpCreateVocabDriveClient({
     return { ok: true, pageToken };
   }
 
-  async function listChanges(pageToken) {
+  async function listChanges(pageToken, requestFn = request) {
     if (typeof pageToken !== "string" || !pageToken) return failure("invalid_input", false);
     const url = new URL(`${apiBase}/changes`);
     url.searchParams.set("pageToken", pageToken);
@@ -415,7 +442,7 @@ function pbpCreateVocabDriveClient({
     url.searchParams.set("pageSize", "1000");
     url.searchParams.set("fields",
       `nextPageToken,newStartPageToken,changes(removed,fileId,file(${metadataFields}))`);
-    const requested = await request(url, { method: "GET" });
+    const requested = await requestFn(url, { method: "GET" });
     if (!requested.ok) return requested;
     if (!requested.response.ok) return responseFailure(requested.response);
     const parsed = await json(requested.response);
@@ -442,11 +469,80 @@ function pbpCreateVocabDriveClient({
     };
   }
 
+  async function openSession(interactive = false) {
+    let token;
+    try {
+      token = tokenValue(await identity.getAuthToken({ interactive }));
+    } catch (_) {
+      return failure("auth", false);
+    }
+    if (typeof token !== "string" || !token) return failure("auth", false);
+
+    let permissionId = "";
+    const sessionRequest = async (url, init = {}, _interactive = false, fileId) => {
+      const sent = await requestWithToken(token, url, init, fileId);
+      if (!sent.ok || sent.response.status !== 401) return sent;
+
+      let renewed;
+      try {
+        await identity.removeCachedAuthToken({ token });
+        renewed = tokenValue(await identity.getAuthToken({ interactive: false }));
+      } catch (_) {
+        return failure("auth", false, undefined, fileId);
+      }
+      if (typeof renewed !== "string" || !renewed) {
+        return failure("auth", false, undefined, fileId);
+      }
+
+      if (permissionId) {
+        const probe = await about(false, async (probeUrl, probeInit, _probeInteractive, probeFileId) => {
+          const checked = await requestWithToken(
+            renewed, probeUrl, probeInit, probeFileId
+          );
+          if (checked.ok && checked.response.status === 401) {
+            return failure("auth", false, 401, probeFileId);
+          }
+          return checked;
+        });
+        if (!probe.ok) return probe;
+        if (probe.permissionId !== permissionId) {
+          return failure("account_changed", false, undefined, fileId);
+        }
+      }
+
+      token = renewed;
+      const retried = await requestWithToken(token, url, init, fileId);
+      if (retried.ok && retried.response.status === 401) {
+        return failure("auth", false, 401, fileId);
+      }
+      return retried;
+    };
+
+    const opened = await about(false, sessionRequest);
+    if (!opened.ok) return opened;
+    permissionId = opened.permissionId;
+    return {
+      ok: true,
+      permissionId,
+      emailAddress: opened.emailAddress,
+      displayName: opened.displayName,
+      about: () => about(false, sessionRequest),
+      generateId: () => generateId(sessionRequest),
+      upload: (metadata, body) => upload(metadata, body, sessionRequest),
+      getMetadata: (fileId) => getMetadata(fileId, sessionRequest),
+      download: (fileId) => download(fileId, sessionRequest),
+      listFiles: (ownerHash, pageToken) => listFiles(ownerHash, pageToken, sessionRequest),
+      getStartPageToken: () => getStartPageToken(sessionRequest),
+      listChanges: (pageToken) => listChanges(pageToken, sessionRequest)
+    };
+  }
+
   void now;
   void random;
   return {
     connect: () => about(true),
     about: () => about(false),
+    openSession,
     generateId,
     upload,
     getMetadata,
@@ -484,6 +580,9 @@ async function pbpVocabScheduleDirty(alarms = chrome.alarms, now = Date.now) {
 function _pbpVocabDriveDefaultStore() {
   return {
     getMeta: pbpVocabGetSyncMeta,
+    getPreflightState: pbpVocabGetPreflightState,
+    putPreflightState: pbpVocabPutPreflightState,
+    deletePreflightState: pbpVocabDeletePreflightState,
     getAccountState: pbpVocabGetAccountState,
     putAccountState: pbpVocabPutAccountState,
     seedLegacy: pbpVocabSeedLegacy,
@@ -508,17 +607,17 @@ function pbpCreateVocabDriveSyncRunner({
 } = {}) {
   const accountKey = (permissionId, ownerHash) =>
     `account:${permissionId}:${ownerHash}`;
+  const preflightKey = (ownerHash) => `preflight:${ownerHash}`;
   const normalizedFailure = (source) => {
     if (source?.error === "account_changed") {
       return { ok: false, error: "account_changed", retryable: false };
     }
+    if (source?.retryable) return { ok: false, error: "network", retryable: true };
     if (source?.error === "auth") return { ok: false, error: "auth", retryable: false };
-    if (source?.status === 403) return { ok: false, error: "permission", retryable: false };
     if (source?.error === "permission" || source?.error === "corrupt" ||
         source?.error === "remote") {
       return { ok: false, error: source.error, retryable: false };
     }
-    if (source?.retryable) return { ok: false, error: "network", retryable: true };
     if (source?.error === "invalid_response" || source?.error === "id_collision" ||
         source?.error === "remote_batch_too_large" || source?.error === "entry_too_large" ||
         source?.error === "remote_batch") {
@@ -532,6 +631,8 @@ function pbpCreateVocabDriveSyncRunner({
     let startAuth = null;
     let owner = "";
     let ownerHash = "";
+    let preflight = null;
+    let session = null;
     const stateWith = (patch, remove = []) => {
       const next = { ...state, ...patch };
       for (const key of remove) delete next[key];
@@ -544,34 +645,69 @@ function pbpCreateVocabDriveSyncRunner({
     };
     const finishFailure = async (source) => {
       const result = normalizedFailure(source);
-      if (result.retryable && state) {
-        const attempt = Number.isInteger(state.retryAttempt) && state.retryAttempt >= 0
-          ? state.retryAttempt : 0;
+      if (result.error === "account_changed") return result;
+      const canPersistPreflight = /^[0-9a-f]{64}$/.test(ownerHash);
+      if (result.retryable) {
+        const attempts = [state?.retryAttempt, preflight?.retryAttempt]
+          .filter((value) => Number.isInteger(value) && value >= 0);
+        const attempt = attempts.length ? Math.max(...attempts) : 0;
         const retryAt = now() + pbpVocabRetryDelayMinutes(attempt, random) * 60000;
-        const failed = stateWith({
-          lastError: result.error,
-          retryAttempt: attempt + 1,
-          retryAt
-        });
-        if (await store.putAccountState(failed)) {
-          state = failed;
-          alarms.create(PBP_VOCAB_RETRY_ALARM, { when: retryAt });
+        if (state) {
+          const failed = stateWith({
+            lastError: result.error,
+            retryAttempt: attempt + 1,
+            retryAt
+          });
+          if (await store.putAccountState(failed)) state = failed;
         }
-      } else if (state && result.error !== "account_changed") {
-        const failed = stateWith({ lastError: result.error });
-        if (await store.putAccountState(failed)) state = failed;
+        if (canPersistPreflight) {
+          const failedPreflight = {
+            key: preflightKey(ownerHash),
+            ownerHash,
+            retryAttempt: attempt + 1,
+            retryAt,
+            lastError: result.error,
+            blocked: false
+          };
+          if (await store.putPreflightState(failedPreflight)) {
+            preflight = failedPreflight;
+            alarms.create(PBP_VOCAB_RETRY_ALARM, { when: retryAt });
+          }
+        }
+      } else {
+        if (canPersistPreflight) {
+          const blockedPreflight = {
+            key: preflightKey(ownerHash),
+            ownerHash,
+            retryAttempt: 0,
+            retryAt: null,
+            lastError: result.error,
+            blocked: true
+          };
+          if (await store.putPreflightState(blockedPreflight)) {
+            preflight = blockedPreflight;
+          }
+        }
+        if (state) {
+          const failed = stateWith({ lastError: result.error });
+          if (await store.putAccountState(failed)) state = failed;
+        }
+        await Promise.all([
+          alarms.clear(PBP_VOCAB_DIRTY_ALARM),
+          alarms.clear(PBP_VOCAB_PERIODIC_ALARM),
+          alarms.clear(PBP_VOCAB_RETRY_ALARM)
+        ]);
       }
       return result;
     };
-    const applyPage = async (metadata, cursorCommit, skipSelf, deviceId) => {
+    const applyPage = async (metadata, cursorCommit) => {
       const batches = [];
       for (const meta of metadata) {
         if (!_pbpVocabDriveValidMetadata(meta) ||
             meta.appProperties.owner !== ownerHash) {
           return normalizedFailure({ error: "invalid_response" });
         }
-        if (skipSelf && meta.appProperties.device === deviceId) continue;
-        const downloaded = await client.download(meta.id);
+        const downloaded = await session.download(meta.id);
         if (!downloaded.ok) return normalizedFailure(downloaded);
         if (!await stillCurrent()) return normalizedFailure({ error: "account_changed" });
         if (!pbpVocabValidateDriveBatch(meta, downloaded.body, ownerHash)) {
@@ -616,30 +752,52 @@ function pbpCreateVocabDriveSyncRunner({
       }
       owner = pbpDictOwnerScope(startAuth.account);
       ownerHash = await hashOwner(owner);
-      const about = interactive ? await client.connect() : await client.about();
-      if (!about.ok) return finishFailure(about);
+      preflight = await store.getPreflightState(ownerHash);
+      if (force) {
+        if (!await store.deletePreflightState(ownerHash)) {
+          return finishFailure({ error: "remote_batch" });
+        }
+        preflight = null;
+        await alarms.clear(PBP_VOCAB_RETRY_ALARM);
+      } else if (preflight?.blocked === true) {
+        await Promise.all([
+          alarms.clear(PBP_VOCAB_DIRTY_ALARM),
+          alarms.clear(PBP_VOCAB_PERIODIC_ALARM),
+          alarms.clear(PBP_VOCAB_RETRY_ALARM)
+        ]);
+        return normalizedFailure({ error: preflight.lastError || "remote" });
+      } else if (Number.isFinite(preflight?.retryAt) && preflight.retryAt > now()) {
+        alarms.create(PBP_VOCAB_RETRY_ALARM, { when: preflight.retryAt });
+        return {
+          ok: true,
+          status: { ...preflight, waitingForRetry: true }
+        };
+      }
+
+      session = await client.openSession(interactive);
+      if (!session.ok) return finishFailure(session);
       if (!await stillCurrent()) return normalizedFailure({ error: "account_changed" });
 
-      state = await store.getAccountState(about.permissionId, ownerHash);
+      state = await store.getAccountState(session.permissionId, ownerHash);
       state = {
         ...(state || {}),
-        key: accountKey(about.permissionId, ownerHash),
-        drivePermissionId: about.permissionId,
-        emailAddress: about.emailAddress || "",
-        displayName: about.displayName || "",
+        key: accountKey(session.permissionId, ownerHash),
+        drivePermissionId: session.permissionId,
+        emailAddress: session.emailAddress || "",
+        displayName: session.displayName || "",
         ownerHash,
         bootstrapComplete: state?.bootstrapComplete === true,
         pageToken: state?.pageToken || null
       };
-      if (force && (state.retryAttempt || state.retryAt)) {
-        const reset = stateWith({ retryAttempt: 0, retryAt: null });
+      if (force && (state.retryAttempt || state.retryAt || state.lastError)) {
+        const reset = stateWith({ retryAttempt: 0, retryAt: null, lastError: null });
         if (!await store.putAccountState(reset)) {
           return finishFailure({ error: "remote_batch" });
         }
         state = reset;
-        await alarms.clear(PBP_VOCAB_RETRY_ALARM);
       }
       if (!force && Number.isFinite(state.retryAt) && state.retryAt > now()) {
+        alarms.create(PBP_VOCAB_RETRY_ALARM, { when: state.retryAt });
         return { ok: true, status: { ...state, waitingForRetry: true } };
       }
 
@@ -656,7 +814,7 @@ function pbpCreateVocabDriveSyncRunner({
         }
 
         if (!state.bootstrapStartToken) {
-          const token = await client.getStartPageToken();
+          const token = await session.getStartPageToken();
           if (!token.ok) return finishFailure(token);
           if (!await stillCurrent()) return normalizedFailure({ error: "account_changed" });
           const next = stateWith({ bootstrapStartToken: token.pageToken });
@@ -669,13 +827,13 @@ function pbpCreateVocabDriveSyncRunner({
         if (state.bootstrapListComplete !== true) {
           let pageToken = state.bootstrapFilePageToken || undefined;
           while (true) {
-            const page = await client.listFiles(ownerHash, pageToken);
+            const page = await session.listFiles(ownerHash, pageToken);
             if (!page.ok) return finishFailure(page);
             if (!await stillCurrent()) return normalizedFailure({ error: "account_changed" });
             const next = page.nextPageToken
               ? stateWith({ bootstrapFilePageToken: page.nextPageToken })
               : stateWith({ bootstrapListComplete: true }, ["bootstrapFilePageToken"]);
-            const applied = await applyPage(page.files, next, false, deviceId);
+            const applied = await applyPage(page.files, next);
             if (!applied.ok) return finishFailure(applied);
             state = next;
             if (!page.nextPageToken) break;
@@ -685,7 +843,7 @@ function pbpCreateVocabDriveSyncRunner({
 
         let changeToken = state.bootstrapChangePageToken || state.bootstrapStartToken;
         while (true) {
-          const page = await client.listChanges(changeToken);
+          const page = await session.listChanges(changeToken);
           if (!page.ok) return finishFailure(page);
           if (!await stillCurrent()) return normalizedFailure({ error: "account_changed" });
           const selected = changesMetadata(page.changes, false, deviceId);
@@ -699,7 +857,7 @@ function pbpCreateVocabDriveSyncRunner({
             }, ["bootstrapStartToken", "bootstrapListComplete", "bootstrapChangePageToken"])
             : stateWith({ bootstrapChangePageToken: page.nextPageToken });
           if (needsCheckpoint) next.needsCheckpoint = true;
-          const applied = await applyPage(selected.metadata, next, false, deviceId);
+          const applied = await applyPage(selected.metadata, next);
           if (!applied.ok) return finishFailure(applied);
           state = next;
           if (terminal) break;
@@ -709,7 +867,7 @@ function pbpCreateVocabDriveSyncRunner({
         let changeToken = state.pageToken;
         if (!changeToken) return finishFailure({ error: "invalid_response" });
         while (true) {
-          const page = await client.listChanges(changeToken);
+          const page = await session.listChanges(changeToken);
           if (!page.ok) return finishFailure(page);
           if (!await stillCurrent()) return normalizedFailure({ error: "account_changed" });
           const selected = changesMetadata(page.changes, true, deviceId);
@@ -720,7 +878,7 @@ function pbpCreateVocabDriveSyncRunner({
             pageToken: terminal ? page.newStartPageToken : page.nextPageToken
           });
           if (needsCheckpoint) next.needsCheckpoint = true;
-          const applied = await applyPage(selected.metadata, next, true, deviceId);
+          const applied = await applyPage(selected.metadata, next);
           if (!applied.ok) return finishFailure(applied);
           state = next;
           if (terminal) break;
@@ -754,7 +912,7 @@ function pbpCreateVocabDriveSyncRunner({
           return normalizedFailure({ error: "invalid_response" });
         }
         if (!await stillCurrent()) return normalizedFailure({ error: "account_changed" });
-        const uploaded = await client.upload(metadata, pending.body);
+        const uploaded = await session.upload(metadata, pending.body);
         if (!uploaded.ok) return normalizedFailure(uploaded);
         if (!await stillCurrent()) return normalizedFailure({ error: "account_changed" });
         if (!await store.deletePendingBatch(
@@ -777,7 +935,7 @@ function pbpCreateVocabDriveSyncRunner({
       );
       if (!split.ok) return finishFailure(split);
       for (const batch of split.batches) {
-        const generated = await client.generateId();
+        const generated = await session.generateId();
         if (!generated.ok) return finishFailure(generated);
         if (!await stillCurrent()) return normalizedFailure({ error: "account_changed" });
         const frozen = await store.freezeOutbox(
@@ -792,7 +950,7 @@ function pbpCreateVocabDriveSyncRunner({
         if (!uploaded.ok) return finishFailure(uploaded);
       }
 
-      const confirmed = await client.about();
+      const confirmed = await session.about();
       if (!confirmed.ok) return finishFailure(confirmed);
       if (!await stillCurrent() || confirmed.permissionId !== state.drivePermissionId) {
         return normalizedFailure({ error: "account_changed" });
@@ -807,10 +965,15 @@ function pbpCreateVocabDriveSyncRunner({
         return finishFailure({ error: "remote_batch" });
       }
       state = success;
+      if (!await store.deletePreflightState(ownerHash)) {
+        return finishFailure({ error: "remote_batch" });
+      }
+      preflight = null;
       await alarms.clear(PBP_VOCAB_RETRY_ALARM);
+      pbpVocabSchedulePeriodic(alarms);
       return { ok: true, status: { ...state } };
     } catch (_) {
-      return finishFailure({ error: "remote_batch" });
+      return { ok: false, error: "remote", retryable: false };
     }
   };
 }

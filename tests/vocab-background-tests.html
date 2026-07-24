@@ -32,7 +32,9 @@ function check(name, ok) { ok ? pass++ : fail++; const row = document.createElem
   check("one recovering promise tail serializes sync", source.includes("const queueVocabSync = pbpCreateRecoveringTail();") && source.includes("queueVocabSync(async () =>"));
   check("boot invokes only one noninteractive cold-start sync",
     bootAt >= 0 && boot.includes("interactive: false") && !boot.includes("interactive: true") &&
-    !startup.includes("pbpBootVocabDriveSync"));
+    !startup.includes("pbpBootVocabDriveSync") &&
+    boot.includes("if (!await pbpVocabDriveIsConnected()) return { ok: true };") &&
+    !boot.includes("status: await pbpGetVocabDriveStatus()"));
   check("background never requests optional permissions", !source.includes("chrome.permissions.request(") && !source.includes("permissions.request("));
   document.getElementById("summary").textContent = `pass=${pass} fail=${fail}`;
 })();

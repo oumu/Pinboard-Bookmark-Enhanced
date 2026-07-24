@@ -183,6 +183,17 @@ for (const name of task3Apis) {
       ? { processed: 0 } : (name === "pbpVocabApplyRemotePage"
         ? { ok: false, error: "missing_api" } : null));
 }
+const task7PreflightApis = [
+  "pbpVocabGetPreflightState", "pbpVocabPutPreflightState",
+  "pbpVocabDeletePreflightState"
+];
+const task7PreflightReady = task7PreflightApis.every(
+  (name) => typeof globalThis[name] === "function"
+);
+for (const name of task7PreflightApis) {
+  if (typeof globalThis[name] === "function") continue;
+  globalThis[name] = async () => name === "pbpVocabPutPreflightState" ? false : null;
+}
 
 async function runIdbChecks() {
   await deleteVocabDb();
@@ -202,6 +213,25 @@ async function runIdbChecks() {
     firstIdentity.counter === 0 && persistedIdentity.counter === 0 &&
     rejectedIdentity === null &&
     JSON.stringify(preservedCorruptIdentity) === JSON.stringify(corruptIdentity));
+
+  const preflight = {
+    key: `preflight:${OWNER_HASH_A}`, ownerHash: OWNER_HASH_A,
+    retryAttempt: 2, retryAt: 123456, lastError: "network", blocked: false
+  };
+  const preflightPut = await pbpVocabPutPreflightState(preflight);
+  const preflightRead = await pbpVocabGetPreflightState(OWNER_HASH_A);
+  const invalidPreflightPut = await pbpVocabPutPreflightState({
+    ...preflight, key: `preflight:${OWNER_HASH_B}`
+  });
+  const preflightPreserved = await pbpVocabGetPreflightState(OWNER_HASH_A);
+  const preflightDeleted = await pbpVocabDeletePreflightState(OWNER_HASH_A);
+  check("preflight state persists, validates, and deletes by owner hash",
+    task7PreflightReady && preflightPut &&
+    JSON.stringify(preflightRead) === JSON.stringify(preflight) &&
+    invalidPreflightPut === false &&
+    JSON.stringify(preflightPreserved) === JSON.stringify(preflight) &&
+    preflightDeleted &&
+    await pbpVocabGetPreflightState(OWNER_HASH_A) === null);
 
   const legacy = word("acct_legacy", "Migrate", { gloss: "legacy", createdAt: 1, updatedAt: 1 });
   await seedV1Word(legacy);
@@ -393,7 +423,7 @@ async function runIdbChecks() {
   try {
     await runIdbChecks();
   } catch (error) {
-    while (pass + fail < 45) check("IDB harness completed", false, error && (error.stack || error.message));
+    while (pass + fail < 46) check("IDB harness completed", false, error && (error.stack || error.message));
   }
   document.getElementById("summary").textContent = `pass=${pass} fail=${fail}`;
 })();

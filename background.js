@@ -1458,7 +1458,10 @@ async function pbpGetVocabDriveStatus() {
   }
   const ownerScope = pbpDictOwnerScope(auth.account);
   const ownerHash = await pbpVocabOwnerHash(ownerScope);
-  const states = await pbpVocabListAccountStates(ownerHash);
+  const [states, preflight] = await Promise.all([
+    pbpVocabListAccountStates(ownerHash),
+    pbpVocabGetPreflightState(ownerHash)
+  ]);
   states.sort((a, b) => (b.lastSuccessAt || 0) - (a.lastSuccessAt || 0));
   const state = states[0] || null;
   const [outbox, pending, notices] = await Promise.all([
@@ -1471,6 +1474,12 @@ async function pbpGetVocabDriveStatus() {
   }
   return {
     ...(state || {}),
+    ...(preflight ? {
+      lastError: preflight.lastError,
+      retryAttempt: preflight.retryAttempt,
+      retryAt: preflight.retryAt,
+      blocked: preflight.blocked
+    } : {}),
     connected,
     owner: auth.account,
     pendingWords: outbox.length,
@@ -1480,15 +1489,14 @@ async function pbpGetVocabDriveStatus() {
 }
 
 async function pbpBootVocabDriveSync() {
-  const options = { interactive: false };
-  if (!await pbpVocabDriveIsConnected()) return { ok: true, status: await pbpGetVocabDriveStatus() };
+  if (!await pbpVocabDriveIsConnected()) return { ok: true };
   pbpVocabSchedulePeriodic(chrome.alarms);
   const granted = await chrome.permissions.contains({
     permissions: ["identity"],
     origins: [PBP_GOOGLE_API_ORIGIN]
   });
   if (!granted) return { ok: false, error: "permission" };
-  return pbpQueueVocabDriveSync(options);
+  return pbpQueueVocabDriveSync({ interactive: false });
 }
 
 async function pbpDisconnectVocabDrive() {

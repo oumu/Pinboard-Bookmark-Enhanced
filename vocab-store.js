@@ -564,12 +564,31 @@ function _pbpVocabAccountKey(drivePermissionId, ownerHash) {
   return `account:${String(drivePermissionId || "")}:${String(ownerHash || "")}`;
 }
 
+function _pbpVocabPreflightKey(ownerHash) {
+  return `preflight:${String(ownerHash || "")}`;
+}
+
 function _pbpVocabBatchKey(drivePermissionId, ownerHash, driveFileId) {
   return `batch:${String(drivePermissionId || "")}:${String(ownerHash || "")}:${String(driveFileId || "")}`;
 }
 
 function _pbpVocabValidOwnerHash(value) {
   return typeof value === "string" && /^[0-9a-f]{64}$/.test(value);
+}
+
+function _pbpVocabValidPreflightState(state) {
+  const errors = new Set(["auth", "permission", "corrupt", "remote", "network"]);
+  return _pbpVocabPlainObject(state) &&
+    _pbpVocabOnlyKeys(state, [
+      "key", "ownerHash", "retryAttempt", "retryAt", "lastError", "blocked"
+    ]) &&
+    Object.keys(state).length === 6 &&
+    _pbpVocabValidOwnerHash(state.ownerHash) &&
+    state.key === _pbpVocabPreflightKey(state.ownerHash) &&
+    Number.isSafeInteger(state.retryAttempt) && state.retryAttempt >= 0 &&
+    (state.retryAt === null || (Number.isFinite(state.retryAt) && state.retryAt > 0)) &&
+    (state.lastError === null || errors.has(state.lastError)) &&
+    typeof state.blocked === "boolean";
 }
 
 function _pbpVocabValidBatchBody(body, expectedOwnerHash) {
@@ -585,6 +604,40 @@ async function pbpVocabGetAccountState(drivePermissionId, ownerHash) {
   const db = await _pbpVocabOpenDB();
   return (await _pbpVocabRequest(db.transaction("sync", "readonly").objectStore("sync")
     .get(_pbpVocabAccountKey(drivePermissionId, ownerHash)))) || null;
+}
+
+async function pbpVocabGetPreflightState(ownerHash) {
+  if (!_pbpVocabValidOwnerHash(ownerHash)) return null;
+  const db = await _pbpVocabOpenDB();
+  const stored = await _pbpVocabRequest(
+    db.transaction("sync", "readonly").objectStore("sync")
+      .get(_pbpVocabPreflightKey(ownerHash))
+  );
+  return _pbpVocabValidPreflightState(stored) ? stored : null;
+}
+
+async function pbpVocabPutPreflightState(state) {
+  if (!_pbpVocabValidPreflightState(state)) return false;
+  try {
+    const db = await _pbpVocabOpenDB();
+    const tx = db.transaction("sync", "readwrite");
+    const done = _pbpVocabTransactionDone(tx);
+    tx.objectStore("sync").put({ ...state });
+    await done;
+    return true;
+  } catch (_) { return false; }
+}
+
+async function pbpVocabDeletePreflightState(ownerHash) {
+  if (!_pbpVocabValidOwnerHash(ownerHash)) return false;
+  try {
+    const db = await _pbpVocabOpenDB();
+    const tx = db.transaction("sync", "readwrite");
+    const done = _pbpVocabTransactionDone(tx);
+    tx.objectStore("sync").delete(_pbpVocabPreflightKey(ownerHash));
+    await done;
+    return true;
+  } catch (_) { return false; }
 }
 
 async function pbpVocabGetSyncMeta() {

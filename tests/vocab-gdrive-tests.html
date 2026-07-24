@@ -129,11 +129,26 @@ function syncHarness(options = {}) {
   const pending = [...(options.pending || [])];
   const outbox = [...(options.outbox || [])];
   let accountState = options.accountState ? { ...options.accountState } : null;
+  let preflightState = options.preflightState ? { ...options.preflightState } : null;
   let authAccount = options.authAccount || "pin-a";
   let authEpoch = 1;
   const auth = () => ({ account: authAccount, epoch: authEpoch, token: "pin-token" });
   const store = {
     async getMeta() { return { deviceId: DEVICE_ID, counter: 1 }; },
+    async getPreflightState() {
+      calls.push("get-preflight");
+      return preflightState && { ...preflightState };
+    },
+    async putPreflightState(value) {
+      calls.push(`put-preflight:${value.lastError || ""}:${value.blocked === true}`);
+      preflightState = { ...value };
+      return true;
+    },
+    async deletePreflightState() {
+      calls.push("delete-preflight");
+      preflightState = null;
+      return true;
+    },
     async getAccountState() { return accountState && { ...accountState }; },
     async putAccountState(state) {
       calls.push(`put:${state.pageToken || ""}:${state.bootstrapComplete === true}`);
@@ -186,6 +201,21 @@ function syncHarness(options = {}) {
     }
   };
   const client = {
+    async openSession(interactive = false) {
+      calls.push(`open-session:${interactive}`);
+      const opened = interactive ? await client.connect() : await client.about();
+      if (!opened.ok) return opened;
+      return Object.assign({
+        ...opened,
+        about: client.about,
+        getStartPageToken: client.getStartPageToken,
+        listFiles: client.listFiles,
+        listChanges: client.listChanges,
+        download: client.download,
+        generateId: client.generateId,
+        upload: client.upload
+      }, options.sessionOverrides || {});
+    },
     async connect() { calls.push("connect"); return client.about(); },
     async about() {
       calls.push("about");
@@ -247,6 +277,7 @@ function syncHarness(options = {}) {
   return {
     calls, client, store, alarms, outbox, pending, ownerArgs, hashInputs, runner,
     state: () => accountState && { ...accountState },
+    preflight: () => preflightState && { ...preflightState },
     setAccount(value) { authAccount = value; authEpoch++; }
   };
 }
@@ -492,9 +523,65 @@ function syncHarness(options = {}) {
         : jsonResponse({ user: { permissionId: "perm-a" } })
     });
     const result = await client.about();
+    const sessionIdentity = identityFixture(["session-a", "session-b"]);
+    const sessionFetches = [];
+    const sessionClient = pbpCreateVocabDriveClient({
+      identity: sessionIdentity,
+      fetchImpl: async (url, init) => {
+        const call = {
+          path: new URL(url).pathname,
+          auth: init.headers.Authorization
+        };
+        sessionFetches.push(call);
+        if (call.path === "/drive/v3/about") {
+          return jsonResponse({ user: {
+            permissionId: call.auth === "Bearer session-a" ? "perm-a" : "perm-b"
+          } });
+        }
+        return new Response(null, { status: 401 });
+      }
+    });
+    const session = await sessionClient.openSession(false);
+    const crossed = session.ok ? await session.generateId() : session;
+    const stableIdentity = identityFixture(["stable-a", "stable-a2"]);
+    const stableFetches = [];
+    const stableClient = pbpCreateVocabDriveClient({
+      identity: stableIdentity,
+      fetchImpl: async (url, init) => {
+        const call = {
+          path: new URL(url).pathname,
+          auth: init.headers.Authorization
+        };
+        stableFetches.push(call);
+        if (call.path === "/drive/v3/about") {
+          return jsonResponse({ user: { permissionId: "perm-a" } });
+        }
+        return call.auth === "Bearer stable-a"
+          ? new Response(null, { status: 401 })
+          : jsonResponse({ ids: ["stable-id"] });
+      }
+    });
+    const stableSession = await stableClient.openSession(false);
+    const stableGenerated = stableSession.ok
+      ? await stableSession.generateId()
+      : stableSession;
     return result.ok && fetches === 2 && identity.calls.length === 2 &&
       identity.calls.every((call) => call.interactive === false) &&
-      identity.removed.length === 1 && identity.removed[0] === "old-token";
+      identity.removed.length === 1 && identity.removed[0] === "old-token" &&
+      !crossed.ok && crossed.error === "account_changed" &&
+      sessionFetches.filter((call) =>
+        call.path === "/drive/v3/files/generateIds").length === 1 &&
+      !sessionFetches.some((call) =>
+        call.path === "/drive/v3/files/generateIds" &&
+        call.auth === "Bearer session-b") &&
+      stableGenerated.ok && stableGenerated.fileId === "stable-id" &&
+      stableFetches.filter((call) =>
+        call.path === "/drive/v3/files/generateIds").length === 2 &&
+      stableIdentity.removed.length === 1 &&
+      !JSON.stringify([session, crossed]).includes("session-a") &&
+      !JSON.stringify([session, crossed, stableSession, stableGenerated])
+        .includes("session-b") &&
+      !JSON.stringify([stableSession, stableGenerated]).includes("stable-a");
   });
 
   await asyncCheck("second 401 stops without a third request", async () => {
@@ -537,12 +624,68 @@ function syncHarness(options = {}) {
       })
     });
     const download = await oversized.download(DRIVE_FILE_ID);
-    const denied = await syncHarness({
-      aboutResults: [{ ok: false, error: "remote", status: 403, retryable: false }]
-    }).runner()();
-    return permanent.every((result) => !result.ok && result.retryable === false) &&
+    const reasons = {};
+    for (const reason of [
+      "rateLimitExceeded", "userRateLimitExceeded",
+      "insufficientPermissions", "accessNotConfigured"
+    ]) {
+      const reasonClient = pbpCreateVocabDriveClient({
+        identity: identityFixture(),
+        fetchImpl: async () => jsonResponse({
+          error: { errors: [{ reason }], message: "private remote detail" }
+        }, 403)
+      });
+      reasons[reason] = await reasonClient.about();
+    }
+    const terminal = syncHarness({
+      aboutResults: [
+        { ok: false, error: "permission", status: 403, retryable: false },
+        { ok: true, permissionId: "perm-a", emailAddress: "a@example.test", displayName: "A" }
+      ]
+    });
+    const denied = await terminal.runner()();
+    const terminalBlocked = terminal.preflight();
+    const firstOpenCount = terminal.calls.filter((call) =>
+      call.startsWith("open-session:") || call === "about").length;
+    const blocked = await terminal.runner()();
+    const blockedOpenCount = terminal.calls.filter((call) =>
+      call.startsWith("open-session:") || call === "about").length;
+    const recovered = await terminal.runner()({ force: true });
+    const rate = syncHarness({
+      aboutResults: [{
+        ok: false, error: "rate_limited", status: 403, retryable: true
+      }]
+    });
+    const rateResult = await rate.runner()();
+    const ok = permanent.every((result) => !result.ok && result.retryable === false) &&
       !download.ok && download.error === "remote_batch_too_large" && !read && cancelled &&
-      !denied.ok && denied.error === "permission" && denied.retryable === false;
+      reasons.rateLimitExceeded.error === "rate_limited" &&
+      reasons.rateLimitExceeded.retryable === true &&
+      reasons.userRateLimitExceeded.error === "rate_limited" &&
+      reasons.userRateLimitExceeded.retryable === true &&
+      reasons.insufficientPermissions.error === "permission" &&
+      reasons.insufficientPermissions.retryable === false &&
+      reasons.accessNotConfigured.error === "remote" &&
+      reasons.accessNotConfigured.retryable === false &&
+      !JSON.stringify(reasons).includes("private remote detail") &&
+      !denied.ok && denied.error === "permission" &&
+      terminalBlocked?.blocked === true &&
+      !blocked.ok && blocked.error === "permission" &&
+      blockedOpenCount === firstOpenCount &&
+      recovered.ok && terminal.preflight() === null &&
+      terminal.alarms.created.some((alarm) => alarm.name === "vocab-sync-periodic") &&
+      ["vocab-sync-dirty", "vocab-sync-periodic", "vocab-sync-retry"]
+        .every((name) => terminal.calls.includes(`clear:${name}`)) &&
+      !rateResult.ok && rateResult.retryable === true &&
+      rate.preflight()?.retryAt > 1_000_000 &&
+      rate.alarms.created.some((alarm) => alarm.name === "vocab-sync-retry");
+    if (!ok) throw new Error(JSON.stringify({
+      permanent, download, read, cancelled, reasons, denied, blocked, recovered,
+      firstOpenCount, blockedOpenCount, terminalCalls: terminal.calls,
+      terminalBlocked, terminalPreflight: terminal.preflight(), rateResult,
+      ratePreflight: rate.preflight(), rateCalls: rate.calls
+    }));
+    return true;
   });
 
   await asyncCheck("429 is retryable and streamed overflow cancels", async () => {
@@ -702,12 +845,35 @@ function syncHarness(options = {}) {
       }
     });
     const network = await networkClient.upload(meta, bodyString([live("Network Retry")]));
+    const sessionIdentity = identityFixture(["session-token"]);
+    const sessionCalls = [];
+    const sessionClient = pbpCreateVocabDriveClient({
+      identity: sessionIdentity,
+      fetchImpl: async (url, init) => {
+        const path = new URL(url).pathname;
+        sessionCalls.push({ path, auth: init.headers.Authorization });
+        if (path === "/drive/v3/about") {
+          return jsonResponse({ user: { permissionId: "perm-a" } });
+        }
+        return path === "/upload/drive/v3/files"
+          ? new Response(null, { status: 409 })
+          : jsonResponse(meta);
+      }
+    });
+    const session = await sessionClient.openSession(false);
+    const sessionResult = session.ok
+      ? await session.upload(meta, bodyString([live("Session Retry")]))
+      : session;
     const metadataUrl = new URL(calls[1].url);
     return result.ok && result.idempotent === true && result.fileId === DRIVE_FILE_ID &&
       calls.length === 2 && calls[1].init.method === "GET" &&
       metadataUrl.pathname === `/drive/v3/files/${encodeURIComponent(DRIVE_FILE_ID)}` &&
       metadataUrl.searchParams.get("fields") === "id,name,appProperties,parents,mimeType" &&
-      !network.ok && network.error === "network" && network.retryable === true;
+      !network.ok && network.error === "network" && network.retryable === true &&
+      sessionResult.ok && sessionResult.idempotent === true &&
+      sessionIdentity.calls.length === 1 &&
+      sessionCalls.length === 3 &&
+      sessionCalls.every((call) => call.auth === "Bearer session-token");
   });
 
   await asyncCheck("409 metadata mismatch is hard id_collision", async () => {
@@ -1044,9 +1210,11 @@ function syncHarness(options = {}) {
   await asyncCheck("interrupted legacy seed resumes from committed store work", async () => {
     const h = syncHarness({ seedResults: [100, new Error("worker stopped"), 0] });
     const first = await h.runner()();
+    const firstPreflight = h.preflight();
     const firstStarts = h.calls.filter((call) => call === "start").length;
     const second = await h.runner()();
-    return !first.ok && second.ok && firstStarts === 0 &&
+    return !first.ok && first.error === "remote" && firstPreflight === null &&
+      second.ok && firstStarts === 0 &&
       h.calls.filter((call) => call === "start").length === 1;
   });
 
@@ -1091,8 +1259,22 @@ function syncHarness(options = {}) {
       }]
     });
     const result = await h.runner()();
+    const switched = syncHarness({
+      pending: [{
+        drivePermissionId: "perm-a", ownerHash: OWNER_HASH,
+        driveFileId: "pending-switched", body: frozen, createdAt: 1
+      }],
+      sessionOverrides: {
+        async upload() {
+          return { ok: false, error: "account_changed", retryable: false };
+        }
+      }
+    });
+    const switchedResult = await switched.runner()();
     return result.ok && h.calls.includes(`upload:pending-fixed:${frozen}`) &&
-      !h.calls.some((call) => call.startsWith("generate:"));
+      !h.calls.some((call) => call.startsWith("generate:")) &&
+      !switchedResult.ok && switchedResult.error === "account_changed" &&
+      !switched.calls.some((call) => call === "delete-pending:pending-switched");
   });
 
   await asyncCheck("periodic scheduling uses a fifteen-minute alarm", async () => {
@@ -1128,10 +1310,34 @@ function syncHarness(options = {}) {
       changePages: [{ ok: false, error: "server", retryable: true }]
     });
     const result = await h.runner()({ force: true });
+    const preflight = syncHarness({
+      preflightState: {
+        key: `preflight:${OWNER_HASH}`, ownerHash: OWNER_HASH,
+        retryAttempt: 2, retryAt: 9_999_999, lastError: "network", blocked: false
+      }
+    });
+    const waiting = await preflight.runner()();
+    const waitingCalls = [...preflight.calls];
+    const forced = await preflight.runner()({ force: true });
+    const accountWait = syncHarness({
+      accountState: {
+        key: `account:perm-a:${OWNER_HASH}`, drivePermissionId: "perm-a",
+        ownerHash: OWNER_HASH, bootstrapComplete: true, pageToken: "stable-old",
+        retryAttempt: 2, retryAt: 9_999_999
+      }
+    });
+    const accountWaiting = await accountWait.runner()();
     return delays.join(",") === "1,2,4,8,16,32,60,60,60" &&
       !result.ok && result.error === "network" &&
       h.state().retryAttempt === 1 && h.state().retryAt === 1_060_000 &&
-      h.calls.indexOf("put:stable-old:true") < h.calls.indexOf("alarm:vocab-sync-retry");
+      h.calls.indexOf("put:stable-old:true") < h.calls.indexOf("alarm:vocab-sync-retry") &&
+      waiting.ok && waiting.status?.waitingForRetry === true &&
+      waitingCalls.includes("alarm:vocab-sync-retry") &&
+      !waitingCalls.some((call) =>
+        call.startsWith("open-session:") || call === "about" || call.startsWith("changes:")) &&
+      forced.ok && preflight.preflight() === null &&
+      accountWaiting.ok && accountWaiting.status?.waitingForRetry === true &&
+      accountWait.calls.includes("alarm:vocab-sync-retry");
   });
 
   await asyncCheck("retry delay applies bounded twenty-percent jitter", async () => {
@@ -1154,11 +1360,27 @@ function syncHarness(options = {}) {
       ]
     });
     const driveResult = await drive.runner()();
+    const sessionSwitch = syncHarness({
+      accountState: {
+        key: `account:perm-a:${OWNER_HASH}`, drivePermissionId: "perm-a",
+        ownerHash: OWNER_HASH, bootstrapComplete: true, pageToken: "stable-old"
+      },
+      sessionOverrides: {
+        async listChanges() {
+          return { ok: false, error: "account_changed", retryable: false };
+        }
+      }
+    });
+    const sessionSwitchResult = await sessionSwitch.runner()();
     return !result.ok && result.error === "account_changed" &&
       !h.calls.some((call) => call.startsWith("apply:")) &&
       !h.calls.some((call) => call.startsWith("upload:")) &&
       !driveResult.ok && driveResult.error === "account_changed" &&
-      drive.calls.filter((call) => call === "about").length === 2;
+      drive.calls.filter((call) => call === "about").length === 2 &&
+      !sessionSwitchResult.ok && sessionSwitchResult.error === "account_changed" &&
+      !sessionSwitch.calls.some((call) =>
+        call.startsWith("apply:") || call.startsWith("upload:") ||
+        call.startsWith("delete-pending:"));
   });
 
   document.getElementById("summary").textContent = `pass=${pass} fail=${fail}`;
