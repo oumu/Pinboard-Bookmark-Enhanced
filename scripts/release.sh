@@ -347,7 +347,7 @@ fi
 
 cd "${REPO_ROOT}"
 python3 - "${ZIP_PATH}" "${VERSION}" "${HEAD_SHA}" <<'PYEOF'
-import fnmatch, json, pathlib, posixpath, re, subprocess, sys, zipfile
+import base64, fnmatch, hashlib, json, pathlib, posixpath, re, subprocess, sys, zipfile
 
 zip_path = sys.argv[1]
 version  = sys.argv[2]
@@ -355,6 +355,21 @@ snapshot = sys.argv[3]
 prefix   = f"pinboard-bookmark-enhanced-v{version}/"
 
 REPO = pathlib.Path('.')
+RELEASE_EXTENSION_ID = 'pnjndmjhljjbdlbejeenkepdalokfooh'
+RELEASE_EXTENSION_KEY = (
+    'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAwNA1FMsd5vKiPgnGvwMiqO7Q'
+    'V2PRke84BnYJPJRVGNFPG6Z1OzNpwHWI60aamTOpXcgby7z45atUCJk0d2Knh1LWuz7'
+    'gxvYpxzz9puSEH2owW9AGBZztX4hbHWeL/WnR+oRiSAHYXRAS8/RBS156nbG9TVrF1z'
+    'yQpSwPFqofX3ezhhg9GLyqcixSuyDquloyuyAFgA5lG7tf6/XvyfYgnyelksL2StQnn'
+    'Cmei9Jro1uDDmBV0Kpj5pcS4Xw9Ifq29JBMu3pxJ02FYaeqmpAwfs/ZCnVU/STACfs7'
+    'Lsn4pWzonj1n8WevNewDZuY3hoaYF63wzc0KTxYHVGkxnGGFbQIDAQAB'
+)
+
+key_hash = hashlib.sha256(base64.b64decode(RELEASE_EXTENSION_KEY)).hexdigest()[:32]
+key_id = ''.join(chr(ord('a') + int(char, 16)) for char in key_hash)
+if key_id != RELEASE_EXTENSION_ID:
+    print(f'  ERROR: release public key maps to {key_id}, expected {RELEASE_EXTENSION_ID}.', file=sys.stderr)
+    sys.exit(1)
 
 # Top-level extension files (whitelist by pattern)
 TOP_LEVEL_PATTERNS = ['*.html', '*.js', '*.css', 'manifest.json']
@@ -428,6 +443,13 @@ with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
             ['git', 'cat-file', 'blob', oid],
             check=True, capture_output=True,
         ).stdout
+        if path == 'manifest.json':
+            manifest = json.loads(data)
+            if 'key' in manifest:
+                print('  ERROR: source manifest.json must stay key-free for an independent development ID.', file=sys.stderr)
+                sys.exit(1)
+            manifest['key'] = RELEASE_EXTENSION_KEY
+            data = (json.dumps(manifest, ensure_ascii=False, indent=2) + '\n').encode('utf-8')
         contents[path] = data
         info = zipfile.ZipInfo(prefix + path, date_time=(1980, 1, 1, 0, 0, 0))
         info.create_system = 3
@@ -508,7 +530,8 @@ if missing:
     print(f"  Fix release.sh INCLUDE_DIRS / TOP_LEVEL_PATTERNS / EXCLUDE_* rules.", file=sys.stderr)
     sys.exit(1)
 
-print(f"  ZIP created — {len(included)} files (all manifest + HTML references resolved).")
+print(f"  ZIP created — {len(included)} files; extension ID fixed to {RELEASE_EXTENSION_ID}.")
+print("  All manifest + HTML references resolved.")
 PYEOF
 
 echo ""

@@ -11,6 +11,8 @@ const popupHtml = read("popup.html");
 const manifest = JSON.parse(read("manifest.json"));
 const backgroundJs = read("background.js");
 const optionsHtml = read("options.html");
+const releaseSh = read("scripts/release.sh");
+const zipInstallSmoke = read("scripts/zip-install-smoke.mjs");
 check(!optionsHtml.includes('Requires "Access all websites" permission'), "options Batch hint still advertises the retired all-sites request");
 check(optionsHtml.includes('data-i18n="secBackupRestore">Backup &amp; Restore</div>'),
   "options.html: backup section fallback still advertises sync");
@@ -61,6 +63,16 @@ check(!optionsCss.toLowerCase().includes("webdav"), "options.css still ships Web
 check(manifest.permissions.includes("alarms"), "shared alarms permission was removed");
 check(manifest.optional_host_permissions.join(",") === "*://*/*",
   "shared optional-host declaration changed");
+check(!Object.hasOwn(manifest, "key"),
+  "manifest.json: source manifest must stay key-free so the development install keeps an independent ID");
+check(releaseSh.includes("RELEASE_EXTENSION_ID = 'pnjndmjhljjbdlbejeenkepdalokfooh'") &&
+  releaseSh.includes("manifest['key'] = RELEASE_EXTENSION_KEY"),
+  "scripts/release.sh: release ZIP no longer injects the verified CWS public key");
+check(zipInstallSmoke.includes("const EXPECTED_EXTENSION_ID = 'pnjndmjhljjbdlbejeenkepdalokfooh';") &&
+  zipInstallSmoke.includes("'vocab-store.js'") &&
+  zipInstallSmoke.includes("'vocab-gdrive.js'") &&
+  zipInstallSmoke.includes('#vocab-drive-connect'),
+  "zip-install-smoke.mjs: release ID, vocabulary runtime files, or Drive options card are not verified");
 check(!backgroundJs.includes('"webdav.js"'), "background.js still imports webdav.js");
 check(backgroundJs.includes('"vocab-store.js"') && backgroundJs.includes('"vocab-gdrive.js"') &&
   backgroundJs.indexOf('"vocab-store.js"') < backgroundJs.indexOf('"vocab-gdrive.js"'),

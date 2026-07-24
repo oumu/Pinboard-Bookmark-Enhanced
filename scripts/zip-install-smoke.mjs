@@ -33,6 +33,7 @@ import { execFileSync } from 'node:child_process';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(__dirname, '..');
 const QA_SCAN = resolve(REPO, '.qa-scan');
+const EXPECTED_EXTENSION_ID = 'pnjndmjhljjbdlbejeenkepdalokfooh';
 
 let chromium;
 try {
@@ -111,6 +112,8 @@ function cleanup() {
 console.log('[zip-smoke] check 0: dynamically-referenced runtime files present...');
 const REQUIRED_RUNTIME_FILES = [
   'site-rules.js',
+  'vocab-store.js',
+  'vocab-gdrive.js',
   'vendor/turndown.js',
   'vendor/highlight.min.js',
   'vendor/hljs-github.min.css',
@@ -182,6 +185,12 @@ console.log(`  SW URL: ${sw.url()}`);
 
 const extId = new URL(sw.url()).hostname;
 console.log(`  extension ID: ${extId}`);
+if (extId !== EXPECTED_EXTENSION_ID) {
+  console.error(`[zip-smoke] FAIL: release ZIP extension ID is ${extId}, expected ${EXPECTED_EXTENSION_ID}`);
+  await ctx.close().catch(() => {});
+  cleanup();
+  process.exit(1);
+}
 
 // Capture SW console errors
 sw.on('console', msg => {
@@ -192,6 +201,17 @@ sw.on('console', msg => {
 
 // Brief wait so SW can finish boot (importScripts, alarm setup, etc.)
 await new Promise(r => setTimeout(r, 1500));
+const vocabRuntime = await sw.evaluate(() => ({
+  store: typeof pbpVocabGetSyncMeta === 'function',
+  drive: typeof pbpCreateVocabDriveSyncRunner === 'function',
+}));
+if (!vocabRuntime.store || !vocabRuntime.drive) {
+  console.error(`[zip-smoke] FAIL: vocabulary runtime imports unavailable: ${JSON.stringify(vocabRuntime)}`);
+  await ctx.close().catch(() => {});
+  cleanup();
+  process.exit(1);
+}
+console.log('  vocabulary runtime imports OK');
 
 // ---- Checks 2-4: extension pages open without runtime/resource failures ----
 const extensionBase = `chrome-extension://${extId}/`;
@@ -218,6 +238,10 @@ async function checkExtensionPage(number, name, waitMs) {
   try {
     await page.goto(`${extensionBase}${name}.html`, { waitUntil: 'domcontentloaded', timeout: 10000 });
     await new Promise(r => setTimeout(r, waitMs));
+    if (name === 'options' &&
+        await page.locator('[data-acc-key="vocab-google-drive"] #vocab-drive-connect').count() !== 1) {
+      failures.push('Google Drive vocabulary controls not found');
+    }
   } catch (e) {
     failures.push(`navigation failed: ${e.message}`);
   }
