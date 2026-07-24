@@ -903,7 +903,7 @@
     "message": "オフライン保存キューを有効にする"
   },
   "secBackupRestore": {
-    "message": "バックアップと同期"
+    "message": "バックアップと復元"
   },
   "backupHint": {
     "message": "設定のエクスポート・インポート（セキュリティのため API キーはエクスポートに含まれません）。"

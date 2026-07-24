@@ -12,6 +12,8 @@ const manifest = JSON.parse(read("manifest.json"));
 const backgroundJs = read("background.js");
 const optionsHtml = read("options.html");
 check(!optionsHtml.includes('Requires "Access all websites" permission'), "options Batch hint still advertises the retired all-sites request");
+check(optionsHtml.includes('data-i18n="secBackupRestore">Backup &amp; Restore</div>'),
+  "options.html: backup section fallback still advertises sync");
 const mdHtml = read("md-preview.html");
 const mdPreviewJs = read("md-preview.js");
 const mdExportSendJs = read("md-export-send.js");

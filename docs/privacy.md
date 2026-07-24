@@ -49,7 +49,7 @@ The Chrome Web Store privacy form uses standardized data categories. To keep the
 | Personally identifiable information | Your Pinboard API token includes your Pinboard username; account-scoped local state and cache keys store that username owner in plaintext locally (without the token), including offline, tag, AI, Batch, tag-cleanup, and preview state |
 | Authentication information | The extension stores and uses credentials you provide, such as your Pinboard API token, AI/Jina provider keys, Wayback S3 credentials, GitHub token, webhook authorization value or capability URL, AnkiConnect API key, and Eudic OpenAPI authorization value |
 | Web history | The extension reads page URLs and titles for bookmark status, popup prefill, batch save, Save Tab Set, offline queue, and bookmark/export metadata |
-| Website content | The extension can extract page text, selected text, links, metadata, highlights, and notes for AI tags/summaries, Markdown preview, Translate, Ask-the-page, Explain-selection, Dictionary lookups and the vocabulary book, exports, and optional backups |
+| Website content | The extension can extract page text, selected text, links, metadata, highlights, and notes for AI tags/summaries, Markdown preview, Translate, Ask-the-page, Explain-selection, Dictionary lookups and the vocabulary book, exports, and manual settings-backup files |
 
 The extension does **not** collect health information, financial/payment information, location, personal communications as a separate category, or user activity for analytics/tracking. It has no developer-operated analytics, telemetry, advertising, or profiling.
 

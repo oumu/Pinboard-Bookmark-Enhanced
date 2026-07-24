@@ -903,7 +903,7 @@
     "message": "Activer la file d'attente d'enregistrement hors ligne"
   },
   "secBackupRestore": {
-    "message": "Sauvegarde et synchronisation"
+    "message": "Sauvegarde et restauration"
   },
   "backupHint": {
     "message": "Exporter/importer vos paramètres (les clés API sont exclues de l'export pour des raisons de sécurité)."

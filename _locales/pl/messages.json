@@ -903,7 +903,7 @@
     "message": "Włącz kolejkę zapisu offline"
   },
   "secBackupRestore": {
-    "message": "Kopia zapasowa i synchronizacja"
+    "message": "Kopia zapasowa i przywracanie"
   },
   "backupHint": {
     "message": "Eksportuj/importuj ustawienia (klucze API nie są eksportowane ze względów bezpieczeństwa)."

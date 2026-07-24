@@ -903,7 +903,7 @@
     "message": "Offline-Speicher-Warteschlange aktivieren"
   },
   "secBackupRestore": {
-    "message": "Sicherung & Synchronisierung"
+    "message": "Sicherung & Wiederherstellung"
   },
   "backupHint": {
     "message": "Einstellungen exportieren/importieren (API-Schlüssel werden aus Sicherheitsgründen nicht exportiert)."

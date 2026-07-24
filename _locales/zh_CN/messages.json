@@ -903,7 +903,7 @@
     "message": "启用离线保存队列"
   },
   "secBackupRestore": {
-    "message": "备份与同步"
+    "message": "备份与恢复"
   },
   "backupHint": {
     "message": "导出或导入设置（出于安全考虑，API 密钥不包含在导出文件中）。"

@@ -903,7 +903,7 @@
     "message": "Enable offline save queue"
   },
   "secBackupRestore": {
-    "message": "Backup & Sync"
+    "message": "Backup & Restore"
   },
   "backupHint": {
     "message": "Export/import your settings (API keys are excluded from export for security)."

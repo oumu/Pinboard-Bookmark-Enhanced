@@ -27,6 +27,19 @@ async function loadLocale(loc) {
 
   check("Removed WebDAV messages stay absent in every locale",
     LOCALES.every((loc) => !Object.keys(msgs[loc]).some((key) => key.startsWith("webdav"))));
+  const BACKUP_RESTORE_TITLES = {
+    en: "Backup & Restore",
+    de: "Sicherung & Wiederherstellung",
+    fr: "Sauvegarde et restauration",
+    pl: "Kopia zapasowa i przywracanie",
+    ru: "Резервное копирование и восстановление",
+    zh_HK: "備份與還原",
+    zh_CN: "备份与恢复",
+    zh_TW: "備份與還原",
+    ja: "バックアップと復元",
+  };
+  check("Backup section titles describe file restore rather than retired remote sync",
+    LOCALES.every((loc) => msgs[loc].secBackupRestore?.message === BACKUP_RESTORE_TITLES[loc]));
 
   // H1: AI/Jina cluster must be present and translated (≠ English) in these
   // locales — EXCEPT values that are legitimately identical to English in that

@@ -903,7 +903,7 @@
     "message": "啟用離線儲存佇列"
   },
   "secBackupRestore": {
-    "message": "備份與同步"
+    "message": "備份與還原"
   },
   "backupHint": {
     "message": "匯出或匯入設定（出於安全考慮，API 金鑰不包含在匯出檔案中）。"
