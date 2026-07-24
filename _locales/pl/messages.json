@@ -914,6 +914,120 @@
   "backupIncludeHighlightsHint": {
     "message": "Kopie zapasowe obejmują adresy URL stron, tytuły, zaznaczony tekst, notatki, kolory i znaczniki czasu. Klucze API nie są uwzględniane."
   },
+  "backupPlaintextDisclosure": {
+    "message": "Kopie zapasowe są jawnymi plikami JSON. Mogą zawierać ustawienia, zaznaczenia, adresy URL stron, słownictwo i fragmenty kontekstu. Klucze API są wykluczone."
+  },
+  "backupIncludeVocabularyLabel": {
+    "message": "Uwzględniaj słownictwo w kopiach zapasowych"
+  },
+  "backupIncludeVocabularyHint": {
+    "message": "Obejmuje tylko słownictwo z bieżącego konta Pinboard."
+  },
+  "backupVocabOwnerMissing": {
+    "message": "Słownictwo nie zostało uwzględnione, ponieważ nie jest dostępne konto Pinboard. Pozostałe wybrane dane zostały wyeksportowane."
+  },
+  "backupPreviewTitle": {
+    "message": "Podgląd importu"
+  },
+  "backupPreviewMeta": {
+    "message": "Schemat $SCHEMA$; utworzono $CREATED$; wersja rozszerzenia $VERSION$.",
+    "placeholders": {
+      "schema": { "content": "$1" },
+      "created": { "content": "$2" },
+      "version": { "content": "$3" }
+    }
+  },
+  "backupPreviewUnknown": {
+    "message": "Nieznane"
+  },
+  "backupPreviewSettings": {
+    "message": "Pola: $COUNT$",
+    "placeholders": { "count": { "content": "$1" } }
+  },
+  "backupPreviewThemes": {
+    "message": "Motywy niestandardowe: $COUNT$",
+    "placeholders": { "count": { "content": "$1" } }
+  },
+  "backupPreviewHighlights": {
+    "message": "Strony: $PAGES$; wpisy: $ITEMS$; konto Pinboard: $OWNER$",
+    "placeholders": {
+      "pages": { "content": "$1" },
+      "items": { "content": "$2" },
+      "owner": { "content": "$3" }
+    }
+  },
+  "backupPreviewVocabulary": {
+    "message": "Słowa: $COUNT$; konto Pinboard: $OWNER$",
+    "placeholders": {
+      "count": { "content": "$1" },
+      "owner": { "content": "$2" }
+    }
+  },
+  "backupPreviewLanguageLabel": {
+    "message": "Języki"
+  },
+  "backupPreviewLegacyOwner": {
+    "message": "Starsza kopia bez informacji o koncie"
+  },
+  "backupPreviewNone": {
+    "message": "Brak"
+  },
+  "backupPreviewOwnerMismatch": {
+    "message": "Nie można zaimportować słownictwa, ponieważ ta kopia należy do innego konta Pinboard."
+  },
+  "backupPreviewSyncWarning": {
+    "message": "Synchronizacja ustawień jest włączona na tym urządzeniu. Zaimportowane ustawienia mogą trafić na inne urządzenia Chrome."
+  },
+  "backupPreviewLocalWarning": {
+    "message": "Te duże pola prawdopodobnie pozostaną tylko na tym urządzeniu: $FIELDS$.",
+    "placeholders": { "fields": { "content": "$1" } }
+  },
+  "backupSectionSettings": {
+    "message": "Ustawienia"
+  },
+  "backupSectionThemes": {
+    "message": "Motywy"
+  },
+  "backupSectionHighlights": {
+    "message": "Zaznaczenia i notatki"
+  },
+  "backupSectionVocabulary": {
+    "message": "Słownictwo"
+  },
+  "backupChooseSections": {
+    "message": "Wybierz dane do zaimportowania"
+  },
+  "backupApplySelected": {
+    "message": "Zastosuj wybrane"
+  },
+  "backupStatusApplied": {
+    "message": "Zastosowano"
+  },
+  "backupStatusSkipped": {
+    "message": "Pominięto"
+  },
+  "backupStatusLocalOnly": {
+    "message": "Zapisano tylko na tym urządzeniu"
+  },
+  "backupStatusFailed": {
+    "message": "Niepowodzenie"
+  },
+  "backupImportProgress": {
+    "message": "Zaimportowano $DONE$ z $TOTAL$ wpisów słownictwa.",
+    "placeholders": {
+      "done": { "content": "$1" },
+      "total": { "content": "$2" }
+    }
+  },
+  "backupImportComplete": {
+    "message": "Import zakończony. Odśwież stronę, aby zobaczyć zmiany ustawień i motywów."
+  },
+  "backupImportPartialResult": {
+    "message": "Import zakończony, ale niektóre sekcje są niepełne lub zapisane tylko na tym urządzeniu. Przed usunięciem kopii sprawdź wyniki poniżej."
+  },
+  "backupImportNothing": {
+    "message": "Nie zastosowano żadnej sekcji kopii zapasowej."
+  },
   "exportSettings": {
     "message": "Eksportuj ustawienia"
   },

@@ -914,6 +914,120 @@
   "backupIncludeHighlightsHint": {
     "message": "備份會包含頁面 URL、標題、選取文字、筆記、顏色和時間戳記，但不會包含 API 金鑰。"
   },
+  "backupPlaintextDisclosure": {
+    "message": "備份檔案是明文 JSON，可能包含設定、標記、頁面 URL、生詞和內容摘錄，但不包含 API 金鑰。"
+  },
+  "backupIncludeVocabularyLabel": {
+    "message": "在備份中包含生詞"
+  },
+  "backupIncludeVocabularyHint": {
+    "message": "只包含目前 Pinboard 帳號的生詞。"
+  },
+  "backupVocabOwnerMissing": {
+    "message": "目前沒有可用的 Pinboard 帳號，因此未包含生詞。其他已選資料仍已匯出。"
+  },
+  "backupPreviewTitle": {
+    "message": "匯入預覽"
+  },
+  "backupPreviewMeta": {
+    "message": "結構版本 $SCHEMA$；建立時間 $CREATED$；擴充功能版本 $VERSION$。",
+    "placeholders": {
+      "schema": { "content": "$1" },
+      "created": { "content": "$2" },
+      "version": { "content": "$3" }
+    }
+  },
+  "backupPreviewUnknown": {
+    "message": "未知"
+  },
+  "backupPreviewSettings": {
+    "message": "$COUNT$ 個欄位",
+    "placeholders": { "count": { "content": "$1" } }
+  },
+  "backupPreviewThemes": {
+    "message": "$COUNT$ 個自訂主題",
+    "placeholders": { "count": { "content": "$1" } }
+  },
+  "backupPreviewHighlights": {
+    "message": "$PAGES$ 個頁面，$ITEMS$ 筆記錄；Pinboard 帳號：$OWNER$",
+    "placeholders": {
+      "pages": { "content": "$1" },
+      "items": { "content": "$2" },
+      "owner": { "content": "$3" }
+    }
+  },
+  "backupPreviewVocabulary": {
+    "message": "$COUNT$ 個生詞；Pinboard 帳號：$OWNER$",
+    "placeholders": {
+      "count": { "content": "$1" },
+      "owner": { "content": "$2" }
+    }
+  },
+  "backupPreviewLanguageLabel": {
+    "message": "語言"
+  },
+  "backupPreviewLegacyOwner": {
+    "message": "未記錄帳號的舊版備份"
+  },
+  "backupPreviewNone": {
+    "message": "無"
+  },
+  "backupPreviewOwnerMismatch": {
+    "message": "此備份屬於另一個 Pinboard 帳號，無法匯入其中的生詞。"
+  },
+  "backupPreviewSyncWarning": {
+    "message": "本裝置已開啟設定同步。匯入的設定可能會同步到其他 Chrome 裝置。"
+  },
+  "backupPreviewLocalWarning": {
+    "message": "這些大型欄位預計只會儲存在本裝置：$FIELDS$。",
+    "placeholders": { "fields": { "content": "$1" } }
+  },
+  "backupSectionSettings": {
+    "message": "設定"
+  },
+  "backupSectionThemes": {
+    "message": "主題"
+  },
+  "backupSectionHighlights": {
+    "message": "標記與筆記"
+  },
+  "backupSectionVocabulary": {
+    "message": "生詞"
+  },
+  "backupChooseSections": {
+    "message": "選擇要匯入的內容"
+  },
+  "backupApplySelected": {
+    "message": "套用所選內容"
+  },
+  "backupStatusApplied": {
+    "message": "已套用"
+  },
+  "backupStatusSkipped": {
+    "message": "已略過"
+  },
+  "backupStatusLocalOnly": {
+    "message": "只儲存在本裝置"
+  },
+  "backupStatusFailed": {
+    "message": "失敗"
+  },
+  "backupImportProgress": {
+    "message": "已匯入 $DONE$ / $TOTAL$ 筆生詞記錄。",
+    "placeholders": {
+      "done": { "content": "$1" },
+      "total": { "content": "$2" }
+    }
+  },
+  "backupImportComplete": {
+    "message": "匯入完成。重新整理頁面後可查看設定和主題變更。"
+  },
+  "backupImportPartialResult": {
+    "message": "匯入已結束，但部分內容未完成或只儲存在本裝置。刪除備份檔案前，請檢查下方結果。"
+  },
+  "backupImportNothing": {
+    "message": "沒有套用任何備份內容。"
+  },
   "exportSettings": {
     "message": "匯出設定"
   },

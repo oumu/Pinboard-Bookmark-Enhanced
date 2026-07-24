@@ -914,6 +914,120 @@
   "backupIncludeHighlightsHint": {
     "message": "Includes page URLs, titles, selected text, notes, colors, and timestamps. API keys are never included."
   },
+  "backupPlaintextDisclosure": {
+    "message": "Backup files are plain JSON. They may contain settings, highlights, page URLs, vocabulary, and context excerpts. API keys are excluded."
+  },
+  "backupIncludeVocabularyLabel": {
+    "message": "Include vocabulary in backups"
+  },
+  "backupIncludeVocabularyHint": {
+    "message": "Includes vocabulary only for the current Pinboard account."
+  },
+  "backupVocabOwnerMissing": {
+    "message": "Vocabulary was not included because no Pinboard account is available. The other selected data was exported."
+  },
+  "backupPreviewTitle": {
+    "message": "Import preview"
+  },
+  "backupPreviewMeta": {
+    "message": "Schema $SCHEMA$; created $CREATED$; extension $VERSION$.",
+    "placeholders": {
+      "schema": { "content": "$1" },
+      "created": { "content": "$2" },
+      "version": { "content": "$3" }
+    }
+  },
+  "backupPreviewUnknown": {
+    "message": "Unknown"
+  },
+  "backupPreviewSettings": {
+    "message": "$COUNT$ fields",
+    "placeholders": { "count": { "content": "$1" } }
+  },
+  "backupPreviewThemes": {
+    "message": "$COUNT$ custom themes",
+    "placeholders": { "count": { "content": "$1" } }
+  },
+  "backupPreviewHighlights": {
+    "message": "$PAGES$ pages, $ITEMS$ entries; Pinboard account: $OWNER$",
+    "placeholders": {
+      "pages": { "content": "$1" },
+      "items": { "content": "$2" },
+      "owner": { "content": "$3" }
+    }
+  },
+  "backupPreviewVocabulary": {
+    "message": "$COUNT$ words; Pinboard account: $OWNER$",
+    "placeholders": {
+      "count": { "content": "$1" },
+      "owner": { "content": "$2" }
+    }
+  },
+  "backupPreviewLanguageLabel": {
+    "message": "Languages"
+  },
+  "backupPreviewLegacyOwner": {
+    "message": "Legacy backup without an account"
+  },
+  "backupPreviewNone": {
+    "message": "None"
+  },
+  "backupPreviewOwnerMismatch": {
+    "message": "Vocabulary cannot be imported because this backup belongs to another Pinboard account."
+  },
+  "backupPreviewSyncWarning": {
+    "message": "Imported settings may propagate to other Chrome devices because settings sync is enabled on this device."
+  },
+  "backupPreviewLocalWarning": {
+    "message": "These large fields are currently expected to remain on this device: $FIELDS$.",
+    "placeholders": { "fields": { "content": "$1" } }
+  },
+  "backupSectionSettings": {
+    "message": "Settings"
+  },
+  "backupSectionThemes": {
+    "message": "Themes"
+  },
+  "backupSectionHighlights": {
+    "message": "Highlights and notes"
+  },
+  "backupSectionVocabulary": {
+    "message": "Vocabulary"
+  },
+  "backupChooseSections": {
+    "message": "Choose what to import"
+  },
+  "backupApplySelected": {
+    "message": "Apply selected"
+  },
+  "backupStatusApplied": {
+    "message": "Applied"
+  },
+  "backupStatusSkipped": {
+    "message": "Skipped"
+  },
+  "backupStatusLocalOnly": {
+    "message": "Saved on this device only"
+  },
+  "backupStatusFailed": {
+    "message": "Failed"
+  },
+  "backupImportProgress": {
+    "message": "Imported $DONE$ of $TOTAL$ vocabulary records.",
+    "placeholders": {
+      "done": { "content": "$1" },
+      "total": { "content": "$2" }
+    }
+  },
+  "backupImportComplete": {
+    "message": "Import complete. Reload to see settings and theme changes."
+  },
+  "backupImportPartialResult": {
+    "message": "Import finished with incomplete or device-only sections. Review the results below before deleting the backup file."
+  },
+  "backupImportNothing": {
+    "message": "No backup sections were applied."
+  },
   "exportSettings": {
     "message": "Export Settings"
   },

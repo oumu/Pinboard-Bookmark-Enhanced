@@ -13,6 +13,7 @@ body { font-family: monospace; padding: 16px; max-width: 900px; }
 document.addEventListener("DOMContentLoaded", (event) => event.stopImmediatePropagation(), { once: true });
 </script>
 <script src="../shared.js"></script>
+<script src="../vocab-store.js"></script>
 <script src="../options-backup.js"></script>
 <script src="../export-targets.js"></script>
 <script src="../options.js"></script>
@@ -2071,16 +2072,20 @@ async function run() {
     !("pbp_hl_last_color" in pbpCleanHighlightBackup({ pbp_hl_last_color: { color: 4 } })));
 
   // ---------- E7: manual export uses the live highlight-backup checkbox ----------
+  let e7ExportedVocabScope = "";
+  let e7ExportOwnerReads = 0;
   await (async () => {
     const prevChromeE7 = globalThis.chrome;
     const prevCreateObjectURL = URL.createObjectURL;
     const prevRevokeObjectURL = URL.revokeObjectURL;
     const prevCache = _settingsStorageCache;
+    const prevVocabAll = globalThis.pbpVocabAll;
     let exportedBlob = null;
     let beforeExportCalls = 0;
     const localArea = Object.assign({}, SETTINGS_DEFAULTS, {
       optSyncEnabled: false,
       backupIncludeHighlights: true,
+      pinboardToken: obfuscateKey("backup-owner:token"),
       dictAnkiKey: "obf:anki1",
       dictEudicToken: "obf:eudic1",
       exportTargets: {
@@ -2091,6 +2096,11 @@ async function run() {
       pbp_hl_last_color: 4,
     });
     function storageGet(keys) {
+      const asksForToken = keys === "pinboardToken" ||
+        (Array.isArray(keys) && keys.includes("pinboardToken")) ||
+        (keys && typeof keys === "object" && !Array.isArray(keys) &&
+          Object.prototype.hasOwnProperty.call(keys, "pinboardToken"));
+      if (asksForToken) e7ExportOwnerReads++;
       if (keys === null) return Promise.resolve(Object.assign({}, localArea));
       if (Array.isArray(keys)) {
         const out = {};
@@ -2106,7 +2116,7 @@ async function run() {
     }
     const wrap = document.createElement("div");
     try {
-      wrap.innerHTML = '<button id="export-settings" type="button"></button><button id="import-settings" type="button"></button><input id="import-settings-file" type="file"><span id="import-status"></span><input id="opt-backup-include-highlights" type="checkbox">';
+      wrap.innerHTML = '<button id="export-settings" type="button"></button><button id="import-settings" type="button"></button><input id="import-settings-file" type="file"><span id="import-status"></span><input id="opt-backup-include-highlights" type="checkbox"><input id="opt-backup-include-vocabulary" type="checkbox" checked>';
       document.body.appendChild(wrap);
       document.getElementById("opt-backup-include-highlights").checked = false;
       _settingsStorageCache = null;
@@ -2119,6 +2129,10 @@ async function run() {
       };
       URL.createObjectURL = (blob) => { exportedBlob = blob; return "blob:pbp-test"; };
       URL.revokeObjectURL = () => {};
+      globalThis.pbpVocabAll = async (scope) => {
+        e7ExportedVocabScope = scope;
+        return [];
+      };
       setupBackup({
         exportableKeys: Object.keys(SETTINGS_DEFAULTS).filter((k) => !API_KEY_FIELDS.includes(k)),
         saveOverlayWithFallback: () => Promise.resolve(),
@@ -2154,6 +2168,7 @@ async function run() {
       globalThis.chrome = prevChromeE7;
       URL.createObjectURL = prevCreateObjectURL;
       URL.revokeObjectURL = prevRevokeObjectURL;
+      globalThis.pbpVocabAll = prevVocabAll;
       _settingsStorageCache = prevCache;
       wrap.remove();
     }
@@ -2163,10 +2178,11 @@ async function run() {
   await (async () => {
     const exportableKeys = Object.keys(SETTINGS_DEFAULTS).filter((key) => !API_KEY_FIELDS.includes(key));
     let schemaError = null;
-    try { pbpBackupSchemaVersion({ _schemaVersion: 3 }); } catch (error) { schemaError = error; }
-    check("E7b backup schema: absent version is v1, exact v2 is accepted, future version is rejected",
+    try { pbpBackupSchemaVersion({ _schemaVersion: 4 }); } catch (error) { schemaError = error; }
+    check("E7b backup schema: absent version is v1, exact v2/v3 are accepted, future version is rejected",
       pbpBackupSchemaVersion({ optTheme: "light" }) === 1 &&
-      pbpBackupSchemaVersion({ _schemaVersion: 2 }) === 2 && schemaError instanceof TypeError);
+      pbpBackupSchemaVersion({ _schemaVersion: 2 }) === 2 &&
+      pbpBackupSchemaVersion({ _schemaVersion: 3 }) === 3 && schemaError instanceof TypeError);
 
     const prepared = pbpPreflightBackupPayload({
       _schemaVersion: 2,
@@ -2287,16 +2303,13 @@ async function run() {
         invalidApplyError instanceof TypeError && importedBatch === writesBeforeInvalid);
 
       const batchBeforeThemeLoadFailure = importedBatch;
-      let themeLoadError = null;
-      try {
-        await pbpApplyBackupPayload({ optTheme: "light", customCSS: "body{}" }, {
-          exportableKeys,
-          saveOverlayWithFallback: async () => {},
-          loadThemes: async () => { throw new Error("theme registry unavailable"); },
-        });
-      } catch (error) { themeLoadError = error; }
+      const themeLoadFailure = await pbpApplyBackupPayload({ optTheme: "light", customCSS: "body{}" }, {
+        exportableKeys,
+        saveOverlayWithFallback: async () => {},
+        loadThemes: async () => { throw new Error("theme registry unavailable"); },
+      });
       check("E7b apply: v1 theme dependency failure occurs before any settings write",
-        themeLoadError?.message === "theme registry unavailable" && importedBatch === batchBeforeThemeLoadFailure);
+        themeLoadFailure.settings === "failed" && importedBatch === batchBeforeThemeLoadFailure);
     } finally {
       globalThis.chrome = previousChrome;
       globalThis.__pbpTestStorage = previousStorage;
@@ -2455,14 +2468,12 @@ async function run() {
         genuineError === largeError && localWrites.length === fallbackWrites);
 
       const settingsBeforeGenuineFailure = settingsWrites;
-      let importError = null;
-      try {
-        await pbpApplyBackupPayload(
-          { _schemaVersion: 2, optTheme: "light", customOverlayCSS: "import-css" },
-          { exportableKeys: ["optTheme"], saveOverlayWithFallback: () => Promise.reject(largeError) }
-        );
-      } catch (error) { importError = error; }
-      check("E9 backup import still observes a genuine overlay failure", importError === largeError);
+      const failedOverlayImport = await pbpApplyBackupPayload(
+        { _schemaVersion: 2, optTheme: "light", customOverlayCSS: "import-css" },
+        { exportableKeys: ["optTheme"], saveOverlayWithFallback: () => Promise.reject(largeError) }
+      );
+      check("E9 backup import still observes a genuine overlay failure",
+        failedOverlayImport.settings === "failed");
       check("E9 genuine overlay failure occurs only after ordinary settings were persisted",
         settingsWrites === settingsBeforeGenuineFailure + 1);
 
@@ -2530,6 +2541,496 @@ async function run() {
       _tagGovVisibleAccount = previousVisibleAccount;
       wrap.remove();
     }
+  })();
+
+  // ---------- E11: schema v3 manual backup preview and vocabulary restore ----------
+  await (async () => {
+    const task9Ready = typeof pbpSanitizeBackupMetadata === "function" &&
+      typeof pbpSanitizeBackupVocabulary === "function" &&
+      typeof pbpBuildBackupPreview === "function" &&
+      typeof pbpBackupFilename === "function" &&
+      typeof pbpBackupImportResultKey === "function";
+    const backupOwner = "backup-owner";
+    const backupScope = typeof pbpDictOwnerScope === "function" ? pbpDictOwnerScope(backupOwner) : "";
+    const makeRecord = (term, language = "en", extra = {}) => ({
+      id: backupScope + "|" + pbpDictCacheKeyPublic(language, term),
+      owner: backupScope,
+      term,
+      lemma: null,
+      language,
+      gloss: "meaning",
+      ipa: null,
+      sourceUrl: "https://example.test/",
+      license: null,
+      contexts: [{
+        quote: "context " + term,
+        articleUrl: "https://example.test/",
+        articleTitle: "Example",
+        highlightId: null,
+        createdAt: 1,
+      }],
+      groups: ["Review"],
+      note: "",
+      status: "new",
+      createdAt: 1,
+      updatedAt: 2,
+      ...extra,
+    });
+    const metadata = {
+      createdAt: "2026-07-24T00:00:00.000Z",
+      extensionVersion: "3.0.0",
+      source: "manual",
+    };
+    const vocabulary = { owner: backupOwner, records: [makeRecord("alpha")] };
+    let acceptedV3 = false;
+    let rejectedFuture = false;
+    try { acceptedV3 = pbpBackupSchemaVersion({ _schemaVersion: 3 }) === 3; } catch (_) {}
+    try { pbpBackupSchemaVersion({ _schemaVersion: 4 }); } catch (error) { rejectedFuture = error instanceof TypeError; }
+    check("E11 schema v3 is accepted", acceptedV3);
+    check("E11 future backup schemas are rejected", rejectedFuture);
+
+    let metadataStrict = false;
+    if (task9Ready) {
+      try { pbpSanitizeBackupMetadata({ ...metadata, createdAt: 123 }); }
+      catch (error) { metadataStrict = error instanceof TypeError; }
+    }
+    check("E11 backup metadata validates field types", metadataStrict);
+
+    const previousChrome = globalThis.chrome;
+    globalThis.chrome = Object.assign({}, previousChrome, {
+      runtime: Object.assign({}, previousChrome?.runtime, {
+        getManifest: () => ({ version: "3.1.4" }),
+      }),
+    });
+    let snapshot = null;
+    try {
+      snapshot = pbpBuildBackupSnapshot({
+        optTheme: "dark",
+        oauthToken: "must-not-export",
+        drivePermissionId: "must-not-export",
+        vocabDriveConnected: true,
+      }, {
+        overlay: "",
+        savedThemes: [],
+        vocabulary,
+        accessToken: "must-not-export",
+        refreshToken: "must-not-export",
+        driveAccount: { email: "private@example.test" },
+      });
+    } catch (_) {}
+    check("E11 export metadata uses an ISO creation time",
+      !!snapshot && !Number.isNaN(Date.parse(snapshot._backup?.createdAt)) &&
+      new Date(snapshot._backup.createdAt).toISOString() === snapshot._backup.createdAt);
+    check("E11 export metadata records the extension version",
+      snapshot?._backup?.extensionVersion === "3.1.4");
+    check("E11 export metadata records manual source", snapshot?._backup?.source === "manual");
+    check("E11 export filename contains the local date",
+      task9Ready && pbpBackupFilename(new Date(2026, 6, 24)) ===
+        "Pinboard Bookmark Enhanced backup 2026-07-24.json");
+    globalThis.chrome = previousChrome;
+
+    const optionsHtml = await (await fetch("../options.html")).text();
+    const parsedOptions = new DOMParser().parseFromString(optionsHtml, "text/html");
+    check("E11 include-vocabulary export control defaults on",
+      parsedOptions.getElementById("opt-backup-include-vocabulary")?.checked === true);
+    check("E11 exported vocabulary is limited to the current owner",
+      snapshot?._vocabulary?.owner === backupOwner &&
+      snapshot._vocabulary.records.length === 1 &&
+      snapshot._vocabulary.records[0].owner === backupScope &&
+      e7ExportedVocabScope === backupScope && e7ExportOwnerReads >= 2);
+    let ownerlessSnapshot = null;
+    try {
+      ownerlessSnapshot = pbpBuildBackupSnapshot({}, { overlay: "", savedThemes: [], vocabulary: null });
+    } catch (_) {}
+    check("E11 export without a reliable owner omits vocabulary",
+      !!ownerlessSnapshot && !("_vocabulary" in ownerlessSnapshot));
+
+    let vectorRejected = false;
+    let tombstoneRejected = false;
+    let queueRejected = false;
+    if (task9Ready) {
+      try { pbpSanitizeBackupVocabulary({ owner: backupOwner, records: [makeRecord("vector", "en", { vector: { d: 1 }, dot: { deviceId: "d", counter: 1 } })] }); }
+      catch (error) { vectorRejected = error instanceof TypeError; }
+      try { pbpSanitizeBackupVocabulary({ owner: backupOwner, records: [makeRecord("deleted", "en", { deleted: true })] }); }
+      catch (error) { tombstoneRejected = error instanceof TypeError; }
+      try { pbpSanitizeBackupVocabulary({ owner: backupOwner, records: [makeRecord("queued", "en", { outbox: [], batch: {} })] }); }
+      catch (error) { queueRejected = error instanceof TypeError; }
+    }
+    check("E11 vocabulary backup rejects vectors and dots", vectorRejected);
+    check("E11 vocabulary backup rejects tombstones", tombstoneRejected);
+    check("E11 vocabulary backup rejects outbox and batch metadata", queueRejected);
+    check("E11 backup excludes OAuth tokens and Drive account data",
+      !!snapshot && !/oauth|accessToken|refreshToken|driveAccount|drivePermissionId|vocabDriveConnected|permissionId/i
+        .test(JSON.stringify(snapshot)));
+
+    let legacyVocabCalls = 0;
+    let legacyResults = [];
+    if (task9Ready) {
+      for (const data of [{ optTheme: "light" }, { _schemaVersion: 2, customOverlayCSS: "" }]) {
+        legacyResults.push(await pbpApplyBackupPayload(data, {
+          exportableKeys: [],
+          saveOverlayWithFallback: async () => ({ fellBackToLocal: false }),
+          sections: { settings: false, themes: false, highlights: false, vocabulary: true },
+          readCurrentOwner: async () => backupOwner,
+          importVocabulary: async () => { legacyVocabCalls++; return { ok: true, processed: 0 }; },
+        }));
+      }
+    }
+    check("E11 v1 and v2 imports leave local vocabulary unchanged",
+      legacyVocabCalls === 0 && legacyResults.length === 2 &&
+      legacyResults.every((result) => result.vocabulary === "skipped"));
+
+    const previewPrepared = task9Ready ? pbpPreflightBackupPayload({
+      _schemaVersion: 3,
+      _backup: metadata,
+      optTheme: "dark",
+      customFont: "Inter",
+      customOverlayCSS: "",
+      savedThemes: [{ name: "One", css: "a{}" }, { name: "Two", css: "b{}" }],
+      _highlightsOwner: backupOwner,
+      _highlights: {
+        pbp_hl_one: { v: 1, url: "https://one.test/", title: "One", items: [
+          { id: "h1", n: 1, quote: "one", color: 1 },
+          { id: "h2", n: 2, quote: "two", color: 2 },
+        ] },
+        pbp_hl_two: { v: 1, url: "https://two.test/", title: "Two", items: [
+          { id: "h3", n: 1, quote: "three", color: 3 },
+        ] },
+      },
+      _vocabulary: {
+        owner: backupOwner,
+        records: [makeRecord("alpha", "en"), makeRecord("bêta", "fr"), makeRecord("gamma", "en")],
+      },
+    }, ["optTheme", "customFont"]) : null;
+    const preview = task9Ready
+      ? pbpBuildBackupPreview(previewPrepared, backupOwner, {
+          enabled: true,
+          localFallbackKeys: ["savedThemes"],
+        })
+      : null;
+
+    const fixture = document.createElement("div");
+    let beforeApplyCalls = 0;
+    let writesBeforeApply = 0;
+    let previewBeforeWrite = false;
+    let exactTextRepreflight = false;
+    const originalParse = JSON.parse;
+    const parsedTexts = [];
+    const previousT = globalThis.t;
+    try {
+      fixture.innerHTML =
+        '<button id="export-settings" type="button"></button>' +
+        '<button id="import-settings" type="button"></button>' +
+        '<input id="import-settings-file" type="file">' +
+        '<input id="opt-backup-include-highlights" type="checkbox" checked>' +
+        '<input id="opt-backup-include-vocabulary" type="checkbox" checked>' +
+        '<span id="import-status"></span><span id="backup-export-note"></span>' +
+        '<section id="backup-import-preview" hidden>' +
+          '<span id="backup-preview-meta"></span><span id="backup-preview-settings"></span>' +
+          '<span id="backup-preview-themes"></span><span id="backup-preview-highlights"></span>' +
+          '<span id="backup-preview-vocabulary"></span><span id="backup-preview-languages"></span>' +
+          '<span id="backup-preview-warning"></span>' +
+          '<input id="backup-section-settings" type="checkbox">' +
+          '<input id="backup-section-themes" type="checkbox">' +
+          '<input id="backup-section-highlights" type="checkbox">' +
+          '<input id="backup-section-vocabulary" type="checkbox">' +
+          '<button id="backup-import-apply" type="button"></button>' +
+          '<span id="backup-import-progress"></span>' +
+        '</section><span id="backup-import-result"></span>';
+      document.body.appendChild(fixture);
+      [
+        "export-settings", "import-settings", "import-settings-file", "import-status",
+        "opt-backup-include-highlights", "opt-backup-include-vocabulary", "backup-export-note",
+        "backup-import-preview", "backup-preview-meta", "backup-preview-settings",
+        "backup-preview-themes", "backup-preview-highlights", "backup-preview-vocabulary",
+        "backup-preview-languages", "backup-preview-warning", "backup-section-settings",
+        "backup-section-themes", "backup-section-highlights", "backup-section-vocabulary",
+        "backup-import-apply", "backup-import-progress", "backup-import-result",
+      ].forEach((id) => { delete _domRefs[id]; });
+      const local = {
+        optSyncEnabled: false,
+        syncApiKeys: false,
+        pinboardToken: obfuscateKey(backupOwner + ":token"),
+      };
+      const getArea = async (keys) => {
+        if (keys === null) return { ...local };
+        if (typeof keys === "string") return keys in local ? { [keys]: local[keys] } : {};
+        const out = { ...(keys || {}) };
+        (Array.isArray(keys) ? keys : Object.keys(keys || {})).forEach((key) => {
+          if (key in local) out[key] = local[key];
+        });
+        return out;
+      };
+      globalThis.chrome = {
+        runtime: { getManifest: () => ({ version: "3.1.4" }) },
+        storage: {
+          local: { get: getArea, set: async (data) => { writesBeforeApply++; Object.assign(local, data); }, remove: async () => {} },
+          sync: { get: async () => ({}), set: async () => {}, remove: async () => {} },
+          onChanged: { addListener() {} },
+        },
+      };
+      globalThis.__pbpTestStorage = {
+        get: async () => ({}),
+        set: async (data) => { writesBeforeApply++; Object.assign(local, data); },
+      };
+      globalThis.__pbpTestSyncSetLarge = async () => {};
+      globalThis.t = (key) => key;
+      setupBackup({
+        exportableKeys: ["optTheme"],
+        saveOverlayWithFallback: async () => ({ fellBackToLocal: false }),
+        beforeApply: async () => { beforeApplyCalls++; },
+      });
+      const oldText = JSON.stringify({
+        _schemaVersion: 3,
+        _backup: metadata,
+        optTheme: "light",
+        customOverlayCSS: "",
+      });
+      const text = JSON.stringify({
+        _schemaVersion: 3,
+        _backup: metadata,
+        optTheme: "dark",
+        customOverlayCSS: "",
+      });
+      const fileInput = fixture.querySelector("#import-settings-file");
+      let resolveOldText;
+      Object.defineProperty(fileInput, "files", {
+        configurable: true,
+        value: [{ text: () => new Promise((resolve) => { resolveOldText = resolve; }) }],
+      });
+      JSON.parse = (value, reviver) => {
+        parsedTexts.push(value);
+        return originalParse(value, reviver);
+      };
+      fileInput.dispatchEvent(new Event("change"));
+      Object.defineProperty(fileInput, "files", {
+        configurable: true,
+        value: [{ text: async () => text }],
+      });
+      fileInput.dispatchEvent(new Event("change"));
+      for (let i = 0; i < 20 && fixture.querySelector("#backup-import-preview").hidden; i++) {
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+      }
+      resolveOldText(oldText);
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      previewBeforeWrite = !fixture.querySelector("#backup-import-preview").hidden &&
+        beforeApplyCalls === 0 && writesBeforeApply === 0;
+      fixture.querySelector("#backup-section-settings").checked = true;
+      fixture.querySelector("#backup-section-themes").checked = false;
+      fixture.querySelector("#backup-section-highlights").checked = false;
+      fixture.querySelector("#backup-section-vocabulary").checked = false;
+      fixture.querySelector("#backup-import-apply").click();
+      for (let i = 0; i < 30 && (beforeApplyCalls === 0 || local.optTheme !== "dark"); i++) {
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+      }
+      exactTextRepreflight = parsedTexts.filter((value) => value === text).length === 2 &&
+        !parsedTexts.includes(oldText) && beforeApplyCalls === 1 && local.optTheme === "dark";
+    } catch (_) {
+      previewBeforeWrite = false;
+      exactTextRepreflight = false;
+    } finally {
+      JSON.parse = originalParse;
+      globalThis.chrome = previousChrome;
+      delete globalThis.__pbpTestStorage;
+      delete globalThis.__pbpTestSyncSetLarge;
+      if (previousT === undefined) delete globalThis.t;
+      else globalThis.t = previousT;
+      fixture.remove();
+    }
+    check("E11 file selection renders preview before any write", previewBeforeWrite);
+    check("E11 preview counts settings fields", preview?.settingsCount === 2);
+    check("E11 preview counts custom themes", preview?.themeCount === 2);
+    check("E11 preview counts highlight pages and entries with owner",
+      preview?.highlightPages === 2 && preview?.highlightEntries === 3 &&
+      preview?.highlightsOwner === backupOwner);
+    check("E11 preview counts vocabulary records with owner",
+      preview?.vocabularyCount === 3 && preview?.vocabularyOwner === backupOwner);
+    check("E11 preview reports vocabulary language distribution",
+      preview?.languages?.en === 2 && preview?.languages?.fr === 1);
+
+    const mismatchPreview = task9Ready
+      ? pbpBuildBackupPreview(previewPrepared, "different-owner", { enabled: false, localFallbackKeys: [] })
+      : null;
+    const emptyMismatchPreview = task9Ready
+      ? pbpBuildBackupPreview({
+          ...previewPrepared,
+          vocabulary: { owner: backupOwner, records: [] },
+        }, "different-owner", { enabled: false, localFallbackKeys: [] })
+      : null;
+    check("E11 owner mismatch disables vocabulary selection",
+      mismatchPreview?.ownerMismatch === true &&
+      mismatchPreview?.sections?.vocabulary?.enabled === false &&
+      emptyMismatchPreview?.ownerMismatch === true &&
+      emptyMismatchPreview?.sections?.vocabulary?.enabled === false);
+    let mismatchImports = 0;
+    const mismatchResult = task9Ready ? await pbpApplyBackupPayload({
+      _schemaVersion: 3,
+      _backup: metadata,
+      customOverlayCSS: "",
+      _vocabulary: vocabulary,
+    }, {
+      exportableKeys: [],
+      saveOverlayWithFallback: async () => ({ fellBackToLocal: false }),
+      sections: { settings: false, themes: false, highlights: false, vocabulary: true },
+      readCurrentOwner: async () => "different-owner",
+      importVocabulary: async () => { mismatchImports++; return { ok: true, processed: 1 }; },
+    }) : null;
+    check("E11 vocabulary import never rebinds records to another owner",
+      mismatchImports === 0 && mismatchResult?.vocabulary === "failed" &&
+      vocabulary.records[0].owner === backupScope);
+    check("E11 preview warns when Chrome settings sync can propagate changes",
+      preview?.syncWarning === true);
+    check("E11 preview lists fields expected to remain local",
+      Array.isArray(preview?.localFallbackKeys) && preview.localFallbackKeys.includes("savedThemes"));
+
+    const priorStorage = globalThis.__pbpTestStorage;
+    const priorLarge = globalThis.__pbpTestSyncSetLarge;
+    const priorChromeSections = globalThis.chrome;
+    let settingsWrites = 0;
+    let themeWrites = 0;
+    let highlightWrites = 0;
+    let vocabWrites = 0;
+    let sectionResults = [];
+    try {
+      globalThis.chrome = {
+        storage: {
+          local: {
+            get: async () => ({}),
+            set: async (data) => { if (Object.keys(data).some((key) => key.startsWith("pbp_hl_"))) highlightWrites++; },
+            remove: async () => {},
+          },
+          sync: { get: async () => ({}), set: async () => {}, remove: async () => {} },
+          onChanged: { addListener() {} },
+        },
+      };
+      globalThis.__pbpTestStorage = { get: async () => ({}), set: async () => { settingsWrites++; } };
+      globalThis.__pbpTestSyncSetLarge = async (key) => { if (key === "savedThemes") themeWrites++; };
+      const common = {
+        exportableKeys: ["optTheme"],
+        saveOverlayWithFallback: async () => ({ fellBackToLocal: false }),
+        readCurrentOwner: async () => backupOwner,
+        importVocabulary: async (_, records) => {
+          vocabWrites += records.length;
+          return { ok: true, processed: records.length, remaining: 0 };
+        },
+      };
+      sectionResults.push(await pbpApplyBackupPayload({
+        _schemaVersion: 3, _backup: metadata, optTheme: "dark", customOverlayCSS: "",
+      }, { ...common, sections: { settings: true, themes: false, highlights: false, vocabulary: false } }));
+      sectionResults.push(await pbpApplyBackupPayload({
+        _schemaVersion: 3, _backup: metadata, savedThemes: [{ name: "One", css: "a{}" }],
+      }, { ...common, sections: { settings: false, themes: true, highlights: false, vocabulary: false } }));
+      sectionResults.push(await pbpApplyBackupPayload({
+        _schemaVersion: 3, _backup: metadata, _highlightsOwner: backupOwner,
+        _highlights: { pbp_hl_x: { v: 1, url: "https://x.test/", title: "X", items: [{ id: "h", n: 1, quote: "q", color: 1 }] } },
+      }, { ...common, sections: { settings: false, themes: false, highlights: true, vocabulary: false } }));
+      sectionResults.push(await pbpApplyBackupPayload({
+        _schemaVersion: 3, _backup: metadata, _vocabulary: vocabulary,
+      }, { ...common, sections: { settings: false, themes: false, highlights: false, vocabulary: true } }));
+    } catch (_) {
+      sectionResults = [];
+    } finally {
+      globalThis.__pbpTestStorage = priorStorage;
+      globalThis.__pbpTestSyncSetLarge = priorLarge;
+      globalThis.chrome = priorChromeSections;
+    }
+    check("E11 settings section can be applied independently",
+      settingsWrites === 1 && sectionResults[0]?.settings === "applied" &&
+      sectionResults[0]?.themes === "skipped");
+    check("E11 themes section can be applied independently",
+      themeWrites === 1 && sectionResults[1]?.themes === "applied" &&
+      sectionResults[1]?.settings === "skipped");
+    check("E11 highlights section can be applied independently",
+      highlightWrites === 1 && sectionResults[2]?.highlights === "applied" &&
+      sectionResults[2]?.vocabulary === "skipped");
+    check("E11 vocabulary section can be applied independently",
+      vocabWrites === 1 && sectionResults[3]?.vocabulary === "applied" &&
+      sectionResults[3]?.vocabularyApplied === 1);
+    check("E11 Apply reparses the exact selected file text before writing and ignores stale selection state",
+      exactTextRepreflight);
+
+    const dbDelete = indexedDB.deleteDatabase("pbp-vocab");
+    await new Promise((resolve) => {
+      dbDelete.onsuccess = dbDelete.onerror = dbDelete.onblocked = resolve;
+    });
+    const importRows = Array.from({ length: 101 }, (_, index) =>
+      makeRecord(index === 0 ? "merge" : "word-" + index));
+    const kept = makeRecord("keep");
+    const oldMerge = makeRecord("merge", "en", {
+      contexts: [{ quote: "old context", articleUrl: "https://old.test/", articleTitle: "Old", highlightId: null, createdAt: 0 }],
+      groups: ["Old"],
+    });
+    let batchSizes = [];
+    let fullImportResult = null;
+    try {
+      await pbpVocabImportRecords(backupScope, [kept, oldMerge]);
+      fullImportResult = await pbpApplyBackupPayload({
+        _schemaVersion: 3,
+        _backup: metadata,
+        _vocabulary: { owner: backupOwner, records: importRows },
+      }, {
+        exportableKeys: [],
+        sections: { settings: false, themes: false, highlights: false, vocabulary: true },
+        readCurrentOwner: async () => backupOwner,
+        importVocabulary: async (owner, records) => {
+          batchSizes.push(records.length);
+          return pbpVocabImportRecords(owner, records);
+        },
+      });
+    } catch (_) {}
+    const storedRows = await pbpVocabAll(backupScope).catch(() => []);
+    const outboxRows = await pbpVocabListOutbox(backupScope).catch(() => []);
+    const mergedStored = storedRows.find((row) => row.term === "merge");
+    const importedKeys = new Set(importRows.map((row) => pbpDictCacheKeyPublic(row.language, row.term)));
+    check("E11 vocabulary restore merges without deleting unlisted local records",
+      storedRows.some((row) => row.term === "keep") &&
+      mergedStored?.contexts?.some((context) => context.quote === "old context") &&
+      mergedStored?.contexts?.some((context) => context.quote === "context merge"));
+    check("E11 vocabulary restore imports in batches of 100",
+      batchSizes.join(",") === "100,1" && fullImportResult?.vocabularyApplied === 101);
+
+    let partialCalls = 0;
+    const partialResult = task9Ready ? await pbpApplyBackupPayload({
+      _schemaVersion: 3,
+      _backup: metadata,
+      _vocabulary: { owner: backupOwner, records: importRows },
+    }, {
+      exportableKeys: [],
+      sections: { settings: false, themes: false, highlights: false, vocabulary: true },
+      readCurrentOwner: async () => backupOwner,
+      importVocabulary: async (_, records) => {
+        partialCalls++;
+        return partialCalls === 1
+          ? { ok: true, processed: records.length, remaining: 0 }
+          : { ok: false, processed: 0, remaining: records.length };
+      },
+    }) : null;
+    let ownerChecks = 0;
+    const switchedOwnerResult = task9Ready ? await pbpApplyBackupPayload({
+      _schemaVersion: 3,
+      _backup: metadata,
+      _vocabulary: { owner: backupOwner, records: importRows },
+    }, {
+      exportableKeys: [],
+      sections: { settings: false, themes: false, highlights: false, vocabulary: true },
+      readCurrentOwner: async () => (++ownerChecks < 5 ? backupOwner : "different-owner"),
+      importVocabulary: async (_, records) => ({
+        ok: true,
+        processed: records.length,
+        remaining: 0,
+      }),
+    }) : null;
+    check("E11 partial vocabulary failure reports the committed count",
+      partialResult?.vocabulary === "failed" && partialResult?.vocabularyApplied === 100 &&
+      switchedOwnerResult?.vocabulary === "failed" &&
+      switchedOwnerResult?.vocabularyApplied === 101);
+    check("E11 every imported vocabulary record enters the outbox",
+      [...importedKeys].every((recordKey) => outboxRows.some((row) => row.recordKey === recordKey)));
+    check("E11 apply reports a status for every section",
+      fullImportResult && ["settings", "themes", "highlights", "vocabulary"].every((key) =>
+        ["applied", "skipped", "local-only", "failed"].includes(fullImportResult[key])));
+    check("E11 partial or failed imports never use the blanket-success result",
+      task9Ready && pbpBackupImportResultKey(partialResult) !== "backupImportComplete");
   })();
 
   const summary = document.createElement("h2");

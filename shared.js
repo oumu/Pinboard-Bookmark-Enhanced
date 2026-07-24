@@ -777,13 +777,134 @@ function pbpSanitizeBackupThemes(value) {
 }
 
 // Missing version is the original v1 file format. Any explicit value must be
-// one of the two schemas this release understands; future/invalid schemas are
+// one of the schemas this release understands; future/invalid schemas are
 // rejected before callers perform a storage write.
 function pbpBackupSchemaVersion(data) {
   if (!pbpIsPlainRecord(data)) throw new TypeError("backup root must be an object");
   if (!Object.prototype.hasOwnProperty.call(data, "_schemaVersion")) return 1;
-  if (data._schemaVersion === 1 || data._schemaVersion === 2) return data._schemaVersion;
+  if (data._schemaVersion === 1 || data._schemaVersion === 2 || data._schemaVersion === 3) {
+    return data._schemaVersion;
+  }
   throw new TypeError("unsupported backup schema");
+}
+
+function pbpSanitizeBackupMetadata(value) {
+  if (!pbpIsPlainRecord(value) ||
+      Object.keys(value).some((key) => !["createdAt", "extensionVersion", "source"].includes(key)) ||
+      typeof value.createdAt !== "string" || typeof value.extensionVersion !== "string" ||
+      value.source !== "manual") {
+    throw pbpBackupValueError("_backup");
+  }
+  const date = new Date(value.createdAt);
+  if (Number.isNaN(date.getTime()) || date.toISOString() !== value.createdAt) {
+    throw pbpBackupValueError("_backup.createdAt");
+  }
+  return {
+    createdAt: value.createdAt,
+    extensionVersion: value.extensionVersion,
+    source: "manual",
+  };
+}
+
+function pbpSanitizeBackupVocabulary(value) {
+  if (!pbpIsPlainRecord(value) ||
+      Object.keys(value).some((key) => !["owner", "records"].includes(key)) ||
+      typeof value.owner !== "string" || !value.owner ||
+      !Array.isArray(value.records)) {
+    throw pbpBackupValueError("_vocabulary");
+  }
+  const owner = value.owner;
+  const scope = pbpDictOwnerScope(owner);
+  const seen = new Set();
+  const fields = [
+    "id", "owner", "term", "lemma", "language", "gloss", "ipa", "sourceUrl",
+    "license", "contexts", "groups", "note", "status", "createdAt", "updatedAt",
+  ];
+  const records = value.records.map((record, index) => {
+    if (!pbpIsPlainRecord(record) ||
+        Object.keys(record).length !== fields.length ||
+        Object.keys(record).some((key) => !fields.includes(key)) ||
+        record.owner !== scope) {
+      throw pbpBackupValueError(`_vocabulary.records[${index}]`);
+    }
+    const recordKey = pbpDictCacheKeyPublic(record.language, record.term);
+    if (seen.has(record.id)) throw pbpBackupValueError(`_vocabulary.records[${index}].id`);
+    seen.add(record.id);
+    const word = {};
+    fields.slice(2).forEach((key) => { word[key] = record[key]; });
+    const valid = record.id === `${scope}|${recordKey}` && pbpVocabValidateEvent({
+      recordKey,
+      vector: { backup: 1 },
+      dot: { deviceId: "backup", counter: 1 },
+      deleted: false,
+      value: word,
+    }, recordKey);
+    if (!valid) throw pbpBackupValueError(`_vocabulary.records[${index}]`);
+    return {
+      id: record.id,
+      owner: record.owner,
+      term: record.term,
+      lemma: record.lemma,
+      language: record.language,
+      gloss: record.gloss,
+      ipa: record.ipa,
+      sourceUrl: record.sourceUrl,
+      license: record.license,
+      contexts: record.contexts.map((context) => ({ ...context })),
+      groups: record.groups.slice(),
+      note: record.note,
+      status: record.status,
+      createdAt: record.createdAt,
+      updatedAt: record.updatedAt,
+    };
+  });
+  return { owner, records };
+}
+
+function pbpBuildBackupPreview(prepared, currentOwner, syncState) {
+  const highlights = pbpCleanHighlightBackup(prepared && prepared.highlights);
+  const highlightRows = Object.entries(highlights)
+    .filter(([key, value]) => key !== "pbp_hl_last_color" && value && Array.isArray(value.items));
+  const vocabulary = prepared && prepared.vocabulary;
+  const languages = {};
+  if (vocabulary) {
+    vocabulary.records.forEach((record) => {
+      const language = pbpDictPrimaryLang(record.language) || "und";
+      languages[language] = (languages[language] || 0) + 1;
+    });
+  }
+  const currentScope = pbpDictOwnerScope(currentOwner);
+  const ownerMismatch = !!vocabulary && (!currentOwner ||
+    pbpDictOwnerScope(vocabulary.owner) !== currentScope);
+  const highlightAllowed = !prepared?.highlights ||
+    pbpHighlightBackupOwnerAllowed(prepared.highlightsOwner, currentOwner, true);
+  const localFallbackKeys = Array.isArray(syncState && syncState.localFallbackKeys)
+    ? syncState.localFallbackKeys.filter((key) => typeof key === "string")
+    : [];
+  return {
+    schemaVersion: prepared.schemaVersion,
+    metadata: prepared.metadata || null,
+    settingsCount: Object.keys(prepared.safeData || {}).length,
+    themeCount: Array.isArray(prepared.importedThemes) ? prepared.importedThemes.length : 0,
+    highlightPages: highlightRows.length,
+    highlightEntries: highlightRows.reduce((count, [, value]) => count + value.items.length, 0),
+    highlightsOwner: prepared.highlightsOwner || "",
+    vocabularyCount: vocabulary ? vocabulary.records.length : 0,
+    vocabularyOwner: vocabulary ? vocabulary.owner : "",
+    languages,
+    ownerMismatch,
+    syncWarning: !!(syncState && syncState.enabled),
+    localFallbackKeys,
+    sections: {
+      settings: {
+        enabled: !!(Object.keys(prepared.safeData || {}).length ||
+          prepared.customCSS !== undefined || prepared.customOverlayCSS !== undefined),
+      },
+      themes: { enabled: prepared.importedThemes !== undefined },
+      highlights: { enabled: prepared.highlights !== undefined && highlightAllowed },
+      vocabulary: { enabled: !!vocabulary && !ownerMismatch },
+    },
+  };
 }
 
 // Backup highlights are keyed by URL only (pbp_hl_<url>) with no account
@@ -1575,7 +1696,14 @@ function pbpStripExportTargetTokens(ets) {
   return cleaned;
 }
 
-// Shared schema-v2 snapshot used by manual settings export.
+function pbpBackupFilename(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `Pinboard Bookmark Enhanced backup ${year}-${month}-${day}.json`;
+}
+
+// Shared schema-v3 snapshot used by manual settings export.
 function pbpBuildBackupSnapshot(settings, extra) {
   const s = settings || {};
   const x = extra || {};
@@ -1591,7 +1719,13 @@ function pbpBuildBackupSnapshot(settings, extra) {
     payload._highlights = x.highlights;
     if (x.highlightsOwner) payload._highlightsOwner = x.highlightsOwner;
   }
-  payload._schemaVersion = 2;
+  if (x.vocabulary) payload._vocabulary = pbpSanitizeBackupVocabulary(x.vocabulary);
+  payload._backup = {
+    createdAt: new Date().toISOString(),
+    extensionVersion: String(globalThis.chrome?.runtime?.getManifest?.().version || ""),
+    source: "manual",
+  };
+  payload._schemaVersion = 3;
   return payload;
 }
 

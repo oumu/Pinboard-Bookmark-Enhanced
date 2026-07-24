@@ -914,6 +914,120 @@
   "backupIncludeHighlightsHint": {
     "message": "Backups enthalten Seiten-URLs, Titel, markierten Text, Notizen, Farben und Zeitstempel. API-Schlüssel werden nicht gesichert."
   },
+  "backupPlaintextDisclosure": {
+    "message": "Sicherungen sind unverschlüsselte JSON-Dateien. Sie können Einstellungen, Markierungen, Seiten-URLs, Vokabeln und Kontextauszüge enthalten. API-Schlüssel sind ausgeschlossen."
+  },
+  "backupIncludeVocabularyLabel": {
+    "message": "Vokabeln in Sicherungen einschließen"
+  },
+  "backupIncludeVocabularyHint": {
+    "message": "Enthält nur Vokabeln des aktuellen Pinboard-Kontos."
+  },
+  "backupVocabOwnerMissing": {
+    "message": "Vokabeln wurden nicht einbezogen, weil kein Pinboard-Konto verfügbar ist. Die anderen ausgewählten Daten wurden exportiert."
+  },
+  "backupPreviewTitle": {
+    "message": "Importvorschau"
+  },
+  "backupPreviewMeta": {
+    "message": "Schema $SCHEMA$; erstellt $CREATED$; Erweiterungsversion $VERSION$.",
+    "placeholders": {
+      "schema": { "content": "$1" },
+      "created": { "content": "$2" },
+      "version": { "content": "$3" }
+    }
+  },
+  "backupPreviewUnknown": {
+    "message": "Unbekannt"
+  },
+  "backupPreviewSettings": {
+    "message": "$COUNT$ Felder",
+    "placeholders": { "count": { "content": "$1" } }
+  },
+  "backupPreviewThemes": {
+    "message": "$COUNT$ eigene Themes",
+    "placeholders": { "count": { "content": "$1" } }
+  },
+  "backupPreviewHighlights": {
+    "message": "$PAGES$ Seiten, $ITEMS$ Einträge; Pinboard-Konto: $OWNER$",
+    "placeholders": {
+      "pages": { "content": "$1" },
+      "items": { "content": "$2" },
+      "owner": { "content": "$3" }
+    }
+  },
+  "backupPreviewVocabulary": {
+    "message": "$COUNT$ Vokabeln; Pinboard-Konto: $OWNER$",
+    "placeholders": {
+      "count": { "content": "$1" },
+      "owner": { "content": "$2" }
+    }
+  },
+  "backupPreviewLanguageLabel": {
+    "message": "Sprachen"
+  },
+  "backupPreviewLegacyOwner": {
+    "message": "Ältere Sicherung ohne Kontoinformation"
+  },
+  "backupPreviewNone": {
+    "message": "Keine"
+  },
+  "backupPreviewOwnerMismatch": {
+    "message": "Die Vokabeln können nicht importiert werden, weil diese Sicherung zu einem anderen Pinboard-Konto gehört."
+  },
+  "backupPreviewSyncWarning": {
+    "message": "Die Einstellungssynchronisierung ist auf diesem Gerät aktiv. Importierte Einstellungen können auf andere Chrome-Geräte übertragen werden."
+  },
+  "backupPreviewLocalWarning": {
+    "message": "Diese großen Felder bleiben voraussichtlich nur auf diesem Gerät: $FIELDS$.",
+    "placeholders": { "fields": { "content": "$1" } }
+  },
+  "backupSectionSettings": {
+    "message": "Einstellungen"
+  },
+  "backupSectionThemes": {
+    "message": "Themen"
+  },
+  "backupSectionHighlights": {
+    "message": "Markierungen und Notizen"
+  },
+  "backupSectionVocabulary": {
+    "message": "Vokabeln"
+  },
+  "backupChooseSections": {
+    "message": "Zu importierende Inhalte auswählen"
+  },
+  "backupApplySelected": {
+    "message": "Auswahl anwenden"
+  },
+  "backupStatusApplied": {
+    "message": "Angewendet"
+  },
+  "backupStatusSkipped": {
+    "message": "Übersprungen"
+  },
+  "backupStatusLocalOnly": {
+    "message": "Nur auf diesem Gerät gespeichert"
+  },
+  "backupStatusFailed": {
+    "message": "Fehlgeschlagen"
+  },
+  "backupImportProgress": {
+    "message": "$DONE$ von $TOTAL$ Vokabeleinträgen importiert.",
+    "placeholders": {
+      "done": { "content": "$1" },
+      "total": { "content": "$2" }
+    }
+  },
+  "backupImportComplete": {
+    "message": "Import abgeschlossen. Lade die Seite neu, um Änderungen an Einstellungen und Themes zu sehen."
+  },
+  "backupImportPartialResult": {
+    "message": "Der Import ist beendet, aber einige Bereiche sind unvollständig oder wurden nur auf diesem Gerät gespeichert. Prüfe die Ergebnisse unten, bevor du die Sicherungsdatei löschst."
+  },
+  "backupImportNothing": {
+    "message": "Es wurden keine Sicherungsbereiche angewendet."
+  },
   "exportSettings": {
     "message": "Einstellungen exportieren"
   },

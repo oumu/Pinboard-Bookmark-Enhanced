@@ -914,6 +914,120 @@
   "backupIncludeHighlightsHint": {
     "message": "В резервную копию входят URL страниц, заголовки, выделенный текст, заметки, цвета и метки времени. Ключи API не включаются."
   },
+  "backupPlaintextDisclosure": {
+    "message": "Резервные копии сохраняются как незашифрованные файлы JSON. Они могут содержать настройки, выделения, URL страниц, словарь и фрагменты контекста. Ключи API исключены."
+  },
+  "backupIncludeVocabularyLabel": {
+    "message": "Включать словарь в резервные копии"
+  },
+  "backupIncludeVocabularyHint": {
+    "message": "Включает словарь только для текущего аккаунта Pinboard."
+  },
+  "backupVocabOwnerMissing": {
+    "message": "Словарь не включён, потому что аккаунт Pinboard недоступен. Остальные выбранные данные экспортированы."
+  },
+  "backupPreviewTitle": {
+    "message": "Предварительный просмотр импорта"
+  },
+  "backupPreviewMeta": {
+    "message": "Схема $SCHEMA$; создано $CREATED$; версия расширения $VERSION$.",
+    "placeholders": {
+      "schema": { "content": "$1" },
+      "created": { "content": "$2" },
+      "version": { "content": "$3" }
+    }
+  },
+  "backupPreviewUnknown": {
+    "message": "Неизвестно"
+  },
+  "backupPreviewSettings": {
+    "message": "Полей: $COUNT$",
+    "placeholders": { "count": { "content": "$1" } }
+  },
+  "backupPreviewThemes": {
+    "message": "Пользовательских тем: $COUNT$",
+    "placeholders": { "count": { "content": "$1" } }
+  },
+  "backupPreviewHighlights": {
+    "message": "Страниц: $PAGES$; записей: $ITEMS$; аккаунт Pinboard: $OWNER$",
+    "placeholders": {
+      "pages": { "content": "$1" },
+      "items": { "content": "$2" },
+      "owner": { "content": "$3" }
+    }
+  },
+  "backupPreviewVocabulary": {
+    "message": "Слов: $COUNT$; аккаунт Pinboard: $OWNER$",
+    "placeholders": {
+      "count": { "content": "$1" },
+      "owner": { "content": "$2" }
+    }
+  },
+  "backupPreviewLanguageLabel": {
+    "message": "Языки"
+  },
+  "backupPreviewLegacyOwner": {
+    "message": "Старая копия без данных об аккаунте"
+  },
+  "backupPreviewNone": {
+    "message": "Нет"
+  },
+  "backupPreviewOwnerMismatch": {
+    "message": "Словарь нельзя импортировать, потому что эта резервная копия принадлежит другому аккаунту Pinboard."
+  },
+  "backupPreviewSyncWarning": {
+    "message": "На этом устройстве включена синхронизация настроек. Импортированные настройки могут передаваться на другие устройства Chrome."
+  },
+  "backupPreviewLocalWarning": {
+    "message": "Эти крупные поля, вероятно, останутся только на этом устройстве: $FIELDS$.",
+    "placeholders": { "fields": { "content": "$1" } }
+  },
+  "backupSectionSettings": {
+    "message": "Настройки"
+  },
+  "backupSectionThemes": {
+    "message": "Темы"
+  },
+  "backupSectionHighlights": {
+    "message": "Выделения и заметки"
+  },
+  "backupSectionVocabulary": {
+    "message": "Словарь"
+  },
+  "backupChooseSections": {
+    "message": "Выберите данные для импорта"
+  },
+  "backupApplySelected": {
+    "message": "Применить выбранное"
+  },
+  "backupStatusApplied": {
+    "message": "Применено"
+  },
+  "backupStatusSkipped": {
+    "message": "Пропущено"
+  },
+  "backupStatusLocalOnly": {
+    "message": "Сохранено только на этом устройстве"
+  },
+  "backupStatusFailed": {
+    "message": "Ошибка"
+  },
+  "backupImportProgress": {
+    "message": "Импортировано $DONE$ из $TOTAL$ словарных записей.",
+    "placeholders": {
+      "done": { "content": "$1" },
+      "total": { "content": "$2" }
+    }
+  },
+  "backupImportComplete": {
+    "message": "Импорт завершён. Перезагрузите страницу, чтобы увидеть изменения настроек и тем."
+  },
+  "backupImportPartialResult": {
+    "message": "Импорт завершён, но некоторые разделы импортированы не полностью или сохранены только на этом устройстве. Проверьте результаты ниже, прежде чем удалять резервную копию."
+  },
+  "backupImportNothing": {
+    "message": "Ни один раздел резервной копии не применён."
+  },
   "exportSettings": {
     "message": "Экспорт настроек"
   },

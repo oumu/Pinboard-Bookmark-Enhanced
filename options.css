@@ -297,6 +297,64 @@ html[data-theme] .opt-error { color: var(--opt-danger, #e55); background: var(--
 .btn.danger:hover:not(:disabled) { background: color-mix(in srgb, var(--opt-danger, #c00) 8%, var(--opt-btn-bg, #fff)); }
 .save-status { font-size: 12px; color: #080; margin-left: var(--opt-sp-4); }
 .save-status.bad { color: #c00; }
+.backup-actions,
+.backup-apply-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--opt-sp-4);
+}
+.backup-actions .save-status,
+.backup-export-note { margin-left: 0; }
+.backup-export-note { display: block; min-height: 18px; margin-top: var(--opt-sp-2); }
+.backup-import-preview,
+.backup-import-result {
+  min-width: 0;
+  margin-top: var(--opt-sp-5);
+  padding: var(--opt-sp-5);
+  border: 1px solid var(--opt-border);
+  border-radius: var(--opt-radius-md);
+  background: var(--opt-panel);
+  color: var(--opt-fg);
+  overflow-wrap: anywhere;
+}
+.backup-import-preview[hidden],
+.backup-import-result[hidden] { display: none; }
+.backup-import-preview h3 { margin: 0 0 var(--opt-sp-3); font-size: 13px; }
+.backup-import-preview > p { margin: 0 0 var(--opt-sp-4); }
+.backup-preview-counts {
+  display: grid;
+  gap: var(--opt-sp-2);
+  margin: 0 0 var(--opt-sp-4);
+}
+.backup-preview-counts > div,
+.backup-import-result > div {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(0, 2fr);
+  gap: var(--opt-sp-4);
+}
+.backup-preview-counts dt,
+.backup-import-result > div > :first-child { color: var(--opt-fg-muted); }
+.backup-preview-counts dd { min-width: 0; margin: 0; }
+.backup-preview-warning:empty { display: none; }
+.backup-section-picker {
+  display: grid;
+  gap: var(--opt-sp-3);
+  margin: 0 0 var(--opt-sp-4);
+  padding: var(--opt-sp-4);
+  border: 1px solid var(--opt-border);
+}
+.backup-section-picker legend { padding: 0 var(--opt-sp-2); color: var(--opt-fg-muted); }
+.backup-section-picker label { min-width: 0; }
+.backup-apply-row { min-width: 0; }
+.backup-import-result {
+  display: grid;
+  gap: var(--opt-sp-2);
+}
+@media (max-width: 480px) {
+  .backup-preview-counts > div,
+  .backup-import-result > div { grid-template-columns: minmax(0, 1fr); gap: 0; }
+}
 .field-warn { display:none; font-size: 12px; color: #b85c00; margin-top: var(--opt-sp-2); }
 .field-warn.visible { display: block; }
 .section-title { display: block; font-size: 13px; font-weight: bold; color: #444; margin-bottom: var(--opt-sp-4); margin-top: var(--opt-sp-4); }

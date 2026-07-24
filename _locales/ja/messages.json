@@ -914,6 +914,120 @@
   "backupIncludeHighlightsHint": {
     "message": "バックアップにはページ URL、タイトル、選択したテキスト、メモ、色、タイムスタンプが含まれます。API キーは含まれません。"
   },
+  "backupPlaintextDisclosure": {
+    "message": "バックアップは平文の JSON ファイルです。設定、ハイライト、ページ URL、単語、文脈の抜粋が含まれる場合があります。API キーは含まれません。"
+  },
+  "backupIncludeVocabularyLabel": {
+    "message": "バックアップに単語を含める"
+  },
+  "backupIncludeVocabularyHint": {
+    "message": "現在の Pinboard アカウントの単語だけが含まれます。"
+  },
+  "backupVocabOwnerMissing": {
+    "message": "利用できる Pinboard アカウントがないため、単語は含まれませんでした。ほかに選択したデータはエクスポートされています。"
+  },
+  "backupPreviewTitle": {
+    "message": "インポートのプレビュー"
+  },
+  "backupPreviewMeta": {
+    "message": "スキーマ $SCHEMA$、作成日時 $CREATED$、拡張機能のバージョン $VERSION$。",
+    "placeholders": {
+      "schema": { "content": "$1" },
+      "created": { "content": "$2" },
+      "version": { "content": "$3" }
+    }
+  },
+  "backupPreviewUnknown": {
+    "message": "不明"
+  },
+  "backupPreviewSettings": {
+    "message": "$COUNT$ 個のフィールド",
+    "placeholders": { "count": { "content": "$1" } }
+  },
+  "backupPreviewThemes": {
+    "message": "$COUNT$ 個のカスタムテーマ",
+    "placeholders": { "count": { "content": "$1" } }
+  },
+  "backupPreviewHighlights": {
+    "message": "$PAGES$ ページ、$ITEMS$ 件。Pinboard アカウント：$OWNER$",
+    "placeholders": {
+      "pages": { "content": "$1" },
+      "items": { "content": "$2" },
+      "owner": { "content": "$3" }
+    }
+  },
+  "backupPreviewVocabulary": {
+    "message": "$COUNT$ 語。Pinboard アカウント：$OWNER$",
+    "placeholders": {
+      "count": { "content": "$1" },
+      "owner": { "content": "$2" }
+    }
+  },
+  "backupPreviewLanguageLabel": {
+    "message": "言語"
+  },
+  "backupPreviewLegacyOwner": {
+    "message": "アカウント情報のない旧形式のバックアップ"
+  },
+  "backupPreviewNone": {
+    "message": "なし"
+  },
+  "backupPreviewOwnerMismatch": {
+    "message": "このバックアップは別の Pinboard アカウントに属しているため、単語をインポートできません。"
+  },
+  "backupPreviewSyncWarning": {
+    "message": "このデバイスでは設定の同期が有効です。インポートした設定がほかの Chrome デバイスに同期される場合があります。"
+  },
+  "backupPreviewLocalWarning": {
+    "message": "次の大きなフィールドは、このデバイスだけに保存される見込みです：$FIELDS$。",
+    "placeholders": { "fields": { "content": "$1" } }
+  },
+  "backupSectionSettings": {
+    "message": "設定"
+  },
+  "backupSectionThemes": {
+    "message": "テーマ"
+  },
+  "backupSectionHighlights": {
+    "message": "ハイライトとメモ"
+  },
+  "backupSectionVocabulary": {
+    "message": "単語"
+  },
+  "backupChooseSections": {
+    "message": "インポートする項目を選択"
+  },
+  "backupApplySelected": {
+    "message": "選択した項目を適用"
+  },
+  "backupStatusApplied": {
+    "message": "適用済み"
+  },
+  "backupStatusSkipped": {
+    "message": "スキップ"
+  },
+  "backupStatusLocalOnly": {
+    "message": "このデバイスだけに保存"
+  },
+  "backupStatusFailed": {
+    "message": "失敗"
+  },
+  "backupImportProgress": {
+    "message": "単語レコード $TOTAL$ 件中 $DONE$ 件をインポートしました。",
+    "placeholders": {
+      "done": { "content": "$1" },
+      "total": { "content": "$2" }
+    }
+  },
+  "backupImportComplete": {
+    "message": "インポートが完了しました。設定とテーマの変更は再読み込み後に表示されます。"
+  },
+  "backupImportPartialResult": {
+    "message": "インポートは終了しましたが、未完了の項目またはこのデバイスだけに保存された項目があります。バックアップを削除する前に、下の結果を確認してください。"
+  },
+  "backupImportNothing": {
+    "message": "適用されたバックアップ項目はありません。"
+  },
   "exportSettings": {
     "message": "設定をエクスポート"
   },

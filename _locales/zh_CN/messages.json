@@ -914,6 +914,120 @@
   "backupIncludeHighlightsHint": {
     "message": "备份会包含页面 URL、标题、选中文本、笔记、颜色和时间戳，但不会包含 API 密钥。"
   },
+  "backupPlaintextDisclosure": {
+    "message": "备份文件是明文 JSON，可能包含设置、高亮、页面 URL、生词和上下文摘录，但不包含 API 密钥。"
+  },
+  "backupIncludeVocabularyLabel": {
+    "message": "在备份中包含生词"
+  },
+  "backupIncludeVocabularyHint": {
+    "message": "只包含当前 Pinboard 账号的生词。"
+  },
+  "backupVocabOwnerMissing": {
+    "message": "当前没有可用的 Pinboard 账号，因此未包含生词。其他已选数据仍已导出。"
+  },
+  "backupPreviewTitle": {
+    "message": "导入预览"
+  },
+  "backupPreviewMeta": {
+    "message": "架构版本 $SCHEMA$；创建时间 $CREATED$；扩展版本 $VERSION$。",
+    "placeholders": {
+      "schema": { "content": "$1" },
+      "created": { "content": "$2" },
+      "version": { "content": "$3" }
+    }
+  },
+  "backupPreviewUnknown": {
+    "message": "未知"
+  },
+  "backupPreviewSettings": {
+    "message": "$COUNT$ 个字段",
+    "placeholders": { "count": { "content": "$1" } }
+  },
+  "backupPreviewThemes": {
+    "message": "$COUNT$ 个自定义主题",
+    "placeholders": { "count": { "content": "$1" } }
+  },
+  "backupPreviewHighlights": {
+    "message": "$PAGES$ 个页面，$ITEMS$ 条记录；Pinboard 账号：$OWNER$",
+    "placeholders": {
+      "pages": { "content": "$1" },
+      "items": { "content": "$2" },
+      "owner": { "content": "$3" }
+    }
+  },
+  "backupPreviewVocabulary": {
+    "message": "$COUNT$ 个生词；Pinboard 账号：$OWNER$",
+    "placeholders": {
+      "count": { "content": "$1" },
+      "owner": { "content": "$2" }
+    }
+  },
+  "backupPreviewLanguageLabel": {
+    "message": "语言"
+  },
+  "backupPreviewLegacyOwner": {
+    "message": "未记录账号的旧版备份"
+  },
+  "backupPreviewNone": {
+    "message": "无"
+  },
+  "backupPreviewOwnerMismatch": {
+    "message": "该备份属于另一个 Pinboard 账号，无法导入其中的生词。"
+  },
+  "backupPreviewSyncWarning": {
+    "message": "本设备已开启设置同步。导入的设置可能会同步到其他 Chrome 设备。"
+  },
+  "backupPreviewLocalWarning": {
+    "message": "这些大字段预计只会保存在本设备：$FIELDS$。",
+    "placeholders": { "fields": { "content": "$1" } }
+  },
+  "backupSectionSettings": {
+    "message": "设置"
+  },
+  "backupSectionThemes": {
+    "message": "主题"
+  },
+  "backupSectionHighlights": {
+    "message": "高亮和笔记"
+  },
+  "backupSectionVocabulary": {
+    "message": "生词"
+  },
+  "backupChooseSections": {
+    "message": "选择要导入的内容"
+  },
+  "backupApplySelected": {
+    "message": "应用所选内容"
+  },
+  "backupStatusApplied": {
+    "message": "已应用"
+  },
+  "backupStatusSkipped": {
+    "message": "已跳过"
+  },
+  "backupStatusLocalOnly": {
+    "message": "仅保存到本设备"
+  },
+  "backupStatusFailed": {
+    "message": "失败"
+  },
+  "backupImportProgress": {
+    "message": "已导入 $DONE$ / $TOTAL$ 条生词记录。",
+    "placeholders": {
+      "done": { "content": "$1" },
+      "total": { "content": "$2" }
+    }
+  },
+  "backupImportComplete": {
+    "message": "导入完成。刷新页面后可查看设置和主题更改。"
+  },
+  "backupImportPartialResult": {
+    "message": "导入已结束，但部分内容未完成或仅保存在本设备。删除备份文件前，请检查下方结果。"
+  },
+  "backupImportNothing": {
+    "message": "没有应用任何备份内容。"
+  },
   "exportSettings": {
     "message": "导出设置"
   },

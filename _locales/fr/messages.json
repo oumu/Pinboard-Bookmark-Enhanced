@@ -914,6 +914,120 @@
   "backupIncludeHighlightsHint": {
     "message": "Les sauvegardes comprennent les URL des pages, les titres, le texte sélectionné, les notes, les couleurs et les horodatages. Les clés API ne sont jamais incluses."
   },
+  "backupPlaintextDisclosure": {
+    "message": "Les sauvegardes sont des fichiers JSON en clair. Elles peuvent contenir des paramètres, des surlignages, des URL de pages, du vocabulaire et des extraits de contexte. Les clés API sont exclues."
+  },
+  "backupIncludeVocabularyLabel": {
+    "message": "Inclure le vocabulaire dans les sauvegardes"
+  },
+  "backupIncludeVocabularyHint": {
+    "message": "Inclut uniquement le vocabulaire du compte Pinboard actuel."
+  },
+  "backupVocabOwnerMissing": {
+    "message": "Le vocabulaire n’a pas été inclus, car aucun compte Pinboard n’est disponible. Les autres données sélectionnées ont été exportées."
+  },
+  "backupPreviewTitle": {
+    "message": "Aperçu de l’importation"
+  },
+  "backupPreviewMeta": {
+    "message": "Schéma $SCHEMA$ ; création $CREATED$ ; version de l’extension $VERSION$.",
+    "placeholders": {
+      "schema": { "content": "$1" },
+      "created": { "content": "$2" },
+      "version": { "content": "$3" }
+    }
+  },
+  "backupPreviewUnknown": {
+    "message": "Inconnu"
+  },
+  "backupPreviewSettings": {
+    "message": "$COUNT$ champs",
+    "placeholders": { "count": { "content": "$1" } }
+  },
+  "backupPreviewThemes": {
+    "message": "$COUNT$ thèmes personnalisés",
+    "placeholders": { "count": { "content": "$1" } }
+  },
+  "backupPreviewHighlights": {
+    "message": "$PAGES$ pages, $ITEMS$ entrées ; compte Pinboard : $OWNER$",
+    "placeholders": {
+      "pages": { "content": "$1" },
+      "items": { "content": "$2" },
+      "owner": { "content": "$3" }
+    }
+  },
+  "backupPreviewVocabulary": {
+    "message": "$COUNT$ mots ; compte Pinboard : $OWNER$",
+    "placeholders": {
+      "count": { "content": "$1" },
+      "owner": { "content": "$2" }
+    }
+  },
+  "backupPreviewLanguageLabel": {
+    "message": "Langues"
+  },
+  "backupPreviewLegacyOwner": {
+    "message": "Ancienne sauvegarde sans compte"
+  },
+  "backupPreviewNone": {
+    "message": "Aucun"
+  },
+  "backupPreviewOwnerMismatch": {
+    "message": "Le vocabulaire ne peut pas être importé, car cette sauvegarde appartient à un autre compte Pinboard."
+  },
+  "backupPreviewSyncWarning": {
+    "message": "La synchronisation des paramètres est activée sur cet appareil. Les paramètres importés peuvent être transmis à d’autres appareils Chrome."
+  },
+  "backupPreviewLocalWarning": {
+    "message": "Ces champs volumineux devraient rester sur cet appareil : $FIELDS$.",
+    "placeholders": { "fields": { "content": "$1" } }
+  },
+  "backupSectionSettings": {
+    "message": "Paramètres"
+  },
+  "backupSectionThemes": {
+    "message": "Thèmes"
+  },
+  "backupSectionHighlights": {
+    "message": "Surlignages et notes"
+  },
+  "backupSectionVocabulary": {
+    "message": "Vocabulaire"
+  },
+  "backupChooseSections": {
+    "message": "Choisir les éléments à importer"
+  },
+  "backupApplySelected": {
+    "message": "Appliquer la sélection"
+  },
+  "backupStatusApplied": {
+    "message": "Appliqué"
+  },
+  "backupStatusSkipped": {
+    "message": "Ignoré"
+  },
+  "backupStatusLocalOnly": {
+    "message": "Enregistré uniquement sur cet appareil"
+  },
+  "backupStatusFailed": {
+    "message": "Échec"
+  },
+  "backupImportProgress": {
+    "message": "$DONE$ entrées de vocabulaire importées sur $TOTAL$.",
+    "placeholders": {
+      "done": { "content": "$1" },
+      "total": { "content": "$2" }
+    }
+  },
+  "backupImportComplete": {
+    "message": "Importation terminée. Rechargez la page pour afficher les modifications des paramètres et des thèmes."
+  },
+  "backupImportPartialResult": {
+    "message": "L’importation est terminée, mais certaines sections sont incomplètes ou enregistrées uniquement sur cet appareil. Vérifiez les résultats ci-dessous avant de supprimer la sauvegarde."
+  },
+  "backupImportNothing": {
+    "message": "Aucune section de la sauvegarde n’a été appliquée."
+  },
   "exportSettings": {
     "message": "Exporter les paramètres"
   },

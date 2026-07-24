@@ -105,13 +105,46 @@
       <div class="divider"></div>
       <div class="section-title" data-i18n="secBackupRestore">Backup &amp; Restore</div>
       <p class="hint" data-i18n="backupHint">Export/import your settings (API keys are excluded from export for security).</p>
+      <p class="hint hint-warn backup-plaintext" data-i18n="backupPlaintextDisclosure">Backup files are plain JSON. They may contain settings, highlights, page URLs, vocabulary, and context excerpts. API keys are excluded.</p>
       <div class="fg"><label><input type="checkbox" id="opt-backup-include-highlights" checked /> <span data-i18n="backupIncludeHighlightsLabel">Include highlights and notes in backups</span></label></div>
       <p class="hint" data-i18n="backupIncludeHighlightsHint">Includes page URLs, titles, selected text, notes, colors, and timestamps. API keys are never included.</p>
-      <div style="display:flex;gap:8px;align-items:center;">
+      <div class="fg"><label><input type="checkbox" id="opt-backup-include-vocabulary" checked /> <span data-i18n="backupIncludeVocabularyLabel">Include vocabulary in backups</span></label></div>
+      <p class="hint" data-i18n="backupIncludeVocabularyHint">Includes vocabulary only for the current Pinboard account.</p>
+      <div class="backup-actions">
         <button class="btn" id="export-settings" data-i18n="exportSettings">Export Settings</button>
         <button type="button" class="btn" id="import-settings" title="Import settings from JSON file" data-i18n="importSettings" data-i18n-title="importSettingsTitle">Import Settings</button>
         <input type="file" id="import-settings-file" accept=".json" hidden />
         <span class="save-status" id="import-status" role="status" aria-live="polite"></span>
+      </div>
+      <span class="save-status backup-export-note" id="backup-export-note" role="status" aria-live="polite"></span>
+      <section class="backup-import-preview" id="backup-import-preview" aria-labelledby="backup-preview-title" hidden>
+        <h3 id="backup-preview-title" data-i18n="backupPreviewTitle">Import preview</h3>
+        <p id="backup-preview-meta"></p>
+        <dl class="backup-preview-counts">
+          <div><dt data-i18n="backupSectionSettings">Settings</dt><dd id="backup-preview-settings"></dd></div>
+          <div><dt data-i18n="backupSectionThemes">Themes</dt><dd id="backup-preview-themes"></dd></div>
+          <div><dt data-i18n="backupSectionHighlights">Highlights and notes</dt><dd id="backup-preview-highlights"></dd></div>
+          <div><dt data-i18n="backupSectionVocabulary">Vocabulary</dt><dd id="backup-preview-vocabulary"></dd></div>
+          <div><dt data-i18n="backupPreviewLanguageLabel">Languages</dt><dd id="backup-preview-languages"></dd></div>
+        </dl>
+        <p class="hint hint-warn backup-preview-warning" id="backup-preview-warning" role="status" aria-live="polite"></p>
+        <fieldset class="backup-section-picker">
+          <legend data-i18n="backupChooseSections">Choose what to import</legend>
+          <label><input type="checkbox" id="backup-section-settings" /> <span data-i18n="backupSectionSettings">Settings</span></label>
+          <label><input type="checkbox" id="backup-section-themes" /> <span data-i18n="backupSectionThemes">Themes</span></label>
+          <label><input type="checkbox" id="backup-section-highlights" /> <span data-i18n="backupSectionHighlights">Highlights and notes</span></label>
+          <label><input type="checkbox" id="backup-section-vocabulary" /> <span data-i18n="backupSectionVocabulary">Vocabulary</span></label>
+        </fieldset>
+        <div class="backup-apply-row">
+          <button type="button" class="btn" id="backup-import-apply" data-i18n="backupApplySelected">Apply selected</button>
+          <span id="backup-import-progress" role="status" aria-live="polite"></span>
+        </div>
+      </section>
+      <div class="backup-import-result" id="backup-import-result" role="status" aria-live="polite" hidden>
+        <div><span data-i18n="backupSectionSettings">Settings</span><span id="backup-result-settings"></span></div>
+        <div><span data-i18n="backupSectionThemes">Themes</span><span id="backup-result-themes"></span></div>
+        <div><span data-i18n="backupSectionHighlights">Highlights and notes</span><span id="backup-result-highlights"></span></div>
+        <div><span data-i18n="backupSectionVocabulary">Vocabulary</span><span id="backup-result-vocabulary"></span></div>
       </div>
       <div class="divider"></div>
       <div class="section-title" data-i18n="secNotifications">Notifications</div>
