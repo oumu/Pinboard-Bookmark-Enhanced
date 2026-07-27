@@ -34,6 +34,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(__dirname, '..');
 const QA_SCAN = resolve(REPO, '.qa-scan');
 const EXPECTED_EXTENSION_ID = 'pnjndmjhljjbdlbejeenkepdalokfooh';
+const EXPECTED_OAUTH_CLIENT_ID = '1002273768498-uh3bdcaqsrl1rt7dlnrfducebdeg6h63.apps.googleusercontent.com';
 
 let chromium;
 try {
@@ -137,6 +138,12 @@ function cleanup() {
   } else {
     try { rmSync(tmpRoot, { recursive: true, force: true }); } catch {}
   }
+}
+if (!driveOAuthActive ||
+    packagedManifest.oauth2.client_id !== EXPECTED_OAUTH_CLIENT_ID) {
+  console.error('[zip-smoke] release manifest does not use the registered production Drive OAuth client');
+  cleanup();
+  process.exit(1);
 }
 
 // ---- Check 0: dynamically-referenced runtime files survived packaging ----

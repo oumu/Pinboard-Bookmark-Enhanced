@@ -42,7 +42,7 @@ Une extension Chrome pour [Pinboard](https://pinboard.in) : étiquettes et résu
 ### Personnalisation
 - **13 thèmes pour pinboard.in** (Dracula · Nord · Catppuccin · Solarized · …) plus votre CSS personnalisé
 - **Archivage automatique dans la [Wayback Machine](https://web.archive.org)** : à chaque enregistrement si vous le souhaitez ; les pages restent accessibles même quand le lien d'origine disparaît
-- **Sauvegarde et synchronisation** : Chrome Sync partage les réglages entre les appareils où vous l’activez. La synchronisation des identifiants s’active séparément. Les sauvegardes JSON manuelles contiennent les réglages et peuvent inclure les surlignages, les notes et le vocabulaire du compte Pinboard actif. La synchronisation de ce vocabulaire avec Google Drive est implémentée, mais reste indisponible tant que l’activation OAuth n’est pas terminée.
+- **Sauvegarde et synchronisation** : Chrome Sync partage les réglages entre les appareils où vous l’activez. La synchronisation des identifiants s’active séparément. Les sauvegardes JSON manuelles contiennent les réglages et peuvent inclure les surlignages, les notes et le vocabulaire du compte Pinboard actif. Connectez Google Drive séparément sur chaque appareil pour synchroniser ce vocabulaire.
 - **9 langues** · raccourcis configurables · stockage local en priorité · aucun pistage
 
 ![13 thèmes pour pinboard.in](docs/cws-assets/originals/screenshot-4-themes.png)
@@ -56,7 +56,7 @@ Ou chargez une version décompressée depuis un ZIP de release :
 2. Décompressez
 3. `chrome://extensions/` → activez le **Mode développeur** → **Charger l'extension non empaquetée** → sélectionnez le dossier décompressé
 
-Le ZIP de release utilise le même identifiant d'extension que la version du Chrome Web Store. Chrome Sync peut ainsi partager les paramètres dès que leur synchronisation est activée sur chaque appareil. Les deux versions ne peuvent pas coexister dans un même profil Chrome. Avant de remplacer une ancienne release chargée manuellement, exportez ses paramètres, puis importez la sauvegarde après avoir chargé la nouvelle release.
+Le répertoire source utilise un identifiant de développement distinct et fixe. Il peut donc coexister avec la version du Chrome Web Store pour les tests. Le ZIP de release utilise l'identifiant du Chrome Web Store et ne peut pas coexister avec la version du Store dans un même profil Chrome. Chrome Sync peut partager les paramètres dès que leur synchronisation est activée sur chaque appareil. Avant de remplacer une ancienne release chargée manuellement, exportez ses paramètres, puis importez la sauvegarde après avoir chargé la nouvelle release.
 
 Après l'installation : cliquez sur l'icône de la barre d'outils → collez votre [jeton API Pinboard](https://pinboard.in/settings/password) → enregistrez
 

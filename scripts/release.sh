@@ -355,7 +355,10 @@ snapshot = sys.argv[3]
 prefix   = f"pinboard-bookmark-enhanced-v{version}/"
 
 REPO = pathlib.Path('.')
+DEV_EXTENSION_ID = 'feoognahlmfmbllpmgailahcnjppiegb'
+DEV_OAUTH_CLIENT_ID = '1002273768498-c6d7mdsd58dfoth1khb21uocmq8kveg5.apps.googleusercontent.com'
 RELEASE_EXTENSION_ID = 'pnjndmjhljjbdlbejeenkepdalokfooh'
+RELEASE_OAUTH_CLIENT_ID = '1002273768498-uh3bdcaqsrl1rt7dlnrfducebdeg6h63.apps.googleusercontent.com'
 RELEASE_EXTENSION_KEY = (
     'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAwNA1FMsd5vKiPgnGvwMiqO7Q'
     'V2PRke84BnYJPJRVGNFPG6Z1OzNpwHWI60aamTOpXcgby7z45atUCJk0d2Knh1LWuz7'
@@ -365,8 +368,11 @@ RELEASE_EXTENSION_KEY = (
     'Lsn4pWzonj1n8WevNewDZuY3hoaYF63wzc0KTxYHVGkxnGGFbQIDAQAB'
 )
 
-key_hash = hashlib.sha256(base64.b64decode(RELEASE_EXTENSION_KEY)).hexdigest()[:32]
-key_id = ''.join(chr(ord('a') + int(char, 16)) for char in key_hash)
+def extension_id(public_key):
+    key_hash = hashlib.sha256(base64.b64decode(public_key)).hexdigest()[:32]
+    return ''.join(chr(ord('a') + int(char, 16)) for char in key_hash)
+
+key_id = extension_id(RELEASE_EXTENSION_KEY)
 if key_id != RELEASE_EXTENSION_ID:
     print(f'  ERROR: release public key maps to {key_id}, expected {RELEASE_EXTENSION_ID}.', file=sys.stderr)
     sys.exit(1)
@@ -445,10 +451,19 @@ with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
         ).stdout
         if path == 'manifest.json':
             manifest = json.loads(data)
-            if 'key' in manifest:
-                print('  ERROR: source manifest.json must stay key-free for an independent development ID.', file=sys.stderr)
+            source_id = extension_id(manifest.get('key', ''))
+            if source_id != DEV_EXTENSION_ID:
+                print(f'  ERROR: source public key maps to {source_id}, expected {DEV_EXTENSION_ID}.', file=sys.stderr)
+                sys.exit(1)
+            oauth = manifest.get('oauth2', {})
+            if oauth.get('client_id') != DEV_OAUTH_CLIENT_ID:
+                print('  ERROR: source manifest.json does not use the registered development OAuth client.', file=sys.stderr)
+                sys.exit(1)
+            if oauth.get('scopes') != ['https://www.googleapis.com/auth/drive.appdata']:
+                print('  ERROR: source manifest.json must request only the Drive app-data scope.', file=sys.stderr)
                 sys.exit(1)
             manifest['key'] = RELEASE_EXTENSION_KEY
+            manifest['oauth2']['client_id'] = RELEASE_OAUTH_CLIENT_ID
             data = (json.dumps(manifest, ensure_ascii=False, indent=2) + '\n').encode('utf-8')
         contents[path] = data
         info = zipfile.ZipInfo(prefix + path, date_time=(1980, 1, 1, 0, 0, 0))

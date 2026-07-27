@@ -5,6 +5,7 @@
   "version": "2.97",
   "description": "__MSG_extDescription__",
   "default_locale": "en",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAz3/9K5i9LNa23HcZQmCYxJ29qFwmvZMpq6Bn+D91YTk8mLNOxmSsTUtRQXg6m0OqZ+P3m6SQMXppNZtTG9Z4Di/75y9yfTP4ufeHL3eFF8ar+12gmN8fAx3+ufdZR9tOO0xZ0fgi1zEFxkMoJzVEBQdcT3W1tek5azJGxeiBWrLvOwL8A6M3LZYErmkS/cQHZszQxX1+8TPF2rAT1QJtuP26m4t+HhYEPJvQT4Xb9DbOAmTQJvlgP87k0VEqfK6YvPO41W10p2PP2H0skxqNk2REPi93NSxqs4+n8LyHeTiwvrC5EUw9oHhlrfywlD8lmIsbbj55igQMRjwQQdGpkQIDAQAB",
   "permissions": [
     "activeTab",
     "storage",
@@ -14,6 +15,9 @@
     "alarms",
     "declarativeNetRequestWithHostAccess"
   ],
+  "optional_permissions": [
+    "identity"
+  ],
   "host_permissions": [
     "https://api.pinboard.in/*",
     "https://pinboard.in/*"
@@ -21,6 +25,12 @@
   "optional_host_permissions": [
     "*://*/*"
   ],
+  "oauth2": {
+    "client_id": "1002273768498-c6d7mdsd58dfoth1khb21uocmq8kveg5.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/drive.appdata"
+    ]
+  },
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'none'; base-uri 'none'"
   },

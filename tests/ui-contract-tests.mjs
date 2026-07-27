@@ -1,4 +1,5 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { resolve } from "node:path";
 import { runInNewContext } from "node:vm";
 
@@ -6,6 +7,10 @@ const root = resolve(import.meta.dirname, "..");
 const read = (file) => readFileSync(resolve(root, file), "utf8");
 const fail = [];
 const check = (ok, msg) => { if (!ok) fail.push(msg); };
+const extensionIdFromKey = (key) => {
+  const hex = createHash("sha256").update(Buffer.from(key, "base64")).digest("hex").slice(0, 32);
+  return [...hex].map((char) => String.fromCharCode(97 + Number.parseInt(char, 16))).join("");
+};
 
 const popupHtml = read("popup.html");
 const manifest = JSON.parse(read("manifest.json"));
@@ -64,12 +69,21 @@ check(!optionsCss.toLowerCase().includes("webdav"), "options.css still ships Web
 check(manifest.permissions.includes("alarms"), "shared alarms permission was removed");
 check(manifest.optional_host_permissions.join(",") === "*://*/*",
   "shared optional-host declaration changed");
-check(!Object.hasOwn(manifest, "key"),
-  "manifest.json: source manifest must stay key-free so the development install keeps an independent ID");
-check(releaseSh.includes("RELEASE_EXTENSION_ID = 'pnjndmjhljjbdlbejeenkepdalokfooh'") &&
-  releaseSh.includes("manifest['key'] = RELEASE_EXTENSION_KEY"),
-  "scripts/release.sh: release ZIP no longer injects the verified CWS public key");
+check(extensionIdFromKey(manifest.key || "") === "feoognahlmfmbllpmgailahcnjppiegb",
+  "manifest.json: source build no longer has the verified development extension ID");
+check(manifest.optional_permissions?.includes("identity") &&
+  manifest.oauth2?.client_id ===
+    "1002273768498-c6d7mdsd58dfoth1khb21uocmq8kveg5.apps.googleusercontent.com" &&
+  manifest.oauth2?.scopes?.join(",") === "https://www.googleapis.com/auth/drive.appdata",
+  "manifest.json: development Drive OAuth capability is incomplete or over-broad");
+check(releaseSh.includes("DEV_EXTENSION_ID = 'feoognahlmfmbllpmgailahcnjppiegb'") &&
+  releaseSh.includes("DEV_OAUTH_CLIENT_ID = '1002273768498-c6d7mdsd58dfoth1khb21uocmq8kveg5.apps.googleusercontent.com'") &&
+  releaseSh.includes("RELEASE_OAUTH_CLIENT_ID = '1002273768498-uh3bdcaqsrl1rt7dlnrfducebdeg6h63.apps.googleusercontent.com'") &&
+  releaseSh.includes("manifest['key'] = RELEASE_EXTENSION_KEY") &&
+  releaseSh.includes("manifest['oauth2']['client_id'] = RELEASE_OAUTH_CLIENT_ID"),
+  "scripts/release.sh: source identity validation or production OAuth replacement is missing");
 check(zipInstallSmoke.includes("const EXPECTED_EXTENSION_ID = 'pnjndmjhljjbdlbejeenkepdalokfooh';") &&
+  zipInstallSmoke.includes("const EXPECTED_OAUTH_CLIENT_ID = '1002273768498-uh3bdcaqsrl1rt7dlnrfducebdeg6h63.apps.googleusercontent.com';") &&
   zipInstallSmoke.includes("'vocab-store.js'") &&
   zipInstallSmoke.includes("'vocab-gdrive.js'") &&
   zipInstallSmoke.includes("hasDriveOAuthCapability(packagedManifest)") &&

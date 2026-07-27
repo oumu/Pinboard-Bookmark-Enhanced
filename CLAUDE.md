@@ -115,7 +115,7 @@ Chrome Extension (Manifest V3)，一键将当前页面保存到 Pinboard，支�
 | 机制 | 数据 | 边界 |
 |------|------|------|
 | Chrome Sync | 普通设置；另行启用时包含凭据 | 每台设备通过 `optSyncEnabled` 参与；不含生词、高亮、缓存或任务状态 |
-| Google Drive | 当前 Pinboard owner 的生词 | runtime 已实现，真实 OAuth 注册和跨客户端 `appDataFolder` 门禁完成前不激活；不接管设置、凭据或高亮 |
+| Google Drive | 当前 Pinboard owner 的生词 | 每台设备由用户单独连接；只用 `drive.appdata`，不接管设置、凭据或高亮 |
 | 手工 JSON schema v3 | 设置、主题，以及用户选择的高亮/笔记和当前 owner 生词 | 导出为明文文件；导入前预览并分项选择；不含 secret、Drive 账号、vector、outbox 或 tombstone |
 
 ## Theme Factory 工作流
@@ -171,7 +171,7 @@ bash scripts/release.sh
 
 - **自动包含**（root 下匹配 glob）：`*.html` / `*.js` / `*.css` / `manifest.json`
 - **递归包含目录**：`vendor/` / `icons/` / `_locales/`
-- **扩展 ID 分层**：源码 `manifest.json` 必须不含 `key`，保证本地源码开发版可与 CWS 版并存；`release.sh` 只在 ZIP 内的 manifest 注入 CWS 公钥，使正式解压安装版固定为 CWS ID `pnjndmjhljjbdlbejeenkepdalokfooh`
+- **扩展 ID 与 OAuth 分层**：源码 `manifest.json` 使用公开开发公钥和开发 OAuth client，固定为开发 ID `feoognahlmfmbllpmgailahcnjppiegb`，可与 CWS 版并存；`release.sh` 校验源码身份后，只在 ZIP 内替换为 CWS 公钥和生产 OAuth client，使正式解压安装版固定为 CWS ID `pnjndmjhljjbdlbejeenkepdalokfooh`
 - **显式排除**：
   - `tests/`（dev 测试页整目录——不在 INCLUDE_DIRS，自动 skip）
   - `perf-baseline.json` / `perf-after-*.json`（measurement 数据）
@@ -191,8 +191,8 @@ bash scripts/release.sh
 - 解压 ZIP 到临时目录
 - 用 Playwright bundled Chromium + `--load-extension` 安装该 ZIP
 - 校验 Service Worker 注册成功（catch importScripts 404 等）
-- 校验 Release ZIP 的扩展 ID 精确等于 CWS ID（源码目录仍保持独立开发 ID）
-- 校验 `vocab-store.js` / `vocab-gdrive.js` 已由 SW 成功加载；根据 ZIP manifest 的 OAuth 能力，设置页要么显示可用的“连接 Google Drive”，要么显示不可用状态并隐藏全部 Drive 操作
+- 校验 Release ZIP 的扩展 ID 精确等于 CWS ID，OAuth client 精确等于生产 client（源码目录保持独立开发 ID/client）
+- 校验 `vocab-store.js` / `vocab-gdrive.js` 已由 SW 成功加载，设置页显示可用的“连接 Google Drive”
 - 校验 popup.html 打开无 pageerror（catch `ReferenceError` 等）
 - 校验 options.html 打开无 pageerror
 - 任一失败 → release.sh 中止，不发 GitHub release
@@ -211,8 +211,8 @@ bash scripts/release.sh
 - API key、token、password 与导出目标凭据不能硬编码。新用户默认保存在 `chrome.storage.local`；仅当本机 `optSyncEnabled=true` 且账号级 `syncApiKeys=true` 时使用 `chrome.storage.sync`。旧云端已有非空 secret 时迁移保留 `syncApiKeys=true`，避免升级丢失凭据
 - Defuddle 在 popup 打开时**懒注入**，避免冷启动开销；`site-rules.js` 与其成对注入且**先于** Defuddle 运行（命中站点规则即短路）
 - **网络端点与 host 权限不变量**：required host 仅 Pinboard；AI / Jina / Wayback / Gist / Webhook / Free Dictionary API / Eudic、AnkiConnect 精确回环 origin 与 Batch 所选站点，只能从对应的直接用户动作请求当前精确 origin。后台/自动路径只做 `permissions.contains`，禁止运行时申请 wildcard。可配置网络端点必须 HTTPS，HTTP 仅允许字面 `localhost` / `127.0.0.1` / `[::1]`；LAN/public HTTP、凭据 URL 与无权限请求一律阻断并保留配置。升级时一次性清理 legacy all-sites grant。
-- **Google Drive OAuth 激活门禁（当前阻塞）**：源码 manifest 继续无 `key`，Release ZIP 只注入已核验的 CWS 公钥。当前仓库没有真实固定开发公钥/开发扩展 ID、开发 OAuth client、生产 OAuth client，也未完成两个真实 client 对同一 Google 账号的 `appDataFolder` 双向可见性测试，因此 manifest 暂不声明 `identity` / `oauth2`，Drive 生词连接不得宣称可用。补齐真实注册后才可加入可选 `identity`、唯一 scope `drive.appdata` 与 Connect 动作申请的精确 `https://www.googleapis.com/*` origin；严禁占位 client ID 或 client secret。
-- **Google Drive 权限与断开语义**：激活后只有“连接 Google Drive”这一直接用户动作可申请 `identity` 和精确 Google API origin；后台同步只做 `permissions.contains`，SW 启动不得弹 OAuth。断开本设备时移除 token cache 与可选权限，但保留本地生词、outbox、tombstone 和远端 `appDataFolder` 文件。Drive 中保存的是当前 owner 生词的明文应用私有副本，不是端到端加密。
+- **Google Drive OAuth 构建契约**：源码开发公钥、开发扩展 ID、开发 OAuth client 和生产 OAuth client 均使用已注册的真实公开值；manifest 声明可选 `identity` 与唯一 scope `drive.appdata`。release 必须同时替换公钥和 OAuth client，并核验 ZIP 的 CWS ID/client。两个真实 client 对同一 Google 账号的 `appDataFolder` 双向可见性仍须在发布前实测；若不互通，开发版使用独立测试数据，生产双设备验收改用同一 CWS build。严禁占位 client ID 或 client secret。
+- **Google Drive 权限与断开语义**：只有“连接 Google Drive”这一直接用户动作可申请 `identity` 和精确 Google API origin；后台同步只做 `permissions.contains`，SW 启动不得弹 OAuth。断开本设备时移除 token cache 与可选权限，但保留本地生词、outbox、tombstone 和远端 `appDataFolder` 文件。Drive 中保存的是当前 owner 生词的明文应用私有副本，不是端到端加密。
 - **生词同步不变量**：`vocab-store.js` 是 `pbp-vocab` 的唯一写入口。每次本地 mutation 在同一 IDB transaction 中核验 owner，并原子更新 word 或 tombstone、版本向量和 coalesced outbox；删除保留 tombstone，不自动 GC。远端批次用 owner hash 隔离，vector dominance 与稳定 dot 决定收敛；并发删除遇到新修改时 live 胜出并留下持久 notice，用户再次删除后 tombstone 才支配。每个网络 await 和 IDB commit 前都重核验 Pinboard owner 与 Drive `permissionId`，变化时不得推进游标或上传旧账号数据。
 - **手工备份 schema v3**：导出前 flush 待保存设置，payload 通过与导入相同的 preflight；备份含 `_backup` 元数据、设置/主题和可选的当前 owner 高亮/生词，只含运行时 word 字段。导入必须先预览，再由用户分项选择；生词按 100 条通过 store primitive 合并并在每批前后重核验 owner。API key、token、Webhook URL、OAuth、Drive 账号、vector、dot、outbox、tombstone 和 batch 一律不进入备份。
 - **WebDAV 删除清理临时代码（引入 2026-07-24；最早清理 2026-08-24）**：`background.js` 的 `pbpCleanupRemovedWebdav` 会清除旧 `webdav-push` alarm，以及 local/sync 中遗留的 WebDAV 配置和状态。至少保留一个月的升级覆盖；到期后先核查已发布版本和用户升级情况，再删除 `PBP_WEBDAV_REMOVAL_*`、清理函数及对应测试。不得按日期自动删除，历史审计文档继续保留。
