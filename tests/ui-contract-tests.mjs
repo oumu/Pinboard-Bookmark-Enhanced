@@ -327,15 +327,19 @@ check(mdTranslateJs.includes('const targetCode = plan.targetCode || ""') &&
     waybackLog.indexOf('outcome === "rate-limited"'));
   check(waybackLog.includes("wayback-perm-help") &&
     waybackLog.includes("PBP_ICONS.warning") &&
-    waybackLog.includes('scrollIntoView({ block: "center", behavior: "smooth" })') &&
+    waybackLog.includes('pbpScrollIntoView(target, { block: "center", behavior: "smooth" })') &&
     waybackLog.includes('focus({ preventScroll: true })') &&
     !permissionBranch.includes("outcomeEl.title"),
     "options.js: archive permission recovery remains hover-only or cannot reach the controlling setting");
 }
-check(/\.wayback-log-row:hover\s+\.wayback-perm-tip[\s\S]{0,120}\.wayback-log-row:focus-within\s+\.wayback-perm-tip/.test(optionsCss) &&
+// Both disclosure paths must exist, and the hover half must stay behind a
+// fine-pointer gate: it inserts a full-width grid row inside a scrolling log,
+// and on touch :hover latches after a tap and wedges the tip open.
+check(/\.wayback-log-row:focus-within\s+\.wayback-perm-tip/.test(optionsCss) &&
+  /@media \(hover: hover\) and \(pointer: fine\) \{\s*\.wayback-log-row:hover\s+\.wayback-perm-tip/.test(optionsCss) &&
   optionsCss.includes("background: var(--opt-panel)") &&
   optionsCss.includes("color: var(--opt-fg)"),
-  "options.css: archive permission guidance lacks themed hover/focus disclosure");
+  "options.css: archive permission guidance lacks themed focus disclosure, or its hover half escaped the fine-pointer gate");
 check(popupCss.includes("html[data-theme] .confirm-popover .confirm-yes:hover { background: var(--pp-warn-fg)") &&
   popupCss.includes("html[data-theme] .confirm-popover .confirm-no:hover { background: var(--pp-warn-bg)") &&
   optionsCss.includes("html[data-theme] .confirm-popover .confirm-yes:hover { background: var(--opt-danger)") &&
@@ -967,6 +971,53 @@ check(mdCss.includes("text-autospace: normal") && /#rendered-view :is\(pre, code
   check(embedFn.includes("toFetch.filter((u) => !fetched.has(u))") &&
     !embedFn.includes("scan.candidates.filter((u) => !fetched.has(u))"),
     "md-preview.js: resolveEmbed retry round no longer scoped to the network list (cache/budget-dropped urls would refetch)");
+}
+
+// ---- Reduced motion ----
+// CSS cannot gate programmatic scrolling: per CSSOM-View an explicit `behavior`
+// dictionary member overrides the `scroll-behavior` property, so a
+// `scroll-behavior: auto` inside a prefers-reduced-motion block never fires.
+// Whole-viewport travel is the most vestibular motion in the product, so every
+// smooth scroll must route through pbpScrollIntoView, which checks the media
+// query at the call site.
+{
+  const scrollOwners = {
+    "shared.js": sharedJs, "popup.js": popupJs, "options.js": optionsJs,
+    "md-preview.js": mdPreviewJs, "md-reader.js": mdReaderJs,
+    "md-highlight.js": mdHighlightJs, "md-ask.js": mdAskJs,
+    "md-translate.js": mdTranslateJs, "popup-tags.js": popupTagsJs,
+  };
+  for (const [name, src] of Object.entries(scrollOwners)) {
+    // Raw `.scrollIntoView(` is allowed only when it cannot animate: either no
+    // `behavior` at all (CSS default `auto`, and no stylesheet sets `smooth`)
+    // or an explicit `"instant"`. shared.js owns the one guarded call.
+    const raw = [...src.matchAll(/\.scrollIntoView\(\{[^}]*\}/g)]
+      .map((m) => m[0])
+      .filter((call) => /behavior:\s*"smooth"/.test(call));
+    check(raw.length === 0,
+      `${name}: smooth scrollIntoView bypasses pbpScrollIntoView, so prefers-reduced-motion cannot reach it (${raw.join(" | ")})`);
+  }
+  check(/function pbpScrollIntoView\([\s\S]{0,240}pbpPrefersReducedMotion\(\)[\s\S]{0,80}behavior: "instant"/.test(sharedJs),
+    "shared.js: pbpScrollIntoView no longer downgrades to instant under prefers-reduced-motion");
+  // A reduced-motion preference must not cost the user a status channel. The
+  // blanket reset parks every infinite animation after one 0.01ms cycle, so the
+  // spinners, the tag skeleton and — most consequentially — the auto-close
+  // countdown (the only warning before the popup closes itself) are restored.
+  const popupReduce = popupCss.slice(popupCss.indexOf("@media (prefers-reduced-motion: reduce)"));
+  check(/\.auto-close-bar \{ animation-duration: 1\.8s !important; \}/.test(popupReduce),
+    "popup.css: reduced motion erases the auto-close countdown, leaving no warning before the popup self-closes");
+  check(/\.tag-skel \{\s*animation-duration: 1\.6s !important;\s*animation-iteration-count: infinite !important;/.test(popupReduce) &&
+    /\.offline-queue-retry\.loading svg \{\s*animation-duration: 0\.6s !important;\s*animation-iteration-count: infinite !important;/.test(popupReduce),
+    "popup.css: reduced motion freezes the spinners/skeleton mid-cycle instead of letting non-vestibular status motion run");
+  check(/#zen-bar \{ transition: opacity 200ms ease !important; \}/.test(mdCss),
+    "md-preview.css: reduced motion kills the zen bar's opacity fade too, turning the mouse-idle fade into a repeated hard brightness cut");
+  // The dead declaration is what made this bug invisible for so long: it read as
+  // though reduced-motion scrolling were handled. It must not come back.
+  for (const [name, src] of [["popup.css", popupCss], ["options.css", optionsCss], ["md-preview.css", mdCss]]) {
+    const blocks = src.split("@media (prefers-reduced-motion: reduce)").slice(1);
+    check(!blocks.some((b) => /scroll-behavior:/.test(b.slice(0, b.indexOf("\n}")))),
+      `${name}: a reduced-motion block declares scroll-behavior again — it cannot reach scrollIntoView() and reads as false coverage`);
+  }
 }
 
 if (fail.length) {

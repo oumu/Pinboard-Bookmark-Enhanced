@@ -3116,7 +3116,7 @@ async function _runTagGovBatch(ops, expectedAccount) {
       seeBelow.addEventListener("click", (ev) => {
         ev.preventDefault();
         // block:"center" keeps the list clear of the sticky progress card at the bottom
-        $id("tag-gov-problems")?.scrollIntoView({ block: "center", behavior: "smooth" });
+        pbpScrollIntoView($id("tag-gov-problems"), { block: "center", behavior: "smooth" });
       });
       ptext.appendChild(seeBelow);
     }
@@ -3529,7 +3529,7 @@ async function renderWaybackLog() {
       help.innerHTML = PBP_ICONS.warning;
       help.addEventListener("click", () => {
         const target = $id("opt-wayback-enabled");
-        target?.scrollIntoView({ block: "center", behavior: "smooth" });
+        pbpScrollIntoView(target, { block: "center", behavior: "smooth" });
         target?.focus({ preventScroll: true });
       });
       outcomeWrap.appendChild(help);

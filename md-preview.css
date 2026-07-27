@@ -440,7 +440,13 @@ body.ask-open #zen-bar { right: calc(380px + 12px); }
 #zen-bar.faded { opacity: 0.06; pointer-events: none; }
 #zen-bar:focus-within { opacity: 1 !important; pointer-events: auto !important; }
 @media (prefers-reduced-motion: reduce) {
-  #zen-bar { transition: none; }
+  /* Only the positional half (`right`) is vestibular. The opacity transition
+     stays: killing it made the mouse-idle fade hard-cut between full and 6%
+     every couple of seconds — a repeated abrupt brightness jump, the opposite
+     of what a reduced-motion preference is asking for. !important is required
+     to survive the blanket `transition-duration: 0.01ms !important` block later
+     in this file (#zen-bar outspecifies `*`, so this wins). */
+  #zen-bar { transition: opacity 200ms ease !important; }
 }
 .zen-btn {
   display: inline-flex;
@@ -1403,12 +1409,14 @@ html.motion-ready .send-menu[hidden] {
   background: var(--surface);
 }
 
+/* `scroll-behavior` is deliberately absent: it cannot reach a scrollIntoView()
+   call that passes an explicit `behavior`, which is every programmatic scroll in
+   the reader. That guard lives in pbpScrollIntoView (shared.js). */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
   }
 }
 
@@ -1902,7 +1910,13 @@ html.motion-ready #pb-hl-bar:popover-open {
 .pb-hl-dot-3 { background: light-dark(#60a5fa, #5689B6); }
 .pb-hl-dot-4 { background: light-dark(#f87171, #B86F8C); }
 .pb-hl-dot-5 { background: light-dark(#c084fc, #8B72AF); }
-.pb-hl-dot:hover, .pb-hl-dot:focus-visible { transform: scale(1.15); outline: 2px solid var(--link); outline-offset: 2px; }
+.pb-hl-dot:focus-visible { transform: scale(1.15); outline: 2px solid var(--link); outline-offset: 2px; }
+/* :hover is gated to real pointers — on touch it latches after a tap and leaves
+   the swatch stuck 15% larger with a focus ring it never earned. :focus-visible
+   above stays ungated so keyboard navigation loses nothing. */
+@media (hover: hover) and (pointer: fine) {
+  .pb-hl-dot:hover { transform: scale(1.15); outline: 2px solid var(--link); outline-offset: 2px; }
+}
 .pb-hl-note-btn {
   display: flex;
   align-items: center;

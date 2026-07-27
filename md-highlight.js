@@ -1910,7 +1910,7 @@ function _pbpHlNotebookJump(item) {
     // .pb-tr is display:none in the pure original view -> silent no-op (spec 1.4).
     if (!document.body.classList.contains("tr-bilingual") && !document.body.classList.contains("tr-only")) return;
     pbpFocusArticleTarget(trEl);
-    trEl.scrollIntoView({ block: "center", behavior: "smooth" });
+    pbpScrollIntoView(trEl, { block: "center", behavior: "smooth" });
     const entry = _pbpHlState.ranges[item.id];
     const range = (entry && entry.range) || (() => { const r = document.createRange(); r.selectNode(trEl); return r; })();
     _pbpAskFlash(range, trEl);
@@ -1920,7 +1920,7 @@ function _pbpHlNotebookJump(item) {
   if (!blockEl) return;
   if (document.body.classList.contains("tr-only") && blockEl.hasAttribute("data-pb-tr-done") && !blockEl.classList.contains("pb-show-orig")) return; // spec 2.3: silent no-op
   pbpFocusArticleTarget(blockEl);
-  blockEl.scrollIntoView({ block: "center", behavior: "smooth" });
+  pbpScrollIntoView(blockEl, { block: "center", behavior: "smooth" });
   const entry = _pbpHlState.ranges[item.id];
   const range = (entry && entry.range) || (() => { const r = document.createRange(); r.selectNode(blockEl); return r; })();
   _pbpAskFlash(range, blockEl);

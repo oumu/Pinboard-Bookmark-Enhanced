@@ -286,7 +286,7 @@ function _pbpFnEnsurePop() {
   jumpBtn.addEventListener("click", () => {
     if (!_pbpFnCurrentLi) return;
     try { pop.hidePopover(); } catch (_) {}
-    _pbpFnCurrentLi.scrollIntoView({ block: "center", behavior: "smooth" });
+    pbpScrollIntoView(_pbpFnCurrentLi, { block: "center", behavior: "smooth" });
     const range = document.createRange();
     range.selectNode(_pbpFnCurrentLi);
     if (typeof _pbpAskFlash === "function") _pbpAskFlash(range, _pbpFnCurrentLi);
@@ -340,7 +340,7 @@ function _pbpFnOnRefClick(a, id) {
 function _pbpFnOnBackrefClick(id) {
   const a = _pbpFnFindRef(id);
   if (!a) return; // silent no-op, symmetric with the ref direction
-  a.scrollIntoView({ block: "center", behavior: "smooth" });
+  pbpScrollIntoView(a, { block: "center", behavior: "smooth" });
   const range = document.createRange();
   range.selectNode(a);
   if (typeof _pbpAskFlash === "function") _pbpAskFlash(range, a);
@@ -461,9 +461,12 @@ function _pbpSearchPaintCurrent(jump) {
     // -- fall back to deriving the element from the Range's start
     // container so the jump-to-current behavior is identical either way.
     const el = m && (m.el || (m.range && _pbpSearchElFromRangeStart(m.range)));
-    if (el && typeof el.scrollIntoView === "function") {
-      el.scrollIntoView({ block: "center", behavior: "smooth" });
-    }
+    // Instant unconditionally, not just under reduced motion: this replaces
+    // native Ctrl+F, which is instant, and it re-runs on every Enter/Shift+Enter
+    // AND every debounced keystroke -- typing a 5-letter query queued five
+    // overlapping distance-scaled smooth scrolls, leaving the page gliding while
+    // the reader is trying to read the hit.
+    pbpScrollIntoView(el, { block: "center", behavior: "instant" });
   }
 }
 

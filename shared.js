@@ -2225,6 +2225,22 @@ function $id(id) {
   return el;
 }
 
+// ---- Reduced motion ----
+// CSS cannot gate programmatic scrolling: per CSSOM-View an explicit `behavior`
+// dictionary member on scrollIntoView() overrides the `scroll-behavior` property,
+// so a `scroll-behavior: auto !important` inside a prefers-reduced-motion block
+// never reaches these calls (and no stylesheet here sets `smooth` in the first
+// place). Whole-viewport travel is the most vestibular motion in the product, so
+// the check has to live at the call site. Route every smooth scroll through here.
+function pbpPrefersReducedMotion() {
+  return typeof matchMedia === "function"
+    && matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+function pbpScrollIntoView(el, opts) {
+  if (!el || typeof el.scrollIntoView !== "function") return;
+  el.scrollIntoView(pbpPrefersReducedMotion() ? { ...opts, behavior: "instant" } : opts);
+}
+
 let _activeConfirmPopover = null;
 
 // Render a .confirm-popover beside `anchor`, portaled to <body> so buttons are

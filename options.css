@@ -1234,13 +1234,23 @@ html[data-theme] .preset-preview-section summary { background: var(--opt-panel);
 html[data-theme] .preset-preview-section summary:hover { background: var(--opt-btn-hover); }
 html[data-theme] .preset-preview-content { background: var(--opt-bg); color: var(--opt-fg); border-top-color: var(--opt-border); }
 
-/* ---- Reduced motion ---- */
+/* ---- Reduced motion ----
+   `scroll-behavior` is deliberately absent: it cannot reach a scrollIntoView()
+   call that passes an explicit `behavior`, which is every programmatic scroll
+   here. That guard lives in pbpScrollIntoView (shared.js). */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
+  }
+  /* ...but the tab busy dot keeps pulsing: opacity only, no position change, and
+     it is the only indication that a panel has background work running. The
+     blanket reset above parked it after one 0.01ms cycle. Duration mirrors the
+     base rule. */
+  .tab-btn.tab-busy::after {
+    animation-duration: 1.2s !important;
+    animation-iteration-count: infinite !important;
   }
 }
 
@@ -1334,8 +1344,13 @@ html[data-theme] .preset-preview-content { background: var(--opt-bg); color: var
   line-height: 1.5;
   overflow-wrap: anywhere;
 }
-.wayback-log-row:hover .wayback-perm-tip,
 .wayback-log-row:focus-within .wayback-perm-tip { display: block; }
+/* :hover is gated to real pointers — this inserts a full-width grid row inside a
+   scrolling log, and on touch :hover latches after a tap so the tip would stay
+   wedged open. :focus-within above stays ungated. */
+@media (hover: hover) and (pointer: fine) {
+  .wayback-log-row:hover .wayback-perm-tip { display: block; }
+}
 .wayback-log-retry {
   background: none;
   border: none;

@@ -1949,11 +1949,29 @@ html[data-theme] .md-strip-btn:focus-visible { outline: 2px solid var(--pp-accen
 @media (min-resolution: 144dpi) { body { zoom: 1.12; } }
 @media (min-resolution: 192dpi) { body { zoom: 1.22; } }
 
+/* Reduced motion. `scroll-behavior` is deliberately absent: it cannot reach a
+   scrollIntoView() call that passes an explicit `behavior`, which is every
+   programmatic scroll here. That guard lives in pbpScrollIntoView (shared.js). */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
   }
+  /* ...but status motion keeps running. None of it is vestibular — a ring
+     rotating in place, an opacity pulse, a bar draining in place — and each is
+     the only channel reporting its state. The blanket reset above parked every
+     infinite loop after one 0.01ms cycle, freezing both spinners mid-ring and,
+     worse, erasing the auto-close countdown: the sole warning before the popup
+     closes itself. Durations mirror the base rules. */
+  .action-link.loading::before, .submit-bar button.loading::before,
+  .offline-queue-retry.loading svg {
+    animation-duration: 0.6s !important;
+    animation-iteration-count: infinite !important;
+  }
+  .tag-skel {
+    animation-duration: 1.6s !important;
+    animation-iteration-count: infinite !important;
+  }
+  .auto-close-bar { animation-duration: 1.8s !important; }
 }

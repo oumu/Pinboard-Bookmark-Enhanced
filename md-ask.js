@@ -1037,7 +1037,7 @@ function _pbpAskJump(chip) {
   // instead of its (hidden) translated sibling -- the only case that changes.
   let target = (typeof trOnlyScrollTarget === "function") ? trOnlyScrollTarget(orig) : orig;
   pbpFocusArticleTarget(target);
-  target.scrollIntoView({ block: "center", behavior: "smooth" });
+  pbpScrollIntoView(target, { block: "center", behavior: "smooth" });
   let range = null;
   // Verified offsets index the ORIGINAL block's textContent (translation
   // inserts siblings, never mutates the original's text nodes), so they

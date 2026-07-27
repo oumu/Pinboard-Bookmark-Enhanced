@@ -1633,7 +1633,7 @@ function pbpApplyColorScheme(mode) {
       pbpFocusArticleTarget(target);
       if (target !== headEl) {
         e.preventDefault();
-        target.scrollIntoView({ behavior: "smooth", block: "start" });
+        pbpScrollIntoView(target, { behavior: "smooth", block: "start" });
       }
     });
     tocNav.hidden = false;

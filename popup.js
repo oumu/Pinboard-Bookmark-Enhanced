@@ -815,7 +815,7 @@ async function htmlToMarkdownAsync(html, opts) {
       const strip = $id("md-actions-strip");
       if (strip) {
         strip.classList.remove("hidden");
-        strip.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        pbpScrollIntoView(strip, { behavior: "smooth", block: "nearest" });
         const copyBtn = $id("md-strip-copy");
         const previewBtn = $id("md-strip-preview");
         const dlBtn = $id("md-strip-dl");
@@ -1394,9 +1394,11 @@ async function loadBookmarkForEdit(url, token) {
     banner.appendChild(document.createTextNode(" "));
     banner.appendChild(cancel);
   }
-  // Scroll form into view
-  $id("title-input")?.focus();
-  $id("title-input")?.scrollIntoView({ behavior: "smooth", block: "center" });
+  // Scroll form into view. preventScroll on the focus so it does not do its own
+  // instant jump first and leave the explicit scroll animating from there --
+  // two scrolls were fighting over one event.
+  $id("title-input")?.focus({ preventScroll: true });
+  pbpScrollIntoView($id("title-input"), { behavior: "smooth", block: "center" });
 }
 
 function exitEditMode() {
