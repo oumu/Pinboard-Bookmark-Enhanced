@@ -502,16 +502,23 @@ function _pbpVocabBatchItems(ids) {
     .map((id) => ({ id }));
 }
 
+// A row the user selected can disappear between selection and confirmation --
+// a Drive pull applying a remote tombstone is the ordinary way. requireExisting
+// would abort the whole transaction over it, failing a 40-word batch because
+// one word was deleted on another device. Treat a missing row as already gone,
+// exactly as the single-row delete does. Owner isolation is unaffected: the
+// owner check in _pbpVocabLocalMutation is independent of requireExisting.
 async function pbpVocabBatchDelete(ids, expectedOwner) {
   const scope = expectedOwner || "ownerless";
   const items = _pbpVocabBatchItems(ids);
   if (!items.length) return false;
   const result = await _pbpVocabLocalMutation(scope, items, (record) => {
+    if (!record) return { changed: false, result: true };
     const recordKey = _pbpVocabRecordKey(scope, record);
     return recordKey
       ? { changed: true, deleted: true, recordKey, result: true }
       : { invalid: true };
-  }, true);
+  });
   return result.ok;
 }
 
@@ -522,13 +529,17 @@ async function pbpVocabBatchAddGroup(ids, expectedOwner, rawGroup) {
   if (!group || !items.length) return false;
   const now = Date.now();
   const result = await _pbpVocabLocalMutation(scope, items, (record) => {
+    // Same reasoning as pbpVocabBatchDelete: a row removed by a remote
+    // tombstone must not fail the rest of the batch. There is nothing to
+    // group, so skip it.
+    if (!record) return { changed: false, result: null };
     const recordKey = _pbpVocabRecordKey(scope, record);
     if (!recordKey) return { invalid: true };
     const groups = pbpVocabGroups(record);
     if (groups.includes(group)) return { changed: false, result: record };
     const word = { ...record, groups: [...groups, group], updatedAt: now };
     return { changed: true, deleted: false, recordKey, word, result: word };
-  }, true);
+  });
   return result.ok;
 }
 
@@ -787,6 +798,11 @@ async function pbpVocabApplyRemotePage(owner, ownerHash, batches, cursorCommit) 
   let tx = null;
   let done = null;
   let badBatch = -1;
+  // Everything below runs in one try, so an IndexedDB open/quota/abort failure
+  // lands in the same catch as a rejected remote event. Only the remote branch
+  // may be reported as a Drive problem: blaming Drive for a full disk sends the
+  // user looking in the wrong place.
+  let remoteFault = false;
   try {
     const db = await _pbpVocabOpenDB();
     tx = db.transaction([_PBP_VOCAB_STORE, "sync"], "readwrite");
@@ -819,7 +835,10 @@ async function pbpVocabApplyRemotePage(owner, ownerHash, batches, cursorCommit) 
       const outcome = local
         ? pbpVocabMergeEvents(local, remote)
         : { kind: "apply", event: remote, requeue: false, notice: null };
-      if (outcome.kind === "invalid" || outcome.kind === "corrupt") throw new Error("invalid remote event");
+      if (outcome.kind === "invalid" || outcome.kind === "corrupt") {
+        remoteFault = true;
+        throw new Error("invalid remote event");
+      }
       if (outcome.kind === "noop") {
         ignored++;
         state.set(remote.recordKey, local);
@@ -855,7 +874,9 @@ async function pbpVocabApplyRemotePage(owner, ownerHash, batches, cursorCommit) 
   } catch (_) {
     try { if (tx) tx.abort(); } catch (_) {}
     if (done) await done.catch(() => {});
-    return _pbpVocabRemoteError(badBatch);
+    return remoteFault
+      ? _pbpVocabRemoteError(badBatch)
+      : { ok: false, error: "local_store" };
   }
 }
 

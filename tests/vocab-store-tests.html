@@ -327,6 +327,19 @@ async function runIdbChecks() {
   const wrongOwner = await pbpVocabDelete(a.id, "acct_wrong");
   check("wrong owner changes neither words nor sync", task3ApiReady && wrongOwner === false && JSON.stringify(await storeRows("words")) === beforeWrongWords && JSON.stringify(await storeRows("sync")) === beforeWrongSync);
 
+  // A selected row can vanish between selection and confirmation -- a Drive
+  // pull applying a remote tombstone is the ordinary cause. It must not fail
+  // the rest of the batch, while a foreign-owner row still must (above).
+  const ghostId = "acct_a|en|ghost";
+  const missingDelete = await pbpVocabBatchDelete([a.id, ghostId], "acct_a");
+  const survivorKept = await pbpVocabGet(b.id);
+  const missingGroup = await pbpVocabBatchAddGroup([b.id, ghostId], "acct_a", "Kept");
+  const groupedSurvivor = await pbpVocabGet(b.id);
+  check("a vanished row does not fail the rest of a batch",
+    task3ApiReady && missingDelete === true && (await pbpVocabGet(a.id)) === null &&
+    survivorKept !== null && missingGroup === true &&
+    pbpVocabGroups(groupedSurvivor).includes("Kept"));
+
   await deleteVocabDb();
   const local = await pbpVocabSaveWord("acct_a", { term: "Word", language: "en", gloss: "local-1" });
   await pbpVocabSaveWord("acct_a", { term: "Word", language: "en", gloss: "local-2" });
@@ -336,6 +349,8 @@ async function runIdbChecks() {
   await putLegacyWords([unseeded]);
   const unseededRemote = { recordKey: "en|unseeded", vector: { "remote-device": 1 }, dot: { deviceId: "remote-device", counter: 1 }, deleted: true };
   const unseededResult = await pbpVocabApplyRemotePage("acct_a", OWNER_HASH_A, [batch(OWNER_HASH_A, [unseededRemote])], null);
+  check("an unseeded local row is a local store fault, not remote corruption",
+    task3ApiReady && unseededResult.error === "local_store");
   const dominated = remoteLive("en|word", localDevice, 1, eventValue(local, { gloss: "old-remote" }));
   const cursor = { key: `account:drive-a:${OWNER_HASH_A}`, drivePermissionId: "drive-a", ownerHash: OWNER_HASH_A, pageToken: "next-1" };
   await pbpVocabPutAccountState({ ...cursor, pageToken: "before" });
