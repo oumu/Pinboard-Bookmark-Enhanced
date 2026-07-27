@@ -2800,6 +2800,9 @@
     "vocabDriveUnavailable": {
       "message": "此版本尚未完成 OAuth 啟用，因此暫時無法使用 Google Drive 生詞同步。"
     },
+    "vocabDriveAuthorizing": {
+      "message": "正在等待 Google 授權。請在 Chrome 彈出的視窗中完成登入與授權。"
+    },
     "vocabDriveWorking": {
       "message": "正在與 Google Drive 同步生詞..."
     },

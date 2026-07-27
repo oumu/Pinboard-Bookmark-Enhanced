@@ -852,6 +852,17 @@ check("selection still covers all filtered results beyond rendered chunks", _voc
       $id("vocab-drive-connect").hidden === false &&
       $id("vocab-drive-connect").disabled === false);
 
+    _pbpVocabDriveSetBusy(true, null, "vocabDriveAuthorizing");
+    const authorizingLine = $id("vocab-drive-state").textContent;
+    _pbpVocabDriveSetBusy(true);
+    const syncingLine = $id("vocab-drive-state").textContent;
+    _pbpVocabDriveSetBusy(false);
+    check("the authorization wait reads differently from the sync wait",
+      authorizingLine.includes("vocabDriveAuthorizing") &&
+      !authorizingLine.includes("vocabDriveWorking") &&
+      syncingLine.includes("vocabDriveWorking") &&
+      !syncingLine.includes("vocabDriveAuthorizing"));
+
     _pbpVocabDriveRender({
       ...driveStatus, retryAt:null, lastError:null,
       notices:2, noticeTerms:["blossom", "ephemeral"]

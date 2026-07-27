@@ -574,7 +574,7 @@ function _pbpVocabDriveShowError(code, retryAt, blocked, connected) {
   setStatusIcon(el, false, parts.join(" "));
 }
 
-function _pbpVocabDriveSetBusy(busy, focusOwner) {
+function _pbpVocabDriveSetBusy(busy, focusOwner, phaseKey) {
   _vocabDriveBusy = !!busy;
   const body = $id("vocab-drive-body");
   if (body) body.setAttribute("aria-busy", String(_vocabDriveBusy));
@@ -582,10 +582,14 @@ function _pbpVocabDriveSetBusy(busy, focusOwner) {
   // line keeps whatever it said before -- usually "not connected" -- for the
   // whole run, so the panel reads as if the click did nothing. Only written
   // while busy; _pbpVocabDriveRender owns the line the rest of the time.
+  // The authorization phase needs its own line: getAuthToken({interactive})
+  // opens a Chrome sign-in or consent window and waits indefinitely, so the
+  // panel sits busy until the user acts in a DIFFERENT window. Saying "syncing
+  // vocabulary" there reads as a hang and hides the fact that it is their move.
   const state = $id("vocab-drive-state");
   if (state && _vocabDriveBusy) {
     state.classList.remove("ok", "bad");
-    state.textContent = t("vocabDriveWorking");
+    state.textContent = t(phaseKey || "vocabDriveWorking");
   }
   for (const id of ["vocab-drive-connect", "vocab-drive-sync", "vocab-drive-disconnect"]) {
     const button = $id(id);
@@ -798,7 +802,7 @@ async function _pbpVocabDriveConnect() {
       permissions: ["identity"],
       origins: [PBP_VOCAB_GOOGLE_API_ORIGIN]
     });
-    _pbpVocabDriveSetBusy(true, sourceButton);
+    _pbpVocabDriveSetBusy(true, sourceButton, "vocabDriveAuthorizing");
     granted = await permission;
   } catch (_) {}
   if (gen !== _vocabRenderGen || actionSeq !== _vocabDriveActionSeq) {

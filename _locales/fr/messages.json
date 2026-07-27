@@ -2800,6 +2800,9 @@
     "vocabDriveUnavailable": {
       "message": "La synchronisation du vocabulaire avec Google Drive n'est pas disponible dans cette version, car l'activation OAuth n'est pas terminée."
     },
+    "vocabDriveAuthorizing": {
+      "message": "En attente de l'autorisation Google. Terminez la connexion et l'autorisation dans la fenêtre ouverte par Chrome."
+    },
     "vocabDriveWorking": {
       "message": "Synchronisation du vocabulaire avec Google Drive..."
     },

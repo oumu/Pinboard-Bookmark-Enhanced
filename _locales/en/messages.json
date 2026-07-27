@@ -2800,6 +2800,9 @@
     "vocabDriveUnavailable": {
       "message": "Google Drive vocabulary sync is not available in this build because OAuth activation is still pending."
     },
+    "vocabDriveAuthorizing": {
+      "message": "Waiting for Google authorization. Complete the sign-in and approval in the window Chrome opened."
+    },
     "vocabDriveWorking": {
       "message": "Syncing vocabulary with Google Drive..."
     },

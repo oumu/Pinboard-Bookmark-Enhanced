@@ -2800,6 +2800,9 @@
     "vocabDriveUnavailable": {
       "message": "Синхронизация словаря через Google Диск недоступна в этой сборке: активация OAuth ещё не завершена."
     },
+    "vocabDriveAuthorizing": {
+      "message": "Ожидание авторизации Google. Завершите вход и подтверждение в окне, которое открыл Chrome."
+    },
     "vocabDriveWorking": {
       "message": "Синхронизация слов с Google Диском..."
     },
