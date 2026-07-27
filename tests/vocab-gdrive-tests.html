@@ -613,6 +613,33 @@ function syncHarness(options = {}) {
       !JSON.stringify([stableSession, stableGenerated]).includes("stable-a");
   });
 
+  await asyncCheck("the identity namespace is resolved per call, not at construction", async () => {
+    // Reproduces the first connect on a fresh install: background.js builds the
+    // client while the service worker evaluates its script, which is before the
+    // user grants the optional identity permission.
+    const priorChrome = Object.prototype.hasOwnProperty.call(globalThis, "chrome")
+      ? globalThis.chrome : undefined;
+    const hadChrome = Object.prototype.hasOwnProperty.call(globalThis, "chrome");
+    try {
+      delete globalThis.chrome;
+      let client;
+      try {
+        client = pbpCreateVocabDriveClient({
+          fetchImpl: async () => jsonResponse({ user: { permissionId: "perm-late" } })
+        });
+      } catch (_) {
+        return false; // construction must survive an absent namespace
+      }
+      const ungranted = await client.openSession(false);
+      globalThis.chrome = { identity: identityFixture() };
+      const granted = await client.openSession(false);
+      return !ungranted.ok && ungranted.error === "auth" &&
+        granted.ok && granted.permissionId === "perm-late";
+    } finally {
+      if (hadChrome) globalThis.chrome = priorChrome; else delete globalThis.chrome;
+    }
+  });
+
   await asyncCheck("a silent token mint failure stays retryable", async () => {
     const rejecting = () => ({
       async getAuthToken() { throw new Error("Invalid credentials"); },

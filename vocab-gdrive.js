@@ -142,11 +142,21 @@ function pbpVocabBuildMultipart(metadata, body) {
 
 function pbpCreateVocabDriveClient({
   fetchImpl = fetch,
-  identity = chrome.identity,
+  identity = null,
   now = Date.now,
   random = Math.random,
   timeoutMs = 30000
 } = {}) {
+  // chrome.identity is an OPTIONAL permission, so the namespace does not exist
+  // until the user grants it. background.js builds this client with a top-level
+  // statement, i.e. while the service worker evaluates its script -- on a fresh
+  // install that happens before the grant. Capturing the namespace there pinned
+  // undefined for the whole worker generation, every mint threw into
+  // openSession's catch, and the first connect reported a permanent auth
+  // failure while chrome.identity was perfectly usable a moment later. Resolve
+  // it per call; an injected fixture still wins.
+  const identityApi = () =>
+    identity || (typeof chrome !== "undefined" ? chrome.identity : undefined);
   const apiBase = "https://www.googleapis.com/drive/v3";
   const uploadBase = "https://www.googleapis.com/upload/drive/v3/files";
   const metadataFields = "id,name,appProperties,parents,mimeType";
@@ -197,8 +207,9 @@ function pbpCreateVocabDriveClient({
   async function request(url, init = {}, interactive = false, fileId, deadlineMs) {
     let token;
     try {
-      token = tokenValue(await identity.getAuthToken({ interactive }));
-    } catch (_) {
+      token = tokenValue(await identityApi().getAuthToken({ interactive }));
+    } catch (error) {
+      console.warn("[vocab-drive] token mint failed:", error?.name, error?.message);
       return mintFailure(interactive, fileId);
     }
     if (typeof token !== "string" || !token) return mintFailure(interactive, fileId);
@@ -210,8 +221,8 @@ function pbpCreateVocabDriveClient({
       if (response.status !== 401) return { ok: true, response };
       if (attempt === 1) return failure("auth", false, 401, fileId);
       try {
-        await identity.removeCachedAuthToken({ token });
-        token = tokenValue(await identity.getAuthToken({ interactive: false }));
+        await identityApi().removeCachedAuthToken({ token });
+        token = tokenValue(await identityApi().getAuthToken({ interactive: false }));
       } catch (_) {
         return mintFailure(false, fileId);
       }
@@ -499,8 +510,9 @@ function pbpCreateVocabDriveClient({
   async function openSession(interactive = false) {
     let token;
     try {
-      token = tokenValue(await identity.getAuthToken({ interactive }));
-    } catch (_) {
+      token = tokenValue(await identityApi().getAuthToken({ interactive }));
+    } catch (error) {
+      console.warn("[vocab-drive] token mint failed:", error?.name, error?.message);
       return mintFailure(interactive);
     }
     if (typeof token !== "string" || !token) return mintFailure(interactive);
@@ -512,8 +524,8 @@ function pbpCreateVocabDriveClient({
 
       let renewed;
       try {
-        await identity.removeCachedAuthToken({ token });
-        renewed = tokenValue(await identity.getAuthToken({ interactive: false }));
+        await identityApi().removeCachedAuthToken({ token });
+        renewed = tokenValue(await identityApi().getAuthToken({ interactive: false }));
       } catch (_) {
         return mintFailure(false, fileId);
       }
