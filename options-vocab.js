@@ -674,6 +674,19 @@ async function _pbpVocabDriveReloadRows(gen) {
   await _pbpVocabReloadAfterMutation(owner, gen);
 }
 
+// The status read is the only thing that un-hides the action row, so when it
+// fails the panel is left with an error and no button at all -- the container
+// ships hidden and _pbpVocabDriveClear re-hides all three on every render.
+// Offer Connect: with the grant already in place it resolves immediately and
+// force-syncs, so it doubles as the retry this panel otherwise lacks.
+function _pbpVocabDriveOfferRetry() {
+  const actions = $id("vocab-drive-actions");
+  if (actions) actions.hidden = false;
+  const connect = $id("vocab-drive-connect");
+  if (connect) connect.hidden = false;
+  _pbpVocabDriveSetBusy(false);
+}
+
 async function _pbpVocabDriveRefresh(gen, requestSync) {
   if (!_pbpVocabDriveAvailable()) {
     _pbpVocabDriveRenderUnavailable();
@@ -689,6 +702,7 @@ async function _pbpVocabDriveRefresh(gen, requestSync) {
       const state = $id("vocab-drive-state");
       if (state) state.textContent = t("vocabDriveStatusFailed");
       _pbpVocabDriveShowError(response?.error);
+      _pbpVocabDriveOfferRetry();
       return;
     }
     _pbpVocabDriveRender(response.status);
@@ -708,6 +722,7 @@ async function _pbpVocabDriveRefresh(gen, requestSync) {
     const state = $id("vocab-drive-state");
     if (state) state.textContent = t("vocabDriveStatusFailed");
     _pbpVocabDriveShowError("remote");
+    _pbpVocabDriveOfferRetry();
   } finally {
     if (actionSeq && actionSeq === _vocabDriveActionSeq) {
       _pbpVocabDriveSetBusy(false);

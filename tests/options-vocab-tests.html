@@ -841,6 +841,16 @@ check("selection still covers all filtered results beyond rendered chunks", _voc
       !corruptText.includes("vocabDriveErrorLocalStore") &&
       !corruptText.includes("vocabDriveReconnectRequired"));
 
+    $id("vocab-drive-actions").hidden = true;
+    $id("vocab-drive-connect").hidden = true;
+    window.chrome.runtime.sendMessage = async () => ({ ok:false, error:"remote" });
+    await _pbpVocabDriveRefresh(++_vocabRenderGen, true);
+    check("a failed status read still leaves a way to retry",
+      $id("vocab-drive-state").textContent.includes("vocabDriveStatusFailed") &&
+      $id("vocab-drive-actions").hidden === false &&
+      $id("vocab-drive-connect").hidden === false &&
+      $id("vocab-drive-connect").disabled === false);
+
     _pbpVocabDriveShowError("auth", null, true, true);
     const connectedHint = $id("vocab-drive-error").textContent;
     _pbpVocabDriveShowError("auth", null, true, false);
