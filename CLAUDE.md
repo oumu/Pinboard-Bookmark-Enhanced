@@ -214,6 +214,14 @@ bash scripts/release.sh
 - **Google Drive OAuth 构建契约**：源码开发公钥、开发扩展 ID、开发 OAuth client 和生产 OAuth client 均使用已注册的真实公开值；manifest 声明可选 `identity` 与唯一 scope `drive.appdata`。release 必须同时替换公钥和 OAuth client，并核验 ZIP 的 CWS ID/client。两个真实 client 对同一 Google 账号的 `appDataFolder` 双向可见性仍须在发布前实测；若不互通，开发版使用独立测试数据，生产双设备验收改用同一 CWS build。严禁占位 client ID 或 client secret。
 - **Google Drive 权限与断开语义**：只有“连接 Google Drive”这一直接用户动作可申请 `identity` 和精确 Google API origin；后台同步只做 `permissions.contains`，SW 启动不得弹 OAuth。断开本设备时移除 token cache 与可选权限，但保留本地生词、outbox、tombstone 和远端 `appDataFolder` 文件。Drive 中保存的是当前 owner 生词的明文应用私有副本，不是端到端加密。
 - **生词同步不变量**：`vocab-store.js` 是 `pbp-vocab` 的唯一写入口。每次本地 mutation 在同一 IDB transaction 中核验 owner，并原子更新 word 或 tombstone、版本向量和 coalesced outbox；删除保留 tombstone，不自动 GC。远端批次用 owner hash 隔离，vector dominance 与稳定 dot 决定收敛；并发删除遇到新修改时 live 胜出并留下持久 notice，用户再次删除后 tombstone 才支配。每个网络 await 和 IDB commit 前都重核验 Pinboard owner 与 Drive `permissionId`，变化时不得推进游标或上传旧账号数据。
+- **生词同步错误码与指引契约**：`auth`（Google 令牌失败）、`pinboard_auth`（无 Pinboard 账号，
+  发生在任何 Google 调用之前，不写 preflight）、`not_connected`（本机未连接，**不渲染成错误**）、
+  `permission`、`corrupt`（远端批次不合法）、`local_store`（本机 IndexedDB 写失败，与 `corrupt`
+  严格分开）、`entry_too_large`、`network`、`remote`。`applyRemotePage` 只返回
+  `invalid_remote_page`，必须显式认领。**每个 blocked 状态都要点名一个当前屏幕上可见的按钮**：
+  已连接指向「断开此设备」，未连接指向「连接 Google Drive」，重连救不了的指向「立即同步」
+  （`force` 是唯一能清除 blocked 的入口）。仍在退避的状态只显示下次重试时间，不给指令。
+  按钮名称逐字复用该 locale 已发布的按钮文案，不另造叫法。
 - **手工备份 schema v3**：导出前 flush 待保存设置，payload 通过与导入相同的 preflight；备份含 `_backup` 元数据、设置/主题和可选的当前 owner 高亮/生词，只含运行时 word 字段。导入必须先预览，再由用户分项选择；生词按 100 条通过 store primitive 合并并在每批前后重核验 owner。API key、token、Webhook URL、OAuth、Drive 账号、vector、dot、outbox、tombstone 和 batch 一律不进入备份。
 - **WebDAV 删除清理临时代码（引入 2026-07-24；最早清理 2026-08-24）**：`background.js` 的 `pbpCleanupRemovedWebdav` 会清除旧 `webdav-push` alarm，以及 local/sync 中遗留的 WebDAV 配置和状态。至少保留一个月的升级覆盖；到期后先核查已发布版本和用户升级情况，再删除 `PBP_WEBDAV_REMOVAL_*`、清理函数及对应测试。不得按日期自动删除，历史审计文档继续保留。
 - **防盗链图片修复不变量（`declarativeNetRequestWithHostAccess`，改 md-embed / background 规则代码前必读）**：部分 CDN（实测 cdnfile.sspai.com）**只拒空 Referer**，而扩展页只能发空 Referer（且预览对图片强制 `no-referrer`——这对更常见的"封外站/放空"型防盗链是正确默认，勿改）。修复=**SW 独占**的临时 DNR session rule：① rule id 由 SW 在保留段 786001-786999 内分配，**页面绝不自行分配**（id 是扩展全局的，页面局部计数器必然跨 tab 冲突）；② install / remove / sweep **全部走同一条串行队列**，install 在临界区内用 `tabs.get` 重核验该 tab 仍是**同一预览文档**（否则规则会落到已导航走的普通网站 tab 上）；③ 规则条件必须含 `initiatorDomains:[chrome.runtime.id]`——这是"普通网页请求不可能命中"的**结构性**保证，不是靠清扫抢时间；④ tab 作用域取自 `sender.tab`；删除做 (tab, 文档) owner-check——但 owner 表是 SW 内存态，**SW 重启后降级为仅 tab 校验**（同 tab 跨文档的 id 复用在那个窗口内仍可能误删，属已知残留风险，非不变量）；⑤ 清扫三路：tab 关闭 / 离开预览文档 / 预览页加载时自清（同 URL reload 不触发 `changeInfo.url`，靠第三路兜底）；⑥ 重试取图必须 `cache:"reload"`——失败的 `<img>` 已把 403 写进 HTTP 缓存，`force-cache` 会直接复用它导致规则形同虚设。自动修复只对**已授权 origin** 生效（`permissions.contains`，绝不 prompt），批次在首个 await 前**冻结**（否则等待授权期间新入队的未授权 origin 会混进自动批次）。`zip-install-smoke.mjs` check 5 守护其中五条：跨 tab id 唯一、跨 tab 删除被拒、非预览 tab 拒装、规则带 `initiatorDomains`、离开预览即清扫（**不覆盖** SW 重启后的同 tab 跨文档删除）。
@@ -227,6 +235,17 @@ bash scripts/release.sh
 ## 性能与踩坑（hard-won，改 UI / SW / 字体前必读）
 
 > 真实事故的根因沉淀，**勿重新引入**。机制依据：Blink fonts README、crbug 1266022/491556、developer.chrome.com（SW lifecycle / storage / CSP / alarms）、web.dev（content-visibility / style 计算）。
+
+### 远端 API 的测试夹具（2026-07 根因）
+
+服务端响应的夹具**绝不能由写入侧构造器生成**。`tests/vocab-gdrive-tests.html` 的 `driveFile()`
+曾用 `pbpVocabDriveMetadata()`（写入侧，硬编码创建期别名 `parents:["appDataFolder"]`）造"远端
+文件"，而 Drive 读取时返回的是不透明 folder ID。结果 60 条断言全绿、一碰真机就 `corrupt`；
+实测把同一个回归注入 runner，套件**仍然全绿**。校验器越严（精确 key 集合、派生字段相等、字节级
+canonical 重序列化），这种"我和我自己一致"的自测越有假安全感。**铁律：远端响应夹具按真实抓包/
+官方 schema 手写，与写入侧构造器物理分离**；补纯函数谓词的单测不够，runner 路径的夹具也必须是
+服务端形状。同理，夹具里的 `||` 默认值会吞掉 `""` 这类合法边界值（`authAccount || "pin-a"` 让
+"未登录"这个状态根本无法被表达），用 `=== undefined` 判定。
 
 ### 字体回退卡顿（2026-06 根因）
 
@@ -247,6 +266,18 @@ popup/options 是**短命单次渲染、无暖 shape cache**——首屏要付�
 ### MV3 不变量（改 background.js / 存储 / manifest 前别破坏）
 
 - **SW 无持久状态**：30s idle 即终止、全局变量被清空。状态一律落 `chrome.storage`，每个 handler 开头重读；全局只作单次调用内的暖缓存。
+- **optional permission 的命名空间不能在顶层捕获（2026-07-27 真实事故）**：`chrome.identity` 等
+  optional permission 的 API，在权限未授予时**整个命名空间不存在**。SW 顶层的
+  `const client = makeClient()` 若把 `chrome.identity` 作为默认参数捕获，就会把 `undefined`
+  钉死在整个 worker 世代上——而权限恰恰是在那之后才由用户授予的（**每个新用户第一次连接的必经
+  顺序**）。表现：调用抛 TypeError 被 catch 吞掉，报成"授权失败"，而同一时刻 Console 里
+  `chrome.identity` 看着完好；SW 空闲重启后又自愈，所以极难复现和归因。**铁律：optional
+  permission 的 API 一律在调用点现取**（`vocab-gdrive.js` 的 `identityApi()`），不做模块级捕获；
+  测试注入的 fixture 仍优先。**调试推论**：给 SW 开着 DevTools 会阻止它被回收，"重启一下就好了"
+  这类推理在开着 DevTools 时不成立。
+- **吞异常必须留痕**：`catch (_)` 配上只有一个词的错误码，会让远程诊断一轮一轮空转。凡是把
+  平台 API 异常折叠成产品错误码的地方，先 `console.warn` 出 `error.name` / `error.message`
+  （二者都不含 token、邮箱或生词内容）。
 - **监听器顶层同步注册**：`chrome.*.on*` 与 `importScripts` 只能在 SW 顶层同步执行；async 注册在 MV3 不保证生效。
 - **存储分层**：`optSyncEnabled` 是每设备 `local` 开关，普通设置据此路由到 `sync` 或 `local`；`syncApiKeys` 是账号级 `sync` 标志，但设置同步关闭的设备始终读取本地凭据。凭据同步关闭时 secret 留在各设备 `local`，开启时仅参与设置同步的设备使用云端副本。`sync` 单 item ≤8KB、总约 100KB、写入限流；写后检查 `lastError`。缓存/大/瞬态始终用 `local`。
 - **离线队列隔离**：`offlineQueue` 只存 `chrome.storage.local`。新记录仅保存保存模式、URL、标题、备注、标签、私密/稍后读/归档标志、书签时间、队列 ID/入队时间与非秘密 Pinboard 用户名绑定，禁止保存 token；启动或读取时把 legacy token 改写为账号绑定并删除 token。重放必须使用当前登录 token，且用户名与队列绑定精确一致，否则保留队列并失败关闭。
