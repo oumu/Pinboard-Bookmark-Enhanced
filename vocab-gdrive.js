@@ -690,6 +690,7 @@ function pbpCreateVocabDriveSyncRunner({
     let ownerHash = "";
     let preflight = null;
     let session = null;
+    let changedLocal = false;
     const stateWith = (patch, remove = []) => {
       const next = { ...state, ...patch };
       for (const key of remove) delete next[key];
@@ -788,7 +789,11 @@ function pbpCreateVocabDriveSyncRunner({
       const applied = await store.applyRemotePage(
         owner, ownerHash, batches, cursorCommit
       );
-      return applied?.ok ? { ok: true } : normalizedFailure(applied);
+      if (!applied?.ok) return normalizedFailure(applied);
+      // Report whether local records actually moved, so the caller only wakes
+      // open pages when their snapshot is genuinely stale.
+      if ((applied.applied || 0) + (applied.merged || 0) > 0) changedLocal = true;
+      return { ok: true };
     };
     const changesMetadata = (changes, skipSelf, deviceId) => {
       const metadata = [];
@@ -1057,7 +1062,7 @@ function pbpCreateVocabDriveSyncRunner({
       preflight = null;
       await alarms.clear(PBP_VOCAB_RETRY_ALARM);
       pbpVocabSchedulePeriodic(alarms);
-      return { ok: true, status: { ...state } };
+      return { ok: true, changed: changedLocal, status: { ...state } };
     } catch (_) {
       return { ok: false, error: "remote", retryable: false };
     }

@@ -2827,6 +2827,20 @@
     "vocabDriveNever": {
       "message": "尚未同步"
     },
+    "vocabDriveNoticesExplain": {
+      "message": "另一台设备删除了这些生词，而本机随后有更新的修改，因此保留了本机版本：$TERMS$",
+      "placeholders": {
+        "terms": {
+          "content": "$1"
+        }
+      }
+    },
+    "vocabDriveNoticesClear": {
+      "message": "清除提示"
+    },
+    "vocabDriveBlockedNotice": {
+      "message": "Google Drive 生词同步已停止，且不会自动重试。请打开设置查看原因。"
+    },
     "vocabDriveNotices": {
       "message": "删除冲突提示：$COUNT$ 条",
       "placeholders": {

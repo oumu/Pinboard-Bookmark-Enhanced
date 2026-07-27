@@ -964,6 +964,44 @@ async function pbpVocabImportRecords(owner, records, limit = 100) {
   return { ok: result.ok, processed: result.ok ? result.changed : 0, remaining: Math.max(0, records.length - input.length) };
 }
 
+// One sweep for the whole settings panel. The status read used four separate
+// getAll() passes over the sync store, and every pass deserialises each frozen
+// batch body -- up to PBP_VOCAB_BATCH_MAX_BYTES apiece.
+async function pbpVocabSyncSnapshot(owner, ownerHash) {
+  const scope = owner || "ownerless";
+  const rows = await _pbpVocabSyncRows();
+  const keyed = (row, prefix) => row && typeof row.key === "string" && row.key.startsWith(prefix);
+  return {
+    states: _pbpVocabValidOwnerHash(ownerHash)
+      ? rows.filter((row) => keyed(row, "account:") && row.ownerHash === ownerHash) : [],
+    batches: _pbpVocabValidOwnerHash(ownerHash)
+      ? rows.filter((row) => keyed(row, "batch:") && row.ownerHash === ownerHash) : [],
+    outbox: rows.filter((row) => keyed(row, `outbox:${scope}:`) && row.owner === scope),
+    notices: rows.filter((row) => keyed(row, `notice:${scope}:`) && row.owner === scope)
+  };
+}
+
+// Notices are advisory: they record that a concurrent delete lost to a live
+// edit, which the user has already seen resolved in their vocabulary. Nothing
+// else reads them, so dismissing is a plain delete.
+async function pbpVocabClearNotices(owner) {
+  const scope = owner || "ownerless";
+  try {
+    const rows = await _pbpVocabSyncRows();
+    const keys = rows.filter((row) =>
+      row && typeof row.key === "string" && row.key.startsWith(`notice:${scope}:`) &&
+      row.owner === scope).map((row) => row.key);
+    if (!keys.length) return true;
+    const db = await _pbpVocabOpenDB();
+    const tx = db.transaction("sync", "readwrite");
+    const done = _pbpVocabTransactionDone(tx);
+    const sync = tx.objectStore("sync");
+    for (const key of keys) sync.delete(key);
+    await done;
+    return true;
+  } catch (_) { return false; }
+}
+
 async function pbpVocabReadNotices(owner) {
   const scope = owner || "ownerless";
   return (await _pbpVocabSyncRows()).filter((row) =>

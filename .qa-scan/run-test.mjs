@@ -50,7 +50,7 @@ const EXPECTED_RESULTS = Object.freeze({
   "tests/offline-queue-tests.html": 22,
   "tests/options-notes-tests.html": 36,
   "tests/options-reset-tests.html": 12,
-  "tests/options-vocab-tests.html": 137,
+  "tests/options-vocab-tests.html": 138,
   "tests/pinboard-sort-tests.html": 34,
   "tests/pinboard-style-cloak-tests.html": 14,
   "tests/popup-tag-cache-tests.html": 9,
@@ -64,7 +64,7 @@ const EXPECTED_RESULTS = Object.freeze({
   "tests/union-tags-tests.html": 12,
   "tests/url-strip-tests.html": 19,
   "tests/vocab-background-tests.html": 17,
-  "tests/vocab-gdrive-tests.html": 68,
+  "tests/vocab-gdrive-tests.html": 69,
   "tests/vocab-store-tests.html": 50,
   "tests/wayback-tests.html": 40,
 });

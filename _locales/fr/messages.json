@@ -2827,6 +2827,20 @@
     "vocabDriveNever": {
       "message": "Pas encore synchronisé"
     },
+    "vocabDriveNoticesExplain": {
+      "message": "Un autre appareil a supprimé ces mots alors que cet appareil avait des modifications plus récentes. La version locale a été conservée : $TERMS$",
+      "placeholders": {
+        "terms": {
+          "content": "$1"
+        }
+      }
+    },
+    "vocabDriveNoticesClear": {
+      "message": "Effacer les avis"
+    },
+    "vocabDriveBlockedNotice": {
+      "message": "La synchronisation du vocabulaire Google Drive s'est arrêtée et ne réessaiera pas d'elle-même. Ouvrez les paramètres pour en connaître la raison."
+    },
     "vocabDriveNotices": {
       "message": "Avis de conflit de suppression : $COUNT$",
       "placeholders": {

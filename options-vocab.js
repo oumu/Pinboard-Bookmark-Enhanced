@@ -489,6 +489,8 @@ async function _pbpVocabReloadAfterMutation(expectedOwner, requestedGen) {
 }
 
 function _pbpVocabDriveClear() {
+  const clearNotices = $id("vocab-drive-clear-notices");
+  if (clearNotices) clearNotices.hidden = true;
   for (const id of [
     "vocab-drive-state", "vocab-drive-account", "vocab-drive-owner",
     "vocab-drive-last-success", "vocab-drive-pending-words",
@@ -639,14 +641,21 @@ function _pbpVocabDriveRender(status) {
   if (pendingBatches) pendingBatches.textContent =
     Math.max(0, Number(status.pendingBatches) || 0).toLocaleString();
   const notices = $id("vocab-drive-notices");
+  // Zero is the normal state; rendering "Delete conflict notices: 0" leaves a
+  // permanent line of jargon on a healthy account and makes the live region
+  // announce a non-event on every render. When it is not zero, a bare number
+  // names nothing -- say which words and what happened to them, and offer a
+  // way to dismiss, since nothing else ever clears these rows.
+  const noticeCount = Math.max(0, Number(status.notices) || 0);
   if (notices) {
-    // Zero is the normal state; rendering "Delete conflict notices: 0" leaves
-    // a permanent line of jargon on a healthy account and makes the live
-    // region announce a non-event on every render.
-    const count = Math.max(0, Number(status.notices) || 0);
-    notices.textContent = count > 0 ? t("vocabDriveNotices", count.toLocaleString()) : "";
-    notices.classList.toggle("bad", count > 0);
+    const terms = Array.isArray(status.noticeTerms) ? status.noticeTerms : [];
+    const parts = noticeCount > 0 ? [t("vocabDriveNotices", noticeCount.toLocaleString())] : [];
+    if (terms.length) parts.push(t("vocabDriveNoticesExplain", terms.join(", ")));
+    notices.textContent = parts.join(" ");
+    notices.classList.toggle("bad", noticeCount > 0);
   }
+  const clearNoticesBtn = $id("vocab-drive-clear-notices");
+  if (clearNoticesBtn) clearNoticesBtn.hidden = noticeCount === 0;
   if (status.lastError) {
     _pbpVocabDriveShowError(status.lastError, status.retryAt, status.blocked === true, true);
   }
@@ -1199,6 +1208,17 @@ if (_vocabDriveConnect) _vocabDriveConnect.addEventListener("click", _pbpVocabDr
 const _vocabDriveSync = $id("vocab-drive-sync");
 if (_vocabDriveSync) _vocabDriveSync.addEventListener("click", () =>
   _pbpVocabDriveAction("vocabDriveSyncNow", true));
+const _vocabDriveClearNotices = $id("vocab-drive-clear-notices");
+if (_vocabDriveClearNotices) _vocabDriveClearNotices.addEventListener("click", async () => {
+  const gen = _vocabRenderGen;
+  try {
+    const response = await chrome.runtime.sendMessage({ type: "vocabDriveClearNotices" });
+    if (gen !== _vocabRenderGen) return;
+    _pbpVocabDriveApplyResponse(response);
+  } catch (_) {
+    if (gen === _vocabRenderGen) _pbpVocabDriveShowError("remote");
+  }
+});
 const _vocabDriveDisconnect = $id("vocab-drive-disconnect");
 if (_vocabDriveDisconnect) _vocabDriveDisconnect.addEventListener("click", () =>
   _pbpVocabDriveAction("vocabDriveDisconnect", false, "vocab-drive-connect"));

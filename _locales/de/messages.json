@@ -2827,6 +2827,20 @@
     "vocabDriveNever": {
       "message": "Noch nicht synchronisiert"
     },
+    "vocabDriveNoticesExplain": {
+      "message": "Ein anderes Gerät hat diese Vokabeln gelöscht, während auf diesem Gerät neuere Änderungen vorlagen. Die lokale Fassung wurde behalten: $TERMS$",
+      "placeholders": {
+        "terms": {
+          "content": "$1"
+        }
+      }
+    },
+    "vocabDriveNoticesClear": {
+      "message": "Hinweise verwerfen"
+    },
+    "vocabDriveBlockedNotice": {
+      "message": "Die Google-Drive-Vokabelsynchronisierung wurde angehalten und versucht es nicht von selbst erneut. Öffne die Einstellungen, um den Grund zu sehen."
+    },
     "vocabDriveNotices": {
       "message": "Hinweise zu Löschkonflikten: $COUNT$",
       "placeholders": {

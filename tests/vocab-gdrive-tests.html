@@ -1619,6 +1619,19 @@ function syncHarness(options = {}) {
       !remoteResult.ok && remoteResult.error === "corrupt";
   });
 
+  await asyncCheck("a run reports whether local records actually moved", async () => {
+    const remote = driveFile("changed-page");
+    const applied = syncHarness({
+      files: [remote],
+      filePages: [{ files: [remote.meta], nextPageToken: null }]
+    });
+    const appliedResult = await applied.runner()();
+    const quiet = syncHarness({});
+    const quietResult = await quiet.runner()();
+    return appliedResult.ok && appliedResult.changed === true &&
+      quietResult.ok && quietResult.changed === false;
+  });
+
   await asyncCheck("a missing Pinboard account is not a Google authorization failure", async () => {
     const h = syncHarness({ authAccount: "" });
     const result = await h.runner()({ force: true });

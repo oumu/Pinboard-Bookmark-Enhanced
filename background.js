@@ -1446,11 +1446,43 @@ const runVocabDriveSync = PBP_VOCAB_DRIVE_CAPABLE
     })
   : null;
 
+// A blocked account clears every alarm, so nothing else will ever mention it
+// again -- without this the only way to learn that sync died is to open
+// Settings. Announce it once per transition, never on a run the user started.
+async function pbpAnnounceVocabDriveBlocked(before, after) {
+  if (after?.blocked !== true || before?.blocked === true) return;
+  await showNotification(
+    "vocab-drive-blocked", t("extName"), t("vocabDriveBlockedNotice"), "error"
+  );
+}
+
+// A pull writes straight into IndexedDB from here; open reader and settings
+// pages hold their own snapshots and have no way to know.
+function pbpBroadcastVocabSynced(owner) {
+  try {
+    const pending = chrome.runtime.sendMessage({ type: "PBP_VOCAB_SYNCED", owner });
+    if (pending && typeof pending.catch === "function") pending.catch(() => {});
+  } catch (_) {}
+}
+
 function pbpQueueVocabDriveSync(options) {
   if (!PBP_VOCAB_DRIVE_CAPABLE) {
     return Promise.resolve({ ok: false, error: "unavailable", retryable: false });
   }
-  return queueVocabSync(async () => runVocabDriveSync(options));
+  return queueVocabSync(async () => {
+    const auth = await getCurrentPinboardAuth().catch(() => null);
+    const ownerScope = auth?.account ? pbpDictOwnerScope(auth.account) : "";
+    const ownerHash = ownerScope
+      ? await pbpVocabOwnerHash(ownerScope).catch(() => "") : "";
+    const before = ownerHash ? await pbpVocabGetPreflightState(ownerHash).catch(() => null) : null;
+    const result = await runVocabDriveSync(options);
+    if (result?.ok && result.changed) pbpBroadcastVocabSynced(ownerScope);
+    if (!options?.interactive && ownerHash) {
+      const after = await pbpVocabGetPreflightState(ownerHash).catch(() => null);
+      await pbpAnnounceVocabDriveBlocked(before, after).catch(() => {});
+    }
+    return result;
+  });
 }
 
 async function pbpVocabDriveIsConnected() {
@@ -1467,17 +1499,17 @@ async function pbpGetVocabDriveStatus() {
   }
   const ownerScope = pbpDictOwnerScope(auth.account);
   const ownerHash = await pbpVocabOwnerHash(ownerScope);
-  const [states, preflight] = await Promise.all([
-    pbpVocabListAccountStates(ownerHash),
+  const [snapshot, preflight] = await Promise.all([
+    pbpVocabSyncSnapshot(ownerScope, ownerHash),
     pbpVocabGetPreflightState(ownerHash)
   ]);
-  states.sort((a, b) => (b.lastSuccessAt || 0) - (a.lastSuccessAt || 0));
+  const states = snapshot.states.slice()
+    .sort((a, b) => (b.lastSuccessAt || 0) - (a.lastSuccessAt || 0));
   const state = states[0] || null;
-  const [outbox, pending, notices] = await Promise.all([
-    pbpVocabListOutbox(ownerScope),
-    state ? pbpVocabListPendingBatches(state.drivePermissionId, ownerHash) : [],
-    pbpVocabReadNotices(ownerScope)
-  ]);
+  const outbox = snapshot.outbox;
+  const pending = state
+    ? snapshot.batches.filter((row) => row.drivePermissionId === state.drivePermissionId) : [];
+  const notices = snapshot.notices;
   if (!pbpPinboardAuthIsCurrent(auth)) {
     return { connected, owner: "", pendingWords: 0, pendingBatches: 0, notices: 0 };
   }
@@ -1493,7 +1525,14 @@ async function pbpGetVocabDriveStatus() {
     owner: auth.account,
     pendingWords: outbox.length,
     pendingBatches: pending.length,
-    notices: notices.length
+    notices: notices.length,
+    // The bare count named nothing. The record key is "<lang>|<term>", and the
+    // term is already visible in the vocabulary list on the same page.
+    noticeTerms: notices.slice(0, 20).map((row) => {
+      const key = String(row.recordKey || "");
+      const separator = key.indexOf("|");
+      return separator >= 0 ? key.slice(separator + 1) : key;
+    }).filter(Boolean)
   };
 }
 
@@ -1770,6 +1809,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
     pbpGetVocabDriveStatus()
       .then((status) => sendResponse({ ok: true, status }))
+      .catch(() => sendResponse({ ok: false, error: "remote" }));
+    return true;
+  }
+
+  if (message.type === "vocabDriveClearNotices") {
+    getCurrentPinboardAuth()
+      .then(async (auth) => {
+        if (!auth.account || !pbpPinboardAuthIsCurrent(auth)) {
+          return { ok: false, error: "pinboard_auth" };
+        }
+        const cleared = await pbpVocabClearNotices(pbpDictOwnerScope(auth.account));
+        return cleared ? { ok: true } : { ok: false, error: "local_store" };
+      })
+      .then((result) => pbpVocabDriveResponse(result))
+      .then(sendResponse)
       .catch(() => sendResponse({ ok: false, error: "remote" }));
     return true;
   }

@@ -2827,6 +2827,20 @@
     "vocabDriveNever": {
       "message": "まだ同期されていません"
     },
+    "vocabDriveNoticesExplain": {
+      "message": "別のデバイスがこれらの単語を削除しましたが、このデバイスにより新しい変更があったため、ローカルの内容を残しました：$TERMS$",
+      "placeholders": {
+        "terms": {
+          "content": "$1"
+        }
+      }
+    },
+    "vocabDriveNoticesClear": {
+      "message": "通知を消去"
+    },
+    "vocabDriveBlockedNotice": {
+      "message": "Google Drive の単語同期が停止し、自動では再試行されません。設定で理由を確認してください。"
+    },
     "vocabDriveNotices": {
       "message": "削除の競合に関する通知：$COUNT$ 件",
       "placeholders": {

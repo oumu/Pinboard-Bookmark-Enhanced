@@ -411,6 +411,18 @@ document.addEventListener("pbp:vocab-changed", (e) => {
   _echoRestart();
 });
 
+// pbp:vocab-changed only covers saves made in THIS document. A Drive pull
+// writes from the service worker, so without this the underlines keep matching
+// the term set captured when the preview opened. The service worker only sends
+// this when local records actually moved.
+if (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.onMessage) {
+  chrome.runtime.onMessage.addListener((message) => {
+    if (!message || message.type !== "PBP_VOCAB_SYNCED") return;
+    if (!_echoEnabled || message.owner !== _echoOwner) return;
+    _echoRestart();
+  });
+}
+
 if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.onChanged) {
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== "sync" && area !== "local") return;

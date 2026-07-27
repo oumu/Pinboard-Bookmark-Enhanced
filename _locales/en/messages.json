@@ -2827,6 +2827,20 @@
     "vocabDriveNever": {
       "message": "Not synced yet"
     },
+    "vocabDriveNoticesExplain": {
+      "message": "Another device deleted these words while this device had newer edits, so the local version was kept: $TERMS$",
+      "placeholders": {
+        "terms": {
+          "content": "$1"
+        }
+      }
+    },
+    "vocabDriveNoticesClear": {
+      "message": "Dismiss notices"
+    },
+    "vocabDriveBlockedNotice": {
+      "message": "Google Drive vocabulary sync stopped and will not retry on its own. Open Settings to see why."
+    },
     "vocabDriveNotices": {
       "message": "Delete conflict notices: $COUNT$",
       "placeholders": {

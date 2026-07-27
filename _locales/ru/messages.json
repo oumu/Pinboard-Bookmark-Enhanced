@@ -2827,6 +2827,20 @@
     "vocabDriveNever": {
       "message": "Синхронизация ещё не выполнялась"
     },
+    "vocabDriveNoticesExplain": {
+      "message": "Другое устройство удалило эти слова, но на этом устройстве были более новые изменения, поэтому сохранена локальная версия: $TERMS$",
+      "placeholders": {
+        "terms": {
+          "content": "$1"
+        }
+      }
+    },
+    "vocabDriveNoticesClear": {
+      "message": "Скрыть уведомления"
+    },
+    "vocabDriveBlockedNotice": {
+      "message": "Синхронизация слов с Google Диском остановлена и не возобновится сама. Откройте настройки, чтобы узнать причину."
+    },
     "vocabDriveNotices": {
       "message": "Уведомления о конфликтах удаления: $COUNT$",
       "placeholders": {

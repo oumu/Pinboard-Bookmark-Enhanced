@@ -2827,6 +2827,20 @@
     "vocabDriveNever": {
       "message": "Jeszcze nie synchronizowano"
     },
+    "vocabDriveNoticesExplain": {
+      "message": "Inne urządzenie usunęło te słówka, a na tym urządzeniu były nowsze zmiany, więc zachowano wersję lokalną: $TERMS$",
+      "placeholders": {
+        "terms": {
+          "content": "$1"
+        }
+      }
+    },
+    "vocabDriveNoticesClear": {
+      "message": "Odrzuć powiadomienia"
+    },
+    "vocabDriveBlockedNotice": {
+      "message": "Synchronizacja słówek z Dyskiem Google została zatrzymana i nie ponowi próby samoczynnie. Otwórz ustawienia, aby poznać przyczynę."
+    },
     "vocabDriveNotices": {
       "message": "Powiadomienia o konflikcie usuwania: $COUNT$",
       "placeholders": {
