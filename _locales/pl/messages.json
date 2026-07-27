@@ -2885,8 +2885,14 @@
         }
       }
     },
+    "vocabDriveConnectRequired": {
+      "message": "Wybierz „Połącz z Dyskiem Google” i dokończ autoryzację Google."
+    },
+    "vocabDriveSyncNowRequired": {
+      "message": "Synchronizacja jest wstrzymana. Wybierz „Synchronizuj teraz”, aby spróbować ponownie."
+    },
     "vocabDriveReconnectRequired": {
-      "message": "Odłącz i ponownie połącz Dysk Google, aby kontynuować."
+      "message": "Wybierz „Odłącz to urządzenie”, a następnie połącz ponownie."
     },
     "vocabLearningSection": {
       "message": "Eksport i integracje"

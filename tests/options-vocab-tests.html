@@ -865,10 +865,24 @@ check("selection still covers all filtered results beyond rendered chunks", _voc
     const connectedHint = $id("vocab-drive-error").textContent;
     _pbpVocabDriveShowError("auth", null, true, false);
     const disconnectedHint = $id("vocab-drive-error").textContent;
-    check("reconnect guidance is withheld while the Disconnect button is hidden",
+    _pbpVocabDriveShowError("corrupt", null, true, true);
+    const corruptHint = $id("vocab-drive-error").textContent;
+    _pbpVocabDriveShowError("local_store", null, true, true);
+    const localHint = $id("vocab-drive-error").textContent;
+    _pbpVocabDriveShowError("entry_too_large", null, true, true);
+    const oversizedHint = $id("vocab-drive-error").textContent;
+    _pbpVocabDriveShowError("network", 1, false, true);
+    const retryingHint = $id("vocab-drive-error").textContent;
+    check("every dead end names a button that is on screen in that state",
       connectedHint.includes("vocabDriveReconnectRequired") &&
-      disconnectedHint.includes("vocabDriveErrorAuth") &&
-      !disconnectedHint.includes("vocabDriveReconnectRequired"));
+      !connectedHint.includes("vocabDriveConnectRequired") &&
+      disconnectedHint.includes("vocabDriveConnectRequired") &&
+      !disconnectedHint.includes("vocabDriveReconnectRequired") &&
+      corruptHint.includes("vocabDriveSyncNowRequired") &&
+      localHint.includes("vocabDriveSyncNowRequired") &&
+      !oversizedHint.includes("vocabDriveSyncNowRequired") &&
+      !retryingHint.includes("vocabDriveSyncNowRequired") &&
+      !retryingHint.includes("vocabDriveReconnectRequired"));
 
     _pbpVocabDriveRender({ ...driveStatus, retryAt:null, lastError:null, notices:0 });
     const quietNotices = $id("vocab-drive-notices").textContent;

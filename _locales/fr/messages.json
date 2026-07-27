@@ -2885,8 +2885,14 @@
         }
       }
     },
+    "vocabDriveConnectRequired": {
+      "message": "Sélectionnez « Connecter Google Drive » et terminez l'autorisation Google."
+    },
+    "vocabDriveSyncNowRequired": {
+      "message": "La synchronisation est suspendue. Sélectionnez « Synchroniser maintenant » pour réessayer."
+    },
     "vocabDriveReconnectRequired": {
-      "message": "Déconnectez puis reconnectez Google Drive pour continuer."
+      "message": "Sélectionnez « Déconnecter cet appareil », puis reconnectez-vous."
     },
     "vocabLearningSection": {
       "message": "Exportation et intégrations"

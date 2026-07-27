@@ -2885,8 +2885,14 @@
         }
       }
     },
+    "vocabDriveConnectRequired": {
+      "message": "Нажмите «Подключить Google Диск» и завершите авторизацию Google."
+    },
+    "vocabDriveSyncNowRequired": {
+      "message": "Синхронизация приостановлена. Нажмите «Синхронизировать сейчас», чтобы повторить."
+    },
     "vocabDriveReconnectRequired": {
-      "message": "Отключите и снова подключите Google Диск, чтобы продолжить."
+      "message": "Нажмите «Отключить это устройство», затем подключитесь снова."
     },
     "vocabLearningSection": {
       "message": "Экспорт и интеграции"

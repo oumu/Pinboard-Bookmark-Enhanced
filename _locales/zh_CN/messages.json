@@ -2885,8 +2885,14 @@
         }
       }
     },
+    "vocabDriveConnectRequired": {
+      "message": "请点击「连接 Google Drive」并完成 Google 授权。"
+    },
+    "vocabDriveSyncNowRequired": {
+      "message": "同步已暂停。请点击「立即同步」重试。"
+    },
     "vocabDriveReconnectRequired": {
-      "message": "请断开并重新连接 Google Drive 后继续。"
+      "message": "请点击「断开此设备」，然后重新连接。"
     },
     "vocabLearningSection": {
       "message": "导出与集成"

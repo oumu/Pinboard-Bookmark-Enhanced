@@ -524,7 +524,6 @@ function _pbpVocabDriveErrorKey(code) {
   return ({
     auth: "vocabDriveErrorAuth",
     pinboard_auth: "vocabDriveErrorPinboardAuth",
-    not_connected: "vocabDriveDisconnected",
     permission: "vocabDriveErrorPermission",
     corrupt: "vocabDriveErrorCorrupt",
     local_store: "vocabDriveErrorLocalStore",
@@ -557,13 +556,18 @@ function _pbpVocabDriveShowError(code, retryAt, blocked, connected) {
   const parts = [t(_pbpVocabDriveErrorKey(code))];
   const retry = _pbpVocabDriveDate(retryAt);
   if (retry) parts.push(t("vocabDriveRetryAt", retry));
-  // Only Google authorization and permission are recoverable by reconnecting.
-  // Corrupt remote data, a failed local write and an oversized entry all
-  // survive a reconnect, so telling the user to disconnect wastes their time.
-  // The hint also needs the Disconnect button to exist: while disconnected it
-  // is hidden and Connect is the visible action, so naming it strands the user.
-  if (connected && blocked && (code === "auth" || code === "permission")) {
-    parts.push(t("vocabDriveReconnectRequired"));
+  // Every state that cannot proceed on its own names a button that is actually
+  // on screen. A blocked account only clears through a forced run, so Sync now
+  // is the exit for the codes reconnecting cannot fix; while disconnected the
+  // Disconnect button is hidden, so the hint has to point at Connect instead.
+  // Anything still retrying already shows its next-retry time and needs no
+  // instruction.
+  if (blocked) {
+    if (code === "auth" || code === "permission") {
+      parts.push(t(connected ? "vocabDriveReconnectRequired" : "vocabDriveConnectRequired"));
+    } else if (code !== "entry_too_large") {
+      parts.push(t("vocabDriveSyncNowRequired"));
+    }
   }
   setStatusIcon(el, false, parts.join(" "));
 }
@@ -659,6 +663,10 @@ function _pbpVocabDriveApplyResponse(response, fallbackStatus) {
     const code = status?.blocked === true
       ? (status.lastError || response?.error)
       : (response?.error || status?.lastError);
+    // Not connected is a state, not a failure. The re-render above already
+    // says so and puts Connect on screen; a red line repeating it adds noise
+    // and no next step.
+    if (code === "not_connected") return status;
     _pbpVocabDriveShowError(
       code, status?.retryAt, status?.blocked === true, status?.connected === true
     );

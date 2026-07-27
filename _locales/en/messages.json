@@ -2885,8 +2885,14 @@
         }
       }
     },
+    "vocabDriveConnectRequired": {
+      "message": "Click Connect Google Drive and finish the Google authorization."
+    },
+    "vocabDriveSyncNowRequired": {
+      "message": "Sync is paused. Click Sync now to try again."
+    },
     "vocabDriveReconnectRequired": {
-      "message": "Disconnect and reconnect Google Drive to continue."
+      "message": "Click Disconnect this device, then connect again."
     },
     "vocabLearningSection": {
       "message": "Export and integrations"

@@ -2885,8 +2885,14 @@
         }
       }
     },
+    "vocabDriveConnectRequired": {
+      "message": "「Google Drive に接続」をクリックし、Google の認可を完了してください。"
+    },
+    "vocabDriveSyncNowRequired": {
+      "message": "同期は停止しています。「今すぐ同期」をクリックして再試行してください。"
+    },
     "vocabDriveReconnectRequired": {
-      "message": "続行するには、Google Drive との接続を解除してから再接続してください。"
+      "message": "「このデバイスの接続を解除」をクリックしてから、もう一度接続してください。"
     },
     "vocabLearningSection": {
       "message": "エクスポートと連携"

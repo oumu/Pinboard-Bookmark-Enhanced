@@ -2885,8 +2885,14 @@
         }
       }
     },
+    "vocabDriveConnectRequired": {
+      "message": "Klicke auf „Google Drive verbinden“ und schließe die Google-Autorisierung ab."
+    },
+    "vocabDriveSyncNowRequired": {
+      "message": "Die Synchronisierung ist angehalten. Klicke auf „Jetzt synchronisieren“, um es erneut zu versuchen."
+    },
     "vocabDriveReconnectRequired": {
-      "message": "Trenne Google Drive und verbinde es erneut, um fortzufahren."
+      "message": "Klicke auf „Dieses Gerät trennen“ und verbinde dich dann erneut."
     },
     "vocabLearningSection": {
       "message": "Export und Integrationen"
