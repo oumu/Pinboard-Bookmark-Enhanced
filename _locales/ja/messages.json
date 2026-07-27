@@ -2800,6 +2800,12 @@
     "vocabDriveUnavailable": {
       "message": "このビルドでは OAuth の有効化が完了していないため、Google Drive の単語帳同期は利用できません。"
     },
+    "vocabDriveWorking": {
+      "message": "Google Drive と単語を同期しています..."
+    },
+    "vocabDriveSynced": {
+      "message": "Google Drive と単語を同期しました。"
+    },
     "vocabDriveConnected": {
       "message": "このデバイスは Google Drive に接続されています。"
     },

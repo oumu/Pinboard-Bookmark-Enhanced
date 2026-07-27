@@ -549,7 +549,7 @@ function _pbpVocabDriveRenderUnavailable() {
   _pbpVocabDriveSetBusy(false);
 }
 
-function _pbpVocabDriveShowError(code, retryAt, blocked) {
+function _pbpVocabDriveShowError(code, retryAt, blocked, connected) {
   const el = $id("vocab-drive-error");
   if (!el) return;
   const parts = [t(_pbpVocabDriveErrorKey(code))];
@@ -558,7 +558,9 @@ function _pbpVocabDriveShowError(code, retryAt, blocked) {
   // Only Google authorization and permission are recoverable by reconnecting.
   // Corrupt remote data, a failed local write and an oversized entry all
   // survive a reconnect, so telling the user to disconnect wastes their time.
-  if (blocked && (code === "auth" || code === "permission")) {
+  // The hint also needs the Disconnect button to exist: while disconnected it
+  // is hidden and Connect is the visible action, so naming it strands the user.
+  if (connected && blocked && (code === "auth" || code === "permission")) {
     parts.push(t("vocabDriveReconnectRequired"));
   }
   setStatusIcon(el, false, parts.join(" "));
@@ -568,6 +570,15 @@ function _pbpVocabDriveSetBusy(busy, focusOwner) {
   _vocabDriveBusy = !!busy;
   const body = $id("vocab-drive-body");
   if (body) body.setAttribute("aria-busy", String(_vocabDriveBusy));
+  // A first sync can page through Drive for minutes. Without this the state
+  // line keeps whatever it said before -- usually "not connected" -- for the
+  // whole run, so the panel reads as if the click did nothing. Only written
+  // while busy; _pbpVocabDriveRender owns the line the rest of the time.
+  const state = $id("vocab-drive-state");
+  if (state && _vocabDriveBusy) {
+    state.classList.remove("ok", "bad");
+    state.textContent = t("vocabDriveWorking");
+  }
   for (const id of ["vocab-drive-connect", "vocab-drive-sync", "vocab-drive-disconnect"]) {
     const button = $id(id);
     if (!button) continue;
@@ -621,12 +632,15 @@ function _pbpVocabDriveRender(status) {
     Math.max(0, Number(status.pendingBatches) || 0).toLocaleString();
   const notices = $id("vocab-drive-notices");
   if (notices) {
+    // Zero is the normal state; rendering "Delete conflict notices: 0" leaves
+    // a permanent line of jargon on a healthy account and makes the live
+    // region announce a non-event on every render.
     const count = Math.max(0, Number(status.notices) || 0);
-    notices.textContent = t("vocabDriveNotices", count.toLocaleString());
+    notices.textContent = count > 0 ? t("vocabDriveNotices", count.toLocaleString()) : "";
     notices.classList.toggle("bad", count > 0);
   }
   if (status.lastError) {
-    _pbpVocabDriveShowError(status.lastError, status.retryAt, status.blocked === true);
+    _pbpVocabDriveShowError(status.lastError, status.retryAt, status.blocked === true, true);
   }
   _pbpVocabDriveSetBusy(false);
 }
@@ -641,9 +655,23 @@ function _pbpVocabDriveApplyResponse(response, fallbackStatus) {
     const code = status?.blocked === true
       ? (status.lastError || response?.error)
       : (response?.error || status?.lastError);
-    _pbpVocabDriveShowError(code, status?.retryAt, status?.blocked === true);
+    _pbpVocabDriveShowError(
+      code, status?.retryAt, status?.blocked === true, status?.connected === true
+    );
   }
   return status;
+}
+
+// A pull writes words straight into IndexedDB from the service worker, and
+// nothing notifies this page. Without this the list keeps showing the snapshot
+// renderVocabPanel took before its own sync finished, so a second device reads
+// "no words saved" immediately after its first successful sync.
+async function _pbpVocabDriveReloadRows(gen) {
+  if (gen !== _vocabRenderGen) return;
+  let owner = "";
+  try { owner = await pbpVocabCurrentOwner(); } catch (_) { return; }
+  if (!owner || gen !== _vocabRenderGen) return;
+  await _pbpVocabReloadAfterMutation(owner, gen);
 }
 
 async function _pbpVocabDriveRefresh(gen, requestSync) {
@@ -670,6 +698,10 @@ async function _pbpVocabDriveRefresh(gen, requestSync) {
     const synced = await chrome.runtime.sendMessage({ type: "vocabDriveSyncNow" });
     if (gen !== _vocabRenderGen || actionSeq !== _vocabDriveActionSeq) return;
     _pbpVocabDriveApplyResponse(synced, response.status);
+    if (synced?.ok) {
+      await _pbpVocabDriveReloadRows(gen);
+      _pbpVocabFlashStatus(true, t("vocabDriveSynced"));
+    }
   } catch (_) {
     if (gen !== _vocabRenderGen ||
         (actionSeq && actionSeq !== _vocabDriveActionSeq)) return;
@@ -701,6 +733,14 @@ async function _pbpVocabDriveSend(type, force, gen, actionSeq, sourceButton, foc
     if (target && !target.hidden) {
       try { target.focus({ preventScroll: true }); }
       catch (_) { target.focus(); }
+    }
+    // Connect and Sync now both run a full sync; Disconnect touches no words.
+    // The flash comes last: the reload writes the loading state to the same
+    // status line and would clear it. Last successful sync is minute-precise,
+    // so without this two clicks inside one minute change nothing on screen.
+    if (response?.ok && type !== "vocabDriveDisconnect") {
+      await _pbpVocabDriveReloadRows(gen);
+      _pbpVocabFlashStatus(true, t("vocabDriveSynced"));
     }
   } catch (_) {
     if (gen === _vocabRenderGen && actionSeq === _vocabDriveActionSeq) {

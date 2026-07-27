@@ -841,6 +841,23 @@ check("selection still covers all filtered results beyond rendered chunks", _voc
       !corruptText.includes("vocabDriveErrorLocalStore") &&
       !corruptText.includes("vocabDriveReconnectRequired"));
 
+    _pbpVocabDriveShowError("auth", null, true, true);
+    const connectedHint = $id("vocab-drive-error").textContent;
+    _pbpVocabDriveShowError("auth", null, true, false);
+    const disconnectedHint = $id("vocab-drive-error").textContent;
+    check("reconnect guidance is withheld while the Disconnect button is hidden",
+      connectedHint.includes("vocabDriveReconnectRequired") &&
+      disconnectedHint.includes("vocabDriveErrorAuth") &&
+      !disconnectedHint.includes("vocabDriveReconnectRequired"));
+
+    _pbpVocabDriveRender({ ...driveStatus, retryAt:null, lastError:null, notices:0 });
+    const quietNotices = $id("vocab-drive-notices").textContent;
+    _pbpVocabDriveRender({ ...driveStatus, retryAt:null, lastError:null, notices:2 });
+    const loudNotices = $id("vocab-drive-notices").textContent;
+    check("the conflict counter stays silent at zero and speaks when it is not",
+      quietNotices === "" && loudNotices.includes("vocabDriveNotices") &&
+      $id("vocab-drive-notices").classList.contains("bad"));
+
     window.chrome.runtime.sendMessage = async (message) => message.type === "vocabDriveStatus"
       ? { ok:true, status:{ ...driveStatus, retryAt:null, lastError:"corrupt", blocked:false } }
       : { ok:false, error:"network", status:{ ...driveStatus, retryAt:null, lastError:"corrupt", blocked:false } };

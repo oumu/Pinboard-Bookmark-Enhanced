@@ -1679,6 +1679,10 @@ html[data-theme] .preset-preview-content { background: var(--opt-bg); color: var
   margin-top: var(--opt-sp-3);
 }
 .vocab-drive-actions .btn { max-width: 100%; white-space: normal; }
+/* The button that started the work keeps focus, so it is aria-disabled rather
+   than disabled. Without this it stays fully opaque while its two siblings dim
+   via .btn:disabled -- the running control looks like the only live one. */
+.vocab-drive-actions .btn[aria-disabled="true"] { opacity: 0.45; cursor: progress; }
 @media (max-width: 480px) {
   .vocab-drive-fields { grid-template-columns: minmax(0, 1fr); }
   .vocab-drive-fields dt:not(:first-child) { margin-top: var(--opt-sp-2); }

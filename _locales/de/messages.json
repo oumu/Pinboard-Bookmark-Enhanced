@@ -2800,6 +2800,12 @@
     "vocabDriveUnavailable": {
       "message": "Die Google-Drive-Synchronisierung des Wortschatzes ist in diesem Build nicht verfügbar, da die OAuth-Aktivierung noch aussteht."
     },
+    "vocabDriveWorking": {
+      "message": "Vokabeln werden mit Google Drive synchronisiert..."
+    },
+    "vocabDriveSynced": {
+      "message": "Vokabeln mit Google Drive synchronisiert."
+    },
     "vocabDriveConnected": {
       "message": "Google Drive ist auf diesem Gerät verbunden."
     },

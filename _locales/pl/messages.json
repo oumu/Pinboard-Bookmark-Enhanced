@@ -2800,6 +2800,12 @@
     "vocabDriveUnavailable": {
       "message": "Synchronizacja słówek z Dyskiem Google nie jest dostępna w tej wersji, ponieważ aktywacja OAuth nie została jeszcze ukończona."
     },
+    "vocabDriveWorking": {
+      "message": "Synchronizowanie słówek z Dyskiem Google..."
+    },
+    "vocabDriveSynced": {
+      "message": "Zsynchronizowano słówka z Dyskiem Google."
+    },
     "vocabDriveConnected": {
       "message": "Dysk Google jest połączony na tym urządzeniu."
     },

@@ -2800,6 +2800,12 @@
     "vocabDriveUnavailable": {
       "message": "此版本尚未完成 OAuth 設定，因此暫不支援 Google Drive 生詞同步。"
     },
+    "vocabDriveWorking": {
+      "message": "正在與 Google Drive 同步生詞..."
+    },
+    "vocabDriveSynced": {
+      "message": "生詞已與 Google Drive 同步。"
+    },
     "vocabDriveConnected": {
       "message": "這部裝置已連接 Google Drive。"
     },
