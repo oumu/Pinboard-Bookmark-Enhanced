@@ -15,6 +15,10 @@ const OWNER_HASH = "a".repeat(64);
 const OTHER_OWNER_HASH = "b".repeat(64);
 const DEVICE_ID = "device-a";
 const DRIVE_FILE_ID = "file:opaque+id";
+// Drive resolves the create-time "appDataFolder" alias to a real folder ID, so
+// every fixture standing in for a SERVER RESPONSE carries this instead. Remote
+// fixtures must never be a verbatim echo of the write-side constructor.
+const APPDATA_PARENT_ID = "opaque-appdata-folder-id";
 const OWNER_SCOPE = "acct_pin-a";
 const ENVELOPE = { ownerHash: OWNER_HASH, deviceId: DEVICE_ID, createdAt: 123 };
 let pass = 0, fail = 0;
@@ -112,7 +116,10 @@ function readerResponse(chunks, onCancel, headers = {}) {
   };
 }
 function driveFile(fileId, term = fileId, deviceId = "device-b") {
-  const meta = pbpVocabDriveMetadata(fileId, OWNER_HASH, deviceId);
+  const meta = {
+    ...pbpVocabDriveMetadata(fileId, OWNER_HASH, deviceId),
+    parents: [APPDATA_PARENT_ID]
+  };
   return { meta, body: bodyString([live(term, "en", {}, deviceId)], { ...ENVELOPE, deviceId }) };
 }
 function syncHarness(options = {}) {
@@ -318,7 +325,18 @@ function syncHarness(options = {}) {
       !pbpVocabValidateDriveBatch(wrongKind, body, OWNER_HASH) &&
       !pbpVocabValidateDriveBatch(wrongSchema, body, OWNER_HASH) &&
       !pbpVocabValidateDriveBatch({ ...meta, modifiedTime: "unexpected" }, body, OWNER_HASH) &&
-      !pbpVocabValidateDriveBatch({ ...meta, parents: ["root"] }, body, OWNER_HASH);
+      !pbpVocabValidateDriveBatch({ ...meta, parents: [] }, body, OWNER_HASH);
+  }));
+
+  check("Drive response accepts resolved appData parent ID", attempt(() => {
+    const meta = metadata();
+    const remote = { ...meta, parents: [APPDATA_PARENT_ID] };
+    const body = bodyString([live()]);
+    return pbpVocabValidateDriveBatch(remote, body, OWNER_HASH) &&
+      !pbpVocabValidateDriveBatch({ ...remote, parents: [""] }, body, OWNER_HASH) &&
+      !pbpVocabValidateDriveBatch({
+        ...remote, parents: [APPDATA_PARENT_ID, "other-folder-id"]
+      }, body, OWNER_HASH);
   }));
 
   check("appProperties contain no username email or token", attempt(() => {
@@ -883,6 +901,7 @@ function syncHarness(options = {}) {
 
   await asyncCheck("409 exact metadata match is idempotent success", async () => {
     const meta = metadata();
+    const remoteMeta = { ...meta, parents: [APPDATA_PARENT_ID] };
     const calls = [];
     const client = pbpCreateVocabDriveClient({
       identity: identityFixture(["upload-token", "metadata-token"]),
@@ -890,7 +909,7 @@ function syncHarness(options = {}) {
         calls.push({ url: String(url), init });
         return calls.length === 1
           ? new Response(null, { status: 409 })
-          : jsonResponse(meta);
+          : jsonResponse(remoteMeta);
       }
     });
     const result = await client.upload(meta, bodyString([live("Retry")]));
@@ -915,7 +934,7 @@ function syncHarness(options = {}) {
         }
         return path === "/upload/drive/v3/files"
           ? new Response(null, { status: 409 })
-          : jsonResponse(meta);
+          : jsonResponse(remoteMeta);
       }
     });
     const session = await sessionClient.openSession(false);

@@ -27,7 +27,8 @@ function _pbpVocabDriveValidMetadata(metadata) {
     typeof metadata.id === "string" && !!metadata.id &&
     metadata.name === `pbp-vocab-${metadata.id}.json` &&
     Array.isArray(metadata.parents) && metadata.parents.length === 1 &&
-    metadata.parents[0] === "appDataFolder" && metadata.mimeType === "application/json" &&
+    typeof metadata.parents[0] === "string" && !!metadata.parents[0] &&
+    metadata.mimeType === "application/json" &&
     _pbpVocabOnlyKeys(properties, ["pbpKind", "schema", "owner", "device"]) &&
     Object.keys(properties).length === 4 && properties.pbpKind === "vocab-batch" &&
     properties.schema === String(PBP_VOCAB_BATCH_SCHEMA) &&
@@ -306,8 +307,6 @@ function pbpCreateVocabDriveClient({
     if (!_pbpVocabDriveValidMetadata(actual)) return false;
     return actual.id === expected.id && actual.name === expected.name &&
       actual.mimeType === expected.mimeType &&
-      actual.parents.length === expected.parents.length &&
-      actual.parents.every((parent, index) => parent === expected.parents[index]) &&
       Object.keys(expected.appProperties).every((key) =>
         actual.appProperties[key] === expected.appProperties[key]);
   }
