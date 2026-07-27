@@ -95,10 +95,7 @@
   --pp-info-fg: var(--pp-banner-fg);
   --pp-toast-shadow: var(--pp-shadow-md);
   --pp-motion-duration: 0.16s;
-  /* Same curve vocabulary as options.css / md-preview.css. The built-in `ease`
-     is symmetric -- it starts slow, which delays the exact frame the user is
-     watching -- so entrances and exits get a strong ease-out. Bare `ease` stays
-     correct for hover/colour changes, which is most of this file. */
+  /* Curve vocabulary; see options.css:root for why each job gets its own. */
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --pp-popup-width: 550px;
 }
@@ -177,6 +174,7 @@ html[data-section="login"] .quick-actions { display: none !important; }
 }
 .login-body .key-toggle svg { display: block; }
 .login-body button { padding: var(--pp-sp-2) var(--pp-sp-6); font-size: 12px; cursor: pointer; transition: background 0.15s, border-color 0.15s; }
+.login-body button:active:not(:disabled) { transform: translateY(1px); }
 .login-body button:focus-visible { outline: 2px solid var(--pp-accent, #4477bb); outline-offset: 2px; }
 .error-text { color: #c00; font-size: 11px; margin-top: var(--pp-sp-2); }
 
@@ -529,7 +527,6 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--pp-accent); }
 #submit-btn:hover {
   background: color-mix(in srgb, var(--pp-accent) 92%, #000);
   box-shadow: 0 2px 4px color-mix(in srgb, var(--pp-accent) 30%, transparent);
-  transform: translateY(-1px);
 }
 #submit-btn:active { transform: translateY(0); box-shadow: none; }
 #submit-btn:disabled { background: #aaa; border-color: #999; transform: none; box-shadow: none; }
@@ -613,7 +610,6 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--pp-accent); }
   background: var(--pp-drop-hover);
   color: var(--pp-link);
   box-shadow: var(--pp-hover-shadow);
-  transform: translateY(-1px);
 }
 .qbtn:active {
   background: var(--pp-input-bg);
@@ -1806,7 +1802,7 @@ html[data-theme] .ac-hint-footer kbd { color: var(--pp-fg); background: var(--pp
 html[data-theme] .ac-new-icon { color: var(--pp-accent); }
 html[data-theme] .qbtn { background: var(--pp-bg2); border-color: var(--pp-border); color: var(--pp-fg-muted); }
 html[data-theme] { --pp-hover-shadow: 0 1px 2px color-mix(in srgb, var(--pp-accent) 12%, transparent), 0 2px 6px color-mix(in srgb, var(--pp-accent) 18%, transparent); }
-html[data-theme] .qbtn:hover { background: var(--pp-drop-hover); color: var(--pp-link); box-shadow: var(--pp-hover-shadow); transform: translateY(-1px); }
+html[data-theme] .qbtn:hover { background: var(--pp-drop-hover); color: var(--pp-link); box-shadow: var(--pp-hover-shadow); }
 html[data-theme] .qbtn.saving { background: var(--pp-offline-bg); border-color: var(--pp-offline-bd); color: var(--pp-offline-fg); }
 html[data-theme] .qbtn.saved { background: var(--pp-ok-bg); border-color: var(--pp-ok-bd); color: var(--pp-ok-fg); }
 html[data-theme] .existing-banner { background: var(--pp-banner-bg); border-color: var(--pp-banner-bd); color: var(--pp-banner-fg); }
@@ -1963,9 +1959,15 @@ html[data-theme] .md-strip-btn:focus-visible { outline: 2px solid var(--pp-accen
 @media (min-resolution: 144dpi) { body { zoom: 1.12; } }
 @media (min-resolution: 192dpi) { body { zoom: 1.22; } }
 
-/* Reduced motion. `scroll-behavior` is deliberately absent: it cannot reach a
-   scrollIntoView() call that passes an explicit `behavior`, which is every
-   programmatic scroll here. That guard lives in pbpScrollIntoView (shared.js). */
+/* The hover LIFT is the only hover here that changes geometry rather than
+   colour, and on touch :hover latches after a tap -- leaving the button parked
+   1px up with its hover shadow. The colour half above stays ungated. */
+@media (hover: hover) and (pointer: fine) {
+  #submit-btn:hover, .qbtn:hover, html[data-theme] .qbtn:hover { transform: translateY(-1px); }
+}
+
+/* Reduced motion. `scroll-behavior` is deliberately absent -- it cannot reach
+   these calls; the guard lives in pbpScrollIntoView (shared.js). */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

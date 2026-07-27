@@ -6,13 +6,11 @@
   --motion-collapse: 200ms;
   --motion-pop: 140ms;
   --motion-pop-out: 100ms;
-  /* Easing is picked per job, not shared. The built-in `ease` is symmetric --
-     it starts slow, which delays the exact frame the user is watching -- so
-     entrances and exits get a strong ease-out and the rail/panel drawers get
-     the iOS-like drawer curve. Bare `ease` stays correct for hover/colour
-     changes. (No --ease-in-out here: nothing in this file morphs in place.
-     options.css defines it for the accordion.) */
+  /* Curve vocabulary; see the note in options.css:root for why each job gets its
+     own. --ease-in-out is read from JS too (pbpFoldHeightAnimate in
+     md-preview.js hands it to el.animate), so it must stay defined here. */
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
   /* A "warm-neutral reading" palette -- document-optimized. Single
      light-dark() definition per token (Chrome 123+); color-scheme tells
@@ -286,7 +284,11 @@ button, input, select, textarea { font-family: inherit; }
 }
 @keyframes src-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) {
-  .src-seg.loading::after { animation: none; }
+  /* Keeps spinning. A ring rotating in place is not vestibular, and it is the
+     only channel saying the extraction is still running -- same rule popup.css
+     and options.css follow for their spinners, skeleton and busy dot. The
+     restated duration is what survives the blanket reset later in this file. */
+  .src-seg.loading::after { animation-duration: 0.6s !important; animation-iteration-count: infinite !important; }
 }
 .engine-status {
   font-size: 11px;
@@ -857,7 +859,10 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
   border-radius: 50%;
   animation: src-spin 0.7s linear infinite;
 }
-@media (prefers-reduced-motion: reduce) { .preview-spinner { animation: none; } }
+/* Keeps spinning: see the note on .src-seg.loading::after above. */
+@media (prefers-reduced-motion: reduce) {
+  .preview-spinner { animation-duration: 0.7s !important; animation-iteration-count: infinite !important; }
+}
 
 
 /* ---- Content rendering optimization ---- */
@@ -1416,9 +1421,8 @@ html.motion-ready .send-menu[hidden] {
   background: var(--surface);
 }
 
-/* `scroll-behavior` is deliberately absent: it cannot reach a scrollIntoView()
-   call that passes an explicit `behavior`, which is every programmatic scroll in
-   the reader. That guard lives in pbpScrollIntoView (shared.js). */
+/* `scroll-behavior` is deliberately absent -- it cannot reach these calls; the
+   guard lives in pbpScrollIntoView (shared.js). */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
@@ -1579,7 +1583,11 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
 }
 .xp-skel:nth-child(3) { width: 62%; }
 @keyframes xp-shimmer { to { background-position: -200% 0; } }
-@media (prefers-reduced-motion: reduce) { .xp-skel { animation: none; } }
+/* Keeps shimmering: opacity/position of a gradient, no layout movement, and it
+   is the only sign the answer is still streaming. Matches popup's .tag-skel. */
+@media (prefers-reduced-motion: reduce) {
+  .xp-skel { animation-duration: 1.2s !important; animation-iteration-count: infinite !important; }
+}
 .xp-error p { color: var(--danger); margin: 0 0 8px; font-size: 0.9em; }
 .xp-retry, .xp-ask, .xp-save, .xp-vocab, .xp-open-vocab, .xp-dict-connect {
   padding: 4px 10px;
@@ -2940,7 +2948,9 @@ html.motion-ready :is(#search-pop, #kbd-help-pop, #pb-hl-card):popover-open {
 }
 .skim-ic:hover { background: var(--btn-hover); color: var(--fg); }
 .skim-ic:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
-.skim-ic svg { width: 15px; height: 15px; transition: transform 150ms ease; }
+/* Chevron rotation is on-screen morphing, same job as the options accordion
+   arrow, so it takes the same curve. */
+.skim-ic svg { width: 15px; height: 15px; transition: transform 150ms var(--ease-in-out); }
 /* Keyed off aria-expanded (set immediately), not .collapsed: the fold
    animation defers the class until the height tween finishes, and the arrow
    must flip at click time like the rail triangles do. */

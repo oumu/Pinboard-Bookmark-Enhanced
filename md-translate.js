@@ -1840,7 +1840,7 @@ function _pbpTrSetMode(st, mode, persist) {
     // callback. Only the latest rapid v press may mutate the live document.
     if (st.viewSeq === viewSeq) _pbpTrApplyMode(st, mode, anchor, focusHandoff);
   };
-  const reduceMotion = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const reduceMotion = pbpPrefersReducedMotion();
   if (persist && !reduceMotion && typeof document.startViewTransition === "function") {
     const root = document.documentElement;
     root.classList.add("pbp-tr-view-transition");

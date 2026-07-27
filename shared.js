@@ -2303,7 +2303,7 @@ function showConfirmPopover(anchor, opts) {
     const animateOut = animate
       && document.documentElement.classList.contains("motion-ready")
       && /\/options\.html$/.test(location.pathname)
-      && !(typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches);
+      && !pbpPrefersReducedMotion();
     if (!animateOut) {
       pop.remove();
       return;

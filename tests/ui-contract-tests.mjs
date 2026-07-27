@@ -289,7 +289,10 @@ check(/btn\.setAttribute\("aria-keyshortcuts", "t"\)/.test(mdTranslateJs) &&
   "translation controls lack lowercase shortcut metadata or production toggle state");
 check(mdTranslateJs.includes('scrollIntoView({ block: "start", behavior: "instant" })') &&
   mdTranslateJs.includes("document.startViewTransition") &&
-  mdTranslateJs.includes('matchMedia("(prefers-reduced-motion: reduce)")') &&
+  // The predicate moved into shared.js; what matters is that it still gates the
+  // View Transition, so assert the gate rather than the spelling.
+  /const reduceMotion = pbpPrefersReducedMotion\(\);/.test(mdTranslateJs) &&
+  /!reduceMotion && typeof document\.startViewTransition === "function"/.test(mdTranslateJs) &&
   mdCss.includes("view-transition-name: pbp-tr-article") &&
   /::view-transition-group\(root\),[\s\S]{0,100}::view-transition-group\(pbp-tr-article\) \{ animation: none; \}/.test(mdCss) &&
   mdCss.includes("animation-name: pbp-tr-fade-out") && mdCss.includes("animation-name: pbp-tr-fade-in") &&
@@ -1000,23 +1003,62 @@ check(mdCss.includes("text-autospace: normal") && /#rendered-view :is\(pre, code
   check(/function pbpScrollIntoView\([\s\S]{0,240}pbpPrefersReducedMotion\(\)[\s\S]{0,80}behavior: "instant"/.test(sharedJs),
     "shared.js: pbpScrollIntoView no longer downgrades to instant under prefers-reduced-motion");
   // A reduced-motion preference must not cost the user a status channel. The
-  // blanket reset parks every infinite animation after one 0.01ms cycle, so the
-  // spinners, the tag skeleton and — most consequentially — the auto-close
-  // countdown (the only warning before the popup closes itself) are restored.
-  const popupReduce = popupCss.slice(popupCss.indexOf("@media (prefers-reduced-motion: reduce)"));
-  check(/\.auto-close-bar \{ animation-duration: 1\.8s !important; \}/.test(popupReduce),
-    "popup.css: reduced motion erases the auto-close countdown, leaving no warning before the popup self-closes");
-  check(/\.tag-skel \{\s*animation-duration: 1\.6s !important;\s*animation-iteration-count: infinite !important;/.test(popupReduce) &&
-    /\.offline-queue-retry\.loading svg \{\s*animation-duration: 0\.6s !important;\s*animation-iteration-count: infinite !important;/.test(popupReduce),
-    "popup.css: reduced motion freezes the spinners/skeleton mid-cycle instead of letting non-vestibular status motion run");
-  check(/#zen-bar \{ transition: opacity 200ms ease !important; \}/.test(mdCss),
-    "md-preview.css: reduced motion kills the zen bar's opacity fade too, turning the mouse-idle fade into a repeated hard brightness cut");
+  // blanket reset parks every infinite animation after one 0.01ms cycle, so each
+  // status indicator restates its duration. The invariant asserted here is that
+  // the override MIRRORS the base rule -- retiming the base rule then needs no
+  // test edit, but forgetting to retime the override does fail.
+  const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const lastMatch = (css, re) => { let m, last = null; while ((m = re.exec(css))) last = m[1]; return last; };
+  const statusMotion = [
+    ["popup.css", popupCss, ".tag-skel", "the AI tag skeleton"],
+    ["popup.css", popupCss, ".offline-queue-retry.loading svg", "the offline retry spinner"],
+    ["popup.css", popupCss, ".auto-close-bar", "the auto-close countdown, the only warning before the popup self-closes"],
+    ["options.css", optionsCss, ".tab-btn.tab-busy::after", "the tab busy dot"],
+    ["md-preview.css", mdCss, ".preview-spinner", "the page loading spinner"],
+    ["md-preview.css", mdCss, ".xp-skel", "the streaming answer skeleton"],
+    ["md-preview.css", mdCss, ".src-seg.loading::after", "the extraction spinner"],
+  ];
+  for (const [cssName, cssSrc, sel, what] of statusMotion) {
+    const base = lastMatch(cssSrc, new RegExp(`${esc(sel)}\\s*\\{[^}]*animation:\\s*[\\w-]+\\s+([\\d.]+m?s)`, "g"));
+    const override = lastMatch(cssSrc, new RegExp(`${esc(sel)}\\s*\\{[^}]*animation-duration:\\s*([\\d.]+m?s)\\s*!important`, "g"));
+    check(base !== null, `${cssName}: cannot find the base animation for ${sel} — the status-motion contract has drifted`);
+    check(override === base,
+      `${cssName}: reduced motion no longer keeps ${what} running at its own rate (base ${base}, override ${override})`);
+  }
+  // The zen bar's positional half is vestibular; its idle fade is not. Killing
+  // both turned the fade into a repeated hard brightness cut.
+  const zenReduce = lastMatch(mdCss, /#zen-bar \{ transition: ([^}]*) \}/g);
+  check(zenReduce !== null && /opacity/.test(zenReduce) && /!important/.test(zenReduce) && !/\bright\b/.test(zenReduce),
+    `md-preview.css: the reduced-motion zen bar override no longer keeps opacity-only (${zenReduce})`);
   // The dead declaration is what made this bug invisible for so long: it read as
   // though reduced-motion scrolling were handled. It must not come back.
   for (const [name, src] of [["popup.css", popupCss], ["options.css", optionsCss], ["md-preview.css", mdCss]]) {
     const blocks = src.split("@media (prefers-reduced-motion: reduce)").slice(1);
     check(!blocks.some((b) => /scroll-behavior:/.test(b.slice(0, b.indexOf("\n}")))),
       `${name}: a reduced-motion block declares scroll-behavior again — it cannot reach scrollIntoView() and reads as false coverage`);
+  }
+}
+
+// ---- Custom properties read from JS must exist in the stylesheet ----
+// getPropertyValue() on a missing custom property returns "", so a `|| fallback`
+// turns a deleted token into a silent downgrade rather than an error. That is
+// exactly how retiring --motion-ease left the rail fold running on the weak
+// built-in curve while every CSS-side check still passed.
+{
+  const surfaces = [
+    { css: ["md-preview.css", mdCss], js: [["md-preview.js", mdPreviewJs], ["md-reader.js", mdReaderJs],
+      ["md-ask.js", mdAskJs], ["md-highlight.js", mdHighlightJs], ["md-skim.js", mdSkimJs]] },
+    { css: ["popup.css", popupCss], js: [["popup.js", popupJs], ["popup-ai.js", popupAiJs], ["popup-batch.js", popupBatchJs]] },
+    { css: ["options.css", optionsCss], js: [["options.js", optionsJs], ["options-connectivity.js", optionsConnectivityJs]] },
+  ];
+  for (const { css: [cssName, cssSrc], js } of surfaces) {
+    for (const [jsName, jsSrc] of js) {
+      for (const m of jsSrc.matchAll(/getPropertyValue\(\s*"(--[a-z0-9-]+)"\s*\)/g)) {
+        const token = m[1];
+        check(new RegExp(`^\\s*${token}\\s*:`, "m").test(cssSrc),
+          `${jsName} reads ${token} but ${cssName} does not define it — getPropertyValue returns "" and the fallback silently takes over`);
+      }
+    }
   }
 }
 
@@ -1040,15 +1082,24 @@ check(mdCss.includes("text-autospace: normal") && /#rendered-view :is\(pre, code
     "md-ask.js: the explain popover is placed from its pre-content height again, so streamed answers push it around or cover the selection");
   check(/#explain-pop \{[\s\S]{0,400}max-height: min\(480px, calc\(100vh - 32px\)\);/.test(mdCss),
     "md-preview.css: #explain-pop lost the max-height that md-ask.js reads back for placement");
-  check(/\.xp-body \{[\s\S]{0,600}min-height: calc\(4\.3em \+ 20px\);/.test(mdCss),
-    "md-preview.css: .xp-body min-height no longer matches the 3-bar skeleton, so the card shrinks then re-grows on the first token");
+  // The value must be derived from the skeleton and expressed in em, so it tracks
+  // the typography tier the skeleton bars are also sized in. A round px number is
+  // the tell that it was guessed again.
+  check(/\.xp-body \{[\s\S]{0,700}min-height: calc\([\d.]+em \+ \d+px\);/.test(mdCss),
+    "md-preview.css: .xp-body min-height is no longer derived from the skeleton in em, so the card shrinks then re-grows on the first token");
 }
 
 // ---- Connectivity tests: one run per target, and no cross-run status wipe ----
 {
-  check(/const btn = \$id\(`test-\$\{provider\}`\);\s*\n\s*if \(btn\?\.disabled\) return;\s*\n\s*if \(btn\) btn\.disabled = true;/.test(optionsConnectivityJs) &&
-    /\} finally \{\s*\n\s*if \(btn\) btn\.disabled = false;\s*\n\s*\}/.test(optionsConnectivityJs),
-    "options-connectivity.js: provider Test buttons stay live during an unbounded network call, so two runs can share one status element");
+  {
+    const fn = optionsConnectivityJs.slice(optionsConnectivityJs.indexOf("async function testAIProvider"),
+      optionsConnectivityJs.indexOf('["gemini","openai"'));
+    const disableAt = fn.indexOf("btn.disabled = true");
+    const tryAt = fn.indexOf("try {");
+    const finallyAt = fn.lastIndexOf("} finally {");
+    check(disableAt > 0 && tryAt > disableAt && finallyAt > tryAt && fn.slice(finallyAt).includes("btn.disabled = false"),
+      "options-connectivity.js: provider Test buttons no longer disable for the run and re-enable in a finally, so two runs can share one status element");
+  }
   // Anonymous clear timers let a finished run erase the next run's real result.
   check(!/setTimeout\(\(\) => \{ statusEl\.textContent = ""/.test(optionsConnectivityJs),
     "options-connectivity.js: a status clear timer is unkeyed again — a finished run will wipe the next run's result off screen");

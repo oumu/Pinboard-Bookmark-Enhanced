@@ -467,7 +467,6 @@ function updateAc(items, input) {
   else input.removeAttribute("aria-activedescendant");
 }
 
-let _newlyAddedTag = null;
 let _dragReorderFromIdx = null;
 
 function addTag(tag) {
@@ -479,9 +478,7 @@ function addTag(tag) {
   }
   if (currentTags.some((t) => t.toLowerCase() === tag.toLowerCase())) return;
   currentTags.push(tag);
-  _newlyAddedTag = tag.toLowerCase();
   renderTags();
-  _newlyAddedTag = null;
 }
 
 function removeTag(tag) {
@@ -497,7 +494,6 @@ function renderTags() {
   const d = $id("tags-display"); d.innerHTML = "";
   currentTags.forEach((tag, idx) => {
     const el = document.createElement("span"); el.className = "tag-item";
-    if (_newlyAddedTag && tag.toLowerCase() === _newlyAddedTag) el.classList.add("is-new");
     el.draggable = true;
     el.dataset.idx = idx;
     const handle = document.createElement("span");

@@ -253,8 +253,7 @@ function renderBookmarkBadge(resp, url) {
 // motion, display:none subtree, or animate=false).
 // ============================================================
 function pbpFoldHeightAnimate(el, next, setFolded, prev, animate) {
-  const reduceMotion = typeof matchMedia === "function"
-    && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const reduceMotion = pbpPrefersReducedMotion();
   const canAnimate = !!animate && !!el.animate
     && document.documentElement.classList.contains("motion-ready")
     && el.isConnected && el.getClientRects().length > 0
@@ -282,7 +281,11 @@ function pbpFoldHeightAnimate(el, next, setFolded, prev, animate) {
 
   const cs = getComputedStyle(el);
   const duration = parseFloat(cs.getPropertyValue("--motion-collapse")) || 200;
-  const easing = cs.getPropertyValue("--motion-ease").trim() || "ease";
+  // The rail fold is an on-screen morph, so it takes the morph curve -- the same
+  // one the options accordion uses. The literal is a last-resort fallback only:
+  // if it is ever the value actually in use, --ease-in-out has gone missing from
+  // md-preview.css and the fold has silently dropped back to a weak curve.
+  const easing = cs.getPropertyValue("--ease-in-out").trim() || "cubic-bezier(0.77, 0, 0.175, 1)";
   const animation = el.animate(
     [{ height: currentHeight + "px" }, { height: endHeight + "px" }],
     { duration, easing }

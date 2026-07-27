@@ -295,11 +295,9 @@ html[data-theme] .opt-error { color: var(--opt-danger, #e55); background: var(--
 .divider { border-top: 1px solid #ddd; margin: var(--opt-sp-6) 0; }
 .btn { padding: var(--opt-sp-2) var(--opt-sp-6); font-size: 12px; cursor: pointer; border: 1px solid #999; background: #f5f5f0; transition: background 0.15s, border-color 0.15s; }
 .btn:hover:not(:disabled) { background: #eee; }
-/* Press feedback, same family as popup's .md-strip-btn and the reader's
-   .action-btn. This rule reserved `transform 0.15s` in its transition list for
-   a transform no rule ever set — the intent was specified and never written,
-   and these are the buttons that then sit visually inert through a multi-second
-   network call. Deliberately not transitioned: a press must read instantly. */
+/* These buttons then sit inert through a multi-second network call, so the
+   press is the only thing confirming the click landed. Not transitioned: a
+   press must read instantly. */
 .btn:active:not(:disabled) { transform: translateY(1px); }
 .btn:focus-visible { outline: 2px solid var(--opt-accent, #4477bb); outline-offset: 2px; }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
@@ -1163,10 +1161,8 @@ html[data-theme] .confirm-popover .confirm-no:hover { background: var(--opt-btn-
   padding: var(--opt-sp-5) var(--opt-sp-5); min-width: 220px;
   background: #fff; border: 1px solid #ccc; border-radius: var(--opt-radius-sm);
   box-shadow: 0 2px 10px rgba(0,0,0,0.14);
-  /* No entrance animation: this referenced @keyframes confirmFadeIn, which only
-     ever existed in popup.css — options.html loads options.css alone, so the
-     declaration never resolved. Removed rather than ported; the popover is rare
-     and has always appeared instantly. */
+  /* No entrance: the old one referenced @keyframes confirmFadeIn, which lives
+     only in popup.css, so it never resolved here. */
 }
 .theme-name-popover label { font-size: 12px; color: #555; margin: 0; }
 .theme-name-popover input[type="text"] {
@@ -1252,9 +1248,8 @@ html[data-theme] .preset-preview-section summary:hover { background: var(--opt-b
 html[data-theme] .preset-preview-content { background: var(--opt-bg); color: var(--opt-fg); border-top-color: var(--opt-border); }
 
 /* ---- Reduced motion ----
-   `scroll-behavior` is deliberately absent: it cannot reach a scrollIntoView()
-   call that passes an explicit `behavior`, which is every programmatic scroll
-   here. That guard lives in pbpScrollIntoView (shared.js). */
+   `scroll-behavior` is deliberately absent -- it cannot reach these calls; the
+   guard lives in pbpScrollIntoView (shared.js). */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
@@ -1380,6 +1375,7 @@ html[data-theme] .preset-preview-content { background: var(--opt-bg); color: var
   justify-content: center;
 }
 .wayback-log-retry:hover { color: var(--opt-accent, #4477bb); }
+.wayback-log-retry:active:not(:disabled) { transform: translateY(1px); }
 .wayback-log-retry:disabled { opacity: .4; cursor: default; }
 .wayback-perm-status {
   display: block;
