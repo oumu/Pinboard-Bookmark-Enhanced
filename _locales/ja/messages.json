@@ -2865,7 +2865,7 @@
       "message": "Google Drive の同期状態を読み込めませんでした。"
     },
     "vocabDriveErrorAuth": {
-      "message": "Google Drive の認証を利用できません。"
+      "message": "Google Drive の認可を利用できません。Chrome にログインしているか確認してください。"
     },
     "vocabDriveErrorPinboardAuth": {
       "message": "Pinboard アカウントにログインしていないため、単語の同期を開始できません。「一般 → Pinboard アカウント」で API Token を入力してから、もう一度接続してください。"

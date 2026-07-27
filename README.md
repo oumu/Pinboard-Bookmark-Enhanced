@@ -42,7 +42,7 @@ A Chrome extension for [Pinboard](https://pinboard.in): AI tags and summaries, a
 ### Make Pinboard yours
 - **13 themes for pinboard.in** (Dracula · Nord · Catppuccin · Solarized · …) plus your own custom CSS
 - **Auto-archive to the [Wayback Machine](https://web.archive.org)**: optionally submit every save, so pages stay reachable after the original link dies
-- **Backup and sync**: Chrome Sync shares settings between devices where you enable it; credential sync is a separate opt-in. Manual JSON backups contain settings and can optionally include reader highlights, notes, and vocabulary from the current Pinboard account. Google Drive can sync that vocabulary after you connect it separately on each device.
+- **Backup and sync**: Chrome Sync shares settings between devices where you enable it; credential sync is a separate opt-in. Manual JSON backups contain settings and can optionally include reader highlights, notes, and vocabulary from the current Pinboard account. Google Drive can sync that vocabulary after you connect it separately on each device, on which you also need to be signed in to Chrome.
 - **9 languages** · configurable shortcuts · local-first storage · zero tracking
 
 ![13 themes for pinboard.in](docs/cws-assets/originals/screenshot-4-themes.png)

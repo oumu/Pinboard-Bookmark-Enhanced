@@ -2865,7 +2865,7 @@
       "message": "Could not load Google Drive sync status."
     },
     "vocabDriveErrorAuth": {
-      "message": "Google Drive authorization is unavailable."
+      "message": "Google Drive authorization is unavailable. Check that you are signed in to Chrome."
     },
     "vocabDriveErrorPinboardAuth": {
       "message": "No Pinboard account is signed in, so vocabulary sync cannot start. Enter your API Token under General → Pinboard Account, then connect again."

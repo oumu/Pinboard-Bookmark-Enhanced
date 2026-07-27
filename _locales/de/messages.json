@@ -2865,7 +2865,7 @@
       "message": "Der Google-Drive-Synchronisierungsstatus konnte nicht geladen werden."
     },
     "vocabDriveErrorAuth": {
-      "message": "Die Google-Drive-Autorisierung ist nicht verfügbar."
+      "message": "Die Google-Drive-Autorisierung ist nicht verfügbar. Prüfe, ob du in Chrome angemeldet bist."
     },
     "vocabDriveErrorPinboardAuth": {
       "message": "Es ist kein Pinboard-Konto angemeldet, daher kann die Vokabelsynchronisierung nicht starten. Trage dein API Token unter „Allgemein → Pinboard Konto“ ein und verbinde dich dann erneut."

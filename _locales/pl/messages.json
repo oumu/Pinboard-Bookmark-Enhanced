@@ -2865,7 +2865,7 @@
       "message": "Nie udało się wczytać stanu synchronizacji z Dyskiem Google."
     },
     "vocabDriveErrorAuth": {
-      "message": "Autoryzacja Dysku Google jest niedostępna."
+      "message": "Autoryzacja Dysku Google jest niedostępna. Sprawdź, czy masz zalogowane konto w Chrome."
     },
     "vocabDriveErrorPinboardAuth": {
       "message": "Żadne konto Pinboard nie jest zalogowane, więc synchronizacja słówek nie może się rozpocząć. Wprowadź API Token w sekcji „Ogólne → Konto Pinboard”, a następnie połącz ponownie."

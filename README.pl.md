@@ -42,7 +42,7 @@ Rozszerzenie Chrome dla [Pinboard](https://pinboard.in): tagi i streszczenia od 
 ### Personalizacja
 - **13 motywów dla pinboard.in** (Dracula · Nord · Catppuccin · Solarized · …) plus własny CSS
 - **Automatyczna archiwizacja w [Wayback Machine](https://web.archive.org)** — opcjonalnie przy każdym zapisie; strony pozostają dostępne, nawet gdy oryginalny link przestanie działać
-- **Kopie zapasowe i synchronizacja** — Chrome Sync udostępnia ustawienia między urządzeniami, na których włączono synchronizację. Synchronizację danych uwierzytelniających trzeba włączyć osobno. Ręczna kopia JSON zawiera ustawienia i może opcjonalnie obejmować zakreślenia, notatki oraz słówka bieżącego konta Pinboard. Aby synchronizować te słówka, połącz Google Drive osobno na każdym urządzeniu.
+- **Kopie zapasowe i synchronizacja** — Chrome Sync udostępnia ustawienia między urządzeniami, na których włączono synchronizację. Synchronizację danych uwierzytelniających trzeba włączyć osobno. Ręczna kopia JSON zawiera ustawienia i może opcjonalnie obejmować zakreślenia, notatki oraz słówka bieżącego konta Pinboard. Aby synchronizować te słówka, zaloguj się w Chrome i połącz Google Drive osobno na każdym urządzeniu.
 - **9 języków** · konfigurowalne skróty · pamięć lokalna w pierwszej kolejności · zero śledzenia
 
 ![13 motywów dla pinboard.in](docs/cws-assets/originals/screenshot-4-themes.png)

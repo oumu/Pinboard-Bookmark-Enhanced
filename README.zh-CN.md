@@ -42,7 +42,7 @@
 ### 个性化
 - **13 套 pinboard.in 主题**（Dracula、Nord、Catppuccin、Solarized 等），支持叠加自定义 CSS
 - **自动存档到 [Wayback Machine](https://web.archive.org)**：可选择每次保存时同步提交；原链接失效后仍能找回网页
-- **备份与同步**：Chrome Sync 只在已开启设置同步的设备之间共享设置，凭据同步需另行开启。手动 JSON 备份包含设置，也可选择包含高亮、笔记和当前 Pinboard 账号的生词。在每台设备上分别连接 Google Drive 后，即可同步该账号的生词。
+- **备份与同步**：Chrome Sync 只在已开启设置同步的设备之间共享设置，凭据同步需另行开启。手动 JSON 备份包含设置，也可选择包含高亮、笔记和当前 Pinboard 账号的生词。在每台设备上登录 Chrome 浏览器账户并分别连接 Google Drive 后，即可同步该账号的生词。
 - **9 种语言**、可自定义快捷键、本地优先存储、零追踪
 
 ![13 套 pinboard.in 主题](docs/cws-assets/originals/screenshot-4-themes.png)

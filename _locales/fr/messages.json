@@ -2865,7 +2865,7 @@
       "message": "Impossible de charger l'état de la synchronisation Google Drive."
     },
     "vocabDriveErrorAuth": {
-      "message": "L'autorisation Google Drive n'est pas disponible."
+      "message": "L'autorisation Google Drive est indisponible. Vérifiez que vous êtes connecté à Chrome."
     },
     "vocabDriveErrorPinboardAuth": {
       "message": "Aucun compte Pinboard n'est connecté, la synchronisation du vocabulaire ne peut donc pas démarrer. Saisissez votre jeton API dans « Général → Compte Pinboard », puis reconnectez-vous."
