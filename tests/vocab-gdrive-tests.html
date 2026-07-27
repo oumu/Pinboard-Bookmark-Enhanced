@@ -1612,6 +1612,20 @@ function syncHarness(options = {}) {
       late.calls.includes("clear:vocab-sync-periodic");
   });
 
+  await asyncCheck("a newly connected Drive account re-uploads existing vocabulary", async () => {
+    const fresh = syncHarness({});
+    const freshResult = await fresh.runner()();
+    const known = syncHarness({
+      accountState: {
+        key: `account:perm-a:${OWNER_HASH}`, drivePermissionId: "perm-a",
+        ownerHash: OWNER_HASH, bootstrapComplete: true, pageToken: "stable-old"
+      }
+    });
+    const knownResult = await known.runner()();
+    return freshResult.ok && fresh.calls.includes("checkpoint") &&
+      knownResult.ok && !known.calls.includes("checkpoint");
+  });
+
   await asyncCheck("transient auth backs off, rejected auth still blocks", async () => {
     const transient = syncHarness({
       aboutResults: [{ ok: false, error: "auth", retryable: true }]

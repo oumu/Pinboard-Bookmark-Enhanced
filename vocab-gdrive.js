@@ -842,6 +842,13 @@ function pbpCreateVocabDriveSyncRunner({
       if (!await stillCurrent()) {
         return normalizedFailure({ error: "account_changed" });
       }
+      // seedLegacy only enrols records that still lack sync metadata, so a
+      // second Google account starts with an empty outbox and would silently
+      // sync one way: it downloads, but never uploads the vocabulary the first
+      // account already enrolled. A checkpoint rebuilds the outbox from the
+      // local records, and it runs after the download pass so the upload
+      // carries the merged state.
+      const freshAccount = !state;
       state = {
         ...(state || {}),
         key: accountKey(session.permissionId, ownerHash),
@@ -867,7 +874,7 @@ function pbpCreateVocabDriveSyncRunner({
       const meta = await store.getMeta();
       if (!meta?.deviceId) return finishFailure({ error: "invalid_response" });
       const deviceId = meta.deviceId;
-      let needsCheckpoint = state.needsCheckpoint === true;
+      let needsCheckpoint = state.needsCheckpoint === true || freshAccount;
 
       if (!state.bootstrapComplete) {
         while (true) {
