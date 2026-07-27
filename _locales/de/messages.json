@@ -2853,6 +2853,9 @@
     "vocabDriveErrorCorrupt": {
       "message": "Die Google-Drive-Synchronisierungsdaten konnten nicht sicher gelesen werden. Die lokalen Vokabeln wurden nicht geändert."
     },
+    "vocabDriveErrorLocalStore": {
+      "message": "Auf die lokale Vokabeldatenbank konnte nicht geschrieben werden, daher wurde die Synchronisierung gestoppt. Gespeicherte Vokabeln wurden nicht geändert."
+    },
     "vocabDriveErrorNetwork": {
       "message": "Google Drive ist nicht erreichbar."
     },

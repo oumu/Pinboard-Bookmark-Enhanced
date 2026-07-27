@@ -2853,6 +2853,9 @@
     "vocabDriveErrorCorrupt": {
       "message": "无法安全读取 Google Drive 同步数据，本地生词未作更改。"
     },
+    "vocabDriveErrorLocalStore": {
+      "message": "无法写入本地生词数据库，同步已停止。已保存的生词未作更改。"
+    },
     "vocabDriveErrorNetwork": {
       "message": "无法连接 Google Drive。"
     },

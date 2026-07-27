@@ -2853,6 +2853,9 @@
     "vocabDriveErrorCorrupt": {
       "message": "Google Drive の同期データを安全に読み込めませんでした。ローカルの単語は変更されていません。"
     },
+    "vocabDriveErrorLocalStore": {
+      "message": "ローカルの単語データベースに書き込めなかったため、同期を停止しました。保存済みの単語は変更されていません。"
+    },
     "vocabDriveErrorNetwork": {
       "message": "Google Drive に接続できません。"
     },

@@ -825,6 +825,30 @@ check("selection still covers all filtered results beyond rendered chunks", _voc
       $id("vocab-drive-error").textContent.includes("vocabDriveErrorEntryTooLarge") &&
       !$id("vocab-drive-error").textContent.includes("vocabDriveReconnectRequired"));
 
+    _pbpVocabDriveRender({
+      ...driveStatus, retryAt:null, lastError:"local_store", blocked:true
+    });
+    const localStoreText = $id("vocab-drive-error").textContent;
+    _pbpVocabDriveRender({
+      ...driveStatus, retryAt:null, lastError:"corrupt", blocked:true
+    });
+    const corruptText = $id("vocab-drive-error").textContent;
+    check("a local write failure reads differently from remote corruption, neither advises reconnect",
+      localStoreText.includes("vocabDriveErrorLocalStore") &&
+      !localStoreText.includes("vocabDriveErrorCorrupt") &&
+      !localStoreText.includes("vocabDriveReconnectRequired") &&
+      corruptText.includes("vocabDriveErrorCorrupt") &&
+      !corruptText.includes("vocabDriveErrorLocalStore") &&
+      !corruptText.includes("vocabDriveReconnectRequired"));
+
+    window.chrome.runtime.sendMessage = async (message) => message.type === "vocabDriveStatus"
+      ? { ok:true, status:{ ...driveStatus, retryAt:null, lastError:"corrupt", blocked:false } }
+      : { ok:false, error:"network", status:{ ...driveStatus, retryAt:null, lastError:"corrupt", blocked:false } };
+    await _pbpVocabDriveRefresh(++_vocabRenderGen, true);
+    check("an unblocked run reports its own error, not a stale persisted one",
+      $id("vocab-drive-error").textContent.includes("vocabDriveErrorNetwork") &&
+      !$id("vocab-drive-error").textContent.includes("vocabDriveErrorCorrupt"));
+
     const manualRetryStatus = {
       ...driveStatus,
       pendingWords:19,

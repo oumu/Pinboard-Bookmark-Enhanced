@@ -168,6 +168,7 @@ function syncHarness(options = {}) {
     },
     async putAccountState(state) {
       calls.push(`put:${state.pageToken || ""}:${state.bootstrapComplete === true}`);
+      if (options.failPutAccount) return false;
       accountState = { ...state };
       return true;
     },
@@ -181,7 +182,8 @@ function syncHarness(options = {}) {
     async applyRemotePage(owner, _ownerHash, batches, cursorCommit) {
       ownerArgs.push(owner);
       calls.push(`apply:${batches.length}:${cursorCommit?.pageToken || cursorCommit?.bootstrapFilePageToken || cursorCommit?.bootstrapChangePageToken || ""}`);
-      if (options.failApply) return { ok: false, error: "remote_batch", batchIndex: 0 };
+      // The real store returns this code and no other for a rejected page.
+      if (options.failApply) return { ok: false, error: "invalid_remote_page", batchIndex: 0 };
       if (cursorCommit) accountState = { ...cursorCommit };
       return { ok: true, applied: batches.length, merged: 0, ignored: 0 };
     },
@@ -1569,6 +1571,23 @@ function syncHarness(options = {}) {
         call.startsWith("put-preflight:") || call.startsWith("alarm:")) &&
       !accountSwitchResult.ok && accountSwitchResult.error === "account_changed" &&
       !accountSwitch.calls.some((call) => call.startsWith("put:"));
+  });
+
+  await asyncCheck("a failed local write is not reported as remote corruption", async () => {
+    const local = syncHarness({ failPutAccount: true });
+    const localResult = await local.runner()();
+    const localPreflight = local.preflight();
+    const remote = syncHarness({
+      failApply: true,
+      files: [driveFile("bad-page")],
+      filePages: [{ files: [driveFile("bad-page").meta], nextPageToken: null }]
+    });
+    const remoteResult = await remote.runner()();
+    return !localResult.ok && localResult.error === "local_store" &&
+      localResult.retryable === false &&
+      localPreflight && localPreflight.lastError === "local_store" &&
+      localPreflight.blocked === true &&
+      !remoteResult.ok && remoteResult.error === "corrupt";
   });
 
   await asyncCheck("transient auth backs off, rejected auth still blocks", async () => {

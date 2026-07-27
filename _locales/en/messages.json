@@ -2853,6 +2853,9 @@
     "vocabDriveErrorCorrupt": {
       "message": "Google Drive sync data could not be read safely. Local vocabulary was not changed."
     },
+    "vocabDriveErrorLocalStore": {
+      "message": "The local vocabulary database could not be written, so sync stopped. No saved words were changed."
+    },
     "vocabDriveErrorNetwork": {
       "message": "Google Drive could not be reached."
     },

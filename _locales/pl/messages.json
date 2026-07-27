@@ -2853,6 +2853,9 @@
     "vocabDriveErrorCorrupt": {
       "message": "Nie udało się bezpiecznie odczytać danych synchronizacji z Dysku Google. Lokalne słówka nie zostały zmienione."
     },
+    "vocabDriveErrorLocalStore": {
+      "message": "Nie udało się zaktualizować lokalnej bazy słówek, więc synchronizacja została zatrzymana. Zapisane słówka nie zostały zmienione."
+    },
     "vocabDriveErrorNetwork": {
       "message": "Nie można połączyć się z Dyskiem Google."
     },

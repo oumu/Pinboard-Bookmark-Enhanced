@@ -649,13 +649,18 @@ function pbpCreateVocabDriveSyncRunner({
     if (source?.error === "entry_too_large") {
       return { ok: false, error: "entry_too_large", retryable: false };
     }
+    // "local_store" is a failed IndexedDB write on this device: reconnecting
+    // and re-downloading cannot help, and the remote copy is intact. Keep it
+    // apart from "corrupt", which means the remote batch itself did not
+    // validate. "invalid_remote_page" is the only code the store returns for a
+    // rejected page -- without it, page-apply failures surfaced as "remote".
     if (source?.error === "permission" || source?.error === "corrupt" ||
-        source?.error === "remote") {
+        source?.error === "remote" || source?.error === "local_store") {
       return { ok: false, error: source.error, retryable: false };
     }
     if (source?.error === "invalid_response" || source?.error === "id_collision" ||
         source?.error === "remote_batch_too_large" ||
-        source?.error === "remote_batch") {
+        source?.error === "invalid_remote_page") {
       return { ok: false, error: "corrupt", retryable: false };
     }
     return { ok: false, error: "remote", retryable: false };
@@ -796,7 +801,7 @@ function pbpCreateVocabDriveSyncRunner({
       }
       if (force) {
         if (!await store.deletePreflightState(ownerHash)) {
-          return finishFailure({ error: "remote_batch" });
+          return finishFailure({ error: "local_store" });
         }
         preflight = null;
         await alarms.clear(PBP_VOCAB_RETRY_ALARM);
@@ -836,7 +841,7 @@ function pbpCreateVocabDriveSyncRunner({
       if (force && (state.retryAttempt || state.retryAt || state.lastError)) {
         const reset = stateWith({ retryAttempt: 0, retryAt: null, lastError: null });
         if (!await store.putAccountState(reset)) {
-          return finishFailure({ error: "remote_batch" });
+          return finishFailure({ error: "local_store" });
         }
         state = reset;
       }
@@ -853,7 +858,7 @@ function pbpCreateVocabDriveSyncRunner({
       if (!state.bootstrapComplete) {
         while (true) {
           const seeded = await store.seedLegacy(owner, 100);
-          if (!seeded?.ok) return finishFailure({ error: "remote_batch" });
+          if (!seeded?.ok) return finishFailure({ error: "local_store" });
           if (!seeded.processed) break;
         }
 
@@ -863,7 +868,7 @@ function pbpCreateVocabDriveSyncRunner({
           if (!await stillCurrent()) return normalizedFailure({ error: "account_changed" });
           const next = stateWith({ bootstrapStartToken: token.pageToken });
           if (!await store.putAccountState(next)) {
-            return finishFailure({ error: "remote_batch" });
+            return finishFailure({ error: "local_store" });
           }
           state = next;
         }
@@ -934,7 +939,7 @@ function pbpCreateVocabDriveSyncRunner({
         await store.checkpointOwner(owner);
         const cleared = stateWith({}, ["needsCheckpoint"]);
         if (!await store.putAccountState(cleared)) {
-          return finishFailure({ error: "remote_batch" });
+          return finishFailure({ error: "local_store" });
         }
         state = cleared;
       }
@@ -961,7 +966,7 @@ function pbpCreateVocabDriveSyncRunner({
         if (!await stillCurrent()) return normalizedFailure({ error: "account_changed" });
         if (!await store.deletePendingBatch(
           state.drivePermissionId, ownerHash, pending.driveFileId
-        )) return normalizedFailure({ error: "remote_batch" });
+        )) return normalizedFailure({ error: "local_store" });
         return { ok: true };
       };
 
@@ -989,7 +994,7 @@ function pbpCreateVocabDriveSyncRunner({
           generated.fileId,
           batch
         );
-        if (!frozen) return finishFailure({ error: "remote_batch" });
+        if (!frozen) return finishFailure({ error: "local_store" });
         const uploaded = await uploadPending(frozen);
         if (!uploaded.ok) return finishFailure(uploaded);
       }
@@ -1006,11 +1011,11 @@ function pbpCreateVocabDriveSyncRunner({
         retryAt: null
       });
       if (!await store.putAccountState(success)) {
-        return finishFailure({ error: "remote_batch" });
+        return finishFailure({ error: "local_store" });
       }
       state = success;
       if (!await store.deletePreflightState(ownerHash)) {
-        return finishFailure({ error: "remote_batch" });
+        return finishFailure({ error: "local_store" });
       }
       preflight = null;
       await alarms.clear(PBP_VOCAB_RETRY_ALARM);

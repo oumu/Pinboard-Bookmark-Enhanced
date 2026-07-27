@@ -525,6 +525,7 @@ function _pbpVocabDriveErrorKey(code) {
     auth: "vocabDriveErrorAuth",
     permission: "vocabDriveErrorPermission",
     corrupt: "vocabDriveErrorCorrupt",
+    local_store: "vocabDriveErrorLocalStore",
     network: "vocabDriveErrorNetwork",
     account_changed: "vocabDriveErrorAccountChanged",
     entry_too_large: "vocabDriveErrorEntryTooLarge"
@@ -554,7 +555,10 @@ function _pbpVocabDriveShowError(code, retryAt, blocked) {
   const parts = [t(_pbpVocabDriveErrorKey(code))];
   const retry = _pbpVocabDriveDate(retryAt);
   if (retry) parts.push(t("vocabDriveRetryAt", retry));
-  if (blocked && code !== "entry_too_large") {
+  // Only Google authorization and permission are recoverable by reconnecting.
+  // Corrupt remote data, a failed local write and an oversized entry all
+  // survive a reconnect, so telling the user to disconnect wastes their time.
+  if (blocked && (code === "auth" || code === "permission")) {
     parts.push(t("vocabDriveReconnectRequired"));
   }
   setStatusIcon(el, false, parts.join(" "));
@@ -631,9 +635,13 @@ function _pbpVocabDriveApplyResponse(response, fallbackStatus) {
   const status = response?.status || (response?.ok ? fallbackStatus : null);
   if (status) _pbpVocabDriveRender(status);
   if (!response?.ok) {
-    _pbpVocabDriveShowError(
-      status?.lastError || response?.error, status?.retryAt, status?.blocked === true
-    );
+    // A blocked preflight is the authoritative reason and outranks whatever
+    // this attempt reported. Otherwise the code this run produced wins: a
+    // persisted lastError may predate the run and would mislabel it.
+    const code = status?.blocked === true
+      ? (status.lastError || response?.error)
+      : (response?.error || status?.lastError);
+    _pbpVocabDriveShowError(code, status?.retryAt, status?.blocked === true);
   }
   return status;
 }

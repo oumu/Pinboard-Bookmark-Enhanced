@@ -2853,6 +2853,9 @@
     "vocabDriveErrorCorrupt": {
       "message": "Les données de synchronisation Google Drive n'ont pas pu être lues en toute sécurité. Le vocabulaire local n'a pas été modifié."
     },
+    "vocabDriveErrorLocalStore": {
+      "message": "Impossible d'écrire dans la base de vocabulaire locale, la synchronisation a donc été interrompue. Les mots enregistrés n'ont pas été modifiés."
+    },
     "vocabDriveErrorNetwork": {
       "message": "Impossible de joindre Google Drive."
     },
