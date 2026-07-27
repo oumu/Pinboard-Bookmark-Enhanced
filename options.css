@@ -8,10 +8,10 @@
   --motion-collapse: 200ms;
   --motion-pop: 140ms;
   --motion-pop-out: 100ms;
-  /* Easing is picked per job, not shared. The built-in `ease` is symmetric --
-     it starts slow, which delays the exact frame the user is watching -- so
-     entrances and exits get a strong ease-out and only on-screen morphing gets
-     an ease-in-out. Bare `ease` stays correct for hover/colour changes. */
+  /* Easing is picked per job, not shared. The built-in `ease` eases IN at the
+     start, which delays the exact frame the user is watching, so entrances and
+     exits get a strong ease-out and only on-screen morphing gets an ease-in-out.
+     Bare `ease` stays correct for hover/colour changes. */
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   --opt-radius-sm: 3px;

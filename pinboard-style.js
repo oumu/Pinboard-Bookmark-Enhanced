@@ -29,21 +29,37 @@ try { _pbpHasTheme = localStorage.getItem("pbp_has_theme") === "1"; } catch (_) 
 // preset CSS unparsed and sidesteps the adaptive presets' light/dark split.
 // It is validated to an rgb()/rgba() literal first: it lives in pinboard.in's
 // own localStorage, which makes it untrusted input to a <style> element.
+//
+// Cached per resolved light/dark, because the OS can flip that between loads
+// with no user action -- one key would then paint the light background over a
+// dark render. What it still cannot predict is the user switching PRESET: the
+// preset key is only readable asynchronously, so the first navigation after a
+// light-to-dark preset change paints the old light colour. That is one frame of
+// the wrong shade on a deliberate user action, not the every-load flash this
+// replaces.
 const PBP_CLOAK_BG_RE = /^rgba?\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(?:,\s*(?:0|1|0?\.\d+)\s*)?\)$/;
+const pbpCloakBgKey = (isDark) => (isDark ? "pbp_cloak_bg_d" : "pbp_cloak_bg_l");
 let _pbpCloakBg = "";
 try {
-  const cached = localStorage.getItem("pbp_cloak_bg") || "";
-  if (PBP_CLOAK_BG_RE.test(cached)) _pbpCloakBg = cached;
+  const osDark = typeof matchMedia === "function" && matchMedia("(prefers-color-scheme: dark)").matches;
+  // Prefer the mode the OS is in; fall back to the other so an explicit
+  // light/dark override still gets a colour on its very first cached load.
+  for (const key of [pbpCloakBgKey(osDark), pbpCloakBgKey(!osDark)]) {
+    const cached = localStorage.getItem(key) || "";
+    if (PBP_CLOAK_BG_RE.test(cached)) { _pbpCloakBg = cached; break; }
+  }
 } catch (_) {}
 let _pbpCloak = null;
 if (_pbpHasTheme) {
   _pbpCloak = document.createElement("style");
   _pbpCloak.id = "pbp-cloak";
-  // Hide the BODY, not the root: opacity on the root element is not a reliable
-  // way to keep the propagated canvas background painted, and the whole point
-  // here is that the canvas keeps showing the themed colour.
+  // Paint the root and hide its children, rather than zeroing the root's own
+  // opacity: the root's background is what propagates to the canvas, and the
+  // canvas is exactly what must keep showing the themed colour. Hiding
+  // `html > *` rather than `body` alone also covers anything a page parks
+  // directly under documentElement. (Top-layer content escapes either way.)
   _pbpCloak.textContent = _pbpCloakBg
-    ? `html { background: ${_pbpCloakBg} !important; } body { opacity: 0 !important; }`
+    ? `html { background: ${_pbpCloakBg} !important; } html > * { opacity: 0 !important; }`
     : "html { opacity: 0 !important; }";
   (document.head || document.documentElement).appendChild(_pbpCloak);
 }
@@ -176,15 +192,18 @@ if (_pbpHasTheme) {
     // load's cloak. Deferred to `load` because at document_start the page's own
     // stylesheet has not been applied yet, so the computed value would be the
     // UA default. Only ever read on the next navigation, so the delay is free.
-    // One value, not one per light/dark: the next load almost always renders
-    // the same mode, and a mismatch costs one 400ms frame of the wrong shade --
-    // never the white flash this replaces.
+    // Keyed by the mode that actually rendered, which is what makes an OS
+    // light/dark flip between loads paint the right colour.
     const cacheCloakBg = () => {
       try {
-        if (!_pbpThemed) { localStorage.removeItem("pbp_cloak_bg"); return; }
+        if (!_pbpThemed) {
+          localStorage.removeItem(pbpCloakBgKey(true));
+          localStorage.removeItem(pbpCloakBgKey(false));
+          return;
+        }
         const bg = getComputedStyle(document.body).backgroundColor;
         if (PBP_CLOAK_BG_RE.test(bg) && bg !== "rgba(0, 0, 0, 0)") {
-          localStorage.setItem("pbp_cloak_bg", bg);
+          localStorage.setItem(pbpCloakBgKey(isDark), bg);
         }
       } catch (_) {}
     };

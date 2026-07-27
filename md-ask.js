@@ -1747,6 +1747,10 @@ let _pbpExplainCap = null;
 let _pbpExplainCtx = null;
 let _pbpExplainPinned = false;
 let _pbpExplainDrag = null;
+// Set when the card opens ABOVE the selection: the value is the y its bottom
+// edge must keep, so streamed growth moves it up and away from the text rather
+// than down over it. null means top-anchored (the normal, downward case).
+let _pbpExplainAnchorBottom = null;
 let _pbpExplainResizeObserver = null;
 // Focus handoff is scoped to one real open/close cycle. Pinned re-entry and
 // action switches reuse the already-open shell and must not replace the
@@ -1754,6 +1758,9 @@ let _pbpExplainResizeObserver = null;
 let _pbpExplainFocusSource = null;
 
 const PBP_EXPLAIN_EDGE = 8;
+// Floor for the height budget: below this the card is not worth opening on that
+// side, so a cramped side yields to the other one instead of squeezing.
+const PBP_EXPLAIN_MIN_CARD = 160;
 const PBP_EXPLAIN_NUDGE = 8;
 
 function pbpExplainClampPosition(left, top, width, height, viewportWidth, viewportHeight) {
@@ -1838,6 +1845,11 @@ function _pbpExplainSetPinned(pop, pinned) {
 function _pbpExplainClose(pop, restoreFocus = false) {
   if (!pop || !pop.matches(":popover-open")) return;
   if (restoreFocus) _pbpExplainRestoreFocus(pop);
+  // Both are per-open state: the next open measures its own space, and leaving
+  // the inline budget behind would also make getComputedStyle read it back
+  // instead of the stylesheet's cap.
+  _pbpExplainAnchorBottom = null;
+  pop.style.removeProperty("max-height");
   try { pop.hidePopover(); } catch (_) {}
 }
 
@@ -1994,6 +2006,7 @@ function _pbpExplainEnsurePop() {
       // this is repositioning, not a directional swipe that needs to commit.
       if (Math.abs(e.clientX - drag.x) < 4 && Math.abs(e.clientY - drag.y) < 4) return;
       drag.moved = true;
+      _pbpExplainAnchorBottom = null; // the user owns the position from here on
       _pbpExplainSetPinned(pop, true);
       pop.classList.add("xp-dragging");
     }
@@ -2176,8 +2189,11 @@ function _pbpExplainEnsurePop() {
   if (typeof ResizeObserver === "function") {
     _pbpExplainResizeObserver = new ResizeObserver(() => {
       if (!pop.matches(":popover-open")) return;
-      const rect = pop.getBoundingClientRect();
-      _pbpExplainPlace(pop, rect.left, rect.top);
+      const r = pop.getBoundingClientRect();
+      // Bottom-anchored cards recompute their top from the height that just
+      // changed; top-anchored ones only need the viewport clamp re-applied.
+      const top = _pbpExplainAnchorBottom === null ? r.top : _pbpExplainAnchorBottom - r.height;
+      _pbpExplainPlace(pop, r.left, top);
     });
     _pbpExplainResizeObserver.observe(pop);
   }
@@ -2521,22 +2537,42 @@ function _pbpExplainOpenPop(cap, initialAction) {
     // Loose panels follow the newest selection. Pinned panels keep the exact
     // user-controlled position while _pbpExplainRun takes over their content.
     //
-    // Place against the card's MAXIMUM height, not the empty shell's current
-    // one. _pbpExplainRun fills the body on the next line, so measuring here
-    // measured a skeleton (~150px). The card would then open downward "because
-    // it fits", grow past the viewport as the answer streamed, and get clamped
-    // back up by the ResizeObserver -- one un-transitioned jump per frame --
-    // or flip above using that same small height and grow back down over the
-    // very text it was explaining. The cap comes from the stylesheet
-    // (#explain-pop max-height) so the two cannot drift, and .xp-body already
-    // scrolls inside it.
-    const capped = parseFloat(getComputedStyle(pop).maxHeight);
-    const ph = Number.isFinite(capped) ? capped : pop.offsetHeight;
-    let y = rect.bottom + PBP_EXPLAIN_EDGE;
-    if (y + ph > window.innerHeight - PBP_EXPLAIN_EDGE) {
-      y = rect.top - ph - PBP_EXPLAIN_EDGE;
+    // Height cannot be measured here: _pbpExplainRun fills the body on the next
+    // line, so pop.offsetHeight is an empty skeleton. Pick the side from the
+    // SPACE available instead, budget the card to that space, and let .xp-body
+    // (already overflow-y:auto) scroll inside it. The card then never outgrows
+    // its side, so the ResizeObserver never has to claw it back as the answer
+    // streams in.
+    const edge = PBP_EXPLAIN_EDGE;
+    const below = window.innerHeight - rect.bottom - edge * 2;
+    const above = rect.top - edge * 2;
+    // Downward is the default: it follows reading direction and keeps the card
+    // out of the text above. Flip up only when the space below is genuinely too
+    // cramped to be worth it -- not merely because above happens to be roomier.
+    const openDown = below >= PBP_EXPLAIN_MIN_CARD || below >= above;
+    // The budget may never exceed the room actually there, or the card overflows
+    // the side it was placed on and the clamp drags it back -- the crawl this
+    // replaces. When neither side clears the floor the viewport is simply too
+    // short to budget for, so the stylesheet cap and the clamp handle it.
+    const cssCap = parseFloat(getComputedStyle(pop).maxHeight);
+    const room = openDown ? below : above;
+    if (room >= PBP_EXPLAIN_MIN_CARD) {
+      pop.style.maxHeight = Math.floor(Math.min(Number.isFinite(cssCap) ? cssCap : room, room)) + "px";
+    } else {
+      pop.style.removeProperty("max-height");
     }
-    _pbpExplainPlace(pop, rect.left, y);
+    if (openDown) {
+      // Top-anchored: the card grows downward from a fixed point under the
+      // selection, so a short answer still sits right under the text.
+      _pbpExplainAnchorBottom = null;
+      _pbpExplainPlace(pop, rect.left, rect.bottom + edge);
+    } else {
+      // Bottom-anchored: growth pushes the card UP, away from the text it is
+      // explaining, instead of down over it -- and a short answer stays glued
+      // to the selection rather than floating at the top of the viewport.
+      _pbpExplainAnchorBottom = rect.top - edge;
+      _pbpExplainPlace(pop, rect.left, _pbpExplainAnchorBottom - pop.offsetHeight);
+    }
   }
   _pbpExplainRun(cap, ctx, pop);
 }

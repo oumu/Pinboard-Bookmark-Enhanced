@@ -977,9 +977,9 @@ check(mdCss.includes("text-autospace: normal") && /#rendered-view :is\(pre, code
 }
 
 // ---- Reduced motion ----
-// CSS cannot gate programmatic scrolling: per CSSOM-View an explicit `behavior`
-// dictionary member overrides the `scroll-behavior` property, so a
-// `scroll-behavior: auto` inside a prefers-reduced-motion block never fires.
+// scrollIntoView() only consults the `scroll-behavior` property when `behavior`
+// is "auto" or omitted, so a `scroll-behavior: auto` inside a
+// prefers-reduced-motion block cannot reach a call that passes "smooth".
 // Whole-viewport travel is the most vestibular motion in the product, so every
 // smooth scroll must route through pbpScrollIntoView, which checks the media
 // query at the call site.
@@ -1075,11 +1075,24 @@ check(mdCss.includes("text-autospace: normal") && /#rendered-view :is\(pre, code
     /Math\.abs\(e\.clientX - drag\.x\) < 4 && Math\.abs\(e\.clientY - drag\.y\) < 4/.test(moveHandler) &&
     moveHandler.includes("_pbpExplainSetPinned(pop, true)"),
     "md-ask.js: the explain popover drag lost its movement threshold, so a press commits a drag");
-  // Placement must budget the card's maximum height, not the empty shell's:
-  // _pbpExplainRun fills the body on the very next line.
-  check(mdAskJs.includes("const capped = parseFloat(getComputedStyle(pop).maxHeight);") &&
-    mdAskJs.includes("const ph = Number.isFinite(capped) ? capped : pop.offsetHeight;"),
-    "md-ask.js: the explain popover is placed from its pre-content height again, so streamed answers push it around or cover the selection");
+  // Placement must come from the SPACE available, never from a height measured
+  // before _pbpExplainRun fills the body on the very next line. Measuring the
+  // shell made the card crawl as the answer streamed; budgeting to the card's
+  // max height instead flung short cards to the far edge.
+  check(/const openDown = below >= PBP_EXPLAIN_MIN_CARD \|\| below >= above;/.test(mdAskJs),
+    "md-ask.js: the explain popover no longer prefers opening downward with a cramped-side fallback");
+  check(/const room = openDown \? below : above;/.test(mdAskJs) &&
+    /pop\.style\.maxHeight = Math\.floor\(Math\.min\(.*, room\)\) \+ "px";/.test(mdAskJs),
+    "md-ask.js: the explain popover height budget can exceed the room on the side it was placed on, so it overflows and gets clawed back");
+  // Opening upward has to keep the BOTTOM edge pinned to the selection, or the
+  // card grows down over the very text it is explaining.
+  check(/_pbpExplainAnchorBottom = rect\.top - edge;/.test(mdAskJs) &&
+    /_pbpExplainAnchorBottom === null \? r\.top : _pbpExplainAnchorBottom - r\.height/.test(mdAskJs),
+    "md-ask.js: an upward-opening explain popover is no longer bottom-anchored, so streamed content grows back over the selection");
+  // Both are per-open state; leaking the inline budget would also make the next
+  // open read it back instead of the stylesheet cap.
+  check(/_pbpExplainAnchorBottom = null;\s*\n\s*pop\.style\.removeProperty\("max-height"\);/.test(mdAskJs),
+    "md-ask.js: closing the explain popover leaves its anchor or its inline height budget behind for the next open");
   check(/#explain-pop \{[\s\S]{0,400}max-height: min\(480px, calc\(100vh - 32px\)\);/.test(mdCss),
     "md-preview.css: #explain-pop lost the max-height that md-ask.js reads back for placement");
   // The value must be derived from the skeleton and expressed in em, so it tracks
@@ -1115,8 +1128,8 @@ check(mdCss.includes("text-autospace: normal") && /#rendered-view :is\(pre, code
   // opacity: opacity on the root is not a reliable way to keep the propagated
   // canvas background painted, and the canvas is exactly what shows for the
   // up-to-400ms the theme takes to load.
-  check(/html \{ background: \$\{_pbpCloakBg\} !important; \} body \{ opacity: 0 !important; \}/.test(styleJs),
-    "pinboard-style.js: cloak no longer paints the cached background, so themed loads flash the browser's white canvas");
+  check(/html \{ background: \$\{_pbpCloakBg\} !important; \} html > \* \{ opacity: 0 !important; \}/.test(styleJs),
+    "pinboard-style.js: cloak no longer paints the cached background under every rendered child, so themed loads flash the browser's white canvas");
   check(styleJs.includes('_pbpCloak.textContent = _pbpCloakBg'),
     "pinboard-style.js: cloak stopped branching on a cached background");
   // The cached value comes out of pinboard.in's own localStorage and goes into
@@ -1146,8 +1159,15 @@ check(mdCss.includes("text-autospace: normal") && /#rendered-view :is\(pre, code
   // because the page's own stylesheet has not been applied yet.
   check(/if \(document\.readyState === "complete"\) cacheCloakBg\(\);\s*\n\s*else window\.addEventListener\("load", cacheCloakBg, \{ once: true \}\);/.test(styleJs),
     "pinboard-style.js: the cloak colour is sampled before load, so it would cache the UA default instead of the theme");
-  check(/if \(!_pbpThemed\) \{ localStorage\.removeItem\("pbp_cloak_bg"\); return; \}/.test(styleJs),
+  check(/if \(!_pbpThemed\) \{\s*\n\s*localStorage\.removeItem\(pbpCloakBgKey\(true\)\);\s*\n\s*localStorage\.removeItem\(pbpCloakBgKey\(false\)\);/.test(styleJs),
     "pinboard-style.js: removing the theme leaves a stale cloak colour cached");
+  // One key per resolved mode: the OS can flip light/dark between navigations
+  // with no user action, and a single key would then paint the light background
+  // over a dark render -- the very flash this is here to stop.
+  check(/const pbpCloakBgKey = \(isDark\) => \(isDark \? "pbp_cloak_bg_d" : "pbp_cloak_bg_l"\);/.test(styleJs) &&
+    /localStorage\.setItem\(pbpCloakBgKey\(isDark\), bg\)/.test(styleJs) &&
+    /for \(const key of \[pbpCloakBgKey\(osDark\), pbpCloakBgKey\(!osDark\)\]\)/.test(styleJs),
+    "pinboard-style.js: the cloak colour is no longer cached per light/dark mode, so an OS theme flip repaints the wrong shade");
 }
 
 if (fail.length) {
