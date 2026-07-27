@@ -625,7 +625,8 @@ Google 账号测试尚未运行。不得从未运行状态推断共享或不共�
 
 | 类型 | 行为 |
 |---|---|
-| 用户未连接 / 非交互 token 失败 | 停止，显示需要连接 |
+| 用户未连接 / 交互授权被拒 | 停止，显示需要连接 |
+| 非交互取 token 失败 | 持久化指数退避——离线或 Chrome 账号登录失效都走这里，只有新 token 仍被 `401` 拒收才算撤销授权 |
 | `401` | 清缓存 token，非交互重试一次 |
 | `403 insufficientPermissions` | 停止自动重试，提示重新连接 |
 | `403 accessNotConfigured` | 显示发布配置错误，不归咎于用户 |
@@ -634,6 +635,7 @@ Google 账号测试尚未运行。不得从未运行状态推断共享或不共�
 | `404` pending file 校验失败 | 保留 pending，重新检查生成/创建状态 |
 | `409` 预生成 file ID | 核验元数据，匹配即成功 |
 | JSON 无效 / schema 不支持 | 不应用、不推进游标、保留本地 |
+| 本地 IndexedDB 写入失败 | 停止并单列 `local_store`，不与远端批次损坏共用提示，也不建议重连 |
 | owner / Drive 账号变化 | 安静中止，不记网络错误 |
 | 单条 entry > 4 MiB | 保留 outbox，持久错误提示 |
 
@@ -646,8 +648,10 @@ Google 账号测试尚未运行。不得从未运行状态推断共享或不共�
 - 成功同步或用户点击“立即同步”后清零；
 - outbox 和 pending batch 在任何失败下都不清除。
 
-每个 fetch 使用有限 timeout。日志只输出阶段、HTTP 状态、Google error reason 和
-非敏感短 ID，不输出 token、邮箱、词语、上下文或 URL。
+每个 fetch 使用有限 timeout。该 timeout 是覆盖整个请求的墙钟，因此上传与下载单独
+取元数据调用的 8 倍预算——batch 上限 4 MiB，套用元数据预算等于要求链路稳定在
+140 KB/s 以上。日志只输出阶段、HTTP 状态、Google error reason 和非敏感短 ID，
+不输出 token、邮箱、词语、上下文或 URL。
 
 ## 15. 设置页设计
 
@@ -936,7 +940,11 @@ humanizer 规则检查。
 - 不压缩 JSON batch；当实测网络或存储成本成为瓶颈时再用原生
   `CompressionStream`。
 - 不自动删除历史 batch；当真实冷启动文件数或 Drive 配额成为问题时再设计
-  checkpoint acknowledgement 与安全 GC。
+  checkpoint acknowledgement 与安全 GC。客户端目前只有 GET 与 multipart POST，
+  没有任何删除动词，因此远端文件数只增不减：每台设备每轮有非空 outbox 的同步各
+  留下一个永久文件，appData removal 触发的 checkpoint 还会写出一份全量快照，
+  而新设备首次连接要下载并校验全部历史 batch。**复查触发条件：单账号 appData
+  文件数超过 500。** 到达前不写代码；到达后先量首次连接耗时，再决定 GC 方案。
 - 不支持单条超过 4 MiB 的生词记录；真实出现后再增加 resumable upload。
 - 不提供云端数据删除 UI；先保证“断开不丢本地数据”的清晰语义。
 - 不做字段级通用 CRDT；当前用户生成的关键集合字段用并集，自动词典字段用稳定
