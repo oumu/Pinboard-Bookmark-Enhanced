@@ -611,6 +611,26 @@ function syncHarness(options = {}) {
       !JSON.stringify([stableSession, stableGenerated]).includes("stable-a");
   });
 
+  await asyncCheck("a silent token mint failure stays retryable", async () => {
+    const rejecting = () => ({
+      async getAuthToken() { throw new Error("Invalid credentials"); },
+      async removeCachedAuthToken() {}
+    });
+    const blank = () => ({
+      async getAuthToken() { return { token: "" }; },
+      async removeCachedAuthToken() {}
+    });
+    const open = (identity, interactive) => pbpCreateVocabDriveClient({
+      identity, fetchImpl: async () => new Response(null, { status: 500 })
+    }).openSession(interactive);
+    const silent = await open(rejecting(), false);
+    const prompted = await open(rejecting(), true);
+    const empty = await open(blank(), false);
+    return !silent.ok && silent.error === "auth" && silent.retryable === true &&
+      !prompted.ok && prompted.error === "auth" && prompted.retryable === false &&
+      !empty.ok && empty.error === "auth" && empty.retryable === true;
+  });
+
   await asyncCheck("second 401 stops without a third request", async () => {
     const identity = identityFixture(["old-token", "new-token"]);
     let fetches = 0;
@@ -842,6 +862,28 @@ function syncHarness(options = {}) {
     const result = await client.about();
     await new Promise((resolve) => requestAnimationFrame(resolve));
     return result.ok && signal instanceof AbortSignal && !signal.aborted;
+  });
+
+  await asyncCheck("body transfers outlive the metadata deadline", async () => {
+    // A 4 MiB batch cannot clear the metadata budget on a slow link, so upload
+    // and download must not share it.
+    const slow = (delayMs) => async (_url, init) => {
+      await new Promise((resolve, reject) => {
+        const timer = setTimeout(resolve, delayMs);
+        init.signal.addEventListener("abort", () => {
+          clearTimeout(timer);
+          reject(init.signal.reason);
+        }, { once: true });
+      });
+      return new Response("body-bytes");
+    };
+    const client = () => pbpCreateVocabDriveClient({
+      identity: identityFixture(), timeoutMs: 60, fetchImpl: slow(200)
+    });
+    const meta = await client().about();
+    const transferred = await client().download(DRIVE_FILE_ID);
+    return !meta.ok && meta.error === "network" && meta.retryable === true &&
+      transferred.ok && transferred.body === "body-bytes";
   });
 
   await asyncCheck("generateIds uses exact one-ID appDataFolder query", async () => {
@@ -1527,6 +1569,30 @@ function syncHarness(options = {}) {
         call.startsWith("put-preflight:") || call.startsWith("alarm:")) &&
       !accountSwitchResult.ok && accountSwitchResult.error === "account_changed" &&
       !accountSwitch.calls.some((call) => call.startsWith("put:"));
+  });
+
+  await asyncCheck("transient auth backs off, rejected auth still blocks", async () => {
+    const transient = syncHarness({
+      aboutResults: [{ ok: false, error: "auth", retryable: true }]
+    });
+    const transientResult = await transient.runner()({ force: true });
+    const transientPreflight = transient.preflight();
+    const rejected = syncHarness({
+      aboutResults: [{ ok: false, error: "auth", retryable: false, status: 401 }]
+    });
+    const rejectedResult = await rejected.runner()({ force: true });
+    const rejectedPreflight = rejected.preflight();
+    return !transientResult.ok && transientResult.error === "auth" &&
+      transientResult.retryable === true &&
+      transientPreflight && transientPreflight.blocked === false &&
+      transientPreflight.lastError === "auth" &&
+      Number.isFinite(transientPreflight.retryAt) &&
+      transient.alarms.created.some((alarm) => alarm.name === "vocab-sync-retry") &&
+      !transient.calls.includes("clear:vocab-sync-periodic") &&
+      !rejectedResult.ok && rejectedResult.error === "auth" &&
+      rejectedResult.retryable === false &&
+      rejectedPreflight && rejectedPreflight.blocked === true &&
+      rejected.calls.includes("clear:vocab-sync-periodic");
   });
 
   document.getElementById("summary").textContent = `pass=${pass} fail=${fail}`;

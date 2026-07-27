@@ -153,6 +153,11 @@ function pbpCreateVocabDriveClient({
   const requestedTimeoutMs = Math.floor(timeoutMs);
   const requestTimeoutMs = Number.isFinite(timeoutMs) && requestedTimeoutMs >= 1
     ? Math.min(2147483647, requestedTimeoutMs) : 30000;
+  // Body transfers get a longer deadline than metadata calls. The signal is a
+  // wall clock over the whole payload, and a batch may reach
+  // PBP_VOCAB_BATCH_MAX_BYTES -- 4 MiB inside the metadata budget demands
+  // >140 KB/s, which a tethered or metered link does not deliver.
+  const transferTimeoutMs = Math.min(2147483647, requestTimeoutMs * 8);
   const responseSignals = new WeakMap();
   const filePrefix = (fileId) => typeof fileId === "string" ? fileId.slice(0, 8) : undefined;
   const failure = (error, retryable, status, fileId) => {
@@ -164,9 +169,9 @@ function pbpCreateVocabDriveClient({
   };
   const tokenValue = (value) => typeof value === "string" ? value : value && value.token;
 
-  async function requestWithToken(token, url, init = {}, fileId) {
+  async function requestWithToken(token, url, init = {}, fileId, deadlineMs = requestTimeoutMs) {
     let response;
-    const timeoutSignal = AbortSignal.timeout(requestTimeoutMs);
+    const timeoutSignal = AbortSignal.timeout(deadlineMs);
     const signal = init.signal
       ? AbortSignal.any([init.signal, timeoutSignal])
       : timeoutSignal;
@@ -183,17 +188,23 @@ function pbpCreateVocabDriveClient({
     return { ok: true, response };
   }
 
-  async function request(url, init = {}, interactive = false, fileId) {
+  // A silent mint failure is transient (offline, or the Chrome profile's Google
+  // session lapsed) -- not a revoked grant, which only a 401 on a fresh token
+  // proves. Marking it retryable keeps the backoff alive instead of blocking
+  // the account until someone presses Sync now by hand.
+  const mintFailure = (interactive, fileId) => failure("auth", !interactive, undefined, fileId);
+
+  async function request(url, init = {}, interactive = false, fileId, deadlineMs) {
     let token;
     try {
       token = tokenValue(await identity.getAuthToken({ interactive }));
     } catch (_) {
-      return failure("auth", false, undefined, fileId);
+      return mintFailure(interactive, fileId);
     }
-    if (typeof token !== "string" || !token) return failure("auth", false, undefined, fileId);
+    if (typeof token !== "string" || !token) return mintFailure(interactive, fileId);
 
     for (let attempt = 0; attempt < 2; attempt++) {
-      const sent = await requestWithToken(token, url, init, fileId);
+      const sent = await requestWithToken(token, url, init, fileId, deadlineMs);
       if (!sent.ok) return sent;
       const response = sent.response;
       if (response.status !== 401) return { ok: true, response };
@@ -202,9 +213,9 @@ function pbpCreateVocabDriveClient({
         await identity.removeCachedAuthToken({ token });
         token = tokenValue(await identity.getAuthToken({ interactive: false }));
       } catch (_) {
-        return failure("auth", false, undefined, fileId);
+        return mintFailure(false, fileId);
       }
-      if (typeof token !== "string" || !token) return failure("auth", false, undefined, fileId);
+      if (typeof token !== "string" || !token) return mintFailure(false, fileId);
     }
     return failure("auth", false, 401, fileId);
   }
@@ -324,7 +335,7 @@ function pbpCreateVocabDriveClient({
       method: "POST",
       headers: { "Content-Type": multipart.contentType },
       body: multipart.body
-    }, false, metadata.id);
+    }, false, metadata.id, transferTimeoutMs);
     if (!requested.ok) return requested;
     if (requested.response.status === 200 || requested.response.status === 201) {
       return { ok: true, fileId: metadata.id };
@@ -344,7 +355,7 @@ function pbpCreateVocabDriveClient({
     if (typeof fileId !== "string" || !fileId) return failure("invalid_input", false);
     const url = new URL(`${apiBase}/files/${encodeURIComponent(fileId)}`);
     url.searchParams.set("alt", "media");
-    const requested = await requestFn(url, { method: "GET" }, false, fileId);
+    const requested = await requestFn(url, { method: "GET" }, false, fileId, transferTimeoutMs);
     if (!requested.ok) return requested;
     const response = requested.response;
     if (!response.ok) return responseFailure(response, fileId);
@@ -490,13 +501,13 @@ function pbpCreateVocabDriveClient({
     try {
       token = tokenValue(await identity.getAuthToken({ interactive }));
     } catch (_) {
-      return failure("auth", false);
+      return mintFailure(interactive);
     }
-    if (typeof token !== "string" || !token) return failure("auth", false);
+    if (typeof token !== "string" || !token) return mintFailure(interactive);
 
     let permissionId = "";
-    const sessionRequest = async (url, init = {}, _interactive = false, fileId) => {
-      const sent = await requestWithToken(token, url, init, fileId);
+    const sessionRequest = async (url, init = {}, _interactive = false, fileId, deadlineMs) => {
+      const sent = await requestWithToken(token, url, init, fileId, deadlineMs);
       if (!sent.ok || sent.response.status !== 401) return sent;
 
       let renewed;
@@ -504,10 +515,10 @@ function pbpCreateVocabDriveClient({
         await identity.removeCachedAuthToken({ token });
         renewed = tokenValue(await identity.getAuthToken({ interactive: false }));
       } catch (_) {
-        return failure("auth", false, undefined, fileId);
+        return mintFailure(false, fileId);
       }
       if (typeof renewed !== "string" || !renewed) {
-        return failure("auth", false, undefined, fileId);
+        return mintFailure(false, fileId);
       }
 
       if (permissionId) {
@@ -527,7 +538,7 @@ function pbpCreateVocabDriveClient({
       }
 
       token = renewed;
-      const retried = await requestWithToken(token, url, init, fileId);
+      const retried = await requestWithToken(token, url, init, fileId, deadlineMs);
       if (retried.ok && retried.response.status === 401) {
         return failure("auth", false, 401, fileId);
       }
@@ -628,8 +639,13 @@ function pbpCreateVocabDriveSyncRunner({
     if (source?.error === "account_changed") {
       return { ok: false, error: "account_changed", retryable: false };
     }
+    // "auth" is checked before the generic retryable branch so a transient
+    // token-mint failure keeps its accurate code instead of surfacing as a
+    // network error, while still taking the backoff path rather than blocking.
+    if (source?.error === "auth") {
+      return { ok: false, error: "auth", retryable: source.retryable === true };
+    }
     if (source?.retryable) return { ok: false, error: "network", retryable: true };
-    if (source?.error === "auth") return { ok: false, error: "auth", retryable: false };
     if (source?.error === "entry_too_large") {
       return { ok: false, error: "entry_too_large", retryable: false };
     }
