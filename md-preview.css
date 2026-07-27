@@ -199,7 +199,10 @@ button, input, select, textarea { font-family: inherit; }
   font-size: 13px;
   font-weight: 500;
   white-space: nowrap;
-  transition: all 150ms ease;
+  /* Explicit list, not `all`: `all` tweened .toggle-btn.active's font-weight
+     500->600 (the jitter this file's own comment at .exp-tgl warns about) and
+     delayed the :active press by 150ms. Weight and transform now snap. */
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -322,7 +325,10 @@ main {
    880px -- toggling zen then snapped the column between the two systems,
    which the user called out. Print pins this back to 880px (print block
    below) so paper output doesn't follow the screen width choice. */
-.doc-body { max-width: var(--pbp-width, 880px); margin: 0 auto; min-width: 0; transition: max-width 200ms ease; }
+/* No transition on max-width: interpolating the measure re-wraps every paragraph,
+   so the intermediate frames are words jumping between lines — not an interpolable
+   quantity. An instant re-measure is the honest behaviour. */
+.doc-body { max-width: var(--pbp-width, 880px); margin: 0 auto; min-width: 0; }
 
 /* ---- R2: Zen (focus) reading mode (md-reader.js, "z" hotkey / rail
    button, spec sec.1/4). body.zen hides #rail (+ its mobile drawer toggle
@@ -848,11 +854,6 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
   contain-intrinsic-size: auto 200px;
 }
 
-/* ---- Reduced Motion ---- */
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { transition-duration: 0s !important; }
-}
-
 /* ---- Reading-stats row (header) — plain text, not a pill (rail redesign
    spec sec.3: demoted from .stats-badge so it reads as secondary metadata,
    not another action control). No border/background; wraps instead of
@@ -1061,7 +1062,8 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
   background-repeat: no-repeat;
   background-position: right 8px center;
   font-size: 13px; cursor: pointer;
-  transition: all 150ms ease;
+  /* Explicit list, not `all` — the chevron background-image must not be tweened. */
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
 }
 .exp-img-row select:hover, .xp-dict-lang:hover { background-color: var(--btn-hover); border-color: var(--border); }
 .exp-img-row select:focus-visible, .xp-dict-lang:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }

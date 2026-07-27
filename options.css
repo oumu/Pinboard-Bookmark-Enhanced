@@ -1146,7 +1146,10 @@ html[data-theme] .confirm-popover .confirm-no:hover { background: var(--opt-btn-
   padding: var(--opt-sp-5) var(--opt-sp-5); min-width: 220px;
   background: #fff; border: 1px solid #ccc; border-radius: var(--opt-radius-sm);
   box-shadow: 0 2px 10px rgba(0,0,0,0.14);
-  animation: confirmFadeIn 0.12s ease;
+  /* No entrance animation: this referenced @keyframes confirmFadeIn, which only
+     ever existed in popup.css — options.html loads options.css alone, so the
+     declaration never resolved. Removed rather than ported; the popover is rare
+     and has always appeared instantly. */
 }
 .theme-name-popover label { font-size: 12px; color: #555; margin: 0; }
 .theme-name-popover input[type="text"] {

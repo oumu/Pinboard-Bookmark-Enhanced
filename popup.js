@@ -97,7 +97,6 @@ function invalidateBookmarkLookup() {
   if (banner) {
     banner.textContent = "";
     banner.classList.add("hidden");
-    banner.classList.remove("just-saved");
   }
   try { localStorage.removeItem("pp-last-tab"); } catch (_) {}
   const deleteBtn = $id("delete-btn");

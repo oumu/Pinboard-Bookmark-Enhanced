@@ -254,14 +254,7 @@ html[data-section="login"] .quick-actions { display: none !important; }
   color: var(--pp-banner-fg);
   font-size: 11px;
   line-height: 1.4;
-  /* P2.8: dropped border-color from transition — border change is imperceptible during 600ms fade; reduces paint layer count */
-  transition: background 0.6s ease, color 0.6s ease;
   animation: fadeSlideDown var(--pp-motion-duration) ease-out;
-}
-.existing-banner.just-saved {
-  background: var(--pp-ok-bg);
-  border-color: var(--pp-ok-bd);
-  color: var(--pp-ok-fg);
 }
 
 /* URL Warning */
@@ -326,12 +319,16 @@ html[data-section="login"] .quick-actions { display: none !important; }
 .field > input[type="text"]:focus-visible, .field > textarea:focus-visible {
   box-shadow: var(--pp-focus-ring);
 }
+/* No height transition: autoResizeTextarea (popup.js) writes style.height inside
+   a rAF on every input event and once ~50ms after open, so animating it tweened a
+   layout property through the cold-start window and made Chrome step-resize the
+   popup window mid-grow. It also lagged the native `resize: vertical` handle by
+   150ms, breaking 1:1 drag. Height now settles in the frame rAF already batches. */
 .field > textarea {
   resize: vertical;
   min-height: 54px;
   max-height: 300px;
   overflow-y: auto;
-  transition: height 0.15s ease;
 }
 
 .notes-bar { display: flex; justify-content: space-between; align-items: center; margin-top: var(--pp-sp-1); }
@@ -393,7 +390,9 @@ button.offline-clear:focus-visible, button.offline-toggle:focus-visible { outlin
 .tag-remove:hover { color: var(--pp-danger); }
 .tag-remove:focus-visible { outline: 2px solid var(--pp-accent, #4477bb); outline-offset: 1px; }
 .tag-item:hover { background: var(--pp-tag-hover); }
-.tag-item { position: relative; transition: background 0.15s, transform 80ms ease; }
+/* No `transform` in the transition list: no rule and no JS ever sets a transform
+   on .tag-item (drag state is opacity, the drop marker is a ::before bar). */
+.tag-item { position: relative; transition: background 0.15s; }
 .tag-item[draggable] { cursor: grab; }
 .tag-item.dragging { opacity: 0.4; }
 .tag-item.drag-over::before {
@@ -401,7 +400,6 @@ button.offline-clear:focus-visible, button.offline-toggle:focus-visible { outlin
   left: -3px; top: 2px; bottom: 2px; width: 2px;
   background: var(--pp-accent); border-radius: 1px;
 }
-.tag-item.is-new { animation: tagPopin 0.14s ease; }
 .tag-drag-handle {
   color: var(--pp-fg-hint); opacity: 0;
   transition: opacity 0.1s; cursor: grab;
@@ -413,7 +411,6 @@ button.offline-clear:focus-visible, button.offline-toggle:focus-visible { outlin
 }
 .tags-display:hover .tag-drag-handle { opacity: 0.5; }
 .tag-item.dragging .tag-drag-handle { opacity: 0.8; cursor: grabbing; }
-@keyframes tagPopin { from { transform: scale(0.75); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 .tags-input-wrap input {
   border: none !important; outline: none; padding: 1px var(--pp-sp-1);
   font-size: 12px; flex: 1; min-width: 80px; background: transparent; font-family: inherit; color: var(--pp-fg);
@@ -427,7 +424,10 @@ button.offline-clear:focus-visible, button.offline-toggle:focus-visible { outlin
      that surrounding surfaces are borderless soft fills. */
   box-shadow: 0 8px 24px rgba(0,0,0,0.14);
   display: flex; flex-direction: column;
-  animation: dropdownOpen 0.10s ease-out;
+  /* No open animation: the list is summoned by typing (keyboard, several times
+     per save) and it is an in-flow element, so tweening max-height pushed the
+     whole lower popup down for 100ms on every keystroke that changed the match
+     set. It now appears on the frame openAutocomplete() clears `.hidden`. */
 }
 .ac-scroll { overflow-y: auto; flex: 1 1 auto; min-height: 0; }
 .ac-item { padding: var(--pp-sp-2) var(--pp-sp-3); cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: space-between; }
@@ -927,16 +927,14 @@ html.dark .batch-progress-text { color: var(--pp-fg); mix-blend-mode: normal; fi
 .edit-cancel:focus-visible { outline: 2px solid var(--pp-accent, #4477bb); outline-offset: 1px; }
 
 .submit-bar button.saved-success { background: var(--pp-ok-bg); border-color: var(--pp-ok-bd); color: var(--pp-ok-fg); }
+/* Colour-only error state. A failed save already mounts a .feedback-card (which
+   carries the actual message) with its own entrance in the same tick, so shaking
+   the button too was two motions for one event — over-feedback trains users to
+   ignore all of it. The themed twin below was colour-only already. */
 .submit-bar button.save-error {
   background: var(--pp-warn-bg);
   border-color: var(--pp-danger);
   color: var(--pp-danger);
-  animation: pp-shake 0.35s ease-in-out;
-}
-@keyframes pp-shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-3px); }
-  75% { transform: translateX(3px); }
 }
 
 /* ===================== Dark Mode ===================== */
@@ -1050,7 +1048,11 @@ html.dark .submit-bar button.loading::before, html.dark .action-link.loading::be
   z-index: 9999;
   pointer-events: none;
 }
-body:hover .auto-close-bar { animation-play-state: paused; }
+/* No `body:hover { animation-play-state: paused }`: the auto-close timer is a
+   plain setTimeout (popup.js) that hover does not touch, so freezing the bar
+   promised a paused countdown the system was not honouring — and the popup
+   closed anyway, mid-read. Escape still cancels. Making the pause real would be
+   a product decision (a hover-driven timer), not a motion fix. */
 
 /* ===================== Empty State (B8) ===================== */
 .empty-state {
@@ -1796,7 +1798,6 @@ html[data-theme] .qbtn:hover { background: var(--pp-drop-hover); color: var(--pp
 html[data-theme] .qbtn.saving { background: var(--pp-offline-bg); border-color: var(--pp-offline-bd); color: var(--pp-offline-fg); }
 html[data-theme] .qbtn.saved { background: var(--pp-ok-bg); border-color: var(--pp-ok-bd); color: var(--pp-ok-fg); }
 html[data-theme] .existing-banner { background: var(--pp-banner-bg); border-color: var(--pp-banner-bd); color: var(--pp-banner-fg); }
-html[data-theme] .existing-banner.just-saved { background: var(--pp-ok-bg); border-color: var(--pp-ok-bg); color: var(--pp-ok-fg); }
 html[data-theme] .url-warning { background: var(--pp-warn-bg); border-color: var(--pp-warn-bd); color: var(--pp-warn-fg); }
 html[data-theme] .preset-btn { color: var(--pp-preset-fg); background: var(--pp-preset-bg); border-color: var(--pp-preset-bd); }
 html[data-theme] .preset-btn:hover { background: var(--pp-drop-hover); box-shadow: var(--pp-hover-shadow); }
@@ -1893,10 +1894,6 @@ html[data-theme] .confirm-popover button:focus-visible { outline-color: var(--pp
 @keyframes popinScale {
   from { opacity: 0; transform: scale(0.95); }
   to   { opacity: 1; transform: scale(1); }
-}
-@keyframes dropdownOpen {
-  from { opacity: 0; max-height: 0; }
-  to   { opacity: 1; max-height: 150px; }
 }
 @keyframes autoCloseCountdown {
   from { transform: scaleX(1); }
