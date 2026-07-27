@@ -61,6 +61,13 @@ function check(name, ok) { ok ? pass++ : fail++; const row = document.createElem
     /pbpQueueVocabDriveSync\(\{\s*interactive: false,\s*force: message\.force === true\s*\}\)/
       .test(syncNow) &&
     /if \(message\.force === true\) await chrome\.alarms\.clear\("vocab-sync-retry"\)/.test(syncNow));
+  // A retryable auth failure means the token could not be minted right now,
+  // not that the grant is gone. Dropping the flag makes pbpBootVocabDriveSync
+  // return early, so the retry alarm the runner just scheduled does nothing.
+  check("connect keeps the device connected when auth is only retryable",
+    /result\.retryable !== true/.test(connect) &&
+    connect.indexOf("retryable !== true") <
+      connect.indexOf("PBP_VOCAB_DRIVE_CONNECTED_KEY]: false"));
   check("disconnect message is handled", messages.includes('message.type === "vocabDriveDisconnect"'));
   check("one recovering promise tail serializes sync", source.includes("const queueVocabSync = pbpCreateRecoveringTail();") && source.includes("queueVocabSync(async () =>"));
   check("boot invokes only one noninteractive cold-start sync",

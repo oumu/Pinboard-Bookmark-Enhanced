@@ -1748,7 +1748,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     chrome.storage.local.set({ [PBP_VOCAB_DRIVE_CONNECTED_KEY]: true })
       .then(() => pbpQueueVocabDriveSync({ interactive: true, force: true }))
       .then(async (result) => {
-        if (!result.ok && (result.error === "auth" || result.error === "permission")) {
+        // A retryable auth failure means the token could not be minted right
+        // now, not that the grant is gone. Dropping the connected flag would
+        // make pbpBootVocabDriveSync return early and turn the retry alarm the
+        // runner just scheduled into a no-op.
+        if (!result.ok && result.retryable !== true &&
+            (result.error === "auth" || result.error === "permission")) {
           await chrome.storage.local.set({ [PBP_VOCAB_DRIVE_CONNECTED_KEY]: false });
         }
         return pbpVocabDriveResponse(result);

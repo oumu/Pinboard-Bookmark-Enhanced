@@ -580,6 +580,11 @@ function pbpCreateVocabDriveClient({
   };
 }
 
+// Consecutive silent token-mint failures tolerated before the account is
+// blocked. The backoff reaches roughly an hour by then, which is long enough
+// to ride out an outage and short enough that a real revocation gets named.
+const PBP_VOCAB_AUTH_RETRY_LIMIT = 5;
+
 const PBP_VOCAB_DIRTY_ALARM = "vocab-sync-dirty";
 const PBP_VOCAB_PERIODIC_ALARM = "vocab-sync-periodic";
 const PBP_VOCAB_RETRY_ALARM = "vocab-sync-retry";
@@ -684,16 +689,25 @@ function pbpCreateVocabDriveSyncRunner({
         pinboardAuthIsCurrent(startAuth) && pinboardAuthIsCurrent(current);
     };
     const finishFailure = async (source) => {
-      const result = normalizedFailure(source);
+      let result = normalizedFailure(source);
       if (result.error === "account_changed") return result;
       if (!await stillCurrent()) {
         return normalizedFailure({ error: "account_changed" });
       }
       const canPersistPreflight = /^[0-9a-f]{64}$/.test(ownerHash);
+      const attempts = [state?.retryAttempt, preflight?.retryAttempt]
+        .filter((value) => Number.isInteger(value) && value >= 0);
+      const attempt = attempts.length ? Math.max(...attempts) : 0;
+      // A revoked grant can never mint a token silently, so it never produces
+      // the 401 that would prove revocation -- it is indistinguishable from
+      // being offline. Retrying forever would leave the panel claiming the
+      // device is connected and never surface the one action that helps, so
+      // stop guessing once the backoff has covered about an hour.
+      if (result.retryable && result.error === "auth" &&
+          attempt >= PBP_VOCAB_AUTH_RETRY_LIMIT) {
+        result = { ...result, retryable: false };
+      }
       if (result.retryable) {
-        const attempts = [state?.retryAttempt, preflight?.retryAttempt]
-          .filter((value) => Number.isInteger(value) && value >= 0);
-        const attempt = attempts.length ? Math.max(...attempts) : 0;
         const retryAt = now() + pbpVocabRetryDelayMinutes(attempt, random) * 60000;
         if (state) {
           const failed = stateWith({

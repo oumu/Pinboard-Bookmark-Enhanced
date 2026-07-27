@@ -1590,6 +1590,28 @@ function syncHarness(options = {}) {
       !remoteResult.ok && remoteResult.error === "corrupt";
   });
 
+  await asyncCheck("repeated silent auth failures stop guessing and block", async () => {
+    const preflightAt = (retryAttempt) => ({
+      key: `preflight:${OWNER_HASH}`, ownerHash: OWNER_HASH,
+      retryAttempt, retryAt: null, lastError: "auth", blocked: false
+    });
+    const early = syncHarness({
+      aboutResults: [{ ok: false, error: "auth", retryable: true }],
+      preflightState: preflightAt(1)
+    });
+    const earlyResult = await early.runner()();
+    const late = syncHarness({
+      aboutResults: [{ ok: false, error: "auth", retryable: true }],
+      preflightState: preflightAt(5)
+    });
+    const lateResult = await late.runner()();
+    return earlyResult.retryable === true && early.preflight().blocked === false &&
+      !early.calls.includes("clear:vocab-sync-periodic") &&
+      lateResult.retryable === false && lateResult.error === "auth" &&
+      late.preflight().blocked === true &&
+      late.calls.includes("clear:vocab-sync-periodic");
+  });
+
   await asyncCheck("transient auth backs off, rejected auth still blocks", async () => {
     const transient = syncHarness({
       aboutResults: [{ ok: false, error: "auth", retryable: true }]
