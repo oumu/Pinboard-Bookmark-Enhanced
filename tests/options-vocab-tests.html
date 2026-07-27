@@ -851,6 +851,16 @@ check("selection still covers all filtered results beyond rendered chunks", _voc
       $id("vocab-drive-connect").hidden === false &&
       $id("vocab-drive-connect").disabled === false);
 
+    _pbpVocabDriveShowError("pinboard_auth", null, false, false);
+    const pinboardText = $id("vocab-drive-error").textContent;
+    _pbpVocabDriveRender({ ...driveStatus, owner:"", retryAt:null, lastError:null });
+    const emptyOwnerRow = $id("vocab-drive-owner").textContent;
+    check("a missing Pinboard account names itself instead of blaming Google Drive",
+      pinboardText.includes("vocabDriveErrorPinboardAuth") &&
+      !pinboardText.includes("vocabDriveErrorAuth") &&
+      !pinboardText.includes("vocabDriveReconnectRequired") &&
+      emptyOwnerRow.includes("vocabOwnerNoAccount"));
+
     _pbpVocabDriveShowError("auth", null, true, true);
     const connectedHint = $id("vocab-drive-error").textContent;
     _pbpVocabDriveShowError("auth", null, true, false);

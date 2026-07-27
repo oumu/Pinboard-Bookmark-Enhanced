@@ -137,7 +137,9 @@ function syncHarness(options = {}) {
   const outbox = [...(options.outbox || [])];
   let accountState = options.accountState ? { ...options.accountState } : null;
   let preflightState = options.preflightState ? { ...options.preflightState } : null;
-  let authAccount = options.authAccount || "pin-a";
+  // `||` would swallow "" -- the signed-out case this harness must be able
+  // to express.
+  let authAccount = options.authAccount === undefined ? "pin-a" : options.authAccount;
   let authEpoch = 1;
   const auth = () => ({ account: authAccount, epoch: authEpoch, token: "pin-token" });
   const store = {
@@ -1615,6 +1617,17 @@ function syncHarness(options = {}) {
       localPreflight && localPreflight.lastError === "local_store" &&
       localPreflight.blocked === true &&
       !remoteResult.ok && remoteResult.error === "corrupt";
+  });
+
+  await asyncCheck("a missing Pinboard account is not a Google authorization failure", async () => {
+    const h = syncHarness({ authAccount: "" });
+    const result = await h.runner()({ force: true });
+    return !result.ok && result.error === "pinboard_auth" &&
+      result.retryable === false &&
+      // No Google call, and nothing persisted: ownerHash does not exist yet.
+      !h.calls.some((call) => call.startsWith("open-session:")) &&
+      !h.calls.some((call) => call.startsWith("put-preflight:")) &&
+      h.preflight() === null;
   });
 
   await asyncCheck("repeated silent auth failures stop guessing and block", async () => {

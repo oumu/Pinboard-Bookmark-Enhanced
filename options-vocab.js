@@ -523,6 +523,8 @@ function _pbpVocabDriveDate(value) {
 function _pbpVocabDriveErrorKey(code) {
   return ({
     auth: "vocabDriveErrorAuth",
+    pinboard_auth: "vocabDriveErrorPinboardAuth",
+    not_connected: "vocabDriveDisconnected",
     permission: "vocabDriveErrorPermission",
     corrupt: "vocabDriveErrorCorrupt",
     local_store: "vocabDriveErrorLocalStore",
@@ -620,7 +622,9 @@ function _pbpVocabDriveRender(status) {
   if (account) account.textContent = displayName && email
     ? `${displayName} (${email})` : (displayName || email);
   const owner = $id("vocab-drive-owner");
-  if (owner) owner.textContent = String(status.owner || "");
+  // An empty row reads as a rendering glitch; the panel is scoped to a Pinboard
+  // account, so say when there isn't one. Same label the vocabulary list uses.
+  if (owner) owner.textContent = String(status.owner || "") || t("vocabOwnerNoAccount");
   const lastSuccess = $id("vocab-drive-last-success");
   if (lastSuccess) lastSuccess.textContent =
     _pbpVocabDriveDate(status.lastSuccessAt) || t("vocabDriveNever");

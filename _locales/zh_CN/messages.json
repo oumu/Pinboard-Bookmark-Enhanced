@@ -2853,6 +2853,9 @@
     "vocabDriveErrorAuth": {
       "message": "Google Drive 授权不可用。"
     },
+    "vocabDriveErrorPinboardAuth": {
+      "message": "尚未登录 Pinboard 账户，生词同步无法开始。请在「通用 → Pinboard 账户」中填写 API Token，然后重新连接。"
+    },
     "vocabDriveErrorPermission": {
       "message": "缺少 Google Drive 权限。"
     },

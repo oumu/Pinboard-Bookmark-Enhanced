@@ -2853,6 +2853,9 @@
     "vocabDriveErrorAuth": {
       "message": "Авторизация Google Диска недоступна."
     },
+    "vocabDriveErrorPinboardAuth": {
+      "message": "Аккаунт Pinboard не подключён, поэтому синхронизация слов не может начаться. Укажите API-токен в разделе «Общие → Аккаунт Pinboard», затем подключитесь снова."
+    },
     "vocabDriveErrorPermission": {
       "message": "Нет разрешения на доступ к Google Диску."
     },

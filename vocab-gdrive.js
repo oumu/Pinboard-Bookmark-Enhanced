@@ -816,8 +816,12 @@ function pbpCreateVocabDriveSyncRunner({
 
     try {
       startAuth = await getCurrentPinboardAuth();
+      // Distinct from "auth": there is no Pinboard account to scope the
+      // vocabulary to, so no Google call has been made and reconnecting Drive
+      // cannot help. Reported before ownerHash exists, so it is never persisted
+      // to a preflight row.
       if (!startAuth?.account || !pinboardAuthIsCurrent(startAuth)) {
-        return { ok: false, error: "auth", retryable: false };
+        return { ok: false, error: "pinboard_auth", retryable: false };
       }
       owner = pbpDictOwnerScope(startAuth.account);
       ownerHash = await hashOwner(owner);

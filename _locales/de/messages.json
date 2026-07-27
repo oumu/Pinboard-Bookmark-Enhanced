@@ -2853,6 +2853,9 @@
     "vocabDriveErrorAuth": {
       "message": "Die Google-Drive-Autorisierung ist nicht verfügbar."
     },
+    "vocabDriveErrorPinboardAuth": {
+      "message": "Es ist kein Pinboard-Konto angemeldet, daher kann die Vokabelsynchronisierung nicht starten. Trage dein API Token unter „Allgemein → Pinboard Konto“ ein und verbinde dich dann erneut."
+    },
     "vocabDriveErrorPermission": {
       "message": "Die Berechtigung für Google Drive fehlt."
     },

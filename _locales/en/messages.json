@@ -2853,6 +2853,9 @@
     "vocabDriveErrorAuth": {
       "message": "Google Drive authorization is unavailable."
     },
+    "vocabDriveErrorPinboardAuth": {
+      "message": "No Pinboard account is signed in, so vocabulary sync cannot start. Enter your API Token under General → Pinboard Account, then connect again."
+    },
     "vocabDriveErrorPermission": {
       "message": "Google Drive permission is missing."
     },

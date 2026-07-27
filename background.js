@@ -1781,7 +1781,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
     pbpVocabDriveIsConnected()
       .then(async (connected) => {
-        if (!connected) return { ok: false, error: "auth" };
+        // Not an authorization problem: this device simply has not connected.
+        if (!connected) return { ok: false, error: "not_connected" };
         if (message.force === true) await chrome.alarms.clear("vocab-sync-retry");
         return pbpQueueVocabDriveSync({
           interactive: false,

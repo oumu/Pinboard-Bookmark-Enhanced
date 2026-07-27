@@ -2853,6 +2853,9 @@
     "vocabDriveErrorAuth": {
       "message": "Autoryzacja Dysku Google jest niedostępna."
     },
+    "vocabDriveErrorPinboardAuth": {
+      "message": "Żadne konto Pinboard nie jest zalogowane, więc synchronizacja słówek nie może się rozpocząć. Wprowadź API Token w sekcji „Ogólne → Konto Pinboard”, a następnie połącz ponownie."
+    },
     "vocabDriveErrorPermission": {
       "message": "Brakuje uprawnienia do Dysku Google."
     },

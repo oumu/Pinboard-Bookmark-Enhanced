@@ -2853,6 +2853,9 @@
     "vocabDriveErrorAuth": {
       "message": "Google Drive の認証を利用できません。"
     },
+    "vocabDriveErrorPinboardAuth": {
+      "message": "Pinboard アカウントにログインしていないため、単語の同期を開始できません。「一般 → Pinboard アカウント」で API Token を入力してから、もう一度接続してください。"
+    },
     "vocabDriveErrorPermission": {
       "message": "Google Drive の権限がありません。"
     },

@@ -2853,6 +2853,9 @@
     "vocabDriveErrorAuth": {
       "message": "L'autorisation Google Drive n'est pas disponible."
     },
+    "vocabDriveErrorPinboardAuth": {
+      "message": "Aucun compte Pinboard n'est connecté, la synchronisation du vocabulaire ne peut donc pas démarrer. Saisissez votre jeton API dans « Général → Compte Pinboard », puis reconnectez-vous."
+    },
     "vocabDriveErrorPermission": {
       "message": "L'autorisation d'accès à Google Drive est manquante."
     },
