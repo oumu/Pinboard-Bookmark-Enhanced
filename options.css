@@ -8,7 +8,12 @@
   --motion-collapse: 200ms;
   --motion-pop: 140ms;
   --motion-pop-out: 100ms;
-  --motion-ease: ease;
+  /* Easing is picked per job, not shared. The built-in `ease` is symmetric --
+     it starts slow, which delays the exact frame the user is watching -- so
+     entrances and exits get a strong ease-out and only on-screen morphing gets
+     an ease-in-out. Bare `ease` stays correct for hover/colour changes. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   --opt-radius-sm: 3px;
   --opt-radius-md: 6px;
   --opt-radius-lg: 10px;
@@ -439,13 +444,19 @@ html[data-theme] .et-field select:focus-visible { box-shadow: var(--opt-focus-ri
    but Segoe UI seats the bold header glyphs lower in the line box, so a box-centered
    arrow reads high. Collapsed (▶) needs +1px; expanded (▼) is top-heavy after the
    90° rotation and reads higher, so it needs +2px. */
-.accordion-arrow { display: inline-block; width: 12px; font-size: 0; transition: transform 0.2s; position: relative; top: 1px; }
+.accordion-arrow { display: inline-block; width: 12px; font-size: 0; position: relative; top: 1px; }
 .accordion-arrow::before {
   content: ""; display: inline-block;
   border-style: solid; border-width: 4px 0 4px 6px;
   border-color: transparent transparent transparent currentColor;
 }
 .accordion-section.open .accordion-arrow { transform: rotate(90deg); top: 2px; }
+/* The arrow is the same gesture as the body it labels, so it rides the same
+   duration and curve — and the same gate. Ungated it also spun during
+   pbpAccRestore's non-user-initiated restore, on a container still hidden. */
+html.motion-ready .accordion-section.motion-toggle .accordion-arrow {
+  transition: transform var(--motion-collapse) var(--ease-in-out);
+}
 .accordion-body {
   /* bottom padding lives on .open (and transitions with the height): with it on
      the base rule, border-box height bottoms out at the 12px padding floor a
@@ -462,8 +473,8 @@ html[data-theme] .et-field select:focus-visible { box-shadow: var(--opt-focus-ri
    gates the transition AND the @starting-style entry: without it, every tab
    switch re-renders the panel subtree and replays the grow-from-0 entry. */
 html.motion-ready .accordion-section.motion-toggle .accordion-body {
-  transition: height var(--motion-collapse) var(--motion-ease),
-              padding-bottom var(--motion-collapse) var(--motion-ease),
+  transition: height var(--motion-collapse) var(--ease-in-out),
+              padding-bottom var(--motion-collapse) var(--ease-in-out),
               display var(--motion-collapse) allow-discrete;
 }
 html.motion-ready .accordion-section.motion-toggle.open .accordion-body {
@@ -483,7 +494,7 @@ details[open]::details-content {
   content-visibility: visible;
 }
 html.motion-ready details.motion-toggle::details-content {
-  transition: height var(--motion-collapse) var(--motion-ease),
+  transition: height var(--motion-collapse) var(--ease-in-out),
               content-visibility var(--motion-collapse) allow-discrete;
 }
 html.motion-ready details.motion-toggle[open]::details-content {
@@ -1110,8 +1121,8 @@ html[data-theme] textarea::-webkit-scrollbar-corner { background: var(--opt-pane
 html.motion-ready .confirm-popover {
   opacity: 1;
   translate: 0 0;
-  transition: opacity var(--motion-pop) var(--motion-ease),
-              translate var(--motion-pop) var(--motion-ease);
+  transition: opacity var(--motion-pop) var(--ease-out),
+              translate var(--motion-pop) var(--ease-out);
   @starting-style { opacity: 0; translate: 0 -4px; }
 }
 html.motion-ready .confirm-popover.is-closing {
@@ -1503,7 +1514,10 @@ html[data-theme] .preset-preview-content { background: var(--opt-bg); color: var
   height: 100%;
   background: var(--opt-accent, #4477bb);
   width: 0%;
-  transition: width 0.2s ease;
+  /* linear, not ease: this is a determinate bar driven by JS ticks. An eased
+     curve decelerates into a stall between ticks, so steady progress reads as
+     stuttering — the curve lies about the rate. */
+  transition: width 0.2s linear;
 }
 .tag-gov-progress-foot {
   display: flex;

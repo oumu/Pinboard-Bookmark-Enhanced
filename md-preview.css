@@ -6,7 +6,14 @@
   --motion-collapse: 200ms;
   --motion-pop: 140ms;
   --motion-pop-out: 100ms;
-  --motion-ease: ease;
+  /* Easing is picked per job, not shared. The built-in `ease` is symmetric --
+     it starts slow, which delays the exact frame the user is watching -- so
+     entrances and exits get a strong ease-out and the rail/panel drawers get
+     the iOS-like drawer curve. Bare `ease` stays correct for hover/colour
+     changes. (No --ease-in-out here: nothing in this file morphs in place.
+     options.css defines it for the accordion.) */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
   /* A "warm-neutral reading" palette -- document-optimized. Single
      light-dark() definition per token (Chrome 123+); color-scheme tells
      the UA which branch to resolve and also themes native form controls /
@@ -315,7 +322,7 @@ button, input, select, textarea { font-family: inherit; }
 main {
   margin-left: 264px;
   padding: 48px 32px 96px;
-  transition: margin-left 200ms ease, margin-right 200ms ease;
+  transition: margin-left 200ms var(--ease-drawer), margin-right 200ms var(--ease-drawer);
 }
 /* --pbp-width is the ONE content-width control for BOTH normal and zen
    modes (unified-width round): a JS-driven custom property (three-step
@@ -365,7 +372,7 @@ main {
 body.zen #rail {
   transform: translateX(-105%);
   visibility: hidden;
-  transition: transform 200ms ease, visibility 0s linear 200ms;
+  transition: transform 200ms var(--ease-drawer), visibility 0s linear 200ms;
 }
 /* Reduced motion (transition-round): the two blanket kill switches below
    only zero out transition-DURATION, never transition-DELAY -- so without
@@ -423,12 +430,12 @@ body.zen #skim-section { display: none; }
   border: 1px solid var(--btn-border);
   border-radius: 8px;
   box-shadow: 0 4px 16px rgba(15, 23, 42, 0.18);
-  transition: opacity 200ms ease, right 200ms ease;
+  transition: opacity 200ms ease, right 200ms var(--ease-drawer);
 }
 body.zen #zen-bar { display: flex; }
 /* Ask panel open: the bar yields the panel's top-right corner (it sat on
    the panel's copy/clear/close icons) and docks 12px left of the panel
-   edge (380px, #ask-panel width), riding the same 200ms ease as main's
+   edge (380px, #ask-panel width), riding the same 200ms drawer curve as main's
    396px push. Desktop only -- under the 1000px breakpoint the panel is a
    BOTTOM sheet (media block below resets this) and print hides the bar. */
 body.ask-open #zen-bar { right: calc(380px + 12px); }
@@ -903,7 +910,7 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
    higher specificity) defers the visibility flip until the slide finishes.
    This bare rule is overridden inside @media(max-width:1000px) below
    (~:776) -- same selector `.rail`, so at narrow viewports that block's
-   OWN `transition: transform 200ms ease, visibility 0s linear 200ms;`
+   OWN `transition: transform 200ms var(--ease-drawer), visibility 0s linear 200ms;`
    wins by source order (verified: it appears later in the file) and
    supersedes this one entirely, delay included. */
 .rail {
@@ -928,7 +935,7 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
      the width never moves. */
   scrollbar-gutter: stable;
   z-index: 20;
-  transition: transform 200ms ease, visibility 0s;
+  transition: transform 200ms var(--ease-drawer), visibility 0s;
 }
 .rail-ident h1 { font-size: 14px; font-weight: 600; line-height: 1.35; letter-spacing: -0.01em; color: var(--fg); display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .rail-ident a { display: block; margin-top: 3px; font-size: 12px; color: var(--fg-muted); text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -1220,13 +1227,13 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
   .rail {
     transform: translateX(-100%);
     visibility: hidden;
-    transition: transform 200ms ease, visibility 0s linear 200ms;
+    transition: transform 200ms var(--ease-drawer), visibility 0s linear 200ms;
     box-shadow: 6px 0 24px rgba(15,23,42,0.18);
   }
   body.rail-open .rail {
     transform: translateX(0);
     visibility: visible;
-    transition: transform 200ms ease, visibility 0s;
+    transition: transform 200ms var(--ease-drawer), visibility 0s;
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -1324,8 +1331,8 @@ body.md-empty main { margin-left: 0; }
 html.motion-ready .send-menu {
   opacity: 1;
   translate: 0 0;
-  transition: opacity var(--motion-pop) var(--motion-ease),
-              translate var(--motion-pop) var(--motion-ease),
+  transition: opacity var(--motion-pop) var(--ease-out),
+              translate var(--motion-pop) var(--ease-out),
               display var(--motion-pop) allow-discrete;
   @starting-style { opacity: 0; translate: 0 -4px; }
 }
@@ -1447,8 +1454,8 @@ html.motion-ready :is(#explain-pop, #typo-pop) {
   opacity: 0;
   translate: 0 -4px;
   pointer-events: none; /* stays rendered through the close fade; must not eat clicks */
-  transition: opacity var(--motion-pop-out) var(--motion-ease),
-              translate var(--motion-pop-out) var(--motion-ease),
+  transition: opacity var(--motion-pop-out) var(--ease-out),
+              translate var(--motion-pop-out) var(--ease-out),
               display var(--motion-pop-out) allow-discrete,
               overlay var(--motion-pop-out) allow-discrete;
 }
@@ -1662,8 +1669,8 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
 html.motion-ready .xp-gear-menu {
   opacity: 1;
   translate: 0 0;
-  transition: opacity var(--motion-pop) var(--motion-ease),
-              translate var(--motion-pop) var(--motion-ease),
+  transition: opacity var(--motion-pop) var(--ease-out),
+              translate var(--motion-pop) var(--ease-out),
               display var(--motion-pop) allow-discrete;
   @starting-style { opacity: 0; translate: 0 -4px; }
 }
@@ -1874,8 +1881,8 @@ html.motion-ready #pb-hl-bar {
   opacity: 0;
   translate: 0 -4px;
   pointer-events: none; /* stays rendered through the close fade; must not eat clicks */
-  transition: opacity var(--motion-pop-out) var(--motion-ease),
-              translate var(--motion-pop-out) var(--motion-ease),
+  transition: opacity var(--motion-pop-out) var(--ease-out),
+              translate var(--motion-pop-out) var(--ease-out),
               display var(--motion-pop-out) allow-discrete,
               overlay var(--motion-pop-out) allow-discrete;
 }
@@ -2051,7 +2058,7 @@ body.tr-only #rendered-view .pb-tr { cursor: pointer; }
   visibility: hidden;
   translate: 0 2px;
   pointer-events: none;
-  transition: opacity 140ms var(--motion-ease), translate 140ms var(--motion-ease);
+  transition: opacity 140ms var(--ease-out), translate 140ms var(--ease-out);
 }
 .pb-tr-err:hover::after,
 .pb-tr-err:focus-visible::after {
@@ -2143,7 +2150,7 @@ body.tr-only #rendered-view .pb-tr { cursor: pointer; }
   border-left: 1px solid var(--border);
   overflow: hidden;
   z-index: 18; /* deliberately below .rail-scrim (19) and .rail (20) */
-  transition: transform 200ms ease, visibility 0s;
+  transition: transform 200ms var(--ease-drawer), visibility 0s;
 }
 /* md-ask.js only ever flips the `hidden` PROPERTY (panel.hidden = !open) --
    it never touches CSS itself (transition-round; do not add a JS-side
@@ -2168,7 +2175,7 @@ body.tr-only #rendered-view .pb-tr { cursor: pointer; }
   display: flex;
   transform: translateX(calc(100% + 24px));
   visibility: hidden;
-  transition: transform 200ms ease, visibility 0s linear 200ms;
+  transition: transform 200ms var(--ease-drawer), visibility 0s linear 200ms;
 }
 /* Reduced motion (transition-round): same reasoning as body.zen #rail
    above -- the blanket kill switches only zero transition-DURATION, never
@@ -2577,7 +2584,7 @@ body.ask-open main { margin-right: 396px; }
 html.motion-ready #fn-pop {
   opacity: 0;
   pointer-events: none; /* stays rendered through the close fade; must not eat clicks */
-  transition: opacity var(--motion-pop-out) var(--motion-ease),
+  transition: opacity var(--motion-pop-out) var(--ease-out),
               display var(--motion-pop-out) allow-discrete,
               overlay var(--motion-pop-out) allow-discrete;
 }
@@ -2732,7 +2739,7 @@ html.motion-ready #fn-pop:popover-open {
 html.motion-ready :is(#search-pop, #kbd-help-pop, #pb-hl-card) {
   opacity: 0;
   pointer-events: none; /* stays rendered through the close fade; must not eat clicks */
-  transition: opacity var(--motion-pop-out) var(--motion-ease),
+  transition: opacity var(--motion-pop-out) var(--ease-out),
               display var(--motion-pop-out) allow-discrete,
               overlay var(--motion-pop-out) allow-discrete;
 }
