@@ -1977,15 +1977,28 @@ function _pbpExplainEnsurePop() {
   head.addEventListener("pointerdown", (e) => {
     if (!e.isPrimary || e.button !== 0 || e.target.closest("button,a,input,select,textarea,label,[contenteditable]")) return;
     const rect = pop.getBoundingClientRect();
-    _pbpExplainDrag = { pointerId: e.pointerId, x: e.clientX, y: e.clientY, left: rect.left, top: rect.top };
-    _pbpExplainSetPinned(pop, true);
-    pop.classList.add("xp-dragging");
+    // `moved` gates the commit. Pinning here, on pointerdown, meant a plain
+    // press on the header silently took the card out of light-dismiss (the
+    // outside-pointerdown handler bails while pinned) -- so a click that only
+    // meant to grab attention changed how the card closes, with nothing on
+    // screen saying so. Nothing is committed until the pointer actually travels.
+    _pbpExplainDrag = { pointerId: e.pointerId, x: e.clientX, y: e.clientY, left: rect.left, top: rect.top, moved: false };
     try { head.setPointerCapture(e.pointerId); } catch (_) {}
     e.preventDefault();
   });
   head.addEventListener("pointermove", (e) => {
     const drag = _pbpExplainDrag;
     if (!drag || drag.pointerId !== e.pointerId) return;
+    if (!drag.moved) {
+      // 4px of hysteresis: below this it is a press, not a drag. Small because
+      // this is repositioning, not a directional swipe that needs to commit.
+      if (Math.abs(e.clientX - drag.x) < 4 && Math.abs(e.clientY - drag.y) < 4) return;
+      drag.moved = true;
+      _pbpExplainSetPinned(pop, true);
+      pop.classList.add("xp-dragging");
+    }
+    // Anchored to the original grab point, so total travel matches the pointer
+    // exactly; the first placed frame simply catches up the 4px already spent.
     _pbpExplainPlace(pop, drag.left + e.clientX - drag.x, drag.top + e.clientY - drag.y);
     e.preventDefault();
   });
@@ -2507,7 +2520,18 @@ function _pbpExplainOpenPop(cap, initialAction) {
   if (!_pbpExplainPinned) {
     // Loose panels follow the newest selection. Pinned panels keep the exact
     // user-controlled position while _pbpExplainRun takes over their content.
-    const ph = pop.offsetHeight;
+    //
+    // Place against the card's MAXIMUM height, not the empty shell's current
+    // one. _pbpExplainRun fills the body on the next line, so measuring here
+    // measured a skeleton (~150px). The card would then open downward "because
+    // it fits", grow past the viewport as the answer streamed, and get clamped
+    // back up by the ResizeObserver -- one un-transitioned jump per frame --
+    // or flip above using that same small height and grow back down over the
+    // very text it was explaining. The cap comes from the stylesheet
+    // (#explain-pop max-height) so the two cannot drift, and .xp-body already
+    // scrolls inside it.
+    const capped = parseFloat(getComputedStyle(pop).maxHeight);
+    const ph = Number.isFinite(capped) ? capped : pop.offsetHeight;
     let y = rect.bottom + PBP_EXPLAIN_EDGE;
     if (y + ph > window.innerHeight - PBP_EXPLAIN_EDGE) {
       y = rect.top - ph - PBP_EXPLAIN_EDGE;

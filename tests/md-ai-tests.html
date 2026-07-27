@@ -6181,7 +6181,7 @@ suite("skim status line", () => {
     assert(!pop.matches(":popover-open") && aborts === 1, "close button did not perform one real close");
   });
 
-  await atest("header drag auto-pins, captures the pointer, clamps edges and ignores controls", async () => {
+  await atest("header drag needs 4px before it commits, then captures, pins and clamps", async () => {
     await reset();
     await show();
     const head = pop.querySelector(".xp-head");
@@ -6200,8 +6200,19 @@ suite("skim status line", () => {
     assertEq(pin.getAttribute("aria-pressed"), "false", "secondary pointer auto-pinned");
     head.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0, pointerId: 11, isPrimary: true, clientX: 80, clientY: 80 }));
     assertEq(captured, 11, "header did not capture pointer");
-    assertEq(pin.getAttribute("aria-pressed"), "true", "drag did not auto-pin");
+    // Pressing the header must not commit anything. Pinning takes the card out
+    // of light-dismiss, so a press meant only to grab it would silently change
+    // how the card closes, with nothing on screen saying so.
+    assertEq(pin.getAttribute("aria-pressed"), "false", "header pointerdown pinned before any movement");
+    assert(!pop.classList.contains("xp-dragging"), "drag class applied before any movement");
+    const restLeft = pop.style.left, restTop = pop.style.top;
+    head.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, pointerId: 11, clientX: 83, clientY: 83 }));
+    assertEq(pin.getAttribute("aria-pressed"), "false", "3px of travel committed a drag");
+    assertEq(pop.style.left, restLeft, "sub-threshold move repositioned the card");
+    assertEq(pop.style.top, restTop, "sub-threshold move repositioned the card");
     head.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, pointerId: 11, clientX: -1000, clientY: -1000 }));
+    assertEq(pin.getAttribute("aria-pressed"), "true", "a real drag did not pin");
+    assert(pop.classList.contains("xp-dragging"), "drag class missing during a real drag");
     assertEq(pop.style.left, "8px", "left safe edge");
     assertEq(pop.style.top, "8px", "top safe edge");
     head.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, pointerId: 11, clientX: 5000, clientY: 5000 }));

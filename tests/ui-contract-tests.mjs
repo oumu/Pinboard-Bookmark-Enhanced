@@ -1020,6 +1020,85 @@ check(mdCss.includes("text-autospace: normal") && /#rendered-view :is\(pre, code
   }
 }
 
+// ---- Explain popover: the drag must not commit on a plain press ----
+{
+  const down = mdAskJs.slice(mdAskJs.indexOf('head.addEventListener("pointerdown"'),
+    mdAskJs.indexOf('const endDrag = (e) =>'));
+  const [downHandler, moveHandler] = down.split('head.addEventListener("pointermove"');
+  // Pinning takes the card out of light-dismiss, so pinning on pointerdown made
+  // a press that only meant to grab the card silently change how it closes.
+  check(!downHandler.includes("_pbpExplainSetPinned") && !downHandler.includes('classList.add("xp-dragging")'),
+    "md-ask.js: the explain popover pins (and leaves light-dismiss) on pointerdown, before the pointer has moved");
+  check(moveHandler.includes("drag.moved") &&
+    /Math\.abs\(e\.clientX - drag\.x\) < 4 && Math\.abs\(e\.clientY - drag\.y\) < 4/.test(moveHandler) &&
+    moveHandler.includes("_pbpExplainSetPinned(pop, true)"),
+    "md-ask.js: the explain popover drag lost its movement threshold, so a press commits a drag");
+  // Placement must budget the card's maximum height, not the empty shell's:
+  // _pbpExplainRun fills the body on the very next line.
+  check(mdAskJs.includes("const capped = parseFloat(getComputedStyle(pop).maxHeight);") &&
+    mdAskJs.includes("const ph = Number.isFinite(capped) ? capped : pop.offsetHeight;"),
+    "md-ask.js: the explain popover is placed from its pre-content height again, so streamed answers push it around or cover the selection");
+  check(/#explain-pop \{[\s\S]{0,400}max-height: min\(480px, calc\(100vh - 32px\)\);/.test(mdCss),
+    "md-preview.css: #explain-pop lost the max-height that md-ask.js reads back for placement");
+  check(/\.xp-body \{[\s\S]{0,600}min-height: calc\(4\.3em \+ 20px\);/.test(mdCss),
+    "md-preview.css: .xp-body min-height no longer matches the 3-bar skeleton, so the card shrinks then re-grows on the first token");
+}
+
+// ---- Connectivity tests: one run per target, and no cross-run status wipe ----
+{
+  check(/const btn = \$id\(`test-\$\{provider\}`\);\s*\n\s*if \(btn\?\.disabled\) return;\s*\n\s*if \(btn\) btn\.disabled = true;/.test(optionsConnectivityJs) &&
+    /\} finally \{\s*\n\s*if \(btn\) btn\.disabled = false;\s*\n\s*\}/.test(optionsConnectivityJs),
+    "options-connectivity.js: provider Test buttons stay live during an unbounded network call, so two runs can share one status element");
+  // Anonymous clear timers let a finished run erase the next run's real result.
+  check(!/setTimeout\(\(\) => \{ statusEl\.textContent = ""/.test(optionsConnectivityJs),
+    "options-connectivity.js: a status clear timer is unkeyed again — a finished run will wipe the next run's result off screen");
+  check(optionsConnectivityJs.includes("const _testClearTimers = new Map();") &&
+    /function scheduleStatusClear\(key, statusEl, ms\) \{\s*\n\s*cancelStatusClear\(key\);/.test(optionsConnectivityJs),
+    "options-connectivity.js: the per-target status clear timers are gone");
+}
+
+// ---- Site-theme cloak: paint the themed background, never the white canvas ----
+{
+  const styleJs = read("pinboard-style.js");
+  // The cloak must hide the BODY and paint the root, not just zero the root's
+  // opacity: opacity on the root is not a reliable way to keep the propagated
+  // canvas background painted, and the canvas is exactly what shows for the
+  // up-to-400ms the theme takes to load.
+  check(/html \{ background: \$\{_pbpCloakBg\} !important; \} body \{ opacity: 0 !important; \}/.test(styleJs),
+    "pinboard-style.js: cloak no longer paints the cached background, so themed loads flash the browser's white canvas");
+  check(styleJs.includes('_pbpCloak.textContent = _pbpCloakBg'),
+    "pinboard-style.js: cloak stopped branching on a cached background");
+  // The cached value comes out of pinboard.in's own localStorage and goes into
+  // a <style> element. It must be validated on the way in, every time.
+  const reSrc = styleJs.match(/const PBP_CLOAK_BG_RE = (\/.*\/);/);
+  check(!!reSrc, "pinboard-style.js: PBP_CLOAK_BG_RE is gone — the cached colour would reach <style> unvalidated");
+  if (reSrc) {
+    check(/PBP_CLOAK_BG_RE\.test\(cached\)/.test(styleJs) && /PBP_CLOAK_BG_RE\.test\(bg\)/.test(styleJs),
+      "pinboard-style.js: the cloak colour is validated on only one of the read/write paths");
+    const re = runInNewContext(reSrc[1]);
+    for (const good of ["rgb(28, 27, 26)", "rgba(28, 27, 26, 0.5)", "rgb(255,255,255)", "rgba(0, 0, 0, 1)"]) {
+      check(re.test(good), `pinboard-style.js: PBP_CLOAK_BG_RE rejects a legitimate computed colour ${good}`);
+    }
+    for (const bad of [
+      "red",
+      "rgb(28, 27, 26); } body { display: none",
+      "url(javascript:alert(1))",
+      "var(--x)",
+      "rgb(28, 27, 26) !important",
+      "expression(alert(1))",
+      "",
+    ]) {
+      check(!re.test(bad), `pinboard-style.js: PBP_CLOAK_BG_RE accepts "${bad}" — that string would be injected into a <style> element`);
+    }
+  }
+  // Sampling the background at document_start would read the UA default,
+  // because the page's own stylesheet has not been applied yet.
+  check(/if \(document\.readyState === "complete"\) cacheCloakBg\(\);\s*\n\s*else window\.addEventListener\("load", cacheCloakBg, \{ once: true \}\);/.test(styleJs),
+    "pinboard-style.js: the cloak colour is sampled before load, so it would cache the UA default instead of the theme");
+  check(/if \(!_pbpThemed\) \{ localStorage\.removeItem\("pbp_cloak_bg"\); return; \}/.test(styleJs),
+    "pinboard-style.js: removing the theme leaves a stale cloak colour cached");
+}
+
 if (fail.length) {
   console.error(fail.join("\n"));
   process.exit(1);

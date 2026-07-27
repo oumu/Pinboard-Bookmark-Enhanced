@@ -29,56 +29,85 @@ function pbpLiveAiSettingsSnapshot(provider) {
 
 function setupApiTests() {
 
+  // Every test result is wiped by a timer. Held anonymously, a finished run's
+  // pending clear fires in the middle of the NEXT run for the same target and
+  // erases a real result off screen. Keyed by target, each run cancels its
+  // predecessor's clear before scheduling its own.
+  const _testClearTimers = new Map();
+  function cancelStatusClear(key) {
+    clearTimeout(_testClearTimers.get(key));
+    _testClearTimers.delete(key);
+  }
+  function scheduleStatusClear(key, statusEl, ms) {
+    cancelStatusClear(key);
+    _testClearTimers.set(key, setTimeout(() => {
+      _testClearTimers.delete(key);
+      statusEl.textContent = "";
+      statusEl.style.color = "";
+    }, ms));
+  }
+
   async function testAIProvider(provider) {
     const statusEl = $id(`test-${provider}-status`);
     if (!statusEl) return;
-    statusEl.classList.remove("ok", "bad");
-    statusEl.textContent = t("testTesting");
-    statusEl.style.color = "#888";
-
-    const cs = pbpLiveAiSettingsSnapshot(provider);
-
-    if (!hasAIKey(cs)) {
-      setStatusIcon(statusEl, false, t("testNoApiKey"));
-      statusEl.style.color = "#c00";
-      setTimeout(() => { statusEl.textContent = ""; statusEl.style.color = ""; }, 5000);
-      return;
-    }
-
-    // Test is a direct user gesture: request only this provider's exact origin before
-    // calling it. Automatic/background paths stay contains-only and never prompt.
-    let originPattern = null;
-    let granted = false;
+    // The call underneath is an unbounded network request. Without this the
+    // button stayed live throughout, so a second click started a concurrent run
+    // against the same status element. Mirrors the Pinboard token test below.
+    const btn = $id(`test-${provider}`);
+    if (btn?.disabled) return;
+    if (btn) btn.disabled = true;
+    cancelStatusClear(provider);
     try {
-      originPattern = _aiTargetOriginPattern(cs);
-      granted = await requestAIHostPermissions(cs);
-    } catch (err) {
-      setStatusIcon(statusEl, false, err?.message || t("networkError"));
-      statusEl.style.color = "#c00";
-      setTimeout(() => { statusEl.textContent = ""; statusEl.style.color = ""; }, 5000);
-      return;
-    }
-    if (!granted) {
-      setStatusIcon(statusEl, false, t("aiErrorHostPermission", originPattern.replace(/\/\*$/, "")));
-      statusEl.style.color = "#c00";
-      setTimeout(() => { statusEl.textContent = ""; statusEl.style.color = ""; }, 5000);
-      return;
-    }
+      statusEl.classList.remove("ok", "bad");
+      statusEl.textContent = t("testTesting");
+      statusEl.style.color = "#888";
 
-    try {
-      const result = await callAI(cs, "Reply with just the word: OK");
+      const cs = pbpLiveAiSettingsSnapshot(provider);
 
-      setStatusIcon(statusEl, true, t("testConnected", (result || "OK").substring(0, 20)));
-      statusEl.style.color = "#080";
-      setTimeout(() => { statusEl.textContent = ""; statusEl.style.color = ""; }, 4000);
-    } catch (err) {
-      let msg = err.name === "AbortError" ? t("testTimeout") : err.message;
-      if (err?.code === "model_not_found") {
-        msg = t("aiErrorModelNotFound", cs.aiProvider) + " " + t("aiErrorModelNotFoundHint");
+      if (!hasAIKey(cs)) {
+        setStatusIcon(statusEl, false, t("testNoApiKey"));
+        statusEl.style.color = "#c00";
+        scheduleStatusClear(provider, statusEl, 5000);
+        return;
       }
-      setStatusIcon(statusEl, false, msg);
-      statusEl.style.color = "#c00";
-      setTimeout(() => { statusEl.textContent = ""; statusEl.style.color = ""; }, 5000);
+
+      // Test is a direct user gesture: request only this provider's exact origin before
+      // calling it. Automatic/background paths stay contains-only and never prompt.
+      let originPattern = null;
+      let granted = false;
+      try {
+        originPattern = _aiTargetOriginPattern(cs);
+        granted = await requestAIHostPermissions(cs);
+      } catch (err) {
+        setStatusIcon(statusEl, false, err?.message || t("networkError"));
+        statusEl.style.color = "#c00";
+        scheduleStatusClear(provider, statusEl, 5000);
+        return;
+      }
+      if (!granted) {
+        setStatusIcon(statusEl, false, t("aiErrorHostPermission", originPattern.replace(/\/\*$/, "")));
+        statusEl.style.color = "#c00";
+        scheduleStatusClear(provider, statusEl, 5000);
+        return;
+      }
+
+      try {
+        const result = await callAI(cs, "Reply with just the word: OK");
+
+        setStatusIcon(statusEl, true, t("testConnected", (result || "OK").substring(0, 20)));
+        statusEl.style.color = "#080";
+        scheduleStatusClear(provider, statusEl, 4000);
+      } catch (err) {
+        let msg = err.name === "AbortError" ? t("testTimeout") : err.message;
+        if (err?.code === "model_not_found") {
+          msg = t("aiErrorModelNotFound", cs.aiProvider) + " " + t("aiErrorModelNotFoundHint");
+        }
+        setStatusIcon(statusEl, false, msg);
+        statusEl.style.color = "#c00";
+        scheduleStatusClear(provider, statusEl, 5000);
+      }
+    } finally {
+      if (btn) btn.disabled = false;
     }
   }
 
@@ -116,10 +145,11 @@ function setupApiTests() {
     if (isValidTokenFormat(token) === false || !token) {
       setStatusIcon(statusEl, false, t("loginInvalidFormat"));
       statusEl.style.color = "#c00";
-      setTimeout(() => { statusEl.textContent = ""; statusEl.style.color = ""; }, 4000);
+      scheduleStatusClear("pinboard", statusEl, 4000);
       return;
     }
     btn.disabled = true;
+    cancelStatusClear("pinboard");
     statusEl.classList.remove("ok", "bad");
     statusEl.textContent = t("testTesting");
     statusEl.style.color = "";
@@ -143,7 +173,7 @@ function setupApiTests() {
       statusEl.style.color = "#c00";
     } finally {
       btn.disabled = false;
-      setTimeout(() => { statusEl.textContent = ""; statusEl.style.color = ""; }, 5000);
+      scheduleStatusClear("pinboard", statusEl, 5000);
     }
   });
 }

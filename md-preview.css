@@ -1557,7 +1557,12 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
 .xp-body {
   padding: 10px 14px;
   overflow-y: auto;
-  min-height: 64px;
+  /* Matches the loading skeleton exactly, so the card does not visibly shrink
+     and re-grow the instant the first token lands. Three .xp-skel bars at
+     0.7em with collapsing 0.55em margins = 4.3em of content, plus this rule's
+     own 10px + 10px padding (border-box). Both ems resolve against the same
+     --panel-payload-fs base, so the two stay locked across typography tiers. */
+  min-height: calc(4.3em + 20px);
   line-height: 1.6;
   /* font-size inherits the popover's --panel-payload-fs em base (see
      #explain-pop) -- payload text renders at 1em of the typography tier. */
@@ -1587,6 +1592,10 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
   white-space: nowrap;
 }
 .xp-retry:hover, .xp-ask:hover, .xp-save:hover:not(:disabled), .xp-vocab:hover:not(:disabled), .xp-open-vocab:hover, .xp-dict-connect:hover:not(:disabled) { background: var(--btn-hover); }
+/* Press feedback, same family as .action-btn above. These hand off to
+   multi-second network calls, so the press is the only thing that can confirm
+   the click landed. Not transitioned: a press must read instantly. */
+.xp-retry:active, .xp-ask:active, .xp-save:active:not(:disabled), .xp-vocab:active:not(:disabled), .xp-open-vocab:active, .xp-dict-connect:active:not(:disabled) { transform: translateY(1px); }
 .xp-save:disabled, .xp-vocab:disabled, .xp-dict-connect:disabled { opacity: 0.6; cursor: default; }
 .xp-foot {
   display: flex;

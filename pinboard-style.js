@@ -21,11 +21,30 @@ const PBP_ADAPTIVE_THEME_MAP = {
 // origin); shared.js's chrome.storage mirror is async and unavailable that early.
 let _pbpHasTheme = false;
 try { _pbpHasTheme = localStorage.getItem("pbp_has_theme") === "1"; } catch (_) {}
+// Paint the last rendered background underneath the cloak. Hiding the page
+// without one showed the browser's default canvas -- white -- for up to 400ms
+// and then hard cut to the theme, so the eight-plus dark presets flashed white
+// on every pinboard.in load. The value is written back after the theme applies
+// (see the end of this file) by reading what actually rendered, which keeps
+// preset CSS unparsed and sidesteps the adaptive presets' light/dark split.
+// It is validated to an rgb()/rgba() literal first: it lives in pinboard.in's
+// own localStorage, which makes it untrusted input to a <style> element.
+const PBP_CLOAK_BG_RE = /^rgba?\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(?:,\s*(?:0|1|0?\.\d+)\s*)?\)$/;
+let _pbpCloakBg = "";
+try {
+  const cached = localStorage.getItem("pbp_cloak_bg") || "";
+  if (PBP_CLOAK_BG_RE.test(cached)) _pbpCloakBg = cached;
+} catch (_) {}
 let _pbpCloak = null;
 if (_pbpHasTheme) {
   _pbpCloak = document.createElement("style");
   _pbpCloak.id = "pbp-cloak";
-  _pbpCloak.textContent = "html { opacity: 0 !important; }";
+  // Hide the BODY, not the root: opacity on the root element is not a reliable
+  // way to keep the propagated canvas background painted, and the whole point
+  // here is that the canvas keeps showing the themed colour.
+  _pbpCloak.textContent = _pbpCloakBg
+    ? `html { background: ${_pbpCloakBg} !important; } body { opacity: 0 !important; }`
+    : "html { opacity: 0 !important; }";
   (document.head || document.documentElement).appendChild(_pbpCloak);
 }
 
@@ -152,6 +171,25 @@ if (_pbpHasTheme) {
       style.textContent = combined;
       (document.head || document.documentElement).appendChild(style);
     }
+
+    // Cache the background this load actually rendered, for the NEXT cold
+    // load's cloak. Deferred to `load` because at document_start the page's own
+    // stylesheet has not been applied yet, so the computed value would be the
+    // UA default. Only ever read on the next navigation, so the delay is free.
+    // One value, not one per light/dark: the next load almost always renders
+    // the same mode, and a mismatch costs one 400ms frame of the wrong shade --
+    // never the white flash this replaces.
+    const cacheCloakBg = () => {
+      try {
+        if (!_pbpThemed) { localStorage.removeItem("pbp_cloak_bg"); return; }
+        const bg = getComputedStyle(document.body).backgroundColor;
+        if (PBP_CLOAK_BG_RE.test(bg) && bg !== "rgba(0, 0, 0, 0)") {
+          localStorage.setItem("pbp_cloak_bg", bg);
+        }
+      } catch (_) {}
+    };
+    if (document.readyState === "complete") cacheCloakBg();
+    else window.addEventListener("load", cacheCloakBg, { once: true });
   } catch (_) {}
 
   uncloak();
