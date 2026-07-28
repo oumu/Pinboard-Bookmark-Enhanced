@@ -894,7 +894,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.addEventListener("click", (e) => {
     const summary = e.target.closest("summary");
     const det = summary && summary.closest("details");
-    if (det) pbpMotionMark(det);
+    if (det) { pbpMotionMark(det); return; }
+    // Notes and Vocabulary row cards: same gesture, different markup -- they
+    // toggle the `hidden` property on their body instead of a class. Capture
+    // phase again, so the marker is in place before the card's own listener
+    // unsets [hidden] and the entry frame renders.
+    const cardHead = e.target.closest(".notes-card-head");
+    const card = cardHead && cardHead.closest(".notes-card");
+    if (card) pbpMotionMark(card);
   }, true);
   document.addEventListener("toggle", (e) => {
     const det = e.target.closest?.("details[data-acc-key]");

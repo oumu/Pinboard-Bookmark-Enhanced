@@ -1852,6 +1852,34 @@ html[data-theme="flexoki-dark"] #panel-vocab .vocab-details-body > .hint {
   border-top: 1px solid color-mix(in srgb, var(--opt-border, #ccc) 70%, transparent);
   padding: var(--opt-sp-4) var(--opt-sp-5) var(--opt-sp-5);
 }
+/* Row disclosure in the Notes and Vocabulary lists. This is the same gesture as
+   the settings accordions above, so it takes the same duration, curve and gate.
+   The gate earns its place here twice over: filtering, searching or deleting
+   rebuilds every card, and the Vocabulary list renders in batches of 100 -- an
+   ungated rule would replay the grow-from-0 on every one of them.
+   These rows toggle the `hidden` PROPERTY rather than a class, so the discrete
+   display flip is what has to be transitioned; the height rides along because
+   :root sets interpolate-size: allow-keywords. */
+html.motion-ready .notes-card.motion-toggle > .notes-card-body {
+  overflow: clip; /* only while the marker is on, so focus rings are not clipped at rest */
+  transition: height var(--motion-collapse) var(--ease-in-out),
+              padding-top var(--motion-collapse) var(--ease-in-out),
+              padding-bottom var(--motion-collapse) var(--ease-in-out),
+              display var(--motion-collapse) allow-discrete;
+}
+html.motion-ready .notes-card.motion-toggle > .notes-card-body[hidden] {
+  height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+html.motion-ready .notes-card.motion-toggle > .notes-card-body:not([hidden]) {
+  @starting-style { height: 0; padding-top: 0; padding-bottom: 0; }
+}
+/* The chevron is the same gesture again, so it rides the same duration/curve as
+   the settings accordion arrow instead of snapping. */
+html.motion-ready .notes-card.motion-toggle .notes-card-chevron {
+  transition: transform var(--motion-collapse) var(--ease-in-out);
+}
 .notes-unknown-hint {
   font-size: 11px;
   color: var(--opt-fg-muted, #666);
