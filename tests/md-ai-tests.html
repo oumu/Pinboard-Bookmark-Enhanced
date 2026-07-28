@@ -962,8 +962,8 @@ suite("pbpAiAvailable / pbpAiResolveModelOverride", () => {
 // ============ Task 6: IDB key conventions + ask-history cap ============
 suite("md-ai IDB key conventions", () => {
   test("tr_ key includes the account owner namespace", () => {
-    const k = _pbpTrCacheKey("https://a.test/x", "zh-CN", "gemini-2.5-flash-lite", "alice");
-    assert(k === "tr_acct_alice_zh-CN_gemini-2.5-flash-lite_" + pbpAiHash("https://a.test/x"), "got: " + k);
+    const k = _pbpTrCacheKey("https://a.test/x", "zh-CN", "gemini-3.5-flash-lite", "alice");
+    assert(k === "tr_acct_alice_zh-CN_gemini-3.5-flash-lite_" + pbpAiHash("https://a.test/x"), "got: " + k);
   });
   test("ask_ includes the owner namespace and normalizes the URL", () => {
     assert(_pbpAskHistKey("https://a.test/x", "alice") === "ask_acct_alice_" + pbpAiHash(pbpAiCacheUrlNorm("https://a.test/x")), "owner-scoped ask key");
@@ -5789,7 +5789,7 @@ suiteIf("skim cache metadata", "_pbpSkimCacheMeta", () => {
     assertEq(a.modelKey, "openai:m-A", "configured model in identity");
     assert(a.modelKey !== b.modelKey, "configured-model switch changes identity");
     const g = _pbpSkimCacheMeta({ s: { aiProvider: "gemini", aiSummaryLang: "en" } });
-    assertEq(g.modelKey, "gemini:gemini-2.5-flash-lite", "provider default resolved, not 'default'");
+    assertEq(g.modelKey, "gemini:gemini-3.5-flash-lite", "provider default resolved, not 'default'");
   });
 
   test("cache entry with same blocks/lang/model matches", () => {

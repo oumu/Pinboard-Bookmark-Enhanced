@@ -486,7 +486,7 @@ function pbpAiEffectiveModel(s) {
   if (o) return o;
   const st = s || {};
   const p = st.aiProvider || "gemini";
-  const own = p === "gemini" ? (st.geminiModel || "gemini-2.5-flash-lite")
+  const own = p === "gemini" ? (st.geminiModel || "gemini-3.5-flash-lite")
     : p === "claude" ? (st.claudeModel || "claude-haiku-4-5")
     : p === "ollama" ? (st.ollamaModel || "llama3.2")
     : null;

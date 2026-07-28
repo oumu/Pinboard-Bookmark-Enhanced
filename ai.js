@@ -210,7 +210,7 @@ const OPENAI_COMPAT_PROVIDERS = {
   deepseek:    { keyField: "deepseekApiKey",    base: "https://api.deepseek.com/v1",                                            modelField: "deepseekModel",    defaultModel: "deepseek-v4-flash",               thinkingOff: { thinking: { type: "disabled" } } },  // v4-flash defaults thinking ON; 4xx self-heal (deepseek-reasoner rejects it)
   qwen:        { keyField: "qwenApiKey",        base: "https://dashscope.aliyuncs.com/compatible-mode/v1",                      modelField: "qwenModel",        defaultModel: "qwen-flash",                      thinkingOff: { enable_thinking: false } },
   minimax:     { keyField: "minimaxApiKey",     base: "https://api.minimaxi.com/v1",                                            modelField: "minimaxModel",     defaultModel: "MiniMax-M2",                      thinkingOff: { thinking: { type: "disabled" } } },  // M2 no-op but harmless; M3-ready
-  openrouter:  { keyField: "openrouterApiKey",  base: "https://openrouter.ai/api/v1",                                           modelField: "openrouterModel",  defaultModel: "meta-llama/llama-4-scout:free",   thinkingOff: { reasoning: { enabled: false } } },
+  openrouter:  { keyField: "openrouterApiKey",  base: "https://openrouter.ai/api/v1",                                           modelField: "openrouterModel",  defaultModel: "openai/gpt-oss-20b:free",   thinkingOff: { reasoning: { enabled: false } } },
   groq:        { keyField: "groqApiKey",        base: "https://api.groq.com/openai/v1",                                         modelField: "groqModel",        defaultModel: "llama-3.1-8b-instant" },          // no thinkingOff: no safe universal field; groq doesn't think by default
   mistral:     { keyField: "mistralApiKey",     base: "https://api.mistral.ai/v1",                                              modelField: "mistralModel",     defaultModel: "mistral-small-latest",            thinkingOff: { reasoning_effort: "none" } },
   cohere:      { keyField: "cohereApiKey",      base: "https://api.cohere.ai/compatibility/v1",                                 modelField: "cohereModel",      defaultModel: "command-r7b-12-2024",             thinkingOff: { reasoning_effort: "none" } },
@@ -380,7 +380,7 @@ async function callAI(s, prompt, opts = {}) {
 }
 
 async function callGemini(s, prompt, opts = {}) {
-  const model = s.geminiModel || "gemini-2.5-flash-lite";
+  const model = s.geminiModel || "gemini-3.5-flash-lite";
   const maxTokens = opts.maxTokens || 1024;
   // Gemini API requires key as URL param (no Authorization header support) — API design limitation
   const res = await fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${s.geminiApiKey}`, {
@@ -719,7 +719,7 @@ async function _streamOpenAICompat(baseUrl, apiKey, model, prompt, opts, onDelta
 }
 
 async function _streamGemini(s, prompt, opts, onDelta) {
-  const model = opts.model || s.geminiModel || "gemini-2.5-flash-lite";
+  const model = opts.model || s.geminiModel || "gemini-3.5-flash-lite";
   const generationConfig = {
     temperature: opts.temperature !== undefined ? opts.temperature : 0.3,
     maxOutputTokens: opts.maxTokens || 1024
@@ -1068,7 +1068,7 @@ function _aiFpHash(str) {
 // dispatches per provider (configured model, else that provider's default).
 function _aiEffectiveModelForFp(s) {
   const p = s.aiProvider || "gemini";
-  if (p === "gemini") return s.geminiModel || "gemini-2.5-flash-lite";
+  if (p === "gemini") return s.geminiModel || "gemini-3.5-flash-lite";
   if (p === "claude") return s.claudeModel || "claude-haiku-4-5";
   if (p === "ollama") return s.ollamaModel || "llama3.2";
   const cfg = OPENAI_COMPAT_PROVIDERS[p];

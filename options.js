@@ -528,10 +528,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     ai: {
       fields: {
         "opt-ai-provider": "gemini",
-        "opt-gemini-model": "gemini-2.5-flash-lite", "opt-openai-model": "gpt-5.4-nano",
+        "opt-gemini-model": "gemini-3.5-flash-lite", "opt-openai-model": "gpt-5.4-nano",
         "opt-openai-baseurl": "https://api.openai.com/v1", "opt-claude-model": "claude-haiku-4-5",
         "opt-deepseek-model": "deepseek-v4-flash", "opt-qwen-model": "qwen-flash",
-        "opt-minimax-model": "MiniMax-M2", "opt-openrouter-model": "meta-llama/llama-4-scout:free",
+        "opt-minimax-model": "MiniMax-M2", "opt-openrouter-model": "openai/gpt-oss-20b:free",
         "opt-groq-model": "llama-3.1-8b-instant", "opt-mistral-model": "mistral-small-latest",
         "opt-cohere-model": "command-r7b-12-2024", "opt-siliconflow-model": "Qwen/Qwen3-8B",
         "opt-zhipu-model": "glm-4.7-flash", "opt-kimi-model": "kimi-k2.6",
@@ -1685,7 +1685,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       // AI Provider & Keys
       aiProvider: $id("opt-ai-provider").value,
       geminiApiKey: obfuscateKey($id("opt-gemini-key").value.trim()),
-      geminiModel: $id("opt-gemini-model").value.trim() || "gemini-2.5-flash-lite",
+      geminiModel: $id("opt-gemini-model").value.trim() || "gemini-3.5-flash-lite",
       openaiApiKey: obfuscateKey($id("opt-openai-key").value.trim()),
       openaiModel: $id("opt-openai-model").value.trim() || "gpt-5.4-nano",
       openaiBaseUrl: $id("opt-openai-baseurl").value.trim() || "https://api.openai.com/v1",
@@ -1698,7 +1698,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       minimaxApiKey: obfuscateKey($id("opt-minimax-key").value.trim()),
       minimaxModel: $id("opt-minimax-model").value.trim() || "MiniMax-M2",
       openrouterApiKey: obfuscateKey($id("opt-openrouter-key").value.trim()),
-      openrouterModel: $id("opt-openrouter-model").value.trim() || "meta-llama/llama-4-scout:free",
+      openrouterModel: $id("opt-openrouter-model").value.trim() || "openai/gpt-oss-20b:free",
       groqApiKey: obfuscateKey($id("opt-groq-key").value.trim()),
       groqModel: $id("opt-groq-model").value.trim() || "llama-3.1-8b-instant",
       mistralApiKey: obfuscateKey($id("opt-mistral-key").value.trim()),
