@@ -8,7 +8,7 @@
 > feature list, exact-origin permissions, quick-save-with-AI, Embed/Fix image
 > origins, and credential-sync conditions are aligned with docs/privacy.md).
 
-## Single purpose description (887/1000)
+## Single purpose description (891/1000)
 
 Save, enrich, read, and export Pinboard bookmarks. The extension captures the page you choose, optionally extracts readable article content, generates AI tags, summaries, translations, or Ask-the-page answers with the provider you select, then saves or exports the result to destinations you configure.
 
@@ -38,11 +38,11 @@ Enumerate open tabs for batch save, and read tab titles/URLs for "save tab set" 
 
 Show success/failure/queued feedback after save operations (quick-save, read-later, batch, tab-set, offline retry) and provide a 30-second Undo button that deletes the just-saved bookmark via the Pinboard API.
 
-## alarms justification (518/1000)
+## alarms justification (352/1000)
 
 Run recurring background tasks: keep the service worker warm during active use, re-prime the settings cache, expire the bookmark-status cache, retry the offline save queue, refresh the unread badge, and optionally prewarm the Pinboard tag list. Alarms themselves send nothing; tasks that contact Pinboard do so only while their configuration allows it.
 
-## Host permission justification (~990/1000)
+## Host permission justification (979/1000)
 
 Static hosts: api.pinboard.in and pinboard.in, for saving/fetching/managing bookmarks, pinboard.in themes and tag sorting, and cookie-based Save Tab Set. 14 user-selectable AI providers plus Jina Reader cover optional AI/extraction actions; each is contacted only when configured and only when you trigger the action. Optional hosts are requested at runtime as exact origins only: the selected tabs of a batch save, your custom OpenAI-compatible endpoint or non-loopback Ollama, GitHub Gist export, webhook export, web.archive.org for opt-in Wayback archiving, and the image origins needed when you choose the Embed (offline) export policy or click Fix on hotlink-blocked preview images. localhost/127.0.0.1 remain allowed for a local Ollama. The *://*/* manifest entry is only the declaration ceiling that lets Chrome offer these exact-origin prompts; the extension never requests that wildcard itself. Page content goes only to the service you selected, never to the developer.
 
