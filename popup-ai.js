@@ -343,13 +343,14 @@ let _aiErrorLastPermission = null;
 // Fallback provider order: stable list, current provider gets skipped.
 const AI_PROVIDER_ORDER = [
   "gemini", "openai", "claude", "deepseek", "qwen", "openrouter", "groq",
-  "mistral", "cohere", "siliconflow", "zhipu", "kimi", "minimax", "ollama", "custom"
+  "mistral", "cohere", "siliconflow", "zhipu", "kimi", "githubmodels", "minimax",
+  "ollama", "custom"
 ];
 const AI_PROVIDER_LABEL = {
   gemini: "Gemini", openai: "OpenAI", claude: "Claude", deepseek: "DeepSeek",
   qwen: "Qwen", minimax: "MiniMax", openrouter: "OpenRouter", groq: "Groq",
   mistral: "Mistral", cohere: "Cohere", siliconflow: "SiliconFlow", zhipu: "Zhipu",
-  kimi: "Kimi", ollama: "Ollama", custom: "Custom"
+  kimi: "Kimi", githubmodels: "GitHub Models", ollama: "Ollama", custom: "Custom"
 };
 
 // Find first provider OTHER than `current` that has a usable key, by iterating

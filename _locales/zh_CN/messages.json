@@ -1889,6 +1889,15 @@
   "hintKimiModel": {
     "message": "示例：kimi-k2.6、kimi-k2.5、moonshot-v1-32k、moonshot-v1-128k"
   },
+  "provGithubModels": {
+    "message": "GitHub Models"
+  },
+  "hintGithubModelsScope": {
+    "message": "— 需要带 models:read 权限的个人访问令牌。"
+  },
+  "hintGithubModelsModel": {
+    "message": "模型 ID 是「发布者/名称」格式，例如 openai/gpt-4.1-mini、openai/gpt-4.1、deepseek/DeepSeek-R1。"
+  },
   "mdPreviewEmpty": {
     "message": "暂无预览数据，请先在弹窗中点击 Markdown 按钮。"
   },

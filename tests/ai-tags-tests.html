@@ -361,6 +361,7 @@ const AI_ORIGIN_CASES = [
   [{ aiProvider: "siliconflow" }, "https://api.siliconflow.cn/*"],
   [{ aiProvider: "zhipu" }, "https://open.bigmodel.cn/*"],
   [{ aiProvider: "kimi" }, "https://api.moonshot.cn/*"],
+  [{ aiProvider: "githubmodels" }, "https://models.github.ai/*"],
   [{ aiProvider: "ollama" }, "http://localhost:11434/*"],
   [{ aiProvider: "custom", customBaseUrl: "https://proxy.example/v1" }, "https://proxy.example/*"],
 ];
@@ -571,7 +572,9 @@ suite("endpoint origin policy", () => {
       let streamCaught = null;
       try { await callAIStream({ aiProvider: "gemini" }, "x", {}, () => {}); } catch (e) { streamCaught = e; }
       assert(streamCaught && streamCaught.code === "host_permission", "stream expected host_permission");
-      assertEq(checks, 16, "one contains check per call");
+      // Derived, not hardcoded: one check per origin case plus the stream call,
+      // so adding a provider does not fail this on an unrelated count.
+      assertEq(checks, AI_ORIGIN_CASES.length + 1, "one contains check per call");
       assertEq(fetches, 0, "zero fetches");
     });
 

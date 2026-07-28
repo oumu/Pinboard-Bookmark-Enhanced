@@ -1859,6 +1859,15 @@
   "hintKimiModel": {
     "message": "e.g. kimi-k2.6, kimi-k2.5, moonshot-v1-32k, moonshot-v1-128k"
   },
+  "provGithubModels": {
+    "message": "GitHub Models"
+  },
+  "hintGithubModelsScope": {
+    "message": "— a personal access token with the models:read scope."
+  },
+  "hintGithubModelsModel": {
+    "message": "Model IDs are publisher/name, e.g. openai/gpt-4.1-mini, openai/gpt-4.1, deepseek/DeepSeek-R1."
+  },
   "mdPreviewEmpty": {
     "message": "No preview data available. Please use the Markdown button in the popup first."
   },

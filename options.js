@@ -535,10 +535,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         "opt-groq-model": "llama-3.1-8b-instant", "opt-mistral-model": "mistral-small-latest",
         "opt-cohere-model": "command-r7b-12-2024", "opt-siliconflow-model": "Qwen/Qwen3-8B",
         "opt-zhipu-model": "glm-4.7-flash", "opt-kimi-model": "kimi-k2.6",
+        "opt-githubmodels-model": "openai/gpt-4.1-mini",
         "opt-ollama-baseurl": "http://localhost:11434", "opt-ollama-model": "llama3.2",
         "opt-custom-name": "Custom", "opt-custom-baseurl": "", "opt-custom-model": ""
       },
-      skip: ["opt-gemini-key","opt-openai-key","opt-claude-key","opt-deepseek-key","opt-qwen-key","opt-minimax-key","opt-openrouter-key","opt-groq-key","opt-mistral-key","opt-cohere-key","opt-siliconflow-key","opt-zhipu-key","opt-kimi-key","opt-custom-key"]
+      skip: ["opt-gemini-key","opt-openai-key","opt-claude-key","opt-deepseek-key","opt-qwen-key","opt-minimax-key","opt-openrouter-key","opt-groq-key","opt-mistral-key","opt-cohere-key","opt-siliconflow-key","opt-zhipu-key","opt-kimi-key","opt-githubmodels-key","opt-custom-key"]
     },
     "ai-behavior": {
       fields: {
@@ -1072,6 +1073,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     "opt-siliconflow-key": s.siliconflowApiKey, "opt-siliconflow-model": s.siliconflowModel,
     "opt-zhipu-key": s.zhipuApiKey, "opt-zhipu-model": s.zhipuModel,
     "opt-kimi-key": s.kimiApiKey, "opt-kimi-model": s.kimiModel,
+    "opt-githubmodels-key": s.githubModelsApiKey, "opt-githubmodels-model": s.githubModelsModel,
     "opt-ollama-baseurl": s.ollamaBaseUrl, "opt-ollama-model": s.ollamaModel,
     "opt-custom-name": s.customName, "opt-custom-baseurl": s.customBaseUrl,
     "opt-custom-key": s.customApiKey, "opt-custom-model": s.customModel,
@@ -1520,7 +1522,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   // ---- Provider field toggle ----
-  const providers = ["gemini","openai","claude","deepseek","qwen","minimax","openrouter","groq","mistral","cohere","siliconflow","zhipu","kimi","ollama","custom"];
+  const providers = ["gemini","openai","claude","deepseek","qwen","minimax","openrouter","groq","mistral","cohere","siliconflow","zhipu","kimi","githubmodels","ollama","custom"];
   function updateProviderFields() {
     const selected = $id("opt-ai-provider").value;
     providers.forEach(p => {
@@ -1711,6 +1713,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       zhipuModel: $id("opt-zhipu-model").value.trim() || "glm-4.7-flash",
       kimiApiKey: obfuscateKey($id("opt-kimi-key").value.trim()),
       kimiModel: $id("opt-kimi-model").value.trim() || "kimi-k2.6",
+      githubModelsApiKey: obfuscateKey($id("opt-githubmodels-key").value.trim()),
+      githubModelsModel: $id("opt-githubmodels-model").value.trim() || "openai/gpt-4.1-mini",
       ollamaBaseUrl: $id("opt-ollama-baseurl").value.trim() || "http://localhost:11434",
       ollamaModel: $id("opt-ollama-model").value.trim() || "llama3.2",
       customName: $id("opt-custom-name").value.trim() || "Custom",

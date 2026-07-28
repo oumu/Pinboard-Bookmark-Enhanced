@@ -217,6 +217,7 @@ const OPENAI_COMPAT_PROVIDERS = {
   siliconflow: { keyField: "siliconflowApiKey", base: "https://api.siliconflow.cn/v1",                                          modelField: "siliconflowModel", defaultModel: "Qwen/Qwen3-8B",                   thinkingOff: { enable_thinking: false } },
   zhipu:       { keyField: "zhipuApiKey",       base: "https://open.bigmodel.cn/api/paas/v4",                                   modelField: "zhipuModel",       defaultModel: "glm-4.7-flash",                   thinkingOff: { thinking: { type: "disabled" } } },
   kimi:        { keyField: "kimiApiKey",        base: "https://api.moonshot.cn/v1",                                             modelField: "kimiModel",        defaultModel: "kimi-k2.6",                       thinkingOff: { thinking: { type: "disabled" } } },
+  githubmodels:{ keyField: "githubModelsApiKey",base: "https://models.github.ai/inference",                                     modelField: "githubModelsModel",defaultModel: "openai/gpt-4.1-mini" },          // no thinkingOff: a gateway fronting many publishers, so no field is safe across them
   custom:      { keyField: "customApiKey",      base: "",                                                  baseField: "customBaseUrl", modelField: "customModel",      defaultModel: "" },                          // no thinkingOff: dialect unknown
 };
 

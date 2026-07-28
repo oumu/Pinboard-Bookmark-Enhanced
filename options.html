@@ -336,6 +336,7 @@
           <option value="siliconflow" data-i18n="provSiliconflow">SiliconFlow</option>
           <option value="zhipu" data-i18n="provZhipu">Zhipu</option>
           <option value="kimi" data-i18n="provKimi">Kimi</option>
+          <option value="githubmodels" data-i18n="provGithubModels">GitHub Models</option>
           <option value="ollama" data-i18n="provOllama">Ollama (Local)</option>
           <option value="custom" data-i18n="provCustom">Custom OpenAI-compatible</option>
         </select>
@@ -469,6 +470,15 @@
         <div class="fg"><label class="bl" for="opt-kimi-model" data-i18n="labelModel">Model</label><input type="text" id="opt-kimi-model" value="kimi-k2.6" /><p class="hint" data-i18n="hintKimiModel">e.g. kimi-k2.6, kimi-k2.5, moonshot-v1-32k, moonshot-v1-128k</p></div>
         <button class="btn btn-sm" id="test-kimi" data-i18n="testConnection">Test Connection</button>
         <span class="save-status" id="test-kimi-status"></span>
+      </div>
+
+      <!-- GitHub Models -->
+      <div class="pf hidden" id="fields-githubmodels">
+        <h3 data-i18n="provGithubModels">GitHub Models</h3>
+        <div class="fg"><label class="bl" for="opt-githubmodels-key" data-i18n="labelApiKey">API Key</label><span class="key-wrap"><input type="password" id="opt-githubmodels-key" placeholder="github_pat_…" /><button type="button" class="key-toggle" data-target="opt-githubmodels-key" title="Show/hide key" data-i18n-title="showHideKey" data-i18n-aria="showHideKey" aria-label="Show/hide key"></button></span><p class="hint"><a href="https://github.com/settings/personal-access-tokens" target="_blank" data-i18n="getKey" rel="noopener">Get key</a> <span data-i18n="hintGithubModelsScope">— a personal access token with the models:read scope.</span></p></div>
+        <div class="fg"><label class="bl" for="opt-githubmodels-model" data-i18n="labelModel">Model</label><input type="text" id="opt-githubmodels-model" value="openai/gpt-4.1-mini" /><p class="hint" data-i18n="hintGithubModelsModel">Model IDs are publisher/name, e.g. openai/gpt-4.1-mini, openai/gpt-4.1, deepseek/DeepSeek-R1.</p></div>
+        <button class="btn btn-sm" id="test-githubmodels" data-i18n="testConnection">Test Connection</button>
+        <span class="save-status" id="test-githubmodels-status"></span>
       </div>
 
       <!-- Ollama -->
