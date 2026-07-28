@@ -3,9 +3,10 @@
 > Canonical archive of the Chrome Web Store developer-dashboard privacy tab.
 > Update this file whenever the dashboard text changes, and re-check it against
 > docs/privacy.md whenever a release adds a data exit or permission.
-> Last synced: 2026-07-24 (backup feature list, exact-origin permissions,
-> quick-save-with-AI, Embed/Fix image origins, and credential-sync conditions
-> are aligned with docs/privacy.md).
+> Last synced: 2026-07-28 (identity justification added for the optional Google
+> Drive vocabulary sync; provider count raised to 14 for GitHub Models; backup
+> feature list, exact-origin permissions, quick-save-with-AI, Embed/Fix image
+> origins, and credential-sync conditions are aligned with docs/privacy.md).
 
 ## Single purpose description (887/1000)
 
@@ -43,11 +44,15 @@ Run recurring background tasks: keep the service worker warm during active use, 
 
 ## Host permission justification (~990/1000)
 
-Static hosts: api.pinboard.in and pinboard.in, for saving/fetching/managing bookmarks, pinboard.in themes and tag sorting, and cookie-based Save Tab Set. 13 user-selectable AI providers plus Jina Reader cover optional AI/extraction actions; each is contacted only when configured and only when you trigger the action. Optional hosts are requested at runtime as exact origins only: the selected tabs of a batch save, your custom OpenAI-compatible endpoint or non-loopback Ollama, GitHub Gist export, webhook export, web.archive.org for opt-in Wayback archiving, and the image origins needed when you choose the Embed (offline) export policy or click Fix on hotlink-blocked preview images. localhost/127.0.0.1 remain allowed for a local Ollama. The *://*/* manifest entry is only the declaration ceiling that lets Chrome offer these exact-origin prompts; the extension never requests that wildcard itself. Page content goes only to the service you selected, never to the developer.
+Static hosts: api.pinboard.in and pinboard.in, for saving/fetching/managing bookmarks, pinboard.in themes and tag sorting, and cookie-based Save Tab Set. 14 user-selectable AI providers plus Jina Reader cover optional AI/extraction actions; each is contacted only when configured and only when you trigger the action. Optional hosts are requested at runtime as exact origins only: the selected tabs of a batch save, your custom OpenAI-compatible endpoint or non-loopback Ollama, GitHub Gist export, webhook export, web.archive.org for opt-in Wayback archiving, and the image origins needed when you choose the Embed (offline) export policy or click Fix on hotlink-blocked preview images. localhost/127.0.0.1 remain allowed for a local Ollama. The *://*/* manifest entry is only the declaration ceiling that lets Chrome offer these exact-origin prompts; the extension never requests that wildcard itself. Page content goes only to the service you selected, never to the developer.
 
 ## declarativeNetRequestWithHostAccess justification (481/1000; field will appear on next submit)
 
 Set the Referer header (to the article page's origin only) on the extension's own image re-fetches during two user actions in Markdown preview: the Fix button for hotlink-blocked images, and the Embed (offline) export retry. Implemented as a temporary session rule scoped to the granted image origins, the fetch request type, and that single preview tab; the rule is removed when the run finishes. It grants no page access by itself and never touches other tabs' or sites' traffic.
+
+## identity justification (981/1000)
+
+Obtain an OAuth access token for the optional Google Drive vocabulary sync, and nothing else. This is an optional permission: nothing requests it until you click Connect Google Drive in settings, and every other feature works without it. The only scope requested is drive.appdata, which reaches the extension's own hidden application-data folder and cannot read, list, or modify any other file in your Drive. It is used to store vocabulary batches for the current Pinboard account so your devices converge on the same list, plus one Drive about.get call so settings can show which account is connected. identity is never used to sign you in to this extension, to identify you to the developer, or for analytics or advertising; no account data reaches anyone but Google. Background syncs only check whether the permission is already granted and never open an OAuth prompt. Disconnect this device removes the cached token and this permission, and leaves your local vocabulary intact.
 
 ## Remote code
 
