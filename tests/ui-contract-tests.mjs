@@ -1062,6 +1062,37 @@ check(mdCss.includes("text-autospace: normal") && /#rendered-view :is\(pre, code
   }
 }
 
+// ---- Auto-close: cancelled by interaction, never merely paused ----
+// The bar must never depict a countdown that is not running, which is what the
+// old CSS-only `body:hover { animation-play-state: paused }` did while the
+// setTimeout kept going. Reaching for the popup now cancels outright -- but the
+// popup opens under a cursor already resting on the toolbar button, so the move
+// that lands there must not count, or the feature would never fire for anyone.
+{
+  const block = popupJs.slice(popupJs.indexOf('bar.className = "auto-close-bar"'),
+    popupJs.indexOf('if (btn.classList.contains("saved-success")) setSubmitState("idle"); }, 1200)'));
+  check(!/^[^/*\n]*animation-play-state\s*:\s*paused/m.test(popupCss),
+    "popup.css: the auto-close bar can be frozen again while its timer keeps running");
+  check(/Math\.abs\(e\.clientX - moveOrigin\.x\) < 8 && Math\.abs\(e\.clientY - moveOrigin\.y\) < 8/.test(block),
+    "popup.js: the auto-close pointer cancel lost its distance threshold, so the cursor the popup opens under cancels it immediately");
+  check(block.includes('document.addEventListener("pointermove", onAutoCloseMove)') &&
+    block.includes('document.addEventListener("mousedown", cancelAutoClose, { once: true })'),
+    "popup.js: the auto-close is no longer cancelled by both pointer movement and a click");
+  check((block.match(/removeEventListener\("pointermove", onAutoCloseMove\)/g) || []).length >= 2,
+    "popup.js: the auto-close pointermove listener outlives the countdown on at least one path");
+}
+
+// ---- Tag reorder handle: visible while the tags are being edited ----
+{
+  check(/\.tags-display:hover \.tag-drag-handle,\s*\n\s*\.tags-input-wrap:focus-within \.tag-drag-handle \{ opacity: 0\.5; \}/.test(popupCss),
+    "popup.css: the tag drag handle is hover-only again, so reordering is undiscoverable while you are typing tags");
+  // Reordering is HTML5 drag-and-drop, which touch does not deliver. Revealing
+  // the handle there would advertise a control that cannot be used.
+  check(!/@media \(hover: none\)[\s\S]{0,200}\.tag-drag-handle/.test(popupCss) &&
+    !/@media \(pointer: coarse\)[\s\S]{0,200}\.tag-drag-handle/.test(popupCss),
+    "popup.css: the tag drag handle is revealed on coarse pointers, where HTML5 drag-and-drop cannot reorder anything");
+}
+
 // ---- Explain popover: the drag must not commit on a plain press ----
 {
   const down = mdAskJs.slice(mdAskJs.indexOf('head.addEventListener("pointerdown"'),

@@ -406,13 +406,20 @@ button.offline-clear:focus-visible, button.offline-toggle:focus-visible { outlin
 .tag-drag-handle {
   color: var(--pp-fg-hint); opacity: 0;
   transition: opacity 0.1s; cursor: grab;
+  /* Revealed on hover below, and while the tag field has focus: without the
+     second one the handle is invisible for the whole time you are actually
+     working with tags, so reordering goes undiscovered. Deliberately NOT
+     revealed on coarse pointers -- reordering is HTML5 drag-and-drop, which
+     touch does not deliver, and showing a handle that cannot be used would be
+     the same kind of lie as a countdown bar that is not counting. */
   width: 6px; height: 12px; margin-right: var(--pp-sp-1); user-select: none;
   display: inline-block; vertical-align: middle; flex-shrink: 0;
   background-image: radial-gradient(currentColor 40%, transparent 45%);
   background-size: 3px 4px; background-repeat: repeat;
   background-position: 0 1px;
 }
-.tags-display:hover .tag-drag-handle { opacity: 0.5; }
+.tags-display:hover .tag-drag-handle,
+.tags-input-wrap:focus-within .tag-drag-handle { opacity: 0.5; }
 .tag-item.dragging .tag-drag-handle { opacity: 0.8; cursor: grabbing; }
 .tags-input-wrap input {
   border: none !important; outline: none; padding: 1px var(--pp-sp-1);
@@ -1056,11 +1063,11 @@ html.dark .submit-bar button.loading::before, html.dark .action-link.loading::be
   z-index: 9999;
   pointer-events: none;
 }
-/* No `body:hover { animation-play-state: paused }`: the auto-close timer is a
-   plain setTimeout (popup.js) that hover does not touch, so freezing the bar
-   promised a paused countdown the system was not honouring — and the popup
-   closed anyway, mid-read. Escape still cancels. Making the pause real would be
-   a product decision (a hover-driven timer), not a motion fix. */
+/* The bar is never frozen. Freezing it used to promise a paused countdown that
+   the setTimeout underneath was not honouring, and the popup closed anyway,
+   mid-read. Reaching for the popup now cancels the auto-close outright
+   (popup.js), which removes this bar with it — so what you see is always what
+   the timer is doing. Escape still cancels too. */
 
 /* ===================== Empty State (B8) ===================== */
 .empty-state {

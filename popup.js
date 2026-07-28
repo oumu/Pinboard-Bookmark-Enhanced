@@ -1226,6 +1226,7 @@ function setupSubmit(token) {
           document.body.appendChild(bar);
           autoCloseTimer = setTimeout(() => {
             autoCloseTimer = null;
+            document.removeEventListener("pointermove", onAutoCloseMove);
             if (ownsSubmitUi()
                 && bookmarkLookup.generation === autoCloseGeneration
                 && bookmarkLookup.url === url
@@ -1236,11 +1237,28 @@ function setupSubmit(token) {
               bar.remove();
             }
           }, 1800);
-          document.addEventListener("mousedown", () => {
+          // Interaction cancels the auto-close outright -- there is no pause
+          // state, so the bar never shows a countdown that is not running.
+          // Pointer movement counts as interaction, not just a click: reaching
+          // for the popup to read it is exactly when you do not want it to
+          // vanish. It needs a distance threshold, though, because the popup
+          // opens under a cursor that is already resting on the toolbar button,
+          // and the stray move that lands there must not cancel anything --
+          // otherwise the feature would never fire for anyone.
+          const cancelAutoClose = () => {
             clearTimeout(autoCloseTimer);
             autoCloseTimer = null;
             bar.remove();
-          }, { once: true });
+            document.removeEventListener("pointermove", onAutoCloseMove);
+          };
+          let moveOrigin = null;
+          const onAutoCloseMove = (e) => {
+            if (!moveOrigin) { moveOrigin = { x: e.clientX, y: e.clientY }; return; }
+            if (Math.abs(e.clientX - moveOrigin.x) < 8 && Math.abs(e.clientY - moveOrigin.y) < 8) return;
+            cancelAutoClose();
+          };
+          document.addEventListener("pointermove", onAutoCloseMove);
+          document.addEventListener("mousedown", cancelAutoClose, { once: true });
         }
         setTimeout(() => { if (btn.classList.contains("saved-success")) setSubmitState("idle"); }, 1200);
         return;

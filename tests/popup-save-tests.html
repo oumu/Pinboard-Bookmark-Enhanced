@@ -231,6 +231,9 @@ test("posts/add default remains replace=yes for existing callers", () => {
       const documentStub = {
         body: { appendChild(element) { bars.push(element); } },
         addEventListener() {},
+        // The auto-close path detaches its pointermove listener on every exit,
+        // including the one the timer callback takes.
+        removeEventListener() {},
         querySelector() { return null; },
         createTextNode(text) { return { textContent: text }; },
         createElement() { return createElementStub(); },
