@@ -24,7 +24,7 @@
 ![一鍵儲存，AI 產生標籤與摘要](docs/cws-assets/originals/screenshot-1-save.png)
 
 ### 標籤
-- **AI 產生標籤與摘要**：讀取去除廣告、選單與側欄後的文章正文；自備 API key，支援 13 家服務商或任何 OpenAI 兼容端點
+- **AI 產生標籤與摘要**：讀取去除廣告、選單與側欄後的文章正文；自備 API key，支援 14 家服務商或任何 OpenAI 兼容端點
 - **標籤自動完成**：你的歷史標籤、Pinboard 建議標籤、一按即用的預設
 - **標籤治理**：找出重複與低使用次數的標籤，分批合併
 
@@ -42,7 +42,7 @@
 ### 個人化
 - **13 套 pinboard.in 佈景主題**（Dracula、Nord、Catppuccin、Solarized 等），更可疊加自訂 CSS
 - **自動存檔至 [Wayback Machine](https://web.archive.org)**：可選擇每次儲存時一併提交；原連結失效後仍可尋回網頁
-- **備份與同步**：Chrome Sync 只在已開啟設定同步的裝置之間共享設定，憑據同步需另行開啟。手動 JSON 備份包含設定，亦可選擇加入高亮、筆記及目前 Pinboard 帳戶的生詞。在每部裝置登入 Chrome 瀏覽器帳戶並分別連接 Google Drive 後，即可同步該帳戶的生詞。
+- **備份與同步**：Chrome Sync 只在已開啟設定同步的裝置之間共享設定，憑據同步需另行開啟。手動 JSON 備份包含設定，亦可選擇加入高亮、筆記、目前 Pinboard 帳戶的生詞，以及你的 API 密鑰。在每部裝置登入 Chrome 瀏覽器帳戶並分別連接 Google Drive 後，即可同步該帳戶的生詞。
 - **9 種語言**、可自訂快捷鍵、本機優先儲存、零追蹤
 
 ![13 套 pinboard.in 佈景主題](docs/cws-assets/originals/screenshot-4-themes.png)

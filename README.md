@@ -24,7 +24,7 @@ A Chrome extension for [Pinboard](https://pinboard.in): AI tags and summaries, a
 ![One-click save with AI tags and summary](docs/cws-assets/originals/screenshot-1-save.png)
 
 ### Tag
-- **AI tags & summary**: the AI reads the article body with ads, menus, and sidebars stripped out; bring your own key (13 providers, or any OpenAI-compatible endpoint)
+- **AI tags & summary**: the AI reads the article body with ads, menus, and sidebars stripped out; bring your own key (14 providers, or any OpenAI-compatible endpoint)
 - **Autocomplete** from your own tags, Pinboard's suggested tags, and one-tap presets
 - **Tag cleanup**: find duplicate and rarely-used tags and merge them in batches
 
@@ -42,7 +42,7 @@ A Chrome extension for [Pinboard](https://pinboard.in): AI tags and summaries, a
 ### Make Pinboard yours
 - **13 themes for pinboard.in** (Dracula · Nord · Catppuccin · Solarized · …) plus your own custom CSS
 - **Auto-archive to the [Wayback Machine](https://web.archive.org)**: optionally submit every save, so pages stay reachable after the original link dies
-- **Backup and sync**: Chrome Sync shares settings between devices where you enable it; credential sync is a separate opt-in. Manual JSON backups contain settings and can optionally include reader highlights, notes, and vocabulary from the current Pinboard account. Google Drive can sync that vocabulary after you connect it separately on each device, on which you also need to be signed in to Chrome.
+- **Backup and sync**: Chrome Sync shares settings between devices where you enable it; credential sync is a separate opt-in. Manual JSON backups contain settings and can optionally include reader highlights, notes, vocabulary from the current Pinboard account, and your API keys. Google Drive can sync that vocabulary after you connect it separately on each device, on which you also need to be signed in to Chrome.
 - **9 languages** · configurable shortcuts · local-first storage · zero tracking
 
 ![13 themes for pinboard.in](docs/cws-assets/originals/screenshot-4-themes.png)

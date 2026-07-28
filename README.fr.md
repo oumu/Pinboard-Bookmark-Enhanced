@@ -24,7 +24,7 @@ Une extension Chrome pour [Pinboard](https://pinboard.in) : étiquettes et résu
 ![Enregistrement en un clic avec étiquettes et résumé par IA](docs/cws-assets/originals/screenshot-1-save.png)
 
 ### Étiquettes
-- **Étiquettes et résumé par IA** : l'IA lit le corps de l'article, débarrassé des publicités, des menus et des barres latérales ; votre propre clé API, 13 fournisseurs ou tout point d'accès compatible OpenAI
+- **Étiquettes et résumé par IA** : l'IA lit le corps de l'article, débarrassé des publicités, des menus et des barres latérales ; votre propre clé API, 14 fournisseurs ou tout point d'accès compatible OpenAI
 - **Autocomplétion** : à partir de vos étiquettes, des suggestions Pinboard et de préréglages en un clic
 - **Nettoyage des étiquettes** : repérez les doublons et les étiquettes peu utilisées, puis fusionnez-les par lots
 
@@ -42,7 +42,7 @@ Une extension Chrome pour [Pinboard](https://pinboard.in) : étiquettes et résu
 ### Personnalisation
 - **13 thèmes pour pinboard.in** (Dracula · Nord · Catppuccin · Solarized · …) plus votre CSS personnalisé
 - **Archivage automatique dans la [Wayback Machine](https://web.archive.org)** : à chaque enregistrement si vous le souhaitez ; les pages restent accessibles même quand le lien d'origine disparaît
-- **Sauvegarde et synchronisation** : Chrome Sync partage les réglages entre les appareils où vous l’activez. La synchronisation des identifiants s’active séparément. Les sauvegardes JSON manuelles contiennent les réglages et peuvent inclure les surlignages, les notes et le vocabulaire du compte Pinboard actif. Connectez-vous à Chrome puis connectez Google Drive séparément sur chaque appareil pour synchroniser ce vocabulaire.
+- **Sauvegarde et synchronisation** : Chrome Sync partage les réglages entre les appareils où vous l’activez. La synchronisation des identifiants s’active séparément. Les sauvegardes JSON manuelles contiennent les réglages et peuvent inclure les surlignages, les notes, le vocabulaire du compte Pinboard actif et vos clés API. Connectez-vous à Chrome puis connectez Google Drive séparément sur chaque appareil pour synchroniser ce vocabulaire.
 - **9 langues** · raccourcis configurables · stockage local en priorité · aucun pistage
 
 ![13 thèmes pour pinboard.in](docs/cws-assets/originals/screenshot-4-themes.png)

@@ -24,7 +24,7 @@
 ![一键保存，AI 生成标签和摘要](docs/cws-assets/originals/screenshot-1-save.png)
 
 ### 标签
-- **AI 生成标签和摘要**：读取去除广告、菜单与侧边栏后的文章正文；自备 API key，支持 13 家服务商或任意 OpenAI 兼容接口
+- **AI 生成标签和摘要**：读取去除广告、菜单与侧边栏后的文章正文；自备 API key，支持 14 家服务商或任意 OpenAI 兼容接口
 - **标签自动补全**：历史标签、Pinboard 建议标签、一键预设
 - **标签治理**：找出重复和低频标签，分批合并
 
@@ -42,7 +42,7 @@
 ### 个性化
 - **13 套 pinboard.in 主题**（Dracula、Nord、Catppuccin、Solarized 等），支持叠加自定义 CSS
 - **自动存档到 [Wayback Machine](https://web.archive.org)**：可选择每次保存时同步提交；原链接失效后仍能找回网页
-- **备份与同步**：Chrome Sync 只在已开启设置同步的设备之间共享设置，凭据同步需另行开启。手动 JSON 备份包含设置，也可选择包含高亮、笔记和当前 Pinboard 账号的生词。在每台设备上登录 Chrome 浏览器账户并分别连接 Google Drive 后，即可同步该账号的生词。
+- **备份与同步**：Chrome Sync 只在已开启设置同步的设备之间共享设置，凭据同步需另行开启。手动 JSON 备份包含设置，也可选择包含高亮、笔记、当前 Pinboard 账号的生词，以及你的 API 密钥。在每台设备上登录 Chrome 浏览器账户并分别连接 Google Drive 后，即可同步该账号的生词。
 - **9 种语言**、可自定义快捷键、本地优先存储、零追踪
 
 ![13 套 pinboard.in 主题](docs/cws-assets/originals/screenshot-4-themes.png)

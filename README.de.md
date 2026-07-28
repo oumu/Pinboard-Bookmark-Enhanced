@@ -24,7 +24,7 @@ Eine Chrome-Erweiterung für [Pinboard](https://pinboard.in): AI-Tags und Zusamm
 ![Speichern mit einem Klick, AI-Tags und Zusammenfassung](docs/cws-assets/originals/screenshot-1-save.png)
 
 ### Tags
-- **AI-Tags und Zusammenfassung** – gelesen wird der Artikeltext ohne Werbung, Menüs und Seitenleisten; eigener API-Schlüssel, 13 Anbieter oder ein beliebiger OpenAI-kompatibler Endpunkt
+- **AI-Tags und Zusammenfassung** – gelesen wird der Artikeltext ohne Werbung, Menüs und Seitenleisten; eigener API-Schlüssel, 14 Anbieter oder ein beliebiger OpenAI-kompatibler Endpunkt
 - **Autovervollständigung** – aus deinen Tags, Pinboards Vorschlägen und Ein-Klick-Voreinstellungen
 - **Tags aufräumen** – doppelte und selten genutzte Tags finden und in Stapeln zusammenführen
 
@@ -42,7 +42,7 @@ Eine Chrome-Erweiterung für [Pinboard](https://pinboard.in): AI-Tags und Zusamm
 ### Pinboard nach deinem Geschmack
 - **13 Themes für pinboard.in** (Dracula · Nord · Catppuccin · Solarized · …) plus dein eigenes CSS
 - **Automatisch in die [Wayback Machine](https://web.archive.org) archivieren** – auf Wunsch bei jedem Speichern; Seiten bleiben erreichbar, auch wenn der Originallink tot ist
-- **Sicherung und Synchronisierung**: Chrome Sync teilt Einstellungen nur zwischen Geräten, auf denen du die Synchronisierung aktivierst. Die Synchronisierung von Zugangsdaten musst du separat einschalten. Manuelle JSON-Sicherungen enthalten Einstellungen und auf Wunsch Markierungen, Notizen sowie den Wortschatz des aktuellen Pinboard-Kontos. Wenn du auf jedem Gerät in Chrome angemeldet bist und Google Drive separat verbindest, wird dieser Wortschatz synchronisiert.
+- **Sicherung und Synchronisierung**: Chrome Sync teilt Einstellungen nur zwischen Geräten, auf denen du die Synchronisierung aktivierst. Die Synchronisierung von Zugangsdaten musst du separat einschalten. Manuelle JSON-Sicherungen enthalten Einstellungen und auf Wunsch Markierungen, Notizen, den Wortschatz des aktuellen Pinboard-Kontos sowie deine API-Schlüssel. Wenn du auf jedem Gerät in Chrome angemeldet bist und Google Drive separat verbindest, wird dieser Wortschatz synchronisiert.
 - **9 Sprachen** · anpassbare Tastenkürzel · Speicherung primär lokal · kein Tracking
 
 ![13 Themes für pinboard.in](docs/cws-assets/originals/screenshot-4-themes.png)
