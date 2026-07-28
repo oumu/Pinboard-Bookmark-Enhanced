@@ -824,20 +824,29 @@ function pbpBackupSchemaVersion(data) {
 
 function pbpSanitizeBackupMetadata(value) {
   if (!pbpIsPlainRecord(value) ||
-      Object.keys(value).some((key) => !["createdAt", "extensionVersion", "source"].includes(key)) ||
+      Object.keys(value).some((key) => !["createdAt", "extensionVersion", "source", "includesSecrets"].includes(key)) ||
       typeof value.createdAt !== "string" || typeof value.extensionVersion !== "string" ||
       value.source !== "manual") {
     throw pbpBackupValueError("_backup");
+  }
+  // Opt-in credential carrier. Absent on every backup this extension wrote
+  // before the option existed, so it must stay optional — but when present it
+  // has to be a real boolean, since the import preview keys its warning off it.
+  if (Object.prototype.hasOwnProperty.call(value, "includesSecrets") &&
+      typeof value.includesSecrets !== "boolean") {
+    throw pbpBackupValueError("_backup.includesSecrets");
   }
   const date = new Date(value.createdAt);
   if (Number.isNaN(date.getTime()) || date.toISOString() !== value.createdAt) {
     throw pbpBackupValueError("_backup.createdAt");
   }
-  return {
+  const metadata = {
     createdAt: value.createdAt,
     extensionVersion: value.extensionVersion,
     source: "manual",
   };
+  if (value.includesSecrets === true) metadata.includesSecrets = true;
+  return metadata;
 }
 
 function pbpCanonicalBackupOwner(value) {
@@ -949,6 +958,7 @@ function pbpBuildBackupPreview(prepared, currentOwner, syncState) {
   const highlightAllowed = !prepared?.highlights ||
     pbpHighlightBackupOwnerAllowed(prepared.highlightsOwner, currentOwner, true);
   const highlightOwnerMismatch = prepared?.highlights !== undefined && !highlightAllowed;
+  const secretCount = typeof prepared?.secretCount === "number" ? prepared.secretCount : 0;
   const sections = {
     settings: {
       enabled: !!(Object.keys(prepared.safeData || {}).length ||
@@ -957,6 +967,9 @@ function pbpBuildBackupPreview(prepared, currentOwner, syncState) {
     themes: { enabled: prepared.importedThemes !== undefined },
     highlights: { enabled: prepared.highlights !== undefined && highlightAllowed },
     vocabulary: { enabled: !!vocabulary && !ownerMismatch },
+    // Credentials are their own section so "restore my settings" never has to
+    // mean "and overwrite the keys on this device".
+    secrets: { enabled: secretCount > 0 },
   };
   const localFallbackKeys = pbpBackupLocalFallbackFields(prepared, syncState, sections);
   return {
@@ -969,6 +982,7 @@ function pbpBuildBackupPreview(prepared, currentOwner, syncState) {
     highlightsOwner: prepared.highlightsOwner || "",
     vocabularyCount: vocabulary ? vocabulary.records.length : 0,
     vocabularyOwner: vocabulary ? vocabulary.owner : "",
+    secretCount,
     languages,
     ownerMismatch,
     highlightOwnerMismatch,
@@ -1771,23 +1785,31 @@ function pbpStripExportTargetTokens(ets) {
   return cleaned;
 }
 
-function pbpBackupFilename(date = new Date()) {
+// A credential-bearing backup gets it in the filename: these files land in the
+// same Downloads folder as ordinary ones, and the only thing distinguishing a
+// plaintext key dump from a settings dump should not be opening it.
+function pbpBackupFilename(date = new Date(), includeSecrets = false) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
-  return `Pinboard Bookmark Enhanced backup ${year}-${month}-${day}.json`;
+  const marker = includeSecrets ? " with credentials" : "";
+  return `Pinboard Bookmark Enhanced backup${marker} ${year}-${month}-${day}.json`;
 }
 
 // Shared schema-v3 snapshot used by manual settings export.
+// extra.includeSecrets carries API_KEY_FIELDS and the untouched export-target
+// credentials into the file. It is opt-in per export and never defaults on:
+// the result is a plaintext key file, not a settings file.
 function pbpBuildBackupSnapshot(settings, extra) {
   const s = settings || {};
   const x = extra || {};
+  const includeSecrets = x.includeSecrets === true;
   const payload = {};
   Object.keys(SETTINGS_DEFAULTS).forEach((key) => {
-    if (API_KEY_FIELDS.includes(key)) return;
+    if (!includeSecrets && API_KEY_FIELDS.includes(key)) return;
     if (Object.prototype.hasOwnProperty.call(s, key)) payload[key] = s[key];
   });
-  if (payload.exportTargets) payload.exportTargets = pbpStripExportTargetTokens(payload.exportTargets);
+  if (payload.exportTargets && !includeSecrets) payload.exportTargets = pbpStripExportTargetTokens(payload.exportTargets);
   payload.customOverlayCSS = typeof x.overlay === "string" ? x.overlay : "";
   payload.savedThemes = pbpSanitizeBackupThemes(Array.isArray(x.savedThemes) ? x.savedThemes : []);
   if (s.backupIncludeHighlights !== false && x.highlights) {
@@ -1800,8 +1822,27 @@ function pbpBuildBackupSnapshot(settings, extra) {
     extensionVersion: String(globalThis.chrome?.runtime?.getManifest?.().version || ""),
     source: "manual",
   };
+  if (includeSecrets) payload._backup.includesSecrets = true;
   payload._schemaVersion = 3;
   return payload;
+}
+
+// Counts the credentials actually carried by a backup: only non-empty values,
+// so a file that merely has the fields present at "" is not reported (and not
+// offered) as a credential backup.
+function pbpCountBackupSecrets(data) {
+  if (!pbpIsPlainRecord(data)) return 0;
+  let count = API_KEY_FIELDS
+    .filter((key) => typeof data[key] === "string" && data[key] !== "").length;
+  const targets = data.exportTargets;
+  if (pbpIsPlainRecord(targets)) {
+    for (const [targetId, cfg] of Object.entries(targets)) {
+      if (!pbpIsPlainRecord(cfg)) continue;
+      count += pbpExportTargetSecretKeys(targetId)
+        .filter((key) => typeof cfg[key] === "string" && cfg[key] !== "").length;
+    }
+  }
+  return count;
 }
 
 // Migration-scrub variant: removes tokens only, leaving a legacy plaintext

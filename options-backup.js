@@ -67,6 +67,34 @@ function pbpSanitizeBackupExportTargets(value) {
   return out;
 }
 
+// Credentials travel on their own path, NOT through exportableKeys: that
+// whitelist stays credential-free so the ordinary settings sanitize can never
+// be widened by accident. Returns null when the backup carries none, so the
+// import UI can tell "no credential section" from "an empty one".
+function pbpSanitizeBackupSecrets(data) {
+  const keys = {};
+  for (const key of API_KEY_FIELDS) {
+    if (!Object.prototype.hasOwnProperty.call(data, key)) continue;
+    if (typeof data[key] !== "string") throw pbpBackupValueError(key);
+    if (data[key] !== "") keys[key] = data[key];
+  }
+  const targets = {};
+  if (Object.prototype.hasOwnProperty.call(data, "exportTargets") && pbpIsPlainRecord(data.exportTargets)) {
+    for (const [targetId, cfg] of Object.entries(data.exportTargets)) {
+      if (!pbpIsPlainRecord(cfg)) continue;
+      const cleaned = {};
+      for (const key of pbpExportTargetSecretKeys(targetId)) {
+        if (!Object.prototype.hasOwnProperty.call(cfg, key)) continue;
+        if (typeof cfg[key] !== "string") throw pbpBackupValueError(`exportTargets.${targetId}.${key}`);
+        if (cfg[key] !== "") cleaned[key] = cfg[key];
+      }
+      if (Object.keys(cleaned).length) targets[targetId] = cleaned;
+    }
+  }
+  if (!Object.keys(keys).length && !Object.keys(targets).length) return null;
+  return { keys, exportTargets: targets };
+}
+
 function pbpSanitizeBackupSettings(data, exportableKeys) {
   const safe = {};
   for (const key of exportableKeys) {
@@ -125,10 +153,13 @@ function pbpPreflightBackupPayload(data, exportableKeys) {
   const vocabulary = schemaVersion === 3 && Object.prototype.hasOwnProperty.call(data, "_vocabulary")
     ? pbpSanitizeBackupVocabulary(data._vocabulary)
     : undefined;
+  const secretData = pbpSanitizeBackupSecrets(data);
   return {
     schemaVersion,
     metadata,
     safeData,
+    secretData,
+    secretCount: pbpCountBackupSecrets(data),
     customCSS,
     customOverlayCSS,
     importedThemes,
@@ -139,7 +170,7 @@ function pbpPreflightBackupPayload(data, exportableKeys) {
 }
 
 function pbpBackupImportResultKey(result) {
-  const statuses = ["settings", "themes", "highlights", "vocabulary"]
+  const statuses = ["settings", "themes", "highlights", "vocabulary", "secrets"]
     .map((key) => result && result[key]);
   if (statuses.some((status) => status === "failed" || status === "local-only")) {
     return "backupImportPartialResult";
@@ -163,17 +194,22 @@ async function pbpApplyBackupPayload(data, {
 }) {
   const prepared = pbpPreflightBackupPayload(data, exportableKeys);
   const { schemaVersion, safeData, customCSS, customOverlayCSS, importedThemes } = prepared;
+  // Every other section defaults on; credentials default OFF. A backup file is
+  // untrusted input, and any file can carry credential fields whether or not it
+  // was exported with them — restoring those over the working keys on this
+  // device has to be asked for, never inherited from "apply everything".
   const selected = Object.assign({
     settings: true,
     themes: true,
     highlights: true,
     vocabulary: true,
-  }, sections || {});
+  }, sections || {}, { secrets: (sections || {}).secrets === true });
   const result = {
     settings: "skipped",
     themes: "skipped",
     highlights: "skipped",
     vocabulary: "skipped",
+    secrets: "skipped",
     vocabularyApplied: 0,
   };
   const getOwner = readCurrentOwner || (async () => {
@@ -233,6 +269,30 @@ async function pbpApplyBackupPayload(data, {
       result.settings = localOnly ? "local-only" : "applied";
     } catch (_) {
       result.settings = "failed";
+    }
+  }
+
+  // Runs AFTER settings: the settings branch rebuilds exportTargets from the
+  // credential-free copy, so writing tokens before it would just be overwritten
+  // by that merge. persistSettings routes API_KEY_FIELDS to local storage on
+  // its own, so this needs no area handling of its own.
+  if (selected.secrets && prepared.secretData) {
+    try {
+      const batch = Object.assign({}, prepared.secretData.keys);
+      const targetIds = Object.keys(prepared.secretData.exportTargets);
+      if (targetIds.length) {
+        const curRead = await pbpReadSettingsWithSecrets({ exportTargets: {} });
+        const merged = Object.assign({}, curRead.exportTargets || {});
+        for (const tid of targetIds) {
+          merged[tid] = Object.assign({}, merged[tid], prepared.secretData.exportTargets[tid]);
+        }
+        batch.exportTargets = merged;
+      }
+      const secretRes = await persistSettings(batch);
+      if (!secretRes.ok) throw secretRes.error || new Error("credential import failed");
+      result.secrets = "applied";
+    } catch (_) {
+      result.secrets = "failed";
     }
   }
 
@@ -310,7 +370,8 @@ async function pbpApplyBackupPayload(data, {
   result.highlightsSkipped = highlightsSkipped;
   result.statusKey = ["failed", "local-only"].includes(result.settings) ||
     ["failed", "local-only"].includes(result.themes) ||
-    result.highlights === "failed" || result.vocabulary === "failed"
+    result.highlights === "failed" || result.vocabulary === "failed" ||
+    result.secrets === "failed"
     ? "importPartial" : "importedReload";
   return result;
 }
@@ -364,12 +425,14 @@ function setupBackup({ exportableKeys, saveOverlayWithFallback, loadThemes, befo
       String(preview.vocabularyCount),
       preview.vocabularyOwner || t("backupPreviewNone")
     ));
+    setPreviewText("backup-preview-secrets", t("backupPreviewSecrets", String(preview.secretCount)));
     const languages = Object.entries(preview.languages)
       .sort(([left], [right]) => left.localeCompare(right))
       .map(([language, count]) => `${language}: ${count}`)
       .join(", ");
     setPreviewText("backup-preview-languages", languages || t("backupPreviewNone"));
     const warnings = [];
+    if (preview.secretCount) warnings.push(t("backupPreviewSecretsWarning"));
     if (preview.ownerMismatch) warnings.push(t("backupPreviewOwnerMismatch"));
     if (preview.highlightOwnerMismatch) warnings.push(t("backupPreviewHighlightOwnerMismatch"));
     if (preview.syncWarning) warnings.push(t("backupPreviewSyncWarning"));
@@ -384,12 +447,16 @@ function setupBackup({ exportableKeys, saveOverlayWithFallback, loadThemes, befo
       themes: "backup-section-themes",
       highlights: "backup-section-highlights",
       vocabulary: "backup-section-vocabulary",
+      secrets: "backup-section-secrets",
     };
     Object.entries(sectionIds).forEach(([key, id]) => {
       const checkbox = $id(id);
       if (!checkbox) return;
       checkbox.disabled = !preview.sections[key].enabled;
-      checkbox.checked = preview.sections[key].enabled;
+      // Credentials are the one section that stays unchecked when available:
+      // overwriting the working keys on this device has to be a deliberate act,
+      // not the default that "Apply selected" happens to carry along.
+      checkbox.checked = key === "secrets" ? false : preview.sections[key].enabled;
     });
     const apply = $id("backup-import-apply");
     if (apply) apply.disabled = !Object.values(preview.sections).some((section) => section.enabled);
@@ -404,7 +471,7 @@ function setupBackup({ exportableKeys, saveOverlayWithFallback, loadThemes, befo
       "local-only": "backupStatusLocalOnly",
       failed: "backupStatusFailed",
     };
-    ["settings", "themes", "highlights", "vocabulary"].forEach((key) => {
+    ["settings", "themes", "highlights", "vocabulary", "secrets"].forEach((key) => {
       setPreviewText(`backup-result-${key}`, t(statusKeys[result[key]] || "backupStatusFailed"));
     });
     const resultHost = $id("backup-import-result");
@@ -424,7 +491,11 @@ function setupBackup({ exportableKeys, saveOverlayWithFallback, loadThemes, befo
       // The form auto-saves on a debounce. Flush it before reading storage so
       // clicking Export immediately after an edit cannot create a stale backup.
       if (beforeExport && (await beforeExport()) === false) return;
-      const raw = await pbpReadSettingsWithSecrets(exportableKeys);
+      // Opt-in per export, never remembered: reading the secret fields at all
+      // is gated on the checkbox being ticked right now.
+      const includeSecrets = $id("opt-backup-include-secrets")?.checked === true;
+      const raw = await pbpReadSettingsWithSecrets(
+        includeSecrets ? Object.keys(SETTINGS_DEFAULTS) : exportableKeys);
       const includeHighlightsEl = $id("opt-backup-include-highlights");
       if (includeHighlightsEl) raw.backupIncludeHighlights = !!includeHighlightsEl.checked;
       const includeVocabulary = $id("opt-backup-include-vocabulary")?.checked !== false;
@@ -474,10 +545,11 @@ function setupBackup({ exportableKeys, saveOverlayWithFallback, loadThemes, befo
         highlights,
         highlightsOwner,
         vocabulary,
+        includeSecrets,
       });
       // The shared belt strips known nested credentials. Registry metadata
       // removes any additional secret field introduced by a future target.
-      if (exportData.exportTargets && typeof PBP_EXPORT_TARGETS !== "undefined") {
+      if (!includeSecrets && exportData.exportTargets && typeof PBP_EXPORT_TARGETS !== "undefined") {
         for (const [tid, cfg] of Object.entries(exportData.exportTargets)) {
           const row = PBP_EXPORT_TARGETS[tid];
           ((row && row.settings) || []).forEach((setting) => {
@@ -491,7 +563,7 @@ function setupBackup({ exportableKeys, saveOverlayWithFallback, loadThemes, befo
       const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = url; a.download = pbpBackupFilename(); a.click();
+      a.href = url; a.download = pbpBackupFilename(new Date(), includeSecrets); a.click();
       URL.revokeObjectURL(url);
     } catch (err) {
       console.error("[export] failed", err);
@@ -553,7 +625,7 @@ function setupBackup({ exportableKeys, saveOverlayWithFallback, loadThemes, befo
       if (beforeApply) { await beforeApply(); applyPaused = true; }
       if (token !== selectionToken) return;
       const selected = {};
-      ["settings", "themes", "highlights", "vocabulary"].forEach((key) => {
+      ["settings", "themes", "highlights", "vocabulary", "secrets"].forEach((key) => {
         const checkbox = $id(`backup-section-${key}`);
         selected[key] = !!checkbox && checkbox.checked && !checkbox.disabled;
       });

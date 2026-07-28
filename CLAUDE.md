@@ -116,7 +116,7 @@ Chrome Extension (Manifest V3)，一键将当前页面保存到 Pinboard，支�
 |------|------|------|
 | Chrome Sync | 普通设置；另行启用时包含凭据 | 每台设备通过 `optSyncEnabled` 参与；不含生词、高亮、缓存或任务状态 |
 | Google Drive | 当前 Pinboard owner 的生词 | 每台设备由用户单独连接；只用 `drive.appdata`，不接管设置、凭据或高亮 |
-| 手工 JSON schema v3 | 设置、主题，以及用户选择的高亮/笔记和当前 owner 生词 | 导出为明文文件；导入前预览并分项选择；不含 secret、Drive 账号、vector、outbox 或 tombstone |
+| 手工 JSON schema v3 | 设置、主题，以及用户选择的高亮/笔记、当前 owner 生词和凭据 | 导出为明文文件；导入前预览并分项选择。凭据两端都默认关，勾选后以明文写入；不含 Drive 账号、OAuth、vector、outbox 或 tombstone |
 
 ## Theme Factory 工作流
 
@@ -222,7 +222,8 @@ bash scripts/release.sh
   已连接指向「断开此设备」，未连接指向「连接 Google Drive」，重连救不了的指向「立即同步」
   （`force` 是唯一能清除 blocked 的入口）。仍在退避的状态只显示下次重试时间，不给指令。
   按钮名称逐字复用该 locale 已发布的按钮文案，不另造叫法。
-- **手工备份 schema v3**：导出前 flush 待保存设置，payload 通过与导入相同的 preflight；备份含 `_backup` 元数据、设置/主题和可选的当前 owner 高亮/生词，只含运行时 word 字段。导入必须先预览，再由用户分项选择；生词按 100 条通过 store primitive 合并并在每批前后重核验 owner。API key、token、Webhook URL、OAuth、Drive 账号、vector、dot、outbox、tombstone 和 batch 一律不进入备份。
+- **手工备份 schema v3**：导出前 flush 待保存设置，payload 通过与导入相同的 preflight；备份含 `_backup` 元数据、设置/主题和可选的当前 owner 高亮/生词，只含运行时 word 字段。导入必须先预览，再由用户分项选择；生词按 100 条通过 store primitive 合并并在每批前后重核验 owner。OAuth、Drive 账号、vector、dot、outbox、tombstone 和 batch 一律不进入备份。
+- **备份中的凭据是 opt-in，两端都 fail-closed**：默认导出不含任何凭据（三道过滤：`EXPORTABLE_KEYS` 白名单、`pbpBuildBackupSnapshot` 内部的 `API_KEY_FIELDS` 过滤、export-target registry 的 secret 删除）。勾选后导出全部 `API_KEY_FIELDS` 与 export-target 的 token/URL，文件名带 `with credentials`，`_backup.includesSecrets=true`（`pbpSanitizeBackupMetadata` 必须同步接受该字段，否则自己导不回来）。导入侧凭据是独立 section：`pbpApplyBackupPayload` 的 `selected.secrets` **只认显式 `=== true`**，不随"其余默认全开"继承——备份文件是不可信输入，任何文件都可能被手工塞进凭据字段，静默覆盖本机可用凭据是攻击面（`tests/settings-persist-tests.html` 的 E7b 正反两条断言钉死此边界）。预览的 checkbox 在 enabled 时也保持不勾选。凭据经 `persistSettings` 写入，由其 `pbpSplitSecretBatch` 自行路由存储区，secrets 分支必须排在 settings 分支**之后**（settings 会用无凭据副本重建 exportTargets）。
 - **WebDAV 删除清理临时代码（引入 2026-07-24；最早清理 2026-08-24）**：`background.js` 的 `pbpCleanupRemovedWebdav` 会清除旧 `webdav-push` alarm，以及 local/sync 中遗留的 WebDAV 配置和状态。至少保留一个月的升级覆盖；到期后先核查已发布版本和用户升级情况，再删除 `PBP_WEBDAV_REMOVAL_*`、清理函数及对应测试。不得按日期自动删除，历史审计文档继续保留。
 - **防盗链图片修复不变量（`declarativeNetRequestWithHostAccess`，改 md-embed / background 规则代码前必读）**：部分 CDN（实测 cdnfile.sspai.com）**只拒空 Referer**，而扩展页只能发空 Referer（且预览对图片强制 `no-referrer`——这对更常见的"封外站/放空"型防盗链是正确默认，勿改）。修复=**SW 独占**的临时 DNR session rule：① rule id 由 SW 在保留段 786001-786999 内分配，**页面绝不自行分配**（id 是扩展全局的，页面局部计数器必然跨 tab 冲突）；② install / remove / sweep **全部走同一条串行队列**，install 在临界区内用 `tabs.get` 重核验该 tab 仍是**同一预览文档**（否则规则会落到已导航走的普通网站 tab 上）；③ 规则条件必须含 `initiatorDomains:[chrome.runtime.id]`——这是"普通网页请求不可能命中"的**结构性**保证，不是靠清扫抢时间；④ tab 作用域取自 `sender.tab`；删除做 (tab, 文档) owner-check——但 owner 表是 SW 内存态，**SW 重启后降级为仅 tab 校验**（同 tab 跨文档的 id 复用在那个窗口内仍可能误删，属已知残留风险，非不变量）；⑤ 清扫三路：tab 关闭 / 离开预览文档 / 预览页加载时自清（同 URL reload 不触发 `changeInfo.url`，靠第三路兜底）；⑥ 重试取图必须 `cache:"reload"`——失败的 `<img>` 已把 403 写进 HTTP 缓存，`force-cache` 会直接复用它导致规则形同虚设。自动修复只对**已授权 origin** 生效（`permissions.contains`，绝不 prompt），批次在首个 await 前**冻结**（否则等待授权期间新入队的未授权 origin 会混进自动批次）。`zip-install-smoke.mjs` check 5 守护其中五条：跨 tab id 唯一、跨 tab 删除被拒、非预览 tab 拒装、规则带 `initiatorDomains`、离开预览即清扫（**不覆盖** SW 重启后的同 tab 跨文档删除）。
 - **关思考（thinking/reasoning）—— 勿凭记忆改 provider 表**：`ai.js` `OPENAI_COMPAT_PROVIDERS` 每家用 **per-provider `thinkingOff` 方言字段**（非 always-on `extraBody`），经 `_aiWithThinkingFallback` 在 **4xx(400/422) 时去字段重试一次 + `storage.local` 记忆**。根因：model 字段是自由文本，blanket 关思考会把用户切换的不兼容模型打 400。**custom/ollama/groq 不加 thinkingOff**；gemini 走 `thinkingBudget:0`；deepseek 也走 thinkingOff（reasoner 会拒收）。各家已核验字段勿凭记忆改（会 400），核验表见 CC 记忆 `reference_provider_thinking_disable_params`。

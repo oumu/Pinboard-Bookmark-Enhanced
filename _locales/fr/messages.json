@@ -906,22 +906,40 @@
     "message": "Sauvegarde et restauration"
   },
   "backupHint": {
-    "message": "Exportez ou importez les paramètres et les données sélectionnées. Les clés API sont exclues des exportations."
+    "message": "Exportez ou importez les paramètres et les données sélectionnées. Les identifiants sont exclus sauf demande explicite."
   },
   "backupIncludeHighlightsLabel": {
     "message": "Inclure les surlignages et les notes dans les sauvegardes"
   },
   "backupIncludeHighlightsHint": {
-    "message": "Les sauvegardes comprennent les URL des pages, les titres, le texte sélectionné, les notes, les couleurs et les horodatages. Les clés API ne sont jamais incluses."
+    "message": "Les sauvegardes comprennent les URL des pages, les titres, le texte sélectionné, les notes, les couleurs et les horodatages."
   },
   "backupPlaintextDisclosure": {
-    "message": "Les sauvegardes sont des fichiers JSON en clair. Elles peuvent contenir des paramètres, des surlignages, des URL de pages, du vocabulaire et des extraits de contexte. Les clés API sont exclues."
+    "message": "Les sauvegardes sont des fichiers JSON en clair. Elles peuvent contenir des paramètres, des surlignages, des URL de pages, du vocabulaire et des extraits de contexte."
   },
   "backupIncludeVocabularyLabel": {
     "message": "Inclure le vocabulaire dans les sauvegardes"
   },
   "backupIncludeVocabularyHint": {
     "message": "Inclut uniquement le vocabulaire du compte Pinboard actuel."
+  },
+  "backupIncludeSecretsLabel": {
+    "message": "Inclure les clés API et les jetons dans les sauvegardes"
+  },
+  "backupIncludeSecretsHint": {
+    "message": "Écrit tous les identifiants en clair dans le fichier : jeton Pinboard, clés de tous les fournisseurs d'IA, ainsi que les identifiants Jina, Wayback, Anki, Eudic, Gist et Webhook. Quiconque ouvre le fichier peut les utiliser. Conservez-le comme un mot de passe."
+  },
+  "backupSectionSecrets": {
+    "message": "Clés API et jetons"
+  },
+  "backupPreviewSecrets": {
+    "message": "Identifiants dans ce fichier : $COUNT$",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "backupPreviewSecretsWarning": {
+    "message": "Cette sauvegarde contient des identifiants en clair. Ne les importez que si vous avez confiance dans la provenance du fichier."
   },
   "backupVocabOwnerMissing": {
     "message": "Le vocabulaire n’a pas été inclus, car aucun compte Pinboard n’est disponible. Les autres données sélectionnées ont été exportées."

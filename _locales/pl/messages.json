@@ -906,22 +906,40 @@
     "message": "Kopia zapasowa i przywracanie"
   },
   "backupHint": {
-    "message": "Eksportuj lub importuj ustawienia i wybrane dane. Klucze API są pomijane w eksporcie."
+    "message": "Eksportuj lub importuj ustawienia i wybrane dane. Poświadczenia są pomijane, o ile ich nie zaznaczysz."
   },
   "backupIncludeHighlightsLabel": {
     "message": "Uwzględniaj zaznaczenia i notatki w kopiach zapasowych"
   },
   "backupIncludeHighlightsHint": {
-    "message": "Kopie zapasowe obejmują adresy URL stron, tytuły, zaznaczony tekst, notatki, kolory i znaczniki czasu. Klucze API nie są uwzględniane."
+    "message": "Kopie zapasowe obejmują adresy URL stron, tytuły, zaznaczony tekst, notatki, kolory i znaczniki czasu."
   },
   "backupPlaintextDisclosure": {
-    "message": "Kopie zapasowe są jawnymi plikami JSON. Mogą zawierać ustawienia, zaznaczenia, adresy URL stron, zapisane słówka i fragmenty kontekstu. Klucze API są wykluczone."
+    "message": "Kopie zapasowe są jawnymi plikami JSON. Mogą zawierać ustawienia, zaznaczenia, adresy URL stron, zapisane słówka i fragmenty kontekstu."
   },
   "backupIncludeVocabularyLabel": {
     "message": "Uwzględniaj zapisane słówka w kopiach zapasowych"
   },
   "backupIncludeVocabularyHint": {
     "message": "Obejmuje tylko słówka z bieżącego konta Pinboard."
+  },
+  "backupIncludeSecretsLabel": {
+    "message": "Uwzględniaj klucze API i tokeny w kopiach zapasowych"
+  },
+  "backupIncludeSecretsHint": {
+    "message": "Zapisuje wszystkie poświadczenia w pliku jawnym tekstem: token Pinboard, klucze wszystkich dostawców AI oraz poświadczenia Jina, Wayback, Anki, Eudic, Gist i Webhook. Każdy, kto otworzy plik, może ich użyć. Przechowuj go tak jak hasło."
+  },
+  "backupSectionSecrets": {
+    "message": "Klucze API i tokeny"
+  },
+  "backupPreviewSecrets": {
+    "message": "Poświadczenia w tym pliku: $COUNT$",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "backupPreviewSecretsWarning": {
+    "message": "Ta kopia zapasowa zawiera poświadczenia jawnym tekstem. Importuj je tylko wtedy, gdy ufasz pochodzeniu pliku."
   },
   "backupVocabOwnerMissing": {
     "message": "Zapisane słówka nie zostały uwzględnione, ponieważ nie jest dostępne konto Pinboard. Pozostałe wybrane dane zostały wyeksportowane."

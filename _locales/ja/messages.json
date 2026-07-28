@@ -906,22 +906,40 @@
     "message": "バックアップと復元"
   },
   "backupHint": {
-    "message": "設定と選択したデータをエクスポートまたはインポートします。エクスポートに API キーは含まれません。"
+    "message": "設定と選択したデータをエクスポートまたはインポートします。チェックしない限り、認証情報は含まれません。"
   },
   "backupIncludeHighlightsLabel": {
     "message": "バックアップにハイライトとメモを含める"
   },
   "backupIncludeHighlightsHint": {
-    "message": "バックアップにはページ URL、タイトル、選択したテキスト、メモ、色、タイムスタンプが含まれます。API キーは含まれません。"
+    "message": "バックアップにはページ URL、タイトル、選択したテキスト、メモ、色、タイムスタンプが含まれます。"
   },
   "backupPlaintextDisclosure": {
-    "message": "バックアップは平文の JSON ファイルです。設定、ハイライト、ページ URL、単語、文脈の抜粋が含まれる場合があります。API キーは含まれません。"
+    "message": "バックアップは平文の JSON ファイルです。設定、ハイライト、ページ URL、単語、文脈の抜粋が含まれる場合があります。"
   },
   "backupIncludeVocabularyLabel": {
     "message": "バックアップに単語を含める"
   },
   "backupIncludeVocabularyHint": {
     "message": "現在の Pinboard アカウントの単語だけが含まれます。"
+  },
+  "backupIncludeSecretsLabel": {
+    "message": "バックアップに API キーとトークンを含める"
+  },
+  "backupIncludeSecretsHint": {
+    "message": "すべての認証情報が平文でファイルに書き込まれます。Pinboard トークン、各 AI プロバイダーのキー、Jina、Wayback、Anki、Eudic、Gist、Webhook の認証情報が対象です。ファイルを開いた人は誰でもそのまま使用できます。パスワードと同じ扱いで保管してください。"
+  },
+  "backupSectionSecrets": {
+    "message": "API キーとトークン"
+  },
+  "backupPreviewSecrets": {
+    "message": "ファイル内の認証情報：$COUNT$ 件",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "backupPreviewSecretsWarning": {
+    "message": "このバックアップには平文の認証情報が含まれています。ファイルの出所が信頼できる場合のみインポートしてください。"
   },
   "backupVocabOwnerMissing": {
     "message": "利用できる Pinboard アカウントがないため、単語は含まれませんでした。ほかに選択したデータはエクスポートされています。"

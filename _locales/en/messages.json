@@ -906,22 +906,40 @@
     "message": "Backup & Restore"
   },
   "backupHint": {
-    "message": "Export or import settings and selected data. API keys are excluded from exports."
+    "message": "Export or import settings and selected data. Credentials are left out unless you ask for them."
   },
   "backupIncludeHighlightsLabel": {
     "message": "Include highlights and notes in backups"
   },
   "backupIncludeHighlightsHint": {
-    "message": "Includes page URLs, titles, selected text, notes, colors, and timestamps. API keys are never included."
+    "message": "Includes page URLs, titles, selected text, notes, colors, and timestamps."
   },
   "backupPlaintextDisclosure": {
-    "message": "Backup files are plain JSON. They may contain settings, highlights, page URLs, vocabulary, and context excerpts. API keys are excluded."
+    "message": "Backup files are plain JSON. They may contain settings, highlights, page URLs, vocabulary, and context excerpts."
   },
   "backupIncludeVocabularyLabel": {
     "message": "Include vocabulary in backups"
   },
   "backupIncludeVocabularyHint": {
     "message": "Includes vocabulary only for the current Pinboard account."
+  },
+  "backupIncludeSecretsLabel": {
+    "message": "Include API keys and tokens in backups"
+  },
+  "backupIncludeSecretsHint": {
+    "message": "Writes every credential to the file in plain text: your Pinboard token, all AI provider keys, and the Jina, Wayback, Anki, Eudic, Gist and Webhook credentials. Anyone who opens the file can use them. Keep it where you would keep a password."
+  },
+  "backupSectionSecrets": {
+    "message": "API keys and tokens"
+  },
+  "backupPreviewSecrets": {
+    "message": "Credentials in this file: $COUNT$",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "backupPreviewSecretsWarning": {
+    "message": "This backup carries credentials in plain text. Import them only if you trust where the file has been."
   },
   "backupVocabOwnerMissing": {
     "message": "Vocabulary was not included because no Pinboard account is available. The other selected data was exported."

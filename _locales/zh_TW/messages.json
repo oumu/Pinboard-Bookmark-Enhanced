@@ -906,22 +906,40 @@
     "message": "備份與還原"
   },
   "backupHint": {
-    "message": "匯出或匯入設定及所選資料。匯出檔案不包含 API 金鑰。"
+    "message": "匯出或匯入設定及所選資料。除非你主動勾選，匯出檔案不含憑證。"
   },
   "backupIncludeHighlightsLabel": {
     "message": "在備份中包含標記與筆記"
   },
   "backupIncludeHighlightsHint": {
-    "message": "備份會包含頁面 URL、標題、選取文字、筆記、顏色和時間戳記，但不會包含 API 金鑰。"
+    "message": "備份會包含頁面 URL、標題、選取文字、筆記、顏色和時間戳記。"
   },
   "backupPlaintextDisclosure": {
-    "message": "備份檔案是明文 JSON，可能包含設定、標記、頁面 URL、生詞和內容摘錄，但不包含 API 金鑰。"
+    "message": "備份檔案是明文 JSON，可能包含設定、標記、頁面 URL、生詞和內容摘錄。"
   },
   "backupIncludeVocabularyLabel": {
     "message": "在備份中包含生詞"
   },
   "backupIncludeVocabularyHint": {
     "message": "只包含目前 Pinboard 帳號的生詞。"
+  },
+  "backupIncludeSecretsLabel": {
+    "message": "在備份中包含 API 金鑰和權杖"
+  },
+  "backupIncludeSecretsHint": {
+    "message": "會把全部憑證以明文寫進檔案：Pinboard 權杖、所有 AI 服務商金鑰，以及 Jina、Wayback、Anki、歐路詞典、Gist 和 Webhook 的憑證。任何人開啟檔案都能直接使用。請按保管密碼的方式保管這個檔案。"
+  },
+  "backupSectionSecrets": {
+    "message": "API 金鑰和權杖"
+  },
+  "backupPreviewSecrets": {
+    "message": "檔案中的憑證：$COUNT$ 項",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "backupPreviewSecretsWarning": {
+    "message": "此備份含明文憑證。只在你確認檔案來源可靠時才匯入。"
   },
   "backupVocabOwnerMissing": {
     "message": "目前沒有可用的 Pinboard 帳號，因此未包含生詞。其他已選資料仍已匯出。"

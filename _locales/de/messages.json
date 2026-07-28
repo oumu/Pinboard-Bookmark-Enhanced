@@ -906,22 +906,40 @@
     "message": "Sicherung & Wiederherstellung"
   },
   "backupHint": {
-    "message": "Einstellungen und ausgewählte Daten exportieren oder importieren. API-Schlüssel werden nicht exportiert."
+    "message": "Einstellungen und ausgewählte Daten exportieren oder importieren. Zugangsdaten werden nur auf Wunsch exportiert."
   },
   "backupIncludeHighlightsLabel": {
     "message": "Markierungen und Notizen in Sicherungen einschließen"
   },
   "backupIncludeHighlightsHint": {
-    "message": "Backups enthalten Seiten-URLs, Titel, markierten Text, Notizen, Farben und Zeitstempel. API-Schlüssel werden nicht gesichert."
+    "message": "Backups enthalten Seiten-URLs, Titel, markierten Text, Notizen, Farben und Zeitstempel."
   },
   "backupPlaintextDisclosure": {
-    "message": "Sicherungen sind unverschlüsselte JSON-Dateien. Sie können Einstellungen, Markierungen, Seiten-URLs, Vokabeln und Kontextauszüge enthalten. API-Schlüssel sind ausgeschlossen."
+    "message": "Sicherungen sind unverschlüsselte JSON-Dateien. Sie können Einstellungen, Markierungen, Seiten-URLs, Vokabeln und Kontextauszüge enthalten."
   },
   "backupIncludeVocabularyLabel": {
     "message": "Vokabeln in Sicherungen einschließen"
   },
   "backupIncludeVocabularyHint": {
     "message": "Enthält nur Vokabeln des aktuellen Pinboard-Kontos."
+  },
+  "backupIncludeSecretsLabel": {
+    "message": "API-Schlüssel und Tokens in Sicherungen einschließen"
+  },
+  "backupIncludeSecretsHint": {
+    "message": "Schreibt sämtliche Zugangsdaten im Klartext in die Datei: Pinboard-Token, alle Schlüssel der KI-Anbieter sowie die Zugangsdaten für Jina, Wayback, Anki, Eudic, Gist und Webhook. Wer die Datei öffnet, kann sie direkt verwenden. Bewahren Sie die Datei wie ein Passwort auf."
+  },
+  "backupSectionSecrets": {
+    "message": "API-Schlüssel und Tokens"
+  },
+  "backupPreviewSecrets": {
+    "message": "Zugangsdaten in dieser Datei: $COUNT$",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "backupPreviewSecretsWarning": {
+    "message": "Diese Sicherung enthält Zugangsdaten im Klartext. Nur importieren, wenn die Herkunft der Datei vertrauenswürdig ist."
   },
   "backupVocabOwnerMissing": {
     "message": "Vokabeln wurden nicht einbezogen, weil kein Pinboard-Konto verfügbar ist. Die anderen ausgewählten Daten wurden exportiert."

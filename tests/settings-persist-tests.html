@@ -2309,6 +2309,29 @@ async function run() {
         !("webdavPass" in importedBatch) &&
         !("webdavAutoPush" in importedBatch));
 
+      // Mirror of the case above: the same credential-bearing payload DOES
+      // restore once the credentials section is explicitly selected, so the
+      // "ignored" assertion is proving the default, not a dead code path.
+      const credentialApply = await pbpApplyBackupPayload({
+        _schemaVersion: 2,
+        optTheme: "light",
+        geminiApiKey: "restored-gemini",
+        exportTargets: {
+          webhook: { enabled: true, url: "https://restored.example/hook", token: "restored-hook" },
+        },
+      }, {
+        exportableKeys,
+        saveOverlayWithFallback: async () => {},
+        sections: { settings: false, themes: false, highlights: false, vocabulary: false, secrets: true },
+      });
+      check("E7b apply: credentials restore only when their section is selected",
+        credentialApply.secrets === "applied" && credentialApply.settings === "skipped" &&
+        importedBatch.geminiApiKey === "restored-gemini" &&
+        importedBatch.exportTargets.webhook.token === "restored-hook" &&
+        importedBatch.exportTargets.webhook.url === "https://restored.example/hook" &&
+        importedBatch.exportTargets.github.token === "obf:live-github" &&
+        !("optTheme" in importedBatch));
+
       const writesBeforeInvalid = importedBatch;
       let invalidApplyError = null;
       try {
@@ -2645,12 +2668,51 @@ async function run() {
     check("E11 export filename contains the local date",
       task9Ready && pbpBackupFilename(new Date(2026, 6, 24)) ===
         "Pinboard Bookmark Enhanced backup 2026-07-24.json");
+
+    // Credential export is opt-in: one settings object, two snapshots.
+    const credentialSettings = {
+      optTheme: "dark",
+      pinboardToken: "obf:pin-token",
+      geminiApiKey: "obf:gemini",
+      openaiApiKey: "",
+      exportTargets: { webhook: { enabled: true, url: "https://hook.test/x", token: "obf:hook" } },
+    };
+    let plainSnapshot = null;
+    let credentialSnapshot = null;
+    try {
+      plainSnapshot = pbpBuildBackupSnapshot(credentialSettings, { overlay: "", savedThemes: [] });
+      credentialSnapshot = pbpBuildBackupSnapshot(credentialSettings,
+        { overlay: "", savedThemes: [], includeSecrets: true });
+    } catch (_) {}
+    check("E11 export omits credentials unless asked",
+      !!plainSnapshot && !("pinboardToken" in plainSnapshot) && !("geminiApiKey" in plainSnapshot) &&
+      plainSnapshot.exportTargets?.webhook?.token === undefined &&
+      plainSnapshot.exportTargets?.webhook?.url === undefined &&
+      plainSnapshot._backup?.includesSecrets === undefined);
+    check("E11 opt-in export carries credentials and flags itself",
+      credentialSnapshot?.pinboardToken === "obf:pin-token" &&
+      credentialSnapshot.geminiApiKey === "obf:gemini" &&
+      credentialSnapshot.exportTargets.webhook.token === "obf:hook" &&
+      credentialSnapshot.exportTargets.webhook.url === "https://hook.test/x" &&
+      credentialSnapshot._backup.includesSecrets === true);
+    // "" is a present-but-unset field, not a credential — counting it would put
+    // a credential warning on a backup that carries none.
+    check("E11 credential count ignores empty fields",
+      pbpCountBackupSecrets(credentialSnapshot) === 4 && pbpCountBackupSecrets(plainSnapshot) === 0);
+    check("E11 credential metadata survives its own preflight",
+      pbpSanitizeBackupMetadata(credentialSnapshot._backup).includesSecrets === true &&
+      pbpSanitizeBackupMetadata(plainSnapshot._backup).includesSecrets === undefined);
+    check("E11 credential backups are named apart",
+      task9Ready && pbpBackupFilename(new Date(2026, 6, 24), true) ===
+        "Pinboard Bookmark Enhanced backup with credentials 2026-07-24.json");
     globalThis.chrome = previousChrome;
 
     const optionsHtml = await (await fetch("../options.html")).text();
     const parsedOptions = new DOMParser().parseFromString(optionsHtml, "text/html");
     check("E11 include-vocabulary export control defaults on",
       parsedOptions.getElementById("opt-backup-include-vocabulary")?.checked === true);
+    check("E11 include-credentials export control defaults off",
+      parsedOptions.getElementById("opt-backup-include-secrets")?.checked === false);
     check("E11 exported vocabulary is limited to the current owner",
       snapshot?._vocabulary?.owner === backupOwner &&
       snapshot._vocabulary.records.length === 1 &&

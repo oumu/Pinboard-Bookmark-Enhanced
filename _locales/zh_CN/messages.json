@@ -906,22 +906,40 @@
     "message": "备份与恢复"
   },
   "backupHint": {
-    "message": "导出或导入设置及所选数据。导出文件不包含 API 密钥。"
+    "message": "导出或导入设置及所选数据。除非你主动勾选，导出文件不含凭据。"
   },
   "backupIncludeHighlightsLabel": {
     "message": "在备份中包含高亮和笔记"
   },
   "backupIncludeHighlightsHint": {
-    "message": "备份会包含页面 URL、标题、选中文本、笔记、颜色和时间戳，但不会包含 API 密钥。"
+    "message": "备份会包含页面 URL、标题、选中文本、笔记、颜色和时间戳。"
   },
   "backupPlaintextDisclosure": {
-    "message": "备份文件是明文 JSON，可能包含设置、高亮、页面 URL、生词和上下文摘录，但不包含 API 密钥。"
+    "message": "备份文件是明文 JSON，可能包含设置、高亮、页面 URL、生词和上下文摘录。"
   },
   "backupIncludeVocabularyLabel": {
     "message": "在备份中包含生词"
   },
   "backupIncludeVocabularyHint": {
     "message": "只包含当前 Pinboard 账号的生词。"
+  },
+  "backupIncludeSecretsLabel": {
+    "message": "在备份中包含 API 密钥和令牌"
+  },
+  "backupIncludeSecretsHint": {
+    "message": "会把全部凭据以明文写进文件：Pinboard 令牌、所有 AI 服务商密钥，以及 Jina、Wayback、Anki、欧路词典、Gist 和 Webhook 的凭据。任何人打开文件都能直接使用。请按保管密码的方式保管这个文件。"
+  },
+  "backupSectionSecrets": {
+    "message": "API 密钥和令牌"
+  },
+  "backupPreviewSecrets": {
+    "message": "文件中的凭据：$COUNT$ 项",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "backupPreviewSecretsWarning": {
+    "message": "此备份含明文凭据。只在你确认文件来源可靠时才导入。"
   },
   "backupVocabOwnerMissing": {
     "message": "当前没有可用的 Pinboard 账号，因此未包含生词。其他已选数据仍已导出。"

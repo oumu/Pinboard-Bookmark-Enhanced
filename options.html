@@ -105,12 +105,14 @@
       <p id="opt-sync-error" class="opt-error hidden" role="alert"></p>
       <div class="divider"></div>
       <div class="section-title" data-i18n="secBackupRestore">Backup &amp; Restore</div>
-      <p class="hint" data-i18n="backupHint">Export or import settings and selected data. API keys are excluded from exports.</p>
-      <p class="hint hint-warn backup-plaintext" data-i18n="backupPlaintextDisclosure">Backup files are plain JSON. They may contain settings, highlights, page URLs, vocabulary, and context excerpts. API keys are excluded.</p>
+      <p class="hint" data-i18n="backupHint">Export or import settings and selected data. Credentials are left out unless you ask for them.</p>
+      <p class="hint hint-warn backup-plaintext" data-i18n="backupPlaintextDisclosure">Backup files are plain JSON. They may contain settings, highlights, page URLs, vocabulary, and context excerpts.</p>
       <div class="fg"><label><input type="checkbox" id="opt-backup-include-highlights" checked /> <span data-i18n="backupIncludeHighlightsLabel">Include highlights and notes in backups</span></label></div>
-      <p class="hint" data-i18n="backupIncludeHighlightsHint">Includes page URLs, titles, selected text, notes, colors, and timestamps. API keys are never included.</p>
+      <p class="hint" data-i18n="backupIncludeHighlightsHint">Includes page URLs, titles, selected text, notes, colors, and timestamps.</p>
       <div class="fg"><label><input type="checkbox" id="opt-backup-include-vocabulary" checked /> <span data-i18n="backupIncludeVocabularyLabel">Include vocabulary in backups</span></label></div>
       <p class="hint" data-i18n="backupIncludeVocabularyHint">Includes vocabulary only for the current Pinboard account.</p>
+      <div class="fg"><label><input type="checkbox" id="opt-backup-include-secrets" /> <span data-i18n="backupIncludeSecretsLabel">Include API keys and tokens in backups</span></label></div>
+      <p class="hint hint-warn" data-i18n="backupIncludeSecretsHint">Writes every credential to the file in plain text: your Pinboard token, all AI provider keys, and the Jina, Wayback, Anki, Eudic, Gist and Webhook credentials. Anyone who opens the file can use them. Keep it somewhere you would keep a password.</p>
       <div class="backup-actions">
         <button class="btn" id="export-settings" data-i18n="exportSettings">Export Settings</button>
         <button type="button" class="btn" id="import-settings" title="Import settings from JSON file" data-i18n="importSettings" data-i18n-title="importSettingsTitle">Import Settings</button>
@@ -126,6 +128,7 @@
           <div><dt data-i18n="backupSectionThemes">Themes</dt><dd id="backup-preview-themes"></dd></div>
           <div><dt data-i18n="backupSectionHighlights">Highlights and notes</dt><dd id="backup-preview-highlights"></dd></div>
           <div><dt data-i18n="backupSectionVocabulary">Vocabulary</dt><dd id="backup-preview-vocabulary"></dd></div>
+          <div><dt data-i18n="backupSectionSecrets">API keys and tokens</dt><dd id="backup-preview-secrets"></dd></div>
           <div><dt data-i18n="backupPreviewLanguageLabel">Languages</dt><dd id="backup-preview-languages"></dd></div>
         </dl>
         <p class="hint hint-warn backup-preview-warning" id="backup-preview-warning" role="status" aria-live="polite"></p>
@@ -135,6 +138,7 @@
           <label><input type="checkbox" id="backup-section-themes" /> <span data-i18n="backupSectionThemes">Themes</span></label>
           <label><input type="checkbox" id="backup-section-highlights" /> <span data-i18n="backupSectionHighlights">Highlights and notes</span></label>
           <label><input type="checkbox" id="backup-section-vocabulary" /> <span data-i18n="backupSectionVocabulary">Vocabulary</span></label>
+          <label><input type="checkbox" id="backup-section-secrets" /> <span data-i18n="backupSectionSecrets">API keys and tokens</span></label>
         </fieldset>
         <div class="backup-apply-row">
           <button type="button" class="btn" id="backup-import-apply" data-i18n="backupApplySelected">Apply selected</button>
@@ -146,6 +150,7 @@
         <div><span data-i18n="backupSectionThemes">Themes</span><span id="backup-result-themes"></span></div>
         <div><span data-i18n="backupSectionHighlights">Highlights and notes</span><span id="backup-result-highlights"></span></div>
         <div><span data-i18n="backupSectionVocabulary">Vocabulary</span><span id="backup-result-vocabulary"></span></div>
+        <div><span data-i18n="backupSectionSecrets">API keys and tokens</span><span id="backup-result-secrets"></span></div>
       </div>
       <div class="divider"></div>
       <div class="section-title" data-i18n="secNotifications">Notifications</div>
