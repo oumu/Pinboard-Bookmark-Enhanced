@@ -2319,7 +2319,15 @@ function showConfirmPopover(anchor, opts) {
   const gap = 4;
   const viewportWidth = document.documentElement.clientWidth;
   const viewportHeight = document.documentElement.clientHeight;
-  const left = Math.max(gap, Math.min(anchorRect.right - popRect.width, viewportWidth - popRect.width - gap));
+  // Align the popover's left edge to the anchor's and let it grow rightwards.
+  // Aligning the RIGHT edges instead (the earlier rule) pushes a wide popover
+  // left across whatever the anchor sits beside: for a button in the settings
+  // pane that is the sidebar nav, which it then covers. Flip to right-edge
+  // alignment only when growing rightwards would leave the viewport, and clamp
+  // as a last resort for a popover wider than the viewport itself.
+  const left = anchorRect.left + popRect.width <= viewportWidth - gap
+    ? Math.max(gap, anchorRect.left)
+    : Math.max(gap, Math.min(anchorRect.right - popRect.width, viewportWidth - popRect.width - gap));
   const below = anchorRect.bottom + gap;
   const top = below + popRect.height <= viewportHeight - gap
     ? below

@@ -395,6 +395,11 @@ check(/mobileTabSelect\.value = btn\.dataset\.panel/.test(optionsJs) &&
   "options.js: desktop tabs and mobile category select can drift");
 check(/result && typeof result\.catch === "function"\) result\.catch\(reportConfirmError\)/.test(sharedJs),
   "shared.js: asynchronous confirm failures can become unhandled rejections");
+// Leading-edge alignment: the popover is routinely far wider than its anchor, so
+// aligning trailing edges walks it left over the sidebar nav instead.
+check(/anchorRect\.left \+ popRect\.width <= viewportWidth - gap/.test(sharedJs) &&
+  /\? Math\.max\(gap, anchorRect\.left\)/.test(sharedJs),
+  "shared.js: the confirm popover went back to trailing-edge alignment (it then covers whatever sits left of the anchor)");
 check(/<input type="password" id="token-input"/.test(popupHtml) && /data-target="token-input"/.test(popupHtml),
   "popup.html: Pinboard token is not masked with a reveal control");
 check(/<input type="password" id="opt-pinboard-token"/.test(optionsHtml) && /data-target="opt-pinboard-token"/.test(optionsHtml),
