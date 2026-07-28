@@ -8,9 +8,9 @@ For Chrome Web Store reviewers: every file in this directory is unmodified upstr
 
 | File | Version | Upstream | License | Purpose |
 |------|---------|----------|---------|---------|
-| `defuddle.js` | 0.19.1 | https://github.com/kepano/defuddle | MIT | Extracts main article content from arbitrary web pages so AI tag/summary requests can send clean text instead of full HTML. Injected via `chrome.scripting.executeScript` into the active tab on user action only. |
+| `defuddle.js` | 0.19.2 | https://github.com/kepano/defuddle | MIT | Extracts main article content from arbitrary web pages so AI tag/summary requests can send clean text instead of full HTML. Injected via `chrome.scripting.executeScript` into the active tab on user action only. |
 | `turndown.js` | 7.2.4 | https://github.com/mixmark-io/turndown | MIT | Converts captured HTML to Markdown for the in-extension preview tab. Loaded only inside `md-preview.html`. |
-| `marked.min.js` | 18.0.6 | https://github.com/markedjs/marked | MIT | Converts canonical Markdown to HTML for the preview render (then sanitized by DOMPurify). Loaded only inside `md-preview.html`. Vendored from the npm UMD build (`lib/marked.umd.js`) under the historical `.min.js` name. |
+| `marked.min.js` | 18.0.7 | https://github.com/markedjs/marked | MIT | Converts canonical Markdown to HTML for the preview render (then sanitized by DOMPurify). Loaded only inside `md-preview.html`. Vendored from the npm UMD build (`lib/marked.umd.js`) under the historical `.min.js` name. |
 | `purify.min.js` | 3.4.12 | https://github.com/cure53/DOMPurify | Apache-2.0 / MPL-2.0 | The single sanitize point: cleans all HTML before it enters the preview DOM (both `marked` output and arbitrary web-page Markdown). Loaded only inside `md-preview.html`. |
 | `highlight.min.js`, `hljs-github*.min.css` | 11.11.1 | https://github.com/highlightjs/highlight.js | BSD-3-Clause | Syntax-highlights fenced/auto-detected code blocks in the Markdown preview. Loaded only inside `md-preview.html`. |
 | `katex/` | 0.17.0 | https://github.com/KaTeX/KaTeX | MIT | Renders LaTeX math (`$...$` / `$$...$$`) in the Markdown preview. Lazy-loaded in `md-preview.html` only for content flagged math-bearing (e.g. arXiv abstracts) — never on other pages, so currency `$` is never touched. woff2 fonts only (Chrome supports woff2). |
@@ -19,15 +19,15 @@ For Chrome Web Store reviewers: every file in this directory is unmodified upstr
 
 ### `defuddle.js`
 ```bash
-npm pack defuddle@0.19.1
-tar -xzf defuddle-0.19.1.tgz package/dist/index.js
+npm pack defuddle@0.19.2
+tar -xzf defuddle-0.19.2.tgz package/dist/index.js
 diff package/dist/index.js vendor/defuddle.js
 ```
 Or build from source:
 ```bash
 git clone https://github.com/kepano/defuddle.git
 cd defuddle
-git checkout 0.19.1
+git checkout 0.19.2
 npm install
 npm run build
 # Output: dist/index.js (matches vendor/defuddle.js byte-for-byte)
@@ -43,8 +43,8 @@ diff package/dist/turndown.js vendor/turndown.js
 
 ### `marked.min.js`
 ```bash
-npm pack marked@18.0.6
-tar -xzf marked-18.0.6.tgz package/lib/marked.umd.js
+npm pack marked@18.0.7
+tar -xzf marked-18.0.7.tgz package/lib/marked.umd.js
 diff package/lib/marked.umd.js vendor/marked.min.js   # UMD build, vendored under the .min.js name
 ```
 
