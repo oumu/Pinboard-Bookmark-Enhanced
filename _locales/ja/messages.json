@@ -929,6 +929,12 @@
   "backupIncludeSecretsHint": {
     "message": "すべての認証情報が平文でファイルに書き込まれます。Pinboard トークン、各 AI プロバイダーのキー、Jina、Wayback、Anki、Eudic、Gist、Webhook の認証情報が対象です。ファイルを開いた人は誰でもそのまま使用できます。パスワードと同じ扱いで保管してください。"
   },
+  "backupSecretsExportConfirm": {
+    "message": "このバックアップには API キーとトークンが平文で保存されます。信頼できない経路で送信せず、復元が終わったらすぐに削除してください。"
+  },
+  "backupSecretsExportYes": {
+    "message": "エクスポート"
+  },
   "backupSectionSecrets": {
     "message": "API キーとトークン"
   },

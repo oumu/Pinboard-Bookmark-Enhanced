@@ -929,6 +929,12 @@
   "backupIncludeSecretsHint": {
     "message": "Zapisuje wszystkie poświadczenia w pliku jawnym tekstem: token Pinboard, klucze wszystkich dostawców AI oraz poświadczenia Jina, Wayback, Anki, Eudic, Gist i Webhook. Każdy, kto otworzy plik, może ich użyć. Przechowuj go tak jak hasło."
   },
+  "backupSecretsExportConfirm": {
+    "message": "Ta kopia zapasowa będzie zawierać klucze API i tokeny jawnym tekstem. Nie wysyłaj jej kanałami, którym nie ufasz, i usuń ją po zakończeniu przywracania."
+  },
+  "backupSecretsExportYes": {
+    "message": "Eksportuj"
+  },
   "backupSectionSecrets": {
     "message": "Klucze API i tokeny"
   },

@@ -51,15 +51,26 @@ const optionsThemeEarlyJs = read("options-theme-early.js");
 const popupTagsJs = read("popup-tags.js");
 
 {
+  // Bounded by the next declaration rather than by the export handler, which
+  // has moved down the file before and would silently widen this slice.
   const renderPreview = optionsBackupJs.slice(
     optionsBackupJs.indexOf("const renderPreview ="),
-    optionsBackupJs.indexOf('  $id("export-settings")', optionsBackupJs.indexOf("const renderPreview =")),
+    optionsBackupJs.indexOf("const renderResult =", optionsBackupJs.indexOf("const renderPreview =")),
   );
   check(renderPreview.includes("pbpLargeFallbackFieldLabel(key)") &&
     !renderPreview.includes('customTagPrompt: "labelTagPrompt"') &&
     !renderPreview.includes('savedThemes: "labelSavedThemes"'),
     "options-backup.js: fallback field labels drifted from the shared mapping");
+  check(renderPreview.includes('checkbox.checked = key === "secrets" ? false :'),
+    "options-backup.js: the credential import section no longer defaults to unchecked");
 }
+
+// Writing usable secrets to disk is gated on a stop-and-read step; an ordinary
+// export must stay one click.
+check(/checked !== true\) \{ runExport\(\); return; \}/.test(optionsBackupJs) &&
+  optionsBackupJs.includes('showConfirmPopover($id("export-settings")') &&
+  optionsBackupJs.includes('msg: t("backupSecretsExportConfirm")'),
+  "options-backup.js: the credential export lost its plaintext-risk confirmation");
 
 check(!existsSync(resolve(root, "webdav.js")), "webdav.js still exists");
 check(!optionsHtml.includes('id="opt-webdav') &&

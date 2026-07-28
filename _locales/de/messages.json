@@ -929,6 +929,12 @@
   "backupIncludeSecretsHint": {
     "message": "Schreibt sämtliche Zugangsdaten im Klartext in die Datei: Pinboard-Token, alle Schlüssel der KI-Anbieter sowie die Zugangsdaten für Jina, Wayback, Anki, Eudic, Gist und Webhook. Wer die Datei öffnet, kann sie direkt verwenden. Bewahren Sie die Datei wie ein Passwort auf."
   },
+  "backupSecretsExportConfirm": {
+    "message": "Diese Sicherung enthält Ihre API-Schlüssel und Tokens im Klartext. Senden Sie sie nicht über Kanäle, denen Sie nicht vertrauen, und löschen Sie sie nach der Wiederherstellung."
+  },
+  "backupSecretsExportYes": {
+    "message": "Exportieren"
+  },
   "backupSectionSecrets": {
     "message": "API-Schlüssel und Tokens"
   },

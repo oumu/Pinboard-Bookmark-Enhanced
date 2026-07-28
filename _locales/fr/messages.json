@@ -929,6 +929,12 @@
   "backupIncludeSecretsHint": {
     "message": "Écrit tous les identifiants en clair dans le fichier : jeton Pinboard, clés de tous les fournisseurs d'IA, ainsi que les identifiants Jina, Wayback, Anki, Eudic, Gist et Webhook. Quiconque ouvre le fichier peut les utiliser. Conservez-le comme un mot de passe."
   },
+  "backupSecretsExportConfirm": {
+    "message": "Cette sauvegarde contiendra vos clés API et vos jetons en clair. Ne l'envoyez pas par des canaux auxquels vous ne faites pas confiance et supprimez-la une fois la restauration terminée."
+  },
+  "backupSecretsExportYes": {
+    "message": "Exporter"
+  },
   "backupSectionSecrets": {
     "message": "Clés API et jetons"
   },

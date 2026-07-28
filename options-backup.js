@@ -486,13 +486,15 @@ function setupBackup({ exportableKeys, saveOverlayWithFallback, loadThemes, befo
 
   $id("import-settings").addEventListener("click", () => $id("import-settings-file").click());
 
-  $id("export-settings").addEventListener("click", async () => {
+  const runExport = async () => {
     try {
       // The form auto-saves on a debounce. Flush it before reading storage so
       // clicking Export immediately after an edit cannot create a stale backup.
       if (beforeExport && (await beforeExport()) === false) return;
       // Opt-in per export, never remembered: reading the secret fields at all
-      // is gated on the checkbox being ticked right now.
+      // is gated on the checkbox being ticked right now. Re-read here rather
+      // than trusting what the click handler saw, so a box unticked while the
+      // confirmation was open still produces a credential-free file.
       const includeSecrets = $id("opt-backup-include-secrets")?.checked === true;
       const raw = await pbpReadSettingsWithSecrets(
         includeSecrets ? Object.keys(SETTINGS_DEFAULTS) : exportableKeys);
@@ -570,6 +572,19 @@ function setupBackup({ exportableKeys, saveOverlayWithFallback, loadThemes, befo
       const status = $id("import-status");
       setStatusIcon(status, false, t("optSaveFailed"));
     }
+  };
+
+  // A credential-bearing export is the one action here that writes usable
+  // secrets to disk, so it gets a stop-and-read step naming what lands in the
+  // file. An ordinary export needs no confirmation and gets none.
+  $id("export-settings").addEventListener("click", () => {
+    if ($id("opt-backup-include-secrets")?.checked !== true) { runExport(); return; }
+    showConfirmPopover($id("export-settings"), {
+      msg: t("backupSecretsExportConfirm"),
+      yesText: t("backupSecretsExportYes"),
+      noText: t("cancel"),
+      onConfirm: runExport,
+    });
   });
 
   $id("import-settings-file").addEventListener("change", async (e) => {

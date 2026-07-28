@@ -929,6 +929,12 @@
   "backupIncludeSecretsHint": {
     "message": "会把全部凭据以明文写进文件：Pinboard 令牌、所有 AI 服务商密钥，以及 Jina、Wayback、Anki、欧路词典、Gist 和 Webhook 的凭据。任何人打开文件都能直接使用。请按保管密码的方式保管这个文件。"
   },
+  "backupSecretsExportConfirm": {
+    "message": "此备份将以明文保存你的 API 密钥和令牌。不要经由你不信任的渠道传输，恢复完成后请立即删除。"
+  },
+  "backupSecretsExportYes": {
+    "message": "导出"
+  },
   "backupSectionSecrets": {
     "message": "API 密钥和令牌"
   },

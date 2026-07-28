@@ -929,6 +929,12 @@
   "backupIncludeSecretsHint": {
     "message": "Writes every credential to the file in plain text: your Pinboard token, all AI provider keys, and the Jina, Wayback, Anki, Eudic, Gist and Webhook credentials. Anyone who opens the file can use them. Keep it where you would keep a password."
   },
+  "backupSecretsExportConfirm": {
+    "message": "This backup will hold your API keys and tokens in plain text. Don't send it over channels you don't trust, and delete it once you have restored."
+  },
+  "backupSecretsExportYes": {
+    "message": "Export"
+  },
   "backupSectionSecrets": {
     "message": "API keys and tokens"
   },
