@@ -1041,7 +1041,10 @@ function _pbpZenSettleOnTransitionEnd(e) {
   const el = e.target;
   const isTracked = el && (el.tagName === "MAIN" || (el.classList && el.classList.contains("doc-body")));
   if (!isTracked) return;
-  if (e.propertyName !== "margin-left" && e.propertyName !== "margin-right" && e.propertyName !== "max-width") return;
+  // `max-width` used to be here for .doc-body's reading-width tween. That
+  // transition is gone (interpolating the measure re-wrapped every paragraph),
+  // so the branch could never fire; the 300ms fallback covers width changes.
+  if (e.propertyName !== "margin-left" && e.propertyName !== "margin-right") return;
   _pbpZenSettleFire();
 }
 
