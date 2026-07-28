@@ -1871,38 +1871,8 @@
   "freeTierTitle": {
     "message": "Którzy dostawcy oferują darmowy dostęp do API?"
   },
-  "freeTierGemini": {
-    "message": "— ~1500 zap./dzień (Flash), bez karty, konto Google."
-  },
-  "freeTierGroq": {
-    "message": "— ~1000 zap./dzień, najszybsze wnioskowanie."
-  },
-  "freeTierMistral": {
-    "message": "— 1 mld tokenów/miesiąc, 1 zap./sek. (500K TPM)."
-  },
-  "freeTierZhipu": {
-    "message": "— darmowe modele GLM-Flash, 1 równoczesne żądanie; dostęp międzynarodowy przez z.ai (rejestracja e-mailem)."
-  },
-  "freeTierOpenrouter": {
-    "message": "— modele :free, 20 zap./min; 50 zap./dzień (1000/dzień po jednorazowym zakupie kredytów za $10)."
-  },
-  "freeTierCohere": {
-    "message": "— klucz próbny, ~1000 zap./miesiąc."
-  },
-  "freeTierTrial": {
-    "message": "— kredyty na start, które się wyczerpują (DeepSeek ~5 mln tokenów; MiniMax ~30-dniowy okres próbny)."
-  },
-  "freeTierQwen": {
-    "message": "— 1 mln tokenów/model przez 90 dni (tylko endpoint w Singapurze)."
-  },
-  "freeTierOllama": {
-    "message": "— całkowicie darmowy, działa lokalnie."
-  },
-  "freeTierDisclaimer": {
-    "message": "Polityki dostawców często się zmieniają. Informacje na czerwiec 2026, mogą być niedokładne. Sprawdź aktualne limity przy rejestracji."
-  },
   "freeTierResourcesPrefix": {
-    "message": "Pełniejsze, regularnie aktualizowane listy:"
+    "message": "Darmowe limity zmieniają się zbyt często, by je tu wypisywać. Te społecznościowe listy są na bieżąco aktualizowane, a rzeczywisty limit pokazuje konsola dostawcy:"
   },
   "aiStage_extracting": {
     "message": "pobieranie zawartości…"

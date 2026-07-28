@@ -1871,38 +1871,8 @@
   "freeTierTitle": {
     "message": "Quels fournisseurs offrent un accès API gratuit ?"
   },
-  "freeTierGemini": {
-    "message": "— ~1500 req/jour (Flash), sans carte, compte Google."
-  },
-  "freeTierGroq": {
-    "message": "— ~1000 req/jour, inférence la plus rapide."
-  },
-  "freeTierMistral": {
-    "message": "— 1 Md tokens/mois, 1 req/sec (500K TPM)."
-  },
-  "freeTierZhipu": {
-    "message": "— modèles GLM-Flash gratuits, 1 requête simultanée ; accès international via z.ai (inscription par e-mail)."
-  },
-  "freeTierOpenrouter": {
-    "message": "— modèles :free, 20 req/min ; 50 req/jour (1000/jour après un achat unique de 10 $ de crédits)."
-  },
-  "freeTierCohere": {
-    "message": "— clé d'essai, ~1000 appels/mois."
-  },
-  "freeTierTrial": {
-    "message": "— crédits offerts à l'inscription, épuisables (DeepSeek ~5 M tokens ; MiniMax essai ~30 jours)."
-  },
-  "freeTierQwen": {
-    "message": "— 1 M tokens/modèle pendant 90 jours (point de terminaison Singapour uniquement)."
-  },
-  "freeTierOllama": {
-    "message": "— entièrement gratuit, fonctionne en local."
-  },
-  "freeTierDisclaimer": {
-    "message": "Les politiques des fournisseurs changent souvent. Informations à jour en juin 2026, susceptibles d'être inexactes. Vérifiez les limites actuelles à l'inscription."
-  },
   "freeTierResourcesPrefix": {
-    "message": "Listes plus complètes, régulièrement mises à jour :"
+    "message": "Les offres gratuites changent trop souvent pour être listées ici. Ces listes communautaires sont tenues à jour ; votre quota réel est celui qu'affiche la console de votre fournisseur :"
   },
   "aiStage_extracting": {
     "message": "extraction du contenu…"

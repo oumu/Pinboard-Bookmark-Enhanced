@@ -278,11 +278,7 @@ html[data-theme] .kbd-help-chips kbd {
 .free-tier-help summary { cursor: pointer; padding: var(--opt-sp-2) 0; color: #4477bb; user-select: none; }
 .free-tier-help summary:hover { text-decoration: underline; }
 .free-tier-help[open] summary { margin-bottom: var(--opt-sp-2); }
-.free-tier-list { margin: var(--opt-sp-2) 0 var(--opt-sp-3); padding-left: var(--opt-sp-6); line-height: 1.6; }
-.free-tier-list li { margin-bottom: var(--opt-sp-1); }
-.free-tier-list strong { color: #333; }
 html[data-theme] .free-tier-help { color: var(--opt-text-muted, #888); }
-html[data-theme] .free-tier-list strong { color: var(--opt-text, #ddd); }
 html[data-theme] .free-tier-help summary { color: var(--opt-accent, #4477bb); }
 .opt-error { font-size: 12px; color: #c00; margin: var(--opt-sp-2) 0 var(--opt-sp-4); padding: var(--opt-sp-3) var(--opt-sp-4); background: #fff0f0; border: 1px solid #f5c6c6; border-radius: var(--opt-radius-sm); }
 .opt-error.hidden { display: none; }

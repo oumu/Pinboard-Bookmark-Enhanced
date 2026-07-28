@@ -1871,38 +1871,8 @@
   "freeTierTitle": {
     "message": "無料 API を提供するプロバイダーは？"
   },
-  "freeTierGemini": {
-    "message": "— 約 1500 リクエスト/日（Flash）、カード不要、Google アカウント"
-  },
-  "freeTierGroq": {
-    "message": "— 約 1000 リクエスト/日、最速推論"
-  },
-  "freeTierMistral": {
-    "message": "— 月 10 億トークン、1 リクエスト/秒（500K TPM）"
-  },
-  "freeTierZhipu": {
-    "message": "— 無料の GLM-Flash モデル、同時 1 リクエスト、海外は z.ai（メール登録）"
-  },
-  "freeTierOpenrouter": {
-    "message": "— :free モデル、20 リクエスト/分、50 リクエスト/日（一度 $10 分のクレジット購入で 1000/日）"
-  },
-  "freeTierCohere": {
-    "message": "— トライアルキー、約 1000 呼び出し/月"
-  },
-  "freeTierTrial": {
-    "message": "— 登録時の付与クレジット制（DeepSeek 約 500 万トークン、MiniMax 約 30 日間の試用）"
-  },
-  "freeTierQwen": {
-    "message": "— モデルごとに 100 万トークン、90 日間（シンガポール エンドポイントのみ）"
-  },
-  "freeTierOllama": {
-    "message": "— 完全無料、ローカル実行"
-  },
-  "freeTierDisclaimer": {
-    "message": "各プロバイダーのポリシーは頻繁に変わります。上記は 2026 年 6 月時点の情報で、不正確な場合があります。登録時に最新の制限を確認してください。"
-  },
   "freeTierResourcesPrefix": {
-    "message": "より網羅的で頻繁に更新されるリスト："
+    "message": "無料枠は変動が激しいため、ここでは個別に掲載しません。以下のコミュニティ製リストは更新が頻繁です。実際の上限は各プロバイダーの管理画面でご確認ください："
   },
   "aiStage_extracting": {
     "message": "ページ内容を取得中…"

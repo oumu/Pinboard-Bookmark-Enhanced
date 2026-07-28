@@ -1841,38 +1841,8 @@
   "freeTierTitle": {
     "message": "Which providers offer free API access?"
   },
-  "freeTierGemini": {
-    "message": "— ~1500 req/day (Flash), no card, Google account."
-  },
-  "freeTierGroq": {
-    "message": "— ~1000 req/day, fastest inference."
-  },
-  "freeTierMistral": {
-    "message": "— 1B tokens/month, 1 req/sec (500K TPM)."
-  },
-  "freeTierZhipu": {
-    "message": "— free GLM-Flash models, 1 concurrent request; international access via z.ai (email signup)."
-  },
-  "freeTierOpenrouter": {
-    "message": "— :free models, 20 req/min; 50 req/day (1000/day after a one-time $10 credit purchase)."
-  },
-  "freeTierCohere": {
-    "message": "— trial key, ~1000 calls/month."
-  },
-  "freeTierTrial": {
-    "message": "— signup credits that run out (DeepSeek ~5M tokens; MiniMax ~30-day trial)."
-  },
-  "freeTierQwen": {
-    "message": "— 1M tokens/model for 90 days (Singapore endpoint only)."
-  },
-  "freeTierOllama": {
-    "message": "— fully free, runs locally on your machine."
-  },
-  "freeTierDisclaimer": {
-    "message": "Provider policies change frequently. Information above is current as of 2026-06 and may be inaccurate. Always verify current limits at signup."
-  },
   "freeTierResourcesPrefix": {
-    "message": "More complete, regularly-updated lists:"
+    "message": "Free tiers change too often to list here. These community lists keep up; your actual quota is whatever your provider's console shows:"
   },
   "aiStage_extracting": {
     "message": "extracting page content…"

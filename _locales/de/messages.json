@@ -1871,38 +1871,8 @@
   "freeTierTitle": {
     "message": "Welche Anbieter bieten kostenlosen API-Zugang?"
   },
-  "freeTierGemini": {
-    "message": "— ca. 1500 Anfragen/Tag (Flash), ohne Karte, Google-Konto."
-  },
-  "freeTierGroq": {
-    "message": "— ca. 1000 Anfragen/Tag, schnellste Inferenz."
-  },
-  "freeTierMistral": {
-    "message": "— 1 Mrd. Tokens/Monat, 1 Anfrage/Sek. (500K TPM)."
-  },
-  "freeTierZhipu": {
-    "message": "— kostenlose GLM-Flash-Modelle, 1 gleichzeitige Anfrage; international über z.ai (E-Mail-Anmeldung)."
-  },
-  "freeTierOpenrouter": {
-    "message": "— :free Modelle, 20 Anfragen/Min.; 50/Tag (1000/Tag nach einmaligem Kauf von $10 Guthaben)."
-  },
-  "freeTierCohere": {
-    "message": "— Trial-Key, ca. 1000 Aufrufe/Monat."
-  },
-  "freeTierTrial": {
-    "message": "— Startguthaben, das aufgebraucht wird (DeepSeek ~5 Mio. Tokens; MiniMax ~30-Tage-Test)."
-  },
-  "freeTierQwen": {
-    "message": "— 1 Mio. Tokens/Modell für 90 Tage (nur Singapur-Endpunkt)."
-  },
-  "freeTierOllama": {
-    "message": "— komplett kostenlos, läuft lokal."
-  },
-  "freeTierDisclaimer": {
-    "message": "Anbieter-Richtlinien ändern sich häufig. Stand: Juni 2026, kann veraltet sein. Bitte aktuelle Limits bei der Anmeldung prüfen."
-  },
   "freeTierResourcesPrefix": {
-    "message": "Umfassendere, regelmäßig aktualisierte Listen:"
+    "message": "Kostenlose Kontingente ändern sich zu häufig für eine Liste an dieser Stelle. Diese Community-Listen bleiben aktuell; maßgeblich ist das Kontingent in der Konsole des jeweiligen Anbieters:"
   },
   "aiStage_extracting": {
     "message": "Seiteninhalt wird abgerufen…"

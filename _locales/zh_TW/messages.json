@@ -1871,38 +1871,8 @@
   "freeTierTitle": {
     "message": "哪些 AI 服務商提供免費 API？"
   },
-  "freeTierGemini": {
-    "message": "— 約 1500 次/日（Flash），免信用卡，Google 帳號即可"
-  },
-  "freeTierGroq": {
-    "message": "— 約 1000 次/日，推理速度最快"
-  },
-  "freeTierMistral": {
-    "message": "— 每月 10 億 tokens，1 次/秒（500K TPM）"
-  },
-  "freeTierZhipu": {
-    "message": "— 免費 GLM-Flash 模型，1 並發；海外可用 z.ai（電子郵件註冊）"
-  },
-  "freeTierOpenrouter": {
-    "message": "— :free 模型，20 次/分；50 次/日（一次性儲值 $10 後 1000 次/日）"
-  },
-  "freeTierCohere": {
-    "message": "— 試用金鑰，約 1000 次/月"
-  },
-  "freeTierTrial": {
-    "message": "— 註冊贈送額度，用完即止（DeepSeek 約 500 萬 tokens；MiniMax 約 30 天試用）"
-  },
-  "freeTierQwen": {
-    "message": "— 每模型 100 萬 tokens，90 天（僅新加坡端點）"
-  },
-  "freeTierOllama": {
-    "message": "— 完全免費，本機執行"
-  },
-  "freeTierDisclaimer": {
-    "message": "各服務商政策時常變動。以上資訊截至 2026-06，可能已失效。註冊時請以官方頁面為準。"
-  },
   "freeTierResourcesPrefix": {
-    "message": "更全面、更新更勤的清單："
+    "message": "免費額度變動太快，這裡不再逐條列出。下面兩份社群清單更新較勤；你的實際額度以服務商後台顯示的為準："
   },
   "aiStage_extracting": {
     "message": "擷取頁面內容…"
