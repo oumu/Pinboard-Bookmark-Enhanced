@@ -50,7 +50,7 @@ Chrome Extension (Manifest V3)，一键将当前页面保存到 Pinboard，支�
 ├── md-reader.js                 # 阅读工具（`/` 搜索含正则、脚注浮层、静默回位、`?` 快捷键帮助、`t/d/v/h` 单键契约、专注模式）
 ├── md-skim.js                   # AI 要点层（设置 opt-in，默认关——生成消耗 token）
 ├── md-dict.js                   # 词典视图（精确→小写→lemma、Free Dictionary API 熔断/Wiktionary 兜底 + AI 语境义 + speechSynthesis + owner-scoped pbp-vocab）
-├── md-vocab-echo.js             # 生词再现提示（CSS Custom Highlight 点状下划线 + 点击开词典；opt-in 默认关）
+├── md-vocab-echo.js             # 生词再现提示（CSS Custom Highlight 点状下划线 + 点击开词典；`dictEchoEnabled` 默认**开**，与默认关的 skim 不同——它不花 token）
 ├── dict-pack.js                 # CC-CEDICT 离线汉英词典包（.txt/.txt.gz/.zip 导入 + IDB + 中文查词短路；options 静载，md-preview 懒加载）
 ├── anki-connect.js              # 生词批量发送到本机 AnkiConnect（127.0.0.1:8765；纯层测试页可载）
 ├── eudic-sync.js                # 生词批量发送到欧路词典 OpenAPI（en/fr/de/es；纯层测试页可载）
@@ -229,7 +229,7 @@ bash scripts/release.sh
 - **关思考（thinking/reasoning）—— 勿凭记忆改 provider 表**：`ai.js` `OPENAI_COMPAT_PROVIDERS` 每家用 **per-provider `thinkingOff` 方言字段**（非 always-on `extraBody`），经 `_aiWithThinkingFallback` 在 **4xx(400/422) 时去字段重试一次 + `storage.local` 记忆**。根因：model 字段是自由文本，blanket 关思考会把用户切换的不兼容模型打 400。**custom/ollama/groq/githubmodels 不加 thinkingOff**（githubmodels 是网关，转发多家 publisher，没有跨家安全的字段）；gemini 走 `thinkingBudget:0`；deepseek 也走 thinkingOff（reasoner 会拒收）。各家已核验字段勿凭记忆改（会 400），核验表见 CC 记忆 `reference_provider_thinking_disable_params`。
 - **md-preview 全文翻译（`md-translate.js`，改前必读）**：block 切分 → `pbpAiShield` 占位符 `⟦C/L/I/M\d+⟧` 屏蔽代码/链接/图片/数学 → JSON `{translations:[{id,text}]}` 流式 → 块 hash 缓存。三条不变量勿破坏：① **占位符守恒**门（`pbpTrPlaceholdersConserved`，硬）+ 长度比（软）二者皆过才 fill；② glossary = 用户表 ∪ 自动抽取（**用户优先**）按批命中裁剪注入；③ 抽取/缓存任何失败必须 **degrade 不阻断**翻译。`md-translate.js` 顶段保持纯（无 DOM/chrome/fetch，供 `tests/md-ai-tests.html` file:// 加载）。
 - **md-preview 三态视图与单键不变量**：`v` 严格按原文 → 双语 → 仅译文 → 原文循环，不保存“上次非原文模式”；`t` 与翻译按钮共用启动路径，`d` 与 `e` 共用选区捕获，`h` 与 `1-5` 共用高亮路径。切换前记录逻辑块 `n`、阅读侧 `side` 与块内比例 `frac`，切换后以 `behavior:"instant"` 恢复对应位置；View Transition 只处理短暂透明度变化，不能驱动滚动。reduced-motion 或无 `startViewTransition` 时直接恢复，位置正确性不得依赖动画。
-- **md-preview 在线词典不变量**：`dict2_` 缓存键保留大小写，查询链为原词精确 → 语义未命中后的小写候选 → 再未命中后的 AI lemma。只有 HTTP 404 与 HTTP 200 空/不可渲染结果属于语义未命中；超时、断网、429、5xx 和坏 JSON 都是加载失败，不能伪装成“没有词条”。Free Dictionary API 连续 3 次网络类失败后在本会话熔断 60 秒，父级 abort 不计失败；Wiktionary 兜底固定导航到 English Wiktionary，不是后台请求。`dict2_` 最多保留 **500 个缓存记录**，其他缓存仍最多 200 条；这不限制查词次数、`pbp-vocab` 生词数量或 CC-CEDICT 词条数，原词别名与实际命中词可分别占一条记录。
+- **md-preview 在线词典不变量**：`dict2_` 缓存键保留大小写，查询链为原词精确 → 语义未命中后的小写候选 → 再未命中后的 AI lemma。只有 HTTP 404 与 HTTP 200 空/不可渲染结果属于语义未命中；超时、断网、429、5xx 和坏 JSON 都是加载失败，不能伪装成“没有词条”。**实测（2026-07-29）：线上服务对查无此词返回的是 `200 + {"entries":[]}`，不是 404**——404 分支是防御性保留（代理/上游变更），别当成主路径读，也别因为“没见过 404”就删掉它。Free Dictionary API 连续 3 次网络类失败后在本会话熔断 60 秒，父级 abort 不计失败；Wiktionary 兜底固定导航到 English Wiktionary，不是后台请求。`dict2_` 最多保留 **500 个缓存记录**，其他缓存仍最多 200 条；这不限制查词次数、`pbp-vocab` 生词数量或 CC-CEDICT 词条数，原词别名与实际命中词可分别占一条记录。
 - **explain-pop 会话与焦点不变量**：固定状态和拖动位置只在当前页面会话有效，不写 storage。只在 closed → open 时记录焦点来源，固定重入和动作切换不得覆盖；Esc 或关闭按钮仅在焦点仍位于弹层内时恢复到仍连接且可见的来源，并使用 `preventScroll`。来源失效时临时借用当前可见阅读块的 `tabindex="-1"`，blur 后清理；外部点击若已把焦点移到弹层外，不得抢回。
 - **生词 owner、选择与刷新不变量**：生词列表、筛选、选择、单删、批删与加组都限定当前非秘密 Pinboard owner；账号切换先清空旧 owner 的可见行，再读取新 owner，失败时保持 fail-closed。UI 选择只影响批量删除和添加分组；TSV 与 Anki 始终处理当前 owner 的全部生词，欧路词典始终从当前 owner 全量中只发送 `en/fr/de/es`。每次 mutation 在用户确认时取得刷新代际，旧 IDB 快照不得晚写覆盖新状态；最新 mutation 即使失败也要重读真实 IDB。事务内逐条 owner 校验不得移到 UI 层或省略。
 
