@@ -241,9 +241,15 @@ function pbpDictSpeak(text, lang) {
       if (spoken || token !== _pbpDictSpeakSeq) { cleanup(); return; }
       spoken = true;
       cleanup();
+      // Prefer a LOCAL voice. Chrome ships "Google <language>" voices with
+      // localService:false -- those synthesize on Google's servers, so picking
+      // one would send the looked-up word off the device. Leaving u.voice unset
+      // is NOT the safe default either: the UA default is frequently one of
+      // those remote voices. Both residual paths (no local voice for the
+      // language, and no language at all) are disclosed in docs/privacy.md.
       if (primary) {
-        const vs = synth.getVoices();
-        const v = vs.find((x) => x.lang && x.lang.toLowerCase().startsWith(primary));
+        const vs = synth.getVoices().filter((x) => x.lang && x.lang.toLowerCase().startsWith(primary));
+        const v = vs.find((x) => x.localService) || vs[0];
         if (v) u.voice = v;
       }
       synth.speak(u);

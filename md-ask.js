@@ -2160,6 +2160,10 @@ function _pbpExplainEnsurePop() {
   pop.addEventListener("beforetoggle", (e) => {
     if (e.newState === "closed") {
       if (_pbpExplainAbort) _pbpExplainAbort.abort();
+      // speechSynthesis is page-level, not popover-level: without this a
+      // pronunciation started from the dictionary view keeps talking after
+      // the panel is gone. pbpDictSpeak only cancels on the NEXT click.
+      try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch (_) {}
       _pbpExplainSetPinned(pop, false);
       _pbpExplainDrag = null;
       pop.classList.remove("xp-dragging");
