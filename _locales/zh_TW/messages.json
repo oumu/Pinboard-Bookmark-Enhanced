@@ -222,12 +222,6 @@
   "aiGenerateBtn": {
     "message": "產生"
   },
-  "aiSummarizing": {
-    "message": "產生摘要中..."
-  },
-  "aiGenerating": {
-    "message": "產生標籤中..."
-  },
   "aiGenerate": {
     "message": "產生"
   },
@@ -1073,9 +1067,6 @@
   "importApplyFailed": {
     "message": "匯入未能完成；部分設定可能已變更，請檢查後重試"
   },
-  "importHighlightsSkipped": {
-    "message": "已匯入，但標記與筆記未還原。請登入建立此備份的 Pinboard 帳號後，再重新匯入檔案。"
-  },
   "importSettingsTitle": {
     "message": "從 JSON 檔案匯入設定"
   },
@@ -1215,7 +1206,7 @@
     }
   },
   "testTimeout": {
-    "message": "連接逾時（15秒）"
+    "message": "連接逾時（30秒）"
   },
   "testNoApiKey": {
     "message": "未填寫 API Key"
@@ -1227,7 +1218,7 @@
     "message": "可修改為代理或相容端點網址"
   },
   "hintClaudeModel": {
-    "message": "如 claude-sonnet-4-20250514, claude-3-5-haiku-20241022"
+    "message": "如 claude-haiku-4-5-20251001, claude-sonnet-4-20250514"
   },
   "hintOllamaModel": {
     "message": "需先執行 ollama pull llama3.2"
@@ -1308,7 +1299,7 @@
     "message": "AI 標籤提示詞"
   },
   "tagPromptHint": {
-    "message": "留空則使用上方顯示的預設提示詞。需指示 AI 傳回 [\"tag1\",\"tag2\"] 格式。"
+    "message": "留空則使用框內顯示的預設提示詞。需指示 AI 傳回 [\"tag1\",\"tag2\"] 格式。"
   },
   "resetToDefault": {
     "message": "恢復預設"
@@ -1317,7 +1308,7 @@
     "message": "AI 摘要提示詞"
   },
   "summaryPromptHint": {
-    "message": "留空則使用上方顯示的預設提示詞。使用 {{lang_instruction}} 控制自動語言。"
+    "message": "留空則使用框內顯示的預設提示詞。使用 {{lang_instruction}} 控制自動語言。"
   },
   "secLanguage": {
     "message": "語言"
@@ -1377,7 +1368,7 @@
     "message": "Pinboard.in 標籤頁"
   },
   "optTagSortByPop": {
-    "message": "在標籤頁加入「依熱度排序」控制項"
+    "message": "在標籤頁加入熱度排序控制項"
   },
   "optTagSortByPopHint": {
     "message": "在 pinboard.in 標籤頁加入「pop」控制項，依收藏人數排序目前頁面的書籤，再次點擊還原。"
@@ -1496,7 +1487,7 @@
     "message": "在此裝置上使用 Chrome Sync 同步設定"
   },
   "optSyncHint": {
-    "message": "此選項僅對目前裝置生效。每台需要使用 Google 帳戶中設定的裝置都必須分別開啟。"
+    "message": "此選項僅對目前裝置生效。設定只會在開啟它的裝置之間共用；關閉的裝置各自使用本機設定。"
   },
   "syncApiKeysLabel": {
     "message": "透過此 Google 帳戶同步憑證"
@@ -1597,9 +1588,6 @@
   "jinaViewBtn": {
     "message": "檢視"
   },
-  "mdStripCopied": {
-    "message": "Markdown 已複製"
-  },
   "mdStripPreview": {
     "message": "預覽"
   },
@@ -1643,12 +1631,6 @@
   "mdImgBrokenNote": {
     "message": "$COUNT$ 張圖片在目前預覽中載入失敗，匯出後可能仍無法顯示；下載並選擇「內嵌」可打包圖片。",
     "placeholders": { "count": { "content": "$1" } }
-  },
-  "mdSendObsidian": {
-    "message": "傳送到 Obsidian"
-  },
-  "mdSentObsidian": {
-    "message": "已傳送"
   },
   "mdObsidianRoute": {
     "message": "Obsidian 路由"
@@ -1706,9 +1688,6 @@
   },
   "mdExportExtendedMetaHint": {
     "message": "有值時會加入 frontmatter、HTML 署名列與 webhook 酬載;關閉後匯出將與舊版逐位元組一致。"
-  },
-  "mdOptIncludeToc": {
-    "message": "含目錄"
   },
   "mdOptIncludeHl": {
     "message": "包含標記"
@@ -1843,9 +1822,6 @@
   "presetPreviewToggle": {
     "message": "檢視目前預設 CSS（唯讀）"
   },
-  "overlayQuotaFallback": {
-    "message": "CSS 僅儲存到本機（同步配額已滿）"
-  },
   "optSavedLocally": {
     "message": "僅儲存到本機（同步配額已滿）"
   },
@@ -1905,7 +1881,7 @@
     "message": "哪些 AI 服務商提供免費 API？"
   },
   "freeTierResourcesPrefix": {
-    "message": "免費額度變動太快，這裡不再逐條列出。下面兩份社群清單更新較勤；你的實際額度以服務商後台顯示的為準："
+    "message": "免費額度變動太快，這裡不再逐條列出。下面的社群清單更新較勤；你的實際額度以服務商後台顯示的為準："
   },
   "aiStage_extracting": {
     "message": "擷取頁面內容…"
@@ -1987,12 +1963,6 @@
   },
   "optUrlCleanExcludePlaceholder": {
     "message": "tag\nref\nsi"
-  },
-  "optBgSaveNoClobber": {
-    "message": "合併背景儲存中的標籤（快速儲存/稍後閱讀）"
-  },
-  "optBgSaveNoClobberHint": {
-    "message": "啟用後，背景儲存會先讀取你現有的 Pinboard 書籤（若有），將新標籤與既有標籤合併，而非直接取代，可避免重複網址意外遺失標籤。注意：這會多一次 API 呼叫，每次儲存約增加 3 秒。在彈出式視窗中手動儲存時一律會取代，你仍保有完全的控制權。"
   },
   "obsidianInstallHint": {
     "message": "需要安裝 Obsidian 才能開啟筆記。筆記內容已複製到剪貼簿作為備份。"
@@ -2188,7 +2158,7 @@
     "message": "AI 未發現重複項"
   },
   "tagGovAiNoKey": {
-    "message": "未設定 AI 服務商，請前往 AI 分頁設定"
+    "message": "未設定 AI 服務商，請到「AI 服務商」中設定"
   },
   "tagGovLowCountTitle": {
     "message": "低頻標籤（1 次或更少）"
@@ -2375,7 +2345,7 @@
     "message": "預覽頁 AI"
   },
   "previewAiSectionHint": {
-    "message": "Markdown 預覽頁的劃詞解釋、全文問答與全文翻譯均由你主動使用，並使用上方設定的 AI 服務商與 Key。若啟用選用的 AI 重點速覽，它可能會在 Markdown 預覽開啟時執行；所有功能都不會以隱藏的背景工作形式執行。"
+    "message": "Markdown 預覽頁的劃詞解釋、全文問答與全文翻譯均由你主動使用，並使用「AI 服務商」中設定的服務商與 Key。若啟用選用的 AI 重點速覽，它可能會在 Markdown 預覽開啟時執行；所有功能都不會以隱藏的背景工作形式執行。"
   },
   "previewAiEnabled": {
     "message": "在預覽頁啟用 AI 功能"
@@ -2387,7 +2357,7 @@
     "message": "模型覆寫（選填）"
   },
   "previewAiModelHint": {
-    "message": "僅供預覽頁 AI 功能使用的模型名稱（與上方同一服務商）。留空則使用上方設定的預設模型。"
+    "message": "僅供預覽頁 AI 功能使用的模型名稱，服務商仍沿用「AI 服務商」中的設定。留空則使用其中設定的模型。"
   },
   "translateTargetLangLabel": {
     "message": "翻譯目標語言"
@@ -2414,10 +2384,10 @@
     "message": "劃詞解釋觸發方式"
   },
   "selectionTriggerIcon": {
-    "message": "選取工具列中的解釋按鈕"
+    "message": "在選取文字旁顯示按鈕"
   },
   "selectionTriggerHotkey": {
-    "message": "僅使用快速鍵 e 和 d（不顯示按鈕）"
+    "message": "僅使用快速鍵 e 和 d"
   },
   "selectionTriggerOff": {
     "message": "關閉"
@@ -2645,15 +2615,6 @@
   },
   "explainMoveHint": {
     "message": "按 Alt+方向鍵移動此面板。"
-  },
-  "explainTriggerIcon": {
-    "message": "選取文字旁顯示按鈕"
-  },
-  "explainTriggerHotkey": {
-    "message": "僅快速鍵 e 和 d"
-  },
-  "explainTriggerOff": {
-    "message": "關閉"
   },
   "explainActionExplain": {
     "message": "解釋"

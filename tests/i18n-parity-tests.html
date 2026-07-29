@@ -153,11 +153,17 @@ async function loadLocale(loc) {
     LOCALES.every((loc) => msgs[loc].kbdHelpTranslate?.message &&
       msgs[loc].kbdHelpDictionary?.message && msgs[loc].kbdHelpToggleView?.message),
     "one or more shortcut-help messages are missing");
+  // One key set drives BOTH surfaces (options select + md-preview gear menu);
+  // the former explainTrigger* duplicates were deleted so they cannot drift.
   check("H7 selection-trigger labels name both e and d",
-    LOCALES.every((loc) => ["selectionTriggerHotkey", "explainTriggerHotkey"].every((key) => {
-      const message = msgs[loc][key]?.message || "";
+    LOCALES.every((loc) => {
+      const message = msgs[loc].selectionTriggerHotkey?.message || "";
       return /e/.test(message) && /d/.test(message);
-    })), "one or more trigger labels still describe only e");
+    }), "one or more trigger labels still describe only e");
+  check("H7 explainTrigger* duplicates stay deleted",
+    LOCALES.every((loc) => ["explainTriggerIcon", "explainTriggerHotkey", "explainTriggerOff"]
+      .every((key) => msgs[loc][key] === undefined)),
+    "a duplicate explainTrigger* key came back; md-ask.js must reuse selectionTrigger*");
   check("H8 all locales expose explain pin, unpin, close and move help",
     LOCALES.every((loc) => ["explainPin", "explainUnpin", "explainClose", "explainMoveHint"]
       .every((key) => msgs[loc][key]?.message)),

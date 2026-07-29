@@ -2108,7 +2108,9 @@ function _pbpExplainEnsurePop() {
   const menu = document.createElement("div");
   menu.className = "xp-gear-menu";
   menu.hidden = true;
-  [["icon", t("explainTriggerIcon")], ["hotkey", t("explainTriggerHotkey")], ["off", t("explainTriggerOff")]]
+  // Same key set the options page renders (settings key: selectionTrigger), so
+  // both surfaces name the three modes identically and can never drift apart.
+  [["icon", t("selectionTriggerIcon")], ["hotkey", t("selectionTriggerHotkey")], ["off", t("selectionTriggerOff")]]
     .forEach(([value, label]) => {
       const lab = document.createElement("label");
       const radio = document.createElement("input");

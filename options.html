@@ -9,7 +9,7 @@
 </head>
 <body>
   <div class="container">
-    <h1><span data-i18n="optTitle">Pinboard Bookmark Enhanced — Settings</span> <span class="auto-save-hint" id="auto-save-status" data-i18n="optAutoSave">auto-save enabled</span></h1>
+    <h1><span data-i18n="optTitle">Pinboard Bookmark Enhanced - Settings</span> <span class="auto-save-hint" id="auto-save-status" data-i18n="optAutoSave">auto-save enabled</span></h1>
 
     <div class="options-nav">
       <div class="mobile-tab-picker">
@@ -98,7 +98,7 @@
       <div class="divider"></div>
       <div class="section-title" data-i18n="secSync">Data Sync</div>
       <div class="fg"><label><input type="checkbox" id="opt-sync-enabled" /> <span data-i18n="optSyncEnabled">Use Chrome Sync for settings on this device</span></label></div>
-      <p class="hint" data-i18n="optSyncHint">This choice is device-specific. Enable it separately on each device that should use settings from your Google account.</p>
+      <p class="hint" data-i18n="optSyncHint">This checkbox applies to this device only. Settings are shared between the devices where you turn it on; devices with it off keep their own local settings.</p>
       <div class="fg"><label><input type="checkbox" id="opt-sync-api-keys" /> <span data-i18n="syncApiKeysLabel">Sync credentials for this Google account</span></label></div>
       <p class="hint" data-i18n="syncApiKeysHint">This is one account-wide choice, but only devices with settings sync enabled participate; other devices keep using local credentials. New users start off. If an upgrade finds non-empty credentials already in Chrome Sync, it stays on to avoid data loss. Synced API keys, tokens, passwords, and export credentials are obfuscated, not encrypted.</p>
       <p id="opt-sync-local-only" class="sync-local-only" role="status" aria-live="polite" hidden></p>
@@ -112,7 +112,7 @@
       <div class="fg"><label><input type="checkbox" id="opt-backup-include-vocabulary" checked /> <span data-i18n="backupIncludeVocabularyLabel">Include vocabulary in backups</span></label></div>
       <p class="hint" data-i18n="backupIncludeVocabularyHint">Includes vocabulary only for the current Pinboard account.</p>
       <div class="fg"><label><input type="checkbox" id="opt-backup-include-secrets" /> <span data-i18n="backupIncludeSecretsLabel">Include API keys and tokens in backups</span></label></div>
-      <p class="hint hint-warn" data-i18n="backupIncludeSecretsHint">Writes every credential to the file in plain text: your Pinboard token, all AI provider keys, and the Jina, Wayback, Anki, Eudic, Gist and Webhook credentials. Anyone who opens the file can use them. Keep it somewhere you would keep a password.</p>
+      <p class="hint hint-warn" data-i18n="backupIncludeSecretsHint">Writes every credential to the file in plain text: your Pinboard token, all AI provider keys, and the Jina, Wayback, Anki, Eudic, Gist and Webhook credentials. Anyone who opens the file can use them. Keep it where you would keep a password.</p>
       <div class="backup-actions">
         <button class="btn" id="export-settings" data-i18n="exportSettings">Export Settings</button>
         <button type="button" class="btn" id="import-settings" title="Import settings from JSON file" data-i18n="importSettings" data-i18n-title="importSettingsTitle">Import Settings</button>
@@ -201,7 +201,7 @@
         <textarea id="opt-urlclean-custom" rows="3" style="width:100%" placeholder="utm_other&#10;custom_track_id&#10;_branch_referrer" data-i18n-placeholder="optUrlCleanCustomPlaceholder"></textarea>
       </div>
       <div class="fg" style="margin-top:8px">
-        <label class="bl" for="opt-urlclean-exclude" data-i18n="optUrlCleanExclude">Exclude parameters (one per line, never cleaned — e.g. keep affiliate tag=)</label>
+        <label class="bl" for="opt-urlclean-exclude" data-i18n="optUrlCleanExclude">Parameters that are never cleaned (one per line, e.g. tag= to keep affiliate tags)</label>
         <textarea id="opt-urlclean-exclude" rows="3" style="width:100%" placeholder="tag&#10;ref&#10;si" data-i18n-placeholder="optUrlCleanExcludePlaceholder"></textarea>
       </div>
       <div class="divider"></div>
@@ -224,7 +224,7 @@
       <div class="fg"><label><input type="checkbox" id="opt-readlater-default" /> <span data-i18n="optReadlaterDefault">Read Later by default</span></label></div>
       <div class="fg fg-stack" role="group" aria-labelledby="bgsave-mode-label">
         <label class="bl" id="bgsave-mode-label" data-i18n="optBgSaveMode">Background save mode</label>
-        <div><label><input type="radio" name="bgsave-mode" id="opt-bgsave-merge" value="merge" /> <span data-i18n="optBgSaveModeMerge">Merge (default — combine new tags with existing)</span></label></div>
+        <div><label><input type="radio" name="bgsave-mode" id="opt-bgsave-merge" value="merge" /> <span data-i18n="optBgSaveModeMerge">Merge (default, combines new tags with existing)</span></label></div>
         <div><label><input type="radio" name="bgsave-mode" id="opt-bgsave-skip" value="skip" /> <span data-i18n="optBgSaveModeSkip">Skip (if URL already saved, do nothing)</span></label></div>
         <div><label><input type="radio" name="bgsave-mode" id="opt-bgsave-overwrite" value="overwrite" /> <span data-i18n="optBgSaveModeOverwrite">Overwrite (replace all tags, no merge)</span></label></div>
         <p class="hint" data-i18n="optBgSaveModeHint">Merge: reads existing bookmark tags and combines with new tags. Skip: avoids duplicate-URL saves. Overwrite: replaces tags entirely (foreground edits always replace).</p>
@@ -239,15 +239,15 @@
       <div class="fg"><label><input type="checkbox" id="opt-respect-tag-case" /> <span data-i18n="optRespectTagCase">Respect existing tag case (match most-used casing)</span></label></div>
       <div class="fg fg-stack" role="group" aria-labelledby="tag-sync-label">
         <label class="bl" id="tag-sync-label" data-i18n="tagSyncLabel">Tag Cache Strategy</label>
-        <div><label><input type="radio" name="tag-sync-mode" id="opt-tag-sync-cached" value="cached" checked /> <span data-i18n="tagSyncCached">Cached (default — refresh after 10 min)</span></label></div>
-        <div><label><input type="radio" name="tag-sync-mode" id="opt-tag-sync-fresh" value="fresh" /> <span data-i18n="tagSyncFresh">Live (fetch on every popup — slower)</span></label></div>
-        <div><label><input type="radio" name="tag-sync-mode" id="opt-tag-sync-prewarmed" value="prewarmed" /> <span data-i18n="tagSyncPrewarmed">Prewarmed (background fetch every 15 min — instant popup)</span></label></div>
+        <div><label><input type="radio" name="tag-sync-mode" id="opt-tag-sync-cached" value="cached" checked /> <span data-i18n="tagSyncCached">Cached (default, refreshes after 10 min)</span></label></div>
+        <div><label><input type="radio" name="tag-sync-mode" id="opt-tag-sync-fresh" value="fresh" /> <span data-i18n="tagSyncFresh">Live (fetches on every popup, slower)</span></label></div>
+        <div><label><input type="radio" name="tag-sync-mode" id="opt-tag-sync-prewarmed" value="prewarmed" /> <span data-i18n="tagSyncPrewarmed">Prewarmed (background fetch every 15 min, instant popup)</span></label></div>
         <p class="hint" data-i18n="tagSyncHint">Controls how your existing Pinboard tag cloud is pulled into the popup for autocomplete. Tags are read-only; nothing is uploaded back to Pinboard.</p>
       </div>
       <div class="fg">
         <label class="bl" for="opt-tag-presets" data-i18n="labelTagPresets">Tag Presets</label>
         <textarea id="opt-tag-presets" rows="4" placeholder="One preset per line:&#10;Work: project, review, report&#10;Dev: programming, tutorial, tool" data-i18n-placeholder="tagPresetsPlaceholder"></textarea>
-        <p class="hint" data-i18n="tagPresetsHint">Format: <code>Name: tag1, tag2, tag3</code> — shown as quick-add buttons in popup.</p>
+        <p class="hint" data-i18n="tagPresetsHint">Format: <code>Name: tag1, tag2, tag3</code>. Each preset appears as a quick-add button in the popup.</p>
       </div>
     </div>
 
@@ -365,7 +365,7 @@
 
       <!-- OpenAI -->
       <div class="pf hidden" id="fields-openai">
-        <h3 data-i18n="provOpenai">OpenAI</h3>
+        <h3 data-i18n="provOpenai">OpenAI (ChatGPT)</h3>
         <div class="fg"><label class="bl" for="opt-openai-key" data-i18n="labelApiKey">API Key</label><span class="key-wrap"><input type="password" id="opt-openai-key" placeholder="sk-…" /><button type="button" class="key-toggle" data-target="opt-openai-key" title="Show/hide key" data-i18n-title="showHideKey" data-i18n-aria="showHideKey" aria-label="Show/hide key"></button></span><p class="hint"><a href="https://platform.openai.com/api-keys" target="_blank" data-i18n="getKey" rel="noopener">Get key</a></p></div>
         <div class="fg"><label class="bl" for="opt-openai-model" data-i18n="labelModel">Model</label><input type="text" id="opt-openai-model" value="gpt-5.4-nano" /></div>
         <div class="fg"><label class="bl" for="opt-openai-baseurl" data-i18n="labelBaseUrl">Base URL</label><input type="text" id="opt-openai-baseurl" value="https://api.openai.com/v1" /><p class="hint" data-i18n="hintOpenAIBaseUrl">Change for proxy or compatible endpoint</p></div>
@@ -492,7 +492,7 @@
 
       <!-- Custom -->
       <div class="pf hidden" id="fields-custom">
-        <h3 data-i18n="provCustom">Custom OpenAI-compatible API</h3>
+        <h3 data-i18n="provCustom">Custom OpenAI-compatible</h3>
         <div class="fg"><label class="bl" for="opt-custom-name" data-i18n="labelDisplayName">Display Name</label><input type="text" id="opt-custom-name" value="Custom" /></div>
         <div class="fg"><label class="bl" for="opt-custom-baseurl" data-i18n="labelBaseUrl">Base URL</label><input type="text" id="opt-custom-baseurl" placeholder="https://api.example.com/v1" /><p class="hint" data-i18n="hintCustomBaseUrl">Must support <code>/chat/completions</code> endpoint</p></div>
         <div class="fg"><label class="bl" for="opt-custom-key" data-i18n="labelApiKey">API Key</label><span class="key-wrap"><input type="password" id="opt-custom-key" /><button type="button" class="key-toggle" data-target="opt-custom-key" title="Show/hide key" data-i18n-title="showHideKey" data-i18n-aria="showHideKey" aria-label="Show/hide key"></button></span><p class="hint" data-i18n="hintCustomKey">Leave empty if not required</p></div>
@@ -581,14 +581,14 @@
       <div class="fg">
         <label class="bl" for="opt-custom-tag-prompt" data-i18n="labelTagPrompt">AI Tags Prompt</label>
         <textarea id="opt-custom-tag-prompt" rows="8"></textarea>
-        <p class="hint" data-i18n="tagPromptHint">Leave empty to use the default prompt shown above. Must instruct AI to return <code>["tag1","tag2"]</code> format.</p>
+        <p class="hint" data-i18n="tagPromptHint">Leave empty to use the default prompt shown in this field. Must instruct AI to return <code>["tag1","tag2"]</code> format.</p>
         <button class="btn btn-sm" id="reset-tag-prompt" style="margin-top:4px" data-i18n="resetToDefault">Reset to default</button>
       </div>
 
       <div class="fg">
         <label class="bl" for="opt-custom-summary-prompt" data-i18n="labelSummaryPrompt">AI Summary Prompt</label>
         <textarea id="opt-custom-summary-prompt" rows="8"></textarea>
-        <p class="hint" data-i18n="summaryPromptHint">Leave empty to use the default prompt shown above. Use <code>{{lang_instruction}}</code> for auto language.</p>
+        <p class="hint" data-i18n="summaryPromptHint">Leave empty to use the default prompt shown in this field. Use <code>{{lang_instruction}}</code> for auto language.</p>
         <button class="btn btn-sm" id="reset-summary-prompt" style="margin-top:4px" data-i18n="resetToDefault">Reset to default</button>
       </div>
     </div>
@@ -596,7 +596,7 @@
     <!-- Tab: Reader -->
     <div id="panel-reader" class="panel" role="tabpanel" aria-labelledby="tab-reader">
       <div class="section-title" data-i18n="secPreviewAi">Preview Page AI</div>
-      <p class="hint" data-i18n="previewAiSectionHint">Explain selection, ask the page, and full-text translation on the Markdown preview page. Uses the AI provider and key configured above; every request is user-invoked, nothing runs in the background.</p>
+      <p class="hint" data-i18n="previewAiSectionHint">Explain selection, Ask, and full-text translation on the Markdown preview page are user-invoked and use the AI provider and key configured on the AI Providers tab. If the opt-in key-points skim is enabled, it may run when Markdown preview opens; nothing runs as a hidden background task.</p>
 
       <div class="fg">
         <label><input type="checkbox" id="opt-preview-ai-enabled" checked /> <span data-i18n="previewAiEnabled">Enable AI features on the preview page</span></label>
@@ -606,7 +606,7 @@
       <div class="fg">
         <label class="bl" for="opt-preview-ai-model" data-i18n="previewAiModelLabel">Model override (optional)</label>
         <input type="text" id="opt-preview-ai-model" />
-        <p class="hint" data-i18n="previewAiModelHint">Model name used only by preview-page AI features, on the same provider as above. Leave empty to use the provider's default model.</p>
+        <p class="hint" data-i18n="previewAiModelHint">Model name used only by preview-page AI features, still on the provider from the AI Providers tab. Leave empty to use the model configured there.</p>
       </div>
 
       <div class="fg">
@@ -646,8 +646,8 @@
       <div class="fg">
         <label class="bl" for="opt-selection-trigger" data-i18n="selectionTriggerLabel">Explain-selection trigger</label>
         <select id="opt-selection-trigger">
-          <option value="icon" data-i18n="selectionTriggerIcon">Small button next to the selection</option>
-          <option value="hotkey" data-i18n="selectionTriggerHotkey">Hotkeys e and d only (no buttons)</option>
+          <option value="icon" data-i18n="selectionTriggerIcon">Button next to the selection</option>
+          <option value="hotkey" data-i18n="selectionTriggerHotkey">Hotkeys e and d only</option>
           <option value="off" data-i18n="selectionTriggerOff">Off</option>
         </select>
       </div>
@@ -704,7 +704,7 @@
         <span id="vocab-count" class="notes-count" aria-live="polite"></span>
         <div class="vocab-selection-actions" role="group" data-i18n-aria="vocabSelectionActions" aria-label="Selection actions">
           <button type="button" class="btn btn-sm" id="vocab-select-all" data-i18n="vocabSelectAll">Select all results</button>
-          <button type="button" class="btn btn-sm" id="vocab-invert-selection" data-i18n="vocabInvertSelection">Invert results</button>
+          <button type="button" class="btn btn-sm" id="vocab-invert-selection" data-i18n="vocabInvertSelection">Invert result selection</button>
         </div>
       </div>
       <div class="vocab-batch-toolbar" id="vocab-batch-toolbar" role="group" data-i18n-aria="vocabBatchActions" aria-label="Actions for selected words" hidden>
@@ -716,7 +716,7 @@
       </div>
       <span class="save-status vocab-main-status" id="vocab-status" role="status" aria-live="polite"></span>
       <div id="vocab-empty" class="notes-empty" hidden>No saved words yet. Save words from the reader's dictionary view.</div>
-      <div id="vocab-no-results" class="notes-empty" data-i18n="vocabNoResults" hidden>No words match the current search and group filter.</div>
+      <div id="vocab-no-results" class="notes-empty" data-i18n="vocabNoResults" hidden>No words match the current filters.</div>
       <div id="vocab-list" role="list" data-i18n-aria="vocabListAria" aria-label="Saved vocabulary" aria-busy="false"></div>
       <button type="button" class="btn btn-sm vocab-load-more" id="vocab-load-more" hidden>Load more</button>
 
@@ -817,31 +817,31 @@
     <!-- Tab: Tags -->
     <div id="panel-tags" class="panel" role="tabpanel" aria-labelledby="tab-tags">
       <div class="section-title" data-i18n="secPinboardTagPages">Pinboard.in Tag Pages</div>
-      <div class="fg"><label><input type="checkbox" id="opt-tag-sort-by-pop" checked /> <span data-i18n="optTagSortByPop">Add a "sort by popularity" control on tag pages</span></label></div>
-      <p class="hint" data-i18n="optTagSortByPopHint">On pinboard.in tag pages, shows a "pop" control next to date/title that reorders the current page's bookmarks by how many people saved each link. Click again to restore the original order.</p>
+      <div class="fg"><label><input type="checkbox" id="opt-tag-sort-by-pop" checked /> <span data-i18n="optTagSortByPop">Add a popularity sort control on tag pages</span></label></div>
+      <p class="hint" data-i18n="optTagSortByPopHint">On pinboard.in tag pages, adds a "pop" control that sorts the current page’s bookmarks by how many people saved each link; click again to restore.</p>
 
       <div class="divider"></div>
-      <div class="section-title" data-i18n="tagGovGroupsTitle">Tag Groups</div>
+      <div class="section-title" data-i18n="tagGovGroupsTitle">Similar Tag Groups</div>
       <div class="fg" id="tag-gov-overview">
         <span>…</span>
         <button class="btn btn-sm" id="tag-gov-refresh" data-i18n="tagGovRefresh">Refresh</button>
       </div>
-      <p class="hint hint-warn tag-gov-warns" data-i18n="tagGovIrreversibleWarn">Merges and deletions cannot be undone. A snapshot of your tag list (names and counts) is downloaded before the first change — for manual reference only.</p>
+      <p class="hint hint-warn tag-gov-warns" data-i18n="tagGovIrreversibleWarn">Merges and deletions cannot be undone. A snapshot of your tag list (names and counts) is downloaded before the first change, for manual reference only.</p>
       <div id="tag-gov-groups"></div>
       <div class="fg" style="margin-top:10px">
-        <button class="btn btn-sm" id="tag-gov-ai-btn" data-i18n="tagGovAiBtn">Deep Analysis (AI)</button>
-        <small class="tag-gov-reset-link"><a href="#" id="tag-gov-reset-ignored" data-i18n="tagGovResetIgnored">Reset ignored groups</a></small>
+        <button class="btn btn-sm" id="tag-gov-ai-btn" data-i18n="tagGovAiBtn">AI deep analysis</button>
+        <small class="tag-gov-reset-link"><a href="#" id="tag-gov-reset-ignored" data-i18n="tagGovResetIgnored">Reset ignored list</a></small>
         <div id="tag-gov-ai-status" class="hint" style="margin-top:4px;"></div>
       </div>
       <div class="divider"></div>
-      <div class="section-title" data-i18n="tagGovLowCountTitle">Low-Count Tags</div>
+      <div class="section-title" data-i18n="tagGovLowCountTitle">Low-count tags (1 use or fewer)</div>
       <details id="tag-gov-lowcount">
-        <summary data-i18n="tagGovLowCountTitle">Show tags with 1 use or fewer</summary>
+        <summary data-i18n="tagGovLowCountTitle">Low-count tags (1 use or fewer)</summary>
         <div id="tag-gov-lowcount-list"></div>
         <div style="margin-top:8px;display:flex;gap:8px;">
           <label><input type="checkbox" id="tag-gov-select-all" /> <span data-i18n="tagGovSelectAll">Select all</span></label>
         </div>
-        <button class="btn btn-sm tag-gov-delete-btn" id="tag-gov-delete-selected" data-i18n="tagGovDeleteSelected">Delete Selected</button>
+        <button class="btn btn-sm tag-gov-delete-btn" id="tag-gov-delete-selected" data-i18n="tagGovDeleteSelected">Delete selected</button>
       </details>
       <div id="tag-gov-progress" class="hidden" style="margin-top:10px;">
         <div id="tag-gov-progress-bar" class="progress-bar" role="progressbar" aria-labelledby="tag-gov-progress-text" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
@@ -853,16 +853,16 @@
         </div>
       </div>
       <div id="tag-gov-problems" class="hidden"></div>
-      <p class="hint" id="tag-gov-bundles-warn" data-i18n="tagGovBundlesWarn">Note: Pinboard bundles are not visible via API and will not be updated when tags are merged.</p>
+      <p class="hint" id="tag-gov-bundles-warn" data-i18n="tagGovBundlesWarn">Tag bundles on pinboard.in are not updated by renames; review them manually after merging.</p>
     </div>
 
     <!-- Tab: Archive -->
     <div id="panel-archive" class="panel" role="tabpanel" aria-labelledby="tab-archive">
       <div class="section-title" data-i18n="secWayback">Wayback Machine Archiving</div>
-      <div class="fg"><label><input type="checkbox" id="opt-wayback-enabled" /> <span data-i18n="optWayback">Enable Wayback archive on save</span></label></div>
-      <p class="hint" data-i18n="optWaybackHint">Automatically submit saved URLs to archive.org when you save a bookmark. Works with both Quick Save and Read Later.</p>
+      <div class="fg"><label><input type="checkbox" id="opt-wayback-enabled" /> <span data-i18n="optWayback">Archive saved pages to the Wayback Machine</span></label></div>
+      <p class="hint" data-i18n="optWaybackHint">After each save, ask the Internet Archive to snapshot the page (best effort, never blocks saving). Sends the saved URL to archive.org; off by default.</p>
       <div class="fg" style="margin-left:20px">
-        <label><input type="checkbox" id="opt-wayback-batch" /> <span data-i18n="optWaybackBatch">Also archive in Batch Save</span></label>
+        <label><input type="checkbox" id="opt-wayback-batch" /> <span data-i18n="optWaybackBatch">Also archive during batch save</span></label>
         <p class="hint" data-i18n="optWaybackBatchHint">Batch saves can fire many archive requests at once; anonymous quota is limited.</p>
       </div>
       <div class="fg"><label><input type="checkbox" id="opt-wayback-skip-private" /> <span data-i18n="waybackSkipPrivate">Never archive bookmarks you save as private</span></label></div>
@@ -877,13 +877,13 @@
         <span class="key-wrap"><input type="password" id="opt-wayback-s3secret" data-i18n-placeholder="placeholderOptional" autocomplete="off" spellcheck="false" />
         <button type="button" class="key-toggle" data-target="opt-wayback-s3secret" title="Show/hide key" data-i18n-title="showHideKey" data-i18n-aria="showHideKey" aria-label="Show/hide key"></button></span>
       </div>
-      <p class="hint"><span data-i18n="optWaybackS3Hint">With a free archive.org account key, archiving uses the authenticated API: higher quota, reliable results.</span> <a href="https://archive.org/account/s3.php" target="_blank" rel="noopener" data-i18n="getKey">Get key</a></p>
+      <p class="hint"><span data-i18n="optWaybackS3Hint">With a free archive.org account key, archiving uses the authenticated API: higher quota, server-side dedup, reliable results.</span> <a href="https://archive.org/account/s3.php" target="_blank" rel="noopener" data-i18n="getKey">Get key</a></p>
       <span id="wayback-perm-status" class="wayback-perm-status"></span>
       <div class="divider"></div>
       <div class="fg">
-        <div class="bl" data-i18n="archiveLogTitle">Archive Log</div>
+        <div class="bl" data-i18n="archiveLogTitle">Recent archive requests</div>
         <button type="button" class="btn btn-sm" id="wayback-log-clear" style="margin-top:6px;display:none;" data-i18n="archiveLogClear">Clear</button>
-        <p class="hint" data-i18n="archiveLogNote">A successful submission does not mean the snapshot is instantly visible - the Wayback Machine usually takes a few minutes (sometimes longer) to index new captures.</p>
+        <p class="hint" data-i18n="archiveLogNote">A successful submission does not mean the snapshot is instantly visible; the Wayback Machine usually takes a few minutes (sometimes longer) to index new captures.</p>
         <div id="wayback-log"></div>
       </div>
     </div>

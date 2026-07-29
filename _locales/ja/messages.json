@@ -222,12 +222,6 @@
   "aiGenerateBtn": {
     "message": "生成"
   },
-  "aiSummarizing": {
-    "message": "要約を生成中..."
-  },
-  "aiGenerating": {
-    "message": "生成中..."
-  },
   "aiGenerate": {
     "message": "生成"
   },
@@ -1073,9 +1067,6 @@
   "importApplyFailed": {
     "message": "インポートを完了できませんでした。一部の設定はすでに変更されている可能性があります。内容を確認してから再試行してください。"
   },
-  "importHighlightsSkipped": {
-    "message": "インポートは完了しましたが、ハイライトとメモはスキップされました。このバックアップを作成した Pinboard アカウントでログインしてから、もう一度インポートしてください"
-  },
   "importSettingsTitle": {
     "message": "JSONファイルから設定をインポート"
   },
@@ -1215,7 +1206,7 @@
     }
   },
   "testTimeout": {
-    "message": "タイムアウト（15秒）"
+    "message": "タイムアウト（30秒）"
   },
   "testNoApiKey": {
     "message": "API Key が未入力です"
@@ -1227,7 +1218,7 @@
     "message": "プロキシや互換エンドポイントに変更可能"
   },
   "hintClaudeModel": {
-    "message": "例：claude-sonnet-4-20250514, claude-3-5-haiku-20241022"
+    "message": "例：claude-haiku-4-5-20251001, claude-sonnet-4-20250514"
   },
   "hintOllamaModel": {
     "message": "先に ollama pull llama3.2 を実行してください"
@@ -1308,7 +1299,7 @@
     "message": "AI タグプロンプト"
   },
   "tagPromptHint": {
-    "message": "空欄の場合は上のデフォルトプロンプトを使用します。AI に [\"tag1\",\"tag2\"] 形式で返すよう指示する必要があります。"
+    "message": "空欄の場合は、この欄に表示されているデフォルトプロンプトを使用します。AI に [\"tag1\",\"tag2\"] 形式で返すよう指示する必要があります。"
   },
   "resetToDefault": {
     "message": "デフォルトに戻す"
@@ -1317,7 +1308,7 @@
     "message": "AI 要約プロンプト"
   },
   "summaryPromptHint": {
-    "message": "空欄の場合は上のデフォルトプロンプトを使用します。{{lang_instruction}} で自動言語設定が可能です。"
+    "message": "空欄の場合は、この欄に表示されているデフォルトプロンプトを使用します。{{lang_instruction}} で自動言語設定が可能です。"
   },
   "secLanguage": {
     "message": "言語"
@@ -1377,7 +1368,7 @@
     "message": "Pinboard.in タグページ"
   },
   "optTagSortByPop": {
-    "message": "タグページに「人気順で並べ替え」コントロールを追加"
+    "message": "タグページに人気順の並べ替えコントロールを追加"
   },
   "optTagSortByPopHint": {
     "message": "pinboard.in のタグページに「pop」コントロールを追加し、各リンクの保存人数で現在のページのブックマークを並べ替えます（再クリックで元に戻ります）。"
@@ -1496,7 +1487,7 @@
     "message": "このデバイスの設定に Chrome Sync を使用"
   },
   "optSyncHint": {
-    "message": "この選択はデバイスごとです。Google アカウントの設定を使用する各デバイスで個別に有効にしてください。"
+    "message": "この選択はデバイスごとです。オンにしたデバイス間でのみ設定が共有され、オフのデバイスはそれぞれのローカル設定を使い続けます。"
   },
   "syncApiKeysLabel": {
     "message": "この Google アカウントで認証情報を同期"
@@ -1597,9 +1588,6 @@
   "jinaViewBtn": {
     "message": "表示"
   },
-  "mdStripCopied": {
-    "message": "Markdown をコピーしました"
-  },
   "mdStripPreview": {
     "message": "プレビュー"
   },
@@ -1643,12 +1631,6 @@
   "mdImgBrokenNote": {
     "message": "$COUNT$ 枚の画像がプレビューで読み込めませんでした。エクスポート後も表示されない可能性があります。ダウンロードで「埋め込み」を選ぶと画像を同梱できます。",
     "placeholders": { "count": { "content": "$1" } }
-  },
-  "mdSendObsidian": {
-    "message": "Obsidian に送る"
-  },
-  "mdSentObsidian": {
-    "message": "送信しました"
   },
   "mdObsidianRoute": {
     "message": "Obsidian ルート"
@@ -1706,9 +1688,6 @@
   },
   "mdExportExtendedMetaHint": {
     "message": "値がある場合、これらの項目を frontmatter、HTML の署名行、webhook ペイロードに追加します。オフにすると旧バージョンと完全に同一のエクスポートになります。"
-  },
-  "mdOptIncludeToc": {
-    "message": "目次を含める"
   },
   "mdOptIncludeHl": {
     "message": "ハイライトを含める"
@@ -1842,9 +1821,6 @@
   },
   "presetPreviewToggle": {
     "message": "現在のプリセット CSS を表示（読み取り専用）"
-  },
-  "overlayQuotaFallback": {
-    "message": "CSS をローカルに保存しました（同期容量が満杯）"
   },
   "optSavedLocally": {
     "message": "ローカルに保存しました（同期容量が満杯）"
@@ -1987,12 +1963,6 @@
   },
   "optUrlCleanExcludePlaceholder": {
     "message": "tag\nref\nsi"
-  },
-  "optBgSaveNoClobber": {
-    "message": "バックグラウンド保存のタグをマージ（クイック保存 / あとで読む）"
-  },
-  "optBgSaveNoClobberHint": {
-    "message": "有効にすると、バックグラウンド保存は既存の Pinboard ブックマーク（あれば）を読み取り、新しいタグを既存のタグと置き換えず、マージします。これにより、重複する URL でタグが誤って失われるのを防ぎます。注意：追加の API 呼び出しのため、保存ごとに約 3 秒増えます。フォアグラウンドのポップアップ編集は常に置き換えるので、完全に制御できます。"
   },
   "obsidianInstallHint": {
     "message": "ノートを開くには Obsidian がインストールされている必要があります。ノートの内容はバックアップとしてクリップボードにもコピーされています。"
@@ -2188,7 +2158,7 @@
     "message": "AI グループが見つかりません"
   },
   "tagGovAiNoKey": {
-    "message": "AI プロバイダーが未設定です。AI タブで設定してください"
+    "message": "AI プロバイダーが未設定です。「AI プロバイダー」タブで設定してください"
   },
   "tagGovLowCountTitle": {
     "message": "低使用頻度タグ（1 回以下）"
@@ -2375,7 +2345,7 @@
     "message": "プレビューページ AI"
   },
   "previewAiSectionHint": {
-    "message": "Markdown プレビューの選択範囲の解説、ページへの質問、全文翻訳はユーザーが実行し、上記で設定した AI プロバイダーとキーを使用します。オプトインの要点スキムを有効にすると、Markdown プレビューを開いたときに実行される場合があります。非表示のバックグラウンドタスクとして実行される機能はありません。"
+    "message": "Markdown プレビューの選択範囲の解説、ページへの質問、全文翻訳はユーザーが実行し、「AI プロバイダー」タブで設定したプロバイダーとキーを使用します。オプトインの要点スキムを有効にすると、Markdown プレビューを開いたときに実行される場合があります。非表示のバックグラウンドタスクとして実行される機能はありません。"
   },
   "previewAiEnabled": {
     "message": "プレビューページで AI 機能を有効にする"
@@ -2387,7 +2357,7 @@
     "message": "モデルの上書き（任意）"
   },
   "previewAiModelHint": {
-    "message": "プレビューページの AI 機能専用のモデル名（上記と同じプロバイダー）。空欄にすると上記設定のデフォルトモデルを使用します。"
+    "message": "プレビューページの AI 機能専用のモデル名（プロバイダーは「AI プロバイダー」タブの設定のまま）。空欄にすると、そのタブで設定したモデルを使用します。"
   },
   "translateTargetLangLabel": {
     "message": "翻訳先の言語"
@@ -2414,10 +2384,10 @@
     "message": "選択説明のトリガー"
   },
   "selectionTriggerIcon": {
-    "message": "選択ツールバーの解説ボタン"
+    "message": "選択範囲の横にボタンを表示"
   },
   "selectionTriggerHotkey": {
-    "message": "ショートカット e と d のみ（ボタンなし）"
+    "message": "ショートカット e と d のみ"
   },
   "selectionTriggerOff": {
     "message": "オフ"
@@ -2645,15 +2615,6 @@
   },
   "explainMoveHint": {
     "message": "Alt+矢印キーでこのパネルを移動できます。"
-  },
-  "explainTriggerIcon": {
-    "message": "選択テキストの横にボタンを表示"
-  },
-  "explainTriggerHotkey": {
-    "message": "ショートカット e と d のみ"
-  },
-  "explainTriggerOff": {
-    "message": "オフ"
   },
   "explainActionExplain": {
     "message": "解説"
@@ -2892,7 +2853,7 @@
       "message": "Google Drive との同期に失敗しました。"
     },
     "vocabDriveErrorAccountChanged": {
-      "message": "Google アカウントまたは Pinboard アカウントが変わりました。「単語」を開き直して、もう一度お試しください。"
+      "message": "Google アカウントまたは Pinboard アカウントが変わりました。「単語帳」を開き直して、もう一度お試しください。"
     },
     "vocabDriveErrorEntryTooLarge": {
       "message": "保存した単語またはその文脈が大きすぎるため同期できません。内容を短くするか削除してから、「今すぐ同期」をクリックしてください。"
@@ -2921,7 +2882,7 @@
       "message": "Pinboard アカウントなし"
     },
     "vocabLoadFailed": {
-      "message": "現在の Pinboard アカウントの単語を読み込めませんでした。「単語」を開き直して、もう一度お試しください。"
+      "message": "現在の Pinboard アカウントの単語を読み込めませんでした。「単語帳」を開き直して、もう一度お試しください。"
     },
     "vocabExportFailed": {
       "message": "単語を書き出せませんでした。拡張機能のストレージを確認して、もう一度お試しください。"
@@ -3325,7 +3286,7 @@
   "kbdHelpExplain": { "message": "選択範囲を解説する" },
   "kbdHelpToggleView": { "message": "原文、対訳、訳文のみの順に表示を切り替える" },
   "kbdHelpHighlight": { "message": "選択範囲をハイライトする（h = 前回使用した色、1-5 = 色を指定）" },
-  "kbdHelpAsk": { "message": "「このページに質問」パネルを開く" },
+  "kbdHelpAsk": { "message": "「ページに質問」パネルを開く" },
   "kbdHelpSearch": { "message": "記事内を検索する" },
   "kbdHelpShowHelp": { "message": "このショートカット一覧を表示する" },
   "kbdHelpClose": { "message": "開いているポップオーバーを閉じる" },

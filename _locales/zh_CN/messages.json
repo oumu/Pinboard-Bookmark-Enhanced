@@ -222,12 +222,6 @@
   "aiGenerateBtn": {
     "message": "生成"
   },
-  "aiSummarizing": {
-    "message": "生成摘要中..."
-  },
-  "aiGenerating": {
-    "message": "生成标签中..."
-  },
   "aiGenerate": {
     "message": "生成"
   },
@@ -558,7 +552,7 @@
     "message": "未能从该页面提取到可读内容。"
   },
   "bgMdPreviewTooLarge": {
-    "message": "存储空间已满。请在扩展选项的“存储”中清理缓存数据后重试。"
+    "message": "存储空间已满。请在扩展选项的「存储」中清理缓存数据后重试。"
   },
   "mdPreviewOpenFailed": {
     "message": "无法打开预览。该页面可能过大，无法存储。"
@@ -1073,9 +1067,6 @@
   "importApplyFailed": {
     "message": "导入未能完成；部分设置可能已经更改，请检查后重试"
   },
-  "importHighlightsSkipped": {
-    "message": "已导入，但高亮和笔记未恢复。请登录创建该备份的 Pinboard 账号，然后再导入一次"
-  },
   "importSettingsTitle": {
     "message": "从 JSON 文件导入设置"
   },
@@ -1215,7 +1206,7 @@
     }
   },
   "testTimeout": {
-    "message": "连接超时（15秒）"
+    "message": "连接超时（30秒）"
   },
   "testNoApiKey": {
     "message": "未填写 API Key"
@@ -1227,7 +1218,7 @@
     "message": "可修改为代理或兼容接口地址"
   },
   "hintClaudeModel": {
-    "message": "如 claude-sonnet-4-20250514, claude-3-5-haiku-20241022"
+    "message": "如 claude-haiku-4-5-20251001, claude-sonnet-4-20250514"
   },
   "hintOllamaModel": {
     "message": "需先运行 ollama pull llama3.2"
@@ -1308,7 +1299,7 @@
     "message": "AI 标签提示词"
   },
   "tagPromptHint": {
-    "message": "留空则使用上方显示的默认提示词。需指示 AI 返回 [\"tag1\",\"tag2\"] 格式。"
+    "message": "留空则使用框内显示的默认提示词。需指示 AI 返回 [\"tag1\",\"tag2\"] 格式。"
   },
   "resetToDefault": {
     "message": "恢复默认"
@@ -1317,7 +1308,7 @@
     "message": "AI 摘要提示词"
   },
   "summaryPromptHint": {
-    "message": "留空则使用上方显示的默认提示词。使用 {{lang_instruction}} 控制自动语言。"
+    "message": "留空则使用框内显示的默认提示词。使用 {{lang_instruction}} 控制自动语言。"
   },
   "secLanguage": {
     "message": "语言"
@@ -1377,10 +1368,10 @@
     "message": "Pinboard.in 标签页"
   },
   "optTagSortByPop": {
-    "message": "在标签页添加“按热度排序”控件"
+    "message": "在标签页添加热度排序控件"
   },
   "optTagSortByPopHint": {
-    "message": "在 pinboard.in 标签页添加“pop”控件，按收藏人数排序当前页书签，再次点击还原。"
+    "message": "在 pinboard.in 标签页添加「pop」控件，按收藏人数排序当前页书签，再次点击还原。"
   },
   "secCustomStyle": {
     "message": "Pinboard.in 自定义样式"
@@ -1496,7 +1487,7 @@
     "message": "在此设备上通过 Chrome Sync 同步设置"
   },
   "optSyncHint": {
-    "message": "此开关仅对当前设备生效。需要使用 Google 账户中设置的设备必须分别开启。"
+    "message": "此开关只对当前设备生效。设置只在开启了它的设备之间共享；关闭的设备使用各自的本地设置。"
   },
   "syncApiKeysLabel": {
     "message": "通过此 Google 账户同步凭据"
@@ -1572,7 +1563,7 @@
     "message": "转换中..."
   },
   "jinaCopied": {
-    "message": "已复制!"
+    "message": "已复制！"
   },
   "jinaFailed": {
     "message": "失败"
@@ -1596,9 +1587,6 @@
   },
   "jinaViewBtn": {
     "message": "查看"
-  },
-  "mdStripCopied": {
-    "message": "Markdown 已复制"
   },
   "mdStripPreview": {
     "message": "预览"
@@ -1643,12 +1631,6 @@
   "mdImgBrokenNote": {
     "message": "$COUNT$ 张图片在当前预览中加载失败，导出后可能仍无法显示；下载并选择「内嵌」可打包图片。",
     "placeholders": { "count": { "content": "$1" } }
-  },
-  "mdSendObsidian": {
-    "message": "发送到 Obsidian"
-  },
-  "mdSentObsidian": {
-    "message": "已发送"
   },
   "mdObsidianRoute": {
     "message": "Obsidian 路由"
@@ -1702,13 +1684,10 @@
     "message": "包含文章目录"
   },
   "mdExportExtendedMeta": {
-    "message": "包含扩展元数据(作者、发布日期、来源站点、封面图、字数)"
+    "message": "包含扩展元数据（作者、发布日期、来源站点、封面图、字数）"
   },
   "mdExportExtendedMetaHint": {
-    "message": "在有值时把这些字段加入 frontmatter、HTML 署名行与 webhook 载荷;关闭后导出与旧版逐字节一致。"
-  },
-  "mdOptIncludeToc": {
-    "message": "含目录"
+    "message": "在有值时把这些字段加入 frontmatter、HTML 署名行与 webhook 载荷；关闭后导出与旧版逐字节一致。"
   },
   "mdOptIncludeHl": {
     "message": "包含高亮"
@@ -1843,9 +1822,6 @@
   "presetPreviewToggle": {
     "message": "查看当前预设 CSS（只读）"
   },
-  "overlayQuotaFallback": {
-    "message": "CSS 仅保存到本机（同步配额已满）"
-  },
   "optSavedLocally": {
     "message": "仅保存到本机（同步配额已满）"
   },
@@ -1869,10 +1845,10 @@
     "message": "同步迁移失败。请重试；如果问题仍然存在，请检查 Chrome Sync 的可用存储空间。"
   },
   "syncConflictUseCloud": {
-    "message": "Chrome Sync 中已有设置。要在此设备上使用云端设置吗？\n\n选择“取消”可改用此设备的设置。"
+    "message": "Chrome Sync 中已有设置。要在此设备上使用云端设置吗？\n\n选择「取消」可改用此设备的设置。"
   },
   "syncConflictOverwriteCloud": {
-    "message": "要用此设备的设置覆盖 Chrome Sync 中的设置吗？\n\n选择“取消”将保持同步关闭。"
+    "message": "要用此设备的设置覆盖 Chrome Sync 中的设置吗？\n\n选择「取消」将保持同步关闭。"
   },
   "jinaFreeTierHint": {
     "message": "免费额度：20 RPM。配置 key 可提高配额。"
@@ -1905,7 +1881,7 @@
     "message": "哪些 AI 服务商有免费 API？"
   },
   "freeTierResourcesPrefix": {
-    "message": "免费额度变动太快，这里不再逐条列出。下面两份社区清单更新较勤；你的实际额度以服务商后台显示的为准："
+    "message": "免费额度变动太快，这里不再逐条列出。下面的社区清单更新较勤；你的实际额度以服务商后台显示的为准："
   },
   "aiStage_extracting": {
     "message": "抓取页面内容…"
@@ -1923,25 +1899,25 @@
     "message": "取消"
   },
   "urlCleanedN": {
-    "message": "已清理 {n} 个跟踪参数"
+    "message": "已清理 {n} 个追踪参数"
   },
   "urlShowOriginal": {
     "message": "显示原始"
   },
   "urlPasteCleanedN": {
-    "message": "移除了 {n} 个跟踪参数"
+    "message": "移除了 {n} 个追踪参数"
   },
   "undo": {
     "message": "撤销"
   },
   "optUrlCleanTitle": {
-    "message": "URL 跟踪参数清理"
+    "message": "URL 追踪参数清理"
   },
   "optUrlCleanEnabled": {
-    "message": "自动清理 URL 跟踪参数"
+    "message": "自动清理 URL 追踪参数"
   },
   "optUrlCleanOnOpen": {
-    "message": "打开 popup 时清理（静默，含撤销链接）"
+    "message": "打开弹窗时清理（静默，含撤销链接）"
   },
   "optUrlCleanOnPaste": {
     "message": "粘贴 URL 时清理（toast 提示）"
@@ -1965,7 +1941,7 @@
     "message": "点击生成"
   },
   "optPopupWidthTitle": {
-    "message": "Popup 宽度"
+    "message": "弹窗宽度"
   },
   "optPopupWidth450": {
     "message": "紧凑 (450px)"
@@ -1980,19 +1956,13 @@
     "message": "自定义："
   },
   "optPopupWidthHelp": {
-    "message": "范围：420–720px（Chrome popup 限制）"
+    "message": "范围：420–720px（Chrome 弹窗上限）"
   },
   "optUrlCleanCustomPlaceholder": {
     "message": "utm_other\ncustom_track_id\n_branch_referrer"
   },
   "optUrlCleanExcludePlaceholder": {
     "message": "tag\nref\nsi"
-  },
-  "optBgSaveNoClobber": {
-    "message": "合并后台保存中的标签（快速保存/稍后阅读）"
-  },
-  "optBgSaveNoClobberHint": {
-    "message": "启用时，后台保存会先读取你现有的 Pinboard 书签（如有），把新标签与已有标签合并，而不是直接替换。这样可避免在重复网址上意外丢失标签。注意：额外的 API 调用会让每次保存多花约 3 秒。前台弹窗中的编辑始终替换，你仍可完全掌控。"
   },
   "obsidianInstallHint": {
     "message": "需要安装 Obsidian 才能打开笔记。笔记内容已复制到剪贴板作为备份。"
@@ -2188,7 +2158,7 @@
     "message": "AI 未发现重复项"
   },
   "tagGovAiNoKey": {
-    "message": "未配置 AI 服务商，请前往 AI 标签页设置"
+    "message": "未配置 AI 服务商，请到「AI 服务商」中设置"
   },
   "tagGovLowCountTitle": {
     "message": "低频标签（1 次或更少）"
@@ -2375,7 +2345,7 @@
     "message": "预览页 AI"
   },
   "previewAiSectionHint": {
-    "message": "Markdown 预览页的划词解释、全文问答和全文翻译均由你主动调用，并使用上方配置的 AI 服务商与 Key。若启用可选的 AI 要点速览，它可能会在 Markdown 预览打开时运行；所有功能都不会作为隐藏的后台任务运行。"
+    "message": "Markdown 预览页的划词解释、全文问答和全文翻译均由你主动调用，并使用「AI 服务商」中配置的服务商与 Key。若启用可选的 AI 要点速览，它可能会在 Markdown 预览打开时运行；所有功能都不会作为隐藏的后台任务运行。"
   },
   "previewAiEnabled": {
     "message": "在预览页启用 AI 功能"
@@ -2387,7 +2357,7 @@
     "message": "模型覆盖（可选）"
   },
   "previewAiModelHint": {
-    "message": "仅供预览页 AI 功能使用的模型名（与上方同一服务商）。留空则使用上方配置的默认模型。"
+    "message": "仅供预览页 AI 功能使用的模型名，服务商仍沿用「AI 服务商」中的配置。留空则使用其中配置的模型。"
   },
   "translateTargetLangLabel": {
     "message": "翻译目标语言"
@@ -2414,10 +2384,10 @@
     "message": "划词解释触发方式"
   },
   "selectionTriggerIcon": {
-    "message": "选中工具条中的解释按钮"
+    "message": "在选中文字旁显示按钮"
   },
   "selectionTriggerHotkey": {
-    "message": "仅使用快捷键 e 和 d（不显示按钮）"
+    "message": "仅使用快捷键 e 和 d"
   },
   "selectionTriggerOff": {
     "message": "关闭"
@@ -2582,7 +2552,7 @@
     "message": "复制回答"
   },
   "askCopied": {
-    "message": "已复制!"
+    "message": "已复制！"
   },
   "askClearConfirm": {
     "message": "清空本页全部问答？"
@@ -2645,15 +2615,6 @@
   },
   "explainMoveHint": {
     "message": "按 Alt+方向键移动此面板。"
-  },
-  "explainTriggerIcon": {
-    "message": "选中文字旁显示按钮"
-  },
-  "explainTriggerHotkey": {
-    "message": "仅快捷键 e 和 d"
-  },
-  "explainTriggerOff": {
-    "message": "关闭"
   },
   "explainActionExplain": {
     "message": "解释"
@@ -2780,7 +2741,7 @@
       }
     },
     "vocabLoading": {
-      "message": "正在加载生词……"
+      "message": "正在加载生词…"
     },
     "vocabReadingSection": {
       "message": "阅读提示"
@@ -2795,7 +2756,7 @@
       "message": "扩展会在 Google Drive 的专用 appDataFolder 中以明文格式保存一份生词副本。数据未经端到端加密，可能包含词语、释义、笔记、来源 URL、文章标题和上下文摘录。"
     },
     "vocabDriveLoading": {
-      "message": "正在读取 Google Drive 同步状态..."
+      "message": "正在读取 Google Drive 同步状态…"
     },
     "vocabDriveDisconnected": {
       "message": "此设备尚未连接 Google Drive。"
@@ -2807,7 +2768,7 @@
       "message": "正在等待 Google 授权。请在 Chrome 弹出的窗口中完成登录与授权。"
     },
     "vocabDriveWorking": {
-      "message": "正在与 Google Drive 同步生词..."
+      "message": "正在与 Google Drive 同步生词…"
     },
     "vocabDriveSynced": {
       "message": "生词已与 Google Drive 同步。"
@@ -2892,10 +2853,10 @@
       "message": "Google Drive 同步失败。"
     },
     "vocabDriveErrorAccountChanged": {
-      "message": "Google 账号或 Pinboard 账号已切换。请重新打开“生词”后再试。"
+      "message": "Google 账号或 Pinboard 账号已切换。请重新打开「生词」后再试。"
     },
     "vocabDriveErrorEntryTooLarge": {
-      "message": "有一条生词或其上下文内容过大，无法同步。请缩短或删除该条内容，然后点击“立即同步”。"
+      "message": "有一条生词或其上下文内容过大，无法同步。请缩短或删除该条内容，然后点击「立即同步」。"
     },
     "vocabDriveRetryAt": {
       "message": "下次重试：$TIME$。",
@@ -2921,7 +2882,7 @@
       "message": "未登录 Pinboard"
     },
     "vocabLoadFailed": {
-      "message": "无法加载当前 Pinboard 账号的生词。请重新打开“生词”后再试。"
+      "message": "无法加载当前 Pinboard 账号的生词。请重新打开「生词」后再试。"
     },
     "vocabExportFailed": {
       "message": "无法导出生词。请检查扩展存储后再试。"
@@ -2977,7 +2938,7 @@
       "message": "选择已发生变化，请检查当前结果后重试。"
     },
     "vocabRefreshFailed": {
-      "message": "更改已保存，但列表刷新失败。请重新打开“生词”页。"
+      "message": "更改已保存，但列表刷新失败。请重新打开「生词」。"
     },
     "vocabBatchDeleted": {
       "message": "已删除 $COUNT$ 条生词。",
@@ -3165,13 +3126,13 @@
     "message": "无法将生词发送到欧路词典。请检查授权信息后再试。"
   },
   "dictEudicTokenRequired": {
-    "message": "请在下方填写欧路 OpenAPI 授权信息，或检查其是否仍有效。"
+    "message": "请在下方填写欧路词典 OpenAPI 授权信息，或检查其是否仍有效。"
   },
   "dictEudicTokenLabel": {
-    "message": "欧路 OpenAPI 授权信息"
+    "message": "欧路词典 OpenAPI 授权信息"
   },
   "dictEudicTokenHint": {
-    "message": "从欧路授权页面完整复制授权信息"
+    "message": "从欧路词典授权页面完整复制授权信息"
   },
   "dictAnkiNothing": {
     "message": "暂无可发送的生词。"
@@ -3208,7 +3169,7 @@
     "message": "发送目标"
   },
   "secSendDestinationsHint": {
-    "message": "每个启用的目标都会出现在预览页的“发送到”菜单中。"
+    "message": "每个启用的目标都会出现在预览页的「发送到」菜单中。"
   },
   "mdSendEnableTo": {
     "message": "启用导出到 {name}"
@@ -3312,7 +3273,7 @@
   "mdImgFixPartial": {"message": "已修复 $OK$/$TOTAL$ 张图片", "placeholders": {"ok": {"content": "$1"}, "total": {"content": "$2"}}},
   "hlSectionTitle": { "message": "高亮" },
   "kbdHelpTitle": { "message": "键盘快捷键" },
-  "kbdHelpIntro": { "message": "以下快捷键仅在 Markdown 预览页面生效(本设置页不适用)。" },
+  "kbdHelpIntro": { "message": "以下快捷键仅在 Markdown 预览页面生效（本设置页不适用）。" },
   "kbdHelpRailBtn": { "message": "键盘快捷键" },
   "kbdHelpTranslate": { "message": "开始或继续翻译全文" },
   "kbdHelpDictionary": { "message": "查询当前选中内容" },

@@ -222,12 +222,6 @@
   "aiGenerateBtn": {
     "message": "generuj"
   },
-  "aiSummarizing": {
-    "message": "podsumowywanie..."
-  },
-  "aiGenerating": {
-    "message": "generowanie..."
-  },
   "aiGenerate": {
     "message": "generuj"
   },
@@ -1073,9 +1067,6 @@
   "importApplyFailed": {
     "message": "Nie udało się ukończyć importu; niektóre ustawienia mogły już zostać zmienione. Sprawdź je i spróbuj ponownie."
   },
-  "importHighlightsSkipped": {
-    "message": "Zaimportowano — pominięto zaznaczenia i notatki. Zaloguj się na konto Pinboard, z którego utworzono tę kopię zapasową, i zaimportuj plik ponownie."
-  },
   "importSettingsTitle": {
     "message": "Importuj ustawienia z pliku JSON"
   },
@@ -1215,7 +1206,7 @@
     }
   },
   "testTimeout": {
-    "message": "Limit czasu (15s)"
+    "message": "Limit czasu (30s)"
   },
   "testNoApiKey": {
     "message": "Brak klucza API"
@@ -1227,7 +1218,7 @@
     "message": "Zmień dla proxy lub kompatybilnego endpointu"
   },
   "hintClaudeModel": {
-    "message": "np. claude-sonnet-4-20250514, claude-3-5-haiku-20241022"
+    "message": "np. claude-haiku-4-5-20251001, claude-sonnet-4-20250514"
   },
   "hintOllamaModel": {
     "message": "Najpierw uruchom ollama pull llama3.2"
@@ -1308,7 +1299,7 @@
     "message": "Prompt tagów AI"
   },
   "tagPromptHint": {
-    "message": "Pozostaw puste, aby użyć domyślnego promptu. Musi instruować AI, by zwracał format [\"tag1\",\"tag2\"]."
+    "message": "Pozostaw puste, aby użyć domyślnego promptu wyświetlanego w tym polu. Musi instruować AI, by zwracał format [\"tag1\",\"tag2\"]."
   },
   "resetToDefault": {
     "message": "Przywróć domyślne"
@@ -1317,7 +1308,7 @@
     "message": "Prompt podsumowania AI"
   },
   "summaryPromptHint": {
-    "message": "Pozostaw puste, aby użyć domyślnego promptu. Użyj {{lang_instruction}} dla automatycznego języka."
+    "message": "Pozostaw puste, aby użyć domyślnego promptu wyświetlanego w tym polu. Użyj {{lang_instruction}} dla automatycznego języka."
   },
   "secLanguage": {
     "message": "Język"
@@ -1377,7 +1368,7 @@
     "message": "Strony tagów Pinboard.in"
   },
   "optTagSortByPop": {
-    "message": "Dodaj kontrolkę „sortuj według popularności” na stronach tagów"
+    "message": "Dodaj kontrolkę sortowania według popularności na stronach tagów"
   },
   "optTagSortByPopHint": {
     "message": "Dodaje na stronach tagów pinboard.in kontrolkę „pop”, która sortuje zakładki bieżącej strony według liczby osób, które je zapisały (kliknij ponownie, aby przywrócić)."
@@ -1496,7 +1487,7 @@
     "message": "Używaj Chrome Sync do ustawień na tym urządzeniu"
   },
   "optSyncHint": {
-    "message": "Ten wybór dotyczy tylko tego urządzenia. Włącz go osobno na każdym urządzeniu, które ma używać ustawień z Twojego konta Google."
+    "message": "Ten wybór dotyczy tylko tego urządzenia. Ustawienia są współdzielone wyłącznie między urządzeniami, na których go włączysz; pozostałe zachowują własne ustawienia lokalne."
   },
   "syncApiKeysLabel": {
     "message": "Synchronizuj dane uwierzytelniające dla tego konta Google"
@@ -1597,9 +1588,6 @@
   "jinaViewBtn": {
     "message": "Pokaż"
   },
-  "mdStripCopied": {
-    "message": "Skopiowano Markdown"
-  },
   "mdStripPreview": {
     "message": "Podgląd"
   },
@@ -1643,12 +1631,6 @@
   "mdImgBrokenNote": {
     "message": "$COUNT$ obrazów nie wczytało się w tym podglądzie i może nie wyświetlać się po eksporcie; „Osadź” pakuje obrazy przy pobieraniu.",
     "placeholders": { "count": { "content": "$1" } }
-  },
-  "mdSendObsidian": {
-    "message": "Wyślij do Obsidian"
-  },
-  "mdSentObsidian": {
-    "message": "Wysłano"
   },
   "mdObsidianRoute": {
     "message": "Trasa Obsidian"
@@ -1706,9 +1688,6 @@
   },
   "mdExportExtendedMetaHint": {
     "message": "Dodaje te pola do frontmatter, wiersza autora HTML i ładunków webhook, gdy są dostępne. Wyłącz, aby eksport był identyczny bajt w bajt ze starą wersją."
-  },
-  "mdOptIncludeToc": {
-    "message": "Dołącz spis treści"
   },
   "mdOptIncludeHl": {
     "message": "Uwzględnij zaznaczenia"
@@ -1842,9 +1821,6 @@
   },
   "presetPreviewToggle": {
     "message": "Pokaż CSS bieżącego presetu (tylko do odczytu)"
-  },
-  "overlayQuotaFallback": {
-    "message": "CSS zapisany lokalnie (limit synchronizacji pełny)"
   },
   "optSavedLocally": {
     "message": "Zapisano lokalnie (limit synchronizacji pełny)"
@@ -1987,12 +1963,6 @@
   },
   "optUrlCleanExcludePlaceholder": {
     "message": "tag\nref\nsi"
-  },
-  "optBgSaveNoClobber": {
-    "message": "Łączenie tagów w zapisach w tle (Szybki zapis / Przeczytaj później)"
-  },
-  "optBgSaveNoClobberHint": {
-    "message": "Gdy ta opcja jest włączona, zapis w tle odczytuje Twoją istniejącą zakładkę Pinboard (jeśli istnieje) i łączy nowe tagi z istniejącymi zamiast je zastępować. Zapobiega to przypadkowej utracie tagów przy zduplikowanych adresach URL. Uwaga: dodatkowe wywołanie API dodaje około 3 s do każdego zapisu. Edycje w wyskakującym okienku na pierwszym planie zawsze zastępują tagi, więc zachowujesz pełną kontrolę."
   },
   "obsidianInstallHint": {
     "message": "Aby otworzyć notatkę, musi być zainstalowany Obsidian. Treść została również skopiowana do schowka jako kopia zapasowa."
@@ -2188,7 +2158,7 @@
     "message": "Nie znaleziono grup AI"
   },
   "tagGovAiNoKey": {
-    "message": "Brak skonfigurowanego dostawcy AI — przejdź do karty AI, aby skonfigurować"
+    "message": "Brak skonfigurowanego dostawcy AI — przejdź do karty „Dostawcy AI”, aby go skonfigurować"
   },
   "tagGovLowCountTitle": {
     "message": "Tagi o niskiej częstości (1 lub mniej)"
@@ -2375,7 +2345,7 @@
     "message": "AI strony podglądu"
   },
   "previewAiSectionHint": {
-    "message": "Wyjaśnianie zaznaczenia, pytania do strony i pełne tłumaczenie w podglądzie Markdown są uruchamiane przez użytkownika i korzystają z dostawcy AI oraz klucza skonfigurowanego powyżej. Jeśli opcjonalny przegląd kluczowych punktów jest włączony, może uruchomić się po otwarciu podglądu Markdown; nic nie działa jako ukryte zadanie w tle."
+    "message": "Wyjaśnianie zaznaczenia, pytania do strony i pełne tłumaczenie w podglądzie Markdown są uruchamiane przez użytkownika i korzystają z dostawcy oraz klucza skonfigurowanych na karcie „Dostawcy AI”. Jeśli opcjonalny przegląd kluczowych punktów jest włączony, może uruchomić się po otwarciu podglądu Markdown; nic nie działa jako ukryte zadanie w tle."
   },
   "previewAiEnabled": {
     "message": "Włącz funkcje AI na stronie podglądu"
@@ -2387,7 +2357,7 @@
     "message": "Zastąpienie modelu (opcjonalne)"
   },
   "previewAiModelHint": {
-    "message": "Nazwa modelu używana tylko przez funkcje AI strony podglądu, u tego samego dostawcy co powyżej. Pozostaw puste, aby użyć domyślnego modelu dostawcy."
+    "message": "Nazwa modelu używana tylko przez funkcje AI strony podglądu; dostawca pozostaje ten wybrany na karcie „Dostawcy AI”. Pozostaw puste, aby użyć modelu skonfigurowanego na tej karcie."
   },
   "translateTargetLangLabel": {
     "message": "Język docelowy tłumaczenia"
@@ -2414,10 +2384,10 @@
     "message": "Wyzwalacz wyjaśniania zaznaczenia"
   },
   "selectionTriggerIcon": {
-    "message": "Przycisk wyjaśniania na pasku zaznaczenia"
+    "message": "Przycisk obok zaznaczenia"
   },
   "selectionTriggerHotkey": {
-    "message": "Tylko skróty e i d (bez przycisków)"
+    "message": "Tylko skróty e i d"
   },
   "selectionTriggerOff": {
     "message": "Wyłączone"
@@ -2645,15 +2615,6 @@
   },
   "explainMoveHint": {
     "message": "Użyj klawisza Alt i klawiszy strzałek, aby przesunąć ten panel."
-  },
-  "explainTriggerIcon": {
-    "message": "Przycisk obok zaznaczenia"
-  },
-  "explainTriggerHotkey": {
-    "message": "Tylko skróty klawiszowe e i d"
-  },
-  "explainTriggerOff": {
-    "message": "Wyłączone"
   },
   "explainActionExplain": {
     "message": "Wyjaśnij"

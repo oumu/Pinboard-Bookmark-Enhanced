@@ -222,12 +222,6 @@
   "aiGenerateBtn": {
     "message": "Generieren"
   },
-  "aiSummarizing": {
-    "message": "Zusammenfassung wird erstellt..."
-  },
-  "aiGenerating": {
-    "message": "Wird generiert..."
-  },
   "aiGenerate": {
     "message": "Generieren"
   },
@@ -1073,9 +1067,6 @@
   "importApplyFailed": {
     "message": "Der Import konnte nicht abgeschlossen werden; einige Einstellungen wurden möglicherweise bereits geändert. Bitte prüfe sie und versuche es erneut."
   },
-  "importHighlightsSkipped": {
-    "message": "Importiert, aber Markierungen und Notizen wurden übersprungen. Melde dich mit dem Pinboard-Konto an, das diese Sicherung erstellt hat, und importiere die Datei erneut."
-  },
   "importSettingsTitle": {
     "message": "Einstellungen aus JSON-Datei importieren"
   },
@@ -1215,7 +1206,7 @@
     }
   },
   "testTimeout": {
-    "message": "Zeitüberschreitung (15s)"
+    "message": "Zeitüberschreitung (30s)"
   },
   "testNoApiKey": {
     "message": "Kein API Key"
@@ -1227,7 +1218,7 @@
     "message": "Ändern für Proxy oder kompatiblen Endpunkt"
   },
   "hintClaudeModel": {
-    "message": "Z.B. claude-sonnet-4-20250514, claude-3-5-haiku-20241022"
+    "message": "Z.B. claude-haiku-4-5-20251001, claude-sonnet-4-20250514"
   },
   "hintOllamaModel": {
     "message": "Führe zuerst ollama pull llama3.2 aus"
@@ -1308,7 +1299,7 @@
     "message": "KI-Tags-Prompt"
   },
   "tagPromptHint": {
-    "message": "Leer lassen für den oben angezeigten Standard-Prompt. Muss die KI anweisen, [\"tag1\",\"tag2\"] Format zurückzugeben."
+    "message": "Leer lassen für den im Feld angezeigten Standard-Prompt. Muss die KI anweisen, [\"tag1\",\"tag2\"] Format zurückzugeben."
   },
   "resetToDefault": {
     "message": "Auf Standard zurücksetzen"
@@ -1317,7 +1308,7 @@
     "message": "KI-Zusammenfassungs-Prompt"
   },
   "summaryPromptHint": {
-    "message": "Leer lassen für den oben angezeigten Standard-Prompt. {{lang_instruction}} für automatische Spracherkennung verwenden."
+    "message": "Leer lassen für den im Feld angezeigten Standard-Prompt. {{lang_instruction}} für automatische Spracherkennung verwenden."
   },
   "secLanguage": {
     "message": "Sprache"
@@ -1377,7 +1368,7 @@
     "message": "Pinboard.in-Tag-Seiten"
   },
   "optTagSortByPop": {
-    "message": "Steuerelement „Nach Beliebtheit sortieren“ auf Tag-Seiten hinzufügen"
+    "message": "Steuerelement zum Sortieren nach Beliebtheit auf Tag-Seiten hinzufügen"
   },
   "optTagSortByPopHint": {
     "message": "Fügt auf pinboard.in-Tag-Seiten ein „pop“-Steuerelement hinzu, das die Lesezeichen der aktuellen Seite nach Anzahl der Speicherungen sortiert (erneut klicken zum Zurücksetzen)."
@@ -1496,7 +1487,7 @@
     "message": "Chrome Sync für Einstellungen auf diesem Gerät verwenden"
   },
   "optSyncHint": {
-    "message": "Diese Auswahl gilt nur für dieses Gerät. Aktiviere sie separat auf jedem Gerät, das Einstellungen aus deinem Google-Konto verwenden soll."
+    "message": "Diese Auswahl gilt nur für dieses Gerät. Einstellungen werden nur zwischen den Geräten geteilt, auf denen du sie aktivierst; alle anderen behalten ihre eigenen lokalen Einstellungen."
   },
   "syncApiKeysLabel": {
     "message": "Zugangsdaten für dieses Google-Konto synchronisieren"
@@ -1597,9 +1588,6 @@
   "jinaViewBtn": {
     "message": "Ansehen"
   },
-  "mdStripCopied": {
-    "message": "Markdown kopiert"
-  },
   "mdStripPreview": {
     "message": "Vorschau"
   },
@@ -1643,12 +1631,6 @@
   "mdImgBrokenNote": {
     "message": "$COUNT$ Bild(er) konnten in dieser Vorschau nicht geladen werden und werden nach dem Export möglicherweise nicht angezeigt; „Einbetten“ packt Bilder in Downloads.",
     "placeholders": { "count": { "content": "$1" } }
-  },
-  "mdSendObsidian": {
-    "message": "An Obsidian senden"
-  },
-  "mdSentObsidian": {
-    "message": "Gesendet"
   },
   "mdObsidianRoute": {
     "message": "Obsidian-Ziel"
@@ -1706,9 +1688,6 @@
   },
   "mdExportExtendedMetaHint": {
     "message": "Fügt diese Felder bei Verfügbarkeit dem Frontmatter, der HTML-Kopfzeile und den Webhook-Payloads hinzu. Deaktivieren für byte-identische Exporte wie zuvor."
-  },
-  "mdOptIncludeToc": {
-    "message": "Inhaltsverzeichnis einfügen"
   },
   "mdOptIncludeHl": {
     "message": "Markierungen einbeziehen"
@@ -1842,9 +1821,6 @@
   },
   "presetPreviewToggle": {
     "message": "Aktuelles Preset-CSS anzeigen (schreibgeschützt)"
-  },
-  "overlayQuotaFallback": {
-    "message": "CSS lokal gespeichert (Sync-Kontingent voll)"
   },
   "optSavedLocally": {
     "message": "Lokal gespeichert (Sync-Kontingent voll)"
@@ -1987,12 +1963,6 @@
   },
   "optUrlCleanExcludePlaceholder": {
     "message": "tag\nref\nsi"
-  },
-  "optBgSaveNoClobber": {
-    "message": "Tags in Hintergrund-Speichervorgängen zusammenführen (Schnellspeichern/Später lesen)"
-  },
-  "optBgSaveNoClobberHint": {
-    "message": "Wenn aktiviert, liest das Hintergrund-Speichern dein vorhandenes Pinboard-Lesezeichen (falls vorhanden) und führt neue Tags mit vorhandenen Tags zusammen, anstatt sie zu ersetzen. Dies verhindert versehentlichen Tag-Verlust bei doppelten URLs. Hinweis: Der zusätzliche API-Aufruf verlängert die Speicherdauer um etwa 3 Sekunden. Vordergrund-Popup-Bearbeitungen ersetzen immer (du hast vollständige Kontrolle)."
   },
   "obsidianInstallHint": {
     "message": "Obsidian muss installiert sein, damit die Notiz geöffnet werden kann. Der Inhalt wurde zur Sicherheit auch in die Zwischenablage kopiert."
@@ -2188,7 +2158,7 @@
     "message": "Keine KI-Gruppen gefunden"
   },
   "tagGovAiNoKey": {
-    "message": "Kein KI-Anbieter konfiguriert. Im KI-Tab einrichten"
+    "message": "Kein KI-Anbieter konfiguriert. Im Tab „KI-Anbieter“ einrichten"
   },
   "tagGovLowCountTitle": {
     "message": "Tags mit niedriger Häufigkeit (1 oder weniger)"
@@ -2375,7 +2345,7 @@
     "message": "Vorschauseite KI"
   },
   "previewAiSectionHint": {
-    "message": "Auswahl erklären, Seite fragen und Volltextübersetzung in der Markdown-Vorschau werden vom Benutzer aufgerufen und verwenden den oben konfigurierten KI-Anbieter und -Schlüssel. Wenn der optionale Schnellüberblick über die wichtigsten Punkte aktiviert ist, kann er beim Öffnen der Markdown-Vorschau ausgeführt werden; nichts läuft als verborgene Hintergrundaufgabe."
+    "message": "Auswahl erklären, Seite fragen und Volltextübersetzung in der Markdown-Vorschau werden vom Benutzer aufgerufen und verwenden den Anbieter und den Schlüssel aus dem Tab „KI-Anbieter“. Wenn der optionale Schnellüberblick über die wichtigsten Punkte aktiviert ist, kann er beim Öffnen der Markdown-Vorschau ausgeführt werden; nichts läuft als verborgene Hintergrundaufgabe."
   },
   "previewAiEnabled": {
     "message": "KI-Funktionen auf der Vorschauseite aktivieren"
@@ -2387,7 +2357,7 @@
     "message": "Modell-Überschreibung (optional)"
   },
   "previewAiModelHint": {
-    "message": "Modellname, der nur von KI-Funktionen der Vorschauseite verwendet wird, beim gleichen Anbieter wie oben. Leer lassen, um das Standard-Modell des Anbieters zu verwenden."
+    "message": "Modellname, der nur von KI-Funktionen der Vorschauseite verwendet wird; der Anbieter richtet sich weiterhin nach dem Tab „KI-Anbieter“. Leer lassen, um das dort konfigurierte Modell zu verwenden."
   },
   "translateTargetLangLabel": {
     "message": "Übersetzungszielsprache"
@@ -2414,10 +2384,10 @@
     "message": "Auslöser für Auswahlbeschreibung"
   },
   "selectionTriggerIcon": {
-    "message": "Erklären-Schaltfläche in der Auswahl-Leiste"
+    "message": "Schaltfläche neben der Auswahl"
   },
   "selectionTriggerHotkey": {
-    "message": "Nur Tastenkürzel e und d (keine Schaltflächen)"
+    "message": "Nur Tastenkürzel e und d"
   },
   "selectionTriggerOff": {
     "message": "Aus"
@@ -2645,15 +2615,6 @@
   },
   "explainMoveHint": {
     "message": "Dieses Fenster mit Alt+Pfeiltasten verschieben."
-  },
-  "explainTriggerIcon": {
-    "message": "Schaltfläche neben der Auswahl"
-  },
-  "explainTriggerHotkey": {
-    "message": "Nur Tastenkürzel e und d"
-  },
-  "explainTriggerOff": {
-    "message": "Aus"
   },
   "explainActionExplain": {
     "message": "Erklären"

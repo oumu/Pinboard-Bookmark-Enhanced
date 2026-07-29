@@ -222,12 +222,6 @@
   "aiGenerateBtn": {
     "message": "générer"
   },
-  "aiSummarizing": {
-    "message": "résumé en cours..."
-  },
-  "aiGenerating": {
-    "message": "génération..."
-  },
   "aiGenerate": {
     "message": "générer"
   },
@@ -1073,9 +1067,6 @@
   "importApplyFailed": {
     "message": "L’importation n’a pas pu aboutir ; certains paramètres ont peut-être déjà été modifiés. Vérifiez-les, puis réessayez."
   },
-  "importHighlightsSkipped": {
-    "message": "Importé, mais les surlignages et les notes ont été ignorés. Connectez-vous avec le compte Pinboard qui a créé cette sauvegarde, puis importez à nouveau le fichier."
-  },
   "importSettingsTitle": {
     "message": "Importer les paramètres depuis un fichier JSON"
   },
@@ -1215,7 +1206,7 @@
     }
   },
   "testTimeout": {
-    "message": "Délai dépassé (15 s)"
+    "message": "Délai dépassé (30 s)"
   },
   "testNoApiKey": {
     "message": "Pas de clé API"
@@ -1227,7 +1218,7 @@
     "message": "Modifier pour un proxy ou un endpoint compatible"
   },
   "hintClaudeModel": {
-    "message": "ex. claude-sonnet-4-20250514, claude-3-5-haiku-20241022"
+    "message": "ex. claude-haiku-4-5-20251001, claude-sonnet-4-20250514"
   },
   "hintOllamaModel": {
     "message": "Exécutez d'abord ollama pull llama3.2"
@@ -1308,7 +1299,7 @@
     "message": "Prompt pour les tags IA"
   },
   "tagPromptHint": {
-    "message": "Laissez vide pour utiliser le prompt par défaut affiché ci-dessus. Doit indiquer à l'IA de renvoyer le format [\"tag1\",\"tag2\"]."
+    "message": "Laissez vide pour utiliser le prompt par défaut affiché dans ce champ. Doit indiquer à l'IA de renvoyer le format [\"tag1\",\"tag2\"]."
   },
   "resetToDefault": {
     "message": "Réinitialiser par défaut"
@@ -1317,7 +1308,7 @@
     "message": "Prompt pour le résumé IA"
   },
   "summaryPromptHint": {
-    "message": "Laissez vide pour utiliser le prompt par défaut affiché ci-dessus. Utilisez {{lang_instruction}} pour la langue automatique."
+    "message": "Laissez vide pour utiliser le prompt par défaut affiché dans ce champ. Utilisez {{lang_instruction}} pour la langue automatique."
   },
   "secLanguage": {
     "message": "Langue"
@@ -1377,7 +1368,7 @@
     "message": "Pages de tags Pinboard.in"
   },
   "optTagSortByPop": {
-    "message": "Ajouter un contrôle « trier par popularité » sur les pages de tags"
+    "message": "Ajouter un contrôle de tri par popularité sur les pages de tags"
   },
   "optTagSortByPopHint": {
     "message": "Ajoute sur les pages de tags pinboard.in un contrôle « pop » qui trie les favoris de la page actuelle selon le nombre de personnes les ayant enregistrés (recliquez pour rétablir)."
@@ -1496,7 +1487,7 @@
     "message": "Utiliser Chrome Sync pour les paramètres de cet appareil"
   },
   "optSyncHint": {
-    "message": "Ce choix est propre à cet appareil. Activez-le séparément sur chaque appareil qui doit utiliser les paramètres de votre compte Google."
+    "message": "Ce choix est propre à cet appareil. Les paramètres ne sont partagés qu'entre les appareils où vous l'activez ; les autres conservent leurs paramètres locaux."
   },
   "syncApiKeysLabel": {
     "message": "Synchroniser les identifiants pour ce compte Google"
@@ -1597,9 +1588,6 @@
   "jinaViewBtn": {
     "message": "Voir"
   },
-  "mdStripCopied": {
-    "message": "Markdown copié"
-  },
   "mdStripPreview": {
     "message": "Aperçu"
   },
@@ -1643,12 +1631,6 @@
   "mdImgBrokenNote": {
     "message": "$COUNT$ image(s) n’ont pas pu se charger dans cet aperçu et pourraient ne pas s’afficher après l’export ; « Intégrer » les emballe dans les téléchargements.",
     "placeholders": { "count": { "content": "$1" } }
-  },
-  "mdSendObsidian": {
-    "message": "Envoyer vers Obsidian"
-  },
-  "mdSentObsidian": {
-    "message": "Envoyé"
   },
   "mdObsidianRoute": {
     "message": "Destination Obsidian"
@@ -1706,9 +1688,6 @@
   },
   "mdExportExtendedMetaHint": {
     "message": "Ajoute ces champs au frontmatter, à la ligne d'auteur HTML et aux payloads webhook lorsqu'ils sont disponibles. Désactivez pour des exports identiques à l'ancienne version."
-  },
-  "mdOptIncludeToc": {
-    "message": "Inclure la TDM"
   },
   "mdOptIncludeHl": {
     "message": "Inclure les surlignages"
@@ -1842,9 +1821,6 @@
   },
   "presetPreviewToggle": {
     "message": "Voir le CSS du préréglage actuel (lecture seule)"
-  },
-  "overlayQuotaFallback": {
-    "message": "CSS enregistré localement (quota de synchronisation plein)"
   },
   "optSavedLocally": {
     "message": "Enregistré localement (quota de synchronisation plein)"
@@ -1987,12 +1963,6 @@
   },
   "optUrlCleanExcludePlaceholder": {
     "message": "tag\nref\nsi"
-  },
-  "optBgSaveNoClobber": {
-    "message": "Fusionner les tags dans les enregistrements d'arrière-plan (Enregistrement rapide/Lire plus tard)"
-  },
-  "optBgSaveNoClobberHint": {
-    "message": "Lorsqu'elle est activée, la sauvegarde en arrière-plan lit votre signet Pinboard existant (le cas échéant) et fusionne les nouveaux tags avec les tags existants au lieu de les remplacer. Cela évite la perte accidentelle de tags sur les URL en double. Remarque : l'appel API supplémentaire ajoute environ 3 secondes au temps de sauvegarde. Les modifications du popup de premier plan remplacent toujours (vous avez le contrôle total)."
   },
   "obsidianInstallHint": {
     "message": "Obsidian doit être installé pour que la note s'ouvre. Le contenu a également été copié dans le presse-papiers en guise de sauvegarde."
@@ -2188,7 +2158,7 @@
     "message": "Aucun groupe d'IA trouvé"
   },
   "tagGovAiNoKey": {
-    "message": "Aucun fournisseur IA configuré. Configurez-le dans l'onglet IA"
+    "message": "Aucun fournisseur IA configuré. Configurez-le dans l'onglet « Fournisseurs IA »"
   },
   "tagGovLowCountTitle": {
     "message": "Étiquettes peu utilisées (1 utilisation ou moins)"
@@ -2375,7 +2345,7 @@
     "message": "IA de la page de prévisualisation"
   },
   "previewAiSectionHint": {
-    "message": "L'explication d'une sélection, les questions à la page et la traduction intégrale dans l'aperçu Markdown sont lancées par l'utilisateur et utilisent le fournisseur IA et la clé configurés ci-dessus. Si l'aperçu facultatif des points clés est activé, il peut s'exécuter à l'ouverture de l'aperçu Markdown ; rien ne s'exécute comme tâche masquée en arrière-plan."
+    "message": "L'explication d'une sélection, les questions à la page et la traduction intégrale dans l'aperçu Markdown sont lancées par l'utilisateur et utilisent le fournisseur et la clé configurés dans l'onglet « Fournisseurs IA ». Si l'aperçu facultatif des points clés est activé, il peut s'exécuter à l'ouverture de l'aperçu Markdown ; rien ne s'exécute comme tâche masquée en arrière-plan."
   },
   "previewAiEnabled": {
     "message": "Activer les fonctionnalités IA sur la page de prévisualisation"
@@ -2387,7 +2357,7 @@
     "message": "Remplacement du modèle (optionnel)"
   },
   "previewAiModelHint": {
-    "message": "Nom du modèle utilisé uniquement par les fonctionnalités IA de la page de prévisualisation, avec le même fournisseur qu'au-dessus. Laisser vide pour utiliser le modèle par défaut du fournisseur."
+    "message": "Nom du modèle utilisé uniquement par les fonctionnalités IA de la page de prévisualisation ; le fournisseur reste celui choisi dans l'onglet « Fournisseurs IA ». Laisser vide pour utiliser le modèle configuré dans cet onglet."
   },
   "translateTargetLangLabel": {
     "message": "Langue cible de traduction"
@@ -2414,10 +2384,10 @@
     "message": "Déclencheur d'explication de sélection"
   },
   "selectionTriggerIcon": {
-    "message": "Bouton « Expliquer » dans la barre de sélection"
+    "message": "Bouton à côté de la sélection"
   },
   "selectionTriggerHotkey": {
-    "message": "Raccourcis e et d uniquement (sans boutons)"
+    "message": "Raccourcis e et d uniquement"
   },
   "selectionTriggerOff": {
     "message": "Désactivé"
@@ -2645,15 +2615,6 @@
   },
   "explainMoveHint": {
     "message": "Déplacez ce panneau avec Alt et les touches fléchées."
-  },
-  "explainTriggerIcon": {
-    "message": "Bouton à côté de la sélection"
-  },
-  "explainTriggerHotkey": {
-    "message": "Raccourcis e et d uniquement"
-  },
-  "explainTriggerOff": {
-    "message": "Désactivé"
   },
   "explainActionExplain": {
     "message": "Expliquer"
@@ -3325,7 +3286,7 @@
   "kbdHelpExplain": { "message": "Expliquer la sélection actuelle" },
   "kbdHelpToggleView": { "message": "Parcourir les vues originale, bilingue et traduite" },
   "kbdHelpHighlight": { "message": "Surligner la sélection actuelle (h = dernière couleur utilisée, 1-5 = choisir une couleur)" },
-  "kbdHelpAsk": { "message": "Ouvrir le panneau « Poser une question sur la page »" },
+  "kbdHelpAsk": { "message": "Ouvrir le panneau « Interroger la page »" },
   "kbdHelpSearch": { "message": "Rechercher dans l'article" },
   "kbdHelpShowHelp": { "message": "Afficher cette liste de raccourcis" },
   "kbdHelpClose": { "message": "Fermer la fenêtre contextuelle ouverte" },

@@ -222,12 +222,6 @@
   "aiGenerateBtn": {
     "message": "generate"
   },
-  "aiSummarizing": {
-    "message": "summarizing..."
-  },
-  "aiGenerating": {
-    "message": "generating..."
-  },
   "aiGenerate": {
     "message": "generate"
   },
@@ -1073,9 +1067,6 @@
   "importApplyFailed": {
     "message": "Import could not be completed; some settings may already have changed. Review them and try again."
   },
-  "importHighlightsSkipped": {
-    "message": "Imported, but highlights and notes were skipped. Sign in with the Pinboard account that created this backup, then import the file again."
-  },
   "importSettingsTitle": {
     "message": "Import settings from JSON file"
   },
@@ -1215,7 +1206,7 @@
     }
   },
   "testTimeout": {
-    "message": "Timeout (15s)"
+    "message": "Timeout (30s)"
   },
   "testNoApiKey": {
     "message": "No API key"
@@ -1227,7 +1218,7 @@
     "message": "Change for proxy or compatible endpoint"
   },
   "hintClaudeModel": {
-    "message": "e.g. claude-sonnet-4-20250514, claude-3-5-haiku-20241022"
+    "message": "e.g. claude-haiku-4-5-20251001, claude-sonnet-4-20250514"
   },
   "hintOllamaModel": {
     "message": "Run ollama pull llama3.2 first"
@@ -1308,7 +1299,7 @@
     "message": "AI Tags Prompt"
   },
   "tagPromptHint": {
-    "message": "Leave empty to use the default prompt shown above. Must instruct AI to return [\"tag1\",\"tag2\"] format."
+    "message": "Leave empty to use the default prompt shown in this field. Must instruct AI to return [\"tag1\",\"tag2\"] format."
   },
   "resetToDefault": {
     "message": "Reset to default"
@@ -1317,7 +1308,7 @@
     "message": "AI Summary Prompt"
   },
   "summaryPromptHint": {
-    "message": "Leave empty to use the default prompt shown above. Use {{lang_instruction}} for auto language."
+    "message": "Leave empty to use the default prompt shown in this field. Use {{lang_instruction}} for auto language."
   },
   "secLanguage": {
     "message": "Language"
@@ -1377,7 +1368,7 @@
     "message": "Pinboard.in Tag Pages"
   },
   "optTagSortByPop": {
-    "message": "Add a “sort by popularity” control on tag pages"
+    "message": "Add a popularity sort control on tag pages"
   },
   "optTagSortByPopHint": {
     "message": "On pinboard.in tag pages, adds a \"pop\" control that sorts the current page’s bookmarks by how many people saved each link; click again to restore."
@@ -1496,7 +1487,7 @@
     "message": "Use Chrome Sync for settings on this device"
   },
   "optSyncHint": {
-    "message": "This choice is device-specific. Enable it separately on each device that should use settings from your Google account."
+    "message": "This checkbox applies to this device only. Settings are shared between the devices where you turn it on; devices with it off keep their own local settings."
   },
   "syncApiKeysLabel": {
     "message": "Sync credentials for this Google account"
@@ -1597,9 +1588,6 @@
   "jinaViewBtn": {
     "message": "View"
   },
-  "mdStripCopied": {
-    "message": "Markdown copied"
-  },
   "mdStripPreview": {
     "message": "Preview"
   },
@@ -1644,12 +1632,6 @@
     "message": "$COUNT$ image link(s) failed to load in this preview and may not display after export; Embed packs images into downloads.",
     "placeholders": { "count": { "content": "$1" } }
   },
-  "mdSendObsidian": {
-    "message": "Send to Obsidian"
-  },
-  "mdSentObsidian": {
-    "message": "Sent"
-  },
   "mdObsidianRoute": {
     "message": "Obsidian route"
   },
@@ -1676,9 +1658,6 @@
   },
   "mdStripObsidian": {
     "message": "Obsidian"
-  },
-  "mdOptIncludeToc": {
-    "message": "Include TOC"
   },
   "mdOptIncludeHl": {
     "message": "Include highlights"
@@ -1812,9 +1791,6 @@
   },
   "presetPreviewToggle": {
     "message": "View current preset CSS (read-only)"
-  },
-  "overlayQuotaFallback": {
-    "message": "CSS saved locally (sync quota full)"
   },
   "optSavedLocally": {
     "message": "Saved locally (sync quota full)"
@@ -1987,12 +1963,6 @@
   },
   "mdExportExtendedMetaHint": {
     "message": "Adds these fields to frontmatter, the HTML byline, and webhook payloads when available. Turn off for byte-identical legacy exports."
-  },
-  "optBgSaveNoClobber": {
-    "message": "Merge tags in background saves (Quick Save / Read Later)"
-  },
-  "optBgSaveNoClobberHint": {
-    "message": "When enabled, background saves read your existing Pinboard bookmark (if any) and merge new tags with existing tags instead of replacing them. This prevents accidental tag loss on duplicate URLs. Note: adds ~3s per save for the extra API call. Foreground popup edits always replace, so you keep full control."
   },
   "obsidianInstallHint": {
     "message": "Obsidian must be installed for the note to open. Your note is also copied to the clipboard as a backup."
@@ -2188,7 +2158,7 @@
     "message": "No AI groups found"
   },
   "tagGovAiNoKey": {
-    "message": "No AI provider configured. Set one up in the AI tab"
+    "message": "No AI provider configured. Set one up on the AI Providers tab"
   },
   "tagGovLowCountTitle": {
     "message": "Low-count tags (1 use or fewer)"
@@ -2375,7 +2345,7 @@
     "message": "Preview Page AI"
   },
   "previewAiSectionHint": {
-    "message": "Explain selection, Ask, and full-text translation on the Markdown preview page are user-invoked and use the AI provider and key configured above. If the opt-in key-points skim is enabled, it may run when Markdown preview opens; nothing runs as a hidden background task."
+    "message": "Explain selection, Ask, and full-text translation on the Markdown preview page are user-invoked and use the AI provider and key configured on the AI Providers tab. If the opt-in key-points skim is enabled, it may run when Markdown preview opens; nothing runs as a hidden background task."
   },
   "previewAiEnabled": {
     "message": "Enable AI features on the preview page"
@@ -2387,7 +2357,7 @@
     "message": "Model override (optional)"
   },
   "previewAiModelHint": {
-    "message": "Model name used only by preview-page AI features, on the same provider as above. Leave empty to use the provider's default model."
+    "message": "Model name used only by preview-page AI features, still on the provider from the AI Providers tab. Leave empty to use the model configured there."
   },
   "translateTargetLangLabel": {
     "message": "Translation target language"
@@ -2414,10 +2384,10 @@
     "message": "Explain-selection trigger"
   },
   "selectionTriggerIcon": {
-    "message": "Explain button in the selection toolbar"
+    "message": "Button next to the selection"
   },
   "selectionTriggerHotkey": {
-    "message": "Hotkeys e and d only (no buttons)"
+    "message": "Hotkeys e and d only"
   },
   "selectionTriggerOff": {
     "message": "Off"
@@ -2645,15 +2615,6 @@
   },
   "explainMoveHint": {
     "message": "Use Alt+Arrow keys to move this panel."
-  },
-  "explainTriggerIcon": {
-    "message": "Button next to selection"
-  },
-  "explainTriggerHotkey": {
-    "message": "Hotkeys e and d only"
-  },
-  "explainTriggerOff": {
-    "message": "Off"
   },
   "explainActionExplain": {
     "message": "Explain"
