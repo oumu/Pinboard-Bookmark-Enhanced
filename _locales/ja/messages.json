@@ -2675,6 +2675,42 @@
   "dictTagSimplified": {
     "message": "簡体字"
   },
+  "ecdictSection": {
+    "message": "オフライン英中辞典"
+  },
+  "ecdictHint": {
+    "message": "英単語を調べたとき、英語の項目の上に中国語訳を表示します。英語の項目はこれまでどおり読み込まれます。"
+  },
+  "ecdictFormatNote": {
+    "message": "ECDICT の CSV 列構成を読み込みます。本プロジェクトはデータの入手先を提供・推奨・検証しておらず、提供元とは無関係です。ファイルはご自身で用意し、そのライセンスにはご自身で責任を負ってください。"
+  },
+  "ecdictImportFile": {
+    "message": "ファイルを読み込む"
+  },
+  "ecdictImporting": {
+    "message": "読み込み中… 現在 $1 件"
+  },
+  "ecdictReady": {
+    "message": "$1 件、$2 に読み込み"
+  },
+  "ecdictParseFailed": {
+    "message": "このファイルは読み込めませんでした。"
+  },
+  "ecdictNotEcdictFormat": {
+    "message": "このファイルは ECDICT の CSV 列構成ではありません。"
+  },
+  "ecdictTooLarge": {
+    "message": "このファイルは読み込める上限を超えています。"
+  },
+  "ecdictTooManyEntries": {
+    "message": "このファイルの項目数は読み込める上限を超えています。"
+  },
+  "ecdictStaleReload": {
+    "message": "拡張機能が更新されました。辞書パックを使うにはこのページを再読み込みしてください。"
+  },
+  "vocabZhFromPack": {
+    "message": "ローカル辞書パックの中国語"
+  },
   "dictZhBlockTitle": {
     "message": "中国語訳 · ECDICT"
   },
@@ -2972,7 +3008,7 @@
       "message": "グループ名を入力してください。"
     },
     "dictPackHint": {
-      "message": "CC-CEDICTは簡体字・繁体字の中国語の語句を検索し、英語の語義を表示します。英単語からの検索には対応していません。"
+      "message": "CC-CEDICT は簡体字・繁体字の中国語を引き、英語の意味を返します。"
     },
   "dictExportTsv": {
     "message": "すべて書き出す（.tsv）"

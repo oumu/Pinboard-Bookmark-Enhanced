@@ -2675,6 +2675,42 @@
   "dictTagSimplified": {
     "message": "簡體"
   },
+  "ecdictSection": {
+    "message": "離線英漢詞典"
+  },
+  "ecdictHint": {
+    "message": "查英文詞時，在英文釋義上方加一段中文釋義。英文釋義照常載入。"
+  },
+  "ecdictFormatNote": {
+    "message": "讀取 ECDICT 的 CSV 欄位版面。本專案不提供、不推薦、不驗證資料來源，亦與其無關聯。檔案由你自行取得，其授權由你負責。"
+  },
+  "ecdictImportFile": {
+    "message": "匯入檔案"
+  },
+  "ecdictImporting": {
+    "message": "正在匯入…已處理 $1 條"
+  },
+  "ecdictReady": {
+    "message": "$1 條，匯入於 $2"
+  },
+  "ecdictParseFailed": {
+    "message": "這個檔案匯入失敗。"
+  },
+  "ecdictNotEcdictFormat": {
+    "message": "這個檔案不是 ECDICT 的 CSV 欄位版面。"
+  },
+  "ecdictTooLarge": {
+    "message": "這個檔案超出可匯入的容量上限。"
+  },
+  "ecdictTooManyEntries": {
+    "message": "這個檔案的條目數超出可匯入上限。"
+  },
+  "ecdictStaleReload": {
+    "message": "擴充功能已更新。重新載入本頁後才能使用詞典包。"
+  },
+  "vocabZhFromPack": {
+    "message": "來自本機詞典包的中文"
+  },
   "dictZhBlockTitle": {
     "message": "中文 · ECDICT"
   },
@@ -2972,7 +3008,7 @@
       "message": "請輸入群組名稱。"
     },
     "dictPackHint": {
-      "message": "CC-CEDICT 可查詢簡體或繁體中文詞語，並顯示英文釋義；不支援查詢英文單字。"
+      "message": "CC-CEDICT 查簡體或繁體中文詞，返回英文釋義。"
     },
   "dictExportTsv": {
     "message": "全部匯出（.tsv）"

@@ -185,21 +185,45 @@ async function loadLocale(loc) {
       .every((key) => JSON.stringify(Object.keys(msgs[loc][key]?.placeholders || {}).sort()) ===
         JSON.stringify(Object.keys(msgs.en[key]?.placeholders || {}).sort()))),
     "one or more vocabulary messages changed its placeholder set");
+  // The "does not support English lookup" clause was REMOVED on purpose: the
+  // ECDICT pack supplies exactly that, so the old marker set now pins a claim
+  // that would be false. What still has to hold is that this hint names both
+  // Chinese scripts and English definitions, i.e. it describes CC-CEDICT's own
+  // direction and does not silently start describing the other pack.
   const PACK_HINT_MARKERS = {
-    en: ["Simplified", "Traditional", "English", "does not support"],
-    zh_CN: ["简体", "繁体", "英文", "不支持"],
-    zh_TW: ["簡體", "繁體", "英文", "不支援"],
-    zh_HK: ["簡體", "繁體", "英文", "不支援"],
-    ja: ["簡体字", "繁体字", "英語", "対応していません"],
-    de: ["vereinfachten", "traditionellen", "englische", "nicht unterstützt"],
-    fr: ["simplifiés", "traditionnels", "anglais", "pas prise en charge"],
-    pl: ["uproszczonymi", "tradycyjnymi", "angielsku", "Nie obsługuje"],
-    ru: ["упрощённом", "традиционном", "английском", "не поддерживается"]
+    en: ["Simplified", "Traditional", "English"],
+    zh_CN: ["简体", "繁体", "英文"],
+    zh_TW: ["簡體", "繁體", "英文"],
+    zh_HK: ["簡體", "繁體", "英文"],
+    ja: ["簡体字", "繁体字", "英語"],
+    de: ["vereinfachte", "traditionelle", "englische"],
+    fr: ["simplifiés", "traditionnels", "anglaises"],
+    pl: ["uproszczonym", "tradycyjnym", "angielskie"],
+    ru: ["упрощённом", "традиционном", "английские"]
   };
-  check("H9 CC-CEDICT hint states both Chinese scripts, English definitions, and no English lookup",
+  check("H9 CC-CEDICT hint still states both Chinese scripts and English definitions",
     LOCALES.every((loc) => PACK_HINT_MARKERS[loc].every((marker) =>
       msgs[loc].dictPackHint.message.includes(marker))),
-    "one or more dictPackHint messages changed the v2 capability boundary");
+    "one or more dictPackHint messages stopped describing CC-CEDICT's own direction");
+  // The ECDICT hint must state the opposite direction and must NOT point anyone
+  // at a source for the data.
+  // Compared case-insensitively: several languages inflect the adjective, so
+  // "chinesische" and "Chinesisch" are the same claim.
+  const ECDICT_HINT_MARKERS = {
+    en: ["chinese", "english"], zh_CN: ["中文", "英文"], zh_TW: ["中文", "英文"], zh_HK: ["中文", "英文"],
+    ja: ["中国語", "英"], de: ["chinesisch", "englisch"], fr: ["chinois", "anglais"],
+    pl: ["chińsk", "angielsk"], ru: ["итайск", "английск"]
+  };
+  check("H9b ECDICT hint states the English-to-Chinese direction in every locale",
+    LOCALES.every((loc) => ECDICT_HINT_MARKERS[loc].every((m) =>
+      msgs[loc].ecdictHint.message.toLowerCase().includes(m.toLowerCase()))),
+    "one or more ecdictHint messages stopped describing the English-to-Chinese direction");
+  check("H9c ECDICT copy never links or recommends a data source",
+    LOCALES.every((loc) => {
+      const all = [msgs[loc].ecdictHint.message, msgs[loc].ecdictFormatNote.message, msgs[loc].ecdictSection.message].join(" ");
+      return !/https?:\/\//.test(all) && !/github/i.test(all);
+    }),
+    "ECDICT copy points at a source for the data, which the licence position forbids");
   const DICT_HONESTY_KEYS = ["explainTranslateSelection", "explainTranslateLoading", "dictLoading",
     "explainAiNotConfigured", "explainTranslateAiNotConfigured", "dictMatchedHeadword",
     "dictUpdateVocab", "dictTagPinyin", "dictTagSimplified", "dictTagTraditional",

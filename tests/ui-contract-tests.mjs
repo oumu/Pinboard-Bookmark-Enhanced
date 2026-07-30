@@ -177,14 +177,14 @@ for (const id of ["vocab-search", "vocab-group-filter", "vocab-sort", "vocab-sel
   "vocab-batch-delete", "vocab-no-results", "vocab-load-more", "vocab-list"]) {
   check(optionsHtml.includes(`id="${id}"`), `options.html: scalable vocabulary control #${id} is missing`);
 }
-check((optionsHtml.match(/<details class="vocab-disclosure"/g) || []).length === 4 &&
+check((optionsHtml.match(/<details class="vocab-disclosure"/g) || []).length === 5 &&
   optionsHtml.indexOf('id="vocab-search"') < optionsHtml.indexOf('id="dict-anki-deck"'),
   "options.html: vocabulary management is not first or secondary settings are not collapsed");
 const vocabDisclosureKeys = [...optionsHtml.matchAll(
   /<details class="vocab-disclosure" data-acc-key="([^"]+)"/g
 )].map((match) => match[1]);
 check(vocabDisclosureKeys.join(",") ===
-  "vocab-reading,vocab-google-drive,vocab-learning,vocab-dictionary-pack",
+  "vocab-reading,vocab-google-drive,vocab-learning,vocab-ecdict-pack,vocab-dictionary-pack",
   "options.html: vocabulary settings disclosures lack stable pp-acc keys");
 check(optionsJs.includes('querySelectorAll("details[data-acc-key]")') &&
   /addEventListener\("toggle",[\s\S]{0,500}pbpAccSet\(det\.dataset\.accKey, det\.open\)/.test(optionsJs),
@@ -258,10 +258,29 @@ check(sharedJs.includes('const state = ok ? "ok" : "bad"') &&
   const packSection = optionsHtml.indexOf('data-i18n="dictPackSection"');
   const packHint = optionsHtml.indexOf('data-i18n="dictPackHint"', packSection);
   const packStatus = optionsHtml.indexOf('id="dict-pack-status"', packSection);
+  // The "does not support English word lookup" clause is GONE on purpose: the
+  // ECDICT pack provides exactly that, so pinning it here would pin a lie. What
+  // still has to hold is that this hint describes CC-CEDICT's own direction.
   check(packSection >= 0 && packHint > packSection && packStatus > packHint &&
     optionsHtml.includes("Simplified or Traditional Chinese terms") &&
-    optionsHtml.includes("does not support English word lookup"),
-  "options.html: CC-CEDICT capability hint is missing, misplaced, or describes the wrong lookup direction");
+    !optionsHtml.includes("does not support English word lookup"),
+  "options.html: CC-CEDICT capability hint is missing, misplaced, or still denies English lookup");
+
+  // The ECDICT block states the opposite direction, offers no download route,
+  // and reuses the same control families as the pack above it.
+  const eSection = optionsHtml.indexOf('data-i18n="ecdictSection"');
+  const eHint = optionsHtml.indexOf('data-i18n="ecdictHint"', eSection);
+  const eNote = optionsHtml.indexOf('data-i18n="ecdictFormatNote"', eSection);
+  const eStatus = optionsHtml.indexOf('id="ecdict-pack-status"', eSection);
+  check(eSection >= 0 && eHint > eSection && eNote > eHint && eStatus > eNote,
+    "options.html: ECDICT section, hint, provenance note and status are missing or out of order");
+  check(!/id="ecdict-pack-open"/.test(optionsHtml) &&
+    !/ecdict[\s\S]{0,400}mdbg\.net|ecdict[\s\S]{0,400}github\.com/i.test(optionsHtml),
+    "options.html: the ECDICT block offers a download route, which its licence position forbids");
+  check(/id="ecdict-pack-status" role="status" aria-live="polite"/.test(optionsHtml) &&
+    /id="ecdict-pack-import"[^>]*class="btn btn-sm"|class="btn btn-sm"[^>]*id="ecdict-pack-import"/.test(optionsHtml) &&
+    optionsHtml.includes('accept=".csv,.txt,.gz,.zip"'),
+    "options.html: ECDICT controls left the shared status/button/file-input families");
 }
 
 check(!mdTranslateJs.includes("lastViewMode") &&

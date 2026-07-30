@@ -43,10 +43,18 @@ function pbpAnkiNoteFromRow(row, deck) {
     fields: {
       Term: pbpAnkiEscapeHtml(r.term),
       Reading: pbpAnkiEscapeHtml(r.reading),
-      Definition: pbpAnkiEscapeHtml(r.definition),
+      // Each piece is escaped on its OWN, then joined with our literal <br>.
+      // Escaping a pre-joined string would show the tag as text; joining
+      // pre-escaped-and-concatenated text would let dictionary data smuggle
+      // markup. The model keeps its six fields, so no existing note type breaks.
+      Definition: [pbpAnkiEscapeHtml(r.definition), r.zh ? pbpAnkiEscapeHtml(r.zh) : ""]
+        .filter(Boolean).join("<br>"),
       Context: contexts,
+      // Source stays the article URL only; dictionary provenance belongs in
+      // License, where the online and local fragments are labelled separately.
       Source: pbpAnkiEscapeHtml(r.source),
-      License: pbpAnkiEscapeHtml(r.license)
+      License: [pbpAnkiEscapeHtml(r.license), r.zhNote ? pbpAnkiEscapeHtml(r.zhNote) : ""]
+        .filter(Boolean).join(" | ")
     },
     options: { allowDuplicate: false, duplicateScope: "deck" },
     tags: ["pinboard-enhanced"]

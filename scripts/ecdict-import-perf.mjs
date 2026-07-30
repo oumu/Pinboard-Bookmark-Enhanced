@@ -6,7 +6,7 @@
 // NOT part of pre-commit or verify.sh: a single run can legitimately take
 // minutes, while the HTML suite runner caps at 30s.
 //
-//   node scripts/ecdict-import-perf.mjs [--fixture entry|bytes|real|all]
+//   node scripts/ecdict-import-perf.mjs [--fixture entry|bytes|real|quota|all]
 //                                       [--csv <path to ecdict.csv[.gz]>]
 //                                       [--runs 3]
 //
@@ -283,7 +283,106 @@ async function runOnce(fixture, runIdx) {
   }
 }
 
+// ---- Gate 6: quota abort must leave the previous pack intact ---------------
+// This is the only scenario that produces a REAL IDBRequest error event rather
+// than a synchronous throw, so it is the only place the "let the error bubble
+// and abort" contract is exercised end to end. The unit suite cannot do it: it
+// has no way to exhaust a quota.
+async function runQuotaAbort() {
+  const userDataDir = mkdtempSync(path.join(tmpdir(), "ecdict-quota-"));
+  const ARGS = [`--disable-extensions-except=${EXT}`, `--load-extension=${EXT}`,
+    "--no-first-run", "--no-default-browser-check", "--disable-component-update"];
+  const ctx = await chromium.launchPersistentContext(userDataDir, { headless: false, args: ARGS });
+  try {
+    let sw = ctx.serviceWorkers()[0];
+    if (!sw) sw = await ctx.waitForEvent("serviceworker", { timeout: 20_000 });
+    const origin = `chrome-extension://${new URL(sw.url()).host}`;
+    const page = await ctx.newPage();
+    await page.goto(`${origin}/options.html`, { waitUntil: "domcontentloaded" });
+    const cdp = await ctx.newCDPSession(page);
+
+    // A small pack goes in first and is the thing that must survive.
+    const small = fSmall();
+    const first = await page.evaluate(async (csv) => {
+      const f = new File([csv], "small.csv", { type: "text/csv" });
+      return (await pbpEcdictImportFile(f, { rung: "R1" })).entries;
+    }, small.csv);
+
+    const usage = async () => {
+      const { usageBreakdown } = await cdp.send("Storage.getUsageAndQuota", { origin });
+      const row = (usageBreakdown || []).find((u) => u.storageType === "indexeddb");
+      return row ? row.usage : 0;
+    };
+    const baseline = await usage();
+
+    // Headroom above current usage but far below what the replacement needs, so
+    // the failure lands while records are being written rather than at clear().
+    const quotaSize = baseline + 4 * 1024 * 1024;
+    await cdp.send("Storage.overrideQuotaForOrigin", { origin, quotaSize });
+    let outcome;
+    try {
+      const big = fHighEntropy();
+      outcome = await page.evaluate(async (csv) => {
+        const f = new File([csv], "big.csv", { type: "text/csv" });
+        try { const r = await pbpEcdictImportFile(f, { rung: "R1" }); return { ok: true, entries: r.entries }; }
+        catch (e) { return { ok: false, name: e && e.name, message: (e && e.message) || String(e) }; }
+      }, big.csv);
+    } finally {
+      // Reset takes the call with NO quotaSize; leaving the override in place
+      // would poison every later measurement against this profile.
+      await cdp.send("Storage.overrideQuotaForOrigin", { origin });
+    }
+
+    const after = await page.evaluate(async () => {
+      const meta = await pbpEcdictMeta();
+      const hit = await pbpEcdictLookup("q000001");
+      return { state: meta && meta.state, entries: meta && meta.entries, lookup: hit.state };
+    });
+
+    console.log(`\n=== Gate 6: quota abort (quota ${quotaSize} B over a ${baseline} B baseline) ===`);
+    console.log(`  first import: ${first} entries`);
+    console.log(`  replacement : ${outcome.ok ? `UNEXPECTEDLY SUCCEEDED (${outcome.entries})` : `rejected as ${outcome.name || "Error"}: ${outcome.message}`}`);
+    console.log(`  old pack    : meta ${after.state}, ${after.entries} entries, lookup ${after.lookup}`);
+    const pass = !outcome.ok && after.state === "ready" && after.entries === first && after.lookup === "hit";
+    console.log(`  [${pass ? "PASS" : "FAIL"}] a quota-exhausted replacement leaves the previous pack ready and queryable`);
+    return pass;
+  } finally {
+    rmSync(userDataDir, { recursive: true, force: true });
+  }
+}
+
+// The quota gate needs data IndexedDB cannot compress away. With the repetitive
+// F-entry fixture, 220,000 records fitted inside a 4 MiB quota and the write
+// simply succeeded -- the same Snappy compression that makes the ratio gate
+// meaningless on synthetic data. Deterministic pseudo-random content instead: no
+// Math.random, so a failure is reproducible.
+function fHighEntropy() {
+  const out = [HDR];
+  let seed = 0x2f6e2b1;
+  const hex = (n) => {
+    let s = "";
+    for (let i = 0; i < n; i++) {
+      seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+      s += (seed & 0xf).toString(16);
+    }
+    return s;
+  };
+  for (let i = 0; i < 100_000; i++) out.push(`h${String(i).padStart(6, "0")},,,n. ${hex(190)},,,,,0,1,,,`);
+  return { name: "F-entropy", csv: out.join("\n"), expectEntries: 100_000 };
+}
+
+function fSmall() {
+  const out = [HDR];
+  for (let i = 0; i < 500; i++) out.push(`q${String(i).padStart(6, "0")},,,n. ${"甲".repeat(20)},,,,,0,1,,,`);
+  return { name: "F-small", csv: out.join("\n"), expectEntries: 500 };
+}
+
 // ---- Drive ---------------------------------------------------------------
+if (WHICH === "quota") {
+  const ok = await runQuotaAbort();
+  process.exitCode = ok ? 0 : 1;
+  console.log(ok ? "\nall gates passed" : "\n1 gate(s) failed");
+} else {
 const chosen = WHICH === "all" ? [fEntry(), fBytes()] : [{ entry: fEntry, bytes: fBytes, real: fReal }[WHICH]()];
 const mib = (n) => (n / 1048576).toFixed(2) + " MiB";
 let failed = 0;
@@ -321,3 +420,4 @@ for (const fx of chosen) {
 
 console.log(failed ? `\n${failed} gate(s)/run(s) failed` : "\nall gates passed");
 process.exitCode = failed ? 1 : 0;
+}

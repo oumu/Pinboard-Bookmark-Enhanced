@@ -51,7 +51,7 @@ Chrome Extension (Manifest V3)，一键将当前页面保存到 Pinboard，支�
 ├── md-skim.js                   # AI 要点层（设置 opt-in，默认关——生成消耗 token）
 ├── md-dict.js                   # 词典视图（精确→小写→lemma、Free Dictionary API 熔断/Wiktionary 兜底 + AI 语境义 + speechSynthesis + owner-scoped pbp-vocab）
 ├── md-vocab-echo.js             # 生词再现提示（CSS Custom Highlight 点状下划线 + 点击开词典；`dictEchoEnabled` 默认**开**，与默认关的 skim 不同——它不花 token）
-├── dict-pack.js                 # CC-CEDICT 离线汉英词典包（.txt/.txt.gz/.zip 导入 + IDB + 中文查词短路；options 静载，md-preview 懒加载）
+├── dict-pack.js                 # 离线词典包：CC-CEDICT 汉英（.txt/.txt.gz/.zip，中文查词短路）+ **ECDICT 英汉**（.csv，用户自备文件，**扩展不指向不下载**；三档累积谓词 R1/R2/R3，原子替换单事务，IDB v2）；options 静载，md-preview 懒加载
 ├── anki-connect.js              # 生词批量发送到本机 AnkiConnect（127.0.0.1:8765；纯层测试页可载）
 ├── eudic-sync.js                # 生词批量发送到欧路词典 OpenAPI（en/fr/de/es；纯层测试页可载）
 ├── ai-cache.js                  # md-preview 结果 IDB 缓存（dict2_ 独立 500 条 LRU；其他缓存仍受 200 条全局上限约束）
@@ -222,6 +222,7 @@ bash scripts/release.sh
   已连接指向「断开此设备」，未连接指向「连接 Google Drive」，重连救不了的指向「立即同步」
   （`force` 是唯一能清除 blocked 的入口）。仍在退避的状态只显示下次重试时间，不给指令。
   按钮名称逐字复用该 locale 已发布的按钮文案，不另造叫法。
+- **ECDICT 英汉包不变量**：扩展只读 ECDICT 的 CSV 字段布局，**不发网络请求、不提供下载链接、不指向来源、不申请任何 host permission**——文件由用户自备，其许可由用户负责，UI 与 privacy.md 一律不得写成已确认的数据许可。三档谓词 R1⊆R2⊆R3 **必须单调**（升档只增不减）；基础条件（`word` 归一后非空 AND `translation` trim 后非空 AND 按字面 `\n` 切分后至少一个非空 sense）先于 rung 判定。未闭合引号 → **拒绝整个文件**（跳行会让续行变成伪记录）。导入是**原子替换**：全量解析成功且所有资源门通过后才开唯一事务，`clear + put×N + meta.put` 同 scope `[ecdict, packs]`；`meta.put` 必须在最终批最后一个 request 的 `success` 回调内**同步**排入；**禁止**对 request error 调 `preventDefault()`。查词槽拆 `.xp-dict-local` / `.xp-dict-online` 两个稳定子容器，**任何路径都不得 `replaceChildren()` slot 本身**；本地支线只在 `en` 启动、不被在线链 await、失败一律 UI 静默但须 `console.warn`，且不写 `cur.*`。导出侧的中文是**设备级现算**：compute-only，不回写 `pbp-vocab`、不进 Drive，Anki 六字段不变。性能验收走 `scripts/ecdict-import-perf.mjs`（不进 pre-commit / verify.sh）。
 - **手工备份 schema v3**：导出前 flush 待保存设置，payload 通过与导入相同的 preflight；备份含 `_backup` 元数据、设置/主题和可选的当前 owner 高亮/生词，只含运行时 word 字段。导入必须先预览，再由用户分项选择；生词按 100 条通过 store primitive 合并并在每批前后重核验 owner。OAuth、Drive 账号、vector、dot、outbox、tombstone 和 batch 一律不进入备份。
 - **备份中的凭据是 opt-in，两端都 fail-closed**：默认导出不含任何凭据（三道过滤：`EXPORTABLE_KEYS` 白名单、`pbpBuildBackupSnapshot` 内部的 `API_KEY_FIELDS` 过滤、export-target registry 的 secret 删除）。勾选后导出全部 `API_KEY_FIELDS` 与 export-target 的 token/URL，文件名带 `with credentials`，`_backup.includesSecrets=true`（`pbpSanitizeBackupMetadata` 必须同步接受该字段，否则自己导不回来）。导入侧凭据是独立 section：`pbpApplyBackupPayload` 的 `selected.secrets` **只认显式 `=== true`**，不随"其余默认全开"继承——备份文件是不可信输入，任何文件都可能被手工塞进凭据字段，静默覆盖本机可用凭据是攻击面（`tests/settings-persist-tests.html` 的 E7b 正反两条断言钉死此边界）。预览的 checkbox 在 enabled 时也保持不勾选。凭据经 `persistSettings` 写入，由其 `pbpSplitSecretBatch` 自行路由存储区，secrets 分支必须排在 settings 分支**之后**（settings 会用无凭据副本重建 exportTargets）。
 - **WebDAV 删除清理临时代码（引入 2026-07-24；最早清理 2026-08-24）**：`background.js` 的 `pbpCleanupRemovedWebdav` 会清除旧 `webdav-push` alarm，以及 local/sync 中遗留的 WebDAV 配置和状态。至少保留一个月的升级覆盖；到期后先核查已发布版本和用户升级情况，再删除 `PBP_WEBDAV_REMOVAL_*`、清理函数及对应测试。不得按日期自动删除，历史审计文档继续保留。

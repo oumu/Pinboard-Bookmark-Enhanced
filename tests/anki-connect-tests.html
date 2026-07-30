@@ -107,5 +107,30 @@ assert(md.modelName === "Pinboard Vocab" && md.inOrderFields.join(",") === "Term
   }
   document.getElementById("summary").textContent = pass + " passed, " + fail + " failed";
 })();
+
+section("locally derived Chinese fragments");
+{
+  const base = { term: "ephemeral", reading: "/ɪ\u02c8fem(\u0259)r\u0259l/", definition: "lasting a very short time",
+    contexts: ["an ephemeral joy"], source: "https://example.com/a", license: "CC BY-SA 4.0 https://en.wiktionary.org" };
+  const plain = pbpAnkiNoteFromRow(base, "D");
+  check("without a local pack the note is byte-identical to before",
+    plain.fields.Definition === "lasting a very short time" && plain.fields.License === "CC BY-SA 4.0 https://en.wiktionary.org");
+  check("the model still declares exactly six fields, so existing note types keep matching",
+    PBP_ANKI_FIELDS.length === 6 && pbpAnkiFieldsMatch(PBP_ANKI_FIELDS.slice()));
+
+  const rich = pbpAnkiNoteFromRow({ ...base, zh: "a. \u671d\u751f\u66ae\u6b7b\u7684; \u77ed\u6682\u7684", zhNote: "Chinese from your local pack (ECDICT R1 1a6947e0)" }, "D");
+  check("the Chinese sense joins the English one with our own <br>",
+    rich.fields.Definition === "lasting a very short time<br>a. \u671d\u751f\u66ae\u6b7b\u7684; \u77ed\u6682\u7684");
+  check("its labelled origin lands in License, not Source",
+    rich.fields.License.includes("CC BY-SA 4.0") && rich.fields.License.includes("ECDICT R1") &&
+    rich.fields.Source === "https://example.com/a");
+
+  // Dictionary text is DATA. Each piece is escaped on its own, so markup inside
+  // it can never reach the card, while our joining <br> survives.
+  const nasty = pbpAnkiNoteFromRow({ ...base, definition: "<b>en</b>", zh: "<i>\u4e2d</i>", zhNote: "p<ack>" }, "D");
+  check("markup inside either sense is escaped, and only our <br> stays markup",
+    nasty.fields.Definition === "&lt;b&gt;en&lt;/b&gt;<br>&lt;i&gt;\u4e2d&lt;/i&gt;");
+  check("markup inside the origin label is escaped too", nasty.fields.License.includes("p&lt;ack&gt;"));
+}
 </script>
 </body></html>

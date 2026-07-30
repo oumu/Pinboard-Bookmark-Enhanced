@@ -2675,6 +2675,42 @@
   "dictTagSimplified": {
     "message": "Simplified"
   },
+  "ecdictSection": {
+    "message": "Offline English–Chinese dictionary"
+  },
+  "ecdictHint": {
+    "message": "Adds Chinese definitions above the English entry when you look up an English word. The English entry still loads as usual."
+  },
+  "ecdictFormatNote": {
+    "message": "Reads the ECDICT CSV field layout. This project does not provide, recommend or verify a source for the data, and is not affiliated with it. You supply the file and are responsible for its licence."
+  },
+  "ecdictImportFile": {
+    "message": "Import file"
+  },
+  "ecdictImporting": {
+    "message": "Importing… $1 entries so far"
+  },
+  "ecdictReady": {
+    "message": "$1 entries, imported $2"
+  },
+  "ecdictParseFailed": {
+    "message": "Could not import that file."
+  },
+  "ecdictNotEcdictFormat": {
+    "message": "That file does not use the ECDICT CSV field layout."
+  },
+  "ecdictTooLarge": {
+    "message": "That file is larger than the importer accepts."
+  },
+  "ecdictTooManyEntries": {
+    "message": "That file holds more entries than the importer accepts."
+  },
+  "ecdictStaleReload": {
+    "message": "The extension was updated. Reload this page to use the dictionary packs."
+  },
+  "vocabZhFromPack": {
+    "message": "Chinese from your local pack"
+  },
   "dictZhBlockTitle": {
     "message": "Chinese · ECDICT"
   },
@@ -2972,7 +3008,7 @@
       "message": "Enter a group name."
     },
     "dictPackHint": {
-      "message": "CC-CEDICT looks up Simplified or Traditional Chinese terms and returns English definitions. It does not support English word lookup."
+      "message": "CC-CEDICT looks up Simplified or Traditional Chinese terms and returns English definitions."
     },
   "dictExportTsv": {
     "message": "Export all (.tsv)"

@@ -2675,6 +2675,42 @@
   "dictTagSimplified": {
     "message": "Vereinfacht"
   },
+  "ecdictSection": {
+    "message": "Offline-Wörterbuch Englisch–Chinesisch"
+  },
+  "ecdictHint": {
+    "message": "Zeigt bei englischen Wörtern chinesische Bedeutungen über dem englischen Eintrag. Der englische Eintrag wird weiterhin geladen."
+  },
+  "ecdictFormatNote": {
+    "message": "Liest das CSV-Feldlayout von ECDICT. Dieses Projekt stellt keine Datenquelle bereit, empfiehlt keine und prüft keine, und steht in keiner Verbindung dazu. Sie stellen die Datei bereit und sind für ihre Lizenz verantwortlich."
+  },
+  "ecdictImportFile": {
+    "message": "Datei importieren"
+  },
+  "ecdictImporting": {
+    "message": "Import läuft… bisher $1 Einträge"
+  },
+  "ecdictReady": {
+    "message": "$1 Einträge, importiert am $2"
+  },
+  "ecdictParseFailed": {
+    "message": "Diese Datei konnte nicht importiert werden."
+  },
+  "ecdictNotEcdictFormat": {
+    "message": "Diese Datei verwendet nicht das CSV-Feldlayout von ECDICT."
+  },
+  "ecdictTooLarge": {
+    "message": "Diese Datei ist größer als der Import zulässt."
+  },
+  "ecdictTooManyEntries": {
+    "message": "Diese Datei enthält mehr Einträge als der Import zulässt."
+  },
+  "ecdictStaleReload": {
+    "message": "Die Erweiterung wurde aktualisiert. Laden Sie diese Seite neu, um die Wörterbuchpakete zu verwenden."
+  },
+  "vocabZhFromPack": {
+    "message": "Chinesisch aus Ihrem lokalen Paket"
+  },
   "dictZhBlockTitle": {
     "message": "Chinesisch · ECDICT"
   },
@@ -2972,7 +3008,7 @@
       "message": "Gruppennamen eingeben."
     },
     "dictPackHint": {
-      "message": "CC-CEDICT sucht nach vereinfachten oder traditionellen chinesischen Begriffen und liefert englische Definitionen. Eine Suche nach englischen Wörtern wird nicht unterstützt."
+      "message": "CC-CEDICT sucht vereinfachte oder traditionelle chinesische Begriffe und liefert englische Bedeutungen."
     },
   "dictExportTsv": {
     "message": "Alle exportieren (.tsv)"

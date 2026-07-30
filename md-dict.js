@@ -226,11 +226,17 @@ function pbpDictTsvField(v) {
 }
 
 // TSV export (6 columns: Term/Reading/Definition/Context/Source/License).
+// Six columns, always. A locally derived Chinese sense is appended INSIDE the
+// Definition column and its labelled origin INSIDE License, so a device without
+// the pack produces the same shape with those pieces simply absent -- never an
+// empty seventh column, and never a dangling separator.
 function pbpDictTsv(rows) {
   const head = "#separator:Tab\n#html:false\n#columns:Term\tReading\tDefinition\tContext\tSource\tLicense\n";
   const body = (Array.isArray(rows) ? rows : []).map((r) => {
     const ctx = Array.isArray(r.contexts) ? r.contexts.filter(Boolean).join("\n") : String(r.contexts || "");
-    return [r.term, r.reading, r.definition, ctx, r.source, r.license].map(pbpDictTsvField).join("\t");
+    const def = r.zh ? [r.definition, r.zh].filter(Boolean).join("\n") : r.definition;
+    const lic = r.zhNote ? [r.license, r.zhNote].filter(Boolean).join(" | ") : r.license;
+    return [r.term, r.reading, def, ctx, r.source, lic].map(pbpDictTsvField).join("\t");
   }).join("\n");
   return head + body + (body ? "\n" : "");
 }

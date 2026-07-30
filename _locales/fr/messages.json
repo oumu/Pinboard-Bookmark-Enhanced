@@ -2675,6 +2675,42 @@
   "dictTagSimplified": {
     "message": "Simplifié"
   },
+  "ecdictSection": {
+    "message": "Dictionnaire anglais-chinois hors ligne"
+  },
+  "ecdictHint": {
+    "message": "Affiche des définitions chinoises au-dessus de l'entrée anglaise lors de la recherche d'un mot anglais. L'entrée anglaise se charge toujours."
+  },
+  "ecdictFormatNote": {
+    "message": "Lit la disposition des champs CSV d'ECDICT. Ce projet ne fournit, ne recommande ni ne vérifie aucune source pour ces données et n'y est pas affilié. Vous fournissez le fichier et êtes responsable de sa licence."
+  },
+  "ecdictImportFile": {
+    "message": "Importer un fichier"
+  },
+  "ecdictImporting": {
+    "message": "Importation… $1 entrées pour l'instant"
+  },
+  "ecdictReady": {
+    "message": "$1 entrées, importées le $2"
+  },
+  "ecdictParseFailed": {
+    "message": "Impossible d'importer ce fichier."
+  },
+  "ecdictNotEcdictFormat": {
+    "message": "Ce fichier n'utilise pas la disposition des champs CSV d'ECDICT."
+  },
+  "ecdictTooLarge": {
+    "message": "Ce fichier dépasse la taille acceptée à l'importation."
+  },
+  "ecdictTooManyEntries": {
+    "message": "Ce fichier contient plus d'entrées que l'importation n'accepte."
+  },
+  "ecdictStaleReload": {
+    "message": "L'extension a été mise à jour. Rechargez cette page pour utiliser les packs de dictionnaire."
+  },
+  "vocabZhFromPack": {
+    "message": "Chinois issu de votre pack local"
+  },
   "dictZhBlockTitle": {
     "message": "Chinois · ECDICT"
   },
@@ -2972,7 +3008,7 @@
       "message": "Saisissez un nom de groupe."
     },
     "dictPackHint": {
-      "message": "CC-CEDICT recherche des termes chinois en caractères simplifiés ou traditionnels et renvoie des définitions en anglais. La recherche de mots anglais n’est pas prise en charge."
+      "message": "CC-CEDICT recherche des termes chinois simplifiés ou traditionnels et renvoie des définitions anglaises."
     },
   "dictExportTsv": {
     "message": "Tout exporter (.tsv)"

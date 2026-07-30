@@ -785,6 +785,38 @@ async function pbpEcdictLookup(term) {
   } catch (_) { return { state: "error" }; }
 }
 
+// Batched exact lookup for the vocabulary/export paths: ONE readonly
+// transaction for every key, never one transaction per visible row. Returns a
+// Map of key -> rows for the keys that hit; a missing key is simply absent.
+// Resolves to an empty Map when no pack is ready, so callers need no state check.
+async function pbpEcdictLookupMany(keys) {
+  const out = new Map();
+  try {
+    const wanted = [...new Set((Array.isArray(keys) ? keys : []).map(pbpEcdictKey).filter(Boolean))];
+    if (!wanted.length) return out;
+    const db = await _pbpPackOpenDB();
+    return await new Promise((resolve) => {
+      let settled = false;
+      const finish = () => { if (!settled) { settled = true; resolve(out); } };
+      let tx;
+      try { tx = db.transaction([_PBP_ECDICT_STORE, _PBP_PACK_META], "readonly"); }
+      catch (_) { finish(); return; }
+      tx.onabort = tx.onerror = finish;
+      tx.oncomplete = finish;
+      const metaReq = tx.objectStore(_PBP_PACK_META).get(_PBP_ECDICT_META_ID);
+      metaReq.onsuccess = () => {
+        const meta = metaReq.result;
+        if (!meta || meta.state !== "ready") return;   // tx.oncomplete resolves
+        const index = tx.objectStore(_PBP_ECDICT_STORE).index("key");
+        for (const k of wanted) {
+          const req = index.getAll(k);
+          req.onsuccess = () => { if (req.result && req.result.length) out.set(k, req.result); };
+        }
+      };
+    });
+  } catch (_) { return out; }
+}
+
 async function pbpEcdictMeta() {
   try {
     const db = await _pbpPackOpenDB();

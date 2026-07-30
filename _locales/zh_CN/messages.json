@@ -2675,6 +2675,42 @@
   "dictTagSimplified": {
     "message": "简体"
   },
+  "ecdictSection": {
+    "message": "离线英汉词典"
+  },
+  "ecdictHint": {
+    "message": "查英文词时，在英文释义上方加一段中文释义。英文释义照常加载。"
+  },
+  "ecdictFormatNote": {
+    "message": "读取 ECDICT 的 CSV 字段布局。本项目不提供、不推荐、不验证数据来源，也与其无关联。文件由你自行取得，其许可由你负责。"
+  },
+  "ecdictImportFile": {
+    "message": "导入文件"
+  },
+  "ecdictImporting": {
+    "message": "正在导入…已处理 $1 条"
+  },
+  "ecdictReady": {
+    "message": "$1 条，导入于 $2"
+  },
+  "ecdictParseFailed": {
+    "message": "这个文件导入失败。"
+  },
+  "ecdictNotEcdictFormat": {
+    "message": "这个文件不是 ECDICT 的 CSV 字段布局。"
+  },
+  "ecdictTooLarge": {
+    "message": "这个文件超出可导入的体积上限。"
+  },
+  "ecdictTooManyEntries": {
+    "message": "这个文件的条目数超出可导入上限。"
+  },
+  "ecdictStaleReload": {
+    "message": "扩展已更新。刷新本页后才能使用词典包。"
+  },
+  "vocabZhFromPack": {
+    "message": "来自本机词典包的中文"
+  },
   "dictZhBlockTitle": {
     "message": "中文 · ECDICT"
   },
@@ -2972,7 +3008,7 @@
       "message": "请输入分组名称。"
     },
     "dictPackHint": {
-      "message": "CC-CEDICT 支持查询简体或繁体中文词语，并返回英文释义；不支持查询英文单词。"
+      "message": "CC-CEDICT 查简体或繁体中文词，返回英文释义。"
     },
   "dictExportTsv": {
     "message": "导出全部（.tsv）"

@@ -32,7 +32,7 @@ Une extension Chrome pour [Pinboard](https://pinboard.in) : étiquettes et résu
 - **Chaque page devient une lecture claire** : vue Markdown avec table des matières, recherche et aperçu des notes de bas de page
 - **Surlignage en cinq couleurs, avec notes** : surlignages et notes survivent aux nouveaux rendus, à la traduction et aux modifications de la page
 - **Traduisez la page ou posez-lui vos questions** : traduction intégrale avec vue bilingue ; les réponses citent la source et y renvoient d'un clic
-- **Consultez et révisez les mots pendant la lecture** : utilisez des définitions en ligne ou le dictionnaire chinois–anglais hors connexion facultatif ; enregistrez le vocabulaire, puis recherchez-le, triez-le et classez-le par groupes ; exportez toutes les entrées du compte Pinboard actif ou envoyez-les vers Anki, et envoyez les mots compatibles vers Eudic
+- **Consultez et révisez les mots pendant la lecture** : utilisez des définitions en ligne ou ajoutez des packs de dictionnaire hors connexion, du chinois vers l'anglais et de l'anglais vers le chinois ; enregistrez le vocabulaire, puis recherchez-le, triez-le et classez-le par groupes ; exportez toutes les entrées du compte Pinboard actif ou envoyez-les vers Anki, et envoyez les mots compatibles vers Eudic
 - **Envoyer ou télécharger** : vers [Obsidian](https://obsidian.md), un Gist GitHub ou n'importe quel webhook ; ou en `.md`, `.html`, `.epub` pour votre liseuse
 
 ![Lecture claire avec traduction bilingue et surlignages](docs/cws-assets/originals/screenshot-2-reader.png)

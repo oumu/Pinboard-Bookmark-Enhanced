@@ -1000,7 +1000,16 @@ async function _pbpVocabExport() {
       _pbpVocabFlashStatus(false, t("vocabAccountChanged"));
       return;
     }
-    const tsv = pbpDictTsv(rows.map(_pbpVocabCanonicalRow));
+    // Enrichment is another await, so the owner is rechecked AFTER it and before
+    // a Blob exists: the file must never be built from a previous account's rows.
+    await _pbpVocabRefreshEcdictTag();
+    const zhMap = await _pbpVocabZhMap(rows);
+    const ownerBeforeBlob = await pbpVocabCurrentOwner();
+    if (ownerBeforeBlob !== owner) {
+      _pbpVocabFlashStatus(false, t("vocabAccountChanged"));
+      return;
+    }
+    const tsv = pbpDictTsv(rows.map((w) => _pbpVocabCanonicalRow(w, zhMap)));
     const blob = new Blob([tsv], { type: "text/tab-separated-values" });
     const a = document.createElement("a");
     const d = new Date();
@@ -1026,15 +1035,62 @@ async function _pbpVocabExport() {
 // sit open long enough for an account switch (fail-closed invariant).
 // Canonical row shared by the TSV export and the Anki send (spec: both
 // derive from the SAME canonical shape; the Anki side escapes its own copy).
-function _pbpVocabCanonicalRow(w) {
+// Derived on this device from the local ECDICT pack, for the export paths only.
+// COMPUTE-ONLY: nothing here writes pbp-vocab or reaches Drive. vocab-store.js
+// stays the sole writer, the 13 stored fields are untouched, and "the current
+// owner's whole vocabulary" keeps meaning exactly what it meant before.
+// One batched transaction for the whole export, never one per row.
+async function _pbpVocabZhMap(words) {
+  if (typeof pbpEcdictLookupMany !== "function") return new Map();
+  const keys = [];
+  for (const w of words) {
+    // English only, and the saved lemma is a second chance for an inflected form.
+    if ((w.language || "") !== "en") continue;
+    if (w.term) keys.push(w.term);
+    if (w.lemma) keys.push(w.lemma);
+  }
+  if (!keys.length) return new Map();
+  try { return await pbpEcdictLookupMany(keys); } catch (_) { return new Map(); }
+}
+
+function _pbpVocabZhFor(w, zhMap) {
+  if (!zhMap || !zhMap.size || (w.language || "") !== "en") return "";
+  const hit = (w.term && zhMap.get(pbpEcdictKey(w.term))) ||
+              (w.lemma && zhMap.get(pbpEcdictKey(w.lemma)));
+  if (!hit || !hit.length) return "";
+  return pbpEcdictSenses(hit[0].translation).join("; ");
+}
+
+// zh and zhNote stay SEPARATE from definition/license: the Anki path has to
+// escape each piece on its own before joining them with its own trusted <br>,
+// and pre-joining here would either double-escape or smuggle markup through.
+function _pbpVocabCanonicalRow(w, zhMap) {
+  const zh = _pbpVocabZhFor(w, zhMap);
   return {
     term: w.term,
     reading: w.ipa || "",
     definition: (w.gloss || "").replace(/\s*\n\s*/g, " "),
     contexts: (Array.isArray(w.contexts) ? w.contexts : []).map((c) => c && c.quote).filter(Boolean),
     source: (w.contexts && w.contexts[0] && w.contexts[0].articleUrl) || "",
-    license: [w.license, w.sourceUrl].filter(Boolean).join(" ")
+    license: [w.license, w.sourceUrl].filter(Boolean).join(" "),
+    zh,
+    // Labelled so the local Chinese never looks like it came from the online
+    // entry, and carrying the diagnostic pack identity. Never presented as a
+    // confirmed data licence.
+    zhNote: zh ? t("vocabZhFromPack") + (_vocabEcdictTag ? " (" + _vocabEcdictTag + ")" : "") : ""
   };
+}
+
+// Diagnostic identity of the imported pack: rung plus a short slice of the
+// CRC32. Not an identity or licence claim -- 32 bits collide.
+let _vocabEcdictTag = "";
+async function _pbpVocabRefreshEcdictTag() {
+  try {
+    const meta = (typeof pbpEcdictMeta === "function") ? await pbpEcdictMeta() : null;
+    _vocabEcdictTag = meta && meta.state === "ready"
+      ? "ECDICT " + (meta.rung || "") + " " + String(meta.decodedCrc32 || "").slice(0, 8)
+      : "";
+  } catch (_) { _vocabEcdictTag = ""; }
 }
 
 async function _pbpVocabSendAnki() {
@@ -1084,7 +1140,14 @@ async function _pbpVocabSendAnki() {
     const rows = await pbpVocabAll(owner);
     if ((await pbpVocabCurrentOwner()) !== owner) { _pbpVocabFlashStatus(false, t("vocabAccountChanged")); return; }
     if (!rows.length) { _pbpVocabFlashStatus(false, t("dictAnkiNothing")); return; }
-    const canonical = rows.map(_pbpVocabCanonicalRow);
+    await _pbpVocabRefreshEcdictTag();
+    const zhMap = await _pbpVocabZhMap(rows);
+    const ownerBeforeSend = await pbpVocabCurrentOwner();
+    if (ownerBeforeSend !== owner) {
+      _pbpVocabFlashStatus(false, t("vocabAccountChanged"));
+      return;
+    }
+    const canonical = rows.map((w) => _pbpVocabCanonicalRow(w, zhMap));
     const res = await pbpAnkiSendRows(canonical, {
       deck: s.dictAnkiDeck || "Pinboard Vocab",
       key: s.dictAnkiKey || "",
@@ -1320,3 +1383,95 @@ function _pbpPackWire() {
   _pbpPackRefreshStatus();
 }
 _pbpPackWire();
+
+// ---- Offline English->Chinese pack (ECDICT field layout) -----------------
+// No download link and no "open download page" button, unlike the CC-CEDICT
+// block above: that dataset's licence is explicit, this one's provenance is
+// mixed, so the extension names the format and nothing else.
+async function _pbpEcdictRefreshStatus() {
+  const el = $id("ecdict-pack-status");
+  const del = $id("ecdict-pack-delete");
+  if (!el) return;
+  let meta;
+  try {
+    meta = (typeof pbpEcdictMeta === "function") ? await pbpEcdictMeta() : { state: "error" };
+  } catch (_) {
+    meta = { state: "error" };
+  }
+  // A database newer than this page cannot be recovered from by retrying; only
+  // a reload can. Say so instead of showing a generic read failure.
+  if (typeof pbpPackIsStale === "function" && pbpPackIsStale()) {
+    el.textContent = t("ecdictStaleReload");
+    if (del) del.hidden = true;
+    return;
+  }
+  if (meta && meta.state === "ready") {
+    const d = new Date(meta.importedAt);
+    el.textContent = t("ecdictReady", String(meta.entries),
+      d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"));
+    if (del) del.hidden = false;
+  } else if (meta && meta.state === "error") {
+    el.textContent = t("dictPackReadFailed");
+    if (del) del.hidden = true;
+  } else {
+    el.textContent = t("dictPackEmpty");
+    if (del) del.hidden = true;
+  }
+}
+
+function _pbpEcdictWire() {
+  const imp = $id("ecdict-pack-import");
+  const file = $id("ecdict-pack-file");
+  const del = $id("ecdict-pack-delete");
+  if (!imp || !file) return;
+  imp.addEventListener("click", () => file.click());
+  file.addEventListener("change", async () => {
+    const f = file.files && file.files[0];
+    file.value = "";
+    if (!f || imp.disabled) return;
+    imp.disabled = true;
+    const el = $id("ecdict-pack-status");
+    let lastShown = 0;
+    const tick = (n) => {
+      // TIME-based throttle (~1s): aria-live must not machine-gun a screen
+      // reader on a long import; the final state comes from the refresh.
+      const now = performance.now();
+      if (el && now - lastShown >= 1000) { lastShown = now; el.textContent = t("ecdictImporting", String(n)); }
+    };
+    try {
+      const res = await pbpEcdictImportFile(f, { rung: "R1", onParsed: tick, onProgress: tick });
+      _pbpVocabFlashStatus(true, t("dictPackDone", String(res.entries)));
+    } catch (e) {
+      const msg = String((e && e.message) || "");
+      // Distinguish "this is not the right kind of file" from "this file is too
+      // big for us", because the user's next action differs.
+      const key = /not an ECDICT csv|malformed/.test(msg) ? "ecdictNotEcdictFormat"
+        : /too large/.test(msg) ? "ecdictTooLarge"
+        : /entry count above|payload above/.test(msg) ? "ecdictTooManyEntries"
+        : "ecdictParseFailed";
+      _pbpVocabFlashStatus(false, t(key));
+      console.warn("[ecdict] import failed:", e && e.name, msg);
+    } finally {
+      imp.disabled = false;
+      _pbpEcdictRefreshStatus();
+    }
+  });
+  if (del) del.addEventListener("click", () => {
+    showConfirmPopover(del, {
+      msg: t("dictPackDeleteConfirm"),
+      yesText: t("delete"),
+      noText: t("cancel"),
+      onConfirm: async () => {
+        try {
+          await pbpEcdictDelete();
+          await _pbpEcdictRefreshStatus();
+        } catch (_) {
+          const status = $id("ecdict-pack-status");
+          if (status) status.textContent = t("dictPackDeleteFailed");
+        }
+      }
+    });
+  });
+  _pbpEcdictRefreshStatus();
+}
+_pbpEcdictWire();
