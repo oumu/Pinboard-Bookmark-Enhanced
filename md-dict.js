@@ -366,6 +366,51 @@ function _pbpDictTagLabel(tag) {
   return key ? t(key) : String(tag || "");
 }
 
+// Shared by the online entry and the local ECDICT block. Every read is
+// defensive: CC-CEDICT norms and dict2_ records cached before these fields
+// existed carry none of them.
+function _pbpDictRenderSenses(parent, senses) {
+  const ol = document.createElement("ol");
+  ol.className = "xp-dict-senses";
+  for (const s of senses) {
+    const li = document.createElement("li");
+    const stags = s.tags || [];
+    if (stags.length) {
+      const tg = document.createElement("span");
+      tg.className = "xp-dict-sense-tag";
+      tg.textContent = "(" + stags.join(", ") + ")";
+      li.appendChild(tg);
+      li.appendChild(document.createTextNode(" "));
+    }
+    li.appendChild(document.createTextNode(s.definition));
+    for (const d of s.subsenses || []) {
+      const sub = document.createElement("div");
+      sub.className = "xp-dict-subsense";
+      sub.textContent = d;
+      li.appendChild(sub);
+    }
+    for (const x of s.examples || []) {
+      const ex = document.createElement("div");
+      ex.className = "xp-dict-example";
+      ex.textContent = x;
+      li.appendChild(ex);
+    }
+    for (const [key, words] of [["dictSynonyms", s.synonyms], ["dictAntonyms", s.antonyms]]) {
+      if (!words || !words.length) continue;
+      const row = document.createElement("div");
+      row.className = "xp-dict-rel";
+      const lb = document.createElement("span");
+      lb.className = "xp-dict-rel-label";
+      lb.textContent = t(key);
+      row.appendChild(lb);
+      row.appendChild(document.createTextNode(" " + words.join(", ")));
+      li.appendChild(row);
+    }
+    ol.appendChild(li);
+  }
+  parent.appendChild(ol);
+}
+
 function _pbpDictRenderEntry(slot, norm, term, lang, selectedTerm) {
   slot.replaceChildren();
   const actual = pbpDictNormalizeTerm(norm.word || term);
@@ -408,49 +453,7 @@ function _pbpDictRenderEntry(slot, norm, term, lang, selectedTerm) {
       forms.textContent = e.forms.map((f) => f.word + (f.tags.length ? " (" + f.tags.map(_pbpDictTagLabel).join(", ") + ")" : "")).join(" · ");
       ent.appendChild(forms);
     }
-    if (e.senses.length) {
-      const ol = document.createElement("ol");
-      ol.className = "xp-dict-senses";
-      for (const s of e.senses) {
-        const li = document.createElement("li");
-        // Defensive reads throughout: CC-CEDICT norms (dict-pack.js) and
-        // dict2_ entries cached before these fields existed carry neither.
-        const stags = s.tags || [];
-        if (stags.length) {
-          const tg = document.createElement("span");
-          tg.className = "xp-dict-sense-tag";
-          tg.textContent = "(" + stags.join(", ") + ")";
-          li.appendChild(tg);
-          li.appendChild(document.createTextNode(" "));
-        }
-        li.appendChild(document.createTextNode(s.definition));
-        for (const d of s.subsenses || []) {
-          const sub = document.createElement("div");
-          sub.className = "xp-dict-subsense";
-          sub.textContent = d;
-          li.appendChild(sub);
-        }
-        for (const x of s.examples) {
-          const ex = document.createElement("div");
-          ex.className = "xp-dict-example";
-          ex.textContent = x;
-          li.appendChild(ex);
-        }
-        for (const [key, words] of [["dictSynonyms", s.synonyms], ["dictAntonyms", s.antonyms]]) {
-          if (!words || !words.length) continue;
-          const row = document.createElement("div");
-          row.className = "xp-dict-rel";
-          const lb = document.createElement("span");
-          lb.className = "xp-dict-rel-label";
-          lb.textContent = t(key);
-          row.appendChild(lb);
-          row.appendChild(document.createTextNode(" " + words.join(", ")));
-          li.appendChild(row);
-        }
-        ol.appendChild(li);
-      }
-      ent.appendChild(ol);
-    }
+    if (e.senses.length) _pbpDictRenderSenses(ent, e.senses);
     slot.appendChild(ent);
   }
   const src = document.createElement("div");
@@ -488,6 +491,46 @@ function _pbpDictSlotFallback(slot, text, term) {
   a.textContent = t("dictViewWiktionary");
   src.appendChild(a);
   slot.appendChild(src);
+}
+
+// The ECDICT block is an ADDITIONAL Chinese section above the online entry, not
+// a short circuit like the zh path: freedictionaryapi's English coverage is
+// excellent, so replacing it would throw away senses, examples, forms and IPA.
+//
+// Six contracts, and the first five are the opposite of what the zh branch does:
+//  1. English only.
+//  2. Never awaited by the online chain -- the network request must not wait on
+//     an IDB read. Launched fire-and-forget for that reason.
+//  3. UI-silent on EVERY failure, including thrown ones, but platform errors
+//     still get a console.warn (name and message only, never the term).
+//  4. Re-checks abort and run identity after each await, so a late answer cannot
+//     write into a container that belongs to a newer lookup.
+//  5. Contributes nothing to _pbpDictSlotRun's return value.
+//  6. Writes no cur.* field, so the saved vocabulary record is unaffected.
+async function _pbpDictEcdictSide(localEl, term, lang, parentSignal, cur) {
+  if (lang !== "en") return;
+  const alive = () => !(parentSignal && parentSignal.aborted) && _pbpDictCurrent === cur && localEl.isConnected;
+  try {
+    const loaded = await _pbpDictLoadPack();
+    if (!alive() || !loaded || typeof pbpEcdictLookup !== "function") return;
+    const local = await pbpEcdictLookup(term);
+    if (!alive()) return;
+    if (!local || local.state !== "hit") return;   // unavailable / miss / error: say nothing
+    const norm = pbpEcdictEntryToNorm(local.rows, local.matched);
+    if (!norm.entries.length) return;
+    const box = document.createElement("div");
+    box.className = "xp-dict-local-box";
+    const title = document.createElement("div");
+    title.className = "xp-dict-local-title";
+    title.textContent = t("dictZhBlockTitle");
+    box.appendChild(title);
+    _pbpDictRenderSenses(box, norm.entries[0].senses);
+    localEl.replaceChildren(box);
+  } catch (e) {
+    // Swallowing without a trace is what turns a platform fault into a silent
+    // "no Chinese for this word" that nobody can diagnose.
+    console.warn("[dict] local ECDICT lookup failed:", e && e.name, e && e.message);
+  }
 }
 
 function _pbpDictSlotSkeleton(slot) {
@@ -857,13 +900,23 @@ async function pbpDictRun(cap, ctx, pop, ctrl, s) {
   head.appendChild(speak);
   const slot = document.createElement("div");
   slot.className = "xp-dict-slot";
+  // Two stable children. Every online path -- skeleton, permission prompt,
+  // result, no-entry, load failure -- calls replaceChildren on the SAME element,
+  // so a Chinese block written straight into `slot` would be wiped by whichever
+  // of them ran next. Nothing may ever replaceChildren on `slot` itself.
+  const localEl = document.createElement("div");
+  localEl.className = "xp-dict-local";
+  const onlineEl = document.createElement("div");
+  onlineEl.className = "xp-dict-online";
+  slot.appendChild(localEl);
+  slot.appendChild(onlineEl);
   const ctxEl = document.createElement("div");
   ctxEl.className = "xp-dict-ctx";
   wrap.appendChild(head);
   wrap.appendChild(slot);
   wrap.appendChild(ctxEl);
   body.replaceChildren(wrap);
-  _pbpDictSlotSkeleton(slot);
+  _pbpDictSlotSkeleton(onlineEl);
 
   const manual = _pbpDictManualLang;
   const lang = await _pbpDictResolveLang(cap, ctx, manual);
@@ -893,8 +946,13 @@ async function pbpDictRun(cap, ctx, pop, ctrl, s) {
   const lemmaPromise = new Promise((r) => { resolveLemmaRaw = r; });
   const resolveLemmaOnce = (v) => { if (!lemmaSettled) { lemmaSettled = true; resolveLemmaRaw(v); } };
 
+  // Deliberately NOT part of the allSettled below: putting it there would make
+  // the whole run's completion wait on an IDB read, and the online chain is the
+  // one thing that must never be delayed by the local pack.
+  _pbpDictEcdictSide(localEl, cap.text, lang, signal, cur);
+
   const results = await Promise.allSettled([
-    _pbpDictSlotRun(slot, cap.text, lang, signal, lemmaPromise, cur.rerun).then((norm) => {
+    _pbpDictSlotRun(onlineEl, cap.text, lang, signal, lemmaPromise, cur.rerun).then((norm) => {
       // Sync the defined word the moment the dictionary slot settles -- the
       // speak button is live before the (slower) AI slot finishes.
       if (norm && norm.sourceLabel === "CC-CEDICT" && norm.word && _pbpDictCurrent === cur) cur.term = norm.word;

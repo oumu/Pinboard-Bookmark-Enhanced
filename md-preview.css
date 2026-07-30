@@ -1632,6 +1632,10 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
 .xp-dict-senses li { margin: 2px 0; }
 .xp-dict-example { font-size: 0.85em; color: var(--fg-muted); font-style: italic; }
 .xp-dict-sense-tag { font-size: 0.85em; color: var(--fg-muted); font-style: italic; }
+/* Stable containers inside .xp-dict-slot: the local pack writes the first, every
+   online path writes the second. Empty until something lands in them. */
+.xp-dict-local:not(:empty) { margin-bottom: 8px; }
+.xp-dict-local-title { font-size: 0.8em; color: var(--fg-muted); font-style: italic; }
 .xp-dict-subsense { font-size: 0.95em; margin-top: 2px; padding-left: 0.9em; }
 .xp-dict-rel { font-size: 0.85em; color: var(--fg-muted); margin-top: 2px; }
 .xp-dict-rel-label { font-style: italic; }

@@ -2675,6 +2675,9 @@
   "dictTagSimplified": {
     "message": "简体"
   },
+  "dictZhBlockTitle": {
+    "message": "中文 · ECDICT"
+  },
   "dictSynonyms": {
     "message": "近义词"
   },
