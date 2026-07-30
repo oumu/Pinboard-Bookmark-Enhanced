@@ -113,6 +113,47 @@ assertEq(pbpDictNormalizeEntry({ word: "书", entries: [], source: {} }), null, 
 assertEq(pbpDictNormalizeEntry(null), null, "null json -> null");
 assertEq(pbpDictNormalizeEntry({ entries: [{ partOfSpeech: "noun" }] }), null, "no ipa/sense/form -> null");
 
+// Fields that already arrive in every response but went unrendered until now.
+// Shape hand-written from a real freedictionaryapi payload (senses carry tags /
+// synonyms / antonyms / quotes[{text,reference}] / subsenses[{definition}]);
+// NOT generated from the normalizer, per the server-fixture rule.
+assertEq(norm.entries[0].senses[0].synonyms.length, 0, "absent synonyms normalize to an empty array");
+assertEq(norm.entries[0].senses[0].subsenses.length, 0, "absent subsenses normalize to an empty array");
+assertEq(norm.entries[0].senses[0].tags.length, 0, "absent sense tags normalize to an empty array");
+const RICH_SENSE = {
+  word: "ephemeral",
+  entries: [{
+    partOfSpeech: "adjective",
+    pronunciations: [{ type: "ipa", text: "/ɪˈfem(ə)rəl/", tags: [] }],
+    forms: [],
+    senses: [{
+      definition: "Lasting for a short period of time.",
+      examples: [],
+      tags: ["biology", "botany", "archaic", "dropped-4th"],
+      synonyms: ["temporary", "transitory", "fleeting", "evanescent", "momentary", "short-lived", "dropped-7th"],
+      antonyms: ["permanent", 42, null],
+      quotes: [
+        { text: "an ephemeral joy", reference: "2020 December 2, Andy Byford" },
+        { text: "second quote dropped", reference: "x" }
+      ],
+      subsenses: [
+        { definition: "sub-1" }, { definition: "sub-2" }, { definition: "sub-3" },
+        { definition: "sub-4-dropped" }
+      ]
+    }]
+  }],
+  source: { url: "https://en.wiktionary.org/wiki/ephemeral", license: { name: "CC BY-SA 4.0" } }
+};
+const rich = pbpDictNormalizeEntry(RICH_SENSE).entries[0].senses[0];
+assertEq(rich.synonyms.length, 6, "synonyms capped at PBP_DICT_REL_CAP");
+assertEq(rich.antonyms.join(","), "permanent", "non-string antonyms dropped");
+// Quotes stay in the fixture on purpose: they prove the normalizer drops the
+// field entirely rather than carrying it into dict2_ for nobody to render.
+assertEq(rich.quotes, undefined, "attested quotes are deliberately not carried");
+assertEq(rich.subsenses.length, 3, "subsenses capped at PBP_DICT_SUBSENSE_CAP");
+assertEq(rich.subsenses[0], "sub-1", "subsense flattened to its definition string");
+assertEq(rich.tags.length, 3, "sense tags capped at PBP_DICT_SENSE_TAG_CAP");
+
 section("response classification / Wiktionary fallback / circuit");
 assertEq(pbpDictClassifyResponse({ status: 200, data: FDA_SAMPLE }).kind, "hit", "renderable 200 is a hit");
 assertEq(pbpDictClassifyResponse({ status: 200, data: { entries: [] } }).kind, "miss", "200 + empty entries is a semantic miss");

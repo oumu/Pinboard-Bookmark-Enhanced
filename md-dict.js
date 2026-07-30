@@ -12,6 +12,14 @@ const PBP_DICT_SENSE_CAP = 5;
 const PBP_DICT_EXAMPLE_CAP = 2;
 const PBP_DICT_FORM_CAP = 6;
 const PBP_DICT_IPA_CAP = 3;
+// These already arrive in every response and already sit in the dict2_ cache;
+// rendering them costs no extra request. Caps are deliberately tight: this
+// panel is a reading overlay, and density here has drawn real complaints.
+// Attested quotations are deliberately NOT carried: they cost the most lines
+// per sense and carry the least, so they were cut after seeing them rendered.
+const PBP_DICT_REL_CAP = 6;       // synonyms / antonyms per sense
+const PBP_DICT_SUBSENSE_CAP = 3;
+const PBP_DICT_SENSE_TAG_CAP = 3;
 const PBP_DICT_QUERY_LANGS = Object.freeze(["en", "de", "fr", "es", "it", "pt", "nl", "ru", "pl", "ja", "ko", "zh"]);
 const PBP_DICT_CIRCUIT_THRESHOLD = 3;
 const PBP_DICT_CIRCUIT_COOLDOWN_MS = 60000;
@@ -87,7 +95,27 @@ function pbpDictNormalizeEntry(json) {
         if (typeof x === "string" && x) examples.push(x);
         else if (x && typeof x.text === "string" && x.text) examples.push(x.text);
       }
-      senses.push({ definition: s.definition, examples });
+      const rel = (list) => {
+        const out = [];
+        for (const y of Array.isArray(list) ? list : []) {
+          if (out.length >= PBP_DICT_REL_CAP) break;
+          if (typeof y === "string" && y) out.push(y);
+        }
+        return out;
+      };
+      const subsenses = [];
+      for (const b of Array.isArray(s.subsenses) ? s.subsenses : []) {
+        if (subsenses.length >= PBP_DICT_SUBSENSE_CAP) break;
+        if (b && typeof b.definition === "string" && b.definition) subsenses.push(b.definition);
+      }
+      senses.push({
+        definition: s.definition,
+        examples,
+        tags: (Array.isArray(s.tags) ? s.tags.filter((x) => typeof x === "string" && x) : []).slice(0, PBP_DICT_SENSE_TAG_CAP),
+        synonyms: rel(s.synonyms),
+        antonyms: rel(s.antonyms),
+        subsenses
+      });
     }
     if (ipas.length || senses.length || forms.length) {
       entries.push({ pos: typeof e.partOfSpeech === "string" ? e.partOfSpeech : "", ipas, forms, senses });
@@ -385,12 +413,39 @@ function _pbpDictRenderEntry(slot, norm, term, lang, selectedTerm) {
       ol.className = "xp-dict-senses";
       for (const s of e.senses) {
         const li = document.createElement("li");
-        li.textContent = s.definition;
+        // Defensive reads throughout: CC-CEDICT norms (dict-pack.js) and
+        // dict2_ entries cached before these fields existed carry neither.
+        const stags = s.tags || [];
+        if (stags.length) {
+          const tg = document.createElement("span");
+          tg.className = "xp-dict-sense-tag";
+          tg.textContent = "(" + stags.join(", ") + ")";
+          li.appendChild(tg);
+          li.appendChild(document.createTextNode(" "));
+        }
+        li.appendChild(document.createTextNode(s.definition));
+        for (const d of s.subsenses || []) {
+          const sub = document.createElement("div");
+          sub.className = "xp-dict-subsense";
+          sub.textContent = d;
+          li.appendChild(sub);
+        }
         for (const x of s.examples) {
           const ex = document.createElement("div");
           ex.className = "xp-dict-example";
           ex.textContent = x;
           li.appendChild(ex);
+        }
+        for (const [key, words] of [["dictSynonyms", s.synonyms], ["dictAntonyms", s.antonyms]]) {
+          if (!words || !words.length) continue;
+          const row = document.createElement("div");
+          row.className = "xp-dict-rel";
+          const lb = document.createElement("span");
+          lb.className = "xp-dict-rel-label";
+          lb.textContent = t(key);
+          row.appendChild(lb);
+          row.appendChild(document.createTextNode(" " + words.join(", ")));
+          li.appendChild(row);
         }
         ol.appendChild(li);
       }

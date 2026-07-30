@@ -2675,6 +2675,12 @@
   "dictTagSimplified": {
     "message": "簡體"
   },
+  "dictSynonyms": {
+    "message": "近義詞"
+  },
+  "dictAntonyms": {
+    "message": "反義詞"
+  },
   "dictTagTraditional": {
     "message": "繁體"
   },

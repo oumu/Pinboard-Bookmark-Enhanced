@@ -2675,6 +2675,12 @@
   "dictTagSimplified": {
     "message": "Vereinfacht"
   },
+  "dictSynonyms": {
+    "message": "Synonyme"
+  },
+  "dictAntonyms": {
+    "message": "Antonyme"
+  },
   "dictTagTraditional": {
     "message": "Traditionell"
   },

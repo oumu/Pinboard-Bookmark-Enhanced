@@ -2675,6 +2675,12 @@
   "dictTagSimplified": {
     "message": "Simplified"
   },
+  "dictSynonyms": {
+    "message": "Synonyms"
+  },
+  "dictAntonyms": {
+    "message": "Antonyms"
+  },
   "dictTagTraditional": {
     "message": "Traditional"
   },
