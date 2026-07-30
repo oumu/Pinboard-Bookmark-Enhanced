@@ -171,6 +171,191 @@ async function pbpPackZipTextStream(file) {
   return chosen.method === 8 ? raw.pipeThrough(new DecompressionStream("deflate-raw")) : raw;
 }
 
+// ---- ECDICT (English -> Chinese) parse layer -----------------------------
+// A reader for the ECDICT CSV field layout. The extension neither ships,
+// fetches, points at, recommends nor validates the data: the user supplies the
+// file. Design: docs/superpowers/specs/2026-07-30-ecdict-en-zh-pack-design-rev7
+// plus its rev8 amendments.
+
+// Resource ceilings. Policy caps anchored to the measured top rung (R3 =
+// 181,921 entries / 11,128,429 B on ecdict.csv @ bc015ed2), NOT values derived
+// from the format. Deliberately not reusing CC-CEDICT's 400,000.
+const PBP_ECDICT_MAX_ENTRIES = 220000;
+const PBP_ECDICT_MAX_PAYLOAD_BYTES = 32 * 1024 * 1024;
+const PBP_ECDICT_MAX_BYTES = 96 * 1024 * 1024;
+// Input boundaries. Observed maxima on that sample: line 12,504, word 100,
+// translation 372. A record breaching WORD/KEY/TRANS counts as malformed; the
+// ratio ceiling then rejects the file. An unclosed quote rejects immediately.
+const PBP_ECDICT_MAX_MALFORMED_RATIO = 0.01;
+const PBP_ECDICT_MAX_RECORD_UNITS = 65536;
+const PBP_ECDICT_MAX_WORD_UNITS = 256;
+const PBP_ECDICT_MAX_KEY_UNITS = 256;
+const PBP_ECDICT_MAX_TRANS_UNITS = 4096;
+
+const PBP_ECDICT_COLUMNS = Object.freeze([
+  "word", "translation", "tag", "collins", "oxford", "frq", "bnc"
+]);
+
+// Same rule as vocab-store's query identity and as the offline comparison
+// script's norm(). All three must stay byte-identical or a row imports fine and
+// can never be looked up.
+function pbpEcdictKey(word) {
+  return String(word == null ? "" : word).normalize("NFC").trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+// Quote-aware split of ONE physical line. ECDICT's phonetic column is quoted
+// and contains commas, so split(",") mis-columns every such row. Returns null
+// for an unclosed quote -- the caller must then reject the whole file rather
+// than skip the line: without a safe record boundary, a continuation line can
+// produce a phantom record that happens to satisfy the column count.
+function pbpEcdictSplitLine(line) {
+  const s = String(line == null ? "" : line);
+  const out = [];
+  let cur = "", inQuote = false;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (inQuote) {
+      if (c !== '"') { cur += c; continue; }
+      if (s[i + 1] === '"') { cur += '"'; i++; continue; }
+      inQuote = false;
+    } else if (c === '"') inQuote = true;
+    else if (c === ",") { out.push(cur); cur = ""; }
+    else cur += c;
+  }
+  if (inQuote) return null;
+  out.push(cur);
+  return out;
+}
+
+// Header -> column index map. Required names must each appear EXACTLY once;
+// a duplicate or a missing name rejects the file (returns null) rather than
+// silently reading the wrong column when upstream adds one.
+function pbpEcdictParseHeader(line) {
+  const fields = pbpEcdictSplitLine(line);
+  if (!fields) return null;
+  const names = fields.map((f) => f.trim());
+  const idx = { _count: names.length };
+  for (const want of PBP_ECDICT_COLUMNS) {
+    const hits = [];
+    names.forEach((n, i) => { if (n === want) hits.push(i); });
+    if (hits.length !== 1) return null;
+    idx[want] = hits[0];
+  }
+  return idx;
+}
+
+// Strict integer. parseInt would accept "12abc" and silently rank a junk row.
+function pbpEcdictInt(v) {
+  const s = String(v == null ? "" : v).trim();
+  return /^\d+$/.test(s) ? Number(s) : 0;
+}
+
+// Literal backslash-n, not a real newline: ECDICT writes "n. 罩\nv. 覆盖".
+// Splitting into separate senses is required -- substituting a real newline
+// renders as a space, because .xp-dict-senses li is white-space: normal.
+function pbpEcdictSenses(translation) {
+  return String(translation == null ? "" : translation)
+    .split("\\n").map((s) => s.trim()).filter(Boolean);
+}
+
+// Cumulative, strictly monotone rungs: R1 subset of R2 subset of R3. Widening
+// must only ever add. (R2 and R3 as two parallel "orthogonal signal" sets was
+// the rev5 bug: switching between them dropped 11,552 words.)
+function pbpEcdictRungOk(row, rung) {
+  const base = row.tag !== "" ||
+    (row.collins !== "" && row.collins !== "0") ||
+    (row.oxford !== "" && row.oxford !== "0") ||
+    (row.frq > 0 && row.frq <= 50000) ||
+    (row.bnc > 0 && row.bnc <= 50000);
+  if (base) return true;
+  if (rung === "R1") return false;
+  if (!row.clean) return false;
+  if (row.hasExchange) return true;              // R2
+  return rung === "R3" && row.hasDefinition;     // R3 adds to R2, never replaces
+}
+
+// A row worth keeping at all, independent of rung. The third condition is not
+// redundant: trim("\\n") is non-empty yet splits into zero senses, which would
+// store a headword with nothing to render.
+function pbpEcdictBaseOk(key, translation) {
+  return !!key && String(translation).trim() !== "" && pbpEcdictSenses(translation).length > 0;
+}
+
+const _PBP_ECDICT_AFFIX = /^['’-]|['’-]$/;
+
+// "clean" gates the R2/R3 widening: a real English headword with a real gloss.
+// All THREE parts matter. Dropping the web-only test admitted 200 extra rows at
+// both rungs on the fixed sample -- entries whose whole gloss is scraped
+// "[网络]" fragments, which is what the rung was meant to exclude.
+function pbpEcdictClean(word, senses) {
+  if (/\s/.test(word) || _PBP_ECDICT_AFFIX.test(word)) return false;
+  return !(senses.length > 0 && senses.every((s) => s.startsWith("[网络]")));
+}
+
+// One physical line -> { ok, record } | { ok:false, fatal } | { ok:false, malformed }
+// `fatal` rejects the whole file; `malformed` only counts toward the ratio.
+function pbpEcdictParseRow(line, idx, rung) {
+  if (String(line).length > PBP_ECDICT_MAX_RECORD_UNITS) return { ok: false, malformed: true };
+  const f = pbpEcdictSplitLine(line);
+  if (!f) return { ok: false, fatal: "unclosed-quote" };
+  if (f.length !== idx._count) return { ok: false, malformed: true };
+  const word = f[idx.word].trim();
+  const translation = f[idx.translation].trim();
+  const key = pbpEcdictKey(word);
+  if (word.length > PBP_ECDICT_MAX_WORD_UNITS) return { ok: false, malformed: true };
+  if (key.length > PBP_ECDICT_MAX_KEY_UNITS) return { ok: false, malformed: true };
+  if (translation.length > PBP_ECDICT_MAX_TRANS_UNITS) return { ok: false, malformed: true };
+  if (!pbpEcdictBaseOk(key, translation)) return { ok: false, skip: true };
+  const row = {
+    tag: f[idx.tag].trim(),
+    collins: f[idx.collins].trim(),
+    oxford: f[idx.oxford].trim(),
+    frq: pbpEcdictInt(f[idx.frq]),
+    bnc: pbpEcdictInt(f[idx.bnc]),
+    clean: pbpEcdictClean(word, pbpEcdictSenses(translation)),
+    hasExchange: idx.exchange !== undefined && (f[idx.exchange] || "").trim() !== "",
+    hasDefinition: idx.definition !== undefined && (f[idx.definition] || "").trim() !== ""
+  };
+  if (!pbpEcdictRungOk(row, rung)) return { ok: false, skip: true };
+  // Stored shape is exactly three fields. tag/exchange/definition decided
+  // admission and are then discarded -- no consumer, so no reason to occupy
+  // rows forever (an exam-tag badge would justify a re-import, not a column).
+  return { ok: true, record: { key, word, translation } };
+}
+
+// The one payload definition. Any acceptance gate that quotes a byte figure
+// must use this and nothing else; rev5 quietly added 16 bytes per record and
+// every quoted size in the spec was wrong for two revisions.
+function pbpEcdictPayloadBytes(records) {
+  const enc = new TextEncoder();
+  let n = 0;
+  for (const r of records) {
+    n += enc.encode(r.key).length + enc.encode(r.word).length + enc.encode(r.translation).length;
+  }
+  return n;
+}
+
+// rows -> md-dict's normalized entry contract. Chinese is an ADDITIONAL block:
+// the online chain still runs, so this never claims the IPA/forms/source that
+// the network entry owns.
+function pbpEcdictEntryToNorm(rows, matched) {
+  const entries = (Array.isArray(rows) ? rows : []).map((r) => ({
+    pos: "",
+    ipas: [],
+    forms: [],
+    senses: pbpEcdictSenses(r.translation).map((d) => ({
+      definition: d, examples: [], tags: [], synonyms: [], antonyms: [], subsenses: []
+    }))
+  })).filter((e) => e.senses.length);
+  return {
+    word: String(matched == null ? "" : matched),
+    entries,
+    sourceLabel: "ECDICT",
+    sourceUrl: "",
+    license: ""
+  };
+}
+
 // ---- PURE END ----
 
 // ---- IDB layer (DB pbp-dict-packs) --------------------------------------

@@ -330,6 +330,108 @@ section("pbpCedictLines");
   }
   check("file >64MB throws", sizeError);
 
+  section("ECDICT parse layer");
+  // Every row below is copied VERBATIM out of ecdict.csv @ bc015ed2 (sha256
+  // 1a6947e0…). Hand-lifted real bytes, never produced by our own writer --
+  // this project already shipped a suite that was 60/60 green against
+  // constructor-generated fixtures and still corrupted on real data.
+  const E_HDR = "word,phonetic,definition,translation,pos,collins,oxford,tag,bnc,frq,exchange,detail,audio";
+  //                                 quoted phonetic holding a comma  ↓
+  const E_HAGUE = "'s Gravenhage,\",skrɑ:vən'hɑ:ɡə\",,[荷兰语]海牙(= Hague),,,,,0,0,,,";
+  const E_EPHEMERAL = "ephemeral,i'femәrәl,s. lasting a very short time,\"a. 朝生暮死的, 短命的, 短暂的\\n[医] 暂时的\",,,,toefl ielts gre,15628,14116,s:ephemerals,,";
+  const E_AARDVARK = "aardvark,'ɑ:dvɑ:k,n. nocturnal burrowing mammal,n. 土豚,,,,,0,42238,s:aardvarks,,";
+  const E_ACOME = "a-come,,,n. (Acome)人名；(法)阿科姆,,,,,0,0,i:a-coming,,";
+  const E_ABHUMAN = "abhuman,,,[网络] 亚人类,,,,,0,0,s:abhumans,,";
+  const E_DEFEN = "defenestrate,diː'fenɪstreɪt,v throw through or out of the window,vt. 把(某人或某物)抛出窗外,,,,,0,0,,,";
+
+  const eIdx = pbpEcdictParseHeader(E_HDR);
+  check("real header parses", !!eIdx && eIdx.word === 0 && eIdx.translation === 3 && eIdx._count === 13);
+  const eNames = E_HDR.split(",");
+  eIdx.exchange = eNames.indexOf("exchange");
+  eIdx.definition = eNames.indexOf("definition");
+  check("duplicate required header name rejects the file",
+    pbpEcdictParseHeader("word,word,translation,tag,collins,oxford,frq,bnc") === null);
+  check("missing required header name rejects the file",
+    pbpEcdictParseHeader("word,translation,tag,collins,oxford,frq") === null);
+
+  // Quote handling
+  check("quoted field keeps its internal comma",
+    pbpEcdictSplitLine(E_HAGUE)[1] === ",skrɑ:vən'hɑ:ɡə");
+  check("doubled quote unescapes to one literal quote",
+    pbpEcdictSplitLine('a,"say ""hi""",b')[1] === 'say "hi"');
+  check("unclosed quote yields null, not a short row", pbpEcdictSplitLine('a,"unterminated,b') === null);
+  check("unclosed quote is fatal for the whole file, never a skipped line",
+    pbpEcdictParseRow('a,"unterminated,b', eIdx, "R1").fatal === "unclosed-quote");
+  // A record split across physical lines: the first half has the open quote, so
+  // it is fatal rather than silently mis-columned, and the tail never becomes a
+  // phantom record.
+  check("a genuinely multi-line quoted record is rejected, not mis-parsed",
+    pbpEcdictParseRow('multi,"line one', eIdx, "R1").fatal === "unclosed-quote");
+
+  // Field handling
+  check("wrong field count counts as malformed, not fatal",
+    pbpEcdictParseRow("word,only,three", eIdx, "R1").malformed === true);
+  check("frq rejects 12abc rather than reading 12", pbpEcdictInt("12abc") === 0);
+  check("frq accepts a plain integer", pbpEcdictInt(" 42 ") === 42);
+  check("key folds NFD, whitespace and case together",
+    pbpEcdictKey("  Café   Bar  ") === pbpEcdictKey("café bar"));
+  check("word display form keeps its case", pbpEcdictParseRow(E_AARDVARK, eIdx, "R1").record.word === "aardvark");
+  const overWord = "x".repeat(PBP_ECDICT_MAX_WORD_UNITS + 1) + ",,,n. 甲,,,,,0,1,,,";
+  check("over-long word counts as malformed", pbpEcdictParseRow(overWord, eIdx, "R1").malformed === true);
+  const overTrans = "y,,," + "甲".repeat(PBP_ECDICT_MAX_TRANS_UNITS + 1) + ",,,,,0,1,,,";
+  check("over-long translation counts as malformed", pbpEcdictParseRow(overTrans, eIdx, "R1").malformed === true);
+
+  // Literal \n is two characters in the file, not a newline
+  check("literal backslash-n splits into separate senses",
+    pbpEcdictSenses("a. 朝生暮死的\\n[医] 暂时的").length === 2);
+  check("real newlines are not a sense separator", pbpEcdictSenses("one\ntwo").length === 1);
+  const ephem = pbpEcdictParseRow(E_EPHEMERAL, eIdx, "R1");
+  check("real ephemeral row yields two senses",
+    ephem.ok && pbpEcdictSenses(ephem.record.translation).length === 2);
+
+  // Base conditions, which run BEFORE any rung test
+  check("empty translation is rejected by the base condition",
+    !pbpEcdictBaseOk(pbpEcdictKey("word"), "   "));
+  check("a translation of only a literal \\n is rejected (trims non-empty, splits to zero senses)",
+    !pbpEcdictBaseOk(pbpEcdictKey("word"), "\\n"));
+  check("a translation of only two literal \\n is rejected", !pbpEcdictBaseOk(pbpEcdictKey("w"), "\\n\\n"));
+  check("empty word is rejected by the base condition", !pbpEcdictBaseOk(pbpEcdictKey("   "), "n. 甲"));
+
+  // Rung boundaries, each anchored to a real row
+  const at = (line, rung) => pbpEcdictParseRow(line, eIdx, rung).ok === true;
+  check("R1 admits a row carrying an exam tag", at(E_EPHEMERAL, "R1"));
+  check("R1 admits a row inside the frequency window", at(E_AARDVARK, "R1"));
+  check("R1 excludes a row with no tag, no rating and no rank", !at(E_ACOME, "R1"));
+  check("R2 admits that row once it has inflections", at(E_ACOME, "R2"));
+  check("R2 still excludes a definition-only row", !at(E_DEFEN, "R2"));
+  check("R3 admits the definition-only row", at(E_DEFEN, "R3"));
+  check("a multi-word affix headword is excluded at every rung",
+    !at(E_HAGUE, "R1") && !at(E_HAGUE, "R2") && !at(E_HAGUE, "R3"));
+  // The clean predicate has three parts. Dropping the web-only test let 200
+  // scraped-fragment rows into R2/R3 on the real sample.
+  check("a gloss that is nothing but [网络] fragments is excluded at every rung",
+    !at(E_ABHUMAN, "R1") && !at(E_ABHUMAN, "R2") && !at(E_ABHUMAN, "R3"));
+  check("clean() rejects a web-only gloss", !pbpEcdictClean("abhuman", pbpEcdictSenses("[网络] 亚人类")));
+  check("clean() accepts a normal single-word headword", pbpEcdictClean("aardvark", ["n. 土豚"]));
+  // Widening must only ever add.
+  const rungKeys = (rung) => new Set([E_EPHEMERAL, E_AARDVARK, E_ACOME, E_ABHUMAN, E_DEFEN, E_HAGUE]
+    .map((l) => pbpEcdictParseRow(l, eIdx, rung)).filter((r) => r.ok).map((r) => r.record.key));
+  const kR1 = rungKeys("R1"), kR2 = rungKeys("R2"), kR3 = rungKeys("R3");
+  check("R1 is a subset of R2", [...kR1].every((k) => kR2.has(k)));
+  check("R2 is a subset of R3", [...kR2].every((k) => kR3.has(k)));
+
+  // The single payload definition every acceptance gate must quote
+  check("payload counts utf8 of key + word + translation and nothing else",
+    pbpEcdictPayloadBytes([{ key: "ab", word: "Ab", translation: "甲" }]) === 2 + 2 + 3);
+
+  // The additional-block contract: no IPA, no forms, no borrowed source
+  const eNorm = pbpEcdictEntryToNorm([{ translation: "a. 朝生暮死的\\n[医] 暂时的" }], "ephemeral");
+  check("ECDICT norm carries senses only, never IPA or forms",
+    eNorm.entries.length === 1 && eNorm.entries[0].senses.length === 2 &&
+    eNorm.entries[0].ipas.length === 0 && eNorm.entries[0].forms.length === 0);
+  check("ECDICT norm labels its own source and claims no license of the online entry",
+    eNorm.sourceLabel === "ECDICT" && eNorm.sourceUrl === "" && eNorm.license === "");
+
   section("dict-pack IDB layer (pbpPackImport/Lookup/Meta/Delete)");
   async function* arrLines(arr) { for (const l of arr) yield l; }
 
