@@ -803,6 +803,37 @@ section("pbpCedictLines");
     freshStores.includes("cedict") && freshStores.includes("packs") && freshStores.includes("ecdict"));
   await new Promise((r) => { const d = indexedDB.deleteDatabase("pbp-fresh-probe"); d.onsuccess = d.onerror = d.onblocked = r; });
 
+  // The transaction dying PART-WAY THROUGH the batches, which is what a real
+  // write failure looks like. The spec wanted this driven by an exhausted quota,
+  // but CDP's Storage.overrideQuotaForOrigin does not constrain a
+  // chrome-extension origin: 20,000 high-entropy records still committed under a
+  // 794 KB quota. So the transaction is aborted from inside a success callback
+  // instead, which exercises the same rollback path this guarantee rests on.
+  {
+    const good = await pbpEcdictImport(eLines([E_HDR, E_EPHEMERAL, E_AARDVARK]), E_STATS(), { rung: "R1" });
+    check("a pack is in place before the mid-batch failure", good.entries === 2);
+    const realPut = IDBObjectStore.prototype.put;
+    let puts = 0;
+    IDBObjectStore.prototype.put = function (...a) {
+      const req = realPut.apply(this, a);
+      if (this.name === "ecdict" && ++puts === 2) {
+        // Kill the transaction once records are already going in.
+        req.addEventListener("success", () => { try { this.transaction.abort(); } catch (_) {} });
+      }
+      return req;
+    };
+    let aborted = false;
+    try {
+      await pbpEcdictImport(eLines([E_HDR, E_ACOME, E_DEFEN, E_AARDVARK, E_EPHEMERAL]), E_STATS(), { rung: "R3" });
+    } catch (_) { aborted = true; } finally { IDBObjectStore.prototype.put = realPut; }
+    check("an abort part-way through the batches rejects the import", aborted);
+    const survived = await pbpEcdictMeta();
+    check("the previous pack's meta is untouched by the failed replacement",
+      !!survived && survived.state === "ready" && survived.entries === 2 && survived.rung === "R1");
+    check("and its records are still queryable", (await pbpEcdictLookup("ephemeral")).state === "hit");
+    check("no record from the failed replacement landed", (await pbpEcdictLookup("defenestrate")).state === "ready-miss");
+  }
+
   // Re-import at a wider rung replaces rather than accumulates.
   const wideRes = await pbpEcdictImport(eLines([E_HDR, E_EPHEMERAL, E_AARDVARK, E_ACOME, E_ABHUMAN, E_DEFEN]), E_STATS(), { rung: "R3" });
   check("R3 import admits the definition-only row", wideRes.entries === 4);

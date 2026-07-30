@@ -530,7 +530,11 @@ async function _pbpDictEcdictSide(localEl, term, lang, parentSignal, cur) {
     title.className = "xp-dict-local-title";
     title.textContent = t("dictZhBlockTitle");
     box.appendChild(title);
-    _pbpDictRenderSenses(box, norm.entries[0].senses);
+    // EVERY entry, not just the first. Case folding puts distinct headwords on
+    // one key -- "US" (the country) and "us" (the pronoun) both fold to "us" --
+    // so rendering entries[0] would show whichever the file happened to list
+    // first and silently drop the other.
+    for (const e of norm.entries) _pbpDictRenderSenses(box, e.senses);
     localEl.replaceChildren(box);
   } catch (e) {
     // Swallowing without a trace is what turns a platform fault into a silent

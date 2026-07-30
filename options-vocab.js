@@ -1002,14 +1002,14 @@ async function _pbpVocabExport() {
     }
     // Enrichment is another await, so the owner is rechecked AFTER it and before
     // a Blob exists: the file must never be built from a previous account's rows.
-    await _pbpVocabRefreshEcdictTag();
     const zhMap = await _pbpVocabZhMap(rows);
+    const zhTag = await _pbpVocabEcdictTag();
     const ownerBeforeBlob = await pbpVocabCurrentOwner();
     if (ownerBeforeBlob !== owner) {
       _pbpVocabFlashStatus(false, t("vocabAccountChanged"));
       return;
     }
-    const tsv = pbpDictTsv(rows.map((w) => _pbpVocabCanonicalRow(w, zhMap)));
+    const tsv = pbpDictTsv(rows.map((w) => _pbpVocabCanonicalRow(w, zhMap, zhTag)));
     const blob = new Blob([tsv], { type: "text/tab-separated-values" });
     const a = document.createElement("a");
     const d = new Date();
@@ -1045,7 +1045,10 @@ async function _pbpVocabZhMap(words) {
   const keys = [];
   for (const w of words) {
     // English only, and the saved lemma is a second chance for an inflected form.
-    if ((w.language || "") !== "en") continue;
+    // Compared through the same primary-language helper vocab-store uses for
+    // record identity: a stored tag may carry a region, and a bare === "en"
+    // would then match nothing and silently enrich no row at all.
+    if (_pbpVocabPrimary(w.language) !== "en") continue;
     if (w.term) keys.push(w.term);
     if (w.lemma) keys.push(w.lemma);
   }
@@ -1053,18 +1056,37 @@ async function _pbpVocabZhMap(words) {
   try { return await pbpEcdictLookupMany(keys); } catch (_) { return new Map(); }
 }
 
+// vocab-store.js defines pbpDictPrimaryLang and options.html loads it; the
+// fallback only keeps this from throwing if the load order ever changes.
+function _pbpVocabPrimary(code) {
+  if (typeof pbpDictPrimaryLang === "function") return pbpDictPrimaryLang(code);
+  return String(code || "").trim().toLowerCase().split(/[-_]/)[0];
+}
+
 function _pbpVocabZhFor(w, zhMap) {
-  if (!zhMap || !zhMap.size || (w.language || "") !== "en") return "";
+  if (!zhMap || !zhMap.size || _pbpVocabPrimary(w.language) !== "en") return "";
   const hit = (w.term && zhMap.get(pbpEcdictKey(w.term))) ||
               (w.lemma && zhMap.get(pbpEcdictKey(w.lemma)));
   if (!hit || !hit.length) return "";
-  return pbpEcdictSenses(hit[0].translation).join("; ");
+  // Every matching record, not just the first. Case folding collapses distinct
+  // headwords onto one key ("US" and "us"), so hit[0] would export whichever the
+  // imported file listed first and lose the other sense entirely.
+  const seen = new Set();
+  const out = [];
+  for (const r of hit) {
+    for (const sense of pbpEcdictSenses(r.translation)) {
+      if (seen.has(sense)) continue;
+      seen.add(sense);
+      out.push(sense);
+    }
+  }
+  return out.join("; ");
 }
 
 // zh and zhNote stay SEPARATE from definition/license: the Anki path has to
 // escape each piece on its own before joining them with its own trusted <br>,
 // and pre-joining here would either double-escape or smuggle markup through.
-function _pbpVocabCanonicalRow(w, zhMap) {
+function _pbpVocabCanonicalRow(w, zhMap, tag) {
   const zh = _pbpVocabZhFor(w, zhMap);
   return {
     term: w.term,
@@ -1077,20 +1099,23 @@ function _pbpVocabCanonicalRow(w, zhMap) {
     // Labelled so the local Chinese never looks like it came from the online
     // entry, and carrying the diagnostic pack identity. Never presented as a
     // confirmed data licence.
-    zhNote: zh ? t("vocabZhFromPack") + (_vocabEcdictTag ? " (" + _vocabEcdictTag + ")" : "") : ""
+    zhNote: zh ? t("vocabZhFromPack") + (tag ? " (" + tag + ")" : "") : ""
   };
 }
 
 // Diagnostic identity of the imported pack: rung plus a short slice of the
 // CRC32. Not an identity or licence claim -- 32 bits collide.
-let _vocabEcdictTag = "";
-async function _pbpVocabRefreshEcdictTag() {
+// Read AFTER the lookup and passed per export, never held in a module variable:
+// reading it first let a pack swapped in mid-export label content that came from
+// a different pack, and one variable let a TSV and an Anki send overwrite each
+// other's label.
+async function _pbpVocabEcdictTag() {
   try {
     const meta = (typeof pbpEcdictMeta === "function") ? await pbpEcdictMeta() : null;
-    _vocabEcdictTag = meta && meta.state === "ready"
+    return meta && meta.state === "ready"
       ? "ECDICT " + (meta.rung || "") + " " + String(meta.decodedCrc32 || "").slice(0, 8)
       : "";
-  } catch (_) { _vocabEcdictTag = ""; }
+  } catch (_) { return ""; }
 }
 
 async function _pbpVocabSendAnki() {
@@ -1140,14 +1165,14 @@ async function _pbpVocabSendAnki() {
     const rows = await pbpVocabAll(owner);
     if ((await pbpVocabCurrentOwner()) !== owner) { _pbpVocabFlashStatus(false, t("vocabAccountChanged")); return; }
     if (!rows.length) { _pbpVocabFlashStatus(false, t("dictAnkiNothing")); return; }
-    await _pbpVocabRefreshEcdictTag();
     const zhMap = await _pbpVocabZhMap(rows);
+    const zhTag = await _pbpVocabEcdictTag();
     const ownerBeforeSend = await pbpVocabCurrentOwner();
     if (ownerBeforeSend !== owner) {
       _pbpVocabFlashStatus(false, t("vocabAccountChanged"));
       return;
     }
-    const canonical = rows.map((w) => _pbpVocabCanonicalRow(w, zhMap));
+    const canonical = rows.map((w) => _pbpVocabCanonicalRow(w, zhMap, zhTag));
     const res = await pbpAnkiSendRows(canonical, {
       deck: s.dictAnkiDeck || "Pinboard Vocab",
       key: s.dictAnkiKey || "",
@@ -1446,8 +1471,10 @@ function _pbpEcdictWire() {
       // Distinguish "this is not the right kind of file" from "this file is too
       // big for us", because the user's next action differs.
       const key = /not an ECDICT csv|malformed/.test(msg) ? "ecdictNotEcdictFormat"
-        : /too large/.test(msg) ? "ecdictTooLarge"
-        : /entry count above|payload above/.test(msg) ? "ecdictTooManyEntries"
+        // Payload before entry count: a file inside the entry ceiling can still
+        // breach the byte ceiling, and "too many entries" would be a lie there.
+        : /too large|payload above/.test(msg) ? "ecdictTooLarge"
+        : /entry count above/.test(msg) ? "ecdictTooManyEntries"
         : "ecdictParseFailed";
       _pbpVocabFlashStatus(false, t(key));
       console.warn("[ecdict] import failed:", e && e.name, msg);

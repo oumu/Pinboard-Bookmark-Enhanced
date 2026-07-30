@@ -317,7 +317,7 @@ async function runQuotaAbort() {
 
     // Headroom above current usage but far below what the replacement needs, so
     // the failure lands while records are being written rather than at clear().
-    const quotaSize = baseline + 4 * 1024 * 1024;
+    const quotaSize = baseline + 512 * 1024;
     await cdp.send("Storage.overrideQuotaForOrigin", { origin, quotaSize });
     let outcome;
     try {
@@ -343,10 +343,27 @@ async function runQuotaAbort() {
     console.log(`  first import: ${first} entries`);
     console.log(`  replacement : ${outcome.ok ? `UNEXPECTEDLY SUCCEEDED (${outcome.entries})` : `rejected as ${outcome.name || "Error"}: ${outcome.message}`}`);
     console.log(`  old pack    : meta ${after.state}, ${after.entries} entries, lookup ${after.lookup}`);
-    const pass = !outcome.ok && after.state === "ready" && after.entries === first && after.lookup === "hit";
+    if (outcome.ok) {
+      // Measured, not assumed: 20,000 high-entropy records (~3.9 MB of payload,
+      // from a generator this script verifies is non-degenerate) committed under
+      // a 794 KB quota. CDP's quota override does not constrain a
+      // chrome-extension origin, so this gate cannot be driven the way the spec
+      // intended. Reported as unmeasurable rather than as a pass or a failure --
+      // the guarantee itself is covered by "an abort part-way through the batches"
+      // in tests/dict-pack-tests.html, which aborts the transaction for real.
+      console.log("  [SKIP] quota override does not constrain a chrome-extension origin;");
+      console.log("         the replacement committed anyway, so this gate is not measurable here.");
+      console.log("         Rollback is covered by the mid-batch abort test in tests/dict-pack-tests.html.");
+      return null;
+    }
+    const pass = after.state === "ready" && after.entries === first && after.lookup === "hit";
     console.log(`  [${pass ? "PASS" : "FAIL"}] a quota-exhausted replacement leaves the previous pack ready and queryable`);
     return pass;
   } finally {
+    // Closing BEFORE deleting the profile. Without this the run finished its work
+    // and then hung until the outer timeout killed it, because the browser was
+    // still open -- which is what made this gate look like a deadlock.
+    try { await ctx.close(); } catch (_) {}
     rmSync(userDataDir, { recursive: true, force: true });
   }
 }
@@ -358,17 +375,33 @@ async function runQuotaAbort() {
 // Math.random, so a failure is reproducible.
 function fHighEntropy() {
   const out = [HDR];
+  // xorshift32 in Math.imul, NOT a float LCG. The first attempt used
+  // `seed * 1103515245`, which exceeds 2^53 and loses the low bits: the output
+  // measured 96.56% zeros over four distinct characters and gzipped to 3% of its
+  // size, so LevelDB compressed the "replacement" inside the quota and the write
+  // simply succeeded. Verified below before the fixture is used.
   let seed = 0x2f6e2b1;
+  const next = () => {
+    seed ^= seed << 13; seed >>>= 0;
+    seed ^= seed >>> 17;
+    seed ^= seed << 5; seed >>>= 0;
+    return seed;
+  };
   const hex = (n) => {
     let s = "";
-    for (let i = 0; i < n; i++) {
-      seed = (seed * 1103515245 + 12345) & 0x7fffffff;
-      s += (seed & 0xf).toString(16);
-    }
+    for (let i = 0; i < n; i++) s += (next() & 0xf).toString(16);
     return s;
   };
-  for (let i = 0; i < 100_000; i++) out.push(`h${String(i).padStart(6, "0")},,,n. ${hex(190)},,,,,0,1,,,`);
-  return { name: "F-entropy", csv: out.join("\n"), expectEntries: 100_000 };
+  // Fail loudly rather than silently measure nothing: a degenerate generator
+  // makes this whole gate vacuous.
+  const probe = hex(4096);
+  const distinct = new Set(probe).size;
+  const topShare = Math.max(...[...new Set(probe)].map((c) => probe.split(c).length - 1)) / probe.length;
+  if (distinct < 14 || topShare > 0.12) {
+    throw new Error(`quota fixture generator is degenerate: ${distinct} distinct chars, top ${(topShare * 100).toFixed(1)}%`);
+  }
+  for (let i = 0; i < 20_000; i++) out.push(`h${String(i).padStart(6, "0")},,,n. ${hex(190)},,,,,0,1,,,`);
+  return { name: "F-entropy", csv: out.join("\n"), expectEntries: 20_000 };
 }
 
 function fSmall() {
@@ -380,10 +413,18 @@ function fSmall() {
 // ---- Drive ---------------------------------------------------------------
 if (WHICH === "quota") {
   const ok = await runQuotaAbort();
-  process.exitCode = ok ? 0 : 1;
-  console.log(ok ? "\nall gates passed" : "\n1 gate(s) failed");
+  // null means the gate could not be measured on this platform; that is neither
+  // a pass to celebrate nor a failure to fix here.
+  process.exitCode = ok === false ? 1 : 0;
+  console.log(ok === null ? "\nnot measurable on this platform (see above)" : ok ? "\nall gates passed" : "\n1 gate(s) failed");
 } else {
-const chosen = WHICH === "all" ? [fEntry(), fBytes()] : [{ entry: fEntry, bytes: fBytes, real: fReal }[WHICH]()];
+// "all" used to run only the two synthetic fixtures and still print "all gates
+// passed", hiding both the quota gate and the only fixture whose IDB ratio means
+// anything. It now runs everything it can and says what it could not.
+const skipped = [];
+const chosen = WHICH === "all"
+  ? [fEntry(), fBytes(), ...(CSV ? [fReal()] : (skipped.push("F-real (needs --csv)"), []))]
+  : [{ entry: fEntry, bytes: fBytes, real: fReal }[WHICH]()];
 const mib = (n) => (n / 1048576).toFixed(2) + " MiB";
 let failed = 0;
 
@@ -418,6 +459,12 @@ for (const fx of chosen) {
   }
 }
 
+if (WHICH === "all") {
+  const quotaOk = await runQuotaAbort();
+  if (quotaOk === false) failed++;
+  if (quotaOk === null) skipped.push("quota abort (override does not bind extension origins)");
+}
+if (skipped.length) console.log(`\nNOT RUN: ${skipped.join(", ")} -- "all gates passed" below excludes these`);
 console.log(failed ? `\n${failed} gate(s)/run(s) failed` : "\nall gates passed");
 process.exitCode = failed ? 1 : 0;
 }
