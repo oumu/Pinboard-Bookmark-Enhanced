@@ -453,6 +453,26 @@ section("pbpCedictLines");
   const reCheck = await pbpPackLookup(["你好"]);
   check("re-import: does not duplicate rows (old store was cleared first)", !!reCheck && reCheck.rows.length === 1);
 
+  // A synchronous throw part-way through the callback must abort, not commit
+  // what it already queued. The import's first transaction queues meta.delete()
+  // before clear(), so without the abort a throw from clear() left the data on
+  // disk with no meta: present but never queryable again.
+  const abortDb = await _pbpPackOpenDB();
+  let syncThrew = false;
+  try {
+    await _pbpPackTx(abortDb, "readwrite", (tx) => {
+      tx.objectStore(_PBP_PACK_META).delete("cedict");
+      throw new Error("sync boom");
+    });
+  } catch (e) { syncThrew = /sync boom/.test(e && e.message); }
+  check("a synchronous callback throw rejects with the original cause", syncThrew);
+  const metaAfterSyncThrow = await pbpPackMeta();
+  check("the meta delete queued before that throw was rolled back",
+    !!metaAfterSyncThrow && metaAfterSyncThrow.state === "ready" && metaAfterSyncThrow.bytes === 999);
+  const hitAfterSyncThrow = await pbpPackLookup(["你好"]);
+  check("the pack is still queryable after an aborted transaction",
+    !!hitAfterSyncThrow && hitAfterSyncThrow.state === "hit");
+
   let raceImportWaiting = false, releaseRaceImport;
   const raceImportGate = new Promise((r) => { releaseRaceImport = r; });
   async function* raceImportLines() {

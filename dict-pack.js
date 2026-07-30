@@ -208,7 +208,14 @@ function _pbpPackTx(db, mode, fn) {
   return new Promise((resolve, reject) => {
     const tx = db.transaction([_PBP_PACK_STORE, _PBP_PACK_META], mode);
     let out;
-    try { out = fn(tx); } catch (e) { reject(e); return; }
+    // A synchronous throw part-way through fn() leaves whatever it already
+    // queued on a live transaction, which then COMMITS. The import's first
+    // transaction queues meta.delete() before clear(), so a throw from clear()
+    // used to land the delete and nothing else: data still on disk, meta gone,
+    // pack no longer ready or queryable. Abort so the caller's error means the
+    // store is untouched. Rejecting with `e` rather than the abort error keeps
+    // the original cause (onabort is not wired up yet at this point anyway).
+    try { out = fn(tx); } catch (e) { try { tx.abort(); } catch (_) {} reject(e); return; }
     tx.oncomplete = () => resolve(out && typeof out.value === "function" ? out.value() : out);
     tx.onabort = () => reject(tx.error || new Error("pack tx aborted"));
     tx.onerror = () => reject(tx.error || new Error("pack tx failed"));
