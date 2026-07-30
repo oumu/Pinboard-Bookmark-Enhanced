@@ -212,7 +212,10 @@ async function pbpPackZipTextStream(file) {
 // 181,921 entries / 11,128,429 B on ecdict.csv @ bc015ed2), NOT values derived
 // from the format. Deliberately not reusing CC-CEDICT's 400,000.
 const PBP_ECDICT_MAX_ENTRIES = 220000;
-const PBP_ECDICT_MAX_PAYLOAD_BYTES = 32 * 1024 * 1024;
+// 24 MiB, tightened from 32 after measurement: the widest-record fixture at
+// 32 MiB peaked at 158 MiB of heap against a pre-registered 150 MiB budget.
+// Still 2.26x the measured top rung (R3 = 10.61 MiB), so no real file is near it.
+const PBP_ECDICT_MAX_PAYLOAD_BYTES = 24 * 1024 * 1024;
 const PBP_ECDICT_MAX_BYTES = 96 * 1024 * 1024;
 // Input boundaries. Observed maxima on that sample: line 12,504, word 100,
 // translation 372. A record breaching WORD/KEY/TRANS counts as malformed; the
@@ -227,11 +230,14 @@ const PBP_ECDICT_COLUMNS = Object.freeze([
   "word", "translation", "tag", "collins", "oxford", "frq", "bnc"
 ]);
 
-// Same rule as vocab-store's query identity and as the offline comparison
-// script's norm(). All three must stay byte-identical or a row imports fine and
-// can never be looked up.
+// Must stay character-for-character the same rule as vocab-store's query
+// identity -- pbpDictNormalizeTerm() followed by toLowerCase() -- and as the
+// offline comparison script's norm(). If they drift, a row imports fine and can
+// never be looked up. The `|| ""` coercion is copied verbatim rather than
+// improved: `String(x == null ? "" : x)` reads better but disagrees on 0 and
+// false, and "reads better" is not worth two subtly different identities.
 function pbpEcdictKey(word) {
-  return String(word == null ? "" : word).normalize("NFC").trim().replace(/\s+/g, " ").toLowerCase();
+  return String(word || "").normalize("NFC").trim().replace(/\s+/g, " ").toLowerCase();
 }
 
 // Quote-aware split of ONE physical line. ECDICT's phonetic column is quoted
@@ -357,12 +363,19 @@ function pbpEcdictParseRow(line, idx, rung) {
 // The one payload definition. Any acceptance gate that quotes a byte figure
 // must use this and nothing else; rev5 quietly added 16 bytes per record and
 // every quoted size in the spec was wrong for two revisions.
+//
+// pbpEcdictRecordBytes is the per-record form, and the import path accumulates
+// with it while parsing. Running the whole thing as one pass afterwards was
+// measured pushing a 31 MB encode into a single task.
+function pbpEcdictRecordBytes(r, enc) {
+  const e = enc || new TextEncoder();
+  return e.encode(r.key).length + e.encode(r.word).length + e.encode(r.translation).length;
+}
+
 function pbpEcdictPayloadBytes(records) {
   const enc = new TextEncoder();
   let n = 0;
-  for (const r of records) {
-    n += enc.encode(r.key).length + enc.encode(r.word).length + enc.encode(r.translation).length;
-  }
+  for (const r of records) n += pbpEcdictRecordBytes(r, enc);
   return n;
 }
 
@@ -617,11 +630,16 @@ async function pbpPackImportFile(file, onProgress) {
 
 const _PBP_ECDICT_META_ID = "ecdict";
 const _PBP_ECDICT_LOCK = "pbp-ecdict-import";
-// How many put() calls are queued per synchronous burst. The next burst is
-// queued from the LAST request's success callback, which keeps the transaction
-// alive without ever handing control back to a plain task (a setTimeout hop
-// would find the transaction inactive).
+// A batch is bounded by BOTH a record count and a byte budget, and ends at
+// whichever comes first. Counting records alone was measured at a 384 ms
+// event-loop gap on the widest-record fixture: 1000 records of 12.8 KB is a
+// 12.8 MB structured clone in one synchronous burst. The next burst is queued
+// from the LAST request's success callback, which keeps the transaction alive
+// without handing control back to a plain task, where it would be inactive.
 const PBP_ECDICT_PUT_BATCH = 1000;
+// UTF-16 units, a cheap proxy for clone cost that needs no encoder pass and adds
+// no field to the stored record (which must stay exactly key/word/translation).
+const PBP_ECDICT_PUT_BATCH_UNITS = 256 * 1024;
 
 // Queues clear + every put + the ready meta record into one live transaction.
 // Returns nothing: completion is the transaction's own oncomplete.
@@ -632,8 +650,15 @@ function _pbpEcdictCommit(tx, records, metaRecord, onProgress) {
   let i = 0;
   const queueBatch = () => {
     const end = Math.min(i + PBP_ECDICT_PUT_BATCH, records.length);
-    let last = null;
-    for (; i < end; i++) last = store.put(records[i]);
+    let last = null, units = 0;
+    for (; i < end; i++) {
+      const r = records[i];
+      last = store.put(r);
+      units += r.key.length + r.word.length + r.translation.length;
+      // Break AFTER putting record i, so i must advance past it here: the
+      // break skips the loop's own increment.
+      if (units >= PBP_ECDICT_PUT_BATCH_UNITS) { i++; break; }
+    }
     // Callers guarantee records.length > 0, so `last` is never null here.
     last.onsuccess = () => {
       if (onProgress) { try { onProgress(i); } catch (_) {} }
@@ -650,17 +675,31 @@ function _pbpEcdictCommit(tx, records, metaRecord, onProgress) {
   queueBatch();
 }
 
+// How much text to chew through before handing the event loop back, in UTF-16
+// units. The stream only awaits between chunks, so without this every line in a
+// chunk is parsed in one task and the block scales with chunk size and line
+// width. Safe here and ONLY here: parsing finishes before any transaction is
+// opened, so yielding cannot make one go inactive.
+const PBP_ECDICT_PARSE_YIELD_UNITS = 64 * 1024;
+
 // lineIter must come from pbpCedictLines(..., stats, PBP_ECDICT_MAX_BYTES) with
-// stats.crc pre-seeded to 0. opts: { rung, onProgress, onParsed }.
+// stats.crc pre-seeded to 0.
+// opts: { rung, onProgress, onParsed, onPhase }.
 async function pbpEcdictImport(lineIter, stats, opts) {
   const o = opts || {};
   const rung = o.rung || "R1";
   return navigator.locks.request(_PBP_ECDICT_LOCK, async () => {
     let idx = null;
     const records = [];
-    let rows = 0, malformed = 0;
+    const enc = new TextEncoder();
+    let rows = 0, malformed = 0, payloadBytes = 0, sinceYield = 0;
     for await (const line of lineIter) {
       if (!line) continue;
+      sinceYield += line.length;
+      if (sinceYield >= PBP_ECDICT_PARSE_YIELD_UNITS) {
+        sinceYield = 0;
+        await new Promise((r) => setTimeout(r, 0));
+      }
       if (!idx) {
         idx = pbpEcdictParseHeader(line);
         if (!idx) throw new Error("not an ECDICT csv: header missing or ambiguous");
@@ -678,7 +717,11 @@ async function pbpEcdictImport(lineIter, stats, opts) {
       if (r.malformed) { malformed++; continue; }
       if (!r.ok) continue;
       records.push(r.record);
+      // Accumulated here rather than in one pass afterwards: a single trailing
+      // encode of the whole payload was measured as a long task on its own.
+      payloadBytes += pbpEcdictRecordBytes(r.record, enc);
       if (records.length > PBP_ECDICT_MAX_ENTRIES) throw new Error("ECDICT entry count above the accepted ceiling");
+      if (payloadBytes > PBP_ECDICT_MAX_PAYLOAD_BYTES) throw new Error("ECDICT payload above the accepted ceiling");
       if (records.length % 20000 === 0 && o.onParsed) { try { o.onParsed(records.length); } catch (_) {} }
     }
     // Every resource gate is checked BEFORE a transaction exists, so a rejected
@@ -688,9 +731,6 @@ async function pbpEcdictImport(lineIter, stats, opts) {
     if (rows && malformed / rows > PBP_ECDICT_MAX_MALFORMED_RATIO) {
       throw new Error("not an ECDICT csv: too many malformed rows");
     }
-    const payloadBytes = pbpEcdictPayloadBytes(records);
-    if (payloadBytes > PBP_ECDICT_MAX_PAYLOAD_BYTES) throw new Error("ECDICT payload above the accepted ceiling");
-
     const metaRecord = {
       id: _PBP_ECDICT_META_ID,
       state: "ready",
@@ -701,6 +741,10 @@ async function pbpEcdictImport(lineIter, stats, opts) {
       // Diagnostic only. See pbpCrc32Update: 32 bits, collisions exist.
       decodedCrc32: stats && typeof stats.crc === "number" ? pbpCrc32Hex(stats.crc) : ""
     };
+    // Phase marker: everything above is parsing, everything below is the one
+    // transaction. Lets a harness attribute a main-thread stall to the phase
+    // that can yield versus the phase that must not.
+    if (o.onPhase) { try { o.onPhase("parsed"); } catch (_) {} }
     const db = await _pbpPackOpenDB();
     await _pbpPackTx(db, "readwrite", (tx) => {
       _pbpEcdictCommit(tx, records, metaRecord, o.onProgress);
