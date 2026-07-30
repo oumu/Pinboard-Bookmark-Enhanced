@@ -90,21 +90,52 @@ function pbpCedictEntryToNorm(rows, matched) {
   };
 }
 
+// CRC32 (IEEE), accumulated chunk by chunk. This is a best-effort DIAGNOSTIC
+// checksum for telling one imported file from another in the status line. It is
+// 32 bits, so collisions exist: never use it for identity, licence or any
+// enforcement decision.
+const _PBP_CRC32_TABLE = (() => {
+  const t = new Uint32Array(256);
+  for (let i = 0; i < 256; i++) {
+    let c = i;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    t[i] = c >>> 0;
+  }
+  return t;
+})();
+
+function pbpCrc32Update(crc, bytes) {
+  let c = (crc ^ 0xffffffff) >>> 0;
+  for (let i = 0; i < bytes.length; i++) c = (_PBP_CRC32_TABLE[(c ^ bytes[i]) & 0xff] ^ (c >>> 8)) >>> 0;
+  return (c ^ 0xffffffff) >>> 0;
+}
+
+function pbpCrc32Hex(crc) {
+  return (crc >>> 0).toString(16).padStart(8, "0");
+}
+
 // Streaming line splitter over a (possibly gzip) ReadableStream. The
 // TextDecoderStream handles UTF-8 across byte chunks; `carry` handles lines
 // across text chunks. fatal:true rejects on invalid UTF-8 (wrong file).
-// stats.bytes counts DECOMPRESSED bytes (64MB hard cap; stored in meta).
+// stats.bytes counts DECOMPRESSED bytes (capped by maxBytes; stored in meta).
+// Pass a starting stats.crc to also accumulate a CRC32 over those same decoded
+// bytes -- this is the only place that sees them, and doing it here costs no
+// extra buffering (SubtleCrypto has no streaming digest, so a real hash would
+// mean holding the whole file in memory).
 // The line-length check runs BEFORE the yield too -- a 70KB line whose
 // newline arrives in the same chunk must not slip through.
-async function* pbpCedictLines(stream, gzip, stats) {
+async function* pbpCedictLines(stream, gzip, stats, maxBytes) {
   stats = stats || { bytes: 0 };
   stats.bytes = 0;
+  const cap = maxBytes || 64 * 1024 * 1024;
+  const wantCrc = typeof stats.crc === "number";
   let text = stream;
   if (gzip) text = text.pipeThrough(new DecompressionStream("gzip"));
   text = text.pipeThrough(new TransformStream({
     transform(chunk, controller) {
       stats.bytes += chunk.byteLength;
-      if (stats.bytes > 64 * 1024 * 1024) throw new Error("CEDICT file too large");
+      if (stats.bytes > cap) throw new Error("CEDICT file too large");
+      if (wantCrc) stats.crc = pbpCrc32Update(stats.crc, chunk);
       controller.enqueue(chunk);
     }
   }));
@@ -361,37 +392,72 @@ function pbpEcdictEntryToNorm(rows, matched) {
 // ---- IDB layer (DB pbp-dict-packs) --------------------------------------
 const _PBP_PACK_DB = "pbp-dict-packs";
 const _PBP_PACK_STORE = "cedict";
+const _PBP_ECDICT_STORE = "ecdict";
 const _PBP_PACK_META = "packs";
+const _PBP_PACK_VERSION = 2;
 let _pbpPackDbPromise = null;
+// Set when a stale page holding the old JS meets a database another tab already
+// upgraded. Reopening at the old version yields VersionError, which no amount of
+// retrying fixes -- only reloading the page does. Callers surface it as such.
+let _pbpPackStale = false;
+
+function pbpPackIsStale() { return _pbpPackStale; }
 
 function _pbpPackOpenDB() {
   if (_pbpPackDbPromise) return _pbpPackDbPromise;
   _pbpPackDbPromise = new Promise((resolve, reject) => {
-    const req = indexedDB.open(_PBP_PACK_DB, 1);
-    req.onupgradeneeded = () => {
+    const req = indexedDB.open(_PBP_PACK_DB, _PBP_PACK_VERSION);
+    req.onupgradeneeded = (ev) => {
       const db = req.result;
-      // Inline autoIncrement id: getAll() only returns VALUES, so the id
-      // must live in the record for merge/dedup/sort to see it.
-      const store = db.createObjectStore(_PBP_PACK_STORE, { keyPath: "id", autoIncrement: true });
-      store.createIndex("simp", "simp", { unique: false });
-      store.createIndex("trad", "trad", { unique: false });
-      db.createObjectStore(_PBP_PACK_META, { keyPath: "id" });
+      // Version-guarded and additive. Creating an existing store throws
+      // ConstraintError and rolls the whole upgrade back, so `oldVersion < 1`
+      // must not run for a v1 user; conversely a fresh install has to run BOTH
+      // branches, so neither may be dropped.
+      if (ev.oldVersion < 1) {
+        // Inline autoIncrement id: getAll() only returns VALUES, so the id
+        // must live in the record for merge/dedup/sort to see it.
+        const store = db.createObjectStore(_PBP_PACK_STORE, { keyPath: "id", autoIncrement: true });
+        store.createIndex("simp", "simp", { unique: false });
+        store.createIndex("trad", "trad", { unique: false });
+        db.createObjectStore(_PBP_PACK_META, { keyPath: "id" });
+      }
+      if (ev.oldVersion < 2) {
+        const e = db.createObjectStore(_PBP_ECDICT_STORE, { keyPath: "id", autoIncrement: true });
+        e.createIndex("key", "key", { unique: false });
+      }
+      // Nothing here touches cedict or packs data: a user who already imported
+      // CC-CEDICT keeps it and must not be asked to import again.
     };
     req.onsuccess = () => {
       const db = req.result;
-      // Future schema bump: close on versionchange and drop the cached
-      // promise so a long-lived options tab doesn't block the upgrade.
+      // Close on versionchange and drop the cached promise so a long-lived
+      // options tab doesn't block another tab's upgrade.
       db.onversionchange = () => { try { db.close(); } catch (_) {} _pbpPackDbPromise = null; };
       resolve(db);
     };
-    req.onerror = () => { _pbpPackDbPromise = null; reject(req.error || new Error("pack db open failed")); };
+    // Two distinct failures. onblocked: our upgrade is waiting on another
+    // connection. onerror with VersionError: the database is NEWER than the
+    // version this page knows, i.e. this page's JS is stale.
+    req.onblocked = () => { console.warn("[pack] db upgrade blocked by another connection"); };
+    req.onerror = () => {
+      const err = req.error;
+      if (err && err.name === "VersionError") {
+        _pbpPackStale = true;
+        console.warn("[pack] db is newer than this page expects; reload required:", err.name);
+      }
+      _pbpPackDbPromise = null;
+      reject(err || new Error("pack db open failed"));
+    };
   });
   return _pbpPackDbPromise;
 }
 
-function _pbpPackTx(db, mode, fn) {
+// `stores` is explicit per operation. A transaction's scope is fixed when it is
+// created, so it cannot be widened later -- and scoping every call to all three
+// stores would needlessly block the other pack and the shared meta store.
+function _pbpPackTx(db, mode, fn, stores) {
   return new Promise((resolve, reject) => {
-    const tx = db.transaction([_PBP_PACK_STORE, _PBP_PACK_META], mode);
+    const tx = db.transaction(stores || [_PBP_PACK_STORE, _PBP_PACK_META], mode);
     let out;
     // A synchronous throw part-way through fn() leaves whatever it already
     // queued on a live transaction, which then COMMITS. The import's first
@@ -540,4 +606,172 @@ async function pbpPackImportFile(file, onProgress) {
   }
   const gzip = head[0] === 0x1f && head[1] === 0x8b;
   return pbpPackImport(pbpCedictLines(file.stream(), gzip, stats), onProgress, stats);
+}
+
+// ---- ECDICT IDB layer ----------------------------------------------------
+// Import is ATOMIC, unlike the CC-CEDICT path: parse the whole file into memory
+// first, and only then clear + write + mark ready inside ONE transaction. A
+// user replacing their pack must not lose the working one to a parse error, a
+// truncated stream, a failed write or an exhausted quota. Buffering costs memory
+// (~15 MB at the top rung) and that is the trade being made on purpose.
+
+const _PBP_ECDICT_META_ID = "ecdict";
+const _PBP_ECDICT_LOCK = "pbp-ecdict-import";
+// How many put() calls are queued per synchronous burst. The next burst is
+// queued from the LAST request's success callback, which keeps the transaction
+// alive without ever handing control back to a plain task (a setTimeout hop
+// would find the transaction inactive).
+const PBP_ECDICT_PUT_BATCH = 1000;
+
+// Queues clear + every put + the ready meta record into one live transaction.
+// Returns nothing: completion is the transaction's own oncomplete.
+function _pbpEcdictCommit(tx, records, metaRecord, onProgress) {
+  const store = tx.objectStore(_PBP_ECDICT_STORE);
+  const metaStore = tx.objectStore(_PBP_PACK_META);
+  store.clear();
+  let i = 0;
+  const queueBatch = () => {
+    const end = Math.min(i + PBP_ECDICT_PUT_BATCH, records.length);
+    let last = null;
+    for (; i < end; i++) last = store.put(records[i]);
+    // Callers guarantee records.length > 0, so `last` is never null here.
+    last.onsuccess = () => {
+      if (onProgress) { try { onProgress(i); } catch (_) {} }
+      if (i < records.length) { queueBatch(); return; }
+      // Final batch. This put MUST be queued synchronously inside this
+      // callback: after any await or promise hop the transaction is inactive.
+      metaStore.put(metaRecord);
+    };
+    // Deliberately no onerror handler. A failed request bubbles and aborts the
+    // transaction, which is exactly what should happen; calling preventDefault
+    // would let the next batch queue onto a doomed transaction and could land a
+    // partial pack.
+  };
+  queueBatch();
+}
+
+// lineIter must come from pbpCedictLines(..., stats, PBP_ECDICT_MAX_BYTES) with
+// stats.crc pre-seeded to 0. opts: { rung, onProgress, onParsed }.
+async function pbpEcdictImport(lineIter, stats, opts) {
+  const o = opts || {};
+  const rung = o.rung || "R1";
+  return navigator.locks.request(_PBP_ECDICT_LOCK, async () => {
+    let idx = null;
+    const records = [];
+    let rows = 0, malformed = 0;
+    for await (const line of lineIter) {
+      if (!line) continue;
+      if (!idx) {
+        idx = pbpEcdictParseHeader(line);
+        if (!idx) throw new Error("not an ECDICT csv: header missing or ambiguous");
+        // Present-but-optional columns: they decide admission at R2/R3 and are
+        // then discarded, so a file without them simply cannot reach those rungs.
+        const names = pbpEcdictSplitLine(line).map((n) => n.trim());
+        const ex = names.indexOf("exchange"), de = names.indexOf("definition");
+        if (ex >= 0) idx.exchange = ex;
+        if (de >= 0) idx.definition = de;
+        continue;
+      }
+      rows++;
+      const r = pbpEcdictParseRow(line, idx, rung);
+      if (r.fatal) throw new Error("not an ECDICT csv: " + r.fatal);
+      if (r.malformed) { malformed++; continue; }
+      if (!r.ok) continue;
+      records.push(r.record);
+      if (records.length > PBP_ECDICT_MAX_ENTRIES) throw new Error("ECDICT entry count above the accepted ceiling");
+      if (records.length % 20000 === 0 && o.onParsed) { try { o.onParsed(records.length); } catch (_) {} }
+    }
+    // Every resource gate is checked BEFORE a transaction exists, so a rejected
+    // file never touches the store.
+    if (!idx) throw new Error("not an ECDICT csv: empty file");
+    if (!records.length) throw new Error("ECDICT import parsed no usable rows");
+    if (rows && malformed / rows > PBP_ECDICT_MAX_MALFORMED_RATIO) {
+      throw new Error("not an ECDICT csv: too many malformed rows");
+    }
+    const payloadBytes = pbpEcdictPayloadBytes(records);
+    if (payloadBytes > PBP_ECDICT_MAX_PAYLOAD_BYTES) throw new Error("ECDICT payload above the accepted ceiling");
+
+    const metaRecord = {
+      id: _PBP_ECDICT_META_ID,
+      state: "ready",
+      entries: records.length,
+      rung,
+      importedAt: Date.now(),
+      decodedBytes: (stats && stats.bytes) || 0,
+      // Diagnostic only. See pbpCrc32Update: 32 bits, collisions exist.
+      decodedCrc32: stats && typeof stats.crc === "number" ? pbpCrc32Hex(stats.crc) : ""
+    };
+    const db = await _pbpPackOpenDB();
+    await _pbpPackTx(db, "readwrite", (tx) => {
+      _pbpEcdictCommit(tx, records, metaRecord, o.onProgress);
+    }, [_PBP_ECDICT_STORE, _PBP_PACK_META]);
+    return { entries: records.length, malformed, rows, payloadBytes, rung };
+  });
+}
+
+// Exact-key lookup. Meta and index read share ONE readonly transaction so no
+// caller needs a racy second meta read.
+async function pbpEcdictLookup(term) {
+  try {
+    const key = pbpEcdictKey(term);
+    if (!key) return { state: "ready-miss" };
+    const db = await _pbpPackOpenDB();
+    return await new Promise((resolve) => {
+      let settled = false;
+      const finish = (r) => { if (!settled) { settled = true; resolve(r); } };
+      let tx;
+      try { tx = db.transaction([_PBP_ECDICT_STORE, _PBP_PACK_META], "readonly"); }
+      catch (_) { finish({ state: "error" }); return; }
+      tx.onabort = tx.onerror = () => finish({ state: "error" });
+      const metaReq = tx.objectStore(_PBP_PACK_META).get(_PBP_ECDICT_META_ID);
+      metaReq.onsuccess = () => {
+        const meta = metaReq.result;
+        if (!meta || meta.state !== "ready") { finish({ state: "unavailable" }); return; }
+        let rowsReq;
+        try { rowsReq = tx.objectStore(_PBP_ECDICT_STORE).index("key").getAll(key); }
+        catch (_) { finish({ state: "error" }); return; }
+        rowsReq.onsuccess = () => {
+          const rows = rowsReq.result || [];
+          finish(rows.length ? { state: "hit", matched: key, rows, meta } : { state: "ready-miss" });
+        };
+        rowsReq.onerror = () => finish({ state: "error" });
+      };
+      metaReq.onerror = () => finish({ state: "error" });
+    });
+  } catch (_) { return { state: "error" }; }
+}
+
+async function pbpEcdictMeta() {
+  try {
+    const db = await _pbpPackOpenDB();
+    return await new Promise((resolve) => {
+      const req = db.transaction(_PBP_PACK_META, "readonly").objectStore(_PBP_PACK_META).get(_PBP_ECDICT_META_ID);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => resolve({ state: "error" });
+    });
+  } catch (_) { return { state: "error" }; }
+}
+
+async function pbpEcdictDelete() {
+  return navigator.locks.request(_PBP_ECDICT_LOCK, async () => {
+    const db = await _pbpPackOpenDB();
+    await _pbpPackTx(db, "readwrite", (tx) => {
+      tx.objectStore(_PBP_PACK_META).delete(_PBP_ECDICT_META_ID);
+      tx.objectStore(_PBP_ECDICT_STORE).clear();
+    }, [_PBP_ECDICT_STORE, _PBP_PACK_META]);
+    return true;
+  });
+}
+
+// File import entry (options page). Sniffs gzip/zip by magic bytes, not by
+// filename, so a mis-named .csv still works.
+async function pbpEcdictImportFile(file, opts) {
+  const head = new Uint8Array(await file.slice(0, 2).arrayBuffer());
+  const stats = { bytes: 0, crc: 0 };
+  if (head[0] === 0x50 && head[1] === 0x4b) {
+    const text = await pbpPackZipTextStream(file);
+    return pbpEcdictImport(pbpCedictLines(text, false, stats, PBP_ECDICT_MAX_BYTES), stats, opts);
+  }
+  const gzip = head[0] === 0x1f && head[1] === 0x8b;
+  return pbpEcdictImport(pbpCedictLines(file.stream(), gzip, stats, PBP_ECDICT_MAX_BYTES), stats, opts);
 }

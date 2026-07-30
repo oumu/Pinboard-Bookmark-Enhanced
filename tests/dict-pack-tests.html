@@ -631,6 +631,98 @@ section("pbpCedictLines");
   const lookupAfterDelete = await pbpPackLookup(["测试"]);
   check("lookup is unavailable after delete", lookupAfterDelete && lookupAfterDelete.state === "unavailable");
 
+  section("ECDICT IDB layer");
+  // Clean slate, then build a v1 database BY HAND (matching exactly what the
+  // old schema created) with a sentinel row, so the upgrade path is exercised
+  // for real rather than simulated.
+  await new Promise((r) => { const d = indexedDB.deleteDatabase("pbp-dict-packs"); d.onsuccess = d.onerror = d.onblocked = r; });
+  _pbpPackDbPromise = null;
+  await new Promise((res, rej) => {
+    const rq = indexedDB.open("pbp-dict-packs", 1);
+    rq.onupgradeneeded = () => {
+      const db = rq.result;
+      const st = db.createObjectStore("cedict", { keyPath: "id", autoIncrement: true });
+      st.createIndex("simp", "simp", { unique: false });
+      st.createIndex("trad", "trad", { unique: false });
+      db.createObjectStore("packs", { keyPath: "id" });
+    };
+    rq.onsuccess = () => {
+      const db = rq.result;
+      const tx = db.transaction(["cedict", "packs"], "readwrite");
+      tx.objectStore("cedict").put({ trad: "沙丁魚", simp: "沙丁鱼", pinyin: "sha1 ding1 yu2", defs: ["sardine"] });
+      tx.objectStore("packs").put({ id: "cedict", state: "ready", entries: 1, importedAt: 1, bytes: 7 });
+      tx.oncomplete = () => { db.close(); res(); };
+      tx.onerror = () => rej(tx.error);
+    };
+    rq.onerror = () => rej(rq.error);
+  });
+  const upgraded = await _pbpPackOpenDB();
+  check("v1 -> v2 upgrade adds the ecdict store", upgraded.objectStoreNames.contains("ecdict"));
+  check("v1 -> v2 upgrade keeps cedict and packs", upgraded.objectStoreNames.contains("cedict") && upgraded.objectStoreNames.contains("packs"));
+  const survivedMeta = await pbpPackMeta();
+  check("a CC-CEDICT pack imported before the upgrade is still ready", !!survivedMeta && survivedMeta.state === "ready" && survivedMeta.bytes === 7);
+  const survivedHit = await pbpPackLookup(["沙丁鱼"]);
+  check("and is still queryable, so nobody has to import it again", survivedHit && survivedHit.state === "hit");
+  check("ecdict starts unavailable on a freshly upgraded database", (await pbpEcdictLookup("word")).state === "unavailable");
+
+  async function* eLines(arr) { for (const l of arr) yield l; }
+  const E_STATS = () => ({ bytes: 4242, crc: 0 });
+
+  let noRows = "";
+  try { await pbpEcdictImport(eLines([E_HDR]), E_STATS(), { rung: "R1" }); }
+  catch (e) { noRows = e.message; }
+  check("a header with no usable rows is rejected before any transaction", /no usable rows/.test(noRows));
+  check("that rejection left ecdict untouched", (await pbpEcdictLookup("ephemeral")).state === "unavailable");
+
+  let badHdr = "";
+  try { await pbpEcdictImport(eLines(["word,word,translation", E_EPHEMERAL]), E_STATS(), {}); }
+  catch (e) { badHdr = e.message; }
+  check("a duplicate header column is rejected as not-ECDICT", /not an ECDICT csv/.test(badHdr));
+
+  let fatalQuote = "";
+  try { await pbpEcdictImport(eLines([E_HDR, E_EPHEMERAL, 'x,"unterminated,y']), E_STATS(), {}); }
+  catch (e) { fatalQuote = e.message; }
+  check("one unclosed quote rejects the whole import, not just its line", /unclosed-quote/.test(fatalQuote));
+
+  const okRes = await pbpEcdictImport(eLines([E_HDR, E_EPHEMERAL, E_AARDVARK, E_ACOME]), E_STATS(), { rung: "R1" });
+  check("R1 import stores only the rows that rung admits", okRes.entries === 2);
+  const eHit = await pbpEcdictLookup("Ephemeral");
+  check("lookup is case-insensitive through the shared key rule", eHit.state === "hit" && eHit.rows.length === 1);
+  check("lookup returns the stored display form", eHit.rows[0].word === "ephemeral");
+  check("a word the rung excluded is a ready miss, not unavailable", (await pbpEcdictLookup("a-come")).state === "ready-miss");
+  const eMeta = await pbpEcdictMeta();
+  check("meta records the rung actually used", !!eMeta && eMeta.rung === "R1" && eMeta.entries === 2);
+  check("meta records the decoded byte count", eMeta.decodedBytes === 4242);
+  check("meta carries an 8-hex diagnostic checksum", /^[0-9a-f]{8}$/.test(eMeta.decodedCrc32));
+
+  // Atomicity: a put() that throws synchronously part-way through the batch must
+  // abort, leaving the previously imported pack intact rather than half-replaced.
+  const dbA = await _pbpPackOpenDB();
+  let cloneThrew = false;
+  try {
+    await _pbpPackTx(dbA, "readwrite", (tx) => {
+      _pbpEcdictCommit(tx, [{ key: "a", word: "a", translation: "n. 甲" }, { key: "b", word: "b", translation: () => {} }],
+        { id: "ecdict", state: "ready", entries: 2 }, null);
+    }, ["ecdict", "packs"]);
+  } catch (e) { cloneThrew = true; }
+  check("a non-cloneable record aborts the atomic replace", cloneThrew);
+  const afterAbort = await pbpEcdictLookup("ephemeral");
+  check("the previous ECDICT pack survives an aborted replace", afterAbort.state === "hit");
+  const metaAfterAbort = await pbpEcdictMeta();
+  check("and its meta still reports the old entry count", !!metaAfterAbort && metaAfterAbort.entries === 2 && metaAfterAbort.rung === "R1");
+
+  // Re-import at a wider rung replaces rather than accumulates.
+  const wideRes = await pbpEcdictImport(eLines([E_HDR, E_EPHEMERAL, E_AARDVARK, E_ACOME, E_ABHUMAN, E_DEFEN]), E_STATS(), { rung: "R3" });
+  check("R3 import admits the definition-only row", wideRes.entries === 4);
+  check("a web-only gloss stays out even at the widest rung", (await pbpEcdictLookup("abhuman")).state === "ready-miss");
+  check("re-import replaces instead of duplicating", (await pbpEcdictLookup("ephemeral")).rows.length === 1);
+
+  // The two packs share a database and a meta store but never each other's state.
+  await pbpEcdictDelete();
+  check("deleting the ECDICT pack makes it unavailable", (await pbpEcdictLookup("ephemeral")).state === "unavailable");
+  const cedictStillThere = await pbpPackLookup(["沙丁鱼"]);
+  check("deleting the ECDICT pack leaves CC-CEDICT untouched", cedictStillThere && cedictStillThere.state === "hit");
+
   section("pbpPackZipTextStream");
   // Hand-built single-entry zips: local header + data + central dir + EOCD.
   // Real CRC32 and true uncompressed size so the fixtures are also valid for
