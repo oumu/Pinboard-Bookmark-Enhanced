@@ -2678,11 +2678,14 @@
   "ecdictSection": {
     "message": "Dictionnaire anglais-chinois hors ligne"
   },
+  "ecdictEmpty": {
+    "message": "Non importé. Choisissez un fichier CSV utilisant la disposition des champs ECDICT."
+  },
   "ecdictHint": {
     "message": "Affiche des définitions chinoises au-dessus de l'entrée anglaise lors de la recherche d'un mot anglais. L'entrée anglaise se charge toujours."
   },
   "ecdictFormatNote": {
-    "message": "Lit la disposition des champs CSV d'ECDICT. Ce projet ne fournit, ne recommande ni ne vérifie aucune source pour ces données et n'y est pas affilié. Vous fournissez le fichier et êtes responsable de sa licence."
+    "message": "Attend un fichier CSV dont la première ligne est l'en-tête des colonnes et contient word, translation, tag, collins, oxford, frq et bnc. Les paquets de dictionnaire déjà compilés comme mdx, eudic, stardict, mobi et sqlite relèvent d'autres formats et ne peuvent pas être importés. Ce projet ne fournit, ne recommande ni ne vérifie aucune source pour ces données et n'y est pas affilié. Vous fournissez le fichier et êtes responsable de sa licence."
   },
   "ecdictImportFile": {
     "message": "Importer un fichier"

@@ -2678,11 +2678,14 @@
   "ecdictSection": {
     "message": "Offline English–Chinese dictionary"
   },
+  "ecdictEmpty": {
+    "message": "Not imported. Choose a CSV file in the ECDICT field layout."
+  },
   "ecdictHint": {
     "message": "Adds Chinese definitions above the English entry when you look up an English word. The English entry still loads as usual."
   },
   "ecdictFormatNote": {
-    "message": "Reads the ECDICT CSV field layout. This project does not provide, recommend or verify a source for the data, and is not affiliated with it. You supply the file and are responsible for its licence."
+    "message": "Expects a CSV file whose first line is the column header and includes word, translation, tag, collins, oxford, frq and bnc. Prebuilt dictionary packages such as mdx, eudic, stardict, mobi and sqlite are different formats and cannot be imported. This project does not provide, recommend or verify a source for the data, and is not affiliated with it. You supply the file and are responsible for its licence."
   },
   "ecdictImportFile": {
     "message": "Import file"

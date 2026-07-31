@@ -1439,7 +1439,9 @@ async function _pbpEcdictRefreshStatus() {
     el.textContent = t("dictPackReadFailed");
     if (del) del.hidden = true;
   } else {
-    el.textContent = t("dictPackEmpty");
+    // NOT dictPackEmpty: that string names MDBG, CC BY-SA 4.0 and .txt.gz, which
+    // belong to the other pack entirely.
+    el.textContent = t("ecdictEmpty");
     if (del) del.hidden = true;
   }
 }

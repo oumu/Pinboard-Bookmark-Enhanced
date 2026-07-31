@@ -2678,11 +2678,14 @@
   "ecdictSection": {
     "message": "離線英漢詞典"
   },
+  "ecdictEmpty": {
+    "message": "未匯入。選擇一個 ECDICT 欄位版面的 CSV 檔案後在此匯入。"
+  },
   "ecdictHint": {
     "message": "查英文詞時，在英文釋義上方加一段中文釋義。英文釋義照常載入。"
   },
   "ecdictFormatNote": {
-    "message": "讀取 ECDICT 的 CSV 欄位版面。本項目不提供、不推薦、不驗證資料來源，亦與其無關聯。檔案由你自行取得，其授權由你負責。"
+    "message": "需要一個 CSV 檔案，首行是欄名，且包含 word、translation、tag、collins、oxford、frq、bnc 這幾欄。mdx、eudic、stardict、mobi、sqlite 這類成品詞典包是別的格式，匯入不了。本項目不提供、不推薦、不驗證資料來源，亦與其無關聯。檔案由你自行取得，其授權由你負責。"
   },
   "ecdictImportFile": {
     "message": "匯入檔案"

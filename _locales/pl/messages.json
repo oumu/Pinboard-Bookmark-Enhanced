@@ -2678,11 +2678,14 @@
   "ecdictSection": {
     "message": "Słownik angielsko-chiński offline"
   },
+  "ecdictEmpty": {
+    "message": "Nie zaimportowano. Wybierz plik CSV w układzie pól ECDICT."
+  },
   "ecdictHint": {
     "message": "Przy wyszukiwaniu angielskiego słowa pokazuje chińskie znaczenia nad wpisem angielskim. Wpis angielski nadal się wczytuje."
   },
   "ecdictFormatNote": {
-    "message": "Czyta układ pól CSV formatu ECDICT. Ten projekt nie udostępnia, nie poleca ani nie weryfikuje źródła tych danych i nie jest z nim powiązany. Plik dostarczasz samodzielnie i odpowiadasz za jego licencję."
+    "message": "Wymaga pliku CSV, w którym pierwszy wiersz to nagłówek kolumn i zawiera word, translation, tag, collins, oxford, frq oraz bnc. Gotowe pakiety słowników, takie jak mdx, eudic, stardict, mobi czy sqlite, mają inny format i nie da się ich zaimportować. Ten projekt nie udostępnia, nie poleca ani nie weryfikuje źródła tych danych i nie jest z nim powiązany. Plik dostarczasz samodzielnie i odpowiadasz za jego licencję."
   },
   "ecdictImportFile": {
     "message": "Importuj plik"

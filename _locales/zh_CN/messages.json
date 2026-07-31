@@ -2678,11 +2678,14 @@
   "ecdictSection": {
     "message": "离线英汉词典"
   },
+  "ecdictEmpty": {
+    "message": "未导入。选择一个 ECDICT 字段布局的 CSV 文件后在此导入。"
+  },
   "ecdictHint": {
     "message": "查英文词时，在英文释义上方加一段中文释义。英文释义照常加载。"
   },
   "ecdictFormatNote": {
-    "message": "读取 ECDICT 的 CSV 字段布局。本项目不提供、不推荐、不验证数据来源，也与其无关联。文件由你自行取得，其许可由你负责。"
+    "message": "需要一个 CSV 文件，首行是列名，且包含 word、translation、tag、collins、oxford、frq、bnc 这几列。mdx、eudic、stardict、mobi、sqlite 这类成品词典包是别的格式，导入不了。本项目不提供、不推荐、不验证数据来源，也与其无关联。文件由你自行取得，其许可由你负责。"
   },
   "ecdictImportFile": {
     "message": "导入文件"

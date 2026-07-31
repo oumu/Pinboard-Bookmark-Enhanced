@@ -218,9 +218,30 @@ async function loadLocale(loc) {
     LOCALES.every((loc) => ECDICT_HINT_MARKERS[loc].every((m) =>
       msgs[loc].ecdictHint.message.toLowerCase().includes(m.toLowerCase()))),
     "one or more ecdictHint messages stopped describing the English-to-Chinese direction");
+  // The ECDICT status line once reused dictPackEmpty, which names MDBG, CC BY-SA
+  // 4.0 and .txt.gz -- all facts about the OTHER pack. Shown to a user standing
+  // in front of the English-Chinese importer, it was simply wrong.
+  check("H9d ECDICT status copy never borrows the other pack's source facts",
+    LOCALES.every((loc) => {
+      const own = [msgs[loc].ecdictEmpty, msgs[loc].ecdictHint, msgs[loc].ecdictFormatNote,
+        msgs[loc].ecdictSection, msgs[loc].ecdictReady].map((m) => (m && m.message) || "").join(" ");
+      return !/MDBG/i.test(own) && !/CC-CEDICT/i.test(own) && !/CC BY-SA/i.test(own) && !/\.txt\.gz/i.test(own);
+    }),
+    "ECDICT copy repeats MDBG / CC-CEDICT / CC BY-SA / .txt.gz, which describe the Chinese-English pack");
+  // Without naming the expected columns the feature is unusable: the obvious
+  // place to look is the upstream releases page, which carries only mdx, eudic,
+  // stardict, mobi and sqlite builds -- none of them importable here.
+  check("H9e ECDICT copy says concretely which file shape it needs",
+    LOCALES.every((loc) => {
+      const note = (msgs[loc].ecdictFormatNote && msgs[loc].ecdictFormatNote.message) || "";
+      return /csv/i.test(note) && /word/.test(note) && /translation/.test(note) &&
+        /mdx/i.test(note) && /stardict/i.test(note);
+    }),
+    "ECDICT copy no longer names the required columns or the formats that will not work");
   check("H9c ECDICT copy never links or recommends a data source",
     LOCALES.every((loc) => {
-      const all = [msgs[loc].ecdictHint.message, msgs[loc].ecdictFormatNote.message, msgs[loc].ecdictSection.message].join(" ");
+      const all = [msgs[loc].ecdictHint.message, msgs[loc].ecdictFormatNote.message,
+        msgs[loc].ecdictSection.message, msgs[loc].ecdictEmpty.message].join(" ");
       return !/https?:\/\//.test(all) && !/github/i.test(all);
     }),
     "ECDICT copy points at a source for the data, which the licence position forbids");

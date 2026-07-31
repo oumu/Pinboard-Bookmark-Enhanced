@@ -773,7 +773,7 @@
         <summary data-i18n="ecdictSection">Offline English–Chinese dictionary</summary>
         <div class="vocab-details-body">
           <p class="hint" data-i18n="ecdictHint">Adds Chinese definitions above the English entry when you look up an English word. The English entry still loads as usual.</p>
-          <p class="hint" data-i18n="ecdictFormatNote">Reads the ECDICT CSV field layout. This project does not provide, recommend or verify a source for the data, and is not affiliated with it. You supply the file and are responsible for its licence.</p>
+          <p class="hint" data-i18n="ecdictFormatNote">Expects a CSV file whose first line is the column header and includes word, translation, tag, collins, oxford, frq and bnc. Prebuilt dictionary packages such as mdx, eudic, stardict, mobi and sqlite are different formats and cannot be imported. This project does not provide, recommend or verify a source for the data, and is not affiliated with it. You supply the file and are responsible for its licence.</p>
           <p class="save-status" id="ecdict-pack-status" role="status" aria-live="polite"></p>
           <div class="vocab-toolbar">
             <button type="button" class="btn btn-sm" id="ecdict-pack-import" data-i18n="ecdictImportFile">Import file</button>

@@ -2678,11 +2678,14 @@
   "ecdictSection": {
     "message": "Offline-Wörterbuch Englisch–Chinesisch"
   },
+  "ecdictEmpty": {
+    "message": "Nicht importiert. Wählen Sie eine CSV-Datei im ECDICT-Feldlayout."
+  },
   "ecdictHint": {
     "message": "Zeigt bei englischen Wörtern chinesische Bedeutungen über dem englischen Eintrag. Der englische Eintrag wird weiterhin geladen."
   },
   "ecdictFormatNote": {
-    "message": "Liest das CSV-Feldlayout von ECDICT. Dieses Projekt stellt keine Datenquelle bereit, empfiehlt keine und prüft keine, und steht in keiner Verbindung dazu. Sie stellen die Datei bereit und sind für ihre Lizenz verantwortlich."
+    "message": "Erwartet eine CSV-Datei, deren erste Zeile die Spaltenüberschrift ist und word, translation, tag, collins, oxford, frq und bnc enthält. Fertige Wörterbuchpakete wie mdx, eudic, stardict, mobi und sqlite sind andere Formate und lassen sich nicht importieren. Dieses Projekt stellt keine Datenquelle bereit, empfiehlt keine und prüft keine, und steht in keiner Verbindung dazu. Sie stellen die Datei bereit und sind für ihre Lizenz verantwortlich."
   },
   "ecdictImportFile": {
     "message": "Datei importieren"

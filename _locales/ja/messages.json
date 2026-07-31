@@ -2678,11 +2678,14 @@
   "ecdictSection": {
     "message": "オフライン英中辞典"
   },
+  "ecdictEmpty": {
+    "message": "未読み込み。ECDICT の列構成の CSV ファイルを選んでください。"
+  },
   "ecdictHint": {
     "message": "英単語を調べたとき、英語の項目の上に中国語訳を表示します。英語の項目はこれまでどおり読み込まれます。"
   },
   "ecdictFormatNote": {
-    "message": "ECDICT の CSV 列構成を読み込みます。本プロジェクトはデータの入手先を提供・推奨・検証しておらず、提供元とは無関係です。ファイルはご自身で用意し、そのライセンスにはご自身で責任を負ってください。"
+    "message": "1 行目が列名で、word・translation・tag・collins・oxford・frq・bnc の各列を含む CSV ファイルが必要です。mdx・eudic・stardict・mobi・sqlite などの完成品の辞書パックは別形式のため読み込めません。本プロジェクトはデータの入手先を提供・推奨・検証しておらず、提供元とは無関係です。ファイルはご自身で用意し、そのライセンスにはご自身で責任を負ってください。"
   },
   "ecdictImportFile": {
     "message": "ファイルを読み込む"
