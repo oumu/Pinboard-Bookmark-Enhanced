@@ -63,6 +63,34 @@ assertEq(pbpDictLowerCandidate("Défense", "fr"), "défense", "French uppercase 
 assertEq(pbpDictLowerCandidate("défense", "fr"), "", "already-lowercase term has no duplicate candidate");
 assertEq(pbpDictLowerCandidate("Word", "xx"), "", "unsupported locale never reaches toLocaleLowerCase");
 
+section("pbpDictCleanCandidate");
+// Live API, 2026-07-31: en/don't -> 4 entries, en/don’t -> 0 entries.
+assertEq(pbpDictCleanCandidate("don’t", "en"), "don't", "curly apostrophe folds to ASCII");
+assertEq(pbpDictCleanCandidate("don't", "en"), "", "already-ASCII apostrophe has no duplicate candidate");
+assertEq(pbpDictCleanCandidate("ubiquitous.", "en"), "ubiquitous", "trailing sentence punctuation is dropped");
+assertEq(pbpDictCleanCandidate("“ubiquitous”", "en"), "ubiquitous", "surrounding curly quotes are dropped");
+assertEq(pbpDictCleanCandidate("ubiq­uitous", "en"), "ubiquitous", "soft hyphen from justified text is removed");
+assertEq(pbpDictCleanCandidate("ubi​quitous", "en"), "ubiquitous", "zero-width space is removed");
+assertEq(pbpDictCleanCandidate("pre-", "en"), "", "trailing hyphen survives: pre- is a real entry");
+assertEq(pbpDictCleanCandidate("-ing", "en"), "", "leading hyphen survives: -ing is a real entry");
+assertEq(pbpDictCleanCandidate("ubiquitous", "en"), "", "a clean word yields no extra candidate");
+assertEq(pbpDictCleanCandidate("...", "en"), "", "punctuation-only selection never becomes an empty query");
+assertEq(pbpDictCleanCandidate("don’t", "xx"), "", "unsupported locale yields no candidate");
+
+section("pbpDictQueryCandidates");
+const candTerms = (t, l) => pbpDictQueryCandidates(t, l).map((c) => c.term).join("|");
+assertEq(candTerms("ubiquitous", "en"), "ubiquitous", "a clean lowercase word still costs exactly one request");
+assertEq(candTerms("Ubiquitous", "en"), "Ubiquitous|ubiquitous", "capitalized word keeps the old two-step chain");
+assertEq(candTerms("Don’t", "en"), "Don’t|Don't|don't", "sentence-initial contraction reaches don't in three steps");
+assertEq(candTerms("don’t", "en"), "don’t|don't", "lowercase contraction needs one extra step");
+assert(!candTerms("Don’t", "en").split("|").includes("don’t"),
+  "the raw form is never lowercased once cleaning applies: a curly-apostrophe headword cannot hit");
+assertEq(pbpDictQueryCandidates("Ubiquitous", "en")[0].skipCache, true, "the exact term always bypasses the cache");
+assertEq(pbpDictQueryCandidates("Ubiquitous", "en")[0].aliasExact, false, "the exact term is not its own alias");
+assertEq(pbpDictQueryCandidates("Ubiquitous", "en")[1].skipCache, false, "derived candidates may read the cache");
+assertEq(pbpDictQueryCandidates("Ubiquitous", "en")[1].aliasExact, true, "a derived hit is cached under the exact key too");
+assertEq(pbpDictQueryCandidates("", "en").length, 1, "an empty selection produces no derived candidates");
+
 section("pbpDictOwnerScope");
 assertEq(pbpDictOwnerScope("alice"), "acct_alice", "account -> acct_ prefix");
 assertEq(pbpDictOwnerScope(""), "ownerless", "falsy -> ownerless");
@@ -112,6 +140,7 @@ assertEq(pbpDictNormalizeEntry({ ...FDA_SAMPLE, source: { url: "javascript:x", l
 assertEq(pbpDictNormalizeEntry({ word: "书", entries: [], source: {} }), null, "empty entries (zh) -> null");
 assertEq(pbpDictNormalizeEntry(null), null, "null json -> null");
 assertEq(pbpDictNormalizeEntry({ entries: [{ partOfSpeech: "noun" }] }), null, "no ipa/sense/form -> null");
+
 
 // Fields that already arrive in every response but went unrendered until now.
 // Shape hand-written from a real freedictionaryapi payload (senses carry tags /

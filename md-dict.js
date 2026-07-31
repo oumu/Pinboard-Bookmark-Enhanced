@@ -64,6 +64,49 @@ function pbpDictLowerCandidate(term, lang) {
   return lower === exact ? "" : lower;
 }
 
+// Selection artifacts that keep a real headword from resolving. Reader prose
+// writes curly apostrophes where Wiktionary titles use ASCII ' (don't -> 4
+// entries, don’t -> 0), justified and PDF-derived text carries soft hyphens,
+// and a drag routinely takes the sentence punctuation with the word
+// ("ubiquitous." -> 0). Hyphens are deliberately left alone: "pre-" and "-ing"
+// are real entries. Edge quotes are safe to strip here even though "'tis" is a
+// headword, because this is only ever tried AFTER the exact term missed.
+function pbpDictCleanCandidate(term, lang) {
+  const exact = pbpDictNormalizeTerm(term);
+  if (!exact || !PBP_DICT_QUERY_LANGS.includes(pbpDictPrimaryLang(lang))) return "";
+  const cleaned = pbpDictNormalizeTerm(
+    exact
+      .replace(/[\u200B-\u200D\uFEFF\u00AD]/g, "")
+      .replace(/[\u2018\u2019\u201B\u02BC]/g, "'")
+      .replace(/^[\s.,;:!?\u2026"'\u201C\u201D\u00AB\u00BB\u201E\u201A()[\]{}<>]+/, "")
+      .replace(/[\s.,;:!?\u2026"'\u201C\u201D\u00AB\u00BB\u201E\u201A()[\]{}<>]+$/, "")
+  );
+  return cleaned && cleaned !== exact ? cleaned : "";
+}
+
+// Ordered lookup candidates for one selection. The exact term goes first and
+// always bypasses the cache; every later candidate is an alias whose result is
+// also cached under the exact key. Candidates that collapse onto an earlier
+// one are dropped, so an ordinary lowercase word still costs exactly one
+// request. Once a term has artifacts the chain lowercases the CLEANED form and
+// not the raw one: a headword containing a curly apostrophe or a soft hyphen
+// does not exist (en/don’t answers with zero entries), so lowercasing the raw
+// form would only buy a fourth request that cannot hit. A sentence-initial
+// "Don’t" therefore reaches "don't" in three steps.
+function pbpDictQueryCandidates(term, lang) {
+  const exact = pbpDictNormalizeTerm(term);
+  const out = [{ term: exact, skipCache: true, aliasExact: false }];
+  if (!exact) return out;
+  const cleaned = pbpDictCleanCandidate(exact, lang);
+  const seen = new Set([exact]);
+  for (const c of cleaned ? [cleaned, pbpDictLowerCandidate(cleaned, lang)] : [pbpDictLowerCandidate(exact, lang)]) {
+    if (!c || seen.has(c)) continue;
+    seen.add(c);
+    out.push({ term: c, skipCache: false, aliasExact: true });
+  }
+  return out;
+}
+
 // freedictionaryapi.com response -> internal render model. null when nothing
 // renderable (zh returns {entries:[]}). Field-by-field copies only.
 function pbpDictNormalizeEntry(json) {
@@ -685,23 +728,19 @@ async function _pbpDictSlotRun(slot, term, lang, parentSignal, lemmaPromise, onR
     return result.norm;
   };
   try {
-    const first = await runCandidate(exact, true);
-    if (first.kind === "hit") return finish(exact, first, false);
-    if (first.kind === "failure") throw new Error("Dictionary request failed");
-
-    const lower = pbpDictLowerCandidate(exact, lang);
-    if (lower) {
-      const second = await runCandidate(lower, false);
-      if (second.kind === "hit") return finish(lower, second, true);
-      if (second.kind === "failure") throw new Error("Dictionary request failed");
+    for (const cand of pbpDictQueryCandidates(exact, lang)) {
+      const res = await runCandidate(cand.term, cand.skipCache);
+      if (res.kind === "failure") throw new Error("Dictionary request failed");
+      if (res.kind !== "hit") continue;
+      return finish(cand.term, res, cand.aliasExact);
     }
 
     const lemma = pbpDictNormalizeTerm(await lemmaPromise); // resolves on ALL ctx-slot exits
     if (parentSignal && parentSignal.aborted) return null;
     if (lemma && lemma !== "-" && !tried.has(pbpDictCacheKeyExact(lang, lemma))) {
       const third = await runCandidate(lemma, false);
-      if (third.kind === "hit") return finish(lemma, third, false);
       if (third.kind === "failure") throw new Error("Dictionary request failed");
+      if (third.kind === "hit") return finish(lemma, third, false);
     }
   } catch (e) {
     if (parentSignal && parentSignal.aborted) return null;
