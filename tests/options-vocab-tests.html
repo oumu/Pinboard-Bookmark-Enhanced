@@ -10,7 +10,7 @@ body{font-family:monospace;padding:16px}.case{padding:5px;border-bottom:1px soli
   <select id="vocab-sort"><option value="latest">Latest</option><option value="oldest">Oldest</option><option value="az">A-Z</option><option value="za">Z-A</option></select>
   <span id="vocab-count"></span>
   <button id="vocab-select-all"></button><button id="vocab-invert-selection"></button>
-  <div id="vocab-batch-toolbar" hidden><span id="vocab-selected-count"></span><input id="vocab-group-input"><button id="vocab-add-group"></button><button id="vocab-batch-delete"></button></div>
+  <div id="vocab-batch-toolbar" hidden><span id="vocab-selected-count"></span><input id="vocab-group-input"><button id="vocab-add-group"></button><button id="vocab-remove-group"></button><button id="vocab-batch-delete"></button></div>
   <datalist id="vocab-group-list"></datalist><span id="vocab-status" class="save-status vocab-main-status" role="status" aria-live="polite"></span>
   <div id="vocab-empty" hidden></div><div id="vocab-no-results" hidden></div>
   <div id="vocab-list" aria-busy="false"></div><button class="vocab-load-more" id="vocab-load-more" hidden></button>
@@ -283,6 +283,7 @@ check("selection still covers all filtered results beyond rendered chunks", _voc
   const task = () => new Promise((resolve) => setTimeout(resolve, 0));
   const realBatchDelete = pbpVocabBatchDelete;
   const realBatchAddGroup = pbpVocabBatchAddGroup;
+  const realBatchRemoveGroup = pbpVocabBatchRemoveGroup;
   const realReload = _pbpVocabReloadAfterMutation;
   async function prepareSelection() {
     if (document.querySelector(".confirm-popover")) document.querySelector(".confirm-no").click();
@@ -336,11 +337,34 @@ check("selection still covers all filtered results beyond rendered chunks", _voc
     pbpVocabBatchAddGroup = async () => true;
     _pbpVocabReloadAfterMutation = async () => true;
     $id("vocab-add-group").focus();
-    await _pbpVocabAddSelectedToGroup();
+    await _pbpVocabApplyGroupChange(true);
     check("successful batch add-group moves focus to visible search", document.activeElement === $id("vocab-search") && !$id("vocab-search").closest("[hidden]"));
+
+    // Remove-from-group. sample carries "Numbers" on exactly one row, so the
+    // gating and the reported count are distinguishable from the selection size
+    // (3) -- a remove that reported ids.length would pass a weaker test.
+    await prepareSelection();
+    $id("vocab-group-input").value = "Study";
+    _pbpVocabSyncSelectionUi();
+    check("remove-from-group stays disabled when no selected word carries the group",
+      $id("vocab-remove-group").disabled === true && $id("vocab-add-group").disabled === false);
+    $id("vocab-group-input").value = "Numbers";
+    _pbpVocabSyncSelectionUi();
+    check("remove-from-group enables once a selected word carries the group",
+      $id("vocab-remove-group").disabled === false);
+    let removedWith = null, addCallsDuringRemove = 0;
+    pbpVocabBatchRemoveGroup = async (ids, owner, group) => { removedWith = { ids: ids.slice(), group }; return true; };
+    pbpVocabBatchAddGroup = async () => { addCallsDuringRemove++; return true; };
+    _pbpVocabReloadAfterMutation = async () => true;
+    await _pbpVocabApplyGroupChange(false);
+    check("remove-from-group routes to the remove primitive with the whole selection",
+      !!removedWith && removedWith.group === "Numbers" && removedWith.ids.length === 3 && addCallsDuringRemove === 0);
+    check("remove-from-group reports the words that actually had the group, not the selection size",
+      $id("vocab-status").textContent.trim() === "vocabBatchUngrouped:1,Numbers");
   } finally {
     pbpVocabBatchDelete = realBatchDelete;
     pbpVocabBatchAddGroup = realBatchAddGroup;
+    pbpVocabBatchRemoveGroup = realBatchRemoveGroup;
     _pbpVocabReloadAfterMutation = realReload;
   }
 
@@ -484,7 +508,7 @@ check("selection still covers all filtered results beyond rendered chunks", _voc
     _vocabSelected = new Set(["a"]);
     $id("vocab-group-input").value = "Study";
     _pbpVocabSyncSelectionUi();
-    const grouping = _pbpVocabAddSelectedToGroup();
+    const grouping = _pbpVocabApplyGroupChange(true);
     await held.started;
     confirmSingleDelete(raceStore.find((row) => row.id === "b"));
     await waitFor(() => ids(_vocabRows) === "a,c" && (_vocabRows[0].groups || []).includes("Study"), "single delete after add-group");

@@ -310,6 +310,30 @@ async function runIdbChecks() {
   check("add-group updates vector and outbox", task3ApiReady && grouped.groups.join(",") === "Study List" && groupedMeta.dot.counter === 2 && groupedOutbox[0].event.value.groups.join(",") === "Study List" && groupedAgainMeta.dot.counter === 2 && pbpVocabEventContentEqual(groupedOutbox[0].event, groupedAgainOutbox[0].event));
 
   await deleteVocabDb();
+  const ungroupWord = await pbpVocabSaveWord("acct_a", { term: "Ungroup", language: "en" });
+  await pbpVocabBatchAddGroup([ungroupWord.id], "acct_a", "Keep");
+  await pbpVocabBatchAddGroup([ungroupWord.id], "acct_a", "Drop");
+  const beforeRemoveMeta = await syncGet("record:acct_a:en|ungroup");
+  await pbpVocabBatchRemoveGroup([ungroupWord.id], "acct_a", " Drop ");
+  const ungrouped = await pbpVocabGet(ungroupWord.id);
+  const ungroupedMeta = await syncGet("record:acct_a:en|ungroup");
+  const ungroupedOutbox = await pbpVocabListOutbox("acct_a");
+  // Normalization must match add's, or a group added as " Drop " could never be
+  // removed by typing the same thing back.
+  check("remove-group drops only the named group and syncs the edit",
+    task3ApiReady && ungrouped.groups.join(",") === "Keep" &&
+    ungroupedMeta.dot.counter === beforeRemoveMeta.dot.counter + 1 &&
+    ungroupedOutbox.length === 1 && ungroupedOutbox[0].event.value.groups.join(",") === "Keep");
+  const noopRemove = await pbpVocabBatchRemoveGroup([ungroupWord.id], "acct_a", "Drop");
+  const noopMeta = await syncGet("record:acct_a:en|ungroup");
+  check("removing a group the word does not have is a no-op, not a version bump",
+    task3ApiReady && noopRemove === true && noopMeta.dot.counter === ungroupedMeta.dot.counter);
+  await pbpVocabBatchRemoveGroup([ungroupWord.id], "acct_a", "Keep");
+  const lastGroupGone = await pbpVocabGet(ungroupWord.id);
+  check("removing the last group leaves the word, ungrouped",
+    task3ApiReady && lastGroupGone !== null && lastGroupGone.groups.length === 0);
+
+  await deleteVocabDb();
   const a = await pbpVocabSaveWord("acct_a", { term: "Alpha", language: "en" });
   const b = await pbpVocabSaveWord("acct_a", { term: "Beta", language: "en" });
   const foreign = await pbpVocabSaveWord("acct_b", { term: "Foreign", language: "en" });

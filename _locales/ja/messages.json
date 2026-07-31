@@ -2773,6 +2773,9 @@
     "vocabAddToGroup": {
       "message": "グループに追加"
     },
+    "vocabRemoveFromGroup": {
+      "message": "グループから外す"
+    },
     "vocabBatchDelete": {
       "message": "選択項目を削除"
     },
@@ -3000,6 +3003,17 @@
     },
     "vocabBatchGrouped": {
       "message": "選択した単語をグループに追加しました。グループ：$GROUP$・件数：$COUNT$",
+      "placeholders": {
+        "count": {
+          "content": "$1"
+        },
+        "group": {
+          "content": "$2"
+        }
+      }
+    },
+    "vocabBatchUngrouped": {
+      "message": "選択した単語をグループから外しました。グループ：$GROUP$・件数：$COUNT$",
       "placeholders": {
         "count": {
           "content": "$1"

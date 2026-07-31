@@ -353,13 +353,25 @@ function _pbpVocabSyncSelectionUi() {
   const deleteBtn = $id("vocab-batch-delete");
   const group = groupInput && typeof pbpVocabNormalizeGroupName === "function"
     ? pbpVocabNormalizeGroupName(groupInput.value) : "";
+  const removeBtn = $id("vocab-remove-group");
   if (groupInput) groupInput.disabled = _vocabBatchBusy;
   if (addBtn) addBtn.disabled = _vocabBatchBusy || !selectedCount || !group;
+  // Remove additionally needs the typed group to actually be on something in the
+  // selection. Enabling it symmetrically with add would let a click report "12
+  // removed" while changing nothing.
+  if (removeBtn) removeBtn.disabled = _vocabBatchBusy || !selectedCount || !group || !_pbpVocabSelectedInGroup(group);
   if (deleteBtn) deleteBtn.disabled = _vocabBatchBusy || !selectedCount;
   document.querySelectorAll("#vocab-list .vocab-row-select").forEach((checkbox) => {
     checkbox.checked = _vocabSelected.has(checkbox.dataset.vocabId);
     checkbox.disabled = _vocabBatchBusy;
   });
+}
+
+// How many currently-selected words carry `group`. Reads the rendered view rows,
+// which are the same rows the selection was validated against.
+function _pbpVocabSelectedInGroup(group) {
+  if (!group) return 0;
+  return _vocabViewRows.filter((row) => _vocabSelected.has(row.id) && pbpVocabGroups(row).includes(group)).length;
 }
 
 function _pbpVocabRefreshGroupOptions(preserveSelection) {
@@ -931,19 +943,27 @@ function _pbpVocabBatchDeleteSelected() {
   });
 }
 
-async function _pbpVocabAddSelectedToGroup() {
+// Add and remove share every line except the store call and the two words that
+// differ in the report, so they share the function. `adding` also decides how
+// the count is derived: adding touches the whole selection, removing only the
+// part of it that actually carries the group -- and that count must be read
+// BEFORE the mutation, since the reload afterwards no longer shows it.
+async function _pbpVocabApplyGroupChange(adding) {
   const input = $id("vocab-group-input");
-  const button = $id("vocab-add-group");
+  const button = $id(adding ? "vocab-add-group" : "vocab-remove-group");
   if (!input || !button || button.disabled || _vocabBatchBusy || !_vocabSelected.size) return;
   const group = pbpVocabNormalizeGroupName(input.value);
   if (!group) { _pbpVocabFlashStatus(false, t("vocabGroupRequired")); return; }
   const ids = [..._vocabSelected];
+  const affected = adding ? ids.length : _pbpVocabSelectedInGroup(group);
   _pbpVocabSetBatchBusy(true);
   const gen = ++_vocabRenderGen;
   let owner = null;
   try {
     owner = await pbpVocabCurrentOwner();
-    const ok = await pbpVocabBatchAddGroup(ids, owner, group);
+    const ok = adding
+      ? await pbpVocabBatchAddGroup(ids, owner, group)
+      : await pbpVocabBatchRemoveGroup(ids, owner, group);
     const refreshed = await _pbpVocabReloadAfterMutation(owner, gen);
     if (gen !== _vocabRenderGen) return;
     _pbpVocabFocusStable();
@@ -956,7 +976,7 @@ async function _pbpVocabAddSelectedToGroup() {
       return;
     }
     input.value = "";
-    _pbpVocabFlashStatus(true, t("vocabBatchGrouped", String(ids.length), group));
+    _pbpVocabFlashStatus(true, t(adding ? "vocabBatchGrouped" : "vocabBatchUngrouped", String(affected), group));
   } catch (_) {
     if (owner) await _pbpVocabReloadAfterMutation(owner, gen);
     else if (gen === _vocabRenderGen) {
@@ -1292,7 +1312,9 @@ if (_vocabLoadMore) _vocabLoadMore.addEventListener("click", () => {
 const _vocabGroupInput = $id("vocab-group-input");
 if (_vocabGroupInput) _vocabGroupInput.addEventListener("input", _pbpVocabSyncSelectionUi);
 const _vocabAddGroup = $id("vocab-add-group");
-if (_vocabAddGroup) _vocabAddGroup.addEventListener("click", _pbpVocabAddSelectedToGroup);
+if (_vocabAddGroup) _vocabAddGroup.addEventListener("click", () => _pbpVocabApplyGroupChange(true));
+const _vocabRemoveGroup = $id("vocab-remove-group");
+if (_vocabRemoveGroup) _vocabRemoveGroup.addEventListener("click", () => _pbpVocabApplyGroupChange(false));
 const _vocabBatchDelete = $id("vocab-batch-delete");
 if (_vocabBatchDelete) _vocabBatchDelete.addEventListener("click", _pbpVocabBatchDeleteSelected);
 const _vocabDriveConnect = $id("vocab-drive-connect");

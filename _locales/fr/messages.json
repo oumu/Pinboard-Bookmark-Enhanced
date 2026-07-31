@@ -2773,6 +2773,9 @@
     "vocabAddToGroup": {
       "message": "Ajouter au groupe"
     },
+    "vocabRemoveFromGroup": {
+      "message": "Retirer du groupe"
+    },
     "vocabBatchDelete": {
       "message": "Supprimer la sélection"
     },
@@ -3000,6 +3003,17 @@
     },
     "vocabBatchGrouped": {
       "message": "Ajout au groupe terminé. Groupe : $GROUP$ · Nombre : $COUNT$.",
+      "placeholders": {
+        "count": {
+          "content": "$1"
+        },
+        "group": {
+          "content": "$2"
+        }
+      }
+    },
+    "vocabBatchUngrouped": {
+      "message": "Retrait du groupe terminé. Groupe : $GROUP$ · Nombre : $COUNT$.",
       "placeholders": {
         "count": {
           "content": "$1"

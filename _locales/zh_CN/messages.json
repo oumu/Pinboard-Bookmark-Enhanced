@@ -2773,6 +2773,9 @@
     "vocabAddToGroup": {
       "message": "添加到分组"
     },
+    "vocabRemoveFromGroup": {
+      "message": "从分组移除"
+    },
     "vocabBatchDelete": {
       "message": "删除选中项"
     },
@@ -3000,6 +3003,17 @@
     },
     "vocabBatchGrouped": {
       "message": "已添加到分组「$GROUP$」，共 $COUNT$ 条。",
+      "placeholders": {
+        "count": {
+          "content": "$1"
+        },
+        "group": {
+          "content": "$2"
+        }
+      }
+    },
+    "vocabBatchUngrouped": {
+      "message": "已从分组「$GROUP$」移除，共 $COUNT$ 条。",
       "placeholders": {
         "count": {
           "content": "$1"

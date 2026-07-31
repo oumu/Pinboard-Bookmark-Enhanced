@@ -543,6 +543,29 @@ async function pbpVocabBatchAddGroup(ids, expectedOwner, rawGroup) {
   return result.ok;
 }
 
+// Mirror of pbpVocabBatchAddGroup, down to the missing-record and
+// already-in-the-desired-state skips. Never deletes the word itself: dropping
+// its last group leaves an ungrouped word, which is the state every word starts
+// in. Removal is a normal edit, so it bumps updatedAt and rides the same
+// outbox/vector path -- the group list is a synced field.
+async function pbpVocabBatchRemoveGroup(ids, expectedOwner, rawGroup) {
+  const scope = expectedOwner || "ownerless";
+  const group = pbpVocabNormalizeGroupName(rawGroup);
+  const items = _pbpVocabBatchItems(ids);
+  if (!group || !items.length) return false;
+  const now = Date.now();
+  const result = await _pbpVocabLocalMutation(scope, items, (record) => {
+    if (!record) return { changed: false, result: null };
+    const recordKey = _pbpVocabRecordKey(scope, record);
+    if (!recordKey) return { invalid: true };
+    const groups = pbpVocabGroups(record);
+    if (!groups.includes(group)) return { changed: false, result: record };
+    const word = { ...record, groups: groups.filter((g) => g !== group), updatedAt: now };
+    return { changed: true, deleted: false, recordKey, word, result: word };
+  });
+  return result.ok;
+}
+
 async function pbpVocabSaveWord(owner, w) {
   const scope = owner || "ownerless";
   const id = pbpDictVocabKey(scope, w.language, w.term);
