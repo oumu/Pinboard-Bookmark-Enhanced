@@ -141,6 +141,77 @@ assertEq(pbpDictNormalizeEntry({ word: "书", entries: [], source: {} }), null, 
 assertEq(pbpDictNormalizeEntry(null), null, "null json -> null");
 assertEq(pbpDictNormalizeEntry({ entries: [{ partOfSpeech: "noun" }] }), null, "no ipa/sense/form -> null");
 
+section("pbpDictEntriesAreFormOfOnly");
+// Payloads captured verbatim from freedictionaryapi.com on 2026-07-31, NOT
+// produced by the normalizer (server-fixture rule). An inflected form comes
+// back as a grammar pointer with no definition of its own.
+const FDA_APROVECHO = { /* es/aprovecho */
+  word: "aprovecho",
+  entries: [{
+    language: { code: "es", name: "Spanish" }, partOfSpeech: "verb",
+    pronunciations: [], forms: [],
+    senses: [{
+      definition: "first-person singular present indicative of aprovechar",
+      tags: ["first person", "form of", "indicative", "present", "singular"],
+      examples: [], quotes: [], synonyms: [], antonyms: [], subsenses: []
+    }],
+    synonyms: [], antonyms: []
+  }],
+  source: { url: "https://en.wiktionary.org/wiki/aprovecho", license: { name: "CC BY-SA 4.0", url: "https://creativecommons.org/licenses/by-sa/4.0/" } }
+};
+const FDA_PSA = { /* pl/psa -- marker sits in the LAST slot the tag cap keeps */
+  word: "psa",
+  entries: [{
+    language: { code: "pl", name: "Polish" }, partOfSpeech: "noun",
+    pronunciations: [], forms: [],
+    senses: [{
+      definition: "accusative/genitive singular of pies",
+      tags: ["accusative", "animal not person", "form of", "genitive", "masculine", "singular"],
+      examples: [], quotes: [], synonyms: [], antonyms: [], subsenses: []
+    }],
+    synonyms: [], antonyms: []
+  }],
+  source: { url: "https://en.wiktionary.org/wiki/psa", license: { name: "CC BY-SA 4.0", url: "" } }
+};
+const FDA_FOUND = { /* en/found -- pointer entry AND real entries in one payload */
+  word: "found",
+  entries: [
+    {
+      language: { code: "en", name: "English" }, partOfSpeech: "verb",
+      pronunciations: [], forms: [],
+      senses: [{
+        definition: "simple past and past participle of find",
+        tags: ["form of", "participle", "past"],
+        examples: [], quotes: [], synonyms: [], antonyms: [], subsenses: []
+      }],
+      synonyms: [], antonyms: []
+    },
+    {
+      language: { code: "en", name: "English" }, partOfSpeech: "verb",
+      pronunciations: [], forms: [],
+      senses: [{
+        definition: "To start (an institution or organization).",
+        tags: ["transitive"],
+        examples: [], quotes: [], synonyms: [], antonyms: [], subsenses: []
+      }],
+      synonyms: [], antonyms: []
+    }
+  ],
+  source: { url: "https://en.wiktionary.org/wiki/found", license: { name: "CC BY-SA 4.0", url: "" } }
+};
+assertEq(pbpDictEntriesAreFormOfOnly(FDA_APROVECHO.entries), true, "a lone grammar pointer is form-of-only");
+assertEq(pbpDictEntriesAreFormOfOnly(FDA_PSA.entries), true, "marker past the first two tags is still found");
+assertEq(pbpDictEntriesAreFormOfOnly(FDA_FOUND.entries), false, "one real sense anywhere disqualifies the whole payload");
+assertEq(pbpDictEntriesAreFormOfOnly(FDA_SAMPLE.entries), false, "an ordinary entry is never form-of-only");
+assertEq(pbpDictEntriesAreFormOfOnly([]), false, "no senses at all is not a pointer");
+assertEq(pbpDictEntriesAreFormOfOnly(null), false, "missing entries is not a pointer");
+assertEq(pbpDictEntriesAreFormOfOnly([{ senses: [{ definition: "x", tags: ["Form-Of"] }] }]), true,
+  "the marker is matched case- and hyphen-insensitively");
+// The flag rides on the model so it survives the dict2_ cache round trip.
+assertEq(pbpDictNormalizeEntry(FDA_APROVECHO).formOfOnly, true, "normalized pointer carries the flag");
+assertEq(pbpDictNormalizeEntry(FDA_FOUND).formOfOnly, false, "normalized mixed payload does not");
+assertEq(pbpDictNormalizeEntry(FDA_APROVECHO).entries[0].senses.length, 1,
+  "the pointer still normalizes, so it can be rendered as a last resort");
 
 // Fields that already arrive in every response but went unrendered until now.
 // Shape hand-written from a real freedictionaryapi payload (senses carry tags /

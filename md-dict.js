@@ -107,6 +107,34 @@ function pbpDictQueryCandidates(term, lang) {
   return out;
 }
 
+function _pbpDictIsFormOfSense(s) {
+  for (const x of Array.isArray(s && s.tags) ? s.tags : []) {
+    if (typeof x === "string" && x.toLowerCase().replace(/-/g, " ").trim() === "form of") return true;
+  }
+  return false;
+}
+
+// Wiktionary answers an inflected form with a grammar pointer and nothing else
+// -- es/aprovecho is only "first-person singular present indicative of
+// aprovechar" -- tagged "form of". Rendering that and stopping strands the
+// reader on a cross-reference, so the chain keeps it as a last resort and
+// carries on to the lemma. Read from the RAW senses, never the normalized
+// copy: tags arrive alphabetically and the marker already reaches the last
+// slot PBP_DICT_SENSE_TAG_CAP keeps (pl/psa is index 2 of 6), so one more
+// early tag would slice it off; senses are capped too, so a real sense can sit
+// past the cut. Detection must not ride on a display cap.
+function pbpDictEntriesAreFormOfOnly(rawEntries) {
+  let sawSense = false;
+  for (const e of Array.isArray(rawEntries) ? rawEntries : []) {
+    for (const s of Array.isArray(e && e.senses) ? e.senses : []) {
+      if (!s || typeof s.definition !== "string" || !s.definition) continue;
+      sawSense = true;
+      if (!_pbpDictIsFormOfSense(s)) return false;
+    }
+  }
+  return sawSense;
+}
+
 // freedictionaryapi.com response -> internal render model. null when nothing
 // renderable (zh returns {entries:[]}). Field-by-field copies only.
 function pbpDictNormalizeEntry(json) {
@@ -170,6 +198,10 @@ function pbpDictNormalizeEntry(json) {
   return {
     word: typeof json.word === "string" ? json.word : "",
     entries,
+    // Carried on the model, not on the classify result, so it survives a round
+    // trip through the dict2_ cache. Entries cached before this existed simply
+    // read as undefined and behave the way they always did.
+    formOfOnly: pbpDictEntriesAreFormOfOnly(json.entries),
     sourceLabel: "Wiktionary",
     sourceUrl: pbpDictSafeUrl(src.url),
     license: typeof lic.name === "string" ? lic.name : ""
@@ -727,11 +759,19 @@ async function _pbpDictSlotRun(slot, term, lang, parentSignal, lemmaPromise, onR
     _pbpDictRenderEntry(slot, result.norm, candidate, lang, term);
     return result.norm;
   };
+  // A form-of-only answer is a grammar pointer, not a meaning. Hold it back and
+  // keep looking; render it at the end only because a cross-reference still
+  // beats "no entry".
+  let pointer = null;
   try {
     for (const cand of pbpDictQueryCandidates(exact, lang)) {
       const res = await runCandidate(cand.term, cand.skipCache);
       if (res.kind === "failure") throw new Error("Dictionary request failed");
       if (res.kind !== "hit") continue;
+      if (res.norm && res.norm.formOfOnly) {
+        if (!pointer) pointer = [cand.term, res, cand.aliasExact];
+        continue;
+      }
       return finish(cand.term, res, cand.aliasExact);
     }
 
@@ -740,8 +780,12 @@ async function _pbpDictSlotRun(slot, term, lang, parentSignal, lemmaPromise, onR
     if (lemma && lemma !== "-" && !tried.has(pbpDictCacheKeyExact(lang, lemma))) {
       const third = await runCandidate(lemma, false);
       if (third.kind === "failure") throw new Error("Dictionary request failed");
-      if (third.kind === "hit") return finish(lemma, third, false);
+      if (third.kind === "hit") {
+        if (!(third.norm && third.norm.formOfOnly)) return finish(lemma, third, false);
+        if (!pointer) pointer = [lemma, third, false];
+      }
     }
+    if (pointer) return finish(pointer[0], pointer[1], pointer[2]);
   } catch (e) {
     if (parentSignal && parentSignal.aborted) return null;
     _pbpDictSlotFallback(slot, t("dictLoadFailed"), term);
