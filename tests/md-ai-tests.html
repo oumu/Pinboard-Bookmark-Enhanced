@@ -6491,5 +6491,27 @@ suite("skim status line", () => {
     window.requestAIHostPermissions = realRequest;
   }
 })();
+
+test("explain popover keeps its downward bias but abandons a cramped one", () => {
+  // Comfortable room below: stay down even when up is far roomier. Following
+  // reading order is worth more than extra height nobody needs.
+  assert(pbpExplainOpensDown(400, 900) === true, "roomy below should stay down");
+  assert(pbpExplainOpensDown(PBP_EXPLAIN_COMFORT_CARD, 4000) === true, "exactly comfortable stays down");
+
+  // The reported case: a selection near the foot of the window. 180px below is
+  // a two-line sliver, and a thousand pixels sat unused above it.
+  assert(pbpExplainOpensDown(180, 1000) === false, "a cramped card below a roomy top must flip up");
+  assert(pbpExplainOpensDown(PBP_EXPLAIN_COMFORT_CARD - 1, 4000) === false, "one pixel under comfortable flips up");
+
+  // Down still wins when it is not actually worse, however tight both sides are.
+  assert(pbpExplainOpensDown(100, 100) === true, "a tie keeps the downward bias");
+  assert(pbpExplainOpensDown(120, 90) === true, "down beats a smaller top even while cramped");
+  assert(pbpExplainOpensDown(0, 0) === true, "no room either way still resolves to down");
+
+  // The old rule was `below >= PBP_EXPLAIN_MIN_CARD || below >= above`, which
+  // answered true here. Pinned so the regression cannot come back quietly.
+  assert(PBP_EXPLAIN_COMFORT_CARD > PBP_EXPLAIN_MIN_CARD, "comfort must be stricter than the bare minimum");
+  assert(pbpExplainOpensDown(PBP_EXPLAIN_MIN_CARD, 1000) === false, "the bare minimum is no longer enough to open down");
+});
 </script>
 </body></html>

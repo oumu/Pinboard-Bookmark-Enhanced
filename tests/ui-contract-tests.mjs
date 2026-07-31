@@ -1145,8 +1145,14 @@ check(mdCss.includes("text-autospace: normal") && /#rendered-view :is\(pre, code
   // before _pbpExplainRun fills the body on the very next line. Measuring the
   // shell made the card crawl as the answer streamed; budgeting to the card's
   // max height instead flung short cards to the far edge.
-  check(/const openDown = below >= PBP_EXPLAIN_MIN_CARD \|\| below >= above;/.test(mdAskJs),
-    "md-ask.js: the explain popover no longer prefers opening downward with a cramped-side fallback");
+  // The side choice now lives in a pure helper so it can be unit-tested; this
+  // only pins that placement still asks it, and that the threshold is the
+  // comfort one. MIN_CARD alone let a selection near the foot of the window open
+  // into a 160px sliver with a screenful of unused space above it.
+  check(/const openDown = pbpExplainOpensDown\(below, above\);/.test(mdAskJs) &&
+    /function pbpExplainOpensDown\(below, above\)/.test(mdAskJs) &&
+    /b >= PBP_EXPLAIN_COMFORT_CARD \|\| b >= a/.test(mdAskJs),
+    "md-ask.js: the explain popover side choice left its tested helper or dropped the comfort threshold");
   check(/const room = openDown \? below : above;/.test(mdAskJs) &&
     /pop\.style\.maxHeight = Math\.floor\(Math\.min\(.*, room\)\) \+ "px";/.test(mdAskJs),
     "md-ask.js: the explain popover height budget can exceed the room on the side it was placed on, so it overflows and gets clawed back");

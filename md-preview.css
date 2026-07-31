@@ -1630,6 +1630,11 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
 .xp-dict-forms { font-size: 0.8em; color: var(--fg-muted); margin-top: 2px; }
 .xp-dict-senses { margin: 6px 0 0; padding-left: 1.4em; }
 .xp-dict-senses li { margin: 2px 0; }
+/* A lone sense needs no "1." -- the number only means something when it
+   distinguishes one sense from another. Negating the list's own indent keeps
+   the text flush with everything else in the card. Uses :only-child rather
+   than :has() to stay off the slow-selector list. */
+.xp-dict-senses li:only-child { list-style: none; margin-left: -1.4em; }
 .xp-dict-example { font-size: 0.85em; color: var(--fg-muted); font-style: italic; }
 .xp-dict-sense-tag { font-size: 0.85em; color: var(--fg-muted); font-style: italic; }
 /* Stable containers inside .xp-dict-slot: the local pack writes the first, every

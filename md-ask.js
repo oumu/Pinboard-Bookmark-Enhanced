@@ -1761,6 +1761,22 @@ const PBP_EXPLAIN_EDGE = 8;
 // Floor for the height budget: below this the card is not worth opening on that
 // side, so a cramped side yields to the other one instead of squeezing.
 const PBP_EXPLAIN_MIN_CARD = 160;
+// The height below which opening downward stops being worth the reading-order
+// bias. MIN_CARD only asks "can a card exist here"; at 160px a dictionary entry
+// shows two or three lines and has to be scrolled to be read at all. Two thirds
+// of the stylesheet's 480px cap is the point where the card is still useful.
+const PBP_EXPLAIN_COMFORT_CARD = 320;
+
+// Which side the card opens on, given the space above and below the selection.
+// Downward is the default because it follows reading order and keeps the card
+// off the text above. It is abandoned only when down is BOTH uncomfortable and
+// worse than up: a roomier upper half alone is not a reason to jump the card
+// over the words being read.
+function pbpExplainOpensDown(below, above) {
+  const b = Number(below) || 0;
+  const a = Number(above) || 0;
+  return b >= PBP_EXPLAIN_COMFORT_CARD || b >= a;
+}
 const PBP_EXPLAIN_NUDGE = 8;
 
 function pbpExplainClampPosition(left, top, width, height, viewportWidth, viewportHeight) {
@@ -2552,10 +2568,10 @@ function _pbpExplainOpenPop(cap, initialAction) {
     const edge = PBP_EXPLAIN_EDGE;
     const below = window.innerHeight - rect.bottom - edge * 2;
     const above = rect.top - edge * 2;
-    // Downward is the default: it follows reading direction and keeps the card
-    // out of the text above. Flip up only when the space below is genuinely too
-    // cramped to be worth it -- not merely because above happens to be roomier.
-    const openDown = below >= PBP_EXPLAIN_MIN_CARD || below >= above;
+    // The old rule only asked whether a MINIMUM card fitted below, so a selection
+    // near the foot of the window opened into a 160px sliver with a thousand
+    // pixels sitting unused above it.
+    const openDown = pbpExplainOpensDown(below, above);
     // The budget may never exceed the room actually there, or the card overflows
     // the side it was placed on and the clamp drags it back -- the crawl this
     // replaces. When neither side clears the floor the viewport is simply too
