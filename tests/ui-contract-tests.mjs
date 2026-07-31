@@ -290,6 +290,77 @@ check(sharedJs.includes('const state = ok ? "ok" : "bad"') &&
     "options.html: a rung picker appeared, which the shipped design has no copy or re-import story for");
 }
 
+// Corner radius is a per-theme token now: the pilot's radius scale is derived
+// into --pp-radius-* / --opt-radius-* for all 13 themes (composers/_ui-derive.mjs).
+// A literal px value opts that control out of every theme at once -- which is
+// how the settings page ended up with buttons at 0, inputs at 0, search at 3px
+// and selects at a hardcoded 7px copied over from md-preview. Only 0 and 50%
+// (a circle, not a corner) are literals with no theme meaning.
+{
+  const offenders = [];
+  for (const file of ["popup.css", "options.css"]) {
+    const src = read(file).replace(/\/\*[\s\S]*?\*\//g, "");
+    for (const m of src.matchAll(/border-radius:\s*([^;}]+)/g)) {
+      const value = m[1].trim();
+      // Split on top-level whitespace, keeping var(...) groups intact.
+      const parts = value.match(/var\([^)]*\)|[^\s]+/g) || [];
+      const bad = parts.filter((p) => !/^var\(--(?:pp|opt)-radius-/.test(p) && p !== "0" && p !== "50%");
+      if (bad.length) offenders.push(`${file}: border-radius: ${value}`);
+    }
+  }
+  check(offenders.length === 0,
+    `hardcoded corner radius bypasses the per-theme radius scale: ${offenders.join(" | ")}`);
+
+  // The :root blocks are the no-preset generic -- the only state left where the
+  // two surfaces could disagree, since all 13 themes derive their own scale.
+  const scale = (file, prefix) => {
+    const src = read(file);
+    const root = src.slice(src.indexOf(":root {"));
+    return ["sm", "md", "lg", "full"]
+      .map((k) => (root.slice(0, root.indexOf("\n}")).match(new RegExp(`--${prefix}-radius-${k}:\\s*([^;]+);`)) || [])[1])
+      .join("/");
+  };
+  const popupScale = scale("popup.css", "pp"), optionsScale = scale("options.css", "opt");
+  check(popupScale === optionsScale && /^\d/.test(popupScale),
+    `popup and options disagree on the default radius scale: ${popupScale} vs ${optionsScale}`);
+}
+
+// Theme tokens that are NOT declared on :root only exist once a data-theme is
+// set. options-theme-early.js leaves data-theme unset for the no-preset LIGHT
+// state -- the default a new user sees -- so `var(--opt-input-border)` with no
+// fallback makes the whole declaration invalid there. Shipped that way, the
+// vocabulary toolbar's controls had no border at all in the default theme, and
+// nothing caught it: cascade-lint probes the 13 presets, which is the one state
+// where these tokens DO resolve.
+{
+  const optionsCss = read("options.css");
+  const src = optionsCss.replace(/\/\*[\s\S]*?\*\//g, "");
+  const rootStart = src.indexOf(":root {");
+  const declaredOnRoot = new Set(
+    [...src.slice(rootStart, src.indexOf("\n}", rootStart)).matchAll(/(--opt-[a-z0-9-]+)\s*:/g)].map((m) => m[1]));
+  // Brace walk rather than a line scan: single-line rules, multi-line selector
+  // lists and the @supports/@media wrappers all have to resolve to the right
+  // governing selector, and a line-based version silently mis-attributed a
+  // dozen themed rules to an unthemed one.
+  const stack = [];
+  let chunk = "", offenders = [];
+  const themed = () => stack.some((s) => s.includes("html[data-theme"));
+  const scan = (text) => {
+    if (!stack.length || themed()) return;
+    for (const m of text.matchAll(/var\((--opt-[a-z0-9-]+)\s*\)/g)) {
+      if (!declaredOnRoot.has(m[1])) offenders.push(`${stack[stack.length - 1].slice(0, 60)} -> ${m[1]}`);
+    }
+  };
+  for (const ch of src) {
+    if (ch === "{") { stack.push(chunk.trim()); chunk = ""; }
+    else if (ch === "}") { scan(chunk); stack.pop(); chunk = ""; }
+    else if (ch === ";") { scan(chunk); chunk = ""; }
+    else chunk += ch;
+  }
+  check(offenders.length === 0,
+    `options.css: theme-only token used with no fallback outside html[data-theme] (invisible in the default light state): ${offenders.join(", ")}`);
+}
+
 check(!mdTranslateJs.includes("lastViewMode") &&
   /function pbpTrNextMode\(mode\)/.test(mdTranslateJs) &&
   /_pbpTrSetMode\(st, pbpTrNextMode\(st\.mode\), true\)/.test(mdTranslateJs),

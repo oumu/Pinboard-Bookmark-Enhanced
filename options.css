@@ -14,8 +14,14 @@
      Bare `ease` stays correct for hover/colour changes. */
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  /* The no-preset generic. Every one of the 13 themes now derives its own scale
+     from its pilot (composers/_ui-derive.mjs), so this block is the ONLY state
+     where popup and options could still disagree -- md was 6px here against
+     popup's 8px, which showed up as a settings page slightly flatter than the
+     popup for anyone who never picked a theme. Keep the three steps identical
+     to popup.css's --pp-radius-* block. */
   --opt-radius-sm: 3px;
-  --opt-radius-md: 6px;
+  --opt-radius-md: 8px;
   --opt-radius-lg: 10px;
   --opt-radius-full: 9999px;
 
@@ -185,6 +191,7 @@ h1 { font-size: 18px; color: #333; margin-bottom: var(--opt-sp-7); border-bottom
 .fg label.bl { display: block; font-weight: bold; margin-bottom: var(--opt-sp-2); cursor: default; font-size: 12px; color: #555; }
 .fg input[type="text"], .fg input[type="password"], .fg input[type="number"], .fg select, .fg textarea {
   width: 100%; padding: var(--opt-sp-2) var(--opt-sp-4); border: 1px solid #cdd1d6;
+  border-radius: var(--opt-radius-md);
   background-color: #fff; font-size: 13px; font-family: inherit;
   -webkit-appearance: none; appearance: none; box-shadow: none;
   transition: border-color 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease;
@@ -232,7 +239,7 @@ html[data-theme] .panel-foot a:hover { color: var(--opt-accent); }
 .fg > .hint { margin: var(--opt-sp-1) 0 0; }   /* inside a form group: tight to its control; the group's own margin-bottom (10px) provides separation */
 .fg + .hint { margin-top: -6px; }  /* a hint owned by the preceding group: pull close (net ~4px gap above, 10px below) */
 .hint a { color: #4477bb; }
-.hint code { background: #f0f0e8; padding: 1px var(--opt-sp-2); font-size: 10px; font-family: "SF Mono", Consolas, Menlo, "Liberation Mono", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei", monospace; }
+.hint code { background: #f0f0e8; border-radius: var(--opt-radius-sm); padding: 1px var(--opt-sp-2); font-size: 10px; font-family: "SF Mono", Consolas, Menlo, "Liberation Mono", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei", monospace; }
 
 /* ---- Markdown tab: keyboard shortcuts static list (Task 6, spec 5.3).
    kbd chip font stack mirrors the other mono stacks in this file (.hint
@@ -289,7 +296,7 @@ html[data-theme] .free-tier-help summary { color: var(--opt-accent, #4477bb); }
 .hidden { display: none !important; }
 html[data-theme] .opt-error { color: var(--opt-danger, #e55); background: var(--opt-danger-bg, rgba(220,80,80,0.08)); border-color: var(--opt-danger, #e55); }
 .divider { border-top: 1px solid #ddd; margin: var(--opt-sp-6) 0; }
-.btn { padding: var(--opt-sp-2) var(--opt-sp-6); font-size: 12px; cursor: pointer; border: 1px solid #999; background: #f5f5f0; transition: background 0.15s, border-color 0.15s; }
+.btn { padding: var(--opt-sp-2) var(--opt-sp-6); font-size: 12px; cursor: pointer; border: 1px solid #999; background: #f5f5f0; border-radius: var(--opt-radius-md); transition: background 0.15s, border-color 0.15s; }
 .btn:hover:not(:disabled) { background: #eee; }
 /* These buttons then sit inert through a multi-second network call, so the
    press is the only thing confirming the click landed. Not transitioned: a
@@ -374,7 +381,7 @@ html[data-theme] .opt-error { color: var(--opt-danger, #e55); background: var(--
 .section-title { display: block; font-size: 13px; font-weight: bold; color: #444; margin-bottom: var(--opt-sp-4); margin-top: var(--opt-sp-4); }
 
 /* ---- Provider fields ---- */
-.pf { margin-top: var(--opt-sp-4); padding: var(--opt-sp-5); background: #f9f9f6; border: 1px solid #e0e0d8; }
+.pf { margin-top: var(--opt-sp-4); padding: var(--opt-sp-5); background: #f9f9f6; border: 1px solid #e0e0d8; border-radius: var(--opt-radius-md); }
 .pf.hidden { display: none; }
 .pf h3 { font-size: 12px; color: #555; margin-bottom: var(--opt-sp-4); font-weight: bold; }
 
@@ -390,6 +397,7 @@ html[data-theme] .opt-error { color: var(--opt-danger, #e55); background: var(--
 .et-field input[type="password"],
 .et-field select {
   width: 100%; padding: var(--opt-sp-2) var(--opt-sp-4); border: 1px solid #cdd1d6;
+  border-radius: var(--opt-radius-md);
   background-color: #fff; font-size: 13px; font-family: inherit;
   -webkit-appearance: none; appearance: none; box-shadow: none;
   transition: border-color 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease;
@@ -598,6 +606,9 @@ html[data-theme="modern-card"] {
   --opt-btn-hover: #e8f0fe;
   --opt-pf-bg: #ffffff;
   --opt-code-bg: #ffffff;
+  --opt-radius-sm: 4px;
+  --opt-radius-md: 8px;
+  --opt-radius-lg: 12px;
   --opt-danger: #c5221f;
   --opt-warn: #b06000;
 }
@@ -619,6 +630,9 @@ html[data-theme="nord-night"] {
   --opt-btn-hover: #4c566a;
   --opt-pf-bg: #3b4252;
   --opt-code-bg: #3b4252;
+  --opt-radius-sm: 4px;
+  --opt-radius-md: 4px;
+  --opt-radius-lg: 4px;
   --opt-danger: #de9fa5;
   --opt-warn: #de9f89;
 }
@@ -640,13 +654,13 @@ html[data-theme="terminal"] {
   --opt-btn-hover: #1a3a1a;
   --opt-pf-bg: #111111;
   --opt-code-bg: #111111;
+  --opt-radius-sm: 2px;
+  --opt-radius-md: 4px;
+  --opt-radius-lg: 4px;
   --opt-danger: #ff3333;
   --opt-warn: #cccc00;
   --opt-focus-bd: #33ff33;
   --opt-focus-ring: 0 0 6px 1px rgba(51,255,51,0.4);
-  --opt-radius-sm: 2px;
-  --opt-radius-md: 4px;
-  --opt-radius-lg: 4px;
 }
 html[data-theme="paper-ink"] {
   --opt-bg: #faf8f5;
@@ -666,6 +680,9 @@ html[data-theme="paper-ink"] {
   --opt-btn-hover: #ede4d0;
   --opt-pf-bg: #f5f0e8;
   --opt-code-bg: #f5f0e8;
+  --opt-radius-sm: 2px;
+  --opt-radius-md: 4px;
+  --opt-radius-lg: 4px;
   --opt-danger: #b03427;
   --opt-warn: #866500;
   --opt-focus-bd: #1a3a5c;
@@ -689,6 +706,9 @@ html[data-theme="dracula"] {
   --opt-btn-hover: #424450;
   --opt-pf-bg: #21222c;
   --opt-code-bg: #21222c;
+  --opt-radius-sm: 2px;
+  --opt-radius-md: 4px;
+  --opt-radius-lg: 4px;
   --opt-danger: #ff5555;
   --opt-warn: #ffb86c;
 }
@@ -710,8 +730,10 @@ html[data-theme="flexoki-light"] {
   --opt-btn-hover: #E6E4D9;
   --opt-pf-bg: #E6E4D9;
   --opt-code-bg: #E6E4D9;
-  --opt-danger: #AF3029;
+  --opt-radius-sm: 3px;
+  --opt-radius-md: 6px;
   --opt-radius-lg: 8px;
+  --opt-danger: #AF3029;
 }
 html[data-theme="flexoki-dark"] {
   --opt-bg: #1C1B1A;
@@ -731,8 +753,10 @@ html[data-theme="flexoki-dark"] {
   --opt-btn-hover: #403E3C;
   --opt-pf-bg: #1C1B1A;
   --opt-code-bg: #1C1B1A;
-  --opt-danger: #E8705F;
+  --opt-radius-sm: 3px;
+  --opt-radius-md: 6px;
   --opt-radius-lg: 8px;
+  --opt-danger: #E8705F;
 }
 html[data-theme="solarized-light"] {
   --opt-bg: #fdf6e3;
@@ -752,6 +776,9 @@ html[data-theme="solarized-light"] {
   --opt-btn-hover: #e6dfca;
   --opt-pf-bg: #eee8d5;
   --opt-code-bg: #eee8d5;
+  --opt-radius-sm: 2px;
+  --opt-radius-md: 4px;
+  --opt-radius-lg: 4px;
   --opt-danger: #c02b28;
   --opt-warn: #7d5f00;
 }
@@ -773,13 +800,13 @@ html[data-theme="solarized-dark"] {
   --opt-btn-hover: #0f4b66;
   --opt-pf-bg: #073642;
   --opt-code-bg: #073642;
+  --opt-radius-sm: 2px;
+  --opt-radius-md: 4px;
+  --opt-radius-lg: 4px;
   --opt-danger: #e98077;
   --opt-warn: #bd961b;
   --opt-focus-bd: #268bd2;
   --opt-focus-ring: 0 0 0 2px rgba(38,139,210,0.25);
-  --opt-radius-sm: 2px;
-  --opt-radius-md: 4px;
-  --opt-radius-lg: 4px;
 }
 html[data-theme="catppuccin-latte"] {
   --opt-bg: #eff1f5;
@@ -799,6 +826,9 @@ html[data-theme="catppuccin-latte"] {
   --opt-btn-hover: #dce0e8;
   --opt-pf-bg: #e6e9ef;
   --opt-code-bg: #e6e9ef;
+  --opt-radius-sm: 8px;
+  --opt-radius-md: 10px;
+  --opt-radius-lg: 12px;
   --opt-danger: #b90d32;
   --opt-warn: #8c5912;
 }
@@ -820,11 +850,11 @@ html[data-theme="catppuccin-mocha"] {
   --opt-btn-hover: #585b70;
   --opt-pf-bg: #313244;
   --opt-code-bg: #313244;
-  --opt-danger: #f38ba8;
-  --opt-warn: #f9e2af;
   --opt-radius-sm: 4px;
   --opt-radius-md: 10px;
   --opt-radius-lg: 12px;
+  --opt-danger: #f38ba8;
+  --opt-warn: #f9e2af;
 }
 html[data-theme="gruvbox-dark"] {
   --opt-bg: #282828;
@@ -844,6 +874,9 @@ html[data-theme="gruvbox-dark"] {
   --opt-btn-hover: #665c54;
   --opt-pf-bg: #3c3836;
   --opt-code-bg: #3c3836;
+  --opt-radius-sm: 2px;
+  --opt-radius-md: 2px;
+  --opt-radius-lg: 2px;
   --opt-danger: #fd8265;
   --opt-warn: #fe8019;
 }
@@ -865,6 +898,9 @@ html[data-theme="rose-pine"] {
   --opt-btn-hover: #403d52;
   --opt-pf-bg: #1f1d2e;
   --opt-code-bg: #1f1d2e;
+  --opt-radius-sm: 4px;
+  --opt-radius-md: 6px;
+  --opt-radius-lg: 8px;
   --opt-danger: #eb6f92;
   --opt-warn: #f6c177;
 }
@@ -886,6 +922,9 @@ html[data-theme="github-light"] {
   --opt-btn-hover: #ddf4ff;
   --opt-pf-bg: #ffffff;
   --opt-code-bg: #ffffff;
+  --opt-radius-sm: 3px;
+  --opt-radius-md: 6px;
+  --opt-radius-lg: 6px;
   --opt-danger: #cf222e;
   --opt-warn: #9a6700;
 }
@@ -958,7 +997,15 @@ html[data-theme="flexoki-dark"] .mobile-tab-picker select,
 html[data-theme="solarized-dark"] .mobile-tab-picker select,
 html[data-theme="catppuccin-mocha"] .mobile-tab-picker select,
 html[data-theme="gruvbox-dark"] .mobile-tab-picker select,
-html[data-theme="rose-pine"] .mobile-tab-picker select {
+html[data-theme="rose-pine"] .mobile-tab-picker select,
+html[data-theme="nord-night"] .vocab-filter-toolbar select,
+html[data-theme="terminal"] .vocab-filter-toolbar select,
+html[data-theme="dracula"] .vocab-filter-toolbar select,
+html[data-theme="flexoki-dark"] .vocab-filter-toolbar select,
+html[data-theme="solarized-dark"] .vocab-filter-toolbar select,
+html[data-theme="catppuccin-mocha"] .vocab-filter-toolbar select,
+html[data-theme="gruvbox-dark"] .vocab-filter-toolbar select,
+html[data-theme="rose-pine"] .vocab-filter-toolbar select {
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M3 4.5 6 7.5 9 4.5' stroke='%23aaa' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
 }
 
@@ -981,7 +1028,7 @@ html[data-theme="rose-pine"] .mobile-tab-picker select {
    DARK state always resolves to data-theme="flexoki-dark"
    (options-theme-early.js:25), so there is no unthemed-dark gap. */
 .fg select, .et-field select {
-  border-radius: 7px;
+  border-radius: var(--opt-radius-md);
   padding: var(--opt-sp-3) 26px var(--opt-sp-3) var(--opt-sp-5);
 }
 .fg select:hover:not(:focus), .et-field select:hover:not(:focus) {
@@ -1008,13 +1055,13 @@ html[data-theme] .fg select:hover:not(:focus), html[data-theme] .et-field select
    break. */
 @supports selector(::picker(select)) {
   .fg select, .et-field select, .mobile-tab-picker select { appearance: base-select; }
-  .fg select::picker-icon, .et-field select::picker-icon, .mobile-tab-picker select::picker-icon { display: none; }
-  .fg select::picker(select), .et-field select::picker(select), .mobile-tab-picker select::picker(select) {
+  .fg select::picker-icon, .et-field select::picker-icon, .mobile-tab-picker select::picker-icon, .vocab-filter-toolbar select::picker-icon { display: none; }
+  .fg select::picker(select), .et-field select::picker(select), .mobile-tab-picker select::picker(select), .vocab-filter-toolbar select::picker(select) {
     appearance: base-select;
     margin-top: var(--opt-sp-2);
     background: var(--opt-bg, #fff);
     border: 1px solid var(--opt-border, #ccc);
-    border-radius: 8px;
+    border-radius: var(--opt-radius-lg);
     box-shadow: 0 8px 24px rgba(0,0,0,.12);
     padding: var(--opt-sp-2);
     max-height: min(320px, calc(100dvh - 32px));
@@ -1029,22 +1076,22 @@ html[data-theme] .fg select:hover:not(:focus), html[data-theme] .et-field select
     scrollbar-width: thin;
     scrollbar-color: var(--opt-fg-muted, #999) var(--opt-panel, #fafafa);
   }
-  .fg option, .et-field option, .mobile-tab-picker option {
+  .fg option, .et-field option, .mobile-tab-picker option, .vocab-filter-toolbar option {
     padding: var(--opt-sp-4) var(--opt-sp-4);
-    border-radius: 6px;
+    border-radius: var(--opt-radius-md);
     font-size: 13px;
     cursor: pointer;
   }
-  .fg option:hover, .et-field option:hover, .mobile-tab-picker option:hover {
+  .fg option:hover, .et-field option:hover, .mobile-tab-picker option:hover, .vocab-filter-toolbar option:hover {
     background: rgba(127,127,127,.14); /* theme-agnostic row hover, same value as md-preview's --row-hover fallback */
   }
-  .fg option:focus-visible, .et-field option:focus-visible, .mobile-tab-picker option:focus-visible {
+  .fg option:focus-visible, .et-field option:focus-visible, .mobile-tab-picker option:focus-visible, .vocab-filter-toolbar option:focus-visible {
     background: rgba(127,127,127,.14);
     outline: 2px solid var(--opt-accent, #4477bb);
     outline-offset: -2px;
   }
-  .fg option::checkmark, .et-field option::checkmark, .mobile-tab-picker option::checkmark { display: none; }
-  .fg option:checked, .et-field option:checked, .mobile-tab-picker option:checked {
+  .fg option::checkmark, .et-field option::checkmark, .mobile-tab-picker option::checkmark, .vocab-filter-toolbar option::checkmark { display: none; }
+  .fg option:checked, .et-field option:checked, .mobile-tab-picker option:checked, .vocab-filter-toolbar option:checked {
     background: color-mix(in srgb, var(--opt-accent, #4477bb) 18%, transparent);
     font-weight: 600;
   }
@@ -1505,7 +1552,7 @@ html[data-theme] .preset-preview-content { background: var(--opt-bg); color: var
   width: 100%;
   height: 6px;
   background: var(--opt-border, #e0e0e0);
-  border-radius: 3px;
+  border-radius: var(--opt-radius-sm);
   overflow: hidden;
 }
 .progress-fill {
@@ -1581,7 +1628,7 @@ html[data-theme] .preset-preview-content { background: var(--opt-bg); color: var
   width: 100%;
   padding: var(--opt-sp-2) var(--opt-sp-4);
   border: 1px solid var(--opt-input-border, #cdd1d6);
-  border-radius: var(--opt-radius-sm, 3px);
+  border-radius: var(--opt-radius-md);
   background-color: var(--opt-input-bg, #fff);
   color: var(--opt-fg, #333);
   font-size: 13px;
@@ -1604,22 +1651,66 @@ html[data-theme] .preset-preview-content { background: var(--opt-bg); color: var
 .vocab-filter-toolbar {
   grid-template-columns: minmax(220px, 1fr) minmax(130px, auto) minmax(130px, auto);
 }
-.vocab-filter-toolbar select,
 .vocab-batch-toolbar input[type="text"] {
   min-width: 0;
   padding: var(--opt-sp-2) var(--opt-sp-4);
-  border: 1px solid var(--opt-input-border);
-  border-radius: var(--opt-radius-sm, 3px);
-  background-color: var(--opt-input-bg);
+  border: 1px solid var(--opt-input-border, #cdd1d6);
+  border-radius: var(--opt-radius-md);
+  background-color: var(--opt-input-bg, #fff);
   color: var(--opt-fg);
   font: inherit;
   font-size: 12px;
   box-sizing: border-box;
 }
-.vocab-filter-toolbar select:focus-visible,
 .vocab-batch-toolbar input[type="text"]:focus-visible {
   outline: 2px solid var(--opt-accent);
   outline-offset: 1px;
+}
+/* These two were the last raw UA dropdowns in options: a toolbar select is
+   still a select, and next to the .fg/.et-field family it read as a different
+   toolkit (user report). Same closed-control recipe as `.fg select` (~:983) --
+   7px radius, drawn chevron, button surface that swaps on hover -- and the
+   @supports block below lists them so the OPEN list matches too. Written
+   token-first rather than literal-plus-`html[data-theme]`-override, which is
+   why this needs no themed twin; only the chevron, being a data URI, still
+   needs the dark variant (~:938). */
+.vocab-filter-toolbar select {
+  min-width: 0;
+  width: 100%;
+  padding: var(--opt-sp-3) 26px var(--opt-sp-3) var(--opt-sp-5);
+  border: 1px solid var(--opt-input-border, #cdd1d6);
+  border-radius: var(--opt-radius-md);
+  background-color: var(--opt-btn-bg, #fff);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M3 4.5 6 7.5 9 4.5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  color: var(--opt-fg, #333);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  box-sizing: border-box;
+  -webkit-appearance: none;
+  appearance: none;
+  box-shadow: none;
+  transition: border-color 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease;
+}
+.vocab-filter-toolbar select:hover:not(:focus) {
+  background-color: var(--opt-btn-hover, #f1f5f9);
+  border-color: var(--opt-input-border, #cdd1d6);
+}
+.vocab-filter-toolbar select:focus {
+  outline: none;
+  border-color: var(--opt-focus-bd, var(--opt-accent));
+}
+.vocab-filter-toolbar select:focus-visible {
+  outline: 2px solid var(--opt-accent);
+  outline-offset: 1px;
+}
+/* Re-assert after the appearance:none above, same reason as the mobile picker's
+   copy (~:2022): this rule sits LATER in the file than the global @supports
+   opt-in, so the none would win and silently drop back to the UA popup. */
+@supports selector(::picker(select)) {
+  .vocab-filter-toolbar select { appearance: base-select; }
 }
 .vocab-summary-row,
 .vocab-selection-actions,
@@ -1641,7 +1732,11 @@ html[data-theme] .preset-preview-content { background: var(--opt-bg); color: var
   margin: 0 0 var(--opt-sp-4);
   padding: var(--opt-sp-3) var(--opt-sp-4);
   border: 1px solid var(--opt-border, #ccc);
-  border-radius: var(--opt-radius-sm, 3px);
+  /* md, not sm: this box holds an input and three buttons, all on the md step.
+     A container rounder-than-its-contents is the same inversion the token
+     derivation regularizes away -- it just shows up in the layout instead of
+     the scale. */
+  border-radius: var(--opt-radius-md);
   background: var(--opt-panel, #f8f8f5);
 }
 .vocab-batch-toolbar input[type="text"] { flex: 1 1 170px; }
@@ -1661,7 +1756,7 @@ html[data-theme] .preset-preview-content { background: var(--opt-bg); color: var
 .vocab-row-select { width: 16px; height: 16px; margin: 0; }
 .vocab-group-chip {
   padding: 0 var(--opt-sp-2);
-  border-radius: 999px;
+  border-radius: var(--opt-radius-full);
   background: color-mix(in srgb, var(--opt-accent, #4477bb) 10%, transparent);
   color: var(--opt-fg, #333);
 }
@@ -1968,7 +2063,7 @@ html.motion-ready .notes-card.motion-toggle .notes-card-chevron {
        so without its own drawn chevron this control would lose its arrow
        entirely on Chrome 135+ (Codex review). Longhand background-*
        properties, same reason as .fg select's comment. */
-    border-radius: 7px;
+    border-radius: var(--opt-radius-md);
     -webkit-appearance: none; appearance: none;
     background-color: var(--opt-btn-bg, #fff);
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M3 4.5 6 7.5 9 4.5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");

@@ -1,6 +1,6 @@
 import { expandPalette } from "./_util.mjs";
 import { mergeTokens } from "./compose-theme.mjs";
-import { deriveUiColors } from "./_ui-derive.mjs";
+import { deriveUiColors, deriveUiRadius, regularizeUiRadius } from "./_ui-derive.mjs";
 
 // popup theme id -> { pilot, mode, useDarkMode? }
 // 12 themes map 1:1; the flexoki pilot yields BOTH flexoki-light and flexoki-dark.
@@ -55,7 +55,17 @@ export function composePopupThemes(tokensByPilot) {
     // through var() to :root's light-surface white: custom properties inherit,
     // so a var(--pp-on-accent, ...) fallback in a shared rule is dead code —
     // the exact mistake that turned every themed submit button white (2026-07).
-    const ui = { ...derived, "on-accent": derived.bg, ...(tk.ui?.popup?.[entry.mode] ?? {}) };
+    // Radius is DERIVED now, not override-only. Before this, --pp-radius-* was
+    // emitted solely where a pilot restated it, so 9 of the 13 themes silently
+    // fell back to :root's generic 3/8/10 while their site CSS used the pilot's
+    // own scale. regularizeUiRadius runs last so an override cannot reintroduce
+    // an inversion (paper-ink shipped lg:3px under md:4px).
+    const ui = {
+      ...derived, "on-accent": derived.bg,
+      ...deriveUiRadius(merged.radius),
+      ...(tk.ui?.popup?.[entry.mode] ?? {}),
+    };
+    Object.assign(ui, regularizeUiRadius(ui));
     blocks.push(`html[data-theme="${entry.id}"] {\n${emitPp(ui)}\n}`);
   }
   return blocks.join("\n");

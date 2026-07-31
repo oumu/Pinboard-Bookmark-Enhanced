@@ -240,7 +240,7 @@ button, input, select, textarea { font-family: inherit; }
   display: inline-flex;
   align-items: stretch;
   border: 1px solid var(--btn-border);
-  border-radius: 7px;
+  border-radius: 6px;
   overflow: hidden;
   background: var(--surface);
 }
@@ -256,8 +256,8 @@ button, input, select, textarea { font-family: inherit; }
   cursor: pointer;
   line-height: 1.6;
 }
-.src-seg:first-child { border-radius: 7px 0 0 7px; }
-.src-seg:last-child { border-radius: 0 7px 7px 0; }
+.src-seg:first-child { border-radius: 6px 0 0 6px; }
+.src-seg:last-child { border-radius: 0 6px 6px 0; }
 .src-seg + .src-seg { border-left: 1px solid var(--btn-border); }
 .src-seg.active { color: var(--active-fg); background: var(--active-bg); cursor: default; }
 .src-seg:focus-visible {
@@ -303,7 +303,7 @@ button, input, select, textarea { font-family: inherit; }
   color: var(--badge-fg);
   background: var(--badge-bg);
   padding: 3px 10px;
-  border-radius: 100px;
+  border-radius: 999px;
   letter-spacing: 0.01em;
 }
 
@@ -957,7 +957,7 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
   gap: 4px;
   margin-top: 6px;
   padding: 3px 9px;
-  border-radius: 100px;
+  border-radius: 999px;
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--fg-muted);
@@ -1074,7 +1074,7 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
   flex: 1;
   appearance: none; -webkit-appearance: none;
   padding: 6px 24px 6px 14px;
-  border: 1px solid var(--btn-border); border-radius: 7px;
+  border: 1px solid var(--btn-border); border-radius: 6px;
   background-color: var(--btn-bg); color: var(--btn-fg);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238a94a0' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
@@ -2089,7 +2089,7 @@ body.tr-only #rendered-view .pb-tr { cursor: pointer; }
   margin: 0.25em 0 1em;
   padding: 3px 10px;
   border: 1px solid var(--danger);
-  border-radius: 100px;
+  border-radius: 999px;
   background: transparent;
   color: var(--danger);
   font-size: 12px;
@@ -2143,7 +2143,7 @@ body.tr-only #rendered-view .pb-tr { cursor: pointer; }
   margin-top: 6px;
   padding: 4px 12px;
   border: 1px solid var(--danger);
-  border-radius: 100px;
+  border-radius: 999px;
   background: transparent;
   color: var(--danger);
   font-size: 12px;

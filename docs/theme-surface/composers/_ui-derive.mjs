@@ -77,6 +77,37 @@ export function pairToAA(statusFg, themeBg, mode, min = 4.5) {
   return { fg: fgToAA(statusFg, bg, min), bg };
 }
 
+// Site radius scale -> extension UI radius scale.
+//
+// The site composers take the pilot's values literally (_base.mjs). Several
+// pilots are non-monotonic there -- gruvbox md:0 below sm:2px, dracula and
+// catppuccin-mocha with lg below md -- which is defensible on a bookmark list
+// but reads as a bug on a settings form, where it puts a card that is rounder
+// than the panel holding it. So the UI scale enforces sm <= md <= lg by RAISING
+// only: the theme's intent survives, the inversion does not.
+//
+// Applied to the merged value, so a pilot `ui.*` override can still choose any
+// scale it likes but cannot reintroduce an inversion.
+export function regularizeUiRadius(r) {
+  const px = (v, dflt) => { const n = parseFloat(v); return Number.isFinite(n) ? n : dflt; };
+  const sm = px(r["radius-sm"], 0);
+  const md = Math.max(sm, px(r["radius-md"], sm));
+  const lg = Math.max(md, px(r["radius-lg"], md));
+  return { "radius-sm": `${sm}px`, "radius-md": `${md}px`, "radius-lg": `${lg}px` };
+}
+
+// `radius` is the mode-merged pilot scale (compose-theme.mjs merges modes.dark
+// over the base). Same md/lg fallback chain as _base.mjs so the two surfaces
+// agree on what a pilot that omits a step means.
+export function deriveUiRadius(radius) {
+  const r = radius || {};
+  return regularizeUiRadius({
+    "radius-sm": r.sm ?? "0",
+    "radius-md": r.md ?? r.sm ?? "0",
+    "radius-lg": r.lg ?? r.md ?? r.sm ?? "0",
+  });
+}
+
 // Map an expanded pilot palette to the canonical UI semantic colors.
 // `mode` is the theme's light/dark intent. Palette values are hex strings.
 export function deriveUiColors(p, mode) {

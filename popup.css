@@ -401,7 +401,10 @@ button.offline-clear:focus-visible, button.offline-toggle:focus-visible { outlin
 .tag-item.drag-over::before {
   content: ""; position: absolute;
   left: -3px; top: 2px; bottom: 2px; width: 2px;
-  background: var(--pp-accent); border-radius: 1px;
+  /* A 2px bar: the radius clamps to half the width either way, so `full` is
+     the same hairline cap as the old literal 1px and keeps the control out of
+     the hardcoded-radius lint without an exemption. */
+  background: var(--pp-accent); border-radius: var(--pp-radius-full);
 }
 .tag-drag-handle {
   color: var(--pp-fg-hint); opacity: 0;
@@ -454,7 +457,7 @@ button.offline-clear:focus-visible, button.offline-toggle:focus-visible { outlin
 .ac-hint-footer kbd {
   display: inline-block; padding: 0 var(--pp-sp-2); margin: 0 1px;
   font-family: SFMono-Regular, "SF Mono", Consolas, Menlo, "Liberation Mono", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei", monospace; font-size: 9px;
-  color: var(--pp-fg-muted); background: var(--pp-bg); border: 1px solid var(--pp-border); border-radius: 3px;
+  color: var(--pp-fg-muted); background: var(--pp-bg); border: 1px solid var(--pp-border); border-radius: var(--pp-radius-sm);
   box-shadow: 0 1px 0 rgba(0,0,0,0.04); vertical-align: baseline;
 }
 .submit-hint { color: var(--pp-fg-hint); font-size: 10px; margin-left: auto; align-self: center; }
@@ -1129,6 +1132,7 @@ html[data-theme="modern-card"] {
   --pp-preset-bd: #e8e8e8;
   --pp-preset-fg: #1a73e8;
   --pp-radius-sm: 4px;
+  --pp-radius-md: 8px;
   --pp-radius-lg: 12px;
   --pp-on-accent: #ffffff;
   --pp-info-bg: var(--pp-banner-bg);
@@ -1170,6 +1174,9 @@ html[data-theme="nord-night"] {
   --pp-preset-bg: #3b4252;
   --pp-preset-bd: #434c5e;
   --pp-preset-fg: #88c0d0;
+  --pp-radius-sm: 4px;
+  --pp-radius-md: 4px;
+  --pp-radius-lg: 4px;
   --pp-radius-tag: 6px;
   --pp-on-accent: #2e3440;
   --pp-info-bg: var(--pp-banner-bg);
@@ -1259,7 +1266,7 @@ html[data-theme="paper-ink"] {
   --pp-preset-fg: #1a3a5c;
   --pp-radius-sm: 2px;
   --pp-radius-md: 4px;
-  --pp-radius-lg: 3px;
+  --pp-radius-lg: 4px;
   --pp-radius-tag: 2px;
   --pp-focus-bd: #1a3a5c;
   --pp-focus-ring: 0 0 0 1px #1a3a5c;
@@ -1303,6 +1310,9 @@ html[data-theme="dracula"] {
   --pp-preset-bg: #21222c;
   --pp-preset-bd: #44475a;
   --pp-preset-fg: #8be9fd;
+  --pp-radius-sm: 2px;
+  --pp-radius-md: 4px;
+  --pp-radius-lg: 4px;
   --pp-radius-tag: 4px;
   --pp-on-accent: #282a36;
   --pp-info-bg: var(--pp-banner-bg);
@@ -1344,6 +1354,7 @@ html[data-theme="flexoki-light"] {
   --pp-preset-bg: #F2F0E5;
   --pp-preset-bd: #E6E4D9;
   --pp-preset-fg: #205EA6;
+  --pp-radius-sm: 3px;
   --pp-radius-md: 6px;
   --pp-radius-lg: 8px;
   --pp-radius-tag: 6px;
@@ -1387,6 +1398,7 @@ html[data-theme="flexoki-dark"] {
   --pp-preset-bg: #343331;
   --pp-preset-bd: #403E3C;
   --pp-preset-fg: #4385BE;
+  --pp-radius-sm: 3px;
   --pp-radius-md: 6px;
   --pp-radius-lg: 8px;
   --pp-radius-tag: 6px;
@@ -1606,6 +1618,9 @@ html[data-theme="gruvbox-dark"] {
   --pp-preset-bg: #3c3836;
   --pp-preset-bd: #504945;
   --pp-preset-fg: #83a598;
+  --pp-radius-sm: 2px;
+  --pp-radius-md: 2px;
+  --pp-radius-lg: 2px;
   --pp-radius-tag: 3px;
   --pp-on-accent: #282828;
   --pp-info-bg: var(--pp-banner-bg);
@@ -1647,6 +1662,9 @@ html[data-theme="rose-pine"] {
   --pp-preset-bg: #26233a;
   --pp-preset-bd: #26233a;
   --pp-preset-fg: #c4a7e7;
+  --pp-radius-sm: 4px;
+  --pp-radius-md: 6px;
+  --pp-radius-lg: 8px;
   --pp-on-accent: #191724;
   --pp-info-bg: var(--pp-banner-bg);
   --pp-info-bd: var(--pp-banner-bd);
@@ -1687,6 +1705,7 @@ html[data-theme="github-light"] {
   --pp-preset-bg: #ddf4ff;
   --pp-preset-bd: #d0d7de;
   --pp-preset-fg: #0969da;
+  --pp-radius-sm: 3px;
   --pp-radius-md: 6px;
   --pp-radius-lg: 6px;
   --pp-on-accent: #f6f8fa;
