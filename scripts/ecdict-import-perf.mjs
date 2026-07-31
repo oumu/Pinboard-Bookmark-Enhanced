@@ -48,6 +48,10 @@ const arg = (name, dflt) => { const i = argv.indexOf(name); return i >= 0 && arg
 const WHICH = arg("--fixture", "all");
 const CSV = arg("--csv", "");
 const RUNS = Number(arg("--runs", "3"));
+// The rung the measured import runs at. Only the resource gates read it; the
+// quota fixture stays on R1 because it is testing abort structure, not volume.
+const RUNG = arg("--rung", "R1");
+if (!["R1", "R2", "R3"].includes(RUNG)) { console.error(`[perf] bad --rung ${RUNG}`); process.exit(2); }
 
 // ---- Gates (pre-registered; see spec §10.3) -------------------------------
 const GATES = {
@@ -101,7 +105,10 @@ function fReal() {
   if (!CSV) { console.error("[perf] --fixture real needs --csv <ecdict.csv[.gz]>"); process.exit(2); }
   const raw = readFileSync(CSV);
   const csv = (CSV.endsWith(".gz") ? zlib.gunzipSync(raw) : raw).toString("utf8");
-  return { name: "F-real", csv, expectEntries: 59_137 };
+  // Counts are the fixed sample's, per rung. They are the measured admission
+  // of the pinned artifact, so a mismatch means the predicate moved.
+  const expect = { R1: 59_137, R2: 124_281, R3: 181_921 }[RUNG];
+  return { name: `F-real (${RUNG})`, csv, expectEntries: expect };
 }
 
 // ---- One measured run -----------------------------------------------------
@@ -193,7 +200,7 @@ async function runOnce(fixture, runIdx) {
       }
     })();
 
-    const result = await page.evaluate(async () => {
+    const result = await page.evaluate(async (rung) => {
       const file = window.__file;
       window.__perfArm();
       const t0 = performance.now();
@@ -201,7 +208,7 @@ async function runOnce(fixture, runIdx) {
       let atParsed = null, parseMs = 0;
       try {
         res = await pbpEcdictImportFile(file, {
-          rung: "R1",
+          rung,
           onPhase: (ph) => {
             if (ph !== "parsed") return;
             parseMs = performance.now() - t0;
@@ -212,7 +219,7 @@ async function runOnce(fixture, runIdx) {
       const ms = performance.now() - t0;
       clearInterval(window.__perfTick);
       return { ms, parseMs, atParsed, res: res || null, err, perf: { ...window.__perf } };
-    });
+    }, RUNG);
 
     sampling = false;
     await sampler;

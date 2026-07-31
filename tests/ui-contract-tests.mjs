@@ -281,6 +281,13 @@ check(sharedJs.includes('const state = ok ? "ok" : "bad"') &&
     /id="ecdict-pack-import"[^>]*class="btn btn-sm"|class="btn btn-sm"[^>]*id="ecdict-pack-import"/.test(optionsHtml) &&
     optionsHtml.includes('accept=".csv,.txt,.gz,.zip"'),
     "options.html: ECDICT controls left the shared status/button/file-input families");
+  // One rung, the widest, chosen once in code. A picker was declined (it would
+  // need a "re-import to change it" caveat, since the rung is baked into the
+  // stored rows), so the constant is the only place it can drift.
+  check(/pbpEcdictImportFile\(f, \{ rung: "R3"/.test(optionsVocabJs),
+    "options-vocab.js: the ECDICT import no longer requests the widest rung");
+  check(!/id="ecdict-(rung|tier|level)"/.test(optionsHtml) && !/ecdictRung/.test(optionsHtml),
+    "options.html: a rung picker appeared, which the shipped design has no copy or re-import story for");
 }
 
 check(!mdTranslateJs.includes("lastViewMode") &&

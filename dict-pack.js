@@ -639,7 +639,11 @@ const _PBP_ECDICT_LOCK = "pbp-ecdict-import";
 // 12.8 MB structured clone in one synchronous burst. The next burst is queued
 // from the LAST request's success callback, which keeps the transaction alive
 // without handing control back to a plain task, where it would be inactive.
-const PBP_ECDICT_PUT_BATCH = 1000;
+// 1000 was measured at a 53-85 ms gap once the pack got large (182k records):
+// the per-put cost is small but real, and the burst is one unyieldable task
+// because the transaction must stay alive. 300 lands the same import at 37 ms
+// max over five runs with no measurable wall-clock cost (24.8s both ways).
+const PBP_ECDICT_PUT_BATCH = 300;
 // UTF-16 units, a cheap proxy for clone cost that needs no encoder pass and adds
 // no field to the stored record (which must stay exactly key/word/translation).
 const PBP_ECDICT_PUT_BATCH_UNITS = 256 * 1024;
@@ -723,6 +727,11 @@ async function pbpEcdictImport(lineIter, stats, opts) {
       // Accumulated here rather than in one pass afterwards: a single trailing
       // encode of the whole payload was measured as a long task on its own.
       payloadBytes += pbpEcdictRecordBytes(r.record, enc);
+      // Retention is charged to the yield budget too. Counting only the source
+      // text read makes the window scale with the FILE, not with the work: at
+      // R3 the same 64K of input keeps ~3x the records of R1, and the measured
+      // max gap went 22ms -> 53ms on the identical file for that reason alone.
+      sinceYield += r.record.key.length + r.record.word.length + r.record.translation.length;
       if (records.length > PBP_ECDICT_MAX_ENTRIES) throw new Error("ECDICT entry count above the accepted ceiling");
       if (payloadBytes > PBP_ECDICT_MAX_PAYLOAD_BYTES) throw new Error("ECDICT payload above the accepted ceiling");
       if (records.length % 20000 === 0 && o.onParsed) { try { o.onParsed(records.length); } catch (_) {} }

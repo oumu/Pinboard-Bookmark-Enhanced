@@ -1466,7 +1466,13 @@ function _pbpEcdictWire() {
       if (el && now - lastShown >= 1000) { lastShown = now; el.textContent = t("ecdictImporting", String(n)); }
     };
     try {
-      const res = await pbpEcdictImportFile(f, { rung: "R1", onParsed: tick, onProgress: tick });
+      // Widest rung, deliberately, and there is no picker: a lookup dictionary
+      // earns its keep on the words you actually stopped to look up, and the two
+      // narrower rungs exist to prove the predicate is cumulative, not to be
+      // shipped. Measured cost of R3 over R1 on the real file: 24.8s vs 10.6s
+      // import, 38 MB vs 14 MB stored. All six resource gates pass at R3
+      // (scripts/ecdict-import-perf.mjs --fixture real --rung R3).
+      const res = await pbpEcdictImportFile(f, { rung: "R3", onParsed: tick, onProgress: tick });
       _pbpVocabFlashStatus(true, t("dictPackDone", String(res.entries)));
     } catch (e) {
       const msg = String((e && e.message) || "");
