@@ -1606,6 +1606,7 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
 .xp-retry:active, .xp-ask:active, .xp-save:active:not(:disabled), .xp-vocab:active:not(:disabled), .xp-open-vocab:active, .xp-dict-connect:active:not(:disabled) { transform: translateY(1px); }
 .xp-save:disabled, .xp-vocab:disabled, .xp-dict-connect:disabled { opacity: 0.6; cursor: default; }
 .xp-foot {
+  position: relative; /* positioning context for .xp-gear-menu */
   display: flex;
   align-items: center;
   /* The actions are icons now, so the row no longer outgrows the card and has
@@ -1680,7 +1681,11 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.xp-gear-wrap { position: relative; }
+/* Static on purpose: the menu below anchors to .xp-foot instead, so it can be
+   capped at the card's width. Anchored to this wrapper it had no width limit
+   and ran straight out of #explain-pop, which is overflow:hidden -- so the far
+   side of the menu was simply clipped away. */
+.xp-gear-wrap { position: static; }
 .xp-gear {
   display: inline-flex;
   align-items: center;
@@ -1698,12 +1703,17 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
 .xp-gear svg { width: 14px; height: 14px; }
 .xp-gear-menu {
   position: absolute;
-  right: 0;
-  bottom: 30px;
+  /* Anchored to the footer, not to the gear, and never wider than the card.
+     min-width alone let a long label (German and Russian run much longer than
+     English) push the box past the left edge, where overflow:hidden ate it. */
+  right: 14px;
+  bottom: calc(100% - 6px);
   display: flex;
   flex-direction: column;
   gap: 2px;
-  min-width: 200px;
+  min-width: min(200px, 100%);
+  width: max-content;
+  max-width: calc(100% - 28px);
   padding: 8px 10px;
   background: var(--surface);
   border: 1px solid var(--border);

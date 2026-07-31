@@ -42,6 +42,21 @@ async function makeFrame(width) {
         <div class="xp-act-group"><button class="xp-act" data-action="explain"></button><button class="xp-act" data-action="translate"></button><button class="xp-act" data-action="dict"></button></div>
         <div class="xp-window-actions"><button class="xp-pin"><svg viewBox="0 0 24 24"></svg></button><button class="xp-close"><svg viewBox="0 0 24 24"></svg></button></div>
       </div><div class="xp-body">Body</div>
+      <div class="xp-foot">
+        <span class="xp-model">model</span>
+        <button class="xp-save"><svg viewBox="0 0 24 24"></svg></button>
+        <button class="xp-vocab"><svg viewBox="0 0 24 24"></svg></button>
+        <button class="xp-open-vocab"><svg viewBox="0 0 24 24"></svg></button>
+        <button class="xp-ask"><svg viewBox="0 0 24 24"></svg></button>
+        <span class="xp-gear-wrap">
+          <button class="xp-gear"><svg viewBox="0 0 24 24"></svg></button>
+          <div class="xp-gear-menu">
+            <label><input type="radio" name="trg"><span data-trg="icon"></span></label>
+            <label><input type="radio" name="trg"><span data-trg="hotkey"></span></label>
+            <label><input type="radio" name="trg"><span data-trg="off"></span></label>
+          </div>
+        </span>
+      </div>
     </div></body></html>`;
   document.body.appendChild(frame);
   await new Promise((resolve) => frame.addEventListener("load", resolve, { once: true }));
@@ -55,6 +70,45 @@ function applyLocale(frame, messages, locale) {
   doc.querySelector('[data-action="explain"]').textContent = messages[locale].explainActionExplain.message;
   doc.querySelector('[data-action="translate"]').textContent = messages[locale].explainActionTranslate.message;
   doc.querySelector('[data-action="dict"]').textContent = messages[locale].explainActionDict.message;
+  const m = messages[locale];
+  doc.querySelector('[data-trg="icon"]').textContent = m.selectionTriggerIcon.message;
+  doc.querySelector('[data-trg="hotkey"]').textContent = m.selectionTriggerHotkey.message;
+  doc.querySelector('[data-trg="off"]').textContent = m.selectionTriggerOff.message;
+}
+
+// #explain-pop is overflow:hidden, so a menu that sticks out is not merely ugly
+// -- the part outside the card is clipped away and unreadable. Anchored to the
+// gear it had no width limit at all; the longest locale ran past the left edge.
+// The reported failure needed a WRAPPED footer: the gear had been pushed onto a
+// second row near the left, so a menu anchored to it ran off the card. Icons
+// keep the row short in English, but the stylesheet still allows wrapping at the
+// largest type tiers, so the invariant has to hold wherever the gear lands.
+function forceFooterWrap(frame, on) {
+  const doc = frame.contentDocument;
+  doc.querySelector(".xp-model").textContent = on ? "a-very-long-model-identifier".repeat(2) : "model";
+  // Push the gear onto a row of its own, at the left, which is where a wrapped
+  // footer actually puts it. Anchoring the menu there is what ran it off the
+  // card; with the gear sitting on the right there is always room and the bug
+  // simply does not appear, which is how the first version of this test passed
+  // against the broken stylesheet.
+  for (const cls of [".xp-save", ".xp-vocab", ".xp-open-vocab", ".xp-ask"]) {
+    const btn = doc.querySelector(cls);
+    btn.style.width = on ? "120px" : "";
+    btn.style.height = on ? "" : "";
+  }
+}
+
+function assertGearMenuInside(frame, locale) {
+  const doc = frame.contentDocument;
+  const pop = doc.getElementById("explain-pop").getBoundingClientRect();
+  const menu = doc.querySelector(".xp-gear-menu").getBoundingClientRect();
+  assert(menu.width > 0 && menu.height > 0, `${locale}: gear menu did not render`);
+  assert(menu.left >= pop.left - 0.5,
+    `${locale}: gear menu overflows the card on the left (${menu.left} < ${pop.left})`);
+  assert(menu.right <= pop.right + 0.5,
+    `${locale}: gear menu overflows the card on the right (${menu.right} > ${pop.right})`);
+  assert(menu.top >= pop.top - 0.5,
+    `${locale}: gear menu overflows the card at the top (${menu.top} < ${pop.top})`);
 }
 function assertLayout(frame, locale) {
   const doc = frame.contentDocument;
@@ -126,6 +180,22 @@ function assertLayout(frame, locale) {
       }
       assert(failures.length === 0, failures.join(", "));
     } finally { frame.remove(); }
+  });
+
+  await test("the gear menu stays inside the card in every locale, at 320px and 420px", async () => {
+    for (const width of [320, 420]) {
+      const frame = await makeFrame(width);
+      try {
+        for (const locale of LOCALES) {
+          applyLocale(frame, messages, locale);
+          for (const wrapped of [false, true]) {
+            forceFooterWrap(frame, wrapped);
+            await new Promise((resolve) => frame.contentWindow.requestAnimationFrame(resolve));
+            assertGearMenuInside(frame, `${locale}@${width}${wrapped ? " wrapped" : ""}`);
+          }
+        }
+      } finally { frame.remove(); }
+    }
   });
 })();
 </script></body></html>

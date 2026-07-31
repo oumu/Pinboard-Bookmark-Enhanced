@@ -46,7 +46,7 @@ const EXPECTED_RESULTS = Object.freeze({
   "tests/md-convert-tests.html": 554,
   "tests/md-dict-tests.html": 244,
   "tests/md-embed-tests.html": 37,
-  "tests/md-explain-layout-tests.html": 3,
+  "tests/md-explain-layout-tests.html": 4,
   "tests/offline-queue-tests.html": 22,
   "tests/options-notes-tests.html": 36,
   "tests/options-reset-tests.html": 12,
