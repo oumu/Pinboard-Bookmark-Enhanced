@@ -81,6 +81,29 @@ The 17 required slots:
 (`btn-bg`, `link-hover`, `focus-ring`, `tag-fg`, `success`, ...). You can
 override any of them explicitly.
 
+**Right-bar submits** (subscribe on the subscriptions page, search on the tweets
+page) read `sidebar-btn-bg`, `sidebar-btn-fg` and `sidebar-btn-bg-hover`. Leave
+them out and they fall back to the `btn-*` family, which is what you want unless
+your theme paints that button differently. The thirteen shipped pilots all
+declare them, because they disagreed: seven treated it as the button color, two
+picked a custom color, and four left it on `success`. That disagreement used to
+live in hand-written `overrides.css`, where the composer could not read it and
+therefore could not derive a text color for it.
+
+**Your declared fill is a request, not a guarantee.** `btn-bg`, `btn-bg-hover`
+and the three `sidebar-btn-*` slots pass through `bgToAA()`, which darkens them
+by the minimum needed to clear WCAG AA against their text color. Hue and
+saturation survive; lightness may not. If you declare `#268bd2` and see
+`#2076b2` in `pinboard-themes.js`, that is the guard working, not drift.
+
+The reverse applies to `palette.on-accent` and `palette.on-link-hover`: the
+composer derives them *for* you, so never declare them, and never assume
+`btn-fg` is what lands on an accent fill. **Two different tokens share the name
+`on-accent`** — the site's `--pinboard-on-accent` (derived, do not declare) and
+the popup's `--pp-on-accent` (a legitimate `ui.popup.<mode>` override, see
+"Pilot `ui` overrides" below). Five pilots set the second one; none set the
+first. See "Contrast derivation" in `README.md`.
+
 ### `typo`
 
 `family`, `size-base`, `size-sm`, `size-lg`, `size-xs`, `line-height`,

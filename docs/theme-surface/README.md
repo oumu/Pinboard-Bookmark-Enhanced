@@ -164,6 +164,11 @@ regressions:
 |------|-----------|-----|
 | `pinboard.bg vs fg` | 4.5:1 | body text |
 | `pinboard.btn-bg vs btn-fg` | 4.5:1 | save/cancel/sign-up button text |
+| `pinboard.btn-bg-hover vs btn-fg` | 4.5:1 | same, hover state |
+| `pinboard.sidebar-btn-bg vs fg` | 4.5:1 | right-bar submits (subscribe, tweet search) |
+| `pinboard.sidebar-btn-hover vs fg` | 4.5:1 | same, hover state |
+| `pinboard.on-accent vs accent` | 4.5:1 | text on an accent fill (selected page-nav chip, RSS hover) |
+| `pinboard.on-link-hover vs link-hover` | 4.5:1 | same, hover fill |
 | `pinboard.muted vs bg-surface` | 3:1 | scrollbar thumb visibility |
 | `popup.fg vs bg` (`--pp-*`) | 4.5:1 | popup body |
 | `popup.fg-hint vs bg` | 4.5:1 | char counters, hints |
@@ -172,12 +177,45 @@ regressions:
 | `options.fg-hint vs bg` | 4.5:1 | inline hint text |
 | `options.fg-muted vs bg` | 4.5:1 | tab labels, accordion headers |
 
-Already-shipped legacy violations (Solarized's intentional low-contrast
-palette + a couple of historical hand-tuned dark themes) are pinned in the
-`ALLOWLIST` constant inside `contrast-audit.mjs`; they print as `KNOWN`
-without blocking. **Adding a new theme that hits the same pair fails the
-audit** — the allowlist matches `<scope>:<theme>:<pair>` exactly, so the
-exemption never carries over.
+**What the audit reads matters as much as the table.** It runs on
+`_util.mjs#expandPalette` output, not the raw pilot, because `btn-bg`,
+`sidebar-btn-*` and the `on-<fill>` tokens are *derived* there (see "Contrast
+derivation" below). It also iterates every `modes.<name>` palette, not just the
+base. Both were coverage holes: reading raw pilots hid 22 sub-AA pairs behind a
+green run (worst was nord-night's selected page-nav chip at 1.74:1), and
+skipping mode palettes hid the whole of Flexoki's dark mode.
+
+Already-shipped legacy violations are pinned in the `ALLOWLIST` constant inside
+`contrast-audit.mjs`; they print as `KNOWN` without blocking. **Adding a new
+theme that hits the same pair fails the audit** — the allowlist matches
+`<scope>:<theme>:<pair>` exactly, so the exemption never carries over. Only two
+entries remain, both `muted vs bg-surface` (scrollbar thumb): `muted` doubles as
+secondary body text, so raising it for the thumb would lighten the theme's
+prose. **Do not add an exemption for a text/fill pair** — those all have a
+derivation behind them now, so a failure means the derivation needs fixing, not
+pinning.
+
+### Contrast derivation
+
+Two levers, picked by whether the token is shared. `composers/_ui-derive.mjs`
+supplies both, and each is the identity function when a pair already clears AA,
+so compliant themes render byte-for-byte unchanged.
+
+- **Fill gives way.** `btn-bg` / `btn-bg-hover` and `sidebar-btn-bg` /
+  `sidebar-btn-bg-hover` paint nothing but their own buttons, so `bgToAA()`
+  darkens the fill by the minimum that clears AA against its text, preserving
+  hue and saturation. When a base moves onto its hand-picked hover, the hover is
+  re-derived from the new base so the hover affordance survives.
+- **Text gives way.** `accent` alone paints 45+ surfaces, most of them text, so
+  darkening it would repaint half the site. Where `btn-fg` used to sit on
+  `accent` or `link-hover` as a *fill*, the composer now emits a per-fill
+  `on-accent` / `on-link-hover` derived with `fgToAA()` instead.
+
+A pilot's declared value is therefore a request, not a guarantee: declare
+`btn-bg: #268bd2` on a palette whose `btn-fg` cannot reach AA against it and the
+emitted value is the nearest passing shade. That is by design, not drift —
+`diff-all --strict` compares composer output against shipped CSS, so both sides
+see the derived value.
 
 ### State coverage checklist
 
