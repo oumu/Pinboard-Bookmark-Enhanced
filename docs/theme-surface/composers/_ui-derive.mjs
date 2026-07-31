@@ -69,6 +69,30 @@ export function fgToAA(fg, bg, min = 4.5) {
   return out;
 }
 
+// Mirror of fgToAA for the case where the FOREGROUND is the fixed brand value and
+// the FILL must give way. Adjusts bg's LIGHTNESS (hue+sat preserved) against a fixed
+// fg until contrast >= min, verifying on hex-rounded values. Returns rgb.
+//
+// Used for button fills: a pilot's btn-fg is the theme's chosen "text on brand color"
+// (usually its lightest base), and flipping it to the opposite pole to reach AA would
+// read as a different theme. Darkening the fill by the minimum needed keeps the
+// light-text-on-brand look while clearing AA. Identity when the pair already passes,
+// so themes that are already compliant emit byte-for-byte unchanged.
+export function bgToAA(bg, fg, min = 4.5) {
+  const fgRound = hexToRgb(rgbToHex(fg));
+  const fgIsLight = relLum(fgRound) > 0.18;
+  const [h, s] = rgbToHsl(bg);
+  let [, , l] = rgbToHsl(bg);
+  let out = bg;
+  for (let i = 0; i < 200; i++) {
+    if (contrast(hexToRgb(rgbToHex(out)), fgRound) >= min) break;
+    l = fgIsLight ? Math.max(0, l - 0.005) : Math.min(1, l + 0.005);
+    out = hslToRgb([h, s, l]);
+    if (l <= 0 || l >= 1) break;
+  }
+  return out;
+}
+
 // Derive an AA-passing status (fg,bg) pair: subtle tinted background keeping the
 // theme's light/dark feel, with the foreground's LIGHTNESS adjusted (hue+sat kept)
 // until contrast >= min. mode: "light"|"dark". Returns { fg:[r,g,b], bg:[r,g,b] }.

@@ -39,7 +39,10 @@
     "url-link-fg": "#bf8700",
     "link-hover": "#0550ae",
     "link-visited": "#8250df",
-    "focus-ring": "#0969da"
+    "focus-ring": "#0969da",
+    "sidebar-btn-bg": "#2da44e",
+    "sidebar-btn-fg": "#ffffff",
+    "sidebar-btn-bg-hover": "#2c974b"
   },
   "typo": {
     "family": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", \"Noto Sans\", Helvetica, Arial, sans-serif",

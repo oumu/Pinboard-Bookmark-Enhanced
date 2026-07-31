@@ -41,7 +41,12 @@ const PINBOARD_THEMES = {
   --pinboard-link-visited: #7b1fa2;
   --pinboard-focus-ring: #1a73e8;
   --pinboard-unread: #d93025;
+  --pinboard-sidebar-btn-bg: #1a73e8;
+  --pinboard-sidebar-btn-fg: #fff;
+  --pinboard-sidebar-btn-bg-hover: #1765cc;
   --pinboard-btn-bg-hover: #174ea6;
+  --pinboard-on-accent: #ffffff;
+  --pinboard-on-link-hover: #ffffff;
   --pinboard-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --pinboard-font-size-base: 13px;
   --pinboard-font-size-sm: 12px;
@@ -221,11 +226,11 @@ body { color-scheme: light !important; }
 #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
 /* In flex layout, no need for negative margin compensation — pills lay out as discrete flex items
    without affecting siblings. Negative margin would pull the adjacent " ‧ " text node under the pill bg. */
-#bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
-#bmarks_page_nav a.filter.selected:hover { background: var(--pinboard-link-hover) !important; color: var(--pinboard-btn-fg) !important; }
+#bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-on-accent) !important; padding: 1px 5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
+#bmarks_page_nav a.filter.selected:hover { background: var(--pinboard-link-hover) !important; color: var(--pinboard-on-link-hover) !important; }
 /* RSS = feed export (semantically distinct from view-switch filters above): outlined chip in accent color. */
 #bmarks_page_nav a.rss_link { color: var(--pinboard-accent) !important; background: transparent !important; border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important; padding: 0 6px !important; border-radius: var(--pinboard-radius-sm) !important; font-size: 11px !important; font-weight: var(--pinboard-weight-heading) !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; transition: background 0.15s ease, color 0.15s ease !important; }
-#bmarks_page_nav a.rss_link:hover { color: var(--pinboard-btn-fg) !important; background: var(--pinboard-accent) !important; }
+#bmarks_page_nav a.rss_link:hover { color: var(--pinboard-on-accent) !important; background: var(--pinboard-accent) !important; }
 
 /* ---- Search (banner + main) ---- */
 #searchbox { margin-bottom: 12px !important; }
@@ -239,12 +244,12 @@ a.bundle:hover { color: var(--pinboard-link-hover) !important; }
 }
 #search_query_field:focus, #banner_searchbox input[type="text"]:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 .search_button input[type="submit"] {
-  background: var(--pinboard-accent) !important;
+  background: var(--pinboard-btn-bg) !important;
   color: var(--pinboard-btn-fg) !important;
-  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important;
+  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-btn-bg) !important;
   cursor: pointer !important;
 }
-.search_button input[type="submit"]:hover { background: var(--pinboard-link-hover) !important; }
+.search_button input[type="submit"]:hover { background: var(--pinboard-btn-bg-hover) !important; }
 
 /* ---- Bookmark list ---- */
 .bookmark {
@@ -335,8 +340,8 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 }
 #right_bar input#key:focus { border-color: var(--pinboard-accent) !important; box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important; outline: none !important; }
 #right_bar input[type="submit"] {
-  background: var(--pinboard-success) !important;
-  color: var(--pinboard-btn-fg) !important;
+  background: var(--pinboard-sidebar-btn-bg) !important;
+  color: var(--pinboard-sidebar-btn-fg) !important;
   border: none !important;
   border-radius: var(--pinboard-radius-sm) !important;
   padding: 4px 10px !important;
@@ -345,7 +350,7 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
   font-size: 12px !important;
   transition: background 0.15s ease !important;
 }
-#right_bar input[type="submit"]:hover { background: var(--pinboard-success-hover) !important; }
+#right_bar input[type="submit"]:hover { background: var(--pinboard-sidebar-btn-bg-hover) !important; }
 
 /* ---- Tag cloud ---- */
 #tag_cloud { max-width: 100% !important; overflow-wrap: break-word !important; }
@@ -373,13 +378,13 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 }
 #tweet_searchbox #search_query_field:focus { border-color: var(--pinboard-accent) !important; box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important; outline: none !important; }
 #tweet_searchbox input[type="submit"] {
-  background: var(--pinboard-success) !important; color: var(--pinboard-btn-fg) !important;
+  background: var(--pinboard-sidebar-btn-bg) !important; color: var(--pinboard-sidebar-btn-fg) !important;
   border: none !important; border-radius: var(--pinboard-radius-sm) !important;
   padding: 5px 14px !important; cursor: pointer !important;
   font-size: 12px !important; align-self: flex-start !important;
   transition: background 0.15s ease !important;
 }
-#tweet_searchbox input[type="submit"]:hover { background: var(--pinboard-success-hover) !important; }
+#tweet_searchbox input[type="submit"]:hover { background: var(--pinboard-sidebar-btn-bg-hover) !important; }
 
 /* ---- Forms (global) ----
  * input/textarea/select share the EXACT same padding (5px 12px) +
@@ -396,15 +401,15 @@ input[type="text"], input:not([type]), input[type="password"], textarea, select 
 }
 input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
-  background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important;
-  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important;
+  background: var(--pinboard-btn-bg) !important; color: var(--pinboard-btn-fg) !important;
+  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-btn-bg) !important;
   border-radius: var(--pinboard-radius-sm) !important;
   padding: 5px 12px !important;
   line-height: 1.4 !important;
   cursor: pointer !important;
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease !important;
 }
-input[type="submit"]:hover, input[type="button"]:hover { background: var(--pinboard-link-hover) !important; border-color: var(--pinboard-link-hover) !important; }
+input[type="submit"]:hover, input[type="button"]:hover { background: var(--pinboard-btn-bg-hover) !important; border-color: var(--pinboard-btn-bg-hover) !important; }
 input[type="reset"], input[type="reset"].reset, button[type="reset"] {
   background: var(--pinboard-bg-surface) !important; color: var(--pinboard-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
@@ -761,7 +766,6 @@ a.tag.selected::before { color: var(--pinboard-destroy) !important; opacity: 0.9
 #search_query_field:focus { background: #fff !important; }
 #banner_searchbox input[type="text"]:focus { background: #fff !important; }
 .search_button input[type="submit"] { color: #fff !important; border: none !important; border-radius: 4px !important; padding: 4px 12px !important; font-size: 12px !important; }
-.search_button input[type="submit"]:hover { background: #1765cc !important; }
 a.url_display { color: #3c8039 !important; font-size: 12px !important; text-decoration: none !important; }
 a.url_link { font-size: 12px !important; padding: 1px 5px !important; border-radius: 3px !important; }
 .description { color: #5f6368 !important; font-size: 13px !important; margin-top: 4px !important; }
@@ -793,8 +797,6 @@ textarea:focus { box-shadow: 0 0 0 2px rgba(26,115,232,0.15) !important; }
 select:focus { box-shadow: 0 0 0 2px rgba(26,115,232,0.15) !important; }
 input[type="submit"] { color: #fff !important; border: none !important; border-radius: 6px !important; padding: 8px 20px !important; font-size: 13px !important; }
 input[type="button"] { color: #fff !important; border: none !important; border-radius: 6px !important; padding: 8px 20px !important; font-size: 13px !important; }
-input[type="submit"]:hover { background: #1765cc !important; }
-input[type="button"]:hover { background: #1765cc !important; }
 #edit_bookmark_form { background: #fff !important; border-radius: 8px !important; padding: 16px !important; box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important; }
 .suggested_tag { background: #e8f0fe !important; color: #1967d2 !important; border-radius: 12px !important; padding: 2px 8px !important; }
 #settings_panel { background: #fff !important; border-radius: 8px !important; padding: 20px !important; }
@@ -823,10 +825,8 @@ h2 { color: #3c4043 !important; }
 #main_column form[name="sort"] table td a.edit { opacity: 0.7 !important; }
 #right_bar input#key { background: #f8f9fa !important; color: #3c4043 !important; border: 1px solid #dadce0 !important; }
 #right_bar input#key:focus { box-shadow: 0 0 0 2px rgba(26,115,232,0.2) !important; }
-#right_bar input[type="submit"] { color: #fff !important; }
 #tweet_searchbox #search_query_field { background: #f8f9fa !important; color: #3c4043 !important; border: 1px solid #dadce0 !important; font-size: 13px !important; }
-#tweet_searchbox #search_query_field:focus { box-shadow: 0 0 0 2px rgba(26,115,232,0.2) !important; }
-#tweet_searchbox input[type="submit"] { color: #fff !important; }`
+#tweet_searchbox #search_query_field:focus { box-shadow: 0 0 0 2px rgba(26,115,232,0.2) !important; }`
   },
 
   // ---- 2. Nord Night (Dark) ----
@@ -856,8 +856,8 @@ h2 { color: #3c4043 !important; }
   --pinboard-tag-fg: #a3be8c;
   --pinboard-row-hover: #434c5e;
   --pinboard-destroy: #bf616a;
-  --pinboard-btn-bg: #5e81ac;
-  --pinboard-btn-bg-hover: #4c6f9a;
+  --pinboard-btn-bg: #4d6e96;
+  --pinboard-btn-bg-hover: #415d7e;
   --pinboard-btn-fg: #eceff4;
   --pinboard-success: #a3be8c;
   --pinboard-success-hover: #b5d19c;
@@ -867,6 +867,11 @@ h2 { color: #3c4043 !important; }
   --pinboard-link-visited: #b48ead;
   --pinboard-focus-ring: #88c0d0;
   --pinboard-unread: #bf616a;
+  --pinboard-sidebar-btn-bg: #4d6e96;
+  --pinboard-sidebar-btn-fg: #eceff4;
+  --pinboard-sidebar-btn-bg-hover: #415d7e;
+  --pinboard-on-accent: #384861;
+  --pinboard-on-link-hover: #384861;
   --pinboard-font-family: "Inter", -apple-system, sans-serif;
   --pinboard-font-size-base: 13px;
   --pinboard-font-size-sm: 12px;
@@ -1046,11 +1051,11 @@ body { color-scheme: dark !important; }
 #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
 /* In flex layout, no need for negative margin compensation — pills lay out as discrete flex items
    without affecting siblings. Negative margin would pull the adjacent " ‧ " text node under the pill bg. */
-#bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
-#bmarks_page_nav a.filter.selected:hover { background: var(--pinboard-link-hover) !important; color: var(--pinboard-btn-fg) !important; }
+#bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-on-accent) !important; padding: 1px 5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
+#bmarks_page_nav a.filter.selected:hover { background: var(--pinboard-link-hover) !important; color: var(--pinboard-on-link-hover) !important; }
 /* RSS = feed export (semantically distinct from view-switch filters above): outlined chip in accent color. */
 #bmarks_page_nav a.rss_link { color: var(--pinboard-accent) !important; background: transparent !important; border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important; padding: 0 6px !important; border-radius: var(--pinboard-radius-sm) !important; font-size: 11px !important; font-weight: var(--pinboard-weight-heading) !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; transition: background 0.15s ease, color 0.15s ease !important; }
-#bmarks_page_nav a.rss_link:hover { color: var(--pinboard-btn-fg) !important; background: var(--pinboard-accent) !important; }
+#bmarks_page_nav a.rss_link:hover { color: var(--pinboard-on-accent) !important; background: var(--pinboard-accent) !important; }
 
 /* ---- Search (banner + main) ---- */
 #searchbox { margin-bottom: 12px !important; }
@@ -1064,12 +1069,12 @@ a.bundle:hover { color: var(--pinboard-link-hover) !important; }
 }
 #search_query_field:focus, #banner_searchbox input[type="text"]:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 .search_button input[type="submit"] {
-  background: var(--pinboard-accent) !important;
+  background: var(--pinboard-btn-bg) !important;
   color: var(--pinboard-btn-fg) !important;
-  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important;
+  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-btn-bg) !important;
   cursor: pointer !important;
 }
-.search_button input[type="submit"]:hover { background: var(--pinboard-link-hover) !important; }
+.search_button input[type="submit"]:hover { background: var(--pinboard-btn-bg-hover) !important; }
 
 /* ---- Bookmark list ---- */
 .bookmark {
@@ -1160,8 +1165,8 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 }
 #right_bar input#key:focus { border-color: var(--pinboard-accent) !important; box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important; outline: none !important; }
 #right_bar input[type="submit"] {
-  background: var(--pinboard-success) !important;
-  color: var(--pinboard-btn-fg) !important;
+  background: var(--pinboard-sidebar-btn-bg) !important;
+  color: var(--pinboard-sidebar-btn-fg) !important;
   border: none !important;
   border-radius: var(--pinboard-radius-sm) !important;
   padding: 4px 10px !important;
@@ -1170,7 +1175,7 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
   font-size: 12px !important;
   transition: background 0.15s ease !important;
 }
-#right_bar input[type="submit"]:hover { background: var(--pinboard-success-hover) !important; }
+#right_bar input[type="submit"]:hover { background: var(--pinboard-sidebar-btn-bg-hover) !important; }
 
 /* ---- Tag cloud ---- */
 #tag_cloud { max-width: 100% !important; overflow-wrap: break-word !important; }
@@ -1198,13 +1203,13 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 }
 #tweet_searchbox #search_query_field:focus { border-color: var(--pinboard-accent) !important; box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important; outline: none !important; }
 #tweet_searchbox input[type="submit"] {
-  background: var(--pinboard-success) !important; color: var(--pinboard-btn-fg) !important;
+  background: var(--pinboard-sidebar-btn-bg) !important; color: var(--pinboard-sidebar-btn-fg) !important;
   border: none !important; border-radius: var(--pinboard-radius-sm) !important;
   padding: 5px 14px !important; cursor: pointer !important;
   font-size: 12px !important; align-self: flex-start !important;
   transition: background 0.15s ease !important;
 }
-#tweet_searchbox input[type="submit"]:hover { background: var(--pinboard-success-hover) !important; }
+#tweet_searchbox input[type="submit"]:hover { background: var(--pinboard-sidebar-btn-bg-hover) !important; }
 
 /* ---- Forms (global) ----
  * input/textarea/select share the EXACT same padding (5px 12px) +
@@ -1221,15 +1226,15 @@ input[type="text"], input:not([type]), input[type="password"], textarea, select 
 }
 input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
-  background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important;
-  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important;
+  background: var(--pinboard-btn-bg) !important; color: var(--pinboard-btn-fg) !important;
+  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-btn-bg) !important;
   border-radius: var(--pinboard-radius-sm) !important;
   padding: 5px 12px !important;
   line-height: 1.4 !important;
   cursor: pointer !important;
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease !important;
 }
-input[type="submit"]:hover, input[type="button"]:hover { background: var(--pinboard-link-hover) !important; border-color: var(--pinboard-link-hover) !important; }
+input[type="submit"]:hover, input[type="button"]:hover { background: var(--pinboard-btn-bg-hover) !important; border-color: var(--pinboard-btn-bg-hover) !important; }
 input[type="reset"], input[type="reset"].reset, button[type="reset"] {
   background: var(--pinboard-bg-surface) !important; color: var(--pinboard-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
@@ -1570,8 +1575,7 @@ a.tag.selected::before { color: var(--pinboard-destroy) !important; opacity: 0.9
 #banner a:hover { color: #8fbcbb !important; }
 #top_menu a:hover { color: #8fbcbb !important; }
 #banner_searchbox input[type="text"] { border: 1px solid #4c566a !important; }
-.search_button input[type="submit"] { background: #5e81ac !important; border: 1px solid #81a1c1 !important; }
-.search_button input[type="submit"]:hover { background: #81a1c1 !important; }
+.search_button input[type="submit"] { border: 1px solid #81a1c1 !important; }
 a.bookmark_title:hover { color: #8fbcbb !important; }
 a.url_display { color: #a3be8c !important; font-size: 12px !important; }
 a.url_link { padding: 1px 5px !important; background: rgba(59,66,82,0.8) !important; }
@@ -1588,10 +1592,8 @@ input:not([type]) { border: 1px solid #4c566a !important; }
 input[type="password"] { border: 1px solid #4c566a !important; }
 textarea { border: 1px solid #4c566a !important; }
 select { border: 1px solid #4c566a !important; }
-input[type="submit"] { background: #5e81ac !important; border: 1px solid #81a1c1 !important; }
-input[type="button"] { background: #5e81ac !important; border: 1px solid #81a1c1 !important; }
-input[type="submit"]:hover { background: #81a1c1 !important; }
-input[type="button"]:hover { background: #81a1c1 !important; }
+input[type="submit"] { border: 1px solid #81a1c1 !important; }
+input[type="button"] { border: 1px solid #81a1c1 !important; }
 #edit_bookmark_form { background: #434c5e !important; border: 1px solid #4c566a !important; }
 .service_box { border-radius: 6px !important; }
 .help_box { border-radius: 6px !important; }
@@ -1608,11 +1610,7 @@ a { color: #81a1c1 !important; }
 #main_column form[name="sort"] table td a.destroy { font-weight: 600 !important; }
 #right_bar table td a.delete { color: #7b8594 !important; }
 #right_bar input#key { background: #3b4252 !important; border: 1px solid #4c566a !important; }
-#right_bar input[type="submit"] { background: #5e81ac !important; }
-#right_bar input[type="submit"]:hover { background: #81a1c1 !important; }
-#tweet_searchbox #search_query_field { background: #3b4252 !important; border: 1px solid #4c566a !important; font-size: 13px !important; }
-#tweet_searchbox input[type="submit"] { background: #5e81ac !important; }
-#tweet_searchbox input[type="submit"]:hover { background: #81a1c1 !important; }`
+#tweet_searchbox #search_query_field { background: #3b4252 !important; border: 1px solid #4c566a !important; font-size: 13px !important; }`
   },
 
   // ---- 3. Terminal (Dark) ----
@@ -1653,6 +1651,11 @@ a { color: #81a1c1 !important; }
   --pinboard-link-visited: #aaaa33;
   --pinboard-focus-ring: #33ff33;
   --pinboard-unread: #ff3333;
+  --pinboard-sidebar-btn-bg: #003300;
+  --pinboard-sidebar-btn-fg: #33ff33;
+  --pinboard-sidebar-btn-bg-hover: #005500;
+  --pinboard-on-accent: #007000;
+  --pinboard-on-link-hover: #007000;
   --pinboard-font-family: "Fira Code", "Cascadia Code", "Consolas", monospace;
   --pinboard-font-size-base: 13px;
   --pinboard-font-size-sm: 12px;
@@ -1832,11 +1835,11 @@ body { color-scheme: dark !important; }
 #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
 /* In flex layout, no need for negative margin compensation — pills lay out as discrete flex items
    without affecting siblings. Negative margin would pull the adjacent " ‧ " text node under the pill bg. */
-#bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
-#bmarks_page_nav a.filter.selected:hover { background: var(--pinboard-link-hover) !important; color: var(--pinboard-btn-fg) !important; }
+#bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-on-accent) !important; padding: 1px 5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
+#bmarks_page_nav a.filter.selected:hover { background: var(--pinboard-link-hover) !important; color: var(--pinboard-on-link-hover) !important; }
 /* RSS = feed export (semantically distinct from view-switch filters above): outlined chip in accent color. */
 #bmarks_page_nav a.rss_link { color: var(--pinboard-accent) !important; background: transparent !important; border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important; padding: 0 6px !important; border-radius: var(--pinboard-radius-sm) !important; font-size: 11px !important; font-weight: var(--pinboard-weight-heading) !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; transition: background 0.15s ease, color 0.15s ease !important; }
-#bmarks_page_nav a.rss_link:hover { color: var(--pinboard-btn-fg) !important; background: var(--pinboard-accent) !important; }
+#bmarks_page_nav a.rss_link:hover { color: var(--pinboard-on-accent) !important; background: var(--pinboard-accent) !important; }
 
 /* ---- Search (banner + main) ---- */
 #searchbox { margin-bottom: 12px !important; }
@@ -1850,12 +1853,12 @@ a.bundle:hover { color: var(--pinboard-link-hover) !important; }
 }
 #search_query_field:focus, #banner_searchbox input[type="text"]:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 .search_button input[type="submit"] {
-  background: var(--pinboard-accent) !important;
+  background: var(--pinboard-btn-bg) !important;
   color: var(--pinboard-btn-fg) !important;
-  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important;
+  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-btn-bg) !important;
   cursor: pointer !important;
 }
-.search_button input[type="submit"]:hover { background: var(--pinboard-link-hover) !important; }
+.search_button input[type="submit"]:hover { background: var(--pinboard-btn-bg-hover) !important; }
 
 /* ---- Bookmark list ---- */
 .bookmark {
@@ -1946,8 +1949,8 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 }
 #right_bar input#key:focus { border-color: var(--pinboard-accent) !important; box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important; outline: none !important; }
 #right_bar input[type="submit"] {
-  background: var(--pinboard-success) !important;
-  color: var(--pinboard-btn-fg) !important;
+  background: var(--pinboard-sidebar-btn-bg) !important;
+  color: var(--pinboard-sidebar-btn-fg) !important;
   border: none !important;
   border-radius: var(--pinboard-radius-sm) !important;
   padding: 4px 10px !important;
@@ -1956,7 +1959,7 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
   font-size: 12px !important;
   transition: background 0.15s ease !important;
 }
-#right_bar input[type="submit"]:hover { background: var(--pinboard-success-hover) !important; }
+#right_bar input[type="submit"]:hover { background: var(--pinboard-sidebar-btn-bg-hover) !important; }
 
 /* ---- Tag cloud ---- */
 #tag_cloud { max-width: 100% !important; overflow-wrap: break-word !important; }
@@ -1984,13 +1987,13 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 }
 #tweet_searchbox #search_query_field:focus { border-color: var(--pinboard-accent) !important; box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important; outline: none !important; }
 #tweet_searchbox input[type="submit"] {
-  background: var(--pinboard-success) !important; color: var(--pinboard-btn-fg) !important;
+  background: var(--pinboard-sidebar-btn-bg) !important; color: var(--pinboard-sidebar-btn-fg) !important;
   border: none !important; border-radius: var(--pinboard-radius-sm) !important;
   padding: 5px 14px !important; cursor: pointer !important;
   font-size: 12px !important; align-self: flex-start !important;
   transition: background 0.15s ease !important;
 }
-#tweet_searchbox input[type="submit"]:hover { background: var(--pinboard-success-hover) !important; }
+#tweet_searchbox input[type="submit"]:hover { background: var(--pinboard-sidebar-btn-bg-hover) !important; }
 
 /* ---- Forms (global) ----
  * input/textarea/select share the EXACT same padding (5px 12px) +
@@ -2007,15 +2010,15 @@ input[type="text"], input:not([type]), input[type="password"], textarea, select 
 }
 input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
-  background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important;
-  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important;
+  background: var(--pinboard-btn-bg) !important; color: var(--pinboard-btn-fg) !important;
+  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-btn-bg) !important;
   border-radius: var(--pinboard-radius-sm) !important;
   padding: 5px 12px !important;
   line-height: 1.4 !important;
   cursor: pointer !important;
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease !important;
 }
-input[type="submit"]:hover, input[type="button"]:hover { background: var(--pinboard-link-hover) !important; border-color: var(--pinboard-link-hover) !important; }
+input[type="submit"]:hover, input[type="button"]:hover { background: var(--pinboard-btn-bg-hover) !important; border-color: var(--pinboard-btn-bg-hover) !important; }
 input[type="reset"], input[type="reset"].reset, button[type="reset"] {
   background: var(--pinboard-bg-surface) !important; color: var(--pinboard-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
@@ -2372,8 +2375,7 @@ a.bundle:hover { color: #33ff33 !important; }
 #banner_searchbox input[type="text"] { background: #111 !important; font-family: inherit !important; }
 #search_query_field:focus { box-shadow: 0 0 6px #33ff3333 !important; }
 #banner_searchbox input[type="text"]:focus { box-shadow: 0 0 6px #33ff3333 !important; }
-.search_button input[type="submit"] { background: #1a3a1a !important; border: 1px solid #33ff3360 !important; font-family: inherit !important; }
-.search_button input[type="submit"]:hover { background: #2a5a2a !important; }
+.search_button input[type="submit"] { border: 1px solid #33ff3360 !important; font-family: inherit !important; }
 .bookmark { border-bottom: 1px dashed #33ff3325 !important; padding: 10px 8px !important; }
 .star { color: #333 !important; }
 a.bookmark_title { font-weight: normal !important; }
@@ -2403,10 +2405,8 @@ input[type="text"]:focus { box-shadow: 0 0 6px #33ff3333 !important; }
 input:not([type]):focus { box-shadow: 0 0 6px #33ff3333 !important; }
 textarea:focus { box-shadow: 0 0 6px #33ff3333 !important; }
 select:focus { box-shadow: 0 0 6px #33ff3333 !important; }
-input[type="submit"] { background: #1a3a1a !important; border: 1px solid #33ff3360 !important; font-family: inherit !important; }
-input[type="button"] { background: #1a3a1a !important; border: 1px solid #33ff3360 !important; font-family: inherit !important; }
-input[type="submit"]:hover { background: #2a5a2a !important; }
-input[type="button"]:hover { background: #2a5a2a !important; }
+input[type="submit"] { border: 1px solid #33ff3360 !important; font-family: inherit !important; }
+input[type="button"] { border: 1px solid #33ff3360 !important; font-family: inherit !important; }
 .suggested_tag { color: #00cccc !important; }
 #edit_bookmark_form { background: #111 !important; border: 1px dashed #33ff3340 !important; }
 #settings_panel { background: #0a0a0a !important; color: #33ff33 !important; }
@@ -2477,6 +2477,11 @@ a.bookmark_title::before { color: #33ff3380 !important; }`
   --pinboard-link-visited: #8b4513;
   --pinboard-focus-ring: #8b6c5b;
   --pinboard-unread: #c0392b;
+  --pinboard-sidebar-btn-bg: #6b4c3b;
+  --pinboard-sidebar-btn-fg: #f5f0e8;
+  --pinboard-sidebar-btn-bg-hover: #8b4513;
+  --pinboard-on-accent: #faf8f5;
+  --pinboard-on-link-hover: #faf8f5;
   --pinboard-font-family: "Georgia", "Noto Serif", "Source Serif Pro", serif;
   --pinboard-font-size-base: 14px;
   --pinboard-font-size-sm: 12px;
@@ -2656,11 +2661,11 @@ body { color-scheme: light !important; }
 #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
 /* In flex layout, no need for negative margin compensation — pills lay out as discrete flex items
    without affecting siblings. Negative margin would pull the adjacent " ‧ " text node under the pill bg. */
-#bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
-#bmarks_page_nav a.filter.selected:hover { background: var(--pinboard-link-hover) !important; color: var(--pinboard-btn-fg) !important; }
+#bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-on-accent) !important; padding: 1px 5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
+#bmarks_page_nav a.filter.selected:hover { background: var(--pinboard-link-hover) !important; color: var(--pinboard-on-link-hover) !important; }
 /* RSS = feed export (semantically distinct from view-switch filters above): outlined chip in accent color. */
 #bmarks_page_nav a.rss_link { color: var(--pinboard-accent) !important; background: transparent !important; border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important; padding: 0 6px !important; border-radius: var(--pinboard-radius-sm) !important; font-size: 11px !important; font-weight: var(--pinboard-weight-heading) !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; transition: background 0.15s ease, color 0.15s ease !important; }
-#bmarks_page_nav a.rss_link:hover { color: var(--pinboard-btn-fg) !important; background: var(--pinboard-accent) !important; }
+#bmarks_page_nav a.rss_link:hover { color: var(--pinboard-on-accent) !important; background: var(--pinboard-accent) !important; }
 
 /* ---- Search (banner + main) ---- */
 #searchbox { margin-bottom: 12px !important; }
@@ -2674,12 +2679,12 @@ a.bundle:hover { color: var(--pinboard-link-hover) !important; }
 }
 #search_query_field:focus, #banner_searchbox input[type="text"]:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 .search_button input[type="submit"] {
-  background: var(--pinboard-accent) !important;
+  background: var(--pinboard-btn-bg) !important;
   color: var(--pinboard-btn-fg) !important;
-  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important;
+  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-btn-bg) !important;
   cursor: pointer !important;
 }
-.search_button input[type="submit"]:hover { background: var(--pinboard-link-hover) !important; }
+.search_button input[type="submit"]:hover { background: var(--pinboard-btn-bg-hover) !important; }
 
 /* ---- Bookmark list ---- */
 .bookmark {
@@ -2770,8 +2775,8 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 }
 #right_bar input#key:focus { border-color: var(--pinboard-accent) !important; box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important; outline: none !important; }
 #right_bar input[type="submit"] {
-  background: var(--pinboard-success) !important;
-  color: var(--pinboard-btn-fg) !important;
+  background: var(--pinboard-sidebar-btn-bg) !important;
+  color: var(--pinboard-sidebar-btn-fg) !important;
   border: none !important;
   border-radius: var(--pinboard-radius-sm) !important;
   padding: 4px 10px !important;
@@ -2780,7 +2785,7 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
   font-size: 12px !important;
   transition: background 0.15s ease !important;
 }
-#right_bar input[type="submit"]:hover { background: var(--pinboard-success-hover) !important; }
+#right_bar input[type="submit"]:hover { background: var(--pinboard-sidebar-btn-bg-hover) !important; }
 
 /* ---- Tag cloud ---- */
 #tag_cloud { max-width: 100% !important; overflow-wrap: break-word !important; }
@@ -2808,13 +2813,13 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 }
 #tweet_searchbox #search_query_field:focus { border-color: var(--pinboard-accent) !important; box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important; outline: none !important; }
 #tweet_searchbox input[type="submit"] {
-  background: var(--pinboard-success) !important; color: var(--pinboard-btn-fg) !important;
+  background: var(--pinboard-sidebar-btn-bg) !important; color: var(--pinboard-sidebar-btn-fg) !important;
   border: none !important; border-radius: var(--pinboard-radius-sm) !important;
   padding: 5px 14px !important; cursor: pointer !important;
   font-size: 12px !important; align-self: flex-start !important;
   transition: background 0.15s ease !important;
 }
-#tweet_searchbox input[type="submit"]:hover { background: var(--pinboard-success-hover) !important; }
+#tweet_searchbox input[type="submit"]:hover { background: var(--pinboard-sidebar-btn-bg-hover) !important; }
 
 /* ---- Forms (global) ----
  * input/textarea/select share the EXACT same padding (5px 12px) +
@@ -2831,15 +2836,15 @@ input[type="text"], input:not([type]), input[type="password"], textarea, select 
 }
 input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
-  background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important;
-  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important;
+  background: var(--pinboard-btn-bg) !important; color: var(--pinboard-btn-fg) !important;
+  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-btn-bg) !important;
   border-radius: var(--pinboard-radius-sm) !important;
   padding: 5px 12px !important;
   line-height: 1.4 !important;
   cursor: pointer !important;
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease !important;
 }
-input[type="submit"]:hover, input[type="button"]:hover { background: var(--pinboard-link-hover) !important; border-color: var(--pinboard-link-hover) !important; }
+input[type="submit"]:hover, input[type="button"]:hover { background: var(--pinboard-btn-bg-hover) !important; border-color: var(--pinboard-btn-bg-hover) !important; }
 input[type="reset"], input[type="reset"].reset, button[type="reset"] {
   background: var(--pinboard-bg-surface) !important; color: var(--pinboard-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
@@ -3188,8 +3193,6 @@ a.bundle:hover { color: #8b4513 !important; }
 #banner_searchbox input[type="text"] { font-family: "Georgia", serif !important; }
 #search_query_field:focus { border-color: #8b6c5b !important; }
 #banner_searchbox input[type="text"]:focus { border-color: #8b6c5b !important; }
-.search_button input[type="submit"] { background: #6b4c3b !important; }
-.search_button input[type="submit"]:hover { background: #8b6c5b !important; }
 .bookmark { border-bottom: 1px solid #e8dfd0 !important; padding: 14px 8px !important; }
 .star { color: #ddd !important; }
 .selected_star { color: #d4a017 !important; }
@@ -3212,15 +3215,13 @@ a.sort_order_selected { background: #e0d5c1 !important; color: #6b4c3b !importan
 #right_bar table tr:hover td a.delete { color: #a0522d !important; }
 #right_bar input#key { background: #f5f0e8 !important; color: #3b2e20 !important; border: 1px solid #c9b896 !important; border-radius: 4px !important; }
 #right_bar input#key:focus { border-color: #8b4513 !important; box-shadow: 0 0 0 2px rgba(139,69,19,0.18) !important; }
-#right_bar input[type="submit"] { background: #6b4c3b !important; color: #f5f0e8 !important; border-radius: 4px !important; }
-#right_bar input[type="submit"]:hover { background: #8b4513 !important; }
+#right_bar input[type="submit"] { border-radius: 4px !important; }
 #tag_cloud_header a:not(.tag) { color: #999 !important; }
 a.tag_heading_selected { color: #999 !important; }
 #tag_cloud_header a:not(.tag):hover { color: #6b4c3b !important; }
 #tweet_searchbox #search_query_field { background: #f5f0e8 !important; color: #3b2e20 !important; border: 1px solid #c9b896 !important; border-radius: 4px !important; font-size: 13px !important; }
 #tweet_searchbox #search_query_field:focus { border-color: #8b4513 !important; box-shadow: 0 0 0 2px rgba(139,69,19,0.18) !important; }
-#tweet_searchbox input[type="submit"] { background: #6b4c3b !important; color: #f5f0e8 !important; border-radius: 4px !important; }
-#tweet_searchbox input[type="submit"]:hover { background: #8b4513 !important; }
+#tweet_searchbox input[type="submit"] { border-radius: 4px !important; }
 input[type="text"] { font-family: "Georgia", serif !important; padding: 6px 10px !important; }
 input:not([type]) { font-family: "Georgia", serif !important; padding: 6px 10px !important; }
 input[type="password"] { font-family: "Georgia", serif !important; padding: 6px 10px !important; }
@@ -3230,10 +3231,8 @@ input[type="text"]:focus { border-color: #8b6c5b !important; }
 input:not([type]):focus { border-color: #8b6c5b !important; }
 textarea:focus { border-color: #8b6c5b !important; }
 select:focus { border-color: #8b6c5b !important; }
-input[type="submit"] { background: #6b4c3b !important; padding: 6px 18px !important; font-family: -apple-system, sans-serif !important; }
-input[type="button"] { background: #6b4c3b !important; padding: 6px 18px !important; font-family: -apple-system, sans-serif !important; }
-input[type="submit"]:hover { background: #8b6c5b !important; }
-input[type="button"]:hover { background: #8b6c5b !important; }
+input[type="submit"] { padding: 6px 18px !important; font-family: -apple-system, sans-serif !important; }
+input[type="button"] { padding: 6px 18px !important; font-family: -apple-system, sans-serif !important; }
 #edit_bookmark_form { background: #fefdfb !important; border: 1px solid #e8dfd0 !important; }
 #settings_panel { background: #faf8f5 !important; }
 .settings_tabs { border-color: #e8dfd0 !important; }
@@ -3312,6 +3311,11 @@ h2 { font-family: "Georgia", serif !important; }`
   --pinboard-link-visited: #bd93f9;
   --pinboard-focus-ring: #bd93f9;
   --pinboard-unread: #ff5555;
+  --pinboard-sidebar-btn-bg: #bd93f9;
+  --pinboard-sidebar-btn-fg: #282a36;
+  --pinboard-sidebar-btn-bg-hover: #ff79c6;
+  --pinboard-on-accent: #282a36;
+  --pinboard-on-link-hover: #282a36;
   --pinboard-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --pinboard-font-size-base: 13px;
   --pinboard-font-size-sm: 12px;
@@ -3491,11 +3495,11 @@ body { color-scheme: dark !important; }
 #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
 /* In flex layout, no need for negative margin compensation — pills lay out as discrete flex items
    without affecting siblings. Negative margin would pull the adjacent " ‧ " text node under the pill bg. */
-#bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
-#bmarks_page_nav a.filter.selected:hover { background: var(--pinboard-link-hover) !important; color: var(--pinboard-btn-fg) !important; }
+#bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-on-accent) !important; padding: 1px 5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
+#bmarks_page_nav a.filter.selected:hover { background: var(--pinboard-link-hover) !important; color: var(--pinboard-on-link-hover) !important; }
 /* RSS = feed export (semantically distinct from view-switch filters above): outlined chip in accent color. */
 #bmarks_page_nav a.rss_link { color: var(--pinboard-accent) !important; background: transparent !important; border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important; padding: 0 6px !important; border-radius: var(--pinboard-radius-sm) !important; font-size: 11px !important; font-weight: var(--pinboard-weight-heading) !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; transition: background 0.15s ease, color 0.15s ease !important; }
-#bmarks_page_nav a.rss_link:hover { color: var(--pinboard-btn-fg) !important; background: var(--pinboard-accent) !important; }
+#bmarks_page_nav a.rss_link:hover { color: var(--pinboard-on-accent) !important; background: var(--pinboard-accent) !important; }
 
 /* ---- Search (banner + main) ---- */
 #searchbox { margin-bottom: 12px !important; }
@@ -3509,12 +3513,12 @@ a.bundle:hover { color: var(--pinboard-link-hover) !important; }
 }
 #search_query_field:focus, #banner_searchbox input[type="text"]:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 .search_button input[type="submit"] {
-  background: var(--pinboard-accent) !important;
+  background: var(--pinboard-btn-bg) !important;
   color: var(--pinboard-btn-fg) !important;
-  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important;
+  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-btn-bg) !important;
   cursor: pointer !important;
 }
-.search_button input[type="submit"]:hover { background: var(--pinboard-link-hover) !important; }
+.search_button input[type="submit"]:hover { background: var(--pinboard-btn-bg-hover) !important; }
 
 /* ---- Bookmark list ---- */
 .bookmark {
@@ -3605,8 +3609,8 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 }
 #right_bar input#key:focus { border-color: var(--pinboard-accent) !important; box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important; outline: none !important; }
 #right_bar input[type="submit"] {
-  background: var(--pinboard-success) !important;
-  color: var(--pinboard-btn-fg) !important;
+  background: var(--pinboard-sidebar-btn-bg) !important;
+  color: var(--pinboard-sidebar-btn-fg) !important;
   border: none !important;
   border-radius: var(--pinboard-radius-sm) !important;
   padding: 4px 10px !important;
@@ -3615,7 +3619,7 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
   font-size: 12px !important;
   transition: background 0.15s ease !important;
 }
-#right_bar input[type="submit"]:hover { background: var(--pinboard-success-hover) !important; }
+#right_bar input[type="submit"]:hover { background: var(--pinboard-sidebar-btn-bg-hover) !important; }
 
 /* ---- Tag cloud ---- */
 #tag_cloud { max-width: 100% !important; overflow-wrap: break-word !important; }
@@ -3643,13 +3647,13 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 }
 #tweet_searchbox #search_query_field:focus { border-color: var(--pinboard-accent) !important; box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important; outline: none !important; }
 #tweet_searchbox input[type="submit"] {
-  background: var(--pinboard-success) !important; color: var(--pinboard-btn-fg) !important;
+  background: var(--pinboard-sidebar-btn-bg) !important; color: var(--pinboard-sidebar-btn-fg) !important;
   border: none !important; border-radius: var(--pinboard-radius-sm) !important;
   padding: 5px 14px !important; cursor: pointer !important;
   font-size: 12px !important; align-self: flex-start !important;
   transition: background 0.15s ease !important;
 }
-#tweet_searchbox input[type="submit"]:hover { background: var(--pinboard-success-hover) !important; }
+#tweet_searchbox input[type="submit"]:hover { background: var(--pinboard-sidebar-btn-bg-hover) !important; }
 
 /* ---- Forms (global) ----
  * input/textarea/select share the EXACT same padding (5px 12px) +
@@ -3666,15 +3670,15 @@ input[type="text"], input:not([type]), input[type="password"], textarea, select 
 }
 input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
-  background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important;
-  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important;
+  background: var(--pinboard-btn-bg) !important; color: var(--pinboard-btn-fg) !important;
+  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-btn-bg) !important;
   border-radius: var(--pinboard-radius-sm) !important;
   padding: 5px 12px !important;
   line-height: 1.4 !important;
   cursor: pointer !important;
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease !important;
 }
-input[type="submit"]:hover, input[type="button"]:hover { background: var(--pinboard-link-hover) !important; border-color: var(--pinboard-link-hover) !important; }
+input[type="submit"]:hover, input[type="button"]:hover { background: var(--pinboard-btn-bg-hover) !important; border-color: var(--pinboard-btn-bg-hover) !important; }
 input[type="reset"], input[type="reset"].reset, button[type="reset"] {
   background: var(--pinboard-bg-surface) !important; color: var(--pinboard-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
@@ -4022,8 +4026,7 @@ a.bundle { color: #bd93f9 !important; }
 #banner_searchbox input[type="text"] { border: 1px solid #6272a4 !important; }
 #search_query_field:focus { border-color: #bd93f9 !important; box-shadow: 0 0 0 2px rgba(189,147,249,0.2) !important; }
 #banner_searchbox input[type="text"]:focus { border-color: #bd93f9 !important; box-shadow: 0 0 0 2px rgba(189,147,249,0.2) !important; }
-.search_button input[type="submit"] { background: #bd93f9 !important; font-weight: 600 !important; }
-.search_button input[type="submit"]:hover { background: #caa8fb !important; }
+.search_button input[type="submit"] { font-weight: 600 !important; }
 .bookmark { padding: 12px 14px !important; }
 a.bookmark_title:hover { color: #a4f0ff !important; }
 a.url_display { color: #50fa7b !important; font-size: 12px !important; }
@@ -4035,13 +4038,11 @@ a.copy_link { color: #bd93f9 !important; }
 #right_bar a:not(.tag) { color: #bd93f9 !important; }
 #right_bar input#key { background: #282a36 !important; border: 1px solid #6272a4 !important; border-radius: 4px !important; }
 #right_bar input#key:focus { border-color: #bd93f9 !important; box-shadow: 0 0 0 2px rgba(189,147,249,0.25) !important; }
-#right_bar input[type="submit"] { background: #bd93f9 !important; border-radius: 4px !important; }
-#right_bar input[type="submit"]:hover { background: #ff79c6 !important; }
+#right_bar input[type="submit"] { border-radius: 4px !important; }
 #tag_cloud_header a:not(.tag):hover { color: #ff79c6 !important; }
 #tweet_searchbox #search_query_field { background: #282a36 !important; border: 1px solid #6272a4 !important; border-radius: 4px !important; font-size: 13px !important; }
 #tweet_searchbox #search_query_field:focus { border-color: #bd93f9 !important; box-shadow: 0 0 0 2px rgba(189,147,249,0.25) !important; }
-#tweet_searchbox input[type="submit"] { background: #bd93f9 !important; border-radius: 4px !important; }
-#tweet_searchbox input[type="submit"]:hover { background: #ff79c6 !important; }
+#tweet_searchbox input[type="submit"] { border-radius: 4px !important; }
 input[type="text"] { border: 1px solid #6272a4 !important; }
 input:not([type]) { border: 1px solid #6272a4 !important; }
 input[type="password"] { border: 1px solid #6272a4 !important; }
@@ -4051,10 +4052,8 @@ input[type="text"]:focus { border-color: #bd93f9 !important; box-shadow: 0 0 0 2
 input:not([type]):focus { border-color: #bd93f9 !important; box-shadow: 0 0 0 2px rgba(189,147,249,0.2) !important; }
 textarea:focus { border-color: #bd93f9 !important; box-shadow: 0 0 0 2px rgba(189,147,249,0.2) !important; }
 select:focus { border-color: #bd93f9 !important; box-shadow: 0 0 0 2px rgba(189,147,249,0.2) !important; }
-input[type="submit"] { background: #bd93f9 !important; font-weight: 600 !important; }
-input[type="button"] { background: #bd93f9 !important; font-weight: 600 !important; }
-input[type="submit"]:hover { background: #caa8fb !important; }
-input[type="button"]:hover { background: #caa8fb !important; }
+input[type="submit"] { font-weight: 600 !important; }
+input[type="button"] { font-weight: 600 !important; }
 input[type="checkbox"] { accent-color: #bd93f9 !important; }
 input[type="radio"] { accent-color: #bd93f9 !important; }
 #edit_bookmark_form { background: #44475a !important; border: 1px solid #6272a4 !important; }
@@ -4113,7 +4112,7 @@ a { color: #bd93f9 !important; }`
   --pinboard-tag-fg: #AD8301;
   --pinboard-row-hover: #F2F0E5;
   --pinboard-destroy: #AF3029;
-  --pinboard-btn-bg: #205EA6;
+  --pinboard-btn-bg: #205ea6;
   --pinboard-btn-bg-hover: #205ea6;
   --pinboard-btn-fg: #FFFCF0;
   --pinboard-success: #66800B;
@@ -4124,6 +4123,11 @@ a { color: #bd93f9 !important; }`
   --pinboard-link-visited: #AD5097;
   --pinboard-focus-ring: #205EA6;
   --pinboard-unread: #AF3029;
+  --pinboard-sidebar-btn-bg: #238179;
+  --pinboard-sidebar-btn-fg: #FFFCF0;
+  --pinboard-sidebar-btn-bg-hover: #1b655f;
+  --pinboard-on-accent: #fffcf0;
+  --pinboard-on-link-hover: #1a1500;
   --pinboard-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --pinboard-font-size-base: 13px;
   --pinboard-font-size-sm: 12px;
@@ -4303,11 +4307,11 @@ body { color-scheme: light !important; }
 #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
 /* In flex layout, no need for negative margin compensation — pills lay out as discrete flex items
    without affecting siblings. Negative margin would pull the adjacent " ‧ " text node under the pill bg. */
-#bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
-#bmarks_page_nav a.filter.selected:hover { background: var(--pinboard-link-hover) !important; color: var(--pinboard-btn-fg) !important; }
+#bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-on-accent) !important; padding: 1px 5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
+#bmarks_page_nav a.filter.selected:hover { background: var(--pinboard-link-hover) !important; color: var(--pinboard-on-link-hover) !important; }
 /* RSS = feed export (semantically distinct from view-switch filters above): outlined chip in accent color. */
 #bmarks_page_nav a.rss_link { color: var(--pinboard-accent) !important; background: transparent !important; border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important; padding: 0 6px !important; border-radius: var(--pinboard-radius-sm) !important; font-size: 11px !important; font-weight: var(--pinboard-weight-heading) !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; transition: background 0.15s ease, color 0.15s ease !important; }
-#bmarks_page_nav a.rss_link:hover { color: var(--pinboard-btn-fg) !important; background: var(--pinboard-accent) !important; }
+#bmarks_page_nav a.rss_link:hover { color: var(--pinboard-on-accent) !important; background: var(--pinboard-accent) !important; }
 
 /* ---- Search (banner + main) ---- */
 #searchbox { margin-bottom: 12px !important; }
@@ -4321,12 +4325,12 @@ a.bundle:hover { color: var(--pinboard-link-hover) !important; }
 }
 #search_query_field:focus, #banner_searchbox input[type="text"]:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 .search_button input[type="submit"] {
-  background: var(--pinboard-accent) !important;
+  background: var(--pinboard-btn-bg) !important;
   color: var(--pinboard-btn-fg) !important;
-  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important;
+  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-btn-bg) !important;
   cursor: pointer !important;
 }
-.search_button input[type="submit"]:hover { background: var(--pinboard-link-hover) !important; }
+.search_button input[type="submit"]:hover { background: var(--pinboard-btn-bg-hover) !important; }
 
 /* ---- Bookmark list ---- */
 .bookmark {
@@ -4417,8 +4421,8 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 }
 #right_bar input#key:focus { border-color: var(--pinboard-accent) !important; box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important; outline: none !important; }
 #right_bar input[type="submit"] {
-  background: var(--pinboard-success) !important;
-  color: var(--pinboard-btn-fg) !important;
+  background: var(--pinboard-sidebar-btn-bg) !important;
+  color: var(--pinboard-sidebar-btn-fg) !important;
   border: none !important;
   border-radius: var(--pinboard-radius-sm) !important;
   padding: 4px 10px !important;
@@ -4427,7 +4431,7 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
   font-size: 12px !important;
   transition: background 0.15s ease !important;
 }
-#right_bar input[type="submit"]:hover { background: var(--pinboard-success-hover) !important; }
+#right_bar input[type="submit"]:hover { background: var(--pinboard-sidebar-btn-bg-hover) !important; }
 
 /* ---- Tag cloud ---- */
 #tag_cloud { max-width: 100% !important; overflow-wrap: break-word !important; }
@@ -4455,13 +4459,13 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 }
 #tweet_searchbox #search_query_field:focus { border-color: var(--pinboard-accent) !important; box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important; outline: none !important; }
 #tweet_searchbox input[type="submit"] {
-  background: var(--pinboard-success) !important; color: var(--pinboard-btn-fg) !important;
+  background: var(--pinboard-sidebar-btn-bg) !important; color: var(--pinboard-sidebar-btn-fg) !important;
   border: none !important; border-radius: var(--pinboard-radius-sm) !important;
   padding: 5px 14px !important; cursor: pointer !important;
   font-size: 12px !important; align-self: flex-start !important;
   transition: background 0.15s ease !important;
 }
-#tweet_searchbox input[type="submit"]:hover { background: var(--pinboard-success-hover) !important; }
+#tweet_searchbox input[type="submit"]:hover { background: var(--pinboard-sidebar-btn-bg-hover) !important; }
 
 /* ---- Forms (global) ----
  * input/textarea/select share the EXACT same padding (5px 12px) +
@@ -4478,15 +4482,15 @@ input[type="text"], input:not([type]), input[type="password"], textarea, select 
 }
 input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
-  background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important;
-  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important;
+  background: var(--pinboard-btn-bg) !important; color: var(--pinboard-btn-fg) !important;
+  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-btn-bg) !important;
   border-radius: var(--pinboard-radius-sm) !important;
   padding: 5px 12px !important;
   line-height: 1.4 !important;
   cursor: pointer !important;
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease !important;
 }
-input[type="submit"]:hover, input[type="button"]:hover { background: var(--pinboard-link-hover) !important; border-color: var(--pinboard-link-hover) !important; }
+input[type="submit"]:hover, input[type="button"]:hover { background: var(--pinboard-btn-bg-hover) !important; border-color: var(--pinboard-btn-bg-hover) !important; }
 input[type="reset"], input[type="reset"].reset, button[type="reset"] {
   background: var(--pinboard-bg-surface) !important; color: var(--pinboard-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
@@ -4839,8 +4843,8 @@ html.pbp-dark {
   --pinboard-tag-fg: #D0A215;
   --pinboard-row-hover: #343331;
   --pinboard-destroy: #D14D41;
-  --pinboard-btn-bg: #4385BE;
-  --pinboard-btn-bg-hover: #205ea6;
+  --pinboard-btn-bg: #4989c0;
+  --pinboard-btn-bg-hover: #4788bf;
   --pinboard-btn-fg: #1C1B1A;
   --pinboard-success: #879A39;
   --pinboard-success-hover: #A7BA59;
@@ -4850,6 +4854,11 @@ html.pbp-dark {
   --pinboard-link-visited: #CE5D97;
   --pinboard-focus-ring: #4385BE;
   --pinboard-unread: #D14D41;
+  --pinboard-sidebar-btn-bg: #238179;
+  --pinboard-sidebar-btn-fg: #FFFCF0;
+  --pinboard-sidebar-btn-bg-hover: #1b655f;
+  --pinboard-on-accent: #171615;
+  --pinboard-on-link-hover: #1c1b1a;
   --pinboard-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --pinboard-font-size-base: 13px;
   --pinboard-font-size-sm: 12px;
@@ -5016,11 +5025,11 @@ html.pbp-dark #bmarks_page_nav a.filter { color: var(--pinboard-muted) !importan
 html.pbp-dark #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
 /* In flex layout, no need for negative margin compensation — pills lay out as discrete flex items
    without affecting siblings. Negative margin would pull the adjacent " ‧ " text node under the pill bg. */
-html.pbp-dark #bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
-html.pbp-dark #bmarks_page_nav a.filter.selected:hover { background: var(--pinboard-link-hover) !important; color: var(--pinboard-btn-fg) !important; }
+html.pbp-dark #bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-on-accent) !important; padding: 1px 5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
+html.pbp-dark #bmarks_page_nav a.filter.selected:hover { background: var(--pinboard-link-hover) !important; color: var(--pinboard-on-link-hover) !important; }
 /* RSS = feed export (semantically distinct from view-switch filters above): outlined chip in accent color. */
 html.pbp-dark #bmarks_page_nav a.rss_link { color: var(--pinboard-accent) !important; background: transparent !important; border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important; padding: 0 6px !important; border-radius: var(--pinboard-radius-sm) !important; font-size: 11px !important; font-weight: var(--pinboard-weight-heading) !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; transition: background 0.15s ease, color 0.15s ease !important; }
-html.pbp-dark #bmarks_page_nav a.rss_link:hover { color: var(--pinboard-btn-fg) !important; background: var(--pinboard-accent) !important; }
+html.pbp-dark #bmarks_page_nav a.rss_link:hover { color: var(--pinboard-on-accent) !important; background: var(--pinboard-accent) !important; }
 
 /* ---- Search (banner + main) ---- */
 html.pbp-dark #searchbox { margin-bottom: 12px !important; }
@@ -5034,12 +5043,12 @@ html.pbp-dark #search_query_field, html.pbp-dark #banner_searchbox input[type="t
 }
 html.pbp-dark #search_query_field:focus, html.pbp-dark #banner_searchbox input[type="text"]:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 html.pbp-dark .search_button input[type="submit"] {
-  background: var(--pinboard-accent) !important;
+  background: var(--pinboard-btn-bg) !important;
   color: var(--pinboard-btn-fg) !important;
-  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important;
+  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-btn-bg) !important;
   cursor: pointer !important;
 }
-html.pbp-dark .search_button input[type="submit"]:hover { background: var(--pinboard-link-hover) !important; }
+html.pbp-dark .search_button input[type="submit"]:hover { background: var(--pinboard-btn-bg-hover) !important; }
 
 /* ---- Bookmark list ---- */
 html.pbp-dark .bookmark {
@@ -5129,8 +5138,8 @@ html.pbp-dark #right_bar input#key {
 }
 html.pbp-dark #right_bar input#key:focus { border-color: var(--pinboard-accent) !important; box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important; outline: none !important; }
 html.pbp-dark #right_bar input[type="submit"] {
-  background: var(--pinboard-success) !important;
-  color: var(--pinboard-btn-fg) !important;
+  background: var(--pinboard-sidebar-btn-bg) !important;
+  color: var(--pinboard-sidebar-btn-fg) !important;
   border: none !important;
   border-radius: var(--pinboard-radius-sm) !important;
   padding: 4px 10px !important;
@@ -5139,7 +5148,7 @@ html.pbp-dark #right_bar input[type="submit"] {
   font-size: 12px !important;
   transition: background 0.15s ease !important;
 }
-html.pbp-dark #right_bar input[type="submit"]:hover { background: var(--pinboard-success-hover) !important; }
+html.pbp-dark #right_bar input[type="submit"]:hover { background: var(--pinboard-sidebar-btn-bg-hover) !important; }
 
 /* ---- Tag cloud ---- */
 html.pbp-dark #tag_cloud { max-width: 100% !important; overflow-wrap: break-word !important; }
@@ -5167,13 +5176,13 @@ html.pbp-dark #tweet_searchbox #search_query_field {
 }
 html.pbp-dark #tweet_searchbox #search_query_field:focus { border-color: var(--pinboard-accent) !important; box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important; outline: none !important; }
 html.pbp-dark #tweet_searchbox input[type="submit"] {
-  background: var(--pinboard-success) !important; color: var(--pinboard-btn-fg) !important;
+  background: var(--pinboard-sidebar-btn-bg) !important; color: var(--pinboard-sidebar-btn-fg) !important;
   border: none !important; border-radius: var(--pinboard-radius-sm) !important;
   padding: 5px 14px !important; cursor: pointer !important;
   font-size: 12px !important; align-self: flex-start !important;
   transition: background 0.15s ease !important;
 }
-html.pbp-dark #tweet_searchbox input[type="submit"]:hover { background: var(--pinboard-success-hover) !important; }
+html.pbp-dark #tweet_searchbox input[type="submit"]:hover { background: var(--pinboard-sidebar-btn-bg-hover) !important; }
 
 /* ---- Forms (global) ----
  * input/textarea/select share the EXACT same padding (5px 12px) +
@@ -5190,15 +5199,15 @@ html.pbp-dark input[type="text"], html.pbp-dark input:not([type]), html.pbp-dark
 }
 html.pbp-dark input[type="text"]:focus, html.pbp-dark input:not([type]):focus, html.pbp-dark textarea:focus, html.pbp-dark select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 html.pbp-dark input[type="submit"], html.pbp-dark input[type="button"] {
-  background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important;
-  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important;
+  background: var(--pinboard-btn-bg) !important; color: var(--pinboard-btn-fg) !important;
+  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-btn-bg) !important;
   border-radius: var(--pinboard-radius-sm) !important;
   padding: 5px 12px !important;
   line-height: 1.4 !important;
   cursor: pointer !important;
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease !important;
 }
-html.pbp-dark input[type="submit"]:hover, html.pbp-dark input[type="button"]:hover { background: var(--pinboard-link-hover) !important; border-color: var(--pinboard-link-hover) !important; }
+html.pbp-dark input[type="submit"]:hover, html.pbp-dark input[type="button"]:hover { background: var(--pinboard-btn-bg-hover) !important; border-color: var(--pinboard-btn-bg-hover) !important; }
 html.pbp-dark input[type="reset"], html.pbp-dark input[type="reset"].reset, html.pbp-dark button[type="reset"] {
   background: var(--pinboard-bg-surface) !important; color: var(--pinboard-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
@@ -5626,12 +5635,10 @@ html.pbp-dark #main_column form[name="sort"] table td a.edit { color: #878580 !i
 #right_bar table td a.delete { color: #6F6E69 !important; }
 #right_bar input#key { background: #F2F0E5 !important; border: 1px solid #CECDC3 !important; border-radius: 4px !important; }
 #right_bar input#key:focus { border-color: #24837B !important; box-shadow: 0 0 0 2px rgba(36,131,123,0.2) !important; }
-#right_bar input[type="submit"] { background: #24837B !important; border-radius: 4px !important; }
-#right_bar input[type="submit"]:hover { background: #3AA29A !important; }
+#right_bar input[type="submit"] { border-radius: 4px !important; }
 #tweet_searchbox #search_query_field { background: #F2F0E5 !important; border: 1px solid #CECDC3 !important; border-radius: 4px !important; font-size: 13px !important; }
 #tweet_searchbox #search_query_field:focus { border-color: #24837B !important; box-shadow: 0 0 0 2px rgba(36,131,123,0.2) !important; }
-#tweet_searchbox input[type="submit"] { background: #24837B !important; border-radius: 4px !important; }
-#tweet_searchbox input[type="submit"]:hover { background: #3AA29A !important; }
+#tweet_searchbox input[type="submit"] { border-radius: 4px !important; }
 html.pbp-dark #right_bar table tr[onmouseover]:hover { background: #282726 !important; }
 html.pbp-dark #right_bar input#key { background: #1C1B1A !important; border-radius: 4px !important; }
 html.pbp-dark #right_bar input#key:focus { border-color: #87D3C3 !important; box-shadow: 0 0 0 2px rgba(135,211,195,0.22) !important; }
@@ -5670,8 +5677,8 @@ html.pbp-dark #tweet_searchbox input[type="submit"]:hover { background: #A8E4D5 
   --pinboard-tag-fg: #2aa198;
   --pinboard-row-hover: #eee8d5;
   --pinboard-destroy: #dc322f;
-  --pinboard-btn-bg: #268bd2;
-  --pinboard-btn-bg-hover: #1075bc;
+  --pinboard-btn-bg: #2076b2;
+  --pinboard-btn-bg-hover: #1b6294;
   --pinboard-btn-fg: #fdf6e3;
   --pinboard-success: #2aa198;
   --pinboard-success-hover: #268bd2;
@@ -5681,6 +5688,11 @@ html.pbp-dark #tweet_searchbox input[type="submit"]:hover { background: #A8E4D5 
   --pinboard-link-visited: #6c71c4;
   --pinboard-focus-ring: #268bd2;
   --pinboard-unread: #dc322f;
+  --pinboard-sidebar-btn-bg: #2076b2;
+  --pinboard-sidebar-btn-fg: #fdf6e3;
+  --pinboard-sidebar-btn-bg-hover: #1b6294;
+  --pinboard-on-accent: #271d03;
+  --pinboard-on-link-hover: #302403;
   --pinboard-font-family: "Inter", -apple-system, sans-serif;
   --pinboard-font-size-base: 13px;
   --pinboard-font-size-sm: 12px;
@@ -5860,11 +5872,11 @@ body { color-scheme: light !important; }
 #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
 /* In flex layout, no need for negative margin compensation — pills lay out as discrete flex items
    without affecting siblings. Negative margin would pull the adjacent " ‧ " text node under the pill bg. */
-#bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
-#bmarks_page_nav a.filter.selected:hover { background: var(--pinboard-link-hover) !important; color: var(--pinboard-btn-fg) !important; }
+#bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-on-accent) !important; padding: 1px 5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
+#bmarks_page_nav a.filter.selected:hover { background: var(--pinboard-link-hover) !important; color: var(--pinboard-on-link-hover) !important; }
 /* RSS = feed export (semantically distinct from view-switch filters above): outlined chip in accent color. */
 #bmarks_page_nav a.rss_link { color: var(--pinboard-accent) !important; background: transparent !important; border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important; padding: 0 6px !important; border-radius: var(--pinboard-radius-sm) !important; font-size: 11px !important; font-weight: var(--pinboard-weight-heading) !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; transition: background 0.15s ease, color 0.15s ease !important; }
-#bmarks_page_nav a.rss_link:hover { color: var(--pinboard-btn-fg) !important; background: var(--pinboard-accent) !important; }
+#bmarks_page_nav a.rss_link:hover { color: var(--pinboard-on-accent) !important; background: var(--pinboard-accent) !important; }
 
 /* ---- Search (banner + main) ---- */
 #searchbox { margin-bottom: 12px !important; }
@@ -5878,12 +5890,12 @@ a.bundle:hover { color: var(--pinboard-link-hover) !important; }
 }
 #search_query_field:focus, #banner_searchbox input[type="text"]:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 .search_button input[type="submit"] {
-  background: var(--pinboard-accent) !important;
+  background: var(--pinboard-btn-bg) !important;
   color: var(--pinboard-btn-fg) !important;
-  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important;
+  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-btn-bg) !important;
   cursor: pointer !important;
 }
-.search_button input[type="submit"]:hover { background: var(--pinboard-link-hover) !important; }
+.search_button input[type="submit"]:hover { background: var(--pinboard-btn-bg-hover) !important; }
 
 /* ---- Bookmark list ---- */
 .bookmark {
@@ -5974,8 +5986,8 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 }
 #right_bar input#key:focus { border-color: var(--pinboard-accent) !important; box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important; outline: none !important; }
 #right_bar input[type="submit"] {
-  background: var(--pinboard-success) !important;
-  color: var(--pinboard-btn-fg) !important;
+  background: var(--pinboard-sidebar-btn-bg) !important;
+  color: var(--pinboard-sidebar-btn-fg) !important;
   border: none !important;
   border-radius: var(--pinboard-radius-sm) !important;
   padding: 4px 10px !important;
@@ -5984,7 +5996,7 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
   font-size: 12px !important;
   transition: background 0.15s ease !important;
 }
-#right_bar input[type="submit"]:hover { background: var(--pinboard-success-hover) !important; }
+#right_bar input[type="submit"]:hover { background: var(--pinboard-sidebar-btn-bg-hover) !important; }
 
 /* ---- Tag cloud ---- */
 #tag_cloud { max-width: 100% !important; overflow-wrap: break-word !important; }
@@ -6012,13 +6024,13 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 }
 #tweet_searchbox #search_query_field:focus { border-color: var(--pinboard-accent) !important; box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important; outline: none !important; }
 #tweet_searchbox input[type="submit"] {
-  background: var(--pinboard-success) !important; color: var(--pinboard-btn-fg) !important;
+  background: var(--pinboard-sidebar-btn-bg) !important; color: var(--pinboard-sidebar-btn-fg) !important;
   border: none !important; border-radius: var(--pinboard-radius-sm) !important;
   padding: 5px 14px !important; cursor: pointer !important;
   font-size: 12px !important; align-self: flex-start !important;
   transition: background 0.15s ease !important;
 }
-#tweet_searchbox input[type="submit"]:hover { background: var(--pinboard-success-hover) !important; }
+#tweet_searchbox input[type="submit"]:hover { background: var(--pinboard-sidebar-btn-bg-hover) !important; }
 
 /* ---- Forms (global) ----
  * input/textarea/select share the EXACT same padding (5px 12px) +
@@ -6035,15 +6047,15 @@ input[type="text"], input:not([type]), input[type="password"], textarea, select 
 }
 input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
-  background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important;
-  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important;
+  background: var(--pinboard-btn-bg) !important; color: var(--pinboard-btn-fg) !important;
+  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-btn-bg) !important;
   border-radius: var(--pinboard-radius-sm) !important;
   padding: 5px 12px !important;
   line-height: 1.4 !important;
   cursor: pointer !important;
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease !important;
 }
-input[type="submit"]:hover, input[type="button"]:hover { background: var(--pinboard-link-hover) !important; border-color: var(--pinboard-link-hover) !important; }
+input[type="submit"]:hover, input[type="button"]:hover { background: var(--pinboard-btn-bg-hover) !important; border-color: var(--pinboard-btn-bg-hover) !important; }
 input[type="reset"], input[type="reset"].reset, button[type="reset"] {
   background: var(--pinboard-bg-surface) !important; color: var(--pinboard-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
@@ -6400,12 +6412,10 @@ a.sort_order_selected { background: #eee8d5 !important; }
 #main_column form[name="sort"] table td a.destroy { font-weight: 600 !important; }
 #right_bar input#key { color: #586e75 !important; border: 1px solid #93a1a1 !important; border-radius: 4px !important; }
 #right_bar input#key:focus { box-shadow: 0 0 0 2px rgba(38,139,210,0.2) !important; }
-#right_bar input[type="submit"] { background: #268bd2 !important; border-radius: 4px !important; }
-#right_bar input[type="submit"]:hover { background: #2aa198 !important; }
+#right_bar input[type="submit"] { border-radius: 4px !important; }
 #tweet_searchbox #search_query_field { color: #586e75 !important; border: 1px solid #93a1a1 !important; border-radius: 4px !important; font-size: 13px !important; }
 #tweet_searchbox #search_query_field:focus { box-shadow: 0 0 0 2px rgba(38,139,210,0.2) !important; }
-#tweet_searchbox input[type="submit"] { background: #268bd2 !important; border-radius: 4px !important; }
-#tweet_searchbox input[type="submit"]:hover { background: #2aa198 !important; }`
+#tweet_searchbox input[type="submit"] { border-radius: 4px !important; }`
   },
 
   // ---- 8. Solarized Dark ----
@@ -6435,8 +6445,8 @@ a.sort_order_selected { background: #eee8d5 !important; }
   --pinboard-tag-fg: #2aa198;
   --pinboard-row-hover: #073642;
   --pinboard-destroy: #dc322f;
-  --pinboard-btn-bg: #268bd2;
-  --pinboard-btn-bg-hover: #1075bc;
+  --pinboard-btn-bg: #2076b2;
+  --pinboard-btn-bg-hover: #1b6294;
   --pinboard-btn-fg: #fdf6e3;
   --pinboard-success: #859900;
   --pinboard-success-hover: #2aa198;
@@ -6446,6 +6456,11 @@ a.sort_order_selected { background: #eee8d5 !important; }
   --pinboard-link-visited: #6c71c4;
   --pinboard-focus-ring: #268bd2;
   --pinboard-unread: #dc322f;
+  --pinboard-sidebar-btn-bg: #2076b2;
+  --pinboard-sidebar-btn-fg: #fdf6e3;
+  --pinboard-sidebar-btn-bg-hover: #1b6294;
+  --pinboard-on-accent: #271d03;
+  --pinboard-on-link-hover: #302403;
   --pinboard-font-family: "Inter", -apple-system, sans-serif;
   --pinboard-font-size-base: 13px;
   --pinboard-font-size-sm: 12px;
@@ -6625,11 +6640,11 @@ body { color-scheme: dark !important; }
 #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
 /* In flex layout, no need for negative margin compensation — pills lay out as discrete flex items
    without affecting siblings. Negative margin would pull the adjacent " ‧ " text node under the pill bg. */
-#bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
-#bmarks_page_nav a.filter.selected:hover { background: var(--pinboard-link-hover) !important; color: var(--pinboard-btn-fg) !important; }
+#bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-on-accent) !important; padding: 1px 5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
+#bmarks_page_nav a.filter.selected:hover { background: var(--pinboard-link-hover) !important; color: var(--pinboard-on-link-hover) !important; }
 /* RSS = feed export (semantically distinct from view-switch filters above): outlined chip in accent color. */
 #bmarks_page_nav a.rss_link { color: var(--pinboard-accent) !important; background: transparent !important; border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important; padding: 0 6px !important; border-radius: var(--pinboard-radius-sm) !important; font-size: 11px !important; font-weight: var(--pinboard-weight-heading) !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; transition: background 0.15s ease, color 0.15s ease !important; }
-#bmarks_page_nav a.rss_link:hover { color: var(--pinboard-btn-fg) !important; background: var(--pinboard-accent) !important; }
+#bmarks_page_nav a.rss_link:hover { color: var(--pinboard-on-accent) !important; background: var(--pinboard-accent) !important; }
 
 /* ---- Search (banner + main) ---- */
 #searchbox { margin-bottom: 12px !important; }
@@ -6643,12 +6658,12 @@ a.bundle:hover { color: var(--pinboard-link-hover) !important; }
 }
 #search_query_field:focus, #banner_searchbox input[type="text"]:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 .search_button input[type="submit"] {
-  background: var(--pinboard-accent) !important;
+  background: var(--pinboard-btn-bg) !important;
   color: var(--pinboard-btn-fg) !important;
-  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important;
+  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-btn-bg) !important;
   cursor: pointer !important;
 }
-.search_button input[type="submit"]:hover { background: var(--pinboard-link-hover) !important; }
+.search_button input[type="submit"]:hover { background: var(--pinboard-btn-bg-hover) !important; }
 
 /* ---- Bookmark list ---- */
 .bookmark {
@@ -6739,8 +6754,8 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 }
 #right_bar input#key:focus { border-color: var(--pinboard-accent) !important; box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important; outline: none !important; }
 #right_bar input[type="submit"] {
-  background: var(--pinboard-success) !important;
-  color: var(--pinboard-btn-fg) !important;
+  background: var(--pinboard-sidebar-btn-bg) !important;
+  color: var(--pinboard-sidebar-btn-fg) !important;
   border: none !important;
   border-radius: var(--pinboard-radius-sm) !important;
   padding: 4px 10px !important;
@@ -6749,7 +6764,7 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
   font-size: 12px !important;
   transition: background 0.15s ease !important;
 }
-#right_bar input[type="submit"]:hover { background: var(--pinboard-success-hover) !important; }
+#right_bar input[type="submit"]:hover { background: var(--pinboard-sidebar-btn-bg-hover) !important; }
 
 /* ---- Tag cloud ---- */
 #tag_cloud { max-width: 100% !important; overflow-wrap: break-word !important; }
@@ -6777,13 +6792,13 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 }
 #tweet_searchbox #search_query_field:focus { border-color: var(--pinboard-accent) !important; box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important; outline: none !important; }
 #tweet_searchbox input[type="submit"] {
-  background: var(--pinboard-success) !important; color: var(--pinboard-btn-fg) !important;
+  background: var(--pinboard-sidebar-btn-bg) !important; color: var(--pinboard-sidebar-btn-fg) !important;
   border: none !important; border-radius: var(--pinboard-radius-sm) !important;
   padding: 5px 14px !important; cursor: pointer !important;
   font-size: 12px !important; align-self: flex-start !important;
   transition: background 0.15s ease !important;
 }
-#tweet_searchbox input[type="submit"]:hover { background: var(--pinboard-success-hover) !important; }
+#tweet_searchbox input[type="submit"]:hover { background: var(--pinboard-sidebar-btn-bg-hover) !important; }
 
 /* ---- Forms (global) ----
  * input/textarea/select share the EXACT same padding (5px 12px) +
@@ -6800,15 +6815,15 @@ input[type="text"], input:not([type]), input[type="password"], textarea, select 
 }
 input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
-  background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important;
-  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important;
+  background: var(--pinboard-btn-bg) !important; color: var(--pinboard-btn-fg) !important;
+  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-btn-bg) !important;
   border-radius: var(--pinboard-radius-sm) !important;
   padding: 5px 12px !important;
   line-height: 1.4 !important;
   cursor: pointer !important;
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease !important;
 }
-input[type="submit"]:hover, input[type="button"]:hover { background: var(--pinboard-link-hover) !important; border-color: var(--pinboard-link-hover) !important; }
+input[type="submit"]:hover, input[type="button"]:hover { background: var(--pinboard-btn-bg-hover) !important; border-color: var(--pinboard-btn-bg-hover) !important; }
 input[type="reset"], input[type="reset"].reset, button[type="reset"] {
   background: var(--pinboard-bg-surface) !important; color: var(--pinboard-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
@@ -7180,9 +7195,9 @@ h2 { color: #93a1a1 !important; }
 #main_column form[name="sort"] table a.bundle { font-weight: 600 !important; letter-spacing: 0.02em !important; border-radius: 3px !important; }
 #main_column form[name="sort"] table td a.destroy { font-weight: 600 !important; }
 #right_bar input#key { background: #002b36 !important; color: #93a1a1 !important; border: 1px solid #586e75 !important; border-radius: 4px !important; }
-#right_bar input[type="submit"] { background: #268bd2 !important; border-radius: 4px !important; }
+#right_bar input[type="submit"] { border-radius: 4px !important; }
 #tweet_searchbox #search_query_field { background: #002b36 !important; color: #93a1a1 !important; border: 1px solid #586e75 !important; border-radius: 4px !important; font-size: 13px !important; }
-#tweet_searchbox input[type="submit"] { background: #268bd2 !important; border-radius: 4px !important; }`
+#tweet_searchbox input[type="submit"] { border-radius: 4px !important; }`
   },
 
   // ---- 9. Catppuccin Latte ----
@@ -7212,8 +7227,8 @@ h2 { color: #93a1a1 !important; }
   --pinboard-tag-fg: #179299;
   --pinboard-row-hover: #ccd0da;
   --pinboard-destroy: #d20f39;
-  --pinboard-btn-bg: #1e66f5;
-  --pinboard-btn-bg-hover: #1b63f2;
+  --pinboard-btn-bg: #1761f5;
+  --pinboard-btn-bg-hover: #0a51df;
   --pinboard-btn-fg: #eff1f5;
   --pinboard-success: #40a02b;
   --pinboard-success-hover: #179299;
@@ -7223,6 +7238,11 @@ h2 { color: #93a1a1 !important; }
   --pinboard-link-visited: #8839ef;
   --pinboard-focus-ring: #1e66f5;
   --pinboard-unread: #d20f39;
+  --pinboard-sidebar-btn-bg: #1761f5;
+  --pinboard-sidebar-btn-fg: #eff1f5;
+  --pinboard-sidebar-btn-bg-hover: #0a51df;
+  --pinboard-on-accent: #f5f6f9;
+  --pinboard-on-link-hover: #151a22;
   --pinboard-font-family: "Nunito", "Inter", -apple-system, sans-serif;
   --pinboard-font-size-base: 13px;
   --pinboard-font-size-sm: 12px;
@@ -7402,11 +7422,11 @@ body { color-scheme: light !important; }
 #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
 /* In flex layout, no need for negative margin compensation — pills lay out as discrete flex items
    without affecting siblings. Negative margin would pull the adjacent " ‧ " text node under the pill bg. */
-#bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
-#bmarks_page_nav a.filter.selected:hover { background: var(--pinboard-link-hover) !important; color: var(--pinboard-btn-fg) !important; }
+#bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-on-accent) !important; padding: 1px 5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
+#bmarks_page_nav a.filter.selected:hover { background: var(--pinboard-link-hover) !important; color: var(--pinboard-on-link-hover) !important; }
 /* RSS = feed export (semantically distinct from view-switch filters above): outlined chip in accent color. */
 #bmarks_page_nav a.rss_link { color: var(--pinboard-accent) !important; background: transparent !important; border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important; padding: 0 6px !important; border-radius: var(--pinboard-radius-sm) !important; font-size: 11px !important; font-weight: var(--pinboard-weight-heading) !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; transition: background 0.15s ease, color 0.15s ease !important; }
-#bmarks_page_nav a.rss_link:hover { color: var(--pinboard-btn-fg) !important; background: var(--pinboard-accent) !important; }
+#bmarks_page_nav a.rss_link:hover { color: var(--pinboard-on-accent) !important; background: var(--pinboard-accent) !important; }
 
 /* ---- Search (banner + main) ---- */
 #searchbox { margin-bottom: 12px !important; }
@@ -7420,12 +7440,12 @@ a.bundle:hover { color: var(--pinboard-link-hover) !important; }
 }
 #search_query_field:focus, #banner_searchbox input[type="text"]:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 .search_button input[type="submit"] {
-  background: var(--pinboard-accent) !important;
+  background: var(--pinboard-btn-bg) !important;
   color: var(--pinboard-btn-fg) !important;
-  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important;
+  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-btn-bg) !important;
   cursor: pointer !important;
 }
-.search_button input[type="submit"]:hover { background: var(--pinboard-link-hover) !important; }
+.search_button input[type="submit"]:hover { background: var(--pinboard-btn-bg-hover) !important; }
 
 /* ---- Bookmark list ---- */
 .bookmark {
@@ -7516,8 +7536,8 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 }
 #right_bar input#key:focus { border-color: var(--pinboard-accent) !important; box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important; outline: none !important; }
 #right_bar input[type="submit"] {
-  background: var(--pinboard-success) !important;
-  color: var(--pinboard-btn-fg) !important;
+  background: var(--pinboard-sidebar-btn-bg) !important;
+  color: var(--pinboard-sidebar-btn-fg) !important;
   border: none !important;
   border-radius: var(--pinboard-radius-sm) !important;
   padding: 4px 10px !important;
@@ -7526,7 +7546,7 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
   font-size: 12px !important;
   transition: background 0.15s ease !important;
 }
-#right_bar input[type="submit"]:hover { background: var(--pinboard-success-hover) !important; }
+#right_bar input[type="submit"]:hover { background: var(--pinboard-sidebar-btn-bg-hover) !important; }
 
 /* ---- Tag cloud ---- */
 #tag_cloud { max-width: 100% !important; overflow-wrap: break-word !important; }
@@ -7554,13 +7574,13 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 }
 #tweet_searchbox #search_query_field:focus { border-color: var(--pinboard-accent) !important; box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important; outline: none !important; }
 #tweet_searchbox input[type="submit"] {
-  background: var(--pinboard-success) !important; color: var(--pinboard-btn-fg) !important;
+  background: var(--pinboard-sidebar-btn-bg) !important; color: var(--pinboard-sidebar-btn-fg) !important;
   border: none !important; border-radius: var(--pinboard-radius-sm) !important;
   padding: 5px 14px !important; cursor: pointer !important;
   font-size: 12px !important; align-self: flex-start !important;
   transition: background 0.15s ease !important;
 }
-#tweet_searchbox input[type="submit"]:hover { background: var(--pinboard-success-hover) !important; }
+#tweet_searchbox input[type="submit"]:hover { background: var(--pinboard-sidebar-btn-bg-hover) !important; }
 
 /* ---- Forms (global) ----
  * input/textarea/select share the EXACT same padding (5px 12px) +
@@ -7577,15 +7597,15 @@ input[type="text"], input:not([type]), input[type="password"], textarea, select 
 }
 input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
-  background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important;
-  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important;
+  background: var(--pinboard-btn-bg) !important; color: var(--pinboard-btn-fg) !important;
+  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-btn-bg) !important;
   border-radius: var(--pinboard-radius-sm) !important;
   padding: 5px 12px !important;
   line-height: 1.4 !important;
   cursor: pointer !important;
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease !important;
 }
-input[type="submit"]:hover, input[type="button"]:hover { background: var(--pinboard-link-hover) !important; border-color: var(--pinboard-link-hover) !important; }
+input[type="submit"]:hover, input[type="button"]:hover { background: var(--pinboard-btn-bg-hover) !important; border-color: var(--pinboard-btn-bg-hover) !important; }
 input[type="reset"], input[type="reset"].reset, button[type="reset"] {
   background: var(--pinboard-bg-surface) !important; color: var(--pinboard-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
@@ -7936,12 +7956,10 @@ a.sort_order_selected { background: #ccd0da !important; }
 #right_bar table td a.delete { color: #8c8fa1 !important; }
 #right_bar input#key { border: 1px solid #bcc0cc !important; border-radius: 4px !important; }
 #right_bar input#key:focus { box-shadow: 0 0 0 2px rgba(30,102,245,0.2) !important; }
-#right_bar input[type="submit"] { background: #1e66f5 !important; border-radius: 4px !important; }
-#right_bar input[type="submit"]:hover { background: #7287fd !important; }
+#right_bar input[type="submit"] { border-radius: 4px !important; }
 #tweet_searchbox #search_query_field { border: 1px solid #bcc0cc !important; border-radius: 4px !important; font-size: 13px !important; }
 #tweet_searchbox #search_query_field:focus { box-shadow: 0 0 0 2px rgba(30,102,245,0.2) !important; }
-#tweet_searchbox input[type="submit"] { background: #1e66f5 !important; border-radius: 4px !important; }
-#tweet_searchbox input[type="submit"]:hover { background: #7287fd !important; }
+#tweet_searchbox input[type="submit"] { border-radius: 4px !important; }
 input[type="text"] { border-radius: 8px !important; }
 input:not([type]) { border-radius: 8px !important; }
 input[type="password"] { border-radius: 8px !important; }
@@ -8002,7 +8020,12 @@ a.help { background: #e6e9ef !important; }
   --pinboard-link-visited: #cba6f7;
   --pinboard-focus-ring: #89b4fa;
   --pinboard-unread: #f38ba8;
+  --pinboard-sidebar-btn-bg: #89b4fa;
+  --pinboard-sidebar-btn-fg: #1e1e2e;
+  --pinboard-sidebar-btn-bg-hover: #b4befe;
   --pinboard-btn-bg-hover: #cba6f7;
+  --pinboard-on-accent: #1e1e2e;
+  --pinboard-on-link-hover: #1e1e2e;
   --pinboard-font-family: "Nunito", "Inter", -apple-system, sans-serif;
   --pinboard-font-size-base: 13px;
   --pinboard-font-size-sm: 12px;
@@ -8182,11 +8205,11 @@ body { color-scheme: dark !important; }
 #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
 /* In flex layout, no need for negative margin compensation — pills lay out as discrete flex items
    without affecting siblings. Negative margin would pull the adjacent " ‧ " text node under the pill bg. */
-#bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
-#bmarks_page_nav a.filter.selected:hover { background: var(--pinboard-link-hover) !important; color: var(--pinboard-btn-fg) !important; }
+#bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-on-accent) !important; padding: 1px 5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
+#bmarks_page_nav a.filter.selected:hover { background: var(--pinboard-link-hover) !important; color: var(--pinboard-on-link-hover) !important; }
 /* RSS = feed export (semantically distinct from view-switch filters above): outlined chip in accent color. */
 #bmarks_page_nav a.rss_link { color: var(--pinboard-accent) !important; background: transparent !important; border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important; padding: 0 6px !important; border-radius: var(--pinboard-radius-sm) !important; font-size: 11px !important; font-weight: var(--pinboard-weight-heading) !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; transition: background 0.15s ease, color 0.15s ease !important; }
-#bmarks_page_nav a.rss_link:hover { color: var(--pinboard-btn-fg) !important; background: var(--pinboard-accent) !important; }
+#bmarks_page_nav a.rss_link:hover { color: var(--pinboard-on-accent) !important; background: var(--pinboard-accent) !important; }
 
 /* ---- Search (banner + main) ---- */
 #searchbox { margin-bottom: 12px !important; }
@@ -8200,12 +8223,12 @@ a.bundle:hover { color: var(--pinboard-link-hover) !important; }
 }
 #search_query_field:focus, #banner_searchbox input[type="text"]:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 .search_button input[type="submit"] {
-  background: var(--pinboard-accent) !important;
+  background: var(--pinboard-btn-bg) !important;
   color: var(--pinboard-btn-fg) !important;
-  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important;
+  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-btn-bg) !important;
   cursor: pointer !important;
 }
-.search_button input[type="submit"]:hover { background: var(--pinboard-link-hover) !important; }
+.search_button input[type="submit"]:hover { background: var(--pinboard-btn-bg-hover) !important; }
 
 /* ---- Bookmark list ---- */
 .bookmark {
@@ -8296,8 +8319,8 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 }
 #right_bar input#key:focus { border-color: var(--pinboard-accent) !important; box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important; outline: none !important; }
 #right_bar input[type="submit"] {
-  background: var(--pinboard-success) !important;
-  color: var(--pinboard-btn-fg) !important;
+  background: var(--pinboard-sidebar-btn-bg) !important;
+  color: var(--pinboard-sidebar-btn-fg) !important;
   border: none !important;
   border-radius: var(--pinboard-radius-sm) !important;
   padding: 4px 10px !important;
@@ -8306,7 +8329,7 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
   font-size: 12px !important;
   transition: background 0.15s ease !important;
 }
-#right_bar input[type="submit"]:hover { background: var(--pinboard-success-hover) !important; }
+#right_bar input[type="submit"]:hover { background: var(--pinboard-sidebar-btn-bg-hover) !important; }
 
 /* ---- Tag cloud ---- */
 #tag_cloud { max-width: 100% !important; overflow-wrap: break-word !important; }
@@ -8334,13 +8357,13 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 }
 #tweet_searchbox #search_query_field:focus { border-color: var(--pinboard-accent) !important; box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important; outline: none !important; }
 #tweet_searchbox input[type="submit"] {
-  background: var(--pinboard-success) !important; color: var(--pinboard-btn-fg) !important;
+  background: var(--pinboard-sidebar-btn-bg) !important; color: var(--pinboard-sidebar-btn-fg) !important;
   border: none !important; border-radius: var(--pinboard-radius-sm) !important;
   padding: 5px 14px !important; cursor: pointer !important;
   font-size: 12px !important; align-self: flex-start !important;
   transition: background 0.15s ease !important;
 }
-#tweet_searchbox input[type="submit"]:hover { background: var(--pinboard-success-hover) !important; }
+#tweet_searchbox input[type="submit"]:hover { background: var(--pinboard-sidebar-btn-bg-hover) !important; }
 
 /* ---- Forms (global) ----
  * input/textarea/select share the EXACT same padding (5px 12px) +
@@ -8357,15 +8380,15 @@ input[type="text"], input:not([type]), input[type="password"], textarea, select 
 }
 input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
-  background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important;
-  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important;
+  background: var(--pinboard-btn-bg) !important; color: var(--pinboard-btn-fg) !important;
+  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-btn-bg) !important;
   border-radius: var(--pinboard-radius-sm) !important;
   padding: 5px 12px !important;
   line-height: 1.4 !important;
   cursor: pointer !important;
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease !important;
 }
-input[type="submit"]:hover, input[type="button"]:hover { background: var(--pinboard-link-hover) !important; border-color: var(--pinboard-link-hover) !important; }
+input[type="submit"]:hover, input[type="button"]:hover { background: var(--pinboard-btn-bg-hover) !important; border-color: var(--pinboard-btn-bg-hover) !important; }
 input[type="reset"], input[type="reset"].reset, button[type="reset"] {
   background: var(--pinboard-bg-surface) !important; color: var(--pinboard-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
@@ -8721,12 +8744,10 @@ a.sort_order_selected { background: #313244 !important; }
 #right_bar table td a.delete { color: #6c7086 !important; }
 #right_bar input#key { border-radius: 4px !important; }
 #right_bar input#key:focus { box-shadow: 0 0 0 2px rgba(137,180,250,0.22) !important; }
-#right_bar input[type="submit"] { background: #89b4fa !important; border-radius: 4px !important; }
-#right_bar input[type="submit"]:hover { background: #b4befe !important; }
+#right_bar input[type="submit"] { border-radius: 4px !important; }
 #tweet_searchbox #search_query_field { border-radius: 4px !important; font-size: 13px !important; }
 #tweet_searchbox #search_query_field:focus { box-shadow: 0 0 0 2px rgba(137,180,250,0.22) !important; }
-#tweet_searchbox input[type="submit"] { background: #89b4fa !important; border-radius: 4px !important; }
-#tweet_searchbox input[type="submit"]:hover { background: #b4befe !important; }
+#tweet_searchbox input[type="submit"] { border-radius: 4px !important; }
 input[type="text"] { border-radius: 8px !important; }
 input:not([type]) { border-radius: 8px !important; }
 input[type="password"] { border-radius: 8px !important; }
@@ -8795,7 +8816,12 @@ h2 { color: #cba6f7 !important; }`
   --pinboard-link-visited: #d3869b;
   --pinboard-focus-ring: #83a598;
   --pinboard-unread: #fb4934;
+  --pinboard-sidebar-btn-bg: #3d7679;
+  --pinboard-sidebar-btn-fg: #fbf1c7;
+  --pinboard-sidebar-btn-bg-hover: #315f61;
   --pinboard-btn-bg-hover: #d3869b;
+  --pinboard-on-accent: #282828;
+  --pinboard-on-link-hover: #282828;
   --pinboard-font-family: "IBM Plex Sans", "Inter", -apple-system, sans-serif;
   --pinboard-font-size-base: 13px;
   --pinboard-font-size-sm: 12px;
@@ -8975,11 +9001,11 @@ body { color-scheme: dark !important; }
 #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
 /* In flex layout, no need for negative margin compensation — pills lay out as discrete flex items
    without affecting siblings. Negative margin would pull the adjacent " ‧ " text node under the pill bg. */
-#bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
-#bmarks_page_nav a.filter.selected:hover { background: var(--pinboard-link-hover) !important; color: var(--pinboard-btn-fg) !important; }
+#bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-on-accent) !important; padding: 1px 5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
+#bmarks_page_nav a.filter.selected:hover { background: var(--pinboard-link-hover) !important; color: var(--pinboard-on-link-hover) !important; }
 /* RSS = feed export (semantically distinct from view-switch filters above): outlined chip in accent color. */
 #bmarks_page_nav a.rss_link { color: var(--pinboard-accent) !important; background: transparent !important; border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important; padding: 0 6px !important; border-radius: var(--pinboard-radius-sm) !important; font-size: 11px !important; font-weight: var(--pinboard-weight-heading) !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; transition: background 0.15s ease, color 0.15s ease !important; }
-#bmarks_page_nav a.rss_link:hover { color: var(--pinboard-btn-fg) !important; background: var(--pinboard-accent) !important; }
+#bmarks_page_nav a.rss_link:hover { color: var(--pinboard-on-accent) !important; background: var(--pinboard-accent) !important; }
 
 /* ---- Search (banner + main) ---- */
 #searchbox { margin-bottom: 12px !important; }
@@ -8993,12 +9019,12 @@ a.bundle:hover { color: var(--pinboard-link-hover) !important; }
 }
 #search_query_field:focus, #banner_searchbox input[type="text"]:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 .search_button input[type="submit"] {
-  background: var(--pinboard-accent) !important;
+  background: var(--pinboard-btn-bg) !important;
   color: var(--pinboard-btn-fg) !important;
-  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important;
+  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-btn-bg) !important;
   cursor: pointer !important;
 }
-.search_button input[type="submit"]:hover { background: var(--pinboard-link-hover) !important; }
+.search_button input[type="submit"]:hover { background: var(--pinboard-btn-bg-hover) !important; }
 
 /* ---- Bookmark list ---- */
 .bookmark {
@@ -9089,8 +9115,8 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 }
 #right_bar input#key:focus { border-color: var(--pinboard-accent) !important; box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important; outline: none !important; }
 #right_bar input[type="submit"] {
-  background: var(--pinboard-success) !important;
-  color: var(--pinboard-btn-fg) !important;
+  background: var(--pinboard-sidebar-btn-bg) !important;
+  color: var(--pinboard-sidebar-btn-fg) !important;
   border: none !important;
   border-radius: var(--pinboard-radius-sm) !important;
   padding: 4px 10px !important;
@@ -9099,7 +9125,7 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
   font-size: 12px !important;
   transition: background 0.15s ease !important;
 }
-#right_bar input[type="submit"]:hover { background: var(--pinboard-success-hover) !important; }
+#right_bar input[type="submit"]:hover { background: var(--pinboard-sidebar-btn-bg-hover) !important; }
 
 /* ---- Tag cloud ---- */
 #tag_cloud { max-width: 100% !important; overflow-wrap: break-word !important; }
@@ -9127,13 +9153,13 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 }
 #tweet_searchbox #search_query_field:focus { border-color: var(--pinboard-accent) !important; box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important; outline: none !important; }
 #tweet_searchbox input[type="submit"] {
-  background: var(--pinboard-success) !important; color: var(--pinboard-btn-fg) !important;
+  background: var(--pinboard-sidebar-btn-bg) !important; color: var(--pinboard-sidebar-btn-fg) !important;
   border: none !important; border-radius: var(--pinboard-radius-sm) !important;
   padding: 5px 14px !important; cursor: pointer !important;
   font-size: 12px !important; align-self: flex-start !important;
   transition: background 0.15s ease !important;
 }
-#tweet_searchbox input[type="submit"]:hover { background: var(--pinboard-success-hover) !important; }
+#tweet_searchbox input[type="submit"]:hover { background: var(--pinboard-sidebar-btn-bg-hover) !important; }
 
 /* ---- Forms (global) ----
  * input/textarea/select share the EXACT same padding (5px 12px) +
@@ -9150,15 +9176,15 @@ input[type="text"], input:not([type]), input[type="password"], textarea, select 
 }
 input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
-  background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important;
-  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important;
+  background: var(--pinboard-btn-bg) !important; color: var(--pinboard-btn-fg) !important;
+  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-btn-bg) !important;
   border-radius: var(--pinboard-radius-sm) !important;
   padding: 5px 12px !important;
   line-height: 1.4 !important;
   cursor: pointer !important;
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease !important;
 }
-input[type="submit"]:hover, input[type="button"]:hover { background: var(--pinboard-link-hover) !important; border-color: var(--pinboard-link-hover) !important; }
+input[type="submit"]:hover, input[type="button"]:hover { background: var(--pinboard-btn-bg-hover) !important; border-color: var(--pinboard-btn-bg-hover) !important; }
 input[type="reset"], input[type="reset"].reset, button[type="reset"] {
   background: var(--pinboard-bg-surface) !important; color: var(--pinboard-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
@@ -9499,7 +9525,7 @@ body:not(#pinboard) { font-weight: 450 !important; }
 #search_query_field:focus { background: #3c3836 !important; }
 #banner_searchbox input[type="text"]:focus { background: #3c3836 !important; }
 .search_button input[type="submit"] { font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 0.05em !important; }
-.search_button input[type="submit"]:hover { background: #b8bb26 !important; border-color: #b8bb26 !important; }
+.search_button input[type="submit"]:hover { border-color: #b8bb26 !important; }
 a.url_display { color: #fabd2f !important; font-size: 12px !important; }
 a.url_link { background: #282828 !important; padding: 1px 5px !important; border: 1px solid #504945 !important; }
 .description { color: #d5c4a1 !important; }
@@ -9514,8 +9540,8 @@ textarea:focus { background: #3c3836 !important; }
 select:focus { background: #3c3836 !important; }
 input[type="submit"] { font-weight: 700 !important; }
 input[type="button"] { font-weight: 700 !important; }
-input[type="submit"]:hover { background: #b8bb26 !important; border-color: #b8bb26 !important; }
-input[type="button"]:hover { background: #b8bb26 !important; border-color: #b8bb26 !important; }
+input[type="submit"]:hover { border-color: #b8bb26 !important; }
+input[type="button"]:hover { border-color: #b8bb26 !important; }
 .suggested_tag { color: #b8bb26 !important; }
 .settings_tab_selected { border: 1px solid #504945 !important; }
 .settings_heading { color: #d3869b !important; text-transform: uppercase !important; font-weight: 700 !important; letter-spacing: 0.05em !important; }
@@ -9534,10 +9560,10 @@ h2 { color: #d3869b !important; }
 #right_bar table td a.delete { color: #928374 !important; }
 #right_bar input#key { border: 1px solid #504945 !important; border-radius: 4px !important; }
 #right_bar input#key:focus { box-shadow: 0 0 0 2px rgba(131,165,152,0.25) !important; }
-#right_bar input[type="submit"] { color: #fbf1c7 !important; border-radius: 4px !important; }
+#right_bar input[type="submit"] { border-radius: 4px !important; }
 #tweet_searchbox #search_query_field { border: 1px solid #504945 !important; border-radius: 4px !important; font-size: 13px !important; }
 #tweet_searchbox #search_query_field:focus { box-shadow: 0 0 0 2px rgba(131,165,152,0.25) !important; }
-#tweet_searchbox input[type="submit"] { color: #fbf1c7 !important; border-radius: 4px !important; }`
+#tweet_searchbox input[type="submit"] { border-radius: 4px !important; }`
   },
 
   // ---- 12. Rose Pine ----
@@ -9577,7 +9603,12 @@ h2 { color: #d3869b !important; }
   --pinboard-link-visited: #f6c177;
   --pinboard-focus-ring: #c4a7e7;
   --pinboard-unread: #eb6f92;
+  --pinboard-sidebar-btn-bg: #ebbcba;
+  --pinboard-sidebar-btn-fg: #191724;
+  --pinboard-sidebar-btn-bg-hover: #f6c177;
   --pinboard-btn-bg-hover: #ebbcba;
+  --pinboard-on-accent: #191724;
+  --pinboard-on-link-hover: #191724;
   --pinboard-font-family: "Lora", "Georgia", "Noto Serif", serif;
   --pinboard-font-size-base: 14px;
   --pinboard-font-size-sm: 12px;
@@ -9757,11 +9788,11 @@ body { color-scheme: dark !important; }
 #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
 /* In flex layout, no need for negative margin compensation — pills lay out as discrete flex items
    without affecting siblings. Negative margin would pull the adjacent " ‧ " text node under the pill bg. */
-#bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
-#bmarks_page_nav a.filter.selected:hover { background: var(--pinboard-link-hover) !important; color: var(--pinboard-btn-fg) !important; }
+#bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-on-accent) !important; padding: 1px 5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
+#bmarks_page_nav a.filter.selected:hover { background: var(--pinboard-link-hover) !important; color: var(--pinboard-on-link-hover) !important; }
 /* RSS = feed export (semantically distinct from view-switch filters above): outlined chip in accent color. */
 #bmarks_page_nav a.rss_link { color: var(--pinboard-accent) !important; background: transparent !important; border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important; padding: 0 6px !important; border-radius: var(--pinboard-radius-sm) !important; font-size: 11px !important; font-weight: var(--pinboard-weight-heading) !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; transition: background 0.15s ease, color 0.15s ease !important; }
-#bmarks_page_nav a.rss_link:hover { color: var(--pinboard-btn-fg) !important; background: var(--pinboard-accent) !important; }
+#bmarks_page_nav a.rss_link:hover { color: var(--pinboard-on-accent) !important; background: var(--pinboard-accent) !important; }
 
 /* ---- Search (banner + main) ---- */
 #searchbox { margin-bottom: 12px !important; }
@@ -9775,12 +9806,12 @@ a.bundle:hover { color: var(--pinboard-link-hover) !important; }
 }
 #search_query_field:focus, #banner_searchbox input[type="text"]:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 .search_button input[type="submit"] {
-  background: var(--pinboard-accent) !important;
+  background: var(--pinboard-btn-bg) !important;
   color: var(--pinboard-btn-fg) !important;
-  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important;
+  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-btn-bg) !important;
   cursor: pointer !important;
 }
-.search_button input[type="submit"]:hover { background: var(--pinboard-link-hover) !important; }
+.search_button input[type="submit"]:hover { background: var(--pinboard-btn-bg-hover) !important; }
 
 /* ---- Bookmark list ---- */
 .bookmark {
@@ -9871,8 +9902,8 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 }
 #right_bar input#key:focus { border-color: var(--pinboard-accent) !important; box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important; outline: none !important; }
 #right_bar input[type="submit"] {
-  background: var(--pinboard-success) !important;
-  color: var(--pinboard-btn-fg) !important;
+  background: var(--pinboard-sidebar-btn-bg) !important;
+  color: var(--pinboard-sidebar-btn-fg) !important;
   border: none !important;
   border-radius: var(--pinboard-radius-sm) !important;
   padding: 4px 10px !important;
@@ -9881,7 +9912,7 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
   font-size: 12px !important;
   transition: background 0.15s ease !important;
 }
-#right_bar input[type="submit"]:hover { background: var(--pinboard-success-hover) !important; }
+#right_bar input[type="submit"]:hover { background: var(--pinboard-sidebar-btn-bg-hover) !important; }
 
 /* ---- Tag cloud ---- */
 #tag_cloud { max-width: 100% !important; overflow-wrap: break-word !important; }
@@ -9909,13 +9940,13 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 }
 #tweet_searchbox #search_query_field:focus { border-color: var(--pinboard-accent) !important; box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important; outline: none !important; }
 #tweet_searchbox input[type="submit"] {
-  background: var(--pinboard-success) !important; color: var(--pinboard-btn-fg) !important;
+  background: var(--pinboard-sidebar-btn-bg) !important; color: var(--pinboard-sidebar-btn-fg) !important;
   border: none !important; border-radius: var(--pinboard-radius-sm) !important;
   padding: 5px 14px !important; cursor: pointer !important;
   font-size: 12px !important; align-self: flex-start !important;
   transition: background 0.15s ease !important;
 }
-#tweet_searchbox input[type="submit"]:hover { background: var(--pinboard-success-hover) !important; }
+#tweet_searchbox input[type="submit"]:hover { background: var(--pinboard-sidebar-btn-bg-hover) !important; }
 
 /* ---- Forms (global) ----
  * input/textarea/select share the EXACT same padding (5px 12px) +
@@ -9932,15 +9963,15 @@ input[type="text"], input:not([type]), input[type="password"], textarea, select 
 }
 input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
-  background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important;
-  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important;
+  background: var(--pinboard-btn-bg) !important; color: var(--pinboard-btn-fg) !important;
+  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-btn-bg) !important;
   border-radius: var(--pinboard-radius-sm) !important;
   padding: 5px 12px !important;
   line-height: 1.4 !important;
   cursor: pointer !important;
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease !important;
 }
-input[type="submit"]:hover, input[type="button"]:hover { background: var(--pinboard-link-hover) !important; border-color: var(--pinboard-link-hover) !important; }
+input[type="submit"]:hover, input[type="button"]:hover { background: var(--pinboard-btn-bg-hover) !important; border-color: var(--pinboard-btn-bg-hover) !important; }
 input[type="reset"], input[type="reset"].reset, button[type="reset"] {
   background: var(--pinboard-bg-surface) !important; color: var(--pinboard-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;
@@ -10296,12 +10327,8 @@ a.sort_order_selected { background: #26233a !important; }
 #right_bar b { color: #ebbcba !important; }
 #right_bar input#key { background: #1f1d2e !important; border: 1px solid #403d52 !important; }
 #right_bar input#key:focus { box-shadow: 0 0 0 2px rgba(196,167,231,0.22) !important; }
-#right_bar input[type="submit"] { background: #ebbcba !important; }
-#right_bar input[type="submit"]:hover { background: #f6c177 !important; }
 #tweet_searchbox #search_query_field { background: #1f1d2e !important; border: 1px solid #403d52 !important; font-size: 13px !important; }
 #tweet_searchbox #search_query_field:focus { box-shadow: 0 0 0 2px rgba(196,167,231,0.22) !important; }
-#tweet_searchbox input[type="submit"] { background: #ebbcba !important; }
-#tweet_searchbox input[type="submit"]:hover { background: #f6c177 !important; }
 input[type="text"] { border: 1px solid #393552 !important; border-radius: 6px !important; }
 input:not([type]) { border: 1px solid #393552 !important; border-radius: 6px !important; }
 input[type="password"] { border: 1px solid #393552 !important; border-radius: 6px !important; }
@@ -10364,11 +10391,16 @@ h2 { color: #ebbcba !important; }`
   --pinboard-link-hover: #0550ae;
   --pinboard-link-visited: #8250df;
   --pinboard-focus-ring: #0969da;
+  --pinboard-sidebar-btn-bg: #258640;
+  --pinboard-sidebar-btn-fg: #ffffff;
+  --pinboard-sidebar-btn-bg-hover: #1d6a33;
   --pinboard-fg-strong: #1f2328;
   --pinboard-border-strong: #d0d7de;
   --pinboard-border-soft: #d0d7de;
   --pinboard-btn-bg-hover: #0550ae;
   --pinboard-unread: #cf222e;
+  --pinboard-on-accent: #ffffff;
+  --pinboard-on-link-hover: #ffffff;
   --pinboard-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
   --pinboard-font-size-base: 13px;
   --pinboard-font-size-sm: 12px;
@@ -10548,11 +10580,11 @@ body { color-scheme: light !important; }
 #bmarks_page_nav a.filter:hover { color: var(--pinboard-link-hover) !important; }
 /* In flex layout, no need for negative margin compensation — pills lay out as discrete flex items
    without affecting siblings. Negative margin would pull the adjacent " ‧ " text node under the pill bg. */
-#bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important; padding: 1px 5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
-#bmarks_page_nav a.filter.selected:hover { background: var(--pinboard-link-hover) !important; color: var(--pinboard-btn-fg) !important; }
+#bmarks_page_nav a.filter.selected { background: var(--pinboard-accent) !important; color: var(--pinboard-on-accent) !important; padding: 1px 5px !important; border-radius: var(--pinboard-radius-sm) !important; font-weight: var(--pinboard-weight-heading) !important; }
+#bmarks_page_nav a.filter.selected:hover { background: var(--pinboard-link-hover) !important; color: var(--pinboard-on-link-hover) !important; }
 /* RSS = feed export (semantically distinct from view-switch filters above): outlined chip in accent color. */
 #bmarks_page_nav a.rss_link { color: var(--pinboard-accent) !important; background: transparent !important; border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important; padding: 0 6px !important; border-radius: var(--pinboard-radius-sm) !important; font-size: 11px !important; font-weight: var(--pinboard-weight-heading) !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; transition: background 0.15s ease, color 0.15s ease !important; }
-#bmarks_page_nav a.rss_link:hover { color: var(--pinboard-btn-fg) !important; background: var(--pinboard-accent) !important; }
+#bmarks_page_nav a.rss_link:hover { color: var(--pinboard-on-accent) !important; background: var(--pinboard-accent) !important; }
 
 /* ---- Search (banner + main) ---- */
 #searchbox { margin-bottom: 12px !important; }
@@ -10566,12 +10598,12 @@ a.bundle:hover { color: var(--pinboard-link-hover) !important; }
 }
 #search_query_field:focus, #banner_searchbox input[type="text"]:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 .search_button input[type="submit"] {
-  background: var(--pinboard-accent) !important;
+  background: var(--pinboard-btn-bg) !important;
   color: var(--pinboard-btn-fg) !important;
-  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important;
+  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-btn-bg) !important;
   cursor: pointer !important;
 }
-.search_button input[type="submit"]:hover { background: var(--pinboard-link-hover) !important; }
+.search_button input[type="submit"]:hover { background: var(--pinboard-btn-bg-hover) !important; }
 
 /* ---- Bookmark list ---- */
 .bookmark {
@@ -10662,8 +10694,8 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 }
 #right_bar input#key:focus { border-color: var(--pinboard-accent) !important; box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important; outline: none !important; }
 #right_bar input[type="submit"] {
-  background: var(--pinboard-success) !important;
-  color: var(--pinboard-btn-fg) !important;
+  background: var(--pinboard-sidebar-btn-bg) !important;
+  color: var(--pinboard-sidebar-btn-fg) !important;
   border: none !important;
   border-radius: var(--pinboard-radius-sm) !important;
   padding: 4px 10px !important;
@@ -10672,7 +10704,7 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
   font-size: 12px !important;
   transition: background 0.15s ease !important;
 }
-#right_bar input[type="submit"]:hover { background: var(--pinboard-success-hover) !important; }
+#right_bar input[type="submit"]:hover { background: var(--pinboard-sidebar-btn-bg-hover) !important; }
 
 /* ---- Tag cloud ---- */
 #tag_cloud { max-width: 100% !important; overflow-wrap: break-word !important; }
@@ -10700,13 +10732,13 @@ a.delete, a.destroy { color: var(--pinboard-destroy) !important; }
 }
 #tweet_searchbox #search_query_field:focus { border-color: var(--pinboard-accent) !important; box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important; outline: none !important; }
 #tweet_searchbox input[type="submit"] {
-  background: var(--pinboard-success) !important; color: var(--pinboard-btn-fg) !important;
+  background: var(--pinboard-sidebar-btn-bg) !important; color: var(--pinboard-sidebar-btn-fg) !important;
   border: none !important; border-radius: var(--pinboard-radius-sm) !important;
   padding: 5px 14px !important; cursor: pointer !important;
   font-size: 12px !important; align-self: flex-start !important;
   transition: background 0.15s ease !important;
 }
-#tweet_searchbox input[type="submit"]:hover { background: var(--pinboard-success-hover) !important; }
+#tweet_searchbox input[type="submit"]:hover { background: var(--pinboard-sidebar-btn-bg-hover) !important; }
 
 /* ---- Forms (global) ----
  * input/textarea/select share the EXACT same padding (5px 12px) +
@@ -10723,15 +10755,15 @@ input[type="text"], input:not([type]), input[type="password"], textarea, select 
 }
 input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
-  background: var(--pinboard-accent) !important; color: var(--pinboard-btn-fg) !important;
-  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-accent) !important;
+  background: var(--pinboard-btn-bg) !important; color: var(--pinboard-btn-fg) !important;
+  border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-btn-bg) !important;
   border-radius: var(--pinboard-radius-sm) !important;
   padding: 5px 12px !important;
   line-height: 1.4 !important;
   cursor: pointer !important;
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease !important;
 }
-input[type="submit"]:hover, input[type="button"]:hover { background: var(--pinboard-link-hover) !important; border-color: var(--pinboard-link-hover) !important; }
+input[type="submit"]:hover, input[type="button"]:hover { background: var(--pinboard-btn-bg-hover) !important; border-color: var(--pinboard-btn-bg-hover) !important; }
 input[type="reset"], input[type="reset"].reset, button[type="reset"] {
   background: var(--pinboard-bg-surface) !important; color: var(--pinboard-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important;

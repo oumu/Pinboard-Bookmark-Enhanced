@@ -110,11 +110,11 @@ body { color-scheme: ${schemeFor(tokens)} !important; }
 #bmarks_page_nav a.filter:hover { color: ${v("link-hover")} !important; }
 /* In flex layout, no need for negative margin compensation — pills lay out as discrete flex items
    without affecting siblings. Negative margin would pull the adjacent " ‧ " text node under the pill bg. */
-#bmarks_page_nav a.filter.selected { background: ${v("accent")} !important; color: ${v("btn-fg")} !important; padding: 1px 5px !important; border-radius: ${v("radius-sm")} !important; font-weight: ${v("weight-heading")} !important; }
-#bmarks_page_nav a.filter.selected:hover { background: ${v("link-hover")} !important; color: ${v("btn-fg")} !important; }
+#bmarks_page_nav a.filter.selected { background: ${v("accent")} !important; color: ${v("on-accent")} !important; padding: 1px 5px !important; border-radius: ${v("radius-sm")} !important; font-weight: ${v("weight-heading")} !important; }
+#bmarks_page_nav a.filter.selected:hover { background: ${v("link-hover")} !important; color: ${v("on-link-hover")} !important; }
 /* RSS = feed export (semantically distinct from view-switch filters above): outlined chip in accent color. */
 #bmarks_page_nav a.rss_link { color: ${v("accent")} !important; background: transparent !important; border: ${v("border-width")} ${v("border-style")} ${v("accent")} !important; padding: 0 6px !important; border-radius: ${v("radius-sm")} !important; font-size: ${sizeXs} !important; font-weight: ${v("weight-heading")} !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; transition: background 0.15s ease, color 0.15s ease !important; }
-#bmarks_page_nav a.rss_link:hover { color: ${v("btn-fg")} !important; background: ${v("accent")} !important; }
+#bmarks_page_nav a.rss_link:hover { color: ${v("on-accent")} !important; background: ${v("accent")} !important; }
 
 /* ---- Search (banner + main) ---- */
 #searchbox { margin-bottom: 12px !important; }
@@ -128,12 +128,12 @@ a.bundle:hover { color: ${v("link-hover")} !important; }
 }
 #search_query_field:focus, #banner_searchbox input[type="text"]:focus { border-color: ${v("accent")} !important; outline: none !important; }
 .search_button input[type="submit"] {
-  background: ${v("accent")} !important;
+  background: ${v("btn-bg")} !important;
   color: ${v("btn-fg")} !important;
-  border: ${v("border-width")} ${v("border-style")} ${v("accent")} !important;
+  border: ${v("border-width")} ${v("border-style")} ${v("btn-bg")} !important;
   cursor: pointer !important;
 }
-.search_button input[type="submit"]:hover { background: ${v("link-hover")} !important; }
+.search_button input[type="submit"]:hover { background: ${v("btn-bg-hover")} !important; }
 
 /* ---- Bookmark list ---- */
 .bookmark {
@@ -226,8 +226,8 @@ a.delete, a.destroy { color: ${v("destroy")} !important; }
 }
 #right_bar input#key:focus { border-color: ${v("accent")} !important; box-shadow: 0 0 0 2px ${v("accent-alpha")} !important; outline: none !important; }
 #right_bar input[type="submit"] {
-  background: ${v("success")} !important;
-  color: ${v("btn-fg")} !important;
+  background: ${v("sidebar-btn-bg")} !important;
+  color: ${v("sidebar-btn-fg")} !important;
   border: none !important;
   border-radius: ${v("radius-sm")} !important;
   padding: 4px 10px !important;
@@ -236,7 +236,7 @@ a.delete, a.destroy { color: ${v("destroy")} !important; }
   font-size: ${sizeSm} !important;
   transition: background 0.15s ease !important;
 }
-#right_bar input[type="submit"]:hover { background: ${v("success-hover")} !important; }
+#right_bar input[type="submit"]:hover { background: ${v("sidebar-btn-bg-hover")} !important; }
 
 /* ---- Tag cloud ---- */
 #tag_cloud { max-width: 100% !important; overflow-wrap: break-word !important; }
@@ -264,13 +264,13 @@ a.delete, a.destroy { color: ${v("destroy")} !important; }
 }
 #tweet_searchbox #search_query_field:focus { border-color: ${v("accent")} !important; box-shadow: 0 0 0 2px ${v("accent-alpha")} !important; outline: none !important; }
 #tweet_searchbox input[type="submit"] {
-  background: ${v("success")} !important; color: ${v("btn-fg")} !important;
+  background: ${v("sidebar-btn-bg")} !important; color: ${v("sidebar-btn-fg")} !important;
   border: none !important; border-radius: ${v("radius-sm")} !important;
   padding: 5px 14px !important; cursor: pointer !important;
   font-size: ${sizeSm} !important; align-self: flex-start !important;
   transition: background 0.15s ease !important;
 }
-#tweet_searchbox input[type="submit"]:hover { background: ${v("success-hover")} !important; }
+#tweet_searchbox input[type="submit"]:hover { background: ${v("sidebar-btn-bg-hover")} !important; }
 
 /* ---- Forms (global) ----
  * input/textarea/select share the EXACT same padding (5px 12px) +
@@ -287,15 +287,15 @@ input[type="text"], input:not([type]), input[type="password"], textarea, select 
 }
 input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: ${v("accent")} !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
-  background: ${v("accent")} !important; color: ${v("btn-fg")} !important;
-  border: ${v("border-width")} ${v("border-style")} ${v("accent")} !important;
+  background: ${v("btn-bg")} !important; color: ${v("btn-fg")} !important;
+  border: ${v("border-width")} ${v("border-style")} ${v("btn-bg")} !important;
   border-radius: ${v("radius-sm")} !important;
   padding: 5px 12px !important;
   line-height: 1.4 !important;
   cursor: pointer !important;
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease !important;
 }
-input[type="submit"]:hover, input[type="button"]:hover { background: ${v("link-hover")} !important; border-color: ${v("link-hover")} !important; }
+input[type="submit"]:hover, input[type="button"]:hover { background: ${v("btn-bg-hover")} !important; border-color: ${v("btn-bg-hover")} !important; }
 input[type="reset"], input[type="reset"].reset, button[type="reset"] {
   background: ${v("bg-surface")} !important; color: ${v("fg")} !important;
   border: ${v("border-width")} ${v("border-style")} ${v("border")} !important;

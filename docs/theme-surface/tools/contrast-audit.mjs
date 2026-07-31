@@ -10,6 +10,7 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
+import { expandPalette } from "../composers/_util.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "..", "..", "..");
@@ -42,17 +43,24 @@ const resolveColor = (s, bg) => {
   return r ? composite(r.slice(0, 3), r[3], bg) : null;
 };
 
-// Known legacy violations: hand-tuned palettes (notably Solarized's low-contrast
-// design philosophy) where the original token choice is intentional.
-// Format: "<scope>:<theme>:<label>". Adding a NEW theme that hits these same
-// pairs would still fail the audit — only the listed (theme, pair) combinations
-// are exempt.
+// Known legacy violations. Format: "<scope>:<theme>:<label>". Adding a NEW theme
+// that hits these same pairs would still fail the audit — only the listed
+// (theme, pair) combinations are exempt.
+//
+// The four `btn-bg vs btn-fg` entries (solarized x2, nord-night, catppuccin-latte)
+// are GONE, not moved: btn-bg is now derived to clear AA by construction, so the
+// exemption has nothing left to exempt. Do not re-add an exemption for any
+// fg/fill pair — if one fails, the derivation is what needs fixing.
 const ALLOWLIST = new Set([
-  "pinboard:solarized-light:btn-bg vs btn-fg",
-  "pinboard:solarized-dark:btn-bg vs btn-fg",
+  // Scrollbar thumb (muted) on its track. Unlike the button pairs this one has no
+  // derivation behind it: `muted` is body-text color too, so raising it for the
+  // scrollbar would lighten these themes' prose. Separate fix, separate decision.
+  //
+  // flexoki:dark (2.03) was invisible until this tool started auditing mode
+  // palettes — it is pre-existing, not a regression, and is parked here on the
+  // same terms as solarized-dark rather than silently fixed.
   "pinboard:solarized-dark:muted vs bg-surface",
-  "pinboard:nord-night:btn-bg vs btn-fg",
-  "pinboard:catppuccin-latte:btn-bg vs btn-fg",
+  "pinboard:flexoki:dark:muted vs bg-surface",
 ]);
 
 const violations = [];
@@ -71,9 +79,24 @@ function check(scope, theme, label, ratio, min) {
 console.log("=== 1. Pinboard.in tokens (pilots/*.tokens.json) ===");
 const pinFiles = readdirSync(PILOTS).filter((f) => f.endsWith(".tokens.json")).sort();
 for (const f of pinFiles) {
-  const slug = f.replace(/\.tokens\.json$/, "");
+  const baseSlug = f.replace(/\.tokens\.json$/, "");
   const t = JSON.parse(readFileSync(resolve(PILOTS, f), "utf8"));
-  const p = t.palette || {};
+  // Every palette the composer will actually render: the base, plus one per
+  // `modes.<name>` (compose-theme.mjs re-runs the composer with the mode merged
+  // over the base). Auditing only the base hid flexoki's dark mode at 4.37:1 —
+  // a whole rendered palette that no gate had ever looked at.
+  const palettes = [[baseSlug, t.palette || {}]];
+  for (const [name, mode] of Object.entries(t.modes || {})) {
+    if (mode?.palette) palettes.push([`${baseSlug}:${name}`, { ...t.palette, ...mode.palette }]);
+  }
+  for (const [slug, rawPalette] of palettes) auditPalette(slug, rawPalette);
+}
+
+function auditPalette(slug, rawPalette) {
+  // expandPalette, NOT the raw pilot: btn-bg and the on-<fill> tokens are DERIVED
+  // there (see _util.deriveContrast). Auditing the raw pilot was the coverage hole
+  // that let 22 sub-AA pairs ship behind a green audit.
+  const p = expandPalette(rawPalette);
   const bg = hexRgb(p["bg"] || "");
   const fg = hexRgb(p["fg"] || "");
   const bgSurface = hexRgb(p["bg-surface"] || p["bg"] || "");
@@ -89,8 +112,29 @@ for (const f of pinFiles) {
   if (btnBg && btnFg) console.log(check("pinboard", slug, "btn-bg vs btn-fg", cr(btnBg, btnFg), 4.5));
   // Hover state: btn-bg-hover must also keep the label readable (same regression class as terminal accent==btn-fg).
   if (btnBgHover && btnFg) console.log(check("pinboard", slug, "btn-bg-hover vs btn-fg", cr(btnBgHover, btnFg), 4.5));
+  // Right-bar submits (subscribe / tweet search) are their own declared family.
+  // Their :hover was the worse half — nord-night sat at 2.34:1 — and no gate saw
+  // either state while the fill lived in an override instead of a token.
+  const sbBg = hexRgb(p["sidebar-btn-bg"] || ""), sbFg = hexRgb(p["sidebar-btn-fg"] || "");
+  const sbHover = hexRgb(p["sidebar-btn-bg-hover"] || "");
+  if (sbBg && sbFg) console.log(check("pinboard", slug, "sidebar-btn-bg vs fg", cr(sbBg, sbFg), 4.5));
+  if (sbHover && sbFg) console.log(check("pinboard", slug, "sidebar-btn-hover vs fg", cr(sbHover, sbFg), 4.5));
   // Scrollbar thumb visibility against track (composer uses muted on bg-surface).
   if (bgSurface && muted) console.log(check("pinboard", slug, "muted vs bg-surface", cr(bgSurface, muted), 3));
+
+  // Text on the SHARED colored fills. btn-fg only ever sits on btn-bg; the page-nav
+  // chip, the RSS hover chip and the right_bar/tweet submit buttons paint with
+  // accent / link-hover / success and take their own derived on-<fill> token.
+  // Checking btn-bg alone missed all of these — nord-night's selected page-nav chip
+  // shipped at 1.74:1. Each on-token also has to clear its fill's :hover variant,
+  // since a fill and its hover share one text color.
+  for (const [fillKey, onKey] of [
+    ["accent", "on-accent"],
+    ["link-hover", "on-link-hover"],
+  ]) {
+    const fill = hexRgb(p[fillKey] || ""), on = hexRgb(p[onKey] || "");
+    if (fill && on) console.log(check("pinboard", slug, `${onKey} vs ${fillKey}`, cr(fill, on), 4.5));
+  }
 }
 
 function auditCssThemes(label, varPrefix, cssPath) {
