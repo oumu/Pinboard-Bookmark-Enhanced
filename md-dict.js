@@ -883,7 +883,14 @@ async function pbpDictRun(cap, ctx, pop, ctrl, s) {
     vocabBtn.hidden = false;
     vocabBtn.disabled = true;
     vocabBtn.dataset.runId = String(runId);
-    vocabBtn.textContent = t("dictSaveVocab");
+    // Icon + tooltip, not text: assigning textContent here would strip the SVG
+    // and leave a blank button. Guarded because md-dict.js can be injected
+    // before md-ask.js has run in some entry points.
+    if (typeof _pbpExplainIconBtn === "function") {
+      _pbpExplainIconBtn(vocabBtn, PBP_EXPLAIN_VOCAB_ADD_SVG, t("dictSaveVocab"));
+    } else {
+      vocabBtn.textContent = t("dictSaveVocab");
+    }
   }
 
   const body = pop.querySelector(".xp-body");

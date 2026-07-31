@@ -1145,6 +1145,17 @@ check(mdCss.includes("text-autospace: normal") && /#rendered-view :is\(pre, code
   // before _pbpExplainRun fills the body on the very next line. Measuring the
   // shell made the card crawl as the answer streamed; budgeting to the card's
   // max height instead flung short cards to the far edge.
+  // Foot actions are icon-only. Any textContent assignment to one of them wipes
+  // the SVG and leaves a blank square, which is how the vocabulary button broke
+  // the first time. Names must come from title AND aria-label, never from text.
+  check(!/\b(?:save|vocab|vocabBtn|openVocab|ask)\.textContent\s*=/.test(mdAskJs),
+    "md-ask.js: a foot action is assigned textContent, which erases its icon");
+  check(/function _pbpExplainIconBtn\(btn, svg, label\)[\s\S]{0,200}btn\.title = label;[\s\S]{0,120}aria-label", label/.test(mdAskJs),
+    "md-ask.js: the foot-action helper stopped setting both the tooltip and the accessible name");
+  check(["PBP_EXPLAIN_NOTE_SVG", "PBP_EXPLAIN_VOCAB_ADD_SVG", "PBP_EXPLAIN_VOCAB_OPEN_SVG", "PBP_EXPLAIN_ASK_SVG"]
+    .every((name) => new RegExp(`const ${name} = '<svg`).test(mdAskJs)),
+    "md-ask.js: a foot-action icon is no longer an inline SVG constant");
+
   // The side choice now lives in a pure helper so it can be unit-tested; this
   // only pins that placement still asks it, and that the threshold is the
   // comfort one. MIN_CARD alone let a selection near the foot of the window open

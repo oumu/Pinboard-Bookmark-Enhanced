@@ -1877,6 +1877,26 @@ window.pbpExplainDismissIfUnpinned = () => {
 // Static inline SVG (Feather settings gear). Constant string, never model text.
 const PBP_EXPLAIN_GEAR_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>';
 const PBP_EXPLAIN_PIN_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12l-2 6 3 3H5l3-3-2-6z"/><path d="M12 12v9"/></svg>';
+// Foot-action icons. Same recipe as the gear/pin/close above: inline SVG only,
+// never a literal glyph -- a dingbat falls back to the colour emoji font and
+// costs seconds on first paint (see CLAUDE.md's font-fallback rules).
+const PBP_EXPLAIN_NOTE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h11l5 5v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"/><path d="M14 4v6h6"/><path d="M8 14h7M8 17h5"/></svg>';
+const PBP_EXPLAIN_VOCAB_ADD_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h9v18H6a2 2 0 0 1-2-2z"/><path d="M18 8v10M13 13h10"/></svg>';
+const PBP_EXPLAIN_VOCAB_OPEN_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M8 7h8M8 11h8M8 15h5"/></svg>';
+const PBP_EXPLAIN_ASK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-8 8H7l-4 3v-6a8 8 0 0 1 8-9h2a8 8 0 0 1 8 8z"/><path d="M10 10a2 2 0 1 1 3 1.7c-.6.4-1 .9-1 1.6"/><path d="M12 16.5h.01"/></svg>';
+const PBP_EXPLAIN_VOCAB_ADD_SVG_DONE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h9v18H6a2 2 0 0 1-2-2z"/><path d="M13 13.5 15.5 16 21 9.5"/></svg>';
+const PBP_EXPLAIN_DONE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5 9.5 18 20 6.5"/></svg>';
+
+// Icon-only foot button. The visible label becomes a native title, which is a
+// browser tooltip rather than a floating panel of ours -- the ban on hover
+// overlays in the reader is about the latter. aria-label carries the same text
+// so the button is never nameless to a screen reader.
+function _pbpExplainIconBtn(btn, svg, label) {
+  btn.innerHTML = svg; // static constant, never model or dictionary text
+  btn.title = label;
+  btn.setAttribute("aria-label", label);
+}
+
 const PBP_EXPLAIN_CLOSE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>';
 
 // Footer transparency label: "<provider> · <model>" — override wins, else the
@@ -2054,7 +2074,7 @@ function _pbpExplainEnsurePop() {
   save.type = "button";
   save.className = "xp-save";
   save.hidden = true;
-  save.textContent = t("explainSaveNote");
+  _pbpExplainIconBtn(save, PBP_EXPLAIN_NOTE_SVG, t("explainSaveNote"));
   save.addEventListener("click", () => {
     if (typeof window.pbpHlAttachNote !== "function") return;
     save.disabled = true;
@@ -2066,7 +2086,7 @@ function _pbpExplainEnsurePop() {
     window.pbpHlAttachNote(myTarget, _pbpExplainAnswerText).then((ok) => {
       if (_pbpExplainSaveTarget !== myTarget) return; // superseded run, do not touch the button
       if (ok) {
-        save.textContent = t("explainSavedNote");
+        _pbpExplainIconBtn(save, PBP_EXPLAIN_DONE_SVG, t("explainSavedNote"));
       } else {
         save.disabled = false; // pbpHlAttachNote already toasted the failure
       }
@@ -2078,14 +2098,14 @@ function _pbpExplainEnsurePop() {
   vocab.type = "button";
   vocab.className = "xp-vocab";
   vocab.hidden = true;
-  vocab.textContent = t("dictSaveVocab");
+  _pbpExplainIconBtn(vocab, PBP_EXPLAIN_VOCAB_ADD_SVG, t("dictSaveVocab"));
   vocab.addEventListener("click", async () => {
     if (vocab.disabled || typeof window.pbpDictSaveCurrent !== "function") return;
     vocab.disabled = true;
     const myRunId = vocab.dataset.runId; // the run this click belongs to
     const ok = await window.pbpDictSaveCurrent().catch(() => false);
     if (vocab.dataset.runId !== myRunId) return; // a newer dict run owns the button now
-    if (ok) vocab.textContent = t("dictSavedVocab");
+    if (ok) _pbpExplainIconBtn(vocab, PBP_EXPLAIN_VOCAB_ADD_SVG_DONE, t("dictSavedVocab"));
     else vocab.disabled = false;
   });
   // Jump to the Options vocabulary tab (deep link: _activateHashPanel in
@@ -2096,7 +2116,7 @@ function _pbpExplainEnsurePop() {
   openVocab.type = "button";
   openVocab.className = "xp-open-vocab";
   openVocab.hidden = true;
-  openVocab.textContent = t("dictVocabSection");
+  _pbpExplainIconBtn(openVocab, PBP_EXPLAIN_VOCAB_OPEN_SVG, t("dictVocabSection"));
   openVocab.addEventListener("click", () => {
     // pbpOpenOptionsTab retargets an already-open Options tab (and focuses
     // its window) instead of stacking duplicates; falls back to window.open.
@@ -2106,7 +2126,7 @@ function _pbpExplainEnsurePop() {
   const ask = document.createElement("button");
   ask.type = "button";
   ask.className = "xp-ask";
-  ask.textContent = t("explainAskMore");
+  _pbpExplainIconBtn(ask, PBP_EXPLAIN_ASK_SVG, t("explainAskMore"));
   ask.addEventListener("click", () => {
     const selText = pop.querySelector(".xp-term").textContent;
     _pbpExplainClose(pop);
@@ -2363,9 +2383,15 @@ async function _pbpExplainRun(cap, ctx, pop) {
   const save = pop.querySelector(".xp-save");
   save.hidden = true;
   save.disabled = false;
-  save.textContent = t("explainSaveNote");
+  _pbpExplainIconBtn(save, PBP_EXPLAIN_NOTE_SVG, t("explainSaveNote"));
   const vocabBtn = pop.querySelector(".xp-vocab");
-  if (vocabBtn) { vocabBtn.hidden = true; vocabBtn.disabled = false; vocabBtn.textContent = t("dictSaveVocab"); }
+  if (vocabBtn) {
+    vocabBtn.hidden = true;
+    vocabBtn.disabled = false;
+    // Resetting with textContent would delete the icon: these buttons carry no
+    // text now, so every reset has to restore the SVG and both labels.
+    _pbpExplainIconBtn(vocabBtn, PBP_EXPLAIN_VOCAB_ADD_SVG, t("dictSaveVocab"));
+  }
   const openVocabBtn = pop.querySelector(".xp-open-vocab");
   if (openVocabBtn) openVocabBtn.hidden = true;
   // No-AI users never initialize the ask panel, so "Ask more" would silently

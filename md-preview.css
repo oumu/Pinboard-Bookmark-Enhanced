@@ -1608,10 +1608,27 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
 .xp-foot {
   display: flex;
   align-items: center;
-  flex-wrap: wrap; /* largest tier: 4 buttons + gear outgrow the row; wrap, never clip */
+  /* The actions are icons now, so the row no longer outgrows the card and has
+     nothing to wrap. Kept as a safety valve for the largest type tiers. */
+  flex-wrap: wrap;
   gap: 8px;
   padding: 8px 14px 10px;
   border-top: 1px solid var(--border-light);
+}
+/* Icon-only foot actions. Square, so four of them plus the gear fit on one line
+   at every type tier; the label lives in the native title and in aria-label. */
+.xp-foot :is(.xp-save, .xp-vocab, .xp-open-vocab, .xp-ask) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  width: 1.9em;
+  height: 1.9em;
+  font-size: 1em; /* anchor: the svg below is sized in em and must not inherit UA 13.33px */
+}
+.xp-foot :is(.xp-save, .xp-vocab, .xp-open-vocab, .xp-ask) svg {
+  width: 1.05em;
+  height: 1.05em;
 }
 /* Dictionary view (md-dict.js) */
 .xp-dict-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }

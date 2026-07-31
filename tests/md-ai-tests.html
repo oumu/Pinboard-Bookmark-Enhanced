@@ -6126,12 +6126,17 @@ suite("skim status line", () => {
     button.hidden = false;
     button.disabled = false;
     button.dataset.runId = "existing-run";
-    button.textContent = "dictUpdateVocab";
+    _pbpExplainIconBtn(button, PBP_EXPLAIN_VOCAB_ADD_SVG, "dictUpdateVocab");
     window.pbpDictSaveCurrent = async () => true;
     try {
       button.click();
       await task();
-      assert(button.disabled && button.textContent === "dictSavedVocab",
+      // The foot actions carry no text any more, so success has to be visible
+      // some other way: the icon gains a tick and both labels change. Asserting
+      // on textContent would now pass for a button rendered completely blank.
+      assert(button.disabled && button.title === "dictSavedVocab" &&
+        button.getAttribute("aria-label") === "dictSavedVocab" &&
+        button.querySelector("svg") && button.textContent === "",
         "successful update did not enter the disabled completed state");
     } finally {
       if (realSave === undefined) delete window.pbpDictSaveCurrent; else window.pbpDictSaveCurrent = realSave;
