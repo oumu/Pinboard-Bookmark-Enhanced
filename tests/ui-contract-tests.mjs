@@ -1158,7 +1158,34 @@ check(mdCss.includes("text-autospace: normal") && /#rendered-view :is\(pre, code
   // before _pbpExplainRun fills the body on the very next line. Measuring the
   // shell made the card crawl as the answer streamed; budgeting to the card's
   // max height instead flung short cards to the far edge.
-  // Foot actions are icon-only. Any textContent assignment to one of them wipes
+  // The reader panel's icons are one family: Feather, 24x24, stroke 2, round caps
+// and joins. The gear, pin and close were already drawn that way, so a
+// hand-drawn set beside them read as a different toolkit even though the stroke
+// width matched -- that is exactly how the foot actions went wrong. Pinned here
+// so the next icon cannot drift, since nothing else would catch it.
+{
+  const FEATHER_24 = ['viewBox="0 0 24 24"', 'fill="none"', 'stroke="currentColor"',
+    'stroke-width="2"', 'stroke-linecap="round"', 'stroke-linejoin="round"'];
+  const surfaces = { "md-ask.js": mdAskJs, "md-dict.js": mdDictJs, "md-translate.js": mdTranslateJs };
+  const offenders = [];
+  for (const [file, src] of Object.entries(surfaces)) {
+    for (const m of src.matchAll(/const (PBP_[A-Z0-9_]*SVG) = '(<svg[^>]*>)/g)) {
+      // Two families are allowed and nothing else. The 16-box set is deliberate:
+      // those are badges rendered at 11-13px, where Feather's geometry is too
+      // coarse. Skipping unknown viewBoxes instead of rejecting them would let a
+      // drifting icon escape simply by changing its box -- which is how the
+      // first version of this check passed a deliberately broken icon.
+      const tag = m[2];
+      if (tag.includes('viewBox="0 0 16 16"')) continue;
+      if (!tag.includes('viewBox="0 0 24 24"')) { offenders.push(`${file}:${m[1]} (foreign viewBox)`); continue; }
+      if (FEATHER_24.some((attr) => !tag.includes(attr))) offenders.push(`${file}:${m[1]}`);
+    }
+  }
+  check(offenders.length === 0,
+    `md-preview reader icons left the Feather 24 family: ${offenders.join(", ")}`);
+}
+
+// Foot actions are icon-only. Any textContent assignment to one of them wipes
   // the SVG and leaves a blank square, which is how the vocabulary button broke
   // the first time. Names must come from title AND aria-label, never from text.
   check(!/\b(?:save|vocab|vocabBtn|openVocab|ask)\.textContent\s*=/.test(mdAskJs),
