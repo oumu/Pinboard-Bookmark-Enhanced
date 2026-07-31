@@ -2691,10 +2691,12 @@
     "message": "Импортировать файл"
   },
   "ecdictImporting": {
-    "message": "Импорт… пока $1 записей"
+    "message": "Импорт… пока $N$ записей",
+    "placeholders": {"n": {"content": "$1"}}
   },
   "ecdictReady": {
-    "message": "$1 записей, импортировано $2"
+    "message": "$N$ записей · $DATE$",
+    "placeholders": {"n": {"content": "$1"}, "date": {"content": "$2"}}
   },
   "ecdictParseFailed": {
     "message": "Не удалось импортировать этот файл."

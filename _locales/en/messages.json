@@ -2691,10 +2691,12 @@
     "message": "Import file"
   },
   "ecdictImporting": {
-    "message": "Importing… $1 entries so far"
+    "message": "Importing… $N$ entries so far",
+    "placeholders": {"n": {"content": "$1"}}
   },
   "ecdictReady": {
-    "message": "$1 entries, imported $2"
+    "message": "$N$ entries · $DATE$",
+    "placeholders": {"n": {"content": "$1"}, "date": {"content": "$2"}}
   },
   "ecdictParseFailed": {
     "message": "Could not import that file."

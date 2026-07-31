@@ -2691,10 +2691,12 @@
     "message": "ファイルを読み込む"
   },
   "ecdictImporting": {
-    "message": "読み込み中… 現在 $1 件"
+    "message": "読み込み中… 現在 $N$ 件",
+    "placeholders": {"n": {"content": "$1"}}
   },
   "ecdictReady": {
-    "message": "$1 件、$2 に読み込み"
+    "message": "$N$ 件 · $DATE$",
+    "placeholders": {"n": {"content": "$1"}, "date": {"content": "$2"}}
   },
   "ecdictParseFailed": {
     "message": "このファイルは読み込めませんでした。"

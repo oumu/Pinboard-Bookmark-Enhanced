@@ -2691,10 +2691,12 @@
     "message": "导入文件"
   },
   "ecdictImporting": {
-    "message": "正在导入…已处理 $1 条"
+    "message": "正在导入…已处理 $N$ 条",
+    "placeholders": {"n": {"content": "$1"}}
   },
   "ecdictReady": {
-    "message": "$1 条，导入于 $2"
+    "message": "已导入 $N$ 条 · $DATE$",
+    "placeholders": {"n": {"content": "$1"}, "date": {"content": "$2"}}
   },
   "ecdictParseFailed": {
     "message": "这个文件导入失败。"

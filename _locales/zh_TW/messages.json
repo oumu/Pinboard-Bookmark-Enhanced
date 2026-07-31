@@ -2691,10 +2691,12 @@
     "message": "匯入檔案"
   },
   "ecdictImporting": {
-    "message": "正在匯入…已處理 $1 條"
+    "message": "正在匯入…已處理 $N$ 條",
+    "placeholders": {"n": {"content": "$1"}}
   },
   "ecdictReady": {
-    "message": "$1 條，匯入於 $2"
+    "message": "已匯入 $N$ 條 · $DATE$",
+    "placeholders": {"n": {"content": "$1"}, "date": {"content": "$2"}}
   },
   "ecdictParseFailed": {
     "message": "這個檔案匯入失敗。"

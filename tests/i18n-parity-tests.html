@@ -218,6 +218,14 @@ async function loadLocale(loc) {
     LOCALES.every((loc) => ECDICT_HINT_MARKERS[loc].every((m) =>
       msgs[loc].ecdictHint.message.toLowerCase().includes(m.toLowerCase()))),
     "one or more ecdictHint messages stopped describing the English-to-Chinese direction");
+  // chrome.i18n substitutes NAMED placeholders ($N$ backed by a placeholders
+  // block), never a bare $1. A message written with $1 renders the dollar sign
+  // to the user verbatim -- which is exactly what shipped in the ECDICT import
+  // status until someone saw "$1 entries, imported $2" on screen.
+  check("H0 no message relies on a bare $1 that chrome.i18n will never substitute",
+    LOCALES.every((loc) => Object.values(msgs[loc]).every((m) => !/\$\d/.test((m && m.message) || ""))),
+    "a message contains a bare $1-style token instead of a declared $NAME$ placeholder");
+
   // The ECDICT status line once reused dictPackEmpty, which names MDBG, CC BY-SA
   // 4.0 and .txt.gz -- all facts about the OTHER pack. Shown to a user standing
   // in front of the English-Chinese importer, it was simply wrong.

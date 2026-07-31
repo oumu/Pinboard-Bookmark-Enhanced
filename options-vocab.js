@@ -1479,7 +1479,12 @@ function _pbpEcdictWire() {
         : /entry count above/.test(msg) ? "ecdictTooManyEntries"
         : "ecdictParseFailed";
       _pbpVocabFlashStatus(false, t(key));
-      console.warn("[ecdict] import failed:", e && e.name, msg);
+      // "Wrong file" is an expected outcome the user already sees in the status
+      // line; logging it at warn level put it in chrome://extensions' Errors
+      // panel, where it reads like the extension broke. Only unexpected faults
+      // belong there.
+      const expected = key !== "ecdictParseFailed";
+      (expected ? console.info : console.warn)("[ecdict] import rejected:", e && e.name, msg);
     } finally {
       imp.disabled = false;
       _pbpEcdictRefreshStatus();

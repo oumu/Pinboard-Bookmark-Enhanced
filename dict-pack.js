@@ -268,7 +268,10 @@ function pbpEcdictSplitLine(line) {
 // a duplicate or a missing name rejects the file (returns null) rather than
 // silently reading the wrong column when upstream adds one.
 function pbpEcdictParseHeader(line) {
-  const fields = pbpEcdictSplitLine(line);
+  // A UTF-8 BOM turns the first column name into "\uFEFFword", which matches
+  // nothing and rejects the whole file as "header missing or ambiguous". Any
+  // round-trip through a spreadsheet adds one.
+  const fields = pbpEcdictSplitLine(String(line == null ? "" : line).replace(/^\uFEFF/, ""));
   if (!fields) return null;
   const names = fields.map((f) => f.trim());
   const idx = { _count: names.length };

@@ -349,6 +349,12 @@ section("pbpCedictLines");
   const eNames = E_HDR.split(",");
   eIdx.exchange = eNames.indexOf("exchange");
   eIdx.definition = eNames.indexOf("definition");
+  // A UTF-8 BOM in front of the header. Any spreadsheet round-trip adds one, and
+  // it used to make the whole file "not an ECDICT csv".
+  check("a UTF-8 BOM before the header does not reject the file",
+    !!pbpEcdictParseHeader("\uFEFF" + E_HDR));
+  check("and the BOM is not left glued to the first column name",
+    pbpEcdictParseHeader("\uFEFF" + E_HDR).word === 0);
   check("duplicate required header name rejects the file",
     pbpEcdictParseHeader("word,word,translation,tag,collins,oxford,frq,bnc") === null);
   check("missing required header name rejects the file",
