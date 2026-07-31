@@ -1473,6 +1473,7 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
 #explain-pop button, #explain-pop input { font-family: inherit; }
 .xp-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   padding: 10px 14px 8px;
@@ -1483,21 +1484,35 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
 }
 #explain-pop.xp-dragging { user-select: none; }
 #explain-pop.xp-dragging .xp-head { cursor: grabbing; }
+/* The header is TWO rows at every width, not just narrow viewports. The card is
+   a fixed 420px, so a viewport-based breakpoint never fired on a desktop and the
+   term was left fighting three labelled action buttons for what was left of one
+   row -- about 96px, which truncated most words to "sayi...". Giving the actions
+   their own row costs one line of height and hands the term the full width, in
+   every locale, without a breakpoint to get wrong. */
 .xp-term {
-  flex: 0 1 auto;
+  order: 0;
+  flex: 1 1 48px;
   min-width: 48px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .xp-drag-zone {
-  flex: 1 1 12px;
+  /* Does NOT grow. It used to absorb the row's slack, which was harmless while
+     the title could not grow either; now that the title takes the free space,
+     a growing drag zone splits it down the middle and squeezed German to 40%
+     of the card. The whole header is draggable anyway -- this only guarantees
+     a blank patch that is never a button. */
+  flex: 0 0 12px;
   min-width: 12px;
   align-self: stretch;
 }
 .xp-act-group {
-  display: flex;
-  flex: 0 0 auto;
+  order: 1;
+  flex: 1 0 100%;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 4px;
 }
 .xp-window-actions {
@@ -1541,22 +1556,12 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
   border-color: var(--active-bg);
   cursor: default;
 }
-@media (max-width: 420px) {
-  .xp-head { flex-wrap: wrap; }
-  .xp-term { order: 0; flex: 1 1 48px; }
-  .xp-drag-zone { order: 0; }
-  .xp-window-actions { order: 0; }
-  .xp-act-group {
-    order: 1;
-    flex: 1 0 100%;
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-  .xp-act {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
+.xp-drag-zone { order: 0; }
+.xp-window-actions { order: 0; }
+.xp-act {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .xp-body {
   padding: 10px 14px;

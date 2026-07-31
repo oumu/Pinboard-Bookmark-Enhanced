@@ -1877,15 +1877,18 @@ window.pbpExplainDismissIfUnpinned = () => {
 // Static inline SVG (Feather settings gear). Constant string, never model text.
 const PBP_EXPLAIN_GEAR_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>';
 const PBP_EXPLAIN_PIN_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12l-2 6 3 3H5l3-3-2-6z"/><path d="M12 12v9"/></svg>';
-// Foot-action icons. Same recipe as the gear/pin/close above: inline SVG only,
-// never a literal glyph -- a dingbat falls back to the colour emoji font and
-// costs seconds on first paint (see CLAUDE.md's font-fallback rules).
-const PBP_EXPLAIN_NOTE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h11l5 5v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"/><path d="M14 4v6h6"/><path d="M8 14h7M8 17h5"/></svg>';
-const PBP_EXPLAIN_VOCAB_ADD_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h9v18H6a2 2 0 0 1-2-2z"/><path d="M18 8v10M13 13h10"/></svg>';
-const PBP_EXPLAIN_VOCAB_OPEN_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M8 7h8M8 11h8M8 15h5"/></svg>';
-const PBP_EXPLAIN_ASK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-8 8H7l-4 3v-6a8 8 0 0 1 8-9h2a8 8 0 0 1 8 8z"/><path d="M10 10a2 2 0 1 1 3 1.7c-.6.4-1 .9-1 1.6"/><path d="M12 16.5h.01"/></svg>';
-const PBP_EXPLAIN_VOCAB_ADD_SVG_DONE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h9v18H6a2 2 0 0 1-2-2z"/><path d="M13 13.5 15.5 16 21 9.5"/></svg>';
-const PBP_EXPLAIN_DONE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5 9.5 18 20 6.5"/></svg>';
+// Foot-action icons, taken from Feather so they sit in the same family as the
+// settings gear below (which is Feather's own "settings"). Hand-drawn shapes
+// were the problem before: same stroke width and viewBox, but heavier, denser
+// silhouettes that read as a different icon set sitting next to the gear.
+// Inline SVG rather than glyphs, per CLAUDE.md's font-fallback rules.
+const PBP_EXPLAIN_NOTE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>';
+const PBP_EXPLAIN_VOCAB_ADD_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>';
+const PBP_EXPLAIN_VOCAB_OPEN_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>';
+const PBP_EXPLAIN_ASK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>';
+// One tick for both "saved" states. They sit in different places under
+// different tooltips, so a shared check reads correctly and keeps the set small.
+const PBP_EXPLAIN_DONE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>';
 
 // Icon-only foot button. The visible label becomes a native title, which is a
 // browser tooltip rather than a floating panel of ours -- the ban on hover
@@ -2105,7 +2108,7 @@ function _pbpExplainEnsurePop() {
     const myRunId = vocab.dataset.runId; // the run this click belongs to
     const ok = await window.pbpDictSaveCurrent().catch(() => false);
     if (vocab.dataset.runId !== myRunId) return; // a newer dict run owns the button now
-    if (ok) _pbpExplainIconBtn(vocab, PBP_EXPLAIN_VOCAB_ADD_SVG_DONE, t("dictSavedVocab"));
+    if (ok) _pbpExplainIconBtn(vocab, PBP_EXPLAIN_DONE_SVG, t("dictSavedVocab"));
     else vocab.disabled = false;
   });
   // Jump to the Options vocabulary tab (deep link: _activateHashPanel in

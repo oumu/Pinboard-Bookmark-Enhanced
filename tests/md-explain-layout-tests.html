@@ -121,6 +121,13 @@ function assertLayout(frame, locale) {
   assert(pin.width >= 24 && close.width >= 24, `${locale}: window controls collapsed`);
   assert(pin.left >= pop.left && close.right <= pop.right + 0.5, `${locale}: window controls overflow ${close.right} > ${pop.right}`);
   assert(term.width >= 48, `${locale}: title width ${term.width}`);
+  // A bare 48px floor let the term be squeezed to "sayi..." while three labelled
+  // action buttons took the rest of the row. The actions now have a row of their
+  // own, so the title is entitled to most of one.
+  assert(term.width >= pop.width * 0.5,
+    `${locale}: title got only ${Math.round(term.width)}px of a ${Math.round(pop.width)}px card`);
+  assert(term.top < doc.querySelector(".xp-act-group").getBoundingClientRect().top,
+    `${locale}: the action group is not on its own row below the title`);
   assert(drag.width >= 12, `${locale}: drag blank width ${drag.width}`);
   assert(head.scrollWidth <= head.clientWidth + 1, `${locale}: header horizontal overflow ${head.scrollWidth} > ${head.clientWidth}`);
 }

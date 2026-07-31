@@ -882,8 +882,21 @@ check(mdReaderJsSource.includes("_pbpReaderKeepPopover") &&
 "reader/highlight popover mutual exclusion does not preserve a pinned explain-pop");
 check(mdCss.includes(".xp-window-actions") && mdCss.includes(".xp-pin") && mdCss.includes(".xp-close") &&
   mdCss.includes(".xp-dragging") && mdCss.includes(".xp-drag-zone") &&
-  mdCss.includes("@media (max-width: 420px)") && !/\.xp-(?:pin|close)[^\n]*[📌📍✕×]/u.test(mdCss),
+  !/\.xp-(?:pin|close)[^\n]*[📌📍✕×]/u.test(mdCss),
 "md-preview.css: explain window controls or drag state are missing, or use literal symbol glyphs");
+// The header reflow used to hang off a `@media (max-width: 420px)` breakpoint,
+// which keyed on the VIEWPORT while the card is a fixed 420px -- so on any
+// desktop it never fired and the title was squeezed to a few characters. The
+// two-row layout is now unconditional, which is what the breakpoint was reaching
+// for anyway. Pinned structurally so nobody folds it back behind a query.
+check(/\.xp-head \{[^}]*flex-wrap: wrap;/.test(mdCss) &&
+  /\.xp-act-group \{[^}]*flex: 1 0 100%;/.test(mdCss) &&
+  /\.xp-term \{[^}]*flex: 1 1 48px;/.test(mdCss),
+"md-preview.css: the explain header stopped giving the action group its own row and the title the rest");
+// The drag zone must not grow. Once the title started taking free space, a
+// growing drag zone split it and cut German to 40% of the card.
+check(/\.xp-drag-zone \{[\s\S]{0,400}?flex: 0 0 12px;/.test(mdCss),
+"md-preview.css: the drag zone grows again and competes with the title for width");
 check(mdDictJs.includes("dictMatchedHeadword") && mdDictJs.includes("dictPermissionDenied") &&
   mdDictJs.includes("dictConnectRetry") && mdDictJs.includes("dictUpdateVocab") &&
   mdDictJs.includes("Intl.DisplayNames") && optionsVocabJs.includes("pbpDictLanguageLabel"),
