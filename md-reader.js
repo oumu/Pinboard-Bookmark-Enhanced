@@ -388,8 +388,8 @@ function _pbpFnInit() {
 // is the best achievable "both stay discernible" outcome: the
 // NON-overlapping portion of each highlight keeps its own color, only
 // the exact overlap switches to the higher-priority tint.
-const PBP_SEARCH_PREV_SVG = '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10l4-4 4 4"/></svg>';
-const PBP_SEARCH_NEXT_SVG = '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg>';
+const PBP_SEARCH_PREV_SVG = '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10l4-4 4 4"/></svg>';
+const PBP_SEARCH_NEXT_SVG = '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg>';
 
 let _pbpSearchInited = false;
 let _pbpSearchPopEl = null;
@@ -940,7 +940,7 @@ let _pbpZenInited = false;
 // PBP_SEARCH_NEXT_SVG above -- kept as a local const like those two rather
 // than added to shared.js's PBP_ICONS bank, same precedent). Two arrows
 // pointing outward from center reads as "resize/cycle width."
-const PBP_ZEN_WIDTH_SVG = '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4 2 8l4 4M10 4l4 4-4 4"/></svg>';
+const PBP_ZEN_WIDTH_SVG = '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4 2 8l4 4M10 4l4 4-4 4"/></svg>';
 
 // This file's own copy of md-preview.js's pbpScrollMapBlocks() body (see
 // the header comment above) against the same genuinely page-global

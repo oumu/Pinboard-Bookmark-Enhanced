@@ -183,7 +183,7 @@
     arrow.className = "sort_arrow";
     arrow.innerHTML =
       '<svg viewBox="0 0 16 16" width="11" height="11" aria-hidden="true" ' +
-      'fill="none" stroke="currentColor" stroke-width="1.6" ' +
+      'fill="none" stroke="currentColor" stroke-width="1.5" ' +
       'stroke-linecap="round" stroke-linejoin="round">' +
       '<path d="M5 6 8 3l3 3M5 10l3 3 3-3"/></svg>';
     return arrow;

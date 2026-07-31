@@ -1164,25 +1164,43 @@ check(mdCss.includes("text-autospace: normal") && /#rendered-view :is\(pre, code
 // width matched -- that is exactly how the foot actions went wrong. Pinned here
 // so the next icon cannot drift, since nothing else would catch it.
 {
+  // Two families are allowed and nothing else. Feather 24 is the reader panel;
+  // the 16-box set is deliberate and separate, because those are badges rendered
+  // at 11-14px where Feather's geometry is too coarse. Skipping unknown
+  // viewBoxes instead of rejecting them would let a drifting icon escape simply
+  // by changing its box -- which is how the first version of this check passed a
+  // deliberately broken icon.
   const FEATHER_24 = ['viewBox="0 0 24 24"', 'fill="none"', 'stroke="currentColor"',
     'stroke-width="2"', 'stroke-linecap="round"', 'stroke-linejoin="round"'];
-  const surfaces = { "md-ask.js": mdAskJs, "md-dict.js": mdDictJs, "md-translate.js": mdTranslateJs };
+  // The 16-box family had no pin at all, and drifted to four stroke widths
+  // (1.3 / 1.4 / 1.5 / 1.6 / 1.8) across five files before this existed.
+  const BOX_16 = ['viewBox="0 0 16 16"', 'fill="none"', 'stroke="currentColor"',
+    'stroke-width="1.5"', 'stroke-linecap="round"', 'stroke-linejoin="round"'];
+  const surfaces = {
+    "md-ask.js": mdAskJs, "md-dict.js": mdDictJs, "md-translate.js": mdTranslateJs,
+    "md-reader.js": mdReaderJs, "md-preview.js": mdPreviewJs, "shared.js": sharedJs,
+    "pinboard-sort.js": read("pinboard-sort.js"),
+  };
   const offenders = [];
+  const classify = (file, name, tag) => {
+    const family = tag.includes('viewBox="0 0 16 16"') ? BOX_16
+      : tag.includes('viewBox="0 0 24 24"') ? FEATHER_24 : null;
+    if (!family) { offenders.push(`${file}:${name} (foreign viewBox)`); return; }
+    const missing = family.filter((attr) => !tag.includes(attr));
+    if (missing.length) offenders.push(`${file}:${name} (${missing.join(" ")})`);
+  };
   for (const [file, src] of Object.entries(surfaces)) {
-    for (const m of src.matchAll(/const (PBP_[A-Z0-9_]*SVG) = '(<svg[^>]*>)/g)) {
-      // Two families are allowed and nothing else. The 16-box set is deliberate:
-      // those are badges rendered at 11-13px, where Feather's geometry is too
-      // coarse. Skipping unknown viewBoxes instead of rejecting them would let a
-      // drifting icon escape simply by changing its box -- which is how the
-      // first version of this check passed a deliberately broken icon.
-      const tag = m[2];
-      if (tag.includes('viewBox="0 0 16 16"')) continue;
-      if (!tag.includes('viewBox="0 0 24 24"')) { offenders.push(`${file}:${m[1]} (foreign viewBox)`); continue; }
-      if (FEATHER_24.some((attr) => !tag.includes(attr))) offenders.push(`${file}:${m[1]}`);
-    }
+    // Matches both the `const PBP_*_SVG = '<svg ...>'` constants and the icon
+    // registry entries in shared.js, which are `name: '<svg ...>'`.
+    for (const m of src.matchAll(/(PBP_[A-Z0-9_]*SVG|[a-zA-Z][a-zA-Z0-9]*)\s*[:=]\s*'(<svg[^>]*>)/g)) classify(file, m[1], m[2]);
   }
+  // The reader's own markup carries six icons directly. They were the family
+  // the JS ones are measured against, so leaving them unpinned would mean the
+  // reference itself could drift.
+  const mdPreviewHtml = read("md-preview.html");
+  [...mdPreviewHtml.matchAll(/<svg[^>]*>/g)].forEach((m, i) => classify("md-preview.html", `svg#${i + 1}`, m[0]));
   check(offenders.length === 0,
-    `md-preview reader icons left the Feather 24 family: ${offenders.join(", ")}`);
+    `inline icons left their family: ${offenders.join(", ")}`);
 }
 
 // Foot actions are icon-only. Any textContent assignment to one of them wipes

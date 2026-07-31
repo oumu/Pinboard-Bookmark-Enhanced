@@ -170,7 +170,7 @@ function ensureKatex() {
 // consumer). Same style budget as PBP_ICONS entries in shared.js: viewBox
 // 0 0 16 16, stroke currentColor, aria-hidden (a11y label lives on the
 // wrapping span in renderBookmarkBadge, not the SVG itself).
-const PBP_BOOKMARK_LOCK_SVG = '<svg viewBox="0 0 16 16" width="11" height="11" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3.5" y="7" width="9" height="6.5" rx="1.3"/><path d="M5.5 7V4.8a2.5 2.5 0 0 1 5 0V7"/></svg>';
+const PBP_BOOKMARK_LOCK_SVG = '<svg viewBox="0 0 16 16" width="11" height="11" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="7" width="9" height="6.5" rx="1.3"/><path d="M5.5 7V4.8a2.5 2.5 0 0 1 5 0V7"/></svg>';
 
 // Pure: turns the background.js mdPreviewBookmarkInfo response into the
 // badge's render model. No DOM/chrome access — kept side-effect-free even
