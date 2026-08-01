@@ -107,6 +107,7 @@
   --pp-z-countdown: 9999;
   /* Curve vocabulary; see options.css:root for why each job gets its own. */
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   --pp-popup-width: 550px;
 }
 
@@ -822,7 +823,7 @@ html.dark .batch-progress-text { color: var(--pp-fg); mix-blend-mode: normal; fi
   border-right: 1.5px solid currentColor;
   border-bottom: 1.5px solid currentColor;
   transform: translateY(-2px) rotate(45deg);
-  transition: transform var(--pp-motion-state);
+  transition: transform var(--pp-motion-state) var(--ease-in-out);
 }
 .offline-toggle[aria-expanded="true"] #offline-queue-chevron { transform: translateY(1px) rotate(225deg); }
 .offline-toggle {

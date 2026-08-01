@@ -1232,7 +1232,7 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
   border-bottom: 1.5px solid currentColor;
   color: var(--fg-muted);
   transform: translateY(-2px) rotate(45deg);
-  transition: transform 120ms ease;
+  transition: transform 120ms var(--ease-in-out);
 }
 .rail-sec-head[aria-expanded="true"] .rail-sec-tri { transform: translateY(1px) rotate(225deg); }
 @media (prefers-reduced-motion: reduce) {
@@ -2276,7 +2276,7 @@ body.tr-only #rendered-view .pb-tr { cursor: pointer; }
   border-bottom: 1.5px solid currentColor;
   color: var(--fg-muted);
   transform: translateY(-1px) rotate(45deg);
-  transition: transform 120ms ease;
+  transition: transform 120ms var(--ease-in-out);
 }
 #tr-section .tr-glossary[open] > summary::after { transform: translateY(1px) rotate(225deg); }
 #tr-section .tr-glossary > summary:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
