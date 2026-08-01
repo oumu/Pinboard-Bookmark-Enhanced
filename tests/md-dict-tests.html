@@ -47,6 +47,18 @@ assertEq(pbpDictRouteLang("en", false, "de", ""), "de", "unreliable falls to art
 assertEq(pbpDictRouteLang("und", true, "de", ""), "de", "und never routes");
 assertEq(pbpDictRouteLang("", false, "", ""), "", "nothing -> auto-unknown");
 
+section("pbpDictCorrectCjkLang");
+// Measured against the real chrome.i18n.detectLanguage inside the loaded
+// extension, 2026-08-01: kanji-only Japanese is reported zh at 100% with
+// isReliable true, at 30/60/120/240/500/640 characters alike.
+assertEq(pbpDictCorrectCjkLang("zh", "ja"), "ja", "zh detected inside a ja article is kanji-only Japanese");
+assertEq(pbpDictCorrectCjkLang("zh", "ja-JP"), "ja", "the article tag may carry a region");
+assertEq(pbpDictCorrectCjkLang("zh", "zh"), "zh", "a Chinese article leaves a zh detection alone");
+assertEq(pbpDictCorrectCjkLang("zh", ""), "zh", "no article language means nothing to correct with");
+assertEq(pbpDictCorrectCjkLang("ja", "zh"), "ja", "kana proves Japanese, so a ja detection is never overridden");
+assertEq(pbpDictCorrectCjkLang("ko", "ja"), "ko", "only zh is ambiguous with ja; other languages pass through");
+assertEq(pbpDictCorrectCjkLang("", "ja"), "", "an undetected language stays undetected");
+
 section("pbpDictVocabKey / pbpDictCacheKeyPublic");
 assertEq(pbpDictVocabKey("acct_u1", "en-US", "  Running  "), "acct_u1|en|running", "owner + primary + normalized");
 assertEq(pbpDictVocabKey("", "en", "x"), "ownerless|en|x", "empty owner -> ownerless");

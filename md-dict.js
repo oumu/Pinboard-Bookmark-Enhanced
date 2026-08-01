@@ -56,6 +56,24 @@ function pbpDictRouteLang(detected, isReliable, articleLang, manual) {
   return pbpDictPrimaryLang(articleLang);
 }
 
+// Japanese written without kana is indistinguishable from Chinese, and
+// chrome.i18n.detectLanguage does not hedge about it: measured against the
+// real API inside the extension, "東京大学工学部電気工学科教授会議" comes back as
+// zh at 100% with isReliable TRUE, at every length from 30 to 640 characters.
+// Reliable-and-wrong beats the whole detection ladder, so the article-level
+// answer never gets a say -- and md-preview.js:105 computed that one by
+// scanning 4000 characters for kana, which is a positive marker this sentence
+// simply lacks.
+//
+// Hence the asymmetry: kana PRESENT proves Japanese, kana ABSENT proves
+// nothing. Only zh-detected-inside-a-ja-article is corrected; a ja detection
+// is never overridden. The cost is a genuinely Chinese sentence quoted in a
+// Japanese article, which routes to ja -- but without kana nothing could have
+// told those apart anyway, and the article is the better prior.
+function pbpDictCorrectCjkLang(routed, articleLang) {
+  return routed === "zh" && pbpDictPrimaryLang(articleLang) === "ja" ? "ja" : routed;
+}
+
 // Case-sensitive public query cache. The dict2_ prefix orphans old dict_
 // entries whose folded key may already contain the wrong casing's result.
 function pbpDictCacheKeyExact(lang, term) {
@@ -934,9 +952,9 @@ async function _pbpDictResolveLang(cap, ctx, manual) {
   if (pbpDictPrimaryLang(manual)) return pbpDictPrimaryLang(manual);
   const bySentence = await _pbpDictDetect(ctx.sentence || cap.text);
   const first = pbpDictRouteLang(bySentence.lang, bySentence.reliable, "", "");
-  if (first) return first;
+  if (first) return pbpDictCorrectCjkLang(first, articleLang);
   const byBlock = await _pbpDictDetect(ctx.blockText || "");
-  return pbpDictRouteLang(byBlock.lang, byBlock.reliable, articleLang, "");
+  return pbpDictCorrectCjkLang(pbpDictRouteLang(byBlock.lang, byBlock.reliable, articleLang, ""), articleLang);
 }
 
 // Whole function wrapped so EVERY exit resolves the lemma exactly once
