@@ -472,7 +472,7 @@ function pbpDictTsv(rows) {
 // ---- PURE END ----
 
 // ---- Pronunciation (speechSynthesis + click-token guard) ----------------
-const PBP_DICT_SPEAKER_SVG = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>';
+const PBP_DICT_SPEAKER_SVG = typeof PBP_ICONS !== "undefined" ? PBP_ICONS.speaker : "";
 
 // Static inline SVG (Feather book-open). Constant string, never model text.
 // Consumed by the highlight selection bar's dictionary button (md-highlight.js).
@@ -481,12 +481,14 @@ const PBP_DICT_SPEAKER_SVG = '<svg width="14" height="14" viewBox="0 0 24 24" fi
 const PBP_DICT_BOOK_SVG = typeof PBP_ICONS !== "undefined" ? PBP_ICONS.book : "";
 
 // Known-word toggle faces (Feather check-circle / rotate-ccw).
-const PBP_DICT_KNOWN_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
-const PBP_DICT_LEARNING_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>';
+const PBP_DICT_KNOWN_SVG = typeof PBP_ICONS !== "undefined" ? PBP_ICONS.checkCircle : "";
+const PBP_DICT_LEARNING_SVG = typeof PBP_ICONS !== "undefined" ? PBP_ICONS.rotateCcw : "";
 
 // Ready-signal dot (inline SVG, never a literal glyph). Filled circle plus a
 // down chevron so it also reads as "there is more below".
-const PBP_DICT_CTX_READY_SVG = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="5" r="3" fill="currentColor" stroke="none"/><path d="M6 13l6 6 6-6"/></svg>';
+// Composed from pack parts (Lucide chevron-down + a plain dot primitive):
+// "a fresh contextual sense landed below" marker.
+const PBP_DICT_CTX_READY_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2.6" fill="currentColor" stroke="none"/><g transform="translate(0 5)"><path d="m6 9 6 6 6-6"/></g></svg>';
 
 // The AI gloss streams in seconds after the (often cached, instant) online
 // entry, and it renders at the BOTTOM of the popover body -- a long entry
