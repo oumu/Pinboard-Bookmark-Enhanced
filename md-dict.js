@@ -1049,7 +1049,8 @@ async function _pbpDictSlotRun(slot, term, lang, parentSignal, lemmaPromise, onR
       const retry = document.createElement("button");
       retry.type = "button";
       retry.className = "xp-retry";
-      retry.textContent = t("explainErrRetry");
+      retry.innerHTML = PBP_ICONS.refresh; // static shared constant, never page content
+      retry.append(t("explainErrRetry"));
       retry.addEventListener("click", () => { retry.disabled = true; onRerun(); });
       slot.appendChild(retry);
     }
@@ -1167,7 +1168,8 @@ async function _pbpDictCtxRun(el, cap, ctx, s, signal, resolveLemmaOnce, lang) {
       const retry = document.createElement("button");
       retry.type = "button";
       retry.className = "xp-retry";
-      retry.textContent = t(e && e.code === "host_permission" ? "aiGrantRetry" : "explainErrRetry");
+      retry.innerHTML = PBP_ICONS.refresh; // static shared constant, never page content
+      retry.append(t(e && e.code === "host_permission" ? "aiGrantRetry" : "explainErrRetry"));
       retry.addEventListener("click", async () => {
         if (retry.disabled) return;
         retry.disabled = true;

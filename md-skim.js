@@ -204,7 +204,7 @@ function _pbpSkimBuildSection(view) {
     '</div>',
     '<div id="skim-stale" class="skim-stale" hidden>',
     '  <span data-i18n="skimStaleNote"></span>',
-    '  <button type="button" id="skim-stale-regen" class="action-btn skim-stale-btn" data-i18n="skimRegen"></button>',
+    '  <button type="button" id="skim-stale-regen" class="action-btn skim-stale-btn">' + (typeof PBP_ICONS !== "undefined" ? PBP_ICONS.refresh : "") + '<span data-i18n="skimRegen"></span></button>',
     '</div>',
     '<div id="skim-status" role="status" aria-live="polite" hidden></div>',
     '<div id="skim-body" aria-busy="false"></div>',
@@ -483,7 +483,8 @@ function _pbpSkimShowError(error) {
   const retry = document.createElement("button");
   retry.type = "button";
   retry.className = "action-btn skim-retry";
-  retry.textContent = t(error && error.code === "host_permission" ? "aiGrantRetry" : "askErrRetry");
+  retry.innerHTML = PBP_ICONS.refresh; // static shared constant, never page content
+  retry.append(t(error && error.code === "host_permission" ? "aiGrantRetry" : "askErrRetry"));
   retry.addEventListener("click", () => {
     // Same guard shape as ask's retry (md-ask.js _pbpAskErrorUi): a
     // stale click after a newer run already started must not fire a

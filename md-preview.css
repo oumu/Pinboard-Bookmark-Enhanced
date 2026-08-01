@@ -1690,6 +1690,9 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
    multi-second network calls, so the press is the only thing that can confirm
    the click landed. Not transitioned: a press must read instantly. */
 .xp-retry:active, .xp-ask:active, .xp-save:active:not(:disabled), .xp-vocab:active:not(:disabled), .xp-known:active:not(:disabled), .xp-open-vocab:active, .xp-dict-connect:active:not(:disabled) { transform: translateY(1px); }
+/* Retry buttons carry the shared refresh icon before their label (icon+text
+   per the icon audit); the xp family is not flex, so align/space inline. */
+.xp-retry svg { width: 12px; height: 12px; vertical-align: -2px; margin-right: 4px; }
 /* One-shot failure pulse for icon-only foot buttons: flashButtonLabel swaps
    textContent and would strip the SVG, so failure feedback is a fading
    border pulse plus the #copy-status announcement. */

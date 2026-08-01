@@ -15,7 +15,10 @@ const PBP_ASK_BTN_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentCol
 const PBP_ASK_CLOSE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
 const PBP_ASK_CLEAR_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>';
 const PBP_ASK_SEND_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>';
-const PBP_ASK_REGEN_SVG = '<svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.5 8a5.5 5.5 0 1 1-1.7-3.97M13.5 2.5V5h-2.5"/></svg>';
+// Alias of the shared refresh icon (one Lucide source for every retry/regen
+// affordance). typeof-guarded so a page that loads this file without shared.js
+// degrades to an empty icon instead of a ReferenceError.
+const PBP_ASK_REGEN_SVG = typeof PBP_ICONS !== "undefined" ? PBP_ICONS.refresh : "";
 
 // ---- Pure: should the "a" hotkey ignore this event target? ----
 function pbpAskIsTypingTarget(el) {
@@ -620,7 +623,8 @@ function _pbpAskErrorUi(aEl, error, question) {
   const retry = document.createElement("button");
   retry.type = "button";
   retry.className = "action-btn ask-retry";
-  retry.textContent = t(error && error.code === "host_permission" ? "aiGrantRetry" : "askErrRetry");
+  retry.innerHTML = PBP_ICONS.refresh; // static shared constant, never page content
+  retry.append(t(error && error.code === "host_permission" ? "aiGrantRetry" : "askErrRetry"));
   retry.addEventListener("click", () => {
     // Guard BEFORE touching the DOM: _pbpAskRun silently no-ops while another
     // question is running (line ~478 `if (!st || st.running) return;`). Without
@@ -1136,7 +1140,8 @@ function _pbpAskFinalize(el, fullText, sent) {
 
 // Static inline SVG (clipboard, same path set as the rail Copy buttons in
 // md-preview.html). Constant string, never model text.
-const PBP_ASK_COPY_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+// Alias of the shared copy icon (was a hand-copied Feather twin of it).
+const PBP_ASK_COPY_SVG = typeof PBP_ICONS !== "undefined" ? PBP_ICONS.copy : "";
 
 // Pure: compose the copied markdown = answer body + footnote block from
 // the parsed cites. Inline [Pn] tokens become [^k] references matching
@@ -2543,7 +2548,8 @@ async function _pbpExplainRun(cap, ctx, pop) {
     const retry = document.createElement("button");
     retry.type = "button";
     retry.className = "xp-retry";
-    retry.textContent = t(e && e.code === "host_permission" ? "aiGrantRetry" : "explainErrRetry");
+    retry.innerHTML = PBP_ICONS.refresh; // static shared constant, never page content
+    retry.append(t(e && e.code === "host_permission" ? "aiGrantRetry" : "explainErrRetry"));
     retry.addEventListener("click", async () => {
       if (retry.disabled) return;
       retry.disabled = true;
