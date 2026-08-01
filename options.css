@@ -1951,30 +1951,55 @@ html.motion-ready #panel-vocab .vocab-batch-toolbar.motion-toggle:not([hidden]) 
   color: var(--opt-fg-muted, #888);
   border-color: transparent;
   background: transparent;
-  position: relative;
-  /* Hover-reveal (device feedback 2026-08): stays in layout for keyboard
-     reach (the .saved-theme-del pattern), fades in on row hover/focus.
-     opacity joins the .btn family's state transition so the reveal and the
-     danger-color shift share one rhythm. */
+  /* Overlay reveal (device feedback 2026-08, round 2): absolute takes the X
+     out of the grid flow entirely -- its track collapses to 0, so no blank
+     gutter remains at rest. The opaque chip background lets it float over
+     whatever text runs underneath on hover; deletes are confirm-guarded, so
+     the overlap cannot destroy anything on a stray click. Stays in the DOM
+     for keyboard reach (the .saved-theme-del pattern). */
+  position: absolute;
+  right: var(--opt-sp-2);
+  top: 50%;
+  translate: 0 -50%;
+  background: var(--opt-bg, #fff);
   opacity: 0;
   transition: opacity var(--motion-state) ease, background var(--motion-state), border-color var(--motion-state), color var(--motion-state);
 }
+.notes-card-top { position: relative; }
 .notes-card:hover .row-del-x,
 .notes-card:focus-within .row-del-x,
 .row-del-x:focus-visible { opacity: 1; }
-/* Selection checkbox: hidden until the row is interacted with OR it is
-   already part of a selection -- ticked boxes must stay visible as state. */
-.vocab-row-select {
+/* Selection checkbox: same overlay treatment, parked on the chevron slot --
+   the two crossfade (hover/focus/selected shows the box, hides the arrow),
+   so the leading edge always carries exactly one glyph and zero blanks.
+   A ticked box stays visible as selection state. */
+.vocab-card .vocab-row-select {
+  position: absolute;
+  left: var(--opt-sp-3);
+  top: 50%;
+  translate: 0 -50%;
+  margin: 0;
   opacity: 0;
   transition: opacity var(--motion-state) ease;
 }
+/* The overlay checkbox leaves the grid flow, which would let auto-placement
+   slide the head into the content-sized first track (long titles then blow
+   the card open); pin the head to its 1fr column explicitly. */
+.vocab-card .notes-card-top > .notes-card-head { grid-column: 2; }
+.vocab-card .notes-card-chevron { transition: opacity var(--motion-state) ease; }
 .vocab-card:hover .vocab-row-select,
 .vocab-card:focus-within .vocab-row-select,
-.vocab-row-select:checked,
-.vocab-row-select:focus-visible { opacity: 1; }
-/* No hover, no reveal: keep both permanently visible on touch-only devices. */
+.vocab-card.selected .vocab-row-select,
+.vocab-card .vocab-row-select:checked,
+.vocab-card .vocab-row-select:focus-visible { opacity: 1; }
+.vocab-card:hover .notes-card-chevron,
+.vocab-card:focus-within .notes-card-chevron,
+.vocab-card.selected .notes-card-chevron { opacity: 0; }
+/* No hover, no overlay: restore the in-flow tracks on touch-only devices. */
 @media (hover: none) {
-  .row-del-x, .vocab-row-select { opacity: 1; }
+  .row-del-x { position: static; translate: none; opacity: 1; background: transparent; }
+  .vocab-card .vocab-row-select { position: static; translate: none; opacity: 1; }
+  .vocab-card .notes-card-chevron { opacity: 1 !important; }
 }
 /* Invisible hit-area pad to a >=24x24 click target (WCAG 2.5.8) without
    touching the 19px visual row rhythm: out of flow, no background, sits under

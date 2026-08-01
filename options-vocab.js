@@ -148,6 +148,7 @@ function _pbpVocabBuildRow(w, index) {
   select.className = "vocab-row-select";
   select.dataset.vocabId = w.id;
   select.checked = _vocabSelected.has(w.id);
+  card.classList.toggle("selected", select.checked); // drives the overlay reveal
   select.setAttribute("aria-label", t("vocabSelectWord", w.term));
   select.addEventListener("click", (e) => {
     if (e.shiftKey && _vocabLastSelectedId) {
@@ -446,6 +447,15 @@ function _pbpVocabClearSelection() {
 function _pbpVocabSyncSelectionUi() {
   const validIds = new Set(_vocabViewRows.map((row) => row.id));
   for (const id of [..._vocabSelected]) if (!validIds.has(id)) _vocabSelected.delete(id);
+  // Keep every visible row's checkbox and .selected overlay state in step
+  // with the selection set (shift-range and select-all mutate rows that were
+  // not the click target).
+  document.querySelectorAll("#vocab-list > .vocab-card").forEach((el) => {
+    const on = _vocabSelected.has(el.dataset.vocabId);
+    el.classList.toggle("selected", on);
+    const cb = el.querySelector(".vocab-row-select");
+    if (cb && cb.checked !== on) cb.checked = on;
+  });
   const selectedCount = _vocabSelected.size;
   const selectedEl = $id("vocab-selected-count");
   if (selectedEl) selectedEl.textContent = t("vocabSelectedCount", String(selectedCount));
