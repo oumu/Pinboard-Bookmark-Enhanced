@@ -1702,6 +1702,20 @@ html[data-theme] .preset-preview-content { background: var(--opt-bg); color: var
   width: auto;
   min-width: 0;
 }
+/* The three selects are ONE flex unit. Line breaking in a wrapping flex
+   container works on hypothetical (basis) sizes, and this unit refuses to
+   shrink -- so it either fits whole beside the search or drops whole onto
+   its own row (search then grows to the full first row). max-width lets
+   the selects wrap among themselves only once the unit's own row is
+   narrower than the three of them. */
+.vocab-filter-selects {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--opt-sp-4);
+  flex: 0 0 auto;
+  min-width: 0;
+  max-width: 100%;
+}
 .vocab-filter-toolbar select { flex: 0 1 auto; min-width: 0; }
 .notes-toolbar input[type="search"] {
   width: 100%;

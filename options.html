@@ -690,6 +690,10 @@
       <div class="section-title" data-i18n="dictVocabSection">Vocabulary</div>
       <div class="notes-toolbar vocab-filter-toolbar">
         <input type="search" id="vocab-search" placeholder="Search words, definitions, context, and groups" data-i18n-placeholder="vocabSearchPlaceholder" data-i18n-aria="vocabSearchPlaceholder" aria-label="Search words, definitions, context, and groups" autocomplete="off" />
+        <!-- One flex unit: the three selects travel together. Beside the
+             search when the row fits, as one full second row when it
+             doesn't -- never scattered one-per-line. -->
+        <div class="vocab-filter-selects">
         <label class="sr-only" for="vocab-group-filter" data-i18n="vocabGroupFilterAria">Filter by group</label>
         <select id="vocab-group-filter" data-no-autosave data-i18n-aria="vocabGroupFilterAria" aria-label="Filter by group"><option value="" data-i18n="vocabAllGroups">All groups</option></select>
         <label class="sr-only" for="vocab-status-filter" data-i18n="vocabStatusFilterAria">Filter by status</label>
@@ -705,6 +709,7 @@
           <option value="az" data-i18n="vocabSortAz">A–Z</option>
           <option value="za" data-i18n="vocabSortZa">Z–A</option>
         </select>
+        </div>
       </div>
       <div class="vocab-summary-row">
         <span id="vocab-count" class="notes-count" aria-live="polite"></span>
