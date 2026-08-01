@@ -1966,8 +1966,12 @@ html.motion-ready #panel-vocab .vocab-batch-toolbar.motion-toggle:not([hidden]) 
   transition: opacity var(--motion-state) ease, background var(--motion-state), border-color var(--motion-state), color var(--motion-state);
 }
 .notes-card-top { position: relative; }
+/* Reveal on hover or the control's own keyboard focus -- NOT card-level
+   :focus-within: a mouse click on the expand head keeps focus on the card,
+   which pinned the overlay open until the user clicked elsewhere (device
+   report). Keyboard reach is already covered by :focus-visible on the
+   controls themselves. */
 .notes-card:hover .row-del-x,
-.notes-card:focus-within .row-del-x,
 .row-del-x:focus-visible { opacity: 1; }
 /* Selection checkbox: same overlay treatment, parked on the chevron slot --
    the two crossfade (hover/focus/selected shows the box, hides the arrow),
@@ -1988,13 +1992,12 @@ html.motion-ready #panel-vocab .vocab-batch-toolbar.motion-toggle:not([hidden]) 
 .vocab-card .notes-card-top > .notes-card-head { grid-column: 2; }
 .vocab-card .notes-card-chevron { transition: opacity var(--motion-state) ease; }
 .vocab-card:hover .vocab-row-select,
-.vocab-card:focus-within .vocab-row-select,
 .vocab-card.selected .vocab-row-select,
 .vocab-card .vocab-row-select:checked,
 .vocab-card .vocab-row-select:focus-visible { opacity: 1; }
 .vocab-card:hover .notes-card-chevron,
-.vocab-card:focus-within .notes-card-chevron,
-.vocab-card.selected .notes-card-chevron { opacity: 0; }
+.vocab-card.selected .notes-card-chevron,
+.vocab-card .vocab-row-select:focus-visible + .notes-card-head .notes-card-chevron { opacity: 0; }
 /* No hover, no overlay: restore the in-flow tracks on touch-only devices. */
 @media (hover: none) {
   .row-del-x { position: static; translate: none; opacity: 1; background: transparent; }
