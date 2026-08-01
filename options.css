@@ -2045,7 +2045,7 @@ html.motion-ready .notes-card.motion-toggle .notes-card-chevron {
   line-height: 1.5;
   padding: 4px 8px;
   border: 1px solid var(--opt-border, #d0d0d0);
-  border-radius: 6px;
+  border-radius: var(--opt-radius-md);
   background: inherit;
   color: inherit;
 }
