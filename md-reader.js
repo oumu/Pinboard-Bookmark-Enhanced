@@ -1488,6 +1488,43 @@ function _pbpTypoInit() {
 // md-highlight.js / md-ask.js / md-translate.js; the test harness loads
 // this file on file:// and never dispatches "pbp:rendered", so this
 // registration is inert there. ----
+// Code-block copy button (Feather copy). Injected at runtime, never by the
+// renderer: exports rebuild their DOM from markdown via renderMarkdown, so
+// the button can't leak into .md/.html/EPUB output. Persistent, not
+// hover-revealed (reader ban on hover-triggered chrome); the .btn-label span
+// is what flashButtonLabel writes into, so the SVG survives the "copied"
+// flash.
+const PBP_COPY_CODE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+function _pbpCopyCodeInject() {
+  const view = document.getElementById("rendered-view");
+  if (!view) return;
+  for (const pre of view.querySelectorAll("pre")) {
+    if (pre.querySelector(".pb-copy-code")) continue;
+    const code = pre.querySelector("code");
+    if (!code || !code.textContent.trim()) continue;
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "pb-copy-code";
+    btn.title = t("mdCopyCode");
+    btn.setAttribute("aria-label", t("mdCopyCode"));
+    btn.innerHTML = PBP_COPY_CODE_SVG; // static constant, never page content
+    const label = document.createElement("span");
+    label.className = "btn-label";
+    btn.appendChild(label);
+    btn.addEventListener("click", () => {
+      // copyToClipboard (md-preview.js) flashes the label and announces via
+      // #copy-status; reading textContent here keeps hljs spans out.
+      copyToClipboard(code.textContent, btn);
+    });
+    pre.appendChild(btn);
+  }
+}
+function _pbpCopyCodeInit() {
+  _pbpCopyCodeInject();
+  // Re-renders (engine switch) replace #rendered-view wholesale; re-inject.
+  document.addEventListener("pbp:rendered", _pbpCopyCodeInject);
+}
+
 if (typeof document !== "undefined") {
   document.addEventListener("pbp:rendered", () => {
     try { _pbpFnInit(); } catch (_) {}
@@ -1495,5 +1532,6 @@ if (typeof document !== "undefined") {
     try { _pbpKbdHelpInit(); } catch (_) {}
     try { _pbpZenInit(); } catch (_) {}
     try { _pbpTypoInit(); } catch (_) {}
+    try { _pbpCopyCodeInit(); } catch (_) {}
   }, { once: true });
 }

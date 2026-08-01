@@ -785,6 +785,32 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
 }
 #rendered-view li::marker { color: var(--fg-muted); }
 
+/* Code-block copy button: persistent (never hover-revealed), quiet until
+   pointed at. Lives inside the pre, absolutely positioned; excluded from
+   print, and exports never see it (they re-render from markdown). */
+#rendered-view pre { position: relative; }
+.pb-copy-code {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 6px;
+  border: 1px solid var(--btn-border);
+  border-radius: 6px;
+  background: var(--btn-bg);
+  color: var(--btn-fg);
+  font-size: 11px;
+  cursor: pointer;
+  opacity: 0.65;
+  user-select: none; /* drag-selecting code must not grab the button text */
+}
+.pb-copy-code:hover, .pb-copy-code:focus-visible { opacity: 1; background: var(--btn-hover); }
+.pb-copy-code svg { width: 12px; height: 12px; }
+.pb-copy-code .btn-label:empty { display: none; }
+@media print { .pb-copy-code { display: none; } }
+
 /* Tables. renderMarkdown wraps each one in .pb-table-wrap: the table itself
    keeps overflow:hidden for its border-radius, so the WRAPPER is what
    scrolls when the column count outgrows the article column -- without it,
@@ -1694,6 +1720,17 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
   color: var(--link);
 }
 .xp-dict-more:hover { color: var(--link-hover); text-decoration: underline; }
+/* Clickable lemma inside a form-of pointer: reads as a link, is a button. */
+.xp-dict-lemma-link {
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+  color: var(--link);
+  text-decoration: underline;
+}
+.xp-dict-lemma-link:hover { color: var(--link-hover); }
 .xp-dict-slot { min-height: 20px; }
 .xp-dict-match { color: var(--fg-muted); font-size: 0.8em; margin: 0 0 6px; }
 .xp-dict-entry { margin: 0 0 8px; }

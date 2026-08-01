@@ -170,6 +170,17 @@ function pbpDictEntriesAreFormOfOnly(rawEntries) {
   return sawSense;
 }
 
+// A form-of pointer ends with the lemma in plain sight ("first-person
+// singular present indicative of aprovechar"). Users without an AI key have
+// no lemma rescue, so the render layer turns that trailing word into a
+// click-to-relookup; this helper isolates the (English-templated, since the
+// source is English Wiktionary) split so it can be tested. null = leave the
+// definition as plain text, exactly the old behaviour.
+function pbpDictLemmaFromPointer(definition) {
+  const m = /^(.*\bof\s+)(\S+?)([.。]?)$/.exec(String(definition || ""));
+  return m && m[2] ? { prefix: m[1], lemma: m[2], suffix: m[3] } : null;
+}
+
 // Sense ranking. The reader is looking at a sentence, and the sentence is the
 // one piece of context already in hand when the popup paints -- unlike the AI
 // gloss, which arrives seconds later on its own stream and would reorder the
@@ -627,7 +638,7 @@ function _pbpDictTagLabel(tag) {
 // Shared by the online entry and the local ECDICT block. Every read is
 // defensive: CC-CEDICT norms and dict2_ records cached before these fields
 // existed carry none of them.
-function _pbpDictSenseLi(s) {
+function _pbpDictSenseLi(s, formOf) {
   const li = document.createElement("li");
   const stags = s.tags || [];
   if (stags.length) {
@@ -637,7 +648,25 @@ function _pbpDictSenseLi(s) {
     li.appendChild(tg);
     li.appendChild(document.createTextNode(" "));
   }
-  li.appendChild(document.createTextNode(s.definition));
+  // In a form-of-only entry the definition is a grammar pointer, and without
+  // an AI key it used to be a dead end. Make the lemma itself the way out:
+  // one click reruns the lookup on the base form. Parse miss = plain text.
+  const pointer = formOf ? pbpDictLemmaFromPointer(s.definition) : null;
+  if (pointer) {
+    li.appendChild(document.createTextNode(pointer.prefix));
+    const jump = document.createElement("button");
+    jump.type = "button";
+    jump.className = "xp-dict-lemma-link";
+    jump.textContent = pointer.lemma;
+    jump.addEventListener("click", () => {
+      const live = _pbpDictCurrent;
+      if (live && typeof live.rerunWith === "function") live.rerunWith(pointer.lemma);
+    });
+    li.appendChild(jump);
+    if (pointer.suffix) li.appendChild(document.createTextNode(pointer.suffix));
+  } else {
+    li.appendChild(document.createTextNode(s.definition));
+  }
   for (const d of s.subsenses || []) {
     const sub = document.createElement("div");
     sub.className = "xp-dict-subsense";
@@ -667,11 +696,11 @@ function _pbpDictSenseLi(s) {
 // Default density is unchanged: SHOW senses render, the rest sit behind an
 // explicit click ("expand the other N"). The data is already in memory and
 // in the dict2_ cache -- the button costs no request. Click, never hover.
-function _pbpDictRenderSenses(parent, senses) {
+function _pbpDictRenderSenses(parent, senses, formOf) {
   const ol = document.createElement("ol");
   ol.className = "xp-dict-senses";
   const rest = senses.slice(PBP_DICT_SENSE_SHOW);
-  for (const s of senses.slice(0, PBP_DICT_SENSE_SHOW)) ol.appendChild(_pbpDictSenseLi(s));
+  for (const s of senses.slice(0, PBP_DICT_SENSE_SHOW)) ol.appendChild(_pbpDictSenseLi(s, formOf));
   parent.appendChild(ol);
   if (rest.length) {
     const more = document.createElement("button");
@@ -679,7 +708,7 @@ function _pbpDictRenderSenses(parent, senses) {
     more.className = "xp-dict-more";
     more.textContent = t("dictMoreSenses", String(rest.length));
     more.addEventListener("click", () => {
-      for (const s of rest) ol.appendChild(_pbpDictSenseLi(s));
+      for (const s of rest) ol.appendChild(_pbpDictSenseLi(s, formOf));
       more.remove();
     });
     parent.appendChild(more);
@@ -734,7 +763,7 @@ function _pbpDictRenderEntry(slot, norm, term, lang, selectedTerm, sentence) {
       forms.textContent = e.forms.map((f) => f.word + (f.tags.length ? " (" + f.tags.map(_pbpDictTagLabel).join(", ") + ")" : "")).join(" · ");
       ent.appendChild(forms);
     }
-    if (e.senses.length) _pbpDictRenderSenses(ent, e.senses);
+    if (e.senses.length) _pbpDictRenderSenses(ent, e.senses, !!norm.formOfOnly);
     slot.appendChild(ent);
   }
   const src = document.createElement("div");
@@ -1184,7 +1213,14 @@ async function pbpDictRun(cap, ctx, pop, ctrl, s) {
     runId, term: cap.text, lang: "", gloss: "", lemma: "", ipa: "",
     sourceUrl: "", license: "", sentence: ctx.sentence || "", saved: false,
     owner: _pbpDictOwner,
-    rerun: () => { if (_pbpDictCurrent === cur) pbpDictRun(cap, ctx, pop, ctrl, s); }
+    rerun: () => { if (_pbpDictCurrent === cur) pbpDictRun(cap, ctx, pop, ctrl, s); },
+    // Lemma click-through (form-of pointers): a fresh full run on the base
+    // form, so language detection, vocab identity and the AI slot all see
+    // the lemma as the selection. Same guard as rerun.
+    rerunWith: (term) => {
+      const next = pbpDictNormalizeTerm(term);
+      if (next && _pbpDictCurrent === cur) pbpDictRun({ ...cap, text: next }, ctx, pop, ctrl, s);
+    }
   };
   _pbpDictCurrent = cur;
 

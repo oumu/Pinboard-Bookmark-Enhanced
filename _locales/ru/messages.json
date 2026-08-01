@@ -2681,6 +2681,9 @@
   "dictLoadFailed": {
     "message": "Словарь недоступен"
   },
+  "mdCopyCode": {
+    "message": "Копировать код"
+  },
   "dictMoreSenses": {
     "message": "Показать ещё $COUNT$ значений",
     "placeholders": {

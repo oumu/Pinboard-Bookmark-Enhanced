@@ -2681,6 +2681,9 @@
   "dictLoadFailed": {
     "message": "詞典暫不可用"
   },
+  "mdCopyCode": {
+    "message": "複製程式碼"
+  },
   "dictMoreSenses": {
     "message": "展開其餘 $COUNT$ 個義項",
     "placeholders": {

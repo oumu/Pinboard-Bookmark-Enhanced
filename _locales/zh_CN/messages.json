@@ -2681,6 +2681,9 @@
   "dictLoadFailed": {
     "message": "词典暂不可用"
   },
+  "mdCopyCode": {
+    "message": "复制代码"
+  },
   "dictMoreSenses": {
     "message": "展开其余 $COUNT$ 条义项",
     "placeholders": {

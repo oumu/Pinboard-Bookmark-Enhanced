@@ -308,6 +308,18 @@ assertEq(bankNorm.entries[0].senses[0].definition, FDA_BANK.entries[0].senses[0]
 assertEq(pbpDictOrderForContext([], "river").length, 0, "no entries is not an error");
 assertEq(pbpDictOrderForContext(null, "river").length, 0, "a missing entry list is not an error");
 
+section("pbpDictLemmaFromPointer");
+// Live pointer strings from the API (2026-07-31 round): the lemma is the
+// trailing bareword after the final "of".
+{
+  const p1 = pbpDictLemmaFromPointer("first-person singular present indicative of aprovechar");
+  assert(p1 && p1.lemma === "aprovechar" && p1.suffix === "", "Spanish conjugation pointer yields the lemma");
+  const p2 = pbpDictLemmaFromPointer("first-person singular present of писа́ть.");
+  assert(p2 && p2.lemma === "писа́ть" && p2.suffix === ".", "non-Latin lemma and trailing period both survive");
+  assertEq(pbpDictLemmaFromPointer("to move swiftly"), null, "an ordinary definition stays plain text");
+  assertEq(pbpDictLemmaFromPointer(""), null, "empty definition is not an error");
+}
+
 section("IPA cap visibility");
 // Hand-written server shape (never generated from the normalizer). Five ipa
 // rows plus one enpr row: the cap keeps 3, counts 2 more, ignores enpr.

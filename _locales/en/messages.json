@@ -2681,6 +2681,9 @@
   "dictLoadFailed": {
     "message": "Dictionary unavailable"
   },
+  "mdCopyCode": {
+    "message": "Copy code"
+  },
   "dictMoreSenses": {
     "message": "Show $COUNT$ more senses",
     "placeholders": {
