@@ -549,7 +549,11 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--pp-accent); }
   box-shadow: 0 2px 4px color-mix(in srgb, var(--pp-accent) 30%, transparent);
 }
 #submit-btn:active { transform: translateY(0); box-shadow: none; }
-#submit-btn:disabled { background: #aaa; border-color: #999; transform: none; box-shadow: none; }
+/* Tokens, not literals: white-on-#aaa was 2.3:1. fg-hint is tuned ≥4.5:1 on
+   bg2 in every palette, so the label stays readable on chrome:// pages where
+   the button is disabled daily. (Themed presets additionally dim via the
+   html[data-theme] opacity rule — that one starts from darker fills.) */
+#submit-btn:disabled { background: var(--pp-bg2); border-color: var(--pp-border); color: var(--pp-fg-hint); transform: none; box-shadow: none; }
 .del-btn { position: relative; color: var(--pp-danger); border-color: var(--pp-danger) !important; white-space: nowrap; padding: var(--pp-sp-2) var(--pp-sp-6); min-height: 28px; }
 .del-btn:hover { background: #fee !important; }
 /* Anchor left:0 (extend right from the Delete button's left edge) — the button sits
@@ -978,6 +982,7 @@ html.dark .autocomplete-dropdown { background: var(--pp-bg2); border-color: var(
 html.dark .submit-bar button { background: var(--pp-input-bg); border-color: var(--pp-border); color: var(--pp-fg); }
 html.dark .submit-bar button:hover { background: var(--pp-drop-hover); }
 html.dark .del-btn:hover { background: color-mix(in srgb, var(--pp-danger) 12%, var(--pp-bg)) !important; }
+html.dark .recent-bm-area { border-top-color: var(--pp-divider); }
 html.dark .del-confirm-popover { background: var(--pp-bg2); border-color: var(--pp-border); box-shadow: 0 2px 8px rgba(0,0,0,0.4); }
 html.dark .del-confirm-popover button { background: var(--pp-input-bg); border-color: var(--pp-border); color: var(--pp-fg); }
 html.dark .del-confirm-yes { color: var(--pp-danger) !important; border-color: var(--pp-danger) !important; }
@@ -1914,6 +1919,16 @@ html[data-theme="terminal"] .field > textarea { font-family: "Courier New", Cons
 .confirm-popover .confirm-no:hover { background: #eee; }
 .confirm-popover button:focus-visible { outline: 2px solid var(--pp-accent, #4477bb); outline-offset: 1px; }
 @keyframes confirmFadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+/* Exit mirrors the entrance path (fade + 4px rise). shared.js dismiss() adds
+   .is-closing and removes the node on transitionend; 0.1s matches its 100ms
+   --motion-pop-out fallback — popup.css deliberately defines no --motion-pop-out,
+   so keep these two in sync by hand. */
+.confirm-popover.is-closing {
+  opacity: 0;
+  transform: translateY(-4px);
+  pointer-events: none;
+  transition: opacity 0.1s var(--ease-out), transform 0.1s var(--ease-out);
+}
 
 html.dark .confirm-popover { color: #ff6666; background: #1a1a1a; border-color: #3a3a3a; box-shadow: 0 2px 8px rgba(0,0,0,0.4); }
 html.dark .confirm-popover .confirm-yes { background: #c33; color: #fff; border-color: #a22; }
