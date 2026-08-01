@@ -2720,6 +2720,40 @@
   "dictSaveVocab": {
     "message": "単語帳に保存"
   },
+  "vocabMarkKnown": {
+    "message": "習得済みにする"
+  },
+  "vocabMarkLearning": {
+    "message": "学習中に戻す"
+  },
+  "vocabStatusAll": {
+    "message": "すべての状態"
+  },
+  "vocabStatusLearning": {
+    "message": "学習中"
+  },
+  "vocabStatusKnown": {
+    "message": "習得済み"
+  },
+  "vocabStatusFilterAria": {
+    "message": "状態で絞り込む"
+  },
+  "vocabBatchKnownDone": {
+    "message": "$COUNT$ 語を習得済みにしました",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "vocabBatchLearningDone": {
+    "message": "$COUNT$ 語を学習中に戻しました",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
   "vocabFailedTerms": {
     "message": "失敗：$TERMS$",
     "placeholders": {

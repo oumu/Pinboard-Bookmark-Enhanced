@@ -334,6 +334,24 @@ async function runIdbChecks() {
     task3ApiReady && lastGroupGone !== null && lastGroupGone.groups.length === 0);
 
   await deleteVocabDb();
+  const statusWord = await pbpVocabSaveWord("acct_a", { term: "Status", language: "en" });
+  await pbpVocabBatchSetStatus([statusWord.id], "acct_a", "known");
+  const knownRec = await pbpVocabGet(statusWord.id);
+  const knownMeta = await syncGet("record:acct_a:en|status");
+  const knownOutbox = await pbpVocabListOutbox("acct_a");
+  check("set-status writes known through the synced edit path",
+    task3ApiReady && knownRec.status === "known" && knownMeta.dot.counter === 2 &&
+    knownOutbox[0].event.value.status === "known");
+  const noopStatus = await pbpVocabBatchSetStatus([statusWord.id], "acct_a", "known");
+  const noopStatusMeta = await syncGet("record:acct_a:en|status");
+  check("setting the status a word already has is a no-op, not a version bump",
+    task3ApiReady && noopStatus === true && noopStatusMeta.dot.counter === knownMeta.dot.counter);
+  await pbpVocabBatchSetStatus([statusWord.id], "acct_a", "definitely-not-a-state");
+  const clampedRec = await pbpVocabGet(statusWord.id);
+  check("unknown status values clamp to new at the single write entrance",
+    task3ApiReady && clampedRec.status === "new");
+
+  await deleteVocabDb();
   const a = await pbpVocabSaveWord("acct_a", { term: "Alpha", language: "en" });
   const b = await pbpVocabSaveWord("acct_a", { term: "Beta", language: "en" });
   const foreign = await pbpVocabSaveWord("acct_b", { term: "Foreign", language: "en" });

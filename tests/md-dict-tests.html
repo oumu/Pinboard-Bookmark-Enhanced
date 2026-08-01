@@ -482,6 +482,10 @@ const _ets = (rows, cap) => pbpEchoTermSet(rows, cap);
   assert(lem.length === 1 && lem[0].key === "running", "lemma is NOT echoed (term only)");
   const turk = _ets([{ term: "İstanbul" }]);
   assertEq(turk[0].key, "İstanbul", "length-shifting case fold degrades to exact-case key");
+  const knownSkip = _ets([{ term: "mastered", status: "known" }, { term: "learning" }]);
+  assert(knownSkip.length === 1 && knownSkip[0].key === "learning",
+    "known words retire from the echo underline; the record itself stays");
+  assertEq(_ets([{ term: "legacy" }]).length, 1, "records predating the status field still echo");
 }
 
 section("pbpEchoNeedsBoundary");

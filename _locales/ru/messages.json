@@ -2720,6 +2720,40 @@
   "dictSaveVocab": {
     "message": "В словарик"
   },
+  "vocabMarkKnown": {
+    "message": "Отметить как выученное"
+  },
+  "vocabMarkLearning": {
+    "message": "Вернуть в изучаемые"
+  },
+  "vocabStatusAll": {
+    "message": "Все статусы"
+  },
+  "vocabStatusLearning": {
+    "message": "Изучается"
+  },
+  "vocabStatusKnown": {
+    "message": "Выучено"
+  },
+  "vocabStatusFilterAria": {
+    "message": "Фильтр по статусу"
+  },
+  "vocabBatchKnownDone": {
+    "message": "Отмечено как выученные: $COUNT$",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "vocabBatchLearningDone": {
+    "message": "Возвращено в изучаемые: $COUNT$",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
   "vocabFailedTerms": {
     "message": "Не отправлено: $TERMS$",
     "placeholders": {

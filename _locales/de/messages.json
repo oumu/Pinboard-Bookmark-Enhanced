@@ -2720,6 +2720,40 @@
   "dictSaveVocab": {
     "message": "In Vokabelliste speichern"
   },
+  "vocabMarkKnown": {
+    "message": "Als gelernt markieren"
+  },
+  "vocabMarkLearning": {
+    "message": "Wieder lernen"
+  },
+  "vocabStatusAll": {
+    "message": "Alle Status"
+  },
+  "vocabStatusLearning": {
+    "message": "Wird gelernt"
+  },
+  "vocabStatusKnown": {
+    "message": "Gelernt"
+  },
+  "vocabStatusFilterAria": {
+    "message": "Nach Status filtern"
+  },
+  "vocabBatchKnownDone": {
+    "message": "$COUNT$ Wörter als gelernt markiert",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "vocabBatchLearningDone": {
+    "message": "$COUNT$ Wörter wieder im Lernstatus",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
   "vocabFailedTerms": {
     "message": "Fehlgeschlagen: $TERMS$",
     "placeholders": {

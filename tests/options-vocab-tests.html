@@ -120,6 +120,10 @@ check("search matches context quote", ids(pbpVocabFilterSort(sample,"gagne","","
 check("search matches article title", ids(pbpVocabFilterSort(sample,"match report","","latest")) === "a");
 check("search matches group names", ids(pbpVocabFilterSort(sample,"french a1","","latest")) === "a");
 check("group filter is exact", ids(pbpVocabFilterSort(sample,"","Numbers","latest")) === "b");
+check("status filter keeps only known words", ids(pbpVocabFilterSort(
+  [{ id:"k", term:"kk", status:"known" }, { id:"n", term:"nn" }], "", "", "latest", "known")) === "k");
+check("status filter learning excludes known, records without the field count as learning", ids(pbpVocabFilterSort(
+  [{ id:"k", term:"kk", status:"known" }, { id:"n", term:"nn" }], "", "", "latest", "new")) === "n");
 check("search normalizes NFC", ids(pbpVocabFilterSort(sample,"De\u0301fense","","latest")) === "a");
 check("search folds Greek final sigma", pbpVocabSearchText("ΟΣ") === pbpVocabSearchText("οσ"));
 check("search folds German sharp s to ss", pbpVocabSearchText("Straße") === pbpVocabSearchText("STRASSE"));

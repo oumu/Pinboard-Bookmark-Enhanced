@@ -566,6 +566,28 @@ async function pbpVocabBatchRemoveGroup(ids, expectedOwner, rawGroup) {
   return result.ok;
 }
 
+// Same batch shape as the group mutations. status was a reserved dead field
+// until now; the sync validator only checks `typeof status === "string"`, so
+// the VALUE DOMAIN is enforced here at the single write entrance -- "known"
+// or "new", nothing else ever reaches the store. Old devices validate the
+// record unchanged (string is string), so no corrupt/blocked risk.
+async function pbpVocabBatchSetStatus(ids, expectedOwner, rawStatus) {
+  const scope = expectedOwner || "ownerless";
+  const status = rawStatus === "known" ? "known" : "new";
+  const items = _pbpVocabBatchItems(ids);
+  if (!items.length) return false;
+  const now = Date.now();
+  const result = await _pbpVocabLocalMutation(scope, items, (record) => {
+    if (!record) return { changed: false, result: null };
+    const recordKey = _pbpVocabRecordKey(scope, record);
+    if (!recordKey) return { invalid: true };
+    if (String(record.status || "new") === status) return { changed: false, result: record };
+    const word = { ...record, status, updatedAt: now };
+    return { changed: true, deleted: false, recordKey, word, result: word };
+  });
+  return result.ok;
+}
+
 async function pbpVocabSaveWord(owner, w) {
   const scope = owner || "ownerless";
   const id = pbpDictVocabKey(scope, w.language, w.term);

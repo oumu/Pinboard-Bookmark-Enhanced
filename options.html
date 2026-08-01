@@ -692,6 +692,12 @@
         <input type="search" id="vocab-search" placeholder="Search words, definitions, context, and groups" data-i18n-placeholder="vocabSearchPlaceholder" data-i18n-aria="vocabSearchPlaceholder" aria-label="Search words, definitions, context, and groups" autocomplete="off" />
         <label class="sr-only" for="vocab-group-filter" data-i18n="vocabGroupFilterAria">Filter by group</label>
         <select id="vocab-group-filter" data-no-autosave data-i18n-aria="vocabGroupFilterAria" aria-label="Filter by group"><option value="" data-i18n="vocabAllGroups">All groups</option></select>
+        <label class="sr-only" for="vocab-status-filter" data-i18n="vocabStatusFilterAria">Filter by status</label>
+        <select id="vocab-status-filter" data-no-autosave data-i18n-aria="vocabStatusFilterAria" aria-label="Filter by status">
+          <option value="" data-i18n="vocabStatusAll">All statuses</option>
+          <option value="new" data-i18n="vocabStatusLearning">Learning</option>
+          <option value="known" data-i18n="vocabStatusKnown">Known</option>
+        </select>
         <label class="sr-only" for="vocab-sort" data-i18n="vocabSortAria">Sort vocabulary</label>
         <select id="vocab-sort" data-no-autosave data-i18n-aria="vocabSortAria" aria-label="Sort vocabulary">
           <option value="latest" data-i18n="vocabSortLatest">Recently updated</option>
@@ -713,6 +719,8 @@
         <datalist id="vocab-group-list"></datalist>
         <button type="button" class="btn btn-sm" id="vocab-add-group" data-i18n="vocabAddToGroup">Add to group</button>
         <button type="button" class="btn btn-sm" id="vocab-remove-group" data-i18n="vocabRemoveFromGroup">Remove from group</button>
+        <button type="button" class="btn btn-sm" id="vocab-mark-known" data-i18n="vocabMarkKnown">Mark as known</button>
+        <button type="button" class="btn btn-sm" id="vocab-mark-learning" data-i18n="vocabMarkLearning">Back to learning</button>
         <button type="button" class="btn btn-sm danger" id="vocab-batch-delete" data-i18n="vocabBatchDelete">Delete selected</button>
       </div>
       <span class="save-status vocab-main-status" id="vocab-status" role="status" aria-live="polite"></span>

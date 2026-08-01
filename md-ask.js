@@ -2136,6 +2136,13 @@ function _pbpExplainEnsurePop() {
     if (typeof pbpOpenOptionsTab === "function") { pbpOpenOptionsTab("vocab"); return; }
     try { window.open(chrome.runtime.getURL("options.html#vocab")); } catch (_) {}
   });
+  // Known-word toggle: shell only. md-dict.js shows it when the looked-up
+  // word is already saved, and rewires .onclick per dictionary run (property
+  // assignment, so runs never stack listeners). Hidden for every other action.
+  const knownBtn = document.createElement("button");
+  knownBtn.type = "button";
+  knownBtn.className = "xp-known";
+  knownBtn.hidden = true;
   const ask = document.createElement("button");
   ask.type = "button";
   ask.className = "xp-ask";
@@ -2197,6 +2204,7 @@ function _pbpExplainEnsurePop() {
   foot.appendChild(model);
   foot.appendChild(save);
   foot.appendChild(vocab);
+  foot.appendChild(knownBtn);
   foot.appendChild(openVocab);
   foot.appendChild(ask);
   foot.appendChild(gearWrap);
@@ -2407,6 +2415,8 @@ async function _pbpExplainRun(cap, ctx, pop) {
   }
   const openVocabBtn = pop.querySelector(".xp-open-vocab");
   if (openVocabBtn) openVocabBtn.hidden = true;
+  const knownBtnReset = pop.querySelector(".xp-known");
+  if (knownBtnReset) knownBtnReset.hidden = true; // md-dict re-arms it per run
   // No-AI users never initialize the ask panel, so "Ask more" would silently
   // no-op for them -- hide it whenever AI is unavailable, any action.
   const askBtn = pop.querySelector(".xp-ask");

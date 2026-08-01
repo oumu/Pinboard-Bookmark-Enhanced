@@ -33,6 +33,10 @@ function pbpEchoTermSet(rows, cap) {
   const out = [];
   for (const r of Array.isArray(rows) ? rows : []) {
     if (!r || typeof r.term !== "string") continue;
+    // "Known" words opted out of the reading reminder: the record (and its
+    // export/search presence) stays, only the underline retires. Skipping
+    // here also frees the term's slot in the cap for a word still learning.
+    if (String(r.status || "new") === "known") continue;
     const display = r.term.normalize("NFC").trim();
     if (!display) continue;
     const bound = pbpEchoNeedsBoundary(display);

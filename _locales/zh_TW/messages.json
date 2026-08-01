@@ -2720,6 +2720,40 @@
   "dictSaveVocab": {
     "message": "存入生詞庫"
   },
+  "vocabMarkKnown": {
+    "message": "標記為已掌握"
+  },
+  "vocabMarkLearning": {
+    "message": "恢復為學習中"
+  },
+  "vocabStatusAll": {
+    "message": "全部狀態"
+  },
+  "vocabStatusLearning": {
+    "message": "學習中"
+  },
+  "vocabStatusKnown": {
+    "message": "已掌握"
+  },
+  "vocabStatusFilterAria": {
+    "message": "依狀態篩選"
+  },
+  "vocabBatchKnownDone": {
+    "message": "已將 $COUNT$ 個詞標為已掌握",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "vocabBatchLearningDone": {
+    "message": "已將 $COUNT$ 個詞恢復為學習中",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
   "vocabFailedTerms": {
     "message": "失敗：$TERMS$",
     "placeholders": {

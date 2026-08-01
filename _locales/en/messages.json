@@ -2720,6 +2720,40 @@
   "dictSaveVocab": {
     "message": "Save to vocabulary"
   },
+  "vocabMarkKnown": {
+    "message": "Mark as known"
+  },
+  "vocabMarkLearning": {
+    "message": "Back to learning"
+  },
+  "vocabStatusAll": {
+    "message": "All statuses"
+  },
+  "vocabStatusLearning": {
+    "message": "Learning"
+  },
+  "vocabStatusKnown": {
+    "message": "Known"
+  },
+  "vocabStatusFilterAria": {
+    "message": "Filter by status"
+  },
+  "vocabBatchKnownDone": {
+    "message": "$COUNT$ words marked as known",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "vocabBatchLearningDone": {
+    "message": "$COUNT$ words back to learning",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
   "vocabFailedTerms": {
     "message": "Failed: $TERMS$",
     "placeholders": {

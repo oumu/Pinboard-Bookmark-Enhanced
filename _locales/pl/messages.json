@@ -2720,6 +2720,40 @@
   "dictSaveVocab": {
     "message": "Zapisz do słówek"
   },
+  "vocabMarkKnown": {
+    "message": "Oznacz jako opanowane"
+  },
+  "vocabMarkLearning": {
+    "message": "Przywróć do nauki"
+  },
+  "vocabStatusAll": {
+    "message": "Wszystkie statusy"
+  },
+  "vocabStatusLearning": {
+    "message": "W nauce"
+  },
+  "vocabStatusKnown": {
+    "message": "Opanowane"
+  },
+  "vocabStatusFilterAria": {
+    "message": "Filtruj według statusu"
+  },
+  "vocabBatchKnownDone": {
+    "message": "Oznaczono jako opanowane: $COUNT$",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "vocabBatchLearningDone": {
+    "message": "Przywrócono do nauki: $COUNT$",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
   "vocabFailedTerms": {
     "message": "Niepowodzenie: $TERMS$",
     "placeholders": {

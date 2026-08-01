@@ -33,13 +33,17 @@ function pbpVocabSearchText(value) {
     .trim();
 }
 
-function pbpVocabFilterSort(rows, query, group, sortMode) {
+function pbpVocabFilterSort(rows, query, group, sortMode, status) {
   const needle = pbpVocabSearchText(query);
   const groupName = typeof pbpVocabNormalizeGroupName === "function"
     ? pbpVocabNormalizeGroupName(group) : String(group || "").trim();
+  // Two states only ("known" and everything else): the store clamps writes
+  // to new/known, and records predating the flag read as "new" here.
+  const wantStatus = status === "known" || status === "new" ? status : "";
   const filtered = (Array.isArray(rows) ? rows : []).filter((row) => {
     const groups = typeof pbpVocabGroups === "function" ? pbpVocabGroups(row) : [];
     if (groupName && !groups.includes(groupName)) return false;
+    if (wantStatus && (String((row && row.status) || "new") === "known" ? "known" : "new") !== wantStatus) return false;
     if (!needle) return true;
     const contexts = Array.isArray(row && row.contexts) ? row.contexts : [];
     const fields = [row && row.term, row && row.lemma, row && row.gloss, row && row.note,
@@ -172,6 +176,12 @@ function _pbpVocabBuildRow(w, index) {
     langChip.className = "notes-meta-chip";
     langChip.textContent = languageLabel;
     meta.appendChild(langChip);
+  }
+  if (String(w.status || "new") === "known") {
+    const statusChip = document.createElement("span");
+    statusChip.className = "notes-meta-chip vocab-status-chip";
+    statusChip.textContent = t("vocabStatusKnown");
+    meta.appendChild(statusChip);
   }
   const glossChip = document.createElement("span");
   glossChip.className = "notes-meta-chip";
@@ -384,6 +394,10 @@ function _pbpVocabSyncSelectionUi() {
   // removed" while changing nothing.
   if (removeBtn) removeBtn.disabled = _vocabBatchBusy || !selectedCount || !group || !_pbpVocabSelectedInGroup(group);
   if (deleteBtn) deleteBtn.disabled = _vocabBatchBusy || !selectedCount;
+  const knownBtn = $id("vocab-mark-known");
+  const learningBtn = $id("vocab-mark-learning");
+  if (knownBtn) knownBtn.disabled = _vocabBatchBusy || !selectedCount;
+  if (learningBtn) learningBtn.disabled = _vocabBatchBusy || !selectedCount;
   document.querySelectorAll("#vocab-list .vocab-row-select").forEach((checkbox) => {
     checkbox.checked = _vocabSelected.has(checkbox.dataset.vocabId);
     checkbox.disabled = _vocabBatchBusy;
@@ -487,7 +501,8 @@ function _pbpVocabApplyView(resetLimit) {
   _vocabViewRows = pbpVocabFilterSort(_vocabRows,
     ($id("vocab-search") || {}).value || "",
     ($id("vocab-group-filter") || {}).value || "",
-    ($id("vocab-sort") || {}).value || "latest");
+    ($id("vocab-sort") || {}).value || "latest",
+    ($id("vocab-status-filter") || {}).value || "");
   _pbpVocabRenderList();
 }
 
@@ -1035,6 +1050,40 @@ async function _pbpVocabApplyGroupChange(adding) {
   }
 }
 
+// Batch status flip, same generation/owner/refresh discipline as the group
+// mutations. No input field to validate: the selection is the whole argument.
+async function _pbpVocabApplyStatusChange(known) {
+  const button = $id(known ? "vocab-mark-known" : "vocab-mark-learning");
+  if (!button || button.disabled || _vocabBatchBusy || !_vocabSelected.size) return;
+  const ids = [..._vocabSelected];
+  _pbpVocabSetBatchBusy(true);
+  const gen = ++_vocabRenderGen;
+  let owner = null;
+  try {
+    owner = await pbpVocabCurrentOwner();
+    const ok = await pbpVocabBatchSetStatus(ids, owner, known ? "known" : "new");
+    const refreshed = await _pbpVocabReloadAfterMutation(owner, gen);
+    if (gen !== _vocabRenderGen) return;
+    _pbpVocabFocusStable();
+    if (!ok) { _pbpVocabFlashStatus(false, t("vocabBatchFailed")); return; }
+    if (!refreshed) { _pbpVocabFlashStatus(false, t("vocabRefreshFailed")); return; }
+    _pbpVocabFlashStatus(true,
+      t(known ? "vocabBatchKnownDone" : "vocabBatchLearningDone", String(ids.length)));
+  } catch (_) {
+    if (owner) await _pbpVocabReloadAfterMutation(owner, gen);
+    else if (gen === _vocabRenderGen) {
+      _pbpVocabClearVisibleState();
+      _pbpVocabSetLoading(false);
+    }
+    if (gen === _vocabRenderGen) {
+      _pbpVocabFocusStable();
+      _pbpVocabFlashStatus(false, t("vocabBatchFailed"));
+    }
+  } finally {
+    _pbpVocabSetBatchBusy(false);
+  }
+}
+
 // Fail-closed on account switch: owner is re-derived AFTER the rows fetch
 // resolves and compared against the owner the rows were fetched for. If they
 // differ (token rotated, or sync/keys-routing toggled mid-fetch), the export
@@ -1352,7 +1401,7 @@ if (_vocabSearch) _vocabSearch.addEventListener("input", () => {
   _pbpVocabClearSelection();
   _pbpVocabApplyView(true);
 });
-for (const id of ["vocab-group-filter", "vocab-sort"]) {
+for (const id of ["vocab-group-filter", "vocab-status-filter", "vocab-sort"]) {
   const control = $id(id);
   if (control) control.addEventListener("change", () => {
     _pbpVocabClearSelection();
@@ -1384,6 +1433,10 @@ const _vocabRemoveGroup = $id("vocab-remove-group");
 if (_vocabRemoveGroup) _vocabRemoveGroup.addEventListener("click", () => _pbpVocabApplyGroupChange(false));
 const _vocabBatchDelete = $id("vocab-batch-delete");
 if (_vocabBatchDelete) _vocabBatchDelete.addEventListener("click", _pbpVocabBatchDeleteSelected);
+const _vocabMarkKnown = $id("vocab-mark-known");
+if (_vocabMarkKnown) _vocabMarkKnown.addEventListener("click", () => _pbpVocabApplyStatusChange(true));
+const _vocabMarkLearning = $id("vocab-mark-learning");
+if (_vocabMarkLearning) _vocabMarkLearning.addEventListener("click", () => _pbpVocabApplyStatusChange(false));
 const _vocabDriveConnect = $id("vocab-drive-connect");
 if (_vocabDriveConnect) _vocabDriveConnect.addEventListener("click", _pbpVocabDriveConnect);
 const _vocabDriveSync = $id("vocab-drive-sync");

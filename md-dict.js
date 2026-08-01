@@ -467,6 +467,10 @@ const PBP_DICT_SPEAKER_SVG = '<svg width="14" height="14" viewBox="0 0 24 24" fi
 // Consumed by the highlight selection bar's dictionary button (md-highlight.js).
 const PBP_DICT_BOOK_SVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>';
 
+// Known-word toggle faces (Feather check-circle / rotate-ccw).
+const PBP_DICT_KNOWN_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
+const PBP_DICT_LEARNING_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>';
+
 // Ready-signal dot (inline SVG, never a literal glyph). Filled circle plus a
 // down chevron so it also reads as "there is more below".
 const PBP_DICT_CTX_READY_SVG = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="5" r="3" fill="currentColor" stroke="none"/><path d="M6 13l6 6 6-6"/></svg>';
@@ -1349,6 +1353,39 @@ async function pbpDictRun(cap, ctx, pop, ctrl, s) {
       }
     }
     vocabBtn.disabled = false;
+    // Known-word toggle: only meaningful for an already-saved word. onclick
+    // is a PROPERTY assignment on purpose -- the button outlives runs, and
+    // addEventListener here would stack one handler per lookup.
+    const knownBtn = pop.querySelector(".xp-known");
+    if (knownBtn && typeof _pbpExplainIconBtn === "function"
+      && typeof pbpVocabBatchSetStatus === "function" && hit) {
+      let known = String(hit.status || "new") === "known";
+      const face = () => _pbpExplainIconBtn(knownBtn,
+        known ? PBP_DICT_LEARNING_SVG : PBP_DICT_KNOWN_SVG,
+        t(known ? "vocabMarkLearning" : "vocabMarkKnown"));
+      face();
+      knownBtn.hidden = false;
+      knownBtn.disabled = false;
+      knownBtn.onclick = async () => {
+        if (knownBtn.disabled) return;
+        knownBtn.disabled = true;
+        const ok = await pbpVocabBatchSetStatus([hit.id], cur.owner, known ? "new" : "known")
+          .catch(() => false);
+        if (_pbpDictCurrent !== cur) return; // superseded: leave the new run's button alone
+        knownBtn.disabled = false;
+        if (!ok) {
+          knownBtn.classList.remove("xp-flash-fail");
+          void knownBtn.offsetWidth;
+          knownBtn.classList.add("xp-flash-fail");
+          return;
+        }
+        known = !known;
+        face();
+        try {
+          document.dispatchEvent(new CustomEvent("pbp:vocab-changed", { detail: { owner: cur.owner } }));
+        } catch (_) {}
+      };
+    }
   }
 }
 window.pbpDictRun = pbpDictRun;

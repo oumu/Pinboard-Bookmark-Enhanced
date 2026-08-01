@@ -1624,7 +1624,7 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
   .xp-skel { animation-duration: 1.2s !important; animation-iteration-count: infinite !important; }
 }
 .xp-error p { color: var(--danger); margin: 0 0 8px; font-size: 0.9em; }
-.xp-retry, .xp-ask, .xp-save, .xp-vocab, .xp-open-vocab, .xp-dict-connect {
+.xp-retry, .xp-ask, .xp-save, .xp-vocab, .xp-known, .xp-open-vocab, .xp-dict-connect {
   padding: 4px 10px;
   border: 1px solid var(--btn-border);
   border-radius: 6px;
@@ -1634,11 +1634,11 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
   cursor: pointer;
   white-space: nowrap;
 }
-.xp-retry:hover, .xp-ask:hover, .xp-save:hover:not(:disabled), .xp-vocab:hover:not(:disabled), .xp-open-vocab:hover, .xp-dict-connect:hover:not(:disabled) { background: var(--btn-hover); }
+.xp-retry:hover, .xp-ask:hover, .xp-save:hover:not(:disabled), .xp-vocab:hover:not(:disabled), .xp-known:hover:not(:disabled), .xp-open-vocab:hover, .xp-dict-connect:hover:not(:disabled) { background: var(--btn-hover); }
 /* Press feedback, same family as .action-btn above. These hand off to
    multi-second network calls, so the press is the only thing that can confirm
    the click landed. Not transitioned: a press must read instantly. */
-.xp-retry:active, .xp-ask:active, .xp-save:active:not(:disabled), .xp-vocab:active:not(:disabled), .xp-open-vocab:active, .xp-dict-connect:active:not(:disabled) { transform: translateY(1px); }
+.xp-retry:active, .xp-ask:active, .xp-save:active:not(:disabled), .xp-vocab:active:not(:disabled), .xp-known:active:not(:disabled), .xp-open-vocab:active, .xp-dict-connect:active:not(:disabled) { transform: translateY(1px); }
 /* One-shot failure pulse for icon-only foot buttons: flashButtonLabel swaps
    textContent and would strip the SVG, so failure feedback is a fading
    border pulse plus the #copy-status announcement. */
@@ -1658,7 +1658,7 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
 }
 /* Icon-only foot actions. Square, so four of them plus the gear fit on one line
    at every type tier; the label lives in the native title and in aria-label. */
-.xp-foot :is(.xp-save, .xp-vocab, .xp-open-vocab, .xp-ask) {
+.xp-foot :is(.xp-save, .xp-vocab, .xp-known, .xp-open-vocab, .xp-ask) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1667,7 +1667,7 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
   height: 1.9em;
   font-size: 1em; /* anchor: the svg below is sized in em and must not inherit UA 13.33px */
 }
-.xp-foot :is(.xp-save, .xp-vocab, .xp-open-vocab, .xp-ask) svg {
+.xp-foot :is(.xp-save, .xp-vocab, .xp-known, .xp-open-vocab, .xp-ask) svg {
   width: 1.05em;
   height: 1.05em;
 }

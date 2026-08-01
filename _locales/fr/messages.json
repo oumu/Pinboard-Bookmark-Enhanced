@@ -2720,6 +2720,40 @@
   "dictSaveVocab": {
     "message": "Ajouter au vocabulaire"
   },
+  "vocabMarkKnown": {
+    "message": "Marquer comme acquis"
+  },
+  "vocabMarkLearning": {
+    "message": "Reprendre l'apprentissage"
+  },
+  "vocabStatusAll": {
+    "message": "Tous les statuts"
+  },
+  "vocabStatusLearning": {
+    "message": "En cours"
+  },
+  "vocabStatusKnown": {
+    "message": "Acquis"
+  },
+  "vocabStatusFilterAria": {
+    "message": "Filtrer par statut"
+  },
+  "vocabBatchKnownDone": {
+    "message": "$COUNT$ mots marqués comme acquis",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "vocabBatchLearningDone": {
+    "message": "$COUNT$ mots remis en apprentissage",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
   "vocabFailedTerms": {
     "message": "Échec : $TERMS$",
     "placeholders": {
