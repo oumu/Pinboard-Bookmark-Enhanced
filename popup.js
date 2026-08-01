@@ -162,6 +162,15 @@ function _renderCleanHint({ removedCount, original }) {
   hint.appendChild(label); hint.appendChild(sep); hint.appendChild(undo);
 }
 
+// Enable decorative transitions (confirm-popover exit in shared.js) only after
+// the initial paint — same double-rAF gate as options.js/md-preview.js, so this
+// adds zero first-frame cost on the cold-start path.
+if (typeof requestAnimationFrame === "function") {
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    document.documentElement.classList.add("motion-ready");
+  }));
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
   document.querySelectorAll(".btn-ic[data-ic]").forEach(s => { s.innerHTML = PBP_ICONS[s.dataset.ic] || ""; });
   initI18n();
