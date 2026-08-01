@@ -1867,7 +1867,20 @@ html[data-theme] .preset-preview-content { background: var(--opt-bg); color: var
   border-radius: var(--opt-radius-md);
   background: var(--opt-panel, #f8f8f5);
 }
-.vocab-batch-toolbar input[type="text"] { flex: 1 1 170px; }
+.vocab-batch-toolbar input[type="text"] { flex: 1 1 120px; min-width: 0; }
+/* Cluster gaps: wrap points fall on cluster edges, not mid-cluster (the de/ru
+   rows used to break between two related buttons). Row gap stays tight. */
+.vocab-batch-toolbar { gap: var(--opt-sp-3) var(--opt-sp-5); }
+/* Input + stepper unit: one visual control, native-stepper style. The two
+   icon-only steppers are fixed 28px cells fused to the input's right edge. */
+.vocab-group-unit { display: inline-flex; align-items: stretch; flex: 1 1 200px; min-width: 150px; max-width: 320px; }
+.vocab-group-unit input[type="text"] { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.vocab-group-step { flex: none; width: 28px; display: inline-grid; place-items: center; padding: 0; border-left: 0; border-radius: 0; }
+.vocab-group-step:last-of-type { border-top-right-radius: var(--opt-radius-md); border-bottom-right-radius: var(--opt-radius-md); }
+.vocab-group-step .btn-ic { display: inline-flex; margin: 0; vertical-align: 0; }
+.vocab-batch-cluster { display: inline-flex; gap: var(--opt-sp-2); flex: none; }
+/* Destructive action holds the row end, physically apart from the status pair. */
+#vocab-batch-delete { margin-left: auto; }
 .vocab-main-status { display: block; min-height: 18px; margin: 0 0 var(--opt-sp-3); }
 .vocab-load-more { display: block; margin: var(--opt-sp-4) auto var(--opt-sp-5); }
 #panel-vocab .vocab-batch-toolbar[hidden],
@@ -2385,5 +2398,9 @@ html.motion-ready .notes-card.motion-toggle .notes-card-chevron {
   .vocab-selection-actions .btn { flex: 1 1 130px; }
   .vocab-batch-toolbar { align-items: stretch; }
   .vocab-batch-toolbar .notes-count { flex-basis: 100%; }
-  .vocab-batch-toolbar .btn { flex: 1 1 130px; }
+  /* The 28px steppers are excluded from the stretch -- flexing them to 130px
+     would turn the fused input unit into three detached slabs. */
+  .vocab-batch-toolbar .btn:not(.vocab-group-step) { flex: 1 1 130px; }
+  .vocab-batch-toolbar .vocab-batch-cluster { display: flex; flex: 1 1 100%; }
+  #vocab-batch-delete { margin-left: 0; }
 }

@@ -161,6 +161,9 @@ function _tagGovSetProgress(value, expectedAccount = "") {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
+  // Hydrate declarative icon slots (same contract as popup.js): static
+  // PBP_ICONS constants only, never page content.
+  document.querySelectorAll(".btn-ic[data-ic]").forEach(s => { s.innerHTML = PBP_ICONS[s.dataset.ic] || ""; });
   initI18n();
   applyI18n();
 

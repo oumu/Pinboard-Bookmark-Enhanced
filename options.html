@@ -720,12 +720,19 @@
       </div>
       <div class="vocab-batch-toolbar" id="vocab-batch-toolbar" role="group" data-i18n-aria="vocabBatchActions" aria-label="Actions for selected words" hidden>
         <span id="vocab-selected-count" class="notes-count" aria-live="polite"></span>
-        <input type="text" id="vocab-group-input" list="vocab-group-list" data-no-autosave placeholder="Group name" data-i18n-placeholder="vocabGroupNamePlaceholder" data-i18n-aria="vocabGroupNamePlaceholder" aria-label="Group name" autocomplete="off" />
-        <datalist id="vocab-group-list"></datalist>
-        <button type="button" class="btn btn-sm" id="vocab-add-group" data-i18n="vocabAddToGroup">Add to group</button>
-        <button type="button" class="btn btn-sm" id="vocab-remove-group" data-i18n="vocabRemoveFromGroup">Remove from group</button>
-        <button type="button" class="btn btn-sm" id="vocab-mark-known" data-i18n="vocabMarkKnown">Mark as known</button>
-        <button type="button" class="btn btn-sm" id="vocab-mark-learning" data-i18n="vocabMarkLearning">Back to learning</button>
+        <!-- Input + stepper unit (icon audit P0): +/- are icon-only because the
+             Group-name placeholder disambiguates them; full labels stay in
+             title/aria (remove's title is JS-owned, see _pbpVocabSyncSelectionUi). -->
+        <span class="vocab-group-unit">
+          <input type="text" id="vocab-group-input" list="vocab-group-list" data-no-autosave placeholder="Group name" data-i18n-placeholder="vocabGroupNamePlaceholder" data-i18n-aria="vocabGroupNamePlaceholder" aria-label="Group name" autocomplete="off" />
+          <datalist id="vocab-group-list"></datalist>
+          <button type="button" class="btn btn-sm vocab-group-step" id="vocab-add-group" data-i18n-title="vocabAddToGroup" data-i18n-aria="vocabAddToGroup"><span class="btn-ic" data-ic="plus"></span></button>
+          <button type="button" class="btn btn-sm vocab-group-step" id="vocab-remove-group" data-i18n-aria="vocabRemoveFromGroup"><span class="btn-ic" data-ic="minus"></span></button>
+        </span>
+        <span class="vocab-batch-cluster">
+          <button type="button" class="btn btn-sm" id="vocab-mark-known" data-i18n="vocabMarkKnown">Mark as known</button>
+          <button type="button" class="btn btn-sm" id="vocab-mark-learning" data-i18n="vocabMarkLearning">Back to learning</button>
+        </span>
         <button type="button" class="btn btn-sm danger" id="vocab-batch-delete" data-i18n="vocabBatchDelete">Delete selected</button>
       </div>
       <span class="save-status vocab-main-status" id="vocab-status" role="status" aria-live="polite"></span>

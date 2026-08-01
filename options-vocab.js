@@ -481,9 +481,10 @@ function _pbpVocabSyncSelectionUi() {
     const inGroup = group && selectedCount ? _pbpVocabSelectedInGroup(group) : 0;
     removeBtn.disabled = _vocabBatchBusy || !selectedCount || !group || !inGroup;
     // "Selection and group don't overlap" is the one disable condition nothing
-    // on screen explains; say it on hover. Cleared otherwise -- and never via
-    // #vocab-status, which is a live region the batch results keep rewriting.
-    removeBtn.title = (group && selectedCount && !inGroup) ? t("vocabRemoveGroupNoMatch") : "";
+    // on screen explains; say it on hover. The fallback is the button's full
+    // label -- it is icon-only now, so the title doubles as its tooltip name.
+    // Never via #vocab-status, a live region the batch results keep rewriting.
+    removeBtn.title = (group && selectedCount && !inGroup) ? t("vocabRemoveGroupNoMatch") : t("vocabRemoveFromGroup");
   }
   if (deleteBtn) deleteBtn.disabled = _vocabBatchBusy || !selectedCount;
   const knownBtn = $id("vocab-mark-known");
