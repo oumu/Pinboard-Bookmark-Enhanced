@@ -37,7 +37,17 @@ function pbpAiIndexBlocks(rootEl) {
   // Forum pages (pbpForumMarkComments ran): a thread <blockquote> is a container,
   // not a block — index each comment's .pb-comment-body in document (pre) order.
   const isForum = !!rootEl.querySelector(".pb-comment-body");
-  for (const el of rootEl.children) {
+  // renderMarkdown wraps every table in <div class="pb-table-wrap"> for
+  // horizontal scrolling (md-convert.js). The block id must land on the
+  // TABLE, not the wrapper -- and the wrapper must not eat the one level of
+  // container descent below, or a table inside a one-<div> article would
+  // fall out of the index entirely.
+  const unwrap = (el) =>
+    (el.classList && el.classList.contains("pb-table-wrap")
+      && el.firstElementChild && el.firstElementChild.tagName === "TABLE")
+      ? el.firstElementChild : el;
+  for (const raw of rootEl.children) {
+    const el = unwrap(raw);
     if (isForum && el.tagName === "BLOCKQUOTE" && el.querySelector(".pb-comment-body")) {
       for (const body of el.querySelectorAll(".pb-comment-body")) add(body, "div");
       continue;
@@ -50,7 +60,8 @@ function pbpAiIndexBlocks(rootEl) {
     // <div>): descend one level and index its direct children that match,
     // in their document order, at this container's position in the sequence.
     if (PBP_AI_CONTAINER_TAGS.indexOf(el.tagName) !== -1) {
-      for (const child of el.children) {
+      for (const rawChild of el.children) {
+        const child = unwrap(rawChild);
         if (PBP_AI_BLOCK_TAGS.indexOf(child.tagName) !== -1) add(child, child.tagName.toLowerCase());
       }
     }

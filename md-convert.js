@@ -307,6 +307,17 @@ function _configureMarked() {
     }
     return `<h${token.depth} id="${id}">${text}</h${token.depth}>\n`;
   };
+  // Wide tables used to punch through the article column and put a
+  // horizontal scrollbar on the WHOLE page (the table itself carries
+  // overflow:hidden for its border-radius, and no ancestor clipped it).
+  // Wrapping at the renderer means every consumer -- preview, translated
+  // .pb-tr blocks, HTML export -- scrolls the table in place instead.
+  // pbpAiIndexBlocks looks through this wrapper (md-ai-core.js), so block
+  // ids still land on the TABLE element.
+  const protoTable = marked.Renderer.prototype.table;
+  renderer.table = function (token) {
+    return '<div class="pb-table-wrap">' + protoTable.call(this, token) + "</div>";
+  };
   marked.use({ gfm: true, breaks: false, renderer });
   _markedConfigured = true;
 }
@@ -730,6 +741,8 @@ html,body{margin:0;background:var(--x-bg)}
 .export-doc img{max-width:100%;height:auto;border-radius:8px;margin:1.5em 0;border:1px solid var(--x-bd)}
 .export-doc ul,.export-doc ol{margin:1em 0;padding-left:1.75em}
 .export-doc li{margin:.35em 0}
+.export-doc .pb-table-wrap{margin:1.5em 0;overflow-x:auto}
+.export-doc .pb-table-wrap>table{margin:0}
 .export-doc table{border-collapse:collapse;width:100%;margin:1.5em 0;font-size:.9375em;border:1px solid var(--x-bd);border-radius:8px;overflow:hidden}
 .export-doc th,.export-doc td{padding:10px 16px;text-align:left;border-bottom:1px solid var(--x-bdl)}
 .export-doc thead{background:var(--x-code-bg)}

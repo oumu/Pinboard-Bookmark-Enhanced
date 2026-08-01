@@ -785,7 +785,15 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
 }
 #rendered-view li::marker { color: var(--fg-muted); }
 
-/* Tables */
+/* Tables. renderMarkdown wraps each one in .pb-table-wrap: the table itself
+   keeps overflow:hidden for its border-radius, so the WRAPPER is what
+   scrolls when the column count outgrows the article column -- without it,
+   a wide table walked straight through .doc-body onto the page. */
+#rendered-view .pb-table-wrap {
+  margin: 1.5em 0;
+  overflow-x: auto;
+}
+#rendered-view .pb-table-wrap > table { margin: 0; }
 #rendered-view table {
   border-collapse: collapse;
   width: 100%;
@@ -1311,6 +1319,28 @@ body.md-empty main { margin-left: 0; }
 
 /* ---- Screen-reader only utility ---- */
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; border: 0; }
+
+/* Skip link: parked off-screen (never display:none -- it must stay
+   focusable), drops into view on keyboard focus. Above every overlay
+   (explain-pop tops out at 80). */
+.skip-link {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 100;
+  padding: 6px 12px;
+  border: 1px solid var(--btn-border);
+  border-radius: 6px;
+  background: var(--btn-bg);
+  color: var(--btn-fg);
+  font-size: 13px;
+  text-decoration: none;
+  transform: translateY(-250%);
+}
+.skip-link:focus-visible { transform: none; }
+/* Skip-link target: programmatic focus only; a page-wide focus ring around
+   the whole article reads as a rendering glitch. */
+#rendered-view:focus { outline: none; }
 
 /* Send-to-Obsidian: full-width action below the Copy/Download grid */
 .obsidian-btn { width: 100%; justify-content: center; margin-top: 8px; }

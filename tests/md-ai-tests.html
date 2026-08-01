@@ -452,6 +452,15 @@ suite("pbpAiIndexBlocks family", () => {
     assert(blocks[3].tag === "pre", "pre indexed");
     assert(root.querySelector("div").dataset.pb === undefined, "div skipped");
   });
+  test("a pb-table-wrap wrapper yields the TABLE, at top level and one deep", () => {
+    const root = makeRoot('<p>a</p><div class="pb-table-wrap"><table><tr><td>x</td></tr></table></div>' +
+      '<div><p>b</p><div class="pb-table-wrap"><table><tr><td>y</td></tr></table></div></div>');
+    const blocks = pbpAiIndexBlocks(root);
+    assert(blocks.length === 4, "4 blocks, got " + blocks.length);
+    assert(blocks[1].tag === "table" && blocks[1].el.tagName === "TABLE", "top-level wrapped table indexed");
+    assert(blocks[3].tag === "table" && blocks[3].el.tagName === "TABLE", "container-nested wrapped table indexed");
+    assert(!root.querySelector(".pb-table-wrap").dataset.pb, "id lands on the table, not the wrapper");
+  });
   test("pbpAiBlocks returns stored index; pbpAiBlockEl resolves", () => {
     const root = makeRoot("<p>a</p><p>b</p>");
     pbpAiIndexBlocks(root);

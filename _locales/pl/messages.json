@@ -2681,6 +2681,9 @@
   "dictLoadFailed": {
     "message": "Słownik niedostępny"
   },
+  "mdSkipToContent": {
+    "message": "Przejdź do treści"
+  },
   "dictCircuitCooling": {
     "message": "Słownik wstrzymany po kolejnych błędach. Spróbuj ponownie za około $SECONDS$ s.",
     "placeholders": {

@@ -2681,6 +2681,9 @@
   "dictLoadFailed": {
     "message": "詞典暫不可用"
   },
+  "mdSkipToContent": {
+    "message": "跳至正文"
+  },
   "dictCircuitCooling": {
     "message": "詞典請求連續失敗，已暫停。約 $SECONDS$ 秒後可重試。",
     "placeholders": {

@@ -10,6 +10,9 @@
   <script src="md-preview-theme-early.js"></script>
 </head>
 <body>
+  <!-- First tab stop: ~20 rail controls precede <main> in DOM order, so
+       keyboard/AT users get a bypass. Parked off-screen until focused. -->
+  <a href="#rendered-view" id="skip-link" class="skip-link" data-i18n="mdSkipToContent">Skip to content</a>
   <div id="copy-status" class="sr-only" aria-live="polite"></div>
   <button id="rail-toggle" class="rail-toggle" type="button" aria-label="Toggle controls" data-i18n-aria="mdToggleControls" aria-expanded="false" aria-controls="rail" hidden>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
@@ -105,7 +108,7 @@
            and a bar at the top of the article was off-screen by the time lazy
            images actually failed. This element only announces the aggregate. -->
       <div id="img-fix-note" class="sr-only" role="status" aria-live="polite"></div>
-      <article id="rendered-view" class="content-view"></article>
+      <article id="rendered-view" class="content-view" tabindex="-1"></article>
       <pre id="raw-view" class="content-view hidden"></pre>
     </div>
   </main>

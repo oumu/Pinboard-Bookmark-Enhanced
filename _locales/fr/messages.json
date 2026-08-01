@@ -2681,6 +2681,9 @@
   "dictLoadFailed": {
     "message": "Dictionnaire indisponible"
   },
+  "mdSkipToContent": {
+    "message": "Aller au contenu"
+  },
   "dictCircuitCooling": {
     "message": "Dictionnaire suspendu après des échecs répétés. Réessayez dans environ $SECONDS$ s.",
     "placeholders": {

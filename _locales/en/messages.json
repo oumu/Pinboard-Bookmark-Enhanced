@@ -2681,6 +2681,9 @@
   "dictLoadFailed": {
     "message": "Dictionary unavailable"
   },
+  "mdSkipToContent": {
+    "message": "Skip to content"
+  },
   "dictCircuitCooling": {
     "message": "Dictionary paused after repeated failures. Try again in about $SECONDS$ s.",
     "placeholders": {

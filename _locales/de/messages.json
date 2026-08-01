@@ -2681,6 +2681,9 @@
   "dictLoadFailed": {
     "message": "Wörterbuch nicht verfügbar"
   },
+  "mdSkipToContent": {
+    "message": "Zum Inhalt springen"
+  },
   "dictCircuitCooling": {
     "message": "Wörterbuch nach wiederholten Fehlern pausiert. Neuer Versuch in ca. $SECONDS$ s.",
     "placeholders": {

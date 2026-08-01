@@ -2681,6 +2681,9 @@
   "dictLoadFailed": {
     "message": "Словарь недоступен"
   },
+  "mdSkipToContent": {
+    "message": "Перейти к содержимому"
+  },
   "dictCircuitCooling": {
     "message": "Словарь приостановлен из-за повторных ошибок. Повторите попытку примерно через $SECONDS$ с.",
     "placeholders": {
