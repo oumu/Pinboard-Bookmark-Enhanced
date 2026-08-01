@@ -52,6 +52,9 @@ const p2 = pbpEudicPartition([
   { term: "test", language: "en" }
 ]);
 assertEq(p2.byLang.get("en").length, 1, "same language deduped");
+const pNamed = pbpEudicPartition([{ term: "hello", language: "en" }, { term: "こんにちは", language: "ja" }]);
+assertEq(pNamed.unsupported, 1, "unsupported still counted");
+assertEq(pNamed.unsupportedTerms.join(","), "こんにちは", "unsupported terms are named, not just counted");
 const p3 = pbpEudicPartition([
   { term: "hello", language: "en" },
   { term: "", language: "en" },

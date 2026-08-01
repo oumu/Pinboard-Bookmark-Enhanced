@@ -20,20 +20,23 @@ function pbpEudicSupportedLang(language) {
 }
 
 // rows (vocab records) -> per-language unique term lists + unsupported count.
+// unsupportedTerms names them: a bare count left users unable to tell WHICH
+// words never made it.
 function pbpEudicPartition(rows) {
   const byLang = new Map();
   let unsupported = 0;
+  const unsupportedTerms = [];
   for (const r of Array.isArray(rows) ? rows : []) {
     const term = r && typeof r.term === "string" ? r.term.trim() : "";
     if (!term) continue;
     const lang = pbpEudicSupportedLang(r.language);
-    if (!lang) { unsupported++; continue; }
+    if (!lang) { unsupported++; unsupportedTerms.push(term); continue; }
     if (!byLang.has(lang)) byLang.set(lang, new Set());
     byLang.get(lang).add(term);
   }
   const out = new Map();
   for (const [lang, set] of byLang) out.set(lang, [...set]);
-  return { byLang: out, unsupported };
+  return { byLang: out, unsupported, unsupportedTerms };
 }
 
 // Official examples use "Authorization: NIS xxxx" -- canonicalize: strip
@@ -105,8 +108,9 @@ async function pbpEudicCall(body, token, timeoutMs) {
 async function pbpEudicSendRows(rows, opts) {
   const token = (opts && opts.token) || "";
   const ownerCheck = (opts && opts.ownerCheck) || (async () => true);
-  const { byLang, unsupported } = pbpEudicPartition(rows);
-  const out = { added: 0, skipped: 0, unsupported, failed: 0, forbidden: false, generic: false, stage: "done", error: null };
+  const { byLang, unsupported, unsupportedTerms } = pbpEudicPartition(rows);
+  const out = { added: 0, skipped: 0, unsupported, unsupportedTerms, failed: 0, failedTerms: [],
+    forbidden: false, generic: false, stage: "done", error: null };
   const batches = [...byLang];
   for (let i = 0; i < batches.length; i++) {
     const [lang, words] = batches[i];
@@ -122,10 +126,14 @@ async function pbpEudicSendRows(rows, opts) {
       out.forbidden = true;
       // Circuit break: the words of THIS batch and every unsent batch all
       // count failed -- nothing silently disappears from the totals.
-      for (let j = i; j < batches.length; j++) out.failed += batches[j][1].length;
+      for (let j = i; j < batches.length; j++) {
+        out.failed += batches[j][1].length;
+        out.failedTerms.push(...batches[j][1]);
+      }
       break;
     } else {
       out.failed += words.length;
+      out.failedTerms.push(...words);
       // Spec: surface the server's 400 message (parameter errors) verbatim.
       if (!out.error && res.status === 400 && res.message) out.error = res.message;
     }

@@ -48,6 +48,12 @@ assert(note1.options.allowDuplicate === false && note1.options.duplicateScope ==
 assert(Array.isArray(note1.tags) && note1.tags[0] === "pinboard-enhanced", "tag set");
 const note2 = pbpAnkiNoteFromRow({}, "");
 assert(note2.fields.Term === "" && note2.fields.Context === "" && note2.deckName === "Pinboard Vocab", "empty row -> empty fields, default deck");
+assertEq(note2.tags.join(","), "pinboard-enhanced", "no language/groups -> base tag only");
+const noteTagged = pbpAnkiNoteFromRow({ term: "run", language: "en", groups: ["考试 词汇", "chapter-3"], contexts: [] }, "");
+assert(noteTagged.tags.includes("pbp-lang-en"), "language travels as a prefixed tag");
+assert(noteTagged.tags.includes("考试-词汇") && noteTagged.tags.includes("chapter-3"),
+  "groups become tags with whitespace hyphenated (Anki tags cannot contain spaces)");
+assertEq(noteTagged.tags[0], "pinboard-enhanced", "base tag stays first");
 
 section("pbpAnkiBuildRequest");
 const req1 = pbpAnkiBuildRequest("addNotes", { notes: [] }, "sekrit");

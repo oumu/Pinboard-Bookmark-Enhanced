@@ -2701,6 +2701,22 @@
   "dictSaveVocab": {
     "message": "単語帳に保存"
   },
+  "vocabFailedTerms": {
+    "message": "失敗：$TERMS$",
+    "placeholders": {
+      "terms": {
+        "content": "$1"
+      }
+    }
+  },
+  "vocabUnsupportedTerms": {
+    "message": "未対応：$TERMS$",
+    "placeholders": {
+      "terms": {
+        "content": "$1"
+      }
+    }
+  },
   "dictVocabSaveFailed": {
     "message": "単語を保存できませんでした"
   },

@@ -2701,6 +2701,22 @@
   "dictSaveVocab": {
     "message": "存入生词库"
   },
+  "vocabFailedTerms": {
+    "message": "失败：$TERMS$",
+    "placeholders": {
+      "terms": {
+        "content": "$1"
+      }
+    }
+  },
+  "vocabUnsupportedTerms": {
+    "message": "不支持：$TERMS$",
+    "placeholders": {
+      "terms": {
+        "content": "$1"
+      }
+    }
+  },
   "dictVocabSaveFailed": {
     "message": "生词未能保存"
   },

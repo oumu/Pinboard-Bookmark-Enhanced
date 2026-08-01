@@ -1090,6 +1090,13 @@ async function _pbpVocabExport() {
   }
 }
 
+// First few names only: the status line is one line, and five terms are
+// enough to spot the pattern (the counts still carry the full totals).
+function _pbpVocabTermList(terms) {
+  const list = terms.slice(0, 5).join(", ");
+  return terms.length > 5 ? list + "…" : list;
+}
+
 // Send-to-Anki click chain. Ordering is the spec (anki spec rev2 §3):
 // (1) FIRST await = chrome.permissions.request (user gesture; already-granted
 // resolves true without UI), (2) requestPermission as the first AnkiConnect
@@ -1153,6 +1160,10 @@ function _pbpVocabCanonicalRow(w, zhMap, tag) {
   const zh = _pbpVocabZhFor(w, zhMap);
   return {
     term: w.term,
+    // Only pbpAnkiNoteFromRow reads these two (they become note tags);
+    // pbpDictTsv ignores unknown keys, so the TSV shape is untouched.
+    language: w.language || "",
+    groups: pbpVocabGroups(w),
     reading: w.ipa || "",
     definition: (w.gloss || "").replace(/\s*\n\s*/g, " "),
     contexts: (Array.isArray(w.contexts) ? w.contexts : []).map((c) => c && c.quote).filter(Boolean),
@@ -1243,7 +1254,13 @@ async function _pbpVocabSendAnki() {
       ownerCheck: async () => (await pbpVocabCurrentOwner()) === owner
     });
     if (res.stage === "done") {
-      _pbpVocabFlashStatus(res.failed === 0, t("dictAnkiResult", String(res.added), String(res.skipped), String(res.failed)));
+      let msg = t("dictAnkiResult", String(res.added), String(res.skipped), String(res.failed));
+      // Name the casualties: a bare count leaves "re-send the whole library
+      // and hope" as the only recovery move.
+      if (res.failed > 0 && Array.isArray(res.failedTerms) && res.failedTerms.length) {
+        msg += " · " + t("vocabFailedTerms", _pbpVocabTermList(res.failedTerms));
+      }
+      _pbpVocabFlashStatus(res.failed === 0, msg);
     } else if (res.stage === "modelMismatch") {
       _pbpVocabFlashStatus(false, t("dictAnkiModelMismatch"));
     } else if (res.stage === "modelFields") {
@@ -1297,14 +1314,21 @@ async function _pbpVocabSendEudic() {
       _pbpVocabFlashStatus(false, t("dictEudicRejected"));
     } else if (res.failed) {
       // Parameter errors surface the server's own message (spec §2).
-      _pbpVocabFlashStatus(false, res.error || t("dictEudicFailed"));
+      let msg = res.error || t("dictEudicFailed");
+      if (Array.isArray(res.failedTerms) && res.failedTerms.length) {
+        msg += " · " + t("vocabFailedTerms", _pbpVocabTermList(res.failedTerms));
+      }
+      _pbpVocabFlashStatus(false, msg);
     } else if (res.generic) {
       // ANY generic batch poisons the totals -- never show a partial count
       // as if it were the whole story.
       _pbpVocabFlashStatus(true, t("dictEudicGenericOk"));
     } else {
-      _pbpVocabFlashStatus(true,
-        t("dictEudicResult", String(res.added), String(res.skipped), String(res.unsupported)));
+      let msg = t("dictEudicResult", String(res.added), String(res.skipped), String(res.unsupported));
+      if (res.unsupported > 0 && Array.isArray(res.unsupportedTerms) && res.unsupportedTerms.length) {
+        msg += " · " + t("vocabUnsupportedTerms", _pbpVocabTermList(res.unsupportedTerms));
+      }
+      _pbpVocabFlashStatus(true, msg);
     }
   } catch (_) {
     _pbpVocabFlashStatus(false, t("dictEudicFailed"));

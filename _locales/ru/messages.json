@@ -2701,6 +2701,22 @@
   "dictSaveVocab": {
     "message": "В словарик"
   },
+  "vocabFailedTerms": {
+    "message": "Не отправлено: $TERMS$",
+    "placeholders": {
+      "terms": {
+        "content": "$1"
+      }
+    }
+  },
+  "vocabUnsupportedTerms": {
+    "message": "Не поддерживается: $TERMS$",
+    "placeholders": {
+      "terms": {
+        "content": "$1"
+      }
+    }
+  },
   "dictVocabSaveFailed": {
     "message": "Не удалось сохранить слово"
   },

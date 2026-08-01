@@ -2701,6 +2701,22 @@
   "dictSaveVocab": {
     "message": "In Vokabelliste speichern"
   },
+  "vocabFailedTerms": {
+    "message": "Fehlgeschlagen: $TERMS$",
+    "placeholders": {
+      "terms": {
+        "content": "$1"
+      }
+    }
+  },
+  "vocabUnsupportedTerms": {
+    "message": "Nicht unterstützt: $TERMS$",
+    "placeholders": {
+      "terms": {
+        "content": "$1"
+      }
+    }
+  },
   "dictVocabSaveFailed": {
     "message": "Wort konnte nicht gespeichert werden"
   },

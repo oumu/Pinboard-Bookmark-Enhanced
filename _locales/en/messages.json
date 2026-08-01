@@ -2701,6 +2701,22 @@
   "dictSaveVocab": {
     "message": "Save to vocabulary"
   },
+  "vocabFailedTerms": {
+    "message": "Failed: $TERMS$",
+    "placeholders": {
+      "terms": {
+        "content": "$1"
+      }
+    }
+  },
+  "vocabUnsupportedTerms": {
+    "message": "Unsupported: $TERMS$",
+    "placeholders": {
+      "terms": {
+        "content": "$1"
+      }
+    }
+  },
   "dictVocabSaveFailed": {
     "message": "Couldn't save the word"
   },

@@ -6,7 +6,10 @@
 // layer below runs only in options.html (options-vocab.js wires the button).
 // Known limit: the 6-field contract has no Language column, so same-spelled
 // terms across languages dedupe against each other inside one deck (matches
-// the TSV contract; accepted for v1).
+// the TSV contract; accepted for v1). Language and the user's manual groups
+// DO travel as note tags -- tags sit outside the checked field envelope and
+// outside AnkiConnect's fields[0]-checksum dedupe, so adding them changes
+// no dedupe behaviour.
 // ============================================================
 
 // Port is user-configurable (AnkiConnect's own config allows changing it);
@@ -29,14 +32,32 @@ function pbpAnkiEscapeHtml(s) {
     .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
 
+// Anki tag syntax forbids whitespace; a group named "考试 词汇" must not
+// silently split into two tags.
+function pbpAnkiTagify(s) {
+  return String(s == null ? "" : s).trim().replace(/\s+/g, "-");
+}
+
 // row: the same canonical shape options-vocab.js feeds pbpDictTsv
-// ({term, reading, definition, contexts[], source, license}) -- derived from
-// the raw vocab record, NEVER from already-HTML-escaped values (the TSV path
-// stays #html:false plain text).
+// ({term, reading, definition, contexts[], source, license}, plus language
+// and groups[] which only this builder reads) -- derived from the raw vocab
+// record, NEVER from already-HTML-escaped values (the TSV path stays
+// #html:false plain text).
 function pbpAnkiNoteFromRow(row, deck) {
   const r = row || {};
   const contexts = (Array.isArray(r.contexts) ? r.contexts : [])
     .filter(Boolean).map(pbpAnkiEscapeHtml).join("<br>");
+  // Groups are the vocab page's one organizational axis; dropping them made
+  // every send land as an undifferentiated pile. They become plain tags
+  // (filterable in Anki's browser); language gets a prefixed tag so "en"
+  // never collides with a user group named "en".
+  const tags = ["pinboard-enhanced"];
+  const langTag = pbpAnkiTagify(r.language);
+  if (langTag) tags.push("pbp-lang-" + langTag);
+  for (const g of Array.isArray(r.groups) ? r.groups : []) {
+    const tg = pbpAnkiTagify(g);
+    if (tg && !tags.includes(tg)) tags.push(tg);
+  }
   return {
     deckName: String(deck || PBP_ANKI_MODEL),
     modelName: PBP_ANKI_MODEL,
@@ -57,7 +78,7 @@ function pbpAnkiNoteFromRow(row, deck) {
         .filter(Boolean).join(" | ")
     },
     options: { allowDuplicate: false, duplicateScope: "deck" },
-    tags: ["pinboard-enhanced"]
+    tags
   };
 }
 
@@ -143,7 +164,9 @@ async function pbpAnkiSendRows(rows, opts) {
   const key = (opts && opts.key) || "";
   const ownerCheck = (opts && opts.ownerCheck) || (async () => true);
   const port = (opts && opts.port) || "";
-  const out = { stage: "", added: 0, skipped: 0, failed: 0, error: null };
+  // failedTerms names every counted failure so the UI can say WHICH words
+  // need attention -- a bare count sent users re-sending the whole library.
+  const out = { stage: "", added: 0, skipped: 0, failed: 0, failedTerms: [], error: null };
 
   // requestPermission/version/keyRequired happen in _pbpVocabSendAnki BEFORE
   // settings/owner (spec §3 ordering) -- this pipeline starts at createDeck.
@@ -180,11 +203,13 @@ async function pbpAnkiSendRows(rows, opts) {
     return out;
   }
   const addable = [];
+  const addableTerms = [];
   for (let i = 0; i < can.result.length; i++) {
     const d = can.result[i];
-    if (d && d.canAdd) addable.push(notes[i]);
+    const term = (rows[i] && rows[i].term) || "";
+    if (d && d.canAdd) { addable.push(notes[i]); addableTerms.push(term); }
     else if (d && /duplicate/i.test(String(d.error || ""))) out.skipped++;
-    else out.failed++;
+    else { out.failed++; out.failedTerms.push(term); }
   }
   if (!addable.length) { out.stage = "done"; return out; }
 
@@ -198,11 +223,13 @@ async function pbpAnkiSendRows(rows, opts) {
     // on canAddNotesWithErrorDetail above and must fail closed the same way.
     out.stage = "add";
     out.failed += addable.length;
+    out.failedTerms.push(...addableTerms);
     out.error = added.error || "addNotes failed";
     return out;
   }
-  for (const id of added.result) {
-    if (id == null) out.failed++; else out.added++;
+  for (let i = 0; i < added.result.length; i++) {
+    if (added.result[i] == null) { out.failed++; out.failedTerms.push(addableTerms[i]); }
+    else out.added++;
   }
   out.stage = "done";
   return out;
