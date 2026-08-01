@@ -517,8 +517,8 @@ function renderTags() {
     rm.type = "button";
     rm.className = "tag-remove";
     rm.innerHTML = PBP_ICONS.cross;
-    rm.title = "Remove";
-    rm.setAttribute("aria-label", "Remove " + tag);
+    rm.title = t("tagRemoveAria", tag);
+    rm.setAttribute("aria-label", t("tagRemoveAria", tag));
     rm.addEventListener("click", () => removeTag(tag));
     el.appendChild(text);
     el.appendChild(rm);

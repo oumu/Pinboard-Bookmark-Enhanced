@@ -50,6 +50,12 @@
   "clearAll": {
     "message": "Wyczyść wszystko"
   },
+  "tagRemoveAria": {
+    "message": "Usuń tag $TAG$",
+    "placeholders": {
+      "tag": { "content": "$1" }
+    }
+  },
   "copyAllTags": {
     "message": "Kopiuj"
   },
@@ -2875,10 +2881,10 @@
       "message": "Operacje zaznaczania"
     },
     "vocabSelectAll": {
-      "message": "Zaznacz wszystkie wyniki"
+      "message": "Zaznacz wszystko"
     },
     "vocabInvertSelection": {
-      "message": "Odwróć zaznaczenie wyników"
+      "message": "Odwróć zaznaczenie"
     },
     "vocabBatchActions": {
       "message": "Operacje na zaznaczonych słówkach"

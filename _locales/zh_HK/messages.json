@@ -50,6 +50,12 @@
   "clearAll": {
     "message": "全部清除"
   },
+  "tagRemoveAria": {
+    "message": "移除標籤 $TAG$",
+    "placeholders": {
+      "tag": { "content": "$1" }
+    }
+  },
   "copyAllTags": {
     "message": "複製"
   },
@@ -2875,10 +2881,10 @@
       "message": "選取操作"
     },
     "vocabSelectAll": {
-      "message": "選取目前所有結果"
+      "message": "全選"
     },
     "vocabInvertSelection": {
-      "message": "反向選取目前結果"
+      "message": "反選"
     },
     "vocabBatchActions": {
       "message": "所選生詞的操作"

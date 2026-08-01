@@ -50,6 +50,12 @@
   "clearAll": {
     "message": "すべてクリア"
   },
+  "tagRemoveAria": {
+    "message": "タグ $TAG$ を削除",
+    "placeholders": {
+      "tag": { "content": "$1" }
+    }
+  },
   "copyAllTags": {
     "message": "コピー"
   },
@@ -2875,10 +2881,10 @@
       "message": "選択操作"
     },
     "vocabSelectAll": {
-      "message": "表示結果をすべて選択"
+      "message": "すべて選択"
     },
     "vocabInvertSelection": {
-      "message": "表示結果の選択を反転"
+      "message": "選択を反転"
     },
     "vocabBatchActions": {
       "message": "選択した単語の操作"
