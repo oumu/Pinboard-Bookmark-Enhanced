@@ -535,6 +535,10 @@ details.et-onboarding > summary,
   display: flex; align-items: center; gap: var(--opt-sp-3);
   list-style: none; cursor: pointer; user-select: none;
 }
+/* Standalone disclosures (no divider list around them) still deserve a
+   click target taller than their bare line box. */
+#tag-gov-lowcount > summary,
+#preset-preview-section > summary { padding: var(--opt-sp-3) 0; }
 details.vocab-disclosure > summary::-webkit-details-marker,
 details.free-tier-help > summary::-webkit-details-marker,
 details.et-onboarding > summary::-webkit-details-marker,
@@ -1827,14 +1831,21 @@ html[data-theme] .preset-preview-content { background: var(--opt-bg); color: var
   background: color-mix(in srgb, var(--opt-accent, #4477bb) 10%, transparent);
   color: var(--opt-fg, #333);
 }
+/* Stacked-list geometry: each divider must sit CENTERED between the two
+   texts it separates. Adjacent members therefore zero out their own
+   margin-top -- between two closed rows the gap is summary padding-bottom
+   (12) + rule + next summary padding-top (12), perfectly symmetric. The
+   old margin-top on every member stacked under the previous row's padding
+   and pushed each title up against its own rule (real-device report). */
 .vocab-disclosure {
-  margin-top: var(--opt-sp-4);
+  margin-top: var(--opt-sp-5);
   border-top: 1px solid var(--opt-border-section, var(--opt-border, #ddd));
 }
+.vocab-disclosure + .vocab-disclosure { margin-top: 0; }
 .vocab-disclosure > summary {
   /* Full-bleed hover pill, same trick as .accordion-header: horizontal
      padding is given back as negative margin so the text stays aligned. */
-  padding: var(--opt-sp-4) var(--opt-sp-3);
+  padding: var(--opt-sp-5) var(--opt-sp-3);
   margin: 0 calc(-1 * var(--opt-sp-3));
   border-radius: var(--opt-radius-sm);
   color: var(--opt-fg-muted, #555);
@@ -1845,7 +1856,9 @@ html[data-theme] .preset-preview-content { background: var(--opt-bg); color: var
 }
 .vocab-disclosure > summary:hover { color: var(--opt-fg, #222); background: var(--opt-panel, #f4f4f0); }
 .vocab-disclosure > summary:focus-visible { outline: 2px solid var(--opt-accent); outline-offset: 2px; }
-.vocab-details-body { padding: 0 0 var(--opt-sp-3); }
+/* Open state: the body's bottom padding faces the NEXT row's rule, so it
+   matches the summaries' 12px rhythm instead of pinching to 6. */
+.vocab-details-body { padding: 0 0 var(--opt-sp-5); }
 .vocab-drive-copy {
   max-width: 76ch;
   overflow-wrap: anywhere;
