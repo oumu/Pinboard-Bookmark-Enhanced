@@ -12,7 +12,6 @@ let _vocabRenderGen = 0; // guards stale async renders (account switch mid-fetch
 let _vocabRows = [];     // last render's rows, kept for export
 let _vocabViewRows = []; // current filtered + sorted view (selection boundary)
 let _vocabSelected = new Set();
-let _vocabBatchMarkTimer = null; // expiring .motion-toggle mark on the batch toolbar
 // Deleted-card exit, decoupled from the data path: the mutation and reload
 // fire immediately; only the reload's final DOM commit waits out this window
 // (see _pbpVocabExitSettle call in _pbpVocabReloadAfterMutation), so the
@@ -470,19 +469,10 @@ function _pbpVocabSyncSelectionUi() {
   if (listEl) listEl.classList.toggle("selecting", selectedCount > 0);
   const selectedEl = $id("vocab-selected-count");
   if (selectedEl) selectedEl.textContent = t("vocabSelectedCount", String(selectedCount));
-  const batch = $id("vocab-batch-toolbar");
-  if (batch) {
-    const nextHidden = selectedCount === 0;
-    if (batch.hidden !== nextHidden) {
-      // Arm the height bridge (options.css .motion-toggle) only when the flag
-      // really flips on a selection change; the mark expires so tab resets and
-      // list reloads keep their instant hide.
-      batch.classList.add("motion-toggle");
-      clearTimeout(_vocabBatchMarkTimer);
-      _vocabBatchMarkTimer = setTimeout(() => batch.classList.remove("motion-toggle"), 400);
-      batch.hidden = nextHidden;
-    }
-  }
+  // Context bar: browse/selection content swap in ONE fixed slot (the batch
+  // layer keeps its geometry via visibility, so the card list never moves).
+  const bar = $id("vocab-context-bar");
+  if (bar) bar.classList.toggle("selecting", selectedCount > 0);
   const allBtn = $id("vocab-select-all");
   const invertBtn = $id("vocab-invert-selection");
   if (allBtn) allBtn.disabled = _vocabBatchBusy || !_vocabViewRows.length;
@@ -630,7 +620,9 @@ function _pbpVocabClearVisibleState() {
   _pbpVocabSetLoading(true);
   const count = $id("vocab-count");
   if (count) count.textContent = "";
-  for (const id of ["vocab-empty", "vocab-no-results", "vocab-load-more", "vocab-batch-toolbar"]) {
+  // (The batch layer is no longer hidden-attribute driven; the context bar's
+  // .selecting class clears via _pbpVocabSyncSelectionUi right below.)
+  for (const id of ["vocab-empty", "vocab-no-results", "vocab-load-more"]) {
     const el = $id(id); if (el) el.hidden = true;
   }
   _pbpVocabRefreshGroupOptions(false);

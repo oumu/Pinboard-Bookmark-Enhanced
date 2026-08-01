@@ -1146,8 +1146,7 @@ check("selection still covers all filtered results beyond rendered chunks", _voc
   frame.srcdoc = `<!doctype html><html data-options-ready data-theme="github-light"><head><link rel="stylesheet" href="../options.css"></head><body>
     <main class="container"><section class="panel active" id="panel-vocab">
       <div class="notes-toolbar vocab-filter-toolbar"><input type="search"><select><option></option></select><select><option></option></select></div>
-      <div class="vocab-summary-row"><span class="notes-count">5000</span><div class="vocab-selection-actions"><button class="btn btn-sm" data-label="all"></button><button class="btn btn-sm" data-label="invert"></button></div></div>
-      <div class="vocab-batch-toolbar"><span class="notes-count">5000</span><input type="text"><button class="btn btn-sm" data-label="add"></button><button class="btn btn-sm danger" data-label="batch-delete"></button></div>
+      <div class="vocab-context-bar selecting"><span class="vocab-ctx-text"><span class="notes-count">5000</span><span class="notes-count" data-label="selected-count">5000</span></span><div class="vocab-selection-actions"><button class="btn btn-sm" data-label="all"></button><button class="btn btn-sm" data-label="invert"></button></div><div class="vocab-ctx-batch"><span class="vocab-group-unit"><input type="text"><button class="btn btn-sm vocab-group-step"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button><button class="btn btn-sm vocab-group-step"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button></span><span class="vocab-batch-cluster"><button class="btn btn-sm" data-label="known"></button><button class="btn btn-sm" data-label="learning"></button></span><button class="btn btn-sm danger" data-label="batch-delete"></button></div></div>
       <article class="notes-card vocab-card"><div class="notes-card-top"><input class="vocab-row-select" type="checkbox"><button class="notes-card-head"><span class="notes-card-main"><span class="notes-row-title">Wortzusammensetzung mit außergewöhnlich langem ausgewähltem Begriff</span><span class="notes-row-meta"><span class="notes-meta-chip">Außergewöhnlich lange Definition und Gruppe</span></span></span></button><button class="btn btn-sm notes-row-del" data-label="remove"></button></div></article>
       <details class="vocab-disclosure" open><summary data-label="drive-title"></summary><div class="vocab-details-body">
         <p class="hint vocab-drive-copy" data-label="drive-copy"></p>
@@ -1177,7 +1176,9 @@ check("selection still covers all filtered results beyond rendered chunks", _voc
         doc.documentElement.lang = locale;
         panel.querySelector('[data-label="all"]').textContent = m.vocabSelectAll.message;
         panel.querySelector('[data-label="invert"]').textContent = m.vocabInvertSelection.message;
-        panel.querySelector('[data-label="add"]').textContent = m.vocabAddToGroup.message;
+        panel.querySelector('[data-label="known"]').textContent = m.vocabMarkKnown.message;
+        panel.querySelector('[data-label="learning"]').textContent = m.vocabMarkLearning.message;
+        panel.querySelector('[data-label="selected-count"]').textContent = m.vocabSelectedCount.message.replace("$COUNT$", "5000");
         panel.querySelector('[data-label="batch-delete"]').textContent = m.vocabBatchDelete.message;
         panel.querySelector('[data-label="remove"]').textContent = m.delete.message;
         panel.querySelector('[data-label="drive-title"]').textContent = m.vocabDriveSection.message;
@@ -1190,14 +1191,14 @@ check("selection still covers all filtered results beyond rendered chunks", _voc
         panel.querySelector('[data-label="drive-connect"]').textContent = m.vocabDriveConnect.message;
         panel.querySelector('[data-label="drive-sync"]').textContent = m.vocabDriveSyncNow.message;
         panel.querySelector('[data-label="drive-disconnect"]').textContent = m.vocabDriveDisconnect.message;
-        panel.querySelector(".vocab-summary-row > .notes-count").textContent = m.vocabResultCount.message
+        panel.querySelector(".vocab-ctx-text > .notes-count").textContent = m.vocabResultCount.message
           .replace("$RESULTS$", "5000").replace("$TOTAL$", "5000");
         panel.querySelector('input[type="text"]').placeholder = m.vocabGroupNamePlaceholder.message;
         panel.querySelectorAll("select option")[0].textContent = m.vocabAllGroups.message;
         panel.querySelectorAll("select option")[1].textContent = m.vocabSortLatest.message;
         await new Promise((resolve) => frame.contentWindow.requestAnimationFrame(resolve));
         if (width === 320 && theme === "github-light" && locale === "de") {
-          const count = panel.querySelector(".vocab-summary-row > .notes-count");
+          const count = panel.querySelector(".vocab-ctx-text > .notes-count");
           const style = frame.contentWindow.getComputedStyle(count);
           germanLongCountFits = style.whiteSpace === "normal" && style.minWidth === "0px" &&
             count.scrollWidth <= count.clientWidth + 1;

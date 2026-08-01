@@ -711,15 +711,19 @@
         </select>
         </div>
       </div>
-      <div class="vocab-summary-row">
-        <span id="vocab-count" class="notes-count" aria-live="polite"></span>
+      <!-- Context bar (selection-bar pattern): one fixed slot whose content
+           morphs between browse (count) and selection (batch tools) -- the
+           batch tools never enter the flow, so the card list never moves. -->
+      <div class="vocab-context-bar" id="vocab-context-bar">
+        <span class="vocab-ctx-text">
+          <span id="vocab-count" class="notes-count" aria-live="polite"></span>
+          <span id="vocab-selected-count" class="notes-count" aria-live="polite"></span>
+        </span>
         <div class="vocab-selection-actions" role="group" data-i18n-aria="vocabSelectionActions" aria-label="Selection actions">
-          <button type="button" class="btn btn-sm" id="vocab-select-all" data-i18n="vocabSelectAll">Select all results</button>
-          <button type="button" class="btn btn-sm" id="vocab-invert-selection" data-i18n="vocabInvertSelection">Invert result selection</button>
+          <button type="button" class="btn btn-sm" id="vocab-select-all" data-i18n="vocabSelectAll">Select all</button>
+          <button type="button" class="btn btn-sm" id="vocab-invert-selection" data-i18n="vocabInvertSelection">Invert selection</button>
         </div>
-      </div>
-      <div class="vocab-batch-toolbar" id="vocab-batch-toolbar" role="group" data-i18n-aria="vocabBatchActions" aria-label="Actions for selected words" hidden>
-        <span id="vocab-selected-count" class="notes-count" aria-live="polite"></span>
+        <div class="vocab-ctx-batch" id="vocab-batch-toolbar" role="group" data-i18n-aria="vocabBatchActions" aria-label="Actions for selected words">
         <!-- Input + stepper unit (icon audit P0): +/- are icon-only because the
              Group-name placeholder disambiguates them; full labels stay in
              title/aria (remove's title is JS-owned, see _pbpVocabSyncSelectionUi). -->
@@ -734,6 +738,7 @@
           <button type="button" class="btn btn-sm" id="vocab-mark-learning" data-i18n="vocabMarkLearning">Back to learning</button>
         </span>
         <button type="button" class="btn btn-sm danger" id="vocab-batch-delete" data-i18n="vocabBatchDelete">Delete selected</button>
+        </div>
       </div>
       <span class="save-status vocab-main-status" id="vocab-status" role="status" aria-live="polite"></span>
       <div id="vocab-empty" class="notes-empty" hidden>No saved words yet. Save words from the reader's dictionary view.</div>

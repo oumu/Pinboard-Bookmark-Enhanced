@@ -231,10 +231,13 @@ check(!mdDict.includes('indexedDB.open(_PBP_VOCAB_DB_NAME'),
 check(vocabStore.includes("function _pbpVocabLocalMutation") && vocabStore.includes("tx.abort()") &&
   vocabStore.includes("tx.oncomplete") && vocabStore.includes("pbpVocabBatchAddGroup"),
   "vocab-store.js: vocabulary batch mutations are not one owner-checked atomic transaction");
-check(optionsCss.includes(".vocab-filter-toolbar") && optionsCss.includes(".vocab-batch-toolbar") &&
-  optionsCss.includes(".vocab-card .notes-card-top"),
+// The batch tools live in the context bar's .vocab-ctx-batch layer since the
+// selection-bar redesign (2026-08): visibility-toggled in place, never
+// hidden-attribute/display driven, so the card list cannot be reflowed.
+check(optionsCss.includes(".vocab-filter-toolbar") && optionsCss.includes(".vocab-ctx-batch") &&
+  optionsCss.includes(".vocab-context-bar") && optionsCss.includes(".vocab-card .notes-card-top"),
   "options.css: scalable vocabulary responsive layout is missing");
-check(/#panel-vocab\s+\.vocab-batch-toolbar\[hidden\][\s\S]{0,120}#panel-vocab\s+\.vocab-load-more\[hidden\][\s\S]{0,80}display:\s*none/.test(optionsCss),
+check(/#panel-vocab\s+\.vocab-load-more\[hidden\][\s\S]{0,80}display:\s*none/.test(optionsCss),
   "options.css: vocabulary hidden controls can be redisplayed by component display rules");
 check(optionsVocabJs.includes('t("vocabLoading")') &&
   optionsVocabJs.includes('list.setAttribute("aria-busy", loading ? "true" : "false")'),

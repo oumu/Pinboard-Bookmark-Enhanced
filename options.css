@@ -1776,7 +1776,7 @@ html[data-theme] .preset-preview-content { background: var(--opt-bg); color: var
 .notes-toolbar input[type="search"]:focus-visible {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--opt-accent) 18%, transparent);
 }
-.vocab-batch-toolbar input[type="text"] {
+.vocab-ctx-batch input[type="text"] {
   min-width: 0;
   padding: var(--opt-sp-2) var(--opt-sp-4);
   border: 1px solid var(--opt-input-border, #cdd1d6);
@@ -1787,7 +1787,7 @@ html[data-theme] .preset-preview-content { background: var(--opt-bg); color: var
   font-size: 12px;
   box-sizing: border-box;
 }
-.vocab-batch-toolbar input[type="text"]:focus-visible {
+.vocab-ctx-batch input[type="text"]:focus-visible {
   outline: 2px solid var(--opt-accent);
   outline-offset: 1px;
 }
@@ -1840,37 +1840,68 @@ html[data-theme] .preset-preview-content { background: var(--opt-bg); color: var
 @supports selector(::picker(select)) {
   .vocab-filter-toolbar select { appearance: base-select; }
 }
-.vocab-summary-row,
-.vocab-selection-actions,
-.vocab-batch-toolbar {
+/* Context bar (selection-bar pattern, device round): ONE fixed slot whose
+   content morphs between browse and selection. The batch tools never enter
+   the document flow -- their invisible state keeps its geometry (visibility,
+   not display/hidden), so the card list below never moves, which is the
+   whole point of the redesign. */
+.vocab-context-bar {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: var(--opt-sp-3);
-}
-.vocab-summary-row {
-  justify-content: space-between;
+  gap: var(--opt-sp-3) var(--opt-sp-4);
   margin: 0 0 var(--opt-sp-4);
+  min-height: 28px;
 }
-#panel-vocab .vocab-summary-row > .notes-count {
+/* The two count lines stack in one grid cell and crossfade; the hidden one
+   drops out of the a11y tree via visibility (delayed to the fade's end on
+   the way out, immediate on the way in). */
+.vocab-ctx-text { display: grid; align-items: center; min-width: 0; }
+.vocab-ctx-text > .notes-count {
+  grid-area: 1 / 1;
   min-width: 0;
   white-space: normal;
+  /* The count is no longer a weak line squeezed between button rows; let it
+     carry the bar. */
+  font-weight: 500;
+  color: var(--opt-fg, #333);
+  transition: opacity var(--motion-pop) var(--ease-out), visibility 0s var(--motion-pop);
 }
-.vocab-batch-toolbar {
-  margin: 0 0 var(--opt-sp-4);
-  padding: var(--opt-sp-3) var(--opt-sp-4);
-  border: 1px solid var(--opt-border, #ccc);
-  /* md, not sm: this box holds an input and three buttons, all on the md step.
-     A container rounder-than-its-contents is the same inversion the token
-     derivation regularizes away -- it just shows up in the layout instead of
-     the scale. */
-  border-radius: var(--opt-radius-md);
-  background: var(--opt-panel, #f8f8f5);
+#vocab-selected-count { opacity: 0; visibility: hidden; }
+.vocab-context-bar.selecting #vocab-count { opacity: 0; visibility: hidden; }
+.vocab-context-bar.selecting #vocab-selected-count {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity var(--motion-pop) var(--ease-out), visibility 0s;
 }
-.vocab-batch-toolbar input[type="text"] { flex: 1 1 120px; min-width: 0; }
-/* Cluster gaps: wrap points fall on cluster edges, not mid-cluster (the de/ru
-   rows used to break between two related buttons). Row gap stays tight. */
-.vocab-batch-toolbar { gap: var(--opt-sp-3) var(--opt-sp-5); }
+/* Selection links ride next to the text in BOTH states, quiet ghost tier
+   (the .row-del-x treatment): always relevant, never boxed. */
+.vocab-selection-actions { display: inline-flex; align-items: center; gap: var(--opt-sp-2); flex: none; }
+.vocab-selection-actions .btn { border-color: transparent; background: transparent; color: var(--opt-fg-muted, #666); }
+.vocab-selection-actions .btn:hover {
+  border-color: transparent;
+  color: var(--opt-fg, #111);
+  background: color-mix(in srgb, var(--opt-fg, #333) 6%, var(--opt-bg, #fff));
+}
+/* Batch layer: right-aligned, flat (no boxed sub-panel -- grouping is
+   positional now), fades as one unit. Reserved geometry means zero shift. */
+.vocab-ctx-batch {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--opt-sp-3) var(--opt-sp-5);
+  margin-left: auto;
+  min-width: 0;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--motion-pop) var(--ease-out), visibility 0s var(--motion-pop);
+}
+.vocab-context-bar.selecting .vocab-ctx-batch {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity var(--motion-pop) var(--ease-out), visibility 0s;
+}
+.vocab-ctx-batch input[type="text"] { flex: 1 1 120px; min-width: 0; }
 /* Input + stepper unit: one visual control, native-stepper style. The two
    icon-only steppers are fixed 28px cells fused to the input's right edge. */
 .vocab-group-unit { display: inline-flex; align-items: stretch; flex: 1 1 200px; min-width: 150px; max-width: 320px; }
@@ -1879,35 +1910,9 @@ html[data-theme] .preset-preview-content { background: var(--opt-bg); color: var
 .vocab-group-step:last-of-type { border-top-right-radius: var(--opt-radius-md); border-bottom-right-radius: var(--opt-radius-md); }
 .vocab-group-step .btn-ic { display: inline-flex; margin: 0; vertical-align: 0; }
 .vocab-batch-cluster { display: inline-flex; gap: var(--opt-sp-2); flex: none; }
-/* Destructive action holds the row end, physically apart from the status pair. */
-#vocab-batch-delete { margin-left: auto; }
 .vocab-main-status { display: block; min-height: 18px; margin: 0 0 var(--opt-sp-3); }
 .vocab-load-more { display: block; margin: var(--opt-sp-4) auto var(--opt-sp-5); }
-#panel-vocab .vocab-batch-toolbar[hidden],
 #panel-vocab .vocab-load-more[hidden] { display: none; }
-/* Selecting the first word (or clearing the last) used to snap this bordered
-   bar in and out, shoving every card below it. Height bridge on the accordion
-   pattern; armed per-flip via .motion-toggle (options-vocab.js) so tab resets
-   and list reloads keep their instant hide. overflow:clip only rides along
-   with the mark -- steady state keeps normal overflow for focus rings. */
-html.motion-ready #panel-vocab .vocab-batch-toolbar.motion-toggle {
-  overflow: clip;
-  transition: height var(--motion-collapse) var(--ease-in-out),
-              margin-block var(--motion-collapse) var(--ease-in-out),
-              padding-block var(--motion-collapse) var(--ease-in-out),
-              opacity var(--motion-collapse) var(--ease-out),
-              display var(--motion-collapse) allow-discrete;
-}
-html.motion-ready #panel-vocab .vocab-batch-toolbar.motion-toggle[hidden] {
-  display: none;
-  height: 0;
-  margin-block: 0;
-  padding-block: 0;
-  opacity: 0;
-}
-html.motion-ready #panel-vocab .vocab-batch-toolbar.motion-toggle:not([hidden]) {
-  @starting-style { height: 0; margin-block: 0; padding-block: 0; opacity: 0; }
-}
 #panel-vocab,
 #vocab-list,
 .vocab-card,
@@ -2511,14 +2516,11 @@ html.motion-ready .vocab-note-save[hidden] { display: none; opacity: 0; translat
   /* The vocab delete button is icon-only now, so the old narrow-viewport
      wrap-to-second-row treatment for its long label is gone: three columns
      fit at any width. */
-  .vocab-summary-row { align-items: flex-start; }
-  .vocab-selection-actions { width: 100%; }
-  .vocab-selection-actions .btn { flex: 1 1 130px; }
-  .vocab-batch-toolbar { align-items: stretch; }
-  .vocab-batch-toolbar .notes-count { flex-basis: 100%; }
-  /* The 28px steppers are excluded from the stretch -- flexing them to 130px
-     would turn the fused input unit into three detached slabs. */
-  .vocab-batch-toolbar .btn:not(.vocab-group-step) { flex: 1 1 130px; }
-  .vocab-batch-toolbar .vocab-batch-cluster { display: flex; flex: 1 1 100%; }
-  #vocab-batch-delete { margin-left: 0; }
+  /* Narrow: the batch layer takes its own full row inside the bar (it may
+     change bar height here -- acceptable at widths where everything wraps).
+     Steppers stay excluded from the stretch: flexing them to 130px would
+     turn the fused input unit into three detached slabs. */
+  .vocab-ctx-batch { flex-basis: 100%; margin-left: 0; align-items: stretch; }
+  .vocab-ctx-batch .btn:not(.vocab-group-step) { flex: 1 1 130px; }
+  .vocab-ctx-batch .vocab-batch-cluster { display: flex; flex: 1 1 100%; }
 }
