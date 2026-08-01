@@ -258,6 +258,10 @@ function _pbpSkimWireCollapse(sec, collapseBtn) {
   }
   collapseBtn.addEventListener("click", () => {
     overridden = true;
+    // Arms the chevron-spin transition (md-preview.css) from the first real
+    // click on; the storage restore above runs before any click, so its
+    // programmatic aria-expanded flip stays animation-free.
+    collapseBtn.classList.add("motion-toggle");
     const collapsed = !isCollapsed;
     setCollapsed(collapsed, true);
     if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.local) {

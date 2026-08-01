@@ -3110,15 +3110,19 @@ html.motion-ready :is(#search-pop, #kbd-help-pop, #pb-hl-card):popover-open {
 }
 .skim-ic:hover { background: var(--btn-hover); color: var(--fg); }
 .skim-ic:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+.skim-ic svg { width: 15px; height: 15px; }
 /* Chevron rotation is on-screen morphing, same job as the options accordion
-   arrow, so it takes the same curve. */
-.skim-ic svg { width: 15px; height: 15px; transition: transform 150ms var(--ease-in-out); }
+   arrow, so it takes the same curve — and the same user-toggle gate: the
+   storage restore on load flips aria-expanded programmatically, and without
+   .motion-toggle (added on first click, md-skim.js) the arrow would spin
+   150ms on its own while the fold itself restores instantly. */
+html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms var(--ease-in-out); }
 /* Keyed off aria-expanded (set immediately), not .collapsed: the fold
    animation defers the class until the height tween finishes, and the arrow
    must flip at click time like the rail triangles do. */
 #skim-collapse[aria-expanded="false"] svg { transform: rotate(-90deg); }
 @media (prefers-reduced-motion: reduce) {
-  .skim-ic svg { transition: none; }
+  html.motion-ready #skim-collapse.motion-toggle svg { transition: none; }
 }
 .skim-stale {
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
