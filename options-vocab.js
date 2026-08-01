@@ -163,10 +163,16 @@ function _pbpVocabBuildRow(w, index) {
   const main = document.createElement("span");
   main.className = "notes-card-main";
 
+  // Fixed two-line rhythm (2026-08 redesign): line 1 = term + chips, line 2 =
+  // the gloss clamped to ONE ellipsised line. The gloss used to live in the
+  // wrapping chip row, so a long AI gloss pushed the chips onto extra lines
+  // and every card ended up a different height (real-device report).
+  const headline = document.createElement("span");
+  headline.className = "vocab-row-headline";
   const titleEl = document.createElement("span");
   titleEl.className = "notes-row-title";
   titleEl.textContent = w.term;
-  main.appendChild(titleEl);
+  headline.appendChild(titleEl);
 
   const meta = document.createElement("span");
   meta.className = "notes-row-meta";
@@ -183,25 +189,33 @@ function _pbpVocabBuildRow(w, index) {
     statusChip.textContent = t("vocabStatusKnown");
     meta.appendChild(statusChip);
   }
-  const glossChip = document.createElement("span");
-  glossChip.className = "notes-meta-chip";
-  glossChip.textContent = (w.gloss || "").split("\n")[0];
-  meta.appendChild(glossChip);
   for (const group of pbpVocabGroups(w)) {
     const groupChip = document.createElement("span");
     groupChip.className = "notes-meta-chip vocab-group-chip";
     groupChip.textContent = group;
     meta.appendChild(groupChip);
   }
-  main.appendChild(meta);
+  headline.appendChild(meta);
+  main.appendChild(headline);
+
+  if (w.gloss) {
+    const glossLine = document.createElement("span");
+    glossLine.className = "vocab-row-gloss";
+    glossLine.textContent = (w.gloss || "").split("\n")[0];
+    main.appendChild(glossLine);
+  }
 
   head.appendChild(main);
   top.appendChild(head);
 
   const delBtn = document.createElement("button");
   delBtn.type = "button";
-  delBtn.className = "btn btn-sm notes-row-del";
-  delBtn.textContent = t("dictDeleteWord");
+  delBtn.className = "btn btn-sm notes-row-del vocab-row-del";
+  // Icon-only: the full sentence ate a third of every row. The name lives in
+  // title/aria-label; the confirm popover still anchors to the button.
+  setBtnIcon(delBtn, "cross", "");
+  delBtn.title = t("dictDeleteWord");
+  delBtn.setAttribute("aria-label", t("dictDeleteWord"));
   delBtn.addEventListener("click", (e) => {
     e.preventDefault();
     e.stopPropagation();

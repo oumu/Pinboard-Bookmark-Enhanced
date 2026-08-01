@@ -1825,6 +1825,44 @@ html[data-theme] .preset-preview-content { background: var(--opt-bg); color: var
   padding: var(--opt-sp-2) var(--opt-sp-3);
 }
 .vocab-row-select { width: 16px; height: 16px; margin: 0; }
+/* Collapsed-row rhythm (2026-08 redesign): controls anchor to the TITLE
+   line instead of centering against whatever height the row happens to
+   reach -- on a tall card a centered checkbox floated mid-air. */
+.vocab-card .notes-card-top { align-items: start; }
+.vocab-card .vocab-row-select { margin-top: 3px; }
+.vocab-card .notes-card-head { align-items: start; }
+.vocab-card .notes-card-chevron { margin-top: 8px; }
+.vocab-row-headline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--opt-sp-1) var(--opt-sp-3);
+  min-width: 0;
+}
+.vocab-row-gloss {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--opt-fg-muted, #666);
+}
+/* Ghost variant of the .btn family: quiet until pointed at, then it says
+   what it deletes in the danger palette the batch-delete button already uses. */
+.vocab-row-del {
+  padding: var(--opt-sp-1) var(--opt-sp-2);
+  line-height: 0;
+  color: var(--opt-fg-muted, #888);
+  border-color: transparent;
+  background: transparent;
+}
+.vocab-row-del:hover {
+  color: var(--opt-danger, #c00);
+  border-color: color-mix(in srgb, var(--opt-danger, #c00) 55%, var(--opt-border, #ccc));
+  background: var(--opt-danger-bg, rgba(220, 80, 80, 0.08));
+}
+.vocab-row-del .btn-ic { display: inline-flex; }
 .vocab-group-chip {
   padding: 0 var(--opt-sp-2);
   border-radius: var(--opt-radius-full);
@@ -2230,16 +2268,9 @@ html.motion-ready .notes-card.motion-toggle .notes-card-chevron {
   .notes-row-del {
     justify-self: start;
   }
-  .vocab-card .notes-card-top {
-    grid-template-columns: auto minmax(0, 1fr);
-  }
-  .vocab-card .notes-row-del {
-    grid-column: 2;
-    min-width: 0;
-    max-width: 100%;
-    white-space: normal;
-    overflow-wrap: anywhere;
-  }
+  /* The vocab delete button is icon-only now, so the old narrow-viewport
+     wrap-to-second-row treatment for its long label is gone: three columns
+     fit at any width. */
   .vocab-summary-row { align-items: flex-start; }
   .vocab-selection-actions { width: 100%; }
   .vocab-selection-actions .btn { flex: 1 1 130px; }

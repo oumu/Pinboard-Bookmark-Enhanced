@@ -263,6 +263,12 @@ const notedRow = _pbpVocabBuildRow({
 check("expanded card offers an editable note prefilled with the stored note",
   notedRow.querySelector(".vocab-note-input").value === "remember this one" &&
   notedRow.querySelector(".vocab-note-save").hidden === true);
+check("collapsed card clamps the gloss to its first line, outside the chip row",
+  fullGlossRow.querySelector(".vocab-row-gloss").textContent === "contextual sense line" &&
+  !fullGlossRow.querySelector(".notes-row-meta .vocab-row-gloss"));
+check("icon-only delete button keeps an accessible name and an SVG face",
+  !!notedRow.querySelector(".notes-row-del svg") &&
+  !!notedRow.querySelector(".notes-row-del").getAttribute("aria-label"));
 renderedChecks[0].click();
 check("real row checkbox click establishes the selection anchor", _vocabSelected.size === 1);
 renderedChecks[2].dispatchEvent(new MouseEvent("click", { bubbles:true, cancelable:true, shiftKey:true }));
