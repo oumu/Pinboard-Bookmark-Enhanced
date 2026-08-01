@@ -160,12 +160,20 @@ html[data-section="login"] .quick-actions { display: none !important; }
   font-size: 11px; color: var(--pp-fg-muted);
 }
 .header-bar a { color: var(--pp-fg-muted); font-size: 11px; }
-.header-bar .header-link {
+/* Icon buttons replaced the settings/logout text links (2026-08): two fixed
+   24x24 targets instead of two locale-length words fighting the account name
+   for one row -- and a real hit area where the links had padding:0. */
+#user-info { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.header-icons { display: inline-flex; gap: var(--pp-sp-1); flex: none; }
+.header-bar .header-ic {
+  width: 24px; height: 24px; display: inline-grid; place-items: center;
   background: none; border: none; padding: 0; margin: 0;
-  font: inherit; color: var(--pp-fg-muted); font-size: 11px; cursor: pointer; text-decoration: underline;
+  color: var(--pp-fg-muted); cursor: pointer; border-radius: var(--pp-radius-sm);
+  transition: color var(--pp-motion-state), background var(--pp-motion-state);
 }
-.header-bar .header-link:hover { color: var(--pp-fg); }
-.header-bar .header-link:focus-visible,
+.header-bar .header-ic .btn-ic { margin: 0; vertical-align: 0; }
+.header-bar .header-ic:hover { color: var(--pp-fg); background: color-mix(in srgb, var(--pp-fg) 8%, transparent); }
+.header-bar .header-ic:focus-visible,
 .header-bar a:focus-visible { outline: 2px solid var(--pp-accent, #4477bb); outline-offset: 2px; border-radius: var(--pp-radius-sm); }
 
 .login-body { padding: var(--pp-sp-6) var(--pp-sp-5); }
@@ -479,9 +487,13 @@ button.offline-clear:focus-visible, button.offline-toggle:focus-visible { outlin
 
 .clear-all-link {
   font-size: 10px; color: var(--pp-fg-hint); cursor: pointer;
-  margin-top: var(--pp-sp-1); display: block;
+  margin-top: var(--pp-sp-1); display: inline-flex; align-items: center; gap: var(--pp-sp-1);
 }
 .clear-all-link:hover { color: var(--pp-danger); text-decoration: underline; }
+/* Icon anchors on the small link buttons: shrink the shared 13/14px icons to
+   the 10-11px text scale, and drop .btn-ic's button-sized margin (gap rules). */
+.clear-all-link .btn-ic, .offline-clear .btn-ic { margin-right: 0; vertical-align: 0; }
+.clear-all-link .btn-ic svg, .offline-clear .btn-ic svg { width: 11px; height: 11px; }
 .tag-actions-row { display: flex; gap: var(--pp-sp-4); align-items: center; }
 .tag-actions-row .clear-all-link { margin-top: var(--pp-sp-1); }
 #tags-copy-all:hover { color: var(--pp-link); text-decoration: underline; }
@@ -614,10 +626,14 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--pp-accent); }
   display: flex;
   align-items: center;
   justify-content: space-between;
+  /* wrap-not-truncate (project rule): de/fr labels fold to a 2+1 second row
+     instead of squeezing three nowrap buttons into one. */
+  flex-wrap: wrap;
   gap: var(--pp-sp-2);
 }
 .qbtn {
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -631,7 +647,6 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--pp-accent); }
   cursor: pointer;
   text-decoration: none;
   text-align: center;
-  white-space: nowrap;
   transition: background var(--pp-motion-state), color var(--pp-motion-state), border-color var(--pp-motion-state), box-shadow var(--pp-motion-state), transform var(--pp-motion-state);
   font-family: inherit;
   line-height: 1.3;
@@ -1782,8 +1797,8 @@ html[data-theme] body { background: var(--pp-bg); color: var(--pp-fg); }
 html[data-theme] a { color: var(--pp-link); }
 html[data-theme] .header-bar { background: var(--pp-bg2); border-color: var(--pp-border); color: var(--pp-fg-muted); }
 html[data-theme] .header-bar a { color: var(--pp-fg-muted); }
-html[data-theme] .header-bar .header-link { color: var(--pp-fg-muted); }
-html[data-theme] .header-bar .header-link:hover { color: var(--pp-fg); }
+html[data-theme] .header-bar .header-ic { color: var(--pp-fg-muted); }
+html[data-theme] .header-bar .header-ic:hover { color: var(--pp-fg); }
 html[data-theme] .login-body p { color: var(--pp-fg); }
 html[data-theme] .login-body input { background: var(--pp-input-bg); border-color: var(--pp-border); color: var(--pp-fg); }
 html[data-theme] .login-body input:focus { border-color: var(--pp-focus-bd); background: var(--pp-input-focus-bg); }

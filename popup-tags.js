@@ -392,10 +392,13 @@ function setupTagsInput() {
       document.body.removeChild(ta);
     }
     const btn = $id("tags-copy-all");
-    const orig = btn.textContent;
-    btn.textContent = t("tagsCopied", String(currentTags.length));
+    // Swap only the label span -- overwriting the whole button would wipe the
+    // .btn-ic SVG the markup now carries.
+    const lbl = btn.querySelector(".link-label") || btn;
+    const orig = lbl.textContent;
+    lbl.textContent = t("tagsCopied", String(currentTags.length));
     btn.classList.add("tag-copied-flash");
-    setTimeout(() => { btn.textContent = orig; btn.classList.remove("tag-copied-flash"); }, 1200);
+    setTimeout(() => { lbl.textContent = orig; btn.classList.remove("tag-copied-flash"); }, 1200);
   });
   $id("tags-last-used")?.addEventListener("click", (e) => {
     e.preventDefault();

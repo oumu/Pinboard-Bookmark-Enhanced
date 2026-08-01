@@ -24,7 +24,7 @@
   <div id="main-section" class="hidden">
     <div class="header-bar">
       <span id="user-info"></span>
-      <span><button type="button" class="header-link" id="options-link" data-i18n="settings">settings</button> · <button type="button" class="header-link" id="logout-link" data-i18n="logout">logout</button></span>
+      <span class="header-icons"><button type="button" class="header-ic" id="options-link" data-i18n-title="settings" data-i18n-aria="settings"><span class="btn-ic" data-ic="gear"></span></button><button type="button" class="header-ic" id="logout-link" data-i18n-title="logout" data-i18n-aria="logout"><span class="btn-ic" data-ic="logout"></span></button></span>
     </div>
 
     <div class="form-body">
@@ -63,8 +63,8 @@
           </div>
           <div id="tags-autocomplete" class="autocomplete-dropdown hidden" role="listbox"></div>
           <div class="tag-actions-row">
-            <button type="button" id="tags-copy-all" class="clear-all-link hidden" data-i18n="copyAllTags" data-i18n-title="copyAllTagsTitle">Copy</button>
-            <button type="button" id="tags-clear-all" class="clear-all-link hidden" data-i18n="clearAll">Clear all</button>
+            <button type="button" id="tags-copy-all" class="clear-all-link hidden" data-i18n-title="copyAllTagsTitle"><span class="btn-ic" data-ic="copy"></span><span class="link-label" data-i18n="copyAllTags">Copy</span></button>
+            <button type="button" id="tags-clear-all" class="clear-all-link hidden"><span class="btn-ic" data-ic="cross"></span><span class="link-label" data-i18n="clearAll">Clear all</span></button>
           </div>
           <button type="button" id="tags-last-used" class="last-used-hint hidden"></button>
         </div>
@@ -159,7 +159,7 @@
         <span id="offline-queue-chevron" aria-hidden="true"></span>
         <span id="offline-queue-text"></span>
       </button>
-      <button type="button" id="offline-queue-clear" class="offline-clear" data-i18n="clear">clear</button>
+      <button type="button" id="offline-queue-clear" class="offline-clear"><span class="btn-ic" data-ic="cross"></span><span class="link-label" data-i18n="clear">clear</span></button>
     </div>
     <div id="offline-queue-list" class="offline-queue-list hidden"></div>
     <div id="recent-bookmarks" class="recent-bm-area hidden"></div>
