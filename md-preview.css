@@ -1032,6 +1032,14 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
   hyphens: auto;
   overflow-wrap: anywhere;
 }
+/* tr-view-toggle is a single cycle button since the icon audit (P0-6): one
+   fixed viewMode glyph + the CURRENT mode's label, click = press v. Only one
+   label renders at a time, so the de/ru three-way overflow (and the pl
+   hyphenation fallback above) can no longer trigger here; width is pinned by
+   the rail, so the label swap never jumps the layout. */
+#tr-view-toggle .toggle-btn { width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+#tr-view-toggle svg { width: 14px; height: 14px; flex: none; }
+#tr-view-toggle .tr-view-label { min-width: 0; }
 .rail-section { margin-top: 4px; }
 /* ---- Reader chrome contract (2026-07 Claude Design round 5) ----
    Type scale, 4 tiers shared by rail + ask/skim panels:

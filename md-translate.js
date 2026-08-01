@@ -1776,28 +1776,36 @@ function _pbpTrShowViewToggle(st) {
   const wrap = document.createElement("div");
   wrap.id = "tr-view-toggle";
   wrap.className = "view-toggle";
-  wrap.setAttribute("aria-keyshortcuts", "v");
-  for (const [mode, key] of [["original", "trViewOriginal"], ["bilingual", "trViewBilingual"], ["translated", "trViewTranslated"]]) {
-    const b = document.createElement("button");
-    b.type = "button";
-    b.className = "toggle-btn";
-    b.dataset.trMode = mode;
-    b.textContent = t(key);
-    b.title = t(key) + " (v)"; // "v" is the literal key name, deliberately not translated
-    b.setAttribute("aria-pressed", "false");
-    b.addEventListener("click", () => _pbpTrSetMode(st, mode, true));
-    wrap.appendChild(b);
-  }
+  // Single cycle button (icon audit P0-6). The three-segment group asked a
+  // first-time user to tell a "bilingual" icon from a "translated-only" one
+  // -- unwinnable -- and rendered all three locale labels at once (the
+  // de/ru overflow the hyphenation fallback existed for). A cycle button
+  // matches the v key's strict-cycle contract instead: one fixed viewMode
+  // glyph, the CURRENT mode as label, click = advance one state.
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "toggle-btn";
+  b.setAttribute("aria-keyshortcuts", "v");
+  b.innerHTML = (typeof PBP_ICONS !== "undefined" ? PBP_ICONS.viewMode : "") + '<span class="tr-view-label"></span>';
+  b.addEventListener("click", () => _pbpTrSetMode(st, pbpTrNextMode(st.mode), true));
+  wrap.appendChild(b);
   document.getElementById("tr-section").appendChild(wrap);
   _pbpTrSyncToggle(st.mode);
 }
 
+const PBP_TR_MODE_KEYS = { original: "trViewOriginal", bilingual: "trViewBilingual", translated: "trViewTranslated" };
 function _pbpTrSyncToggle(mode) {
-  document.querySelectorAll("#tr-view-toggle .toggle-btn").forEach((b) => {
-    const active = b.dataset.trMode === mode;
-    b.classList.toggle("active", active);
-    b.setAttribute("aria-pressed", active ? "true" : "false");
-  });
+  const btn = document.querySelector("#tr-view-toggle .toggle-btn");
+  if (!btn) return;
+  const cur = t(PBP_TR_MODE_KEYS[mode] || "trViewOriginal");
+  const next = t(PBP_TR_MODE_KEYS[pbpTrNextMode(mode)] || "trViewOriginal");
+  const lbl = btn.querySelector(".tr-view-label");
+  if (lbl) lbl.textContent = cur;
+  // Cycle affordance: current mode visible on the button, the v key's next
+  // stop in the tooltip. "v" is the literal key name, deliberately not
+  // translated.
+  btn.title = cur + " (v: " + next + ")";
+  btn.setAttribute("aria-label", cur + " (v: " + next + ")");
 }
 
 // Moving between original-only and translated-only can hide the element that
