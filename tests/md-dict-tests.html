@@ -215,6 +215,74 @@ assertEq(pbpDictNormalizeEntry(FDA_APROVECHO).entries[0].senses.length, 1,
 assertEq(pbpDictNormalizeEntry(FDA_APROVECHO).senseKeep, PBP_DICT_SENSE_KEEP,
   "the model carries the retention it was built with, so a stale cache record refetches");
 
+section("pbpDictContentTokens");
+const tok = (s) => [...pbpDictContentTokens(s)].sort().join(",");
+assertEq(tok("the of and to in a is"), "", "pure stopwords leave nothing to match on");
+assertEq(tok("An edge of river"), "edge,river", "content words survive, stopwords do not");
+assertEq(tok("running runs ran"), "ran,run", "crude stemming collapses running/runs, ran stays its own token");
+assertEq(tok("a an be"), "", "tokens under three characters are dropped");
+assertEq(tok("他喝了一杯水"), "", "a non-Latin sentence yields no tokens, so ranking cannot fire");
+
+section("pbpDictOrderForContext");
+// Two entries of en/bank, captured verbatim from freedictionaryapi.com on
+// 2026-08-01. Entry 0 is the financial noun, entry 1 is the hydrology noun.
+const FDA_BANK = { word: "bank", entries: [
+  { partOfSpeech: "noun", pronunciations: [], forms: [], senses: [
+    { definition: "(countable) An institution where one can place and borrow money and take care of financial affairs.", tags: ["countable"], examples: [], quotes: [], synonyms: [], antonyms: [], subsenses: [] },
+    { definition: "(countable) A branch office of such an institution.", tags: ["countable"], examples: [], quotes: [], synonyms: [], antonyms: [], subsenses: [] },
+    { definition: "(countable) An underwriter or controller of a card game.", tags: ["countable"], examples: [], quotes: [], synonyms: [], antonyms: [], subsenses: [] },
+    { definition: "(countable) A fund from deposits or contributions, to be used in transacting business; a joint stock or capital.", tags: ["countable"], examples: [], quotes: [], synonyms: [], antonyms: [], subsenses: [] },
+    { definition: "(gambling, countable) The sum of money etc. which the dealer or banker has as a fund from which to draw stakes and pay losses.", tags: ["countable"], examples: [], quotes: [], synonyms: [], antonyms: [], subsenses: [] },
+    { definition: "(slang, uncountable) Money; profit.", tags: ["slang", "uncountable"], examples: [], quotes: [], synonyms: [], antonyms: [], subsenses: [] },
+    { definition: "(countable) In certain games, such as dominos, a fund of pieces from which the players are allowed to draw.", tags: ["countable"], examples: [], quotes: [], synonyms: [], antonyms: [], subsenses: [] },
+    { definition: "(countable, chiefly in combination) A safe and guaranteed place of storage for and retrieval of important items or goods.", tags: ["countable", "in compounds"], examples: ["blood bank; data bank; sperm bank"], quotes: [], synonyms: [], antonyms: [], subsenses: [] },
+    { definition: "(countable) A device used to store coins or currency.", tags: ["countable"], examples: ["If you want to buy a bicycle, you need to put the money in your piggy bank."], quotes: [], synonyms: [], antonyms: [], subsenses: [] }
+  ] },
+  { partOfSpeech: "noun", pronunciations: [], forms: [], senses: [
+    { definition: "(hydrology) An edge of river, lake, or other watercourse.", tags: [], examples: [], quotes: [], synonyms: [], antonyms: [], subsenses: [] },
+    { definition: "(nautical, hydrology) An elevation under the sea; a shallow area of shifting sand, gravel, mud, and so forth", tags: [], examples: ["the banks of Newfoundland"], quotes: [], synonyms: [], antonyms: [], subsenses: [] },
+    { definition: "(geography) A slope of earth, sand, etc.; an embankment.", tags: [], examples: [], quotes: [], synonyms: [], antonyms: [], subsenses: [] },
+    { definition: "(aviation) The incline of an aircraft, especially during a turn.", tags: [], examples: [], quotes: [], synonyms: [], antonyms: [], subsenses: [] },
+    { definition: "(rail transport) An incline, a hill.", tags: [], examples: [], quotes: [], synonyms: [], antonyms: [], subsenses: [] },
+    { definition: "A mass of clouds.", tags: [], examples: ["The bank of clouds on the horizon announced the arrival of the predicted storm front."], quotes: [], synonyms: [], antonyms: [], subsenses: [] },
+    { definition: "(mining) The face of the coal at which miners are working.", tags: [], examples: [], quotes: [], synonyms: [], antonyms: [], subsenses: [] },
+    { definition: "(mining) A deposit of ore or coal, worked by excavations above water level.", tags: [], examples: [], quotes: [], synonyms: [], antonyms: [], subsenses: [] },
+    { definition: "(mining) The ground at the top of a shaft.", tags: [], examples: ["Ores are brought to bank."], quotes: [], synonyms: [], antonyms: [], subsenses: [] }
+  ] }
+], source: { url: "https://en.wiktionary.org/wiki/bank", license: { name: "CC BY-SA 4.0", url: "" } } };
+const bankNorm = pbpDictNormalizeEntry(FDA_BANK);
+const firstDefs = (view) => view.map((e) => e.senses[0].definition);
+const defsOf = (view, i) => view[i].senses.map((s) => s.definition);
+
+const plain = pbpDictOrderForContext(bankNorm.entries, "");
+assertEq(plain.length, 2, "every entry still renders");
+assertEq(plain[0].senses.length, PBP_DICT_SENSE_SHOW, "display is cut to SHOW, not to KEEP");
+assertEq(defsOf(plain, 0)[0], bankNorm.entries[0].senses[0].definition, "no sentence means untouched API order");
+assertEq(defsOf(plain, 1)[0], bankNorm.entries[1].senses[0].definition, "second entry keeps API order too");
+
+// The degradation guarantee: nothing to match on must be byte-identical to the
+// old behaviour, which is what a Spanish page or a CC-CEDICT gloss produces.
+const foreign = pbpDictOrderForContext(bankNorm.entries, "他站在河边看着水流。");
+assertEq(JSON.stringify(foreign), JSON.stringify(plain), "a sentence sharing no language falls back to API order exactly");
+
+const river = pbpDictOrderForContext(bankNorm.entries, "They pulled the boat onto the muddy river bank below the lake.");
+assertEq(river[0].senses[0].definition, "(hydrology) An edge of river, lake, or other watercourse.",
+  "a river sentence puts the hydrology entry and its matching sense first");
+assert(firstDefs(river)[1].indexOf("institution") > -1, "the financial entry is demoted, not dropped");
+
+// The point of raising retention: a sense the old cap discarded can now surface.
+const stored = pbpDictOrderForContext(bankNorm.entries, "A seed bank is a guaranteed place of storage for plant genetic material.");
+assert(defsOf(stored, 0).some((d) => d.indexOf("place of storage") > -1),
+  "a sense that sat at index 7, past the old cap of 5, becomes visible");
+
+const common = pbpDictOrderForContext(bankNorm.entries, "She walked into the bank to borrow money for a house.");
+assertEq(common[0].senses[0].definition, bankNorm.entries[0].senses[0].definition,
+  "the common leading sense is not demoted by an incidental match");
+
+assertEq(bankNorm.entries[0].senses.length, 9, "ordering never mutates the model the cache and the vocabulary record share");
+assertEq(bankNorm.entries[0].senses[0].definition, FDA_BANK.entries[0].senses[0].definition, "and never reorders it either");
+assertEq(pbpDictOrderForContext([], "river").length, 0, "no entries is not an error");
+assertEq(pbpDictOrderForContext(null, "river").length, 0, "a missing entry list is not an error");
 
 // Fields that already arrive in every response but went unrendered until now.
 // Shape hand-written from a real freedictionaryapi payload (senses carry tags /

@@ -12,9 +12,13 @@ const PBP_DICT_ORIGIN = "https://freedictionaryapi.com";
 // historically, so for a polysemous word the one a reader wants routinely sits
 // outside the first five: measured on the live API, set has 96 senses, run 69,
 // take 71. Keeping only five discarded the answer before it was ever cached.
-// KEEP is what the model and the cache hold; SHOW is what renders.
+// KEEP is what the model and the cache hold; SHOW is what renders, after the
+// host sentence has had a chance to reorder them.
 const PBP_DICT_SENSE_KEEP = 20;
 const PBP_DICT_SENSE_SHOW = 5;
+// Weight of the API's own sense order when ranking against the sentence.
+// Tuned on the 60-case gold set; see pbpDictOrderForContext.
+const PBP_DICT_SENSE_ORDER_PRIOR = 2;
 const PBP_DICT_EXAMPLE_CAP = 2;
 const PBP_DICT_FORM_CAP = 6;
 const PBP_DICT_IPA_CAP = 3;
@@ -139,6 +143,97 @@ function pbpDictEntriesAreFormOfOnly(rawEntries) {
     }
   }
   return sawSense;
+}
+
+// Sense ranking. The reader is looking at a sentence, and the sentence is the
+// one piece of context already in hand when the popup paints -- unlike the AI
+// gloss, which arrives seconds later on its own stream and would reorder the
+// list under the reader's eyes. So ordering happens once, at first paint, from
+// the sentence alone.
+//
+// This only pays off when the sentence and the definitions share a language,
+// which for English Wiktionary means an English article. Elsewhere -- a Spanish
+// page, a CC-CEDICT Chinese gloss -- every score is zero and the stable sort
+// leaves API order untouched, which is exactly the old behaviour.
+const PBP_DICT_STOPWORDS = new Set(("the of and to in a is that it for on with as was at by an be this from or " +
+  "which but not are have has had were been their they them its his her she him one all any can could would should " +
+  "may might will shall must do does did done make made get got other into more most such than then there these " +
+  "those when where who whom whose what why how also some each very much many out up down over under again " +
+  "between during before after above below off through about against both few own same too only just").split(" "));
+
+// Deliberately crude: enough to make "running" match "run" and "senses" match
+// "sense" without carrying a stemmer. Over-stemming costs a point of precision
+// in a ranking, never correctness.
+function _pbpDictStem(w) {
+  // "running" -> "runn" -> "run": without undoubling, the inflected form never
+  // meets the base form and the whole point of stemming is lost.
+  const undouble = (x) => (/([bdfglmnprt])\1$/.test(x) ? x.slice(0, -1) : x);
+  if (w.length > 5 && w.endsWith("ing")) return undouble(w.slice(0, -3));
+  if (w.length > 4 && w.endsWith("ed")) return undouble(w.slice(0, -2));
+  if (w.length > 4 && w.endsWith("ly")) return w.slice(0, -2);
+  if (w.length > 4 && w.endsWith("es")) return w.slice(0, -2);
+  if (w.length > 3 && w.endsWith("s")) return w.slice(0, -1);
+  return w;
+}
+
+function pbpDictContentTokens(text) {
+  const out = new Set();
+  for (const raw of String(text || "").toLowerCase().split(/[^a-z]+/)) {
+    if (raw.length < 3 || PBP_DICT_STOPWORDS.has(raw)) continue;
+    out.add(_pbpDictStem(raw));
+  }
+  return out;
+}
+
+// Everything the sense carries, not just the definition: examples and synonyms
+// are where a sentence's wording most often shows up.
+function _pbpDictSenseTokens(s) {
+  return pbpDictContentTokens([
+    s.definition, (s.examples || []).join(" "), (s.tags || []).join(" "),
+    (s.synonyms || []).join(" "), (s.subsenses || []).join(" ")
+  ].join(" "));
+}
+
+// Rank senses and entries against the host sentence, then cut to SHOW.
+// Returns a NEW view; norm is never mutated, because the same object is what
+// goes into the cache and what pbpDictSaveCurrent reads senses[0] out of when
+// it writes a vocabulary record.
+function pbpDictOrderForContext(entries, sentence) {
+  const list = Array.isArray(entries) ? entries : [];
+  const ctx = pbpDictContentTokens(sentence);
+  const cut = (e) => ({ ...e, senses: e.senses.slice(0, PBP_DICT_SENSE_SHOW) });
+  if (!ctx.size) return list.map(cut);
+
+  // Rarity is measured across the whole word's sense pool so scores stay
+  // comparable between entries, which is what lets the matching entry lead.
+  const pool = [];
+  for (const e of list) for (const s of e.senses) pool.push(_pbpDictSenseTokens(s));
+  const df = new Map();
+  for (const toks of pool) for (const tok of toks) df.set(tok, (df.get(tok) || 0) + 1);
+  const idf = (tok) => Math.log(1 + pool.length / (1 + (df.get(tok) || 0)));
+
+  let i = 0;
+  const scored = list.map((e) => {
+    const senses = e.senses.map((s, k) => {
+      // API order is itself a prior: the leading senses are the common ones,
+      // and a bag of words will happily demote them on an incidental match.
+      // Measured on the 60-case set, the sentence for "the first person to run
+      // sub-9.7s races" pulled "To move swiftly." out of view in favour of a
+      // competition sense. The prior decays as 1/(1+k) against an idf that
+      // tops out near 3.6, so one rare shared word still wins and one common
+      // one no longer does. Regressions 3 -> 1, gains unchanged at 22; the
+      // plateau runs from 1.5 to 3.0, so this is not a knife-edge fit.
+      let score = PBP_DICT_SENSE_ORDER_PRIOR / (1 + k);
+      for (const tok of _pbpDictSenseTokens(s)) if (ctx.has(tok)) score += idf(tok);
+      return { s, score, i: i++ };
+    });
+    // Stable everywhere: equal scores, and the all-zero case, keep API order.
+    senses.sort((a, b) => (b.score - a.score) || (a.i - b.i));
+    return { e, senses, best: senses.length ? senses[0].score : 0 };
+  });
+  scored.forEach((x, n) => { x.n = n; });
+  scored.sort((a, b) => (b.best - a.best) || (a.n - b.n));
+  return scored.map((x) => ({ ...x.e, senses: x.senses.slice(0, PBP_DICT_SENSE_SHOW).map((y) => y.s) }));
 }
 
 // freedictionaryapi.com response -> internal render model. null when nothing
@@ -504,7 +599,7 @@ function _pbpDictRenderSenses(parent, senses) {
   parent.appendChild(ol);
 }
 
-function _pbpDictRenderEntry(slot, norm, term, lang, selectedTerm) {
+function _pbpDictRenderEntry(slot, norm, term, lang, selectedTerm, sentence) {
   slot.replaceChildren();
   const actual = pbpDictNormalizeTerm(norm.word || term);
   const selected = pbpDictNormalizeTerm(selectedTerm);
@@ -514,7 +609,7 @@ function _pbpDictRenderEntry(slot, norm, term, lang, selectedTerm) {
     matched.textContent = t("dictMatchedHeadword", actual);
     slot.appendChild(matched);
   }
-  for (const e of norm.entries) {
+  for (const e of pbpDictOrderForContext(norm.entries, sentence)) {
     const ent = document.createElement("div");
     ent.className = "xp-dict-entry";
     if (e.ipas.length || e.pos) {
@@ -546,7 +641,7 @@ function _pbpDictRenderEntry(slot, norm, term, lang, selectedTerm) {
       forms.textContent = e.forms.map((f) => f.word + (f.tags.length ? " (" + f.tags.map(_pbpDictTagLabel).join(", ") + ")" : "")).join(" · ");
       ent.appendChild(forms);
     }
-    if (e.senses.length) _pbpDictRenderSenses(ent, e.senses.slice(0, PBP_DICT_SENSE_SHOW));
+    if (e.senses.length) _pbpDictRenderSenses(ent, e.senses);
     slot.appendChild(ent);
   }
   const src = document.createElement("div");
@@ -687,7 +782,7 @@ async function _pbpDictLookupCandidate(lang, term, parentSignal, skipCache) {
 // Returns normalized entry or null; the RUN layer merges into _pbpDictCurrent.
 // onRerun: run-level restart used after a permission grant (never slot-local
 // recursion — Codex HIGH 2).
-async function _pbpDictSlotRun(slot, term, lang, parentSignal, lemmaPromise, onRerun) {
+async function _pbpDictSlotRun(slot, term, lang, parentSignal, lemmaPromise, onRerun, sentence) {
   const exact = pbpDictNormalizeTerm(term);
   if (!lang || !exact) { _pbpDictSlotFallback(slot, t("dictNoEntry"), term); return null; }
   if (lang === "zh") {
@@ -700,7 +795,7 @@ async function _pbpDictSlotRun(slot, term, lang, parentSignal, lemmaPromise, onR
       if (parentSignal && parentSignal.aborted) return null;
       if (local && local.state === "hit") {
         const norm = pbpCedictEntryToNorm(local.rows, local.matched);
-        _pbpDictRenderEntry(slot, norm, local.matched, lang, term);
+        _pbpDictRenderEntry(slot, norm, local.matched, lang, term, sentence);
         // Prefix hits render norm.word, which may be SHORTER than the raw
         // selection; the run-level .then() re-syncs cur.term when this settles.
         return norm;
@@ -718,7 +813,7 @@ async function _pbpDictSlotRun(slot, term, lang, parentSignal, lemmaPromise, onR
   const exactHit = await _pbpDictCacheGet(lang, exact);
   if (parentSignal && parentSignal.aborted) return null;
   if (exactHit) {
-    _pbpDictRenderEntry(slot, exactHit, exact, lang, term);
+    _pbpDictRenderEntry(slot, exactHit, exact, lang, term, sentence);
     return exactHit;
   }
   if (!(await _pbpDictHasPerm())) {
@@ -769,7 +864,7 @@ async function _pbpDictSlotRun(slot, term, lang, parentSignal, lemmaPromise, onR
     if (result.kind !== "hit") return null;
     if (aliasExact) await _pbpDictCacheSet(lang, exact, result.norm);
     if (parentSignal && parentSignal.aborted) return null;
-    _pbpDictRenderEntry(slot, result.norm, candidate, lang, term);
+    _pbpDictRenderEntry(slot, result.norm, candidate, lang, term, sentence);
     return result.norm;
   };
   // A form-of-only answer is a grammar pointer, not a meaning. Hold it back and
@@ -1065,7 +1160,7 @@ async function pbpDictRun(cap, ctx, pop, ctrl, s) {
   _pbpDictEcdictSide(localEl, cap.text, lang, signal, cur);
 
   const results = await Promise.allSettled([
-    _pbpDictSlotRun(onlineEl, cap.text, lang, signal, lemmaPromise, cur.rerun).then((norm) => {
+    _pbpDictSlotRun(onlineEl, cap.text, lang, signal, lemmaPromise, cur.rerun, ctx.sentence).then((norm) => {
       // Sync the defined word the moment the dictionary slot settles -- the
       // speak button is live before the (slower) AI slot finishes.
       if (norm && norm.sourceLabel === "CC-CEDICT" && norm.word && _pbpDictCurrent === cur) cur.term = norm.word;
