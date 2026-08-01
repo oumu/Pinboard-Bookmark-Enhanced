@@ -1952,6 +1952,29 @@ html.motion-ready #panel-vocab .vocab-batch-toolbar.motion-toggle:not([hidden]) 
   border-color: transparent;
   background: transparent;
   position: relative;
+  /* Hover-reveal (device feedback 2026-08): stays in layout for keyboard
+     reach (the .saved-theme-del pattern), fades in on row hover/focus.
+     opacity joins the .btn family's state transition so the reveal and the
+     danger-color shift share one rhythm. */
+  opacity: 0;
+  transition: opacity var(--motion-state) ease, background var(--motion-state), border-color var(--motion-state), color var(--motion-state);
+}
+.notes-card:hover .row-del-x,
+.notes-card:focus-within .row-del-x,
+.row-del-x:focus-visible { opacity: 1; }
+/* Selection checkbox: hidden until the row is interacted with OR it is
+   already part of a selection -- ticked boxes must stay visible as state. */
+.vocab-row-select {
+  opacity: 0;
+  transition: opacity var(--motion-state) ease;
+}
+.vocab-card:hover .vocab-row-select,
+.vocab-card:focus-within .vocab-row-select,
+.vocab-row-select:checked,
+.vocab-row-select:focus-visible { opacity: 1; }
+/* No hover, no reveal: keep both permanently visible on touch-only devices. */
+@media (hover: none) {
+  .row-del-x, .vocab-row-select { opacity: 1; }
 }
 /* Invisible hit-area pad to a >=24x24 click target (WCAG 2.5.8) without
    touching the 19px visual row rhythm: out of flow, no background, sits under
