@@ -49,15 +49,22 @@ function showBatchAiPermission(origins, s) {
 let _batchPermHideTimer = null;
 function hideBatchAiPermission() {
   const panel = $id("batch-permission");
-  if (panel && !panel.classList.contains("hidden")) {
-    // Mirror the fadeSlideDown entrance on the way out (all three callers are
-    // direct responses to a grant/cancel click).
-    clearTimeout(_batchPermHideTimer);
-    panel.classList.add("dismissing");
-    _batchPermHideTimer = setTimeout(() => {
+  if (panel) {
+    if (!panel.classList.contains("hidden")
+        && document.documentElement.classList.contains("motion-ready")) {
+      // Mirror the fadeSlideDown entrance on the way out (all three callers
+      // are direct responses to a grant/cancel click). motion-ready gate keeps
+      // the harness pages on synchronous .hidden semantics.
+      clearTimeout(_batchPermHideTimer);
+      panel.classList.add("dismissing");
+      _batchPermHideTimer = setTimeout(() => {
+        panel.classList.remove("dismissing");
+        panel.classList.add("hidden");
+      }, 120);
+    } else {
       panel.classList.remove("dismissing");
       panel.classList.add("hidden");
-    }, 120);
+    }
   }
   const grant = $id("batch-permission-grant");
   const cancel = $id("batch-permission-cancel");
@@ -289,8 +296,12 @@ function renderBatchProgress(p, currentAccount) {
     setTimeout(() => {
       const restoreFocus = !!progress && document.activeElement === progress;
       if (progress) {
-        progress.classList.add("dismissing");
-        setTimeout(() => { progress.classList.remove("dismissing"); progress.classList.add("hidden"); }, 120);
+        if (document.documentElement.classList.contains("motion-ready")) {
+          progress.classList.add("dismissing");
+          setTimeout(() => { progress.classList.remove("dismissing"); progress.classList.add("hidden"); }, 120);
+        } else {
+          progress.classList.add("hidden");
+        }
       }
       setBtnIcon(batchBtn, "pin", t("batchSaveBtn"));
       batchBtn.disabled = false;

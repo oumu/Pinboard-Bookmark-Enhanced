@@ -193,7 +193,9 @@ async function createBatchClickHarness({ ai = true, contains = false, request = 
 
 async function createUiHarness(storedProgress, now) {
   if (storedProgress) storedProgress = { account: "alice", ...storedProgress };
-  const documentStub = { activeElement: null };
+  // documentElement mirrors a page that never marks motion-ready, so the
+  // progress teardown stays on its synchronous .hidden path under test.
+  const documentStub = { activeElement: null, documentElement: { classList: { contains: () => false } } };
   const elements = {
     "batch-bookmark-btn": fakeElement(),
     "batch-progress": fakeElement(),

@@ -433,10 +433,13 @@ function hideAIError({ animate = false } = {}) {
   const card = $id("ai-error-card");
   if (card) {
     clearTimeout(_aiErrorHideTimer);
-    if (animate && !card.classList.contains("hidden")) {
-      // Dismiss button only. The programmatic call sites clear the card right
-      // before starting a fresh AI op; a 120ms deferred .hidden there would
-      // swallow the next showAIError's card.
+    if (animate && !card.classList.contains("hidden")
+        && document.documentElement.classList.contains("motion-ready")) {
+      // Dismiss button only, and only once motion-ready (same gate as the
+      // shared confirm popover -- keeps the harness pages, which never mark
+      // motion-ready, on synchronous .hidden semantics). The programmatic
+      // call sites clear the card right before starting a fresh AI op; a
+      // 120ms deferred .hidden there would swallow the next card.
       card.classList.add("dismissing");
       _aiErrorHideTimer = setTimeout(() => {
         card.classList.remove("dismissing");
