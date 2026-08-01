@@ -12,6 +12,12 @@ const _PBP_AI_STORE = "entries";
 const _PBP_AI_CACHE_MAX_ENTRIES = 200;
 const _PBP_AI_DICT2_MAX_ENTRIES = 500;
 const _PBP_AI_DICT2_PREFIX = "dict2_";
+// Contextual glosses churn one key per word x sentence x model, while the
+// shared pool's other tenants (tr_/ask_/trview_/skim_) hold one key per
+// ARTICLE -- thirty lookups in one sitting used to evict thirty articles'
+// paid translations. Same bound as dict2_ for the same repeat-heavy reason.
+const _PBP_AI_DICTCTX_MAX_ENTRIES = 500;
+const _PBP_AI_DICTCTX_PREFIX = "dictctx2_";
 const _PBP_AI_SUMMARY_OWNER_MAX_ENTRIES = 500;
 const _PBP_AI_SUMMARY_OWNER_PREFIX = "summary_owner_";
 let _pbpAiDbPromise = null;
@@ -99,12 +105,17 @@ function _pbpAiIsDict2Key(key) {
   return typeof key === "string" && key.startsWith(_PBP_AI_DICT2_PREFIX);
 }
 
+function _pbpAiIsDictCtxKey(key) {
+  return typeof key === "string" && key.startsWith(_PBP_AI_DICTCTX_PREFIX);
+}
+
 function _pbpAiIsSummaryOwnerKey(key) {
   return typeof key === "string" && key.startsWith(_PBP_AI_SUMMARY_OWNER_PREFIX);
 }
 
 function _pbpAiPoolForKey(key) {
   if (_pbpAiIsDict2Key(key)) return "dict2";
+  if (_pbpAiIsDictCtxKey(key)) return "dictctx";
   if (_pbpAiIsSummaryOwnerKey(key)) return "summary-owner";
   return "other";
 }
@@ -115,6 +126,12 @@ function _pbpAiPrefixRange(prefix) {
 
 function _pbpAiDict2Range() {
   return _pbpAiPrefixRange(_PBP_AI_DICT2_PREFIX);
+}
+
+// "dictctx2_" sorts ABOVE "dict2_￿" ('c' > '2' at index 4), so the two
+// prefix ranges cannot overlap.
+function _pbpAiDictCtxRange() {
+  return _pbpAiPrefixRange(_PBP_AI_DICTCTX_PREFIX);
 }
 
 function _pbpAiSummaryOwnerRange() {
@@ -139,10 +156,12 @@ function _pbpAiDeleteOldestInPool(store, overflow, pool) {
 
 function _pbpAiPruneWrittenPool(store, key) {
   const pool = _pbpAiPoolForKey(key);
-  if (pool === "dict2" || pool === "summary-owner") {
-    const range = pool === "dict2" ? _pbpAiDict2Range() : _pbpAiSummaryOwnerRange();
-    const max = pool === "dict2"
-      ? _PBP_AI_DICT2_MAX_ENTRIES
+  if (pool !== "other") {
+    const range = pool === "dict2" ? _pbpAiDict2Range()
+      : pool === "dictctx" ? _pbpAiDictCtxRange()
+      : _pbpAiSummaryOwnerRange();
+    const max = pool === "dict2" ? _PBP_AI_DICT2_MAX_ENTRIES
+      : pool === "dictctx" ? _PBP_AI_DICTCTX_MAX_ENTRIES
       : _PBP_AI_SUMMARY_OWNER_MAX_ENTRIES;
     const countReq = store.count(range);
     countReq.onsuccess = () => {
@@ -153,13 +172,14 @@ function _pbpAiPruneWrittenPool(store, key) {
 
   let totalCount = 0;
   let dict2Count = 0;
+  let dictCtxCount = 0;
   let summaryOwnerCount = 0;
-  let pending = 3;
+  let pending = 4;
   const prune = () => {
     pending--;
     if (pending !== 0) return;
     _pbpAiDeleteOldestInPool(store,
-      Math.max(0, totalCount - dict2Count - summaryOwnerCount)
+      Math.max(0, totalCount - dict2Count - dictCtxCount - summaryOwnerCount)
         - _PBP_AI_CACHE_MAX_ENTRIES,
       "other");
   };
@@ -167,6 +187,8 @@ function _pbpAiPruneWrittenPool(store, key) {
   totalReq.onsuccess = () => { totalCount = totalReq.result || 0; prune(); };
   const dict2Req = store.count(_pbpAiDict2Range());
   dict2Req.onsuccess = () => { dict2Count = dict2Req.result || 0; prune(); };
+  const ctxReq = store.count(_pbpAiDictCtxRange());
+  ctxReq.onsuccess = () => { dictCtxCount = ctxReq.result || 0; prune(); };
   const ownerReq = store.count(_pbpAiSummaryOwnerRange());
   ownerReq.onsuccess = () => { summaryOwnerCount = ownerReq.result || 0; prune(); };
 }
@@ -175,8 +197,9 @@ function _pbpAiPruneWrittenPool(store, key) {
 // count, and ts-LRU pruning. IndexedDB serializes these transactions across
 // connections/tabs, so concurrent writers cannot observe the same overflow
 // and delete it repeatedly. Versioned online dictionary records (exact
-// `dict2_` prefix) and `summary_owner_` receipts each have independent
-// 500-entry pools; every other family shares 200.
+// `dict2_` prefix), contextual glosses (`dictctx2_`) and `summary_owner_`
+// receipts each have independent 500-entry pools; every other family
+// shares 200.
 // `makeResult` is synchronous; append passes the latest value read inside this
 // same transaction, preserving its existing no-lost-update guarantee.
 async function _pbpAiWriteAndPrune(key, makeResult, ts, readExisting) {
