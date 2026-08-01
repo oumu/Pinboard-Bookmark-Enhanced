@@ -493,10 +493,15 @@ check(/mobileTabSelect\.value = btn\.dataset\.panel/.test(optionsJs) &&
 check(/result && typeof result\.catch === "function"\) result\.catch\(reportConfirmError\)/.test(sharedJs),
   "shared.js: asynchronous confirm failures can become unhandled rejections");
 // Leading-edge alignment: the popover is routinely far wider than its anchor, so
-// aligning trailing edges walks it left over the sidebar nav instead.
-check(/anchorRect\.left \+ popRect\.width <= viewportWidth - gap/.test(sharedJs) &&
+// aligning trailing edges walks it left over the sidebar nav instead. The flip
+// bound is the nearest .panel's right edge (falling back to the viewport) --
+// on wide windows the settings card ends far left of the viewport, and a
+// row-trailing anchor used to jut the popover past the card border.
+check(/anchorRect\.left \+ popRect\.width <= rightBound/.test(sharedJs) &&
   /\? Math\.max\(gap, anchorRect\.left\)/.test(sharedJs),
   "shared.js: the confirm popover went back to trailing-edge alignment (it then covers whatever sits left of the anchor)");
+check(/anchor\.closest\("\.panel"\)/.test(sharedJs),
+  "shared.js: the confirm popover lost its panel right-edge clamp (wide windows let it jut past the card border)");
 check(/<input type="password" id="token-input"/.test(popupHtml) && /data-target="token-input"/.test(popupHtml),
   "popup.html: Pinboard token is not masked with a reveal control");
 check(/<input type="password" id="opt-pinboard-token"/.test(optionsHtml) && /data-target="opt-pinboard-token"/.test(optionsHtml),
