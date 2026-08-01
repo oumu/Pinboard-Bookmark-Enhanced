@@ -1920,6 +1920,15 @@ html.motion-ready #panel-vocab .vocab-batch-toolbar.motion-toggle:not([hidden]) 
   color: var(--opt-fg-muted, #888);
   border-color: transparent;
   background: transparent;
+  position: relative;
+}
+/* Invisible hit-area pad to a >=24x24 click target (WCAG 2.5.8) without
+   touching the 19px visual row rhythm: out of flow, no background, sits under
+   the icon so it never intercepts anything else. */
+.row-del-x::before {
+  content: "";
+  position: absolute;
+  inset: -3px -1px;
 }
 .row-del-x:hover {
   color: var(--opt-danger, #c00);

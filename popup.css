@@ -951,6 +951,10 @@ html.dark .batch-progress-text { color: var(--pp-fg); mix-blend-mode: normal; fi
   opacity: 0.7;
 }
 .recent-bm-edit:hover { opacity: 1; color: var(--pp-accent); }
+/* Keyboard parity: both are role=button spans with full key handling but fell
+   back to the UA default ring while every other custom control in this file
+   draws the token ring (.tag-remove / .edit-cancel convention). */
+.recent-bm-edit:focus-visible, .recent-bm-del:focus-visible { outline: 2px solid var(--pp-accent, #4477bb); outline-offset: 1px; }
 .edit-cancel {
   display: inline-block;
   margin-left: var(--pp-sp-3);
@@ -1046,6 +1050,7 @@ html.dark .recent-bm-edit { color: var(--pp-fg-hint); }
 html.dark .edit-cancel { background: rgba(255,255,255,0.12); color: #ddd; }
 html.dark .edit-cancel:hover { background: rgba(255,255,255,0.22); color: var(--pp-danger); }
 html.dark .edit-cancel:focus-visible { outline-color: var(--pp-accent); }
+html.dark .recent-bm-edit:focus-visible, html.dark .recent-bm-del:focus-visible { outline-color: var(--pp-accent); }
 html.dark .preset-btn { color: var(--pp-link); background: #1e2a3a; border-color: #3a4a6a; }
 html.dark .preset-btn.used { color: #444; background: var(--pp-bg2); border-color: #333; }
 html.dark .ql-sep { color: #444; }
@@ -1880,6 +1885,7 @@ html[data-theme] .recent-bm-edit:hover { color: var(--pp-accent); }
 html[data-theme] .edit-cancel { background: color-mix(in srgb, var(--pp-fg) 10%, transparent); color: var(--pp-fg); }
 html[data-theme] .edit-cancel:hover { background: color-mix(in srgb, var(--pp-danger) 20%, transparent); color: var(--pp-danger); }
 html[data-theme] .edit-cancel:focus-visible { outline-color: var(--pp-accent); }
+html[data-theme] .recent-bm-edit:focus-visible, html[data-theme] .recent-bm-del:focus-visible { outline-color: var(--pp-accent); }
 html[data-theme] .offline-bar { background: var(--pp-offline-bg); border-color: var(--pp-offline-bd); color: var(--pp-offline-fg); }
 html[data-theme] .offline-clear { color: var(--pp-danger); }
 html[data-theme] .offline-queue-list { background: color-mix(in srgb, var(--pp-offline-bg) 75%, var(--pp-bg)); border-top-color: var(--pp-offline-bd); }
