@@ -899,8 +899,9 @@ function _pbpKbdHelpInit() {
     btn.type = "button";
     btn.id = "rail-kbd-help-btn";
     btn.className = "rail-kbd-help-btn";
-    btn.textContent = t("kbdHelpRailBtn");
-    btn.title = t("kbdHelpRailBtn"); // recovers full text if the ghost button still wraps/clips at extreme widths
+    btn.innerHTML = PBP_ICONS.keyboard; // static shared constant; label rides title/aria
+    btn.title = t("kbdHelpRailBtn");
+    btn.setAttribute("aria-label", t("kbdHelpRailBtn"));
     btn.addEventListener("click", () => _pbpKbdHelpOpen());
     row.appendChild(btn);
   }
@@ -940,7 +941,9 @@ let _pbpZenInited = false;
 // PBP_SEARCH_NEXT_SVG above -- kept as a local const like those two rather
 // than added to shared.js's PBP_ICONS bank, same precedent). Two arrows
 // pointing outward from center reads as "resize/cycle width."
-const PBP_ZEN_WIDTH_SVG = '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4 2 8l4 4M10 4l4 4-4 4"/></svg>';
+// Alias of the shared width-cycle icon (Lucide move-horizontal) so the
+// zen-bar and rail entry points stay pixel-identical with the family.
+const PBP_ZEN_WIDTH_SVG = typeof PBP_ICONS !== "undefined" ? PBP_ICONS.widthCycle : "";
 
 // This file's own copy of md-preview.js's pbpScrollMapBlocks() body (see
 // the header comment above) against the same genuinely page-global
@@ -1108,7 +1111,8 @@ function _pbpZenUpdateWidthBtn() {
   }
   const railBtn = document.getElementById("rail-width-btn");
   if (railBtn) {
-    railBtn.textContent = _pbpZenWidth + "px";
+    // Icon-only cell: the step value lives in title/aria (label already
+    // concatenates it), never in textContent -- that would wipe the SVG.
     railBtn.setAttribute("aria-label", label);
     railBtn.title = label;
   }
@@ -1272,9 +1276,10 @@ function _pbpZenInit() {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.id = "rail-zen-btn";
-    btn.className = "rail-kbd-help-btn"; // spec sec.1.1: reuse the existing rail-bottom text-button visual, don't fork a near-duplicate rule
-    btn.textContent = t("zenEnterBtn");
-    btn.title = t("zenEnterBtn"); // recovers full text if the ghost button still wraps/clips at extreme widths
+    btn.className = "rail-kbd-help-btn"; // spec sec.1.1: reuse the existing rail-bottom visual, don't fork a near-duplicate rule
+    btn.innerHTML = PBP_ICONS.zen; // static shared constant; label rides title/aria
+    btn.title = t("zenEnterBtn");
+    btn.setAttribute("aria-label", t("zenEnterBtn"));
     btn.addEventListener("click", () => _pbpZenEnter());
     row.appendChild(btn);
     // Unified-width round: with --pbp-width governing normal mode too, the
@@ -1287,6 +1292,7 @@ function _pbpZenInit() {
     widthBtn.type = "button";
     widthBtn.id = "rail-width-btn";
     widthBtn.className = "rail-kbd-help-btn";
+    widthBtn.innerHTML = PBP_ZEN_WIDTH_SVG; // current step value rides title/aria (_pbpZenUpdateWidthBtn)
     widthBtn.addEventListener("click", _pbpZenCycleWidth);
     row.appendChild(widthBtn);
     _pbpZenUpdateWidthBtn();

@@ -2963,38 +2963,36 @@ html.motion-ready :is(#search-pop, #kbd-help-pop, #pb-hl-card):popover-open {
 
 /* Rail-bottom unobtrusive entry ROW (spec sec.1.1/5.2, R2 batch; ghost-button
    density pass spec 2026-07-12 sec.1.6): a shared flex row appended as
-   #rail's LAST child (after #toc) by _pbpRailBottomRow -- holds every small
-   rail-bottom text button. .rail-kbd-help-btn is shared by both buttons
-   (kbd-help + zen entry). flex-wrap on the row + flex:1 1 96px on each
-   button (rather than a truncating flex:1 + ellipsis) lets a long
-   translation (e.g. German's zenEnterBtn) wrap onto a second line instead
-   of clipping -- same wrap-not-truncate call as .exp-toggles above. Flex's
-   default align-items:stretch then keeps both buttons in a row equal
-   height even when only one wraps to two lines. A transparent 1px border
-   is reserved at rest (ghost button: invisible bg/border) so hover/
-   focus-visible painting var(--btn-border)/var(--btn-hover) causes no layout
-   shift -- hover state changing color is allowed (spec: hover != popup).
-   Uses --btn-hover, not --btn-bg: --btn-bg is literally the same value as
-   --surface (the rail's own background), so painting --btn-bg here would
-   be a visible no-op. */
+   #rail's LAST child (after #toc) by _pbpRailBottomRow. Icon tray since the
+   2026-08 icon audit: four ghost cells (keyboard / zen / width / "Aa"),
+   labels + the width step value ride title/aria, so the 256px rail no
+   longer wraps under de/ru text. "Aa" stays a Latin text glyph -- it IS the
+   typography icon, and plain Latin carries no slow-font risk. A transparent
+   1px border is reserved at rest so hover/focus-visible painting
+   var(--btn-border)/var(--btn-hover) causes no layout shift. Uses
+   --btn-hover, not --btn-bg: --btn-bg equals --surface (the rail's own
+   background), so painting it here would be a visible no-op. */
 .rail-bottom-row {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  gap: 4px;
   margin-top: 10px;
 }
 .rail-kbd-help-btn {
-  flex: 1 1 96px;
-  min-width: 0;
-  padding: 6px 8px;
+  flex: 1 1 auto;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
   border: 1px solid transparent;
   border-radius: 6px;
   background: transparent;
   color: var(--fg-muted);
-  font-size: 12px; /* sm tier; was the half-step 11.5 */
+  font-size: 12px; /* the "Aa" text cell */
   text-align: center;
   cursor: pointer;
 }
+.rail-kbd-help-btn svg { width: 15px; height: 15px; }
 .rail-kbd-help-btn:hover, .rail-kbd-help-btn:focus-visible {
   color: var(--link);
   border-color: var(--btn-border);
