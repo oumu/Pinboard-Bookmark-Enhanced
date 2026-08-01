@@ -1688,13 +1688,21 @@ html[data-theme] .preset-preview-content { background: var(--opt-bg); color: var
   gap: var(--opt-sp-4);
   margin: var(--opt-sp-4) 0 var(--opt-sp-5);
 }
-/* The vocab variant carries a fourth control (status filter). Without its
-   own column count the extra select fell into an implicit second grid row
-   at whatever width happened to be left over. The narrow-viewport media
-   block below still collapses it to a single column. */
+/* The vocab variant carries a fourth control (status filter). Flex, not a
+   wider grid: grid columns can neither wrap nor shrink a select below its
+   longest option, which let the status filter punch through the panel
+   border at pre-mobile widths (real-device report). One row when it fits,
+   controls wrap one by one when it doesn't. */
 .vocab-filter-toolbar {
-  grid-template-columns: minmax(180px, 1fr) auto auto auto;
+  display: flex;
+  flex-wrap: wrap;
 }
+.vocab-filter-toolbar input[type="search"] {
+  flex: 1 1 220px;
+  width: auto;
+  min-width: 0;
+}
+.vocab-filter-toolbar select { flex: 0 1 auto; min-width: 0; }
 .notes-toolbar input[type="search"] {
   width: 100%;
   padding: var(--opt-sp-2) var(--opt-sp-4);
@@ -1718,9 +1726,6 @@ html[data-theme] .preset-preview-content { background: var(--opt-bg); color: var
 }
 .notes-toolbar input[type="search"]:focus-visible {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--opt-accent) 18%, transparent);
-}
-.vocab-filter-toolbar {
-  grid-template-columns: minmax(220px, 1fr) minmax(130px, auto) minmax(130px, auto);
 }
 .vocab-batch-toolbar input[type="text"] {
   min-width: 0;
@@ -1848,21 +1853,23 @@ html[data-theme] .preset-preview-content { background: var(--opt-bg); color: var
   font-size: 12px;
   color: var(--opt-fg-muted, #666);
 }
-/* Ghost variant of the .btn family: quiet until pointed at, then it says
-   what it deletes in the danger palette the batch-delete button already uses. */
-.vocab-row-del {
+/* Ghost X of the .btn family, shared by the vocab and notes rows: quiet
+   until pointed at, then the danger palette the batch-delete button already
+   uses. line-height 0 collapses the icon's line box to the same ~19px the
+   neighbouring text .btn-sm (the notes row's URL button) resolves to. */
+.row-del-x {
   padding: var(--opt-sp-1) var(--opt-sp-2);
   line-height: 0;
   color: var(--opt-fg-muted, #888);
   border-color: transparent;
   background: transparent;
 }
-.vocab-row-del:hover {
+.row-del-x:hover {
   color: var(--opt-danger, #c00);
   border-color: color-mix(in srgb, var(--opt-danger, #c00) 55%, var(--opt-border, #ccc));
   background: var(--opt-danger-bg, rgba(220, 80, 80, 0.08));
 }
-.vocab-row-del .btn-ic { display: inline-flex; }
+.row-del-x .btn-ic { display: inline-flex; }
 .vocab-group-chip {
   padding: 0 var(--opt-sp-2);
   border-radius: var(--opt-radius-full);
@@ -2259,6 +2266,10 @@ html.motion-ready .notes-card.motion-toggle .notes-card-chevron {
     grid-template-columns: 1fr;
     align-items: stretch;
   }
+  /* Flex variant of the toolbar: stack every control full-width, matching
+     the single-column grid the notes tab collapses to. */
+  .vocab-filter-toolbar input[type="search"],
+  .vocab-filter-toolbar select { flex: 1 1 100%; }
   .notes-card-top {
     grid-template-columns: 1fr;
   }

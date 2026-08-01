@@ -225,8 +225,12 @@ function _pbpNotesBuildRow(entry) {
 
   const delBtn = document.createElement("button");
   delBtn.type = "button";
-  delBtn.className = "btn btn-sm notes-row-del";
-  delBtn.textContent = t("notesDeleteBtn");
+  delBtn.className = "btn btn-sm notes-row-del row-del-x";
+  // Icon-only, same ghost X as the vocab rows; the name lives in
+  // title/aria-label and the line box matches the URL button beside it.
+  setBtnIcon(delBtn, "cross", "");
+  delBtn.title = t("notesDeleteBtn");
+  delBtn.setAttribute("aria-label", t("notesDeleteBtn"));
   delBtn.addEventListener("click", (e) => {
     e.preventDefault();
     e.stopPropagation();

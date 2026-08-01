@@ -210,7 +210,7 @@ function _pbpVocabBuildRow(w, index) {
 
   const delBtn = document.createElement("button");
   delBtn.type = "button";
-  delBtn.className = "btn btn-sm notes-row-del vocab-row-del";
+  delBtn.className = "btn btn-sm notes-row-del row-del-x";
   // Icon-only: the full sentence ate a third of every row. The name lives in
   // title/aria-label; the confirm popover still anchors to the button.
   setBtnIcon(delBtn, "cross", "");
