@@ -1212,7 +1212,13 @@ async function pbpDictRun(cap, ctx, pop, ctrl, s) {
   const norm = results[0].status === "fulfilled" ? results[0].value : null;
   const parsed = results[1].status === "fulfilled" ? results[1].value : null;
   if (norm) {
-    const first = norm.entries[0];
+    // The reader saves what they see. The slot renders the context-ordered
+    // view, so the persisted gloss/ipa must read the SAME view -- reading
+    // norm.entries[0] (API order) can save a different sense from the one on
+    // top of the screen. norm itself stays untouched: it is the object in the
+    // dict2_ cache.
+    const ordered = pbpDictOrderForContext(norm.entries, cur.sentence);
+    const first = ordered[0];
     cur.ipa = first && first.ipas[0] ? first.ipas[0].text : "";
     cur.sourceUrl = norm.sourceUrl;
     cur.license = norm.license;
@@ -1233,7 +1239,16 @@ async function pbpDictRun(cap, ctx, pop, ctrl, s) {
   if (vocabBtn && vocabBtn.dataset.runId === String(runId)) {
     const hit = await pbpVocabGet(pbpDictVocabKey(cur.owner, effectiveLang, cur.term));
     if (signal.aborted || _pbpDictCurrent !== cur || vocabBtn.dataset.runId !== String(runId)) return;
-    if (hit) { cur.saved = true; vocabBtn.textContent = t("dictUpdateVocab"); }
+    if (hit) {
+      cur.saved = true;
+      // Icon + tooltip, same contract as the initial setup above: textContent
+      // would strip the SVG and overflow the 1.9em icon-only foot button.
+      if (typeof _pbpExplainIconBtn === "function") {
+        _pbpExplainIconBtn(vocabBtn, PBP_EXPLAIN_DONE_SVG, t("dictUpdateVocab"));
+      } else {
+        vocabBtn.textContent = t("dictUpdateVocab");
+      }
+    }
     vocabBtn.disabled = false;
   }
 }
