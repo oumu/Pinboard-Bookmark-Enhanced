@@ -2886,6 +2886,9 @@
     "vocabInvertSelection": {
       "message": "選択を反転"
     },
+    "vocabClearSelection": {
+      "message": "選択を解除"
+    },
     "vocabBatchActions": {
       "message": "選択した単語の操作"
     },

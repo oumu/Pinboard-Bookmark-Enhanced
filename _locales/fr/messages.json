@@ -2886,6 +2886,9 @@
     "vocabInvertSelection": {
       "message": "Inverser la sélection"
     },
+    "vocabClearSelection": {
+      "message": "Effacer la sélection"
+    },
     "vocabBatchActions": {
       "message": "Actions sur les mots sélectionnés"
     },

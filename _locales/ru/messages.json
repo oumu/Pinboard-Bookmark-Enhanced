@@ -2886,6 +2886,9 @@
     "vocabInvertSelection": {
       "message": "Инвертировать выбор"
     },
+    "vocabClearSelection": {
+      "message": "Снять выделение"
+    },
     "vocabBatchActions": {
       "message": "Действия с выбранными словами"
     },

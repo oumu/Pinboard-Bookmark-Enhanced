@@ -231,12 +231,19 @@ check(!mdDict.includes('indexedDB.open(_PBP_VOCAB_DB_NAME'),
 check(vocabStore.includes("function _pbpVocabLocalMutation") && vocabStore.includes("tx.abort()") &&
   vocabStore.includes("tx.oncomplete") && vocabStore.includes("pbpVocabBatchAddGroup"),
   "vocab-store.js: vocabulary batch mutations are not one owner-checked atomic transaction");
-// The batch tools live in the context bar's .vocab-ctx-batch layer since the
-// selection-bar redesign (2026-08): visibility-toggled in place, never
-// hidden-attribute/display driven, so the card list cannot be reflowed.
-check(optionsCss.includes(".vocab-filter-toolbar") && optionsCss.includes(".vocab-ctx-batch") &&
-  optionsCss.includes(".vocab-context-bar") && optionsCss.includes(".vocab-card .notes-card-top"),
-  "options.css: scalable vocabulary responsive layout is missing");
+// The batch tools live in a sticky bar inside .vocab-list-region since the
+// floating-bar redesign (2026-08): the wrapper is the sticky containing
+// block, so the bar can never float over the sections below the list, and
+// the browse state reserves zero geometry above the cards.
+check(optionsCss.includes(".vocab-filter-toolbar") && optionsCss.includes(".vocab-list-region") &&
+  /\.vocab-batch-bar\s*\{[\s\S]{0,500}position:\s*sticky[\s\S]{0,500}z-index:\s*var\(--opt-z-sticky\)/.test(optionsCss) &&
+  optionsCss.includes(".vocab-card .notes-card-top"),
+  "options.css: sticky vocabulary batch bar contract is missing");
+check(optionsHtml.indexOf('class="vocab-list-region"') > 0 &&
+  optionsHtml.indexOf('class="vocab-list-region"') < optionsHtml.indexOf('id="vocab-list"') &&
+  optionsHtml.indexOf('id="vocab-load-more"') < optionsHtml.indexOf('id="vocab-batch-toolbar"') &&
+  /<div class="vocab-batch-bar" id="vocab-batch-toolbar"/.test(optionsHtml),
+  "options.html: batch bar is not a sticky-region child after the load-more control");
 check(/#panel-vocab\s+\.vocab-load-more\[hidden\][\s\S]{0,80}display:\s*none/.test(optionsCss),
   "options.css: vocabulary hidden controls can be redisplayed by component display rules");
 check(optionsVocabJs.includes('t("vocabLoading")') &&

@@ -2886,6 +2886,9 @@
     "vocabInvertSelection": {
       "message": "反选"
     },
+    "vocabClearSelection": {
+      "message": "清除选择"
+    },
     "vocabBatchActions": {
       "message": "选中生词的操作"
     },

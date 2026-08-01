@@ -711,40 +711,47 @@
         </select>
         </div>
       </div>
-      <!-- Context bar (selection-bar pattern): one fixed slot whose content
-           morphs between browse (count) and selection (batch tools) -- the
-           batch tools never enter the flow, so the card list never moves. -->
+      <!-- Count line: identical in browse and selection. The batch tools
+           live in the sticky bar inside .vocab-list-region below -- nothing
+           here reserves geometry for them. The status message rides inline
+           at the right edge instead of holding a line of its own. -->
       <div class="vocab-context-bar" id="vocab-context-bar">
         <span class="vocab-ctx-text">
           <span id="vocab-count" class="notes-count" aria-live="polite"></span>
-          <span id="vocab-selected-count" class="notes-count" aria-live="polite"></span>
         </span>
         <div class="vocab-selection-actions" role="group" data-i18n-aria="vocabSelectionActions" aria-label="Selection actions">
           <button type="button" class="btn btn-sm" id="vocab-select-all" data-i18n="vocabSelectAll">Select all</button>
-          <button type="button" class="btn btn-sm" id="vocab-invert-selection" data-i18n="vocabInvertSelection">Invert selection</button>
         </div>
-        <div class="vocab-ctx-batch" id="vocab-batch-toolbar" role="group" data-i18n-aria="vocabBatchActions" aria-label="Actions for selected words">
-        <!-- Input + stepper unit (icon audit P0): +/- are icon-only because the
-             Group-name placeholder disambiguates them; full labels stay in
-             title/aria (remove's title is JS-owned, see _pbpVocabSyncSelectionUi). -->
-        <span class="vocab-group-unit">
-          <input type="text" id="vocab-group-input" list="vocab-group-list" data-no-autosave placeholder="Group name" data-i18n-placeholder="vocabGroupNamePlaceholder" data-i18n-aria="vocabGroupNamePlaceholder" aria-label="Group name" autocomplete="off" />
-          <datalist id="vocab-group-list"></datalist>
-          <button type="button" class="btn btn-sm vocab-group-step" id="vocab-add-group" data-i18n-title="vocabAddToGroup" data-i18n-aria="vocabAddToGroup"><span class="btn-ic" data-ic="plus"></span></button>
-          <button type="button" class="btn btn-sm vocab-group-step" id="vocab-remove-group" data-i18n-aria="vocabRemoveFromGroup"><span class="btn-ic" data-ic="minus"></span></button>
-        </span>
-        <span class="vocab-batch-cluster">
-          <button type="button" class="btn btn-sm" id="vocab-mark-known" data-i18n="vocabMarkKnown">Mark as known</button>
-          <button type="button" class="btn btn-sm" id="vocab-mark-learning" data-i18n="vocabMarkLearning">Back to learning</button>
-        </span>
-        <button type="button" class="btn btn-sm danger" id="vocab-batch-delete" data-i18n="vocabBatchDelete">Delete selected</button>
-        </div>
+        <span class="save-status vocab-main-status" id="vocab-status" role="status" aria-live="polite"></span>
       </div>
-      <span class="save-status vocab-main-status" id="vocab-status" role="status" aria-live="polite"></span>
       <div id="vocab-empty" class="notes-empty" hidden>No saved words yet. Save words from the reader's dictionary view.</div>
       <div id="vocab-no-results" class="notes-empty" data-i18n="vocabNoResults" hidden>No words match the current filters.</div>
-      <div id="vocab-list" role="list" data-i18n-aria="vocabListAria" aria-label="Saved vocabulary" aria-busy="false"></div>
-      <button type="button" class="btn btn-sm vocab-load-more" id="vocab-load-more" hidden>Load more</button>
+      <!-- Sticky boundary: the batch bar floats ONLY within this wrapper.
+           The bar MUST stay a direct child -- any intermediate wrapper
+           becomes its containing block and kills the float range. -->
+      <div class="vocab-list-region">
+        <div id="vocab-list" role="list" data-i18n-aria="vocabListAria" aria-label="Saved vocabulary" aria-busy="false"></div>
+        <button type="button" class="btn btn-sm vocab-load-more" id="vocab-load-more" hidden>Load more</button>
+        <div class="vocab-batch-bar" id="vocab-batch-toolbar" role="group" data-i18n-aria="vocabBatchActions" aria-label="Actions for selected words">
+          <span id="vocab-selected-count" class="notes-count" aria-live="polite"></span>
+          <button type="button" class="btn btn-sm vocab-ghost-btn" id="vocab-invert-selection" data-i18n="vocabInvertSelection">Invert selection</button>
+          <!-- Input + stepper unit (icon audit P0): +/- are icon-only because the
+               Group-name placeholder disambiguates them; full labels stay in
+               title/aria (remove's title is JS-owned, see _pbpVocabSyncSelectionUi). -->
+          <span class="vocab-group-unit">
+            <input type="text" id="vocab-group-input" list="vocab-group-list" data-no-autosave placeholder="Group name" data-i18n-placeholder="vocabGroupNamePlaceholder" data-i18n-aria="vocabGroupNamePlaceholder" aria-label="Group name" autocomplete="off" />
+            <datalist id="vocab-group-list"></datalist>
+            <button type="button" class="btn btn-sm vocab-group-step" id="vocab-add-group" data-i18n-title="vocabAddToGroup" data-i18n-aria="vocabAddToGroup"><span class="btn-ic" data-ic="plus"></span></button>
+            <button type="button" class="btn btn-sm vocab-group-step" id="vocab-remove-group" data-i18n-aria="vocabRemoveFromGroup"><span class="btn-ic" data-ic="minus"></span></button>
+          </span>
+          <span class="vocab-batch-cluster">
+            <button type="button" class="btn btn-sm" id="vocab-mark-known" data-i18n="vocabMarkKnown">Mark as known</button>
+            <button type="button" class="btn btn-sm" id="vocab-mark-learning" data-i18n="vocabMarkLearning">Back to learning</button>
+          </span>
+          <button type="button" class="btn btn-sm danger" id="vocab-batch-delete" data-i18n="vocabBatchDelete">Delete selected</button>
+          <button type="button" class="btn btn-sm vocab-clear-selection" id="vocab-clear-selection" data-i18n-title="vocabClearSelection" data-i18n-aria="vocabClearSelection" aria-label="Clear selection" title="Clear selection"><span class="btn-ic" data-ic="cross"></span></button>
+        </div>
+      </div>
 
       <details class="vocab-disclosure" data-acc-key="vocab-reading">
         <summary data-i18n="vocabReadingSection">Reading hints</summary>

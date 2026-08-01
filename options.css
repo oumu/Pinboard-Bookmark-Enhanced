@@ -1776,7 +1776,7 @@ html[data-theme] .preset-preview-content { background: var(--opt-bg); color: var
 .notes-toolbar input[type="search"]:focus-visible {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--opt-accent) 18%, transparent);
 }
-.vocab-ctx-batch input[type="text"] {
+.vocab-batch-bar input[type="text"] {
   min-width: 0;
   padding: var(--opt-sp-2) var(--opt-sp-4);
   border: 1px solid var(--opt-input-border, #cdd1d6);
@@ -1787,7 +1787,7 @@ html[data-theme] .preset-preview-content { background: var(--opt-bg); color: var
   font-size: 12px;
   box-sizing: border-box;
 }
-.vocab-ctx-batch input[type="text"]:focus-visible {
+.vocab-batch-bar input[type="text"]:focus-visible {
   outline: 2px solid var(--opt-accent);
   outline-offset: 1px;
 }
@@ -1840,41 +1840,24 @@ html[data-theme] .preset-preview-content { background: var(--opt-bg); color: var
 @supports selector(::picker(select)) {
   .vocab-filter-toolbar select { appearance: base-select; }
 }
-/* Context bar (selection-bar pattern, device round): ONE fixed slot whose
-   content morphs between browse and selection. The batch tools never enter
-   the document flow -- their invisible state keeps its geometry (visibility,
-   not display/hidden), so the card list below never moves, which is the
-   whole point of the redesign. */
+/* Count line: one row, identical in browse and selection. The status
+   message rides inline at the right edge -- it never reserves a line of
+   its own. The batch tools live in the sticky bar below the list. */
 .vocab-context-bar {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
   gap: var(--opt-sp-3) var(--opt-sp-4);
   margin: 0 0 var(--opt-sp-4);
   min-height: 28px;
 }
-/* The two count lines stack in one grid cell and crossfade; the hidden one
-   drops out of the a11y tree via visibility (delayed to the fade's end on
-   the way out, immediate on the way in). */
 .vocab-ctx-text { display: grid; align-items: center; min-width: 0; }
 .vocab-ctx-text > .notes-count {
-  grid-area: 1 / 1;
   min-width: 0;
   white-space: normal;
-  /* The count is no longer a weak line squeezed between button rows; let it
-     carry the bar. */
   font-weight: 500;
   color: var(--opt-fg, #333);
-  transition: opacity var(--motion-pop) var(--ease-out), visibility 0s var(--motion-pop);
 }
-#vocab-selected-count { opacity: 0; visibility: hidden; }
-.vocab-context-bar.selecting #vocab-count { opacity: 0; visibility: hidden; }
-.vocab-context-bar.selecting #vocab-selected-count {
-  opacity: 1;
-  visibility: visible;
-  transition: opacity var(--motion-pop) var(--ease-out), visibility 0s;
-}
-/* Selection links ride next to the text in BOTH states, quiet ghost tier
+/* Select all rides next to the count in BOTH states, quiet ghost tier
    (the .row-del-x treatment): always relevant, never boxed. */
 .vocab-selection-actions { display: inline-flex; align-items: center; gap: var(--opt-sp-2); flex: none; }
 .vocab-selection-actions .btn { border-color: transparent; background: transparent; color: var(--opt-fg-muted, #666); }
@@ -1883,25 +1866,76 @@ html[data-theme] .preset-preview-content { background: var(--opt-bg); color: var
   color: var(--opt-fg, #111);
   background: color-mix(in srgb, var(--opt-fg, #333) 6%, var(--opt-bg, #fff));
 }
-/* Batch layer: right-aligned, flat (no boxed sub-panel -- grouping is
-   positional now), fades as one unit. Reserved geometry means zero shift. */
-.vocab-ctx-batch {
+/* Sticky boundary wrapper: the bar floats only while this region is on
+   screen; past its end the bar docks and scrolls away with the list. */
+.vocab-list-region { position: relative; }
+/* Batch bar: sticky DIRECT child of the region (an intermediate wrapper
+   would become the containing block and cap the float range at the bar's
+   own height). Dock-slot growth and bar arrival are ONE transition set --
+   the below-sections shift only ever moves in lockstep with the bar
+   fading in, never jump-then-appear. */
+.vocab-batch-bar {
+  position: sticky;
+  bottom: 12px;
+  z-index: var(--opt-z-sticky);
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: var(--opt-sp-3) var(--opt-sp-5);
-  margin-left: auto;
-  min-width: 0;
+  gap: var(--opt-sp-3) var(--opt-sp-4);
+  width: fit-content;
+  max-width: 100%;
+  margin: var(--opt-sp-4) auto 0;
+  box-sizing: border-box;
+  interpolate-size: allow-keywords;
+  height: 0;
+  padding: 0 var(--opt-sp-4);
+  border: 0 solid var(--opt-input-border, #cdd1d6);
+  border-radius: var(--opt-radius-lg);
+  overflow: clip;
+  background: var(--opt-bg, #fff);
+  box-shadow: 0 6px 24px color-mix(in srgb, var(--opt-fg, #000) 18%, transparent),
+              0 2px 8px color-mix(in srgb, var(--opt-fg, #000) 10%, transparent);
   opacity: 0;
   visibility: hidden;
-  transition: opacity var(--motion-pop) var(--ease-out), visibility 0s var(--motion-pop);
+  transform: translateY(8px);
 }
-.vocab-context-bar.selecting .vocab-ctx-batch {
+.vocab-batch-bar.selecting {
+  height: auto;
+  padding: var(--opt-sp-3) var(--opt-sp-4);
+  border-width: 1px;
   opacity: 1;
   visibility: visible;
-  transition: opacity var(--motion-pop) var(--ease-out), visibility 0s;
+  transform: none;
 }
-.vocab-ctx-batch input[type="text"] { flex: 1 1 120px; min-width: 0; }
+/* Transitions ride behind the motion-ready gate (codebase convention: no
+   load-time motion); the global reduced-motion blanket (~:1395) collapses
+   them to 0.01ms. */
+html.motion-ready .vocab-batch-bar {
+  transition: height var(--motion-collapse) var(--ease-out),
+              padding var(--motion-collapse) var(--ease-out),
+              border-width var(--motion-collapse) var(--ease-out),
+              opacity var(--motion-pop-out) var(--ease-out),
+              transform var(--motion-pop-out) var(--ease-out),
+              visibility 0s var(--motion-collapse);
+}
+html.motion-ready .vocab-batch-bar.selecting {
+  transition: height var(--motion-collapse) var(--ease-out),
+              padding var(--motion-collapse) var(--ease-out),
+              border-width var(--motion-collapse) var(--ease-out),
+              opacity var(--motion-pop) var(--ease-out),
+              transform var(--motion-pop) var(--ease-out),
+              visibility 0s;
+}
+.vocab-batch-bar .notes-count { flex: none; font-weight: 500; color: var(--opt-fg, #333); }
+.vocab-ghost-btn { border-color: transparent; background: transparent; color: var(--opt-fg-muted, #666); }
+.vocab-ghost-btn:hover {
+  border-color: transparent;
+  color: var(--opt-fg, #111);
+  background: color-mix(in srgb, var(--opt-fg, #333) 6%, var(--opt-bg, #fff));
+}
+.vocab-clear-selection { padding-inline: var(--opt-sp-2); }
+.vocab-clear-selection .btn-ic { display: inline-flex; margin: 0; }
+.vocab-batch-bar input[type="text"] { flex: 1 1 120px; min-width: 0; }
 /* Input + stepper unit: one visual control, native-stepper style. The two
    icon-only steppers are fixed 28px cells fused to the input's right edge. */
 .vocab-group-unit { display: inline-flex; align-items: stretch; flex: 1 1 200px; min-width: 150px; max-width: 320px; }
@@ -1910,7 +1944,14 @@ html[data-theme] .preset-preview-content { background: var(--opt-bg); color: var
 .vocab-group-step:last-of-type { border-top-right-radius: var(--opt-radius-md); border-bottom-right-radius: var(--opt-radius-md); }
 .vocab-group-step .btn-ic { display: inline-flex; margin: 0; vertical-align: 0; }
 .vocab-batch-cluster { display: inline-flex; gap: var(--opt-sp-2); flex: none; }
-.vocab-main-status { display: block; min-height: 18px; margin: 0 0 var(--opt-sp-3); }
+.vocab-main-status {
+  margin-left: auto;
+  min-width: 0;
+  min-height: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .vocab-load-more { display: block; margin: var(--opt-sp-4) auto var(--opt-sp-5); }
 #panel-vocab .vocab-load-more[hidden] { display: none; }
 #panel-vocab,
@@ -2520,7 +2561,7 @@ html.motion-ready .vocab-note-save[hidden] { display: none; opacity: 0; translat
      change bar height here -- acceptable at widths where everything wraps).
      Steppers stay excluded from the stretch: flexing them to 130px would
      turn the fused input unit into three detached slabs. */
-  .vocab-ctx-batch { flex-basis: 100%; margin-left: 0; align-items: stretch; }
-  .vocab-ctx-batch .btn:not(.vocab-group-step) { flex: 1 1 130px; }
-  .vocab-ctx-batch .vocab-batch-cluster { display: flex; flex: 1 1 100%; }
+  .vocab-batch-bar { width: auto; margin-inline: 0; }
+  .vocab-batch-bar .btn:not(.vocab-group-step):not(.vocab-clear-selection) { flex: 1 1 130px; }
+  .vocab-batch-bar .vocab-batch-cluster { display: flex; flex: 1 1 100%; }
 }

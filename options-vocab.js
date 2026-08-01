@@ -469,10 +469,11 @@ function _pbpVocabSyncSelectionUi() {
   if (listEl) listEl.classList.toggle("selecting", selectedCount > 0);
   const selectedEl = $id("vocab-selected-count");
   if (selectedEl) selectedEl.textContent = t("vocabSelectedCount", String(selectedCount));
-  // Context bar: browse/selection content swap in ONE fixed slot (the batch
-  // layer keeps its geometry via visibility, so the card list never moves).
-  const bar = $id("vocab-context-bar");
-  if (bar) bar.classList.toggle("selecting", selectedCount > 0);
+  // Batch bar: shown only while a selection exists; the .selecting class
+  // drives the dock-slot growth and fade as ONE transition set, so the
+  // sections below the list only ever move in lockstep with the bar.
+  const toolbar = $id("vocab-batch-toolbar");
+  if (toolbar) toolbar.classList.toggle("selecting", selectedCount > 0);
   const allBtn = $id("vocab-select-all");
   const invertBtn = $id("vocab-invert-selection");
   if (allBtn) allBtn.disabled = _vocabBatchBusy || !_vocabViewRows.length;
@@ -620,7 +621,7 @@ function _pbpVocabClearVisibleState() {
   _pbpVocabSetLoading(true);
   const count = $id("vocab-count");
   if (count) count.textContent = "";
-  // (The batch layer is no longer hidden-attribute driven; the context bar's
+  // (The batch bar is class-driven, not hidden-attribute driven; its
   // .selecting class clears via _pbpVocabSyncSelectionUi right below.)
   for (const id of ["vocab-empty", "vocab-no-results", "vocab-load-more"]) {
     const el = $id(id); if (el) el.hidden = true;
@@ -1533,6 +1534,15 @@ const _vocabSortSelect = $id("vocab-sort");
 if (_vocabSortSelect) _vocabSortSelect.addEventListener("change", () => {
   _vocabLastSelectedId = null;
   _pbpVocabApplyView(true);
+});
+const _vocabClearBtn = $id("vocab-clear-selection");
+if (_vocabClearBtn) _vocabClearBtn.addEventListener("click", () => {
+  _pbpVocabClearSelection();
+  _pbpVocabSyncSelectionUi();
+  // The bar (with the clicked button) just hid: hand focus to the nearest
+  // persistent selection control instead of letting it fall to <body>.
+  const allBtn = $id("vocab-select-all");
+  if (allBtn) { try { allBtn.focus({ preventScroll: true }); } catch (_) { allBtn.focus(); } }
 });
 const _vocabSelectAll = $id("vocab-select-all");
 if (_vocabSelectAll) _vocabSelectAll.addEventListener("click", () => {
