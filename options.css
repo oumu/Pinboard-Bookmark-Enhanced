@@ -1752,7 +1752,10 @@ html[data-theme] .preset-preview-content { background: var(--opt-bg); color: var
    needs the dark variant (~:938). */
 .vocab-filter-toolbar select {
   min-width: 0;
-  width: 100%;
+  /* width:auto, NOT 100%: in the grid era 100% meant "fill your own auto
+     track"; under the flex toolbar it becomes the flex basis and parks
+     every select on its own full-width row. Content-sized is the point. */
+  width: auto;
   padding: var(--opt-sp-3) 26px var(--opt-sp-3) var(--opt-sp-5);
   border: 1px solid var(--opt-input-border, #cdd1d6);
   border-radius: var(--opt-radius-md);
