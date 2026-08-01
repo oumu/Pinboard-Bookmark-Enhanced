@@ -622,11 +622,12 @@ async function _pbpVocabReloadAfterMutation(expectedOwner, requestedGen) {
   _pbpVocabSetLoading(true);
   try {
     const rows = await pbpVocabAll(expectedOwner);
-    const ownerNow = await pbpVocabCurrentOwner();
     // Let a running card-exit fold finish before the rebuild (no-op unless a
-    // delete just marked cards). Sits BEFORE the gen/owner guards so the
-    // wait can never resurrect a superseded snapshot.
+    // delete just marked cards). Sits BEFORE the owner read and the gen/owner
+    // guards: the owner must be re-read AFTER the last await, or an account
+    // switch during the fold window would sail past a stale comparison.
     await _pbpVocabExitSettle();
+    const ownerNow = await pbpVocabCurrentOwner();
     // A newer mutation, tab activation or account-change render owns every
     // visible field now. The old snapshot may still be useful to its caller
     // as completion, but it must not write rows/loading/selection/status.

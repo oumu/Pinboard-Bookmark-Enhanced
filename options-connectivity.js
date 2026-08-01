@@ -132,7 +132,7 @@ function setupApiTests() {
     const btn = $id("test-pinboard-token");
     const statusEl = $id("test-pinboard-status");
     const token = tokenInput.value.trim();
-    if (isValidTokenFormat(token) === false || !token) {
+    if (pbpIsValidTokenFormat(token) !== true) {
       setStatusIcon(statusEl, false, t("loginInvalidFormat"));
       statusEl.style.color = "#c00";
       scheduleStatusClear("pinboard", statusEl, 4000);

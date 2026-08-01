@@ -90,7 +90,12 @@ async function dispatchBatchSave(snapshot, batchBtn, account) {
     return;
   }
   const progress = $id("batch-progress");
-  if (progress) { progress.classList.remove("dismissing"); progress.classList.remove("hidden"); }
+  if (progress) {
+    clearTimeout(progress._pbpDoneLinger);
+    clearTimeout(progress._pbpDoneFade);
+    progress.classList.remove("dismissing");
+    progress.classList.remove("hidden");
+  }
   setBtnIcon(batchBtn, "pin", t("batchProgress", "0", String(snapshot.length), "0", "0"));
 }
 
@@ -269,6 +274,8 @@ function renderBatchProgress(p, currentAccount) {
   const cur = Math.min(total, Math.max(0, Number(p.i) || 0));
   const pct = total ? Math.round((cur / total) * 100) : 0;
   if (progress) {
+    clearTimeout(progress._pbpDoneLinger);
+    clearTimeout(progress._pbpDoneFade);
     progress.classList.remove("dismissing");
     progress.classList.remove("hidden");
     progress.setAttribute("aria-valuenow", String(pct));
@@ -293,12 +300,17 @@ function renderBatchProgress(p, currentAccount) {
       showStatus("status-msg", t("batchDone", String(p.saved || 0), String(p.failed || 0)) + skipMsg + tooLongMsg + queuedDoneMsg + aiWarnMsg, kind);
     }
     setBtnIcon(batchBtn, "pin", t("batchSavedCount", String(p.saved || 0)));
-    setTimeout(() => {
+    // Timer handles live on the element (not module lets: the test pages
+    // slice this file into two Function bodies that couldn't share one
+    // declaration). Every show site cancels them -- an uncancelled leftover
+    // from the previous run would hide and re-label the new run's progress.
+    if (progress) { clearTimeout(progress._pbpDoneLinger); clearTimeout(progress._pbpDoneFade); }
+    const linger = setTimeout(() => {
       const restoreFocus = !!progress && document.activeElement === progress;
       if (progress) {
         if (document.documentElement.classList.contains("motion-ready")) {
           progress.classList.add("dismissing");
-          setTimeout(() => { progress.classList.remove("dismissing"); progress.classList.add("hidden"); }, 120);
+          progress._pbpDoneFade = setTimeout(() => { progress.classList.remove("dismissing"); progress.classList.add("hidden"); }, 120);
         } else {
           progress.classList.add("hidden");
         }
@@ -307,6 +319,7 @@ function renderBatchProgress(p, currentAccount) {
       batchBtn.disabled = false;
       if (restoreFocus) batchBtn.focus();
     }, 1500);
+    if (progress) progress._pbpDoneLinger = linger;
   } else {
     batchBtn.disabled = true;
     setBtnIcon(batchBtn, "pin", t("batchProgress", String(cur), String(total), String(p.saved || 0), String(p.failed || 0)));
