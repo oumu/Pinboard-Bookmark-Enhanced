@@ -67,7 +67,7 @@
 
     <!-- Tab 1: General -->
     <div id="panel-general" class="panel active" role="tabpanel" aria-labelledby="tab-general">
-      <div class="section-title" data-i18n="secPinboardAccount">Pinboard Account</div>
+      <h2 class="section-title" data-i18n="secPinboardAccount">Pinboard Account</h2>
       <div class="fg">
         <label class="bl" for="opt-pinboard-token" data-i18n="labelApiToken">API Token</label>
         <span class="key-wrap"><input type="password" id="opt-pinboard-token" placeholder="username:XXXXXXXXXXXXXX" data-i18n-placeholder="loginTokenPlaceholder" autocomplete="off" spellcheck="false" />
@@ -96,7 +96,7 @@
         </select>
       </div>
       <div class="divider"></div>
-      <div class="section-title" data-i18n="secSync">Data Sync</div>
+      <h2 class="section-title" data-i18n="secSync">Data Sync</h2>
       <div class="fg"><label><input type="checkbox" id="opt-sync-enabled" /> <span data-i18n="optSyncEnabled">Use Chrome Sync for settings on this device</span></label></div>
       <p class="hint" data-i18n="optSyncHint">This checkbox applies to this device only. Settings are shared between the devices where you turn it on; devices with it off keep their own local settings.</p>
       <div class="fg"><label><input type="checkbox" id="opt-sync-api-keys" /> <span data-i18n="syncApiKeysLabel">Sync credentials for this Google account</span></label></div>
@@ -104,7 +104,7 @@
       <p id="opt-sync-local-only" class="sync-local-only" role="status" aria-live="polite" hidden></p>
       <p id="opt-sync-error" class="opt-error hidden" role="alert"></p>
       <div class="divider"></div>
-      <div class="section-title" data-i18n="secBackupRestore">Backup &amp; Restore</div>
+      <h2 class="section-title" data-i18n="secBackupRestore">Backup &amp; Restore</h2>
       <p class="hint" data-i18n="backupHint">Export or import settings and selected data. Credentials are left out unless you ask for them.</p>
       <p class="hint hint-warn backup-plaintext" data-i18n="backupPlaintextDisclosure">Backup files are plain JSON. They may contain settings, highlights, page URLs, vocabulary, and context excerpts.</p>
       <div class="fg"><label><input type="checkbox" id="opt-backup-include-highlights" checked /> <span data-i18n="backupIncludeHighlightsLabel">Include highlights and notes in backups</span></label></div>
@@ -153,7 +153,7 @@
         <div><span data-i18n="backupSectionSecrets">API keys and tokens</span><span id="backup-result-secrets"></span></div>
       </div>
       <div class="divider"></div>
-      <div class="section-title" data-i18n="secNotifications">Notifications</div>
+      <h2 class="section-title" data-i18n="secNotifications">Notifications</h2>
       <div class="fg"><label><input type="checkbox" id="notify-quick-save" checked /> <span data-i18n="notifyQuickSave">Quick save</span></label></div>
       <div class="fg"><label><input type="checkbox" id="notify-read-later" checked /> <span data-i18n="notifyReadLater">Read Later save</span></label></div>
       <div class="fg"><label><input type="checkbox" id="notify-tab-set" checked /> <span data-i18n="notifyTabSet">Tab Set save</span></label></div>
@@ -167,7 +167,7 @@
 
     <!-- Tab 2: Popup -->
     <div id="panel-popup" class="panel" role="tabpanel" aria-labelledby="tab-popup">
-      <div class="section-title" data-i18n="secPopupBehavior">Popup Behavior</div>
+      <h2 class="section-title" data-i18n="secPopupBehavior">Popup Behavior</h2>
       <div class="fg">
         <label class="bl" data-i18n="labelOpenPopupShortcut">Open popup shortcut</label>
         <p class="hint">
@@ -189,7 +189,7 @@
         <div style="color:#888;font-size:11px;margin-top:4px" data-i18n="optPopupWidthHelp">Range: 420–720px (Chrome popup limit)</div>
       </div>
       <div class="divider"></div>
-      <div class="section-title" data-i18n="optUrlCleanTitle">URL tracking parameter cleanup</div>
+      <h2 class="section-title" data-i18n="optUrlCleanTitle">URL tracking parameter cleanup</h2>
       <div class="fg"><label><input type="checkbox" id="opt-urlclean-enabled" /> <span data-i18n="optUrlCleanEnabled">Auto-clean URL tracking parameters</span></label></div>
       <div class="fg fg-stack" style="margin-left:20px">
         <div><label><input type="checkbox" id="opt-urlclean-on-open" /> <span data-i18n="optUrlCleanOnOpen">Clean when popup opens (silent, with undo link)</span></label></div>
@@ -205,7 +205,7 @@
         <textarea id="opt-urlclean-exclude" rows="3" style="width:100%" placeholder="tag&#10;ref&#10;si" data-i18n-placeholder="optUrlCleanExcludePlaceholder"></textarea>
       </div>
       <div class="divider"></div>
-      <div class="section-title" data-i18n="secPopupElements">Popup Elements</div>
+      <h2 class="section-title" data-i18n="secPopupElements">Popup Elements</h2>
       <div class="fg"><label><input type="checkbox" id="opt-show-search" /> <span data-i18n="optShowSearch">Show search bar in popup</span></label></div>
       <div class="fg"><label><input type="checkbox" id="opt-show-recent" /> <span data-i18n="optShowRecent">Show recent bookmarks in popup</span></label></div>
       <div class="fg"><label><input type="checkbox" id="opt-show-badge" /> <span data-i18n="optShowBadge">Show unread count badge on icon</span></label></div>
@@ -218,7 +218,7 @@
 
     <!-- Tab 3: Bookmarks -->
     <div id="panel-bookmarks" class="panel" role="tabpanel" aria-labelledby="tab-bookmarks">
-      <div class="section-title" data-i18n="secSaveDefaults">Save Defaults</div>
+      <h2 class="section-title" data-i18n="secSaveDefaults">Save Defaults</h2>
       <div class="fg"><label><input type="checkbox" id="opt-private-default" /> <span data-i18n="optPrivateDefault">Private by default</span></label></div>
       <div class="fg"><label><input type="checkbox" id="opt-private-incognito" /> <span data-i18n="optPrivateIncognito">Private in Incognito</span></label></div>
       <div class="fg"><label><input type="checkbox" id="opt-readlater-default" /> <span data-i18n="optReadlaterDefault">Read Later by default</span></label></div>
@@ -230,12 +230,12 @@
         <p class="hint" data-i18n="optBgSaveModeHint">Merge: reads existing bookmark tags and combines with new tags. Skip: avoids duplicate-URL saves. Overwrite: replaces tags entirely (foreground edits always replace).</p>
       </div>
       <div class="divider"></div>
-      <div class="section-title" data-i18n="secNotesBehavior">Notes Behavior</div>
+      <h2 class="section-title" data-i18n="secNotesBehavior">Notes Behavior</h2>
       <div class="fg"><label><input type="checkbox" id="opt-auto-description" checked /> <span data-i18n="optAutoDescription">Auto-fill meta description into notes</span></label></div>
       <div class="fg"><label><input type="checkbox" id="opt-blockquote" checked /> <span data-i18n="optBlockquote">Wrap selected text with &lt;blockquote&gt;</span></label></div>
       <div class="fg"><label><input type="checkbox" id="opt-include-referrer" /> <span data-i18n="optIncludeReferrer">Include referrer in Notes</span></label></div>
       <div class="divider"></div>
-      <div class="section-title" data-i18n="secTags">Tags</div>
+      <h2 class="section-title" data-i18n="secTags">Tags</h2>
       <div class="fg"><label><input type="checkbox" id="opt-respect-tag-case" /> <span data-i18n="optRespectTagCase">Respect existing tag case (match most-used casing)</span></label></div>
       <div class="fg fg-stack" role="group" aria-labelledby="tag-sync-label">
         <label class="bl" id="tag-sync-label" data-i18n="tagSyncLabel">Tag Cache Strategy</label>
@@ -502,7 +502,7 @@
       </div>
 
       <div class="divider"></div>
-      <div class="section-title" data-i18n="secJinaReader">Jina Reader</div>
+      <h2 class="section-title" data-i18n="secJinaReader">Jina Reader</h2>
       <div class="fg">
         <label class="bl" for="opt-jina-key" data-i18n="jinaApiKeyLabel">API Key (optional)</label>
         <span class="key-wrap"><input type="password" id="opt-jina-key" placeholder="jina_xxxx (leave empty for free tier)" data-i18n-placeholder="jinaApiKeyPlaceholder" />
@@ -514,7 +514,7 @@
 
     <!-- Tab: AI Behavior -->
     <div id="panel-ai-behavior" class="panel" role="tabpanel" aria-labelledby="tab-ai-behavior">
-      <div class="section-title" data-i18n="secAiContentSource">AI Content Source</div>
+      <h2 class="section-title" data-i18n="secAiContentSource">AI Content Source</h2>
       <div class="fg">
         <label><input type="radio" name="ai-content-source" id="opt-ai-src-local" value="local" checked /> <span data-i18n="aiContentSourceLocal">Local (Defuddle)</span></label>
         <p class="hint" data-i18n="aiContentSourceLocalHint">Extract the main content of the page locally (offline, fast).</p>
@@ -525,7 +525,7 @@
       </div>
 
       <div class="divider"></div>
-      <div class="section-title" data-i18n="secAiBehavior">AI Behavior</div>
+      <h2 class="section-title" data-i18n="secAiBehavior">AI Behavior</h2>
       <div class="fg"><label><input type="checkbox" id="opt-ai-auto-tags" /> <span data-i18n="optAiAutoTags">Auto-generate AI tags on popup open</span></label></div>
       <div class="fg">
         <label class="bl" for="opt-ai-tag-lang" data-i18n="labelAiTagLang">AI Tag Language</label>
@@ -575,7 +575,7 @@
       </div>
 
       <div class="divider"></div>
-      <div class="section-title" data-i18n="secPrompts">Prompts</div>
+      <h2 class="section-title" data-i18n="secPrompts">Prompts</h2>
       <p class="hint" data-i18n="promptsHint">Customize the prompts sent to the AI. Use placeholders: <code>{{title}}</code> <code>{{url}}</code> <code>{{content}}</code> <code>{{description}}</code> <code>{{lang_instruction}}</code> <code>{{separator_instruction}}</code>. Leave empty to use defaults.</p>
 
       <div class="fg">
@@ -595,7 +595,7 @@
 
     <!-- Tab: Reader -->
     <div id="panel-reader" class="panel" role="tabpanel" aria-labelledby="tab-reader">
-      <div class="section-title" data-i18n="secPreviewAi">Preview Page AI</div>
+      <h2 class="section-title" data-i18n="secPreviewAi">Preview Page AI</h2>
       <p class="hint" data-i18n="previewAiSectionHint">Explain selection, Ask, and full-text translation on the Markdown preview page are user-invoked and use the AI provider and key configured on the AI Providers tab. If the opt-in key-points skim is enabled, it may run when Markdown preview opens; nothing runs as a hidden background task.</p>
 
       <div class="fg">
@@ -658,7 +658,7 @@
       </div>
 
       <div class="divider"></div>
-      <div class="section-title" data-i18n="kbdHelpTitle">Keyboard Shortcuts</div>
+      <h2 class="section-title" data-i18n="kbdHelpTitle">Keyboard Shortcuts</h2>
       <p class="hint" data-i18n="kbdHelpIntro">These shortcuts work on the Markdown preview page (not here in Settings).</p>
       <ul class="kbd-help-list">
         <li class="kbd-help-row"><span class="kbd-help-chips"><kbd>t</kbd></span><span data-i18n="kbdHelpTranslate">Start or continue translating the article</span></li>
@@ -676,7 +676,7 @@
 
     <!-- Tab: Notes -->
     <div id="panel-notes" class="panel" role="tabpanel" aria-labelledby="tab-notes">
-      <div class="section-title" data-i18n="tabNotes">Notes</div>
+      <h2 class="section-title" data-i18n="tabNotes">Notes</h2>
       <div class="notes-toolbar">
         <input type="search" id="notes-filter" placeholder="Filter titles and notes" data-i18n-placeholder="notesFilterPlaceholder" data-i18n-aria="notesFilterPlaceholder" aria-label="Filter titles and notes" />
         <span id="notes-count" class="notes-count" aria-live="polite"></span>
@@ -687,7 +687,7 @@
 
     <!-- Tab: Vocabulary -->
     <div id="panel-vocab" class="panel" role="tabpanel" aria-labelledby="tab-vocab">
-      <div class="section-title" data-i18n="dictVocabSection">Vocabulary</div>
+      <h2 class="section-title" data-i18n="dictVocabSection">Vocabulary</h2>
       <div class="notes-toolbar vocab-filter-toolbar">
         <input type="search" id="vocab-search" placeholder="Search words, definitions, context, and groups" data-i18n-placeholder="vocabSearchPlaceholder" data-i18n-aria="vocabSearchPlaceholder" aria-label="Search words, definitions, context, and groups" autocomplete="off" />
         <!-- One flex unit: the three selects travel together. Beside the
@@ -822,7 +822,7 @@
           <a href="chrome://extensions/shortcuts" id="open-shortcuts-link-md" class="btn btn-sm" style="text-decoration:none;margin-left:8px;" data-i18n="openShortcuts">Open Chrome Shortcut Settings</a>
         </p>
       </div>
-      <div class="section-title" data-i18n="secMdExport">Markdown Export Defaults</div>
+      <h2 class="section-title" data-i18n="secMdExport">Markdown Export Defaults</h2>
       <div class="fg"><label><input type="checkbox" id="opt-md-frontmatter" checked /> <span data-i18n="mdExportFrontmatter">Add YAML frontmatter to exported Markdown</span></label></div>
       <div class="fg"><label><input type="checkbox" id="opt-md-extended-meta" checked /> <span data-i18n="mdExportExtendedMeta">Include extended metadata (author, published, site, image, word count)</span></label></div>
       <p class="hint" data-i18n="mdExportExtendedMetaHint">Adds these fields to frontmatter, the HTML byline, and webhook payloads when available. Turn off for byte-identical legacy exports.</p>
@@ -837,19 +837,19 @@
       </div>
       <div class="fg"><label><input type="checkbox" id="opt-md-include-toc" /> <span data-i18n="mdExportIncludeToc">Include table of contents</span></label></div>
       <div class="fg"><label><input type="checkbox" id="opt-md-include-hl" checked /> <span data-i18n="mdOptIncludeHl">Include highlights</span></label></div>
-      <div class="section-title" data-i18n="secSendDestinations">Send-to Destinations</div>
+      <h2 class="section-title" data-i18n="secSendDestinations">Send-to Destinations</h2>
       <p class="hint" data-i18n="secSendDestinationsHint">Each enabled destination appears in the preview page's "Send to" menu.</p>
       <div id="export-targets"></div>
     </div>
 
     <!-- Tab: Tags -->
     <div id="panel-tags" class="panel" role="tabpanel" aria-labelledby="tab-tags">
-      <div class="section-title" data-i18n="secPinboardTagPages">Pinboard.in Tag Pages</div>
+      <h2 class="section-title" data-i18n="secPinboardTagPages">Pinboard.in Tag Pages</h2>
       <div class="fg"><label><input type="checkbox" id="opt-tag-sort-by-pop" checked /> <span data-i18n="optTagSortByPop">Add a popularity sort control on tag pages</span></label></div>
       <p class="hint" data-i18n="optTagSortByPopHint">On pinboard.in tag pages, adds a "pop" control that sorts the current page’s bookmarks by how many people saved each link; click again to restore.</p>
 
       <div class="divider"></div>
-      <div class="section-title" data-i18n="tagGovGroupsTitle">Similar Tag Groups</div>
+      <h2 class="section-title" data-i18n="tagGovGroupsTitle">Similar Tag Groups</h2>
       <div class="fg" id="tag-gov-overview">
         <span>…</span>
         <button class="btn btn-sm" id="tag-gov-refresh" data-i18n="tagGovRefresh">Refresh</button>
@@ -862,7 +862,7 @@
         <div id="tag-gov-ai-status" class="hint" style="margin-top:4px;"></div>
       </div>
       <div class="divider"></div>
-      <div class="section-title" data-i18n="tagGovLowCountTitle">Low-count tags (1 use or fewer)</div>
+      <h2 class="section-title" data-i18n="tagGovLowCountTitle">Low-count tags (1 use or fewer)</h2>
       <details id="tag-gov-lowcount">
         <summary data-i18n="tagGovLowCountTitle">Low-count tags (1 use or fewer)</summary>
         <div id="tag-gov-lowcount-list"></div>
@@ -886,7 +886,7 @@
 
     <!-- Tab: Archive -->
     <div id="panel-archive" class="panel" role="tabpanel" aria-labelledby="tab-archive">
-      <div class="section-title" data-i18n="secWayback">Wayback Machine Archiving</div>
+      <h2 class="section-title" data-i18n="secWayback">Wayback Machine Archiving</h2>
       <div class="fg"><label><input type="checkbox" id="opt-wayback-enabled" /> <span data-i18n="optWayback">Archive saved pages to the Wayback Machine</span></label></div>
       <p class="hint" data-i18n="optWaybackHint">After each save, ask the Internet Archive to snapshot the page (best effort, never blocks saving). Sends the saved URL to archive.org; off by default.</p>
       <div class="fg" style="margin-left:20px">
@@ -931,7 +931,7 @@
       <p class="hint" data-i18n="popupFollowHint">When enabled, the popup appearance matches the selected Pinboard CSS theme.</p>
 
       <div class="divider"></div>
-      <div class="section-title" data-i18n="secCustomStyle">Pinboard.in Custom Style</div>
+      <h2 class="section-title" data-i18n="secCustomStyle">Pinboard.in Custom Style</h2>
       <p class="hint" data-i18n="customStyleHint">Inject custom CSS into pinboard.in pages. Useful for changing fonts, colors, layout etc.</p>
       <div class="fg">
         <label class="bl" for="opt-custom-font" data-i18n="labelCustomFont">Custom Font</label>
@@ -994,7 +994,7 @@
 
     <!-- Tab 7: Storage -->
     <div id="panel-storage" class="panel" role="tabpanel" aria-labelledby="tab-storage">
-      <div class="section-title" data-i18n="secStorage">Storage Management</div>
+      <h2 class="section-title" data-i18n="secStorage">Storage Management</h2>
       <p class="hint" data-i18n="storageIntro">Reclaim local cache space. These caches rebuild automatically after clearing. Your settings, credentials, pending saves and in-progress data are never touched.</p>
       <div id="storage-cats" class="storage-cats"></div>
       <div class="fg" style="margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
