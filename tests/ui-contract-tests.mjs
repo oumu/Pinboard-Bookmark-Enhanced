@@ -390,11 +390,10 @@ check(/\{ chips: \["t"\], key: "kbdHelpTranslate" \}/.test(mdReaderJsSource) &&
   !optionsHtml.includes("<kbd>V</kbd>") && !optionsHtml.includes("<kbd>H</kbd>"),
   "keyboard help does not expose t/d and lowercase v/h consistently");
 check(/btn\.setAttribute\("aria-keyshortcuts", "t"\)/.test(mdTranslateJs) &&
-  /wrap\.setAttribute\("aria-keyshortcuts", "v"\)/.test(mdTranslateJs) &&
-  /b\.setAttribute\("aria-pressed", "false"\)/.test(mdTranslateJs) &&
-  /b\.setAttribute\("aria-pressed", active \? "true" : "false"\)/.test(mdTranslateJs) &&
-  mdTranslateJs.includes('t(key) + " (v)"'),
-  "translation controls lack lowercase shortcut metadata or production toggle state");
+  /b\.setAttribute\("aria-keyshortcuts", "v"\)/.test(mdTranslateJs) &&
+  /pbpTrNextMode\(st\.mode\)/.test(mdTranslateJs) &&
+  mdTranslateJs.includes('" (v: "'),
+  "translation controls lack lowercase shortcut metadata or the cycle affordance (current mode + next stop in the tooltip)");
 check(mdTranslateJs.includes('scrollIntoView({ block: "start", behavior: "instant" })') &&
   mdTranslateJs.includes("document.startViewTransition") &&
   // The predicate moved into shared.js; what matters is that it still gates the
