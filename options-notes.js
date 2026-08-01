@@ -219,6 +219,9 @@ function _pbpNotesBuildRow(entry) {
     openLink.target = "_blank";
     openLink.rel = "noopener noreferrer";
     openLink.textContent = pageUrl.host || pageUrl.href;
+    // External-link mark: this is the one "leaves the page" row action that
+    // looked like an in-page toggle without it. Static PBP_ICONS constant.
+    openLink.insertAdjacentHTML("beforeend", PBP_ICONS.extOpen.replace('<svg ', '<svg class="ext-icon" '));
     openLink.addEventListener("click", (e) => e.stopPropagation());
     top.appendChild(openLink);
   }

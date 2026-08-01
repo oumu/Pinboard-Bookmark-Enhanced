@@ -3466,21 +3466,9 @@ async function renderWaybackLog() {
     urlTextSpan.className = "wayback-log-url-text";
     urlTextSpan.textContent = urlText;
     urlEl.appendChild(urlTextSpan);
-    const ns = "http://www.w3.org/2000/svg";
-    const svg = document.createElementNS(ns, "svg");
-    svg.setAttribute("class", "ext-icon");
-    svg.setAttribute("viewBox", "0 0 12 12");
-    svg.setAttribute("aria-hidden", "true");
-    svg.setAttribute("focusable", "false");
-    const path = document.createElementNS(ns, "path");
-    path.setAttribute("d", "M5 1h6v6M11 1L6 6M9 7v3H2V3h3");
-    path.setAttribute("stroke", "currentColor");
-    path.setAttribute("stroke-width", "1.3");
-    path.setAttribute("fill", "none");
-    path.setAttribute("stroke-linecap", "round");
-    path.setAttribute("stroke-linejoin", "round");
-    svg.appendChild(path);
-    urlEl.appendChild(svg);
+    // Shared external-link mark (class added for the 10px .ext-icon sizing);
+    // static PBP_ICONS constant, never page content.
+    urlEl.insertAdjacentHTML("beforeend", PBP_ICONS.extOpen.replace('<svg ', '<svg class="ext-icon" '));
 
     const timeEl = document.createElement("span");
     timeEl.className = "wayback-log-time";

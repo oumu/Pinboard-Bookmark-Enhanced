@@ -245,6 +245,11 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--opt-accent); }
 .panel-foot a { color: #666; text-decoration: none; transition: color var(--motion-state) ease; display: inline-flex; align-items: center; gap: var(--opt-sp-2); }
 .panel-foot a:hover { color: var(--opt-accent, #4477bb); text-decoration: underline; }
 .panel-foot .ext-icon { width: 10px; height: 10px; flex-shrink: 0; }
+/* External-link mark inside .btn rows (dict-pack-open prefix, notes-row-open
+   suffix): the action leaves the settings page, say so with the shared icon. */
+.btn .ext-icon { width: 11px; height: 11px; vertical-align: -1px; }
+#dict-pack-open .ext-icon { margin-right: var(--opt-sp-2); }
+.notes-row-open .ext-icon { margin-left: var(--opt-sp-1); }
 html[data-theme] .panel-foot { border-top-color: var(--opt-border-section, var(--opt-border)); }
 html[data-theme] .panel-foot a { color: var(--opt-fg-hint, var(--opt-fg-muted)); }
 html[data-theme] .panel-foot a:hover { color: var(--opt-accent); }
