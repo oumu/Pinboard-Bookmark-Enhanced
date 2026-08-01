@@ -2671,6 +2671,9 @@
   "dictSaveVocab": {
     "message": "Ajouter au vocabulaire"
   },
+  "dictVocabSaveFailed": {
+    "message": "Impossible d'enregistrer le mot"
+  },
   "dictSavedVocab": {
     "message": "Dans le vocabulaire"
   },

@@ -2671,6 +2671,9 @@
   "dictSaveVocab": {
     "message": "存入生词库"
   },
+  "dictVocabSaveFailed": {
+    "message": "生词未能保存"
+  },
   "dictSavedVocab": {
     "message": "已在生词库"
   },

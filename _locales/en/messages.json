@@ -2671,6 +2671,9 @@
   "dictSaveVocab": {
     "message": "Save to vocabulary"
   },
+  "dictVocabSaveFailed": {
+    "message": "Couldn't save the word"
+  },
   "dictSavedVocab": {
     "message": "In vocabulary"
   },

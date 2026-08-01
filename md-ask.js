@@ -2109,7 +2109,17 @@ function _pbpExplainEnsurePop() {
     const ok = await window.pbpDictSaveCurrent().catch(() => false);
     if (vocab.dataset.runId !== myRunId) return; // a newer dict run owns the button now
     if (ok) _pbpExplainIconBtn(vocab, PBP_EXPLAIN_DONE_SVG, t("dictSavedVocab"));
-    else vocab.disabled = false;
+    else {
+      // A silent re-enable read as "saved" (gap audit). flashButtonLabel is
+      // off-limits here -- it swaps textContent and would strip the SVG -- so
+      // failure is a border pulse plus the page's one buttonless toast
+      // channel (#copy-status aria-live, via _pbpHlToast).
+      vocab.disabled = false;
+      vocab.classList.remove("xp-flash-fail");
+      void vocab.offsetWidth; // restart the pulse on a repeat failure
+      vocab.classList.add("xp-flash-fail");
+      if (typeof _pbpHlToast === "function") _pbpHlToast(t("dictVocabSaveFailed"));
+    }
   });
   // Jump to the Options vocabulary tab (deep link: _activateHashPanel in
   // options.js resolves #vocab on load AND on hashchange in a reused tab).

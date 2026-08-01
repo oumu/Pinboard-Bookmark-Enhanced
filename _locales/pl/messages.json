@@ -2671,6 +2671,9 @@
   "dictSaveVocab": {
     "message": "Zapisz do słówek"
   },
+  "dictVocabSaveFailed": {
+    "message": "Nie udało się zapisać słówka"
+  },
   "dictSavedVocab": {
     "message": "Zapisano w słówkach"
   },

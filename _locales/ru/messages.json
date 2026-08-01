@@ -2671,6 +2671,9 @@
   "dictSaveVocab": {
     "message": "В словарик"
   },
+  "dictVocabSaveFailed": {
+    "message": "Не удалось сохранить слово"
+  },
   "dictSavedVocab": {
     "message": "Уже в словарике"
   },

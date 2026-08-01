@@ -2671,6 +2671,9 @@
   "dictSaveVocab": {
     "message": "単語帳に保存"
   },
+  "dictVocabSaveFailed": {
+    "message": "単語を保存できませんでした"
+  },
   "dictSavedVocab": {
     "message": "単語帳に保存済み"
   },

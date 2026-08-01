@@ -245,6 +245,14 @@ const unknownLanguageRow = _pbpVocabBuildRow({
 }, 999);
 check("production vocabulary row hides the unknown language code",
   !unknownLanguageRow.querySelector(".notes-row-meta").textContent.includes("UND"));
+const fullGlossRow = _pbpVocabBuildRow({
+  id:"full-gloss", term:"run", language:"en", ipa:"/rʌn/",
+  gloss:"contextual sense line\ngeneral sense line", groups:[], contexts:[]
+}, 998);
+check("expanded card shows the FULL stored gloss, not the chip's first line",
+  fullGlossRow.querySelector(".vocab-gloss-text").textContent === "contextual sense line\ngeneral sense line");
+check("expanded card shows the stored IPA",
+  fullGlossRow.querySelector(".vocab-gloss-ipa").textContent === "/rʌn/");
 renderedChecks[0].click();
 check("real row checkbox click establishes the selection anchor", _vocabSelected.size === 1);
 renderedChecks[2].dispatchEvent(new MouseEvent("click", { bubbles:true, cancelable:true, shiftKey:true }));

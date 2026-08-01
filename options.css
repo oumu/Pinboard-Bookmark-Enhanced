@@ -2021,6 +2021,13 @@ html.motion-ready .notes-card.motion-toggle .notes-card-chevron {
   margin-top: var(--opt-sp-2);
   white-space: pre-wrap;
 }
+.vocab-gloss-ipa {
+  color: var(--opt-fg-muted, #666);
+  font-size: 11px;
+}
+.vocab-gloss-text {
+  white-space: pre-wrap;
+}
 .notes-empty {
   font-size: 12px;
   color: var(--opt-fg-muted, #666);

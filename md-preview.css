@@ -1609,6 +1609,11 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
    multi-second network calls, so the press is the only thing that can confirm
    the click landed. Not transitioned: a press must read instantly. */
 .xp-retry:active, .xp-ask:active, .xp-save:active:not(:disabled), .xp-vocab:active:not(:disabled), .xp-open-vocab:active, .xp-dict-connect:active:not(:disabled) { transform: translateY(1px); }
+/* One-shot failure pulse for icon-only foot buttons: flashButtonLabel swaps
+   textContent and would strip the SVG, so failure feedback is a fading
+   border pulse plus the #copy-status announcement. */
+@keyframes xp-flash-fail { from { box-shadow: inset 0 0 0 2px var(--danger); } to { box-shadow: none; } }
+.xp-flash-fail { animation: xp-flash-fail 1.2s ease-out; }
 .xp-save:disabled, .xp-vocab:disabled, .xp-dict-connect:disabled { opacity: 0.6; cursor: default; }
 .xp-foot {
   position: relative; /* positioning context for .xp-gear-menu */

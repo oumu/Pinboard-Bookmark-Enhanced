@@ -207,6 +207,29 @@ function _pbpVocabBuildRow(w, index) {
 
   const itemsEl = document.createElement("div");
   itemsEl.className = "notes-items";
+  // The full gloss used to exist only as the header's single-line ellipsis
+  // chip -- reviewing a word meant looking it up again. The expanded card
+  // shows what the save actually stored (multi-sentence AI glosses wrap).
+  if (w.gloss || w.ipa) {
+    const glossEl = document.createElement("div");
+    glossEl.className = "notes-item";
+    const glossText = document.createElement("div");
+    glossText.className = "notes-item-text";
+    if (w.ipa) {
+      const ipaEl = document.createElement("div");
+      ipaEl.className = "vocab-gloss-ipa";
+      ipaEl.textContent = w.ipa;
+      glossText.appendChild(ipaEl);
+    }
+    if (w.gloss) {
+      const defEl = document.createElement("div");
+      defEl.className = "vocab-gloss-text";
+      defEl.textContent = w.gloss;
+      glossText.appendChild(defEl);
+    }
+    glossEl.appendChild(glossText);
+    itemsEl.appendChild(glossEl);
+  }
   const contexts = Array.isArray(w.contexts) ? w.contexts : [];
   for (const c of contexts) {
     if (!c) continue;

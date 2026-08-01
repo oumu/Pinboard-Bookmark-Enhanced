@@ -2671,6 +2671,9 @@
   "dictSaveVocab": {
     "message": "In Vokabelliste speichern"
   },
+  "dictVocabSaveFailed": {
+    "message": "Wort konnte nicht gespeichert werden"
+  },
   "dictSavedVocab": {
     "message": "In Vokabelliste"
   },
