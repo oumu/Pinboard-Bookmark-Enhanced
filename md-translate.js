@@ -199,12 +199,33 @@ function pbpTrGlossaryHitEntries(glossary, segments) {
 // Long translated blocks must retain enough source length to catch dropped
 // content; CJK targets use a lower floor because they compress Latin prose
 // more densely. Every block still rejects empty or runaway-expanded output.
+// Share of the text that is Han, kana or Hangul. Latin prose translates into
+// roughly its own length; CJK prose expands severalfold. Measured 2026-08-01
+// over real Wikipedia paragraphs rendered to English: zh 3.03-4.49 (median
+// 4.10), ja 1.72-1.91, ko 2.01-2.28. Japanese and Korean sit far below Chinese
+// because kana and hangul already spell things out, which is why this is a
+// share of the source rather than one flat CJK constant.
+function pbpTrCjkShare(text) {
+  const s = String(text || "");
+  if (!s.length) return 0;
+  const m = s.match(/[\u3040-\u30FF\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF\uAC00-\uD7AF]/g);
+  return m ? m.length / s.length : 0;
+}
+
 function pbpTrLengthRatioOk(orig, translated, targetCode) {
   const o = String(orig == null ? "" : orig).trim().length;
   const t = String(translated == null ? "" : translated).trim().length;
   if (o === 0 || t === 0) return false;
-  // Always reject runaway expansion (the model adding/hallucinating content).
-  if (t > o * 4 + 20) return false;
+  // Runaway-expansion guard: the model padding or hallucinating content. The
+  // 4x ceiling was calibrated on Latin sources and applied to every direction,
+  // including the one it was never measured on. Two of ten real Chinese
+  // Wikipedia paragraphs translated to English exceeded it (4.49x and 4.24x
+  // against a 4.0 ceiling), were retried against the same ceiling, and ended
+  // up in the article as "Translation failed". The lower bound below has been
+  // direction-aware all along; this one now is too. It is a hallucination
+  // guard rather than a precision instrument, so the headroom over the
+  // measured maximum is deliberate.
+  if (t > o * (4 + 6 * pbpTrCjkShare(orig)) + 20) return false;
   // Short blocks -- a heading or a few words -- legitimately compress hard into
   // a dense target language ("The shape of the curriculum" -> "课程的形态", ratio
   // ~0.18), so the 0.3 lower bound is a false positive there. Only enforce a
@@ -1226,11 +1247,22 @@ async function _pbpTrStart(st) {
   await _pbpTrEnsureGlossary(st);
   const model = pbpAiResolveModelOverride(st.s);
   const baseArgs = { targetLanguage: st.target.name, targetCode: st.target.code, title: st.title, summary };
-  const streamOpts = (charLen) => ({
-    system: "", model, signal: st.ctrl.signal,
-    temperature: 0.1, noThinking: true,
-    maxTokens: Math.min(8192, Math.max(1024, pbpAiEstimateTokens(charLen) * 3))
-  });
+  // pbpAiEstimateTokens is chars/4, a Latin calibration, and it was being fed
+  // the SOURCE length to size the OUTPUT. That under-provisions by exactly the
+  // expansion factor when the source is CJK, and the value goes straight to
+  // each provider's hard max_tokens, so the translation is cut off mid-block
+  // rather than failing loudly. Size the estimate off the projected output
+  // instead. Over-provisioning is close to free: max_tokens is a ceiling, not
+  // a charge.
+  const streamOpts = (sourceText) => {
+    const chars = String(sourceText || "").length;
+    const projected = chars * (1 + 3.5 * pbpTrCjkShare(sourceText));
+    return {
+      system: "", model, signal: st.ctrl.signal,
+      temperature: 0.1, noThinking: true,
+      maxTokens: Math.min(8192, Math.max(1024, pbpAiEstimateTokens(projected) * 3))
+    };
+  };
 
   const requestBatch = (segments, onItem) => {
     const glossary = pbpTrMatchGlossary(st.glossary, segments);
@@ -1238,7 +1270,7 @@ async function _pbpTrStart(st) {
     const { system, prompt } = pbpTrBuildPrompt({ ...baseArgs, glossary, segments });
     const parser = pbpAiMakeStreamJsonParser(onItem);
     const sentChars = segments.reduce((a, x) => a + x.text.length, 0);
-    const opts = streamOpts(sentChars);
+    const opts = streamOpts(segments.map((x) => x.text).join("\n"));
     opts.system = system;
     const u = { got: false };            // T4: did the provider report real usage for this batch?
     opts.onUsage = (usage) => { u.got = true; st.usage.inTok += usage.inTok; st.usage.outTok += usage.outTok; };
@@ -1253,7 +1285,7 @@ async function _pbpTrStart(st) {
     const { system, prompt } = pbpTrBuildPrompt({ ...baseArgs, glossary, segments: [seg] });
     let got = null;
     const parser = pbpAiMakeStreamJsonParser((it) => { if (it.id === seg.id) got = it.text; });
-    const opts = streamOpts(seg.text.length);
+    const opts = streamOpts(seg.text);
     opts.system = system;
     const u = { got: false };            // T4
     opts.onUsage = (usage) => { u.got = true; st.usage.inTok += usage.inTok; st.usage.outTok += usage.outTok; };

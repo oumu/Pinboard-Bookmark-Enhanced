@@ -1339,6 +1339,24 @@ suiteIf("pbpTrLengthRatioOk", "pbpTrLengthRatioOk", () => {
     assert(pbpTrLengthRatioOk("The shape of the curriculum", "课程的形态") === true, "EN heading -> short CJK");
     assert(pbpTrLengthRatioOk("Overview", "概览") === true, "single word compress");
   });
+  test("pbpTrCjkShare separates Han/kana/hangul from Latin", () => {
+    assert(pbpTrCjkShare("") === 0, "empty text has no share");
+    assert(pbpTrCjkShare("plain english prose") === 0, "Latin prose is 0");
+    assert(pbpTrCjkShare("人工智能") === 1, "all Han is 1");
+    assert(pbpTrCjkShare("ひらがな") === 1, "kana counts");
+    assert(pbpTrCjkShare("인공지능") === 1, "hangul counts");
+    assert(pbpTrCjkShare("AI 与 人工智能") > 0.3 && pbpTrCjkShare("AI 与 人工智能") < 1, "mixed text lands in between");
+  });
+  test("the expansion ceiling follows the source script, not one flat number", () => {
+    // Measured 2026-08-01 against real zh Wikipedia prose: 97 source characters
+    // became 436, a ratio of 4.49 against the old flat ceiling of 4.0. Two of
+    // ten paragraphs were rejected, retried against the same ceiling, and shown
+    // to the reader as "Translation failed".
+    const zh = "人".repeat(97);
+    assert(pbpTrLengthRatioOk(zh, "y".repeat(436), "en") === true, "4.49x from a Chinese source is legitimate");
+    assert(pbpTrLengthRatioOk("x".repeat(97), "y".repeat(436), "en") === false, "the same ratio from a Latin source is not");
+    assert(pbpTrLengthRatioOk(zh, "y".repeat(2000), "en") === false, "a CJK source does not disable the guard");
+  });
   test("runaway expansion rejected on every block", () => {
     assert(pbpTrLengthRatioOk("Overview", "x".repeat(300)) === false, "short block exploded");
     assert(pbpTrLengthRatioOk("x".repeat(10), "y".repeat(70)) === false, "10 -> 70");
