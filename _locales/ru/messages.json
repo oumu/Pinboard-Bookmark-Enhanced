@@ -2654,6 +2654,14 @@
   "dictLoadFailed": {
     "message": "Словарь недоступен"
   },
+  "dictCircuitCooling": {
+    "message": "Словарь приостановлен из-за повторных ошибок. Повторите попытку примерно через $SECONDS$ с.",
+    "placeholders": {
+      "seconds": {
+        "content": "$1"
+      }
+    }
+  },
   "dictViewWiktionary": {
     "message": "Посмотреть в Wiktionary"
   },

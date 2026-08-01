@@ -2654,6 +2654,14 @@
   "dictLoadFailed": {
     "message": "Wörterbuch nicht verfügbar"
   },
+  "dictCircuitCooling": {
+    "message": "Wörterbuch nach wiederholten Fehlern pausiert. Neuer Versuch in ca. $SECONDS$ s.",
+    "placeholders": {
+      "seconds": {
+        "content": "$1"
+      }
+    }
+  },
   "dictViewWiktionary": {
     "message": "Auf Wiktionary ansehen"
   },

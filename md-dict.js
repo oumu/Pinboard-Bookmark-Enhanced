@@ -540,6 +540,7 @@ async function _pbpDictFetch(lang, term, parentSignal) {
   if (_pbpDictCircuit.openUntil > now) {
     const err = new Error("Dictionary service cooling down");
     err.code = "dict_circuit_open";
+    err.retryInMs = _pbpDictCircuit.openUntil - now; // lets the UI say when, not just that
     throw err;
   }
   const child = _pbpDictChildSignal(parentSignal, 8000);
@@ -936,7 +937,25 @@ async function _pbpDictSlotRun(slot, term, lang, parentSignal, lemmaPromise, onR
     if (pointer) return finish(pointer[0], pointer[1], pointer[2]);
   } catch (e) {
     if (parentSignal && parentSignal.aborted) return null;
+    if (e && e.code === "dict_circuit_open") {
+      // The breaker is a self-protection pause, not a fault. Say when it
+      // lifts instead of the generic "unavailable", and offer no retry:
+      // clicking one inside the window would only re-throw this same error.
+      const secs = Math.max(1, Math.ceil((e.retryInMs || PBP_DICT_CIRCUIT_COOLDOWN_MS) / 1000));
+      _pbpDictSlotFallback(slot, t("dictCircuitCooling", String(secs)), term);
+      return null;
+    }
     _pbpDictSlotFallback(slot, t("dictLoadFailed"), term);
+    // Same affordance the AI slot has had all along: a plain failure gets a
+    // retry that restarts the whole run (never slot-local recursion).
+    if (typeof onRerun === "function") {
+      const retry = document.createElement("button");
+      retry.type = "button";
+      retry.className = "xp-retry";
+      retry.textContent = t("explainErrRetry");
+      retry.addEventListener("click", () => { retry.disabled = true; onRerun(); });
+      slot.appendChild(retry);
+    }
     return null;
   }
   _pbpDictSlotFallback(slot, t("dictNoEntry"), term);

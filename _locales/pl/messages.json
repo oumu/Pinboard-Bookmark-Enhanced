@@ -2654,6 +2654,14 @@
   "dictLoadFailed": {
     "message": "Słownik niedostępny"
   },
+  "dictCircuitCooling": {
+    "message": "Słownik wstrzymany po kolejnych błędach. Spróbuj ponownie za około $SECONDS$ s.",
+    "placeholders": {
+      "seconds": {
+        "content": "$1"
+      }
+    }
+  },
   "dictViewWiktionary": {
     "message": "Zobacz w Wiktionary"
   },

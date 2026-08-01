@@ -2654,6 +2654,14 @@
   "dictLoadFailed": {
     "message": "Dictionnaire indisponible"
   },
+  "dictCircuitCooling": {
+    "message": "Dictionnaire suspendu après des échecs répétés. Réessayez dans environ $SECONDS$ s.",
+    "placeholders": {
+      "seconds": {
+        "content": "$1"
+      }
+    }
+  },
   "dictViewWiktionary": {
     "message": "Voir dans Wiktionary"
   },

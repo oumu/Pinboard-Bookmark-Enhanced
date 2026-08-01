@@ -2654,6 +2654,14 @@
   "dictLoadFailed": {
     "message": "Dictionary unavailable"
   },
+  "dictCircuitCooling": {
+    "message": "Dictionary paused after repeated failures. Try again in about $SECONDS$ s.",
+    "placeholders": {
+      "seconds": {
+        "content": "$1"
+      }
+    }
+  },
   "dictViewWiktionary": {
     "message": "View on Wiktionary"
   },

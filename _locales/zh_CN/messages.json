@@ -2654,6 +2654,14 @@
   "dictLoadFailed": {
     "message": "词典暂不可用"
   },
+  "dictCircuitCooling": {
+    "message": "词典请求连续失败，已暂停。约 $SECONDS$ 秒后可重试。",
+    "placeholders": {
+      "seconds": {
+        "content": "$1"
+      }
+    }
+  },
   "dictViewWiktionary": {
     "message": "在 Wiktionary 上查看"
   },

@@ -2654,6 +2654,14 @@
   "dictLoadFailed": {
     "message": "辞書を利用できません"
   },
+  "dictCircuitCooling": {
+    "message": "辞書リクエストの失敗が続いたため、一時停止中です。約 $SECONDS$ 秒後にもう一度お試しください。",
+    "placeholders": {
+      "seconds": {
+        "content": "$1"
+      }
+    }
+  },
   "dictViewWiktionary": {
     "message": "Wiktionary で見る"
   },
