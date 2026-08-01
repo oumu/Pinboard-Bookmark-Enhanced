@@ -2475,6 +2475,33 @@
   "trBlockFailed": {
     "message": "Translation failed for this paragraph"
   },
+  "trFailedSummary": {
+    "message": "$COUNT$ segments failed: $MESSAGE$",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      },
+      "message": {
+        "content": "$2"
+      }
+    }
+  },
+  "trFailedSummaryMixed": {
+    "message": "$COUNT$ segments failed for different reasons; each has its own retry button.",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "trPartsUntranslated": {
+    "message": "This paragraph kept $COUNT$ passages untranslated",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
   "trRetryBlock": {
     "message": "Retry this paragraph"
   },

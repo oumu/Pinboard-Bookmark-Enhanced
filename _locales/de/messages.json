@@ -2475,6 +2475,33 @@
   "trBlockFailed": {
     "message": "Übersetzung dieses Absatzes fehlgeschlagen"
   },
+  "trFailedSummary": {
+    "message": "$COUNT$ Abschnitte fehlgeschlagen: $MESSAGE$",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      },
+      "message": {
+        "content": "$2"
+      }
+    }
+  },
+  "trFailedSummaryMixed": {
+    "message": "$COUNT$ Abschnitte aus unterschiedlichen Gründen fehlgeschlagen; jeder hat eine eigene Schaltfläche zum Wiederholen.",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "trPartsUntranslated": {
+    "message": "In diesem Absatz blieben $COUNT$ Passagen unübersetzt",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
   "trRetryBlock": {
     "message": "Diesen Absatz erneut versuchen"
   },

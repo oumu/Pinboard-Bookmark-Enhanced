@@ -2475,6 +2475,33 @@
   "trBlockFailed": {
     "message": "Échec de la traduction de ce paragraphe"
   },
+  "trFailedSummary": {
+    "message": "$COUNT$ segments en échec : $MESSAGE$",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      },
+      "message": {
+        "content": "$2"
+      }
+    }
+  },
+  "trFailedSummaryMixed": {
+    "message": "$COUNT$ segments en échec pour des raisons différentes ; chacun a son bouton Réessayer.",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "trPartsUntranslated": {
+    "message": "Ce paragraphe contient $COUNT$ passages non traduits",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
   "trRetryBlock": {
     "message": "Réessayer ce paragraphe"
   },

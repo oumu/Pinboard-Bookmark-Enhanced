@@ -2475,6 +2475,33 @@
   "trBlockFailed": {
     "message": "此段翻譯失敗"
   },
+  "trFailedSummary": {
+    "message": "$COUNT$ 段翻譯失敗：$MESSAGE$",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      },
+      "message": {
+        "content": "$2"
+      }
+    }
+  },
+  "trFailedSummaryMixed": {
+    "message": "$COUNT$ 段翻譯失敗，原因不同，請逐段重試。",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "trPartsUntranslated": {
+    "message": "本段有 $COUNT$ 處仍為原文",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
   "trRetryBlock": {
     "message": "重試此段"
   },

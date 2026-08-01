@@ -1324,6 +1324,14 @@ suiteIf("pbpTrParseGlossary", "pbpTrParseGlossary", () => {
     const g = pbpTrParseGlossary("E=mc^2=energy formula");
     assertEq(g.E, "mc^2=energy formula", "first = splits");
   });
+  test("fullwidth ＝ from a CJK IME splits like =", () => {
+    const g = pbpTrParseGlossary("术语＝译法");
+    assertEq(g["术语"], "译法", "fullwidth separator parsed");
+  });
+  test("fullwidth ＝ still splits on the FIRST separator only", () => {
+    const g = pbpTrParseGlossary("A＝B=C");
+    assertEq(g.A, "B=C", "first separator wins across both widths");
+  });
   test("null/empty input -> empty object", () => {
     assertEq(Object.keys(pbpTrParseGlossary("")).length, 0, "empty");
     assertEq(Object.keys(pbpTrParseGlossary(null)).length, 0, "null");

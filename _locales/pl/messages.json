@@ -2475,6 +2475,33 @@
   "trBlockFailed": {
     "message": "Tłumaczenie tego akapitu nie powiodło się"
   },
+  "trFailedSummary": {
+    "message": "$COUNT$ segmentów z błędem: $MESSAGE$",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      },
+      "message": {
+        "content": "$2"
+      }
+    }
+  },
+  "trFailedSummaryMixed": {
+    "message": "$COUNT$ segmentów z błędami z różnych powodów; każdy ma własny przycisk ponowienia.",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "trPartsUntranslated": {
+    "message": "W tym akapicie $COUNT$ fragmentów pozostało bez tłumaczenia",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
   "trRetryBlock": {
     "message": "Ponów ten akapit"
   },

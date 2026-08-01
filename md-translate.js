@@ -102,11 +102,14 @@ function pbpTrBuildPrompt(args) {
 }
 
 // ---- Glossary parsing (options textarea, one "term=translation" per line;
-// empty right side = keep the term untranslated; split on the FIRST "=") ----
+// empty right side = keep the term untranslated; split on the FIRST
+// separator). A CJK IME in fullwidth mode types U+FF1D instead of "=", and
+// that line used to be swallowed with no warning and no UI trace -- the same
+// silent-fullwidth defect class the dictionary's apostrophe fix covered. ----
 function pbpTrParseGlossary(str) {
   const out = {};
   for (const line of String(str == null ? "" : str).split(/\r?\n/)) {
-    const i = line.indexOf("=");
+    const i = line.search(/[=＝]/);
     if (i <= 0) continue;
     const term = line.slice(0, i).trim();
     if (!term) continue;
@@ -1337,7 +1340,7 @@ async function _pbpTrStart(st) {
       const done = _pbpTrPartDone(pb);
       if (done) {
         _pbpTrFill(st, w, done.text);
-        if (done.partial) _pbpTrMarkPartial(st, w); else newly[w.hash] = done.text;
+        if (done.partial) _pbpTrMarkPartial(st, w, pb.failed); else newly[w.hash] = done.text;
       }
     },
     onBlockFail: (id, message) => {
@@ -1351,7 +1354,7 @@ async function _pbpTrStart(st) {
       const done = _pbpTrPartDone(pb);
       if (!done) return;
       if (done.allFailed) { _pbpTrMarkFailed(st, w, message); return; }  // 0 parts translated: whole-block failure, not a fake success (don't fill st.trMd / count as done)
-      _pbpTrFill(st, w, done.text); _pbpTrMarkPartial(st, w);            // partial (>=1 real part) -> not cached
+      _pbpTrFill(st, w, done.text); _pbpTrMarkPartial(st, w, pb.failed); // partial (>=1 real part) -> not cached
     },
     onProgress: (done, total) => {
       const prog = document.getElementById("tr-progress");
@@ -1397,6 +1400,20 @@ async function _pbpTrStart(st) {
   }
   const doneAll = st.work.every((w) => (w.n in st.trMd));
   _pbpTrSetStatus(st, doneAll ? "done" : "partial"); // partial = Stop / failures: Continue
+  // A run where every block fails (offline, dead key) used to leave
+  // #tr-progress frozen at the last mid-run count while identical pills
+  // stacked below. One aggregate line names the cause once; the
+  // host-permission path writes its own message above and never gets here.
+  if (!doneAll && queueResult.failed.length) {
+    const prog = document.getElementById("tr-progress");
+    if (prog) {
+      const msgs = [...new Set(queueResult.failed.map((f) => f.message))];
+      prog.hidden = false;
+      prog.textContent = msgs.length === 1
+        ? t("trFailedSummary", String(queueResult.failed.length), msgs[0])
+        : t("trFailedSummaryMixed", String(queueResult.failed.length));
+    }
+  }
   _pbpTrRenderUsage(st);                              // T4: show run's in/out token usage
   // Toggle is already shown and the mode already switched to bilingual at the
   // start of the run; persist the FINAL mode (unless the user switched back to
@@ -1429,6 +1446,13 @@ function _pbpTrFill(st, w, shieldedTranslation) {
   // segments that lead with an untranslated Latin brand/code term); custom
   // free-text targets can't be judged statically -> degrade to dir="auto".
   div.dir = PBP_TR_RTL_LANGS.has(st.target.code) ? "rtl" : "auto";
+  // :lang() font-stack routing: the .pb-tr otherwise inherits the ORIGINAL
+  // article's lang (often empty on English pages), so a Simplified
+  // translation fell back to the TC-first default Han stack on machines
+  // carrying both (macOS ships PingFang SC and TC). Dropdown and auto both
+  // yield normalized BCP-47 codes; a custom free-text target ("Latin") is
+  // not a tag, so it stays off the attribute and inherits as before.
+  if (PBP_TR_LANG_NAMES[st.target.code]) div.lang = st.target.code;
   div.innerHTML = renderMarkdown(restored);
   // H5 paint gate (spec 1.3): stamp the language this .pb-tr currently shows
   // so a translated-side highlight only re-paints when its recorded lang
@@ -1511,7 +1535,11 @@ function _pbpTrPartDone(pb) {
 
 // Partial-fill retry pill: inserted AFTER the block's .pb-tr (does NOT replace it),
 // so the partial translation stays visible while offering a whole-block retry.
-function _pbpTrMarkPartial(st, w) {
+// failedParts > 0 names how many passages fell back to the original language --
+// the untranslated text is spliced into the .pb-tr with no marker of its own
+// (wrapping it would break marked's block parsing), so the pill is the one
+// place that can say it.
+function _pbpTrMarkPartial(st, w, failedParts) {
   const orig = pbpAiBlockEl(w.n);
   if (!orig) return;
   const tr = orig.nextElementSibling;
@@ -1522,7 +1550,7 @@ function _pbpTrMarkPartial(st, w) {
   btn.type = "button";
   btn.className = "pb-tr-err";
   btn.dataset.pbTrErr = String(w.n);
-  btn.dataset.tip = t("trBlockFailed");
+  btn.dataset.tip = failedParts > 0 ? t("trPartsUntranslated", String(failedParts)) : t("trBlockFailed");
   btn.setAttribute("aria-label", btn.dataset.tip);
   btn.innerHTML = PBP_TR_ERR_SVG;
   const lab = document.createElement("span");
@@ -1703,6 +1731,17 @@ function _pbpTrSetStatus(st, status) {
     btn.disabled = false;
     btn.hidden = false;
     stop.hidden = true;
+    // A cache-probe partial used to leave the estimate at the whole-article
+    // figure _pbpTrBuildSection painted -- several times the real cost of
+    // Continue. Re-estimate only what is still untranslated.
+    const remaining = st.work.reduce((a, w) => (w.n in st.trMd) ? a : a + w.shielded.text.length, 0);
+    if (remaining > 0) {
+      est.hidden = false;
+      est.textContent = t("trEstCost", String(pbpAiEstimateTokens(remaining) * 3),
+        (st.s.aiProvider || "gemini") + "/" + (pbpAiResolveModelOverride(st.s) || "default"));
+    } else {
+      est.hidden = true;
+    }
   } else if (status === "done") {
     btn.disabled = false;
     btn.hidden = true;

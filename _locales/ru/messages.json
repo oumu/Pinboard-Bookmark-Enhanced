@@ -2475,6 +2475,33 @@
   "trBlockFailed": {
     "message": "Перевод этого абзаца не удался"
   },
+  "trFailedSummary": {
+    "message": "$COUNT$ сегментов не переведено: $MESSAGE$",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      },
+      "message": {
+        "content": "$2"
+      }
+    }
+  },
+  "trFailedSummaryMixed": {
+    "message": "$COUNT$ сегментов не переведено по разным причинам; у каждого своя кнопка повтора.",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "trPartsUntranslated": {
+    "message": "В этом абзаце $COUNT$ фрагментов остались без перевода",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
   "trRetryBlock": {
     "message": "Повторить этот абзац"
   },

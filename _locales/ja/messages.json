@@ -2475,6 +2475,33 @@
   "trBlockFailed": {
     "message": "この段落の翻訳に失敗しました"
   },
+  "trFailedSummary": {
+    "message": "$COUNT$ 個のセグメントが失敗しました：$MESSAGE$",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      },
+      "message": {
+        "content": "$2"
+      }
+    }
+  },
+  "trFailedSummaryMixed": {
+    "message": "$COUNT$ 個のセグメントがそれぞれ異なる理由で失敗しました。各セグメントから再試行してください。",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "trPartsUntranslated": {
+    "message": "この段落には未翻訳の箇所が $COUNT$ か所あります",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
   "trRetryBlock": {
     "message": "この段落を再試行"
   },
