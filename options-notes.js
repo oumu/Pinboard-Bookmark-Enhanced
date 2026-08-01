@@ -329,13 +329,23 @@ function _pbpNotesDelete(row, anchor) {
     yesText: t("delete"),
     noText: t("cancel"),
     onConfirm: async () => {
-      try { await chrome.storage.local.remove(row.key); } catch (_) { return; }
+      const cardEl = anchor && anchor.closest ? anchor.closest(".notes-card") : null;
+      try {
+        await chrome.storage.local.remove(row.key);
+      } catch (e) {
+        // A swallowed failure looked identical to success (popover closed,
+        // row still there, zero feedback). Pin it to the card it happened on
+        // and leave a trace -- name/message only, never note content.
+        console.warn("[notes] delete failed", e && e.name, e && e.message);
+        if (cardEl) cardEl.classList.add("is-error");
+        return;
+      }
+      if (cardEl) cardEl.classList.remove("is-error");
       _notesAllRows = _notesAllRows.filter((e) => e.row.key !== row.key);
       // Fold the card out before the rebuild (vocab cards share the recipe via
       // options.css .card-exit). Marked only after the remove succeeded, and
       // only when motion is wanted; a concurrent filter re-render just makes
       // the delayed rebuild a harmless duplicate.
-      const cardEl = anchor && anchor.closest ? anchor.closest(".notes-card") : null;
       if (cardEl && cardEl.isConnected
           && document.documentElement.classList.contains("motion-ready")
           && !(typeof pbpPrefersReducedMotion === "function" && pbpPrefersReducedMotion())) {

@@ -1980,6 +1980,10 @@ html.motion-ready .notes-card-top { transition: background-color var(--motion-st
 .notes-card-top:hover { --row-bg: color-mix(in srgb, var(--opt-fg, #333) 5%, var(--opt-bg, #fff)); }
 /* Press must read instantly -- same no-transition reasoning as .btn:active. */
 .notes-card-top:active { --row-bg: color-mix(in srgb, var(--opt-fg, #333) 9%, var(--opt-bg, #fff)); transition-duration: 0s; }
+/* A failed mutation pins itself to the card it happened on -- a persistent
+   border, deliberately not a flash animation: the reduced-motion blanket
+   would swallow a keyframe and those users would never see the failure. */
+.notes-card.is-error { border-color: var(--opt-danger, #c00); }
 /* Selected rows read as a scannable accent band (declared after :hover so
    selection wins, with a deeper hover step layered on top). */
 .vocab-card.selected .notes-card-top { --row-bg: color-mix(in srgb, var(--opt-accent, #4477bb) 10%, var(--opt-bg, #fff)); }
@@ -2028,6 +2032,12 @@ html.motion-ready .notes-card-top { transition: background-color var(--motion-st
 .vocab-card:hover .notes-card-chevron,
 .vocab-card.selected .notes-card-chevron,
 .vocab-card .vocab-row-select:focus-visible + .notes-card-head .notes-card-chevron { opacity: 0; }
+/* Selection mode (user-ratified): while ANY row is selected, every row keeps
+   its checkbox shown -- range and batch work must not require hovering rows
+   one by one. The list-level class is kept in step centrally in
+   _pbpVocabSyncSelectionUi. */
+#vocab-list.selecting .vocab-row-select { opacity: 1; }
+#vocab-list.selecting .vocab-card .notes-card-chevron { opacity: 0; }
 /* No hover, no overlay: restore the in-flow tracks on touch-only devices. */
 @media (hover: none) {
   .row-del-x { position: static; translate: none; opacity: 1; background: transparent; }

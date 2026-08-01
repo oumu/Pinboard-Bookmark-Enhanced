@@ -329,7 +329,14 @@ function _pbpVocabBuildRow(w, index) {
       const ok = await pbpVocabSetNote(w.id, owner, noteInput.value);
       const refreshed = await _pbpVocabReloadAfterMutation(owner, gen);
       if (gen !== _vocabRenderGen) return;
-      if (!ok) _pbpVocabFlashStatus(false, t("vocabBatchFailed"));
+      if (!ok) {
+        _pbpVocabFlashStatus(false, t("vocabBatchFailed"));
+        // Pin the failure to the card it happened on -- the reload above
+        // rebuilt the DOM, so find the successor by id.
+        document.querySelectorAll("#vocab-list > .vocab-card").forEach((el) => {
+          if (el.dataset.vocabId === w.id) el.classList.add("is-error");
+        });
+      }
       else if (!refreshed) _pbpVocabFlashStatus(false, t("vocabRefreshFailed"));
       else _pbpVocabFlashStatus(true, t("vocabNoteSaved"));
     } catch (_) {
@@ -457,6 +464,10 @@ function _pbpVocabSyncSelectionUi() {
     if (cb && cb.checked !== on) cb.checked = on;
   });
   const selectedCount = _vocabSelected.size;
+  // Selection mode: any active selection keeps every row's checkbox shown
+  // (user-ratified) -- range work must not require hovering rows one by one.
+  const listEl = $id("vocab-list");
+  if (listEl) listEl.classList.toggle("selecting", selectedCount > 0);
   const selectedEl = $id("vocab-selected-count");
   if (selectedEl) selectedEl.textContent = t("vocabSelectedCount", String(selectedCount));
   const batch = $id("vocab-batch-toolbar");
