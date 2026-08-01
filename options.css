@@ -45,6 +45,13 @@
   /* Form-group vertical rhythm (.fg / .hint / helper blocks). */
   --opt-rhythm: var(--opt-sp-5);
 
+  /* Stacking ladder — values are the ones already shipping, named so the next
+     overlay picks a rung instead of a magic number. Same semantics as popup's
+     --pp-z-menu/--pp-z-popover; sticky is options-only (tag-gov footer). */
+  --opt-z-sticky: 5;
+  --opt-z-menu: 10;
+  --opt-z-popover: 20;
+
   --opt-shadow-xs: 0 1px 2px rgba(0,0,0,0.04);
   --opt-shadow-sm: 0 2px 4px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
   --opt-shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
@@ -1236,7 +1243,7 @@ html[data-theme] textarea::-webkit-scrollbar-corner { background: var(--opt-pane
 /* ---- Confirm popover (replaces native confirm()) ---- */
 .reset-tab-btn { position: relative; }
 .confirm-popover {
-  position: absolute; left: 0; right: auto; top: auto; bottom: calc(100% + 4px); z-index: 10;
+  position: absolute; left: 0; right: auto; top: auto; bottom: calc(100% + 4px); z-index: var(--opt-z-menu);
   width: max-content;   /* the anchor (reset link) is a narrow sidebar column; without this the
                            popover shrink-to-fits to that width and its row of buttons cramps */
   display: flex; align-items: center; gap: var(--opt-sp-3);
@@ -1280,7 +1287,7 @@ html[data-theme] .confirm-popover .confirm-no:hover { background: var(--opt-btn-
 /* ---- Theme name popover ---- */
 .save-theme-wrap { position: relative; display: inline-block; }
 .theme-name-popover {
-  position: absolute; left: 0; top: calc(100% + 6px); z-index: 20;
+  position: absolute; left: 0; top: calc(100% + 6px); z-index: var(--opt-z-popover);
   display: flex; flex-direction: column; gap: var(--opt-sp-3);
   padding: var(--opt-sp-5) var(--opt-sp-5); min-width: 220px;
   background: #fff; border: 1px solid #ccc; border-radius: var(--opt-radius-sm);
@@ -1622,7 +1629,7 @@ html[data-theme] .preset-preview-content { background: var(--opt-bg); color: var
 #tag-gov-progress {
   position: sticky;
   bottom: 8px;
-  z-index: 5;
+  z-index: var(--opt-z-sticky);
   background: var(--opt-panel, #fafafa);
   border: 1px solid var(--opt-border, #ccc);
   border-radius: var(--opt-radius-md, 6px);
