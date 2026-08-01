@@ -694,8 +694,13 @@ async function htmlToMarkdownAsync(html, opts) {
           await navigator.clipboard.writeText(out);
           if (ic) ic.innerHTML = PBP_ICONS.check;
           btn.classList.add("copied");
+          // The icon swap lives inside an aria-hidden SVG -- invisible to AT.
+          // Announce through the existing #status-msg live region (the pattern
+          // md-preview pairs with its own copy label swap).
+          showStatus("status-msg", t("jinaCopied"), "");
         } catch (_) {
           if (ic) ic.innerHTML = PBP_ICONS.warning;
+          showStatus("status-msg", t("jinaFailed"), "error");
         }
         btn._t = setTimeout(() => { if (ic) ic.innerHTML = PBP_ICONS.copy; btn.classList.remove("copied"); }, 1500);
       };
