@@ -670,9 +670,10 @@ async function htmlToMarkdownAsync(html, opts) {
       // aborted by a clipboard failure when the user only wanted preview/download/Obsidian.
       const copyMd = async (e) => {
         const btn = e.currentTarget;
-        const lbl = btn.querySelector("span:last-child");
+        // Icon-only button: feedback is an icon swap (copy -> check / warning),
+        // the add-all-link precedent. Static PBP_ICONS constants only.
+        const ic = btn.querySelector(".btn-ic");
         if (btn._t) clearTimeout(btn._t);
-        if (btn._orig == null) btn._orig = lbl ? lbl.textContent : "";
         // Same meta/opts as downloadMd/sendObsidian below — composeExport applies
         // frontmatter/imagePolicy/TOC so Copy matches Download/Obsidian/preview's
         // Copy MD instead of copying the bare canonical markdown (relative image
@@ -691,12 +692,12 @@ async function htmlToMarkdownAsync(html, opts) {
         });
         try {
           await navigator.clipboard.writeText(out);
-          if (lbl) lbl.textContent = t("jinaCopied");
+          if (ic) ic.innerHTML = PBP_ICONS.check;
           btn.classList.add("copied");
         } catch (_) {
-          if (lbl) lbl.textContent = t("jinaFailed");
+          if (ic) ic.innerHTML = PBP_ICONS.warning;
         }
-        btn._t = setTimeout(() => { if (lbl) lbl.textContent = btn._orig; btn.classList.remove("copied"); btn._orig = null; }, 1500);
+        btn._t = setTimeout(() => { if (ic) ic.innerHTML = PBP_ICONS.copy; btn.classList.remove("copied"); }, 1500);
       };
       const openPreview = async () => {
         // Per-open token key so concurrent previews never clobber each other's
@@ -835,10 +836,10 @@ async function htmlToMarkdownAsync(html, opts) {
         if (previewBtn) previewBtn.onclick = openPreview;
         if (dlBtn) dlBtn.onclick = downloadMd;
         const obsBtn = $id("md-strip-obsidian");
-        const dlLabel = dlBtn?.querySelector("span:last-child");
+        // (The old "shorten Download to .md when Obsidian shows" width dance is
+        // gone -- icon-only cells have nothing to shorten.)
         if (settings.obsidianEnabled) {
           if (obsBtn) { obsBtn.style.display = ""; obsBtn.onclick = sendObsidian; }
-          if (dlLabel) dlLabel.textContent = ".md";
         } else if (obsBtn) {
           obsBtn.style.display = "none";
         }

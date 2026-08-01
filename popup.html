@@ -145,10 +145,13 @@
       </div>
     </section>
     <div id="md-actions-strip" class="md-strip hidden" aria-live="polite">
-      <button type="button" id="md-strip-copy" class="md-strip-btn"><span class="btn-ic" data-ic="copy"></span><span data-i18n="mdCopy">Copy</span></button>
-      <button type="button" id="md-strip-preview" class="md-strip-btn"><span class="btn-ic" data-ic="eye"></span><span data-i18n="mdStripPreview">Preview</span></button>
-      <button type="button" id="md-strip-dl" class="md-strip-btn" aria-label="Download .md" data-i18n-aria="mdStripDownloadMd"><span class="btn-ic" data-ic="download"></span><span data-i18n="mdStripDownloadMd">Download .md</span></button>
-      <button type="button" id="md-strip-obsidian" class="md-strip-btn" aria-label="Send to Obsidian" data-i18n-aria="mdStripObsidian"><span class="btn-ic" data-ic="obsidian"></span><span data-i18n="mdStripObsidian">Obsidian</span></button>
+      <!-- Icon-only strip (icon audit P0): four fixed 32px cells, labels live in
+           title/aria. Preview wears extOpen, NOT eye -- eye/eyeOff are reserved
+           for the key-visibility toggles across the product. -->
+      <button type="button" id="md-strip-copy" class="md-strip-btn" data-i18n-title="mdCopy" data-i18n-aria="mdCopy"><span class="btn-ic" data-ic="copy"></span></button>
+      <button type="button" id="md-strip-preview" class="md-strip-btn" data-i18n-title="mdStripPreview" data-i18n-aria="mdStripPreview"><span class="btn-ic" data-ic="extOpen"></span></button>
+      <button type="button" id="md-strip-dl" class="md-strip-btn" aria-label="Download .md" data-i18n-title="mdStripDownloadMd" data-i18n-aria="mdStripDownloadMd"><span class="btn-ic" data-ic="download"></span></button>
+      <button type="button" id="md-strip-obsidian" class="md-strip-btn" aria-label="Send to Obsidian" data-i18n-title="mdStripObsidian" data-i18n-aria="mdStripObsidian"><span class="btn-ic" data-ic="obsidian"></span></button>
     </div>
     <div id="batch-progress" class="batch-progress hidden" role="progressbar" tabindex="-1" aria-label="Batch save progress" data-i18n-aria="batchSaveTitle" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-valuetext="0/0 (0/0)">
       <div id="batch-progress-fill" class="batch-progress-fill"></div>
