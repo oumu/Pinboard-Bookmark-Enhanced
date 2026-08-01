@@ -2700,7 +2700,11 @@ body.ask-open main { margin-right: 396px; }
   border-radius: 50%;
   border: 1px solid rgba(128, 128, 128, 0.45); /* neutral gray: visible on light AND dark schemes (slate-tinted borders vanish on dark) */
   cursor: pointer;
+  position: relative;
 }
+/* Hit pad to 24px targets (12px dots, 6px gap): zones overlap and the later
+   sibling wins boundary clicks -- acceptable for same-purpose filter dots. */
+.hl-filter-dot::before { content: ""; position: absolute; inset: -6px; }
 /* L5 (filter-legend dots, same rationale as .pb-hl-dot above). */
 .hl-filter-dot-1 { background: light-dark(#facc15, #D9A441); }
 .hl-filter-dot-2 { background: light-dark(#4ade80, #5E9C69); }

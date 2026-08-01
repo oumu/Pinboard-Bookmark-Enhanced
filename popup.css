@@ -242,7 +242,9 @@ html[data-section="login"] .quick-actions { display: none !important; }
    underline-offset make "clickable" unambiguous without recolouring. */
 .fc-message a { color: inherit; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
 .model-not-found-hint { margin-top: var(--pp-sp-1); font-size: 0.9em; opacity: 0.8; }
-.fc-actions { display: flex; gap: var(--pp-sp-4); margin-top: var(--pp-sp-2); align-items: center; }
+/* flex-wrap: ru's grant-retry label runs 31 chars; long labels fold to a new
+   line instead of squeezing the row (the buttons stay text by ruling). */
+.fc-actions { display: flex; flex-wrap: wrap; gap: var(--pp-sp-4); margin-top: var(--pp-sp-2); align-items: center; }
 .fc-btn {
   background: transparent; border: 1px solid currentColor;
   border-radius: var(--pp-radius-sm); color: inherit;
@@ -409,7 +411,12 @@ button.offline-clear:focus-visible, button.offline-toggle:focus-visible { outlin
   display: inline-flex; align-items: center; justify-content: center;
   border: 0; background: none; padding: 0; cursor: pointer;
   color: #888; line-height: 1; transition: color var(--pp-motion-state);
+  position: relative;
 }
+/* Out-of-flow hit pad: 10px glyph -> ~24px target without touching the chip's
+   18px line rhythm. Overlapping the tag text is harmless (text has no
+   handler); the drag handle sits on the chip's far side. */
+.tag-remove::before { content: ""; position: absolute; inset: -7px; }
 .tag-remove svg { width: 10px; height: 10px; }
 .tag-remove:hover { color: var(--pp-danger); }
 .tag-remove:focus-visible { outline: 2px solid var(--pp-accent, #4477bb); outline-offset: 1px; }
