@@ -2720,6 +2720,9 @@
   "dictSaveVocab": {
     "message": "In Vokabelliste speichern"
   },
+  "vocabNoteSaved": {
+    "message": "Notiz gespeichert"
+  },
   "vocabMarkKnown": {
     "message": "Als gelernt markieren"
   },

@@ -2720,6 +2720,9 @@
   "dictSaveVocab": {
     "message": "Zapisz do słówek"
   },
+  "vocabNoteSaved": {
+    "message": "Notatka zapisana"
+  },
   "vocabMarkKnown": {
     "message": "Oznacz jako opanowane"
   },

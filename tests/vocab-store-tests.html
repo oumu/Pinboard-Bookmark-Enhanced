@@ -350,6 +350,16 @@ async function runIdbChecks() {
   const clampedRec = await pbpVocabGet(statusWord.id);
   check("unknown status values clamp to new at the single write entrance",
     task3ApiReady && clampedRec.status === "new");
+  await pbpVocabSetNote(statusWord.id, "acct_a", " why I saved this ");
+  const noted = await pbpVocabGet(statusWord.id);
+  const notedOutbox = await pbpVocabListOutbox("acct_a");
+  check("set-note writes through the synced edit path, verbatim",
+    task3ApiReady && noted.note === " why I saved this " &&
+    notedOutbox[0].event.value.note === " why I saved this ");
+  await pbpVocabSetNote(statusWord.id, "acct_a", "x".repeat(3000));
+  const clampedNote = await pbpVocabGet(statusWord.id);
+  check("note length clamps under the remote entry-size gate",
+    task3ApiReady && clampedNote.note.length === 2000);
 
   await deleteVocabDb();
   const a = await pbpVocabSaveWord("acct_a", { term: "Alpha", language: "en" });

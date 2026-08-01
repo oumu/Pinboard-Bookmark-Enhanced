@@ -2720,6 +2720,9 @@
   "dictSaveVocab": {
     "message": "В словарик"
   },
+  "vocabNoteSaved": {
+    "message": "Заметка сохранена"
+  },
   "vocabMarkKnown": {
     "message": "Отметить как выученное"
   },

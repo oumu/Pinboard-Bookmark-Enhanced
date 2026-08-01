@@ -2720,6 +2720,9 @@
   "dictSaveVocab": {
     "message": "単語帳に保存"
   },
+  "vocabNoteSaved": {
+    "message": "メモを保存しました"
+  },
   "vocabMarkKnown": {
     "message": "習得済みにする"
   },

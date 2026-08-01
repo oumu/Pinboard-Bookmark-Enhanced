@@ -2720,6 +2720,9 @@
   "dictSaveVocab": {
     "message": "Ajouter au vocabulaire"
   },
+  "vocabNoteSaved": {
+    "message": "Note enregistrée"
+  },
   "vocabMarkKnown": {
     "message": "Marquer comme acquis"
   },

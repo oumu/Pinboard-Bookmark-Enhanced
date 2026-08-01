@@ -2720,6 +2720,9 @@
   "dictSaveVocab": {
     "message": "存入生詞庫"
   },
+  "vocabNoteSaved": {
+    "message": "備註已儲存"
+  },
   "vocabMarkKnown": {
     "message": "標記為已掌握"
   },

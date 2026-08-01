@@ -264,12 +264,50 @@ function _pbpVocabBuildRow(w, index) {
     itemEl.appendChild(textEl);
     itemsEl.appendChild(itemEl);
   }
-  if (w.note) {
-    const noteEl = document.createElement("div");
-    noteEl.className = "notes-item-note";
-    noteEl.textContent = w.note;
-    itemsEl.appendChild(noteEl);
-  }
+  // Note editor. The field, its concurrent-merge rule and the Drive privacy
+  // copy ("may include ... notes") all existed with no way to type into it.
+  // Save is explicit (mutation-at-confirm discipline, same as every other
+  // vocab edit); the button only appears once the text actually differs.
+  const noteWrap = document.createElement("div");
+  noteWrap.className = "vocab-note-edit";
+  const noteInput = document.createElement("textarea");
+  noteInput.className = "vocab-note-input";
+  noteInput.rows = 2;
+  noteInput.maxLength = 500;
+  noteInput.placeholder = t("hlNotePlaceholder");
+  noteInput.setAttribute("aria-label", t("hlNotePlaceholder"));
+  noteInput.value = w.note || "";
+  const noteSave = document.createElement("button");
+  noteSave.type = "button";
+  noteSave.className = "btn btn-sm vocab-note-save";
+  noteSave.textContent = t("hlSave");
+  noteSave.hidden = true;
+  noteInput.addEventListener("input", () => {
+    noteSave.hidden = noteInput.value === (w.note || "");
+  });
+  noteSave.addEventListener("click", async () => {
+    if (noteSave.disabled) return;
+    noteSave.disabled = true;
+    const gen = ++_vocabRenderGen;
+    let owner = null;
+    try {
+      owner = await pbpVocabCurrentOwner();
+      const ok = await pbpVocabSetNote(w.id, owner, noteInput.value);
+      const refreshed = await _pbpVocabReloadAfterMutation(owner, gen);
+      if (gen !== _vocabRenderGen) return;
+      if (!ok) _pbpVocabFlashStatus(false, t("vocabBatchFailed"));
+      else if (!refreshed) _pbpVocabFlashStatus(false, t("vocabRefreshFailed"));
+      else _pbpVocabFlashStatus(true, t("vocabNoteSaved"));
+    } catch (_) {
+      if (owner) await _pbpVocabReloadAfterMutation(owner, gen);
+      if (gen === _vocabRenderGen) _pbpVocabFlashStatus(false, t("vocabBatchFailed"));
+    } finally {
+      noteSave.disabled = false;
+    }
+  });
+  noteWrap.appendChild(noteInput);
+  noteWrap.appendChild(noteSave);
+  itemsEl.appendChild(noteWrap);
   body.appendChild(itemsEl);
   card.appendChild(body);
 

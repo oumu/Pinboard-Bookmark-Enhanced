@@ -588,6 +588,25 @@ async function pbpVocabBatchSetStatus(ids, expectedOwner, rawStatus) {
   return result.ok;
 }
 
+// Single-record note editor entrance (the options card is its only writer).
+// note is a synced field the Drive disclosure has named all along -- this
+// finally gives users a way to put something in it. Length is clamped well
+// under the remote entry-size gate so a pasted essay cannot brick a batch.
+async function pbpVocabSetNote(id, expectedOwner, rawNote) {
+  const scope = expectedOwner || "ownerless";
+  const note = String(rawNote == null ? "" : rawNote).slice(0, 2000);
+  const now = Date.now();
+  const result = await _pbpVocabLocalMutation(scope, [{ id }], (record) => {
+    if (!record) return { changed: false, result: null };
+    const recordKey = _pbpVocabRecordKey(scope, record);
+    if (!recordKey) return { invalid: true };
+    if (String(record.note || "") === note) return { changed: false, result: record };
+    const word = { ...record, note, updatedAt: now };
+    return { changed: true, deleted: false, recordKey, word, result: word };
+  });
+  return result.ok;
+}
+
 async function pbpVocabSaveWord(owner, w) {
   const scope = owner || "ownerless";
   const id = pbpDictVocabKey(scope, w.language, w.term);

@@ -2028,6 +2028,27 @@ html.motion-ready .notes-card.motion-toggle .notes-card-chevron {
 .vocab-gloss-text {
   white-space: pre-wrap;
 }
+.vocab-note-edit {
+  display: flex;
+  gap: var(--opt-sp-4);
+  align-items: flex-start;
+  margin-top: var(--opt-sp-2);
+}
+.vocab-note-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  resize: vertical;
+  /* Outside .fg, so the body's fast CJK stack must be inherited explicitly
+     (font-fallback stall rule) -- prose note, not code, so no monospace. */
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 4px 8px;
+  border: 1px solid var(--opt-border, #d0d0d0);
+  border-radius: 6px;
+  background: inherit;
+  color: inherit;
+}
 .notes-empty {
   font-size: 12px;
   color: var(--opt-fg-muted, #666);
