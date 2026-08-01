@@ -477,7 +477,14 @@ function _pbpVocabSyncSelectionUi() {
   // Remove additionally needs the typed group to actually be on something in the
   // selection. Enabling it symmetrically with add would let a click report "12
   // removed" while changing nothing.
-  if (removeBtn) removeBtn.disabled = _vocabBatchBusy || !selectedCount || !group || !_pbpVocabSelectedInGroup(group);
+  if (removeBtn) {
+    const inGroup = group && selectedCount ? _pbpVocabSelectedInGroup(group) : 0;
+    removeBtn.disabled = _vocabBatchBusy || !selectedCount || !group || !inGroup;
+    // "Selection and group don't overlap" is the one disable condition nothing
+    // on screen explains; say it on hover. Cleared otherwise -- and never via
+    // #vocab-status, which is a live region the batch results keep rewriting.
+    removeBtn.title = (group && selectedCount && !inGroup) ? t("vocabRemoveGroupNoMatch") : "";
+  }
   if (deleteBtn) deleteBtn.disabled = _vocabBatchBusy || !selectedCount;
   const knownBtn = $id("vocab-mark-known");
   const learningBtn = $id("vocab-mark-learning");

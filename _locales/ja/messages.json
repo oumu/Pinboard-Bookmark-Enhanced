@@ -2892,6 +2892,9 @@
     "vocabRemoveFromGroup": {
       "message": "グループから外す"
     },
+    "vocabRemoveGroupNoMatch": {
+      "message": "選択した単語はこのグループに含まれていません"
+    },
     "vocabBatchDelete": {
       "message": "選択項目を削除"
     },

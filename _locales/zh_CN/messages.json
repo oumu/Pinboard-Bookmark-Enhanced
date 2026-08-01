@@ -2892,6 +2892,9 @@
     "vocabRemoveFromGroup": {
       "message": "从分组移除"
     },
+    "vocabRemoveGroupNoMatch": {
+      "message": "所选生词都不在这个分组里"
+    },
     "vocabBatchDelete": {
       "message": "删除选中项"
     },

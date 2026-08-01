@@ -2892,6 +2892,9 @@
     "vocabRemoveFromGroup": {
       "message": "Retirer du groupe"
     },
+    "vocabRemoveGroupNoMatch": {
+      "message": "Aucun des mots sélectionnés n'est dans ce groupe"
+    },
     "vocabBatchDelete": {
       "message": "Supprimer la sélection"
     },

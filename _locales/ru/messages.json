@@ -2892,6 +2892,9 @@
     "vocabRemoveFromGroup": {
       "message": "Удалить из группы"
     },
+    "vocabRemoveGroupNoMatch": {
+      "message": "Ни одно из выбранных слов не входит в эту группу"
+    },
     "vocabBatchDelete": {
       "message": "Удалить выбранное"
     },
