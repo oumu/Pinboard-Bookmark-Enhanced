@@ -328,6 +328,17 @@ function _pbpNotesDelete(row, anchor) {
     onConfirm: async () => {
       try { await chrome.storage.local.remove(row.key); } catch (_) { return; }
       _notesAllRows = _notesAllRows.filter((e) => e.row.key !== row.key);
+      // Fold the card out before the rebuild (vocab cards share the recipe via
+      // options.css .card-exit). Marked only after the remove succeeded, and
+      // only when motion is wanted; a concurrent filter re-render just makes
+      // the delayed rebuild a harmless duplicate.
+      const cardEl = anchor && anchor.closest ? anchor.closest(".notes-card") : null;
+      if (cardEl && cardEl.isConnected
+          && document.documentElement.classList.contains("motion-ready")
+          && !(typeof pbpPrefersReducedMotion === "function" && pbpPrefersReducedMotion())) {
+        cardEl.classList.add("card-exit");
+        await new Promise((resolve) => setTimeout(resolve, 220));
+      }
       _pbpNotesRenderList(_pbpNotesVisibleEntries());
     },
   });

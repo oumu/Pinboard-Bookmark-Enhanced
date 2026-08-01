@@ -2051,6 +2051,20 @@ html[data-theme="flexoki-dark"] #panel-vocab .vocab-details-body > .hint {
   margin-bottom: var(--opt-sp-3);
   background: var(--opt-bg, #fff);
 }
+/* Deleted-card fold. JS adds .card-exit only after the store confirmed the
+   delete; the rebuild then waits out the 200ms window (220ms cap JS-side).
+   height auto→0 interpolates via :root interpolate-size; the card's spacing
+   is its own margin-bottom, so height+margin+opacity removes its whole
+   footprint. Covers vocab and note cards (shared .notes-card base). */
+html.motion-ready .notes-card.card-exit {
+  overflow: clip;
+  height: 0;
+  margin-block: 0;
+  opacity: 0;
+  transition: height var(--motion-collapse) var(--ease-in-out),
+              margin-block var(--motion-collapse) var(--ease-in-out),
+              opacity var(--motion-collapse) var(--ease-out);
+}
 .notes-card-top {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, auto) auto;

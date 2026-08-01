@@ -13,6 +13,24 @@ let _vocabRows = [];     // last render's rows, kept for export
 let _vocabViewRows = []; // current filtered + sorted view (selection boundary)
 let _vocabSelected = new Set();
 let _vocabBatchMarkTimer = null; // expiring .motion-toggle mark on the batch toolbar
+// Deleted-card exit, decoupled from the data path: the mutation and reload
+// fire immediately; only the reload's final DOM commit waits out this window
+// (see _pbpVocabExitSettle call in _pbpVocabReloadAfterMutation), so the
+// owner/gen guards keep their exact timing and ordering.
+let _vocabExitHoldUntil = 0;
+function _pbpVocabMarkExit(cards) {
+  if (!document.documentElement.classList.contains("motion-ready")) return;
+  if (typeof pbpPrefersReducedMotion === "function" && pbpPrefersReducedMotion()) return;
+  let marked = false;
+  for (const el of cards) {
+    if (el && el.isConnected) { el.classList.add("card-exit"); marked = true; }
+  }
+  if (marked) _vocabExitHoldUntil = performance.now() + 220;
+}
+async function _pbpVocabExitSettle() {
+  const wait = _vocabExitHoldUntil - performance.now();
+  if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
+}
 let _vocabLastSelectedId = null;
 let _vocabRenderLimit = 100;
 let _vocabBatchBusy = false;
@@ -399,6 +417,9 @@ function _pbpVocabDeleteRow(w, anchor) {
       try {
         owner = await pbpVocabCurrentOwner();
         const ok = await pbpVocabDelete(w.id, owner);
+        // Only a confirmed delete collapses the card -- a failed one would
+        // fold and then pop back on the reconciling re-render.
+        if (ok) _pbpVocabMarkExit([anchor.closest(".notes-card")]);
         // Re-read on failure too: an earlier overlapping mutation may have
         // committed already, and this latest action owns the final reconcile.
         const refreshed = await _pbpVocabReloadAfterMutation(owner, gen);
@@ -595,6 +616,10 @@ async function _pbpVocabReloadAfterMutation(expectedOwner, requestedGen) {
   try {
     const rows = await pbpVocabAll(expectedOwner);
     const ownerNow = await pbpVocabCurrentOwner();
+    // Let a running card-exit fold finish before the rebuild (no-op unless a
+    // delete just marked cards). Sits BEFORE the gen/owner guards so the
+    // wait can never resurrect a superseded snapshot.
+    await _pbpVocabExitSettle();
     // A newer mutation, tab activation or account-change render owns every
     // visible field now. The old snapshot may still be useful to its caller
     // as completion, but it must not write rows/loading/selection/status.
@@ -1036,6 +1061,13 @@ function _pbpVocabBatchDeleteSelected() {
       try {
         owner = await pbpVocabCurrentOwner();
         const ok = await pbpVocabBatchDelete(ids, owner);
+        if (ok) {
+          // One simultaneous fold for the whole batch -- a per-card stagger
+          // at 20 selections would blow far past the motion budget.
+          const idSet = new Set(ids);
+          _pbpVocabMarkExit([...document.querySelectorAll("#vocab-list > .notes-card")]
+            .filter((el) => idSet.has(el.dataset.vocabId)));
+        }
         const refreshed = await _pbpVocabReloadAfterMutation(owner, gen);
         if (gen !== _vocabRenderGen) return;
         _pbpVocabFocusStable();
