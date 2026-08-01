@@ -40,12 +40,25 @@ function showBatchAiPermission(origins, s) {
     item.textContent = text;
     return item;
   }));
+  clearTimeout(_batchPermHideTimer);
+  panel.classList.remove("dismissing");
   panel.classList.remove("hidden");
   $id("batch-permission-grant")?.focus();
 }
 
+let _batchPermHideTimer = null;
 function hideBatchAiPermission() {
-  $id("batch-permission")?.classList.add("hidden");
+  const panel = $id("batch-permission");
+  if (panel && !panel.classList.contains("hidden")) {
+    // Mirror the fadeSlideDown entrance on the way out (all three callers are
+    // direct responses to a grant/cancel click).
+    clearTimeout(_batchPermHideTimer);
+    panel.classList.add("dismissing");
+    _batchPermHideTimer = setTimeout(() => {
+      panel.classList.remove("dismissing");
+      panel.classList.add("hidden");
+    }, 120);
+  }
   const grant = $id("batch-permission-grant");
   const cancel = $id("batch-permission-cancel");
   if (grant) grant.disabled = false;
@@ -70,7 +83,7 @@ async function dispatchBatchSave(snapshot, batchBtn, account) {
     return;
   }
   const progress = $id("batch-progress");
-  if (progress) progress.classList.remove("hidden");
+  if (progress) { progress.classList.remove("dismissing"); progress.classList.remove("hidden"); }
   setBtnIcon(batchBtn, "pin", t("batchProgress", "0", String(snapshot.length), "0", "0"));
 }
 
@@ -249,6 +262,7 @@ function renderBatchProgress(p, currentAccount) {
   const cur = Math.min(total, Math.max(0, Number(p.i) || 0));
   const pct = total ? Math.round((cur / total) * 100) : 0;
   if (progress) {
+    progress.classList.remove("dismissing");
     progress.classList.remove("hidden");
     progress.setAttribute("aria-valuenow", String(pct));
     progress.setAttribute("aria-valuetext", t("batchProgress", String(cur), String(total), String(p.saved || 0), String(p.failed || 0)));
@@ -274,7 +288,10 @@ function renderBatchProgress(p, currentAccount) {
     setBtnIcon(batchBtn, "pin", t("batchSavedCount", String(p.saved || 0)));
     setTimeout(() => {
       const restoreFocus = !!progress && document.activeElement === progress;
-      if (progress) progress.classList.add("hidden");
+      if (progress) {
+        progress.classList.add("dismissing");
+        setTimeout(() => { progress.classList.remove("dismissing"); progress.classList.add("hidden"); }, 120);
+      }
       setBtnIcon(batchBtn, "pin", t("batchSaveBtn"));
       batchBtn.disabled = false;
       if (restoreFocus) batchBtn.focus();

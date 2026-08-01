@@ -423,12 +423,30 @@ function showAIError(op, err, opSettings) {
   const retryBtn = $id("ai-error-retry");
   if (retryBtn) retryBtn.textContent = t(err?.code === "host_permission" ? "aiGrantRetry" : "aiErrorRetry");
 
+  clearTimeout(_aiErrorHideTimer);
+  card.classList.remove("dismissing");
   card.classList.remove("hidden");
 }
 
-function hideAIError() {
+let _aiErrorHideTimer = null;
+function hideAIError({ animate = false } = {}) {
   const card = $id("ai-error-card");
-  if (card) card.classList.add("hidden");
+  if (card) {
+    clearTimeout(_aiErrorHideTimer);
+    if (animate && !card.classList.contains("hidden")) {
+      // Dismiss button only. The programmatic call sites clear the card right
+      // before starting a fresh AI op; a 120ms deferred .hidden there would
+      // swallow the next showAIError's card.
+      card.classList.add("dismissing");
+      _aiErrorHideTimer = setTimeout(() => {
+        card.classList.remove("dismissing");
+        card.classList.add("hidden");
+      }, 120);
+    } else {
+      card.classList.remove("dismissing");
+      card.classList.add("hidden");
+    }
+  }
   const retryBtn = $id("ai-error-retry");
   if (retryBtn) retryBtn.textContent = t("aiErrorRetry");
   _aiErrorLastOp = null;
@@ -437,7 +455,7 @@ function hideAIError() {
 
 function setupAIFeatures() {
   // Wire error card controls once
-  $id("ai-error-dismiss")?.addEventListener("click", (e) => { e.preventDefault(); hideAIError(); });
+  $id("ai-error-dismiss")?.addEventListener("click", (e) => { e.preventDefault(); hideAIError({ animate: true }); });
   $id("ai-error-retry")?.addEventListener("click", async (event) => {
     const retryBtn = event.currentTarget;
     if (retryBtn.disabled) return;

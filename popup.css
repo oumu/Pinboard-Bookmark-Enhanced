@@ -217,7 +217,9 @@ html[data-section="login"] .quick-actions { display: none !important; }
 .feedback-card[data-variant="success"] { background: var(--pp-ok-bg);      border-color: var(--pp-ok-bd);      color: var(--pp-ok-fg); }
 .feedback-card[data-variant="warning"] { background: var(--pp-offline-bg); border-color: var(--pp-offline-bd); color: var(--pp-offline-fg); }
 .feedback-card[data-variant="info"]    { background: var(--pp-info-bg);    border-color: var(--pp-info-bd);    color: var(--pp-info-fg); }
-.feedback-card.dismissing { animation: fadeOut 0.12s var(--ease-out) forwards; }
+/* Shared exit for cards that enter via fadeSlideDown. JS adds .dismissing,
+   then flips .hidden 120ms later (keep in sync with the fadeOut duration). */
+.feedback-card.dismissing, .batch-permission.dismissing, .batch-progress.dismissing { animation: fadeOut 0.12s var(--ease-out) forwards; }
 /* fc-icon is a flex item under .feedback-card{align-items:flex-start}, so vertical-align
    is inert; margin-top drops the SVG onto the first text line's optical center. */
 .fc-icon { font-size: 12px; line-height: 1.2; flex-shrink: 0; margin-top: var(--pp-sp-1); }
