@@ -1232,6 +1232,11 @@ async function pbpDictRun(cap, ctx, pop, ctrl, s) {
   // language-detection gap and can save an und/empty record for a
   // selection this run has already superseded.
   const vocabBtn = pop.querySelector(".xp-vocab");
+  // Known-toggle resets with the run, not just with the action switch: a
+  // language-dropdown rerun that no longer hits a saved word must not leave
+  // last run's button (wired to the OLD record id) sitting in the foot.
+  const knownReset = pop.querySelector(".xp-known");
+  if (knownReset) { knownReset.hidden = true; knownReset.onclick = null; }
   if (vocabBtn) {
     vocabBtn.hidden = false;
     vocabBtn.disabled = true;

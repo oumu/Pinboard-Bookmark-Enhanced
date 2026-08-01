@@ -1346,6 +1346,15 @@ body.md-empty main { margin-left: 0; }
 /* ---- Screen-reader only utility ---- */
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; border: 0; }
 
+/* The hidden attribute must always win. The UA's [hidden]{display:none} is a
+   NORMAL declaration, so any author display (the .xp-foot icon grid, the
+   .xp-dict-speak inline-flex) silently defeated it -- measured live: a
+   [hidden] foot button computed display:flex. Three earlier local patches
+   (.rail-scrim[hidden], .send-caret[hidden], .send-menu[hidden]) fought the
+   same defect case by case; this ends the class. Every .hidden= call site in
+   the preview expects standard semantics. until-found is not used here. */
+[hidden] { display: none !important; }
+
 /* Skip link: parked off-screen (never display:none -- it must stay
    focusable), drops into view on keyboard focus. Above every overlay
    (explain-pop tops out at 80). */
