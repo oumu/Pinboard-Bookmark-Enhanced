@@ -1961,11 +1961,41 @@ html.motion-ready #panel-vocab .vocab-batch-toolbar.motion-toggle:not([hidden]) 
   right: var(--opt-sp-2);
   top: 50%;
   translate: 0 -50%;
-  background: var(--opt-bg, #fff);
+  background: var(--row-bg, var(--opt-bg, #fff));
   opacity: 0;
   transition: opacity var(--motion-state) ease, background var(--motion-state), border-color var(--motion-state), color var(--motion-state);
 }
-.notes-card-top { position: relative; }
+.notes-card-top {
+  position: relative;
+  /* Row state skin (feel round 2026-08): the row itself acknowledges pointer
+     presence and press -- it was the only clickable surface on the page with
+     no hover/active skin of its own. ONE variable drives every layer; the
+     delete chip reads it too, so the overlay never leaves a pale patch on a
+     tinted row. color-mix over tokens keeps polarity right across all 13
+     themes in both modes. */
+  --row-bg: var(--opt-bg, #fff);
+  background: var(--row-bg);
+}
+html.motion-ready .notes-card-top { transition: background-color var(--motion-state) ease; }
+.notes-card-top:hover { --row-bg: color-mix(in srgb, var(--opt-fg, #333) 5%, var(--opt-bg, #fff)); }
+/* Press must read instantly -- same no-transition reasoning as .btn:active. */
+.notes-card-top:active { --row-bg: color-mix(in srgb, var(--opt-fg, #333) 9%, var(--opt-bg, #fff)); transition-duration: 0s; }
+/* Selected rows read as a scannable accent band (declared after :hover so
+   selection wins, with a deeper hover step layered on top). */
+.vocab-card.selected .notes-card-top { --row-bg: color-mix(in srgb, var(--opt-accent, #4477bb) 10%, var(--opt-bg, #fff)); }
+.vocab-card.selected .notes-card-top:hover { --row-bg: color-mix(in srgb, var(--opt-accent, #4477bb) 15%, var(--opt-bg, #fff)); }
+/* Open cards get a material step: the body sits one shade below the row, so
+   "which card is open" scans at a glance (the Things-3 half we keep; scrims
+   and sibling dimming stay rejected). */
+.notes-card-body { background: color-mix(in srgb, var(--opt-fg, #333) 3.5%, var(--opt-bg, #fff)); }
+/* The expand head was the page's only control still wearing the UA default
+   focus ring; same recipe as .btn:focus-visible. :focus-visible, not :focus --
+   a mouse click on the head must not pin the ring. */
+.notes-card-head:focus-visible {
+  outline: 2px solid var(--opt-accent, #4477bb);
+  outline-offset: 2px;
+  border-radius: var(--opt-radius-sm, 3px);
+}
 /* Reveal on hover or the control's own keyboard focus -- NOT card-level
    :focus-within: a mouse click on the expand head keeps focus on the card,
    which pinned the overlay open until the user clicked elsewhere (device
@@ -2273,6 +2303,16 @@ html.motion-ready .notes-card.motion-toggle > .notes-card-body:not([hidden]) {
 html.motion-ready .notes-card.motion-toggle .notes-card-chevron {
   transition: transform var(--motion-collapse) var(--ease-in-out);
 }
+/* Content arrives, the clip does not merely reveal it: one whole-body pass
+   (no per-item stagger), 60ms behind the fold so both settle on the same
+   frame. A keyframe, not @starting-style -- children coming back from
+   display:none replay a keyframe reliably; `backwards` holds opacity:0
+   through the delay. Collapse gets no mirror (out is quicker than in), and
+   .motion-toggle gating means batch renders and tab resets never replay it. */
+@keyframes pbp-card-body-in { from { opacity: 0; translate: 0 -3px; } }
+html.motion-ready .notes-card.motion-toggle > .notes-card-body:not([hidden]) > * {
+  animation: pbp-card-body-in var(--motion-pop) var(--ease-out) 60ms backwards;
+}
 .notes-unknown-hint {
   font-size: 11px;
   color: var(--opt-fg-muted, #666);
@@ -2347,6 +2387,23 @@ html.motion-ready .notes-card.motion-toggle .notes-card-chevron {
   background: inherit;
   color: inherit;
 }
+/* Same focus language as the .fg family -- tokens only, NOT the family's base
+   selectors: those get their dark/theme skins from generated-region rules
+   whose selector lists are fixed, so joining them would leave this input
+   light-bodied under every theme. */
+.vocab-note-input:focus { outline: none; border-color: var(--opt-focus-bd); }
+.vocab-note-input:focus-visible { box-shadow: var(--opt-focus-ring); }
+/* Save appears when the draft differs from the stored note; a 140ms pop
+   (confirm-popover recipe) instead of a display snap mid-typing. */
+html.motion-ready .vocab-note-save {
+  transition: opacity var(--motion-pop) var(--ease-out),
+              translate var(--motion-pop) var(--ease-out),
+              display var(--motion-pop) allow-discrete;
+}
+html.motion-ready .vocab-note-save:not([hidden]) {
+  @starting-style { opacity: 0; translate: 0 2px; }
+}
+html.motion-ready .vocab-note-save[hidden] { display: none; opacity: 0; translate: 0 2px; }
 .notes-empty {
   font-size: 12px;
   color: var(--opt-fg-muted, #666);
