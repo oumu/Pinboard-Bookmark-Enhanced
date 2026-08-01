@@ -1973,12 +1973,18 @@ function _pbpExplainEnsurePop() {
   actGroup.className = "xp-act-group";
   actGroup.setAttribute("role", "group");
   const PBP_EXPLAIN_ACTION_LABELS = { explain: "explainActionExplain", translate: "explainActionTranslate", dict: "explainActionDict" };
+  // Icon-only segments (icon audit P0): bubble+? / A-with-glyph / open book,
+  // the same trio the highlight card wears. Labels ride title/aria; the
+  // selected segment is carried by the aria-pressed fill, not text weight.
+  const PBP_EXPLAIN_ACTION_ICONS = { explain: PBP_ICONS.explain, translate: PBP_ICONS.translate, dict: PBP_ICONS.book };
   ["explain", "translate", "dict"].forEach((action) => {
     const actBtn = document.createElement("button");
     actBtn.type = "button";
     actBtn.className = "xp-act";
     actBtn.dataset.action = action;
-    actBtn.textContent = t(PBP_EXPLAIN_ACTION_LABELS[action]);
+    actBtn.innerHTML = PBP_EXPLAIN_ACTION_ICONS[action]; // static shared constants
+    actBtn.title = t(PBP_EXPLAIN_ACTION_LABELS[action]);
+    actBtn.setAttribute("aria-label", t(PBP_EXPLAIN_ACTION_LABELS[action]));
     actBtn.setAttribute("aria-pressed", String(action === _pbpExplainAction));
     actBtn.addEventListener("click", () => {
       // Click on the already-active action: no-op (spec 2.1 only defines

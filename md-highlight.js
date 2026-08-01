@@ -1446,16 +1446,18 @@ function _pbpHlEnsureCard() {
 
   const foot = document.createElement("div");
   foot.className = "hl-card-foot";
-  const save = document.createElement("button");
-  save.type = "button";
-  save.className = "hl-card-save";
-  save.addEventListener("click", _pbpHlCommitNote);
-  foot.appendChild(save);
+  // Delete left, Save right (space-between): this delete has no confirm
+  // popover, so physical distance from the commit CTA is the misclick guard.
   const del = document.createElement("button");
   del.type = "button";
   del.className = "hl-card-delete";
   del.addEventListener("click", _pbpHlDeleteCurrent);
   foot.appendChild(del);
+  const save = document.createElement("button");
+  save.type = "button";
+  save.className = "hl-card-save";
+  save.addEventListener("click", _pbpHlCommitNote);
+  foot.appendChild(save);
   card.appendChild(foot);
 
   card.addEventListener("toggle", (e) => {
@@ -1531,10 +1533,20 @@ function _pbpHlApplyCardI18n(card) {
   });
   card.querySelector(".hl-card-note").placeholder = t("hlNotePlaceholder");
   card.querySelector(".hl-card-save").textContent = t("hlSave");
-  card.querySelector(".hl-card-delete").textContent = t("hlDelete");
-  card.querySelector(".hl-card-ai-explain").textContent = t("hlCardExplain");
-  card.querySelector(".hl-card-ai-translate").textContent = t("hlCardTranslate");
-  card.querySelector(".hl-card-ai-ask").textContent = t("hlCardAsk");
+  // Icon-only controls (icon audit P0): delete folds to the shared cross
+  // (matching the Notebook list's hl-item-del), and the AI trio wears the
+  // same explain/translate/ask icons as the explain-pop. Labels ride
+  // title/aria; static PBP_ICONS constants only.
+  const _hlIconBtn = (sel, icon, label) => {
+    const b = card.querySelector(sel);
+    b.innerHTML = icon;
+    b.title = label;
+    b.setAttribute("aria-label", label);
+  };
+  _hlIconBtn(".hl-card-delete", PBP_ICONS.cross, t("hlDelete"));
+  _hlIconBtn(".hl-card-ai-explain", PBP_ICONS.explain, t("hlCardExplain"));
+  _hlIconBtn(".hl-card-ai-translate", PBP_ICONS.translate, t("hlCardTranslate"));
+  _hlIconBtn(".hl-card-ai-ask", PBP_ICONS.ask, t("hlCardAsk"));
 }
 
 // Single entry point for both the click-hit-detection path (Step 2) and Task 4's

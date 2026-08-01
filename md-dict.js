@@ -476,7 +476,9 @@ const PBP_DICT_SPEAKER_SVG = '<svg width="14" height="14" viewBox="0 0 24 24" fi
 
 // Static inline SVG (Feather book-open). Constant string, never model text.
 // Consumed by the highlight selection bar's dictionary button (md-highlight.js).
-const PBP_DICT_BOOK_SVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>';
+// Alias of the shared book icon (Lucide book-open) -- same glyph the
+// explain-pop action switch and the highlight card use for Dictionary.
+const PBP_DICT_BOOK_SVG = typeof PBP_ICONS !== "undefined" ? PBP_ICONS.book : "";
 
 // Known-word toggle faces (Feather check-circle / rotate-ccw).
 const PBP_DICT_KNOWN_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';

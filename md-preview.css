@@ -1616,17 +1616,21 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
 .xp-pin[aria-pressed="true"] { background: var(--active-bg); color: var(--active-fg); }
 .xp-pin svg, .xp-close svg { width: 14px; height: 14px; }
 .xp-act {
-  padding: 3px 9px;
+  /* Icon-only segment (icon audit P0): fixed-height cell, label in
+     title/aria -- the grid's ellipsis fallback below can never fire now. */
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
   border: 1px solid var(--btn-border);
   border-radius: 6px;
   background: var(--btn-bg);
   color: var(--btn-fg);
-  font-size: 0.75em;
-  font-weight: 500;
   cursor: pointer;
-  white-space: nowrap;
   transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
 }
+.xp-act svg { width: 15px; height: 15px; }
 .xp-act:hover { background: var(--btn-hover); }
 .xp-act[aria-pressed="true"] {
   background: var(--active-bg);
@@ -2628,14 +2632,21 @@ body.ask-open main { margin-right: 396px; }
 .hl-card-ai { display: flex; gap: 6px; }
 .hl-card-ai[hidden] { display: none; }
 .hl-card-ai-explain, .hl-card-ai-translate, .hl-card-ai-ask {
-  padding: 3px 9px;
+  /* Icon-only cells sharing the explain-pop trio; equal thirds of the 292px
+     row, height fixed so no locale can reflow the card. */
+  flex: 1 1 0;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
   border: 1px solid var(--btn-border);
   border-radius: 6px;
   background: var(--btn-bg);
   color: var(--btn-fg);
-  font-size: 12px;
   cursor: pointer;
 }
+.hl-card-ai svg { width: 15px; height: 15px; }
 .hl-card-ai-explain:hover, .hl-card-ai-translate:hover, .hl-card-ai-ask:hover { background: var(--btn-hover); }
 .hl-card-note {
   width: 100%;
@@ -2648,7 +2659,16 @@ body.ask-open main { margin-right: 396px; }
   resize: vertical;
   box-sizing: border-box;
 }
-.hl-card-foot { display: flex; justify-content: flex-end; gap: 8px; }
+/* Delete (icon, left) vs Save (text CTA, right): the delete has no confirm
+   popover, so the row's full width is the misclick guard. */
+.hl-card-foot { display: flex; justify-content: space-between; gap: 8px; }
+.hl-card-delete {
+  width: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
 .hl-card-save, .hl-card-delete {
   padding: 4px 10px;
   border: 1px solid var(--btn-border);
