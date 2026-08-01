@@ -3452,6 +3452,9 @@
   "hlNotePlaceholder": { "message": "添加笔记…" },
   "hlSave": { "message": "保存" },
   "hlDelete": { "message": "删除高亮" },
+  "hlDeleteConfirm": {
+    "message": "删除这条高亮及其笔记？"
+  },
   "hlDegraded": { "message": "位置已失准：周围文本发生了变化，该高亮现已覆盖整段。" },
   "hlOrphanNote": { "message": "$COUNT$ 条高亮未能在当前页面内容中定位（笔记仍保留）", "placeholders": { "count": { "content": "$1" } } },
   "hlOrphanUnlocatable": { "message": "该高亮已无法在当前页面内容中定位。" },

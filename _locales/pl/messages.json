@@ -3458,6 +3458,9 @@
   "hlNotePlaceholder": { "message": "Dodaj notatkę…" },
   "hlSave": { "message": "Zapisz" },
   "hlDelete": { "message": "Usuń zaznaczenie" },
+  "hlDeleteConfirm": {
+    "message": "Usunąć to zaznaczenie wraz z notatką?"
+  },
   "hlDegraded": { "message": "Pozycja utracona — otaczający tekst się zmienił, więc to zaznaczenie obejmuje teraz cały akapit." },
   "hlOrphanNote": { "message": "$COUNT$ zaznaczeń nie udało się odnaleźć w bieżącej treści strony — notatki zostały zachowane.", "placeholders": { "count": { "content": "$1" } } },
   "hlOrphanUnlocatable": { "message": "Tego zaznaczenia nie można odnaleźć w bieżącej treści strony." },

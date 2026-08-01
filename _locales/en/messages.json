@@ -3452,6 +3452,9 @@
   "hlNotePlaceholder": { "message": "Add a note…" },
   "hlSave": { "message": "Save" },
   "hlDelete": { "message": "Delete highlight" },
+  "hlDeleteConfirm": {
+    "message": "Delete this highlight and its note?"
+  },
   "hlDegraded": { "message": "Position lost: the surrounding text changed, so this highlight now covers the whole paragraph." },
   "hlOrphanNote": { "message": "$COUNT$ highlights could not be located in the current page content; their notes are kept.", "placeholders": { "count": { "content": "$1" } } },
   "hlOrphanUnlocatable": { "message": "This highlight can't be located in the current page content." },

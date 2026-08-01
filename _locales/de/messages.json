@@ -3458,6 +3458,9 @@
   "hlNotePlaceholder": { "message": "Notiz hinzufügen…" },
   "hlSave": { "message": "Speichern" },
   "hlDelete": { "message": "Markierung löschen" },
+  "hlDeleteConfirm": {
+    "message": "Diese Markierung samt Notiz löschen?"
+  },
   "hlDegraded": { "message": "Position verloren: Der umliegende Text hat sich geändert, daher deckt diese Markierung jetzt den ganzen Absatz ab." },
   "hlOrphanNote": { "message": "$COUNT$ Markierungen konnten im aktuellen Seiteninhalt nicht gefunden werden; ihre Notizen bleiben erhalten.", "placeholders": { "count": { "content": "$1" } } },
   "hlOrphanUnlocatable": { "message": "Diese Markierung ist im aktuellen Seiteninhalt nicht auffindbar." },

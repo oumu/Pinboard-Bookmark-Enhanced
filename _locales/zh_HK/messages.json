@@ -3458,6 +3458,9 @@
   "hlNotePlaceholder": { "message": "新增筆記…" },
   "hlSave": { "message": "儲存" },
   "hlDelete": { "message": "刪除標記" },
+  "hlDeleteConfirm": {
+    "message": "刪除此標記及其筆記？"
+  },
   "hlDegraded": { "message": "位置已失準：周圍文字有變動，此標記已回退為覆蓋整段。" },
   "hlOrphanNote": { "message": "$COUNT$ 條標記未能在目前頁面內容中定位（筆記仍保留）", "placeholders": { "count": { "content": "$1" } } },
   "hlOrphanUnlocatable": { "message": "此標記已無法在目前頁面內容中定位。" },

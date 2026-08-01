@@ -3458,6 +3458,9 @@
   "hlNotePlaceholder": { "message": "メモを追加…" },
   "hlSave": { "message": "保存" },
   "hlDelete": { "message": "ハイライトを削除" },
+  "hlDeleteConfirm": {
+    "message": "このハイライトとメモを削除しますか？"
+  },
   "hlDegraded": { "message": "位置が失われました。周囲のテキストが変更されたため、このハイライトは段落全体に適用されています。" },
   "hlOrphanNote": { "message": "$COUNT$ 件のハイライトが現在のページ内容で見つかりませんでした。メモは保持されます。", "placeholders": { "count": { "content": "$1" } } },
   "hlOrphanUnlocatable": { "message": "このハイライトは現在のページ内容で見つかりません。" },

@@ -1032,6 +1032,11 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
   hyphens: auto;
   overflow-wrap: anywhere;
 }
+/* Language-glyph view segments (A · A文 · 文): fixed-size icons, so the
+   de/ru three-way text overflow (and the hyphenation fallback above) no
+   longer applies to this toggle; full labels ride title/aria. */
+#tr-view-toggle .toggle-btn { display: inline-flex; align-items: center; justify-content: center; }
+#tr-view-toggle .toggle-btn svg { width: 16px; height: 16px; flex: none; }
 .rail-section { margin-top: 4px; }
 /* ---- Reader chrome contract (2026-07 Claude Design round 5) ----
    Type scale, 4 tiers shared by rail + ask/skim panels:
@@ -2018,6 +2023,13 @@ html.motion-ready .xp-gear-menu[hidden] {
    (light-dark() aware, already tuned so dark doesn't overexpose, spec 6.2);
    no new color literal. inset box-shadow instead of border-left so blockquote
    and pre keep their own intrinsic left border and padding untouched. */
+/* The mirror bar is an INSET box-shadow -- painted under the block's own
+   first pixels. CJK translations sat their first column straight on it
+   (device report: HN comment threads); give mirrored blocks a gutter so the
+   bar owns its 3px + breathing room. Padding appears only while the block
+   actually carries a mirror, which is a rare, user-initiated state. */
+body.tr-bilingual #rendered-view [data-pb-hl-mirror],
+body.tr-only #rendered-view [data-pb-hl-mirror] { padding-left: 10px; }
 body.tr-bilingual #rendered-view [data-pb-hl-mirror="1"],
 body.tr-only #rendered-view [data-pb-hl-mirror="1"] { box-shadow: inset 3px 0 0 0 var(--hl-1); }
 body.tr-bilingual #rendered-view [data-pb-hl-mirror="2"],
@@ -2028,6 +2040,38 @@ body.tr-bilingual #rendered-view [data-pb-hl-mirror="4"],
 body.tr-only #rendered-view [data-pb-hl-mirror="4"] { box-shadow: inset 3px 0 0 0 var(--hl-4); }
 body.tr-bilingual #rendered-view [data-pb-hl-mirror="5"],
 body.tr-only #rendered-view [data-pb-hl-mirror="5"] { box-shadow: inset 3px 0 0 0 var(--hl-5); }
+
+/* Shared confirm popover (shared.js), reader skin. When its anchor lives in
+   the top layer (the highlight card is a native [popover]), shared.js
+   promotes the confirm to a manual popover -- hence the margin/inset resets
+   against the UA popover defaults. */
+.confirm-popover {
+  position: fixed;
+  margin: 0;
+  inset: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  white-space: nowrap;
+  color: var(--danger);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+.confirm-popover .confirm-msg { font-weight: 600; color: inherit; }
+.confirm-popover button {
+  padding: 2px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: 6px;
+  border: 1px solid;
+}
+.confirm-popover .confirm-yes { background: var(--danger); color: #fff; border-color: var(--danger); }
+.confirm-popover .confirm-no { background: none; color: var(--fg-secondary); border-color: var(--border); }
+.confirm-popover button:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
 
 /* H5 Notebook translated-side language chip (spec 1.4). kbd-ish chip using the
    same tokens as the edit card / rail controls; no new color literal. Lives

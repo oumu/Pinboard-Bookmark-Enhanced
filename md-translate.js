@@ -1777,13 +1777,26 @@ function _pbpTrShowViewToggle(st) {
   wrap.id = "tr-view-toggle";
   wrap.className = "view-toggle";
   wrap.setAttribute("aria-keyshortcuts", "v");
+  // Language-glyph segments (device feedback round 3): abstract "view" icons
+  // for these three states are unwinnable, but the LANGUAGE metaphor is not --
+  // source glyph / both / target glyph (A · A文 · 文), the same iconography
+  // the shared translate icon and Google Translate use. Both glyph groups are
+  // lifted verbatim from Lucide `languages` (single-pack contract): the solo
+  // segments scale their group up with non-scaling strokes so the family's
+  // 2px line weight holds. Full labels stay on title/aria.
+  const PBP_TR_VIEW_ICONS = {
+    original: '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><g transform="translate(12 12) scale(1.5) translate(-17 -17)"><path vector-effect="non-scaling-stroke" d="m22 22-5-10-5 10"/><path vector-effect="non-scaling-stroke" d="M14 18h6"/></g></svg>',
+    bilingual: '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></svg>',
+    translated: '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><g transform="translate(12 12) scale(1.5) translate(-8 -8)"><path vector-effect="non-scaling-stroke" d="m5 8 6 6"/><path vector-effect="non-scaling-stroke" d="m4 14 6-6 2-3"/><path vector-effect="non-scaling-stroke" d="M2 5h12"/><path vector-effect="non-scaling-stroke" d="M7 2h1"/></g></svg>',
+  };
   for (const [mode, key] of [["original", "trViewOriginal"], ["bilingual", "trViewBilingual"], ["translated", "trViewTranslated"]]) {
     const b = document.createElement("button");
     b.type = "button";
     b.className = "toggle-btn";
     b.dataset.trMode = mode;
-    b.textContent = t(key);
+    b.innerHTML = PBP_TR_VIEW_ICONS[mode]; // static composed constants above
     b.title = t(key) + " (v)"; // "v" is the literal key name, deliberately not translated
+    b.setAttribute("aria-label", t(key));
     b.setAttribute("aria-pressed", "false");
     b.addEventListener("click", () => _pbpTrSetMode(st, mode, true));
     wrap.appendChild(b);

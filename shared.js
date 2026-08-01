@@ -2348,6 +2348,14 @@ function showConfirmPopover(anchor, opts) {
   no.textContent = noText || "Cancel";
   pop.append(m, yes, no);
   document.body.appendChild(pop);
+  // Anchors living in the top layer (native [popover] hosts, e.g. the
+  // reader's highlight card) would paint OVER a plain body child; promote
+  // the confirm itself to a manual popover so it stacks above its opener.
+  const hostPopover = typeof anchor.closest === "function" ? anchor.closest("[popover]") : null;
+  if (hostPopover) {
+    pop.setAttribute("popover", "manual");
+    try { pop.showPopover(); } catch (_) {}
+  }
 
   const anchorRect = anchor.getBoundingClientRect();
   const popRect = pop.getBoundingClientRect();

@@ -1709,7 +1709,17 @@ function _pbpHlDeleteItem(id, btn) {
 
 function _pbpHlDeleteCurrent() {
   if (!_pbpHlState || !_pbpHlCardItemId) return;
-  _pbpHlDeleteItem(_pbpHlCardItemId, _pbpHlCard.querySelector(".hl-card-delete"));
+  // Confirm before the only destructive action in the reader (highlight +
+  // note, no undo) -- the same anchored popover every other surface uses.
+  // shared.js promotes it into the top layer above this [popover] card.
+  const btn = _pbpHlCard.querySelector(".hl-card-delete");
+  const id = _pbpHlCardItemId;
+  showConfirmPopover(btn, {
+    msg: t("hlDeleteConfirm"),
+    yesText: t("hlDelete"),
+    noText: t("cancel"),
+    onConfirm: () => _pbpHlDeleteItem(id, btn),
+  });
 }
 
 // ---- Notebook list: collapsible "Highlights (N)" section (spec 2). N is
@@ -1899,7 +1909,12 @@ function _pbpHlBuildItemEl(m) {
   del.title = delLabel;
   del.setAttribute("aria-label", delLabel);
   del.innerHTML = (typeof PBP_ICONS === "object" && PBP_ICONS && PBP_ICONS.cross) || "";
-  del.addEventListener("click", () => _pbpHlDeleteItem(m.id, del));
+  del.addEventListener("click", () => showConfirmPopover(del, {
+    msg: t("hlDeleteConfirm"),
+    yesText: t("hlDelete"),
+    noText: t("cancel"),
+    onConfirm: () => _pbpHlDeleteItem(m.id, del),
+  }));
   li.appendChild(del);
 
   if (m.noteExcerpt) {
