@@ -250,7 +250,10 @@ html[data-theme] .panel-foot a { color: var(--opt-fg-hint, var(--opt-fg-muted));
 html[data-theme] .panel-foot a:hover { color: var(--opt-accent); }
 
 /* ---- Common elements ---- */
-.hint { font-size: 11px; color: #757575; margin: var(--opt-sp-1) 0 var(--opt-rhythm); }
+/* line-height 1.5: multi-line hint prose (several run long in de/ru, and CJK
+   wants looser leading than the UA ~1.15 default). Scoped here, NOT on body --
+   the tab/nav/card rhythm is hand-tuned around the UA default. */
+.hint { font-size: 11px; line-height: 1.5; color: #757575; margin: var(--opt-sp-1) 0 var(--opt-rhythm); }
 .fg > .hint { margin: var(--opt-sp-1) 0 0; }   /* inside a form group: tight to its control; the group's own margin-bottom (10px) provides separation */
 .fg + .hint { margin-top: -6px; }  /* a hint owned by the preceding group: pull close (net ~4px gap above, 10px below) */
 .hint a { color: #4477bb; }
