@@ -1606,6 +1606,10 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
   color: var(--fg-secondary);
   cursor: pointer;
   touch-action: manipulation;
+  /* Same fade as the foot xp-* family, so the card's two button rows share
+     one hover feel; the aria-pressed swap rides the same 150ms like the
+     .toggle-btn precedent. */
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
 }
 .xp-pin:hover, .xp-close:hover { background: var(--btn-hover); border-color: var(--btn-border); }
 .xp-pin:focus-visible, .xp-close:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
@@ -1621,6 +1625,7 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
   font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
 }
 .xp-act:hover { background: var(--btn-hover); }
 .xp-act[aria-pressed="true"] {
@@ -1810,6 +1815,7 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
   border: 1px solid transparent;
   border-radius: 6px;
   cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
 }
 .xp-gear:hover { background: var(--btn-hover); border-color: var(--btn-border); }
 .xp-gear svg { width: 14px; height: 14px; }
