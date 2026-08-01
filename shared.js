@@ -2339,11 +2339,19 @@ function showConfirmPopover(anchor, opts) {
   // Aligning the RIGHT edges instead (the earlier rule) pushes a wide popover
   // left across whatever the anchor sits beside: for a button in the settings
   // pane that is the sidebar nav, which it then covers. Flip to right-edge
-  // alignment only when growing rightwards would leave the viewport, and clamp
-  // as a last resort for a popover wider than the viewport itself.
-  const left = anchorRect.left + popRect.width <= viewportWidth - gap
+  // alignment only when growing rightwards would leave the CONTENT edge --
+  // the nearest .panel, not the viewport: on a wide window the settings card
+  // ends far left of the viewport, and a row-trailing delete button anchored
+  // a popover that jutted past the card border into the void (real-device
+  // report, the mirror image of the earlier left-edge clip). popup has no
+  // .panel and keeps the viewport bound. Clamp as a last resort for a popover
+  // wider than the bound itself.
+  const panelEl = typeof anchor.closest === "function" ? anchor.closest(".panel") : null;
+  const rightBound = Math.min(viewportWidth - gap,
+    panelEl ? panelEl.getBoundingClientRect().right : Infinity);
+  const left = anchorRect.left + popRect.width <= rightBound
     ? Math.max(gap, anchorRect.left)
-    : Math.max(gap, Math.min(anchorRect.right - popRect.width, viewportWidth - popRect.width - gap));
+    : Math.max(gap, Math.min(anchorRect.right - popRect.width, rightBound - popRect.width));
   const below = anchorRect.bottom + gap;
   const top = below + popRect.height <= viewportHeight - gap
     ? below
