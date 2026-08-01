@@ -96,9 +96,16 @@ function pbpDictLowerCandidate(term, lang) {
 // writes curly apostrophes where Wiktionary titles use ASCII ' (don't -> 4
 // entries, don’t -> 0), justified and PDF-derived text carries soft hyphens,
 // and a drag routinely takes the sentence punctuation with the word
-// ("ubiquitous." -> 0). Hyphens are deliberately left alone: "pre-" and "-ing"
-// are real entries. Edge quotes are safe to strip here even though "'tis" is a
-// headword, because this is only ever tried AFTER the exact term missed.
+// ("ubiquitous." -> 0). The same defect class exists in other scripts: CJK has
+// no inter-word spaces, so a Japanese drag almost always carries the following
+// ideographic period (ja lookups return zero entries with it, a real entry
+// without), and Spanish questions open with an inverted mark -- hence the CJK
+// and inverted marks in the edge class. Hyphens are deliberately left alone:
+// "pre-" and "-ing" are real entries. Edge quotes are safe to strip here even
+// though "'tis" is a headword, because this is only ever tried AFTER the exact
+// term missed.
+const PBP_DICT_EDGE_PUNCT = "\\s.,;:!?\u2026\"'\u201C\u201D\u00AB\u00BB\u201E\u201A()[\\]{}<>" +
+  "\u00A1\u00BF\u3000-\u3002\u3008-\u3011\uFF01\uFF02\uFF07-\uFF09\uFF0C\uFF0E\uFF1A\uFF1B\uFF1F\uFF61-\uFF64";
 function pbpDictCleanCandidate(term, lang) {
   const exact = pbpDictNormalizeTerm(term);
   if (!exact || !PBP_DICT_QUERY_LANGS.includes(pbpDictPrimaryLang(lang))) return "";
@@ -106,8 +113,8 @@ function pbpDictCleanCandidate(term, lang) {
     exact
       .replace(/[\u200B-\u200D\uFEFF\u00AD]/g, "")
       .replace(/[\u2018\u2019\u201B\u02BC]/g, "'")
-      .replace(/^[\s.,;:!?\u2026"'\u201C\u201D\u00AB\u00BB\u201E\u201A()[\]{}<>]+/, "")
-      .replace(/[\s.,;:!?\u2026"'\u201C\u201D\u00AB\u00BB\u201E\u201A()[\]{}<>]+$/, "")
+      .replace(new RegExp("^[" + PBP_DICT_EDGE_PUNCT + "]+"), "")
+      .replace(new RegExp("[" + PBP_DICT_EDGE_PUNCT + "]+$"), "")
   );
   return cleaned && cleaned !== exact ? cleaned : "";
 }
@@ -719,8 +726,18 @@ async function _pbpDictEcdictSide(localEl, term, lang, parentSignal, cur) {
   try {
     const loaded = await _pbpDictLoadPack();
     if (!alive() || !loaded || typeof pbpEcdictLookup !== "function") return;
-    const local = await pbpEcdictLookup(term);
+    let local = await pbpEcdictLookup(term);
     if (!alive()) return;
+    // Exact first -- "e.g." is a real headword, so cleaning cannot run up
+    // front. On a genuine miss, retry the cleaned form: "ubiquitous." and
+    // "don’t" have no ECDICT key of their own.
+    if (local && local.state === "ready-miss") {
+      const cleaned = pbpDictCleanCandidate(term, lang);
+      if (cleaned) {
+        local = await pbpEcdictLookup(cleaned);
+        if (!alive()) return;
+      }
+    }
     if (!local || local.state !== "hit") return;   // unavailable / miss / error: say nothing
     const norm = pbpEcdictEntryToNorm(local.rows, local.matched);
     if (!norm.entries.length) return;
@@ -807,8 +824,13 @@ async function _pbpDictSlotRun(slot, term, lang, parentSignal, lemmaPromise, onR
     const loaded = await _pbpDictLoadPack();
     if (parentSignal && parentSignal.aborted) return null;
     if (loaded && typeof pbpPackLookup === "function" && typeof pbpCedictLookupKeys === "function") {
+      // Leading quotes/brackets break EVERY prefix key (they all start at code
+      // point 0), while trailing junk falls off on its own as the prefix
+      // shortens. Hanzi headwords never carry edge punctuation, so cleaning
+      // up front is safe here, unlike the English exact-first ladder.
+      const zhTerm = pbpDictCleanCandidate(exact, lang) || exact;
       let local;
-      try { local = await pbpPackLookup(pbpCedictLookupKeys(term)); }
+      try { local = await pbpPackLookup(pbpCedictLookupKeys(zhTerm)); }
       catch (_) { local = { state: "error" }; }
       if (parentSignal && parentSignal.aborted) return null;
       if (local && local.state === "hit") {

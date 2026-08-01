@@ -88,6 +88,15 @@ assertEq(pbpDictCleanCandidate("-ing", "en"), "", "leading hyphen survives: -ing
 assertEq(pbpDictCleanCandidate("ubiquitous", "en"), "", "a clean word yields no extra candidate");
 assertEq(pbpDictCleanCandidate("...", "en"), "", "punctuation-only selection never becomes an empty query");
 assertEq(pbpDictCleanCandidate("don’t", "xx"), "", "unsupported locale yields no candidate");
+// Live API, 2026-08-01: ja/食べる。 -> 0 entries, ja/食べる -> real entry;
+// es/¿cómo -> 0 entries, es/cómo -> real entry. CJK drag-selection almost
+// always carries the following punctuation (no inter-word spaces).
+assertEq(pbpDictCleanCandidate("食べる。", "ja"), "食べる", "trailing ideographic period is dropped");
+assertEq(pbpDictCleanCandidate("「食べる」", "ja"), "食べる", "CJK corner brackets are dropped");
+assertEq(pbpDictCleanCandidate("食べる、", "ja"), "食べる", "ideographic comma is dropped");
+assertEq(pbpDictCleanCandidate("¿cómo", "es"), "cómo", "Spanish inverted question mark is dropped");
+assertEq(pbpDictCleanCandidate("¡Hola!", "es"), "Hola", "inverted exclamation and its closing mark are dropped");
+assertEq(pbpDictCleanCandidate("（水）", "zh"), "水", "fullwidth parentheses are dropped");
 
 section("pbpDictQueryCandidates");
 const candTerms = (t, l) => pbpDictQueryCandidates(t, l).map((c) => c.term).join("|");
@@ -102,6 +111,8 @@ assertEq(pbpDictQueryCandidates("Ubiquitous", "en")[0].aliasExact, false, "the e
 assertEq(pbpDictQueryCandidates("Ubiquitous", "en")[1].skipCache, false, "derived candidates may read the cache");
 assertEq(pbpDictQueryCandidates("Ubiquitous", "en")[1].aliasExact, true, "a derived hit is cached under the exact key too");
 assertEq(pbpDictQueryCandidates("", "en").length, 1, "an empty selection produces no derived candidates");
+assertEq(candTerms("食べる。", "ja"), "食べる。|食べる", "Japanese selection sheds its trailing ideographic period");
+assertEq(candTerms("¿Cómo", "es"), "¿Cómo|Cómo|cómo", "Spanish question opener reaches the clean lowercase form");
 
 section("pbpDictOwnerScope");
 assertEq(pbpDictOwnerScope("alice"), "acct_alice", "account -> acct_ prefix");
