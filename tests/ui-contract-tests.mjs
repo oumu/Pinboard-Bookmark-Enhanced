@@ -1293,9 +1293,12 @@ check(mdCss.includes("text-autospace: normal") && /#rendered-view :is\(pre, code
     "md-ask.js: a foot action is assigned textContent, which erases its icon");
   check(/function _pbpExplainIconBtn\(btn, svg, label\)[\s\S]{0,200}btn\.title = label;[\s\S]{0,120}aria-label", label/.test(mdAskJs),
     "md-ask.js: the foot-action helper stopped setting both the tooltip and the accessible name");
+  // Either a literal inline <svg> or a guarded alias of a shared PBP_ICONS
+  // member (the Lucide family) -- both are SVG; the contract's target is
+  // emoji/dingbat text sneaking back in, not the sourcing of the paths.
   check(["PBP_EXPLAIN_NOTE_SVG", "PBP_EXPLAIN_VOCAB_ADD_SVG", "PBP_EXPLAIN_VOCAB_OPEN_SVG", "PBP_EXPLAIN_ASK_SVG"]
-    .every((name) => new RegExp(`const ${name} = '<svg`).test(mdAskJs)),
-    "md-ask.js: a foot-action icon is no longer an inline SVG constant");
+    .every((name) => new RegExp(`const ${name} = (?:'<svg|typeof PBP_ICONS !== "undefined" \\? PBP_ICONS\\.[A-Za-z]+ : "")`).test(mdAskJs)),
+    "md-ask.js: a foot-action icon is no longer an SVG constant (literal or PBP_ICONS alias)");
 
   // The side choice now lives in a pure helper so it can be unit-tested; this
   // only pins that placement still asks it, and that the threshold is the
