@@ -219,15 +219,16 @@ function _pbpDictSenseTokens(s) {
   ].join(" "));
 }
 
-// Rank senses and entries against the host sentence, then cut to SHOW.
-// Returns a NEW view; norm is never mutated, because the same object is what
-// goes into the cache and what pbpDictSaveCurrent reads senses[0] out of when
-// it writes a vocabulary record.
+// Rank senses and entries against the host sentence. Returns a NEW view
+// carrying the FULL ordered sense list -- the render layer cuts to SHOW and
+// parks the rest behind a click-to-expand, so a mis-ranked sense is one
+// click away instead of discarded. norm is never mutated, because the same
+// object is what goes into the cache and what pbpDictSaveCurrent reads
+// senses[0] out of when it writes a vocabulary record.
 function pbpDictOrderForContext(entries, sentence) {
   const list = Array.isArray(entries) ? entries : [];
   const ctx = pbpDictContentTokens(sentence);
-  const cut = (e) => ({ ...e, senses: e.senses.slice(0, PBP_DICT_SENSE_SHOW) });
-  if (!ctx.size) return list.map(cut);
+  if (!ctx.size) return list.map((e) => ({ ...e, senses: e.senses.slice() }));
 
   // Rarity is measured across the whole word's sense pool so scores stay
   // comparable between entries, which is what lets the matching entry lead.
@@ -258,7 +259,7 @@ function pbpDictOrderForContext(entries, sentence) {
   });
   scored.forEach((x, n) => { x.n = n; });
   scored.sort((a, b) => (b.best - a.best) || (a.n - b.n));
-  return scored.map((x) => ({ ...x.e, senses: x.senses.slice(0, PBP_DICT_SENSE_SHOW).map((y) => y.s) }));
+  return scored.map((x) => ({ ...x.e, senses: x.senses.map((y) => y.s) }));
 }
 
 // freedictionaryapi.com response -> internal render model. null when nothing
@@ -269,10 +270,13 @@ function pbpDictNormalizeEntry(json) {
   for (const e of json.entries) {
     if (!e || typeof e !== "object") continue;
     const ipas = [];
+    let ipaTotal = 0;
     for (const p of Array.isArray(e.pronunciations) ? e.pronunciations : []) {
-      if (ipas.length >= PBP_DICT_IPA_CAP) break;
       if (p && p.type === "ipa" && typeof p.text === "string" && p.text) {
-        ipas.push({ text: p.text, tags: Array.isArray(p.tags) ? p.tags.filter((x) => typeof x === "string") : [] });
+        ipaTotal++;
+        if (ipas.length < PBP_DICT_IPA_CAP) {
+          ipas.push({ text: p.text, tags: Array.isArray(p.tags) ? p.tags.filter((x) => typeof x === "string") : [] });
+        }
       }
     }
     const forms = [];
@@ -315,7 +319,13 @@ function pbpDictNormalizeEntry(json) {
       });
     }
     if (ipas.length || senses.length || forms.length) {
-      entries.push({ pos: typeof e.partOfSpeech === "string" ? e.partOfSpeech : "", ipas, forms, senses });
+      // ipaMore makes the cap visible instead of silent ("3 shown" used to be
+      // indistinguishable from "3 exist"). Records cached before this field
+      // existed read undefined and simply show no hint.
+      entries.push({
+        pos: typeof e.partOfSpeech === "string" ? e.partOfSpeech : "", ipas, forms, senses,
+        ipaMore: Math.max(0, ipaTotal - PBP_DICT_IPA_CAP)
+      });
     }
   }
   if (!entries.length) return null;
@@ -457,6 +467,36 @@ const PBP_DICT_SPEAKER_SVG = '<svg width="14" height="14" viewBox="0 0 24 24" fi
 // Consumed by the highlight selection bar's dictionary button (md-highlight.js).
 const PBP_DICT_BOOK_SVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>';
 
+// Ready-signal dot (inline SVG, never a literal glyph). Filled circle plus a
+// down chevron so it also reads as "there is more below".
+const PBP_DICT_CTX_READY_SVG = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="5" r="3" fill="currentColor" stroke="none"/><path d="M6 13l6 6 6-6"/></svg>';
+
+// The AI gloss streams in seconds after the (often cached, instant) online
+// entry, and it renders at the BOTTOM of the popover body -- a long entry
+// pushes it out of view, and there is no signal when it lands. When the
+// finished gloss sits below the fold, light the head-row dot; clicking it
+// scrolls the gloss into view. It self-clears once the gloss is seen.
+// Explicit click, never hover; no auto-scroll steals the reading position.
+function _pbpDictCtxSignal(body, ctxEl, btn) {
+  if (!body || !btn || !ctxEl.isConnected) return;
+  const br = body.getBoundingClientRect();
+  if (ctxEl.getBoundingClientRect().top < br.bottom - 12) return; // already visible
+  btn.hidden = false;
+  const io = new IntersectionObserver((entries) => {
+    if (entries.some((e) => e.isIntersecting)) {
+      btn.hidden = true;
+      io.disconnect();
+    }
+  }, { root: body });
+  io.observe(ctxEl);
+  btn.addEventListener("click", () => {
+    const reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    ctxEl.scrollIntoView({ block: "start", behavior: reduced ? "auto" : "smooth" });
+    btn.hidden = true;
+    io.disconnect();
+  }, { once: true });
+}
+
 let _pbpDictSpeakSeq = 0;
 function pbpDictSpeak(text, lang) {
   try {
@@ -583,46 +623,63 @@ function _pbpDictTagLabel(tag) {
 // Shared by the online entry and the local ECDICT block. Every read is
 // defensive: CC-CEDICT norms and dict2_ records cached before these fields
 // existed carry none of them.
+function _pbpDictSenseLi(s) {
+  const li = document.createElement("li");
+  const stags = s.tags || [];
+  if (stags.length) {
+    const tg = document.createElement("span");
+    tg.className = "xp-dict-sense-tag";
+    tg.textContent = "(" + stags.join(", ") + ")";
+    li.appendChild(tg);
+    li.appendChild(document.createTextNode(" "));
+  }
+  li.appendChild(document.createTextNode(s.definition));
+  for (const d of s.subsenses || []) {
+    const sub = document.createElement("div");
+    sub.className = "xp-dict-subsense";
+    sub.textContent = d;
+    li.appendChild(sub);
+  }
+  for (const x of s.examples || []) {
+    const ex = document.createElement("div");
+    ex.className = "xp-dict-example";
+    ex.textContent = x;
+    li.appendChild(ex);
+  }
+  for (const [key, words] of [["dictSynonyms", s.synonyms], ["dictAntonyms", s.antonyms]]) {
+    if (!words || !words.length) continue;
+    const row = document.createElement("div");
+    row.className = "xp-dict-rel";
+    const lb = document.createElement("span");
+    lb.className = "xp-dict-rel-label";
+    lb.textContent = t(key);
+    row.appendChild(lb);
+    row.appendChild(document.createTextNode(" " + words.join(", ")));
+    li.appendChild(row);
+  }
+  return li;
+}
+
+// Default density is unchanged: SHOW senses render, the rest sit behind an
+// explicit click ("expand the other N"). The data is already in memory and
+// in the dict2_ cache -- the button costs no request. Click, never hover.
 function _pbpDictRenderSenses(parent, senses) {
   const ol = document.createElement("ol");
   ol.className = "xp-dict-senses";
-  for (const s of senses) {
-    const li = document.createElement("li");
-    const stags = s.tags || [];
-    if (stags.length) {
-      const tg = document.createElement("span");
-      tg.className = "xp-dict-sense-tag";
-      tg.textContent = "(" + stags.join(", ") + ")";
-      li.appendChild(tg);
-      li.appendChild(document.createTextNode(" "));
-    }
-    li.appendChild(document.createTextNode(s.definition));
-    for (const d of s.subsenses || []) {
-      const sub = document.createElement("div");
-      sub.className = "xp-dict-subsense";
-      sub.textContent = d;
-      li.appendChild(sub);
-    }
-    for (const x of s.examples || []) {
-      const ex = document.createElement("div");
-      ex.className = "xp-dict-example";
-      ex.textContent = x;
-      li.appendChild(ex);
-    }
-    for (const [key, words] of [["dictSynonyms", s.synonyms], ["dictAntonyms", s.antonyms]]) {
-      if (!words || !words.length) continue;
-      const row = document.createElement("div");
-      row.className = "xp-dict-rel";
-      const lb = document.createElement("span");
-      lb.className = "xp-dict-rel-label";
-      lb.textContent = t(key);
-      row.appendChild(lb);
-      row.appendChild(document.createTextNode(" " + words.join(", ")));
-      li.appendChild(row);
-    }
-    ol.appendChild(li);
-  }
+  const rest = senses.slice(PBP_DICT_SENSE_SHOW);
+  for (const s of senses.slice(0, PBP_DICT_SENSE_SHOW)) ol.appendChild(_pbpDictSenseLi(s));
   parent.appendChild(ol);
+  if (rest.length) {
+    const more = document.createElement("button");
+    more.type = "button";
+    more.className = "xp-dict-more";
+    more.textContent = t("dictMoreSenses", String(rest.length));
+    more.addEventListener("click", () => {
+      for (const s of rest) ol.appendChild(_pbpDictSenseLi(s));
+      more.remove();
+    });
+    parent.appendChild(more);
+  }
 }
 
 function _pbpDictRenderEntry(slot, norm, term, lang, selectedTerm, sentence) {
@@ -658,6 +715,12 @@ function _pbpDictRenderEntry(slot, norm, term, lang, selectedTerm, sentence) {
           tag.textContent = p.tags.map(_pbpDictTagLabel).join(", ");
           line.appendChild(tag);
         }
+      }
+      if (e.ipaMore > 0) {
+        const moreIpa = document.createElement("span");
+        moreIpa.className = "xp-dict-ipa-tag";
+        moreIpa.textContent = t("dictMoreIpa", String(e.ipaMore));
+        line.appendChild(moreIpa);
       }
       ent.appendChild(line);
     }
@@ -1163,8 +1226,16 @@ async function pbpDictRun(cap, ctx, pop, ctrl, s) {
   speak.className = "xp-dict-speak";
   speak.setAttribute("aria-label", t("dictSpeak")); // no title — a11y label only
   speak.innerHTML = PBP_DICT_SPEAKER_SVG; // static constant, never model text
+  const ctxReady = document.createElement("button");
+  ctxReady.type = "button";
+  ctxReady.className = "xp-dict-speak xp-dict-ctx-ready"; // same head-button family
+  ctxReady.title = t("dictCtxReady");
+  ctxReady.setAttribute("aria-label", t("dictCtxReady"));
+  ctxReady.innerHTML = PBP_DICT_CTX_READY_SVG; // static constant
+  ctxReady.hidden = true;
   head.appendChild(sel);
   head.appendChild(speak);
+  head.appendChild(ctxReady);
   const slot = document.createElement("div");
   slot.className = "xp-dict-slot";
   // Two stable children. Every online path -- skeleton, permission prompt,
@@ -1252,9 +1323,18 @@ async function pbpDictRun(cap, ctx, pop, ctrl, s) {
   // on-screen rendering is untouched, this only guards persistence.
   const prefixHit = norm && norm.sourceLabel === "CC-CEDICT" && norm.word && norm.word !== cap.text;
   if (parsed && !prefixHit) {
-    if (parsed.gloss) cur.gloss = parsed.gloss;
+    if (parsed.gloss) {
+      // Contextual sense first (it is why the reader looked the word up),
+      // dictionary general sense on its own line below -- away from the
+      // sentence (an Anki back, the vocab list) the narrow sense alone is
+      // often unreadable. The card renders pre-wrap; TSV/Anki flatten the
+      // newline, so no export contract changes.
+      const dictGloss = cur.gloss && cur.gloss !== parsed.gloss ? cur.gloss : "";
+      cur.gloss = dictGloss ? parsed.gloss + "\n" + dictGloss : parsed.gloss;
+    }
     cur.lemma = parsed.lemma;
   }
+  if (parsed) _pbpDictCtxSignal(body, ctxEl, ctxReady);
   if (vocabBtn && vocabBtn.dataset.runId === String(runId)) {
     const hit = await pbpVocabGet(pbpDictVocabKey(cur.owner, effectiveLang, cur.term));
     if (signal.aborted || _pbpDictCurrent !== cur || vocabBtn.dataset.runId !== String(runId)) return;

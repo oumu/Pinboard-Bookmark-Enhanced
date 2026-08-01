@@ -279,7 +279,7 @@ const defsOf = (view, i) => view[i].senses.map((s) => s.definition);
 
 const plain = pbpDictOrderForContext(bankNorm.entries, "");
 assertEq(plain.length, 2, "every entry still renders");
-assertEq(plain[0].senses.length, PBP_DICT_SENSE_SHOW, "display is cut to SHOW, not to KEEP");
+assertEq(plain[0].senses.length, 9, "the ordered view keeps every retained sense; the render layer cuts to SHOW");
 assertEq(defsOf(plain, 0)[0], bankNorm.entries[0].senses[0].definition, "no sentence means untouched API order");
 assertEq(defsOf(plain, 1)[0], bankNorm.entries[1].senses[0].definition, "second entry keeps API order too");
 
@@ -293,10 +293,11 @@ assertEq(river[0].senses[0].definition, "(hydrology) An edge of river, lake, or 
   "a river sentence puts the hydrology entry and its matching sense first");
 assert(firstDefs(river)[1].indexOf("institution") > -1, "the financial entry is demoted, not dropped");
 
-// The point of raising retention: a sense the old cap discarded can now surface.
+// The point of raising retention: a sense the old cap discarded can now
+// surface INSIDE the rendered window (the render layer shows the first SHOW).
 const stored = pbpDictOrderForContext(bankNorm.entries, "A seed bank is a guaranteed place of storage for plant genetic material.");
-assert(defsOf(stored, 0).some((d) => d.indexOf("place of storage") > -1),
-  "a sense that sat at index 7, past the old cap of 5, becomes visible");
+assert(defsOf(stored, 0).slice(0, PBP_DICT_SENSE_SHOW).some((d) => d.indexOf("place of storage") > -1),
+  "a sense that sat at index 7, past the old cap of 5, ranks into the shown window");
 
 const common = pbpDictOrderForContext(bankNorm.entries, "She walked into the bank to borrow money for a house.");
 assertEq(common[0].senses[0].definition, bankNorm.entries[0].senses[0].definition,
@@ -306,6 +307,22 @@ assertEq(bankNorm.entries[0].senses.length, 9, "ordering never mutates the model
 assertEq(bankNorm.entries[0].senses[0].definition, FDA_BANK.entries[0].senses[0].definition, "and never reorders it either");
 assertEq(pbpDictOrderForContext([], "river").length, 0, "no entries is not an error");
 assertEq(pbpDictOrderForContext(null, "river").length, 0, "a missing entry list is not an error");
+
+section("IPA cap visibility");
+// Hand-written server shape (never generated from the normalizer). Five ipa
+// rows plus one enpr row: the cap keeps 3, counts 2 more, ignores enpr.
+const FDA_MANY_IPA = { word: "либо", entries: [{ partOfSpeech: "conjunction",
+  pronunciations: [
+    { type: "ipa", text: "/a/", tags: [] }, { type: "ipa", text: "/b/", tags: [] },
+    { type: "ipa", text: "/c/", tags: [] }, { type: "ipa", text: "/d/", tags: [] },
+    { type: "ipa", text: "/e/", tags: [] }, { type: "enpr", text: "x", tags: [] }
+  ],
+  forms: [], senses: [{ definition: "either", tags: [], examples: [], quotes: [], synonyms: [], antonyms: [], subsenses: [] }] }],
+  source: { url: "https://en.wiktionary.org/wiki/x", license: { name: "CC BY-SA 4.0", url: "" } } };
+const manyIpa = pbpDictNormalizeEntry(FDA_MANY_IPA);
+assertEq(manyIpa.entries[0].ipas.length, 3, "IPA display cap unchanged at 3");
+assertEq(manyIpa.entries[0].ipaMore, 2, "the cut is counted, not silent; enpr rows never count");
+assertEq(pbpDictNormalizeEntry({ word: "x", entries: [{ pronunciations: [{ type: "ipa", text: "/a/" }], senses: [{ definition: "d" }] }] }).entries[0].ipaMore, 0, "under the cap counts zero more");
 
 // Fields that already arrive in every response but went unrendered until now.
 // Shape hand-written from a real freedictionaryapi payload (senses carry tags /

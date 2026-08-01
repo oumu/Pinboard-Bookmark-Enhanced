@@ -2681,6 +2681,25 @@
   "dictLoadFailed": {
     "message": "詞典暫不可用"
   },
+  "dictMoreSenses": {
+    "message": "展開其餘 $COUNT$ 個義項",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "dictMoreIpa": {
+    "message": "還有 $COUNT$ 種發音",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "dictCtxReady": {
+    "message": "AI 釋義已生成，點按查看"
+  },
   "mdSkipToContent": {
     "message": "跳至正文"
   },

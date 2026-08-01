@@ -1679,6 +1679,21 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
 .xp-dict-speak { display: inline-flex; align-items: center; justify-content: center; background: none; border: 1px solid var(--btn-border); border-radius: 6px; padding: 4px; cursor: pointer; color: inherit; font-size: 1em; /* buttons don't inherit font-size; the 0.8em svg needs this anchor */ }
 .xp-dict-speak:hover { background: var(--btn-hover); }
 .xp-dict-speak svg { width: 0.8em; height: 0.8em; }
+/* AI-gloss ready signal: same head-button family as speak, tinted so the
+   "new content below" state is visible at a glance. */
+.xp-dict-ctx-ready { color: var(--link); border-color: var(--link); }
+/* Click-to-expand for senses past SHOW: text-link styling, one line. */
+.xp-dict-more {
+  display: block;
+  margin: 4px 0 0;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 0.85em;
+  color: var(--link);
+}
+.xp-dict-more:hover { color: var(--link-hover); text-decoration: underline; }
 .xp-dict-slot { min-height: 20px; }
 .xp-dict-match { color: var(--fg-muted); font-size: 0.8em; margin: 0 0 6px; }
 .xp-dict-entry { margin: 0 0 8px; }

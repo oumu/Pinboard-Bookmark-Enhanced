@@ -2681,6 +2681,25 @@
   "dictLoadFailed": {
     "message": "Словарь недоступен"
   },
+  "dictMoreSenses": {
+    "message": "Показать ещё $COUNT$ значений",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "dictMoreIpa": {
+    "message": "Ещё $COUNT$ вариантов произношения",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "dictCtxReady": {
+    "message": "Пояснение ИИ готово · показать"
+  },
   "mdSkipToContent": {
     "message": "Перейти к содержимому"
   },

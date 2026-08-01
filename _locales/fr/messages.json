@@ -2681,6 +2681,25 @@
   "dictLoadFailed": {
     "message": "Dictionnaire indisponible"
   },
+  "dictMoreSenses": {
+    "message": "Afficher $COUNT$ autres sens",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "dictMoreIpa": {
+    "message": "$COUNT$ autres prononciations",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "dictCtxReady": {
+    "message": "Explication IA prête · afficher"
+  },
   "mdSkipToContent": {
     "message": "Aller au contenu"
   },

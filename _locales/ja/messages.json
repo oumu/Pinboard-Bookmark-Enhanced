@@ -2681,6 +2681,25 @@
   "dictLoadFailed": {
     "message": "辞書を利用できません"
   },
+  "dictMoreSenses": {
+    "message": "残り $COUNT$ 件の語義を表示",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "dictMoreIpa": {
+    "message": "ほかに発音 $COUNT$ 件",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "dictCtxReady": {
+    "message": "AI の説明が生成されました · 表示"
+  },
   "mdSkipToContent": {
     "message": "本文へスキップ"
   },
