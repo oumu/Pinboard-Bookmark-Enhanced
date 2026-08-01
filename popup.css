@@ -810,15 +810,17 @@ html.dark .batch-progress-text { color: var(--pp-fg); mix-blend-mode: normal; fi
   cursor: pointer;
   position: relative;
 }
-/* Expand/collapse caret as a CSS border-triangle (was a ▸/▾ glyph that fell back to
-   Segoe UI Emoji). Rotated 90° when the toggle's aria-expanded flips to true. */
+/* Expand/collapse caret, CSS-drawn (a ▸/▾ glyph fell back to Segoe UI Emoji
+   and stalled first paint). 2026-08: thin chevron matching the disclosure
+   family in Options/preview -- down when collapsed, 180° spin to up. */
 #offline-queue-chevron {
-  display: inline-block; width: 0; height: 0;
-  border-style: solid; border-width: 3.5px 0 3.5px 5px;
-  border-color: transparent transparent transparent currentColor;
+  display: inline-block; width: 6px; height: 6px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: translateY(-2px) rotate(45deg);
   transition: transform var(--pp-motion-state);
 }
-.offline-toggle[aria-expanded="true"] #offline-queue-chevron { transform: rotate(90deg); }
+.offline-toggle[aria-expanded="true"] #offline-queue-chevron { transform: translateY(1px) rotate(225deg); }
 .offline-toggle {
   flex: 1;
   display: inline-flex;

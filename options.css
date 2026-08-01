@@ -86,7 +86,11 @@ body { font-family: "Helvetica Neue", Verdana, "PingFang SC", "Hiragino Sans GB"
 button, input, select { font-family: inherit; }
 .container {
   visibility: hidden;
-  max-width: 900px; margin: 0 auto; padding: var(--opt-sp-7) var(--opt-sp-6);
+  /* 900 -> 1040 (2026-08-01): the vocab tab's filter toolbar and batch bar
+     outgrew the ~660px content column once the status filter and status
+     batch buttons landed. Prose blocks keep their own ch-based caps, so
+     wider never means longer reading lines. */
+  max-width: 1040px; margin: 0 auto; padding: var(--opt-sp-7) var(--opt-sp-6);
   display: grid;
   grid-template-columns: minmax(160px, max-content) minmax(0, 1fr);
   column-gap: var(--opt-sp-7);
@@ -442,27 +446,32 @@ html[data-theme] .et-field select:focus-visible { box-shadow: var(--opt-focus-ri
 .accordion-section:last-child { border-bottom: none; }
 .accordion-header {
   display: flex; align-items: center; gap: var(--opt-sp-3);
-  width: 100%;
-  padding: var(--opt-sp-5) 0; cursor: pointer; font-size: 13px; font-weight: bold; color: #444;
-  border: 0; background: none; text-align: left;
-  user-select: none; transition: color var(--motion-state);
+  /* Full-bleed hover surface: horizontal padding is added and immediately
+     given back as negative margin, so the text column stays aligned while
+     the hover pill extends past it. */
+  width: calc(100% + 2 * var(--opt-sp-3));
+  margin: 0 calc(-1 * var(--opt-sp-3));
+  padding: var(--opt-sp-5) var(--opt-sp-3); cursor: pointer; font-size: 13px; font-weight: bold; color: #444;
+  border: 0; border-radius: var(--opt-radius-sm); background: none; text-align: left;
+  user-select: none; transition: color var(--motion-state), background-color var(--motion-state);
 }
-.accordion-header:hover { color: #2255aa; }
+.accordion-header:hover { color: #2255aa; background: var(--opt-panel, #f4f4f0); }
 .accordion-header:focus-visible { outline: 2px solid var(--opt-accent, #4477bb); outline-offset: -2px; }
-/* CSS border-triangle instead of the ▶ glyph (which fell back to Segoe UI Emoji
-   on Windows and caused a font-load stall). The rotate(90deg) on .open still works. */
-/* Optical nudge lives on the .accordion-arrow element (not ::before) so it stays
-   screen-vertical regardless of the element's own rotate(). The box is line-centered,
-   but Segoe UI seats the bold header glyphs lower in the line box, so a box-centered
-   arrow reads high. Collapsed (▶) needs +1px; expanded (▼) is top-heavy after the
-   90° rotation and reads higher, so it needs +2px. */
-.accordion-arrow { display: inline-block; width: 12px; font-size: 0; position: relative; top: 1px; }
-.accordion-arrow::before {
-  content: ""; display: inline-block;
-  border-style: solid; border-width: 4px 0 4px 6px;
-  border-color: transparent transparent transparent currentColor;
+/* CSS-drawn chevron, never a glyph (a literal ▶ fell back to Segoe UI Emoji
+   on Windows and caused a font-load stall). 2026-08 redesign: one thin
+   right-aligned chevron across every disclosure surface -- closed points
+   down, open rotates to point up (a 180° spin, so the transition reads as
+   one gesture). The old filled triangle needed per-state optical nudges;
+   a 45°-rotated square chevron is symmetric and self-centers. */
+.accordion-arrow {
+  order: 9; margin-left: auto;
+  width: 7px; height: 7px; flex: none;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: translateY(-2px) rotate(45deg);
+  color: var(--opt-fg-muted, #888);
 }
-.accordion-section.open .accordion-arrow { transform: rotate(90deg); top: 2px; }
+.accordion-section.open .accordion-arrow { transform: translateY(1px) rotate(225deg); }
 /* The arrow is the same gesture as the body it labels, so it rides the same
    duration and curve — and the same gate. Ungated it also spun during
    pbpAccRestore's non-user-initiated restore, on a container still hidden. */
@@ -511,6 +520,53 @@ html.motion-ready details.motion-toggle::details-content {
 }
 html.motion-ready details.motion-toggle[open]::details-content {
   @starting-style { height: 0; }
+}
+
+/* ---- Details disclosures: one chevron family (2026-08 redesign) ----
+   Same gesture as .accordion-arrow: a thin chevron, pointing down when
+   closed, spinning 180° to point up when open. Native markers vary per
+   platform and read dated; every <details> surface in Options shares this.
+   Drawn with borders, never a glyph (font-fallback stall rule). */
+details.vocab-disclosure > summary,
+details.free-tier-help > summary,
+details.et-onboarding > summary,
+#tag-gov-lowcount > summary,
+#preset-preview-section > summary {
+  display: flex; align-items: center; gap: var(--opt-sp-3);
+  list-style: none; cursor: pointer; user-select: none;
+}
+details.vocab-disclosure > summary::-webkit-details-marker,
+details.free-tier-help > summary::-webkit-details-marker,
+details.et-onboarding > summary::-webkit-details-marker,
+#tag-gov-lowcount > summary::-webkit-details-marker,
+#preset-preview-section > summary::-webkit-details-marker { display: none; }
+details.vocab-disclosure > summary::after,
+details.free-tier-help > summary::after,
+details.et-onboarding > summary::after,
+#tag-gov-lowcount > summary::after,
+#preset-preview-section > summary::after {
+  content: ""; width: 7px; height: 7px; flex: none;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: translateY(-2px) rotate(45deg);
+  color: var(--opt-fg-muted, #888);
+}
+details.vocab-disclosure[open] > summary::after,
+details.free-tier-help[open] > summary::after,
+details.et-onboarding[open] > summary::after,
+#tag-gov-lowcount[open] > summary::after,
+#preset-preview-section[open] > summary::after { transform: translateY(1px) rotate(225deg); }
+/* Section-style headers park the chevron on the right edge; the small help
+   disclosures keep it riding right after their link-styled text. */
+details.vocab-disclosure > summary::after,
+#tag-gov-lowcount > summary::after,
+#preset-preview-section > summary::after { margin-left: auto; }
+html.motion-ready details.vocab-disclosure > summary::after,
+html.motion-ready details.free-tier-help > summary::after,
+html.motion-ready details.et-onboarding > summary::after,
+html.motion-ready #tag-gov-lowcount > summary::after,
+html.motion-ready #preset-preview-section > summary::after {
+  transition: transform var(--motion-collapse) var(--ease-in-out);
 }
 
 /* ---- Auto-save indicator ---- */
@@ -1628,6 +1684,13 @@ html[data-theme] .preset-preview-content { background: var(--opt-bg); color: var
   gap: var(--opt-sp-4);
   margin: var(--opt-sp-4) 0 var(--opt-sp-5);
 }
+/* The vocab variant carries a fourth control (status filter). Without its
+   own column count the extra select fell into an implicit second grid row
+   at whatever width happened to be left over. The narrow-viewport media
+   block below still collapses it to a single column. */
+.vocab-filter-toolbar {
+  grid-template-columns: minmax(180px, 1fr) auto auto auto;
+}
 .notes-toolbar input[type="search"] {
   width: 100%;
   padding: var(--opt-sp-2) var(--opt-sp-4);
@@ -1769,12 +1832,18 @@ html[data-theme] .preset-preview-content { background: var(--opt-bg); color: var
   border-top: 1px solid var(--opt-border-section, var(--opt-border, #ddd));
 }
 .vocab-disclosure > summary {
-  padding: var(--opt-sp-4) 0;
+  /* Full-bleed hover pill, same trick as .accordion-header: horizontal
+     padding is given back as negative margin so the text stays aligned. */
+  padding: var(--opt-sp-4) var(--opt-sp-3);
+  margin: 0 calc(-1 * var(--opt-sp-3));
+  border-radius: var(--opt-radius-sm);
   color: var(--opt-fg-muted, #555);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
+  transition: color var(--motion-state), background-color var(--motion-state);
 }
+.vocab-disclosure > summary:hover { color: var(--opt-fg, #222); background: var(--opt-panel, #f4f4f0); }
 .vocab-disclosure > summary:focus-visible { outline: 2px solid var(--opt-accent); outline-offset: 2px; }
 .vocab-details-body { padding: 0 0 var(--opt-sp-3); }
 .vocab-drive-copy {

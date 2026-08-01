@@ -1223,13 +1223,21 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
 }
 .rail-sec-head:hover { color: var(--fg); }
 .rail-sec-head:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+/* 2026-08 redesign: thin right-aligned chevron (down when collapsed, a 180°
+   spin to up when expanded), matching the Options disclosure family. order
+   pushes it past label/count; the label's flex-grow does the spacing. */
 .rail-sec-tri {
-  width: 0; height: 0; flex: none;
-  border-top: 4px solid transparent; border-bottom: 4px solid transparent;
-  border-left: 5px solid currentColor;
+  width: 6px; height: 6px; flex: none; order: 9;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  color: var(--fg-muted);
+  transform: translateY(-2px) rotate(45deg);
   transition: transform 120ms ease;
 }
-.rail-sec-head[aria-expanded="true"] .rail-sec-tri { transform: rotate(90deg); }
+.rail-sec-head[aria-expanded="true"] .rail-sec-tri { transform: translateY(1px) rotate(225deg); }
+@media (prefers-reduced-motion: reduce) {
+  .rail-sec-tri, #tr-section .tr-glossary > summary::after { transition: none; }
+}
 .rail-sec-label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rail-sec-count { flex: none; color: var(--fg-muted); }
 .rail-sec-progress { flex: none; display: none; color: var(--fg-muted); }
@@ -2260,7 +2268,17 @@ body.tr-only #rendered-view .pb-tr { cursor: pointer; }
 #tr-section .tr-row .action-btn svg { width: 14px; height: 14px; }
 #tr-section .tr-meta { margin-top: 6px; font-size: 12px; color: var(--fg-secondary); }
 #tr-section .tr-meta[hidden] { display: none; }
-#tr-section .tr-glossary > summary { cursor: pointer; }
+#tr-section .tr-glossary > summary { cursor: pointer; display: flex; align-items: center; gap: 6px; list-style: none; }
+#tr-section .tr-glossary > summary::-webkit-details-marker { display: none; }
+#tr-section .tr-glossary > summary::after {
+  content: ""; width: 5px; height: 5px; flex: none; margin-left: auto;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  color: var(--fg-muted);
+  transform: translateY(-1px) rotate(45deg);
+  transition: transform 120ms ease;
+}
+#tr-section .tr-glossary[open] > summary::after { transform: translateY(1px) rotate(225deg); }
 #tr-section .tr-glossary > summary:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
 #tr-section .tr-glossary-list {
   display: grid;
