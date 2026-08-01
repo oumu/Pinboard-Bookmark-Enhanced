@@ -32,7 +32,7 @@ Eine Chrome-Erweiterung für [Pinboard](https://pinboard.in): AI-Tags und Zusamm
 - **Jede Seite wird zur Leseansicht** – Markdown-Ansicht mit Inhaltsverzeichnis, Suche und Fußnoten-Vorschau
 - **Markieren in fünf Farben, mit Notizen** – Markierungen und Notizen überstehen Neu-Rendern, Übersetzung und Änderungen an der Seite
 - **Seite übersetzen oder befragen** – Ganzseiten-Übersetzung mit zweisprachiger Ansicht; Antworten zitieren die Quelle und springen direkt dorthin
-- **Wörter beim Lesen nachschlagen und wiederholen**: Online-Definitionen nutzen oder optionale Offline-Wörterbuchpakete für Chinesisch–Englisch und Englisch–Chinesisch ergänzen; Vokabeln speichern, suchen, sortieren und gruppieren; alle Einträge des aktuellen Pinboard-Kontos exportieren oder an Anki senden, unterstützte Wörter an Eudic senden
+- **Wörter beim Lesen nachschlagen und wiederholen**: Definitionen zeigen zuerst die zum Satz passende Bedeutung; gespeicherte Vokabeln lassen sich durchsuchen, sortieren, gruppieren, exportieren oder an Anki und Eudic senden. Optionale Offline-Wörterbuchpakete decken Chinesisch–Englisch und Englisch–Chinesisch ab
 - **Senden oder herunterladen** – an [Obsidian](https://obsidian.md), ein GitHub Gist oder einen beliebigen Webhook senden; als `.md`, `.html` oder `.epub` für den E-Reader herunterladen
 
 ![Leseansicht mit zweisprachiger Übersetzung und Markierungen](docs/cws-assets/originals/screenshot-2-reader.png)
@@ -42,7 +42,7 @@ Eine Chrome-Erweiterung für [Pinboard](https://pinboard.in): AI-Tags und Zusamm
 ### Pinboard nach deinem Geschmack
 - **13 Themes für pinboard.in** (Dracula · Nord · Catppuccin · Solarized · …) plus dein eigenes CSS
 - **Automatisch in die [Wayback Machine](https://web.archive.org) archivieren** – auf Wunsch bei jedem Speichern; Seiten bleiben erreichbar, auch wenn der Originallink tot ist
-- **Sicherung und Synchronisierung**: Chrome Sync teilt Einstellungen nur zwischen Geräten, auf denen du die Synchronisierung aktivierst. Die Synchronisierung von Zugangsdaten musst du separat einschalten. Manuelle JSON-Sicherungen enthalten Einstellungen und auf Wunsch Markierungen, Notizen, den Wortschatz des aktuellen Pinboard-Kontos sowie deine API-Schlüssel. Wenn du auf jedem Gerät in Chrome angemeldet bist und Google Drive separat verbindest, wird dieser Wortschatz synchronisiert.
+- **Sicherung und Synchronisierung**: Einstellungen über Chrome Sync, Vokabeln über dein eigenes Google Drive, dazu manuelle JSON-Sicherungen, die Markierungen, Notizen, Vokabeln und deine API-Schlüssel enthalten können. Jede dieser Optionen aktivierst du einzeln; die Einzelheiten stehen unten im Abschnitt Datenschutz
 - **9 Sprachen** · anpassbare Tastenkürzel · Speicherung primär lokal · kein Tracking
 
 ![13 Themes für pinboard.in](docs/cws-assets/originals/screenshot-4-themes.png)

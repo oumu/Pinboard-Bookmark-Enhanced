@@ -32,7 +32,7 @@
 - **网页变成清爽的阅读器**：Markdown 视图，自带目录、全文搜索、脚注速览
 - **五色高亮与笔记**：页面重渲染、翻译、内容变动后都会保留
 - **整页翻译，或向文章提问**：支持双语对照；回答附带引用，点击即可跳到原文出处
-- **边读边查词和复习生词**：可使用在线释义，也可另外导入离线词典包，汉英、英汉两个方向都支持；保存生词后，可搜索、排序和分组，也可导出当前 Pinboard 账号下的全部生词、全部发送到 Anki，或将支持语种的生词发送到欧路词典
+- **边读边查词和复习生词**：查词优先显示贴合当前句子的释义，生词可搜索、排序、分组、导出，也可发送到 Anki 和欧路词典；离线词典包可选，汉英、英汉两个方向都支持
 - **发送或下载**：发送到 [Obsidian](https://obsidian.md)、GitHub Gist 或任意 webhook；也可下载 `.md`、`.html`、`.epub`，供电子书阅读器使用
 
 ![清爽阅读器：双语对照、五色高亮与笔记](docs/cws-assets/originals/screenshot-2-reader.png)
@@ -42,7 +42,7 @@
 ### 个性化
 - **13 套 pinboard.in 主题**（Dracula、Nord、Catppuccin、Solarized 等），支持叠加自定义 CSS
 - **自动存档到 [Wayback Machine](https://web.archive.org)**：可选择每次保存时同步提交；原链接失效后仍能找回网页
-- **备份与同步**：Chrome Sync 只在已开启设置同步的设备之间共享设置，凭据同步需另行开启。手动 JSON 备份包含设置，也可选择包含高亮、笔记、当前 Pinboard 账号的生词，以及你的 API 密钥。在每台设备上登录 Chrome 浏览器账户并分别连接 Google Drive 后，即可同步该账号的生词。
+- **备份与同步**：设置和生词分别通过 Chrome Sync 与你自己的 Google Drive 同步，手动 JSON 备份可包含高亮、笔记、生词和 API 密钥；以上均为可选，具体条款见下方的隐私一节
 - **9 种语言**、可自定义快捷键、本地优先存储、零追踪
 
 ![13 套 pinboard.in 主题](docs/cws-assets/originals/screenshot-4-themes.png)

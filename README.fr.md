@@ -32,7 +32,7 @@ Une extension Chrome pour [Pinboard](https://pinboard.in) : étiquettes et résu
 - **Chaque page devient une lecture claire** : vue Markdown avec table des matières, recherche et aperçu des notes de bas de page
 - **Surlignage en cinq couleurs, avec notes** : surlignages et notes survivent aux nouveaux rendus, à la traduction et aux modifications de la page
 - **Traduisez la page ou posez-lui vos questions** : traduction intégrale avec vue bilingue ; les réponses citent la source et y renvoient d'un clic
-- **Consultez et révisez les mots pendant la lecture** : utilisez des définitions en ligne ou ajoutez des packs de dictionnaire hors connexion, du chinois vers l'anglais et de l'anglais vers le chinois ; enregistrez le vocabulaire, puis recherchez-le, triez-le et classez-le par groupes ; exportez toutes les entrées du compte Pinboard actif ou envoyez-les vers Anki, et envoyez les mots compatibles vers Eudic
+- **Consultez et révisez les mots pendant la lecture** : le dictionnaire affiche d'abord le sens qui correspond à votre phrase, et les mots enregistrés peuvent être recherchés, triés, classés par groupes, exportés ou envoyés vers Anki et Eudic. En option, des packs de dictionnaire hors connexion couvrent le chinois vers l'anglais et l'anglais vers le chinois
 - **Envoyer ou télécharger** : vers [Obsidian](https://obsidian.md), un Gist GitHub ou n'importe quel webhook ; ou en `.md`, `.html`, `.epub` pour votre liseuse
 
 ![Lecture claire avec traduction bilingue et surlignages](docs/cws-assets/originals/screenshot-2-reader.png)
@@ -42,7 +42,7 @@ Une extension Chrome pour [Pinboard](https://pinboard.in) : étiquettes et résu
 ### Personnalisation
 - **13 thèmes pour pinboard.in** (Dracula · Nord · Catppuccin · Solarized · …) plus votre CSS personnalisé
 - **Archivage automatique dans la [Wayback Machine](https://web.archive.org)** : à chaque enregistrement si vous le souhaitez ; les pages restent accessibles même quand le lien d'origine disparaît
-- **Sauvegarde et synchronisation** : Chrome Sync partage les réglages entre les appareils où vous l’activez. La synchronisation des identifiants s’active séparément. Les sauvegardes JSON manuelles contiennent les réglages et peuvent inclure les surlignages, les notes, le vocabulaire du compte Pinboard actif et vos clés API. Connectez-vous à Chrome puis connectez Google Drive séparément sur chaque appareil pour synchroniser ce vocabulaire.
+- **Sauvegarde et synchronisation** : les paramètres via Chrome Sync, le vocabulaire via votre propre Google Drive, et des sauvegardes JSON manuelles pouvant inclure les surlignages, les notes, le vocabulaire et vos clés API. Chaque option est facultative ; la section Confidentialité ci-dessous en précise les modalités exactes
 - **9 langues** · raccourcis configurables · stockage local en priorité · aucun pistage
 
 ![13 thèmes pour pinboard.in](docs/cws-assets/originals/screenshot-4-themes.png)

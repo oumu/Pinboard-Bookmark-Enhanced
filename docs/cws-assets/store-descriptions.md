@@ -30,13 +30,13 @@
 - Any page becomes a clean reader: a Markdown view with a table of contents, search, and footnote peek
 - Five-color highlights with notes: both survive re-renders, translation, even page edits
 - Translate the page or ask it questions: full-page translation with a bilingual view; answers cite the source and jump straight to it
-- Look up and review words as you read: use online definitions or an optional offline Chinese-English dictionary; save, search, sort, and group vocabulary; export all entries from the current Pinboard account or send them to Anki, and send entries in supported languages to Eudic
+- Look up and review words as you read: definitions open on the sense that fits your sentence, and saved words can be searched, sorted, grouped, exported, or sent to Anki and Eudic. Optional offline packs cover Chinese-to-English and English-to-Chinese
 - Send or download: send to Obsidian (https://obsidian.md), a GitHub Gist, or any webhook; download as .md, .html, or .epub for your e-reader
 
 # Make Pinboard yours
 - 13 themes for pinboard.in (Dracula · Nord · Catppuccin · Solarized · …) plus your own custom CSS
 - Auto-archive to the Wayback Machine (https://web.archive.org): optionally submit every save, so pages stay reachable after the original link dies
-- Backup and sync: Chrome Sync shares settings between devices where you enable it; credential sync is a separate opt-in. Manual JSON backups contain settings and can optionally include reader highlights, notes, vocabulary from the current Pinboard account, and your API keys. Google Drive can sync that vocabulary after you connect it separately on each device, on which you also need to be signed in to Chrome.
+- Backup and sync: settings through Chrome Sync, vocabulary through your own Google Drive, and manual JSON backups that can include highlights, notes, vocabulary, and your API keys. Each one is opt-in; Privacy below has the exact terms
 - 9 languages · configurable shortcuts · local-first storage · zero tracking
 ```
 
@@ -61,13 +61,13 @@
 - 网页变成清爽的阅读器：Markdown 视图，自带目录、全文搜索、脚注速览
 - 五色高亮与笔记：页面重渲染、翻译、内容变动后都会保留
 - 整页翻译，或向文章提问：支持双语对照；回答附带引用，点击即可跳到原文出处
-- 边读边查词和复习生词：可使用在线释义或可选的离线汉英词典；保存生词后，可搜索、排序和分组，也可导出当前 Pinboard 账号下的全部生词、全部发送到 Anki，或将支持语种的生词发送到欧路词典
+- 边读边查词和复习生词：查词优先显示贴合当前句子的释义，生词可搜索、排序、分组、导出，也可发送到 Anki 和欧路词典；离线词典包可选，汉英、英汉两个方向都支持
 - 发送或下载：发送到 Obsidian (https://obsidian.md)、GitHub Gist 或任意 webhook；也可下载 .md、.html、.epub，供电子书阅读器使用
 
 # 个性化
 - 13 套 pinboard.in 主题（Dracula、Nord、Catppuccin、Solarized 等），支持叠加自定义 CSS
 - 自动存档到 Wayback Machine (https://web.archive.org)：可选择每次保存时同步提交；原链接失效后仍能找回网页
-- 备份与同步：Chrome Sync 只在已开启设置同步的设备之间共享设置，凭据同步需另行开启。手动 JSON 备份包含设置，也可选择包含高亮、笔记、当前 Pinboard 账号的生词，以及你的 API 密钥。在每台设备上登录 Chrome 浏览器账户并分别连接 Google Drive 后，即可同步该账号的生词。
+- 备份与同步：设置和生词分别通过 Chrome Sync 与你自己的 Google Drive 同步，手动 JSON 备份可包含高亮、笔记、生词和 API 密钥；以上均为可选，具体条款见下方的隐私一节
 - 9 种语言、可自定义快捷键、本地优先存储、零追踪
 ```
 
@@ -92,13 +92,13 @@
 - 網頁變成清爽的閱讀器：Markdown 檢視，內建目錄、全文搜尋、註腳速覽
 - 五色劃重點與筆記：重新渲染、翻譯、內容變動後依然保留
 - 整頁翻譯，或向文章提問：支援雙語對照；回答附帶引用，一按即跳回原文出處
-- 邊讀邊查詞與複習生詞：可使用線上釋義或選用離線中英詞典；儲存生詞後，可搜尋、排序與分組，也可匯出目前 Pinboard 帳號的全部生詞、全部傳送到 Anki，或將支援語言的生詞傳送到歐路詞典
+- 邊讀邊查詞與複習生詞：查詞時會依你正在讀的句子，優先顯示最貼切的釋義；已儲存的生詞可搜尋、排序、分組與匯出，也可傳送到 Anki 與歐路詞典；另可匯入離線詞典包，中英、英中兩個方向都支援
 - 傳送或下載：傳送到 Obsidian (https://obsidian.md)、GitHub Gist 或任何 webhook；也可下載為 .md、.html、.epub，在電子書閱讀器上閱讀
 
 # 個人化
 - 13 套 pinboard.in 佈景主題（Dracula、Nord、Catppuccin、Solarized 等），支援疊加自訂 CSS
 - 自動存檔到 Wayback Machine (https://web.archive.org)：可選擇每次儲存時一併提交；原連結失效後仍找得回網頁
-- 備份與同步：Chrome Sync 只在已開啟設定同步的裝置之間共用設定，憑證同步須另外開啟。手動 JSON 備份包含設定，也可選擇加入劃重點、筆記、目前 Pinboard 帳號的生詞，以及你的 API 金鑰。在每台裝置登入 Chrome 瀏覽器帳戶並分別連結 Google Drive 後，即可同步該帳號的生詞。
+- 備份與同步：設定透過 Chrome Sync 同步，生詞則透過你自己的 Google Drive，另有手動 JSON 備份，可一併納入劃重點、筆記、生詞與 API 金鑰。三者皆須自行開啟，確切條件詳見下方的「隱私」。
 - 9 種語言、可自訂快捷鍵、本機優先儲存、零追蹤
 ```
 
@@ -123,13 +123,13 @@
 - 網頁變成清爽的閱讀器：Markdown 檢視，附目錄、全文搜尋、註腳速覽
 - 五色高亮與筆記：重新渲染、翻譯、內容變動後仍會保留
 - 整頁翻譯，或向文章提問：支援雙語對照；答案附帶引註，一按即跳回原文出處
-- 邊閱讀邊查詞及溫習生詞：可使用網上釋義或可選的離線中英詞典；儲存生詞後，可搜尋、排序及分組，也可匯出目前 Pinboard 帳戶的全部生詞、全部傳送到 Anki，或將支援語言的生詞傳送到歐路詞典
+- 邊閱讀邊查詞及溫習生詞：詞典會先顯示切合該句語境的釋義；生詞可搜尋、排序、分組、匯出，也能傳送到 Anki 及歐路詞典；另可匯入離線詞典包，中英、英中兩個方向都支援
 - 傳送或下載：傳送至 Obsidian (https://obsidian.md)、GitHub Gist 或任何 webhook；也可下載為 .md、.html、.epub，在電子書閱讀器上閱讀
 
 # 個人化
 - 13 套 pinboard.in 佈景主題（Dracula、Nord、Catppuccin、Solarized 等），更可疊加自訂 CSS
 - 自動存檔至 Wayback Machine (https://web.archive.org)：可選擇每次儲存時一併提交；原連結失效後仍可尋回網頁
-- 備份與同步：Chrome Sync 只在已開啟設定同步的裝置之間共享設定，憑據同步需另行開啟。手動 JSON 備份包含設定，亦可選擇加入高亮、筆記、目前 Pinboard 帳戶的生詞，以及你的 API 密鑰。在每部裝置登入 Chrome 瀏覽器帳戶並分別連接 Google Drive 後，即可同步該帳戶的生詞。
+- 備份與同步：設定經 Chrome Sync 同步，生詞則同步到你自己的 Google Drive，手動 JSON 備份可包含高亮、筆記、生詞與 API 密鑰；三者都須自行開啟，確切條款見下方私隱一節
 - 9 種語言、可自訂快捷鍵、本機優先儲存、零追蹤
 ```
 
@@ -154,13 +154,13 @@
 - Jede Seite wird zur Leseansicht – Markdown-Ansicht mit Inhaltsverzeichnis, Suche und Fußnoten-Vorschau
 - Markieren in fünf Farben, mit Notizen – Markierungen und Notizen überstehen Neu-Rendern, Übersetzung und Änderungen an der Seite
 - Seite übersetzen oder befragen – Ganzseiten-Übersetzung mit zweisprachiger Ansicht; Antworten zitieren die Quelle und springen direkt dorthin
-- Wörter beim Lesen nachschlagen und wiederholen: Online-Definitionen oder das optionale Offline-Wörterbuch Chinesisch–Englisch nutzen; Vokabeln speichern, suchen, sortieren und gruppieren; alle Einträge des aktuellen Pinboard-Kontos exportieren oder an Anki senden, unterstützte Wörter an Eudic senden
+- Wörter beim Lesen nachschlagen und wiederholen: Definitionen zeigen zuerst die zum Satz passende Bedeutung; gespeicherte Vokabeln lassen sich durchsuchen, sortieren, gruppieren, exportieren oder an Anki und Eudic senden. Optionale Offline-Wörterbuchpakete decken Chinesisch–Englisch und Englisch–Chinesisch ab
 - Senden oder herunterladen – an Obsidian (https://obsidian.md), ein GitHub Gist oder einen beliebigen Webhook senden; als .md, .html oder .epub für den E-Reader herunterladen
 
 # Pinboard nach deinem Geschmack
 - 13 Themes für pinboard.in (Dracula · Nord · Catppuccin · Solarized · …) plus dein eigenes CSS
 - Automatisch in die Wayback Machine (https://web.archive.org) archivieren – auf Wunsch bei jedem Speichern; Seiten bleiben erreichbar, auch wenn der Originallink tot ist
-- Sicherung und Synchronisierung: Chrome Sync teilt Einstellungen nur zwischen Geräten, auf denen du die Synchronisierung aktivierst. Die Synchronisierung von Zugangsdaten musst du separat einschalten. Manuelle JSON-Sicherungen enthalten Einstellungen und auf Wunsch Markierungen, Notizen, den Wortschatz des aktuellen Pinboard-Kontos sowie deine API-Schlüssel. Wenn du auf jedem Gerät in Chrome angemeldet bist und Google Drive separat verbindest, wird dieser Wortschatz synchronisiert.
+- Sicherung und Synchronisierung: Einstellungen über Chrome Sync, Vokabeln über dein eigenes Google Drive, dazu manuelle JSON-Sicherungen, die Markierungen, Notizen, Vokabeln und deine API-Schlüssel enthalten können. Jede dieser Optionen aktivierst du einzeln; die Einzelheiten stehen unten im Abschnitt Datenschutz
 - 9 Sprachen · anpassbare Tastenkürzel · Speicherung primär lokal · kein Tracking
 ```
 
@@ -185,13 +185,13 @@
 - Chaque page devient une lecture claire : vue Markdown avec table des matières, recherche et aperçu des notes de bas de page
 - Surlignage en cinq couleurs, avec notes : surlignages et notes survivent aux nouveaux rendus, à la traduction et aux modifications de la page
 - Traduisez la page ou posez-lui vos questions : traduction intégrale avec vue bilingue ; les réponses citent la source et y renvoient d'un clic
-- Consultez et révisez les mots pendant la lecture : utilisez des définitions en ligne ou le dictionnaire chinois–anglais hors connexion facultatif ; enregistrez le vocabulaire, puis recherchez-le, triez-le et classez-le par groupes ; exportez toutes les entrées du compte Pinboard actif ou envoyez-les vers Anki, et envoyez les mots compatibles vers Eudic
+- Consultez et révisez les mots pendant la lecture : le dictionnaire affiche d'abord le sens qui correspond à votre phrase, et les mots enregistrés peuvent être recherchés, triés, classés par groupes, exportés ou envoyés vers Anki et Eudic. En option, des packs de dictionnaire hors connexion couvrent le chinois vers l'anglais et l'anglais vers le chinois
 - Envoyer ou télécharger : vers Obsidian (https://obsidian.md), un Gist GitHub ou n'importe quel webhook ; ou en .md, .html, .epub pour votre liseuse
 
 # Personnalisation
 - 13 thèmes pour pinboard.in (Dracula · Nord · Catppuccin · Solarized · …) plus votre CSS personnalisé
 - Archivage automatique dans la Wayback Machine (https://web.archive.org) : à chaque enregistrement si vous le souhaitez ; les pages restent accessibles même quand le lien d'origine disparaît
-- Sauvegarde et synchronisation : Chrome Sync partage les réglages entre les appareils où vous l’activez. La synchronisation des identifiants s’active séparément. Les sauvegardes JSON manuelles contiennent les réglages et peuvent inclure les surlignages, les notes, le vocabulaire du compte Pinboard actif et vos clés API. Connectez-vous à Chrome puis connectez Google Drive séparément sur chaque appareil pour synchroniser ce vocabulaire.
+- Sauvegarde et synchronisation : les paramètres via Chrome Sync, le vocabulaire via votre propre Google Drive, et des sauvegardes JSON manuelles pouvant inclure les surlignages, les notes, le vocabulaire et vos clés API. Chaque option est facultative ; la section Confidentialité ci-dessous en précise les modalités exactes
 - 9 langues · raccourcis configurables · stockage local en priorité · aucun pistage
 ```
 
@@ -216,13 +216,13 @@
 - どんなページもすっきりしたリーダーに：Markdown 表示で、目次・記事内検索・脚注ののぞき見表示付き
 - 5色のハイライトとメモ：再描画・翻訳・ページ内容の変化をまたいでも、どちらも保持されます
 - ページ全体の翻訳と、ページへの質問：対訳表示に対応。回答には出典への引用が付き、クリックで該当箇所へジャンプします
-- 読みながら単語を調べて復習：オンライン辞書または必要に応じて追加できる CC-CEDICT オフライン中英辞書を使い、単語帳に保存した語を検索・並べ替え・グループ分けできます。現在の Pinboard アカウントの全項目をエクスポートまたは Anki に送信し、対応する単語は Eudic に送信できます
+- 読みながら単語を調べて復習：読んでいる文に合った語義がまず表示され、保存した単語は検索・並べ替え・グループ分け・エクスポートができ、Anki や Eudic への送信にも対応します。オフライン辞書パックは任意で追加でき、中国語から英語・英語から中国語の両方向に対応します
 - 送信もダウンロードも：Obsidian (https://obsidian.md)・GitHub Gist・任意の webhook へ送信でき、.md・.html・.epub としてダウンロードして電子書籍リーダーでも読めます
 
 # カスタマイズ
 - pinboard.in 用テーマ 13 種（Dracula、Nord、Catppuccin、Solarized など）+ 独自のカスタム CSS
 - Wayback Machine (https://web.archive.org) へ自動アーカイブ：保存のたびに自動送信するよう選べます。元のページが消えても、あとから参照できます
-- バックアップと同期：有効にしたデバイス間では Chrome Sync で設定を共有できます。認証情報の共有には別の有効化が必要です。手動の JSON バックアップには設定が含まれ、ハイライト、メモ、現在の Pinboard アカウントの単語帳、API キーも選択して含められます。各デバイスで Chrome にログインしたうえで Google Drive に接続すると、その単語帳を同期できます。
+- バックアップと同期：設定は Chrome Sync で、単語帳は自分の Google Drive で同期でき、手動の JSON バックアップにはハイライト・メモ・単語帳・API キーを含められます。いずれもオプトインで、詳しい条件は下記の「プライバシー」を参照してください
 - 9 言語対応 · カスタマイズ可能なショートカット · ローカルファースト保存 · トラッキング一切なし
 ```
 
@@ -247,13 +247,13 @@
 - Każda strona staje się czytelna — widok Markdown ze spisem treści, wyszukiwaniem i podglądem przypisów
 - Zakreślenia w pięciu kolorach, z notatkami — zakreślenia i notatki przetrwają ponowne renderowanie, tłumaczenie, a nawet zmiany na stronie
 - Przetłumacz stronę albo zadaj jej pytanie — tłumaczenie całości z widokiem dwujęzycznym; odpowiedzi cytują źródło i prowadzą prosto do niego
-- Sprawdzaj i powtarzaj słowa podczas czytania — korzystaj z definicji online lub opcjonalnego słownika chińsko-angielskiego offline; zapisane słówka możesz wyszukiwać, sortować i grupować, a wszystkie pozycje z bieżącego konta Pinboard eksportować lub wysyłać do Anki; obsługiwane słowa wyślesz do Eudic
+- Sprawdzaj i powtarzaj słownictwo podczas czytania — słownik pokazuje najpierw znaczenie pasujące do bieżącego zdania, a zapisane słówka możesz wyszukiwać, sortować, grupować, eksportować oraz wysyłać do Anki i Eudic. Opcjonalne pakiety słowników offline obejmują oba kierunki: chińsko-angielski i angielsko-chiński.
 - Wyślij albo pobierz — do Obsidiana (https://obsidian.md), GitHub Gist lub dowolnego webhooka; albo jako .md, .html, .epub na czytnik e-booków
 
 # Personalizacja
 - 13 motywów dla pinboard.in (Dracula · Nord · Catppuccin · Solarized · …) plus własny CSS
 - Automatyczna archiwizacja w Wayback Machine (https://web.archive.org) — opcjonalnie przy każdym zapisie; strony pozostają dostępne, nawet gdy oryginalny link przestanie działać
-- Kopie zapasowe i synchronizacja — Chrome Sync udostępnia ustawienia między urządzeniami, na których włączono synchronizację. Synchronizację danych uwierzytelniających trzeba włączyć osobno. Ręczna kopia JSON zawiera ustawienia i może opcjonalnie obejmować zakreślenia, notatki, słówka bieżącego konta Pinboard oraz Twoje klucze API. Aby synchronizować te słówka, zaloguj się w Chrome i połącz Google Drive osobno na każdym urządzeniu.
+- Kopie zapasowe i synchronizacja — ustawienia synchronizuje Chrome Sync, słówka trafiają na twój własny Google Drive, a do ręcznej kopii JSON możesz dołączyć zakreślenia, notatki, słówka i twoje klucze API. Każda z tych funkcji jest opcjonalna; szczegóły znajdziesz w sekcji Prywatność poniżej.
 - 9 języków · konfigurowalne skróty · pamięć lokalna w pierwszej kolejności · zero śledzenia
 ```
 
@@ -278,12 +278,12 @@
 - Любая страница — в удобный вид для чтения — Markdown-просмотр с оглавлением, поиском и предпросмотром сносок
 - Выделения пяти цветов с заметками — и выделения, и заметки переживают перерисовку, перевод и даже изменения на странице
 - Переведите страницу или задайте ей вопрос — полный перевод с двуязычным видом; ответы ссылаются на источник, и клик ведёт прямо к нему
-- Ищите и повторяйте слова во время чтения — используйте онлайн-определения или необязательный китайско-английский офлайн-словарь; сохраняйте слова в словарик, ищите, сортируйте и распределяйте их по группам; все записи текущей учётной записи Pinboard можно экспортировать или отправить в Anki, а поддерживаемые слова — в Eudic
+- Ищите и повторяйте слова во время чтения — определение открывается на значении, подходящем по контексту предложения, а сохранённые слова можно искать, сортировать, группировать, экспортировать или отправить в Anki и Eudic. При желании добавьте офлайн-словари в обоих направлениях: китайско-английском и англо-китайском
 - Отправить или скачать — в Obsidian (https://obsidian.md), GitHub Gist или на любой вебхук; либо скачать .md, .html, .epub для читалки
 
 # Персонализация
 - 13 тем для pinboard.in (Dracula · Nord · Catppuccin · Solarized · …) плюс свой CSS
 - Автоархив в Wayback Machine (https://web.archive.org) — по желанию при каждом сохранении; страницы остаются доступны, даже когда оригинальная ссылка умирает
-- Резервное копирование и синхронизация — Chrome Sync передаёт настройки между устройствами, на которых включена синхронизация. Синхронизацию учётных данных нужно включить отдельно. Ручная резервная копия JSON содержит настройки и по выбору может включать выделения, заметки, словарь текущей учётной записи Pinboard и ваши API-ключи. Чтобы синхронизировать этот словарь, войдите в Chrome и подключите Google Диск отдельно на каждом устройстве.
+- Резервное копирование и синхронизация — настройки синхронизируются через Chrome Sync, словарик — через ваш Google Диск, а ручная резервная копия JSON может включать выделения, заметки, словарик и ваши API-ключи. Всё это включается по вашему выбору; точные условия см. в разделе «Конфиденциальность» ниже
 - 9 языков · настраиваемые горячие клавиши · локальное хранилище в приоритете · никакого трекинга
 ```

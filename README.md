@@ -32,7 +32,7 @@ A Chrome extension for [Pinboard](https://pinboard.in): AI tags and summaries, a
 - **Any page becomes a clean reader**: a Markdown view with a table of contents, search, and footnote peek
 - **Five-color highlights with notes**: both survive re-renders, translation, even page edits
 - **Translate the page or ask it questions**: full-page translation with a bilingual view; answers cite the source and jump straight to it
-- **Look up and review words as you read**: use online definitions, or add optional offline dictionary packs for Chinese-to-English and English-to-Chinese; save, search, sort, and group vocabulary; export all entries from the current Pinboard account or send them to Anki, and send entries in supported languages to Eudic
+- **Look up and review words as you read**: definitions open on the sense that fits your sentence, and saved words can be searched, sorted, grouped, exported, or sent to Anki and Eudic. Optional offline packs cover Chinese-to-English and English-to-Chinese
 - **Send or download**: send to [Obsidian](https://obsidian.md), a GitHub Gist, or any webhook; download as `.md`, `.html`, or `.epub` for your e-reader
 
 ![Reader with bilingual translation and highlights](docs/cws-assets/originals/screenshot-2-reader.png)
@@ -42,7 +42,7 @@ A Chrome extension for [Pinboard](https://pinboard.in): AI tags and summaries, a
 ### Make Pinboard yours
 - **13 themes for pinboard.in** (Dracula · Nord · Catppuccin · Solarized · …) plus your own custom CSS
 - **Auto-archive to the [Wayback Machine](https://web.archive.org)**: optionally submit every save, so pages stay reachable after the original link dies
-- **Backup and sync**: Chrome Sync shares settings between devices where you enable it; credential sync is a separate opt-in. Manual JSON backups contain settings and can optionally include reader highlights, notes, vocabulary from the current Pinboard account, and your API keys. Google Drive can sync that vocabulary after you connect it separately on each device, on which you also need to be signed in to Chrome.
+- **Backup and sync**: settings through Chrome Sync, vocabulary through your own Google Drive, and manual JSON backups that can include highlights, notes, vocabulary, and your API keys. Each one is opt-in; Privacy below has the exact terms
 - **9 languages** · configurable shortcuts · local-first storage · zero tracking
 
 ![13 themes for pinboard.in](docs/cws-assets/originals/screenshot-4-themes.png)

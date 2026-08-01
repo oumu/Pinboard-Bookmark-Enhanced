@@ -32,7 +32,7 @@ Rozszerzenie Chrome dla [Pinboard](https://pinboard.in): tagi i streszczenia od 
 - **Każda strona staje się czytelna** — widok Markdown ze spisem treści, wyszukiwaniem i podglądem przypisów
 - **Zakreślenia w pięciu kolorach, z notatkami** — zakreślenia i notatki przetrwają ponowne renderowanie, tłumaczenie, a nawet zmiany na stronie
 - **Przetłumacz stronę albo zadaj jej pytanie** — tłumaczenie całości z widokiem dwujęzycznym; odpowiedzi cytują źródło i prowadzą prosto do niego
-- **Sprawdzaj i powtarzaj słowa podczas czytania** — korzystaj z definicji online albo dodaj opcjonalne pakiety słowników offline w obu kierunkach: chińsko-angielskim i angielsko-chińskim; zapisane słówka możesz wyszukiwać, sortować i grupować, a wszystkie pozycje z bieżącego konta Pinboard eksportować lub wysyłać do Anki; obsługiwane słowa wyślesz do Eudic
+- **Sprawdzaj i powtarzaj słownictwo podczas czytania** — słownik pokazuje najpierw znaczenie pasujące do bieżącego zdania, a zapisane słówka możesz wyszukiwać, sortować, grupować, eksportować oraz wysyłać do Anki i Eudic. Opcjonalne pakiety słowników offline obejmują oba kierunki: chińsko-angielski i angielsko-chiński.
 - **Wyślij albo pobierz** — do [Obsidiana](https://obsidian.md), GitHub Gist lub dowolnego webhooka; albo jako `.md`, `.html`, `.epub` na czytnik e-booków
 
 ![Czytelny widok z tłumaczeniem dwujęzycznym i zakreśleniami](docs/cws-assets/originals/screenshot-2-reader.png)
@@ -42,7 +42,7 @@ Rozszerzenie Chrome dla [Pinboard](https://pinboard.in): tagi i streszczenia od 
 ### Personalizacja
 - **13 motywów dla pinboard.in** (Dracula · Nord · Catppuccin · Solarized · …) plus własny CSS
 - **Automatyczna archiwizacja w [Wayback Machine](https://web.archive.org)** — opcjonalnie przy każdym zapisie; strony pozostają dostępne, nawet gdy oryginalny link przestanie działać
-- **Kopie zapasowe i synchronizacja** — Chrome Sync udostępnia ustawienia między urządzeniami, na których włączono synchronizację. Synchronizację danych uwierzytelniających trzeba włączyć osobno. Ręczna kopia JSON zawiera ustawienia i może opcjonalnie obejmować zakreślenia, notatki, słówka bieżącego konta Pinboard oraz Twoje klucze API. Aby synchronizować te słówka, zaloguj się w Chrome i połącz Google Drive osobno na każdym urządzeniu.
+- **Kopie zapasowe i synchronizacja** — ustawienia synchronizuje Chrome Sync, słówka trafiają na twój własny Google Drive, a do ręcznej kopii JSON możesz dołączyć zakreślenia, notatki, słówka i twoje klucze API. Każda z tych funkcji jest opcjonalna; szczegóły znajdziesz w sekcji Prywatność poniżej.
 - **9 języków** · konfigurowalne skróty · pamięć lokalna w pierwszej kolejności · zero śledzenia
 
 ![13 motywów dla pinboard.in](docs/cws-assets/originals/screenshot-4-themes.png)
