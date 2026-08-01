@@ -2012,10 +2012,12 @@ html[data-theme] .confirm-popover button:focus-visible { outline-color: var(--pp
 }
 .md-strip.hidden { display: none; }
 .md-strip-btn {
-  /* Fixed 32px icon cells (icon audit P0): width decoupled from locale text.
-     Labels live in title/aria; feedback is an icon swap in popup.js. */
-  flex: 0 0 auto;
-  width: 32px;
+  /* Icon cells stretched to equal quarters (device feedback: four fixed 32px
+     squares left a dead right half; the strip should fill its row like the
+     quick-row above it). Width still decoupled from locale text -- the cell
+     grows, the icon stays centered. Labels live in title/aria; feedback is
+     an icon swap in popup.js. */
+  flex: 1 1 0;
   height: 32px;
   display: inline-grid;
   place-items: center;
