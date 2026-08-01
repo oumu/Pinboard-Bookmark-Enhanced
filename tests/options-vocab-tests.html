@@ -280,6 +280,18 @@ $id("vocab-search").value = "word";
 $id("vocab-search").dispatchEvent(new Event("input", { bubbles:true }));
 check("filter input clears selection", _vocabSelected.size === 0);
 check("filter input rebuilds current result boundary", ids(_vocabViewRows) === "c,b");
+// Sort only reorders the same visible set: the selection survives, the
+// shift anchor resets (a pre-sort anchor would span an arbitrary interval
+// in the new visual order). Filters keep clearing -- they change WHICH
+// rows are visible. (spec 2026-08-01)
+_vocabSelected = new Set(_vocabViewRows.slice(0, 2).map((row) => row.id));
+_vocabLastSelectedId = _vocabViewRows[1].id;
+$id("vocab-sort").value = "az";
+$id("vocab-sort").dispatchEvent(new Event("change"));
+check("sort change keeps the current selection", _vocabSelected.size === 2);
+check("sort change resets the shift anchor", _vocabLastSelectedId === null);
+$id("vocab-group-filter").dispatchEvent(new Event("change"));
+check("group filter still clears the selection", _vocabSelected.size === 0);
 
 _vocabRows = Array.from({length:5000}, (_, i) => ({id:"id"+i,term:"word"+i,updatedAt:5000-i,groups:[],contexts:[]}));
 $id("vocab-search").value = "";

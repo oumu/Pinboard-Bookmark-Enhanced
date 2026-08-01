@@ -1519,13 +1519,21 @@ if (_vocabSearch) _vocabSearch.addEventListener("input", () => {
   _pbpVocabClearSelection();
   _pbpVocabApplyView(true);
 });
-for (const id of ["vocab-group-filter", "vocab-status-filter", "vocab-sort"]) {
+for (const id of ["vocab-group-filter", "vocab-status-filter"]) {
   const control = $id(id);
   if (control) control.addEventListener("change", () => {
     _pbpVocabClearSelection();
     _pbpVocabApplyView(true);
   });
 }
+// Sort only reorders the same visible set: keep the selection (desktop
+// convention), reset the shift anchor -- a range from a pre-sort anchor
+// would span an arbitrary interval in the new visual order.
+const _vocabSortSelect = $id("vocab-sort");
+if (_vocabSortSelect) _vocabSortSelect.addEventListener("change", () => {
+  _vocabLastSelectedId = null;
+  _pbpVocabApplyView(true);
+});
 const _vocabSelectAll = $id("vocab-select-all");
 if (_vocabSelectAll) _vocabSelectAll.addEventListener("click", () => {
   _vocabSelected = pbpVocabSelectResults(_vocabSelected, _vocabViewRows, "all");
