@@ -2670,13 +2670,6 @@ body.ask-open main { margin-right: 396px; }
 /* Delete (icon, left) vs Save (text CTA, right): the delete has no confirm
    popover, so the row's full width is the misclick guard. */
 .hl-card-foot { display: flex; justify-content: space-between; gap: 8px; }
-.hl-card-delete {
-  width: 28px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-}
 .hl-card-save, .hl-card-delete {
   padding: 4px 10px;
   border: 1px solid var(--btn-border);
@@ -2687,7 +2680,17 @@ body.ask-open main { margin-right: 396px; }
   cursor: pointer;
 }
 .hl-card-save:hover, .hl-card-delete:hover { background: var(--btn-hover); }
-.hl-card-delete { color: var(--danger); }
+/* Icon-only override AFTER the shared text-button rule -- same specificity,
+   so source order is what keeps padding at 0 (a 4px 10px pad inside the fixed
+   28px cell left the 13px cross 6px of content box; Codex catch). */
+.hl-card-delete {
+  color: var(--danger);
+  width: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
 
 
 /* ---- Highlight rail entry (md-highlight.js) ---- */
@@ -2702,9 +2705,11 @@ body.ask-open main { margin-right: 396px; }
   cursor: pointer;
   position: relative;
 }
-/* Hit pad to 24px targets (12px dots, 6px gap): zones overlap and the later
-   sibling wins boundary clicks -- acceptable for same-purpose filter dots. */
-.hl-filter-dot::before { content: ""; position: absolute; inset: -6px; }
+/* Hit pad: full 24px vertically (no neighbors there), half-gap horizontally
+   -- a symmetric -6px made the zones overlap the whole 6px gap and a click
+   just right of dot A silently toggled dot B (Codex catch). 18px wide is the
+   ceiling until the legend's gap grows. */
+.hl-filter-dot::before { content: ""; position: absolute; inset: -6px -3px; }
 /* L5 (filter-legend dots, same rationale as .pb-hl-dot above). */
 .hl-filter-dot-1 { background: light-dark(#facc15, #D9A441); }
 .hl-filter-dot-2 { background: light-dark(#4ade80, #5E9C69); }

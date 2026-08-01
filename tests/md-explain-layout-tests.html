@@ -67,9 +67,14 @@ async function makeFrame(width) {
 }
 function applyLocale(frame, messages, locale) {
   const doc = frame.contentDocument;
-  doc.querySelector('[data-action="explain"]').textContent = messages[locale].explainActionExplain.message;
-  doc.querySelector('[data-action="translate"]').textContent = messages[locale].explainActionTranslate.message;
-  doc.querySelector('[data-action="dict"]').textContent = messages[locale].explainActionDict.message;
+  // Mirrors production since the icon audit: the three actions are icon-only
+  // (a 15px SVG stand-in here), locale labels ride title/aria-label.
+  for (const [action, key] of [["explain", "explainActionExplain"], ["translate", "explainActionTranslate"], ["dict", "explainActionDict"]]) {
+    const b = doc.querySelector('[data-action="' + action + '"]');
+    b.innerHTML = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/></svg>';
+    b.title = messages[locale][key].message;
+    b.setAttribute("aria-label", messages[locale][key].message);
+  }
   const m = messages[locale];
   doc.querySelector('[data-trg="icon"]').textContent = m.selectionTriggerIcon.message;
   doc.querySelector('[data-trg="hotkey"]').textContent = m.selectionTriggerHotkey.message;
