@@ -238,7 +238,7 @@ function showTagSyncError(i18nKey) {
 function setupTagsInput() {
   const input = $id("tags-input");
   const dropdown = $id("tags-autocomplete");
-  let acDebounceTimer = null;
+  let acRaf = 0;
   function closeAutocomplete() {
     dropdown.classList.add("hidden");
     input.setAttribute("aria-expanded", "false");
@@ -249,10 +249,17 @@ function setupTagsInput() {
     dropdown.classList.remove("hidden");
     input.setAttribute("aria-expanded", "true");
   }
-  input.addEventListener("input", () => {
-    clearTimeout(acDebounceTimer);
-    acDebounceTimer = setTimeout(handleTagInput, 120);
+  /* rAF, not a debounce timer: the filter is an in-memory array scan, so the
+     suggestions can be on screen the same frame as the keystroke. A fixed
+     delay here reads as input lag on the hottest path in the popup. IME
+     composition is the exception — rebuilding mid-composition flickers the
+     dropdown on every dead key, so wait for compositionend. */
+  input.addEventListener("input", (e) => {
+    if (e.isComposing) return;
+    if (acRaf) return;
+    acRaf = requestAnimationFrame(() => { acRaf = 0; handleTagInput(); });
   });
+  input.addEventListener("compositionend", () => handleTagInput());
   function handleTagInput() {
     const val = input.value.trim().toLowerCase(); acIndex = -1;
     input.removeAttribute("aria-activedescendant");
