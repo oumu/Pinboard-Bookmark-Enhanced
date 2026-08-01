@@ -568,6 +568,9 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--pp-accent); }
   padding: var(--pp-sp-2) var(--pp-sp-4); font-size: 11px; white-space: nowrap;
   display: flex; align-items: center; gap: var(--pp-sp-3);
   box-shadow: var(--pp-shadow-md); animation: popinScale 0.12s var(--ease-out); z-index: var(--pp-z-popover);
+  /* Grows from the Delete button it sits on (bottom-left anchor), not from
+     its own center. */
+  transform-origin: bottom left;
 }
 .del-confirm-popover button { padding: 1px var(--pp-sp-4); font-size: 11px; cursor: pointer; border: 1px solid #ccc; background: #f5f5f0; }
 .del-confirm-yes { color: #c00 !important; border-color: #c00 !important; }

@@ -505,8 +505,9 @@ function _pbpDictCtxSignal(body, ctxEl, btn) {
   }, { root: body });
   io.observe(ctxEl);
   btn.addEventListener("click", () => {
-    const reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    ctxEl.scrollIntoView({ block: "start", behavior: reduced ? "auto" : "smooth" });
+    // shared.js pbpScrollIntoView owns the reduced-motion downgrade -- the
+    // md-preview.css comment already points every smooth scroll at it.
+    pbpScrollIntoView(ctxEl, { block: "start", behavior: "smooth" });
     btn.hidden = true;
     io.disconnect();
   }, { once: true });

@@ -627,7 +627,10 @@ html.motion-ready #preset-preview-section > summary::after {
   border-radius: 50%; background: #c00; color: #fff; border: none;
   font-size: 11px; line-height: 16px; text-align: center; cursor: pointer;
   opacity: 0; visibility: hidden;
-  transition: opacity 0.12s ease, visibility 0.12s ease;
+  /* --motion-state, not a bespoke 0.12s: this is hover-reveal feedback, the
+     same job every other 150ms state change in this file does. visibility
+     must share the duration or the hide would cut the fade short. */
+  transition: opacity var(--motion-state) ease, visibility var(--motion-state) ease;
 }
 .saved-theme-wrap:hover .saved-theme-del,
 .saved-theme-wrap:focus-within .saved-theme-del,

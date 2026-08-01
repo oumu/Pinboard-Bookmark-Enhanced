@@ -1429,9 +1429,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Fade out and reload
     const activePanel = document.querySelector(".tab-btn.active")?.dataset.panel || "general";
     sessionStorage.setItem("activeTab", activePanel);
-    document.body.style.transition = "opacity 0.18s";
+    document.body.style.transition = "opacity var(--motion-pop) var(--ease-out)";
     document.body.style.opacity = "0";
-    setTimeout(() => location.reload(), 180);
+    setTimeout(() => location.reload(), 140);
   });
 
   // syncApiKeys toggle: on = copy local secrets up to sync (opt back into cloud
@@ -1493,7 +1493,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
     sessionStorage.setItem("activeTab", activePanel);
-    document.body.style.transition = "opacity 0.18s";
+    document.body.style.transition = "opacity var(--motion-pop) var(--ease-out)";
     document.body.style.opacity = "0";
     // Prime the i18n mirror BEFORE reload so the reload's SYNC read is fresh —
     // otherwise renderExportTargets() and other t()-at-build-time labels paint the
@@ -1510,7 +1510,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
       }
     } catch (_) {}
-    setTimeout(() => location.reload(), 180);
+    setTimeout(() => location.reload(), 140);
   });
   // Real-time switch when theme dropdown changes (affects options-page theme + preset preview)
   // Adaptive presets resolve to light/dark variant in pinboard-style.js content script;
