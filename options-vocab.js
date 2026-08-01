@@ -12,6 +12,7 @@ let _vocabRenderGen = 0; // guards stale async renders (account switch mid-fetch
 let _vocabRows = [];     // last render's rows, kept for export
 let _vocabViewRows = []; // current filtered + sorted view (selection boundary)
 let _vocabSelected = new Set();
+let _vocabBatchMarkTimer = null; // expiring .motion-toggle mark on the batch toolbar
 let _vocabLastSelectedId = null;
 let _vocabRenderLimit = 100;
 let _vocabBatchBusy = false;
@@ -428,7 +429,18 @@ function _pbpVocabSyncSelectionUi() {
   const selectedEl = $id("vocab-selected-count");
   if (selectedEl) selectedEl.textContent = t("vocabSelectedCount", String(selectedCount));
   const batch = $id("vocab-batch-toolbar");
-  if (batch) batch.hidden = selectedCount === 0;
+  if (batch) {
+    const nextHidden = selectedCount === 0;
+    if (batch.hidden !== nextHidden) {
+      // Arm the height bridge (options.css .motion-toggle) only when the flag
+      // really flips on a selection change; the mark expires so tab resets and
+      // list reloads keep their instant hide.
+      batch.classList.add("motion-toggle");
+      clearTimeout(_vocabBatchMarkTimer);
+      _vocabBatchMarkTimer = setTimeout(() => batch.classList.remove("motion-toggle"), 400);
+      batch.hidden = nextHidden;
+    }
+  }
   const allBtn = $id("vocab-select-all");
   const invertBtn = $id("vocab-invert-selection");
   if (allBtn) allBtn.disabled = _vocabBatchBusy || !_vocabViewRows.length;

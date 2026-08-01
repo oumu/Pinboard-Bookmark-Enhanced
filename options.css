@@ -1837,6 +1837,29 @@ html[data-theme] .preset-preview-content { background: var(--opt-bg); color: var
 .vocab-load-more { display: block; margin: var(--opt-sp-4) auto var(--opt-sp-5); }
 #panel-vocab .vocab-batch-toolbar[hidden],
 #panel-vocab .vocab-load-more[hidden] { display: none; }
+/* Selecting the first word (or clearing the last) used to snap this bordered
+   bar in and out, shoving every card below it. Height bridge on the accordion
+   pattern; armed per-flip via .motion-toggle (options-vocab.js) so tab resets
+   and list reloads keep their instant hide. overflow:clip only rides along
+   with the mark -- steady state keeps normal overflow for focus rings. */
+html.motion-ready #panel-vocab .vocab-batch-toolbar.motion-toggle {
+  overflow: clip;
+  transition: height var(--motion-collapse) var(--ease-in-out),
+              margin-block var(--motion-collapse) var(--ease-in-out),
+              padding-block var(--motion-collapse) var(--ease-in-out),
+              opacity var(--motion-collapse) var(--ease-out),
+              display var(--motion-collapse) allow-discrete;
+}
+html.motion-ready #panel-vocab .vocab-batch-toolbar.motion-toggle[hidden] {
+  display: none;
+  height: 0;
+  margin-block: 0;
+  padding-block: 0;
+  opacity: 0;
+}
+html.motion-ready #panel-vocab .vocab-batch-toolbar.motion-toggle:not([hidden]) {
+  @starting-style { height: 0; margin-block: 0; padding-block: 0; opacity: 0; }
+}
 #panel-vocab,
 #vocab-list,
 .vocab-card,
