@@ -259,7 +259,9 @@ $id("login-btn").addEventListener("click", async (event) => {
   if (loginBtn.disabled) return;
   loginBtn.disabled = true;
   const token = $id("token-input").value.trim();
-  if (!token || !token.includes(":")) {
+  // Same shape rule the options field warns with (shared.js), so a paste that
+  // the settings page would flag cannot sail through the login gate.
+  if (pbpIsValidTokenFormat(token) !== true) {
     showElement("login-error", t("loginInvalidFormat"));
     loginBtn.disabled = false;
     return;

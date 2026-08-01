@@ -116,23 +116,12 @@ function setupApiTests() {
     $id(`test-${p}`)?.addEventListener("click", () => testAIProvider(p));
   });
 
-  // ---- Pinboard token: real-time format validation ----
-  function isValidTokenFormat(token) {
-    // Format: username:TOKEN — both parts non-empty, no spaces, token ≥ 8 chars
-    if (!token) return null;
-    const idx = token.indexOf(":");
-    if (idx < 1) return false;
-    const user = token.slice(0, idx);
-    const key = token.slice(idx + 1);
-    return user.length > 0 && key.length >= 8 && !/\s/.test(token);
-  }
-
+  // ---- Pinboard token: real-time format validation (shared.js rule) ----
   const tokenInput = $id("opt-pinboard-token");
   const tokenWarn = $id("token-format-warn");
   function validateTokenField() {
     const val = tokenInput.value.trim();
-    const valid = isValidTokenFormat(val);
-    tokenWarn.classList.toggle("visible", valid === false);
+    tokenWarn.classList.toggle("visible", pbpIsValidTokenFormat(val) === false);
   }
   tokenInput?.addEventListener("input", validateTokenField);
   tokenInput?.addEventListener("blur", validateTokenField);

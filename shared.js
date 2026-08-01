@@ -2286,6 +2286,19 @@ function pbpScrollIntoView(el, opts) {
   el.scrollIntoView(pbpPrefersReducedMotion() ? { ...opts, behavior: "instant" } : opts);
 }
 
+// Pinboard token shape check, shared by the options field warning and the
+// popup login gate so the two ends of the same format contract cannot drift:
+// username:TOKEN, both parts non-empty, no whitespace, key >= 8 chars.
+// Returns null for empty input (nothing to judge yet), true/false otherwise.
+function pbpIsValidTokenFormat(token) {
+  if (!token) return null;
+  const idx = token.indexOf(":");
+  if (idx < 1) return false;
+  const user = token.slice(0, idx);
+  const key = token.slice(idx + 1);
+  return user.length > 0 && key.length >= 8 && !/\s/.test(token);
+}
+
 let _activeConfirmPopover = null;
 
 // Render a .confirm-popover beside `anchor`, portaled to <body> so buttons are
