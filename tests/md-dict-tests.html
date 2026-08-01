@@ -131,7 +131,7 @@ assertEq(norm.entries.length, 1, "one entry");
 assertEq(norm.entries[0].pos, "interjection", "pos");
 assertEq(norm.entries[0].ipas.length, 3, "ipa capped at 3");
 assertEq(norm.entries[0].ipas[0].tags[0], "General American", "ipa accent tag");
-assertEq(norm.entries[0].senses.length, 5, "senses capped at 5");
+assertEq(norm.entries[0].senses.length, 6, "senses are retained past the display cap");
 assertEq(norm.entries[0].senses[0].examples.length, 2, "examples capped at 2");
 assertEq(norm.sourceUrl, "https://en.wiktionary.org/wiki/hello", "source url");
 assertEq(norm.license, "CC BY-SA 4.0", "license name");
@@ -212,6 +212,9 @@ assertEq(pbpDictNormalizeEntry(FDA_APROVECHO).formOfOnly, true, "normalized poin
 assertEq(pbpDictNormalizeEntry(FDA_FOUND).formOfOnly, false, "normalized mixed payload does not");
 assertEq(pbpDictNormalizeEntry(FDA_APROVECHO).entries[0].senses.length, 1,
   "the pointer still normalizes, so it can be rendered as a last resort");
+assertEq(pbpDictNormalizeEntry(FDA_APROVECHO).senseKeep, PBP_DICT_SENSE_KEEP,
+  "the model carries the retention it was built with, so a stale cache record refetches");
+
 
 // Fields that already arrive in every response but went unrendered until now.
 // Shape hand-written from a real freedictionaryapi payload (senses carry tags /

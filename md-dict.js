@@ -8,7 +8,13 @@
 // Runtime layers live below the PURE END marker.
 
 const PBP_DICT_ORIGIN = "https://freedictionaryapi.com";
-const PBP_DICT_SENSE_CAP = 5;
+// Retention and display are separate concerns. The API orders senses roughly
+// historically, so for a polysemous word the one a reader wants routinely sits
+// outside the first five: measured on the live API, set has 96 senses, run 69,
+// take 71. Keeping only five discarded the answer before it was ever cached.
+// KEEP is what the model and the cache hold; SHOW is what renders.
+const PBP_DICT_SENSE_KEEP = 20;
+const PBP_DICT_SENSE_SHOW = 5;
 const PBP_DICT_EXAMPLE_CAP = 2;
 const PBP_DICT_FORM_CAP = 6;
 const PBP_DICT_IPA_CAP = 3;
@@ -158,7 +164,7 @@ function pbpDictNormalizeEntry(json) {
     }
     const senses = [];
     for (const s of Array.isArray(e.senses) ? e.senses : []) {
-      if (senses.length >= PBP_DICT_SENSE_CAP) break;
+      if (senses.length >= PBP_DICT_SENSE_KEEP) break;
       if (!s || typeof s.definition !== "string" || !s.definition) continue;
       const examples = [];
       for (const x of Array.isArray(s.examples) ? s.examples : []) {
@@ -202,6 +208,12 @@ function pbpDictNormalizeEntry(json) {
     // trip through the dict2_ cache. Entries cached before this existed simply
     // read as undefined and behave the way they always did.
     formOfOnly: pbpDictEntriesAreFormOfOnly(json.entries),
+    // Retention stamp. A record cached under a smaller KEEP holds fewer senses
+    // than the ranker needs, and those are exactly the polysemous words the
+    // ranking is for. Reading it as a miss refetches and overwrites the same
+    // key, which beats bumping the cache prefix: no orphaned dict2_ records,
+    // and no rename across ai-cache.js's 500-entry pool.
+    senseKeep: PBP_DICT_SENSE_KEEP,
     sourceLabel: "Wiktionary",
     sourceUrl: pbpDictSafeUrl(src.url),
     license: typeof lic.name === "string" ? lic.name : ""
@@ -534,7 +546,7 @@ function _pbpDictRenderEntry(slot, norm, term, lang, selectedTerm) {
       forms.textContent = e.forms.map((f) => f.word + (f.tags.length ? " (" + f.tags.map(_pbpDictTagLabel).join(", ") + ")" : "")).join(" · ");
       ent.appendChild(forms);
     }
-    if (e.senses.length) _pbpDictRenderSenses(ent, e.senses);
+    if (e.senses.length) _pbpDictRenderSenses(ent, e.senses.slice(0, PBP_DICT_SENSE_SHOW));
     slot.appendChild(ent);
   }
   const src = document.createElement("div");
@@ -651,7 +663,8 @@ function _pbpDictLoadPack() {
 async function _pbpDictCacheGet(lang, term) {
   try {
     const hit = await pbpAiCacheGet(pbpDictQueryCacheKey(lang, term));
-    return hit && hit.result ? hit.result : null;
+    const rec = hit && hit.result ? hit.result : null;
+    return rec && rec.senseKeep === PBP_DICT_SENSE_KEEP ? rec : null;
   } catch (_) { return null; }
 }
 
