@@ -2065,6 +2065,9 @@ html.motion-ready #pb-hl-bar:popover-open {
   opacity: 1;
   translate: 0 0;
   pointer-events: auto;
+  /* Deliberately --motion-pop-out, faster than the family's 140ms entrance:
+     this bar rides selectionchange, the highest-frequency popover in the
+     reader. Ratified on-device 2026-08 -- do not "fix" back to --motion-pop. */
   transition-duration: var(--motion-pop-out);
   @starting-style { opacity: 0; translate: 0 -4px; }
 }

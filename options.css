@@ -600,6 +600,9 @@ html.motion-ready #preset-preview-section > summary::after {
 /* ---- Auto-save indicator ---- */
 .auto-save-hint {
   float: right; font-size: 11px; color: #757575; font-weight: normal;
+  /* 0.3s on purpose (double --motion-state): peripheral indicator that fires
+     on every settings edit; the slow soak keeps it from flashing for
+     attention. Ratified on-device 2026-08 -- do not converge to the token. */
   transition: color 0.3s;
 }
 .auto-save-hint.saved { color: #080; }
