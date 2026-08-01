@@ -349,6 +349,20 @@ html[data-theme] .opt-error { color: var(--opt-danger, #e55); background: var(--
 }
 .backup-import-preview[hidden],
 .backup-import-result[hidden] { display: none; }
+/* The moments a user trusts this feature with their data -- the preview after
+   picking a file, the per-section result after Apply -- used to pop in like a
+   field warning. Same entrance recipe as .confirm-popover (pure CSS, no JS
+   hand-off); exits stay instant, the panels are replaced by other content. */
+html.motion-ready .backup-import-preview,
+html.motion-ready .backup-import-result {
+  transition: opacity var(--motion-pop) var(--ease-out),
+              translate var(--motion-pop) var(--ease-out),
+              display var(--motion-pop) allow-discrete;
+}
+html.motion-ready .backup-import-preview:not([hidden]),
+html.motion-ready .backup-import-result:not([hidden]) {
+  @starting-style { opacity: 0; translate: 0 -4px; }
+}
 .backup-import-preview h3 { margin: 0 0 var(--opt-sp-3); font-size: 13px; }
 .backup-import-preview > p { margin: 0 0 var(--opt-sp-4); }
 .backup-preview-counts {
