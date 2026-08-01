@@ -403,12 +403,29 @@ function _pbpVocabRefreshGroupOptions(preserveSelection) {
   }
 }
 
+// Eudic is a Chinese-market product behind a token the user has to fetch by
+// hand, but "en" is one of its supported languages, so the language test alone
+// showed the button to anyone who had ever saved an English word -- and it
+// then failed on dictEudicTokenRequired. Reading the token here would need an
+// await in a render path, so presence is cached and refreshed on the same
+// signals that already invalidate this panel. The token FIELD in settings
+// stays visible either way; that is where the feature is meant to be found.
+let _vocabEudicConfigured = false;
+
+async function _pbpVocabRefreshEudicConfigured() {
+  try {
+    const s = await pbpReadSettingsWithSecrets({ dictEudicToken: SETTINGS_DEFAULTS.dictEudicToken });
+    _vocabEudicConfigured = !!(s && s.dictEudicToken);
+  } catch (_) { _vocabEudicConfigured = false; }
+}
+
 function _pbpVocabUpdateExternalActions() {
   const eudicBtn = $id("vocab-eudic-btn");
   if (eudicBtn) {
     // External sends intentionally stay scoped to ALL current-owner rows,
     // never the UI selection or the current search result.
-    eudicBtn.hidden = typeof pbpEudicPartition !== "function"
+    eudicBtn.hidden = !_vocabEudicConfigured
+      || typeof pbpEudicPartition !== "function"
       || pbpEudicPartition(_vocabRows).byLang.size === 0;
   }
 }
@@ -856,6 +873,9 @@ async function renderVocabPanel() {
   _pbpVocabDriveSetBusy(false);
   if (_pbpVocabDriveAvailable()) _pbpVocabDriveRefresh(gen, true);
   else _pbpVocabDriveRenderUnavailable();
+  // Fire-and-forget like the Drive refresh above: the button starts hidden and
+  // appears only once a token is confirmed, which is the honest default.
+  _pbpVocabRefreshEudicConfigured().then(_pbpVocabUpdateExternalActions);
   // Clear first, before any await: an account-change render must never leave
   // the previous owner's rows, selection, or derived group names visible.
   _pbpVocabClearVisibleState();
@@ -1344,6 +1364,11 @@ if (_vocabDriveDisconnect) _vocabDriveDisconnect.addEventListener("click", () =>
 // after the user has already navigated away and back again.
 if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.onChanged) {
   chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === "sync" || area === "local") {
+      if (changes.dictEudicToken) {
+        _pbpVocabRefreshEudicConfigured().then(_pbpVocabUpdateExternalActions);
+      }
+    }
     if ((area !== "sync" && area !== "local") ||
         !(changes.pinboardToken || changes.optSyncEnabled || changes.syncApiKeys)) return;
     const activeBtn = document.querySelector(".tab-btn.active");
