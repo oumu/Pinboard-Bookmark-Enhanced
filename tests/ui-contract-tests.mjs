@@ -20,7 +20,7 @@ const releaseSh = read("scripts/release.sh");
 const zipInstallSmoke = read("scripts/zip-install-smoke.mjs");
 const privacyMd = read("docs/privacy.md");
 check(!optionsHtml.includes('Requires "Access all websites" permission'), "options Batch hint still advertises the retired all-sites request");
-check(optionsHtml.includes('data-i18n="secBackupRestore">Backup &amp; Restore</div>'),
+check(optionsHtml.includes('data-i18n="secBackupRestore">Backup &amp; Restore</h2>'),
   "options.html: backup section fallback still advertises sync");
 const mdHtml = read("md-preview.html");
 const mdPreviewJs = read("md-preview.js");
