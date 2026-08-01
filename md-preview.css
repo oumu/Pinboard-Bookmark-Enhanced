@@ -1676,6 +1676,9 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
   font-size: 0.8em;
   cursor: pointer;
   white-space: nowrap;
+  /* Same hover treatment as the .action-btn family; :active transform below
+     stays untransitioned so the press still reads instantly. */
+  transition: background-color 150ms ease;
 }
 .xp-retry:hover, .xp-ask:hover, .xp-save:hover:not(:disabled), .xp-vocab:hover:not(:disabled), .xp-known:hover:not(:disabled), .xp-open-vocab:hover, .xp-dict-connect:hover:not(:disabled) { background: var(--btn-hover); }
 /* Press feedback, same family as .action-btn above. These hand off to
