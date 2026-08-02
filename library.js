@@ -53,9 +53,24 @@ document.addEventListener("DOMContentLoaded", () => {
   initI18n();
   applyI18n();
   document.title = t("libraryTitle");
-  for (const name of PBP_LIB_VIEWS) {
-    $id("lib-tab-" + name).addEventListener("click", () => _pbpLibApplyView(name, true));
-  }
+  // Roving tabindex (active tab 0, others -1, set by _pbpLibApplyView) needs
+  // its arrow-key half too -- same pattern as options.js's activateTab
+  // keydown handler, ArrowLeft/ArrowRight (this tab strip is horizontal, not
+  // options' vertical sidebar) with wrap-around.
+  PBP_LIB_VIEWS.forEach((name, i) => {
+    const tab = $id("lib-tab-" + name);
+    tab.addEventListener("click", () => _pbpLibApplyView(name, true));
+    tab.addEventListener("keydown", (e) => {
+      let n = -1;
+      if (e.key === "ArrowRight") n = (i + 1) % PBP_LIB_VIEWS.length;
+      else if (e.key === "ArrowLeft") n = (i - 1 + PBP_LIB_VIEWS.length) % PBP_LIB_VIEWS.length;
+      else return;
+      e.preventDefault();
+      const target = PBP_LIB_VIEWS[n];
+      _pbpLibApplyView(target, true);
+      $id("lib-tab-" + target).focus();
+    });
+  });
   window.addEventListener("hashchange", () => {
     const v = (location.hash || "").replace(/^#/, "");
     if (PBP_LIB_VIEWS.includes(v) && v !== pbpLibActiveView()) _pbpLibApplyView(v, false);

@@ -41,6 +41,12 @@ let _vocabLastSelectedId = null;
 let _vocabRenderLimit = 100;
 let _vocabBatchBusy = false;
 let _vocabOwnerLabel = ""; // decoded non-secret Pinboard username for visible scope copy
+// Raw owner scope of the last successfully committed render (renderVocabPanel
+// or _pbpVocabReloadAfterMutation's success path). Read by _pbpVocabSoftReload
+// (I3) to tell "the account under me actually changed" apart from "nothing
+// changed, this is just a freshness re-fire" BEFORE any await -- the same
+// fail-closed-first timing _pbpVocabClearVisibleState already uses.
+let _vocabCurrentOwner = null;
 const PBP_VOCAB_RENDER_BATCH = 100;
 const _vocabCollator = new Intl.Collator(undefined, { sensitivity: "base", numeric: true });
 
@@ -837,6 +843,7 @@ function _pbpVocabClearVisibleState() {
   _vocabRows = [];
   _vocabViewRows = [];
   _vocabOwnerLabel = "";
+  _vocabCurrentOwner = null;
   _pbpVocabClearSelection();
   const list = $id("vocab-list");
   if (list) list.replaceChildren();
@@ -870,11 +877,16 @@ async function _pbpVocabReloadAfterMutation(expectedOwner, requestedGen) {
     if (gen !== _vocabRenderGen) return false;
     if (ownerNow !== expectedOwner) {
       _pbpVocabClearVisibleState();
+      // I1: the list clear above leaves a stale word from the PREVIOUS owner
+      // sitting in the detail pane -- at <860px that stale detail is the
+      // only thing on screen, an owner-isolation breach.
+      _pbpVocabRenderDetail(null);
       renderVocabPanel();
       return false;
     }
     _vocabRows = rows;
     _vocabOwnerLabel = pbpVocabOwnerLabel(expectedOwner);
+    _vocabCurrentOwner = expectedOwner;
     _pbpVocabClearSelection();
     _pbpVocabRefreshGroupOptions(true);
     _pbpVocabSetLoading(false);
@@ -932,9 +944,52 @@ async function renderVocabPanel() {
   if (gen !== _vocabRenderGen) return;
   _vocabRows = rows;
   _vocabOwnerLabel = pbpVocabOwnerLabel(owner);
+  _vocabCurrentOwner = owner;
   _pbpVocabSetLoading(false);
   _pbpVocabRefreshGroupOptions(false);
   _pbpVocabApplyView(true);
+}
+
+// I3: a visibilitychange-triggered re-fire of pbp-lib-view on a vocab view
+// that's ALREADY showing must not blow away in-progress selection or
+// load-more depth just because the tab regained focus -- only a real account
+// switch justifies the full clear. Called by the pbp-lib-view listener below
+// when it recognizes the event as a freshness re-fire rather than a first-
+// show/view-switch.
+async function _pbpVocabSoftReload() {
+  const gen = ++_vocabRenderGen;
+  const owner = await pbpVocabCurrentOwner();
+  if (gen !== _vocabRenderGen) return;
+  if (owner !== _vocabCurrentOwner) {
+    // The account actually moved between the last commit and this re-fire --
+    // this is exactly the account-switch case, so reuse its exact path
+    // (full clear, including I1's detail reset) rather than a second,
+    // subtly different one.
+    _pbpVocabClearVisibleState();
+    _pbpVocabRenderDetail(null);
+    renderVocabPanel();
+    return;
+  }
+  // _pbpVocabReloadAfterMutation unconditionally clears the selection (line
+  // ~878) and resets _vocabRenderLimit to the first batch (via
+  // _pbpVocabApplyView(true)) -- both correct for its usual callers, a
+  // mutation just happened -- neither applies here, nothing changed under
+  // the user. Snapshot and restore both around the call.
+  const savedSelection = new Set(_vocabSelected);
+  const savedAnchor = _vocabLastSelectedId;
+  const savedLimit = _vocabRenderLimit;
+  await _pbpVocabReloadAfterMutation(owner, gen);
+  if (gen !== _vocabRenderGen) return;
+  _vocabSelected = savedSelection;
+  _vocabLastSelectedId = savedAnchor;
+  _vocabRenderLimit = savedLimit;
+  // Rebuild to the restored depth. _pbpVocabBuildRow reads _vocabSelected at
+  // build time, and the trailing _pbpVocabSyncSelectionUi() call inside
+  // _pbpVocabRenderList prunes any restored id that no longer exists in the
+  // fresh _vocabViewRows (e.g. deleted from another tab while this one was
+  // hidden) -- the same machinery every other render pass already relies on,
+  // just fed the pre-reload snapshot instead of an empty set.
+  _pbpVocabRenderList();
 }
 
 function _pbpVocabSetBatchBusy(busy) {
@@ -1182,8 +1237,18 @@ if (_vocabMarkLearning) _vocabMarkLearning.addEventListener("click", () => _pbpV
 // Mount. library.js dispatches this on the initial view, on every view
 // switch, and when the tab becomes visible again -- words saved from the
 // reader while this tab was hidden have to show up on return.
+// _vocabViewShown (I3) distinguishes a real first-show/view-switch (library.js's
+// click/hashchange/initial dispatch sites, which always go through
+// _pbpLibApplyView and toggle the view DOM) from a pure freshness re-fire on
+// an already-rendered vocab view (library.js's visibilitychange listener, the
+// ONLY dispatch site that does not go through _pbpLibApplyView). The event
+// itself carries no such flag, so this is inferred from our own state.
+let _vocabViewShown = false;
 document.addEventListener("pbp-lib-view", (e) => {
-  if (e.detail.view === "vocab") renderVocabPanel();
+  if (e.detail.view !== "vocab") { _vocabViewShown = false; return; }
+  if (_vocabViewShown) { _pbpVocabSoftReload(); return; }
+  _vocabViewShown = true;
+  renderVocabPanel();
 });
 
 // Account switch (token rotation, or the sync/keys-routing toggles that
@@ -1198,6 +1263,10 @@ if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.onChanged)
     if ((area !== "sync" && area !== "local") ||
         !(changes.pinboardToken || changes.optSyncEnabled || changes.syncApiKeys)) return;
     _pbpVocabClearVisibleState();
+    // I1: same owner-isolation gap as _pbpVocabReloadAfterMutation's
+    // ownerNow-mismatch branch above -- the list clear never touched the
+    // detail pane, so the previous owner's word stayed on screen.
+    _pbpVocabRenderDetail(null);
     renderVocabPanel();
   });
 }
