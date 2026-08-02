@@ -733,7 +733,7 @@ async function _pbpVocabSendEudic() {
 const _vocabOpenLibrary = $id("vocab-open-library");
 if (_vocabOpenLibrary && typeof pbpOpenExtensionTab === "function") {
   _vocabOpenLibrary.addEventListener("click", (e) => {
-    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
     e.preventDefault();
     pbpOpenExtensionTab("library.html", "vocab");
   });

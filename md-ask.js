@@ -2145,8 +2145,12 @@ function _pbpExplainEnsurePop() {
   openVocab.className = "xp-open-vocab";
   openVocab.hidden = true;
   _pbpExplainIconBtn(openVocab, PBP_EXPLAIN_VOCAB_OPEN_SVG, t("dictVocabSection"));
-  openVocab.addEventListener("click", () => {
-    if (typeof pbpOpenExtensionTab === "function") { pbpOpenExtensionTab("library.html", "vocab"); return; }
+  openVocab.addEventListener("click", async () => {
+    // Same shape as pbpOpenOptionsTab's own fallback: the helper reports
+    // whether it actually opened anything, so window.open covers a context
+    // with no tabs API rather than only a missing shared.js.
+    if (typeof pbpOpenExtensionTab === "function"
+        && await pbpOpenExtensionTab("library.html", "vocab")) return;
     try { window.open(chrome.runtime.getURL("library.html#vocab")); } catch (_) {}
   });
   // Known-word toggle: shell only. md-dict.js shows it when the looked-up

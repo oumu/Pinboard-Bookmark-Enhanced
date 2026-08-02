@@ -1874,9 +1874,12 @@ function _pbpHlBuildNotebookDom(rail) {
     openLib.innerHTML = (typeof PBP_ICONS === "object" && PBP_ICONS && PBP_ICONS.book) || "";
     openLib.title = t("libraryOpen");
     openLib.setAttribute("aria-label", t("libraryOpen"));
-    openLib.addEventListener("click", () => {
+    openLib.addEventListener("click", async () => {
       // Tab reuse (shared.js): a fresh library tab per click piled up fast.
-      if (typeof pbpOpenExtensionTab === "function") { pbpOpenExtensionTab("library.html", "notes"); return; }
+      // The helper's return value is the real fallback signal -- window.open
+      // still covers a context with no tabs API.
+      if (typeof pbpOpenExtensionTab === "function"
+          && await pbpOpenExtensionTab("library.html", "notes")) return;
       try { window.open(chrome.runtime.getURL("library.html#notes")); } catch (_) {}
     });
     headBtn.insertAdjacentElement("afterend", openLib); // DOM order = tab order: right after the header button

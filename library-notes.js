@@ -438,12 +438,24 @@ document.addEventListener("pbp-lib-view", (e) => {
 // that lands now is only picked up on the next activation -- refresh the
 // visible list immediately instead. Hidden is already covered: activation
 // and visibilitychange both re-scan.
+//
+// Trailing-debounced: highlighting a passage writes the whole pbp_hl_ record
+// per stroke, and each refresh is a full storage scan plus a full rebuild of
+// every card. Expansion and scroll survive it either way -- both are captured
+// inside _pbpNotesRefreshPreservingState when the timer fires, off the live
+// DOM that nothing has rebuilt in the meantime. Visibility is re-checked
+// there too: the user may have left for the vocabulary view mid-burst, and
+// that view's own activation will re-scan on the way back.
+let _notesHlRefreshTimer = 0;
 if (typeof $id === "function" && typeof chrome !== "undefined" && chrome.storage && chrome.storage.onChanged) {
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== "local") return;
     if (!Object.keys(changes).some((key) => key.startsWith("pbp_hl_") && key !== "pbp_hl_last_color")) return;
-    const view = $id("view-notes");
-    if (!view || view.hidden) return;
-    _pbpNotesRefreshPreservingState();
+    clearTimeout(_notesHlRefreshTimer);
+    _notesHlRefreshTimer = setTimeout(() => {
+      const view = $id("view-notes");
+      if (!view || view.hidden) return;
+      _pbpNotesRefreshPreservingState();
+    }, 250);
   });
 }

@@ -516,6 +516,11 @@ function _pbpVocabRenderDetail(w, enterNarrow) {
   frag.appendChild(del);
 
   detail.replaceChildren(frag);
+  // Same focus handoff the free-lookup result does, at the root every
+  // activation passes through: a row click is the primary way into narrow
+  // mode, and the head button it started from has just been hidden with the
+  // rest of the list.
+  if (enterNarrow) _pbpVocabFocusNarrowBack(detail);
 }
 
 // On-demand dictionary re-lookup inside the detail pane. Reuses md-dict's
@@ -734,7 +739,9 @@ function _pbpVocabFreeLookup() {
       // captured snapshot; a vanished id is a no-op, not a ghost detail.
       const fresh = _vocabRows.find((r) => r.id === saved.id);
       if (!fresh) return;
-      _pbpVocabRenderDetail(fresh);
+      // An activation like a row click: it replaces this whole pane, so the
+      // hint button focus sits on goes with it.
+      _pbpVocabRenderDetail(fresh, true);
       const row = document.querySelector(`#vocab-list .vocab-card[data-vocab-id="${CSS.escape(fresh.id)}"]`);
       if (row) row.setAttribute("aria-current", "true");
     });
@@ -779,22 +786,28 @@ function _pbpVocabFreeLookup() {
   // than the result heading claims. A language change re-submits on its own.
   const run = () => _pbpVocabDictRun(term, lang, { localEl, onlineEl }, "", run);
   run();
-
-  // Narrow mode just swapped the list out for this result. Focus has to
-  // follow it, or the next Tab starts from <body> at the top of the page --
-  // and the one control that gets the user back is the button below.
-  if (_pbpVocabNarrowMode()) {
-    const back = detail.querySelector(".vocab-detail-back");
-    if (back) { try { back.focus({ preventScroll: true }); } catch (_) { back.focus(); } }
-  }
+  _pbpVocabFocusNarrowBack(detail);
 }
 
-// Narrow (single-pane) mode, read off live layout rather than duplicating
-// library.css's 860px breakpoint here: below it, body.lib-narrow-detail is
-// exactly what hides the list pane.
+// Narrow (single-pane) mode. Mirrors library.css's 860px threshold -- the CSS
+// is the source of truth and the responsive sweep guards it; this is the same
+// number, not a second layout rule. matchMedia rather than reading the list
+// pane's computed display: this runs right after the class flip on a click
+// path, and a computed-style read there forces a style recalc for an answer
+// that only depends on the viewport.
 function _pbpVocabNarrowMode() {
-  const pane = document.querySelector(".vocab-list-pane");
-  return !!pane && getComputedStyle(pane).display === "none";
+  return typeof matchMedia === "function" && matchMedia("(max-width: 860px)").matches;
+}
+
+// Entering the detail in narrow mode hides the whole list, INCLUDING whatever
+// was focused to get here (a row's head button, the lookup box). Chrome then
+// drops focus to <body>, so the next Tab restarts at the top of the page with
+// no way back. Hand it to the one control that returns to the list.
+function _pbpVocabFocusNarrowBack(host) {
+  if (!host || !_pbpVocabNarrowMode()) return;
+  const back = host.querySelector(".vocab-detail-back");
+  if (!back) return;
+  try { back.focus({ preventScroll: true }); } catch (_) { back.focus(); }
 }
 
 // Split the quote around case-insensitive matches of the term; matches render
@@ -1258,6 +1271,7 @@ async function renderVocabPanel() {
     // invariant) -- clear the list and say the read failed.
     if (gen === _vocabRenderGen) {
       _pbpVocabClearVisibleState();
+      _pbpVocabRenderDetail(null); // I1: the clear never touched the detail pane
       _pbpVocabSetLoading(false);
       _pbpVocabFlashStatus(false, t("vocabLoadFailed"));
     }

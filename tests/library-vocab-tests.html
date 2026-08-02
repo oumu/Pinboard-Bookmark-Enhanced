@@ -378,6 +378,15 @@ check("lookup bar wiring populates the language select with no Auto leg",
       _pbpVocabFreeLookup();
       check("a narrow-mode lookup moves focus to the result pane's back button",
         document.activeElement === $id("vocab-detail").querySelector(".vocab-detail-back"));
+      // The PRIMARY narrow entry, and the one the lookup-only fix missed: a
+      // row click hides the list the head button it started from lives in.
+      const narrowRow = $id("vocab-list").querySelector('.vocab-card[data-vocab-id="lk-other"] .notes-card-head');
+      narrowRow.focus();
+      narrowRow.click();
+      check("a narrow-mode row click moves focus to the detail pane's back button",
+        _pbpVocabDetailWordId === "lk-other" &&
+        document.activeElement === $id("vocab-detail").querySelector(".vocab-detail-back"),
+        document.activeElement && (document.activeElement.className || document.activeElement.tagName));
       _pbpVocabNarrowMode = () => false;
       $id("vocab-lookup-input").focus();
       $id("vocab-lookup-input").value = "stayput";

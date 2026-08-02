@@ -318,14 +318,21 @@ check(!read("anki-connect.js").includes("PBP_ANKI_ENDPOINT"),
     // (or padding the listener until it reaches one) trips this.
     !/addEventListener\("visibilitychange"[\s\S]{0,160}_pbpLibApplyView/.test(libraryJs) &&
     /addEventListener\("visibilitychange"[\s\S]{0,160}dispatchEvent\(new CustomEvent\("pbp-lib-view"/.test(libraryJs) &&
-    libraryVocabJs.includes('else if (enterNarrow) document.body.classList.add("lib-narrow-detail")'),
-    "library: narrow mode is entered by refresh renders or left by a visibility re-fire");
+    libraryVocabJs.includes('else if (enterNarrow) document.body.classList.add("lib-narrow-detail")') &&
+    // Entering narrow mode hides whatever was focused to get there, so the
+    // handoff belongs at the render root every activation passes through --
+    // not at one call site.
+    /detail\.replaceChildren\(frag\);[\s\S]{0,400}if \(enterNarrow\) _pbpVocabFocusNarrowBack\(detail\)/.test(libraryVocabJs) &&
+    /function _pbpVocabFocusNarrowBack[\s\S]{0,400}focus\(\{ preventScroll: true \}\)/.test(libraryVocabJs),
+    "library: narrow mode is entered by refresh renders, left by a visibility re-fire, or strands focus on <body>");
   // Notes rebuild everything on every activation; the expanded cards and the
   // scroll position that put them on screen are the user's place in the page.
   check(libraryNotesJs.includes("card.dataset.notesKey = row.key") &&
     /_pbpNotesRefreshPreservingState[\s\S]{0,900}aria-expanded="true"[\s\S]{0,600}window\.scrollTo/.test(libraryNotesJs) &&
     /pbp-lib-view[\s\S]{0,120}_pbpNotesRefreshPreservingState\(\)/.test(libraryNotesJs) &&
-    /startsWith\("pbp_hl_"\)[\s\S]{0,300}_pbpNotesRefreshPreservingState\(\)/.test(libraryNotesJs) &&
+    // Debounced: a single highlight drag rewrites the whole record per
+    // stroke, and each refresh is a full scan plus a full rebuild.
+    /startsWith\("pbp_hl_"\)[\s\S]{0,400}setTimeout\([\s\S]{0,300}_pbpNotesRefreshPreservingState\(\)[\s\S]{0,40}\}, 250\)/.test(libraryNotesJs) &&
     // The confirm popover restores focus to the delete button the rebuild
     // removes, so the deleted card's neighbour has to claim it.
     libraryNotesJs.includes("_pbpNotesFocusAfterDelete(position)") &&
