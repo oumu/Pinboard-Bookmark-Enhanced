@@ -43,6 +43,7 @@ const optionsCss = read("options.css");
 const optionsJs = read("options.js");
 const optionsBackupJs = read("options-backup.js");
 const optionsVocabJs = read("options-vocab.js");
+const libraryVocabJs = read("library-vocab.js");
 const vocabGdriveJs = read("vocab-gdrive.js");
 const mdDictJs = read("md-dict.js");
 const vocabStore = readFileSync("vocab-store.js", "utf8");
@@ -197,34 +198,38 @@ check(["vocab-group-filter", "vocab-sort", "vocab-group-input"].every((id) =>
   new RegExp(`id="${id}"[^>]*data-no-autosave|data-no-autosave[^>]*id="${id}"`).test(optionsHtml)) &&
   optionsJs.includes(":not([data-no-autosave])"),
   "options: vocabulary view controls leak into settings auto-save");
-check(optionsVocabJs.includes("PBP_VOCAB_RENDER_BATCH = 100") &&
-  optionsVocabJs.includes("pbpVocabFilterSort") && optionsVocabJs.includes("pbpVocabSelectRange") &&
-  optionsVocabJs.includes('showConfirmPopover(button') && !optionsVocabJs.includes("window.confirm"),
-  "options-vocab.js: scalable render/selection or safe batch-delete confirmation contract is missing");
-check(optionsVocabJs.includes('.normalize("NFC")') && optionsVocabJs.includes('.toLowerCase()') &&
-  optionsVocabJs.includes('.replace(/i\\u0307/g, "i")') &&
-  optionsVocabJs.includes('.replace(/ß/g, "ss")') && optionsVocabJs.includes('.replace(/ς/g, "σ")') &&
-  !optionsVocabJs.includes("toLocaleLowerCase") && !optionsVocabJs.includes("\\p{M}"),
-  "options-vocab.js: vocabulary search does not use the narrow locale-independent case-fold contract");
-check(optionsVocabJs.includes("pbpVocabSelectionSnapshotValid(ids, _vocabSelected, _vocabViewRows)") &&
-  optionsVocabJs.includes('t("vocabSelectionChanged")') &&
-  optionsVocabJs.includes('search.focus({ preventScroll: true })'),
-  "options-vocab.js: stale destructive confirmations or post-action focus are not guarded");
-check(optionsVocabJs.includes('t("vocabRefreshFailed")') &&
-  optionsVocabJs.includes("const refreshed = await _pbpVocabReloadAfterMutation(owner, gen)") &&
-  optionsVocabJs.includes("if (gen !== _vocabRenderGen) return;") &&
-  optionsVocabJs.includes("_pbpVocabRenderList(true)"),
-  "options-vocab.js: committed mutations, refresh failures, or incremental rendering are conflated");
+check(libraryVocabJs.includes("PBP_VOCAB_RENDER_BATCH = 100") &&
+  libraryVocabJs.includes("pbpVocabFilterSort") && libraryVocabJs.includes("pbpVocabSelectRange") &&
+  libraryVocabJs.includes('showConfirmPopover(button') && !libraryVocabJs.includes("window.confirm"),
+  "library-vocab.js: scalable render/selection or safe batch-delete confirmation contract is missing");
+check(libraryVocabJs.includes('.normalize("NFC")') && libraryVocabJs.includes('.toLowerCase()') &&
+  libraryVocabJs.includes('.replace(/i\\u0307/g, "i")') &&
+  libraryVocabJs.includes('.replace(/ß/g, "ss")') && libraryVocabJs.includes('.replace(/ς/g, "σ")') &&
+  !libraryVocabJs.includes("toLocaleLowerCase") && !libraryVocabJs.includes("\\p{M}"),
+  "library-vocab.js: vocabulary search does not use the narrow locale-independent case-fold contract");
+check(libraryVocabJs.includes("pbpVocabSelectionSnapshotValid(ids, _vocabSelected, _vocabViewRows)") &&
+  libraryVocabJs.includes('t("vocabSelectionChanged")') &&
+  libraryVocabJs.includes('search.focus({ preventScroll: true })'),
+  "library-vocab.js: stale destructive confirmations or post-action focus are not guarded");
+check(libraryVocabJs.includes('t("vocabRefreshFailed")') &&
+  libraryVocabJs.includes("const refreshed = await _pbpVocabReloadAfterMutation(owner, gen)") &&
+  libraryVocabJs.includes("if (gen !== _vocabRenderGen) return;") &&
+  libraryVocabJs.includes("_pbpVocabRenderList(true)"),
+  "library-vocab.js: committed mutations, refresh failures, or incremental rendering are conflated");
 check(["vocab-search", "vocab-group-filter", "vocab-sort", "vocab-group-input", "vocab-list"].every((id) =>
   new RegExp(`id="${id}"[^>]*aria-label=`).test(optionsHtml)) &&
   /id="vocab-selection-actions"|class="vocab-selection-actions"[^>]*role="group"[^>]*aria-label=/.test(optionsHtml) &&
   /id="vocab-batch-toolbar"[^>]*role="group"[^>]*aria-label=/.test(optionsHtml) &&
   /id="vocab-selected-count"[^>]*aria-live="polite"/.test(optionsHtml),
   "options.html: production vocabulary controls lost accessible names, groups, or live selection status");
-check(optionsVocabJs.includes('select.setAttribute("aria-label", t("vocabSelectWord", w.term))') &&
-  optionsVocabJs.includes('head.setAttribute("aria-expanded", "false")') &&
-  optionsVocabJs.includes('head.setAttribute("aria-expanded", open ? "true" : "false")'),
-  "options-vocab.js: production vocabulary rows lost named selection or expansion state");
+// Master-detail rows: a row names its checkbox and marks itself as the one
+// the detail pane is showing. It must NOT claim to expand -- there is no
+// body under it any more, so an aria-expanded here would be a lie.
+check(libraryVocabJs.includes('select.setAttribute("aria-label", t("vocabSelectWord", w.term))') &&
+  libraryVocabJs.includes('card.setAttribute("aria-current", "true")') &&
+  libraryVocabJs.includes("_pbpVocabOnRowActivate(w)") &&
+  !libraryVocabJs.includes("aria-expanded"),
+  "library-vocab.js: production vocabulary rows lost named selection or master-detail activation state");
 check(vocabStore.includes('const _PBP_VOCAB_DB_VERSION = 2'),
   "vocabulary database is upgraded through the dedicated store");
 check(!mdDict.includes('indexedDB.open(_PBP_VOCAB_DB_NAME'),
@@ -247,16 +252,31 @@ check(optionsHtml.indexOf('class="vocab-list-region"') > 0 &&
   "options.html: batch bar is not a sticky-region child after the load-more control");
 check(/#panel-vocab\s+\.vocab-load-more\[hidden\][\s\S]{0,80}display:\s*none/.test(optionsCss),
   "options.css: vocabulary hidden controls can be redisplayed by component display rules");
-check(optionsVocabJs.includes('t("vocabLoading")') &&
-  optionsVocabJs.includes('list.setAttribute("aria-busy", loading ? "true" : "false")'),
-  "options-vocab.js: vocabulary loading is not visible or aria-busy is not closed consistently");
+{
+  // Same sticky-bar geometry contract on the library page: an intermediate
+  // wrapper between the bar and its region would become the containing block
+  // and cap the float range at the bar's own height.
+  const libraryHtml = read("library.html");
+  const libraryCss = read("library.css");
+  check(libraryHtml.indexOf('class="vocab-list-region"') > 0 &&
+    libraryHtml.indexOf('class="vocab-list-region"') < libraryHtml.indexOf('id="vocab-list"') &&
+    libraryHtml.indexOf('id="vocab-load-more"') < libraryHtml.indexOf('id="vocab-batch-toolbar"') &&
+    /<div class="vocab-batch-bar" id="vocab-batch-toolbar"/.test(libraryHtml),
+    "library.html: batch bar is not a sticky-region child after the load-more control");
+  check(/\.vocab-batch-bar\s*\{[\s\S]{0,500}position:\s*sticky[\s\S]{0,500}z-index:\s*var\(--lib-z-sticky\)/.test(libraryCss) &&
+    /#view-vocab\s+\.vocab-load-more\[hidden\][\s\S]{0,80}display:\s*none/.test(libraryCss),
+    "library.css: sticky vocabulary batch bar contract is missing");
+}
+check(libraryVocabJs.includes('t("vocabLoading")') &&
+  libraryVocabJs.includes('list.setAttribute("aria-busy", loading ? "true" : "false")'),
+  "library-vocab.js: vocabulary loading is not visible or aria-busy is not closed consistently");
 check(sharedJs.includes("async function pbpVocabCurrentOwner()") &&
   sharedJs.includes("function pbpVocabOwnerLabel(owner)") &&
-  optionsVocabJs.includes("pbpVocabCurrentOwner(") &&
-  optionsVocabJs.includes('t("vocabResultCount", String(rows.length), String(_vocabRows.length), _vocabOwnerLabel)') &&
-  optionsVocabJs.includes('empty.textContent = t("dictVocabEmpty", _vocabOwnerLabel)') &&
-  !optionsVocabJs.includes('t("jinaFailed")'),
-  "options-vocab.js: account scope is absent or action errors still reuse Jina copy");
+  libraryVocabJs.includes("pbpVocabCurrentOwner(") && optionsVocabJs.includes("pbpVocabCurrentOwner(") &&
+  libraryVocabJs.includes('t("vocabResultCount", String(rows.length), String(_vocabRows.length), _vocabOwnerLabel)') &&
+  libraryVocabJs.includes('empty.textContent = t("dictVocabEmpty", _vocabOwnerLabel)') &&
+  !libraryVocabJs.includes('t("jinaFailed")') && !optionsVocabJs.includes('t("jinaFailed")'),
+  "vocabulary account scope is absent or action errors still reuse Jina copy");
 check(/data-i18n="dictExportTsv"/.test(optionsHtml) && /data-i18n="dictAnkiSend"/.test(optionsHtml) &&
   /data-i18n="dictEudicSend"/.test(optionsHtml) && /data-i18n="dictEudicSupportedHint"/.test(optionsHtml) &&
   /data-i18n="dictPackImportHint"/.test(optionsHtml) &&
@@ -995,7 +1015,7 @@ check(/\.xp-drag-zone \{[\s\S]{0,400}?flex: 0 0 12px;/.test(mdCss),
 "md-preview.css: the drag zone grows again and competes with the title for width");
 check(mdDictJs.includes("dictMatchedHeadword") && mdDictJs.includes("dictPermissionDenied") &&
   mdDictJs.includes("dictConnectRetry") && mdDictJs.includes("dictUpdateVocab") &&
-  mdDictJs.includes("Intl.DisplayNames") && optionsVocabJs.includes("pbpDictLanguageLabel"),
+  mdDictJs.includes("Intl.DisplayNames") && libraryVocabJs.includes("pbpDictLanguageLabel"),
 "dictionary UI does not disclose fallback headwords, permission denial, saved-word updates, or localized language names");
 
 const articleInject = mdPreviewJs.indexOf("renderedView.innerHTML = renderedHtml");

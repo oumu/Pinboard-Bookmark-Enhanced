@@ -18,7 +18,89 @@
 
   <main class="lib-main">
     <section id="view-vocab" class="lib-view" role="tabpanel" aria-labelledby="lib-tab-vocab">
-      <!-- Task 5 fills the vocab master-detail markup here -->
+      <div class="vocab-workbench">
+        <div class="vocab-list-pane">
+      <div class="notes-toolbar vocab-filter-toolbar">
+        <input type="search" id="vocab-search" placeholder="Search words, definitions, context, and groups" data-i18n-placeholder="vocabSearchPlaceholder" data-i18n-aria="vocabSearchPlaceholder" aria-label="Search words, definitions, context, and groups" autocomplete="off" />
+        <!-- One flex unit: the three selects travel together. Beside the
+             search when the row fits, as one full second row when it
+             doesn't -- never scattered one-per-line. -->
+        <div class="vocab-filter-selects">
+        <label class="sr-only" for="vocab-group-filter" data-i18n="vocabGroupFilterAria">Filter by group</label>
+        <select id="vocab-group-filter" data-no-autosave data-i18n-aria="vocabGroupFilterAria" aria-label="Filter by group"><option value="" data-i18n="vocabAllGroups">All groups</option></select>
+        <label class="sr-only" for="vocab-status-filter" data-i18n="vocabStatusFilterAria">Filter by status</label>
+        <select id="vocab-status-filter" data-no-autosave data-i18n-aria="vocabStatusFilterAria" aria-label="Filter by status">
+          <option value="" data-i18n="vocabStatusAll">All statuses</option>
+          <option value="new" data-i18n="vocabStatusLearning">Learning</option>
+          <option value="known" data-i18n="vocabStatusKnown">Known</option>
+        </select>
+        <label class="sr-only" for="vocab-sort" data-i18n="vocabSortAria">Sort vocabulary</label>
+        <!-- Hidden state carrier: every handler/test still speaks to this
+             select; the two segment buttons below only proxy writes to it.
+             (user-ratified 2026-08-02: dropdown -> direction-toggle pair) -->
+        <select id="vocab-sort" data-no-autosave data-i18n-aria="vocabSortAria" aria-label="Sort vocabulary" hidden>
+          <option value="latest" data-i18n="vocabSortLatest">Recently updated</option>
+          <option value="oldest" data-i18n="vocabSortOldest">Least recently updated</option>
+          <option value="az" data-i18n="vocabSortAz">A–Z</option>
+          <option value="za" data-i18n="vocabSortZa">Z–A</option>
+        </select>
+        <span class="vocab-sort-seg" role="group" data-i18n-aria="vocabSortAria" aria-label="Sort vocabulary">
+          <button type="button" class="btn btn-sm vocab-sort-btn" id="vocab-sort-time" aria-pressed="true" aria-label="Least recently updated" title="Least recently updated"><span class="btn-ic" data-ic="clockArrowDown"></span></button>
+          <button type="button" class="btn btn-sm vocab-sort-btn" id="vocab-sort-alpha" aria-pressed="false" aria-label="A–Z" title="A–Z"><span class="btn-ic" data-ic="arrowDownAZ"></span></button>
+        </span>
+        </div>
+      </div>
+      <!-- Count line: identical in browse and selection. The batch tools
+           live in the sticky bar inside .vocab-list-region below -- nothing
+           here reserves geometry for them. The status message rides inline
+           at the right edge instead of holding a line of its own. -->
+      <div class="vocab-context-bar" id="vocab-context-bar">
+        <span class="vocab-ctx-text">
+          <span id="vocab-count" class="notes-count" aria-live="polite"></span>
+        </span>
+        <div class="vocab-selection-actions" role="group" data-i18n-aria="vocabSelectionActions" aria-label="Selection actions">
+          <button type="button" class="btn btn-sm" id="vocab-select-all" data-i18n="vocabSelectAll">Select all</button>
+        </div>
+        <span class="save-status vocab-main-status" id="vocab-status" role="status" aria-live="polite"></span>
+      </div>
+      <div id="vocab-empty" class="notes-empty" hidden>No saved words yet. Save words from the reader's dictionary view.</div>
+      <div id="vocab-no-results" class="notes-empty" data-i18n="vocabNoResults" hidden>No words match the current filters.</div>
+      <!-- Sticky boundary: the batch bar floats ONLY within this wrapper.
+           The bar MUST stay a direct child -- any intermediate wrapper
+           becomes its containing block and kills the float range. -->
+      <div class="vocab-list-region">
+        <div id="vocab-list" role="list" data-i18n-aria="vocabListAria" aria-label="Saved vocabulary" aria-busy="false"></div>
+        <button type="button" class="btn btn-sm vocab-load-more" id="vocab-load-more" hidden>Load more</button>
+        <div class="vocab-batch-bar" id="vocab-batch-toolbar" role="group" data-i18n-aria="vocabBatchActions" aria-label="Actions for selected words">
+          <span id="vocab-selected-count" class="notes-count" aria-live="polite"></span>
+          <!-- Icon-only bar actions (user-ratified 2026-08-02: save width, dodge
+               long-locale labels). Status pair mirrors the dict view's icons
+               (known=checkCircle / learning=rotateCcw); trash claims destroy,
+               cross stays on clear (the popup "clear all"/"clear" family). -->
+          <button type="button" class="btn btn-sm" id="vocab-invert-selection" data-i18n-title="vocabInvertSelection" data-i18n-aria="vocabInvertSelection" aria-label="Invert selection" title="Invert selection"><span class="btn-ic" data-ic="arrowRightLeft"></span></button>
+          <!-- Input + stepper unit (icon audit P0): +/- are icon-only because the
+               Group-name placeholder disambiguates them; full labels stay in
+               title/aria (remove's title is JS-owned, see _pbpVocabSyncSelectionUi). -->
+          <span class="vocab-group-unit">
+            <input type="text" id="vocab-group-input" list="vocab-group-list" data-no-autosave placeholder="Group name" data-i18n-placeholder="vocabGroupNamePlaceholder" data-i18n-aria="vocabGroupNamePlaceholder" aria-label="Group name" autocomplete="off" />
+            <datalist id="vocab-group-list"></datalist>
+            <button type="button" class="btn btn-sm vocab-group-step" id="vocab-add-group" data-i18n-title="vocabAddToGroup" data-i18n-aria="vocabAddToGroup"><span class="btn-ic" data-ic="plus"></span></button>
+            <button type="button" class="btn btn-sm vocab-group-step" id="vocab-remove-group" data-i18n-aria="vocabRemoveFromGroup"><span class="btn-ic" data-ic="minus"></span></button>
+          </span>
+          <span class="vocab-batch-cluster">
+            <button type="button" class="btn btn-sm" id="vocab-mark-known" data-i18n-title="vocabMarkKnown" data-i18n-aria="vocabMarkKnown" aria-label="Mark as known" title="Mark as known"><span class="btn-ic" data-ic="checkCircle"></span></button>
+            <button type="button" class="btn btn-sm" id="vocab-mark-learning" data-i18n-title="vocabMarkLearning" data-i18n-aria="vocabMarkLearning" aria-label="Back to learning" title="Back to learning"><span class="btn-ic" data-ic="rotateCcw"></span></button>
+          </span>
+          <button type="button" class="btn btn-sm danger" id="vocab-batch-delete" data-i18n-title="vocabBatchDelete" data-i18n-aria="vocabBatchDelete" aria-label="Delete selected" title="Delete selected"><span class="btn-ic" data-ic="trash"></span></button>
+          <button type="button" class="btn btn-sm vocab-clear-selection" id="vocab-clear-selection" data-i18n-title="vocabClearSelection" data-i18n-aria="vocabClearSelection" aria-label="Clear selection" title="Clear selection"><span class="btn-ic" data-ic="cross"></span></button>
+        </div>
+      </div>
+        </div>
+        <aside class="vocab-detail-pane" id="vocab-detail-pane" aria-label="Word details" data-i18n-aria="libraryDetailEmpty">
+          <div class="vocab-detail-empty" id="vocab-detail-empty" data-i18n="libraryDetailEmpty">Select a word on the left to see its details.</div>
+          <div class="vocab-detail" id="vocab-detail" hidden></div>
+        </aside>
+      </div>
     </section>
     <section id="view-notes" class="lib-view" role="tabpanel" aria-labelledby="lib-tab-notes" hidden>
       <div class="notes-toolbar">

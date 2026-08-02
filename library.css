@@ -16,8 +16,13 @@
   --lib-pane-bg: #ffffff; --lib-pane-divider: #e2e2e6;
   --lib-row-selected-bg: #eef2f9; --lib-row-selected-fg: #1a1a2e;
   --lib-radius-sm: 4px; --lib-radius-md: 8px; --lib-radius-lg: 12px;
+  /* Pill radius is a constant, not a themed step (options.css declares it the
+     same way): the generated region only emits sm/md/lg. */
+  --lib-radius-full: 9999px;
   /* Spacing tokens are a theme invariant — hand-maintained, never composed. */
   --lib-sp-1: 4px; --lib-sp-2: 8px; --lib-sp-3: 12px; --lib-sp-4: 16px; --lib-sp-5: 24px;
+  /* Stacking ladder, same semantics as options' --opt-z-*. */
+  --lib-z-sticky: 5; --lib-z-menu: 10;
 }
 
 /* ============================================================
@@ -64,6 +69,16 @@ button, input, select, textarea { font-family: inherit; }
 .btn.danger { color: var(--lib-danger, #c00); border-color: color-mix(in srgb, var(--lib-danger, #c00) 55%, var(--lib-border, #ccc)); }
 .btn.danger:hover:not(:disabled) { background: color-mix(in srgb, var(--lib-danger, #c00) 8%, var(--lib-btn-bg, #fff)); }
 
+/* Base field recipe (options.css ~207-213). The .fg select chevron below only
+   makes sense once appearance:none has removed the native arrow -- ported
+   without this, a select would draw BOTH (Task 2 review carry-over). */
+.fg input[type="text"], .fg input[type="password"], .fg input[type="number"], .fg select, .fg textarea {
+  width: 100%; padding: var(--lib-sp-1) var(--lib-sp-2); border: 1px solid var(--lib-input-border, #cdd1d6);
+  border-radius: var(--lib-radius-md);
+  background-color: var(--lib-input-bg, #fff); font-size: 13px; font-family: inherit;
+  -webkit-appearance: none; appearance: none; box-shadow: none;
+  transition: border-color var(--motion-state) ease, background-color var(--motion-state) ease, box-shadow var(--motion-state) ease;
+}
 /* Custom chevron for <select> — native arrow removed by appearance:none. Use
    background-image / background-repeat / background-position as LONGHANDS so themed
    overrides that only set background-color preserve the chevron. */
@@ -354,6 +369,337 @@ html.motion-ready .notes-card.motion-toggle > .notes-card-body:not([hidden]) > *
 #view-notes .notes-card {
   break-inside: avoid; /* a card never splits across columns */
   margin-bottom: var(--lib-sp-4);
+}
+
+/* ============================================================
+   Vocabulary view (ported from options.css's #panel-vocab families;
+   --opt-sp-N is mapped to the --lib-sp-N step with the SAME pixel value,
+   never by index -- opt-sp-2=4px -> lib-sp-1, opt-sp-4=8px -> lib-sp-2,
+   opt-sp-5=12px -> lib-sp-3, opt-sp-6=16px -> lib-sp-4, opt-sp-7=24px ->
+   lib-sp-5; opt-sp-1 (2px) and opt-sp-3 (6px) have no --lib-sp-* twin and
+   stay literal, same convention Tasks 2 and 3 used.)
+   ============================================================ */
+
+/* ---- Accessibility: visually hide but keep for screen readers ---- */
+.sr-only {
+  position: absolute !important; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0);
+  white-space: nowrap; border: 0;
+}
+.save-status { font-size: 12px; color: #080; margin-left: var(--lib-sp-2); }
+.save-status.bad { color: #c00; }
+html[data-theme] .save-status { color: var(--lib-save); }
+html[data-theme] .save-status.bad { color: var(--lib-danger); }
+
+/* Master (list) + detail two-pane workbench. The library page has the whole
+   window to work with, unlike options.html's single narrow panel. */
+.vocab-workbench {
+  display: grid;
+  grid-template-columns: minmax(340px, 480px) 1fr;
+  gap: var(--lib-sp-5);
+  align-items: start;
+}
+.vocab-list-pane { min-width: 0; }
+.vocab-detail-pane {
+  min-width: 0;
+  position: sticky; top: 64px; /* below the sticky .lib-header */
+  background: var(--lib-pane-bg);
+  border: 1px solid var(--lib-pane-divider);
+  border-radius: var(--lib-radius-lg);
+  padding: var(--lib-sp-4) var(--lib-sp-5);
+}
+.vocab-detail-empty { color: var(--lib-fg-hint); padding: var(--lib-sp-5) 0; text-align: center; }
+/* Below the two-pane threshold the 340px minimum would push the page into
+   horizontal scroll; stack instead (the detail pane also stops being sticky,
+   since it is no longer beside anything). */
+@media (max-width: 860px) {
+  .vocab-workbench { grid-template-columns: 1fr; }
+  .vocab-detail-pane { position: static; }
+}
+
+/* The vocab variant carries a fourth control (status filter). Flex, not a
+   wider grid: grid columns can neither wrap nor shrink a select below its
+   longest option, which let the status filter punch through the panel
+   border at pre-mobile widths (real-device report). One row when it fits,
+   controls wrap one by one when it doesn't. */
+.vocab-filter-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+}
+.vocab-filter-toolbar input[type="search"] {
+  flex: 1 1 220px;
+  width: auto;
+  min-width: 0;
+}
+/* The three selects are ONE flex unit. Line breaking in a wrapping flex
+   container works on hypothetical (basis) sizes, and this unit refuses to
+   shrink -- so it either fits whole beside the search or drops whole onto
+   its own row (search then grows to the full first row). max-width lets
+   the selects wrap among themselves only once the unit's own row is
+   narrower than the three of them. */
+.vocab-filter-selects {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--lib-sp-2);
+  flex: 0 0 auto;
+  min-width: 0;
+  max-width: 100%;
+}
+.vocab-filter-toolbar select { flex: 0 1 auto; min-width: 0; }
+.vocab-batch-bar input[type="text"] {
+  min-width: 0;
+  padding: var(--lib-sp-1) var(--lib-sp-2);
+  border: 1px solid var(--lib-input-border, #cdd1d6);
+  border-radius: var(--lib-radius-md);
+  background-color: var(--lib-input-bg, #fff);
+  color: var(--lib-fg);
+  font: inherit;
+  font-size: 12px;
+  box-sizing: border-box;
+}
+.vocab-batch-bar input[type="text"]:focus-visible {
+  outline: 2px solid var(--lib-accent);
+  outline-offset: 1px;
+}
+/* A toolbar select is still a select: same closed-control recipe as
+   `.fg select` above, written token-first so it needs no themed twin. Only
+   the chevron, being a data URI, needs the dark variant below. */
+.vocab-filter-toolbar select {
+  min-width: 0;
+  /* width:auto, NOT 100%: under a flex toolbar 100% becomes the flex basis
+     and parks every select on its own full-width row. Content-sized is the
+     point. */
+  width: auto;
+  padding: 6px 26px 6px var(--lib-sp-3); /* block: options --opt-sp-3 (6px), no --lib-sp-* match */
+  border: 1px solid var(--lib-input-border, #cdd1d6);
+  border-radius: var(--lib-radius-md);
+  background-color: var(--lib-btn-bg, #fff);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M3 4.5 6 7.5 9 4.5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  color: var(--lib-fg, #333);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  box-sizing: border-box;
+  -webkit-appearance: none;
+  appearance: none;
+  box-shadow: none;
+  transition: border-color var(--motion-state) ease, background-color var(--motion-state) ease, box-shadow var(--motion-state) ease;
+}
+.vocab-filter-toolbar select:hover:not(:focus) {
+  background-color: var(--lib-btn-hover, #f1f5f9);
+  border-color: var(--lib-input-border, #cdd1d6);
+}
+.vocab-filter-toolbar select:focus {
+  outline: none;
+  border-color: var(--lib-focus-bd, var(--lib-accent));
+}
+.vocab-filter-toolbar select:focus-visible {
+  outline: 2px solid var(--lib-accent);
+  outline-offset: 1px;
+}
+/* The dark themes need their own chevron: it is a data URI, so the stroke
+   colour cannot come from a token. */
+html[data-theme="nord-night"] .vocab-filter-toolbar select,
+html[data-theme="terminal"] .vocab-filter-toolbar select,
+html[data-theme="dracula"] .vocab-filter-toolbar select,
+html[data-theme="flexoki-dark"] .vocab-filter-toolbar select,
+html[data-theme="solarized-dark"] .vocab-filter-toolbar select,
+html[data-theme="catppuccin-mocha"] .vocab-filter-toolbar select,
+html[data-theme="gruvbox-dark"] .vocab-filter-toolbar select,
+html[data-theme="rose-pine"] .vocab-filter-toolbar select {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M3 4.5 6 7.5 9 4.5' stroke='%23aaa' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+}
+/* Sort segment: two fused direction-toggle cells replacing the widest select
+   (#vocab-sort stays as the hidden state carrier). The pressed cell wears the
+   accent; icons show the CURRENT direction, titles the sort a click applies. */
+.vocab-sort-seg { display: inline-flex; align-items: stretch; flex: none; }
+.vocab-sort-btn {
+  width: 34px;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 0;
+  color: var(--lib-fg-muted, #666);
+}
+.vocab-sort-btn:first-child {
+  border-top-left-radius: var(--lib-radius-md);
+  border-bottom-left-radius: var(--lib-radius-md);
+}
+.vocab-sort-btn:last-child {
+  border-top-right-radius: var(--lib-radius-md);
+  border-bottom-right-radius: var(--lib-radius-md);
+  border-left: 0;
+}
+.vocab-sort-btn[aria-pressed="true"] {
+  color: var(--lib-accent);
+  background: color-mix(in srgb, var(--lib-accent) 12%, var(--lib-btn-bg, #fff));
+  border-color: color-mix(in srgb, var(--lib-accent) 45%, var(--lib-input-border, #cdd1d6));
+}
+.vocab-sort-btn .btn-ic { display: inline-flex; margin: 0; }
+/* Count line: one row, identical in browse and selection. The status
+   message rides inline at the right edge -- it never reserves a line of
+   its own. The batch tools live in the sticky bar below the list. */
+.vocab-context-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px var(--lib-sp-2); /* row gap: options --opt-sp-3 (6px), no --lib-sp-* match */
+  margin: 0 0 var(--lib-sp-2);
+  min-height: 28px;
+}
+.vocab-ctx-text { display: grid; align-items: center; min-width: 0; }
+.vocab-ctx-text > .notes-count {
+  min-width: 0;
+  white-space: normal;
+  font-weight: 500;
+  color: var(--lib-fg, #333);
+}
+/* Select all rides next to the count in BOTH states, quiet ghost tier
+   (the .row-del-x treatment): always relevant, never boxed. */
+.vocab-selection-actions { display: inline-flex; align-items: center; gap: var(--lib-sp-1); flex: none; }
+.vocab-selection-actions .btn { border-color: transparent; background: transparent; color: var(--lib-fg-muted, #666); }
+.vocab-selection-actions .btn:hover {
+  border-color: transparent;
+  color: var(--lib-fg, #111);
+  background: color-mix(in srgb, var(--lib-fg, #333) 6%, var(--lib-bg, #fff));
+}
+/* Sticky boundary wrapper: the bar floats only while this region is on
+   screen; past its end the bar docks and scrolls away with the list. */
+.vocab-list-region { position: relative; }
+/* Batch bar: sticky DIRECT child of the region (an intermediate wrapper
+   would become the containing block and cap the float range at the bar's
+   own height). Dock-slot growth and bar arrival are ONE transition set --
+   the below-sections shift only ever moves in lockstep with the bar
+   fading in, never jump-then-appear. */
+.vocab-batch-bar {
+  position: sticky;
+  bottom: 12px;
+  z-index: var(--lib-z-sticky);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px var(--lib-sp-2); /* row gap: options --opt-sp-3 (6px) */
+  width: fit-content;
+  max-width: 100%;
+  margin: var(--lib-sp-2) auto 0;
+  box-sizing: border-box;
+  interpolate-size: allow-keywords;
+  height: 0;
+  padding: 0 var(--lib-sp-2);
+  border: 0 solid var(--lib-input-border, #cdd1d6);
+  border-radius: var(--lib-radius-lg);
+  overflow: clip;
+  background: var(--lib-bg, #fff);
+  box-shadow: 0 6px 24px color-mix(in srgb, var(--lib-fg, #000) 18%, transparent),
+              0 2px 8px color-mix(in srgb, var(--lib-fg, #000) 10%, transparent);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(8px);
+}
+.vocab-batch-bar.selecting {
+  height: auto;
+  padding: 6px var(--lib-sp-2); /* block: options --opt-sp-3 (6px) */
+  border-width: 1px;
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+}
+/* Transitions ride behind the motion-ready gate (codebase convention: no
+   load-time motion). */
+html.motion-ready .vocab-batch-bar {
+  transition: height var(--motion-collapse) var(--ease-out),
+              padding var(--motion-collapse) var(--ease-out),
+              border-width var(--motion-collapse) var(--ease-out),
+              opacity var(--motion-pop-out) var(--ease-out),
+              transform var(--motion-pop-out) var(--ease-out),
+              visibility 0s var(--motion-collapse);
+}
+html.motion-ready .vocab-batch-bar.selecting {
+  transition: height var(--motion-collapse) var(--ease-out),
+              padding var(--motion-collapse) var(--ease-out),
+              border-width var(--motion-collapse) var(--ease-out),
+              opacity var(--motion-pop) var(--ease-out),
+              transform var(--motion-pop) var(--ease-out),
+              visibility 0s;
+}
+.vocab-batch-bar .notes-count { flex: none; font-weight: 500; color: var(--lib-fg, #333); }
+/* Icon-only action cells (user-ratified: no labels -- width thrift + long-
+   locale safety). Names live in title/aria; ~30px cells keep the >=24px hit. */
+.vocab-batch-bar > .btn:not(.vocab-group-step),
+.vocab-batch-cluster > .btn { padding-inline: 6px; } /* options --opt-sp-3 (6px) */
+.vocab-batch-bar .btn .btn-ic { display: inline-flex; margin: 0; }
+.vocab-batch-bar input[type="text"] { flex: 1 1 120px; min-width: 0; }
+/* Input + stepper unit: one visual control, native-stepper style. The two
+   icon-only steppers are fixed 28px cells fused to the input's right edge. */
+.vocab-group-unit { display: inline-flex; align-items: stretch; flex: 1 1 200px; min-width: 150px; max-width: 320px; }
+.vocab-group-unit input[type="text"] { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.vocab-group-step { flex: none; width: 28px; display: inline-grid; place-items: center; padding: 0; border-left: 0; border-radius: 0; }
+.vocab-group-step:last-of-type { border-top-right-radius: var(--lib-radius-md); border-bottom-right-radius: var(--lib-radius-md); }
+.vocab-group-step .btn-ic { display: inline-flex; margin: 0; vertical-align: 0; }
+.vocab-batch-cluster { display: inline-flex; gap: var(--lib-sp-1); flex: none; }
+.vocab-main-status {
+  margin-left: auto;
+  min-width: 0;
+  min-height: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.vocab-load-more { display: block; margin: var(--lib-sp-2) auto var(--lib-sp-3); }
+/* Beats the component display rules above: a hidden control must stay gone. */
+#view-vocab .vocab-load-more[hidden] { display: none; }
+#view-vocab,
+#vocab-list,
+.vocab-card,
+.vocab-card .notes-card-top { min-width: 0; }
+.vocab-card .notes-card-top {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 6px; /* options --opt-sp-3 (6px) */
+  padding: var(--lib-sp-1) 6px;
+}
+/* Collapsed-row rhythm (2026-08 redesign): controls anchor to the TITLE
+   line instead of centering against whatever height the row happens to
+   reach -- on a tall card a centered checkbox floated mid-air.
+   The checkbox stays IN FLOW here, unlike options': there it crossfaded with
+   the disclosure chevron parked in the same slot, and the master-detail row
+   has no chevron to trade places with. */
+.vocab-card .notes-card-top { align-items: start; }
+.vocab-row-select { width: 16px; height: 16px; margin: 0; }
+.vocab-card .vocab-row-select { margin-top: 3px; }
+.vocab-card .notes-card-head { align-items: start; }
+/* Selected rows read as a scannable accent band (declared after :hover so
+   selection wins, with a deeper hover step layered on top). */
+.vocab-card.selected .notes-card-top { --row-bg: color-mix(in srgb, var(--lib-accent, #4477bb) 10%, var(--lib-bg, #fff)); }
+.vocab-card.selected .notes-card-top:hover { --row-bg: color-mix(in srgb, var(--lib-accent, #4477bb) 15%, var(--lib-bg, #fff)); }
+/* The row whose word the detail pane is currently showing. Distinct from
+   .selected (a batch-operation membership) -- this is "you are here". */
+#vocab-list .vocab-card[aria-current] {
+  background: var(--lib-row-selected-bg);
+  color: var(--lib-row-selected-fg);
+  box-shadow: inset 2px 0 0 var(--lib-accent);
+}
+.vocab-row-headline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 6px; /* options --opt-sp-1 (2px) / --opt-sp-3 (6px) */
+  min-width: 0;
+}
+.vocab-row-gloss {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--lib-fg-muted, #666);
+}
+.vocab-group-chip {
+  padding: 0 var(--lib-sp-1);
+  border-radius: var(--lib-radius-full);
+  background: color-mix(in srgb, var(--lib-accent, #4477bb) 10%, transparent);
+  color: var(--lib-fg, #333);
 }
 
 /* ---- Page layout ---- */

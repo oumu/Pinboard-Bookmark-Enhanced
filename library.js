@@ -44,6 +44,9 @@ if (typeof requestAnimationFrame === "function") {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  // Hydrate declarative icon slots (same contract as options.js/popup.js):
+  // static PBP_ICONS constants only, never page content.
+  document.querySelectorAll(".btn-ic[data-ic]").forEach(s => { s.innerHTML = PBP_ICONS[s.dataset.ic] || ""; });
   // Same contract as every other page (popup.js / options.js / md-preview.js):
   // i18n.js does not self-apply data-i18n attributes, so each page must call
   // both explicitly before relying on translated markup.

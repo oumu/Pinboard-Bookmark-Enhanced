@@ -55,6 +55,12 @@ function t(key, ...values) { return key + (values.length ? ":" + values.join(","
 <script src="../dict-pack.js"></script>
 <script>pbpReadSettingsWithSecrets = async () => ({ pinboardToken: "" });</script>
 <script src="../options-vocab.js"></script>
+<!-- Both page halves co-load here: options-vocab.js owns Drive/export/packs,
+     library-vocab.js owns the word list. renderVocabPanel is the one name
+     they both define (different jobs), so keep a handle on the settings-side
+     one before the library script shadows it. -->
+<script>const renderVocabPanelOptions = renderVocabPanel;</script>
+<script src="../library-vocab.js"></script>
 <script>
 const results = $id("results");
 let pass = 0, fail = 0;
@@ -248,26 +254,36 @@ const renderedChecks = [...$id("vocab-list").querySelectorAll(".vocab-row-select
 check("production row checkbox has an accessible name", renderedChecks.every((checkbox) => checkbox.getAttribute("aria-label")));
 const unknownLanguageRow = _pbpVocabBuildRow({
   id:"unknown-language", term:"mystery", language:"und", gloss:"", groups:[], contexts:[]
-}, 999);
+});
 check("production vocabulary row hides the unknown language code",
   !unknownLanguageRow.querySelector(".notes-row-meta").textContent.includes("UND"));
 const fullGlossRow = _pbpVocabBuildRow({
   id:"full-gloss", term:"run", language:"en", ipa:"/rʌn/",
   gloss:"contextual sense line\ngeneral sense line", groups:[], contexts:[]
-}, 998);
-check("expanded card shows the FULL stored gloss, not the chip's first line",
-  fullGlossRow.querySelector(".vocab-gloss-text").textContent === "contextual sense line\ngeneral sense line");
-check("expanded card shows the stored IPA",
-  fullGlossRow.querySelector(".vocab-gloss-ipa").textContent === "/rʌn/");
+});
 const notedRow = _pbpVocabBuildRow({
   id:"noted", term:"noted", language:"en", gloss:"", note:"remember this one", groups:[], contexts:[]
-}, 997);
-check("expanded card offers an editable note prefilled with the stored note",
-  notedRow.querySelector(".vocab-note-input").value === "remember this one" &&
-  notedRow.querySelector(".vocab-note-save").hidden === true);
+});
+// Master-detail: the row carries the headline only. The full gloss, the IPA
+// and the note editor belong to the detail pane, so the row must not build a
+// disclosure body or claim to expand.
+check("row builds no expandable body and claims no expansion state",
+  !fullGlossRow.querySelector(".notes-card-body") &&
+  !fullGlossRow.querySelector(".vocab-gloss-text") &&
+  !notedRow.querySelector(".vocab-note-input") &&
+  !fullGlossRow.querySelector("[aria-expanded]"));
 check("collapsed card clamps the gloss to its first line, outside the chip row",
   fullGlossRow.querySelector(".vocab-row-gloss").textContent === "contextual sense line" &&
   !fullGlossRow.querySelector(".notes-row-meta .vocab-row-gloss"));
+$id("vocab-list").append(fullGlossRow, notedRow);
+fullGlossRow.querySelector(".notes-card-head").click();
+notedRow.querySelector(".notes-card-head").click();
+check("activating a row moves aria-current onto it and off every other row",
+  notedRow.getAttribute("aria-current") === "true" &&
+  !fullGlossRow.hasAttribute("aria-current") &&
+  $id("vocab-list").querySelectorAll(".vocab-card[aria-current]").length === 1);
+fullGlossRow.remove();
+notedRow.remove();
 check("icon-only delete button keeps an accessible name and an SVG face",
   !!notedRow.querySelector(".notes-row-del svg") &&
   !!notedRow.querySelector(".notes-row-del").getAttribute("aria-label"));
@@ -325,7 +341,7 @@ _pbpVocabSyncSelectionUi();
 $id("vocab-load-more").click();
 check("first Load more appends the next 100 cards", $id("vocab-list").children.length === 200);
 check("Load more preserves the identity of earlier DOM nodes", $id("vocab-list").firstElementChild === firstLargeCard);
-check("Load more preserves an earlier card's expanded state", firstLargeCard.querySelector(".notes-card-head").getAttribute("aria-expanded") === "true" && !firstLargeCard.querySelector(".notes-card-body").hidden);
+check("Load more preserves an earlier card's detail-activation state", firstLargeCard.getAttribute("aria-current") === "true");
 $id("vocab-load-more").click();
 check("a second Load more appends another chunk", $id("vocab-list").children.length === 300);
 check("selection still covers all filtered results beyond rendered chunks", _vocabSelected.size === 5000);
@@ -761,7 +777,7 @@ check("selection still covers all filtered results beyond rendered chunks", _voc
     };
     pbpVocabCurrentOwner = async () => "acct_alice";
     pbpVocabAll = async () => [];
-    await renderVocabPanel();
+    await renderVocabPanelOptions();
     $id("vocab-drive-connect").click();
     $id("vocab-drive-sync").click();
     await task(); await task();
@@ -1155,7 +1171,7 @@ check("selection still covers all filtered results beyond rendered chunks", _voc
     window.chrome.runtime.sendMessage = driveResponse;
     pbpVocabCurrentOwner = async () => "acct_alice";
     pbpVocabAll = async () => [];
-    await renderVocabPanel();
+    await renderVocabPanelOptions();
     check("opening Vocabulary requests status and a noninteractive non-forced sync",
       driveMessages.some((message) => message.type === "vocabDriveStatus") &&
       driveMessages.some((message) => message.type === "vocabDriveSyncNow" && message.force !== true));
