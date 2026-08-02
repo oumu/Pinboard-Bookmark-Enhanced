@@ -34,6 +34,15 @@ function _pbpLibInitialView() {
   return "vocab";
 }
 
+// Enable decorative transitions (.confirm-popover enter/exit) only after the
+// initial paint — same double-rAF gate as options.js/popup.js/md-preview.js,
+// so this adds zero first-frame cost on the cold-start path.
+if (typeof requestAnimationFrame === "function") {
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    document.documentElement.classList.add("motion-ready");
+  }));
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   // Same contract as every other page (popup.js / options.js / md-preview.js):
   // i18n.js does not self-apply data-i18n attributes, so each page must call

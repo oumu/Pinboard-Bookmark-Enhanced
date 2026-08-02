@@ -29,6 +29,14 @@
    so they never fall back to the color-emoji font (Segoe UI Emoji), which costs a
    1-3s first-render stall on Windows high-DPI. True color emoji are handled via SVG. */
 :root { font-variant-emoji: text; }
+/* Motion-consistency tokens, ported verbatim (same values) from options.css's
+   :root — .btn's hover/active transition and .confirm-popover's enter/exit both
+   consume these. Without a local definition var(--motion-state) etc. are
+   unresolvable (nothing else on this page defines them), which makes the whole
+   transition declaration compute to its initial value (zero-duration, no console
+   signal) — ported here rather than inlined as per-use fallbacks since later
+   tasks (accordion/disclosure UI) will add more consumers of this same scale. */
+:root { --motion-state: 150ms; --motion-pop: 140ms; --motion-pop-out: 100ms; --ease-out: cubic-bezier(0.23, 1, 0.32, 1); }
 /* Name fast CJK fonts before the generic `sans-serif`. Otherwise CJK text falls through the
    Latin fonts to the bare `sans-serif` keyword, which resolves to the profile's Standard font;
    if that's a large/slow font (e.g. a custom Sarasa/CJK family) its first-time glyph shaping on
