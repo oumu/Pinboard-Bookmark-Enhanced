@@ -409,6 +409,11 @@ html[data-theme] .save-status.bad { color: var(--lib-danger); }
   padding: var(--lib-sp-4) var(--lib-sp-5);
 }
 .vocab-detail-empty { color: var(--lib-fg-hint); padding: var(--lib-sp-5) 0; text-align: center; }
+/* Back button default state: hidden by default, shown only at narrow widths.
+   Order is load-bearing: this rule must come BEFORE the media query so that
+   the media query's inline-flex can override it via cascade (same 0,1,0
+   specificity, later rule wins). */
+.vocab-detail-back { display: none; }
 /* Below the two-pane threshold the 340px minimum would push the page into
    horizontal scroll; stack instead (the detail pane also stops being sticky,
    since it is no longer beside anything). */
@@ -420,7 +425,6 @@ html[data-theme] .save-status.bad { color: var(--lib-danger); }
   body:not(.lib-narrow-detail) .vocab-detail-pane { display: none; }
   .vocab-detail-back { display: inline-flex; }
 }
-.vocab-detail-back { display: none; }
 
 /* Detail pane content (Task 6). */
 .vocab-detail-head { display: flex; align-items: center; gap: var(--lib-sp-2); flex-wrap: wrap; }
