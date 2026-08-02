@@ -1,0 +1,402 @@
+/* ============================================================
+   Library page (notes + vocabulary) — standalone stylesheet.
+   Hand-maintained layer above; @generated:ui-themes region below
+   is produced by composers/library-chrome.mjs — do not edit.
+   ============================================================ */
+
+:root {
+  /* Fallbacks for auto/light with no preset selected; every themed value
+     is overridden per-theme inside the generated region. */
+  --lib-bg: #f7f7f8; --lib-panel: #ffffff; --lib-tab: #ffffff; --lib-tab-active: #f7f7f8;
+  --lib-fg: #1a1a2e; --lib-fg-muted: #5f6368; --lib-fg-hint: #666d74;
+  --lib-accent: #1a73e8; --lib-save: #1967d2; --lib-danger: #c5221f; --lib-warn: #b06000;
+  --lib-border: #e2e2e6; --lib-border-section: #e2e2e6;
+  --lib-input-bg: #ffffff; --lib-input-border: #d5d5da;
+  --lib-btn-bg: #ffffff; --lib-btn-hover: #eef2f9; --lib-code-bg: #f2f2f4;
+  --lib-pane-bg: #ffffff; --lib-pane-divider: #e2e2e6;
+  --lib-row-selected-bg: #eef2f9; --lib-row-selected-fg: #1a1a2e;
+  --lib-radius-sm: 4px; --lib-radius-md: 8px; --lib-radius-lg: 12px;
+  /* Spacing tokens are a theme invariant — hand-maintained, never composed. */
+  --lib-sp-1: 4px; --lib-sp-2: 8px; --lib-sp-3: 12px; --lib-sp-4: 16px; --lib-sp-5: 24px;
+}
+
+/* @generated:ui-themes start — do not edit; produced by composers/library-chrome.mjs */
+html[data-theme="modern-card"] {
+  --lib-bg: #f0f2f5;
+  --lib-panel: #ffffff;
+  --lib-tab: #ffffff;
+  --lib-tab-active: #f0f2f5;
+  --lib-fg: #1a1a2e;
+  --lib-fg-muted: #5f6368;
+  --lib-fg-hint: #666d74;
+  --lib-accent: #1a73e8;
+  --lib-save: #166ad8;
+  --lib-danger: #d02e24;
+  --lib-warn: #a65a00;
+  --lib-border: #e8e8e8;
+  --lib-border-section: #e8e8e8;
+  --lib-input-bg: #ffffff;
+  --lib-input-border: #e8e8e8;
+  --lib-btn-bg: #ffffff;
+  --lib-btn-hover: #e8f0fe;
+  --lib-code-bg: #ffffff;
+  --lib-pane-bg: #ffffff;
+  --lib-pane-divider: #e8e8e8;
+  --lib-row-selected-bg: #e8f0fe;
+  --lib-row-selected-fg: #1a1a2e;
+  --lib-radius-sm: 4px;
+  --lib-radius-md: 8px;
+  --lib-radius-lg: 12px;
+}
+html[data-theme="nord-night"] {
+  --lib-bg: #2e3440;
+  --lib-panel: #3b4252;
+  --lib-tab: #3b4252;
+  --lib-tab-active: #2e3440;
+  --lib-fg: #d8dee9;
+  --lib-fg-muted: #81a1c1;
+  --lib-fg-hint: #939db2;
+  --lib-accent: #88c0d0;
+  --lib-save: #a3be8c;
+  --lib-danger: #d18d93;
+  --lib-warn: #ed8100;
+  --lib-border: #434c5e;
+  --lib-border-section: #434c5e;
+  --lib-input-bg: #434c5e;
+  --lib-input-border: #434c5e;
+  --lib-btn-bg: #3b4252;
+  --lib-btn-hover: #3b4252;
+  --lib-code-bg: #3b4252;
+  --lib-pane-bg: #3b4252;
+  --lib-pane-divider: #434c5e;
+  --lib-row-selected-bg: #3b4252;
+  --lib-row-selected-fg: #d8dee9;
+  --lib-radius-sm: 4px;
+  --lib-radius-md: 4px;
+  --lib-radius-lg: 4px;
+}
+html[data-theme="terminal"] {
+  --lib-bg: #0a0a0a;
+  --lib-panel: #111111;
+  --lib-tab: #111111;
+  --lib-tab-active: #0a0a0a;
+  --lib-fg: #33ff33;
+  --lib-fg-muted: #22aa22;
+  --lib-fg-hint: #448844;
+  --lib-accent: #33ff33;
+  --lib-save: #008f00;
+  --lib-danger: #ff3333;
+  --lib-warn: #ba6600;
+  --lib-border: #33ff3340;
+  --lib-border-section: #33ff3325;
+  --lib-input-bg: #111111;
+  --lib-input-border: #33ff3340;
+  --lib-btn-bg: #111111;
+  --lib-btn-hover: #1a3a1a;
+  --lib-code-bg: #111111;
+  --lib-pane-bg: #111111;
+  --lib-pane-divider: #33ff3340;
+  --lib-row-selected-bg: #1a3a1a;
+  --lib-row-selected-fg: #33ff33;
+  --lib-radius-sm: 4px;
+  --lib-radius-md: 4px;
+  --lib-radius-lg: 4px;
+}
+html[data-theme="paper-ink"] {
+  --lib-bg: #faf8f5;
+  --lib-panel: #f5f0e8;
+  --lib-tab: #f5f0e8;
+  --lib-tab-active: #faf8f5;
+  --lib-fg: #2c2c2c;
+  --lib-fg-muted: #6b4c3b;
+  --lib-fg-hint: #707070;
+  --lib-accent: #1a3a5c;
+  --lib-save: #8b4513;
+  --lib-danger: #c0392b;
+  --lib-warn: #a65a00;
+  --lib-border: #d4c5a9;
+  --lib-border-section: #e8dfd0;
+  --lib-input-bg: #fefdfb;
+  --lib-input-border: #d4c5a9;
+  --lib-btn-bg: #f5f0e8;
+  --lib-btn-hover: #f5f0e8;
+  --lib-code-bg: #f5f0e8;
+  --lib-pane-bg: #f5f0e8;
+  --lib-pane-divider: #d4c5a9;
+  --lib-row-selected-bg: #f5f0e8;
+  --lib-row-selected-fg: #2c2c2c;
+  --lib-radius-sm: 2px;
+  --lib-radius-md: 4px;
+  --lib-radius-lg: 4px;
+}
+html[data-theme="dracula"] {
+  --lib-bg: #282a36;
+  --lib-panel: #21222c;
+  --lib-tab: #21222c;
+  --lib-tab-active: #282a36;
+  --lib-fg: #f8f8f2;
+  --lib-fg-muted: #bd93f9;
+  --lib-fg-hint: #8995ba;
+  --lib-accent: #8be9fd;
+  --lib-save: #50fa7b;
+  --lib-danger: #ff5555;
+  --lib-warn: #e37c00;
+  --lib-border: #44475a;
+  --lib-border-section: #44475a;
+  --lib-input-bg: #44475a;
+  --lib-input-border: #44475a;
+  --lib-btn-bg: #21222c;
+  --lib-btn-hover: #21222c;
+  --lib-code-bg: #21222c;
+  --lib-pane-bg: #21222c;
+  --lib-pane-divider: #44475a;
+  --lib-row-selected-bg: #21222c;
+  --lib-row-selected-fg: #f8f8f2;
+  --lib-radius-sm: 2px;
+  --lib-radius-md: 4px;
+  --lib-radius-lg: 4px;
+}
+html[data-theme="flexoki-light"] {
+  --lib-bg: #FFFCF0;
+  --lib-panel: #F2F0E5;
+  --lib-tab: #F2F0E5;
+  --lib-tab-active: #FFFCF0;
+  --lib-fg: #100F0F;
+  --lib-fg-muted: #6f6e69;
+  --lib-fg-hint: #777467;
+  --lib-accent: #205EA6;
+  --lib-save: #5f770a;
+  --lib-danger: #af3029;
+  --lib-warn: #b06000;
+  --lib-border: #E6E4D9;
+  --lib-border-section: #E6E4D9;
+  --lib-input-bg: #FFFCF0;
+  --lib-input-border: #E6E4D9;
+  --lib-btn-bg: #F2F0E5;
+  --lib-btn-hover: #F2F0E5;
+  --lib-code-bg: #F2F0E5;
+  --lib-pane-bg: #F2F0E5;
+  --lib-pane-divider: #E6E4D9;
+  --lib-row-selected-bg: #F2F0E5;
+  --lib-row-selected-fg: #100F0F;
+  --lib-radius-sm: 3px;
+  --lib-radius-md: 6px;
+  --lib-radius-lg: 6px;
+}
+html[data-theme="flexoki-dark"] {
+  --lib-bg: #1C1B1A;
+  --lib-panel: #282726;
+  --lib-tab: #282726;
+  --lib-tab-active: #1C1B1A;
+  --lib-fg: #CECDC3;
+  --lib-fg-muted: #868480;
+  --lib-fg-hint: #878580;
+  --lib-accent: #4385BE;
+  --lib-save: #879a39;
+  --lib-danger: #d7645a;
+  --lib-warn: #cf7100;
+  --lib-border: #403E3C;
+  --lib-border-section: #343331;
+  --lib-input-bg: #282726;
+  --lib-input-border: #403E3C;
+  --lib-btn-bg: #282726;
+  --lib-btn-hover: #343331;
+  --lib-code-bg: #282726;
+  --lib-pane-bg: #282726;
+  --lib-pane-divider: #403E3C;
+  --lib-row-selected-bg: #343331;
+  --lib-row-selected-fg: #CECDC3;
+  --lib-radius-sm: 3px;
+  --lib-radius-md: 6px;
+  --lib-radius-lg: 6px;
+}
+html[data-theme="solarized-light"] {
+  --lib-bg: #fdf6e3;
+  --lib-panel: #eee8d5;
+  --lib-tab: #eee8d5;
+  --lib-tab-active: #fdf6e3;
+  --lib-fg: #586e75;
+  --lib-fg-muted: #586e75;
+  --lib-fg-hint: #657474;
+  --lib-accent: #268bd2;
+  --lib-save: #1f7972;
+  --lib-danger: #d32724;
+  --lib-warn: #a65a00;
+  --lib-border: #d6cdb5;
+  --lib-border-section: #d6cdb5;
+  --lib-input-bg: #fdf6e3;
+  --lib-input-border: #d6cdb5;
+  --lib-btn-bg: #eee8d5;
+  --lib-btn-hover: #eee8d5;
+  --lib-code-bg: #eee8d5;
+  --lib-pane-bg: #eee8d5;
+  --lib-pane-divider: #d6cdb5;
+  --lib-row-selected-bg: #eee8d5;
+  --lib-row-selected-fg: #586e75;
+  --lib-radius-sm: 2px;
+  --lib-radius-md: 4px;
+  --lib-radius-lg: 4px;
+}
+html[data-theme="solarized-dark"] {
+  --lib-bg: #002b36;
+  --lib-panel: #073642;
+  --lib-tab: #073642;
+  --lib-tab-active: #002b36;
+  --lib-fg: #839496;
+  --lib-fg-muted: #7a939b;
+  --lib-fg-hint: #7a939b;
+  --lib-accent: #268bd2;
+  --lib-save: #859900;
+  --lib-danger: #e56663;
+  --lib-warn: #d97600;
+  --lib-border: #094b5a;
+  --lib-border-section: #094b5a;
+  --lib-input-bg: #073642;
+  --lib-input-border: #094b5a;
+  --lib-btn-bg: #073642;
+  --lib-btn-hover: #073642;
+  --lib-code-bg: #073642;
+  --lib-pane-bg: #073642;
+  --lib-pane-divider: #094b5a;
+  --lib-row-selected-bg: #073642;
+  --lib-row-selected-fg: #839496;
+  --lib-radius-sm: 2px;
+  --lib-radius-md: 4px;
+  --lib-radius-lg: 4px;
+}
+html[data-theme="catppuccin-latte"] {
+  --lib-bg: #eff1f5;
+  --lib-panel: #e6e9ef;
+  --lib-tab: #e6e9ef;
+  --lib-tab-active: #eff1f5;
+  --lib-fg: #4c4f69;
+  --lib-fg-muted: #676a7f;
+  --lib-fg-hint: #666b80;
+  --lib-accent: #1e66f5;
+  --lib-save: #307820;
+  --lib-danger: #d20f39;
+  --lib-warn: #a65a00;
+  --lib-border: #ccd0da;
+  --lib-border-section: #bcc0cc;
+  --lib-input-bg: #eff1f5;
+  --lib-input-border: #ccd0da;
+  --lib-btn-bg: #e6e9ef;
+  --lib-btn-hover: #dce0e8;
+  --lib-code-bg: #e6e9ef;
+  --lib-pane-bg: #e6e9ef;
+  --lib-pane-divider: #ccd0da;
+  --lib-row-selected-bg: #dce0e8;
+  --lib-row-selected-fg: #4c4f69;
+  --lib-radius-sm: 8px;
+  --lib-radius-md: 10px;
+  --lib-radius-lg: 12px;
+}
+html[data-theme="catppuccin-mocha"] {
+  --lib-bg: #1e1e2e;
+  --lib-panel: #313244;
+  --lib-tab: #313244;
+  --lib-tab-active: #1e1e2e;
+  --lib-fg: #cdd6f4;
+  --lib-fg-muted: #a6adc8;
+  --lib-fg-hint: #85889f;
+  --lib-accent: #89b4fa;
+  --lib-save: #94e2d5;
+  --lib-danger: #f38ba8;
+  --lib-warn: #cf7100;
+  --lib-border: #45475a;
+  --lib-border-section: #45475a;
+  --lib-input-bg: #1e1e2e;
+  --lib-input-border: #45475a;
+  --lib-btn-bg: #313244;
+  --lib-btn-hover: #313244;
+  --lib-code-bg: #313244;
+  --lib-pane-bg: #313244;
+  --lib-pane-divider: #45475a;
+  --lib-row-selected-bg: #313244;
+  --lib-row-selected-fg: #cdd6f4;
+  --lib-radius-sm: 8px;
+  --lib-radius-md: 12px;
+  --lib-radius-lg: 12px;
+}
+html[data-theme="gruvbox-dark"] {
+  --lib-bg: #282828;
+  --lib-panel: #3c3836;
+  --lib-tab: #3c3836;
+  --lib-tab-active: #282828;
+  --lib-fg: #ebdbb2;
+  --lib-fg-muted: #a89984;
+  --lib-fg-hint: #9b8f85;
+  --lib-accent: #83a598;
+  --lib-save: #539fa3;
+  --lib-danger: #fb5b48;
+  --lib-warn: #d97600;
+  --lib-border: #504945;
+  --lib-border-section: #504945;
+  --lib-input-bg: #282828;
+  --lib-input-border: #504945;
+  --lib-btn-bg: #3c3836;
+  --lib-btn-hover: #3c3836;
+  --lib-code-bg: #3c3836;
+  --lib-pane-bg: #3c3836;
+  --lib-pane-divider: #504945;
+  --lib-row-selected-bg: #3c3836;
+  --lib-row-selected-fg: #ebdbb2;
+  --lib-radius-sm: 2px;
+  --lib-radius-md: 2px;
+  --lib-radius-lg: 2px;
+}
+html[data-theme="rose-pine"] {
+  --lib-bg: #191724;
+  --lib-panel: #1f1d2e;
+  --lib-tab: #1f1d2e;
+  --lib-tab-active: #191724;
+  --lib-fg: #e0def4;
+  --lib-fg-muted: #908caa;
+  --lib-fg-hint: #837f9a;
+  --lib-accent: #c4a7e7;
+  --lib-save: #9ccfd8;
+  --lib-danger: #eb6f92;
+  --lib-warn: #c46b00;
+  --lib-border: #26233a;
+  --lib-border-section: #393552;
+  --lib-input-bg: #26233a;
+  --lib-input-border: #26233a;
+  --lib-btn-bg: #1f1d2e;
+  --lib-btn-hover: #26233a;
+  --lib-code-bg: #1f1d2e;
+  --lib-pane-bg: #1f1d2e;
+  --lib-pane-divider: #26233a;
+  --lib-row-selected-bg: #26233a;
+  --lib-row-selected-fg: #e0def4;
+  --lib-radius-sm: 4px;
+  --lib-radius-md: 6px;
+  --lib-radius-lg: 8px;
+}
+html[data-theme="github-light"] {
+  --lib-bg: #f6f8fa;
+  --lib-panel: #ffffff;
+  --lib-tab: #ffffff;
+  --lib-tab-active: #f6f8fa;
+  --lib-fg: #1f2328;
+  --lib-fg-muted: #656d76;
+  --lib-fg-hint: #68717c;
+  --lib-accent: #0969da;
+  --lib-save: #227c3b;
+  --lib-danger: #cf222e;
+  --lib-warn: #a65a00;
+  --lib-border: #d0d7de;
+  --lib-border-section: #d0d7de;
+  --lib-input-bg: #ffffff;
+  --lib-input-border: #d0d7de;
+  --lib-btn-bg: #ffffff;
+  --lib-btn-hover: #ddf4ff;
+  --lib-code-bg: #ffffff;
+  --lib-pane-bg: #ffffff;
+  --lib-pane-divider: #d0d7de;
+  --lib-row-selected-bg: #ddf4ff;
+  --lib-row-selected-fg: #1f2328;
+  --lib-radius-sm: 3px;
+  --lib-radius-md: 6px;
+  --lib-radius-lg: 6px;
+}
+/* @generated:ui-themes end */

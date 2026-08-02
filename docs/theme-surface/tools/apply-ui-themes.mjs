@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { composePopupThemes } from "../composers/popup-chrome.mjs";
 import { composeOptionsThemes } from "../composers/options-chrome.mjs";
+import { composeLibraryThemes } from "../composers/library-chrome.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "..", "..", "..");
@@ -24,6 +25,9 @@ export const SURFACES = [
   { name: "options", cssPath: resolve(ROOT, "options.css"),
     start: "/* @generated:ui-themes start — do not edit; produced by composers/options-chrome.mjs */",
     end: END, render: () => composeOptionsThemes(loadPilots()) },
+  { name: "library", cssPath: resolve(ROOT, "library.css"),
+    start: "/* @generated:ui-themes start — do not edit; produced by composers/library-chrome.mjs */",
+    end: END, render: () => composeLibraryThemes(loadPilots()) },
 ];
 
 export function spliceRegion(css, body, start, end) {
