@@ -312,9 +312,23 @@ function _pbpVocabRenderDetail(w) {
   _pbpVocabDetailWordId = w ? w.id : null;
   empty.hidden = !!w;
   detail.hidden = !w;
+  document.body.classList.toggle("lib-narrow-detail", !!w);
   if (!w) { detail.replaceChildren(); return; }
 
   const frag = document.createDocumentFragment();
+
+  // 0. Back button (narrow mode only)
+  const back = document.createElement("button");
+  back.type = "button";
+  back.className = "btn btn-sm vocab-detail-back";
+  // Icon: cross (the close/dismiss family — closing the detail IS the gesture;
+  // the registry has no arrowLeft, and arrowUp/Down are scroll semantics here).
+  setBtnIcon(back, "cross", t("libraryBack"));
+  back.addEventListener("click", () => {
+    document.body.classList.remove("lib-narrow-detail");
+    _pbpVocabRenderDetail(null);
+  });
+  frag.appendChild(back);
 
   // 1. Word head: term + language chip + speak
   const head = document.createElement("div");

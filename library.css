@@ -415,7 +415,12 @@ html[data-theme] .save-status.bad { color: var(--lib-danger); }
 @media (max-width: 860px) {
   .vocab-workbench { grid-template-columns: 1fr; }
   .vocab-detail-pane { position: static; }
+  /* Narrow mode is list OR detail, driven by a body class */
+  body.lib-narrow-detail .vocab-list-pane { display: none; }
+  body:not(.lib-narrow-detail) .vocab-detail-pane { display: none; }
+  .vocab-detail-back { display: inline-flex; }
 }
+.vocab-detail-back { display: none; }
 
 /* Detail pane content (Task 6). */
 .vocab-detail-head { display: flex; align-items: center; gap: var(--lib-sp-2); flex-wrap: wrap; }
