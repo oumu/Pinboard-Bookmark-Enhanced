@@ -2577,7 +2577,7 @@ async function run() {
 
       document.getElementById("tag-gov-progress-btn").click();
       check("E10 dismiss ignores a progress card owned by another account",
-        !document.getElementById("tag-gov-progress").classList.contains("hidden"));
+        !document.getElementById("tag-gov-progress").hidden);
     } finally {
       _tagGovVisibleAccount = previousVisibleAccount;
       wrap.remove();

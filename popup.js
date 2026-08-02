@@ -1363,7 +1363,14 @@ function setupSubmit(token) {
     pop.appendChild(msg); pop.appendChild(yes); pop.appendChild(no);
     delBtn.appendChild(pop);
 
-    function dismiss() { pop.remove(); }
+    function dismiss() {
+      if (pop.classList.contains("is-closing")) return;
+      // Exit scale-fade mirrors the popinScale entrance; instant under
+      // reduced motion so removal never lags.
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) { pop.remove(); return; }
+      pop.classList.add("is-closing");
+      setTimeout(() => pop.remove(), 150);
+    }
     pop.addEventListener("click", (e) => e.stopPropagation());
     no.addEventListener("click", dismiss);
     setTimeout(() => document.addEventListener("click", dismiss, { once: true }), 0);

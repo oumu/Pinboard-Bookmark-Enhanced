@@ -145,7 +145,7 @@ h1 { font-size: 18px; color: #333; margin-bottom: var(--opt-sp-7); border-bottom
   white-space: nowrap;
   transition: color var(--motion-state), border-color var(--motion-state), background-color var(--motion-state);
 }
-.tab-btn:focus-visible { outline: 2px solid var(--opt-accent, #4477bb); outline-offset: 2px; }
+/* Focus ring: shared soft-focus recipe below the .fg focus rules. */
 .tab-btn:hover:not(.active) { color: #333; border-left-color: #bbb; background: rgba(0,0,0,0.03); }
 .tab-btn.active { color: #333; font-weight: bold; border-left-color: #333; background: rgba(0,0,0,0.05); }
 .reset-tab-btn {
@@ -239,6 +239,20 @@ h1 { font-size: 18px; color: #333; margin-bottom: var(--opt-sp-7); border-bottom
 .fg input:focus-visible, .fg select:focus-visible, .fg textarea:focus-visible { box-shadow: var(--opt-focus-ring); }
 .fg input[type="checkbox"]:focus-visible { outline: 2px solid var(--opt-accent, #4477bb); outline-offset: 1px; box-shadow: none; }
 input[type="checkbox"], input[type="radio"] { accent-color: var(--opt-accent); }
+/* Soft focus for large hit-areas (full-width sidebar tabs, accordion and
+   disclosure headers, vocab card heads): 1px accent core + the --opt-focus-ring
+   glow instead of a hard 2px rectangle around a whole row. The glow MUST stay
+   the token -- generated themes restyle --opt-focus-ring per theme (terminal's
+   CRT glow, a 1px-line theme, solarized's 2px ring); a literal color-mix here
+   would flatten that. Compact controls keep the standard 2px ring family. */
+.tab-btn:focus-visible,
+.accordion-header:focus-visible,
+.vocab-disclosure > summary:focus-visible,
+.notes-card-head:focus-visible {
+  outline: 1px solid var(--opt-accent, #4477bb);
+  outline-offset: 2px;
+  box-shadow: var(--opt-focus-ring);
+}
 
 /* ---- Panel footer (e.g. General tab feedback link) ---- */
 .panel-foot { margin-top: var(--opt-sp-6); padding-top: var(--opt-sp-5); border-top: 1px solid #e8e8e8; font-size: 11px; text-align: center; }
@@ -317,7 +331,14 @@ html[data-theme] .free-tier-help summary { color: var(--opt-accent, #4477bb); }
    progress card and attention list) were never actually hidden, so the Dismiss
    button appeared to do nothing. */
 .hidden { display: none !important; }
-html[data-theme] .opt-error { color: var(--opt-danger, #e55); background: var(--opt-danger-bg, rgba(220,80,80,0.08)); border-color: var(--opt-danger, #e55); }
+/* Danger reads from a left strip, not a full-strength perimeter -- the full
+   --opt-danger ring looked like an alert frame on dark themes. */
+html[data-theme] .opt-error {
+  color: var(--opt-danger, #e55);
+  background: var(--opt-danger-bg, rgba(220,80,80,0.08));
+  border-color: color-mix(in srgb, var(--opt-danger, #e55) 35%, var(--opt-border, #ccc));
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--opt-danger, #e55) 75%, transparent);
+}
 .divider { border-top: 1px solid #ddd; margin: var(--opt-sp-6) 0; }
 .btn { padding: var(--opt-sp-2) var(--opt-sp-6); font-size: 12px; cursor: pointer; border: 1px solid #999; background: #f5f5f0; border-radius: var(--opt-radius-md); transition: background var(--motion-state), border-color var(--motion-state), color var(--motion-state); }
 .btn:hover:not(:disabled) { background: #eee; }
@@ -419,7 +440,17 @@ html.motion-ready .backup-import-result:not([hidden]) {
 
 /* ---- Provider fields ---- */
 .pf { margin-top: var(--opt-sp-4); padding: var(--opt-sp-5); background: #f9f9f6; border: 1px solid #e0e0d8; border-radius: var(--opt-radius-md); }
-.pf.hidden { display: none; }
+.pf[hidden] { display: none; }
+/* Same reveal recipe as .backup-import-preview, but the transition lives
+   inside :not([hidden]): provider switches swap two panels at once, and an
+   unscoped display transition would keep the outgoing panel on screen for a
+   beat -- exit must stay instant here. */
+html.motion-ready .pf:not([hidden]) {
+  transition: opacity var(--motion-pop) var(--ease-out),
+              translate var(--motion-pop) var(--ease-out),
+              display var(--motion-pop) allow-discrete;
+  @starting-style { opacity: 0; translate: 0 -4px; }
+}
 .pf h3 { font-size: 12px; color: #555; margin-bottom: var(--opt-sp-4); font-weight: bold; }
 
 /* ---- Markdown export targets (Send-to destination cards) ---- */
@@ -485,7 +516,7 @@ html[data-theme] .et-field select:focus-visible { box-shadow: var(--opt-focus-ri
   user-select: none; transition: color var(--motion-state), background-color var(--motion-state);
 }
 .accordion-header:hover { color: #2255aa; background: var(--opt-panel, #f4f4f0); }
-.accordion-header:focus-visible { outline: 2px solid var(--opt-accent, #4477bb); outline-offset: -2px; }
+/* Focus ring: shared soft-focus recipe (top of file). */
 /* CSS-drawn chevron, never a glyph (a literal ▶ fell back to Segoe UI Emoji
    on Windows and caused a font-load stall). 2026-08 redesign: one thin
    right-aligned chevron across every disclosure surface -- closed points
@@ -1303,8 +1334,24 @@ html[data-theme] .confirm-popover .confirm-no:hover { background: var(--opt-btn-
   padding: var(--opt-sp-5) var(--opt-sp-5); min-width: 220px;
   background: #fff; border: 1px solid #ccc; border-radius: var(--opt-radius-sm);
   box-shadow: 0 2px 10px rgba(0,0,0,0.14);
-  /* No entrance: the old one referenced @keyframes confirmFadeIn, which lives
-     only in popup.css, so it never resolved here. */
+}
+/* Same enter/exit recipe as .confirm-popover (both are createElement-then-
+   remove() popovers, so no display transition needed). The old entrance
+   referenced @keyframes confirmFadeIn, which lives only in popup.css and
+   never resolved here; exit needs options.js to add .is-closing and delay
+   remove() -- see themeNamePopover's dismiss. */
+html.motion-ready .theme-name-popover {
+  opacity: 1;
+  translate: 0 0;
+  transition: opacity var(--motion-pop) var(--ease-out),
+              translate var(--motion-pop) var(--ease-out);
+  @starting-style { opacity: 0; translate: 0 -4px; }
+}
+html.motion-ready .theme-name-popover.is-closing {
+  opacity: 0;
+  translate: 0 -4px;
+  pointer-events: none;
+  transition-duration: var(--motion-pop-out);
 }
 .theme-name-popover label { font-size: 12px; color: #555; margin: 0; }
 .theme-name-popover input[type="text"] {
@@ -1489,6 +1536,7 @@ html[data-theme] .preset-preview-content { background: var(--opt-bg); color: var
 .wayback-perm-tip {
   grid-column: 1 / -1;
   display: none;
+  opacity: 0;
   padding: var(--opt-sp-2) var(--opt-sp-3);
   border: 1px solid var(--opt-border, #ccc);
   border-radius: var(--opt-radius-sm, 3px);
@@ -1498,12 +1546,22 @@ html[data-theme] .preset-preview-content { background: var(--opt-bg); color: var
   line-height: 1.5;
   overflow-wrap: anywhere;
 }
-.wayback-log-row:focus-within .wayback-perm-tip { display: block; }
+html.motion-ready .wayback-perm-tip {
+  transition: opacity var(--motion-pop) var(--ease-out),
+              display var(--motion-pop) allow-discrete;
+}
+.wayback-log-row:focus-within .wayback-perm-tip { display: block; opacity: 1; }
+html.motion-ready .wayback-log-row:focus-within .wayback-perm-tip {
+  @starting-style { opacity: 0; }
+}
 /* :hover is gated to real pointers — this inserts a full-width grid row inside a
    scrolling log, and on touch :hover latches after a tap so the tip would stay
    wedged open. :focus-within above stays ungated. */
 @media (hover: hover) and (pointer: fine) {
-  .wayback-log-row:hover .wayback-perm-tip { display: block; }
+  .wayback-log-row:hover .wayback-perm-tip { display: block; opacity: 1; }
+  html.motion-ready .wayback-log-row:hover .wayback-perm-tip {
+    @starting-style { opacity: 0; }
+  }
 }
 .wayback-log-retry {
   background: none;
@@ -1646,6 +1704,17 @@ html[data-theme] .preset-preview-content { background: var(--opt-bg); color: var
   border-radius: var(--opt-radius-md, 6px);
   padding: var(--opt-sp-4) var(--opt-sp-4);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+#tag-gov-progress[hidden] { display: none; }
+/* Sticky card arrival rides the same reveal recipe as .backup-import-preview
+   (scoped to :not([hidden]) so Dismiss stays instant). Uses the native hidden
+   attribute, not the .hidden utility class -- the reveal needs the display
+   transition, same split as .pf / backup panels. */
+html.motion-ready #tag-gov-progress:not([hidden]) {
+  transition: opacity var(--motion-pop) var(--ease-out),
+              translate var(--motion-pop) var(--ease-out),
+              display var(--motion-pop) allow-discrete;
+  @starting-style { opacity: 0; translate: 0 8px; }
 }
 .progress-bar {
   width: 100%;
@@ -2053,7 +2122,10 @@ html.motion-ready .notes-card-top { transition: background-color var(--motion-st
 /* A failed mutation pins itself to the card it happened on -- a persistent
    border, deliberately not a flash animation: the reduced-motion blanket
    would swallow a keyframe and those users would never see the failure. */
-.notes-card.is-error { border-color: var(--opt-danger, #c00); }
+.notes-card.is-error {
+  border-color: color-mix(in srgb, var(--opt-danger, #c00) 35%, var(--opt-border, #ccc));
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--opt-danger, #c00) 75%, transparent);
+}
 /* Selected rows read as a scannable accent band (declared after :hover so
    selection wins, with a deeper hover step layered on top). */
 .vocab-card.selected .notes-card-top { --row-bg: color-mix(in srgb, var(--opt-accent, #4477bb) 10%, var(--opt-bg, #fff)); }
@@ -2066,8 +2138,8 @@ html.motion-ready .notes-card-top { transition: background-color var(--motion-st
    focus ring; same recipe as .btn:focus-visible. :focus-visible, not :focus --
    a mouse click on the head must not pin the ring. */
 .notes-card-head:focus-visible {
-  outline: 2px solid var(--opt-accent, #4477bb);
-  outline-offset: 2px;
+  /* Ring itself comes from the shared soft-focus recipe (top of file);
+     the radius keeps it following the row shape. */
   border-radius: var(--opt-radius-sm, 3px);
 }
 /* Reveal on hover or the control's own keyboard focus -- NOT card-level
@@ -2158,7 +2230,7 @@ html.motion-ready .notes-card-top { transition: background-color var(--motion-st
   transition: color var(--motion-state), background-color var(--motion-state);
 }
 .vocab-disclosure > summary:hover { color: var(--opt-fg, #222); background: var(--opt-panel, #f4f4f0); }
-.vocab-disclosure > summary:focus-visible { outline: 2px solid var(--opt-accent); outline-offset: 2px; }
+/* Focus ring: shared soft-focus recipe (top of file). */
 /* Open state: the body's bottom padding faces the NEXT row's rule, so it
    matches the summaries' 12px rhythm instead of pinching to 6. */
 .vocab-details-body { padding: 0 0 var(--opt-sp-5); }
@@ -2242,6 +2314,7 @@ html[data-theme="flexoki-dark"] #panel-vocab .vocab-details-body > .hint {
   cursor: pointer;
   margin: 0;
   padding: 0;
+  transition: opacity var(--motion-state) ease;
 }
 .notes-filter-dot[aria-pressed="false"] {
   opacity: .32;

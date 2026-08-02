@@ -263,7 +263,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         const card = $id("tag-gov-progress");
         const pt = $id("tag-gov-progress-text");
         _tagGovClaimProgress(auth.account);
-        if (card) card.classList.remove("hidden");
+        if (card) card.hidden = false;
         _tagGovSetProgress(100, auth.account);
         if (pt) {
           pt.textContent = t("tagGovLastRun", new Date(lr.ts).toLocaleString()) + " "
@@ -317,7 +317,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       $id("tag-gov-problems")?.replaceChildren();
       const progress = $id("tag-gov-progress");
       if (progress) {
-        progress.classList.add("hidden");
+        progress.hidden = true;
         delete progress.dataset.account;
       }
       $id("tag-gov-bundles-warn")?.querySelector("a")?.remove();
@@ -1530,7 +1530,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const selected = $id("opt-ai-provider").value;
     providers.forEach(p => {
       const el = $id("fields-" + p);
-      if (el) el.classList.toggle("hidden", p !== selected);
+      if (el) el.hidden = p !== selected; // native hidden: .pf reveal transition keys off [hidden]
     });
   }
   updateProviderFields();
@@ -2144,8 +2144,17 @@ document.addEventListener("DOMContentLoaded", async () => {
     inp.focus();
 
     function dismiss() {
-      pop.remove();
       document.removeEventListener("keydown", onEscGlobal);
+      if (pop.classList.contains("is-closing")) return;
+      // Exit fade mirrors .confirm-popover; instant when the CSS recipe can't
+      // run (no motion-ready yet, or reduced motion) so removal never lags.
+      if (!document.documentElement.classList.contains("motion-ready")
+          || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        pop.remove();
+        return;
+      }
+      pop.classList.add("is-closing");
+      setTimeout(() => pop.remove(), 150);
     }
     // Document-level ESC so focus doesn't have to be inside the input.
     function onEscGlobal(ev) { if (ev.key === "Escape") dismiss(); }
@@ -2481,7 +2490,7 @@ async function ensureTagSnapshot(expectedAccount) {
   try {
     const auth = await getTagGovAuth(expectedAccount);
     if (!auth) {
-      if (_tagGovUiOwned(expectedAccount) && progress) progress.classList.remove("hidden");
+      if (_tagGovUiOwned(expectedAccount) && progress) progress.hidden = false;
       if (_tagGovUiOwned(expectedAccount) && progressText) progressText.textContent = t("tagGovSnapshotFailed");
       _tagGovSetProgressBtn("dismiss", expectedAccount); // failure card must be closable on a fresh page
       return false;
@@ -2490,7 +2499,7 @@ async function ensureTagSnapshot(expectedAccount) {
       `https://api.pinboard.in/v1/tags/get?auth_token=${encodeURIComponent(auth.token)}&format=json`
     );
     if (!resp || !resp.ok) {
-      if (_tagGovUiOwned(expectedAccount) && progress) progress.classList.remove("hidden");
+      if (_tagGovUiOwned(expectedAccount) && progress) progress.hidden = false;
       if (_tagGovUiOwned(expectedAccount) && progressText) progressText.textContent = t("tagGovSnapshotFailed");
       _tagGovSetProgressBtn("dismiss", expectedAccount); // failure card must be closable on a fresh page
       return false;
@@ -2515,13 +2524,13 @@ async function ensureTagSnapshot(expectedAccount) {
     _tagGovSnapshotAccount = auth.account;
     // Don't stomp a running batch's progress line with the snapshot note.
     if (_tagGovUnfinishedBatches === 0) {
-      if (_tagGovUiOwned(expectedAccount) && progress) progress.classList.remove("hidden");
+      if (_tagGovUiOwned(expectedAccount) && progress) progress.hidden = false;
       if (_tagGovUiOwned(expectedAccount) && progressText) progressText.textContent = t("tagGovSnapshotSaved");
     }
     return true;
   } catch (e) {
     if (e?.code !== "account_changed") console.error("[tag-gov] ensureTagSnapshot failed:", e);
-    if (_tagGovUiOwned(expectedAccount) && progress) progress.classList.remove("hidden");
+    if (_tagGovUiOwned(expectedAccount) && progress) progress.hidden = false;
     if (_tagGovUiOwned(expectedAccount) && progressText) progressText.textContent = t("tagGovSnapshotFailed");
     _tagGovSetProgressBtn("dismiss", expectedAccount); // failure card must be closable on a fresh page
     return false;
@@ -2764,7 +2773,7 @@ document.addEventListener("click", (ev) => {
     _tagGovCancelRequested = true;
     btn.disabled = true; // takes effect at the next per-bookmark checkpoint
   } else {
-    if (card) card.classList.add("hidden");
+    if (card) card.hidden = true;
     // The attention list is a sibling of the card — dismiss both, or it stays
     // orphaned on screen with no way to clear it.
     _tagGovProblems.length = 0;
@@ -2971,7 +2980,7 @@ async function _runTagGovBatch(ops, expectedAccount) {
   if (!runAuth) {
     const pt = $id("tag-gov-progress-text");
     const pg = $id("tag-gov-progress");
-    if (_tagGovUiOwned(expectedAccount) && pg) pg.classList.remove("hidden");
+    if (_tagGovUiOwned(expectedAccount) && pg) pg.hidden = false;
     if (_tagGovUiOwned(expectedAccount) && pt) pt.textContent = t("pinboardErrorAuth");
     _tagGovSetProgressBtn("dismiss", expectedAccount);
     // Account changes cancel the captured plan; they are not operation failures.
@@ -2983,7 +2992,7 @@ async function _runTagGovBatch(ops, expectedAccount) {
   const ptext = $id("tag-gov-progress-text");
   // Visibility from any scroll position is handled by CSS — #tag-gov-progress is
   // position:sticky at the viewport bottom, so no scroll jump is needed here.
-  if (_tagGovUiOwned(expectedAccount) && progress) progress.classList.remove("hidden");
+  if (_tagGovUiOwned(expectedAccount) && progress) progress.hidden = false;
 
   _tagGovSetProgressBtn("stop", expectedAccount);
 

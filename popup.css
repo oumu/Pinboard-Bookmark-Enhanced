@@ -592,6 +592,15 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--pp-accent); }
   transform-origin: bottom left;
 }
 .del-confirm-popover button { padding: 1px var(--pp-sp-4); font-size: 11px; cursor: pointer; border: 1px solid #ccc; background: #f5f5f0; }
+.del-confirm-popover button:focus-visible { outline: 2px solid var(--pp-accent, #4477bb); outline-offset: 1px; }
+/* Exit mirrors the popinScale entrance (scale, not translateY); popup.js
+   dismiss() adds the class and delays remove(). */
+.del-confirm-popover.is-closing {
+  opacity: 0;
+  transform: scale(0.95);
+  pointer-events: none;
+  transition: opacity 0.1s var(--ease-out), transform 0.1s var(--ease-out);
+}
 .del-confirm-yes { color: #c00 !important; border-color: #c00 !important; }
 .del-confirm-yes:hover { background: #fee !important; }
 .del-confirm-no:hover { background: #eee; }
@@ -870,6 +879,9 @@ html.dark .batch-progress-text { color: var(--pp-fg); mix-blend-mode: normal; fi
   background: #fffbea;
   border-top: 1px dashed #e8d88c;
   font-size: 11px;
+  /* Same reveal as .existing-banner/.url-warning: replays on display:none->block,
+     so the .hidden toggle in popup-offline.js needs no JS change. */
+  animation: fadeSlideDown var(--pp-motion-duration) var(--ease-out);
 }
 .offline-queue-empty {
   padding: var(--pp-sp-4);
@@ -917,7 +929,9 @@ html.dark .batch-progress-text { color: var(--pp-fg); mix-blend-mode: normal; fi
   cursor: pointer;
   line-height: 1.4;
   position: relative;
+  transition: background var(--pp-motion-state), color var(--pp-motion-state), border-color var(--pp-motion-state);
 }
+.offline-queue-actions button:focus-visible { outline: 2px solid var(--pp-accent, #4477bb); outline-offset: 1px; }
 .offline-queue-actions button:hover:not(:disabled) { background: rgba(0,0,0,0.06); color: var(--pp-accent); }
 .offline-queue-actions button:disabled { opacity: 0.5; cursor: default; }
 .offline-queue-actions .offline-queue-remove:hover:not(:disabled) { color: #c00; }
@@ -2009,6 +2023,9 @@ html[data-theme] .confirm-popover button:focus-visible { outline-color: var(--pp
   border: 1px solid var(--pp-divider);
   border-radius: var(--pp-radius-md);
   font-size: 11px;
+  /* Card-family entrance (same note as .batch-permission: every member of the
+     card family enters via fadeSlideDown; this one was a holdout). */
+  animation: fadeSlideDown var(--pp-motion-duration) var(--ease-out);
 }
 .md-strip.hidden { display: none; }
 .md-strip-btn {
