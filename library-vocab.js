@@ -51,7 +51,9 @@ const PBP_VOCAB_RENDER_BATCH = 100;
 const _vocabCollator = new Intl.Collator(undefined, { sensitivity: "base", numeric: true });
 
 // Detail-pane activation hook, implemented below by _pbpVocabRenderDetail.
-let _pbpVocabOnRowActivate = (w) => _pbpVocabRenderDetail(w);
+// `true` = this is a user activation, so narrow mode swaps to the detail pane
+// (a plain refresh render must not, see _pbpVocabRenderDetail).
+let _pbpVocabOnRowActivate = (w) => _pbpVocabRenderDetail(w, true);
 // Id of the word currently shown in the detail pane (or null); read by the
 // mutation-reload and generic-render paths to re-find and re-mark its row.
 let _pbpVocabDetailWordId = null;
@@ -287,10 +289,12 @@ function _pbpVocabBuildNoteEditor(w) {
     noteSave.disabled = true;
     const gen = ++_vocabRenderGen;
     let owner = null;
+    const restoreSelection = _pbpVocabHoldSelection(gen);
     try {
       owner = await pbpVocabCurrentOwner();
       const ok = await pbpVocabSetNote(w.id, owner, noteInput.value);
       const refreshed = await _pbpVocabReloadAfterMutation(owner, gen);
+      restoreSelection();
       if (gen !== _vocabRenderGen) return;
       if (!ok) {
         _pbpVocabFlashStatus(false, t("vocabBatchFailed"));
@@ -303,7 +307,7 @@ function _pbpVocabBuildNoteEditor(w) {
       else if (!refreshed) _pbpVocabFlashStatus(false, t("vocabRefreshFailed"));
       else _pbpVocabFlashStatus(true, t("vocabNoteSaved"));
     } catch (_) {
-      if (owner) await _pbpVocabReloadAfterMutation(owner, gen);
+      if (owner) { await _pbpVocabReloadAfterMutation(owner, gen); restoreSelection(); }
       if (gen === _vocabRenderGen) _pbpVocabFlashStatus(false, t("vocabBatchFailed"));
     } finally {
       noteSave.disabled = false;
@@ -335,7 +339,12 @@ function _pbpVocabBuildBackBtn() {
 // back to the empty state for null, e.g. after a delete). Reassigned onto
 // _pbpVocabOnRowActivate above; also called directly by the reload-after-
 // mutation and delete-linkage paths.
-function _pbpVocabRenderDetail(w) {
+// `enterNarrow` is opt-in: only a user activation (row click, free-lookup
+// submit) may swap narrow mode from the list to the detail. Refresh renders
+// (mutation reload, view re-entry) keep whichever pane the user is on --
+// otherwise every sibling mutation would yank a narrow reader into the
+// detail, and library.js's view switch could never hand the list back.
+function _pbpVocabRenderDetail(w, enterNarrow) {
   const empty = $id("vocab-detail-empty");
   const detail = $id("vocab-detail");
   // No-op where the detail pane doesn't exist -- library-vocab.js's row
@@ -351,7 +360,8 @@ function _pbpVocabRenderDetail(w) {
   _pbpVocabDetailWordId = w ? w.id : null;
   empty.hidden = !!w;
   detail.hidden = !w;
-  document.body.classList.toggle("lib-narrow-detail", !!w);
+  if (!w) document.body.classList.remove("lib-narrow-detail");
+  else if (enterNarrow) document.body.classList.add("lib-narrow-detail");
   if (!w) { detail.replaceChildren(); return; }
 
   const frag = document.createDocumentFragment();
@@ -762,8 +772,29 @@ function _pbpVocabFreeLookup() {
   wrap.appendChild(slot);
   host.replaceChildren(wrap);
 
-  const run = () => _pbpVocabDictRun(term, sel.value, { localEl, onlineEl }, "", run);
+  // `lang`, not sel.value: this run belongs to the submitted query. md-dict's
+  // rerun callback fires long after submit (retry link, cache miss), and by
+  // then the dropdown may name a language the user picked for the NEXT
+  // lookup -- rerunning under it would silently answer a different question
+  // than the result heading claims. A language change re-submits on its own.
+  const run = () => _pbpVocabDictRun(term, lang, { localEl, onlineEl }, "", run);
   run();
+
+  // Narrow mode just swapped the list out for this result. Focus has to
+  // follow it, or the next Tab starts from <body> at the top of the page --
+  // and the one control that gets the user back is the button below.
+  if (_pbpVocabNarrowMode()) {
+    const back = detail.querySelector(".vocab-detail-back");
+    if (back) { try { back.focus({ preventScroll: true }); } catch (_) { back.focus(); } }
+  }
+}
+
+// Narrow (single-pane) mode, read off live layout rather than duplicating
+// library.css's 860px breakpoint here: below it, body.lib-narrow-detail is
+// exactly what hides the list pane.
+function _pbpVocabNarrowMode() {
+  const pane = document.querySelector(".vocab-list-pane");
+  return !!pane && getComputedStyle(pane).display === "none";
 }
 
 // Split the quote around case-insensitive matches of the term; matches render
@@ -784,21 +815,40 @@ function _pbpVocabHighlightTerm(host, quote, term) {
   host.appendChild(document.createTextNode(quote.slice(idx)));
 }
 
+// A detail-pane edit acts on ONE word; it is not a batch action, so the list
+// selection it never touched must survive its reload. _pbpVocabReloadAfterMutation
+// clears the selection unconditionally -- correct for the batch-bar callers,
+// wrong for these. Snapshot before, hand it back after, and let
+// _pbpVocabSyncSelectionUi prune whatever the fresh rows no longer contain
+// (the same pruning _pbpVocabSoftReload leans on).
+function _pbpVocabHoldSelection(gen) {
+  const saved = new Set(_vocabSelected);
+  const anchor = _vocabLastSelectedId;
+  return () => {
+    if (gen !== _vocabRenderGen || !saved.size) return;
+    _vocabSelected = new Set(saved);
+    _vocabLastSelectedId = anchor;
+    _pbpVocabSyncSelectionUi();
+  };
+}
+
 // Shared single-word mutation wrapper: owner + generation discipline identical
 // to the batch actions (mutation at confirm, reload after, stale writes dropped).
 async function _pbpVocabDetailMutate(w, mutate) {
   const gen = ++_vocabRenderGen;
   let owner = null;
+  const restoreSelection = _pbpVocabHoldSelection(gen);
   try {
     owner = await pbpVocabCurrentOwner();
     const ok = await mutate(owner);
     const refreshed = await _pbpVocabReloadAfterMutation(owner, gen);
+    restoreSelection();
     if (gen !== _vocabRenderGen) return;
     if (!ok) _pbpVocabFlashStatus(false, t("vocabBatchFailed"));
     else if (!refreshed) _pbpVocabFlashStatus(false, t("vocabRefreshFailed"));
   } catch (err) {
     console.warn("vocab detail mutate failed:", err.name, err.message);
-    if (owner) await _pbpVocabReloadAfterMutation(owner, gen);
+    if (owner) { await _pbpVocabReloadAfterMutation(owner, gen); restoreSelection(); }
     if (gen === _vocabRenderGen) _pbpVocabFlashStatus(false, t("vocabBatchFailed"));
   }
 }
@@ -879,6 +929,10 @@ function _pbpVocabDeleteRow(w, anchor) {
         // committed already, and this latest action owns the final reconcile.
         const refreshed = await _pbpVocabReloadAfterMutation(owner, gen);
         if (gen !== _vocabRenderGen) return;
+        // The confirm popover handed focus back to the delete button, which
+        // the reload has just rebuilt away -- without this, focus lands on
+        // <body>. Same landing spot every batch action already uses.
+        _pbpVocabFocusStable();
         if (!ok) _pbpVocabFlashStatus(false, t("dictDeleteFailed"));
         else if (!refreshed) _pbpVocabFlashStatus(false, t("vocabRefreshFailed"));
       } catch (_) {
@@ -887,7 +941,10 @@ function _pbpVocabDeleteRow(w, anchor) {
           _pbpVocabClearVisibleState();
           _pbpVocabSetLoading(false);
         }
-        if (gen === _vocabRenderGen) _pbpVocabFlashStatus(false, t("dictDeleteFailed"));
+        if (gen === _vocabRenderGen) {
+          _pbpVocabFocusStable();
+          _pbpVocabFlashStatus(false, t("dictDeleteFailed"));
+        }
       }
     },
   });
@@ -1089,6 +1146,40 @@ function _pbpVocabClearVisibleState() {
   _pbpVocabSyncSelectionUi();
 }
 
+// Detail pane follows the data: re-render the shown word from the freshly
+// read rows, or reset to the empty state when it is gone. Shared by the
+// mutation reload and by renderVocabPanel -- a view re-entry that dropped
+// this left the pane showing a word the list no longer has.
+//
+// Unsaved text survives the rebuild. A mutation on a SIBLING row (or another
+// tab's write) rebuilds this pane too, and half-typed note / group-name text
+// is the user's, not the store's. The save button's visibility is derived
+// rather than snapshotted: "the text differs from the stored note" is
+// precisely what it means, and deriving it stays honest after a note save
+// (where the restored text now equals the stored one).
+function _pbpVocabReconcileDetail() {
+  if (!_pbpVocabDetailWordId) return;
+  const detail = $id("vocab-detail");
+  if (!detail) return;
+  const liveNote = detail.querySelector(".vocab-note-input");
+  const liveGroup = detail.querySelector(".vocab-group-unit input");
+  const draftNote = liveNote ? liveNote.value : null;
+  const draftGroup = liveGroup ? liveGroup.value : "";
+  const fresh = _vocabViewRows.find((row) => row.id === _pbpVocabDetailWordId);
+  _pbpVocabRenderDetail(fresh || null);
+  if (!fresh) return;
+  const el = document.querySelector(`#vocab-list .vocab-card[data-vocab-id="${CSS.escape(fresh.id)}"]`);
+  if (el) el.setAttribute("aria-current", "true");
+  const note = detail.querySelector(".vocab-note-input");
+  if (note && draftNote !== null && draftNote !== note.value) {
+    note.value = draftNote;
+    const save = detail.querySelector(".vocab-note-save");
+    if (save) save.hidden = false;
+  }
+  const group = detail.querySelector(".vocab-group-unit input");
+  if (group && draftGroup) group.value = draftGroup;
+}
+
 async function _pbpVocabReloadAfterMutation(expectedOwner, requestedGen) {
   const gen = Number.isInteger(requestedGen) ? requestedGen : ++_vocabRenderGen;
   if (gen !== _vocabRenderGen) return false;
@@ -1120,17 +1211,12 @@ async function _pbpVocabReloadAfterMutation(expectedOwner, requestedGen) {
     _pbpVocabClearSelection();
     _pbpVocabRefreshGroupOptions(true);
     _pbpVocabSetLoading(false);
-    _pbpVocabApplyView(true);
-    // Detail pane follows the data: refresh the shown word from the fresh rows,
-    // or reset to the empty state when it was deleted.
-    if (_pbpVocabDetailWordId) {
-      const fresh = _vocabViewRows.find((row) => row.id === _pbpVocabDetailWordId);
-      _pbpVocabRenderDetail(fresh || null);
-      if (fresh) {
-        const el = document.querySelector(`#vocab-list .vocab-card[data-vocab-id="${CSS.escape(fresh.id)}"]`);
-        if (el) el.setAttribute("aria-current", "true");
-      }
-    }
+    // Keep the render depth: a mutation is not a reason to throw away the
+    // pages a user loaded with "Load more" (the row cap still clamps to the
+    // fresh row count). Non-append render, so _pbpVocabRenderList re-marks
+    // aria-current across the whole restored depth.
+    _pbpVocabApplyView(false);
+    _pbpVocabReconcileDetail();
     return true;
   } catch (_) {
     if (gen !== _vocabRenderGen) return false;
@@ -1157,7 +1243,13 @@ async function renderVocabPanel() {
     owner = await pbpVocabCurrentOwner();
     rows = await pbpVocabAll(owner);
     if (await pbpVocabCurrentOwner() !== owner) {
-      if (gen === _vocabRenderGen) renderVocabPanel();
+      // Same owner-isolation reset as every other account-change path (I1):
+      // the previous owner's word must not stay in the detail pane while the
+      // re-read runs -- at <860px that pane is the whole screen.
+      if (gen === _vocabRenderGen) {
+        _pbpVocabRenderDetail(null);
+        renderVocabPanel();
+      }
       return;
     }
   } catch (_) {
@@ -1178,6 +1270,10 @@ async function renderVocabPanel() {
   _pbpVocabSetLoading(false);
   _pbpVocabRefreshGroupOptions(false);
   _pbpVocabApplyView(true);
+  // Same reconcile the mutation reload does: re-entering the view (or any
+  // other full re-read) must not leave a word in the detail pane that the
+  // freshly read list no longer contains.
+  _pbpVocabReconcileDetail();
 }
 
 // I3: a visibilitychange-triggered re-fire of pbp-lib-view on a vocab view
@@ -1216,19 +1312,24 @@ async function _pbpVocabSoftReload() {
     renderVocabPanel();
     return;
   }
-  // _pbpVocabReloadAfterMutation unconditionally clears the selection (line
-  // ~878) and resets _vocabRenderLimit to the first batch (via
-  // _pbpVocabApplyView(true)) -- both correct for its usual callers, a
-  // mutation just happened -- neither applies here, nothing changed under
-  // the user. Snapshot and restore both around the call.
+  // _pbpVocabReloadAfterMutation unconditionally clears the selection --
+  // correct for its usual callers, a mutation just happened, but nothing
+  // changed under the user here. Snapshot and restore it around the call.
+  // (Render depth needs no snapshot: the reload preserves _vocabRenderLimit.)
   const savedSelection = new Set(_vocabSelected);
   const savedAnchor = _vocabLastSelectedId;
-  const savedLimit = _vocabRenderLimit;
-  await _pbpVocabReloadAfterMutation(owner, gen);
+  const reloaded = await _pbpVocabReloadAfterMutation(owner, gen);
   if (gen !== _vocabRenderGen) return;
+  if (!reloaded) {
+    // The read failed and the reload already cleared, fail-closed. Rendering
+    // the now-empty list here would paint "no saved words yet" over a read
+    // failure -- indistinguishable from actually losing every word. Say the
+    // read failed instead and leave #vocab-empty hidden.
+    _pbpVocabFlashStatus(false, t("vocabLoadFailed"));
+    return;
+  }
   _vocabSelected = savedSelection;
   _vocabLastSelectedId = savedAnchor;
-  _vocabRenderLimit = savedLimit;
   // Rebuild to the restored depth. _pbpVocabBuildRow reads _vocabSelected at
   // build time, and the trailing _pbpVocabSyncSelectionUi() call inside
   // _pbpVocabRenderList prunes any restored id that no longer exists in the
@@ -1523,8 +1624,13 @@ document.addEventListener("pbp-lib-view", (e) => {
 // screen, so a hidden stale list is exactly what must not survive.
 if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.onChanged) {
   chrome.storage.onChanged.addListener((changes, area) => {
-    if ((area !== "sync" && area !== "local") ||
-        !(changes.pinboardToken || changes.optSyncEnabled || changes.syncApiKeys)) return;
+    if (area !== "sync" && area !== "local") return;
+    const relevant = [changes.pinboardToken, changes.optSyncEnabled, changes.syncApiKeys].filter(Boolean);
+    // An identical rewrite (settings saved with the same token, a toggle set
+    // to the value it already had) names no new account. Tearing the whole
+    // view down for it would drop selection, render depth and the open
+    // detail for nothing.
+    if (!relevant.length || relevant.every((change) => change.oldValue === change.newValue)) return;
     _pbpVocabClearVisibleState();
     // I1: same owner-isolation gap as _pbpVocabReloadAfterMutation's
     // ownerNow-mismatch branch above -- the list clear never touched the

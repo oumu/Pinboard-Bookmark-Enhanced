@@ -3,6 +3,10 @@
 <link rel="stylesheet" href="../library.css">
 <style>
 body{font-family:monospace;padding:16px}.case{padding:5px;border-bottom:1px solid #ddd}.pass{color:#176}.fail{color:#b00}
+/* Stands in for the <=860px media query's back-button rule; scoped to the one
+   test that needs it (see its comment) so nothing else sees a narrow-mode
+   stylesheet at this harness's 1280px viewport. */
+body.test-narrow-back .vocab-detail-back{display:inline-flex}
 </style></head>
 <body>
 <!-- vocab-workbench two-pane skeleton, copied from library.html (minus
@@ -34,8 +38,8 @@ body{font-family:monospace;padding:16px}.case{padding:5px;border-bottom:1px soli
             <option value="za">Z-A</option>
           </select>
           <span class="vocab-sort-seg" role="group" aria-label="Sort vocabulary">
-            <button type="button" class="btn btn-sm vocab-sort-btn" id="vocab-sort-time" aria-pressed="true" aria-label="Least recently updated" title="Least recently updated"><span class="btn-ic" data-ic="clockArrowDown"></span></button>
-            <button type="button" class="btn btn-sm vocab-sort-btn" id="vocab-sort-alpha" aria-pressed="false" aria-label="A-Z" title="A-Z"><span class="btn-ic" data-ic="arrowDownAZ"></span></button>
+            <button type="button" class="btn btn-sm vocab-sort-btn" id="vocab-sort-time" aria-pressed="true" data-i18n-title="vocabSortOldest" data-i18n-aria="vocabSortOldest" aria-label="Least recently updated" title="Least recently updated"><span class="btn-ic" data-ic="clockArrowDown"></span></button>
+            <button type="button" class="btn btn-sm vocab-sort-btn" id="vocab-sort-alpha" aria-pressed="false" data-i18n-title="vocabSortAz" data-i18n-aria="vocabSortAz" aria-label="A-Z" title="A-Z"><span class="btn-ic" data-ic="arrowDownAZ"></span></button>
           </span>
         </div>
       </div>
@@ -289,7 +293,7 @@ check("lookup bar wiring populates the language select with no Auto leg",
 
   const realDictRun = _pbpVocabDictRun;
   const runCalls = [];
-  _pbpVocabDictRun = (term, lang) => { runCalls.push({ term, lang }); };
+  _pbpVocabDictRun = (term, lang, els, sentence, rerun) => { runCalls.push({ term, lang, rerun }); };
   try {
     // MANDATORY AMENDMENT coverage: cold start, i.e. _pbpVocabDictCtrl has
     // never been touched by a word-detail relookup -- forced explicitly so
@@ -341,6 +345,49 @@ check("lookup bar wiring populates the language select with no Auto leg",
     _pbpVocabFreeLookup();
     check("free lookup with no stored match shows no saved-word hint",
       !$id("vocab-detail").querySelector(".vocab-lookup-saved"));
+
+    // Phase C (7): md-dict's rerun callback fires long after submit (retry
+    // link, cache miss). Reading the <select> then would answer a different
+    // question than the result heading names -- the language belongs to the
+    // submitted query, not to whatever the dropdown says later.
+    runCalls.length = 0;
+    $id("vocab-lookup-lang").value = "en";
+    $id("vocab-lookup-input").value = "drift";
+    _pbpVocabFreeLookup();
+    const submittedRerun = runCalls[0] && runCalls[0].rerun;
+    $id("vocab-lookup-lang").value = "de"; // user re-aims the dropdown for the NEXT lookup
+    if (submittedRerun) submittedRerun();
+    check("a lookup rerun stays on the language the query was submitted with",
+      runCalls.length === 2 && runCalls[1].term === "drift" && runCalls[1].lang === "en",
+      JSON.stringify(runCalls.map((c) => c.term + "/" + c.lang)));
+
+    // Phase C (9a): narrow mode just replaced the list with this result, so
+    // focus has to follow it -- otherwise the next Tab starts from <body> and
+    // the one control that gets back to the list is never reached.
+    const realNarrow = _pbpVocabNarrowMode;
+    try {
+      // Two things are true below 860px: the mode predicate reads the hidden
+      // list pane, AND library.css un-hides the back button (it is
+      // display:none at this harness's 1280px viewport, and focus() on a
+      // display:none element is a no-op). The runner cannot resize the
+      // viewport, so stand both signals up explicitly -- the media query
+      // itself is covered by the responsive sweep further down.
+      document.body.classList.add("test-narrow-back");
+      _pbpVocabNarrowMode = () => true;
+      $id("vocab-lookup-input").value = "focusme";
+      _pbpVocabFreeLookup();
+      check("a narrow-mode lookup moves focus to the result pane's back button",
+        document.activeElement === $id("vocab-detail").querySelector(".vocab-detail-back"));
+      _pbpVocabNarrowMode = () => false;
+      $id("vocab-lookup-input").focus();
+      $id("vocab-lookup-input").value = "stayput";
+      _pbpVocabFreeLookup();
+      check("a two-pane lookup leaves focus in the lookup box",
+        document.activeElement === $id("vocab-lookup-input"));
+    } finally {
+      _pbpVocabNarrowMode = realNarrow;
+      document.body.classList.remove("test-narrow-back");
+    }
   } finally {
     _pbpVocabDictRun = realDictRun;
   }
@@ -795,6 +842,162 @@ check("selection still covers all filtered results beyond rendered chunks", _voc
     pbpVocabBatchAddGroup = raceRealAddGroup;
     pbpVocabCurrentOwner = raceRealOwner;
     pbpVocabAll = raceRealAll;
+  }
+
+  // ---- Phase C: detail pane / list state across reloads --------------
+  // One shared mock store for the whole block; `settle` drains the
+  // fire-and-forget mutation chains (click handlers are not awaitable) without
+  // waitFor's throw-on-timeout, which would abort the remaining suite.
+  const settle = async () => { for (let i = 0; i < 25; i++) await task(); };
+  {
+    const cRealOwner = pbpVocabCurrentOwner;
+    const cRealAll = pbpVocabAll;
+    const cRealStatus = pbpVocabBatchSetStatus;
+    const cRealDelete = pbpVocabDelete;
+    const cOwner = "acct_detail";
+    let cStore = [
+      { id:"d1", owner:cOwner, term:"alpha", groups:[], contexts:[], note:"", status:"new", updatedAt:30 },
+      { id:"d2", owner:cOwner, term:"beta",  groups:[], contexts:[], note:"", status:"new", updatedAt:20 },
+      { id:"d3", owner:cOwner, term:"gamma", groups:[], contexts:[], note:"", status:"new", updatedAt:10 },
+    ];
+    const cClone = () => cStore.map((row) => ({ ...row, groups:[...row.groups], contexts:[...row.contexts] }));
+    const detailEl = () => $id("vocab-detail");
+    try {
+      $id("vocab-search").value = "";
+      $id("vocab-group-filter").value = "";
+      $id("vocab-status-filter").value = "";
+      $id("vocab-sort").value = "latest";
+      pbpVocabCurrentOwner = async () => cOwner;
+      pbpVocabAll = async () => cClone();
+      pbpVocabBatchSetStatus = async (rowIds, owner, status) => {
+        if (owner !== cOwner) return false;
+        const wanted = new Set(rowIds);
+        cStore = cStore.map((row) => wanted.has(row.id) ? { ...row, status } : row);
+        return true;
+      };
+      pbpVocabDelete = async (id, owner) => {
+        if (owner !== cOwner) return false;
+        cStore = cStore.filter((row) => row.id !== id);
+        return true;
+      };
+
+      await renderVocabPanel();
+      $id("vocab-list").querySelector('.vocab-card[data-vocab-id="d1"] .notes-card-head').click();
+      check("a rendered row activates into the detail pane",
+        _pbpVocabDetailWordId === "d1" && !detailEl().hidden);
+
+      // (1) + (4): a mutation rebuilds the whole pane and clears the
+      // selection. Half-typed text is the user's, not the store's, and a
+      // single-word detail edit is not a batch action over the list.
+      const noteInput = detailEl().querySelector(".vocab-note-input");
+      noteInput.value = "half-typed";
+      noteInput.dispatchEvent(new Event("input", { bubbles:true }));
+      detailEl().querySelector(".vocab-group-unit input").value = "Draft group";
+      _vocabSelected = new Set(["d1", "d2", "d3"]);
+      _pbpVocabSyncSelectionUi();
+      detailEl().querySelector(".vocab-detail-actions .btn").click();
+      await settle();
+      check("a detail mutation reaches the store", (cStore.find((row) => row.id === "d1") || {}).status === "known");
+      check("a detail mutation keeps unsaved note text and its save button",
+        detailEl().querySelector(".vocab-note-input").value === "half-typed" &&
+        detailEl().querySelector(".vocab-note-save").hidden === false,
+        JSON.stringify(detailEl().querySelector(".vocab-note-input").value));
+      check("a detail mutation keeps the typed group name",
+        detailEl().querySelector(".vocab-group-unit input").value === "Draft group");
+      check("a detail mutation keeps the list selection it never touched",
+        _vocabSelected.size === 3 &&
+        $id("vocab-list").querySelectorAll(".vocab-row-select:checked").length === 3);
+      check("a detail mutation still re-marks the shown row as current",
+        $id("vocab-list").querySelector('.vocab-card[data-vocab-id="d1"]').getAttribute("aria-current") === "true");
+
+      // (3): the word vanished elsewhere; re-entering the view must not keep
+      // showing it (at <860px that pane is the whole screen).
+      cStore = cStore.filter((row) => row.id !== "d1");
+      await renderVocabPanel();
+      check("re-entering the view drops a detail word the fresh list no longer has",
+        _pbpVocabDetailWordId === null && detailEl().hidden === true &&
+        $id("vocab-detail-empty").hidden === false);
+
+      // (H2): same reset when the account moves between the read and its
+      // ownership check, which restarts the render.
+      await renderVocabPanel();
+      $id("vocab-list").querySelector('.vocab-card[data-vocab-id="d2"] .notes-card-head').click();
+      let ownerReads = 0;
+      pbpVocabCurrentOwner = async () => (++ownerReads === 2 ? "acct_other" : cOwner);
+      await renderVocabPanel();
+      await settle();
+      pbpVocabCurrentOwner = async () => cOwner;
+      check("an account change mid-read resets the detail pane before the re-read",
+        _pbpVocabDetailWordId === null && detailEl().hidden === true);
+
+      // (8): a mutation is not a reason to throw away the pages the user
+      // loaded with "Load more".
+      cStore = Array.from({ length: 250 }, (_, i) => ({
+        id:"deep" + i, owner:cOwner, term:"deep" + i, groups:[], contexts:[], updatedAt:250 - i }));
+      await renderVocabPanel();
+      $id("vocab-load-more").click();
+      check("load more deepens the rendered list", $id("vocab-list").children.length === 200);
+      await _pbpVocabReloadAfterMutation(cOwner, ++_vocabRenderGen);
+      check("a mutation reload keeps the loaded render depth",
+        $id("vocab-list").children.length === 200, String($id("vocab-list").children.length));
+
+      // (5): the confirm popover restores focus to the delete button, which
+      // the reload then removes -- focus fell to <body>.
+      cStore = [{ id:"f1", owner:cOwner, term:"focus", groups:[], contexts:[], updatedAt:1 }];
+      await renderVocabPanel();
+      const rowDelete = $id("vocab-list").querySelector('.vocab-card[data-vocab-id="f1"] .notes-row-del');
+      rowDelete.focus();
+      rowDelete.click();
+      document.querySelector(".confirm-popover .confirm-yes").click();
+      await settle();
+      check("a confirmed single delete lands focus on the visible search field",
+        document.activeElement === $id("vocab-search") && !$id("vocab-search").closest("[hidden]"),
+        document.activeElement && document.activeElement.id);
+    } finally {
+      pbpVocabCurrentOwner = cRealOwner;
+      pbpVocabAll = cRealAll;
+      pbpVocabBatchSetStatus = cRealStatus;
+      pbpVocabDelete = cRealDelete;
+      _pbpVocabRenderDetail(null);
+    }
+  }
+
+  // ---- Phase C (2): a soft-reload read failure is not an empty vocabulary.
+  {
+    const sRealOwner = pbpVocabCurrentOwner;
+    const sRealAll = pbpVocabAll;
+    const sRealViewShown = _vocabViewShown;
+    const sRealCurrentOwner = _vocabCurrentOwner;
+    try {
+      pbpVocabCurrentOwner = async () => "acct_soft";
+      pbpVocabAll = async () => { throw new Error("idb read failed"); };
+      $id("vocab-search").value = "";
+      $id("vocab-group-filter").value = "";
+      $id("vocab-status-filter").value = "";
+      _vocabRows = sample;
+      _vocabOwnerLabel = "acct_soft";
+      _pbpVocabSetLoading(false);
+      _pbpVocabApplyView(true);
+      _vocabCurrentOwner = "acct_soft"; // same account: this is a freshness re-fire
+      _vocabViewShown = true;
+      $id("vocab-status").textContent = "";
+      const rowsBefore = $id("vocab-list").children.length;
+      document.dispatchEvent(new CustomEvent("pbp-lib-view", { detail: { view: "vocab" } }));
+      await settle();
+      check("a soft-reload read failure reports the failure and never claims an empty vocabulary",
+        rowsBefore > 0 && $id("vocab-list").children.length === 0 &&
+        $id("vocab-status").classList.contains("bad") &&
+        $id("vocab-status").textContent.includes("vocabLoadFailed") &&
+        $id("vocab-empty").hidden === true &&
+        $id("vocab-list").getAttribute("aria-busy") === "false",
+        "rowsBefore=" + rowsBefore + " empty.hidden=" + $id("vocab-empty").hidden +
+        " status=" + JSON.stringify($id("vocab-status").textContent));
+    } finally {
+      pbpVocabCurrentOwner = sRealOwner;
+      pbpVocabAll = sRealAll;
+      _vocabViewShown = sRealViewShown;
+      _vocabCurrentOwner = sRealCurrentOwner;
+    }
   }
 
   // Responsive layout sweep against the REAL vocab-workbench markup and
