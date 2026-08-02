@@ -1060,7 +1060,11 @@ html[data-theme="github-light"] {
 }
 /* @generated:ui-themes end */
 
-/* ---- Dark themes: adapt native controls (scrollbar, number spinner, etc.) ---- */
+/* ---- Native-control scheme (scrollbar, number spinner, etc.) ----
+   Light baseline first: options.html declares color-scheme light/dark, so on a
+   dark OS a LIGHT preset would otherwise keep dark native scrollbars — a dark
+   bar down a light page. Dark presets below override to dark. */
+html { color-scheme: light; }
 html[data-theme="nord-night"],
 html[data-theme="terminal"],
 html[data-theme="dracula"],
