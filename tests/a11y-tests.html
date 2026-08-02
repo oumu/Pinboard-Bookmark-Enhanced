@@ -200,6 +200,20 @@ function buildRecentControl(kind){
     assert(!document.body.querySelector(".confirm-popover"), "latest confirm remained after Escape");
     assert(document.activeElement === second, "latest confirm did not restore its opener");
   });
+  test("G6: pointerdown outside cancels, inside and anchor do not",()=>{
+    let cancelled = false;
+    anchor.focus();
+    showConfirmPopover(anchor, { msg: "Sure?", onCancel: () => { cancelled = true; } });
+    const pop = document.body.querySelector(".confirm-popover");
+    pop.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+    assert(document.body.querySelector(".confirm-popover"), "pointerdown inside the popover dismissed it");
+    anchor.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+    assert(document.body.querySelector(".confirm-popover"), "pointerdown on the anchor dismissed it");
+    document.body.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+    assert(!document.body.querySelector(".confirm-popover"), "outside pointerdown did not dismiss");
+    assert(cancelled, "onCancel was not called on outside dismiss");
+    assert(document.activeElement === anchor, "outside dismiss did not restore focus");
+  });
   test("G6: synchronous confirm errors are contained",()=>{
     let logged = false;
     const originalError = console.error;

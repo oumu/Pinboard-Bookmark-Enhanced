@@ -2412,6 +2412,7 @@ function showConfirmPopover(anchor, opts) {
     dismissed = true;
     if (_activeConfirmPopover?.pop === pop) _activeConfirmPopover = null;
     document.removeEventListener("keydown", onKey, true);
+    document.removeEventListener("pointerdown", onDocPointerDown, true);
     window.removeEventListener("resize", dismiss);
     window.removeEventListener("scroll", dismiss, true);
     if (restoreFocus && opener && opener.isConnected && typeof opener.focus === "function") opener.focus();
@@ -2439,6 +2440,16 @@ function showConfirmPopover(anchor, opts) {
       if (onCancel) onCancel();
     }
   }
+  // Light dismiss: pointerdown (not click -- the opening click's own bubble
+  // would fire a click listener attached synchronously) anywhere outside the
+  // popover cancels, same as Escape. The anchor is excluded so re-clicking
+  // the opener doesn't dismiss-then-reopen in the same gesture.
+  function onDocPointerDown(ev) {
+    if (pop.contains(ev.target)) return;
+    if (anchor.contains && anchor.contains(ev.target)) return;
+    dismiss();
+    if (onCancel) onCancel();
+  }
   function reportConfirmError(error) {
     console.error("[confirm] action failed", error);
   }
@@ -2456,6 +2467,7 @@ function showConfirmPopover(anchor, opts) {
   });
   _activeConfirmPopover = { anchor, pop, dismiss };
   document.addEventListener("keydown", onKey, true);
+  document.addEventListener("pointerdown", onDocPointerDown, true);
   window.addEventListener("resize", dismiss);
   window.addEventListener("scroll", dismiss, true);
   no.focus();
