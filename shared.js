@@ -1228,6 +1228,21 @@ function pbpPinboardAccountFromToken(token) {
   return decoded.slice(0, separator);
 }
 
+// Vocabulary owner scope, shared by the options settings tab and the library
+// page. Call-time deps: pbpReadSettingsWithSecrets (this file) and
+// pbpDictOwnerScope (vocab-store.js — loaded by every page that calls this).
+async function pbpVocabCurrentOwner() {
+  const s = await pbpReadSettingsWithSecrets({ pinboardToken: SETTINGS_DEFAULTS.pinboardToken });
+  return pbpDictOwnerScope(pbpPinboardAccountFromToken(s.pinboardToken));
+}
+
+function pbpVocabOwnerLabel(owner) {
+  const scope = String(owner || "");
+  if (!scope.startsWith("acct_")) return t("vocabOwnerNoAccount");
+  const encoded = scope.slice(5);
+  try { return decodeURIComponent(encoded); } catch (_) { return encoded; }
+}
+
 function pbpAccountStorageKey(base, account) {
   return base && account ? `${base}_${encodeURIComponent(account)}` : "";
 }

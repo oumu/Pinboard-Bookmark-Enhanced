@@ -115,24 +115,6 @@ function pbpVocabSelectRange(selected, rows, anchorId, targetId, checked) {
   return next;
 }
 
-// Owner derivation: the ONLY correct path is the same atomic secret-aware
-// read every other account-scoped consumer uses (pbpReadSettingsWithSecrets
-// picks the right storage area and overlays the local secret when sync is
-// routed) -- never split/decode opt-pinboard-token's raw form field value
-// here. pbpPinboardAccountFromToken deobfuscates internally, so the raw
-// (still-obfuscated) token read from storage is passed through as-is.
-async function pbpVocabCurrentOwner() {
-  const s = await pbpReadSettingsWithSecrets({ pinboardToken: SETTINGS_DEFAULTS.pinboardToken });
-  return pbpDictOwnerScope(pbpPinboardAccountFromToken(s.pinboardToken));
-}
-
-function pbpVocabOwnerLabel(owner) {
-  const scope = String(owner || "");
-  if (!scope.startsWith("acct_")) return t("vocabOwnerNoAccount");
-  const encoded = scope.slice(5);
-  try { return decodeURIComponent(encoded); } catch (_) { return encoded; }
-}
-
 function _pbpVocabBuildRow(w, index) {
   const card = document.createElement("article");
   card.className = "notes-card vocab-card";
