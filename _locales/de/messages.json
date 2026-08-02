@@ -2676,6 +2676,9 @@
   "dictNoEntry": {
     "message": "Im Online-Wörterbuch wurde kein Eintrag gefunden."
   },
+  "dictLangUnknown": {
+    "message": "Die Sprache des Worts wurde nicht erkannt. Wähle im Menü „Wörterbuchsprache“ eine Sprache aus."
+  },
   "dictMatchedHeadword": {
     "message": "Passender Eintrag: $TERM$",
     "placeholders": {

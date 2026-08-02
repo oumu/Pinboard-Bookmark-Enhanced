@@ -59,6 +59,43 @@ assertEq(pbpDictCorrectCjkLang("ja", "zh"), "ja", "kana proves Japanese, so a ja
 assertEq(pbpDictCorrectCjkLang("ko", "ja"), "ko", "only zh is ambiguous with ja; other languages pass through");
 assertEq(pbpDictCorrectCjkLang("", "ja"), "", "an undetected language stays undetected");
 
+section("pbpDictLatinFallback");
+// Measured against the real chrome.i18n.detectLanguage inside the loaded
+// extension, 2026-08-02: "Converts wiktionary data from kaikki (wiktextract)
+// to yomitan -compatible dictionaries." -> en@100 isReliable FALSE, and the
+// lone word "Converts" -> zh@100 isReliable FALSE.
+assertEq(pbpDictLatinFallback("Converts", "zh", ""), "en", "Latin selection with a non-Latin guess defaults to en");
+assertEq(pbpDictLatinFallback("Converts", "en", ""), "en", "unreliable en candidate routes as en");
+assertEq(pbpDictLatinFallback("Bahnhof", "und", "de"), "en", "a lone ASCII-spelled candidate is demoted to en (a convincing wrong homograph entry beats no evidence)");
+assertEq(pbpDictLatinFallback("Bahnhöfe", "und", "de"), "de", "non-ASCII Latin orthography is positive evidence: the lone candidate rides");
+assertEq(pbpDictLatinFallback("chat", "fr", ""), "en", "the chat/fr homograph trap resolves to en without corroboration");
+assertEq(pbpDictLatinFallback("saudade", "fi", ""), "en", "candidate outside the query set falls to en");
+assertEq(pbpDictLatinFallback("转换", "zh", ""), "", "non-Latin selection never inherits the Latin default");
+assertEq(pbpDictLatinFallback("GPT-4是什么", "en", ""), "", "any non-Latin letter is counter-evidence");
+assertEq(pbpDictLatinFallback("42 %", "en", ""), "", "no Latin letters, no fallback");
+assertEq(pbpDictLatinFallback("żółć", "und", "pl"), "pl", "extended Latin letters are Latin (positive classification, not an ASCII test)");
+assertEq(pbpDictLatinFallback("żółć", "", ""), "en", "extended Latin with no usable candidate still defaults to en");
+assertEq(pbpDictLatinFallback("Wort", "de", "en"), "en", "two disagreeing low-confidence Latin candidates cancel to en");
+assertEq(pbpDictLatinFallback("Wort", "de", "de"), "de", "agreeing sentence and block candidates ride together");
+
+section("pbpDictScriptLang / pbpDictAcceptLang");
+assertEq(pbpDictScriptLang("привет", ""), "ru", "Cyrillic selection resolves ru without CLD (only Cyrillic member of the query set)");
+assertEq(pbpDictScriptLang("їжа", ""), "", "a Ukrainian-only letter disproves Russian: abstain, never fabricate ru");
+assertEq(pbpDictScriptLang("мова", "українська мова"), "", "exclusion letters in the sentence also disprove Russian");
+assertEq(pbpDictAcceptLang("ru", "їжа"), "", "the gate rejects ru for non-Russian Cyrillic too");
+assertEq(pbpDictScriptLang("ひらがな", ""), "ja", "kana proves Japanese");
+assertEq(pbpDictScriptLang("안녕하세요", ""), "ko", "Hangul proves Korean");
+assertEq(pbpDictScriptLang("東京", "東京タワーは高い"), "ja", "Han selection with kana in the sentence is Japanese");
+assertEq(pbpDictScriptLang("東京", "我在東京工作"), "zh", "Han selection in a Han-only sentence stays zh");
+assertEq(pbpDictScriptLang("Converts", "any sentence"), "", "Latin selections stay undecided for the CLD rungs");
+assertEq(pbpDictScriptLang("", ""), "", "empty selection decides nothing");
+assertEq(pbpDictAcceptLang("fi", "sana"), "", "a supported-set outsider cannot route even when detection is confident");
+assertEq(pbpDictAcceptLang("zh", "Converts"), "", "zh cannot route a selection containing no Han");
+assertEq(pbpDictAcceptLang("en", "Converts"), "en", "supported and script-compatible routes");
+assertEq(pbpDictAcceptLang("ja", "漢字"), "ja", "Han satisfies a ja route (kanji-only selection)");
+assertEq(pbpDictAcceptLang("ru", "word"), "", "ru cannot route a Latin selection");
+assertEq(pbpDictAcceptLang("de-DE", "Bahnhof"), "de", "region tags reduce to the primary subtag before the gate");
+
 section("pbpDictVocabKey / pbpDictCacheKeyPublic");
 assertEq(pbpDictVocabKey("acct_u1", "en-US", "  Running  "), "acct_u1|en|running", "owner + primary + normalized");
 assertEq(pbpDictVocabKey("", "en", "x"), "ownerless|en|x", "empty owner -> ownerless");
@@ -1011,12 +1048,121 @@ async function runVocabIdbTests() {
   assertEq((await pbpVocabAll("acct_a")).length, 0, "same-owner batch delete removes the complete selection");
   assertEq((await pbpVocabAll("acct_b")).length, 1, "batch mutations never touch the other owner");
 }
+// Integration-level ladder tests: the REAL _pbpDictResolveLang against a
+// scripted chrome.i18n.detectLanguage and a real #rendered-view fixture.
+// Every other runtime suite stubs the resolver out, so without this section
+// the ladder itself (explicit metadata, script rung, acceptability gate,
+// Latin fallback wiring) has no regression protection.
+async function runDictResolveLangLadderTests() {
+  section("_pbpDictResolveLang ladder (integration, scripted CLD)");
+  const realChrome = window.chrome;
+  let calls = [];
+  let script = {};
+  let longTextFixture = null; // stands in for the >=100-char article sample
+  window.chrome = { i18n: { detectLanguage: (text, cb) => {
+    calls.push(text);
+    const hit = script[text] || (text.length >= 100 ? longTextFixture : null);
+    cb(hit ? { isReliable: hit.reliable, languages: [{ language: hit.lang, percentage: 100 }] }
+           : { isReliable: false, languages: [] });
+  } } };
+  const view = document.createElement("div");
+  view.id = "rendered-view";
+  document.body.appendChild(view);
+  try {
+    calls = [];
+    assertEq(await _pbpDictResolveLang({ text: "转换" }, { selLang: "zh-CN", sentence: "转换数据" }, ""), "zh",
+      "explicit translation metadata routes without detection");
+    assertEq(calls.length, 0, "explicit metadata short-circuits CLD entirely");
+    script = { "iPhone 很好用": { lang: "zh", reliable: true } };
+    assertEq(await _pbpDictResolveLang({ text: "iPhone" }, { selLang: "zh", sentence: "iPhone 很好用", blockText: "" }, ""), "en",
+      "a Latin brand inside a zh translation block falls through the gate to en");
+    script = { "这个 Converts 函数把 A 变成 B": { lang: "zh", reliable: true } };
+    assertEq(await _pbpDictResolveLang({ text: "Converts" }, { sentence: "这个 Converts 函数把 A 变成 B", blockText: "" }, ""), "en",
+      "a reliable zh read on the surrounding sentence cannot hijack a Latin selection");
+    script = { "kaikki sanat ovat täällä": { lang: "fi", reliable: true } };
+    assertEq(await _pbpDictResolveLang({ text: "sana" }, { sentence: "kaikki sanat ovat täällä", blockText: "" }, ""), "en",
+      "a confident detection outside the query set no longer leaks a request");
+    calls = [];
+    assertEq(await _pbpDictResolveLang({ text: "привет" }, { sentence: "привет мир", blockText: "" }, ""), "ru",
+      "Cyrillic routes ru from the script rung");
+    assertEq(calls.length, 0, "the script rung never spends a CLD call");
+    view.setAttribute("lang", "ja");
+    assertEq(await _pbpDictResolveLang({ text: "東京" }, { sentence: "東京 is a city", blockText: "" }, ""), "ja",
+      "kanji-only selection inside a ja article keeps the ja correction");
+    view.removeAttribute("lang");
+    script = { "Converts wiktionary data from kaikki.": { lang: "en", reliable: false } };
+    assertEq(await _pbpDictResolveLang({ text: "Converts" }, { sentence: "Converts wiktionary data from kaikki.", blockText: "" }, ""), "en",
+      "the original bug: unreliable en on a jargon sentence still reaches en");
+    script = { "żółć w ustach": { lang: "pl", reliable: false } };
+    assertEq(await _pbpDictResolveLang({ text: "żółć" }, { sentence: "żółć w ustach", blockText: "" }, ""), "pl",
+      "extended-Latin Polish rides its unreliable candidate to pl");
+    calls = [];
+    assertEq(await _pbpDictResolveLang({ text: "Converts" }, { selLang: "zh", sentence: "x" }, "fr"), "fr",
+      "manual choice outranks every automatic rung");
+    assertEq(calls.length, 0, "manual choice spends no CLD call");
+    assertEq(await _pbpDictResolveLang({ text: "→▲" }, { sentence: "→▲", blockText: "" }, ""), "",
+      "letterless selections stay unknown instead of guessing");
+    // Article prior (batch B): a reliable full-prose read fills in where the
+    // local context is too short to decide.
+    const dePara = document.createElement("p");
+    dePara.textContent = "Der Bahnhof liegt mitten in der Stadt und wurde vor über hundert Jahren gebaut. "
+      + "Viele Reisende steigen hier täglich um, denn die Strecke verbindet den Norden mit dem Süden.";
+    view.appendChild(dePara);
+    _pbpDictArticlePrior = null;
+    script = {};
+    longTextFixture = { lang: "de", reliable: true };
+    assertEq(await _pbpDictResolveLang({ text: "Bahnhof" }, { sentence: "Bahnhof", blockText: "" }, ""), "de",
+      "a reliable article prior routes a lone Latin word the local rungs could not");
+    const longCallsBefore = calls.filter((c) => c.length >= 100).length;
+    await _pbpDictResolveLang({ text: "Reisende" }, { sentence: "Reisende", blockText: "" }, "");
+    assertEq(calls.filter((c) => c.length >= 100).length, longCallsBefore,
+      "the article prior is detected once per document, then cached");
+    assertEq(await _pbpDictResolveLang({ text: "привет" }, { sentence: "привет", blockText: "" }, ""), "ru",
+      "the script rung still outranks the article prior");
+    document.dispatchEvent(new CustomEvent("pbp:rendered", { detail: { account: "" } }));
+    view.replaceChildren();
+    assertEq(await _pbpDictResolveLang({ text: "Bahnhof" }, { sentence: "Bahnhof", blockText: "" }, ""), "en",
+      "pbp:rendered resets the prior; a near-empty document abstains and falls to en");
+    dePara.className = "pb-tr";
+    view.appendChild(dePara);
+    _pbpDictArticlePrior = null;
+    assertEq(await _pbpDictResolveLang({ text: "Bahnhof" }, { sentence: "Bahnhof", blockText: "" }, ""), "en",
+      "translation overlays are excluded from the article sample");
+    // Nested code inside a wrapper block must not feed the prior either
+    // (Codex review MEDIUM 2): wrapper textContent alone would sample it.
+    view.replaceChildren();
+    const wrap = document.createElement("div");
+    const pre = document.createElement("pre");
+    pre.textContent = "const x = 1; ".repeat(30);
+    const p = document.createElement("p");
+    p.textContent = "kurz";
+    wrap.appendChild(pre); wrap.appendChild(p);
+    view.appendChild(wrap);
+    _pbpDictArticlePrior = null;
+    assertEq(await _pbpDictResolveLang({ text: "Bahnhof" }, { sentence: "Bahnhof", blockText: "" }, ""), "en",
+      "nested PRE is scrubbed from the sample; what remains is too short to be a prior");
+    // Non-Russian Cyrillic ends honest-unknown (Codex review MEDIUM 1)
+    script = { "їжа смачна": { lang: "uk", reliable: true } };
+    assertEq(await _pbpDictResolveLang({ text: "їжа" }, { sentence: "їжа смачна", blockText: "" }, ""), "",
+      "Ukrainian stays unknown: script rung abstains and the gate blocks the uk detection");
+    // Unknown language renders its own message and never queries
+    const unknownSlot = document.createElement("div");
+    await _pbpDictSlotRun(unknownSlot, "word", "", null, Promise.resolve(""), null, "");
+    assert(unknownSlot.textContent.includes("dictLangUnknown"),
+      "unknown language renders dictLangUnknown, not a dictionary miss");
+  } finally {
+    if (realChrome === undefined) delete window.chrome; else window.chrome = realChrome;
+    view.remove();
+  }
+}
+
 (async function () {
   await runDictNetworkTests();
   await runDictLookupChainTests();
   await runDictPackRoutingTests();
   await runDictPermissionFeedbackTests();
   await runDictNoAiAndSavedStateTests();
+  await runDictResolveLangLadderTests();
   await runVocabIdbTests();
   document.getElementById("summary").textContent = `${pass} passed, ${fail} failed`;
 })();

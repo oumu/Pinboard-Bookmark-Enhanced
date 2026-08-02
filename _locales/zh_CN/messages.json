@@ -2676,6 +2676,9 @@
   "dictNoEntry": {
     "message": "当前连接的词典未找到词条。"
   },
+  "dictLangUnknown": {
+    "message": "无法判定这个词的语言，请在「词典语言」菜单中选择。"
+  },
   "dictMatchedHeadword": {
     "message": "匹配词条：$TERM$",
     "placeholders": {

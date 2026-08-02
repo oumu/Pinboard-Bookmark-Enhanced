@@ -2676,6 +2676,9 @@
   "dictNoEntry": {
     "message": "目前連線的詞典找不到詞條。"
   },
+  "dictLangUnknown": {
+    "message": "無法判定這個詞的語言，請在「詞典語言」選單中選擇。"
+  },
   "dictMatchedHeadword": {
     "message": "匹配詞條：$TERM$",
     "placeholders": {

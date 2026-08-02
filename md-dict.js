@@ -74,6 +74,116 @@ function pbpDictCorrectCjkLang(routed, articleLang) {
   return routed === "zh" && pbpDictPrimaryLang(articleLang) === "ja" ? "ja" : routed;
 }
 
+// Central acceptability gate for AUTOMATIC routes only (manual choice
+// deliberately bypasses it): a route may only name a language the dictionary
+// can actually query AND whose script is present in the selection. Without
+// the gate, a reliable zh read on the Chinese sentence AROUND a Latin
+// selection routes that Latin word to zh, and reliable fi/sv/ar detections
+// leak requests to languages the dropdown cannot even display (the Auto
+// label hides them: pbpDictLanguageLabel returns "" outside the query set).
+const PBP_DICT_LATIN_QUERY_LANGS = Object.freeze(["en", "de", "fr", "es", "it", "pt", "nl", "pl"]);
+const PBP_DICT_SCRIPT_RES = Object.freeze({
+  latin: /\p{Script=Latin}/u,
+  han: /\p{Script=Han}/u,
+  kana: /[\p{Script=Hiragana}\p{Script=Katakana}]/u,
+  hangul: /\p{Script=Hangul}/u,
+  cyrillic: /\p{Script=Cyrillic}/u,
+  // Letters that EXCLUDE Russian inside Cyrillic: Ukrainian (\u0456 \u0457 \u0454
+  // \u0491), Belarusian (\u045E), Serbian (\u0452 \u0458 \u0459 \u045A \u045B \u045F),
+  // Macedonian (\u045C \u0453 \u0455). Their absence proves nothing (Bulgarian is
+  // indistinguishable on most words) -- same asymmetry as kana for Japanese.
+  nonRuCyr: /[\u0452\u0453\u0454\u0455\u0456\u0457\u0458\u0459\u045A\u045B\u045C\u045E\u045F\u0491\u0402\u0403\u0404\u0405\u0406\u0407\u0408\u0409\u040A\u040B\u040C\u040E\u040F\u0490]/,
+  // A Latin-script letter outside ASCII: positive orthographic evidence that
+  // a word is NOT plain-English spelling (used by the fallback's lone-candidate rule).
+  extLatin: /(?![\x00-\x7F])\p{Script=Latin}/u,
+  // A letter that is NOT Latin-script. \p{L} alone would flag digits-free
+  // words fine but also needs the lookahead so Latin letters pass; anything
+  // this matches is counter-evidence against a Latin-language route.
+  nonLatinLetter: /(?!\p{Script=Latin})\p{L}/u,
+});
+function pbpDictScriptCompatible(primary, selText) {
+  const s = String(selText || "");
+  const R = PBP_DICT_SCRIPT_RES;
+  if (primary === "zh") return R.han.test(s);
+  if (primary === "ja") return R.kana.test(s) || R.han.test(s);
+  if (primary === "ko") return R.hangul.test(s) || R.han.test(s);
+  if (primary === "ru") return R.cyrillic.test(s) && !R.nonRuCyr.test(s);
+  return R.latin.test(s); // the Latin 8
+}
+function pbpDictAcceptLang(code, selText) {
+  const p = pbpDictPrimaryLang(code);
+  if (!PBP_DICT_QUERY_LANGS.includes(p)) return "";
+  return pbpDictScriptCompatible(p, selText) ? p : "";
+}
+
+// Selection-level script rung, AHEAD of CLD: for every non-Latin script in
+// the query set the selection's own codepoints decide faster and more
+// reliably than any statistical read of the surroundings (a Russian word
+// quoted in an English article has an unreliable CLD read but an unambiguous
+// alphabet -- ru is the only Cyrillic member of the query set). Kana proves
+// ja and Hangul proves ko outright. Han alone is zh/ja/ko-ambiguous: kana or
+// hangul in the SURROUNDING SENTENCE resolves it (a kanji word selected
+// inside a Japanese sentence must not route to zh just because the article
+// is English), otherwise zh -- with the ja-article correction applied by the
+// caller, same documented tradeoff as before. Latin deliberately returns ""
+// here: eight query languages share that script, CLD gets its chance first.
+function pbpDictScriptLang(selText, sentence) {
+  const R = PBP_DICT_SCRIPT_RES;
+  const s = String(selText || "");
+  if (R.kana.test(s)) return "ja";
+  if (R.hangul.test(s)) return "ko";
+  if (R.han.test(s)) {
+    const ctx = String(sentence || "");
+    if (R.kana.test(ctx)) return "ja";
+    if (R.hangul.test(ctx)) return "ko";
+    return "zh";
+  }
+  if (R.cyrillic.test(s)) {
+    const cyrCtx = String(sentence || "");
+    // ru is the only Cyrillic query language, but a letter unique to
+    // Ukrainian/Belarusian/Serbian/Macedonian in the word or its sentence
+    // DISPROVES Russian -- honest unknown beats a fabricated ru identity.
+    return (R.nonRuCyr.test(s) || R.nonRuCyr.test(cyrCtx)) ? "" : "ru";
+  }
+  return "";
+}
+
+// Last rung, Latin script only. CLD flags nearly every short or jargon-heavy
+// selection unreliable (measured in the extension SW: "Converts wiktionary
+// data from kaikki (wiktextract) to yomitan -compatible dictionaries." ->
+// en@100 isReliable:FALSE; the lone word "Converts" -> zh@100 FALSE), and
+// detectArticleLang names only CJK/RTL scripts, so a Latin article has no
+// article-level rung at all -- the ladder used to end at "" and the slot
+// claimed "no entry" without ever querying. An unreliable candidate is still
+// worth routing when it names a Latin-script query language (a German jargon
+// sentence tops as de); anything else (zh on "Converts") falls to en, the
+// technical web's prior. Positive classification, not a script blacklist:
+// the selection must CONTAIN Latin letters and contain NO other-script
+// letters ("zolc" with Polish diacritics is Latin; ASCII mixed with Bengali
+// is not) -- a blacklist can never enumerate every other script.
+function pbpDictLatinFallback(text, sentenceCand, blockCand) {
+  const s = String(text || "");
+  const R = PBP_DICT_SCRIPT_RES;
+  if (!R.latin.test(s) || R.nonLatinLetter.test(s)) return "";
+  const a = pbpDictPrimaryLang(sentenceCand);
+  const b = pbpDictPrimaryLang(blockCand);
+  const av = PBP_DICT_LATIN_QUERY_LANGS.includes(a) ? a : "";
+  const bv = PBP_DICT_LATIN_QUERY_LANGS.includes(b) ? b : "";
+  // Two low-confidence reads NAMING DIFFERENT Latin languages cancel out --
+  // that disagreement is exactly what "unreliable" warned about, and en is
+  // the better prior than whichever happened to be passed first.
+  if (av && bv && av !== bv) return "en";
+  const cand = av || bv;
+  if (!cand || cand === "en") return "en";
+  // A lone non-en candidate needs positive evidence beyond "CLD guessed it
+  // once": either both context widths agreed, or the word itself carries
+  // non-ASCII Latin orthography (zolc-with-diacritics, cafe-with-accent)
+  // that plain-English spelling lacks. A bare-ASCII homograph (chat, gift)
+  // riding a lone fr/da guess would render a CONVINCING wrong entry --
+  // strictly worse than the honest miss en gives (Codex review HIGH 1).
+  return (av && bv) || PBP_DICT_SCRIPT_RES.extLatin.test(s) ? cand : "en";
+}
+
 // Case-sensitive public query cache. The dict2_ prefix orphans old dict_
 // entries whose folded key may already contain the wrong casing's result.
 function pbpDictCacheKeyExact(lang, term) {
@@ -921,7 +1031,11 @@ async function _pbpDictLookupCandidate(lang, term, parentSignal, skipCache) {
 // recursion — Codex HIGH 2).
 async function _pbpDictSlotRun(slot, term, lang, parentSignal, lemmaPromise, onRerun, sentence) {
   const exact = pbpDictNormalizeTerm(term);
-  if (!lang || !exact) { _pbpDictSlotFallback(slot, t("dictNoEntry"), term); return null; }
+  if (!exact) { _pbpDictSlotFallback(slot, t("dictNoEntry"), term); return null; }
+  // Unknown language is NOT a dictionary miss: nothing was queried. Saying
+  // "no entry" here reads as "the dictionary is missing this word" and makes
+  // Auto look broken; name the visible control the reader can fix it with.
+  if (!lang) { _pbpDictSlotFallback(slot, t("dictLangUnknown"), term); return null; }
   if (lang === "zh") {
     const loaded = await _pbpDictLoadPack();
     if (parentSignal && parentSignal.aborted) return null;
@@ -1077,6 +1191,46 @@ let _pbpDictParentCleanup = null; // removes the previous run's parent-abort lis
 let _pbpDictSaveTarget = null;   // {itemId} | {range} | null — explain-shaped
 let _pbpDictOwner = "ownerless"; // set from pbp:rendered detail.account (Task 8 listener)
 
+// Article-level CLD prior over the ORIGINAL prose (batch B). detectArticleLang
+// (md-preview.js) is a font/RTL script heuristic that names no Latin or
+// Cyrillic language, so Latin articles had no article rung at all. This one
+// samples the original text -- .pb-tr overlays and PRE excluded, so a
+// translated view never pollutes the prior -- and runs CLD once per document.
+// A full-prose sample is where CLD is actually reliable (Chromium documents
+// ~100+ chars); below that the prior abstains rather than guess.
+let _pbpDictArticlePrior = null; // per-document Promise<{lang, reliable}>
+// Excluded from the prior's sample: code (any nesting), translation overlays
+// and their retry pills, and reader UI injected after render (image-fix rows).
+// The sample is read lazily at first lookup, so translation-era nodes CAN be
+// present -- the filter, not timing, is what keeps the original-prose promise.
+const PBP_DICT_SAMPLE_EXCLUDE = "pre, code, .pb-tr, .pb-tr-err, .pbp-img-fix-ui";
+function _pbpDictArticleSample() {
+  const view = document.getElementById("rendered-view");
+  if (!view) return "";
+  let out = "";
+  for (const el of view.children) {
+    if (el.matches(PBP_DICT_SAMPLE_EXCLUDE)) continue;
+    let text = el.textContent;
+    if (el.querySelector(PBP_DICT_SAMPLE_EXCLUDE)) {
+      const clone = el.cloneNode(true); // only blocks that actually need scrubbing pay the clone
+      clone.querySelectorAll(PBP_DICT_SAMPLE_EXCLUDE).forEach((n) => n.remove());
+      text = clone.textContent;
+    }
+    out += " " + text;
+    if (out.length >= 800) break;
+  }
+  return out.replace(/\s+/g, " ").trim().slice(0, 800);
+}
+function _pbpDictArticleCld() {
+  if (!_pbpDictArticlePrior) {
+    const sample = _pbpDictArticleSample();
+    _pbpDictArticlePrior = sample.length >= 100
+      ? _pbpDictDetect(sample)
+      : Promise.resolve({ lang: "", reliable: false });
+  }
+  return _pbpDictArticlePrior;
+}
+
 function _pbpDictDetect(text) {
   return new Promise((resolve) => {
     try {
@@ -1088,16 +1242,38 @@ function _pbpDictDetect(text) {
   });
 }
 
-// Sentence -> block -> article-lang ladder (spec §3; Codex HIGH 6).
+// Ladder (spec §3, extended): manual -> explicit selection metadata
+// (.pb-tr lang / highlight item.lang -- our own stamps, still gated for
+// script fit so an untranslated Latin brand inside a zh translation block
+// falls through) -> selection-script rung (deterministic, no CLD) ->
+// reliable sentence CLD -> reliable block CLD (+article fallback) -> Latin
+// last resort. EVERY automatic rung passes pbpDictAcceptLang, so a
+// confident detection can no longer route a query the dropdown cannot
+// express or the selection's script contradicts.
 async function _pbpDictResolveLang(cap, ctx, manual) {
   const view = document.getElementById("rendered-view");
   const articleLang = view ? (view.getAttribute("lang") || "") : "";
   if (pbpDictPrimaryLang(manual)) return pbpDictPrimaryLang(manual);
+  const sel = String(cap.text || "");
+  const explicit = pbpDictAcceptLang(ctx.selLang || "", sel);
+  if (explicit) return explicit;
+  const byScript = pbpDictScriptLang(sel, ctx.sentence || "");
+  if (byScript) return pbpDictCorrectCjkLang(byScript, articleLang);
   const bySentence = await _pbpDictDetect(ctx.sentence || cap.text);
-  const first = pbpDictRouteLang(bySentence.lang, bySentence.reliable, "", "");
+  const first = pbpDictAcceptLang(pbpDictRouteLang(bySentence.lang, bySentence.reliable, "", ""), sel);
   if (first) return pbpDictCorrectCjkLang(first, articleLang);
   const byBlock = await _pbpDictDetect(ctx.blockText || "");
-  return pbpDictCorrectCjkLang(pbpDictRouteLang(byBlock.lang, byBlock.reliable, articleLang, ""), articleLang);
+  const routed = pbpDictAcceptLang(
+    pbpDictCorrectCjkLang(pbpDictRouteLang(byBlock.lang, byBlock.reliable, articleLang, ""), articleLang), sel);
+  if (routed) return routed;
+  // Article prior: a reliable full-prose read routes a selection whose local
+  // context was too short or too jargon-heavy to decide (a German word
+  // selected alone in a German article). Reliable-only: an unreliable
+  // article read means the document itself is mixed, no prior to take.
+  const byArticle = await _pbpDictArticleCld();
+  const prior = pbpDictAcceptLang(pbpDictRouteLang(byArticle.lang, byArticle.reliable, "", ""), sel);
+  if (prior) return pbpDictCorrectCjkLang(prior, articleLang);
+  return pbpDictLatinFallback(sel, bySentence.lang, byBlock.lang);
 }
 
 // Whole function wrapped so EVERY exit resolves the lemma exactly once
@@ -1486,4 +1662,5 @@ document.addEventListener("pbp:rendered", (e) => {
   const account = e && e.detail ? e.detail.account : "";
   _pbpDictOwner = pbpDictOwnerScope(account);
   _pbpDictManualLang = ""; // language override is per-document, never carried over
+  _pbpDictArticlePrior = null; // article CLD prior is per-document too
 });

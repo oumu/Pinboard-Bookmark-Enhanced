@@ -2676,6 +2676,9 @@
   "dictNoEntry": {
     "message": "Aucune entrée trouvée dans le dictionnaire en ligne."
   },
+  "dictLangUnknown": {
+    "message": "Impossible de déterminer la langue de ce mot. Choisissez-en une dans le menu « Langue du dictionnaire »."
+  },
   "dictMatchedHeadword": {
     "message": "Entrée correspondante : $TERM$",
     "placeholders": {

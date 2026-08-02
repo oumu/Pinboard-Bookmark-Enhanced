@@ -2676,6 +2676,9 @@
   "dictNoEntry": {
     "message": "Nie znaleziono hasła w słowniku online."
   },
+  "dictLangUnknown": {
+    "message": "Nie udało się rozpoznać języka tego słowa. Wybierz język w menu „Język słownika”."
+  },
   "dictMatchedHeadword": {
     "message": "Dopasowane hasło: $TERM$",
     "placeholders": {

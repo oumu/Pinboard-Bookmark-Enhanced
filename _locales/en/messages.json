@@ -2676,6 +2676,9 @@
   "dictNoEntry": {
     "message": "The connected dictionary did not find an entry."
   },
+  "dictLangUnknown": {
+    "message": "Couldn't determine this word's language. Choose one from the Dictionary language menu."
+  },
   "dictMatchedHeadword": {
     "message": "Matched entry: $TERM$",
     "placeholders": {

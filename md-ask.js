@@ -2338,7 +2338,13 @@ function _pbpExplainPackContext(cap) {
   // .text (see window.pbpExplainOpenForItem in this file). Dispatch straight
   // to the shared core instead of touching cap.range.startContainer below,
   // which does not exist on a range-less cap.
-  if (!cap.range) return _pbpExplainPackFromBlock(cap.n, cap.text);
+  if (!cap.range) {
+    const pack = _pbpExplainPackFromBlock(cap.n, cap.text);
+    // Card path: a translated-side highlight recorded the language it was
+    // made in (item.lang); hand it to the dictionary as selection metadata.
+    pack.selLang = cap.selLang || "";
+    return pack;
+  }
   const view = document.getElementById("rendered-view");
   // Ask/translate init owns the canonical pbpAiIndexBlocks call on
   // pbp:rendered; this is only a lazy backfill (re-indexing resets caches).
@@ -2399,7 +2405,20 @@ function _pbpExplainPackContext(cap) {
     blockText: core.blockText + "\n\nTranslated rendering of the same paragraph (the selection comes from this translation):\n"
       + trText.slice(0, PBP_EXPLAIN_BLOCK_CAP),
     prevText: core.prevText,
-    nextText: core.nextText
+    nextText: core.nextText,
+    // The .pb-tr block carries the language md-translate stamped on it
+    // seconds earlier (lang for known targets, data-pb-tr-lang always) --
+    // authoritative selection metadata for the dictionary, which otherwise
+    // has to run CLD over deliberately bilingual blockText. EXCEPT partial
+    // fills: untranslated ORIGINAL passages are spliced into the .pb-tr with
+    // no marker of their own (wrapping would break marked's block parsing),
+    // and the retry pill inserted after the block is the one signal that
+    // says so (_pbpTrMarkPartial). A selection there may be residual source
+    // text, so the stamp is not trustworthy -- fall back to detection.
+    selLang: (blockEl.nextElementSibling && blockEl.nextElementSibling.classList
+        && blockEl.nextElementSibling.classList.contains("pb-tr-err"))
+      ? ""
+      : (blockEl.getAttribute("lang") || blockEl.dataset.pbTrLang || "")
   };
 }
 
@@ -2678,6 +2697,7 @@ window.pbpExplainOpenForItem = function (opts) {
     rect: opts.rect,
     itemId: opts.itemId,
     n: opts.n,
+    selLang: String(opts.lang || ""),
     range: (typeof Range !== "undefined" && opts.range instanceof Range) ? opts.range : undefined
   };
   _pbpExplainOpenPop(cap, opts.action);

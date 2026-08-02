@@ -1510,7 +1510,12 @@ function _pbpHlCardAiOpen(action) {
   // effN, not item.n: md-ask reads the host block AND its neighbors for
   // context -- after relocation the stored n would feed the model an
   // unrelated old paragraph (Codex acceptance MEDIUM).
-  window.pbpExplainOpenForItem({ text: item.quote, n: _pbpHlEffN(item), itemId: item.id, rect, action });
+  window.pbpExplainOpenForItem({
+    text: item.quote, n: _pbpHlEffN(item), itemId: item.id, rect, action,
+    // Translated-side highlights recorded the language they were made in;
+    // the dictionary uses it as selection metadata (original-side stays "").
+    lang: item.side === "tr" ? (item.lang || "") : ""
+  });
 }
 
 // Card "Ask" button -> window.pbpAskOpenPanel directly (typeof-guarded per

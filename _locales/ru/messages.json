@@ -2676,6 +2676,9 @@
   "dictNoEntry": {
     "message": "В онлайн-словаре ничего не найдено."
   },
+  "dictLangUnknown": {
+    "message": "Не удалось определить язык слова. Выберите язык в меню «Язык словаря»."
+  },
   "dictMatchedHeadword": {
     "message": "Найденная статья: $TERM$",
     "placeholders": {

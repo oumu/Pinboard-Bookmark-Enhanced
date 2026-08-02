@@ -2676,6 +2676,9 @@
   "dictNoEntry": {
     "message": "オンライン辞書では見つかりませんでした。"
   },
+  "dictLangUnknown": {
+    "message": "この単語の言語を判定できませんでした。「辞書の言語」から選択してください。"
+  },
   "dictMatchedHeadword": {
     "message": "一致した見出し語：$TERM$",
     "placeholders": {
