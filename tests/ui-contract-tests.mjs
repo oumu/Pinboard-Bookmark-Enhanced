@@ -265,6 +265,18 @@ check(sharedJs.includes("async function pbpVocabCurrentOwner()") &&
   libraryVocabJs.includes('empty.textContent = t("dictVocabEmpty", _vocabOwnerLabel)') &&
   !libraryVocabJs.includes('t("jinaFailed")') && !optionsVocabJs.includes('t("jinaFailed")'),
   "vocabulary account scope is absent or action errors still reuse Jina copy");
+// The library migration deleted the "vocabulary view controls leak into
+// settings auto-save" check outright (library.html's data-no-autosave
+// attributes are now inert -- library.js has no auto-save sweep at all for
+// them to guard against). That left options.js's OWN half of the old
+// contract -- the sweep still has to exclude [data-no-autosave] on every
+// field family it walks, or a future options.html field that opts out would
+// silently start auto-saving anyway -- with no coverage. Re-assert just that
+// half, scoped to options.js only.
+check(optionsJs.includes('input[type="checkbox"]:not([data-no-autosave])') &&
+  optionsJs.includes('input[type="text"]:not([data-no-autosave])') &&
+  optionsJs.includes('select:not([data-no-autosave])'),
+  "options.js: the autosave sweep dropped its [data-no-autosave] exclusion on the checkbox/text/select field families");
 check(/data-i18n="dictExportTsv"/.test(optionsHtml) && /data-i18n="dictAnkiSend"/.test(optionsHtml) &&
   /data-i18n="dictEudicSend"/.test(optionsHtml) && /data-i18n="dictEudicSupportedHint"/.test(optionsHtml) &&
   /data-i18n="dictPackImportHint"/.test(optionsHtml) &&

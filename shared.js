@@ -1228,6 +1228,12 @@ function pbpPinboardAccountFromToken(token) {
   return decoded.slice(0, separator);
 }
 
+// Owner derivation: the ONLY correct path is the same atomic secret-aware
+// read every other account-scoped consumer uses (pbpReadSettingsWithSecrets
+// picks the right storage area and overlays the local secret when sync is
+// routed) -- never split/decode opt-pinboard-token's raw form field value
+// here. pbpPinboardAccountFromToken deobfuscates internally, so the raw
+// (still-obfuscated) token read from storage is passed through as-is.
 // Vocabulary owner scope, shared by the options settings tab and the library
 // page. Call-time deps: pbpReadSettingsWithSecrets (this file) and
 // pbpDictOwnerScope (vocab-store.js — loaded by every page that calls this).

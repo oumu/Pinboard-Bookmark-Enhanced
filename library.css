@@ -838,19 +838,33 @@ html.motion-ready .vocab-batch-bar.selecting {
    background on the parent is never visible.
    PRECEDENCE, deliberate: when a row is both selected and current, the
    .selected band must win the background (batch context stays legible) while
-   this rule's accent edge still shows. Both selectors are (0,3,0), so the
-   ORDER here decides -- .selected comes after and wins --row-bg; it sets no
-   box-shadow, so the inset edge survives. Keep this rule first, and keep the
-   id off the selector (a #vocab-list prefix would outrank .selected and
-   invert the intent). */
+   this rule's accent edge still shows. Both base selectors are (0,3,0) and
+   both hover companions below are (0,4,0), so ORDER decides at each tier --
+   .selected's rules come after and win --row-bg; .selected sets no
+   box-shadow, so the aria-current inset edge always survives. Keep the
+   aria-current rules first, and keep the id off every selector here (a
+   #vocab-list prefix would outrank .selected and invert the intent). */
 .vocab-card[aria-current] .notes-card-top {
   --row-bg: var(--lib-row-selected-bg);
   box-shadow: inset 2px 0 0 var(--lib-accent);
 }
+/* Hover companion an aria-current-only row was missing: .notes-card-top:hover
+   above is (0,2,0), so the base rule right above (0,3,0) always outranked it
+   and hovering a current-but-unselected row showed no hover step at all.
+   Mirrors the plain hover formula (mix --lib-fg 5% into the base) rather than
+   .selected's accent mix, since the base color here is already the
+   selected-bg token, not a color-mix expression to step further into. */
+.vocab-card[aria-current] .notes-card-top:hover { --row-bg: color-mix(in srgb, var(--lib-fg, #333) 5%, var(--lib-row-selected-bg)); }
+/* --lib-row-selected-fg: .notes-card-head (child of .notes-card-top) sets its
+   own `color` (base rule above, ~line 247), which blocks inheritance from
+   anything set on .notes-card-top -- so the token has to be assigned on the
+   element that actually paints .notes-row-title, not on the row-bg element. */
+.vocab-card[aria-current] .notes-card-head { color: var(--lib-row-selected-fg); }
 /* Selected rows read as a scannable accent band (declared after :hover so
    selection wins, with a deeper hover step layered on top). */
 .vocab-card.selected .notes-card-top { --row-bg: color-mix(in srgb, var(--lib-accent, #4477bb) 10%, var(--lib-bg, #fff)); }
 .vocab-card.selected .notes-card-top:hover { --row-bg: color-mix(in srgb, var(--lib-accent, #4477bb) 15%, var(--lib-bg, #fff)); }
+.vocab-card.selected .notes-card-head { color: var(--lib-row-selected-fg); }
 .vocab-row-headline {
   display: flex;
   flex-wrap: wrap;

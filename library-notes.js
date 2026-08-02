@@ -67,11 +67,11 @@ function pbpNotesEntryHasColor(rec, colorSet) {
 }
 
 // ============================================================
-// Render / interaction layer (DOM + chrome.storage). Lazily invoked by
-// options.js's activateTab on first (and every subsequent) "notes" tab
-// activation -- same no-guard, rescan-every-time pattern as
-// renderStoragePanel() in options.js (a fresh chrome.storage.local.get(null)
-// scan per activation; the data set is small enough that this is cheap).
+// Render / interaction layer (DOM + chrome.storage). Invoked by the
+// pbp-lib-view mount below on every "notes" view activation -- same
+// no-guard, rescan-every-time pattern as renderStoragePanel() in options.js
+// (a fresh chrome.storage.local.get(null) scan per activation; the data set
+// is small enough that this is cheap).
 // ============================================================
 
 const PBP_NOTES_COLORS = [1, 2, 3, 4, 5];
@@ -353,9 +353,9 @@ function _pbpNotesDelete(row, anchor) {
   });
 }
 
-// Called from options.js's activateTab -- the sole lazy-init line added
-// there. Re-scans storage every activation (no "already inited" guard),
-// matching renderStoragePanel()'s convention.
+// Called from the pbp-lib-view mount below on every "notes" view activation.
+// Re-scans storage every activation (no "already inited" guard), matching
+// renderStoragePanel()'s convention.
 async function renderNotesPanel() {
   if (!$id("notes-list")) return;
   _pbpNotesBuildColorFilters();
@@ -385,9 +385,7 @@ if (typeof $id === "function") {
 
 // Library page mount: render on first show and on every re-show/visibility
 // return (the event carries the target view).
-let _pbpNotesRenderedOnce = false;
 document.addEventListener("pbp-lib-view", (e) => {
   if (e.detail.view !== "notes") return;
   renderNotesPanel();
-  _pbpNotesRenderedOnce = true;
 });
