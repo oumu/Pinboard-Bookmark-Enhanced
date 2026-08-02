@@ -50,18 +50,29 @@ const TIMEOUT_MS = 15_000;
 const argv = process.argv.slice(2);
 const flag = (n, d) => { const i = argv.indexOf(n); return i >= 0 ? argv[i + 1] : d; };
 const hasFlag = (n) => argv.includes(n);
+const FAULTS = ["ai-429", "ai-500", "ai-malformed", "ai-truncated", "pb-401", "pb-500"];
 const CONFIG = {
   label: flag("--label", "qa"),
   headless: hasFlag("--headless"),
   keepProfile: hasFlag("--keep-profile"),
   siteTheme: flag("--site-theme", "modern-card"),
   surfaces: (flag("--surfaces", "options,preview,popup,pinboard")).split(",").filter(Boolean),
+  // Named fault profile (error-state tour): mocks answer per the profile and
+  // the `faults` surface screenshots the resulting error UI. No random fuzz.
+  fault: flag("--fault", ""),
 };
 if (!/^[A-Za-z0-9._-]+$/.test(CONFIG.label)) {
   console.error("[qa-drive] --label may contain only letters, numbers, dot, underscore, hyphen");
   process.exit(2);
 }
-if (CONFIG.headless) CONFIG.surfaces = CONFIG.surfaces.filter((s) => s !== "popup");
+if (CONFIG.fault && !FAULTS.includes(CONFIG.fault)) {
+  console.error(`[qa-drive] --fault must be one of: ${FAULTS.join(", ")}`);
+  process.exit(2);
+}
+if (CONFIG.fault && !CONFIG.surfaces.includes("faults")) {
+  console.warn(`[qa-drive] --fault ${CONFIG.fault} set — running the faults surface only`);
+  CONFIG.surfaces = ["faults"];
+}
 
 let chromium;
 try {
@@ -234,6 +245,29 @@ function startAiMock() {
       req.on("end", () => {
         let body = null;
         try { body = JSON.parse(raw); } catch { /* keep null */ }
+        // Fault profiles (named, deterministic): exercise the error paths the
+        // happy-path mock structurally never reaches.
+        if (CONFIG.fault === "ai-429") {
+          res.writeHead(429, { "Content-Type": "application/json" });
+          res.end('{"error":{"message":"qa-mock rate limit","type":"rate_limit_exceeded"}}');
+          return;
+        }
+        if (CONFIG.fault === "ai-500") {
+          res.writeHead(500, { "Content-Type": "application/json" });
+          res.end('{"error":{"message":"qa-mock internal error"}}');
+          return;
+        }
+        if (CONFIG.fault === "ai-malformed") {
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end('{"choices":[{"message":{"role":"assistant","content":"{\\"translations\\": [{oops"}}]}');
+          return;
+        }
+        if (CONFIG.fault === "ai-truncated" && body?.stream) {
+          res.writeHead(200, { "Content-Type": "text/event-stream" });
+          res.write('data: {"choices":[{"delta":{"content":"{\\"translations\\":[{\\"id\\":1,\\"te"}}]}\n\n');
+          setTimeout(() => res.destroy(), 150); // cut mid-stream, no [DONE]
+          return;
+        }
         const content = aiAnswerFor(body);
         const msgs = Array.isArray(body?.messages) ? body.messages : [];
         requests.push({
@@ -284,6 +318,16 @@ async function installRoutes(context, records, aiPort) {
         return;
       }
       if (url.hostname === "api.pinboard.in") {
+        if (CONFIG.fault === "pb-401" || CONFIG.fault === "pb-500") {
+          rec.disposition = `pinboard-fault-${CONFIG.fault}`;
+          records.push(rec);
+          await route.fulfill({
+            status: CONFIG.fault === "pb-401" ? 401 : 500,
+            contentType: "application/json",
+            body: CONFIG.fault === "pb-401" ? '{"result_code":"invalid token"}' : '{"result_code":"server error"}',
+          });
+          return;
+        }
         const body = request.method() === "GET" ? PINBOARD_API.get(url.pathname) : null;
         rec.disposition = body ? "pinboard-fixture" : "blocked-pinboard";
         records.push(rec);
@@ -485,31 +529,43 @@ class Reporter {
     this.shotSeq = 0;
   }
   surface(name) {
-    const s = { name, states: [], consoleErrors: [], pageErrors: [], notes: [], failures: [] };
+    const s = { name, states: [], consoleErrors: [], pageErrors: [], notes: [], failures: [], _events: [] };
     this.surfaces.push(s);
     return s;
   }
   attach(page, s) {
-    const onConsole = (m) => { if (m.type() === "error") s.consoleErrors.push(m.text()); };
-    const onPageError = (e) => s.pageErrors.push(e.message);
-    const onRequestFailed = (r) => s.consoleErrors.push(`requestfailed: ${r.url()} (${r.failure()?.errorText || "?"})`);
+    // Everything lands in _events too, so each shot can carry the DELTA of
+    // evidence produced since the previous shot (per-state evidence pack —
+    // lets a reviewer tie an error to the exact screenshot it belongs to).
+    const ev = (kind, text) => s._events.push({ kind, text });
+    const onConsole = (m) => { if (m.type() === "error") { s.consoleErrors.push(m.text()); ev("console", m.text()); } };
+    const onPageError = (e) => { s.pageErrors.push(e.message); ev("pageerror", e.message); };
+    const onRequestFailed = (r) => {
+      const line = `requestfailed: ${r.url()} (${r.failure()?.errorText || "?"})`;
+      s.consoleErrors.push(line); ev("requestfailed", line);
+    };
     page.on("console", onConsole);
     page.on("pageerror", onPageError);
     page.on("requestfailed", onRequestFailed);
     return () => { page.off("console", onConsole); page.off("pageerror", onPageError); page.off("requestfailed", onRequestFailed); };
   }
+  _record(s, state, file, page) {
+    const cursor = s._lastCursor || 0;
+    const events = s._events.slice(cursor);
+    s._lastCursor = s._events.length;
+    s.states.push({ state, file, url: page ? page.url() : undefined, events });
+    console.log(`[qa-drive]   shot: ${file}${events.length ? ` (+${events.length} event)` : ""}`);
+  }
   async shot(page, s, state, opts = {}) {
     const file = `${String(++this.shotSeq).padStart(2, "0")}-${s.name}-${state}.png`;
     await page.screenshot({ path: join(this.shotDir, file), fullPage: !!opts.fullPage });
-    s.states.push({ state, file });
-    console.log(`[qa-drive]   shot: ${file}`);
+    this._record(s, state, file, page);
     return file;
   }
   saveShotBuffer(buffer, s, state) {
     const file = `${String(++this.shotSeq).padStart(2, "0")}-${s.name}-${state}.png`;
     writeFileSync(join(this.shotDir, file), buffer);
-    s.states.push({ state, file });
-    console.log(`[qa-drive]   shot: ${file}`);
+    this._record(s, state, file, null);
     return file;
   }
   finish(meta) {
@@ -521,7 +577,11 @@ class Reporter {
       "",
       ...this.surfaces.flatMap((s) => [
         `## ${s.name}`,
-        ...s.states.map((st) => `- **${st.state}** → ![${st.state}](shots/${st.file})`),
+        ...s.states.flatMap((st) => [
+          `- **${st.state}** → ![${st.state}](shots/${st.file})`,
+          ...(st.events || []).slice(0, 5).map((e) => `  - ⚠ ${e.kind}: \`${e.text.slice(0, 160)}\``),
+          ...((st.events || []).length > 5 ? [`  - …该状态共 ${st.events.length} 条事件（见 report.json）`] : []),
+        ]),
         ...(s.notes.length ? ["", "备注：", ...s.notes.map((n) => `- ${n}`)] : []),
         ...(s.failures.length ? ["", "**驱动失败（harness 层）**：", ...s.failures.map((f) => `- ${f}`)] : []),
         ...(s.pageErrors.length ? ["", "**pageerror**：", ...s.pageErrors.map((e) => `- \`${e}\``)] : []),
@@ -566,6 +626,23 @@ async function driveOptions(context, extId, rep) {
         await page.locator(`#tab-${tab}`).click({ timeout: 3000 });
         await page.waitForTimeout(tab === "vocab" ? 1200 : 400);
         await rep.shot(page, s, `tab-${tab}`, { fullPage: true });
+        if (tab === "general") await axeScan(page, s, "options");
+        if (tab === "vocab") {
+          // Batch-selection flow: sticky action bar + delete confirm popover.
+          try {
+            await page.locator("#vocab-select-all").click({ timeout: 3000 });
+            await page.waitForTimeout(400);
+            await rep.shot(page, s, "vocab-batch-bar");
+            await page.locator("#vocab-batch-delete").click({ timeout: 3000 });
+            await page.waitForTimeout(500);
+            await rep.shot(page, s, "vocab-delete-confirm");
+            await page.keyboard.press("Escape"); // cancel — no data mutation
+            await page.waitForTimeout(300);
+            await page.locator("#vocab-select-all").click({ timeout: 3000 }).catch(() => {});
+          } catch (e) {
+            s.failures.push(`vocab-batch: ${e.message}`);
+          }
+        }
       } catch (e) {
         s.failures.push(`tab-${tab}: ${e.message}`);
       }
@@ -612,6 +689,7 @@ async function drivePreview(context, worker, extId, rep) {
     await page.waitForFunction(() => document.querySelectorAll("#rendered-view [data-pb]").length > 0, { timeout: TIMEOUT_MS });
     await page.waitForTimeout(800);
     await rep.shot(page, s, "base");
+    await axeScan(page, s, "preview");
 
     await step("help-overlay", async () => {
       await page.locator("#rendered-view").click({ position: { x: 20, y: 10 } });
@@ -663,6 +741,23 @@ async function drivePreview(context, worker, extId, rep) {
       await page.keyboard.press("1");
       await page.waitForTimeout(800);
       await rep.shot(page, s, "highlight-yellow");
+    });
+
+    await step("export-rail", async () => {
+      await page.locator("#export-section button").first().click({ timeout: 3000 });
+      await page.waitForTimeout(400);
+      await rep.shot(page, s, "export-rail");
+    });
+
+    await step("ask-panel", async () => {
+      await page.locator("#ask-open").click({ timeout: 3000 });
+      await page.waitForTimeout(400);
+      await page.locator("#ask-input").fill("这篇文章的主旨是什么？");
+      await page.locator("#ask-send").click({ timeout: 3000 });
+      await page.waitForTimeout(3000); // mock round trip + render
+      await rep.shot(page, s, "ask-answer");
+      await page.locator("#ask-close").click({ timeout: 3000 }).catch(() => {});
+      await page.waitForTimeout(300);
     });
 
     await step("translate", async () => {
@@ -790,6 +885,96 @@ async function driveThemes(context, worker, extId, rep) {
   }
 }
 
+// ---- Fault tour: with --fault <profile>, mocks answer per the profile and
+// this surface screenshots the resulting ERROR UI (never captured by the
+// happy-path tour): translate failure pills + retry, popup save failure. ----
+
+async function driveFaults(context, worker, extId, rep) {
+  const s = rep.surface(`faults-${CONFIG.fault || "none"}`);
+  if (!CONFIG.fault) { s.notes.push("未指定 --fault，无事可做"); return; }
+  if (CONFIG.fault.startsWith("ai-")) {
+    const page = await context.newPage();
+    const detach = rep.attach(page, s);
+    try {
+      await seedPreviewData(worker);
+      await page.goto(`chrome-extension://${extId}/md-preview.html?k=${PREVIEW_KEY}`, { waitUntil: "load", timeout: TIMEOUT_MS });
+      await page.waitForFunction(() => document.querySelectorAll("#rendered-view [data-pb]").length > 0, { timeout: TIMEOUT_MS });
+      await page.locator("#rendered-view").click({ position: { x: 20, y: 10 } });
+      await page.keyboard.press("t");
+      await page.waitForFunction(() => document.querySelectorAll(".pb-tr-err").length > 0, { timeout: 30_000 })
+        .catch(() => s.notes.push("30s 内未出现 .pb-tr-err 失败 pill——检查该 fault 是否走了别的失败路径"));
+      await page.waitForTimeout(1500);
+      await page.evaluate(() => document.querySelector(".pb-tr-err")?.scrollIntoView({ block: "center", behavior: "instant" }));
+      await page.waitForTimeout(300);
+      await rep.shot(page, s, "translate-error");
+      const counts = await page.evaluate(() => ({
+        pills: document.querySelectorAll(".pb-tr-err").length,
+        filled: document.querySelectorAll(".pb-tr").length,
+      }));
+      s.notes.push(`fault=${CONFIG.fault}：失败 pill ×${counts.pills}，成功填充 ×${counts.filled}`);
+    } catch (e) {
+      s.failures.push(`translate-error: ${e.message}`);
+    } finally {
+      detach();
+      await page.close().catch(() => {});
+    }
+  } else {
+    const page = await context.newPage();
+    await page.setViewportSize({ width: 550, height: 680 });
+    const detach = rep.attach(page, s);
+    try {
+      await page.goto(`chrome-extension://${extId}/popup.html`, { waitUntil: "load", timeout: TIMEOUT_MS });
+      await page.waitForTimeout(2000); // boot status checks hit the fault
+      await rep.shot(page, s, "popup-boot");
+      // Under pb faults the popup may legitimately land in a login/offline
+      // state with no visible save button — that IS the state under test.
+      if (await page.locator("#submit-btn").isVisible().catch(() => false)) {
+        await page.locator("#submit-btn").click({ timeout: 3000 });
+        await page.waitForTimeout(2500);
+        await rep.shot(page, s, "popup-save-error");
+      } else {
+        s.notes.push("保存按钮不可见——popup 在该故障下落入登录/离线态（见 popup-boot 截图），保存路径无从触发");
+      }
+    } catch (e) {
+      s.failures.push(`popup-boot: ${e.message}`);
+    } finally {
+      detach();
+      await page.close().catch(() => {});
+    }
+  }
+}
+
+// ---- a11y: axe scan of a live page (optional — needs @axe-core/playwright
+// in .qa-scan; degrades to a note when absent). Reporter-only, no gate. ----
+
+let _axeBuilderPromise = null;
+function _axeBuilder() {
+  if (!_axeBuilderPromise) {
+    _axeBuilderPromise = (async () => {
+      const req = createRequire(resolve(QA_SCAN, "package.json"));
+      try { return req("@axe-core/playwright").default || req("@axe-core/playwright").AxeBuilder; }
+      catch { /* try ESM */ }
+      try { return (await import(req.resolve("@axe-core/playwright"))).AxeBuilder; }
+      catch { return null; }
+    })();
+  }
+  return _axeBuilderPromise;
+}
+
+async function axeScan(page, s, label) {
+  const AxeBuilder = await _axeBuilder();
+  if (!AxeBuilder) { s.notes.push(`a11y(${label})：@axe-core/playwright 未安装，跳过`); return; }
+  try {
+    const result = await new AxeBuilder({ page }).analyze();
+    const v = result.violations;
+    s.a11y = s.a11y || {};
+    s.a11y[label] = v.map((x) => ({ id: x.id, impact: x.impact, nodes: x.nodes.length, help: x.help }));
+    s.notes.push(`a11y(${label})：${v.length} 类违规${v.length ? " — " + v.slice(0, 5).map((x) => `${x.id}(${x.impact}×${x.nodes.length})`).join("、") : ""}`);
+  } catch (e) {
+    s.notes.push(`a11y(${label}) 扫描失败：${e.message}`);
+  }
+}
+
 // ---- Real toolbar popup via CDP (lifted from scripts/perf-cold-sample.mjs,
 // trimmed to "open, wait ready, screenshot") — headed only. ----
 
@@ -833,8 +1018,38 @@ function createTargetSession(browserCdp, sessionId) {
   };
 }
 
+// Tab-mode popup: popup.html as a Playwright page at popup width. Lower
+// geometry fidelity than the real toolbar popup, but works headless, gets
+// full console/network capture from page load (the CDP toolbar attach misses
+// pre-attach errors), and its requests ride the context.route fixtures.
+async function drivePopupPage(context, extId, rep, s) {
+  const page = await context.newPage();
+  await page.setViewportSize({ width: 550, height: 680 });
+  const detach = rep.attach(page, s);
+  try {
+    await page.goto(`chrome-extension://${extId}/popup.html`, { waitUntil: "load", timeout: TIMEOUT_MS });
+    await page.waitForTimeout(1500);
+    await rep.shot(page, s, "page-mode");
+    await axeScan(page, s, "popup");
+    // No AI clicks here: in tab mode the popup's "current page" is the popup
+    // itself (chrome-extension://), so the product rightly disables the AI
+    // buttons. AI states are captured on the toolbar path instead.
+    s.notes.push("page-mode 下 AI 按钮为产品的正确禁用态（当前页=扩展页），AI 态见 toolbar-ai");
+  } catch (e) {
+    s.failures.push(`page-mode: ${e.message}`);
+  } finally {
+    detach();
+    await page.close().catch(() => {});
+  }
+}
+
 async function drivePopup(context, worker, extId, rep) {
   const s = rep.surface("popup");
+  await drivePopupPage(context, extId, rep, s);
+  if (CONFIG.headless) {
+    s.notes.push("headless：真实工具栏弹窗需要 headed，已跳过（page-mode 已覆盖）");
+    return;
+  }
   const active = await context.newPage();
   const detach = rep.attach(active, s);
   let browserCdp = null;
@@ -892,6 +1107,16 @@ async function drivePopup(context, worker, extId, rep) {
     await new Promise((r2) => setTimeout(r2, 1200)); // suggest/status settle
     const image = await session.send("Page.captureScreenshot", { format: "png", captureBeyondViewport: false });
     rep.saveShotBuffer(Buffer.from(image.data, "base64"), s, "toolbar");
+    // AI tags + summary against the mock (synthetic click is fine — the AI
+    // path needs no trusted gesture), then a second capture.
+    try {
+      await session.send("Runtime.evaluate", { expression: 'document.getElementById("ai-tags-btn")?.click(); document.getElementById("ai-summary-btn")?.click();' });
+      await new Promise((r2) => setTimeout(r2, 3000));
+      const image2 = await session.send("Page.captureScreenshot", { format: "png", captureBeyondViewport: false });
+      rep.saveShotBuffer(Buffer.from(image2.data, "base64"), s, "toolbar-ai");
+    } catch (e) {
+      s.failures.push(`toolbar-ai: ${e.message}`);
+    }
     s.notes.push("真实工具栏弹窗（chrome.action.openPopup + CDP）。popup 的 Pinboard 请求经 SW 代理；本环境实测 context.route 连 SW 请求也拦到（fixture 标签可见）——这是观测行为非官方保证，若某次回归失效会表现为失败态截图 + 处置汇总缺 pinboard-fixture 条目，不会假绿");
   } catch (e) {
     s.failures.push(`popup: ${e.message}`);
@@ -903,6 +1128,68 @@ async function drivePopup(context, worker, extId, rep) {
     detach();
     await active.close().catch(() => {});
   }
+}
+
+// ---- Screenshot diff vs the previous run of the same label (phase d).
+// Same-machine only: font antialiasing makes cross-machine pixel baselines
+// flake, so this is a local "what changed" narrator, never a CI gate. ----
+
+async function diffAgainstPrev(runDir, prevDir) {
+  const prevShots = join(prevDir, "shots");
+  const curShots = join(runDir, "shots");
+  if (!existsSync(prevShots)) return null;
+  let PNG, pixelmatch;
+  const req = createRequire(resolve(QA_SCAN, "package.json"));
+  try {
+    ({ PNG } = req("pngjs"));
+    try { pixelmatch = req("pixelmatch"); } catch { pixelmatch = (await import(req.resolve("pixelmatch"))).default; }
+  } catch {
+    console.warn("[qa-drive] diff skipped: pngjs/pixelmatch not installed in .qa-scan");
+    return null;
+  }
+  const { readdirSync } = await import("node:fs");
+  const prevFiles = new Map(readdirSync(prevShots).map((f) => [f.replace(/^\d+-/, ""), f]));
+  const rows = [];
+  const diffDir = join(runDir, "diff");
+  for (const file of readdirSync(curShots)) {
+    const key = file.replace(/^\d+-/, ""); // sequence numbers shift between runs
+    const prevFile = prevFiles.get(key);
+    if (!prevFile) { rows.push({ shot: key, status: "new" }); continue; }
+    try {
+      const a = PNG.sync.read(readFileSync(join(prevShots, prevFile)));
+      const b = PNG.sync.read(readFileSync(join(curShots, file)));
+      if (a.width !== b.width || a.height !== b.height) {
+        rows.push({ shot: key, status: "resized", from: `${a.width}x${a.height}`, to: `${b.width}x${b.height}` });
+        continue;
+      }
+      const out = new PNG({ width: a.width, height: a.height });
+      const diffPixels = pixelmatch(a.data, b.data, out.data, a.width, a.height, { threshold: 0.1 });
+      const pct = (diffPixels / (a.width * a.height)) * 100;
+      if (pct > 0.05) {
+        mkdirSync(diffDir, { recursive: true });
+        writeFileSync(join(diffDir, file), PNG.sync.write(out));
+      }
+      rows.push({ shot: key, file, status: pct > 0.05 ? "changed" : "same", diffPct: Math.round(pct * 100) / 100 });
+    } catch (e) {
+      rows.push({ shot: key, status: "error", error: e.message });
+    }
+  }
+  for (const [key] of prevFiles) {
+    if (!readdirSync(curShots).some((f) => f.replace(/^\d+-/, "") === key)) rows.push({ shot: key, status: "removed" });
+  }
+  writeFileSync(join(runDir, "diff.json"), JSON.stringify(rows, null, 2));
+  const changed = rows.filter((r) => r.status === "changed");
+  const md = [
+    "", "## 与上一次同名 run 的对比",
+    `同名截图 ${rows.filter((r) => ["same", "changed"].includes(r.status)).length} 张：变化 ${changed.length} 张` +
+    `，新增 ${rows.filter((r) => r.status === "new").length}，消失 ${rows.filter((r) => r.status === "removed").length}`,
+    ...changed.map((r) => `- **${r.shot}** 变化 ${r.diffPct}% → ![diff](diff/${r.file})`),
+    "",
+  ].join("\n");
+  const { appendFileSync } = await import("node:fs");
+  appendFileSync(join(runDir, "report.md"), md);
+  console.log(`[qa-drive] diff vs prev: ${changed.length} changed / ${rows.length} tracked`);
+  return rows;
 }
 
 // ============================================================
@@ -966,6 +1253,7 @@ try {
     else if (surface === "pinboard") await drivePinboard(context, rep);
     else if (surface === "popup") await drivePopup(context, worker, extId, rep);
     else if (surface === "themes") await driveThemes(context, worker, extId, rep);
+    else if (surface === "faults") await driveFaults(context, worker, extId, rep);
     else console.warn(`[qa-drive] unknown surface: ${surface}`);
   }
 
@@ -989,6 +1277,7 @@ try {
       platform: process.platform,
     },
   });
+  await diffAgainstPrev(runDir, prevDir).catch((e) => console.warn(`[qa-drive] diff failed: ${e.message}`));
   console.log(`[qa-drive] report: ${join(runDir, "report.md")}`);
   const failures = rep.surfaces.reduce((n, s) => n + s.failures.length, 0);
   const errors = rep.surfaces.reduce((n, s) => n + s.pageErrors.length + s.consoleErrors.length, 0);
