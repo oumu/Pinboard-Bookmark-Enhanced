@@ -1852,6 +1852,28 @@ function _pbpHlBuildNotebookDom(rail) {
       })
     : null; // degrade: no collapsible header (file:// test harness has no #rail at all, never reaches here)
 
+  // Opener into the standalone library page's Notes view. Lives inside
+  // .rail-sec-head itself -- that header is a flex row spanning the full
+  // section width (pbpRailCollapsible), so a child appended after
+  // .rail-sec-count paints inline in the same row, matching the neighboring
+  // rail icon buttons. Because the header row IS the accordion-toggle
+  // <button>, a click here must stopPropagation or it would also
+  // collapse/expand the section.
+  const headBtn = sec.querySelector(".rail-sec-head");
+  if (headBtn) {
+    const openLib = document.createElement("button");
+    openLib.type = "button";
+    openLib.className = "rail-sec-open";
+    openLib.innerHTML = (typeof PBP_ICONS === "object" && PBP_ICONS && PBP_ICONS.book) || "";
+    openLib.title = t("libraryOpen");
+    openLib.setAttribute("aria-label", t("libraryOpen"));
+    openLib.addEventListener("click", (e) => {
+      e.stopPropagation(); // header row toggles the accordion; the opener must not
+      try { window.open(chrome.runtime.getURL("library.html#notes")); } catch (_) {}
+    });
+    headBtn.appendChild(openLib);
+  }
+
   return { sec, list, filterBtns, emptyHint, copyBtn, handle, orphanNote };
 }
 

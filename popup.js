@@ -220,6 +220,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (!settings.pinboardToken) showLogin();
   else showMain(settings.pinboardToken);
 
+  $id("library-link").addEventListener("click", (e) => {
+    e.preventDefault();
+    chrome.tabs.create({ url: chrome.runtime.getURL("library.html#vocab") });
+  });
   $id("options-link").addEventListener("click", (e) => {
     e.preventDefault(); pbpOpenOptionsTab("general");
   });

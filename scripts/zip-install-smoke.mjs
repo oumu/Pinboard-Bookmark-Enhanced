@@ -314,7 +314,7 @@ async function checkExtensionPage(number, name, waitMs) {
   return true;
 }
 
-for (const check of [[2, 'popup', 1500], [3, 'options', 2000], [4, 'md-preview', 2000]]) {
+for (const check of [[2, 'popup', 1500], [3, 'options', 2000], [4, 'md-preview', 2000], [5, 'library', 2000]]) {
   if (!await checkExtensionPage(...check)) {
     await ctx.close().catch(() => {});
     cleanup();
@@ -322,7 +322,7 @@ for (const check of [[2, 'popup', 1500], [3, 'options', 2000], [4, 'md-preview',
   }
 }
 
-// ---- Check 5: image-fix DNR session-rule ownership & lifecycle ----
+// ---- Check 6: image-fix DNR session-rule ownership & lifecycle ----
 // The hotlink-guard Referer rules (md-embed.js -> background.js) are the one
 // subsystem the file:// test suites cannot reach: they need a real MV3 service
 // worker, real chrome.declarativeNetRequest, and real tab lifecycle. This is
@@ -337,7 +337,7 @@ for (const check of [[2, 'popup', 1500], [3, 'options', 2000], [4, 'md-preview',
 //   4. every rule is pinned to this extension as the request initiator, so a
 //      page-originated request structurally cannot match it;
 //   5. leaving the preview page sweeps that tab's rules.
-console.log('[zip-smoke] check 5: image-fix DNR rule ownership/lifecycle...');
+console.log('[zip-smoke] check 6: image-fix DNR rule ownership/lifecycle...');
 const dnrFailures = [];
 try {
   const listRules = () => sw.evaluate(async () => {
