@@ -3536,5 +3536,9 @@
   "libraryStatsKnown": { "message": "Acquis : $COUNT$", "placeholders": { "count": { "content": "$1" } } },
   "libraryStatsGroups": { "message": "$COUNT$ groupes", "placeholders": { "count": { "content": "$1" } } },
   "libraryStatsLanguages": { "message": "$COUNT$ langues", "placeholders": { "count": { "content": "$1" } } },
-  "libraryStatsRecent": { "message": "+$D7$ en 7 jours · +$D30$ en 30 jours", "placeholders": { "d7": { "content": "$1" }, "d30": { "content": "$2" } } }
+  "libraryStatsRecent": { "message": "+$D7$ en 7 jours · +$D30$ en 30 jours", "placeholders": { "d7": { "content": "$1" }, "d30": { "content": "$2" } } },
+  "libraryLookupAria": { "message": "Recherche dans le dictionnaire" },
+  "libraryLookupPlaceholder": { "message": "Rechercher n'importe quel mot" },
+  "libraryLookupGo": { "message": "Rechercher" },
+  "libraryLookupSaved": { "message": "Déjà dans votre vocabulaire · afficher" }
 }

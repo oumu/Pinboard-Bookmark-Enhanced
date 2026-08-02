@@ -3536,5 +3536,9 @@
   "libraryStatsKnown": { "message": "Opanowane: $COUNT$", "placeholders": { "count": { "content": "$1" } } },
   "libraryStatsGroups": { "message": "Grupy: $COUNT$", "placeholders": { "count": { "content": "$1" } } },
   "libraryStatsLanguages": { "message": "Języki: $COUNT$", "placeholders": { "count": { "content": "$1" } } },
-  "libraryStatsRecent": { "message": "7 dni: +$D7$ · 30 dni: +$D30$", "placeholders": { "d7": { "content": "$1" }, "d30": { "content": "$2" } } }
+  "libraryStatsRecent": { "message": "7 dni: +$D7$ · 30 dni: +$D30$", "placeholders": { "d7": { "content": "$1" }, "d30": { "content": "$2" } } },
+  "libraryLookupAria": { "message": "Wyszukiwanie w słowniku" },
+  "libraryLookupPlaceholder": { "message": "Sprawdź dowolne słowo" },
+  "libraryLookupGo": { "message": "Sprawdź" },
+  "libraryLookupSaved": { "message": "Już w słówkach · pokaż" }
 }

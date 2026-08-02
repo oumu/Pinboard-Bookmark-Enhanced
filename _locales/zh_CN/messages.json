@@ -3530,5 +3530,9 @@
   "libraryStatsKnown": { "message": "已掌握 $COUNT$", "placeholders": { "count": { "content": "$1" } } },
   "libraryStatsGroups": { "message": "$COUNT$ 个分组", "placeholders": { "count": { "content": "$1" } } },
   "libraryStatsLanguages": { "message": "$COUNT$ 种语言", "placeholders": { "count": { "content": "$1" } } },
-  "libraryStatsRecent": { "message": "7 天 +$D7$ · 30 天 +$D30$", "placeholders": { "d7": { "content": "$1" }, "d30": { "content": "$2" } } }
+  "libraryStatsRecent": { "message": "7 天 +$D7$ · 30 天 +$D30$", "placeholders": { "d7": { "content": "$1" }, "d30": { "content": "$2" } } },
+  "libraryLookupAria": { "message": "词典查询" },
+  "libraryLookupPlaceholder": { "message": "查询任意词" },
+  "libraryLookupGo": { "message": "查词" },
+  "libraryLookupSaved": { "message": "已在生词库 · 查看" }
 }

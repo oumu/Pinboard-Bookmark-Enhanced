@@ -3536,5 +3536,9 @@
   "libraryStatsKnown": { "message": "已掌握 $COUNT$", "placeholders": { "count": { "content": "$1" } } },
   "libraryStatsGroups": { "message": "$COUNT$ 個群組", "placeholders": { "count": { "content": "$1" } } },
   "libraryStatsLanguages": { "message": "$COUNT$ 種語言", "placeholders": { "count": { "content": "$1" } } },
-  "libraryStatsRecent": { "message": "7 天內 +$D7$ · 30 天內 +$D30$", "placeholders": { "d7": { "content": "$1" }, "d30": { "content": "$2" } } }
+  "libraryStatsRecent": { "message": "7 天內 +$D7$ · 30 天內 +$D30$", "placeholders": { "d7": { "content": "$1" }, "d30": { "content": "$2" } } },
+  "libraryLookupAria": { "message": "詞典查詢" },
+  "libraryLookupPlaceholder": { "message": "查詢任何詞語" },
+  "libraryLookupGo": { "message": "查詞" },
+  "libraryLookupSaved": { "message": "已在生詞庫 · 查看" }
 }

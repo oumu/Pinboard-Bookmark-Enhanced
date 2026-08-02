@@ -50,6 +50,18 @@
         </span>
         </div>
       </div>
+      <!-- Free dictionary lookup (lookup-only, no save path): shares the
+           notes-toolbar + vocab-filter-toolbar row/control family (flex
+           row, input/select recipe, chevron, dark-theme overrides) instead
+           of duplicating that CSS for a third near-identical bar. Results
+           render into the detail pane on the right (or take over the
+           single-pane view below 860px), same host #vocab-detail owns as
+           an activated word. -->
+      <div id="vocab-lookup-bar" class="notes-toolbar vocab-filter-toolbar vocab-lookup-bar" role="search" data-i18n-aria="libraryLookupAria" aria-label="Dictionary lookup">
+        <input type="search" id="vocab-lookup-input" data-i18n-placeholder="libraryLookupPlaceholder" data-i18n-aria="libraryLookupPlaceholder" aria-label="Look up any word" placeholder="Look up any word" autocomplete="off" />
+        <select id="vocab-lookup-lang" data-i18n-aria="dictLangAria" aria-label="Dictionary language"></select>
+        <button type="button" class="btn btn-sm" id="vocab-lookup-go" data-i18n-title="libraryLookupGo" data-i18n-aria="libraryLookupGo" aria-label="Look up" title="Look up"><span class="btn-ic" data-ic="book"></span></button>
+      </div>
       <!-- Read-only stats strip: total/learning/known/groups/languages/recent,
            computed from the full owner row set (not the filtered view). The
            two status counts are also filter chips (click = set/clear

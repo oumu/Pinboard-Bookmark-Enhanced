@@ -314,6 +314,23 @@ function _pbpVocabBuildNoteEditor(w) {
   return noteWrap;
 }
 
+// Shared back button for narrow-mode detail panes -- the word-detail pane
+// (below) and the free-lookup result view both need the identical control:
+// same icon, same exit-narrow-mode-and-clear-to-empty behavior.
+function _pbpVocabBuildBackBtn() {
+  const back = document.createElement("button");
+  back.type = "button";
+  back.className = "btn btn-sm vocab-detail-back";
+  // Icon: cross (the close/dismiss family — closing the detail IS the gesture;
+  // the registry has no arrowLeft, and arrowUp/Down are scroll semantics here).
+  setBtnIcon(back, "cross", t("libraryBack"));
+  back.addEventListener("click", () => {
+    document.body.classList.remove("lib-narrow-detail");
+    _pbpVocabRenderDetail(null);
+  });
+  return back;
+}
+
 // Renders the master-detail right pane for the activated word (or clears it
 // back to the empty state for null, e.g. after a delete). Reassigned onto
 // _pbpVocabOnRowActivate above; also called directly by the reload-after-
@@ -340,17 +357,7 @@ function _pbpVocabRenderDetail(w) {
   const frag = document.createDocumentFragment();
 
   // 0. Back button (narrow mode only)
-  const back = document.createElement("button");
-  back.type = "button";
-  back.className = "btn btn-sm vocab-detail-back";
-  // Icon: cross (the close/dismiss family — closing the detail IS the gesture;
-  // the registry has no arrowLeft, and arrowUp/Down are scroll semantics here).
-  setBtnIcon(back, "cross", t("libraryBack"));
-  back.addEventListener("click", () => {
-    document.body.classList.remove("lib-narrow-detail");
-    _pbpVocabRenderDetail(null);
-  });
-  frag.appendChild(back);
+  frag.appendChild(_pbpVocabBuildBackBtn());
 
   // 1. Word head: term + language chip + speak
   const head = document.createElement("div");
@@ -599,6 +606,134 @@ function _pbpVocabRelookup(w, host) {
   }
   sel.addEventListener("change", () => startRun(sel.value));
   startRun(sel.value || startLang);
+}
+
+// Free dictionary lookup box (list-pane toolbar): any word, not just a saved
+// one, walks the same md-dict query seams as relookup above. Session-only
+// memory of the last chosen language -- never persisted, and independent of
+// any saved word's own language.
+let _vocabLookupLang = "en";
+
+// One-time wiring for #vocab-lookup-bar, called once at module load from the
+// same guarded top-level section as the stats chips (bottom of this file) --
+// there is no per-render rebuild of this toolbar, so it only ever needs to
+// be wired once.
+function _pbpVocabWireLookupBar() {
+  const input = $id("vocab-lookup-input");
+  const sel = $id("vocab-lookup-lang");
+  const go = $id("vocab-lookup-go");
+  if (!input || !sel || !go) return; // absent on pages/fixtures with no lookup bar
+  const locale = document.documentElement.lang;
+  for (const code of PBP_DICT_LANGS) {
+    if (code === "auto") continue; // free lookup mirrors relookup: no Auto leg
+    const o = document.createElement("option");
+    o.value = code;
+    o.textContent = pbpDictLanguageLabel(code, locale) || code;
+    sel.appendChild(o);
+  }
+  sel.value = _vocabLookupLang;
+  sel.addEventListener("change", () => { _vocabLookupLang = sel.value; });
+  go.addEventListener("click", _pbpVocabFreeLookup);
+  input.addEventListener("keydown", (e) => { if (e.key === "Enter") _pbpVocabFreeLookup(); });
+}
+
+// Free dictionary lookup: renders a lookup-result view into the detail host.
+// Lookup-only by design -- no save path (spec: context/save semantics are a
+// separate, later design question). Mutually exclusive with the word-detail
+// view: submitting a lookup drops any activated word's aria-current/id
+// linkage, and activating a row (or the saved-word hint below) hands the
+// detail host back to _pbpVocabRenderDetail.
+function _pbpVocabFreeLookup() {
+  const input = $id("vocab-lookup-input");
+  const sel = $id("vocab-lookup-lang");
+  if (!input || !sel) return;
+  const term = (input.value || "").trim();
+  if (!term) return;
+  const lang = sel.value || _vocabLookupLang;
+
+  // The lookup result owns the detail host: drop any word-detail linkage so
+  // reload paths do not resurrect a word over the result (they no-op on null).
+  _pbpVocabDetailWordId = null;
+  document.querySelectorAll("#vocab-list .vocab-card[aria-current]").forEach((el) => el.removeAttribute("aria-current"));
+  const empty = $id("vocab-detail-empty");
+  const detail = $id("vocab-detail");
+  if (!empty || !detail) return;
+  empty.hidden = true;
+  detail.hidden = false;
+  document.body.classList.add("lib-narrow-detail"); // narrow mode shows the result pane
+
+  const frag = document.createDocumentFragment();
+  frag.appendChild(_pbpVocabBuildBackBtn());
+
+  const head = document.createElement("div");
+  head.className = "vocab-detail-head";
+  const termEl = document.createElement("h2");
+  termEl.className = "vocab-detail-term";
+  termEl.textContent = term;
+  head.appendChild(termEl);
+  const langChip = document.createElement("span");
+  langChip.className = "notes-meta-chip";
+  langChip.textContent = pbpDictLanguageLabel(lang, document.documentElement.lang) || lang;
+  head.appendChild(langChip);
+  const speak = document.createElement("button");
+  speak.type = "button";
+  speak.className = "btn btn-sm vocab-detail-speak";
+  setBtnIcon(speak, "speaker", "");
+  speak.title = t("dictSpeak");
+  speak.setAttribute("aria-label", t("dictSpeak"));
+  speak.addEventListener("click", () => pbpDictSpeak(term, lang));
+  head.appendChild(speak);
+  frag.appendChild(head);
+
+  // Saved-word hint: case-folded match against the current owner's rows.
+  const folded = pbpVocabSearchText(term);
+  const saved = _vocabRows.find((r) => pbpVocabSearchText(r.term) === folded);
+  if (saved) {
+    const hint = document.createElement("button");
+    hint.type = "button";
+    hint.className = "btn btn-sm vocab-lookup-saved";
+    setBtnIcon(hint, "bookMarked", t("libraryLookupSaved"));
+    hint.addEventListener("click", () => {
+      _pbpVocabRenderDetail(saved);
+      const row = document.querySelector(`#vocab-list .vocab-card[data-vocab-id="${CSS.escape(saved.id)}"]`);
+      if (row) row.setAttribute("aria-current", "true");
+    });
+    frag.appendChild(hint);
+  }
+
+  const host = document.createElement("div");
+  host.className = "vocab-detail-dict";
+  frag.appendChild(host);
+  detail.replaceChildren(frag);
+
+  // AMENDMENT (Task 2 review defect): _pbpVocabDictRun dereferences
+  // _pbpVocabDictCtrl.signal.aborted, but nothing on this path ever created
+  // it -- a cold page load (free lookup submitted before any word-detail
+  // relookup ever ran) leaves it null and this throws. Fix: do exactly what
+  // _pbpVocabRelookup does at its own call site -- abort any existing
+  // session controller and start a fresh one. This also gives free lookup
+  // its own session identity, so it and a word-detail relookup mutually
+  // abort each other through the same _pbpVocabDictCtrl.
+  if (_pbpVocabDictCtrl) _pbpVocabDictCtrl.abort();
+  _pbpVocabDictCtrl = new AbortController();
+
+  // Slot pair per the md-dict invariant: two stable children, never
+  // replaceChildren() on the slot itself.
+  const wrap = document.createElement("div");
+  wrap.className = "xp-dict";
+  const slot = document.createElement("div");
+  slot.className = "xp-dict-slot";
+  const localEl = document.createElement("div");
+  localEl.className = "xp-dict-local";
+  const onlineEl = document.createElement("div");
+  onlineEl.className = "xp-dict-online";
+  slot.appendChild(localEl);
+  slot.appendChild(onlineEl);
+  wrap.appendChild(slot);
+  host.replaceChildren(wrap);
+
+  const run = () => _pbpVocabDictRun(term, sel.value, { localEl, onlineEl }, "", run);
+  run();
 }
 
 // Split the quote around case-insensitive matches of the term; matches render
@@ -1243,6 +1378,10 @@ for (const chipId of ["vocab-stat-learning", "vocab-stat-known"]) {
     filter.dispatchEvent(new Event("change"));
   });
 }
+// Free-lookup toolbar: one-time wiring alongside the stats chips above (see
+// _pbpVocabWireLookupBar's own comment -- no per-render rebuild, so no
+// "already wired" guard is needed here either).
+_pbpVocabWireLookupBar();
 // Sort only reorders the same visible set: keep the selection (desktop
 // convention), reset the shift anchor -- a range from a pre-sort anchor
 // would span an arbitrary interval in the new visual order.

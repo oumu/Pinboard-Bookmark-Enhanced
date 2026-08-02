@@ -3536,5 +3536,9 @@
   "libraryStatsKnown": { "message": "習得済み $COUNT$", "placeholders": { "count": { "content": "$1" } } },
   "libraryStatsGroups": { "message": "$COUNT$ グループ", "placeholders": { "count": { "content": "$1" } } },
   "libraryStatsLanguages": { "message": "$COUNT$ 言語", "placeholders": { "count": { "content": "$1" } } },
-  "libraryStatsRecent": { "message": "7日間 +$D7$ · 30日間 +$D30$", "placeholders": { "d7": { "content": "$1" }, "d30": { "content": "$2" } } }
+  "libraryStatsRecent": { "message": "7日間 +$D7$ · 30日間 +$D30$", "placeholders": { "d7": { "content": "$1" }, "d30": { "content": "$2" } } },
+  "libraryLookupAria": { "message": "辞書検索" },
+  "libraryLookupPlaceholder": { "message": "任意の単語を調べる" },
+  "libraryLookupGo": { "message": "調べる" },
+  "libraryLookupSaved": { "message": "単語帳に登録済み · 表示" }
 }

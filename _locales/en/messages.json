@@ -3530,5 +3530,9 @@
   "libraryStatsKnown": { "message": "Known $COUNT$", "placeholders": { "count": { "content": "$1" } } },
   "libraryStatsGroups": { "message": "$COUNT$ groups", "placeholders": { "count": { "content": "$1" } } },
   "libraryStatsLanguages": { "message": "$COUNT$ languages", "placeholders": { "count": { "content": "$1" } } },
-  "libraryStatsRecent": { "message": "+$D7$ in 7 days · +$D30$ in 30 days", "placeholders": { "d7": { "content": "$1" }, "d30": { "content": "$2" } } }
+  "libraryStatsRecent": { "message": "+$D7$ in 7 days · +$D30$ in 30 days", "placeholders": { "d7": { "content": "$1" }, "d30": { "content": "$2" } } },
+  "libraryLookupAria": { "message": "Dictionary lookup" },
+  "libraryLookupPlaceholder": { "message": "Look up any word" },
+  "libraryLookupGo": { "message": "Look up" },
+  "libraryLookupSaved": { "message": "In your vocabulary · view" }
 }

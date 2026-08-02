@@ -3536,5 +3536,9 @@
   "libraryStatsKnown": { "message": "Выучено: $COUNT$", "placeholders": { "count": { "content": "$1" } } },
   "libraryStatsGroups": { "message": "Группы: $COUNT$", "placeholders": { "count": { "content": "$1" } } },
   "libraryStatsLanguages": { "message": "Языки: $COUNT$", "placeholders": { "count": { "content": "$1" } } },
-  "libraryStatsRecent": { "message": "7 дней: +$D7$ · 30 дней: +$D30$", "placeholders": { "d7": { "content": "$1" }, "d30": { "content": "$2" } } }
+  "libraryStatsRecent": { "message": "7 дней: +$D7$ · 30 дней: +$D30$", "placeholders": { "d7": { "content": "$1" }, "d30": { "content": "$2" } } },
+  "libraryLookupAria": { "message": "Поиск в словаре" },
+  "libraryLookupPlaceholder": { "message": "Найти любое слово" },
+  "libraryLookupGo": { "message": "Найти" },
+  "libraryLookupSaved": { "message": "Уже в словарике · показать" }
 }

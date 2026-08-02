@@ -407,6 +407,9 @@ html[data-theme] .save-status.bad { color: var(--lib-danger); }
 .vocab-detail-delete { margin-top: var(--lib-sp-4); }
 .vocab-detail-relookup { margin-top: var(--lib-sp-3); }
 .vocab-detail-dict { margin-top: var(--lib-sp-4); border-top: 1px solid var(--lib-border-section); padding-top: var(--lib-sp-3); }
+/* Free lookup (Task 3): "already in your vocabulary" hint sits between the
+   result head and the dictionary slot, same .btn-sm family as relookup. */
+.vocab-lookup-saved { margin: var(--lib-sp-2) 0; }
 
 /* On-demand dictionary re-lookup (Task 7): subset of md-preview.css's
    .xp-dict-* rendering classes (md-dict.js's _pbpDictSlotRun /

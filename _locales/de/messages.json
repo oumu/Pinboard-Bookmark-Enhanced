@@ -3536,5 +3536,9 @@
   "libraryStatsKnown": { "message": "Gelernt: $COUNT$", "placeholders": { "count": { "content": "$1" } } },
   "libraryStatsGroups": { "message": "$COUNT$ Gruppen", "placeholders": { "count": { "content": "$1" } } },
   "libraryStatsLanguages": { "message": "$COUNT$ Sprachen", "placeholders": { "count": { "content": "$1" } } },
-  "libraryStatsRecent": { "message": "+$D7$ in 7 Tagen · +$D30$ in 30 Tagen", "placeholders": { "d7": { "content": "$1" }, "d30": { "content": "$2" } } }
+  "libraryStatsRecent": { "message": "+$D7$ in 7 Tagen · +$D30$ in 30 Tagen", "placeholders": { "d7": { "content": "$1" }, "d30": { "content": "$2" } } },
+  "libraryLookupAria": { "message": "Wörterbuchsuche" },
+  "libraryLookupPlaceholder": { "message": "Ein beliebiges Wort nachschlagen" },
+  "libraryLookupGo": { "message": "Nachschlagen" },
+  "libraryLookupSaved": { "message": "Bereits in deiner Vokabelliste · ansehen" }
 }

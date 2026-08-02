@@ -39,6 +39,11 @@ body{font-family:monospace;padding:16px}.case{padding:5px;border-bottom:1px soli
           </span>
         </div>
       </div>
+      <div id="vocab-lookup-bar" class="notes-toolbar vocab-filter-toolbar vocab-lookup-bar" role="search" aria-label="Dictionary lookup">
+        <input type="search" id="vocab-lookup-input" aria-label="Look up any word" autocomplete="off" />
+        <select id="vocab-lookup-lang" aria-label="Dictionary language"></select>
+        <button type="button" class="btn btn-sm" id="vocab-lookup-go" aria-label="Look up" title="Look up"><span class="btn-ic" data-ic="book"></span></button>
+      </div>
       <div id="vocab-stats" class="vocab-stats" hidden>
         <span class="vocab-stat" id="vocab-stat-total"></span>
         <button type="button" class="vocab-stat-chip" id="vocab-stat-learning" data-status="new" aria-pressed="false"></button>
@@ -261,6 +266,70 @@ check("a second click on the active chip clears the filter back to all statuses"
   $id("vocab-stat-learning").getAttribute("aria-pressed") === "false");
 _pbpVocabClearVisibleState();
 check("account-switch clearing hides the stats strip with the rest of the list", $id("vocab-stats").hidden === true);
+
+// Free dictionary lookup (Task 3): pure fold-match for the "already saved"
+// hint, then the full submit -> result-view -> hint-click round trip.
+// _pbpVocabDictRun is a plain top-level function declaration -- freely
+// reassignable to a recorder so no real online/local dictionary chain runs.
+check("free-lookup fold matches a stored term case-insensitively",
+  pbpVocabSearchText("Hello") === pbpVocabSearchText("hello"));
+check("free-lookup fold does not match an unrelated term",
+  pbpVocabSearchText("Hello") !== pbpVocabSearchText("World"));
+check("lookup bar wiring populates the language select with no Auto leg",
+  !!$id("vocab-lookup-lang").querySelector('option[value="en"]') &&
+  !$id("vocab-lookup-lang").querySelector('option[value="auto"]'));
+
+{
+  const lookupSample = [
+    { id: "lk-hello", term: "Hello", status: "new", groups: [], contexts: [], updatedAt: 1 },
+    { id: "lk-other", term: "Other", status: "new", groups: [], contexts: [], updatedAt: 2 },
+  ];
+  _vocabRows = lookupSample;
+  _pbpVocabApplyView(true);
+
+  const realDictRun = _pbpVocabDictRun;
+  const runCalls = [];
+  _pbpVocabDictRun = (term, lang) => { runCalls.push({ term, lang }); };
+  try {
+    // MANDATORY AMENDMENT coverage: cold start, i.e. _pbpVocabDictCtrl has
+    // never been touched by a word-detail relookup -- forced explicitly so
+    // this assertion never silently depends on earlier test ordering in
+    // this file. Without the amendment's ctrl-reset, _pbpVocabDictRun's
+    // `_pbpVocabDictCtrl.signal.aborted` read throws on a null ctrl.
+    _pbpVocabDictCtrl = null;
+    $id("vocab-lookup-input").value = "hello";
+    let threw = false;
+    try { _pbpVocabFreeLookup(); } catch (_) { threw = true; }
+    check("cold-start free lookup (no word ever opened first) does not throw",
+      !threw && _pbpVocabDictCtrl !== null);
+    check("free lookup renders the result view and forwards the submitted term/lang",
+      !$id("vocab-detail").hidden && $id("vocab-detail-empty").hidden &&
+      runCalls.length === 1 && runCalls[0].term === "hello" && runCalls[0].lang === "en");
+    check("free lookup shows the already-saved hint for a case-folded match",
+      !!$id("vocab-detail").querySelector(".vocab-lookup-saved"));
+    check("free lookup drops the word-detail linkage and clears aria-current",
+      _pbpVocabDetailWordId === null &&
+      $id("vocab-list").querySelectorAll(".vocab-card[aria-current]").length === 0);
+
+    runCalls.length = 0;
+    $id("vocab-lookup-input").value = "   ";
+    _pbpVocabFreeLookup();
+    check("blank/whitespace-only submit is a no-op", runCalls.length === 0);
+
+    $id("vocab-detail").querySelector(".vocab-lookup-saved").click();
+    const savedCard = $id("vocab-list").querySelector('.vocab-card[data-vocab-id="lk-hello"]');
+    check("clicking the saved-word hint hands the detail pane back to that word",
+      _pbpVocabDetailWordId === "lk-hello" && !!savedCard && savedCard.getAttribute("aria-current") === "true");
+
+    $id("vocab-lookup-input").value = "nonexistent-term";
+    _pbpVocabFreeLookup();
+    check("free lookup with no stored match shows no saved-word hint",
+      !$id("vocab-detail").querySelector(".vocab-lookup-saved"));
+  } finally {
+    _pbpVocabDictRun = realDictRun;
+  }
+  _pbpVocabClearVisibleState();
+}
 
 _pbpVocabClearVisibleState();
 _pbpVocabSetLoading(false);
