@@ -39,6 +39,14 @@ body{font-family:monospace;padding:16px}.case{padding:5px;border-bottom:1px soli
           </span>
         </div>
       </div>
+      <div id="vocab-stats" class="vocab-stats" hidden>
+        <span class="vocab-stat" id="vocab-stat-total"></span>
+        <button type="button" class="vocab-stat-chip" id="vocab-stat-learning" data-status="new" aria-pressed="false"></button>
+        <button type="button" class="vocab-stat-chip" id="vocab-stat-known" data-status="known" aria-pressed="false"></button>
+        <span class="vocab-stat" id="vocab-stat-groups"></span>
+        <span class="vocab-stat" id="vocab-stat-languages"></span>
+        <span class="vocab-stat" id="vocab-stat-recent"></span>
+      </div>
       <div class="vocab-context-bar" id="vocab-context-bar">
         <span class="vocab-ctx-text">
           <span id="vocab-count" class="notes-count" aria-live="polite"></span>
@@ -152,6 +160,27 @@ check("Z-A sort reverses collator order", ids(pbpVocabFilterSort(sample.slice(1)
 const tied = [{id:"x",term:"same",updatedAt:1},{id:"y",term:"same",updatedAt:1}];
 check("equal sort keys preserve source order", ids(pbpVocabFilterSort(tied,"","","az")) === "x,y");
 
+// pbpVocabStats: pure counting over owner rows
+(function () {
+  const NOW = 1754200000000; // fixed clock
+  const D = 86400000;
+  const rows = [
+    { term: "a", status: "new",   language: "en",  groups: ["g1"],      createdAt: NOW - 1 * D },
+    { term: "b", status: "known", language: "en",  groups: ["g1","g2"], createdAt: NOW - 7 * D },      // exactly 7d -> counts in 7d window (>=)
+    { term: "c", status: "new",   language: "fr",  groups: [],          createdAt: NOW - 8 * D },      // outside 7d, inside 30d
+    { term: "d", status: "known", language: "und", groups: [],          createdAt: NOW - 31 * D },     // outside 30d; und not a language
+  ];
+  const s = pbpVocabStats(rows, NOW);
+  check("stats: total", s.total === 4);
+  check("stats: learning counts status new", s.learning === 2);
+  check("stats: known", s.known === 2);
+  check("stats: groups deduped", s.groups === 2);
+  check("stats: languages exclude und", s.languages === 2);
+  check("stats: added7 inclusive boundary", s.added7 === 2);
+  check("stats: added30", s.added30 === 3);
+  check("stats: empty rows", pbpVocabStats([], NOW).total === 0);
+})();
+
 setStatusIcon($id("vocab-status"), false, "read failed");
 const errorColor = getComputedStyle($id("vocab-status")).color;
 check("shared status renderer marks an error host and icon as bad",
@@ -205,6 +234,33 @@ _pbpVocabApplyView(true);
 check("exactly 100 rows fills one render batch without exposing Load more",
   $id("vocab-list").querySelectorAll(".vocab-card").length === 100 &&
   $id("vocab-load-more").hidden && getComputedStyle($id("vocab-load-more")).display === "none");
+
+// Stats strip: total/learning/known counts, chip status-filter linkage, and
+// hide-on-clear (Task 1: vocabulary stats strip).
+const statsSample = [
+  { id:"stat-a", term:"alpha", status:"new",   groups:["G1"], contexts:[], updatedAt:1 },
+  { id:"stat-b", term:"beta",  status:"known", groups:["G1"], contexts:[], updatedAt:2 },
+  { id:"stat-c", term:"gamma", status:"known", groups:[],     contexts:[], updatedAt:3 },
+];
+_vocabRows = statsSample;
+_pbpVocabApplyView(true);
+check("stats strip becomes visible once rows exist", $id("vocab-stats").hidden === false);
+check("stats strip reports total, learning and known counts",
+  $id("vocab-stat-total").textContent === "libraryStatsWords:3" &&
+  $id("vocab-stat-learning").textContent === "libraryStatsLearning:1" &&
+  $id("vocab-stat-known").textContent === "libraryStatsKnown:2");
+$id("vocab-stat-learning").click();
+check("learning chip click sets the status filter and re-filters the visible list",
+  $id("vocab-status-filter").value === "new" &&
+  $id("vocab-list").querySelectorAll(".vocab-card").length === 1 &&
+  $id("vocab-stat-learning").getAttribute("aria-pressed") === "true");
+$id("vocab-stat-learning").click();
+check("a second click on the active chip clears the filter back to all statuses",
+  $id("vocab-status-filter").value === "" &&
+  $id("vocab-list").querySelectorAll(".vocab-card").length === 3 &&
+  $id("vocab-stat-learning").getAttribute("aria-pressed") === "false");
+_pbpVocabClearVisibleState();
+check("account-switch clearing hides the stats strip with the rest of the list", $id("vocab-stats").hidden === true);
 
 _pbpVocabClearVisibleState();
 _pbpVocabSetLoading(false);

@@ -3524,5 +3524,11 @@
   "libraryDetailTitle": { "message": "词条详情" },
   "libraryDetailEmpty": { "message": "在左侧选择一个词查看详情。" },
   "libraryRelookup": { "message": "重新查词典" },
-  "libraryBack": { "message": "返回列表" }
+  "libraryBack": { "message": "返回列表" },
+  "libraryStatsWords": { "message": "$COUNT$ 个词", "placeholders": { "count": { "content": "$1" } } },
+  "libraryStatsLearning": { "message": "学习中 $COUNT$", "placeholders": { "count": { "content": "$1" } } },
+  "libraryStatsKnown": { "message": "已掌握 $COUNT$", "placeholders": { "count": { "content": "$1" } } },
+  "libraryStatsGroups": { "message": "$COUNT$ 个分组", "placeholders": { "count": { "content": "$1" } } },
+  "libraryStatsLanguages": { "message": "$COUNT$ 种语言", "placeholders": { "count": { "content": "$1" } } },
+  "libraryStatsRecent": { "message": "7 天 +$D7$ · 30 天 +$D30$", "placeholders": { "d7": { "content": "$1" }, "d30": { "content": "$2" } } }
 }

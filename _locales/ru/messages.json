@@ -3530,5 +3530,11 @@
   "libraryDetailTitle": { "message": "Подробности о слове" },
   "libraryDetailEmpty": { "message": "Выберите слово слева, чтобы увидеть подробности." },
   "libraryRelookup": { "message": "Найти снова" },
-  "libraryBack": { "message": "Назад к списку" }
+  "libraryBack": { "message": "Назад к списку" },
+  "libraryStatsWords": { "message": "Слова: $COUNT$", "placeholders": { "count": { "content": "$1" } } },
+  "libraryStatsLearning": { "message": "Изучается: $COUNT$", "placeholders": { "count": { "content": "$1" } } },
+  "libraryStatsKnown": { "message": "Выучено: $COUNT$", "placeholders": { "count": { "content": "$1" } } },
+  "libraryStatsGroups": { "message": "Группы: $COUNT$", "placeholders": { "count": { "content": "$1" } } },
+  "libraryStatsLanguages": { "message": "Языки: $COUNT$", "placeholders": { "count": { "content": "$1" } } },
+  "libraryStatsRecent": { "message": "7 дней: +$D7$ · 30 дней: +$D30$", "placeholders": { "d7": { "content": "$1" }, "d30": { "content": "$2" } } }
 }

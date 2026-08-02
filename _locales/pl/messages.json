@@ -3530,5 +3530,11 @@
   "libraryDetailTitle": { "message": "Szczegóły słówka" },
   "libraryDetailEmpty": { "message": "Wybierz słówko po lewej, aby zobaczyć szczegóły." },
   "libraryRelookup": { "message": "Sprawdź ponownie w słowniku" },
-  "libraryBack": { "message": "Wróć do listy" }
+  "libraryBack": { "message": "Wróć do listy" },
+  "libraryStatsWords": { "message": "Słówka: $COUNT$", "placeholders": { "count": { "content": "$1" } } },
+  "libraryStatsLearning": { "message": "W nauce: $COUNT$", "placeholders": { "count": { "content": "$1" } } },
+  "libraryStatsKnown": { "message": "Opanowane: $COUNT$", "placeholders": { "count": { "content": "$1" } } },
+  "libraryStatsGroups": { "message": "Grupy: $COUNT$", "placeholders": { "count": { "content": "$1" } } },
+  "libraryStatsLanguages": { "message": "Języki: $COUNT$", "placeholders": { "count": { "content": "$1" } } },
+  "libraryStatsRecent": { "message": "7 dni: +$D7$ · 30 dni: +$D30$", "placeholders": { "d7": { "content": "$1" }, "d30": { "content": "$2" } } }
 }

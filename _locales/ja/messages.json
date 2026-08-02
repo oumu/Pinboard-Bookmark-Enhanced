@@ -3530,5 +3530,11 @@
   "libraryDetailTitle": { "message": "単語の詳細" },
   "libraryDetailEmpty": { "message": "左側で単語を選択すると、詳細が表示されます。" },
   "libraryRelookup": { "message": "辞書で調べ直す" },
-  "libraryBack": { "message": "一覧に戻る" }
+  "libraryBack": { "message": "一覧に戻る" },
+  "libraryStatsWords": { "message": "$COUNT$ 語", "placeholders": { "count": { "content": "$1" } } },
+  "libraryStatsLearning": { "message": "学習中 $COUNT$", "placeholders": { "count": { "content": "$1" } } },
+  "libraryStatsKnown": { "message": "習得済み $COUNT$", "placeholders": { "count": { "content": "$1" } } },
+  "libraryStatsGroups": { "message": "$COUNT$ グループ", "placeholders": { "count": { "content": "$1" } } },
+  "libraryStatsLanguages": { "message": "$COUNT$ 言語", "placeholders": { "count": { "content": "$1" } } },
+  "libraryStatsRecent": { "message": "7日間 +$D7$ · 30日間 +$D30$", "placeholders": { "d7": { "content": "$1" }, "d30": { "content": "$2" } } }
 }

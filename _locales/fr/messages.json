@@ -3530,5 +3530,11 @@
   "libraryDetailTitle": { "message": "Détails du mot" },
   "libraryDetailEmpty": { "message": "Sélectionnez un mot à gauche pour afficher ses détails." },
   "libraryRelookup": { "message": "Chercher à nouveau" },
-  "libraryBack": { "message": "Retour à la liste" }
+  "libraryBack": { "message": "Retour à la liste" },
+  "libraryStatsWords": { "message": "$COUNT$ mots", "placeholders": { "count": { "content": "$1" } } },
+  "libraryStatsLearning": { "message": "En cours : $COUNT$", "placeholders": { "count": { "content": "$1" } } },
+  "libraryStatsKnown": { "message": "Acquis : $COUNT$", "placeholders": { "count": { "content": "$1" } } },
+  "libraryStatsGroups": { "message": "$COUNT$ groupes", "placeholders": { "count": { "content": "$1" } } },
+  "libraryStatsLanguages": { "message": "$COUNT$ langues", "placeholders": { "count": { "content": "$1" } } },
+  "libraryStatsRecent": { "message": "+$D7$ en 7 jours · +$D30$ en 30 jours", "placeholders": { "d7": { "content": "$1" }, "d30": { "content": "$2" } } }
 }

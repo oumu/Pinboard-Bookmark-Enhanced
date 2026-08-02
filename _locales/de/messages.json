@@ -3530,5 +3530,11 @@
   "libraryDetailTitle": { "message": "Wortdetails" },
   "libraryDetailEmpty": { "message": "Wähle links ein Wort aus, um Details zu sehen." },
   "libraryRelookup": { "message": "Erneut nachschlagen" },
-  "libraryBack": { "message": "Zurück zur Liste" }
+  "libraryBack": { "message": "Zurück zur Liste" },
+  "libraryStatsWords": { "message": "$COUNT$ Wörter", "placeholders": { "count": { "content": "$1" } } },
+  "libraryStatsLearning": { "message": "Wird gelernt: $COUNT$", "placeholders": { "count": { "content": "$1" } } },
+  "libraryStatsKnown": { "message": "Gelernt: $COUNT$", "placeholders": { "count": { "content": "$1" } } },
+  "libraryStatsGroups": { "message": "$COUNT$ Gruppen", "placeholders": { "count": { "content": "$1" } } },
+  "libraryStatsLanguages": { "message": "$COUNT$ Sprachen", "placeholders": { "count": { "content": "$1" } } },
+  "libraryStatsRecent": { "message": "+$D7$ in 7 Tagen · +$D30$ in 30 Tagen", "placeholders": { "d7": { "content": "$1" }, "d30": { "content": "$2" } } }
 }

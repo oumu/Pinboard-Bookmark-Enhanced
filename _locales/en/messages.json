@@ -3524,5 +3524,11 @@
   "libraryDetailTitle": { "message": "Word details" },
   "libraryDetailEmpty": { "message": "Select a word on the left to see its details." },
   "libraryRelookup": { "message": "Look up again" },
-  "libraryBack": { "message": "Back to list" }
+  "libraryBack": { "message": "Back to list" },
+  "libraryStatsWords": { "message": "$COUNT$ words", "placeholders": { "count": { "content": "$1" } } },
+  "libraryStatsLearning": { "message": "Learning $COUNT$", "placeholders": { "count": { "content": "$1" } } },
+  "libraryStatsKnown": { "message": "Known $COUNT$", "placeholders": { "count": { "content": "$1" } } },
+  "libraryStatsGroups": { "message": "$COUNT$ groups", "placeholders": { "count": { "content": "$1" } } },
+  "libraryStatsLanguages": { "message": "$COUNT$ languages", "placeholders": { "count": { "content": "$1" } } },
+  "libraryStatsRecent": { "message": "+$D7$ in 7 days · +$D30$ in 30 days", "placeholders": { "d7": { "content": "$1" }, "d30": { "content": "$2" } } }
 }

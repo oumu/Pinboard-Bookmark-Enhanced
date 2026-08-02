@@ -50,6 +50,18 @@
         </span>
         </div>
       </div>
+      <!-- Read-only stats strip: total/learning/known/groups/languages/recent,
+           computed from the full owner row set (not the filtered view). The
+           two status counts are also filter chips (click = set/clear
+           #vocab-status-filter and reuse the existing change pipeline). -->
+      <div id="vocab-stats" class="vocab-stats" hidden>
+        <span class="vocab-stat" id="vocab-stat-total"></span>
+        <button type="button" class="vocab-stat-chip" id="vocab-stat-learning" data-status="new" aria-pressed="false"></button>
+        <button type="button" class="vocab-stat-chip" id="vocab-stat-known" data-status="known" aria-pressed="false"></button>
+        <span class="vocab-stat" id="vocab-stat-groups"></span>
+        <span class="vocab-stat" id="vocab-stat-languages"></span>
+        <span class="vocab-stat" id="vocab-stat-recent"></span>
+      </div>
       <!-- Count line: identical in browse and selection. The batch tools
            live in the sticky bar inside .vocab-list-region below -- nothing
            here reserves geometry for them. The status message rides inline

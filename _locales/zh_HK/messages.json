@@ -3530,5 +3530,11 @@
   "libraryDetailTitle": { "message": "詞條詳情" },
   "libraryDetailEmpty": { "message": "在左側選擇一個詞以查看詳情。" },
   "libraryRelookup": { "message": "重新查詞典" },
-  "libraryBack": { "message": "返回列表" }
+  "libraryBack": { "message": "返回列表" },
+  "libraryStatsWords": { "message": "$COUNT$ 個詞", "placeholders": { "count": { "content": "$1" } } },
+  "libraryStatsLearning": { "message": "學習中 $COUNT$", "placeholders": { "count": { "content": "$1" } } },
+  "libraryStatsKnown": { "message": "已掌握 $COUNT$", "placeholders": { "count": { "content": "$1" } } },
+  "libraryStatsGroups": { "message": "$COUNT$ 個群組", "placeholders": { "count": { "content": "$1" } } },
+  "libraryStatsLanguages": { "message": "$COUNT$ 種語言", "placeholders": { "count": { "content": "$1" } } },
+  "libraryStatsRecent": { "message": "7 天內 +$D7$ · 30 天內 +$D30$", "placeholders": { "d7": { "content": "$1" }, "d30": { "content": "$2" } } }
 }

@@ -100,6 +100,22 @@ function pbpVocabFilterSort(rows, query, group, sortMode, status) {
   return filtered.map((item) => item.row);
 }
 
+// Read-only stats over the owner's full row set. `now` injected for testability.
+function pbpVocabStats(rows, now) {
+  const groups = new Set();
+  const langs = new Set();
+  let learning = 0, known = 0, added7 = 0, added30 = 0;
+  const d7 = now - 7 * 86400000, d30 = now - 30 * 86400000;
+  for (const r of rows) {
+    if (String(r.status || "new") === "known") known++; else learning++;
+    for (const g of pbpVocabGroups(r)) groups.add(g);
+    if (r.language && r.language !== "und") langs.add(r.language);
+    if (r.createdAt >= d7) added7++;
+    if (r.createdAt >= d30) added30++;
+  }
+  return { total: rows.length, learning, known, groups: groups.size, languages: langs.size, added7, added30 };
+}
+
 function pbpVocabSelectResults(selected, rows, mode) {
   const next = new Set(selected || []);
   for (const row of (Array.isArray(rows) ? rows : [])) {
@@ -831,6 +847,30 @@ function _pbpVocabRenderList(append) {
   }
 }
 
+// Render the read-only stats strip from the full owner row set (not the
+// filtered view). Called after every _pbpVocabApplyView -- cheap, pure
+// counting -- and hidden with the rest of the list by
+// _pbpVocabClearVisibleState.
+function _pbpVocabRenderStats() {
+  const bar = $id("vocab-stats");
+  if (!bar) return;
+  if (!_vocabRows.length) { bar.hidden = true; return; }
+  const s = pbpVocabStats(_vocabRows, Date.now());
+  bar.hidden = false;
+  $id("vocab-stat-total").textContent = t("libraryStatsWords", String(s.total));
+  const filter = $id("vocab-status-filter");
+  const learningBtn = $id("vocab-stat-learning");
+  const knownBtn = $id("vocab-stat-known");
+  learningBtn.textContent = t("libraryStatsLearning", String(s.learning));
+  knownBtn.textContent = t("libraryStatsKnown", String(s.known));
+  const filterValue = filter ? filter.value : "";
+  learningBtn.setAttribute("aria-pressed", String(filterValue === "new"));
+  knownBtn.setAttribute("aria-pressed", String(filterValue === "known"));
+  $id("vocab-stat-groups").textContent = t("libraryStatsGroups", String(s.groups));
+  $id("vocab-stat-languages").textContent = t("libraryStatsLanguages", String(s.languages));
+  $id("vocab-stat-recent").textContent = t("libraryStatsRecent", String(s.added7), String(s.added30));
+}
+
 function _pbpVocabApplyView(resetLimit) {
   if (resetLimit) _vocabRenderLimit = PBP_VOCAB_RENDER_BATCH;
   _vocabViewRows = pbpVocabFilterSort(_vocabRows,
@@ -839,6 +879,7 @@ function _pbpVocabApplyView(resetLimit) {
     ($id("vocab-sort") || {}).value || "latest",
     ($id("vocab-status-filter") || {}).value || "");
   _pbpVocabRenderList();
+  _pbpVocabRenderStats();
 }
 
 function _pbpVocabClearVisibleState() {
@@ -852,6 +893,8 @@ function _pbpVocabClearVisibleState() {
   _pbpVocabSetLoading(true);
   const count = $id("vocab-count");
   if (count) count.textContent = "";
+  const statsBar = $id("vocab-stats");
+  if (statsBar) statsBar.hidden = true;
   // (The batch bar is class-driven, not hidden-attribute driven; its
   // .selecting class clears via _pbpVocabSyncSelectionUi right below.)
   for (const id of ["vocab-empty", "vocab-no-results", "vocab-load-more"]) {
@@ -1165,6 +1208,19 @@ for (const id of ["vocab-group-filter", "vocab-status-filter"]) {
   if (control) control.addEventListener("change", () => {
     _pbpVocabClearSelection();
     _pbpVocabApplyView(true);
+  });
+}
+// Stats-strip status chips proxy #vocab-status-filter: click sets it and
+// reuses the existing change pipeline; a second click on the active chip
+// clears the filter back to "all" instead of toggling to the other status.
+for (const chipId of ["vocab-stat-learning", "vocab-stat-known"]) {
+  const chip = $id(chipId);
+  if (chip) chip.addEventListener("click", () => {
+    const filter = $id("vocab-status-filter");
+    if (!filter) return;
+    const target = chip.dataset.status;
+    filter.value = filter.value === target ? "" : target;
+    filter.dispatchEvent(new Event("change"));
   });
 }
 // Sort only reorders the same visible set: keep the selection (desktop

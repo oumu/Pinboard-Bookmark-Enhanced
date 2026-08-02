@@ -671,6 +671,33 @@ html[data-theme="rose-pine"] .vocab-filter-toolbar select {
   border-color: color-mix(in srgb, var(--lib-accent) 45%, var(--lib-input-border, #cdd1d6));
 }
 .vocab-sort-btn .btn-ic { display: inline-flex; margin: 0; }
+/* Stats strip: read-only counts + two clickable status-filter chips. Same
+   quiet-muted-text register as .notes-count; the two chip buttons join the
+   .btn-sm hover/pressed language rather than inventing a new one. */
+.vocab-stats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--lib-sp-2);
+  padding: var(--lib-sp-1) 0;
+  color: var(--lib-fg-muted, #666);
+  font-size: 12px;
+}
+.vocab-stat-chip {
+  border: 1px solid var(--lib-border, #ccc);
+  background: var(--lib-btn-bg, #fff);
+  color: var(--lib-fg-muted, #666);
+  border-radius: var(--lib-radius-sm, 4px);
+  padding: 1px 8px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.vocab-stat-chip:hover { background: var(--lib-btn-hover); }
+.vocab-stat-chip[aria-pressed="true"] {
+  background: var(--lib-row-selected-bg);
+  color: var(--lib-row-selected-fg);
+  border-color: var(--lib-accent);
+}
 /* Count line: one row, identical in browse and selection. The status
    message rides inline at the right edge -- it never reserves a line of
    its own. The batch tools live in the sticky bar below the list. */
