@@ -509,6 +509,52 @@ function _pbpVocabRenderDetail(w) {
 // explain-pop does.
 let _pbpVocabDictCtrl = null;
 
+// Child controller per run, chained to the session-level `_pbpVocabDictCtrl`
+// -- mirrors md-dict.js's pbpDictRun child/parent discipline (its own
+// `_pbpDictChildCtrl` + `_pbpDictParentCleanup`, distinct names to avoid a
+// SyntaxError double-`let` since both files co-load on this page). Without
+// this, a language switch reused the single outer signal for every run:
+// _pbpDictSlotRun only checks THAT signal for staleness, so a slow in-flight
+// fetch for the OLD language (up to its 8s timeout) could still land in the
+// shared onlineEl after the new language's result, silently showing content
+// the dropdown no longer names. Module-level (not a per-call closure) so
+// every caller of _pbpVocabDictRun below shares one child-run slot.
+let _pbpVocabDictChildCtrl = null;
+let _pbpVocabDictChildCleanup = null;
+
+// Shared dictionary run core, extracted from _pbpVocabRelookup so free lookup
+// (a later task) can reuse it verbatim. Reuses md-dict's pure query seams
+// (_pbpDictSlotRun online chain + _pbpDictEcdictSide local pack) with NO AI
+// leg: the lemma promise resolves empty immediately (ai.js is not loaded on
+// this page). Participates in md-dict's staleness token so a second run or a
+// word switch invalidates the previous one exactly like explain-pop does.
+// `els` = { localEl, onlineEl } (the two stable slot children -- see the
+// slot-invariant comment at each call site). `rerun` is the caller's "run
+// this exact query again" callback (e.g. re-read a language <select> and
+// call its own startRun); it only fires if this run is still the live one.
+function _pbpVocabDictRun(term, lang, els, sentence, rerun) {
+  const { localEl, onlineEl } = els;
+  if (_pbpVocabDictChildCtrl) _pbpVocabDictChildCtrl.abort();
+  if (_pbpVocabDictChildCleanup) { _pbpVocabDictChildCleanup(); _pbpVocabDictChildCleanup = null; }
+  const child = new AbortController();
+  _pbpVocabDictChildCtrl = child;
+  const onParentAbort = () => child.abort();
+  if (_pbpVocabDictCtrl.signal.aborted) child.abort();
+  else {
+    _pbpVocabDictCtrl.signal.addEventListener("abort", onParentAbort, { once: true });
+    _pbpVocabDictChildCleanup = () => { try { _pbpVocabDictCtrl.signal.removeEventListener("abort", onParentAbort); } catch (_) {} };
+  }
+  const signal = child.signal;
+
+  const cur = { term, lang, sentence };
+  cur.rerun = () => { if (_pbpDictCurrent === cur) rerun(); };
+  _pbpDictCurrent = cur;
+  _pbpDictSlotSkeleton(onlineEl);
+  _pbpDictEcdictSide(localEl, term, lang, signal, cur);
+  _pbpDictSlotRun(onlineEl, term, lang, signal, Promise.resolve(""), cur.rerun, cur.sentence)
+    .catch((err) => console.warn("library relookup failed:", err.name, err.message));
+}
+
 function _pbpVocabRelookup(w, host) {
   if (_pbpVocabDictCtrl) _pbpVocabDictCtrl.abort();
   const ctrl = new AbortController();
@@ -547,35 +593,9 @@ function _pbpVocabRelookup(w, host) {
   wrap.appendChild(slot);
   host.replaceChildren(wrap); // host is .vocab-detail-dict, never the slot
 
-  // Child controller per run, chained to the session-level `ctrl` -- mirrors
-  // md-dict.js's pbpDictRun child/parent discipline (its own `_pbpDictChildCtrl`
-  // + `_pbpDictParentCleanup`). Without this, a language switch reused the
-  // single outer signal for every run: _pbpDictSlotRun only checks THAT
-  // signal for staleness, so a slow in-flight fetch for the OLD language (up
-  // to its 8s timeout) could still land in the shared onlineEl after the new
-  // language's result, silently showing content the dropdown no longer names.
-  let childCtrl = null;
-  let childCleanup = null;
   function startRun(lang) {
-    if (childCtrl) childCtrl.abort();
-    if (childCleanup) { childCleanup(); childCleanup = null; }
-    const child = new AbortController();
-    childCtrl = child;
-    const onParentAbort = () => child.abort();
-    if (ctrl.signal.aborted) child.abort();
-    else {
-      ctrl.signal.addEventListener("abort", onParentAbort, { once: true });
-      childCleanup = () => { try { ctrl.signal.removeEventListener("abort", onParentAbort); } catch (_) {} };
-    }
-    const signal = child.signal;
-
-    const cur = { term: w.term, lang, sentence: (w.contexts && w.contexts[0] && w.contexts[0].quote) || "" };
-    cur.rerun = () => { if (_pbpDictCurrent === cur) startRun(sel.value); };
-    _pbpDictCurrent = cur;
-    _pbpDictSlotSkeleton(onlineEl);
-    _pbpDictEcdictSide(localEl, w.term, lang, signal, cur);
-    _pbpDictSlotRun(onlineEl, w.term, lang, signal, Promise.resolve(""), cur.rerun, cur.sentence)
-      .catch((err) => console.warn("library relookup failed:", err.name, err.message));
+    const sentence = (w.contexts && w.contexts[0] && w.contexts[0].quote) || "";
+    _pbpVocabDictRun(w.term, lang, { localEl, onlineEl }, sentence, () => startRun(sel.value));
   }
   sel.addEventListener("change", () => startRun(sel.value));
   startRun(sel.value || startLang);
