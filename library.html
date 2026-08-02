@@ -27,9 +27,9 @@
              doesn't -- never scattered one-per-line. -->
         <div class="vocab-filter-selects">
         <label class="sr-only" for="vocab-group-filter" data-i18n="vocabGroupFilterAria">Filter by group</label>
-        <select id="vocab-group-filter" data-no-autosave data-i18n-aria="vocabGroupFilterAria" aria-label="Filter by group"><option value="" data-i18n="vocabAllGroups">All groups</option></select>
+        <select id="vocab-group-filter" data-i18n-aria="vocabGroupFilterAria" aria-label="Filter by group"><option value="" data-i18n="vocabAllGroups">All groups</option></select>
         <label class="sr-only" for="vocab-status-filter" data-i18n="vocabStatusFilterAria">Filter by status</label>
-        <select id="vocab-status-filter" data-no-autosave data-i18n-aria="vocabStatusFilterAria" aria-label="Filter by status">
+        <select id="vocab-status-filter" data-i18n-aria="vocabStatusFilterAria" aria-label="Filter by status">
           <option value="" data-i18n="vocabStatusAll">All statuses</option>
           <option value="new" data-i18n="vocabStatusLearning">Learning</option>
           <option value="known" data-i18n="vocabStatusKnown">Known</option>
@@ -38,7 +38,7 @@
         <!-- Hidden state carrier: every handler/test still speaks to this
              select; the two segment buttons below only proxy writes to it.
              (user-ratified 2026-08-02: dropdown -> direction-toggle pair) -->
-        <select id="vocab-sort" data-no-autosave data-i18n-aria="vocabSortAria" aria-label="Sort vocabulary" hidden>
+        <select id="vocab-sort" data-i18n-aria="vocabSortAria" aria-label="Sort vocabulary" hidden>
           <option value="latest" data-i18n="vocabSortLatest">Recently updated</option>
           <option value="oldest" data-i18n="vocabSortOldest">Least recently updated</option>
           <option value="az" data-i18n="vocabSortAz">A–Z</option>
@@ -82,7 +82,7 @@
                Group-name placeholder disambiguates them; full labels stay in
                title/aria (remove's title is JS-owned, see _pbpVocabSyncSelectionUi). -->
           <span class="vocab-group-unit">
-            <input type="text" id="vocab-group-input" list="vocab-group-list" data-no-autosave placeholder="Group name" data-i18n-placeholder="vocabGroupNamePlaceholder" data-i18n-aria="vocabGroupNamePlaceholder" aria-label="Group name" autocomplete="off" />
+            <input type="text" id="vocab-group-input" list="vocab-group-list" placeholder="Group name" data-i18n-placeholder="vocabGroupNamePlaceholder" data-i18n-aria="vocabGroupNamePlaceholder" aria-label="Group name" autocomplete="off" />
             <datalist id="vocab-group-list"></datalist>
             <button type="button" class="btn btn-sm vocab-group-step" id="vocab-add-group" data-i18n-title="vocabAddToGroup" data-i18n-aria="vocabAddToGroup"><span class="btn-ic" data-ic="plus"></span></button>
             <button type="button" class="btn btn-sm vocab-group-step" id="vocab-remove-group" data-i18n-aria="vocabRemoveFromGroup"><span class="btn-ic" data-ic="minus"></span></button>

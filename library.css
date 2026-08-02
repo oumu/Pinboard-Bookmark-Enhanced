@@ -285,36 +285,6 @@ html.motion-ready .notes-card-chevron { transition: transform var(--motion-colla
   border-top: 1px solid color-mix(in srgb, var(--lib-border, #ccc) 70%, transparent);
   padding: var(--lib-sp-2) var(--lib-sp-3) var(--lib-sp-3);
 }
-/* Row disclosure transition, gated the same way as options.js's accordions
-   (.motion-toggle marks a just-toggled card so tab switches/batch rebuilds
-   never replay the grow-from-0). Nothing on the library page adds
-   .motion-toggle yet -- library.js has no delegated click listener for it
-   (out of this task's scope: library-notes.js's own click handler only
-   flips [hidden], see the file's head.addEventListener) -- so this block is
-   inert until a later task wires that gate up; the plain [hidden] toggle
-   above still opens/closes the card, just without the height animation. */
-html.motion-ready .notes-card.motion-toggle > .notes-card-body {
-  overflow: clip;
-  transition: height var(--motion-collapse) var(--ease-in-out),
-              padding-top var(--motion-collapse) var(--ease-in-out),
-              padding-bottom var(--motion-collapse) var(--ease-in-out),
-              display var(--motion-collapse) allow-discrete;
-}
-html.motion-ready .notes-card.motion-toggle > .notes-card-body[hidden] {
-  height: 0;
-  padding-top: 0;
-  padding-bottom: 0;
-}
-html.motion-ready .notes-card.motion-toggle > .notes-card-body:not([hidden]) {
-  @starting-style { height: 0; padding-top: 0; padding-bottom: 0; }
-}
-html.motion-ready .notes-card.motion-toggle .notes-card-chevron {
-  transition: transform var(--motion-collapse) var(--ease-in-out);
-}
-@keyframes pbp-card-body-in { from { opacity: 0; translate: 0 -3px; } }
-html.motion-ready .notes-card.motion-toggle > .notes-card-body:not([hidden]) > * {
-  animation: pbp-card-body-in var(--motion-pop) var(--ease-out) 60ms backwards;
-}
 .notes-unknown-hint { font-size: 11px; color: var(--lib-fg-muted, #666); margin: 0 0 var(--lib-sp-2) 0; }
 .notes-items { display: grid; gap: var(--lib-sp-2); }
 .notes-item { display: flex; gap: var(--lib-sp-2); min-width: 0; }
