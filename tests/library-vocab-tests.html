@@ -376,16 +376,33 @@ check("selection still covers all filtered results beyond rendered chunks", _voc
       _pbpVocabRenderDetail(sample[0]); // a word open in the detail pane, to prove the I1 reset fires
       $id("vocab-status").textContent = "";
       pbpVocabCurrentOwner = async () => { throw new Error("soft reload owner read failed"); };
+      // Real rendered rows + a non-empty count, so "cleared" is checked on
+      // two independent surfaces rather than trusted via the aria-busy proxy
+      // alone -- the gap a dropped _pbpVocabClearVisibleState() call in the
+      // catch would slip through (owner-isolation breach: stale rows from
+      // the wrong owner staying visible) while every other assertion here
+      // still passed. (The immediately-preceding renderVocabPanel test above
+      // already cleared its own leftover rows via its own catch, so this
+      // rebuilds them rather than relying on cross-test ordering.)
+      _vocabRows = sample;
+      _pbpVocabApplyView(true);
+      const rowsBefore = $id("vocab-list").children.length;
+      const countBefore = $id("vocab-count").textContent;
       document.dispatchEvent(new CustomEvent("pbp-lib-view", { detail: { view: "vocab" } }));
       await task(); await task();
       check("a soft-reload owner-read failure clears visible state, resets the detail pane, flashes an error, and raises no unhandled rejection",
+        rowsBefore > 0 &&
+        $id("vocab-list").children.length === 0 &&
+        !!countBefore && !$id("vocab-count").textContent &&
         $id("vocab-list").getAttribute("aria-busy") === "false" &&
         $id("vocab-status").classList.contains("bad") &&
         $id("vocab-status").textContent.includes("vocabLoadFailed") &&
         $id("vocab-detail-empty").hidden === false &&
         $id("vocab-detail").hidden === true &&
         unhandledReason === null,
-        "unhandled=" + unhandledReason);
+        "rowsBefore=" + rowsBefore + " rowsAfter=" + $id("vocab-list").children.length +
+        " countBefore=" + JSON.stringify(countBefore) +
+        " countAfter=" + JSON.stringify($id("vocab-count").textContent) + " unhandled=" + unhandledReason);
     } finally {
       window.removeEventListener("unhandledrejection", onUnhandled);
       pbpVocabCurrentOwner = realOwner;
