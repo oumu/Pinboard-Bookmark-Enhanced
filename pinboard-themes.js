@@ -848,7 +848,7 @@ h2 { color: #3c4043 !important; }
   --pinboard-accent-soft: #3b4252;
   --pinboard-accent-alpha: rgba(136,192,208,0.25);
   --pinboard-input-bg: #434c5e;
-  --pinboard-private-bg: #3b4252;
+  --pinboard-private-bg: #2e3440;
   --pinboard-private-accent: #ebcb8b;
   --pinboard-selection-bg: #5e81ac;
   --pinboard-selection-fg: #eceff4;
