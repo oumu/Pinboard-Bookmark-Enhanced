@@ -36,8 +36,12 @@ Chrome Extension (Manifest V3)，一键将当前页面保存到 Pinboard，支�
 ├── options.html/css/js          # 设置页
 ├── options-connectivity.js      # 各 provider 联通性测试 UI（运行时，非 dev 测试页）
 ├── options-backup.js            # 手工 JSON schema v3 导出/预览/分项导入（设置 + 可选高亮/生词）
-├── options-vocab.js             # 生词 tab（当前 owner；搜索/筛选/排序/选择/分组/批删；Drive 状态；100 条分批渲染；全量 TSV/Anki/欧路）
+├── options-vocab.js             # 生词设置侧（Drive 状态、全量 TSV/Anki/欧路导出、ECDICT 词典包）；列表已迁 library-vocab.js
 ├── options-theme-early.js       # 同 popup
+│
+├── library.html/css/js          # 笔记与生词本独立页（视图切换 + hash 路由 + visibilitychange 刷新；入口在 popup / options / 阅读器 Notebook）
+├── library-vocab.js             # library 生词视图（当前 owner 主列表：搜索/筛选/排序/选择/批量条 + 右侧详情面板、笔记编辑、按需重新查词、窄窗单栏回退）
+├── library-notes.js             # library 笔记视图（高亮/笔记列表与存储用量，迁自 options-notes.js）
 │
 ├── vocab-store.js               # pbp-vocab IDB v2 唯一写边界（words + vector/outbox/tombstone/sync 状态）
 ├── vocab-gdrive.js              # SW-only Google Drive appDataFolder 客户端与同步 runner（当前待 OAuth 激活）
@@ -120,9 +124,9 @@ Chrome Extension (Manifest V3)，一键将当前页面保存到 Pinboard，支�
 
 ## Theme Factory 工作流
 
-`docs/theme-surface/` 是 token-driven 的主题生成系统，13 套 preset 都从 `pilots/*.tokens.json` 经 composer 渲染出来，写入三处：`pinboard-themes.js`（站点）+ `popup.css` / `options.css` 的 `@generated:ui-themes` 区（扩展 UI，`popup-chrome.mjs` / `options-chrome.mjs` 经 `_ui-derive.mjs` 派生；pilot 可用 `ui.popup/options.light/dark` 覆盖任意派生值；`on-accent` 每主题显式发射，勿依赖 var() fallback——自定义属性继承使 fallback 成死代码）。
+`docs/theme-surface/` 是 token-driven 的主题生成系统，13 套 preset 都从 `pilots/*.tokens.json` 经 composer 渲染出来，写入四处：`pinboard-themes.js`（站点）+ `popup.css` / `options.css` / `library.css` 的 `@generated:ui-themes` 区（扩展 UI，`popup-chrome.mjs` / `options-chrome.mjs` / `library-chrome.mjs` 经 `_ui-derive.mjs` 派生；pilot 可用 `ui.popup/options/library.light/dark` 覆盖任意派生值；`on-accent` 每主题显式发射，勿依赖 var() fallback——自定义属性继承使 fallback 成死代码）。
 
-**编辑顺序**：改 `composers/*.mjs` 或 `pilots/*.tokens.json` → 跑 `node docs/theme-surface/tools/sync-all.mjs`（8 步：render → apply×13 → diff-all --strict → contrast-audit → css-region-audit → ui-token-coverage → layout-lint → url-lint）→ commit。**禁止手工编辑 `pinboard-themes.js` 与两个 `@generated:ui-themes` 区**（handedit-audit / css-region-audit 拦截）。间距 token（`--pp-sp-*` / `--opt-sp-*`、reader 的 `--prose-fs` 族）是主题不变量，落各文件手维护区，**不进 composer**。
+**编辑顺序**：改 `composers/*.mjs` 或 `pilots/*.tokens.json` → 跑 `node docs/theme-surface/tools/sync-all.mjs`（8 步：render → apply×13 → diff-all --strict → contrast-audit → css-region-audit → ui-token-coverage → layout-lint → url-lint）→ commit。**禁止手工编辑 `pinboard-themes.js` 与三个 `@generated:ui-themes` 区**（handedit-audit / css-region-audit 拦截）。间距 token（`--pp-sp-*` / `--opt-sp-*` / `--lib-sp-*`、reader 的 `--prose-fs` 族）是主题不变量，落各文件手维护区，**不进 composer**。
 
 **Pre-commit 5 道 lint**（任一红就 block，全部禁止 `--no-verify`）：
 1. `diff-all --strict` — composer 输出 vs shipped 字符级一致

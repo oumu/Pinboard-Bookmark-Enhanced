@@ -288,19 +288,25 @@ docs/theme-surface/
 
 ## §9 · Addendum (2026-07): extension UI surfaces
 
-The factory no longer stops at pinboard.in. Two additional composers render
+The factory no longer stops at pinboard.in. Three additional composers render
 each pilot's palette into the extension's own chrome:
 
 | Composer | Output | Region |
 |----------|--------|--------|
 | `composers/popup-chrome.mjs` | `--pp-*` custom properties | `@generated:ui-themes` in `popup.css` |
 | `composers/options-chrome.mjs` | `--opt-*` custom properties | `@generated:ui-themes` in `options.css` |
+| `composers/library-chrome.mjs` | `--lib-*` custom properties | `@generated:ui-themes` in `library.css` |
 
-Both derive their role colors from the pilot palette via
+All three derive their role colors from the pilot palette via
 `composers/_ui-derive.mjs`; a pilot may override any derived value through
 the `ui` field in its tokens file (`ui.popup.light/dark`,
-`ui.options.light/dark` — see NEW_THEME.md §ui). `tools/apply-ui-themes.mjs
---write` regenerates the regions; sync-all runs it automatically.
+`ui.options.light/dark`, `ui.library.light/dark` — see NEW_THEME.md §ui).
+`tools/apply-ui-themes.mjs --write` regenerates the regions; sync-all runs it
+automatically.
+
+The library composer derives `danger` / `warn` itself (no pilot carries
+`ui.library` overrides yet), so a new theme needs no library-specific tokens
+to pass `ui-token-coverage`.
 
 Two contracts learned the hard way (2026-07 regressions):
 

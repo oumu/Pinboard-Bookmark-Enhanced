@@ -3529,6 +3529,6 @@
   "libraryOpen": { "message": "Otwórz notatki i słówka" },
   "libraryDetailTitle": { "message": "Szczegóły słówka" },
   "libraryDetailEmpty": { "message": "Wybierz słówko po lewej, aby zobaczyć szczegóły." },
-  "libraryRelookup": { "message": "Sprawdź ponownie" },
+  "libraryRelookup": { "message": "Sprawdź ponownie w słowniku" },
   "libraryBack": { "message": "Wróć do listy" }
 }

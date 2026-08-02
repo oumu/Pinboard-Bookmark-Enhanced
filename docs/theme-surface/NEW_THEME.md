@@ -214,18 +214,19 @@ probes in addition to the 9 light probes.
 
 ---
 
-## 6 · Extension popup + options themes (also regenerated)
+## 6 · Extension popup + options + library themes (also regenerated)
 
-Adding a pilot tokens file regenerates **both** the pinboard.in site theme
-*and* the extension popup/options named-theme blocks. You do not need to
-touch `popup.css` or `options.css` manually.
+Adding a pilot tokens file regenerates the pinboard.in site theme *and* the
+extension's popup, options, and library named-theme blocks. You do not need
+to touch `popup.css`, `options.css`, or `library.css` manually.
 
-**How it works.** `composers/popup-chrome.mjs` and `composers/options-chrome.mjs`
-read the same pilot palette (via `composers/_ui-derive.mjs`) and write
-`--pp-*` / `--opt-*` custom properties into `@generated:ui-themes` regions
-inside `popup.css` and `options.css`. `sync-all` runs this step automatically.
+**How it works.** `composers/popup-chrome.mjs`, `composers/options-chrome.mjs`
+and `composers/library-chrome.mjs` read the same pilot palette (via
+`composers/_ui-derive.mjs`) and write `--pp-*` / `--opt-*` / `--lib-*` custom
+properties into `@generated:ui-themes` regions inside `popup.css`,
+`options.css` and `library.css`. `sync-all` runs this step automatically.
 
-To regenerate popup + options themes on their own:
+To regenerate the extension UI themes on their own:
 
 ```bash
 node docs/theme-surface/tools/apply-ui-themes.mjs --write
@@ -239,34 +240,41 @@ mode in the tokens file — values win over `_ui-derive.mjs`:
 "ui": {
   "popup":   { "light": { "on-accent": "#001014", "radius-tag": "4px" },
                "dark":  { "focus-ring": "0 0 0 2px #268bd280" } },
-  "options": { "light": { "danger": "#c5221f" } }
+  "options": { "light": { "danger": "#c5221f" } },
+  "library": { "dark":  { "row-selected-bg": "#1c2733" } }
 }
 ```
 
 Emittable popup keys include every `--pp-*` role plus `radius-sm/md/lg/tag`,
 `focus-bd`, `focus-ring`, and `on-accent`; the options composer accepts any
-`--opt-*` role. Two rules, both regression-tested:
+`--opt-*` role and the library composer any `--lib-*` role. No shipped pilot
+carries a `ui.library` block: the library composer derives `danger` / `warn`
+itself, so a new theme passes `ui-token-coverage` without one. Two rules,
+both regression-tested:
 
 - **`on-accent` (submit-button text) is ALWAYS emitted explicitly** — never
   rely on a `var()` fallback in shared rules (custom properties inherit, so
   the fallback is dead code; this exact mistake once turned every themed
   submit button white). `contrast-audit.mjs` gates `on-accent` vs `accent`
   at AA 4.5, so a failing pair aborts sync-all.
-- **Spacing cannot be themed.** `--pp-sp-*` / `--opt-sp-*` are hand-
-  maintained, theme-invariant tokens outside the factory; `ui` overrides
+- **Spacing cannot be themed.** `--pp-sp-*` / `--opt-sp-*` / `--lib-sp-*` are
+  hand-maintained, theme-invariant tokens outside the factory; `ui` overrides
   that try to redefine them have no supported effect.
 
 Three gates guard the generated output:
 
 | Gate | What it checks |
 |------|----------------|
-| `contrast-audit.mjs` | WCAG AA for every popup/options status + text pair |
+| `contrast-audit.mjs` | WCAG AA for every popup/options/library status + text pair |
 | `css-region-audit.mjs` | `@generated:ui-themes` regions have not been hand-edited |
-| `ui-token-coverage.mjs` | Every consumed `--pp-*` / `--opt-*` token is defined |
+| `ui-token-coverage.mjs` | Every consumed `--pp-*` / `--opt-*` / `--lib-*` token is defined |
 
-All three run inside `sync-all` and inside the pre-commit hook. **Do not
-hand-edit the `@generated:ui-themes` regions** in `popup.css` or
-`options.css` — they will be overwritten on the next `sync-all`.
+All three run inside `sync-all`; the pre-commit hook runs the site-side five
+(`diff-all --strict`, `token-coverage`, `cascade-lint`, `override-drift`,
+`handedit-audit`), so a UI-region change still needs a `sync-all` pass before
+you commit. **Do not hand-edit the `@generated:ui-themes` regions** in
+`popup.css`, `options.css`, or `library.css` — they will be overwritten on
+the next `sync-all`.
 
 ---
 

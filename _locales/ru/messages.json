@@ -3527,7 +3527,7 @@
   "skimFailed": { "message": "Не удалось сгенерировать ключевые тезисы" },
   "libraryTitle": { "message": "Заметки и словарик" },
   "libraryOpen": { "message": "Открыть заметки и словарик" },
-  "libraryDetailTitle": { "message": "Сведения о слове" },
+  "libraryDetailTitle": { "message": "Подробности о слове" },
   "libraryDetailEmpty": { "message": "Выберите слово слева, чтобы увидеть подробности." },
   "libraryRelookup": { "message": "Найти снова" },
   "libraryBack": { "message": "Назад к списку" }

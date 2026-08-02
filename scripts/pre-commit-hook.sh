@@ -8,7 +8,7 @@
 #
 # Bypass (rare): git commit --no-verify
 
-CHANGED=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^(docs/theme-surface/(pilots/[^/]+\.tokens\.json|composers/[^/]+\.mjs|tools/[^/]+\.mjs)|pinboard-themes\.js|popup\.css|options\.css)$')
+CHANGED=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^(docs/theme-surface/(pilots/[^/]+\.tokens\.json|composers/[^/]+\.mjs|tools/[^/]+\.mjs)|pinboard-themes\.js|popup\.css|options\.css|library\.css)$')
 
 if [ -z "$CHANGED" ]; then
   exit 0
