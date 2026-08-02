@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="color-scheme" content="light dark" />
+  <title>Notes &amp; Vocabulary</title>
+  <script src="options-theme-early.js"></script>
+  <link rel="stylesheet" href="library.css">
+</head>
+<body>
+  <header class="lib-header">
+    <h1 data-i18n="libraryTitle">Notes &amp; Vocabulary</h1>
+    <nav class="lib-tabs" role="tablist" data-i18n-aria="libraryTitle" aria-label="Notes &amp; Vocabulary">
+      <button type="button" class="lib-tab" id="lib-tab-vocab" role="tab" aria-selected="true" aria-controls="view-vocab" data-i18n="dictVocabSection">Vocabulary</button>
+      <button type="button" class="lib-tab" id="lib-tab-notes" role="tab" aria-selected="false" aria-controls="view-notes" data-i18n="tabNotes">Notes</button>
+    </nav>
+  </header>
+
+  <main class="lib-main">
+    <section id="view-vocab" class="lib-view" role="tabpanel" aria-labelledby="lib-tab-vocab">
+      <!-- Task 5 fills the vocab master-detail markup here -->
+    </section>
+    <section id="view-notes" class="lib-view" role="tabpanel" aria-labelledby="lib-tab-notes" hidden>
+      <!-- Task 3 fills the notes markup here -->
+    </section>
+  </main>
+
+  <script defer src="i18n.js"></script>
+  <script defer src="shared.js"></script>
+  <script defer src="vocab-store.js"></script>
+  <script defer src="ai-cache.js"></script>
+  <script defer src="md-dict.js"></script>
+  <script defer src="dict-pack.js"></script>
+  <script defer src="library-notes.js"></script>
+  <script defer src="library-vocab.js"></script>
+  <script defer src="library.js"></script>
+</body>
+</html>

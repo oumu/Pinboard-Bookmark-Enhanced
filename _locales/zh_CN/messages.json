@@ -3518,5 +3518,10 @@
   "skimStaleNote": { "message": "内容已变化，这些要点可能已过时" },
   "skimStop": { "message": "停止" },
   "skimGenerating": { "message": "正在生成要点…" },
-  "skimFailed": { "message": "要点生成失败" }
+  "skimFailed": { "message": "要点生成失败" },
+  "libraryTitle": { "message": "笔记与生词本" },
+  "libraryOpen": { "message": "打开笔记与生词本" },
+  "libraryDetailEmpty": { "message": "在左侧选择一个词查看详情。" },
+  "libraryRelookup": { "message": "重新查词典" },
+  "libraryBack": { "message": "返回列表" }
 }
