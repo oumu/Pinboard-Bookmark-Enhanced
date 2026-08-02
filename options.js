@@ -456,7 +456,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       cb.type = "checkbox";
       cb.className = "storage-cat-cb";
       cb.dataset.cat = c.id;
-      cb.checked = c.defaultOn;
+      // Empty categories must not present as "checked": a disabled checkbox
+      // still matches the :checked collection query used by "clear selected".
+      cb.checked = c.defaultOn && m.keys.length > 0;
       cb.disabled = m.keys.length === 0;
       const span = document.createElement("span");
       span.textContent = `${t(c.labelKey)} — ${pbpFormatBytes(m.bytes)} (${m.keys.length})`;
