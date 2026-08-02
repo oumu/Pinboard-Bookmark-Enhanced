@@ -1852,13 +1852,20 @@ function _pbpHlBuildNotebookDom(rail) {
       })
     : null; // degrade: no collapsible header (file:// test harness has no #rail at all, never reaches here)
 
-  // Opener into the standalone library page's Notes view. Lives inside
-  // .rail-sec-head itself -- that header is a flex row spanning the full
-  // section width (pbpRailCollapsible), so a child appended after
-  // .rail-sec-count paints inline in the same row, matching the neighboring
-  // rail icon buttons. Because the header row IS the accordion-toggle
-  // <button>, a click here must stopPropagation or it would also
-  // collapse/expand the section.
+  // Opener into the standalone library page's Notes view. A SIBLING of
+  // .rail-sec-head (not a child) -- .rail-sec-head is itself the
+  // accordion-toggle <button> (pbpRailCollapsible), and a <button> cannot
+  // validly contain another interactive element. Positioned via CSS
+  // (#hl-rail-section/.rail-sec-open, md-preview.css) to paint inline with
+  // the header row, just left of the chevron. Because it's a plain sibling
+  // -- not a descendant of headBtn -- its click never bubbles through
+  // headBtn's own listener (bubbling only follows the ancestor chain), so
+  // no stopPropagation is needed here; confirmed no other ancestor
+  // (#hl-rail-section, .rail, document) has a click listener that would
+  // react to it either. This placement also reuses the existing
+  // ".rail-collapsed > *:not(.rail-sec-head)" collapse rule for free: as a
+  // direct child of the (potentially) .rail-collapsed section, it hides
+  // when collapsed and shows when expanded, same as every other row.
   const headBtn = sec.querySelector(".rail-sec-head");
   if (headBtn) {
     const openLib = document.createElement("button");
@@ -1867,11 +1874,10 @@ function _pbpHlBuildNotebookDom(rail) {
     openLib.innerHTML = (typeof PBP_ICONS === "object" && PBP_ICONS && PBP_ICONS.book) || "";
     openLib.title = t("libraryOpen");
     openLib.setAttribute("aria-label", t("libraryOpen"));
-    openLib.addEventListener("click", (e) => {
-      e.stopPropagation(); // header row toggles the accordion; the opener must not
+    openLib.addEventListener("click", () => {
       try { window.open(chrome.runtime.getURL("library.html#notes")); } catch (_) {}
     });
-    headBtn.appendChild(openLib);
+    headBtn.insertAdjacentElement("afterend", openLib); // DOM order = tab order: right after the header button
   }
 
   return { sec, list, filterBtns, emptyHint, copyBtn, handle, orphanNote };

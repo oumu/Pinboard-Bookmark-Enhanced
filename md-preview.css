@@ -1274,14 +1274,32 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
 .rail-sec-count { flex: none; color: var(--fg-muted); }
 .rail-sec-progress { flex: none; display: none; color: var(--fg-muted); }
 .rail-collapsed .rail-sec-head .rail-sec-progress { display: inline; }
-/* Notebook-header opener into the library page (md-highlight.js). Ghost
-   icon button, same family as .pb-hl-note-btn -- 24px (vs its 22px) to hit
-   the rail's minimum tap target since this one has no adjacent text label.
-   Nested inside .rail-sec-head so it survives collapse (not caught by the
-   ">*:not(.rail-sec-head)" collapse rule below) and stays reachable without
-   expanding the section first. */
+/* Notebook-header opener into the library page (md-highlight.js). A plain
+   sibling of .rail-sec-head, not a child -- .rail-sec-head IS the
+   accordion-toggle <button> (pbpRailCollapsible), and nesting another
+   interactive element inside a <button> is invalid (real AT-flattening
+   risk). Painted into the header row's right edge via a reserved gutter,
+   scoped to this one section (#hl-rail-section) so sibling rail sections
+   (TOC/Export/tr/ask) are untouched. Ghost icon button, same family as
+   .pb-hl-note-btn -- 24px (vs its 22px) to hit the rail's minimum tap
+   target since this one has no adjacent text label. As a direct child of
+   #hl-rail-section it's caught by the ">*:not(.rail-sec-head)" collapse
+   rule below for free: hidden when the section collapses, visible when
+   expanded, same as every other row -- no extra JS needed. */
+#hl-rail-section { position: relative; }
+/* The gutter opens BEFORE .rail-sec-tri, not after: .rail-sec-tri stays
+   flush at the row's true right edge, pixel-identical to every sibling
+   section's chevron, because .rail-sec-label is the flex-grow item that
+   absorbs all leftover width and pushes count+tri to the boundary
+   regardless of what sits between them. Widening the gap after
+   .rail-sec-count (a margin on the item before tri, not padding on the
+   container) opens the slot without moving tri at all. top/right below are
+   measured (getBoundingClientRect against a real rendered rail), not
+   guessed -- centers on the chevron's own vertical midline with a ~5px
+   clearance on both sides (count and tri). */
+#hl-rail-section .rail-sec-count { margin-right: 32px; }
 .rail-sec-open {
-  flex: none;
+  position: absolute; top: 23px; right: 12px;
   width: 24px; height: 24px;
   display: inline-flex; align-items: center; justify-content: center;
   padding: 0;
@@ -1289,7 +1307,6 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
   background: transparent;
   color: var(--fg-muted);
   cursor: pointer;
-  order: 8; /* before .rail-sec-tri's order:9, after label/count/progress */
 }
 .rail-sec-open svg { width: 15px; height: 15px; }
 .rail-sec-open:hover, .rail-sec-open:focus-visible { color: var(--fg); background: var(--btn-hover); outline: none; }
