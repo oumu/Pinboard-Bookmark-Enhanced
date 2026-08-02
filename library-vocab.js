@@ -958,7 +958,23 @@ async function renderVocabPanel() {
 // show/view-switch.
 async function _pbpVocabSoftReload() {
   const gen = ++_vocabRenderGen;
-  const owner = await pbpVocabCurrentOwner();
+  let owner;
+  try {
+    owner = await pbpVocabCurrentOwner();
+  } catch (err) {
+    console.warn("vocab soft reload owner read failed:", err.name, err.message);
+    // Fail-closed, same shape as renderVocabPanel's own catch: an owner read
+    // that throws here is exactly as untrustworthy as one that throws there,
+    // so it gets the identical clear + detail-reset (I1) + flash treatment
+    // rather than leaving a possibly-stale account's rows on screen.
+    if (gen === _vocabRenderGen) {
+      _pbpVocabClearVisibleState();
+      _pbpVocabRenderDetail(null);
+      _pbpVocabSetLoading(false);
+      _pbpVocabFlashStatus(false, t("vocabLoadFailed"));
+    }
+    return;
+  }
   if (gen !== _vocabRenderGen) return;
   if (owner !== _vocabCurrentOwner) {
     // The account actually moved between the last commit and this re-fire --
