@@ -668,17 +668,26 @@ html.motion-ready .vocab-batch-bar.selecting {
 .vocab-row-select { width: 16px; height: 16px; margin: 0; }
 .vocab-card .vocab-row-select { margin-top: 3px; }
 .vocab-card .notes-card-head { align-items: start; }
+/* The row whose word the detail pane is currently showing. Distinct from
+   .selected (a batch-operation membership) -- this is "you are here".
+   Drives the CHILD's --row-bg rather than painting the article: .notes-card-top
+   spans the whole card and paints an opaque var(--row-bg) over it, so a
+   background on the parent is never visible.
+   PRECEDENCE, deliberate: when a row is both selected and current, the
+   .selected band must win the background (batch context stays legible) while
+   this rule's accent edge still shows. Both selectors are (0,3,0), so the
+   ORDER here decides -- .selected comes after and wins --row-bg; it sets no
+   box-shadow, so the inset edge survives. Keep this rule first, and keep the
+   id off the selector (a #vocab-list prefix would outrank .selected and
+   invert the intent). */
+.vocab-card[aria-current] .notes-card-top {
+  --row-bg: var(--lib-row-selected-bg);
+  box-shadow: inset 2px 0 0 var(--lib-accent);
+}
 /* Selected rows read as a scannable accent band (declared after :hover so
    selection wins, with a deeper hover step layered on top). */
 .vocab-card.selected .notes-card-top { --row-bg: color-mix(in srgb, var(--lib-accent, #4477bb) 10%, var(--lib-bg, #fff)); }
 .vocab-card.selected .notes-card-top:hover { --row-bg: color-mix(in srgb, var(--lib-accent, #4477bb) 15%, var(--lib-bg, #fff)); }
-/* The row whose word the detail pane is currently showing. Distinct from
-   .selected (a batch-operation membership) -- this is "you are here". */
-#vocab-list .vocab-card[aria-current] {
-  background: var(--lib-row-selected-bg);
-  color: var(--lib-row-selected-fg);
-  box-shadow: inset 2px 0 0 var(--lib-accent);
-}
 .vocab-row-headline {
   display: flex;
   flex-wrap: wrap;
