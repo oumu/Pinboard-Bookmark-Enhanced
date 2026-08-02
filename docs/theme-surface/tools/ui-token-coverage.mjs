@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 import { readFileSync } from "node:fs";
 import { SURFACES } from "./apply-ui-themes.mjs";
-const PREFIX = { popup: "--pp", options: "--opt" };
+const PREFIX = { popup: "--pp", options: "--opt", library: "--lib" };
 let fails = 0;
+const checked = [];
 for (const s of SURFACES) {
   const prefix = PREFIX[s.name]; if (!prefix) continue;
+  checked.push(s.name);
   const css = readFileSync(s.cssPath, "utf8");
   const si = css.indexOf(s.start), ei = css.indexOf(s.end);
   const region = css.slice(si, ei + s.end.length);
@@ -19,5 +21,5 @@ for (const s of SURFACES) {
     if (missing > 0) { console.log(`  x ${s.name}: ${v} undefined in ${missing} block(s) and not in base`); fails++; }
   }
 }
-console.log(fails ? `FAIL ${fails}` : "PASS ui-token-coverage (popup + options)");
+console.log(fails ? `FAIL ${fails}` : `PASS ui-token-coverage (${checked.join(" + ")})`);
 process.exit(fails ? 1 : 0);

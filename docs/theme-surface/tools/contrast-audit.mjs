@@ -2,10 +2,11 @@
 // contrast-audit — fail the pipeline if any token pair drops below the
 // minimum WCAG / readability ratio that the recent regressions exposed.
 //
-// Three theme systems are checked:
+// Four theme systems are checked:
 //   1. Pinboard.in content-script themes  -> pilots/<slug>.tokens.json
 //   2. Popup (--pp-*)                     -> popup.css [data-theme=...] blocks
 //   3. Options page (--opt-*)             -> options.css [data-theme=...] blocks
+//   4. Library page (--lib-*)             -> library.css [data-theme=...] blocks
 
 import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -245,6 +246,58 @@ function auditCssThemes(label, varPrefix, cssPath) {
 }
 auditCssThemes("popup", "--pp", resolve(ROOT, "popup.css"));
 auditCssThemes("options", "--opt", resolve(ROOT, "options.css"));
+
+// Library page (--lib-*): a distinct role set from popup/options (master-detail
+// panes, flat save/danger/warn status colors rather than tinted bg/fg pairs), so
+// it gets its own small audit instead of forcing auditCssThemes's popup/options-
+// shaped branches (on-accent, warn-bg/banner-bg pairs, scrollbar track selection)
+// to also cover a role set they don't apply to.
+function auditLibraryThemes(cssPath) {
+  console.log("\n=== library ===");
+  const text = readFileSync(cssPath, "utf8");
+  const re = /\[data-theme="([^"]+)"\]\s*\{([^}]+)\}/g;
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    const theme = m[1];
+    const body = m[2];
+    const grab = (k) => {
+      const mm = body.match(new RegExp("--lib-" + k + ":\\s*([^;]+)"));
+      return mm ? mm[1].trim() : null;
+    };
+    const bgS = grab("bg"), panelS = grab("panel");
+    const bg = bgS && bgS.startsWith("#") ? hexRgb(bgS) : null;
+    const panel = panelS && panelS.startsWith("#") ? hexRgb(panelS) : null;
+    if (!bg) continue;
+    // Body text sits on both the page bg and the elevated panel/pane surface —
+    // both must clear AA, not just the one popup/options happen to check.
+    for (const [key, label] of [["fg", "fg"], ["fg-muted", "fg-muted"]]) {
+      const s = grab(key);
+      if (!s) continue;
+      const onBg = resolveColor(s, bg);
+      if (onBg) console.log(check("library", theme, `${label} vs bg`, cr(onBg, bg), 4.5));
+      if (panel) {
+        const onPanel = resolveColor(s, panel);
+        if (onPanel) console.log(check("library", theme, `${label} vs panel`, cr(onPanel, panel), 4.5));
+      }
+    }
+    // Selected-row pair: its own fill, its own text — not composited over bg/panel.
+    const rowBgS = grab("row-selected-bg"), rowFgS = grab("row-selected-fg");
+    if (rowBgS && rowFgS && rowBgS.startsWith("#")) {
+      const rowBg = hexRgb(rowBgS);
+      const rowFg = resolveColor(rowFgS, rowBg);
+      if (rowFg) console.log(check("library", theme, "row-selected-fg vs row-selected-bg", cr(rowFg, rowBg), 4.5));
+    }
+    // save/danger/warn are flat text colors on the page bg (unlike popup/options'
+    // tinted warn-bg/banner-bg pairs — library has no such tinted-fill roles yet).
+    for (const key of ["save", "danger", "warn"]) {
+      const s = grab(key);
+      if (!s) continue;
+      const c = resolveColor(s, bg);
+      if (c) console.log(check("library", theme, `${key} vs bg`, cr(c, bg), 4.5));
+    }
+  }
+}
+auditLibraryThemes(resolve(ROOT, "library.css"));
 
 // Default-dark layer (html.dark { --pp-* }) — the one popup surface NOT generated
 // by the factory (no pilot, hand-maintained). It now defines AA-safe text tiers

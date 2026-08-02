@@ -13,9 +13,15 @@ import { dirname, resolve } from "node:path";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "..", "..", "..");
 
+// RULE 1 (fixed label width) is a generic CSS-text scan, not popup/options-specific,
+// so library.css is included even though its Task 1 skeleton has no layout selectors
+// yet — this makes the rule active the moment Task 2 adds them. RULES 3/4 below read
+// composers/classic-list-v2.mjs directly (the pinboard.in site composer) and are
+// unrelated to any file in TARGETS or to library-chrome.mjs.
 const TARGETS = [
   resolve(ROOT, "popup.css"),
   resolve(ROOT, "options.css"),
+  resolve(ROOT, "library.css"),
 ];
 
 let blockers = 0;
