@@ -30,7 +30,7 @@
 - Any page becomes a clean reader: a Markdown view with a table of contents, search, and footnote peek
 - Five-color highlights with notes: both survive re-renders, translation, even page edits
 - Translate the page or ask it questions: full-page translation with a bilingual view; answers cite the source and jump straight to it
-- Look up and review words as you read: definitions open on the sense that fits your sentence, and saved words can be searched, sorted, grouped, exported, or sent to Anki and Eudic. Optional offline packs cover Chinese-to-English and English-to-Chinese
+- Look up and review words as you read: definitions open on the sense that fits your sentence, and saved words keep notes and a learning status; search, sort, group, export, or send them to Anki and Eudic. Optional offline packs cover Chinese-to-English and English-to-Chinese
 - Send or download: send to Obsidian (https://obsidian.md), a GitHub Gist, or any webhook; download as .md, .html, or .epub for your e-reader
 
 # Make Pinboard yours
@@ -61,7 +61,7 @@
 - 网页变成清爽的阅读器：Markdown 视图，自带目录、全文搜索、脚注速览
 - 五色高亮与笔记：页面重渲染、翻译、内容变动后都会保留
 - 整页翻译，或向文章提问：支持双语对照；回答附带引用，点击即可跳到原文出处
-- 边读边查词和复习生词：查词优先显示贴合当前句子的释义，生词可搜索、排序、分组、导出，也可发送到 Anki 和欧路词典；离线词典包可选，汉英、英汉两个方向都支持
+- 边读边查词和复习生词：查词优先显示贴合当前句子的释义；生词能记笔记、标记已掌握，可搜索、排序、分组、导出，也可发送到 Anki 和欧路词典；离线词典包可选，汉英、英汉两个方向都支持
 - 发送或下载：发送到 Obsidian (https://obsidian.md)、GitHub Gist 或任意 webhook；也可下载 .md、.html、.epub，供电子书阅读器使用
 
 # 个性化
@@ -92,7 +92,7 @@
 - 網頁變成清爽的閱讀器：Markdown 檢視，內建目錄、全文搜尋、註腳速覽
 - 五色劃重點與筆記：重新渲染、翻譯、內容變動後依然保留
 - 整頁翻譯，或向文章提問：支援雙語對照；回答附帶引用，一按即跳回原文出處
-- 邊讀邊查詞與複習生詞：查詞時會依你正在讀的句子，優先顯示最貼切的釋義；已儲存的生詞可搜尋、排序、分組與匯出，也可傳送到 Anki 與歐路詞典；另可匯入離線詞典包，中英、英中兩個方向都支援
+- 邊讀邊查詞與複習生詞：查詞時會依你正在讀的句子，優先顯示最貼切的釋義；生詞可加筆記、標記為已掌握，並可搜尋、排序、分組與匯出，也可傳送到 Anki 與歐路詞典；另可匯入離線詞典包，中英、英中兩個方向都支援
 - 傳送或下載：傳送到 Obsidian (https://obsidian.md)、GitHub Gist 或任何 webhook；也可下載為 .md、.html、.epub，在電子書閱讀器上閱讀
 
 # 個人化
@@ -123,7 +123,7 @@
 - 網頁變成清爽的閱讀器：Markdown 檢視，附目錄、全文搜尋、註腳速覽
 - 五色高亮與筆記：重新渲染、翻譯、內容變動後仍會保留
 - 整頁翻譯，或向文章提問：支援雙語對照；答案附帶引註，一按即跳回原文出處
-- 邊閱讀邊查詞及溫習生詞：詞典會先顯示切合該句語境的釋義；生詞可搜尋、排序、分組、匯出，也能傳送到 Anki 及歐路詞典；另可匯入離線詞典包，中英、英中兩個方向都支援
+- 邊閱讀邊查詞及溫習生詞：詞典會先顯示切合該句語境的釋義；生詞可加筆記、標記為已掌握，並可搜尋、排序、分組、匯出，也能傳送到 Anki 及歐路詞典；另可匯入離線詞典包，中英、英中兩個方向都支援
 - 傳送或下載：傳送至 Obsidian (https://obsidian.md)、GitHub Gist 或任何 webhook；也可下載為 .md、.html、.epub，在電子書閱讀器上閱讀
 
 # 個人化
@@ -154,7 +154,7 @@
 - Jede Seite wird zur Leseansicht – Markdown-Ansicht mit Inhaltsverzeichnis, Suche und Fußnoten-Vorschau
 - Markieren in fünf Farben, mit Notizen – Markierungen und Notizen überstehen Neu-Rendern, Übersetzung und Änderungen an der Seite
 - Seite übersetzen oder befragen – Ganzseiten-Übersetzung mit zweisprachiger Ansicht; Antworten zitieren die Quelle und springen direkt dorthin
-- Wörter beim Lesen nachschlagen und wiederholen: Definitionen zeigen zuerst die zum Satz passende Bedeutung; gespeicherte Vokabeln lassen sich durchsuchen, sortieren, gruppieren, exportieren oder an Anki und Eudic senden. Optionale Offline-Wörterbuchpakete decken Chinesisch–Englisch und Englisch–Chinesisch ab
+- Wörter beim Lesen nachschlagen und wiederholen: Definitionen zeigen zuerst die zum Satz passende Bedeutung; gespeicherte Vokabeln tragen Notizen und einen Lernstatus und lassen sich durchsuchen, sortieren, gruppieren, exportieren oder an Anki und Eudic senden. Optionale Offline-Wörterbuchpakete decken Chinesisch–Englisch und Englisch–Chinesisch ab
 - Senden oder herunterladen – an Obsidian (https://obsidian.md), ein GitHub Gist oder einen beliebigen Webhook senden; als .md, .html oder .epub für den E-Reader herunterladen
 
 # Pinboard nach deinem Geschmack
@@ -185,7 +185,7 @@
 - Chaque page devient une lecture claire : vue Markdown avec table des matières, recherche et aperçu des notes de bas de page
 - Surlignage en cinq couleurs, avec notes : surlignages et notes survivent aux nouveaux rendus, à la traduction et aux modifications de la page
 - Traduisez la page ou posez-lui vos questions : traduction intégrale avec vue bilingue ; les réponses citent la source et y renvoient d'un clic
-- Consultez et révisez les mots pendant la lecture : le dictionnaire affiche d'abord le sens qui correspond à votre phrase, et les mots enregistrés peuvent être recherchés, triés, classés par groupes, exportés ou envoyés vers Anki et Eudic. En option, des packs de dictionnaire hors connexion couvrent le chinois vers l'anglais et l'anglais vers le chinois
+- Consultez et révisez les mots pendant la lecture : le dictionnaire affiche d'abord le sens qui correspond à votre phrase ; les mots enregistrés gardent vos notes et leur statut d'apprentissage, et peuvent être recherchés, triés, classés par groupes, exportés ou envoyés vers Anki et Eudic. En option, des packs de dictionnaire hors connexion couvrent le chinois vers l'anglais et l'anglais vers le chinois
 - Envoyer ou télécharger : vers Obsidian (https://obsidian.md), un Gist GitHub ou n'importe quel webhook ; ou en .md, .html, .epub pour votre liseuse
 
 # Personnalisation
@@ -216,7 +216,7 @@
 - どんなページもすっきりしたリーダーに：Markdown 表示で、目次・記事内検索・脚注ののぞき見表示付き
 - 5色のハイライトとメモ：再描画・翻訳・ページ内容の変化をまたいでも、どちらも保持されます
 - ページ全体の翻訳と、ページへの質問：対訳表示に対応。回答には出典への引用が付き、クリックで該当箇所へジャンプします
-- 読みながら単語を調べて復習：読んでいる文に合った語義がまず表示され、保存した単語は検索・並べ替え・グループ分け・エクスポートができ、Anki や Eudic への送信にも対応します。オフライン辞書パックは任意で追加でき、中国語から英語・英語から中国語の両方向に対応します
+- 読みながら単語を調べて復習：読んでいる文に合った語義がまず表示されます。保存した単語にはメモや「習得済み」の印を付けられ、検索・並べ替え・グループ分け・エクスポートのほか、Anki や Eudic への送信にも対応します。オフライン辞書パックは任意で追加でき、中国語から英語・英語から中国語の両方向に対応します
 - 送信もダウンロードも：Obsidian (https://obsidian.md)・GitHub Gist・任意の webhook へ送信でき、.md・.html・.epub としてダウンロードして電子書籍リーダーでも読めます
 
 # カスタマイズ
@@ -247,7 +247,7 @@
 - Każda strona staje się czytelna — widok Markdown ze spisem treści, wyszukiwaniem i podglądem przypisów
 - Zakreślenia w pięciu kolorach, z notatkami — zakreślenia i notatki przetrwają ponowne renderowanie, tłumaczenie, a nawet zmiany na stronie
 - Przetłumacz stronę albo zadaj jej pytanie — tłumaczenie całości z widokiem dwujęzycznym; odpowiedzi cytują źródło i prowadzą prosto do niego
-- Sprawdzaj i powtarzaj słownictwo podczas czytania — słownik pokazuje najpierw znaczenie pasujące do bieżącego zdania, a zapisane słówka możesz wyszukiwać, sortować, grupować, eksportować oraz wysyłać do Anki i Eudic. Opcjonalne pakiety słowników offline obejmują oba kierunki: chińsko-angielski i angielsko-chiński.
+- Sprawdzaj i powtarzaj słownictwo podczas czytania — słownik pokazuje najpierw znaczenie pasujące do bieżącego zdania; zapisane słówka mogą mieć notatki i status opanowania, a do tego możesz je wyszukiwać, sortować, grupować, eksportować oraz wysyłać do Anki i Eudic. Opcjonalne pakiety słowników offline obejmują oba kierunki: chińsko-angielski i angielsko-chiński.
 - Wyślij albo pobierz — do Obsidiana (https://obsidian.md), GitHub Gist lub dowolnego webhooka; albo jako .md, .html, .epub na czytnik e-booków
 
 # Personalizacja
@@ -278,7 +278,7 @@
 - Любая страница — в удобный вид для чтения — Markdown-просмотр с оглавлением, поиском и предпросмотром сносок
 - Выделения пяти цветов с заметками — и выделения, и заметки переживают перерисовку, перевод и даже изменения на странице
 - Переведите страницу или задайте ей вопрос — полный перевод с двуязычным видом; ответы ссылаются на источник, и клик ведёт прямо к нему
-- Ищите и повторяйте слова во время чтения — определение открывается на значении, подходящем по контексту предложения, а сохранённые слова можно искать, сортировать, группировать, экспортировать или отправить в Anki и Eudic. При желании добавьте офлайн-словари в обоих направлениях: китайско-английском и англо-китайском
+- Ищите и повторяйте слова во время чтения — определение открывается на значении, подходящем по контексту предложения; к сохранённым словам можно добавлять заметки и отмечать их как выученные, а сам список — искать, сортировать, группировать, экспортировать или отправить в Anki и Eudic. При желании добавьте офлайн-словари в обоих направлениях: китайско-английском и англо-китайском
 - Отправить или скачать — в Obsidian (https://obsidian.md), GitHub Gist или на любой вебхук; либо скачать .md, .html, .epub для читалки
 
 # Персонализация
