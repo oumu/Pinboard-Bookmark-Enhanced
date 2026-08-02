@@ -255,6 +255,7 @@ button, input, select, textarea { font-family: inherit; }
   padding: 2px 10px;
   cursor: pointer;
   line-height: 1.6;
+  transition: background-color 150ms ease, color 150ms ease;
 }
 .src-seg:first-child { border-radius: 6px 0 0 6px; }
 .src-seg:last-child { border-radius: 0 6px 6px 0; }
@@ -425,6 +426,7 @@ body.zen #skim-section { display: none; }
   right: 12px;
   z-index: 30;
   display: none;
+  opacity: 0;
   align-items: center;
   gap: 6px;
   padding: 4px;
@@ -432,9 +434,16 @@ body.zen #skim-section { display: none; }
   border: 1px solid var(--btn-border);
   border-radius: 8px;
   box-shadow: 0 4px 16px rgba(15, 23, 42, 0.18);
-  transition: opacity 200ms ease, right 200ms var(--ease-drawer);
+  transition: opacity 200ms ease, right 200ms var(--ease-drawer), display 200ms allow-discrete;
 }
 body.zen #zen-bar { display: flex; }
+/* Entry/exit fade rides the display transition (allow-discrete). Scoped
+   :not(.faded) so the mouse-idle fade below and :focus-within's !important
+   override keep winning exactly as before. */
+body.zen #zen-bar:not(.faded) {
+  opacity: 1;
+  @starting-style { opacity: 0; }
+}
 /* Ask panel open: the bar yields the panel's top-right corner (it sat on
    the panel's copy/clear/close icons) and docks 12px left of the panel
    edge (380px, #ask-panel width), riding the same 200ms drawer curve as main's
@@ -805,6 +814,7 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
   cursor: pointer;
   opacity: 0.65;
   user-select: none; /* drag-selecting code must not grab the button text */
+  transition: opacity 150ms ease, background-color 150ms ease;
 }
 .pb-copy-code:hover, .pb-copy-code:focus-visible { opacity: 1; background: var(--btn-hover); }
 .pb-copy-code svg { width: 12px; height: 12px; }
@@ -1209,8 +1219,25 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
 .toc-list a[data-level="2"] { padding-left: 10px; }
 .toc-list a[data-level="3"] { padding-left: 20px; font-size: 0.95em; }
 .toc-list a[data-level="4"] { padding-left: 30px; font-size: 0.9em; }
-.toc-list a.active { color: var(--link); border-left-color: var(--link); background: var(--border-light); font-weight: 600; }
-.toc-list a:focus-visible { outline: 2px solid var(--link); outline-offset: -2px; }
+/* No font-weight bump on .active: 600 was outside the transition list, so
+   scroll-driven active handoff made the label (and its ellipsis point) jump. */
+.toc-list a.active { color: var(--link); border-left-color: var(--link); background: var(--border-light); }
+
+/* Soft focus ring for large hit-areas (full-width rows/headers/summaries):
+   a hard 2px rectangle around a row-sized target reads like a debug box, so
+   these get a 1px core line (full-strength --link, same per-theme visibility
+   as the 2px family) plus a translucent halo for the perceived softness.
+   Compact controls keep the standard 2px ring family. Late duplicates of
+   these selectors must not re-declare outline (this rule is the recipe). */
+.toc-list a:focus-visible,
+.rail-sec-head:focus-visible,
+.send-mi:focus-visible,
+#tr-section .tr-glossary > summary:focus-visible,
+.hl-item-main:focus-visible {
+  outline: 1px solid var(--link);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--link) 20%, transparent);
+}
 
 /* ---- Rail accordion header (spec 2026-07-04) ---- */
 /* margin-top 12 (spacing-rhythm pass, spec 2026-07-12 sec.1.7): matches
@@ -1225,9 +1252,9 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
   background: none; font: inherit; font-size: 11px; font-weight: 600;
   letter-spacing: 0.5px; text-transform: uppercase;
   color: var(--fg-secondary); cursor: pointer; text-align: left;
+  transition: color 120ms ease;
 }
 .rail-sec-head:hover { color: var(--fg); }
-.rail-sec-head:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
 /* 2026-08 redesign: thin right-aligned chevron (down when collapsed, a 180°
    spin to up when expanded), matching the Options disclosure family. order
    pushes it past label/count; the label's flex-grow does the spacing. */
@@ -1264,6 +1291,8 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
   border: 1px solid var(--btn-border); border-radius: 8px; cursor: pointer;
   box-shadow: 0 1px 3px rgba(15,23,42,0.12);
 }
+.rail-toggle:hover { background: var(--btn-hover); border-color: var(--border); }
+.rail-toggle:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
 .rail-toggle svg { width: 18px; height: 18px; }
 /* L6: rgba(15,23,42,...) is Slate's cool-blue near-black, a residual from
    the old palette -- the A palette's near-black is warm (#1C1B1A = 28,27,26).
@@ -1427,9 +1456,10 @@ html.motion-ready .send-menu[hidden] {
 }
 .send-mi { display: flex; align-items: center; gap: 8px; width: 100%; padding: 7px 9px;
   background: none; border: 0; border-radius: 6px; font: inherit; color: inherit;
-  text-align: left; cursor: pointer; }
+  text-align: left; cursor: pointer; transition: background-color 120ms ease; }
 .send-mi:hover { background: var(--row-hover, rgba(127,127,127,.14)); }
-.send-mi:focus-visible { background: var(--row-hover, rgba(127,127,127,.14)); outline: 2px solid var(--link); outline-offset: -2px; }
+/* Ring comes from the shared soft-focus recipe (rail section above). */
+.send-mi:focus-visible { background: var(--row-hover, rgba(127,127,127,.14)); }
 .send-mi-ic { display: inline-flex; width: 14px; height: 14px; flex: 0 0 14px; }
 .send-mi-ic svg { width: 14px; height: 14px; }
 /* opacity:.6 on 10px text failed AA (blends toward --bg, no floor); --fg-muted
@@ -1637,10 +1667,14 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
 }
 .xp-act svg { width: 15px; height: 15px; }
 .xp-act:hover { background: var(--btn-hover); }
+/* Selected-state pilot (harsh-design audit C): tinted surface + accent-mixed
+   border instead of the --active-bg full inversion. If this reads well on
+   device, the rest of the --active-bg family follows; if not, revert to the
+   inverse block above. */
 .xp-act[aria-pressed="true"] {
-  background: var(--active-bg);
-  color: var(--active-fg);
-  border-color: var(--active-bg);
+  background: var(--btn-hover);
+  color: var(--fg);
+  border-color: color-mix(in srgb, var(--link) 55%, var(--btn-border));
   cursor: default;
 }
 .xp-drag-zone { order: 0; }
@@ -1695,6 +1729,7 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
   transition: background-color 150ms ease;
 }
 .xp-retry:hover, .xp-ask:hover, .xp-save:hover:not(:disabled), .xp-vocab:hover:not(:disabled), .xp-known:hover:not(:disabled), .xp-open-vocab:hover, .xp-dict-connect:hover:not(:disabled) { background: var(--btn-hover); }
+.xp-retry:focus-visible, .xp-ask:focus-visible, .xp-save:focus-visible, .xp-vocab:focus-visible, .xp-known:focus-visible, .xp-open-vocab:focus-visible, .xp-dict-connect:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
 /* Press feedback, same family as .action-btn above. These hand off to
    multi-second network calls, so the press is the only thing that can confirm
    the click landed. Not transitioned: a press must read instantly. */
@@ -1741,6 +1776,7 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
 .xp-dict-lang { flex: 0 1 auto; padding: 3px 22px 3px 8px; font-size: 0.8em; background-position: right 6px center; }
 .xp-dict-speak { display: inline-flex; align-items: center; justify-content: center; background: none; border: 1px solid var(--btn-border); border-radius: 6px; padding: 4px; cursor: pointer; color: inherit; font-size: 1em; /* buttons don't inherit font-size; the 0.8em svg needs this anchor */ }
 .xp-dict-speak:hover { background: var(--btn-hover); }
+.xp-dict-speak:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
 .xp-dict-speak svg { width: 0.8em; height: 0.8em; }
 /* AI-gloss ready signal: same head-button family as speak, tinted so the
    "new content below" state is visible at a glance. */
@@ -1757,6 +1793,7 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
   color: var(--link);
 }
 .xp-dict-more:hover { color: var(--link-hover); text-decoration: underline; }
+.xp-dict-more:focus-visible { color: var(--link-hover); text-decoration: underline; outline: 2px solid var(--link); outline-offset: 2px; }
 /* Clickable lemma inside a form-of pointer: reads as a link, is a button. */
 .xp-dict-lemma-link {
   padding: 0;
@@ -1768,6 +1805,7 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
   text-decoration: underline;
 }
 .xp-dict-lemma-link:hover { color: var(--link-hover); }
+.xp-dict-lemma-link:focus-visible { color: var(--link-hover); outline: 2px solid var(--link); outline-offset: 2px; }
 .xp-dict-slot { min-height: 20px; }
 .xp-dict-match { color: var(--fg-muted); font-size: 0.8em; margin: 0 0 6px; }
 .xp-dict-entry { margin: 0 0 8px; }
@@ -1830,6 +1868,7 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
   transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
 }
 .xp-gear:hover { background: var(--btn-hover); border-color: var(--btn-border); }
+.xp-gear:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
 .xp-gear svg { width: 14px; height: 14px; }
 .xp-gear-menu {
   position: absolute;
@@ -2072,6 +2111,22 @@ body.tr-only #rendered-view [data-pb-hl-mirror="5"] { box-shadow: inset 3px 0 0 
 .confirm-popover .confirm-yes { background: var(--danger); color: #fff; border-color: var(--danger); }
 .confirm-popover .confirm-no { background: none; color: var(--fg-secondary); border-color: var(--border); }
 .confirm-popover button:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+/* Same enter/exit recipe as options.css/popup.css: shared.js dismiss() adds
+   .is-closing and waits for transitionend -- without a transition here that
+   event never fires and every confirm eats the 150ms setTimeout fallback. */
+html.motion-ready .confirm-popover {
+  opacity: 1;
+  translate: 0 0;
+  transition: opacity var(--motion-pop) var(--ease-out),
+              translate var(--motion-pop) var(--ease-out);
+  @starting-style { opacity: 0; translate: 0 -4px; }
+}
+html.motion-ready .confirm-popover.is-closing {
+  opacity: 0;
+  translate: 0 -4px;
+  pointer-events: none;
+  transition-duration: var(--motion-pop-out);
+}
 
 /* H5 Notebook translated-side language chip (spec 1.4). kbd-ish chip using the
    same tokens as the edit card / rail controls; no new color literal. Lives
@@ -2244,8 +2299,32 @@ body.tr-only #rendered-view .pb-tr { display: block; }
 body.tr-only #rendered-view [data-pb-tr-done]:not(.pb-show-orig) { display: none; }
 body.tr-only #rendered-view .pb-tr { cursor: pointer; }
 /* role="button" is only set in tr-only mode (see _pbpTrApplyPeekAttrs), so this
-   never becomes a misleading focus target in original/bilingual view. */
-#rendered-view .pb-tr[role="button"]:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+   never becomes a misleading focus target in original/bilingual view.
+   Soft ring: a full-opacity 2px rectangle around a whole prose block read as
+   jarring, so the ring is translucent link color (70% clears 3:1 non-text
+   contrast on both themes' --bg), rounded, and fades in. Rest-state outline
+   is transparent rather than none so forced-colors mode still paints it. */
+#rendered-view .pb-tr[role="button"] {
+  border-radius: 8px;
+  outline: 2px solid transparent;
+  outline-offset: 3px;
+  transition: outline-color 140ms var(--ease-out);
+}
+#rendered-view .pb-tr[role="button"]:focus-visible {
+  outline-color: color-mix(in srgb, var(--link) 70%, transparent);
+}
+/* Parking-focus targets: the focus handoffs (view switch `v`, drawer/TOC
+   jumps, explain-pop restore) borrow tabindex="-1" on an arbitrary prose
+   block and focus it. Keyboard-initiated, so :focus-visible matches and the
+   UA default ring paints a stark white box hugging the text (site-agnostic:
+   any [data-pb] block can be the anchor). Same soft ring as .pb-tr above;
+   #tr-progress is the rail-side parking spot of retry-all. */
+#rendered-view [tabindex="-1"]:focus-visible,
+#tr-progress:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--link) 70%, transparent);
+  outline-offset: 3px;
+  border-radius: 8px;
+}
 
 /* Per-block failure pill: inline SVG + retry label; hover/focus exposes the reason. */
 .pb-tr-err {
@@ -2342,7 +2421,7 @@ body.tr-only #rendered-view .pb-tr { cursor: pointer; }
   transition: transform 120ms var(--ease-in-out);
 }
 #tr-section .tr-glossary[open] > summary::after { transform: translateY(1px) rotate(225deg); }
-#tr-section .tr-glossary > summary:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+/* Focus ring: shared soft-focus recipe (rail section). */
 #tr-section .tr-glossary-list {
   display: grid;
   gap: 4px;
@@ -2448,6 +2527,13 @@ body.ask-open main { margin-right: 396px; }
 .ask-ic:hover { background: var(--btn-hover); color: var(--fg); }
 .ask-ic:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
 .ask-ic svg { width: 15px; height: 15px; }
+/* Shared hover fade for the 28px icon-button family: these reuse .ask-ic's
+   look (see .skim-ic note) but half the family lacked .action-btn's 150ms
+   fade -- one declaration keeps the whole family in step. */
+.ask-ic, .skim-ic, .srch-nav, .srch-regex, .typo-step, .typo-seg-btn,
+.xp-dict-speak, .fn-pop-jump, .rail-kbd-help-btn {
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+}
 #ask-section .ask-open-btn { width: 100%; justify-content: center; }
 .ask-open-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
 
@@ -2603,6 +2689,9 @@ body.ask-open main { margin-right: 396px; }
   margin: 0 0 8px;
 }
 .ask-clear-btn:hover { color: var(--danger); border-color: var(--danger); }
+.ask-clear-btn:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+/* Danger reads from the left edge strip, not a full-perimeter danger box --
+   a full ring in --danger looked like an alert frame in dark mode. */
 .ask-clear-confirm {
   display: flex;
   align-items: center;
@@ -2610,9 +2699,10 @@ body.ask-open main { margin-right: 396px; }
   gap: 8px;
   padding: 8px 10px;
   margin: 0 0 8px;
-  border: 1px solid var(--danger);
+  border: 1px solid color-mix(in srgb, var(--danger) 35%, var(--border));
+  border-left: 3px solid color-mix(in srgb, var(--danger) 75%, transparent);
   border-radius: 8px;
-  background: var(--surface);
+  background: color-mix(in srgb, var(--danger) 6%, var(--surface));
   font-size: 0.85em;
   color: var(--fg);
 }
@@ -2665,6 +2755,7 @@ body.ask-open main { margin-right: 396px; }
   border-radius: 50%;
   border: 2px solid transparent;
   cursor: pointer;
+  transition: border-color 140ms var(--ease-out);
 }
 /* L5 (edit-card dots, same swatch-legend rationale as .pb-hl-dot above). */
 .hl-card-dot-1 { background: light-dark(#f5c518, #D9A441); }
@@ -2692,6 +2783,11 @@ body.ask-open main { margin-right: 396px; }
 }
 .hl-card-ai svg { width: 15px; height: 15px; }
 .hl-card-ai-explain:hover, .hl-card-ai-translate:hover, .hl-card-ai-ask:hover { background: var(--btn-hover); }
+/* .action-btn's 150ms fade for all five card buttons (they share its look). */
+.hl-card-ai-explain, .hl-card-ai-translate, .hl-card-ai-ask,
+.hl-card-save, .hl-card-delete {
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+}
 .hl-card-note {
   width: 100%;
   min-height: 56px;
@@ -2740,6 +2836,7 @@ body.ask-open main { margin-right: 396px; }
   border: 1px solid rgba(128, 128, 128, 0.45); /* neutral gray: visible on light AND dark schemes (slate-tinted borders vanish on dark) */
   cursor: pointer;
   position: relative;
+  transition: opacity 140ms var(--ease-out);
 }
 /* Hit pad: full 24px vertically (no neighbors there), half-gap horizontally
    -- a symmetric -6px made the zones overlap the whole 6px gap and a click
@@ -2782,9 +2879,10 @@ body.ask-open main { margin-right: 396px; }
   color: inherit; font: inherit; text-align: left;
   border-radius: 4px;
   cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
 }
+/* Ring comes from the shared soft-focus recipe (rail section). */
 .hl-item-main:hover, .hl-item-main:focus-visible { background: var(--border-light); }
-.hl-item-main:focus-visible { outline: 2px solid var(--link); outline-offset: -2px; }
 .hl-item-main:disabled { cursor: default; opacity: 0.5; }
 .hl-item-main:disabled:hover { background: none; }
 .hl-item-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
@@ -2806,6 +2904,7 @@ body.ask-open main { margin-right: 396px; }
   color: var(--fg-muted);
   border-radius: 4px;
   cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
 }
 .hl-item-del:hover, .hl-item-del:focus-visible { color: var(--danger); background: var(--border-light); outline: none; }
 .hl-item-note {
