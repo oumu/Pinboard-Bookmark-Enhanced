@@ -5,7 +5,7 @@
 
 ## 项目概述
 
-Chrome Extension (Manifest V3)，一键将当前页面保存到 Pinboard，支持多 LLM 提供商的 AI 标签生成、摘要、全文翻译、Ask-the-page 问答与 opt-in 要点提炼（skim）。md-preview 阅读器带划词高亮/笔记/搜索/专注模式、在线词典与可选的 CC-CEDICT 离线汉英词典；生词可按当前 Pinboard 账号搜索、排序、分组、加笔记、标记已掌握、批量管理（sticky 底部操作条）、导出，并发送到 Anki 或欧路词典。导出可 Send-to Obsidian/Gist/Webhook，另有可选 Wayback 自动归档、标签治理和 13 套 pinboard.in 站点主题（GitHub Light、Dracula、Catppuccin、Nord、Solarized、Flexoki、Terminal 等）。
+Chrome Extension (Manifest V3)，一键将当前页面保存到 Pinboard，支持多 LLM 提供商的 AI 标签生成、摘要、全文翻译、Ask-the-page 问答与 opt-in 要点提炼（skim）。md-preview 阅读器带划词高亮/笔记/搜索/专注模式、在线词典与可选的 CC-CEDICT 离线汉英词典；高亮/笔记与生词集中在独立的「笔记与生词本」页（library.html，主从双栏 + 词条详情）；生词可按当前 Pinboard 账号搜索、排序、分组、加笔记、标记已掌握、批量管理（sticky 底部操作条）、导出，并发送到 Anki 或欧路词典。导出可 Send-to Obsidian/Gist/Webhook，另有可选 Wayback 自动归档、标签治理和 13 套 pinboard.in 站点主题（GitHub Light、Dracula、Catppuccin、Nord、Solarized、Flexoki、Terminal 等）。
 
 ## 技术栈
 

@@ -176,6 +176,9 @@ regressions:
 | `options.fg vs bg` (`--opt-*`) | 4.5:1 | settings body |
 | `options.fg-hint vs bg` | 4.5:1 | inline hint text |
 | `options.fg-muted vs bg` | 4.5:1 | tab labels, accordion headers |
+| `library.fg / fg-muted vs bg` **and** `vs panel` (`--lib-*`) | 4.5:1 | library body text sits on both the page bg and the elevated pane, so both are checked |
+| `library.row-selected-fg vs row-selected-bg` | 4.5:1 | selected list row: own fill, own text, not composited over bg |
+| `library.save / danger / warn vs bg` | 4.5:1 | flat status text (library has no tinted status fills) |
 
 **What the audit reads matters as much as the table.** It runs on
 `_util.mjs#expandPalette` output, not the raw pilot, because `btn-bg`,

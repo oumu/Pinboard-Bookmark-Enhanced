@@ -15,7 +15,8 @@ cp docs/theme-surface/pilots/github-light.tokens.json \
 
 # 2. edit the palette / typo / patterns to taste
 
-# 3. regenerate pinboard-themes.js AND popup.css/options.css @generated regions
+# 3. regenerate pinboard-themes.js AND the popup.css/options.css/library.css
+#    @generated regions
 node docs/theme-surface/tools/sync-all.mjs
 
 # 4. ensure all gates pass (sync-all already ran them; re-run to double-check)
@@ -409,18 +410,20 @@ open in any browser. Use whichever fits the situation.
 ## 10 · Submitting
 
 This is a single-author project, so "submitting" means landing a commit on
-`main`. Two-file diff plus a sensible message:
+`main`. One tokens file plus the regenerated artifacts, and a sensible message:
 
 ```bash
 git add docs/theme-surface/pilots/<slug>.tokens.json \
         pinboard-themes.js \
         popup.css \
-        options.css
+        options.css \
+        library.css
 git commit -m "feat(theme): add <slug> theme"
 ```
 
 `sync-all` regenerates `pinboard-themes.js` and the `@generated:ui-themes`
-regions in `popup.css` and `options.css` in place, so stage all four files.
+regions in `popup.css`, `options.css` and `library.css` in place, so stage all
+five files.
 
 ---
 
@@ -431,8 +434,9 @@ It is fully regenerated on every `sync-all` invocation from composer output +
 per-theme tokens. Any rule you add directly will be silently overwritten the
 next time sync-all runs.
 
-**`popup.css` / `options.css` `@generated:ui-themes` regions** are likewise
-factory output — written by `apply-ui-themes.mjs` from the pilot palettes.
+**`popup.css` / `options.css` / `library.css` `@generated:ui-themes` regions**
+are likewise factory output — written by `apply-ui-themes.mjs` from the pilot
+palettes.
 Do not edit between the `/* @generated:ui-themes */` and
 `/* @end:ui-themes */` markers; `css-region-audit` will catch the drift and
 block the commit.
@@ -443,9 +447,10 @@ If you need a rule that doesn't fit the composer:
   (or `_patterns.mjs` if it should be opt-in per theme).
 - **Pinboard site theme, one theme only** → add it to that theme's
   `pilots/<slug>.tokens.json` `overrides.css` string.
-- **Popup/options UI chrome** → edit `composers/popup-chrome.mjs` or
-  `composers/options-chrome.mjs` (or `composers/_ui-derive.mjs` for shared
-  derivation logic), then re-run `sync-all`.
+- **Extension UI chrome** → edit `composers/popup-chrome.mjs`,
+  `composers/options-chrome.mjs` or `composers/library-chrome.mjs` (or
+  `composers/_ui-derive.mjs` for shared derivation logic), then re-run
+  `sync-all`.
 
 The `handedit-audit` pre-commit hook detects any rule in
 `pinboard-themes.js` not derivable from the composer pipeline and
