@@ -240,15 +240,14 @@ h1 { font-size: 18px; color: #333; margin-bottom: var(--opt-sp-7); border-bottom
 .fg input[type="checkbox"]:focus-visible { outline: 2px solid var(--opt-accent, #4477bb); outline-offset: 1px; box-shadow: none; }
 input[type="checkbox"], input[type="radio"] { accent-color: var(--opt-accent); }
 /* Soft focus for large hit-areas (full-width sidebar tabs, accordion and
-   disclosure headers, vocab card heads): 1px accent core + the --opt-focus-ring
+   disclosure headers): 1px accent core + the --opt-focus-ring
    glow instead of a hard 2px rectangle around a whole row. The glow MUST stay
    the token -- generated themes restyle --opt-focus-ring per theme (terminal's
    CRT glow, a 1px-line theme, solarized's 2px ring); a literal color-mix here
    would flatten that. Compact controls keep the standard 2px ring family. */
 .tab-btn:focus-visible,
 .accordion-header:focus-visible,
-.vocab-disclosure > summary:focus-visible,
-.notes-card-head:focus-visible {
+.vocab-disclosure > summary:focus-visible {
   outline: 1px solid var(--opt-accent, #4477bb);
   outline-offset: 2px;
   box-shadow: var(--opt-focus-ring);
@@ -259,11 +258,10 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--opt-accent); }
 .panel-foot a { color: #666; text-decoration: none; transition: color var(--motion-state) ease; display: inline-flex; align-items: center; gap: var(--opt-sp-2); }
 .panel-foot a:hover { color: var(--opt-accent, #4477bb); text-decoration: underline; }
 .panel-foot .ext-icon { width: 10px; height: 10px; flex-shrink: 0; }
-/* External-link mark inside .btn rows (dict-pack-open prefix, notes-row-open
-   suffix): the action leaves the settings page, say so with the shared icon. */
+/* External-link mark inside .btn rows (dict-pack-open prefix): the action
+   leaves the settings page, say so with the shared icon. */
 .btn .ext-icon { width: 11px; height: 11px; vertical-align: -1px; }
 #dict-pack-open .ext-icon { margin-right: var(--opt-sp-2); }
-.notes-row-open .ext-icon { margin-left: var(--opt-sp-1); }
 html[data-theme] .panel-foot { border-top-color: var(--opt-border-section, var(--opt-border)); }
 html[data-theme] .panel-foot a { color: var(--opt-fg-hint, var(--opt-fg-muted)); }
 html[data-theme] .panel-foot a:hover { color: var(--opt-accent); }
@@ -1131,15 +1129,7 @@ html[data-theme="flexoki-dark"] .mobile-tab-picker select,
 html[data-theme="solarized-dark"] .mobile-tab-picker select,
 html[data-theme="catppuccin-mocha"] .mobile-tab-picker select,
 html[data-theme="gruvbox-dark"] .mobile-tab-picker select,
-html[data-theme="rose-pine"] .mobile-tab-picker select,
-html[data-theme="nord-night"] .vocab-filter-toolbar select,
-html[data-theme="terminal"] .vocab-filter-toolbar select,
-html[data-theme="dracula"] .vocab-filter-toolbar select,
-html[data-theme="flexoki-dark"] .vocab-filter-toolbar select,
-html[data-theme="solarized-dark"] .vocab-filter-toolbar select,
-html[data-theme="catppuccin-mocha"] .vocab-filter-toolbar select,
-html[data-theme="gruvbox-dark"] .vocab-filter-toolbar select,
-html[data-theme="rose-pine"] .vocab-filter-toolbar select {
+html[data-theme="rose-pine"] .mobile-tab-picker select {
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M3 4.5 6 7.5 9 4.5' stroke='%23aaa' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
 }
 
@@ -1189,8 +1179,8 @@ html[data-theme] .fg select:hover:not(:focus), html[data-theme] .et-field select
    break. */
 @supports selector(::picker(select)) {
   .fg select, .et-field select, .mobile-tab-picker select { appearance: base-select; }
-  .fg select::picker-icon, .et-field select::picker-icon, .mobile-tab-picker select::picker-icon, .vocab-filter-toolbar select::picker-icon { display: none; }
-  .fg select::picker(select), .et-field select::picker(select), .mobile-tab-picker select::picker(select), .vocab-filter-toolbar select::picker(select) {
+  .fg select::picker-icon, .et-field select::picker-icon, .mobile-tab-picker select::picker-icon { display: none; }
+  .fg select::picker(select), .et-field select::picker(select), .mobile-tab-picker select::picker(select) {
     appearance: base-select;
     margin-top: var(--opt-sp-2);
     background: var(--opt-bg, #fff);
@@ -1210,22 +1200,22 @@ html[data-theme] .fg select:hover:not(:focus), html[data-theme] .et-field select
     scrollbar-width: thin;
     scrollbar-color: var(--opt-fg-muted, #999) var(--opt-panel, #fafafa);
   }
-  .fg option, .et-field option, .mobile-tab-picker option, .vocab-filter-toolbar option {
+  .fg option, .et-field option, .mobile-tab-picker option {
     padding: var(--opt-sp-4) var(--opt-sp-4);
     border-radius: var(--opt-radius-md);
     font-size: 13px;
     cursor: pointer;
   }
-  .fg option:hover, .et-field option:hover, .mobile-tab-picker option:hover, .vocab-filter-toolbar option:hover {
+  .fg option:hover, .et-field option:hover, .mobile-tab-picker option:hover {
     background: rgba(127,127,127,.14); /* theme-agnostic row hover, same value as md-preview's --row-hover fallback */
   }
-  .fg option:focus-visible, .et-field option:focus-visible, .mobile-tab-picker option:focus-visible, .vocab-filter-toolbar option:focus-visible {
+  .fg option:focus-visible, .et-field option:focus-visible, .mobile-tab-picker option:focus-visible {
     background: rgba(127,127,127,.14);
     outline: 2px solid var(--opt-accent, #4477bb);
     outline-offset: -2px;
   }
-  .fg option::checkmark, .et-field option::checkmark, .mobile-tab-picker option::checkmark, .vocab-filter-toolbar option::checkmark { display: none; }
-  .fg option:checked, .et-field option:checked, .mobile-tab-picker option:checked, .vocab-filter-toolbar option:checked {
+  .fg option::checkmark, .et-field option::checkmark, .mobile-tab-picker option::checkmark { display: none; }
+  .fg option:checked, .et-field option:checked, .mobile-tab-picker option:checked {
     background: color-mix(in srgb, var(--opt-accent, #4477bb) 18%, transparent);
     font-weight: 600;
   }
@@ -1873,10 +1863,6 @@ html[data-theme="flexoki-dark"] #panel-vocab .vocab-details-body > .hint {
 }
 .field-error { margin: var(--opt-sp-2) 0 0; color: var(--opt-danger, #c00); font-size: 12px; }
 .field-error:empty { display: none; }
-/* Vocab toolbar: 5 children (count/export/anki/eudic/status), not the
-   3-column grid .notes-toolbar was shaped for (search+count+filter) -- a
-   flex row lets the buttons wrap together instead of colliding with a grid
-   track meant for a single search input. */
 /* Pack status is a standalone line above its button row, not an inline
    trailing status: drop .save-status's inline indent, add space below. */
 #dict-pack-status { margin: 0 0 var(--opt-sp-2); }
@@ -1959,31 +1945,4 @@ html[data-theme="flexoki-dark"] #panel-vocab .vocab-details-body > .hint {
     border-left: 1px solid #e0e0e0;
     white-space: nowrap;
   }
-  .notes-toolbar {
-    grid-template-columns: 1fr;
-    align-items: stretch;
-  }
-  /* Flex variant of the toolbar: stack every control full-width, matching
-     the single-column grid the notes tab collapses to. */
-  .vocab-filter-toolbar input[type="search"],
-  .vocab-filter-toolbar select { flex: 1 1 100%; }
-  .notes-card-top {
-    grid-template-columns: 1fr;
-  }
-  .notes-row-open {
-    justify-self: start;
-  }
-  .notes-row-del {
-    justify-self: start;
-  }
-  /* The vocab delete button is icon-only now, so the old narrow-viewport
-     wrap-to-second-row treatment for its long label is gone: three columns
-     fit at any width. */
-  /* Narrow: the batch layer takes its own full row inside the bar (it may
-     change bar height here -- acceptable at widths where everything wraps).
-     Steppers stay excluded from the stretch: flexing them to 130px would
-     turn the fused input unit into three detached slabs. */
-  /* Icon-only cells keep natural size on narrow screens; only the group
-     input stretches (its base flex-grow), and the bar itself hugs content. */
-  .vocab-batch-bar { width: auto; margin-inline: 0; }
 }

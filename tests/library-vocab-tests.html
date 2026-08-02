@@ -352,6 +352,48 @@ check("selection still covers all filtered results beyond rendered chunks", _voc
     }
   }
 
+  // _pbpVocabSoftReload's owner-read catch (A2 fix). Reached only via the
+  // pbp-lib-view RE-FIRE branch (_vocabViewShown already true -- a real
+  // first-show/view-switch takes the renderVocabPanel branch instead, see
+  // the listener at the bottom of library-vocab.js). Flipping _vocabViewShown
+  // directly stands in for a prior successful first show; _pbpVocabSoftReload
+  // reads _vocabCurrentOwner only AFTER the mocked owner call already threw,
+  // so its exact prior value doesn't matter here. The listener calls
+  // _pbpVocabSoftReload() fire-and-forget (no await, no .catch in the
+  // listener) -- if the catch this fix added were ever removed, the owner
+  // rejection would surface as an unhandled rejection instead of the
+  // fail-closed UI outcome, so both are asserted.
+  {
+    const realOwner = pbpVocabCurrentOwner;
+    const realViewShown = _vocabViewShown;
+    const realCurrentOwner = _vocabCurrentOwner;
+    let unhandledReason = null;
+    const onUnhandled = (e) => { unhandledReason = e.reason; };
+    window.addEventListener("unhandledrejection", onUnhandled);
+    try {
+      _vocabViewShown = true;
+      _vocabCurrentOwner = "acct_prior";
+      _pbpVocabRenderDetail(sample[0]); // a word open in the detail pane, to prove the I1 reset fires
+      $id("vocab-status").textContent = "";
+      pbpVocabCurrentOwner = async () => { throw new Error("soft reload owner read failed"); };
+      document.dispatchEvent(new CustomEvent("pbp-lib-view", { detail: { view: "vocab" } }));
+      await task(); await task();
+      check("a soft-reload owner-read failure clears visible state, resets the detail pane, flashes an error, and raises no unhandled rejection",
+        $id("vocab-list").getAttribute("aria-busy") === "false" &&
+        $id("vocab-status").classList.contains("bad") &&
+        $id("vocab-status").textContent.includes("vocabLoadFailed") &&
+        $id("vocab-detail-empty").hidden === false &&
+        $id("vocab-detail").hidden === true &&
+        unhandledReason === null,
+        "unhandled=" + unhandledReason);
+    } finally {
+      window.removeEventListener("unhandledrejection", onUnhandled);
+      pbpVocabCurrentOwner = realOwner;
+      _vocabViewShown = realViewShown;
+      _vocabCurrentOwner = realCurrentOwner;
+    }
+  }
+
   const realBatchDelete = pbpVocabBatchDelete;
   const realBatchAddGroup = pbpVocabBatchAddGroup;
   const realBatchRemoveGroup = pbpVocabBatchRemoveGroup;
