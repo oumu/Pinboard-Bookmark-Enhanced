@@ -15,6 +15,7 @@ const PINBOARD_THEMES = {
   --pinboard-fg-strong: #3c4043;
   --pinboard-muted: #5f6368;
   --pinboard-muted-soft: #9aa0a6;
+  --pinboard-metadata-fg: #5f6368;
   --pinboard-border: #e8e8e8;
   --pinboard-border-strong: #dadce0;
   --pinboard-border-soft: #e8e8e8;
@@ -266,6 +267,18 @@ a.bundle:hover { color: var(--pinboard-link-hover) !important; }
 a.bookmark_title { color: var(--pinboard-accent) !important; font-size: 15px !important; text-decoration: none !important; font-weight: var(--pinboard-weight-heading) !important; }
 a.bookmark_title:hover { color: var(--pinboard-link-hover) !important; text-decoration: underline !important; }
 a.url_display, a.when, a.cached { color: var(--pinboard-muted-soft) !important; font-size: 11px !important; }
+/* Metadata strip (timestamp / cached): the muted intent above was eaten from
+   day one by the trailing "Global anchor fallbacks" (same (0,1,1) specificity,
+   later in source). These (0,2,1) rules win over every bare-anchor rule
+   including :hover/:visited. Hover keeps the AA metadata color (link-hover
+   fails 4.5:1 on six theme surfaces) and signals with an underline instead.
+   url_display is NOT migrated: its per-pilot override colors are shipped
+   visual identity. No :is() here — prefixSelectors() dark-prefixing splits on
+   bare commas and would corrupt a functional pseudo-class. */
+.bookmark a.when,
+.bookmark a.cached { color: var(--pinboard-metadata-fg) !important; font-size: 11px !important; }
+.bookmark a.when:hover,
+.bookmark a.cached:hover { text-decoration: underline !important; }
 a.url_link {
   color: var(--pinboard-url-link-fg) !important;
   background: var(--pinboard-url-link-bg) !important;
@@ -840,6 +853,7 @@ h2 { color: #3c4043 !important; }
   --pinboard-fg-strong: #eceff4;
   --pinboard-muted: #81a1c1;
   --pinboard-muted-soft: #4c566a;
+  --pinboard-metadata-fg: #9db3ca;
   --pinboard-border: #434c5e;
   --pinboard-border-strong: #4c566a;
   --pinboard-border-soft: #434c5e;
@@ -1091,6 +1105,18 @@ a.bundle:hover { color: var(--pinboard-link-hover) !important; }
 a.bookmark_title { color: var(--pinboard-accent) !important; font-size: 15px !important; text-decoration: none !important; font-weight: var(--pinboard-weight-heading) !important; }
 a.bookmark_title:hover { color: var(--pinboard-link-hover) !important; text-decoration: underline !important; }
 a.url_display, a.when, a.cached { color: var(--pinboard-muted-soft) !important; font-size: 11px !important; }
+/* Metadata strip (timestamp / cached): the muted intent above was eaten from
+   day one by the trailing "Global anchor fallbacks" (same (0,1,1) specificity,
+   later in source). These (0,2,1) rules win over every bare-anchor rule
+   including :hover/:visited. Hover keeps the AA metadata color (link-hover
+   fails 4.5:1 on six theme surfaces) and signals with an underline instead.
+   url_display is NOT migrated: its per-pilot override colors are shipped
+   visual identity. No :is() here — prefixSelectors() dark-prefixing splits on
+   bare commas and would corrupt a functional pseudo-class. */
+.bookmark a.when,
+.bookmark a.cached { color: var(--pinboard-metadata-fg) !important; font-size: 11px !important; }
+.bookmark a.when:hover,
+.bookmark a.cached:hover { text-decoration: underline !important; }
 a.url_link {
   color: var(--pinboard-url-link-fg) !important;
   background: var(--pinboard-url-link-bg) !important;
@@ -1624,6 +1650,7 @@ a { color: #81a1c1 !important; }
   --pinboard-fg-strong: #66ff66;
   --pinboard-muted: #22aa22;
   --pinboard-muted-soft: #336633;
+  --pinboard-metadata-fg: #22aa22;
   --pinboard-border: #33ff3340;
   --pinboard-border-strong: #33ff3380;
   --pinboard-border-soft: #33ff3325;
@@ -1875,6 +1902,18 @@ a.bundle:hover { color: var(--pinboard-link-hover) !important; }
 a.bookmark_title { color: var(--pinboard-accent) !important; font-size: 14px !important; text-decoration: none !important; font-weight: var(--pinboard-weight-heading) !important; }
 a.bookmark_title:hover { color: var(--pinboard-link-hover) !important; text-decoration: underline !important; }
 a.url_display, a.when, a.cached { color: var(--pinboard-muted-soft) !important; font-size: 11px !important; }
+/* Metadata strip (timestamp / cached): the muted intent above was eaten from
+   day one by the trailing "Global anchor fallbacks" (same (0,1,1) specificity,
+   later in source). These (0,2,1) rules win over every bare-anchor rule
+   including :hover/:visited. Hover keeps the AA metadata color (link-hover
+   fails 4.5:1 on six theme surfaces) and signals with an underline instead.
+   url_display is NOT migrated: its per-pilot override colors are shipped
+   visual identity. No :is() here — prefixSelectors() dark-prefixing splits on
+   bare commas and would corrupt a functional pseudo-class. */
+.bookmark a.when,
+.bookmark a.cached { color: var(--pinboard-metadata-fg) !important; font-size: 11px !important; }
+.bookmark a.when:hover,
+.bookmark a.cached:hover { text-decoration: underline !important; }
 a.url_link {
   color: var(--pinboard-url-link-fg) !important;
   background: var(--pinboard-url-link-bg) !important;
@@ -2450,6 +2489,7 @@ a.bookmark_title::before { color: #33ff3380 !important; }`
   --pinboard-fg-strong: #6b4c3b;
   --pinboard-muted: #6b4c3b;
   --pinboard-muted-soft: #999999;
+  --pinboard-metadata-fg: #6b4c3b;
   --pinboard-border: #d4c5a9;
   --pinboard-border-strong: #d4c5a9;
   --pinboard-border-soft: #e8dfd0;
@@ -2701,6 +2741,18 @@ a.bundle:hover { color: var(--pinboard-link-hover) !important; }
 a.bookmark_title { color: var(--pinboard-accent) !important; font-size: 16px !important; text-decoration: none !important; font-weight: var(--pinboard-weight-heading) !important; }
 a.bookmark_title:hover { color: var(--pinboard-link-hover) !important; text-decoration: underline !important; }
 a.url_display, a.when, a.cached { color: var(--pinboard-muted-soft) !important; font-size: 11px !important; }
+/* Metadata strip (timestamp / cached): the muted intent above was eaten from
+   day one by the trailing "Global anchor fallbacks" (same (0,1,1) specificity,
+   later in source). These (0,2,1) rules win over every bare-anchor rule
+   including :hover/:visited. Hover keeps the AA metadata color (link-hover
+   fails 4.5:1 on six theme surfaces) and signals with an underline instead.
+   url_display is NOT migrated: its per-pilot override colors are shipped
+   visual identity. No :is() here — prefixSelectors() dark-prefixing splits on
+   bare commas and would corrupt a functional pseudo-class. */
+.bookmark a.when,
+.bookmark a.cached { color: var(--pinboard-metadata-fg) !important; font-size: 11px !important; }
+.bookmark a.when:hover,
+.bookmark a.cached:hover { text-decoration: underline !important; }
 a.url_link {
   color: var(--pinboard-url-link-fg) !important;
   background: var(--pinboard-url-link-bg) !important;
@@ -3284,6 +3336,7 @@ h2 { font-family: "Georgia", serif !important; }`
   --pinboard-fg-strong: #bd93f9;
   --pinboard-muted: #bd93f9;
   --pinboard-muted-soft: #6272a4;
+  --pinboard-metadata-fg: #aeb6cf;
   --pinboard-border: #44475a;
   --pinboard-border-strong: #6272a4;
   --pinboard-border-soft: #44475a;
@@ -3535,6 +3588,18 @@ a.bundle:hover { color: var(--pinboard-link-hover) !important; }
 a.bookmark_title { color: var(--pinboard-accent) !important; font-size: 15px !important; text-decoration: none !important; font-weight: var(--pinboard-weight-heading) !important; }
 a.bookmark_title:hover { color: var(--pinboard-link-hover) !important; text-decoration: underline !important; }
 a.url_display, a.when, a.cached { color: var(--pinboard-muted-soft) !important; font-size: 11px !important; }
+/* Metadata strip (timestamp / cached): the muted intent above was eaten from
+   day one by the trailing "Global anchor fallbacks" (same (0,1,1) specificity,
+   later in source). These (0,2,1) rules win over every bare-anchor rule
+   including :hover/:visited. Hover keeps the AA metadata color (link-hover
+   fails 4.5:1 on six theme surfaces) and signals with an underline instead.
+   url_display is NOT migrated: its per-pilot override colors are shipped
+   visual identity. No :is() here — prefixSelectors() dark-prefixing splits on
+   bare commas and would corrupt a functional pseudo-class. */
+.bookmark a.when,
+.bookmark a.cached { color: var(--pinboard-metadata-fg) !important; font-size: 11px !important; }
+.bookmark a.when:hover,
+.bookmark a.cached:hover { text-decoration: underline !important; }
 a.url_link {
   color: var(--pinboard-url-link-fg) !important;
   background: var(--pinboard-url-link-bg) !important;
@@ -4096,6 +4161,7 @@ a { color: #bd93f9 !important; }`
   --pinboard-fg-strong: #100F0F;
   --pinboard-muted: #6F6E69;
   --pinboard-muted-soft: #B7B5AC;
+  --pinboard-metadata-fg: #696863;
   --pinboard-border: #E6E4D9;
   --pinboard-border-strong: #DAD8CE;
   --pinboard-border-soft: #E6E4D9;
@@ -4347,6 +4413,18 @@ a.bundle:hover { color: var(--pinboard-link-hover) !important; }
 a.bookmark_title { color: var(--pinboard-accent) !important; font-size: 15px !important; text-decoration: none !important; font-weight: var(--pinboard-weight-heading) !important; }
 a.bookmark_title:hover { color: var(--pinboard-link-hover) !important; text-decoration: underline !important; }
 a.url_display, a.when, a.cached { color: var(--pinboard-muted-soft) !important; font-size: 11px !important; }
+/* Metadata strip (timestamp / cached): the muted intent above was eaten from
+   day one by the trailing "Global anchor fallbacks" (same (0,1,1) specificity,
+   later in source). These (0,2,1) rules win over every bare-anchor rule
+   including :hover/:visited. Hover keeps the AA metadata color (link-hover
+   fails 4.5:1 on six theme surfaces) and signals with an underline instead.
+   url_display is NOT migrated: its per-pilot override colors are shipped
+   visual identity. No :is() here — prefixSelectors() dark-prefixing splits on
+   bare commas and would corrupt a functional pseudo-class. */
+.bookmark a.when,
+.bookmark a.cached { color: var(--pinboard-metadata-fg) !important; font-size: 11px !important; }
+.bookmark a.when:hover,
+.bookmark a.cached:hover { text-decoration: underline !important; }
 a.url_link {
   color: var(--pinboard-url-link-fg) !important;
   background: var(--pinboard-url-link-bg) !important;
@@ -4827,6 +4905,7 @@ html.pbp-dark {
   --pinboard-fg-strong: #CECDC3;
   --pinboard-muted: #575653;
   --pinboard-muted-soft: #878580;
+  --pinboard-metadata-fg: #9f9d96;
   --pinboard-border: #403E3C;
   --pinboard-border-strong: #575653;
   --pinboard-border-soft: #343331;
@@ -5065,6 +5144,16 @@ html.pbp-dark .selected_star { color: var(--pinboard-private-accent) !important;
 html.pbp-dark a.bookmark_title { color: var(--pinboard-accent) !important; font-size: 15px !important; text-decoration: none !important; font-weight: var(--pinboard-weight-heading) !important; }
 html.pbp-dark a.bookmark_title:hover { color: var(--pinboard-link-hover) !important; text-decoration: underline !important; }
 html.pbp-dark a.url_display, html.pbp-dark a.when, html.pbp-dark a.cached { color: var(--pinboard-muted-soft) !important; font-size: 11px !important; }
+/* Metadata strip (timestamp / cached): the muted intent above was eaten from
+   day one by the trailing "Global anchor fallbacks" (same (0,1,1) specificity,
+   later in source). These (0,2,1) rules win over every bare-anchor rule
+   including :hover/:visited. Hover keeps the AA metadata color (link-hover
+   fails 4.5:1 on six theme surfaces) and signals with an underline instead.
+   url_display is NOT migrated: its per-pilot override colors are shipped
+   visual identity. No :is() here — prefixSelectors() dark-prefixing splits on
+   bare commas and would corrupt a functional pseudo-class. */
+html.pbp-dark .bookmark a.when, html.pbp-dark .bookmark a.cached { color: var(--pinboard-metadata-fg) !important; font-size: 11px !important; }
+html.pbp-dark .bookmark a.when:hover, html.pbp-dark .bookmark a.cached:hover { text-decoration: underline !important; }
 html.pbp-dark a.url_link {
   color: var(--pinboard-url-link-fg) !important;
   background: var(--pinboard-url-link-bg) !important;
@@ -5661,6 +5750,7 @@ html.pbp-dark #tweet_searchbox input[type="submit"]:hover { background: #A8E4D5 
   --pinboard-fg-strong: #586e75;
   --pinboard-muted: #586e75;
   --pinboard-muted-soft: #93a1a1;
+  --pinboard-metadata-fg: #50666d;
   --pinboard-border: #d6cdb5;
   --pinboard-border-strong: #93a1a1;
   --pinboard-border-soft: #d6cdb5;
@@ -5912,6 +6002,18 @@ a.bundle:hover { color: var(--pinboard-link-hover) !important; }
 a.bookmark_title { color: var(--pinboard-accent) !important; font-size: 15px !important; text-decoration: none !important; font-weight: var(--pinboard-weight-heading) !important; }
 a.bookmark_title:hover { color: var(--pinboard-link-hover) !important; text-decoration: underline !important; }
 a.url_display, a.when, a.cached { color: var(--pinboard-muted-soft) !important; font-size: 11px !important; }
+/* Metadata strip (timestamp / cached): the muted intent above was eaten from
+   day one by the trailing "Global anchor fallbacks" (same (0,1,1) specificity,
+   later in source). These (0,2,1) rules win over every bare-anchor rule
+   including :hover/:visited. Hover keeps the AA metadata color (link-hover
+   fails 4.5:1 on six theme surfaces) and signals with an underline instead.
+   url_display is NOT migrated: its per-pilot override colors are shipped
+   visual identity. No :is() here — prefixSelectors() dark-prefixing splits on
+   bare commas and would corrupt a functional pseudo-class. */
+.bookmark a.when,
+.bookmark a.cached { color: var(--pinboard-metadata-fg) !important; font-size: 11px !important; }
+.bookmark a.when:hover,
+.bookmark a.cached:hover { text-decoration: underline !important; }
 a.url_link {
   color: var(--pinboard-url-link-fg) !important;
   background: var(--pinboard-url-link-bg) !important;
@@ -6429,6 +6531,7 @@ a.sort_order_selected { background: #eee8d5 !important; }
   --pinboard-fg-strong: #93a1a1;
   --pinboard-muted: #586e75;
   --pinboard-muted-soft: #586e75;
+  --pinboard-metadata-fg: #8fa0a2;
   --pinboard-border: #094b5a;
   --pinboard-border-strong: #586e75;
   --pinboard-border-soft: #094b5a;
@@ -6680,6 +6783,18 @@ a.bundle:hover { color: var(--pinboard-link-hover) !important; }
 a.bookmark_title { color: var(--pinboard-accent) !important; font-size: 15px !important; text-decoration: none !important; font-weight: var(--pinboard-weight-heading) !important; }
 a.bookmark_title:hover { color: var(--pinboard-link-hover) !important; text-decoration: underline !important; }
 a.url_display, a.when, a.cached { color: var(--pinboard-muted-soft) !important; font-size: 11px !important; }
+/* Metadata strip (timestamp / cached): the muted intent above was eaten from
+   day one by the trailing "Global anchor fallbacks" (same (0,1,1) specificity,
+   later in source). These (0,2,1) rules win over every bare-anchor rule
+   including :hover/:visited. Hover keeps the AA metadata color (link-hover
+   fails 4.5:1 on six theme surfaces) and signals with an underline instead.
+   url_display is NOT migrated: its per-pilot override colors are shipped
+   visual identity. No :is() here — prefixSelectors() dark-prefixing splits on
+   bare commas and would corrupt a functional pseudo-class. */
+.bookmark a.when,
+.bookmark a.cached { color: var(--pinboard-metadata-fg) !important; font-size: 11px !important; }
+.bookmark a.when:hover,
+.bookmark a.cached:hover { text-decoration: underline !important; }
 a.url_link {
   color: var(--pinboard-url-link-fg) !important;
   background: var(--pinboard-url-link-bg) !important;
@@ -7211,6 +7326,7 @@ h2 { color: #93a1a1 !important; }
   --pinboard-fg-strong: #6c6f85;
   --pinboard-muted: #6c6f85;
   --pinboard-muted-soft: #9ca0b0;
+  --pinboard-metadata-fg: #62657a;
   --pinboard-border: #ccd0da;
   --pinboard-border-strong: #8c8fa1;
   --pinboard-border-soft: #bcc0cc;
@@ -7462,6 +7578,18 @@ a.bundle:hover { color: var(--pinboard-link-hover) !important; }
 a.bookmark_title { color: var(--pinboard-accent) !important; font-size: 15px !important; text-decoration: none !important; font-weight: var(--pinboard-weight-heading) !important; }
 a.bookmark_title:hover { color: var(--pinboard-link-hover) !important; text-decoration: underline !important; }
 a.url_display, a.when, a.cached { color: var(--pinboard-muted-soft) !important; font-size: 11px !important; }
+/* Metadata strip (timestamp / cached): the muted intent above was eaten from
+   day one by the trailing "Global anchor fallbacks" (same (0,1,1) specificity,
+   later in source). These (0,2,1) rules win over every bare-anchor rule
+   including :hover/:visited. Hover keeps the AA metadata color (link-hover
+   fails 4.5:1 on six theme surfaces) and signals with an underline instead.
+   url_display is NOT migrated: its per-pilot override colors are shipped
+   visual identity. No :is() here — prefixSelectors() dark-prefixing splits on
+   bare commas and would corrupt a functional pseudo-class. */
+.bookmark a.when,
+.bookmark a.cached { color: var(--pinboard-metadata-fg) !important; font-size: 11px !important; }
+.bookmark a.when:hover,
+.bookmark a.cached:hover { text-decoration: underline !important; }
 a.url_link {
   color: var(--pinboard-url-link-fg) !important;
   background: var(--pinboard-url-link-bg) !important;
@@ -7994,6 +8122,7 @@ a.help { background: #e6e9ef !important; }
   --pinboard-fg-strong: #cba6f7;
   --pinboard-muted: #a6adc8;
   --pinboard-muted-soft: #585b70;
+  --pinboard-metadata-fg: #a6adc8;
   --pinboard-border: #45475a;
   --pinboard-border-strong: #45475a;
   --pinboard-border-soft: #45475a;
@@ -8245,6 +8374,18 @@ a.bundle:hover { color: var(--pinboard-link-hover) !important; }
 a.bookmark_title { color: var(--pinboard-accent) !important; font-size: 15px !important; text-decoration: none !important; font-weight: var(--pinboard-weight-heading) !important; }
 a.bookmark_title:hover { color: var(--pinboard-link-hover) !important; text-decoration: underline !important; }
 a.url_display, a.when, a.cached { color: var(--pinboard-muted-soft) !important; font-size: 11px !important; }
+/* Metadata strip (timestamp / cached): the muted intent above was eaten from
+   day one by the trailing "Global anchor fallbacks" (same (0,1,1) specificity,
+   later in source). These (0,2,1) rules win over every bare-anchor rule
+   including :hover/:visited. Hover keeps the AA metadata color (link-hover
+   fails 4.5:1 on six theme surfaces) and signals with an underline instead.
+   url_display is NOT migrated: its per-pilot override colors are shipped
+   visual identity. No :is() here — prefixSelectors() dark-prefixing splits on
+   bare commas and would corrupt a functional pseudo-class. */
+.bookmark a.when,
+.bookmark a.cached { color: var(--pinboard-metadata-fg) !important; font-size: 11px !important; }
+.bookmark a.when:hover,
+.bookmark a.cached:hover { text-decoration: underline !important; }
 a.url_link {
   color: var(--pinboard-url-link-fg) !important;
   background: var(--pinboard-url-link-bg) !important;
@@ -8790,6 +8931,7 @@ h2 { color: #cba6f7 !important; }`
   --pinboard-fg-strong: #fbf1c7;
   --pinboard-muted: #a89984;
   --pinboard-muted-soft: #665c54;
+  --pinboard-metadata-fg: #bdae93;
   --pinboard-border: #504945;
   --pinboard-border-strong: #504945;
   --pinboard-border-soft: #504945;
@@ -9041,6 +9183,18 @@ a.bundle:hover { color: var(--pinboard-link-hover) !important; }
 a.bookmark_title { color: var(--pinboard-accent) !important; font-size: 15px !important; text-decoration: none !important; font-weight: var(--pinboard-weight-heading) !important; }
 a.bookmark_title:hover { color: var(--pinboard-link-hover) !important; text-decoration: underline !important; }
 a.url_display, a.when, a.cached { color: var(--pinboard-muted-soft) !important; font-size: 11px !important; }
+/* Metadata strip (timestamp / cached): the muted intent above was eaten from
+   day one by the trailing "Global anchor fallbacks" (same (0,1,1) specificity,
+   later in source). These (0,2,1) rules win over every bare-anchor rule
+   including :hover/:visited. Hover keeps the AA metadata color (link-hover
+   fails 4.5:1 on six theme surfaces) and signals with an underline instead.
+   url_display is NOT migrated: its per-pilot override colors are shipped
+   visual identity. No :is() here — prefixSelectors() dark-prefixing splits on
+   bare commas and would corrupt a functional pseudo-class. */
+.bookmark a.when,
+.bookmark a.cached { color: var(--pinboard-metadata-fg) !important; font-size: 11px !important; }
+.bookmark a.when:hover,
+.bookmark a.cached:hover { text-decoration: underline !important; }
 a.url_link {
   color: var(--pinboard-url-link-fg) !important;
   background: var(--pinboard-url-link-bg) !important;
@@ -9577,6 +9731,7 @@ h2 { color: #d3869b !important; }
   --pinboard-fg-strong: #ebbcba;
   --pinboard-muted: #908caa;
   --pinboard-muted-soft: #6e6a86;
+  --pinboard-metadata-fg: #9c97b5;
   --pinboard-border: #26233a;
   --pinboard-border-strong: #403d52;
   --pinboard-border-soft: #393552;
@@ -9585,7 +9740,7 @@ h2 { color: #d3869b !important; }
   --pinboard-accent-soft: #26233a;
   --pinboard-accent-alpha: rgba(196,167,231,0.25);
   --pinboard-input-bg: #26233a;
-  --pinboard-private-bg: #261e1a;
+  --pinboard-private-bg: #352a34;
   --pinboard-private-accent: #f6c177;
   --pinboard-selection-bg: #3e3a5e;
   --pinboard-selection-fg: #e0def4;
@@ -9828,6 +9983,18 @@ a.bundle:hover { color: var(--pinboard-link-hover) !important; }
 a.bookmark_title { color: var(--pinboard-accent) !important; font-size: 15px !important; text-decoration: none !important; font-weight: var(--pinboard-weight-heading) !important; }
 a.bookmark_title:hover { color: var(--pinboard-link-hover) !important; text-decoration: underline !important; }
 a.url_display, a.when, a.cached { color: var(--pinboard-muted-soft) !important; font-size: 11px !important; }
+/* Metadata strip (timestamp / cached): the muted intent above was eaten from
+   day one by the trailing "Global anchor fallbacks" (same (0,1,1) specificity,
+   later in source). These (0,2,1) rules win over every bare-anchor rule
+   including :hover/:visited. Hover keeps the AA metadata color (link-hover
+   fails 4.5:1 on six theme surfaces) and signals with an underline instead.
+   url_display is NOT migrated: its per-pilot override colors are shipped
+   visual identity. No :is() here — prefixSelectors() dark-prefixing splits on
+   bare commas and would corrupt a functional pseudo-class. */
+.bookmark a.when,
+.bookmark a.cached { color: var(--pinboard-metadata-fg) !important; font-size: 11px !important; }
+.bookmark a.when:hover,
+.bookmark a.cached:hover { text-decoration: underline !important; }
 a.url_link {
   color: var(--pinboard-url-link-fg) !important;
   background: var(--pinboard-url-link-bg) !important;
@@ -10368,6 +10535,7 @@ h2 { color: #ebbcba !important; }`
   --pinboard-fg: #1f2328;
   --pinboard-muted: #656d76;
   --pinboard-muted-soft: #8c959f;
+  --pinboard-metadata-fg: #656d76;
   --pinboard-border: #d0d7de;
   --pinboard-accent: #0969da;
   --pinboard-accent-hover: #0550ae;
@@ -10620,6 +10788,18 @@ a.bundle:hover { color: var(--pinboard-link-hover) !important; }
 a.bookmark_title { color: var(--pinboard-accent) !important; font-size: 15px !important; text-decoration: none !important; font-weight: var(--pinboard-weight-heading) !important; }
 a.bookmark_title:hover { color: var(--pinboard-link-hover) !important; text-decoration: underline !important; }
 a.url_display, a.when, a.cached { color: var(--pinboard-muted-soft) !important; font-size: 11px !important; }
+/* Metadata strip (timestamp / cached): the muted intent above was eaten from
+   day one by the trailing "Global anchor fallbacks" (same (0,1,1) specificity,
+   later in source). These (0,2,1) rules win over every bare-anchor rule
+   including :hover/:visited. Hover keeps the AA metadata color (link-hover
+   fails 4.5:1 on six theme surfaces) and signals with an underline instead.
+   url_display is NOT migrated: its per-pilot override colors are shipped
+   visual identity. No :is() here — prefixSelectors() dark-prefixing splits on
+   bare commas and would corrupt a functional pseudo-class. */
+.bookmark a.when,
+.bookmark a.cached { color: var(--pinboard-metadata-fg) !important; font-size: 11px !important; }
+.bookmark a.when:hover,
+.bookmark a.cached:hover { text-decoration: underline !important; }
 a.url_link {
   color: var(--pinboard-url-link-fg) !important;
   background: var(--pinboard-url-link-bg) !important;

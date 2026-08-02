@@ -202,10 +202,17 @@
       "scope": "bare"
     },
     "bookmark.url_display": {
-      "sel": "a.url_display, a.when, a.cached",
-      "role": "URL/time/cached metadata strip (muted small text)",
+      "sel": "a.url_display",
+      "role": "URL domain metadata (muted small text; per-pilot overrides recolor it)",
       "states": ["default", "hover"],
       "tokens": ["palette.muted-soft", "typo.size-xs"],
+      "scope": "bare"
+    },
+    "bookmark.metadata": {
+      "sel": ".bookmark a.when, .bookmark a.cached",
+      "role": "time/cached metadata strip (AA de-emphasized; beats the global anchor fallback)",
+      "states": ["default", "hover"],
+      "tokens": ["palette.metadata-fg", "typo.size-xs"],
       "scope": "bare"
     },
     "bookmark.url_link": {

@@ -66,6 +66,28 @@ const PROBES = [
     elem: { tag: "a", classes: [], ancestors: [{ id: "right_bar" }] },
     expected: { color: "#right_bar a:not(.tag)" } },
 
+  // Metadata strip (a.when/a.cached): the exact cascade this campaign fixed —
+  // the global `a, a:link` fallback used to win these by source order. Rest
+  // color AND hover color must both come from the scoped metadata rule
+  // (hover signals via underline, never link-hover — it fails AA on six
+  // theme surfaces).
+  { name: "a.when inside .bookmark at rest",
+    mode: "light",
+    elem: { tag: "a", classes: ["when"], ancestors: [{ classes: ["bookmark"] }] },
+    expected: { color: ".bookmark a.when", "font-size": ".bookmark a.when" } },
+  { name: "a.when inside .bookmark :hover",
+    mode: "light",
+    elem: { tag: "a", classes: ["when"], ancestors: [{ classes: ["bookmark"] }], state: ["hover"] },
+    expected: { color: ".bookmark a.when", "text-decoration": ".bookmark a.when:hover" } },
+  { name: "a.cached inside .bookmark at rest",
+    mode: "light",
+    elem: { tag: "a", classes: ["cached"], ancestors: [{ classes: ["bookmark"] }] },
+    expected: { color: ".bookmark a.cached", "font-size": ".bookmark a.cached" } },
+  { name: "a.cached inside .bookmark :hover",
+    mode: "light",
+    elem: { tag: "a", classes: ["cached"], ancestors: [{ classes: ["bookmark"] }], state: ["hover"] },
+    expected: { color: ".bookmark a.cached", "text-decoration": ".bookmark a.cached:hover" } },
+
   // ----- dark-mode (html.pbp-dark) cascade paths -----
   // Skipped for non-adaptive themes (those whose shipped CSS contains no
   // `html.pbp-dark` rules). flexoki is the only adaptive theme at present.
@@ -92,7 +114,27 @@ const PROBES = [
   { name: "html.pbp-dark a.tag.selected inside #tag_cloud_header",
     mode: "dark",
     elem: { tag: "a", classes: ["tag", "selected"], ancestors: [{ tag: "html", classes: ["pbp-dark"] }, { id: "tag_cloud_header" }] },
-    expected: { color: "a.tag.selected" } }
+    expected: { color: "a.tag.selected" } },
+  { name: "html.pbp-dark a.when inside .bookmark at rest",
+    mode: "dark",
+    elem: { tag: "a", classes: ["when"],
+      ancestors: [{ tag: "html", classes: ["pbp-dark"] }, { classes: ["bookmark"] }] },
+    expected: { color: ".bookmark a.when", "font-size": ".bookmark a.when" } },
+  { name: "html.pbp-dark a.when inside .bookmark :hover",
+    mode: "dark",
+    elem: { tag: "a", classes: ["when"],
+      ancestors: [{ tag: "html", classes: ["pbp-dark"] }, { classes: ["bookmark"] }], state: ["hover"] },
+    expected: { color: ".bookmark a.when", "text-decoration": ".bookmark a.when:hover" } },
+  { name: "html.pbp-dark a.cached inside .bookmark at rest",
+    mode: "dark",
+    elem: { tag: "a", classes: ["cached"],
+      ancestors: [{ tag: "html", classes: ["pbp-dark"] }, { classes: ["bookmark"] }] },
+    expected: { color: ".bookmark a.cached", "font-size": ".bookmark a.cached" } },
+  { name: "html.pbp-dark a.cached inside .bookmark :hover",
+    mode: "dark",
+    elem: { tag: "a", classes: ["cached"],
+      ancestors: [{ tag: "html", classes: ["pbp-dark"] }, { classes: ["bookmark"] }], state: ["hover"] },
+    expected: { color: ".bookmark a.cached", "text-decoration": ".bookmark a.cached:hover" } }
 ];
 
 const LIGHT_PROBES = PROBES.filter(p => p.mode === "light");

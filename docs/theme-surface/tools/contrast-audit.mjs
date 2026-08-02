@@ -135,6 +135,36 @@ function auditPalette(slug, rawPalette) {
     const fill = hexRgb(p[fillKey] || ""), on = hexRgb(p[onKey] || "");
     if (fill && on) console.log(check("pinboard", slug, `${onKey} vs ${fillKey}`, cr(fill, on), 4.5));
   }
+
+  // Metadata strip (11px a.when/a.cached via the composer's .bookmark rules):
+  // AA against every base it can sit on. A MISSING token is itself a failure —
+  // silent skips are exactly how the last two coverage holes shipped green.
+  const metadataFg = hexRgb(p["metadata-fg"] || "");
+  const privateBg = hexRgb(p["private-bg"] || "");
+  if (!metadataFg) {
+    const line = `  pinboard  ${slug}  metadata-fg  MISSING TOKEN  FAIL`;
+    console.log(line);
+    violations.push(line);
+  } else {
+    for (const [label, base] of [["bg", bg], ["bg-surface", bgSurface], ["private-bg", privateBg]]) {
+      if (base) console.log(check("pinboard", slug, `metadata-fg vs ${label}`, cr(base, metadataFg), 4.5));
+    }
+  }
+  // Private-row distinguishability: byte-equality or <1.01 means the private
+  // background carries ZERO signal (nord-night shipped that way for months).
+  // 1.01–1.1 is legal-but-weak: advisory only — the 3px private-accent inset
+  // bar stays the primary cue and seven shipped themes live in that band.
+  if (privateBg && bgSurface) {
+    const same = String(p["private-bg"] || "").toLowerCase() === String(p["bg-surface"] || p["bg"] || "").toLowerCase();
+    const ratio = cr(privateBg, bgSurface);
+    if (same || ratio < 1.01) {
+      const line = `  pinboard  ${slug}  private-bg vs bg-surface  ${ratio.toFixed(3)} (need >=1.01 and not byte-equal)  FAIL`;
+      console.log(line);
+      violations.push(line);
+    } else {
+      console.log(`  pinboard  ${slug}  private-bg vs bg-surface  ${ratio.toFixed(3)}  ${ratio < 1.1 ? "WARN (advisory <1.1)" : "OK"}`);
+    }
+  }
 }
 
 function auditCssThemes(label, varPrefix, cssPath) {

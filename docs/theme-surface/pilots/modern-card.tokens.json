@@ -18,6 +18,7 @@
     "fg-strong": "#3c4043",
     "muted": "#5f6368",
     "muted-soft": "#9aa0a6",
+    "metadata-fg": "#5f6368",
     "border": "#e8e8e8",
     "border-strong": "#dadce0",
     "border-soft": "#e8e8e8",

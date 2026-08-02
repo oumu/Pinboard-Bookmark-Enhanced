@@ -17,6 +17,7 @@
     "fg": "#1f2328",
     "muted": "#656d76",
     "muted-soft": "#8c959f",
+    "metadata-fg": "#656d76",
     "border": "#d0d7de",
     "accent": "#0969da",
     "accent-hover": "#0550ae",

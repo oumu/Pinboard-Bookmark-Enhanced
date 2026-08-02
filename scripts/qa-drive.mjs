@@ -133,7 +133,7 @@ function pinboardFixtureHtml() {
       <div class="display"><a class="bookmark_title" href="#">${title}</a></div>
       <div class="description">${desc}</div>
       <div class="tags">${tags.map((t) => `<a class="tag" href="#">${t}</a>`).join(" ")}</div>
-      <a class="when" href="#">3 days ago</a>
+      <a class="when" href="#">3 days ago</a> &middot; <a class="cached" href="#">cached</a>
     </div>`;
   return `<!doctype html><html><head><meta charset="utf-8"><title>qa: bookmarks</title></head>
 <body id="pinboard">

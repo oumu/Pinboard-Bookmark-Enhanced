@@ -152,6 +152,18 @@ a.bundle:hover { color: ${v("link-hover")} !important; }
 a.bookmark_title { color: ${v("accent")} !important; font-size: ${sizeLg} !important; text-decoration: none !important; font-weight: ${v("weight-heading")} !important; }
 a.bookmark_title:hover { color: ${v("link-hover")} !important; text-decoration: underline !important; }
 a.url_display, a.when, a.cached { color: ${v("muted-soft")} !important; font-size: ${sizeXs} !important; }
+/* Metadata strip (timestamp / cached): the muted intent above was eaten from
+   day one by the trailing "Global anchor fallbacks" (same (0,1,1) specificity,
+   later in source). These (0,2,1) rules win over every bare-anchor rule
+   including :hover/:visited. Hover keeps the AA metadata color (link-hover
+   fails 4.5:1 on six theme surfaces) and signals with an underline instead.
+   url_display is NOT migrated: its per-pilot override colors are shipped
+   visual identity. No :is() here — prefixSelectors() dark-prefixing splits on
+   bare commas and would corrupt a functional pseudo-class. */
+.bookmark a.when,
+.bookmark a.cached { color: ${v("metadata-fg")} !important; font-size: ${sizeXs} !important; }
+.bookmark a.when:hover,
+.bookmark a.cached:hover { text-decoration: underline !important; }
 a.url_link {
   color: ${v("url-link-fg")} !important;
   background: ${v("url-link-bg")} !important;
