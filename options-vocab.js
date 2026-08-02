@@ -1534,7 +1534,45 @@ const _vocabSortSelect = $id("vocab-sort");
 if (_vocabSortSelect) _vocabSortSelect.addEventListener("change", () => {
   _vocabLastSelectedId = null;
   _pbpVocabApplyView(true);
+  _pbpVocabSyncSortSeg();
 });
+// Sort segment: two direction-toggle buttons proxying the hidden #vocab-sort
+// select (the state carrier every existing handler and test already speaks).
+// Click an inactive dimension = enter it at its default direction; click the
+// active one = flip. Icons show the CURRENT direction, title/aria the sort a
+// click will apply next (reuses the four existing option strings).
+const PBP_VOCAB_SORT_DIMS = [
+  { btn: "vocab-sort-time", states: ["latest", "oldest"], icons: ["clockArrowDown", "clockArrowUp"], labels: ["vocabSortLatest", "vocabSortOldest"] },
+  { btn: "vocab-sort-alpha", states: ["az", "za"], icons: ["arrowDownAZ", "arrowDownZA"], labels: ["vocabSortAz", "vocabSortZa"] },
+];
+function _pbpVocabSyncSortSeg() {
+  const select = $id("vocab-sort");
+  if (!select) return;
+  const value = select.value || "latest";
+  for (const dim of PBP_VOCAB_SORT_DIMS) {
+    const btn = $id(dim.btn);
+    if (!btn) continue;
+    const idx = dim.states.indexOf(value);
+    const active = idx !== -1;
+    btn.setAttribute("aria-pressed", active ? "true" : "false");
+    const ic = btn.querySelector(".btn-ic");
+    if (ic && typeof PBP_ICONS !== "undefined") ic.innerHTML = PBP_ICONS[dim.icons[active ? idx : 0]] || "";
+    const label = t(dim.labels[active ? 1 - idx : 0]);
+    btn.title = label;
+    btn.setAttribute("aria-label", label);
+  }
+}
+for (const dim of PBP_VOCAB_SORT_DIMS) {
+  const btn = $id(dim.btn);
+  if (btn) btn.addEventListener("click", () => {
+    const select = $id("vocab-sort");
+    if (!select) return;
+    const idx = dim.states.indexOf(select.value);
+    select.value = idx === -1 ? dim.states[0] : dim.states[1 - idx];
+    select.dispatchEvent(new Event("change"));
+  });
+}
+_pbpVocabSyncSortSeg();
 const _vocabClearBtn = $id("vocab-clear-selection");
 if (_vocabClearBtn) _vocabClearBtn.addEventListener("click", () => {
   _pbpVocabClearSelection();

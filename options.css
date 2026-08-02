@@ -1840,6 +1840,33 @@ html[data-theme] .preset-preview-content { background: var(--opt-bg); color: var
 @supports selector(::picker(select)) {
   .vocab-filter-toolbar select { appearance: base-select; }
 }
+/* Sort segment: two fused direction-toggle cells replacing the widest select
+   (#vocab-sort stays as the hidden state carrier). The pressed cell wears the
+   accent; icons show the CURRENT direction, titles the sort a click applies. */
+.vocab-sort-seg { display: inline-flex; align-items: stretch; flex: none; }
+.vocab-sort-btn {
+  width: 34px;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 0;
+  color: var(--opt-fg-muted, #666);
+}
+.vocab-sort-btn:first-child {
+  border-top-left-radius: var(--opt-radius-md);
+  border-bottom-left-radius: var(--opt-radius-md);
+}
+.vocab-sort-btn:last-child {
+  border-top-right-radius: var(--opt-radius-md);
+  border-bottom-right-radius: var(--opt-radius-md);
+  border-left: 0;
+}
+.vocab-sort-btn[aria-pressed="true"] {
+  color: var(--opt-accent);
+  background: color-mix(in srgb, var(--opt-accent) 12%, var(--opt-btn-bg, #fff));
+  border-color: color-mix(in srgb, var(--opt-accent) 45%, var(--opt-input-border, #cdd1d6));
+}
+.vocab-sort-btn .btn-ic { display: inline-flex; margin: 0; }
 /* Count line: one row, identical in browse and selection. The status
    message rides inline at the right edge -- it never reserves a line of
    its own. The batch tools live in the sticky bar below the list. */
@@ -1927,14 +1954,11 @@ html.motion-ready .vocab-batch-bar.selecting {
               visibility 0s;
 }
 .vocab-batch-bar .notes-count { flex: none; font-weight: 500; color: var(--opt-fg, #333); }
-.vocab-ghost-btn { border-color: transparent; background: transparent; color: var(--opt-fg-muted, #666); }
-.vocab-ghost-btn:hover {
-  border-color: transparent;
-  color: var(--opt-fg, #111);
-  background: color-mix(in srgb, var(--opt-fg, #333) 6%, var(--opt-bg, #fff));
-}
-.vocab-clear-selection { padding-inline: var(--opt-sp-2); }
-.vocab-clear-selection .btn-ic { display: inline-flex; margin: 0; }
+/* Icon-only action cells (user-ratified: no labels -- width thrift + long-
+   locale safety). Names live in title/aria; ~30px cells keep the >=24px hit. */
+.vocab-batch-bar > .btn:not(.vocab-group-step),
+.vocab-batch-cluster > .btn { padding-inline: var(--opt-sp-3); }
+.vocab-batch-bar .btn .btn-ic { display: inline-flex; margin: 0; }
 .vocab-batch-bar input[type="text"] { flex: 1 1 120px; min-width: 0; }
 /* Input + stepper unit: one visual control, native-stepper style. The two
    icon-only steppers are fixed 28px cells fused to the input's right edge. */
@@ -2561,7 +2585,7 @@ html.motion-ready .vocab-note-save[hidden] { display: none; opacity: 0; translat
      change bar height here -- acceptable at widths where everything wraps).
      Steppers stay excluded from the stretch: flexing them to 130px would
      turn the fused input unit into three detached slabs. */
+  /* Icon-only cells keep natural size on narrow screens; only the group
+     input stretches (its base flex-grow), and the bar itself hugs content. */
   .vocab-batch-bar { width: auto; margin-inline: 0; }
-  .vocab-batch-bar .btn:not(.vocab-group-step):not(.vocab-clear-selection) { flex: 1 1 130px; }
-  .vocab-batch-bar .vocab-batch-cluster { display: flex; flex: 1 1 100%; }
 }

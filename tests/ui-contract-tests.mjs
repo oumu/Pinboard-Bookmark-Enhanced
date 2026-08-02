@@ -174,7 +174,8 @@ check(backgroundJs.includes("async function pbpCleanupRemovedWebdav("),
 
 for (const id of ["vocab-search", "vocab-group-filter", "vocab-sort", "vocab-select-all",
   "vocab-invert-selection", "vocab-batch-toolbar", "vocab-group-input", "vocab-add-group",
-  "vocab-batch-delete", "vocab-no-results", "vocab-load-more", "vocab-list"]) {
+  "vocab-batch-delete", "vocab-no-results", "vocab-load-more", "vocab-list",
+  "vocab-sort-time", "vocab-sort-alpha"]) {
   check(optionsHtml.includes(`id="${id}"`), `options.html: scalable vocabulary control #${id} is missing`);
 }
 check((optionsHtml.match(/<details class="vocab-disclosure"/g) || []).length === 5 &&

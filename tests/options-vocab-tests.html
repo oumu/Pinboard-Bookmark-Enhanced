@@ -8,6 +8,8 @@ body{font-family:monospace;padding:16px}.case{padding:5px;border-bottom:1px soli
   <input type="search" id="vocab-search">
   <select id="vocab-group-filter"><option value="">All</option></select>
   <select id="vocab-sort"><option value="latest">Latest</option><option value="oldest">Oldest</option><option value="az">A-Z</option><option value="za">Z-A</option></select>
+  <button id="vocab-sort-time" aria-pressed="false"><span class="btn-ic"></span></button>
+  <button id="vocab-sort-alpha" aria-pressed="false"><span class="btn-ic"></span></button>
   <span id="vocab-count"></span>
   <button id="vocab-select-all"></button><button id="vocab-invert-selection"></button>
   <div id="vocab-batch-toolbar" hidden><span id="vocab-selected-count"></span><input id="vocab-group-input"><button id="vocab-add-group"></button><button id="vocab-remove-group"></button><button id="vocab-batch-delete"></button></div>
@@ -292,6 +294,19 @@ check("sort change keeps the current selection", _vocabSelected.size === 2);
 check("sort change resets the shift anchor", _vocabLastSelectedId === null);
 $id("vocab-group-filter").dispatchEvent(new Event("change"));
 check("group filter still clears the selection", _vocabSelected.size === 0);
+// Sort segment buttons proxy the hidden select -- the state carrier every
+// existing handler speaks (2026-08-02 dropdown -> toggle-pair redesign).
+$id("vocab-sort").value = "latest";
+$id("vocab-sort").dispatchEvent(new Event("change"));
+$id("vocab-sort-alpha").click();
+check("alpha sort button enters A-Z", $id("vocab-sort").value === "az");
+$id("vocab-sort-alpha").click();
+check("second alpha click flips to Z-A", $id("vocab-sort").value === "za");
+check("active alpha button is pressed and time is not",
+  $id("vocab-sort-alpha").getAttribute("aria-pressed") === "true" &&
+  $id("vocab-sort-time").getAttribute("aria-pressed") === "false");
+$id("vocab-sort-time").click();
+check("time button re-enters latest-first", $id("vocab-sort").value === "latest");
 
 _vocabRows = Array.from({length:5000}, (_, i) => ({id:"id"+i,term:"word"+i,updatedAt:5000-i,groups:[],contexts:[]}));
 $id("vocab-search").value = "";
@@ -1161,7 +1176,7 @@ check("selection still covers all filtered results beyond rendered chunks", _voc
       <div class="vocab-context-bar"><span class="vocab-ctx-text"><span class="notes-count">5000</span></span><div class="vocab-selection-actions"><button class="btn btn-sm" data-label="all"></button></div><span class="save-status vocab-main-status">Saved to the current account just now</span></div>
       <div class="vocab-list-region">
       <article class="notes-card vocab-card"><div class="notes-card-top"><input class="vocab-row-select" type="checkbox"><button class="notes-card-head"><span class="notes-card-main"><span class="notes-row-title">Wortzusammensetzung mit außergewöhnlich langem ausgewähltem Begriff</span><span class="notes-row-meta"><span class="notes-meta-chip">Außergewöhnlich lange Definition und Gruppe</span></span></span></button><button class="btn btn-sm notes-row-del" data-label="remove"></button></div></article>
-      <div class="vocab-batch-bar selecting"><span class="notes-count" data-label="selected-count">5000</span><button class="btn btn-sm vocab-ghost-btn" data-label="invert"></button><span class="vocab-group-unit"><input type="text"><button class="btn btn-sm vocab-group-step"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button><button class="btn btn-sm vocab-group-step"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button></span><span class="vocab-batch-cluster"><button class="btn btn-sm" data-label="known"></button><button class="btn btn-sm" data-label="learning"></button></span><button class="btn btn-sm danger" data-label="batch-delete"></button><button class="btn btn-sm vocab-clear-selection"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button></div>
+      <div class="vocab-batch-bar selecting"><span class="notes-count" data-label="selected-count">5000</span><button class="btn btn-sm" data-label="invert"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button><span class="vocab-group-unit"><input type="text"><button class="btn btn-sm vocab-group-step"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button><button class="btn btn-sm vocab-group-step"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button></span><span class="vocab-batch-cluster"><button class="btn btn-sm" data-label="known"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button><button class="btn btn-sm" data-label="learning"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button></span><button class="btn btn-sm danger" data-label="batch-delete"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button><button class="btn btn-sm vocab-clear-selection"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button></div>
       </div>
       <details class="vocab-disclosure" open><summary data-label="drive-title"></summary><div class="vocab-details-body">
         <p class="hint vocab-drive-copy" data-label="drive-copy"></p>
@@ -1190,11 +1205,11 @@ check("selection still covers all filtered results beyond rendered chunks", _voc
         const doc = frame.contentDocument, m = messages[locale], panel = doc.getElementById("panel-vocab");
         doc.documentElement.lang = locale;
         panel.querySelector('[data-label="all"]').textContent = m.vocabSelectAll.message;
-        panel.querySelector('[data-label="invert"]').textContent = m.vocabInvertSelection.message;
-        panel.querySelector('[data-label="known"]').textContent = m.vocabMarkKnown.message;
-        panel.querySelector('[data-label="learning"]').textContent = m.vocabMarkLearning.message;
+        panel.querySelector('[data-label="invert"]').title = m.vocabInvertSelection.message;
+        panel.querySelector('[data-label="known"]').title = m.vocabMarkKnown.message;
+        panel.querySelector('[data-label="learning"]').title = m.vocabMarkLearning.message;
         panel.querySelector('[data-label="selected-count"]').textContent = m.vocabSelectedCount.message.replace("$COUNT$", "5000");
-        panel.querySelector('[data-label="batch-delete"]').textContent = m.vocabBatchDelete.message;
+        panel.querySelector('[data-label="batch-delete"]').title = m.vocabBatchDelete.message;
         panel.querySelector('[data-label="remove"]').textContent = m.delete.message;
         panel.querySelector('[data-label="drive-title"]').textContent = m.vocabDriveSection.message;
         panel.querySelector('[data-label="drive-copy"]').textContent = m.vocabDriveDisclosure.message;
