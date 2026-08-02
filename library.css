@@ -45,8 +45,8 @@
    and card-exit fold transitions, which reference them the same way. */
 :root { --motion-state: 150ms; --motion-collapse: 200ms; --motion-pop: 140ms; --motion-pop-out: 100ms; --ease-out: cubic-bezier(0.23, 1, 0.32, 1); --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1); }
 /* Lets height:0<->height:auto transitions on .notes-card.card-exit and
-   .notes-card.motion-toggle > .notes-card-body actually interpolate instead of
-   snapping; options.css sets this as the first line of its own :root. */
+   .vocab-batch-bar actually interpolate instead of snapping; options.css
+   sets this as the first line of its own :root. */
 :root { interpolate-size: allow-keywords; }
 /* Name fast CJK fonts before the generic `sans-serif`. Otherwise CJK text falls through the
    Latin fonts to the bare `sans-serif` keyword, which resolves to the profile's Standard font;
