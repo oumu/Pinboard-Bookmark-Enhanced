@@ -258,6 +258,18 @@ check(/#view-vocab\s+\.vocab-load-more\[hidden\][\s\S]{0,80}display:\s*none/.tes
 check(libraryVocabJs.includes('t("vocabLoading")') &&
   libraryVocabJs.includes('list.setAttribute("aria-busy", loading ? "true" : "false")'),
   "library-vocab.js: vocabulary loading is not visible or aria-busy is not closed consistently");
+{
+  // The two pages never co-load, and since the phase-A test split (2026-08)
+  // neither does any test page -- nothing browser-side would notice the two
+  // copies drifting apart (a second `function` declaration of the same name
+  // just shadows the first; it is not a SyntaxError). This is the only
+  // remaining guard for the "verbatim twin" comment both files carry.
+  const flashStatusPattern = /function _pbpVocabFlashStatus\(ok, text\) \{[\s\S]*?\n\}/;
+  const optionsFlash = (optionsVocabJs.match(flashStatusPattern) || [""])[0];
+  const libraryFlash = (libraryVocabJs.match(flashStatusPattern) || [""])[0];
+  check(optionsFlash.length > 0 && optionsFlash === libraryFlash,
+    "options-vocab.js/library-vocab.js: _pbpVocabFlashStatus twin definitions drifted");
+}
 check(sharedJs.includes("async function pbpVocabCurrentOwner()") &&
   sharedJs.includes("function pbpVocabOwnerLabel(owner)") &&
   libraryVocabJs.includes("pbpVocabCurrentOwner(") && optionsVocabJs.includes("pbpVocabCurrentOwner(") &&

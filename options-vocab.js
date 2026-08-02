@@ -19,9 +19,11 @@ let _vocabDriveBusy = false;
 let _vocabDriveActionSeq = 0;
 const PBP_VOCAB_GOOGLE_API_ORIGIN = "https://www.googleapis.com/*";
 
-// Verbatim twin: options-vocab.js and library-vocab.js each carry this helper
-// (the pages never co-load; the test page co-loads both — keep the two
-// definitions byte-identical so shadowing is harmless).
+// Verbatim twin: options-vocab.js and library-vocab.js each carry this
+// helper (the pages never co-load, and since the phase-A test split neither
+// does the test suite -- tests/ui-contract-tests.mjs statically asserts the
+// two definitions stay byte-identical, so an edit to one without the other
+// fails that check instead of silently drifting).
 function _pbpVocabFlashStatus(ok, text) {
   const el = $id("vocab-status");
   if (!el) return;

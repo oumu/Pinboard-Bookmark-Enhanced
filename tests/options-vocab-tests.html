@@ -4,25 +4,31 @@
 <style>
 body{font-family:monospace;padding:16px}.case{padding:5px;border-bottom:1px solid #ddd}.pass{color:#176}.fail{color:#b00}
 </style></head><body>
+<!-- options.html's actual #panel-vocab content, minus the library-page word
+     list (moved wholesale to library.html/library.css -- see
+     tests/library-vocab-tests.html). No class="panel" on the wrapper (that
+     would trigger options.css's `.panel { display:none }` default) -- same
+     off-screen-but-rendered convention the pre-split fixture used. -->
 <div id="panel-vocab" style="position:fixed;left:-9999px;top:0;width:800px">
-  <input type="search" id="vocab-search">
-  <select id="vocab-group-filter"><option value="">All</option></select>
-  <select id="vocab-sort"><option value="latest">Latest</option><option value="oldest">Oldest</option><option value="az">A-Z</option><option value="za">Z-A</option></select>
-  <button id="vocab-sort-time" aria-pressed="false"><span class="btn-ic"></span></button>
-  <button id="vocab-sort-alpha" aria-pressed="false"><span class="btn-ic"></span></button>
-  <span id="vocab-count"></span>
-  <button id="vocab-select-all"></button><button id="vocab-invert-selection"></button>
-  <div id="vocab-batch-toolbar" hidden><span id="vocab-selected-count"></span><input id="vocab-group-input"><button id="vocab-add-group"></button><button id="vocab-remove-group"></button><button id="vocab-batch-delete"></button></div>
-  <datalist id="vocab-group-list"></datalist><span id="vocab-status" class="save-status vocab-main-status" role="status" aria-live="polite"></span>
-  <div id="vocab-empty" hidden></div><div id="vocab-no-results" hidden></div>
-  <div id="vocab-list" aria-busy="false"></div><button class="vocab-load-more" id="vocab-load-more" hidden></button>
-  <input id="dict-anki-deck"><input id="dict-anki-port"><input id="dict-anki-key"><input id="dict-eudic-token">
-  <button id="vocab-export-btn">export</button><button id="vocab-anki-btn">anki</button><button id="vocab-eudic-btn">eudic</button>
+  <a class="btn btn-sm" id="vocab-open-library" href="library.html#vocab" target="_blank" rel="noopener">
+    <span class="btn-ic" data-ic="bookMarked"></span><span>Open notes and vocabulary</span>
+  </a>
+  <span class="save-status" id="vocab-status" role="status" aria-live="polite"></span>
+
+  <details class="vocab-disclosure" data-acc-key="vocab-reading">
+    <summary>Reading hints</summary>
+    <div class="vocab-details-body">
+      <div class="fg"><label><input type="checkbox" id="dict-echo-enabled" /> <span>Underline saved words while reading</span></label></div>
+      <p class="hint">Dotted underlines mark words already in your vocabulary. Click one to open the dictionary.</p>
+    </div>
+  </details>
+
   <details class="vocab-disclosure" data-acc-key="vocab-google-drive" open>
-    <summary>Google Drive sync</summary>
+    <summary>Google Drive vocabulary sync</summary>
     <div class="vocab-details-body" id="vocab-drive-body">
-      <p id="vocab-drive-disclosure">Copies in appDataFolder are not end-to-end encrypted and include words, definitions, notes, source URLs, article titles, and context excerpts.</p>
-      <p id="vocab-drive-state" role="status" aria-live="polite"></p>
+      <p class="hint vocab-drive-copy">Syncs vocabulary for the current Pinboard account only. Settings and API keys are not synced.</p>
+      <p class="hint vocab-drive-copy" id="vocab-drive-disclosure">Copies in appDataFolder are not end-to-end encrypted and include words, definitions, notes, source URLs, article titles, and context excerpts.</p>
+      <p id="vocab-drive-state" class="save-status vocab-drive-state" role="status" aria-live="polite"></p>
       <dl id="vocab-drive-fields" class="vocab-drive-fields" hidden>
         <dt>Google</dt><dd id="vocab-drive-account"></dd>
         <dt>Pinboard</dt><dd id="vocab-drive-owner"></dd>
@@ -40,8 +46,50 @@ body{font-family:monospace;padding:16px}.case{padding:5px;border-bottom:1px soli
       </div>
     </div>
   </details>
-  <p id="dict-pack-status"></p><button id="dict-pack-open"></button><button id="dict-pack-import"></button>
-  <button id="dict-pack-delete" hidden></button><input type="file" id="dict-pack-file">
+
+  <details class="vocab-disclosure" data-acc-key="vocab-learning">
+    <summary>Export and integrations</summary>
+    <div class="vocab-details-body">
+      <div class="fg"><label class="bl" for="dict-anki-deck">Anki deck</label>
+        <input type="text" id="dict-anki-deck" placeholder="Pinboard Vocab" /></div>
+      <div class="fg"><label class="bl" for="dict-anki-port">AnkiConnect port</label>
+        <input type="text" id="dict-anki-port" placeholder="8765" spellcheck="false" /></div>
+      <div class="fg"><label class="bl" for="dict-anki-key">AnkiConnect API key (optional)</label><input type="password" id="dict-anki-key" autocomplete="off" spellcheck="false" /></div>
+      <div class="fg"><label class="bl" for="dict-eudic-token">Eudic OpenAPI authorization</label><input type="password" id="dict-eudic-token" autocomplete="off" spellcheck="false" /></div>
+      <div class="vocab-toolbar">
+        <button type="button" class="btn btn-sm" id="vocab-export-btn">Export all (.tsv)</button>
+        <button type="button" class="btn btn-sm" id="vocab-anki-btn">Send all to Anki</button>
+        <button type="button" class="btn btn-sm" id="vocab-eudic-btn" hidden>Send all supported words to Eudic</button>
+      </div>
+    </div>
+  </details>
+
+  <details class="vocab-disclosure" data-acc-key="vocab-ecdict-pack">
+    <summary>Offline English-Chinese dictionary</summary>
+    <div class="vocab-details-body">
+      <p class="hint">Adds Chinese definitions above the English entry when you look up an English word.</p>
+      <p class="save-status" id="ecdict-pack-status" role="status" aria-live="polite"></p>
+      <div class="vocab-toolbar">
+        <button type="button" class="btn btn-sm" id="ecdict-pack-import">Import file</button>
+        <button type="button" class="btn btn-sm" id="ecdict-pack-delete" hidden>Delete</button>
+      </div>
+      <input type="file" id="ecdict-pack-file" accept=".csv,.txt,.gz,.zip" hidden />
+    </div>
+  </details>
+
+  <details class="vocab-disclosure" data-acc-key="vocab-dictionary-pack">
+    <summary>Offline Chinese-English dictionary</summary>
+    <div class="vocab-details-body">
+      <p class="hint">CC-CEDICT looks up Simplified or Traditional Chinese terms and returns English definitions.</p>
+      <p class="save-status" id="dict-pack-status" role="status" aria-live="polite"></p>
+      <div class="vocab-toolbar">
+        <button type="button" class="btn btn-sm" id="dict-pack-open"></button>
+        <button type="button" class="btn btn-sm" id="dict-pack-import"></button>
+        <button type="button" class="btn btn-sm" id="dict-pack-delete" hidden></button>
+      </div>
+      <input type="file" id="dict-pack-file" accept=".txt,.txt.gz,.gz,.zip" hidden />
+    </div>
+  </details>
 </div>
 <div id="results"></div>
 <script>
@@ -55,12 +103,6 @@ function t(key, ...values) { return key + (values.length ? ":" + values.join(","
 <script src="../dict-pack.js"></script>
 <script>pbpReadSettingsWithSecrets = async () => ({ pinboardToken: "" });</script>
 <script src="../options-vocab.js"></script>
-<!-- Both page halves co-load here: options-vocab.js owns Drive/export/packs,
-     library-vocab.js owns the word list. renderVocabPanel is the one name
-     they both define (different jobs), so keep a handle on the settings-side
-     one before the library script shadows it. -->
-<script>const renderVocabPanelOptions = renderVocabPanel;</script>
-<script src="../library-vocab.js"></script>
 <script>
 const results = $id("results");
 let pass = 0, fail = 0;
@@ -72,13 +114,7 @@ function check(name, condition, detail) {
   row.textContent = (ok ? "PASS " : "FAIL ") + name + (ok ? "" : "\n  " + (detail || ""));
   results.appendChild(row);
 }
-function ids(rows) { return rows.map((row) => row.id).join(","); }
 
-const sample = [
-  { id:"a", term:"Défense", lemma:"défendre", gloss:"Protection", note:"Review soon", groups:["French A1"], contexts:[{quote:"La défense gagne.",articleTitle:"Match report"}], updatedAt:30 },
-  { id:"b", term:"word10", lemma:"", gloss:"Tenth item", note:"", groups:["Numbers"], contexts:[], updatedAt:10 },
-  { id:"c", term:"word2", lemma:"", gloss:"Second item", note:"", groups:[], contexts:[], updatedAt:20 }
-];
 const activeDriveManifest = {
   optional_permissions:["identity"],
   optional_host_permissions:["*://*/*"],
@@ -107,102 +143,6 @@ check("vocabulary echo defaults on for new profiles",
   SETTINGS_DEFAULTS.dictEchoEnabled === true,
   "SETTINGS_DEFAULTS.dictEchoEnabled must be true");
 
-const hostileOwner = "acct_%3Cimg%20src%3Dx%20onerror%3Dalert(1)%3E";
-const hostileOwnerLabel = typeof pbpVocabOwnerLabel === "function" ? pbpVocabOwnerLabel(hostileOwner) : "";
-if (typeof _vocabOwnerLabel !== "undefined") _vocabOwnerLabel = hostileOwnerLabel;
-_vocabRows = [];
-_pbpVocabApplyView(true);
-check("current-account total and empty state render the non-secret owner as text",
-  $id("vocab-count").textContent.includes("<img") && $id("vocab-empty").textContent.includes("<img") &&
-  !$id("vocab-count").querySelector("img") && !$id("vocab-empty").querySelector("img"));
-_pbpVocabClearVisibleState();
-check("account-switch clearing removes the previous owner scope before the next read",
-  !$id("vocab-count").textContent && $id("vocab-empty").hidden &&
-  (typeof _vocabOwnerLabel === "undefined" || !_vocabOwnerLabel));
-
-check("search matches term case-insensitively", ids(pbpVocabFilterSort(sample,"DÉFENSE","","latest")) === "a");
-check("search matches lemma", ids(pbpVocabFilterSort(sample,"défendre","","latest")) === "a");
-check("search matches gloss", ids(pbpVocabFilterSort(sample,"protection","","latest")) === "a");
-check("search matches note", ids(pbpVocabFilterSort(sample,"review soon","","latest")) === "a");
-check("search matches context quote", ids(pbpVocabFilterSort(sample,"gagne","","latest")) === "a");
-check("search matches article title", ids(pbpVocabFilterSort(sample,"match report","","latest")) === "a");
-check("search matches group names", ids(pbpVocabFilterSort(sample,"french a1","","latest")) === "a");
-check("group filter is exact", ids(pbpVocabFilterSort(sample,"","Numbers","latest")) === "b");
-check("status filter keeps only known words", ids(pbpVocabFilterSort(
-  [{ id:"k", term:"kk", status:"known" }, { id:"n", term:"nn" }], "", "", "latest", "known")) === "k");
-check("status filter learning excludes known, records without the field count as learning", ids(pbpVocabFilterSort(
-  [{ id:"k", term:"kk", status:"known" }, { id:"n", term:"nn" }], "", "", "latest", "new")) === "n");
-check("search normalizes NFC", ids(pbpVocabFilterSort(sample,"De\u0301fense","","latest")) === "a");
-check("search folds Greek final sigma", pbpVocabSearchText("ΟΣ") === pbpVocabSearchText("οσ"));
-check("search folds German sharp s to ss", pbpVocabSearchText("Straße") === pbpVocabSearchText("STRASSE"));
-check("search folds capital sharp s", pbpVocabSearchText("ẞ") === "ss");
-check("search folds dotted capital I", pbpVocabSearchText("İstanbul") === pbpVocabSearchText("istanbul"));
-check("search preserves German umlaut distinctions", pbpVocabSearchText("schon") !== pbpVocabSearchText("schön"));
-check("search preserves Cyrillic diaeresis distinctions", pbpVocabSearchText("все") !== pbpVocabSearchText("всё"));
-check("search preserves Devanagari vowel marks", pbpVocabSearchText("क") !== pbpVocabSearchText("कि"));
-
-check("latest sort uses updatedAt descending", ids(pbpVocabFilterSort(sample,"","","latest")) === "a,c,b");
-check("oldest sort uses updatedAt ascending", ids(pbpVocabFilterSort(sample,"","","oldest")) === "b,c,a");
-check("A-Z sort uses numeric Intl.Collator order", ids(pbpVocabFilterSort(sample.slice(1),"","","az")) === "c,b");
-check("Z-A sort reverses collator order", ids(pbpVocabFilterSort(sample.slice(1),"","","za")) === "b,c");
-const tied = [{id:"x",term:"same",updatedAt:1},{id:"y",term:"same",updatedAt:1}];
-check("equal sort keys preserve source order", ids(pbpVocabFilterSort(tied,"","","az")) === "x,y");
-
-setStatusIcon($id("vocab-status"), false, "read failed");
-const errorColor = getComputedStyle($id("vocab-status")).color;
-check("shared status renderer marks an error host and icon as bad",
-  $id("vocab-status").classList.contains("bad") && !$id("vocab-status").classList.contains("ok") &&
-  $id("vocab-status").querySelector(".status-ic.bad"));
-setStatusIcon($id("vocab-status"), true, "saved");
-const successColor = getComputedStyle($id("vocab-status")).color;
-check("shared status renderer marks success as ok and keeps success/error colours distinct",
-  $id("vocab-status").classList.contains("ok") && !$id("vocab-status").classList.contains("bad") &&
-  $id("vocab-status").querySelector(".status-ic.ok") && successColor !== errorColor);
-
-_pbpVocabClearVisibleState();
-check("vocabulary loading is visible in the existing polite status region",
-  $id("vocab-status").textContent === "vocabLoading" &&
-  $id("vocab-status").getAttribute("role") === "status" &&
-  $id("vocab-status").getAttribute("aria-live") === "polite" &&
-  getComputedStyle($id("vocab-status")).display !== "none");
-check("vocabulary loading marks the production list busy",
-  $id("vocab-list").getAttribute("aria-busy") === "true");
-check("loading hides batch and load-more controls despite their production display rules",
-  $id("vocab-batch-toolbar").hidden && $id("vocab-load-more").hidden &&
-  getComputedStyle($id("vocab-batch-toolbar")).display === "none" &&
-  getComputedStyle($id("vocab-load-more")).display === "none");
-
-_pbpVocabSetLoading(false);
-_vocabRows = [];
-_pbpVocabApplyView(true);
-check("zero rows shows only the empty state and leaves paging and batching hidden",
-  !$id("vocab-empty").hidden && $id("vocab-no-results").hidden &&
-  $id("vocab-load-more").hidden && $id("vocab-batch-toolbar").hidden &&
-  getComputedStyle($id("vocab-load-more")).display === "none" &&
-  $id("vocab-list").getAttribute("aria-busy") === "false" && !$id("vocab-status").textContent);
-
-_vocabRows = sample.slice(0, 1);
-_pbpVocabApplyView(true);
-check("one row renders one reachable card without empty, no-result, paging or batch UI",
-  $id("vocab-list").querySelectorAll(".vocab-card").length === 1 &&
-  $id("vocab-empty").hidden && $id("vocab-no-results").hidden &&
-  $id("vocab-load-more").hidden && $id("vocab-batch-toolbar").hidden);
-
-_vocabRows = Array.from({length:100}, (_, i) => ({id:"hundred"+i,term:"word"+i,updatedAt:i,groups:[],contexts:[]}));
-_pbpVocabApplyView(true);
-check("exactly 100 rows fills one render batch without exposing Load more",
-  $id("vocab-list").querySelectorAll(".vocab-card").length === 100 &&
-  $id("vocab-load-more").hidden && getComputedStyle($id("vocab-load-more")).display === "none");
-
-_pbpVocabClearVisibleState();
-_pbpVocabSetLoading(false);
-_pbpVocabFlashStatus(false, "read failed");
-check("read-error state clears busy, stays visibly bad and keeps data actions hidden",
-  $id("vocab-list").getAttribute("aria-busy") === "false" &&
-  $id("vocab-status").classList.contains("bad") && $id("vocab-status").textContent.includes("read failed") &&
-  getComputedStyle($id("vocab-batch-toolbar")).display === "none" &&
-  getComputedStyle($id("vocab-load-more")).display === "none");
-
 function channel(value) {
   const n = value / 255;
   return n <= 0.04045 ? n / 12.92 : Math.pow((n + 0.055) / 1.055, 2.4);
@@ -227,371 +167,8 @@ check("Flexoki dark CC-CEDICT hint reaches WCAG AA contrast",
 contrastFixture.remove();
 delete document.documentElement.dataset.theme;
 
-let selected = pbpVocabSelectResults(new Set(), sample.slice(0,2), "all");
-check("select-all selects every current result", selected.size === 2 && selected.has("a") && selected.has("b"));
-selected = pbpVocabSelectResults(selected, sample.slice(1), "invert");
-check("invert removes a selected current result", !selected.has("b"));
-check("invert adds an unselected current result", selected.has("c"));
-selected = pbpVocabSelectResults(new Set(["hidden"]), sample.slice(0,1), "invert");
-check("invert does not act on rows outside current results", selected.has("hidden") && selected.has("a"));
-
-selected = pbpVocabSelectRange(new Set(), sample, "a", "c", true);
-check("Shift range selects the forward closed interval", selected.size === 3);
-check("Shift range includes its anchor", selected.has("a"));
-check("Shift range includes its target", selected.has("c"));
-selected = pbpVocabSelectRange(new Set(), sample, "c", "a", true);
-check("Shift range works in reverse order", selected.size === 3 && selected.has("b"));
-selected = pbpVocabSelectRange(selected, sample, "a", "b", false);
-check("Shift uncheck removes the closed interval", !selected.has("a") && !selected.has("b") && selected.has("c"));
-selected = pbpVocabSelectRange(new Set(), sample, "missing", "b", true);
-check("missing Shift anchor falls back to the target", selected.size === 1 && selected.has("b"));
-
-_vocabRows = sample;
-_pbpVocabRefreshGroupOptions(false);
-_pbpVocabApplyView(true);
-_pbpVocabClearSelection();
-const renderedChecks = [...$id("vocab-list").querySelectorAll(".vocab-row-select")];
-check("production row checkbox has an accessible name", renderedChecks.every((checkbox) => checkbox.getAttribute("aria-label")));
-const unknownLanguageRow = _pbpVocabBuildRow({
-  id:"unknown-language", term:"mystery", language:"und", gloss:"", groups:[], contexts:[]
-});
-check("production vocabulary row hides the unknown language code",
-  !unknownLanguageRow.querySelector(".notes-row-meta").textContent.includes("UND"));
-const fullGlossRow = _pbpVocabBuildRow({
-  id:"full-gloss", term:"run", language:"en", ipa:"/rʌn/",
-  gloss:"contextual sense line\ngeneral sense line", groups:[], contexts:[]
-});
-const notedRow = _pbpVocabBuildRow({
-  id:"noted", term:"noted", language:"en", gloss:"", note:"remember this one", groups:[], contexts:[]
-});
-// Master-detail: the row carries the headline only. The full gloss, the IPA
-// and the note editor belong to the detail pane, so the row must not build a
-// disclosure body or claim to expand.
-check("row builds no expandable body and claims no expansion state",
-  !fullGlossRow.querySelector(".notes-card-body") &&
-  !fullGlossRow.querySelector(".vocab-gloss-text") &&
-  !notedRow.querySelector(".vocab-note-input") &&
-  !fullGlossRow.querySelector("[aria-expanded]"));
-check("collapsed card clamps the gloss to its first line, outside the chip row",
-  fullGlossRow.querySelector(".vocab-row-gloss").textContent === "contextual sense line" &&
-  !fullGlossRow.querySelector(".notes-row-meta .vocab-row-gloss"));
-$id("vocab-list").append(fullGlossRow, notedRow);
-fullGlossRow.querySelector(".notes-card-head").click();
-notedRow.querySelector(".notes-card-head").click();
-check("activating a row moves aria-current onto it and off every other row",
-  notedRow.getAttribute("aria-current") === "true" &&
-  !fullGlossRow.hasAttribute("aria-current") &&
-  $id("vocab-list").querySelectorAll(".vocab-card[aria-current]").length === 1);
-fullGlossRow.remove();
-notedRow.remove();
-check("icon-only delete button keeps an accessible name and an SVG face",
-  !!notedRow.querySelector(".notes-row-del svg") &&
-  !!notedRow.querySelector(".notes-row-del").getAttribute("aria-label"));
-renderedChecks[0].click();
-check("real row checkbox click establishes the selection anchor", _vocabSelected.size === 1);
-renderedChecks[2].dispatchEvent(new MouseEvent("click", { bubbles:true, cancelable:true, shiftKey:true }));
-check("real Shift-click selects the complete current-view interval", _vocabSelected.size === 3);
-_vocabSelected = new Set(["a"]);
-_pbpVocabSyncSelectionUi();
-check("fixture starts with a selected result", _vocabSelected.size === 1);
-$id("vocab-search").value = "word";
-$id("vocab-search").dispatchEvent(new Event("input", { bubbles:true }));
-check("filter input clears selection", _vocabSelected.size === 0);
-check("filter input rebuilds current result boundary", ids(_vocabViewRows) === "c,b");
-// Sort only reorders the same visible set: the selection survives, the
-// shift anchor resets (a pre-sort anchor would span an arbitrary interval
-// in the new visual order). Filters keep clearing -- they change WHICH
-// rows are visible. (spec 2026-08-01)
-_vocabSelected = new Set(_vocabViewRows.slice(0, 2).map((row) => row.id));
-_vocabLastSelectedId = _vocabViewRows[1].id;
-$id("vocab-sort").value = "az";
-$id("vocab-sort").dispatchEvent(new Event("change"));
-check("sort change keeps the current selection", _vocabSelected.size === 2);
-check("sort change resets the shift anchor", _vocabLastSelectedId === null);
-$id("vocab-group-filter").dispatchEvent(new Event("change"));
-check("group filter still clears the selection", _vocabSelected.size === 0);
-// Sort segment buttons proxy the hidden select -- the state carrier every
-// existing handler speaks (2026-08-02 dropdown -> toggle-pair redesign).
-$id("vocab-sort").value = "latest";
-$id("vocab-sort").dispatchEvent(new Event("change"));
-$id("vocab-sort-alpha").click();
-check("alpha sort button enters A-Z", $id("vocab-sort").value === "az");
-$id("vocab-sort-alpha").click();
-check("second alpha click flips to Z-A", $id("vocab-sort").value === "za");
-check("active alpha button is pressed and time is not",
-  $id("vocab-sort-alpha").getAttribute("aria-pressed") === "true" &&
-  $id("vocab-sort-time").getAttribute("aria-pressed") === "false");
-$id("vocab-sort-time").click();
-check("time button re-enters latest-first", $id("vocab-sort").value === "latest");
-
-_vocabRows = Array.from({length:5000}, (_, i) => ({id:"id"+i,term:"word"+i,updatedAt:5000-i,groups:[],contexts:[]}));
-$id("vocab-search").value = "";
-$id("vocab-group-filter").value = "";
-$id("vocab-sort").value = "latest";
-_pbpVocabClearSelection();
-_pbpVocabApplyView(true);
-check("5000 rows remain in the in-memory result set", _vocabViewRows.length === 5000);
-check("initial large-list DOM is capped at 100 cards", $id("vocab-list").querySelectorAll(".vocab-card").length === 100);
-check("large-list render exposes Load more", !$id("vocab-load-more").hidden);
-check("result count reports all 5000 matches rather than 100 rendered cards", $id("vocab-count").textContent.startsWith("vocabResultCount:5000,5000"));
-const firstLargeCard = $id("vocab-list").firstElementChild;
-firstLargeCard.querySelector(".notes-card-head").click();
-_vocabSelected = pbpVocabSelectResults(new Set(), _vocabViewRows, "all");
-_pbpVocabSyncSelectionUi();
-$id("vocab-load-more").click();
-check("first Load more appends the next 100 cards", $id("vocab-list").children.length === 200);
-check("Load more preserves the identity of earlier DOM nodes", $id("vocab-list").firstElementChild === firstLargeCard);
-check("Load more preserves an earlier card's detail-activation state", firstLargeCard.getAttribute("aria-current") === "true");
-$id("vocab-load-more").click();
-check("a second Load more appends another chunk", $id("vocab-list").children.length === 300);
-check("selection still covers all filtered results beyond rendered chunks", _vocabSelected.size === 5000);
-
 (async () => {
   const task = () => new Promise((resolve) => setTimeout(resolve, 0));
-  const realBatchDelete = pbpVocabBatchDelete;
-  const realBatchAddGroup = pbpVocabBatchAddGroup;
-  const realBatchRemoveGroup = pbpVocabBatchRemoveGroup;
-  const realReload = _pbpVocabReloadAfterMutation;
-  async function prepareSelection() {
-    if (document.querySelector(".confirm-popover")) document.querySelector(".confirm-no").click();
-    $id("vocab-status").textContent = "";
-    $id("vocab-search").value = "";
-    $id("vocab-group-filter").value = "";
-    $id("vocab-sort").value = "latest";
-    _vocabRows = sample;
-    _pbpVocabApplyView(true);
-    _vocabSelected = new Set(_vocabViewRows.map((row) => row.id));
-    _pbpVocabSyncSelectionUi();
-    await task();
-  }
-  try {
-    await prepareSelection();
-    let deleteCalls = 0;
-    pbpVocabBatchDelete = async () => { deleteCalls++; return true; };
-    _pbpVocabReloadAfterMutation = async () => true;
-    _pbpVocabBatchDeleteSelected();
-    const staleConfirm = document.querySelector(".confirm-popover");
-    check("batch delete uses the production confirmation popover with captured count", !!staleConfirm && staleConfirm.getAttribute("role") === "dialog" && staleConfirm.textContent.includes("3"));
-    $id("vocab-search").value = "no-match";
-    $id("vocab-search").dispatchEvent(new Event("input", { bubbles:true }));
-    staleConfirm.querySelector(".confirm-yes").click();
-    await task();
-    check("stale confirmation never dispatches the captured mutation", deleteCalls === 0);
-    check("stale confirmation reports the changed selection and focuses visible search", $id("vocab-status").textContent.includes("vocabSelectionChanged") && document.activeElement === $id("vocab-search") && !$id("vocab-search").closest("[hidden]"));
-
-    await prepareSelection();
-    deleteCalls = 0;
-    pbpVocabBatchDelete = async () => { deleteCalls++; return true; };
-    _pbpVocabReloadAfterMutation = async () => false;
-    _pbpVocabBatchDeleteSelected();
-    document.querySelector(".confirm-yes").click();
-    await task(); await task();
-    check("refresh failure does not retry a successful delete mutation", deleteCalls === 1);
-    check("refresh failure reports saved data instead of claiming no changes", $id("vocab-status").textContent.includes("vocabRefreshFailed") && !$id("vocab-status").textContent.includes("vocabBatchFailed"));
-    check("successful mutation with refresh failure moves focus to visible search", document.activeElement === $id("vocab-search") && !$id("vocab-search").closest("[hidden]"));
-
-    await prepareSelection();
-    pbpVocabBatchDelete = async () => true;
-    _pbpVocabReloadAfterMutation = async () => true;
-    _pbpVocabBatchDeleteSelected();
-    document.querySelector(".confirm-yes").click();
-    await task(); await task();
-    check("successful batch delete moves focus to visible search", document.activeElement === $id("vocab-search") && !$id("vocab-search").closest("[hidden]"));
-
-    await prepareSelection();
-    $id("vocab-group-input").value = "Study";
-    _pbpVocabSyncSelectionUi();
-    pbpVocabBatchAddGroup = async () => true;
-    _pbpVocabReloadAfterMutation = async () => true;
-    $id("vocab-add-group").focus();
-    await _pbpVocabApplyGroupChange(true);
-    check("successful batch add-group moves focus to visible search", document.activeElement === $id("vocab-search") && !$id("vocab-search").closest("[hidden]"));
-
-    // Remove-from-group. sample carries "Numbers" on exactly one row, so the
-    // gating and the reported count are distinguishable from the selection size
-    // (3) -- a remove that reported ids.length would pass a weaker test.
-    await prepareSelection();
-    $id("vocab-group-input").value = "Study";
-    _pbpVocabSyncSelectionUi();
-    check("remove-from-group stays disabled when no selected word carries the group",
-      $id("vocab-remove-group").disabled === true && $id("vocab-add-group").disabled === false);
-    $id("vocab-group-input").value = "Numbers";
-    _pbpVocabSyncSelectionUi();
-    check("remove-from-group enables once a selected word carries the group",
-      $id("vocab-remove-group").disabled === false);
-    let removedWith = null, addCallsDuringRemove = 0;
-    pbpVocabBatchRemoveGroup = async (ids, owner, group) => { removedWith = { ids: ids.slice(), group }; return true; };
-    pbpVocabBatchAddGroup = async () => { addCallsDuringRemove++; return true; };
-    _pbpVocabReloadAfterMutation = async () => true;
-    await _pbpVocabApplyGroupChange(false);
-    check("remove-from-group routes to the remove primitive with the whole selection",
-      !!removedWith && removedWith.group === "Numbers" && removedWith.ids.length === 3 && addCallsDuringRemove === 0);
-    check("remove-from-group reports the words that actually had the group, not the selection size",
-      $id("vocab-status").textContent.trim() === "vocabBatchUngrouped:1,Numbers");
-  } finally {
-    pbpVocabBatchDelete = realBatchDelete;
-    pbpVocabBatchAddGroup = realBatchAddGroup;
-    pbpVocabBatchRemoveGroup = realBatchRemoveGroup;
-    _pbpVocabReloadAfterMutation = realReload;
-  }
-
-  // Real mutation/reload orchestration: each read snapshots the mock IDB at
-  // call time, matching IndexedDB getAll semantics. Holding the first read
-  // reproduces the audited race where an older snapshot resolves last.
-  const raceRealDelete = pbpVocabDelete;
-  const raceRealBatchDelete = pbpVocabBatchDelete;
-  const raceRealAddGroup = pbpVocabBatchAddGroup;
-  const raceRealOwner = pbpVocabCurrentOwner;
-  const raceRealAll = pbpVocabAll;
-  const raceOwner = "acct_race";
-  const raceSeedRows = () => [
-    { id:"a", owner:raceOwner, term:"alpha", groups:[], contexts:[], updatedAt:30 },
-    { id:"b", owner:raceOwner, term:"beta", groups:[], contexts:[], updatedAt:20 },
-    { id:"c", owner:raceOwner, term:"gamma", groups:[], contexts:[], updatedAt:10 }
-  ];
-  let raceStore = [];
-  let raceRead = null;
-  const cloneRows = (rows) => rows.map((row) => ({ ...row, groups:[...(row.groups || [])], contexts:[...(row.contexts || [])] }));
-  const seedRaceUi = () => {
-    raceStore = raceSeedRows();
-    $id("vocab-search").value = "";
-    $id("vocab-group-filter").value = "";
-    $id("vocab-sort").value = "latest";
-    $id("vocab-group-input").value = "";
-    $id("vocab-status").textContent = "";
-    _vocabRows = cloneRows(raceStore);
-    _pbpVocabClearSelection();
-    _pbpVocabSetLoading(false);
-    _pbpVocabApplyView(true);
-  };
-  const armHeldFirstRead = () => {
-    let release;
-    let markStarted;
-    const gate = new Promise((resolve) => { release = resolve; });
-    const started = new Promise((resolve) => { markStarted = resolve; });
-    let reads = 0;
-    raceRead = async () => {
-      const snapshot = cloneRows(raceStore);
-      reads++;
-      if (reads === 1) {
-        markStarted();
-        await gate;
-      }
-      return snapshot;
-    };
-    return { started, release };
-  };
-  const waitFor = async (predicate, label) => {
-    for (let i = 0; i < 80; i++) {
-      if (predicate()) return;
-      await task();
-    }
-    throw new Error("timed out waiting for " + label);
-  };
-  const confirmSingleDelete = (row) => {
-    const anchor = document.createElement("button");
-    anchor.textContent = "delete " + row.id;
-    document.body.appendChild(anchor);
-    _pbpVocabDeleteRow(row, anchor);
-    const yes = document.querySelector(".confirm-popover .confirm-yes");
-    if (!yes) throw new Error("single delete confirmation missing");
-    yes.click();
-    anchor.remove();
-  };
-  try {
-    pbpVocabCurrentOwner = async () => raceOwner;
-    pbpVocabAll = async () => raceRead();
-    pbpVocabDelete = async (id, owner) => {
-      if (owner !== raceOwner) return false;
-      raceStore = raceStore.filter((row) => row.id !== id);
-      return true;
-    };
-    pbpVocabBatchDelete = async (ids, owner) => {
-      if (owner !== raceOwner) return false;
-      const doomed = new Set(ids);
-      raceStore = raceStore.filter((row) => !doomed.has(row.id));
-      return true;
-    };
-    pbpVocabBatchAddGroup = async (ids, owner, group) => {
-      if (owner !== raceOwner) return false;
-      const selectedIds = new Set(ids);
-      raceStore = raceStore.map((row) => selectedIds.has(row.id)
-        ? { ...row, groups:[...new Set([...(row.groups || []), group])] } : row);
-      return true;
-    };
-
-    seedRaceUi();
-    let held = armHeldFirstRead();
-    confirmSingleDelete(raceStore.find((row) => row.id === "a"));
-    await held.started;
-    confirmSingleDelete(raceStore.find((row) => row.id === "b"));
-    await waitFor(() => ids(_vocabRows) === "c", "newer single-delete reload");
-    held.release();
-    await task(); await task();
-    check("overlapping single deletes leave the mock IDB without B", ids(raceStore) === "c");
-    check("an older delayed delete snapshot cannot restore B to the UI", ids(_vocabRows) === "c");
-
-    seedRaceUi();
-    held = armHeldFirstRead();
-    let deleteAttempt = 0;
-    pbpVocabDelete = async (id, owner) => {
-      if (owner !== raceOwner) return false;
-      deleteAttempt++;
-      if (deleteAttempt === 2) return false;
-      raceStore = raceStore.filter((row) => row.id !== id);
-      return true;
-    };
-    confirmSingleDelete(raceStore.find((row) => row.id === "a"));
-    await held.started;
-    confirmSingleDelete(raceStore.find((row) => row.id === "b"));
-    await waitFor(() => ids(_vocabRows) === "b,c" && $id("vocab-status").textContent.includes("dictDeleteFailed"), "failed newer delete reconcile");
-    held.release();
-    await task(); await task();
-    check("a later failed mutation preserves the true mock IDB state", ids(raceStore) === "b,c");
-    check("a later failed mutation still reconciles the UI from the mock IDB", ids(_vocabRows) === "b,c");
-    check("the latest failed mutation keeps its accurate failure status", $id("vocab-status").textContent.includes("dictDeleteFailed"));
-
-    pbpVocabDelete = async (id, owner) => {
-      if (owner !== raceOwner) return false;
-      raceStore = raceStore.filter((row) => row.id !== id);
-      return true;
-    };
-    seedRaceUi();
-    held = armHeldFirstRead();
-    _vocabSelected = new Set(["a"]);
-    _pbpVocabSyncSelectionUi();
-    _pbpVocabBatchDeleteSelected();
-    document.querySelector(".confirm-popover .confirm-yes").click();
-    await held.started;
-    confirmSingleDelete(raceStore.find((row) => row.id === "b"));
-    await waitFor(() => ids(_vocabRows) === "c", "single delete after batch delete");
-    held.release();
-    await waitFor(() => !_vocabBatchBusy, "older batch cleanup");
-    check("batch-delete and single-delete interleave leaves the mock IDB truthful", ids(raceStore) === "c");
-    check("a delayed batch snapshot cannot overwrite the later single-delete UI", ids(_vocabRows) === "c");
-
-    seedRaceUi();
-    held = armHeldFirstRead();
-    _vocabSelected = new Set(["a"]);
-    $id("vocab-group-input").value = "Study";
-    _pbpVocabSyncSelectionUi();
-    const grouping = _pbpVocabApplyGroupChange(true);
-    await held.started;
-    confirmSingleDelete(raceStore.find((row) => row.id === "b"));
-    await waitFor(() => ids(_vocabRows) === "a,c" && (_vocabRows[0].groups || []).includes("Study"), "single delete after add-group");
-    held.release();
-    await grouping;
-    check("add-group and single-delete interleave preserves both mock IDB mutations",
-      ids(raceStore) === "a,c" && (raceStore[0].groups || []).includes("Study"));
-    check("a delayed add-group snapshot cannot restore the later deleted row",
-      ids(_vocabRows) === "a,c" && (_vocabRows[0].groups || []).includes("Study"));
-  } finally {
-    pbpVocabDelete = raceRealDelete;
-    pbpVocabBatchDelete = raceRealBatchDelete;
-    pbpVocabBatchAddGroup = raceRealAddGroup;
-    pbpVocabCurrentOwner = raceRealOwner;
-    pbpVocabAll = raceRealAll;
-  }
 
   const realPackMeta = pbpPackMeta;
   const realPackDelete = pbpPackDelete;
@@ -631,7 +208,6 @@ check("selection still covers all filtered results beyond rendered chunks", _voc
   ];
   const resetActions = () => {
     $id("vocab-status").textContent = "";
-    _vocabSelected = new Set(["all-en"]);
     window.chrome = { permissions: { request: async () => true } };
     window.pbpOptionsFlushAutoSave = async () => ({ ok:true });
     pbpReadSettingsWithSecrets = async () => ({
@@ -724,11 +300,6 @@ check("selection still covers all filtered results beyond rendered chunks", _voc
     pbpEudicSendRows = async () => ({ stage:"done", added:0, skipped:0, unsupported:0, failed:3, forbidden:false, generic:false, error:null });
     await _pbpVocabSendEudic();
     check("generic Eudic failure no longer reuses a Jina conversion error", $id("vocab-status").textContent.includes("dictEudicFailed"));
-
-    resetActions();
-    pbpVocabCurrentOwner = async () => { throw new Error("owner read failed"); };
-    await renderVocabPanel();
-    check("vocabulary load failure uses its own message", $id("vocab-status").textContent.includes("vocabLoadFailed"));
   } finally {
     pbpVocabCurrentOwner = realOwner;
     pbpVocabAll = realAll;
@@ -777,7 +348,7 @@ check("selection still covers all filtered results beyond rendered chunks", _voc
     };
     pbpVocabCurrentOwner = async () => "acct_alice";
     pbpVocabAll = async () => [];
-    await renderVocabPanelOptions();
+    await renderVocabPanel();
     $id("vocab-drive-connect").click();
     $id("vocab-drive-sync").click();
     await task(); await task();
@@ -1129,16 +700,11 @@ check("selection still covers all filtered results beyond rendered chunks", _voc
     check("Sync now sends a forced vocabulary sync message",
       driveMessages.some((message) => message.type === "vocabDriveSyncNow" && message.force === true));
 
-    const preserved = document.createElement("div");
-    preserved.id = "drive-preserved-word";
-    $id("vocab-list").appendChild(preserved);
     driveMessages.length = 0;
     $id("vocab-drive-disconnect").click();
     await task(); await task();
     check("Disconnect sends the device-only disconnect message",
       driveMessages.some((message) => message.type === "vocabDriveDisconnect"));
-    check("Disconnecting Google Drive does not clear local vocabulary",
-      !!$id("drive-preserved-word"));
 
     let resolveStale;
     window.chrome.runtime.sendMessage = (message) => {
@@ -1171,7 +737,7 @@ check("selection still covers all filtered results beyond rendered chunks", _voc
     window.chrome.runtime.sendMessage = driveResponse;
     pbpVocabCurrentOwner = async () => "acct_alice";
     pbpVocabAll = async () => [];
-    await renderVocabPanelOptions();
+    await renderVocabPanel();
     check("opening Vocabulary requests status and a noninteractive non-forced sync",
       driveMessages.some((message) => message.type === "vocabDriveStatus") &&
       driveMessages.some((message) => message.type === "vocabDriveSyncNow" && message.force !== true));
@@ -1181,124 +747,26 @@ check("selection still covers all filtered results beyond rendered chunks", _voc
     if (driveRealChrome === undefined) delete window.chrome; else window.chrome = driveRealChrome;
   }
 
-  const locales = ["en","de","fr","pl","ru","zh_HK","zh_CN","zh_TW","ja"];
-  const messages = {};
-  for (const locale of locales) messages[locale] = await (await fetch(`../_locales/${locale}/messages.json`)).json();
-  const frame = document.createElement("iframe");
-  frame.style.cssText = "width:320px;height:800px;border:0";
-  frame.srcdoc = `<!doctype html><html data-options-ready data-theme="github-light"><head><link rel="stylesheet" href="../options.css"></head><body>
-    <main class="container"><section class="panel active" id="panel-vocab">
-      <div class="notes-toolbar vocab-filter-toolbar"><input type="search"><select><option></option></select><select><option></option></select></div>
-      <div class="vocab-context-bar"><span class="vocab-ctx-text"><span class="notes-count">5000</span></span><div class="vocab-selection-actions"><button class="btn btn-sm" data-label="all"></button></div><span class="save-status vocab-main-status">Saved to the current account just now</span></div>
-      <div class="vocab-list-region">
-      <article class="notes-card vocab-card"><div class="notes-card-top"><input class="vocab-row-select" type="checkbox"><button class="notes-card-head"><span class="notes-card-main"><span class="notes-row-title">Wortzusammensetzung mit außergewöhnlich langem ausgewähltem Begriff</span><span class="notes-row-meta"><span class="notes-meta-chip">Außergewöhnlich lange Definition und Gruppe</span></span></span></button><button class="btn btn-sm notes-row-del" data-label="remove"></button></div></article>
-      <div class="vocab-batch-bar selecting"><span class="notes-count" data-label="selected-count">5000</span><button class="btn btn-sm" data-label="invert"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button><span class="vocab-group-unit"><input type="text"><button class="btn btn-sm vocab-group-step"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button><button class="btn btn-sm vocab-group-step"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button></span><span class="vocab-batch-cluster"><button class="btn btn-sm" data-label="known"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button><button class="btn btn-sm" data-label="learning"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button></span><button class="btn btn-sm danger" data-label="batch-delete"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button><button class="btn btn-sm vocab-clear-selection"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button></div>
-      </div>
-      <details class="vocab-disclosure" open><summary data-label="drive-title"></summary><div class="vocab-details-body">
-        <p class="hint vocab-drive-copy" data-label="drive-copy"></p>
-        <p class="save-status vocab-drive-state">Connected</p>
-        <dl class="vocab-drive-fields">
-          <dt data-label="drive-account-label"></dt><dd>Very Long Google Display Name (long.email.address.for.layout.testing@example.test)</dd>
-          <dt data-label="drive-owner-label"></dt><dd>extraordinarily-long-pinboard-account-name-for-layout-testing</dd>
-          <dt data-label="drive-last-label"></dt><dd>24 September 2026, 20:30</dd>
-          <dt data-label="drive-words-label"></dt><dd>5000</dd>
-          <dt data-label="drive-batches-label"></dt><dd>125</dd>
-        </dl>
-        <p class="field-error">Google Drive could not be reached. Next retry: 24 September 2026, 20:30.</p>
-        <p class="vocab-drive-notices">Delete conflict notices: 125</p>
-        <div class="vocab-drive-actions"><button class="btn btn-sm" data-label="drive-connect"></button><button class="btn btn-sm" data-label="drive-sync"></button><button class="btn btn-sm" data-label="drive-disconnect"></button></div>
-      </div></details>
-    </section></main></body></html>`;
-  document.body.appendChild(frame);
-  await new Promise((resolve) => frame.addEventListener("load", resolve, { once:true }));
-  const overflows = [], unreachable = [];
-  let germanLongCountFits = false;
-  for (const width of [320, 360, 1280]) {
-    frame.style.width = width + "px";
-    for (const theme of ["github-light", "flexoki-dark"]) {
-      frame.contentDocument.documentElement.dataset.theme = theme;
-      for (const locale of locales) {
-        const doc = frame.contentDocument, m = messages[locale], panel = doc.getElementById("panel-vocab");
-        doc.documentElement.lang = locale;
-        panel.querySelector('[data-label="all"]').textContent = m.vocabSelectAll.message;
-        panel.querySelector('[data-label="invert"]').title = m.vocabInvertSelection.message;
-        panel.querySelector('[data-label="known"]').title = m.vocabMarkKnown.message;
-        panel.querySelector('[data-label="learning"]').title = m.vocabMarkLearning.message;
-        panel.querySelector('[data-label="selected-count"]').textContent = m.vocabSelectedCount.message.replace("$COUNT$", "5000");
-        panel.querySelector('[data-label="batch-delete"]').title = m.vocabBatchDelete.message;
-        panel.querySelector('[data-label="remove"]').textContent = m.delete.message;
-        panel.querySelector('[data-label="drive-title"]').textContent = m.vocabDriveSection.message;
-        panel.querySelector('[data-label="drive-copy"]').textContent = m.vocabDriveDisclosure.message;
-        panel.querySelector('[data-label="drive-account-label"]').textContent = m.vocabDriveAccountLabel.message;
-        panel.querySelector('[data-label="drive-owner-label"]').textContent = m.vocabDriveOwnerLabel.message;
-        panel.querySelector('[data-label="drive-last-label"]').textContent = m.vocabDriveLastSuccessLabel.message;
-        panel.querySelector('[data-label="drive-words-label"]').textContent = m.vocabDrivePendingWordsLabel.message;
-        panel.querySelector('[data-label="drive-batches-label"]').textContent = m.vocabDrivePendingBatchesLabel.message;
-        panel.querySelector('[data-label="drive-connect"]').textContent = m.vocabDriveConnect.message;
-        panel.querySelector('[data-label="drive-sync"]').textContent = m.vocabDriveSyncNow.message;
-        panel.querySelector('[data-label="drive-disconnect"]').textContent = m.vocabDriveDisconnect.message;
-        panel.querySelector(".vocab-ctx-text > .notes-count").textContent = m.vocabResultCount.message
-          .replace("$RESULTS$", "5000").replace("$TOTAL$", "5000");
-        panel.querySelector('input[type="text"]').placeholder = m.vocabGroupNamePlaceholder.message;
-        panel.querySelectorAll("select option")[0].textContent = m.vocabAllGroups.message;
-        panel.querySelectorAll("select option")[1].textContent = m.vocabSortLatest.message;
-        await new Promise((resolve) => frame.contentWindow.requestAnimationFrame(resolve));
-        if (width === 320 && theme === "github-light" && locale === "de") {
-          const count = panel.querySelector(".vocab-ctx-text > .notes-count");
-          const style = frame.contentWindow.getComputedStyle(count);
-          germanLongCountFits = style.whiteSpace === "normal" && style.minWidth === "0px" &&
-            count.scrollWidth <= count.clientWidth + 1;
-        }
-        if (panel.scrollWidth > panel.clientWidth + 1) {
-          const panelRect = panel.getBoundingClientRect();
-          const offenders = [...panel.querySelectorAll("*")].filter((el) => el.getBoundingClientRect().right > panelRect.right + 0.5)
-            .slice(0, 3).map((el) => `${el.className || el.tagName}:${el.getBoundingClientRect().right.toFixed(1)}`);
-          overflows.push(`${width}/${theme}/${locale}:${panel.scrollWidth}>${panel.clientWidth}[${offenders.join(",")}]`);
-        }
-        const panelRect = panel.getBoundingClientRect();
-        for (const el of panel.querySelectorAll("input, select, button")) {
-          const rect = el.getBoundingClientRect();
-          if (rect.left < panelRect.left - 0.5 || rect.right > panelRect.right + 0.5)
-            unreachable.push(`${width}/${theme}/${locale}/${el.dataset.label || el.tagName}:${rect.left.toFixed(1)}-${rect.right.toFixed(1)}`);
-        }
-      }
-    }
-  }
-  check("production CSS keeps 320/360/1280 vocabulary layouts overflow-free across 9 locales and light/dark",
-    overflows.length === 0, overflows.slice(0, 8).join("; "));
-  check("production CSS keeps delete, expand and all other controls reachable across the viewport matrix",
-    unreachable.length === 0, unreachable.slice(0, 8).join("; "));
-  check("production CSS lets the 320px German 5000-row count wrap within its flex component",
-    germanLongCountFits, "vocab count scrollWidth exceeded clientWidth");
-  // Sticky-bar geometry contract: the bar floats only within its region
-  // (a wrapper between it and the region would cap the float range at the
-  // bar's own height), and the browse state reserves ZERO geometry -- the
-  // exact regression the 2026-08 redesign exists to prevent. No motion-ready
-  // class in this harness, so the class flip lands instantly.
-  const batchBar = frame.contentDocument.querySelector(".vocab-batch-bar");
-  check("batch bar is a direct child of the sticky region",
-    batchBar.parentElement.classList.contains("vocab-list-region"));
-  check("selecting batch bar is sticky with a visible face",
-    frame.contentWindow.getComputedStyle(batchBar).position === "sticky" &&
-    frame.contentWindow.getComputedStyle(batchBar).visibility === "visible");
-  batchBar.classList.remove("selecting");
-  await new Promise((resolve) => frame.contentWindow.requestAnimationFrame(resolve));
-  check("browse-state batch bar reserves zero height",
-    batchBar.getBoundingClientRect().height === 0);
-  batchBar.classList.add("selecting");
-  const hoverHost = frame.contentDocument.createElement("div");
+  // Hover/popover contrast sweep. Not vocab-specific -- confirm-popover /
+  // theme-name-popover / wayback-perm-tip are shared options.css chrome, only
+  // living in this file because it already carries the contrast-ratio math
+  // above. No iframe needed (unlike the pre-split test, which reused the
+  // vocab list's iframe for this): this page already loads options.css on
+  // its own document, so a synthetic host appended straight to <body> with a
+  // themed html[data-theme] sweep is the whole fixture.
+  const hoverHost = document.createElement("div");
   hoverHost.style.cssText = "position:fixed;left:-9999px;top:0";
   hoverHost.innerHTML =
     '<div class="confirm-popover"><span class="confirm-msg">Delete?</span><button class="confirm-yes">Delete</button><button class="confirm-no">Cancel</button></div>' +
     '<div class="theme-name-popover"><label>Name</label><input type="text" value="Theme"><p class="tnp-overwrite">Overwrite?</p><button class="tnp-save">Save</button><button class="tnp-cancel">Cancel</button></div>' +
     '<div class="wayback-perm-tip">Permission guidance</div>';
-  frame.contentDocument.body.appendChild(hoverHost);
+  document.body.appendChild(hoverHost);
   const themeVariants = ["github-light", "nord-night", "terminal", "modern-card", "paper-ink",
     "dracula", "flexoki-light", "flexoki-dark", "solarized-light", "solarized-dark",
     "catppuccin-latte", "catppuccin-mocha", "gruvbox-dark", "rose-pine"];
   const hoverFailures = [];
   for (const theme of themeVariants) {
-    frame.contentDocument.documentElement.dataset.theme = theme;
+    document.documentElement.dataset.theme = theme;
     for (const [fgSel, bgSel] of [
       [".confirm-msg", ".confirm-popover"],
       [".confirm-yes", ".confirm-yes"],
@@ -1312,8 +780,8 @@ check("selection still covers all filtered results beyond rendered chunks", _voc
     ]) {
       const fgEl = hoverHost.querySelector(fgSel);
       const bgEl = hoverHost.querySelector(bgSel);
-      const fg = frame.contentWindow.getComputedStyle(fgEl).color;
-      const bgStyle = frame.contentWindow.getComputedStyle(bgEl);
+      const fg = getComputedStyle(fgEl).color;
+      const bgStyle = getComputedStyle(bgEl);
       const bg = bgStyle.backgroundColor;
       const ratio = /^rgb/.test(bg) && bg !== "rgba(0, 0, 0, 0)" ? contrastRatio(fg, bg) : 0;
       if (bgStyle.borderTopWidth === "0px" || ratio < 4.5)
@@ -1322,8 +790,8 @@ check("selection still covers all filtered results beyond rendered chunks", _voc
   }
   check("options hover and popover surfaces stay readable across every shipped UI theme variant",
     hoverFailures.length === 0, hoverFailures.slice(0, 12).join("; "));
+  delete document.documentElement.dataset.theme;
   hoverHost.remove();
-  frame.remove();
   document.title = fail ? "FAIL options-vocab Tests" : "PASS options-vocab Tests";
 })();
 </script></body></html>
