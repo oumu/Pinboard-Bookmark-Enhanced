@@ -21,7 +21,12 @@
       <!-- Task 5 fills the vocab master-detail markup here -->
     </section>
     <section id="view-notes" class="lib-view" role="tabpanel" aria-labelledby="lib-tab-notes" hidden>
-      <!-- Task 3 fills the notes markup here -->
+      <div class="notes-toolbar">
+        <input type="search" id="notes-filter" placeholder="Filter titles and notes" data-i18n-placeholder="notesFilterPlaceholder" data-i18n-aria="notesFilterPlaceholder" aria-label="Filter titles and notes" />
+        <span id="notes-count" class="notes-count" aria-live="polite"></span>
+        <div id="notes-color-filters" class="notes-color-filters" role="group" data-i18n-aria="hlFilterGroupAria" aria-label="Filter highlights by color"></div>
+      </div>
+      <div id="notes-list"></div>
     </section>
   </main>
 

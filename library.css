@@ -35,8 +35,14 @@
    unresolvable (nothing else on this page defines them), which makes the whole
    transition declaration compute to its initial value (zero-duration, no console
    signal) — ported here rather than inlined as per-use fallbacks since later
-   tasks (accordion/disclosure UI) will add more consumers of this same scale. */
-:root { --motion-state: 150ms; --motion-pop: 140ms; --motion-pop-out: 100ms; --ease-out: cubic-bezier(0.23, 1, 0.32, 1); }
+   tasks (accordion/disclosure UI) will add more consumers of this same scale.
+   --motion-collapse/--ease-in-out added in Task 3 for the notes-card disclosure
+   and card-exit fold transitions, which reference them the same way. */
+:root { --motion-state: 150ms; --motion-collapse: 200ms; --motion-pop: 140ms; --motion-pop-out: 100ms; --ease-out: cubic-bezier(0.23, 1, 0.32, 1); --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1); }
+/* Lets height:0<->height:auto transitions on .notes-card.card-exit and
+   .notes-card.motion-toggle > .notes-card-body actually interpolate instead of
+   snapping; options.css sets this as the first line of its own :root. */
+:root { interpolate-size: allow-keywords; }
 /* Name fast CJK fonts before the generic `sans-serif`. Otherwise CJK text falls through the
    Latin fonts to the bare `sans-serif` keyword, which resolves to the profile's Standard font;
    if that's a large/slow font (e.g. a custom Sarasa/CJK family) its first-time glyph shaping on
@@ -132,6 +138,223 @@ html[data-theme] .confirm-popover .confirm-yes { color: var(--lib-panel); backgr
 html[data-theme] .confirm-popover .confirm-yes:hover { background: var(--lib-danger); box-shadow: inset 0 0 0 1px var(--lib-panel); }
 html[data-theme] .confirm-popover .confirm-no { color: var(--lib-fg); border-color: var(--lib-border); background: none; }
 html[data-theme] .confirm-popover .confirm-no:hover { background: var(--lib-btn-hover); }
+
+/* ---- Notes tab (ported from options.css; note-dot colors match md-preview's
+   5-color highlight tokens). --opt-sp-N spacing tokens are mapped to the
+   --lib-sp-N step with the SAME pixel value (library's 5-step scale is a
+   subset of options' 7-step scale) rather than by index; values with no
+   --lib-sp-* equivalent (--opt-sp-1 = 2px, --opt-sp-3 = 6px) are inlined as
+   literals with a comment, same convention Task 2 used. ---- */
+.notes-toolbar {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) auto auto;
+  align-items: center;
+  gap: var(--lib-sp-2);
+  margin: var(--lib-sp-2) 0 var(--lib-sp-3);
+}
+.notes-toolbar input[type="search"] {
+  width: 100%;
+  padding: var(--lib-sp-1) var(--lib-sp-2);
+  border: 1px solid var(--lib-input-border, #cdd1d6);
+  border-radius: var(--lib-radius-md);
+  background-color: var(--lib-input-bg, #fff);
+  color: var(--lib-fg, #333);
+  font-size: 13px;
+  box-sizing: border-box;
+  -webkit-appearance: none;
+  appearance: none;
+  box-shadow: none;
+  transition: border-color var(--motion-state) ease, background-color var(--motion-state) ease, box-shadow var(--motion-state) ease;
+}
+.notes-toolbar input[type="search"]:hover:not(:focus) { border-color: var(--lib-fg-muted); }
+.notes-toolbar input[type="search"]:focus { outline: none; border-color: var(--lib-accent); }
+.notes-toolbar input[type="search"]:focus-visible { box-shadow: 0 0 0 3px color-mix(in srgb, var(--lib-accent) 18%, transparent); }
+.notes-count { color: var(--lib-fg-muted, #666); font-size: 12px; white-space: nowrap; }
+.notes-color-filters { display: flex; align-items: center; gap: var(--lib-sp-2); }
+.notes-filter-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid color-mix(in srgb, var(--lib-border, #ccc) 70%, transparent);
+  border-radius: var(--lib-radius-sm, 3px);
+  background: transparent;
+  cursor: pointer;
+  margin: 0;
+  padding: 0;
+  transition: opacity var(--motion-state) ease;
+}
+.notes-filter-dot[aria-pressed="false"] { opacity: .32; }
+.notes-filter-dot .note-dot { margin-top: 0; }
+
+.notes-card {
+  border: 1px solid var(--lib-border, #ccc);
+  border-radius: var(--lib-radius-sm, 3px);
+  margin-bottom: 6px; /* options.css --opt-sp-3 (6px); no --lib-sp-* step matches it */
+  background: var(--lib-bg, #fff);
+}
+/* Deleted-card fold: library-notes.js's _pbpNotesDelete adds .card-exit only
+   after the store confirmed the delete, then waits out this transition. */
+html.motion-ready .notes-card.card-exit {
+  overflow: clip;
+  height: 0;
+  margin-block: 0;
+  opacity: 0;
+  transition: height var(--motion-collapse) var(--ease-in-out),
+              margin-block var(--motion-collapse) var(--ease-in-out),
+              opacity var(--motion-collapse) var(--ease-out);
+}
+.notes-card.is-error {
+  border-color: color-mix(in srgb, var(--lib-danger, #c00) 35%, var(--lib-border, #ccc));
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--lib-danger, #c00) 75%, transparent);
+}
+.notes-card-top {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, auto) auto;
+  align-items: center;
+  gap: var(--lib-sp-2);
+  padding: 6px var(--lib-sp-2); /* padding-block: --opt-sp-3 (6px), no --lib-sp-* match */
+  --row-bg: var(--lib-bg, #fff);
+  background: var(--row-bg);
+}
+html.motion-ready .notes-card-top { transition: background-color var(--motion-state) ease; }
+.notes-card-top:hover { --row-bg: color-mix(in srgb, var(--lib-fg, #333) 5%, var(--lib-bg, #fff)); }
+.notes-card-top:active { --row-bg: color-mix(in srgb, var(--lib-fg, #333) 9%, var(--lib-bg, #fff)); transition-duration: 0s; }
+.notes-card-head {
+  display: flex;
+  align-items: center;
+  gap: var(--lib-sp-2);
+  min-width: 0;
+  border: 0;
+  padding: 0;
+  color: var(--lib-fg, #111);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+.notes-card-head:focus-visible { border-radius: var(--lib-radius-sm, 3px); }
+.notes-card-chevron {
+  width: 6px;
+  height: 6px;
+  flex: 0 0 auto;
+  color: var(--lib-fg-muted, #666);
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: translateY(-2px) rotate(45deg);
+}
+.notes-card-head:hover .notes-card-chevron { color: var(--lib-fg, #222); }
+.notes-card-head[aria-expanded="true"] .notes-card-chevron { transform: translateY(1px) rotate(225deg); }
+html.motion-ready .notes-card-chevron { transition: transform var(--motion-collapse) var(--ease-in-out), color var(--motion-state); }
+.notes-card-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2px; /* options.css --opt-sp-1 (2px), no --lib-sp-* step matches it */
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 100%;
+}
+.notes-row-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: bold; font-size: 13px; }
+.notes-row-title a { color: inherit; }
+.notes-row-meta { display: flex; flex-wrap: wrap; gap: var(--lib-sp-3); font-size: 11px; color: var(--lib-fg-muted, #666); }
+.notes-meta-chip { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.notes-row-del { white-space: nowrap; }
+.notes-row-open { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-decoration: none; }
+/* External-link mark on the row's "leaves the page" action (dot-notation
+   selector, not a --lib token: sizing only, no themed color). */
+.btn .ext-icon { width: 11px; height: 11px; vertical-align: -1px; }
+.notes-row-open .ext-icon { margin-left: 2px; } /* options.css --opt-sp-1 (2px) */
+.notes-card-body {
+  background: color-mix(in srgb, var(--lib-fg, #333) 3.5%, var(--lib-bg, #fff));
+  border-top: 1px solid color-mix(in srgb, var(--lib-border, #ccc) 70%, transparent);
+  padding: var(--lib-sp-2) var(--lib-sp-3) var(--lib-sp-3);
+}
+/* Row disclosure transition, gated the same way as options.js's accordions
+   (.motion-toggle marks a just-toggled card so tab switches/batch rebuilds
+   never replay the grow-from-0). Nothing on the library page adds
+   .motion-toggle yet -- library.js has no delegated click listener for it
+   (out of this task's scope: library-notes.js's own click handler only
+   flips [hidden], see the file's head.addEventListener) -- so this block is
+   inert until a later task wires that gate up; the plain [hidden] toggle
+   above still opens/closes the card, just without the height animation. */
+html.motion-ready .notes-card.motion-toggle > .notes-card-body {
+  overflow: clip;
+  transition: height var(--motion-collapse) var(--ease-in-out),
+              padding-top var(--motion-collapse) var(--ease-in-out),
+              padding-bottom var(--motion-collapse) var(--ease-in-out),
+              display var(--motion-collapse) allow-discrete;
+}
+html.motion-ready .notes-card.motion-toggle > .notes-card-body[hidden] {
+  height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+html.motion-ready .notes-card.motion-toggle > .notes-card-body:not([hidden]) {
+  @starting-style { height: 0; padding-top: 0; padding-bottom: 0; }
+}
+html.motion-ready .notes-card.motion-toggle .notes-card-chevron {
+  transition: transform var(--motion-collapse) var(--ease-in-out);
+}
+@keyframes pbp-card-body-in { from { opacity: 0; translate: 0 -3px; } }
+html.motion-ready .notes-card.motion-toggle > .notes-card-body:not([hidden]) > * {
+  animation: pbp-card-body-in var(--motion-pop) var(--ease-out) 60ms backwards;
+}
+.notes-unknown-hint { font-size: 11px; color: var(--lib-fg-muted, #666); margin: 0 0 var(--lib-sp-2) 0; }
+.notes-items { display: grid; gap: var(--lib-sp-2); }
+.notes-item { display: flex; gap: var(--lib-sp-2); min-width: 0; }
+.note-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: var(--lib-sp-1); }
+.note-dot.c1 { background: #facc15; }
+.note-dot.c2 { background: #4ade80; }
+.note-dot.c3 { background: #60a5fa; }
+.note-dot.c4 { background: #f87171; }
+.note-dot.c5 { background: #c084fc; }
+.notes-item-text { flex: 1 1 auto; min-width: 0; font-size: 12px; overflow-wrap: anywhere; }
+.notes-item-quote { color: var(--lib-fg-muted, #666); white-space: pre-wrap; }
+.notes-item-lang { display: inline-block; margin-top: 2px; color: var(--lib-fg-muted, #666); font-size: 11px; } /* options.css --opt-sp-1 (2px) */
+.notes-item-note { margin-top: var(--lib-sp-1); white-space: pre-wrap; }
+.notes-empty { font-size: 12px; color: var(--lib-fg-muted, #666); padding: var(--lib-sp-3) 0; }
+
+/* Ghost X delete button (options.css's shared recipe for vocab AND notes rows;
+   only the notes rows consume it here until Task 5 brings the vocab list). */
+.row-del-x {
+  padding: 2px var(--lib-sp-1); /* options.css --opt-sp-1 (2px), no --lib-sp-* match */
+  line-height: 0;
+  color: var(--lib-fg-muted, #888);
+  border-color: transparent;
+  background: transparent;
+  position: absolute;
+  right: var(--lib-sp-1);
+  top: 50%;
+  translate: 0 -50%;
+  background: var(--row-bg, var(--lib-bg, #fff));
+  opacity: 0;
+  transition: opacity var(--motion-state) ease, background var(--motion-state), border-color var(--motion-state), color var(--motion-state);
+}
+.notes-card:hover .row-del-x,
+.row-del-x:focus-visible { opacity: 1; }
+.row-del-x::before { content: ""; position: absolute; inset: -3px -1px; }
+.row-del-x:hover {
+  color: var(--lib-danger, #c00);
+  border-color: color-mix(in srgb, var(--lib-danger, #c00) 55%, var(--lib-border, #ccc));
+  background: rgba(220, 80, 80, 0.08); /* no --lib-danger-bg token; options.css's own fallback literal */
+}
+.row-del-x .btn-ic { display: inline-flex; }
+@media (hover: none) {
+  .row-del-x { position: static; translate: none; opacity: 1; background: transparent; }
+}
+
+/* Full-width multi-column layout: the library page has no sidebar-width
+   constraint like options.html's single panel, so cards flow into as many
+   380px columns as fit instead of one long list. */
+#view-notes #notes-list {
+  columns: 380px; /* column count follows viewport width */
+  column-gap: var(--lib-sp-4);
+}
+#view-notes .notes-card {
+  break-inside: avoid; /* a card never splits across columns */
+  margin-bottom: var(--lib-sp-4);
+}
 
 /* ---- Page layout ---- */
 body { margin: 0; background: var(--lib-bg); color: var(--lib-fg); }
