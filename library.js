@@ -19,6 +19,12 @@ function _pbpLibApplyView(view, pushHash) {
     tab.classList.toggle("active", active);
     tab.tabIndex = active ? 0 : -1;
   }
+  // Narrow mode (<860px) shows the vocabulary list OR its detail pane, never
+  // both. Arriving at the view is a request for the list. Only genuine
+  // switches route through here -- the visibilitychange re-fire dispatches
+  // pbp-lib-view directly -- so alt-tabbing back does not close an open
+  // detail out from under a narrow reader.
+  if (v === "vocab") document.body.classList.remove("lib-narrow-detail");
   try { localStorage.setItem(PBP_LIB_VIEW_KEY, v); } catch (_) {}
   if (pushHash) history.replaceState(null, "", "#" + v);
   document.dispatchEvent(new CustomEvent("pbp-lib-view", { detail: { view: v } }));
@@ -53,6 +59,12 @@ document.addEventListener("DOMContentLoaded", () => {
   initI18n();
   applyI18n();
   document.title = t("libraryTitle");
+  // library-vocab.js labels the sort segment at its own parse time -- before
+  // initI18n has loaded the manually chosen locale, so those labels came out
+  // in the browser UI language. Re-run it here, where t() is finally correct,
+  // and it also restores the labels applyI18n just wrote from the static
+  // (default-state) keys to the ones the live select value calls for.
+  if (typeof _pbpVocabSyncSortSeg === "function") _pbpVocabSyncSortSeg();
   // Roving tabindex (active tab 0, others -1, set by _pbpLibApplyView) needs
   // its arrow-key half too -- same pattern as options.js's activateTab
   // keydown handler, ArrowLeft/ArrowRight (this tab strip is horizontal, not

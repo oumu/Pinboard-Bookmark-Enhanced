@@ -145,6 +145,10 @@ function _pbpNotesBuildRow(entry) {
   const { row, rec } = entry;
   const card = document.createElement("article");
   card.className = "notes-card";
+  // Stable per-card identity for the rebuild paths below. The body's DOM id
+  // is derived from the same key but lossily (every non-word character
+  // collapses to "_"), so it cannot be used to match cards back up.
+  card.dataset.notesKey = row.key;
 
   const top = document.createElement("div");
   top.className = "notes-card-top";
@@ -337,6 +341,10 @@ function _pbpNotesDelete(row, anchor) {
         return;
       }
       if (cardEl) cardEl.classList.remove("is-error");
+      // Where the deleted card sat, so focus can land on its successor once
+      // the list is rebuilt (the confirm popover restored focus to the delete
+      // button, which the rebuild removes -- otherwise focus falls to <body>).
+      const position = Math.max(0, _pbpNotesVisibleEntries().findIndex((e) => e.row.key === row.key));
       _notesAllRows = _notesAllRows.filter((e) => e.row.key !== row.key);
       // Fold the card out before the rebuild (vocab cards share the recipe via
       // options.css .card-exit). Marked only after the remove succeeded, and
@@ -349,8 +357,22 @@ function _pbpNotesDelete(row, anchor) {
         await new Promise((resolve) => setTimeout(resolve, 220));
       }
       _pbpNotesRenderList(_pbpNotesVisibleEntries());
+      _pbpNotesFocusAfterDelete(position);
     },
   });
+}
+
+// Nearest surviving card, else the filter input -- the vocabulary list's
+// _pbpVocabFocusStable with one extra step, because notes cards are the only
+// thing between the toolbar and the bottom of the page.
+function _pbpNotesFocusAfterDelete(position) {
+  const list = $id("notes-list");
+  const cards = list ? [...list.querySelectorAll(".notes-card")] : [];
+  const target = cards.length
+    ? cards[Math.min(position, cards.length - 1)].querySelector(".notes-card-head")
+    : $id("notes-filter");
+  if (!target || target.closest("[hidden], [inert]")) return;
+  try { target.focus({ preventScroll: true }); } catch (_) { target.focus(); }
 }
 
 // Called from the pbp-lib-view mount below on every "notes" view activation.
@@ -383,9 +405,45 @@ if (typeof $id === "function") {
   }
 }
 
+// Re-scan and re-render without throwing away what the user was looking at.
+// Every activation re-reads storage and rebuilds every card, so an expanded
+// card (and the scroll position that put it on screen) would otherwise
+// collapse on a plain alt-tab back to this page.
+async function _pbpNotesRefreshPreservingState() {
+  const expanded = new Set([...document.querySelectorAll("#notes-list .notes-card")]
+    .filter((card) => card.querySelector('.notes-card-head[aria-expanded="true"]'))
+    .map((card) => card.dataset.notesKey));
+  const scroll = window.scrollY;
+  await renderNotesPanel();
+  for (const card of document.querySelectorAll("#notes-list .notes-card")) {
+    if (!expanded.has(card.dataset.notesKey)) continue;
+    const head = card.querySelector(".notes-card-head");
+    const body = card.querySelector(".notes-card-body");
+    if (!head || !body) continue;
+    body.hidden = false;
+    head.setAttribute("aria-expanded", "true");
+  }
+  if (scroll) window.scrollTo(0, scroll);
+}
+
 // Library page mount: render on first show and on every re-show/visibility
 // return (the event carries the target view).
 document.addEventListener("pbp-lib-view", (e) => {
   if (e.detail.view !== "notes") return;
-  renderNotesPanel();
+  _pbpNotesRefreshPreservingState();
 });
+
+// Highlights and notes are written by the reader in another tab. This page
+// keeps its rendered list while the vocabulary view is on screen, so a write
+// that lands now is only picked up on the next activation -- refresh the
+// visible list immediately instead. Hidden is already covered: activation
+// and visibilitychange both re-scan.
+if (typeof $id === "function" && typeof chrome !== "undefined" && chrome.storage && chrome.storage.onChanged) {
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== "local") return;
+    if (!Object.keys(changes).some((key) => key.startsWith("pbp_hl_") && key !== "pbp_hl_last_color")) return;
+    const view = $id("view-notes");
+    if (!view || view.hidden) return;
+    _pbpNotesRefreshPreservingState();
+  });
+}

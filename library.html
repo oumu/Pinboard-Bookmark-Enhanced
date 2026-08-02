@@ -45,8 +45,12 @@
           <option value="za" data-i18n="vocabSortZa">Z–A</option>
         </select>
         <span class="vocab-sort-seg" role="group" data-i18n-aria="vocabSortAria" aria-label="Sort vocabulary">
-          <button type="button" class="btn btn-sm vocab-sort-btn" id="vocab-sort-time" aria-pressed="true" aria-label="Least recently updated" title="Least recently updated"><span class="btn-ic" data-ic="clockArrowDown"></span></button>
-          <button type="button" class="btn btn-sm vocab-sort-btn" id="vocab-sort-alpha" aria-pressed="false" aria-label="A–Z" title="A–Z"><span class="btn-ic" data-ic="arrowDownAZ"></span></button>
+          <!-- Keys match _pbpVocabSyncSortSeg's default labels (the sort a
+               click applies NEXT), so applyI18n and the sync agree; library.js
+               re-runs the sync right after applyI18n to pick up the live
+               select value in the user's chosen UI language. -->
+          <button type="button" class="btn btn-sm vocab-sort-btn" id="vocab-sort-time" aria-pressed="true" data-i18n-title="vocabSortOldest" data-i18n-aria="vocabSortOldest" aria-label="Least recently updated" title="Least recently updated"><span class="btn-ic" data-ic="clockArrowDown"></span></button>
+          <button type="button" class="btn btn-sm vocab-sort-btn" id="vocab-sort-alpha" aria-pressed="false" data-i18n-title="vocabSortAz" data-i18n-aria="vocabSortAz" aria-label="A–Z" title="A–Z"><span class="btn-ic" data-ic="arrowDownAZ"></span></button>
         </span>
         </div>
       </div>
