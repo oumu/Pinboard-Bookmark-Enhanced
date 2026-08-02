@@ -2184,6 +2184,15 @@ html.motion-ready #pb-hl-bar:popover-open {
   border: 1px solid rgba(128, 128, 128, 0.45); /* neutral gray: visible on light AND dark schemes (slate-tinted borders vanish on dark) */
   padding: 0;
   cursor: pointer;
+  /* Digit legend (1-5): centered, dark ink — ≥4.6:1 on every swatch fill in
+     both palettes (they are all light pastels), so one color serves both. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 600;
+  color: #111;
 }
 /* L5: these dot swatches were fixed single values shared across both color
    schemes -- an identity-color legend, not a token, so it never followed

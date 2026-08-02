@@ -961,6 +961,10 @@ function _pbpHlEnsureBar() {
     dot.dataset.color = String(c);
     dot.title = names[c - 1];
     dot.setAttribute("aria-label", names[c - 1]);
+    // Visible digit doubles as the 1-5 shortcut legend and a non-color cue
+    // (the five swatches were previously distinguishable by hue alone).
+    dot.textContent = String(c);
+    dot.setAttribute("aria-keyshortcuts", String(c));
     // Keep the live text selection alive through the click (mousedown on
     // any element normally clears window.getSelection()).
     dot.addEventListener("mousedown", (e) => e.preventDefault());
