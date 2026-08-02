@@ -2137,15 +2137,16 @@ function _pbpExplainEnsurePop() {
   // options.js used to own before the word list moved off Options).
   // dict-action-only, same visibility discipline as .xp-vocab; label reuses
   // the library tab's own i18n key so the two surfaces always name it
-  // identically. No tab-reuse dance here (unlike pbpOpenOptionsTab, which is
-  // hardcoded to the options.html base) -- plain window.open, matching how
-  // popup.js's library-link opens the same page.
+  // identically. Routed through shared.js's tab-reuse helper (md-preview is
+  // an extension page, so chrome.tabs is available here) -- window.open
+  // stacked a fresh library tab on every click.
   const openVocab = document.createElement("button");
   openVocab.type = "button";
   openVocab.className = "xp-open-vocab";
   openVocab.hidden = true;
   _pbpExplainIconBtn(openVocab, PBP_EXPLAIN_VOCAB_OPEN_SVG, t("dictVocabSection"));
   openVocab.addEventListener("click", () => {
+    if (typeof pbpOpenExtensionTab === "function") { pbpOpenExtensionTab("library.html", "vocab"); return; }
     try { window.open(chrome.runtime.getURL("library.html#vocab")); } catch (_) {}
   });
   // Known-word toggle: shell only. md-dict.js shows it when the looked-up

@@ -271,11 +271,19 @@ function pbpOptionsUrl(panel) {
     : path;
 }
 
-async function pbpOpenOptionsTab(panel) {
-  const url = pbpOptionsUrl(panel);
+// Opens one of the extension's own pages, reusing the tab already showing it
+// instead of stacking a duplicate on every click, and only then moving its
+// hash. Generalised from the options-only version below, which every other
+// entry point (popup's library link, the reader's vocabulary and notebook
+// openers) used to skip -- so those piled up a fresh library.html per click.
+// Returns false when no tab could be opened, so callers can fall back.
+async function pbpOpenExtensionTab(page, hash) {
+  const name = /^[a-z0-9-]+\.html$/.test(String(page || "")) ? String(page) : "options.html";
+  const frag = /^[a-z0-9-]+$/.test(String(hash || "")) ? "#" + String(hash) : "";
   const base = (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.getURL)
-    ? chrome.runtime.getURL("options.html")
-    : "options.html";
+    ? chrome.runtime.getURL(name)
+    : name;
+  const url = base + frag;
   try {
     if (chrome && chrome.tabs && chrome.tabs.query && chrome.tabs.update) {
       const tabs = await chrome.tabs.query({});
@@ -285,16 +293,23 @@ async function pbpOpenOptionsTab(panel) {
         if (hit.windowId != null && chrome.windows && chrome.windows.update) {
           try { await chrome.windows.update(hit.windowId, { focused: true }); } catch (_) {}
         }
-        return;
+        return true;
       }
     }
   } catch (_) {}
   try {
     if (chrome && chrome.tabs && chrome.tabs.create) {
       await chrome.tabs.create({ url });
-      return;
+      return true;
     }
   } catch (_) {}
+  return false;
+}
+
+async function pbpOpenOptionsTab(panel) {
+  const p = /^[a-z0-9-]+$/.test(String(panel || "")) ? String(panel) : "general";
+  if (await pbpOpenExtensionTab("options.html", p)) return;
+  // Last resort: no tabs API at all (content-script-ish context).
   if (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.openOptionsPage) chrome.runtime.openOptionsPage();
 }
 

@@ -296,6 +296,49 @@ check(/data-i18n="dictExportTsv"/.test(optionsHtml) && /data-i18n="dictAnkiSend"
   "options.html: full-scope actions, Eudic support, or pack import formats are not explicit");
 check(!read("anki-connect.js").includes("PBP_ANKI_ENDPOINT"),
   "anki-connect.js: unused PBP_ANKI_ENDPOINT remains");
+{
+  const libraryJs = read("library.js");
+  const libraryNotesJs = read("library-notes.js");
+  // The sort segment is labelled by _pbpVocabSyncSortSeg at library-vocab.js
+  // parse time -- before initI18n loads a manually chosen locale, so those
+  // labels come out in the BROWSER's language. The static keys give applyI18n
+  // something to translate; the re-run afterwards puts the live select value's
+  // label back on top of it.
+  check(/id="vocab-sort-time"[^>]*data-i18n-title="vocabSortOldest"[^>]*data-i18n-aria="vocabSortOldest"/.test(libraryHtml) &&
+    /id="vocab-sort-alpha"[^>]*data-i18n-title="vocabSortAz"[^>]*data-i18n-aria="vocabSortAz"/.test(libraryHtml) &&
+    /applyI18n\(\);[\s\S]{0,600}_pbpVocabSyncSortSeg\(\)/.test(libraryJs),
+    "library: the sort segment is not translated by applyI18n or not re-synced after it");
+  // Narrow mode: only a genuine view switch hands the list back. The
+  // visibilitychange re-fire dispatches pbp-lib-view WITHOUT going through
+  // _pbpLibApplyView, which is exactly what keeps an open detail alive.
+  check(/function _pbpLibApplyView[\s\S]{0,900}classList\.remove\("lib-narrow-detail"\)/.test(libraryJs) &&
+    // The re-fire dispatches pbp-lib-view straight, never through
+    // _pbpLibApplyView -- that split is the whole mechanism. The window is
+    // sized to the listener body, so routing it through the view applier
+    // (or padding the listener until it reaches one) trips this.
+    !/addEventListener\("visibilitychange"[\s\S]{0,160}_pbpLibApplyView/.test(libraryJs) &&
+    /addEventListener\("visibilitychange"[\s\S]{0,160}dispatchEvent\(new CustomEvent\("pbp-lib-view"/.test(libraryJs) &&
+    libraryVocabJs.includes('else if (enterNarrow) document.body.classList.add("lib-narrow-detail")'),
+    "library: narrow mode is entered by refresh renders or left by a visibility re-fire");
+  // Notes rebuild everything on every activation; the expanded cards and the
+  // scroll position that put them on screen are the user's place in the page.
+  check(libraryNotesJs.includes("card.dataset.notesKey = row.key") &&
+    /_pbpNotesRefreshPreservingState[\s\S]{0,900}aria-expanded="true"[\s\S]{0,600}window\.scrollTo/.test(libraryNotesJs) &&
+    /pbp-lib-view[\s\S]{0,120}_pbpNotesRefreshPreservingState\(\)/.test(libraryNotesJs) &&
+    /startsWith\("pbp_hl_"\)[\s\S]{0,300}_pbpNotesRefreshPreservingState\(\)/.test(libraryNotesJs) &&
+    // The confirm popover restores focus to the delete button the rebuild
+    // removes, so the deleted card's neighbour has to claim it.
+    libraryNotesJs.includes("_pbpNotesFocusAfterDelete(position)") &&
+    /function _pbpNotesFocusAfterDelete[\s\S]{0,500}\$id\("notes-filter"\)/.test(libraryNotesJs),
+    "library-notes.js: a re-render loses card expansion/scroll/focus, or reader writes are not picked up while visible");
+  // One tab per extension page, not one per click.
+  check(sharedJs.includes("async function pbpOpenExtensionTab(page, hash)") &&
+    /pbpOpenOptionsTab[\s\S]{0,200}pbpOpenExtensionTab\("options\.html"/.test(sharedJs) &&
+    ["popup.js", "md-ask.js", "md-highlight.js", "options-vocab.js"].every((file) =>
+      read(file).includes('pbpOpenExtensionTab("library.html"')) &&
+    !/tabs\.create\(\{\s*url:\s*chrome\.runtime\.getURL\("library\.html/.test(popupJs),
+    "library entry points still stack a duplicate tab per click");
+}
 check(sharedJs.includes('const state = ok ? "ok" : "bad"') &&
   sharedJs.includes('el.classList.toggle("bad", !ok)') && sharedJs.includes('ic.className = "status-ic " + state'),
   "shared.js: setStatusIcon does not apply matching ok/bad host and icon states");

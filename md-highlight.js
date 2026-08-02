@@ -1875,6 +1875,8 @@ function _pbpHlBuildNotebookDom(rail) {
     openLib.title = t("libraryOpen");
     openLib.setAttribute("aria-label", t("libraryOpen"));
     openLib.addEventListener("click", () => {
+      // Tab reuse (shared.js): a fresh library tab per click piled up fast.
+      if (typeof pbpOpenExtensionTab === "function") { pbpOpenExtensionTab("library.html", "notes"); return; }
       try { window.open(chrome.runtime.getURL("library.html#notes")); } catch (_) {}
     });
     headBtn.insertAdjacentElement("afterend", openLib); // DOM order = tab order: right after the header button

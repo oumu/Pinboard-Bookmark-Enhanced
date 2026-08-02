@@ -727,6 +727,18 @@ async function _pbpVocabSendEudic() {
   }
 }
 
+// Left a real <a href> so middle-click / "open in new tab" still work, but a
+// plain click reuses the library tab instead of stacking one per visit --
+// same helper every other entry point to that page now goes through.
+const _vocabOpenLibrary = $id("vocab-open-library");
+if (_vocabOpenLibrary && typeof pbpOpenExtensionTab === "function") {
+  _vocabOpenLibrary.addEventListener("click", (e) => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+    e.preventDefault();
+    pbpOpenExtensionTab("library.html", "vocab");
+  });
+}
+
 const _vocabAnkiBtn = $id("vocab-anki-btn");
 if (_vocabAnkiBtn) _vocabAnkiBtn.addEventListener("click", _pbpVocabSendAnki);
 

@@ -222,7 +222,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   $id("library-link").addEventListener("click", (e) => {
     e.preventDefault();
-    chrome.tabs.create({ url: chrome.runtime.getURL("library.html#vocab") });
+    pbpOpenExtensionTab("library.html", "vocab");
   });
   $id("options-link").addEventListener("click", (e) => {
     e.preventDefault(); pbpOpenOptionsTab("general");
