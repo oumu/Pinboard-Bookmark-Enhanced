@@ -32,7 +32,7 @@ Eine Chrome-Erweiterung für [Pinboard](https://pinboard.in): AI-Tags und Zusamm
 - **Jede Seite wird zur Leseansicht** – Markdown-Ansicht mit Inhaltsverzeichnis, Suche und Fußnoten-Vorschau
 - **Markieren in fünf Farben, mit Notizen** – Markierungen und Notizen überstehen Neu-Rendern, Übersetzung und Änderungen an der Seite
 - **Seite übersetzen oder befragen** – Ganzseiten-Übersetzung mit zweisprachiger Ansicht; Antworten zitieren die Quelle und springen direkt dorthin
-- **Wörter beim Lesen nachschlagen und wiederholen**: Definitionen zeigen zuerst die zum Satz passende Bedeutung; gespeicherte Vokabeln lassen sich durchsuchen, sortieren, gruppieren, exportieren oder an Anki und Eudic senden. Optionale Offline-Wörterbuchpakete decken Chinesisch–Englisch und Englisch–Chinesisch ab
+- **Wörter beim Lesen nachschlagen und wiederholen**: Definitionen zeigen zuerst die zum Satz passende Bedeutung; gespeicherte Vokabeln tragen Notizen und einen Lernstatus und lassen sich durchsuchen, sortieren, gruppieren, exportieren oder an Anki und Eudic senden. Optionale Offline-Wörterbuchpakete decken Chinesisch–Englisch und Englisch–Chinesisch ab
 - **Senden oder herunterladen** – an [Obsidian](https://obsidian.md), ein GitHub Gist oder einen beliebigen Webhook senden; als `.md`, `.html` oder `.epub` für den E-Reader herunterladen
 
 ![Leseansicht mit zweisprachiger Übersetzung und Markierungen](docs/cws-assets/originals/screenshot-2-reader.png)

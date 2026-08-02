@@ -32,7 +32,7 @@ Rozszerzenie Chrome dla [Pinboard](https://pinboard.in): tagi i streszczenia od 
 - **Każda strona staje się czytelna** — widok Markdown ze spisem treści, wyszukiwaniem i podglądem przypisów
 - **Zakreślenia w pięciu kolorach, z notatkami** — zakreślenia i notatki przetrwają ponowne renderowanie, tłumaczenie, a nawet zmiany na stronie
 - **Przetłumacz stronę albo zadaj jej pytanie** — tłumaczenie całości z widokiem dwujęzycznym; odpowiedzi cytują źródło i prowadzą prosto do niego
-- **Sprawdzaj i powtarzaj słownictwo podczas czytania** — słownik pokazuje najpierw znaczenie pasujące do bieżącego zdania, a zapisane słówka możesz wyszukiwać, sortować, grupować, eksportować oraz wysyłać do Anki i Eudic. Opcjonalne pakiety słowników offline obejmują oba kierunki: chińsko-angielski i angielsko-chiński.
+- **Sprawdzaj i powtarzaj słownictwo podczas czytania** — słownik pokazuje najpierw znaczenie pasujące do bieżącego zdania; zapisane słówka mogą mieć notatki i status opanowania, a do tego możesz je wyszukiwać, sortować, grupować, eksportować oraz wysyłać do Anki i Eudic. Opcjonalne pakiety słowników offline obejmują oba kierunki: chińsko-angielski i angielsko-chiński.
 - **Wyślij albo pobierz** — do [Obsidiana](https://obsidian.md), GitHub Gist lub dowolnego webhooka; albo jako `.md`, `.html`, `.epub` na czytnik e-booków
 
 ![Czytelny widok z tłumaczeniem dwujęzycznym i zakreśleniami](docs/cws-assets/originals/screenshot-2-reader.png)
