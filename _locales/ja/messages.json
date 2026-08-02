@@ -3524,5 +3524,10 @@
   "skimStaleNote": { "message": "内容が変更されました。この要点は古い可能性があります" },
   "skimStop": { "message": "停止" },
   "skimGenerating": { "message": "要点まとめを生成中…" },
-  "skimFailed": { "message": "要点まとめを生成できませんでした" }
+  "skimFailed": { "message": "要点まとめを生成できませんでした" },
+  "libraryTitle": { "message": "メモと単語帳" },
+  "libraryOpen": { "message": "メモと単語帳を開く" },
+  "libraryDetailEmpty": { "message": "左側で単語を選択すると、詳細が表示されます。" },
+  "libraryRelookup": { "message": "もう一度調べる" },
+  "libraryBack": { "message": "一覧に戻る" }
 }

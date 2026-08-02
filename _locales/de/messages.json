@@ -3524,5 +3524,10 @@
   "skimStaleNote": { "message": "Inhalt hat sich geändert; diese Kernpunkte könnten veraltet sein" },
   "skimStop": { "message": "Stopp" },
   "skimGenerating": { "message": "Kernpunkte werden erzeugt…" },
-  "skimFailed": { "message": "Kernpunkte konnten nicht erzeugt werden" }
+  "skimFailed": { "message": "Kernpunkte konnten nicht erzeugt werden" },
+  "libraryTitle": { "message": "Notizen & Vokabeln" },
+  "libraryOpen": { "message": "Notizen & Vokabeln öffnen" },
+  "libraryDetailEmpty": { "message": "Wähle links ein Wort aus, um Details zu sehen." },
+  "libraryRelookup": { "message": "Erneut nachschlagen" },
+  "libraryBack": { "message": "Zurück zur Liste" }
 }

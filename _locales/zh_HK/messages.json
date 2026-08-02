@@ -3524,5 +3524,10 @@
   "skimStaleNote": { "message": "內容已變化，這些要點可能已過時" },
   "skimStop": { "message": "停止" },
   "skimGenerating": { "message": "正在生成要點…" },
-  "skimFailed": { "message": "要點生成失敗" }
+  "skimFailed": { "message": "要點生成失敗" },
+  "libraryTitle": { "message": "筆記與生詞本" },
+  "libraryOpen": { "message": "開啟筆記與生詞本" },
+  "libraryDetailEmpty": { "message": "在左側選擇一個字以查看詳情。" },
+  "libraryRelookup": { "message": "重新查詞典" },
+  "libraryBack": { "message": "返回列表" }
 }

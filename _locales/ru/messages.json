@@ -3524,5 +3524,10 @@
   "skimStaleNote": { "message": "Содержимое изменилось — эти тезисы могут быть устаревшими" },
   "skimStop": { "message": "Остановить" },
   "skimGenerating": { "message": "Создание ключевых тезисов…" },
-  "skimFailed": { "message": "Не удалось сгенерировать ключевые тезисы" }
+  "skimFailed": { "message": "Не удалось сгенерировать ключевые тезисы" },
+  "libraryTitle": { "message": "Заметки и словарик" },
+  "libraryOpen": { "message": "Открыть заметки и словарик" },
+  "libraryDetailEmpty": { "message": "Выберите слово слева, чтобы увидеть подробности." },
+  "libraryRelookup": { "message": "Найти снова" },
+  "libraryBack": { "message": "Назад к списку" }
 }
