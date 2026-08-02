@@ -426,7 +426,123 @@ html[data-theme] .save-status.bad { color: var(--lib-danger); }
 .vocab-detail-context { margin: var(--lib-sp-3) 0; padding-left: var(--lib-sp-3); border-left: 3px solid var(--lib-border); }
 .vocab-detail-context mark { background: transparent; color: var(--lib-accent); font-weight: 600; }
 .vocab-detail-delete { margin-top: var(--lib-sp-4); }
+.vocab-detail-relookup { margin-top: var(--lib-sp-3); }
 .vocab-detail-dict { margin-top: var(--lib-sp-4); border-top: 1px solid var(--lib-border-section); padding-top: var(--lib-sp-3); }
+
+/* On-demand dictionary re-lookup (Task 7): subset of md-preview.css's
+   .xp-dict-* rendering classes (md-dict.js's _pbpDictSlotRun /
+   _pbpDictEcdictSide / _pbpDictSlotSkeleton write these class names
+   directly and are shared, unmodified, with md-preview -- this file only
+   supplies the paint). md-preview's light-dark() tokens are replaced per
+   the library mapping: body text -> --lib-fg, secondary/annotation text
+   -> --lib-fg-muted, hint/status copy (.xp-dict-msg) -> --lib-fg-hint,
+   border/divider -> --lib-border, link/emphasis -> --lib-accent, block
+   background (select + retry/connect buttons) -> --lib-code-bg. .xp-dict-lang
+   and .xp-dict-connect/.xp-retry are NOT .btn-classed by md-dict.js, so they
+   need their own paint here; .xp-dict-lang mirrors the closed-select recipe
+   already established by .vocab-filter-toolbar select above (custom chevron,
+   same border/background tokens) rather than md-preview's literal chevron
+   color, so it reads as the same control family on this page. */
+.xp-dict-head { display: flex; align-items: center; gap: var(--lib-sp-2); margin-bottom: var(--lib-sp-2); }
+.xp-dict-lang {
+  flex: 0 1 auto;
+  -webkit-appearance: none;
+  appearance: none;
+  padding: 3px 22px 3px var(--lib-sp-2);
+  border: 1px solid var(--lib-border);
+  border-radius: var(--lib-radius-md);
+  background-color: var(--lib-code-bg);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M3 4.5 6 7.5 9 4.5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 6px center;
+  color: var(--lib-fg);
+  font: inherit;
+  font-size: 0.8em;
+  cursor: pointer;
+  box-sizing: border-box;
+  box-shadow: none;
+  transition: border-color var(--motion-state) ease, background-color var(--motion-state) ease;
+}
+.xp-dict-lang:hover { background-color: var(--lib-btn-hover, var(--lib-code-bg)); border-color: var(--lib-input-border, var(--lib-border)); }
+.xp-dict-lang:focus-visible { outline: 2px solid var(--lib-accent); outline-offset: 1px; }
+html[data-theme="nord-night"] .xp-dict-lang,
+html[data-theme="terminal"] .xp-dict-lang,
+html[data-theme="dracula"] .xp-dict-lang,
+html[data-theme="flexoki-dark"] .xp-dict-lang,
+html[data-theme="solarized-dark"] .xp-dict-lang,
+html[data-theme="catppuccin-mocha"] .xp-dict-lang,
+html[data-theme="gruvbox-dark"] .xp-dict-lang,
+html[data-theme="rose-pine"] .xp-dict-lang {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M3 4.5 6 7.5 9 4.5' stroke='%23aaa' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+}
+.xp-dict-slot { min-height: 20px; }
+.xp-dict-match { color: var(--lib-fg-muted); font-size: 0.8em; margin: 0 0 6px; }
+.xp-dict-entry { margin: 0 0 var(--lib-sp-2); }
+.xp-dict-ipa-line { display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; }
+.xp-dict-pos { font-style: italic; color: var(--lib-fg-muted); }
+.xp-dict-ipa-tag { font-size: 0.75em; color: var(--lib-fg-muted); }
+.xp-dict-forms { font-size: 0.8em; color: var(--lib-fg-muted); margin-top: 2px; }
+.xp-dict-senses { margin: 6px 0 0; padding-left: 1.4em; }
+.xp-dict-senses li { margin: 2px 0; }
+/* A lone sense needs no "1." -- see md-preview.css's twin rule for the reasoning. */
+.xp-dict-senses li:only-child { list-style: none; margin-left: -1.4em; }
+.xp-dict-example { font-size: 0.85em; color: var(--lib-fg-muted); font-style: italic; }
+.xp-dict-sense-tag { font-size: 0.85em; color: var(--lib-fg-muted); font-style: italic; }
+/* Stable containers inside .xp-dict-slot: the local pack writes the first,
+   every online path writes the second. Empty until something lands in them. */
+.xp-dict-local:not(:empty) { margin-bottom: var(--lib-sp-2); }
+.xp-dict-local-title { font-size: 0.8em; color: var(--lib-fg-muted); font-style: italic; }
+.xp-dict-subsense { font-size: 0.95em; margin-top: 2px; padding-left: 0.9em; }
+.xp-dict-rel { font-size: 0.85em; color: var(--lib-fg-muted); margin-top: 2px; }
+.xp-dict-rel-label { font-style: italic; }
+.xp-dict-src { font-size: 0.75em; color: var(--lib-fg-muted); margin-top: 6px; }
+.xp-dict-src a { color: inherit; }
+.xp-dict-msg { color: var(--lib-fg-hint); padding: 4px 0; }
+.xp-dict-more {
+  display: block; margin: 4px 0 0; padding: 0; border: none; background: none;
+  cursor: pointer; font-size: 0.85em; color: var(--lib-accent);
+}
+.xp-dict-more:hover { text-decoration: underline; }
+.xp-dict-more:focus-visible { text-decoration: underline; outline: 2px solid var(--lib-accent); outline-offset: 2px; }
+/* Clickable lemma inside a form-of pointer: reads as a link, is a button. */
+.xp-dict-lemma-link {
+  padding: 0; border: none; background: none; cursor: pointer; font: inherit;
+  color: var(--lib-accent); text-decoration: underline;
+}
+.xp-dict-lemma-link:hover { color: var(--lib-accent); }
+.xp-dict-lemma-link:focus-visible { outline: 2px solid var(--lib-accent); outline-offset: 2px; }
+/* Loading skeleton (_pbpDictSlotSkeleton) -- shimmering gradient bar, matches
+   md-preview's .xp-skel, renamed keyframe to stay scoped to this file. */
+.xp-skel {
+  height: 0.7em;
+  margin: 0.55em 0;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--lib-border) 25%, var(--lib-fg-hint) 50%, var(--lib-border) 75%);
+  background-size: 200% 100%;
+  animation: xp-dict-shimmer 1.2s linear infinite;
+}
+.xp-skel:nth-child(3) { width: 62%; }
+@keyframes xp-dict-shimmer { to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .xp-skel { animation-duration: 1.2s !important; animation-iteration-count: infinite !important; }
+}
+/* Permission-connect button + failure retry button: same small pill family. */
+.xp-retry, .xp-dict-connect {
+  padding: 4px 10px;
+  border: 1px solid var(--lib-border);
+  border-radius: 6px;
+  background: var(--lib-code-bg);
+  color: var(--lib-fg);
+  font-size: 0.8em;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color var(--motion-state) ease;
+}
+.xp-retry:hover, .xp-dict-connect:hover:not(:disabled) { background: var(--lib-btn-hover, var(--lib-code-bg)); }
+.xp-retry:focus-visible, .xp-dict-connect:focus-visible { outline: 2px solid var(--lib-accent); outline-offset: 2px; }
+.xp-retry:active, .xp-dict-connect:active:not(:disabled) { transform: translateY(1px); }
+.xp-retry svg { width: 12px; height: 12px; vertical-align: -2px; margin-right: 4px; }
+.xp-dict-connect:disabled { opacity: 0.6; cursor: default; }
 
 /* Note editor, ported from options.css's .vocab-note-edit/-input/-save family
    (--opt-* tokens translated to their --lib-* equivalents; same closed-field

@@ -304,6 +304,11 @@ function _pbpVocabRenderDetail(w) {
   // which co-loads both vocab halves but only ever mounts options.html's
   // expandable-card markup (no #vocab-detail-*).
   if (!empty || !detail) return;
+  // Switching (or clearing) the shown word invalidates any in-flight
+  // re-lookup immediately: opening a fresh word must fire zero network
+  // requests on its own, and a stale online/local chain must never write
+  // into a dict area that now belongs to a different word.
+  if (_pbpVocabDictCtrl) { _pbpVocabDictCtrl.abort(); _pbpVocabDictCtrl = null; }
   _pbpVocabDetailWordId = w ? w.id : null;
   empty.hidden = !!w;
   detail.hidden = !w;
@@ -433,9 +438,20 @@ function _pbpVocabRenderDetail(w) {
   // 5. Note editor (moved from the old card body)
   frag.appendChild(_pbpVocabBuildNoteEditor(w));
 
-  // 6. Re-lookup mount point (Task 7 wires the button + slots here)
+  // 6. On-demand dictionary re-lookup: zero network until clicked. One live
+  // lookup per detail render -- the button hides itself on click, and a
+  // fresh render (word switch) always rebuilds an unclicked button.
   const dictHost = document.createElement("div");
   dictHost.className = "vocab-detail-dict";
+  const lookupBtn = document.createElement("button");
+  lookupBtn.type = "button";
+  lookupBtn.className = "btn btn-sm vocab-detail-relookup";
+  setBtnIcon(lookupBtn, "book", t("libraryRelookup"));
+  lookupBtn.addEventListener("click", () => {
+    lookupBtn.hidden = true;
+    _pbpVocabRelookup(w, dictHost);
+  });
+  frag.appendChild(lookupBtn);
   frag.appendChild(dictHost);
 
   // 7. Delete (confirm popover family; on success the detail pane resets)
@@ -447,6 +463,65 @@ function _pbpVocabRenderDetail(w) {
   frag.appendChild(del);
 
   detail.replaceChildren(frag);
+}
+
+// On-demand dictionary re-lookup inside the detail pane. Reuses md-dict's
+// pure query seams (_pbpDictSlotRun online chain + _pbpDictEcdictSide local
+// pack) with NO AI leg: the lemma promise resolves empty immediately (ai.js
+// is not loaded on this page). Participates in md-dict's staleness token so
+// a second click or a word switch invalidates the previous run exactly like
+// explain-pop does.
+let _pbpVocabDictCtrl = null;
+
+function _pbpVocabRelookup(w, host) {
+  if (_pbpVocabDictCtrl) _pbpVocabDictCtrl.abort();
+  const ctrl = new AbortController();
+  _pbpVocabDictCtrl = ctrl;
+
+  const wrap = document.createElement("div");
+  wrap.className = "xp-dict";
+  const head = document.createElement("div");
+  head.className = "xp-dict-head";
+  const sel = document.createElement("select");
+  sel.className = "xp-dict-lang";
+  sel.setAttribute("aria-label", t("dictLangAria"));
+  const locale = document.documentElement.lang;
+  for (const code of PBP_DICT_LANGS) {
+    if (code === "auto") continue; // stored words carry a language; no Auto leg here
+    const o = document.createElement("option");
+    o.value = code;
+    o.textContent = pbpDictLanguageLabel(code, locale) || code;
+    sel.appendChild(o);
+  }
+  const startLang = w.language && w.language !== "und" ? w.language : "";
+  if (startLang && [...sel.options].some((o) => o.value === startLang)) sel.value = startLang;
+  head.appendChild(sel);
+  wrap.appendChild(head);
+
+  const slot = document.createElement("div");
+  slot.className = "xp-dict-slot";
+  // Slot invariant: two stable children; nothing ever replaceChildren()s
+  // the slot itself (md-dict render paths target the children).
+  const localEl = document.createElement("div");
+  localEl.className = "xp-dict-local";
+  const onlineEl = document.createElement("div");
+  onlineEl.className = "xp-dict-online";
+  slot.appendChild(localEl);
+  slot.appendChild(onlineEl);
+  wrap.appendChild(slot);
+  host.replaceChildren(wrap); // host is .vocab-detail-dict, never the slot
+
+  function startRun(lang) {
+    const cur = { term: w.term, lang, sentence: (w.contexts && w.contexts[0] && w.contexts[0].quote) || "" };
+    cur.rerun = () => { if (_pbpDictCurrent === cur) startRun(sel.value); };
+    _pbpDictCurrent = cur;
+    _pbpDictSlotSkeleton(onlineEl);
+    _pbpDictEcdictSide(localEl, w.term, lang, ctrl.signal, cur);
+    _pbpDictSlotRun(onlineEl, w.term, lang, ctrl.signal, Promise.resolve(""), cur.rerun, cur.sentence)
+      .catch((err) => console.warn("library relookup failed:", err.name, err.message));
+  }
+  sel.addEventListener("change", () => startRun(sel.value));
+  startRun(sel.value || startLang);
 }
 
 // Split the quote around case-insensitive matches of the term; matches render
