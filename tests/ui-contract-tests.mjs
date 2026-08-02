@@ -250,7 +250,9 @@ check(/#panel-vocab\s+\.vocab-load-more\[hidden\][\s\S]{0,80}display:\s*none/.te
 check(optionsVocabJs.includes('t("vocabLoading")') &&
   optionsVocabJs.includes('list.setAttribute("aria-busy", loading ? "true" : "false")'),
   "options-vocab.js: vocabulary loading is not visible or aria-busy is not closed consistently");
-check(optionsVocabJs.includes("function pbpVocabOwnerLabel") &&
+check(sharedJs.includes("async function pbpVocabCurrentOwner()") &&
+  sharedJs.includes("function pbpVocabOwnerLabel(owner)") &&
+  optionsVocabJs.includes("pbpVocabCurrentOwner(") &&
   optionsVocabJs.includes('t("vocabResultCount", String(rows.length), String(_vocabRows.length), _vocabOwnerLabel)') &&
   optionsVocabJs.includes('empty.textContent = t("dictVocabEmpty", _vocabOwnerLabel)') &&
   !optionsVocabJs.includes('t("jinaFailed")'),
