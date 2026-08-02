@@ -545,11 +545,19 @@ function _pbpVocabDictRun(term, lang, els, sentence, rerun) {
   if (_pbpVocabDictChildCleanup) { _pbpVocabDictChildCleanup(); _pbpVocabDictChildCleanup = null; }
   const child = new AbortController();
   _pbpVocabDictChildCtrl = child;
+  // Fix round 1 (Minor 5): capture the parent controller AT REGISTRATION
+  // time, not the module var at cleanup time. _pbpVocabDictCtrl can be
+  // reassigned to a NEW session controller between now and cleanup (free
+  // lookup and a word-detail relookup each replace it) -- reading the
+  // module var inside the cleanup closure would remove the listener from
+  // whatever controller happens to be current THEN, leaking it on the one
+  // it was actually added to.
+  const parent = _pbpVocabDictCtrl;
   const onParentAbort = () => child.abort();
-  if (_pbpVocabDictCtrl.signal.aborted) child.abort();
+  if (parent.signal.aborted) child.abort();
   else {
-    _pbpVocabDictCtrl.signal.addEventListener("abort", onParentAbort, { once: true });
-    _pbpVocabDictChildCleanup = () => { try { _pbpVocabDictCtrl.signal.removeEventListener("abort", onParentAbort); } catch (_) {} };
+    parent.signal.addEventListener("abort", onParentAbort, { once: true });
+    _pbpVocabDictChildCleanup = () => { try { parent.signal.removeEventListener("abort", onParentAbort); } catch (_) {} };
   }
   const signal = child.signal;
 
@@ -623,7 +631,15 @@ function _pbpVocabWireLookupBar() {
   const sel = $id("vocab-lookup-lang");
   const go = $id("vocab-lookup-go");
   if (!input || !sel || !go) return; // absent on pages/fixtures with no lookup bar
-  const locale = document.documentElement.lang;
+  // Fix round 1 (Important 2): this wiring runs at deferred-script parse
+  // time, before library.js's applyI18n() sets document.documentElement.lang
+  // -- reading it here would always see the raw <html lang="en"> attribute
+  // and mislabel every language option. uiLangToBCP47() computes the real
+  // UI locale independently of that timing (same precedent as md-dict.js's
+  // xp-dict-lang build), so it is correct even this early; the relookup
+  // select below builds on click, well after applyI18n has already run, so
+  // document.documentElement.lang is safe there.
+  const locale = typeof uiLangToBCP47 === "function" ? uiLangToBCP47() : document.documentElement.lang;
   for (const code of PBP_DICT_LANGS) {
     if (code === "auto") continue; // free lookup mirrors relookup: no Auto leg
     const o = document.createElement("option");
@@ -634,7 +650,14 @@ function _pbpVocabWireLookupBar() {
   sel.value = _vocabLookupLang;
   sel.addEventListener("change", () => { _vocabLookupLang = sel.value; });
   go.addEventListener("click", _pbpVocabFreeLookup);
-  input.addEventListener("keydown", (e) => { if (e.key === "Enter") _pbpVocabFreeLookup(); });
+  input.addEventListener("keydown", (e) => {
+    // IME guard (Important 3): Chrome dispatches a key="Enter" keydown with
+    // isComposing=true (keyCode 229 as a fallback signal) when the user
+    // confirms an IME candidate -- that Enter must never submit a lookup for
+    // the still-uncommitted composition text (md-ask.js / popup-tags.js).
+    if (e.isComposing || e.keyCode === 229) return;
+    if (e.key === "Enter") _pbpVocabFreeLookup();
+  });
 }
 
 // Free dictionary lookup: renders a lookup-result view into the detail host.
@@ -694,8 +717,15 @@ function _pbpVocabFreeLookup() {
     hint.className = "btn btn-sm vocab-lookup-saved";
     setBtnIcon(hint, "bookMarked", t("libraryLookupSaved"));
     hint.addEventListener("click", () => {
-      _pbpVocabRenderDetail(saved);
-      const row = document.querySelector(`#vocab-list .vocab-card[data-vocab-id="${CSS.escape(saved.id)}"]`);
+      // Fix round 1 (Important 4): the hint (and this closure) survives
+      // mutation reloads that happen while the lookup result stays on
+      // screen -- `saved` can be a deleted/edited row by click time. Re-
+      // resolve from the CURRENT _vocabRows instead of rendering the
+      // captured snapshot; a vanished id is a no-op, not a ghost detail.
+      const fresh = _vocabRows.find((r) => r.id === saved.id);
+      if (!fresh) return;
+      _pbpVocabRenderDetail(fresh);
+      const row = document.querySelector(`#vocab-list .vocab-card[data-vocab-id="${CSS.escape(fresh.id)}"]`);
       if (row) row.setAttribute("aria-current", "true");
     });
     frag.appendChild(hint);

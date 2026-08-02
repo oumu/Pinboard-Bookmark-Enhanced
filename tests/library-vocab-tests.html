@@ -321,6 +321,22 @@ check("lookup bar wiring populates the language select with no Auto leg",
     check("clicking the saved-word hint hands the detail pane back to that word",
       _pbpVocabDetailWordId === "lk-hello" && !!savedCard && savedCard.getAttribute("aria-current") === "true");
 
+    // Important 4 (fix round 1): the hint can outlive a mutation reload that
+    // happens while the lookup result stays on screen -- clicking it after
+    // the underlying word vanished elsewhere (deleted/edited from another
+    // path) must not render a ghost detail from the stale captured snapshot.
+    runCalls.length = 0;
+    $id("vocab-lookup-input").value = "hello";
+    _pbpVocabFreeLookup();
+    const staleHint = $id("vocab-detail").querySelector(".vocab-lookup-saved");
+    _vocabRows = lookupSample.filter((r) => r.id !== "lk-hello"); // simulate a delete elsewhere
+    let staleThrew = false;
+    try { staleHint.click(); } catch (_) { staleThrew = true; }
+    check("clicking a saved-word hint after the word vanished elsewhere is a safe no-op",
+      !staleThrew && _pbpVocabDetailWordId === null &&
+      $id("vocab-list").querySelectorAll(".vocab-card[aria-current]").length === 0);
+    _vocabRows = lookupSample; // restore for the remaining checks below
+
     $id("vocab-lookup-input").value = "nonexistent-term";
     _pbpVocabFreeLookup();
     check("free lookup with no stored match shows no saved-word hint",
@@ -795,6 +811,19 @@ check("selection still covers all filtered results beyond rendered chunks", _voc
     <div id="view-vocab"><div class="vocab-workbench">
     <div class="vocab-list-pane">
       <div class="notes-toolbar vocab-filter-toolbar"><input type="search"><select><option></option></select></div>
+      <div class="notes-toolbar vocab-filter-toolbar vocab-lookup-bar">
+        <input type="search" data-label="lookup-input">
+        <select data-label="lookup-lang"></select>
+        <button type="button" class="btn btn-sm" data-label="lookup-go"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button>
+      </div>
+      <div class="vocab-stats">
+        <span class="vocab-stat" data-label="stat-total"></span>
+        <button type="button" class="vocab-stat-chip" data-label="stat-learning"></button>
+        <button type="button" class="vocab-stat-chip" data-label="stat-known"></button>
+        <span class="vocab-stat" data-label="stat-groups"></span>
+        <span class="vocab-stat" data-label="stat-languages"></span>
+        <span class="vocab-stat" data-label="stat-recent"></span>
+      </div>
       <div class="vocab-context-bar"><span class="vocab-ctx-text"><span class="notes-count">5000</span></span><div class="vocab-selection-actions"><button class="btn btn-sm" data-label="all"></button></div><span class="save-status vocab-main-status">Saved just now</span></div>
       <div class="vocab-list-region">
       <article class="notes-card vocab-card"><div class="notes-card-top"><input class="vocab-row-select" type="checkbox"><button class="notes-card-head"><span class="notes-card-main"><span class="vocab-row-headline"><span class="notes-row-title">Wortzusammensetzung mit außergewöhnlich langem ausgewähltem Begriff</span><span class="notes-row-meta"><span class="notes-meta-chip">Außergewöhnlich lange Gruppe</span></span></span><span class="vocab-row-gloss">Außergewöhnlich lange Definition, die auf einer Zeile bleiben muss</span></span></button><button class="btn btn-sm notes-row-del" data-label="remove"></button></div></article>
@@ -825,6 +854,28 @@ check("selection still covers all filtered results beyond rendered chunks", _voc
           .replace("$RESULTS$", "5000").replace("$TOTAL$", "5000");
         panel.querySelector('input[type="text"]').placeholder = m.vocabGroupNamePlaceholder.message;
         panel.querySelector("select option").textContent = m.vocabAllGroups.message;
+        // Task 3 fix round 1 (Minor 7): the lookup bar and stats strip joined
+        // the sweep -- real translated strings at representative lengths,
+        // same discipline as every other element above (this is exactly the
+        // sweep that caught the German long-compound-word row overflow).
+        panel.querySelector('[data-label="lookup-input"]').placeholder = m.libraryLookupPlaceholder.message;
+        panel.querySelector('[data-label="lookup-go"]').title = m.libraryLookupGo.message;
+        const bcp47 = { en: "en", de: "de", fr: "fr", pl: "pl", ru: "ru", zh_HK: "zh-Hant", zh_CN: "zh-Hans", zh_TW: "zh-Hant", ja: "ja" }[locale] || "en";
+        const langSelect = panel.querySelector('[data-label="lookup-lang"]');
+        try {
+          const names = new Intl.DisplayNames([bcp47], { type: "language" });
+          langSelect.replaceChildren(...["en", "de", "fr", "es", "it", "pt", "nl", "ru", "pl", "ja", "ko", "zh"].map((code) => {
+            const o = doc.createElement("option");
+            o.textContent = names.of(code) || code;
+            return o;
+          }));
+        } catch (_) {}
+        panel.querySelector('[data-label="stat-total"]').textContent = m.libraryStatsWords.message.replace("$COUNT$", "5000");
+        panel.querySelector('[data-label="stat-learning"]').textContent = m.libraryStatsLearning.message.replace("$COUNT$", "2500");
+        panel.querySelector('[data-label="stat-known"]').textContent = m.libraryStatsKnown.message.replace("$COUNT$", "2500");
+        panel.querySelector('[data-label="stat-groups"]').textContent = m.libraryStatsGroups.message.replace("$COUNT$", "42");
+        panel.querySelector('[data-label="stat-languages"]').textContent = m.libraryStatsLanguages.message.replace("$COUNT$", "9");
+        panel.querySelector('[data-label="stat-recent"]').textContent = m.libraryStatsRecent.message.replace("$D7$", "120").replace("$D30$", "480");
         await new Promise((resolve) => frame.contentWindow.requestAnimationFrame(resolve));
         if (width === 320 && theme === "github-light" && locale === "de") {
           const count = panel.querySelector(".vocab-ctx-text > .notes-count");
