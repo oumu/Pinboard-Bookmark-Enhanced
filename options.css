@@ -1788,7 +1788,15 @@ html.motion-ready #tag-gov-progress:not([hidden]) {
   position: relative;
 }
 
-/* ---- Notes tab (hand-maintained; note-dot colors match md-preview's 5-color highlight tokens) ---- */
+/* ---- Notes/vocabulary list, card and sticky-batch-bar styles (hand-maintained;
+   note-dot colors match md-preview's 5-color highlight tokens).
+   Task 9 (2026-08) retired the Notes tab and the vocabulary word list from
+   options.html -- both views now live on library.html/library.css. This
+   region stays because tests/options-vocab-tests.html still renders this
+   exact markup against options.css directly (a joint regression harness for
+   options-vocab.js + library-vocab.js) and the remaining Drive/pack/export
+   <details> in #panel-vocab still ship here. Do not delete piecemeal without
+   re-checking that test's `<link>`/`srcdoc` dependencies first. ---- */
 .notes-toolbar {
   display: grid;
   grid-template-columns: minmax(180px, 1fr) auto auto;
@@ -1809,20 +1817,6 @@ html.motion-ready #tag-gov-progress:not([hidden]) {
   flex: 1 1 220px;
   width: auto;
   min-width: 0;
-}
-/* The three selects are ONE flex unit. Line breaking in a wrapping flex
-   container works on hypothetical (basis) sizes, and this unit refuses to
-   shrink -- so it either fits whole beside the search or drops whole onto
-   its own row (search then grows to the full first row). max-width lets
-   the selects wrap among themselves only once the unit's own row is
-   narrower than the three of them. */
-.vocab-filter-selects {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--opt-sp-4);
-  flex: 0 0 auto;
-  min-width: 0;
-  max-width: 100%;
 }
 .vocab-filter-toolbar select { flex: 0 1 auto; min-width: 0; }
 .notes-toolbar input[type="search"] {
@@ -1913,33 +1907,6 @@ html.motion-ready #tag-gov-progress:not([hidden]) {
 @supports selector(::picker(select)) {
   .vocab-filter-toolbar select { appearance: base-select; }
 }
-/* Sort segment: two fused direction-toggle cells replacing the widest select
-   (#vocab-sort stays as the hidden state carrier). The pressed cell wears the
-   accent; icons show the CURRENT direction, titles the sort a click applies. */
-.vocab-sort-seg { display: inline-flex; align-items: stretch; flex: none; }
-.vocab-sort-btn {
-  width: 34px;
-  padding: 0;
-  display: inline-grid;
-  place-items: center;
-  border-radius: 0;
-  color: var(--opt-fg-muted, #666);
-}
-.vocab-sort-btn:first-child {
-  border-top-left-radius: var(--opt-radius-md);
-  border-bottom-left-radius: var(--opt-radius-md);
-}
-.vocab-sort-btn:last-child {
-  border-top-right-radius: var(--opt-radius-md);
-  border-bottom-right-radius: var(--opt-radius-md);
-  border-left: 0;
-}
-.vocab-sort-btn[aria-pressed="true"] {
-  color: var(--opt-accent);
-  background: color-mix(in srgb, var(--opt-accent) 12%, var(--opt-btn-bg, #fff));
-  border-color: color-mix(in srgb, var(--opt-accent) 45%, var(--opt-input-border, #cdd1d6));
-}
-.vocab-sort-btn .btn-ic { display: inline-flex; margin: 0; }
 /* Count line: one row, identical in browse and selection. The status
    message rides inline at the right edge -- it never reserves a line of
    its own. The batch tools live in the sticky bar below the list. */
@@ -2301,31 +2268,6 @@ html[data-theme="flexoki-dark"] #panel-vocab .vocab-details-body > .hint {
   font-size: 12px;
   white-space: nowrap;
 }
-.notes-color-filters {
-  display: flex;
-  align-items: center;
-  gap: var(--opt-sp-4);
-}
-.notes-filter-dot {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border: 1px solid color-mix(in srgb, var(--opt-border, #ccc) 70%, transparent);
-  border-radius: var(--opt-radius-sm, 3px);
-  background: transparent;
-  cursor: pointer;
-  margin: 0;
-  padding: 0;
-  transition: opacity var(--motion-state) ease;
-}
-.notes-filter-dot[aria-pressed="false"] {
-  opacity: .32;
-}
-.notes-filter-dot .note-dot {
-  margin-top: 0;
-}
 .notes-card {
   border: 1px solid var(--opt-border, #ccc);
   border-radius: var(--opt-radius-sm, 3px);
@@ -2561,11 +2503,6 @@ html.motion-ready .vocab-note-save:not([hidden]) {
   @starting-style { opacity: 0; translate: 0 2px; }
 }
 html.motion-ready .vocab-note-save[hidden] { display: none; opacity: 0; translate: 0 2px; }
-.notes-empty {
-  font-size: 12px;
-  color: var(--opt-fg-muted, #666);
-  padding: var(--opt-sp-5) 0;
-}
 @media (max-width: 720px) {
   .container {
     grid-template-columns: 1fr;

@@ -44,6 +44,8 @@ const optionsJs = read("options.js");
 const optionsBackupJs = read("options-backup.js");
 const optionsVocabJs = read("options-vocab.js");
 const libraryVocabJs = read("library-vocab.js");
+const libraryHtml = read("library.html");
+const libraryCss = read("library.css");
 const vocabGdriveJs = read("vocab-gdrive.js");
 const mdDictJs = read("md-dict.js");
 const vocabStore = readFileSync("vocab-store.js", "utf8");
@@ -177,11 +179,14 @@ for (const id of ["vocab-search", "vocab-group-filter", "vocab-sort", "vocab-sel
   "vocab-invert-selection", "vocab-batch-toolbar", "vocab-group-input", "vocab-add-group",
   "vocab-batch-delete", "vocab-no-results", "vocab-load-more", "vocab-list",
   "vocab-sort-time", "vocab-sort-alpha"]) {
-  check(optionsHtml.includes(`id="${id}"`), `options.html: scalable vocabulary control #${id} is missing`);
+  check(libraryHtml.includes(`id="${id}"`), `library.html: scalable vocabulary control #${id} is missing`);
 }
+// options.html no longer renders the word list (retired for the library
+// page, Task 9) -- what has to hold here is that the settings tab still
+// opens with the entry link, ahead of the collapsed secondary settings.
 check((optionsHtml.match(/<details class="vocab-disclosure"/g) || []).length === 5 &&
-  optionsHtml.indexOf('id="vocab-search"') < optionsHtml.indexOf('id="dict-anki-deck"'),
-  "options.html: vocabulary management is not first or secondary settings are not collapsed");
+  optionsHtml.indexOf('id="vocab-open-library"') < optionsHtml.indexOf('id="dict-anki-deck"'),
+  "options.html: the library entry link is not first or secondary settings are not collapsed");
 const vocabDisclosureKeys = [...optionsHtml.matchAll(
   /<details class="vocab-disclosure" data-acc-key="([^"]+)"/g
 )].map((match) => match[1]);
@@ -194,10 +199,6 @@ check(optionsJs.includes('querySelectorAll("details[data-acc-key]")') &&
 check(/vocab:\s*\{[\s\S]{0,260}"dict-echo-enabled": true/.test(optionsJs) &&
   !/<details class="vocab-card"[^>]*data-acc-key=/.test(optionsHtml),
   "options: vocab reset is not on or per-word cards were made persistent");
-check(["vocab-group-filter", "vocab-sort", "vocab-group-input"].every((id) =>
-  new RegExp(`id="${id}"[^>]*data-no-autosave|data-no-autosave[^>]*id="${id}"`).test(optionsHtml)) &&
-  optionsJs.includes(":not([data-no-autosave])"),
-  "options: vocabulary view controls leak into settings auto-save");
 check(libraryVocabJs.includes("PBP_VOCAB_RENDER_BATCH = 100") &&
   libraryVocabJs.includes("pbpVocabFilterSort") && libraryVocabJs.includes("pbpVocabSelectRange") &&
   libraryVocabJs.includes('showConfirmPopover(button') && !libraryVocabJs.includes("window.confirm"),
@@ -217,11 +218,11 @@ check(libraryVocabJs.includes('t("vocabRefreshFailed")') &&
   libraryVocabJs.includes("_pbpVocabRenderList(true)"),
   "library-vocab.js: committed mutations, refresh failures, or incremental rendering are conflated");
 check(["vocab-search", "vocab-group-filter", "vocab-sort", "vocab-group-input", "vocab-list"].every((id) =>
-  new RegExp(`id="${id}"[^>]*aria-label=`).test(optionsHtml)) &&
-  /id="vocab-selection-actions"|class="vocab-selection-actions"[^>]*role="group"[^>]*aria-label=/.test(optionsHtml) &&
-  /id="vocab-batch-toolbar"[^>]*role="group"[^>]*aria-label=/.test(optionsHtml) &&
-  /id="vocab-selected-count"[^>]*aria-live="polite"/.test(optionsHtml),
-  "options.html: production vocabulary controls lost accessible names, groups, or live selection status");
+  new RegExp(`id="${id}"[^>]*aria-label=`).test(libraryHtml)) &&
+  /id="vocab-selection-actions"|class="vocab-selection-actions"[^>]*role="group"[^>]*aria-label=/.test(libraryHtml) &&
+  /id="vocab-batch-toolbar"[^>]*role="group"[^>]*aria-label=/.test(libraryHtml) &&
+  /id="vocab-selected-count"[^>]*aria-live="polite"/.test(libraryHtml),
+  "library.html: production vocabulary controls lost accessible names, groups, or live selection status");
 // Master-detail rows: a row names its checkbox and marks itself as the one
 // the detail pane is showing. It must NOT claim to expand -- there is no
 // body under it any more, so an aria-expanded here would be a lie.
@@ -240,33 +241,20 @@ check(vocabStore.includes("function _pbpVocabLocalMutation") && vocabStore.inclu
 // The batch tools live in a sticky bar inside .vocab-list-region since the
 // floating-bar redesign (2026-08): the wrapper is the sticky containing
 // block, so the bar can never float over the sections below the list, and
-// the browse state reserves zero geometry above the cards.
-check(optionsCss.includes(".vocab-filter-toolbar") && optionsCss.includes(".vocab-list-region") &&
-  /\.vocab-batch-bar\s*\{[\s\S]{0,500}position:\s*sticky[\s\S]{0,500}z-index:\s*var\(--opt-z-sticky\)/.test(optionsCss) &&
-  optionsCss.includes(".vocab-card .notes-card-top"),
-  "options.css: sticky vocabulary batch bar contract is missing");
-check(optionsHtml.indexOf('class="vocab-list-region"') > 0 &&
-  optionsHtml.indexOf('class="vocab-list-region"') < optionsHtml.indexOf('id="vocab-list"') &&
-  optionsHtml.indexOf('id="vocab-load-more"') < optionsHtml.indexOf('id="vocab-batch-toolbar"') &&
-  /<div class="vocab-batch-bar" id="vocab-batch-toolbar"/.test(optionsHtml),
-  "options.html: batch bar is not a sticky-region child after the load-more control");
-check(/#panel-vocab\s+\.vocab-load-more\[hidden\][\s\S]{0,80}display:\s*none/.test(optionsCss),
-  "options.css: vocabulary hidden controls can be redisplayed by component display rules");
-{
-  // Same sticky-bar geometry contract on the library page: an intermediate
-  // wrapper between the bar and its region would become the containing block
-  // and cap the float range at the bar's own height.
-  const libraryHtml = read("library.html");
-  const libraryCss = read("library.css");
-  check(libraryHtml.indexOf('class="vocab-list-region"') > 0 &&
-    libraryHtml.indexOf('class="vocab-list-region"') < libraryHtml.indexOf('id="vocab-list"') &&
-    libraryHtml.indexOf('id="vocab-load-more"') < libraryHtml.indexOf('id="vocab-batch-toolbar"') &&
-    /<div class="vocab-batch-bar" id="vocab-batch-toolbar"/.test(libraryHtml),
-    "library.html: batch bar is not a sticky-region child after the load-more control");
-  check(/\.vocab-batch-bar\s*\{[\s\S]{0,500}position:\s*sticky[\s\S]{0,500}z-index:\s*var\(--lib-z-sticky\)/.test(libraryCss) &&
-    /#view-vocab\s+\.vocab-load-more\[hidden\][\s\S]{0,80}display:\s*none/.test(libraryCss),
-    "library.css: sticky vocabulary batch bar contract is missing");
-}
+// the browse state reserves zero geometry above the cards. The word list
+// (and this contract) moved wholesale to the library page in Task 9 --
+// options.css/options.html no longer carry the .vocab-list-region family.
+check(libraryCss.includes(".vocab-filter-toolbar") && libraryCss.includes(".vocab-list-region") &&
+  /\.vocab-batch-bar\s*\{[\s\S]{0,500}position:\s*sticky[\s\S]{0,500}z-index:\s*var\(--lib-z-sticky\)/.test(libraryCss) &&
+  libraryCss.includes(".vocab-card .notes-card-top"),
+  "library.css: sticky vocabulary batch bar contract is missing");
+check(libraryHtml.indexOf('class="vocab-list-region"') > 0 &&
+  libraryHtml.indexOf('class="vocab-list-region"') < libraryHtml.indexOf('id="vocab-list"') &&
+  libraryHtml.indexOf('id="vocab-load-more"') < libraryHtml.indexOf('id="vocab-batch-toolbar"') &&
+  /<div class="vocab-batch-bar" id="vocab-batch-toolbar"/.test(libraryHtml),
+  "library.html: batch bar is not a sticky-region child after the load-more control");
+check(/#view-vocab\s+\.vocab-load-more\[hidden\][\s\S]{0,80}display:\s*none/.test(libraryCss),
+  "library.css: vocabulary hidden controls can be redisplayed by component display rules");
 check(libraryVocabJs.includes('t("vocabLoading")') &&
   libraryVocabJs.includes('list.setAttribute("aria-busy", loading ? "true" : "false")'),
   "library-vocab.js: vocabulary loading is not visible or aria-busy is not closed consistently");
@@ -908,8 +896,8 @@ check(!/\bconfirm\s*\(/.test(popupBatchJs) && !popupBatchJs.includes("BATCH_PERM
 // account-wide credential-sync disable confirmation.
 check(!/\bconfirm\s*\(/.test(popupJs),
   "popup.js: a native confirm() dialog crept back in (use showConfirmPopover)");
-check(!/\bconfirm\s*\(/.test(read("options-notes.js")),
-  "options-notes.js: a native confirm() dialog crept back in (use showConfirmPopover)");
+check(!/\bconfirm\s*\(/.test(read("library-notes.js")),
+  "library-notes.js: a native confirm() dialog crept back in (use showConfirmPopover)");
 check((optionsJs.match(/\bconfirm\(t\(/g) || []).length === 3 &&
   optionsJs.includes('confirm(t("syncApiKeysDisableConfirm"))'),
   "options.js: native confirm() calls drifted from the sanctioned sync transitions");

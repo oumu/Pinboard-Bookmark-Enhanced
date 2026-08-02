@@ -372,7 +372,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (btn.dataset.panel === "appearance") _initAppearancePanel();
     if (btn.dataset.panel === "tags") _initTagGovPanel();
     if (btn.dataset.panel === "storage") renderStoragePanel();
-    if (btn.dataset.panel === "notes") renderNotesPanel();
     if (btn.dataset.panel === "vocab") renderVocabPanel();
     history.replaceState(null, "", "#" + btn.dataset.panel);
   }
@@ -593,10 +592,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     },
     tags: {
       fields: { "opt-tag-sort-by-pop": true },
-      skip: []
-    },
-    notes: {
-      fields: {},
       skip: []
     },
     vocab: {
@@ -900,14 +895,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.addEventListener("click", (e) => {
     const summary = e.target.closest("summary");
     const det = summary && summary.closest("details");
-    if (det) { pbpMotionMark(det); return; }
-    // Notes and Vocabulary row cards: same gesture, different markup -- they
-    // toggle the `hidden` property on their body instead of a class. Capture
-    // phase again, so the marker is in place before the card's own listener
-    // unsets [hidden] and the entry frame renders.
-    const cardHead = e.target.closest(".notes-card-head");
-    const card = cardHead && cardHead.closest(".notes-card");
-    if (card) pbpMotionMark(card);
+    if (det) pbpMotionMark(det);
   }, true);
   document.addEventListener("toggle", (e) => {
     const det = e.target.closest?.("details[data-acc-key]");
