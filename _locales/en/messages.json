@@ -3521,6 +3521,7 @@
   "skimFailed": { "message": "Couldn't generate key points" },
   "libraryTitle": { "message": "Notes & Vocabulary" },
   "libraryOpen": { "message": "Open notes and vocabulary" },
+  "libraryDetailTitle": { "message": "Word details" },
   "libraryDetailEmpty": { "message": "Select a word on the left to see its details." },
   "libraryRelookup": { "message": "Look up again" },
   "libraryBack": { "message": "Back to list" }

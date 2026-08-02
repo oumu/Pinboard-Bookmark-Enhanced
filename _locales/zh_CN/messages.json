@@ -3521,6 +3521,7 @@
   "skimFailed": { "message": "要点生成失败" },
   "libraryTitle": { "message": "笔记与生词本" },
   "libraryOpen": { "message": "打开笔记与生词本" },
+  "libraryDetailTitle": { "message": "词条详情" },
   "libraryDetailEmpty": { "message": "在左侧选择一个词查看详情。" },
   "libraryRelookup": { "message": "重新查词典" },
   "libraryBack": { "message": "返回列表" }

@@ -44,8 +44,11 @@ let _vocabOwnerLabel = ""; // decoded non-secret Pinboard username for visible s
 const PBP_VOCAB_RENDER_BATCH = 100;
 const _vocabCollator = new Intl.Collator(undefined, { sensitivity: "base", numeric: true });
 
-// Detail-pane activation hook — implemented by the detail pane (Task 6).
-let _pbpVocabOnRowActivate = () => {};
+// Detail-pane activation hook, implemented below by _pbpVocabRenderDetail.
+let _pbpVocabOnRowActivate = (w) => _pbpVocabRenderDetail(w);
+// Id of the word currently shown in the detail pane (or null); read by the
+// mutation-reload and generic-render paths to re-find and re-mark its row.
+let _pbpVocabDetailWordId = null;
 
 function pbpVocabSearchText(value) {
   return String(value || "")
@@ -233,8 +236,8 @@ function _pbpVocabBuildRow(w) {
   return card;
 }
 
-// Parked verbatim from the pre-migration row builder; nothing calls it yet.
-// Task 6 wires this into the detail pane.
+// Ported verbatim from the pre-migration row builder; _pbpVocabRenderDetail
+// below wires it into the detail pane.
 // Note editor. The field, its concurrent-merge rule and the Drive privacy
 // copy ("may include ... notes") all existed with no way to type into it.
 // Save is explicit (mutation-at-confirm discipline, same as every other
@@ -287,6 +290,200 @@ function _pbpVocabBuildNoteEditor(w) {
   noteWrap.appendChild(noteInput);
   noteWrap.appendChild(noteSave);
   return noteWrap;
+}
+
+// Renders the master-detail right pane for the activated word (or clears it
+// back to the empty state for null, e.g. after a delete). Reassigned onto
+// _pbpVocabOnRowActivate above; also called directly by the reload-after-
+// mutation and delete-linkage paths.
+function _pbpVocabRenderDetail(w) {
+  const empty = $id("vocab-detail-empty");
+  const detail = $id("vocab-detail");
+  // No-op where the detail pane doesn't exist -- library-vocab.js's row
+  // builder (and thus this hook) also runs inside tests/options-vocab-tests.html,
+  // which co-loads both vocab halves but only ever mounts options.html's
+  // expandable-card markup (no #vocab-detail-*).
+  if (!empty || !detail) return;
+  _pbpVocabDetailWordId = w ? w.id : null;
+  empty.hidden = !!w;
+  detail.hidden = !w;
+  if (!w) { detail.replaceChildren(); return; }
+
+  const frag = document.createDocumentFragment();
+
+  // 1. Word head: term + language chip + speak
+  const head = document.createElement("div");
+  head.className = "vocab-detail-head";
+  const term = document.createElement("h2");
+  term.className = "vocab-detail-term";
+  term.textContent = w.term;
+  head.appendChild(term);
+  const langLabel = pbpDictLanguageLabel(w.language, document.documentElement.lang);
+  if (langLabel) {
+    const chip = document.createElement("span");
+    chip.className = "notes-meta-chip";
+    chip.textContent = langLabel;
+    head.appendChild(chip);
+  }
+  const speak = document.createElement("button");
+  speak.type = "button";
+  speak.className = "btn btn-sm vocab-detail-speak";
+  setBtnIcon(speak, "speaker", "");
+  speak.title = t("dictSpeak");
+  speak.setAttribute("aria-label", t("dictSpeak"));
+  speak.addEventListener("click", () => pbpDictSpeak(w.term, w.language === "und" ? "" : w.language));
+  head.appendChild(speak);
+  frag.appendChild(head);
+
+  // 2. Status toggle + group management
+  const actions = document.createElement("div");
+  actions.className = "vocab-detail-actions";
+  const known = String(w.status || "new") === "known";
+  const statusBtn = document.createElement("button");
+  statusBtn.type = "button";
+  statusBtn.className = "btn btn-sm";
+  setBtnIcon(statusBtn, known ? "rotateCcw" : "checkCircle",
+    t(known ? "vocabMarkLearning" : "vocabMarkKnown"));
+  statusBtn.addEventListener("click", () => _pbpVocabDetailMutate(w, (owner) =>
+    pbpVocabBatchSetStatus([w.id], owner, known ? "new" : "known")));
+  actions.appendChild(statusBtn);
+  // Group unit: same input+stepper family as the batch bar, scoped to [w.id].
+  const groupUnit = document.createElement("span");
+  groupUnit.className = "vocab-group-unit";
+  const groupInput = document.createElement("input");
+  groupInput.type = "text";
+  groupInput.setAttribute("list", "vocab-group-list"); // shared datalist from the list pane
+  groupInput.placeholder = t("vocabGroupNamePlaceholder");
+  groupInput.setAttribute("aria-label", t("vocabGroupNamePlaceholder"));
+  groupInput.autocomplete = "off";
+  groupUnit.appendChild(groupInput);
+  const addGroup = document.createElement("button");
+  addGroup.type = "button";
+  addGroup.className = "btn btn-sm vocab-group-step";
+  setBtnIcon(addGroup, "plus", "");
+  addGroup.title = t("vocabAddToGroup");
+  addGroup.setAttribute("aria-label", t("vocabAddToGroup"));
+  addGroup.addEventListener("click", () => {
+    const name = pbpVocabNormalizeGroupName(groupInput.value);
+    if (name) _pbpVocabDetailMutate(w, (owner) => pbpVocabBatchAddGroup([w.id], owner, name));
+  });
+  groupUnit.appendChild(addGroup);
+  const removeGroup = document.createElement("button");
+  removeGroup.type = "button";
+  removeGroup.className = "btn btn-sm vocab-group-step";
+  setBtnIcon(removeGroup, "minus", "");
+  removeGroup.title = t("vocabRemoveFromGroup");
+  removeGroup.setAttribute("aria-label", t("vocabRemoveFromGroup"));
+  removeGroup.addEventListener("click", () => {
+    const name = pbpVocabNormalizeGroupName(groupInput.value);
+    if (name) _pbpVocabDetailMutate(w, (owner) => pbpVocabBatchRemoveGroup([w.id], owner, name));
+  });
+  groupUnit.appendChild(removeGroup);
+  actions.appendChild(groupUnit);
+  // Current group chips render next to the unit
+  for (const group of pbpVocabGroups(w)) {
+    const chip = document.createElement("span");
+    chip.className = "notes-meta-chip vocab-group-chip";
+    chip.textContent = group;
+    actions.appendChild(chip);
+  }
+  frag.appendChild(actions);
+
+  // 3. Stored gloss + IPA
+  if (w.ipa || w.gloss) {
+    const glossBox = document.createElement("div");
+    glossBox.className = "vocab-detail-gloss";
+    if (w.ipa) {
+      const ipa = document.createElement("div");
+      ipa.className = "vocab-gloss-ipa";
+      ipa.textContent = w.ipa;
+      glossBox.appendChild(ipa);
+    }
+    if (w.gloss) {
+      const def = document.createElement("div");
+      def.className = "vocab-gloss-text";
+      def.textContent = w.gloss;
+      glossBox.appendChild(def);
+    }
+    frag.appendChild(glossBox);
+  }
+
+  // 4. Contexts: quote with the term highlighted + source link
+  for (const c of (Array.isArray(w.contexts) ? w.contexts : [])) {
+    if (!c) continue;
+    const item = document.createElement("div");
+    item.className = "vocab-detail-context";
+    const quote = document.createElement("blockquote");
+    quote.className = "notes-item-quote";
+    _pbpVocabHighlightTerm(quote, c.quote || "", w.term);
+    item.appendChild(quote);
+    const safeHref = pbpDictSafeUrl(c.articleUrl);
+    if (safeHref) {
+      const link = document.createElement("a");
+      link.className = "notes-row-open";
+      link.href = safeHref;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.textContent = c.articleTitle || safeHref;
+      item.appendChild(link);
+    }
+    frag.appendChild(item);
+  }
+
+  // 5. Note editor (moved from the old card body)
+  frag.appendChild(_pbpVocabBuildNoteEditor(w));
+
+  // 6. Re-lookup mount point (Task 7 wires the button + slots here)
+  const dictHost = document.createElement("div");
+  dictHost.className = "vocab-detail-dict";
+  frag.appendChild(dictHost);
+
+  // 7. Delete (confirm popover family; on success the detail pane resets)
+  const del = document.createElement("button");
+  del.type = "button";
+  del.className = "btn btn-sm danger vocab-detail-delete";
+  setBtnIcon(del, "trash", t("dictDeleteWord"));
+  del.addEventListener("click", () => _pbpVocabDeleteRow(w, del));
+  frag.appendChild(del);
+
+  detail.replaceChildren(frag);
+}
+
+// Split the quote around case-insensitive matches of the term; matches render
+// in <mark>. textContent-only construction — no innerHTML with stored text.
+function _pbpVocabHighlightTerm(host, quote, term) {
+  const needle = (term || "").toLowerCase();
+  if (!needle) { host.textContent = quote; return; }
+  const lower = quote.toLowerCase();
+  let idx = 0, pos = lower.indexOf(needle);
+  while (pos !== -1) {
+    host.appendChild(document.createTextNode(quote.slice(idx, pos)));
+    const mark = document.createElement("mark");
+    mark.textContent = quote.slice(pos, pos + needle.length);
+    host.appendChild(mark);
+    idx = pos + needle.length;
+    pos = lower.indexOf(needle, idx);
+  }
+  host.appendChild(document.createTextNode(quote.slice(idx)));
+}
+
+// Shared single-word mutation wrapper: owner + generation discipline identical
+// to the batch actions (mutation at confirm, reload after, stale writes dropped).
+async function _pbpVocabDetailMutate(w, mutate) {
+  const gen = ++_vocabRenderGen;
+  let owner = null;
+  try {
+    owner = await pbpVocabCurrentOwner();
+    const ok = await mutate(owner);
+    const refreshed = await _pbpVocabReloadAfterMutation(owner, gen);
+    if (gen !== _vocabRenderGen) return;
+    if (!ok) _pbpVocabFlashStatus(false, t("vocabBatchFailed"));
+    else if (!refreshed) _pbpVocabFlashStatus(false, t("vocabRefreshFailed"));
+  } catch (err) {
+    console.warn("vocab detail mutate failed:", err.name, err.message);
+    if (owner) await _pbpVocabReloadAfterMutation(owner, gen);
+    if (gen === _vocabRenderGen) _pbpVocabFlashStatus(false, t("vocabBatchFailed"));
+  }
 }
 
 // Verbatim twin: options-vocab.js and library-vocab.js each carry this helper
@@ -503,6 +700,17 @@ function _pbpVocabRenderList(append) {
     more.textContent = t("vocabLoadMore", String(Math.min(PBP_VOCAB_RENDER_BATCH, remaining)));
   }
   _pbpVocabSyncSelectionUi();
+  // Full rebuilds (append=false: search/filter/sort/reload) replace every
+  // row, dropping the aria-current marker set by row activation even though
+  // the detail pane still shows that word. Re-find it by id and re-mark it --
+  // this covers search/filter/sort here; _pbpVocabReloadAfterMutation covers
+  // its own reload the same way, since that path also re-renders the
+  // detail pane's content (not just the marker).
+  if (!append && _pbpVocabDetailWordId) {
+    const current = document.querySelector(
+      `#vocab-list .vocab-card[data-vocab-id="${CSS.escape(_pbpVocabDetailWordId)}"]`);
+    if (current) current.setAttribute("aria-current", "true");
+  }
 }
 
 function _pbpVocabApplyView(resetLimit) {
@@ -561,6 +769,16 @@ async function _pbpVocabReloadAfterMutation(expectedOwner, requestedGen) {
     _pbpVocabRefreshGroupOptions(true);
     _pbpVocabSetLoading(false);
     _pbpVocabApplyView(true);
+    // Detail pane follows the data: refresh the shown word from the fresh rows,
+    // or reset to the empty state when it was deleted.
+    if (_pbpVocabDetailWordId) {
+      const fresh = _vocabViewRows.find((row) => row.id === _pbpVocabDetailWordId);
+      _pbpVocabRenderDetail(fresh || null);
+      if (fresh) {
+        const el = document.querySelector(`#vocab-list .vocab-card[data-vocab-id="${CSS.escape(fresh.id)}"]`);
+        if (el) el.setAttribute("aria-current", "true");
+      }
+    }
     return true;
   } catch (_) {
     if (gen !== _vocabRenderGen) return false;

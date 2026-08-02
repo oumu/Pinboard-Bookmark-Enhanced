@@ -3527,6 +3527,7 @@
   "skimFailed": { "message": "Impossible de générer les points clés" },
   "libraryTitle": { "message": "Bloc-notes et vocabulaire" },
   "libraryOpen": { "message": "Ouvrir le bloc-notes et le vocabulaire" },
+  "libraryDetailTitle": { "message": "Détails du mot" },
   "libraryDetailEmpty": { "message": "Sélectionnez un mot à gauche pour afficher ses détails." },
   "libraryRelookup": { "message": "Chercher à nouveau" },
   "libraryBack": { "message": "Retour à la liste" }

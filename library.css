@@ -417,6 +417,42 @@ html[data-theme] .save-status.bad { color: var(--lib-danger); }
   .vocab-detail-pane { position: static; }
 }
 
+/* Detail pane content (Task 6). */
+.vocab-detail-head { display: flex; align-items: center; gap: var(--lib-sp-2); flex-wrap: wrap; }
+.vocab-detail-term { margin: 0; font-size: 22px; }
+.vocab-detail-actions { display: flex; gap: var(--lib-sp-2); margin: var(--lib-sp-3) 0; flex-wrap: wrap; }
+.vocab-detail-gloss { margin: var(--lib-sp-3) 0; white-space: pre-wrap; }
+.vocab-gloss-ipa { color: var(--lib-fg-muted); }
+.vocab-detail-context { margin: var(--lib-sp-3) 0; padding-left: var(--lib-sp-3); border-left: 3px solid var(--lib-border); }
+.vocab-detail-context mark { background: transparent; color: var(--lib-accent); font-weight: 600; }
+.vocab-detail-delete { margin-top: var(--lib-sp-4); }
+.vocab-detail-dict { margin-top: var(--lib-sp-4); border-top: 1px solid var(--lib-border-section); padding-top: var(--lib-sp-3); }
+
+/* Note editor, ported from options.css's .vocab-note-edit/-input/-save family
+   (--opt-* tokens translated to their --lib-* equivalents; same closed-field
+   and motion-pop recipes used elsewhere on this page) -- this pane is the
+   first place on the library page that renders it. */
+.vocab-note-edit { display: flex; gap: var(--lib-sp-4); align-items: flex-start; margin-top: var(--lib-sp-2); }
+.vocab-note-input {
+  flex: 1 1 auto; min-width: 0; resize: vertical;
+  font: inherit; font-size: 12px; line-height: 1.5;
+  padding: 4px var(--lib-sp-2);
+  border: 1px solid var(--lib-input-border, #cdd1d6);
+  border-radius: var(--lib-radius-md);
+  background: inherit; color: inherit;
+}
+.vocab-note-input:focus { outline: none; border-color: var(--lib-focus-bd, var(--lib-accent)); }
+.vocab-note-input:focus-visible { box-shadow: var(--lib-focus-ring, 0 0 6px 1px color-mix(in srgb, var(--lib-accent) 45%, transparent)); }
+html.motion-ready .vocab-note-save {
+  transition: opacity var(--motion-pop) var(--ease-out),
+              translate var(--motion-pop) var(--ease-out),
+              display var(--motion-pop) allow-discrete;
+}
+html.motion-ready .vocab-note-save:not([hidden]) {
+  @starting-style { opacity: 0; translate: 0 2px; }
+}
+html.motion-ready .vocab-note-save[hidden] { display: none; opacity: 0; translate: 0 2px; }
+
 /* The vocab variant carries a fourth control (status filter). Flex, not a
    wider grid: grid columns can neither wrap nor shrink a select below its
    longest option, which let the status filter punch through the panel

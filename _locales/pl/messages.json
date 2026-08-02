@@ -3527,6 +3527,7 @@
   "skimFailed": { "message": "Nie udało się wygenerować kluczowych punktów" },
   "libraryTitle": { "message": "Notatki i słówka" },
   "libraryOpen": { "message": "Otwórz notatki i słówka" },
+  "libraryDetailTitle": { "message": "Szczegóły słówka" },
   "libraryDetailEmpty": { "message": "Wybierz słówko po lewej, aby zobaczyć szczegóły." },
   "libraryRelookup": { "message": "Sprawdź ponownie" },
   "libraryBack": { "message": "Wróć do listy" }

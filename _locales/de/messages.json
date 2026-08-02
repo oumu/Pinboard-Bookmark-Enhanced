@@ -3527,6 +3527,7 @@
   "skimFailed": { "message": "Kernpunkte konnten nicht erzeugt werden" },
   "libraryTitle": { "message": "Notizen & Vokabeln" },
   "libraryOpen": { "message": "Notizen & Vokabeln öffnen" },
+  "libraryDetailTitle": { "message": "Wortdetails" },
   "libraryDetailEmpty": { "message": "Wähle links ein Wort aus, um Details zu sehen." },
   "libraryRelookup": { "message": "Erneut nachschlagen" },
   "libraryBack": { "message": "Zurück zur Liste" }
