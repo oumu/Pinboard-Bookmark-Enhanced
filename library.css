@@ -437,12 +437,14 @@ html[data-theme] .save-status.bad { color: var(--lib-danger); }
    the library mapping: body text -> --lib-fg, secondary/annotation text
    -> --lib-fg-muted, hint/status copy (.xp-dict-msg) -> --lib-fg-hint,
    border/divider -> --lib-border, link/emphasis -> --lib-accent, block
-   background (select + retry/connect buttons) -> --lib-code-bg. .xp-dict-lang
-   and .xp-dict-connect/.xp-retry are NOT .btn-classed by md-dict.js, so they
-   need their own paint here; .xp-dict-lang mirrors the closed-select recipe
-   already established by .vocab-filter-toolbar select above (custom chevron,
-   same border/background tokens) rather than md-preview's literal chevron
-   color, so it reads as the same control family on this page. */
+   background -> --lib-code-bg (retry/connect buttons) or --lib-btn-bg
+   (the select, see below). .xp-dict-lang and .xp-dict-connect/.xp-retry are
+   NOT .btn-classed by md-dict.js, so they need their own paint here;
+   .xp-dict-lang mirrors the closed-select recipe already established by
+   .vocab-filter-toolbar select above -- same chevron markup, same
+   --lib-btn-bg/--lib-input-border/--lib-btn-hover tokens, not md-preview's
+   literal chevron color -- so it reads as the same control family on this
+   page. */
 .xp-dict-head { display: flex; align-items: center; gap: var(--lib-sp-2); margin-bottom: var(--lib-sp-2); }
 .xp-dict-lang {
   flex: 0 1 auto;
@@ -451,7 +453,7 @@ html[data-theme] .save-status.bad { color: var(--lib-danger); }
   padding: 3px 22px 3px var(--lib-sp-2);
   border: 1px solid var(--lib-border);
   border-radius: var(--lib-radius-md);
-  background-color: var(--lib-code-bg);
+  background-color: var(--lib-btn-bg);
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M3 4.5 6 7.5 9 4.5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
   background-repeat: no-repeat;
   background-position: right 6px center;
@@ -463,7 +465,7 @@ html[data-theme] .save-status.bad { color: var(--lib-danger); }
   box-shadow: none;
   transition: border-color var(--motion-state) ease, background-color var(--motion-state) ease;
 }
-.xp-dict-lang:hover { background-color: var(--lib-btn-hover, var(--lib-code-bg)); border-color: var(--lib-input-border, var(--lib-border)); }
+.xp-dict-lang:hover { background-color: var(--lib-btn-hover, var(--lib-btn-bg)); border-color: var(--lib-input-border, var(--lib-border)); }
 .xp-dict-lang:focus-visible { outline: 2px solid var(--lib-accent); outline-offset: 1px; }
 html[data-theme="nord-night"] .xp-dict-lang,
 html[data-theme="terminal"] .xp-dict-lang,

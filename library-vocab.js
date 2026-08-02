@@ -511,13 +511,34 @@ function _pbpVocabRelookup(w, host) {
   wrap.appendChild(slot);
   host.replaceChildren(wrap); // host is .vocab-detail-dict, never the slot
 
+  // Child controller per run, chained to the session-level `ctrl` -- mirrors
+  // md-dict.js's pbpDictRun child/parent discipline (its own `_pbpDictChildCtrl`
+  // + `_pbpDictParentCleanup`). Without this, a language switch reused the
+  // single outer signal for every run: _pbpDictSlotRun only checks THAT
+  // signal for staleness, so a slow in-flight fetch for the OLD language (up
+  // to its 8s timeout) could still land in the shared onlineEl after the new
+  // language's result, silently showing content the dropdown no longer names.
+  let childCtrl = null;
+  let childCleanup = null;
   function startRun(lang) {
+    if (childCtrl) childCtrl.abort();
+    if (childCleanup) { childCleanup(); childCleanup = null; }
+    const child = new AbortController();
+    childCtrl = child;
+    const onParentAbort = () => child.abort();
+    if (ctrl.signal.aborted) child.abort();
+    else {
+      ctrl.signal.addEventListener("abort", onParentAbort, { once: true });
+      childCleanup = () => { try { ctrl.signal.removeEventListener("abort", onParentAbort); } catch (_) {} };
+    }
+    const signal = child.signal;
+
     const cur = { term: w.term, lang, sentence: (w.contexts && w.contexts[0] && w.contexts[0].quote) || "" };
     cur.rerun = () => { if (_pbpDictCurrent === cur) startRun(sel.value); };
     _pbpDictCurrent = cur;
     _pbpDictSlotSkeleton(onlineEl);
-    _pbpDictEcdictSide(localEl, w.term, lang, ctrl.signal, cur);
-    _pbpDictSlotRun(onlineEl, w.term, lang, ctrl.signal, Promise.resolve(""), cur.rerun, cur.sentence)
+    _pbpDictEcdictSide(localEl, w.term, lang, signal, cur);
+    _pbpDictSlotRun(onlineEl, w.term, lang, signal, Promise.resolve(""), cur.rerun, cur.sentence)
       .catch((err) => console.warn("library relookup failed:", err.name, err.message));
   }
   sel.addEventListener("change", () => startRun(sel.value));
