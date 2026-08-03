@@ -49,6 +49,16 @@
     "expected": 1,
     "note": null
   },
+  "library||#vocab-invert-selection|default|hitAreaMin": {
+    "surface": "library",
+    "theme": "",
+    "selector": "#vocab-invert-selection",
+    "state": "default",
+    "check": "hitAreaMin",
+    "actual": 22.5,
+    "expected": 24,
+    "note": null
+  },
   "library||.vocab-stat-chip|default|padVMin": {
     "surface": "library",
     "theme": "",
@@ -119,6 +129,16 @@
     "expected": 1,
     "note": null
   },
+  "library|catppuccin-latte|#vocab-invert-selection|default|hitAreaMin": {
+    "surface": "library",
+    "theme": "catppuccin-latte",
+    "selector": "#vocab-invert-selection",
+    "state": "default",
+    "check": "hitAreaMin",
+    "actual": 22.5,
+    "expected": 24,
+    "note": null
+  },
   "library|catppuccin-latte|.vocab-stat-chip|default|padVMin": {
     "surface": "library",
     "theme": "catppuccin-latte",
@@ -128,6 +148,16 @@
     "actual": 1,
     "expected": 2,
     "note": null
+  },
+  "library|catppuccin-latte|.vocab-stat-chip|default|textContrastMulti": {
+    "surface": "library",
+    "theme": "catppuccin-latte",
+    "selector": ".vocab-stat-chip",
+    "state": "default",
+    "check": "textContrastMulti",
+    "actual": 4.34,
+    "expected": 4.5,
+    "note": "chip-bg=4.72:1, btn-hover=4.34:1"
   },
   "library|catppuccin-latte|.notes-detail-delete|default|textContrast": {
     "surface": "library",
@@ -217,6 +247,16 @@
     "check": "heightEqWith",
     "actual": 2,
     "expected": 1,
+    "note": null
+  },
+  "library|catppuccin-mocha|#vocab-invert-selection|default|hitAreaMin": {
+    "surface": "library",
+    "theme": "catppuccin-mocha",
+    "selector": "#vocab-invert-selection",
+    "state": "default",
+    "check": "hitAreaMin",
+    "actual": 22.5,
+    "expected": 24,
     "note": null
   },
   "library|catppuccin-mocha|.vocab-stat-chip|default|padVMin": {
@@ -309,6 +349,16 @@
     "expected": 1,
     "note": null
   },
+  "library|dracula|#vocab-invert-selection|default|hitAreaMin": {
+    "surface": "library",
+    "theme": "dracula",
+    "selector": "#vocab-invert-selection",
+    "state": "default",
+    "check": "hitAreaMin",
+    "actual": 22.5,
+    "expected": 24,
+    "note": null
+  },
   "library|dracula|.vocab-stat-chip|default|padVMin": {
     "surface": "library",
     "theme": "dracula",
@@ -367,6 +417,16 @@
     "check": "heightEqWith",
     "actual": 2,
     "expected": 1,
+    "note": null
+  },
+  "library|flexoki-light|#vocab-invert-selection|default|hitAreaMin": {
+    "surface": "library",
+    "theme": "flexoki-light",
+    "selector": "#vocab-invert-selection",
+    "state": "default",
+    "check": "hitAreaMin",
+    "actual": 22.5,
+    "expected": 24,
     "note": null
   },
   "library|flexoki-light|.vocab-stat-chip|default|padVMin": {
@@ -469,6 +529,16 @@
     "expected": 1,
     "note": null
   },
+  "library|flexoki-dark|#vocab-invert-selection|default|hitAreaMin": {
+    "surface": "library",
+    "theme": "flexoki-dark",
+    "selector": "#vocab-invert-selection",
+    "state": "default",
+    "check": "hitAreaMin",
+    "actual": 22.5,
+    "expected": 24,
+    "note": null
+  },
   "library|flexoki-dark|.vocab-stat-chip|default|padVMin": {
     "surface": "library",
     "theme": "flexoki-dark",
@@ -478,6 +548,16 @@
     "actual": 1,
     "expected": 2,
     "note": null
+  },
+  "library|flexoki-dark|.vocab-stat-chip|default|textContrastMulti": {
+    "surface": "library",
+    "theme": "flexoki-dark",
+    "selector": ".vocab-stat-chip",
+    "state": "default",
+    "check": "textContrastMulti",
+    "actual": 3.86,
+    "expected": 4.5,
+    "note": "chip-bg=4.56:1, btn-hover=3.86:1"
   },
   "library|flexoki-dark|.notes-detail-delete|default|textContrast": {
     "surface": "library",
@@ -537,6 +617,16 @@
     "check": "heightEqWith",
     "actual": 2,
     "expected": 1,
+    "note": null
+  },
+  "library|github-light|#vocab-invert-selection|default|hitAreaMin": {
+    "surface": "library",
+    "theme": "github-light",
+    "selector": "#vocab-invert-selection",
+    "state": "default",
+    "check": "hitAreaMin",
+    "actual": 22.5,
+    "expected": 24,
     "note": null
   },
   "library|github-light|.vocab-stat-chip|default|padVMin": {
@@ -639,6 +729,16 @@
     "expected": 1,
     "note": null
   },
+  "library|gruvbox-dark|#vocab-invert-selection|default|hitAreaMin": {
+    "surface": "library",
+    "theme": "gruvbox-dark",
+    "selector": "#vocab-invert-selection",
+    "state": "default",
+    "check": "hitAreaMin",
+    "actual": 22.5,
+    "expected": 24,
+    "note": null
+  },
   "library|gruvbox-dark|.vocab-stat-chip|default|padVMin": {
     "surface": "library",
     "theme": "gruvbox-dark",
@@ -707,6 +807,16 @@
     "check": "heightEqWith",
     "actual": 2,
     "expected": 1,
+    "note": null
+  },
+  "library|modern-card|#vocab-invert-selection|default|hitAreaMin": {
+    "surface": "library",
+    "theme": "modern-card",
+    "selector": "#vocab-invert-selection",
+    "state": "default",
+    "check": "hitAreaMin",
+    "actual": 22.5,
+    "expected": 24,
     "note": null
   },
   "library|modern-card|.vocab-stat-chip|default|padVMin": {
@@ -809,6 +919,16 @@
     "expected": 1,
     "note": null
   },
+  "library|nord-night|#vocab-invert-selection|default|hitAreaMin": {
+    "surface": "library",
+    "theme": "nord-night",
+    "selector": "#vocab-invert-selection",
+    "state": "default",
+    "check": "hitAreaMin",
+    "actual": 22.5,
+    "expected": 24,
+    "note": null
+  },
   "library|nord-night|.vocab-stat-chip|default|padVMin": {
     "surface": "library",
     "theme": "nord-night",
@@ -877,6 +997,16 @@
     "check": "heightEqWith",
     "actual": 2,
     "expected": 1,
+    "note": null
+  },
+  "library|paper-ink|#vocab-invert-selection|default|hitAreaMin": {
+    "surface": "library",
+    "theme": "paper-ink",
+    "selector": "#vocab-invert-selection",
+    "state": "default",
+    "check": "hitAreaMin",
+    "actual": 22.5,
+    "expected": 24,
     "note": null
   },
   "library|paper-ink|.vocab-stat-chip|default|padVMin": {
@@ -969,6 +1099,16 @@
     "expected": 1,
     "note": null
   },
+  "library|rose-pine|#vocab-invert-selection|default|hitAreaMin": {
+    "surface": "library",
+    "theme": "rose-pine",
+    "selector": "#vocab-invert-selection",
+    "state": "default",
+    "check": "hitAreaMin",
+    "actual": 22.5,
+    "expected": 24,
+    "note": null
+  },
   "library|rose-pine|.vocab-stat-chip|default|padVMin": {
     "surface": "library",
     "theme": "rose-pine",
@@ -1037,6 +1177,16 @@
     "check": "heightEqWith",
     "actual": 2,
     "expected": 1,
+    "note": null
+  },
+  "library|solarized-light|#vocab-invert-selection|default|hitAreaMin": {
+    "surface": "library",
+    "theme": "solarized-light",
+    "selector": "#vocab-invert-selection",
+    "state": "default",
+    "check": "hitAreaMin",
+    "actual": 22.5,
+    "expected": 24,
     "note": null
   },
   "library|solarized-light|.vocab-stat-chip|default|padVMin": {
@@ -1149,6 +1299,16 @@
     "expected": 1,
     "note": null
   },
+  "library|solarized-dark|#vocab-invert-selection|default|hitAreaMin": {
+    "surface": "library",
+    "theme": "solarized-dark",
+    "selector": "#vocab-invert-selection",
+    "state": "default",
+    "check": "hitAreaMin",
+    "actual": 22.5,
+    "expected": 24,
+    "note": null
+  },
   "library|solarized-dark|.vocab-stat-chip|default|padVMin": {
     "surface": "library",
     "theme": "solarized-dark",
@@ -1249,6 +1409,16 @@
     "expected": 1,
     "note": null
   },
+  "library|terminal|#vocab-invert-selection|default|hitAreaMin": {
+    "surface": "library",
+    "theme": "terminal",
+    "selector": "#vocab-invert-selection",
+    "state": "default",
+    "check": "hitAreaMin",
+    "actual": 22.5,
+    "expected": 24,
+    "note": null
+  },
   "library|terminal|.vocab-stat-chip|default|padVMin": {
     "surface": "library",
     "theme": "terminal",
@@ -1257,6 +1427,176 @@
     "check": "padVMin",
     "actual": 1,
     "expected": 2,
+    "note": null
+  },
+  "library|terminal|.vocab-stat-chip|default|textContrastMulti": {
+    "surface": "library",
+    "theme": "terminal",
+    "selector": ".vocab-stat-chip",
+    "state": "default",
+    "check": "textContrastMulti",
+    "actual": 4.11,
+    "expected": 4.5,
+    "note": "chip-bg=6.15:1, btn-hover=4.11:1"
+  },
+  "popup||#offline-queue-clear|default|iconVCenter": {
+    "surface": "popup",
+    "theme": "",
+    "selector": "#offline-queue-clear",
+    "state": "default",
+    "check": "iconVCenter",
+    "actual": 1.7,
+    "expected": 1,
+    "note": null
+  },
+  "popup|popup-dark|#offline-queue-clear|default|iconVCenter": {
+    "surface": "popup",
+    "theme": "popup-dark",
+    "selector": "#offline-queue-clear",
+    "state": "default",
+    "check": "iconVCenter",
+    "actual": 1.7,
+    "expected": 1,
+    "note": null
+  },
+  "popup|catppuccin-latte|#offline-queue-clear|default|iconVCenter": {
+    "surface": "popup",
+    "theme": "catppuccin-latte",
+    "selector": "#offline-queue-clear",
+    "state": "default",
+    "check": "iconVCenter",
+    "actual": 1.7,
+    "expected": 1,
+    "note": null
+  },
+  "popup|catppuccin-mocha|#offline-queue-clear|default|iconVCenter": {
+    "surface": "popup",
+    "theme": "catppuccin-mocha",
+    "selector": "#offline-queue-clear",
+    "state": "default",
+    "check": "iconVCenter",
+    "actual": 1.7,
+    "expected": 1,
+    "note": null
+  },
+  "popup|dracula|#offline-queue-clear|default|iconVCenter": {
+    "surface": "popup",
+    "theme": "dracula",
+    "selector": "#offline-queue-clear",
+    "state": "default",
+    "check": "iconVCenter",
+    "actual": 1.7,
+    "expected": 1,
+    "note": null
+  },
+  "popup|flexoki-light|#offline-queue-clear|default|iconVCenter": {
+    "surface": "popup",
+    "theme": "flexoki-light",
+    "selector": "#offline-queue-clear",
+    "state": "default",
+    "check": "iconVCenter",
+    "actual": 1.7,
+    "expected": 1,
+    "note": null
+  },
+  "popup|flexoki-dark|#offline-queue-clear|default|iconVCenter": {
+    "surface": "popup",
+    "theme": "flexoki-dark",
+    "selector": "#offline-queue-clear",
+    "state": "default",
+    "check": "iconVCenter",
+    "actual": 1.7,
+    "expected": 1,
+    "note": null
+  },
+  "popup|github-light|#offline-queue-clear|default|iconVCenter": {
+    "surface": "popup",
+    "theme": "github-light",
+    "selector": "#offline-queue-clear",
+    "state": "default",
+    "check": "iconVCenter",
+    "actual": 1.7,
+    "expected": 1,
+    "note": null
+  },
+  "popup|gruvbox-dark|#offline-queue-clear|default|iconVCenter": {
+    "surface": "popup",
+    "theme": "gruvbox-dark",
+    "selector": "#offline-queue-clear",
+    "state": "default",
+    "check": "iconVCenter",
+    "actual": 1.7,
+    "expected": 1,
+    "note": null
+  },
+  "popup|modern-card|#offline-queue-clear|default|iconVCenter": {
+    "surface": "popup",
+    "theme": "modern-card",
+    "selector": "#offline-queue-clear",
+    "state": "default",
+    "check": "iconVCenter",
+    "actual": 1.7,
+    "expected": 1,
+    "note": null
+  },
+  "popup|nord-night|#offline-queue-clear|default|iconVCenter": {
+    "surface": "popup",
+    "theme": "nord-night",
+    "selector": "#offline-queue-clear",
+    "state": "default",
+    "check": "iconVCenter",
+    "actual": 1.7,
+    "expected": 1,
+    "note": null
+  },
+  "popup|paper-ink|#offline-queue-clear|default|iconVCenter": {
+    "surface": "popup",
+    "theme": "paper-ink",
+    "selector": "#offline-queue-clear",
+    "state": "default",
+    "check": "iconVCenter",
+    "actual": 1.7,
+    "expected": 1,
+    "note": null
+  },
+  "popup|rose-pine|#offline-queue-clear|default|iconVCenter": {
+    "surface": "popup",
+    "theme": "rose-pine",
+    "selector": "#offline-queue-clear",
+    "state": "default",
+    "check": "iconVCenter",
+    "actual": 1.7,
+    "expected": 1,
+    "note": null
+  },
+  "popup|solarized-light|#offline-queue-clear|default|iconVCenter": {
+    "surface": "popup",
+    "theme": "solarized-light",
+    "selector": "#offline-queue-clear",
+    "state": "default",
+    "check": "iconVCenter",
+    "actual": 1.7,
+    "expected": 1,
+    "note": null
+  },
+  "popup|solarized-dark|#offline-queue-clear|default|iconVCenter": {
+    "surface": "popup",
+    "theme": "solarized-dark",
+    "selector": "#offline-queue-clear",
+    "state": "default",
+    "check": "iconVCenter",
+    "actual": 1.7,
+    "expected": 1,
+    "note": null
+  },
+  "popup|terminal|#offline-queue-clear|default|iconVCenter": {
+    "surface": "popup",
+    "theme": "terminal",
+    "selector": "#offline-queue-clear",
+    "state": "default",
+    "check": "iconVCenter",
+    "actual": 2.7,
+    "expected": 1,
     "note": null
   }
 }

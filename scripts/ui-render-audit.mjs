@@ -103,16 +103,28 @@ function compositeStack(rawColors) {
   }
   return base;
 }
+// A CSS custom property value read via getComputedStyle (textContrastMulti's
+// extraBgRaw) is a solid theme token, not a foreground painted over
+// something -- every `--{ns}-btn-hover` in the shipped CSS is a plain hex
+// literal (verified: grep -n -- '--lib-btn-hover:' library.css), so this
+// only needs the two imported parsers, no compositing.
+function parseSolidColor(raw) {
+  const s = String(raw || "").trim();
+  if (!s) return null;
+  if (s.startsWith("#")) return hexRgb(s);
+  const parsed = parseRgba(s);
+  return parsed ? parsed.slice(0, 3) : null;
+}
 function round2(n) { return n == null ? n : Math.round(n * 100) / 100; }
 function verdict(check, ok, actual, expected, note) { return { check, status: ok ? "OK" : "FAIL", actual, expected, note: note || null }; }
 function skip(check, expected, note) { return { check, status: "SKIP", actual: null, expected, note }; }
 
 // Runs INSIDE the page (Playwright serializes this function's source), so it
 // must be self-contained -- no references to anything outside its own body.
-// `compareSelector` is optional (only `heightEqWith` checks use it) -- one
-// evaluate() round-trip covers both the primary probe and the row-mate's
-// height instead of a second page.evaluate call per check.
-function probeSelector({ selector, compareSelector }) {
+// `compareSelector` (heightEqWith) and `extraBgVarName` (textContrastMulti)
+// are both optional -- one evaluate() round-trip covers whatever the check
+// needs instead of a second page.evaluate call per check.
+function probeSelector({ selector, compareSelector, extraBgVarName }) {
   const el = document.querySelector(selector);
   if (!el) return { found: false };
   const cs = getComputedStyle(el);
@@ -132,6 +144,10 @@ function probeSelector({ selector, compareSelector }) {
     const cmpEl = document.querySelector(compareSelector);
     if (cmpEl) { const r = cmpEl.getBoundingClientRect(); compareRect = { height: r.height }; }
   }
+  let extraBgRaw = null;
+  if (extraBgVarName) {
+    extraBgRaw = getComputedStyle(document.documentElement).getPropertyValue(extraBgVarName).trim() || null;
+  }
   return {
     found: true,
     disabled: !!el.disabled,
@@ -140,6 +156,7 @@ function probeSelector({ selector, compareSelector }) {
     rect: { top: rect.top, left: rect.left, width: rect.width, height: rect.height },
     svg,
     compareRect,
+    extraBgRaw,
     paddingLeft: parseFloat(cs.paddingLeft) || 0,
     paddingRight: parseFloat(cs.paddingRight) || 0,
     paddingTop: parseFloat(cs.paddingTop) || 0,
@@ -156,6 +173,14 @@ function evaluateCheck(check, raw) {
   const out = [];
   const exp = check.expect;
   const disabledSkip = !!raw.disabled; // WCAG 1.4.3 exempts disabled controls -- contrast checks only
+  // A collapsed/hidden ancestor (fixture forgot to reveal a panel, or a
+  // future CSS change makes an element `display:none`) reports a
+  // zero-size rect -- every geometry math below would then divide/compare
+  // against 0 and could accidentally read as "passing". Every geometry
+  // check below fails loudly on this instead (still recorded into
+  // known-failures normally -- it is not a silent skip).
+  const hostZero = raw.rect.width === 0 || raw.rect.height === 0;
+  const zeroNote = "zero-size element (width or height is 0) -- not actually rendered/visible; fixture setup or a display:none regression";
 
   if ("textContrast" in exp) {
     if (disabledSkip) out.push(skip("textContrast", exp.textContrast, "disabled (WCAG 1.4.3 exempt)"));
@@ -176,6 +201,7 @@ function evaluateCheck(check, raw) {
   }
   if ("iconVCenter" in exp) {
     if (!raw.svg) out.push(verdict("iconVCenter", false, null, exp.iconVCenter, "no <svg> descendant"));
+    else if (hostZero || raw.svg.rect.height === 0) out.push(verdict("iconVCenter", false, null, exp.iconVCenter, zeroNote));
     else {
       const hostCenter = raw.rect.top + raw.rect.height / 2;
       const svgCenter = raw.svg.rect.top + raw.svg.rect.height / 2;
@@ -183,34 +209,79 @@ function evaluateCheck(check, raw) {
         round2(Math.abs(hostCenter - svgCenter)), exp.iconVCenter));
     }
   }
-  if ("padGteRadiusH" in exp) {
-    const effRadius = Math.min(raw.borderRadius, raw.rect.height / 2);
-    const padH = Math.min(raw.paddingLeft, raw.paddingRight);
-    out.push(verdict("padGteRadiusH", padH >= effRadius - 0.5, round2(padH), round2(effRadius)));
+  if (exp.padGteRadiusH === true) {
+    if (hostZero) out.push(verdict("padGteRadiusH", false, null, null, zeroNote));
+    else {
+      const effRadius = Math.min(raw.borderRadius, raw.rect.height / 2);
+      const padH = Math.min(raw.paddingLeft, raw.paddingRight);
+      out.push(verdict("padGteRadiusH", padH >= effRadius - 0.5, round2(padH), round2(effRadius)));
+    }
   }
   if ("padVMin" in exp) {
-    const padV = Math.min(raw.paddingTop, raw.paddingBottom);
-    out.push(verdict("padVMin", padV >= exp.padVMin - 0.01, round2(padV), exp.padVMin));
+    if (hostZero) out.push(verdict("padVMin", false, null, exp.padVMin, zeroNote));
+    else {
+      const padV = Math.min(raw.paddingTop, raw.paddingBottom);
+      out.push(verdict("padVMin", padV >= exp.padVMin - 0.01, round2(padV), exp.padVMin));
+    }
   }
   if ("heightEqWith" in exp) {
     const { selector: cmpSel, tolerancePx } = exp.heightEqWith;
-    if (raw.compareRect == null) {
+    if (hostZero) out.push(verdict("heightEqWith", false, null, tolerancePx, zeroNote));
+    else if (raw.compareRect == null) {
       out.push(verdict("heightEqWith", false, null, tolerancePx, `comparison selector not found: ${cmpSel}`));
+    } else if (raw.compareRect.height === 0) {
+      out.push(verdict("heightEqWith", false, null, tolerancePx, `comparison element is zero-size: ${cmpSel}`));
     } else {
       const diff = Math.abs(raw.rect.height - raw.compareRect.height);
       out.push(verdict("heightEqWith", diff <= tolerancePx, round2(diff), tolerancePx));
     }
   }
+  if ("hitAreaMin" in exp) {
+    if (hostZero) out.push(verdict("hitAreaMin", false, null, exp.hitAreaMin, zeroNote));
+    else {
+      const shortSide = Math.min(raw.rect.width, raw.rect.height);
+      out.push(verdict("hitAreaMin", shortSide >= exp.hitAreaMin, round2(shortSide), exp.hitAreaMin));
+    }
+  }
+  if ("textContrastMulti" in exp) {
+    const { ratio, extraBgSelectorVar } = exp.textContrastMulti;
+    if (disabledSkip) out.push(skip("textContrastMulti", ratio, "disabled (WCAG 1.4.3 exempt)"));
+    else {
+      const fg1 = resolveColor(raw.color, bg);
+      const ratio1 = fg1 ? cr(fg1, bg) : 0;
+      const extraBg = parseSolidColor(raw.extraBgRaw);
+      if (!extraBg) {
+        // Never silently drop the second background: WARN via the note,
+        // and the verdict is only the single-background result.
+        out.push(verdict("textContrastMulti", ratio1 >= ratio, round2(ratio1), ratio,
+          `WARN: --${extraBgSelectorVar} token unresolved (raw=${JSON.stringify(raw.extraBgRaw)}) -- checked chip-bg only, NOT the second background`));
+      } else {
+        const fg2 = resolveColor(raw.color, extraBg);
+        const ratio2 = fg2 ? cr(fg2, extraBg) : 0;
+        const ok = ratio1 >= ratio && ratio2 >= ratio;
+        out.push(verdict("textContrastMulti", ok, round2(Math.min(ratio1, ratio2)), ratio,
+          `chip-bg=${round2(ratio1)}:1, ${extraBgSelectorVar}=${round2(ratio2)}:1`));
+      }
+    }
+  }
   return { results: out };
 }
+
+// COMPONENTS.md's `{ns}` notation: the token-name prefix each surface's
+// generated CSS variables use (--lib-*/--opt-*/--pp-*). Only textContrastMulti
+// needs this (to turn a checklist-declared role like "btn-hover" into the
+// actual custom-property name to read).
+const NS_BY_SURFACE = { library: "lib", options: "opt", popup: "pp" };
 
 async function runOneCheck(page, theme, check, results) {
   if (check.state !== "default") {
     throw new Error(`unsupported state "${check.state}" on ${check.selector} -- extend runOneCheck() before adding non-default states to the checklist`);
   }
+  const extraBgSelectorVar = check.expect.textContrastMulti?.extraBgSelectorVar;
   const raw = await page.evaluate(probeSelector, {
     selector: check.selector,
     compareSelector: check.expect.heightEqWith?.selector || null,
+    extraBgVarName: extraBgSelectorVar ? `--${NS_BY_SURFACE[check.surface]}-${extraBgSelectorVar}` : null,
   });
   const evald = evaluateCheck(check, raw);
   if (evald.setupError) {
@@ -227,6 +298,17 @@ async function runOneCheck(page, theme, check, results) {
 // pane that starts empty). ----
 function libraryView(selector) { return selector.startsWith(".notes-") ? "notes" : "vocab"; }
 function needsDetailOpen(selector) { return selector.includes("-detail-"); }
+// .vocab-batch-bar (library.css:986-1010, ".selecting") is height:0/hidden
+// until a row is selected. Every id living in that bar needs the same
+// precondition -- named explicitly rather than inferred from `expect`
+// shape, since hitAreaMin/heightEqWith checks both land there and a third
+// check type will land there again eventually.
+const BATCH_BAR_SELECTORS = new Set([
+  "#vocab-group-input", "#vocab-add-group", "#vocab-remove-group",
+  "#vocab-invert-selection", "#vocab-mark-known", "#vocab-mark-learning",
+  "#vocab-batch-delete", "#vocab-clear-selection",
+]);
+function needsBatchBarOpen(selector) { return BATCH_BAR_SELECTORS.has(selector); }
 
 async function runLibraryTheme(page, extBase, theme, checks, results) {
   // Explicit #vocab hash (not bare navigation): _pbpLibInitialView() prefers
@@ -253,17 +335,23 @@ async function runLibraryTheme(page, extBase, theme, checks, results) {
   const notesChecks = checks.filter((c) => libraryView(c.selector) === "notes");
 
   if (vocabChecks.length) {
+    // Setup clicks throw rather than silently no-op on a missing target: a
+    // future selector rename (Task 9/10 migration) or a broken seed must
+    // make this whole run fail loudly (exit 2), not quietly leave every
+    // downstream check reading a zero-size/never-opened element as "PASS".
     if (vocabChecks.some((c) => needsDetailOpen(c.selector))) {
       const head = page.locator("#vocab-list .vocab-card .notes-card-head").first();
-      if (await head.count()) { await head.click(); await page.waitForTimeout(250); }
+      if (!(await head.count())) {
+        throw new Error(`SETUP: no "#vocab-list .vocab-card .notes-card-head" to open the vocab detail pane (theme=${theme}) -- seed fixture broken or markup renamed`);
+      }
+      await head.click(); await page.waitForTimeout(250);
     }
-    // .vocab-batch-bar (the group-input row defect-2 checks) is height:0 /
-    // visibility:hidden until a row is selected (library.css:986-1010,
-    // ".selecting"). Only heightEqWith checks need it, but checking the box
-    // is harmless for every other vocab check.
-    if (vocabChecks.some((c) => c.expect.heightEqWith)) {
+    if (vocabChecks.some((c) => needsBatchBarOpen(c.selector))) {
       const checkbox = page.locator("#vocab-list .vocab-card .vocab-row-select").first();
-      if (await checkbox.count()) { await checkbox.click(); await page.waitForTimeout(350); }
+      if (!(await checkbox.count())) {
+        throw new Error(`SETUP: no "#vocab-list .vocab-card .vocab-row-select" to reveal .vocab-batch-bar (theme=${theme}) -- seed fixture broken or markup renamed`);
+      }
+      await checkbox.click(); await page.waitForTimeout(350);
     }
     for (const check of vocabChecks) await runOneCheck(page, theme, check, results);
   }
@@ -274,15 +362,36 @@ async function runLibraryTheme(page, extBase, theme, checks, results) {
     await page.waitForTimeout(250);
     if (notesChecks.some((c) => needsDetailOpen(c.selector))) {
       const hit = page.locator("#notes-list .notes-hit-btn").first();
-      if (await hit.count()) { await hit.click(); await page.waitForTimeout(250); }
+      if (!(await hit.count())) {
+        throw new Error(`SETUP: no "#notes-list .notes-hit-btn" to open the notes detail pane (theme=${theme}) -- seed fixture broken or markup renamed`);
+      }
+      await hit.click(); await page.waitForTimeout(250);
     }
     for (const check of notesChecks) await runOneCheck(page, theme, check, results);
   }
 }
 
-async function runSimpleTheme(page, url, theme, checks, results) {
+async function runSimpleTheme(page, url, theme, checks, results, surface) {
   await page.goto(url, { waitUntil: "load", timeout: TIMEOUT_MS });
   await page.waitForTimeout(500); // settles the theme-early async storage.get correction
+  if (surface === "popup" && checks.some((c) => c.selector === "#offline-queue-clear")) {
+    // #offline-queue-bar's own on-load refresh (popup.js showOfflineQueueStatus
+    // -> popup-offline.js refreshBar) reliably raced the seeded storage write
+    // in this harness and left the bar hidden -- confirmed by re-calling the
+    // same public API a second time, which always fixes it immediately. Using
+    // window.PPOffline.refresh() (popup.js's own exposed entry point, the
+    // same one showOfflineQueueStatus calls) here is fixture setup, not a
+    // behavior change to the extension.
+    const refreshed = await page.evaluate(async () => {
+      if (!window.PPOffline) return false;
+      await window.PPOffline.refresh();
+      return true;
+    });
+    if (!refreshed) {
+      throw new Error(`SETUP: window.PPOffline is undefined on popup.html (theme=${theme}) -- popup-offline.js failed to load`);
+    }
+    await page.waitForSelector("#offline-queue-bar:not(.hidden)", { timeout: TIMEOUT_MS });
+  }
   for (const check of checks) await runOneCheck(page, theme, check, results);
 }
 
@@ -309,6 +418,7 @@ function report(results) {
     }
     writeFileSync(KNOWN_FAILURES_PATH, JSON.stringify(knownFailures, null, 2) + "\n");
     console.log(`[render-audit] ${okCount} OK, ${skipCount} SKIP, ${fails.length} FAIL`);
+    if (skipCount) console.log(`[render-audit] SKIP = disabled controls exempted from contrast checks (WCAG 1.4.3), not a failure`);
     console.log(`[render-audit] wrote ${fails.length} known-failure(s) to ${KNOWN_FAILURES_PATH}`);
     for (const r of fails) console.log(`  FAIL  ${keyOf(r)}  actual=${r.actual}  expected=${r.expected}${r.note ? "  (" + r.note + ")" : ""}`);
     process.exit(0);
@@ -332,6 +442,7 @@ function report(results) {
   const stale = Object.keys(known).filter((k) => !seenKeys.has(k));
 
   console.log(`[render-audit] ${okCount} OK, ${skipCount} SKIP, ${warnings.length} WARN (known), ${violations.length} FAIL (new)`);
+  if (skipCount) console.log(`[render-audit] SKIP = disabled controls exempted from contrast checks (WCAG 1.4.3), not a failure`);
   if (warnings.length) {
     console.log(`[render-audit] known failures still outstanding (see ${KNOWN_FAILURES_PATH}):`);
     for (const r of warnings) console.log(`  WARN  ${keyOf(r)}  actual=${r.actual}  expected=${r.expected}`);
@@ -423,6 +534,19 @@ async function main() {
     },
   }));
 
+  // One offline-queue record so popup's #offline-queue-bar (and its
+  // #offline-queue-clear icon-only button) has something to render --
+  // CLAUDE.md's offlineQueue shape: save mode, url/title/tags/note,
+  // private/toread/archive flags, bookmark time, queue id/time, and the
+  // non-secret Pinboard username it's bound to (no token).
+  await sw.evaluate((owner) => chrome.storage.local.set({
+    offlineQueue: [{
+      queueId: "render-audit-1", queuedAt: Date.now(),
+      url: "https://example.com/render-audit-fixture", title: "Render Audit Offline Fixture",
+      account: owner, mode: "save", tags: "", note: "", private: false, toread: false, archive: false,
+    }],
+  }), SEED_TOKEN_ACCOUNT);
+
   const page = await ctx.newPage();
   const results = [];
   try {
@@ -439,7 +563,7 @@ async function main() {
         const { themePresetKey, optTheme } = themeToStorage(theme);
         await setTheme(sw, themePresetKey, optTheme);
         if (surface === "library") await runLibraryTheme(page, extBase, theme, checks, results);
-        else await runSimpleTheme(page, `${extBase}${SURFACE_PAGES[surface]}`, theme, checks, results);
+        else await runSimpleTheme(page, `${extBase}${SURFACE_PAGES[surface]}`, theme, checks, results, surface);
       }
     }
   } finally {

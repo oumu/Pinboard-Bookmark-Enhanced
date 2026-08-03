@@ -8,7 +8,7 @@
 //   3. Options page (--opt-*)             -> options.css [data-theme=...] blocks
 //   4. Library page (--lib-*)             -> library.css [data-theme=...] blocks
 
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync, readdirSync, realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { expandPalette } from "../composers/_util.mjs";
@@ -380,6 +380,18 @@ if (violations.length === 0) {
 }
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
+// realpathSync, not resolve(): Node's ESM loader resolves symlinks when it
+// loads this module, so import.meta.url reflects the REAL file path. A
+// plain resolve() on process.argv[1] only makes a relative CLI argument
+// absolute -- it does not follow a symlink in that argument. If this script
+// (or the directory it lives in) is ever invoked through a symlink, the two
+// would silently disagree, the guard would read false, main() would never
+// run, and the process would exit 0 having done nothing -- indistinguishable
+// from a genuine PASS. realpathSync() resolves symlinks on both sides.
+function isDirectRun() {
+  if (!process.argv[1]) return false;
+  try { return fileURLToPath(import.meta.url) === realpathSync(process.argv[1]); } catch { return false; }
+}
+if (isDirectRun()) {
   main();
 }

@@ -47,6 +47,23 @@
 //                      the check, not part of the known-failures key (the
 //                      key's `check` segment stays the plain string
 //                      "heightEqWith").
+//   hitAreaMin     -- getBoundingClientRect() width AND height both >= this
+//                      many px (§1.4 `hitAreaMin`). USER RULING: only
+//                      icon-only buttons get this hard assertion -- do not
+//                      add it to any icon+text button.
+//   textContrastMulti -- { ratio, extraBgSelectorVar }: computed `color` vs
+//                      BOTH the actual composited background AND the
+//                      current surface's `--{ns}-{extraBgSelectorVar}`
+//                      token (e.g. "btn-hover"), each >= ratio. For
+//                      `[aria-pressed]` chips, whose hover state repaints
+//                      onto `--{ns}-btn-hover` instead of their resting
+//                      chip-bg (§5.3/§5.4's `fgToAAMulti` pattern -- the
+//                      chip's text color has to survive both paints, not
+//                      just the one currently on screen). If the token
+//                      can't be resolved to a color, the check degrades to
+//                      the single actual-background comparison and the
+//                      verdict's `note` says so explicitly -- it never
+//                      silently drops the second background.
 //
 // Selectors below are written against the CURRENT shipped markup (pre-Task
 // 9/10 uplift). Task 9/10/12/13 migrate one selector's underlying CSS at a
@@ -64,9 +81,18 @@ export const CHECKS = [
     expect: { textContrast: 4.5, iconContrast: 3, iconVCenter: 1 } },   // also defect 5
   { surface: "library", page: "library.html", selector: ".notes-detail-delete", state: "default",
     expect: { textContrast: 4.5 } },
-  // options has a themed-state override (options.css:1244) that only masks
-  // the bug in the DEFAULT (no-preset) state -- this entry is expected to
-  // fail only under theme "" until Task 9 deletes that override (§1.3).
+  // options has a themed-state override (options.css:1244) that patches
+  // every preset -- but the DEFAULT (no-preset) state ALSO passes today,
+  // for an unrelated reason: options.css sets `:root { color-scheme: light }`
+  // (library has no such declaration -- exactly why library's copy of this
+  // bug IS visible and this one mostly isn't), which forces UA ButtonText
+  // to resolve near-black unconditionally, and the default background is
+  // light, so black-on-light clears AA by coincidence. Measured:
+  // `color: rgb(0,0,0)` on `rgb(245,245,240)`, ~19:1, every theme, verified.
+  // This entry is a confirmed TRUE NEGATIVE today, not a script bug -- it
+  // stays as a regression guard: if Task 9 deletes the html[data-theme]
+  // override without adding `color: var(--opt-btn-fg)` in the same commit,
+  // themed states go dark and this check starts failing (§1.3).
   { surface: "options", page: "options.html", selector: ".btn", state: "default",
     expect: { textContrast: 4.5 } },
 
@@ -82,8 +108,35 @@ export const CHECKS = [
   // rule even though popup is exempt from the rest of the button family. ----
   { surface: "library", page: "library.html", selector: ".vocab-detail-speak", state: "default",
     expect: { iconContrast: 3, iconVCenter: 1 } },
+  // .btn-ic's OWN box only ever contains its own svg -- comparing .btn-ic's
+  // rect against its svg's rect for iconVCenter is a vacuous assertion
+  // (popup.css:137 `.btn-ic { display:inline-flex; align-items:center }`
+  // guarantees that child is always centered inside its own parent; the
+  // diff is structurally 0 regardless of any real bug). iconContrast is the
+  // real check here: color is inherited through the host (.header-ic sets
+  // `color: var(--pp-fg-muted)`), so it genuinely exercises the token.
   { surface: "popup", page: "popup.html", selector: ".btn-ic", state: "default",
-    expect: { iconContrast: 3, iconVCenter: 1 } },
+    expect: { iconContrast: 3 } },
+  // The actual defect-5 shape for popup is `.btn-ic`'s `vertical-align:-3px`
+  // (popup.css:137) -- a heuristic offset relative to the HOST button's own
+  // line box, not to .btn-ic's own interior. That only shows up when
+  // measured against the host, and only when the host isn't itself a flex
+  // container (a flex host makes `vertical-align` inert on its flex-item
+  // children, which is why `.header-ic`/`.qbtn`/`.clear-all-link` -- all
+  // `display:flex`+`align-items:center` -- do NOT reproduce it: verified by
+  // direct measurement, diff=0px on `.header-ic .btn-ic`). #offline-queue-clear
+  // (`.offline-clear`, popup.css:848) has no flex/display override at all,
+  // so its `.btn-ic` is positioned purely by the vertical-align hack --
+  // measured diff 1.7px against a 1px tolerance, a real, reproducible
+  // instance. Needs at least one offline-queue item to be visible
+  // (`#offline-queue-bar` is hidden when the queue is empty) -- the runner
+  // seeds one and explicitly re-triggers `window.PPOffline.refresh()` after
+  // navigation (see scripts/ui-render-audit.mjs's popup setup: the
+  // automatic on-load refresh raced the seed and left the bar hidden in
+  // this harness on every attempt, a possible product-level race worth a
+  // separate look, not something this task fixes).
+  { surface: "popup", page: "popup.html", selector: "#offline-queue-clear", state: "default",
+    expect: { iconVCenter: 1 } },
 
   // ---- defect 2: .vocab-batch-bar row height mismatch. The group-name
   // input keeps the md-rung padding (library.css:830 `padding: 4px 8px`)
@@ -103,11 +156,30 @@ export const CHECKS = [
   { surface: "library", page: "library.html", selector: "#vocab-group-input", state: "default",
     expect: { heightEqWith: { selector: "#vocab-invert-selection", tolerancePx: 1 } } },
 
+  // ---- §1.4 hitAreaMin (USER RULING: icon-only buttons only). ----
+  // #vocab-invert-selection is a plain .btn.btn-sm icon-only button in the
+  // SAME .vocab-batch-bar row as the defect-2 entry above (library.html:108)
+  // -- COMPONENTS.md §1.5 names this exact gap: "sm 阶的 icon-only 按钮命中
+  // 区不达标（20px < 24px）". Measured height ~22.5px < 24, a real failure.
+  // Needs the same row-selection precondition as the heightEqWith entry
+  // above (batch bar hidden until a row is checked).
+  { surface: "library", page: "library.html", selector: "#vocab-invert-selection", state: "default",
+    expect: { hitAreaMin: 24 } },
+  // #library-link is a .header-ic icon-only button (popup.css:168-169:
+  // `width:24px; height:24px`) -- exactly on the boundary, a regression
+  // guard rather than a currently-failing instance.
+  { surface: "popup", page: "popup.html", selector: "#library-link", state: "default",
+    expect: { hitAreaMin: 24 } },
+
   // ---- §5 chip family: a second representative -- a NON-pill (radius-sm)
   // chip, to catch padVMin violations pill-law-2 wouldn't (C9: current
-  // `padding: 1px 8px`, no line-height). ----
+  // `padding: 1px 8px`, no line-height). Also the checklist's one
+  // `[aria-pressed]` chip (library.css:934-947 `.vocab-stat-chip`) -- its
+  // hover repaints ONLY the background to --lib-btn-hover (text stays
+  // --lib-fg-muted throughout), so chip-fg must clear AA against that
+  // token too, not just the resting chip-bg (§5.3/§5.4 `fgToAAMulti`). ----
   { surface: "library", page: "library.html", selector: ".vocab-stat-chip", state: "default",
-    expect: { padVMin: 2 } },
+    expect: { padVMin: 2, textContrastMulti: { ratio: 4.5, extraBgSelectorVar: "btn-hover" } } },
 
   // ---- §1/§2 button + icon family: representative instances beyond the
   // defect-tagged selectors above, so the button-family assertions have
