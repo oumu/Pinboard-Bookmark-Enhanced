@@ -109,7 +109,10 @@ function skip(check, expected, note) { return { check, status: "SKIP", actual: n
 
 // Runs INSIDE the page (Playwright serializes this function's source), so it
 // must be self-contained -- no references to anything outside its own body.
-function probeSelector(selector) {
+// `compareSelector` is optional (only `heightEqWith` checks use it) -- one
+// evaluate() round-trip covers both the primary probe and the row-mate's
+// height instead of a second page.evaluate call per check.
+function probeSelector({ selector, compareSelector }) {
   const el = document.querySelector(selector);
   if (!el) return { found: false };
   const cs = getComputedStyle(el);
@@ -124,6 +127,11 @@ function probeSelector(selector) {
     const r = svgEl.getBoundingClientRect();
     svg = { color: getComputedStyle(svgEl).color, rect: { top: r.top, height: r.height } };
   }
+  let compareRect = null;
+  if (compareSelector) {
+    const cmpEl = document.querySelector(compareSelector);
+    if (cmpEl) { const r = cmpEl.getBoundingClientRect(); compareRect = { height: r.height }; }
+  }
   return {
     found: true,
     disabled: !!el.disabled,
@@ -131,6 +139,7 @@ function probeSelector(selector) {
     bgStack,
     rect: { top: rect.top, left: rect.left, width: rect.width, height: rect.height },
     svg,
+    compareRect,
     paddingLeft: parseFloat(cs.paddingLeft) || 0,
     paddingRight: parseFloat(cs.paddingRight) || 0,
     paddingTop: parseFloat(cs.paddingTop) || 0,
@@ -183,6 +192,15 @@ function evaluateCheck(check, raw) {
     const padV = Math.min(raw.paddingTop, raw.paddingBottom);
     out.push(verdict("padVMin", padV >= exp.padVMin - 0.01, round2(padV), exp.padVMin));
   }
+  if ("heightEqWith" in exp) {
+    const { selector: cmpSel, tolerancePx } = exp.heightEqWith;
+    if (raw.compareRect == null) {
+      out.push(verdict("heightEqWith", false, null, tolerancePx, `comparison selector not found: ${cmpSel}`));
+    } else {
+      const diff = Math.abs(raw.rect.height - raw.compareRect.height);
+      out.push(verdict("heightEqWith", diff <= tolerancePx, round2(diff), tolerancePx));
+    }
+  }
   return { results: out };
 }
 
@@ -190,7 +208,10 @@ async function runOneCheck(page, theme, check, results) {
   if (check.state !== "default") {
     throw new Error(`unsupported state "${check.state}" on ${check.selector} -- extend runOneCheck() before adding non-default states to the checklist`);
   }
-  const raw = await page.evaluate(probeSelector, check.selector);
+  const raw = await page.evaluate(probeSelector, {
+    selector: check.selector,
+    compareSelector: check.expect.heightEqWith?.selector || null,
+  });
   const evald = evaluateCheck(check, raw);
   if (evald.setupError) {
     throw new Error(`SETUP ERROR [${check.surface}|${theme}|${check.selector}|${check.state}]: ${evald.setupError}`);
@@ -235,6 +256,14 @@ async function runLibraryTheme(page, extBase, theme, checks, results) {
     if (vocabChecks.some((c) => needsDetailOpen(c.selector))) {
       const head = page.locator("#vocab-list .vocab-card .notes-card-head").first();
       if (await head.count()) { await head.click(); await page.waitForTimeout(250); }
+    }
+    // .vocab-batch-bar (the group-input row defect-2 checks) is height:0 /
+    // visibility:hidden until a row is selected (library.css:986-1010,
+    // ".selecting"). Only heightEqWith checks need it, but checking the box
+    // is harmless for every other vocab check.
+    if (vocabChecks.some((c) => c.expect.heightEqWith)) {
+      const checkbox = page.locator("#vocab-list .vocab-card .vocab-row-select").first();
+      if (await checkbox.count()) { await checkbox.click(); await page.waitForTimeout(350); }
     }
     for (const check of vocabChecks) await runOneCheck(page, theme, check, results);
   }

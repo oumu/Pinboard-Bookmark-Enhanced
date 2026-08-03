@@ -39,6 +39,16 @@
     "expected": 1,
     "note": null
   },
+  "library||#vocab-group-input|default|heightEqWith": {
+    "surface": "library",
+    "theme": "",
+    "selector": "#vocab-group-input",
+    "state": "default",
+    "check": "heightEqWith",
+    "actual": 2,
+    "expected": 1,
+    "note": null
+  },
   "library||.vocab-stat-chip|default|padVMin": {
     "surface": "library",
     "theme": "",
@@ -96,6 +106,16 @@
     "state": "default",
     "check": "iconVCenter",
     "actual": 1.25,
+    "expected": 1,
+    "note": null
+  },
+  "library|catppuccin-latte|#vocab-group-input|default|heightEqWith": {
+    "surface": "library",
+    "theme": "catppuccin-latte",
+    "selector": "#vocab-group-input",
+    "state": "default",
+    "check": "heightEqWith",
+    "actual": 2,
     "expected": 1,
     "note": null
   },
@@ -189,6 +209,16 @@
     "expected": 1,
     "note": null
   },
+  "library|catppuccin-mocha|#vocab-group-input|default|heightEqWith": {
+    "surface": "library",
+    "theme": "catppuccin-mocha",
+    "selector": "#vocab-group-input",
+    "state": "default",
+    "check": "heightEqWith",
+    "actual": 2,
+    "expected": 1,
+    "note": null
+  },
   "library|catppuccin-mocha|.vocab-stat-chip|default|padVMin": {
     "surface": "library",
     "theme": "catppuccin-mocha",
@@ -269,6 +299,16 @@
     "expected": 1,
     "note": null
   },
+  "library|dracula|#vocab-group-input|default|heightEqWith": {
+    "surface": "library",
+    "theme": "dracula",
+    "selector": "#vocab-group-input",
+    "state": "default",
+    "check": "heightEqWith",
+    "actual": 2,
+    "expected": 1,
+    "note": null
+  },
   "library|dracula|.vocab-stat-chip|default|padVMin": {
     "surface": "library",
     "theme": "dracula",
@@ -316,6 +356,16 @@
     "state": "default",
     "check": "iconVCenter",
     "actual": 1.25,
+    "expected": 1,
+    "note": null
+  },
+  "library|flexoki-light|#vocab-group-input|default|heightEqWith": {
+    "surface": "library",
+    "theme": "flexoki-light",
+    "selector": "#vocab-group-input",
+    "state": "default",
+    "check": "heightEqWith",
+    "actual": 2,
     "expected": 1,
     "note": null
   },
@@ -409,6 +459,16 @@
     "expected": 1,
     "note": null
   },
+  "library|flexoki-dark|#vocab-group-input|default|heightEqWith": {
+    "surface": "library",
+    "theme": "flexoki-dark",
+    "selector": "#vocab-group-input",
+    "state": "default",
+    "check": "heightEqWith",
+    "actual": 2,
+    "expected": 1,
+    "note": null
+  },
   "library|flexoki-dark|.vocab-stat-chip|default|padVMin": {
     "surface": "library",
     "theme": "flexoki-dark",
@@ -466,6 +526,16 @@
     "state": "default",
     "check": "iconVCenter",
     "actual": 1.25,
+    "expected": 1,
+    "note": null
+  },
+  "library|github-light|#vocab-group-input|default|heightEqWith": {
+    "surface": "library",
+    "theme": "github-light",
+    "selector": "#vocab-group-input",
+    "state": "default",
+    "check": "heightEqWith",
+    "actual": 2,
     "expected": 1,
     "note": null
   },
@@ -559,6 +629,16 @@
     "expected": 1,
     "note": null
   },
+  "library|gruvbox-dark|#vocab-group-input|default|heightEqWith": {
+    "surface": "library",
+    "theme": "gruvbox-dark",
+    "selector": "#vocab-group-input",
+    "state": "default",
+    "check": "heightEqWith",
+    "actual": 2,
+    "expected": 1,
+    "note": null
+  },
   "library|gruvbox-dark|.vocab-stat-chip|default|padVMin": {
     "surface": "library",
     "theme": "gruvbox-dark",
@@ -616,6 +696,16 @@
     "state": "default",
     "check": "iconVCenter",
     "actual": 1.25,
+    "expected": 1,
+    "note": null
+  },
+  "library|modern-card|#vocab-group-input|default|heightEqWith": {
+    "surface": "library",
+    "theme": "modern-card",
+    "selector": "#vocab-group-input",
+    "state": "default",
+    "check": "heightEqWith",
+    "actual": 2,
     "expected": 1,
     "note": null
   },
@@ -709,6 +799,16 @@
     "expected": 1,
     "note": null
   },
+  "library|nord-night|#vocab-group-input|default|heightEqWith": {
+    "surface": "library",
+    "theme": "nord-night",
+    "selector": "#vocab-group-input",
+    "state": "default",
+    "check": "heightEqWith",
+    "actual": 2,
+    "expected": 1,
+    "note": null
+  },
   "library|nord-night|.vocab-stat-chip|default|padVMin": {
     "surface": "library",
     "theme": "nord-night",
@@ -766,6 +866,16 @@
     "state": "default",
     "check": "iconVCenter",
     "actual": 1.25,
+    "expected": 1,
+    "note": null
+  },
+  "library|paper-ink|#vocab-group-input|default|heightEqWith": {
+    "surface": "library",
+    "theme": "paper-ink",
+    "selector": "#vocab-group-input",
+    "state": "default",
+    "check": "heightEqWith",
+    "actual": 2,
     "expected": 1,
     "note": null
   },
@@ -849,6 +959,16 @@
     "expected": 1,
     "note": null
   },
+  "library|rose-pine|#vocab-group-input|default|heightEqWith": {
+    "surface": "library",
+    "theme": "rose-pine",
+    "selector": "#vocab-group-input",
+    "state": "default",
+    "check": "heightEqWith",
+    "actual": 2,
+    "expected": 1,
+    "note": null
+  },
   "library|rose-pine|.vocab-stat-chip|default|padVMin": {
     "surface": "library",
     "theme": "rose-pine",
@@ -906,6 +1026,16 @@
     "state": "default",
     "check": "iconVCenter",
     "actual": 1.25,
+    "expected": 1,
+    "note": null
+  },
+  "library|solarized-light|#vocab-group-input|default|heightEqWith": {
+    "surface": "library",
+    "theme": "solarized-light",
+    "selector": "#vocab-group-input",
+    "state": "default",
+    "check": "heightEqWith",
+    "actual": 2,
     "expected": 1,
     "note": null
   },
@@ -1009,6 +1139,16 @@
     "expected": 1,
     "note": null
   },
+  "library|solarized-dark|#vocab-group-input|default|heightEqWith": {
+    "surface": "library",
+    "theme": "solarized-dark",
+    "selector": "#vocab-group-input",
+    "state": "default",
+    "check": "heightEqWith",
+    "actual": 2,
+    "expected": 1,
+    "note": null
+  },
   "library|solarized-dark|.vocab-stat-chip|default|padVMin": {
     "surface": "library",
     "theme": "solarized-dark",
@@ -1096,6 +1236,16 @@
     "state": "default",
     "check": "iconVCenter",
     "actual": 1.25,
+    "expected": 1,
+    "note": null
+  },
+  "library|terminal|#vocab-group-input|default|heightEqWith": {
+    "surface": "library",
+    "theme": "terminal",
+    "selector": "#vocab-group-input",
+    "state": "default",
+    "check": "heightEqWith",
+    "actual": 2,
     "expected": 1,
     "note": null
   },

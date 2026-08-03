@@ -37,6 +37,16 @@
 //                      height/2) -- pill law 2 (§5.1, §5.4 `padGteRadiusH`)
 //   padVMin        -- computed padding-block (px) >= this many px --
 //                      pill law 3, applies to every chip/badge (§5.1, §5.4)
+//   heightEqWith   -- { selector, tolerancePx }: |this element's
+//                      getBoundingClientRect().height - the comparison
+//                      selector's height| <= tolerancePx. For same-row
+//                      alignment (§6.3 `rowRungEq`) -- a single-selector
+//                      `expect` key can't express "matches its neighbor",
+//                      so this is the one two-selector shape in the
+//                      vocabulary. The comparison selector is metadata on
+//                      the check, not part of the known-failures key (the
+//                      key's `check` segment stays the plain string
+//                      "heightEqWith").
 //
 // Selectors below are written against the CURRENT shipped markup (pre-Task
 // 9/10 uplift). Task 9/10/12/13 migrate one selector's underlying CSS at a
@@ -74,6 +84,24 @@ export const CHECKS = [
     expect: { iconContrast: 3, iconVCenter: 1 } },
   { surface: "popup", page: "popup.html", selector: ".btn-ic", state: "default",
     expect: { iconContrast: 3, iconVCenter: 1 } },
+
+  // ---- defect 2: .vocab-batch-bar row height mismatch. The group-name
+  // input keeps the md-rung padding (library.css:830 `padding: 4px 8px`)
+  // vs. a true row-mate .btn-sm's 2px 8px (COMPONENTS.md §6.3 `rowRungEq`).
+  // The comparison target is #vocab-invert-selection, NOT #vocab-add-group:
+  // #vocab-add-group/#vocab-remove-group live inside .vocab-group-unit,
+  // whose `align-items: stretch` (library.css:1045) already stretches them
+  // to match the oversized input -- comparing against them would silently
+  // launder the exact bug this check exists to catch. #vocab-invert-selection
+  // is a plain .btn.btn-sm sibling in the OUTER .vocab-batch-bar row
+  // (align-items:center, no stretch), so it renders at its true height and
+  // is the one that actually visibly mismatches the group-input/-step unit.
+  // Selectors are the real ids from library.html's markup (library-vocab.js
+  // only reads them via $id, it doesn't construct this row). Needs a
+  // selected row to reveal the bar (`.vocab-batch-bar.selecting`) -- the
+  // runner checks a row's checkbox first for any check using `heightEqWith`.
+  { surface: "library", page: "library.html", selector: "#vocab-group-input", state: "default",
+    expect: { heightEqWith: { selector: "#vocab-invert-selection", tolerancePx: 1 } } },
 
   // ---- §5 chip family: a second representative -- a NON-pill (radius-sm)
   // chip, to catch padVMin violations pill-law-2 wouldn't (C9: current
