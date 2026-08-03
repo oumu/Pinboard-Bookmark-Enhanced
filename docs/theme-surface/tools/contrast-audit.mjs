@@ -280,6 +280,17 @@ function auditLibraryThemes(cssPath) {
         if (onPanel) console.log(check("library", theme, `${label} vs panel`, cr(onPanel, panel), 4.5));
       }
     }
+    // Link text: same two-background constraint as fg/fg-muted above (a link can
+    // sit directly on the page bg or inside a panel/pane).
+    const linkS = grab("link");
+    if (linkS) {
+      const onBg = resolveColor(linkS, bg);
+      if (onBg) console.log(check("library", theme, "link vs bg", cr(onBg, bg), 4.5));
+      if (panel) {
+        const onPanel = resolveColor(linkS, panel);
+        if (onPanel) console.log(check("library", theme, "link vs panel", cr(onPanel, panel), 4.5));
+      }
+    }
     // Selected-row pair: its own fill, its own text — not composited over bg/panel.
     const rowBgS = grab("row-selected-bg"), rowFgS = grab("row-selected-fg");
     if (rowBgS && rowFgS && rowBgS.startsWith("#")) {

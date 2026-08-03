@@ -1492,6 +1492,22 @@ check(mdCss.includes("text-autospace: normal") && /#rendered-view :is\(pre, code
     "pinboard-style.js: the cloak colour is no longer cached per light/dark mode, so an OS theme flip repaints the wrong shade");
 }
 
+// ---- library.css hand-maintained region: no bare hex colors leaking outside
+// var() fallbacks or custom-property definitions (the :root defaults ARE
+// literals -- those lines are exempt). A bare hex anywhere else means a rule
+// hardcoded a color instead of consuming a --lib-* token, so it silently
+// ignores every theme (the options.css migration regression this guards against).
+{
+  const css = libraryCss;
+  const hand = css.split("/* @generated:ui-themes start")[0];
+  let stripped = hand.replace(/^\s*--[\w-]+\s*:[^;]*;/gm, "");   // drop custom-prop definitions
+  for (let prev = null; prev !== stripped; ) { prev = stripped; stripped = stripped.replace(/var\([^()]*\)/g, ""); } // drop var() incl. nested, innermost-out
+  stripped = stripped.replace(/\/\*[\s\S]*?\*\//g, "");            // drop comments
+  const bare = stripped.match(/#[0-9a-fA-F]{3,8}\b/g) || [];
+  check(bare.length === 0,
+    "library.css: bare hex colors leaked outside var() fallbacks in the hand-maintained region: " + bare.slice(0, 8).join(", "));
+}
+
 if (fail.length) {
   console.error(fail.join("\n"));
   process.exit(1);

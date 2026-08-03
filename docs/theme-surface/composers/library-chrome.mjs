@@ -55,10 +55,14 @@ function emitLib(ui, palette, overrides, radius, focus = {}) {
   const rowSelectedBgRgb = hexToRgb(ui["drop-hover"]);
   const fg = rgbToHex(fgToAAMulti(hexToRgb(ui.fg), [hexToRgb(ui.bg), hexToRgb(ui.bg2), rowSelectedBgRgb]));
   const fgMuted = rgbToHex(fgToAAMulti(hexToRgb(ui["fg-muted"]), [hexToRgb(ui.bg), hexToRgb(ui.bg2)]));
+  // Link text sits on both the page bg and the elevated panel/pane surface (the
+  // same two-background constraint fg/fg-muted above already enforce) -- a plain
+  // fgToAA(accent, oneBg) could clear AA on bg and still fail on panel.
+  const link = rgbToHex(fgToAAMulti(hexToRgb(palette.accent), [hexToRgb(ui.bg), hexToRgb(ui.bg2)]));
   const map = {
     bg: ui.bg, panel: ui.bg2, tab: ui.bg2, "tab-active": ui.bg,
     fg, "fg-muted": fgMuted, "fg-hint": ui["fg-hint"],
-    accent: ui.accent, save, danger, warn,
+    accent: ui.accent, link, save, danger, warn,
     border: ui.border, "border-section": ui.divider,
     "input-bg": ui["input-bg"], "input-border": ui.border,
     "btn-bg": ui.bg2, "btn-hover": ui["drop-hover"],

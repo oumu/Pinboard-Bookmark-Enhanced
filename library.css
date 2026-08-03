@@ -6,10 +6,25 @@
 
 :root {
   /* Fallbacks for auto/light with no preset selected; every themed value
-     is overridden per-theme inside the generated region. */
-  --lib-bg: #f7f7f8; --lib-panel: #ffffff; --lib-tab: #ffffff; --lib-tab-active: #f7f7f8;
-  --lib-fg: #1a1a2e; --lib-fg-muted: #5f6368; --lib-fg-hint: #666d74;
-  --lib-accent: #1a73e8; --lib-save: #1967d2; --lib-danger: #c5221f; --lib-warn: #b06000;
+     is overridden per-theme inside the generated region. One declaration per
+     line: the ui-contract bare-hex guard only strips the FIRST custom-property
+     definition it finds at each line start, so a multi-declaration line would
+     hide its 2nd+ literal from that exemption and misreport as a leaked color. */
+  --lib-bg: #f7f7f8;
+  --lib-panel: #ffffff;
+  --lib-tab: #ffffff;
+  --lib-tab-active: #f7f7f8;
+  --lib-fg: #1a1a2e;
+  --lib-fg-muted: #5f6368;
+  --lib-fg-hint: #666d74;
+  --lib-accent: #1a73e8;
+  /* accent, pushed to clear AA on both bg and panel (composer's fgToAAMulti) --
+     see library-chrome.mjs's `link` role for the per-theme derivation this falls
+     back for. */
+  --lib-link: #1a66c2;
+  --lib-save: #1967d2;
+  --lib-danger: #c5221f;
+  --lib-warn: #b06000;
   /* Computed default (same color-mix(--accent) formula as popup.css/options.css's
      own :root) so every theme gets a real, theme-tinted focus ring even without
      a pilot override -- only 3 pilots (terminal/paper-ink/solarized) currently
@@ -18,12 +33,28 @@
      <html>; the generated block only outranks a property it actually declares). */
   --lib-focus-bd: color-mix(in srgb, var(--lib-accent, #4477bb) 55%, var(--lib-input-bg, #fff));
   --lib-focus-ring: 0 0 6px 1px color-mix(in srgb, var(--lib-accent, #4477bb) 45%, transparent);
-  --lib-border: #e2e2e6; --lib-border-section: #e2e2e6;
-  --lib-input-bg: #ffffff; --lib-input-border: #d5d5da;
-  --lib-btn-bg: #ffffff; --lib-btn-hover: #eef2f9; --lib-code-bg: #f2f2f4;
-  --lib-pane-bg: #ffffff; --lib-pane-divider: #e2e2e6;
-  --lib-row-selected-bg: #eef2f9; --lib-row-selected-fg: #1a1a2e;
-  --lib-radius-sm: 4px; --lib-radius-md: 8px; --lib-radius-lg: 12px;
+  --lib-border: #e2e2e6;
+  --lib-border-section: #e2e2e6;
+  --lib-input-bg: #ffffff;
+  --lib-input-border: #d5d5da;
+  --lib-btn-bg: #ffffff;
+  --lib-btn-hover: #eef2f9;
+  --lib-code-bg: #f2f2f4;
+  --lib-pane-bg: #ffffff;
+  --lib-pane-divider: #e2e2e6;
+  --lib-row-selected-bg: #eef2f9;
+  --lib-row-selected-fg: #1a1a2e;
+  /* Universal 5-color highlight palette (matches md-preview's .pb-hl-dot-N /
+     note dot colors) -- theme-invariant by design, so this is the only place
+     these five literals are declared; no themed block overrides them. */
+  --lib-note-c1: #facc15;
+  --lib-note-c2: #4ade80;
+  --lib-note-c3: #60a5fa;
+  --lib-note-c4: #f87171;
+  --lib-note-c5: #c084fc;
+  --lib-radius-sm: 4px;
+  --lib-radius-md: 8px;
+  --lib-radius-lg: 12px;
   /* Pill radius is a constant, not a themed step (options.css declares it the
      same way): the generated region only emits sm/md/lg. */
   --lib-radius-full: 9999px;
@@ -63,17 +94,34 @@
    Latin fonts to the bare `sans-serif` keyword, which resolves to the profile's Standard font;
    if that's a large/slow font (e.g. a custom Sarasa/CJK family) its first-time glyph shaping on
    the text-heavy AI panel stalls >1s. Naming YaHei/PingFang uses a fast system CJK font instead. */
-body { font-family: "Helvetica Neue", Verdana, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei", sans-serif; background: #f5f5f0; color: #333; font-size: 13px; }
+/* margin/background/color merged in here (was a second, later `body {}` rule
+   in the Page layout section) — one rule, so there is only one place to read
+   the page's base color contract. Fallbacks match the pre-tokenization literals
+   this replaces; --lib-bg/--lib-fg are always set (see :root above), so the
+   fallback only matters for the instant before that first paint. */
+body { font-family: "Helvetica Neue", Verdana, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei", sans-serif; margin: 0; background: var(--lib-bg, #f5f5f0); color: var(--lib-fg, #333); font-size: 13px; }
 /* Form controls don't inherit font-family by default — without this, <button>/<input>/<select>
    fall to the UA default ("Arial"), which has NO CJK glyphs, so their Chinese labels drop to the
    profile's Standard font (e.g. Sarasa UI SC) and pay the slow first-load stall. Inherit the body
    stack so their CJK uses the same fast named fonts. */
 button, input, select, textarea { font-family: inherit; }
 
+/* Page-level link color -- was unset (UA default blue in every theme, the
+   real-device report this file's cleanup responds to). --lib-link is accent
+   pushed to clear AA against both bg and panel (library-chrome.mjs's `link`
+   role); elements that want to read as plain text instead (.notes-row-title a,
+   .xp-dict-src a) already set their own `color: inherit` and win by specificity. */
+a { color: var(--lib-link, #1a66c2); }
+/* Native checkbox tint (vocab row selection) -- unset before this fell to the
+   browser's default blue regardless of theme. */
+input[type="checkbox"] { accent-color: var(--lib-accent, #1a73e8); }
+
 /* ---- Buttons (ported from options.css .btn / .btn-sm family) ---- */
-.btn { padding: var(--lib-sp-1) var(--lib-sp-4); font-size: 12px; cursor: pointer; border: 1px solid #999; background: #f5f5f0; border-radius: var(--lib-radius-md); transition: background var(--motion-state), border-color var(--motion-state), color var(--motion-state); }
-.btn:hover:not(:disabled) { background: #eee; }
-.btn:active:not(:disabled) { transform: translateY(1px); }
+.btn { padding: var(--lib-sp-1) var(--lib-sp-4); font-size: 12px; cursor: pointer; border: 1px solid var(--lib-border, #999); background: var(--lib-btn-bg, #f5f5f0); border-radius: var(--lib-radius-md); transition: background var(--motion-state), border-color var(--motion-state), color var(--motion-state), transform var(--motion-state); }
+.btn:hover:not(:disabled) { background: var(--lib-btn-hover, #eef2f9); }
+/* Scale, not translateY: a press-down affordance that also reads on wide/short
+   buttons where a 1px vertical nudge is barely visible. */
+.btn:active:not(:disabled) { transform: scale(0.97); }
 .btn:focus-visible { outline: 2px solid var(--lib-accent, #4477bb); outline-offset: 2px; }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
 .btn-sm { padding: 2px var(--lib-sp-2); font-size: 11px; }
@@ -118,10 +166,12 @@ button, input, select, textarea { font-family: inherit; }
    Segoe UI Emoji and stall on first paint at Windows hi-DPI). Inherits the status colour. */
 .status-ic { display: inline-flex; vertical-align: -2px; margin-right: 1px; }
 .status-ic svg { display: block; }
-/* Same green/red contract as popup.css/options.css. */
-.status-ic.ok { color: #2a8a2a; }
-.status-ic.bad { color: #c0392b; }
-html[data-theme] .status-ic.bad { color: var(--lib-danger, #c0392b); }
+/* Same green/red contract as popup.css/options.css, but tokenized (unlike
+   options.css's own .status-ic.ok, which stays a flat literal) -- --lib-save/
+   --lib-danger are always set on :root, so this is themed everywhere, not just
+   behind an html[data-theme] override. */
+.status-ic.ok { color: var(--lib-save, #2a8a2a); }
+.status-ic.bad { color: var(--lib-danger, #c0392b); }
 
 /* ---- Confirm popover (replaces native confirm()) ---- */
 .confirm-popover {
@@ -131,8 +181,8 @@ html[data-theme] .status-ic.bad { color: var(--lib-danger, #c0392b); }
   display: flex; align-items: center; gap: 6px; /* no --lib-sp-* step matches options.css's 6px (opt-sp-3); library's 5-step scale skips it */
   flex-wrap: wrap;       /* long tag lists: buttons drop to their own row */
   max-width: min(60ch, 78vw);
-  padding: var(--lib-sp-1) var(--lib-sp-2); font-size: 11px; color: #c00;
-  background: #fff; border: 1px solid #ccc; border-radius: var(--lib-radius-sm);
+  padding: var(--lib-sp-1) var(--lib-sp-2); font-size: 11px; color: var(--lib-danger, #c00);
+  background: var(--lib-panel, #fff); border: 1px solid var(--lib-border, #ccc); border-radius: var(--lib-radius-sm);
   box-shadow: 0 4px 12px color-mix(in srgb, var(--lib-fg) 22%, transparent), 0 2px 4px color-mix(in srgb, var(--lib-fg) 12%, transparent);
 }
 html.motion-ready .confirm-popover {
@@ -154,10 +204,10 @@ html.motion-ready .confirm-popover.is-closing {
 .confirm-popover button {
   padding: 2px var(--lib-sp-2); font-size: 11px; cursor: pointer; border-radius: var(--lib-radius-sm); border: 1px solid;
 }
-.confirm-popover .confirm-yes { background: #c00; color: #fff; border-color: #a00; }
-.confirm-popover .confirm-yes:hover { background: #a00; }
-.confirm-popover .confirm-no { background: none; color: #666; border-color: #ccc; }
-.confirm-popover .confirm-no:hover { background: #eee; }
+.confirm-popover .confirm-yes { background: var(--lib-danger, #c00); color: var(--lib-panel, #fff); border-color: var(--lib-danger, #a00); }
+.confirm-popover .confirm-yes:hover { background: var(--lib-danger, #a00); }
+.confirm-popover .confirm-no { background: none; color: var(--lib-fg-muted, #666); border-color: var(--lib-border, #ccc); }
+.confirm-popover .confirm-no:hover { background: var(--lib-btn-hover, #eee); }
 .confirm-popover button:focus-visible { outline: 2px solid var(--lib-accent, #4477bb); outline-offset: 1px; }
 html[data-theme] .confirm-popover { color: var(--lib-fg); background: var(--lib-panel); border-color: var(--lib-border); }
 html[data-theme] .confirm-popover .confirm-yes { color: var(--lib-panel); background: var(--lib-danger); border-color: var(--lib-danger); }
@@ -316,11 +366,11 @@ html.motion-ready .notes-card-body:not([hidden]) { height: auto; opacity: 1; }
 .notes-items { display: grid; gap: var(--lib-sp-2); }
 .notes-item { display: flex; gap: var(--lib-sp-2); min-width: 0; }
 .note-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: var(--lib-sp-1); }
-.note-dot.c1 { background: #facc15; }
-.note-dot.c2 { background: #4ade80; }
-.note-dot.c3 { background: #60a5fa; }
-.note-dot.c4 { background: #f87171; }
-.note-dot.c5 { background: #c084fc; }
+.note-dot.c1 { background: var(--lib-note-c1, #facc15); }
+.note-dot.c2 { background: var(--lib-note-c2, #4ade80); }
+.note-dot.c3 { background: var(--lib-note-c3, #60a5fa); }
+.note-dot.c4 { background: var(--lib-note-c4, #f87171); }
+.note-dot.c5 { background: var(--lib-note-c5, #c084fc); }
 .notes-item-text { flex: 1 1 auto; min-width: 0; font-size: 12px; overflow-wrap: anywhere; }
 .notes-item-quote { color: var(--lib-fg-muted, #666); white-space: pre-wrap; }
 .notes-item-lang { display: inline-block; margin-top: 2px; color: var(--lib-fg-muted, #666); font-size: 11px; } /* options.css --opt-sp-1 (2px) */
@@ -385,10 +435,10 @@ html.motion-ready .notes-card-body:not([hidden]) { height: auto; opacity: 1; }
   padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0);
   white-space: nowrap; border: 0;
 }
-.save-status { font-size: 12px; color: #080; margin-left: var(--lib-sp-2); }
-.save-status.bad { color: #c00; }
-html[data-theme] .save-status { color: var(--lib-save); }
-html[data-theme] .save-status.bad { color: var(--lib-danger); }
+/* --lib-save/--lib-danger are always set on :root, so tokenizing here already
+   covers every theme -- no separate html[data-theme] override needed. */
+.save-status { font-size: 12px; color: var(--lib-save, #1967d2); margin-left: var(--lib-sp-2); }
+.save-status.bad { color: var(--lib-danger, #c5221f); }
 
 /* Master (list) + detail two-pane workbench. The library page has the whole
    window to work with, unlike options.html's single narrow panel. */
@@ -927,8 +977,8 @@ html.motion-ready .vocab-batch-bar.selecting {
   color: var(--lib-fg, #333);
 }
 
-/* ---- Page layout ---- */
-body { margin: 0; background: var(--lib-bg); color: var(--lib-fg); }
+/* ---- Page layout ---- (body's margin/background/color live in the merged
+   rule near the top of this file, next to the font-fallback-stall comment) */
 .lib-header {
   display: flex; align-items: center; gap: var(--lib-sp-4);
   padding: var(--lib-sp-3) var(--lib-sp-5);
@@ -974,6 +1024,7 @@ html[data-theme="modern-card"] {
   --lib-fg-muted: #5f6368;
   --lib-fg-hint: #666d74;
   --lib-accent: #1a73e8;
+  --lib-link: #166ad8;
   --lib-save: #166ad8;
   --lib-danger: #d02e24;
   --lib-warn: #a65a00;
@@ -1001,6 +1052,7 @@ html[data-theme="nord-night"] {
   --lib-fg-muted: #9cb5ce;
   --lib-fg-hint: #939db2;
   --lib-accent: #88c0d0;
+  --lib-link: #88c0d0;
   --lib-save: #a3be8c;
   --lib-danger: #d18d93;
   --lib-warn: #ed8100;
@@ -1028,6 +1080,7 @@ html[data-theme="terminal"] {
   --lib-fg-muted: #22aa22;
   --lib-fg-hint: #448844;
   --lib-accent: #33ff33;
+  --lib-link: #33ff33;
   --lib-save: #008f00;
   --lib-danger: #ff3333;
   --lib-warn: #ba6600;
@@ -1057,6 +1110,7 @@ html[data-theme="paper-ink"] {
   --lib-fg-muted: #6b4c3b;
   --lib-fg-hint: #707070;
   --lib-accent: #1a3a5c;
+  --lib-link: #1a3a5c;
   --lib-save: #8b4513;
   --lib-danger: #c0392b;
   --lib-warn: #a65a00;
@@ -1086,6 +1140,7 @@ html[data-theme="dracula"] {
   --lib-fg-muted: #bd93f9;
   --lib-fg-hint: #8995ba;
   --lib-accent: #8be9fd;
+  --lib-link: #8be9fd;
   --lib-save: #50fa7b;
   --lib-danger: #ff5555;
   --lib-warn: #e37c00;
@@ -1113,6 +1168,7 @@ html[data-theme="flexoki-light"] {
   --lib-fg-muted: #6a6964;
   --lib-fg-hint: #777467;
   --lib-accent: #205EA6;
+  --lib-link: #205ea6;
   --lib-save: #5f770a;
   --lib-danger: #af3029;
   --lib-warn: #b06000;
@@ -1140,6 +1196,7 @@ html[data-theme="flexoki-dark"] {
   --lib-fg-muted: #908e8a;
   --lib-fg-hint: #878580;
   --lib-accent: #4385BE;
+  --lib-link: #5a94c6;
   --lib-save: #879a39;
   --lib-danger: #d7645a;
   --lib-warn: #cf7100;
@@ -1167,6 +1224,7 @@ html[data-theme="solarized-light"] {
   --lib-fg-muted: #54696f;
   --lib-fg-hint: #657474;
   --lib-accent: #268bd2;
+  --lib-link: #1d699e;
   --lib-save: #1f7972;
   --lib-danger: #d32724;
   --lib-warn: #a65a00;
@@ -1194,6 +1252,7 @@ html[data-theme="solarized-dark"] {
   --lib-fg-muted: #869ca4;
   --lib-fg-hint: #7a939b;
   --lib-accent: #268bd2;
+  --lib-link: #4ca2df;
   --lib-save: #859900;
   --lib-danger: #e56663;
   --lib-warn: #d97600;
@@ -1223,6 +1282,7 @@ html[data-theme="catppuccin-latte"] {
   --lib-fg-muted: #626579;
   --lib-fg-hint: #666b80;
   --lib-accent: #1e66f5;
+  --lib-link: #0b59f4;
   --lib-save: #307820;
   --lib-danger: #d20f39;
   --lib-warn: #a65a00;
@@ -1250,6 +1310,7 @@ html[data-theme="catppuccin-mocha"] {
   --lib-fg-muted: #a6adc8;
   --lib-fg-hint: #85889f;
   --lib-accent: #89b4fa;
+  --lib-link: #89b4fa;
   --lib-save: #94e2d5;
   --lib-danger: #f38ba8;
   --lib-warn: #cf7100;
@@ -1277,6 +1338,7 @@ html[data-theme="gruvbox-dark"] {
   --lib-fg-muted: #b0a390;
   --lib-fg-hint: #9b8f85;
   --lib-accent: #83a598;
+  --lib-link: #89a99d;
   --lib-save: #539fa3;
   --lib-danger: #fb5b48;
   --lib-warn: #d97600;
@@ -1304,6 +1366,7 @@ html[data-theme="rose-pine"] {
   --lib-fg-muted: #908caa;
   --lib-fg-hint: #837f9a;
   --lib-accent: #c4a7e7;
+  --lib-link: #c4a7e7;
   --lib-save: #9ccfd8;
   --lib-danger: #eb6f92;
   --lib-warn: #c46b00;
@@ -1331,6 +1394,7 @@ html[data-theme="github-light"] {
   --lib-fg-muted: #656d76;
   --lib-fg-hint: #68717c;
   --lib-accent: #0969da;
+  --lib-link: #0969da;
   --lib-save: #227c3b;
   --lib-danger: #cf222e;
   --lib-warn: #a65a00;
