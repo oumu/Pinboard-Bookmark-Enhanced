@@ -10,6 +10,14 @@
   --lib-bg: #f7f7f8; --lib-panel: #ffffff; --lib-tab: #ffffff; --lib-tab-active: #f7f7f8;
   --lib-fg: #1a1a2e; --lib-fg-muted: #5f6368; --lib-fg-hint: #666d74;
   --lib-accent: #1a73e8; --lib-save: #1967d2; --lib-danger: #c5221f; --lib-warn: #b06000;
+  /* Computed default (same color-mix(--accent) formula as popup.css/options.css's
+     own :root) so every theme gets a real, theme-tinted focus ring even without
+     a pilot override -- only 3 pilots (terminal/paper-ink/solarized) currently
+     declare an explicit glow-style override in the generated region below, which
+     wins on the same element via cascade (:root and html[data-theme] both target
+     <html>; the generated block only outranks a property it actually declares). */
+  --lib-focus-bd: color-mix(in srgb, var(--lib-accent, #4477bb) 55%, var(--lib-input-bg, #fff));
+  --lib-focus-ring: 0 0 6px 1px color-mix(in srgb, var(--lib-accent, #4477bb) 45%, transparent);
   --lib-border: #e2e2e6; --lib-border-section: #e2e2e6;
   --lib-input-bg: #ffffff; --lib-input-border: #d5d5da;
   --lib-btn-bg: #ffffff; --lib-btn-hover: #eef2f9; --lib-code-bg: #f2f2f4;
