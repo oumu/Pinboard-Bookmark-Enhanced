@@ -1161,6 +1161,7 @@ html.dark .submit-bar button.loading::before, html.dark .action-link.loading::be
 /* ===================== Preset Theme System ===================== */
 /* @generated:ui-themes start — do not edit; produced by composers/popup-chrome.mjs */
 html[data-theme="modern-card"] {
+  color-scheme: light;
   --pp-bg: #f0f2f5;
   --pp-bg2: #ffffff;
   --pp-fg: #1a1a2e;
@@ -1209,6 +1210,7 @@ html[data-theme="modern-card"] {
   --pp-info-fg: var(--pp-banner-fg);
 }
 html[data-theme="nord-night"] {
+  color-scheme: dark;
   --pp-bg: #2e3440;
   --pp-bg2: #3b4252;
   --pp-fg: #d8dee9;
@@ -1258,6 +1260,7 @@ html[data-theme="nord-night"] {
   --pp-info-fg: var(--pp-banner-fg);
 }
 html[data-theme="terminal"] {
+  color-scheme: dark;
   --pp-bg: #0a0a0a;
   --pp-bg2: #111111;
   --pp-fg: #33ff33;
@@ -1309,6 +1312,7 @@ html[data-theme="terminal"] {
   --pp-info-fg: var(--pp-banner-fg);
 }
 html[data-theme="paper-ink"] {
+  color-scheme: light;
   --pp-bg: #faf8f5;
   --pp-bg2: #f5f0e8;
   --pp-fg: #2c2c2c;
@@ -1360,6 +1364,7 @@ html[data-theme="paper-ink"] {
   --pp-info-fg: var(--pp-banner-fg);
 }
 html[data-theme="dracula"] {
+  color-scheme: dark;
   --pp-bg: #282a36;
   --pp-bg2: #21222c;
   --pp-fg: #f8f8f2;
@@ -1409,6 +1414,7 @@ html[data-theme="dracula"] {
   --pp-info-fg: var(--pp-banner-fg);
 }
 html[data-theme="flexoki-light"] {
+  color-scheme: light;
   --pp-bg: #FFFCF0;
   --pp-bg2: #F2F0E5;
   --pp-fg: #100F0F;
@@ -1458,6 +1464,7 @@ html[data-theme="flexoki-light"] {
   --pp-info-fg: var(--pp-banner-fg);
 }
 html[data-theme="flexoki-dark"] {
+  color-scheme: dark;
   --pp-bg: #1C1B1A;
   --pp-bg2: #282726;
   --pp-fg: #CECDC3;
@@ -1507,6 +1514,7 @@ html[data-theme="flexoki-dark"] {
   --pp-info-fg: var(--pp-banner-fg);
 }
 html[data-theme="solarized-light"] {
+  color-scheme: light;
   --pp-bg: #fdf6e3;
   --pp-bg2: #eee8d5;
   --pp-fg: #586e75;
@@ -1556,6 +1564,7 @@ html[data-theme="solarized-light"] {
   --pp-info-fg: var(--pp-banner-fg);
 }
 html[data-theme="solarized-dark"] {
+  color-scheme: dark;
   --pp-bg: #002b36;
   --pp-bg2: #073642;
   --pp-fg: #93a1a1;
@@ -1607,6 +1616,7 @@ html[data-theme="solarized-dark"] {
   --pp-info-fg: var(--pp-banner-fg);
 }
 html[data-theme="catppuccin-latte"] {
+  color-scheme: light;
   --pp-bg: #eff1f5;
   --pp-bg2: #e6e9ef;
   --pp-fg: #4c4f69;
@@ -1655,6 +1665,7 @@ html[data-theme="catppuccin-latte"] {
   --pp-info-fg: var(--pp-banner-fg);
 }
 html[data-theme="catppuccin-mocha"] {
+  color-scheme: dark;
   --pp-bg: #1e1e2e;
   --pp-bg2: #313244;
   --pp-fg: #cdd6f4;
@@ -1703,6 +1714,7 @@ html[data-theme="catppuccin-mocha"] {
   --pp-info-fg: var(--pp-banner-fg);
 }
 html[data-theme="gruvbox-dark"] {
+  color-scheme: dark;
   --pp-bg: #282828;
   --pp-bg2: #3c3836;
   --pp-fg: #ebdbb2;
@@ -1752,6 +1764,7 @@ html[data-theme="gruvbox-dark"] {
   --pp-info-fg: var(--pp-banner-fg);
 }
 html[data-theme="rose-pine"] {
+  color-scheme: dark;
   --pp-bg: #191724;
   --pp-bg2: #1f1d2e;
   --pp-fg: #e0def4;
@@ -1800,6 +1813,7 @@ html[data-theme="rose-pine"] {
   --pp-info-fg: var(--pp-banner-fg);
 }
 html[data-theme="github-light"] {
+  color-scheme: light;
   --pp-bg: #f6f8fa;
   --pp-bg2: #ffffff;
   --pp-fg: #1f2328;
@@ -1848,6 +1862,7 @@ html[data-theme="github-light"] {
   --pp-info-fg: var(--pp-banner-fg);
 }
 :root {
+  color-scheme: light;
   --pp-btn-fg: #2a2d33;
   --pp-chip-bg: #e2eafa;
   --pp-chip-fg: #33589f;
@@ -1855,6 +1870,7 @@ html[data-theme="github-light"] {
   --pp-on-danger: #ffffff;
 }
 html.dark {
+  color-scheme: dark;
   --pp-btn-fg: #e6e7ea;
   --pp-chip-bg: #2a3550;
   --pp-chip-fg: #a9c3f2;
@@ -1862,17 +1878,6 @@ html.dark {
   --pp-on-danger: #10131a;
 }
 /* @generated:ui-themes end */
-
-/* Dark themes: adapt native controls (number spinner, calendar picker etc.) */
-html[data-theme="nord-night"],
-html[data-theme="terminal"],
-html[data-theme="dracula"],
-html[data-theme="flexoki-dark"],
-html[data-theme="solarized-dark"],
-html[data-theme="catppuccin-mocha"],
-html[data-theme="gruvbox-dark"],
-html[data-theme="rose-pine"],
-html.dark { color-scheme: dark; }
 
 /* Scrollbars — ALL surfaces (default light, html.dark, and every preset theme)
  * share the same token contract: track=bg2, thumb=fg-muted, hover=accent.

@@ -27,7 +27,11 @@ const DEFAULT_LIGHT = {
 };
 
 // Map canonical UI colors (from _ui-derive) + a few options-only roles to --opt-* names.
-function emitOpt(ui, palette, overrides, radius) {
+// `mode` drives the native-control scheme (scrollbar, number spinner, etc.) for
+// this theme's own block -- Task 6. Previously a separate hand-written selector
+// list in options.css grouped the 8 dark presets against a single
+// `{ color-scheme: dark; }` rule; now every block states its own scheme directly.
+function emitOpt(ui, palette, overrides, radius, mode) {
   // --opt-save is success-coloured text shown on the panel/bg → make it AA on bg.
   const save = rgbToHex(fgToAA(hexToRgb(palette.success), hexToRgb(palette.bg)));
   const map = {
@@ -74,7 +78,7 @@ function emitOpt(ui, palette, overrides, radius) {
   map["chip-bg"] = palette["tag-bg"];
   map["chip-fg"] = rgbToHex(fgToAA(hexToRgb(palette["tag-fg"]), resolveOpaqueBg(palette["tag-bg"], panelRgb)));
 
-  return Object.entries(map).map(([k, v]) => `  --opt-${k}: ${v};`).join("\n");
+  return [`  color-scheme: ${mode};`, ...Object.entries(map).map(([k, v]) => `  --opt-${k}: ${v};`)].join("\n");
 }
 
 // tokensByPilot: { [pilotSlug]: parsedTokensJson }
@@ -86,9 +90,19 @@ export function composeOptionsThemes(tokensByPilot) {
     const merged = entry.useDarkMode && tk.modes?.dark ? mergeTokens(tk, tk.modes.dark) : tk;
     const palette = expandPalette(merged.palette);
     const ui = deriveUiColors(palette, entry.mode);
-    blocks.push(`html[data-theme="${entry.id}"] {\n${emitOpt(ui, palette, tk.ui?.options?.[entry.mode], merged.radius)}\n}`);
+    blocks.push(`html[data-theme="${entry.id}"] {\n${emitOpt(ui, palette, tk.ui?.options?.[entry.mode], merged.radius, entry.mode)}\n}`);
   }
-  const defaultBody = Object.entries(DEFAULT_LIGHT).map(([k, v]) => `  --opt-${k}: ${v};`).join("\n");
+  // Native-control scheme, default surface (no preset selected) -- Task 6.
+  // options.html declares `<meta name="color-scheme" content="light dark">`,
+  // so without an explicit declaration here a LIGHT default page on a DARK OS
+  // would otherwise keep dark native scrollbars/spinners -- a dark bar down a
+  // light page. Every dark preset states its own `color-scheme: dark` inside
+  // its own html[data-theme] block above (see emitOpt); this :root baseline
+  // only ever applies when no preset is active, which is always the light
+  // default surface (options-theme-early.js falls back to the "flexoki-dark"
+  // preset, not a bare dark default, whenever the user prefers dark and has
+  // no preset picked), so "light" is the only value this baseline needs.
+  const defaultBody = [`  color-scheme: light;`, ...Object.entries(DEFAULT_LIGHT).map(([k, v]) => `  --opt-${k}: ${v};`)].join("\n");
   blocks.push(`:root {\n${defaultBody}\n}`);
   return blocks.join("\n");
 }

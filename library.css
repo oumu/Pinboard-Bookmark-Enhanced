@@ -1184,6 +1184,7 @@ html.motion-ready .vocab-batch-bar.selecting {
 
 /* @generated:ui-themes start — do not edit; produced by composers/library-chrome.mjs */
 html[data-theme="modern-card"] {
+  color-scheme: light;
   --lib-bg: #f0f2f5;
   --lib-panel: #ffffff;
   --lib-tab: #ffffff;
@@ -1217,6 +1218,7 @@ html[data-theme="modern-card"] {
   --lib-chip-fg: #1967d2;
 }
 html[data-theme="nord-night"] {
+  color-scheme: dark;
   --lib-bg: #2e3440;
   --lib-panel: #3b4252;
   --lib-tab: #3b4252;
@@ -1250,6 +1252,7 @@ html[data-theme="nord-night"] {
   --lib-chip-fg: #a3be8c;
 }
 html[data-theme="terminal"] {
+  color-scheme: dark;
   --lib-bg: #0a0a0a;
   --lib-panel: #111111;
   --lib-tab: #111111;
@@ -1285,6 +1288,7 @@ html[data-theme="terminal"] {
   --lib-chip-fg: #00cccc;
 }
 html[data-theme="paper-ink"] {
+  color-scheme: light;
   --lib-bg: #faf8f5;
   --lib-panel: #f5f0e8;
   --lib-tab: #f5f0e8;
@@ -1320,6 +1324,7 @@ html[data-theme="paper-ink"] {
   --lib-chip-fg: #8b4513;
 }
 html[data-theme="dracula"] {
+  color-scheme: dark;
   --lib-bg: #282a36;
   --lib-panel: #21222c;
   --lib-tab: #21222c;
@@ -1353,6 +1358,7 @@ html[data-theme="dracula"] {
   --lib-chip-fg: #50fa7b;
 }
 html[data-theme="flexoki-light"] {
+  color-scheme: light;
   --lib-bg: #FFFCF0;
   --lib-panel: #F2F0E5;
   --lib-tab: #F2F0E5;
@@ -1386,6 +1392,7 @@ html[data-theme="flexoki-light"] {
   --lib-chip-fg: #846401;
 }
 html[data-theme="flexoki-dark"] {
+  color-scheme: dark;
   --lib-bg: #1C1B1A;
   --lib-panel: #282726;
   --lib-tab: #282726;
@@ -1419,6 +1426,7 @@ html[data-theme="flexoki-dark"] {
   --lib-chip-fg: #d0a215;
 }
 html[data-theme="solarized-light"] {
+  color-scheme: light;
   --lib-bg: #fdf6e3;
   --lib-panel: #eee8d5;
   --lib-tab: #eee8d5;
@@ -1452,6 +1460,7 @@ html[data-theme="solarized-light"] {
   --lib-chip-fg: #1d706a;
 }
 html[data-theme="solarized-dark"] {
+  color-scheme: dark;
   --lib-bg: #002b36;
   --lib-panel: #073642;
   --lib-tab: #073642;
@@ -1487,6 +1496,7 @@ html[data-theme="solarized-dark"] {
   --lib-chip-fg: #2ca9a0;
 }
 html[data-theme="catppuccin-latte"] {
+  color-scheme: light;
   --lib-bg: #eff1f5;
   --lib-panel: #e6e9ef;
   --lib-tab: #e6e9ef;
@@ -1520,6 +1530,7 @@ html[data-theme="catppuccin-latte"] {
   --lib-chip-fg: #10686d;
 }
 html[data-theme="catppuccin-mocha"] {
+  color-scheme: dark;
   --lib-bg: #1e1e2e;
   --lib-panel: #313244;
   --lib-tab: #313244;
@@ -1553,6 +1564,7 @@ html[data-theme="catppuccin-mocha"] {
   --lib-chip-fg: #94e2d5;
 }
 html[data-theme="gruvbox-dark"] {
+  color-scheme: dark;
   --lib-bg: #282828;
   --lib-panel: #3c3836;
   --lib-tab: #3c3836;
@@ -1586,6 +1598,7 @@ html[data-theme="gruvbox-dark"] {
   --lib-chip-fg: #b8bb26;
 }
 html[data-theme="rose-pine"] {
+  color-scheme: dark;
   --lib-bg: #191724;
   --lib-panel: #1f1d2e;
   --lib-tab: #1f1d2e;
@@ -1619,6 +1632,7 @@ html[data-theme="rose-pine"] {
   --lib-chip-fg: #9ccfd8;
 }
 html[data-theme="github-light"] {
+  color-scheme: light;
   --lib-bg: #f6f8fa;
   --lib-panel: #ffffff;
   --lib-tab: #ffffff;
@@ -1652,6 +1666,7 @@ html[data-theme="github-light"] {
   --lib-chip-fg: #0550ae;
 }
 :root {
+  color-scheme: light;
   --lib-btn-fg: #000000;
   --lib-danger-quiet-fg: #c5221f;
   --lib-on-danger: #ffffff;

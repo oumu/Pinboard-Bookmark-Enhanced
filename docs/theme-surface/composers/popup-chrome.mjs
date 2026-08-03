@@ -54,8 +54,15 @@ const DEFAULT_DARK = {
                                  // dark (#10131a) — 6.22:1 against #e57373, already clears AA (identity).
 };
 
-function emitPp(ui) {
-  const lines = [];
+// mode drives the native-control scheme (scrollbar, number spinner, calendar
+// picker etc.) for this theme's own block -- Task 6. Previously a separate
+// hand-written selector list in popup.css grouped the 8 dark presets against
+// a single `{ color-scheme: dark; }` rule (light presets got no explicit
+// declaration and relied on the :root default below); now every block states
+// its own scheme directly, one property per theme, no separate list to keep
+// in sync when a new preset is added.
+function emitPp(ui, mode) {
+  const lines = [`  color-scheme: ${mode};`];
   const set = (k, val) => lines.push(`  --pp-${k}: ${val};`);
   for (const k of ["bg", "bg2", "fg", "fg-muted", "fg-hint", "link", "accent", "accent2",
     "border", "divider", "input-bg", "input-focus-bg", "tag-bg", "tag-fg", "tag-hover", "drop-hover",
@@ -123,7 +130,7 @@ export function composePopupThemes(tokensByPilot) {
     // "transparent", which resolveOpaqueBg treats as "shows bg2 through").
     ui["chip-bg"] = ui["tag-bg"];
     ui["chip-fg"] = rgbToHex(fgToAA(hexToRgb(ui["tag-fg"]), resolveOpaqueBg(ui["tag-bg"], btnBgRgb)));
-    blocks.push(`html[data-theme="${entry.id}"] {\n${emitPp(ui)}\n}`);
+    blocks.push(`html[data-theme="${entry.id}"] {\n${emitPp(ui, entry.mode)}\n}`);
   }
   // `html.dark` here has the SAME selector (so the same specificity, 0,1,0)
   // as the hand-maintained `html.dark {...}` block earlier in popup.css --
@@ -137,8 +144,8 @@ export function composePopupThemes(tokensByPilot) {
   // other (`delete root.dataset.theme; root.classList.remove("dark")`)
   // before re-applying -- the two states are mutually exclusive on <html>
   // by construction, not by cascade math.
-  const emitDefault = (obj) => Object.entries(obj).map(([k, v]) => `  --pp-${k}: ${v};`).join("\n");
-  blocks.push(`:root {\n${emitDefault(DEFAULT_LIGHT)}\n}`);
-  blocks.push(`html.dark {\n${emitDefault(DEFAULT_DARK)}\n}`);
+  const emitDefault = (obj, scheme) => [`  color-scheme: ${scheme};`, ...Object.entries(obj).map(([k, v]) => `  --pp-${k}: ${v};`)].join("\n");
+  blocks.push(`:root {\n${emitDefault(DEFAULT_LIGHT, "light")}\n}`);
+  blocks.push(`html.dark {\n${emitDefault(DEFAULT_DARK, "dark")}\n}`);
   return blocks.join("\n");
 }

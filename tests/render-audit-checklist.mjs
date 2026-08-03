@@ -64,6 +64,24 @@
 //                      the single actual-background comparison and the
 //                      verdict's `note` says so explicitly -- it never
 //                      silently drops the second background.
+//   colorSchemeMatchesTheme -- true: computed `color-scheme` on <html> must
+//                      include "dark" when the active THEMES entry is one of
+//                      the 8 dark presets, "light" otherwise (Task 6). The
+//                      one check in this file whose pass/fail literally
+//                      depends on which THEMES value is active -- every
+//                      other check's `expect` is a theme-independent
+//                      literal; this one stays theme-independent IN THE
+//                      CHECKLIST (`colorSchemeMatchesTheme: true`, no
+//                      literal "light"/"dark") and scripts/ui-render-audit.mjs
+//                      computes the expected value itself from the THEMES
+//                      loop's current theme, same spirit as `heightEqWith`
+//                      cross-referencing a second selector rather than a
+//                      static number. Proxy for native-control (scrollbar,
+//                      number spinner) rendering mode -- the thumb/track
+//                      pixels themselves aren't probeable, but `color-scheme`
+//                      is what actually drives them (COMPONENTS.md's "成对
+//                      消费律" applied to a UA-rendered pair instead of an
+//                      author-painted one).
 //
 // Selectors below are written against the CURRENT shipped markup (pre-Task
 // 9/10 uplift). Task 9/10/12/13 migrate one selector's underlying CSS at a
@@ -188,6 +206,19 @@ export const CHECKS = [
     expect: { iconContrast: 3 } },
   { surface: "options", page: "options.html", selector: "#export-settings", state: "default",
     expect: { textContrast: 4.5 } },
+
+  // ---- Task 6: color-scheme now comes from composers/{popup,options,
+  // library}-chrome.mjs (every html[data-theme] block states its own scheme,
+  // :root/html.dark defaults fill the no-preset states) instead of a
+  // hand-written selector list. library was the one surface with NO such
+  // declaration at all before this task -- half the root cause of defect
+  // 1/4 (library's own dark presets left native `.btn` text at UA
+  // ButtonText resolved against the wrong scheme; see the options `.btn`
+  // entry above for the coincidental-pass mechanism this closes for
+  // library too). `html` always matches querySelector, so this runs once
+  // per theme with no detail-pane/batch-bar setup needed. ----
+  { surface: "library", page: "library.html", selector: "html", state: "default",
+    expect: { colorSchemeMatchesTheme: true } },
 ];
 
 // Hand-copied literal `data-theme` values, verified at authoring time with:

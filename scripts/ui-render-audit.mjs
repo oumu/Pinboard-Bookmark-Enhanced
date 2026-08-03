@@ -73,6 +73,17 @@ const ADAPTIVE_VARIANTS = {
   solarized: ["solarized-light", "solarized-dark"],
   catppuccin: ["catppuccin-latte", "catppuccin-mocha"],
 };
+// Dark-preset ids among THEMES (colorSchemeMatchesTheme, Task 6). Hand-copied
+// from composers/popup-chrome.mjs's POPUP_THEME_MAP { mode: "dark" } entries
+// -- all three surfaces render the identical 14-id data-theme set (same
+// census the checklist's own THEMES comment documents) -- NOT imported, same
+// independence-from-the-composer-layer reasoning as ADAPTIVE_VARIANTS above.
+const DARK_THEME_IDS = new Set([
+  "popup-dark", "nord-night", "terminal", "dracula", "flexoki-dark",
+  "solarized-dark", "catppuccin-mocha", "gruvbox-dark", "rose-pine",
+]);
+function isDarkTheme(themeKey) { return DARK_THEME_IDS.has(themeKey); }
+
 function themeToStorage(themeKey) {
   if (themeKey === "") return { themePresetKey: "", optTheme: "light" };
   if (themeKey === "popup-dark") return { themePresetKey: "", optTheme: "dark" };
@@ -157,6 +168,10 @@ function probeSelector({ selector, compareSelector, extraBgVarName }) {
     svg,
     compareRect,
     extraBgRaw,
+    // Unconditional (cheap, selector-independent) -- colorSchemeMatchesTheme's
+    // proxy for native-control (scrollbar/spinner) rendering mode, which has
+    // no pixel-level probe of its own (Task 6).
+    rootColorScheme: getComputedStyle(document.documentElement).colorScheme,
     paddingLeft: parseFloat(cs.paddingLeft) || 0,
     paddingRight: parseFloat(cs.paddingRight) || 0,
     paddingTop: parseFloat(cs.paddingTop) || 0,
@@ -167,7 +182,15 @@ function probeSelector({ selector, compareSelector, extraBgVarName }) {
 
 // Node-side: turns one probe() result into one-or-more {check, status,
 // actual, expected} verdicts, per the `expect` keys the CHECK declared.
-function evaluateCheck(check, raw) {
+// `theme` (added Task 6, colorSchemeMatchesTheme only) is the current
+// THEMES-loop value -- unlike every other expect key, the "correct" value
+// here legitimately depends on which theme is active, so it can't be a
+// static literal in the checklist entry the way every other check's
+// `expect` is (see the file-header note on why CHECKS entries don't
+// normally carry a `theme` field: this key stays theme-INDEPENDENT in the
+// checklist -- `colorSchemeMatchesTheme: true` -- and only the runner,
+// which already owns the THEMES loop, computes what "matches" means).
+function evaluateCheck(check, raw, theme) {
   if (!raw.found) return { setupError: `selector not found in DOM: ${check.selector}` };
   const bg = compositeStack(raw.bgStack);
   const out = [];
@@ -264,6 +287,11 @@ function evaluateCheck(check, raw) {
       }
     }
   }
+  if (exp.colorSchemeMatchesTheme === true) {
+    const expectedScheme = isDarkTheme(theme) ? "dark" : "light";
+    const actual = raw.rootColorScheme || "";
+    out.push(verdict("colorSchemeMatchesTheme", actual.includes(expectedScheme), actual, expectedScheme));
+  }
   return { results: out };
 }
 
@@ -283,7 +311,7 @@ async function runOneCheck(page, theme, check, results) {
     compareSelector: check.expect.heightEqWith?.selector || null,
     extraBgVarName: extraBgSelectorVar ? `--${NS_BY_SURFACE[check.surface]}-${extraBgSelectorVar}` : null,
   });
-  const evald = evaluateCheck(check, raw);
+  const evald = evaluateCheck(check, raw, theme);
   if (evald.setupError) {
     throw new Error(`SETUP ERROR [${check.surface}|${theme}|${check.selector}|${check.state}]: ${evald.setupError}`);
   }

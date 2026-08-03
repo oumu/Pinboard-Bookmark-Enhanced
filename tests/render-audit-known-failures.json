@@ -169,26 +169,6 @@
     "expected": 4.5,
     "note": null
   },
-  "library|catppuccin-mocha|.vocab-detail-relookup|default|textContrast": {
-    "surface": "library",
-    "theme": "catppuccin-mocha",
-    "selector": ".vocab-detail-relookup",
-    "state": "default",
-    "check": "textContrast",
-    "actual": 1.67,
-    "expected": 4.5,
-    "note": null
-  },
-  "library|catppuccin-mocha|.vocab-detail-relookup|default|iconContrast": {
-    "surface": "library",
-    "theme": "catppuccin-mocha",
-    "selector": ".vocab-detail-relookup",
-    "state": "default",
-    "check": "iconContrast",
-    "actual": 1.67,
-    "expected": 3,
-    "note": null
-  },
   "library|catppuccin-mocha|.vocab-detail-delete|default|iconVCenter": {
     "surface": "library",
     "theme": "catppuccin-mocha",
@@ -217,16 +197,6 @@
     "check": "padVMin",
     "actual": 0,
     "expected": 2,
-    "note": null
-  },
-  "library|catppuccin-mocha|.vocab-detail-speak|default|iconContrast": {
-    "surface": "library",
-    "theme": "catppuccin-mocha",
-    "selector": ".vocab-detail-speak",
-    "state": "default",
-    "check": "iconContrast",
-    "actual": 1.67,
-    "expected": 3,
     "note": null
   },
   "library|catppuccin-mocha|.vocab-detail-speak|default|iconVCenter": {
@@ -269,26 +239,6 @@
     "expected": 2,
     "note": null
   },
-  "library|dracula|.vocab-detail-relookup|default|textContrast": {
-    "surface": "library",
-    "theme": "dracula",
-    "selector": ".vocab-detail-relookup",
-    "state": "default",
-    "check": "textContrast",
-    "actual": 1.33,
-    "expected": 4.5,
-    "note": null
-  },
-  "library|dracula|.vocab-detail-relookup|default|iconContrast": {
-    "surface": "library",
-    "theme": "dracula",
-    "selector": ".vocab-detail-relookup",
-    "state": "default",
-    "check": "iconContrast",
-    "actual": 1.33,
-    "expected": 3,
-    "note": null
-  },
   "library|dracula|.vocab-detail-delete|default|iconVCenter": {
     "surface": "library",
     "theme": "dracula",
@@ -317,16 +267,6 @@
     "check": "padVMin",
     "actual": 0,
     "expected": 2,
-    "note": null
-  },
-  "library|dracula|.vocab-detail-speak|default|iconContrast": {
-    "surface": "library",
-    "theme": "dracula",
-    "selector": ".vocab-detail-speak",
-    "state": "default",
-    "check": "iconContrast",
-    "actual": 1.33,
-    "expected": 3,
     "note": null
   },
   "library|dracula|.vocab-detail-speak|default|iconVCenter": {
@@ -439,26 +379,6 @@
     "expected": 2,
     "note": null
   },
-  "library|flexoki-dark|.vocab-detail-relookup|default|textContrast": {
-    "surface": "library",
-    "theme": "flexoki-dark",
-    "selector": ".vocab-detail-relookup",
-    "state": "default",
-    "check": "textContrast",
-    "actual": 1.41,
-    "expected": 4.5,
-    "note": null
-  },
-  "library|flexoki-dark|.vocab-detail-relookup|default|iconContrast": {
-    "surface": "library",
-    "theme": "flexoki-dark",
-    "selector": ".vocab-detail-relookup",
-    "state": "default",
-    "check": "iconContrast",
-    "actual": 1.41,
-    "expected": 3,
-    "note": null
-  },
   "library|flexoki-dark|.vocab-detail-delete|default|textContrast": {
     "surface": "library",
     "theme": "flexoki-dark",
@@ -497,16 +417,6 @@
     "check": "padVMin",
     "actual": 0,
     "expected": 2,
-    "note": null
-  },
-  "library|flexoki-dark|.vocab-detail-speak|default|iconContrast": {
-    "surface": "library",
-    "theme": "flexoki-dark",
-    "selector": ".vocab-detail-speak",
-    "state": "default",
-    "check": "iconContrast",
-    "actual": 1.41,
-    "expected": 3,
     "note": null
   },
   "library|flexoki-dark|.vocab-detail-speak|default|iconVCenter": {
@@ -639,26 +549,6 @@
     "expected": 2,
     "note": null
   },
-  "library|gruvbox-dark|.vocab-detail-relookup|default|textContrast": {
-    "surface": "library",
-    "theme": "gruvbox-dark",
-    "selector": ".vocab-detail-relookup",
-    "state": "default",
-    "check": "textContrast",
-    "actual": 1.81,
-    "expected": 4.5,
-    "note": null
-  },
-  "library|gruvbox-dark|.vocab-detail-relookup|default|iconContrast": {
-    "surface": "library",
-    "theme": "gruvbox-dark",
-    "selector": ".vocab-detail-relookup",
-    "state": "default",
-    "check": "iconContrast",
-    "actual": 1.81,
-    "expected": 3,
-    "note": null
-  },
   "library|gruvbox-dark|.vocab-detail-delete|default|textContrast": {
     "surface": "library",
     "theme": "gruvbox-dark",
@@ -697,16 +587,6 @@
     "check": "padVMin",
     "actual": 0,
     "expected": 2,
-    "note": null
-  },
-  "library|gruvbox-dark|.vocab-detail-speak|default|iconContrast": {
-    "surface": "library",
-    "theme": "gruvbox-dark",
-    "selector": ".vocab-detail-speak",
-    "state": "default",
-    "check": "iconContrast",
-    "actual": 1.81,
-    "expected": 3,
     "note": null
   },
   "library|gruvbox-dark|.vocab-detail-speak|default|iconVCenter": {
@@ -829,26 +709,6 @@
     "expected": 2,
     "note": null
   },
-  "library|nord-night|.vocab-detail-relookup|default|textContrast": {
-    "surface": "library",
-    "theme": "nord-night",
-    "selector": ".vocab-detail-relookup",
-    "state": "default",
-    "check": "textContrast",
-    "actual": 2.09,
-    "expected": 4.5,
-    "note": null
-  },
-  "library|nord-night|.vocab-detail-relookup|default|iconContrast": {
-    "surface": "library",
-    "theme": "nord-night",
-    "selector": ".vocab-detail-relookup",
-    "state": "default",
-    "check": "iconContrast",
-    "actual": 2.09,
-    "expected": 3,
-    "note": null
-  },
   "library|nord-night|.vocab-detail-delete|default|textContrast": {
     "surface": "library",
     "theme": "nord-night",
@@ -887,16 +747,6 @@
     "check": "padVMin",
     "actual": 0,
     "expected": 2,
-    "note": null
-  },
-  "library|nord-night|.vocab-detail-speak|default|iconContrast": {
-    "surface": "library",
-    "theme": "nord-night",
-    "selector": ".vocab-detail-speak",
-    "state": "default",
-    "check": "iconContrast",
-    "actual": 2.09,
-    "expected": 3,
     "note": null
   },
   "library|nord-night|.vocab-detail-speak|default|iconVCenter": {
@@ -1019,26 +869,6 @@
     "expected": 2,
     "note": null
   },
-  "library|rose-pine|.vocab-detail-relookup|default|textContrast": {
-    "surface": "library",
-    "theme": "rose-pine",
-    "selector": ".vocab-detail-relookup",
-    "state": "default",
-    "check": "textContrast",
-    "actual": 1.27,
-    "expected": 4.5,
-    "note": null
-  },
-  "library|rose-pine|.vocab-detail-relookup|default|iconContrast": {
-    "surface": "library",
-    "theme": "rose-pine",
-    "selector": ".vocab-detail-relookup",
-    "state": "default",
-    "check": "iconContrast",
-    "actual": 1.27,
-    "expected": 3,
-    "note": null
-  },
   "library|rose-pine|.vocab-detail-delete|default|iconVCenter": {
     "surface": "library",
     "theme": "rose-pine",
@@ -1067,16 +897,6 @@
     "check": "padVMin",
     "actual": 0,
     "expected": 2,
-    "note": null
-  },
-  "library|rose-pine|.vocab-detail-speak|default|iconContrast": {
-    "surface": "library",
-    "theme": "rose-pine",
-    "selector": ".vocab-detail-speak",
-    "state": "default",
-    "check": "iconContrast",
-    "actual": 1.27,
-    "expected": 3,
     "note": null
   },
   "library|rose-pine|.vocab-detail-speak|default|iconVCenter": {
@@ -1209,26 +1029,6 @@
     "expected": 4.5,
     "note": null
   },
-  "library|solarized-dark|.vocab-detail-relookup|default|textContrast": {
-    "surface": "library",
-    "theme": "solarized-dark",
-    "selector": ".vocab-detail-relookup",
-    "state": "default",
-    "check": "textContrast",
-    "actual": 1.62,
-    "expected": 4.5,
-    "note": null
-  },
-  "library|solarized-dark|.vocab-detail-relookup|default|iconContrast": {
-    "surface": "library",
-    "theme": "solarized-dark",
-    "selector": ".vocab-detail-relookup",
-    "state": "default",
-    "check": "iconContrast",
-    "actual": 1.62,
-    "expected": 3,
-    "note": null
-  },
   "library|solarized-dark|.vocab-detail-delete|default|textContrast": {
     "surface": "library",
     "theme": "solarized-dark",
@@ -1267,16 +1067,6 @@
     "check": "padVMin",
     "actual": 0,
     "expected": 2,
-    "note": null
-  },
-  "library|solarized-dark|.vocab-detail-speak|default|iconContrast": {
-    "surface": "library",
-    "theme": "solarized-dark",
-    "selector": ".vocab-detail-speak",
-    "state": "default",
-    "check": "iconContrast",
-    "actual": 1.62,
-    "expected": 3,
     "note": null
   },
   "library|solarized-dark|.vocab-detail-speak|default|iconVCenter": {
@@ -1329,26 +1119,6 @@
     "expected": 4.5,
     "note": null
   },
-  "library|terminal|.vocab-detail-relookup|default|textContrast": {
-    "surface": "library",
-    "theme": "terminal",
-    "selector": ".vocab-detail-relookup",
-    "state": "default",
-    "check": "textContrast",
-    "actual": 1.11,
-    "expected": 4.5,
-    "note": null
-  },
-  "library|terminal|.vocab-detail-relookup|default|iconContrast": {
-    "surface": "library",
-    "theme": "terminal",
-    "selector": ".vocab-detail-relookup",
-    "state": "default",
-    "check": "iconContrast",
-    "actual": 1.11,
-    "expected": 3,
-    "note": null
-  },
   "library|terminal|.vocab-detail-delete|default|iconVCenter": {
     "surface": "library",
     "theme": "terminal",
@@ -1377,16 +1147,6 @@
     "check": "padVMin",
     "actual": 0,
     "expected": 2,
-    "note": null
-  },
-  "library|terminal|.vocab-detail-speak|default|iconContrast": {
-    "surface": "library",
-    "theme": "terminal",
-    "selector": ".vocab-detail-speak",
-    "state": "default",
-    "check": "iconContrast",
-    "actual": 1.11,
-    "expected": 3,
     "note": null
   },
   "library|terminal|.vocab-detail-speak|default|iconVCenter": {

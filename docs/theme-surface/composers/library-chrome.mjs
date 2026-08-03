@@ -40,7 +40,12 @@ const DEFAULT_LIGHT = {
 // without an override fall through the cascade to library.css's :root
 // computed default (same color-mix(--lib-accent) formula), which is the ONLY
 // thing that makes --lib-focus-ring resolve for those themes at all.
-function emitLib(ui, palette, overrides, radius, focus = {}) {
+// `mode` drives the native-control scheme (scrollbar, number spinner, etc.)
+// for this theme's own block -- Task 6, library's FIRST color-scheme
+// declaration (popup/options already had a hand-written one; library never
+// did -- half the root cause of defect 1/4: library's own dark presets left
+// native `.btn` text at UA ButtonText resolved against the wrong scheme).
+function emitLib(ui, palette, overrides, radius, focus = {}, mode) {
   const save = rgbToHex(fgToAA(hexToRgb(palette.success), hexToRgb(palette.bg)));
   // Unlike options, no pilot carries ui.library overrides yet, so danger/warn
   // must be derived here or ui-token-coverage fails on themes without them.
@@ -103,7 +108,7 @@ function emitLib(ui, palette, overrides, radius, focus = {}) {
   map["chip-bg"] = palette["tag-bg"];
   map["chip-fg"] = rgbToHex(fgToAA(hexToRgb(palette["tag-fg"]), resolveOpaqueBg(palette["tag-bg"], panelRgb)));
 
-  return Object.entries(map).map(([k, v]) => `  --lib-${k}: ${v};`).join("\n");
+  return [`  color-scheme: ${mode};`, ...Object.entries(map).map(([k, v]) => `  --lib-${k}: ${v};`)].join("\n");
 }
 
 // tokensByPilot: { [pilotSlug]: parsedTokensJson }
@@ -116,9 +121,17 @@ export function composeLibraryThemes(tokensByPilot) {
     const palette = expandPalette(merged.palette);
     const ui = deriveUiColors(palette, entry.mode);
     const focus = tk.ui?.popup?.[entry.mode] ?? {};
-    blocks.push(`html[data-theme="${entry.id}"] {\n${emitLib(ui, palette, tk.ui?.library?.[entry.mode], merged.radius, focus)}\n}`);
+    blocks.push(`html[data-theme="${entry.id}"] {\n${emitLib(ui, palette, tk.ui?.library?.[entry.mode], merged.radius, focus, entry.mode)}\n}`);
   }
-  const defaultBody = Object.entries(DEFAULT_LIGHT).map(([k, v]) => `  --lib-${k}: ${v};`).join("\n");
+  // Native-control scheme, default surface (no preset selected) -- Task 6.
+  // library.html declares `<meta name="color-scheme" content="light dark">`
+  // (shares options-theme-early.js's boot logic, which likewise falls back to
+  // a themed preset rather than a bare dark default whenever the user
+  // prefers dark with no preset picked), so this :root baseline only ever
+  // applies on the light default surface -- "light" is the only value it
+  // needs. Every dark preset states its own `color-scheme: dark` inside its
+  // own html[data-theme] block above (see emitLib).
+  const defaultBody = [`  color-scheme: light;`, ...Object.entries(DEFAULT_LIGHT).map(([k, v]) => `  --lib-${k}: ${v};`)].join("\n");
   blocks.push(`:root {\n${defaultBody}\n}`);
   return blocks.join("\n");
 }

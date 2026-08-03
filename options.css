@@ -734,6 +734,7 @@ html[data-theme] .status-ic.bad { color: var(--opt-danger, #c0392b); }
 
 /* @generated:ui-themes start — do not edit; produced by composers/options-chrome.mjs */
 html[data-theme="modern-card"] {
+  color-scheme: light;
   --opt-bg: #f0f2f5;
   --opt-panel: #ffffff;
   --opt-tab: #ffffff;
@@ -763,6 +764,7 @@ html[data-theme="modern-card"] {
   --opt-chip-fg: #1967d2;
 }
 html[data-theme="nord-night"] {
+  color-scheme: dark;
   --opt-bg: #2e3440;
   --opt-panel: #3b4252;
   --opt-tab: #3b4252;
@@ -792,6 +794,7 @@ html[data-theme="nord-night"] {
   --opt-chip-fg: #a3be8c;
 }
 html[data-theme="terminal"] {
+  color-scheme: dark;
   --opt-bg: #0a0a0a;
   --opt-panel: #111111;
   --opt-tab: #111111;
@@ -823,6 +826,7 @@ html[data-theme="terminal"] {
   --opt-chip-fg: #00cccc;
 }
 html[data-theme="paper-ink"] {
+  color-scheme: light;
   --opt-bg: #faf8f5;
   --opt-panel: #f5f0e8;
   --opt-tab: #ede4d0;
@@ -854,6 +858,7 @@ html[data-theme="paper-ink"] {
   --opt-chip-fg: #8b4513;
 }
 html[data-theme="dracula"] {
+  color-scheme: dark;
   --opt-bg: #282a36;
   --opt-panel: #21222c;
   --opt-tab: #21222c;
@@ -883,6 +888,7 @@ html[data-theme="dracula"] {
   --opt-chip-fg: #50fa7b;
 }
 html[data-theme="flexoki-light"] {
+  color-scheme: light;
   --opt-bg: #FFFCF0;
   --opt-panel: #F2F0E5;
   --opt-tab: #F2F0E5;
@@ -911,6 +917,7 @@ html[data-theme="flexoki-light"] {
   --opt-chip-fg: #846401;
 }
 html[data-theme="flexoki-dark"] {
+  color-scheme: dark;
   --opt-bg: #1C1B1A;
   --opt-panel: #282726;
   --opt-tab: #282726;
@@ -939,6 +946,7 @@ html[data-theme="flexoki-dark"] {
   --opt-chip-fg: #d0a215;
 }
 html[data-theme="solarized-light"] {
+  color-scheme: light;
   --opt-bg: #fdf6e3;
   --opt-panel: #eee8d5;
   --opt-tab: #e6dfca;
@@ -968,6 +976,7 @@ html[data-theme="solarized-light"] {
   --opt-chip-fg: #1d706a;
 }
 html[data-theme="solarized-dark"] {
+  color-scheme: dark;
   --opt-bg: #002b36;
   --opt-panel: #073642;
   --opt-tab: #073642;
@@ -999,6 +1008,7 @@ html[data-theme="solarized-dark"] {
   --opt-chip-fg: #2ca9a0;
 }
 html[data-theme="catppuccin-latte"] {
+  color-scheme: light;
   --opt-bg: #eff1f5;
   --opt-panel: #e6e9ef;
   --opt-tab: #dce0e8;
@@ -1028,6 +1038,7 @@ html[data-theme="catppuccin-latte"] {
   --opt-chip-fg: #10686d;
 }
 html[data-theme="catppuccin-mocha"] {
+  color-scheme: dark;
   --opt-bg: #1e1e2e;
   --opt-panel: #313244;
   --opt-tab: #313244;
@@ -1057,6 +1068,7 @@ html[data-theme="catppuccin-mocha"] {
   --opt-chip-fg: #94e2d5;
 }
 html[data-theme="gruvbox-dark"] {
+  color-scheme: dark;
   --opt-bg: #282828;
   --opt-panel: #3c3836;
   --opt-tab: #3c3836;
@@ -1086,6 +1098,7 @@ html[data-theme="gruvbox-dark"] {
   --opt-chip-fg: #b8bb26;
 }
 html[data-theme="rose-pine"] {
+  color-scheme: dark;
   --opt-bg: #191724;
   --opt-panel: #1f1d2e;
   --opt-tab: #1f1d2e;
@@ -1115,6 +1128,7 @@ html[data-theme="rose-pine"] {
   --opt-chip-fg: #9ccfd8;
 }
 html[data-theme="github-light"] {
+  color-scheme: light;
   --opt-bg: #f6f8fa;
   --opt-panel: #ffffff;
   --opt-tab: #ffffff;
@@ -1144,6 +1158,7 @@ html[data-theme="github-light"] {
   --opt-chip-fg: #0550ae;
 }
 :root {
+  color-scheme: light;
   --opt-btn-fg: #000000;
   --opt-danger-quiet-fg: #cc0000;
   --opt-on-danger: #ffffff;
@@ -1151,20 +1166,6 @@ html[data-theme="github-light"] {
   --opt-chip-fg: #333333;
 }
 /* @generated:ui-themes end */
-
-/* ---- Native-control scheme (scrollbar, number spinner, etc.) ----
-   Light baseline first: options.html declares color-scheme light/dark, so on a
-   dark OS a LIGHT preset would otherwise keep dark native scrollbars — a dark
-   bar down a light page. Dark presets below override to dark. */
-html { color-scheme: light; }
-html[data-theme="nord-night"],
-html[data-theme="terminal"],
-html[data-theme="dracula"],
-html[data-theme="flexoki-dark"],
-html[data-theme="solarized-dark"],
-html[data-theme="catppuccin-mocha"],
-html[data-theme="gruvbox-dark"],
-html[data-theme="rose-pine"] { color-scheme: dark; }
 
 /* ---- Shared themed rules ---- */
 html[data-theme] body { background: var(--opt-bg); color: var(--opt-fg); }
