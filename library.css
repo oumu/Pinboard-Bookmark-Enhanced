@@ -1034,6 +1034,8 @@ html[data-theme="terminal"] {
   --lib-pane-divider: #33ff3340;
   --lib-row-selected-bg: #1a3a1a;
   --lib-row-selected-fg: #33ff33;
+  --lib-focus-bd: #33ff33;
+  --lib-focus-ring: 0 0 6px 1px rgba(51,255,51,0.4);
   --lib-radius-sm: 4px;
   --lib-radius-md: 4px;
   --lib-radius-lg: 4px;
@@ -1061,6 +1063,8 @@ html[data-theme="paper-ink"] {
   --lib-pane-divider: #d4c5a9;
   --lib-row-selected-bg: #f5f0e8;
   --lib-row-selected-fg: #2c2c2c;
+  --lib-focus-bd: #1a3a5c;
+  --lib-focus-ring: 0 0 0 1px #1a3a5c;
   --lib-radius-sm: 2px;
   --lib-radius-md: 4px;
   --lib-radius-lg: 4px;
@@ -1196,6 +1200,8 @@ html[data-theme="solarized-dark"] {
   --lib-pane-divider: #094b5a;
   --lib-row-selected-bg: #073642;
   --lib-row-selected-fg: #8e9e9f;
+  --lib-focus-bd: #268bd2;
+  --lib-focus-ring: 0 0 0 2px rgba(38,139,210,0.25);
   --lib-radius-sm: 2px;
   --lib-radius-md: 4px;
   --lib-radius-lg: 4px;

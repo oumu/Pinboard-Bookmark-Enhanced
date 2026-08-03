@@ -25,7 +25,18 @@ function fgToAAMulti(fg, bgs, min = 4.5) {
 // Map canonical UI colors to --lib-* names for the standalone library page
 // (notes + vocabulary). Role set = the options roles plus master-detail
 // additions (pane bg/divider, selected-row pair).
-function emitLib(ui, palette, overrides, radius) {
+//
+// `focus` mirrors how popup-chrome.mjs consumes tk.ui.popup.<mode>: no pilot
+// carries a dedicated ui.library.<mode>.focus-bd/focus-ring override, so this
+// reuses popup's (only 3 pilots declare one — terminal/paper-ink/solarized's
+// glow-style box-shadow). Guarded with `!= null` and NOT unconditionally
+// spread: deriveUiColors never computes focus-bd/focus-ring itself, so an
+// unconditional `ui["focus-bd"]` here would literally emit
+// `--lib-focus-bd: undefined;` for every one of the other 11 themes. Themes
+// without an override fall through the cascade to library.css's :root
+// computed default (same color-mix(--lib-accent) formula), which is the ONLY
+// thing that makes --lib-focus-ring resolve for those themes at all.
+function emitLib(ui, palette, overrides, radius, focus = {}) {
   const save = rgbToHex(fgToAA(hexToRgb(palette.success), hexToRgb(palette.bg)));
   // Unlike options, no pilot carries ui.library overrides yet, so danger/warn
   // must be derived here or ui-token-coverage fails on themes without them.
@@ -56,6 +67,8 @@ function emitLib(ui, palette, overrides, radius) {
     "pane-divider": ui.border,
     "row-selected-bg": ui["drop-hover"],
     "row-selected-fg": fg,
+    ...(focus["focus-bd"] != null ? { "focus-bd": focus["focus-bd"] } : {}),
+    ...(focus["focus-ring"] != null ? { "focus-ring": focus["focus-ring"] } : {}),
     ...deriveUiRadius(radius),
   };
   Object.assign(map, overrides ?? {});
@@ -72,7 +85,8 @@ export function composeLibraryThemes(tokensByPilot) {
     const merged = entry.useDarkMode && tk.modes?.dark ? mergeTokens(tk, tk.modes.dark) : tk;
     const palette = expandPalette(merged.palette);
     const ui = deriveUiColors(palette, entry.mode);
-    blocks.push(`html[data-theme="${entry.id}"] {\n${emitLib(ui, palette, tk.ui?.library?.[entry.mode], merged.radius)}\n}`);
+    const focus = tk.ui?.popup?.[entry.mode] ?? {};
+    blocks.push(`html[data-theme="${entry.id}"] {\n${emitLib(ui, palette, tk.ui?.library?.[entry.mode], merged.radius, focus)}\n}`);
   }
   return blocks.join("\n");
 }
