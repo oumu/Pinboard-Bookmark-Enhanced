@@ -73,6 +73,7 @@ const ALLOWLIST = new Set([
 
 const violations = [];
 const known = [];
+let skipCount = 0;
 function check(scope, theme, label, ratio, min) {
   const ok = ratio >= min;
   const key = scope + ":" + theme + ":" + label;
@@ -179,13 +180,12 @@ function foldSelectorBlocks(text, selectorSrc) {
   while ((m = re.exec(text)) !== null) Object.assign(dict, tokenDict(m[1]));
   return dict;
 }
+// selectorSrc is a literal-ish selector like ":root" or "html\\.dark" -- this
+// has no idea about @media-wrapped rules (a `@media (...) { :root {...} }`
+// block would match too, since the regex doesn't track brace nesting). No
+// generated block is ever @media-wrapped today, so this is a known, currently
+// non-triggering limitation, not a silent gap.
 
-// CLI runner. Wrapped in main() + a direct-execution guard so importing this
-// module for the pure functions above (scripts/ui-render-audit.mjs) does not
-// also execute the whole static-CSS audit and process.exit() out from under
-// the importer -- `node docs/theme-surface/tools/contrast-audit.mjs` still
-// behaves exactly as before, since nothing inside main() changed.
-function main() {
 // Runs COMPONENT_PAIR_SPEC against one already-parsed token dict (a themed
 // block's body, or a folded default-surface dict). `strict` distinguishes
 // the two block kinds Task 5 actually guarantees differently:
@@ -201,7 +201,12 @@ function main() {
 //    already had (or didn't -- options' default surface has no
 //    --opt-btn-bg/--opt-btn-hover at all yet, pre-Task-9). A missing role
 //    there is an intentional, in-scope-elsewhere gap, so it SKIPs (printed,
-//    non-blocking) instead of failing.
+//    non-blocking, counted in skipCount) instead of failing. Callers of the
+//    non-strict path MUST guard against the fold itself coming back empty or
+//    missing its sentinel role first (see auditComponentPairsDefault) --
+//    otherwise every pair here degrades to a silent SKIP and this function
+//    alone can't tell "legitimately not-yet-wired" apart from "the caller's
+//    selector regex matched nothing at all".
 function auditComponentPairs(scope, ns, blockLabel, dict, strict) {
   const alias = ROLE_ALIAS[ns] || {};
   const roleKey = (role) => `${ns}-${alias[role] || role}`;
@@ -228,15 +233,80 @@ function auditComponentPairs(scope, ns, blockLabel, dict, strict) {
     const fg = resolveRole(fgRole), bg = resolveRole(bgRole);
     if (!fg.rgb || !bg.rgb) {
       const why = fg.note || bg.note;
-      const line = "  " + scope.padEnd(10) + " " + blockLabel.padEnd(20) + " " + label.padEnd(32) + " " + (strict ? "FAIL (" + why + ")" : "SKIP (" + why + ")");
+      const line = "  " + scope.padEnd(10) + " " + blockLabel.padEnd(20) + " " + label.padEnd(28) + " " + (strict ? "FAIL (" + why + ")" : "SKIP (" + why + ")");
       console.log(line);
       if (strict) violations.push(line);
+      else skipCount++;
       continue;
     }
     console.log(check(scope, blockLabel, label, cr(fg.rgb, bg.rgb), min));
   }
 }
 
+// Orphan guard: every *-fg / on-* shaped custom property this surface's
+// @generated:ui-themes region actually emits should be referenced by SOME
+// check in this file (a COMPONENT_PAIR_SPEC role, or one of the existing
+// ad-hoc grab()/label checks above) -- otherwise a new fg/on- token can ship
+// with zero contrast coverage from this door and nothing here would ever
+// notice. Cheap proxy, not a parser: grab()/COMPONENT_PAIR_SPEC/the ad-hoc
+// [fgK,bgK,label] arrays all leave the bare token name as a double-quoted
+// string literal SOMEWHERE in this file's own source -- scanning for that is
+// enough to catch the real failure mode (a token nobody ever typed here),
+// without instrumenting every existing check site individually.
+const OWN_SOURCE = readFileSync(fileURLToPath(import.meta.url), "utf8");
+const ORPHAN_ALLOWLIST = new Set([
+  // --pp-preset-fg: emitted by deriveUiColors (_ui-derive.mjs), consumed by
+  // popup.css:1989 (.theme-preset-btn), 6/14 themes measured <4.5:1. A real,
+  // pre-existing gap this orphan guard surfaced -- predates Task 5/7's
+  // component-pair work, not fixed here as a drive-by fix (ledger tracks the
+  // separate decision to fix vs. formally accept it).
+  "pp:preset-fg",
+  // --pp-tag-fg: the OLD chip-role name COMPONENTS §5.3 says --pp-chip-fg is
+  // meant to retire (consumption not yet migrated -- popup.css:406/1932
+  // still read tag-fg/tag-bg directly). Same shape as preset-fg: a real,
+  // pre-existing, never-audited token this guard surfaced, not this task's
+  // job to migrate or fix.
+  "pp:tag-fg",
+  // --pp-spinner-fg: consumed by popup.css:1964 (loading-spinner
+  // border-top-color), never had contrast coverage. Same "real pre-existing
+  // gap, park it" treatment as the two above.
+  "pp:spinner-fg",
+  // --pp-info-fg: NOT an independent color -- emitPp emits it unconditionally
+  // as the literal string `var(--pp-banner-fg)` for every theme (popup-
+  // chrome.mjs's `set("info-fg", "var(--pp-banner-fg)")`), so it is
+  // banner-fg by construction, every theme, no exceptions. banner-fg IS
+  // audited (the warn/banner/ok/offline loop in auditCssThemes) -- checking
+  // "info-fg" would just re-run the identical banner-fg×banner-bg comparison
+  // under a different label, not add real coverage. A genuine alias, not a
+  // gap.
+  "pp:info-fg",
+]);
+function generatedRegion(text) {
+  const start = text.indexOf("@generated:ui-themes start");
+  const end = text.indexOf("@generated:ui-themes end");
+  return start === -1 || end === -1 ? text : text.slice(start, end);
+}
+function auditOrphanTokens(scope, ns, cssText) {
+  const region = generatedRegion(cssText);
+  const re = new RegExp(`--${ns}-([a-z0-9]+(?:-[a-z0-9]+)*-fg|on-[a-z0-9-]+)\\s*:`, "g");
+  const names = new Set();
+  let m;
+  while ((m = re.exec(region)) !== null) names.add(m[1]);
+  for (const name of names) {
+    if (OWN_SOURCE.includes(`"${name}"`)) continue;
+    if (ORPHAN_ALLOWLIST.has(`${ns}:${name}`)) continue;
+    const line = "  " + scope.padEnd(10) + " orphan".padEnd(20) + `--${ns}-${name}`.padEnd(28) + " FAIL (no check in this file references this token)";
+    console.log(line);
+    violations.push(line);
+  }
+}
+
+// CLI runner. Wrapped in main() + a direct-execution guard so importing this
+// module for the pure functions above (scripts/ui-render-audit.mjs) does not
+// also execute the whole static-CSS audit and process.exit() out from under
+// the importer -- `node docs/theme-surface/tools/contrast-audit.mjs` run
+// directly still prints the full audit and exits 0/1 as before.
+function main() {
 console.log("=== 1. Pinboard.in tokens (pilots/*.tokens.json) ===");
 const pinFiles = readdirSync(PILOTS).filter((f) => f.endsWith(".tokens.json")).sort();
 for (const f of pinFiles) {
@@ -532,7 +602,26 @@ auditDarkDefault(resolve(ROOT, "popup.css"));
 // regression to fail on.
 function auditComponentPairsDefault(scope, ns, cssPath, selectorSrc, blockLabel) {
   const text = readFileSync(cssPath, "utf8");
-  auditComponentPairs(scope, ns, blockLabel, foldSelectorBlocks(text, selectorSrc), false);
+  const dict = foldSelectorBlocks(text, selectorSrc);
+  // Guard against the whole default-surface probe silently degrading to a
+  // no-op. `strict=false` below means an unresolvable role SKIPs rather than
+  // FAILs -- correct for a role Task 5 legitimately never touched, but if
+  // `selectorSrc` itself stops matching ANY block (e.g. `:root { ... }`
+  // rewritten to `:root, html { ... }` -- verified via a real repro: the
+  // fold then returns {} for that occurrence, every one of the surviving
+  // small :root blocks in these files is font/motion-only and none declares
+  // `bg`) every pair would resolve as "not declared", SKIP, and the whole
+  // audit would still exit 0 having checked nothing. `bg` is the one role
+  // every :root/html.dark baseline in these 3 files has always declared
+  // (verified for all three), so its absence from the fold means the
+  // selector regex missed the block entirely, not a legitimate gap -- FAIL.
+  if (Object.keys(dict).length === 0 || !dict[`${ns}-bg`]) {
+    const line = "  " + scope.padEnd(10) + " " + blockLabel.padEnd(20) + " (sentinel)".padEnd(28) + ` FAIL (no "${selectorSrc}" block matched, or missing --${ns}-bg)`;
+    console.log(line);
+    violations.push(line);
+    return;
+  }
+  auditComponentPairs(scope, ns, blockLabel, dict, false);
 }
 console.log("\n=== component pairs: default surfaces (:root / html.dark) ===");
 auditComponentPairsDefault("options", "opt", resolve(ROOT, "options.css"), ":root", "default");
@@ -540,7 +629,15 @@ auditComponentPairsDefault("library", "lib", resolve(ROOT, "library.css"), ":roo
 auditComponentPairsDefault("popup", "pp", resolve(ROOT, "popup.css"), ":root", "default-light");
 auditComponentPairsDefault("popup", "pp", resolve(ROOT, "popup.css"), "html\\.dark", "default-dark");
 
+console.log("\n=== orphan check: *-fg / on-* tokens with zero coverage in this file ===");
+auditOrphanTokens("popup", "pp", readFileSync(resolve(ROOT, "popup.css"), "utf8"));
+auditOrphanTokens("options", "opt", readFileSync(resolve(ROOT, "options.css"), "utf8"));
+auditOrphanTokens("library", "lib", readFileSync(resolve(ROOT, "library.css"), "utf8"));
+
 console.log("");
+if (skipCount > 0) {
+  console.log("(" + skipCount + " component-pair check(s) SKIPped -- see SKIP lines above; non-blocking)");
+}
 if (known.length > 0) {
   console.log("=== KNOWN (allowlisted, not blocking) — " + known.length + " ===");
   for (const k of known) console.log(k);
