@@ -23,6 +23,9 @@
   --lib-sp-1: 4px; --lib-sp-2: 8px; --lib-sp-3: 12px; --lib-sp-4: 16px; --lib-sp-5: 24px;
   /* Stacking ladder, same semantics as options' --opt-z-*. */
   --lib-z-sticky: 5; --lib-z-menu: 10;
+  /* Measured .lib-header height (padding var(--lib-sp-3) block + its 16px line
+     content + 1px border) -- update if the header's padding or font-size changes. */
+  --lib-header-h: 55px;
 }
 
 /* ============================================================
@@ -94,7 +97,7 @@ button, input, select, textarea { font-family: inherit; }
    disclosure headers, vocab card heads): 1px accent core + a soft glow
    instead of a hard 2px rectangle around a whole row. Compact controls keep
    the standard 2px ring family. */
-.tab-btn:focus-visible,
+.lib-tab:focus-visible,
 .accordion-header:focus-visible,
 .vocab-disclosure > summary:focus-visible,
 .notes-card-head:focus-visible {
@@ -122,7 +125,7 @@ html[data-theme] .status-ic.bad { color: var(--lib-danger, #c0392b); }
   max-width: min(60ch, 78vw);
   padding: var(--lib-sp-1) var(--lib-sp-2); font-size: 11px; color: #c00;
   background: #fff; border: 1px solid #ccc; border-radius: var(--lib-radius-sm);
-  box-shadow: var(--lib-shadow-md, 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04));
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--lib-fg) 22%, transparent), 0 2px 4px color-mix(in srgb, var(--lib-fg) 12%, transparent);
 }
 html.motion-ready .confirm-popover {
   opacity: 1;
@@ -148,7 +151,7 @@ html.motion-ready .confirm-popover.is-closing {
 .confirm-popover .confirm-no { background: none; color: #666; border-color: #ccc; }
 .confirm-popover .confirm-no:hover { background: #eee; }
 .confirm-popover button:focus-visible { outline: 2px solid var(--lib-accent, #4477bb); outline-offset: 1px; }
-html[data-theme] .confirm-popover { color: var(--lib-fg); background: var(--lib-panel); border-color: var(--lib-border); box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+html[data-theme] .confirm-popover { color: var(--lib-fg); background: var(--lib-panel); border-color: var(--lib-border); }
 html[data-theme] .confirm-popover .confirm-yes { color: var(--lib-panel); background: var(--lib-danger); border-color: var(--lib-danger); }
 html[data-theme] .confirm-popover .confirm-yes:hover { background: var(--lib-danger); box-shadow: inset 0 0 0 1px var(--lib-panel); }
 html[data-theme] .confirm-popover .confirm-no { color: var(--lib-fg); border-color: var(--lib-border); background: none; }
@@ -234,7 +237,7 @@ html.motion-ready .notes-card.card-exit {
   --row-bg: var(--lib-bg, #fff);
   background: var(--row-bg);
 }
-html.motion-ready .notes-card-top { transition: background-color var(--motion-state) ease; }
+html.motion-ready .notes-card-top { transition: background-color var(--motion-state) ease, box-shadow var(--motion-state) ease; }
 .notes-card-top:hover { --row-bg: color-mix(in srgb, var(--lib-fg, #333) 5%, var(--lib-bg, #fff)); }
 .notes-card-top:active { --row-bg: color-mix(in srgb, var(--lib-fg, #333) 9%, var(--lib-bg, #fff)); transition-duration: 0s; }
 .notes-card-head {
@@ -285,6 +288,22 @@ html.motion-ready .notes-card-chevron { transition: transform var(--motion-colla
   border-top: 1px solid color-mix(in srgb, var(--lib-border, #ccc) 70%, transparent);
   padding: var(--lib-sp-2) var(--lib-sp-3) var(--lib-sp-3);
 }
+/* Disclosure open/close motion. library-notes.js only ever flips the native
+   `hidden` IDL property -- no open/close class -- so the transition has to
+   hook the [hidden] attribute itself. content-visibility:hidden (not
+   display:none) is what makes height 0<->auto actually interpolate: a
+   height:auto target needs the box to still generate a layout (:root's
+   interpolate-size:allow-keywords resolves auto to its post-layout used
+   value each frame), and content-visibility:hidden still skips painting,
+   hit-testing AND tab order -- verified via Playwright that a link planted
+   inside a hidden body is not Tab-reachable -- while display:none would not
+   generate a box at all and could not transition. */
+html.motion-ready .notes-card-body {
+  overflow: clip;
+  transition: height var(--motion-collapse) var(--ease-in-out), opacity var(--motion-collapse) var(--ease-out);
+}
+html.motion-ready .notes-card-body[hidden] { display: block; content-visibility: hidden; height: 0; opacity: 0; }
+html.motion-ready .notes-card-body:not([hidden]) { height: auto; opacity: 1; }
 .notes-unknown-hint { font-size: 11px; color: var(--lib-fg-muted, #666); margin: 0 0 var(--lib-sp-2) 0; }
 .notes-items { display: grid; gap: var(--lib-sp-2); }
 .notes-item { display: flex; gap: var(--lib-sp-2); min-width: 0; }
@@ -331,14 +350,16 @@ html.motion-ready .notes-card-chevron { transition: transform var(--motion-colla
 
 /* Full-width multi-column layout: the library page has no sidebar-width
    constraint like options.html's single panel, so cards flow into as many
-   380px columns as fit instead of one long list. */
+   380px columns as fit instead of one long list. Grid, not multicol
+   `columns:` -- multicol reflows EVERY card below an expanded one into a
+   new column order on disclosure toggle (all cards after the expanded one
+   visually jump), where grid's row-major auto-fill only grows that card's
+   own row. */
 #view-notes #notes-list {
-  columns: 380px; /* column count follows viewport width */
-  column-gap: var(--lib-sp-4);
-}
-#view-notes .notes-card {
-  break-inside: avoid; /* a card never splits across columns */
-  margin-bottom: var(--lib-sp-4);
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: var(--lib-sp-4);
+  align-items: start;
 }
 
 /* ============================================================
@@ -365,14 +386,14 @@ html[data-theme] .save-status.bad { color: var(--lib-danger); }
    window to work with, unlike options.html's single narrow panel. */
 .vocab-workbench {
   display: grid;
-  grid-template-columns: minmax(340px, 480px) 1fr;
+  grid-template-columns: minmax(340px, 520px) 1fr;
   gap: var(--lib-sp-5);
   align-items: start;
 }
 .vocab-list-pane { min-width: 0; }
 .vocab-detail-pane {
   min-width: 0;
-  position: sticky; top: 64px; /* below the sticky .lib-header */
+  position: sticky; top: calc(var(--lib-header-h) + var(--lib-sp-2)); /* below the sticky .lib-header, with a visible gap */
   background: var(--lib-pane-bg);
   border: 1px solid var(--lib-pane-divider);
   border-radius: var(--lib-radius-lg);
@@ -398,7 +419,7 @@ html[data-theme] .save-status.bad { color: var(--lib-danger); }
 
 /* Detail pane content (Task 6). */
 .vocab-detail-head { display: flex; align-items: center; gap: var(--lib-sp-2); flex-wrap: wrap; }
-.vocab-detail-term { margin: 0; font-size: 22px; }
+.vocab-detail-term { margin: 0; font-size: 22px; line-height: 1.2; letter-spacing: -0.01em; }
 .vocab-detail-actions { display: flex; gap: var(--lib-sp-2); margin: var(--lib-sp-3) 0; flex-wrap: wrap; }
 .vocab-detail-gloss { margin: var(--lib-sp-3) 0; white-space: pre-wrap; }
 .vocab-gloss-ipa { color: var(--lib-fg-muted); }
@@ -507,9 +528,6 @@ html[data-theme="rose-pine"] .xp-dict-lang {
 }
 .xp-skel:nth-child(3) { width: 62%; }
 @keyframes xp-dict-shimmer { to { background-position: -200% 0; } }
-@media (prefers-reduced-motion: reduce) {
-  .xp-skel { animation-duration: 1.2s !important; animation-iteration-count: infinite !important; }
-}
 /* Permission-connect button + failure retry button: same small pill family. */
 .xp-retry, .xp-dict-connect {
   padding: 4px 10px;
@@ -561,6 +579,16 @@ html.motion-ready .vocab-note-save[hidden] { display: none; opacity: 0; translat
 .vocab-filter-toolbar {
   display: flex;
   flex-wrap: wrap;
+}
+/* Free lookup bar reuses .vocab-filter-toolbar's row/control recipe (see
+   comment above library.html's markup) but, unlike the owner-scoped filter
+   row above it, is not read as part of the vocab list toolbar block -- it
+   needs its own panel material to read as a distinct search tool. */
+#vocab-lookup-bar {
+  padding: var(--lib-sp-2);
+  background: var(--lib-panel);
+  border: 1px solid var(--lib-border);
+  border-radius: var(--lib-radius-md);
 }
 .vocab-filter-toolbar input[type="search"] {
   flex: 1 1 220px;
@@ -694,8 +722,11 @@ html[data-theme="rose-pine"] .vocab-filter-toolbar select {
   padding: 1px 8px;
   font-size: 12px;
   cursor: pointer;
+  transition: background var(--motion-state), border-color var(--motion-state), color var(--motion-state);
 }
 .vocab-stat-chip:hover { background: var(--lib-btn-hover); }
+.vocab-stat-chip:active { transform: translateY(1px); }
+.vocab-stat-chip:focus-visible { outline: 2px solid var(--lib-accent); outline-offset: 2px; }
 .vocab-stat-chip[aria-pressed="true"] {
   background: var(--lib-row-selected-bg);
   color: var(--lib-row-selected-fg);
@@ -747,13 +778,12 @@ html[data-theme="rose-pine"] .vocab-filter-toolbar select {
   max-width: 100%;
   margin: var(--lib-sp-2) auto 0;
   box-sizing: border-box;
-  interpolate-size: allow-keywords;
   height: 0;
   padding: 0 var(--lib-sp-2);
   border: 0 solid var(--lib-input-border, #cdd1d6);
   border-radius: var(--lib-radius-lg);
   overflow: clip;
-  background: var(--lib-bg, #fff);
+  background: var(--lib-panel, #fff);
   box-shadow: 0 6px 24px color-mix(in srgb, var(--lib-fg, #000) 18%, transparent),
               0 2px 8px color-mix(in srgb, var(--lib-fg, #000) 10%, transparent);
   opacity: 0;
@@ -812,6 +842,7 @@ html.motion-ready .vocab-batch-bar.selecting {
 .vocab-load-more { display: block; margin: var(--lib-sp-2) auto var(--lib-sp-3); }
 /* Beats the component display rules above: a hidden control must stay gone. */
 #view-vocab .vocab-load-more[hidden] { display: none; }
+#view-vocab .vocab-stats[hidden] { display: none; }
 #view-vocab,
 #vocab-list,
 .vocab-card,
@@ -902,6 +933,7 @@ body { margin: 0; background: var(--lib-bg); color: var(--lib-fg); }
 .lib-tab {
   border: 1px solid transparent; background: transparent; color: var(--lib-fg-muted);
   padding: 6px 14px; border-radius: var(--lib-radius-md); cursor: pointer; font-size: 13px;
+  transition: background var(--motion-state), color var(--motion-state), border-color var(--motion-state);
 }
 .lib-tab:hover { background: var(--lib-btn-hover); }
 .lib-tab.active {
@@ -910,6 +942,19 @@ body { margin: 0; background: var(--lib-bg); color: var(--lib-fg); }
 }
 .lib-main { padding: var(--lib-sp-4) var(--lib-sp-5); }
 .lib-view[hidden] { display: none; }
+
+/* ---- Reduced motion ---- (`scroll-behavior` deliberately absent: the guard lives in pbpScrollIntoView, shared.js) */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  /* ...but the dictionary loading shimmer keeps running: opacity-only, no position
+     change, and it is the only signal that a lookup is in flight. Mirrors popup.css's
+     .tag-skel carve-out. Duration mirrors the base rule. */
+  .xp-skel { animation-duration: 1.2s !important; animation-iteration-count: infinite !important; }
+}
 
 /* @generated:ui-themes start — do not edit; produced by composers/library-chrome.mjs */
 html[data-theme="modern-card"] {
