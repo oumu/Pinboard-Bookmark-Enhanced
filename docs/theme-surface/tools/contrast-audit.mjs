@@ -17,26 +17,32 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "..", "..", "..");
 const PILOTS = resolve(__dirname, "..", "pilots");
 
-const lum = (rgb) => {
+// Exported for scripts/ui-render-audit.mjs (the design-uplift render oracle):
+// same WCAG math, reused rather than re-implemented so the two audits can
+// never disagree on what a passing ratio is. The rest of this file (the CLI
+// runner below, gated behind the direct-execution guard at the bottom) is
+// NOT part of that contract -- importing this module for these five
+// functions must not also run the whole static-CSS audit as a side effect.
+export const lum = (rgb) => {
   const s = (c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
   return 0.2126 * s(rgb[0] / 255) + 0.7152 * s(rgb[1] / 255) + 0.0722 * s(rgb[2] / 255);
 };
-const cr = (a, b) => {
+export const cr = (a, b) => {
   const L = [lum(a), lum(b)].sort((x, y) => x - y);
   return (L[1] + 0.05) / (L[0] + 0.05);
 };
-const hexRgb = (h) => {
+export const hexRgb = (h) => {
   let s = h.replace(/^#/, "").trim();
   if (s.length === 3) s = s.split("").map((c) => c + c).join("");
   if (s.length !== 6) return null;
   const n = parseInt(s, 16);
   return [(n >> 16) & 0xff, (n >> 8) & 0xff, n & 0xff];
 };
-const parseRgba = (s) => {
+export const parseRgba = (s) => {
   const m = s.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
   return m ? [+m[1], +m[2], +m[3], m[4] !== undefined ? +m[4] : 1] : null;
 };
-const composite = (fg, alpha, bg) => fg.map((c, i) => Math.round(alpha * c + (1 - alpha) * bg[i]));
+export const composite = (fg, alpha, bg) => fg.map((c, i) => Math.round(alpha * c + (1 - alpha) * bg[i]));
 const resolveColor = (s, bg) => {
   s = s.trim();
   if (s.startsWith("#")) return hexRgb(s);
@@ -77,6 +83,12 @@ function check(scope, theme, label, ratio, min) {
   return line;
 }
 
+// CLI runner. Wrapped in main() + a direct-execution guard so importing this
+// module for the pure functions above (scripts/ui-render-audit.mjs) does not
+// also execute the whole static-CSS audit and process.exit() out from under
+// the importer -- `node docs/theme-surface/tools/contrast-audit.mjs` still
+// behaves exactly as before, since nothing inside main() changed.
+function main() {
 console.log("=== 1. Pinboard.in tokens (pilots/*.tokens.json) ===");
 const pinFiles = readdirSync(PILOTS).filter((f) => f.endsWith(".tokens.json")).sort();
 for (const f of pinFiles) {
@@ -365,4 +377,9 @@ if (violations.length === 0) {
   console.log("=== contrast-audit: FAIL — " + violations.length + " new violation(s) ===");
   for (const v of violations) console.log(v);
   process.exit(1);
+}
+}
+
+if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
+  main();
 }

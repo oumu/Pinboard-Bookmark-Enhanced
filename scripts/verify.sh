@@ -45,6 +45,9 @@ git ls-files -- '*.js' '*.mjs' |
 echo "[ui-contract] checking static UI contracts"
 node "tests/ui-contract-tests.mjs"
 
+echo "[render-audit] checking hand-written render oracle (contrast + geometry)"
+node "scripts/ui-render-audit.mjs"
+
 echo "[docs-lint] checking README x9 mirror + prose contracts"
 node "scripts/docs-lint.mjs"
 

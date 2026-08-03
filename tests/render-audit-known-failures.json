@@ -1,0 +1,1112 @@
+{
+  "library||.vocab-detail-delete|default|iconVCenter": {
+    "surface": "library",
+    "theme": "",
+    "selector": ".vocab-detail-delete",
+    "state": "default",
+    "check": "iconVCenter",
+    "actual": 1.25,
+    "expected": 1,
+    "note": null
+  },
+  "library||.vocab-group-chip|default|padGteRadiusH": {
+    "surface": "library",
+    "theme": "",
+    "selector": ".vocab-group-chip",
+    "state": "default",
+    "check": "padGteRadiusH",
+    "actual": 4,
+    "expected": 6.75,
+    "note": null
+  },
+  "library||.vocab-group-chip|default|padVMin": {
+    "surface": "library",
+    "theme": "",
+    "selector": ".vocab-group-chip",
+    "state": "default",
+    "check": "padVMin",
+    "actual": 0,
+    "expected": 2,
+    "note": null
+  },
+  "library||.vocab-detail-speak|default|iconVCenter": {
+    "surface": "library",
+    "theme": "",
+    "selector": ".vocab-detail-speak",
+    "state": "default",
+    "check": "iconVCenter",
+    "actual": 1.25,
+    "expected": 1,
+    "note": null
+  },
+  "library||.vocab-stat-chip|default|padVMin": {
+    "surface": "library",
+    "theme": "",
+    "selector": ".vocab-stat-chip",
+    "state": "default",
+    "check": "padVMin",
+    "actual": 1,
+    "expected": 2,
+    "note": null
+  },
+  "library|catppuccin-latte|.vocab-detail-delete|default|textContrast": {
+    "surface": "library",
+    "theme": "catppuccin-latte",
+    "selector": ".vocab-detail-delete",
+    "state": "default",
+    "check": "textContrast",
+    "actual": 4.46,
+    "expected": 4.5,
+    "note": null
+  },
+  "library|catppuccin-latte|.vocab-detail-delete|default|iconVCenter": {
+    "surface": "library",
+    "theme": "catppuccin-latte",
+    "selector": ".vocab-detail-delete",
+    "state": "default",
+    "check": "iconVCenter",
+    "actual": 1.25,
+    "expected": 1,
+    "note": null
+  },
+  "library|catppuccin-latte|.vocab-group-chip|default|padGteRadiusH": {
+    "surface": "library",
+    "theme": "catppuccin-latte",
+    "selector": ".vocab-group-chip",
+    "state": "default",
+    "check": "padGteRadiusH",
+    "actual": 4,
+    "expected": 6.75,
+    "note": null
+  },
+  "library|catppuccin-latte|.vocab-group-chip|default|padVMin": {
+    "surface": "library",
+    "theme": "catppuccin-latte",
+    "selector": ".vocab-group-chip",
+    "state": "default",
+    "check": "padVMin",
+    "actual": 0,
+    "expected": 2,
+    "note": null
+  },
+  "library|catppuccin-latte|.vocab-detail-speak|default|iconVCenter": {
+    "surface": "library",
+    "theme": "catppuccin-latte",
+    "selector": ".vocab-detail-speak",
+    "state": "default",
+    "check": "iconVCenter",
+    "actual": 1.25,
+    "expected": 1,
+    "note": null
+  },
+  "library|catppuccin-latte|.vocab-stat-chip|default|padVMin": {
+    "surface": "library",
+    "theme": "catppuccin-latte",
+    "selector": ".vocab-stat-chip",
+    "state": "default",
+    "check": "padVMin",
+    "actual": 1,
+    "expected": 2,
+    "note": null
+  },
+  "library|catppuccin-latte|.notes-detail-delete|default|textContrast": {
+    "surface": "library",
+    "theme": "catppuccin-latte",
+    "selector": ".notes-detail-delete",
+    "state": "default",
+    "check": "textContrast",
+    "actual": 4.46,
+    "expected": 4.5,
+    "note": null
+  },
+  "library|catppuccin-mocha|.vocab-detail-relookup|default|textContrast": {
+    "surface": "library",
+    "theme": "catppuccin-mocha",
+    "selector": ".vocab-detail-relookup",
+    "state": "default",
+    "check": "textContrast",
+    "actual": 1.67,
+    "expected": 4.5,
+    "note": null
+  },
+  "library|catppuccin-mocha|.vocab-detail-relookup|default|iconContrast": {
+    "surface": "library",
+    "theme": "catppuccin-mocha",
+    "selector": ".vocab-detail-relookup",
+    "state": "default",
+    "check": "iconContrast",
+    "actual": 1.67,
+    "expected": 3,
+    "note": null
+  },
+  "library|catppuccin-mocha|.vocab-detail-delete|default|iconVCenter": {
+    "surface": "library",
+    "theme": "catppuccin-mocha",
+    "selector": ".vocab-detail-delete",
+    "state": "default",
+    "check": "iconVCenter",
+    "actual": 1.25,
+    "expected": 1,
+    "note": null
+  },
+  "library|catppuccin-mocha|.vocab-group-chip|default|padGteRadiusH": {
+    "surface": "library",
+    "theme": "catppuccin-mocha",
+    "selector": ".vocab-group-chip",
+    "state": "default",
+    "check": "padGteRadiusH",
+    "actual": 4,
+    "expected": 6.75,
+    "note": null
+  },
+  "library|catppuccin-mocha|.vocab-group-chip|default|padVMin": {
+    "surface": "library",
+    "theme": "catppuccin-mocha",
+    "selector": ".vocab-group-chip",
+    "state": "default",
+    "check": "padVMin",
+    "actual": 0,
+    "expected": 2,
+    "note": null
+  },
+  "library|catppuccin-mocha|.vocab-detail-speak|default|iconContrast": {
+    "surface": "library",
+    "theme": "catppuccin-mocha",
+    "selector": ".vocab-detail-speak",
+    "state": "default",
+    "check": "iconContrast",
+    "actual": 1.67,
+    "expected": 3,
+    "note": null
+  },
+  "library|catppuccin-mocha|.vocab-detail-speak|default|iconVCenter": {
+    "surface": "library",
+    "theme": "catppuccin-mocha",
+    "selector": ".vocab-detail-speak",
+    "state": "default",
+    "check": "iconVCenter",
+    "actual": 1.25,
+    "expected": 1,
+    "note": null
+  },
+  "library|catppuccin-mocha|.vocab-stat-chip|default|padVMin": {
+    "surface": "library",
+    "theme": "catppuccin-mocha",
+    "selector": ".vocab-stat-chip",
+    "state": "default",
+    "check": "padVMin",
+    "actual": 1,
+    "expected": 2,
+    "note": null
+  },
+  "library|dracula|.vocab-detail-relookup|default|textContrast": {
+    "surface": "library",
+    "theme": "dracula",
+    "selector": ".vocab-detail-relookup",
+    "state": "default",
+    "check": "textContrast",
+    "actual": 1.33,
+    "expected": 4.5,
+    "note": null
+  },
+  "library|dracula|.vocab-detail-relookup|default|iconContrast": {
+    "surface": "library",
+    "theme": "dracula",
+    "selector": ".vocab-detail-relookup",
+    "state": "default",
+    "check": "iconContrast",
+    "actual": 1.33,
+    "expected": 3,
+    "note": null
+  },
+  "library|dracula|.vocab-detail-delete|default|iconVCenter": {
+    "surface": "library",
+    "theme": "dracula",
+    "selector": ".vocab-detail-delete",
+    "state": "default",
+    "check": "iconVCenter",
+    "actual": 1.25,
+    "expected": 1,
+    "note": null
+  },
+  "library|dracula|.vocab-group-chip|default|padGteRadiusH": {
+    "surface": "library",
+    "theme": "dracula",
+    "selector": ".vocab-group-chip",
+    "state": "default",
+    "check": "padGteRadiusH",
+    "actual": 4,
+    "expected": 6.75,
+    "note": null
+  },
+  "library|dracula|.vocab-group-chip|default|padVMin": {
+    "surface": "library",
+    "theme": "dracula",
+    "selector": ".vocab-group-chip",
+    "state": "default",
+    "check": "padVMin",
+    "actual": 0,
+    "expected": 2,
+    "note": null
+  },
+  "library|dracula|.vocab-detail-speak|default|iconContrast": {
+    "surface": "library",
+    "theme": "dracula",
+    "selector": ".vocab-detail-speak",
+    "state": "default",
+    "check": "iconContrast",
+    "actual": 1.33,
+    "expected": 3,
+    "note": null
+  },
+  "library|dracula|.vocab-detail-speak|default|iconVCenter": {
+    "surface": "library",
+    "theme": "dracula",
+    "selector": ".vocab-detail-speak",
+    "state": "default",
+    "check": "iconVCenter",
+    "actual": 1.25,
+    "expected": 1,
+    "note": null
+  },
+  "library|dracula|.vocab-stat-chip|default|padVMin": {
+    "surface": "library",
+    "theme": "dracula",
+    "selector": ".vocab-stat-chip",
+    "state": "default",
+    "check": "padVMin",
+    "actual": 1,
+    "expected": 2,
+    "note": null
+  },
+  "library|flexoki-light|.vocab-detail-delete|default|iconVCenter": {
+    "surface": "library",
+    "theme": "flexoki-light",
+    "selector": ".vocab-detail-delete",
+    "state": "default",
+    "check": "iconVCenter",
+    "actual": 1.25,
+    "expected": 1,
+    "note": null
+  },
+  "library|flexoki-light|.vocab-group-chip|default|padGteRadiusH": {
+    "surface": "library",
+    "theme": "flexoki-light",
+    "selector": ".vocab-group-chip",
+    "state": "default",
+    "check": "padGteRadiusH",
+    "actual": 4,
+    "expected": 6.75,
+    "note": null
+  },
+  "library|flexoki-light|.vocab-group-chip|default|padVMin": {
+    "surface": "library",
+    "theme": "flexoki-light",
+    "selector": ".vocab-group-chip",
+    "state": "default",
+    "check": "padVMin",
+    "actual": 0,
+    "expected": 2,
+    "note": null
+  },
+  "library|flexoki-light|.vocab-detail-speak|default|iconVCenter": {
+    "surface": "library",
+    "theme": "flexoki-light",
+    "selector": ".vocab-detail-speak",
+    "state": "default",
+    "check": "iconVCenter",
+    "actual": 1.25,
+    "expected": 1,
+    "note": null
+  },
+  "library|flexoki-light|.vocab-stat-chip|default|padVMin": {
+    "surface": "library",
+    "theme": "flexoki-light",
+    "selector": ".vocab-stat-chip",
+    "state": "default",
+    "check": "padVMin",
+    "actual": 1,
+    "expected": 2,
+    "note": null
+  },
+  "library|flexoki-dark|.vocab-detail-relookup|default|textContrast": {
+    "surface": "library",
+    "theme": "flexoki-dark",
+    "selector": ".vocab-detail-relookup",
+    "state": "default",
+    "check": "textContrast",
+    "actual": 1.41,
+    "expected": 4.5,
+    "note": null
+  },
+  "library|flexoki-dark|.vocab-detail-relookup|default|iconContrast": {
+    "surface": "library",
+    "theme": "flexoki-dark",
+    "selector": ".vocab-detail-relookup",
+    "state": "default",
+    "check": "iconContrast",
+    "actual": 1.41,
+    "expected": 3,
+    "note": null
+  },
+  "library|flexoki-dark|.vocab-detail-delete|default|textContrast": {
+    "surface": "library",
+    "theme": "flexoki-dark",
+    "selector": ".vocab-detail-delete",
+    "state": "default",
+    "check": "textContrast",
+    "actual": 4.16,
+    "expected": 4.5,
+    "note": null
+  },
+  "library|flexoki-dark|.vocab-detail-delete|default|iconVCenter": {
+    "surface": "library",
+    "theme": "flexoki-dark",
+    "selector": ".vocab-detail-delete",
+    "state": "default",
+    "check": "iconVCenter",
+    "actual": 1.25,
+    "expected": 1,
+    "note": null
+  },
+  "library|flexoki-dark|.vocab-group-chip|default|padGteRadiusH": {
+    "surface": "library",
+    "theme": "flexoki-dark",
+    "selector": ".vocab-group-chip",
+    "state": "default",
+    "check": "padGteRadiusH",
+    "actual": 4,
+    "expected": 6.75,
+    "note": null
+  },
+  "library|flexoki-dark|.vocab-group-chip|default|padVMin": {
+    "surface": "library",
+    "theme": "flexoki-dark",
+    "selector": ".vocab-group-chip",
+    "state": "default",
+    "check": "padVMin",
+    "actual": 0,
+    "expected": 2,
+    "note": null
+  },
+  "library|flexoki-dark|.vocab-detail-speak|default|iconContrast": {
+    "surface": "library",
+    "theme": "flexoki-dark",
+    "selector": ".vocab-detail-speak",
+    "state": "default",
+    "check": "iconContrast",
+    "actual": 1.41,
+    "expected": 3,
+    "note": null
+  },
+  "library|flexoki-dark|.vocab-detail-speak|default|iconVCenter": {
+    "surface": "library",
+    "theme": "flexoki-dark",
+    "selector": ".vocab-detail-speak",
+    "state": "default",
+    "check": "iconVCenter",
+    "actual": 1.25,
+    "expected": 1,
+    "note": null
+  },
+  "library|flexoki-dark|.vocab-stat-chip|default|padVMin": {
+    "surface": "library",
+    "theme": "flexoki-dark",
+    "selector": ".vocab-stat-chip",
+    "state": "default",
+    "check": "padVMin",
+    "actual": 1,
+    "expected": 2,
+    "note": null
+  },
+  "library|flexoki-dark|.notes-detail-delete|default|textContrast": {
+    "surface": "library",
+    "theme": "flexoki-dark",
+    "selector": ".notes-detail-delete",
+    "state": "default",
+    "check": "textContrast",
+    "actual": 4.16,
+    "expected": 4.5,
+    "note": null
+  },
+  "library|github-light|.vocab-detail-delete|default|iconVCenter": {
+    "surface": "library",
+    "theme": "github-light",
+    "selector": ".vocab-detail-delete",
+    "state": "default",
+    "check": "iconVCenter",
+    "actual": 1.25,
+    "expected": 1,
+    "note": null
+  },
+  "library|github-light|.vocab-group-chip|default|padGteRadiusH": {
+    "surface": "library",
+    "theme": "github-light",
+    "selector": ".vocab-group-chip",
+    "state": "default",
+    "check": "padGteRadiusH",
+    "actual": 4,
+    "expected": 6.75,
+    "note": null
+  },
+  "library|github-light|.vocab-group-chip|default|padVMin": {
+    "surface": "library",
+    "theme": "github-light",
+    "selector": ".vocab-group-chip",
+    "state": "default",
+    "check": "padVMin",
+    "actual": 0,
+    "expected": 2,
+    "note": null
+  },
+  "library|github-light|.vocab-detail-speak|default|iconVCenter": {
+    "surface": "library",
+    "theme": "github-light",
+    "selector": ".vocab-detail-speak",
+    "state": "default",
+    "check": "iconVCenter",
+    "actual": 1.25,
+    "expected": 1,
+    "note": null
+  },
+  "library|github-light|.vocab-stat-chip|default|padVMin": {
+    "surface": "library",
+    "theme": "github-light",
+    "selector": ".vocab-stat-chip",
+    "state": "default",
+    "check": "padVMin",
+    "actual": 1,
+    "expected": 2,
+    "note": null
+  },
+  "library|gruvbox-dark|.vocab-detail-relookup|default|textContrast": {
+    "surface": "library",
+    "theme": "gruvbox-dark",
+    "selector": ".vocab-detail-relookup",
+    "state": "default",
+    "check": "textContrast",
+    "actual": 1.81,
+    "expected": 4.5,
+    "note": null
+  },
+  "library|gruvbox-dark|.vocab-detail-relookup|default|iconContrast": {
+    "surface": "library",
+    "theme": "gruvbox-dark",
+    "selector": ".vocab-detail-relookup",
+    "state": "default",
+    "check": "iconContrast",
+    "actual": 1.81,
+    "expected": 3,
+    "note": null
+  },
+  "library|gruvbox-dark|.vocab-detail-delete|default|textContrast": {
+    "surface": "library",
+    "theme": "gruvbox-dark",
+    "selector": ".vocab-detail-delete",
+    "state": "default",
+    "check": "textContrast",
+    "actual": 3.69,
+    "expected": 4.5,
+    "note": null
+  },
+  "library|gruvbox-dark|.vocab-detail-delete|default|iconVCenter": {
+    "surface": "library",
+    "theme": "gruvbox-dark",
+    "selector": ".vocab-detail-delete",
+    "state": "default",
+    "check": "iconVCenter",
+    "actual": 1.25,
+    "expected": 1,
+    "note": null
+  },
+  "library|gruvbox-dark|.vocab-group-chip|default|padGteRadiusH": {
+    "surface": "library",
+    "theme": "gruvbox-dark",
+    "selector": ".vocab-group-chip",
+    "state": "default",
+    "check": "padGteRadiusH",
+    "actual": 4,
+    "expected": 6.75,
+    "note": null
+  },
+  "library|gruvbox-dark|.vocab-group-chip|default|padVMin": {
+    "surface": "library",
+    "theme": "gruvbox-dark",
+    "selector": ".vocab-group-chip",
+    "state": "default",
+    "check": "padVMin",
+    "actual": 0,
+    "expected": 2,
+    "note": null
+  },
+  "library|gruvbox-dark|.vocab-detail-speak|default|iconContrast": {
+    "surface": "library",
+    "theme": "gruvbox-dark",
+    "selector": ".vocab-detail-speak",
+    "state": "default",
+    "check": "iconContrast",
+    "actual": 1.81,
+    "expected": 3,
+    "note": null
+  },
+  "library|gruvbox-dark|.vocab-detail-speak|default|iconVCenter": {
+    "surface": "library",
+    "theme": "gruvbox-dark",
+    "selector": ".vocab-detail-speak",
+    "state": "default",
+    "check": "iconVCenter",
+    "actual": 1.25,
+    "expected": 1,
+    "note": null
+  },
+  "library|gruvbox-dark|.vocab-stat-chip|default|padVMin": {
+    "surface": "library",
+    "theme": "gruvbox-dark",
+    "selector": ".vocab-stat-chip",
+    "state": "default",
+    "check": "padVMin",
+    "actual": 1,
+    "expected": 2,
+    "note": null
+  },
+  "library|gruvbox-dark|.notes-detail-delete|default|textContrast": {
+    "surface": "library",
+    "theme": "gruvbox-dark",
+    "selector": ".notes-detail-delete",
+    "state": "default",
+    "check": "textContrast",
+    "actual": 3.69,
+    "expected": 4.5,
+    "note": null
+  },
+  "library|modern-card|.vocab-detail-delete|default|iconVCenter": {
+    "surface": "library",
+    "theme": "modern-card",
+    "selector": ".vocab-detail-delete",
+    "state": "default",
+    "check": "iconVCenter",
+    "actual": 1.25,
+    "expected": 1,
+    "note": null
+  },
+  "library|modern-card|.vocab-group-chip|default|padGteRadiusH": {
+    "surface": "library",
+    "theme": "modern-card",
+    "selector": ".vocab-group-chip",
+    "state": "default",
+    "check": "padGteRadiusH",
+    "actual": 4,
+    "expected": 6.75,
+    "note": null
+  },
+  "library|modern-card|.vocab-group-chip|default|padVMin": {
+    "surface": "library",
+    "theme": "modern-card",
+    "selector": ".vocab-group-chip",
+    "state": "default",
+    "check": "padVMin",
+    "actual": 0,
+    "expected": 2,
+    "note": null
+  },
+  "library|modern-card|.vocab-detail-speak|default|iconVCenter": {
+    "surface": "library",
+    "theme": "modern-card",
+    "selector": ".vocab-detail-speak",
+    "state": "default",
+    "check": "iconVCenter",
+    "actual": 1.25,
+    "expected": 1,
+    "note": null
+  },
+  "library|modern-card|.vocab-stat-chip|default|padVMin": {
+    "surface": "library",
+    "theme": "modern-card",
+    "selector": ".vocab-stat-chip",
+    "state": "default",
+    "check": "padVMin",
+    "actual": 1,
+    "expected": 2,
+    "note": null
+  },
+  "library|nord-night|.vocab-detail-relookup|default|textContrast": {
+    "surface": "library",
+    "theme": "nord-night",
+    "selector": ".vocab-detail-relookup",
+    "state": "default",
+    "check": "textContrast",
+    "actual": 2.09,
+    "expected": 4.5,
+    "note": null
+  },
+  "library|nord-night|.vocab-detail-relookup|default|iconContrast": {
+    "surface": "library",
+    "theme": "nord-night",
+    "selector": ".vocab-detail-relookup",
+    "state": "default",
+    "check": "iconContrast",
+    "actual": 2.09,
+    "expected": 3,
+    "note": null
+  },
+  "library|nord-night|.vocab-detail-delete|default|textContrast": {
+    "surface": "library",
+    "theme": "nord-night",
+    "selector": ".vocab-detail-delete",
+    "state": "default",
+    "check": "textContrast",
+    "actual": 3.81,
+    "expected": 4.5,
+    "note": null
+  },
+  "library|nord-night|.vocab-detail-delete|default|iconVCenter": {
+    "surface": "library",
+    "theme": "nord-night",
+    "selector": ".vocab-detail-delete",
+    "state": "default",
+    "check": "iconVCenter",
+    "actual": 1.25,
+    "expected": 1,
+    "note": null
+  },
+  "library|nord-night|.vocab-group-chip|default|padGteRadiusH": {
+    "surface": "library",
+    "theme": "nord-night",
+    "selector": ".vocab-group-chip",
+    "state": "default",
+    "check": "padGteRadiusH",
+    "actual": 4,
+    "expected": 6.75,
+    "note": null
+  },
+  "library|nord-night|.vocab-group-chip|default|padVMin": {
+    "surface": "library",
+    "theme": "nord-night",
+    "selector": ".vocab-group-chip",
+    "state": "default",
+    "check": "padVMin",
+    "actual": 0,
+    "expected": 2,
+    "note": null
+  },
+  "library|nord-night|.vocab-detail-speak|default|iconContrast": {
+    "surface": "library",
+    "theme": "nord-night",
+    "selector": ".vocab-detail-speak",
+    "state": "default",
+    "check": "iconContrast",
+    "actual": 2.09,
+    "expected": 3,
+    "note": null
+  },
+  "library|nord-night|.vocab-detail-speak|default|iconVCenter": {
+    "surface": "library",
+    "theme": "nord-night",
+    "selector": ".vocab-detail-speak",
+    "state": "default",
+    "check": "iconVCenter",
+    "actual": 1.25,
+    "expected": 1,
+    "note": null
+  },
+  "library|nord-night|.vocab-stat-chip|default|padVMin": {
+    "surface": "library",
+    "theme": "nord-night",
+    "selector": ".vocab-stat-chip",
+    "state": "default",
+    "check": "padVMin",
+    "actual": 1,
+    "expected": 2,
+    "note": null
+  },
+  "library|nord-night|.notes-detail-delete|default|textContrast": {
+    "surface": "library",
+    "theme": "nord-night",
+    "selector": ".notes-detail-delete",
+    "state": "default",
+    "check": "textContrast",
+    "actual": 3.81,
+    "expected": 4.5,
+    "note": null
+  },
+  "library|paper-ink|.vocab-detail-delete|default|iconVCenter": {
+    "surface": "library",
+    "theme": "paper-ink",
+    "selector": ".vocab-detail-delete",
+    "state": "default",
+    "check": "iconVCenter",
+    "actual": 1.25,
+    "expected": 1,
+    "note": null
+  },
+  "library|paper-ink|.vocab-group-chip|default|padGteRadiusH": {
+    "surface": "library",
+    "theme": "paper-ink",
+    "selector": ".vocab-group-chip",
+    "state": "default",
+    "check": "padGteRadiusH",
+    "actual": 4,
+    "expected": 6.75,
+    "note": null
+  },
+  "library|paper-ink|.vocab-group-chip|default|padVMin": {
+    "surface": "library",
+    "theme": "paper-ink",
+    "selector": ".vocab-group-chip",
+    "state": "default",
+    "check": "padVMin",
+    "actual": 0,
+    "expected": 2,
+    "note": null
+  },
+  "library|paper-ink|.vocab-detail-speak|default|iconVCenter": {
+    "surface": "library",
+    "theme": "paper-ink",
+    "selector": ".vocab-detail-speak",
+    "state": "default",
+    "check": "iconVCenter",
+    "actual": 1.25,
+    "expected": 1,
+    "note": null
+  },
+  "library|paper-ink|.vocab-stat-chip|default|padVMin": {
+    "surface": "library",
+    "theme": "paper-ink",
+    "selector": ".vocab-stat-chip",
+    "state": "default",
+    "check": "padVMin",
+    "actual": 1,
+    "expected": 2,
+    "note": null
+  },
+  "library|rose-pine|.vocab-detail-relookup|default|textContrast": {
+    "surface": "library",
+    "theme": "rose-pine",
+    "selector": ".vocab-detail-relookup",
+    "state": "default",
+    "check": "textContrast",
+    "actual": 1.27,
+    "expected": 4.5,
+    "note": null
+  },
+  "library|rose-pine|.vocab-detail-relookup|default|iconContrast": {
+    "surface": "library",
+    "theme": "rose-pine",
+    "selector": ".vocab-detail-relookup",
+    "state": "default",
+    "check": "iconContrast",
+    "actual": 1.27,
+    "expected": 3,
+    "note": null
+  },
+  "library|rose-pine|.vocab-detail-delete|default|iconVCenter": {
+    "surface": "library",
+    "theme": "rose-pine",
+    "selector": ".vocab-detail-delete",
+    "state": "default",
+    "check": "iconVCenter",
+    "actual": 1.25,
+    "expected": 1,
+    "note": null
+  },
+  "library|rose-pine|.vocab-group-chip|default|padGteRadiusH": {
+    "surface": "library",
+    "theme": "rose-pine",
+    "selector": ".vocab-group-chip",
+    "state": "default",
+    "check": "padGteRadiusH",
+    "actual": 4,
+    "expected": 6.75,
+    "note": null
+  },
+  "library|rose-pine|.vocab-group-chip|default|padVMin": {
+    "surface": "library",
+    "theme": "rose-pine",
+    "selector": ".vocab-group-chip",
+    "state": "default",
+    "check": "padVMin",
+    "actual": 0,
+    "expected": 2,
+    "note": null
+  },
+  "library|rose-pine|.vocab-detail-speak|default|iconContrast": {
+    "surface": "library",
+    "theme": "rose-pine",
+    "selector": ".vocab-detail-speak",
+    "state": "default",
+    "check": "iconContrast",
+    "actual": 1.27,
+    "expected": 3,
+    "note": null
+  },
+  "library|rose-pine|.vocab-detail-speak|default|iconVCenter": {
+    "surface": "library",
+    "theme": "rose-pine",
+    "selector": ".vocab-detail-speak",
+    "state": "default",
+    "check": "iconVCenter",
+    "actual": 1.25,
+    "expected": 1,
+    "note": null
+  },
+  "library|rose-pine|.vocab-stat-chip|default|padVMin": {
+    "surface": "library",
+    "theme": "rose-pine",
+    "selector": ".vocab-stat-chip",
+    "state": "default",
+    "check": "padVMin",
+    "actual": 1,
+    "expected": 2,
+    "note": null
+  },
+  "library|solarized-light|.vocab-detail-delete|default|textContrast": {
+    "surface": "library",
+    "theme": "solarized-light",
+    "selector": ".vocab-detail-delete",
+    "state": "default",
+    "check": "textContrast",
+    "actual": 4.2,
+    "expected": 4.5,
+    "note": null
+  },
+  "library|solarized-light|.vocab-detail-delete|default|iconVCenter": {
+    "surface": "library",
+    "theme": "solarized-light",
+    "selector": ".vocab-detail-delete",
+    "state": "default",
+    "check": "iconVCenter",
+    "actual": 1.25,
+    "expected": 1,
+    "note": null
+  },
+  "library|solarized-light|.vocab-group-chip|default|padGteRadiusH": {
+    "surface": "library",
+    "theme": "solarized-light",
+    "selector": ".vocab-group-chip",
+    "state": "default",
+    "check": "padGteRadiusH",
+    "actual": 4,
+    "expected": 6.75,
+    "note": null
+  },
+  "library|solarized-light|.vocab-group-chip|default|padVMin": {
+    "surface": "library",
+    "theme": "solarized-light",
+    "selector": ".vocab-group-chip",
+    "state": "default",
+    "check": "padVMin",
+    "actual": 0,
+    "expected": 2,
+    "note": null
+  },
+  "library|solarized-light|.vocab-detail-speak|default|iconVCenter": {
+    "surface": "library",
+    "theme": "solarized-light",
+    "selector": ".vocab-detail-speak",
+    "state": "default",
+    "check": "iconVCenter",
+    "actual": 1.25,
+    "expected": 1,
+    "note": null
+  },
+  "library|solarized-light|.vocab-stat-chip|default|padVMin": {
+    "surface": "library",
+    "theme": "solarized-light",
+    "selector": ".vocab-stat-chip",
+    "state": "default",
+    "check": "padVMin",
+    "actual": 1,
+    "expected": 2,
+    "note": null
+  },
+  "library|solarized-light|.notes-detail-delete|default|textContrast": {
+    "surface": "library",
+    "theme": "solarized-light",
+    "selector": ".notes-detail-delete",
+    "state": "default",
+    "check": "textContrast",
+    "actual": 4.2,
+    "expected": 4.5,
+    "note": null
+  },
+  "library|solarized-dark|.vocab-detail-relookup|default|textContrast": {
+    "surface": "library",
+    "theme": "solarized-dark",
+    "selector": ".vocab-detail-relookup",
+    "state": "default",
+    "check": "textContrast",
+    "actual": 1.62,
+    "expected": 4.5,
+    "note": null
+  },
+  "library|solarized-dark|.vocab-detail-relookup|default|iconContrast": {
+    "surface": "library",
+    "theme": "solarized-dark",
+    "selector": ".vocab-detail-relookup",
+    "state": "default",
+    "check": "iconContrast",
+    "actual": 1.62,
+    "expected": 3,
+    "note": null
+  },
+  "library|solarized-dark|.vocab-detail-delete|default|textContrast": {
+    "surface": "library",
+    "theme": "solarized-dark",
+    "selector": ".vocab-detail-delete",
+    "state": "default",
+    "check": "textContrast",
+    "actual": 3.97,
+    "expected": 4.5,
+    "note": null
+  },
+  "library|solarized-dark|.vocab-detail-delete|default|iconVCenter": {
+    "surface": "library",
+    "theme": "solarized-dark",
+    "selector": ".vocab-detail-delete",
+    "state": "default",
+    "check": "iconVCenter",
+    "actual": 1.25,
+    "expected": 1,
+    "note": null
+  },
+  "library|solarized-dark|.vocab-group-chip|default|padGteRadiusH": {
+    "surface": "library",
+    "theme": "solarized-dark",
+    "selector": ".vocab-group-chip",
+    "state": "default",
+    "check": "padGteRadiusH",
+    "actual": 4,
+    "expected": 6.75,
+    "note": null
+  },
+  "library|solarized-dark|.vocab-group-chip|default|padVMin": {
+    "surface": "library",
+    "theme": "solarized-dark",
+    "selector": ".vocab-group-chip",
+    "state": "default",
+    "check": "padVMin",
+    "actual": 0,
+    "expected": 2,
+    "note": null
+  },
+  "library|solarized-dark|.vocab-detail-speak|default|iconContrast": {
+    "surface": "library",
+    "theme": "solarized-dark",
+    "selector": ".vocab-detail-speak",
+    "state": "default",
+    "check": "iconContrast",
+    "actual": 1.62,
+    "expected": 3,
+    "note": null
+  },
+  "library|solarized-dark|.vocab-detail-speak|default|iconVCenter": {
+    "surface": "library",
+    "theme": "solarized-dark",
+    "selector": ".vocab-detail-speak",
+    "state": "default",
+    "check": "iconVCenter",
+    "actual": 1.25,
+    "expected": 1,
+    "note": null
+  },
+  "library|solarized-dark|.vocab-stat-chip|default|padVMin": {
+    "surface": "library",
+    "theme": "solarized-dark",
+    "selector": ".vocab-stat-chip",
+    "state": "default",
+    "check": "padVMin",
+    "actual": 1,
+    "expected": 2,
+    "note": null
+  },
+  "library|solarized-dark|.notes-detail-delete|default|textContrast": {
+    "surface": "library",
+    "theme": "solarized-dark",
+    "selector": ".notes-detail-delete",
+    "state": "default",
+    "check": "textContrast",
+    "actual": 3.97,
+    "expected": 4.5,
+    "note": null
+  },
+  "library|terminal|.vocab-detail-relookup|default|textContrast": {
+    "surface": "library",
+    "theme": "terminal",
+    "selector": ".vocab-detail-relookup",
+    "state": "default",
+    "check": "textContrast",
+    "actual": 1.11,
+    "expected": 4.5,
+    "note": null
+  },
+  "library|terminal|.vocab-detail-relookup|default|iconContrast": {
+    "surface": "library",
+    "theme": "terminal",
+    "selector": ".vocab-detail-relookup",
+    "state": "default",
+    "check": "iconContrast",
+    "actual": 1.11,
+    "expected": 3,
+    "note": null
+  },
+  "library|terminal|.vocab-detail-delete|default|iconVCenter": {
+    "surface": "library",
+    "theme": "terminal",
+    "selector": ".vocab-detail-delete",
+    "state": "default",
+    "check": "iconVCenter",
+    "actual": 1.25,
+    "expected": 1,
+    "note": null
+  },
+  "library|terminal|.vocab-group-chip|default|padGteRadiusH": {
+    "surface": "library",
+    "theme": "terminal",
+    "selector": ".vocab-group-chip",
+    "state": "default",
+    "check": "padGteRadiusH",
+    "actual": 4,
+    "expected": 6.75,
+    "note": null
+  },
+  "library|terminal|.vocab-group-chip|default|padVMin": {
+    "surface": "library",
+    "theme": "terminal",
+    "selector": ".vocab-group-chip",
+    "state": "default",
+    "check": "padVMin",
+    "actual": 0,
+    "expected": 2,
+    "note": null
+  },
+  "library|terminal|.vocab-detail-speak|default|iconContrast": {
+    "surface": "library",
+    "theme": "terminal",
+    "selector": ".vocab-detail-speak",
+    "state": "default",
+    "check": "iconContrast",
+    "actual": 1.11,
+    "expected": 3,
+    "note": null
+  },
+  "library|terminal|.vocab-detail-speak|default|iconVCenter": {
+    "surface": "library",
+    "theme": "terminal",
+    "selector": ".vocab-detail-speak",
+    "state": "default",
+    "check": "iconVCenter",
+    "actual": 1.25,
+    "expected": 1,
+    "note": null
+  },
+  "library|terminal|.vocab-stat-chip|default|padVMin": {
+    "surface": "library",
+    "theme": "terminal",
+    "selector": ".vocab-stat-chip",
+    "state": "default",
+    "check": "padVMin",
+    "actual": 1,
+    "expected": 2,
+    "note": null
+  }
+}
