@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 // qa-drive — exploratory QA harness: loads the REPO ROOT as an unpacked
 // extension into Playwright's bundled Chromium, seeds realistic state
-// (settings / vocab / preview article), mocks every external dependency
-// (Pinboard API + dictionary via context.route fixtures, AI providers via a
-// real local HTTP server on 127.0.0.1), then walks the user-visible surfaces
-// (options tabs, md-preview reader interactions, toolbar popup, pinboard.in
-// site theme) taking screenshots and collecting console/pageerror evidence
+// (settings / vocab / highlights / preview article), mocks every external
+// dependency (Pinboard API + dictionary via context.route fixtures, AI
+// providers via a real local HTTP server on 127.0.0.1), then walks the
+// user-visible surfaces (options tabs, md-preview reader interactions,
+// toolbar popup, pinboard.in site theme, the library vocab/notes page)
+// taking screenshots and collecting console/pageerror evidence
 // into .qa-scan/report/<label>/ for human + AI review.
 //
 // Unlike zip-install-smoke.mjs (release gate: pass/fail) this is a REPORTER:
@@ -19,7 +20,7 @@
 //   node scripts/qa-drive.mjs                       # all surfaces, headed
 //   node scripts/qa-drive.mjs --headless            # popup surface skipped
 //   node scripts/qa-drive.mjs --surfaces options,preview
-//   node scripts/qa-drive.mjs --surfaces themes --label themes  # 13 preset × 明暗矩阵
+//   node scripts/qa-drive.mjs --surfaces themes --label themes  # 13 preset × 明暗矩阵 + default + library
 //   node scripts/qa-drive.mjs --site-theme dracula  # pinboard.in theme shot
 //   node scripts/qa-drive.mjs --label after-fix
 //
@@ -56,7 +57,7 @@ const CONFIG = {
   headless: hasFlag("--headless"),
   keepProfile: hasFlag("--keep-profile"),
   siteTheme: flag("--site-theme", "modern-card"),
-  surfaces: (flag("--surfaces", "options,preview,popup,pinboard")).split(",").filter(Boolean),
+  surfaces: (flag("--surfaces", "options,preview,popup,pinboard,library")).split(",").filter(Boolean),
   // Named fault profile (error-state tour): mocks answer per the profile and
   // the `faults` surface screenshots the resulting error UI. No random fuzz.
   fault: flag("--fault", ""),
@@ -429,6 +430,27 @@ const VOCAB_SEED = [
   { term: "呼吸", language: "zh", gloss: "breathe; breathing room", status: "new" },
 ];
 
+// pbp_hl_ records are page-scoped, not Pinboard-owner-scoped (CLAUDE.md's
+// owner invariants cover vocab only) -- a literal storage.local.set is the
+// whole write. library-notes.js's scan only filters on the "pbp_hl_" prefix
+// (verified: _pbpNotesScan does not check any owner field), so a hand-picked
+// key is fine, same as ui-render-audit.mjs's fixture. Two separate pages so
+// the library Notes list has more than one row to walk.
+const HIGHLIGHT_SEED = [
+  {
+    key: "pbp_hl_qa-drive-note-1",
+    url: "https://example.invalid/qa-note-1",
+    title: "QA 固定笔记页一 — 用于 library 走查",
+    items: [{ id: "h1", ts: Date.now() - 60_000, quote: "这是第一条固定高亮的引用文本，用于 library 笔记视图走查。", note: "第一条笔记内容，检查详情面板渲染。", color: 1 }],
+  },
+  {
+    key: "pbp_hl_qa-drive-note-2",
+    url: "https://example.invalid/qa-note-2",
+    title: "QA 固定笔记页二",
+    items: [{ id: "h2", ts: Date.now() - 30_000, quote: "第二条固定高亮，不带笔记，检查空笔记态的渲染。", color: 3 }],
+  },
+];
+
 async function seedAll(context, worker, aiPort) {
   // 1. Settings via SW (same key set persistSettings routes to local storage).
   await worker.evaluate(async ({ token, aiBase, siteTheme }) => {
@@ -473,10 +495,17 @@ async function seedAll(context, worker, aiPort) {
     }
   }, VOCAB_SEED);
 
-  // 3. Preview article payload.
+  // 3. Highlights (pbp_hl_) for the library page's Notes view.
+  await worker.evaluate(async (records) => {
+    const entries = {};
+    for (const r of records) entries[r.key] = { url: r.url, title: r.title, items: r.items };
+    await chrome.storage.local.set(entries);
+  }, HIGHLIGHT_SEED);
+
+  // 4. Preview article payload.
   await seedPreviewData(worker);
 
-  // 4. Per-page localStorage bootstraps (theme-early/i18n fast paths).
+  // 5. Per-page localStorage bootstraps (theme-early/i18n fast paths).
   await finishSeed(context, worker);
 }
 
@@ -649,6 +678,72 @@ async function driveOptions(context, extId, rep) {
     }
   } catch (e) {
     s.failures.push(`options open: ${e.message}`);
+  } finally {
+    detach();
+    await page.close().catch(() => {});
+  }
+}
+
+// library.html: master-detail vocab view + master-detail notes view behind
+// one tab strip (library.js / library-vocab.js / library-notes.js). Vocab and
+// pbp_hl_ highlight seeds are already in place (seedAll, unconditional) --
+// this driver only walks the DOM, it seeds nothing of its own.
+async function driveLibrary(context, extId, rep) {
+  const s = rep.surface("library");
+  const page = await context.newPage();
+  const detach = rep.attach(page, s);
+  const step = async (state, fn) => {
+    try { await fn(); } catch (e) { s.failures.push(`${state}: ${e.message}`); }
+  };
+  try {
+    await page.goto(`chrome-extension://${extId}/library.html#vocab`, { waitUntil: "load", timeout: TIMEOUT_MS });
+    await page.waitForSelector("#vocab-list .vocab-card", { timeout: TIMEOUT_MS }).catch(() => {});
+    await page.waitForTimeout(400);
+    await rep.shot(page, s, "vocab-list", { fullPage: true });
+    await axeScan(page, s, "library");
+
+    await step("vocab-detail", async () => {
+      await page.locator("#vocab-list .vocab-card .notes-card-head").first().click({ timeout: 3000 });
+      await page.waitForTimeout(400);
+      await rep.shot(page, s, "vocab-detail", { fullPage: true });
+    });
+
+    await step("vocab-batch-bar", async () => {
+      // Not fullPage: .vocab-batch-bar is `position: sticky` and a stitched
+      // full-page capture can mis-place sticky elements (same reason
+      // driveOptions's own vocab-batch-bar shot skips fullPage).
+      const rows = page.locator("#vocab-list .vocab-row-select");
+      await rows.nth(0).click({ timeout: 3000 });
+      await rows.nth(1).click({ timeout: 3000 });
+      await page.waitForTimeout(400);
+      await rep.shot(page, s, "vocab-batch-bar");
+      await page.locator("#vocab-clear-selection").click({ timeout: 3000 }).catch(() => {});
+    });
+
+    await step("notes-two-pane", async () => {
+      await page.locator("#lib-tab-notes").click({ timeout: 3000 });
+      await page.waitForSelector("#notes-list .notes-hit", { timeout: TIMEOUT_MS });
+      await page.waitForTimeout(300);
+      await page.locator("#notes-list .notes-hit-btn").first().click({ timeout: 3000 });
+      await page.waitForTimeout(400);
+      await rep.shot(page, s, "notes-two-pane", { fullPage: true });
+    });
+
+    await step("narrow", async () => {
+      // Below 860px the list pane IS the whole page by default (CSS hides
+      // .vocab-detail-pane until body carries .lib-narrow-detail, which only
+      // a row click sets) -- no click needed to land in the single-pane state.
+      // `_qa=narrow` forces a real cross-document navigation back to #vocab
+      // (goto()-to-fragment-only-difference risk, same gotcha documented in
+      // ui-render-audit.mjs's runLibraryTheme).
+      await page.setViewportSize({ width: 420, height: 860 });
+      await page.goto(`chrome-extension://${extId}/library.html?_qa=narrow#vocab`, { waitUntil: "load", timeout: TIMEOUT_MS });
+      await page.waitForSelector("#vocab-list .vocab-card", { timeout: TIMEOUT_MS }).catch(() => {});
+      await page.waitForTimeout(400);
+      await rep.shot(page, s, "narrow-vocab-list", { fullPage: true });
+    });
+  } catch (e) {
+    s.failures.push(`library open: ${e.message}`);
   } finally {
     detach();
     await page.close().catch(() => {});
@@ -851,6 +946,27 @@ async function driveThemes(context, worker, extId, rep) {
         }
       }
     }
+    // Library UI: preset × light/dark, one representative view (vocab list,
+    // richest single view — chips/groups) per combo. `_qa=<preset>-<mode>`
+    // forces a real cross-document navigation every iteration — library.js's
+    // hash router does history.replaceState, so a bare goto() back to the
+    // same "#vocab" fragment risks Chromium treating it as a same-document
+    // navigation and silently skipping the reload (same gotcha documented in
+    // ui-render-audit.mjs's runLibraryTheme, reused verbatim here).
+    for (const preset of presets) {
+      for (const mode of ["light", "dark"]) {
+        try {
+          await setTheme(preset, mode);
+          const url = `chrome-extension://${extId}/library.html?_qa=${encodeURIComponent(preset)}-${mode}#vocab`;
+          await page.goto(url, { waitUntil: "load", timeout: TIMEOUT_MS });
+          await page.waitForSelector("#vocab-list .vocab-card", { timeout: TIMEOUT_MS }).catch(() => {});
+          await page.waitForTimeout(350);
+          await rep.shot(page, s, `library-${preset || "default"}-${mode}`, { fullPage: true });
+        } catch (e) {
+          s.failures.push(`library-${preset || "default"}-${mode}: ${e.message}`);
+        }
+      }
+    }
     // md-preview follows optTheme light/dark only.
     for (const mode of ["light", "dark"]) {
       try {
@@ -877,6 +993,48 @@ async function driveThemes(context, worker, extId, rep) {
           s.failures.push(`site-${preset}-${mode}: ${e.message}`);
         }
       }
+    }
+    // ---- Unset state: SETTINGS_DEFAULTS's real values are themePresetKey:""
+    // AND optTheme:"auto" (shared.js) — a plain preset×mode write above can
+    // never reach "auto" since every mode there is a literal "light"/"dark".
+    // Removing both keys forces *-theme-early.js's async correction through
+    // its prefers-color-scheme fallback, a branch no other shot exercises.
+    // Covers the three surfaces that carry generated @generated:ui-themes
+    // regions (options/library/popup, CLAUDE.md). Only popup also gets the
+    // OS-dark variant: options/library's no-preset dark fallback resolves to
+    // the literal "flexoki-dark" data-theme (options-theme-early.js:26,
+    // shared verbatim by library.html), byte-identical to the
+    // options/library-flexoki-dark shots the preset loop above already took.
+    // Popup's own no-preset dark fallback is a plain ".dark" class instead
+    // (popup-theme-early.js:33-35, no adaptive-map fallback) — a state no
+    // preset combination reaches, and popup was never in this matrix before
+    // this task, so it needs both light and dark captured here.
+    const clearTheme = () => worker.evaluate(() => chrome.storage.local.remove(["themePresetKey", "optTheme"]));
+    for (const [label, url] of [
+      ["options", `chrome-extension://${extId}/options.html#appearance`],
+      ["library", `chrome-extension://${extId}/library.html?_qa=unset#vocab`],
+    ]) {
+      try {
+        await clearTheme();
+        await page.goto(url, { waitUntil: "load", timeout: TIMEOUT_MS });
+        await page.reload({ waitUntil: "load", timeout: TIMEOUT_MS });
+        await page.waitForTimeout(350);
+        await rep.shot(page, s, `${label}-unset-light`);
+      } catch (e) {
+        s.failures.push(`${label}-unset-light: ${e.message}`);
+      }
+    }
+    try {
+      await page.setViewportSize({ width: 550, height: 680 });
+      for (const scheme of ["light", "dark"]) {
+        await clearTheme();
+        await page.emulateMedia({ colorScheme: scheme });
+        await page.goto(`chrome-extension://${extId}/popup.html?_qa=unset-${scheme}`, { waitUntil: "load", timeout: TIMEOUT_MS });
+        await page.waitForTimeout(600);
+        await rep.shot(page, s, `popup-unset-${scheme}`);
+      }
+    } catch (e) {
+      s.failures.push(`popup-unset: ${e.message}`);
     }
   } finally {
     await setTheme(CONFIG.siteTheme, "light").catch(() => {});
@@ -1249,6 +1407,7 @@ try {
   for (const surface of CONFIG.surfaces) {
     console.log(`[qa-drive] surface: ${surface}`);
     if (surface === "options") await driveOptions(context, extId, rep);
+    else if (surface === "library") await driveLibrary(context, extId, rep);
     else if (surface === "preview") await drivePreview(context, worker, extId, rep);
     else if (surface === "pinboard") await drivePinboard(context, rep);
     else if (surface === "popup") await drivePopup(context, worker, extId, rep);
