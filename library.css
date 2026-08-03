@@ -456,8 +456,34 @@ html.motion-ready .notes-card-body:not([hidden]) { height: auto; opacity: 1; }
   border: 1px solid var(--lib-pane-divider);
   border-radius: var(--lib-radius-lg);
   padding: var(--lib-sp-4) var(--lib-sp-5);
+  /* Reading typography (Task 2): the list column is compact scan/skim scale
+     (13px/12px), the detail pane is where a definition or a context sentence
+     actually gets READ -- bump it a step above the page's 13px UI baseline
+     and open up the line-height. line-height is unitless on purpose so it
+     stays a ratio; every descendant that must stay at UI/control scale
+     (buttons, meta chips, the dictionary block below) resets its own
+     font-size AND line-height explicitly further down, since an inherited
+     unitless line-height recomputes against whatever font-size lands on
+     that element, not the 15px it was written for. */
+  font-size: 15px;
+  line-height: 1.65;
 }
 .vocab-detail-empty { color: var(--lib-fg-hint); padding: var(--lib-sp-5) 0; text-align: center; }
+/* Prose width (Task 2): a stored definition or context quote reading edge-to-
+   edge across a wide desktop pane is the readability regression this caps --
+   68ch tracks the reading-line-length convention regardless of how wide
+   .vocab-detail-pane's 1fr grid track happens to be. Task 3's notes detail
+   pane copies this literal value into its own selectors (see plan). */
+.vocab-detail-gloss, .vocab-detail-context { max-width: 68ch; }
+/* Controls stay at UI scale, not prose scale: .btn already pins font-size to
+   12px (:120) regardless of ambient size, but line-height was previously
+   left at the browser default, which is fine at 13px ambient -- inheriting
+   the new unitless 1.65 here would recompute to 1.65*12px=19.8px and visibly
+   bloat every button in this pane. .notes-meta-chip has neither pinned, so
+   it needs both (the plain, unpilled "language" chip in .vocab-detail-head
+   would otherwise render at full 15px prose size next to a 22px term). */
+.vocab-detail-pane .btn { line-height: normal; }
+.vocab-detail-pane .notes-meta-chip { font-size: 12px; line-height: normal; }
 /* Back button default state: hidden by default, shown only at narrow widths.
    Order is load-bearing: this rule must come BEFORE the media query so that
    the media query's inline-flex can override it via cascade (same 0,1,0
@@ -485,7 +511,15 @@ html.motion-ready .notes-card-body:not([hidden]) { height: auto; opacity: 1; }
 .vocab-detail-context mark { background: transparent; color: var(--lib-accent); font-weight: 600; }
 .vocab-detail-delete { margin-top: var(--lib-sp-4); }
 .vocab-detail-relookup { margin-top: var(--lib-sp-3); }
-.vocab-detail-dict { margin-top: var(--lib-sp-4); border-top: 1px solid var(--lib-border-section); padding-top: var(--lib-sp-3); }
+/* Dictionary region back down to a 14px scale (Task 2): a step below the
+   15px prose baseline (this is reference/lookup material, not the word's own
+   stored definition) and a step above the 12px control scale. Scoped to the
+   whole .vocab-detail-dict wrapper -- not just .xp-dict-slot -- so the
+   language <select> in .xp-dict-head and the results below it read at one
+   consistent size instead of the select sitting at the 15px ambient while
+   the results below it sit at 14px. Every .xp-dict-* size below this point
+   is relative (em) to whatever lands here. */
+.vocab-detail-dict { margin-top: var(--lib-sp-4); border-top: 1px solid var(--lib-border-section); padding-top: var(--lib-sp-3); font-size: 14px; }
 /* Free lookup (Task 3): "already in your vocabulary" hint sits between the
    result head and the dictionary slot, same .btn-sm family as relookup. */
 .vocab-lookup-saved { margin: var(--lib-sp-2) 0; }
@@ -610,7 +644,7 @@ html[data-theme="rose-pine"] .xp-dict-lang {
    first place on the library page that renders it. */
 .vocab-note-edit { display: flex; gap: var(--lib-sp-4); align-items: flex-start; margin-top: var(--lib-sp-2); }
 .vocab-note-input {
-  flex: 1 1 auto; min-width: 0; resize: vertical;
+  flex: 1 1 auto; min-width: 0; max-width: 68ch; resize: vertical;
   font: inherit; font-size: 12px; line-height: 1.5;
   padding: 4px var(--lib-sp-2);
   border: 1px solid var(--lib-input-border, #cdd1d6);
@@ -908,8 +942,17 @@ html.motion-ready .vocab-batch-bar.selecting {
 .vocab-card .notes-card-top {
   grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 6px; /* options --opt-sp-3 (6px) */
-  padding: var(--lib-sp-1) 6px;
+  padding: 3px 6px; /* density pass (Task 2): tighter than --lib-sp-1 (4px), no
+    token this small exists yet -- literal like the file's other sub-token
+    values. Scoped to .vocab-card only: the shared .notes-card-top base stays
+    untouched for the current Notes tab; Task 3's future two-column notes
+    rewrite copies this literal into its own selectors per the plan's
+    no-shared-class rule, it does not inherit from here. */
 }
+/* Density pass (Task 2): the list needs >=15 rows visible at a 900px
+   viewport height; shared .notes-card's 6px margin-bottom stays as-is for
+   the Notes tab, this scoped override only tightens the vocab list. */
+.vocab-card.notes-card { margin-bottom: 3px; }
 /* Collapsed-row rhythm (2026-08 redesign): controls anchor to the TITLE
    line instead of centering against whatever height the row happens to
    reach -- on a tall card a centered checkbox floated mid-air.
