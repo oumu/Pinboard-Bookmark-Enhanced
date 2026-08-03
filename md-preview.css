@@ -1298,6 +1298,11 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
    guessed -- centers on the chevron's own vertical midline with a ~5px
    clearance on both sides (count and tri). */
 #hl-rail-section .rail-sec-count { margin-right: 32px; }
+/* top:23px is fitted to .rail-sec-head's own box (margin:12px 0 8px; padding:12px 0 0;
+   font-size:11px at ~1249-1251 above) -- it centers this button on that header's
+   chevron midline the same way the comment above .rail-sec-count explains. Editing
+   .rail-sec-head's margin/padding/font-size drifts this button's vertical position
+   silently; re-measure top against a real rendered rail if any of those three change. */
 .rail-sec-open {
   position: absolute; top: 23px; right: 12px;
   width: 24px; height: 24px;
