@@ -41,7 +41,7 @@ Chrome Extension (Manifest V3)，一键将当前页面保存到 Pinboard，支�
 │
 ├── library.html/css/js          # 笔记与生词本独立页（视图切换 + hash 路由 + visibilitychange 刷新；入口在 popup / options / 阅读器 Notebook）
 ├── library-vocab.js             # library 生词视图（当前 owner 主列表：搜索/筛选/排序/选择/批量条 + 右侧详情面板、笔记编辑、按需重新查词、窄窗单栏回退、统计概览条、自由查词框）
-├── library-notes.js             # library 笔记视图（高亮/笔记列表与存储用量，迁自 options-notes.js）
+├── library-notes.js             # library 笔记视图（主从两栏：左栏每条高亮一行（色条 + 2 行截断 + 域名/日期、搜索命中 mark、颜色筛选），右栏读全文（来源链接、笔记、同页其他高亮跳转、整页删除）；窄窗单栏回退，选中态随刷新恢复）
 │
 ├── vocab-store.js               # pbp-vocab IDB v2 唯一写边界（words + vector/outbox/tombstone/sync 状态）
 ├── vocab-gdrive.js              # SW-only Google Drive appDataFolder 客户端与同步 runner（当前待 OAuth 激活）

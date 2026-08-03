@@ -311,18 +311,6 @@ html.motion-ready .notes-card-top { transition: background-color var(--motion-st
   cursor: pointer;
 }
 .notes-card-head:focus-visible { border-radius: var(--lib-radius-sm, 3px); }
-.notes-card-chevron {
-  width: 6px;
-  height: 6px;
-  flex: 0 0 auto;
-  color: var(--lib-fg-muted, #666);
-  border-right: 1.5px solid currentColor;
-  border-bottom: 1.5px solid currentColor;
-  transform: translateY(-2px) rotate(45deg);
-}
-.notes-card-head:hover .notes-card-chevron { color: var(--lib-fg, #222); }
-.notes-card-head[aria-expanded="true"] .notes-card-chevron { transform: translateY(1px) rotate(225deg); }
-html.motion-ready .notes-card-chevron { transition: transform var(--motion-collapse) var(--ease-in-out), color var(--motion-state); }
 .notes-card-main {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -341,40 +329,16 @@ html.motion-ready .notes-card-chevron { transition: transform var(--motion-colla
    selector, not a --lib token: sizing only, no themed color). */
 .btn .ext-icon { width: 11px; height: 11px; vertical-align: -1px; }
 .notes-row-open .ext-icon { margin-left: 2px; } /* options.css --opt-sp-1 (2px) */
-.notes-card-body {
-  background: color-mix(in srgb, var(--lib-fg, #333) 3.5%, var(--lib-bg, #fff));
-  border-top: 1px solid color-mix(in srgb, var(--lib-border, #ccc) 70%, transparent);
-  padding: var(--lib-sp-2) var(--lib-sp-3) var(--lib-sp-3);
-}
-/* Disclosure open/close motion. library-notes.js only ever flips the native
-   `hidden` IDL property -- no open/close class -- so the transition has to
-   hook the [hidden] attribute itself. content-visibility:hidden (not
-   display:none) is what makes height 0<->auto actually interpolate: a
-   height:auto target needs the box to still generate a layout (:root's
-   interpolate-size:allow-keywords resolves auto to its post-layout used
-   value each frame), and content-visibility:hidden still skips painting,
-   hit-testing AND tab order -- verified via Playwright that a link planted
-   inside a hidden body is not Tab-reachable -- while display:none would not
-   generate a box at all and could not transition. */
-html.motion-ready .notes-card-body {
-  overflow: clip;
-  transition: height var(--motion-collapse) var(--ease-in-out), opacity var(--motion-collapse) var(--ease-out);
-}
-html.motion-ready .notes-card-body[hidden] { display: block; content-visibility: hidden; height: 0; opacity: 0; }
-html.motion-ready .notes-card-body:not([hidden]) { height: auto; opacity: 1; }
-.notes-unknown-hint { font-size: 11px; color: var(--lib-fg-muted, #666); margin: 0 0 var(--lib-sp-2) 0; }
-.notes-items { display: grid; gap: var(--lib-sp-2); }
-.notes-item { display: flex; gap: var(--lib-sp-2); min-width: 0; }
+.notes-unknown-hint { font-size: 11px; color: var(--lib-fg-muted, #666); margin: var(--lib-sp-2) 0 0 0; }
 .note-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: var(--lib-sp-1); }
 .note-dot.c1 { background: var(--lib-note-c1, #facc15); }
 .note-dot.c2 { background: var(--lib-note-c2, #4ade80); }
 .note-dot.c3 { background: var(--lib-note-c3, #60a5fa); }
 .note-dot.c4 { background: var(--lib-note-c4, #f87171); }
 .note-dot.c5 { background: var(--lib-note-c5, #c084fc); }
-.notes-item-text { flex: 1 1 auto; min-width: 0; font-size: 12px; overflow-wrap: anywhere; }
+/* Kept for the vocabulary detail pane's context quotes (the notes list no
+   longer builds .notes-item* rows -- see the master-detail block below). */
 .notes-item-quote { color: var(--lib-fg-muted, #666); white-space: pre-wrap; }
-.notes-item-lang { display: inline-block; margin-top: 2px; color: var(--lib-fg-muted, #666); font-size: 11px; } /* options.css --opt-sp-1 (2px) */
-.notes-item-note { margin-top: var(--lib-sp-1); white-space: pre-wrap; }
 .notes-empty { font-size: 12px; color: var(--lib-fg-muted, #666); padding: var(--lib-sp-3) 0; }
 
 /* Ghost X delete button (options.css's shared recipe for vocab AND notes rows;
@@ -406,18 +370,149 @@ html.motion-ready .notes-card-body:not([hidden]) { height: auto; opacity: 1; }
   .row-del-x { position: static; translate: none; opacity: 1; background: transparent; }
 }
 
-/* Full-width multi-column layout: the library page has no sidebar-width
-   constraint like options.html's single panel, so cards flow into as many
-   380px columns as fit instead of one long list. Grid, not multicol
-   `columns:` -- multicol reflows EVERY card below an expanded one into a
-   new column order on disclosure toggle (all cards after the expanded one
-   visually jump), where grid's row-major auto-fill only grows that card's
-   own row. */
-#view-notes #notes-list {
+/* ============================================================
+   Notes master-detail: one row per highlight on the left, the selected
+   highlight read in full on the right. Same two-pane grammar as the
+   vocabulary workbench further down, with the values written out again
+   rather than shared through one class family -- each view sizes its own
+   panes and owns its own narrow-mode body class, and the plan's
+   no-shared-class rule keeps a later change to one from silently moving
+   the other.
+   ============================================================ */
+.notes-workbench {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
-  gap: var(--lib-sp-4);
+  grid-template-columns: minmax(340px, 480px) 1fr;
+  gap: var(--lib-sp-5);
   align-items: start;
+}
+.notes-list-pane { min-width: 0; }
+/* The toolbar now lives in a 340-480px pane instead of across the full page:
+   wrap it like the vocabulary filter row rather than hold one grid line. */
+.notes-list-pane .notes-toolbar { display: flex; flex-wrap: wrap; }
+.notes-list-pane .notes-toolbar input[type="search"] { flex: 1 1 180px; width: auto; min-width: 0; }
+
+/* Highlight colour as one carrier property: the row's bar and the detail
+   quote's edge both read --hl-color, so the five colours are declared once. */
+.notes-c1 { --hl-color: var(--lib-note-c1); }
+.notes-c2 { --hl-color: var(--lib-note-c2); }
+.notes-c3 { --hl-color: var(--lib-note-c3); }
+.notes-c4 { --hl-color: var(--lib-note-c4); }
+.notes-c5 { --hl-color: var(--lib-note-c5); }
+
+/* Compact scan row (Task 2 density spec: 6px block padding, 13px body text,
+   11px meta, two clamped lines). */
+.notes-hit { border-radius: var(--lib-radius-sm); }
+.notes-hit-btn {
+  display: grid;
+  grid-template-columns: 3px minmax(0, 1fr);
+  gap: var(--lib-sp-2);
+  width: 100%;
+  padding: 6px var(--lib-sp-2); /* options.css --opt-sp-3 (6px); no --lib-sp-* step matches it */
+  border: 0;
+  border-radius: inherit;
+  text-align: left;
+  cursor: pointer;
+  color: var(--lib-fg, #111);
+  --row-bg: transparent;
+  background: var(--row-bg);
+}
+html.motion-ready .notes-hit-btn { transition: background-color var(--motion-state) ease, box-shadow var(--motion-state) ease; }
+.notes-hit-btn:hover { --row-bg: color-mix(in srgb, var(--lib-fg, #333) 5%, var(--lib-bg, #fff)); }
+.notes-hit-btn:active { --row-bg: color-mix(in srgb, var(--lib-fg, #333) 9%, var(--lib-bg, #fff)); transition-duration: 0s; }
+.notes-hit-btn:focus-visible { outline: 2px solid var(--lib-accent, #4477bb); outline-offset: -2px; }
+/* "You are here", same --row-bg mechanism the vocabulary rows use. The accent
+   marker is a ring rather than that list's inset LEFT edge, because the left
+   edge here already belongs to the highlight's own colour bar. */
+.notes-hit[aria-current] .notes-hit-btn {
+  --row-bg: var(--lib-row-selected-bg);
+  color: var(--lib-row-selected-fg);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lib-accent, #4477bb) 45%, transparent);
+}
+.notes-hit[aria-current] .notes-hit-btn:hover { --row-bg: color-mix(in srgb, var(--lib-fg, #333) 5%, var(--lib-row-selected-bg)); }
+/* A failed delete, pinned to the row it happened on (the signal .notes-card's
+   .is-error gives on the vocabulary side). */
+.notes-hit.is-error .notes-hit-btn { --row-bg: color-mix(in srgb, var(--lib-danger, #c00) 10%, var(--lib-bg, #fff)); }
+.notes-hit-bar { border-radius: var(--lib-radius-full); background: var(--hl-color, var(--lib-note-c1)); }
+.notes-hit-body { display: grid; gap: 2px; min-width: 0; } /* options.css --opt-sp-1 (2px) */
+.notes-hit-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.notes-hit-note { margin-left: var(--lib-sp-1); font-style: italic; color: var(--lib-fg-muted, #666); }
+.notes-hit-meta { display: flex; gap: var(--lib-sp-2); font-size: 11px; color: var(--lib-fg-muted, #666); }
+
+/* Reading pane (Task 2 spec: 15px/1.65 prose, 68ch measure, controls back at
+   UI scale) -- same values as .vocab-detail-pane, see the block comment. */
+.notes-detail-pane {
+  min-width: 0;
+  position: sticky; top: calc(var(--lib-header-h) + var(--lib-sp-2)); /* below the sticky .lib-header, with a visible gap */
+  background: var(--lib-pane-bg);
+  border: 1px solid var(--lib-pane-divider);
+  border-radius: var(--lib-radius-lg);
+  padding: var(--lib-sp-4) var(--lib-sp-5);
+  font-size: 15px;
+  line-height: 1.65;
+}
+.notes-detail-empty { color: var(--lib-fg-hint); padding: var(--lib-sp-5) 0; text-align: center; }
+.notes-detail-pane .notes-meta-chip { font-size: 12px; line-height: normal; }
+.notes-detail-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--lib-sp-2); margin-bottom: var(--lib-sp-3); }
+.notes-detail-source { font-weight: bold; }
+.notes-detail-quote {
+  margin: 0;
+  max-width: 68ch;
+  padding-left: var(--lib-sp-3);
+  border-left: 3px solid var(--hl-color, var(--lib-note-c1));
+  white-space: pre-wrap;
+}
+.notes-detail-note { max-width: 68ch; margin: var(--lib-sp-3) 0 0; white-space: pre-wrap; color: var(--lib-fg-muted, #666); }
+.notes-detail-delete { margin-top: var(--lib-sp-4); }
+.notes-detail-siblings {
+  margin-top: var(--lib-sp-5);
+  padding-top: var(--lib-sp-3);
+  border-top: 1px solid var(--lib-pane-divider);
+}
+.notes-detail-sib-title {
+  margin: 0 0 var(--lib-sp-2);
+  font-size: 12px; line-height: normal; font-weight: bold;
+  letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--lib-fg-muted, #666);
+}
+.notes-sib {
+  display: flex; align-items: center; gap: var(--lib-sp-2);
+  width: 100%;
+  padding: var(--lib-sp-1) var(--lib-sp-2);
+  border: 0;
+  border-radius: var(--lib-radius-sm);
+  background: transparent;
+  color: inherit;
+  font-size: 13px; line-height: normal;
+  text-align: left; cursor: pointer;
+}
+html.motion-ready .notes-sib { transition: background-color var(--motion-state) ease; }
+.notes-sib:hover { background: color-mix(in srgb, var(--lib-fg, #333) 5%, var(--lib-bg, #fff)); }
+.notes-sib:focus-visible { outline: 2px solid var(--lib-accent, #4477bb); outline-offset: -2px; }
+.notes-sib .note-dot { margin-top: 0; }
+.notes-sib-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Back button default state: hidden by default, shown only at narrow widths.
+   Order is load-bearing: this rule must come BEFORE the media query so that
+   the media query's inline-flex can override it via cascade (same 0,1,0
+   specificity, later rule wins). */
+.notes-detail-back { display: none; margin-bottom: var(--lib-sp-3); }
+/* Below the two-pane threshold the 340px minimum would push the page into
+   horizontal scroll; stack instead (and the detail pane stops being sticky,
+   since it is no longer beside anything). */
+@media (max-width: 860px) {
+  .notes-workbench { grid-template-columns: 1fr; }
+  .notes-detail-pane { position: static; }
+  /* Narrow mode is list OR detail, driven by this view's own body class. */
+  body.lib-narrow-notes .notes-list-pane { display: none; }
+  body:not(.lib-narrow-notes) .notes-detail-pane { display: none; }
+  .notes-detail-back { display: inline-flex; }
 }
 
 /* ============================================================

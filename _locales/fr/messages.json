@@ -3529,6 +3529,7 @@
   "libraryOpen": { "message": "Ouvrir le bloc-notes et le vocabulaire" },
   "libraryDetailTitle": { "message": "Détails du mot" },
   "libraryDetailEmpty": { "message": "Sélectionnez un mot à gauche pour afficher ses détails." },
+  "libraryNotesDetailEmpty": { "message": "Sélectionnez un surlignage à gauche pour le lire." },
   "libraryRelookup": { "message": "Chercher à nouveau" },
   "libraryBack": { "message": "Retour à la liste" },
   "libraryStatsWords": { "message": "$COUNT$ mots", "placeholders": { "count": { "content": "$1" } } },

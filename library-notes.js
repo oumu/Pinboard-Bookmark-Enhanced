@@ -72,12 +72,22 @@ function pbpNotesEntryHasColor(rec, colorSet) {
 // no-guard, rescan-every-time pattern as renderStoragePanel() in options.js
 // (a fresh chrome.storage.local.get(null) scan per activation; the data set
 // is small enough that this is cheap).
+//
+// Master-detail (2026-08): the left pane lists ONE ROW PER HIGHLIGHT, the
+// right pane reads the selected one. Storage is untouched -- it still holds
+// one pbp_hl_<page> record with an items[] array -- so the flattening into
+// per-highlight rows lives here, in the view, and the pure layer above keeps
+// its frozen article-level signatures.
 // ============================================================
 
 const PBP_NOTES_COLORS = [1, 2, 3, 4, 5];
 const PBP_NOTES_COLOR_KEYS = ["hlColorQuote", "hlColorDefinition", "hlColorExample", "hlColorDoubt", "hlColorTodo"];
 let _notesAllRows = []; // [{ row, rec }], last full scan, sorted lastTs desc
 let _notesActiveColors = new Set(PBP_NOTES_COLORS);
+// The highlight the detail pane is reading, as "<storage key>#<item id>".
+// Same job _pbpVocabDetailWordId does for the vocabulary view: it outlives
+// every rebuild, so a rescan can put the selection back where it was.
+let _pbpNotesSelectedKey = null;
 
 async function _pbpNotesScan() {
   if (typeof chrome === "undefined" || !chrome.storage || !chrome.storage.local) return [];
@@ -98,95 +108,133 @@ function _pbpNotesFormatDate(ts) {
   try { return new Date(ts).toLocaleDateString(); } catch (_) { return ""; }
 }
 
-function _pbpNotesVisibleEntries() {
+function _pbpNotesColorOf(it) {
+  const c = Number(it && it.color);
+  return c >= 1 && c <= 5 ? c : 1;
+}
+
+// Stable per-row identity: the page's storage key plus the highlight's own id.
+// Everything that has to survive a rebuild (selection, aria-current, the
+// refresh restore) matches on this string, never on DOM position.
+function _pbpNotesHitKey(key, it, idx) {
+  return key + "#" + (it && it.id != null ? String(it.id) : "i" + idx);
+}
+
+// The whole scan, flattened to one entry per highlight, newest first. Sorting
+// by the highlight's own ts (not the page's last-active) is what makes the
+// list read as "what did I mark recently" across pages.
+function _pbpNotesHits() {
+  const hits = [];
+  for (const { row, rec } of _notesAllRows) {
+    const items = Array.isArray(rec.items) ? rec.items : [];
+    items.forEach((it, idx) => {
+      if (!it || typeof it !== "object") return;
+      hits.push({
+        key: _pbpNotesHitKey(row.key, it, idx),
+        row,
+        rec,
+        item: it,
+        ts: typeof it.ts === "number" ? it.ts : row.lastTs,
+      });
+    });
+  }
+  hits.sort((a, b) => b.ts - a.ts);
+  return hits;
+}
+
+// Per-highlight filtering that REUSES the frozen article-level predicates on a
+// one-item view of the record: pbpNotesMatch's "page title/url matches, or any
+// item does" and pbpNotesEntryHasColor's "any item is in the set" both collapse
+// to exactly the per-highlight question when items is [this one]. No second
+// copy of either rule, and a title match still surfaces the page's highlights.
+function _pbpNotesVisibleHits() {
   const filterInput = $id("notes-filter");
   const q = filterInput ? filterInput.value : "";
-  return _notesAllRows.filter((e) => pbpNotesMatch(e.rec, q) && pbpNotesEntryHasColor(e.rec, _notesActiveColors));
+  return _pbpNotesHits().filter((hit) => {
+    const one = { title: hit.row.title, url: hit.row.url, items: [hit.item] };
+    return pbpNotesMatch(one, q) && pbpNotesEntryHasColor(one, _notesActiveColors);
+  });
 }
 
-function _pbpNotesBuildItem(it) {
-  const itemEl = document.createElement("div");
-  itemEl.className = "notes-item";
+// Lookup over ALL hits, not just the visible ones: the detail pane's
+// same-page section can hand back a highlight the current filter hides.
+function _pbpNotesFindHit(key) {
+  return key ? _pbpNotesHits().find((hit) => hit.key === key) || null : null;
+}
 
-  const dot = document.createElement("span");
-  const color = Number(it && it.color);
-  dot.className = "note-dot c" + (color >= 1 && color <= 5 ? color : 1);
-  itemEl.appendChild(dot);
+function _pbpNotesHostname(url) {
+  try { return new URL(String(url || "")).hostname; } catch (_) { return ""; }
+}
 
-  const textEl = document.createElement("div");
-  textEl.className = "notes-item-text";
-
-  const quote = typeof it.quote === "string" ? it.quote : "";
-  const quoteEl = document.createElement("div");
-  quoteEl.className = "notes-item-quote";
-  quoteEl.textContent = quote.length > 220 ? quote.slice(0, 220) + "\u2026" : quote;
-  textEl.appendChild(quoteEl);
-
-  if (it.side === "tr" && it.lang) {
-    const langEl = document.createElement("span");
-    langEl.className = "notes-item-lang";
-    langEl.textContent = String(it.lang);
-    textEl.appendChild(langEl);
+// Split `text` around case-insensitive matches of `query`; matches render in
+// <mark>. Appends, so one host can carry quote + note. Twin of
+// library-vocab.js's _pbpVocabHighlightTerm (same shape, different needle
+// source) -- textContent-only construction, never innerHTML with stored text.
+function _pbpNotesMarkText(host, text, query) {
+  const value = text == null ? "" : String(text);
+  const needle = (query || "").trim().toLowerCase();
+  if (!needle) { host.appendChild(document.createTextNode(value)); return; }
+  const lower = value.toLowerCase();
+  let idx = 0, pos = lower.indexOf(needle);
+  while (pos !== -1) {
+    host.appendChild(document.createTextNode(value.slice(idx, pos)));
+    const mark = document.createElement("mark");
+    mark.textContent = value.slice(pos, pos + needle.length);
+    host.appendChild(mark);
+    idx = pos + needle.length;
+    pos = lower.indexOf(needle, idx);
   }
+  host.appendChild(document.createTextNode(value.slice(idx)));
+}
 
-  const note = typeof it.note === "string" ? it.note : "";
+function _pbpNotesFilterQuery() {
+  const filterInput = $id("notes-filter");
+  return filterInput ? filterInput.value : "";
+}
+
+// Compact left row: colour bar, two clamped lines of highlight (with the note
+// trailing inline in italics), then host + date. No inline delete -- the one
+// destructive action lives in the detail pane, where its scope is spelled out.
+function _pbpNotesBuildRow(hit) {
+  const rowEl = document.createElement("div");
+  rowEl.className = "notes-hit";
+  rowEl.setAttribute("role", "listitem");
+  rowEl.dataset.notesKey = hit.key;
+
+  // The row content is a button so the list stays keyboard-reachable, same
+  // shape the vocabulary list uses (card > head button).
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "notes-hit-btn";
+
+  const bar = document.createElement("span");
+  bar.className = "notes-hit-bar notes-c" + _pbpNotesColorOf(hit.item);
+  bar.setAttribute("aria-hidden", "true");
+  btn.appendChild(bar);
+
+  const body = document.createElement("span");
+  body.className = "notes-hit-body";
+
+  const q = _pbpNotesFilterQuery();
+  const text = document.createElement("span");
+  text.className = "notes-hit-text";
+  _pbpNotesMarkText(text, typeof hit.item.quote === "string" ? hit.item.quote : "", q);
+  const note = typeof hit.item.note === "string" ? hit.item.note : "";
   if (note.trim()) {
-    const noteEl = document.createElement("div");
-    noteEl.className = "notes-item-note";
-    noteEl.textContent = note;
-    textEl.appendChild(noteEl);
+    const noteEl = document.createElement("span");
+    noteEl.className = "notes-hit-note";
+    _pbpNotesMarkText(noteEl, note, q);
+    text.appendChild(noteEl);
   }
-
-  itemEl.appendChild(textEl);
-  return itemEl;
-}
-
-function _pbpNotesBuildRow(entry) {
-  const { row, rec } = entry;
-  const card = document.createElement("article");
-  card.className = "notes-card";
-  // Stable per-card identity for the rebuild paths below. The body's DOM id
-  // is derived from the same key but lossily (every non-word character
-  // collapses to "_"), so it cannot be used to match cards back up.
-  card.dataset.notesKey = row.key;
-
-  const top = document.createElement("div");
-  top.className = "notes-card-top";
-
-  const bodyId = "notes-card-body-" + row.key.replace(/[^a-zA-Z0-9_-]/g, "_");
-  const head = document.createElement("button");
-  head.type = "button";
-  head.className = "notes-card-head";
-  head.setAttribute("aria-expanded", "false");
-  head.setAttribute("aria-controls", bodyId);
-
-  const chev = document.createElement("span");
-  chev.className = "notes-card-chevron";
-  chev.setAttribute("aria-hidden", "true");
-  head.appendChild(chev);
-
-  const main = document.createElement("span");
-  main.className = "notes-card-main";
-
-  const titleEl = document.createElement("span");
-  titleEl.className = "notes-row-title";
-  titleEl.textContent = row.url ? (row.title || row.url) : t("notesUnknownPage");
-  main.appendChild(titleEl);
+  body.appendChild(text);
 
   const meta = document.createElement("span");
-  meta.className = "notes-row-meta";
-
-  const hlSpan = document.createElement("span");
-  hlSpan.className = "notes-meta-chip";
-  hlSpan.textContent = String(row.hlCount) + " " + t("notesColHighlights");
-  meta.appendChild(hlSpan);
-
-  const noteSpan = document.createElement("span");
-  noteSpan.className = "notes-meta-chip";
-  noteSpan.textContent = String(row.noteCount) + " " + t("notesColNotes");
-  meta.appendChild(noteSpan);
-
-  const dateText = _pbpNotesFormatDate(row.lastTs);
+  meta.className = "notes-hit-meta";
+  const site = document.createElement("span");
+  site.className = "notes-meta-chip";
+  site.textContent = _pbpNotesHostname(hit.row.url) || t("notesUnknownPage");
+  meta.appendChild(site);
+  const dateText = _pbpNotesFormatDate(hit.ts);
   if (dateText) {
     const dateSpan = document.createElement("span");
     dateSpan.className = "notes-meta-chip";
@@ -194,83 +242,190 @@ function _pbpNotesBuildRow(entry) {
     dateSpan.title = t("notesColLastActive");
     meta.appendChild(dateSpan);
   }
+  body.appendChild(meta);
 
-  const bytesSpan = document.createElement("span");
-  bytesSpan.className = "notes-meta-chip";
-  bytesSpan.textContent = typeof pbpFormatBytes === "function" ? pbpFormatBytes(row.bytes) : String(row.bytes);
-  bytesSpan.title = t("notesColSize");
-  meta.appendChild(bytesSpan);
+  btn.appendChild(body);
+  btn.addEventListener("click", () => _pbpNotesSelectRow(hit.key));
+  rowEl.appendChild(btn);
+  return rowEl;
+}
 
-  main.appendChild(meta);
-  head.appendChild(main);
-  top.appendChild(head);
-
-  let pageUrl = null;
-  try {
-    pageUrl = row.url ? new URL(row.url) : null;
-    if (pageUrl && pageUrl.protocol !== "http:" && pageUrl.protocol !== "https:") pageUrl = null;
-  } catch (_) {
-    pageUrl = null;
+function _pbpNotesRowEl(key) {
+  if (!key) return null;
+  for (const el of document.querySelectorAll("#notes-list .notes-hit")) {
+    if (el.dataset.notesKey === key) return el;
   }
-  if (pageUrl) {
-    const openLink = document.createElement("a");
-    openLink.className = "btn btn-sm notes-row-open";
-    openLink.href = pageUrl.href;
-    openLink.target = "_blank";
-    openLink.rel = "noopener noreferrer";
-    openLink.textContent = pageUrl.host || pageUrl.href;
-    // External-link mark: this is the one "leaves the page" row action that
-    // looked like an in-page toggle without it. Static PBP_ICONS constant.
-    openLink.insertAdjacentHTML("beforeend", PBP_ICONS.extOpen.replace('<svg ', '<svg class="ext-icon" '));
-    openLink.addEventListener("click", (e) => e.stopPropagation());
-    top.appendChild(openLink);
+  return null;
+}
+
+// Exactly one row carries aria-current (the vocabulary list's rule), and the
+// marker is re-derived from _pbpNotesSelectedKey after every rebuild.
+function _pbpNotesMarkCurrentRow() {
+  document.querySelectorAll("#notes-list .notes-hit[aria-current]")
+    .forEach((el) => el.removeAttribute("aria-current"));
+  const el = _pbpNotesRowEl(_pbpNotesSelectedKey);
+  if (el) el.setAttribute("aria-current", "true");
+}
+
+function _pbpNotesSelectRow(key) {
+  const hit = _pbpNotesFindHit(key);
+  if (!hit) return;
+  _pbpNotesSelectedKey = key;
+  _pbpNotesMarkCurrentRow();
+  _pbpNotesRenderDetail(hit, true);
+}
+
+// Narrow (single-pane) mode. Mirrors library.css's 860px threshold -- the CSS
+// is the source of truth; this is the same number, not a second layout rule.
+// Local twin of library-vocab.js's _pbpVocabNarrowMode: the two views own
+// separate body classes on purpose, so neither can strand the other's pane.
+function _pbpNotesNarrowMode() {
+  return typeof matchMedia === "function" && matchMedia("(max-width: 860px)").matches;
+}
+
+// Twin of library-vocab.js's _pbpVocabFocusNarrowBack, kept local rather than
+// shared because it queries this view's own back button: entering the detail
+// in narrow mode hides the list INCLUDING the row button focus came from, and
+// Chrome then drops focus to <body> with no keyboard route back.
+function _pbpNotesFocusNarrowBack(host) {
+  if (!host || !_pbpNotesNarrowMode()) return;
+  const back = host.querySelector(".notes-detail-back");
+  if (!back) return;
+  try { back.focus({ preventScroll: true }); } catch (_) { back.focus(); }
+}
+
+function _pbpNotesBuildBackBtn() {
+  const back = document.createElement("button");
+  back.type = "button";
+  back.className = "btn btn-sm notes-detail-back";
+  // cross, like the vocabulary pane's back control: closing the detail IS the
+  // gesture, and the icon registry has no arrowLeft.
+  setBtnIcon(back, "cross", t("libraryBack"));
+  back.addEventListener("click", () => _pbpNotesRenderDetail(null));
+  return back;
+}
+
+// Reading pane for one highlight, or the empty state for null (nothing
+// selected, selection deleted, back button). `enterNarrow` is opt-in exactly
+// as in library-vocab.js: only a user activation may swap narrow mode from the
+// list to the detail, so a background refresh never yanks a narrow reader.
+function _pbpNotesRenderDetail(hit, enterNarrow) {
+  const empty = $id("notes-detail-empty");
+  const detail = $id("notes-detail");
+  if (!empty || !detail) return;
+  empty.hidden = !!hit;
+  detail.hidden = !hit;
+  if (!hit) {
+    _pbpNotesSelectedKey = null;
+    document.body.classList.remove("lib-narrow-notes");
+    detail.replaceChildren();
+    _pbpNotesMarkCurrentRow();
+    return;
+  }
+  if (enterNarrow) document.body.classList.add("lib-narrow-notes");
+
+  const q = _pbpNotesFilterQuery();
+  const frag = document.createDocumentFragment();
+
+  // 0. Back button (narrow mode only -- CSS decides, see .notes-detail-back)
+  frag.appendChild(_pbpNotesBuildBackBtn());
+
+  // 1. Source line: page title (linked when the url is safe) + date + language
+  const head = document.createElement("div");
+  head.className = "notes-detail-head";
+  const href = typeof pbpDictSafeUrl === "function" ? pbpDictSafeUrl(hit.row.url) : "";
+  const label = hit.row.title || _pbpNotesHostname(hit.row.url) || t("notesUnknownPage");
+  if (href) {
+    const link = document.createElement("a");
+    link.className = "notes-detail-source";
+    link.href = href;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.textContent = label;
+    head.appendChild(link);
+  } else {
+    const plain = document.createElement("span");
+    plain.className = "notes-detail-source";
+    plain.textContent = label;
+    head.appendChild(plain);
+  }
+  const dateText = _pbpNotesFormatDate(hit.ts);
+  if (dateText) {
+    const dateSpan = document.createElement("span");
+    dateSpan.className = "notes-meta-chip";
+    dateSpan.textContent = dateText;
+    head.appendChild(dateSpan);
+  }
+  if (hit.item.side === "tr" && hit.item.lang) {
+    const langSpan = document.createElement("span");
+    langSpan.className = "notes-meta-chip";
+    langSpan.textContent = String(hit.item.lang);
+    head.appendChild(langSpan);
+  }
+  frag.appendChild(head);
+
+  // 2. The highlight itself, in full
+  const quote = document.createElement("blockquote");
+  quote.className = "notes-detail-quote notes-c" + _pbpNotesColorOf(hit.item);
+  _pbpNotesMarkText(quote, typeof hit.item.quote === "string" ? hit.item.quote : "", q);
+  frag.appendChild(quote);
+
+  // 3. Note, in full (the reader's Notebook still owns editing it)
+  const note = typeof hit.item.note === "string" ? hit.item.note : "";
+  if (note.trim()) {
+    const noteEl = document.createElement("p");
+    noteEl.className = "notes-detail-note";
+    _pbpNotesMarkText(noteEl, note, q);
+    frag.appendChild(noteEl);
   }
 
-  const delBtn = document.createElement("button");
-  delBtn.type = "button";
-  delBtn.className = "btn btn-sm notes-row-del row-del-x";
-  // Icon-only, same ghost X as the vocab rows; the name lives in
-  // title/aria-label and the line box matches the URL button beside it.
-  setBtnIcon(delBtn, "cross", "");
-  delBtn.title = t("notesDeleteBtn");
-  delBtn.setAttribute("aria-label", t("notesDeleteBtn"));
-  delBtn.addEventListener("click", (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    _pbpNotesDelete(row, delBtn);
-  });
-  top.appendChild(delBtn);
-  card.appendChild(top);
-
-  const body = document.createElement("div");
-  body.id = bodyId;
-  body.className = "notes-card-body";
-  body.hidden = true;
-
-  if (!row.url) {
+  if (!hit.row.url) {
     const hint = document.createElement("p");
     hint.className = "notes-unknown-hint";
     hint.textContent = t("notesUnknownHint");
-    body.appendChild(hint);
+    frag.appendChild(hint);
   }
 
-  const itemsEl = document.createElement("div");
-  itemsEl.className = "notes-items";
-  const items = Array.isArray(rec.items) ? rec.items : [];
-  items.forEach((it) => {
-    if (!it || typeof it !== "object") return;
-    itemsEl.appendChild(_pbpNotesBuildItem(it));
-  });
-  body.appendChild(itemsEl);
-  card.appendChild(body);
+  // 4. Delete. Scope is the PAGE's record (the only unit storage has, and the
+  // unit the reader writes) -- the confirm popover names that page before
+  // anything is removed, which is where the scope is disclosed.
+  const del = document.createElement("button");
+  del.type = "button";
+  del.className = "btn btn-sm danger notes-detail-delete";
+  setBtnIcon(del, "trash", t("notesDeleteBtn"));
+  del.addEventListener("click", () => _pbpNotesDelete(hit.row, del));
+  frag.appendChild(del);
 
-  head.addEventListener("click", () => {
-    const open = body.hidden;
-    body.hidden = !open;
-    head.setAttribute("aria-expanded", open ? "true" : "false");
-  });
+  // 5. The rest of this page's highlights, as a jump list
+  const siblings = _pbpNotesHits().filter((h) => h.row.key === hit.row.key && h.key !== hit.key);
+  if (siblings.length) {
+    const section = document.createElement("section");
+    section.className = "notes-detail-siblings";
+    const title = document.createElement("h2");
+    title.className = "notes-detail-sib-title";
+    title.textContent = t("hlSectionTitle");
+    section.appendChild(title);
+    for (const sib of siblings) {
+      const sibBtn = document.createElement("button");
+      sibBtn.type = "button";
+      sibBtn.className = "notes-sib";
+      sibBtn.dataset.notesKey = sib.key;
+      const dot = document.createElement("span");
+      dot.className = "note-dot c" + _pbpNotesColorOf(sib.item);
+      dot.setAttribute("aria-hidden", "true");
+      sibBtn.appendChild(dot);
+      const sibText = document.createElement("span");
+      sibText.className = "notes-sib-text";
+      sibText.textContent = typeof sib.item.quote === "string" ? sib.item.quote : "";
+      sibBtn.appendChild(sibText);
+      sibBtn.addEventListener("click", () => _pbpNotesSelectRow(sib.key));
+      section.appendChild(sibBtn);
+    }
+    frag.appendChild(section);
+  }
 
-  return card;
+  detail.replaceChildren(frag);
+  if (enterNarrow) _pbpNotesFocusNarrowBack(detail);
 }
 
 function _pbpNotesRenderToolbar(total, visible) {
@@ -296,25 +451,31 @@ function _pbpNotesBuildColorFilters() {
       if (_notesActiveColors.has(c) && _notesActiveColors.size > 1) _notesActiveColors.delete(c);
       else _notesActiveColors.add(c);
       b.setAttribute("aria-pressed", _notesActiveColors.has(c) ? "true" : "false");
-      _pbpNotesRenderList(_pbpNotesVisibleEntries());
+      _pbpNotesRenderList(_pbpNotesVisibleHits());
     });
     wrap.appendChild(b);
   });
 }
 
-function _pbpNotesRenderList(entries) {
+function _pbpNotesRenderList(hits) {
   const list = $id("notes-list");
   if (!list) return;
-  _pbpNotesRenderToolbar(_notesAllRows.length, entries.length);
-  list.textContent = "";
-  if (!entries.length) {
+  const total = _pbpNotesHits().length;
+  _pbpNotesRenderToolbar(total, hits.length);
+  list.replaceChildren();
+  if (!hits.length) {
     const empty = document.createElement("p");
     empty.className = "notes-empty";
-    empty.textContent = _notesAllRows.length ? t("notesFilterEmpty") : t("notesEmpty");
+    empty.textContent = total ? t("notesFilterEmpty") : t("notesEmpty");
     list.appendChild(empty);
     return;
   }
-  entries.forEach((entry) => list.appendChild(_pbpNotesBuildRow(entry)));
+  const frag = document.createDocumentFragment();
+  hits.forEach((hit) => frag.appendChild(_pbpNotesBuildRow(hit)));
+  list.appendChild(frag);
+  // A rebuild drops the marker even though the detail pane still reads that
+  // highlight -- re-derive it from the surviving selection key.
+  _pbpNotesMarkCurrentRow();
 }
 
 // Same anchored confirm popover as every other destructive micro-action
@@ -329,48 +490,37 @@ function _pbpNotesDelete(row, anchor) {
     yesText: t("delete"),
     noText: t("cancel"),
     onConfirm: async () => {
-      const cardEl = anchor && anchor.closest ? anchor.closest(".notes-card") : null;
+      // Where the selected row sat, so focus can land on its successor once
+      // the list is rebuilt (the confirm popover restored focus to the delete
+      // button, which the rebuild removes -- otherwise focus falls to <body>).
+      const position = Math.max(0, _pbpNotesVisibleHits().findIndex((h) => h.key === _pbpNotesSelectedKey));
       try {
         await chrome.storage.local.remove(row.key);
       } catch (e) {
         // A swallowed failure looked identical to success (popover closed,
-        // row still there, zero feedback). Pin it to the card it happened on
+        // row still there, zero feedback). Pin it to the row it happened on
         // and leave a trace -- name/message only, never note content.
         console.warn("[notes] delete failed", e && e.name, e && e.message);
-        if (cardEl) cardEl.classList.add("is-error");
+        const rowEl = _pbpNotesRowEl(_pbpNotesSelectedKey);
+        if (rowEl) rowEl.classList.add("is-error");
         return;
       }
-      if (cardEl) cardEl.classList.remove("is-error");
-      // Where the deleted card sat, so focus can land on its successor once
-      // the list is rebuilt (the confirm popover restored focus to the delete
-      // button, which the rebuild removes -- otherwise focus falls to <body>).
-      const position = Math.max(0, _pbpNotesVisibleEntries().findIndex((e) => e.row.key === row.key));
       _notesAllRows = _notesAllRows.filter((e) => e.row.key !== row.key);
-      // Fold the card out before the rebuild (vocab cards share the recipe via
-      // options.css .card-exit). Marked only after the remove succeeded, and
-      // only when motion is wanted; a concurrent filter re-render just makes
-      // the delayed rebuild a harmless duplicate.
-      if (cardEl && cardEl.isConnected
-          && document.documentElement.classList.contains("motion-ready")
-          && !(typeof pbpPrefersReducedMotion === "function" && pbpPrefersReducedMotion())) {
-        cardEl.classList.add("card-exit");
-        await new Promise((resolve) => setTimeout(resolve, 220));
-      }
-      _pbpNotesRenderList(_pbpNotesVisibleEntries());
+      // The detail was reading one of the highlights that just went away.
+      if (_pbpNotesSelectedKey && _pbpNotesSelectedKey.startsWith(row.key + "#")) _pbpNotesRenderDetail(null);
+      _pbpNotesRenderList(_pbpNotesVisibleHits());
       _pbpNotesFocusAfterDelete(position);
     },
   });
 }
 
-// Nearest surviving card, else the filter input -- the vocabulary list's
-// _pbpVocabFocusStable with one extra step, because notes cards are the only
-// thing between the toolbar and the bottom of the page.
+// Nearest surviving row, else the filter input -- the vocabulary list's
+// _pbpVocabFocusStable with one extra step, because notes rows are the only
+// thing between the toolbar and the bottom of the pane.
 function _pbpNotesFocusAfterDelete(position) {
   const list = $id("notes-list");
-  const cards = list ? [...list.querySelectorAll(".notes-card")] : [];
-  const target = cards.length
-    ? cards[Math.min(position, cards.length - 1)].querySelector(".notes-card-head")
-    : $id("notes-filter");
+  const rows = list ? [...list.querySelectorAll(".notes-hit-btn")] : [];
+  const target = rows.length ? rows[Math.min(position, rows.length - 1)] : $id("notes-filter");
   if (!target || target.closest("[hidden], [inert]")) return;
   try { target.focus({ preventScroll: true }); } catch (_) { target.focus(); }
 }
@@ -382,7 +532,7 @@ async function renderNotesPanel() {
   if (!$id("notes-list")) return;
   _pbpNotesBuildColorFilters();
   _notesAllRows = await _pbpNotesScan();
-  _pbpNotesRenderList(_pbpNotesVisibleEntries());
+  _pbpNotesRenderList(_pbpNotesVisibleHits());
 }
 
 // The filter input is static markup (never recreated), so bind its listener
@@ -400,29 +550,38 @@ if (typeof $id === "function") {
   if (_notesFilterInput) {
     _notesFilterInput.addEventListener("input", () => {
       _pbpNotesBuildColorFilters();
-      _pbpNotesRenderList(_pbpNotesVisibleEntries());
+      _pbpNotesRenderList(_pbpNotesVisibleHits());
     });
   }
 }
 
-// Re-scan and re-render without throwing away what the user was looking at.
-// Every activation re-reads storage and rebuilds every card, so an expanded
-// card (and the scroll position that put it on screen) would otherwise
-// collapse on a plain alt-tab back to this page.
+// Re-scan and re-render without throwing away what the user was reading.
+// Every activation re-reads storage and rebuilds every row, so the selected
+// highlight (and the scroll position that put it on screen) would otherwise
+// be lost on a plain alt-tab back to this page. No `enterNarrow` on the
+// re-render: a refresh must never swap a narrow reader's pane.
 async function _pbpNotesRefreshPreservingState() {
-  const expanded = new Set([...document.querySelectorAll("#notes-list .notes-card")]
-    .filter((card) => card.querySelector('.notes-card-head[aria-expanded="true"]'))
-    .map((card) => card.dataset.notesKey));
+  const selected = _pbpNotesSelectedKey;
   const scroll = window.scrollY;
+  // Keyboard focus lives on a row button, which the rebuild replaces -- and
+  // every delete triggers this refresh 250ms later through its own storage
+  // write, so without this the focus _pbpNotesFocusAfterDelete just placed
+  // falls to <body> a quarter second later (measured on the real page).
+  const active = document.activeElement;
+  const focusedRow = active && active.closest ? active.closest("#notes-list .notes-hit") : null;
+  const focusedKey = focusedRow ? focusedRow.dataset.notesKey : null;
   await renderNotesPanel();
-  for (const card of document.querySelectorAll("#notes-list .notes-card")) {
-    if (!expanded.has(card.dataset.notesKey)) continue;
-    const head = card.querySelector(".notes-card-head");
-    const body = card.querySelector(".notes-card-body");
-    if (!head || !body) continue;
-    body.hidden = false;
-    head.setAttribute("aria-expanded", "true");
+  const hit = _pbpNotesFindHit(selected);
+  if (hit) {
+    _pbpNotesSelectedKey = selected;
+    _pbpNotesMarkCurrentRow();
+    _pbpNotesRenderDetail(hit);
+  } else {
+    _pbpNotesRenderDetail(null);
   }
+  const refocus = focusedKey && _pbpNotesRowEl(focusedKey);
+  const btn = refocus && refocus.querySelector(".notes-hit-btn");
+  if (btn) { try { btn.focus({ preventScroll: true }); } catch (_) { btn.focus(); } }
   if (scroll) window.scrollTo(0, scroll);
 }
 

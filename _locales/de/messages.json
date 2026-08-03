@@ -3529,6 +3529,7 @@
   "libraryOpen": { "message": "Notizen & Vokabeln öffnen" },
   "libraryDetailTitle": { "message": "Wortdetails" },
   "libraryDetailEmpty": { "message": "Wähle links ein Wort aus, um Details zu sehen." },
+  "libraryNotesDetailEmpty": { "message": "Wähle links eine Markierung aus, um sie zu lesen." },
   "libraryRelookup": { "message": "Erneut nachschlagen" },
   "libraryBack": { "message": "Zurück zur Liste" },
   "libraryStatsWords": { "message": "$COUNT$ Wörter", "placeholders": { "count": { "content": "$1" } } },

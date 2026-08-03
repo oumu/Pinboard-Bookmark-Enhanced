@@ -3529,6 +3529,7 @@
   "libraryOpen": { "message": "開啟筆記與生詞本" },
   "libraryDetailTitle": { "message": "詞條詳情" },
   "libraryDetailEmpty": { "message": "在左側選擇一個詞以查看詳情。" },
+  "libraryNotesDetailEmpty": { "message": "在左側選擇一則標記以閱讀。" },
   "libraryRelookup": { "message": "重新查詞典" },
   "libraryBack": { "message": "返回列表" },
   "libraryStatsWords": { "message": "$COUNT$ 個詞", "placeholders": { "count": { "content": "$1" } } },

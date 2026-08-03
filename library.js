@@ -24,7 +24,10 @@ function _pbpLibApplyView(view, pushHash) {
   // switches route through here -- the visibilitychange re-fire dispatches
   // pbp-lib-view directly -- so alt-tabbing back does not close an open
   // detail out from under a narrow reader.
+  // (The notes view runs the same contract on its own body class -- the two
+  // views never share one flag, so neither can strand the other's pane.)
   if (v === "vocab") document.body.classList.remove("lib-narrow-detail");
+  if (v === "notes") document.body.classList.remove("lib-narrow-notes");
   try { localStorage.setItem(PBP_LIB_VIEW_KEY, v); } catch (_) {}
   if (pushHash) history.replaceState(null, "", "#" + v);
   document.dispatchEvent(new CustomEvent("pbp-lib-view", { detail: { view: v } }));

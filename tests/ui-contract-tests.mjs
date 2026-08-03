@@ -325,10 +325,11 @@ check(!read("anki-connect.js").includes("PBP_ANKI_ENDPOINT"),
     /detail\.replaceChildren\(frag\);[\s\S]{0,400}if \(enterNarrow\) _pbpVocabFocusNarrowBack\(detail\)/.test(libraryVocabJs) &&
     /function _pbpVocabFocusNarrowBack[\s\S]{0,400}focus\(\{ preventScroll: true \}\)/.test(libraryVocabJs),
     "library: narrow mode is entered by refresh renders, left by a visibility re-fire, or strands focus on <body>");
-  // Notes rebuild everything on every activation; the expanded cards and the
-  // scroll position that put them on screen are the user's place in the page.
-  check(libraryNotesJs.includes("card.dataset.notesKey = row.key") &&
-    /_pbpNotesRefreshPreservingState[\s\S]{0,900}aria-expanded="true"[\s\S]{0,600}window\.scrollTo/.test(libraryNotesJs) &&
+  // Notes rebuild everything on every activation; the SELECTED highlight and
+  // the scroll position that put it on screen are the user's place in the
+  // page (master-detail rewrite: this was card expansion before).
+  check(libraryNotesJs.includes("rowEl.dataset.notesKey = hit.key") &&
+    /_pbpNotesRefreshPreservingState[\s\S]{0,900}_pbpNotesMarkCurrentRow\(\)[\s\S]{0,600}window\.scrollTo/.test(libraryNotesJs) &&
     /pbp-lib-view[\s\S]{0,120}_pbpNotesRefreshPreservingState\(\)/.test(libraryNotesJs) &&
     // Debounced: a single highlight drag rewrites the whole record per
     // stroke, and each refresh is a full scan plus a full rebuild.
@@ -336,8 +337,15 @@ check(!read("anki-connect.js").includes("PBP_ANKI_ENDPOINT"),
     // The confirm popover restores focus to the delete button the rebuild
     // removes, so the deleted card's neighbour has to claim it.
     libraryNotesJs.includes("_pbpNotesFocusAfterDelete(position)") &&
-    /function _pbpNotesFocusAfterDelete[\s\S]{0,500}\$id\("notes-filter"\)/.test(libraryNotesJs),
-    "library-notes.js: a re-render loses card expansion/scroll/focus, or reader writes are not picked up while visible");
+    /function _pbpNotesFocusAfterDelete[\s\S]{0,500}\$id\("notes-filter"\)/.test(libraryNotesJs) &&
+    // Narrow mode, same three-part contract the vocabulary view above is held
+    // to -- on its OWN body class, and with the focus handoff at the render
+    // root every activation passes through.
+    libraryNotesJs.includes('if (enterNarrow) document.body.classList.add("lib-narrow-notes")') &&
+    /detail\.replaceChildren\(frag\);[\s\S]{0,200}if \(enterNarrow\) _pbpNotesFocusNarrowBack\(detail\)/.test(libraryNotesJs) &&
+    /function _pbpNotesFocusNarrowBack[\s\S]{0,400}focus\(\{ preventScroll: true \}\)/.test(libraryNotesJs) &&
+    /function _pbpLibApplyView[\s\S]{0,1100}classList\.remove\("lib-narrow-notes"\)/.test(libraryJs),
+    "library-notes.js: a re-render loses the selected highlight/scroll/focus, narrow mode strands focus, or reader writes are not picked up while visible");
   // One tab per extension page, not one per click.
   check(sharedJs.includes("async function pbpOpenExtensionTab(page, hash)") &&
     /pbpOpenOptionsTab[\s\S]{0,200}pbpOpenExtensionTab\("options\.html"/.test(sharedJs) &&

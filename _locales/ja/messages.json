@@ -3529,6 +3529,7 @@
   "libraryOpen": { "message": "メモと単語帳を開く" },
   "libraryDetailTitle": { "message": "単語の詳細" },
   "libraryDetailEmpty": { "message": "左側で単語を選択すると、詳細が表示されます。" },
+  "libraryNotesDetailEmpty": { "message": "左側でハイライトを選択すると、全文が表示されます。" },
   "libraryRelookup": { "message": "辞書で調べ直す" },
   "libraryBack": { "message": "一覧に戻る" },
   "libraryStatsWords": { "message": "$COUNT$ 語", "placeholders": { "count": { "content": "$1" } } },

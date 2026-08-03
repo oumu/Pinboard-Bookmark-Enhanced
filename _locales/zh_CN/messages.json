@@ -3523,6 +3523,7 @@
   "libraryOpen": { "message": "打开笔记与生词本" },
   "libraryDetailTitle": { "message": "词条详情" },
   "libraryDetailEmpty": { "message": "在左侧选择一个词查看详情。" },
+  "libraryNotesDetailEmpty": { "message": "在左侧选择一条高亮阅读。" },
   "libraryRelookup": { "message": "重新查词典" },
   "libraryBack": { "message": "返回列表" },
   "libraryStatsWords": { "message": "$COUNT$ 个词", "placeholders": { "count": { "content": "$1" } } },

@@ -1,0 +1,287 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>library-notes Tests</title>
+<link rel="stylesheet" href="../library.css">
+<style>
+body{font-family:monospace;padding:16px}.case{padding:5px;border-bottom:1px solid #ddd}.pass{color:#176}.fail{color:#b00}
+/* Stands in for the <=860px media query's back-button rule; scoped to the one
+   test that needs it (the runner cannot resize the viewport, and focus() on a
+   display:none element is a no-op). */
+body.test-narrow-back .notes-detail-back{display:inline-flex}
+</style></head>
+<body>
+<!-- notes-workbench two-pane skeleton, copied from library.html (minus the
+     data-i18n* attributes a script-driven fixture never reads and minus the
+     page chrome around it -- header/tabs/vocab view). Offscreen, not
+     display:none, so getComputedStyle-based checks still measure real layout
+     (same convention tests/library-vocab-tests.html uses). -->
+<div id="view-notes" style="position:fixed;left:-9999px;top:0;width:960px">
+  <div class="notes-workbench">
+    <div class="notes-list-pane">
+      <div class="notes-toolbar">
+        <input type="search" id="notes-filter" aria-label="Filter titles and notes" />
+        <span id="notes-count" class="notes-count" aria-live="polite"></span>
+        <div id="notes-color-filters" class="notes-color-filters" role="group" aria-label="Filter highlights by color"></div>
+      </div>
+      <div id="notes-list" role="list"></div>
+    </div>
+    <aside class="notes-detail-pane" id="notes-detail-pane" aria-label="Notes">
+      <div class="notes-detail-empty" id="notes-detail-empty">Select a highlight on the left to read it.</div>
+      <div class="notes-detail" id="notes-detail" hidden></div>
+    </aside>
+  </div>
+</div>
+<div id="results"></div>
+<script>
+function t(key, ...values) { return key + (values.length ? ":" + values.join(",") : ""); }
+</script>
+<script>
+// chrome.storage.local mock. get(null) is the only read library-notes.js does,
+// and remove() is its only write; both mirror the real promise API.
+const store = {
+  "pbp_hl_alpha": { v: 1, url: "https://alpha.example/post", title: "Alpha article", items: [
+    { id: "a1", n: 1, quote: "first alpha highlight", color: 1, note: "", ts: 500 },
+    { id: "a2", n: 2, quote: "second alpha highlight about beta", color: 3, note: "note on a2", ts: 400 },
+    { id: "a3", n: 3, quote: "third alpha <script>alert(1)<\/script> highlight", color: 2, note: "", ts: 300 },
+  ] },
+  "pbp_hl_beta": { v: 1, url: "https://beta.example/x", title: "Beta article", items: [
+    { id: "b1", n: 1, quote: "beta only highlight", color: 5, note: "beta note", ts: 600 },
+  ] },
+  // No url/title: the "unknown page" record shape older highlights still have.
+  "pbp_hl_orphan": { v: 1, items: [
+    { id: "c1", n: 1, quote: "orphan highlight", color: 4, note: "", ts: 200 },
+  ] },
+  // Hostile href: must never reach an <a href>.
+  "pbp_hl_evil": { v: 1, url: "javascript:alert(1)", title: "Evil page", items: [
+    { id: "e1", n: 1, quote: "evil highlight", color: 1, note: "", ts: 100 },
+  ] },
+  "pbp_hl_last_color": 3, // reserved key: never a row
+};
+window.chrome = {
+  storage: {
+    local: {
+      get: async (keys) => (keys === null ? { ...store } : {}),
+      remove: async (key) => { delete store[key]; },
+    },
+    onChanged: { addListener: () => {} },
+  },
+};
+</script>
+<script src="../shared.js"></script>
+<script src="../vocab-store.js"></script>
+<script src="../library-notes.js"></script>
+<script>
+const results = $id("results");
+let pass = 0, fail = 0;
+function check(name, condition, detail) {
+  const row = document.createElement("div");
+  const ok = !!condition;
+  ok ? pass++ : fail++;
+  row.className = "case " + (ok ? "pass" : "fail");
+  row.textContent = (ok ? "PASS " : "FAIL ") + name + (ok ? "" : "\n  " + (detail || ""));
+  results.appendChild(row);
+}
+const rowKeys = () => [...document.querySelectorAll("#notes-list .notes-hit")].map((el) => el.dataset.notesKey).join(",");
+const rowEl = (key) => [...document.querySelectorAll("#notes-list .notes-hit")].find((el) => el.dataset.notesKey === key);
+const detail = () => $id("notes-detail");
+const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+(async () => {
+  await renderNotesPanel();
+
+  // ---- scan -> one row per highlight, newest first ----
+  check("every stored highlight gets its own row, newest first",
+    rowKeys() === "pbp_hl_beta#b1,pbp_hl_alpha#a1,pbp_hl_alpha#a2,pbp_hl_alpha#a3,pbp_hl_orphan#c1,pbp_hl_evil#e1",
+    rowKeys());
+  check("the reserved pbp_hl_last_color key never becomes a row",
+    !rowKeys().includes("last_color"), rowKeys());
+  check("the count line counts highlights, not pages", $id("notes-count").textContent === "6 / 6",
+    $id("notes-count").textContent);
+  check("a row shows the highlight text, its note and the source host",
+    rowEl("pbp_hl_alpha#a2").textContent.includes("second alpha highlight about beta") &&
+    rowEl("pbp_hl_alpha#a2").textContent.includes("note on a2") &&
+    rowEl("pbp_hl_alpha#a2").textContent.includes("alpha.example"),
+    rowEl("pbp_hl_alpha#a2").textContent);
+  check("a url-less record falls back to the unknown-page label",
+    rowEl("pbp_hl_orphan#c1").textContent.includes("notesUnknownPage"),
+    rowEl("pbp_hl_orphan#c1").textContent);
+  check("the row's colour bar carries the highlight's colour class",
+    rowEl("pbp_hl_alpha#a2").querySelector(".notes-hit-bar.notes-c3") &&
+    rowEl("pbp_hl_beta#b1").querySelector(".notes-hit-bar.notes-c5"));
+  check("nothing is selected before the first click",
+    $id("notes-detail-empty").hidden === false && detail().hidden === true &&
+    !document.querySelector("#notes-list .notes-hit[aria-current]"));
+
+  // ---- row click -> detail pane ----
+  rowEl("pbp_hl_alpha#a2").querySelector(".notes-hit-btn").click();
+  check("clicking a row marks exactly one row current",
+    document.querySelectorAll("#notes-list .notes-hit[aria-current]").length === 1 &&
+    rowEl("pbp_hl_alpha#a2").hasAttribute("aria-current"));
+  check("the detail pane replaces the empty state",
+    $id("notes-detail-empty").hidden === true && detail().hidden === false);
+  const source = detail().querySelector("a.notes-detail-source");
+  check("the detail names the source page and links to it",
+    source && source.getAttribute("href") === "https://alpha.example/post" &&
+    source.textContent === "Alpha article" && source.target === "_blank" &&
+    source.rel.includes("noopener"),
+    source && source.outerHTML);
+  check("the detail quotes the full highlight",
+    detail().querySelector(".notes-detail-quote").textContent === "second alpha highlight about beta",
+    detail().querySelector(".notes-detail-quote").textContent);
+  check("the detail shows the note in full",
+    detail().querySelector(".notes-detail-note").textContent === "note on a2");
+  check("the detail offers the delete action", !!detail().querySelector(".notes-detail-delete"));
+  check("the detail dates the highlight", !!detail().querySelector(".notes-detail-head .notes-meta-chip"));
+
+  // ---- same-page siblings ----
+  const sibs = () => [...detail().querySelectorAll(".notes-sib")];
+  check("the same-page section lists the page's other highlights only",
+    sibs().length === 2 &&
+    sibs().every((b) => b.dataset.notesKey !== "pbp_hl_alpha#a2" && b.dataset.notesKey.startsWith("pbp_hl_alpha#")),
+    sibs().map((b) => b.dataset.notesKey).join(","));
+  sibs().find((b) => b.dataset.notesKey === "pbp_hl_alpha#a1").click();
+  check("clicking a sibling switches the selection and the detail",
+    _pbpNotesSelectedKey === "pbp_hl_alpha#a1" &&
+    rowEl("pbp_hl_alpha#a1").hasAttribute("aria-current") &&
+    document.querySelectorAll("#notes-list .notes-hit[aria-current]").length === 1 &&
+    detail().querySelector(".notes-detail-quote").textContent === "first alpha highlight");
+  check("a single-highlight page shows no same-page section", (() => {
+    rowEl("pbp_hl_beta#b1").querySelector(".notes-hit-btn").click();
+    return sibs().length === 0;
+  })());
+
+  // ---- url-less and hostile-url records ----
+  rowEl("pbp_hl_orphan#c1").querySelector(".notes-hit-btn").click();
+  check("a url-less record renders no link and explains itself",
+    !detail().querySelector("a.notes-detail-source") &&
+    detail().querySelector("span.notes-detail-source") &&
+    detail().textContent.includes("notesUnknownHint"));
+  rowEl("pbp_hl_evil#e1").querySelector(".notes-hit-btn").click();
+  check("a javascript: source url never reaches an href",
+    !detail().querySelector("a[href^='javascript']") && !detail().querySelector("a.notes-detail-source"),
+    detail().innerHTML.slice(0, 200));
+
+  // ---- search marking (textContent-only construction) ----
+  $id("notes-filter").value = "beta";
+  $id("notes-filter").dispatchEvent(new Event("input"));
+  check("search narrows to matching highlights (own text or its page title)",
+    rowKeys() === "pbp_hl_beta#b1,pbp_hl_alpha#a2", rowKeys());
+  check("the count line reports visible over total", $id("notes-count").textContent === "2 / 6",
+    $id("notes-count").textContent);
+  check("matches are marked in the list",
+    rowEl("pbp_hl_alpha#a2").querySelector("mark") &&
+    rowEl("pbp_hl_alpha#a2").querySelector("mark").textContent === "beta");
+  rowEl("pbp_hl_alpha#a2").querySelector(".notes-hit-btn").click();
+  check("matches are marked in the detail too",
+    !!detail().querySelector(".notes-detail-quote mark"));
+  $id("notes-filter").value = "script";
+  $id("notes-filter").dispatchEvent(new Event("input"));
+  const evilRow = rowEl("pbp_hl_alpha#a3");
+  evilRow.querySelector(".notes-hit-btn").click();
+  check("highlight text that looks like markup stays text in the list",
+    evilRow.querySelectorAll("script, img, iframe, a").length === 0 &&
+    evilRow.textContent.includes("<script>alert(1)<\/script>"),
+    evilRow.innerHTML.slice(0, 200));
+  check("highlight text that looks like markup stays text in the detail",
+    !detail().querySelector("script") &&
+    detail().querySelector(".notes-detail-quote").textContent === "third alpha <script>alert(1)<\/script> highlight" &&
+    [...detail().querySelector(".notes-detail-quote").children].every((el) => el.tagName === "MARK"),
+    detail().querySelector(".notes-detail-quote").innerHTML);
+  $id("notes-filter").value = "";
+  $id("notes-filter").dispatchEvent(new Event("input"));
+
+  // ---- colour filter works per highlight, not per page ----
+  const dots = [...$id("notes-color-filters").querySelectorAll(".notes-filter-dot")];
+  check("the colour filter renders one toggle per highlight colour", dots.length === 5);
+  dots[0].click(); // drop colour 1
+  check("dropping a colour hides only that colour's highlights, not its whole page",
+    !rowKeys().includes("pbp_hl_alpha#a1") && rowKeys().includes("pbp_hl_alpha#a2") &&
+    !rowKeys().includes("pbp_hl_evil#e1"), rowKeys());
+  dots[0].click(); // restore
+
+  // ---- selection survives a refresh ----
+  rowEl("pbp_hl_alpha#a2").querySelector(".notes-hit-btn").click();
+  store["pbp_hl_gamma"] = { v: 1, url: "https://gamma.example/", title: "Gamma", items: [
+    { id: "g1", n: 1, quote: "gamma highlight", color: 2, note: "", ts: 900 } ] };
+  await _pbpNotesRefreshPreservingState();
+  check("a background write is picked up by the refresh",
+    rowKeys().startsWith("pbp_hl_gamma#g1"), rowKeys());
+  // A delete's own storage write fires the debounced refresh 250ms later, so
+  // the rebuild has to hand focus back to the row it was on.
+  rowEl("pbp_hl_alpha#a3").querySelector(".notes-hit-btn").focus();
+  await _pbpNotesRefreshPreservingState();
+  check("a refresh keeps keyboard focus on the row it was on",
+    document.activeElement === rowEl("pbp_hl_alpha#a3").querySelector(".notes-hit-btn"),
+    document.activeElement && (document.activeElement.className || document.activeElement.tagName));
+  check("the refresh restores the selected row and its detail",
+    _pbpNotesSelectedKey === "pbp_hl_alpha#a2" &&
+    rowEl("pbp_hl_alpha#a2").hasAttribute("aria-current") &&
+    detail().hidden === false &&
+    detail().querySelector(".notes-detail-quote").textContent === "second alpha highlight about beta");
+  delete store["pbp_hl_gamma"];
+  await _pbpNotesRefreshPreservingState();
+
+  // ---- narrow mode ----
+  const realNarrow = _pbpNotesNarrowMode;
+  try {
+    document.body.classList.add("test-narrow-back");
+    _pbpNotesNarrowMode = () => true;
+    rowEl("pbp_hl_alpha#a1").querySelector(".notes-hit-btn").click();
+    check("selecting a row in narrow mode swaps the pane and hands over focus",
+      document.body.classList.contains("lib-narrow-notes") &&
+      document.activeElement === detail().querySelector(".notes-detail-back"),
+      document.activeElement && (document.activeElement.className || document.activeElement.tagName));
+    detail().querySelector(".notes-detail-back").click();
+    check("the back button returns to the list and clears the selection",
+      !document.body.classList.contains("lib-narrow-notes") &&
+      $id("notes-detail-empty").hidden === false && detail().hidden === true &&
+      !document.querySelector("#notes-list .notes-hit[aria-current]") &&
+      _pbpNotesSelectedKey === null);
+  } finally {
+    _pbpNotesNarrowMode = realNarrow;
+    document.body.classList.remove("test-narrow-back");
+  }
+  // The body class is set on every activation (same contract as the
+  // vocabulary view's lib-narrow-detail: it is inert above 860px, so a later
+  // resize into narrow mode still shows the detail the user opened). What
+  // must hold at this harness's 1280px width is that BOTH panes stay on
+  // screen -- the media query is what makes the class mean anything.
+  rowEl("pbp_hl_alpha#a1").querySelector(".notes-hit-btn").click();
+  check("a two-pane selection leaves the list on screen",
+    getComputedStyle(document.querySelector(".notes-list-pane")).display !== "none" &&
+    getComputedStyle($id("notes-detail-pane")).display !== "none");
+
+  // ---- delete (page scope, confirm popover) ----
+  rowEl("pbp_hl_alpha#a2").querySelector(".notes-hit-btn").click();
+  const before = rowKeys().split(",");
+  const deletePosition = before.indexOf("pbp_hl_alpha#a2");
+  detail().querySelector(".notes-detail-delete").click();
+  const popover = document.querySelector(".confirm-popover");
+  check("delete asks first, naming the page it removes",
+    popover && popover.querySelector(".confirm-msg").textContent.includes("Alpha article"),
+    popover && popover.textContent);
+  popover.querySelector(".confirm-yes").click();
+  await tick();
+  check("confirming removes every row of that page",
+    !rowKeys().includes("pbp_hl_alpha#"), rowKeys());
+  check("the detail falls back to the empty state after its highlight is gone",
+    detail().hidden === true && $id("notes-detail-empty").hidden === false &&
+    _pbpNotesSelectedKey === null);
+  check("focus lands on the neighbouring row, not <body>",
+    document.activeElement === [...document.querySelectorAll("#notes-list .notes-hit-btn")][
+      Math.min(deletePosition, document.querySelectorAll("#notes-list .notes-hit").length - 1)],
+    document.activeElement && (document.activeElement.className || document.activeElement.tagName));
+
+  // ---- empty states ----
+  $id("notes-filter").value = "zzz-no-match";
+  $id("notes-filter").dispatchEvent(new Event("input"));
+  check("a filter with no hits says so", $id("notes-list").textContent.includes("notesFilterEmpty"),
+    $id("notes-list").textContent);
+  $id("notes-filter").value = "";
+  for (const key of Object.keys(store)) delete store[key];
+  await renderNotesPanel();
+  check("an empty store shows the onboarding empty state",
+    $id("notes-list").textContent.includes("notesEmpty") && !rowKeys(), $id("notes-list").textContent);
+
+  document.title = fail ? "FAIL library-notes Tests" : "PASS library-notes Tests";
+})();
+</script></body></html>

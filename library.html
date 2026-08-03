@@ -131,12 +131,24 @@
       </div>
     </section>
     <section id="view-notes" class="lib-view" role="tabpanel" aria-labelledby="lib-tab-notes" hidden>
-      <div class="notes-toolbar">
-        <input type="search" id="notes-filter" placeholder="Filter titles and notes" data-i18n-placeholder="notesFilterPlaceholder" data-i18n-aria="notesFilterPlaceholder" aria-label="Filter titles and notes" />
-        <span id="notes-count" class="notes-count" aria-live="polite"></span>
-        <div id="notes-color-filters" class="notes-color-filters" role="group" data-i18n-aria="hlFilterGroupAria" aria-label="Filter highlights by color"></div>
+      <!-- Master-detail, same two-pane grammar as the vocabulary view above:
+           one row per highlight on the left, the selected highlight read in
+           full on the right. Narrow mode is driven by its OWN body class
+           (lib-narrow-notes), so the two views never fight over one flag. -->
+      <div class="notes-workbench">
+        <div class="notes-list-pane">
+          <div class="notes-toolbar">
+            <input type="search" id="notes-filter" placeholder="Filter titles and notes" data-i18n-placeholder="notesFilterPlaceholder" data-i18n-aria="notesFilterPlaceholder" aria-label="Filter titles and notes" />
+            <span id="notes-count" class="notes-count" aria-live="polite"></span>
+            <div id="notes-color-filters" class="notes-color-filters" role="group" data-i18n-aria="hlFilterGroupAria" aria-label="Filter highlights by color"></div>
+          </div>
+          <div id="notes-list" role="list"></div>
+        </div>
+        <aside class="notes-detail-pane" id="notes-detail-pane" data-i18n-aria="tabNotes" aria-label="Notes">
+          <div class="notes-detail-empty" id="notes-detail-empty" data-i18n="libraryNotesDetailEmpty">Select a highlight on the left to read it.</div>
+          <div class="notes-detail" id="notes-detail" hidden></div>
+        </aside>
       </div>
-      <div id="notes-list"></div>
     </section>
   </main>
 
