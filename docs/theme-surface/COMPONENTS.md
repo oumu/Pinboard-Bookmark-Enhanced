@@ -46,8 +46,10 @@
 
 **popup 豁免的确切边界**（本战役不动，随「popup 按钮族归一」后续战役再议）：
 
-- popup **没有 `.btn` 族**：`popup.html` 零处 `class="btn"`，按钮是六套一次性配方
-  （`qbtn` / `preset-btn` / `fc-btn` / `submit-btn` / `del-btn` / `md-strip-btn`）。按钮**几何**（高度阶梯、
+- popup **没有 `.btn` 族**：`popup.html` 零处 `class="btn"`，按钮是一次性配方——六套主力
+  （`qbtn`:650 / `preset-btn`:308 / `fc-btn`:248 / `#submit-btn`:562 / `del-btn`:579 / `md-strip-btn`:2031），
+  另有 `fc-btn-secondary`:259、`action-link`:378、`clear-all-link`:495、`offline-clear`:848、
+  `header-ic`（`.header-bar .header-ic .btn-ic`:174）等链接态与图标态变体。按钮**几何**（高度阶梯、
   padding、字号）与**手感**（hover 抬起 `translateY(-1px)`、按下回位）本战役一律不动。
 - popup 的 `.confirm-popover` 是 **warn-on-warn**（warn 底 + warn 前景），不是 danger 实底。§4 的危险两档
   **不适用于 popup**；统一它需要新造 `danger × warn-bg` 审计对，无门看管，本战役不做。
@@ -119,13 +121,32 @@ YaHei/PingFang 时行盒比 Latin 高一截，同一颗按钮在 zh-CN 和 en �
 |---|---|---|
 | `background` | `--{ns}-btn-bg` | 既有 |
 | `background`（hover） | `--{ns}-btn-hover` | 既有 |
-| `color`（默认与 hover 共用一个值） | **`--{ns}-btn-fg`** | `fgToAAMulti(fg, [btn-bg, btn-hover])`——对**两个**背景同时 ≥4.5:1。只声明一次，hover 规则不重复声明 |
+| `color`（默认与 hover 共用一个值） | **`--{ns}-btn-fg`** | `fgToAAMulti(fg, [btn-bg, btn-hover])`——对**两个**背景同时 ≥4.5:1。只声明一次，hover 规则不重复声明。`fgToAAMulti` 现是 `library-chrome.mjs:11-23` 的本地函数，`_ui-derive.mjs` 只有 `fgToAA`/`bgToAA`/`pairToAA`；Task 5 把它上移并 export 后三表面共用 |
 | `border-color` | `--{ns}-border` | 既有；对 `btn-bg` ≥3:1（非文本对比，WCAG 1.4.11） |
 | `outline`（focus） | `--{ns}-accent` | 对 `bg` 与 `panel` ≥3:1 |
 
-**缺陷 1/4 死在这一行**：`.btn` 基类从不声明 `color`，文字与 `currentColor` 图标掉到 UA 的
-`ButtonText` 系统色（跟随浏览器明暗偏好，不跟随 `data-theme`），dracula 下实测 1.10:1。
-`--{ns}-btn-fg` 的存在意义就是让这个属性有一个必然被主题化的值。
+**缺陷 1/4 死在这一行**：两表面的 `.btn` 基类都不声明 `color`，文字与 `currentColor` 图标掉到 UA 的
+`ButtonText` 系统色（跟随浏览器明暗偏好，不跟随 `data-theme`）。两表面的暴露面**不同**，别写成同一句话：
+
+- **library**：全文没有任何 `html[data-theme] .btn` 覆盖，**13 套预设 + 默认态全中招**。上面那份
+  1.10:1（dracula）/ 1.73:1（nord-night）/ 1.08:1（terminal）的实测值来自 library。
+- **options**：`options.css:1244` 的 `html[data-theme] .btn { … color: var(--opt-fg) }` 在 themed 态兜住了，
+  ButtonText 回退**只咬无预设的默认态**（`html { color-scheme: light }` 又让它落在近黑上，所以浅色默认
+  表面看不出问题）。这也正是它的裸 hex 与默认表面从没进过对比度门的原因。
+
+`--{ns}-btn-fg` 的存在意义就是让这个属性在**所有**表面（含默认态）都有一个必然被主题化、且经 AA 派生的值。
+
+**`html[data-theme]` 覆盖层必须在同一 commit 里删除**（与 §7.2 对 `color-scheme` 的指令同款）：
+`options.css` 的下列手写规则位于生成区插入点（≈:341）**之后**、特异性 (0,2,1) 高于配方的 (0,1,0)，
+composer 一旦开始发射 `color: var(--opt-btn-fg)`，它们会逐条覆盖回去，让新 token 在 13 套预设下**全成死代码**：
+
+| 行 | 规则 | 被谁取代 |
+|---|---|---|
+| `options.css:1244` | `html[data-theme] .btn { background; border-color; color: var(--opt-fg) }` | 配方基类的 `btn-bg` / `border` / **`btn-fg`** |
+| `options.css:1245` | `html[data-theme] .btn:hover { background: var(--opt-btn-hover) }` | 配方的 `:hover` 规则 |
+| `options.css:1278` | `html[data-theme] .btn:focus-visible { outline-color: var(--opt-accent) }` | 配方 focus 规则里的 `outline: 2px solid var(--opt-accent)` |
+
+删除时机是**发射的同一个 commit**，不是「之后再清」——中间状态下新 token 无效，渲染 oracle 会绿着骗人。
 
 ### 1.4 几何约束
 
@@ -300,6 +321,9 @@ popup 维持现状并记录在案。
   color: var(--{ns}-on-danger);
   border-color: var(--{ns}-danger);
 }
+/* hover 保持 background 不变，只加 inset 环——这正是 13 套预设现在的做法
+   （options.css:1336 / library.css:214）。默认表面现状是把底色压深（#a00 / --lib-danger 的旧 fallback），
+   收敛到预设的做法后所有表面一致；代价见附录 C14。 */
 .confirm-popover .confirm-yes:hover { box-shadow: inset 0 0 0 1px var(--{ns}-on-danger); }
 ```
 
@@ -379,7 +403,7 @@ popup 维持现状并记录在案。
 | 属性 | token | 派生要求 |
 |---|---|---|
 | `background` | **`--{ns}-chip-bg`** | 新增派生。现状 `tag-bg`/`tag-fg` 直取 palette **无 AA 校正** |
-| `color` | **`--{ns}-chip-fg`** | `fgToAA(chip-fg, chip-bg)` ≥4.5:1 |
+| `color` | **`--{ns}-chip-fg`** | `fgToAA(chip-fg, chip-bg)` ≥4.5:1。chip 若可按压（`[aria-pressed]`，hover 底换成 `btn-hover`），改用 `fgToAAMulti(chip-fg, [chip-bg, btn-hover])` |
 
 popup 现有的 `--pp-tag-bg` / `--pp-tag-fg` 是同一角色的旧名。Task 5 发射新名、消费点迁移完成后
 **退役旧名，不留别名**——两套真源迟早会漂移。
@@ -390,7 +414,7 @@ popup 现有的 `--pp-tag-bg` / `--pp-tag-fg` 是同一角色的旧名。Task 5 
 |---|---|---|
 | `padGteRadiusH` | pill chip：`padding-inline ≥ min(border-radius, height/2)` | `[render]` + `[static]` |
 | `padVMin` | 所有 chip/badge：`padding-block ≥ 2px` | `[render]` + `[static]` |
-| `chipTextContrast` | `chip-fg` vs `chip-bg` ≥4.5:1 | `[render]` |
+| `chipTextContrast` | `chip-fg` vs `chip-bg` ≥4.5:1；可按压 chip（`[aria-pressed]`）hover 底是 `btn-hover`，故其 `chip-fg` 须对 **`[chip-bg, btn-hover]` 双背景**同时 ≥4.5:1（同 §1.3 的 `fgToAAMulti` 模式） | `[render]` |
 
 ### 5.5 使用守则
 
@@ -427,7 +451,8 @@ popup 现有的 `--pp-tag-bg` / `--pp-tag-fg` 是同一角色的旧名。Task 5 
   box-shadow: none;
   transition: border-color var(--motion-state) ease, background-color var(--motion-state) ease, box-shadow var(--motion-state) ease;
 }
-/* hover 边框：不开新 token，在既有两个 token 之间取混色（现状是字面 #9aa0a6，hex ratchet 要清掉） */
+/* hover 边框：不开新 token，在既有两个 token 之间取混色（现状是字面 #9aa0a6，hex ratchet 要清掉）。
+   同一 commit 必须删掉 options.css:1111-1115 的 html[data-theme] 版本，否则 themed 态永远走不到这里。 */
 .fg input:hover:not(:focus), .fg select:hover:not(:focus), .fg textarea:hover:not(:focus) {
   border-color: color-mix(in srgb, var(--{ns}-input-border) 55%, var(--{ns}-fg));
 }
@@ -459,8 +484,18 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--{ns}-accent); 
 | `accent-color` | `--{ns}-accent` | 既有 |
 
 **字段与按钮同病**：`options.css:207` 与 `library.css:136` 的字段基类都声明了 `background-color` 却
-**没有 `color`**——options 靠 `html[data-theme] .fg input…`（:1107）补，library 的 `.fg` 是死代码所以还没
-爆。成对消费律（§7）对字段和按钮一视同仁。
+**没有 `color`**——options 靠 `html[data-theme] .fg input…`（:1106-1110）补，library 的 `.fg` 是死代码所以
+还没爆。成对消费律（§7）对字段和按钮一视同仁。
+
+**同一 commit 删除的 `html[data-theme]` 字段覆盖**（同 §1.3 的理由与时机）：
+
+| 行 | 规则 | 被谁取代 |
+|---|---|---|
+| `options.css:1106-1110` | `html[data-theme] .fg input/select/textarea { background-color; border-color; color }` | 配方基类的 `input-bg` / `input-border` / `fg` |
+| `options.css:1111-1115` | `html[data-theme] .fg input:hover:not(:focus) { border-color: var(--opt-fg-muted) }` | 配方的 hover `color-mix` |
+
+`html[data-theme] .fg …:focus` / `:focus-visible`（:1116 起）消费的 `--opt-focus-bd` / `--opt-focus-ring`
+与配方同源同值，属可删可留的重复；删之前逐条比对值，不确定就留着（它不会让任何新 token 变成死代码）。
 
 ### 6.3 几何约束
 
@@ -476,9 +511,11 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--{ns}-accent); 
   `padding: 4px 8px` / 12px，约 5px 高度差，读起来像两个控件家族硬拼。裁定：**整行统一到 sm 阶**——
   输入框 padding-block 4px→2px、显式 `line-height: 14px`，字号保持 12px（sm 阶允许 11–12px）。
   升到 md 阶会让用户已拍板的密集 sticky 批量条整体长高 7px，不取。
-- `button, input, select, textarea { font-family: inherit }` 是**性能规则不是美学规则**，勿删：
-  表单控件默认不继承 `font-family`，会吃 UA 的 Arial（无中文字形）→ 中文掉到 Chrome 的 Standard 字体，
-  高 DPI Windows 上首屏 1–3s 冻结。`options.css:93` / `library.css:107` 已在案。
+- `font-family: inherit` 是**性能规则不是美学规则**，勿删：表单控件默认不继承 `font-family`，会吃 UA 的
+  Arial（无中文字形）→ 中文掉到 Chrome 的 Standard 字体，高 DPI Windows 上首屏 1–3s 冻结。
+  两表面的覆盖面**不同**：`options.css:93` 是 `button, input, select`（**不含 textarea**，靠
+  `.fg textarea` 自己的等宽栈以更高特异性兜住），`library.css:107` 是
+  `button, input, select, textarea`。新增控件类型时按所在文件的实际清单核对，别照抄另一个文件。
 - 不自绘 checkbox / radio。`accent-color` 一行解决主题跟随，自绘会同时丢掉原生焦点、键盘语义与
   高对比模式支持。
 - 全宽字段（表单栈里独占一行）**不受同行对齐律约束**——它没有行伴。约束只在同一 flex 行内并排时生效。
@@ -518,6 +555,9 @@ html[data-theme="<dark preset>"] { color-scheme: dark; }
 - 默认浅色基线的语义（防浅色页配暗滚动条）必须保留在生成结果里，注释一并移入生成源。
 - popup/options 现有的手写 `color-scheme` 块位于生成区**之后**，源顺序赢。composer 开始发射的
   **同一个 commit** 里必须删掉它们，否则派生形同虚设。
+- 基线选择器 `:root` 与 `html` **特异性不等价**（`:root` 是 (0,1,0)，`html` 是 (0,0,1)）。options 现状写的是
+  `html { color-scheme: light }`（:1082）。因为手写块与发射同 commit 删除，两者不会共存，用哪个都行——
+  但**别**在保留手写块的情况下用 `:root` 发射，那会静默翻转谁赢。
 - **library 是三表面里唯一没有 webkit 自定义滚动条兜底的表面**，`color-scheme` 落地后它的滚动条外观会
   真的变——进渲染抽测。popup 的滚动条被 webkit 规则接管，`popup.css` 注释明令**不得**引入
   `scrollbar-width` / `scrollbar-color`，勿犯。
@@ -541,6 +581,11 @@ html[data-theme="<dark preset>"] { color-scheme: dark; }
 由 hex ratchet 门看守（计数只减不增，基线 popup 76 / options 103 / library 0，清零后升 RED）。
 `color-mix()` 里作为纯运算常量的 `#000` / `#fff` 显式豁免；`rgba()` 只在 `background` / `color` /
 `border-color` 属性上计数（阴影 rgba 是既有约定）。
+
+第三条豁免容易被忘：**guard 只剥每行行首的第一个自定义属性定义**，所以 `:root` 里必须**一行一个
+声明**——一行写两个 `--x: #aaa; --y: #bbb` 会让第二个字面值逃出豁免、被当成泄漏色报出来。
+`library.css:8-12` 的注释在案，它也是「library 基线 = 0」这个数字在 `:root` 有 28 个 hex 的情况下仍然
+可复现的原因。新增 token 定义时照此排版。
 
 ### 7.5 hover 的几何门控
 
@@ -585,9 +630,18 @@ popup 已按此实践（`popup.css:2067` 注释在案），options/library 目�
       而非 background，注释写明是为了绕开 `.btn.danger:hover` 的 background。改 danger 配方后，
       **真开一次失败态**（或临时加类目测）确认标记仍可见，且在指针经过后不被抹掉。
 - [ ] `.notes-hit.is-error .notes-hit-btn`（同文件）用 `--row-bg` 变量通道传背景，同理复核。
-- [ ] 生成区插入点**之后**的同特异性 (0,1,0) 手写规则清单是否重新核过：`.row-del-x`、
-      `.vocab-load-more`、`.vocab-selection-actions .btn`、`.vocab-batch-cluster > .btn`、
-      `.vocab-group-step`。它们靠源顺序赢，谁赢谁输在迁移后必须逐条复述一遍。
+- [ ] 生成区插入点**之后**的同特异性 (0,1,0) 手写规则清单是否重新核过：`.row-del-x`（`library.css:344`）、
+      `.vocab-load-more`（:1059）、`.vocab-selection-actions .btn`（:972）、`.vocab-batch-cluster > .btn`（:1040）、
+      `.vocab-group-step`（:1047）。它们靠源顺序赢，谁赢谁输在迁移后必须逐条复述一遍。
+- [ ] **本规范自己要改的几何，其手写规则同样排在插入点之后、会赢过配方**，逐条确认已删或已改：
+      `library.css:934` `.vocab-stat-chip { padding: 1px 8px }`（赢过配方的 `2px 8px`，C9 失效）、
+      `library.css:1141` `.vocab-group-chip { padding: 0 4px }`（C8 失效）、
+      `library.css:830` `.vocab-batch-bar input[type="text"] { padding: 4px 8px }`（C3 失效）、
+      `popup.css:405` `.tag-item { padding: 1px 8px; line-height: 18px }`（C11 失效）。
+- [ ] **更高特异性的 `html[data-theme]` 覆盖块**是否已在发射的同一 commit 里删除：
+      `options.css:1244/1245/1278`（`.btn` 的 background/border-color/**color**、hover、focus outline-color，
+      §1.3 有表）、`options.css:1106-1115`（`.fg` 字段的三色与 hover 边框，§6.2 有表）。
+      漏删的症状是「新 token 发射了、门也绿、13 套预设下毫无变化」——死代码，不是通过。
 - [ ] 有没有 `!important` 参与这场级联？（popup `.del-btn` 带 `!important`，配方赢不了它——
       这是 popup 豁免的成因之一。）
 
@@ -627,12 +681,15 @@ popup 已按此实践（`popup.css:2067` 注释在案），options/library 目�
 | C6 | `.vocab-stat-chip:active`（lib） | `translateY(1px)` | `scale(0.97)` | 同 C4 | 本战役 |
 | C7 | `.btn-ic`（lib） | 仅 4 处容器限定规则 | 全局基础规则 + 宿主 `gap: 4px` | 详情面板按钮的图标**从基线对齐变为居中对齐**（缺陷 5 核销）；四条窄例外删除 | 本战役 |
 | C8 | `.vocab-group-chip`（lib） | `padding: 0 4px` + `radius-full`，字号继承、高度由行盒自撑（≈13–14px） | `padding: 2px 10px` + `line-height: 14px`，高 18px | 文字不再贴边（缺陷 3 核销）；高 +4~5px。字号仍继承容器，本规范只钉 line-height | 本战役 |
-| C9 | `.vocab-stat-chip`（lib） | `padding: 1px 8px` | `padding: 2px 8px` | +2px（定律 3） | 本战役 |
+| C9 | `.vocab-stat-chip`（lib） | `padding: 1px 8px`，无 `line-height` | `padding: 2px 8px` + `line-height: 14px` | 高 18→20px（定律 3 + 行盒钉死） | 本战役 |
 | C10 | `.tag-gov-kind-badge`（opt） | `padding: 2px 6px` + `radius-full`，高 ≈16px、有效半径 ≈8px | `padding: 2px 10px` + `line-height: 14px` | 水平内边距 +4px（定律 2：6px < 8px 现状违规）、高 +2px | 本战役 |
 | C11 | `.tag-item`（pp） | `padding: 1px 8px` / `line-height: 18px`，有效半径 10px | `padding: 2px 10px` / `line-height: 14px` | 标签 chip 高 −2px、水平 +2px（定律 2、3 现状均违规） | **记账**：popup 本战役以颜色补课为主；由 Task 9 判定是否属「小幅修正」范围，不做则留在本表 |
 | C12 | `.btn.danger`（opt + lib） | `color: var(--{ns}-danger)` | `color: var(--{ns}-danger-quiet-fg)` | 红色前景被推到对 btn-bg / bg / panel 三背景达标，个别主题下红色会略偏 | 本战役 |
 | C13 | 详情面板删除钮（lib） | `.btn.btn-sm.danger`（常亮红字红边） | 追加 `ghost` chrome | 阅读面删除钮**从常亮变安静**，hover 才升色（缺陷 6 核销） | 本战役 |
 | C14 | `.confirm-popover .confirm-yes`（opt + lib） | `color: var(--{ns}-panel)` | `color: var(--{ns}-on-danger)` | 前景从未审计的借用值换成派生值，个别主题下会变 | 本战役 |
+| C14b | `.confirm-popover .confirm-yes:hover`（opt + lib，**无预设明暗态**） | 底色压深（`options.css:1330` `#a00` / `library.css:208` `var(--lib-danger,#a00)`） | 底色不变，只加 `inset 0 0 0 1px var(--{ns}-on-danger)` 环 | 默认表面的确认钮 hover **失去底色加深**，改成与 13 套预设一模一样的 inset 环（预设块 `options.css:1336` / `library.css:214` 现在就是这么做的）。是三表面收敛，不是新行为 | 本战役 |
+| C17 | `html[data-theme] .btn` 三条（`options.css:1244/1245/1278`） | 存在，特异性 (0,2,1) 赢过配方 | 删除 | 无独立视觉变化（配方接管同样的值），但**不删则 `--opt-btn-fg` 在 13 套预设下全是死代码**。与发射同 commit | 本战役 |
+| C18 | `html[data-theme] .fg` 字段两条（`options.css:1106-1110`、`1111-1115`） | 存在，同上 | 删除 | themed 态字段的三色与 hover 边框改由配方供给；hover 边框值从 `--opt-fg-muted` 变成 `color-mix(input-border 55%, fg)`，暗色主题下描边会略淡 | 本战役 |
 | C15 | `color-scheme`（lib） | 全文零声明 | `:root` + 每暗色主题块 | library 的原生滚动条 / `<select>` 弹层在暗色主题下**首次**变暗 | 本战役 |
 | C16 | `--pp-tag-bg` / `--pp-tag-fg` | 直取 palette，无 AA 校正 | 由 `--pp-chip-bg` / `--pp-chip-fg` 取代，旧名退役 | 个别主题下 popup 标签 chip 配色会变 | 本战役 |
 
@@ -641,6 +698,11 @@ popup 已按此实践（`popup.css:2067` 注释在案），options/library 目�
 - 计划 Task 10 写的是新增 `.btn.danger-quiet` 类。本规范改为**重定义 `.btn.danger` 本身为 quiet 档**——
   重定义之后，现存每一个 `.btn.danger` 站点都恰好是 quiet 档（solid 档在 `.confirm-popover .confirm-yes` 上，
   它从来不带 `.btn`），新类没有消费者。省掉一次 JS className 改动与一轮测试同步。
+- **`gap` 放在宿主 `.btn` 上，不放在 `.btn-ic` 上**（brief 字面写的是「btn-ic：`display:inline-flex;
+  align-items:center; gap` 全局基础规则」）。`.btn-ic` 里只有一个 SVG，在它自己身上写 `gap` 不产生任何
+  间距——间距发生在「图标 span ↔ 文字节点」之间，只有宿主按钮是 flex 容器时才能用 `gap` 表达。因此
+  `display:inline-flex + gap:4px` 上移到 `.btn` 基类（options 的 `a.btn` 已验证过这个形状），`.btn-ic`
+  只留 `display`/`align-items` 与 `svg{display:block}`。推理详见 §2.1。
 - `--{ns}-danger-quiet-fg` 的派生背景集从计划的 `[bg, panel]` 扩为 `[bg, panel, btn-bg]`（超集）：
   quiet 档也会出现在工具条的常规 `.btn` 底上（`#vocab-batch-delete`），漏掉 btn-bg 会让那颗按钮逃过审计。
 - 按钮族追加 `ghost` chrome 变体。它不是新组件：`library.css` 里已有两份手写副本
