@@ -244,19 +244,32 @@ function auditComponentPairs(scope, ns, blockLabel, dict, strict) {
 }
 
 // Orphan guard: every *-fg / on-* shaped custom property this surface's
-// @generated:ui-themes region actually emits should be referenced by SOME
-// check in this file (a COMPONENT_PAIR_SPEC role, or one of the existing
-// ad-hoc grab()/label checks above) -- otherwise a new fg/on- token can ship
-// with zero contrast coverage from this door and nothing here would ever
-// notice. Cheap proxy, not a parser: grab()/COMPONENT_PAIR_SPEC/the ad-hoc
-// [fgK,bgK,label] arrays all leave the bare token name as a double-quoted
-// string literal SOMEWHERE in this file's own source -- scanning for that is
-// enough to catch the real failure mode (a token nobody ever typed here),
-// without instrumenting every existing check site individually.
-const OWN_SOURCE = readFileSync(fileURLToPath(import.meta.url), "utf8");
+// @generated:ui-themes region actually emits should be a role this file
+// provably checks -- otherwise a new fg/on- token can ship with zero
+// contrast coverage from this door and nothing here would ever notice.
+//
+// "Provably checks" means membership in COMPONENT_PAIR_ROLES, a Set built
+// straight from COMPONENT_PAIR_SPEC's own fg/bg role columns -- a real data
+// structure this file's OWN pair-checking loop consumes, not prose. An
+// earlier version of this guard instead grepped this file's own source text
+// for the token name as a double-quoted string literal, on the theory that
+// grab()/[fgK,bgK,label] array checks all leave that trace too. Review
+// caught the structural hole in that: the SAME text-scan can't tell a real
+// check from a COMMENT that happens to quote the token name -- and the
+// --pp-info-fg allowlist entry's own rationale comment quoted "info-fg"
+// twice, which meant that entry (and the ALLOWLIST removal RED-test
+// contract it's supposed to gate) was silently dead code, matching the
+// exact silent-degrade failure class Important 1 exists to prevent. Roles
+// NOT in COMPONENT_PAIR_SPEC (warn-fg/banner-fg/ok-fg/offline-fg/on-accent/
+// row-selected-fg -- genuinely audited by the ad-hoc checks above, just not
+// via the pair-spec mechanism) now need an explicit ORPHAN_ALLOWLIST entry
+// too, same as a true gap; that's a deliberate loss of the old proxy's
+// "credit for the ad-hoc checks automatically" convenience in exchange for
+// an allowlist that can never be fooled by a comment.
+const COMPONENT_PAIR_ROLES = new Set(COMPONENT_PAIR_SPEC.flatMap(([fg, bg]) => [fg, bg]));
 const ORPHAN_ALLOWLIST = new Set([
   // --pp-preset-fg: emitted by deriveUiColors (_ui-derive.mjs), consumed by
-  // popup.css:1989 (.theme-preset-btn), 6/14 themes measured <4.5:1. A real,
+  // popup.css:1989 (.preset-btn), 6/14 themes measured <4.5:1. A real,
   // pre-existing gap this orphan guard surfaced -- predates Task 5/7's
   // component-pair work, not fixed here as a drive-by fix (ledger tracks the
   // separate decision to fix vs. formally accept it).
@@ -275,11 +288,28 @@ const ORPHAN_ALLOWLIST = new Set([
   // as the literal string `var(--pp-banner-fg)` for every theme (popup-
   // chrome.mjs's `set("info-fg", "var(--pp-banner-fg)")`), so it is
   // banner-fg by construction, every theme, no exceptions. banner-fg IS
-  // audited (the warn/banner/ok/offline loop in auditCssThemes) -- checking
-  // "info-fg" would just re-run the identical banner-fg×banner-bg comparison
-  // under a different label, not add real coverage. A genuine alias, not a
-  // gap.
+  // audited (the warn/banner/ok/offline loop in auditCssThemes, allowlisted
+  // below on its own terms) -- checking "info-fg" would just re-run the
+  // identical banner-fg×banner-bg comparison under a different label, not
+  // add real coverage. A genuine alias, not a gap.
   "pp:info-fg",
+  // --pp-warn-fg / --pp-banner-fg / --pp-ok-fg / --pp-offline-fg: audited by
+  // the warn/banner/ok/offline loop in auditCssThemes (grab(fgK) against
+  // grab(bgK), BLOCKING, pairToAA-guaranteed) -- real coverage, just not
+  // expressed as a COMPONENT_PAIR_SPEC role (that loop predates this task).
+  "pp:warn-fg",
+  "pp:banner-fg",
+  "pp:ok-fg",
+  "pp:offline-fg",
+  // --pp-on-accent: audited by the dedicated "on-accent vs accent" check in
+  // auditCssThemes (varPrefix === "--pp" branch) and again in
+  // auditDarkDefault -- real coverage, same "predates this task's role
+  // registry" reason as the four above.
+  "pp:on-accent",
+  // --lib-row-selected-fg: audited by the "row-selected-fg vs
+  // row-selected-bg" check in auditLibraryThemes -- real coverage, not a
+  // COMPONENT_PAIR_SPEC role.
+  "lib:row-selected-fg",
 ]);
 function generatedRegion(text) {
   const start = text.indexOf("@generated:ui-themes start");
@@ -293,9 +323,9 @@ function auditOrphanTokens(scope, ns, cssText) {
   let m;
   while ((m = re.exec(region)) !== null) names.add(m[1]);
   for (const name of names) {
-    if (OWN_SOURCE.includes(`"${name}"`)) continue;
+    if (COMPONENT_PAIR_ROLES.has(name)) continue;
     if (ORPHAN_ALLOWLIST.has(`${ns}:${name}`)) continue;
-    const line = "  " + scope.padEnd(10) + " orphan".padEnd(20) + `--${ns}-${name}`.padEnd(28) + " FAIL (no check in this file references this token)";
+    const line = "  " + scope.padEnd(10) + " " + "orphan".padEnd(20) + " " + (`--${ns}-${name}`).padEnd(28) + " FAIL (not a COMPONENT_PAIR_SPEC role, not in ORPHAN_ALLOWLIST)";
     console.log(line);
     violations.push(line);
   }
