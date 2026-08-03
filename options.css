@@ -349,8 +349,24 @@ html[data-theme] .opt-error {
 .btn-sm { padding: var(--opt-sp-1) var(--opt-sp-4); font-size: 11px; }
 .btn.danger { color: var(--opt-danger, #c00); border-color: color-mix(in srgb, var(--opt-danger, #c00) 55%, var(--opt-border, #ccc)); }
 .btn.danger:hover:not(:disabled) { background: color-mix(in srgb, var(--opt-danger, #c00) 8%, var(--opt-btn-bg, #fff)); }
+/* Icon-bearing anchor buttons: a flex line box so a PBP_ICONS SVG (up to
+   15px) can't poke out of the .btn-sm 11px text line (real-device report,
+   terminal theme, vocab-open-library). Anchors navigate/open-tab instantly
+   instead of sitting through a network call like most .btn buttons, so they
+   get their own transitioned press feedback -- :not(:disabled) matches the
+   .btn base rule's specificity so this doesn't lose to its translateY(1px). */
+a.btn { display: inline-flex; align-items: center; gap: var(--opt-sp-2); }
+a.btn:active:not(:disabled) { transform: scale(0.97); transition: transform var(--motion-state); }
+.vocab-entry-row { display: flex; align-items: center; gap: var(--opt-sp-4); }
 .save-status { font-size: 12px; color: #080; margin-left: var(--opt-sp-4); }
 .save-status.bad { color: #c00; }
+/* Same precedent as .backup-actions below: the row's own flex gap already
+   spaces button from status, so drop .save-status's inline indent here too. */
+.vocab-entry-row .save-status { margin-left: 0; }
+/* Reserved-for-sync-notices slot: an empty span with no content still opens
+   an anonymous block line box in flow, leaving a blank line's worth of gap
+   below the button (real-device report). Collapse it entirely when idle. */
+#vocab-status:empty { display: none; }
 .sync-local-only {
   margin: var(--opt-sp-3) 0 0;
   padding: var(--opt-sp-3) var(--opt-sp-4);
