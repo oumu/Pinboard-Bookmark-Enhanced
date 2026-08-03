@@ -328,8 +328,12 @@ check(!read("anki-connect.js").includes("PBP_ANKI_ENDPOINT"),
   // Notes rebuild everything on every activation; the SELECTED highlight and
   // the scroll position that put it on screen are the user's place in the
   // page (master-detail rewrite: this was card expansion before).
+  // Sliced to the function's own body (up to its column-0 closing brace)
+  // rather than matched through a character window: this one carries enough
+  // comment to make any distance bound a tripwire for editing the comment.
+  const notesRefresh = (libraryNotesJs.split("async function _pbpNotesRefreshPreservingState")[1] || "").split("\n}\n")[0];
   check(libraryNotesJs.includes("rowEl.dataset.notesKey = hit.key") &&
-    /_pbpNotesRefreshPreservingState[\s\S]{0,900}_pbpNotesMarkCurrentRow\(\)[\s\S]{0,600}window\.scrollTo/.test(libraryNotesJs) &&
+    ["_pbpNotesMarkCurrentRow()", "_pbpNotesFocus(", "window.scrollTo"].every((s) => notesRefresh.includes(s)) &&
     /pbp-lib-view[\s\S]{0,120}_pbpNotesRefreshPreservingState\(\)/.test(libraryNotesJs) &&
     // Debounced: a single highlight drag rewrites the whole record per
     // stroke, and each refresh is a full scan plus a full rebuild.
@@ -343,7 +347,10 @@ check(!read("anki-connect.js").includes("PBP_ANKI_ENDPOINT"),
     // root every activation passes through.
     libraryNotesJs.includes('if (enterNarrow) document.body.classList.add("lib-narrow-notes")') &&
     /detail\.replaceChildren\(frag\);[\s\S]{0,200}if \(enterNarrow\) _pbpNotesFocusNarrowBack\(detail\)/.test(libraryNotesJs) &&
-    /function _pbpNotesFocusNarrowBack[\s\S]{0,400}focus\(\{ preventScroll: true \}\)/.test(libraryNotesJs) &&
+    // preventScroll lives in the one focus primitive every notes path calls
+    // (row refocus, post-delete neighbour, narrow back, detail restore).
+    /function _pbpNotesFocus\(el\)[\s\S]{0,300}focus\(\{ preventScroll: true \}\)/.test(libraryNotesJs) &&
+    /function _pbpNotesFocusNarrowBack[\s\S]{0,300}_pbpNotesFocus\(host\.querySelector\("\.notes-detail-back"\)\)/.test(libraryNotesJs) &&
     /function _pbpLibApplyView[\s\S]{0,1100}classList\.remove\("lib-narrow-notes"\)/.test(libraryJs),
     "library-notes.js: a re-render loses the selected highlight/scroll/focus, narrow mode strands focus, or reader writes are not picked up while visible");
   // One tab per extension page, not one per click.

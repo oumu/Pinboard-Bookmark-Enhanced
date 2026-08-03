@@ -452,10 +452,19 @@ const notedRow = _pbpVocabBuildRow({
 // Master-detail: the row carries the headline only. The full gloss, the IPA
 // and the note editor belong to the detail pane, so the row must not build a
 // disclosure body or claim to expand.
-check("row builds no expandable body and claims no expansion state",
-  !fullGlossRow.querySelector(".notes-card-body") &&
+// (.notes-card-body dropped from this list 2026-08-03: the notes rewrite
+// deleted that class everywhere, so asserting its absence here could no
+// longer fail. What CAN regress is the row growing the detail pane's own
+// controls back, so pin the row's actual structure instead: head button,
+// headline, one-line gloss, nothing focusable beyond the head + delete.)
+check("row builds the collapsed structure only, and claims no expansion state",
+  fullGlossRow.querySelectorAll(".notes-card-head").length === 1 &&
+  !!fullGlossRow.querySelector(".vocab-row-headline .notes-row-title") &&
+  !!fullGlossRow.querySelector(".vocab-row-gloss") &&
   !fullGlossRow.querySelector(".vocab-gloss-text") &&
+  !fullGlossRow.querySelector(".vocab-detail-gloss, .vocab-detail-context, .vocab-detail-dict") &&
   !notedRow.querySelector(".vocab-note-input") &&
+  fullGlossRow.querySelectorAll("button, a, textarea, select").length === 2 &&
   !fullGlossRow.querySelector("[aria-expanded]"));
 check("collapsed card clamps the gloss to its first line, outside the chip row",
   fullGlossRow.querySelector(".vocab-row-gloss").textContent === "contextual sense line" &&

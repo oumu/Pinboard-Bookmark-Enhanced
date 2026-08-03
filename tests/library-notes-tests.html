@@ -23,6 +23,7 @@ body.test-narrow-back .notes-detail-back{display:inline-flex}
         <div id="notes-color-filters" class="notes-color-filters" role="group" aria-label="Filter highlights by color"></div>
       </div>
       <div id="notes-list" role="list"></div>
+      <p id="notes-empty" class="notes-empty" hidden></p>
     </div>
     <aside class="notes-detail-pane" id="notes-detail-pane" aria-label="Notes">
       <div class="notes-detail-empty" id="notes-detail-empty">Select a highlight on the left to read it.</div>
@@ -94,11 +95,15 @@ const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
     rowKeys());
   check("the reserved pbp_hl_last_color key never becomes a row",
     !rowKeys().includes("last_color"), rowKeys());
+  check("#notes-list holds listitems only (role=list container purity)",
+    $id("notes-list").children.length === 6 &&
+    [...$id("notes-list").children].every((el) => el.getAttribute("role") === "listitem") &&
+    $id("notes-empty").hidden === true);
   check("the count line counts highlights, not pages", $id("notes-count").textContent === "6 / 6",
     $id("notes-count").textContent);
   check("a row shows the highlight text, its note and the source host",
     rowEl("pbp_hl_alpha#a2").textContent.includes("second alpha highlight about beta") &&
-    rowEl("pbp_hl_alpha#a2").textContent.includes("note on a2") &&
+    rowEl("pbp_hl_alpha#a2").textContent.includes("highlight about beta \u2014 note on a2") &&
     rowEl("pbp_hl_alpha#a2").textContent.includes("alpha.example"),
     rowEl("pbp_hl_alpha#a2").textContent);
   check("a url-less record falls back to the unknown-page label",
@@ -271,16 +276,50 @@ const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
       Math.min(deletePosition, document.querySelectorAll("#notes-list .notes-hit").length - 1)],
     document.activeElement && (document.activeElement.className || document.activeElement.tagName));
 
+  // ---- refresh keeps focus inside the detail pane (narrow mode has no list
+  //      to fall back to, so <body> there is a keyboard dead end) ----
+  rowEl("pbp_hl_beta#b1").querySelector(".notes-hit-btn").click();
+  detail().querySelector(".notes-detail-delete").focus();
+  await _pbpNotesRefreshPreservingState();
+  check("a refresh restores focus to the equivalent control in the detail",
+    document.activeElement === detail().querySelector(".notes-detail-delete"),
+    document.activeElement && (document.activeElement.className || document.activeElement.tagName));
+
+  // ---- delete failure that cannot be pinned to a row falls back to the
+  //      button the user pressed ----
+  const realRemove = chrome.storage.local.remove;
+  chrome.storage.local.remove = async () => { throw new Error("quota"); };
+  try {
+    $id("notes-filter").value = "orphan"; // hides the selected row from the list
+    $id("notes-filter").dispatchEvent(new Event("input"));
+    check("the selected row is not rendered while filtered out", !rowEl("pbp_hl_beta#b1"));
+    const failBtn = detail().querySelector(".notes-detail-delete");
+    failBtn.click();
+    document.querySelector(".confirm-popover .confirm-yes").click();
+    await tick();
+    check("a delete failure with no visible row marks the button that was pressed",
+      failBtn.classList.contains("is-error") &&
+      !document.querySelector("#notes-list .notes-hit.is-error"),
+      failBtn.className);
+  } finally {
+    chrome.storage.local.remove = realRemove;
+    $id("notes-filter").value = "";
+    $id("notes-filter").dispatchEvent(new Event("input"));
+  }
+
   // ---- empty states ----
   $id("notes-filter").value = "zzz-no-match";
   $id("notes-filter").dispatchEvent(new Event("input"));
-  check("a filter with no hits says so", $id("notes-list").textContent.includes("notesFilterEmpty"),
-    $id("notes-list").textContent);
+  check("a filter with no hits says so, outside the role=list container",
+    $id("notes-empty").hidden === false && $id("notes-empty").textContent.includes("notesFilterEmpty") &&
+    $id("notes-list").children.length === 0,
+    $id("notes-empty").textContent);
   $id("notes-filter").value = "";
   for (const key of Object.keys(store)) delete store[key];
   await renderNotesPanel();
   check("an empty store shows the onboarding empty state",
-    $id("notes-list").textContent.includes("notesEmpty") && !rowKeys(), $id("notes-list").textContent);
+    $id("notes-empty").hidden === false && $id("notes-empty").textContent.includes("notesEmpty") &&
+    $id("notes-list").children.length === 0 && !rowKeys(), $id("notes-empty").textContent);
 
   document.title = fail ? "FAIL library-notes Tests" : "PASS library-notes Tests";
 })();

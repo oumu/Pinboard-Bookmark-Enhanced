@@ -754,17 +754,8 @@
   "notesFilterPlaceholder": {
     "message": "Filtrer par titre ou note"
   },
-  "notesColHighlights": {
-    "message": "Surlignages"
-  },
-  "notesColNotes": {
-    "message": "Nb de notes"
-  },
   "notesColLastActive": {
     "message": "Dernière activité"
-  },
-  "notesColSize": {
-    "message": "Taille"
   },
   "notesEmpty": {
     "message": "Sélectionnez du texte sur la page d'aperçu Markdown pour le surligner ou ajouter une note."
@@ -779,10 +770,10 @@
     "message": "Rouvrez l'aperçu de cette page et enregistrez un surlignage pour compléter automatiquement le titre et le lien."
   },
   "notesDeleteBtn": {
-    "message": "Supprimer"
+    "message": "Supprimer tous les surlignages de cette page"
   },
   "notesDeleteConfirm": {
-    "message": "Supprimer les notes de « $TITLE$ » ?",
+    "message": "Supprimer tous les surlignages et notes de « $TITLE$ » ?",
     "placeholders": {
       "title": {
         "content": "$1"

@@ -143,6 +143,10 @@
             <div id="notes-color-filters" class="notes-color-filters" role="group" data-i18n-aria="hlFilterGroupAria" aria-label="Filter highlights by color"></div>
           </div>
           <div id="notes-list" role="list"></div>
+          <!-- Sibling of the list, never a child: role="list" takes listitems
+               only (same placement as #vocab-empty above). Text is chosen in
+               JS between the empty and no-results wordings. -->
+          <p id="notes-empty" class="notes-empty" hidden></p>
         </div>
         <aside class="notes-detail-pane" id="notes-detail-pane" data-i18n-aria="tabNotes" aria-label="Notes">
           <div class="notes-detail-empty" id="notes-detail-empty" data-i18n="libraryNotesDetailEmpty">Select a highlight on the left to read it.</div>

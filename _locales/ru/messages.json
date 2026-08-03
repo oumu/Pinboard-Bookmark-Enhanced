@@ -754,17 +754,8 @@
   "notesFilterPlaceholder": {
     "message": "Фильтр по заголовку или заметке"
   },
-  "notesColHighlights": {
-    "message": "Выделения"
-  },
-  "notesColNotes": {
-    "message": "Заметки"
-  },
   "notesColLastActive": {
     "message": "Последняя активность"
-  },
-  "notesColSize": {
-    "message": "Размер"
   },
   "notesEmpty": {
     "message": "Выделите текст на странице предпросмотра Markdown, чтобы выделить его или добавить заметку."
@@ -779,10 +770,10 @@
     "message": "Снова откройте предпросмотр этой страницы и сохраните выделение, чтобы автоматически заполнить заголовок и ссылку."
   },
   "notesDeleteBtn": {
-    "message": "Удалить"
+    "message": "Удалить все выделения этой страницы"
   },
   "notesDeleteConfirm": {
-    "message": "Удалить заметки для «$TITLE$»?",
+    "message": "Удалить все выделения и заметки для «$TITLE$»?",
     "placeholders": {
       "title": {
         "content": "$1"

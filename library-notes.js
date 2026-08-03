@@ -221,6 +221,9 @@ function _pbpNotesBuildRow(hit) {
   _pbpNotesMarkText(text, typeof hit.item.quote === "string" ? hit.item.quote : "", q);
   const note = typeof hit.item.note === "string" ? hit.item.note : "";
   if (note.trim()) {
+    // Explicit separator, not just the italic style: the two run together in
+    // the accessible name (and in any copy of the row) without it.
+    text.appendChild(document.createTextNode(" — "));
     const noteEl = document.createElement("span");
     noteEl.className = "notes-hit-note";
     _pbpNotesMarkText(noteEl, note, q);
@@ -283,15 +286,23 @@ function _pbpNotesNarrowMode() {
   return typeof matchMedia === "function" && matchMedia("(max-width: 860px)").matches;
 }
 
+// Focus one element, reporting whether it actually took: focus() on a
+// display:none element (the back button above 860px) is a silent no-op, and
+// every caller here needs to fall through to its next candidate when that
+// happens.
+function _pbpNotesFocus(el) {
+  if (!el) return false;
+  try { el.focus({ preventScroll: true }); } catch (_) { el.focus(); }
+  return document.activeElement === el;
+}
+
 // Twin of library-vocab.js's _pbpVocabFocusNarrowBack, kept local rather than
 // shared because it queries this view's own back button: entering the detail
 // in narrow mode hides the list INCLUDING the row button focus came from, and
 // Chrome then drops focus to <body> with no keyboard route back.
 function _pbpNotesFocusNarrowBack(host) {
   if (!host || !_pbpNotesNarrowMode()) return;
-  const back = host.querySelector(".notes-detail-back");
-  if (!back) return;
-  try { back.focus({ preventScroll: true }); } catch (_) { back.focus(); }
+  _pbpNotesFocus(host.querySelector(".notes-detail-back"));
 }
 
 function _pbpNotesBuildBackBtn() {
@@ -463,13 +474,15 @@ function _pbpNotesRenderList(hits) {
   const total = _pbpNotesHits().length;
   _pbpNotesRenderToolbar(total, hits.length);
   list.replaceChildren();
-  if (!hits.length) {
-    const empty = document.createElement("p");
-    empty.className = "notes-empty";
-    empty.textContent = total ? t("notesFilterEmpty") : t("notesEmpty");
-    list.appendChild(empty);
-    return;
+  // The empty state is a SIBLING of the list, never a child: #notes-list is
+  // role="list", whose only valid children are listitems (same placement the
+  // vocabulary view uses for #vocab-empty / #vocab-no-results).
+  const empty = $id("notes-empty");
+  if (empty) {
+    empty.hidden = hits.length > 0;
+    if (!hits.length) empty.textContent = total ? t("notesFilterEmpty") : t("notesEmpty");
   }
+  if (!hits.length) return;
   const frag = document.createDocumentFragment();
   hits.forEach((hit) => frag.appendChild(_pbpNotesBuildRow(hit)));
   list.appendChild(frag);
@@ -502,7 +515,11 @@ function _pbpNotesDelete(row, anchor) {
         // and leave a trace -- name/message only, never note content.
         console.warn("[notes] delete failed", e && e.name, e && e.message);
         const rowEl = _pbpNotesRowEl(_pbpNotesSelectedKey);
+        // The row can be filtered out (or scrolled away) while its detail is
+        // open, and a signal nobody can see is no signal -- fall back to the
+        // button the user actually pressed.
         if (rowEl) rowEl.classList.add("is-error");
+        else if (anchor) anchor.classList.add("is-error");
         return;
       }
       _notesAllRows = _notesAllRows.filter((e) => e.row.key !== row.key);
@@ -522,7 +539,7 @@ function _pbpNotesFocusAfterDelete(position) {
   const rows = list ? [...list.querySelectorAll(".notes-hit-btn")] : [];
   const target = rows.length ? rows[Math.min(position, rows.length - 1)] : $id("notes-filter");
   if (!target || target.closest("[hidden], [inert]")) return;
-  try { target.focus({ preventScroll: true }); } catch (_) { target.focus(); }
+  _pbpNotesFocus(target);
 }
 
 // Called from the pbp-lib-view mount below on every "notes" view activation.
@@ -563,13 +580,20 @@ if (typeof $id === "function") {
 async function _pbpNotesRefreshPreservingState() {
   const selected = _pbpNotesSelectedKey;
   const scroll = window.scrollY;
-  // Keyboard focus lives on a row button, which the rebuild replaces -- and
-  // every delete triggers this refresh 250ms later through its own storage
-  // write, so without this the focus _pbpNotesFocusAfterDelete just placed
-  // falls to <body> a quarter second later (measured on the real page).
+  // Keyboard focus lives on a row button or on a control inside the detail,
+  // and the rebuild replaces both -- every delete triggers this refresh 250ms
+  // later through its own storage write, so without this the focus
+  // _pbpNotesFocusAfterDelete just placed falls to <body> a quarter second
+  // later (measured on the real page). In narrow mode that is a dead end: the
+  // list is display:none, so there is nothing left to Tab to. Snapshot the row
+  // by key, and the detail control by its own class (the detail's controls are
+  // all built here, one specific class each, last in the list).
   const active = document.activeElement;
   const focusedRow = active && active.closest ? active.closest("#notes-list .notes-hit") : null;
   const focusedKey = focusedRow ? focusedRow.dataset.notesKey : null;
+  const inDetail = !focusedRow && active && active.closest && active.closest("#notes-detail");
+  const detailClass = inDetail && active.classList.length
+    ? active.classList[active.classList.length - 1] : null;
   await renderNotesPanel();
   const hit = _pbpNotesFindHit(selected);
   if (hit) {
@@ -580,8 +604,16 @@ async function _pbpNotesRefreshPreservingState() {
     _pbpNotesRenderDetail(null);
   }
   const refocus = focusedKey && _pbpNotesRowEl(focusedKey);
-  const btn = refocus && refocus.querySelector(".notes-hit-btn");
-  if (btn) { try { btn.focus({ preventScroll: true }); } catch (_) { btn.focus(); } }
+  if (refocus) _pbpNotesFocus(refocus.querySelector(".notes-hit-btn"));
+  else if (detailClass) {
+    // The equivalent control in the rebuilt detail, else the back button --
+    // which is the one control that always exists and, in narrow mode, the
+    // only way back to the list. (_pbpNotesFocus reports a no-op focus, so a
+    // control the rebuild dropped falls through.)
+    const host = $id("notes-detail");
+    const same = host && !host.hidden ? host.querySelector("." + CSS.escape(detailClass)) : null;
+    if (!_pbpNotesFocus(same) && host) _pbpNotesFocus(host.querySelector(".notes-detail-back"));
+  }
   if (scroll) window.scrollTo(0, scroll);
 }
 

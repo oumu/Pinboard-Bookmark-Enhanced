@@ -754,17 +754,8 @@
   "notesFilterPlaceholder": {
     "message": "按標題或筆記篩選"
   },
-  "notesColHighlights": {
-    "message": "標記數"
-  },
-  "notesColNotes": {
-    "message": "筆記數"
-  },
   "notesColLastActive": {
     "message": "最後活動"
-  },
-  "notesColSize": {
-    "message": "大小"
   },
   "notesEmpty": {
     "message": "在 Markdown 預覽頁選取文字即可標記或記筆記。"
@@ -779,10 +770,10 @@
     "message": "重新開啟該頁的預覽並儲存一次標記，即可自動補全標題與連結。"
   },
   "notesDeleteBtn": {
-    "message": "刪除"
+    "message": "刪除本頁全部標記"
   },
   "notesDeleteConfirm": {
-    "message": "刪除「$TITLE$」的筆記？",
+    "message": "刪除「$TITLE$」的全部標記與筆記？",
     "placeholders": {
       "title": {
         "content": "$1"

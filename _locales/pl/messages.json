@@ -754,17 +754,8 @@
   "notesFilterPlaceholder": {
     "message": "Filtruj wg tytułu lub notatki"
   },
-  "notesColHighlights": {
-    "message": "Zaznaczenia"
-  },
-  "notesColNotes": {
-    "message": "Notatki"
-  },
   "notesColLastActive": {
     "message": "Ostatnia aktywność"
-  },
-  "notesColSize": {
-    "message": "Rozmiar"
   },
   "notesEmpty": {
     "message": "Zaznacz tekst na stronie podglądu Markdown, aby go wyróżnić lub dodać notatkę."
@@ -779,10 +770,10 @@
     "message": "Otwórz ponownie podgląd tej strony i zapisz zaznaczenie, aby uzupełnić tytuł i link."
   },
   "notesDeleteBtn": {
-    "message": "Usuń"
+    "message": "Usuń wszystkie zaznaczenia tej strony"
   },
   "notesDeleteConfirm": {
-    "message": "Usunąć notatki dla „$TITLE$”?",
+    "message": "Usunąć wszystkie zaznaczenia i notatki dla „$TITLE$”?",
     "placeholders": {
       "title": {
         "content": "$1"

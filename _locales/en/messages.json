@@ -754,17 +754,8 @@
   "notesFilterPlaceholder": {
     "message": "Filter titles and notes"
   },
-  "notesColHighlights": {
-    "message": "Highlights"
-  },
-  "notesColNotes": {
-    "message": "Notes"
-  },
   "notesColLastActive": {
     "message": "Last active"
-  },
-  "notesColSize": {
-    "message": "Size"
   },
   "notesEmpty": {
     "message": "Select text on a Markdown preview page to highlight it or add a note."
@@ -779,10 +770,10 @@
     "message": "Reopen this page's preview and save a highlight to fill in the title and link."
   },
   "notesDeleteBtn": {
-    "message": "Delete"
+    "message": "Delete this page's highlights"
   },
   "notesDeleteConfirm": {
-    "message": "Delete notes for \"$TITLE$\"?",
+    "message": "Delete all highlights and notes for \"$TITLE$\"?",
     "placeholders": {
       "title": {
         "content": "$1"

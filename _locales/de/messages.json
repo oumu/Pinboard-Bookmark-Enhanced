@@ -754,17 +754,8 @@
   "notesFilterPlaceholder": {
     "message": "Nach Titel oder Notiz filtern"
   },
-  "notesColHighlights": {
-    "message": "Markierungen"
-  },
-  "notesColNotes": {
-    "message": "Notizen"
-  },
   "notesColLastActive": {
     "message": "Zuletzt aktiv"
-  },
-  "notesColSize": {
-    "message": "Größe"
   },
   "notesEmpty": {
     "message": "Markiere Text auf der Markdown-Vorschauseite, um ihn hervorzuheben oder eine Notiz hinzuzufügen."
@@ -779,10 +770,10 @@
     "message": "Öffne die Vorschau dieser Seite erneut und speichere eine Markierung, um Titel und Link zu ergänzen."
   },
   "notesDeleteBtn": {
-    "message": "Löschen"
+    "message": "Alle Markierungen dieser Seite löschen"
   },
   "notesDeleteConfirm": {
-    "message": "Notizen für \"$TITLE$\" löschen?",
+    "message": "Alle Markierungen und Notizen zu „$TITLE$“ löschen?",
     "placeholders": {
       "title": {
         "content": "$1"
