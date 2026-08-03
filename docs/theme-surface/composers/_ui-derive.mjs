@@ -52,6 +52,38 @@ export function hslToRgb([h, s, l]) {
 // Mix two rgb colors by ratio t (0 = a, 1 = b).
 export function mix(a, b, t) { return a.map((c, i) => c + (b[i] - c) * t); }
 
+// A plain opaque 3- or 6-digit hex color -- the only shape hexToRgb() parses
+// correctly. Anything else (an 8-digit RRGGBBAA hex, the literal keyword
+// "transparent", or any other CSS color syntax) must NOT be handed to
+// hexToRgb() directly: parseInt("transparent", 16) is NaN, which the bitwise
+// ops below silently coerce to 0 -- i.e. hexToRgb("transparent") returns
+// [0,0,0] (black) with no error. An 8-digit hex is worse: hexToRgb() bit-shifts
+// it as if it were 6-digit, reading the wrong bytes into r/g/b entirely.
+const HEX6_RE = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
+export function isHex(s) { return typeof s === "string" && HEX6_RE.test(s.trim()); }
+
+// Resolve a possibly-non-opaque fill to the solid RGB it actually composites
+// to once painted over `fallbackBg` -- for AA math against colors a pilot
+// may declare as non-solid (9 of 13 pilots' `tag-bg` is the literal
+// "transparent"; no pilot's `tag-bg` currently uses an 8-digit alpha hex,
+// but several pilots' OTHER palette slots do -- e.g. terminal's `border`/
+// `selection-bg`, `#33ff3340` -- so the guard below handles that shape too
+// rather than assuming every non-"transparent" value is a plain 6-digit
+// hex). A plain hex passes through unchanged (already opaque, no
+// compositing needed); an 8-digit RRGGBBAA hex is alpha-blended over
+// `fallbackBg`; anything else (transparent, or any other keyword) is
+// treated as fully transparent, so the resolved color is just `fallbackBg`.
+const HEX8_RE = /^#([0-9a-f]{8})$/i;
+export function resolveOpaqueBg(raw, fallbackBg) {
+  if (isHex(raw)) return hexToRgb(raw);
+  const m = typeof raw === "string" && raw.trim().match(HEX8_RE);
+  if (!m) return fallbackBg;
+  const n = parseInt(m[1], 16);
+  const rgb = [(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255];
+  const alpha = (n & 255) / 255;
+  return mix(fallbackBg, rgb, alpha);
+}
+
 // Adjust fg's LIGHTNESS (hue+sat preserved) against a FIXED bg until contrast >= min,
 // verifying on hex-rounded values so the written CSS clears AA. Returns rgb.
 export function fgToAA(fg, bg, min = 4.5) {
@@ -169,31 +201,6 @@ export function deriveUiColors(p, mode) {
   const inputFocus = mode === "dark"
     ? rgbToHex(hslToRgb((() => { const [h, s, l] = rgbToHsl(rgb("input-bg")); return [h, s, Math.min(1, l + 0.06)]; })()))
     : hx("bg");
-  // Component-layer paired tokens (Task 5 -- COMPONENTS.md §1.3/§4.3/§5.3).
-  // "panel" and "btn-bg" are both the surface's `bg-surface` role today (same
-  // value under two names, per the component spec's 3-background danger-quiet
-  // requirement); kept as separate locals so a future surface where they
-  // diverge doesn't have to rediscover this call site.
-  const panel = rgb("bg-surface");
-  const btnBg = rgb("bg-surface");
-  const btnHover = rgb("accent-soft");
-  // Text shared by a filled button's resting AND hover state -- must clear AA
-  // against both (§1.3).
-  const btnFg = fgToAAMulti(rgb("fg"), [btnBg, btnHover]);
-  // Quiet-destructive text appears on three different fills across the two
-  // consuming surfaces: page bg (ghost/detail-pane delete), panel (card
-  // interior) and btn-bg (toolbar `.btn.danger`) -- §4.3's approved 3-bg superset.
-  const dangerQuietFg = fgToAAMulti(rgb("destroy"), [bg, panel, btnBg]);
-  // Solid-destructive text: start from the pilot's own "text on a solid brand
-  // fill" choice (btn-fg, the same role _util.mjs's on-accent derivation reads
-  // for the site) and let it give way against the ACTUAL danger fill -- not a
-  // tinted mix like pairToAA's status pairs, since the confirm-yes recipe
-  // paints `--{ns}-danger` unmixed (§4.3).
-  const onDanger = fgToAA(rgb("btn-fg"), rgb("destroy"));
-  // Chip pair: background is the tag role carried over unmodified ("no AA
-  // correction" is the current bug being fixed -- SV-Nuanced#2), foreground is
-  // the one that now gets corrected against it (§5.3).
-  const chipFg = fgToAA(rgb("tag-fg"), rgb("tag-bg"));
   return {
     bg: hx("bg"), bg2: hx("bg-surface"), fg: hx("fg"),
     "fg-muted": rgbToHex(fgToAA(rgb("muted"), bg)),
@@ -210,9 +217,5 @@ export function deriveUiColors(p, mode) {
     danger: hx("destroy"),
     "spinner-bg": hx("border"), "spinner-fg": hx("accent"),
     "preset-bg": hx("accent-soft"), "preset-bd": hx("border"), "preset-fg": hx("accent"),
-    "btn-fg": rgbToHex(btnFg),
-    "danger-quiet-fg": rgbToHex(dangerQuietFg),
-    "on-danger": rgbToHex(onDanger),
-    "chip-bg": hx("tag-bg"), "chip-fg": rgbToHex(chipFg),
   };
 }

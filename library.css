@@ -1202,12 +1202,7 @@ html[data-theme="modern-card"] {
   --lib-input-border: #e8e8e8;
   --lib-btn-bg: #ffffff;
   --lib-btn-hover: #e8f0fe;
-  --lib-btn-fg: #1a1a2e;
   --lib-code-bg: #ffffff;
-  --lib-danger-quiet-fg: #d02e24;
-  --lib-on-danger: #ffffff;
-  --lib-chip-bg: #e8f0fe;
-  --lib-chip-fg: #1967d2;
   --lib-pane-bg: #ffffff;
   --lib-pane-divider: #e8e8e8;
   --lib-row-selected-bg: #e8f0fe;
@@ -1215,6 +1210,11 @@ html[data-theme="modern-card"] {
   --lib-radius-sm: 4px;
   --lib-radius-md: 8px;
   --lib-radius-lg: 12px;
+  --lib-btn-fg: #1a1a2e;
+  --lib-danger-quiet-fg: #d02e24;
+  --lib-on-danger: #ffffff;
+  --lib-chip-bg: #e8f0fe;
+  --lib-chip-fg: #1967d2;
 }
 html[data-theme="nord-night"] {
   --lib-bg: #2e3440;
@@ -1235,12 +1235,7 @@ html[data-theme="nord-night"] {
   --lib-input-border: #434c5e;
   --lib-btn-bg: #3b4252;
   --lib-btn-hover: #3b4252;
-  --lib-btn-fg: #d8dee9;
   --lib-code-bg: #3b4252;
-  --lib-danger-quiet-fg: #d9a2a8;
-  --lib-on-danger: #0f131a;
-  --lib-chip-bg: transparent;
-  --lib-chip-fg: #a3be8c;
   --lib-pane-bg: #3b4252;
   --lib-pane-divider: #434c5e;
   --lib-row-selected-bg: #3b4252;
@@ -1248,6 +1243,11 @@ html[data-theme="nord-night"] {
   --lib-radius-sm: 4px;
   --lib-radius-md: 4px;
   --lib-radius-lg: 4px;
+  --lib-btn-fg: #d8dee9;
+  --lib-danger-quiet-fg: #daa3a8;
+  --lib-on-danger: #293547;
+  --lib-chip-bg: transparent;
+  --lib-chip-fg: #a3be8c;
 }
 html[data-theme="terminal"] {
   --lib-bg: #0a0a0a;
@@ -1268,12 +1268,7 @@ html[data-theme="terminal"] {
   --lib-input-border: #33ff3340;
   --lib-btn-bg: #111111;
   --lib-btn-hover: #1a3a1a;
-  --lib-btn-fg: #33ff33;
   --lib-code-bg: #111111;
-  --lib-danger-quiet-fg: #ff3333;
-  --lib-on-danger: #001f00;
-  --lib-chip-bg: transparent;
-  --lib-chip-fg: #00cccc;
   --lib-pane-bg: #111111;
   --lib-pane-divider: #33ff3340;
   --lib-row-selected-bg: #1a3a1a;
@@ -1283,6 +1278,11 @@ html[data-theme="terminal"] {
   --lib-radius-sm: 4px;
   --lib-radius-md: 4px;
   --lib-radius-lg: 4px;
+  --lib-btn-fg: #33ff33;
+  --lib-danger-quiet-fg: #ff3333;
+  --lib-on-danger: #001f00;
+  --lib-chip-bg: transparent;
+  --lib-chip-fg: #00cccc;
 }
 html[data-theme="paper-ink"] {
   --lib-bg: #faf8f5;
@@ -1303,12 +1303,7 @@ html[data-theme="paper-ink"] {
   --lib-input-border: #d4c5a9;
   --lib-btn-bg: #f5f0e8;
   --lib-btn-hover: #f5f0e8;
-  --lib-btn-fg: #2c2c2c;
   --lib-code-bg: #f5f0e8;
-  --lib-danger-quiet-fg: #c0392b;
-  --lib-on-danger: #faf8f5;
-  --lib-chip-bg: transparent;
-  --lib-chip-fg: #b85b19;
   --lib-pane-bg: #f5f0e8;
   --lib-pane-divider: #d4c5a9;
   --lib-row-selected-bg: #f5f0e8;
@@ -1318,6 +1313,11 @@ html[data-theme="paper-ink"] {
   --lib-radius-sm: 2px;
   --lib-radius-md: 4px;
   --lib-radius-lg: 4px;
+  --lib-btn-fg: #2c2c2c;
+  --lib-danger-quiet-fg: #c0392b;
+  --lib-on-danger: #faf8f5;
+  --lib-chip-bg: transparent;
+  --lib-chip-fg: #8b4513;
 }
 html[data-theme="dracula"] {
   --lib-bg: #282a36;
@@ -1338,12 +1338,7 @@ html[data-theme="dracula"] {
   --lib-input-border: #44475a;
   --lib-btn-bg: #21222c;
   --lib-btn-hover: #21222c;
-  --lib-btn-fg: #f8f8f2;
   --lib-code-bg: #21222c;
-  --lib-danger-quiet-fg: #ff5555;
-  --lib-on-danger: #282a36;
-  --lib-chip-bg: transparent;
-  --lib-chip-fg: #50fa7b;
   --lib-pane-bg: #21222c;
   --lib-pane-divider: #44475a;
   --lib-row-selected-bg: #21222c;
@@ -1351,6 +1346,11 @@ html[data-theme="dracula"] {
   --lib-radius-sm: 2px;
   --lib-radius-md: 4px;
   --lib-radius-lg: 4px;
+  --lib-btn-fg: #f8f8f2;
+  --lib-danger-quiet-fg: #ff5555;
+  --lib-on-danger: #282a36;
+  --lib-chip-bg: transparent;
+  --lib-chip-fg: #50fa7b;
 }
 html[data-theme="flexoki-light"] {
   --lib-bg: #FFFCF0;
@@ -1371,12 +1371,7 @@ html[data-theme="flexoki-light"] {
   --lib-input-border: #E6E4D9;
   --lib-btn-bg: #F2F0E5;
   --lib-btn-hover: #F2F0E5;
-  --lib-btn-fg: #100f0f;
   --lib-code-bg: #F2F0E5;
-  --lib-danger-quiet-fg: #af3029;
-  --lib-on-danger: #fffcf0;
-  --lib-chip-bg: transparent;
-  --lib-chip-fg: #ad8301;
   --lib-pane-bg: #F2F0E5;
   --lib-pane-divider: #E6E4D9;
   --lib-row-selected-bg: #F2F0E5;
@@ -1384,6 +1379,11 @@ html[data-theme="flexoki-light"] {
   --lib-radius-sm: 3px;
   --lib-radius-md: 6px;
   --lib-radius-lg: 6px;
+  --lib-btn-fg: #100f0f;
+  --lib-danger-quiet-fg: #af3029;
+  --lib-on-danger: #fffcf0;
+  --lib-chip-bg: transparent;
+  --lib-chip-fg: #846401;
 }
 html[data-theme="flexoki-dark"] {
   --lib-bg: #1C1B1A;
@@ -1404,12 +1404,7 @@ html[data-theme="flexoki-dark"] {
   --lib-input-border: #403E3C;
   --lib-btn-bg: #282726;
   --lib-btn-hover: #343331;
-  --lib-btn-fg: #cecdc3;
   --lib-code-bg: #282726;
-  --lib-danger-quiet-fg: #db736a;
-  --lib-on-danger: #0c0c0b;
-  --lib-chip-bg: transparent;
-  --lib-chip-fg: #d0a215;
   --lib-pane-bg: #282726;
   --lib-pane-divider: #403E3C;
   --lib-row-selected-bg: #343331;
@@ -1417,6 +1412,11 @@ html[data-theme="flexoki-dark"] {
   --lib-radius-sm: 3px;
   --lib-radius-md: 6px;
   --lib-radius-lg: 6px;
+  --lib-btn-fg: #cecdc3;
+  --lib-danger-quiet-fg: #db736a;
+  --lib-on-danger: #1c1b1a;
+  --lib-chip-bg: transparent;
+  --lib-chip-fg: #d0a215;
 }
 html[data-theme="solarized-light"] {
   --lib-bg: #fdf6e3;
@@ -1437,12 +1437,7 @@ html[data-theme="solarized-light"] {
   --lib-input-border: #d6cdb5;
   --lib-btn-bg: #eee8d5;
   --lib-btn-hover: #eee8d5;
-  --lib-btn-fg: #54696f;
   --lib-code-bg: #eee8d5;
-  --lib-danger-quiet-fg: #ca2522;
-  --lib-on-danger: #fefcf6;
-  --lib-chip-bg: transparent;
-  --lib-chip-fg: #2aa198;
   --lib-pane-bg: #eee8d5;
   --lib-pane-divider: #d6cdb5;
   --lib-row-selected-bg: #eee8d5;
@@ -1450,6 +1445,11 @@ html[data-theme="solarized-light"] {
   --lib-radius-sm: 2px;
   --lib-radius-md: 4px;
   --lib-radius-lg: 4px;
+  --lib-btn-fg: #54696f;
+  --lib-danger-quiet-fg: #ca2523;
+  --lib-on-danger: #fdf6e3;
+  --lib-chip-bg: transparent;
+  --lib-chip-fg: #1d706a;
 }
 html[data-theme="solarized-dark"] {
   --lib-bg: #002b36;
@@ -1470,12 +1470,7 @@ html[data-theme="solarized-dark"] {
   --lib-input-border: #094b5a;
   --lib-btn-bg: #073642;
   --lib-btn-hover: #073642;
-  --lib-btn-fg: #8e9e9f;
   --lib-code-bg: #073642;
-  --lib-danger-quiet-fg: #e87775;
-  --lib-on-danger: #fefcf6;
-  --lib-chip-bg: transparent;
-  --lib-chip-fg: #2aa198;
   --lib-pane-bg: #073642;
   --lib-pane-divider: #094b5a;
   --lib-row-selected-bg: #073642;
@@ -1485,6 +1480,11 @@ html[data-theme="solarized-dark"] {
   --lib-radius-sm: 2px;
   --lib-radius-md: 4px;
   --lib-radius-lg: 4px;
+  --lib-btn-fg: #8e9e9f;
+  --lib-danger-quiet-fg: #e87774;
+  --lib-on-danger: #302403;
+  --lib-chip-bg: transparent;
+  --lib-chip-fg: #2ca9a0;
 }
 html[data-theme="catppuccin-latte"] {
   --lib-bg: #eff1f5;
@@ -1505,12 +1505,7 @@ html[data-theme="catppuccin-latte"] {
   --lib-input-border: #ccd0da;
   --lib-btn-bg: #e6e9ef;
   --lib-btn-hover: #dce0e8;
-  --lib-btn-fg: #4c4f69;
   --lib-code-bg: #e6e9ef;
-  --lib-danger-quiet-fg: #c80e36;
-  --lib-on-danger: #eff1f5;
-  --lib-chip-bg: #dce0e8;
-  --lib-chip-fg: #10686d;
   --lib-pane-bg: #e6e9ef;
   --lib-pane-divider: #ccd0da;
   --lib-row-selected-bg: #dce0e8;
@@ -1518,6 +1513,11 @@ html[data-theme="catppuccin-latte"] {
   --lib-radius-sm: 8px;
   --lib-radius-md: 10px;
   --lib-radius-lg: 12px;
+  --lib-btn-fg: #4c4f69;
+  --lib-danger-quiet-fg: #c80e36;
+  --lib-on-danger: #eff1f5;
+  --lib-chip-bg: #dce0e8;
+  --lib-chip-fg: #10686d;
 }
 html[data-theme="catppuccin-mocha"] {
   --lib-bg: #1e1e2e;
@@ -1538,12 +1538,7 @@ html[data-theme="catppuccin-mocha"] {
   --lib-input-border: #45475a;
   --lib-btn-bg: #313244;
   --lib-btn-hover: #313244;
-  --lib-btn-fg: #cdd6f4;
   --lib-code-bg: #313244;
-  --lib-danger-quiet-fg: #f38ba8;
-  --lib-on-danger: #1e1e2e;
-  --lib-chip-bg: #45475a;
-  --lib-chip-fg: #94e2d5;
   --lib-pane-bg: #313244;
   --lib-pane-divider: #45475a;
   --lib-row-selected-bg: #313244;
@@ -1551,6 +1546,11 @@ html[data-theme="catppuccin-mocha"] {
   --lib-radius-sm: 8px;
   --lib-radius-md: 12px;
   --lib-radius-lg: 12px;
+  --lib-btn-fg: #cdd6f4;
+  --lib-danger-quiet-fg: #f38ba8;
+  --lib-on-danger: #1e1e2e;
+  --lib-chip-bg: #45475a;
+  --lib-chip-fg: #94e2d5;
 }
 html[data-theme="gruvbox-dark"] {
   --lib-bg: #282828;
@@ -1571,12 +1571,7 @@ html[data-theme="gruvbox-dark"] {
   --lib-input-border: #504945;
   --lib-btn-bg: #3c3836;
   --lib-btn-hover: #3c3836;
-  --lib-btn-fg: #ebdbb2;
   --lib-code-bg: #3c3836;
-  --lib-danger-quiet-fg: #fc7f70;
-  --lib-on-danger: #232323;
-  --lib-chip-bg: transparent;
-  --lib-chip-fg: #b8bb26;
   --lib-pane-bg: #3c3836;
   --lib-pane-divider: #504945;
   --lib-row-selected-bg: #3c3836;
@@ -1584,6 +1579,11 @@ html[data-theme="gruvbox-dark"] {
   --lib-radius-sm: 2px;
   --lib-radius-md: 2px;
   --lib-radius-lg: 2px;
+  --lib-btn-fg: #ebdbb2;
+  --lib-danger-quiet-fg: #fc7f70;
+  --lib-on-danger: #282828;
+  --lib-chip-bg: transparent;
+  --lib-chip-fg: #b8bb26;
 }
 html[data-theme="rose-pine"] {
   --lib-bg: #191724;
@@ -1604,12 +1604,7 @@ html[data-theme="rose-pine"] {
   --lib-input-border: #26233a;
   --lib-btn-bg: #1f1d2e;
   --lib-btn-hover: #26233a;
-  --lib-btn-fg: #e0def4;
   --lib-code-bg: #1f1d2e;
-  --lib-danger-quiet-fg: #eb6f92;
-  --lib-on-danger: #191724;
-  --lib-chip-bg: transparent;
-  --lib-chip-fg: #9ccfd8;
   --lib-pane-bg: #1f1d2e;
   --lib-pane-divider: #26233a;
   --lib-row-selected-bg: #26233a;
@@ -1617,6 +1612,11 @@ html[data-theme="rose-pine"] {
   --lib-radius-sm: 4px;
   --lib-radius-md: 6px;
   --lib-radius-lg: 8px;
+  --lib-btn-fg: #e0def4;
+  --lib-danger-quiet-fg: #eb6f92;
+  --lib-on-danger: #191724;
+  --lib-chip-bg: transparent;
+  --lib-chip-fg: #9ccfd8;
 }
 html[data-theme="github-light"] {
   --lib-bg: #f6f8fa;
@@ -1637,12 +1637,7 @@ html[data-theme="github-light"] {
   --lib-input-border: #d0d7de;
   --lib-btn-bg: #ffffff;
   --lib-btn-hover: #ddf4ff;
-  --lib-btn-fg: #1f2328;
   --lib-code-bg: #ffffff;
-  --lib-danger-quiet-fg: #cf222e;
-  --lib-on-danger: #ffffff;
-  --lib-chip-bg: #ddf4ff;
-  --lib-chip-fg: #0550ae;
   --lib-pane-bg: #ffffff;
   --lib-pane-divider: #d0d7de;
   --lib-row-selected-bg: #ddf4ff;
@@ -1650,6 +1645,11 @@ html[data-theme="github-light"] {
   --lib-radius-sm: 3px;
   --lib-radius-md: 6px;
   --lib-radius-lg: 6px;
+  --lib-btn-fg: #1f2328;
+  --lib-danger-quiet-fg: #cf222e;
+  --lib-on-danger: #ffffff;
+  --lib-chip-bg: #ddf4ff;
+  --lib-chip-fg: #0550ae;
 }
 :root {
   --lib-btn-fg: #000000;

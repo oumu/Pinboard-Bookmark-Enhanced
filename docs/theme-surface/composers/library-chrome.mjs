@@ -1,6 +1,6 @@
 import { expandPalette } from "./_util.mjs";
 import { mergeTokens } from "./compose-theme.mjs";
-import { deriveUiColors, deriveUiRadius, regularizeUiRadius, fgToAA, fgToAAMulti, hexToRgb, rgbToHex } from "./_ui-derive.mjs";
+import { deriveUiColors, deriveUiRadius, regularizeUiRadius, fgToAA, fgToAAMulti, hexToRgb, rgbToHex, resolveOpaqueBg } from "./_ui-derive.mjs";
 import { POPUP_THEME_MAP } from "./popup-chrome.mjs";
 
 // Default-surface (no preset selected) component-layer baseline — Task 5,
@@ -12,7 +12,7 @@ import { POPUP_THEME_MAP } from "./popup-chrome.mjs";
 // literal for var(--lib-*) finds the identical color already seeded here.
 const DEFAULT_LIGHT = {
   "btn-fg": "#000000",          // measured: getComputedStyle(.btn).color on the unthemed default
-                                 // page (library.css:120 declares no `color` — this is the browser's
+                                 // page (library.css:119 declares no `color` — this is the browser's
                                  // ButtonText resolution, NOT a guess; see task-5-report.md).
   "danger-quiet-fg": "#c5221f", // = --lib-danger default (library.css:26)
   "on-danger": "#ffffff",       // = .confirm-popover .confirm-yes color: var(--lib-panel, #fff)
@@ -69,10 +69,8 @@ function emitLib(ui, palette, overrides, radius, focus = {}) {
     accent: ui.accent, link, save, danger, warn,
     border: ui.border, "border-section": ui.divider,
     "input-bg": ui["input-bg"], "input-border": ui.border,
-    "btn-bg": ui.bg2, "btn-hover": ui["drop-hover"], "btn-fg": ui["btn-fg"],
+    "btn-bg": ui.bg2, "btn-hover": ui["drop-hover"],
     "code-bg": ui.bg2,
-    "danger-quiet-fg": ui["danger-quiet-fg"], "on-danger": ui["on-danger"],
-    "chip-bg": ui["chip-bg"], "chip-fg": ui["chip-fg"],
     "pane-bg": ui.bg2,
     "pane-divider": ui.border,
     "row-selected-bg": ui["drop-hover"],
@@ -83,6 +81,28 @@ function emitLib(ui, palette, overrides, radius, focus = {}) {
   };
   Object.assign(map, overrides ?? {});
   Object.assign(map, regularizeUiRadius(map));
+
+  // Component-layer paired tokens (Task 5, fixed post-review Critical 2/
+  // Important 3): computed HERE from the map's FINAL, post-override
+  // btn-bg/btn-hover/danger, same fix as options-chrome.mjs. No pilot
+  // currently carries a ui.library.<mode> override for these roles, but the
+  // map's own `danger` (above) is ALREADY a local re-derivation, not the raw
+  // palette value deriveUiColors returns -- computing danger-quiet-fg/
+  // on-danger against anything else would be wrong even without an override.
+  const bgRgb = hexToRgb(map.bg);
+  const panelRgb = hexToRgb(map.panel);
+  const btnBgRgb = hexToRgb(map["btn-bg"]);
+  const btnHoverRgb = hexToRgb(map["btn-hover"]);
+  const dangerRgb = hexToRgb(map.danger);
+  map["btn-fg"] = rgbToHex(fgToAAMulti(hexToRgb(map.fg), [btnBgRgb, btnHoverRgb]));
+  map["danger-quiet-fg"] = rgbToHex(fgToAAMulti(dangerRgb, [bgRgb, panelRgb, btnBgRgb]));
+  map["on-danger"] = rgbToHex(fgToAA(hexToRgb(palette["btn-fg"]), dangerRgb));
+  // library has no tag-bg/tag-fg role of its own -- no pilot's ui.library.<mode>
+  // touches it -- so palette.tag-bg/tag-fg is the final value. Same
+  // transparent/8-digit-alpha guard as options.
+  map["chip-bg"] = palette["tag-bg"];
+  map["chip-fg"] = rgbToHex(fgToAA(hexToRgb(palette["tag-fg"]), resolveOpaqueBg(palette["tag-bg"], panelRgb)));
+
   return Object.entries(map).map(([k, v]) => `  --lib-${k}: ${v};`).join("\n");
 }
 

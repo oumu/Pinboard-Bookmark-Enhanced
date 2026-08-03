@@ -1,6 +1,6 @@
 import { expandPalette } from "./_util.mjs";
 import { mergeTokens } from "./compose-theme.mjs";
-import { deriveUiColors, deriveUiRadius, regularizeUiRadius, fgToAA, hexToRgb, rgbToHex } from "./_ui-derive.mjs";
+import { deriveUiColors, deriveUiRadius, regularizeUiRadius, fgToAA, fgToAAMulti, hexToRgb, rgbToHex, resolveOpaqueBg } from "./_ui-derive.mjs";
 import { POPUP_THEME_MAP } from "./popup-chrome.mjs";
 
 // Default-surface (no preset selected) component-layer baseline — Task 5,
@@ -36,10 +36,8 @@ function emitOpt(ui, palette, overrides, radius) {
     accent: ui.accent, save,
     border: ui.border, "border-section": ui.divider,
     "input-bg": ui["input-bg"], "input-border": ui.border,
-    "btn-bg": ui.bg2, "btn-hover": ui["drop-hover"], "btn-fg": ui["btn-fg"],
+    "btn-bg": ui.bg2, "btn-hover": ui["drop-hover"],
     "pf-bg": ui.bg2, "code-bg": ui.bg2,
-    "danger-quiet-fg": ui["danger-quiet-fg"], "on-danger": ui["on-danger"],
-    "chip-bg": ui["chip-bg"], "chip-fg": ui["chip-fg"],
     // Derived, not override-only: before this, --opt-radius-* was emitted solely
     // where a pilot restated it, so 9 of the 13 themes fell back to :root's
     // generic 3/6/10 while their site CSS used the pilot's own scale.
@@ -51,6 +49,31 @@ function emitOpt(ui, palette, overrides, radius) {
   // Last word, so an override can pick any scale but cannot reintroduce the
   // sm > md > lg inversion several pilots carry on the site side.
   Object.assign(map, regularizeUiRadius(map));
+
+  // Component-layer paired tokens (Task 5, fixed post-review Critical 2):
+  // computed HERE from the map's FINAL, post-override btn-bg/btn-hover/danger
+  // -- not at the palette layer inside deriveUiColors. A pilot's
+  // ui.options.<mode> override commonly replaces btn-bg/btn-hover/danger
+  // (dracula/nord/flexoki-dark/... all do; EVERY pilot supplies `danger`,
+  // there is no base-map fallback for it), so deriving against the
+  // pre-override palette value would guarantee AA for a color that isn't
+  // what's actually painted below.
+  const bgRgb = hexToRgb(map.bg);
+  const panelRgb = hexToRgb(map.panel);
+  const btnBgRgb = hexToRgb(map["btn-bg"]);
+  const btnHoverRgb = hexToRgb(map["btn-hover"]);
+  const dangerRgb = hexToRgb(map.danger);
+  map["btn-fg"] = rgbToHex(fgToAAMulti(hexToRgb(map.fg), [btnBgRgb, btnHoverRgb]));
+  map["danger-quiet-fg"] = rgbToHex(fgToAAMulti(dangerRgb, [bgRgb, panelRgb, btnBgRgb]));
+  map["on-danger"] = rgbToHex(fgToAA(hexToRgb(palette["btn-fg"]), dangerRgb));
+  // options has no tag-bg/tag-fg role of its own -- no pilot's ui.options.<mode>
+  // touches it -- so palette.tag-bg/tag-fg (post expandPalette) IS the final
+  // value. 9 of 13 pilots declare it as the literal "transparent";
+  // resolveOpaqueBg composites that (or any other non-hex/8-digit-alpha
+  // shape) onto panel instead of feeding hexToRgb() a non-hex string.
+  map["chip-bg"] = palette["tag-bg"];
+  map["chip-fg"] = rgbToHex(fgToAA(hexToRgb(palette["tag-fg"]), resolveOpaqueBg(palette["tag-bg"], panelRgb)));
+
   return Object.entries(map).map(([k, v]) => `  --opt-${k}: ${v};`).join("\n");
 }
 

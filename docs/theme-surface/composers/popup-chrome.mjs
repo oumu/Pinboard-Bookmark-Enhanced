@@ -1,6 +1,6 @@
 import { expandPalette } from "./_util.mjs";
 import { mergeTokens } from "./compose-theme.mjs";
-import { deriveUiColors, deriveUiRadius, regularizeUiRadius } from "./_ui-derive.mjs";
+import { deriveUiColors, deriveUiRadius, regularizeUiRadius, fgToAA, fgToAAMulti, hexToRgb, rgbToHex, resolveOpaqueBg } from "./_ui-derive.mjs";
 
 // popup theme id -> { pilot, mode, useDarkMode? }
 // 12 themes map 1:1; the flexoki pilot yields BOTH flexoki-light and flexoki-dark.
@@ -37,15 +37,15 @@ const DEFAULT_LIGHT = {
   "chip-bg": "#e2eafa",         // = --pp-tag-bg default (popup.css:53)
   "chip-fg": "#33589f",         // = --pp-tag-fg default (popup.css:54)
   "danger-quiet-fg": "#c24343", // = --pp-danger default (popup.css:66)
-  "on-danger": "#ffffff",       // = .confirm-popover .confirm-yes `color` default light (popup.css:1964)
+  "on-danger": "#ffffff",       // = .confirm-popover .confirm-yes `color` default light (popup.css:2048)
 };
 const DEFAULT_DARK = {
-  "btn-fg": "#e6e7ea",          // = --pp-fg, html.dark (popup.css:1046)
+  "btn-fg": "#e6e7ea",          // = --pp-fg, html.dark (popup.css:1044)
   "chip-bg": "#2a3550",         // = --pp-tag-bg, html.dark (popup.css:1057)
   "chip-fg": "#a9c3f2",         // = --pp-tag-fg, html.dark (popup.css:1058)
-  "danger-quiet-fg": "#e57373", // = --pp-danger, html.dark (popup.css:1060)
+  "danger-quiet-fg": "#e57373", // = --pp-danger, html.dark (popup.css:1061)
   "on-danger": "#10131a",       // NOT a literal copy: html.dark .confirm-yes today hardcodes
-                                 // color:#fff on a background:#c33 (popup.css:1982) that never reads
+                                 // color:#fff on a background:#c33 (popup.css:2066) that never reads
                                  // --pp-danger, so #fff isn't actually paired with the value this
                                  // token stands in for — and #fff on the REAL --pp-danger dark
                                  // (#e57373) is only 2.99:1, below AA. Derived the same way the
@@ -100,8 +100,43 @@ export function composePopupThemes(tokensByPilot) {
       ...(tk.ui?.popup?.[entry.mode] ?? {}),
     };
     Object.assign(ui, regularizeUiRadius(ui));
+    // Component-layer paired tokens (Task 5, fixed post-review Critical 2/
+    // Important 3): computed HERE, from `ui`'s FINAL post-override bg2/
+    // drop-hover/tag-bg/tag-fg/danger, not inside deriveUiColors. A pilot's
+    // ui.popup.<mode> override can replace any of those roles (flexoki-light
+    // overrides tag-bg from the palette's "transparent" to #FAEEC6, for
+    // example) -- deriving against the pre-override palette value would
+    // guarantee AA for a color that isn't what's actually emitted below.
+    const btnBgRgb = hexToRgb(ui.bg2);
+    const btnHoverRgb = hexToRgb(ui["drop-hover"]);
+    const bgRgb = hexToRgb(ui.bg);
+    const dangerRgb = hexToRgb(ui.danger);
+    ui["btn-fg"] = rgbToHex(fgToAAMulti(hexToRgb(ui.fg), [btnBgRgb, btnHoverRgb]));
+    // panel === bg2 === btn-bg for popup (no dedicated panel role); the 3-bg
+    // set is spelled out per COMPONENTS.md §4.3 even though two of the three
+    // are numerically identical today.
+    ui["danger-quiet-fg"] = rgbToHex(fgToAAMulti(dangerRgb, [bgRgb, btnBgRgb, btnBgRgb]));
+    ui["on-danger"] = rgbToHex(fgToAA(hexToRgb(palette["btn-fg"]), dangerRgb));
+    // chip-bg carries the tag-bg role's FINAL (post-override) value verbatim;
+    // chip-fg is AA-corrected against what that value actually composites to
+    // once painted over bg2 (9 of 13 pilots declare tag-bg as the literal
+    // "transparent", which resolveOpaqueBg treats as "shows bg2 through").
+    ui["chip-bg"] = ui["tag-bg"];
+    ui["chip-fg"] = rgbToHex(fgToAA(hexToRgb(ui["tag-fg"]), resolveOpaqueBg(ui["tag-bg"], btnBgRgb)));
     blocks.push(`html[data-theme="${entry.id}"] {\n${emitPp(ui)}\n}`);
   }
+  // `html.dark` here has the SAME selector (so the same specificity, 0,1,0)
+  // as the hand-maintained `html.dark {...}` block earlier in popup.css --
+  // for any property both declare, source order alone decides, and this one
+  // is later. It's a non-issue for the 5 names below (verified via grep:
+  // none of them exist anywhere in popup.css before this change). The
+  // broader reason `html.dark` and `html[data-theme=X]` never fight each
+  // other is NOT about specificity at all: popup-theme-early.js's boot
+  // logic is an if/else-if chain that sets `dataset.theme` OR adds the
+  // `.dark` class, never both, and its async tail explicitly clears the
+  // other (`delete root.dataset.theme; root.classList.remove("dark")`)
+  // before re-applying -- the two states are mutually exclusive on <html>
+  // by construction, not by cascade math.
   const emitDefault = (obj) => Object.entries(obj).map(([k, v]) => `  --pp-${k}: ${v};`).join("\n");
   blocks.push(`:root {\n${emitDefault(DEFAULT_LIGHT)}\n}`);
   blocks.push(`html.dark {\n${emitDefault(DEFAULT_DARK)}\n}`);

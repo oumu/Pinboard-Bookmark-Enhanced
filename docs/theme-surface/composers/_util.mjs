@@ -1,13 +1,11 @@
 // Shared helpers for composers.
 
-import { hexToRgb, rgbToHex, rgbToHsl, hslToRgb, contrast, fgToAA, bgToAA } from "./_ui-derive.mjs";
+import { hexToRgb, rgbToHex, rgbToHsl, hslToRgb, contrast, fgToAA, bgToAA, isHex } from "./_ui-derive.mjs";
 
 export function varName(slot) {
   return `--pinboard-${slot}`;
 }
 
-const HEX = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
-const isHex = (s) => typeof s === "string" && HEX.test(s.trim());
 const norm = (s) => rgbToHex(hexToRgb(s));
 const lighten = (hex, d) => {
   const [h, s, l] = rgbToHsl(hexToRgb(hex));

@@ -1226,7 +1226,7 @@ html[data-theme="nord-night"] {
   --pp-tag-hover: #434c5e;
   --pp-drop-hover: #3b4252;
   --pp-chip-bg: transparent;
-  --pp-chip-fg: #a3be8c;
+  --pp-chip-fg: #aec89a;
   --pp-btn-fg: #d8dee9;
   --pp-banner-bg: #394551;
   --pp-banner-bd: #526c7a;
@@ -1241,8 +1241,8 @@ html[data-theme="nord-night"] {
   --pp-offline-bd: #7a705e;
   --pp-offline-fg: #ebcb8b;
   --pp-danger: #d08a91;
-  --pp-danger-quiet-fg: #d9a2a8;
-  --pp-on-danger: #0f131a;
+  --pp-danger-quiet-fg: #d9a0a6;
+  --pp-on-danger: #293547;
   --pp-spinner-bg: #434c5e;
   --pp-spinner-fg: #88c0d0;
   --pp-preset-bg: #3b4252;
@@ -1326,7 +1326,7 @@ html[data-theme="paper-ink"] {
   --pp-tag-hover: #ede4d0;
   --pp-drop-hover: #f5f0e8;
   --pp-chip-bg: transparent;
-  --pp-chip-fg: #b85b19;
+  --pp-chip-fg: #8b4513;
   --pp-btn-fg: #2c2c2c;
   --pp-banner-bg: #dfe1e3;
   --pp-banner-bd: #7d8e9f;
@@ -1425,8 +1425,8 @@ html[data-theme="flexoki-light"] {
   --pp-tag-fg: #664D01;
   --pp-tag-hover: #F6E2A0;
   --pp-drop-hover: #F2F0E5;
-  --pp-chip-bg: transparent;
-  --pp-chip-fg: #ad8301;
+  --pp-chip-bg: #FAEEC6;
+  --pp-chip-fg: #664d01;
   --pp-btn-fg: #100f0f;
   --pp-banner-bg: #E1ECEB;
   --pp-banner-bd: #ABCFE2;
@@ -1474,7 +1474,7 @@ html[data-theme="flexoki-dark"] {
   --pp-tag-fg: #D0A215;
   --pp-tag-hover: #503D02;
   --pp-drop-hover: #343331;
-  --pp-chip-bg: transparent;
+  --pp-chip-bg: #3A2D04;
   --pp-chip-fg: #d0a215;
   --pp-btn-fg: #cecdc3;
   --pp-banner-bg: #12253B;
@@ -1524,7 +1524,7 @@ html[data-theme="solarized-light"] {
   --pp-tag-hover: #eee8d5;
   --pp-drop-hover: #eee8d5;
   --pp-chip-bg: transparent;
-  --pp-chip-fg: #2aa198;
+  --pp-chip-fg: #1e746d;
   --pp-btn-fg: #54696f;
   --pp-banner-bg: #e3e9e1;
   --pp-banner-bd: #a7cbdc;
@@ -1573,8 +1573,8 @@ html[data-theme="solarized-dark"] {
   --pp-tag-hover: #073642;
   --pp-drop-hover: #073642;
   --pp-chip-bg: transparent;
-  --pp-chip-fg: #2aa198;
-  --pp-btn-fg: #8e9e9f;
+  --pp-chip-fg: #4aada3;
+  --pp-btn-fg: #93a1a1;
   --pp-banner-bg: #073c52;
   --pp-banner-bd: #32749a;
   --pp-banner-fg: #5eabe2;
@@ -1588,8 +1588,8 @@ html[data-theme="solarized-dark"] {
   --pp-offline-bd: #7a5e05;
   --pp-offline-fg: #bd961b;
   --pp-danger: #e98077;
-  --pp-danger-quiet-fg: #e87775;
-  --pp-on-danger: #fefcf6;
+  --pp-danger-quiet-fg: #e98077;
+  --pp-on-danger: #433205;
   --pp-spinner-bg: #094b5a;
   --pp-spinner-fg: #268bd2;
   --pp-preset-bg: #073642;
@@ -1624,7 +1624,7 @@ html[data-theme="catppuccin-latte"] {
   --pp-tag-hover: #ccd0da;
   --pp-drop-hover: #dce0e8;
   --pp-chip-bg: #dce0e8;
-  --pp-chip-fg: #10686d;
+  --pp-chip-fg: #116e73;
   --pp-btn-fg: #4c4f69;
   --pp-banner-bg: #d6e0f5;
   --pp-banner-bd: #9bb9f5;
@@ -1735,8 +1735,8 @@ html[data-theme="gruvbox-dark"] {
   --pp-offline-bd: #7c642b;
   --pp-offline-fg: #fabd2f;
   --pp-danger: #fc6a52;
-  --pp-danger-quiet-fg: #fc7f70;
-  --pp-on-danger: #232323;
+  --pp-danger-quiet-fg: #fc7b66;
+  --pp-on-danger: #282828;
   --pp-spinner-bg: #504945;
   --pp-spinner-fg: #83a598;
   --pp-preset-bg: #3c3836;
