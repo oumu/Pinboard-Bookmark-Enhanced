@@ -101,6 +101,29 @@ export function pairToAA(statusFg, themeBg, mode, min = 4.5) {
   return { fg: fgToAA(statusFg, bg, min), bg };
 }
 
+// Push fg's lightness (hue+sat preserved) until it clears AA against EVERY
+// background in `bgs`, not just one. Several UI roles are shared across more
+// than one surface fill -- a button's text sits on both its resting bg and
+// its :hover bg, library's row text sits on bg, panel AND the selected-row
+// fill -- and a plain fgToAA(fg, oneBg) can't express a "clears all of these"
+// constraint. Repeatedly fix whichever pair is worst until all pass. Same
+// repeated-worst-case technique _util.mjs's on-accent derivation uses.
+// (Moved here from library-chrome.mjs, its original sole consumer, so
+// popup/options/library composers can share one implementation -- Task 5.)
+export function fgToAAMulti(fg, bgs, min = 4.5) {
+  let cur = fg;
+  for (let i = 0; i < 8; i++) {
+    let worst = null;
+    for (const bg of bgs) {
+      const c = contrast(cur, bg);
+      if (!worst || c < worst.c) worst = { bg, c };
+    }
+    if (worst.c >= min) break;
+    cur = fgToAA(cur, worst.bg, min);
+  }
+  return cur;
+}
+
 // Site radius scale -> extension UI radius scale.
 //
 // The site composers take the pilot's values literally (_base.mjs). Several
@@ -146,6 +169,31 @@ export function deriveUiColors(p, mode) {
   const inputFocus = mode === "dark"
     ? rgbToHex(hslToRgb((() => { const [h, s, l] = rgbToHsl(rgb("input-bg")); return [h, s, Math.min(1, l + 0.06)]; })()))
     : hx("bg");
+  // Component-layer paired tokens (Task 5 -- COMPONENTS.md §1.3/§4.3/§5.3).
+  // "panel" and "btn-bg" are both the surface's `bg-surface` role today (same
+  // value under two names, per the component spec's 3-background danger-quiet
+  // requirement); kept as separate locals so a future surface where they
+  // diverge doesn't have to rediscover this call site.
+  const panel = rgb("bg-surface");
+  const btnBg = rgb("bg-surface");
+  const btnHover = rgb("accent-soft");
+  // Text shared by a filled button's resting AND hover state -- must clear AA
+  // against both (§1.3).
+  const btnFg = fgToAAMulti(rgb("fg"), [btnBg, btnHover]);
+  // Quiet-destructive text appears on three different fills across the two
+  // consuming surfaces: page bg (ghost/detail-pane delete), panel (card
+  // interior) and btn-bg (toolbar `.btn.danger`) -- §4.3's approved 3-bg superset.
+  const dangerQuietFg = fgToAAMulti(rgb("destroy"), [bg, panel, btnBg]);
+  // Solid-destructive text: start from the pilot's own "text on a solid brand
+  // fill" choice (btn-fg, the same role _util.mjs's on-accent derivation reads
+  // for the site) and let it give way against the ACTUAL danger fill -- not a
+  // tinted mix like pairToAA's status pairs, since the confirm-yes recipe
+  // paints `--{ns}-danger` unmixed (§4.3).
+  const onDanger = fgToAA(rgb("btn-fg"), rgb("destroy"));
+  // Chip pair: background is the tag role carried over unmodified ("no AA
+  // correction" is the current bug being fixed -- SV-Nuanced#2), foreground is
+  // the one that now gets corrected against it (§5.3).
+  const chipFg = fgToAA(rgb("tag-fg"), rgb("tag-bg"));
   return {
     bg: hx("bg"), bg2: hx("bg-surface"), fg: hx("fg"),
     "fg-muted": rgbToHex(fgToAA(rgb("muted"), bg)),
@@ -162,5 +210,9 @@ export function deriveUiColors(p, mode) {
     danger: hx("destroy"),
     "spinner-bg": hx("border"), "spinner-fg": hx("accent"),
     "preset-bg": hx("accent-soft"), "preset-bd": hx("border"), "preset-fg": hx("accent"),
+    "btn-fg": rgbToHex(btnFg),
+    "danger-quiet-fg": rgbToHex(dangerQuietFg),
+    "on-danger": rgbToHex(onDanger),
+    "chip-bg": hx("tag-bg"), "chip-fg": rgbToHex(chipFg),
   };
 }

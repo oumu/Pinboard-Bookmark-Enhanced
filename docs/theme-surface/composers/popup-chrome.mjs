@@ -21,14 +21,48 @@ export const POPUP_THEME_MAP = [
   { id: "github-light", pilot: "github-light", mode: "light" },
 ];
 
+// Default-surface (no preset selected) component-layer baseline — Task 5,
+// step ① of the composer color migration. Every value below is copied
+// VERBATIM from the CSS literal it stands in for today, so adding these
+// declarations changes nothing currently rendered (nothing consumes these
+// 5 names yet — Task 8/9/12/13 do): a later task that swaps a hardcoded
+// literal for var(--pp-*) finds the identical color already seeded here.
+// Source-line table: task-5-report.md.
+const DEFAULT_LIGHT = {
+  "btn-fg": "#2a2d33",          // = --pp-fg default (popup.css:25). Popup has no unified .btn
+                                 // today, so there is no ButtonText fallback to preserve; the
+                                 // themed derivation's fgToAAMulti(fg, [bg2, drop-hover]) candidate
+                                 // IS --pp-fg and is already AA-clear against both, so this mirrors
+                                 // that formula's (identity) result rather than guessing.
+  "chip-bg": "#e2eafa",         // = --pp-tag-bg default (popup.css:53)
+  "chip-fg": "#33589f",         // = --pp-tag-fg default (popup.css:54)
+  "danger-quiet-fg": "#c24343", // = --pp-danger default (popup.css:66)
+  "on-danger": "#ffffff",       // = .confirm-popover .confirm-yes `color` default light (popup.css:1964)
+};
+const DEFAULT_DARK = {
+  "btn-fg": "#e6e7ea",          // = --pp-fg, html.dark (popup.css:1046)
+  "chip-bg": "#2a3550",         // = --pp-tag-bg, html.dark (popup.css:1057)
+  "chip-fg": "#a9c3f2",         // = --pp-tag-fg, html.dark (popup.css:1058)
+  "danger-quiet-fg": "#e57373", // = --pp-danger, html.dark (popup.css:1060)
+  "on-danger": "#10131a",       // NOT a literal copy: html.dark .confirm-yes today hardcodes
+                                 // color:#fff on a background:#c33 (popup.css:1982) that never reads
+                                 // --pp-danger, so #fff isn't actually paired with the value this
+                                 // token stands in for — and #fff on the REAL --pp-danger dark
+                                 // (#e57373) is only 2.99:1, below AA. Derived the same way the
+                                 // themed on-danger is: fgToAA(candidate, danger), candidate = the
+                                 // surface's own "text on a solid brand fill" choice, --pp-on-accent
+                                 // dark (#10131a) — 6.22:1 against #e57373, already clears AA (identity).
+};
+
 function emitPp(ui) {
   const lines = [];
   const set = (k, val) => lines.push(`  --pp-${k}: ${val};`);
   for (const k of ["bg", "bg2", "fg", "fg-muted", "fg-hint", "link", "accent", "accent2",
     "border", "divider", "input-bg", "input-focus-bg", "tag-bg", "tag-fg", "tag-hover", "drop-hover",
+    "chip-bg", "chip-fg", "btn-fg",
     "banner-bg", "banner-bd", "banner-fg", "warn-bg", "warn-bd", "warn-fg",
     "ok-bg", "ok-bd", "ok-fg", "offline-bg", "offline-bd", "offline-fg",
-    "danger", "spinner-bg", "spinner-fg", "preset-bg", "preset-bd", "preset-fg",
+    "danger", "danger-quiet-fg", "on-danger", "spinner-bg", "spinner-fg", "preset-bg", "preset-bd", "preset-fg",
     "radius-sm", "radius-md", "radius-lg", "radius-tag", "focus-bd", "focus-ring", "on-accent"]) {
     if (ui[k] != null) set(k, ui[k]);
   }
@@ -68,5 +102,8 @@ export function composePopupThemes(tokensByPilot) {
     Object.assign(ui, regularizeUiRadius(ui));
     blocks.push(`html[data-theme="${entry.id}"] {\n${emitPp(ui)}\n}`);
   }
+  const emitDefault = (obj) => Object.entries(obj).map(([k, v]) => `  --pp-${k}: ${v};`).join("\n");
+  blocks.push(`:root {\n${emitDefault(DEFAULT_LIGHT)}\n}`);
+  blocks.push(`html.dark {\n${emitDefault(DEFAULT_DARK)}\n}`);
   return blocks.join("\n");
 }
