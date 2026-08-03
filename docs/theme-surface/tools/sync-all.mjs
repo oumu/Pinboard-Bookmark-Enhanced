@@ -39,12 +39,16 @@ const run = (label, args) => {
 
 console.log("=== sync-all: theme-factory pipeline ===\n");
 
-console.log("--- step 1/8: render-all ---");
+console.log("--- step 1/9: render-all ---");
 const renderOut = run("render-all", [resolve(PILOTS, "render-all.mjs")]);
 const renderTail = renderOut.trim().split("\n").slice(-3).join("\n");
 console.log(renderTail + "\n");
 
-console.log("--- step 2/8: apply-tokens × 13 (--force) ---");
+console.log("--- step 2/9: apply-ui-themes (--write; popup/options/library @generated:ui-themes regions) ---");
+const uiThemesOut = run("apply-ui-themes", [resolve(SURFACE, "tools/apply-ui-themes.mjs"), "--write"]);
+console.log(uiThemesOut.trim() + "\n");
+
+console.log("--- step 3/9: apply-tokens × 13 (--force) ---");
 const slugs = readdirSync(PILOTS)
   .filter(f => f.endsWith(".tokens.json"))
   .map(f => f.replace(/\.tokens\.json$/, ""))
@@ -61,7 +65,7 @@ for (const slug of slugs) {
 }
 console.log(`[sync-all] total bytes delta across 13 themes: ${totalDelta >= 0 ? "+" : ""}${totalDelta} B\n`);
 
-console.log("--- step 3/8: diff-all (strict) ---");
+console.log("--- step 4/9: diff-all (strict) ---");
 const diffOut = run("diff-all", [resolve(SURFACE, "tools/diff-all.mjs")]);
 const diffTail = diffOut.trim().split("\n").slice(-5).join("\n");
 console.log(diffTail);
@@ -75,19 +79,19 @@ if (!m) {
 const [, perfect, total, missing, extra] = m;
 const driftOk = perfect === total && missing === "0" && extra === "0";
 
-console.log("\n--- step 4/8: contrast-audit (WCAG AA gate) ---");
+console.log("\n--- step 5/9: contrast-audit (WCAG AA gate) ---");
 const auditOk = spawnSync("node", [resolve(SURFACE, "tools/contrast-audit.mjs")], { stdio: "inherit" }).status === 0;
 
-console.log("\n--- step 5/8: css-region-audit (popup @generated region drift) ---");
+console.log("\n--- step 6/9: css-region-audit (popup @generated region drift) ---");
 const regionOk = spawnSync("node", [resolve(SURFACE, "tools/css-region-audit.mjs")], { stdio: "inherit" }).status === 0;
 
-console.log("\n--- step 6/8: ui-token-coverage (--pp-* defined per theme) ---");
+console.log("\n--- step 7/9: ui-token-coverage (--pp-* defined per theme) ---");
 const tokenOk = spawnSync("node", [resolve(SURFACE, "tools/ui-token-coverage.mjs")], { stdio: "inherit" }).status === 0;
 
-console.log("\n--- step 7/8: layout-lint (warnings advisory; blockers HARD GATE) ---");
+console.log("\n--- step 8/9: layout-lint (warnings advisory; blockers HARD GATE) ---");
 const layoutOk = spawnSync("node", [resolve(SURFACE, "tools/layout-lint.mjs")], { stdio: "inherit" }).status === 0;
 
-console.log("\n--- step 8/8: url-lint (hardcoded URL drift) ---");
+console.log("\n--- step 9/9: url-lint (hardcoded URL drift) ---");
 const urlOk = spawnSync("node", [resolve(SURFACE, "tools/url-lint.mjs")], { stdio: "inherit" }).status === 0;
 
 const ok = driftOk && auditOk && regionOk && tokenOk && layoutOk && urlOk;

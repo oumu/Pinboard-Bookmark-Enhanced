@@ -54,5 +54,8 @@ node "docs/theme-surface/tools/token-coverage.mjs"
 node "docs/theme-surface/tools/cascade-lint.mjs"
 node "docs/theme-surface/tools/override-drift.mjs"
 node "docs/theme-surface/tools/handedit-audit.mjs"
+node "docs/theme-surface/tools/css-region-audit.mjs"
+node "docs/theme-surface/tools/ui-token-coverage.mjs"
+node "docs/theme-surface/tools/contrast-audit.mjs"
 
 echo "[verify] all checks passed"
