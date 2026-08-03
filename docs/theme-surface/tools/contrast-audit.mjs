@@ -12,6 +12,7 @@ import { readFileSync, readdirSync, realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { expandPalette } from "../composers/_util.mjs";
+import { isHex, resolveOpaqueBg } from "../composers/_ui-derive.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "..", "..", "..");
@@ -83,12 +84,159 @@ function check(scope, theme, label, ratio, min) {
   return line;
 }
 
+// ============================================================
+// Component-layer paired-token audit (Task 5's 5 new tokens: --{ns}-btn-fg /
+// -danger-quiet-fg / -on-danger / -chip-bg / -chip-fg, plus the pre-existing
+// bg/panel/btn-bg/btn-hover/danger roles they're required to pair against).
+//
+// CONVENIENCE LAYER, NOT THE COMPLETENESS AUTHORITY. Per spec
+// docs/superpowers/specs/2026-08-03-design-uplift-design.md §4.1: this
+// registry-derived static gate is a supplement to, never a replacement for,
+// the INDEPENDENT hand-written render oracle (tests/render-audit-checklist.mjs,
+// Task 3 -- Codex BLOCK). That file's own header states the same rule from
+// its side. A gap between what this static gate happens to check and what
+// the oracle checks is a SIGNAL worth noticing, not a discrepancy to silently
+// paper over by generating one from the other.
+//
+// "Programmatic enumeration from the composer's emitted token names" (the
+// literal ask) means: this file never hardcodes what VALUE a themed block
+// carries for any of these roles, and never hardcodes an assumption about
+// which roles a given surface/block does or doesn't declare -- both are
+// read fresh, every run, out of the actual shipped CSS text via tokenDict()/
+// foldSelectorBlocks() below (the same source-of-truth the rest of this file
+// already audits). A token's VALUE changing, or a role simply not being
+// declared in some block, therefore needs zero edits here. What genuinely
+// CANNOT be derived from names alone is the pairing RELATIONSHIP itself
+// (nothing about the string "chip-fg" says it must clear AA against
+// "btn-hover" too, for the pressable-chip case) -- COMPONENT_PAIR_SPEC below
+// is a small, hand-declared registry of those relationships, mirroring
+// COMPONENTS.md §1.3/§4.3/§5.3. A genuinely NEW relationship (not just a new
+// value for an already-declared one) needs one line added here, same as
+// COMPONENTS.md needs a new row for a new component.
+//
+// Icon/stroke non-text 3:1 (WCAG 1.4.11) is NOT represented below despite
+// the brief calling it out as a category: the one concrete candidate COMPONENTS
+// §1.3 names, `border` vs `btn-bg`, was measured (not guessed) against all 13
+// pilots and fails almost everywhere (ratios ~1.0-1.7 -- these borders are a
+// deliberate subtle-divider design choice, not an AA-derived pair Task 5
+// guaranteed), so gating on it would either red the whole audit or need 20+
+// fresh allowlist entries -- neither is "the derivation is buggy, fix it",
+// both are out of a single-file task's reach. Icon color reuses --{ns}-btn-fg
+// itself (COMPONENTS §2.2, currentColor inheritance) at a WEAKER 3:1
+// requirement than the 4.5:1 text pairs already below, so it's structurally
+// subsumed, not skipped.
+//
+// Popup has no --pp-btn-bg / --pp-btn-hover / --pp-panel of its own -- the
+// button surface and its hover fill are named bg2 / drop-hover instead (see
+// popup-chrome.mjs's own comment: "panel === bg2 === btn-bg for popup, no
+// dedicated panel role"). This alias table is what lets the SAME
+// COMPONENT_PAIR_SPEC below apply to all three namespaces without a
+// surface-specific copy of it.
+const ROLE_ALIAS = {
+  pp: { "btn-bg": "bg2", "btn-hover": "drop-hover", panel: "bg2" },
+  opt: {},
+  lib: {},
+};
+
+// [fgRole, bgRole, minRatio] -- role names, not literal --{ns}-* strings;
+// ROLE_ALIAS resolves the per-surface literal name at lookup time.
+const COMPONENT_PAIR_SPEC = [
+  ["btn-fg", "btn-bg", 4.5],
+  ["btn-fg", "btn-hover", 4.5],
+  ["chip-fg", "chip-bg", 4.5],
+  // Pressable chip ([aria-pressed]) swaps its hover fill for btn-hover
+  // (COMPONENTS §5.3) -- token-level, so checked unconditionally rather than
+  // only for surfaces that currently render a pressable chip instance.
+  ["chip-fg", "btn-hover", 4.5],
+  ["danger-quiet-fg", "bg", 4.5],
+  ["danger-quiet-fg", "panel", 4.5],
+  ["danger-quiet-fg", "btn-bg", 4.5],
+  ["on-danger", "danger", 4.5],
+];
+
+// Generic `--name: value;` extractor over an arbitrary block body -- the
+// "programmatic" half of the enumeration: whatever the composer actually
+// emitted into this block is what ends up in the dict, nothing assumed.
+function tokenDict(body) {
+  const dict = {};
+  const re = /--([a-z0-9-]+)\s*:\s*([^;]+);/gi;
+  let m;
+  while ((m = re.exec(body)) !== null) dict[m[1]] = m[2].trim();
+  return dict;
+}
+
+// Folds EVERY occurrence of `<selectorSrc> { ... }` in `text` into one dict,
+// later occurrences overriding earlier ones -- the real CSS cascade for a
+// same-specificity selector like `:root` or `html.dark`, which is exactly
+// how the default-surface baseline works: a hand-maintained block up top
+// (bg/panel/btn-bg/danger/border/...) plus the generated block appended at
+// the end of @generated:ui-themes (Task 5's 5 new tokens only). Folding both
+// in source order reproduces what the browser actually resolves.
+function foldSelectorBlocks(text, selectorSrc) {
+  const re = new RegExp(selectorSrc + "\\s*\\{([^}]*)\\}", "g");
+  const dict = {};
+  let m;
+  while ((m = re.exec(text)) !== null) Object.assign(dict, tokenDict(m[1]));
+  return dict;
+}
+
 // CLI runner. Wrapped in main() + a direct-execution guard so importing this
 // module for the pure functions above (scripts/ui-render-audit.mjs) does not
 // also execute the whole static-CSS audit and process.exit() out from under
 // the importer -- `node docs/theme-surface/tools/contrast-audit.mjs` still
 // behaves exactly as before, since nothing inside main() changed.
 function main() {
+// Runs COMPONENT_PAIR_SPEC against one already-parsed token dict (a themed
+// block's body, or a folded default-surface dict). `strict` distinguishes
+// the two block kinds Task 5 actually guarantees differently:
+//  - themed `[data-theme="X"]` blocks: every role in the spec is emitted
+//    together, in the SAME block, for all 13/14 presets (verified above in
+//    the composer read-through) -- a MISSING role there is a real
+//    regression, not a legitimate gap, so it FAILs loudly (same philosophy
+//    as this file's existing metadata-fg check: "a MISSING token is itself
+//    a failure").
+//  - default-surface blocks (:root / html.dark): Task 5 deliberately added
+//    ONLY the 5 new tokens there (visual-zero-change scope), leaving
+//    whichever of bg/panel/btn-bg/btn-hover/danger/border the surface
+//    already had (or didn't -- options' default surface has no
+//    --opt-btn-bg/--opt-btn-hover at all yet, pre-Task-9). A missing role
+//    there is an intentional, in-scope-elsewhere gap, so it SKIPs (printed,
+//    non-blocking) instead of failing.
+function auditComponentPairs(scope, ns, blockLabel, dict, strict) {
+  const alias = ROLE_ALIAS[ns] || {};
+  const roleKey = (role) => `${ns}-${alias[role] || role}`;
+  const roleRaw = (role) => dict[roleKey(role)];
+  // chip-bg carries the raw tag-bg role verbatim, which 9/13 pilots declare
+  // as the literal "transparent" (composers deliberately do NOT solidify it —
+  // COMPONENTS §5.3/Task 5). What the composer actually AA-corrected chip-fg
+  // against is what that fill composites to over the surface's own panel
+  // (resolveOpaqueBg, _ui-derive.mjs) — reusing that exact function here
+  // (not re-implementing it) so a "transparent" chip-bg resolves to the same
+  // solid color the derivation used, instead of reading as an unparseable,
+  // audit-breaking value.
+  const panelRaw = roleRaw("panel");
+  const panelRgb = panelRaw && isHex(panelRaw) ? hexRgb(panelRaw) : null;
+  const resolveRole = (role) => {
+    const raw = roleRaw(role);
+    if (!raw) return { rgb: null, note: `--${roleKey(role)} not declared` };
+    if (isHex(raw)) return { rgb: hexRgb(raw), note: null };
+    if (role === "chip-bg" && panelRgb) return { rgb: resolveOpaqueBg(raw, panelRgb), note: null };
+    return { rgb: null, note: "non-hex value" };
+  };
+  for (const [fgRole, bgRole, min] of COMPONENT_PAIR_SPEC) {
+    const label = `${fgRole} vs ${bgRole}`;
+    const fg = resolveRole(fgRole), bg = resolveRole(bgRole);
+    if (!fg.rgb || !bg.rgb) {
+      const why = fg.note || bg.note;
+      const line = "  " + scope.padEnd(10) + " " + blockLabel.padEnd(20) + " " + label.padEnd(32) + " " + (strict ? "FAIL (" + why + ")" : "SKIP (" + why + ")");
+      console.log(line);
+      if (strict) violations.push(line);
+      continue;
+    }
+    console.log(check(scope, blockLabel, label, cr(fg.rgb, bg.rgb), min));
+  }
+}
+
 console.log("=== 1. Pinboard.in tokens (pilots/*.tokens.json) ===");
 const pinFiles = readdirSync(PILOTS).filter((f) => f.endsWith(".tokens.json")).sort();
 for (const f of pinFiles) {
@@ -254,6 +402,10 @@ function auditCssThemes(label, varPrefix, cssPath) {
       // thumb above the 3:1 UI-component floor (verified on all 14 popup themes).
       if (trackBg && thumb) console.log(check(label, theme, "scrollbar thumb vs track", cr(thumb, trackBg), 3));
     }
+    // Component-layer paired tokens (Task 5) — see COMPONENT_PAIR_SPEC above.
+    // Themed blocks are self-contained (every role Task 5 derives lands in
+    // this same block), so strict=true: a missing role here is a regression.
+    auditComponentPairs(label, varPrefix.slice(2), theme, tokenDict(body), true);
   }
 }
 auditCssThemes("popup", "--pp", resolve(ROOT, "popup.css"));
@@ -318,6 +470,8 @@ function auditLibraryThemes(cssPath) {
       const c = resolveColor(s, bg);
       if (c) console.log(check("library", theme, `${key} vs bg`, cr(c, bg), 4.5));
     }
+    // Component-layer paired tokens (Task 5) — same rationale as auditCssThemes.
+    auditComponentPairs("library", "lib", theme, tokenDict(body), true);
   }
 }
 auditLibraryThemes(resolve(ROOT, "library.css"));
@@ -363,6 +517,28 @@ function auditDarkDefault(cssPath) {
   }
 }
 auditDarkDefault(resolve(ROOT, "popup.css"));
+
+// Component-layer paired tokens on the DEFAULT (no-preset) surfaces — Task 5's
+// :root baseline blocks (popup also has html.dark), the first time the
+// default surface enters this door at all. foldSelectorBlocks merges each
+// file's hand-maintained :root (bg/panel/btn-bg/btn-hover/danger/border —
+// pre-existing, NOT touched by Task 5) with the generated :root appended at
+// the end of @generated:ui-themes (Task 5's 5 new tokens only) — the same
+// cascade the browser resolves. strict=false: unlike the 13/14 themed
+// blocks, Task 5 deliberately left the default surface's non-new roles
+// exactly as they were (visual-zero-change scope), so a role this surface
+// simply never declared (e.g. options' default has no --opt-btn-bg/
+// --opt-btn-hover yet, pre-Task-9) is an in-scope-elsewhere gap, not a
+// regression to fail on.
+function auditComponentPairsDefault(scope, ns, cssPath, selectorSrc, blockLabel) {
+  const text = readFileSync(cssPath, "utf8");
+  auditComponentPairs(scope, ns, blockLabel, foldSelectorBlocks(text, selectorSrc), false);
+}
+console.log("\n=== component pairs: default surfaces (:root / html.dark) ===");
+auditComponentPairsDefault("options", "opt", resolve(ROOT, "options.css"), ":root", "default");
+auditComponentPairsDefault("library", "lib", resolve(ROOT, "library.css"), ":root", "default");
+auditComponentPairsDefault("popup", "pp", resolve(ROOT, "popup.css"), ":root", "default-light");
+auditComponentPairsDefault("popup", "pp", resolve(ROOT, "popup.css"), "html\\.dark", "default-dark");
 
 console.log("");
 if (known.length > 0) {

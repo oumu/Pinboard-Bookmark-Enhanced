@@ -76,7 +76,14 @@ function emitOpt(ui, palette, overrides, radius, mode) {
   // resolveOpaqueBg composites that (or any other non-hex/8-digit-alpha
   // shape) onto panel instead of feeding hexToRgb() a non-hex string.
   map["chip-bg"] = palette["tag-bg"];
-  map["chip-fg"] = rgbToHex(fgToAA(hexToRgb(palette["tag-fg"]), resolveOpaqueBg(palette["tag-bg"], panelRgb)));
+  // fgToAAMulti, not fgToAA: a pressable chip ([aria-pressed]) swaps its
+  // hover fill for btn-hover (COMPONENTS §5.3), so chip-fg must clear AA
+  // against BOTH backgrounds, same shape as btn-fg above. Plain fgToAA
+  // against chip-bg alone left 7/13 themes under 4.5:1 on btn-hover
+  // (nord-night 3.62, solarized-dark 3.29, gruvbox-dark 3.16, and three more
+  // narrow misses) -- caught by contrast-audit's new chip-fg-vs-btn-hover
+  // pair (Task 7), fixed here rather than allowlisted.
+  map["chip-fg"] = rgbToHex(fgToAAMulti(hexToRgb(palette["tag-fg"]), [resolveOpaqueBg(palette["tag-bg"], panelRgb), btnHoverRgb]));
 
   return [`  color-scheme: ${mode};`, ...Object.entries(map).map(([k, v]) => `  --opt-${k}: ${v};`)].join("\n");
 }

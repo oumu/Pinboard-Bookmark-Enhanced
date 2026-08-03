@@ -106,7 +106,11 @@ function emitLib(ui, palette, overrides, radius, focus = {}, mode) {
   // touches it -- so palette.tag-bg/tag-fg is the final value. Same
   // transparent/8-digit-alpha guard as options.
   map["chip-bg"] = palette["tag-bg"];
-  map["chip-fg"] = rgbToHex(fgToAA(hexToRgb(palette["tag-fg"]), resolveOpaqueBg(palette["tag-bg"], panelRgb)));
+  // fgToAAMulti, not fgToAA -- same pressable-chip fix as options-chrome.mjs
+  // (COMPONENTS §5.3, Task 7's contrast-audit chip-fg-vs-btn-hover pair).
+  // Identity here: library's plain fgToAA already cleared both backgrounds on
+  // every theme (0 failures), so this changes zero shipped bytes for library.
+  map["chip-fg"] = rgbToHex(fgToAAMulti(hexToRgb(palette["tag-fg"]), [resolveOpaqueBg(palette["tag-bg"], panelRgb), btnHoverRgb]));
 
   return [`  color-scheme: ${mode};`, ...Object.entries(map).map(([k, v]) => `  --lib-${k}: ${v};`)].join("\n");
 }

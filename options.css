@@ -791,7 +791,7 @@ html[data-theme="nord-night"] {
   --opt-danger-quiet-fg: #e3aeb3;
   --opt-on-danger: #35435b;
   --opt-chip-bg: transparent;
-  --opt-chip-fg: #a3be8c;
+  --opt-chip-fg: #c2d4b3;
 }
 html[data-theme="terminal"] {
   color-scheme: dark;
@@ -914,7 +914,7 @@ html[data-theme="flexoki-light"] {
   --opt-danger-quiet-fg: #af3029;
   --opt-on-danger: #fffcf0;
   --opt-chip-bg: transparent;
-  --opt-chip-fg: #846401;
+  --opt-chip-fg: #7a5d01;
 }
 html[data-theme="flexoki-dark"] {
   color-scheme: dark;
@@ -943,7 +943,7 @@ html[data-theme="flexoki-dark"] {
   --opt-danger-quiet-fg: #eb8071;
   --opt-on-danger: #1c1b1a;
   --opt-chip-bg: transparent;
-  --opt-chip-fg: #d0a215;
+  --opt-chip-fg: #d9a916;
 }
 html[data-theme="solarized-light"] {
   color-scheme: light;
@@ -973,7 +973,7 @@ html[data-theme="solarized-light"] {
   --opt-danger-quiet-fg: #c02b28;
   --opt-on-danger: #fdf6e3;
   --opt-chip-bg: transparent;
-  --opt-chip-fg: #1d706a;
+  --opt-chip-fg: #1b6863;
 }
 html[data-theme="solarized-dark"] {
   color-scheme: dark;
@@ -1005,7 +1005,7 @@ html[data-theme="solarized-dark"] {
   --opt-danger-quiet-fg: #e98077;
   --opt-on-danger: #433205;
   --opt-chip-bg: transparent;
-  --opt-chip-fg: #2ca9a0;
+  --opt-chip-fg: #35c9be;
 }
 html[data-theme="catppuccin-latte"] {
   color-scheme: light;
@@ -1065,7 +1065,7 @@ html[data-theme="catppuccin-mocha"] {
   --opt-danger-quiet-fg: #f59db6;
   --opt-on-danger: #1e1e2e;
   --opt-chip-bg: #45475a;
-  --opt-chip-fg: #94e2d5;
+  --opt-chip-fg: #9ce4d8;
 }
 html[data-theme="gruvbox-dark"] {
   color-scheme: dark;
@@ -1095,7 +1095,7 @@ html[data-theme="gruvbox-dark"] {
   --opt-danger-quiet-fg: #fea38d;
   --opt-on-danger: #282828;
   --opt-chip-bg: transparent;
-  --opt-chip-fg: #b8bb26;
+  --opt-chip-fg: #dcde5e;
 }
 html[data-theme="rose-pine"] {
   color-scheme: dark;

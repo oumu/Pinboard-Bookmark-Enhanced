@@ -128,8 +128,12 @@ export function composePopupThemes(tokensByPilot) {
     // chip-fg is AA-corrected against what that value actually composites to
     // once painted over bg2 (9 of 13 pilots declare tag-bg as the literal
     // "transparent", which resolveOpaqueBg treats as "shows bg2 through").
+    // fgToAAMulti, not fgToAA -- same pressable-chip fix as options/library-
+    // chrome.mjs (COMPONENTS §5.3, Task 7's contrast-audit chip-fg-vs-btn-hover
+    // pair). Identity here: popup's plain fgToAA already cleared both
+    // backgrounds on every theme, so this changes zero shipped bytes for popup.
     ui["chip-bg"] = ui["tag-bg"];
-    ui["chip-fg"] = rgbToHex(fgToAA(hexToRgb(ui["tag-fg"]), resolveOpaqueBg(ui["tag-bg"], btnBgRgb)));
+    ui["chip-fg"] = rgbToHex(fgToAAMulti(hexToRgb(ui["tag-fg"]), [resolveOpaqueBg(ui["tag-bg"], btnBgRgb), btnHoverRgb]));
     blocks.push(`html[data-theme="${entry.id}"] {\n${emitPp(ui, entry.mode)}\n}`);
   }
   // `html.dark` here has the SAME selector (so the same specificity, 0,1,0)
