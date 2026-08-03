@@ -502,6 +502,11 @@ html.motion-ready .notes-hit-btn { transition: background-color var(--motion-sta
 }
 html.motion-ready .notes-sib { transition: background-color var(--motion-state) ease; }
 .notes-sib:hover { background: color-mix(in srgb, var(--lib-fg, #333) 5%, var(--lib-bg, #fff)); }
+/* Press feedback (Emil review, Task 5): every other pressable row in this file
+   has one (.notes-hit-btn:active, .notes-card-top:active) -- this jump button
+   was the one left silent. Same instant color-mix + transition-duration:0
+   recipe, not the .btn family's scale(0.97): a row button, not a dialog action. */
+.notes-sib:active { background: color-mix(in srgb, var(--lib-fg, #333) 9%, var(--lib-bg, #fff)); transition-duration: 0s; }
 .notes-sib:focus-visible { outline: 2px solid var(--lib-accent, #4477bb); outline-offset: -2px; }
 .notes-sib .note-dot { margin-top: 0; }
 .notes-sib-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

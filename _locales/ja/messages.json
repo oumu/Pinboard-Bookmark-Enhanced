@@ -752,7 +752,7 @@
     "message": "メモ"
   },
   "notesFilterPlaceholder": {
-    "message": "タイトルやメモで絞り込み"
+    "message": "ハイライトやメモで絞り込み"
   },
   "notesColLastActive": {
     "message": "最終更新"

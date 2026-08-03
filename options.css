@@ -351,12 +351,13 @@ html[data-theme] .opt-error {
 .btn.danger:hover:not(:disabled) { background: color-mix(in srgb, var(--opt-danger, #c00) 8%, var(--opt-btn-bg, #fff)); }
 /* Icon-bearing anchor buttons: a flex line box so a PBP_ICONS SVG (up to
    15px) can't poke out of the .btn-sm 11px text line (real-device report,
-   terminal theme, vocab-open-library). Anchors navigate/open-tab instantly
-   instead of sitting through a network call like most .btn buttons, so they
-   get their own transitioned press feedback -- :not(:disabled) matches the
-   .btn base rule's specificity so this doesn't lose to its translateY(1px). */
+   terminal theme, vocab-open-library). No separate :active rule: the base
+   .btn:active:not(:disabled) above already matches `<a class="btn">` (class
+   selectors don't care about tag) -- an earlier draft gave anchors their own
+   scale(0.97)+transition, which put two different presses on the same page
+   for no functional reason (Emil review, Task 5). Anchors get the same
+   untransitioned translateY(1px) as every other .btn on this page. */
 a.btn { display: inline-flex; align-items: center; gap: var(--opt-sp-2); }
-a.btn:active:not(:disabled) { transform: scale(0.97); transition: transform var(--motion-state); }
 .vocab-entry-row { display: flex; align-items: center; gap: var(--opt-sp-4); }
 .save-status { font-size: 12px; color: #080; margin-left: var(--opt-sp-4); }
 .save-status.bad { color: #c00; }

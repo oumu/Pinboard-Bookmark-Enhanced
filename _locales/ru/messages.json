@@ -752,7 +752,7 @@
     "message": "Заметки"
   },
   "notesFilterPlaceholder": {
-    "message": "Фильтр по заголовку или заметке"
+    "message": "Фильтр по выделению или заметке"
   },
   "notesColLastActive": {
     "message": "Последняя активность"
