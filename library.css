@@ -475,14 +475,19 @@ html.motion-ready .notes-card-body:not([hidden]) { height: auto; opacity: 1; }
    .vocab-detail-pane's 1fr grid track happens to be. Task 3's notes detail
    pane copies this literal value into its own selectors (see plan). */
 .vocab-detail-gloss, .vocab-detail-context { max-width: 68ch; }
-/* Controls stay at UI scale, not prose scale: .btn already pins font-size to
-   12px (:120) regardless of ambient size, but line-height was previously
-   left at the browser default, which is fine at 13px ambient -- inheriting
-   the new unitless 1.65 here would recompute to 1.65*12px=19.8px and visibly
-   bloat every button in this pane. .notes-meta-chip has neither pinned, so
-   it needs both (the plain, unpilled "language" chip in .vocab-detail-head
-   would otherwise render at full 15px prose size next to a 22px term). */
-.vocab-detail-pane .btn { line-height: normal; }
+/* Controls stay at UI scale, not prose scale -- but whether an element even
+   PICKS UP the ambient 15px/1.65 in the first place depends on what kind of
+   element it is (fix round 1: verified A/B, computed boxes identical with
+   and without a reset on .btn). A plain <button class="btn"> gets its own
+   UA-default font/line-height and never inherits the pane's font at all
+   (form controls don't inherit font by default), so no reset is needed or
+   applied here. .notes-meta-chip is an ordinary <span> -- normal inheritance
+   applies, and it has neither font-size nor line-height pinned anywhere else
+   in the file, so both need resetting (the plain, unpilled "language" chip
+   in .vocab-detail-head would otherwise render at full 15px prose size next
+   to a 22px term). .xp-dict-lang is the third case: a <select> that opts
+   BACK into inheritance with its own `font: inherit`, which pulls the
+   unitless 1.65 along with it -- reset at its own rule below, not here. */
 .vocab-detail-pane .notes-meta-chip { font-size: 12px; line-height: normal; }
 /* Back button default state: hidden by default, shown only at narrow widths.
    Order is load-bearing: this rule must come BEFORE the media query so that
@@ -555,6 +560,13 @@ html.motion-ready .notes-card-body:not([hidden]) { height: auto; opacity: 1; }
   color: var(--lib-fg);
   font: inherit;
   font-size: 0.8em;
+  /* `font: inherit` above also sets line-height: inherit, pulling in the
+     detail pane's unitless 1.65 -- unlike a plain <button> (see the .btn
+     comment above), a <select> that opts into font inheritance opts into
+     line-height inheritance too. Reset it (fix round 1: verified inflated
+     box height without this, back to a normal ~1-line control height with
+     it). */
+  line-height: normal;
   cursor: pointer;
   box-sizing: border-box;
   box-shadow: none;
@@ -642,9 +654,15 @@ html[data-theme="rose-pine"] .xp-dict-lang {
    (--opt-* tokens translated to their --lib-* equivalents; same closed-field
    and motion-pop recipes used elsewhere on this page) -- this pane is the
    first place on the library page that renders it. */
-.vocab-note-edit { display: flex; gap: var(--lib-sp-4); align-items: flex-start; margin-top: var(--lib-sp-2); }
+/* max-width lives on the ROW, not the input (fix round 1): .vocab-note-input
+   alone capping at 68ch left .vocab-note-edit (the flex row) uncapped, so it
+   kept growing with the pane and the save button floated away from the
+   input's trailing edge -- measured gap 25px->368px between 1280 and 1600px
+   viewports. Capping the row instead caps everything in it; the input's
+   flex:1 1 auto fills the now-bounded row and the button stays flush. */
+.vocab-note-edit { display: flex; gap: var(--lib-sp-4); align-items: flex-start; margin-top: var(--lib-sp-2); max-width: 68ch; }
 .vocab-note-input {
-  flex: 1 1 auto; min-width: 0; max-width: 68ch; resize: vertical;
+  flex: 1 1 auto; min-width: 0; resize: vertical;
   font: inherit; font-size: 12px; line-height: 1.5;
   padding: 4px var(--lib-sp-2);
   border: 1px solid var(--lib-input-border, #cdd1d6);
