@@ -83,6 +83,12 @@
      default light state, just routed through the token now. */
   --opt-btn-bg: #f5f5f0;
   --opt-btn-hover: #eee;
+  /* Same gap, same fix, this time for .fg's field recipe (COMPONENTS.md §6):
+     the old unthemed field rule used bare #cdd1d6/#fff literals for its
+     border/background and never touched --opt-input-border/--opt-input-bg
+     outside html[data-theme]. */
+  --opt-input-bg: #fff;
+  --opt-input-border: #cdd1d6;
 }
 
 /* ---- Base ---- */
@@ -215,13 +221,13 @@ h1 { font-size: 18px; color: #333; margin-bottom: var(--opt-sp-7); border-bottom
 .fg-stack > div:has(input[type="text"]) { margin-top: var(--opt-sp-2); margin-bottom: var(--opt-sp-3); }
 .fg-stack input[type="number"] { padding: 1px var(--opt-sp-3); font-size: 12px; height: auto; line-height: 1.4; }
 .fg label.bl { display: block; font-weight: bold; margin-bottom: var(--opt-sp-2); cursor: default; font-size: 12px; color: #555; }
-.fg input[type="text"], .fg input[type="password"], .fg input[type="number"], .fg select, .fg textarea {
-  width: 100%; padding: var(--opt-sp-2) var(--opt-sp-4); border: 1px solid #cdd1d6;
-  border-radius: var(--opt-radius-md);
-  background-color: #fff; font-size: 13px; font-family: inherit;
-  -webkit-appearance: none; appearance: none; box-shadow: none;
-  transition: border-color var(--motion-state) ease, background-color var(--motion-state) ease, box-shadow var(--motion-state) ease;
-}
+/* Base field recipe (width/padding/border/radius/background-color/font-size/
+   font-family/appearance/box-shadow/transition), hover border-color, focus/
+   focus-visible and the checkbox/radio accent-color all now come from
+   @generated:ui-components above (COMPONENTS.md §6). What's left below are
+   the two page-level hand-maintained exceptions §6.1 names explicitly (the
+   <select> chevron and the textarea monospace stack -- neither is meant to
+   ever be generated). */
 /* Custom chevron for <select> — native arrow removed by appearance:none. Use
    background-image / background-repeat / background-position as LONGHANDS so themed
    overrides that only set background-color preserve the chevron. */
@@ -245,11 +251,6 @@ h1 { font-size: 18px; color: #333; margin-bottom: var(--opt-sp-7); border-bottom
         CJK = Sarasa again. Must also name fast CJK fonts (YaHei/PingFang) BEFORE `monospace`.
    This is why fixing only the Latin half left Bookmark/Appearance still stalling. */
 .fg textarea { resize: vertical; min-height: 80px; font-family: "SF Mono", Consolas, Menlo, "Liberation Mono", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei", monospace; font-size: 11px; line-height: 1.5; }
-.fg input:hover:not(:focus), .fg select:hover:not(:focus), .fg textarea:hover:not(:focus) { border-color: #9aa0a6; }
-.fg input:focus, .fg select:focus, .fg textarea:focus { outline: none; border-color: var(--opt-focus-bd); }
-.fg input:focus-visible, .fg select:focus-visible, .fg textarea:focus-visible { box-shadow: var(--opt-focus-ring); }
-.fg input[type="checkbox"]:focus-visible { outline: 2px solid var(--opt-accent, #4477bb); outline-offset: 1px; box-shadow: none; }
-input[type="checkbox"], input[type="radio"] { accent-color: var(--opt-accent); }
 /* Soft focus for large hit-areas (full-width sidebar tabs, accordion and
    disclosure headers): 1px accent core + the --opt-focus-ring
    glow instead of a hard 2px rectangle around a whole row. The glow MUST stay
@@ -410,6 +411,40 @@ html[data-theme] .opt-error {
   border-radius: var(--opt-radius-full);
   background: var(--opt-chip-bg);
   color: var(--opt-chip-fg);
+}
+
+.fg input[type="text"], .fg input[type="password"], .fg input[type="number"], .fg select, .fg textarea {
+  width: 100%;
+  padding: var(--opt-sp-2) var(--opt-sp-4);
+  font-size: 13px;
+  line-height: 16px;
+  font-family: inherit;
+  border: 1px solid var(--opt-input-border);
+  border-radius: var(--opt-radius-md);
+  background-color: var(--opt-input-bg);
+  color: var(--opt-fg);
+  -webkit-appearance: none;
+  appearance: none;
+  box-shadow: none;
+  transition: border-color var(--motion-state) ease, background-color var(--motion-state) ease, box-shadow var(--motion-state) ease;
+}
+.fg input:hover:not(:focus), .fg select:hover:not(:focus), .fg textarea:hover:not(:focus) {
+  border-color: color-mix(in srgb, var(--opt-input-border) 55%, var(--opt-fg));
+}
+.fg input:focus, .fg select:focus, .fg textarea:focus {
+  outline: none;
+  border-color: var(--opt-focus-bd);
+}
+.fg input:focus-visible, .fg select:focus-visible, .fg textarea:focus-visible {
+  box-shadow: var(--opt-focus-ring);
+}
+input[type="checkbox"], input[type="radio"] {
+  accent-color: var(--opt-accent);
+}
+.fg input[type="checkbox"]:focus-visible {
+  outline: 2px solid var(--opt-accent);
+  outline-offset: 1px;
+  box-shadow: none;
 }
 /* @generated:ui-components end (options) */
 /* Danger tier only — base .btn/.btn-sm/.btn.ghost geometry + color + state
@@ -1247,22 +1282,6 @@ html[data-theme] .reset-tab-btn:hover { color: var(--opt-danger, #e55); }
 html[data-theme] .panel { background: var(--opt-panel); border-color: var(--opt-border); }
 html[data-theme] .fg label { color: var(--opt-fg); }
 html[data-theme] .fg label.bl { color: var(--opt-fg-muted); }
-html[data-theme] .fg input[type="text"], html[data-theme] .fg input[type="password"],
-html[data-theme] .fg input[type="number"], html[data-theme] .fg select, html[data-theme] .fg textarea {
-  /* background-color (not shorthand) so base rule's chevron background-image survives. */
-  background-color: var(--opt-input-bg); border-color: var(--opt-input-border); color: var(--opt-fg);
-}
-html[data-theme] .fg input:hover:not(:focus),
-html[data-theme] .fg select:hover:not(:focus),
-html[data-theme] .fg textarea:hover:not(:focus) {
-  border-color: var(--opt-fg-muted);
-}
-html[data-theme] .fg input:focus, html[data-theme] .fg select:focus, html[data-theme] .fg textarea:focus {
-  border-color: var(--opt-focus-bd);
-}
-html[data-theme] .fg input:focus-visible, html[data-theme] .fg select:focus-visible, html[data-theme] .fg textarea:focus-visible {
-  box-shadow: var(--opt-focus-ring);
-}
 /* Dark-bg themes: lighter chevron stroke so the arrow reads against dark input
    fill. Covers all 8 color-scheme:dark presets (gruvbox-dark / rose-pine were
    missing from this list -- pre-existing gap, closed in the dropdown-design

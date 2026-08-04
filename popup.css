@@ -144,6 +144,10 @@ a:hover { text-decoration: underline; }
 .btn-ic svg {
   display: block;
 }
+
+input[type="checkbox"], input[type="radio"] {
+  accent-color: var(--pp-accent);
+}
 /* @generated:ui-components end (popup) */
 /* Inline status/marker SVG icons that replace ✓ ✗ ✕ ↻ glyphs (those fall back to
    Segoe UI Emoji and stall ~1.6s on first paint, Windows hi-DPI). currentColor inherits
@@ -558,7 +562,6 @@ button.offline-clear:focus-visible, button.offline-toggle:focus-visible { outlin
 
 .bottom-bar { padding: var(--pp-sp-3) var(--pp-sp-5) var(--pp-sp-2) 72px; display: flex; gap: var(--pp-sp-6); font-size: 12px; }
 .bottom-bar label { display: inline-flex; align-items: center; gap: var(--pp-sp-2); cursor: pointer; }
-input[type="checkbox"], input[type="radio"] { accent-color: var(--pp-accent); }
 .bottom-bar input[type="checkbox"]:focus-visible { outline: 2px solid var(--pp-accent, #4477bb); outline-offset: 1px; }
 .submit-bar { padding: var(--pp-sp-2) var(--pp-sp-5) var(--pp-sp-3) 72px; display: flex; gap: var(--pp-sp-3); }
 .submit-bar button {

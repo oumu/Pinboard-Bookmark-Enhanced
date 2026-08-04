@@ -112,9 +112,6 @@ button, input, select, textarea { font-family: inherit; }
    role); elements that want to read as plain text instead (.notes-row-title a,
    .xp-dict-src a) already set their own `color: inherit` and win by specificity. */
 a { color: var(--lib-link, #1a66c2); }
-/* Native checkbox tint (vocab row selection) -- unset before this fell to the
-   browser's default blue regardless of theme. */
-input[type="checkbox"] { accent-color: var(--lib-accent, #1a73e8); }
 
 /* @generated:ui-components start (library) */
 .btn {
@@ -197,6 +194,45 @@ input[type="checkbox"] { accent-color: var(--lib-accent, #1a73e8); }
   outline: 2px solid var(--lib-accent);
   outline-offset: 2px;
 }
+
+.fg input[type="text"], .fg input[type="password"], .fg input[type="number"], .fg select, .fg textarea {
+  width: 100%;
+  padding: var(--lib-sp-1) var(--lib-sp-2);
+  font-size: 13px;
+  line-height: 16px;
+  font-family: inherit;
+  border: 1px solid var(--lib-input-border);
+  border-radius: var(--lib-radius-md);
+  background-color: var(--lib-input-bg);
+  color: var(--lib-fg);
+  -webkit-appearance: none;
+  appearance: none;
+  box-shadow: none;
+  transition: border-color var(--motion-state) ease, background-color var(--motion-state) ease, box-shadow var(--motion-state) ease;
+}
+.fg input:hover:not(:focus), .fg select:hover:not(:focus), .fg textarea:hover:not(:focus) {
+  border-color: color-mix(in srgb, var(--lib-input-border) 55%, var(--lib-fg));
+}
+.fg input:focus, .fg select:focus, .fg textarea:focus {
+  outline: none;
+  border-color: var(--lib-focus-bd);
+}
+.fg input:focus-visible, .fg select:focus-visible, .fg textarea:focus-visible {
+  box-shadow: var(--lib-focus-ring);
+}
+input[type="checkbox"], input[type="radio"] {
+  accent-color: var(--lib-accent);
+}
+.fg input[type="checkbox"]:focus-visible {
+  outline: 2px solid var(--lib-accent);
+  outline-offset: 1px;
+  box-shadow: none;
+}
+.vocab-batch-bar input[type="text"] {
+  padding: 2px var(--lib-sp-2);
+  font-size: 12px;
+  line-height: 14px;
+}
 /* @generated:ui-components end (library) */
 
 /* ---- Buttons: danger tier only (base .btn/.btn-sm/.btn.ghost geometry +
@@ -208,16 +244,12 @@ input[type="checkbox"] { accent-color: var(--lib-accent, #1a73e8); }
 .btn.danger { color: var(--lib-danger, #c00); border-color: color-mix(in srgb, var(--lib-danger, #c00) 55%, var(--lib-border, #ccc)); }
 .btn.danger:hover:not(:disabled) { background: color-mix(in srgb, var(--lib-danger, #c00) 8%, var(--lib-btn-bg, #fff)); }
 
-/* Base field recipe (options.css ~207-213). The .fg select chevron below only
-   makes sense once appearance:none has removed the native arrow -- ported
-   without this, a select would draw BOTH (Task 2 review carry-over). */
-.fg input[type="text"], .fg input[type="password"], .fg input[type="number"], .fg select, .fg textarea {
-  width: 100%; padding: var(--lib-sp-1) var(--lib-sp-2); border: 1px solid var(--lib-input-border, #cdd1d6);
-  border-radius: var(--lib-radius-md);
-  background-color: var(--lib-input-bg, #fff); font-size: 13px; font-family: inherit;
-  -webkit-appearance: none; appearance: none; box-shadow: none;
-  transition: border-color var(--motion-state) ease, background-color var(--motion-state) ease, box-shadow var(--motion-state) ease;
-}
+/* Base field recipe (width/padding/border/radius/background-color/font-size/
+   font-family/appearance/box-shadow/transition), hover border-color, focus/
+   focus-visible and the checkbox/radio accent-color now all come from
+   @generated:ui-components above (COMPONENTS.md §6). The <select> chevron
+   below is the one page-level exception §6.1 keeps hand-maintained -- it
+   only makes sense once appearance:none has removed the native arrow. */
 /* Custom chevron for <select> — native arrow removed by appearance:none. Use
    background-image / background-repeat / background-position as LONGHANDS so themed
    overrides that only set background-color preserve the chevron. */
@@ -906,15 +938,20 @@ html.motion-ready .vocab-note-save[hidden] { display: none; opacity: 0; translat
   max-width: 100%;
 }
 .vocab-filter-toolbar select { flex: 0 1 auto; min-width: 0; }
+/* padding/font-size/line-height now come from @generated:ui-components above
+   (COMPONENTS.md §6.1 toolbar-scoped field variant, Appendix C3, defect 2) --
+   `font: inherit` is gone too: it was a shorthand that also reset font-size/
+   line-height to their inherited values, which would have silently outranked
+   the generated recipe's explicit font-size/line-height for this exact
+   selector (same specificity, later source). font-family still comes from
+   the page-wide `button, input, select, textarea { font-family: inherit }`
+   rule near the top of this file, so nothing is lost. */
 .vocab-batch-bar input[type="text"] {
   min-width: 0;
-  padding: var(--lib-sp-1) var(--lib-sp-2);
   border: 1px solid var(--lib-input-border, #cdd1d6);
   border-radius: var(--lib-radius-md);
   background-color: var(--lib-input-bg, #fff);
   color: var(--lib-fg);
-  font: inherit;
-  font-size: 12px;
   box-sizing: border-box;
 }
 .vocab-batch-bar input[type="text"]:focus-visible {
@@ -1117,9 +1154,28 @@ html.motion-ready .vocab-batch-bar.selecting {
 }
 .vocab-batch-bar .notes-count { flex: none; font-weight: 500; color: var(--lib-fg, #333); }
 /* Icon-only action cells (user-ratified: no labels -- width thrift + long-
-   locale safety). Names live in title/aria; ~30px cells keep the >=24px hit. */
+   locale safety). Names live in title/aria. Width alone clears >=24px, but
+   the sm rung's height (20px, COMPONENTS.md §1.1) doesn't -- see the
+   #vocab-invert-selection hit-area expansion just below for the one
+   USER-RULING-mandated instance. */
 .vocab-batch-bar > .btn:not(.vocab-group-step),
 .vocab-batch-cluster > .btn { padding-inline: 6px; } /* options --opt-sp-3 (6px) */
+/* §1.5 hit-area expansion (same recipe as .row-del-x above, vertical-only
+   here: the row's align-items:center means only THIS button would grow,
+   with no horizontal neighbor to collide with -- top/bottom -2px each adds
+   4px to the 20px sm-rung box, landing exactly on the 24px floor).
+   USER RULING hard-asserts 24px for this specific icon-only button; a real
+   height increase was rejected (it would re-break the #vocab-group-input
+   rowRungEq alignment defect 2 just fixed, since .btn-sm siblings must stay
+   height-equal) so the fix expands the CLICKABLE area without expanding the
+   VISUAL box -- content:"" + position:absolute still participates in
+   pointer hit-testing despite painting nothing. Known limitation: this
+   repo's render-audit hitAreaMin check reads plain getBoundingClientRect()
+   on the host element, which a ::before overlay never changes -- so this
+   fix is real (verifiable by hand: click 2px above/below the icon) but the
+   known-failures key for it stays outstanding; see task-9-report.md. */
+#vocab-invert-selection { position: relative; }
+#vocab-invert-selection::before { content: ""; position: absolute; inset: -2px 0; }
 .vocab-batch-bar input[type="text"] { flex: 1 1 120px; min-width: 0; }
 /* Input + stepper unit: one visual control, native-stepper style. The two
    icon-only steppers are fixed 28px cells fused to the input's right edge. */
