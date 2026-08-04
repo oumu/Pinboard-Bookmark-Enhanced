@@ -117,18 +117,56 @@ a { color: var(--lib-link, #1a66c2); }
 input[type="checkbox"] { accent-color: var(--lib-accent, #1a73e8); }
 
 /* @generated:ui-components start (library) */
-/* populated per-family in later tasks */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--lib-sp-1);
+  padding: var(--lib-sp-1) var(--lib-sp-4);
+  font-size: 12px;
+  line-height: 16px;
+  font-family: inherit;
+  cursor: pointer;
+  border: 1px solid var(--lib-border);
+  border-radius: var(--lib-radius-md);
+  background: var(--lib-btn-bg);
+  color: var(--lib-btn-fg);
+  transition: background var(--motion-state), border-color var(--motion-state), color var(--motion-state);
+}
+.btn:hover:not(:disabled) {
+  background: var(--lib-btn-hover);
+}
+.btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.btn:focus-visible {
+  outline: 2px solid var(--lib-accent);
+  outline-offset: 2px;
+}
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.btn-sm {
+  padding: 2px var(--lib-sp-2);
+  font-size: 11px;
+  line-height: 14px;
+}
+.btn.ghost {
+  background: transparent;
+  border-color: transparent;
+}
+.btn.ghost:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--lib-fg) 6%, var(--lib-bg));
+}
 /* @generated:ui-components end (library) */
 
-/* ---- Buttons (ported from options.css .btn / .btn-sm family) ---- */
-.btn { padding: var(--lib-sp-1) var(--lib-sp-4); font-size: 12px; cursor: pointer; border: 1px solid var(--lib-border, #999); background: var(--lib-btn-bg, #f5f5f0); border-radius: var(--lib-radius-md); transition: background var(--motion-state), border-color var(--motion-state), color var(--motion-state), transform var(--motion-state); }
-.btn:hover:not(:disabled) { background: var(--lib-btn-hover, #eef2f9); }
-/* Scale, not translateY: a press-down affordance that also reads on wide/short
-   buttons where a 1px vertical nudge is barely visible. */
-.btn:active:not(:disabled) { transform: scale(0.97); }
-.btn:focus-visible { outline: 2px solid var(--lib-accent, #4477bb); outline-offset: 2px; }
-.btn:disabled { opacity: 0.45; cursor: not-allowed; }
-.btn-sm { padding: 2px var(--lib-sp-2); font-size: 11px; }
+/* ---- Buttons: danger tier only (base .btn/.btn-sm/.btn.ghost geometry +
+   color + state feedback now come from @generated:ui-components above —
+   COMPONENTS.md §1/§3). Danger stays hand-written pending Task 10 (defect 6);
+   its higher specificity (.btn.danger, 0,2,0) already wins over the
+   generated .btn base (0,1,0) regardless of source order, so nothing else
+   needs to change here. */
 .btn.danger { color: var(--lib-danger, #c00); border-color: color-mix(in srgb, var(--lib-danger, #c00) 55%, var(--lib-border, #ccc)); }
 .btn.danger:hover:not(:disabled) { background: color-mix(in srgb, var(--lib-danger, #c00) 8%, var(--lib-btn-bg, #fff)); }
 

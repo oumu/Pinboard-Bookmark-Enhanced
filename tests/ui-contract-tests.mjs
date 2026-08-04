@@ -445,9 +445,19 @@ check(sharedJs.includes('const state = ok ? "ok" : "bad"') &&
 {
   const optionsCss = read("options.css");
   const src = optionsCss.replace(/\/\*[\s\S]*?\*\//g, "");
-  const rootStart = src.indexOf(":root {");
-  const declaredOnRoot = new Set(
-    [...src.slice(rootStart, src.indexOf("\n}", rootStart)).matchAll(/(--opt-[a-z0-9-]+)\s*:/g)].map((m) => m[1]));
+  // Fold EVERY top-level `:root { ... }` block, not just the first: Task 5
+  // added a second one (generated, at the end of @generated:ui-themes) that
+  // supplies the default-state value for a handful of newly-derived tokens
+  // (--opt-btn-fg among them) alongside the original hand-written block up
+  // top. Same "browser-applied" folding contrast-audit.mjs already does for
+  // this exact two-:root-blocks shape (task-7-report.md) -- a single-block
+  // scan here would flag those tokens as "invisible" even though the second
+  // block makes them resolve just fine (same specificity, later source wins
+  // is irrelevant to *whether* it resolves, only to *which value* wins).
+  const declaredOnRoot = new Set();
+  for (const rootMatch of src.matchAll(/:root\s*\{([^}]*)\}/g)) {
+    for (const m of rootMatch[1].matchAll(/(--opt-[a-z0-9-]+)\s*:/g)) declaredOnRoot.add(m[1]);
+  }
   // Brace walk rather than a line scan: single-line rules, multi-line selector
   // lists and the @supports/@media wrappers all have to resolve to the right
   // governing selector, and a line-based version silently mis-attributed a
