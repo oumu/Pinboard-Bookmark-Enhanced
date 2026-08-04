@@ -19,11 +19,38 @@ const DEFAULT_LIGHT = {
                                  // already 5.89:1 on --opt-danger default, clears AA unmodified.
   "chip-bg": "#e8edf4",         // options has no existing chip role. Derived, not copied: 10% of
                                  // --opt-accent default (#4477bb) mixed over --opt-panel default
-                                 // (#fafafa) — the same color-mix(accent 10%, transparent) formula
-                                 // library's real .vocab-group-chip already uses, resolved to a
-                                 // literal hex since nothing renders this token yet.
+                                 // (#fafafa at the time this was derived — see the "panel" entry
+                                 // below, corrected post-derivation; the 1.4pp panel delta doesn't
+                                 // move this flat literal enough to matter) — the same
+                                 // color-mix(accent 10%, transparent) formula library's real
+                                 // .vocab-group-chip already uses, resolved to a literal hex since
+                                 // nothing renders this token yet.
   "chip-fg": "#333333",         // = --opt-fg default (#333), fgToAA(fg, chip-bg) is identity at
                                  // 10.73:1 — already AA-clear against the pale tint above.
+  // Task 12 review round 2 (B-class "补角色"): `body`/`.panel` had their own
+  // hardcoded, hand-maintained :root defaults that never matched what these
+  // two elements actually painted (bg was #fff but body painted #f5f5f0;
+  // panel was #fafafa but .panel painted #fff) -- a real pre-existing gap
+  // this task closes by moving both into the audited DEFAULT_LIGHT layer
+  // with the values that match what ships today, then routing consumption
+  // through the bare token instead of a page-local one-off. Corrective
+  // ripple to two pre-existing bare/fallback consumers is intentional and
+  // logged in COMPONENTS.md Appendix C: .btn.ghost:hover / .btn.danger.ghost
+  // :hover's color-mix(fg, --opt-bg) base shifts fff->f5f5f0, and
+  // .accordion-header:hover / .preset-preview-section summary's panel-based
+  // background shifts fafafa->fff.
+  "bg": "#f5f5f0",               // = body's real unthemed background (options.css body rule).
+  "panel": "#ffffff",            // = .panel's real unthemed background (options.css .panel rule).
+  // --opt-save / --opt-warn had NO default-light value at all (per-theme
+  // only) and every unthemed consumer had independently invented its own
+  // var(x, literal) fallback text -- three different ad-hoc "warn" ambers
+  // and two different "save" greens drifted in from different call sites.
+  // Both converge here on the value that already clears 4.5:1 against this
+  // default bg (#f5f5f0) — see task-12 fix report for the contrast math —
+  // and that also happens to equal github-light's real per-theme value for
+  // the same role, so the default surface and one of the 13 presets agree.
+  "save": "#1a7f37",
+  "warn": "#9a6700",
 };
 
 // Map canonical UI colors (from _ui-derive) + a few options-only roles to --opt-* names.

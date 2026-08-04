@@ -182,6 +182,7 @@
         "code-bg": "#E6E4D9",
         "pf-bg": "#E6E4D9",
         "danger": "#AF3029",
+        "warn": "#AD8301",
         "radius-lg": "8px"
       },
       "dark": {
@@ -192,6 +193,7 @@
         "code-bg": "#1C1B1A",
         "pf-bg": "#1C1B1A",
         "danger": "#E8705F",
+        "warn": "#D0A215",
         "radius-lg": "8px"
       }
     }

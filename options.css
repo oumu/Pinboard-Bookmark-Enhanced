@@ -63,13 +63,16 @@
   --opt-focus-bd: color-mix(in srgb, var(--opt-accent, #4477bb) 55%, var(--opt-input-bg, #fff));
   --opt-focus-ring: 0 0 6px 1px color-mix(in srgb, var(--opt-accent, #4477bb) 45%, transparent);
 
-  /* Color defaults — themes already define these in html[data-theme] blocks */
+  /* Color defaults — themes already define these in html[data-theme] blocks.
+     --opt-bg / --opt-panel moved to composer DEFAULT_LIGHT (Task 12 review
+     round 2, options-chrome.mjs) -- they needed values that matched what
+     body/.panel actually paint (bg=#f5f5f0, panel=#fff), not the generic
+     #fff/#fafafa guess this block used to carry; keeping a second,
+     shadowed definition here would just be confusing dead weight. */
   --opt-accent: #4477bb;
   --opt-accent-hover: #2255aa;
   --opt-fg: #333;
   --opt-fg-muted: #666;
-  --opt-bg: #fff;
-  --opt-panel: #fafafa;
   --opt-border: #ccc;
   --opt-danger: #c00;
   /* .btn's own default-state fallback (Task 9): the generated .btn base rule
@@ -100,6 +103,23 @@
      is the correct, lowest-risk migration: one definition, reused bare. */
   --opt-fg-soft: #555;
   --opt-fg-dim: #444;
+  /* Task 12 review round 2 (C-class, 11 tokens): page-local one-off colors
+     that reviewer round 1 left as var(--opt-X, literal) inline fallbacks --
+     none of them has (or should have) a per-theme role (none appear in any
+     html[data-theme="..."] block, confirmed by grep), so a real :root
+     default is strictly equivalent to the fallback text it replaces in
+     every state, themed or not: 0 diff by construction. */
+  --opt-tab-hover-border: #bbb;
+  --opt-tab-hover-bg: rgba(0,0,0,0.03);
+  --opt-error-border: #f5c6c6;
+  --opt-option-hover-bg: rgba(127,127,127,.14);
+  --opt-overlimit-fg: #ff5050;
+  --opt-pf-border: #e0e0d8;
+  --opt-preset-active-border: #3366aa;
+  --opt-preview-border: #ddd;
+  --opt-preview-hover-bg: #f0f0f0;
+  --opt-preview-content-bg: #f6f8fa;
+  --opt-select-hover-bg: #f1f5f9;
 }
 
 /* ---- Base ---- */
@@ -112,7 +132,7 @@
    Latin fonts to the bare `sans-serif` keyword, which resolves to the profile's Standard font;
    if that's a large/slow font (e.g. a custom Sarasa/CJK family) its first-time glyph shaping on
    the text-heavy AI panel stalls >1s. Naming YaHei/PingFang uses a fast system CJK font instead. */
-body { font-family: "Helvetica Neue", Verdana, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei", sans-serif; background: var(--opt-body-bg, #f5f5f0); color: var(--opt-fg); font-size: 13px; }
+body { font-family: "Helvetica Neue", Verdana, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei", sans-serif; background: var(--opt-bg); color: var(--opt-fg); font-size: 13px; }
 /* Form controls don't inherit font-family by default — without this, <button>/<input>/<select>
    fall to the UA default ("Arial"), which has NO CJK glyphs, so their Chinese labels drop to the
    profile's Standard font (e.g. Sarasa UI SC) and pay the slow first-load stall. Inherit the body
@@ -174,7 +194,7 @@ h1 { font-size: 18px; color: var(--opt-fg); margin-bottom: var(--opt-sp-7); bord
   transition: color var(--motion-state), border-color var(--motion-state), background-color var(--motion-state);
 }
 /* Focus ring: shared soft-focus recipe below the .fg focus rules. */
-.tab-btn:hover:not(.active) { color: var(--opt-fg); border-left-color: var(--opt-tab-hover-border, #bbb); background: var(--opt-tab-hover-bg, rgba(0,0,0,0.03)); }
+.tab-btn:hover:not(.active) { color: var(--opt-fg); border-left-color: var(--opt-tab-hover-border); background: var(--opt-tab-hover-bg); }
 .tab-btn.active { color: var(--opt-fg); font-weight: bold; border-left-color: var(--opt-fg); background: var(--opt-tab-active, rgba(0,0,0,0.05)); }
 .reset-tab-btn {
   margin: var(--opt-sp-6) 0 0 0; padding: var(--opt-sp-5) var(--opt-sp-5) 0;
@@ -211,7 +231,7 @@ h1 { font-size: 18px; color: var(--opt-fg); margin-bottom: var(--opt-sp-7); bord
    cost seconds at 4K). Inactive panels lay out lazily on first tab-switch; that switch
    used to be slow too, but the emoji→SVG fix removed the per-panel stall, so both
    open AND switch are now fast. */
-.panel { background: var(--opt-card-bg, #fff); border: 1px solid var(--opt-border); display: none; }
+.panel { background: var(--opt-panel); border: 1px solid var(--opt-border); display: none; }
 .panel.active { grid-column: 2; grid-row: 2; display: block; padding: var(--opt-sp-6); border-width: 1px; border-radius: var(--opt-radius-md); }
 
 /* ---- Form groups ---- */
@@ -266,9 +286,9 @@ h1 { font-size: 18px; color: var(--opt-fg); margin-bottom: var(--opt-sp-7); bord
    supplies icon-to-text spacing via its own `gap`; a hand-written margin
    here would have stacked on top of it (8px instead of the intended 4px). */
 .btn .ext-icon { width: 11px; height: 11px; vertical-align: -1px; }
-html[data-theme] .panel-foot { border-top-color: var(--opt-border-section, var(--opt-border)); }
+/* .panel-foot a: second form -- unthemed link uses the plain --opt-fg-muted
+   role, themed states use --opt-fg-hint instead. */
 html[data-theme] .panel-foot a { color: var(--opt-fg-hint, var(--opt-fg-muted)); }
-html[data-theme] .panel-foot a:hover { color: var(--opt-accent); }
 
 /* ---- Common elements ---- */
 /* line-height 1.5: multi-line hint prose (several run long in de/ru, and CJK
@@ -300,7 +320,7 @@ html[data-theme] .panel-foot a:hover { color: var(--opt-accent); }
   margin-right: var(--opt-sp-1);
   border: 1px solid var(--opt-input-border);
   border-radius: var(--opt-radius-sm);
-  background: var(--opt-kbd-bg, #f5f5f0);
+  background: var(--opt-input-bg);
   color: var(--opt-fg);
   font-family: "SF Mono", Consolas, Menlo, "Liberation Mono", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei", monospace;
   font-size: 11px;
@@ -325,8 +345,7 @@ html[data-theme] .kbd-help-chips kbd {
 .free-tier-help summary:hover { text-decoration: underline; }
 .free-tier-help[open] summary { margin-bottom: var(--opt-sp-2); }
 html[data-theme] .free-tier-help { color: var(--opt-text-muted, #888); }
-html[data-theme] .free-tier-help summary { color: var(--opt-accent, #4477bb); }
-.opt-error { font-size: 12px; color: var(--opt-danger); margin: var(--opt-sp-2) 0 var(--opt-sp-4); padding: var(--opt-sp-3) var(--opt-sp-4); background: var(--opt-danger-bg, #fff0f0); border: 1px solid var(--opt-error-border, #f5c6c6); border-radius: var(--opt-radius-sm); }
+.opt-error { font-size: 12px; color: var(--opt-danger); margin: var(--opt-sp-2) 0 var(--opt-sp-4); padding: var(--opt-sp-3) var(--opt-sp-4); background: color-mix(in srgb, var(--opt-danger) 8%, var(--opt-bg)); border: 1px solid var(--opt-error-border); border-radius: var(--opt-radius-sm); }
 .opt-error.hidden { display: none; }
 /* Generic utility (same convention as popup.css). options.css historically only had
    the two scoped variants above/below — bare class="hidden" elements (the tag-gov
@@ -336,8 +355,6 @@ html[data-theme] .free-tier-help summary { color: var(--opt-accent, #4477bb); }
 /* Danger reads from a left strip, not a full-strength perimeter -- the full
    --opt-danger ring looked like an alert frame on dark themes. */
 html[data-theme] .opt-error {
-  color: var(--opt-danger, #e55);
-  background: var(--opt-danger-bg, rgba(220,80,80,0.08));
   border-color: color-mix(in srgb, var(--opt-danger, #e55) 35%, var(--opt-border, #ccc));
   box-shadow: inset 3px 0 0 color-mix(in srgb, var(--opt-danger, #e55) 75%, transparent);
 }
@@ -495,7 +512,7 @@ input[type="checkbox"], input[type="radio"] {
    This is why fixing only the Latin half left Bookmark/Appearance still stalling. */
 .fg textarea { resize: vertical; min-height: 80px; font-family: "SF Mono", Consolas, Menlo, "Liberation Mono", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei", monospace; font-size: 11px; line-height: 1.5; }
 .vocab-entry-row { display: flex; align-items: center; gap: var(--opt-sp-4); }
-.save-status { font-size: 12px; color: var(--opt-save, #080); margin-left: var(--opt-sp-4); }
+.save-status { font-size: 12px; color: var(--opt-save); margin-left: var(--opt-sp-4); }
 .save-status.bad { color: var(--opt-danger); }
 /* Same precedent as .backup-actions below: the row's own flex gap already
    spaces button from status, so drop .save-status's inline indent here too. */
@@ -507,9 +524,9 @@ input[type="checkbox"], input[type="radio"] {
 .sync-local-only {
   margin: var(--opt-sp-3) 0 0;
   padding: var(--opt-sp-3) var(--opt-sp-4);
-  border-left: 3px solid var(--opt-warn, #9a6700);
+  border-left: 3px solid var(--opt-warn);
   border-radius: var(--opt-radius-sm, 3px);
-  background: color-mix(in srgb, var(--opt-warn, #9a6700) 9%, var(--opt-panel, #fff));
+  background: color-mix(in srgb, var(--opt-warn) 9%, var(--opt-panel));
   color: var(--opt-fg, #333);
   font-size: 12px;
 }
@@ -585,12 +602,12 @@ html.motion-ready .backup-import-result:not([hidden]) {
   .backup-preview-counts > div,
   .backup-import-result > div { grid-template-columns: minmax(0, 1fr); gap: 0; }
 }
-.field-warn { display:none; font-size: 12px; color: var(--opt-warn-soft, #b85c00); margin-top: var(--opt-sp-2); }
+.field-warn { display:none; font-size: 12px; color: var(--opt-warn); margin-top: var(--opt-sp-2); }
 .field-warn.visible { display: block; }
 .section-title { display: block; font-size: 13px; font-weight: bold; color: var(--opt-fg-dim); margin-bottom: var(--opt-sp-4); margin-top: var(--opt-sp-4); }
 
 /* ---- Provider fields ---- */
-.pf { margin-top: var(--opt-sp-4); padding: var(--opt-sp-5); background: var(--opt-pf-bg, #f9f9f6); border: 1px solid var(--opt-pf-border, #e0e0d8); border-radius: var(--opt-radius-md); }
+.pf { margin-top: var(--opt-sp-4); padding: var(--opt-sp-5); background: var(--opt-pf-bg, #f9f9f6); border: 1px solid var(--opt-pf-border); border-radius: var(--opt-radius-md); }
 .pf[hidden] { display: none; }
 /* Same reveal recipe as .backup-import-preview, but the transition lives
    inside :not([hidden]): provider switches swap two panels at once, and an
@@ -628,9 +645,14 @@ html.motion-ready .pf:not([hidden]) {
   padding-right: 26px;
   cursor: pointer;
 }
+/* Reuses the same hover-border recipe as the generated .fg field family
+   above (COMPONENTS.md §6.1's "et-field mirrors .fg" convention) instead of
+   its own fixed literal (Task 12 review round 2, Minor) -- .et-field never
+   shared the generated selector list (it predates the ui-components region),
+   so this was drifting into its own one-off gray with no per-theme role. */
 .et-field input[type="text"]:hover:not(:focus),
 .et-field input[type="password"]:hover:not(:focus),
-.et-field select:hover:not(:focus) { border-color: var(--opt-et-hover-border, #9aa0a6); }
+.et-field select:hover:not(:focus) { border-color: color-mix(in srgb, var(--opt-input-border) 55%, var(--opt-fg)); }
 .et-field input[type="text"]:focus,
 .et-field input[type="password"]:focus,
 .et-field select:focus { outline: none; border-color: var(--opt-focus-bd); }
@@ -640,17 +662,15 @@ html.motion-ready .pf:not([hidden]) {
 html[data-theme] .et-field input[type="text"],
 html[data-theme] .et-field input[type="password"],
 html[data-theme] .et-field select {
-  background-color: var(--opt-input-bg); border-color: var(--opt-input-border); color: var(--opt-fg);
+  color: var(--opt-fg);
 }
+/* Second form, not a leftover: the base hover rule now shares the generated
+   .fg field family's color-mix hover-border formula (Task 12 review round 2,
+   Minor); themed states still swap to the flat --opt-fg-muted role instead,
+   same as they always have. */
 html[data-theme] .et-field input[type="text"]:hover:not(:focus),
 html[data-theme] .et-field input[type="password"]:hover:not(:focus),
 html[data-theme] .et-field select:hover:not(:focus) { border-color: var(--opt-fg-muted); }
-html[data-theme] .et-field input[type="text"]:focus,
-html[data-theme] .et-field input[type="password"]:focus,
-html[data-theme] .et-field select:focus { border-color: var(--opt-focus-bd); }
-html[data-theme] .et-field input[type="text"]:focus-visible,
-html[data-theme] .et-field input[type="password"]:focus-visible,
-html[data-theme] .et-field select:focus-visible { box-shadow: var(--opt-focus-ring); }
 
 /* ---- Accordion ---- */
 .accordion-section { border-bottom: 1px solid var(--opt-border-section, #e8e8e8); }
@@ -792,7 +812,7 @@ html.motion-ready #preset-preview-section > summary::after {
      attention. Ratified on-device 2026-08 -- do not converge to the token. */
   transition: color 0.3s;
 }
-.auto-save-hint.saved { color: var(--opt-save, #080); }
+.auto-save-hint.saved { color: var(--opt-save); }
 
 /* ---- Accessibility: visually hide but keep for screen readers ---- */
 .sr-only {
@@ -806,14 +826,19 @@ html.motion-ready #preset-preview-section > summary::after {
 .theme-group-label { font-size: 11px; color: var(--opt-fg-hint, #757575); text-transform: uppercase; letter-spacing: 0.05em; min-width: 60px; flex-shrink: 0; white-space: nowrap; padding-right: var(--opt-sp-3); box-sizing: content-box; }
 .theme-preset-btn { position: relative; }
 .theme-preset-btn:focus-visible { outline: 2px solid var(--opt-accent, #4477bb); outline-offset: 2px; }
+/* color/border below use --opt-panel (the fixed white-ish surface role), not
+   --opt-bg (the page role) -- this is text/a tick mark sitting on a solid
+   --opt-accent fill, not page content, and needs a reliably light color in
+   the unthemed state specifically (panel's default is #fff; bg's is now
+   #f5f5f0, Task 12 review round 2). */
 .theme-preset-btn.active,
-.saved-theme-btn.active { background: var(--opt-accent); color: var(--opt-bg); border-color: var(--opt-preset-active-border, #3366aa); font-weight: 600; }
+.saved-theme-btn.active { background: var(--opt-accent); color: var(--opt-panel); border-color: var(--opt-preset-active-border); font-weight: 600; }
 /* Selected preset gets a check tick drawn with borders (no emoji/dingbat char —
    see font-fallback stall rule); extra left padding keeps it clear of the label. */
 .theme-preset-btn.active { padding-left: 20px; }
 .theme-preset-btn.active::after {
   content: ""; position: absolute; left: 8px; top: 50%; margin-top: -5px;
-  width: 4px; height: 8px; border: solid var(--opt-bg); border-width: 0 2px 2px 0;
+  width: 4px; height: 8px; border: solid var(--opt-panel); border-width: 0 2px 2px 0;
   transform: rotate(45deg);
 }
 
@@ -824,7 +849,7 @@ html.motion-ready #preset-preview-section > summary::after {
      the row is hovered / focus-within / the button itself is focused. */
   position: absolute; top: -6px; right: -6px;
   min-width: 16px; height: 16px; padding: 0 var(--opt-sp-1);
-  border-radius: 50%; background: var(--opt-del-badge-bg, #c00); color: var(--opt-del-badge-fg, #fff); border: none;
+  border-radius: 50%; background: var(--opt-danger); color: var(--opt-on-danger); border: none;
   font-size: 11px; line-height: 16px; text-align: center; cursor: pointer;
   opacity: 0; visibility: hidden;
   /* --motion-state, not a bespoke 0.12s: this is hover-reveal feedback, the
@@ -858,9 +883,8 @@ html.motion-ready #preset-preview-section > summary::after {
 .status-ic svg { display: block; }
 /* Same green/red contract as popup.css — the tag-gov progress counters use these
    classes and rendered uncolored without them (the rules lived only in popup.css). */
-.status-ic.ok { color: var(--opt-status-ok, #2a8a2a); }
-.status-ic.bad { color: var(--opt-status-bad, #c0392b); }
-html[data-theme] .status-ic.bad { color: var(--opt-danger, #c0392b); }
+.status-ic.ok { color: var(--opt-save); }
+.status-ic.bad { color: var(--opt-danger); }
 .key-toggle:hover { color: var(--opt-fg-soft); }
 .key-toggle:focus-visible { outline: 2px solid var(--opt-accent, #4477bb); outline-offset: 1px; }
 
@@ -1046,6 +1070,7 @@ html[data-theme="flexoki-light"] {
   --opt-radius-md: 6px;
   --opt-radius-lg: 8px;
   --opt-danger: #AF3029;
+  --opt-warn: #AD8301;
   --opt-btn-fg: #100f0f;
   --opt-danger-quiet-fg: #af3029;
   --opt-on-danger: #fffcf0;
@@ -1075,6 +1100,7 @@ html[data-theme="flexoki-dark"] {
   --opt-radius-md: 6px;
   --opt-radius-lg: 8px;
   --opt-danger: #E8705F;
+  --opt-warn: #D0A215;
   --opt-btn-fg: #cecdc3;
   --opt-danger-quiet-fg: #eb8071;
   --opt-on-danger: #1c1b1a;
@@ -1300,22 +1326,31 @@ html[data-theme="github-light"] {
   --opt-on-danger: #ffffff;
   --opt-chip-bg: #e8edf4;
   --opt-chip-fg: #333333;
+  --opt-bg: #f5f5f0;
+  --opt-panel: #ffffff;
+  --opt-save: #1a7f37;
+  --opt-warn: #9a6700;
 }
 /* @generated:ui-themes end */
 
-/* ---- Shared themed rules ---- */
-html[data-theme] body { background: var(--opt-bg); color: var(--opt-fg); }
-html[data-theme] h1 { color: var(--opt-fg); border-color: var(--opt-border); }
-html[data-theme] .tab-btn { color: var(--opt-fg-muted); }
-html[data-theme] .tab-btn:hover:not(.active) { color: var(--opt-fg); border-left-color: var(--opt-border); background: color-mix(in srgb, var(--opt-accent) 8%, transparent); }
-html[data-theme] .tab-btn.active { color: var(--opt-fg); border-left-color: var(--opt-accent, var(--opt-fg)); background: var(--opt-tab-active); }
+/* ---- Shared themed rules ----
+   Task 12 review round 2 (Important 2): every rule below that ONLY restated a
+   property the base (unthemed) rule already reads from the identical bare
+   token was deleted -- once base goes bare, its own var() already resolves to
+   the per-theme value the moment html[data-theme] is present, so the override
+   was pure duplication. What's left is either a property the base rule never
+   sets at all, or a genuine second form (a different token / different
+   formula for the themed state) -- both kept, see individual comments. */
+html[data-theme] .tab-btn:hover:not(.active) { border-left-color: var(--opt-border); background: color-mix(in srgb, var(--opt-accent) 8%, transparent); }
+html[data-theme] .tab-btn.active { border-left-color: var(--opt-accent, var(--opt-fg)); }
 /* border-left-color: the mobile layout swaps the divider edge (border-top: 0;
    border-left: 1px) — theme both edges or narrow dark windows keep the light
    #e0e0e0 hairline. Zero effect on desktop (border-left-width is 0 there). */
-html[data-theme] .reset-tab-btn { color: var(--opt-fg-hint, var(--opt-fg-muted)); border-top-color: var(--opt-border-section, var(--opt-border)); border-left-color: var(--opt-border-section, var(--opt-border)); }
-html[data-theme] .reset-tab-btn:hover { color: var(--opt-danger, #e55); }
-html[data-theme] .panel { background: var(--opt-panel); border-color: var(--opt-border); }
+html[data-theme] .reset-tab-btn { border-left-color: var(--opt-border-section, var(--opt-border)); }
 html[data-theme] .fg label { color: var(--opt-fg); }
+/* .fg label.bl: deliberate second form, not a leftover fallback -- unthemed
+   uses --opt-fg-soft (#555, one step darker than --opt-fg-muted) but every
+   themed state reads the plain --opt-fg-muted role instead. */
 html[data-theme] .fg label.bl { color: var(--opt-fg-muted); }
 /* Dark-bg themes: lighter chevron stroke so the arrow reads against dark input
    fill. Covers all 8 color-scheme:dark presets (gruvbox-dark / rose-pine were
@@ -1371,7 +1406,7 @@ html[data-theme="rose-pine"] .mobile-tab-picker select {
   padding: var(--opt-sp-3) 26px var(--opt-sp-3) var(--opt-sp-5);
 }
 .fg select:hover:not(:focus), .et-field select:hover:not(:focus) {
-  background-color: var(--opt-select-hover-bg, #f1f5f9);
+  background-color: var(--opt-select-hover-bg);
   border-color: var(--opt-input-border);
 }
 html[data-theme] .fg select, html[data-theme] .et-field select {
@@ -1422,10 +1457,10 @@ html[data-theme] .fg select:hover:not(:focus), html[data-theme] .et-field select
     cursor: pointer;
   }
   .fg option:hover, .et-field option:hover, .mobile-tab-picker option:hover {
-    background: var(--opt-option-hover-bg, rgba(127,127,127,.14)); /* theme-agnostic row hover, same value as md-preview's --row-hover fallback */
+    background: var(--opt-option-hover-bg); /* theme-agnostic row hover, same value as md-preview's --row-hover fallback */
   }
   .fg option:focus-visible, .et-field option:focus-visible, .mobile-tab-picker option:focus-visible {
-    background: var(--opt-option-hover-bg, rgba(127,127,127,.14));
+    background: var(--opt-option-hover-bg);
     outline: 2px solid var(--opt-accent, #4477bb);
     outline-offset: -2px;
   }
@@ -1435,37 +1470,37 @@ html[data-theme] .fg select:hover:not(:focus), html[data-theme] .et-field select
     font-weight: 600;
   }
 }
-html[data-theme] .hint { color: var(--opt-fg-hint); }
-html[data-theme] .hint a { color: var(--opt-accent); }
-html[data-theme] .hint code { background: var(--opt-code-bg); color: var(--opt-fg-muted); }
-html[data-theme] .divider { border-color: var(--opt-border-section); }
-html[data-theme] .pf { background: var(--opt-pf-bg); border-color: var(--opt-border); }
+html[data-theme] .hint code { color: var(--opt-fg-muted); }
+/* .pf border-color: second form -- unthemed uses --opt-pf-border (#e0e0d8,
+   a one-off tint), themed states fall back to the plain --opt-border role. */
+html[data-theme] .pf { border-color: var(--opt-border); }
+/* .pf h3 / .et-onboarding: second form, same shape as .fg label.bl above --
+   unthemed reads --opt-fg-soft, themed reads --opt-fg-muted. */
 html[data-theme] .pf h3 { color: var(--opt-fg-muted); }
 html[data-theme] .et-onboarding { color: var(--opt-fg-muted); }
-html[data-theme] .et-onboarding summary { color: var(--opt-accent); }
 .et-test { display: flex; align-items: center; gap: var(--opt-sp-4); }
 .et-test-status { font-size: 12px; }
-.et-test-status.ok { color: var(--opt-save, #1a7f37); }
-.et-test-status.err { color: var(--opt-status-err, #cf222e); }
-.et-test-status.warn { color: var(--opt-warn, #9a6700); }
+.et-test-status.ok { color: var(--opt-save); }
+.et-test-status.err { color: var(--opt-danger); }
+.et-test-status.warn { color: var(--opt-warn); }
 .et-doc-link { display: inline-block; margin-top: var(--opt-sp-3); }
-html[data-theme] .et-test-status.ok { color: var(--opt-save, #1a7f37); }
-html[data-theme] .et-test-status.err { color: var(--opt-danger, #cf222e); }
-html[data-theme] .et-test-status.warn { color: var(--opt-warn, #9a6700); }
+/* .section-title / .accordion-header / .accordion-header:hover: second form,
+   same shape as .fg label.bl / .pf h3 above -- unthemed reads the --fg-dim /
+   --accent-hover role, themed reads the plainer --fg-muted / --accent role. */
 html[data-theme] .section-title { color: var(--opt-fg-muted); }
-html[data-theme] .save-status { color: var(--opt-save); }
-html[data-theme] .save-status.bad { color: var(--opt-danger); }
-html[data-theme] .auto-save-hint { color: var(--opt-fg-hint); }
-html[data-theme] .auto-save-hint.saved { color: var(--opt-save); }
 html[data-theme] .accordion-header { color: var(--opt-fg-muted); }
 html[data-theme] .accordion-header:hover { color: var(--opt-accent); }
-html[data-theme] .accordion-section { border-color: var(--opt-border-section); }
+/* border-color: second form -- unthemed active preset border is the one-off
+   --opt-preset-active-border (#3366aa); themed states use the plain accent
+   role instead. color: second form too -- unthemed text-on-accent-fill uses
+   the fixed --opt-panel white, themed states use each theme's own --opt-bg
+   (pre-existing architecture, not something Task 12 introduced). */
 html[data-theme] .theme-preset-btn.active,
-html[data-theme] .saved-theme-btn.active { background: var(--opt-accent); border-color: var(--opt-accent); color: var(--opt-bg); }
+html[data-theme] .saved-theme-btn.active { border-color: var(--opt-accent); color: var(--opt-bg); }
 html[data-theme] .theme-preset-btn.active::after { border-color: var(--opt-bg); }
 html[data-theme] .saved-theme-del:focus-visible { outline-color: var(--opt-accent); }
-html[data-theme] .theme-group-label { color: var(--opt-fg-hint); }
-html[data-theme] .key-toggle { color: var(--opt-fg-hint); }
+/* .key-toggle:hover: second form -- unthemed hover is --opt-fg-soft (#555),
+   themed hover is the plain --opt-fg role. */
 html[data-theme] .key-toggle:hover { color: var(--opt-fg); }
 html[data-theme] .key-toggle:focus-visible { outline-color: var(--opt-accent); }
 html[data-theme] .theme-preset-btn:focus-visible { outline-color: var(--opt-accent); }
@@ -1498,7 +1533,7 @@ html[data-theme] textarea::-webkit-scrollbar-corner { background: var(--opt-pane
   flex-wrap: wrap;       /* long tag lists: buttons drop to their own row */
   max-width: min(60ch, 78vw);
   padding: var(--opt-sp-2) var(--opt-sp-4); font-size: 11px; color: var(--opt-danger);
-  background: var(--opt-bg); border: 1px solid var(--opt-border); border-radius: var(--opt-radius-sm);
+  background: var(--opt-panel); border: 1px solid var(--opt-border); border-radius: var(--opt-radius-sm);
   box-shadow: var(--opt-shadow-md);
 }
 html.motion-ready .confirm-popover {
@@ -1527,14 +1562,13 @@ html.motion-ready .confirm-popover.is-closing {
 .confirm-popover .confirm-no { background: none; color: var(--opt-fg-muted); border-color: var(--opt-border); }
 .confirm-popover .confirm-no:hover { background: var(--opt-btn-hover); }
 .confirm-popover button:focus-visible { outline: 2px solid var(--opt-accent, #4477bb); outline-offset: 1px; }
-html[data-theme] .confirm-popover { color: var(--opt-fg); background: var(--opt-panel); border-color: var(--opt-border); box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+html[data-theme] .confirm-popover { color: var(--opt-fg); box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
 /* .confirm-yes themed override deleted (COMPONENTS.md §4.2/C14): it used
    var(--opt-panel) as an unaudited foreground borrow and outranked the
    generated (0,2,0) rule by specificity (0,3,0) -- the generated
    .confirm-popover .confirm-yes now applies unconditionally across every
    data-theme state via var(--opt-danger)/var(--opt-on-danger) directly. */
-html[data-theme] .confirm-popover .confirm-no { color: var(--opt-fg); border-color: var(--opt-border); background: none; }
-html[data-theme] .confirm-popover .confirm-no:hover { background: var(--opt-btn-hover); }
+html[data-theme] .confirm-popover .confirm-no { color: var(--opt-fg); background: none; }
 
 /* ---- Theme name popover ---- */
 .save-theme-wrap { position: relative; display: inline-block; }
@@ -1542,7 +1576,7 @@ html[data-theme] .confirm-popover .confirm-no:hover { background: var(--opt-btn-
   position: absolute; left: 0; top: calc(100% + 6px); z-index: var(--opt-z-popover);
   display: flex; flex-direction: column; gap: var(--opt-sp-3);
   padding: var(--opt-sp-5) var(--opt-sp-5); min-width: 220px;
-  background: var(--opt-bg); border: 1px solid var(--opt-border); border-radius: var(--opt-radius-sm);
+  background: var(--opt-panel); border: 1px solid var(--opt-border); border-radius: var(--opt-radius-sm);
   box-shadow: 0 2px 10px rgba(0,0,0,0.14);
 }
 /* Same enter/exit recipe as .confirm-popover (both are createElement-then-
@@ -1570,12 +1604,12 @@ html.motion-ready .theme-name-popover.is-closing {
 .theme-name-popover input[type="text"]:focus { outline: none; border-color: var(--opt-accent); }
 .theme-name-popover input[type="text"]:focus-visible { box-shadow: 0 0 0 2px rgba(68,119,187,0.2); }
 .theme-name-popover .tnp-overwrite {
-  font-size: 11px; color: var(--opt-warn-soft, #b85c00); margin: 0;
+  font-size: 11px; color: var(--opt-warn); margin: 0;
 }
 .theme-name-popover .tnp-actions { display: flex; gap: var(--opt-sp-3); }
 .theme-name-popover .tnp-save {
   padding: var(--opt-sp-1) var(--opt-sp-4); font-size: 11px; cursor: pointer; border-radius: var(--opt-radius-sm);
-  background: var(--opt-accent); color: var(--opt-bg); border: 1px solid var(--opt-accent-hover);
+  background: var(--opt-accent); color: var(--opt-panel); border: 1px solid var(--opt-accent-hover);
 }
 .theme-name-popover .tnp-save:hover { background: var(--opt-accent-hover); }
 .theme-name-popover .tnp-cancel {
@@ -1584,16 +1618,14 @@ html.motion-ready .theme-name-popover.is-closing {
 }
 .theme-name-popover .tnp-cancel:hover { background: var(--opt-btn-hover); }
 
-html[data-theme] .theme-name-popover { background: var(--opt-panel); border-color: var(--opt-border); box-shadow: 0 2px 10px rgba(0,0,0,0.3); }
+html[data-theme] .theme-name-popover { box-shadow: 0 2px 10px rgba(0,0,0,0.3); }
 html[data-theme] .theme-name-popover label { color: var(--opt-fg); }
 html[data-theme] .theme-name-popover input[type="text"] { background: var(--opt-input-bg); border-color: var(--opt-border); color: var(--opt-fg); }
-html[data-theme] .theme-name-popover input[type="text"]:focus { border-color: var(--opt-accent); }
 html[data-theme] .theme-name-popover input[type="text"]:focus-visible { box-shadow: 0 0 0 2px color-mix(in srgb, var(--opt-accent) 25%, transparent); }
 html[data-theme] .theme-name-popover .tnp-overwrite { color: var(--opt-fg); }
-html[data-theme] .theme-name-popover .tnp-save { color: var(--opt-panel); background: var(--opt-fg); border-color: var(--opt-fg); }
+html[data-theme] .theme-name-popover .tnp-save { background: var(--opt-fg); border-color: var(--opt-fg); }
 html[data-theme] .theme-name-popover .tnp-save:hover { background: var(--opt-fg); box-shadow: inset 0 0 0 1px var(--opt-panel); }
-html[data-theme] .theme-name-popover .tnp-cancel { color: var(--opt-fg); border-color: var(--opt-border); background: none; }
-html[data-theme] .theme-name-popover .tnp-cancel:hover { background: var(--opt-btn-hover); }
+html[data-theme] .theme-name-popover .tnp-cancel { color: var(--opt-fg); }
 
 /* ---- Terminal monospace override ---- */
 html[data-theme="terminal"] body { font-family: "Courier New", Consolas, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei", monospace; }
@@ -1604,23 +1636,21 @@ html[data-theme="terminal"] .fg textarea { font-family: "Courier New", Consolas,
 .overlay-byte-counter {
   font-size: 11px;
   font-variant-numeric: tabular-nums;
-  color: var(--opt-counter-fg, #888);
+  color: var(--opt-fg-muted);
   font-family: "SF Mono", Consolas, Menlo, "Liberation Mono", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei", monospace;
 }
-.overlay-byte-counter.warn { color: var(--opt-warn, #d97706); }
+.overlay-byte-counter.warn { color: var(--opt-warn); }
 .overlay-byte-counter.over { color: var(--opt-danger); font-weight: 600; }
-#opt-custom-css.over-limit { border-color: var(--opt-overlimit-border, #c00) !important; box-shadow: 0 0 0 2px rgba(204,0,0,0.15) !important; }
-html[data-theme] .overlay-byte-counter { color: var(--opt-fg-muted); }
-html[data-theme] .overlay-byte-counter.warn { color: var(--opt-warn, #e08040); }
+#opt-custom-css.over-limit { border-color: var(--opt-danger) !important; box-shadow: 0 0 0 2px rgba(204,0,0,0.15) !important; }
 /* Bright red is a deliberate second form for the byte-over-limit state on dark
    surfaces -- brighter than any theme's own --opt-danger so it stays legible
    against dark panels, not a token gap. Task 12: same literal, now named. */
-html[data-theme] .overlay-byte-counter.over { color: var(--opt-overlimit-fg, #ff5050); }
+html[data-theme] .overlay-byte-counter.over { color: var(--opt-overlimit-fg); }
 
 /* ---- Preset preview (collapsible read-only) ---- */
 .preset-preview-section {
   margin-top: var(--opt-sp-6);
-  border: 1px solid var(--opt-preview-border, #ddd);
+  border: 1px solid var(--opt-preview-border);
   border-radius: var(--opt-radius-md);
   overflow: hidden;
 }
@@ -1631,21 +1661,21 @@ html[data-theme] .overlay-byte-counter.over { color: var(--opt-overlimit-fg, #ff
   background: var(--opt-panel);
   user-select: none;
 }
-.preset-preview-section summary:hover { background: var(--opt-preview-hover-bg, #f0f0f0); }
+.preset-preview-section summary:hover { background: var(--opt-preview-hover-bg); }
 .preset-preview-content {
   margin: 0;
   padding: var(--opt-sp-5) var(--opt-sp-5);
   max-height: 320px;
   overflow: auto;
-  background: var(--opt-preview-content-bg, #f6f8fa);
+  background: var(--opt-preview-content-bg);
   font-family: "SF Mono", Consolas, Menlo, "Liberation Mono", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei", monospace;
   font-size: 11px;
   line-height: 1.5;
   white-space: pre;
-  border-top: 1px solid var(--opt-preview-border, #ddd);
+  border-top: 1px solid var(--opt-preview-border);
 }
 html[data-theme] .preset-preview-section { border-color: var(--opt-border); }
-html[data-theme] .preset-preview-section summary { background: var(--opt-panel); color: var(--opt-fg-muted); }
+html[data-theme] .preset-preview-section summary { color: var(--opt-fg-muted); }
 html[data-theme] .preset-preview-section summary:hover { background: var(--opt-btn-hover); }
 html[data-theme] .preset-preview-content { background: var(--opt-bg); color: var(--opt-fg); border-top-color: var(--opt-border); }
 
@@ -1986,7 +2016,7 @@ html.motion-ready #tag-gov-progress:not([hidden]) {
   white-space: nowrap;
 }
 .tag-gov-problem-kind.bad {
-  color: var(--opt-tag-bad-fg, #c00);
+  color: var(--opt-danger);
 }
 .tag-gov-warns {
   margin-top: var(--opt-sp-5);
