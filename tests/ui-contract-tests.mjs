@@ -1681,6 +1681,43 @@ check(mdCss.includes("text-autospace: normal") && /#rendered-view :is\(pre, code
     "library.css: bare hex colors leaked outside var() fallbacks in the hand-maintained region (must stay at zero)");
 }
 
+// ---- single-default-per-token gate (options.css only, design-uplift Task
+// 12 review round 3): a var(--opt-X, <literal>) fallback is only ever safe
+// as a stand-in for a missing :root default IF every call site agrees on
+// what that literal should be. Round 1/2 both shipped this exact bug --
+// --opt-save/--opt-warn/--opt-danger-bg each had 2-3 DIFFERENT fallback
+// texts for the same token, each individually looking reasonable, silently
+// drifted apart across call sites written at different times -- and the
+// hex/rgba ratchet above cannot see it (the literal is inside a var() call,
+// stripVarCalls already removes it from that scan by design). This walks
+// the hand-maintained region for var(--opt-X, ...) pairs (skipping a
+// fallback that is itself another var() call -- that's the legitimate
+// nested-fallback shape, e.g. --opt-fg-hint, var(--opt-fg-muted))) and fails
+// if any --opt-X shows up with more than one distinct fallback literal.
+function findInconsistentVarFallbacks(css) {
+  const hand = stripGeneratedRegions(css);
+  const byToken = new Map();
+  const re = /var\(\s*(--opt-[a-zA-Z0-9-]+)\s*,\s*([^()]+(?:\([^()]*\)[^()]*)*?)\)/g;
+  let m;
+  while ((m = re.exec(hand)) !== null) {
+    const token = m[1];
+    const fallback = m[2].trim();
+    if (fallback.startsWith("var(")) continue; // nested var() fallback -- a different, legitimate shape
+    if (!byToken.has(token)) byToken.set(token, new Set());
+    byToken.get(token).add(fallback);
+  }
+  const offenders = [];
+  for (const [token, fallbacks] of byToken) {
+    if (fallbacks.size > 1) offenders.push(`${token}: ${[...fallbacks].join(" vs ")}`);
+  }
+  return offenders;
+}
+{
+  const offenders = findInconsistentVarFallbacks(optionsCss);
+  check(offenders.length === 0,
+    `options.css: var(--opt-X, literal) fallback text disagrees across call sites for the same token -- pick one value (add/fix the :root default and consume bare, or align every fallback) -- ${offenders.join("; ")}`);
+}
+
 if (fail.length) {
   console.error(fail.join("\n"));
   process.exit(1);

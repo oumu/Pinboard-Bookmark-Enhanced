@@ -145,7 +145,86 @@ async function dump() {
   await page.goto(`http://127.0.0.1:${port}/options.html`, { waitUntil: "load" });
   // Force the layout visible (normally gated by html[data-options-ready]).
   await page.evaluate(() => { document.documentElement.dataset.optionsReady = "1"; });
+  // Several probed selectors only ever exist as DOM options.js creates at
+  // runtime (confirm popover, theme-name popover, saved-theme buttons,
+  // status icons, tag-gov problem rows) -- static options.html never ships
+  // them, and options.js itself won't run here (no chrome.* APIs). Task 12
+  // review round 3 (item 4): rather than silently probing null 32 times,
+  // inject minimal fixture markup that mirrors the real DOM shape each
+  // producer builds (shared.js's showConfirmPopover, options.js's saved-
+  // theme-button / theme-name-popover / status-ic / tag-gov-problem-kind
+  // builders -- verified by reading those functions, not guessed), theme-
+  // agnostic so it renders correctly no matter which data-theme is active.
+  await page.evaluate(() => {
+    const body = document.body;
 
+    const confirmPop = document.createElement("div");
+    confirmPop.className = "confirm-popover";
+    confirmPop.innerHTML = '<span class="confirm-msg">msg</span><button class="confirm-yes">Yes</button><button class="confirm-no">No</button>';
+    body.appendChild(confirmPop);
+
+    const wrap = document.querySelector(".save-theme-wrap");
+    const tnp = document.createElement("div");
+    tnp.className = "theme-name-popover";
+    tnp.innerHTML = '<label>Name</label><input type="text" maxlength="40">'
+      + '<p class="tnp-overwrite">overwrite</p>'
+      + '<div class="tnp-actions"><button class="tnp-save">Save</button><button class="tnp-cancel">Cancel</button></div>';
+    (wrap || body).appendChild(tnp);
+
+    const savedWrap = document.createElement("div");
+    savedWrap.className = "saved-theme-wrap";
+    savedWrap.innerHTML = '<button class="btn btn-sm saved-theme-btn active">Saved</button><button class="saved-theme-del">x</button>';
+    body.appendChild(savedWrap);
+
+    const firstPreset = document.querySelector(".theme-preset-btn");
+    if (firstPreset) firstPreset.classList.add("active");
+
+    const statusWrap = document.createElement("div");
+    statusWrap.innerHTML = '<span class="status-ic ok">ok</span><span class="status-ic bad">bad</span>';
+    body.appendChild(statusWrap);
+
+    const badRow = document.createElement("span");
+    badRow.className = "tag-gov-problem-kind bad";
+    badRow.textContent = "failed";
+    body.appendChild(badRow);
+
+    // These elements exist statically in options.html but only ever pick up
+    // their state class (.bad/.saved/.ok/.err/.warn/.over) from a JS call
+    // this harness never makes -- flip one real instance of each so the
+    // matrix probes the SAME shipped node instead of a synthetic stand-in.
+    document.querySelector(".save-status")?.classList.add("bad");
+    document.getElementById("auto-save-status")?.classList.add("saved");
+    const statusEl = document.getElementById("storage-status");
+    if (statusEl) { statusEl.classList.remove("hidden"); statusEl.classList.add("ok"); }
+    const counterEl = document.querySelector(".overlay-byte-counter");
+    if (counterEl) counterEl.classList.add("warn");
+
+    // .et-test-status.{ok,err,warn} and .et-field select never coexist on
+    // the one real #storage-status node (only one state class at a time,
+    // and it's a <span>, not the customizable-select markup) -- append
+    // throwaway sibling probes instead of fighting that node for double
+    // duty. .et-onboarding has NO markup anywhere in options.html (grep
+    // confirms zero matches) -- looks like a genuinely orphaned selector
+    // from a removed feature, left uninjected on purpose (see report).
+    const etTestOk = document.createElement("span");
+    etTestOk.className = "et-test-status ok";
+    body.appendChild(etTestOk);
+    const etTestErr = document.createElement("span");
+    etTestErr.className = "et-test-status err";
+    body.appendChild(etTestErr);
+    const etTestWarn = document.createElement("span");
+    etTestWarn.className = "et-test-status warn";
+    body.appendChild(etTestWarn);
+    const overCounter = document.createElement("span");
+    overCounter.className = "overlay-byte-counter over";
+    body.appendChild(overCounter);
+    const etFieldSelect = document.createElement("div");
+    etFieldSelect.className = "et-field";
+    etFieldSelect.innerHTML = "<select><option>a</option></select>";
+    body.appendChild(etFieldSelect);
+  });
+
+  const missing = new Set();
   const out = {};
   for (const theme of THEMES) {
     const key = theme || "default";
@@ -173,6 +252,7 @@ async function dump() {
           return r;
         }, { probeSel, isAfter, props: PROPS, widthProps: WIDTH_PROPS });
         out[key][label] = vals;
+        if (vals === null) missing.add(label);
         if (hover) {
           // reset hover by moving mouse away
           await page.mouse.move(0, 0);
@@ -184,6 +264,10 @@ async function dump() {
   }
   await browser.close();
   server.close();
+  if (missing.size) {
+    console.warn(`\n[options-color-matrix] WARNING: ${missing.size} probe(s) found no element in EVERY theme state (selector typo, or fixture injection above doesn't cover it):`);
+    for (const label of missing) console.warn(`  ${label}`);
+  }
   return out;
 }
 
@@ -199,12 +283,16 @@ async function main() {
     const before = JSON.parse(await readFile(resolve(ROOT, args[1]), "utf8"));
     const after = JSON.parse(await readFile(resolve(ROOT, args[2]), "utf8"));
     let changes = 0;
+    const uncovered = new Set(); // both before AND after are null -- probe never found its element in either dump
+    const asymmetric = []; // exactly one side null -- element appeared/disappeared between dumps, worth a human look
     for (const theme of Object.keys(after)) {
       const b = before[theme] || {};
       const a = after[theme];
       for (const label of Object.keys(a)) {
         const bv = b[label], av = a[label];
-        if (!bv || !av) continue;
+        if (bv === null && av === null) { uncovered.add(label); continue; }
+        if ((bv === null) !== (av === null)) { asymmetric.push(`[${theme}] ${label}: ${bv === null ? "before=null" : "after=null"}`); continue; }
+        if (!bv || !av) continue; // error case (try/catch), not a real null -- leave to manual inspection
         for (const prop of PROPS) {
           if (bv[prop] === av[prop] || (!bv[prop] && !av[prop])) continue;
           // Zero-width side: color drift there never paints.
@@ -216,6 +304,14 @@ async function main() {
       }
     }
     console.log(`\n${changes} value(s) changed across ${THEMES.length} theme states x ${PROBES.length} probes x ${PROPS.length} props`);
+    if (asymmetric.length) {
+      console.log(`\n${asymmetric.length} ASYMMETRIC probe(s) -- element existed in only one of the two dumps (fixture/DOM shape changed between before/after, not a style change):`);
+      for (const line of asymmetric) console.log(`  ${line}`);
+    }
+    if (uncovered.size) {
+      console.log(`\n${uncovered.size} probe(s) UNCOVERED (null in both dumps, across every theme they were null in) -- not verified by this run:`);
+      for (const label of uncovered) console.log(`  ${label}`);
+    }
     return;
   }
   console.error("usage: --dump <out.json> | --diff <before.json> <after.json>");

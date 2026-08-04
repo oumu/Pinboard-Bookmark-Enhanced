@@ -56,12 +56,12 @@
   --opt-shadow-sm: 0 2px 4px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
   --opt-shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
   --opt-shadow-lg: 0 8px 24px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.06);
-  --opt-shadow-focus: 0 0 0 2px color-mix(in srgb, var(--opt-accent, #4477bb) 25%, transparent);
+  --opt-shadow-focus: 0 0 0 2px color-mix(in srgb, var(--opt-accent) 25%, transparent);
   /* Focus treatment — mirrors popup's --pp-focus-*: soft accent-tinted border
      instead of a full-strength snap, wide faint ring. Resolves per theme via
      --opt-accent/--opt-input-bg on <html>; override via pilot ui overrides. */
-  --opt-focus-bd: color-mix(in srgb, var(--opt-accent, #4477bb) 55%, var(--opt-input-bg, #fff));
-  --opt-focus-ring: 0 0 6px 1px color-mix(in srgb, var(--opt-accent, #4477bb) 45%, transparent);
+  --opt-focus-bd: color-mix(in srgb, var(--opt-accent) 55%, var(--opt-input-bg));
+  --opt-focus-ring: 0 0 6px 1px color-mix(in srgb, var(--opt-accent) 45%, transparent);
 
   /* Color defaults — themes already define these in html[data-theme] blocks.
      --opt-bg / --opt-panel moved to composer DEFAULT_LIGHT (Task 12 review
@@ -75,6 +75,23 @@
   --opt-fg-muted: #666;
   --opt-border: #ccc;
   --opt-danger: #c00;
+  /* Task 12 review round 3 (item 2): five more per-theme-only roles that had
+     NO :root default at all, so every unthemed consumer invented its own
+     var(x, literal) fallback text -- and, same as --opt-save/--opt-warn in
+     round 2, some of those fallback texts had already drifted apart for the
+     SAME token (--opt-border-section had #e0e0e0/#e8e8e8/#ddd across 5
+     call sites, --opt-fg-hint had #757575 at 4 sites and #888 at 1). Picked
+     the plurality/majority value per token, added it here once, converged
+     every call site to consume it bare. Visible ripples (a call site whose
+     OWN prior fallback text differed from the value chosen here) are logged
+     in COMPONENTS.md Appendix C27; --opt-tab-active/--opt-code-bg/
+     --opt-pf-bg each only ever had one fallback text, so those three are
+     zero-diff by construction. */
+  --opt-border-section: #e8e8e8;
+  --opt-fg-hint: #757575;
+  --opt-tab-active: rgba(0,0,0,0.05);
+  --opt-code-bg: #f0f0e8;
+  --opt-pf-bg: #f9f9f6;
   /* .btn's own default-state fallback (Task 9): the generated .btn base rule
      (@generated:ui-components below) reads var(--opt-btn-bg)/var(--opt-btn-hover)
      unconditionally now, with no per-declaration fallback (COMPONENTS.md's "颜色
@@ -179,7 +196,7 @@ h1 { font-size: 18px; color: var(--opt-fg); margin-bottom: var(--opt-sp-7); bord
   margin: var(--opt-sp-5) 0 var(--opt-sp-1);
   font-size: 10px; font-weight: 600;
   text-transform: uppercase; letter-spacing: 0.5px;
-  color: var(--opt-fg-hint, var(--opt-fg-muted, #666));
+  color: var(--opt-fg-hint, var(--opt-fg-muted));
   user-select: none; pointer-events: none;
 }
 .tab-group-label:first-child { margin-top: var(--opt-sp-1); }
@@ -195,17 +212,17 @@ h1 { font-size: 18px; color: var(--opt-fg); margin-bottom: var(--opt-sp-7); bord
 }
 /* Focus ring: shared soft-focus recipe below the .fg focus rules. */
 .tab-btn:hover:not(.active) { color: var(--opt-fg); border-left-color: var(--opt-tab-hover-border); background: var(--opt-tab-hover-bg); }
-.tab-btn.active { color: var(--opt-fg); font-weight: bold; border-left-color: var(--opt-fg); background: var(--opt-tab-active, rgba(0,0,0,0.05)); }
+.tab-btn.active { color: var(--opt-fg); font-weight: bold; border-left-color: var(--opt-fg); background: var(--opt-tab-active); }
 .reset-tab-btn {
   margin: var(--opt-sp-6) 0 0 0; padding: var(--opt-sp-5) var(--opt-sp-5) 0;
-  border: none; border-top: 1px solid var(--opt-border-section, #e0e0e0);
+  border: none; border-top: 1px solid var(--opt-border-section);
   background: none; cursor: pointer;
-  text-align: left; font-size: 11px; color: var(--opt-fg-hint, #757575);
+  text-align: left; font-size: 11px; color: var(--opt-fg-hint);
   align-self: stretch;
   transition: color var(--motion-state);
 }
 .reset-tab-btn:hover { color: var(--opt-danger); text-decoration: underline; }
-.reset-tab-btn:focus-visible { outline: 2px solid var(--opt-accent, #4477bb); outline-offset: 2px; }
+.reset-tab-btn:focus-visible { outline: 2px solid var(--opt-accent); outline-offset: 2px; }
 
 /* Pulsing activity dot on a tab button while its panel has background work running
    (pure CSS — no glyph fonts involved). */
@@ -216,7 +233,7 @@ h1 { font-size: 18px; color: var(--opt-fg); margin-bottom: var(--opt-sp-7); bord
   height: 6px;
   margin-left: var(--opt-sp-3);
   border-radius: 50%;
-  background: var(--opt-accent, #4477bb);
+  background: var(--opt-accent);
   animation: tabBusyPulse 1.2s ease-in-out infinite;
   vertical-align: middle;
 }
@@ -270,15 +287,15 @@ h1 { font-size: 18px; color: var(--opt-fg); margin-bottom: var(--opt-sp-7); bord
 .tab-btn:focus-visible,
 .accordion-header:focus-visible,
 .vocab-disclosure > summary:focus-visible {
-  outline: 1px solid var(--opt-accent, #4477bb);
+  outline: 1px solid var(--opt-accent);
   outline-offset: 2px;
   box-shadow: var(--opt-focus-ring);
 }
 
 /* ---- Panel footer (e.g. General tab feedback link) ---- */
-.panel-foot { margin-top: var(--opt-sp-6); padding-top: var(--opt-sp-5); border-top: 1px solid var(--opt-border-section, #e8e8e8); font-size: 11px; text-align: center; }
+.panel-foot { margin-top: var(--opt-sp-6); padding-top: var(--opt-sp-5); border-top: 1px solid var(--opt-border-section); font-size: 11px; text-align: center; }
 .panel-foot a { color: var(--opt-fg-muted); text-decoration: none; transition: color var(--motion-state) ease; display: inline-flex; align-items: center; gap: var(--opt-sp-2); }
-.panel-foot a:hover { color: var(--opt-accent, #4477bb); text-decoration: underline; }
+.panel-foot a:hover { color: var(--opt-accent); text-decoration: underline; }
 .panel-foot .ext-icon { width: 10px; height: 10px; flex-shrink: 0; }
 /* External-link mark inside .btn rows (dict-pack-open prefix): the action
    leaves the settings page, say so with the shared icon. No margin-right of
@@ -294,11 +311,11 @@ html[data-theme] .panel-foot a { color: var(--opt-fg-hint, var(--opt-fg-muted));
 /* line-height 1.5: multi-line hint prose (several run long in de/ru, and CJK
    wants looser leading than the UA ~1.15 default). Scoped here, NOT on body --
    the tab/nav/card rhythm is hand-tuned around the UA default. */
-.hint { font-size: 11px; line-height: 1.5; color: var(--opt-fg-hint, #757575); margin: var(--opt-sp-1) 0 var(--opt-rhythm); }
+.hint { font-size: 11px; line-height: 1.5; color: var(--opt-fg-hint); margin: var(--opt-sp-1) 0 var(--opt-rhythm); }
 .fg > .hint { margin: var(--opt-sp-1) 0 0; }   /* inside a form group: tight to its control; the group's own margin-bottom (10px) provides separation */
 .fg + .hint { margin-top: -6px; }  /* a hint owned by the preceding group: pull close (net ~4px gap above, 10px below) */
 .hint a { color: var(--opt-accent); }
-.hint code { background: var(--opt-code-bg, #f0f0e8); border-radius: var(--opt-radius-sm); padding: 1px var(--opt-sp-2); font-size: 10px; font-family: "SF Mono", Consolas, Menlo, "Liberation Mono", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei", monospace; }
+.hint code { background: var(--opt-code-bg); border-radius: var(--opt-radius-sm); padding: 1px var(--opt-sp-2); font-size: 10px; font-family: "SF Mono", Consolas, Menlo, "Liberation Mono", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei", monospace; }
 
 /* ---- Markdown tab: keyboard shortcuts static list (Task 6, spec 5.3).
    kbd chip font stack mirrors the other mono stacks in this file (.hint
@@ -325,11 +342,6 @@ html[data-theme] .panel-foot a { color: var(--opt-fg-hint, var(--opt-fg-muted));
   font-family: "SF Mono", Consolas, Menlo, "Liberation Mono", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei", monospace;
   font-size: 11px;
 }
-html[data-theme] .kbd-help-chips kbd {
-  background: var(--opt-input-bg, #f5f5f0);
-  border-color: var(--opt-input-border, #cdd1d6);
-  color: var(--opt-fg, #333);
-}
 .hint-warn::before {
   content: "";
   display: inline-block;
@@ -355,10 +367,10 @@ html[data-theme] .free-tier-help { color: var(--opt-text-muted, #888); }
 /* Danger reads from a left strip, not a full-strength perimeter -- the full
    --opt-danger ring looked like an alert frame on dark themes. */
 html[data-theme] .opt-error {
-  border-color: color-mix(in srgb, var(--opt-danger, #e55) 35%, var(--opt-border, #ccc));
-  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--opt-danger, #e55) 75%, transparent);
+  border-color: color-mix(in srgb, var(--opt-danger) 35%, var(--opt-border));
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--opt-danger) 75%, transparent);
 }
-.divider { border-top: 1px solid var(--opt-border-section, #ddd); margin: var(--opt-sp-6) 0; }
+.divider { border-top: 1px solid var(--opt-border-section); margin: var(--opt-sp-6) 0; }
 /* @generated:ui-components start (options) */
 .btn {
   display: inline-flex;
@@ -525,9 +537,9 @@ input[type="checkbox"], input[type="radio"] {
   margin: var(--opt-sp-3) 0 0;
   padding: var(--opt-sp-3) var(--opt-sp-4);
   border-left: 3px solid var(--opt-warn);
-  border-radius: var(--opt-radius-sm, 3px);
+  border-radius: var(--opt-radius-sm);
   background: color-mix(in srgb, var(--opt-warn) 9%, var(--opt-panel));
-  color: var(--opt-fg, #333);
+  color: var(--opt-fg);
   font-size: 12px;
 }
 .backup-actions,
@@ -607,7 +619,7 @@ html.motion-ready .backup-import-result:not([hidden]) {
 .section-title { display: block; font-size: 13px; font-weight: bold; color: var(--opt-fg-dim); margin-bottom: var(--opt-sp-4); margin-top: var(--opt-sp-4); }
 
 /* ---- Provider fields ---- */
-.pf { margin-top: var(--opt-sp-4); padding: var(--opt-sp-5); background: var(--opt-pf-bg, #f9f9f6); border: 1px solid var(--opt-pf-border); border-radius: var(--opt-radius-md); }
+.pf { margin-top: var(--opt-sp-4); padding: var(--opt-sp-5); background: var(--opt-pf-bg); border: 1px solid var(--opt-pf-border); border-radius: var(--opt-radius-md); }
 .pf[hidden] { display: none; }
 /* Same reveal recipe as .backup-import-preview, but the transition lives
    inside :not([hidden]): provider switches swap two panels at once, and an
@@ -649,10 +661,16 @@ html.motion-ready .pf:not([hidden]) {
    above (COMPONENTS.md §6.1's "et-field mirrors .fg" convention) instead of
    its own fixed literal (Task 12 review round 2, Minor) -- .et-field never
    shared the generated selector list (it predates the ui-components region),
-   so this was drifting into its own one-off gray with no per-theme role. */
+   so this was drifting into its own one-off gray with no per-theme role.
+   .et-field select is deliberately NOT in this selector group (round 3
+   correction): a same-specificity `.fg select:hover:not(:focus),
+   .et-field select:hover:not(:focus)` rule further down the file (the
+   customizable-select block) already owns that element's hover border via
+   --opt-input-border and, being later in source, always wins the tie --
+   including it here was dead code that only ever painted for the two
+   <input> selectors. */
 .et-field input[type="text"]:hover:not(:focus),
-.et-field input[type="password"]:hover:not(:focus),
-.et-field select:hover:not(:focus) { border-color: color-mix(in srgb, var(--opt-input-border) 55%, var(--opt-fg)); }
+.et-field input[type="password"]:hover:not(:focus) { border-color: color-mix(in srgb, var(--opt-input-border) 55%, var(--opt-fg)); }
 .et-field input[type="text"]:focus,
 .et-field input[type="password"]:focus,
 .et-field select:focus { outline: none; border-color: var(--opt-focus-bd); }
@@ -667,13 +685,18 @@ html[data-theme] .et-field select {
 /* Second form, not a leftover: the base hover rule now shares the generated
    .fg field family's color-mix hover-border formula (Task 12 review round 2,
    Minor); themed states still swap to the flat --opt-fg-muted role instead,
-   same as they always have. */
+   same as they always have. .et-field select is NOT in this group (round 3
+   correction, same root cause as the base rule above): this selector text
+   is byte-identical to one branch of the later `html[data-theme] .fg
+   select:hover:not(:focus), html[data-theme] .et-field
+   select:hover:not(:focus) { ...border-color: var(--opt-input-border); }`
+   rule in the customizable-select block, same specificity, later source ->
+   that rule always won for .et-field select, this one was dead for it. */
 html[data-theme] .et-field input[type="text"]:hover:not(:focus),
-html[data-theme] .et-field input[type="password"]:hover:not(:focus),
-html[data-theme] .et-field select:hover:not(:focus) { border-color: var(--opt-fg-muted); }
+html[data-theme] .et-field input[type="password"]:hover:not(:focus) { border-color: var(--opt-fg-muted); }
 
 /* ---- Accordion ---- */
-.accordion-section { border-bottom: 1px solid var(--opt-border-section, #e8e8e8); }
+.accordion-section { border-bottom: 1px solid var(--opt-border-section); }
 .accordion-section:last-child { border-bottom: none; }
 .accordion-header {
   display: flex; align-items: center; gap: var(--opt-sp-3);
@@ -686,7 +709,7 @@ html[data-theme] .et-field select:hover:not(:focus) { border-color: var(--opt-fg
   border: 0; border-radius: var(--opt-radius-sm); background: none; text-align: left;
   user-select: none; transition: color var(--motion-state), background-color var(--motion-state);
 }
-.accordion-header:hover { color: var(--opt-accent-hover); background: var(--opt-panel, #f4f4f0); }
+.accordion-header:hover { color: var(--opt-accent-hover); background: var(--opt-panel); }
 /* Focus ring: shared soft-focus recipe (top of file). */
 /* CSS-drawn chevron, never a glyph (a literal ▶ fell back to Segoe UI Emoji
    on Windows and caused a font-load stall). 2026-08 redesign: one thin
@@ -700,7 +723,7 @@ html[data-theme] .et-field select:hover:not(:focus) { border-color: var(--opt-fg
   border-right: 1.5px solid currentColor;
   border-bottom: 1.5px solid currentColor;
   transform: translateY(-2px) rotate(45deg);
-  color: var(--opt-fg-muted, #888);
+  color: var(--opt-fg-muted);
 }
 .accordion-section.open .accordion-arrow { transform: translateY(1px) rotate(225deg); }
 /* The arrow is the same gesture as the body it labels, so it rides the same
@@ -784,7 +807,7 @@ details.et-onboarding > summary::after,
   border-right: 1.5px solid currentColor;
   border-bottom: 1.5px solid currentColor;
   transform: translateY(-2px) rotate(45deg);
-  color: var(--opt-fg-muted, #888);
+  color: var(--opt-fg-muted);
 }
 details.vocab-disclosure[open] > summary::after,
 details.free-tier-help[open] > summary::after,
@@ -806,7 +829,7 @@ html.motion-ready #preset-preview-section > summary::after {
 
 /* ---- Auto-save indicator ---- */
 .auto-save-hint {
-  float: right; font-size: 11px; color: var(--opt-fg-hint, #757575); font-weight: normal;
+  float: right; font-size: 11px; color: var(--opt-fg-hint); font-weight: normal;
   /* 0.3s on purpose (double --motion-state): peripheral indicator that fires
      on every settings edit; the slow soak keeps it from flashing for
      attention. Ratified on-device 2026-08 -- do not converge to the token. */
@@ -823,9 +846,9 @@ html.motion-ready #preset-preview-section > summary::after {
 
 /* ---- Theme preset buttons ---- */
 .theme-presets-group { display: flex; gap: var(--opt-sp-3); flex-wrap: wrap; align-items: center; margin-bottom: var(--opt-sp-3); }
-.theme-group-label { font-size: 11px; color: var(--opt-fg-hint, #757575); text-transform: uppercase; letter-spacing: 0.05em; min-width: 60px; flex-shrink: 0; white-space: nowrap; padding-right: var(--opt-sp-3); box-sizing: content-box; }
+.theme-group-label { font-size: 11px; color: var(--opt-fg-hint); text-transform: uppercase; letter-spacing: 0.05em; min-width: 60px; flex-shrink: 0; white-space: nowrap; padding-right: var(--opt-sp-3); box-sizing: content-box; }
 .theme-preset-btn { position: relative; }
-.theme-preset-btn:focus-visible { outline: 2px solid var(--opt-accent, #4477bb); outline-offset: 2px; }
+.theme-preset-btn:focus-visible { outline: 2px solid var(--opt-accent); outline-offset: 2px; }
 /* color/border below use --opt-panel (the fixed white-ish surface role), not
    --opt-bg (the page role) -- this is text/a tick mark sitting on a solid
    --opt-accent fill, not page content, and needs a reliably light color in
@@ -860,14 +883,14 @@ html.motion-ready #preset-preview-section > summary::after {
 .saved-theme-wrap:hover .saved-theme-del,
 .saved-theme-wrap:focus-within .saved-theme-del,
 .saved-theme-del:focus-visible { opacity: 1; visibility: visible; }
-.saved-theme-del:focus-visible { outline: 2px solid var(--opt-accent, #4477bb); outline-offset: 1px; }
+.saved-theme-del:focus-visible { outline: 2px solid var(--opt-accent); outline-offset: 1px; }
 /* Larger invisible hit target for touch (expands 16px visual to 28px tap area) */
 .saved-theme-del::before {
   content: ""; position: absolute; inset: -6px; border-radius: 50%;
 }
 
 /* ---- API key toggle ---- */
-.key-toggle { background: none; border: none; cursor: pointer; font-size: 13px; padding: var(--opt-sp-1) var(--opt-sp-2); color: var(--opt-fg-hint, #888); vertical-align: middle; }
+.key-toggle { background: none; border: none; cursor: pointer; font-size: 13px; padding: var(--opt-sp-1) var(--opt-sp-2); color: var(--opt-fg-hint); vertical-align: middle; }
 .key-toggle svg { display: block; }
 /* The eye rides INSIDE the field's right edge -- as a plain sibling it fell
    below the 100%-width input and burned a whole row per credential. */
@@ -886,7 +909,7 @@ html.motion-ready #preset-preview-section > summary::after {
 .status-ic.ok { color: var(--opt-save); }
 .status-ic.bad { color: var(--opt-danger); }
 .key-toggle:hover { color: var(--opt-fg-soft); }
-.key-toggle:focus-visible { outline: 2px solid var(--opt-accent, #4477bb); outline-offset: 1px; }
+.key-toggle:focus-visible { outline: 2px solid var(--opt-accent); outline-offset: 1px; }
 
 /* ============================================================
    Theme System (CSS Custom Properties)
@@ -1070,7 +1093,7 @@ html[data-theme="flexoki-light"] {
   --opt-radius-md: 6px;
   --opt-radius-lg: 8px;
   --opt-danger: #AF3029;
-  --opt-warn: #AD8301;
+  --opt-warn: #846401;
   --opt-btn-fg: #100f0f;
   --opt-danger-quiet-fg: #af3029;
   --opt-on-danger: #fffcf0;
@@ -1433,8 +1456,8 @@ html[data-theme] .fg select:hover:not(:focus), html[data-theme] .et-field select
   .fg select::picker(select), .et-field select::picker(select), .mobile-tab-picker select::picker(select) {
     appearance: base-select;
     margin-top: var(--opt-sp-2);
-    background: var(--opt-bg, #fff);
-    border: 1px solid var(--opt-border, #ccc);
+    background: var(--opt-bg);
+    border: 1px solid var(--opt-border);
     border-radius: var(--opt-radius-lg);
     box-shadow: 0 8px 24px rgba(0,0,0,.12);
     padding: var(--opt-sp-2);
@@ -1448,7 +1471,7 @@ html[data-theme] .fg select:hover:not(:focus), html[data-theme] .et-field select
        track textareas get -- without them the picker showed a fat UA
        scrollbar next to the page's thin ones (user report). */
     scrollbar-width: thin;
-    scrollbar-color: var(--opt-fg-muted, #999) var(--opt-panel, #fafafa);
+    scrollbar-color: var(--opt-fg-muted) var(--opt-panel);
   }
   .fg option, .et-field option, .mobile-tab-picker option {
     padding: var(--opt-sp-4) var(--opt-sp-4);
@@ -1461,12 +1484,12 @@ html[data-theme] .fg select:hover:not(:focus), html[data-theme] .et-field select
   }
   .fg option:focus-visible, .et-field option:focus-visible, .mobile-tab-picker option:focus-visible {
     background: var(--opt-option-hover-bg);
-    outline: 2px solid var(--opt-accent, #4477bb);
+    outline: 2px solid var(--opt-accent);
     outline-offset: -2px;
   }
   .fg option::checkmark, .et-field option::checkmark, .mobile-tab-picker option::checkmark { display: none; }
   .fg option:checked, .et-field option:checked, .mobile-tab-picker option:checked {
-    background: color-mix(in srgb, var(--opt-accent, #4477bb) 18%, transparent);
+    background: color-mix(in srgb, var(--opt-accent) 18%, transparent);
     font-weight: 600;
   }
 }
@@ -1561,7 +1584,7 @@ html.motion-ready .confirm-popover.is-closing {
    stays hand-written here. */
 .confirm-popover .confirm-no { background: none; color: var(--opt-fg-muted); border-color: var(--opt-border); }
 .confirm-popover .confirm-no:hover { background: var(--opt-btn-hover); }
-.confirm-popover button:focus-visible { outline: 2px solid var(--opt-accent, #4477bb); outline-offset: 1px; }
+.confirm-popover button:focus-visible { outline: 2px solid var(--opt-accent); outline-offset: 1px; }
 html[data-theme] .confirm-popover { color: var(--opt-fg); box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
 /* .confirm-yes themed override deleted (COMPONENTS.md §4.2/C14): it used
    var(--opt-panel) as an unaudited foreground borrow and outranked the
@@ -1701,23 +1724,23 @@ html[data-theme] .preset-preview-content { background: var(--opt-bg); color: var
 /* ---- Wayback Log Viewer ---- */
 #wayback-log {
   margin-top: var(--opt-sp-3);
-  border: 1px solid var(--opt-border, #ccc);
-  border-radius: var(--opt-radius-sm, 3px);
-  background: var(--opt-panel, #fafafa);
+  border: 1px solid var(--opt-border);
+  border-radius: var(--opt-radius-sm);
+  background: var(--opt-panel);
   font-size: 12px;
   max-height: 200px;
   overflow-y: auto;
 }
 .wayback-log-empty {
   padding: var(--opt-sp-4);
-  color: var(--opt-fg-muted, #666);
+  color: var(--opt-fg-muted);
 }
 .wayback-log-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 72px minmax(0, 200px) 22px;
   gap: var(--opt-sp-4);
   padding: var(--opt-sp-2) var(--opt-sp-4);
-  border-bottom: 1px solid var(--opt-border, #ccc);
+  border-bottom: 1px solid var(--opt-border);
   align-items: center;
 }
 .wayback-log-row:last-child { border-bottom: none; }
@@ -1729,7 +1752,7 @@ html[data-theme] .preset-preview-content { background: var(--opt-bg); color: var
   color: inherit;
   text-decoration: none;
 }
-.wayback-log-url:hover { color: var(--opt-accent, #4477bb); text-decoration: underline; }
+.wayback-log-url:hover { color: var(--opt-accent); text-decoration: underline; }
 .wayback-log-url-text {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1738,14 +1761,14 @@ html[data-theme] .preset-preview-content { background: var(--opt-bg); color: var
 }
 .wayback-log-url .ext-icon { width: 10px; height: 10px; flex: none; vertical-align: -1px; }
 .wayback-log-time {
-  color: var(--opt-fg-muted, #666);
+  color: var(--opt-fg-muted);
   white-space: nowrap;
   overflow: hidden;
 }
 .wayback-log-outcome {
   flex: 1;
   min-width: 0;
-  color: var(--opt-fg-muted, #666);
+  color: var(--opt-fg-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1764,16 +1787,16 @@ html[data-theme] .preset-preview-content { background: var(--opt-bg); color: var
   align-items: center;
   justify-content: center;
   padding: 0;
-  border: 1px solid var(--opt-border, #ccc);
+  border: 1px solid var(--opt-border);
   border-radius: 50%;
-  background: var(--opt-btn-bg, #fff);
-  color: var(--opt-fg, #222);
+  background: var(--opt-btn-bg);
+  color: var(--opt-fg);
   cursor: pointer;
 }
 .wayback-perm-help svg { width: 13px; height: 13px; }
-.wayback-perm-help:hover { background: var(--opt-btn-hover, #eee); }
+.wayback-perm-help:hover { background: var(--opt-btn-hover); }
 .wayback-perm-help:focus-visible {
-  outline: 2px solid var(--opt-accent, #4477bb);
+  outline: 2px solid var(--opt-accent);
   outline-offset: 1px;
 }
 .wayback-perm-tip {
@@ -1781,11 +1804,11 @@ html[data-theme] .preset-preview-content { background: var(--opt-bg); color: var
   display: none;
   opacity: 0;
   padding: var(--opt-sp-2) var(--opt-sp-3);
-  border: 1px solid var(--opt-border, #ccc);
-  border-radius: var(--opt-radius-sm, 3px);
-  background: var(--opt-panel, #fafafa);
-  color: var(--opt-fg, #222);
-  box-shadow: var(--opt-shadow-sm, 0 1px 3px rgba(0,0,0,.12));
+  border: 1px solid var(--opt-border);
+  border-radius: var(--opt-radius-sm);
+  background: var(--opt-panel);
+  color: var(--opt-fg);
+  box-shadow: var(--opt-shadow-sm);
   line-height: 1.5;
   overflow-wrap: anywhere;
 }
@@ -1811,26 +1834,26 @@ html.motion-ready .wayback-log-row:focus-within .wayback-perm-tip {
   border: none;
   cursor: pointer;
   padding: var(--opt-sp-1);
-  color: var(--opt-fg-muted, #888);
+  color: var(--opt-fg-muted);
   line-height: 1;
   display: flex;
   align-items: center;
   justify-content: center;
 }
-.wayback-log-retry:hover { color: var(--opt-accent, #4477bb); }
+.wayback-log-retry:hover { color: var(--opt-accent); }
 .wayback-log-retry:active:not(:disabled) { transform: translateY(1px); }
 .wayback-log-retry:disabled { opacity: .4; cursor: default; }
 .wayback-perm-status {
   display: block;
   font-size: 11px;
-  color: var(--opt-fg-muted, #666);
+  color: var(--opt-fg-muted);
   margin: var(--opt-sp-1) 0 var(--opt-rhythm);
 }
 .wayback-log-more > summary {
   cursor: pointer;
   padding: var(--opt-sp-2) var(--opt-sp-4);
   font-size: 11px;
-  color: var(--opt-fg-muted, #666);
+  color: var(--opt-fg-muted);
   list-style: none;
 }
 .wayback-log-more > summary::-webkit-details-marker { display: none; }
@@ -1869,9 +1892,9 @@ html.motion-ready .wayback-log-row:focus-within .wayback-perm-tip {
   flex-direction: column;
   gap: var(--opt-sp-3);
   padding: var(--opt-sp-5);
-  background: var(--opt-panel, #fafafa);
-  border: 1px solid var(--opt-border, #ccc);
-  border-radius: var(--opt-radius-sm, 3px);
+  background: var(--opt-panel);
+  border: 1px solid var(--opt-border);
+  border-radius: var(--opt-radius-sm);
   margin-bottom: 0;          /* grid gap now owns vertical spacing */
 }
 #tag-gov-groups > :not(.tag-gov-group-row) {
@@ -1907,7 +1930,7 @@ html.motion-ready .wayback-log-row:focus-within .wayback-perm-tip {
 }
 .tag-gov-reason {
   font-size: 10px;
-  color: var(--opt-fg-muted, #999);
+  color: var(--opt-fg-muted);
   display: block;
   margin-left: var(--opt-sp-4);
   font-style: italic;
@@ -1945,9 +1968,9 @@ html.motion-ready .wayback-log-row:focus-within .wayback-perm-tip {
   position: sticky;
   bottom: 8px;
   z-index: var(--opt-z-sticky);
-  background: var(--opt-panel, #fafafa);
-  border: 1px solid var(--opt-border, #ccc);
-  border-radius: var(--opt-radius-md, 6px);
+  background: var(--opt-panel);
+  border: 1px solid var(--opt-border);
+  border-radius: var(--opt-radius-md);
   padding: var(--opt-sp-4) var(--opt-sp-4);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
 }
@@ -1965,13 +1988,13 @@ html.motion-ready #tag-gov-progress:not([hidden]) {
 .progress-bar {
   width: 100%;
   height: 6px;
-  background: var(--opt-border, #e0e0e0);
+  background: var(--opt-border);
   border-radius: var(--opt-radius-sm);
   overflow: hidden;
 }
 .progress-fill {
   height: 100%;
-  background: var(--opt-accent, #4477bb);
+  background: var(--opt-accent);
   width: 0%;
   /* linear, not ease: this is a determinate bar driven by JS ticks. An eased
      curve decelerates into a stall between ticks, so steady progress reads as
@@ -1990,7 +2013,7 @@ html.motion-ready #tag-gov-progress:not([hidden]) {
 }
 #tag-gov-progress-text {
   font-size: 11px;
-  color: var(--opt-fg-muted, #666);
+  color: var(--opt-fg-muted);
   min-width: 0; /* allow flex shrink so a long token wraps instead of overflowing */
 }
 #tag-gov-problems {
@@ -2002,15 +2025,15 @@ html.motion-ready #tag-gov-progress:not([hidden]) {
 }
 .tag-gov-queued-note {
   font-size: 11px;
-  color: var(--opt-fg-muted, #666);
+  color: var(--opt-fg-muted);
   margin-left: var(--opt-sp-3);
 }
 .tag-gov-problems-title {
-  color: var(--opt-fg-muted, #666);
+  color: var(--opt-fg-muted);
   margin-bottom: var(--opt-sp-1);
 }
 .tag-gov-problem-row {
-  color: var(--opt-fg-muted, #666);
+  color: var(--opt-fg-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2060,13 +2083,13 @@ html.motion-ready #tag-gov-progress:not([hidden]) {
   padding: var(--opt-sp-5) var(--opt-sp-3);
   margin: 0 calc(-1 * var(--opt-sp-3));
   border-radius: var(--opt-radius-sm);
-  color: var(--opt-fg-muted, #555);
+  color: var(--opt-fg-muted);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   transition: color var(--motion-state), background-color var(--motion-state);
 }
-.vocab-disclosure > summary:hover { color: var(--opt-fg, #222); background: var(--opt-panel, #f4f4f0); }
+.vocab-disclosure > summary:hover { color: var(--opt-fg); background: var(--opt-panel); }
 /* Focus ring: shared soft-focus recipe (top of file). */
 /* Open state: the body's bottom padding faces the NEXT row's rule, so it
    matches the summaries' 12px rhythm instead of pinching to 6. */
@@ -2113,7 +2136,7 @@ html.motion-ready #tag-gov-progress:not([hidden]) {
 html[data-theme="flexoki-dark"] #panel-vocab .vocab-details-body > .hint {
   color: var(--opt-fg-muted);
 }
-.field-error { margin: var(--opt-sp-2) 0 0; color: var(--opt-danger, #c00); font-size: 12px; }
+.field-error { margin: var(--opt-sp-2) 0 0; color: var(--opt-danger); font-size: 12px; }
 .field-error:empty { display: none; }
 /* Pack status is a standalone line above its button row, not an inline
    trailing status: drop .save-status's inline indent, add space below. */
@@ -2151,7 +2174,7 @@ html[data-theme="flexoki-dark"] #panel-vocab .vocab-details-body > .hint {
   .mobile-tab-picker label {
     display: block;
     margin-bottom: var(--opt-sp-2);
-    color: var(--opt-fg-muted, #555);
+    color: var(--opt-fg-muted);
     font-size: 12px;
     font-weight: bold;
   }
@@ -2159,7 +2182,7 @@ html[data-theme="flexoki-dark"] #panel-vocab .vocab-details-body > .hint {
     width: 100%;
     min-height: 34px;
     padding: var(--opt-sp-3) 26px var(--opt-sp-3) var(--opt-sp-5);
-    border: 1px solid var(--opt-border, #cdd1d6);
+    border: 1px solid var(--opt-border);
     /* Dropdown-design round: joins the .fg/.et-field select family (7px
        radius, drawn chevron, btn-bg surface). It used to keep the UA arrow;
        the @supports picker block above hides ::picker-icon for ALL selects,
@@ -2168,16 +2191,16 @@ html[data-theme="flexoki-dark"] #panel-vocab .vocab-details-body > .hint {
        properties, same reason as .fg select's comment. */
     border-radius: var(--opt-radius-md);
     -webkit-appearance: none; appearance: none;
-    background-color: var(--opt-btn-bg, #fff);
+    background-color: var(--opt-btn-bg);
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M3 4.5 6 7.5 9 4.5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
     background-repeat: no-repeat;
     background-position: right 8px center;
-    color: var(--opt-fg, #333);
+    color: var(--opt-fg);
     font-size: 13px;
     cursor: pointer;
   }
   .mobile-tab-picker select:hover:not(:focus) {
-    background-color: var(--opt-btn-hover, #f1f5f9);
+    background-color: var(--opt-btn-hover);
   }
   /* Re-assert after the appearance:none above -- this @media block sits
      LATER in the file than the global @supports opt-in, so without this the
@@ -2186,7 +2209,7 @@ html[data-theme="flexoki-dark"] #panel-vocab .vocab-details-body > .hint {
     .mobile-tab-picker select { appearance: base-select; }
   }
   .mobile-tab-picker select:focus-visible {
-    outline: 2px solid var(--opt-accent, #4477bb);
+    outline: 2px solid var(--opt-accent);
     outline-offset: 2px;
   }
   .reset-tab-btn {
@@ -2194,7 +2217,7 @@ html[data-theme="flexoki-dark"] #panel-vocab .vocab-details-body > .hint {
     margin: 0;
     padding: var(--opt-sp-4) var(--opt-sp-5);
     border-top: 0;
-    border-left: 1px solid var(--opt-border-section, #e0e0e0);
+    border-left: 1px solid var(--opt-border-section);
     white-space: nowrap;
   }
 }

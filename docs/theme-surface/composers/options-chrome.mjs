@@ -45,10 +45,21 @@ const DEFAULT_LIGHT = {
   // only) and every unthemed consumer had independently invented its own
   // var(x, literal) fallback text -- three different ad-hoc "warn" ambers
   // and two different "save" greens drifted in from different call sites.
-  // Both converge here on the value that already clears 4.5:1 against this
-  // default bg (#f5f5f0) — see task-12 fix report for the contrast math —
-  // and that also happens to equal github-light's real per-theme value for
-  // the same role, so the default surface and one of the 13 presets agree.
+  // Both converge here on github-light's real per-theme value for the same
+  // role (so the default surface and one of the 13 presets agree), NOT on a
+  // fresh AA derivation against this default bg (#f5f5f0):
+  //   save #1a7f37 vs #f5f5f0 = 4.64:1 -- clears 4.5:1.
+  //   warn #9a6700 vs #f5f5f0 = 4.45:1 -- does NOT clear 4.5:1.
+  // warn is left as-is rather than re-derived: nothing currently gates
+  // --opt-warn's contrast (contrast-audit's warn-fg/warn-bg pair targets a
+  // different, tinted-fill role options.css doesn't have), and this exact
+  // literal is already github-light's real per-theme value (where it DOES
+  // clear AA -- 4.57:1 against that theme's own #f6f8fa bg, 4.87:1 against
+  // its #ffffff panel; the default surface's #f5f5f0 is a hair darker,
+  // which is what drops it under 4.5). Re-deriving a bespoke default-only
+  // value would decouple it from its one visible precedent for a policy
+  // bar (plain-text AA on the never-audited default surface) this task
+  // didn't establish. Flagged here instead of silently claiming AA.
   "save": "#1a7f37",
   "warn": "#9a6700",
 };
