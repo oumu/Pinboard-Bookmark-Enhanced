@@ -63,6 +63,18 @@ function stripVarCalls(text) {
   return out;
 }
 
+// Neither scan below is a real CSS parser -- both are regex/brace-walk text
+// scans, same tradeoff Task 8 made for its own text-scanning checks. A hex
+// or rgba() sitting inside a quoted string (`content: "#fff"`) or a url()
+// would still be counted; nothing in the current hand-maintained regions
+// does that (verified by grep), so it's a known, currently-inert blind
+// spot rather than a live false positive.
+//
+// Both functions drop comments *before* stripVarCalls on purpose: a
+// half-written comment containing "var(" with no matching ")" would
+// otherwise send stripVarCalls's paren-depth walk to the end of the file,
+// silently eating real code after it.
+
 // Counts bare hex color literals in the hand-maintained region of a *-chrome
 // theme CSS file (popup.css / options.css / library.css). A bare hex outside
 // a var() fallback means a rule hardcoded a color instead of consuming a
@@ -72,8 +84,8 @@ function stripVarCalls(text) {
 function countBareHex(css) {
   let hand = stripGeneratedRegions(css);
   hand = hand.replace(/^\s*--[\w-]+\s*:[^;]*;/gm, "");   // drop custom-prop definitions (:root literals are the exempt source of truth)
-  hand = stripVarCalls(hand);                             // drop var() incl. nested fallbacks
   hand = hand.replace(/\/\*[\s\S]*?\*\//g, "");           // drop comments
+  hand = stripVarCalls(hand);                             // drop var() incl. nested fallbacks
   // color-mix() may deliberately blend a token against a literal #000/#fff
   // (popup's darken-on-hover pattern) instead of a missing token -- strip
   // only that operand, not the whole color-mix(), before counting.
@@ -82,7 +94,7 @@ function countBareHex(css) {
 }
 
 // Counts bare rgba()/rgb() color literals used as the value of a
-// background/background-color/color/border-color declaration in the
+// background/background-color/color/border-*-color declaration in the
 // hand-maintained region. A raw rgba() there is the same debt as a bare hex
 // -- a hardcoded color instead of a --pp-*/--opt-*/--lib-* token -- but a
 // hex-only regex can never see it (library.css:497's
@@ -93,7 +105,14 @@ function countBareHex(css) {
 function countQualifyingRgba(css) {
   let hand = stripGeneratedRegions(css).replace(/\/\*[\s\S]*?\*\//g, "");
   hand = stripVarCalls(hand); // a var()-wrapped rgba() fallback is already token-routed, same treatment as hex
-  const targets = new Set(["background", "background-color", "color", "border-color"]);
+  // The four border-*-color longhands belong here alongside the shorthand
+  // border-color -- omitting them was a controller checklist typo, not an
+  // intentional scope cut (popup.css:1106's
+  // `border-bottom-color: rgba(255,255,255,0.06)` is the case that exposed it).
+  const targets = new Set([
+    "background", "background-color", "color", "border-color",
+    "border-top-color", "border-right-color", "border-bottom-color", "border-left-color",
+  ]);
   let depth = 0, chunk = "", count = 0;
   // Brace walk (same shape as the --opt-* token-coverage scan above): only
   // text between "{"/";" boundaries *while inside a rule body* (depth > 0)
