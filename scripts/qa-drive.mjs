@@ -20,7 +20,7 @@
 //   node scripts/qa-drive.mjs                       # all surfaces, headed
 //   node scripts/qa-drive.mjs --headless            # popup surface skipped
 //   node scripts/qa-drive.mjs --surfaces options,preview
-//   node scripts/qa-drive.mjs --surfaces themes --label themes  # 13 preset × 明暗矩阵 + default + library
+//   node scripts/qa-drive.mjs --surfaces themes --label themes  # 13 preset × 明暗矩阵 + default + library + popup
 //   node scripts/qa-drive.mjs --site-theme dracula  # pinboard.in theme shot
 //   node scripts/qa-drive.mjs --label after-fix
 //
@@ -1024,8 +1024,30 @@ async function driveThemes(context, worker, extId, rep) {
         s.failures.push(`${label}-unset-light: ${e.message}`);
       }
     }
+    // Popup UI: preset × light/dark, same "page-mode" navigation drivePopupPage
+    // uses (no real toolbar/CDP dance needed for a static theme shot, and it
+    // works headless). Task 14 addition — popup was never in this preset loop
+    // before (only its unset states, captured below), and the full-matrix
+    // acceptance grid needs a popup row per preset just like options/library.
     try {
       await page.setViewportSize({ width: 550, height: 680 });
+      for (const preset of presets) {
+        for (const mode of ["light", "dark"]) {
+          try {
+            await setTheme(preset, mode);
+            const url = `chrome-extension://${extId}/popup.html?_qa=${encodeURIComponent(preset)}-${mode}`;
+            await page.goto(url, { waitUntil: "load", timeout: TIMEOUT_MS });
+            await page.waitForTimeout(350);
+            await rep.shot(page, s, `popup-${preset || "default"}-${mode}`);
+          } catch (e) {
+            s.failures.push(`popup-${preset || "default"}-${mode}: ${e.message}`);
+          }
+        }
+      }
+    } catch (e) {
+      s.failures.push(`popup-preset-matrix: ${e.message}`);
+    }
+    try {
       for (const scheme of ["light", "dark"]) {
         await clearTheme();
         await page.emulateMedia({ colorScheme: scheme });
