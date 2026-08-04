@@ -109,7 +109,7 @@ function emitLib(ui, palette, overrides, radius, focus = {}, mode) {
   // resolveOpaqueBg requirement and same options-chrome.mjs rationale --
   // no pilot currently overrides library's btn-bg/panel independently, so
   // the two constraints are numerically identical today but kept separate
-  // for COMPONENTS.md §4.1 spec-conformance (same convention as its own
+  // for COMPONENTS.md §4.3 spec-conformance (same convention as its own
   // danger-quiet-fg 3-bg call above).
   map["border"] = rgbToHex(borderToAA(resolveOpaqueBg(map.border, btnBgRgb), [btnBgRgb, panelRgb]));
   map["btn-fg"] = rgbToHex(fgToAAMulti(hexToRgb(map.fg), [btnBgRgb, btnHoverRgb]));

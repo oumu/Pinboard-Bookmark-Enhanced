@@ -679,7 +679,7 @@ popup 已按此实践（`popup.css:2067` 注释在案），options/library 目�
 
 | # | 位置 | 现状 | 规范值 | 可见变化 | 排期 |
 |---|---|---|---|---|---|
-| C1 | `.btn`（opt + lib） | 无 `color`，`line-height: normal`，高 ≈24px；opt 默认浅色态边框是裸字面量 `#999`（lib 早已是 `var(--lib-border, #999)`，`--lib-border` 一直有定义，`#999` fallback 从未真正生效，故 lib 默认态边框无变化） | `color: var(--{ns}-btn-fg)`，`line-height: 16px`，高 26px；边框统一走 `var(--{ns}-border)` | 暗色主题下文字与图标**从不可见变为可见**（核心缺陷）；高度 +2px；zh-CN 与 en 下高度不再有差；**opt 默认浅色态边框 `#999`→`#ccc`**（`--opt-border` 默认值），变淡一档，lib 默认态边框无可见变化 | 本战役 |
+| C1 | `.btn`（opt + lib） | 无 `color`，`line-height: normal`，高 ≈24px；opt 默认浅色态边框是裸字面量 `#999`（lib 早已是 `var(--lib-border, #999)`，`--lib-border` 一直有定义，`#999` fallback 从未真正生效，故 lib 默认态边框无变化） | `color: var(--{ns}-btn-fg)`，`line-height: 16px`，高 26px；边框统一走 `var(--{ns}-border)` | 暗色主题下文字与图标**从不可见变为可见**（核心缺陷）；高度 +2px；zh-CN 与 en 下高度不再有差；**opt 默认浅色态边框 `#999`→`#ccc`**（本行记录 C1 当时的 `--opt-border` 默认值改动，变淡一档；该默认值后被 design-uplift Task 16 的 borderToAA 派生取代为 `#8a8a8a`——现状以 `options.css` 的 `--opt-border` 实际值为准，本条只保留历史对照，不代表现状），lib 默认态边框无可见变化 | 本战役 |
 | C2 | `.btn-sm`（opt + lib） | 高 ≈19px（字体相关） | `line-height: 14px`，高 20px | +1px，且不再随字体族浮动 | 本战役 |
 | C3 | `.vocab-batch-bar input`（lib） | `padding: 4px 8px` / 12px，高 ≈24px | `padding: 2px 8px` / 12px / `line-height: 14px`，高 20px | 批量条输入框 −4px，与同行按钮齐平（缺陷 2 核销） | 本战役 |
 | C4 | `.btn:active`（opt） | `translateY(1px)` | `scale(0.97)` | 按压反馈换形态，仍瞬时 | 本战役 |

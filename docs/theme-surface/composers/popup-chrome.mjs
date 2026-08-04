@@ -147,10 +147,23 @@ export function composePopupThemes(tokensByPilot) {
     // border is a translucent glow (#33ff3340, an 8-digit alpha hex, same
     // shape as its spinner-bg handled below) -- hexToRgb() alone would
     // misparse it as 6-digit. panel === bg2 === btn-bg for popup (no
-    // dedicated panel role) -- duplicated for COMPONENTS.md §4.1
+    // dedicated panel role) -- duplicated for COMPONENTS.md §4.3
     // spec-conformance, same convention as danger-quiet-fg's 3-bg superset
     // below even though two of the three are numerically identical today.
     ui["border"] = rgbToHex(borderToAA(resolveOpaqueBg(ui.border, btnBgRgb), [btnBgRgb, btnBgRgb]));
+    // preset-bd (design-uplift Task 16 fix round): deriveUiColors seeds it as
+    // its OWN raw-palette copy of border (`hx("border")`), a snapshot frozen
+    // at object-literal construction time -- reassigning ui["border"] above
+    // does not retroactively update it, so without this line preset-bd forks
+    // from the now-AA-derived border on every theme. Concretely:
+    // popup.css's `.preset-btn` (unused) reads --pp-preset-bd while the
+    // adjacent `.preset-btn.used` (same visual row) reads --pp-border --
+    // pre-Task-16 the two tokens were byte-identical everywhere, so the pair
+    // read as one consistent outline; post-Task-16-without-this-line they'd
+    // silently diverge (~2.5x weight difference on some themes), making
+    // border weight accidentally encode "used vs not used" instead of just
+    // styling. Keep them unified on the heavier (AA-derived) side.
+    ui["preset-bd"] = ui["border"];
     ui["btn-fg"] = rgbToHex(fgToAAMulti(hexToRgb(ui.fg), [btnBgRgb, btnHoverRgb]));
     // panel === bg2 === btn-bg for popup (no dedicated panel role); the 3-bg
     // set is spelled out per COMPONENTS.md §4.3 even though two of the three

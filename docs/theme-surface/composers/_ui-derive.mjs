@@ -157,22 +157,31 @@ export function fgToAAMulti(fg, bgs, min = 4.5) {
 }
 
 // Push a UI-chrome BORDER's LIGHTNESS (hue+sat preserved) until it clears
-// WCAG 1.4.11's 3:1 non-text floor against every fill it needs to read as a
-// distinct edge against -- typically a surface's btn-bg AND panel
-// (COMPONENTS.md's border-color row; gated by contrast-audit's
-// COMPONENT_PAIR_SPEC "border" rows -- design-uplift Task 16, USER RULING:
-// Task 7 measured all 13 pilots' raw palette border at 1.0-1.73:1 against
-// btn-bg across all 3 UI surfaces and deliberately left it ungated pending
-// this derivation). Same repeated-worst-case convergence as fgToAAMulti
-// (this file) -- just at the UI-component threshold instead of body text's
-// 4.5:1, and named separately because "does this edge read distinctly
-// against its surroundings" is a different question from "is this text
-// legible on its fill" even though the math is identical. Identity when the
-// pair already clears 3:1, so an already-compliant theme emits byte-for-byte
-// unchanged. `border` may be a non-opaque fill (terminal's is a translucent
-// glow, an 8-digit alpha hex, `#33ff3340`) -- callers must resolve it to an
-// opaque RGB first (resolveOpaqueBg), the same requirement fgToAA/
-// fgToAAMulti already carry for any fg input.
+// WCAG 1.4.11's 3:1 non-text floor against the CALLER-CHOSEN bgs argument --
+// every caller in this codebase passes [btn-bg, panel] (COMPONENTS.md's
+// border-color row; gated by contrast-audit's COMPONENT_PAIR_SPEC "border"
+// rows -- design-uplift Task 16, USER RULING: Task 7 measured all 13
+// pilots' raw palette border at 1.0-1.73:1 against btn-bg across all 3 UI
+// surfaces and deliberately left it ungated pending this derivation). This
+// function makes NO guarantee against any OTHER surface a border-colored
+// rule happens to sit on -- `bg` (the page background, not btn-bg/panel)
+// and `input-bg` are real, un-derived exposures: post-derivation measured
+// ratios there run 2.76-5.71:1 (up from a pre-derivation 1.0-2.06:1, zero
+// regressions, but individual combos like modern-card border-vs-bg 2.81:1
+// and dracula border-vs-input-bg 1.78:1 still sit under 3:1) -- see
+// task-16-report.md's disclosure table for the full per-theme numbers.
+// Widening this function's contract to cover those too is future work, not
+// a claim this derivation call already makes. Same repeated-worst-case
+// convergence as fgToAAMulti (this file) -- just at the UI-component
+// threshold instead of body text's 4.5:1, and named separately because
+// "does this edge read distinctly against its surroundings" is a different
+// question from "is this text legible on its fill" even though the math is
+// identical. Identity when the pair already clears 3:1, so an
+// already-compliant theme emits byte-for-byte unchanged. `border` may be a
+// non-opaque fill (terminal's is a translucent glow, an 8-digit alpha hex,
+// `#33ff3340`) -- callers must resolve it to an opaque RGB first
+// (resolveOpaqueBg), the same requirement fgToAA/fgToAAMulti already carry
+// for any fg input.
 export function borderToAA(border, bgs, min = 3) {
   return fgToAAMulti(border, bgs, min);
 }
