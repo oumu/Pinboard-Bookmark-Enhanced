@@ -1345,7 +1345,6 @@ html[data-theme="modern-card"] {
   --pp-spinner-bg: #e8e8e8;
   --pp-spinner-fg: #1a73e8;
   --pp-preset-bg: #e8f0fe;
-  --pp-preset-bd: #e8e8e8;
   --pp-preset-fg: #1565cf;
   --pp-radius-sm: 4px;
   --pp-radius-md: 8px;
@@ -1394,7 +1393,6 @@ html[data-theme="nord-night"] {
   --pp-spinner-bg: #434c5e;
   --pp-spinner-fg: #88c0d0;
   --pp-preset-bg: #3b4252;
-  --pp-preset-bd: #434c5e;
   --pp-preset-fg: #88c0d0;
   --pp-radius-sm: 4px;
   --pp-radius-md: 4px;
@@ -1444,7 +1442,6 @@ html[data-theme="terminal"] {
   --pp-spinner-bg: #33ff3340;
   --pp-spinner-fg: #33ff33;
   --pp-preset-bg: #1a3a1a;
-  --pp-preset-bd: #33ff3340;
   --pp-preset-fg: #33ff33;
   --pp-radius-sm: 2px;
   --pp-radius-md: 4px;
@@ -1496,7 +1493,6 @@ html[data-theme="paper-ink"] {
   --pp-spinner-bg: #d4c5a9;
   --pp-spinner-fg: #1a3a5c;
   --pp-preset-bg: #f5f0e8;
-  --pp-preset-bd: #d4c5a9;
   --pp-preset-fg: #1a3a5c;
   --pp-radius-sm: 2px;
   --pp-radius-md: 4px;
@@ -1548,7 +1544,6 @@ html[data-theme="dracula"] {
   --pp-spinner-bg: #44475a;
   --pp-spinner-fg: #8be9fd;
   --pp-preset-bg: #21222c;
-  --pp-preset-bd: #44475a;
   --pp-preset-fg: #8be9fd;
   --pp-radius-sm: 2px;
   --pp-radius-md: 4px;
@@ -1598,7 +1593,6 @@ html[data-theme="flexoki-light"] {
   --pp-spinner-bg: #E6E4D9;
   --pp-spinner-fg: #205ea6;
   --pp-preset-bg: #F2F0E5;
-  --pp-preset-bd: #E6E4D9;
   --pp-preset-fg: #205ea6;
   --pp-radius-sm: 3px;
   --pp-radius-md: 6px;
@@ -1648,7 +1642,6 @@ html[data-theme="flexoki-dark"] {
   --pp-spinner-bg: #403E3C;
   --pp-spinner-fg: #528fc3;
   --pp-preset-bg: #343331;
-  --pp-preset-bd: #403E3C;
   --pp-preset-fg: #70a3ce;
   --pp-radius-sm: 3px;
   --pp-radius-md: 6px;
@@ -1698,7 +1691,6 @@ html[data-theme="solarized-light"] {
   --pp-spinner-bg: #d6cdb5;
   --pp-spinner-fg: #2074af;
   --pp-preset-bg: #eee8d5;
-  --pp-preset-bd: #d6cdb5;
   --pp-preset-fg: #1d699e;
   --pp-radius-sm: 2px;
   --pp-radius-md: 4px;
@@ -1748,7 +1740,6 @@ html[data-theme="solarized-dark"] {
   --pp-spinner-bg: #094b5a;
   --pp-spinner-fg: #3b99dc;
   --pp-preset-bg: #073642;
-  --pp-preset-bd: #094b5a;
   --pp-preset-fg: #4ca2df;
   --pp-radius-sm: 2px;
   --pp-radius-md: 4px;
@@ -1800,7 +1791,6 @@ html[data-theme="catppuccin-latte"] {
   --pp-spinner-bg: #ccd0da;
   --pp-spinner-fg: #1e66f5;
   --pp-preset-bg: #dce0e8;
-  --pp-preset-bd: #ccd0da;
   --pp-preset-fg: #0a55ea;
   --pp-radius-sm: 6px;
   --pp-radius-md: 10px;
@@ -1849,7 +1839,6 @@ html[data-theme="catppuccin-mocha"] {
   --pp-spinner-bg: #45475a;
   --pp-spinner-fg: #89b4fa;
   --pp-preset-bg: #313244;
-  --pp-preset-bd: #45475a;
   --pp-preset-fg: #89b4fa;
   --pp-radius-sm: 4px;
   --pp-radius-md: 10px;
@@ -1898,7 +1887,6 @@ html[data-theme="gruvbox-dark"] {
   --pp-spinner-bg: #504945;
   --pp-spinner-fg: #83a598;
   --pp-preset-bg: #3c3836;
-  --pp-preset-bd: #504945;
   --pp-preset-fg: #89a99d;
   --pp-radius-sm: 2px;
   --pp-radius-md: 2px;
@@ -1948,7 +1936,6 @@ html[data-theme="rose-pine"] {
   --pp-spinner-bg: #26233a;
   --pp-spinner-fg: #c4a7e7;
   --pp-preset-bg: #26233a;
-  --pp-preset-bd: #26233a;
   --pp-preset-fg: #c4a7e7;
   --pp-radius-sm: 4px;
   --pp-radius-md: 6px;
@@ -1997,7 +1984,6 @@ html[data-theme="github-light"] {
   --pp-spinner-bg: #d0d7de;
   --pp-spinner-fg: #0969da;
   --pp-preset-bg: #ddf4ff;
-  --pp-preset-bd: #d0d7de;
   --pp-preset-fg: #0969da;
   --pp-radius-sm: 3px;
   --pp-radius-md: 6px;

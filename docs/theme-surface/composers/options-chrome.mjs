@@ -137,19 +137,56 @@ function emitOpt(ui, palette, overrides, radius, mode) {
   // pair (Task 7), fixed here rather than allowlisted.
   map["chip-fg"] = rgbToHex(fgToAAMulti(hexToRgb(palette["tag-fg"]), [resolveOpaqueBg(palette["tag-bg"], panelRgb), btnHoverRgb]));
 
-  return [`  color-scheme: ${mode};`, ...Object.entries(map).map(([k, v]) => `  --opt-${k}: ${v};`)].join("\n");
+  // Returns the computed map alongside the rendered text (not just text):
+  // composeOptionsThemes needs map.accent AFTER pilot overrides are applied
+  // (below) to source the preset-row swatch dot -- catppuccin-latte and
+  // solarized-light both override ui.options.light.accent, so the raw
+  // pre-override `ui.accent` a caller might otherwise reach for is NOT what
+  // --opt-accent actually resolves to for those two themes.
+  return { map, text: [`  color-scheme: ${mode};`, ...Object.entries(map).map(([k, v]) => `  --opt-${k}: ${v};`)].join("\n") };
 }
+
+// Button-facing preset key -> which POPUP_THEME_MAP id's FINAL (post-
+// override) --opt-accent represents it in the .theme-preset-btn swatch dot
+// (design-uplift, preset-row Variant A follow-up, 2026-08-04 USER RULING:
+// "每预设独立强调色圆点" -- a real color picker -- is the whole point of
+// Variant A; a single shared --opt-accent dot for every button lost it).
+// Adaptive umbrellas (flexoki/solarized/catppuccin) render ONE button in
+// options.html for BOTH their light/dark variants
+// (data-theme="flexoki", not "flexoki-light"), so a representative pick is
+// needed -- light chosen for all three, consistently, not "whichever mode
+// the page is currently in": the dot is a static identity marker, not a
+// live preview, and one fixed rule is simpler to reason about than one that
+// flips with the page's own light/dark setting. "" (None) has no pilot and
+// is deliberately left out of this map -- its dot falls through to the
+// hand-written base rule's plain `var(--opt-accent)` (options.css).
+const SWATCH_SOURCE_BY_BUTTON_KEY = {
+  flexoki: "flexoki-light",
+  solarized: "solarized-light",
+  catppuccin: "catppuccin-latte",
+  "modern-card": "modern-card",
+  "paper-ink": "paper-ink",
+  "github-light": "github-light",
+  "nord-night": "nord-night",
+  terminal: "terminal",
+  dracula: "dracula",
+  "gruvbox-dark": "gruvbox-dark",
+  "rose-pine": "rose-pine",
+};
 
 // tokensByPilot: { [pilotSlug]: parsedTokensJson }
 export function composeOptionsThemes(tokensByPilot) {
   const blocks = [];
+  const accentByThemeId = {};
   for (const entry of POPUP_THEME_MAP) {
     const tk = tokensByPilot[entry.pilot];
     if (!tk) throw new Error(`options-chrome: missing pilot ${entry.pilot} for ${entry.id}`);
     const merged = entry.useDarkMode && tk.modes?.dark ? mergeTokens(tk, tk.modes.dark) : tk;
     const palette = expandPalette(merged.palette);
     const ui = deriveUiColors(palette, entry.mode);
-    blocks.push(`html[data-theme="${entry.id}"] {\n${emitOpt(ui, palette, tk.ui?.options?.[entry.mode], merged.radius, entry.mode)}\n}`);
+    const { map, text } = emitOpt(ui, palette, tk.ui?.options?.[entry.mode], merged.radius, entry.mode);
+    accentByThemeId[entry.id] = map.accent;
+    blocks.push(`html[data-theme="${entry.id}"] {\n${text}\n}`);
   }
   // Native-control scheme, default surface (no preset selected) -- Task 6.
   // options.html declares `<meta name="color-scheme" content="light dark">`,
@@ -163,5 +200,14 @@ export function composeOptionsThemes(tokensByPilot) {
   // no preset picked), so "light" is the only value this baseline needs.
   const defaultBody = [`  color-scheme: light;`, ...Object.entries(DEFAULT_LIGHT).map(([k, v]) => `  --opt-${k}: ${v};`)].join("\n");
   blocks.push(`:root {\n${defaultBody}\n}`);
+  // Preset-row swatch dots: one rule per button-facing preset key, keyed off
+  // the SAME data-theme attribute options.html already puts on each
+  // .theme-preset-btn -- no new DOM attribute needed. --variant-swatch is
+  // consumed by options.css's hand-written .theme-preset-btn::before rule.
+  for (const [buttonKey, themeId] of Object.entries(SWATCH_SOURCE_BY_BUTTON_KEY)) {
+    const accent = accentByThemeId[themeId];
+    if (!accent) throw new Error(`options-chrome: swatch source theme "${themeId}" (for button "${buttonKey}") missing from POPUP_THEME_MAP`);
+    blocks.push(`.theme-preset-btn[data-theme="${buttonKey}"] {\n  --variant-swatch: ${accent};\n}`);
+  }
   return blocks.join("\n");
 }

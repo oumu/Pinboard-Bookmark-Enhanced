@@ -875,6 +875,7 @@ html.motion-ready #preset-preview-section > summary::after {
    literal-adjacent role). */
 .theme-preset-btn,
 .saved-theme-btn {
+  --variant-swatch: var(--opt-accent);
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -884,21 +885,27 @@ html.motion-ready #preset-preview-section > summary::after {
   background: color-mix(in srgb, var(--opt-accent) 10%, var(--opt-panel));
   color: var(--opt-fg);
 }
-/* Swatch dot: reuses --opt-accent (the same token every focus ring and
-   selection state in this file already consumes), not a per-preset color --
-   options has no existing per-preset color data source outside each theme's
-   own html[data-theme] cascade (checked: PINBOARD_THEMES only carries
-   {name, desc, css} for the pinboard.in SITE theme, a full CSS string in a
-   different --pinboard-* namespace, not a queryable UI accent value), and
-   hardcoding 12 per-theme swatch hexes here would trip the zero-tolerance
-   hex/rgba gate (tests/ui-contract-tests.mjs) for no real gain over the
-   current theme's own accent. */
+/* Swatch dot: --variant-swatch defaults to the current theme's plain
+   --opt-accent (used as-is by .saved-theme-btn -- custom saved themes are
+   arbitrary user CSS with no color identity of their own -- and by the
+   "None" preset button, which has no pilot). Every OTHER .theme-preset-btn
+   gets its OWN preset's accent instead, overridden per data-theme value by
+   composers/options-chrome.mjs's generated .theme-preset-btn[data-theme="X"]
+   rules below (@generated:ui-themes region) -- (0,2,0) beats this rule's
+   (0,1,0), no source-order dependency. This makes the row an actual color
+   picker (design-uplift, Variant A follow-up, 2026-08-04 USER RULING:
+   a single shared dot for every button lost the whole point of "每预设独立
+   强调色圆点"). The per-preset hex values live in the generated region, not
+   here -- hand-written popup.css/options.css are at the hex/rgba
+   zero-tolerance gate (tests/ui-contract-tests.mjs), which only scans the
+   hand-maintained text (countBareHex strips every @generated region before
+   counting), so literals belong in composer output, never here. */
 .theme-preset-btn::before,
 .saved-theme-btn::before {
   content: "";
   width: 7px; height: 7px;
   border-radius: 50%;
-  background: var(--opt-accent);
+  background: var(--variant-swatch);
   flex-shrink: 0;
 }
 .theme-preset-btn:hover:not(:disabled),
@@ -1404,6 +1411,39 @@ html[data-theme="github-light"] {
   --opt-save: #1a7f37;
   --opt-warn: #9a6700;
   --opt-border: #8a8a8a;
+}
+.theme-preset-btn[data-theme="flexoki"] {
+  --variant-swatch: #205EA6;
+}
+.theme-preset-btn[data-theme="solarized"] {
+  --variant-swatch: #1e6ca4;
+}
+.theme-preset-btn[data-theme="catppuccin"] {
+  --variant-swatch: #1a5ad8;
+}
+.theme-preset-btn[data-theme="modern-card"] {
+  --variant-swatch: #1a73e8;
+}
+.theme-preset-btn[data-theme="paper-ink"] {
+  --variant-swatch: #1a3a5c;
+}
+.theme-preset-btn[data-theme="github-light"] {
+  --variant-swatch: #0969da;
+}
+.theme-preset-btn[data-theme="nord-night"] {
+  --variant-swatch: #88c0d0;
+}
+.theme-preset-btn[data-theme="terminal"] {
+  --variant-swatch: #33ff33;
+}
+.theme-preset-btn[data-theme="dracula"] {
+  --variant-swatch: #8be9fd;
+}
+.theme-preset-btn[data-theme="gruvbox-dark"] {
+  --variant-swatch: #83a598;
+}
+.theme-preset-btn[data-theme="rose-pine"] {
+  --variant-swatch: #c4a7e7;
 }
 /* @generated:ui-themes end */
 

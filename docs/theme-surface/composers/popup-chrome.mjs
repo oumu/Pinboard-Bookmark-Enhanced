@@ -91,7 +91,7 @@ function emitPp(ui, mode) {
     "chip-bg", "chip-fg", "btn-fg",
     "banner-bg", "banner-bd", "banner-fg", "warn-bg", "warn-bd", "warn-fg",
     "ok-bg", "ok-bd", "ok-fg", "offline-bg", "offline-bd", "offline-fg",
-    "danger", "danger-quiet-fg", "on-danger", "spinner-bg", "spinner-fg", "preset-bg", "preset-bd", "preset-fg",
+    "danger", "danger-quiet-fg", "on-danger", "spinner-bg", "spinner-fg", "preset-bg", "preset-fg",
     "radius-sm", "radius-md", "radius-lg", "radius-tag", "focus-bd", "focus-ring", "on-accent"]) {
     if (ui[k] != null) set(k, ui[k]);
   }
@@ -151,20 +151,17 @@ export function composePopupThemes(tokensByPilot) {
     // spec-conformance, same convention as danger-quiet-fg's 3-bg superset
     // below even though two of the three are numerically identical today.
     ui["border"] = rgbToHex(borderToAA(resolveOpaqueBg(ui.border, btnBgRgb), [btnBgRgb, btnBgRgb]));
-    // preset-bd (design-uplift Task 16, USER CHECKPOINT 2026-08-04 -- "预设按钮行
-    // border 太夸张了，很 low，请重新设计"): a prior fix round tried
-    // `ui["preset-bd"] = ui["border"]` to unify the preset row on the AA-derived
-    // (heavier) side; the user rejected that on sight. Ruling: unify on the
-    // LIGHT side instead. deriveUiColors already seeds preset-bd as its own
-    // raw-palette snapshot of border (`hx("border")`), untouched by the
-    // reassignment above -- so simply NOT touching preset-bd here (removing
-    // that fix-round line) is sufficient; no new code needed. The other half of
-    // the unification -- popup.css's `.preset-btn.used` rule -- now reads
-    // --pp-preset-bd instead of --pp-border (see popup.css), so the whole preset
-    // row (used or not) reads the same light, decorative outline. Border-3:1
-    // exemption rationale for the preset swatch row: COMPONENTS.md's border
-    // 3:1 section, "preset swatch row" exemption (fill + text already provide
-    // affordance; WCAG 1.4.11 does not mandate a border on a filled control).
+    // preset-bd RETIRED (design-uplift, preset-row Variant A, 2026-08-04):
+    // `.preset-btn` is borderless now (COMPONENTS.md Appendix C30), so no
+    // rule anywhere reads --pp-preset-bd -- removed from emitPp's key list
+    // above rather than left as a defined-but-unconsumed token (the prior
+    // state this comment used to document: Task 16's border-weight
+    // back-and-forth, unified light-side per USER CHECKPOINT, superseded by
+    // the full redesign that removed the border entirely). deriveUiColors
+    // (_ui-derive.mjs) still computes ui["preset-bd"] internally -- shared
+    // by options/library-chrome.mjs too, not worth a bespoke per-surface
+    // return shape just to omit one field nobody reads once popup's own
+    // emission list drops it.
     ui["btn-fg"] = rgbToHex(fgToAAMulti(hexToRgb(ui.fg), [btnBgRgb, btnHoverRgb]));
     // panel === bg2 === btn-bg for popup (no dedicated panel role); the 3-bg
     // set is spelled out per COMPONENTS.md §4.3 even though two of the three
