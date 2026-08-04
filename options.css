@@ -793,9 +793,21 @@ details.et-onboarding > summary,
   list-style: none; cursor: pointer; user-select: none;
 }
 /* Standalone disclosures (no divider list around them) still deserve a
-   click target taller than their bare line box. */
-#tag-gov-lowcount > summary,
-#preset-preview-section > summary { padding: var(--opt-sp-3) 0; }
+   click target taller than their bare line box. #preset-preview-section is
+   NOT one of these: it's a bordered box (`.preset-preview-section { border:
+   1px solid ...}`, options.css ~1678), and `#preset-preview-section >
+   summary` (id, specificity 1,0,1) unconditionally beat
+   `.preset-preview-section summary`'s own `padding: var(--opt-sp-4)
+   var(--opt-sp-5)` (class, 0,1,1) regardless of source order, zeroing its
+   horizontal padding -- real-device report: label text sat flush against
+   the border, and the ::after chevron's rotated 7x7 bbox (~1.45px wider
+   than its own layout box per side, see the ::after rule below) had no
+   padding-right left to sit inside, so it painted past the border too.
+   Task 14 sweep (scripts/ui-render-audit.mjs --sweep) generalized this into
+   textInset/childContainment and confirmed both symptoms share this one
+   cause -- fixed by just not fighting the class rule's already-correct
+   padding here. */
+#tag-gov-lowcount > summary { padding: var(--opt-sp-3) 0; }
 details.vocab-disclosure > summary::-webkit-details-marker,
 details.free-tier-help > summary::-webkit-details-marker,
 details.et-onboarding > summary::-webkit-details-marker,

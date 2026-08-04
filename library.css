@@ -963,14 +963,9 @@ html.motion-ready .vocab-note-save[hidden] { display: none; opacity: 0; translat
   max-width: 100%;
 }
 .vocab-filter-toolbar select { flex: 0 1 auto; min-width: 0; }
-/* padding/font-size/line-height now come from @generated:ui-components above
-   (COMPONENTS.md §6.1 toolbar-scoped field variant, Appendix C3, defect 2) --
-   `font: inherit` is gone too: it was a shorthand that also reset font-size/
-   line-height to their inherited values, which would have silently outranked
-   the generated recipe's explicit font-size/line-height for this exact
-   selector (same specificity, later source). font-family still comes from
-   the page-wide `button, input, select, textarea { font-family: inherit }`
-   rule near the top of this file, so nothing is lost. */
+/* font-family comes from the page-wide `button, input, select, textarea {
+   font-family: inherit }` rule near the top of this file regardless of the
+   `font: inherit` below, so nothing is lost by that shorthand. */
 .vocab-batch-bar input[type="text"] {
   min-width: 0;
   border: 1px solid var(--lib-input-border, #cdd1d6);
@@ -992,7 +987,16 @@ html.motion-ready .vocab-note-save[hidden] { display: none; opacity: 0; translat
      and parks every select on its own full-width row. Content-sized is the
      point. */
   width: auto;
-  padding: 6px 26px 6px var(--lib-sp-3); /* block: options --opt-sp-3 (6px), no --lib-sp-* match */
+  /* block padding matches `.notes-toolbar input[type="search"]`'s
+     var(--lib-sp-1) (4px), NOT the 6px this literal used to carry -- Task 14
+     sweep (rowHeightEq) caught #vocab-search sitting 4px shorter than
+     #vocab-group-filter/#vocab-status-filter in the same row: both share the
+     same font-size and inherited `line-height: normal`, so equal block
+     padding is sufficient for the two formulas to land on the same computed
+     height, no explicit line-height needed. .vocab-sort-btn's height comes
+     along for free too -- .vocab-filter-selects's default align-items:
+     stretch (no override) matches it to whichever sibling here is tallest. */
+  padding: var(--lib-sp-1) 26px var(--lib-sp-1) var(--lib-sp-3);
   border: 1px solid var(--lib-input-border, #cdd1d6);
   border-radius: var(--lib-radius-md);
   background-color: var(--lib-btn-bg, #fff);
@@ -1020,6 +1024,26 @@ html.motion-ready .vocab-note-save[hidden] { display: none; opacity: 0; translat
 .vocab-filter-toolbar select:focus-visible {
   outline: 2px solid var(--lib-accent);
   outline-offset: 1px;
+}
+/* #vocab-lookup-go is a bare icon .btn-sm (COMPONENTS.md §1.5's "dense
+   toolbar -> sm" clause, not the "beside a field -> md" one -- this bar is a
+   compact single-purpose search tool, same shape call already made for
+   .vocab-batch-bar's own input+.btn-sm row above). Bring the field/select
+   DOWN to the sm-rung formula instead of promoting the button up to md,
+   mirroring .vocab-batch-bar input[type="text"]'s already-shipped precedent
+   (2px block padding + 14px line-height = the same height math .btn-sm
+   uses) -- vertical-only longhands so the horizontal padding (chevron room,
+   general h-spacing) from the base rules above stays untouched. MUST sit
+   after the base `.notes-toolbar input[type="search"]` / `.vocab-filter-
+   toolbar select` rules above (same specificity, source order decides) --
+   Task 14 sweep caught this row's 3-way height mismatch (input/select/
+   button all different) before this override existed. */
+.vocab-lookup-bar input[type="search"],
+.vocab-lookup-bar select {
+  padding-top: 2px;
+  padding-bottom: 2px;
+  font-size: 12px;
+  line-height: 14px;
 }
 /* The dark themes need their own chevron: it is a data URI, so the stroke
    colour cannot come from a token. */

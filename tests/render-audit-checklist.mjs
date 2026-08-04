@@ -116,6 +116,30 @@
 //                      is what actually drives them (COMPONENTS.md's "成对
 //                      消费律" applied to a UA-rendered pair instead of an
 //                      author-painted one).
+//   textInset      -- { h, v }: for an element with a direct (own, not a
+//                      descendant's) non-whitespace text node, the smaller
+//                      of its two opposing insets (text bbox to the nearest
+//                      element-or-ancestor's border padding-box edge) must
+//                      be >= h horizontally, >= v vertically (§7.6). The
+//                      border host is found by walking up from the element
+//                      (self counts at depth 0) to the nearest ALL-FOUR-
+//                      SIDES bordered box, stopping at any scrollable or
+//                      single-line-ellipsis boundary in between -- see
+//                      scripts/ui-render-audit.mjs's findBorderBoxHost for
+//                      the full walk. Task 14: options preset-preview's
+//                      `<summary>` text sat flush against its enclosing
+//                      `#preset-preview-section`'s border because an id
+//                      selector zeroed the summary's own horizontal padding.
+//   childContainment -- true: a `<summary>`'s icon/pseudo-element children
+//                      (svg, ::before, ::after) must stay inside the
+//                      summary's own border-box, +/-1px tolerance (§7.6).
+//                      Scoped to `<summary>` only -- ordinary buttons'
+//                      `::before` hit-area expansion (§1.5) is SUPPOSED to
+//                      paint outside the host's visual box, so this check
+//                      would misfire on every one of them if it weren't
+//                      disclosure-specific. Task 14: the same zeroed-padding
+//                      bug left no room for the ::after chevron's rotated
+//                      7x7 bbox, which painted ~1.45px past the border.
 //
 // Selectors below are written against the CURRENT shipped markup (pre-Task
 // 9/10 uplift). Task 9/10/12/13 migrate one selector's underlying CSS at a
@@ -283,6 +307,46 @@ export const CHECKS = [
   // per theme with no detail-pane/batch-bar setup needed. ----
   { surface: "library", page: "library.html", selector: "html", state: "default",
     expect: { colorSchemeMatchesTheme: true } },
+
+  // ---- Task 14 (§7.6 textInset/childContainment): options preset-preview
+  // summary -- user real-device report, two symptoms of the SAME root cause
+  // (an id selector, #preset-preview-section > summary, zeroed the
+  // summary's own horizontal padding, beating the bordered box's own class
+  // rule regardless of source order). textInset catches the text-glued-to-
+  // border half; childContainment catches the ::after chevron's rotated
+  // bbox poking past the border with nowhere left to sit. Needs the
+  // "appearance" tab active + a site-theme preset picked (scripts/ui-render-
+  // audit.mjs's options-specific setup) -- the summary is otherwise
+  // reachable but its whole `<details>` is `style="display:none"` until
+  // then. ----
+  { surface: "options", page: "options.html", selector: "#preset-preview-section > summary", state: "default",
+    expect: { textInset: { h: 4, v: 2 }, childContainment: true } },
+
+  // ---- Task 14 (§6.3 rowRungEq, sweep-discovered): the vocab list's search
+  // row. #vocab-search sat 4px shorter than its row-mates -- the select's
+  // vertical padding was a bare 6px literal (no --lib-sp-* match) instead of
+  // the same var(--lib-sp-1) the search input already used; both share the
+  // browser's inherited `line-height: normal` for the same font-size, so
+  // equalizing padding alone closed the whole gap. #vocab-sort-time reaches
+  // the SAME height a different way -- it's stretched to match its select
+  // siblings by .vocab-filter-selects's default (unset) align-items:stretch,
+  // not by its own padding/line-height, so it's the one selector that
+  // actually exercises that stretch mechanism rather than just re-testing
+  // the select fix a second time. ----
+  { surface: "library", page: "library.html", selector: "#vocab-search", state: "default",
+    expect: { heightEqWith: { selector: "#vocab-group-filter", tolerancePx: 1 } } },
+  { surface: "library", page: "library.html", selector: "#vocab-search", state: "default",
+    expect: { heightEqWith: { selector: "#vocab-sort-time", tolerancePx: 1 } } },
+
+  // ---- Task 14 (§6.3 rowRungEq, sweep-discovered): the free-lookup bar.
+  // #vocab-lookup-go is a bare-icon .btn-sm (COMPONENTS.md §1.5's "dense
+  // toolbar" clause) -- opposite resolution direction from the row above:
+  // here the field/select come DOWN to the sm-rung formula (mirroring
+  // .vocab-batch-bar input[type="text"]'s already-shipped precedent)
+  // instead of the button going up to md, since this is a compact
+  // single-purpose search tool, not a standalone form field. ----
+  { surface: "library", page: "library.html", selector: "#vocab-lookup-input", state: "default",
+    expect: { heightEqWith: { selector: "#vocab-lookup-go", tolerancePx: 1 } } },
 ];
 
 // Hand-copied literal `data-theme` values, verified at authoring time with:
