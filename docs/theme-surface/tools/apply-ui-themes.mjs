@@ -19,7 +19,7 @@ const END = "/* @generated:ui-themes end */";
 // region at just the placeholder comment — see composers/ui-components.mjs
 // for why renderComponents(ns, []) is the deliberate "machinery built, not
 // yet wired up" state this campaign ships in.
-const ACTIVE_COMPONENT_FAMILIES = { pp: ["btnIc"], opt: ["btn", "btnIc"], lib: ["btn", "btnIc"] };
+const ACTIVE_COMPONENT_FAMILIES = { pp: ["btnIc"], opt: ["btn", "btnIc", "chip"], lib: ["btn", "btnIc", "chip"] };
 
 function loadPilots() {
   const by = {};

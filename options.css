@@ -400,6 +400,17 @@ html[data-theme] .opt-error {
 .btn-ic svg {
   display: block;
 }
+
+.tag-gov-kind-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--opt-sp-1) 10px;
+  font-size: 10px;
+  line-height: 14px;
+  border-radius: var(--opt-radius-full);
+  background: var(--opt-chip-bg);
+  color: var(--opt-chip-fg);
+}
 /* @generated:ui-components end (options) */
 /* Danger tier only — base .btn/.btn-sm/.btn.ghost geometry + color + state
    feedback now come from @generated:ui-components above (COMPONENTS.md
@@ -1775,16 +1786,11 @@ html.motion-ready .wayback-log-row:focus-within .wayback-perm-tip {
 #tag-gov-groups > :not(.tag-gov-group-row) {
   grid-column: 1 / -1;       /* empty-state / non-card messages span the full grid width */
 }
-.tag-gov-kind-badge {
-  display: inline-block;
-  font-size: 10px;
-  font-weight: bold;
-  padding: var(--opt-sp-1) var(--opt-sp-3);
-  background: var(--opt-border, #e0e0e0);
-  border-radius: var(--opt-radius-full, 9999px);
-  width: fit-content;
-  color: var(--opt-fg-muted, #555);
-}
+/* Geometry/color (display/padding/line-height/radius/background/color) now
+   come from @generated:ui-components above (COMPONENTS.md §5, Appendix C10)
+   -- font-weight is the one declaration the chip family recipe doesn't cover,
+   so it's the only thing left here. */
+.tag-gov-kind-badge { font-weight: bold; }
 .tag-gov-members {
   display: flex;
   flex-direction: column;

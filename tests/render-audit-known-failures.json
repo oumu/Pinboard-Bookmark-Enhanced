@@ -1,24 +1,4 @@
 {
-  "library||.vocab-group-chip|default|padGteRadiusH": {
-    "surface": "library",
-    "theme": "",
-    "selector": ".vocab-group-chip",
-    "state": "default",
-    "check": "padGteRadiusH",
-    "actual": 4,
-    "expected": 6.75,
-    "note": null
-  },
-  "library||.vocab-group-chip|default|padVMin": {
-    "surface": "library",
-    "theme": "",
-    "selector": ".vocab-group-chip",
-    "state": "default",
-    "check": "padVMin",
-    "actual": 0,
-    "expected": 2,
-    "note": null
-  },
   "library||#vocab-group-input|default|heightEqWith": {
     "surface": "library",
     "theme": "",
@@ -39,16 +19,6 @@
     "expected": 24,
     "note": null
   },
-  "library||.vocab-stat-chip|default|padVMin": {
-    "surface": "library",
-    "theme": "",
-    "selector": ".vocab-stat-chip",
-    "state": "default",
-    "check": "padVMin",
-    "actual": 1,
-    "expected": 2,
-    "note": null
-  },
   "library|catppuccin-latte|.vocab-detail-delete|default|textContrast": {
     "surface": "library",
     "theme": "catppuccin-latte",
@@ -57,26 +27,6 @@
     "check": "textContrast",
     "actual": 4.46,
     "expected": 4.5,
-    "note": null
-  },
-  "library|catppuccin-latte|.vocab-group-chip|default|padGteRadiusH": {
-    "surface": "library",
-    "theme": "catppuccin-latte",
-    "selector": ".vocab-group-chip",
-    "state": "default",
-    "check": "padGteRadiusH",
-    "actual": 4,
-    "expected": 6.75,
-    "note": null
-  },
-  "library|catppuccin-latte|.vocab-group-chip|default|padVMin": {
-    "surface": "library",
-    "theme": "catppuccin-latte",
-    "selector": ".vocab-group-chip",
-    "state": "default",
-    "check": "padVMin",
-    "actual": 0,
-    "expected": 2,
     "note": null
   },
   "library|catppuccin-latte|#vocab-group-input|default|heightEqWith": {
@@ -99,26 +49,6 @@
     "expected": 24,
     "note": null
   },
-  "library|catppuccin-latte|.vocab-stat-chip|default|padVMin": {
-    "surface": "library",
-    "theme": "catppuccin-latte",
-    "selector": ".vocab-stat-chip",
-    "state": "default",
-    "check": "padVMin",
-    "actual": 1,
-    "expected": 2,
-    "note": null
-  },
-  "library|catppuccin-latte|.vocab-stat-chip|default|textContrastMulti": {
-    "surface": "library",
-    "theme": "catppuccin-latte",
-    "selector": ".vocab-stat-chip",
-    "state": "default",
-    "check": "textContrastMulti",
-    "actual": 4.34,
-    "expected": 4.5,
-    "note": "chip-bg=4.72:1, btn-hover=4.34:1"
-  },
   "library|catppuccin-latte|.notes-detail-delete|default|textContrast": {
     "surface": "library",
     "theme": "catppuccin-latte",
@@ -127,26 +57,6 @@
     "check": "textContrast",
     "actual": 4.46,
     "expected": 4.5,
-    "note": null
-  },
-  "library|catppuccin-mocha|.vocab-group-chip|default|padGteRadiusH": {
-    "surface": "library",
-    "theme": "catppuccin-mocha",
-    "selector": ".vocab-group-chip",
-    "state": "default",
-    "check": "padGteRadiusH",
-    "actual": 4,
-    "expected": 6.75,
-    "note": null
-  },
-  "library|catppuccin-mocha|.vocab-group-chip|default|padVMin": {
-    "surface": "library",
-    "theme": "catppuccin-mocha",
-    "selector": ".vocab-group-chip",
-    "state": "default",
-    "check": "padVMin",
-    "actual": 0,
-    "expected": 2,
     "note": null
   },
   "library|catppuccin-mocha|#vocab-group-input|default|heightEqWith": {
@@ -169,36 +79,6 @@
     "expected": 24,
     "note": null
   },
-  "library|catppuccin-mocha|.vocab-stat-chip|default|padVMin": {
-    "surface": "library",
-    "theme": "catppuccin-mocha",
-    "selector": ".vocab-stat-chip",
-    "state": "default",
-    "check": "padVMin",
-    "actual": 1,
-    "expected": 2,
-    "note": null
-  },
-  "library|dracula|.vocab-group-chip|default|padGteRadiusH": {
-    "surface": "library",
-    "theme": "dracula",
-    "selector": ".vocab-group-chip",
-    "state": "default",
-    "check": "padGteRadiusH",
-    "actual": 4,
-    "expected": 6.75,
-    "note": null
-  },
-  "library|dracula|.vocab-group-chip|default|padVMin": {
-    "surface": "library",
-    "theme": "dracula",
-    "selector": ".vocab-group-chip",
-    "state": "default",
-    "check": "padVMin",
-    "actual": 0,
-    "expected": 2,
-    "note": null
-  },
   "library|dracula|#vocab-group-input|default|heightEqWith": {
     "surface": "library",
     "theme": "dracula",
@@ -217,36 +97,6 @@
     "check": "hitAreaMin",
     "actual": 22.5,
     "expected": 24,
-    "note": null
-  },
-  "library|dracula|.vocab-stat-chip|default|padVMin": {
-    "surface": "library",
-    "theme": "dracula",
-    "selector": ".vocab-stat-chip",
-    "state": "default",
-    "check": "padVMin",
-    "actual": 1,
-    "expected": 2,
-    "note": null
-  },
-  "library|flexoki-light|.vocab-group-chip|default|padGteRadiusH": {
-    "surface": "library",
-    "theme": "flexoki-light",
-    "selector": ".vocab-group-chip",
-    "state": "default",
-    "check": "padGteRadiusH",
-    "actual": 4,
-    "expected": 6.75,
-    "note": null
-  },
-  "library|flexoki-light|.vocab-group-chip|default|padVMin": {
-    "surface": "library",
-    "theme": "flexoki-light",
-    "selector": ".vocab-group-chip",
-    "state": "default",
-    "check": "padVMin",
-    "actual": 0,
-    "expected": 2,
     "note": null
   },
   "library|flexoki-light|#vocab-group-input|default|heightEqWith": {
@@ -269,16 +119,6 @@
     "expected": 24,
     "note": null
   },
-  "library|flexoki-light|.vocab-stat-chip|default|padVMin": {
-    "surface": "library",
-    "theme": "flexoki-light",
-    "selector": ".vocab-stat-chip",
-    "state": "default",
-    "check": "padVMin",
-    "actual": 1,
-    "expected": 2,
-    "note": null
-  },
   "library|flexoki-dark|.vocab-detail-delete|default|textContrast": {
     "surface": "library",
     "theme": "flexoki-dark",
@@ -287,26 +127,6 @@
     "check": "textContrast",
     "actual": 4.16,
     "expected": 4.5,
-    "note": null
-  },
-  "library|flexoki-dark|.vocab-group-chip|default|padGteRadiusH": {
-    "surface": "library",
-    "theme": "flexoki-dark",
-    "selector": ".vocab-group-chip",
-    "state": "default",
-    "check": "padGteRadiusH",
-    "actual": 4,
-    "expected": 6.75,
-    "note": null
-  },
-  "library|flexoki-dark|.vocab-group-chip|default|padVMin": {
-    "surface": "library",
-    "theme": "flexoki-dark",
-    "selector": ".vocab-group-chip",
-    "state": "default",
-    "check": "padVMin",
-    "actual": 0,
-    "expected": 2,
     "note": null
   },
   "library|flexoki-dark|#vocab-group-input|default|heightEqWith": {
@@ -329,26 +149,6 @@
     "expected": 24,
     "note": null
   },
-  "library|flexoki-dark|.vocab-stat-chip|default|padVMin": {
-    "surface": "library",
-    "theme": "flexoki-dark",
-    "selector": ".vocab-stat-chip",
-    "state": "default",
-    "check": "padVMin",
-    "actual": 1,
-    "expected": 2,
-    "note": null
-  },
-  "library|flexoki-dark|.vocab-stat-chip|default|textContrastMulti": {
-    "surface": "library",
-    "theme": "flexoki-dark",
-    "selector": ".vocab-stat-chip",
-    "state": "default",
-    "check": "textContrastMulti",
-    "actual": 3.86,
-    "expected": 4.5,
-    "note": "chip-bg=4.56:1, btn-hover=3.86:1"
-  },
   "library|flexoki-dark|.notes-detail-delete|default|textContrast": {
     "surface": "library",
     "theme": "flexoki-dark",
@@ -357,26 +157,6 @@
     "check": "textContrast",
     "actual": 4.16,
     "expected": 4.5,
-    "note": null
-  },
-  "library|github-light|.vocab-group-chip|default|padGteRadiusH": {
-    "surface": "library",
-    "theme": "github-light",
-    "selector": ".vocab-group-chip",
-    "state": "default",
-    "check": "padGteRadiusH",
-    "actual": 4,
-    "expected": 6.75,
-    "note": null
-  },
-  "library|github-light|.vocab-group-chip|default|padVMin": {
-    "surface": "library",
-    "theme": "github-light",
-    "selector": ".vocab-group-chip",
-    "state": "default",
-    "check": "padVMin",
-    "actual": 0,
-    "expected": 2,
     "note": null
   },
   "library|github-light|#vocab-group-input|default|heightEqWith": {
@@ -399,16 +179,6 @@
     "expected": 24,
     "note": null
   },
-  "library|github-light|.vocab-stat-chip|default|padVMin": {
-    "surface": "library",
-    "theme": "github-light",
-    "selector": ".vocab-stat-chip",
-    "state": "default",
-    "check": "padVMin",
-    "actual": 1,
-    "expected": 2,
-    "note": null
-  },
   "library|gruvbox-dark|.vocab-detail-delete|default|textContrast": {
     "surface": "library",
     "theme": "gruvbox-dark",
@@ -417,26 +187,6 @@
     "check": "textContrast",
     "actual": 3.69,
     "expected": 4.5,
-    "note": null
-  },
-  "library|gruvbox-dark|.vocab-group-chip|default|padGteRadiusH": {
-    "surface": "library",
-    "theme": "gruvbox-dark",
-    "selector": ".vocab-group-chip",
-    "state": "default",
-    "check": "padGteRadiusH",
-    "actual": 4,
-    "expected": 6.75,
-    "note": null
-  },
-  "library|gruvbox-dark|.vocab-group-chip|default|padVMin": {
-    "surface": "library",
-    "theme": "gruvbox-dark",
-    "selector": ".vocab-group-chip",
-    "state": "default",
-    "check": "padVMin",
-    "actual": 0,
-    "expected": 2,
     "note": null
   },
   "library|gruvbox-dark|#vocab-group-input|default|heightEqWith": {
@@ -459,16 +209,6 @@
     "expected": 24,
     "note": null
   },
-  "library|gruvbox-dark|.vocab-stat-chip|default|padVMin": {
-    "surface": "library",
-    "theme": "gruvbox-dark",
-    "selector": ".vocab-stat-chip",
-    "state": "default",
-    "check": "padVMin",
-    "actual": 1,
-    "expected": 2,
-    "note": null
-  },
   "library|gruvbox-dark|.notes-detail-delete|default|textContrast": {
     "surface": "library",
     "theme": "gruvbox-dark",
@@ -477,26 +217,6 @@
     "check": "textContrast",
     "actual": 3.69,
     "expected": 4.5,
-    "note": null
-  },
-  "library|modern-card|.vocab-group-chip|default|padGteRadiusH": {
-    "surface": "library",
-    "theme": "modern-card",
-    "selector": ".vocab-group-chip",
-    "state": "default",
-    "check": "padGteRadiusH",
-    "actual": 4,
-    "expected": 6.75,
-    "note": null
-  },
-  "library|modern-card|.vocab-group-chip|default|padVMin": {
-    "surface": "library",
-    "theme": "modern-card",
-    "selector": ".vocab-group-chip",
-    "state": "default",
-    "check": "padVMin",
-    "actual": 0,
-    "expected": 2,
     "note": null
   },
   "library|modern-card|#vocab-group-input|default|heightEqWith": {
@@ -519,16 +239,6 @@
     "expected": 24,
     "note": null
   },
-  "library|modern-card|.vocab-stat-chip|default|padVMin": {
-    "surface": "library",
-    "theme": "modern-card",
-    "selector": ".vocab-stat-chip",
-    "state": "default",
-    "check": "padVMin",
-    "actual": 1,
-    "expected": 2,
-    "note": null
-  },
   "library|nord-night|.vocab-detail-delete|default|textContrast": {
     "surface": "library",
     "theme": "nord-night",
@@ -537,26 +247,6 @@
     "check": "textContrast",
     "actual": 3.81,
     "expected": 4.5,
-    "note": null
-  },
-  "library|nord-night|.vocab-group-chip|default|padGteRadiusH": {
-    "surface": "library",
-    "theme": "nord-night",
-    "selector": ".vocab-group-chip",
-    "state": "default",
-    "check": "padGteRadiusH",
-    "actual": 4,
-    "expected": 6.75,
-    "note": null
-  },
-  "library|nord-night|.vocab-group-chip|default|padVMin": {
-    "surface": "library",
-    "theme": "nord-night",
-    "selector": ".vocab-group-chip",
-    "state": "default",
-    "check": "padVMin",
-    "actual": 0,
-    "expected": 2,
     "note": null
   },
   "library|nord-night|#vocab-group-input|default|heightEqWith": {
@@ -579,16 +269,6 @@
     "expected": 24,
     "note": null
   },
-  "library|nord-night|.vocab-stat-chip|default|padVMin": {
-    "surface": "library",
-    "theme": "nord-night",
-    "selector": ".vocab-stat-chip",
-    "state": "default",
-    "check": "padVMin",
-    "actual": 1,
-    "expected": 2,
-    "note": null
-  },
   "library|nord-night|.notes-detail-delete|default|textContrast": {
     "surface": "library",
     "theme": "nord-night",
@@ -597,26 +277,6 @@
     "check": "textContrast",
     "actual": 3.81,
     "expected": 4.5,
-    "note": null
-  },
-  "library|paper-ink|.vocab-group-chip|default|padGteRadiusH": {
-    "surface": "library",
-    "theme": "paper-ink",
-    "selector": ".vocab-group-chip",
-    "state": "default",
-    "check": "padGteRadiusH",
-    "actual": 4,
-    "expected": 6.75,
-    "note": null
-  },
-  "library|paper-ink|.vocab-group-chip|default|padVMin": {
-    "surface": "library",
-    "theme": "paper-ink",
-    "selector": ".vocab-group-chip",
-    "state": "default",
-    "check": "padVMin",
-    "actual": 0,
-    "expected": 2,
     "note": null
   },
   "library|paper-ink|#vocab-group-input|default|heightEqWith": {
@@ -639,36 +299,6 @@
     "expected": 24,
     "note": null
   },
-  "library|paper-ink|.vocab-stat-chip|default|padVMin": {
-    "surface": "library",
-    "theme": "paper-ink",
-    "selector": ".vocab-stat-chip",
-    "state": "default",
-    "check": "padVMin",
-    "actual": 1,
-    "expected": 2,
-    "note": null
-  },
-  "library|rose-pine|.vocab-group-chip|default|padGteRadiusH": {
-    "surface": "library",
-    "theme": "rose-pine",
-    "selector": ".vocab-group-chip",
-    "state": "default",
-    "check": "padGteRadiusH",
-    "actual": 4,
-    "expected": 6.75,
-    "note": null
-  },
-  "library|rose-pine|.vocab-group-chip|default|padVMin": {
-    "surface": "library",
-    "theme": "rose-pine",
-    "selector": ".vocab-group-chip",
-    "state": "default",
-    "check": "padVMin",
-    "actual": 0,
-    "expected": 2,
-    "note": null
-  },
   "library|rose-pine|#vocab-group-input|default|heightEqWith": {
     "surface": "library",
     "theme": "rose-pine",
@@ -689,16 +319,6 @@
     "expected": 24,
     "note": null
   },
-  "library|rose-pine|.vocab-stat-chip|default|padVMin": {
-    "surface": "library",
-    "theme": "rose-pine",
-    "selector": ".vocab-stat-chip",
-    "state": "default",
-    "check": "padVMin",
-    "actual": 1,
-    "expected": 2,
-    "note": null
-  },
   "library|solarized-light|.vocab-detail-delete|default|textContrast": {
     "surface": "library",
     "theme": "solarized-light",
@@ -707,26 +327,6 @@
     "check": "textContrast",
     "actual": 4.2,
     "expected": 4.5,
-    "note": null
-  },
-  "library|solarized-light|.vocab-group-chip|default|padGteRadiusH": {
-    "surface": "library",
-    "theme": "solarized-light",
-    "selector": ".vocab-group-chip",
-    "state": "default",
-    "check": "padGteRadiusH",
-    "actual": 4,
-    "expected": 6.75,
-    "note": null
-  },
-  "library|solarized-light|.vocab-group-chip|default|padVMin": {
-    "surface": "library",
-    "theme": "solarized-light",
-    "selector": ".vocab-group-chip",
-    "state": "default",
-    "check": "padVMin",
-    "actual": 0,
-    "expected": 2,
     "note": null
   },
   "library|solarized-light|#vocab-group-input|default|heightEqWith": {
@@ -749,16 +349,6 @@
     "expected": 24,
     "note": null
   },
-  "library|solarized-light|.vocab-stat-chip|default|padVMin": {
-    "surface": "library",
-    "theme": "solarized-light",
-    "selector": ".vocab-stat-chip",
-    "state": "default",
-    "check": "padVMin",
-    "actual": 1,
-    "expected": 2,
-    "note": null
-  },
   "library|solarized-light|.notes-detail-delete|default|textContrast": {
     "surface": "library",
     "theme": "solarized-light",
@@ -777,26 +367,6 @@
     "check": "textContrast",
     "actual": 3.97,
     "expected": 4.5,
-    "note": null
-  },
-  "library|solarized-dark|.vocab-group-chip|default|padGteRadiusH": {
-    "surface": "library",
-    "theme": "solarized-dark",
-    "selector": ".vocab-group-chip",
-    "state": "default",
-    "check": "padGteRadiusH",
-    "actual": 4,
-    "expected": 6.75,
-    "note": null
-  },
-  "library|solarized-dark|.vocab-group-chip|default|padVMin": {
-    "surface": "library",
-    "theme": "solarized-dark",
-    "selector": ".vocab-group-chip",
-    "state": "default",
-    "check": "padVMin",
-    "actual": 0,
-    "expected": 2,
     "note": null
   },
   "library|solarized-dark|#vocab-group-input|default|heightEqWith": {
@@ -819,16 +389,6 @@
     "expected": 24,
     "note": null
   },
-  "library|solarized-dark|.vocab-stat-chip|default|padVMin": {
-    "surface": "library",
-    "theme": "solarized-dark",
-    "selector": ".vocab-stat-chip",
-    "state": "default",
-    "check": "padVMin",
-    "actual": 1,
-    "expected": 2,
-    "note": null
-  },
   "library|solarized-dark|.notes-detail-delete|default|textContrast": {
     "surface": "library",
     "theme": "solarized-dark",
@@ -837,26 +397,6 @@
     "check": "textContrast",
     "actual": 3.97,
     "expected": 4.5,
-    "note": null
-  },
-  "library|terminal|.vocab-group-chip|default|padGteRadiusH": {
-    "surface": "library",
-    "theme": "terminal",
-    "selector": ".vocab-group-chip",
-    "state": "default",
-    "check": "padGteRadiusH",
-    "actual": 4,
-    "expected": 6.75,
-    "note": null
-  },
-  "library|terminal|.vocab-group-chip|default|padVMin": {
-    "surface": "library",
-    "theme": "terminal",
-    "selector": ".vocab-group-chip",
-    "state": "default",
-    "check": "padVMin",
-    "actual": 0,
-    "expected": 2,
     "note": null
   },
   "library|terminal|#vocab-group-input|default|heightEqWith": {
@@ -878,26 +418,6 @@
     "actual": 22.5,
     "expected": 24,
     "note": null
-  },
-  "library|terminal|.vocab-stat-chip|default|padVMin": {
-    "surface": "library",
-    "theme": "terminal",
-    "selector": ".vocab-stat-chip",
-    "state": "default",
-    "check": "padVMin",
-    "actual": 1,
-    "expected": 2,
-    "note": null
-  },
-  "library|terminal|.vocab-stat-chip|default|textContrastMulti": {
-    "surface": "library",
-    "theme": "terminal",
-    "selector": ".vocab-stat-chip",
-    "state": "default",
-    "check": "textContrastMulti",
-    "actual": 4.11,
-    "expected": 4.5,
-    "note": "chip-bg=6.15:1, btn-hover=4.11:1"
   },
   "popup||#offline-queue-clear|default|iconVCenter": {
     "surface": "popup",

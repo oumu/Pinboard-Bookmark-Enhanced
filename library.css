@@ -167,6 +167,36 @@ input[type="checkbox"] { accent-color: var(--lib-accent, #1a73e8); }
 .btn-ic svg {
   display: block;
 }
+
+.vocab-group-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  line-height: 14px;
+  border-radius: var(--lib-radius-full);
+  background: var(--lib-chip-bg);
+  color: var(--lib-chip-fg);
+}
+.vocab-stat-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--lib-sp-2);
+  font-size: 12px;
+  line-height: 14px;
+  border-radius: var(--lib-radius-sm);
+  background: var(--lib-chip-bg);
+  color: var(--lib-chip-fg);
+}
+.vocab-stat-chip[aria-pressed]:hover {
+  background: var(--lib-btn-hover);
+}
+.vocab-stat-chip[aria-pressed]:active {
+  transform: scale(0.97);
+}
+.vocab-stat-chip[aria-pressed]:focus-visible {
+  outline: 2px solid var(--lib-accent);
+  outline-offset: 2px;
+}
 /* @generated:ui-components end (library) */
 
 /* ---- Buttons: danger tier only (base .btn/.btn-sm/.btn.ghost geometry +
@@ -979,19 +1009,23 @@ html[data-theme="rose-pine"] .vocab-filter-toolbar select {
   color: var(--lib-fg-muted, #666);
   font-size: 12px;
 }
+/* Geometry/color (display/padding/font-size/line-height/radius/background/
+   color) and the [aria-pressed]:hover/:active/:focus-visible interaction
+   states now come from @generated:ui-components above (COMPONENTS.md §5,
+   Appendix C9) -- aria-pressed is always present on this element ("true" or
+   "false", never removed, see library-vocab.js), so the generated
+   `[aria-pressed]:hover` etc. already fire on every hover/press regardless
+   of pressed state, superseding the old unqualified :hover/:active/
+   :focus-visible below. What's left: the chip's own border (chip family
+   doesn't add one), the pointer cursor, a transition for this element's own
+   background/border-color/color changes, and the persistent "currently
+   filtering by this status" look when aria-pressed="true" -- none of which
+   COMPONENTS.md's chip section covers. */
 .vocab-stat-chip {
   border: 1px solid var(--lib-border, #ccc);
-  background: var(--lib-btn-bg, #fff);
-  color: var(--lib-fg-muted, #666);
-  border-radius: var(--lib-radius-sm, 4px);
-  padding: 1px 8px;
-  font-size: 12px;
   cursor: pointer;
   transition: background var(--motion-state), border-color var(--motion-state), color var(--motion-state);
 }
-.vocab-stat-chip:hover { background: var(--lib-btn-hover); }
-.vocab-stat-chip:active { transform: translateY(1px); }
-.vocab-stat-chip:focus-visible { outline: 2px solid var(--lib-accent); outline-offset: 2px; }
 .vocab-stat-chip[aria-pressed="true"] {
   background: var(--lib-row-selected-bg);
   color: var(--lib-row-selected-fg);
@@ -1183,12 +1217,6 @@ html.motion-ready .vocab-batch-bar.selecting {
   white-space: nowrap;
   font-size: 12px;
   color: var(--lib-fg-muted, #666);
-}
-.vocab-group-chip {
-  padding: 0 var(--lib-sp-1);
-  border-radius: var(--lib-radius-full);
-  background: color-mix(in srgb, var(--lib-accent, #4477bb) 10%, transparent);
-  color: var(--lib-fg, #333);
 }
 
 /* ---- Page layout ---- (body's margin/background/color live in the merged
