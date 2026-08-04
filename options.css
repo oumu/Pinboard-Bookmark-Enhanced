@@ -89,6 +89,17 @@
      outside html[data-theme]. */
   --opt-input-bg: #fff;
   --opt-input-border: #cdd1d6;
+  /* Task 12: two shared secondary-text shades used verbatim across several
+     unrelated hand-written rules (label.bl, free-tier-help, .pf h3,
+     et-onboarding, theme-name-popover label, key-toggle:hover / accordion
+     header, section-title). Neither has a per-theme role of its own -- every
+     one of these selectors is either fully superseded by an existing
+     html[data-theme] override that reads a DIFFERENT token (so this default
+     only ever paints the true no-preset surface) or has no themed coverage
+     at all, so a plain :root default (not a per-property var() fallback)
+     is the correct, lowest-risk migration: one definition, reused bare. */
+  --opt-fg-soft: #555;
+  --opt-fg-dim: #444;
 }
 
 /* ---- Base ---- */
@@ -101,7 +112,7 @@
    Latin fonts to the bare `sans-serif` keyword, which resolves to the profile's Standard font;
    if that's a large/slow font (e.g. a custom Sarasa/CJK family) its first-time glyph shaping on
    the text-heavy AI panel stalls >1s. Naming YaHei/PingFang uses a fast system CJK font instead. */
-body { font-family: "Helvetica Neue", Verdana, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei", sans-serif; background: #f5f5f0; color: #333; font-size: 13px; }
+body { font-family: "Helvetica Neue", Verdana, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei", sans-serif; background: var(--opt-body-bg, #f5f5f0); color: var(--opt-fg); font-size: 13px; }
 /* Form controls don't inherit font-family by default — without this, <button>/<input>/<select>
    fall to the UA default ("Arial"), which has NO CJK glyphs, so their Chinese labels drop to the
    profile's Standard font (e.g. Sarasa UI SC) and pay the slow first-load stall. Inherit the body
@@ -124,7 +135,7 @@ html[data-options-ready] .container { visibility: visible; }
 /* LOAD-BEARING: h1 must span both columns. The floated .auto-save-hint relies on
    the full width; without this it collapses into the ~160px sidebar column. */
 .container > h1 { grid-column: 1 / -1; }
-h1 { font-size: 18px; color: #333; margin-bottom: var(--opt-sp-7); border-bottom: 1px solid #ccc; padding-bottom: var(--opt-sp-4); }
+h1 { font-size: 18px; color: var(--opt-fg); margin-bottom: var(--opt-sp-7); border-bottom: 1px solid var(--opt-border); padding-bottom: var(--opt-sp-4); }
 
 /* ---- Tabs ---- */
 .options-nav {
@@ -158,22 +169,22 @@ h1 { font-size: 18px; color: #333; margin-bottom: var(--opt-sp-7); border-bottom
   border-radius: 0 var(--opt-radius-sm) var(--opt-radius-sm) 0;
   background: none; cursor: pointer;
   padding: var(--opt-sp-4) var(--opt-sp-5) var(--opt-sp-4) var(--opt-sp-5);
-  font-size: 13px; color: #666;
+  font-size: 13px; color: var(--opt-fg-muted);
   white-space: nowrap;
   transition: color var(--motion-state), border-color var(--motion-state), background-color var(--motion-state);
 }
 /* Focus ring: shared soft-focus recipe below the .fg focus rules. */
-.tab-btn:hover:not(.active) { color: #333; border-left-color: #bbb; background: rgba(0,0,0,0.03); }
-.tab-btn.active { color: #333; font-weight: bold; border-left-color: #333; background: rgba(0,0,0,0.05); }
+.tab-btn:hover:not(.active) { color: var(--opt-fg); border-left-color: var(--opt-tab-hover-border, #bbb); background: var(--opt-tab-hover-bg, rgba(0,0,0,0.03)); }
+.tab-btn.active { color: var(--opt-fg); font-weight: bold; border-left-color: var(--opt-fg); background: var(--opt-tab-active, rgba(0,0,0,0.05)); }
 .reset-tab-btn {
   margin: var(--opt-sp-6) 0 0 0; padding: var(--opt-sp-5) var(--opt-sp-5) 0;
-  border: none; border-top: 1px solid #e0e0e0;
+  border: none; border-top: 1px solid var(--opt-border-section, #e0e0e0);
   background: none; cursor: pointer;
-  text-align: left; font-size: 11px; color: #757575;
+  text-align: left; font-size: 11px; color: var(--opt-fg-hint, #757575);
   align-self: stretch;
   transition: color var(--motion-state);
 }
-.reset-tab-btn:hover { color: #c00; text-decoration: underline; }
+.reset-tab-btn:hover { color: var(--opt-danger); text-decoration: underline; }
 .reset-tab-btn:focus-visible { outline: 2px solid var(--opt-accent, #4477bb); outline-offset: 2px; }
 
 /* Pulsing activity dot on a tab button while its panel has background work running
@@ -200,7 +211,7 @@ h1 { font-size: 18px; color: #333; margin-bottom: var(--opt-sp-7); border-bottom
    cost seconds at 4K). Inactive panels lay out lazily on first tab-switch; that switch
    used to be slow too, but the emoji→SVG fix removed the per-panel stall, so both
    open AND switch are now fast. */
-.panel { background: #fff; border: 1px solid #ccc; display: none; }
+.panel { background: var(--opt-card-bg, #fff); border: 1px solid var(--opt-border); display: none; }
 .panel.active { grid-column: 2; grid-row: 2; display: block; padding: var(--opt-sp-6); border-width: 1px; border-radius: var(--opt-radius-md); }
 
 /* ---- Form groups ---- */
@@ -219,7 +230,7 @@ h1 { font-size: 18px; color: #333; margin-bottom: var(--opt-sp-7); border-bottom
 .fg.fg-stack > .hint { margin-top: var(--opt-sp-3); }
 .fg-stack > div:has(input[type="number"]),
 .fg-stack > div:has(input[type="text"]) { margin-top: var(--opt-sp-2); margin-bottom: var(--opt-sp-3); }
-.fg label.bl { display: block; font-weight: bold; margin-bottom: var(--opt-sp-2); cursor: default; font-size: 12px; color: #555; }
+.fg label.bl { display: block; font-weight: bold; margin-bottom: var(--opt-sp-2); cursor: default; font-size: 12px; color: var(--opt-fg-soft); }
 /* Base field recipe (width/padding/border/radius/background-color/font-size/
    font-family/appearance/box-shadow/transition), hover border-color, focus/
    focus-visible and the checkbox/radio accent-color all now come from
@@ -245,8 +256,8 @@ h1 { font-size: 18px; color: #333; margin-bottom: var(--opt-sp-7); border-bottom
 }
 
 /* ---- Panel footer (e.g. General tab feedback link) ---- */
-.panel-foot { margin-top: var(--opt-sp-6); padding-top: var(--opt-sp-5); border-top: 1px solid #e8e8e8; font-size: 11px; text-align: center; }
-.panel-foot a { color: #666; text-decoration: none; transition: color var(--motion-state) ease; display: inline-flex; align-items: center; gap: var(--opt-sp-2); }
+.panel-foot { margin-top: var(--opt-sp-6); padding-top: var(--opt-sp-5); border-top: 1px solid var(--opt-border-section, #e8e8e8); font-size: 11px; text-align: center; }
+.panel-foot a { color: var(--opt-fg-muted); text-decoration: none; transition: color var(--motion-state) ease; display: inline-flex; align-items: center; gap: var(--opt-sp-2); }
 .panel-foot a:hover { color: var(--opt-accent, #4477bb); text-decoration: underline; }
 .panel-foot .ext-icon { width: 10px; height: 10px; flex-shrink: 0; }
 /* External-link mark inside .btn rows (dict-pack-open prefix): the action
@@ -263,11 +274,11 @@ html[data-theme] .panel-foot a:hover { color: var(--opt-accent); }
 /* line-height 1.5: multi-line hint prose (several run long in de/ru, and CJK
    wants looser leading than the UA ~1.15 default). Scoped here, NOT on body --
    the tab/nav/card rhythm is hand-tuned around the UA default. */
-.hint { font-size: 11px; line-height: 1.5; color: #757575; margin: var(--opt-sp-1) 0 var(--opt-rhythm); }
+.hint { font-size: 11px; line-height: 1.5; color: var(--opt-fg-hint, #757575); margin: var(--opt-sp-1) 0 var(--opt-rhythm); }
 .fg > .hint { margin: var(--opt-sp-1) 0 0; }   /* inside a form group: tight to its control; the group's own margin-bottom (10px) provides separation */
 .fg + .hint { margin-top: -6px; }  /* a hint owned by the preceding group: pull close (net ~4px gap above, 10px below) */
-.hint a { color: #4477bb; }
-.hint code { background: #f0f0e8; border-radius: var(--opt-radius-sm); padding: 1px var(--opt-sp-2); font-size: 10px; font-family: "SF Mono", Consolas, Menlo, "Liberation Mono", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei", monospace; }
+.hint a { color: var(--opt-accent); }
+.hint code { background: var(--opt-code-bg, #f0f0e8); border-radius: var(--opt-radius-sm); padding: 1px var(--opt-sp-2); font-size: 10px; font-family: "SF Mono", Consolas, Menlo, "Liberation Mono", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei", monospace; }
 
 /* ---- Markdown tab: keyboard shortcuts static list (Task 6, spec 5.3).
    kbd chip font stack mirrors the other mono stacks in this file (.hint
@@ -287,10 +298,10 @@ html[data-theme] .panel-foot a:hover { color: var(--opt-accent); }
   display: inline-block;
   padding: 1px var(--opt-sp-3);
   margin-right: var(--opt-sp-1);
-  border: 1px solid #cdd1d6;
+  border: 1px solid var(--opt-input-border);
   border-radius: var(--opt-radius-sm);
-  background: #f5f5f0;
-  color: #333;
+  background: var(--opt-kbd-bg, #f5f5f0);
+  color: var(--opt-fg);
   font-family: "SF Mono", Consolas, Menlo, "Liberation Mono", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei", monospace;
   font-size: 11px;
 }
@@ -309,13 +320,13 @@ html[data-theme] .kbd-help-chips kbd {
   background-repeat: no-repeat;
   background-size: contain;
 }
-.free-tier-help { margin: var(--opt-sp-4) 0 var(--opt-rhythm); font-size: 12px; color: #555; }
-.free-tier-help summary { cursor: pointer; padding: var(--opt-sp-2) 0; color: #4477bb; user-select: none; }
+.free-tier-help { margin: var(--opt-sp-4) 0 var(--opt-rhythm); font-size: 12px; color: var(--opt-fg-soft); }
+.free-tier-help summary { cursor: pointer; padding: var(--opt-sp-2) 0; color: var(--opt-accent); user-select: none; }
 .free-tier-help summary:hover { text-decoration: underline; }
 .free-tier-help[open] summary { margin-bottom: var(--opt-sp-2); }
 html[data-theme] .free-tier-help { color: var(--opt-text-muted, #888); }
 html[data-theme] .free-tier-help summary { color: var(--opt-accent, #4477bb); }
-.opt-error { font-size: 12px; color: #c00; margin: var(--opt-sp-2) 0 var(--opt-sp-4); padding: var(--opt-sp-3) var(--opt-sp-4); background: #fff0f0; border: 1px solid #f5c6c6; border-radius: var(--opt-radius-sm); }
+.opt-error { font-size: 12px; color: var(--opt-danger); margin: var(--opt-sp-2) 0 var(--opt-sp-4); padding: var(--opt-sp-3) var(--opt-sp-4); background: var(--opt-danger-bg, #fff0f0); border: 1px solid var(--opt-error-border, #f5c6c6); border-radius: var(--opt-radius-sm); }
 .opt-error.hidden { display: none; }
 /* Generic utility (same convention as popup.css). options.css historically only had
    the two scoped variants above/below — bare class="hidden" elements (the tag-gov
@@ -330,7 +341,7 @@ html[data-theme] .opt-error {
   border-color: color-mix(in srgb, var(--opt-danger, #e55) 35%, var(--opt-border, #ccc));
   box-shadow: inset 3px 0 0 color-mix(in srgb, var(--opt-danger, #e55) 75%, transparent);
 }
-.divider { border-top: 1px solid #ddd; margin: var(--opt-sp-6) 0; }
+.divider { border-top: 1px solid var(--opt-border-section, #ddd); margin: var(--opt-sp-6) 0; }
 /* @generated:ui-components start (options) */
 .btn {
   display: inline-flex;
@@ -484,8 +495,8 @@ input[type="checkbox"], input[type="radio"] {
    This is why fixing only the Latin half left Bookmark/Appearance still stalling. */
 .fg textarea { resize: vertical; min-height: 80px; font-family: "SF Mono", Consolas, Menlo, "Liberation Mono", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei", monospace; font-size: 11px; line-height: 1.5; }
 .vocab-entry-row { display: flex; align-items: center; gap: var(--opt-sp-4); }
-.save-status { font-size: 12px; color: #080; margin-left: var(--opt-sp-4); }
-.save-status.bad { color: #c00; }
+.save-status { font-size: 12px; color: var(--opt-save, #080); margin-left: var(--opt-sp-4); }
+.save-status.bad { color: var(--opt-danger); }
 /* Same precedent as .backup-actions below: the row's own flex gap already
    spaces button from status, so drop .save-status's inline indent here too. */
 .vocab-entry-row .save-status { margin-left: 0; }
@@ -574,12 +585,12 @@ html.motion-ready .backup-import-result:not([hidden]) {
   .backup-preview-counts > div,
   .backup-import-result > div { grid-template-columns: minmax(0, 1fr); gap: 0; }
 }
-.field-warn { display:none; font-size: 12px; color: #b85c00; margin-top: var(--opt-sp-2); }
+.field-warn { display:none; font-size: 12px; color: var(--opt-warn-soft, #b85c00); margin-top: var(--opt-sp-2); }
 .field-warn.visible { display: block; }
-.section-title { display: block; font-size: 13px; font-weight: bold; color: #444; margin-bottom: var(--opt-sp-4); margin-top: var(--opt-sp-4); }
+.section-title { display: block; font-size: 13px; font-weight: bold; color: var(--opt-fg-dim); margin-bottom: var(--opt-sp-4); margin-top: var(--opt-sp-4); }
 
 /* ---- Provider fields ---- */
-.pf { margin-top: var(--opt-sp-4); padding: var(--opt-sp-5); background: #f9f9f6; border: 1px solid #e0e0d8; border-radius: var(--opt-radius-md); }
+.pf { margin-top: var(--opt-sp-4); padding: var(--opt-sp-5); background: var(--opt-pf-bg, #f9f9f6); border: 1px solid var(--opt-pf-border, #e0e0d8); border-radius: var(--opt-radius-md); }
 .pf[hidden] { display: none; }
 /* Same reveal recipe as .backup-import-preview, but the transition lives
    inside :not([hidden]): provider switches swap two panels at once, and an
@@ -591,12 +602,12 @@ html.motion-ready .pf:not([hidden]) {
               display var(--motion-pop) allow-discrete;
   @starting-style { opacity: 0; translate: 0 -4px; }
 }
-.pf h3 { font-size: 12px; color: #555; margin-bottom: var(--opt-sp-4); font-weight: bold; }
+.pf h3 { font-size: 12px; color: var(--opt-fg-soft); margin-bottom: var(--opt-sp-4); font-weight: bold; }
 
 /* ---- Markdown export targets (Send-to destination cards) ---- */
 .et-field { margin-top: var(--opt-sp-4); }
-.et-onboarding { margin-top: var(--opt-sp-4); font-size: 12px; color: #555; }
-.et-onboarding summary { cursor: pointer; padding: var(--opt-sp-2) 0; color: #4477bb; user-select: none; }
+.et-onboarding { margin-top: var(--opt-sp-4); font-size: 12px; color: var(--opt-fg-soft); }
+.et-onboarding summary { cursor: pointer; padding: var(--opt-sp-2) 0; color: var(--opt-accent); user-select: none; }
 .et-onboarding summary:hover { text-decoration: underline; }
 .et-onboarding[open] summary { margin-bottom: var(--opt-sp-2); }
 .et-onboarding .hint { margin: 0; }
@@ -604,9 +615,9 @@ html.motion-ready .pf:not([hidden]) {
 .et-field input[type="text"],
 .et-field input[type="password"],
 .et-field select {
-  width: 100%; padding: var(--opt-sp-2) var(--opt-sp-4); border: 1px solid #cdd1d6;
+  width: 100%; padding: var(--opt-sp-2) var(--opt-sp-4); border: 1px solid var(--opt-input-border);
   border-radius: var(--opt-radius-md);
-  background-color: #fff; font-size: 13px; font-family: inherit;
+  background-color: var(--opt-input-bg); font-size: 13px; font-family: inherit;
   -webkit-appearance: none; appearance: none; box-shadow: none;
   transition: border-color var(--motion-state) ease, background-color var(--motion-state) ease, box-shadow var(--motion-state) ease;
 }
@@ -619,7 +630,7 @@ html.motion-ready .pf:not([hidden]) {
 }
 .et-field input[type="text"]:hover:not(:focus),
 .et-field input[type="password"]:hover:not(:focus),
-.et-field select:hover:not(:focus) { border-color: #9aa0a6; }
+.et-field select:hover:not(:focus) { border-color: var(--opt-et-hover-border, #9aa0a6); }
 .et-field input[type="text"]:focus,
 .et-field input[type="password"]:focus,
 .et-field select:focus { outline: none; border-color: var(--opt-focus-bd); }
@@ -642,7 +653,7 @@ html[data-theme] .et-field input[type="password"]:focus-visible,
 html[data-theme] .et-field select:focus-visible { box-shadow: var(--opt-focus-ring); }
 
 /* ---- Accordion ---- */
-.accordion-section { border-bottom: 1px solid #e8e8e8; }
+.accordion-section { border-bottom: 1px solid var(--opt-border-section, #e8e8e8); }
 .accordion-section:last-child { border-bottom: none; }
 .accordion-header {
   display: flex; align-items: center; gap: var(--opt-sp-3);
@@ -651,11 +662,11 @@ html[data-theme] .et-field select:focus-visible { box-shadow: var(--opt-focus-ri
      the hover pill extends past it. */
   width: calc(100% + 2 * var(--opt-sp-3));
   margin: 0 calc(-1 * var(--opt-sp-3));
-  padding: var(--opt-sp-5) var(--opt-sp-3); cursor: pointer; font-size: 13px; font-weight: bold; color: #444;
+  padding: var(--opt-sp-5) var(--opt-sp-3); cursor: pointer; font-size: 13px; font-weight: bold; color: var(--opt-fg-dim);
   border: 0; border-radius: var(--opt-radius-sm); background: none; text-align: left;
   user-select: none; transition: color var(--motion-state), background-color var(--motion-state);
 }
-.accordion-header:hover { color: #2255aa; background: var(--opt-panel, #f4f4f0); }
+.accordion-header:hover { color: var(--opt-accent-hover); background: var(--opt-panel, #f4f4f0); }
 /* Focus ring: shared soft-focus recipe (top of file). */
 /* CSS-drawn chevron, never a glyph (a literal ▶ fell back to Segoe UI Emoji
    on Windows and caused a font-load stall). 2026-08 redesign: one thin
@@ -775,13 +786,13 @@ html.motion-ready #preset-preview-section > summary::after {
 
 /* ---- Auto-save indicator ---- */
 .auto-save-hint {
-  float: right; font-size: 11px; color: #757575; font-weight: normal;
+  float: right; font-size: 11px; color: var(--opt-fg-hint, #757575); font-weight: normal;
   /* 0.3s on purpose (double --motion-state): peripheral indicator that fires
      on every settings edit; the slow soak keeps it from flashing for
      attention. Ratified on-device 2026-08 -- do not converge to the token. */
   transition: color 0.3s;
 }
-.auto-save-hint.saved { color: #080; }
+.auto-save-hint.saved { color: var(--opt-save, #080); }
 
 /* ---- Accessibility: visually hide but keep for screen readers ---- */
 .sr-only {
@@ -792,17 +803,17 @@ html.motion-ready #preset-preview-section > summary::after {
 
 /* ---- Theme preset buttons ---- */
 .theme-presets-group { display: flex; gap: var(--opt-sp-3); flex-wrap: wrap; align-items: center; margin-bottom: var(--opt-sp-3); }
-.theme-group-label { font-size: 11px; color: #757575; text-transform: uppercase; letter-spacing: 0.05em; min-width: 60px; flex-shrink: 0; white-space: nowrap; padding-right: var(--opt-sp-3); box-sizing: content-box; }
+.theme-group-label { font-size: 11px; color: var(--opt-fg-hint, #757575); text-transform: uppercase; letter-spacing: 0.05em; min-width: 60px; flex-shrink: 0; white-space: nowrap; padding-right: var(--opt-sp-3); box-sizing: content-box; }
 .theme-preset-btn { position: relative; }
 .theme-preset-btn:focus-visible { outline: 2px solid var(--opt-accent, #4477bb); outline-offset: 2px; }
 .theme-preset-btn.active,
-.saved-theme-btn.active { background: #4477bb; color: #fff; border-color: #3366aa; font-weight: 600; }
+.saved-theme-btn.active { background: var(--opt-accent); color: var(--opt-bg); border-color: var(--opt-preset-active-border, #3366aa); font-weight: 600; }
 /* Selected preset gets a check tick drawn with borders (no emoji/dingbat char —
    see font-fallback stall rule); extra left padding keeps it clear of the label. */
 .theme-preset-btn.active { padding-left: 20px; }
 .theme-preset-btn.active::after {
   content: ""; position: absolute; left: 8px; top: 50%; margin-top: -5px;
-  width: 4px; height: 8px; border: solid #fff; border-width: 0 2px 2px 0;
+  width: 4px; height: 8px; border: solid var(--opt-bg); border-width: 0 2px 2px 0;
   transform: rotate(45deg);
 }
 
@@ -813,7 +824,7 @@ html.motion-ready #preset-preview-section > summary::after {
      the row is hovered / focus-within / the button itself is focused. */
   position: absolute; top: -6px; right: -6px;
   min-width: 16px; height: 16px; padding: 0 var(--opt-sp-1);
-  border-radius: 50%; background: #c00; color: #fff; border: none;
+  border-radius: 50%; background: var(--opt-del-badge-bg, #c00); color: var(--opt-del-badge-fg, #fff); border: none;
   font-size: 11px; line-height: 16px; text-align: center; cursor: pointer;
   opacity: 0; visibility: hidden;
   /* --motion-state, not a bespoke 0.12s: this is hover-reveal feedback, the
@@ -831,7 +842,7 @@ html.motion-ready #preset-preview-section > summary::after {
 }
 
 /* ---- API key toggle ---- */
-.key-toggle { background: none; border: none; cursor: pointer; font-size: 13px; padding: var(--opt-sp-1) var(--opt-sp-2); color: #888; vertical-align: middle; }
+.key-toggle { background: none; border: none; cursor: pointer; font-size: 13px; padding: var(--opt-sp-1) var(--opt-sp-2); color: var(--opt-fg-hint, #888); vertical-align: middle; }
 .key-toggle svg { display: block; }
 /* The eye rides INSIDE the field's right edge -- as a plain sibling it fell
    below the 100%-width input and burned a whole row per credential. */
@@ -847,10 +858,10 @@ html.motion-ready #preset-preview-section > summary::after {
 .status-ic svg { display: block; }
 /* Same green/red contract as popup.css — the tag-gov progress counters use these
    classes and rendered uncolored without them (the rules lived only in popup.css). */
-.status-ic.ok { color: #2a8a2a; }
-.status-ic.bad { color: #c0392b; }
+.status-ic.ok { color: var(--opt-status-ok, #2a8a2a); }
+.status-ic.bad { color: var(--opt-status-bad, #c0392b); }
 html[data-theme] .status-ic.bad { color: var(--opt-danger, #c0392b); }
-.key-toggle:hover { color: #555; }
+.key-toggle:hover { color: var(--opt-fg-soft); }
 .key-toggle:focus-visible { outline: 2px solid var(--opt-accent, #4477bb); outline-offset: 1px; }
 
 /* ============================================================
@@ -1360,8 +1371,8 @@ html[data-theme="rose-pine"] .mobile-tab-picker select {
   padding: var(--opt-sp-3) 26px var(--opt-sp-3) var(--opt-sp-5);
 }
 .fg select:hover:not(:focus), .et-field select:hover:not(:focus) {
-  background-color: #f1f5f9;
-  border-color: #cdd1d6;
+  background-color: var(--opt-select-hover-bg, #f1f5f9);
+  border-color: var(--opt-input-border);
 }
 html[data-theme] .fg select, html[data-theme] .et-field select {
   background-color: var(--opt-btn-bg);
@@ -1411,10 +1422,10 @@ html[data-theme] .fg select:hover:not(:focus), html[data-theme] .et-field select
     cursor: pointer;
   }
   .fg option:hover, .et-field option:hover, .mobile-tab-picker option:hover {
-    background: rgba(127,127,127,.14); /* theme-agnostic row hover, same value as md-preview's --row-hover fallback */
+    background: var(--opt-option-hover-bg, rgba(127,127,127,.14)); /* theme-agnostic row hover, same value as md-preview's --row-hover fallback */
   }
   .fg option:focus-visible, .et-field option:focus-visible, .mobile-tab-picker option:focus-visible {
-    background: rgba(127,127,127,.14);
+    background: var(--opt-option-hover-bg, rgba(127,127,127,.14));
     outline: 2px solid var(--opt-accent, #4477bb);
     outline-offset: -2px;
   }
@@ -1434,9 +1445,9 @@ html[data-theme] .et-onboarding { color: var(--opt-fg-muted); }
 html[data-theme] .et-onboarding summary { color: var(--opt-accent); }
 .et-test { display: flex; align-items: center; gap: var(--opt-sp-4); }
 .et-test-status { font-size: 12px; }
-.et-test-status.ok { color: #1a7f37; }
-.et-test-status.err { color: #cf222e; }
-.et-test-status.warn { color: #9a6700; }
+.et-test-status.ok { color: var(--opt-save, #1a7f37); }
+.et-test-status.err { color: var(--opt-status-err, #cf222e); }
+.et-test-status.warn { color: var(--opt-warn, #9a6700); }
 .et-doc-link { display: inline-block; margin-top: var(--opt-sp-3); }
 html[data-theme] .et-test-status.ok { color: var(--opt-save, #1a7f37); }
 html[data-theme] .et-test-status.err { color: var(--opt-danger, #cf222e); }
@@ -1486,8 +1497,8 @@ html[data-theme] textarea::-webkit-scrollbar-corner { background: var(--opt-pane
   display: flex; align-items: center; gap: var(--opt-sp-3);
   flex-wrap: wrap;       /* long tag lists: buttons drop to their own row */
   max-width: min(60ch, 78vw);
-  padding: var(--opt-sp-2) var(--opt-sp-4); font-size: 11px; color: #c00;
-  background: #fff; border: 1px solid #ccc; border-radius: var(--opt-radius-sm);
+  padding: var(--opt-sp-2) var(--opt-sp-4); font-size: 11px; color: var(--opt-danger);
+  background: var(--opt-bg); border: 1px solid var(--opt-border); border-radius: var(--opt-radius-sm);
   box-shadow: var(--opt-shadow-md);
 }
 html.motion-ready .confirm-popover {
@@ -1513,8 +1524,8 @@ html.motion-ready .confirm-popover.is-closing {
 /* .confirm-yes (solid danger tier, default light state) now comes from
    @generated:ui-components above (COMPONENTS.md §4.2) — only .confirm-no
    stays hand-written here. */
-.confirm-popover .confirm-no { background: none; color: #666; border-color: #ccc; }
-.confirm-popover .confirm-no:hover { background: #eee; }
+.confirm-popover .confirm-no { background: none; color: var(--opt-fg-muted); border-color: var(--opt-border); }
+.confirm-popover .confirm-no:hover { background: var(--opt-btn-hover); }
 .confirm-popover button:focus-visible { outline: 2px solid var(--opt-accent, #4477bb); outline-offset: 1px; }
 html[data-theme] .confirm-popover { color: var(--opt-fg); background: var(--opt-panel); border-color: var(--opt-border); box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
 /* .confirm-yes themed override deleted (COMPONENTS.md §4.2/C14): it used
@@ -1531,7 +1542,7 @@ html[data-theme] .confirm-popover .confirm-no:hover { background: var(--opt-btn-
   position: absolute; left: 0; top: calc(100% + 6px); z-index: var(--opt-z-popover);
   display: flex; flex-direction: column; gap: var(--opt-sp-3);
   padding: var(--opt-sp-5) var(--opt-sp-5); min-width: 220px;
-  background: #fff; border: 1px solid #ccc; border-radius: var(--opt-radius-sm);
+  background: var(--opt-bg); border: 1px solid var(--opt-border); border-radius: var(--opt-radius-sm);
   box-shadow: 0 2px 10px rgba(0,0,0,0.14);
 }
 /* Same enter/exit recipe as .confirm-popover (both are createElement-then-
@@ -1552,26 +1563,26 @@ html.motion-ready .theme-name-popover.is-closing {
   pointer-events: none;
   transition-duration: var(--motion-pop-out);
 }
-.theme-name-popover label { font-size: 12px; color: #555; margin: 0; }
+.theme-name-popover label { font-size: 12px; color: var(--opt-fg-soft); margin: 0; }
 .theme-name-popover input[type="text"] {
-  font-size: 12px; padding: var(--opt-sp-2) var(--opt-sp-3); border: 1px solid #ccc; border-radius: var(--opt-radius-sm); width: 100%; box-sizing: border-box;
+  font-size: 12px; padding: var(--opt-sp-2) var(--opt-sp-3); border: 1px solid var(--opt-border); border-radius: var(--opt-radius-sm); width: 100%; box-sizing: border-box;
 }
-.theme-name-popover input[type="text"]:focus { outline: none; border-color: #4477bb; }
+.theme-name-popover input[type="text"]:focus { outline: none; border-color: var(--opt-accent); }
 .theme-name-popover input[type="text"]:focus-visible { box-shadow: 0 0 0 2px rgba(68,119,187,0.2); }
 .theme-name-popover .tnp-overwrite {
-  font-size: 11px; color: #b85c00; margin: 0;
+  font-size: 11px; color: var(--opt-warn-soft, #b85c00); margin: 0;
 }
 .theme-name-popover .tnp-actions { display: flex; gap: var(--opt-sp-3); }
 .theme-name-popover .tnp-save {
   padding: var(--opt-sp-1) var(--opt-sp-4); font-size: 11px; cursor: pointer; border-radius: var(--opt-radius-sm);
-  background: #4477bb; color: #fff; border: 1px solid #2255aa;
+  background: var(--opt-accent); color: var(--opt-bg); border: 1px solid var(--opt-accent-hover);
 }
-.theme-name-popover .tnp-save:hover { background: #2255aa; }
+.theme-name-popover .tnp-save:hover { background: var(--opt-accent-hover); }
 .theme-name-popover .tnp-cancel {
   padding: var(--opt-sp-1) var(--opt-sp-4); font-size: 11px; cursor: pointer; border-radius: var(--opt-radius-sm);
-  background: none; color: #666; border: 1px solid #ccc;
+  background: none; color: var(--opt-fg-muted); border: 1px solid var(--opt-border);
 }
-.theme-name-popover .tnp-cancel:hover { background: #eee; }
+.theme-name-popover .tnp-cancel:hover { background: var(--opt-btn-hover); }
 
 html[data-theme] .theme-name-popover { background: var(--opt-panel); border-color: var(--opt-border); box-shadow: 0 2px 10px rgba(0,0,0,0.3); }
 html[data-theme] .theme-name-popover label { color: var(--opt-fg); }
@@ -1593,20 +1604,23 @@ html[data-theme="terminal"] .fg textarea { font-family: "Courier New", Consolas,
 .overlay-byte-counter {
   font-size: 11px;
   font-variant-numeric: tabular-nums;
-  color: #888;
+  color: var(--opt-counter-fg, #888);
   font-family: "SF Mono", Consolas, Menlo, "Liberation Mono", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei", monospace;
 }
-.overlay-byte-counter.warn { color: #d97706; }
-.overlay-byte-counter.over { color: #c00; font-weight: 600; }
-#opt-custom-css.over-limit { border-color: #c00 !important; box-shadow: 0 0 0 2px rgba(204,0,0,0.15) !important; }
+.overlay-byte-counter.warn { color: var(--opt-warn, #d97706); }
+.overlay-byte-counter.over { color: var(--opt-danger); font-weight: 600; }
+#opt-custom-css.over-limit { border-color: var(--opt-overlimit-border, #c00) !important; box-shadow: 0 0 0 2px rgba(204,0,0,0.15) !important; }
 html[data-theme] .overlay-byte-counter { color: var(--opt-fg-muted); }
 html[data-theme] .overlay-byte-counter.warn { color: var(--opt-warn, #e08040); }
-html[data-theme] .overlay-byte-counter.over { color: #ff5050; }
+/* Bright red is a deliberate second form for the byte-over-limit state on dark
+   surfaces -- brighter than any theme's own --opt-danger so it stays legible
+   against dark panels, not a token gap. Task 12: same literal, now named. */
+html[data-theme] .overlay-byte-counter.over { color: var(--opt-overlimit-fg, #ff5050); }
 
 /* ---- Preset preview (collapsible read-only) ---- */
 .preset-preview-section {
   margin-top: var(--opt-sp-6);
-  border: 1px solid #ddd;
+  border: 1px solid var(--opt-preview-border, #ddd);
   border-radius: var(--opt-radius-md);
   overflow: hidden;
 }
@@ -1614,21 +1628,21 @@ html[data-theme] .overlay-byte-counter.over { color: #ff5050; }
   padding: var(--opt-sp-4) var(--opt-sp-5);
   cursor: pointer;
   font-size: 12px;
-  background: #fafafa;
+  background: var(--opt-panel);
   user-select: none;
 }
-.preset-preview-section summary:hover { background: #f0f0f0; }
+.preset-preview-section summary:hover { background: var(--opt-preview-hover-bg, #f0f0f0); }
 .preset-preview-content {
   margin: 0;
   padding: var(--opt-sp-5) var(--opt-sp-5);
   max-height: 320px;
   overflow: auto;
-  background: #f6f8fa;
+  background: var(--opt-preview-content-bg, #f6f8fa);
   font-family: "SF Mono", Consolas, Menlo, "Liberation Mono", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei", monospace;
   font-size: 11px;
   line-height: 1.5;
   white-space: pre;
-  border-top: 1px solid #ddd;
+  border-top: 1px solid var(--opt-preview-border, #ddd);
 }
 html[data-theme] .preset-preview-section { border-color: var(--opt-border); }
 html[data-theme] .preset-preview-section summary { background: var(--opt-panel); color: var(--opt-fg-muted); }
@@ -1972,7 +1986,7 @@ html.motion-ready #tag-gov-progress:not([hidden]) {
   white-space: nowrap;
 }
 .tag-gov-problem-kind.bad {
-  color: #c00;
+  color: var(--opt-tag-bad-fg, #c00);
 }
 .tag-gov-warns {
   margin-top: var(--opt-sp-5);
@@ -2150,7 +2164,7 @@ html[data-theme="flexoki-dark"] #panel-vocab .vocab-details-body > .hint {
     margin: 0;
     padding: var(--opt-sp-4) var(--opt-sp-5);
     border-top: 0;
-    border-left: 1px solid #e0e0e0;
+    border-left: 1px solid var(--opt-border-section, #e0e0e0);
     white-space: nowrap;
   }
 }
