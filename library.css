@@ -116,6 +116,10 @@ a { color: var(--lib-link, #1a66c2); }
    browser's default blue regardless of theme. */
 input[type="checkbox"] { accent-color: var(--lib-accent, #1a73e8); }
 
+/* @generated:ui-components start (library) */
+/* populated per-family in later tasks */
+/* @generated:ui-components end (library) */
+
 /* ---- Buttons (ported from options.css .btn / .btn-sm family) ---- */
 .btn { padding: var(--lib-sp-1) var(--lib-sp-4); font-size: 12px; cursor: pointer; border: 1px solid var(--lib-border, #999); background: var(--lib-btn-bg, #f5f5f0); border-radius: var(--lib-radius-md); transition: background var(--motion-state), border-color var(--motion-state), color var(--motion-state), transform var(--motion-state); }
 .btn:hover:not(:disabled) { background: var(--lib-btn-hover, #eef2f9); }

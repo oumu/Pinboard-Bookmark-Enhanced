@@ -134,6 +134,9 @@ a:hover { text-decoration: underline; }
 /* Force text presentation for dual-presentation symbols (⚠ ▸ ▾ ✓ ✗ ↻ etc.) so
    they don't fall back to Segoe UI Emoji (1-3s first-render stall, Windows hi-DPI). */
 :root { font-variant-emoji: text; }
+/* @generated:ui-components start (popup) */
+/* populated per-family in later tasks */
+/* @generated:ui-components end (popup) */
 .btn-ic { display: inline-flex; align-items: center; vertical-align: -3px; margin-right: var(--pp-sp-2); }
 .btn-ic svg { display: block; }
 /* Inline status/marker SVG icons that replace ✓ ✗ ✕ ↻ glyphs (those fall back to

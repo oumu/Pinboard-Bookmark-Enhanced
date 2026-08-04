@@ -5,11 +5,21 @@ import { dirname, resolve } from "node:path";
 import { composePopupThemes } from "../composers/popup-chrome.mjs";
 import { composeOptionsThemes } from "../composers/options-chrome.mjs";
 import { composeLibraryThemes } from "../composers/library-chrome.mjs";
+import { renderComponents } from "../composers/ui-components.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "..", "..", "..");
 const PILOTS = resolve(__dirname, "..", "pilots");
 const END = "/* @generated:ui-themes end */";
+
+// Task 9 flips a surface's families on here, one family at a time, deleting
+// the hand-written CSS rule(s) each family supersedes in the same commit
+// (docs/theme-surface/COMPONENTS.md Appendix A4 has the checklist of what
+// has to go). An empty array keeps that surface's @generated:ui-components
+// region at just the placeholder comment — see composers/ui-components.mjs
+// for why renderComponents(ns, []) is the deliberate "machinery built, not
+// yet wired up" state this campaign ships in.
+const ACTIVE_COMPONENT_FAMILIES = { pp: [], opt: [], lib: [] };
 
 function loadPilots() {
   const by = {};
@@ -28,11 +38,28 @@ export const SURFACES = [
   { name: "library", cssPath: resolve(ROOT, "library.css"),
     start: "/* @generated:ui-themes start — do not edit; produced by composers/library-chrome.mjs */",
     end: END, render: () => composeLibraryThemes(loadPilots()) },
+  // @generated:ui-components — independent region/sentinels from @generated:ui-themes
+  // above: each surface has its OWN start/end pair (never reuse END, never share one
+  // end marker across surfaces either). Distinct `name`s (not "popup"/"options"/
+  // "library") so ui-token-coverage.mjs's per-surface PREFIX lookup treats these as
+  // their own entries rather than double-processing the ui-themes ones.
+  { name: "popup-components", cssPath: resolve(ROOT, "popup.css"),
+    start: "/* @generated:ui-components start (popup) */",
+    end: "/* @generated:ui-components end (popup) */",
+    render: () => renderComponents("pp", ACTIVE_COMPONENT_FAMILIES.pp) },
+  { name: "options-components", cssPath: resolve(ROOT, "options.css"),
+    start: "/* @generated:ui-components start (options) */",
+    end: "/* @generated:ui-components end (options) */",
+    render: () => renderComponents("opt", ACTIVE_COMPONENT_FAMILIES.opt) },
+  { name: "library-components", cssPath: resolve(ROOT, "library.css"),
+    start: "/* @generated:ui-components start (library) */",
+    end: "/* @generated:ui-components end (library) */",
+    render: () => renderComponents("lib", ACTIVE_COMPONENT_FAMILIES.lib) },
 ];
 
 export function spliceRegion(css, body, start, end) {
   const s = css.indexOf(start), e = css.indexOf(end);
-  if (s === -1 || e === -1 || e < s) throw new Error("@generated:ui-themes markers not found");
+  if (s === -1 || e === -1 || e < s) throw new Error(`@generated region markers not found: "${start}" / "${end}"`);
   return css.slice(0, s) + start + "\n" + body + "\n" + end + css.slice(e + end.length);
 }
 

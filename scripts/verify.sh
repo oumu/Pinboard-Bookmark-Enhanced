@@ -60,5 +60,6 @@ node "docs/theme-surface/tools/handedit-audit.mjs"
 node "docs/theme-surface/tools/css-region-audit.mjs"
 node "docs/theme-surface/tools/ui-token-coverage.mjs"
 node "docs/theme-surface/tools/contrast-audit.mjs"
+node "docs/theme-surface/tools/recipe-lint.mjs"
 
 echo "[verify] all checks passed"
