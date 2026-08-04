@@ -392,6 +392,14 @@ html[data-theme] .opt-error {
 .btn.ghost:hover:not(:disabled) {
   background: color-mix(in srgb, var(--opt-fg) 6%, var(--opt-bg));
 }
+
+.btn-ic {
+  display: inline-flex;
+  align-items: center;
+}
+.btn-ic svg {
+  display: block;
+}
 /* @generated:ui-components end (options) */
 /* Danger tier only — base .btn/.btn-sm/.btn.ghost geometry + color + state
    feedback now come from @generated:ui-components above (COMPONENTS.md

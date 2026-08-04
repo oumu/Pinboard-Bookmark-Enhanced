@@ -159,6 +159,14 @@ input[type="checkbox"] { accent-color: var(--lib-accent, #1a73e8); }
 .btn.ghost:hover:not(:disabled) {
   background: color-mix(in srgb, var(--lib-fg) 6%, var(--lib-bg));
 }
+
+.btn-ic {
+  display: inline-flex;
+  align-items: center;
+}
+.btn-ic svg {
+  display: block;
+}
 /* @generated:ui-components end (library) */
 
 /* ---- Buttons: danger tier only (base .btn/.btn-sm/.btn.ghost geometry +
@@ -407,7 +415,6 @@ html.motion-ready .notes-card-top { transition: background-color var(--motion-st
   border-color: color-mix(in srgb, var(--lib-danger, #c00) 55%, var(--lib-border, #ccc));
   background: rgba(220, 80, 80, 0.08); /* no --lib-danger-bg token; options.css's own fallback literal */
 }
-.row-del-x .btn-ic { display: inline-flex; }
 @media (hover: none) {
   .row-del-x { position: static; translate: none; opacity: 1; background: transparent; }
 }
@@ -960,7 +967,6 @@ html[data-theme="rose-pine"] .vocab-filter-toolbar select {
   background: color-mix(in srgb, var(--lib-accent) 12%, var(--lib-btn-bg, #fff));
   border-color: color-mix(in srgb, var(--lib-accent) 45%, var(--lib-input-border, #cdd1d6));
 }
-.vocab-sort-btn .btn-ic { display: inline-flex; margin: 0; }
 /* Stats strip: read-only counts + two clickable status-filter chips. Same
    quiet-muted-text register as .notes-count; the two chip buttons join the
    .btn-sm hover/pressed language rather than inventing a new one. */
@@ -1080,7 +1086,6 @@ html.motion-ready .vocab-batch-bar.selecting {
    locale safety). Names live in title/aria; ~30px cells keep the >=24px hit. */
 .vocab-batch-bar > .btn:not(.vocab-group-step),
 .vocab-batch-cluster > .btn { padding-inline: 6px; } /* options --opt-sp-3 (6px) */
-.vocab-batch-bar .btn .btn-ic { display: inline-flex; margin: 0; }
 .vocab-batch-bar input[type="text"] { flex: 1 1 120px; min-width: 0; }
 /* Input + stepper unit: one visual control, native-stepper style. The two
    icon-only steppers are fixed 28px cells fused to the input's right edge. */
@@ -1088,7 +1093,6 @@ html.motion-ready .vocab-batch-bar.selecting {
 .vocab-group-unit input[type="text"] { border-top-right-radius: 0; border-bottom-right-radius: 0; }
 .vocab-group-step { flex: none; width: 28px; display: inline-grid; place-items: center; padding: 0; border-left: 0; border-radius: 0; }
 .vocab-group-step:last-of-type { border-top-right-radius: var(--lib-radius-md); border-bottom-right-radius: var(--lib-radius-md); }
-.vocab-group-step .btn-ic { display: inline-flex; margin: 0; vertical-align: 0; }
 .vocab-batch-cluster { display: inline-flex; gap: var(--lib-sp-1); flex: none; }
 .vocab-main-status {
   margin-left: auto;

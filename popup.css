@@ -135,10 +135,16 @@ a:hover { text-decoration: underline; }
    they don't fall back to Segoe UI Emoji (1-3s first-render stall, Windows hi-DPI). */
 :root { font-variant-emoji: text; }
 /* @generated:ui-components start (popup) */
-/* populated per-family in later tasks */
+.btn-ic {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: -3px;
+  margin-right: var(--pp-sp-2);
+}
+.btn-ic svg {
+  display: block;
+}
 /* @generated:ui-components end (popup) */
-.btn-ic { display: inline-flex; align-items: center; vertical-align: -3px; margin-right: var(--pp-sp-2); }
-.btn-ic svg { display: block; }
 /* Inline status/marker SVG icons that replace ✓ ✗ ✕ ↻ glyphs (those fall back to
    Segoe UI Emoji and stall ~1.6s on first paint, Windows hi-DPI). currentColor inherits
    the host element's colour; .ok/.bad force green/red where the host has no status colour. */
