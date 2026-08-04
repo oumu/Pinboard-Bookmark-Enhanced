@@ -159,12 +159,38 @@ function probeSelector({ selector, compareSelector, extraBgVarName }) {
   if (extraBgVarName) {
     extraBgRaw = getComputedStyle(document.documentElement).getPropertyValue(extraBgVarName).trim() || null;
   }
+  // Effective hit-area box (COMPONENTS.md §1.5's ::before hit-area expansion
+  // recipe, e.g. .row-del-x / #vocab-invert-selection): getBoundingClientRect()
+  // on the host alone can't see it -- position:absolute pseudo-elements never
+  // affect their own host's layout box, that's the whole point of the trick --
+  // so hitAreaMin was blind to it (COMPONENTS.md §1.4 always said "含 ::before
+  // 扩张", this oracle just hadn't implemented that half of its own contract).
+  // Chromium's getComputedStyle(el, "::before") already resolves width/height
+  // to their USED pixel values when `position:absolute` + inset offsets give
+  // the box a definite size (verified live: an all-sides-inset, no-explicit-
+  // size ::before reports e.g. width:"26px"/height:"24px", never the literal
+  // keyword "auto") -- no need to hand-derive it from the containing block's
+  // padding box ourselves, just parse what the browser already computed.
+  // Falls back to the host's own rect when there's no ::before (content:
+  // "none") or it isn't absolutely positioned.
+  let effRect = { width: rect.width, height: rect.height };
+  const beforeCs = getComputedStyle(el, "::before");
+  if (beforeCs && beforeCs.content && beforeCs.content !== "none" && beforeCs.position === "absolute") {
+    const bw = parseFloat(beforeCs.width), bh = parseFloat(beforeCs.height);
+    if (Number.isFinite(bw) && Number.isFinite(bh)) {
+      effRect = { width: Math.max(rect.width, bw), height: Math.max(rect.height, bh) };
+    }
+  }
+  const parentEl = el.parentElement;
+  const parentRect = parentEl ? { width: parentEl.getBoundingClientRect().width } : null;
   return {
     found: true,
     disabled: !!el.disabled,
     color: cs.color,
     bgStack,
     rect: { top: rect.top, left: rect.left, width: rect.width, height: rect.height },
+    effRect,
+    parentRect,
     svg,
     compareRect,
     extraBgRaw,
@@ -262,8 +288,28 @@ function evaluateCheck(check, raw, theme) {
   if ("hitAreaMin" in exp) {
     if (hostZero) out.push(verdict("hitAreaMin", false, null, exp.hitAreaMin, zeroNote));
     else {
-      const shortSide = Math.min(raw.rect.width, raw.rect.height);
+      // effRect (not raw.rect): includes the §1.5 ::before hit-area expansion
+      // when present, see probeSelector's comment for the exact shape this
+      // measures.
+      const shortSide = Math.min(raw.effRect.width, raw.effRect.height);
       out.push(verdict("hitAreaMin", shortSide >= exp.hitAreaMin, round2(shortSide), exp.hitAreaMin));
+    }
+  }
+  if (exp.widthLtParent === true) {
+    // Flex-column stretch regression guard (COMPONENTS.md's chip family,
+    // Appendix C10 fix round): a flex ITEM is always block-level regardless
+    // of its own inline-flex/inline-block display value (CSS Display §2.7),
+    // so a column-direction flex container's default `align-items: stretch`
+    // silently fills the child to 100% width unless something (a real
+    // `width` declaration -- not the child's display value) opts out.
+    // Asserts the element reads as content-sized, not container-filling: a
+    // >=8px margin from the parent's width clears normal text-content
+    // variance while still catching a full stretch.
+    if (hostZero || !raw.parentRect || raw.parentRect.width === 0) {
+      out.push(verdict("widthLtParent", false, null, null, hostZero ? zeroNote : "no parent element found"));
+    } else {
+      const ok = raw.rect.width <= raw.parentRect.width - 8;
+      out.push(verdict("widthLtParent", ok, round2(raw.rect.width), round2(raw.parentRect.width)));
     }
   }
   if ("textContrastMulti" in exp) {
@@ -420,6 +466,14 @@ async function runSimpleTheme(page, url, theme, checks, results, surface) {
     }
     await page.waitForSelector("#offline-queue-bar:not(.hidden)", { timeout: TIMEOUT_MS });
   }
+  if (surface === "options" && checks.some((c) => c.selector === ".tag-gov-kind-badge")) {
+    // .tag-gov-kind-badge lives on the "tags" tab (#panel-tags), not
+    // #panel-general (the default active one on a bare goto()) -- its
+    // panel is `display:none` until #tab-tags is clicked, which is what
+    // renderTagGov()'s init actually hangs off of.
+    await page.click("#tab-tags");
+    await page.waitForSelector(".tag-gov-kind-badge", { timeout: TIMEOUT_MS });
+  }
   for (const check of checks) await runOneCheck(page, theme, check, results);
 }
 
@@ -547,6 +601,15 @@ async function main() {
     rmSync(userDataDir, { recursive: true, force: true });
     process.exit(2);
   }
+
+  // Tag governance reads a LOCAL cache (options.js's renderTagGov ->
+  // chrome.storage.local.cached_user_tags), never a live tags/get fetch on
+  // render -- so a plural pair here reaches .tag-gov-kind-badge with no
+  // network mocking needed. book/books is tag-gov.js's own simplest
+  // heuristic case (_pluralizeCandidates: base + "s", base.length >= 3).
+  await sw.evaluate((account) => chrome.storage.local.set({
+    cached_user_tags: { account, counts: { book: 5, books: 3 }, timestamp: Date.now() },
+  }), SEED_TOKEN_ACCOUNT);
 
   await sw.evaluate(() => chrome.storage.local.set({
     "pbp_hl_render-audit-fixture": {

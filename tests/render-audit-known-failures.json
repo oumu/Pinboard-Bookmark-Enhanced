@@ -1,14 +1,4 @@
 {
-  "library||#vocab-invert-selection|default|hitAreaMin": {
-    "surface": "library",
-    "theme": "",
-    "selector": "#vocab-invert-selection",
-    "state": "default",
-    "check": "hitAreaMin",
-    "actual": 22.5,
-    "expected": 24,
-    "note": null
-  },
   "library|catppuccin-latte|.vocab-detail-delete|default|textContrast": {
     "surface": "library",
     "theme": "catppuccin-latte",
@@ -17,16 +7,6 @@
     "check": "textContrast",
     "actual": 4.46,
     "expected": 4.5,
-    "note": null
-  },
-  "library|catppuccin-latte|#vocab-invert-selection|default|hitAreaMin": {
-    "surface": "library",
-    "theme": "catppuccin-latte",
-    "selector": "#vocab-invert-selection",
-    "state": "default",
-    "check": "hitAreaMin",
-    "actual": 22.5,
-    "expected": 24,
     "note": null
   },
   "library|catppuccin-latte|.notes-detail-delete|default|textContrast": {
@@ -39,36 +19,6 @@
     "expected": 4.5,
     "note": null
   },
-  "library|catppuccin-mocha|#vocab-invert-selection|default|hitAreaMin": {
-    "surface": "library",
-    "theme": "catppuccin-mocha",
-    "selector": "#vocab-invert-selection",
-    "state": "default",
-    "check": "hitAreaMin",
-    "actual": 22.5,
-    "expected": 24,
-    "note": null
-  },
-  "library|dracula|#vocab-invert-selection|default|hitAreaMin": {
-    "surface": "library",
-    "theme": "dracula",
-    "selector": "#vocab-invert-selection",
-    "state": "default",
-    "check": "hitAreaMin",
-    "actual": 22.5,
-    "expected": 24,
-    "note": null
-  },
-  "library|flexoki-light|#vocab-invert-selection|default|hitAreaMin": {
-    "surface": "library",
-    "theme": "flexoki-light",
-    "selector": "#vocab-invert-selection",
-    "state": "default",
-    "check": "hitAreaMin",
-    "actual": 22.5,
-    "expected": 24,
-    "note": null
-  },
   "library|flexoki-dark|.vocab-detail-delete|default|textContrast": {
     "surface": "library",
     "theme": "flexoki-dark",
@@ -77,16 +27,6 @@
     "check": "textContrast",
     "actual": 4.16,
     "expected": 4.5,
-    "note": null
-  },
-  "library|flexoki-dark|#vocab-invert-selection|default|hitAreaMin": {
-    "surface": "library",
-    "theme": "flexoki-dark",
-    "selector": "#vocab-invert-selection",
-    "state": "default",
-    "check": "hitAreaMin",
-    "actual": 22.5,
-    "expected": 24,
     "note": null
   },
   "library|flexoki-dark|.notes-detail-delete|default|textContrast": {
@@ -99,16 +39,6 @@
     "expected": 4.5,
     "note": null
   },
-  "library|github-light|#vocab-invert-selection|default|hitAreaMin": {
-    "surface": "library",
-    "theme": "github-light",
-    "selector": "#vocab-invert-selection",
-    "state": "default",
-    "check": "hitAreaMin",
-    "actual": 22.5,
-    "expected": 24,
-    "note": null
-  },
   "library|gruvbox-dark|.vocab-detail-delete|default|textContrast": {
     "surface": "library",
     "theme": "gruvbox-dark",
@@ -117,16 +47,6 @@
     "check": "textContrast",
     "actual": 3.69,
     "expected": 4.5,
-    "note": null
-  },
-  "library|gruvbox-dark|#vocab-invert-selection|default|hitAreaMin": {
-    "surface": "library",
-    "theme": "gruvbox-dark",
-    "selector": "#vocab-invert-selection",
-    "state": "default",
-    "check": "hitAreaMin",
-    "actual": 22.5,
-    "expected": 24,
     "note": null
   },
   "library|gruvbox-dark|.notes-detail-delete|default|textContrast": {
@@ -139,16 +59,6 @@
     "expected": 4.5,
     "note": null
   },
-  "library|modern-card|#vocab-invert-selection|default|hitAreaMin": {
-    "surface": "library",
-    "theme": "modern-card",
-    "selector": "#vocab-invert-selection",
-    "state": "default",
-    "check": "hitAreaMin",
-    "actual": 22.5,
-    "expected": 24,
-    "note": null
-  },
   "library|nord-night|.vocab-detail-delete|default|textContrast": {
     "surface": "library",
     "theme": "nord-night",
@@ -157,16 +67,6 @@
     "check": "textContrast",
     "actual": 3.81,
     "expected": 4.5,
-    "note": null
-  },
-  "library|nord-night|#vocab-invert-selection|default|hitAreaMin": {
-    "surface": "library",
-    "theme": "nord-night",
-    "selector": "#vocab-invert-selection",
-    "state": "default",
-    "check": "hitAreaMin",
-    "actual": 22.5,
-    "expected": 24,
     "note": null
   },
   "library|nord-night|.notes-detail-delete|default|textContrast": {
@@ -179,26 +79,6 @@
     "expected": 4.5,
     "note": null
   },
-  "library|paper-ink|#vocab-invert-selection|default|hitAreaMin": {
-    "surface": "library",
-    "theme": "paper-ink",
-    "selector": "#vocab-invert-selection",
-    "state": "default",
-    "check": "hitAreaMin",
-    "actual": 22.5,
-    "expected": 24,
-    "note": null
-  },
-  "library|rose-pine|#vocab-invert-selection|default|hitAreaMin": {
-    "surface": "library",
-    "theme": "rose-pine",
-    "selector": "#vocab-invert-selection",
-    "state": "default",
-    "check": "hitAreaMin",
-    "actual": 22.5,
-    "expected": 24,
-    "note": null
-  },
   "library|solarized-light|.vocab-detail-delete|default|textContrast": {
     "surface": "library",
     "theme": "solarized-light",
@@ -207,16 +87,6 @@
     "check": "textContrast",
     "actual": 4.2,
     "expected": 4.5,
-    "note": null
-  },
-  "library|solarized-light|#vocab-invert-selection|default|hitAreaMin": {
-    "surface": "library",
-    "theme": "solarized-light",
-    "selector": "#vocab-invert-selection",
-    "state": "default",
-    "check": "hitAreaMin",
-    "actual": 22.5,
-    "expected": 24,
     "note": null
   },
   "library|solarized-light|.notes-detail-delete|default|textContrast": {
@@ -239,16 +109,6 @@
     "expected": 4.5,
     "note": null
   },
-  "library|solarized-dark|#vocab-invert-selection|default|hitAreaMin": {
-    "surface": "library",
-    "theme": "solarized-dark",
-    "selector": "#vocab-invert-selection",
-    "state": "default",
-    "check": "hitAreaMin",
-    "actual": 22.5,
-    "expected": 24,
-    "note": null
-  },
   "library|solarized-dark|.notes-detail-delete|default|textContrast": {
     "surface": "library",
     "theme": "solarized-dark",
@@ -257,16 +117,6 @@
     "check": "textContrast",
     "actual": 3.97,
     "expected": 4.5,
-    "note": null
-  },
-  "library|terminal|#vocab-invert-selection|default|hitAreaMin": {
-    "surface": "library",
-    "theme": "terminal",
-    "selector": "#vocab-invert-selection",
-    "state": "default",
-    "check": "hitAreaMin",
-    "actual": 22.5,
-    "expected": 24,
     "note": null
   },
   "popup||#offline-queue-clear|default|iconVCenter": {

@@ -219,38 +219,17 @@ h1 { font-size: 18px; color: #333; margin-bottom: var(--opt-sp-7); border-bottom
 .fg.fg-stack > .hint { margin-top: var(--opt-sp-3); }
 .fg-stack > div:has(input[type="number"]),
 .fg-stack > div:has(input[type="text"]) { margin-top: var(--opt-sp-2); margin-bottom: var(--opt-sp-3); }
-.fg-stack input[type="number"] { padding: 1px var(--opt-sp-3); font-size: 12px; height: auto; line-height: 1.4; }
 .fg label.bl { display: block; font-weight: bold; margin-bottom: var(--opt-sp-2); cursor: default; font-size: 12px; color: #555; }
 /* Base field recipe (width/padding/border/radius/background-color/font-size/
    font-family/appearance/box-shadow/transition), hover border-color, focus/
    focus-visible and the checkbox/radio accent-color all now come from
-   @generated:ui-components above (COMPONENTS.md §6). What's left below are
-   the two page-level hand-maintained exceptions §6.1 names explicitly (the
-   <select> chevron and the textarea monospace stack -- neither is meant to
-   ever be generated). */
-/* Custom chevron for <select> — native arrow removed by appearance:none. Use
-   background-image / background-repeat / background-position as LONGHANDS so themed
-   overrides that only set background-color preserve the chevron. */
-.fg select {
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M3 4.5 6 7.5 9 4.5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
-  background-repeat: no-repeat;
-  background-position: right 8px center;
-  padding-right: 26px;
-  cursor: pointer;
-}
-/* Monospace stack: NAMED Latin fonts first, then NAMED CJK fonts, generic `monospace` LAST.
-   Two traps, both routing to Chrome's "Fixed-width font" (chrome://settings/fonts) — if a
-   profile set that to a slow-to-load family (e.g. Sarasa Mono SC), the first panel rendering
-   such text pays a >1s first-load stall on reveal:
-     1. Latin: do NOT lead with bare `monospace` OR `ui-monospace` — BOTH resolve to the
-        Fixed-width generic (ui-monospace is NOT the OS mono UI font in Chrome). Name
-        Consolas/SF Mono first → always-present fast font, never the generic.
-     2. CJK-in-monospace: Consolas/SF Mono have NO CJK glyphs, so CJK chars in a monospace
-        element (e.g. the zh-CN textarea PLACEHOLDERS in Bookmark's tag-presets and
-        Appearance's custom-CSS) fall through to the trailing `monospace` generic → Fixed-width
-        CJK = Sarasa again. Must also name fast CJK fonts (YaHei/PingFang) BEFORE `monospace`.
-   This is why fixing only the Latin half left Bookmark/Appearance still stalling. */
-.fg textarea { resize: vertical; min-height: 80px; font-family: "SF Mono", Consolas, Menlo, "Liberation Mono", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei", monospace; font-size: 11px; line-height: 1.5; }
+   @generated:ui-components below (COMPONENTS.md §6). Its three hand-
+   maintained exceptions (the .fg-stack number-field override, the <select>
+   chevron, the textarea monospace stack -- §6.1 names the latter two
+   explicitly) live physically AFTER that generated region ends, not here:
+   same specificity as the generated selectors they override, so they need
+   later source order to win -- see the block right after
+   `@generated:ui-components end` below. */
 /* Soft focus for large hit-areas (full-width sidebar tabs, accordion and
    disclosure headers): 1px accent core + the --opt-focus-ring
    glow instead of a hard 2px rectangle around a whole row. The glow MUST stay
@@ -271,9 +250,11 @@ h1 { font-size: 18px; color: #333; margin-bottom: var(--opt-sp-7); border-bottom
 .panel-foot a:hover { color: var(--opt-accent, #4477bb); text-decoration: underline; }
 .panel-foot .ext-icon { width: 10px; height: 10px; flex-shrink: 0; }
 /* External-link mark inside .btn rows (dict-pack-open prefix): the action
-   leaves the settings page, say so with the shared icon. */
+   leaves the settings page, say so with the shared icon. No margin-right of
+   its own anymore -- .btn is a flex container now (COMPONENTS.md §1.2) and
+   supplies icon-to-text spacing via its own `gap`; a hand-written margin
+   here would have stacked on top of it (8px instead of the intended 4px). */
 .btn .ext-icon { width: 11px; height: 11px; vertical-align: -1px; }
-#dict-pack-open .ext-icon { margin-right: var(--opt-sp-2); }
 html[data-theme] .panel-foot { border-top-color: var(--opt-border-section, var(--opt-border)); }
 html[data-theme] .panel-foot a { color: var(--opt-fg-hint, var(--opt-fg-muted)); }
 html[data-theme] .panel-foot a:hover { color: var(--opt-accent); }
@@ -447,6 +428,37 @@ input[type="checkbox"], input[type="radio"] {
   box-shadow: none;
 }
 /* @generated:ui-components end (options) */
+/* Hand-maintained field exceptions (COMPONENTS.md §6.1): same specificity
+   as the generated selectors above, positioned AFTER the generated region
+   on purpose so they win by source order for the properties they override
+   -- moved here from up near `.fg-stack`'s other rules after a real
+   regression (Playwright-verified: SF Mono/11px silently lost to the
+   generated recipe's font-family:inherit/13px when this lived BEFORE the
+   generated region instead). */
+.fg-stack input[type="number"] { padding: 1px var(--opt-sp-3); font-size: 12px; height: auto; line-height: 1.4; }
+/* Custom chevron for <select> — native arrow removed by appearance:none. Use
+   background-image / background-repeat / background-position as LONGHANDS so themed
+   overrides that only set background-color preserve the chevron. */
+.fg select {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M3 4.5 6 7.5 9 4.5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  padding-right: 26px;
+  cursor: pointer;
+}
+/* Monospace stack: NAMED Latin fonts first, then NAMED CJK fonts, generic `monospace` LAST.
+   Two traps, both routing to Chrome's "Fixed-width font" (chrome://settings/fonts) — if a
+   profile set that to a slow-to-load family (e.g. Sarasa Mono SC), the first panel rendering
+   such text pays a >1s first-load stall on reveal:
+     1. Latin: do NOT lead with bare `monospace` OR `ui-monospace` — BOTH resolve to the
+        Fixed-width generic (ui-monospace is NOT the OS mono UI font in Chrome). Name
+        Consolas/SF Mono first → always-present fast font, never the generic.
+     2. CJK-in-monospace: Consolas/SF Mono have NO CJK glyphs, so CJK chars in a monospace
+        element (e.g. the zh-CN textarea PLACEHOLDERS in Bookmark's tag-presets and
+        Appearance's custom-CSS) fall through to the trailing `monospace` generic → Fixed-width
+        CJK = Sarasa again. Must also name fast CJK fonts (YaHei/PingFang) BEFORE `monospace`.
+   This is why fixing only the Latin half left Bookmark/Appearance still stalling. */
+.fg textarea { resize: vertical; min-height: 80px; font-family: "SF Mono", Consolas, Menlo, "Liberation Mono", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei", monospace; font-size: 11px; line-height: 1.5; }
 /* Danger tier only — base .btn/.btn-sm/.btn.ghost geometry + color + state
    feedback now come from @generated:ui-components above (COMPONENTS.md
    §1/§3). Danger stays hand-written pending Task 10 (defect 6); its higher
@@ -1805,11 +1817,19 @@ html.motion-ready .wayback-log-row:focus-within .wayback-perm-tip {
 #tag-gov-groups > :not(.tag-gov-group-row) {
   grid-column: 1 / -1;       /* empty-state / non-card messages span the full grid width */
 }
-/* Geometry/color (display/padding/line-height/radius/background/color) now
-   come from @generated:ui-components above (COMPONENTS.md §5, Appendix C10)
-   -- font-weight is the one declaration the chip family recipe doesn't cover,
-   so it's the only thing left here. */
-.tag-gov-kind-badge { font-weight: bold; }
+/* Geometry/color (padding/line-height/radius/background/color) now come from
+   @generated:ui-components above (COMPONENTS.md §5, Appendix C10) -- but its
+   `display: inline-flex` gets blockified here: this badge is a flex ITEM of
+   `.tag-gov-group-row` (display:flex; flex-direction:column), and flex items
+   are always block-level regardless of their own inline-flex/inline-block
+   display value (CSS Display §2.7). Column direction's cross axis is width,
+   and the default `align-items: stretch` on the container stretches every
+   block-level child to fill it -- a real regression this task caught
+   (Playwright-measured: 33px -> 270px) when `width: fit-content` (the thing
+   actually preventing the stretch, not the display value) got dropped along
+   with the rest of the pre-uplift hand-written rule. font-weight is still
+   the one declaration the chip family recipe itself doesn't cover. */
+.tag-gov-kind-badge { width: fit-content; font-weight: bold; }
 .tag-gov-members {
   display: flex;
   flex-direction: column;

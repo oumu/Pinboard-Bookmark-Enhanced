@@ -1162,20 +1162,26 @@ html.motion-ready .vocab-batch-bar.selecting {
 .vocab-batch-cluster > .btn { padding-inline: 6px; } /* options --opt-sp-3 (6px) */
 /* §1.5 hit-area expansion (same recipe as .row-del-x above, vertical-only
    here: the row's align-items:center means only THIS button would grow,
-   with no horizontal neighbor to collide with -- top/bottom -2px each adds
-   4px to the 20px sm-rung box, landing exactly on the 24px floor).
-   USER RULING hard-asserts 24px for this specific icon-only button; a real
-   height increase was rejected (it would re-break the #vocab-group-input
-   rowRungEq alignment defect 2 just fixed, since .btn-sm siblings must stay
-   height-equal) so the fix expands the CLICKABLE area without expanding the
-   VISUAL box -- content:"" + position:absolute still participates in
-   pointer hit-testing despite painting nothing. Known limitation: this
-   repo's render-audit hitAreaMin check reads plain getBoundingClientRect()
-   on the host element, which a ::before overlay never changes -- so this
-   fix is real (verifiable by hand: click 2px above/below the icon) but the
-   known-failures key for it stays outstanding; see task-9-report.md. */
+   with no horizontal neighbor to collide with). USER RULING hard-asserts
+   24px for this specific icon-only button; a real height increase was
+   rejected (it would re-break the #vocab-group-input rowRungEq alignment
+   defect 2 just fixed, since .btn-sm siblings must stay height-equal) so
+   the fix expands the CLICKABLE area without expanding the VISUAL box --
+   content:"" + position:absolute still participates in pointer hit-testing
+   despite painting nothing. Math: the containing block for an absolutely
+   positioned descendant is the host's PADDING box, not its border box --
+   this host's 20px sm-rung border-box height (line-height 14 + padding
+   2+2 + border 1+1) is only an 18px padding box once that 1+1 border is
+   excluded, so `inset` needs -3px (not -2px) each side to land on 24
+   (18 + 3 + 3), matching .row-del-x::before's own -3px. scripts/ui-render-
+   audit.mjs's hitAreaMin check reads this: Chromium's own
+   getComputedStyle(el, "::before").width/height already resolves to that
+   same 24px used value (verified live), instead of relying on
+   getBoundingClientRect() (which a ::before overlay never changes on its
+   own host), so this key is a genuine, verified pass now -- not a known
+   limitation. */
 #vocab-invert-selection { position: relative; }
-#vocab-invert-selection::before { content: ""; position: absolute; inset: -2px 0; }
+#vocab-invert-selection::before { content: ""; position: absolute; inset: -3px 0; }
 .vocab-batch-bar input[type="text"] { flex: 1 1 120px; min-width: 0; }
 /* Input + stepper unit: one visual control, native-stepper style. The two
    icon-only steppers are fixed 28px cells fused to the input's right edge. */

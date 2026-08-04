@@ -47,10 +47,35 @@
 //                      the check, not part of the known-failures key (the
 //                      key's `check` segment stays the plain string
 //                      "heightEqWith").
-//   hitAreaMin     -- getBoundingClientRect() width AND height both >= this
-//                      many px (§1.4 `hitAreaMin`). USER RULING: only
-//                      icon-only buttons get this hard assertion -- do not
-//                      add it to any icon+text button.
+//   hitAreaMin     -- effective hit-area width AND height both >= this many
+//                      px (§1.4 `hitAreaMin`). Includes the §1.5 ::before
+//                      hit-area expansion when present (COMPONENTS.md §1.4
+//                      always said "含 ::before 扩张" -- scripts/ui-render-
+//                      audit.mjs's probeSelector reads
+//                      getComputedStyle(el, "::before").width/height, which
+//                      Chromium already resolves to the USED pixel size for
+//                      an absolutely positioned, inset-constrained pseudo-
+//                      element (verified live, never the literal "auto").
+//                      Falls back to the host's own getBoundingClientRect()
+//                      when there's no ::before or it isn't
+//                      position:absolute. USER RULING: only icon-only
+//                      buttons get this hard assertion -- do not add it to
+//                      any icon+text button.
+//   widthLtParent  -- computed width (px) <= parent element's width - 8px.
+//                      Regression guard for chip/badge elements that are
+//                      flex ITEMS of a column-direction flex container: a
+//                      flex item is always block-level regardless of its own
+//                      inline-flex/inline-block display value (CSS Display
+//                      §2.7), so the container's default `align-items:
+//                      stretch` silently fills it to 100% width unless a
+//                      real `width` declaration opts out -- a bug the chip
+//                      family's generated recipe can't see (it never
+//                      declares `width` either way, by design: pill/chip
+//                      geometry is content-sized in every OTHER context this
+//                      campaign uses it in). The 8px margin clears normal
+//                      text-content width variance while still catching a
+//                      full stretch (which reads as == parent width, not
+//                      "close to it").
 //   textContrastMulti -- { ratio, extraBgSelectorVar }: computed `color` vs
 //                      BOTH the actual composited background AND the
 //                      current surface's `--{ns}-{extraBgSelectorVar}`
@@ -118,6 +143,16 @@ export const CHECKS = [
   // pill -- both pill laws violated (COMPONENTS.md §5.1, §5.4). ----
   { surface: "library", page: "library.html", selector: ".vocab-group-chip", state: "default",
     expect: { textContrast: 4.5, padGteRadiusH: true, padVMin: 2 } },
+  // ---- defect 3 (2nd instance, options side): the chip family's options
+  // target (.tag-gov-kind-badge, Appendix C10) had ZERO render-audit
+  // coverage at all -- a real fix-round regression (width stretched to its
+  // flex-column parent's full width, see widthLtParent's doc comment above)
+  // shipped and no automated check saw it. Needs the "tags" tab active AND
+  // a seeded plural tag pair (book/books) before a group -- and its badge --
+  // exists to probe; see runSimpleTheme's options-specific branch and the
+  // cached_user_tags seed in main(). ----
+  { surface: "options", page: "options.html", selector: ".tag-gov-kind-badge", state: "default",
+    expect: { textContrast: 4.5, padGteRadiusH: true, padVMin: 2, widthLtParent: true } },
 
   // ---- defect 5 (2nd instance): .btn-ic in library only has 4 container-
   // scoped equivalents; every other host (incl. .vocab-detail-speak) falls
