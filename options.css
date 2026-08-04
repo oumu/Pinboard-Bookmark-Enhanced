@@ -33,8 +33,7 @@
      Same 8-step scale as popup's --pp-sp-*; options binds its layout-level
      semantics one step up (form rhythm 12 vs popup 8), control-level insets
      match the popup so shared components read identically. Exempt structural
-     offsets stay literal: 26px select chevron reserve, the
-     .theme-preset-btn.active 20px / -5px check-tick pair, negative margins. */
+     offsets stay literal: 26px select chevron reserve, negative margins. */
   --opt-sp-1: 2px;
   --opt-sp-2: 4px;
   --opt-sp-3: 6px;
@@ -135,7 +134,6 @@
   --opt-option-hover-bg: rgba(127,127,127,.14);
   --opt-overlimit-fg: #ff5050;
   --opt-pf-border: #e0e0d8;
-  --opt-preset-active-border: #3366aa;
   --opt-preview-border: #ddd;
   --opt-preview-hover-bg: #f0f0f0;
   --opt-preview-content-bg: #f6f8fa;
@@ -862,22 +860,59 @@ html.motion-ready #preset-preview-section > summary::after {
 /* ---- Theme preset buttons ---- */
 .theme-presets-group { display: flex; gap: var(--opt-sp-3); flex-wrap: wrap; align-items: center; margin-bottom: var(--opt-sp-3); }
 .theme-group-label { font-size: 11px; color: var(--opt-fg-hint); text-transform: uppercase; letter-spacing: 0.05em; min-width: 60px; flex-shrink: 0; white-space: nowrap; padding-right: var(--opt-sp-3); box-sizing: content-box; }
-.theme-preset-btn { position: relative; }
+/* Borderless swatch pill (design-uplift, user-selected Variant A,
+   2026-08-04) -- shared base for .theme-preset-btn and .saved-theme-btn; see
+   COMPONENTS.md Appendix C's preset-row-redesign entry for the full
+   before/after and rationale. Border, the fixed accent-fill/panel-text
+   invert, and the border-drawn check tick are gone; selection is now a 2px
+   accent ring outside the border box (outline-offset) so it never touches
+   the label -- and because the fill/text below are var()-driven against
+   --opt-accent/--opt-panel (both already theme-reactive), this single rule
+   set is correct under every preset with no per-theme override needed --
+   removing the html[data-theme] override block the old opt-panel/opt-bg
+   swap scheme required (Task 12 review round 2's rationale for that swap no
+   longer applies once the fill itself is accent-relative, not a fixed
+   literal-adjacent role). */
+.theme-preset-btn,
+.saved-theme-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  border-radius: var(--opt-radius-full);
+  background: color-mix(in srgb, var(--opt-accent) 10%, var(--opt-panel));
+  color: var(--opt-fg);
+}
+/* Swatch dot: reuses --opt-accent (the same token every focus ring and
+   selection state in this file already consumes), not a per-preset color --
+   options has no existing per-preset color data source outside each theme's
+   own html[data-theme] cascade (checked: PINBOARD_THEMES only carries
+   {name, desc, css} for the pinboard.in SITE theme, a full CSS string in a
+   different --pinboard-* namespace, not a queryable UI accent value), and
+   hardcoding 12 per-theme swatch hexes here would trip the zero-tolerance
+   hex/rgba gate (tests/ui-contract-tests.mjs) for no real gain over the
+   current theme's own accent. */
+.theme-preset-btn::before,
+.saved-theme-btn::before {
+  content: "";
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--opt-accent);
+  flex-shrink: 0;
+}
+.theme-preset-btn:hover:not(:disabled),
+.saved-theme-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--opt-accent) 18%, var(--opt-panel));
+}
 .theme-preset-btn:focus-visible { outline: 2px solid var(--opt-accent); outline-offset: 2px; }
-/* color/border below use --opt-panel (the fixed white-ish surface role), not
-   --opt-bg (the page role) -- this is text/a tick mark sitting on a solid
-   --opt-accent fill, not page content, and needs a reliably light color in
-   the unthemed state specifically (panel's default is #fff; bg's is now
-   #f5f5f0, Task 12 review round 2). */
 .theme-preset-btn.active,
-.saved-theme-btn.active { background: var(--opt-accent); color: var(--opt-panel); border-color: var(--opt-preset-active-border); font-weight: 600; }
-/* Selected preset gets a check tick drawn with borders (no emoji/dingbat char —
-   see font-fallback stall rule); extra left padding keeps it clear of the label. */
-.theme-preset-btn.active { padding-left: 20px; }
-.theme-preset-btn.active::after {
-  content: ""; position: absolute; left: 8px; top: 50%; margin-top: -5px;
-  width: 4px; height: 8px; border: solid var(--opt-panel); border-width: 0 2px 2px 0;
-  transform: rotate(45deg);
+.saved-theme-btn.active {
+  background: color-mix(in srgb, var(--opt-accent) 16%, var(--opt-panel));
+  color: var(--opt-accent);
+  font-weight: 600;
+  outline: 2px solid var(--opt-accent);
+  outline-offset: 2px; /* ring sits outside the border box -- never touches the label */
 }
 
 /* ---- Saved theme buttons ---- */
@@ -1529,20 +1564,18 @@ html[data-theme] .et-onboarding { color: var(--opt-fg-muted); }
 html[data-theme] .section-title { color: var(--opt-fg-muted); }
 html[data-theme] .accordion-header { color: var(--opt-fg-muted); }
 html[data-theme] .accordion-header:hover { color: var(--opt-accent); }
-/* border-color: second form -- unthemed active preset border is the one-off
-   --opt-preset-active-border (#3366aa); themed states use the plain accent
-   role instead. color: second form too -- unthemed text-on-accent-fill uses
-   the fixed --opt-panel white, themed states use each theme's own --opt-bg
-   (pre-existing architecture, not something Task 12 introduced). */
-html[data-theme] .theme-preset-btn.active,
-html[data-theme] .saved-theme-btn.active { border-color: var(--opt-accent); color: var(--opt-bg); }
-html[data-theme] .theme-preset-btn.active::after { border-color: var(--opt-bg); }
+/* .theme-preset-btn.active / .saved-theme-btn.active / .theme-preset-btn
+   :focus-visible no longer need a themed override here: the borderless
+   swatch-pill base rule (Tag Presets... options' Theme preset buttons,
+   above) is entirely var()-driven against --opt-accent/--opt-panel, both
+   already theme-reactive, so it renders correctly under every preset with
+   no per-theme override -- and the check tick those overrides used to
+   recolor (::after) no longer exists. */
 html[data-theme] .saved-theme-del:focus-visible { outline-color: var(--opt-accent); }
 /* .key-toggle:hover: second form -- unthemed hover is --opt-fg-soft (#555),
    themed hover is the plain --opt-fg role. */
 html[data-theme] .key-toggle:hover { color: var(--opt-fg); }
 html[data-theme] .key-toggle:focus-visible { outline-color: var(--opt-accent); }
-html[data-theme] .theme-preset-btn:focus-visible { outline-color: var(--opt-accent); }
 html[data-theme] .accordion-header:focus-visible { outline-color: var(--opt-accent); }
 html[data-theme] .fg input[type="checkbox"]:focus-visible { outline-color: var(--opt-accent); }
 html[data-theme] .confirm-popover button:focus-visible { outline-color: var(--opt-accent); }

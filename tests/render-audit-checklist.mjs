@@ -140,6 +140,23 @@
 //                      disclosure-specific. Task 14: the same zeroed-padding
 //                      bug left no room for the ::after chevron's rotated
 //                      7x7 bbox, which painted ~1.45px past the border.
+//   beforeExists   -- true: the host's ::before pseudo-element actually
+//                      renders (non-zero size), not just that `content` is
+//                      declared. Reuses --sweep's own measurePseudo helper
+//                      (containmentChildren) -- pseudo-elements aren't
+//                      document.querySelector-able, so this is the only
+//                      layer that can see one at all. design-uplift preset-
+//                      row redesign (2026-08-04): the swatch dot that
+//                      replaced the old bordered-pill chrome.
+//   outlineContrast -- N: computed outline-color vs the REAL composited
+//                      background the ring paints OVER (bgStack minus the
+//                      host's own layer, since outline-offset pushes the
+//                      ring outside the host's border box onto its
+//                      parent's paint), WCAG 1.4.11 non-text floor (§3.3
+//                      `focusRingContrast`, generalized from focus-only to
+//                      any rendered ring). design-uplift preset-row
+//                      redesign: the 2px accent selection ring that
+//                      replaced the old border-drawn check tick.
 //
 // Selectors below are written against the CURRENT shipped markup (pre-Task
 // 9/10 uplift). Task 9/10/12/13 migrate one selector's underlying CSS at a
@@ -321,6 +338,38 @@ export const CHECKS = [
   // then. ----
   { surface: "options", page: "options.html", selector: "#preset-preview-section > summary", state: "default",
     expect: { textInset: { h: 4, v: 2 }, childContainment: true } },
+
+  // ---- design-uplift, preset-row redesign (user-selected Variant A,
+  // 2026-08-04): .theme-preset-btn's swatch dot and selection ring, the two
+  // new affordances that replaced the old bordered pill + border-drawn
+  // check tick (COMPONENTS.md Appendix C). ".theme-preset-btn.active"
+  // matches whichever preset the "appearance" tab click already made active
+  // (runSimpleTheme's presetRowChecks branch -- shares the SAME click
+  // presetPreviewChecks above needs, no second setup step). beforeExists is
+  // a render check, not a contrast-audit.mjs pair-table entry, because a
+  // pseudo-element's existence isn't a color relationship at all --
+  // ::before is not document.querySelector-able, so this is the only layer
+  // that can see it (getComputedStyle(el, "::before") via probeSelector's
+  // existing --sweep measurePseudo helper). outlineContrast is a render
+  // check rather than a COMPONENT_PAIR_SPEC row for the opposite reason:
+  // contrast-audit.mjs only has flat per-theme palette values, no ancestor
+  // walk, and the ring's real background is whatever's actually painted
+  // behind it at outline-offset:2px (.theme-presets-group has no
+  // background of its own, so that's .fg's -- not a fixed role name any
+  // static palette lookup could name). Deliberately scoped to just this one
+  // selector, not a blanket audit of the many other pre-existing
+  // accent-colored outlines elsewhere in options.css/popup.css (out of
+  // scope for this change -- see preset-variants-report.md). popup's own
+  // .preset-btn::before has no equivalent entry here: the render-audit
+  // fixture never seeds `tagPresets`, so #tag-presets never renders in this
+  // harness today (a pre-existing gap, not something this task introduced;
+  // recorded as a follow-up in preset-variants-report.md rather than fixed
+  // here, since it requires the same tabs.query/context.route
+  // fixture-tab workaround the read-only screenshot tooling needed). ----
+  { surface: "options", page: "options.html", selector: ".theme-preset-btn.active", state: "default",
+    expect: { beforeExists: true } },
+  { surface: "options", page: "options.html", selector: ".theme-preset-btn.active", state: "default",
+    expect: { outlineContrast: 3 } },
 
   // ---- Task 14 (§6.3 rowRungEq, sweep-discovered): the vocab list's search
   // row. #vocab-search sat 4px shorter than its row-mates -- the select's

@@ -321,6 +321,8 @@ function probeSelector({ selector, compareSelector, extraBgVarName }) {
     found: true,
     disabled: !!el.disabled,
     color: cs.color,
+    outlineColor: cs.outlineColor,
+    outlineStyle: cs.outlineStyle,
     bgStack,
     rect: { top: rect.top, left: rect.left, width: rect.width, height: rect.height },
     effRect,
@@ -518,6 +520,43 @@ function evaluateCheck(check, raw, theme) {
       }
     }
   }
+  // beforeExists (design-uplift, preset-row redesign, 2026-08-04): asserts a
+  // host's ::before pseudo-element actually renders (non-zero size), not
+  // just that `content` is declared -- reuses the --sweep discovery mode's
+  // own measurePseudo("::before") result (containmentChildren), which
+  // already excludes a `content:""` rule that never got a real box (e.g. a
+  // selector typo or a display:none ancestor). Preset row's swatch dot is
+  // the first consumer: `.preset-btn::before` / `.theme-preset-btn::before`
+  // have no other DOM signal a render oracle can key off of (pseudo-elements
+  // aren't `document.querySelector`-able).
+  if (exp.beforeExists === true) {
+    const ok = raw.containmentChildren.some((c) => c.kind === "::before");
+    out.push(verdict("beforeExists", ok, ok, true, ok ? null : "no rendered ::before pseudo-element (zero-size or content:none)"));
+  }
+  // outlineContrast (design-uplift, preset-row redesign, 2026-08-04): the
+  // selection ring's outline-color vs the REAL composited background it
+  // paints over. Deliberately NOT bg (bgStack composited through the host's
+  // OWN background, i.e. compositeStack(raw.bgStack)) -- outline-offset:2px
+  // (COMPONENTS.md's "ring 不贴内容" contract) puts the ring OUTSIDE the
+  // host's border box, sitting on the PARENT's paint, not under the host's
+  // own fill. bgStack[0] is the host's own backgroundColor (probeSelector
+  // walks self -> parent -> ...), so slicing it off before compositing is
+  // the one-line fix that makes this the parent-and-up stack instead.
+  // WCAG 1.4.11 non-text 3:1 floor, same class as focusRingContrast
+  // (COMPONENTS.md §3.3) -- scoped to the preset row's .active ring here,
+  // not a blanket audit of every existing accent-colored outline in the
+  // codebase (out of scope for this change; see preset-variants-report.md).
+  if ("outlineContrast" in exp) {
+    if (disabledSkip) out.push(skip("outlineContrast", exp.outlineContrast, "disabled (WCAG 1.4.3 exempt)"));
+    else if (!raw.outlineStyle || raw.outlineStyle === "none") {
+      out.push(verdict("outlineContrast", false, null, exp.outlineContrast, "no outline rendered (outline-style: none)"));
+    } else {
+      const parentBg = compositeStack(raw.bgStack.slice(1));
+      const oc = resolveColor(raw.outlineColor, parentBg);
+      const ratio = oc ? cr(oc, parentBg) : 0;
+      out.push(verdict("outlineContrast", ratio >= exp.outlineContrast, round2(ratio), exp.outlineContrast));
+    }
+  }
   if (exp.colorSchemeMatchesTheme === true) {
     const expectedScheme = isDarkTheme(theme) ? "dark" : "light";
     const actual = raw.rootColorScheme || "";
@@ -677,8 +716,15 @@ async function runSimpleTheme(page, url, theme, checks, results, surface) {
     // immediately after its own setup click, before the next group touches
     // the tab strip.
     const tagGovChecks = checks.filter((c) => c.selector === ".tag-gov-kind-badge");
+    // presetRowChecks (design-uplift, preset-row redesign, 2026-08-04):
+    // .theme-preset-btn.active only exists once SOME preset is selected --
+    // reuses the exact same "click flexoki on the appearance tab" step
+    // presetPreviewChecks already needs (both groups just need any preset
+    // active; there is nothing flexoki-specific about either check), so
+    // it's folded into that same click rather than a second one.
+    const presetRowChecks = checks.filter((c) => c.selector === ".theme-preset-btn.active");
     const presetPreviewChecks = checks.filter((c) => c.selector.startsWith("#preset-preview-section"));
-    const otherChecks = checks.filter((c) => !tagGovChecks.includes(c) && !presetPreviewChecks.includes(c));
+    const otherChecks = checks.filter((c) => !tagGovChecks.includes(c) && !presetPreviewChecks.includes(c) && !presetRowChecks.includes(c));
     if (tagGovChecks.length) {
       // .tag-gov-kind-badge lives on the "tags" tab (#panel-tags), not
       // #panel-general (the default active one on a bare goto()) -- its
@@ -688,7 +734,7 @@ async function runSimpleTheme(page, url, theme, checks, results, surface) {
       await page.waitForSelector(".tag-gov-kind-badge", { timeout: TIMEOUT_MS });
       for (const check of tagGovChecks) await runOneCheck(page, theme, check, results);
     }
-    if (presetPreviewChecks.length) {
+    if (presetPreviewChecks.length || presetRowChecks.length) {
       // #preset-preview-section is `style="display:none"` (options.html)
       // until options.js's renderPresetPreview() sees a non-empty
       // currentPresetKey -- click a site-theme preset button on the
@@ -697,11 +743,14 @@ async function runSimpleTheme(page, url, theme, checks, results, surface) {
       // runner is already iterating (that one is the extension UI's own
       // popup/options/library chrome; this is the pinboard.in SITE theme
       // picker) -- picking "flexoki" here is unrelated to and doesn't
-      // fight with whichever THEMES entry is currently active.
+      // fight with whichever THEMES entry is currently active. The same
+      // click also satisfies presetRowChecks: it's what puts .active on a
+      // .theme-preset-btn in the first place.
       await page.click("#tab-appearance");
       await page.click(".theme-preset-btn[data-theme='flexoki']");
       await page.waitForSelector("#preset-preview-section:not([style*='display: none'])", { timeout: TIMEOUT_MS });
       for (const check of presetPreviewChecks) await runOneCheck(page, theme, check, results);
+      for (const check of presetRowChecks) await runOneCheck(page, theme, check, results);
     }
     for (const check of otherChecks) await runOneCheck(page, theme, check, results);
     return;

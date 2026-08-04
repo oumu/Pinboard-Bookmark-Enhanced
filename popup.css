@@ -126,11 +126,9 @@
      as before this migration. */
   --pp-fg-soft: #666;
   --pp-preset-btn-bg: #eef2ff;
-  --pp-preset-btn-bd: #c0d0f0;
   --pp-preset-btn-hover-bg: #d5e0ff;
   --pp-used-fg: #bbb;
   --pp-neutral-panel: #f5f5f0;
-  --pp-preset-btn-used-bd: #ddd;
   --pp-disabled-fg: #aaa;
   --pp-danger-hover-bg: #fee;
   --pp-popover-border: #ddd;
@@ -371,24 +369,64 @@ html[data-section="login"] .quick-actions { display: none !important; }
   background-size: contain;
 }
 
-/* Tag Presets */
+/* Tag Presets — borderless swatch pill (design-uplift, user-selected Variant
+   A, 2026-08-04). Border removed entirely (see COMPONENTS.md Appendix C's
+   preset-row-redesign entry for the full before/after and why the old
+   `--pp-preset-btn-bd`/`--pp-preset-bd`/`--pp-preset-btn-used-bd` border
+   tokens are gone from consumption here): fill + text already carry the
+   affordance, same "swatch row" reasoning COMPONENTS.md §1.3 already
+   recorded for this exact button once border color was still in play.
+   `--pp-preset-fg`/`--pp-preset-btn-bg`/`--pp-preset-bg` are untouched --
+   they're the AA-derived pair contrast-audit.mjs:711 blocks on, so the fill
+   + text contrast guarantee carries over unchanged onto the new pill shape. */
 .preset-btn {
-  display: inline-block;
-  padding: 1px var(--pp-sp-3);
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px var(--pp-sp-4) 3px var(--pp-sp-3);
   margin-right: var(--pp-sp-2);
   font-size: 11px;
   font-family: inherit;
   color: var(--pp-preset-fg);
   background: var(--pp-preset-btn-bg);
-  border: 1px solid var(--pp-preset-btn-bd);
-  border-radius: var(--pp-radius-sm);
+  border: none;
+  border-radius: var(--pp-radius-full);
   cursor: pointer;
   white-space: nowrap;
-  transition: background var(--pp-motion-state), border-color var(--pp-motion-state);
+  transition: background var(--pp-motion-state), box-shadow var(--pp-motion-state);
+}
+/* Swatch dot: reuses --pp-accent (the same generic accent token every other
+   surface already consumes), not a new per-preset color -- tag presets have
+   no per-item color identity to show, and inventing one would mean new CSS
+   custom properties duplicating each theme's accent outside the
+   html[data-theme] cascade that already carries it, i.e. new tokens for no
+   real gain. */
+.preset-btn::before {
+  content: "";
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--pp-accent);
+  flex-shrink: 0;
 }
 .preset-btn:hover { background: var(--pp-preset-btn-hover-bg); box-shadow: var(--pp-hover-shadow); }
-.preset-btn:focus-visible { outline: 2px solid var(--pp-accent, #4477bb); outline-offset: 1px; }
-.preset-btn.used { color: var(--pp-used-fg); background: var(--pp-neutral-panel); border-color: var(--pp-preset-btn-used-bd); pointer-events: none; }
+/* Press language matches COMPONENTS.md §3's .btn family convention (scale,
+   not translateY; kept OUT of the transition list above so press/release
+   both read instantly, per §3's decision 1/2). popup has no .btn class of
+   its own (§0 exemption covers popup's geometry, not this button's press
+   feedback) so this is written out bare rather than inherited. */
+.preset-btn:active:not(:disabled) { transform: scale(0.97); }
+.preset-btn:focus-visible { outline: 2px solid var(--pp-accent); outline-offset: 2px; }
+.preset-btn.used { color: var(--pp-used-fg); background: var(--pp-neutral-panel); pointer-events: none; }
+/* .used means "already inserted this preset" (informational/consumed), not
+   "selected" -- see the popup section of preset-variants-report.md's
+   formal-implementation note for why it stays low-emphasis (fades the dot)
+   rather than borrowing options' selection ring below. */
+/* currentColor, not a token: .used's own `color` already resolves to the
+   right muted shade per layer (--pp-used-fg in base/dark, --pp-fg-hint under
+   html[data-theme] -- two different tokens across layers), so matching it
+   via currentColor needs one rule instead of three per-layer duplicates. */
+.preset-btn.used::before { background: currentColor; opacity: .5; }
 
 .form-body { padding: var(--pp-sp-4) 0 var(--pp-sp-4); }
 /* Unsupported-URL empty state: hide the dead form, keep only #url-warning
@@ -1152,8 +1190,6 @@ html.dark {
      see step 2's commit message and task-13-report.md). */
   --pp-used-fg: #444;
   --pp-preset-btn-bg: #1e2a3a;
-  --pp-preset-btn-bd: #3a4a6a;
-  --pp-preset-btn-used-bd: #333;
   --pp-fg-faint: #444;
   --pp-oqa-btn-fg: #aaa;
   --pp-offline-queue-bg: #1f1c0e;
@@ -1193,8 +1229,8 @@ html.dark .edit-cancel { background: color-mix(in srgb, var(--pp-scrim) 12%, tra
 html.dark .edit-cancel:hover { background: color-mix(in srgb, var(--pp-scrim) 22%, transparent); color: var(--pp-danger); }
 html.dark .edit-cancel:focus-visible { outline-color: var(--pp-accent); }
 html.dark .recent-bm-edit:focus-visible, html.dark .recent-bm-del:focus-visible { outline-color: var(--pp-accent); }
-html.dark .preset-btn { color: var(--pp-link); background: var(--pp-preset-btn-bg); border-color: var(--pp-preset-btn-bd); }
-html.dark .preset-btn.used { color: var(--pp-used-fg); background: var(--pp-bg2); border-color: var(--pp-preset-btn-used-bd); }
+html.dark .preset-btn { color: var(--pp-link); background: var(--pp-preset-btn-bg); }
+html.dark .preset-btn.used { color: var(--pp-used-fg); background: var(--pp-bg2); }
 html.dark .ql-sep { color: var(--pp-fg-faint); }
 html.dark .offline-queue-list { background: var(--pp-offline-queue-bg); border-top-color: var(--pp-offline-queue-border); }
 html.dark .offline-queue-item { border-bottom-color: color-mix(in srgb, var(--pp-scrim) 6%, transparent); }
@@ -2101,9 +2137,9 @@ html[data-theme] .qbtn.saving { background: var(--pp-offline-bg); border-color: 
 html[data-theme] .qbtn.saved { background: var(--pp-ok-bg); border-color: var(--pp-ok-bd); color: var(--pp-ok-fg); }
 html[data-theme] .existing-banner { background: var(--pp-banner-bg); border-color: var(--pp-banner-bd); color: var(--pp-banner-fg); }
 html[data-theme] .url-warning { background: var(--pp-warn-bg); border-color: var(--pp-warn-bd); color: var(--pp-warn-fg); }
-html[data-theme] .preset-btn { color: var(--pp-preset-fg); background: var(--pp-preset-bg); border-color: var(--pp-preset-bd); }
+html[data-theme] .preset-btn { color: var(--pp-preset-fg); background: var(--pp-preset-bg); }
 html[data-theme] .preset-btn:hover { background: var(--pp-drop-hover); box-shadow: var(--pp-hover-shadow); }
-html[data-theme] .preset-btn.used { color: var(--pp-fg-hint); background: var(--pp-bg2); border-color: var(--pp-preset-bd); }
+html[data-theme] .preset-btn.used { color: var(--pp-fg-hint); background: var(--pp-bg2); }
 html[data-theme] .search-field { background: var(--pp-input-bg); border-color: var(--pp-border); color: var(--pp-fg); }
 html[data-theme] .search-field:focus { border-color: var(--pp-focus-bd); background: var(--pp-input-focus-bg); }
 html[data-theme] #tags-copy-all:hover { color: var(--pp-accent); }
@@ -2129,7 +2165,9 @@ html[data-theme] .offline-queue-actions .offline-queue-remove:hover:not(:disable
 html[data-theme] .offline-queue-empty { color: var(--pp-fg-hint); }
 /* Themed focus-visible (accent-colored focus rings) */
 html[data-theme] .login-body button:focus-visible { outline-color: var(--pp-accent); }
-html[data-theme] .preset-btn:focus-visible { outline-color: var(--pp-accent); }
+/* .preset-btn:focus-visible no longer needs a themed override here: its base
+   rule (Tag Presets, above) already reads bare var(--pp-accent) with no
+   fallback literal, so this would be a same-value no-op under every theme. */
 html[data-theme] .submit-bar button:focus-visible { outline: 2px solid var(--pp-accent); outline-offset: 2px; }
 html[data-theme] .qbtn:focus-visible { outline: 2px solid var(--pp-accent); outline-offset: 2px; }
 html[data-theme] .quick-links a:focus-visible { outline: 2px solid var(--pp-accent); outline-offset: 1px; }
