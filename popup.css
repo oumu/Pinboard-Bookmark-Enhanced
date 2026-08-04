@@ -1992,18 +1992,26 @@ textarea::-webkit-scrollbar-thumb { background: var(--pp-scrollbar-thumb); borde
 textarea::-webkit-scrollbar-thumb:hover { background: var(--pp-accent); }
 ::-webkit-scrollbar-corner,
 textarea::-webkit-scrollbar-corner { background: var(--pp-bg2); }
-/* Shared popup themed rules */
+/* Shared popup themed rules. design-uplift Task 13 step 3 removed 32 rules
+   here that were pure duplicates of what the bare (unprefixed) selector
+   already declares -- byte-identical values, so the cascade renders the
+   same result with or without them. It deliberately did NOT remove every
+   textual duplicate: `html[data-theme] X` (specificity 0,2,1 -- the extra
+   type match on <html> outranks a same-count class list) can silently
+   outrank a same-element compound selector like `X.state`/`X:state`
+   (0,2,0) OR get outranked itself by another surviving `html[data-theme]
+   <prefix-of-X>` rule -- in both directions, removing X's "duplicate"
+   override changes which rule actually wins for elements matching the
+   compound, even though X's own bare/override pair looked identical.
+   Verified empirically (scripts/popup-color-matrix.mjs, 0 diff across 88
+   probes x 16 theme states) plus a static forward+reverse compound-family
+   scan; the rules that failed either check stayed. Full judgment table:
+   task-13-report.md. Do not re-run a blind "same decl text = delete" pass
+   over this block without the same two-directional check. */
 html[data-theme] { background: var(--pp-bg); }
-html[data-theme] body { background: var(--pp-bg); color: var(--pp-fg); }
-html[data-theme] a { color: var(--pp-link); }
 html[data-theme] .header-bar { background: var(--pp-bg2); border-color: var(--pp-border); color: var(--pp-fg-muted); }
-html[data-theme] .header-bar a { color: var(--pp-fg-muted); }
-html[data-theme] .header-bar .header-ic { color: var(--pp-fg-muted); }
-html[data-theme] .header-bar .header-ic:hover { color: var(--pp-fg); }
-html[data-theme] .login-body p { color: var(--pp-fg); }
 html[data-theme] .login-body input { background: var(--pp-input-bg); border-color: var(--pp-border); color: var(--pp-fg); }
 html[data-theme] .login-body input:focus { border-color: var(--pp-focus-bd); background: var(--pp-input-focus-bg); }
-html[data-theme] .login-body input:focus-visible { box-shadow: var(--pp-focus-ring); }
 html[data-theme] .login-body button { background: var(--pp-bg2); border-color: var(--pp-border); color: var(--pp-fg); }
 html[data-theme] .login-body button:hover { background: var(--pp-input-focus-bg); }
 html[data-theme] .login-body .key-toggle { background: transparent; border: 0; color: var(--pp-fg-hint); }
@@ -2014,32 +2022,19 @@ html[data-theme] .field > input[type="text"], html[data-theme] .field > textarea
 html[data-theme] .field > input[type="text"]:focus, html[data-theme] .field > textarea:focus {
   border-color: var(--pp-focus-bd); background: var(--pp-input-focus-bg);
 }
-html[data-theme] .field > input[type="text"]:focus-visible, html[data-theme] .field > textarea:focus-visible {
-  box-shadow: var(--pp-focus-ring);
-}
 html[data-theme] .tags-input-wrap { background: var(--pp-input-bg); border-color: var(--pp-border); }
 html[data-theme] .tags-input-wrap:focus-within { border-color: var(--pp-focus-bd); background: var(--pp-input-focus-bg); box-shadow: var(--pp-focus-ring); }
-html[data-theme] .tags-input-wrap input { background: transparent; color: var(--pp-fg); }
 html[data-theme] .tag-item { background: var(--pp-tag-bg); color: var(--pp-tag-fg); }
 html[data-theme] .tag-item:hover { background: var(--pp-tag-hover, var(--pp-drop-hover)); }
-html[data-theme] .tag-remove:hover { color: var(--pp-danger); }
 html[data-theme] .autocomplete-dropdown { background: var(--pp-bg); border-color: var(--pp-border); box-shadow: var(--pp-shadow-md); }
 html[data-theme] .ac-item { color: var(--pp-fg); }
-html[data-theme] .ac-item:hover, html[data-theme] .ac-item.selected { background: var(--pp-drop-hover); }
-html[data-theme] .ac-count { color: var(--pp-fg-hint); }
-html[data-theme] .submit-hint { color: var(--pp-fg-hint); }
-html[data-theme] .kb-hint { color: var(--pp-fg-hint); }
 html[data-theme] .label { color: var(--pp-fg-muted); }
-html[data-theme] .muted { color: var(--pp-fg-hint); }
-html[data-theme] .group-label { color: var(--pp-fg-hint); }
 html[data-theme] .stag { color: var(--pp-link); }
 html[data-theme] .stag.used { color: var(--pp-fg-hint); }
 html[data-theme] .stag.ai { color: var(--pp-accent2); }
 html[data-theme] .action-link { color: var(--pp-accent2); }
-html[data-theme] .cache-hint { color: var(--pp-fg-hint); }
 html[data-theme] .regen-link { color: var(--pp-accent2); }
 html[data-theme] .regen-link + .regen-link { border-color: var(--pp-divider); }
-html[data-theme] #desc-char-count { color: var(--pp-fg-hint); }
 html[data-theme] #desc-char-count.over-limit { color: var(--pp-error, #d43); }
 /* Themed skeleton: base rule's var(--pp-divider) already picks the theme's divider color. */
 html[data-theme] .submit-bar button { background: var(--pp-bg2); border-color: var(--pp-border); color: var(--pp-fg); }
@@ -2049,16 +2044,13 @@ html[data-theme] .submit-bar button:hover { background: var(--pp-input-focus-bg)
 html[data-theme] #submit-btn { background: var(--pp-accent); color: var(--pp-on-accent, var(--pp-bg)); border-color: var(--pp-accent); }
 html[data-theme] #submit-btn:active { opacity: 1; transform: translateY(0); box-shadow: none; }
 html[data-theme] #submit-btn:disabled { opacity: 0.4; transform: none; box-shadow: none; }
-html[data-theme] .quick-actions { background: var(--pp-bg2); }
 html[data-theme] .submit-bar button.loading { color: var(--pp-fg-hint); }
 html[data-theme] .submit-bar button.loading::before, html[data-theme] .action-link.loading::before {
   border-color: var(--pp-spinner-bg); border-top-color: var(--pp-spinner-fg);
 }
-html[data-theme] .del-btn { color: var(--pp-danger); border-color: var(--pp-danger) !important; }
 html[data-theme] .del-btn:hover { background: color-mix(in srgb, var(--pp-danger) 10%, var(--pp-bg)) !important; }
 html[data-theme] .del-confirm-popover { background: var(--pp-bg); border-color: var(--pp-border); box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
 html[data-theme] .del-confirm-popover button { background: var(--pp-bg); border-color: var(--pp-border); color: var(--pp-fg); }
-html[data-theme] .del-confirm-yes { color: var(--pp-danger) !important; border-color: var(--pp-danger) !important; }
 html[data-theme] .del-confirm-yes:hover { background: color-mix(in srgb, var(--pp-danger) 10%, var(--pp-bg)) !important; }
 html[data-theme] .submit-bar button.saved-success { background: var(--pp-ok-bg); border-color: var(--pp-ok-bd); color: var(--pp-ok-fg); }
 html[data-theme] .submit-bar button.save-error { background: color-mix(in srgb, var(--pp-danger) 14%, transparent); border-color: var(--pp-danger); color: var(--pp-danger); }
@@ -2069,7 +2061,6 @@ html[data-theme] .ac-new-hint { color: var(--pp-fg-hint); }
 html[data-theme] .ac-new-hint:hover { background: var(--pp-drop-hover); color: var(--pp-fg); }
 html[data-theme] .ac-hint-footer { color: var(--pp-fg-hint); border-top-color: var(--pp-border); background: var(--pp-bg2); }
 html[data-theme] .ac-hint-footer kbd { color: var(--pp-fg); background: var(--pp-bg); border-color: var(--pp-border); box-shadow: none; }
-html[data-theme] .ac-new-icon { color: var(--pp-accent); }
 html[data-theme] .qbtn { background: var(--pp-bg2); border-color: var(--pp-border); color: var(--pp-fg-muted); }
 html[data-theme] { --pp-hover-shadow: 0 1px 2px color-mix(in srgb, var(--pp-accent) 12%, transparent), 0 2px 6px color-mix(in srgb, var(--pp-accent) 18%, transparent); }
 html[data-theme] .qbtn:hover { background: var(--pp-drop-hover); color: var(--pp-link); box-shadow: var(--pp-hover-shadow); }
@@ -2082,18 +2073,12 @@ html[data-theme] .preset-btn:hover { background: var(--pp-drop-hover); box-shado
 html[data-theme] .preset-btn.used { color: var(--pp-fg-hint); background: var(--pp-bg2); border-color: var(--pp-border); }
 html[data-theme] .search-field { background: var(--pp-input-bg); border-color: var(--pp-border); color: var(--pp-fg); }
 html[data-theme] .search-field:focus { border-color: var(--pp-focus-bd); background: var(--pp-input-focus-bg); }
-html[data-theme] .search-field:focus-visible { box-shadow: var(--pp-focus-ring); }
 html[data-theme] .clear-all-link { color: var(--pp-fg-hint); }
 html[data-theme] .clear-all-link:hover { color: var(--pp-danger); }
 html[data-theme] #tags-copy-all:hover { color: var(--pp-accent); }
-html[data-theme] .last-used-hint { color: var(--pp-fg-hint); }
 html[data-theme] .last-used-hint:hover { color: var(--pp-accent); }
-html[data-theme] .quick-links a { color: var(--pp-link); }
 html[data-theme] .ql-sep { color: var(--pp-fg-hint); }
-html[data-theme] .recent-bm-label { color: var(--pp-fg-hint); }
 html[data-theme] .recent-bm-area { border-color: var(--pp-divider); }
-html[data-theme] .recent-bm-item { color: var(--pp-link); }
-html[data-theme] .recent-bm-domain { color: var(--pp-fg-hint); }
 html[data-theme] .recent-bm-del { color: var(--pp-fg-hint); }
 html[data-theme] .recent-bm-del:hover { color: var(--pp-danger); }
 html[data-theme] .recent-bm-edit { color: var(--pp-fg-hint); }
@@ -2103,7 +2088,6 @@ html[data-theme] .edit-cancel:hover { background: color-mix(in srgb, var(--pp-da
 html[data-theme] .edit-cancel:focus-visible { outline-color: var(--pp-accent); }
 html[data-theme] .recent-bm-edit:focus-visible, html[data-theme] .recent-bm-del:focus-visible { outline-color: var(--pp-accent); }
 html[data-theme] .offline-bar { background: var(--pp-offline-bg); border-color: var(--pp-offline-bd); color: var(--pp-offline-fg); }
-html[data-theme] .offline-clear { color: var(--pp-danger); }
 html[data-theme] .offline-queue-list { background: color-mix(in srgb, var(--pp-offline-bg) 75%, var(--pp-bg)); border-top-color: var(--pp-offline-bd); }
 html[data-theme] .offline-queue-item { border-bottom-color: color-mix(in srgb, var(--pp-fg) 10%, transparent); }
 html[data-theme] .offline-queue-title { color: var(--pp-fg); }
@@ -2112,9 +2096,6 @@ html[data-theme] .offline-queue-actions button { border-color: color-mix(in srgb
 html[data-theme] .offline-queue-actions button:hover:not(:disabled) { background: color-mix(in srgb, var(--pp-accent) 10%, transparent); color: var(--pp-accent); }
 html[data-theme] .offline-queue-actions .offline-queue-remove:hover:not(:disabled) { color: var(--pp-danger); background: color-mix(in srgb, var(--pp-danger) 12%, transparent); }
 html[data-theme] .offline-queue-empty { color: var(--pp-fg-hint); }
-html[data-theme] .error-text { color: var(--pp-danger); }
-html[data-theme] .status-msg.success { color: var(--pp-ok-fg); }
-html[data-theme] .status-msg.error { color: var(--pp-danger); }
 html[data-theme] .add-all-link { color: var(--pp-fg-hint); }
 html[data-theme] .add-all-link:hover { color: var(--pp-fg-muted); }
 /* Themed focus-visible (accent-colored focus rings) */
