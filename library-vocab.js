@@ -510,7 +510,7 @@ function _pbpVocabRenderDetail(w, enterNarrow) {
   // 7. Delete (confirm popover family; on success the detail pane resets)
   const del = document.createElement("button");
   del.type = "button";
-  del.className = "btn btn-sm danger vocab-detail-delete";
+  del.className = "btn btn-sm danger ghost vocab-detail-delete";
   setBtnIcon(del, "trash", t("dictDeleteWord"));
   del.addEventListener("click", () => _pbpVocabDeleteRow(w, del));
   frag.appendChild(del);

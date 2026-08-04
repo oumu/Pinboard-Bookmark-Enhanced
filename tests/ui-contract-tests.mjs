@@ -574,12 +574,17 @@ check(/\.wayback-log-row:focus-within\s+\.wayback-perm-tip/.test(optionsCss) &&
 // options' .confirm-yes clause was dropped from this list (Task 10,
 // COMPONENTS.md §4.2/C14b): the generated ui-components region now emits
 // ".confirm-popover .confirm-yes"/":hover" with no theme gate and no
-// fallback at all (var(--opt-danger)/var(--opt-on-danger) directly) --
-// there is no longer a hardcoded default for a themed override to
-// out-rank, so the failure mode this check guards against is structurally
-// unreachable for that selector. Guarded instead by recipe-lint's
-// solidDangerScope/dangerPaired [static] checks (dangerRules() emits
-// exactly one .confirm-yes rule, self-paired).
+// fallback at all (var(--opt-danger)/var(--opt-on-danger) directly), and
+// recipe-lint's solidDangerScope/dangerPaired [static] checks pin
+// dangerRules() to emitting exactly one self-paired .confirm-yes rule -- so
+// the CURRENT source has no hardcoded default left for a themed override to
+// out-rank. That is not the same as "can never regress": recipe-lint only
+// looks at ui-components.mjs's own recipe source/output, and
+// css-region-audit only diffs the generated region against it -- neither
+// one scans the HAND-WRITTEN area of options.css for someone re-adding a
+// literal `html[data-theme] .confirm-popover .confirm-yes { background:
+// #c00 }` override by hand later (a new selector there is legal content as
+// far as both gates are concerned). Low risk, not zero risk.
 check(popupCss.includes("html[data-theme] .confirm-popover .confirm-yes:hover { background: var(--pp-warn-fg)") &&
   popupCss.includes("html[data-theme] .confirm-popover .confirm-no:hover { background: var(--pp-warn-bg)") &&
   optionsCss.includes("html[data-theme] .theme-name-popover .tnp-save:hover { background: var(--opt-fg)"),

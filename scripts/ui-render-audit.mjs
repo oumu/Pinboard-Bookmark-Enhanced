@@ -374,9 +374,7 @@ async function runOneCheck(page, theme, check, results) {
     // Real mouse hover (not a class hack): Playwright dispatches actual
     // pointer events, so the live cascade's own `:hover` pseudo-class match
     // drives getComputedStyle exactly the way a real user's cursor would --
-    // no need to fake it by toggling a class the CSS never checks for. The
-    // pointer stays put (no other action moves it) until the next check's
-    // own hover/navigation, so this is read back synchronously right after.
+    // no need to fake it by toggling a class the CSS never checks for.
     await page.hover(check.selector);
   } else if (check.state !== "default") {
     throw new Error(`unsupported state "${check.state}" on ${check.selector} -- extend runOneCheck() before adding non-default states to the checklist`);
@@ -387,6 +385,14 @@ async function runOneCheck(page, theme, check, results) {
     compareSelector: check.expect.heightEqWith?.selector || null,
     extraBgVarName: extraBgSelectorVar ? `--${NS_BY_SURFACE[check.surface]}-${extraBgSelectorVar}` : null,
   });
+  if (check.state === "hover") {
+    // Reset the pointer to a dead corner right after reading the hover
+    // state back -- otherwise it stays parked on this check's element for
+    // every subsequent "default"-state check in the same run (a :hover that
+    // was never supposed to be active would silently leak into their
+    // getComputedStyle reads until the next real hover/navigation moved it).
+    await page.mouse.move(0, 0);
+  }
   const evald = evaluateCheck(check, raw, theme);
   if (evald.setupError) {
     throw new Error(`SETUP ERROR [${check.surface}|${theme}|${check.selector}|${check.state}]: ${evald.setupError}`);

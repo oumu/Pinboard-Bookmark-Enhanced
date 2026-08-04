@@ -402,7 +402,7 @@ function _pbpNotesRenderDetail(hit, enterNarrow) {
   // anything is removed, which is where the scope is disclosed.
   const del = document.createElement("button");
   del.type = "button";
-  del.className = "btn btn-sm danger notes-detail-delete";
+  del.className = "btn btn-sm danger ghost notes-detail-delete";
   setBtnIcon(del, "trash", t("notesDeleteBtn"));
   del.addEventListener("click", () => _pbpNotesDelete(hit.row, del));
   frag.appendChild(del);
