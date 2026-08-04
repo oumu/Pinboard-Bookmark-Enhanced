@@ -596,6 +596,26 @@ html[data-theme="<dark preset>"] { color-scheme: dark; }
 hover 态。**只改颜色的 hover 不需要门控**（颜色 latch 不影响布局，且门控会让触摸设备完全失去按下反馈）。
 popup 已按此实践（`popup.css:2067` 注释在案），options/library 目前无几何 hover，本规则用于防新增。
 
+### 7.6 文本内边距与子元素包含（Task 14 泛化）
+
+真机截图揪出 options「查看当前预设 CSS」disclosure 的两条低级错误——summary 文字贴边框、`::after`
+chevron 探出边框——根因是同一处：一条 id 选择器规则把水平 padding 清零，同时吃掉了 chevron 的落
+脚空间。`scripts/ui-render-audit.mjs --sweep`（发现工具，不进 CI）把这类缺陷泛化成两条通用几何检查，
+命中后逐一修复并转成 `tests/render-audit-checklist.mjs` 的手写 `[render]` 断言防回归：
+
+| ID | 断言 | 层 |
+|---|---|---|
+| `textInset` | 含直接文本节点、且自身或最近的整框（四边都有 border）祖先之间，文本盒到该框内缘的水平间距 ≥4px、垂直间距 ≥2px | `[render]` |
+| `childContainment` | `<summary>` 的图标/伪元素子节点（含 `::after` chevron）bbox 必须 ⊆ 宿主 border-box（±1px 容差） | `[render]` |
+
+- `textInset` 只认**四边都有 border**的框（单边分隔线如 `.reset-tab-btn` 的 `border-top` 不算），并在
+  遇到滚动/单行省略边界（`overflow:auto`/`scroll`，或 `white-space:nowrap`+`text-overflow:ellipsis`+
+  `overflow-x:hidden` 的经典截断写法）时停止向上找框——那是内容设计上就该溢出，不是本条要抓的缺陷。
+- `childContainment` 只扫 `<summary>`（disclosure 的图标/chevron），不扫普通按钮：按钮的 `::before`
+  命中区扩张（§1.5）是**故意**探出自身视觉框的，同一条断言套用会把设计误判成缺陷。
+- 两条都是渲染门（依赖真实级联与布局），不是静态门；新增 disclosure/图标组件时先看这两条是否适用，
+  而不是重新发明一套间距判断。
+
 ---
 
 ## 附录 A：人审清单（不可自动化的判断）
