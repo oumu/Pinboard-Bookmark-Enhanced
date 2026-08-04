@@ -73,7 +73,10 @@
   --opt-accent-hover: #2255aa;
   --opt-fg: #333;
   --opt-fg-muted: #666;
-  --opt-border: #ccc;
+  /* --opt-border's default lives in the composer's DEFAULT_LIGHT block now
+     (design-uplift Task 16), same reason as --opt-bg/--opt-panel above --
+     AA-derived against --opt-btn-bg/--opt-panel (3:1, COMPONENTS.md's
+     border-color row) rather than a hand-picked literal. */
   --opt-danger: #c00;
   /* Task 12 review round 3 (item 2): five more per-theme-only roles that had
      NO :root default at all, so every unthemed consumer invented its own
@@ -927,7 +930,7 @@ html[data-theme="modern-card"] {
   --opt-fg-hint: #666d74;
   --opt-accent: #1a73e8;
   --opt-save: #1967d2;
-  --opt-border: #e8e8e8;
+  --opt-border: #919191;
   --opt-border-section: #e8e8e8;
   --opt-input-bg: #ffffff;
   --opt-input-border: #e8e8e8;
@@ -957,7 +960,7 @@ html[data-theme="nord-night"] {
   --opt-fg-hint: #aab2c4;
   --opt-accent: #88c0d0;
   --opt-save: #a3be8c;
-  --opt-border: #434c5e;
+  --opt-border: #939db2;
   --opt-border-section: #434c5e;
   --opt-input-bg: #434c5e;
   --opt-input-border: #4c566a;
@@ -987,7 +990,7 @@ html[data-theme="terminal"] {
   --opt-fg-hint: #1c9c1c;
   --opt-accent: #33ff33;
   --opt-save: #22aa22;
-  --opt-border: #33ff3340;
+  --opt-border: #267326;
   --opt-border-section: #33ff3325;
   --opt-input-bg: #111111;
   --opt-input-border: #33ff3340;
@@ -1019,7 +1022,7 @@ html[data-theme="paper-ink"] {
   --opt-fg-hint: #707070;
   --opt-accent: #1a3a5c;
   --opt-save: #8b4513;
-  --opt-border: #d4c5a9;
+  --opt-border: #9f834f;
   --opt-border-section: #e8dfd0;
   --opt-input-bg: #fefdfb;
   --opt-input-border: #d4c5a9;
@@ -1051,7 +1054,7 @@ html[data-theme="dracula"] {
   --opt-fg-hint: #8995ba;
   --opt-accent: #8be9fd;
   --opt-save: #50fa7b;
-  --opt-border: #44475a;
+  --opt-border: #7c819c;
   --opt-border-section: #44475a;
   --opt-input-bg: #44475a;
   --opt-input-border: #6272a4;
@@ -1081,7 +1084,7 @@ html[data-theme="flexoki-light"] {
   --opt-fg-hint: #6F6E69;
   --opt-accent: #205EA6;
   --opt-save: #536907;
-  --opt-border: #E6E4D9;
+  --opt-border: #938b60;
   --opt-border-section: #E6E4D9;
   --opt-input-bg: #FFFCF0;
   --opt-input-border: #E6E4D9;
@@ -1111,7 +1114,7 @@ html[data-theme="flexoki-dark"] {
   --opt-fg-hint: #878580;
   --opt-accent: #4385BE;
   --opt-save: #879a39;
-  --opt-border: #403E3C;
+  --opt-border: #7f7b77;
   --opt-border-section: #343331;
   --opt-input-bg: #343331;
   --opt-input-border: #403E3C;
@@ -1141,7 +1144,7 @@ html[data-theme="solarized-light"] {
   --opt-fg-hint: #5b686a;
   --opt-accent: #1e6ca4;
   --opt-save: #1f7972;
-  --opt-border: #d6cdb5;
+  --opt-border: #958353;
   --opt-border-section: #d6cdb5;
   --opt-input-bg: #fdf6e3;
   --opt-input-border: #d6cdb5;
@@ -1171,7 +1174,7 @@ html[data-theme="solarized-dark"] {
   --opt-fg-hint: #839496;
   --opt-accent: #268bd2;
   --opt-save: #9dab2d;
-  --opt-border: #094b5a;
+  --opt-border: #1089a4;
   --opt-border-section: #094b5a;
   --opt-input-bg: #002b36;
   --opt-input-border: #094b5a;
@@ -1203,7 +1206,7 @@ html[data-theme="catppuccin-latte"] {
   --opt-fg-hint: #5c5f77;
   --opt-accent: #1a5ad8;
   --opt-save: #2e731f;
-  --opt-border: #ccd0da;
+  --opt-border: #79849e;
   --opt-border-section: #bcc0cc;
   --opt-input-bg: #eff1f5;
   --opt-input-border: #ccd0da;
@@ -1233,7 +1236,7 @@ html[data-theme="catppuccin-mocha"] {
   --opt-fg-hint: #9399b2;
   --opt-accent: #89b4fa;
   --opt-save: #94e2d5;
-  --opt-border: #45475a;
+  --opt-border: #9597ae;
   --opt-border-section: #45475a;
   --opt-input-bg: #1e1e2e;
   --opt-input-border: #45475a;
@@ -1263,7 +1266,7 @@ html[data-theme="gruvbox-dark"] {
   --opt-fg-hint: #aca093;
   --opt-accent: #83a598;
   --opt-save: #b8bb26;
-  --opt-border: #504945;
+  --opt-border: #9f958f;
   --opt-border-section: #504945;
   --opt-input-bg: #282828;
   --opt-input-border: #504945;
@@ -1293,7 +1296,7 @@ html[data-theme="rose-pine"] {
   --opt-fg-hint: #837f9a;
   --opt-accent: #c4a7e7;
   --opt-save: #9ccfd8;
-  --opt-border: #26233a;
+  --opt-border: #756da7;
   --opt-border-section: #393552;
   --opt-input-bg: #26233a;
   --opt-input-border: #403d52;
@@ -1323,7 +1326,7 @@ html[data-theme="github-light"] {
   --opt-fg-hint: #68717c;
   --opt-accent: #0969da;
   --opt-save: #1a7f37;
-  --opt-border: #d0d7de;
+  --opt-border: #8295a7;
   --opt-border-section: #d0d7de;
   --opt-input-bg: #ffffff;
   --opt-input-border: #d0d7de;
@@ -1353,6 +1356,7 @@ html[data-theme="github-light"] {
   --opt-panel: #ffffff;
   --opt-save: #1a7f37;
   --opt-warn: #9a6700;
+  --opt-border: #8a8a8a;
 }
 /* @generated:ui-themes end */
 

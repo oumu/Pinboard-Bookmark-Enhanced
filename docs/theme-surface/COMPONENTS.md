@@ -122,7 +122,7 @@ YaHei/PingFang 时行盒比 Latin 高一截，同一颗按钮在 zh-CN 和 en �
 | `background` | `--{ns}-btn-bg` | 既有 |
 | `background`（hover） | `--{ns}-btn-hover` | 既有 |
 | `color`（默认与 hover 共用一个值） | **`--{ns}-btn-fg`** | `fgToAAMulti(fg, [btn-bg, btn-hover])`——对**两个**背景同时 ≥4.5:1。只声明一次，hover 规则不重复声明。`fgToAAMulti` 现是 `library-chrome.mjs:11-23` 的本地函数，`_ui-derive.mjs` 只有 `fgToAA`/`bgToAA`/`pairToAA`；Task 5 把它上移并 export 后三表面共用 |
-| `border-color` | `--{ns}-border` | 既有；对 `btn-bg` ≥3:1（非文本对比，WCAG 1.4.11） |
+| `border-color` | `--{ns}-border` | `borderToAA(border, [btn-bg, panel])`——对 `btn-bg` 与 `panel` 两个背景同时 ≥3:1（非文本对比，WCAG 1.4.11）。design-uplift Task 16 前只是文档要求，未接线到 contrast-audit；Task 16 补上派生与门（`_ui-derive.mjs` 的 `borderToAA`，仿 `fgToAAMulti` 的收敛写法） |
 | `outline`（focus） | `--{ns}-accent` | 对 `bg` 与 `panel` ≥3:1 |
 
 **缺陷 1/4 死在这一行**：两表面的 `.btn` 基类都不声明 `color`，文字与 `currentColor` 图标掉到 UA 的

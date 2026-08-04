@@ -1,6 +1,6 @@
 import { expandPalette } from "./_util.mjs";
 import { mergeTokens } from "./compose-theme.mjs";
-import { deriveUiColors, deriveUiRadius, regularizeUiRadius, fgToAA, fgToAAMulti, hexToRgb, rgbToHex, resolveOpaqueBg } from "./_ui-derive.mjs";
+import { deriveUiColors, deriveUiRadius, regularizeUiRadius, fgToAA, fgToAAMulti, borderToAA, hexToRgb, rgbToHex, resolveOpaqueBg } from "./_ui-derive.mjs";
 
 // popup theme id -> { pilot, mode, useDarkMode? }
 // 12 themes map 1:1; the flexoki pilot yields BOTH flexoki-light and flexoki-dark.
@@ -50,6 +50,12 @@ const DEFAULT_LIGHT = {
                                  // main pass fixed. Derived the same way: fgToAAMulti(link, [preset-
                                  // btn-bg, preset-btn-hover-bg]) — 5.62:1 / 4.77:1, both clear AA
                                  // (design-uplift Task 13 review round).
+  "border": "#848fa4",          // NOT a literal copy: the hand-written :root's old #e8eaee was only
+                                 // 1.12:1 against --pp-bg2 (design-uplift Task 16, USER RULING --
+                                 // border reads visibly heavier now, the intended effect). Derived the
+                                 // same way the themed border is: borderToAA(border, [bg2, bg2]) —
+                                 // panel === bg2 === btn-bg for popup, same alias as the themed
+                                 // derivation — 3.04:1, clears the 3:1 non-text floor.
 };
 const DEFAULT_DARK = {
   "btn-fg": "#e6e7ea",          // = --pp-fg, html.dark (popup.css:1044)
@@ -66,6 +72,8 @@ const DEFAULT_DARK = {
                                  // dark (#10131a) — 6.22:1 against #e57373, already clears AA (identity).
   "on-accent": "#10131a",       // = --pp-on-accent, html.dark (popup.css:1102) -- moved here design-
                                  // uplift Task 13 step 2, same reason as DEFAULT_LIGHT's entry above.
+  "border": "#696e7a",          // NOT a literal copy: html.dark's old #2c2e33 was only 1.17:1 against
+                                 // --pp-bg2 dark (#212226). borderToAA(border, [bg2, bg2]) — 3.11:1.
 };
 
 // mode drives the native-control scheme (scrollbar, number spinner, calendar
@@ -132,6 +140,17 @@ export function composePopupThemes(tokensByPilot) {
     const btnHoverRgb = hexToRgb(ui["drop-hover"]);
     const bgRgb = hexToRgb(ui.bg);
     const dangerRgb = hexToRgb(ui.danger);
+    // border (design-uplift Task 16, USER RULING): raw palette copy has no
+    // AA guarantee against its own resting surface -- Task 7 measured
+    // 1.0-1.73:1 across all 13 pilots (COMPONENTS.md's border-color row,
+    // WCAG 1.4.11's 3:1 non-text floor). resolveOpaqueBg first: terminal's
+    // border is a translucent glow (#33ff3340, an 8-digit alpha hex, same
+    // shape as its spinner-bg handled below) -- hexToRgb() alone would
+    // misparse it as 6-digit. panel === bg2 === btn-bg for popup (no
+    // dedicated panel role) -- duplicated for COMPONENTS.md §4.1
+    // spec-conformance, same convention as danger-quiet-fg's 3-bg superset
+    // below even though two of the three are numerically identical today.
+    ui["border"] = rgbToHex(borderToAA(resolveOpaqueBg(ui.border, btnBgRgb), [btnBgRgb, btnBgRgb]));
     ui["btn-fg"] = rgbToHex(fgToAAMulti(hexToRgb(ui.fg), [btnBgRgb, btnHoverRgb]));
     // panel === bg2 === btn-bg for popup (no dedicated panel role); the 3-bg
     // set is spelled out per COMPONENTS.md §4.3 even though two of the three

@@ -1,6 +1,6 @@
 import { expandPalette } from "./_util.mjs";
 import { mergeTokens } from "./compose-theme.mjs";
-import { deriveUiColors, deriveUiRadius, regularizeUiRadius, fgToAA, fgToAAMulti, hexToRgb, rgbToHex, resolveOpaqueBg } from "./_ui-derive.mjs";
+import { deriveUiColors, deriveUiRadius, regularizeUiRadius, fgToAA, fgToAAMulti, borderToAA, hexToRgb, rgbToHex, resolveOpaqueBg } from "./_ui-derive.mjs";
 import { POPUP_THEME_MAP } from "./popup-chrome.mjs";
 
 // Default-surface (no preset selected) component-layer baseline — Task 5,
@@ -62,6 +62,12 @@ const DEFAULT_LIGHT = {
   // didn't establish. Flagged here instead of silently claiming AA.
   "save": "#1a7f37",
   "warn": "#9a6700",
+  "border": "#8a8a8a",           // NOT a literal copy: the hand-written :root's old #ccc was only
+                                  // 1.47:1 against --opt-btn-bg (#f5f5f0) and 1.61:1 against panel
+                                  // (#fff) (design-uplift Task 16, USER RULING -- border reads visibly
+                                  // heavier now, the intended effect). Derived the same way the themed
+                                  // border is: borderToAA(border, [btn-bg, panel]) — 3.16:1 / 3.45:1,
+                                  // both clear the 3:1 non-text floor.
 };
 
 // Map canonical UI colors (from _ui-derive) + a few options-only roles to --opt-* names.
@@ -105,6 +111,14 @@ function emitOpt(ui, palette, overrides, radius, mode) {
   const btnBgRgb = hexToRgb(map["btn-bg"]);
   const btnHoverRgb = hexToRgb(map["btn-hover"]);
   const dangerRgb = hexToRgb(map.danger);
+  // border (design-uplift Task 16, USER RULING): same gap and same
+  // resolveOpaqueBg requirement (terminal's translucent #33ff3340) as
+  // popup-chrome.mjs's border derivation -- see its comment for the full
+  // rationale. Unlike popup, options' btn-bg and panel CAN genuinely
+  // differ post-override (dracula/nord-night/flexoki-dark all override
+  // options btn-bg without touching panel), so both are real, distinct
+  // constraints here, not a duplicated single value.
+  map["border"] = rgbToHex(borderToAA(resolveOpaqueBg(map.border, btnBgRgb), [btnBgRgb, panelRgb]));
   map["btn-fg"] = rgbToHex(fgToAAMulti(hexToRgb(map.fg), [btnBgRgb, btnHoverRgb]));
   map["danger-quiet-fg"] = rgbToHex(fgToAAMulti(dangerRgb, [bgRgb, panelRgb, btnBgRgb]));
   map["on-danger"] = rgbToHex(fgToAA(hexToRgb(palette["btn-fg"]), dangerRgb));

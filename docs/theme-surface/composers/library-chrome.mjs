@@ -1,6 +1,6 @@
 import { expandPalette } from "./_util.mjs";
 import { mergeTokens } from "./compose-theme.mjs";
-import { deriveUiColors, deriveUiRadius, regularizeUiRadius, fgToAA, fgToAAMulti, hexToRgb, rgbToHex, resolveOpaqueBg } from "./_ui-derive.mjs";
+import { deriveUiColors, deriveUiRadius, regularizeUiRadius, fgToAA, fgToAAMulti, borderToAA, hexToRgb, rgbToHex, resolveOpaqueBg } from "./_ui-derive.mjs";
 import { POPUP_THEME_MAP } from "./popup-chrome.mjs";
 
 // Default-surface (no preset selected) component-layer baseline — Task 5,
@@ -24,6 +24,12 @@ const DEFAULT_LIGHT = {
                                  // default (#1a73e8) mixed in.
   "chip-fg": "#1a1a2e",         // = --lib-fg default (.vocab-group-chip's current `color`,
                                  // library.css:1145); fgToAA(fg, chip-bg) is identity at 14.97:1.
+  "border": "#90909f",          // NOT a literal copy: the hand-written :root's old #e2e2e6 was only
+                                 // 1.29:1 against --lib-btn-bg/--lib-panel (both #fff by default)
+                                 // (design-uplift Task 16, USER RULING -- border reads visibly heavier
+                                 // now, the intended effect). Derived the same way the themed border
+                                 // is: borderToAA(border, [btn-bg, panel]) — 3.15:1, clears the 3:1
+                                 // non-text floor.
 };
 
 // Map canonical UI colors to --lib-* names for the standalone library page
@@ -99,6 +105,13 @@ function emitLib(ui, palette, overrides, radius, focus = {}, mode) {
   const btnBgRgb = hexToRgb(map["btn-bg"]);
   const btnHoverRgb = hexToRgb(map["btn-hover"]);
   const dangerRgb = hexToRgb(map.danger);
+  // border (design-uplift Task 16, USER RULING): same gap, same
+  // resolveOpaqueBg requirement and same options-chrome.mjs rationale --
+  // no pilot currently overrides library's btn-bg/panel independently, so
+  // the two constraints are numerically identical today but kept separate
+  // for COMPONENTS.md §4.1 spec-conformance (same convention as its own
+  // danger-quiet-fg 3-bg call above).
+  map["border"] = rgbToHex(borderToAA(resolveOpaqueBg(map.border, btnBgRgb), [btnBgRgb, panelRgb]));
   map["btn-fg"] = rgbToHex(fgToAAMulti(hexToRgb(map.fg), [btnBgRgb, btnHoverRgb]));
   map["danger-quiet-fg"] = rgbToHex(fgToAAMulti(dangerRgb, [bgRgb, panelRgb, btnBgRgb]));
   map["on-danger"] = rgbToHex(fgToAA(hexToRgb(palette["btn-fg"]), dangerRgb));

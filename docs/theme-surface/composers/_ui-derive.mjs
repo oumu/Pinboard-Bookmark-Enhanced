@@ -156,6 +156,27 @@ export function fgToAAMulti(fg, bgs, min = 4.5) {
   return cur;
 }
 
+// Push a UI-chrome BORDER's LIGHTNESS (hue+sat preserved) until it clears
+// WCAG 1.4.11's 3:1 non-text floor against every fill it needs to read as a
+// distinct edge against -- typically a surface's btn-bg AND panel
+// (COMPONENTS.md's border-color row; gated by contrast-audit's
+// COMPONENT_PAIR_SPEC "border" rows -- design-uplift Task 16, USER RULING:
+// Task 7 measured all 13 pilots' raw palette border at 1.0-1.73:1 against
+// btn-bg across all 3 UI surfaces and deliberately left it ungated pending
+// this derivation). Same repeated-worst-case convergence as fgToAAMulti
+// (this file) -- just at the UI-component threshold instead of body text's
+// 4.5:1, and named separately because "does this edge read distinctly
+// against its surroundings" is a different question from "is this text
+// legible on its fill" even though the math is identical. Identity when the
+// pair already clears 3:1, so an already-compliant theme emits byte-for-byte
+// unchanged. `border` may be a non-opaque fill (terminal's is a translucent
+// glow, an 8-digit alpha hex, `#33ff3340`) -- callers must resolve it to an
+// opaque RGB first (resolveOpaqueBg), the same requirement fgToAA/
+// fgToAAMulti already carry for any fg input.
+export function borderToAA(border, bgs, min = 3) {
+  return fgToAAMulti(border, bgs, min);
+}
+
 // Site radius scale -> extension UI radius scale.
 //
 // The site composers take the pilot's values literally (_base.mjs). Several

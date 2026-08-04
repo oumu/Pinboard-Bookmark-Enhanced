@@ -115,14 +115,19 @@ function check(scope, theme, label, ratio, min) {
 // value for an already-declared one) needs one line added here, same as
 // COMPONENTS.md needs a new row for a new component.
 //
-// Icon/stroke non-text 3:1 (WCAG 1.4.11) is NOT represented below despite
-// the brief calling it out as a category: the one concrete candidate COMPONENTS
-// §1.3 names, `border` vs `btn-bg`, was measured (not guessed) against all 13
-// pilots and fails almost everywhere (ratios ~1.0-1.7 -- these borders are a
+// Icon/stroke non-text 3:1 (WCAG 1.4.11): `border` vs `btn-bg`/`panel` WAS
+// deliberately left out of this registry by Task 7 -- measured (not guessed)
+// against all 13 pilots at ratios ~1.0-1.73:1 (these borders were a
 // deliberate subtle-divider design choice, not an AA-derived pair Task 5
-// guaranteed), so gating on it would either red the whole audit or need 20+
-// fresh allowlist entries -- neither is "the derivation is buggy, fix it",
-// both are out of a single-file task's reach. Icon color reuses --{ns}-btn-fg
+// guaranteed), so gating on it then would have either redded the whole audit
+// or needed 20+ fresh allowlist entries. design-uplift Task 16 (USER RULING)
+// resolved the gap the other way Task 7 flagged as the alternative: a real
+// borderToAA derivation (_ui-derive.mjs) now pushes every surface's border
+// to clear 3:1 against both btn-bg and panel, so the two rows below are real
+// COMPONENT_PAIR_SPEC coverage, not allowlist entries -- do not re-add an
+// allowlist exemption for a `border` pair; if one fails, the derivation is
+// what needs fixing, same rule the four `btn-bg vs btn-fg` exemptions above
+// already established for fg/fill pairs. Icon color reuses --{ns}-btn-fg
 // itself (COMPONENTS §2.2, currentColor inheritance) at a WEAKER 3:1
 // requirement than the 4.5:1 text pairs already below, so it's structurally
 // subsumed, not skipped.
@@ -180,6 +185,15 @@ const COMPONENT_PAIR_SPEC = [
   // not the 4.5:1 text minimum), same class as the scrollbar-thumb-vs-track
   // check elsewhere in this file.
   ["spinner-fg", "spinner-bg", 3, ["pp"]],
+  // Two rows below: `border` vs its two resting surfaces (design-uplift
+  // Task 16, USER RULING -- see the block comment above this registry for
+  // why Task 7 originally left these out and why the gap is now closed by
+  // derivation instead of by allowlist). Same WCAG 1.4.11 3:1 non-text
+  // floor as spinner-fg/spinner-bg above, all 3 surfaces (no onlyNs): every
+  // one of pp/opt/lib declares --{ns}-border, and ROLE_ALIAS already maps
+  // popup's btn-bg/panel to bg2 for this same registry's other rows.
+  ["border", "btn-bg", 3],
+  ["border", "panel", 3],
 ];
 
 // Generic `--name: value;` extractor over an arbitrary block body -- the
@@ -324,9 +338,8 @@ const ORPHAN_ALLOWLIST = new Set([
   "pp:ok-fg",
   "pp:offline-fg",
   // --pp-on-accent: audited by the dedicated "on-accent vs accent" check in
-  // auditCssThemes (varPrefix === "--pp" branch) and again in
-  // auditDarkDefault -- real coverage, same "predates this task's role
-  // registry" reason as the four above.
+  // auditCssThemes (varPrefix === "--pp" branch) -- real coverage, same
+  // "predates this task's role registry" reason as the four above.
   "pp:on-accent",
   // --lib-row-selected-fg: audited by the "row-selected-fg vs
   // row-selected-bg" check in auditLibraryThemes -- real coverage, not a

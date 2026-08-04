@@ -28,7 +28,11 @@
   --pp-link: #3f6fd0;
   --pp-accent: #3b72d9;
   --pp-accent2: #8b5cc9;
-  --pp-border: #e8eaee;
+  /* --pp-border's default lives in the composer's DEFAULT_LIGHT block now
+     (design-uplift Task 16) -- same role, AA-derived against --pp-bg2 (3:1,
+     COMPONENTS.md's border-color row), emitted into the generated :root
+     block at the end of @generated:ui-themes below; a hand-written
+     duplicate here would just be dead weight. */
   --pp-divider: #eef0f3;
   --pp-input-bg: #eef1f5;
   --pp-input-focus-bg: #ffffff;
@@ -1111,7 +1115,8 @@ html.dark {
   --pp-link: #8ab0f4;
   --pp-accent: #5b8ae0;
   --pp-accent2: #b08ae6;
-  --pp-border: #2c2e33;
+  /* --pp-border's dark default lives in the composer's DEFAULT_DARK block
+     now (design-uplift Task 16), same reason as :root's entry above. */
   --pp-divider: #26282c;
   --pp-input-bg: #26282d;
   --pp-input-focus-bg: #2b2e35;
@@ -1275,7 +1280,7 @@ html[data-theme="modern-card"] {
   --pp-link: #1967d2;
   --pp-accent: #1a73e8;
   --pp-accent2: #7b1fa2;
-  --pp-border: #e8e8e8;
+  --pp-border: #919191;
   --pp-divider: #e8e8e8;
   --pp-input-bg: #ffffff;
   --pp-input-focus-bg: #f0f2f5;
@@ -1324,7 +1329,7 @@ html[data-theme="nord-night"] {
   --pp-link: #88c0d0;
   --pp-accent: #88c0d0;
   --pp-accent2: #b48ead;
-  --pp-border: #434c5e;
+  --pp-border: #818da5;
   --pp-divider: #434c5e;
   --pp-input-bg: #434c5e;
   --pp-input-focus-bg: #4c566a;
@@ -1374,7 +1379,7 @@ html[data-theme="terminal"] {
   --pp-link: #33ff33;
   --pp-accent: #33ff33;
   --pp-accent2: #aaaa33;
-  --pp-border: #33ff3340;
+  --pp-border: #267326;
   --pp-divider: #33ff3325;
   --pp-input-bg: #111111;
   --pp-input-focus-bg: #0d1a0d;
@@ -1426,7 +1431,7 @@ html[data-theme="paper-ink"] {
   --pp-link: #1a3a5c;
   --pp-accent: #1a3a5c;
   --pp-accent2: #8b4513;
-  --pp-border: #d4c5a9;
+  --pp-border: #9f834f;
   --pp-divider: #e8dfd0;
   --pp-input-bg: #fefdfb;
   --pp-input-focus-bg: #faf8f5;
@@ -1478,7 +1483,7 @@ html[data-theme="dracula"] {
   --pp-link: #8be9fd;
   --pp-accent: #8be9fd;
   --pp-accent2: #bd93f9;
-  --pp-border: #44475a;
+  --pp-border: #676c88;
   --pp-divider: #44475a;
   --pp-input-bg: #44475a;
   --pp-input-focus-bg: #51556b;
@@ -1528,7 +1533,7 @@ html[data-theme="flexoki-light"] {
   --pp-link: #205EA6;
   --pp-accent: #205EA6;
   --pp-accent2: #5E409D;
-  --pp-border: #E6E4D9;
+  --pp-border: #938b60;
   --pp-divider: #E6E4D9;
   --pp-input-bg: #F2F0E5;
   --pp-input-focus-bg: #FFFCF0;
@@ -1578,7 +1583,7 @@ html[data-theme="flexoki-dark"] {
   --pp-link: #4385BE;
   --pp-accent: #4385BE;
   --pp-accent2: #8B7EC8;
-  --pp-border: #403E3C;
+  --pp-border: #75716d;
   --pp-divider: #343331;
   --pp-input-bg: #282726;
   --pp-input-focus-bg: #343331;
@@ -1628,7 +1633,7 @@ html[data-theme="solarized-light"] {
   --pp-link: #1e6ca4;
   --pp-accent: #268bd2;
   --pp-accent2: #6c71c4;
-  --pp-border: #d6cdb5;
+  --pp-border: #958353;
   --pp-divider: #d6cdb5;
   --pp-input-bg: #eee8d5;
   --pp-input-focus-bg: #fdf6e3;
@@ -1678,7 +1683,7 @@ html[data-theme="solarized-dark"] {
   --pp-link: #5eabe2;
   --pp-accent: #268bd2;
   --pp-accent2: #9193cb;
-  --pp-border: #094b5a;
+  --pp-border: #1089a4;
   --pp-divider: #094b5a;
   --pp-input-bg: #073642;
   --pp-input-focus-bg: #073642;
@@ -1730,7 +1735,7 @@ html[data-theme="catppuccin-latte"] {
   --pp-link: #1a5ad8;
   --pp-accent: #1e66f5;
   --pp-accent2: #8839ef;
-  --pp-border: #ccd0da;
+  --pp-border: #79849e;
   --pp-divider: #bcc0cc;
   --pp-input-bg: #e6e9ef;
   --pp-input-focus-bg: #eff1f5;
@@ -1779,7 +1784,7 @@ html[data-theme="catppuccin-mocha"] {
   --pp-link: #89b4fa;
   --pp-accent: #89b4fa;
   --pp-accent2: #cba6f7;
-  --pp-border: #45475a;
+  --pp-border: #787b97;
   --pp-divider: #45475a;
   --pp-input-bg: #11111b;
   --pp-input-focus-bg: #181825;
@@ -1828,7 +1833,7 @@ html[data-theme="gruvbox-dark"] {
   --pp-link: #83a598;
   --pp-accent: #83a598;
   --pp-accent2: #d3869b;
-  --pp-border: #504945;
+  --pp-border: #8c8079;
   --pp-divider: #504945;
   --pp-input-bg: #1d2021;
   --pp-input-focus-bg: #32302f;
@@ -1878,7 +1883,7 @@ html[data-theme="rose-pine"] {
   --pp-link: #c4a7e7;
   --pp-accent: #c4a7e7;
   --pp-accent2: #f6c177;
-  --pp-border: #393552;
+  --pp-border: #6d669c;
   --pp-divider: #393552;
   --pp-input-bg: #26233a;
   --pp-input-focus-bg: #403d52;
@@ -1927,7 +1932,7 @@ html[data-theme="github-light"] {
   --pp-link: #0969da;
   --pp-accent: #0969da;
   --pp-accent2: #8250df;
-  --pp-border: #d0d7de;
+  --pp-border: #8295a7;
   --pp-divider: #d0d7de;
   --pp-input-bg: #ffffff;
   --pp-input-focus-bg: #f6f8fa;
@@ -1975,6 +1980,7 @@ html[data-theme="github-light"] {
   --pp-on-danger: #ffffff;
   --pp-on-accent: #ffffff;
   --pp-preset-fg: #2d5cb9;
+  --pp-border: #848fa4;
 }
 html.dark {
   color-scheme: dark;
@@ -1984,6 +1990,7 @@ html.dark {
   --pp-danger-quiet-fg: #e57373;
   --pp-on-danger: #10131a;
   --pp-on-accent: #10131a;
+  --pp-border: #696e7a;
 }
 /* @generated:ui-themes end */
 

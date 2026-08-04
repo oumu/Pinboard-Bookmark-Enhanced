@@ -33,7 +33,11 @@
      <html>; the generated block only outranks a property it actually declares). */
   --lib-focus-bd: color-mix(in srgb, var(--lib-accent, #4477bb) 55%, var(--lib-input-bg, #fff));
   --lib-focus-ring: 0 0 6px 1px color-mix(in srgb, var(--lib-accent, #4477bb) 45%, transparent);
-  --lib-border: #e2e2e6;
+  /* --lib-border's default lives in the composer's DEFAULT_LIGHT block now
+     (design-uplift Task 16) -- same role, AA-derived against --lib-btn-bg/
+     --lib-panel (3:1, COMPONENTS.md's border-color row), emitted into the
+     generated :root block at the end of @generated:ui-themes below; a
+     hand-written duplicate here would just be dead weight. */
   --lib-border-section: #e2e2e6;
   --lib-input-bg: #ffffff;
   --lib-input-border: #d5d5da;
@@ -1354,7 +1358,7 @@ html[data-theme="modern-card"] {
   --lib-save: #166ad8;
   --lib-danger: #d02e24;
   --lib-warn: #a65a00;
-  --lib-border: #e8e8e8;
+  --lib-border: #919191;
   --lib-border-section: #e8e8e8;
   --lib-input-bg: #ffffff;
   --lib-input-border: #e8e8e8;
@@ -1388,7 +1392,7 @@ html[data-theme="nord-night"] {
   --lib-save: #a3be8c;
   --lib-danger: #d18d93;
   --lib-warn: #ed8100;
-  --lib-border: #434c5e;
+  --lib-border: #818da5;
   --lib-border-section: #434c5e;
   --lib-input-bg: #434c5e;
   --lib-input-border: #434c5e;
@@ -1422,7 +1426,7 @@ html[data-theme="terminal"] {
   --lib-save: #008f00;
   --lib-danger: #ff3333;
   --lib-warn: #ba6600;
-  --lib-border: #33ff3340;
+  --lib-border: #267326;
   --lib-border-section: #33ff3325;
   --lib-input-bg: #111111;
   --lib-input-border: #33ff3340;
@@ -1458,7 +1462,7 @@ html[data-theme="paper-ink"] {
   --lib-save: #8b4513;
   --lib-danger: #c0392b;
   --lib-warn: #a65a00;
-  --lib-border: #d4c5a9;
+  --lib-border: #9f834f;
   --lib-border-section: #e8dfd0;
   --lib-input-bg: #fefdfb;
   --lib-input-border: #d4c5a9;
@@ -1494,7 +1498,7 @@ html[data-theme="dracula"] {
   --lib-save: #50fa7b;
   --lib-danger: #ff5555;
   --lib-warn: #e37c00;
-  --lib-border: #44475a;
+  --lib-border: #676c88;
   --lib-border-section: #44475a;
   --lib-input-bg: #44475a;
   --lib-input-border: #44475a;
@@ -1528,7 +1532,7 @@ html[data-theme="flexoki-light"] {
   --lib-save: #5f770a;
   --lib-danger: #af3029;
   --lib-warn: #b06000;
-  --lib-border: #E6E4D9;
+  --lib-border: #938b60;
   --lib-border-section: #E6E4D9;
   --lib-input-bg: #FFFCF0;
   --lib-input-border: #E6E4D9;
@@ -1562,7 +1566,7 @@ html[data-theme="flexoki-dark"] {
   --lib-save: #879a39;
   --lib-danger: #d7645a;
   --lib-warn: #cf7100;
-  --lib-border: #403E3C;
+  --lib-border: #75716d;
   --lib-border-section: #343331;
   --lib-input-bg: #282726;
   --lib-input-border: #403E3C;
@@ -1596,7 +1600,7 @@ html[data-theme="solarized-light"] {
   --lib-save: #1f7972;
   --lib-danger: #d32724;
   --lib-warn: #a65a00;
-  --lib-border: #d6cdb5;
+  --lib-border: #958353;
   --lib-border-section: #d6cdb5;
   --lib-input-bg: #fdf6e3;
   --lib-input-border: #d6cdb5;
@@ -1630,7 +1634,7 @@ html[data-theme="solarized-dark"] {
   --lib-save: #859900;
   --lib-danger: #e56663;
   --lib-warn: #d97600;
-  --lib-border: #094b5a;
+  --lib-border: #1089a4;
   --lib-border-section: #094b5a;
   --lib-input-bg: #073642;
   --lib-input-border: #094b5a;
@@ -1666,7 +1670,7 @@ html[data-theme="catppuccin-latte"] {
   --lib-save: #307820;
   --lib-danger: #d20f39;
   --lib-warn: #a65a00;
-  --lib-border: #ccd0da;
+  --lib-border: #79849e;
   --lib-border-section: #bcc0cc;
   --lib-input-bg: #eff1f5;
   --lib-input-border: #ccd0da;
@@ -1700,7 +1704,7 @@ html[data-theme="catppuccin-mocha"] {
   --lib-save: #94e2d5;
   --lib-danger: #f38ba8;
   --lib-warn: #cf7100;
-  --lib-border: #45475a;
+  --lib-border: #787b97;
   --lib-border-section: #45475a;
   --lib-input-bg: #1e1e2e;
   --lib-input-border: #45475a;
@@ -1734,7 +1738,7 @@ html[data-theme="gruvbox-dark"] {
   --lib-save: #539fa3;
   --lib-danger: #fb5b48;
   --lib-warn: #d97600;
-  --lib-border: #504945;
+  --lib-border: #8c8079;
   --lib-border-section: #504945;
   --lib-input-bg: #282828;
   --lib-input-border: #504945;
@@ -1768,7 +1772,7 @@ html[data-theme="rose-pine"] {
   --lib-save: #9ccfd8;
   --lib-danger: #eb6f92;
   --lib-warn: #c46b00;
-  --lib-border: #26233a;
+  --lib-border: #6f67a3;
   --lib-border-section: #393552;
   --lib-input-bg: #26233a;
   --lib-input-border: #26233a;
@@ -1802,7 +1806,7 @@ html[data-theme="github-light"] {
   --lib-save: #227c3b;
   --lib-danger: #cf222e;
   --lib-warn: #a65a00;
-  --lib-border: #d0d7de;
+  --lib-border: #8295a7;
   --lib-border-section: #d0d7de;
   --lib-input-bg: #ffffff;
   --lib-input-border: #d0d7de;
@@ -1829,5 +1833,6 @@ html[data-theme="github-light"] {
   --lib-on-danger: #ffffff;
   --lib-chip-bg: #e8f1fd;
   --lib-chip-fg: #1a1a2e;
+  --lib-border: #90909f;
 }
 /* @generated:ui-themes end */
