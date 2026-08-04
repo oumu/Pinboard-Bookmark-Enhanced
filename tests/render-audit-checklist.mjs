@@ -396,6 +396,32 @@ export const CHECKS = [
   // single-purpose search tool, not a standalone form field. ----
   { surface: "library", page: "library.html", selector: "#vocab-lookup-input", state: "default",
     expect: { heightEqWith: { selector: "#vocab-lookup-go", tolerancePx: 1 } } },
+
+  // ---- vocab-group-inspect-report.md 2026-08-05 Finding 8: a higher-
+  // specificity rule (.vocab-detail-head .notes-meta-chip, narrowed from
+  // .vocab-detail-pane .notes-meta-chip in this same fix) used to beat
+  // .vocab-group-chip's own line-height:14px regardless of source order
+  // whenever the group chip's selector widened enough to be caught by it --
+  // the list-row instance (.notes-row-meta, no such override anywhere near
+  // it) and the detail-pane instance would then measure different heights
+  // for what's visually "the same chip". Both instances render
+  // simultaneously in this two-pane master-detail layout for the seeded
+  // word (Render QA group), so heightEqWith can compare them directly
+  // without extra setup. Selector deliberately starts with "#vocab-list",
+  // NOT ".notes-row-meta" (the chip's real immediate wrapper, also shared
+  // by the notes view) -- libraryView()'s classifier above keys off the
+  // selector's own leading class/id to decide vocab-tab vs notes-tab, and a
+  // ".notes-"-prefixed string sends the runner to the WRONG tab even though
+  // .vocab-group-chip only ever exists in the vocab one (first version of
+  // this entry did exactly that: silent "zero-size / not found" on every
+  // theme, not a real regression -- caught before landing). Regression
+  // guard, not a currently-failing probe -- both trace to the SAME
+  // padVMin/line-height already covered by the .vocab-group-chip entry
+  // above; this entry is what would actually catch Finding 8's specific
+  // failure mode (the two instances silently drifting apart) if the
+  // narrowed selector above is ever re-widened. ----
+  { surface: "library", page: "library.html", selector: "#vocab-list .vocab-group-chip", state: "default",
+    expect: { heightEqWith: { selector: ".vocab-detail-group-chips .vocab-group-chip", tolerancePx: 1 } } },
 ];
 
 // Hand-copied literal `data-theme` values, verified at authoring time with:

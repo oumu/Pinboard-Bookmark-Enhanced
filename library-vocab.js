@@ -438,12 +438,37 @@ function _pbpVocabRenderDetail(w, enterNarrow) {
   });
   groupUnit.appendChild(removeGroup);
   actions.appendChild(groupUnit);
-  // Current group chips render next to the unit
-  for (const group of pbpVocabGroups(w)) {
-    const chip = document.createElement("span");
-    chip.className = "notes-meta-chip vocab-group-chip";
-    chip.textContent = group;
-    actions.appendChild(chip);
+  // Current group chips get their own row (vocab-group-inspect-report.md
+  // 2026-08-05 Finding 6/vocab-detail-group-chips CSS) and, unlike the
+  // read-only list-row instance, a per-chip "x" (Finding 5): the group name
+  // is already known here, so removing one is a single click on the chip
+  // itself instead of retyping it into the input above and hitting the "-"
+  // stepper. Reuses the exact same mutation primitive that stepper already
+  // calls -- same owner/gen discipline, no new code path.
+  const currentGroups = pbpVocabGroups(w);
+  if (currentGroups.length) {
+    const chipList = document.createElement("span");
+    chipList.className = "vocab-detail-group-chips";
+    for (const group of currentGroups) {
+      const chip = document.createElement("span");
+      chip.className = "notes-meta-chip vocab-group-chip removable";
+      chip.textContent = group;
+      const removeChip = document.createElement("button");
+      removeChip.type = "button";
+      removeChip.className = "chip-remove";
+      setBtnIcon(removeChip, "cross", "");
+      // Reuses the existing localized "Remove from group" label rather than
+      // adding a new per-group-name locale key across all 9 locales -- the
+      // group name itself is user data, not translatable UI text.
+      removeChip.setAttribute("aria-label", t("vocabRemoveFromGroup") + ": " + group);
+      removeChip.addEventListener("click", (e) => {
+        e.stopPropagation();
+        _pbpVocabDetailMutate(w, (owner) => pbpVocabBatchRemoveGroup([w.id], owner, group));
+      });
+      chip.appendChild(removeChip);
+      chipList.appendChild(chip);
+    }
+    actions.appendChild(chipList);
   }
   frag.appendChild(actions);
 

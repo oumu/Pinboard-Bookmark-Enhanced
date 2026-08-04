@@ -258,7 +258,7 @@ input[type="checkbox"], input[type="radio"] {
   outline-offset: 1px;
   box-shadow: none;
 }
-.vocab-batch-bar input[type="text"] {
+.vocab-group-unit input[type="text"] {
   padding: 2px var(--lib-sp-2);
   font-size: 12px;
   line-height: 14px;
@@ -270,7 +270,20 @@ input[type="checkbox"], input[type="radio"] {
    focus-visible and the checkbox/radio accent-color now all come from
    @generated:ui-components above (COMPONENTS.md §6). The <select> chevron
    below is the one page-level exception §6.1 keeps hand-maintained -- it
-   only makes sense once appearance:none has removed the native arrow. */
+   only makes sense once appearance:none has removed the native arrow.
+   STATUS (vocab-group-inspect-report.md 2026-08-05 Finding 9): `.fg` has
+   ZERO consumers in library.html/library-vocab.js/library-notes.js today
+   (`grep class=\"fg\"` = 0 hits) -- every library.html input instead gets
+   its own hand-written per-toolbar recipe (#vocab-search,
+   .vocab-filter-toolbar, .vocab-batch-bar / .vocab-group-unit, ...). This
+   whole `.fg …` block is dead code on this surface (options.css is the real
+   consumer -- 134 `class="fg"` sites there); it renders here only because
+   the recipe source is shared across all three surfaces. Finding 1 was this
+   gap's cost made visible: the detail pane's group input had no per-toolbar
+   recipe written for it and fell through to bare UA styling with nothing to
+   catch it. Left as-is rather than restructured (wrapping library.html
+   inputs in `.fg` is a real, larger change out of this task's scope) -- see
+   the report for the full "one-off-per-toolbar" tradeoff discussion. */
 /* Custom chevron for <select> — native arrow removed by appearance:none. Use
    background-image / background-repeat / background-position as LONGHANDS so themed
    overrides that only set background-color preserve the chevron. */
@@ -458,7 +471,14 @@ html.motion-ready .notes-card-top { transition: background-color var(--motion-st
 }
 .notes-row-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: bold; font-size: 13px; }
 .notes-row-title a { color: inherit; }
-.notes-row-meta { display: flex; flex-wrap: wrap; gap: var(--lib-sp-3); font-size: 11px; color: var(--lib-fg-muted); }
+/* min-width:0 (vocab-group-inspect-report.md 2026-08-05 Finding 3): sibling
+   .notes-row-title already has this (line above); this flex item didn't, so
+   its auto-min-width fell back to its content's max-content width. A long,
+   unbreakable chip (white-space:nowrap, no spaces to wrap on -- a real long
+   custom group name) then refused to shrink below that width no matter how
+   narrow the card got, and silently overflowed the card's visible
+   overflow-x:visible boundary into the delete button's hit area. */
+.notes-row-meta { display: flex; flex-wrap: wrap; gap: var(--lib-sp-3); min-width: 0; font-size: 11px; color: var(--lib-fg-muted); }
 .notes-meta-chip { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .notes-row-del { white-space: nowrap; }
 .notes-row-open { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-decoration: none; }
@@ -732,6 +752,24 @@ html.motion-ready .notes-sib { transition: background-color var(--motion-state) 
    BACK into inheritance with its own `font: inherit`, which pulls the
    unitless 1.65 along with it -- reset at its own rule below, not here. */
 .vocab-detail-pane .notes-meta-chip { font-size: 12px; line-height: normal; }
+/* vocab-group-inspect-report.md 2026-08-05 Finding 8: the rule above is
+   written for the plain unpilled language chip in .vocab-detail-head (see
+   comment above), but ALSO matches .vocab-detail-actions's group chips
+   (they carry the same notes-meta-chip class) -- and its font-size:12px
+   reset turns out to be something group chips genuinely need too (their own
+   recipe, ui-components.mjs's chipRules, deliberately omits font-size --
+   Appendix C8 "字号仍继承容器" -- so WITHOUT some ambient reset they inherit
+   the pane's 15px prose scale instead of a UI-scale size; narrowing the
+   rule's selector to exclude them, tried first, measurably broke chip
+   height across every theme: verified via scripts/ui-render-audit.mjs, the
+   detail-pane instance grew to 20px vs the list-row instance's 18px).
+   line-height:normal is the one property group chips should NOT inherit
+   from this rule (their own recipe already pins 14px, COMPONENTS.md §5.2) --
+   this second, MORE SPECIFIC rule (an extra class on the same two selectors
+   the base rule effectively narrows to for group chips beats it on
+   specificity alone, not source order) restores that one property without
+   touching the font-size reset the rule above still legitimately provides. */
+.vocab-detail-pane .notes-meta-chip.vocab-group-chip { line-height: 14px; }
 /* Back button default state: hidden by default, shown only at narrow widths.
    Order is load-bearing: this rule must come BEFORE the media query so that
    the media query's inline-flex can override it via cascade (same 0,1,0
@@ -753,6 +791,63 @@ html.motion-ready .notes-sib { transition: background-color var(--motion-state) 
 .vocab-detail-head { display: flex; align-items: center; gap: var(--lib-sp-2); flex-wrap: wrap; }
 .vocab-detail-term { margin: 0; font-size: 22px; line-height: 1.2; letter-spacing: -0.01em; }
 .vocab-detail-actions { display: flex; gap: var(--lib-sp-2); margin: var(--lib-sp-3) 0; flex-wrap: wrap; }
+/* Group chips get their own row, always (vocab-group-inspect-report.md
+   2026-08-05 Finding 6): flex-basis:100% on a flex-wrap item forces a wrap
+   onto a new line regardless of available width, so the control cluster
+   (status button + fused input/stepper) and the chip cluster never share a
+   line with only incidental whitespace implying a boundary between them.
+   Only rendered when the word actually has groups (library-vocab.js) -- an
+   always-present empty row would just be dead margin. */
+.vocab-detail-group-chips { display: flex; flex-wrap: wrap; align-items: center; gap: var(--lib-sp-2); flex-basis: 100%; }
+/* .vocab-group-chip is otherwise a plain read-only pill (list-view instance,
+   .notes-row-meta): cursor:default so it doesn't inherit a misleading
+   text-select I-beam over a non-editable label (Finding 4 baseline). The
+   detail pane's instance additionally carries .removable and a nested
+   .chip-remove button (Finding 5) -- hovering/focusing the chip reveals a
+   ghost "x" using the same opacity-reveal language as .row-del-x, laid out
+   as a normal flex child rather than that recipe's absolute-position
+   overlay (a pill has no fixed row height to anchor an overlay against).
+   Row-language background feedback (§3.2) on the removable variant signals
+   "this pill has an action" without claiming the whole pill is clickable --
+   only .chip-remove itself is. */
+.vocab-group-chip { cursor: default; }
+.vocab-group-chip.removable { padding-right: 4px; gap: 4px; }
+.vocab-group-chip.removable:hover { background: color-mix(in srgb, var(--lib-fg) 5%, var(--lib-chip-bg)); }
+/* Visual box is 14x14 -- exactly the chip's own line-height (COMPONENTS.md
+   §5.2), NOT bigger: a flex row's height is the tallest flex item, so a
+   16px button here silently grew the WHOLE pill to 20px in the detail pane
+   only, a real 2px drift from the list-row instance caught by this task's
+   own new heightEqWith regression check (render-audit-checklist.mjs) before
+   it shipped. Hit-area expansion (COMPONENTS.md §1.5's ::before pattern,
+   same recipe as .row-del-x) makes up the difference without growing the
+   box that sets the row height. */
+.vocab-group-chip .chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  flex: none;
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--motion-state) ease, background var(--motion-state) ease, color var(--motion-state) ease;
+}
+.chip-remove::before { content: ""; position: absolute; inset: -3px; }
+.chip-remove svg { width: 9px; height: 9px; }
+.vocab-group-chip:hover .chip-remove,
+.chip-remove:focus-visible { opacity: 1; }
+.chip-remove:hover { color: var(--lib-danger); background: color-mix(in srgb, var(--lib-danger) 14%, transparent); }
+.chip-remove:active { transform: scale(0.97); }
+.chip-remove:focus-visible { outline: 2px solid var(--lib-accent); outline-offset: 1px; }
+/* Touch has no :hover to reveal the remove "x" -- same fallback .row-del-x
+   already uses (library.css, @media (hover:none) block). */
+@media (hover: none) { .chip-remove { opacity: 1; } }
 .vocab-detail-gloss { margin: var(--lib-sp-3) 0; white-space: pre-wrap; }
 .vocab-gloss-ipa { color: var(--lib-fg-muted); }
 .vocab-detail-context { margin: var(--lib-sp-3) 0; padding-left: var(--lib-sp-3); border-left: 3px solid var(--lib-border); }
@@ -966,7 +1061,19 @@ html.motion-ready .vocab-note-save[hidden] { display: none; opacity: 0; translat
 /* font-family comes from the page-wide `button, input, select, textarea {
    font-family: inherit }` rule near the top of this file regardless of the
    `font: inherit` below, so nothing is lost by that shorthand. */
-.vocab-batch-bar input[type="text"] {
+/* Widened from ".vocab-batch-bar input[type=text]" to
+   ".vocab-group-unit input[type=text]" (vocab-group-inspect-report.md
+   2026-08-05 Finding 1): the batch bar's input is already inside
+   .vocab-group-unit, so this only ADDS coverage -- the detail pane renders
+   the identical input+stepper unit (library-vocab.js: "same input+stepper
+   family as the batch bar") outside .vocab-batch-bar entirely, scoped to
+   #vocab-detail, and had never matched this recipe at all: zero border,
+   zero radius, zero background, UA default focus ring (a visible double
+   ring in dark themes -- the outline this rule supplies is the only
+   focus-visible treatment either instance gets). ui-components.mjs's
+   generated sm-rung padding/font-size/line-height override got the same
+   widening in the same commit. */
+.vocab-group-unit input[type="text"] {
   min-width: 0;
   border: 1px solid var(--lib-input-border, #cdd1d6);
   border-radius: var(--lib-radius-md);
@@ -974,7 +1081,7 @@ html.motion-ready .vocab-note-save[hidden] { display: none; opacity: 0; translat
   color: var(--lib-fg);
   box-sizing: border-box;
 }
-.vocab-batch-bar input[type="text"]:focus-visible {
+.vocab-group-unit input[type="text"]:focus-visible {
   outline: 2px solid var(--lib-accent);
   outline-offset: 1px;
 }
@@ -1433,8 +1540,8 @@ html[data-theme="nord-night"] {
   --lib-btn-fg: #d8dee9;
   --lib-danger-quiet-fg: #daa3a8;
   --lib-on-danger: #293547;
-  --lib-chip-bg: transparent;
-  --lib-chip-fg: #a3be8c;
+  --lib-chip-bg: #434f5f;
+  --lib-chip-fg: #b3c9a0;
 }
 html[data-theme="terminal"] {
   color-scheme: dark;
@@ -1469,7 +1576,7 @@ html[data-theme="terminal"] {
   --lib-btn-fg: #33ff33;
   --lib-danger-quiet-fg: #ff3333;
   --lib-on-danger: #001f00;
-  --lib-chip-bg: transparent;
+  --lib-chip-bg: #142914;
   --lib-chip-fg: #00cccc;
 }
 html[data-theme="paper-ink"] {
@@ -1505,7 +1612,7 @@ html[data-theme="paper-ink"] {
   --lib-btn-fg: #2c2c2c;
   --lib-danger-quiet-fg: #c0392b;
   --lib-on-danger: #faf8f5;
-  --lib-chip-bg: transparent;
+  --lib-chip-bg: #dfdeda;
   --lib-chip-fg: #8b4513;
 }
 html[data-theme="dracula"] {
@@ -1539,7 +1646,7 @@ html[data-theme="dracula"] {
   --lib-btn-fg: #f8f8f2;
   --lib-danger-quiet-fg: #ff5555;
   --lib-on-danger: #282a36;
-  --lib-chip-bg: transparent;
+  --lib-chip-bg: #2c3641;
   --lib-chip-fg: #50fa7b;
 }
 html[data-theme="flexoki-light"] {
@@ -1573,8 +1680,8 @@ html[data-theme="flexoki-light"] {
   --lib-btn-fg: #100f0f;
   --lib-danger-quiet-fg: #af3029;
   --lib-on-danger: #fffcf0;
-  --lib-chip-bg: transparent;
-  --lib-chip-fg: #846401;
+  --lib-chip-bg: #dde1df;
+  --lib-chip-fg: #7a5d01;
 }
 html[data-theme="flexoki-dark"] {
   color-scheme: dark;
@@ -1607,7 +1714,7 @@ html[data-theme="flexoki-dark"] {
   --lib-btn-fg: #cecdc3;
   --lib-danger-quiet-fg: #db736a;
   --lib-on-danger: #1c1b1a;
-  --lib-chip-bg: transparent;
+  --lib-chip-bg: #2b3035;
   --lib-chip-fg: #d0a215;
 }
 html[data-theme="solarized-light"] {
@@ -1641,8 +1748,8 @@ html[data-theme="solarized-light"] {
   --lib-btn-fg: #54696f;
   --lib-danger-quiet-fg: #ca2523;
   --lib-on-danger: #fdf6e3;
-  --lib-chip-bg: transparent;
-  --lib-chip-fg: #1d706a;
+  --lib-chip-bg: #dadfd5;
+  --lib-chip-fg: #1b6863;
 }
 html[data-theme="solarized-dark"] {
   color-scheme: dark;
@@ -1677,8 +1784,8 @@ html[data-theme="solarized-dark"] {
   --lib-btn-fg: #8e9e9f;
   --lib-danger-quiet-fg: #e87774;
   --lib-on-danger: #302403;
-  --lib-chip-bg: transparent;
-  --lib-chip-fg: #2ca9a0;
+  --lib-chip-bg: #0a3f50;
+  --lib-chip-fg: #30b9af;
 }
 html[data-theme="catppuccin-latte"] {
   color-scheme: light;
@@ -1779,7 +1886,7 @@ html[data-theme="gruvbox-dark"] {
   --lib-btn-fg: #ebdbb2;
   --lib-danger-quiet-fg: #fc7f70;
   --lib-on-danger: #282828;
-  --lib-chip-bg: transparent;
+  --lib-chip-bg: #434340;
   --lib-chip-fg: #b8bb26;
 }
 html[data-theme="rose-pine"] {
@@ -1813,7 +1920,7 @@ html[data-theme="rose-pine"] {
   --lib-btn-fg: #e0def4;
   --lib-danger-quiet-fg: #eb6f92;
   --lib-on-danger: #191724;
-  --lib-chip-bg: transparent;
+  --lib-chip-bg: #302b41;
   --lib-chip-fg: #9ccfd8;
 }
 html[data-theme="github-light"] {

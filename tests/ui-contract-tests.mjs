@@ -1692,6 +1692,38 @@ check(mdCss.includes("text-autospace: normal") && /#rendered-view :is\(pre, code
   }
 }
 
+// ---- chip-bg must never be a literal "transparent" (vocab-group-inspect-
+// report.md 2026-08-05 Finding 2): options-chrome.mjs / library-chrome.mjs
+// used to copy their pilot's `tag-bg` role into `--{ns}-chip-bg` verbatim,
+// and 9 of 13 pilots declare tag-bg as the literal CSS keyword
+// "transparent" -- shipping `--lib-chip-bg: transparent;` straight into the
+// generated region, which made .vocab-group-chip (and options'
+// .tag-gov-kind-badge, same derivation) render with NO pill background at
+// all in those themes (dracula caught live: floating text, no pill).
+// contrast-audit.mjs's chip-fg-vs-chip-bg pair can't catch a regression back
+// to this shape -- it treats a non-hex chip-bg as "composite onto panel"
+// and still finds AA against that reconstructed value, the same silent
+// pass-through that let the original bug ship unnoticed. This is therefore
+// a DIRECT text scan of the generated region, not a derived contrast check:
+// grep the actual `--{ns}-chip-bg:` declarations verbatim and fail if any of
+// them is the bare word "transparent" (the render oracle's textContrast also
+// can't catch this shape -- it composites through an ancestor when the
+// probed element's own background resolves transparent, so a chip that
+// silently borrowed its panel's contrast would keep passing that check too).
+{
+  const chipBgLiteralTransparent = (css, ns) => {
+    const re = new RegExp(`--${ns}-chip-bg:\\s*([^;]+);`, "g");
+    const offenders = [];
+    for (const m of css.matchAll(re)) if (m[1].trim() === "transparent") offenders.push(m[0].trim());
+    return offenders;
+  };
+  for (const [file, css, ns] of [["options.css", optionsCss, "opt"], ["library.css", libraryCss, "lib"]]) {
+    const offenders = chipBgLiteralTransparent(css, ns);
+    check(offenders.length === 0,
+      `${file}: --${ns}-chip-bg is the literal "transparent" for ${offenders.length} theme(s) -- .vocab-group-chip/.tag-gov-kind-badge would render with no pill background at all (${offenders.join(", ")})`);
+  }
+}
+
 // ---- single-default-per-token gate (all three *-chrome surfaces,
 // design-uplift Task 12 review round 3 + Task 13 review): a var(--{ns}-X,
 // <literal>) fallback is only ever safe as a stand-in for a missing :root

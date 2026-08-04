@@ -1,6 +1,6 @@
 import { expandPalette } from "./_util.mjs";
 import { mergeTokens } from "./compose-theme.mjs";
-import { deriveUiColors, deriveUiRadius, regularizeUiRadius, fgToAA, fgToAAMulti, borderToAA, hexToRgb, rgbToHex, resolveOpaqueBg } from "./_ui-derive.mjs";
+import { deriveUiColors, deriveUiRadius, regularizeUiRadius, fgToAA, fgToAAMulti, borderToAA, hexToRgb, rgbToHex, resolveOpaqueBg, resolveChipBg } from "./_ui-derive.mjs";
 import { POPUP_THEME_MAP } from "./popup-chrome.mjs";
 
 // Default-surface (no preset selected) component-layer baseline — Task 5,
@@ -116,14 +116,20 @@ function emitLib(ui, palette, overrides, radius, focus = {}, mode) {
   map["danger-quiet-fg"] = rgbToHex(fgToAAMulti(dangerRgb, [bgRgb, panelRgb, btnBgRgb]));
   map["on-danger"] = rgbToHex(fgToAA(hexToRgb(palette["btn-fg"]), dangerRgb));
   // library has no tag-bg/tag-fg role of its own -- no pilot's ui.library.<mode>
-  // touches it -- so palette.tag-bg/tag-fg is the final value. Same
-  // transparent/8-digit-alpha guard as options.
-  map["chip-bg"] = palette["tag-bg"];
+  // touches it -- so palette.tag-bg/tag-fg is the final value. chip-bg is a
+  // real pill fill (not just an AA input like border/danger above), so a
+  // "transparent" tag-bg (9/13 pilots) needs resolveChipBg's accent-tint
+  // synthesis, not resolveOpaqueBg's bare-panel fallback -- see that
+  // function's comment (_ui-derive.mjs) for why bare panel is just as
+  // invisible a pill as the literal `transparent` it used to ship
+  // (vocab-group-inspect-report.md 2026-08-05 Finding 2). chipBgRgb is
+  // reused below for chip-fg's contrast check so both stay derived from the
+  // exact same resolved fill.
+  const chipBgRgb = resolveChipBg(palette["tag-bg"], hexToRgb(map.accent), panelRgb);
+  map["chip-bg"] = rgbToHex(chipBgRgb);
   // fgToAAMulti, not fgToAA -- same pressable-chip fix as options-chrome.mjs
   // (COMPONENTS §5.3, Task 7's contrast-audit chip-fg-vs-btn-hover pair).
-  // Identity here: library's plain fgToAA already cleared both backgrounds on
-  // every theme (0 failures), so this changes zero shipped bytes for library.
-  map["chip-fg"] = rgbToHex(fgToAAMulti(hexToRgb(palette["tag-fg"]), [resolveOpaqueBg(palette["tag-bg"], panelRgb), btnHoverRgb]));
+  map["chip-fg"] = rgbToHex(fgToAAMulti(hexToRgb(palette["tag-fg"]), [chipBgRgb, btnHoverRgb]));
 
   return [`  color-scheme: ${mode};`, ...Object.entries(map).map(([k, v]) => `  --lib-${k}: ${v};`)].join("\n");
 }

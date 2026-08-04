@@ -1,6 +1,6 @@
 import { expandPalette } from "./_util.mjs";
 import { mergeTokens } from "./compose-theme.mjs";
-import { deriveUiColors, deriveUiRadius, regularizeUiRadius, fgToAA, fgToAAMulti, borderToAA, hexToRgb, rgbToHex, resolveOpaqueBg } from "./_ui-derive.mjs";
+import { deriveUiColors, deriveUiRadius, regularizeUiRadius, fgToAA, fgToAAMulti, borderToAA, hexToRgb, rgbToHex, resolveOpaqueBg, resolveChipBg } from "./_ui-derive.mjs";
 import { POPUP_THEME_MAP } from "./popup-chrome.mjs";
 
 // Default-surface (no preset selected) component-layer baseline — Task 5,
@@ -123,11 +123,19 @@ function emitOpt(ui, palette, overrides, radius, mode) {
   map["danger-quiet-fg"] = rgbToHex(fgToAAMulti(dangerRgb, [bgRgb, panelRgb, btnBgRgb]));
   map["on-danger"] = rgbToHex(fgToAA(hexToRgb(palette["btn-fg"]), dangerRgb));
   // options has no tag-bg/tag-fg role of its own -- no pilot's ui.options.<mode>
-  // touches it -- so palette.tag-bg/tag-fg (post expandPalette) IS the final
-  // value. 9 of 13 pilots declare it as the literal "transparent";
-  // resolveOpaqueBg composites that (or any other non-hex/8-digit-alpha
-  // shape) onto panel instead of feeding hexToRgb() a non-hex string.
-  map["chip-bg"] = palette["tag-bg"];
+  // touches it -- so palette.tag-bg/tag-fg (post expandPalette) IS the input.
+  // 9 of 13 pilots declare tag-bg as the literal "transparent". chip-bg is a
+  // real pill fill (.tag-gov-kind-badge / library's .vocab-group-chip share
+  // this derivation), so it needs resolveChipBg's accent-tint synthesis, not
+  // resolveOpaqueBg's bare-panel fallback -- a pill whose bg exactly equals
+  // its own panel is just as invisible as literal `transparent` (see that
+  // function's comment, _ui-derive.mjs; vocab-group-inspect-report.md
+  // 2026-08-05 Finding 2 caught this live in library's dracula theme -- same
+  // bug, same root cause, this file shipped the identical
+  // `map["chip-bg"] = palette["tag-bg"]` verbatim-copy). chipBgRgb is reused
+  // below for chip-fg's contrast check so both derive from the same fill.
+  const chipBgRgb = resolveChipBg(palette["tag-bg"], hexToRgb(map.accent), panelRgb);
+  map["chip-bg"] = rgbToHex(chipBgRgb);
   // fgToAAMulti, not fgToAA: a pressable chip ([aria-pressed]) swaps its
   // hover fill for btn-hover (COMPONENTS §5.3), so chip-fg must clear AA
   // against BOTH backgrounds, same shape as btn-fg above. Plain fgToAA
@@ -135,7 +143,7 @@ function emitOpt(ui, palette, overrides, radius, mode) {
   // (nord-night 3.62, solarized-dark 3.29, gruvbox-dark 3.16, and three more
   // narrow misses) -- caught by contrast-audit's new chip-fg-vs-btn-hover
   // pair (Task 7), fixed here rather than allowlisted.
-  map["chip-fg"] = rgbToHex(fgToAAMulti(hexToRgb(palette["tag-fg"]), [resolveOpaqueBg(palette["tag-bg"], panelRgb), btnHoverRgb]));
+  map["chip-fg"] = rgbToHex(fgToAAMulti(hexToRgb(palette["tag-fg"]), [chipBgRgb, btnHoverRgb]));
 
   // Returns the computed map alongside the rendered text (not just text):
   // composeOptionsThemes needs map.accent AFTER pilot overrides are applied

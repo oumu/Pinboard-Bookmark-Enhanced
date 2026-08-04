@@ -84,6 +84,31 @@ export function resolveOpaqueBg(raw, fallbackBg) {
   return mix(fallbackBg, rgb, alpha);
 }
 
+// chip-bg's palette source (`tag-bg`) is the literal "transparent" for 9 of
+// 13 pilots. resolveOpaqueBg's own fallback for that shape is `fallbackBg`
+// verbatim (mixing in 0% of a fully-transparent color) -- correct for its
+// other callers (a border/spinner compositing onto whatever sits behind it),
+// but wrong for chip-bg specifically: chip-bg IS the fill of a real pill
+// (.vocab-group-chip / .tag-gov-kind-badge), and a pill whose background
+// exactly equals its own container is exactly as invisible as the literal
+// `transparent` it would replace (vocab-group-inspect-report.md 2026-08-05
+// Finding 2: dracula's .vocab-group-chip rendered with zero pill background,
+// floating text only -- library-chrome.mjs/options-chrome.mjs's prior
+// `map["chip-bg"] = palette["tag-bg"]` shipped the raw literal verbatim, so
+// the bug wasn't even panel-colored invisibility, it was literally
+// `background: transparent` in the shipped CSS). Synthesize the same
+// 10%-accent-on-panel tint both composers' DEFAULT_LIGHT baseline already
+// documents (its own "chip-bg" comment) for the untheme surface, instead of
+// falling through to invisible-on-panel. Returns RGB (resolveOpaqueBg's own
+// convention) so a caller can rgbToHex() it for emission and reuse the same
+// RGB for a paired chip-fg contrast check without re-deriving it.
+export function resolveChipBg(raw, accentRgb, panelRgb) {
+  if (isHex(raw)) return hexToRgb(raw);
+  const m = typeof raw === "string" && raw.trim().match(HEX8_RE);
+  if (m) return resolveOpaqueBg(raw, panelRgb);
+  return mix(panelRgb, accentRgb, 0.10);
+}
+
 // Adjust fg's LIGHTNESS (hue+sat preserved) against a FIXED bg until contrast >= min,
 // verifying on hex-rounded values so the written CSS clears AA. Returns rgb.
 export function fgToAA(fg, bg, min = 4.5) {

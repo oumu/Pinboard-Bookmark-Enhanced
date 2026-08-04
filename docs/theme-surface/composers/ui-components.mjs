@@ -276,8 +276,21 @@ function formRules(ns) {
   // height). Concrete selector per COMPONENTS.md Appendix C3 — the only named
   // target this campaign (library.css:834, "本战役排期"); options has no
   // equivalent named in Appendix C, so this only emits for lib.
+  //
+  // Selector widened from ".vocab-batch-bar input[type=text]" to
+  // ".vocab-group-unit input[type=text]" (vocab-group-inspect-report.md
+  // 2026-08-05 Finding 1): the batch bar's own group input is already
+  // wrapped in .vocab-group-unit, so this is a pure broadening, not a
+  // retarget -- but the detail pane renders the SAME input+stepper unit
+  // (library-vocab.js: "same input+stepper family as the batch bar") scoped
+  // to #vocab-detail, outside .vocab-batch-bar entirely, and never matched
+  // the old selector at all. The hand-written border/background/focus-
+  // visible recipe at library.css:969-980 gets the identical widening in the
+  // same commit -- see that file for why the detail-pane input rendered with
+  // zero styling (Finding 1's actual bug: no border, no radius, a double
+  // focus ring) rather than just the wrong size.
   if (ns === "lib") {
-    out.push(rule('.vocab-batch-bar input[type="text"]', [
+    out.push(rule('.vocab-group-unit input[type="text"]', [
       ["padding", `${sp(ns, 2)} ${sp(ns, 8)}`],
       ["font-size", "12px"],
       ["line-height", "14px"],
