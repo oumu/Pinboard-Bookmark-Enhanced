@@ -61,21 +61,30 @@
 //                      position:absolute. USER RULING: only icon-only
 //                      buttons get this hard assertion -- do not add it to
 //                      any icon+text button.
-//   widthLtParent  -- computed width (px) <= parent element's width - 8px.
-//                      Regression guard for chip/badge elements that are
-//                      flex ITEMS of a column-direction flex container: a
-//                      flex item is always block-level regardless of its own
-//                      inline-flex/inline-block display value (CSS Display
-//                      §2.7), so the container's default `align-items:
-//                      stretch` silently fills it to 100% width unless a
-//                      real `width` declaration opts out -- a bug the chip
+//   widthLtParent  -- computed width (px) <= parent element's CONTENT-box
+//                      width - 8px (NOT border-box: a stretched flex item
+//                      fills exactly the parent's content box, which sits
+//                      inside the parent's own padding+border -- comparing
+//                      against border-box width let those alone eat past
+//                      the 8px margin and made the guard unable to ever
+//                      fail for its one real target, a review-caught bug in
+//                      this check's first version. probeSelector computes
+//                      it from the parent's getBoundingClientRect().width
+//                      minus its computed padding and border). Regression
+//                      guard for chip/badge elements that are flex ITEMS of
+//                      a column-direction flex container: a flex item is
+//                      always block-level regardless of its own inline-
+//                      flex/inline-block display value (CSS Display §2.7),
+//                      so the container's default `align-items: stretch`
+//                      silently fills it to 100% width unless a real
+//                      `width` declaration opts out -- a bug the chip
 //                      family's generated recipe can't see (it never
 //                      declares `width` either way, by design: pill/chip
-//                      geometry is content-sized in every OTHER context this
-//                      campaign uses it in). The 8px margin clears normal
-//                      text-content width variance while still catching a
-//                      full stretch (which reads as == parent width, not
-//                      "close to it").
+//                      geometry is content-sized in every OTHER context
+//                      this campaign uses it in). The 8px margin clears
+//                      normal text-content width variance while still
+//                      catching a full stretch (which reads as == parent
+//                      content width, not "close to it").
 //   textContrastMulti -- { ratio, extraBgSelectorVar }: computed `color` vs
 //                      BOTH the actual composited background AND the
 //                      current surface's `--{ns}-{extraBgSelectorVar}`

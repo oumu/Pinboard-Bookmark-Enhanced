@@ -181,8 +181,25 @@ function probeSelector({ selector, compareSelector, extraBgVarName }) {
       effRect = { width: Math.max(rect.width, bw), height: Math.max(rect.height, bh) };
     }
   }
+  // widthLtParent needs the parent's CONTENT-box width, not its border-box
+  // width: a stretched flex item (align-items:stretch, the exact bug this
+  // check exists to catch) fills the container's content box, which sits
+  // INSIDE both the container's padding and its border. Comparing against
+  // border-box width let padding+border alone (e.g. .tag-gov-group-row's
+  // 12px padding + 1px border per side = 26px combined) silently clear an
+  // 8px margin that was meant to only tolerate normal text-width variance --
+  // a stretched child would still measure well under border-box width and
+  // the guard could never actually fire for its one real target.
   const parentEl = el.parentElement;
-  const parentRect = parentEl ? { width: parentEl.getBoundingClientRect().width } : null;
+  let parentRect = null;
+  if (parentEl) {
+    const pcs = getComputedStyle(parentEl);
+    const pRect = parentEl.getBoundingClientRect();
+    const contentWidth = pRect.width
+      - (parseFloat(pcs.paddingLeft) || 0) - (parseFloat(pcs.paddingRight) || 0)
+      - (parseFloat(pcs.borderLeftWidth) || 0) - (parseFloat(pcs.borderRightWidth) || 0);
+    parentRect = { width: contentWidth };
+  }
   return {
     found: true,
     disabled: !!el.disabled,
@@ -303,8 +320,13 @@ function evaluateCheck(check, raw, theme) {
     // silently fills the child to 100% width unless something (a real
     // `width` declaration -- not the child's display value) opts out.
     // Asserts the element reads as content-sized, not container-filling: a
-    // >=8px margin from the parent's width clears normal text-content
-    // variance while still catching a full stretch.
+    // >=8px margin from the parent's CONTENT-box width (raw.parentRect,
+    // see probeSelector) clears normal text-content variance while still
+    // catching a full stretch -- a stretched child's border-box width
+    // equals exactly the parent's content-box width, so this margin has
+    // nothing else eating into it (unlike comparing against border-box
+    // width, where the parent's own padding+border could exceed 8px and
+    // let a stretched child pass unnoticed).
     if (hostZero || !raw.parentRect || raw.parentRect.width === 0) {
       out.push(verdict("widthLtParent", false, null, null, hostZero ? zeroNote : "no parent element found"));
     } else {
