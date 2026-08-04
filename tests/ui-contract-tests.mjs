@@ -1654,31 +1654,35 @@ check(mdCss.includes("text-autospace: normal") && /#rendered-view :is\(pre, code
     "pinboard-style.js: the cloak colour is no longer cached per light/dark mode, so an OS theme flip repaints the wrong shade");
 }
 
-// ---- hardcoded-color ratchet gate: popup.css / options.css / library.css
-// only ever get their hex and rgba() ceilings lowered, never raised, as the
-// var()-first color migration (design-uplift tasks 12/13) works through the
-// hand-maintained region. library.css's hex is already fully migrated, so
-// it keeps a dedicated zero-tolerance assertion instead of a movable
-// ceiling; its rgba() is a live ratchet (library.css:497 -- one bare
-// `background: rgba(220, 80, 80, 0.08)` with a comment admitting there is
-// no token for it yet -- is the debt this half of the gate exists to track).
+// ---- hardcoded-color gate: popup.css / options.css / library.css. The
+// var()-first color migration (design-uplift tasks 5/12/13) finished for
+// popup.css and options.css -- both now sit at zero bare hex AND zero
+// qualifying rgba() in the hand-maintained region, so this is a permanent
+// RED (zero-tolerance) assertion for those two, not a movable ratchet: the
+// tests/hex-ratchet-baseline.json ceiling file this gate used to read is
+// gone (deleted design-uplift Task 13 step 4), and any future bare hex/rgba
+// literal here is a straight regression, no baseline bump possible.
+// library.css's hex is fully migrated too (own zero-tolerance assertion
+// below). Its rgba() stays a live ratchet -- library.css:497's
+// `background: rgba(220, 80, 80, 0.08)` has a comment admitting there is no
+// token for it yet -- LIBRARY_RGBA_CEILING is the debt this last ratchet
+// exists to track; lower it (never raise it) as that debt gets paid down.
 {
-  const baseline = JSON.parse(readFileSync(resolve(root, "tests/hex-ratchet-baseline.json"), "utf8"));
-  check(baseline["library.css"].hex === 0,
-    "tests/hex-ratchet-baseline.json: library.css's hex ceiling must stay at zero -- it has its own zero-tolerance gate below, not a ratchet");
-  for (const [file, css] of [["popup.css", popupCss], ["options.css", optionsCss], ["library.css", libraryCss]]) {
-    for (const [metric, counter] of [["hex", countBareHex], ["rgba", countQualifyingRgba]]) {
-      const count = counter(css);
-      const cap = baseline[file][metric];
-      check(count <= cap,
-        `${file}: bare ${metric} colors in the hand-maintained region grew from the tests/hex-ratchet-baseline.json ceiling of ${cap} to ${count} -- migrate the new literal(s) to a var(--…) token instead of hardcoding a color`);
-      if (count < cap) {
-        console.log(`${metric}-ratchet: ${file} improved to ${count} bare ${metric} (baseline ${cap}) -- lower tests/hex-ratchet-baseline.json in this commit`);
-      }
-    }
+  const LIBRARY_RGBA_CEILING = 1;
+  for (const [file, css] of [["popup.css", popupCss], ["options.css", optionsCss]]) {
+    check(countBareHex(css) === 0,
+      `${file}: bare hex colors leaked outside var() fallbacks in the hand-maintained region (must stay at zero)`);
+    check(countQualifyingRgba(css) === 0,
+      `${file}: bare rgba() colors leaked outside var() fallbacks in the hand-maintained region (must stay at zero) -- migrate the new literal(s) to a var(--…) token instead of hardcoding a color`);
   }
   check(countBareHex(libraryCss) === 0,
     "library.css: bare hex colors leaked outside var() fallbacks in the hand-maintained region (must stay at zero)");
+  const libRgba = countQualifyingRgba(libraryCss);
+  check(libRgba <= LIBRARY_RGBA_CEILING,
+    `library.css: bare rgba() colors in the hand-maintained region grew from the ceiling of ${LIBRARY_RGBA_CEILING} to ${libRgba} -- migrate the new literal(s) to a var(--…) token instead of hardcoding a color`);
+  if (libRgba < LIBRARY_RGBA_CEILING) {
+    console.log(`rgba-ratchet: library.css improved to ${libRgba} bare rgba (ceiling ${LIBRARY_RGBA_CEILING}) -- lower LIBRARY_RGBA_CEILING in tests/ui-contract-tests.mjs in this commit`);
+  }
 }
 
 // ---- single-default-per-token gate (options.css only, design-uplift Task
