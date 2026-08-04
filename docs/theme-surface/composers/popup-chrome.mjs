@@ -38,6 +38,10 @@ const DEFAULT_LIGHT = {
   "chip-fg": "#33589f",         // = --pp-tag-fg default (popup.css:54)
   "danger-quiet-fg": "#c24343", // = --pp-danger default (popup.css:66)
   "on-danger": "#ffffff",       // = .confirm-popover .confirm-yes `color` default light (popup.css:2048)
+  "on-accent": "#ffffff",       // = --pp-on-accent default (popup.css:47) -- moved here design-uplift
+                                 // Task 13 step 2, retiring the hand-written :root duplicate of the
+                                 // exact same "default value when no preset is active" role this
+                                 // block already exists for.
 };
 const DEFAULT_DARK = {
   "btn-fg": "#e6e7ea",          // = --pp-fg, html.dark (popup.css:1044)
@@ -52,6 +56,8 @@ const DEFAULT_DARK = {
                                  // themed on-danger is: fgToAA(candidate, danger), candidate = the
                                  // surface's own "text on a solid brand fill" choice, --pp-on-accent
                                  // dark (#10131a) — 6.22:1 against #e57373, already clears AA (identity).
+  "on-accent": "#10131a",       // = --pp-on-accent, html.dark (popup.css:1102) -- moved here design-
+                                 // uplift Task 13 step 2, same reason as DEFAULT_LIGHT's entry above.
 };
 
 // mode drives the native-control scheme (scrollbar, number spinner, calendar
@@ -134,6 +140,33 @@ export function composePopupThemes(tokensByPilot) {
     // backgrounds on every theme, so this changes zero shipped bytes for popup.
     ui["chip-bg"] = ui["tag-bg"];
     ui["chip-fg"] = rgbToHex(fgToAAMulti(hexToRgb(ui["tag-fg"]), [resolveOpaqueBg(ui["tag-bg"], btnBgRgb), btnHoverRgb]));
+    // preset-fg (design-uplift Task 13, USER RULING): deriveUiColors emits it
+    // as a raw palette copy (hx("accent")), with no AA guarantee against its
+    // own preset-bg -- contrast-audit's orphan guard caught 6/14 themes at
+    // 3.0-4.3:1 (modern-card/flexoki-dark/solarized-light/solarized-dark/
+    // catppuccin-latte/gruvbox-dark), the exact same "unaudited paired token"
+    // class Task 5/7 already fixed for btn-fg/chip-fg. preset-bg is always a
+    // plain hex (never "transparent" like tag-bg can be, verified across all
+    // 13 pilots), so no resolveOpaqueBg needed. drop-hover is included
+    // because .preset-btn:hover swaps its fill to --pp-drop-hover while
+    // keeping the same text color (popup.css's generic html[data-theme]
+    // .preset-btn:hover rule) -- today preset-bg and drop-hover are the same
+    // source value (both hx("accent-soft")) so this is currently a single
+    // effective constraint, but fgToAAMulti keeps the derivation correct if a
+    // future pilot ui.popup override ever splits them apart.
+    const presetBgRgb = hexToRgb(ui["preset-bg"]);
+    ui["preset-fg"] = rgbToHex(fgToAAMulti(hexToRgb(ui["preset-fg"]), [presetBgRgb, btnHoverRgb]));
+    // spinner-fg (design-uplift Task 13, USER RULING): same raw-copy gap as
+    // preset-fg above, but the loading-spinner ring is a non-text UI
+    // indicator (WCAG 1.4.11's 3:1 floor, not the 4.5:1 text minimum) --
+    // 3/14 blocks measured below 3:1 (flexoki-dark 2.71, solarized-light
+    // 2.32, solarized-dark 2.63). spinner-bg is USUALLY a plain hex (border
+    // role) but terminal's is an 8-digit alpha hex (#33ff3340, a translucent
+    // glow) -- resolveOpaqueBg composites it against bg2 first (same
+    // treatment chip-bg's derivation already gives tag-bg's "transparent"
+    // case above), since hexToRgb() alone would silently misparse an 8-digit
+    // value as a 6-digit one.
+    ui["spinner-fg"] = rgbToHex(fgToAA(hexToRgb(ui["spinner-fg"]), resolveOpaqueBg(ui["spinner-bg"], btnBgRgb), 3));
     blocks.push(`html[data-theme="${entry.id}"] {\n${emitPp(ui, entry.mode)}\n}`);
   }
   // `html.dark` here has the SAME selector (so the same specificity, 0,1,0)

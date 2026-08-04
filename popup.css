@@ -44,7 +44,10 @@
      needing different geometry overrides these via pilot ui overrides. */
   --pp-focus-bd: color-mix(in srgb, var(--pp-accent) 55%, var(--pp-input-focus-bg));
   --pp-focus-ring: 0 0 6px 1px color-mix(in srgb, var(--pp-accent) 45%, transparent);
-  --pp-on-accent: #ffffff;
+  /* --pp-on-accent's default lives in the composer's DEFAULT_LIGHT block now
+     (design-uplift Task 13 step 2) -- same role, same #ffffff value, emitted
+     into the generated :root block at the end of @generated:ui-themes below;
+     a hand-written duplicate here would just be dead weight. */
   --pp-label-fg: #62676e;
   /* Scrollbar thumb only — fg-muted is tuned for TEXT (5.2:1) and reads as a
      harsh black bar on the soft-fill surfaces; this stays ≥3:1 vs the bg2
@@ -1069,7 +1072,7 @@ html.dark .batch-progress-text { color: var(--pp-fg); mix-blend-mode: normal; fi
    the html.dark token palette below (Soft Fill port, 2026-07). Only dark-only
    deviations the tokens can't express remain as explicit overrides here. */
 html.dark body { background: var(--pp-bg); color: var(--pp-fg); }
-html.dark .login-body p { color: #bbb; }
+html.dark .login-body p { color: var(--pp-login-p-fg); }
 html.dark .autocomplete-dropdown { background: var(--pp-bg2); border-color: var(--pp-border); box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
 html.dark .submit-bar button { background: var(--pp-input-bg); border-color: var(--pp-border); color: var(--pp-fg); }
 html.dark .submit-bar button:hover { background: var(--pp-drop-hover); }
@@ -1084,7 +1087,9 @@ html.dark {
      dark overrides. AA-gated by contrast-audit.mjs's html.dark probe; verified:
      fg-hint on bg2 (#212226) = 4.58, fg-muted on bg2 = 6.29, on-accent on
      accent = 5.45 (white text was only 3.4 — hence the dark-on-accent value).
-     Decorative/disabled greys (.stag.used / .ql-sep) stay hardcoded, exempt. */
+     Decorative/disabled greys (.stag.used / .ql-sep, via --pp-used-fg /
+     --pp-fg-faint below) are now tokenized too (design-uplift Task 13) --
+     no longer a stated hardcoded exemption. */
   --pp-bg: #1a1b1e;
   --pp-bg2: #212226;
   --pp-fg: #e6e7ea;
@@ -1097,7 +1102,9 @@ html.dark {
   --pp-divider: #26282c;
   --pp-input-bg: #26282d;
   --pp-input-focus-bg: #2b2e35;
-  --pp-on-accent: #10131a;
+  /* --pp-on-accent's dark default lives in the composer's DEFAULT_DARK block
+     now (design-uplift Task 13 step 2) -- same #10131a value, emitted into
+     the generated html.dark block at the end of @generated:ui-themes below. */
   --pp-label-fg: #a0a3aa;
   --pp-scrollbar-thumb: #70747e; /* 3.4:1 vs bg2 track; fg-muted (6.3:1) is text-tier */
   --pp-tag-bg: #2a3550;
@@ -1119,33 +1126,69 @@ html.dark {
   --pp-banner-bg: #20304a;
   --pp-banner-bd: var(--pp-banner-bg);
   --pp-banner-fg: #8ab0f4;
+
+  /* Dark-side values for the page-local one-off tokens step 1 added to
+     :root (design-uplift Task 13 step 2). Consumers with no line here
+     intentionally keep inheriting their :root light value unchanged in
+     dark mode -- same as before this migration (verified per-selector,
+     see step 2's commit message and task-13-report.md). */
+  --pp-used-fg: #444;
+  --pp-preset-btn-bg: #1e2a3a;
+  --pp-preset-btn-bd: #3a4a6a;
+  --pp-preset-btn-used-bd: #333;
+  --pp-fg-faint: #444;
+  --pp-oqa-btn-fg: #aaa;
+  --pp-offline-queue-bg: #1f1c0e;
+  --pp-offline-queue-border: #4a4020;
+  --pp-offline-queue-title-fg: #d4c890;
+  --pp-offline-queue-meta-fg: #9d8f5e;
+  --pp-edit-cancel-fg: #ddd;
+  --pp-confirm-no-hover-bg: #2a2a2a;
+  --pp-confirm-no-fg: #aaa;
+  --pp-confirm-no-border: #444;
+  --pp-spinner-bg: #555;
+  --pp-spinner-fg: #aaa;
+  /* Dark-only tokens (no light counterpart -- these components already
+     consume var(--pp-fg)/var(--pp-danger)/etc. in the light rule, so no
+     new :root default is needed; see the individual rules below). */
+  --pp-login-p-fg: #bbb;
+  --pp-confirm-popover-fg: #ff6666;
+  --pp-confirm-popover-bg: #1a1a1a;
+  --pp-confirm-popover-border: #3a3a3a;
+  --pp-confirm-yes-bg: #c33;
+  --pp-confirm-yes-fg: #fff;
+  --pp-confirm-yes-dark-strong: #a22;
 }
 /* qbtn/submit surfaces sit on the bg2 quick-actions strip: --pp-bg would sink
    below the strip in dark mode, so lift them onto the input-bg tier instead. */
 html.dark .qbtn { background: var(--pp-input-bg); }
 html.dark .preset-btn:hover { background: var(--pp-drop-hover); box-shadow: var(--pp-hover-shadow); }
 .stag { transition: color var(--pp-motion-state); }
-html.dark .stag.used { color: #444; }
-html.dark #desc-char-count.over-limit { color: #ff6b6b; }
+html.dark .stag.used { color: var(--pp-used-fg); }
+html.dark #desc-char-count.over-limit { color: var(--pp-danger); }
 html.dark .recent-bm-del { color: var(--pp-fg-hint); }
 html.dark .recent-bm-edit { color: var(--pp-fg-hint); }
-html.dark .edit-cancel { background: rgba(255,255,255,0.12); color: #ddd; }
-html.dark .edit-cancel:hover { background: rgba(255,255,255,0.22); color: var(--pp-danger); }
+html.dark .edit-cancel { background: color-mix(in srgb, #fff 12%, transparent); color: var(--pp-edit-cancel-fg); }
+html.dark .edit-cancel:hover { background: color-mix(in srgb, #fff 22%, transparent); color: var(--pp-danger); }
 html.dark .edit-cancel:focus-visible { outline-color: var(--pp-accent); }
 html.dark .recent-bm-edit:focus-visible, html.dark .recent-bm-del:focus-visible { outline-color: var(--pp-accent); }
-html.dark .preset-btn { color: var(--pp-link); background: #1e2a3a; border-color: #3a4a6a; }
-html.dark .preset-btn.used { color: #444; background: var(--pp-bg2); border-color: #333; }
-html.dark .ql-sep { color: #444; }
-html.dark .offline-queue-list { background: #1f1c0e; border-top-color: #4a4020; }
-html.dark .offline-queue-item { border-bottom-color: rgba(255,255,255,0.06); }
-html.dark .offline-queue-title { color: #d4c890; }
-html.dark .offline-queue-meta { color: #9d8f5e; }
-html.dark .offline-queue-actions button { border-color: #4a4020; color: #aaa; }
-html.dark .offline-queue-actions button:hover:not(:disabled) { background: rgba(255,255,255,0.08); color: var(--pp-link); }
+html.dark .preset-btn { color: var(--pp-link); background: var(--pp-preset-btn-bg); border-color: var(--pp-preset-btn-bd); }
+html.dark .preset-btn.used { color: var(--pp-used-fg); background: var(--pp-bg2); border-color: var(--pp-preset-btn-used-bd); }
+html.dark .ql-sep { color: var(--pp-fg-faint); }
+html.dark .offline-queue-list { background: var(--pp-offline-queue-bg); border-top-color: var(--pp-offline-queue-border); }
+html.dark .offline-queue-item { border-bottom-color: color-mix(in srgb, #fff 6%, transparent); }
+html.dark .offline-queue-title { color: var(--pp-offline-queue-title-fg); }
+html.dark .offline-queue-meta { color: var(--pp-offline-queue-meta-fg); }
+html.dark .offline-queue-actions button { border-color: var(--pp-offline-queue-border); color: var(--pp-oqa-btn-fg); }
+html.dark .offline-queue-actions button:hover:not(:disabled) { background: color-mix(in srgb, #fff 8%, transparent); color: var(--pp-link); }
 html.dark .offline-queue-actions .offline-queue-remove:hover:not(:disabled) { color: var(--pp-danger); }
 html.dark .offline-queue-empty { color: var(--pp-fg-hint); }
 html.dark .submit-bar button.loading { color: var(--pp-fg-hint); }
-html.dark .submit-bar button.loading::before, html.dark .action-link.loading::before { border-color: #555; border-top-color: #aaa; }
+/* No html.dark override for the loading-spinner border colors: the base
+   rule (.action-link.loading::before, .submit-bar button.loading::before)
+   already consumes var(--pp-spinner-bg)/var(--pp-spinner-fg), and html.dark
+   now defines both above -- a dedicated override here would be a pure
+   duplicate (design-uplift Task 13 step 2, redundant-rule cleanup). */
 
 /* ===================== URL Cleaned Hint (B4) ===================== */
 .url-clean-hint {
@@ -1246,7 +1289,7 @@ html[data-theme="modern-card"] {
   --pp-spinner-fg: #1a73e8;
   --pp-preset-bg: #e8f0fe;
   --pp-preset-bd: #e8e8e8;
-  --pp-preset-fg: #1a73e8;
+  --pp-preset-fg: #1565cf;
   --pp-radius-sm: 4px;
   --pp-radius-md: 8px;
   --pp-radius-lg: 12px;
@@ -1496,10 +1539,10 @@ html[data-theme="flexoki-light"] {
   --pp-danger-quiet-fg: #af3029;
   --pp-on-danger: #fffcf0;
   --pp-spinner-bg: #E6E4D9;
-  --pp-spinner-fg: #205EA6;
+  --pp-spinner-fg: #205ea6;
   --pp-preset-bg: #F2F0E5;
   --pp-preset-bd: #E6E4D9;
-  --pp-preset-fg: #205EA6;
+  --pp-preset-fg: #205ea6;
   --pp-radius-sm: 3px;
   --pp-radius-md: 6px;
   --pp-radius-lg: 8px;
@@ -1546,10 +1589,10 @@ html[data-theme="flexoki-dark"] {
   --pp-danger-quiet-fg: #db736a;
   --pp-on-danger: #0c0c0b;
   --pp-spinner-bg: #403E3C;
-  --pp-spinner-fg: #4385BE;
+  --pp-spinner-fg: #528fc3;
   --pp-preset-bg: #343331;
   --pp-preset-bd: #403E3C;
-  --pp-preset-fg: #4385BE;
+  --pp-preset-fg: #70a3ce;
   --pp-radius-sm: 3px;
   --pp-radius-md: 6px;
   --pp-radius-lg: 8px;
@@ -1596,10 +1639,10 @@ html[data-theme="solarized-light"] {
   --pp-danger-quiet-fg: #ca2522;
   --pp-on-danger: #fefcf6;
   --pp-spinner-bg: #d6cdb5;
-  --pp-spinner-fg: #268bd2;
+  --pp-spinner-fg: #2074af;
   --pp-preset-bg: #eee8d5;
   --pp-preset-bd: #d6cdb5;
-  --pp-preset-fg: #268bd2;
+  --pp-preset-fg: #1d699e;
   --pp-radius-sm: 2px;
   --pp-radius-md: 4px;
   --pp-radius-lg: 4px;
@@ -1646,10 +1689,10 @@ html[data-theme="solarized-dark"] {
   --pp-danger-quiet-fg: #e98077;
   --pp-on-danger: #433205;
   --pp-spinner-bg: #094b5a;
-  --pp-spinner-fg: #268bd2;
+  --pp-spinner-fg: #3b99dc;
   --pp-preset-bg: #073642;
   --pp-preset-bd: #094b5a;
-  --pp-preset-fg: #268bd2;
+  --pp-preset-fg: #4ca2df;
   --pp-radius-sm: 2px;
   --pp-radius-md: 4px;
   --pp-radius-lg: 4px;
@@ -1701,7 +1744,7 @@ html[data-theme="catppuccin-latte"] {
   --pp-spinner-fg: #1e66f5;
   --pp-preset-bg: #dce0e8;
   --pp-preset-bd: #ccd0da;
-  --pp-preset-fg: #1e66f5;
+  --pp-preset-fg: #0a55ea;
   --pp-radius-sm: 6px;
   --pp-radius-md: 10px;
   --pp-radius-lg: 12px;
@@ -1799,7 +1842,7 @@ html[data-theme="gruvbox-dark"] {
   --pp-spinner-fg: #83a598;
   --pp-preset-bg: #3c3836;
   --pp-preset-bd: #504945;
-  --pp-preset-fg: #83a598;
+  --pp-preset-fg: #89a99d;
   --pp-radius-sm: 2px;
   --pp-radius-md: 2px;
   --pp-radius-lg: 2px;
@@ -1914,6 +1957,7 @@ html[data-theme="github-light"] {
   --pp-chip-fg: #33589f;
   --pp-danger-quiet-fg: #c24343;
   --pp-on-danger: #ffffff;
+  --pp-on-accent: #ffffff;
 }
 html.dark {
   color-scheme: dark;
@@ -1922,6 +1966,7 @@ html.dark {
   --pp-chip-fg: #a9c3f2;
   --pp-danger-quiet-fg: #e57373;
   --pp-on-danger: #10131a;
+  --pp-on-accent: #10131a;
 }
 /* @generated:ui-themes end */
 
@@ -2113,11 +2158,11 @@ html[data-theme="terminal"] .field > textarea { font-family: "Courier New", Cons
   transition: opacity 0.1s var(--ease-out), transform 0.1s var(--ease-out);
 }
 
-html.dark .confirm-popover { color: #ff6666; background: #1a1a1a; border-color: #3a3a3a; box-shadow: 0 2px 8px rgba(0,0,0,0.4); }
-html.dark .confirm-popover .confirm-yes { background: #c33; color: #fff; border-color: #a22; }
-html.dark .confirm-popover .confirm-yes:hover { background: #a22; }
-html.dark .confirm-popover .confirm-no { color: #aaa; border-color: #444; }
-html.dark .confirm-popover .confirm-no:hover { background: #2a2a2a; }
+html.dark .confirm-popover { color: var(--pp-confirm-popover-fg); background: var(--pp-confirm-popover-bg); border-color: var(--pp-confirm-popover-border); box-shadow: 0 2px 8px rgba(0,0,0,0.4); }
+html.dark .confirm-popover .confirm-yes { background: var(--pp-confirm-yes-bg); color: var(--pp-confirm-yes-fg); border-color: var(--pp-confirm-yes-dark-strong); }
+html.dark .confirm-popover .confirm-yes:hover { background: var(--pp-confirm-yes-dark-strong); }
+html.dark .confirm-popover .confirm-no { color: var(--pp-confirm-no-fg); border-color: var(--pp-confirm-no-border); }
+html.dark .confirm-popover .confirm-no:hover { background: var(--pp-confirm-no-hover-bg); }
 
 html[data-theme] .confirm-popover { color: var(--pp-warn-fg); background: var(--pp-warn-bg); border-color: var(--pp-warn-bd); box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
 html[data-theme] .confirm-popover .confirm-yes { background: var(--pp-warn-fg); color: var(--pp-warn-bg); border-color: var(--pp-warn-fg); }

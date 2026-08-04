@@ -139,8 +139,12 @@ const ROLE_ALIAS = {
   lib: {},
 };
 
-// [fgRole, bgRole, minRatio] -- role names, not literal --{ns}-* strings;
-// ROLE_ALIAS resolves the per-surface literal name at lookup time.
+// [fgRole, bgRole, minRatio, onlyNs?] -- role names, not literal --{ns}-*
+// strings; ROLE_ALIAS resolves the per-surface literal name at lookup time.
+// The optional 4th element restricts a row to specific namespaces (an array
+// of "pp"/"opt"/"lib") when the role only exists on one surface -- without
+// it, a role missing from another surface's tokenDict would FAIL there
+// (strict mode) instead of correctly not applying at all.
 const COMPONENT_PAIR_SPEC = [
   ["btn-fg", "btn-bg", 4.5],
   ["btn-fg", "btn-hover", 4.5],
@@ -153,6 +157,29 @@ const COMPONENT_PAIR_SPEC = [
   ["danger-quiet-fg", "panel", 4.5],
   ["danger-quiet-fg", "btn-bg", 4.5],
   ["on-danger", "danger", 4.5],
+  // Four rows below: popup-only roles (design-uplift Task 13, USER RULING --
+  // Task 7's orphan guard surfaced all three as real, never-audited gaps).
+  // preset-fg/tag-fg/spinner-fg have no --opt-*/--lib-* counterpart (tag
+  // presets and the loading spinner are popup-specific), so ["pp"] keeps
+  // this row from FAILing every options/library themed block over a role
+  // that surface never declares.
+  ["preset-fg", "preset-bg", 4.5, ["pp"]],
+  // .preset-btn:hover swaps its fill to drop-hover (popup.css's generic
+  // html[data-theme] .preset-btn:hover rule) while keeping the same text --
+  // same pressable-hover shape as chip-fg/btn-hover above.
+  ["preset-fg", "btn-hover", 4.5, ["pp"]],
+  // tag-fg/tag-bg is the pre-chip-migration role pair (COMPONENTS §5.3
+  // marks --pp-chip-fg as chip-fg/chip-bg's intended replacement, but
+  // popup.css:453/2016's .tag-item still reads tag-fg/tag-bg directly).
+  // Verified identical to chip-fg/chip-bg on every current theme (the
+  // composer copies tag-bg into chip-bg verbatim and chip-fg's derivation is
+  // already an identity on tag-fg's own value everywhere), so this is pure
+  // coverage -- zero derivation change needed.
+  ["tag-fg", "tag-bg", 4.5, ["pp"]],
+  // Loading-spinner ring: a non-text UI indicator (WCAG 1.4.11's 3:1 floor,
+  // not the 4.5:1 text minimum), same class as the scrollbar-thumb-vs-track
+  // check elsewhere in this file.
+  ["spinner-fg", "spinner-bg", 3, ["pp"]],
 ];
 
 // Generic `--name: value;` extractor over an arbitrary block body -- the
@@ -211,24 +238,27 @@ function auditComponentPairs(scope, ns, blockLabel, dict, strict) {
   const alias = ROLE_ALIAS[ns] || {};
   const roleKey = (role) => `${ns}-${alias[role] || role}`;
   const roleRaw = (role) => dict[roleKey(role)];
-  // chip-bg carries the raw tag-bg role verbatim, which 9/13 pilots declare
-  // as the literal "transparent" (composers deliberately do NOT solidify it —
-  // COMPONENTS §5.3/Task 5). What the composer actually AA-corrected chip-fg
-  // against is what that fill composites to over the surface's own panel
-  // (resolveOpaqueBg, _ui-derive.mjs) — reusing that exact function here
-  // (not re-implementing it) so a "transparent" chip-bg resolves to the same
-  // solid color the derivation used, instead of reading as an unparseable,
-  // audit-breaking value.
+  // chip-bg/tag-bg carry a raw palette fill that isn't always plain hex --
+  // "transparent" for 9/13 pilots (COMPONENTS §5.3/Task 5 deliberately does
+  // not solidify it) and terminal's spinner-bg is an 8-digit alpha hex (a
+  // translucent glow, #33ff3340). What the composer actually AA-corrects
+  // chip-fg/tag-fg/spinner-fg against is what that fill composites to over
+  // the surface's own panel (resolveOpaqueBg, _ui-derive.mjs) — reusing that
+  // exact function here (not re-implementing it) so a non-solid bg resolves
+  // to the same solid color the derivation used, instead of reading as an
+  // unparseable, audit-breaking value.
   const panelRaw = roleRaw("panel");
   const panelRgb = panelRaw && isHex(panelRaw) ? hexRgb(panelRaw) : null;
+  const COMPOSITE_OVER_PANEL = new Set(["chip-bg", "tag-bg", "spinner-bg"]);
   const resolveRole = (role) => {
     const raw = roleRaw(role);
     if (!raw) return { rgb: null, note: `--${roleKey(role)} not declared` };
     if (isHex(raw)) return { rgb: hexRgb(raw), note: null };
-    if (role === "chip-bg" && panelRgb) return { rgb: resolveOpaqueBg(raw, panelRgb), note: null };
+    if (COMPOSITE_OVER_PANEL.has(role) && panelRgb) return { rgb: resolveOpaqueBg(raw, panelRgb), note: null };
     return { rgb: null, note: "non-hex value" };
   };
-  for (const [fgRole, bgRole, min] of COMPONENT_PAIR_SPEC) {
+  for (const [fgRole, bgRole, min, onlyNs] of COMPONENT_PAIR_SPEC) {
+    if (onlyNs && !onlyNs.includes(ns)) continue; // role doesn't exist on this surface -- not a gap, just N/A
     const label = `${fgRole} vs ${bgRole}`;
     const fg = resolveRole(fgRole), bg = resolveRole(bgRole);
     if (!fg.rgb || !bg.rgb) {
@@ -268,22 +298,14 @@ function auditComponentPairs(scope, ns, blockLabel, dict, strict) {
 // an allowlist that can never be fooled by a comment.
 const COMPONENT_PAIR_ROLES = new Set(COMPONENT_PAIR_SPEC.flatMap(([fg, bg]) => [fg, bg]));
 const ORPHAN_ALLOWLIST = new Set([
-  // --pp-preset-fg: emitted by deriveUiColors (_ui-derive.mjs), consumed by
-  // popup.css:1989 (.preset-btn), 6/14 themes measured <4.5:1. A real,
-  // pre-existing gap this orphan guard surfaced -- predates Task 5/7's
-  // component-pair work, not fixed here as a drive-by fix (ledger tracks the
-  // separate decision to fix vs. formally accept it).
-  "pp:preset-fg",
-  // --pp-tag-fg: the OLD chip-role name COMPONENTS §5.3 says --pp-chip-fg is
-  // meant to retire (consumption not yet migrated -- popup.css:406/1932
-  // still read tag-fg/tag-bg directly). Same shape as preset-fg: a real,
-  // pre-existing, never-audited token this guard surfaced, not this task's
-  // job to migrate or fix.
-  "pp:tag-fg",
-  // --pp-spinner-fg: consumed by popup.css:1964 (loading-spinner
-  // border-top-color), never had contrast coverage. Same "real pre-existing
-  // gap, park it" treatment as the two above.
-  "pp:spinner-fg",
+  // --pp-preset-fg / --pp-tag-fg / --pp-spinner-fg: formerly parked here as
+  // real-but-unaudited gaps (Task 7's orphan guard surfaced all three).
+  // design-uplift Task 13 (USER RULING) resolved them -- preset-fg is now
+  // AA-derived (popup-chrome.mjs, fgToAAMulti against preset-bg/drop-hover)
+  // and spinner-fg against the 3:1 UI-component floor (fgToAA vs
+  // spinner-bg); tag-fg needed no derivation change, already identical to
+  // chip-fg's AA-safe value on every theme. All three are real
+  // COMPONENT_PAIR_SPEC rows now (["pp"]-scoped), not allowlist entries.
   // --pp-info-fg: NOT an independent color -- emitPp emits it unconditionally
   // as the literal string `var(--pp-banner-fg)` for every theme (popup-
   // chrome.mjs's `set("info-fg", "var(--pp-banner-fg)")`), so it is
