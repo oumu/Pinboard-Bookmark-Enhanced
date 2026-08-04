@@ -370,7 +370,15 @@ function evaluateCheck(check, raw, theme) {
 const NS_BY_SURFACE = { library: "lib", options: "opt", popup: "pp" };
 
 async function runOneCheck(page, theme, check, results) {
-  if (check.state !== "default") {
+  if (check.state === "hover") {
+    // Real mouse hover (not a class hack): Playwright dispatches actual
+    // pointer events, so the live cascade's own `:hover` pseudo-class match
+    // drives getComputedStyle exactly the way a real user's cursor would --
+    // no need to fake it by toggling a class the CSS never checks for. The
+    // pointer stays put (no other action moves it) until the next check's
+    // own hover/navigation, so this is read back synchronously right after.
+    await page.hover(check.selector);
+  } else if (check.state !== "default") {
     throw new Error(`unsupported state "${check.state}" on ${check.selector} -- extend runOneCheck() before adding non-default states to the checklist`);
   }
   const extraBgSelectorVar = check.expect.textContrastMulti?.extraBgSelectorVar;

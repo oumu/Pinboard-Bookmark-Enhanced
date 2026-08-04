@@ -133,6 +133,26 @@ export const CHECKS = [
     expect: { textContrast: 4.5, iconContrast: 3, iconVCenter: 1 } },   // also defect 5
   { surface: "library", page: "library.html", selector: ".notes-detail-delete", state: "default",
     expect: { textContrast: 4.5 } },
+
+  // ---- defect 6: quiet-tier danger (COMPONENTS.md §4.4 `dangerQuietContrast`
+  // -- "hover 态同测"). .vocab-detail-delete/.notes-detail-delete are both
+  // `.btn.danger` instances (library-vocab.js:513 / library-notes.js:405);
+  // their RESTING textContrast is already covered by the two default-state
+  // entries above. This is the hover half: `.btn.danger:hover:not(:disabled)`
+  // repaints `background` to `color-mix(danger 8%, btn-bg)` -- a real
+  // background change, not just a color-blind pseudo-class toggle -- so
+  // danger-quiet-fg's AA margin has to survive that tint too, not just the
+  // resting btn-bg it was solved against (Task 5's "hover 底 ... 混入比例
+  // ≤10%, 使被审计的配对仍具代表性" tolerance). Uses the `state: "hover"`
+  // vocabulary scripts/ui-render-audit.mjs's runOneCheck() drives with a
+  // real Playwright page.hover() (dispatches actual pointer events, so the
+  // live cascade's own `:hover` match produces the getComputedStyle read --
+  // not a class-toggle stand-in). ----
+  { surface: "library", page: "library.html", selector: ".vocab-detail-delete", state: "hover",
+    expect: { textContrast: 4.5 } },
+  { surface: "library", page: "library.html", selector: ".notes-detail-delete", state: "hover",
+    expect: { textContrast: 4.5 } },
+
   // options has a themed-state override (options.css:1244) that patches
   // every preset -- but the DEFAULT (no-preset) state ALSO passes today,
   // for an unrelated reason: options.css sets `:root { color-scheme: light }`
