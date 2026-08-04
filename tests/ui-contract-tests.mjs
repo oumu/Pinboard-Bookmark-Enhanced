@@ -12,24 +12,18 @@ const extensionIdFromKey = (key) => {
   return [...hex].map((char) => String.fromCharCode(97 + Number.parseInt(char, 16))).join("");
 };
 
-// Counts bare hex color literals in the hand-maintained region of a *-chrome
-// theme CSS file (popup.css / options.css / library.css). A bare hex outside
-// a var() fallback means a rule hardcoded a color instead of consuming a
-// token, so it silently ignores every theme (the exact options.css migration
-// regression this is meant to catch). Shared by the popup/options ratchet
-// gate and library's zero-tolerance gate below.
-function countBareHex(css) {
-  // Cut every "@generated:<name> start ... @generated:<name> end" region --
-  // ui-themes AND ui-components, both of which popup/options/library each
-  // carry -- not just the first "ui-themes start" marker. The prior
-  // library-only version of this scan split on that single marker, which
-  // happened to also exclude the ui-components block (it sits before
-  // ui-themes) but never excluded anything *after* ui-themes -- and
-  // popup.css/options.css both carry ~300 hand-written lines after
-  // "@generated:ui-themes end" that a single split silently never scans.
-  // Composer output is exempt by construction (render-audit and the
-  // theme-factory lints already gate it), so only surrounding hand-written
-  // CSS should ever reach the count below.
+// Cuts every "@generated:<name> start ... @generated:<name> end" region out
+// of a *-chrome theme CSS file -- ui-themes AND ui-components, both of which
+// popup/options/library each carry -- not just the first "ui-themes start"
+// marker. The prior library-only bare-hex scan split on that single marker,
+// which happened to also exclude the ui-components block (it sits before
+// ui-themes) but never excluded anything *after* ui-themes -- and
+// popup.css/options.css both carry ~300 hand-written lines after
+// "@generated:ui-themes end" that a single split silently never scans.
+// Composer output is exempt by construction (render-audit and the
+// theme-factory lints already gate it), so only the surrounding hand-written
+// CSS this returns should ever reach a hardcoded-color count.
+function stripGeneratedRegions(css) {
   const lines = css.split("\n");
   const kept = [];
   let skipping = null;
@@ -41,15 +35,86 @@ function countBareHex(css) {
     }
     if (!skipping) kept.push(line);
   }
-  let hand = kept.join("\n");
+  return kept.join("\n");
+}
+
+// Removes every var(...) call, including a fallback that itself contains a
+// parenthesized function (rgba(), color-mix()...). A naive
+// `/var\([^()]*\)/g` innermost-out replace loop cannot see past those nested
+// parens -- e.g. `var(--opt-danger-bg, rgba(220,80,80,0.08))` never matches
+// `[^()]*` because the fallback's own "(" breaks the class -- so it silently
+// left an already-tokenized declaration's rgba() fallback in the scan.
+function stripVarCalls(text) {
+  let out = "", i = 0;
+  while (i < text.length) {
+    if (text.startsWith("var(", i)) {
+      let depth = 1, j = i + 4;
+      while (j < text.length && depth > 0) {
+        if (text[j] === "(") depth++;
+        else if (text[j] === ")") depth--;
+        j++;
+      }
+      i = j; // skip the whole var(...) span, nested parens and all
+    } else {
+      out += text[i];
+      i++;
+    }
+  }
+  return out;
+}
+
+// Counts bare hex color literals in the hand-maintained region of a *-chrome
+// theme CSS file (popup.css / options.css / library.css). A bare hex outside
+// a var() fallback means a rule hardcoded a color instead of consuming a
+// token, so it silently ignores every theme (the exact options.css migration
+// regression this is meant to catch). Shared by the popup/options ratchet
+// gate and library's zero-tolerance gate below.
+function countBareHex(css) {
+  let hand = stripGeneratedRegions(css);
   hand = hand.replace(/^\s*--[\w-]+\s*:[^;]*;/gm, "");   // drop custom-prop definitions (:root literals are the exempt source of truth)
-  for (let prev = null; prev !== hand; ) { prev = hand; hand = hand.replace(/var\([^()]*\)/g, ""); } // drop var() incl. nested fallbacks, innermost-out
+  hand = stripVarCalls(hand);                             // drop var() incl. nested fallbacks
   hand = hand.replace(/\/\*[\s\S]*?\*\//g, "");           // drop comments
   // color-mix() may deliberately blend a token against a literal #000/#fff
   // (popup's darken-on-hover pattern) instead of a missing token -- strip
   // only that operand, not the whole color-mix(), before counting.
   hand = hand.replace(/color-mix\([^)]*\)/g, (m) => m.replace(/#(?:000|fff)\b/gi, ""));
   return (hand.match(/#[0-9a-fA-F]{3,8}\b/g) || []).length;
+}
+
+// Counts bare rgba()/rgb() color literals used as the value of a
+// background/background-color/color/border-color declaration in the
+// hand-maintained region. A raw rgba() there is the same debt as a bare hex
+// -- a hardcoded color instead of a --pp-*/--opt-*/--lib-* token -- but a
+// hex-only regex can never see it (library.css:497's
+// `background: rgba(220, 80, 80, 0.08); /* no --lib-danger-bg token */` is
+// exactly this blind spot). box-shadow/text-shadow/outline etc. are excluded
+// on purpose: shadow rgba() is an existing, intentional convention in this
+// codebase (CLAUDE.md), not a missed token.
+function countQualifyingRgba(css) {
+  let hand = stripGeneratedRegions(css).replace(/\/\*[\s\S]*?\*\//g, "");
+  hand = stripVarCalls(hand); // a var()-wrapped rgba() fallback is already token-routed, same treatment as hex
+  const targets = new Set(["background", "background-color", "color", "border-color"]);
+  let depth = 0, chunk = "", count = 0;
+  // Brace walk (same shape as the --opt-* token-coverage scan above): only
+  // text between "{"/";" boundaries *while inside a rule body* (depth > 0)
+  // is a candidate declaration -- this is what keeps a selector like
+  // `.tab-btn:hover:not(.active) {` from ever being misread as a property.
+  const consider = (text) => {
+    if (depth === 0) return;
+    const colon = text.indexOf(":");
+    if (colon === -1) return;
+    const prop = text.slice(0, colon).trim().toLowerCase();
+    if (!targets.has(prop)) return;
+    const hits = text.slice(colon + 1).match(/\brgba?\(/g);
+    if (hits) count += hits.length;
+  };
+  for (const ch of hand) {
+    if (ch === "{") { depth++; chunk = ""; }
+    else if (ch === "}") { consider(chunk); depth = Math.max(0, depth - 1); chunk = ""; }
+    else if (ch === ";") { consider(chunk); chunk = ""; }
+    else chunk += ch;
+  }
+  return count;
 }
 
 const popupHtml = read("popup.html");
@@ -1570,21 +1635,27 @@ check(mdCss.includes("text-autospace: normal") && /#rendered-view :is\(pre, code
     "pinboard-style.js: the cloak colour is no longer cached per light/dark mode, so an OS theme flip repaints the wrong shade");
 }
 
-// ---- bare hex ratchet gate: popup.css / options.css only ever get their
-// literal-hex ceiling lowered, never raised, as the var()-first color
-// migration (design-uplift tasks 12/13) works through the hand-maintained
-// region. library.css already migrated fully, so it keeps a dedicated
-// zero-tolerance assertion instead of a movable ceiling.
+// ---- hardcoded-color ratchet gate: popup.css / options.css / library.css
+// only ever get their hex and rgba() ceilings lowered, never raised, as the
+// var()-first color migration (design-uplift tasks 12/13) works through the
+// hand-maintained region. library.css's hex is already fully migrated, so
+// it keeps a dedicated zero-tolerance assertion instead of a movable
+// ceiling; its rgba() is a live ratchet (library.css:497 -- one bare
+// `background: rgba(220, 80, 80, 0.08)` with a comment admitting there is
+// no token for it yet -- is the debt this half of the gate exists to track).
 {
   const baseline = JSON.parse(readFileSync(resolve(root, "tests/hex-ratchet-baseline.json"), "utf8"));
-  check(baseline["library.css"] === 0,
-    "tests/hex-ratchet-baseline.json: library.css must stay at a zero ceiling -- it has its own zero-tolerance gate below, not a ratchet");
+  check(baseline["library.css"].hex === 0,
+    "tests/hex-ratchet-baseline.json: library.css's hex ceiling must stay at zero -- it has its own zero-tolerance gate below, not a ratchet");
   for (const [file, css] of [["popup.css", popupCss], ["options.css", optionsCss], ["library.css", libraryCss]]) {
-    const count = countBareHex(css);
-    check(count <= baseline[file],
-      `${file}: bare hex colors in the hand-maintained region grew from the tests/hex-ratchet-baseline.json ceiling of ${baseline[file]} to ${count} -- migrate the new literal(s) to a var(--…) token instead of hardcoding a color`);
-    if (count < baseline[file]) {
-      console.log(`hex-ratchet: ${file} improved to ${count} bare hex (baseline ${baseline[file]}) -- lower tests/hex-ratchet-baseline.json in this commit`);
+    for (const [metric, counter] of [["hex", countBareHex], ["rgba", countQualifyingRgba]]) {
+      const count = counter(css);
+      const cap = baseline[file][metric];
+      check(count <= cap,
+        `${file}: bare ${metric} colors in the hand-maintained region grew from the tests/hex-ratchet-baseline.json ceiling of ${cap} to ${count} -- migrate the new literal(s) to a var(--…) token instead of hardcoding a color`);
+      if (count < cap) {
+        console.log(`${metric}-ratchet: ${file} improved to ${count} bare ${metric} (baseline ${cap}) -- lower tests/hex-ratchet-baseline.json in this commit`);
+      }
     }
   }
   check(countBareHex(libraryCss) === 0,

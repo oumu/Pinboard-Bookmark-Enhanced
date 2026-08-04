@@ -1,5 +1,5 @@
 {
-  "popup.css": 72,
-  "options.css": 93,
-  "library.css": 0
+  "popup.css": { "hex": 72, "rgba": 7 },
+  "options.css": { "hex": 93, "rgba": 4 },
+  "library.css": { "hex": 0, "rgba": 1 }
 }
