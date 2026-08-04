@@ -143,6 +143,17 @@ async function dump() {
   // computed-style extraction, we never call into it.
   page.on("pageerror", () => {});
   await page.goto(`http://127.0.0.1:${port}/options.html`, { waitUntil: "load" });
+  // emulateMedia's reduced-motion rule only zeroes transition-DURATION (still
+  // a transition, just very fast -- can still land mid-flight under real
+  // scheduling jitter) and says nothing about @keyframes animations. This
+  // script previously had NO settle wait at all after a theme switch (unlike
+  // popup-color-matrix.mjs's double-rAF) -- a design-uplift Task 13 reviewer
+  // re-run (5x back to back) caught a getComputedStyle() read landing on the
+  // PREVIOUS theme's --opt-link color. Fixed the same way popup's matrix was:
+  // remove the transition/animation machinery entirely (not just speed it
+  // up) plus a double-rAF wait after every switch/hover below -- verified
+  // 3/3 identical dumps after adding both.
+  await page.addStyleTag({ content: "*{transition:none!important;animation:none!important}" });
   // Force the layout visible (normally gated by html[data-options-ready]).
   await page.evaluate(() => { document.documentElement.dataset.optionsReady = "1"; });
   // Several probed selectors only ever exist as DOM options.js creates at
@@ -224,6 +235,8 @@ async function dump() {
     body.appendChild(etFieldSelect);
   });
 
+  const settle = () => page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+
   const missing = new Set();
   const out = {};
   for (const theme of THEMES) {
@@ -232,6 +245,12 @@ async function dump() {
       if (t) document.documentElement.dataset.theme = t;
       else delete document.documentElement.dataset.theme;
     }, theme);
+    // Double-rAF wait after every theme switch (same fix as
+    // popup-color-matrix.mjs -- the addStyleTag override above already
+    // removes the transition/animation window this is closing, but the
+    // wait also covers the style-recalc frame gap on its own, so both stay
+    // as independent, redundant safety nets rather than relying on one).
+    await settle();
     out[key] = {};
     for (const [sel, hover] of PROBES) {
       const probeSel = sel.replace("::after", "");
@@ -241,6 +260,7 @@ async function dump() {
         if (hover) {
           const handle = await page.$(probeSel);
           if (handle) { await handle.hover({ force: true, timeout: 2000 }).catch(() => {}); }
+          await settle();
         }
         const vals = await page.evaluate(({ probeSel, isAfter, props, widthProps }) => {
           const el = document.querySelector(probeSel);

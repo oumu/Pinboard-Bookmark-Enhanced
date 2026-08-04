@@ -109,9 +109,16 @@ function countQualifyingRgba(css) {
   // border-color -- omitting them was a controller checklist typo, not an
   // intentional scope cut (popup.css:1106's
   // `border-bottom-color: rgba(255,255,255,0.06)` is the case that exposed it).
+  // The border/border-top/-right/-bottom/-left SHORTHANDS (width+style+color
+  // in one declaration) belong here too, same reasoning: a value scan for
+  // `rgba(`/`rgb(` doesn't care whether the property is a longhand or a
+  // shorthand, and popup.css:958/:986's `border-bottom: 1px solid
+  // rgba(0,0,0,0.05)` / `border: 1px solid rgba(0,0,0,0.12)` were a live
+  // blind spot the ratchet never saw (design-uplift Task 13 review round).
   const targets = new Set([
     "background", "background-color", "color", "border-color",
     "border-top-color", "border-right-color", "border-bottom-color", "border-left-color",
+    "border", "border-top", "border-right", "border-bottom", "border-left",
   ]);
   let depth = 0, chunk = "", count = 0;
   // Brace walk (same shape as the --opt-* token-coverage scan above): only
@@ -1685,23 +1692,32 @@ check(mdCss.includes("text-autospace: normal") && /#rendered-view :is\(pre, code
   }
 }
 
-// ---- single-default-per-token gate (options.css only, design-uplift Task
-// 12 review round 3): a var(--opt-X, <literal>) fallback is only ever safe
-// as a stand-in for a missing :root default IF every call site agrees on
-// what that literal should be. Round 1/2 both shipped this exact bug --
-// --opt-save/--opt-warn/--opt-danger-bg each had 2-3 DIFFERENT fallback
-// texts for the same token, each individually looking reasonable, silently
-// drifted apart across call sites written at different times -- and the
-// hex/rgba ratchet above cannot see it (the literal is inside a var() call,
-// stripVarCalls already removes it from that scan by design). This walks
-// the hand-maintained region for var(--opt-X, ...) pairs (skipping a
-// fallback that is itself another var() call -- that's the legitimate
-// nested-fallback shape, e.g. --opt-fg-hint, var(--opt-fg-muted))) and fails
-// if any --opt-X shows up with more than one distinct fallback literal.
+// ---- single-default-per-token gate (all three *-chrome surfaces,
+// design-uplift Task 12 review round 3 + Task 13 review): a var(--{ns}-X,
+// <literal>) fallback is only ever safe as a stand-in for a missing :root
+// default IF every call site agrees on what that literal should be.
+// options.css round 1/2 both shipped this exact bug -- --opt-save/
+// --opt-warn/--opt-danger-bg each had 2-3 DIFFERENT fallback texts for the
+// same token, each individually looking reasonable, silently drifted apart
+// across call sites written at different times -- and the hex/rgba ratchet
+// above cannot see it (the literal is inside a var() call, stripVarCalls
+// already removes it from that scan by design). Generalized from
+// options.css-only to all three namespaces (Task 13 review) turned up the
+// identical bug class in library.css -- --lib-save/--lib-danger/--lib-bg/
+// --lib-fg/--lib-fg-muted/--lib-btn-hover each had 2-3 drifted literals,
+// none of which even matched library.css's own live :root default (fixed
+// by stripping the dead fallback text since the token is never actually
+// missing -- --lib-btn-hover's two remaining nested var() fallbacks,
+// var(--lib-btn-bg)/var(--lib-code-bg), are the legitimate different shape
+// this function already excludes). This walks the hand-maintained region
+// for var(--{ns}-X, ...) pairs (skipping a fallback that is itself another
+// var() call -- that's the legitimate nested-fallback shape, e.g.
+// --opt-fg-hint, var(--opt-fg-muted))) and fails if any --{ns}-X shows up
+// with more than one distinct fallback literal.
 function findInconsistentVarFallbacks(css) {
   const hand = stripGeneratedRegions(css);
   const byToken = new Map();
-  const re = /var\(\s*(--opt-[a-zA-Z0-9-]+)\s*,\s*([^()]+(?:\([^()]*\)[^()]*)*?)\)/g;
+  const re = /var\(\s*(--(?:opt|pp|lib)-[a-zA-Z0-9-]+)\s*,\s*([^()]+(?:\([^()]*\)[^()]*)*?)\)/g;
   let m;
   while ((m = re.exec(hand)) !== null) {
     const token = m[1];
@@ -1716,10 +1732,10 @@ function findInconsistentVarFallbacks(css) {
   }
   return offenders;
 }
-{
-  const offenders = findInconsistentVarFallbacks(optionsCss);
+for (const [file, css] of [["popup.css", popupCss], ["options.css", optionsCss], ["library.css", libraryCss]]) {
+  const offenders = findInconsistentVarFallbacks(css);
   check(offenders.length === 0,
-    `options.css: var(--opt-X, literal) fallback text disagrees across call sites for the same token -- pick one value (add/fix the :root default and consume bare, or align every fallback) -- ${offenders.join("; ")}`);
+    `${file}: var(--X, literal) fallback text disagrees across call sites for the same token -- pick one value (add/fix the :root default and consume bare, or align every fallback) -- ${offenders.join("; ")}`);
 }
 
 if (fail.length) {

@@ -146,6 +146,19 @@
   --pp-confirm-no-border: #ccc;
   --pp-tag-remove-fg: #888;
   --pp-recent-bm-border: #e8e8e8;
+  /* Scrim: the tint color()-mix()'d at a low percentage to darken/lighten a
+     surface for a subtle overlay (hover fills, pressed states, hairline
+     borders) without a dedicated token per surface. Always tints AWAY from
+     the background -- black in light mode, white in dark mode (below) --
+     so `color-mix(in srgb, var(--pp-scrim) N%, transparent)` reads as "N%
+     darker/lighter than whatever's underneath" in both modes with the same
+     declaration. design-uplift Task 13 review round: replaces bare #000/
+     #fff literals inside color-mix() and border-shorthand rgba(0,0,0,A)
+     that were exempt from the hex/rgba ratchet by construction (the ratchet
+     already special-cases #000/#fff INSIDE color-mix() as a legitimate
+     "blend a token against black/white" pattern -- this token is what that
+     exemption was meant for, not a literal escape hatch). */
+  --pp-scrim: #000;
 }
 
 body {
@@ -316,7 +329,7 @@ html[data-section="login"] .quick-actions { display: none !important; }
 .fc-details {
   margin-top: var(--pp-sp-3); padding: var(--pp-sp-3) var(--pp-sp-4);
   max-height: 120px; overflow: auto;
-  background: color-mix(in srgb, #000 4%, transparent);
+  background: color-mix(in srgb, var(--pp-scrim) 4%, transparent);
   font-family: "SF Mono", Consolas, Menlo, "Liberation Mono", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei", monospace; font-size: 10px;
   white-space: pre-wrap; word-break: break-all;
   border-radius: var(--pp-radius-sm);
@@ -361,7 +374,7 @@ html[data-section="login"] .quick-actions { display: none !important; }
   margin-right: var(--pp-sp-2);
   font-size: 11px;
   font-family: inherit;
-  color: var(--pp-link);
+  color: var(--pp-preset-fg);
   background: var(--pp-preset-btn-bg);
   border: 1px solid var(--pp-preset-btn-bd);
   border-radius: var(--pp-radius-sm);
@@ -942,7 +955,7 @@ html.dark .batch-progress-text { color: var(--pp-fg); mix-blend-mode: normal; fi
   align-items: center;
   gap: var(--pp-sp-3);
   padding: var(--pp-sp-2) var(--pp-sp-4);
-  border-bottom: 1px solid rgba(0,0,0,0.05);
+  border-bottom: 1px solid color-mix(in srgb, var(--pp-scrim) 5%, transparent);
 }
 .offline-queue-item:last-child { border-bottom: none; }
 .offline-queue-body {
@@ -970,7 +983,7 @@ html.dark .batch-progress-text { color: var(--pp-fg); mix-blend-mode: normal; fi
 }
 .offline-queue-actions button {
   background: transparent;
-  border: 1px solid rgba(0,0,0,0.12);
+  border: 1px solid color-mix(in srgb, var(--pp-scrim) 12%, transparent);
   border-radius: var(--pp-radius-sm);
   padding: 1px var(--pp-sp-3);
   font-size: 11px;
@@ -981,7 +994,7 @@ html.dark .batch-progress-text { color: var(--pp-fg); mix-blend-mode: normal; fi
   transition: background var(--pp-motion-state), color var(--pp-motion-state), border-color var(--pp-motion-state);
 }
 .offline-queue-actions button:focus-visible { outline: 2px solid var(--pp-accent, #4477bb); outline-offset: 1px; }
-.offline-queue-actions button:hover:not(:disabled) { background: color-mix(in srgb, #000 6%, transparent); color: var(--pp-accent); }
+.offline-queue-actions button:hover:not(:disabled) { background: color-mix(in srgb, var(--pp-scrim) 6%, transparent); color: var(--pp-accent); }
 .offline-queue-actions button:disabled { opacity: 0.5; cursor: default; }
 .offline-queue-actions .offline-queue-remove:hover:not(:disabled) { color: var(--pp-danger); }
 .offline-queue-actions .offline-queue-failed { color: var(--pp-danger); border-color: var(--pp-danger); }
@@ -1045,14 +1058,14 @@ html.dark .batch-progress-text { color: var(--pp-fg); mix-blend-mode: normal; fi
   margin-left: var(--pp-sp-3);
   padding: 0 var(--pp-sp-3);
   border-radius: var(--pp-radius-sm);
-  background: color-mix(in srgb, #000 8%, transparent);
+  background: color-mix(in srgb, var(--pp-scrim) 8%, transparent);
   color: var(--pp-edit-cancel-fg);
   cursor: pointer;
   font-size: 11px;
   line-height: 1.4;
   user-select: none;
 }
-.edit-cancel:hover { background: color-mix(in srgb, #000 16%, transparent); color: var(--pp-danger); }
+.edit-cancel:hover { background: color-mix(in srgb, var(--pp-scrim) 16%, transparent); color: var(--pp-danger); }
 .edit-cancel:focus-visible { outline: 2px solid var(--pp-accent, #4477bb); outline-offset: 1px; }
 
 .submit-bar button.saved-success { background: var(--pp-ok-bg); border-color: var(--pp-ok-bd); color: var(--pp-ok-fg); }
@@ -1157,7 +1170,10 @@ html.dark {
   --pp-confirm-popover-border: #3a3a3a;
   --pp-confirm-yes-bg: #c33;
   --pp-confirm-yes-fg: #fff;
-  --pp-confirm-yes-dark-strong: #a22;
+  --pp-confirm-yes-strong: #a22;
+  /* Scrim: same role as :root's, tinting AWAY from the (dark) background --
+     white here instead of :root's black. See :root's --pp-scrim comment. */
+  --pp-scrim: #fff;
 }
 /* qbtn/submit surfaces sit on the bg2 quick-actions strip: --pp-bg would sink
    below the strip in dark mode, so lift them onto the input-bg tier instead. */
@@ -1168,19 +1184,19 @@ html.dark .stag.used { color: var(--pp-used-fg); }
 html.dark #desc-char-count.over-limit { color: var(--pp-danger); }
 html.dark .recent-bm-del { color: var(--pp-fg-hint); }
 html.dark .recent-bm-edit { color: var(--pp-fg-hint); }
-html.dark .edit-cancel { background: color-mix(in srgb, #fff 12%, transparent); color: var(--pp-edit-cancel-fg); }
-html.dark .edit-cancel:hover { background: color-mix(in srgb, #fff 22%, transparent); color: var(--pp-danger); }
+html.dark .edit-cancel { background: color-mix(in srgb, var(--pp-scrim) 12%, transparent); color: var(--pp-edit-cancel-fg); }
+html.dark .edit-cancel:hover { background: color-mix(in srgb, var(--pp-scrim) 22%, transparent); color: var(--pp-danger); }
 html.dark .edit-cancel:focus-visible { outline-color: var(--pp-accent); }
 html.dark .recent-bm-edit:focus-visible, html.dark .recent-bm-del:focus-visible { outline-color: var(--pp-accent); }
 html.dark .preset-btn { color: var(--pp-link); background: var(--pp-preset-btn-bg); border-color: var(--pp-preset-btn-bd); }
 html.dark .preset-btn.used { color: var(--pp-used-fg); background: var(--pp-bg2); border-color: var(--pp-preset-btn-used-bd); }
 html.dark .ql-sep { color: var(--pp-fg-faint); }
 html.dark .offline-queue-list { background: var(--pp-offline-queue-bg); border-top-color: var(--pp-offline-queue-border); }
-html.dark .offline-queue-item { border-bottom-color: color-mix(in srgb, #fff 6%, transparent); }
+html.dark .offline-queue-item { border-bottom-color: color-mix(in srgb, var(--pp-scrim) 6%, transparent); }
 html.dark .offline-queue-title { color: var(--pp-offline-queue-title-fg); }
 html.dark .offline-queue-meta { color: var(--pp-offline-queue-meta-fg); }
 html.dark .offline-queue-actions button { border-color: var(--pp-offline-queue-border); color: var(--pp-oqa-btn-fg); }
-html.dark .offline-queue-actions button:hover:not(:disabled) { background: color-mix(in srgb, #fff 8%, transparent); color: var(--pp-link); }
+html.dark .offline-queue-actions button:hover:not(:disabled) { background: color-mix(in srgb, var(--pp-scrim) 8%, transparent); color: var(--pp-link); }
 html.dark .offline-queue-actions .offline-queue-remove:hover:not(:disabled) { color: var(--pp-danger); }
 html.dark .offline-queue-empty { color: var(--pp-fg-hint); }
 html.dark .submit-bar button.loading { color: var(--pp-fg-hint); }
@@ -1958,6 +1974,7 @@ html[data-theme="github-light"] {
   --pp-danger-quiet-fg: #c24343;
   --pp-on-danger: #ffffff;
   --pp-on-accent: #ffffff;
+  --pp-preset-fg: #2d5cb9;
 }
 html.dark {
   color-scheme: dark;
@@ -1992,7 +2009,7 @@ textarea::-webkit-scrollbar-thumb { background: var(--pp-scrollbar-thumb); borde
 textarea::-webkit-scrollbar-thumb:hover { background: var(--pp-accent); }
 ::-webkit-scrollbar-corner,
 textarea::-webkit-scrollbar-corner { background: var(--pp-bg2); }
-/* Shared popup themed rules. design-uplift Task 13 step 3 removed 32 rules
+/* Shared popup themed rules. design-uplift Task 13 step 3 removed 36 rules
    here that were pure duplicates of what the bare (unprefixed) selector
    already declares -- byte-identical values, so the cascade renders the
    same result with or without them. It deliberately did NOT remove every
@@ -2002,12 +2019,21 @@ textarea::-webkit-scrollbar-corner { background: var(--pp-bg2); }
    (0,2,0) OR get outranked itself by another surviving `html[data-theme]
    <prefix-of-X>` rule -- in both directions, removing X's "duplicate"
    override changes which rule actually wins for elements matching the
-   compound, even though X's own bare/override pair looked identical.
+   compound, even though X's own bare/override pair looked identical. A
+   PAIRED removal (parent AND its own compound override removed together,
+   e.g. `.clear-all-link`/`.clear-all-link:hover`) is still safe -- the
+   compound's bare rule (more classes) naturally outranks the parent's bare
+   rule once neither has a surviving override, same as the original cascade
+   intent; the review round that added this comment corrected 4 rules
+   (`.clear-all-link`/`:hover`, `.add-all-link`/`:hover`) that an earlier,
+   overly conservative pass had restored without checking for that case.
    Verified empirically (scripts/popup-color-matrix.mjs, 0 diff across 88
-   probes x 16 theme states) plus a static forward+reverse compound-family
-   scan; the rules that failed either check stayed. Full judgment table:
-   task-13-report.md. Do not re-run a blind "same decl text = delete" pass
-   over this block without the same two-directional check. */
+   probes x 16 theme states, 3/3 reproducible after the harness's own
+   transition/animation-none fix) plus a static forward+reverse
+   compound-family scan; the rules that failed either check stayed. Full
+   judgment table: task-13-report.md. Do not re-run a blind "same decl
+   text = delete" pass over this block without the same two-directional
+   check AND the paired-removal exception above. */
 html[data-theme] { background: var(--pp-bg); }
 html[data-theme] .header-bar { background: var(--pp-bg2); border-color: var(--pp-border); color: var(--pp-fg-muted); }
 html[data-theme] .login-body input { background: var(--pp-input-bg); border-color: var(--pp-border); color: var(--pp-fg); }
@@ -2035,7 +2061,7 @@ html[data-theme] .stag.ai { color: var(--pp-accent2); }
 html[data-theme] .action-link { color: var(--pp-accent2); }
 html[data-theme] .regen-link { color: var(--pp-accent2); }
 html[data-theme] .regen-link + .regen-link { border-color: var(--pp-divider); }
-html[data-theme] #desc-char-count.over-limit { color: var(--pp-error, #d43); }
+html[data-theme] #desc-char-count.over-limit { color: var(--pp-danger); }
 /* Themed skeleton: base rule's var(--pp-divider) already picks the theme's divider color. */
 html[data-theme] .submit-bar button { background: var(--pp-bg2); border-color: var(--pp-border); color: var(--pp-fg); }
 html[data-theme] .submit-bar button:hover { background: var(--pp-input-focus-bg); }
@@ -2073,8 +2099,6 @@ html[data-theme] .preset-btn:hover { background: var(--pp-drop-hover); box-shado
 html[data-theme] .preset-btn.used { color: var(--pp-fg-hint); background: var(--pp-bg2); border-color: var(--pp-border); }
 html[data-theme] .search-field { background: var(--pp-input-bg); border-color: var(--pp-border); color: var(--pp-fg); }
 html[data-theme] .search-field:focus { border-color: var(--pp-focus-bd); background: var(--pp-input-focus-bg); }
-html[data-theme] .clear-all-link { color: var(--pp-fg-hint); }
-html[data-theme] .clear-all-link:hover { color: var(--pp-danger); }
 html[data-theme] #tags-copy-all:hover { color: var(--pp-accent); }
 html[data-theme] .last-used-hint:hover { color: var(--pp-accent); }
 html[data-theme] .ql-sep { color: var(--pp-fg-hint); }
@@ -2096,8 +2120,6 @@ html[data-theme] .offline-queue-actions button { border-color: color-mix(in srgb
 html[data-theme] .offline-queue-actions button:hover:not(:disabled) { background: color-mix(in srgb, var(--pp-accent) 10%, transparent); color: var(--pp-accent); }
 html[data-theme] .offline-queue-actions .offline-queue-remove:hover:not(:disabled) { color: var(--pp-danger); background: color-mix(in srgb, var(--pp-danger) 12%, transparent); }
 html[data-theme] .offline-queue-empty { color: var(--pp-fg-hint); }
-html[data-theme] .add-all-link { color: var(--pp-fg-hint); }
-html[data-theme] .add-all-link:hover { color: var(--pp-fg-muted); }
 /* Themed focus-visible (accent-colored focus rings) */
 html[data-theme] .login-body button:focus-visible { outline-color: var(--pp-accent); }
 html[data-theme] .preset-btn:focus-visible { outline-color: var(--pp-accent); }
@@ -2140,8 +2162,8 @@ html[data-theme="terminal"] .field > textarea { font-family: "Courier New", Cons
 }
 
 html.dark .confirm-popover { color: var(--pp-confirm-popover-fg); background: var(--pp-confirm-popover-bg); border-color: var(--pp-confirm-popover-border); box-shadow: 0 2px 8px rgba(0,0,0,0.4); }
-html.dark .confirm-popover .confirm-yes { background: var(--pp-confirm-yes-bg); color: var(--pp-confirm-yes-fg); border-color: var(--pp-confirm-yes-dark-strong); }
-html.dark .confirm-popover .confirm-yes:hover { background: var(--pp-confirm-yes-dark-strong); }
+html.dark .confirm-popover .confirm-yes { background: var(--pp-confirm-yes-bg); color: var(--pp-confirm-yes-fg); border-color: var(--pp-confirm-yes-strong); }
+html.dark .confirm-popover .confirm-yes:hover { background: var(--pp-confirm-yes-strong); }
 html.dark .confirm-popover .confirm-no { color: var(--pp-confirm-no-fg); border-color: var(--pp-confirm-no-border); }
 html.dark .confirm-popover .confirm-no:hover { background: var(--pp-confirm-no-hover-bg); }
 

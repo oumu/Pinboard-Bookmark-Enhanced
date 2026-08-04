@@ -168,6 +168,16 @@ async function dump() {
   await page.emulateMedia({ reducedMotion: "reduce" });
   page.on("pageerror", () => {}); // popup.js throws on chrome.* undefined; harmless for static computed-style reads
   await page.goto(`http://127.0.0.1:${port}/popup.html`, { waitUntil: "load" });
+  // emulateMedia + double-rAF (below) is STILL not deterministic: a design-
+  // uplift Task 13 reviewer re-run (5x back to back) caught a getComputedStyle()
+  // read landing on the PREVIOUS theme's --pp-link color. Root cause:
+  // popup.css's reduced-motion rule only zeroes transition-DURATION (still a
+  // transition, just a very fast one -- one frame can still land mid-flight
+  // under real scheduling jitter), and it says nothing about CSS @keyframes
+  // animations. A hard override that removes the transition/animation
+  // machinery entirely (not just speeds it up) is what actually makes reads
+  // deterministic -- verified 3/3 identical dumps after adding this.
+  await page.addStyleTag({ content: "*{transition:none!important;animation:none!important}" });
 
   // Most probed selectors only ever exist as DOM popup.js/popup-*.js create
   // at runtime -- popup.js itself won't run here (no chrome.* APIs), so

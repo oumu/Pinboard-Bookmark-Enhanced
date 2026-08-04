@@ -42,6 +42,14 @@ const DEFAULT_LIGHT = {
                                  // Task 13 step 2, retiring the hand-written :root duplicate of the
                                  // exact same "default value when no preset is active" role this
                                  // block already exists for.
+  "preset-fg": "#2d5cb9",       // NOT a literal copy: the default surface's .preset-btn read
+                                 // var(--pp-link) (#3f6fd0) for text, which is only 4.27:1 on
+                                 // --pp-preset-btn-bg (#eef2ff) and 3.63:1 on-hover
+                                 // (--pp-preset-btn-hover-bg, #d5e0ff) -- both below AA, the same
+                                 // never-audited-pair class as the themed preset-fg gap Task 13's
+                                 // main pass fixed. Derived the same way: fgToAAMulti(link, [preset-
+                                 // btn-bg, preset-btn-hover-bg]) — 5.62:1 / 4.77:1, both clear AA
+                                 // (design-uplift Task 13 review round).
 };
 const DEFAULT_DARK = {
   "btn-fg": "#e6e7ea",          // = --pp-fg, html.dark (popup.css:1044)

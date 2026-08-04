@@ -96,10 +96,12 @@
    the text-heavy AI panel stalls >1s. Naming YaHei/PingFang uses a fast system CJK font instead. */
 /* margin/background/color merged in here (was a second, later `body {}` rule
    in the Page layout section) — one rule, so there is only one place to read
-   the page's base color contract. Fallbacks match the pre-tokenization literals
-   this replaces; --lib-bg/--lib-fg are always set (see :root above), so the
-   fallback only matters for the instant before that first paint. */
-body { font-family: "Helvetica Neue", Verdana, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei", sans-serif; margin: 0; background: var(--lib-bg, #f5f5f0); color: var(--lib-fg, #333); font-size: 13px; }
+   the page's base color contract. --lib-bg/--lib-fg are always set (see
+   :root above), so this consumes them bare -- no var(--lib-X, literal)
+   fallback (design-uplift Task 13 review round: the fallback text had
+   silently drifted from :root's real default, the exact single-default-per-
+   token bug the gate exists to catch). */
+body { font-family: "Helvetica Neue", Verdana, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei", sans-serif; margin: 0; background: var(--lib-bg); color: var(--lib-fg); font-size: 13px; }
 /* Form controls don't inherit font-family by default — without this, <button>/<input>/<select>
    fall to the UA default ("Arial"), which has NO CJK glyphs, so their Chinese labels drop to the
    profile's Standard font (e.g. Sarasa UI SC) and pay the slow first-load stall. Inherit the body
@@ -297,8 +299,8 @@ input[type="checkbox"], input[type="radio"] {
    options.css's own .status-ic.ok, which stays a flat literal) -- --lib-save/
    --lib-danger are always set on :root, so this is themed everywhere, not just
    behind an html[data-theme] override. */
-.status-ic.ok { color: var(--lib-save, #2a8a2a); }
-.status-ic.bad { color: var(--lib-danger, #c0392b); }
+.status-ic.ok { color: var(--lib-save); }
+.status-ic.bad { color: var(--lib-danger); }
 
 /* ---- Confirm popover (replaces native confirm()) ---- */
 .confirm-popover {
@@ -308,7 +310,7 @@ input[type="checkbox"], input[type="radio"] {
   display: flex; align-items: center; gap: 6px; /* no --lib-sp-* step matches options.css's 6px (opt-sp-3); library's 5-step scale skips it */
   flex-wrap: wrap;       /* long tag lists: buttons drop to their own row */
   max-width: min(60ch, 78vw);
-  padding: var(--lib-sp-1) var(--lib-sp-2); font-size: 11px; color: var(--lib-danger, #c00);
+  padding: var(--lib-sp-1) var(--lib-sp-2); font-size: 11px; color: var(--lib-danger);
   background: var(--lib-panel, #fff); border: 1px solid var(--lib-border, #ccc); border-radius: var(--lib-radius-sm);
   box-shadow: 0 4px 12px color-mix(in srgb, var(--lib-fg) 22%, transparent), 0 2px 4px color-mix(in srgb, var(--lib-fg) 12%, transparent);
 }
@@ -334,8 +336,8 @@ html.motion-ready .confirm-popover.is-closing {
 /* .confirm-yes (solid danger tier, default light state) now comes from
    @generated:ui-components above (COMPONENTS.md §4.2) — only .confirm-no
    stays hand-written here. */
-.confirm-popover .confirm-no { background: none; color: var(--lib-fg-muted, #666); border-color: var(--lib-border, #ccc); }
-.confirm-popover .confirm-no:hover { background: var(--lib-btn-hover, #eee); }
+.confirm-popover .confirm-no { background: none; color: var(--lib-fg-muted); border-color: var(--lib-border, #ccc); }
+.confirm-popover .confirm-no:hover { background: var(--lib-btn-hover); }
 .confirm-popover button:focus-visible { outline: 2px solid var(--lib-accent, #4477bb); outline-offset: 1px; }
 html[data-theme] .confirm-popover { color: var(--lib-fg); background: var(--lib-panel); border-color: var(--lib-border); }
 /* .confirm-yes themed override deleted (COMPONENTS.md §4.2/C14): it used
@@ -365,7 +367,7 @@ html[data-theme] .confirm-popover .confirm-no:hover { background: var(--lib-btn-
   border: 1px solid var(--lib-input-border, #cdd1d6);
   border-radius: var(--lib-radius-md);
   background-color: var(--lib-input-bg, #fff);
-  color: var(--lib-fg, #333);
+  color: var(--lib-fg);
   font-size: 13px;
   box-sizing: border-box;
   -webkit-appearance: none;
@@ -376,7 +378,7 @@ html[data-theme] .confirm-popover .confirm-no:hover { background: var(--lib-btn-
 .notes-toolbar input[type="search"]:hover:not(:focus) { border-color: var(--lib-fg-muted); }
 .notes-toolbar input[type="search"]:focus { outline: none; border-color: var(--lib-accent); }
 .notes-toolbar input[type="search"]:focus-visible { box-shadow: 0 0 0 3px color-mix(in srgb, var(--lib-accent) 18%, transparent); }
-.notes-count { color: var(--lib-fg-muted, #666); font-size: 12px; white-space: nowrap; }
+.notes-count { color: var(--lib-fg-muted); font-size: 12px; white-space: nowrap; }
 .notes-color-filters { display: flex; align-items: center; gap: var(--lib-sp-2); }
 .notes-filter-dot {
   display: inline-flex;
@@ -399,7 +401,7 @@ html[data-theme] .confirm-popover .confirm-no:hover { background: var(--lib-btn-
   border: 1px solid var(--lib-border, #ccc);
   border-radius: var(--lib-radius-sm, 3px);
   margin-bottom: 6px; /* options.css --opt-sp-3 (6px); no --lib-sp-* step matches it */
-  background: var(--lib-bg, #fff);
+  background: var(--lib-bg);
 }
 /* Deleted-card fold: library-notes.js's _pbpNotesDelete adds .card-exit only
    after the store confirmed the delete, then waits out this transition. */
@@ -413,8 +415,8 @@ html.motion-ready .notes-card.card-exit {
               opacity var(--motion-collapse) var(--ease-out);
 }
 .notes-card.is-error {
-  border-color: color-mix(in srgb, var(--lib-danger, #c00) 35%, var(--lib-border, #ccc));
-  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--lib-danger, #c00) 75%, transparent);
+  border-color: color-mix(in srgb, var(--lib-danger) 35%, var(--lib-border, #ccc));
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--lib-danger) 75%, transparent);
 }
 .notes-card-top {
   position: relative;
@@ -423,12 +425,12 @@ html.motion-ready .notes-card.card-exit {
   align-items: center;
   gap: var(--lib-sp-2);
   padding: 6px var(--lib-sp-2); /* padding-block: --opt-sp-3 (6px), no --lib-sp-* match */
-  --row-bg: var(--lib-bg, #fff);
+  --row-bg: var(--lib-bg);
   background: var(--row-bg);
 }
 html.motion-ready .notes-card-top { transition: background-color var(--motion-state) ease, box-shadow var(--motion-state) ease; }
-.notes-card-top:hover { --row-bg: color-mix(in srgb, var(--lib-fg, #333) 5%, var(--lib-bg, #fff)); }
-.notes-card-top:active { --row-bg: color-mix(in srgb, var(--lib-fg, #333) 9%, var(--lib-bg, #fff)); transition-duration: 0s; }
+.notes-card-top:hover { --row-bg: color-mix(in srgb, var(--lib-fg) 5%, var(--lib-bg)); }
+.notes-card-top:active { --row-bg: color-mix(in srgb, var(--lib-fg) 9%, var(--lib-bg)); transition-duration: 0s; }
 .notes-card-head {
   display: flex;
   align-items: center;
@@ -436,7 +438,7 @@ html.motion-ready .notes-card-top { transition: background-color var(--motion-st
   min-width: 0;
   border: 0;
   padding: 0;
-  color: var(--lib-fg, #111);
+  color: var(--lib-fg);
   background: transparent;
   text-align: left;
   cursor: pointer;
@@ -452,7 +454,7 @@ html.motion-ready .notes-card-top { transition: background-color var(--motion-st
 }
 .notes-row-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: bold; font-size: 13px; }
 .notes-row-title a { color: inherit; }
-.notes-row-meta { display: flex; flex-wrap: wrap; gap: var(--lib-sp-3); font-size: 11px; color: var(--lib-fg-muted, #666); }
+.notes-row-meta { display: flex; flex-wrap: wrap; gap: var(--lib-sp-3); font-size: 11px; color: var(--lib-fg-muted); }
 .notes-meta-chip { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .notes-row-del { white-space: nowrap; }
 .notes-row-open { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-decoration: none; }
@@ -460,7 +462,7 @@ html.motion-ready .notes-card-top { transition: background-color var(--motion-st
    selector, not a --lib token: sizing only, no themed color). */
 .btn .ext-icon { width: 11px; height: 11px; vertical-align: -1px; }
 .notes-row-open .ext-icon { margin-left: 2px; } /* options.css --opt-sp-1 (2px) */
-.notes-unknown-hint { font-size: 11px; color: var(--lib-fg-muted, #666); margin: var(--lib-sp-2) 0 0 0; }
+.notes-unknown-hint { font-size: 11px; color: var(--lib-fg-muted); margin: var(--lib-sp-2) 0 0 0; }
 .note-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: var(--lib-sp-1); }
 .note-dot.c1 { background: var(--lib-note-c1, #facc15); }
 .note-dot.c2 { background: var(--lib-note-c2, #4ade80); }
@@ -469,22 +471,22 @@ html.motion-ready .notes-card-top { transition: background-color var(--motion-st
 .note-dot.c5 { background: var(--lib-note-c5, #c084fc); }
 /* Kept for the vocabulary detail pane's context quotes (the notes list no
    longer builds .notes-item* rows -- see the master-detail block below). */
-.notes-item-quote { color: var(--lib-fg-muted, #666); white-space: pre-wrap; }
-.notes-empty { font-size: 12px; color: var(--lib-fg-muted, #666); padding: var(--lib-sp-3) 0; }
+.notes-item-quote { color: var(--lib-fg-muted); white-space: pre-wrap; }
+.notes-empty { font-size: 12px; color: var(--lib-fg-muted); padding: var(--lib-sp-3) 0; }
 
 /* Ghost X delete button (options.css's shared recipe for vocab AND notes rows;
    only the notes rows consume it here until Task 5 brings the vocab list). */
 .row-del-x {
   padding: 2px var(--lib-sp-1); /* options.css --opt-sp-1 (2px), no --lib-sp-* match */
   line-height: 0;
-  color: var(--lib-fg-muted, #888);
+  color: var(--lib-fg-muted);
   border-color: transparent;
   background: transparent;
   position: absolute;
   right: var(--lib-sp-1);
   top: 50%;
   translate: 0 -50%;
-  background: var(--row-bg, var(--lib-bg, #fff));
+  background: var(--row-bg, var(--lib-bg));
   opacity: 0;
   transition: opacity var(--motion-state) ease, background var(--motion-state), border-color var(--motion-state), color var(--motion-state);
 }
@@ -492,8 +494,8 @@ html.motion-ready .notes-card-top { transition: background-color var(--motion-st
 .row-del-x:focus-visible { opacity: 1; }
 .row-del-x::before { content: ""; position: absolute; inset: -3px -1px; }
 .row-del-x:hover {
-  color: var(--lib-danger, #c00);
-  border-color: color-mix(in srgb, var(--lib-danger, #c00) 55%, var(--lib-border, #ccc));
+  color: var(--lib-danger);
+  border-color: color-mix(in srgb, var(--lib-danger) 55%, var(--lib-border, #ccc));
   background: rgba(220, 80, 80, 0.08); /* no --lib-danger-bg token; options.css's own fallback literal */
 }
 @media (hover: none) {
@@ -542,13 +544,13 @@ html.motion-ready .notes-card-top { transition: background-color var(--motion-st
   border-radius: inherit;
   text-align: left;
   cursor: pointer;
-  color: var(--lib-fg, #111);
+  color: var(--lib-fg);
   --row-bg: transparent;
   background: var(--row-bg);
 }
 html.motion-ready .notes-hit-btn { transition: background-color var(--motion-state) ease, box-shadow var(--motion-state) ease; }
-.notes-hit-btn:hover { --row-bg: color-mix(in srgb, var(--lib-fg, #333) 5%, var(--lib-bg, #fff)); }
-.notes-hit-btn:active { --row-bg: color-mix(in srgb, var(--lib-fg, #333) 9%, var(--lib-bg, #fff)); transition-duration: 0s; }
+.notes-hit-btn:hover { --row-bg: color-mix(in srgb, var(--lib-fg) 5%, var(--lib-bg)); }
+.notes-hit-btn:active { --row-bg: color-mix(in srgb, var(--lib-fg) 9%, var(--lib-bg)); transition-duration: 0s; }
 .notes-hit-btn:focus-visible { outline: 2px solid var(--lib-accent, #4477bb); outline-offset: -2px; }
 /* "You are here", same --row-bg mechanism the vocabulary rows use. The accent
    marker is a ring rather than that list's inset LEFT edge, because the left
@@ -558,14 +560,14 @@ html.motion-ready .notes-hit-btn { transition: background-color var(--motion-sta
   color: var(--lib-row-selected-fg);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lib-accent, #4477bb) 45%, transparent);
 }
-.notes-hit[aria-current] .notes-hit-btn:hover { --row-bg: color-mix(in srgb, var(--lib-fg, #333) 5%, var(--lib-row-selected-bg)); }
+.notes-hit[aria-current] .notes-hit-btn:hover { --row-bg: color-mix(in srgb, var(--lib-fg) 5%, var(--lib-row-selected-bg)); }
 /* A failed delete, pinned to the row it happened on (the signal .notes-card's
    .is-error gives on the vocabulary side). */
-.notes-hit.is-error .notes-hit-btn { --row-bg: color-mix(in srgb, var(--lib-danger, #c00) 10%, var(--lib-bg, #fff)); }
+.notes-hit.is-error .notes-hit-btn { --row-bg: color-mix(in srgb, var(--lib-danger) 10%, var(--lib-bg)); }
 /* Same signal when the row is filtered out and only the pressed button is on
    screen. box-shadow, not background: .btn.danger:hover would outrank a
    background here and wipe the failure mark on the next pointer pass. */
-.notes-detail-delete.is-error { box-shadow: inset 0 0 0 1px var(--lib-danger, #c00); }
+.notes-detail-delete.is-error { box-shadow: inset 0 0 0 1px var(--lib-danger); }
 .notes-hit-bar { border-radius: var(--lib-radius-full); background: var(--hl-color, var(--lib-note-c1)); }
 .notes-hit-body { display: grid; gap: 2px; min-width: 0; } /* options.css --opt-sp-1 (2px) */
 .notes-hit-text {
@@ -580,8 +582,8 @@ html.motion-ready .notes-hit-btn { transition: background-color var(--motion-sta
 /* The " \2014 " separator before this span is a text node in the row (see
    library-notes.js) -- the italic alone left quote and note running together
    in the accessible name. */
-.notes-hit-note { font-style: italic; color: var(--lib-fg-muted, #666); }
-.notes-hit-meta { display: flex; gap: var(--lib-sp-2); font-size: 11px; color: var(--lib-fg-muted, #666); }
+.notes-hit-note { font-style: italic; color: var(--lib-fg-muted); }
+.notes-hit-meta { display: flex; gap: var(--lib-sp-2); font-size: 11px; color: var(--lib-fg-muted); }
 
 /* Reading pane (Task 2 spec: 15px/1.65 prose, 68ch measure, controls back at
    UI scale) -- same values as .vocab-detail-pane, see the block comment. */
@@ -606,7 +608,7 @@ html.motion-ready .notes-hit-btn { transition: background-color var(--motion-sta
   border-left: 3px solid var(--hl-color, var(--lib-note-c1));
   white-space: pre-wrap;
 }
-.notes-detail-note { max-width: 68ch; margin: var(--lib-sp-3) 0 0; white-space: pre-wrap; color: var(--lib-fg-muted, #666); }
+.notes-detail-note { max-width: 68ch; margin: var(--lib-sp-3) 0 0; white-space: pre-wrap; color: var(--lib-fg-muted); }
 .notes-detail-delete { margin-top: var(--lib-sp-4); }
 .notes-detail-siblings {
   margin-top: var(--lib-sp-5);
@@ -617,7 +619,7 @@ html.motion-ready .notes-hit-btn { transition: background-color var(--motion-sta
   margin: 0 0 var(--lib-sp-2);
   font-size: 12px; line-height: normal; font-weight: bold;
   letter-spacing: 0.04em; text-transform: uppercase;
-  color: var(--lib-fg-muted, #666);
+  color: var(--lib-fg-muted);
 }
 .notes-sib {
   display: flex; align-items: center; gap: var(--lib-sp-2);
@@ -631,12 +633,12 @@ html.motion-ready .notes-hit-btn { transition: background-color var(--motion-sta
   text-align: left; cursor: pointer;
 }
 html.motion-ready .notes-sib { transition: background-color var(--motion-state) ease; }
-.notes-sib:hover { background: color-mix(in srgb, var(--lib-fg, #333) 5%, var(--lib-bg, #fff)); }
+.notes-sib:hover { background: color-mix(in srgb, var(--lib-fg) 5%, var(--lib-bg)); }
 /* Press feedback (Emil review, Task 5): every other pressable row in this file
    has one (.notes-hit-btn:active, .notes-card-top:active) -- this jump button
    was the one left silent. Same instant color-mix + transition-duration:0
    recipe, not the .btn family's scale(0.97): a row button, not a dialog action. */
-.notes-sib:active { background: color-mix(in srgb, var(--lib-fg, #333) 9%, var(--lib-bg, #fff)); transition-duration: 0s; }
+.notes-sib:active { background: color-mix(in srgb, var(--lib-fg) 9%, var(--lib-bg)); transition-duration: 0s; }
 .notes-sib:focus-visible { outline: 2px solid var(--lib-accent, #4477bb); outline-offset: -2px; }
 .notes-sib .note-dot { margin-top: 0; }
 .notes-sib-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -674,8 +676,8 @@ html.motion-ready .notes-sib { transition: background-color var(--motion-state) 
 }
 /* --lib-save/--lib-danger are always set on :root, so tokenizing here already
    covers every theme -- no separate html[data-theme] override needed. */
-.save-status { font-size: 12px; color: var(--lib-save, #1967d2); margin-left: var(--lib-sp-2); }
-.save-status.bad { color: var(--lib-danger, #c5221f); }
+.save-status { font-size: 12px; color: var(--lib-save); margin-left: var(--lib-sp-2); }
+.save-status.bad { color: var(--lib-danger); }
 
 /* Master (list) + detail two-pane workbench. The library page has the whole
    window to work with, unlike options.html's single narrow panel. */
@@ -993,7 +995,7 @@ html.motion-ready .vocab-note-save[hidden] { display: none; opacity: 0; translat
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M3 4.5 6 7.5 9 4.5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
   background-repeat: no-repeat;
   background-position: right 8px center;
-  color: var(--lib-fg, #333);
+  color: var(--lib-fg);
   font: inherit;
   font-size: 13px;
   cursor: pointer;
@@ -1004,7 +1006,7 @@ html.motion-ready .vocab-note-save[hidden] { display: none; opacity: 0; translat
   transition: border-color var(--motion-state) ease, background-color var(--motion-state) ease, box-shadow var(--motion-state) ease;
 }
 .vocab-filter-toolbar select:hover:not(:focus) {
-  background-color: var(--lib-btn-hover, #f1f5f9);
+  background-color: var(--lib-btn-hover);
   border-color: var(--lib-input-border, #cdd1d6);
 }
 .vocab-filter-toolbar select:focus {
@@ -1037,7 +1039,7 @@ html[data-theme="rose-pine"] .vocab-filter-toolbar select {
   display: inline-grid;
   place-items: center;
   border-radius: 0;
-  color: var(--lib-fg-muted, #666);
+  color: var(--lib-fg-muted);
 }
 .vocab-sort-btn:first-child {
   border-top-left-radius: var(--lib-radius-md);
@@ -1062,7 +1064,7 @@ html[data-theme="rose-pine"] .vocab-filter-toolbar select {
   align-items: center;
   gap: var(--lib-sp-2);
   padding: var(--lib-sp-1) 0;
-  color: var(--lib-fg-muted, #666);
+  color: var(--lib-fg-muted);
   font-size: 12px;
 }
 /* Geometry/color (display/padding/font-size/line-height/radius/background/
@@ -1102,16 +1104,16 @@ html[data-theme="rose-pine"] .vocab-filter-toolbar select {
   min-width: 0;
   white-space: normal;
   font-weight: 500;
-  color: var(--lib-fg, #333);
+  color: var(--lib-fg);
 }
 /* Select all rides next to the count in BOTH states, quiet ghost tier
    (the .row-del-x treatment): always relevant, never boxed. */
 .vocab-selection-actions { display: inline-flex; align-items: center; gap: var(--lib-sp-1); flex: none; }
-.vocab-selection-actions .btn { border-color: transparent; background: transparent; color: var(--lib-fg-muted, #666); }
+.vocab-selection-actions .btn { border-color: transparent; background: transparent; color: var(--lib-fg-muted); }
 .vocab-selection-actions .btn:hover {
   border-color: transparent;
-  color: var(--lib-fg, #111);
-  background: color-mix(in srgb, var(--lib-fg, #333) 6%, var(--lib-bg, #fff));
+  color: var(--lib-fg);
+  background: color-mix(in srgb, var(--lib-fg) 6%, var(--lib-bg));
 }
 /* Sticky boundary wrapper: the bar floats only while this region is on
    screen; past its end the bar docks and scrolls away with the list. */
@@ -1139,8 +1141,8 @@ html[data-theme="rose-pine"] .vocab-filter-toolbar select {
   border-radius: var(--lib-radius-lg);
   overflow: clip;
   background: var(--lib-panel, #fff);
-  box-shadow: 0 6px 24px color-mix(in srgb, var(--lib-fg, #000) 18%, transparent),
-              0 2px 8px color-mix(in srgb, var(--lib-fg, #000) 10%, transparent);
+  box-shadow: 0 6px 24px color-mix(in srgb, var(--lib-fg) 18%, transparent),
+              0 2px 8px color-mix(in srgb, var(--lib-fg) 10%, transparent);
   opacity: 0;
   visibility: hidden;
   transform: translateY(8px);
@@ -1171,7 +1173,7 @@ html.motion-ready .vocab-batch-bar.selecting {
               transform var(--motion-pop) var(--ease-out),
               visibility 0s;
 }
-.vocab-batch-bar .notes-count { flex: none; font-weight: 500; color: var(--lib-fg, #333); }
+.vocab-batch-bar .notes-count { flex: none; font-weight: 500; color: var(--lib-fg); }
 /* Icon-only action cells (user-ratified: no labels -- width thrift + long-
    locale safety). Names live in title/aria. Width alone clears >=24px, but
    the sm rung's height (20px, COMPONENTS.md §1.1) doesn't -- see the
@@ -1272,7 +1274,7 @@ html.motion-ready .vocab-batch-bar.selecting {
    Mirrors the plain hover formula (mix --lib-fg 5% into the base) rather than
    .selected's accent mix, since the base color here is already the
    selected-bg token, not a color-mix expression to step further into. */
-.vocab-card[aria-current] .notes-card-top:hover { --row-bg: color-mix(in srgb, var(--lib-fg, #333) 5%, var(--lib-row-selected-bg)); }
+.vocab-card[aria-current] .notes-card-top:hover { --row-bg: color-mix(in srgb, var(--lib-fg) 5%, var(--lib-row-selected-bg)); }
 /* --lib-row-selected-fg: .notes-card-head (child of .notes-card-top) sets its
    own `color` (base rule above, ~line 247), which blocks inheritance from
    anything set on .notes-card-top -- so the token has to be assigned on the
@@ -1280,8 +1282,8 @@ html.motion-ready .vocab-batch-bar.selecting {
 .vocab-card[aria-current] .notes-card-head { color: var(--lib-row-selected-fg); }
 /* Selected rows read as a scannable accent band (declared after :hover so
    selection wins, with a deeper hover step layered on top). */
-.vocab-card.selected .notes-card-top { --row-bg: color-mix(in srgb, var(--lib-accent, #4477bb) 10%, var(--lib-bg, #fff)); }
-.vocab-card.selected .notes-card-top:hover { --row-bg: color-mix(in srgb, var(--lib-accent, #4477bb) 15%, var(--lib-bg, #fff)); }
+.vocab-card.selected .notes-card-top { --row-bg: color-mix(in srgb, var(--lib-accent, #4477bb) 10%, var(--lib-bg)); }
+.vocab-card.selected .notes-card-top:hover { --row-bg: color-mix(in srgb, var(--lib-accent, #4477bb) 15%, var(--lib-bg)); }
 .vocab-card.selected .notes-card-head { color: var(--lib-row-selected-fg); }
 .vocab-row-headline {
   display: flex;
@@ -1297,7 +1299,7 @@ html.motion-ready .vocab-batch-bar.selecting {
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 12px;
-  color: var(--lib-fg-muted, #666);
+  color: var(--lib-fg-muted);
 }
 
 /* ---- Page layout ---- (body's margin/background/color live in the merged

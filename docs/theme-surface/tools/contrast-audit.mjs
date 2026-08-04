@@ -681,6 +681,36 @@ auditComponentPairsDefault("library", "lib", resolve(ROOT, "library.css"), ":roo
 auditComponentPairsDefault("popup", "pp", resolve(ROOT, "popup.css"), ":root", "default-light");
 auditComponentPairsDefault("popup", "pp", resolve(ROOT, "popup.css"), "html\\.dark", "default-dark");
 
+// Default-surface .preset-btn text (design-uplift Task 13 review round):
+// the generic COMPONENT_PAIR_SPEC "preset-fg vs preset-bg"/"preset-fg vs
+// btn-hover" pair above can't express this one -- the default (no-preset)
+// surface's own .preset-btn fill lives in --pp-preset-btn-bg/
+// -preset-btn-hover-bg, DISTINCT token names from the themed layer's
+// --pp-preset-bg (ROLE_ALIAS's pp "btn-hover" -> "drop-hover" is correct
+// for the THEMED .preset-btn:hover, which really does use --pp-drop-hover,
+// but the default surface's :hover uses --pp-preset-btn-hover-bg instead --
+// aliasing "btn-hover" to either target globally would silently mis-check
+// the other one). A bespoke pair, not a ROLE_ALIAS entry, so the themed
+// layer's own (correct) resolution is untouched. BLOCKING: a FAIL here is
+// a derivation bug, not a legitimate gap -- --pp-preset-fg/-preset-btn-bg/
+// -preset-btn-hover-bg are all hand-written :root literals with no
+// legitimate reason to go missing.
+{
+  const text = readFileSync(resolve(ROOT, "popup.css"), "utf8");
+  const dict = foldSelectorBlocks(text, ":root");
+  const fgS = dict["pp-preset-fg"], bgS = dict["pp-preset-btn-bg"], hoverS = dict["pp-preset-btn-hover-bg"];
+  if (!fgS || !bgS || !hoverS) {
+    const line = "  popup      default-light        preset-fg vs preset-btn-*".padEnd(48) +
+      "FAIL (missing --pp-preset-fg/-preset-btn-bg/-preset-btn-hover-bg)";
+    console.log(line);
+    violations.push(line);
+  } else if (isHex(fgS) && isHex(bgS) && isHex(hoverS)) {
+    const fg = hexRgb(fgS);
+    console.log(check("popup", "default-light", "preset-fg vs preset-btn-bg", cr(fg, hexRgb(bgS)), 4.5));
+    console.log(check("popup", "default-light", "preset-fg vs preset-btn-hover-bg", cr(fg, hexRgb(hoverS)), 4.5));
+  }
+}
+
 console.log("\n=== orphan check: *-fg / on-* tokens with zero coverage in this file ===");
 auditOrphanTokens("popup", "pp", readFileSync(resolve(ROOT, "popup.css"), "utf8"));
 auditOrphanTokens("options", "opt", readFileSync(resolve(ROOT, "options.css"), "utf8"));
