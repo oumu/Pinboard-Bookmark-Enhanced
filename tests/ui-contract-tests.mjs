@@ -12,6 +12,46 @@ const extensionIdFromKey = (key) => {
   return [...hex].map((char) => String.fromCharCode(97 + Number.parseInt(char, 16))).join("");
 };
 
+// Counts bare hex color literals in the hand-maintained region of a *-chrome
+// theme CSS file (popup.css / options.css / library.css). A bare hex outside
+// a var() fallback means a rule hardcoded a color instead of consuming a
+// token, so it silently ignores every theme (the exact options.css migration
+// regression this is meant to catch). Shared by the popup/options ratchet
+// gate and library's zero-tolerance gate below.
+function countBareHex(css) {
+  // Cut every "@generated:<name> start ... @generated:<name> end" region --
+  // ui-themes AND ui-components, both of which popup/options/library each
+  // carry -- not just the first "ui-themes start" marker. The prior
+  // library-only version of this scan split on that single marker, which
+  // happened to also exclude the ui-components block (it sits before
+  // ui-themes) but never excluded anything *after* ui-themes -- and
+  // popup.css/options.css both carry ~300 hand-written lines after
+  // "@generated:ui-themes end" that a single split silently never scans.
+  // Composer output is exempt by construction (render-audit and the
+  // theme-factory lints already gate it), so only surrounding hand-written
+  // CSS should ever reach the count below.
+  const lines = css.split("\n");
+  const kept = [];
+  let skipping = null;
+  for (const line of lines) {
+    const marker = line.match(/@generated:([\w-]+)\s+(start|end)/);
+    if (marker) {
+      if (marker[2] === "start") { skipping = marker[1]; continue; }
+      if (marker[2] === "end" && skipping === marker[1]) { skipping = null; continue; }
+    }
+    if (!skipping) kept.push(line);
+  }
+  let hand = kept.join("\n");
+  hand = hand.replace(/^\s*--[\w-]+\s*:[^;]*;/gm, "");   // drop custom-prop definitions (:root literals are the exempt source of truth)
+  for (let prev = null; prev !== hand; ) { prev = hand; hand = hand.replace(/var\([^()]*\)/g, ""); } // drop var() incl. nested fallbacks, innermost-out
+  hand = hand.replace(/\/\*[\s\S]*?\*\//g, "");           // drop comments
+  // color-mix() may deliberately blend a token against a literal #000/#fff
+  // (popup's darken-on-hover pattern) instead of a missing token -- strip
+  // only that operand, not the whole color-mix(), before counting.
+  hand = hand.replace(/color-mix\([^)]*\)/g, (m) => m.replace(/#(?:000|fff)\b/gi, ""));
+  return (hand.match(/#[0-9a-fA-F]{3,8}\b/g) || []).length;
+}
+
 const popupHtml = read("popup.html");
 const manifest = JSON.parse(read("manifest.json"));
 const backgroundJs = read("background.js");
@@ -1530,20 +1570,25 @@ check(mdCss.includes("text-autospace: normal") && /#rendered-view :is\(pre, code
     "pinboard-style.js: the cloak colour is no longer cached per light/dark mode, so an OS theme flip repaints the wrong shade");
 }
 
-// ---- library.css hand-maintained region: no bare hex colors leaking outside
-// var() fallbacks or custom-property definitions (the :root defaults ARE
-// literals -- those lines are exempt). A bare hex anywhere else means a rule
-// hardcoded a color instead of consuming a --lib-* token, so it silently
-// ignores every theme (the options.css migration regression this guards against).
+// ---- bare hex ratchet gate: popup.css / options.css only ever get their
+// literal-hex ceiling lowered, never raised, as the var()-first color
+// migration (design-uplift tasks 12/13) works through the hand-maintained
+// region. library.css already migrated fully, so it keeps a dedicated
+// zero-tolerance assertion instead of a movable ceiling.
 {
-  const css = libraryCss;
-  const hand = css.split("/* @generated:ui-themes start")[0];
-  let stripped = hand.replace(/^\s*--[\w-]+\s*:[^;]*;/gm, "");   // drop custom-prop definitions
-  for (let prev = null; prev !== stripped; ) { prev = stripped; stripped = stripped.replace(/var\([^()]*\)/g, ""); } // drop var() incl. nested, innermost-out
-  stripped = stripped.replace(/\/\*[\s\S]*?\*\//g, "");            // drop comments
-  const bare = stripped.match(/#[0-9a-fA-F]{3,8}\b/g) || [];
-  check(bare.length === 0,
-    "library.css: bare hex colors leaked outside var() fallbacks in the hand-maintained region: " + bare.slice(0, 8).join(", "));
+  const baseline = JSON.parse(readFileSync(resolve(root, "tests/hex-ratchet-baseline.json"), "utf8"));
+  check(baseline["library.css"] === 0,
+    "tests/hex-ratchet-baseline.json: library.css must stay at a zero ceiling -- it has its own zero-tolerance gate below, not a ratchet");
+  for (const [file, css] of [["popup.css", popupCss], ["options.css", optionsCss], ["library.css", libraryCss]]) {
+    const count = countBareHex(css);
+    check(count <= baseline[file],
+      `${file}: bare hex colors in the hand-maintained region grew from the tests/hex-ratchet-baseline.json ceiling of ${baseline[file]} to ${count} -- migrate the new literal(s) to a var(--…) token instead of hardcoding a color`);
+    if (count < baseline[file]) {
+      console.log(`hex-ratchet: ${file} improved to ${count} bare hex (baseline ${baseline[file]}) -- lower tests/hex-ratchet-baseline.json in this commit`);
+    }
+  }
+  check(countBareHex(libraryCss) === 0,
+    "library.css: bare hex colors leaked outside var() fallbacks in the hand-maintained region (must stay at zero)");
 }
 
 if (fail.length) {
