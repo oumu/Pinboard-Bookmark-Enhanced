@@ -571,9 +571,17 @@ check(/\.wayback-log-row:focus-within\s+\.wayback-perm-tip/.test(optionsCss) &&
   optionsCss.includes("background: var(--opt-panel)") &&
   optionsCss.includes("color: var(--opt-fg)"),
   "options.css: archive permission guidance lacks themed focus disclosure, or its hover half escaped the fine-pointer gate");
+// options' .confirm-yes clause was dropped from this list (Task 10,
+// COMPONENTS.md §4.2/C14b): the generated ui-components region now emits
+// ".confirm-popover .confirm-yes"/":hover" with no theme gate and no
+// fallback at all (var(--opt-danger)/var(--opt-on-danger) directly) --
+// there is no longer a hardcoded default for a themed override to
+// out-rank, so the failure mode this check guards against is structurally
+// unreachable for that selector. Guarded instead by recipe-lint's
+// solidDangerScope/dangerPaired [static] checks (dangerRules() emits
+// exactly one .confirm-yes rule, self-paired).
 check(popupCss.includes("html[data-theme] .confirm-popover .confirm-yes:hover { background: var(--pp-warn-fg)") &&
   popupCss.includes("html[data-theme] .confirm-popover .confirm-no:hover { background: var(--pp-warn-bg)") &&
-  optionsCss.includes("html[data-theme] .confirm-popover .confirm-yes:hover { background: var(--opt-danger)") &&
   optionsCss.includes("html[data-theme] .theme-name-popover .tnp-save:hover { background: var(--opt-fg)"),
   "custom themed popovers can fall back to hardcoded hover backgrounds with unreadable foregrounds");
 {

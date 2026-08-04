@@ -165,6 +165,30 @@ a { color: var(--lib-link, #1a66c2); }
   display: block;
 }
 
+.btn.danger {
+  color: var(--lib-danger-quiet-fg);
+  border-color: color-mix(in srgb, var(--lib-danger) 55%, var(--lib-border));
+}
+.btn.danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--lib-danger) 8%, var(--lib-btn-bg));
+}
+.btn.danger.ghost {
+  border-color: transparent;
+  background: transparent;
+}
+.btn.danger.ghost:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--lib-danger) 8%, var(--lib-bg));
+  border-color: color-mix(in srgb, var(--lib-danger) 45%, transparent);
+}
+.confirm-popover .confirm-yes {
+  background: var(--lib-danger);
+  color: var(--lib-on-danger);
+  border-color: var(--lib-danger);
+}
+.confirm-popover .confirm-yes:hover {
+  box-shadow: inset 0 0 0 1px var(--lib-on-danger);
+}
+
 .vocab-group-chip {
   display: inline-flex;
   align-items: center;
@@ -234,15 +258,6 @@ input[type="checkbox"], input[type="radio"] {
   line-height: 14px;
 }
 /* @generated:ui-components end (library) */
-
-/* ---- Buttons: danger tier only (base .btn/.btn-sm/.btn.ghost geometry +
-   color + state feedback now come from @generated:ui-components above —
-   COMPONENTS.md §1/§3). Danger stays hand-written pending Task 10 (defect 6);
-   its higher specificity (.btn.danger, 0,2,0) already wins over the
-   generated .btn base (0,1,0) regardless of source order, so nothing else
-   needs to change here. */
-.btn.danger { color: var(--lib-danger, #c00); border-color: color-mix(in srgb, var(--lib-danger, #c00) 55%, var(--lib-border, #ccc)); }
-.btn.danger:hover:not(:disabled) { background: color-mix(in srgb, var(--lib-danger, #c00) 8%, var(--lib-btn-bg, #fff)); }
 
 /* Base field recipe (width/padding/border/radius/background-color/font-size/
    font-family/appearance/box-shadow/transition), hover border-color, focus/
@@ -316,14 +331,18 @@ html.motion-ready .confirm-popover.is-closing {
 .confirm-popover button {
   padding: 2px var(--lib-sp-2); font-size: 11px; cursor: pointer; border-radius: var(--lib-radius-sm); border: 1px solid;
 }
-.confirm-popover .confirm-yes { background: var(--lib-danger, #c00); color: var(--lib-panel, #fff); border-color: var(--lib-danger, #a00); }
-.confirm-popover .confirm-yes:hover { background: var(--lib-danger, #a00); }
+/* .confirm-yes (solid danger tier, default light state) now comes from
+   @generated:ui-components above (COMPONENTS.md §4.2) — only .confirm-no
+   stays hand-written here. */
 .confirm-popover .confirm-no { background: none; color: var(--lib-fg-muted, #666); border-color: var(--lib-border, #ccc); }
 .confirm-popover .confirm-no:hover { background: var(--lib-btn-hover, #eee); }
 .confirm-popover button:focus-visible { outline: 2px solid var(--lib-accent, #4477bb); outline-offset: 1px; }
 html[data-theme] .confirm-popover { color: var(--lib-fg); background: var(--lib-panel); border-color: var(--lib-border); }
-html[data-theme] .confirm-popover .confirm-yes { color: var(--lib-panel); background: var(--lib-danger); border-color: var(--lib-danger); }
-html[data-theme] .confirm-popover .confirm-yes:hover { background: var(--lib-danger); box-shadow: inset 0 0 0 1px var(--lib-panel); }
+/* .confirm-yes themed override deleted (COMPONENTS.md §4.2/C14): it used
+   var(--lib-panel) as an unaudited foreground borrow and outranked the
+   generated (0,2,0) rule by specificity (0,3,0) -- the generated
+   .confirm-popover .confirm-yes now applies unconditionally across every
+   data-theme state via var(--lib-danger)/var(--lib-on-danger) directly. */
 html[data-theme] .confirm-popover .confirm-no { color: var(--lib-fg); border-color: var(--lib-border); background: none; }
 html[data-theme] .confirm-popover .confirm-no:hover { background: var(--lib-btn-hover); }
 
