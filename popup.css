@@ -109,6 +109,40 @@
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   --pp-popup-width: 550px;
+
+  /* One-off page-local tokens (design-uplift Task 13, var()-first hex/rgba
+     migration). Real :root defaults only -- no var(--pp-X, literal) fallback
+     form (CLAUDE.md single-default-per-token discipline, options.css's
+     Task 12 precedent). Paired dark values for the components that need one
+     live in html.dark below (step 2); components with no dark override here
+     intentionally inherit these light values unchanged in dark mode, same
+     as before this migration. */
+  --pp-fg-soft: #666;
+  --pp-preset-btn-bg: #eef2ff;
+  --pp-preset-btn-bd: #c0d0f0;
+  --pp-preset-btn-hover-bg: #d5e0ff;
+  --pp-used-fg: #bbb;
+  --pp-neutral-panel: #f5f5f0;
+  --pp-preset-btn-used-bd: #ddd;
+  --pp-disabled-fg: #aaa;
+  --pp-danger-hover-bg: #fee;
+  --pp-popover-border: #ddd;
+  --pp-popover-btn-border: #ccc;
+  --pp-fg-faint: #ccc;
+  --pp-oqa-btn-fg: #666;
+  --pp-offline-queue-bg: #fffbea;
+  --pp-offline-queue-border: #e8d88c;
+  --pp-offline-queue-empty-fg: #6b6b6b;
+  --pp-offline-queue-title-fg: #555;
+  --pp-offline-queue-meta-fg: #999;
+  --pp-progress-text-fg: #1a3a6e;
+  --pp-edit-cancel-fg: #444;
+  --pp-neutral-hover-bg: #eee;
+  --pp-confirm-no-hover-bg: #eee;
+  --pp-confirm-no-fg: #666;
+  --pp-confirm-no-border: #ccc;
+  --pp-tag-remove-fg: #888;
+  --pp-recent-bm-border: #e8e8e8;
 }
 
 body {
@@ -202,13 +236,13 @@ html[data-section="login"] .quick-actions { display: none !important; }
 .login-body .secret-field input { padding-right: 30px; }
 .login-body .key-toggle {
   position: absolute; right: 3px; top: 2px;
-  padding: var(--pp-sp-2); border: 0; background: none; color: #666;
+  padding: var(--pp-sp-2); border: 0; background: none; color: var(--pp-fg-soft);
 }
 .login-body .key-toggle svg { display: block; }
 .login-body button { padding: var(--pp-sp-2) var(--pp-sp-6); font-size: 12px; cursor: pointer; transition: background var(--pp-motion-state), border-color var(--pp-motion-state); }
 .login-body button:active:not(:disabled) { transform: translateY(1px); }
 .login-body button:focus-visible { outline: 2px solid var(--pp-accent, #4477bb); outline-offset: 2px; }
-.error-text { color: #c00; font-size: 11px; margin-top: var(--pp-sp-2); }
+.error-text { color: var(--pp-danger); font-size: 11px; margin-top: var(--pp-sp-2); }
 
 /* ===================== Message-surface family =====================
    Three shapes (2026-07 Claude Design round 2):
@@ -279,7 +313,7 @@ html[data-section="login"] .quick-actions { display: none !important; }
 .fc-details {
   margin-top: var(--pp-sp-3); padding: var(--pp-sp-3) var(--pp-sp-4);
   max-height: 120px; overflow: auto;
-  background: rgba(0,0,0,0.04);
+  background: color-mix(in srgb, #000 4%, transparent);
   font-family: "SF Mono", Consolas, Menlo, "Liberation Mono", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei", monospace; font-size: 10px;
   white-space: pre-wrap; word-break: break-all;
   border-radius: var(--pp-radius-sm);
@@ -325,16 +359,16 @@ html[data-section="login"] .quick-actions { display: none !important; }
   font-size: 11px;
   font-family: inherit;
   color: var(--pp-link);
-  background: #eef2ff;
-  border: 1px solid #c0d0f0;
+  background: var(--pp-preset-btn-bg);
+  border: 1px solid var(--pp-preset-btn-bd);
   border-radius: var(--pp-radius-sm);
   cursor: pointer;
   white-space: nowrap;
   transition: background var(--pp-motion-state), border-color var(--pp-motion-state);
 }
-.preset-btn:hover { background: #d5e0ff; box-shadow: var(--pp-hover-shadow); }
+.preset-btn:hover { background: var(--pp-preset-btn-hover-bg); box-shadow: var(--pp-hover-shadow); }
 .preset-btn:focus-visible { outline: 2px solid var(--pp-accent, #4477bb); outline-offset: 1px; }
-.preset-btn.used { color: #bbb; background: #f5f5f0; border-color: #ddd; pointer-events: none; }
+.preset-btn.used { color: var(--pp-used-fg); background: var(--pp-neutral-panel); border-color: var(--pp-preset-btn-used-bd); pointer-events: none; }
 
 .form-body { padding: var(--pp-sp-4) 0 var(--pp-sp-4); }
 /* Unsupported-URL empty state: hide the dead form, keep only #url-warning
@@ -390,13 +424,13 @@ button.offline-clear:focus-visible, button.offline-toggle:focus-visible { outlin
 
 .action-link { font-size: 11px; color: var(--pp-accent2); cursor: pointer; }
 .action-link:hover { text-decoration: underline; }
-.action-link.loading, .action-link.disabled-link { color: #aaa; pointer-events: none; }
+.action-link.loading, .action-link.disabled-link { color: var(--pp-disabled-fg); pointer-events: none; }
 .action-link.loading::before, .submit-bar button.loading::before {
   content: "";
   display: inline-block;
   width: 10px; height: 10px;
-  border: 2px solid #ccc;
-  border-top-color: #666;
+  border: 2px solid var(--pp-spinner-bg);
+  border-top-color: var(--pp-spinner-fg);
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
   margin-right: var(--pp-sp-2);
@@ -404,7 +438,7 @@ button.offline-clear:focus-visible, button.offline-toggle:focus-visible { outlin
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 .submit-bar button.loading {
-  color: #888; cursor: wait;
+  color: var(--pp-fg-hint); cursor: wait;
 }
 
 .tags-input-wrap {
@@ -423,7 +457,7 @@ button.offline-clear:focus-visible, button.offline-toggle:focus-visible { outlin
 .tag-remove {
   display: inline-flex; align-items: center; justify-content: center;
   border: 0; background: none; padding: 0; cursor: pointer;
-  color: #888; line-height: 1; transition: color var(--pp-motion-state);
+  color: var(--pp-tag-remove-fg); line-height: 1; transition: color var(--pp-motion-state);
   position: relative;
 }
 /* Out-of-flow hit pad: 10px glyph -> ~24px target without touching the chip's
@@ -539,7 +573,7 @@ button.offline-clear:focus-visible, button.offline-toggle:focus-visible { outlin
   color: var(--pp-link); cursor: pointer; font-size: 12px; margin-right: var(--pp-sp-2); white-space: nowrap;
 }
 .stag:hover { text-decoration: underline; }
-.stag.used { color: #bbb; text-decoration: line-through; pointer-events: none; }
+.stag.used { color: var(--pp-used-fg); text-decoration: line-through; pointer-events: none; }
 .stag:focus-visible { outline: 2px solid var(--pp-accent, #4477bb); outline-offset: 2px; }
 .stag.ai { color: var(--pp-accent2); }
 .stag.ai:hover { color: color-mix(in srgb, var(--pp-accent2) 80%, #000); }
@@ -589,13 +623,13 @@ button.offline-clear:focus-visible, button.offline-toggle:focus-visible { outlin
    html[data-theme] opacity rule — that one starts from darker fills.) */
 #submit-btn:disabled { background: var(--pp-bg2); border-color: var(--pp-border); color: var(--pp-fg-hint); transform: none; box-shadow: none; }
 .del-btn { position: relative; color: var(--pp-danger); border-color: var(--pp-danger) !important; white-space: nowrap; padding: var(--pp-sp-2) var(--pp-sp-6); min-height: 28px; }
-.del-btn:hover { background: #fee !important; }
+.del-btn:hover { background: var(--pp-danger-hover-bg) !important; }
 /* Anchor left:0 (extend right from the Delete button's left edge) — the button sits
    left-of-centre in the submit-bar, so the old right:0 made the popover extend left and
    clip its leading text off the popup's left edge. There is ample free space to the right. */
 .del-confirm-popover {
   position: absolute; bottom: calc(100% + 5px); left: 0;
-  background: #fff; border: 1px solid #ddd; border-radius: var(--pp-radius-sm);
+  background: var(--pp-bg); border: 1px solid var(--pp-popover-border); border-radius: var(--pp-radius-sm);
   padding: var(--pp-sp-2) var(--pp-sp-4); font-size: 11px; white-space: nowrap;
   display: flex; align-items: center; gap: var(--pp-sp-3);
   box-shadow: var(--pp-shadow-md); animation: popinScale 0.12s var(--ease-out); z-index: var(--pp-z-popover);
@@ -603,7 +637,7 @@ button.offline-clear:focus-visible, button.offline-toggle:focus-visible { outlin
      its own center. */
   transform-origin: bottom left;
 }
-.del-confirm-popover button { padding: 1px var(--pp-sp-4); font-size: 11px; cursor: pointer; border: 1px solid #ccc; background: #f5f5f0; }
+.del-confirm-popover button { padding: 1px var(--pp-sp-4); font-size: 11px; cursor: pointer; border: 1px solid var(--pp-popover-btn-border); background: var(--pp-neutral-panel); }
 .del-confirm-popover button:focus-visible { outline: 2px solid var(--pp-accent, #4477bb); outline-offset: 1px; }
 /* Exit mirrors the popinScale entrance (scale, not translateY); popup.js
    dismiss() adds the class and delays remove(). */
@@ -613,9 +647,9 @@ button.offline-clear:focus-visible, button.offline-toggle:focus-visible { outlin
   pointer-events: none;
   transition: opacity 0.1s var(--ease-out), transform 0.1s var(--ease-out);
 }
-.del-confirm-yes { color: #c00 !important; border-color: #c00 !important; }
-.del-confirm-yes:hover { background: #fee !important; }
-.del-confirm-no:hover { background: #eee; }
+.del-confirm-yes { color: var(--pp-danger) !important; border-color: var(--pp-danger) !important; }
+.del-confirm-yes:hover { background: var(--pp-danger-hover-bg) !important; }
+.del-confirm-no:hover { background: var(--pp-neutral-hover-bg); }
 .status-msg { padding: var(--pp-sp-2) var(--pp-sp-5) var(--pp-sp-2) 72px; font-size: 11px; }
 .status-msg.success { color: var(--pp-ok-fg); }
 .status-msg.error { color: var(--pp-danger); }
@@ -733,7 +767,7 @@ button.offline-clear:focus-visible, button.offline-toggle:focus-visible { outlin
   text-align: center;
   font-size: 10px;
   line-height: 14px;
-  color: #1a3a6e;
+  color: var(--pp-progress-text-fg);
   font-variant-numeric: tabular-nums;
   font-family: "SF Mono", Consolas, Menlo, "Liberation Mono", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei", monospace;
   mix-blend-mode: difference;
@@ -814,14 +848,14 @@ html.dark .batch-progress-text { color: var(--pp-fg); mix-blend-mode: normal; fi
   color: color-mix(in srgb, var(--pp-accent2) 80%, #000);
 }
 .regen-link.loading {
-  color: #aaa;
+  color: var(--pp-disabled-fg);
   pointer-events: none;
 }
 
 .regen-link + .regen-link {
   margin-left: var(--pp-sp-1);
   padding-left: var(--pp-sp-4);
-  border-left: 1px solid #ddd;
+  border-left: 1px solid var(--pp-popover-border);
 }
 
 /* Quick Links */
@@ -842,7 +876,7 @@ html.dark .batch-progress-text { color: var(--pp-fg); mix-blend-mode: normal; fi
 }
 .quick-links a:focus-visible { outline: 2px solid var(--pp-accent, #4477bb); outline-offset: 1px; }
 .ql-sep {
-  color: #ccc;
+  color: var(--pp-fg-faint);
   font-size: 10px;
 }
 
@@ -888,8 +922,8 @@ html.dark .batch-progress-text { color: var(--pp-fg); mix-blend-mode: normal; fi
 .offline-queue-list {
   max-height: 180px;
   overflow-y: auto;
-  background: #fffbea;
-  border-top: 1px dashed #e8d88c;
+  background: var(--pp-offline-queue-bg);
+  border-top: 1px dashed var(--pp-offline-queue-border);
   font-size: 11px;
   /* Same reveal as .existing-banner/.url-warning: replays on display:none->block,
      so the .hidden toggle in popup-offline.js needs no JS change. */
@@ -898,7 +932,7 @@ html.dark .batch-progress-text { color: var(--pp-fg); mix-blend-mode: normal; fi
 .offline-queue-empty {
   padding: var(--pp-sp-4);
   text-align: center;
-  color: #6b6b6b;
+  color: var(--pp-offline-queue-empty-fg);
 }
 .offline-queue-item {
   display: flex;
@@ -913,14 +947,14 @@ html.dark .batch-progress-text { color: var(--pp-fg); mix-blend-mode: normal; fi
   min-width: 0;
 }
 .offline-queue-title {
-  color: #555;
+  color: var(--pp-offline-queue-title-fg);
   font-size: 11px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .offline-queue-meta {
-  color: #999;
+  color: var(--pp-offline-queue-meta-fg);
   font-size: 10px;
   white-space: nowrap;
   overflow: hidden;
@@ -937,24 +971,24 @@ html.dark .batch-progress-text { color: var(--pp-fg); mix-blend-mode: normal; fi
   border-radius: var(--pp-radius-sm);
   padding: 1px var(--pp-sp-3);
   font-size: 11px;
-  color: #666;
+  color: var(--pp-oqa-btn-fg);
   cursor: pointer;
   line-height: 1.4;
   position: relative;
   transition: background var(--pp-motion-state), color var(--pp-motion-state), border-color var(--pp-motion-state);
 }
 .offline-queue-actions button:focus-visible { outline: 2px solid var(--pp-accent, #4477bb); outline-offset: 1px; }
-.offline-queue-actions button:hover:not(:disabled) { background: rgba(0,0,0,0.06); color: var(--pp-accent); }
+.offline-queue-actions button:hover:not(:disabled) { background: color-mix(in srgb, #000 6%, transparent); color: var(--pp-accent); }
 .offline-queue-actions button:disabled { opacity: 0.5; cursor: default; }
-.offline-queue-actions .offline-queue-remove:hover:not(:disabled) { color: #c00; }
-.offline-queue-actions .offline-queue-failed { color: #c00; border-color: #c00; }
+.offline-queue-actions .offline-queue-remove:hover:not(:disabled) { color: var(--pp-danger); }
+.offline-queue-actions .offline-queue-failed { color: var(--pp-danger); border-color: var(--pp-danger); }
 .offline-queue-retry.loading svg { animation: spin 0.6s linear infinite; }
 .offline-queue-retry.loading { opacity: 0.7; cursor: default; }
 
 /* Recent Bookmarks */
 .recent-bm-area {
   padding: var(--pp-sp-3) var(--pp-sp-4) var(--pp-sp-2);
-  border-top: 1px solid #e8e8e8;
+  border-top: 1px solid var(--pp-recent-bm-border);
   font-size: 11px;
   line-height: 1.8;
 }
@@ -982,7 +1016,7 @@ html.dark .batch-progress-text { color: var(--pp-fg); mix-blend-mode: normal; fi
 .recent-bm-domain { color: var(--pp-fg-hint); font-size: 10px; }
 .recent-bm-del {
   flex-shrink: 0;
-  color: #ccc;
+  color: var(--pp-fg-faint);
   cursor: pointer;
   font-size: 10px;
   padding: 0 var(--pp-sp-1);
@@ -991,7 +1025,7 @@ html.dark .batch-progress-text { color: var(--pp-fg); mix-blend-mode: normal; fi
 .recent-bm-del:hover { color: var(--pp-danger); }
 .recent-bm-edit {
   flex-shrink: 0;
-  color: #aaa;
+  color: var(--pp-disabled-fg);
   cursor: pointer;
   font-size: 10px;
   padding: 0 var(--pp-sp-1);
@@ -1008,14 +1042,14 @@ html.dark .batch-progress-text { color: var(--pp-fg); mix-blend-mode: normal; fi
   margin-left: var(--pp-sp-3);
   padding: 0 var(--pp-sp-3);
   border-radius: var(--pp-radius-sm);
-  background: rgba(0,0,0,0.08);
-  color: #444;
+  background: color-mix(in srgb, #000 8%, transparent);
+  color: var(--pp-edit-cancel-fg);
   cursor: pointer;
   font-size: 11px;
   line-height: 1.4;
   user-select: none;
 }
-.edit-cancel:hover { background: rgba(0,0,0,0.16); color: #c00; }
+.edit-cancel:hover { background: color-mix(in srgb, #000 16%, transparent); color: var(--pp-danger); }
 .edit-cancel:focus-visible { outline: 2px solid var(--pp-accent, #4477bb); outline-offset: 1px; }
 
 .submit-bar button.saved-success { background: var(--pp-ok-bg); border-color: var(--pp-ok-bd); color: var(--pp-ok-fg); }
@@ -2062,10 +2096,10 @@ html[data-theme="terminal"] .field > textarea { font-family: "Courier New", Cons
 .confirm-popover button {
   padding: var(--pp-sp-1) var(--pp-sp-4); font-size: 11px; cursor: pointer; border-radius: var(--pp-radius-sm); border: 1px solid;
 }
-.confirm-popover .confirm-yes { background: var(--pp-danger); color: #fff; border-color: var(--pp-danger); }
+.confirm-popover .confirm-yes { background: var(--pp-danger); color: var(--pp-on-danger); border-color: var(--pp-danger); }
 .confirm-popover .confirm-yes:hover { background: color-mix(in srgb, var(--pp-danger) 85%, #000); }
-.confirm-popover .confirm-no { background: none; color: #666; border-color: #ccc; }
-.confirm-popover .confirm-no:hover { background: #eee; }
+.confirm-popover .confirm-no { background: none; color: var(--pp-confirm-no-fg); border-color: var(--pp-confirm-no-border); }
+.confirm-popover .confirm-no:hover { background: var(--pp-confirm-no-hover-bg); }
 .confirm-popover button:focus-visible { outline: 2px solid var(--pp-accent, #4477bb); outline-offset: 1px; }
 @keyframes confirmFadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
 /* Exit mirrors the entrance path (fade + 4px rise). shared.js dismiss() adds
