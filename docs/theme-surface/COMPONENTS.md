@@ -130,7 +130,7 @@ YaHei/PingFang 时行盒比 Latin 高一截，同一颗按钮在 zh-CN 和 en �
 
 - **library**：全文没有任何 `html[data-theme] .btn` 覆盖，**13 套预设 + 默认态全中招**。上面那份
   1.10:1（dracula）/ 1.73:1（nord-night）/ 1.08:1（terminal）的实测值来自 library。
-- **options**：`options.css:1244` 的 `html[data-theme] .btn { … color: var(--opt-fg) }` 在 themed 态兜住了，
+- **options**：`options.css:1325` 的 `html[data-theme] .btn { … color: var(--opt-fg) }` 在 themed 态兜住了，
   ButtonText 回退**只咬无预设的默认态**（`html { color-scheme: light }` 又让它落在近黑上，所以浅色默认
   表面看不出问题）。这也正是它的裸 hex 与默认表面从没进过对比度门的原因。
 
@@ -142,9 +142,9 @@ composer 一旦开始发射 `color: var(--opt-btn-fg)`，它们会逐条覆盖�
 
 | 行 | 规则 | 被谁取代 |
 |---|---|---|
-| `options.css:1244` | `html[data-theme] .btn { background; border-color; color: var(--opt-fg) }` | 配方基类的 `btn-bg` / `border` / **`btn-fg`** |
-| `options.css:1245` | `html[data-theme] .btn:hover { background: var(--opt-btn-hover) }` | 配方的 `:hover` 规则 |
-| `options.css:1278` | `html[data-theme] .btn:focus-visible { outline-color: var(--opt-accent) }` | 配方 focus 规则里的 `outline: 2px solid var(--opt-accent)` |
+| `options.css:1325` | `html[data-theme] .btn { background; border-color; color: var(--opt-fg) }` | 配方基类的 `btn-bg` / `border` / **`btn-fg`** |
+| `options.css:1326` | `html[data-theme] .btn:hover { background: var(--opt-btn-hover) }` | 配方的 `:hover` 规则 |
+| `options.css:1359` | `html[data-theme] .btn:focus-visible { outline-color: var(--opt-accent) }` | 配方 focus 规则里的 `outline: 2px solid var(--opt-accent)` |
 
 删除时机是**发射的同一个 commit**，不是「之后再清」——中间状态下新 token 无效，渲染 oracle 会绿着骗人。
 
@@ -352,7 +352,7 @@ popup 维持现状并记录在案。
 - **缺陷 6 的形状**：`.notes-detail-delete` 与 `.vocab-detail-delete` 常亮红字红边地嵌在 15px/1.65
   行高的阅读正文流里，没有任何降噪。它们归 quiet + ghost。同文件的 `.row-del-x`（默认 `opacity: 0`，
   行 hover 才现身）是 quiet 档的**行内变体**——同一档 + 列表行特有的渐进披露，不是第三档。
-- **`.notes-detail-delete.is-error` 是类级联依赖**（`library.css:436`）：失败标记用 `box-shadow` 而不是
+- **`.notes-detail-delete.is-error` 是类级联依赖**（`library.css:442`）：失败标记用 `box-shadow` 而不是
   background，注释写明理由是「`.btn.danger:hover` 的 background 会赢过它并在下一次指针经过时抹掉失败痕迹」。
   改 danger 配方**必须**复核这个标记在新配方下仍可见——进附录 A 人审清单，不是自动门能判的。
 
@@ -452,7 +452,7 @@ popup 现有的 `--pp-tag-bg` / `--pp-tag-fg` 是同一角色的旧名。Task 5 
   transition: border-color var(--motion-state) ease, background-color var(--motion-state) ease, box-shadow var(--motion-state) ease;
 }
 /* hover 边框：不开新 token，在既有两个 token 之间取混色（现状是字面 #9aa0a6，hex ratchet 要清掉）。
-   同一 commit 必须删掉 options.css:1111-1115 的 html[data-theme] 版本，否则 themed 态永远走不到这里。 */
+   同一 commit 必须删掉 options.css:1192-1196 的 html[data-theme] 版本，否则 themed 态永远走不到这里。 */
 .fg input:hover:not(:focus), .fg select:hover:not(:focus), .fg textarea:hover:not(:focus) {
   border-color: color-mix(in srgb, var(--{ns}-input-border) 55%, var(--{ns}-fg));
 }
@@ -484,15 +484,15 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--{ns}-accent); 
 | `accent-color` | `--{ns}-accent` | 既有 |
 
 **字段与按钮同病**：`options.css:207` 与 `library.css:136` 的字段基类都声明了 `background-color` 却
-**没有 `color`**——options 靠 `html[data-theme] .fg input…`（:1106-1110）补，library 的 `.fg` 是死代码所以
+**没有 `color`**——options 靠 `html[data-theme] .fg input…`（:1187-1191）补，library 的 `.fg` 是死代码所以
 还没爆。成对消费律（§7）对字段和按钮一视同仁。
 
 **同一 commit 删除的 `html[data-theme]` 字段覆盖**（同 §1.3 的理由与时机）：
 
 | 行 | 规则 | 被谁取代 |
 |---|---|---|
-| `options.css:1106-1110` | `html[data-theme] .fg input/select/textarea { background-color; border-color; color }` | 配方基类的 `input-bg` / `input-border` / `fg` |
-| `options.css:1111-1115` | `html[data-theme] .fg input:hover:not(:focus) { border-color: var(--opt-fg-muted) }` | 配方的 hover `color-mix` |
+| `options.css:1187-1191` | `html[data-theme] .fg input/select/textarea { background-color; border-color; color }` | 配方基类的 `input-bg` / `input-border` / `fg` |
+| `options.css:1192-1196` | `html[data-theme] .fg input:hover:not(:focus) { border-color: var(--opt-fg-muted) }` | 配方的 hover `color-mix` |
 
 `html[data-theme] .fg …:focus` / `:focus-visible`（:1116 起）消费的 `--opt-focus-bd` / `--opt-focus-ring`
 与配方同源同值，属可删可留的重复；删之前逐条比对值，不确定就留着（它不会让任何新 token 变成死代码）。
@@ -626,21 +626,27 @@ popup 已按此实践（`popup.css:2067` 注释在案），options/library 目�
 
 **A4 类级联依赖复核**（改配方前必查）
 
-- [ ] `.notes-detail-delete.is-error`（`library.css:436`）：失败标记用 `box-shadow: inset 0 0 0 1px`
+- [ ] `.notes-detail-delete.is-error`（`library.css:442`）：失败标记用 `box-shadow: inset 0 0 0 1px`
       而非 background，注释写明是为了绕开 `.btn.danger:hover` 的 background。改 danger 配方后，
       **真开一次失败态**（或临时加类目测）确认标记仍可见，且在指针经过后不被抹掉。
 - [ ] `.notes-hit.is-error .notes-hit-btn`（同文件）用 `--row-bg` 变量通道传背景，同理复核。
-- [ ] 生成区插入点**之后**的同特异性 (0,1,0) 手写规则清单是否重新核过：`.row-del-x`（`library.css:344`）、
-      `.vocab-load-more`（:1059）、`.vocab-selection-actions .btn`（:972）、`.vocab-batch-cluster > .btn`（:1040）、
-      `.vocab-group-step`（:1047）。它们靠源顺序赢，谁赢谁输在迁移后必须逐条复述一遍。
+- [ ] 生成区插入点**之后**的同特异性 (0,1,0) 手写规则清单是否重新核过：`.row-del-x`（`library.css:350`）、
+      `.vocab-load-more`（:1063）、`.vocab-selection-actions .btn`（:976）、`.vocab-batch-cluster > .btn`（:1044）、
+      `.vocab-group-step`（:1051）。它们靠源顺序赢，谁赢谁输在迁移后必须逐条复述一遍。
 - [ ] **本规范自己要改的几何，其手写规则同样排在插入点之后、会赢过配方**，逐条确认已删或已改：
       `library.css:934` `.vocab-stat-chip { padding: 1px 8px }`（赢过配方的 `2px 8px`，C9 失效）、
       `library.css:1141` `.vocab-group-chip { padding: 0 4px }`（C8 失效）、
       `library.css:830` `.vocab-batch-bar input[type="text"] { padding: 4px 8px }`（C3 失效）、
       `popup.css:405` `.tag-item { padding: 1px 8px; line-height: 18px }`（C11 失效）。
+- [ ] **同选择器、同特异性的手写规则**，Task 9 打开对应 family 的同一 commit 须删：
+      `popup.css:555` `input[type="checkbox"], input[type="radio"] { accent-color: var(--pp-accent) }`
+      （(0,1,1)，与 §6 form family 给 pp 发射的同一条选择器同特异性，排在生成区插入点之后——
+      源顺序赢，配方打开后手写这条成死代码）、`options.css:1729` `.tag-gov-kind-badge { ... }`
+      （C10 的目标选择器本体，Task 9 打开 options 的 chip family 后同理须删，否则配方的
+      `padding: 2px 10px` 赢不过它）。
 - [ ] **更高特异性的 `html[data-theme]` 覆盖块**是否已在发射的同一 commit 里删除：
-      `options.css:1244/1245/1278`（`.btn` 的 background/border-color/**color**、hover、focus outline-color，
-      §1.3 有表）、`options.css:1106-1115`（`.fg` 字段的三色与 hover 边框，§6.2 有表）。
+      `options.css:1325/1326/1359`（`.btn` 的 background/border-color/**color**、hover、focus outline-color，
+      §1.3 有表）、`options.css:1187-1196`（`.fg` 字段的三色与 hover 边框，§6.2 有表）。
       漏删的症状是「新 token 发射了、门也绿、13 套预设下毫无变化」——死代码，不是通过。
 - [ ] 有没有 `!important` 参与这场级联？（popup `.del-btn` 带 `!important`，配方赢不了它——
       这是 popup 豁免的成因之一。）
@@ -688,8 +694,8 @@ popup 已按此实践（`popup.css:2067` 注释在案），options/library 目�
 | C13 | 详情面板删除钮（lib） | `.btn.btn-sm.danger`（常亮红字红边） | 追加 `ghost` chrome | 阅读面删除钮**从常亮变安静**，hover 才升色（缺陷 6 核销） | 本战役 |
 | C14 | `.confirm-popover .confirm-yes`（opt + lib） | `color: var(--{ns}-panel)` | `color: var(--{ns}-on-danger)` | 前景从未审计的借用值换成派生值，个别主题下会变 | 本战役 |
 | C14b | `.confirm-popover .confirm-yes:hover`（opt + lib，**无预设明暗态**） | 底色压深（`options.css:1330` `#a00` / `library.css:208` `var(--lib-danger,#a00)`） | 底色不变，只加 `inset 0 0 0 1px var(--{ns}-on-danger)` 环 | 默认表面的确认钮 hover **失去底色加深**，改成与 13 套预设一模一样的 inset 环（预设块 `options.css:1336` / `library.css:214` 现在就是这么做的）。是三表面收敛，不是新行为 | 本战役 |
-| C17 | `html[data-theme] .btn` 三条（`options.css:1244/1245/1278`） | 存在，特异性 (0,2,1) 赢过配方 | 删除 | 无独立视觉变化（配方接管同样的值），但**不删则 `--opt-btn-fg` 在 13 套预设下全是死代码**。与发射同 commit | 本战役 |
-| C18 | `html[data-theme] .fg` 字段两条（`options.css:1106-1110`、`1111-1115`） | 存在，同上 | 删除 | themed 态字段的三色与 hover 边框改由配方供给；hover 边框值从 `--opt-fg-muted` 变成 `color-mix(input-border 55%, fg)`，暗色主题下描边会略淡 | 本战役 |
+| C17 | `html[data-theme] .btn` 三条（`options.css:1325/1326/1359`） | 存在，特异性 (0,2,1) 赢过配方 | 删除 | 无独立视觉变化（配方接管同样的值），但**不删则 `--opt-btn-fg` 在 13 套预设下全是死代码**。与发射同 commit | 本战役 |
+| C18 | `html[data-theme] .fg` 字段两条（`options.css:1187-1191`、`1192-1196`） | 存在，同上 | 删除 | themed 态字段的三色与 hover 边框改由配方供给；hover 边框值从 `--opt-fg-muted` 变成 `color-mix(input-border 55%, fg)`，暗色主题下描边会略淡 | 本战役 |
 | C15 | `color-scheme`（lib） | 全文零声明 | `:root` + 每暗色主题块 | library 的原生滚动条 / `<select>` 弹层在暗色主题下**首次**变暗 | 本战役 |
 | C16 | `--pp-tag-bg` / `--pp-tag-fg` | 直取 palette，无 AA 校正 | 由 `--pp-chip-bg` / `--pp-chip-fg` 取代，旧名退役 | 个别主题下 popup 标签 chip 配色会变 | 本战役 |
 
@@ -706,8 +712,8 @@ popup 已按此实践（`popup.css:2067` 注释在案），options/library 目�
 - `--{ns}-danger-quiet-fg` 的派生背景集从计划的 `[bg, panel]` 扩为 `[bg, panel, btn-bg]`（超集）：
   quiet 档也会出现在工具条的常规 `.btn` 底上（`#vocab-batch-delete`），漏掉 btn-bg 会让那颗按钮逃过审计。
 - 按钮族追加 `ghost` chrome 变体。它不是新组件：`library.css` 里已有两份手写副本
-  （`.row-del-x`:344 与 `.vocab-selection-actions .btn`:972，均为 `border-color: transparent` +
+  （`.row-del-x`:350 与 `.vocab-selection-actions .btn`:976，均为 `border-color: transparent` +
   `background: transparent` + 弱化前景）。归并进配方是**删两份副本**，不是加一个新族；不归并也不违反
-  本规范（只要两份副本的值与 §1.2 一致）。**options.css 没有等价副本**——`library.css:344` 的注释
+  本规范（只要两份副本的值与 §1.2 一致）。**options.css 没有等价副本**——`library.css:350` 的注释
   「options.css's shared recipe」是移植来源的说法，`grep row-del-x options.css` 零命中，options 侧要用
   ghost 档（详情面板类阅读面）时是**首次出现**，按 §1.2 配方来，不要去 options 里找样板。

@@ -179,33 +179,47 @@ function dangerRules(ns) {
 // Appendix A3's open design question ("chip family or plain text?") — not
 // listed here for the same reason.
 //
-// CHIP_GEOM is shared across every target: line-height 14px + padding-block
-// 2px -> borderless height 18px (effective pill radius 9px); 10px
-// horizontal padding covers both the borderless and 1px-bordered (20px/10px
-// radius) cases (§5.2 comment). recipe-lint re-derives this instead of
-// trusting it, so a future edit to these numbers that breaks pill law 2
-// fails loudly.
-export const CHIP_GEOM = { padV: 2, padH: 10, fontSize: "11px", lineHeight: 14 };
+// CHIP_GEOM holds only the two values every chip target genuinely shares
+// (COMPONENTS.md §5.1 laws 1/3: vertical padding >= 2px, line-height pins the
+// row-box height). Horizontal padding and font-size are NOT cross-target
+// invariants — Appendix C gives each target its own regulation value (C8
+// keeps its container-inherited font-size, C9's padding is 8px not 10px,
+// C10's font-size stays 10px) — so those live per-entry on CHIP_TARGETS.
+// recipe-lint re-derives law 2 from padV/lineHeight instead of trusting a
+// canned radius, so a future edit here that breaks it fails loudly.
+export const CHIP_GEOM = { padV: 2, lineHeight: 14 };
 export const CHIP_TARGETS = [
-  { ns: "lib", selector: ".vocab-group-chip", radius: "full", pressable: false }, // C8
-  { ns: "lib", selector: ".vocab-stat-chip", radius: "sm", pressable: true }, // C9 (aria-pressed toggle)
-  { ns: "opt", selector: ".tag-gov-kind-badge", radius: "full", pressable: false }, // C10
+  // C8: padding 2px 10px, radius-full; font-size NOT emitted (§5.2/C8: "字号仍继承容器").
+  { ns: "lib", selector: ".vocab-group-chip", radius: "full", pressable: false, padH: 10 },
+  // C9: padding 2px 8px (not 10 — Appendix C gives this target 8px specifically),
+  // radius-sm, aria-pressed toggle; font-size unchanged from current shipped value (12px).
+  { ns: "lib", selector: ".vocab-stat-chip", radius: "sm", pressable: true, padH: 8, fontSize: "12px" },
+  // C10: padding-inline 6px->10px (+4px, law 2), radius-full; font-size unchanged
+  // from current shipped value (10px) — Appendix C only calls out the padding/height change.
+  { ns: "opt", selector: ".tag-gov-kind-badge", radius: "full", pressable: false, padH: 10, fontSize: "10px" },
 ];
 
 function chipRules(ns) {
   const out = [];
   for (const target of CHIP_TARGETS.filter(t => t.ns === ns)) {
-    const { selector, radius, pressable } = target;
-    out.push(rule(selector, [
+    const { selector, radius, pressable, padH, fontSize } = target;
+    const decls = [
       ["display", "inline-flex"],
       ["align-items", "center"],
-      ["padding", `${sp(ns, CHIP_GEOM.padV)} ${CHIP_GEOM.padH}px`],
-      ["font-size", CHIP_GEOM.fontSize],
+      // padH routed through sp() too (Minor fix): today's output is unchanged
+      // (lib padH=10/opt padH=10 have no matching rung, lib padH=8 resolves to
+      // var(--lib-sp-2) which IS 8px) — this just stops a future padH edit from
+      // silently bypassing the adapter contract.
+      ["padding", `${sp(ns, CHIP_GEOM.padV)} ${sp(ns, padH)}`],
+    ];
+    if (fontSize) decls.push(["font-size", fontSize]); // C8 deliberately omits this — inherits container
+    decls.push(
       ["line-height", `${CHIP_GEOM.lineHeight}px`],
       ["border-radius", `var(--${ns}-radius-${radius})`],
       ["background", `var(--${ns}-chip-bg)`],
       ["color", `var(--${ns}-chip-fg)`],
-    ]));
+    );
+    out.push(rule(selector, decls));
     if (pressable) {
       out.push(rule(`${selector}[aria-pressed]:hover`, [["background", `var(--${ns}-btn-hover)`]], { pairColorWith: selector }));
       out.push(rule(`${selector}[aria-pressed]:active`, [["transform", "scale(0.97)"]]));
@@ -228,7 +242,7 @@ function formRules(ns) {
     return [rule('input[type="checkbox"], input[type="radio"]', [["accent-color", `var(--${ns}-accent)`]])];
   }
   const FIELD_SEL = `.fg input[type="text"], .fg input[type="password"], .fg input[type="number"], .fg select, .fg textarea`;
-  return [
+  const out = [
     rule(FIELD_SEL, [
       ["width", "100%"],
       ["padding", `${sp(ns, 4)} ${sp(ns, 8)}`],
@@ -258,6 +272,18 @@ function formRules(ns) {
       ["outline", `2px solid var(--${ns}-accent)`], ["outline-offset", "1px"], ["box-shadow", "none"],
     ]),
   ];
+  // §6.1 toolbar-scoped field variant (sm rung, matches the row's .btn-sm
+  // height). Concrete selector per COMPONENTS.md Appendix C3 — the only named
+  // target this campaign (library.css:834, "本战役排期"); options has no
+  // equivalent named in Appendix C, so this only emits for lib.
+  if (ns === "lib") {
+    out.push(rule('.vocab-batch-bar input[type="text"]', [
+      ["padding", `${sp(ns, 2)} ${sp(ns, 8)}`],
+      ["font-size", "12px"],
+      ["line-height", "14px"],
+    ]));
+  }
+  return out;
 }
 
 // -----------------------------------------------------------------------
