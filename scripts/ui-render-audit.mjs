@@ -682,6 +682,40 @@ function evaluateCheck(check, raw, theme) {
     }
     out.push(verdict("fusedFocusRing", bad.length === 0, bad.length ? bad.join("; ") : `shell ring ok (${hasOutline ? `outline ${raw.outlineWidth}px @${raw.outlineOffset}` : "box-shadow"})`, true));
   }
+  // §7.3 focus-ring recipe conformance. Three named shapes and no fourth --
+  // measured on the focused element itself (state "focusWithin" with
+  // focusTarget ":scope"), so what is checked is the shape the LIVE cascade
+  // produced, not the shape some rule declares.
+  //   field   outline suppressed, focus border + focus-ring shadow instead
+  //   button  a real 2px+ outline growing outward
+  //   softRow the large-hit-area variant (1px core + --{ns}-focus-ring glow)
+  //           options.css documents for full-width sidebar tabs / accordion
+  //           and disclosure headers, where a hard rectangle around a whole
+  //           row reads wrong. Gated here so it stays that bounded set
+  //           instead of drifting into a de-facto fourth recipe.
+  if (exp.focusRecipe) {
+    const hasOutline = raw.outlineStyle && raw.outlineStyle !== "none" && raw.outlineWidth > 0;
+    const hasShadow = raw.boxShadow && raw.boxShadow !== "none" && !/inset/.test(raw.boxShadow);
+    const bad = [];
+    if (exp.focusRecipe === "field") {
+      if (hasOutline) bad.push(`draws a ${raw.outlineWidth}px outline (field recipe suppresses it)`);
+      if (!hasShadow) bad.push("no focus-ring box-shadow");
+      if (raw.focusBaseline && raw.focusBaseline.borderColors === raw.borderColors) {
+        bad.push("border-color unchanged on focus");
+      }
+    } else if (exp.focusRecipe === "button") {
+      if (!hasOutline) bad.push("no outline (button recipe needs one)");
+      else if (raw.outlineWidth < 2) bad.push(`outline ${raw.outlineWidth}px < 2px`);
+      if (hasOutline && raw.outlineOffset < 0) bad.push(`outline-offset ${raw.outlineOffset}px pulls the ring inward`);
+    } else if (exp.focusRecipe === "softRow") {
+      if (!hasOutline) bad.push("no outline core");
+      if (!hasShadow) bad.push("no --focus-ring glow (soft recipe is core + glow)");
+    } else {
+      bad.push(`unknown focusRecipe "${exp.focusRecipe}"`);
+    }
+    out.push(verdict("focusRecipe", bad.length === 0, bad.length ? bad.join("; ")
+      : `${exp.focusRecipe}: outline=${hasOutline ? raw.outlineWidth + "px" : "none"} shadow=${hasShadow ? "yes" : "no"}`, exp.focusRecipe));
+  }
   return { results: out };
 }
 
@@ -726,7 +760,11 @@ async function runOneCheck(page, theme, check, results) {
     await page.keyboard.press("Shift");
     const focused = await page.evaluate(({ selector, target }) => {
       const el = document.querySelector(selector);
-      const t = el && el.querySelector(target);
+      // ":scope" = focus the probed element itself, for controls that ARE the
+      // focus target (§7.3 focusRecipe checks) rather than shells wrapping one
+      // (§8 fusedFocusRing checks). el.querySelector(":scope") never matches,
+      // so this needs the explicit branch.
+      const t = el && (target === ":scope" ? el : el.querySelector(target));
       if (!t) return false;
       t.focus();
       return document.activeElement === t;

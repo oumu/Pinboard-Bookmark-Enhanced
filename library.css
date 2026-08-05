@@ -1139,13 +1139,20 @@ html.motion-ready .vocab-note-save[hidden] { display: none; opacity: 0; translat
   background-color: var(--lib-btn-hover);
   border-color: var(--lib-input-border, #cdd1d6);
 }
+/* §7.3: a <select> is an input-class field, so it takes the FIELD recipe --
+   `outline: none` + focus border + the focus-ring shadow -- not the button
+   recipe. The `:focus` half was already correct; `:focus-visible` used to
+   stack a 2px accent outline on top of it, which made these three selects
+   the only fields on the surface wearing a hard rectangle, and put two
+   different focus languages side by side in one row (#vocab-lookup-input,
+   an <input> two elements away, has always drawn the shadow). Covers
+   #vocab-group-filter / #vocab-status-filter / #vocab-lookup-lang. */
 .vocab-filter-toolbar select:focus {
   outline: none;
-  border-color: var(--lib-focus-bd, var(--lib-accent));
+  border-color: var(--lib-focus-bd);
 }
 .vocab-filter-toolbar select:focus-visible {
-  outline: 2px solid var(--lib-accent);
-  outline-offset: 1px;
+  box-shadow: var(--lib-focus-ring);
 }
 /* #vocab-lookup-go is a bare icon .btn-sm (COMPONENTS.md §1.5's "dense
    toolbar -> sm" clause, not the "beside a field -> md" one -- this bar is a

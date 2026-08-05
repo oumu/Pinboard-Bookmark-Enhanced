@@ -697,6 +697,22 @@ check(mdTranslateJs.includes('const targetCode = plan.targetCode || ""') &&
 // Both disclosure paths must exist, and the hover half must stay behind a
 // fine-pointer gate: it inserts a full-width grid row inside a scrolling log,
 // and on touch :hover latches after a tap and wedges the tip open.
+// COMPONENTS.md §7.3 focus-ring recipes, for the two converged sites the
+// render oracle cannot reach: .theme-name-popover only exists after the
+// disabled #save-custom-theme is enabled and clicked, and popup's
+// .regen-link is created by popup-ai.js only after an AI response. Both are
+// static text contracts here rather than render entries whose setup would be
+// longer than the rule they guard. Every other §7.3 site is gated live in
+// tests/render-audit-checklist.mjs via `focusRecipe`.
+check(/\.theme-name-popover input\[type="text"\]:focus \{[^}]*border-color: var\(--opt-focus-bd\)/.test(optionsCss) &&
+  /\.theme-name-popover input\[type="text"\]:focus-visible \{ box-shadow: var\(--opt-focus-ring\); \}/.test(optionsCss) &&
+  !/theme-name-popover input\[type="text"\]:focus-visible \{ box-shadow: 0 0 0 2px/.test(optionsCss),
+  "options.css: the theme-name popover input is back on a bespoke focus ring instead of --opt-focus-bd/--opt-focus-ring (§7.3), so per-theme focus styling does not reach it");
+check(/\.theme-name-popover \.tnp-save:focus-visible,\s*\n\s*\.theme-name-popover \.tnp-cancel:focus-visible \{ outline: 2px solid var\(--opt-accent\); outline-offset: 2px; \}/.test(optionsCss),
+  "options.css: the theme-name popover's Save/Cancel lost their §7.3 focus ring and fall through to the UA default");
+check(/\.regen-link:focus-visible \{ outline: 2px solid var\(--pp-accent\); outline-offset: 2px; \}/.test(popupCss),
+  "popup.css: .regen-link lost its §7.3 focus ring and falls through to the UA default (unthemed on dark surfaces)");
+
 check(/\.wayback-log-row:focus-within\s+\.wayback-perm-tip/.test(optionsCss) &&
   /@media \(hover: hover\) and \(pointer: fine\) \{\s*\.wayback-log-row:hover\s+\.wayback-perm-tip/.test(optionsCss) &&
   optionsCss.includes("background: var(--opt-panel)") &&

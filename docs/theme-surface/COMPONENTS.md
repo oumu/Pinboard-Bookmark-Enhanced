@@ -567,16 +567,32 @@ html[data-theme="<dark preset>"] { color-scheme: dark; }
 
 ### 7.3 focus ring
 
-两套配方，按控件类型二选一，**不许第三套**：
+**三套具名配方，按控件类型三选一，不许第四套**：
 
-| 控件类型 | 配方 |
-|---|---|
-| 按钮 / 可点行 / chip / tab | `outline: 2px solid var(--{ns}-accent); outline-offset: 2px` |
-| 输入类字段 | `outline: none; border-color: var(--{ns}-focus-bd); box-shadow: var(--{ns}-focus-ring)` |
+| # | 控件类型 | 配方 |
+|---|---|---|
+| `button` | 按钮 / 可点行 / chip | `outline: 2px solid var(--{ns}-accent); outline-offset: 2px` |
+| `field` | 输入类字段（含 `<select>`——它是输入类，不是按钮） | `outline: none; border-color: var(--{ns}-focus-bd); box-shadow: var(--{ns}-focus-ring)` |
+| `softRow` | **大命中区整行**：侧栏 tab、accordion / disclosure 表头 | `outline: 1px solid var(--{ns}-accent); outline-offset: 2px; box-shadow: var(--{ns}-focus-ring)` |
+
+`softRow` 是 2026-08-05 清查时**从既有实现升格**的，不是新造：`options.css` 的
+`.tab-btn` / `.accordion-header` / `.vocab-disclosure > summary` 三者早已一致地用它，并写着理由——
+整行宽的控件套一圈硬 2px 矩形读起来不对，改成 1px 细芯 + `--{ns}-focus-ring` 辉光。理由成立、
+三个消费点一致、且辉光走 token（主题各自重定义：terminal 的 CRT 辉光、solarized 的 2px 环），
+所以正确处置是**给它一个名字并接上门**，而不是把它拍平成 `button` 套——后者是拿"配方只能有两套"
+这句话去推翻一条论证过的设计决定。**升格的代价是它从此有边界**：只有"整行宽、内容自撑高度"的
+控件能用，别拿它去修饰普通按钮；`focusRecipe` 断言按名字逐个钉住消费点。
+
+**别把 `outline: none` 当成"去掉焦点环"**：它只在 `field` 套里合法，且必须与
+`border-color` + `box-shadow` 同时出现。裸 `outline: none` 一律 fail（§7.3 原有规则，不变）。
 
 - 控件贴着容器边缘或会被父级裁切时，`outline-offset` 取负值（`-2px`），不要改成别的形态。
 - **`outline: none` 只能与替代焦点指示同时出现**。裸 `outline: none` 在配方里一律 fail。
 - 焦点指示对相邻背景 ≥3:1（WCAG 1.4.11）。
+- **融合控件的环画在容器上**，见 §8 律 2——内部件不各画各的。
+- 门：渲染 oracle 的 `focusRecipe`（`field` / `button` / `softRow`），按名字断言**活级联**产出的形状，
+  不是断言某条规则写了什么。渲染不可达的站点（弹层里只在用户动作后才存在的控件）改由
+  `tests/ui-contract-tests.mjs` 的静态文本契约看管——两处都要有主，不许没人管。
 
 ### 7.4 状态色一律 token 化
 

@@ -930,6 +930,12 @@ html.dark .batch-progress-text { color: var(--pp-fg); mix-blend-mode: normal; fi
   color: var(--pp-disabled-fg);
   pointer-events: none;
 }
+/* §7.3 button recipe. These two are <button>s styled as inline links and had
+   no :focus-visible rule, so they fell through to the UA ring -- the only
+   focusable controls in the popup that did not follow the surface's own
+   focus language, and the one place where a themed dark surface got a ring
+   picked by the UA rather than by --pp-accent. */
+.regen-link:focus-visible { outline: 2px solid var(--pp-accent); outline-offset: 2px; }
 
 .regen-link + .regen-link {
   margin-left: var(--pp-sp-1);

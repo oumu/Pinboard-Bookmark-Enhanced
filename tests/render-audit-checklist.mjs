@@ -502,6 +502,29 @@ export const CHECKS = [
     focusTarget: "#vocab-sort-time", expect: { fusedFocusRing: true } },
   { surface: "library", page: "library.html", selector: ".vocab-sort-seg", state: "focusWithin",
     focusTarget: "#vocab-sort-alpha", expect: { fusedFocusRing: true } },
+  // ---- COMPONENTS.md §7.3: focus-ring recipe conformance (2026-08-05
+  // sweep). One entry per converged site. The two sites that need heavy
+  // setup to render at all -- .theme-name-popover (only exists after the
+  // disabled #save-custom-theme is enabled and clicked) and popup's
+  // .regen-link (popup-ai.js only creates it after an AI response) -- are
+  // gated statically in tests/ui-contract-tests.mjs instead: a text-level
+  // contract there beats a render entry whose setup is longer than the rule
+  // it guards. ----
+  // A <select> is an input-class field; this one used to stack a 2px
+  // button-style outline on top of the field recipe's focus border, putting
+  // two focus languages side by side in one toolbar row.
+  { surface: "library", page: "library.html", selector: "#vocab-group-filter", state: "focusWithin",
+    focusTarget: ":scope", expect: { focusRecipe: "field" } },
+  // The soft-focus family (1px core + --opt-focus-ring glow) options.css
+  // documents for full-width rows. Deliberately NOT converged to the 2px
+  // button ring: it is a token-driven decision with a written rationale (a
+  // hard rectangle around a whole sidebar row reads wrong) and it already
+  // governs .tab-btn / .accordion-header / .vocab-disclosure > summary
+  // consistently. Pinning it as a NAMED recipe is what stops it drifting
+  // into an unowned fourth shape -- see §7.3.
+  { surface: "options", page: "options.html", selector: ".tab-btn", state: "focusWithin",
+    focusTarget: ":scope", expect: { focusRecipe: "softRow" } },
+
   // The two steppers now paint --lib-fg on --lib-input-bg instead of
   // --lib-btn-fg on --lib-btn-bg. fg-vs-input-bg is a COMPONENTS.md §6.2
   // derivation requirement but is NOT in contrast-audit's
