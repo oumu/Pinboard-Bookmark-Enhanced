@@ -211,6 +211,49 @@ export function borderToAA(border, bgs, min = 3) {
   return fgToAAMulti(border, bgs, min);
 }
 
+// Soft Fill (design-uplift 2026-08-05, USER RULING): at rest a control is
+// announced by its FILL, not by a frame -- the resting border-color collapses
+// into the fill (border-width is kept, so zero layout shift). That only works
+// if the fill is actually distinguishable from the surface the control sits
+// on, and measured across the 14 theme blocks it frequently is NOT: options'
+// btn-bg is byte-identical to its own panel in 6 of them, library's in ALL
+// 14, input-bg in 5, and popup's bg2-as-button-fill in 7 against its own
+// strip. Delete the border there and the control vanishes outright -- the
+// finding softfill-delta-report.md §11.2 tabulated (github-light: panel,
+// btn-bg AND input-bg all #ffffff).
+//
+// So: mix the surface's own fg into the fill until it clears `min` against
+// EVERY host surface that control can sit on. Multi-host is not theoretical:
+// library's .btn appears both on the page bg (toolbars) and inside a pane
+// (panel), and separating from only one of the two can push the fill straight
+// onto the other. Same repeated-worst-case shape as fgToAAMulti, just at a
+// perceptibility floor instead of a legibility one.
+//
+// 1.06:1 is deliberately far below WCAG 1.4.11's 3:1 -- that clause governs a
+// control's boundary against its background, a job the focus ring and the
+// hover fill still do at full strength. This is the much weaker "the resting
+// shape is perceivable at all" bar: on white, a 1-step-per-channel difference
+// is ~1.005:1 (invisible), 1.06:1 is ~4 steps, which is where a flat fill
+// starts reading as a distinct plane rather than as banding.
+//
+// Mixes into the FILL, not into the surface, so a theme whose fill already
+// carries its own tint keeps that hue and only gains separation (mixing into
+// the surface, the shape softfill-delta-report.md sketched for the runtime
+// overlay, would have flattened every theme's fill onto one neutral). Where
+// fill === surface the two are identical anyway. Identity when the pair
+// already clears `min`, so an already-separated theme emits byte-for-byte
+// unchanged.
+export function fillSeparate(fill, surfaces, fg, min = 1.06) {
+  const round = c => hexToRgb(rgbToHex(c));
+  const clears = c => surfaces.every(s => contrast(round(c), round(s)) >= min);
+  if (clears(fill)) return fill;
+  for (let i = 1; i <= 100; i++) {
+    const out = mix(fill, fg, i * 0.005);
+    if (clears(out)) return out;
+  }
+  return mix(fill, fg, 0.5);
+}
+
 // Site radius scale -> extension UI radius scale.
 //
 // The site composers take the pilot's values literally (_base.mjs). Several

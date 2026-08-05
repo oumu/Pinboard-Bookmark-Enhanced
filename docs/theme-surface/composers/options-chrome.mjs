@@ -1,6 +1,6 @@
 import { expandPalette } from "./_util.mjs";
 import { mergeTokens } from "./compose-theme.mjs";
-import { deriveUiColors, deriveUiRadius, regularizeUiRadius, fgToAA, fgToAAMulti, borderToAA, hexToRgb, rgbToHex, resolveOpaqueBg, resolveChipBg } from "./_ui-derive.mjs";
+import { deriveUiColors, deriveUiRadius, regularizeUiRadius, fgToAA, fgToAAMulti, borderToAA, fillSeparate, hexToRgb, rgbToHex, resolveOpaqueBg, resolveChipBg } from "./_ui-derive.mjs";
 import { POPUP_THEME_MAP } from "./popup-chrome.mjs";
 
 // Default-surface (no preset selected) component-layer baseline — Task 5,
@@ -62,12 +62,27 @@ const DEFAULT_LIGHT = {
   // didn't establish. Flagged here instead of silently claiming AA.
   "save": "#1a7f37",
   "warn": "#9a6700",
-  "border": "#8a8a8a",           // NOT a literal copy: the hand-written :root's old #ccc was only
+  // Soft Fill control fills (design-uplift 2026-08-05). Both were hand-written
+  // :root literals until now; both were exactly the surface they sit on, so the
+  // moment the resting frame collapsed into the fill they became invisible
+  // controls (btn-bg #f5f5f0 == --opt-bg 1.00:1; input-bg #ffffff == --opt-panel
+  // 1.00:1). Derived by the same fillSeparate(fill, [panel, bg], fg) the themed
+  // blocks use: btn-bg 1.16:1 vs panel / 1.06:1 vs bg, input-bg 1.16 / 1.06.
+  "btn-bg": "#eeeee9",
+  "btn-border": "#eeeee9",       // = btn-bg (frame collapsed into the fill).
+  "btn-hover": "#e7e7e7",        // NOT a literal copy: the old #eee is 1.00:1 against the new rest fill.
+                                  // fillSeparate(btn-hover, [btn-bg], fg) — 1.06:1, hover reads again.
+  "input-bg": "#eeeeee",
+  "input-border": "#eeeeee",     // = input-bg.
+  "border": "#858585",           // NOT a literal copy: the hand-written :root's old #ccc was only
                                   // 1.47:1 against --opt-btn-bg (#f5f5f0) and 1.61:1 against panel
                                   // (#fff) (design-uplift Task 16, USER RULING -- border reads visibly
                                   // heavier now, the intended effect). Derived the same way the themed
-                                  // border is: borderToAA(border, [btn-bg, panel]) — 3.16:1 / 3.45:1,
-                                  // both clear the 3:1 non-text floor.
+                                  // border is: borderToAA(border, [btn-bg, panel]) — 3.17:1 / 3.69:1,
+                                  // both clear the 3:1 non-text floor. Re-derived 2026-08-05 (was
+                                  // #8a8a8a) because Soft Fill darkened btn-bg out from under it:
+                                  // contrast-audit's `border vs btn-bg` row caught the stale value at
+                                  // 2.97:1 -- this pair is gated by derivation, never by allowlist.
 };
 
 // Map canonical UI colors (from _ui-derive) + a few options-only roles to --opt-* names.
@@ -106,9 +121,33 @@ function emitOpt(ui, palette, overrides, radius, mode) {
   // there is no base-map fallback for it), so deriving against the
   // pre-override palette value would guarantee AA for a color that isn't
   // what's actually painted below.
+  // Soft Fill separation (design-uplift 2026-08-05, USER RULING) -- runs
+  // BEFORE border/btn-fg/chip-fg below, all of which derive against the
+  // button fill and must see its final value. With the resting frame
+  // collapsed into the fill, a fill that equals its own host surface is an
+  // invisible control: options' btn-bg is byte-identical to --opt-panel in 6
+  // of the 14 blocks and its input-bg in 3 (measured, not assumed).
+  // Skipped per-role when the pilot restores a real frame (terminal, via
+  // ui.options.<mode>["btn-border"]/["input-border"]): a framed control does
+  // not need its fill to carry the affordance.
+  const ovr = overrides ?? {};
+  const fgRgb = hexToRgb(map.fg);
+  // Two hosts: options' .btn appears inside .panel and on the page bg
+  // (toolbars, .panel-foot straddles both) -- separating from one alone can
+  // push the fill onto the other.
+  const hosts = [hexToRgb(map.panel), hexToRgb(map.bg)];
+  if (ovr["btn-border"] == null) map["btn-bg"] = rgbToHex(fillSeparate(hexToRgb(map["btn-bg"]), hosts, fgRgb));
+  map["btn-border"] = ovr["btn-border"] ?? map["btn-bg"];
+  if (ovr["input-border"] == null) map["input-bg"] = rgbToHex(fillSeparate(hexToRgb(map["input-bg"]), hosts, fgRgb));
+  map["input-border"] = ovr["input-border"] ?? map["input-bg"];
   const bgRgb = hexToRgb(map.bg);
   const panelRgb = hexToRgb(map.panel);
   const btnBgRgb = hexToRgb(map["btn-bg"]);
+  // Hover has to stay a perceptible STEP from the new rest fill: on the
+  // default surface the old --opt-btn-hover was 1.00:1 against it once rest
+  // stopped being the panel colour. One host (the fill it must differ from);
+  // identity wherever the theme's hover already sits far enough away.
+  map["btn-hover"] = rgbToHex(fillSeparate(hexToRgb(map["btn-hover"]), [btnBgRgb], fgRgb));
   const btnHoverRgb = hexToRgb(map["btn-hover"]);
   const dangerRgb = hexToRgb(map.danger);
   // border (design-uplift Task 16, USER RULING): same gap and same
@@ -134,7 +173,12 @@ function emitOpt(ui, palette, overrides, radius, mode) {
   // bug, same root cause, this file shipped the identical
   // `map["chip-bg"] = palette["tag-bg"]` verbatim-copy). chipBgRgb is reused
   // below for chip-fg's contrast check so both derive from the same fill.
-  const chipBgRgb = resolveChipBg(palette["tag-bg"], hexToRgb(map.accent), panelRgb);
+  // Same separation floor as btn/input above (a chip IS a fill-only control,
+  // it never had a frame to lose). Identity on all 14 blocks today -- the
+  // 10%-accent tint resolveChipBg synthesises already clears 1.09:1 -- so
+  // this changes zero bytes; it is here so a future palette edit that
+  // flattens a chip onto its panel is corrected instead of shipped.
+  const chipBgRgb = fillSeparate(resolveChipBg(palette["tag-bg"], hexToRgb(map.accent), panelRgb), [panelRgb], fgRgb);
   map["chip-bg"] = rgbToHex(chipBgRgb);
   // fgToAAMulti, not fgToAA: a pressable chip ([aria-pressed]) swaps its
   // hover fill for btn-hover (COMPONENTS §5.3), so chip-fg must clear AA

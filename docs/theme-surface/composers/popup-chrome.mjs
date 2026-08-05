@@ -1,6 +1,6 @@
 import { expandPalette } from "./_util.mjs";
 import { mergeTokens } from "./compose-theme.mjs";
-import { deriveUiColors, deriveUiRadius, regularizeUiRadius, fgToAA, fgToAAMulti, borderToAA, hexToRgb, rgbToHex, resolveOpaqueBg } from "./_ui-derive.mjs";
+import { deriveUiColors, deriveUiRadius, regularizeUiRadius, fgToAA, fgToAAMulti, borderToAA, fillSeparate, hexToRgb, rgbToHex, resolveOpaqueBg } from "./_ui-derive.mjs";
 
 // popup theme id -> { pilot, mode, useDarkMode? }
 // 12 themes map 1:1; the flexoki pilot yields BOTH flexoki-light and flexoki-dark.
@@ -36,7 +36,10 @@ const DEFAULT_LIGHT = {
                                  // that formula's (identity) result rather than guessing.
   "chip-bg": "#e2eafa",         // = --pp-tag-bg default (popup.css:53)
   "chip-fg": "#33589f",         // = --pp-tag-fg default (popup.css:54)
-  "danger-quiet-fg": "#c24343", // = --pp-danger default (popup.css:66)
+  "danger-quiet-fg": "#bd3d3d", // WAS a verbatim copy of --pp-danger default (#c24343); re-derived
+                                 // 2026-08-05 because Soft Fill's btn-bg (#eff0f2) is a darker fill
+                                 // than the #ffffff this text used to sit on, dropping it to 4.41:1.
+                                 // fgToAAMulti(danger, [bg, panel, btn-bg]) — 5.39 / 5.03 / 4.72:1.
   "on-danger": "#ffffff",       // = .confirm-popover .confirm-yes `color` default light (popup.css:2048)
   "on-accent": "#ffffff",       // = --pp-on-accent default (popup.css:47) -- moved here design-uplift
                                  // Task 13 step 2, retiring the hand-written :root duplicate of the
@@ -50,12 +53,30 @@ const DEFAULT_LIGHT = {
                                  // main pass fixed. Derived the same way: fgToAAMulti(link, [preset-
                                  // btn-bg, preset-btn-hover-bg]) — 5.62:1 / 4.77:1, both clear AA
                                  // (design-uplift Task 13 review round).
-  "border": "#848fa4",          // NOT a literal copy: the hand-written :root's old #e8eaee was only
+  "btn-bg": "#eff0f2",          // NOT a literal copy (Soft Fill, design-uplift 2026-08-05): popup had no
+                                 // button-fill role at all -- .qbtn/.submit-bar button painted --pp-bg on
+                                 // the default surface and --pp-bg2 under every preset, i.e. the same
+                                 // token that paints the .quick-actions strip they sit ON. With the
+                                 // resting frame gone that is an invisible button. fillSeparate(bg2,
+                                 // [bg, bg2], fg) -- 1.14:1 vs --pp-bg, 1.06:1 vs --pp-bg2.
+  "btn-bd": "#eff0f2",          // = btn-bg: the resting border collapses INTO the fill (border-width
+                                 // kept, zero layout shift). terminal restores a real frame through its
+                                 // pilot ui.popup override; nothing else does.
+  "btn-hover": "#dee5f2",       // NOT a literal copy: --pp-drop-hover (#e6eefb) is only 1.02:1 against
+                                 // the new btn-bg above -- with rest no longer white, the old hover fill
+                                 // stopped reading as a change at all. fillSeparate(drop-hover, [btn-bg],
+                                 // fg) -- 1.06:1 vs rest, still the same accent-tinted family.
+  "input-bd": "#edf0f4",        // = --pp-input-bg (itself nudged to #edf0f4 in :root by the same
+                                 // fillSeparate([bg, bg2]) pass) -- the field's resting frame collapses
+                                 // into its own fill, same rule as btn-bd. Replaces the hand-written
+                                 // `--pp-input-bd: transparent`, which only ever held on the default
+                                 // surface: every preset re-armed a full --pp-border frame further down.
+  "border": "#7e8aa0",          // NOT a literal copy: the hand-written :root's old #e8eaee was only
                                  // 1.12:1 against --pp-bg2 (design-uplift Task 16, USER RULING --
                                  // border reads visibly heavier now, the intended effect). Derived the
-                                 // same way the themed border is: borderToAA(border, [bg2, bg2]) —
-                                 // panel === bg2 === btn-bg for popup, same alias as the themed
-                                 // derivation — 3.04:1, clears the 3:1 non-text floor.
+                                 // same way the themed border is:
+                                 // borderToAA(border, [btn-bg, panel]) — 3.05:1 / 3.25:1. Re-derived
+                                 // 2026-08-05 (was #848fa4 against a btn-bg that was still bg2).
 };
 const DEFAULT_DARK = {
   "btn-fg": "#e6e7ea",          // = --pp-fg, html.dark (popup.css:1044)
@@ -72,8 +93,17 @@ const DEFAULT_DARK = {
                                  // dark (#10131a) — 6.22:1 against #e57373, already clears AA (identity).
   "on-accent": "#10131a",       // = --pp-on-accent, html.dark (popup.css:1102) -- moved here design-
                                  // uplift Task 13 step 2, same reason as DEFAULT_LIGHT's entry above.
-  "border": "#696e7a",          // NOT a literal copy: html.dark's old #2c2e33 was only 1.17:1 against
-                                 // --pp-bg2 dark (#212226). borderToAA(border, [bg2, bg2]) — 3.11:1.
+  "btn-bg": "#26272b",          // Soft Fill, same derivation as DEFAULT_LIGHT's entry:
+                                 // fillSeparate(bg2, [bg, bg2], fg) — 1.15:1 vs --pp-bg, 1.07:1 vs --pp-bg2.
+  "btn-bd": "#26272b",          // = btn-bg (resting frame collapsed into the fill).
+  "btn-hover": "#26334d",       // identity: dark --pp-drop-hover is already 1.18:1 against the new
+                                 // rest fill, so fillSeparate returns it unchanged. Emitted anyway so
+                                 // both surfaces read the same token, not a var() fallback chain.
+  "input-bd": "#26282d",        // = --pp-input-bg dark, which fillSeparate already leaves untouched
+                                 // (1.17:1 vs bg / 1.08:1 vs bg2 out of the box).
+  "border": "#6e7380",          // NOT a literal copy: html.dark's old #2c2e33 was only 1.17:1 against
+                                 // --pp-bg2 dark (#212226). borderToAA(border, [btn-bg, panel]) — 3.15:1 / 3.35:1
+                                 // (re-derived 2026-08-05, was #696e7a).
 };
 
 // mode drives the native-control scheme (scrollbar, number spinner, calendar
@@ -87,8 +117,8 @@ function emitPp(ui, mode) {
   const lines = [`  color-scheme: ${mode};`];
   const set = (k, val) => lines.push(`  --pp-${k}: ${val};`);
   for (const k of ["bg", "bg2", "fg", "fg-muted", "fg-hint", "link", "accent", "accent2",
-    "border", "divider", "input-bg", "input-focus-bg", "tag-bg", "tag-fg", "tag-hover", "drop-hover",
-    "chip-bg", "chip-fg", "btn-fg",
+    "border", "divider", "input-bg", "input-bd", "input-focus-bg", "tag-bg", "tag-fg", "tag-hover", "drop-hover",
+    "chip-bg", "chip-fg", "btn-bg", "btn-bd", "btn-hover", "btn-fg",
     "banner-bg", "banner-bd", "banner-fg", "warn-bg", "warn-bd", "warn-fg",
     "ok-bg", "ok-bd", "ok-fg", "offline-bg", "offline-bd", "offline-fg",
     "danger", "danger-quiet-fg", "on-danger", "spinner-bg", "spinner-fg", "preset-bg", "preset-fg",
@@ -136,9 +166,36 @@ export function composePopupThemes(tokensByPilot) {
     // overrides tag-bg from the palette's "transparent" to #FAEEC6, for
     // example) -- deriving against the pre-override palette value would
     // guarantee AA for a color that isn't what's actually emitted below.
-    const btnBgRgb = hexToRgb(ui.bg2);
-    const btnHoverRgb = hexToRgb(ui["drop-hover"]);
+    // Soft Fill separation (design-uplift 2026-08-05, USER RULING) -- runs
+    // FIRST, because btn-fg/chip-fg/border below all derive against the
+    // button fill and must see its final value. popup had no button-fill
+    // role: .qbtn/.submit-bar button painted --pp-bg2, the same token that
+    // paints the .quick-actions strip they sit on (7 of 14 blocks: 1.00:1).
+    // Skipped per-role when the pilot restores a resting frame -- terminal
+    // declares ui.popup.dark["btn-bd"]/["input-bd"], and a framed control
+    // doesn't need its fill to carry the affordance, so re-tinting it would
+    // only cost that theme its identity (its confirmation board measured
+    // 0.00% pixel change across all three surfaces).
+    const ppO = tk.ui?.popup?.[entry.mode] ?? {};
+    const fgRgb = hexToRgb(ui.fg);
+    // Two hosts, not one: .submit-bar button sits on --pp-bg, .qbtn and
+    // .search-field sit on the --pp-bg2 strip. A fill separated from only
+    // one of the two can land straight on the other.
+    const ppHosts = [hexToRgb(ui.bg), hexToRgb(ui.bg2)];
+    ui["btn-bg"] = ppO["btn-bd"] != null ? ui.bg2 : rgbToHex(fillSeparate(hexToRgb(ui.bg2), ppHosts, fgRgb));
+    ui["btn-bd"] = ppO["btn-bd"] ?? ui["btn-bg"];
+    ui["input-bg"] = ppO["input-bd"] != null ? ui["input-bg"] : rgbToHex(fillSeparate(hexToRgb(ui["input-bg"]), ppHosts, fgRgb));
+    ui["input-bd"] = ppO["input-bd"] ?? ui["input-bg"];
+    const btnBgRgb = hexToRgb(ui["btn-bg"]);
+    // Hover must stay a perceptible STEP from the new rest fill: on the
+    // default surface --pp-drop-hover was only 1.02:1 against it, i.e. a
+    // hover that no longer reads as a change. Same separation function, one
+    // host (the fill it has to differ from). Identity wherever drop-hover is
+    // already far enough away, which is most themed blocks.
+    ui["btn-hover"] = rgbToHex(fillSeparate(hexToRgb(ui["drop-hover"]), [btnBgRgb], fgRgb));
+    const btnHoverRgb = hexToRgb(ui["btn-hover"]);
     const bgRgb = hexToRgb(ui.bg);
+    const panelRgb = hexToRgb(ui.bg2);
     const dangerRgb = hexToRgb(ui.danger);
     // border (design-uplift Task 16, USER RULING): raw palette copy has no
     // AA guarantee against its own resting surface -- Task 7 measured
@@ -146,11 +203,11 @@ export function composePopupThemes(tokensByPilot) {
     // WCAG 1.4.11's 3:1 non-text floor). resolveOpaqueBg first: terminal's
     // border is a translucent glow (#33ff3340, an 8-digit alpha hex, same
     // shape as its spinner-bg handled below) -- hexToRgb() alone would
-    // misparse it as 6-digit. panel === bg2 === btn-bg for popup (no
-    // dedicated panel role) -- duplicated for COMPONENTS.md §4.3
-    // spec-conformance, same convention as danger-quiet-fg's 3-bg superset
-    // below even though two of the three are numerically identical today.
-    ui["border"] = rgbToHex(borderToAA(resolveOpaqueBg(ui.border, btnBgRgb), [btnBgRgb, btnBgRgb]));
+    // misparse it as 6-digit. popup still has no dedicated panel role --
+    // bg2 IS the panel -- but it is no longer also the button fill (Soft
+    // Fill split them above), so these two constraints are genuinely
+    // distinct now where they used to be the same number twice.
+    ui["border"] = rgbToHex(borderToAA(resolveOpaqueBg(ui.border, btnBgRgb), [btnBgRgb, panelRgb]));
     // preset-bd RETIRED (design-uplift, preset-row Variant A, 2026-08-04):
     // `.preset-btn` is borderless now (COMPONENTS.md Appendix C30), so no
     // rule anywhere reads --pp-preset-bd -- removed from emitPp's key list
@@ -163,10 +220,9 @@ export function composePopupThemes(tokensByPilot) {
     // return shape just to omit one field nobody reads once popup's own
     // emission list drops it.
     ui["btn-fg"] = rgbToHex(fgToAAMulti(hexToRgb(ui.fg), [btnBgRgb, btnHoverRgb]));
-    // panel === bg2 === btn-bg for popup (no dedicated panel role); the 3-bg
-    // set is spelled out per COMPONENTS.md §4.3 even though two of the three
-    // are numerically identical today.
-    ui["danger-quiet-fg"] = rgbToHex(fgToAAMulti(dangerRgb, [bgRgb, btnBgRgb, btnBgRgb]));
+    // bg / panel(=bg2) / btn-bg, per COMPONENTS.md §4.3 -- three genuinely
+    // distinct fills since the Soft Fill split.
+    ui["danger-quiet-fg"] = rgbToHex(fgToAAMulti(dangerRgb, [bgRgb, panelRgb, btnBgRgb]));
     ui["on-danger"] = rgbToHex(fgToAA(hexToRgb(palette["btn-fg"]), dangerRgb));
     // chip-bg carries the tag-bg role's FINAL (post-override) value verbatim;
     // chip-fg is AA-corrected against what that value actually composites to
@@ -177,7 +233,7 @@ export function composePopupThemes(tokensByPilot) {
     // pair). Identity here: popup's plain fgToAA already cleared both
     // backgrounds on every theme, so this changes zero shipped bytes for popup.
     ui["chip-bg"] = ui["tag-bg"];
-    ui["chip-fg"] = rgbToHex(fgToAAMulti(hexToRgb(ui["tag-fg"]), [resolveOpaqueBg(ui["tag-bg"], btnBgRgb), btnHoverRgb]));
+    ui["chip-fg"] = rgbToHex(fgToAAMulti(hexToRgb(ui["tag-fg"]), [resolveOpaqueBg(ui["tag-bg"], panelRgb), btnHoverRgb]));
     // preset-fg (design-uplift Task 13, USER RULING): deriveUiColors emits it
     // as a raw palette copy (hx("accent")), with no AA guarantee against its
     // own preset-bg -- contrast-audit's orphan guard caught 6/14 themes at

@@ -34,11 +34,19 @@
      block at the end of @generated:ui-themes below; a hand-written
      duplicate here would just be dead weight. */
   --pp-divider: #eef0f3;
-  --pp-input-bg: #eef1f5;
+  /* Nudged from #eef1f5 by the Soft Fill separation pass (design-uplift
+     2026-08-05): the search field sits on the --pp-bg2 strip, and #eef1f5 was
+     only 1.05:1 against it -- under the 1.06:1 floor fillSeparate() enforces
+     for every themed block, so the default surface would have been the one
+     place the invariant did not hold. */
+  --pp-input-bg: #edf0f4;
   --pp-input-focus-bg: #ffffff;
-  /* Resting input border (soft-fill = borderless; focus swaps to accent).
-     Strict WCAG 1.4.11 fallback values: #8a919c light / #666b74 dark. */
-  --pp-input-bd: transparent;
+  /* --pp-input-bd (resting field border) is emitted by the composer now
+     (Soft Fill, design-uplift 2026-08-05): it equals --pp-input-bg on every
+     surface except terminal, which restores its green frame through its own
+     pilot ui.popup override. The hand-written `transparent` here only ever
+     held on the default surface -- every preset re-armed a full --pp-border
+     frame further down this file. */
   /* Focus treatment — one soft recipe shared by all 14 surfaces: the border
      tints toward the accent instead of snapping to it at full strength, and
      the halo is a blurred glow emanating FROM the border (no hard-edged ring:
@@ -1368,16 +1376,20 @@ html[data-theme="modern-card"] {
   --pp-link: #1967d2;
   --pp-accent: #1a73e8;
   --pp-accent2: #7b1fa2;
-  --pp-border: #919191;
+  --pp-border: #828282;
   --pp-divider: #e8e8e8;
-  --pp-input-bg: #ffffff;
+  --pp-input-bg: #eaeaec;
+  --pp-input-bd: #eaeaec;
   --pp-input-focus-bg: #f0f2f5;
   --pp-tag-bg: #e8f0fe;
   --pp-tag-fg: #1967d2;
   --pp-tag-hover: #f1f3f4;
   --pp-drop-hover: #e8f0fe;
   --pp-chip-bg: #e8f0fe;
-  --pp-chip-fg: #1967d2;
+  --pp-chip-fg: #175ec0;
+  --pp-btn-bg: #eaeaec;
+  --pp-btn-bd: #eaeaec;
+  --pp-btn-hover: #dde4f3;
   --pp-btn-fg: #1a1a2e;
   --pp-banner-bg: #e8f0fe;
   --pp-banner-bd: #a3c7f6;
@@ -1392,12 +1404,12 @@ html[data-theme="modern-card"] {
   --pp-offline-bd: #fddd99;
   --pp-offline-fg: #995700;
   --pp-danger: #d93025;
-  --pp-danger-quiet-fg: #d02e24;
+  --pp-danger-quiet-fg: #c82c22;
   --pp-on-danger: #ffffff;
   --pp-spinner-bg: #e8e8e8;
   --pp-spinner-fg: #1a73e8;
   --pp-preset-bg: #e8f0fe;
-  --pp-preset-fg: #1565cf;
+  --pp-preset-fg: #1461c5;
   --pp-radius-sm: 4px;
   --pp-radius-md: 8px;
   --pp-radius-lg: 12px;
@@ -1416,9 +1428,10 @@ html[data-theme="nord-night"] {
   --pp-link: #88c0d0;
   --pp-accent: #88c0d0;
   --pp-accent2: #b48ead;
-  --pp-border: #818da5;
+  --pp-border: #8792a9;
   --pp-divider: #434c5e;
   --pp-input-bg: #434c5e;
+  --pp-input-bd: #434c5e;
   --pp-input-focus-bg: #4c566a;
   --pp-tag-bg: transparent;
   --pp-tag-fg: #aec89a;
@@ -1426,6 +1439,9 @@ html[data-theme="nord-night"] {
   --pp-drop-hover: #3b4252;
   --pp-chip-bg: transparent;
   --pp-chip-fg: #aec89a;
+  --pp-btn-bg: #3f4656;
+  --pp-btn-bd: #3f4656;
+  --pp-btn-hover: #3b4252;
   --pp-btn-fg: #d8dee9;
   --pp-banner-bg: #394551;
   --pp-banner-bd: #526c7a;
@@ -1440,7 +1456,7 @@ html[data-theme="nord-night"] {
   --pp-offline-bd: #7a705e;
   --pp-offline-fg: #ebcb8b;
   --pp-danger: #d08a91;
-  --pp-danger-quiet-fg: #d9a0a6;
+  --pp-danger-quiet-fg: #dca7ac;
   --pp-on-danger: #293547;
   --pp-spinner-bg: #434c5e;
   --pp-spinner-fg: #88c0d0;
@@ -1465,9 +1481,10 @@ html[data-theme="terminal"] {
   --pp-link: #33ff33;
   --pp-accent: #33ff33;
   --pp-accent2: #aaaa33;
-  --pp-border: #267326;
+  --pp-border: #267b26;
   --pp-divider: #33ff3325;
-  --pp-input-bg: #111111;
+  --pp-input-bg: #121b12;
+  --pp-input-bd: #121b12;
   --pp-input-focus-bg: #0d1a0d;
   --pp-tag-bg: transparent;
   --pp-tag-fg: #00cccc;
@@ -1475,6 +1492,9 @@ html[data-theme="terminal"] {
   --pp-drop-hover: #1a3a1a;
   --pp-chip-bg: transparent;
   --pp-chip-fg: #00cccc;
+  --pp-btn-bg: #121b12;
+  --pp-btn-bd: #121b12;
+  --pp-btn-hover: #1a3a1a;
   --pp-btn-fg: #33ff33;
   --pp-banner-bg: #062323;
   --pp-banner-bd: #0e6b6b;
@@ -1516,9 +1536,10 @@ html[data-theme="paper-ink"] {
   --pp-link: #1a3a5c;
   --pp-accent: #1a3a5c;
   --pp-accent2: #8b4513;
-  --pp-border: #9f834f;
+  --pp-border: #987d4c;
   --pp-divider: #e8dfd0;
-  --pp-input-bg: #fefdfb;
+  --pp-input-bg: #eae9e7;
+  --pp-input-bd: #eae9e7;
   --pp-input-focus-bg: #faf8f5;
   --pp-tag-bg: transparent;
   --pp-tag-fg: #8b4513;
@@ -1526,6 +1547,9 @@ html[data-theme="paper-ink"] {
   --pp-drop-hover: #f5f0e8;
   --pp-chip-bg: transparent;
   --pp-chip-fg: #8b4513;
+  --pp-btn-bg: #eee9e1;
+  --pp-btn-bd: #eee9e1;
+  --pp-btn-hover: #f5f0e8;
   --pp-btn-fg: #2c2c2c;
   --pp-banner-bg: #dfe1e3;
   --pp-banner-bd: #7d8e9f;
@@ -1567,9 +1591,10 @@ html[data-theme="dracula"] {
   --pp-link: #8be9fd;
   --pp-accent: #8be9fd;
   --pp-accent2: #bd93f9;
-  --pp-border: #676c88;
+  --pp-border: #767b98;
   --pp-divider: #44475a;
   --pp-input-bg: #44475a;
+  --pp-input-bd: #44475a;
   --pp-input-focus-bg: #51556b;
   --pp-tag-bg: transparent;
   --pp-tag-fg: #50fa7b;
@@ -1577,6 +1602,9 @@ html[data-theme="dracula"] {
   --pp-drop-hover: #21222c;
   --pp-chip-bg: transparent;
   --pp-chip-fg: #50fa7b;
+  --pp-btn-bg: #2e2f38;
+  --pp-btn-bd: #2e2f38;
+  --pp-btn-hover: #21222c;
   --pp-btn-fg: #f8f8f2;
   --pp-banner-bg: #34414e;
   --pp-banner-bd: #507686;
@@ -1591,7 +1619,7 @@ html[data-theme="dracula"] {
   --pp-offline-bd: #787d58;
   --pp-offline-fg: #f1fa8c;
   --pp-danger: #ff5555;
-  --pp-danger-quiet-fg: #ff5555;
+  --pp-danger-quiet-fg: #ff6969;
   --pp-on-danger: #282a36;
   --pp-spinner-bg: #44475a;
   --pp-spinner-fg: #8be9fd;
@@ -1616,9 +1644,10 @@ html[data-theme="flexoki-light"] {
   --pp-link: #205EA6;
   --pp-accent: #205EA6;
   --pp-accent2: #5E409D;
-  --pp-border: #938b60;
+  --pp-border: #8c855c;
   --pp-divider: #E6E4D9;
-  --pp-input-bg: #F2F0E5;
+  --pp-input-bg: #ebe9df;
+  --pp-input-bd: #ebe9df;
   --pp-input-focus-bg: #FFFCF0;
   --pp-tag-bg: #FAEEC6;
   --pp-tag-fg: #664D01;
@@ -1626,6 +1655,9 @@ html[data-theme="flexoki-light"] {
   --pp-drop-hover: #F2F0E5;
   --pp-chip-bg: #FAEEC6;
   --pp-chip-fg: #664d01;
+  --pp-btn-bg: #ebe9df;
+  --pp-btn-bd: #ebe9df;
+  --pp-btn-hover: #f2f0e5;
   --pp-btn-fg: #100f0f;
   --pp-banner-bg: #E1ECEB;
   --pp-banner-bd: #ABCFE2;
@@ -1665,9 +1697,10 @@ html[data-theme="flexoki-dark"] {
   --pp-link: #4385BE;
   --pp-accent: #4385BE;
   --pp-accent2: #8B7EC8;
-  --pp-border: #75716d;
+  --pp-border: #7a7672;
   --pp-divider: #343331;
-  --pp-input-bg: #282726;
+  --pp-input-bg: #2d2c2b;
+  --pp-input-bd: #2d2c2b;
   --pp-input-focus-bg: #343331;
   --pp-tag-bg: #3A2D04;
   --pp-tag-fg: #D0A215;
@@ -1675,6 +1708,9 @@ html[data-theme="flexoki-dark"] {
   --pp-drop-hover: #343331;
   --pp-chip-bg: #3A2D04;
   --pp-chip-fg: #d0a215;
+  --pp-btn-bg: #2d2c2b;
+  --pp-btn-bd: #2d2c2b;
+  --pp-btn-hover: #343331;
   --pp-btn-fg: #cecdc3;
   --pp-banner-bg: #12253B;
   --pp-banner-bd: #163B66;
@@ -1689,7 +1725,7 @@ html[data-theme="flexoki-dark"] {
   --pp-offline-bd: #664D01;
   --pp-offline-fg: #DFB431;
   --pp-danger: #D14D41;
-  --pp-danger-quiet-fg: #db736a;
+  --pp-danger-quiet-fg: #dd7b72;
   --pp-on-danger: #0c0c0b;
   --pp-spinner-bg: #403E3C;
   --pp-spinner-fg: #528fc3;
@@ -1714,9 +1750,10 @@ html[data-theme="solarized-light"] {
   --pp-link: #1e6ca4;
   --pp-accent: #268bd2;
   --pp-accent2: #6c71c4;
-  --pp-border: #958353;
+  --pp-border: #8f7d4f;
   --pp-divider: #d6cdb5;
-  --pp-input-bg: #eee8d5;
+  --pp-input-bg: #e6e1d0;
+  --pp-input-bd: #e6e1d0;
   --pp-input-focus-bg: #fdf6e3;
   --pp-tag-bg: transparent;
   --pp-tag-fg: #1e746d;
@@ -1724,7 +1761,10 @@ html[data-theme="solarized-light"] {
   --pp-drop-hover: #eee8d5;
   --pp-chip-bg: transparent;
   --pp-chip-fg: #1e746d;
-  --pp-btn-fg: #54696f;
+  --pp-btn-bg: #e6e1d0;
+  --pp-btn-bd: #e6e1d0;
+  --pp-btn-hover: #eee8d5;
+  --pp-btn-fg: #4f6369;
   --pp-banner-bg: #e3e9e1;
   --pp-banner-bd: #a7cbdc;
   --pp-banner-fg: #1e6ca4;
@@ -1738,7 +1778,7 @@ html[data-theme="solarized-light"] {
   --pp-offline-bd: #e0ca88;
   --pp-offline-fg: #846400;
   --pp-danger: #dc322f;
-  --pp-danger-quiet-fg: #ca2522;
+  --pp-danger-quiet-fg: #c22321;
   --pp-on-danger: #fefcf6;
   --pp-spinner-bg: #d6cdb5;
   --pp-spinner-fg: #2074af;
@@ -1763,9 +1803,10 @@ html[data-theme="solarized-dark"] {
   --pp-link: #5eabe2;
   --pp-accent: #268bd2;
   --pp-accent2: #9193cb;
-  --pp-border: #1089a4;
+  --pp-border: #1191ad;
   --pp-divider: #094b5a;
-  --pp-input-bg: #073642;
+  --pp-input-bg: #0d3b46;
+  --pp-input-bd: #0d3b46;
   --pp-input-focus-bg: #073642;
   --pp-tag-bg: transparent;
   --pp-tag-fg: #4aada3;
@@ -1773,6 +1814,9 @@ html[data-theme="solarized-dark"] {
   --pp-drop-hover: #073642;
   --pp-chip-bg: transparent;
   --pp-chip-fg: #4aada3;
+  --pp-btn-bg: #0d3b46;
+  --pp-btn-bd: #0d3b46;
+  --pp-btn-hover: #073642;
   --pp-btn-fg: #93a1a1;
   --pp-banner-bg: #073c52;
   --pp-banner-bd: #32749a;
@@ -1814,16 +1858,20 @@ html[data-theme="catppuccin-latte"] {
   --pp-link: #1a5ad8;
   --pp-accent: #1e66f5;
   --pp-accent2: #8839ef;
-  --pp-border: #79849e;
+  --pp-border: #737e9a;
   --pp-divider: #bcc0cc;
-  --pp-input-bg: #e6e9ef;
+  --pp-input-bg: #dfe2e9;
+  --pp-input-bd: #dfe2e9;
   --pp-input-focus-bg: #eff1f5;
   --pp-tag-bg: #dce0e8;
   --pp-tag-fg: #116e73;
   --pp-tag-hover: #ccd0da;
   --pp-drop-hover: #dce0e8;
   --pp-chip-bg: #dce0e8;
-  --pp-chip-fg: #116e73;
+  --pp-chip-fg: #10666a;
+  --pp-btn-bg: #dfe2e9;
+  --pp-btn-bd: #dfe2e9;
+  --pp-btn-hover: #d7dbe4;
   --pp-btn-fg: #4c4f69;
   --pp-banner-bg: #d6e0f5;
   --pp-banner-bd: #9bb9f5;
@@ -1843,7 +1891,7 @@ html[data-theme="catppuccin-latte"] {
   --pp-spinner-bg: #ccd0da;
   --pp-spinner-fg: #1e66f5;
   --pp-preset-bg: #dce0e8;
-  --pp-preset-fg: #0a55ea;
+  --pp-preset-fg: #0a52e0;
   --pp-radius-sm: 6px;
   --pp-radius-md: 10px;
   --pp-radius-lg: 12px;
@@ -1862,9 +1910,10 @@ html[data-theme="catppuccin-mocha"] {
   --pp-link: #89b4fa;
   --pp-accent: #89b4fa;
   --pp-accent2: #cba6f7;
-  --pp-border: #787b97;
+  --pp-border: #7e809c;
   --pp-divider: #45475a;
   --pp-input-bg: #11111b;
+  --pp-input-bd: #11111b;
   --pp-input-focus-bg: #181825;
   --pp-tag-bg: #45475a;
   --pp-tag-fg: #94e2d5;
@@ -1872,6 +1921,9 @@ html[data-theme="catppuccin-mocha"] {
   --pp-drop-hover: #313244;
   --pp-chip-bg: #45475a;
   --pp-chip-fg: #94e2d5;
+  --pp-btn-bg: #353648;
+  --pp-btn-bd: #353648;
+  --pp-btn-hover: #313244;
   --pp-btn-fg: #cdd6f4;
   --pp-banner-bg: #313953;
   --pp-banner-bd: #5d77a6;
@@ -1910,9 +1962,10 @@ html[data-theme="gruvbox-dark"] {
   --pp-link: #83a598;
   --pp-accent: #83a598;
   --pp-accent2: #d3869b;
-  --pp-border: #8c8079;
+  --pp-border: #91857f;
   --pp-divider: #504945;
   --pp-input-bg: #1d2021;
+  --pp-input-bd: #1d2021;
   --pp-input-focus-bg: #32302f;
   --pp-tag-bg: transparent;
   --pp-tag-fg: #b8bb26;
@@ -1920,6 +1973,9 @@ html[data-theme="gruvbox-dark"] {
   --pp-drop-hover: #3c3836;
   --pp-chip-bg: transparent;
   --pp-chip-fg: #b8bb26;
+  --pp-btn-bg: #403c39;
+  --pp-btn-bd: #403c39;
+  --pp-btn-hover: #3c3836;
   --pp-btn-fg: #ebdbb2;
   --pp-banner-bg: #313533;
   --pp-banner-bd: #4c5a55;
@@ -1934,7 +1990,7 @@ html[data-theme="gruvbox-dark"] {
   --pp-offline-bd: #7c642b;
   --pp-offline-fg: #fabd2f;
   --pp-danger: #fc6a52;
-  --pp-danger-quiet-fg: #fc7b66;
+  --pp-danger-quiet-fg: #fd8470;
   --pp-on-danger: #282828;
   --pp-spinner-bg: #504945;
   --pp-spinner-fg: #83a598;
@@ -1959,9 +2015,10 @@ html[data-theme="rose-pine"] {
   --pp-link: #c4a7e7;
   --pp-accent: #c4a7e7;
   --pp-accent2: #f6c177;
-  --pp-border: #6d669c;
+  --pp-border: #736ca0;
   --pp-divider: #393552;
   --pp-input-bg: #26233a;
+  --pp-input-bd: #26233a;
   --pp-input-focus-bg: #403d52;
   --pp-tag-bg: transparent;
   --pp-tag-fg: #9ccfd8;
@@ -1969,6 +2026,9 @@ html[data-theme="rose-pine"] {
   --pp-drop-hover: #26233a;
   --pp-chip-bg: transparent;
   --pp-chip-fg: #9ccfd8;
+  --pp-btn-bg: #242233;
+  --pp-btn-bd: #242233;
+  --pp-btn-hover: #29263d;
   --pp-btn-fg: #e0def4;
   --pp-banner-bg: #2e283b;
   --pp-banner-bd: #5d5172;
@@ -2007,9 +2067,10 @@ html[data-theme="github-light"] {
   --pp-link: #0969da;
   --pp-accent: #0969da;
   --pp-accent2: #8250df;
-  --pp-border: #8295a7;
+  --pp-border: #768a9f;
   --pp-divider: #d0d7de;
-  --pp-input-bg: #ffffff;
+  --pp-input-bg: #f0f1f1;
+  --pp-input-bd: #f0f1f1;
   --pp-input-focus-bg: #f6f8fa;
   --pp-tag-bg: #ddf4ff;
   --pp-tag-fg: #0550ae;
@@ -2017,6 +2078,9 @@ html[data-theme="github-light"] {
   --pp-drop-hover: #ddf4ff;
   --pp-chip-bg: #ddf4ff;
   --pp-chip-fg: #0550ae;
+  --pp-btn-bg: #f0f1f1;
+  --pp-btn-bd: #f0f1f1;
+  --pp-btn-hover: #d7eef9;
   --pp-btn-fg: #1f2328;
   --pp-banner-bg: #ddf4ff;
   --pp-banner-bd: #bbdfff;
@@ -2036,7 +2100,7 @@ html[data-theme="github-light"] {
   --pp-spinner-bg: #d0d7de;
   --pp-spinner-fg: #0969da;
   --pp-preset-bg: #ddf4ff;
-  --pp-preset-fg: #0969da;
+  --pp-preset-fg: #0964d0;
   --pp-radius-sm: 3px;
   --pp-radius-md: 6px;
   --pp-radius-lg: 6px;
@@ -2050,11 +2114,15 @@ html[data-theme="github-light"] {
   --pp-btn-fg: #2a2d33;
   --pp-chip-bg: #e2eafa;
   --pp-chip-fg: #33589f;
-  --pp-danger-quiet-fg: #c24343;
+  --pp-danger-quiet-fg: #bd3d3d;
   --pp-on-danger: #ffffff;
   --pp-on-accent: #ffffff;
   --pp-preset-fg: #2d5cb9;
-  --pp-border: #848fa4;
+  --pp-btn-bg: #eff0f2;
+  --pp-btn-bd: #eff0f2;
+  --pp-btn-hover: #dee5f2;
+  --pp-input-bd: #edf0f4;
+  --pp-border: #7e8aa0;
 }
 html.dark {
   color-scheme: dark;
@@ -2064,7 +2132,11 @@ html.dark {
   --pp-danger-quiet-fg: #e57373;
   --pp-on-danger: #10131a;
   --pp-on-accent: #10131a;
-  --pp-border: #696e7a;
+  --pp-btn-bg: #26272b;
+  --pp-btn-bd: #26272b;
+  --pp-btn-hover: #26334d;
+  --pp-input-bd: #26282d;
+  --pp-border: #6e7380;
 }
 /* @generated:ui-themes end */
 

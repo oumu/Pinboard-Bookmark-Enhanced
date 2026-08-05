@@ -132,14 +132,15 @@ function check(scope, theme, label, ratio, min) {
 // requirement than the 4.5:1 text pairs already below, so it's structurally
 // subsumed, not skipped.
 //
-// Popup has no --pp-btn-bg / --pp-btn-hover / --pp-panel of its own -- the
-// button surface and its hover fill are named bg2 / drop-hover instead (see
-// popup-chrome.mjs's own comment: "panel === bg2 === btn-bg for popup, no
-// dedicated panel role"). This alias table is what lets the SAME
-// COMPONENT_PAIR_SPEC below apply to all three namespaces without a
+// Popup has no --pp-panel of its own -- bg2 IS the panel. It DID also lack
+// --pp-btn-bg / --pp-btn-hover until Soft Fill (design-uplift 2026-08-05)
+// gave the button family its own fill: aliasing btn-bg to bg2 now would
+// audit the strip the buttons sit on instead of the buttons, i.e. silently
+// check the wrong pair. Only the panel alias survives; it is what lets the
+// SAME COMPONENT_PAIR_SPEC below apply to all three namespaces without a
 // surface-specific copy of it.
 const ROLE_ALIAS = {
-  pp: { "btn-bg": "bg2", "btn-hover": "drop-hover", panel: "bg2" },
+  pp: { panel: "bg2" },
   opt: {},
   lib: {},
 };
