@@ -88,7 +88,7 @@ function emitLib(ui, palette, overrides, radius, focus = {}, mode) {
   // fgToAA(accent, oneBg) could clear AA on bg and still fail on panel.
   const link = rgbToHex(fgToAAMulti(hexToRgb(palette.accent), [hexToRgb(ui.bg), hexToRgb(ui.bg2)]));
   const map = {
-    bg: ui.bg, panel: ui.bg2, tab: ui.bg2, "tab-active": ui.bg,
+    bg: ui.bg, panel: ui.bg2,
     fg, "fg-muted": fgMuted, "fg-hint": ui["fg-hint"],
     accent: ui.accent, link, save, danger, warn,
     border: ui.border, "border-section": ui.divider,

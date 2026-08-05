@@ -151,7 +151,7 @@ function skip(check, expected, note) { return { check, status: "SKIP", actual: n
 // `compareSelector` (heightEqWith) and `extraBgVarName` (textContrastMulti)
 // are both optional -- one evaluate() round-trip covers whatever the check
 // needs instead of a second page.evaluate call per check.
-function probeSelector({ selector, compareSelector, extraBgVarName, childSelectors, focusTargetSelector }) {
+function probeSelector({ selector, compareSelector, extraBgVarName, radiusVarName, childSelectors, focusTargetSelector }) {
   const el = document.querySelector(selector);
   if (!el) return { found: false };
   const cs = getComputedStyle(el);
@@ -437,6 +437,17 @@ function probeSelector({ selector, compareSelector, extraBgVarName, childSelecto
     // library's vocabulary rows paint on .notes-card-top inside .vocab-card.
     marginLeft: parseFloat(cs.marginLeft) || 0,
     marginRight: parseFloat(cs.marginRight) || 0,
+    marginTop: parseFloat(cs.marginTop) || 0,
+    marginBottom: parseFloat(cs.marginBottom) || 0,
+    backgroundColor: cs.backgroundColor,
+    // The surface's own radius rung, for insetBand's ladder comparison. Read
+    // off <html> the same way extraBgVarName is -- a theme's radius scale is
+    // a per-theme value, so an absolute px floor here would override the very
+    // ladder §9.2 law 1 exists to keep authoritative (gruvbox-dark's md rung
+    // is genuinely 2px; that is its design, not a regression).
+    radiusVarPx: radiusVarName ? (parseFloat(getComputedStyle(document.documentElement).getPropertyValue(radiusVarName)) || 0) : null,
+    borderBottomColor: cs.borderBottomColor,
+    borderBottomWidth: parseFloat(cs.borderBottomWidth) || 0,
   };
 }
 
@@ -507,21 +518,56 @@ function evaluateCheck(check, raw, theme) {
       out.push(verdict("padVMin", padV >= exp.padVMin - 0.01, round2(padV), exp.padVMin));
     }
   }
-  // COMPONENTS.md §9 law 3: a list's hover/selected band is INSET -- rounded,
-  // and held clear of the container's own edges, so it never collides with
-  // the container's corners. Both halves are one verdict because either
-  // alone is meaningless: a rounded band at full bleed still cuts the
-  // corners, and an inset square band still reads as a stripe. `actual` is
-  // the smaller of the two inline insets (the number a fix would move);
-  // a zero radius fails with an explicit note rather than silently.
+  // COMPONENTS.md §9 law 3: a list's hover/selected band is INSET -- rounded
+  // enough to read at 1x, and held clear of the container on ALL FOUR sides.
+  //
+  // The first version of this check asked only for `min(marginLeft,
+  // marginRight) >= 4` and `borderRadius > 0`, and it passed on an
+  // implementation the user rejected on sight (USER CHECKPOINT 2026-08-05):
+  // the band was inset 4px inline and 0px block, so it ran flush into the
+  // row's top and bottom edges -- "像没对齐" -- and its radius was
+  // --lib-radius-sm, which is 2px on paper-ink/dracula/solarized and simply
+  // does not read as a corner at 1x. Neither fact violated the old
+  // assertion. So the assertion was under-specified, not skipped: both
+  // missing halves are now spelled out, `blockInsetPx` and `radiusVar`.
+  // `radiusVar` names a RUNG, not a px floor -- an absolute floor would have
+  // failed gruvbox-dark, whose md rung is legitimately 2px, and overriding a
+  // theme's own ladder is the exact thing §9.2 law 1 forbids.
+  // `actual` stays the worst inline inset (the number a fix moves first);
+  // the other two failures name themselves in the note.
   if ("insetBand" in exp) {
-    const min = exp.insetBand.minInsetPx;
+    const { minInsetPx: min, blockInsetPx = 0, radiusVar = null } = exp.insetBand;
     if (hostZero) out.push(verdict("insetBand", false, null, min, zeroNote));
     else {
-      const inset = Math.min(raw.marginLeft, raw.marginRight);
-      const rounded = raw.borderRadius > 0;
-      out.push(verdict("insetBand", rounded && inset >= min - 0.01, round2(inset), min,
-        rounded ? undefined : "band has border-radius 0 -- it still cuts the container's corners"));
+      const inline = Math.min(raw.marginLeft, raw.marginRight);
+      const block = Math.min(raw.marginTop, raw.marginBottom);
+      const notes = [];
+      if (block < blockInsetPx - 0.01) notes.push(`block inset ${round2(block)}px < ${blockInsetPx}px -- the band runs flush into the row's top/bottom edges`);
+      if (radiusVar) {
+        if (raw.radiusVarPx == null) notes.push(`--${radiusVar} did not resolve on <html>`);
+        else if (Math.abs(raw.borderRadius - raw.radiusVarPx) > 0.5) notes.push(`border-radius ${round2(raw.borderRadius)}px is not this surface's ${radiusVar} rung (${raw.radiusVarPx}px)`);
+      }
+      out.push(verdict("insetBand", inline >= min - 0.01 && notes.length === 0, round2(inline), min,
+        notes.length ? notes.join("; ") : undefined));
+    }
+  }
+  // COMPONENTS.md §9 law 7: a tab is a label plus a selection edge, never a
+  // button wearing a tab label. Selected = an accent underline of at least
+  // `underlinePx`; unselected = no underline. BOTH branches additionally
+  // assert "no shell", which is the half that actually regressed (the
+  // pre-2026-08-05 tabs carried a fill, a border and a radius).
+  if ("tabChrome" in exp) {
+    const want = exp.tabChrome.activeUnderline;
+    if (hostZero) out.push(verdict("tabChrome", false, null, want, zeroNote));
+    else {
+      const alpha = (c) => { const m = /rgba?\([^)]*?,\s*([0-9.]+)\s*\)/.exec(c || ""); return m ? parseFloat(m[1]) : (c && c !== "transparent" ? 1 : 0); };
+      const underline = alpha(raw.borderBottomColor) > 0 ? raw.borderBottomWidth : 0;
+      const notes = [];
+      if (alpha(raw.backgroundColor) > 0) notes.push(`tab paints a fill (${raw.backgroundColor}) -- a tab has no shell`);
+      if (raw.borderRadius > 0) notes.push(`tab has border-radius ${round2(raw.borderRadius)}px -- a tab has no shell`);
+      const okUnderline = want ? underline >= (exp.tabChrome.underlinePx ?? 2) - 0.01 : underline === 0;
+      if (!okUnderline) notes.push(want ? `selected tab underline is ${round2(underline)}px` : `unselected tab paints a ${round2(underline)}px underline`);
+      out.push(verdict("tabChrome", notes.length === 0, round2(underline), want, notes.length ? notes.join("; ") : undefined));
     }
   }
   if ("heightEqWith" in exp) {
@@ -872,7 +918,7 @@ async function runOneCheck(page, theme, check, results) {
     // different measurement paths disagree.
     if (check.expect.fusedStateStable === true) {
       const rest = await page.evaluate(probeSelector, {
-        selector: check.selector, compareSelector: null, extraBgVarName: null,
+        selector: check.selector, compareSelector: null, extraBgVarName: null, radiusVarName: null,
         childSelectors: check.expect.fusedStateStableChildren || null,
         focusTargetSelector: null,
       });
@@ -906,6 +952,7 @@ async function runOneCheck(page, theme, check, results) {
     selector: check.selector,
     compareSelector: check.expect.heightEqWith?.selector || null,
     extraBgVarName: extraBgSelectorVar ? `--${NS_BY_SURFACE[check.surface]}-${extraBgSelectorVar}` : null,
+    radiusVarName: check.expect.insetBand?.radiusVar ? `--${NS_BY_SURFACE[check.surface]}-${check.expect.insetBand.radiusVar}` : null,
     childSelectors: check.expect.fusedChildrenFlat?.children || check.expect.fusedStateStableChildren || null,
     focusTargetSelector: check.state === "focusWithin" ? check.focusTarget : null,
   });

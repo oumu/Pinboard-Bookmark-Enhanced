@@ -847,6 +847,11 @@ focus 走 §7.3 的按钮套（`outline: 2px solid var(--{ns}-accent); outline-o
 
 6. **豁免只豁免颜色。** 见 §9.5。
 
+7. **tab 是标签加一条选中边，不是穿着 tab 文案的按钮。** 无壳、无填充、无圆角；
+   未选中 `--{ns}-fg-muted`，选中/hover `--{ns}-fg`；选中态 = 2px accent 下边框，
+   且**边框宽度常驻**、只换颜色（零位移，同律 1）。**不改字重**——13px 标签 400→600
+   宽约 +4px，每次切换都会推开邻座。焦点走 §7.3 的按钮环。
+
 ### 9.2 圆角三律
 
 1. **圆角只许引用 radius token 阶梯**（`--{ns}-radius-{sm|md|lg|full}`）。不许字面量、
@@ -875,7 +880,8 @@ focus 走 §7.3 的按钮套（`outline: 2px solid var(--{ns}-accent); outline-o
 |---|---|
 | `contrast-audit` 的 `border vs btn-bg` / `border vs panel` | 填充一移动，结构边的 3:1 就得跟着重算（本轮逮到三个陈旧默认值：options 2.97、library 2.76、popup 的 danger-quiet-fg 4.41） |
 | `recipe-lint` 13 / 14 | 圆角 token 阶梯 + 嵌套同心 |
-| render oracle `insetBand` | 列表高亮带内嵌（两个列表各一条，15 主题） |
+| render oracle `insetBand` | 列表高亮带内嵌：inline ≥4px、block ≥2px、圆角**等于本主题的 md 阶**（两个列表各一条，15 主题） |
+| render oracle `tabChrome` | tab 无壳 + 选中下划线（选中/未选中各一条，15 主题） |
 | `ui-token-coverage` | 新角色 token 在每个主题块都有定义 |
 
 `fillSeparate` 本身**没有独立的门**：它的正确性由 `contrast-audit` 从下游反向约束
@@ -1035,6 +1041,8 @@ focus 走 §7.3 的按钮套（`outline: 2px solid var(--{ns}-accent); outline-o
 | C36 | **卡片与分节降到发丝级**（options `.panel` / `h1` / backup / wayback / tag-gov / drive 六个盒，library `.notes-card` / `#vocab-lookup-bar`，popup `.quick-actions hr.divider`） | 一律 1px `--{ns}-border`（3:1 结构边）画完整包围框；popup 搜索条上方那条 `hr` 画 `--pp-divider` | §9 律 4：卡片/分节改发丝级 `--{ns}-border-section`，不做包围框；`hr.divider` 的 `border-top-color` 塌陷为 `transparent`（**声明保留**，盒高逐字节不变，间距与字段填充承担分隔） | 14 套主题下这些容器的边明显变轻；popup 搜索条上方的横线消失。**浮层不动**（`.confirm-popover` / `.theme-name-popover` / `.autocomplete-dropdown` / `select::picker`）——它们盖在无关内容上，那圈边在干实事 | 2026-08-05 Soft Fill |
 | C37 | **列表选中高亮内嵌**（library `#vocab-list` 与 `#notes-list` 两个列表） | vocab 侧 `border-radius: 0` + `margin-inline: 0`（满幅方角，选中行的角切掉列表容器自己的角）；notes 侧已有 `radius-sm` 但 `margin-inline: 0` | §9 律 3：两侧统一 `border-radius: var(--lib-radius-sm)` + `margin-inline: 4px`。accent 条**零成本**——`.vocab-card[aria-current]` 的 `inset 2px 0 0` 是 inset 阴影，跟随 `border-radius` 自动收进带内并跟着圆 | 16 套主题下两个列表的 hover/选中带从满幅色条变成浮在栏内的圆角卡片。选择器**只用类不用 id**（`#vocab-list` 前缀会盖过 `.selected`，反转 `--row-bg` 的既定优先级）。门：render oracle 新增 `insetBand`（2 选择器 × 15 主题 = 30 条，RED 验证实测 30 FAIL） | 2026-08-05 Soft Fill |
 | C38 | **terminal 逐角色恢复边框**（`pilots/terminal.tokens.json` 的 `ui.popup/options/library.dark`） | terminal 与其他 12 套一起被 Soft Fill 拉平（填充被派生、边框被塌陷），身份丢失 | §9.5：pilot 通道逐角色声明 `btn-bd`/`input-bd`（popup）、`btn-border`/`input-border`（options/library，后者是 terminal 第一次拥有 `ui.library` 通道）。composer 把「声明了该角色的边框」本身当作豁免信号，同一次声明也让该角色的填充保持 pilot 原值。值写 `var(--{ns}-border)` 而非复制字面量（派生一移动，字面量就陈旧——本轮 C35 的三处连锁正是这么坏的） | 与铺开前逐块 diff：三个表面的 terminal 块**只增不改**——原有 token 逐字节相同，新增的每一个都解析成被删掉的手写规则原本画的那个值（`--pp-btn-bg: #111111` = 原 `--pp-bg2`，`--pp-btn-hover: #1a3a1a` = 原 `--pp-drop-hover`，三个 `*-border` 就是原规则点名的同一个 token）。**唯一登记的微差**：`html[data-theme] .md-strip-btn` 的底从 `--pp-bg`(#0a0a0a) 改读 `--pp-btn-bg`(#111111)，与同表面其他按钮统一。几何（圆角/内距）**不豁免**，走 token 阶梯自然生效 | 2026-08-05 Soft Fill |
+| C39 | **列表选中带内嵌复检**（library 两个列表）——**USER CHECKPOINT 2026-08-05，网格终审打回**：paper-ink hover 行「左右只空了 ~2px 且圆角不可读，像没对齐」 | C37 落地的是 `margin-inline: 4px` + `border-radius: var(--lib-radius-sm)`。逐像素实测（1x 网格图，paper-ink）：卡片边框 x=24，卡片底色 x=25–28（**4px，规格是达标的**），带起于 x=29——但 **block 方向内距是 0**，带上下贴死卡片边框；且 `--lib-radius-sm` 在 paper-ink/dracula/solarized 是 **2px**。两侧内嵌 + 两侧贴边 = 读作「没对齐」，不是读作「浮起的卡片」；2px 弧在行高的带上 1x 下不成形 | 两个列表统一 `margin: 2px 4px`（**四边**内嵌）+ `border-radius: var(--lib-radius-md)`；同时 `.notes-card` 的边框塌陷为 `transparent`（§9 律 4：行靠间距与填充分层，不靠线）——一个圆角带套在一个圆角描边卡里，是相距 4px 的两条弧，外面那条赢眼睛，这是「内距看着只有 2px」的另一半根因。`border-width` 保留 1px，`.is-error` 仍能零 reflow 画它的红边 | 16 套主题下两个列表的 hover/选中带四边浮起、圆角可辨；vocab 行的外框消失（原 `--lib-border-section` 描边）。**oracle 收紧**见下 | 2026-08-05 网格终审 |
+| C40 | **library 顶部 Vocabulary / Notes 改真 tab**（`.lib-tab`）——**USER CHECKPOINT 2026-08-05，网格终审打回**：「现状是带壳按钮，不像 tab」 | `border: 1px solid transparent` + `border-radius: var(--lib-radius-md)` + `padding: 6px 14px`；`:hover` 换 `--lib-btn-hover` 填充；`.active` 换 `--lib-tab-active` 填充 + `--lib-border` 描边。即一颗药丸按钮，选中态靠换底色 | 无壳无填充无圆角：`border-bottom: 2px solid transparent` 常驻（选中只换颜色 → 零位移），`.active` 的下边色改 `--lib-accent`；inactive `--lib-fg-muted`、active/hover `--lib-fg`；`:focus-visible` 用 §7.3 的按钮环（`outline: 2px solid accent; offset 2px`，与本表面其他控件同一套）。**刻意不加 `font-weight`**：13px 标签 400→600 宽约 +4px，每次切换都会把邻座 tab 推开，与下划线自己遵守的零位移律相抵触 | 16 套主题下页头两颗 tab 从药丸按钮变成纯文字 + accent 下划线。下划线**贴在标签自己底下**，没有焊到 `.lib-header` 的底线上（那条线在 tab 行下方 12px = 页头自己的 block padding，够到它要重构页头布局，而 `<h1>` 兄弟需要那个 padding）。**a11y 无需补**：`library.html` 早已有 `role="tablist"`/`role="tab"`/`aria-selected`，`library.js` 的 `_pbpLibApplyView` 同步 `aria-selected` + `.active` + roving `tabIndex`。`--lib-tab` / `--lib-tab-active` 两个 token 就此零消费者，从 `library-chrome.mjs` 的 map 与手写 `:root` 一并销号（同 C30 对 `--pp-preset-bd` 的处置） | 2026-08-05 网格终审 |
 
 **偏离实施计划之处**（Task 9/10 以本规范为准，但需知晓）：
 

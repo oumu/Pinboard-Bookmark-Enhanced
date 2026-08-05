@@ -148,10 +148,14 @@
 //                      layer that can see one at all. design-uplift preset-
 //                      row redesign (2026-08-04): the swatch dot that
 //                      replaced the old bordered-pill chrome.
-//   insetBand      -- { minInsetPx }: the element that PAINTS a list's
-//                      hover/selected band must be rounded
-//                      (border-radius > 0) AND held at least minInsetPx
-//                      clear of its container on both inline sides
+//   insetBand      -- { minInsetPx, blockInsetPx, radiusVar }: the element
+//                      that PAINTS a list's hover/selected band must be held
+//                      at least minInsetPx clear of its container on both
+//                      inline sides, blockInsetPx on both block sides, and
+//                      carry exactly the radius rung named by radiusVar
+//                      (e.g. "radius-md") on THAT theme -- a rung, not a px
+//                      floor, because a theme's ladder is authoritative
+//                      (gruvbox-dark's md is 2px and that is correct)
 //                      (COMPONENTS.md §9 law 3, Soft Fill). One verdict for
 //                      both halves on purpose: a rounded band at full bleed
 //                      still cuts the container's corners, and an inset
@@ -159,10 +163,28 @@
 //                      is a design rule on its own. `actual` reports the
 //                      smaller of the two insets; a zero radius fails with
 //                      an explicit note instead of passing on the inset
-//                      alone. Written against the band-painting element,
+//                      alone. blockInsetPx and minRadiusPx were added
+//                      2026-08-05 after the first version passed on an
+//                      implementation the user rejected on sight: 4px inline
+//                      / 0px block plus a 2px radius satisfied "inset AND
+//                      rounded" to the letter while reading as a misaligned
+//                      stripe. The gap was in the oracle, not in the run.
+//                      radiusVar (not a px number) came out of the same
+//                      round: the first repair used minRadiusPx: 4 and
+//                      immediately red-flagged gruvbox-dark, whose whole
+//                      ladder is 2px by design.
+//                      Written against the band-painting element,
 //                      which is NOT always the row: library's vocabulary
 //                      rows paint --row-bg on .notes-card-top inside
 //                      .vocab-card, so the entry names the child.
+//   tabChrome      -- { activeUnderline, underlinePx }: a tab is a label plus
+//                      a selection edge (§9 law 7). BOTH branches assert "no
+//                      shell" (no fill, no radius) -- that is the half that
+//                      regressed. activeUnderline:true additionally requires
+//                      an opaque bottom border of >= underlinePx (default 2);
+//                      false requires none. Two entries, two selectors, one
+//                      key -- the runner cannot ask "is this the selected
+//                      one", the checklist says which is which.
 //   outlineContrast -- N: computed outline-color vs the REAL composited
 //                      background the ring paints OVER (bgStack minus the
 //                      host's own layer, since outline-offset pushes the
@@ -198,9 +220,22 @@ export const CHECKS = [
   // shipped inset; the check reads the band element's own margin, so it
   // measures what is painted rather than what the stylesheet says. ----
   { surface: "library", page: "library.html", selector: ".vocab-card .notes-card-top", state: "default",
-    expect: { insetBand: { minInsetPx: 4 } } },
+    expect: { insetBand: { minInsetPx: 4, blockInsetPx: 2, radiusVar: "radius-md" } } },
   { surface: "library", page: "library.html", selector: ".notes-hit", state: "default",
-    expect: { insetBand: { minInsetPx: 4 } } },
+    expect: { insetBand: { minInsetPx: 4, blockInsetPx: 2, radiusVar: "radius-md" } } },
+
+  // ---- COMPONENTS.md §9 law 7 (real tabs). The header's two tabs used to be
+  // buttons in tab clothing -- fill, border, radius-md -- which is what the
+  // user called out on the grid. Both states are reachable in the default
+  // state (vocabulary is selected on load), so no focus/hover plumbing is
+  // needed; two selectors, because "selected" and "unselected" assert
+  // opposite things about the underline and the same thing about the shell.
+  // insetBand's radiusVar has no counterpart here on purpose: a tab's correct
+  // radius is 0, and tabChrome checks that directly. ----
+  { surface: "library", page: "library.html", selector: ".lib-tab.active", state: "default",
+    expect: { tabChrome: { activeUnderline: true, underlinePx: 2 }, textContrast: 4.5 } },
+  { surface: "library", page: "library.html", selector: ".lib-tab:not(.active)", state: "default",
+    expect: { tabChrome: { activeUnderline: false }, textContrast: 4.5 } },
   { surface: "library", page: "library.html", selector: ".vocab-detail-delete", state: "default",
     expect: { textContrast: 4.5, iconContrast: 3, iconVCenter: 1 } },   // also defect 5
   { surface: "library", page: "library.html", selector: ".notes-detail-delete", state: "default",

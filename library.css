@@ -12,8 +12,6 @@
      hide its 2nd+ literal from that exemption and misreport as a leaked color. */
   --lib-bg: #f7f7f8;
   --lib-panel: #ffffff;
-  --lib-tab: #ffffff;
-  --lib-tab-active: #f7f7f8;
   --lib-fg: #1a1a2e;
   --lib-fg-muted: #5f6368;
   --lib-fg-hint: #666d74;
@@ -417,9 +415,11 @@ html[data-theme] .confirm-popover .confirm-no:hover { background: var(--lib-btn-
 .notes-filter-dot .note-dot { margin-top: 0; }
 
 .notes-card {
-  /* Soft Fill (COMPONENTS.md §9 law 4): a card is a surface, not a boxed
-     frame -- hairline weight, not the 3:1 structural border. */
-  border: 1px solid var(--lib-border-section);
+  /* Soft Fill (COMPONENTS.md §9 law 4): list rows separate by spacing and
+     fill, not by lines. The frame collapses to transparent rather than being
+     removed -- .is-error below still paints a real edge on it, and keeping
+     the 1px width means that state costs no reflow. */
+  border: 1px solid transparent;
   border-radius: var(--lib-radius-sm, 3px);
   margin-bottom: 6px; /* options.css --opt-sp-3 (6px); no --lib-sp-* step matches it */
   background: var(--lib-bg);
@@ -563,8 +563,13 @@ html.motion-ready .notes-card-top { transition: background-color var(--motion-st
    11px meta, two clamped lines). margin-inline is COMPONENTS.md §9 law 3
    (inset selection): the highlight band stops 4px short of the list's own
    edges so hover/selected read as a card floating in the column instead of a
-   full-bleed stripe that collides with the container's corners. */
-.notes-hit { border-radius: var(--lib-radius-sm); margin-inline: 4px; }
+   full-bleed stripe that collides with the container's corners.
+   `margin`, not `margin-inline` (USER CHECKPOINT 2026-08-05, grid review):
+   inset on two sides and flush on the other two does not read as a floating
+   card, it reads as a misaligned stripe -- which is exactly the word that
+   came back. radius-md, not -sm: -sm is 2px on paper-ink/dracula/solarized,
+   and a 2px arc on a row-height band is not legible at 1x. */
+.notes-hit { border-radius: var(--lib-radius-md); margin: 2px 4px; }
 .notes-hit-btn {
   display: grid;
   grid-template-columns: 3px minmax(0, 1fr);
@@ -1563,8 +1568,13 @@ html.motion-ready .vocab-batch-bar.selecting {
    purpose -- an id prefix here would outrank .selected and invert the
    --row-bg precedence the block below depends on. The accent edge needs no
    rule of its own: inset box-shadows follow border-radius, so
-   .vocab-card[aria-current]'s `inset 2px 0 0` rounds with the band. */
-.vocab-card .notes-card-top { border-radius: var(--lib-radius-sm); margin-inline: 4px; }
+   .vocab-card[aria-current]'s `inset 2px 0 0` rounds with the band.
+   Four-sided `margin` and radius-md for the same two reasons the notes list
+   carries them (see its comment ~line 563). The wrapping .notes-card's own
+   frame collapses in the same commit -- a rounded band inside a rounded
+   bordered card is two competing arcs 4px apart, and the outer one wins the
+   eye, which is the other half of why the inset read as ~2px. */
+.vocab-card .notes-card-top { border-radius: var(--lib-radius-md); margin: 2px 4px; }
 .vocab-row-select { width: 16px; height: 16px; margin: 0; }
 .vocab-card .vocab-row-select { margin-top: 3px; }
 .vocab-card .notes-card-head { align-items: start; }
@@ -1629,17 +1639,33 @@ html.motion-ready .vocab-batch-bar.selecting {
   position: sticky; top: 0; z-index: 10;
 }
 .lib-header h1 { font-size: 16px; margin: 0; }
-.lib-tabs { display: flex; gap: var(--lib-sp-1); }
+.lib-tabs { display: flex; gap: var(--lib-sp-3); }
+/* Real tabs, not buttons wearing tab labels (USER CHECKPOINT 2026-08-05, grid
+   review: "现状是带壳按钮，不像 tab"). No shell, no fill, no radius -- a tab is
+   a label plus a selection edge. The selected edge is a 2px accent underline
+   drawn on a border that is ALWAYS 2px and merely changes colour, so
+   selecting a tab moves nothing (§9 law 1's zero-shift rule, same reason
+   every collapsed control here keeps its border-width). The underline sits
+   directly under its own label, NOT welded to .lib-header's bottom rule:
+   that rule is 12px below the tab row (the header's own block padding), and
+   reaching it would mean restructuring the header so the tab strip runs to
+   its edge -- a layout change for a decorative alignment, on a header whose
+   <h1> sibling needs that padding. Label-underline is a standard tab
+   treatment on its own (GitHub, Material both draw it this way). */
 .lib-tab {
-  border: 1px solid transparent; background: transparent; color: var(--lib-fg-muted);
-  padding: 6px 14px; border-radius: var(--lib-radius-md); cursor: pointer; font-size: 13px;
-  transition: background var(--motion-state), color var(--motion-state), border-color var(--motion-state);
+  border: 0; border-bottom: 2px solid transparent; background: transparent;
+  color: var(--lib-fg-muted); font-size: 13px; font-family: inherit; cursor: pointer;
+  padding: 6px 2px; border-radius: 0;
+  transition: color var(--motion-state) ease, border-bottom-color var(--motion-state) ease;
 }
-.lib-tab:hover { background: var(--lib-btn-hover); }
-.lib-tab.active {
-  background: var(--lib-tab-active); color: var(--lib-fg);
-  border-color: var(--lib-border);
-}
+.lib-tab:hover { color: var(--lib-fg); }
+/* No font-weight change: bolding a 13px label gains ~4px of width, which
+   shoves the sibling tab sideways on every switch -- the same zero-shift rule
+   the underline itself follows. Colour + accent edge carries selection. */
+.lib-tab.active { color: var(--lib-fg); border-bottom-color: var(--lib-accent); }
+/* §7.3's button focus ring, the same one every other control on this surface
+   uses -- a tab is not a field and has no shell of its own to draw into. */
+.lib-tab:focus-visible { outline: 2px solid var(--lib-accent); outline-offset: 2px; }
 .lib-main { padding: var(--lib-sp-4) var(--lib-sp-5); }
 .lib-view[hidden] { display: none; }
 
@@ -1661,8 +1687,6 @@ html[data-theme="modern-card"] {
   color-scheme: light;
   --lib-bg: #f0f2f5;
   --lib-panel: #ffffff;
-  --lib-tab: #ffffff;
-  --lib-tab-active: #f0f2f5;
   --lib-fg: #1a1a2e;
   --lib-fg-muted: #5f6368;
   --lib-fg-hint: #666d74;
@@ -1696,8 +1720,6 @@ html[data-theme="nord-night"] {
   color-scheme: dark;
   --lib-bg: #2e3440;
   --lib-panel: #3b4252;
-  --lib-tab: #3b4252;
-  --lib-tab-active: #2e3440;
   --lib-fg: #d8dee9;
   --lib-fg-muted: #9cb5ce;
   --lib-fg-hint: #939db2;
@@ -1731,8 +1753,6 @@ html[data-theme="terminal"] {
   color-scheme: dark;
   --lib-bg: #0a0a0a;
   --lib-panel: #111111;
-  --lib-tab: #111111;
-  --lib-tab-active: #0a0a0a;
   --lib-fg: #33ff33;
   --lib-fg-muted: #22aa22;
   --lib-fg-hint: #448844;
@@ -1768,8 +1788,6 @@ html[data-theme="paper-ink"] {
   color-scheme: light;
   --lib-bg: #faf8f5;
   --lib-panel: #f5f0e8;
-  --lib-tab: #f5f0e8;
-  --lib-tab-active: #faf8f5;
   --lib-fg: #2c2c2c;
   --lib-fg-muted: #6b4c3b;
   --lib-fg-hint: #707070;
@@ -1805,8 +1823,6 @@ html[data-theme="dracula"] {
   color-scheme: dark;
   --lib-bg: #282a36;
   --lib-panel: #21222c;
-  --lib-tab: #21222c;
-  --lib-tab-active: #282a36;
   --lib-fg: #f8f8f2;
   --lib-fg-muted: #bd93f9;
   --lib-fg-hint: #8995ba;
@@ -1840,8 +1856,6 @@ html[data-theme="flexoki-light"] {
   color-scheme: light;
   --lib-bg: #FFFCF0;
   --lib-panel: #F2F0E5;
-  --lib-tab: #F2F0E5;
-  --lib-tab-active: #FFFCF0;
   --lib-fg: #100f0f;
   --lib-fg-muted: #6a6964;
   --lib-fg-hint: #777467;
@@ -1875,8 +1889,6 @@ html[data-theme="flexoki-dark"] {
   color-scheme: dark;
   --lib-bg: #1C1B1A;
   --lib-panel: #282726;
-  --lib-tab: #282726;
-  --lib-tab-active: #1C1B1A;
   --lib-fg: #cecdc3;
   --lib-fg-muted: #908e8a;
   --lib-fg-hint: #878580;
@@ -1910,8 +1922,6 @@ html[data-theme="solarized-light"] {
   color-scheme: light;
   --lib-bg: #fdf6e3;
   --lib-panel: #eee8d5;
-  --lib-tab: #eee8d5;
-  --lib-tab-active: #fdf6e3;
   --lib-fg: #54696f;
   --lib-fg-muted: #54696f;
   --lib-fg-hint: #657474;
@@ -1945,8 +1955,6 @@ html[data-theme="solarized-dark"] {
   color-scheme: dark;
   --lib-bg: #002b36;
   --lib-panel: #073642;
-  --lib-tab: #073642;
-  --lib-tab-active: #002b36;
   --lib-fg: #8e9e9f;
   --lib-fg-muted: #869ca4;
   --lib-fg-hint: #7a939b;
@@ -1982,8 +1990,6 @@ html[data-theme="catppuccin-latte"] {
   color-scheme: light;
   --lib-bg: #eff1f5;
   --lib-panel: #e6e9ef;
-  --lib-tab: #e6e9ef;
-  --lib-tab-active: #eff1f5;
   --lib-fg: #4c4f69;
   --lib-fg-muted: #626579;
   --lib-fg-hint: #666b80;
@@ -2017,8 +2023,6 @@ html[data-theme="catppuccin-mocha"] {
   color-scheme: dark;
   --lib-bg: #1e1e2e;
   --lib-panel: #313244;
-  --lib-tab: #313244;
-  --lib-tab-active: #1e1e2e;
   --lib-fg: #cdd6f4;
   --lib-fg-muted: #a6adc8;
   --lib-fg-hint: #85889f;
@@ -2052,8 +2056,6 @@ html[data-theme="gruvbox-dark"] {
   color-scheme: dark;
   --lib-bg: #282828;
   --lib-panel: #3c3836;
-  --lib-tab: #3c3836;
-  --lib-tab-active: #282828;
   --lib-fg: #ebdbb2;
   --lib-fg-muted: #b0a390;
   --lib-fg-hint: #9b8f85;
@@ -2087,8 +2089,6 @@ html[data-theme="rose-pine"] {
   color-scheme: dark;
   --lib-bg: #191724;
   --lib-panel: #1f1d2e;
-  --lib-tab: #1f1d2e;
-  --lib-tab-active: #191724;
   --lib-fg: #e0def4;
   --lib-fg-muted: #908caa;
   --lib-fg-hint: #837f9a;
@@ -2122,8 +2122,6 @@ html[data-theme="github-light"] {
   color-scheme: light;
   --lib-bg: #f6f8fa;
   --lib-panel: #ffffff;
-  --lib-tab: #ffffff;
-  --lib-tab-active: #f6f8fa;
   --lib-fg: #1f2328;
   --lib-fg-muted: #656d76;
   --lib-fg-hint: #68717c;
