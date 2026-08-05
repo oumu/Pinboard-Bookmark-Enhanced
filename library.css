@@ -1067,23 +1067,38 @@ html.motion-ready .vocab-note-save[hidden] { display: none; opacity: 0; translat
    .vocab-group-unit, so this only ADDS coverage -- the detail pane renders
    the identical input+stepper unit (library-vocab.js: "same input+stepper
    family as the batch bar") outside .vocab-batch-bar entirely, scoped to
-   #vocab-detail, and had never matched this recipe at all: zero border,
-   zero radius, zero background, UA default focus ring (a visible double
-   ring in dark themes -- the outline this rule supplies is the only
-   focus-visible treatment either instance gets). ui-components.mjs's
-   generated sm-rung padding/font-size/line-height override got the same
-   widening in the same commit. */
-.vocab-group-unit input[type="text"] {
+   #vocab-detail, and had never matched this recipe at all.
+   COMPONENTS.md §8 (2026-08-05): the chrome this rule used to carry moved
+   OUT to the .vocab-group-unit shell -- a fused control's border/radius/
+   background belong to the container, never to the pieces. What stays here
+   is the geometry the shell can't express (min-width for flex shrink, the
+   box-sizing the sm-rung padding assumes). */
+.vocab-group-unit > input[type="text"] {
   min-width: 0;
-  border: 1px solid var(--lib-input-border, #cdd1d6);
-  border-radius: var(--lib-radius-md);
-  background-color: var(--lib-input-bg, #fff);
+  /* The input absorbs the shell's free space so the two steppers stay flush
+     against its right edge. Invisible before the shell had chrome: the
+     detail-pane instance is a `flex: 1 1 200px` item that resolves to its
+     320px max-width, while its content only needed 215px -- 105px of dead
+     space that used to be transparent and now would render as an empty tail
+     of capsule past the "-" button. (The batch-bar instance never showed it:
+     .vocab-batch-bar input[type="text"] already gives that copy
+     `flex: 1 1 120px`.) */
+  flex: 1 1 auto;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: var(--lib-fg);
   box-sizing: border-box;
 }
-.vocab-group-unit input[type="text"]:focus-visible {
-  outline: 2px solid var(--lib-accent);
-  outline-offset: 1px;
+/* §8 law 2: the ring belongs to the shell (`.vocab-group-unit:focus-within`
+   further down). An inner ring here is what shipped before and is exactly
+   the defect the user reported twice -- `outline-offset: 1px` on an input
+   that ends 53px (batch bar) / 158px (detail pane) short of the unit's right
+   edge draws two thirds of a rectangle and then runs underneath the two
+   stepper cells, whose opaque `.btn` background paints over it. */
+.vocab-group-unit > input[type="text"]:focus,
+.vocab-group-unit > input[type="text"]:focus-visible {
+  outline: none;
 }
 /* A toolbar select is still a select: same closed-control recipe as
    `.fg select` above, written token-first so it needs no themed twin. Only
@@ -1167,28 +1182,64 @@ html[data-theme="rose-pine"] .vocab-filter-toolbar select {
 /* Sort segment: two fused direction-toggle cells replacing the widest select
    (#vocab-sort stays as the hidden state carrier). The pressed cell wears the
    accent; icons show the CURRENT direction, titles the sort a click applies. */
-.vocab-sort-seg { display: inline-flex; align-items: stretch; flex: none; }
-.vocab-sort-btn {
+/* FUSED CONTROL (COMPONENTS.md §8) -- same law as .vocab-group-unit, button
+   flavour. Before: each cell drew its own .btn border and the PRESSED cell
+   re-coloured it, so the single seam between the two cells changed colour
+   depending on which side was active (accent-tinted when "time" was pressed,
+   plain --lib-border when "alpha" was) -- law 3's "one divider colour"
+   violated by the state machine itself. */
+.vocab-sort-seg {
+  display: inline-flex;
+  align-items: stretch;
+  flex: none;
+  border: 1px solid var(--lib-border);
+  border-radius: var(--lib-radius-md);
+  background: var(--lib-btn-bg);
+  color: var(--lib-btn-fg);
+  overflow: hidden;
+  transition: border-color var(--motion-state), box-shadow var(--motion-state);
+}
+/* §7.3's button/tab recipe (not the field one -- there is no text entry
+   here), drawn on the shell so it surrounds both cells. The old per-cell
+   `.btn:focus-visible` ring sat 2px outside a 34px cell, i.e. 2px ON TOP OF
+   the neighbouring cell, and stopped 30px short of the unit's far edge. */
+.vocab-sort-seg:focus-within { outline: 2px solid var(--lib-accent); outline-offset: 2px; }
+.vocab-sort-seg > .vocab-sort-btn {
   width: 34px;
   padding: 0;
   display: inline-grid;
   place-items: center;
+  border: 0;
   border-radius: 0;
+  background: transparent;
   color: var(--lib-fg-muted);
 }
-.vocab-sort-btn:first-child {
-  border-top-left-radius: var(--lib-radius-md);
-  border-bottom-left-radius: var(--lib-radius-md);
+/* One divider, on the cell that has a left neighbour. Its colour no longer
+   depends on either cell's pressed state. */
+.vocab-sort-seg > .vocab-sort-btn + .vocab-sort-btn { border-left: 1px solid var(--lib-border); }
+.vocab-sort-seg > .vocab-sort-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--lib-fg) 6%, var(--lib-btn-bg));
 }
-.vocab-sort-btn:last-child {
-  border-top-right-radius: var(--lib-radius-md);
-  border-bottom-right-radius: var(--lib-radius-md);
-  border-left: 0;
+/* §8 law 4: ghost feedback, transform cancelled (scale on a welded segment
+   opens a gap at the seam). */
+.vocab-sort-seg > .vocab-sort-btn:active:not(:disabled) {
+  transform: none;
+  background: color-mix(in srgb, var(--lib-fg) 10%, var(--lib-btn-bg));
+  transition-duration: 0s;
 }
-.vocab-sort-btn[aria-pressed="true"] {
+.vocab-sort-seg > .vocab-sort-btn[aria-pressed="true"] {
   color: var(--lib-accent);
-  background: color-mix(in srgb, var(--lib-accent) 12%, var(--lib-btn-bg, #fff));
-  border-color: color-mix(in srgb, var(--lib-accent) 45%, var(--lib-input-border, #cdd1d6));
+  background: color-mix(in srgb, var(--lib-accent) 12%, var(--lib-btn-bg));
+}
+/* Which segment holds focus; the ring itself is the shell's. Two rules so a
+   focused-AND-pressed cell deepens its own accent fill instead of losing it
+   to the neutral focus wash. */
+.vocab-sort-seg > .vocab-sort-btn:focus-visible {
+  outline: none;
+  background: color-mix(in srgb, var(--lib-fg) 10%, var(--lib-btn-bg));
+}
+.vocab-sort-seg > .vocab-sort-btn[aria-pressed="true"]:focus-visible {
+  background: color-mix(in srgb, var(--lib-accent) 24%, var(--lib-btn-bg));
 }
 /* Stats strip: read-only counts + two clickable status-filter chips. Same
    quiet-muted-text register as .notes-count; the two chip buttons join the
@@ -1339,12 +1390,81 @@ html.motion-ready .vocab-batch-bar.selecting {
 #vocab-invert-selection { position: relative; }
 #vocab-invert-selection::before { content: ""; position: absolute; inset: -3px 0; }
 .vocab-batch-bar input[type="text"] { flex: 1 1 120px; min-width: 0; }
-/* Input + stepper unit: one visual control, native-stepper style. The two
-   icon-only steppers are fixed 28px cells fused to the input's right edge. */
-.vocab-group-unit { display: inline-flex; align-items: stretch; flex: 1 1 200px; min-width: 150px; max-width: 320px; }
-.vocab-group-unit input[type="text"] { border-top-right-radius: 0; border-bottom-right-radius: 0; }
-.vocab-group-step { flex: none; width: 28px; display: inline-grid; place-items: center; padding: 0; border-left: 0; border-radius: 0; }
-.vocab-group-step:last-of-type { border-top-right-radius: var(--lib-radius-md); border-bottom-right-radius: var(--lib-radius-md); }
+/* Input + stepper unit -- FUSED CONTROL (COMPONENTS.md §8). The shell owns
+   the entire chrome: one border, one radius, one background, one focus ring.
+   The input and the two 28px stepper cells are borderless passengers, and
+   `overflow: hidden` clips them into the shell's corners so no passenger
+   needs a radius of its own (same mechanic as options' .progress-bar and
+   popup's .batch-progress).
+   WHAT THIS REPLACED, and why (user checkpoint 2026-08-05, third rejection
+   of this control): every piece used to draw its own box. The input carried
+   --lib-input-border (rgb(213,213,218) on the default surface) while the two
+   .btn steppers carried --lib-border (rgb(144,144,159)) -- so the seam
+   between input and "+" and the seam between "+" and "-" were DIFFERENT
+   COLOURS at DIFFERENT weights, which is what read as three border styles
+   stitched together. Now: shell border once, one divider colour, drawn by
+   the passengers' border-left only. */
+.vocab-group-unit {
+  display: inline-flex;
+  align-items: stretch;
+  flex: 1 1 200px;
+  min-width: 150px;
+  max-width: 320px;
+  border: 1px solid var(--lib-input-border);
+  border-radius: var(--lib-radius-md);
+  background: var(--lib-input-bg);
+  color: var(--lib-fg);
+  overflow: hidden;
+  transition: border-color var(--motion-state) ease, box-shadow var(--motion-state) ease;
+}
+/* §8 law 2 + §7.3's field recipe. `:focus-within` means the ring appears for
+   ALL THREE tab stops (input, +, -) and always surrounds the whole unit --
+   a box-shadow ring paints outside the shell's border box, so it can never
+   be occluded by a passenger the way the old inner outline was. */
+.vocab-group-unit:focus-within {
+  border-color: var(--lib-focus-bd);
+  box-shadow: var(--lib-focus-ring);
+}
+/* Passengers. `> ` keeps every override at (0,2,0)+ so it out-ranks the
+   generated .btn chrome (0,1,0) on specificity rather than on source order
+   -- Task 9 already got burned once by a same-specificity rule moving. */
+.vocab-group-unit > .vocab-group-step {
+  flex: none;
+  width: 28px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  /* §8 law 3: ONE divider colour, one width, full height (align-items:
+     stretch). Both cells have a left neighbour -- the input, then "+" -- so
+     both draw the same 1px line and the unit reads as evenly segmented. */
+  border-left: 1px solid var(--lib-input-border);
+  border-radius: 0;
+  background: transparent;
+  /* Not --lib-btn-fg: that token is AA-derived against btn-bg/btn-hover, and
+     inside this shell the icons sit on --lib-input-bg. --lib-fg is the token
+     derived for exactly this background (§6.2), which is also what the
+     input's own text uses one pixel to the left. */
+  color: var(--lib-fg);
+}
+/* §8 law 4: passengers give ghost feedback, not .btn feedback. scale(0.97)
+   on a segment welded to its neighbours tears open the seams, so press is a
+   background step with no transition (§3.2's row-press language) and the
+   .btn family's transform is explicitly cancelled rather than left to a
+   specificity race. */
+.vocab-group-unit > .vocab-group-step:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--lib-fg) 6%, var(--lib-input-bg));
+}
+.vocab-group-unit > .vocab-group-step:active:not(:disabled) {
+  transform: none;
+  background: color-mix(in srgb, var(--lib-fg) 10%, var(--lib-input-bg));
+  transition-duration: 0s;
+}
+/* Ring is the shell's; the passenger only says WHICH segment holds focus. */
+.vocab-group-unit > .vocab-group-step:focus-visible {
+  outline: none;
+  background: color-mix(in srgb, var(--lib-fg) 10%, var(--lib-input-bg));
+}
 .vocab-batch-cluster { display: inline-flex; gap: var(--lib-sp-1); flex: none; }
 .vocab-main-status {
   margin-left: auto;

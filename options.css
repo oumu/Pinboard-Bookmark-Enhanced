@@ -966,7 +966,25 @@ html.motion-ready #preset-preview-section > summary::after {
 .status-ic.ok { color: var(--opt-save); }
 .status-ic.bad { color: var(--opt-danger); }
 .key-toggle:hover { color: var(--opt-fg-soft); }
-.key-toggle:focus-visible { outline: 2px solid var(--opt-accent); outline-offset: 1px; }
+/* FUSED CONTROL (COMPONENTS.md §8), 19 instances. The field and the reveal
+   button are one unit; unlike .vocab-group-unit the shell here is a bare
+   positioning span and the INPUT is the unit's visual box, so law 1 was
+   already satisfied (only the input draws chrome, .key-toggle is
+   `background: none; border: none`) and only law 2 needed fixing: the ring
+   now belongs to the unit for BOTH tab stops, and the eye reports which
+   piece holds focus.
+   What this replaced: `outline: 2px solid; outline-offset: 1px` on the
+   button alone, which -- measured, not guessed -- put the ring's right edge
+   1px PAST the field's own right border (button sits at right:2px, so
+   2px width + 1px offset = 3px into a 2px gutter). An inner ring cutting
+   across the container's chrome is the same defect shape the group row was
+   rejected for, one order of magnitude smaller. */
+.key-wrap:focus-within input { border-color: var(--opt-focus-bd); box-shadow: var(--opt-focus-ring); }
+.key-toggle:focus-visible {
+  outline: none;
+  background: color-mix(in srgb, var(--opt-fg) 10%, var(--opt-input-bg));
+  border-radius: var(--opt-radius-sm);
+}
 
 /* ============================================================
    Theme System (CSS Custom Properties)
@@ -1615,7 +1633,12 @@ html[data-theme] .saved-theme-del:focus-visible { outline-color: var(--opt-accen
 /* .key-toggle:hover: second form -- unthemed hover is --opt-fg-soft (#555),
    themed hover is the plain --opt-fg role. */
 html[data-theme] .key-toggle:hover { color: var(--opt-fg); }
-html[data-theme] .key-toggle:focus-visible { outline-color: var(--opt-accent); }
+/* The `html[data-theme] .key-toggle:focus-visible { outline-color }` twin
+   that used to sit here is gone with the outline itself (§8, above): the
+   base rule now resolves to `outline-style: none`, so an outline-COLOUR
+   override had nothing left to colour -- dead code that would have read as
+   live coverage. The themed focus treatment comes from --opt-focus-bd /
+   --opt-focus-ring on the field, which are per-theme tokens already. */
 html[data-theme] .accordion-header:focus-visible { outline-color: var(--opt-accent); }
 html[data-theme] .fg input[type="checkbox"]:focus-visible { outline-color: var(--opt-accent); }
 html[data-theme] .confirm-popover button:focus-visible { outline-color: var(--opt-accent); }

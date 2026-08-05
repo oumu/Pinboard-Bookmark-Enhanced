@@ -257,6 +257,27 @@ html[data-section="login"] .quick-actions { display: none !important; }
   padding: var(--pp-sp-2); border: 0; background: none; color: var(--pp-fg-soft);
 }
 .login-body .key-toggle svg { display: block; }
+/* FUSED CONTROL (COMPONENTS.md §8) -- options' .key-wrap under a different
+   class name, same two pieces, same law, same fix, so the two surfaces stay
+   byte-for-byte comparable in behaviour. Previously the eye inherited
+   `.login-body button:focus-visible`'s 2px ring at offset 2px (popup.css
+   just above), measured 1px outside the field's right border and 2px above
+   its top edge -- an inner ring straying across the container's chrome. */
+.login-body .secret-field:focus-within input {
+  border-color: var(--pp-focus-bd);
+  background: var(--pp-input-focus-bg);
+  box-shadow: var(--pp-focus-ring);
+}
+/* `.secret-field` in the selector is specificity ballast, not scoping: the
+   themed `html[data-theme] .login-body .key-toggle` rule below is (0,3,1),
+   so a (0,3,0) selector here would render the ghost fill on the default
+   surface and silently lose it under all 13 presets. (0,4,0) wins
+   everywhere with one rule instead of a base + themed pair. */
+.login-body .secret-field .key-toggle:focus-visible {
+  outline: none;
+  background: color-mix(in srgb, var(--pp-fg) 10%, var(--pp-input-bg));
+  border-radius: var(--pp-radius-sm);
+}
 .login-body button { padding: var(--pp-sp-2) var(--pp-sp-6); font-size: 12px; cursor: pointer; transition: background var(--pp-motion-state), border-color var(--pp-motion-state); }
 .login-body button:active:not(:disabled) { transform: translateY(1px); }
 .login-body button:focus-visible { outline: 2px solid var(--pp-accent, #4477bb); outline-offset: 2px; }
@@ -2069,6 +2090,14 @@ html[data-theme] .login-body input { background: var(--pp-input-bg); border-colo
 html[data-theme] .login-body input:focus { border-color: var(--pp-focus-bd); background: var(--pp-input-focus-bg); }
 html[data-theme] .login-body button { background: var(--pp-bg2); border-color: var(--pp-border); color: var(--pp-fg); }
 html[data-theme] .login-body button:hover { background: var(--pp-input-focus-bg); }
+/* `background: transparent` here is NOT a duplicate of the base rule's
+   `background: none` -- it is load-bearing, and this comment exists because
+   deleting it during the §8 pass silently painted an opaque --pp-bg2 box
+   behind the eye icon under all 13 presets (measured on dracula and
+   terminal before it shipped). The rule it beats is
+   `html[data-theme] .login-body button { background: var(--pp-bg2) }` two
+   lines up: .key-toggle IS a <button> in .login-body, and (0,3,1) here wins
+   over that selector's (0,2,2). Do not "simplify" it away. */
 html[data-theme] .login-body .key-toggle { background: transparent; border: 0; color: var(--pp-fg-hint); }
 html[data-theme] .login-body .key-toggle:hover { background: transparent; color: var(--pp-fg); }
 html[data-theme] .field > input[type="text"], html[data-theme] .field > textarea {

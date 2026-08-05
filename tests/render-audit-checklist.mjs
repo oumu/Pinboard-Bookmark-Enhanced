@@ -276,7 +276,17 @@ export const CHECKS = [
   // only reads them via $id, it doesn't construct this row). Needs a
   // selected row to reveal the bar (`.vocab-batch-bar.selecting`) -- the
   // runner checks a row's checkbox first for any check using `heightEqWith`.
-  { surface: "library", page: "library.html", selector: "#vocab-group-input", state: "default",
+  // RE-POINTED 2026-08-05 (COMPONENTS.md §8): the probe used to be
+  // #vocab-group-input itself. After the fused-control rebuild the input is
+  // 18px and its 1px border lives on the .vocab-group-unit shell instead, so
+  // the raw input measures 2px under a .btn-sm by construction -- the CONTROL
+  // is still 20px. Measuring the shell keeps the original power (md-rung
+  // padding creeping back would push the shell to 24px and fail exactly as
+  // before) while measuring the thing the user actually sees line up.
+  // .vocab-batch-bar's align-items is center, so the shell renders at its
+  // natural height and can't be laundered by a stretch the way the two
+  // stepper cells inside it can.
+  { surface: "library", page: "library.html", selector: "#vocab-batch-toolbar .vocab-group-unit", state: "default",
     expect: { heightEqWith: { selector: "#vocab-invert-selection", tolerancePx: 1 } } },
 
   // ---- §1.4 hitAreaMin (USER RULING: icon-only buttons only). ----
@@ -376,16 +386,25 @@ export const CHECKS = [
   // vertical padding was a bare 6px literal (no --lib-sp-* match) instead of
   // the same var(--lib-sp-1) the search input already used; both share the
   // browser's inherited `line-height: normal` for the same font-size, so
-  // equalizing padding alone closed the whole gap. #vocab-sort-time reaches
+  // equalizing padding alone closed the whole gap. The sort control reaches
   // the SAME height a different way -- it's stretched to match its select
   // siblings by .vocab-filter-selects's default (unset) align-items:stretch,
   // not by its own padding/line-height, so it's the one selector that
   // actually exercises that stretch mechanism rather than just re-testing
-  // the select fix a second time. ----
+  // the select fix a second time.
+  // RE-POINTED 2026-08-05 (§8) from #vocab-sort-time to .vocab-sort-seg, for
+  // the same reason the group-input entry above moved to its shell: the
+  // stretch target is now the SHELL, and its 1px border means the cell
+  // inside it settles 2px shorter (23.5 vs the row's 25.5) by construction.
+  // The control still measures 25.5 and the stretch mechanism is still what
+  // is being tested -- only the element that owns the border moved. Side
+  // benefit: the two entries no longer share a keyOf()
+  // (surface|theme|selector|state|check), which had been silently collapsing
+  // them onto one known-failures key. ----
   { surface: "library", page: "library.html", selector: "#vocab-search", state: "default",
     expect: { heightEqWith: { selector: "#vocab-group-filter", tolerancePx: 1 } } },
-  { surface: "library", page: "library.html", selector: "#vocab-search", state: "default",
-    expect: { heightEqWith: { selector: "#vocab-sort-time", tolerancePx: 1 } } },
+  { surface: "library", page: "library.html", selector: ".vocab-sort-seg", state: "default",
+    expect: { heightEqWith: { selector: "#vocab-search", tolerancePx: 1 } } },
 
   // ---- Task 14 (§6.3 rowRungEq, sweep-discovered): the free-lookup bar.
   // #vocab-lookup-go is a bare-icon .btn-sm (COMPONENTS.md §1.5's "dense
@@ -422,6 +441,81 @@ export const CHECKS = [
   // narrowed selector above is ever re-widened. ----
   { surface: "library", page: "library.html", selector: "#vocab-list .vocab-group-chip", state: "default",
     expect: { heightEqWith: { selector: ".vocab-detail-group-chips .vocab-group-chip", tolerancePx: 1 } } },
+
+  // ---- COMPONENTS.md §8: fused controls (design-uplift 2026-08-05, user
+  // checkpoint round 4 -- "同类型的问题肯定不止这一处" after the group row was
+  // rejected a third time). Two assertions per rebuilt control:
+  //
+  //   fusedChildrenFlat  laws 1+3 -- no passenger draws a box of its own (no
+  //                      radius, no resting fill, at most the single border
+  //                      side that IS the divider), and every divider drawn
+  //                      inside one shell agrees on colour and width. This is
+  //                      the direct regression guard for what shipped before:
+  //                      the input carried --lib-input-border while the two
+  //                      .btn steppers carried --lib-border, so the two seams
+  //                      inside one 215px control were different colours.
+  //   fusedFocusRing     law 2 -- the ring is the SHELL's, it actually
+  //                      changes on :focus-within, it grows outward from the
+  //                      shell's border box (non-negative outline-offset, or
+  //                      a non-inset shadow), and the focused passenger draws
+  //                      no outline of its own. One entry per tab stop,
+  //                      because each passenger reaches the ring through a
+  //                      different rule and a missed `outline: none` on any
+  //                      one of them re-creates the reported defect.
+  //
+  // Both instances of the group unit are covered: the batch bar's (static
+  // markup, library.html:112) and the detail pane's (built by
+  // library-vocab.js:409). They share one recipe but have historically
+  // drifted -- Finding 1 in vocab-group-inspect-report.md was precisely the
+  // detail-pane copy never matching a selector the batch-bar copy did. ----
+  // Batch-bar instance. focusWithin covers the input only: library-vocab.js
+  // :1031/:1037 disable both steppers until a group name has been typed AND
+  // (for "-") the selection is already in that group, and a disabled control
+  // cannot take focus at all -- §3.1 row 9 exempts :disabled from these
+  // assertions anyway. The stepper half of the recipe is asserted on the
+  // detail-pane twin below, whose steppers are never disabled; the CSS is
+  // one shared rule, so coverage is not lost, only relocated.
+  { surface: "library", page: "library.html", selector: "#vocab-batch-toolbar .vocab-group-unit", state: "default",
+    expect: { fusedChildrenFlat: { children: ['input[type="text"]', "#vocab-add-group", "#vocab-remove-group"] } } },
+  { surface: "library", page: "library.html", selector: "#vocab-batch-toolbar .vocab-group-unit", state: "focusWithin",
+    focusTarget: 'input[type="text"]', expect: { fusedFocusRing: true } },
+  // Detail-pane twin. Its steppers carry no ids (library-vocab.js:418/428
+  // builds them anonymously) so the passengers are addressed positionally,
+  // and they are always enabled -- this is where all three tab stops get
+  // exercised.
+  { surface: "library", page: "library.html", selector: ".vocab-detail-pane .vocab-group-unit", state: "default",
+    expect: { fusedChildrenFlat: { children: ['input[type="text"]', ".vocab-group-step:nth-of-type(1)", ".vocab-group-step:nth-of-type(2)"] } } },
+  { surface: "library", page: "library.html", selector: ".vocab-detail-pane .vocab-group-unit", state: "focusWithin",
+    focusTarget: 'input[type="text"]', expect: { fusedFocusRing: true } },
+  { surface: "library", page: "library.html", selector: ".vocab-detail-pane .vocab-group-unit", state: "focusWithin",
+    focusTarget: ".vocab-group-step:nth-of-type(1)", expect: { fusedFocusRing: true } },
+  { surface: "library", page: "library.html", selector: ".vocab-detail-pane .vocab-group-unit", state: "focusWithin",
+    focusTarget: ".vocab-group-step:nth-of-type(2)", expect: { fusedFocusRing: true } },
+  // Sort segment: the same law in its button flavour (§7.3's outline recipe
+  // on the shell rather than the field's box-shadow, because nothing here
+  // takes text entry). Its pre-fix divider colour was driven by aria-pressed,
+  // so fusedChildrenFlat's "dividers agree" clause is the live guard against
+  // a state re-colouring the seam.
+  { surface: "library", page: "library.html", selector: ".vocab-sort-seg", state: "default",
+    expect: { fusedChildrenFlat: { children: ["#vocab-sort-time", "#vocab-sort-alpha"] } } },
+  { surface: "library", page: "library.html", selector: ".vocab-sort-seg", state: "focusWithin",
+    focusTarget: "#vocab-sort-time", expect: { fusedFocusRing: true } },
+  { surface: "library", page: "library.html", selector: ".vocab-sort-seg", state: "focusWithin",
+    focusTarget: "#vocab-sort-alpha", expect: { fusedFocusRing: true } },
+  // The two steppers now paint --lib-fg on --lib-input-bg instead of
+  // --lib-btn-fg on --lib-btn-bg. fg-vs-input-bg is a COMPONENTS.md §6.2
+  // derivation requirement but is NOT in contrast-audit's
+  // COMPONENT_PAIR_SPEC, so this render entry is the only gate on it -- and
+  // it covers all 16 themes rather than one token pair.
+  // (Deliberately the detail-pane pair, not #vocab-add-group/#vocab-remove-
+  // group: the batch bar's two steppers render :disabled on an untouched
+  // page, and the runner correctly SKIPs contrast on disabled controls --
+  // pointing this at them would have produced 16 silent SKIPs dressed up as
+  // coverage.)
+  { surface: "library", page: "library.html", selector: ".vocab-detail-pane .vocab-group-step:nth-of-type(1)", state: "default",
+    expect: { iconContrast: 3 } },
+  { surface: "library", page: "library.html", selector: ".vocab-detail-pane .vocab-group-step:nth-of-type(2)", state: "default",
+    expect: { iconContrast: 3 } },
 ];
 
 // Hand-copied literal `data-theme` values, verified at authoring time with:

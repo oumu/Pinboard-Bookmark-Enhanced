@@ -43,6 +43,7 @@
 | 5 chip / badge | 几何律适用（施工排期见附录 C） | 全量 | 全量 |
 | 6 表单控件 | 颜色对 + `accent-color` | 全量 | 全量 |
 | 7 横切（color-scheme / focus / 状态色 / 成对消费） | 全量 | 全量 | 全量 |
+| 8 融合控件（容器持 chrome / `:focus-within` 环 / 单一分隔线） | 全量 | 全量 | 全量 |
 
 **popup 豁免的确切边界**（本战役不动，随「popup 按钮族归一」后续战役再议）：
 
@@ -618,6 +619,130 @@ chevron 探出边框——根因是同一处：一条 id 选择器规则把水�
 
 ---
 
+## 8. 融合控件（fused control）
+
+**适用**：三表面全量。
+
+### 8.1 什么算融合控件
+
+**两个及以上交互件拼成一个视觉单元**——输入框 + 步进钮、输入框 + 内嵌按钮、分段按钮组、
+输入 + 下拉 + 按钮。判据只有一条：**这些件之间有没有可见间隙**。有间隙 = 一排各自独立的控件放在
+同一个容器里（工具条、卡片、弹层），本节不适用；无间隙、共享边、读起来是一颗控件 = 融合控件。
+
+这条判据要照字面用，别按"看起来像不像一组"来判。`.vocab-batch-bar` 是带边框带阴影的浮条，
+里面的按钮两两之间有 6–8px 间隙——它是**容器**，不是融合控件，容器和子控件各画各的边框是正常的。
+`#vocab-lookup-bar`、`.confirm-popover`、`.md-strip`、`.tabs`、预设行同理。清查时**先量间隙**，
+不然会把半个表面误判成缺陷。
+
+### 8.2 五条律
+
+1. **边框 / 圆角 / 背景由容器唯一持有。** 内部件一律无独立边框、无独立圆角（容器 `overflow: hidden`
+   裁角）、背景透明或 ghost。
+2. **focus 环画在容器上**：`:focus-within` → §7.3 的统一配方（取哪一套看控件类型：有文本录入走字段套，
+   纯按钮组走按钮套）。内部件自身的 `outline` 抑制；键盘逐件 tab 时用内部件的轻微底色变化指示当前段。
+3. **内部分隔线单一颜色单一粗细**（1px，与容器边框同色或降饱和一档），贯穿高度一致。分隔线的颜色
+   **不得随任何状态变化**——选中态改分隔线颜色是这条律最容易踩的坑（`.vocab-sort-seg` 的原实现）。
+4. **hover / press 反馈按 §3 既有语言**，但内部件用 ghost 底色变化，**`transform` 显式取消**：
+   `scale(0.97)` 作用在焊死的分段上会在接缝处撕开一条缝。按压瞬时（`transition-duration: 0s`），
+   与 §3.2 的行按压语言同源。
+5. **内部件与容器边缘的内距上 spacing 阶**；原生附属物（`<input list>` 的 datalist ▼ 之类平台不可
+   抑制的）保证在 padding 内不撞分隔线。
+
+### 8.3 结构配方
+
+```css
+/* 容器（字段型：有文本录入。按钮组型见下方差异说明） */
+.<unit> {
+  display: inline-flex;
+  align-items: stretch;                 /* 分隔线才能贯穿全高 */
+  border: 1px solid var(--{ns}-input-border);
+  border-radius: var(--{ns}-radius-md);
+  background: var(--{ns}-input-bg);
+  color: var(--{ns}-fg);
+  overflow: hidden;                     /* 裁角：内部件因此不需要任何 radius */
+  transition: border-color var(--motion-state) ease, box-shadow var(--motion-state) ease;
+}
+.<unit>:focus-within { border-color: var(--{ns}-focus-bd); box-shadow: var(--{ns}-focus-ring); }
+
+/* 内部件。`> ` 让每条覆盖靠特异性 (0,2,0)+ 赢过生成区的 .btn (0,1,0)，不靠源序 */
+.<unit> > input[type="text"] { border: 0; border-radius: 0; background: transparent; color: var(--{ns}-fg); }
+.<unit> > input[type="text"]:focus,
+.<unit> > input[type="text"]:focus-visible { outline: none; }
+.<unit> > .<seg> {
+  border: 0;
+  border-left: 1px solid var(--{ns}-input-border);   /* 唯一分隔线 */
+  border-radius: 0;
+  background: transparent;
+  color: var(--{ns}-fg);
+}
+.<unit> > .<seg>:hover:not(:disabled)  { background: color-mix(in srgb, var(--{ns}-fg) 6%, var(--{ns}-input-bg)); }
+.<unit> > .<seg>:active:not(:disabled) { transform: none; background: color-mix(in srgb, var(--{ns}-fg) 10%, var(--{ns}-input-bg)); transition-duration: 0s; }
+.<unit> > .<seg>:focus-visible         { outline: none; background: color-mix(in srgb, var(--{ns}-fg) 10%, var(--{ns}-input-bg)); }
+```
+
+**按钮组型的三处差异**（`.vocab-sort-seg`）：容器边框取 `--{ns}-border`、底取 `--{ns}-btn-bg`；
+focus 走 §7.3 的按钮套（`outline: 2px solid var(--{ns}-accent); outline-offset: 2px`，画在容器上）；
+分隔线只画在**有左邻居**的那一格（`.<seg> + .<seg>`），因为容器的第一格左侧就是容器边框本身。
+
+**内部件的前景取 `--{ns}-fg` 而不是 `--{ns}-btn-fg`**：`btn-fg` 是对 `btn-bg`/`btn-hover` 派生的，
+而融合进字段型容器之后图标实际压在 `--{ns}-input-bg` 上。`--{ns}-fg` 才是对这个底派生过的那个
+（§6.2）。这条在 `contrast-audit.mjs` 的 `COMPONENT_PAIR_SPEC` 里**没有**对应行（`fg × input-bg`
+从未登记），目前唯一看管它的是下面的 `iconContrast` 渲染断言——16 套主题逐个实测，比一条 token 对
+更强，但要知道静态侧是空的。
+
+**`.key-wrap` 变体（容器无 chrome，输入框即视觉框）**：options 的 19 个密钥字段与 popup 的
+`.secret-field` 是同一形状——`<span>` 只是定位壳，眼睛钮 `position: absolute` 浮在输入框上。这时
+律 1 已经天然满足（只有输入框画 chrome），要补的只有律 2：环画在**单元**上而不是眼睛钮上。
+
+```css
+.key-wrap:focus-within input { border-color: var(--{ns}-focus-bd); box-shadow: var(--{ns}-focus-ring); }
+.key-toggle:focus-visible    { outline: none; background: color-mix(in srgb, var(--{ns}-fg) 10%, var(--{ns}-input-bg)); border-radius: var(--{ns}-radius-sm); }
+```
+
+### 8.4 几何 / 结构约束
+
+| ID | 断言 | 层 |
+|---|---|---|
+| `fusedChildrenFlat` | 容器内每个点名的内部件：圆角为 0、有边框的边**至多一条**（那条就是分隔线）、非选中态背景 alpha 为 0；同一容器内画出来的所有分隔线颜色与粗细一致 | `[render]` |
+| `fusedFocusRing` | `state: "focusWithin"` 下：容器自身渲染出 focus 指示（`outline` 或非 inset 的 `box-shadow`）、该指示相对未聚焦态**确实变了**、方向朝外（`outline-offset ≥ 0` 或非 inset 阴影）、且**持有焦点的那个内部件自己不画 outline** | `[render]` |
+
+两条都在 `tests/render-audit-checklist.mjs`，跑遍 16 套主题。`fusedChildrenFlat` 的
+"非选中态"限定是有意的：分段控件选中格的填充**就是**选中状态本身（律 4 的 ghost 家族），
+不是 chrome——`aria-pressed="true"` / `aria-selected="true"` / `.active` 三者任一即豁免该子句。
+`fusedFocusRing` 的 `focusWithin` 状态需要 runner 配合两件事，改 `ui-render-audit.mjs` 前别拆：
+聚焦后**等过渡结束再读**（同一 task 内读到的是 `none` 的 t=0 插值，看起来就像没有环），
+以及聚焦前**先按一次真实按键**（Chromium 只在键盘模态下让 `<button>` 匹配 `:focus-visible`，
+否则"内部件不画 outline"这条断言恒真、形同虚设）。
+
+### 8.5 适用控件清单
+
+| 控件 | 表面 | 判定 | 备注 |
+|---|---|---|---|
+| `.vocab-group-unit`（批量条 + 详情面板两处） | library | **本次重建** | 输入 + 双步进钮；用户四轮打回的主案 |
+| `.vocab-sort-seg` | library | **本次重建** | 分段按钮对；分隔线原本随 `aria-pressed` 变色 |
+| `.key-wrap`（19 个密钥字段） | options | **本次修律 2** | 容器无 chrome 变体 |
+| `.secret-field` | popup | **本次修律 2** | 同上，跨表面同形 |
+| `.tags-input-wrap` | popup | **已合规（参考实现）** | 本律的现成样板：容器持 chrome、input `border: none`、`:focus-within` 环 |
+| `.progress-bar` / `.batch-progress` | options / popup | **已合规** | 非交互，律 2/4 不适用；`overflow: hidden` 裁角的现成先例 |
+| chip + 单个 `×` 钮（`.vocab-group-chip.removable`、`.tag-item`） | library / popup | **不适用** | 只有一个交互件（药丸本身不可聚焦），不满足"两个及以上" |
+| `.saved-theme-wrap` | options | **不适用** | 删除钮是浮在药丸外的角标，不共享边 |
+| 容器类（`.vocab-batch-bar` / `#vocab-lookup-bar` / `.confirm-popover` ×3 / `.del-confirm-popover` / `.theme-name-popover` / `.md-strip` / `.tabs` / 预设行 / `.vocab-batch-cluster` / `.et-field` / `.quick-row` / `.notes-toolbar` / `.vocab-filter-toolbar` …） | 三表面 | **不适用** | 子控件之间有可见间隙（§8.1） |
+
+### 8.6 使用守则
+
+- 新增复合控件时先量间隙：**有间隙走容器，无间隙走本节**。别按"看着像一组"下判断。
+- 内部件的覆盖一律写成 `.<unit> > .<child>` 形式。同特异性靠源序取胜的写法在本仓库出过事
+  （Task 9 的 REVERSE 源序翻转），融合控件要覆盖的又恰好是生成区的 `.btn`，别赌。
+- 容器加 `overflow: hidden` 之后，内部件的 `border-radius` 一律删干净，别留"反正被裁掉了"的死声明——
+  下一个人删掉 `overflow` 时它们会一起复活。
+- 主题覆盖块（`html[data-theme] …`）里**与基类同值的声明要删**：它的特异性通常比新写的
+  `:focus-visible`/`:hover` 规则高一档，会让新规则只在默认表面生效、13 套预设下静默消失
+  （popup `.key-toggle` 的 `background: transparent` 就是这个形状，见附录 C32）。
+- 分隔线用内部件的 `border-left`，不要用伪元素——伪元素不参与 `align-items: stretch`，
+  高度要另外维护。
+
+---
+
 ## 附录 A：人审清单（不可自动化的判断）
 
 自动门覆盖约八成常规缺陷（对比度、几何比例、token 解析、级联结构）。以下四类结构上无法自动判定，
@@ -693,6 +818,16 @@ chevron 探出边框——根因是同一处：一条 id 选择器规则把水�
 | 弹层 `transform-origin: center` | 保持现状：`.confirm-popover` 锚在触发钮上，其入场配方本战役不动 | 原点感知对锚定弹层是对的，但本战役不碰 confirm-popover 的动效形态（§0 豁免），此行仅作核对未发现问题 |
 | `:disabled` 对比度不足被当成缺陷「修」 | 对比度断言跳过 `:disabled` | WCAG 1.4.3 豁免禁用控件；`opacity: 0.45` 同时压前景背景是刻意的失能信号 |
 
+**2026-08-05 融合控件批次追加**（§8；左列是本次改掉的现状）：
+
+| Before | After | Why |
+| --- | --- | --- |
+| 焊死的分段上保留 `.btn:active { transform: scale(0.97) }` | `transform: none` + 背景加深 10%、`transition-duration: 0s` | 缩放一颗与邻居共边的格子会在接缝处撕开一条缝再合上——按压反馈本身制造了一个视觉故障。改用 §3.2 已有的行按压语言（背景加深、瞬时），不新造第三种 |
+| 环画在内部件上，靠 `outline-offset` 调远近 | 环画在容器上（`:focus-within`） | 内部件的环尺寸等于内部件，不等于用户看到的那颗控件；且相邻件的不透明底色会把它盖掉。调 offset 只是把「盖掉多少」挪一挪，改不了「环框错了对象」 |
+| focus 后立刻读 computed style 判断有没有环 | 聚焦 → 等过渡结束 → 再读 | `transition: box-shadow 150ms` 让 t=0 的 computed 值是 `none` 的插值（透明零尺寸阴影），看起来就是「没有环」。这条不是美学，是本批次调试时真的据此误判过一轮 |
+| 脚本 `.focus()` 后断言「内部件不画 outline」 | 先发一次真实按键，再 `.focus()` | Chromium 只在键盘模态下让 `<button>` 匹配 `:focus-visible`。少了这一步，这条断言在任何实现下都通过——是一条永远为真的假断言 |
+| 主题覆盖块里与基类同值的声明「可以顺手删掉」 | 先量特异性再删；本次实测不可删 | popup `html[data-theme] .login-body .key-toggle { background: transparent }` 看着是基类 `background: none` 的重复，实际压制的是 `html[data-theme] .login-body button` 的 `--pp-bg2`。删掉后 13 套预设下眼睛图标后面出现不透明方块（dracula/terminal 实测） |
+
 ---
 
 ## 附录 C：与现状的差异台账
@@ -734,6 +869,8 @@ chevron 探出边框——根因是同一处：一条 id 选择器规则把水�
 | C29 | `.preset-btn.used` 边框（popup，14 套主题）——**USER CHECKPOINT 2026-08-04 打回后改正**，替换 Task 16 一审登记的错误方向 | Task 16 一审曾让 `--pp-preset-bd` 跟随派生后的 `--pp-border` 走重（`ui["preset-bd"] = ui["border"]`），`.preset-btn.used` 与未用过的 `.preset-btn` 因此都读重描边——用户真机看到后判定「太夸张，很 low」，当场打回 | `--pp-preset-bd` 与 `--pp-border` 解绑，`preset-bd` 保留 Task 16 前的原始（未派生）palette 值；`.preset-btn.used` 的 `border-color` 从 `var(--pp-border)` 改回 `var(--pp-preset-bd)`，与 `.preset-btn`（未用过）同源。§1.3 补 preset swatch row 豁免（本节上方） | 14 套主题下 `.preset-btn.used` 边框实测变轻（回到战役前观感）；`.preset-btn`（未用过）无变化（`preset-bd` 从未真正被 Task 16 一审的重值污染过，只是 `.used` 单向读错了 token）。`--pp-preset-bd` 自此与 `--pp-border` 数值分道扬镳（战役前二者字节相同） | 本战役 |
 | C30 | 预设按钮行整体重设计（popup `.preset-btn`/`.preset-btn.used` + options `.theme-preset-btn`/`.saved-theme-btn`）——**USER CHECKPOINT 2026-08-04，C29 之后用户再次打回**：「有什么更现代优雅的设计吗？或者不光是描边问题，是整个按钮设计的问题」。三版真实渲染变体（色板优先／静默卡片／胶囊分段，`.superpowers/sdd/2026-08-03-design-uplift/preset-variants-report.md`）供用户选定后，本行落地**用户选中的变体 A：色板优先** | popup：1px 描边 + `border-radius: var(--pp-radius-sm)` 小圆角矩形，文字色 `--pp-preset-fg`。options：`.theme-preset-btn`/`.saved-theme-btn` 继承 `.btn` 的 1px `--opt-border` 描边 + `radius-md`；`.active` 态整底反色填充（`background: var(--opt-accent); color: var(--opt-panel)`）+ 边框描边框 `--opt-preset-active-border` + 一个 `::after` 伪元素用两条边框画出的 4×8px 打勾图标，需要专门的 20px 左内边距为打勾腾位置 | 两侧均改为**无边框圆角药丸**（`border: none; border-radius: var(--{ns}-radius-full)`），静息态填充改为轻量 accent 色调（`color-mix(in srgb, var(--{ns}-accent) 10%, var(--{ns}-panel/bg))`），标签前追加一枚 `::before` accent 色圆点——**popup** 跨主题同源 `var(--pp-accent)`（tag 预设无「该 tag 自身颜色」这个概念，圆点只是「当前主题强调色」的装饰，没有专属色可取）；**options 圆点是每个预设自己的强调色**（2026-08-05 修正，替换首版「全部圆点同色」的处置——首版判定「options 无现成每预设取色源」不成立，权威源就是 theme factory 的 pilots：`composers/options-chrome.mjs` 的 `composeOptionsThemes` 循环里已经为每个 `POPUP_THEME_MAP` 条目算出 `--opt-accent` 的最终值 `map.accent`（含 pilot `ui.options.<mode>` 覆盖后的真值——catppuccin-latte/solarized-light 两家都在这层覆盖过 accent，若只读派生前的 palette 原值会取到错误颜色），新增 `SWATCH_SOURCE_BY_BUTTON_KEY` 表把 options.html 每颗 `.theme-preset-btn` 已有的 `data-theme` 属性值映射到取色的 `POPUP_THEME_MAP` id（自适应伞值 flexoki/solarized/catppuccin 固定取其 light 态、不随页面明暗切换——圆点是静态身份标记不是实时预览，一种取法比"跟随当前模式"更好推理），在 `composeOptionsThemes` 尾部追加 11 条 `.theme-preset-btn[data-theme="X"] { --variant-swatch: <accent>; }`，落进 `@generated:ui-themes` 区（无需新开区，`apply-ui-themes.mjs` 的 `spliceRegion` 是纯文本替换，不校验区内规则形状）。`--variant-swatch` 默认值 `var(--opt-accent)` 挂在手写基类上（"None" 预设与 `.saved-theme-btn` 落这一档，二者都没有可取的预设身份色），生成区规则靠属性选择器 `(0,2,0)` 天然赢过基类 `(0,1,0)`，不依赖源序。12 个真实色值全部落在生成区文本里，`tests/ui-contract-tests.mjs` 的 hex/rgba 零容忍门只扫手写区（`countBareHex` 按 `@generated` 标记整段切掉），故不触发；hover 态填充加深（沿用既有 `--pp-preset-btn-hover-bg`/`--pp-drop-hover`；options 新增 `color-mix(accent 18%, panel)`）；**唯一真正的「选中」态**（options 的 `.active`，popup 的 `.used` 语义是「已插入」而非「选中」，维持低调不借用环）删除整底反色 + 打勾图标，改为 accent 淡色底 + `color: var(--opt-accent)` 加粗文字 + **2px accent 描边环**（`outline: 2px solid var(--opt-accent); outline-offset: 2px`，环在 border-box 外侧，不贴文字）。按压/焦点语言：popup 新增 `:active { transform: scale(0.97) }`（此前该行零按压反馈）+ focus-visible 去掉死代码 fallback 字面量 `#4477bb`；options 两个都是 `.btn`/`.btn-sm` 的既有类，`scale(0.97)` 按压与 `outline: 2px solid var(--opt-accent)` 焦点环**直接继承**，未新写规则 | popup 14 套主题下：矩形小圆角→无边框圆角药丸，追加圆点，`used` 态圆点用 `currentColor` 淡化（不新增 token，随文字色 `--pp-used-fg`/`--pp-fg-hint` 走）。options 14 套主题下：`.theme-preset-btn`/`.saved-theme-btn` 从「有边框方角按钮，选中态整底反色+打勾」变为「无边框药丸，选中态淡色底+加粗文字+描边环」——check-tick 消失，`padding-left: 20px` 让位给 `gap: 6px` 的 flex 圆点布局；由于新底色/文字都是对 `--opt-accent`/`--opt-panel` 的 `color-mix()`/裸消费（两者本就随主题反应），`html[data-theme]` 原本单独为 `.active` 写的 opt-panel/opt-bg 互换覆盖块整块删除，13 套主题下**一套规则跑通**，不再需要每主题覆盖。四个描边 token（`--pp-preset-btn-bd`/`--pp-preset-bd`/`--pp-preset-btn-used-bd`/`--opt-preset-active-border`）的**消费侧**已清空；前三个是 popup `@generated:ui-themes` 区（composer 产出）的 token，落地本行时未动 composer/pilots，故它们在生成产物里仍然存在但已无消费者（不触发任何现有门禁——`auditOrphanTokens` 只查 `*-fg`/`on-*` 形状，`--pp-preset-bd` 不匹配；`COMPONENT_PAIR_SPEC` 从未登记过它），留作后续若有人清理 composer 时的已知可删项；`--opt-preset-active-border` 是 options 手写 `:root`（非生成区），已直接删除定义。**2026-08-05 追加（销号收尾）**：controller 复核指出"同色圆点"违背色板选择器本意后，本行追加两处 fix——① `composers/options-chrome.mjs` 新增 `SWATCH_SOURCE_BY_BUTTON_KEY`，在 `composeOptionsThemes` 尾部为每个 `.theme-preset-btn[data-theme="X"]` 生成专属 `--variant-swatch` 规则（见本表上方"options 圆点是每个预设自己的强调色"一段的完整机制记录）；② `--pp-preset-bd` 完成真正的销号——`popup-chrome.mjs` 的 `emitPp` 发射列表移除 `"preset-bd"`，composer 不再产出该声明，`sync-all.mjs` 重跑后 14 套主题 `popup.css` 里的 `--pp-preset-bd: ...` 行随之从 `@generated:ui-themes` 区消失（`diff-all --strict` 3892/3892 0 diff、`css-region-audit` PASS 验证一致，`_ui-derive.mjs` 仍内部计算 `preset-bd` 供 options/library 共享调用，但 popup 侧不再选它入 map，无消费者也无发射）。`--pp-preset-btn-bd`/`--pp-preset-btn-used-bd` 两项本就不在 `emitPp` 的 key 列表内，从未被 composer 产出过，措辞不受影响。至此本行记录的四个边框 token 在消费侧与生成侧均已清空 | 本战役 + 2026-08-05 断点续跑收尾（正式实现，preset-variants-report.md 附「正式实现」+「断点续跑」两节） |
 | C31 | `--{ns}-chip-bg` 派生（options + library，`_ui-derive.mjs`/`options-chrome.mjs`/`library-chrome.mjs`）——vocab-group-inspect-report.md 2026-08-05 Finding 2：`.vocab-group-chip`（library）与 `.tag-gov-kind-badge`（options）共享同一条派生，9/13 pilot 的 `tag-bg` 是字面 `transparent`，composer 曾 `map["chip-bg"] = palette["tag-bg"]` 原样照抄，把这个字面量直接发射进 `@generated:ui-themes`——`chip-fg` 一侧的对比度检查用 `resolveOpaqueBg` 把它复合到 panel 上算分（读得到分），但**发射出去的 `--{ns}-chip-bg` 本身仍是裸 `transparent`**，两道门都测不到"这套主题的 chip 药丸没有背景"这个缺口（真机实测 dracula 的 `.vocab-group-chip` 只剩绿字，无药丸边界） | 新增 `resolveChipBg(raw, accentRgb, panelRgb)`（`_ui-derive.mjs`）：非透明色照抄；8 位 alpha 走既有 `resolveOpaqueBg`；字面 `transparent`（或任何非色值）改为 `mix(panel, accent, 0.10)`——与两份 `DEFAULT_LIGHT.chip-bg` 注释里"10% accent 混 panel"的既有公式完全一致（数值反推验证：options `#e8edf4`/library `#e8f1fd` 都精确对得上）。`chip-fg` 的对比度检查复用同一个 RGB，不再独立调用 `resolveOpaqueBg` 二次派生 | 9 套主题（catppuccin-latte/mocha、modern-card、github-light 4 家 tag-bg 本就是实色，0 diff）的 `--opt-chip-bg`/`--lib-chip-bg` 从字面 `transparent` 变为对应主题的浅色调（如 dracula `#2c3641`、terminal `#142914`）；`chip-fg` 数值联动微调（同一 RGB 重算，多数主题变化 <0.1 对比度）。`sync-all.mjs` contrast-audit 验证 14 主题 `chip-fg vs chip-bg` 全部 OK（此前 9 套是"读 panel 复合值算分，实际渲染看不见"的假绿） | 2026-08-05 vocab-group 修复 |
+
+| C32 | 融合控件全类清查与统一修复（`.vocab-group-unit` ×2 + `.vocab-sort-seg`（library）、`.key-wrap` ×19（options）、`.secret-field`（popup））——**USER CHECKPOINT 2026-08-05，分组行第四次打回**：「focus 环钻到 + 按钮底下；不聚焦时是三种边框风格拼起来的」，并点明「同类型的问题肯定不止这一处」。三表面全类清查见 §8.5 | **`.vocab-group-unit`**：容器零 chrome，输入框自带 `--lib-input-border` 1px 边框 + 圆角 + 底色，两颗步进钮是 `.btn.btn-sm`、自带 `--lib-border` 1px 边框——实测默认表面 `rgb(213,213,218)` vs `rgb(144,144,159)`，**同一颗 215px 控件里两道接缝是两个颜色两种粗细**；focus 环 `outline: 2px solid accent; outline-offset: 1px` 画在**输入框**上，实测右边缘距容器右缘还差 53px（批量条）/ 158px（详情面板），后半截直接钻进两颗按钮的不透明 `.btn` 底色下面。**`.vocab-sort-seg`**：同形，且**分隔线颜色由 `aria-pressed` 驱动**（选中格 `border-color` 混 45% accent），点一下排序方向，接缝就换个颜色。**`.key-wrap` / `.secret-field`**：律 1 本就满足（只有输入框画 chrome），但眼睛钮自绘 2px 环，实测越过字段右边框 1px（options）/ 1px + 顶部 2px（popup） | 三者统一到 §8 配方：容器唯一持有 border/radius/background + `overflow: hidden` 裁角；内部件 `border: 0`、`border-radius: 0`、`background: transparent`、`outline: none`；分隔线单色 1px 由内部件 `border-left` 提供；focus 环走 `:focus-within` 画在容器上（字段型用 `--lib-focus-bd` + `--lib-focus-ring`，按钮组型用 `outline: 2px solid accent; offset 2px`）；内部件按压 `transform: none` + 背景加深瞬时（律 4）。`.key-wrap`/`.secret-field` 只改律 2：`:focus-within` 把环画到输入框（= 单元视觉框），眼睛钮改 ghost 底色标示当前段 | **library**：分组行与排序段在 16 套主题下**全部**可见变化——静息态从「三段拼接」变成单边框胶囊（步进钮的独立边框与圆角消失，接缝统一到 `--lib-input-border` / `--lib-border` 单色 1px）；focus 态从「半截环」变成包住整颗控件的柔光环/描边环；步进钮 hover 从整颗 `.btn` 换底变成 6% ghost 混色，按压从 `scale(0.97)` 变成 10% 背景加深（缝隙不再被撑开）。步进钮前景 `--lib-btn-fg` → `--lib-fg`（同一底色下派生正确的那个，见 §8.3）。**详情面板实例另有一处布局修正**：它是 `flex: 1 1 200px` 解析到 320px 的弹性项，而内容只用 215px——容器加上 chrome 之后那 105px 空白会显形成「`-` 之后还有一截空胶囊」，故给内部输入框补 `flex: 1 1 auto` 吸收余量（批量条实例本就有 `flex: 1 1 120px`，无变化）。排序段的选中格填充保留（那是选中态本身，非 chrome），但其 `border-color` 覆盖删除。**options**：19 个密钥字段的眼睛钮 focus 从 2px accent 环变成 10% ghost 底色 + 字段整体亮环；`html[data-theme] .key-toggle:focus-visible { outline-color }` 随之删除（基类已 `outline-style: none`，它变成死代码）。**popup**：`.secret-field` 同上。**popup 的 `html[data-theme] .login-body .key-toggle { background: transparent }` 必须保留**——施工中一度当作基类重复项删掉，实测 dracula/terminal 下眼睛图标后面立刻出现一块不透明 `--pp-bg2` 方块：它压制的是两行之上的 `html[data-theme] .login-body button`（(0,3,1) 赢 (0,2,2)），不是重复声明；新加的 focus 规则改用 `.login-body .secret-field .key-toggle:focus-visible` (0,4,0) 取胜，而不是靠删它让路 | 2026-08-05 融合控件清查 |
 
 **偏离实施计划之处**（Task 9/10 以本规范为准，但需知晓）：
 
