@@ -164,7 +164,7 @@ html[data-options-ready] .container { visibility: visible; }
 /* LOAD-BEARING: h1 must span both columns. The floated .auto-save-hint relies on
    the full width; without this it collapses into the ~160px sidebar column. */
 .container > h1 { grid-column: 1 / -1; }
-h1 { font-size: 18px; color: var(--opt-fg); margin-bottom: var(--opt-sp-7); border-bottom: 1px solid var(--opt-border); padding-bottom: var(--opt-sp-4); }
+h1 { font-size: 18px; color: var(--opt-fg); margin-bottom: var(--opt-sp-7); border-bottom: 1px solid var(--opt-border-section); padding-bottom: var(--opt-sp-4); }
 
 /* ---- Tabs ---- */
 .options-nav {
@@ -240,7 +240,10 @@ h1 { font-size: 18px; color: var(--opt-fg); margin-bottom: var(--opt-sp-7); bord
    cost seconds at 4K). Inactive panels lay out lazily on first tab-switch; that switch
    used to be slow too, but the emoji→SVG fix removed the per-panel stall, so both
    open AND switch are now fast. */
-.panel { background: var(--opt-panel); border: 1px solid var(--opt-border); display: none; }
+/* Soft Fill (COMPONENTS.md §8 law 4): a panel is a surface, not a boxed
+   card -- its own fill separates it from the page, so the edge drops from
+   the 3:1 structural --opt-border to the hairline divider weight. */
+.panel { background: var(--opt-panel); border: 1px solid var(--opt-border-section); display: none; }
 .panel.active { grid-column: 2; grid-row: 2; display: block; padding: var(--opt-sp-6); border-width: 1px; border-radius: var(--opt-radius-md); }
 
 /* ---- Form groups ---- */
@@ -374,7 +377,7 @@ html[data-theme] .opt-error {
   line-height: 16px;
   font-family: inherit;
   cursor: pointer;
-  border: 1px solid var(--opt-border);
+  border: 1px solid var(--opt-btn-border);
   border-radius: var(--opt-radius-md);
   background: var(--opt-btn-bg);
   color: var(--opt-btn-fg);
@@ -549,7 +552,7 @@ input[type="checkbox"], input[type="radio"] {
   min-width: 0;
   margin-top: var(--opt-sp-5);
   padding: var(--opt-sp-5);
-  border: 1px solid var(--opt-border);
+  border: 1px solid var(--opt-border-section);
   border-radius: var(--opt-radius-md);
   background: var(--opt-panel);
   color: var(--opt-fg);
@@ -593,7 +596,7 @@ html.motion-ready .backup-import-result:not([hidden]) {
   gap: var(--opt-sp-3);
   margin: 0 0 var(--opt-sp-4);
   padding: var(--opt-sp-4);
-  border: 1px solid var(--opt-border);
+  border: 1px solid var(--opt-border-section);
 }
 .backup-section-picker legend { padding: 0 var(--opt-sp-2); color: var(--opt-fg-muted); }
 .backup-section-picker label { min-width: 0; }
@@ -1763,7 +1766,7 @@ html.motion-ready .theme-name-popover.is-closing {
 }
 .theme-name-popover label { font-size: 12px; color: var(--opt-fg-soft); margin: 0; }
 .theme-name-popover input[type="text"] {
-  font-size: 12px; padding: var(--opt-sp-2) var(--opt-sp-3); border: 1px solid var(--opt-border); border-radius: var(--opt-radius-sm); width: 100%; box-sizing: border-box;
+  font-size: 12px; padding: var(--opt-sp-2) var(--opt-sp-3); border: 1px solid var(--opt-input-border); border-radius: var(--opt-radius-sm); width: 100%; box-sizing: border-box;
 }
 /* §7.3 field recipe. This input used to carry a bespoke third focus shape --
    a hardcoded `0 0 0 2px rgba(68,119,187,0.2)` ring that ignored
@@ -1789,7 +1792,7 @@ html.motion-ready .theme-name-popover.is-closing {
 .theme-name-popover .tnp-save:hover { background: var(--opt-accent-hover); }
 .theme-name-popover .tnp-cancel {
   padding: var(--opt-sp-1) var(--opt-sp-4); font-size: 11px; cursor: pointer; border-radius: var(--opt-radius-sm);
-  background: none; color: var(--opt-fg-muted); border: 1px solid var(--opt-border);
+  background: none; color: var(--opt-fg-muted); border: 1px solid var(--opt-btn-border);
 }
 .theme-name-popover .tnp-cancel:hover { background: var(--opt-btn-hover); }
 
@@ -1885,7 +1888,7 @@ html[data-theme] .preset-preview-content { background: var(--opt-bg); color: var
 /* ---- Wayback Log Viewer ---- */
 #wayback-log {
   margin-top: var(--opt-sp-3);
-  border: 1px solid var(--opt-border);
+  border: 1px solid var(--opt-border-section);
   border-radius: var(--opt-radius-sm);
   background: var(--opt-panel);
   font-size: 12px;
@@ -1948,7 +1951,7 @@ html[data-theme] .preset-preview-content { background: var(--opt-bg); color: var
   align-items: center;
   justify-content: center;
   padding: 0;
-  border: 1px solid var(--opt-border);
+  border: 1px solid var(--opt-border-section);
   border-radius: 50%;
   background: var(--opt-btn-bg);
   color: var(--opt-fg);
@@ -1965,7 +1968,7 @@ html[data-theme] .preset-preview-content { background: var(--opt-bg); color: var
   display: none;
   opacity: 0;
   padding: var(--opt-sp-2) var(--opt-sp-3);
-  border: 1px solid var(--opt-border);
+  border: 1px solid var(--opt-border-section);
   border-radius: var(--opt-radius-sm);
   background: var(--opt-panel);
   color: var(--opt-fg);
@@ -2054,7 +2057,7 @@ html.motion-ready .wayback-log-row:focus-within .wayback-perm-tip {
   gap: var(--opt-sp-3);
   padding: var(--opt-sp-5);
   background: var(--opt-panel);
-  border: 1px solid var(--opt-border);
+  border: 1px solid var(--opt-border-section);
   border-radius: var(--opt-radius-sm);
   margin-bottom: 0;          /* grid gap now owns vertical spacing */
 }
@@ -2130,7 +2133,7 @@ html.motion-ready .wayback-log-row:focus-within .wayback-perm-tip {
   bottom: 8px;
   z-index: var(--opt-z-sticky);
   background: var(--opt-panel);
-  border: 1px solid var(--opt-border);
+  border: 1px solid var(--opt-border-section);
   border-radius: var(--opt-radius-md);
   padding: var(--opt-sp-4) var(--opt-sp-4);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
@@ -2266,7 +2269,7 @@ html.motion-ready #tag-gov-progress:not([hidden]) {
   gap: var(--opt-sp-2) var(--opt-sp-4);
   margin: var(--opt-sp-3) 0;
   padding: var(--opt-sp-3);
-  border: 1px solid var(--opt-border);
+  border: 1px solid var(--opt-border-section);
   background: var(--opt-panel);
   color: var(--opt-fg);
 }
@@ -2343,7 +2346,7 @@ html[data-theme="flexoki-dark"] #panel-vocab .vocab-details-body > .hint {
     width: 100%;
     min-height: 34px;
     padding: var(--opt-sp-3) 26px var(--opt-sp-3) var(--opt-sp-5);
-    border: 1px solid var(--opt-border);
+    border: 1px solid var(--opt-input-border);
     /* Dropdown-design round: joins the .fg/.et-field select family (7px
        radius, drawn chevron, btn-bg surface). It used to keep the UA arrow;
        the @supports picker block above hides ::picker-icon for ALL selects,

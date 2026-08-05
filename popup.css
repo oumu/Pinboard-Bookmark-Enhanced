@@ -711,10 +711,10 @@ button.offline-clear:focus-visible, button.offline-toggle:focus-visible { outlin
 .submit-bar { padding: var(--pp-sp-2) var(--pp-sp-5) var(--pp-sp-3) 72px; display: flex; gap: var(--pp-sp-3); }
 .submit-bar button {
   padding: var(--pp-sp-2) var(--pp-sp-6); font-size: 12px; cursor: pointer;
-  border: 1px solid var(--pp-border); background: var(--pp-bg); border-radius: var(--pp-radius-md);
+  border: 1px solid var(--pp-btn-bd); background: var(--pp-btn-bg); border-radius: var(--pp-radius-md);
   transition: background var(--pp-motion-state), border-color var(--pp-motion-state), transform var(--pp-motion-state), box-shadow var(--pp-motion-state);
 }
-.submit-bar button:hover { background: var(--pp-bg2); }
+.submit-bar button:hover { background: var(--pp-btn-hover); }
 .submit-bar button:focus-visible { outline: 2px solid var(--pp-accent, #4477bb); outline-offset: 2px; }
 #submit-btn {
   background: var(--pp-accent); color: var(--pp-on-accent); border-color: var(--pp-accent); font-weight: 600;
@@ -732,7 +732,7 @@ button.offline-clear:focus-visible, button.offline-toggle:focus-visible { outlin
    bg2 in every palette, so the label stays readable on chrome:// pages where
    the button is disabled daily. (Themed presets additionally dim via the
    html[data-theme] opacity rule — that one starts from darker fills.) */
-#submit-btn:disabled { background: var(--pp-bg2); border-color: var(--pp-border); color: var(--pp-fg-hint); transform: none; box-shadow: none; }
+#submit-btn:disabled { background: var(--pp-btn-bg); border-color: var(--pp-btn-bd); color: var(--pp-fg-hint); transform: none; box-shadow: none; }
 .del-btn { position: relative; color: var(--pp-danger); border-color: var(--pp-danger) !important; white-space: nowrap; padding: var(--pp-sp-2) var(--pp-sp-6); min-height: 28px; }
 .del-btn:hover { background: var(--pp-danger-hover-bg) !important; }
 /* Anchor left:0 (extend right from the Delete button's left edge) — the button sits
@@ -793,7 +793,11 @@ button.offline-clear:focus-visible, button.offline-toggle:focus-visible { outlin
 }
 .quick-actions .divider {
   border: none;
-  border-top: 1px solid var(--pp-divider);
+  /* Soft Fill (COMPONENTS.md §8 law 4): the rule collapses -- the 8px margin
+     below it plus the search field's own fill carry the separation. The
+     border-top declaration stays at 1px so the box keeps its exact height;
+     only the colour goes. */
+  border-top: 1px solid transparent;
   margin: var(--pp-sp-4) 0 0;
 }
 .quick-row {
@@ -815,8 +819,8 @@ button.offline-clear:focus-visible, button.offline-toggle:focus-visible { outlin
   padding: var(--pp-sp-2) var(--pp-sp-2);
   font-size: 11px;
   color: var(--pp-fg-muted);
-  background: var(--pp-bg);
-  border: 1px solid var(--pp-border);
+  background: var(--pp-btn-bg);
+  border: 1px solid var(--pp-btn-bd);
   border-radius: var(--pp-radius-md);
   cursor: pointer;
   text-decoration: none;
@@ -826,7 +830,7 @@ button.offline-clear:focus-visible, button.offline-toggle:focus-visible { outlin
   line-height: 1.3;
 }
 .qbtn:hover {
-  background: var(--pp-drop-hover);
+  background: var(--pp-btn-hover);
   color: var(--pp-link);
   box-shadow: var(--pp-hover-shadow);
 }
@@ -2189,9 +2193,9 @@ textarea::-webkit-scrollbar-corner { background: var(--pp-bg2); }
    check AND the paired-removal exception above. */
 html[data-theme] { background: var(--pp-bg); }
 html[data-theme] .header-bar { background: var(--pp-bg2); border-color: var(--pp-border); color: var(--pp-fg-muted); }
-html[data-theme] .login-body input { background: var(--pp-input-bg); border-color: var(--pp-border); color: var(--pp-fg); }
+html[data-theme] .login-body input { background: var(--pp-input-bg); color: var(--pp-fg); }
 html[data-theme] .login-body input:focus { border-color: var(--pp-focus-bd); }
-html[data-theme] .login-body button { background: var(--pp-bg2); border-color: var(--pp-border); color: var(--pp-fg); }
+html[data-theme] .login-body button { background: var(--pp-btn-bg); border-color: var(--pp-btn-bd); color: var(--pp-fg); }
 html[data-theme] .login-body button:hover { background: var(--pp-input-focus-bg); }
 /* `background: transparent` here is NOT a duplicate of the base rule's
    `background: none` -- it is load-bearing, and this comment exists because
@@ -2204,7 +2208,7 @@ html[data-theme] .login-body button:hover { background: var(--pp-input-focus-bg)
 html[data-theme] .login-body .key-toggle { background: transparent; border: 0; color: var(--pp-fg-hint); }
 html[data-theme] .login-body .key-toggle:hover { background: transparent; color: var(--pp-fg); }
 html[data-theme] .field > input[type="text"], html[data-theme] .field > textarea {
-  background: var(--pp-input-bg); border-color: var(--pp-border); color: var(--pp-fg);
+  background: var(--pp-input-bg); color: var(--pp-fg);
 }
 /* Themed twin of the base rule above -- (0,4,2) beats its (0,3,1), so the
    fill had to come out here too or the 13 presets would have kept lightening
@@ -2212,7 +2216,7 @@ html[data-theme] .field > input[type="text"], html[data-theme] .field > textarea
 html[data-theme] .field > input[type="text"]:focus, html[data-theme] .field > textarea:focus {
   border-color: var(--pp-focus-bd);
 }
-html[data-theme] .tags-input-wrap { background: var(--pp-input-bg); border-color: var(--pp-border); }
+html[data-theme] .tags-input-wrap { background: var(--pp-input-bg); }
 html[data-theme] .tags-input-wrap:focus-within { border-color: var(--pp-focus-bd); box-shadow: var(--pp-focus-ring); }
 html[data-theme] .tag-item { background: var(--pp-tag-bg); color: var(--pp-tag-fg); }
 html[data-theme] .tag-item:hover { background: var(--pp-tag-hover, var(--pp-drop-hover)); }
@@ -2227,7 +2231,7 @@ html[data-theme] .regen-link { color: var(--pp-accent2); }
 html[data-theme] .regen-link + .regen-link { border-color: var(--pp-divider); }
 html[data-theme] #desc-char-count.over-limit { color: var(--pp-danger); }
 /* Themed skeleton: base rule's var(--pp-divider) already picks the theme's divider color. */
-html[data-theme] .submit-bar button { background: var(--pp-bg2); border-color: var(--pp-border); color: var(--pp-fg); }
+html[data-theme] .submit-bar button { background: var(--pp-btn-bg); border-color: var(--pp-btn-bd); color: var(--pp-fg); }
 html[data-theme] .submit-bar button:hover { background: var(--pp-input-focus-bg); }
 /* on-accent falls back to the theme bg (the long-standing derivation); themes
    may pin an explicit --pp-on-accent via pilot ui overrides. */
@@ -2245,15 +2249,15 @@ html[data-theme] .del-confirm-yes:hover { background: color-mix(in srgb, var(--p
 html[data-theme] .submit-bar button.saved-success { background: var(--pp-ok-bg); border-color: var(--pp-ok-bd); color: var(--pp-ok-fg); }
 html[data-theme] .submit-bar button.save-error { background: color-mix(in srgb, var(--pp-danger) 14%, transparent); border-color: var(--pp-danger); color: var(--pp-danger); }
 
-html[data-theme] .quick-actions .divider { border-color: var(--pp-divider); }
+html[data-theme] .quick-actions .divider { border-color: transparent; }
 html[data-theme] .bottom-bar label { color: var(--pp-fg); }
 html[data-theme] .ac-new-hint { color: var(--pp-fg-hint); }
 html[data-theme] .ac-new-hint:hover { background: var(--pp-drop-hover); color: var(--pp-fg); }
 html[data-theme] .ac-hint-footer { color: var(--pp-fg-hint); border-top-color: var(--pp-border); background: var(--pp-bg2); }
 html[data-theme] .ac-hint-footer kbd { color: var(--pp-fg); background: var(--pp-bg); border-color: var(--pp-border); box-shadow: none; }
-html[data-theme] .qbtn { background: var(--pp-bg2); border-color: var(--pp-border); color: var(--pp-fg-muted); }
+html[data-theme] .qbtn { background: var(--pp-btn-bg); border-color: var(--pp-btn-bd); color: var(--pp-fg-muted); }
 html[data-theme] { --pp-hover-shadow: 0 1px 2px color-mix(in srgb, var(--pp-accent) 12%, transparent), 0 2px 6px color-mix(in srgb, var(--pp-accent) 18%, transparent); }
-html[data-theme] .qbtn:hover { background: var(--pp-drop-hover); color: var(--pp-link); box-shadow: var(--pp-hover-shadow); }
+html[data-theme] .qbtn:hover { background: var(--pp-btn-hover); color: var(--pp-link); box-shadow: var(--pp-hover-shadow); }
 html[data-theme] .qbtn.saving { background: var(--pp-offline-bg); border-color: var(--pp-offline-bd); color: var(--pp-offline-fg); }
 html[data-theme] .qbtn.saved { background: var(--pp-ok-bg); border-color: var(--pp-ok-bd); color: var(--pp-ok-fg); }
 html[data-theme] .existing-banner { background: var(--pp-banner-bg); border-color: var(--pp-banner-bd); color: var(--pp-banner-fg); }
@@ -2261,7 +2265,7 @@ html[data-theme] .url-warning { background: var(--pp-warn-bg); border-color: var
 html[data-theme] .preset-btn { color: var(--pp-preset-fg); background: var(--pp-preset-bg); }
 html[data-theme] .preset-btn:hover { background: var(--pp-drop-hover); box-shadow: var(--pp-hover-shadow); }
 html[data-theme] .preset-btn.used { color: var(--pp-fg-hint); background: var(--pp-bg2); }
-html[data-theme] .search-field { background: var(--pp-input-bg); border-color: var(--pp-border); color: var(--pp-fg); }
+html[data-theme] .search-field { background: var(--pp-input-bg); color: var(--pp-fg); }
 html[data-theme] .search-field:focus { border-color: var(--pp-focus-bd); }
 html[data-theme] #tags-copy-all:hover { color: var(--pp-accent); }
 html[data-theme] .last-used-hint:hover { color: var(--pp-accent); }
@@ -2389,25 +2393,25 @@ html[data-theme] .confirm-popover button:focus-visible { outline-color: var(--pp
   place-items: center;
   padding: 0;
   color: var(--pp-link);
-  background: var(--pp-bg);
-  border: 1px solid var(--pp-border);
+  background: var(--pp-btn-bg);
+  border: 1px solid var(--pp-btn-bd);
   border-radius: var(--pp-radius-md);
   cursor: pointer;
   font-family: inherit;
 }
 .md-strip-btn .btn-ic { margin: 0; vertical-align: 0; }
-.md-strip-btn:hover { background: var(--pp-drop-hover); border-color: var(--pp-accent); box-shadow: var(--pp-hover-shadow); }
+.md-strip-btn:hover { background: var(--pp-btn-hover); border-color: var(--pp-accent); box-shadow: var(--pp-hover-shadow); }
 .md-strip-btn:active { transform: translateY(1px); }
 .md-strip-btn:focus-visible { outline: 2px solid var(--pp-accent, #4477bb); outline-offset: 2px; }
 .md-strip-btn .btn-ic { display: inline-flex; }
 
 html.dark .md-strip { background: var(--pp-bg2); border-color: var(--pp-border); }
-html.dark .md-strip-btn { background: var(--pp-input-bg); border-color: var(--pp-border); color: var(--pp-link); }
-html.dark .md-strip-btn:hover { background: var(--pp-drop-hover); border-color: var(--pp-accent); }
+html.dark .md-strip-btn { background: var(--pp-btn-bg); border-color: var(--pp-btn-bd); color: var(--pp-link); }
+html.dark .md-strip-btn:hover { background: var(--pp-btn-hover); border-color: var(--pp-accent); }
 
 html[data-theme] .md-strip { background: var(--pp-bg2); border-color: var(--pp-divider); }
-html[data-theme] .md-strip-btn { background: var(--pp-bg); border-color: var(--pp-border); color: var(--pp-link); }
-html[data-theme] .md-strip-btn:hover { background: var(--pp-drop-hover); box-shadow: var(--pp-hover-shadow); }
+html[data-theme] .md-strip-btn { background: var(--pp-btn-bg); border-color: var(--pp-btn-bd); color: var(--pp-link); }
+html[data-theme] .md-strip-btn:hover { background: var(--pp-btn-hover); box-shadow: var(--pp-hover-shadow); }
 html[data-theme] .md-strip-btn:focus-visible { outline: 2px solid var(--pp-accent); outline-offset: 2px; }
 
 /* ===================== High-DPI Scaling ===================== */

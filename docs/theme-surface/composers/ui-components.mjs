@@ -91,7 +91,12 @@ function btnRules(ns) {
       ["line-height", "16px"],
       ["font-family", "inherit"],
       ["cursor", "pointer"],
-      ["border", `1px solid var(--${ns}-border)`],
+      // Soft Fill (COMPONENTS.md §8): the resting border-color collapses INTO
+      // the fill. --{ns}-btn-border IS --{ns}-btn-bg for every theme except
+      // the ones whose pilot restores a real frame (terminal). border-width
+      // stays 1px so the collapse costs zero layout shift, and :hover /
+      // :focus-visible / .danger still paint a real edge on top of it.
+      ["border", `1px solid var(--${ns}-btn-border)`],
       ["border-radius", `var(--${ns}-radius-md)`],
       ["background", `var(--${ns}-btn-bg)`],
       ["color", `var(--${ns}-btn-fg)`],

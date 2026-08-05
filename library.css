@@ -132,7 +132,7 @@ a { color: var(--lib-link, #1a66c2); }
   line-height: 16px;
   font-family: inherit;
   cursor: pointer;
-  border: 1px solid var(--lib-border);
+  border: 1px solid var(--lib-btn-border);
   border-radius: var(--lib-radius-md);
   background: var(--lib-btn-bg);
   color: var(--lib-btn-fg);
@@ -383,7 +383,7 @@ html[data-theme] .confirm-popover .confirm-no:hover { background: var(--lib-btn-
 .notes-toolbar input[type="search"] {
   width: 100%;
   padding: var(--lib-sp-1) var(--lib-sp-2);
-  border: 1px solid var(--lib-input-border, #cdd1d6);
+  border: 1px solid var(--lib-input-border);
   border-radius: var(--lib-radius-md);
   background-color: var(--lib-input-bg, #fff);
   color: var(--lib-fg);
@@ -417,7 +417,9 @@ html[data-theme] .confirm-popover .confirm-no:hover { background: var(--lib-btn-
 .notes-filter-dot .note-dot { margin-top: 0; }
 
 .notes-card {
-  border: 1px solid var(--lib-border, #ccc);
+  /* Soft Fill (COMPONENTS.md §8 law 4): a card is a surface, not a boxed
+     frame -- hairline weight, not the 3:1 structural border. */
+  border: 1px solid var(--lib-border-section);
   border-radius: var(--lib-radius-sm, 3px);
   margin-bottom: 6px; /* options.css --opt-sp-3 (6px); no --lib-sp-* step matches it */
   background: var(--lib-bg);
@@ -558,8 +560,11 @@ html.motion-ready .notes-card-top { transition: background-color var(--motion-st
 .notes-c5 { --hl-color: var(--lib-note-c5); }
 
 /* Compact scan row (Task 2 density spec: 6px block padding, 13px body text,
-   11px meta, two clamped lines). */
-.notes-hit { border-radius: var(--lib-radius-sm); }
+   11px meta, two clamped lines). margin-inline is COMPONENTS.md §8 law 3
+   (inset selection): the highlight band stops 4px short of the list's own
+   edges so hover/selected read as a card floating in the column instead of a
+   full-bleed stripe that collides with the container's corners. */
+.notes-hit { border-radius: var(--lib-radius-sm); margin-inline: 4px; }
 .notes-hit-btn {
   display: grid;
   grid-template-columns: 3px minmax(0, 1fr);
@@ -891,7 +896,7 @@ html.motion-ready .notes-sib { transition: background-color var(--motion-state) 
   -webkit-appearance: none;
   appearance: none;
   padding: 3px 22px 3px var(--lib-sp-2);
-  border: 1px solid var(--lib-border);
+  border: 1px solid var(--lib-btn-border);
   border-radius: var(--lib-radius-md);
   background-color: var(--lib-btn-bg);
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M3 4.5 6 7.5 9 4.5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
@@ -975,7 +980,7 @@ html[data-theme="rose-pine"] .xp-dict-lang {
 /* Permission-connect button + failure retry button: same small pill family. */
 .xp-retry, .xp-dict-connect {
   padding: 4px 10px;
-  border: 1px solid var(--lib-border);
+  border: 1px solid var(--lib-btn-border);
   border-radius: 6px;
   background: var(--lib-code-bg);
   color: var(--lib-fg);
@@ -1037,7 +1042,8 @@ html.motion-ready .vocab-note-save[hidden] { display: none; opacity: 0; translat
 #vocab-lookup-bar {
   padding: var(--lib-sp-2);
   background: var(--lib-panel);
-  border: 1px solid var(--lib-border);
+  /* Section container, not a control: hairline weight (COMPONENTS.md §8 law 4). */
+  border: 1px solid var(--lib-border-section);
   border-radius: var(--lib-radius-md);
 }
 .vocab-filter-toolbar input[type="search"] {
@@ -1201,7 +1207,7 @@ html[data-theme="rose-pine"] .vocab-filter-toolbar select {
   display: inline-flex;
   align-items: stretch;
   flex: none;
-  border: 1px solid var(--lib-border);
+  border: 1px solid var(--lib-btn-border);
   border-radius: var(--lib-radius-md);
   background: var(--lib-btn-bg);
   color: var(--lib-btn-fg);
@@ -1230,7 +1236,10 @@ html[data-theme="rose-pine"] .vocab-filter-toolbar select {
 }
 /* One divider, on the cell that has a left neighbour. Its colour no longer
    depends on either cell's pressed state. */
-.vocab-sort-seg > .vocab-sort-btn + .vocab-sort-btn { border-left: 1px solid var(--lib-border); }
+/* Hairline mixed into the capsule's own fill, not the 3:1 structural border:
+   the seam divides two cells of ONE control, it does not frame anything
+   (COMPONENTS.md §8 law 4). */
+.vocab-sort-seg > .vocab-sort-btn + .vocab-sort-btn { border-left: 1px solid color-mix(in srgb, var(--lib-fg) 14%, var(--lib-btn-bg)); }
 .vocab-sort-seg > .vocab-sort-btn:hover:not(:disabled) {
   background: color-mix(in srgb, var(--lib-fg) 6%, var(--lib-btn-bg));
 }
@@ -1280,7 +1289,9 @@ html[data-theme="rose-pine"] .vocab-filter-toolbar select {
    filtering by this status" look when aria-pressed="true" -- none of which
    COMPONENTS.md's chip section covers. */
 .vocab-stat-chip {
-  border: 1px solid var(--lib-border, #ccc);
+  /* A chip has no frame at rest -- the border-width stays only so the
+     aria-pressed accent edge below costs no reflow (COMPONENTS.md §8 law 1). */
+  border: 1px solid var(--lib-chip-bg);
   cursor: pointer;
   transition: background var(--motion-state), border-color var(--motion-state), color var(--motion-state);
 }
@@ -1546,6 +1557,14 @@ html.motion-ready .vocab-batch-bar.selecting {
    the disclosure chevron parked in the same slot, and the master-detail row
    has no chevron to trade places with. */
 .vocab-card .notes-card-top { align-items: start; }
+/* COMPONENTS.md §8 law 3 (inset selection). The vocabulary list was the worse
+   of the two: square corners AND full-bleed, so a selected row ran edge to
+   edge and its corners cut the list container's own. Class-only selector on
+   purpose -- an id prefix here would outrank .selected and invert the
+   --row-bg precedence the block below depends on. The accent edge needs no
+   rule of its own: inset box-shadows follow border-radius, so
+   .vocab-card[aria-current]'s `inset 2px 0 0` rounds with the band. */
+.vocab-card .notes-card-top { border-radius: var(--lib-radius-sm); margin-inline: 4px; }
 .vocab-row-select { width: 16px; height: 16px; margin: 0; }
 .vocab-card .vocab-row-select { margin-top: 3px; }
 .vocab-card .notes-card-head { align-items: start; }
