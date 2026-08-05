@@ -712,24 +712,35 @@ check(/\.theme-name-popover \.tnp-save:focus-visible,\s*\n\s*\.theme-name-popove
   "options.css: the theme-name popover's Save/Cancel lost their §7.3 focus ring and fall through to the UA default");
 check(/\.regen-link:focus-visible \{ outline: 2px solid var\(--pp-accent\); outline-offset: 2px; \}/.test(popupCss),
   "popup.css: .regen-link lost its §7.3 focus ring and falls through to the UA default (unthemed on dark surfaces)");
-// COMPONENTS.md §8 law 6 for popup's two fused controls. The render oracle
-// gates the library/options ones live, but the popup fixture is seeded
-// logged-in, so #login-section (and with it .secret-field) has a zero rect
-// there, and .tags-input-wrap needs an active tab the fixture has no way to
-// provide -- a render entry for either would measure nothing. Focus on a
-// fused control may change border-colour and add a ring; it may NOT repaint
-// a fill. --pp-input-focus-bg is still a live token (it derives
-// --pp-focus-bd and still fills plain, non-fused inputs), so the assertion
-// is specifically that these four focus rules do not consume it.
+// COMPONENTS.md §7.3 / §8 law 6, for every popup control the render oracle
+// cannot reach. The library/options ones are gated live; popup's fixture is
+// seeded logged-in, so #login-section (and with it .secret-field) has a zero
+// rect, while .tags-input-wrap / #title-input / #search-input all live in
+// #main-section, which popup.js only un-hides once it has resolved the active
+// tab's bookmark state -- something a plain fixture page cannot produce. A
+// render entry for any of them fails at setup instead of measuring anything.
+//
+// The rule under test: focus may change border-colour and add a ring, and may
+// NOT repaint a fill. --pp-input-focus-bg remains a live token (it derives
+// --pp-focus-bd and still backs two button:hover rules), so the assertion is
+// specifically that these focus rules no longer consume it. Themed twins are
+// listed alongside their base rule because each one out-ranks it
+// (html[data-theme] adds an attribute + a type), so a fill left in a themed
+// rule would keep 13 presets lightening on focus after the default surface
+// stopped.
 for (const [rule, what] of [
   [/\.login-body input:focus \{[^}]*\}/, ".secret-field's input"],
   [/\.login-body \.secret-field:focus-within input \{[^}]*\}/, ".secret-field's :focus-within"],
   [/(?<!\] )\.tags-input-wrap:focus-within \{[^}]*\}/, ".tags-input-wrap"],
   [/html\[data-theme\] \.tags-input-wrap:focus-within \{[^}]*\}/, ".tags-input-wrap (themed)"],
+  [/(?<!\] )\.field > input\[type="text"\]:focus, \.field > textarea:focus \{[^}]*\}/, ".field inputs/textarea"],
+  [/html\[data-theme\] \.field > input\[type="text"\]:focus, html\[data-theme\] \.field > textarea:focus \{[^}]*\}/, ".field inputs/textarea (themed)"],
+  [/(?<!\] )\.search-field:focus \{[^}]*\}/, ".search-field"],
+  [/html\[data-theme\] \.search-field:focus \{[^}]*\}/, ".search-field (themed)"],
 ]) {
   const m = rule.exec(popupCss);
   check(m && !/background/.test(m[0]),
-    `popup.css: ${what} repaints its background on focus (§8 law 6 -- focus may change border-colour and add a ring, nothing else)`);
+    `popup.css: ${what} repaints its background on focus (§7.3 -- focus may change border-colour and add a ring, nothing else)`);
 }
 
 check(/\.wayback-log-row:focus-within\s+\.wayback-perm-tip/.test(optionsCss) &&

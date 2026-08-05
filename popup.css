@@ -478,8 +478,13 @@ html[data-section="login"] .quick-actions { display: none !important; }
   font-size: 12px; font-family: inherit; background: var(--pp-input-bg); color: var(--pp-fg);
   transition: border-color var(--pp-motion-state), background var(--pp-motion-state), box-shadow var(--pp-motion-state);
 }
+/* No fill change on focus (§7.3 / §8 law 6). These two are PLAIN inputs, not
+   fused controls, so round 5 left them alone and the surface ended up with
+   two focus languages -- the group row and the token field held still while
+   the title/URL/notes fields still lightened. Same rule everywhere now:
+   focus changes border-colour and adds a ring, nothing else. */
 .field > input[type="text"]:focus, .field > textarea:focus {
-  outline: none; border-color: var(--pp-focus-bd); background: var(--pp-input-focus-bg);
+  outline: none; border-color: var(--pp-focus-bd);
 }
 .field > input[type="text"]:focus-visible, .field > textarea:focus-visible {
   box-shadow: var(--pp-focus-ring);
@@ -760,7 +765,8 @@ button.offline-clear:focus-visible, button.offline-toggle:focus-visible { outlin
   background: var(--pp-input-bg); color: var(--pp-fg);
   transition: border-color var(--pp-motion-state), background var(--pp-motion-state), box-shadow var(--pp-motion-state);
 }
-.search-field:focus { outline: none; border-color: var(--pp-focus-bd); background: var(--pp-input-focus-bg); }
+/* Same as .field > input above: border-colour + ring only, no fill. */
+.search-field:focus { outline: none; border-color: var(--pp-focus-bd); }
 .search-field:focus-visible { box-shadow: var(--pp-focus-ring); }
 
 /* Quick Actions Bar */
@@ -2126,8 +2132,11 @@ html[data-theme] .login-body .key-toggle:hover { background: transparent; color:
 html[data-theme] .field > input[type="text"], html[data-theme] .field > textarea {
   background: var(--pp-input-bg); border-color: var(--pp-border); color: var(--pp-fg);
 }
+/* Themed twin of the base rule above -- (0,4,2) beats its (0,3,1), so the
+   fill had to come out here too or the 13 presets would have kept lightening
+   on focus while the default surface stopped. */
 html[data-theme] .field > input[type="text"]:focus, html[data-theme] .field > textarea:focus {
-  border-color: var(--pp-focus-bd); background: var(--pp-input-focus-bg);
+  border-color: var(--pp-focus-bd);
 }
 html[data-theme] .tags-input-wrap { background: var(--pp-input-bg); border-color: var(--pp-border); }
 html[data-theme] .tags-input-wrap:focus-within { border-color: var(--pp-focus-bd); box-shadow: var(--pp-focus-ring); }
@@ -2179,7 +2188,7 @@ html[data-theme] .preset-btn { color: var(--pp-preset-fg); background: var(--pp-
 html[data-theme] .preset-btn:hover { background: var(--pp-drop-hover); box-shadow: var(--pp-hover-shadow); }
 html[data-theme] .preset-btn.used { color: var(--pp-fg-hint); background: var(--pp-bg2); }
 html[data-theme] .search-field { background: var(--pp-input-bg); border-color: var(--pp-border); color: var(--pp-fg); }
-html[data-theme] .search-field:focus { border-color: var(--pp-focus-bd); background: var(--pp-input-focus-bg); }
+html[data-theme] .search-field:focus { border-color: var(--pp-focus-bd); }
 html[data-theme] #tags-copy-all:hover { color: var(--pp-accent); }
 html[data-theme] .last-used-hint:hover { color: var(--pp-accent); }
 html[data-theme] .ql-sep { color: var(--pp-fg-hint); }

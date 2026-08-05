@@ -527,6 +527,15 @@ export const CHECKS = [
     focusTarget: "input",
     expect: { fusedStateStable: true, fusedStateStableChildren: ["input", ".key-toggle"] } },
 
+  // NOTE: popup's plain inputs (#title-input, #search-input) are gated
+  // statically in tests/ui-contract-tests.mjs, not here. They live in
+  // #main-section, which popup.js only un-hides after resolving the active
+  // tab's bookmark state -- something this fixture (a normal page, no
+  // meaningful active tab) cannot produce, so a render entry here fails at
+  // setup rather than measuring anything. Same reason .secret-field and
+  // .tags-input-wrap are static-gated; the four surfaces that CAN render
+  // their fused controls are all gated live above.
+
   // ---- COMPONENTS.md §7.3: focus-ring recipe conformance (2026-08-05
   // sweep). One entry per converged site. The two sites that need heavy
   // setup to render at all -- .theme-name-popover (only exists after the

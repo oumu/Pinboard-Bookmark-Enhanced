@@ -589,6 +589,12 @@ html[data-theme="<dark preset>"] { color-scheme: dark; }
 - 控件贴着容器边缘或会被父级裁切时，`outline-offset` 取负值（`-2px`），不要改成别的形态。
 - **`outline: none` 只能与替代焦点指示同时出现**。裸 `outline: none` 在配方里一律 fail。
 - 焦点指示对相邻背景 ≥3:1（WCAG 1.4.11）。
+- **聚焦不重绘填充**（2026-08-05 收尾统一，三表面全量）。§8 律 6 最初只约束融合控件，但「聚焦时
+  底色变白」在普通输入框上同样读作「控件换了材质」而不是「获得焦点」，而且同一屏里一半控件变底、
+  一半不变，本身就是不一致。现在是横切规则：**任何控件聚焦只许改 `border-color` 并加环，
+  不许改 `background`、不许改 `border-width`**。popup 的 `.field > input`/`.search-field` 是最后
+  两处例外，已收敛。`--pp-input-focus-bg` token 保留（它派生 `--pp-focus-bd`，也仍供两条
+  `button:hover` 使用），但**不再有任何 `:focus` 规则消费它**。
 - **融合控件的环画在容器上**，见 §8 律 2——内部件不各画各的。
 - 门：渲染 oracle 的 `focusRecipe`（`field` / `button` / `softRow`），按名字断言**活级联**产出的形状，
   不是断言某条规则写了什么。渲染不可达的站点（弹层里只在用户动作后才存在的控件）改由
