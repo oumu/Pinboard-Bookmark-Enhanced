@@ -1381,7 +1381,14 @@ function sweepProbe(cfg) {
   // already covers every data-theme preset; no per-theme repeat needed. ----
   for (const el of document.querySelectorAll("button")) {
     if (!visible(el)) continue;
-    const hasOwnText = Array.from(el.childNodes).some((n) => n.nodeType === 3 && n.textContent.trim().length > 0);
+    // Full textContent, not just direct child text nodes: setBtnIcon's standard
+    // shape is <span class="btn-ic">{svg}</span><span>{label}</span> -- the label
+    // lives on a *nested* text node one level down, so the old direct-children-only
+    // scan never saw it and misclassified every icon+label button as icon-only.
+    // Safe against the icon side because this repo's SVG icon set carries no
+    // <text> nodes (see PBP_ICONS comment in shared.js), so .btn-ic never
+    // contributes stray text; no aria-hidden-scoped exclusion is needed here.
+    const hasOwnText = el.textContent.trim().length > 0;
     if (hasOwnText) continue; // has its own label text -- not the icon-only shape this rule scopes to
     const rect = el.getBoundingClientRect();
     let effRect = { width: rect.width, height: rect.height };

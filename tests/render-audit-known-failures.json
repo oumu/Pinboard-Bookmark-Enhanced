@@ -269,16 +269,6 @@
     "expected": 24,
     "note": null
   },
-  "library||button.btn.btn-sm|vocab-detail|hitAreaMin": {
-    "surface": "library",
-    "theme": "",
-    "selector": "button.btn.btn-sm",
-    "state": "vocab-detail",
-    "check": "hitAreaMin",
-    "actual": 20,
-    "expected": 24,
-    "note": null
-  },
   "library||button.btn.btn-sm.vocab-group-step[0]|vocab-detail|hitAreaMin": {
     "surface": "library",
     "theme": "",
@@ -296,26 +286,6 @@
     "state": "vocab-detail",
     "check": "hitAreaMin",
     "actual": 18,
-    "expected": 24,
-    "note": null
-  },
-  "library||button.btn.btn-sm.vocab-detail-relookup[1]|vocab-detail|hitAreaMin": {
-    "surface": "library",
-    "theme": "",
-    "selector": "button.btn.btn-sm.vocab-detail-relookup[1]",
-    "state": "vocab-detail",
-    "check": "hitAreaMin",
-    "actual": 21,
-    "expected": 24,
-    "note": null
-  },
-  "library||button.btn.btn-sm.danger.ghost.vocab-detail-delete[2]|vocab-detail|hitAreaMin": {
-    "surface": "library",
-    "theme": "",
-    "selector": "button.btn.btn-sm.danger.ghost.vocab-detail-delete[2]",
-    "state": "vocab-detail",
-    "check": "hitAreaMin",
-    "actual": 20,
     "expected": 24,
     "note": null
   },
@@ -429,16 +399,6 @@
     "expected": 24,
     "note": null
   },
-  "library||button.btn.btn-sm|vocab-batch-bar|hitAreaMin": {
-    "surface": "library",
-    "theme": "",
-    "selector": "button.btn.btn-sm",
-    "state": "vocab-batch-bar",
-    "check": "hitAreaMin",
-    "actual": 20,
-    "expected": 24,
-    "note": null
-  },
   "library||button.btn.btn-sm.vocab-group-step[0]|vocab-batch-bar|hitAreaMin": {
     "surface": "library",
     "theme": "",
@@ -456,76 +416,6 @@
     "state": "vocab-batch-bar",
     "check": "hitAreaMin",
     "actual": 18,
-    "expected": 24,
-    "note": null
-  },
-  "library||button.btn.btn-sm.vocab-detail-relookup[1]|vocab-batch-bar|hitAreaMin": {
-    "surface": "library",
-    "theme": "",
-    "selector": "button.btn.btn-sm.vocab-detail-relookup[1]",
-    "state": "vocab-batch-bar",
-    "check": "hitAreaMin",
-    "actual": 21,
-    "expected": 24,
-    "note": null
-  },
-  "library||button.btn.btn-sm.danger.ghost.vocab-detail-delete[2]|vocab-batch-bar|hitAreaMin": {
-    "surface": "library",
-    "theme": "",
-    "selector": "button.btn.btn-sm.danger.ghost.vocab-detail-delete[2]",
-    "state": "vocab-batch-bar",
-    "check": "hitAreaMin",
-    "actual": 20,
-    "expected": 24,
-    "note": null
-  },
-  "library||button.btn.btn-sm.danger.ghost.notes-detail-delete[1]|notes-detail|hitAreaMin": {
-    "surface": "library",
-    "theme": "",
-    "selector": "button.btn.btn-sm.danger.ghost.notes-detail-delete[1]",
-    "state": "notes-detail",
-    "check": "hitAreaMin",
-    "actual": 20,
-    "expected": 24,
-    "note": null
-  },
-  "popup||#offline-queue-toggle|light|hitAreaMin": {
-    "surface": "popup",
-    "theme": "",
-    "selector": "#offline-queue-toggle",
-    "state": "light",
-    "check": "hitAreaMin",
-    "actual": 15.4,
-    "expected": 24,
-    "note": null
-  },
-  "popup||#offline-queue-clear|light|hitAreaMin": {
-    "surface": "popup",
-    "theme": "",
-    "selector": "#offline-queue-clear",
-    "state": "light",
-    "check": "hitAreaMin",
-    "actual": 15.4,
-    "expected": 24,
-    "note": null
-  },
-  "popup|popup-dark|#offline-queue-toggle|dark|hitAreaMin": {
-    "surface": "popup",
-    "theme": "popup-dark",
-    "selector": "#offline-queue-toggle",
-    "state": "dark",
-    "check": "hitAreaMin",
-    "actual": 15.4,
-    "expected": 24,
-    "note": null
-  },
-  "popup|popup-dark|#offline-queue-clear|dark|hitAreaMin": {
-    "surface": "popup",
-    "theme": "popup-dark",
-    "selector": "#offline-queue-clear",
-    "state": "dark",
-    "check": "hitAreaMin",
-    "actual": 15.4,
     "expected": 24,
     "note": null
   }

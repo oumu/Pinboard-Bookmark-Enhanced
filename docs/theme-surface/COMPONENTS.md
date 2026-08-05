@@ -307,7 +307,7 @@ popup 维持现状并记录在案。
 
 ```css
 /* quiet：类名沿用 .btn.danger，配方重定义。JS 侧 className 无需改动
-   （library-vocab.js:538 / library-notes.js:405 已经是 "btn btn-sm danger"） */
+   （library-vocab.js:539 / library-notes.js:405 已经是 "btn btn-sm danger"） */
 .btn.danger { color: var(--{ns}-danger-quiet-fg); border-color: color-mix(in srgb, var(--{ns}-danger) 55%, var(--{ns}-border)); }
 .btn.danger:hover:not(:disabled) { background: color-mix(in srgb, var(--{ns}-danger) 8%, var(--{ns}-btn-bg)); }
 
