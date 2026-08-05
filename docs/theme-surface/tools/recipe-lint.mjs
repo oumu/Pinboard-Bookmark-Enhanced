@@ -41,6 +41,14 @@
 //  12. btnIcBase (§2.3): every ns's `.btn-ic` declares
 //      display:inline-flex + align-items:center, and `.btn-ic svg` declares
 //      display:block.
+//  13. radiusToken (§9.2 roundness law 1): every border-radius the recipe
+//      emits references var(--{ns}-radius-{sm|md|lg|full}) — no literals,
+//      no calc(). This is what makes terminal's square-ish corners fall out
+//      of its own pilot scale instead of needing a per-theme exemption.
+//  14. radiusConcentric (§9.2 roundness law 2): for a hand-declared registry
+//      of flush-nested pairs, the inner control is never rounder than the
+//      shell it sits in. Values read from the SHIPPED css, so a hand-written
+//      rule can't drift away from the recipe either.
 //
 // Usage: node docs/theme-surface/tools/recipe-lint.mjs
 
@@ -235,6 +243,82 @@ for (const ns of NS_LIST) {
   const svg = familyRules(ns, "btnIc").find(r => r.selector === ".btn-ic svg");
   if (!has(base, "display", "inline-flex") || !has(base, "align-items", "center")) fail(`btnIcBase: ${ns} ".btn-ic" missing display:inline-flex/align-items:center`);
   if (!has(svg, "display", "block")) fail(`btnIcBase: ${ns} ".btn-ic svg" missing display:block`);
+}
+
+// ---------------------------------------------------------------------------
+// 13. radiusToken (§9.2 roundness law 1): every border-radius the
+//     recipe emits references the surface's radius ladder. No literals, no
+//     calc(). This is what makes terminal's square corners fall out for free
+//     -- its pilot sets radius-sm/md to 2/4px and the recipe inherits that
+//     without a single :not([data-theme="terminal"]) anywhere. A literal
+//     would opt that one rule out of every theme's scale at once.
+// ---------------------------------------------------------------------------
+{
+  const OK_RE = /^var\(--(?:pp|opt|lib)-radius-(?:sm|md|lg|full)\)$|^inherit$/;
+  for (const ns of NS_LIST) {
+    for (const r of FAMILIES.flatMap(f => familyRules(ns, f))) {
+      for (const [prop, value] of r.decls) {
+        if (prop !== "border-radius") continue;
+        if (!OK_RE.test(value.trim())) {
+          fail(`radiusToken: ${ns} "${r.selector}" border-radius is "${value}" -- must reference var(--${ns}-radius-{sm|md|lg|full}) (or inherit)`);
+        }
+      }
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 14. radiusConcentric (§9.2 roundness law 2): a control nested flush inside another
+//     cannot be ROUNDER than its shell -- the two arcs cross at the corner
+//     and cut a crescent out of each other. Strict law 2 is "inner = outer -
+//     inset"; the lint enforces the half that is unambiguous and can't be
+//     satisfied by accident (inner <= outer), only for pairs that actually
+//     sit flush (a .btn 16px inside a .panel is not a concentric pair and
+//     listing it here would just force a meaningless 0).
+//
+//     Hand-declared registry, same reason COMPONENT_PAIR_SPEC and
+//     CHIP_TARGETS are: scraping "which selector nests in which" out of CSS
+//     text is exactly the kind of derived-from-the-thing-under-test check
+//     this campaign already rejected once. Values are read from the SHIPPED
+//     css so a hand-written rule can't drift away from the recipe either.
+// ---------------------------------------------------------------------------
+{
+  const NESTED_RADIUS = [
+    // [ns, outer selector, inner selector] -- both as they appear in the css
+    ["lib", ".vocab-sort-seg", ".vocab-sort-seg > .vocab-sort-btn"],
+    ["lib", ".vocab-group-unit", ".vocab-group-unit > .vocab-group-step"],
+    ["lib", ".notes-hit", ".notes-hit-btn"],
+  ];
+  const cssCache = {};
+  const cssFor = ns => (cssCache[ns] ??= readFileSync(CSS_PATH[ns], "utf8"));
+  // Resolve a selector's own border-radius to px. Returns null when the
+  // selector has no rule or no border-radius declaration -- a missing target
+  // is a registry bug and fails loudly rather than passing vacuously.
+  const radiusOf = (ns, selector) => {
+    const css = cssFor(ns);
+    const re = new RegExp(selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\s*\\{([^}]*)\\}", "g");
+    let px = null;
+    for (const m of css.matchAll(re)) {
+      const d = /border-radius\s*:\s*([^;]+);/.exec(m[1]);
+      if (!d) continue;
+      const v = d[1].trim();
+      if (v === "inherit") { px = "inherit"; continue; }
+      const tok = /^var\(--(?:pp|opt|lib)-radius-(sm|md|lg|full)\)$/.exec(v);
+      if (tok) {
+        const root = new RegExp(`--${ns}-radius-${tok[1]}:\\s*([0-9.]+)px`).exec(css);
+        px = root ? parseFloat(root[1]) : null;
+      } else px = parseFloat(v);
+    }
+    return px;
+  };
+  for (const [ns, outer, inner] of NESTED_RADIUS) {
+    const o = radiusOf(ns, outer), i = radiusOf(ns, inner);
+    if (o == null) { fail(`radiusConcentric: ${ns} outer "${outer}" declares no resolvable border-radius`); continue; }
+    if (i == null) { fail(`radiusConcentric: ${ns} inner "${inner}" declares no resolvable border-radius`); continue; }
+    if (i === "inherit") continue; // concentric by construction
+    if (o === "inherit") { fail(`radiusConcentric: ${ns} outer "${outer}" is border-radius:inherit -- cannot bound its own child`); continue; }
+    if (i > o) fail(`radiusConcentric: ${ns} "${inner}" (${i}px) is rounder than its shell "${outer}" (${o}px) -- the two arcs cut a crescent at each corner (§9.2 roundness law 2)`);
+  }
 }
 
 // ---------------------------------------------------------------------------

@@ -240,7 +240,7 @@ h1 { font-size: 18px; color: var(--opt-fg); margin-bottom: var(--opt-sp-7); bord
    cost seconds at 4K). Inactive panels lay out lazily on first tab-switch; that switch
    used to be slow too, but the emoji→SVG fix removed the per-panel stall, so both
    open AND switch are now fast. */
-/* Soft Fill (COMPONENTS.md §8 law 4): a panel is a surface, not a boxed
+/* Soft Fill (COMPONENTS.md §9 law 4): a panel is a surface, not a boxed
    card -- its own fill separates it from the page, so the edge drops from
    the 3:1 structural --opt-border to the hairline divider weight. */
 .panel { background: var(--opt-panel); border: 1px solid var(--opt-border-section); display: none; }

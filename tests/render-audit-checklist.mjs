@@ -148,6 +148,21 @@
 //                      layer that can see one at all. design-uplift preset-
 //                      row redesign (2026-08-04): the swatch dot that
 //                      replaced the old bordered-pill chrome.
+//   insetBand      -- { minInsetPx }: the element that PAINTS a list's
+//                      hover/selected band must be rounded
+//                      (border-radius > 0) AND held at least minInsetPx
+//                      clear of its container on both inline sides
+//                      (COMPONENTS.md §9 law 3, Soft Fill). One verdict for
+//                      both halves on purpose: a rounded band at full bleed
+//                      still cuts the container's corners, and an inset
+//                      square band still reads as a stripe -- neither half
+//                      is a design rule on its own. `actual` reports the
+//                      smaller of the two insets; a zero radius fails with
+//                      an explicit note instead of passing on the inset
+//                      alone. Written against the band-painting element,
+//                      which is NOT always the row: library's vocabulary
+//                      rows paint --row-bg on .notes-card-top inside
+//                      .vocab-card, so the entry names the child.
 //   outlineContrast -- N: computed outline-color vs the REAL composited
 //                      background the ring paints OVER (bgStack minus the
 //                      host's own layer, since outline-offset pushes the
@@ -170,6 +185,22 @@ export const CHECKS = [
   // the default state are exposed (COMPONENTS.md §1.3). ----
   { surface: "library", page: "library.html", selector: ".vocab-detail-relookup", state: "default",
     expect: { textContrast: 4.5, iconContrast: 3 } },
+
+  // ---- COMPONENTS.md §9 law 3 (Soft Fill, inset selection). Both of
+  // library's lists paint a hover/selected band; before the uplift the
+  // vocabulary one had NEITHER a radius nor an inset (a selected row ran
+  // edge to edge and its corners cut the list container's own), and the
+  // notes one had the radius but no inset. Written per LIST because the two
+  // paint on different elements -- .vocab-card delegates its band to the
+  // .notes-card-top child, .notes-hit owns its own -- so a single shared
+  // selector could not reach both, and a regression in either list has to
+  // fail on its own key rather than hiding behind the other. 4px is the
+  // shipped inset; the check reads the band element's own margin, so it
+  // measures what is painted rather than what the stylesheet says. ----
+  { surface: "library", page: "library.html", selector: ".vocab-card .notes-card-top", state: "default",
+    expect: { insetBand: { minInsetPx: 4 } } },
+  { surface: "library", page: "library.html", selector: ".notes-hit", state: "default",
+    expect: { insetBand: { minInsetPx: 4 } } },
   { surface: "library", page: "library.html", selector: ".vocab-detail-delete", state: "default",
     expect: { textContrast: 4.5, iconContrast: 3, iconVCenter: 1 } },   // also defect 5
   { surface: "library", page: "library.html", selector: ".notes-detail-delete", state: "default",

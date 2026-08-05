@@ -91,7 +91,7 @@ function btnRules(ns) {
       ["line-height", "16px"],
       ["font-family", "inherit"],
       ["cursor", "pointer"],
-      // Soft Fill (COMPONENTS.md §8): the resting border-color collapses INTO
+      // Soft Fill (COMPONENTS.md §9 law 1): the resting border-color collapses INTO
       // the fill. --{ns}-btn-border IS --{ns}-btn-bg for every theme except
       // the ones whose pilot restores a real frame (terminal). border-width
       // stays 1px so the collapse costs zero layout shift, and :hover /

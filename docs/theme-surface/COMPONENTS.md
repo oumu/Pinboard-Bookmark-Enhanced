@@ -805,6 +805,100 @@ focus 走 §7.3 的按钮套（`outline: 2px solid var(--{ns}-accent); outline-o
 
 ---
 
+## 9. Soft Fill（静息填充语言）
+
+**适用**：三表面全量。**豁免**：terminal（见 §9.5）。
+
+来历：2026-07-14 两轮画布迭代后用户本人选定 1b Soft Fill，同一份记录里 terminal 的身份写作
+「硬边 #33ff33 + 磷光 bloom ring」。本节是把那次选择铺到全部三个表面，不是新提案。
+
+### 9.1 六条律
+
+1. **rest 去线框。** 静息态控件靠**填充**自证身份，`border-color` 塌陷到自己的填充色。
+   `border-width` 保留 1px——**零布局位移**是这条律的硬约束，`border: none` 不算合规实现。
+   承载塌陷的是**每角色一个 token**：`--{ns}-btn-border` / `--{ns}-input-border`
+   （popup 用自己的 `-bd` 后缀：`--pp-btn-bd` / `--pp-input-bd`）。控件规则一律引用这些，
+   **不再引用 `--{ns}-border`**——后者留给真正的结构边（浮层、表格线、滚动条）。
+
+2. **填充必须与所在表面分离。** 去掉边框后，与宿主表面同色的填充 = 看不见的控件。
+   派生函数 `fillSeparate(fill, surfaces, fg, min)`（`composers/_ui-derive.mjs`）把表面自己的
+   `fg` 混进填充，直到对**每一个**宿主表面都达到 1.06:1。
+   - **分离的基准是控件真正坐着的那层**，而且往往不止一层：library 的 `.btn` 既出现在
+     `--lib-bg` 的工具条上，也出现在 `--lib-panel` 的详情面板里，只对其中一层分离会把填充
+     推到另一层上。所以宿主是**数组**，不是单值。
+   - 1.06:1 远低于 WCAG 1.4.11 的 3:1，这是**故意的**：1.4.11 管的是「控件边界对背景」，
+     那件事仍由 focus 环与 hover 填充在做；这条门只管「静息形状还看不看得见」。
+     白底上单通道差一级约 1.005:1（完全不可见），1.06:1 约四级，是平面填充开始读作
+     「另一层」而不是「色带」的位置。
+   - **hover 必须跟着重算。** 静息填充一变深，旧的 hover 填充就贴到了新静息上
+     （实测默认表面 1.00–1.02:1，hover 完全不再是一个变化）。同一个函数，宿主取新静息填充。
+   - 已达标的主题**恒等返回**，字节不变。
+
+3. **列表选中 / hover 高亮内嵌。** 高亮带不得满幅铺到容器边：`border-radius > 0`
+   且左右各留 ≥4px 内距，**永不触容器角**。左侧 accent 条不需要额外规则——inset `box-shadow`
+   跟随 `border-radius`，带一有圆角，accent 条自动收进去并跟着圆。
+
+4. **分隔线与卡片：不画完整包围框。** 卡片 / 分节的边降到发丝级（`--{ns}-border-section`），
+   列表行之间靠间距与填充分层、不靠线。浮层（popover / dropdown）**例外**：它盖在无关内容上，
+   那圈 3:1 的边在干实事，保留。
+
+5. **不变的部分。** hover 加深、focus 环（§7.3）、selected accent、danger 两档（§4）
+   **一律不动**。本节只改静息态。
+
+6. **豁免只豁免颜色。** 见 §9.5。
+
+### 9.2 圆角三律
+
+1. **圆角只许引用 radius token 阶梯**（`--{ns}-radius-{sm|md|lg|full}`）。不许字面量、
+   不许 `calc()` 现编。terminal 之类把 radius 压到 2/4px 的 pilot 因此**自动**接近直角——
+   这是本律在起作用，不是给它开豁免。门：`recipe-lint` 检查 13。
+2. **嵌套同心律。** 严格形式是「内半径 = 外半径 − 内距」；可自动化的那一半是
+   **内半径 ≤ 外半径**，且只对**贴边嵌套**的对生效（一颗 16px 内距的 `.btn` 坐在 `.panel` 里
+   不是同心对，把它列进去只会逼出一个毫无意义的 0）。门：`recipe-lint` 检查 14，
+   走**手写注册表** + 读**已发布 CSS** 的实际值。
+3. **列表选中内嵌** = §9.1 律 3。门：render oracle 的 `insetBand`。
+
+### 9.3 两条横切纪律（都是本轮实证踩出来的）
+
+- **per-surface 规则不许写裸类名。** `.divider` / `.btn` 这类通用名三个表面共用，
+  一条没限定作用域的规则会跨表面命中，并引用**在那个表面根本不存在**的 token。
+  失败方式是**静默回退到 `currentcolor`**，不是报错——`hr` 的 UA 默认 `color: gray`
+  于是画出一条 #808080 硬灰线，看起来像「设计得太重」而不是像 bug。
+- **状态规则不许被 ID 选择器截胡。** 组件内部状态（pressed / seam / hover）的特异性必须高于
+  任何 `#view-* .btn` 之类的表面级批量规则，否则状态被静默抹平（实测：分段控件的胶囊、缝、
+  选中段三个探针读出**逐字节相同**的颜色）。正解是表面级规则**别用 ID**，
+  而不是让下游一路加 ID 追特异性。
+
+### 9.4 门
+
+| 门 | 管什么 |
+|---|---|
+| `contrast-audit` 的 `border vs btn-bg` / `border vs panel` | 填充一移动，结构边的 3:1 就得跟着重算（本轮逮到三个陈旧默认值：options 2.97、library 2.76、popup 的 danger-quiet-fg 4.41） |
+| `recipe-lint` 13 / 14 | 圆角 token 阶梯 + 嵌套同心 |
+| render oracle `insetBand` | 列表高亮带内嵌（两个列表各一条，15 主题） |
+| `ui-token-coverage` | 新角色 token 在每个主题块都有定义 |
+
+`fillSeparate` 本身**没有独立的门**：它的正确性由 `contrast-audit` 从下游反向约束
+（填充错了，btn-fg / border / danger-quiet-fg 的配对必然红），加上恒等性质
+（已达标主题字节不变）由 `diff-all --strict` 守着。
+
+### 9.5 terminal 豁免
+
+**只豁免颜色，不豁免几何。** 圆角与内距通过 token 阶梯自然生效（§9.2 律 1），不单独 `:not()`。
+
+豁免走 pilot 的 `ui.<surface>.<mode>` 通道**逐角色**恢复边框：`btn-bd` / `input-bd`（popup）、
+`btn-border` / `input-border`（options / library）。composer 把「pilot 声明了这个角色的边框」
+本身当作豁免信号——**有框的控件不需要填充来承担可供性**——所以同一次声明也让该角色的填充
+保持 pilot 原值。
+
+值写 `var(--{ns}-border)` 而不是复制字面量：那个值是每表面 `borderToAA` 派生出来的，
+字面量会在派生下次移动时变陈旧（本轮三个默认边正是这么坏的）。
+
+验收（与铺开前逐块 diff）：三个表面的 terminal 块**只增不改**——原有 token 逐字节相同，
+新增的每一个都解析成被删掉的手写规则原本画的那个值。
+
+---
+
 ## 附录 A：人审清单（不可自动化的判断）
 
 自动门覆盖约八成常规缺陷（对比度、几何比例、token 解析、级联结构）。以下四类结构上无法自动判定，
@@ -937,6 +1031,10 @@ focus 走 §7.3 的按钮套（`outline: 2px solid var(--{ns}-accent); outline-o
 | C33 | 融合控件第五轮：图标居中 + rest↔focus 状态稳定（`.vocab-group-unit`、`.vocab-sort-seg`、`.key-wrap` ×19、`.secret-field`、`.tags-input-wrap`）——**USER CHECKPOINT 2026-08-05，第五轮打回**：加减号视觉不居中；`.secret-field`/`.key-wrap` 聚焦时「底色变白、眼睛图标偏移、眼睛段看着独立不融合」。同时下达方法整改令：禁止再手造配方，移植成熟参考实现（见 §8.3 出处表，Primer CSS + Pico.css，均 MIT） | **图标**：`.vocab-group-step` 用 `display: inline-grid; place-items: center`，而 `shared.js:112` 的 `setBtnIcon` 恒发射空 label span → 实测 `grid-template-rows: 14px 0px`，图标偏上 **2.00px**（批量条那对是静态单子节点 HTML，`18px`，从来不偏——同 CSS 不同 DOM，所以只有 JS 构建的那对出问题）。**底色**：`popup.css` 的 `.login-body input:focus` / `.tags-input-wrap:focus-within` 及各自 themed 分身在聚焦时把底换成 `--pp-input-focus-bg`，实测默认表面 `rgb(238,241,245)`→`rgb(255,255,255)`、terminal `rgb(17,17,17)`→`rgb(13,26,13)`。**眼睛段**：`.key-toggle:focus-visible` 画 10% ghost 填充（实测 options `color(srgb 0.92 0.92 0.92)`、terminal `color(srgb 0.08 0.16 0.08)`），一块不透明色块浮在字段上 | 图标：删 `inline-grid`/`place-items`，继承 `.btn` 的 `inline-flex` 居中并加 `gap: 0`（`.btn` 自带的 4px gap 会为空 span 留位、把图标左推 2px）。同一处理同步给 `.vocab-sort-btn`（它今天不暴露该差异，但共享形状可防复发）。底色：四条聚焦规则一律去掉 `background`（`--pp-input-focus-bg` **token 保留**——它仍派生 `--pp-focus-bd`，也仍填充非融合的普通输入框）。眼睛段与步进段的焦点标示改为 `box-shadow: inset 0 -2px 0 var(--{ns}-accent)` 内嵌下划线；ghost 填充移到 hover（`.key-toggle:hover` 新增，此前只改文字色） | **library**：详情面板两颗步进钮图标下移 2px 归正（16 主题；批量条那对本就正确，无变化）；步进/排序段的焦点标示从 10% 灰底改为 2px accent 下划线；排序段原先「选中+聚焦」加深填充的那条规则删除（改由下划线叠在选中填充上区分，四种组合仍可辨）。**popup**：`.secret-field` 与 `.tags-input-wrap` 聚焦时**不再变底色**（14 态全部可见变化——这是用户点名的那条）；眼睛钮新增 hover ghost 底、焦点改下划线。**options**：`.key-wrap` ×19 同上；眼睛钮新增 hover ghost 底。**未改**：`.field > input:focus`、`.search-field:focus` 两处普通输入框仍保留聚焦变底色——它们不是融合控件，不在律 6 管辖内，动它们属范围外 | 2026-08-05 第五轮 |
 
 | C34 | 融合控件第六轮：内部件焦点环归一 + 眼睛右缘细线消除（`.key-toggle` ×2 家、`.vocab-group-step`、`.vocab-sort-btn`）——**USER CHECKPOINT 2026-08-05，放大截图后两项**：① 对内嵌下划线的反应是「是什么？？？」——自造视觉词汇不成立；② 眼睛与胶囊右缘之间有一条微弱竖线，浅色与 terminal 都能看到 | 两项**同一个根因**：C33 引入的 `box-shadow: inset 0 -2px 0 var(--{ns}-accent)`。下划线本身是发明出来的词汇，用户读不出含义；而同一条 inset 阴影在分数定位的小盒上还会沿右边缘漏出**一列设备像素**——3x 采集图逐列扫描实测：terminal 聚焦态 x=1957 为 `rgb(25,77,25)`（暗 accent），**同一列在静息态是 `rgb(17,17,17)` 纯背景**，即该细线只在聚焦态出现，位置正好是眼睛钮右边缘、距胶囊边框 3 CSS px | 四处一律改用 §7.3 的 button 焦点环并以负 offset 收进自己的盒内：`outline: 2px solid var(--{ns}-accent); outline-offset: -2px`（两家 `.key-toggle` 另加 `border-radius: var(--{ns}-radius-sm)` 让环是圆角）。`outline` 不产生阴影几何，两个缺陷同时消失。§8 律 6 与 §8.3 配方同步改写，并把「不要自造第三种视觉词汇」写进条文 | 四处内部件聚焦态在 16 套主题下全部可见变化：下划线 → 收在盒内的 2px accent 圆角环；眼睛右缘的细线消失。**取证**：`screens/state-matrix/zoom-eye-200/` 的 200% 裁剪 + 逐列像素扫描——修后 `focus-input` 态该列恢复为纯背景 `rgb(17,17,17)`，`focus-adornment` 态该列是满强度 `rgb(51,255,51)`（即刻意的环，不是 1px 残影）。静息/hover 态本就无细线（修前即已实测确认），故不受影响 | 2026-08-05 第六轮 |
+| C35 | **Soft Fill 全量铺开：静息去线框 + 填充分离派生**（三表面 × 14 主题块） | 控件静息态靠 `--{ns}-border`（Task 16 起为 3:1 派生值）画一整圈框；填充与宿主表面常常同色——实测 options 的 `btn-bg` 在 6/14 块里与自己的 `panel` 逐字节相同，library 在 **14/14** 全同，`input-bg` 5/14 全同；popup 根本没有按钮填充角色，`.qbtn`/`.submit-bar button`/`.md-strip-btn` 画的是 `--pp-bg` 或 `--pp-bg2`，后者正是它们所坐的那条 strip | §9 律 1+2：新增 `--{ns}-btn-border` / `--pp-btn-bd` / `--pp-btn-bg` / `--pp-btn-hover` / `--pp-input-bd` 角色，静息 `border-color` 塌陷进填充（`border-width` 保留 1px）；`fillSeparate()`（`_ui-derive.mjs`）把表面 `fg` 混进填充直到对**每个**宿主表面 ≥1.06:1；hover 填充同法重算（旧值对新静息只有 1.00–1.02:1） | 三表面全部主题：控件静息态从「描边 + 与表面同色的填充」变为「无描边 + 可辨填充」。popup 侧另有 14 条 `html[data-theme]` 覆盖规则被删除（它们只是把 `--pp-border` 重新装回控件上，token 塌陷后无话可说）。**下游连锁三处**（由 `contrast-audit` 逮到，非人工发现）：options 默认 `border` `#8a8a8a`→`#858585`、library `#90909f`→`#858596`、popup 默认 `danger-quiet-fg` `#c24343`→`#bd3d3d`——填充变深后旧值分别掉到 2.97 / 2.76 / 4.41，均按原派生公式重算而非 allowlist | 2026-08-05 Soft Fill |
+| C36 | **卡片与分节降到发丝级**（options `.panel` / `h1` / backup / wayback / tag-gov / drive 六个盒，library `.notes-card` / `#vocab-lookup-bar`，popup `.quick-actions hr.divider`） | 一律 1px `--{ns}-border`（3:1 结构边）画完整包围框；popup 搜索条上方那条 `hr` 画 `--pp-divider` | §9 律 4：卡片/分节改发丝级 `--{ns}-border-section`，不做包围框；`hr.divider` 的 `border-top-color` 塌陷为 `transparent`（**声明保留**，盒高逐字节不变，间距与字段填充承担分隔） | 14 套主题下这些容器的边明显变轻；popup 搜索条上方的横线消失。**浮层不动**（`.confirm-popover` / `.theme-name-popover` / `.autocomplete-dropdown` / `select::picker`）——它们盖在无关内容上，那圈边在干实事 | 2026-08-05 Soft Fill |
+| C37 | **列表选中高亮内嵌**（library `#vocab-list` 与 `#notes-list` 两个列表） | vocab 侧 `border-radius: 0` + `margin-inline: 0`（满幅方角，选中行的角切掉列表容器自己的角）；notes 侧已有 `radius-sm` 但 `margin-inline: 0` | §9 律 3：两侧统一 `border-radius: var(--lib-radius-sm)` + `margin-inline: 4px`。accent 条**零成本**——`.vocab-card[aria-current]` 的 `inset 2px 0 0` 是 inset 阴影，跟随 `border-radius` 自动收进带内并跟着圆 | 16 套主题下两个列表的 hover/选中带从满幅色条变成浮在栏内的圆角卡片。选择器**只用类不用 id**（`#vocab-list` 前缀会盖过 `.selected`，反转 `--row-bg` 的既定优先级）。门：render oracle 新增 `insetBand`（2 选择器 × 15 主题 = 30 条，RED 验证实测 30 FAIL） | 2026-08-05 Soft Fill |
+| C38 | **terminal 逐角色恢复边框**（`pilots/terminal.tokens.json` 的 `ui.popup/options/library.dark`） | terminal 与其他 12 套一起被 Soft Fill 拉平（填充被派生、边框被塌陷），身份丢失 | §9.5：pilot 通道逐角色声明 `btn-bd`/`input-bd`（popup）、`btn-border`/`input-border`（options/library，后者是 terminal 第一次拥有 `ui.library` 通道）。composer 把「声明了该角色的边框」本身当作豁免信号，同一次声明也让该角色的填充保持 pilot 原值。值写 `var(--{ns}-border)` 而非复制字面量（派生一移动，字面量就陈旧——本轮 C35 的三处连锁正是这么坏的） | 与铺开前逐块 diff：三个表面的 terminal 块**只增不改**——原有 token 逐字节相同，新增的每一个都解析成被删掉的手写规则原本画的那个值（`--pp-btn-bg: #111111` = 原 `--pp-bg2`，`--pp-btn-hover: #1a3a1a` = 原 `--pp-drop-hover`，三个 `*-border` 就是原规则点名的同一个 token）。**唯一登记的微差**：`html[data-theme] .md-strip-btn` 的底从 `--pp-bg`(#0a0a0a) 改读 `--pp-btn-bg`(#111111)，与同表面其他按钮统一。几何（圆角/内距）**不豁免**，走 token 阶梯自然生效 | 2026-08-05 Soft Fill |
 
 **偏离实施计划之处**（Task 9/10 以本规范为准，但需知晓）：
 

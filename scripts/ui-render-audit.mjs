@@ -432,6 +432,11 @@ function probeSelector({ selector, compareSelector, extraBgVarName, childSelecto
     paddingTop: parseFloat(cs.paddingTop) || 0,
     paddingBottom: parseFloat(cs.paddingBottom) || 0,
     borderRadius: parseFloat(cs.borderTopLeftRadius) || 0,
+    // COMPONENTS.md §9 law 3 (inset selection band). Read from the element
+    // that PAINTS the band, which is not always the row element itself --
+    // library's vocabulary rows paint on .notes-card-top inside .vocab-card.
+    marginLeft: parseFloat(cs.marginLeft) || 0,
+    marginRight: parseFloat(cs.marginRight) || 0,
   };
 }
 
@@ -500,6 +505,23 @@ function evaluateCheck(check, raw, theme) {
     else {
       const padV = Math.min(raw.paddingTop, raw.paddingBottom);
       out.push(verdict("padVMin", padV >= exp.padVMin - 0.01, round2(padV), exp.padVMin));
+    }
+  }
+  // COMPONENTS.md §9 law 3: a list's hover/selected band is INSET -- rounded,
+  // and held clear of the container's own edges, so it never collides with
+  // the container's corners. Both halves are one verdict because either
+  // alone is meaningless: a rounded band at full bleed still cuts the
+  // corners, and an inset square band still reads as a stripe. `actual` is
+  // the smaller of the two inline insets (the number a fix would move);
+  // a zero radius fails with an explicit note rather than silently.
+  if ("insetBand" in exp) {
+    const min = exp.insetBand.minInsetPx;
+    if (hostZero) out.push(verdict("insetBand", false, null, min, zeroNote));
+    else {
+      const inset = Math.min(raw.marginLeft, raw.marginRight);
+      const rounded = raw.borderRadius > 0;
+      out.push(verdict("insetBand", rounded && inset >= min - 0.01, round2(inset), min,
+        rounded ? undefined : "band has border-radius 0 -- it still cuts the container's corners"));
     }
   }
   if ("heightEqWith" in exp) {

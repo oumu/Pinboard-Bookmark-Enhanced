@@ -793,7 +793,7 @@ button.offline-clear:focus-visible, button.offline-toggle:focus-visible { outlin
 }
 .quick-actions .divider {
   border: none;
-  /* Soft Fill (COMPONENTS.md §8 law 4): the rule collapses -- the 8px margin
+  /* Soft Fill (COMPONENTS.md §9 law 4): the rule collapses -- the 8px margin
      below it plus the search field's own fill carry the separation. The
      border-top declaration stays at 1px so the box keeps its exact height;
      only the colour goes. */
