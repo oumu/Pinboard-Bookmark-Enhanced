@@ -889,7 +889,7 @@ button.offline-clear:focus-visible, button.offline-toggle:focus-visible { outlin
   mix-blend-mode: difference;
   filter: invert(1);
 }
-html[data-theme] .batch-progress { background: var(--pp-input-bg, var(--pp-bg-soft, #2a2a2a)); border-color: var(--pp-border); }
+html[data-theme] .batch-progress { background: var(--pp-input-bg); border-color: var(--pp-border); }
 html[data-theme] .batch-progress-fill { background: var(--pp-accent, #4477bb); }
 /* Themed accents (--pp-accent) are often bright/mid (cyan/green/blue) and --pp-fg is
    tuned for body text, so plain --pp-fg over the accent fill fails contrast on all 13

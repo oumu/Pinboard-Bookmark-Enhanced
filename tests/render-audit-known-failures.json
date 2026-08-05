@@ -158,5 +158,375 @@
     "actual": 2.7,
     "expected": 1,
     "note": null
+  },
+  "options||button.key-toggle|tab-general|hitAreaMin": {
+    "surface": "options",
+    "theme": "",
+    "selector": "button.key-toggle",
+    "state": "tab-general",
+    "check": "hitAreaMin",
+    "actual": 18,
+    "expected": 24,
+    "note": null
+  },
+  "options||button.key-toggle|tab-ai|hitAreaMin": {
+    "surface": "options",
+    "theme": "",
+    "selector": "button.key-toggle",
+    "state": "tab-ai",
+    "check": "hitAreaMin",
+    "actual": 18,
+    "expected": 24,
+    "note": null
+  },
+  "options||button.key-toggle|tab-archive|hitAreaMin": {
+    "surface": "options",
+    "theme": "",
+    "selector": "button.key-toggle",
+    "state": "tab-archive",
+    "check": "hitAreaMin",
+    "actual": 18,
+    "expected": 24,
+    "note": null
+  },
+  "library||#vocab-sort-time|vocab-list|hitAreaMin": {
+    "surface": "library",
+    "theme": "",
+    "selector": "#vocab-sort-time",
+    "state": "vocab-list",
+    "check": "hitAreaMin",
+    "actual": 23.5,
+    "expected": 24,
+    "note": null
+  },
+  "library||#vocab-sort-alpha|vocab-list|hitAreaMin": {
+    "surface": "library",
+    "theme": "",
+    "selector": "#vocab-sort-alpha",
+    "state": "vocab-list",
+    "check": "hitAreaMin",
+    "actual": 23.5,
+    "expected": 24,
+    "note": null
+  },
+  "library||#vocab-lookup-go|vocab-list|hitAreaMin": {
+    "surface": "library",
+    "theme": "",
+    "selector": "#vocab-lookup-go",
+    "state": "vocab-list",
+    "check": "hitAreaMin",
+    "actual": 21,
+    "expected": 24,
+    "note": null
+  },
+  "library||#vocab-sort-time|vocab-detail|hitAreaMin": {
+    "surface": "library",
+    "theme": "",
+    "selector": "#vocab-sort-time",
+    "state": "vocab-detail",
+    "check": "hitAreaMin",
+    "actual": 23.5,
+    "expected": 24,
+    "note": null
+  },
+  "library||#vocab-sort-alpha|vocab-detail|hitAreaMin": {
+    "surface": "library",
+    "theme": "",
+    "selector": "#vocab-sort-alpha",
+    "state": "vocab-detail",
+    "check": "hitAreaMin",
+    "actual": 23.5,
+    "expected": 24,
+    "note": null
+  },
+  "library||#vocab-lookup-go|vocab-detail|hitAreaMin": {
+    "surface": "library",
+    "theme": "",
+    "selector": "#vocab-lookup-go",
+    "state": "vocab-detail",
+    "check": "hitAreaMin",
+    "actual": 21,
+    "expected": 24,
+    "note": null
+  },
+  "library||button.btn.btn-sm.notes-row-del.row-del-x[1]|vocab-detail|hitAreaMin": {
+    "surface": "library",
+    "theme": "",
+    "selector": "button.btn.btn-sm.notes-row-del.row-del-x[1]",
+    "state": "vocab-detail",
+    "check": "hitAreaMin",
+    "actual": 23,
+    "expected": 24,
+    "note": null
+  },
+  "library||button.btn.btn-sm.vocab-detail-speak|vocab-detail|hitAreaMin": {
+    "surface": "library",
+    "theme": "",
+    "selector": "button.btn.btn-sm.vocab-detail-speak",
+    "state": "vocab-detail",
+    "check": "hitAreaMin",
+    "actual": 20,
+    "expected": 24,
+    "note": null
+  },
+  "library||button.btn.btn-sm|vocab-detail|hitAreaMin": {
+    "surface": "library",
+    "theme": "",
+    "selector": "button.btn.btn-sm",
+    "state": "vocab-detail",
+    "check": "hitAreaMin",
+    "actual": 20,
+    "expected": 24,
+    "note": null
+  },
+  "library||button.btn.btn-sm.vocab-group-step[0]|vocab-detail|hitAreaMin": {
+    "surface": "library",
+    "theme": "",
+    "selector": "button.btn.btn-sm.vocab-group-step[0]",
+    "state": "vocab-detail",
+    "check": "hitAreaMin",
+    "actual": 18,
+    "expected": 24,
+    "note": null
+  },
+  "library||button.btn.btn-sm.vocab-group-step[1]|vocab-detail|hitAreaMin": {
+    "surface": "library",
+    "theme": "",
+    "selector": "button.btn.btn-sm.vocab-group-step[1]",
+    "state": "vocab-detail",
+    "check": "hitAreaMin",
+    "actual": 18,
+    "expected": 24,
+    "note": null
+  },
+  "library||button.btn.btn-sm.vocab-detail-relookup[1]|vocab-detail|hitAreaMin": {
+    "surface": "library",
+    "theme": "",
+    "selector": "button.btn.btn-sm.vocab-detail-relookup[1]",
+    "state": "vocab-detail",
+    "check": "hitAreaMin",
+    "actual": 21,
+    "expected": 24,
+    "note": null
+  },
+  "library||button.btn.btn-sm.danger.ghost.vocab-detail-delete[2]|vocab-detail|hitAreaMin": {
+    "surface": "library",
+    "theme": "",
+    "selector": "button.btn.btn-sm.danger.ghost.vocab-detail-delete[2]",
+    "state": "vocab-detail",
+    "check": "hitAreaMin",
+    "actual": 20,
+    "expected": 24,
+    "note": null
+  },
+  "library||#vocab-sort-time|vocab-batch-bar|hitAreaMin": {
+    "surface": "library",
+    "theme": "",
+    "selector": "#vocab-sort-time",
+    "state": "vocab-batch-bar",
+    "check": "hitAreaMin",
+    "actual": 23.5,
+    "expected": 24,
+    "note": null
+  },
+  "library||#vocab-sort-alpha|vocab-batch-bar|hitAreaMin": {
+    "surface": "library",
+    "theme": "",
+    "selector": "#vocab-sort-alpha",
+    "state": "vocab-batch-bar",
+    "check": "hitAreaMin",
+    "actual": 23.5,
+    "expected": 24,
+    "note": null
+  },
+  "library||#vocab-lookup-go|vocab-batch-bar|hitAreaMin": {
+    "surface": "library",
+    "theme": "",
+    "selector": "#vocab-lookup-go",
+    "state": "vocab-batch-bar",
+    "check": "hitAreaMin",
+    "actual": 21,
+    "expected": 24,
+    "note": null
+  },
+  "library||button.btn.btn-sm.notes-row-del.row-del-x[1]|vocab-batch-bar|hitAreaMin": {
+    "surface": "library",
+    "theme": "",
+    "selector": "button.btn.btn-sm.notes-row-del.row-del-x[1]",
+    "state": "vocab-batch-bar",
+    "check": "hitAreaMin",
+    "actual": 23,
+    "expected": 24,
+    "note": null
+  },
+  "library||#vocab-add-group|vocab-batch-bar|hitAreaMin": {
+    "surface": "library",
+    "theme": "",
+    "selector": "#vocab-add-group",
+    "state": "vocab-batch-bar",
+    "check": "hitAreaMin",
+    "actual": 18,
+    "expected": 24,
+    "note": null
+  },
+  "library||#vocab-remove-group|vocab-batch-bar|hitAreaMin": {
+    "surface": "library",
+    "theme": "",
+    "selector": "#vocab-remove-group",
+    "state": "vocab-batch-bar",
+    "check": "hitAreaMin",
+    "actual": 18,
+    "expected": 24,
+    "note": null
+  },
+  "library||#vocab-mark-known|vocab-batch-bar|hitAreaMin": {
+    "surface": "library",
+    "theme": "",
+    "selector": "#vocab-mark-known",
+    "state": "vocab-batch-bar",
+    "check": "hitAreaMin",
+    "actual": 20,
+    "expected": 24,
+    "note": null
+  },
+  "library||#vocab-mark-learning|vocab-batch-bar|hitAreaMin": {
+    "surface": "library",
+    "theme": "",
+    "selector": "#vocab-mark-learning",
+    "state": "vocab-batch-bar",
+    "check": "hitAreaMin",
+    "actual": 20,
+    "expected": 24,
+    "note": null
+  },
+  "library||#vocab-batch-delete|vocab-batch-bar|hitAreaMin": {
+    "surface": "library",
+    "theme": "",
+    "selector": "#vocab-batch-delete",
+    "state": "vocab-batch-bar",
+    "check": "hitAreaMin",
+    "actual": 20,
+    "expected": 24,
+    "note": null
+  },
+  "library||#vocab-clear-selection|vocab-batch-bar|hitAreaMin": {
+    "surface": "library",
+    "theme": "",
+    "selector": "#vocab-clear-selection",
+    "state": "vocab-batch-bar",
+    "check": "hitAreaMin",
+    "actual": 19,
+    "expected": 24,
+    "note": null
+  },
+  "library||button.btn.btn-sm.vocab-detail-speak|vocab-batch-bar|hitAreaMin": {
+    "surface": "library",
+    "theme": "",
+    "selector": "button.btn.btn-sm.vocab-detail-speak",
+    "state": "vocab-batch-bar",
+    "check": "hitAreaMin",
+    "actual": 20,
+    "expected": 24,
+    "note": null
+  },
+  "library||button.btn.btn-sm|vocab-batch-bar|hitAreaMin": {
+    "surface": "library",
+    "theme": "",
+    "selector": "button.btn.btn-sm",
+    "state": "vocab-batch-bar",
+    "check": "hitAreaMin",
+    "actual": 20,
+    "expected": 24,
+    "note": null
+  },
+  "library||button.btn.btn-sm.vocab-group-step[0]|vocab-batch-bar|hitAreaMin": {
+    "surface": "library",
+    "theme": "",
+    "selector": "button.btn.btn-sm.vocab-group-step[0]",
+    "state": "vocab-batch-bar",
+    "check": "hitAreaMin",
+    "actual": 18,
+    "expected": 24,
+    "note": null
+  },
+  "library||button.btn.btn-sm.vocab-group-step[1]|vocab-batch-bar|hitAreaMin": {
+    "surface": "library",
+    "theme": "",
+    "selector": "button.btn.btn-sm.vocab-group-step[1]",
+    "state": "vocab-batch-bar",
+    "check": "hitAreaMin",
+    "actual": 18,
+    "expected": 24,
+    "note": null
+  },
+  "library||button.btn.btn-sm.vocab-detail-relookup[1]|vocab-batch-bar|hitAreaMin": {
+    "surface": "library",
+    "theme": "",
+    "selector": "button.btn.btn-sm.vocab-detail-relookup[1]",
+    "state": "vocab-batch-bar",
+    "check": "hitAreaMin",
+    "actual": 21,
+    "expected": 24,
+    "note": null
+  },
+  "library||button.btn.btn-sm.danger.ghost.vocab-detail-delete[2]|vocab-batch-bar|hitAreaMin": {
+    "surface": "library",
+    "theme": "",
+    "selector": "button.btn.btn-sm.danger.ghost.vocab-detail-delete[2]",
+    "state": "vocab-batch-bar",
+    "check": "hitAreaMin",
+    "actual": 20,
+    "expected": 24,
+    "note": null
+  },
+  "library||button.btn.btn-sm.danger.ghost.notes-detail-delete[1]|notes-detail|hitAreaMin": {
+    "surface": "library",
+    "theme": "",
+    "selector": "button.btn.btn-sm.danger.ghost.notes-detail-delete[1]",
+    "state": "notes-detail",
+    "check": "hitAreaMin",
+    "actual": 20,
+    "expected": 24,
+    "note": null
+  },
+  "popup||#offline-queue-toggle|light|hitAreaMin": {
+    "surface": "popup",
+    "theme": "",
+    "selector": "#offline-queue-toggle",
+    "state": "light",
+    "check": "hitAreaMin",
+    "actual": 15.4,
+    "expected": 24,
+    "note": null
+  },
+  "popup||#offline-queue-clear|light|hitAreaMin": {
+    "surface": "popup",
+    "theme": "",
+    "selector": "#offline-queue-clear",
+    "state": "light",
+    "check": "hitAreaMin",
+    "actual": 15.4,
+    "expected": 24,
+    "note": null
+  },
+  "popup|popup-dark|#offline-queue-toggle|dark|hitAreaMin": {
+    "surface": "popup",
+    "theme": "popup-dark",
+    "selector": "#offline-queue-toggle",
+    "state": "dark",
+    "check": "hitAreaMin",
+    "actual": 15.4,
+    "expected": 24,
+    "note": null
+  },
+  "popup|popup-dark|#offline-queue-clear|dark|hitAreaMin": {
+    "surface": "popup",
+    "theme": "popup-dark",
+    "selector": "#offline-queue-clear",
+    "state": "dark",
+    "check": "hitAreaMin",
+    "actual": 15.4,
+    "expected": 24,
+    "note": null
   }
 }

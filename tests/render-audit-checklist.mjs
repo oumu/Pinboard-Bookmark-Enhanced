@@ -60,7 +60,14 @@
 //                      when there's no ::before or it isn't
 //                      position:absolute. USER RULING: only icon-only
 //                      buttons get this hard assertion -- do not add it to
-//                      any icon+text button.
+//                      any icon+text button. design-uplift final-fix I2:
+//                      no CHECKS entries carry this key any more -- the
+//                      runner class-scans every icon-only <button> for it
+//                      instead (scripts/ui-render-audit.mjs's sweepProbe
+//                      family 4, gated the same as everything below through
+//                      known-failures), so a new icon-only button is
+//                      covered automatically instead of needing a hand-
+//                      enumerated entry here.
 //   widthLtParent  -- computed width (px) <= parent element's CONTENT-box
 //                      width - 8px (NOT border-box: a stretched flex item
 //                      fills exactly the parent's content box, which sits
@@ -355,20 +362,11 @@ export const CHECKS = [
   { surface: "library", page: "library.html", selector: "#vocab-batch-toolbar .vocab-group-unit", state: "default",
     expect: { heightEqWith: { selector: "#vocab-invert-selection", tolerancePx: 1 } } },
 
-  // ---- §1.4 hitAreaMin (USER RULING: icon-only buttons only). ----
-  // #vocab-invert-selection is a plain .btn.btn-sm icon-only button in the
-  // SAME .vocab-batch-bar row as the defect-2 entry above (library.html:108)
-  // -- COMPONENTS.md §1.5 names this exact gap: "sm 阶的 icon-only 按钮命中
-  // 区不达标（20px < 24px）". Measured height ~22.5px < 24, a real failure.
-  // Needs the same row-selection precondition as the heightEqWith entry
-  // above (batch bar hidden until a row is checked).
-  { surface: "library", page: "library.html", selector: "#vocab-invert-selection", state: "default",
-    expect: { hitAreaMin: 24 } },
-  // #library-link is a .header-ic icon-only button (popup.css:168-169:
-  // `width:24px; height:24px`) -- exactly on the boundary, a regression
-  // guard rather than a currently-failing instance.
-  { surface: "popup", page: "popup.html", selector: "#library-link", state: "default",
-    expect: { hitAreaMin: 24 } },
+  // ---- §1.4 hitAreaMin -- design-uplift final-fix I2 migrated this from
+  // two hand-enumerated entries (#vocab-invert-selection, #library-link) to
+  // a runner-side class-scan over every icon-only <button>; see the
+  // scripts/ui-render-audit.mjs's sweepProbe family-4 comment and the
+  // `expect` vocabulary note near the top of this file. ----
 
   // ---- §5 chip family: a second representative -- a NON-pill (radius-sm)
   // chip, to catch padVMin violations pill-law-2 wouldn't (C9: current

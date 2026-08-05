@@ -460,6 +460,7 @@ function _pbpVocabRenderDetail(w, enterNarrow) {
       // Reuses the existing localized "Remove from group" label rather than
       // adding a new per-group-name locale key across all 9 locales -- the
       // group name itself is user data, not translatable UI text.
+      removeChip.title = t("vocabRemoveFromGroup") + ": " + group;
       removeChip.setAttribute("aria-label", t("vocabRemoveFromGroup") + ": " + group);
       removeChip.addEventListener("click", (e) => {
         e.stopPropagation();

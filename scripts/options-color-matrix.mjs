@@ -214,9 +214,14 @@ async function dump() {
     // the one real #storage-status node (only one state class at a time,
     // and it's a <span>, not the customizable-select markup) -- append
     // throwaway sibling probes instead of fighting that node for double
-    // duty. .et-onboarding has NO markup anywhere in options.html (grep
-    // confirms zero matches) -- looks like a genuinely orphaned selector
-    // from a removed feature, left uninjected on purpose (see report).
+    // duty. .et-onboarding is NOT static markup in options.html -- it's a
+    // live consumer, built by options.js's renderExportTargets() (~line 700)
+    // for every PBP_EXPORT_TARGETS row that sets `onboarding` (currently
+    // Gist and Webhook). renderExportTargets() runs unconditionally during
+    // normal settings load, so the real page this script drives against
+    // already has real .et-onboarding markup by the time these PROBES entries
+    // run -- no synthetic injection needed here, unlike the two throwaway
+    // spans below.
     const etTestOk = document.createElement("span");
     etTestOk.className = "et-test-status ok";
     body.appendChild(etTestOk);

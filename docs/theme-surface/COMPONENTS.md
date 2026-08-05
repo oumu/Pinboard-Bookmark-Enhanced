@@ -91,7 +91,7 @@ YaHei/PingFang 时行盒比 Latin 高一截，同一颗按钮在 zh-CN 和 en �
   line-height: 16px;
   font-family: inherit;
   cursor: pointer;
-  border: 1px solid var(--{ns}-border);
+  border: 1px solid var(--{ns}-btn-border);
   border-radius: var(--{ns}-radius-md);
   background: var(--{ns}-btn-bg);
   color: var(--{ns}-btn-fg);
@@ -307,7 +307,7 @@ popup 维持现状并记录在案。
 
 ```css
 /* quiet：类名沿用 .btn.danger，配方重定义。JS 侧 className 无需改动
-   （library-vocab.js:513 / library-notes.js:405 已经是 "btn btn-sm danger"） */
+   （library-vocab.js:538 / library-notes.js:405 已经是 "btn btn-sm danger"） */
 .btn.danger { color: var(--{ns}-danger-quiet-fg); border-color: color-mix(in srgb, var(--{ns}-danger) 55%, var(--{ns}-border)); }
 .btn.danger:hover:not(:disabled) { background: color-mix(in srgb, var(--{ns}-danger) 8%, var(--{ns}-btn-bg)); }
 
@@ -325,7 +325,7 @@ popup 维持现状并记录在案。
   border-color: var(--{ns}-danger);
 }
 /* hover 保持 background 不变，只加 inset 环——这正是 13 套预设现在的做法
-   （options.css:1336 / library.css:214）。默认表面现状是把底色压深（#a00 / --lib-danger 的旧 fallback），
+   （options.css:441 / library.css:194）。默认表面现状是把底色压深（#a00 / --lib-danger 的旧 fallback），
    收敛到预设的做法后所有表面一致；代价见附录 C14。 */
 .confirm-popover .confirm-yes:hover { box-shadow: inset 0 0 0 1px var(--{ns}-on-danger); }
 ```
@@ -764,7 +764,7 @@ focus 走 §7.3 的按钮套（`outline: 2px solid var(--{ns}-accent); outline-o
 | ID | 断言 | 层 |
 |---|---|---|
 | `fusedChildrenFlat` | 容器内每个点名的内部件：圆角为 0、有边框的边**至多一条**（那条就是分隔线）、非选中态背景 alpha 为 0；同一容器内画出来的所有分隔线颜色与粗细一致 | `[render]` |
-| `fusedFocusRing` | `state: "focusWithin"` 下：容器自身渲染出 focus 指示（`outline` 或非 inset 的 `box-shadow`）、该指示相对未聚焦态**确实变了**、方向朝外（`outline-offset ≥ 0` 或非 inset 阴影）、且**持有焦点的那个内部件自己不画 outline** | `[render]` |
+| `fusedFocusRing` | `state: "focusWithin"` 下：容器自身渲染出 focus 指示（`outline` 或非 inset 的 `box-shadow`）、该指示相对未聚焦态**确实变了**、方向朝外（`outline-offset ≥ 0` 或非 inset 阴影）、且**持有焦点的那个内部件允许画自己的 outline，但必须收进盒内（`outline-offset: -2px`）、不得用 `box-shadow` 标示焦点**（§8.2 律 6） | `[render]` |
 | `fusedStateStable` | 律 6。rest 与 focus 两趟用**同一个探针**取快照并逐值比对，容器与 `fusedStateStableChildren` 点名的每个内部件都要过三关：① `getBoundingClientRect` 四值全等（并附带 `border-width` 一起报，好直接点名位移的成因）；② `background-color` 不变；③ 内部 `svg` 中心点不变 | `[render]` |
 | `iconVCenter` | icon-only 内部件的 svg 中心与宿主内容盒中心纵向偏差 ≤1px。**必须钉在 JS 构建的实例上**——静态 HTML 的单子节点副本测不出 §8.3 说的那个空 label span 问题 | `[render]` |
 

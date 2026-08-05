@@ -71,3 +71,35 @@ if ! node tools/handedit-audit.mjs; then
   echo "  Bypass (not recommended): git commit --no-verify" >&2
   exit 1
 fi
+
+# Three more gates, added when popup.css/options.css/library.css themselves
+# changed (not just theme-surface sources) -- design-uplift final-fix Rec 1.
+# All three measured ~0.06s+0.03s+0.16s, cheap enough to run on every
+# matching commit rather than waiting for CI. Full paths (not cd-relative
+# "tools/...") because all three resolve their own file locations off
+# import.meta.url, not cwd -- safe to call from this hook's already-cd'd
+# $REPO_ROOT/docs/theme-surface working directory.
+echo "[css-region-audit] checking generated regions for drift/hand-edits"
+if ! node "$REPO_ROOT/docs/theme-surface/tools/css-region-audit.mjs"; then
+  echo ""
+  echo "[css-region-audit] COMMIT BLOCKED — a @generated region drifted from composer output or was hand-edited" >&2
+  echo "  Fix: node docs/theme-surface/tools/apply-ui-themes.mjs --write" >&2
+  echo "  Bypass (not recommended): git commit --no-verify" >&2
+  exit 1
+fi
+
+echo "[recipe-lint] checking ui-components.mjs recipe source"
+if ! node "$REPO_ROOT/docs/theme-surface/tools/recipe-lint.mjs"; then
+  echo ""
+  echo "[recipe-lint] COMMIT BLOCKED — component recipe violates a static law (paired-color / chip geometry / SPACING map / no bare --sp-* / no fallback var() / press excluded from transition / no transition:all / motion budget / button-icon rules / radius laws)" >&2
+  echo "  Bypass (not recommended): git commit --no-verify" >&2
+  exit 1
+fi
+
+echo "[ui-contract] checking static UI contracts (hex/rgba ratchet, var-fallback consistency, chip geometry)"
+if ! node "$REPO_ROOT/tests/ui-contract-tests.mjs"; then
+  echo ""
+  echo "[ui-contract] COMMIT BLOCKED — a hand-maintained popup.css/options.css/library.css contract regressed" >&2
+  echo "  Bypass (not recommended): git commit --no-verify" >&2
+  exit 1
+fi

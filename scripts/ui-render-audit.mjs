@@ -1365,12 +1365,50 @@ function sweepProbe(cfg) {
     }
   }
 
+  // ---- 4. hitAreaMin (design-uplift final-fix I2 -- generalized from the
+  // two hand-enumerated §1.4 CHECKS entries this replaces): every icon-only
+  // <button> -- no direct non-whitespace text node, the same USER RULING
+  // scope the hand-enumerated entries already used -- needs an effective
+  // hit area >=24px on its short side. "Effective" includes the §1.5
+  // ::before hit-area expansion (probeSelector's copy of this same
+  // Chromium-resolves-used-px-values trick has the full rationale); a host
+  // with no ::before, or one that isn't position:absolute, just falls back
+  // to its own border-box rect. Unlike families 1-3 above, this one's hits
+  // are wired into the pass/fail gate (see runSweep's caller in main()),
+  // not left as --sweep-only discovery -- geometry/spacing in this codebase
+  // is a hand-maintained, theme-INVARIANT layer (CLAUDE.md: --pp-sp-*/
+  // --opt-sp-*/--lib-sp-* "是主题不变量...不进 composer"), so one pass here
+  // already covers every data-theme preset; no per-theme repeat needed. ----
+  for (const el of document.querySelectorAll("button")) {
+    if (!visible(el)) continue;
+    const hasOwnText = Array.from(el.childNodes).some((n) => n.nodeType === 3 && n.textContent.trim().length > 0);
+    if (hasOwnText) continue; // has its own label text -- not the icon-only shape this rule scopes to
+    const rect = el.getBoundingClientRect();
+    let effRect = { width: rect.width, height: rect.height };
+    const beforeCs = getComputedStyle(el, "::before");
+    if (beforeCs && beforeCs.content && beforeCs.content !== "none" && beforeCs.position === "absolute") {
+      const bw = parseFloat(beforeCs.width), bh = parseFloat(beforeCs.height);
+      if (Number.isFinite(bw) && Number.isFinite(bh)) effRect = { width: Math.max(rect.width, bw), height: Math.max(rect.height, bh) };
+    }
+    const shortSide = Math.min(effRect.width, effRect.height);
+    if (shortSide < 24) {
+      hits.push({ kind: "hitAreaMin", path: pathOf(el), shortSide: Math.round(shortSide * 100) / 100 });
+    }
+  }
+
   return hits;
 }
 
 async function runSweep(page, sw, extBase) {
   const hits = [];
   const add = (found, surface, context) => { for (const h of found) hits.push({ surface, context, ...h }); };
+
+  // Deterministic baseline for the options/library legs below (no per-theme
+  // loop there, unlike popup's explicit light/dark setTheme calls further
+  // down) -- family 4 (hitAreaMin) is gated in the caller and needs a
+  // reproducible theme label, not whatever preset a prior caller happened
+  // to leave storage on.
+  await setTheme(sw, "", "light");
 
   // ---- options: every tab panel (each is display:none until clicked, so a
   // border/chevron bug on a panel-scoped element only surfaces once its tab
@@ -1452,6 +1490,7 @@ function reportSweep(hits) {
     if (h.kind === "textInset") console.log(`  textInset          [${h.surface}/${h.context}]  ${h.path}  minH=${h.minH}px minV=${h.minV}px`);
     else if (h.kind === "childContainment") console.log(`  childContainment   [${h.surface}/${h.context}]  host=${h.path}  child=${h.childKind}  overflow=${JSON.stringify(h.overflow)}`);
     else if (h.kind === "rowHeightEq") console.log(`  rowHeightEq        [${h.surface}/${h.context}]  container=${h.containerPath}  ${h.a} vs ${h.b}  diff=${h.diff}px`);
+    else if (h.kind === "hitAreaMin") console.log(`  hitAreaMin         [${h.surface}/${h.context}]  ${h.path}  shortSide=${h.shortSide}px`);
   }
   console.log(unique.length ? "[render-audit --sweep] === hits found -- fix, then lock in as CHECKS entries ===" : "[render-audit --sweep] === clean ===");
   process.exit(0);
@@ -1644,6 +1683,29 @@ async function main() {
         if (surface === "library") await runLibraryTheme(page, extBase, theme, checks, results);
         else await runSimpleTheme(page, `${extBase}${SURFACE_PAGES[surface]}`, theme, checks, results, surface);
       }
+    }
+
+    // ---- hitAreaMin class-scan (design-uplift final-fix I2). Reuses the
+    // same whole-page sweep the --sweep discovery mode runs (options tabs +
+    // preset-preview open, library vocab-list/detail/batch-bar + notes-
+    // list/detail, popup light+dark) but, unlike that mode's other 3
+    // families, folds every hit into `results` as a normal FAIL so it goes
+    // through the same known-failures reconciliation as the hand-enumerated
+    // checks above -- see sweepProbe's family-4 comment for why one pass
+    // (not one per THEMES entry) is sufficient coverage.
+    const hitAreaHits = (await runSweep(page, sw, extBase)).filter((h) => h.kind === "hitAreaMin");
+    for (const h of hitAreaHits) {
+      results.push({
+        surface: h.surface,
+        theme: h.surface === "popup" ? (h.context === "dark" ? "popup-dark" : "") : "",
+        selector: h.path,
+        state: h.context,
+        check: "hitAreaMin",
+        status: "FAIL",
+        actual: h.shortSide,
+        expected: 24,
+        note: null,
+      });
     }
   } finally {
     await page.close().catch(() => {});

@@ -179,8 +179,8 @@ const libraryHtml = read("library.html");
 const libraryCss = read("library.css");
 const vocabGdriveJs = read("vocab-gdrive.js");
 const mdDictJs = read("md-dict.js");
-const vocabStore = readFileSync("vocab-store.js", "utf8");
-const mdDict = readFileSync("md-dict.js", "utf8");
+const vocabStore = read("vocab-store.js");
+const mdDict = read("md-dict.js");
 const optionsThemeEarlyJs = read("options-theme-early.js");
 const popupTagsJs = read("popup-tags.js");
 
@@ -1793,7 +1793,7 @@ check(mdCss.includes("text-autospace: normal") && /#rendered-view :is\(pre, code
 // --opt-fg-hint, var(--opt-fg-muted))) and fails if any --{ns}-X shows up
 // with more than one distinct fallback literal.
 function findInconsistentVarFallbacks(css) {
-  const hand = stripGeneratedRegions(css);
+  const hand = stripGeneratedRegions(css).replace(/\/\*[\s\S]*?\*\//g, "");
   const byToken = new Map();
   const re = /var\(\s*(--(?:opt|pp|lib)-[a-zA-Z0-9-]+)\s*,\s*([^()]+(?:\([^()]*\)[^()]*)*?)\)/g;
   let m;
@@ -1807,6 +1807,37 @@ function findInconsistentVarFallbacks(css) {
   const offenders = [];
   for (const [token, fallbacks] of byToken) {
     if (fallbacks.size > 1) offenders.push(`${token}: ${[...fallbacks].join(" vs ")}`);
+  }
+
+  // ---- undefined-token gate (design-uplift final-fix I1): a var(--X,
+  // fallback) consumer is only a safe stand-in for a token that might be
+  // genuinely absent on some theme. If --X has NO definition anywhere in
+  // this file -- hand-maintained :root blocks OR a @generated:ui-themes/
+  // -components region (composer-derived tokens are real defaults, not
+  // dead) -- the fallback isn't a safety net, it's the ONLY value that will
+  // EVER render, on every theme, forever. That's exactly how options.css's
+  // --opt-text-muted (a typo of --opt-fg-muted, never defined anywhere)
+  // shipped a hardcoded #888 invisibly on all 14 themes + default. Scans at
+  // ANY nesting depth, not just the direct/outer var() the loop above walks
+  // (which deliberately skips nested fallbacks as "a different, legitimate
+  // shape") -- a fallback token buried inside another fallback, e.g.
+  // var(--pp-input-bg, var(--pp-bg-soft, #2a2a2a)), is exactly as
+  // undefined-and-silent if --pp-bg-soft was never given a real value; the
+  // outer token (--pp-input-bg) being defined doesn't excuse the inner one.
+  const consumed = new Set();
+  const fbTokenRe = /var\(\s*(--(?:opt|pp|lib)-[a-zA-Z0-9-]+)\s*,/g;
+  let fm;
+  while ((fm = fbTokenRe.exec(hand)) !== null) consumed.add(fm[1]);
+  const defined = new Set();
+  const defRe = /(--(?:opt|pp|lib)-[a-zA-Z0-9-]+)\s*:/g;
+  let dm;
+  // Full file (generated regions included), comments stripped -- a
+  // composer-emitted :root declaration counts as a real definition; a
+  // token name only ever appearing inside a doc comment must not.
+  const cssNoComments = css.replace(/\/\*[\s\S]*?\*\//g, "");
+  while ((dm = defRe.exec(cssNoComments)) !== null) defined.add(dm[1]);
+  for (const token of consumed) {
+    if (!defined.has(token)) offenders.push(`${token}: consumed with a var(..., fallback) but never defined anywhere in this file (hand-maintained or generated) -- the fallback is the only value that will ever render`);
   }
   return offenders;
 }
