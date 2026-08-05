@@ -104,6 +104,8 @@
         "radius-md": "4px",
         "radius-lg": "4px",
         "radius-tag": "2px",
+        "btn-bd": "var(--pp-border)",
+        "input-bd": "var(--pp-border)",
         "focus-bd": "#33ff33",
         "focus-ring": "0 0 6px 1px rgba(51,255,51,0.4)"
       }
@@ -114,11 +116,19 @@
         "save": "#22aa22",
         "danger": "#ff3333",
         "warn": "#cccc00",
+        "btn-border": "var(--opt-border)",
+        "input-border": "#33ff3340",
         "focus-bd": "#33ff33",
         "focus-ring": "0 0 6px 1px rgba(51,255,51,0.4)",
         "radius-sm": "2px",
         "radius-md": "4px",
         "radius-lg": "4px"
+      }
+    },
+    "library": {
+      "dark": {
+        "btn-border": "var(--lib-border)",
+        "input-border": "#33ff3340"
       }
     }
   }

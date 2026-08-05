@@ -1077,11 +1077,11 @@ html[data-theme="terminal"] {
   --opt-fg-hint: #1c9c1c;
   --opt-accent: #33ff33;
   --opt-save: #22aa22;
-  --opt-border: #267b26;
+  --opt-border: #267326;
   --opt-border-section: #33ff3325;
-  --opt-input-bg: #121b12;
-  --opt-input-border: #121b12;
-  --opt-btn-bg: #121b12;
+  --opt-input-bg: #111111;
+  --opt-input-border: #33ff3340;
+  --opt-btn-bg: #111111;
   --opt-btn-hover: #1a3a1a;
   --opt-pf-bg: #111111;
   --opt-code-bg: #111111;
@@ -1090,9 +1090,9 @@ html[data-theme="terminal"] {
   --opt-radius-lg: 4px;
   --opt-danger: #ff3333;
   --opt-warn: #cccc00;
+  --opt-btn-border: var(--opt-border);
   --opt-focus-bd: #33ff33;
   --opt-focus-ring: 0 0 6px 1px rgba(51,255,51,0.4);
-  --opt-btn-border: #121b12;
   --opt-btn-fg: #33ff33;
   --opt-danger-quiet-fg: #ff3333;
   --opt-on-danger: #001f00;

@@ -1485,10 +1485,10 @@ html[data-theme="terminal"] {
   --pp-link: #33ff33;
   --pp-accent: #33ff33;
   --pp-accent2: #aaaa33;
-  --pp-border: #267b26;
+  --pp-border: #267326;
   --pp-divider: #33ff3325;
-  --pp-input-bg: #121b12;
-  --pp-input-bd: #121b12;
+  --pp-input-bg: #111111;
+  --pp-input-bd: var(--pp-border);
   --pp-input-focus-bg: #0d1a0d;
   --pp-tag-bg: transparent;
   --pp-tag-fg: #00cccc;
@@ -1496,8 +1496,8 @@ html[data-theme="terminal"] {
   --pp-drop-hover: #1a3a1a;
   --pp-chip-bg: transparent;
   --pp-chip-fg: #00cccc;
-  --pp-btn-bg: #121b12;
-  --pp-btn-bd: #121b12;
+  --pp-btn-bg: #111111;
+  --pp-btn-bd: var(--pp-border);
   --pp-btn-hover: #1a3a1a;
   --pp-btn-fg: #33ff33;
   --pp-banner-bg: #062323;

@@ -1741,11 +1741,11 @@ html[data-theme="terminal"] {
   --lib-save: #008f00;
   --lib-danger: #ff3333;
   --lib-warn: #ba6600;
-  --lib-border: #267b26;
+  --lib-border: #267326;
   --lib-border-section: #33ff3325;
-  --lib-input-bg: #121b12;
-  --lib-input-border: #121b12;
-  --lib-btn-bg: #121b12;
+  --lib-input-bg: #111111;
+  --lib-input-border: #33ff3340;
+  --lib-btn-bg: #111111;
   --lib-btn-hover: #1a3a1a;
   --lib-code-bg: #111111;
   --lib-pane-bg: #111111;
@@ -1757,7 +1757,7 @@ html[data-theme="terminal"] {
   --lib-radius-sm: 4px;
   --lib-radius-md: 4px;
   --lib-radius-lg: 4px;
-  --lib-btn-border: #121b12;
+  --lib-btn-border: var(--lib-border);
   --lib-btn-fg: #33ff33;
   --lib-danger-quiet-fg: #ff3333;
   --lib-on-danger: #001f00;
