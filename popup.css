@@ -248,7 +248,16 @@ html[data-section="login"] .quick-actions { display: none !important; }
   font-family: "SF Mono", Consolas, Menlo, "Liberation Mono", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei", monospace; margin-bottom: var(--pp-sp-3); background: var(--pp-input-bg); color: var(--pp-fg);
   transition: border-color var(--pp-motion-state), background var(--pp-motion-state), box-shadow var(--pp-motion-state);
 }
-.login-body input:focus { outline: none; border-color: var(--pp-focus-bd); background: var(--pp-input-focus-bg); }
+/* No `background: var(--pp-input-focus-bg)` here any more (§8 law 6, user
+   checkpoint round 5): the field lightened from --pp-input-bg to a near-white
+   on focus (measured rgb(238,241,245) -> rgb(255,255,255) on the default
+   surface, rgb(17,17,17) -> rgb(13,26,13) on terminal), which reads as the
+   control changing material rather than gaining focus. Focus changes
+   border-colour and adds a ring; nothing else. Both ported references agree
+   -- neither Primer's .input-group nor Pico's [role=group] alters a fill on
+   focus. The only <input> in .login-body is #token-input, so this rule is
+   exactly the .secret-field fused control. */
+.login-body input:focus { outline: none; border-color: var(--pp-focus-bd); }
 .login-body input:focus-visible { box-shadow: var(--pp-focus-ring); }
 .login-body .secret-field { position: relative; }
 .login-body .secret-field input { padding-right: 30px; }
@@ -265,18 +274,22 @@ html[data-section="login"] .quick-actions { display: none !important; }
    its top edge -- an inner ring straying across the container's chrome. */
 .login-body .secret-field:focus-within input {
   border-color: var(--pp-focus-bd);
-  background: var(--pp-input-focus-bg);
   box-shadow: var(--pp-focus-ring);
 }
+/* Hover is where the eye may show a fill -- it is a pointer affordance, and
+   the rest/focus invariant does not cover it. */
+.login-body .key-toggle:hover { background: color-mix(in srgb, var(--pp-fg) 8%, var(--pp-input-bg)); border-radius: var(--pp-radius-sm); }
 /* `.secret-field` in the selector is specificity ballast, not scoping: the
    themed `html[data-theme] .login-body .key-toggle` rule below is (0,3,1),
-   so a (0,3,0) selector here would render the ghost fill on the default
-   surface and silently lose it under all 13 presets. (0,4,0) wins
-   everywhere with one rule instead of a base + themed pair. */
+   so a (0,3,0) selector here would render on the default surface and
+   silently lose under all 13 presets. (0,4,0) wins everywhere with one rule.
+   Focus = a 2px accent underline inside the eye's own box (§8 law 6): the
+   ghost FILL this used to paint made the eye read as a separate chip sitting
+   in the field rather than a segment of it -- the round-5 rejection. An
+   inset shadow tints no background and moves nothing. */
 .login-body .secret-field .key-toggle:focus-visible {
   outline: none;
-  background: color-mix(in srgb, var(--pp-fg) 10%, var(--pp-input-bg));
-  border-radius: var(--pp-radius-sm);
+  box-shadow: inset 0 -2px 0 var(--pp-accent);
 }
 .login-body button { padding: var(--pp-sp-2) var(--pp-sp-6); font-size: 12px; cursor: pointer; transition: background var(--pp-motion-state), border-color var(--pp-motion-state); }
 .login-body button:active:not(:disabled) { transform: translateY(1px); }
@@ -526,7 +539,11 @@ button.offline-clear:focus-visible, button.offline-toggle:focus-visible { outlin
   cursor: text; background: var(--pp-input-bg);
   transition: border-color var(--pp-motion-state), background var(--pp-motion-state), box-shadow var(--pp-motion-state);
 }
-.tags-input-wrap:focus-within { border-color: var(--pp-focus-bd); background: var(--pp-input-focus-bg); box-shadow: var(--pp-focus-ring); }
+/* No fill change on focus (§8 law 6): .tags-input-wrap is a fused control
+   too, so the invariant that got the group row and the eye button fixed
+   applies to the reference implementation as well -- otherwise the oracle's
+   own model citizen would be the next thing to fail it. */
+.tags-input-wrap:focus-within { border-color: var(--pp-focus-bd); box-shadow: var(--pp-focus-ring); }
 .tags-display { display: contents; }
 .tag-item {
   display: inline-flex; align-items: center; background: var(--pp-tag-bg); color: var(--pp-tag-fg);
@@ -2093,7 +2110,7 @@ textarea::-webkit-scrollbar-corner { background: var(--pp-bg2); }
 html[data-theme] { background: var(--pp-bg); }
 html[data-theme] .header-bar { background: var(--pp-bg2); border-color: var(--pp-border); color: var(--pp-fg-muted); }
 html[data-theme] .login-body input { background: var(--pp-input-bg); border-color: var(--pp-border); color: var(--pp-fg); }
-html[data-theme] .login-body input:focus { border-color: var(--pp-focus-bd); background: var(--pp-input-focus-bg); }
+html[data-theme] .login-body input:focus { border-color: var(--pp-focus-bd); }
 html[data-theme] .login-body button { background: var(--pp-bg2); border-color: var(--pp-border); color: var(--pp-fg); }
 html[data-theme] .login-body button:hover { background: var(--pp-input-focus-bg); }
 /* `background: transparent` here is NOT a duplicate of the base rule's
@@ -2113,7 +2130,7 @@ html[data-theme] .field > input[type="text"]:focus, html[data-theme] .field > te
   border-color: var(--pp-focus-bd); background: var(--pp-input-focus-bg);
 }
 html[data-theme] .tags-input-wrap { background: var(--pp-input-bg); border-color: var(--pp-border); }
-html[data-theme] .tags-input-wrap:focus-within { border-color: var(--pp-focus-bd); background: var(--pp-input-focus-bg); box-shadow: var(--pp-focus-ring); }
+html[data-theme] .tags-input-wrap:focus-within { border-color: var(--pp-focus-bd); box-shadow: var(--pp-focus-ring); }
 html[data-theme] .tag-item { background: var(--pp-tag-bg); color: var(--pp-tag-fg); }
 html[data-theme] .tag-item:hover { background: var(--pp-tag-hover, var(--pp-drop-hover)); }
 html[data-theme] .autocomplete-dropdown { background: var(--pp-bg); border-color: var(--pp-border); box-shadow: var(--pp-shadow-md); }

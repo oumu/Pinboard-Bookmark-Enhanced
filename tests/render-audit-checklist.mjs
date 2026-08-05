@@ -502,6 +502,31 @@ export const CHECKS = [
     focusTarget: "#vocab-sort-time", expect: { fusedFocusRing: true } },
   { surface: "library", page: "library.html", selector: ".vocab-sort-seg", state: "focusWithin",
     focusTarget: "#vocab-sort-alpha", expect: { fusedFocusRing: true } },
+  // ---- COMPONENTS.md §8 law 6: rest <-> focus state stability (user
+  // checkpoint round 5: "底色变白、眼睛图标偏移、眼睛段看着独立不融合").
+  // Focus may change border-COLOUR and add a ring. It may not move anything,
+  // repaint any background, or shift the trailing icon -- measured on the
+  // shell AND on each named segment, in both passes, through the same probe.
+  // `fusedStateStableChildren` names the segments because the shell's own
+  // rect staying put says nothing about a segment inside it moving. ----
+  { surface: "library", page: "library.html", selector: ".vocab-detail-pane .vocab-group-unit", state: "focusWithin",
+    focusTarget: 'input[type="text"]',
+    expect: { fusedStateStable: true,
+      fusedStateStableChildren: ['input[type="text"]', ".vocab-group-step:nth-of-type(1)", ".vocab-group-step:nth-of-type(2)"] } },
+  { surface: "library", page: "library.html", selector: ".vocab-detail-pane .vocab-group-unit", state: "focusWithin",
+    focusTarget: ".vocab-group-step:nth-of-type(1)",
+    expect: { fusedStateStable: true,
+      fusedStateStableChildren: ['input[type="text"]', ".vocab-group-step:nth-of-type(1)", ".vocab-group-step:nth-of-type(2)"] } },
+  { surface: "library", page: "library.html", selector: ".vocab-sort-seg", state: "focusWithin",
+    focusTarget: "#vocab-sort-alpha",
+    expect: { fusedStateStable: true, fusedStateStableChildren: ["#vocab-sort-time", "#vocab-sort-alpha"] } },
+  { surface: "options", page: "options.html", selector: ".key-wrap", state: "focusWithin",
+    focusTarget: ".key-toggle",
+    expect: { fusedStateStable: true, fusedStateStableChildren: ["input", ".key-toggle"] } },
+  { surface: "options", page: "options.html", selector: ".key-wrap", state: "focusWithin",
+    focusTarget: "input",
+    expect: { fusedStateStable: true, fusedStateStableChildren: ["input", ".key-toggle"] } },
+
   // ---- COMPONENTS.md §7.3: focus-ring recipe conformance (2026-08-05
   // sweep). One entry per converged site. The two sites that need heavy
   // setup to render at all -- .theme-name-popover (only exists after the
@@ -535,10 +560,17 @@ export const CHECKS = [
   // page, and the runner correctly SKIPs contrast on disabled controls --
   // pointing this at them would have produced 16 silent SKIPs dressed up as
   // coverage.)
+  // iconVCenter (round 5): these two measured 2.00px ABOVE centre because
+  // shared.js:112's setBtnIcon always appends an empty label span, which
+  // under the old `display: inline-grid` became a second grid row
+  // (grid-template-rows: 14px 0px) and re-centred the icon across both. The
+  // batch-bar copies come from static single-child HTML and never showed it
+  // -- same CSS, different DOM -- so only an assertion on the JS-BUILT pair
+  // can catch a regression here.
   { surface: "library", page: "library.html", selector: ".vocab-detail-pane .vocab-group-step:nth-of-type(1)", state: "default",
-    expect: { iconContrast: 3 } },
+    expect: { iconContrast: 3, iconVCenter: 1 } },
   { surface: "library", page: "library.html", selector: ".vocab-detail-pane .vocab-group-step:nth-of-type(2)", state: "default",
-    expect: { iconContrast: 3 } },
+    expect: { iconContrast: 3, iconVCenter: 1 } },
 ];
 
 // Hand-copied literal `data-theme` values, verified at authoring time with:

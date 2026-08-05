@@ -980,10 +980,17 @@ html.motion-ready #preset-preview-section > summary::after {
    across the container's chrome is the same defect shape the group row was
    rejected for, one order of magnitude smaller. */
 .key-wrap:focus-within input { border-color: var(--opt-focus-bd); box-shadow: var(--opt-focus-ring); }
+/* Hover is where the eye may show a fill -- a pointer affordance, and not a
+   state the rest/focus invariant covers. */
+.key-toggle:hover { background: color-mix(in srgb, var(--opt-fg) 8%, var(--opt-input-bg)); border-radius: var(--opt-radius-sm); }
+/* Focus = a 2px accent underline inside the eye's own box (§8 law 6). This
+   used to paint a ghost FILL, which turned the eye into a chip visibly
+   sitting on top of the field instead of a segment of it -- the round-5
+   rejection ("眼睛段看着独立不融合"). An inset shadow tints no background,
+   changes no geometry, and moves the icon by 0px. */
 .key-toggle:focus-visible {
   outline: none;
-  background: color-mix(in srgb, var(--opt-fg) 10%, var(--opt-input-bg));
-  border-radius: var(--opt-radius-sm);
+  box-shadow: inset 0 -2px 0 var(--opt-accent);
 }
 
 /* ============================================================

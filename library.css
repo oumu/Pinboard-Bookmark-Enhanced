@@ -1214,8 +1214,13 @@ html[data-theme="rose-pine"] .vocab-filter-toolbar select {
 .vocab-sort-seg > .vocab-sort-btn {
   width: 34px;
   padding: 0;
-  display: inline-grid;
-  place-items: center;
+  /* Same centering recipe as .vocab-group-step above -- one rule for both
+     segment families. These two happen to render correctly under inline-grid
+     today (_pbpVocabSyncSortSeg only ever writes into the existing .btn-ic,
+     never adding a label span, so they stay single-child), but sharing the
+     shape means a future setBtnIcon call here cannot silently reproduce the
+     2px offset. */
+  gap: 0;
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -1238,15 +1243,15 @@ html[data-theme="rose-pine"] .vocab-filter-toolbar select {
   color: var(--lib-accent);
   background: color-mix(in srgb, var(--lib-accent) 12%, var(--lib-btn-bg));
 }
-/* Which segment holds focus; the ring itself is the shell's. Two rules so a
-   focused-AND-pressed cell deepens its own accent fill instead of losing it
-   to the neutral focus wash. */
+/* Same underline as .vocab-group-step -- one focus language for every
+   segment. It stacks cleanly on the pressed state instead of competing with
+   it: pressed is a fill + accent icon, focus is an underline, so all four
+   combinations (rest/pressed x unfocused/focused) stay distinguishable
+   without focus ever touching a fill. A colour swap could not do that --
+   the pressed cell is already accent-coloured. */
 .vocab-sort-seg > .vocab-sort-btn:focus-visible {
   outline: none;
-  background: color-mix(in srgb, var(--lib-fg) 10%, var(--lib-btn-bg));
-}
-.vocab-sort-seg > .vocab-sort-btn[aria-pressed="true"]:focus-visible {
-  background: color-mix(in srgb, var(--lib-accent) 24%, var(--lib-btn-bg));
+  box-shadow: inset 0 -2px 0 var(--lib-accent);
 }
 /* Stats strip: read-only counts + two clickable status-filter chips. Same
    quiet-muted-text register as .notes-count; the two chip buttons join the
@@ -1438,8 +1443,27 @@ html.motion-ready .vocab-batch-bar.selecting {
 .vocab-group-unit > .vocab-group-step {
   flex: none;
   width: 28px;
-  display: inline-grid;
-  place-items: center;
+  /* Centering: inherit .btn's own `inline-flex + align-items:center +
+     justify-content:center` and just zero the gap. This used to be
+     `display: inline-grid; place-items: center`, which measured the icon
+     2.00px ABOVE the button's centre (user checkpoint round 5).
+     ROOT CAUSE, and it is not in this file: shared.js:112's setBtnIcon
+     ALWAYS emits a second, empty label span --
+     `<span class="btn-ic">svg</span><span></span>` -- so under inline-grid
+     the button had TWO rows (measured `grid-template-rows: 14px 0px`) and
+     the icon was centred across both instead of in the button. The batch-bar
+     copies come from static HTML with a single child and measured
+     `18px`, i.e. correctly centred: same CSS, different DOM, which is why
+     only the JS-built detail-pane pair looked wrong.
+     Under flex the empty span is simply a zero-width item, so the icon
+     centres whether or not a label node exists. gap:0 is load-bearing --
+     .btn ships `gap: var(--lib-sp-1)`, which would push the icon 2px left
+     to make room for a gap next to that empty span.
+     ponytail: fixed at the consumer, not in setBtnIcon -- that helper is
+     shared by all three surfaces and callers do rely on lastElementChild
+     being the label node. Upgrade path if this recurs elsewhere: make
+     setBtnIcon skip the label span when the label is empty. */
+  gap: 0;
   padding: 0;
   border: 0;
   /* §8 law 3: ONE divider colour, one width, full height (align-items:
@@ -1467,10 +1491,18 @@ html.motion-ready .vocab-batch-bar.selecting {
   background: color-mix(in srgb, var(--lib-fg) 10%, var(--lib-input-bg));
   transition-duration: 0s;
 }
-/* Ring is the shell's; the passenger only says WHICH segment holds focus. */
+/* Ring is the shell's; the segment only says WHICH one holds focus, with a
+   2px accent underline drawn INSIDE its own box (inset shadow, so it costs
+   no layout and moves nothing). §8 law 6 (round 5): a segment may not
+   repaint its background on focus -- a fill makes it read as a chip floating
+   inside the unit instead of part of it, which is exactly what got the eye
+   button rejected. Pico's group model reaches the same place from the other
+   side (`button:focus { box-shadow: none }` inside a group): the segment
+   surrenders its own indicator to the shell. Hover still fills; hover is not
+   covered by the rest/focus invariant. */
 .vocab-group-unit > .vocab-group-step:focus-visible {
   outline: none;
-  background: color-mix(in srgb, var(--lib-fg) 10%, var(--lib-input-bg));
+  box-shadow: inset 0 -2px 0 var(--lib-accent);
 }
 .vocab-batch-cluster { display: inline-flex; gap: var(--lib-sp-1); flex: none; }
 .vocab-main-status {

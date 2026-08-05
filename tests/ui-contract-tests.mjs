@@ -712,6 +712,25 @@ check(/\.theme-name-popover \.tnp-save:focus-visible,\s*\n\s*\.theme-name-popove
   "options.css: the theme-name popover's Save/Cancel lost their §7.3 focus ring and fall through to the UA default");
 check(/\.regen-link:focus-visible \{ outline: 2px solid var\(--pp-accent\); outline-offset: 2px; \}/.test(popupCss),
   "popup.css: .regen-link lost its §7.3 focus ring and falls through to the UA default (unthemed on dark surfaces)");
+// COMPONENTS.md §8 law 6 for popup's two fused controls. The render oracle
+// gates the library/options ones live, but the popup fixture is seeded
+// logged-in, so #login-section (and with it .secret-field) has a zero rect
+// there, and .tags-input-wrap needs an active tab the fixture has no way to
+// provide -- a render entry for either would measure nothing. Focus on a
+// fused control may change border-colour and add a ring; it may NOT repaint
+// a fill. --pp-input-focus-bg is still a live token (it derives
+// --pp-focus-bd and still fills plain, non-fused inputs), so the assertion
+// is specifically that these four focus rules do not consume it.
+for (const [rule, what] of [
+  [/\.login-body input:focus \{[^}]*\}/, ".secret-field's input"],
+  [/\.login-body \.secret-field:focus-within input \{[^}]*\}/, ".secret-field's :focus-within"],
+  [/(?<!\] )\.tags-input-wrap:focus-within \{[^}]*\}/, ".tags-input-wrap"],
+  [/html\[data-theme\] \.tags-input-wrap:focus-within \{[^}]*\}/, ".tags-input-wrap (themed)"],
+]) {
+  const m = rule.exec(popupCss);
+  check(m && !/background/.test(m[0]),
+    `popup.css: ${what} repaints its background on focus (§8 law 6 -- focus may change border-colour and add a ring, nothing else)`);
+}
 
 check(/\.wayback-log-row:focus-within\s+\.wayback-perm-tip/.test(optionsCss) &&
   /@media \(hover: hover\) and \(pointer: fine\) \{\s*\.wayback-log-row:hover\s+\.wayback-perm-tip/.test(optionsCss) &&

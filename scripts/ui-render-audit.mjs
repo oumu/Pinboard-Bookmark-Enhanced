@@ -187,7 +187,7 @@ function probeSelector({ selector, compareSelector, extraBgVarName, childSelecto
   }
   let focusedSelf = null;
   if (focusTargetSelector) {
-    const f = el.querySelector(focusTargetSelector);
+    const f = focusTargetSelector === ":scope" ? el : el.querySelector(focusTargetSelector);
     if (f) {
       const fcs = getComputedStyle(f);
       focusedSelf = {
@@ -199,6 +199,40 @@ function probeSelector({ selector, compareSelector, extraBgVarName, childSelecto
       };
     } else {
       focusedSelf = { sel: focusTargetSelector, found: false };
+    }
+  }
+  // ---- §8 law 6 state-stability snapshot (design-uplift round 5). The
+  // runner takes this in BOTH the rest and the focused pass and diffs them:
+  // a fused control may change border-COLOUR and gain a ring on focus, and
+  // nothing else. No geometry may shift by even a subpixel (border-WIDTH
+  // changes are the classic cause), no background may repaint, and the
+  // trailing icon must not move -- those three together are what "the eye
+  // jumped / the field went white / the segment stopped looking attached"
+  // reduce to, measured instead of eyeballed.
+  const stability = { self: null, children: [] };
+  {
+    const cs2 = getComputedStyle(el), r2 = el.getBoundingClientRect();
+    const svg2 = el.querySelector("svg");
+    const sr2 = svg2 && svg2.getBoundingClientRect();
+    stability.self = {
+      rect: [+r2.x.toFixed(2), +r2.y.toFixed(2), +r2.width.toFixed(2), +r2.height.toFixed(2)],
+      bg: cs2.backgroundColor,
+      borderWidths: [cs2.borderTopWidth, cs2.borderRightWidth, cs2.borderBottomWidth, cs2.borderLeftWidth].join(","),
+      svgCenter: sr2 ? [+(sr2.x + sr2.width / 2).toFixed(2), +(sr2.y + sr2.height / 2).toFixed(2)] : null,
+    };
+    for (const sel of (childSelectors || [])) {
+      const c = el.querySelector(sel);
+      if (!c) { stability.children.push({ sel, found: false }); continue; }
+      const ccs = getComputedStyle(c), cr = c.getBoundingClientRect();
+      const csvg = c.querySelector("svg");
+      const csr = csvg && csvg.getBoundingClientRect();
+      stability.children.push({
+        sel, found: true,
+        rect: [+cr.x.toFixed(2), +cr.y.toFixed(2), +cr.width.toFixed(2), +cr.height.toFixed(2)],
+        bg: ccs.backgroundColor,
+        borderWidths: [ccs.borderTopWidth, ccs.borderRightWidth, ccs.borderBottomWidth, ccs.borderLeftWidth].join(","),
+        svgCenter: csr ? [+(csr.x + csr.width / 2).toFixed(2), +(csr.y + csr.height / 2).toFixed(2)] : null,
+      });
     }
   }
   const rect = el.getBoundingClientRect();
@@ -375,6 +409,7 @@ function probeSelector({ selector, compareSelector, extraBgVarName, childSelecto
     borderColors: [cs.borderTopColor, cs.borderRightColor, cs.borderBottomColor, cs.borderLeftColor].join("|"),
     children,
     focusedSelf,
+    stability,
     bgStack,
     rect: { top: rect.top, left: rect.left, width: rect.width, height: rect.height },
     effRect,
@@ -682,6 +717,40 @@ function evaluateCheck(check, raw, theme) {
     }
     out.push(verdict("fusedFocusRing", bad.length === 0, bad.length ? bad.join("; ") : `shell ring ok (${hasOutline ? `outline ${raw.outlineWidth}px @${raw.outlineOffset}` : "box-shadow"})`, true));
   }
+  // §8 law 6: rest <-> focus state stability. Three invariants, all measured
+  // on the same elements in both passes:
+  //   (1) zero displacement -- every rect (shell and each named segment)
+  //       identical to the subpixel. border-WIDTH changes are the usual
+  //       culprit, so widths are reported alongside to name the cause.
+  //   (2) no repaint -- background-color unchanged on shell and segments.
+  //   (3) the trailing icon does not move -- svg centre unchanged.
+  if (exp.fusedStateStable === true) {
+    const bad = [];
+    const a = raw.stabilityBaseline, b = raw.stability;
+    if (!a || !b) bad.push("no rest baseline captured (runner did not pre-probe)");
+    else {
+      const cmp = (label, x, y) => {
+        if (!x || !y) return;
+        if (JSON.stringify(x.rect) !== JSON.stringify(y.rect)) {
+          bad.push(`${label} moved/resized ${JSON.stringify(x.rect)} -> ${JSON.stringify(y.rect)}`
+            + (x.borderWidths !== y.borderWidths ? ` (border-width ${x.borderWidths} -> ${y.borderWidths})` : ""));
+        } else if (x.borderWidths !== y.borderWidths) {
+          bad.push(`${label} border-width ${x.borderWidths} -> ${y.borderWidths}`);
+        }
+        if (x.bg !== y.bg) bad.push(`${label} background ${x.bg} -> ${y.bg}`);
+        if (JSON.stringify(x.svgCenter) !== JSON.stringify(y.svgCenter)) {
+          bad.push(`${label} icon centre ${JSON.stringify(x.svgCenter)} -> ${JSON.stringify(y.svgCenter)}`);
+        }
+      };
+      cmp("shell", a.self, b.self);
+      for (const cb of b.children) {
+        const ca = (a.children || []).find((x) => x.sel === cb.sel);
+        if (!ca || !ca.found || !cb.found) { bad.push(`${cb.sel}: not probed in both passes`); continue; }
+        cmp(cb.sel, ca, cb);
+      }
+    }
+    out.push(verdict("fusedStateStable", bad.length === 0, bad.length ? bad.join("; ") : "rest == focus (rect, bg, icon)", true));
+  }
   // §7.3 focus-ring recipe conformance. Three named shapes and no fourth --
   // measured on the focused element itself (state "focusWithin" with
   // focusTarget ":scope"), so what is checked is the shape the LIVE cascade
@@ -745,6 +814,7 @@ async function runOneCheck(page, theme, check, results) {
   //     absent. Pressing a real key first makes the assertion meaningful
   //     instead of vacuous.
   let focusBaseline = null;
+  let stabilityBaseline = null;
   if (check.state === "focusWithin") {
     if (!check.focusTarget) throw new Error(`focusWithin check on ${check.selector} has no focusTarget`);
     focusBaseline = await page.evaluate(({ selector }) => {
@@ -757,6 +827,18 @@ async function runOneCheck(page, theme, check, results) {
         outlineStyle: cs.outlineStyle,
       };
     }, { selector: check.selector });
+    // The REST pass for fusedStateStable. Taken through the same probe the
+    // focused pass uses, so the two snapshots are structurally identical and
+    // a diff can only mean the CSS changed something -- not that two
+    // different measurement paths disagree.
+    if (check.expect.fusedStateStable === true) {
+      const rest = await page.evaluate(probeSelector, {
+        selector: check.selector, compareSelector: null, extraBgVarName: null,
+        childSelectors: check.expect.fusedStateStableChildren || null,
+        focusTargetSelector: null,
+      });
+      stabilityBaseline = rest.stability || null;
+    }
     await page.keyboard.press("Shift");
     const focused = await page.evaluate(({ selector, target }) => {
       const el = document.querySelector(selector);
@@ -785,10 +867,11 @@ async function runOneCheck(page, theme, check, results) {
     selector: check.selector,
     compareSelector: check.expect.heightEqWith?.selector || null,
     extraBgVarName: extraBgSelectorVar ? `--${NS_BY_SURFACE[check.surface]}-${extraBgSelectorVar}` : null,
-    childSelectors: check.expect.fusedChildrenFlat?.children || null,
+    childSelectors: check.expect.fusedChildrenFlat?.children || check.expect.fusedStateStableChildren || null,
     focusTargetSelector: check.state === "focusWithin" ? check.focusTarget : null,
   });
   if (focusBaseline) raw.focusBaseline = focusBaseline;
+  if (stabilityBaseline) raw.stabilityBaseline = stabilityBaseline;
   if (check.state === "focusWithin") {
     // Blur before the next check reads anything: a left-over :focus-within on
     // this shell would leak its focused border-colour into every later
@@ -941,7 +1024,15 @@ async function runSimpleTheme(page, url, theme, checks, results, surface) {
     // it's folded into that same click rather than a second one.
     const presetRowChecks = checks.filter((c) => c.selector === ".theme-preset-btn.active");
     const presetPreviewChecks = checks.filter((c) => c.selector.startsWith("#preset-preview-section"));
-    const otherChecks = checks.filter((c) => !tagGovChecks.includes(c) && !presetPreviewChecks.includes(c) && !presetRowChecks.includes(c));
+    // .key-wrap lives in #panel-general. It is visible on a bare goto(), but
+    // the tagGov and preset groups above BOTH click their way to another tab
+    // first, so by the time otherChecks runs the general panel is
+    // display:none and its controls cannot even take focus (a §8 focusWithin
+    // check fails at setup, which is how this was found). Click back
+    // explicitly rather than depending on group order.
+    const keyWrapChecks = checks.filter((c) => c.selector === ".key-wrap");
+    const otherChecks = checks.filter((c) => !tagGovChecks.includes(c) && !presetPreviewChecks.includes(c)
+      && !presetRowChecks.includes(c) && !keyWrapChecks.includes(c));
     if (tagGovChecks.length) {
       // .tag-gov-kind-badge lives on the "tags" tab (#panel-tags), not
       // #panel-general (the default active one on a bare goto()) -- its
@@ -968,6 +1059,11 @@ async function runSimpleTheme(page, url, theme, checks, results, surface) {
       await page.waitForSelector("#preset-preview-section:not([style*='display: none'])", { timeout: TIMEOUT_MS });
       for (const check of presetPreviewChecks) await runOneCheck(page, theme, check, results);
       for (const check of presetRowChecks) await runOneCheck(page, theme, check, results);
+    }
+    if (keyWrapChecks.length) {
+      await page.click("#tab-general");
+      await page.waitForSelector(".key-wrap input", { state: "visible", timeout: TIMEOUT_MS });
+      for (const check of keyWrapChecks) await runOneCheck(page, theme, check, results);
     }
     for (const check of otherChecks) await runOneCheck(page, theme, check, results);
     return;
