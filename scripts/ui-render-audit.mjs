@@ -151,10 +151,56 @@ function skip(check, expected, note) { return { check, status: "SKIP", actual: n
 // `compareSelector` (heightEqWith) and `extraBgVarName` (textContrastMulti)
 // are both optional -- one evaluate() round-trip covers whatever the check
 // needs instead of a second page.evaluate call per check.
-function probeSelector({ selector, compareSelector, extraBgVarName }) {
+function probeSelector({ selector, compareSelector, extraBgVarName, childSelectors, focusTargetSelector }) {
   const el = document.querySelector(selector);
   if (!el) return { found: false };
   const cs = getComputedStyle(el);
+  // ---- §8 fused-control probes (design-uplift 2026-08-05). Both are opt-in
+  // via the extra args so every other check pays nothing for them.
+  // `children` feeds fusedChildrenFlat (law 1 + law 3: passengers draw no box
+  // of their own, and whatever divider they DO draw is one colour at one
+  // width). `focusedSelf` feeds fusedFocusRing (law 2: the ring is the
+  // shell's, so the focused passenger must render none of its own).
+  let children = null;
+  if (childSelectors && childSelectors.length) {
+    children = childSelectors.map((sel) => {
+      const c = el.querySelector(sel);
+      if (!c) return { sel, found: false };
+      const ccs = getComputedStyle(c);
+      return {
+        sel, found: true,
+        // A segmented control's SELECTED cell legitimately paints a fill --
+        // that is the selection, and §8 law 4 puts selection/hover/press
+        // feedback in exactly this ghost-fill register. The resting-fill
+        // clause below is about a passenger painting its own CHROME, so it
+        // only applies to cells that are not currently selected.
+        isSelected: c.getAttribute("aria-pressed") === "true"
+          || c.getAttribute("aria-selected") === "true"
+          || c.classList.contains("active"),
+        borderWidths: [ccs.borderTopWidth, ccs.borderRightWidth, ccs.borderBottomWidth, ccs.borderLeftWidth].map((v) => parseFloat(v) || 0),
+        borderStyles: [ccs.borderTopStyle, ccs.borderRightStyle, ccs.borderBottomStyle, ccs.borderLeftStyle],
+        borderColors: [ccs.borderTopColor, ccs.borderRightColor, ccs.borderBottomColor, ccs.borderLeftColor],
+        radii: [ccs.borderTopLeftRadius, ccs.borderTopRightRadius, ccs.borderBottomRightRadius, ccs.borderBottomLeftRadius].map((v) => parseFloat(v) || 0),
+        background: ccs.backgroundColor,
+      };
+    });
+  }
+  let focusedSelf = null;
+  if (focusTargetSelector) {
+    const f = el.querySelector(focusTargetSelector);
+    if (f) {
+      const fcs = getComputedStyle(f);
+      focusedSelf = {
+        sel: focusTargetSelector,
+        isActiveElement: document.activeElement === f,
+        outlineStyle: fcs.outlineStyle,
+        outlineWidth: parseFloat(fcs.outlineWidth) || 0,
+        boxShadow: fcs.boxShadow,
+      };
+    } else {
+      focusedSelf = { sel: focusTargetSelector, found: false };
+    }
+  }
   const rect = el.getBoundingClientRect();
   const bgStack = [];
   for (let node = el; node && node.nodeType === 1; node = node.parentElement) {
@@ -323,6 +369,12 @@ function probeSelector({ selector, compareSelector, extraBgVarName }) {
     color: cs.color,
     outlineColor: cs.outlineColor,
     outlineStyle: cs.outlineStyle,
+    outlineWidth: parseFloat(cs.outlineWidth) || 0,
+    outlineOffset: parseFloat(cs.outlineOffset) || 0,
+    boxShadow: cs.boxShadow,
+    borderColors: [cs.borderTopColor, cs.borderRightColor, cs.borderBottomColor, cs.borderLeftColor].join("|"),
+    children,
+    focusedSelf,
     bgStack,
     rect: { top: rect.top, left: rect.left, width: rect.width, height: rect.height },
     effRect,
@@ -562,6 +614,74 @@ function evaluateCheck(check, raw, theme) {
     const actual = raw.rootColorScheme || "";
     out.push(verdict("colorSchemeMatchesTheme", actual.includes(expectedScheme), actual, expectedScheme));
   }
+  // ---- §8 fused-control laws (design-uplift 2026-08-05) ----
+  // law 1 + law 3, measured on the passengers: a fused control's pieces draw
+  // no box of their own (no radius, no fill, and at most the ONE border side
+  // that acts as the divider), and every divider that is drawn agrees on
+  // colour and width. The "at most one side" shape is what distinguishes a
+  // divider from a box -- requiring a flat zero would outlaw the divider the
+  // law explicitly permits.
+  if (exp.fusedChildrenFlat) {
+    const want = exp.fusedChildrenFlat.children || [];
+    const got = raw.children || [];
+    const bad = [];
+    const dividers = [];
+    for (const sel of want) {
+      const c = got.find((x) => x.sel === sel);
+      if (!c) { bad.push(`${sel}: not probed`); continue; }
+      if (!c.found) { bad.push(`${sel}: not found inside host`); continue; }
+      const sides = c.borderWidths
+        .map((w, i) => ({ w, style: c.borderStyles[i], color: c.borderColors[i] }))
+        .filter((s) => s.w > 0 && s.style !== "none");
+      if (sides.length > 1) bad.push(`${sel}: ${sides.length} border sides (max 1 divider)`);
+      if (c.radii.some((r) => r > 0)) bad.push(`${sel}: own border-radius ${c.radii.join("/")}`);
+      // alpha 0 == "transparent". A passenger that paints its own resting
+      // fill is drawing chrome, which is the shell's job. Selected cells are
+      // exempt (see isSelected in probeSelector): their fill IS the selection
+      // state, not chrome.
+      if (!c.isSelected) {
+        const m = /rgba?\(([^)]+)\)/.exec(c.background || "");
+        const alpha = m ? (parseFloat(m[1].split(",")[3]) || (m[1].split(",").length < 4 ? 1 : 0)) : 1;
+        if (alpha > 0) bad.push(`${sel}: own resting background ${c.background}`);
+      }
+      for (const s of sides) dividers.push(`${s.w}px ${s.color}`);
+    }
+    const uniqueDividers = [...new Set(dividers)];
+    if (uniqueDividers.length > 1) bad.push(`dividers disagree: ${uniqueDividers.join(" vs ")}`);
+    out.push(verdict("fusedChildrenFlat", bad.length === 0, bad.length ? bad.join("; ") : `${want.length} flat, divider=${uniqueDividers[0] || "none"}`, true));
+  }
+  // law 2, measured on the shell while a passenger holds focus. Three things
+  // have to hold at once, and the third is the one the user actually reported
+  // twice: a ring drawn on an inner piece stops short of the unit and gets
+  // painted over by its neighbour, so the ring MUST be the shell's own and
+  // MUST grow outward from the shell's border box (outline-offset >= 0, or a
+  // non-inset box-shadow) rather than inward.
+  if (exp.fusedFocusRing === true) {
+    const bad = [];
+    const hasOutline = raw.outlineStyle && raw.outlineStyle !== "none" && raw.outlineWidth > 0;
+    const hasShadow = raw.boxShadow && raw.boxShadow !== "none";
+    if (!hasOutline && !hasShadow) bad.push("shell renders no focus indicator (:focus-within not firing?)");
+    if (hasOutline && raw.outlineOffset < 0) bad.push(`shell outline-offset ${raw.outlineOffset}px pulls the ring inside its own box`);
+    if (!hasOutline && hasShadow && /inset/.test(raw.boxShadow)) bad.push("shell ring is an INSET shadow (paints inside the border box)");
+    // the shell must actually have CHANGED -- an unconditional border colour
+    // would satisfy "has an indicator" while :focus-within did nothing.
+    if (raw.focusBaseline) {
+      const same = raw.focusBaseline.borderColors === raw.borderColors
+        && raw.focusBaseline.boxShadow === raw.boxShadow
+        && raw.focusBaseline.outlineStyle === raw.outlineStyle;
+      if (same) bad.push("shell computed style identical focused vs unfocused (:focus-within has no effect)");
+    } else {
+      bad.push("no unfocused baseline captured (runner did not pre-probe)");
+    }
+    if (raw.focusedSelf && raw.focusedSelf.found === false) bad.push(`focus target ${raw.focusedSelf.sel} not found`);
+    else if (raw.focusedSelf) {
+      if (!raw.focusedSelf.isActiveElement) bad.push(`${raw.focusedSelf.sel} is not document.activeElement`);
+      if (raw.focusedSelf.outlineStyle !== "none" && raw.focusedSelf.outlineWidth > 0) {
+        bad.push(`${raw.focusedSelf.sel} draws its OWN ${raw.focusedSelf.outlineWidth}px outline inside the unit`);
+      }
+    }
+    out.push(verdict("fusedFocusRing", bad.length === 0, bad.length ? bad.join("; ") : `shell ring ok (${hasOutline ? `outline ${raw.outlineWidth}px @${raw.outlineOffset}` : "box-shadow"})`, true));
+  }
   return { results: out };
 }
 
@@ -572,7 +692,48 @@ function evaluateCheck(check, raw, theme) {
 const NS_BY_SURFACE = { library: "lib", options: "opt", popup: "pp" };
 
 async function runOneCheck(page, theme, check, results) {
-  if (check.state === "hover") {
+  // ---- state: "focusWithin" (design-uplift §8) ----------------------------
+  // Reads the shell TWICE -- once untouched, once while `check.focusTarget`
+  // (a selector relative to the shell) holds focus -- so fusedFocusRing can
+  // prove the :focus-within rule actually changed something rather than just
+  // that some indicator happens to exist.
+  //
+  // Two Chromium behaviours this has to work around, both of which silently
+  // produced "no ring" readings while debugging:
+  //   - focus styling is transitioned (`transition: box-shadow 150ms`), and a
+  //     computed read in the same task as .focus() returns the t=0
+  //     interpolation of `none`, i.e. a transparent zero-size shadow. Hence
+  //     the settle wait before the second read.
+  //   - :focus-visible only matches a <button> when the last input modality
+  //     was the keyboard. A script .focus() leaves the modality unset, so a
+  //     stepper's own outline would measure absent no matter what the CSS
+  //     said -- and this check's whole job is to assert that outline is
+  //     absent. Pressing a real key first makes the assertion meaningful
+  //     instead of vacuous.
+  let focusBaseline = null;
+  if (check.state === "focusWithin") {
+    if (!check.focusTarget) throw new Error(`focusWithin check on ${check.selector} has no focusTarget`);
+    focusBaseline = await page.evaluate(({ selector }) => {
+      const el = document.querySelector(selector);
+      if (!el) return null;
+      const cs = getComputedStyle(el);
+      return {
+        borderColors: [cs.borderTopColor, cs.borderRightColor, cs.borderBottomColor, cs.borderLeftColor].join("|"),
+        boxShadow: cs.boxShadow,
+        outlineStyle: cs.outlineStyle,
+      };
+    }, { selector: check.selector });
+    await page.keyboard.press("Shift");
+    const focused = await page.evaluate(({ selector, target }) => {
+      const el = document.querySelector(selector);
+      const t = el && el.querySelector(target);
+      if (!t) return false;
+      t.focus();
+      return document.activeElement === t;
+    }, { selector: check.selector, target: check.focusTarget });
+    if (!focused) throw new Error(`SETUP: could not focus "${check.focusTarget}" inside ${check.selector} (theme=${theme})`);
+    await page.waitForTimeout(260);
+  } else if (check.state === "hover") {
     // Real mouse hover (not a class hack): Playwright dispatches actual
     // pointer events, so the live cascade's own `:hover` pseudo-class match
     // drives getComputedStyle exactly the way a real user's cursor would --
@@ -586,7 +747,18 @@ async function runOneCheck(page, theme, check, results) {
     selector: check.selector,
     compareSelector: check.expect.heightEqWith?.selector || null,
     extraBgVarName: extraBgSelectorVar ? `--${NS_BY_SURFACE[check.surface]}-${extraBgSelectorVar}` : null,
+    childSelectors: check.expect.fusedChildrenFlat?.children || null,
+    focusTargetSelector: check.state === "focusWithin" ? check.focusTarget : null,
   });
+  if (focusBaseline) raw.focusBaseline = focusBaseline;
+  if (check.state === "focusWithin") {
+    // Blur before the next check reads anything: a left-over :focus-within on
+    // this shell would leak its focused border-colour into every later
+    // default-state read on the same page, exactly the way a parked mouse
+    // pointer leaks :hover (see the hover reset just below).
+    await page.evaluate(() => document.activeElement?.blur());
+    await page.waitForTimeout(120);
+  }
   if (check.state === "hover") {
     // Reset the pointer to a dead corner right after reading the hover
     // state back -- otherwise it stays parked on this check's element for
@@ -600,7 +772,12 @@ async function runOneCheck(page, theme, check, results) {
     throw new Error(`SETUP ERROR [${check.surface}|${theme}|${check.selector}|${check.state}]: ${evald.setupError}`);
   }
   for (const r of evald.results) {
-    results.push({ surface: check.surface, theme, selector: check.selector, state: check.state, ...r });
+    // focusWithin folds the focused passenger into the recorded state: the
+    // same shell gets one entry per tab stop, and keyOf() is
+    // surface|theme|selector|state|check -- without this they would all
+    // collapse onto one known-failures key and shadow each other.
+    const state = check.state === "focusWithin" ? `focusWithin[${check.focusTarget}]` : check.state;
+    results.push({ surface: check.surface, theme, selector: check.selector, state, ...r });
   }
 }
 
@@ -619,6 +796,8 @@ const BATCH_BAR_SELECTORS = new Set([
   "#vocab-group-input", "#vocab-add-group", "#vocab-remove-group",
   "#vocab-invert-selection", "#vocab-mark-known", "#vocab-mark-learning",
   "#vocab-batch-delete", "#vocab-clear-selection",
+  // §8 fused-control entries probe the shell, not the ids inside it.
+  "#vocab-batch-toolbar .vocab-group-unit",
 ]);
 function needsBatchBarOpen(selector) { return BATCH_BAR_SELECTORS.has(selector); }
 
