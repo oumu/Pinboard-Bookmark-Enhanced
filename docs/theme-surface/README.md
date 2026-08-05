@@ -196,8 +196,8 @@ per-surface by hand:
 |------|-----------|-------|
 | `btn-fg` vs `btn-bg` / `btn-hover` | 4.5:1 | all 3 surfaces |
 | `chip-fg` vs `chip-bg` / `btn-hover` | 4.5:1 | all 3 surfaces (the `btn-hover` row covers a pressable `[aria-pressed]` chip swapping its fill on hover) |
-| `danger-quiet-fg` vs `bg` / `panel` / `btn-bg` | 4.5:1 | options + library (the reading-surface destructive tier) |
-| `on-danger` vs `danger` | 4.5:1 | options + library (the solid confirm-dialog tier) |
+| `danger-quiet-fg` vs `bg` / `panel` / `btn-bg` | 4.5:1 | audited on all 3 surfaces (no `onlyNs`); real consumption today is options + library only (`.btn.danger`'s text color, the reading-surface destructive tier) — popup defines the token in every theme block but never consumes it in `popup.css` |
+| `on-danger` vs `danger` | 4.5:1 | audited on all 3 surfaces (no `onlyNs`); options/library consume it every theme via the generated `.confirm-popover .confirm-yes` (the solid confirm-dialog tier). popup consumes it too, but only on its default LIGHT surface (`popup.css:2317`) — `html.dark` overrides to a separate hardcoded `--pp-confirm-yes-fg` token and all 13 `html[data-theme]` presets override to the "warn-on-warn" scheme (COMPONENTS.md §4), so those two states never actually render it despite the token being defined for every block |
 | `border` vs `btn-bg` / `panel` | 3:1 | all 3 surfaces (WCAG 1.4.11 non-text; Task 16) |
 | `preset-fg` vs `preset-bg` / `btn-hover`; `tag-fg` vs `tag-bg`; `spinner-fg` vs `spinner-bg` | 4.5:1 / 4.5:1 / 3:1 | popup-only (`["pp"]`-scoped rows — these roles have no `--opt-*`/`--lib-*` counterpart) |
 
