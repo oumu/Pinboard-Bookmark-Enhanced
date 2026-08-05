@@ -1,6 +1,6 @@
 # Pinboard Theme Surface — Spec v1
 
-Updated: 2026-07-15 · Version: 1.1.0
+Updated: 2026-08-05 · Version: 1.2.0
 
 A three-layer architecture for Pinboard custom themes that separates **what a
 surface is** (manifest) from **what colors/spacing it uses** (tokens) from
@@ -154,11 +154,17 @@ A composer that wants to reuse another composer's work can do so — see
 ### Contrast guard (automated)
 
 Every theme passes `tools/contrast-audit.mjs`, which the `tools/sync-all.mjs`
-pipeline runs automatically (step 4 of its 8-step run: render-all,
-apply-tokens ×13, diff-all --strict, contrast-audit, css-region-audit,
-ui-token-coverage, layout-lint, url-lint). The audit fails the run when a
-token pair drops below WCAG AA — the failure modes that produced past
-regressions:
+pipeline runs automatically (step 5 of its 10-step run: render-all,
+apply-ui-themes --write, apply-tokens ×13, diff-all --strict, contrast-audit,
+css-region-audit, ui-token-coverage, layout-lint, url-lint, recipe-lint).
+`css-region-audit`, `ui-token-coverage`, `contrast-audit` and `recipe-lint`
+additionally run standalone inside `scripts/verify.sh`'s `[theme]` section
+(CI-gated); the git pre-commit hook only runs the site-side five
+(`diff-all --strict`, `token-coverage`, `cascade-lint`, `override-drift`,
+`handedit-audit`) — see §9 below for what the extra four (plus the
+independent `scripts/ui-render-audit.mjs` render oracle) cover. The audit
+fails the run when a token pair drops below WCAG AA — the failure modes that
+produced past regressions:
 
 | Pair | Min ratio | Why |
 |------|-----------|-----|
@@ -179,6 +185,33 @@ regressions:
 | `library.fg / fg-muted vs bg` **and** `vs panel` (`--lib-*`) | 4.5:1 | library body text sits on both the page bg and the elevated pane, so both are checked |
 | `library.row-selected-fg vs row-selected-bg` | 4.5:1 | selected list row: own fill, own text, not composited over bg |
 | `library.save / danger / warn vs bg` | 4.5:1 | flat status text (library has no tinted status fills) |
+
+**Component-layer pairs (2026-08 design-uplift addition).** A second table,
+`COMPONENT_PAIR_SPEC` in `contrast-audit.mjs`, is generic across all three
+extension surfaces — each row is checked once per surface (`--pp-*`,
+`--opt-*`, `--lib-*`) × per theme × the default surface, not written out
+per-surface by hand:
+
+| Pair (role names, prefix-agnostic) | Min ratio | Scope |
+|------|-----------|-------|
+| `btn-fg` vs `btn-bg` / `btn-hover` | 4.5:1 | all 3 surfaces |
+| `chip-fg` vs `chip-bg` / `btn-hover` | 4.5:1 | all 3 surfaces (the `btn-hover` row covers a pressable `[aria-pressed]` chip swapping its fill on hover) |
+| `danger-quiet-fg` vs `bg` / `panel` / `btn-bg` | 4.5:1 | options + library (the reading-surface destructive tier) |
+| `on-danger` vs `danger` | 4.5:1 | options + library (the solid confirm-dialog tier) |
+| `border` vs `btn-bg` / `panel` | 3:1 | all 3 surfaces (WCAG 1.4.11 non-text; Task 16) |
+| `preset-fg` vs `preset-bg` / `btn-hover`; `tag-fg` vs `tag-bg`; `spinner-fg` vs `spinner-bg` | 4.5:1 / 4.5:1 / 3:1 | popup-only (`["pp"]`-scoped rows — these roles have no `--opt-*`/`--lib-*` counterpart) |
+
+The pair list is enumerated by the tool's own `COMPONENT_PAIR_SPEC` array
+(convenience, not the completeness authority) and doubles as an **orphan
+guard**: every `*-fg` / `on-*`-shaped custom property a surface's
+`@generated:ui-themes` region actually emits must either be a role this
+table checks or carry an explicit `ORPHAN_ALLOWLIST` entry with a reason —
+otherwise a brand-new fg/on- token can ship with zero contrast coverage and
+nothing here would notice. The completeness authority for "did we check
+everything that needed checking" is the **independent, hand-written**
+render oracle (`tests/render-audit-checklist.mjs`, run via
+`scripts/ui-render-audit.mjs`) — this static table is a fast, CI-friendly
+supplement to it, not a replacement (see §9).
 
 **What the audit reads matters as much as the table.** It runs on
 `_util.mjs#expandPalette` output, not the raw pilot, because `btn-bg`,
@@ -219,6 +252,37 @@ A pilot's declared value is therefore a request, not a guarantee: declare
 emitted value is the nearest passing shade. That is by design, not drift —
 `diff-all --strict` compares composer output against shipped CSS, so both sides
 see the derived value.
+
+**Extension UI adds four more levers** (same file, `_ui-derive.mjs`, used by
+`popup-chrome.mjs`/`options-chrome.mjs`/`library-chrome.mjs` rather than the
+pinboard.in composers above — all four are identity when the pair already
+clears their threshold):
+
+- `fgToAAMulti(fg, bgs, min)` — like `fgToAA` but pushes lightness until the
+  foreground clears `min` against **every** background in `bgs`, not just
+  one. Needed wherever a role paints on more than one fill — a button's text
+  sits on both its resting and hover fill, library's row text sits on both
+  `bg` and `panel`.
+- `borderToAA(border, bgs, min = 3)` — same repeated-worst-case shape as
+  `fgToAAMulti`, at the WCAG 1.4.11 non-text 3:1 floor instead of the 4.5:1
+  text floor. Drives the `border` role's derivation (Task 16).
+- `fillSeparate(fill, surfaces, fg, min = 1.06)` — the Soft Fill law
+  (COMPONENTS.md §9): mixes a surface's own `fg` into a control's fill until
+  it clears a much weaker "is this fill perceivable at all against its host
+  surface" floor (1.06:1, well below the 3:1 non-text AA floor — that job
+  still belongs to the focus ring and hover state). Drives `btn-bg`,
+  `btn-hover`, `input-bg` and `chip-bg` once a control's resting border
+  color collapses into its fill.
+- `resolveOpaqueBg(raw, fallbackBg)` / `resolveChipBg(raw, accentRgb,
+  panelRgb)` — not derivations themselves, but a prerequisite every
+  above lever needs: a pilot's `border` or `tag-bg` may be a non-opaque
+  8-digit alpha hex or the literal keyword `transparent` (terminal's border
+  glow; 9/13 pilots' `tag-bg`), and feeding that raw string straight into
+  `hexToRgb()` silently misparses it as black. These resolve it to the solid
+  RGB it actually composites to (or, for `resolveChipBg`, synthesize a 10%
+  accent-on-panel tint when the raw value is fully transparent — a chip
+  pill whose fill equals its own panel is exactly as invisible as literal
+  `transparent`).
 
 ### State coverage checklist
 
@@ -320,9 +384,107 @@ Two contracts learned the hard way (2026-07 regressions):
   `contrast-audit.mjs` gates `on-accent` vs `accent` at AA.
 - **The `@generated:ui-themes` regions are composer-owned.** Hand edits are
   caught by `tools/css-region-audit.mjs`, the same way `handedit-audit.mjs`
-  guards `pinboard-themes.js`.
+  guards `pinboard-themes.js`. (As of §10 below, each of these three files
+  carries a SECOND generated region too — `css-region-audit.mjs` covers both
+  kinds generically, it does not need per-region wiring.)
 
 Spacing is deliberately OUTSIDE the factory: `--pp-sp-*` / `--opt-sp-*`
 (and the reader's `--prose-fs` family) are theme-invariant and live in each
-file's hand-maintained `:root` — no pilot may vary density per theme.
+file's hand-maintained `:root` — no pilot may vary density per theme. §10's
+component recipe layer *consumes* these same tokens through a spacing
+adapter; it does not define new ones or let a theme vary them.
+
+## §10 · Addendum (2026-08, design-uplift): the component-layer generated region
+
+§9 covers *color* — one generated block per theme, per surface. This
+addendum covers *structure* — button/chip/danger/form-field geometry and
+paired state-feedback rules, generated **once per surface**, not once per
+theme, because a component's shape doesn't change with the palette.
+
+**Two independent regions, not one.** As of this campaign, `popup.css`,
+`options.css` and `library.css` each carry a second generated region,
+`@generated:ui-components`, alongside the `@generated:ui-themes` region §9
+describes:
+
+| Region | Composer | Per-theme? | Content |
+|--------|----------|------------|---------|
+| `@generated:ui-themes` | `popup-chrome.mjs` / `options-chrome.mjs` / `library-chrome.mjs` | Yes — one `html[data-theme="…"]` block per pilot + a default-surface block | Color roles (§9) |
+| `@generated:ui-components` | `composers/ui-components.mjs` (single source, `renderComponents(ns, families)`) | No — one recipe per surface | Structural CSS: `.btn`/`.btn-sm`/`.btn-ic` geometry, chip pill geometry, the two-tier danger recipe, form-field height/focus — `docs/theme-surface/COMPONENTS.md` is the design authority these transcribe |
+
+Each region has its **own independent start/end sentinel** —
+`@generated:ui-components` never reuses `@generated:ui-themes`'s shared
+`/* @generated:ui-themes end */` marker (reusing it would splice the wrong
+region's body into the wrong place). `tools/apply-ui-themes.mjs --write`
+writes both kinds of region for all three files in one pass; `sync-all` runs
+it automatically. `css-region-audit.mjs` iterates the tool's own `SURFACES`
+array generically, so all six regions (three ui-themes + three
+ui-components) are covered without any per-region code in the audit itself.
+
+**Colors inside the recipe are still `var()` references into §9's tokens**
+— the component layer never invents its own palette. It DOES need five
+paired color tokens §9's per-role derivations don't produce on their own:
+`btn-fg`, `danger-quiet-fg`, `on-danger`, `chip-bg`, `chip-fg`. Each
+composer computes these from its FINAL, post-`ui`-override map (so they stay
+AA-correct against whatever a pilot actually overrode — `btn-bg`, `danger`,
+etc.) using the `fgToAAMulti`/`resolveOpaqueBg`/`resolveChipBg` family from
+"Contrast derivation" above.
+
+**Known limitation — these five tokens cannot be overridden by a pilot.**
+Because each composer recomputes them unconditionally from the
+post-override map, a `ui.popup/options/library.<mode>` block that tries to
+set `btn-fg`, `danger-quiet-fg`, `on-danger`, `chip-bg` or `chip-fg`
+directly will have that value silently discarded and replaced by the
+recomputed one. No shipped pilot does this today (0/13), so it's a real
+design gap, not a live bug — filed but not resolved as of this campaign
+(the alternative, an `if (name in overrides) skip` guard, was considered and
+deliberately deferred rather than merged half-verified). If your new theme
+needs one of these five to be something the derivation won't produce,
+**it currently cannot be done through the `ui` channel** — the derivation
+itself needs a per-pilot escape hatch added to `_ui-derive.mjs` first, or
+your theme needs to change the *inputs* the derivation reads instead
+(`btn-bg`, `danger`, `tag-bg`, `tag-fg`) and let the formula do its job. See
+NEW_THEME.md §6 for the full list of what IS overridable.
+
+**Spacing adapter.** The recipe declares padding/gap in plain px semantics;
+`ui-components.mjs`'s `sp(ns, px)` maps each value to that surface's
+existing `--{ns}-sp-N` token of equal numeric value — never a literal, and
+never a cross-surface name translation (popup/options are a 7-rung scale,
+library is 5-rung; the same px can land on a different rung number per
+surface, or on none, in which case the recipe falls back to a literal px —
+library has no 2px or 6px rung). `tools/recipe-lint.mjs` statically verifies
+this mapping against each surface's real shipped `:root` values, so a
+`--sp-*` token edit that silently desyncs the adapter fails loudly instead
+of drifting.
+
+**Gates, beyond §5/§9's color gates:**
+
+| Gate | What it adds |
+|------|------|
+| `tools/recipe-lint.mjs` | ~14 static checks on `ui-components.mjs` itself: paired-color law (any rule backgrounding must also color), chip geometry laws, the spacing-adapter accuracy check above, no direct `--{ns}-sp-N` reference outside the adapter, no `var(--x, fallback)` in rendered output, press-is-instant (no `transform` in `.btn`'s transition list), no `transition: all`, a ≤200ms motion budget on every duration token actually referenced, `.btn-ic` base rule presence, and the roundness laws (§9.2 below) — token-only radii, concentric nesting |
+| `tools/contrast-audit.mjs`'s `COMPONENT_PAIR_SPEC` | Component-pair AA/3:1 coverage — see the table in the "Contrast guard" section above |
+| `scripts/ui-render-audit.mjs` (repo root, not under `docs/theme-surface/`) | The completeness authority: an **independent, hand-written** checklist (`tests/render-audit-checklist.mjs`) drives playwright against an unpacked-extension load, reading real `getComputedStyle` per theme — deliberately never generated from `ui-components.mjs`, so a component the recipe forgot to register can't also make the oracle forget to check it. Wired into `scripts/verify.sh`'s `[render-audit]` section. `tests/render-audit-known-failures.json` is a migration-era baseline, currently 16 frozen popup button-geometry keys (popup's own six-recipe button family + hover-lift language is out of this campaign's scope, deferred to a follow-up) |
+
+**Terminal's exemption — a template for a theme that wants a framed
+identity.** Every pilot in this campaign was flattened onto the Soft Fill
+language (COMPONENTS.md §9: resting border collapses into the fill). If your
+new theme's identity genuinely depends on a visible resting frame (the way
+terminal's does — a phosphor-glow border is the whole point), declare the
+relevant `-bd`/`-border` role(s) explicitly in your pilot's
+`ui.<surface>.<mode>` block (e.g. `ui.popup.dark.btn-bd`,
+`ui.options.dark.btn-border`/`input-border`, `ui.library.dark.btn-border`/
+`input-border`): the composer treats "this pilot declared its own border
+role" as the opt-out signal and skips the `fillSeparate()` step for that
+role, restoring your pilot's own border color exactly as declared. Geometry
+(radius, padding) is NOT exemptable this way — it follows the surface's
+token ladder unconditionally, same as every other theme. See
+`pilots/terminal.tokens.json`'s `ui.popup/options/library.dark` blocks for
+the worked example (COMPONENTS.md §9.5 has the full rule).
+
+Component design authority: `docs/theme-surface/COMPONENTS.md` (structure
+recipe / token-pair list / geometry constraints / usage rules for each of
+the 7 component families, plus a state-feedback ruling table and a
+human-review checklist for what no automated gate can decide — icon
+semantics, which danger tier a new button belongs to, `is-error` class
+cascades). Consult it before touching `ui-components.mjs` by hand; it is the
+spec `recipe-lint` and the render oracle both check against.
 

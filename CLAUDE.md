@@ -1,7 +1,7 @@
 # Pinboard Bookmark Enhanced 项目配置
 
 作者：pine2D
-更新：2026-07-24
+更新：2026-08-05
 
 ## 项目概述
 
@@ -80,20 +80,24 @@ Chrome Extension (Manifest V3)，一键将当前页面保存到 Pinboard，支�
 ├── _locales/                    # i18n 字符串（en / zh-CN / zh-HK / zh-TW / ja / de / fr / pl / ru）
 ├── vendor/                      # Defuddle 本地化（懒注入到 content script）
 ├── tests/                       # dev 测试页（md-ai / md-convert / export-targets，file:// 直开；不入 release ZIP）
+│   ├── render-audit-checklist.mjs       # 手写渲染 oracle（selector × state × 期望值，禁止从配方源生成）
+│   └── render-audit-known-failures.json # 迁移期基线，当前冻结 16 个 popup 几何键（后续战役）
 │
 ├── docs/                        # GitHub Pages + theme factory
 │   ├── theme-surface/           # ← 主题工厂（重要架构）
-│   │   ├── composers/           # 布局模板（classic-list-v2 主力 + 4 备用）
+│   │   ├── composers/           # 布局模板（classic-list-v2 主力 + 4 备用）+ 三 chrome composer + ui-components.mjs（组件结构配方单源）
 │   │   ├── pilots/              # 13 主题的 tokens.json（输入）
-│   │   ├── tools/               # 5 道 lint + sync-all 同步管道
+│   │   ├── tools/               # lint 全家桶（含 recipe-lint.mjs）+ sync-all 同步管道
 │   │   ├── manifest.json        # surface inventory
 │   │   ├── tokens.schema.json   # tokens 校验
+│   │   ├── COMPONENTS.md        # 组件设计规范（结构配方/token对/几何约束/使用守则 + 状态反馈裁决表 + 人审清单）
 │   │   └── NEW_THEME.md         # 新主题脚手架文档
 │   └── superpowers/             # 内部规划草稿（gitignored）
 │
 └── scripts/                     # 发布工具链
     ├── bump-version.sh          # 按 commit 类型自动 bump（feat→minor / fix→patch）
     ├── release.sh               # 打 ZIP + 创建 GH release + changelog + 刷 camo cache
+    ├── ui-render-audit.mjs      # 独立渲染 oracle 执行器（playwright 装未打包扩展，读 render-audit-checklist.mjs，verify.sh [render-audit] 段）
     ├── pre-commit-hook.sh       # 5 道 lint（见下）
     ├── commit-msg-hook.sh       # conventional commits 检查
     ├── setup-hooks.sh           # 安装 hooks
@@ -124,18 +128,25 @@ Chrome Extension (Manifest V3)，一键将当前页面保存到 Pinboard，支�
 
 ## Theme Factory 工作流
 
-`docs/theme-surface/` 是 token-driven 的主题生成系统，13 套 preset 都从 `pilots/*.tokens.json` 经 composer 渲染出来，写入四处：`pinboard-themes.js`（站点）+ `popup.css` / `options.css` / `library.css` 的 `@generated:ui-themes` 区（扩展 UI，`popup-chrome.mjs` / `options-chrome.mjs` / `library-chrome.mjs` 经 `_ui-derive.mjs` 派生；pilot 可用 `ui.popup/options/library.light/dark` 覆盖任意派生值；`on-accent` 每主题显式发射，勿依赖 var() fallback——自定义属性继承使 fallback 成死代码）。
+`docs/theme-surface/` 是 token-driven 的主题生成系统，13 套 preset 都从 `pilots/*.tokens.json` 经 composer 渲染出来，写入四个文件：`pinboard-themes.js`（站点，全文件生成，`handedit-audit` 单独拦截）+ `popup.css` / `options.css` / `library.css`（扩展 UI，各含**两个独立生成区**）：
 
-**编辑顺序**：改 `composers/*.mjs` 或 `pilots/*.tokens.json` → 跑 `node docs/theme-surface/tools/sync-all.mjs`（8 步：render → apply×13 → diff-all --strict → contrast-audit → css-region-audit → ui-token-coverage → layout-lint → url-lint）→ commit。**禁止手工编辑 `pinboard-themes.js` 与三个 `@generated:ui-themes` 区**（`pinboard-themes.js` 由 handedit-audit 拦截，仅覆盖该文件；三个 `@generated:ui-themes` 区由 css-region-audit 拦截，已随 ui-token-coverage / contrast-audit 一并接入 `scripts/verify.sh` 并被 CI 执行，不再只在手动 sync-all 里跑；git pre-commit hook 仍只跑下方 5 道，不含这三门）。间距 token（`--pp-sp-*` / `--opt-sp-*` / `--lib-sp-*`、reader 的 `--prose-fs` 族）是主题不变量，落各文件手维护区，**不进 composer**。
+- `@generated:ui-themes` — 逐主题颜色/状态角色，`popup-chrome.mjs` / `options-chrome.mjs` / `library-chrome.mjs` 经 `_ui-derive.mjs` 派生；pilot 可用 `ui.popup/options/library.light/dark` 覆盖任意派生值——**5 个组件层配对 token 例外**（`btn-fg`/`danger-quiet-fg`/`on-danger`/`chip-bg`/`chip-fg`）：emit 层在 pilot 覆盖生效之后无条件重算这五个，当前 0/13 pilot 触发（非阻塞），但会静默吃掉未来对这五个名字的 `ui.*` 覆盖，限制详见 NEW_THEME.md。`on-accent` 每主题显式发射，勿依赖 var() fallback——自定义属性继承使 fallback 成死代码。
+- `@generated:ui-components` — 组件**结构**配方（按钮/chip/危险分级/表单几何 + 状态反馈，不分主题、三表面各一份），单源 `docs/theme-surface/composers/ui-components.mjs`，独立哨兵（`start (popup|options|library)` / `end (popup|options|library)`），**绝不**与 `ui-themes` 共用 `@generated:ui-themes end` 标记。
 
-**Pre-commit 5 道 lint**（任一红就 block，全部禁止 `--no-verify`）：
-1. `diff-all --strict` — composer 输出 vs shipped 字符级一致
+**编辑顺序**：改 `composers/*.mjs` 或 `pilots/*.tokens.json` → 跑 `node docs/theme-surface/tools/sync-all.mjs`（10 步：render-all → apply-ui-themes --write【双区写入】→ apply-tokens ×13 → diff-all --strict → contrast-audit → css-region-audit → ui-token-coverage → layout-lint → url-lint → recipe-lint）→ commit。**禁止手工编辑 `pinboard-themes.js` 与六个 `@generated:*` 区**（`pinboard-themes.js` 由 handedit-audit 拦截；三个 `@generated:ui-themes` 区与三个 `@generated:ui-components` 区统一由 `css-region-audit` 泛型遍历拦截，随 `ui-token-coverage` / `contrast-audit` / `recipe-lint` 一并接入 `scripts/verify.sh` 并被 CI 执行；git pre-commit hook 仍只跑下方 5 道站点级 lint，不含这四门——**UI 生成区改动落地前必须手动跑一次 `sync-all.mjs` 或 `verify.sh`**，pre-commit 不会替你挡）。
+
+**边界修订**（design-uplift 战役写入）：「组件原语 generated，页面布局手写」。间距 token（`--pp-sp-*` / `--opt-sp-*` / `--lib-sp-*`、reader 的 `--prose-fs` 族）**定义**仍是主题不变量，落各文件手维护 `:root`，**不进 composer**；`ui-components.mjs` 的组件配方经 `SPACING` adapter（`composers/ui-components.mjs` 的 `sp(ns, px)`）把配方声明的像素语义映射到这些既有 token 的等值档位（**禁止跨表面同名 `--sp-N` 直译**——三表面标尺刻度不同，popup/options 是 7 档、library 是 5 档），配方本身仍是生成产物；页面级布局、阅读器 prose 体系、各表面一次性特例仍手写。
+
+**Pre-commit 5 道 lint**（任一红就 block，全部禁止 `--no-verify`；只覆盖 `pinboard-themes.js`/composer/pilot 源文件，不检查 UI 生成区）：
+1. `diff-all --strict` — composer 输出 vs shipped CSS 字符级一致
 2. `token-coverage` — 所有 `v("...")` token 引用都解析得到
 3. `cascade-lint` — CSS cascade 模拟（13 主题 × 15 探针，含 flexoki dark mode）
 4. `override-drift` — 主题 overrides 不重新拉宽 composer 的 `:not(...)` 限定
 5. `handedit-audit` — `pinboard-themes.js` 里没有 composer 不产出的规则
 
-新主题脚手架：`docs/theme-surface/NEW_THEME.md`。
+**`verify.sh` [theme] 段额外四道**（CI 执行，pre-commit 不含，改双区前必读）：`css-region-audit`（六个生成区无手改/漂移）、`ui-token-coverage`（`--pp-*`/`--opt-*`/`--lib-*` 消费点逐主题都能解析到定义；只扫 `@generated:ui-themes` 区自身是否被逐主题覆盖，`@generated:ui-components` 区内的消费点算作「区外」文本一并纳入扫描，但该区本身无逐主题分块、不单独审计）、`contrast-audit`（WCAG AA + 组件层配对对比度，含默认表面）、`recipe-lint`（`ui-components.mjs` 单源静态检查，14 类：paired-color 律、chip 几何律、SPACING 映射与三份 CSS `:root` 实值一致、无 `--sp-*` 直引、无带 fallback 的 var()、press 瞬时不进 transition、无 `transition: all`、motion budget ≤200ms、按钮族图标基础规则、圆角三律等）。`verify.sh` 另有独立的 [render-audit] 段跑 `scripts/ui-render-audit.mjs`——playwright 装未打包扩展逐主题量 `getComputedStyle` 与几何，断言清单来自**手写**的 `tests/render-audit-checklist.mjs`（**禁止从配方源生成**——同源会让「组件漏注册」这类缺陷在生成器与审计器两侧同时消失，参见下方「远端 API 的测试夹具」同构教训）；`tests/render-audit-known-failures.json` 是迁移期基线，当前冻结 16 个 popup 按钮几何键（popup 按钮族归一列后续战役，本战役不动，非缺陷）。
+
+组件设计规范：`docs/theme-surface/COMPONENTS.md`（结构配方 / token 对清单 / 几何约束 / 使用守则四件套 + 状态反馈裁决表 + 人审清单，Task 5/8/9 的 token 名与配方值均以此为准）。新主题脚手架：`docs/theme-surface/NEW_THEME.md`。
 
 ## 发布流程
 
@@ -252,6 +263,12 @@ canonical 重序列化），这种"我和我自己一致"的自测越有假安�
 官方 schema 手写，与写入侧构造器物理分离**；补纯函数谓词的单测不够，runner 路径的夹具也必须是
 服务端形状。同理，夹具里的 `||` 默认值会吞掉 `""` 这类合法边界值（`authAccount || "pin-a"` 让
 "未登录"这个状态根本无法被表达），用 `=== undefined` 判定。
+
+### 组件生成区迁移的验证陷阱（2026-08 design-uplift 根因）
+
+- **同特异性删除必须双向查，且"外观相同"不能当"语义相同"删。** 把手写规则搬进生成区、或让配方接管一条规则时，若插入点在文件里的物理位置发生移动，同特异性选择器谁赢会随源序反转（Task 9：`.fg textarea` 的等宽字体栈因生成区改插入到原位置之前而被反转覆盖）。更隐蔽的一种：主题覆盖块（`html[data-theme] …`）里一条声明"看着"和基类同值，容易被当废话顺手删掉——popup 的 `html[data-theme] .login-body .key-toggle { background: transparent }` 表面上重复了基类的 `background: none`，实测它真正压制的是另一条特异性更高、源序更晚的规则（`html[data-theme] .login-body button` 的 `--pp-bg2`）；删掉后 13 套预设下密钥显隐图标背后立刻冒出一块不透明方块，dracula/terminal 实测复现（`docs/theme-surface/COMPONENTS.md` §8.6 使用守则 + 附录 C32）。**铁律**：内部件覆盖一律写成 `.<unit> > .<child>` 显式限定，不赌源序；主题覆盖块里"看似冗余"的声明删除前必须先量特异性、真机核对渲染，不能只凭数值相同下判断——它可能是压制者，不是冗余。
+- **断言问得太窄等于没门。** 检查存在不代表覆盖到了真正的不变量。Task 14 用户二审打回时揭出几何断言家族是"枚举实例"而非"泛化类别"——只测过命中的那几个选择器，同类新缺陷绕开门禁毫无察觉，修复是把三类检查（文字内缩、子元素包含、行高相等）泛化后对全仓重新扫描一遍；九审的 `insetBand` 断言同理，只测"内缩是否存在"，没测"内缩量级是否落在规范区间"，实测被压到 ~2px（不可辨为设计意图）仍判过，加严为量级 + 圆角阶梯比对才补上（`tests/render-audit-checklist.mjs` + `scripts/ui-render-audit.mjs`）。**铁律**：新增或审查一条断言时，先问"这条检查漏判的最简单反例长什么样"，不要只问"这条检查现在能不能过"。
+- **文本 grep 覆盖判定必被注释/字符串击穿，改用程序真实消费的数据结构。** `contrast-audit.mjs` 的 orphan 守卫早期版本靠"grep 自身源码里有没有出现过这个 token 名的双引号字符串"判定"是否已被审计"，而 `--pp-info-fg` 的一条说明性注释恰好两次引用了 `"info-fg"` 这个字符串——同一个字符串既是真实检查会写的代码，也是解释"为什么不需要检查"的人话，grep 分不清两者，导致该条目连同它要守护的 RED 回归测试一起悄悄失效。改法：`COMPONENT_PAIR_ROLES` 直接从门自己在用的 `COMPONENT_PAIR_SPEC` 派生 `Set`（`docs/theme-surface/tools/contrast-audit.mjs`），不再扫源码文本。**铁律**：任何"这个东西有没有被处理"的判定，能从程序实际消费的数据结构（注册表、Set、导出的清单）里拿到答案就不要退回文本扫描——字符串字面量、注释、变量名都可能包含检查目标的拼写，但不构成真正处理过它。
 
 ### 字体回退卡顿（2026-06 根因）
 

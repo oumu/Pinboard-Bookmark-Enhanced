@@ -16,7 +16,9 @@ cp docs/theme-surface/pilots/github-light.tokens.json \
 # 2. edit the palette / typo / patterns to taste
 
 # 3. regenerate pinboard-themes.js AND the popup.css/options.css/library.css
-#    @generated regions
+#    @generated:ui-themes regions (the sibling @generated:ui-components
+#    region in each file is structure, not color — it never changes when
+#    you only add a tokens file, see §6)
 node docs/theme-surface/tools/sync-all.mjs
 
 # 4. ensure all gates pass (sync-all already ran them; re-run to double-check)
@@ -218,16 +220,32 @@ probes in addition to the 9 light probes.
 ## 6 · Extension popup + options + library themes (also regenerated)
 
 Adding a pilot tokens file regenerates the pinboard.in site theme *and* the
-extension's popup, options, and library named-theme blocks. You do not need
-to touch `popup.css`, `options.css`, or `library.css` manually.
+extension's popup, options, and library UI. You do not need to touch
+`popup.css`, `options.css`, or `library.css` manually — but as of the
+2026-08 design-uplift campaign, each of those three files carries **two**
+generated regions, not one, and they answer different questions:
 
-**How it works.** `composers/popup-chrome.mjs`, `composers/options-chrome.mjs`
-and `composers/library-chrome.mjs` read the same pilot palette (via
-`composers/_ui-derive.mjs`) and write `--pp-*` / `--opt-*` / `--lib-*` custom
-properties into `@generated:ui-themes` regions inside `popup.css`,
-`options.css` and `library.css`. `sync-all` runs this step automatically.
+| Region | What it is | Varies per theme? |
+|--------|------------|--------------------|
+| `@generated:ui-themes` | Colors: `--pp-*` / `--opt-*` / `--lib-*` custom properties | Yes — this is the one your new pilot's palette actually populates |
+| `@generated:ui-components` | Structure: button/chip/danger/form-field geometry (`.btn`, `.vocab-group-chip`, `.confirm-yes`, `.fg input`, …) | No — one recipe per surface, shared by every theme (adding a theme never touches this region) |
 
-To regenerate the extension UI themes on their own:
+You only interact with the first one. The second is single-sourced from
+`composers/ui-components.mjs` per COMPONENTS.md's specs and never varies
+with a pilot's tokens — mentioned here only so a `git diff` after `sync-all`
+that touches the *whole* file doesn't surprise you into thinking your new
+theme somehow changed button geometry (it didn't; `apply-ui-themes.mjs`
+rewrites both regions of a file in the same pass, so both are always
+present in the diff even when only one actually changed content).
+
+**How the color region works.** `composers/popup-chrome.mjs`,
+`composers/options-chrome.mjs` and `composers/library-chrome.mjs` read the
+same pilot palette (via `composers/_ui-derive.mjs`) and write `--pp-*` /
+`--opt-*` / `--lib-*` custom properties into the `@generated:ui-themes`
+region inside `popup.css`, `options.css` and `library.css`. `sync-all` runs
+this step automatically.
+
+To regenerate both extension UI regions on their own:
 
 ```bash
 node docs/theme-surface/tools/apply-ui-themes.mjs --write
@@ -248,10 +266,10 @@ mode in the tokens file — values win over `_ui-derive.mjs`:
 
 Emittable popup keys include every `--pp-*` role plus `radius-sm/md/lg/tag`,
 `focus-bd`, `focus-ring`, and `on-accent`; the options composer accepts any
-`--opt-*` role and the library composer any `--lib-*` role. No shipped pilot
-carries a `ui.library` block: the library composer derives `danger` / `warn`
-itself, so a new theme passes `ui-token-coverage` without one. Two rules,
-both regression-tested:
+`--opt-*` role and the library composer any `--lib-*` role. `ui.library` is
+no longer purely theoretical — `terminal` is the first (and, as of this
+campaign, only) pilot to carry one, for the border-restore mechanism below.
+Four rules, two carried over and regression-tested, two new this campaign:
 
 - **`on-accent` (submit-button text) is ALWAYS emitted explicitly** — never
   rely on a `var()` fallback in shared rules (custom properties inherit, so
@@ -259,23 +277,69 @@ both regression-tested:
   submit button white). `contrast-audit.mjs` gates `on-accent` vs `accent`
   at AA 4.5, so a failing pair aborts sync-all.
 - **Spacing cannot be themed.** `--pp-sp-*` / `--opt-sp-*` / `--lib-sp-*` are
-  hand-maintained, theme-invariant tokens outside the factory; `ui` overrides
-  that try to redefine them have no supported effect.
+  hand-maintained, theme-invariant tokens outside the factory; `ui`
+  overrides that try to redefine them have no supported effect. The
+  `@generated:ui-components` region's geometry recipe *consumes* these same
+  tokens through a spacing adapter (below) — it does not let a theme make
+  them vary either.
+- **Five component-pair color tokens cannot be overridden through `ui` at
+  all — known limitation, not yet fixed.** `btn-fg`, `danger-quiet-fg`,
+  `on-danger`, `chip-bg` and `chip-fg` are recomputed unconditionally by
+  each composer from the FINAL, post-`ui`-override map (so they stay
+  AA-correct against whatever else you did override), which means a `ui`
+  block that sets one of these five names directly has that value silently
+  discarded and replaced by the recomputation. No shipped pilot does this
+  today. If your theme's intent genuinely needs one of these five to be
+  something the AA derivation won't land on by itself, the derivation
+  itself needs a per-pilot escape hatch (not present as of this campaign)
+  — changing the *inputs* the formula reads (`btn-bg`, `danger`, `tag-bg`,
+  `tag-fg`) and trusting the formula is the only supported lever today.
+- **A pilot can restore a real border by declaring its own `-bd`/`-border`
+  role — the terminal exemption.** Every theme's controls default to the
+  Soft Fill language (COMPONENTS.md §9): no resting border, identity
+  carried by the fill alone. If your theme's identity depends on a visible
+  frame the way terminal's phosphor-glow border does, declare the relevant
+  role(s) yourself and the composer treats that declaration itself as the
+  opt-out signal, skipping the fill-separation step for that role and
+  keeping your value verbatim:
 
-Three gates guard the generated output:
+  ```jsonc
+  "ui": {
+    "popup":   { "dark": { "btn-bd": "var(--pp-border)", "input-bd": "var(--pp-border)" } },
+    "options": { "dark": { "btn-border": "var(--opt-border)", "input-border": "#33ff3340" } },
+    "library": { "dark": { "btn-border": "var(--lib-border)", "input-border": "#33ff3340" } }
+  }
+  ```
+
+  (This is `terminal.tokens.json`'s actual `ui` block, lightly trimmed —
+  it also declares `focus-bd`/`focus-ring` for the glow effect, unrelated
+  to this mechanism.) Note the naming split: popup uses the `-bd` suffix
+  (`btn-bd`/`input-bd`), options/library use `-border`
+  (`btn-border`/`input-border`) — copy the exact key your surface expects.
+  **Geometry (radius, padding) is never exemptable this way** — it follows
+  the surface's token ladder unconditionally for every theme, terminal
+  included; only the fill-vs-frame *color* language has an opt-out.
+
+Gates guard both regions, colors and structure alike:
 
 | Gate | What it checks |
 |------|----------------|
-| `contrast-audit.mjs` | WCAG AA for every popup/options/library status + text pair |
-| `css-region-audit.mjs` | `@generated:ui-themes` regions have not been hand-edited |
-| `ui-token-coverage.mjs` | Every consumed `--pp-*` / `--opt-*` / `--lib-*` token is defined |
+| `contrast-audit.mjs` | WCAG AA (text) / 3:1 (icons, borders) for every popup/options/library status/text pair AND the component-pair table (`btn-fg`×`btn-bg`, `chip-fg`×`chip-bg`, `danger-quiet-fg`×`bg`/`panel`, `on-danger`×`danger`, `border`×`btn-bg`/`panel`, …) — see `README.md`'s "Contrast guard" section for the full pair list |
+| `css-region-audit.mjs` | Neither `@generated:ui-themes` NOR `@generated:ui-components` has been hand-edited — one generic check over all six regions, no new region needs new audit code |
+| `ui-token-coverage.mjs` | Every consumed `--pp-*` / `--opt-*` / `--lib-*` token (including ones only consumed inside `@generated:ui-components`) resolves to a definition per theme |
+| `recipe-lint.mjs` | Static checks on `ui-components.mjs` itself — paired-color law, chip geometry, the spacing-adapter mapping matches each surface's real `:root` values, no bare `--sp-*` reference, no fallback `var()`, press-is-instant, ≤200ms motion budget, roundness laws. Only relevant if you're editing the recipe itself, not authoring a tokens-only theme |
+| `scripts/ui-render-audit.mjs` (repo root) | The completeness authority — an independent, **hand-written** playwright oracle (`tests/render-audit-checklist.mjs`) that reads real `getComputedStyle`, never generated from the recipe. A brand-new theme rarely needs to touch this; it exists to catch a component the recipe forgot to register, which a same-source check couldn't |
 
-All three run inside `sync-all`; the pre-commit hook runs the site-side five
-(`diff-all --strict`, `token-coverage`, `cascade-lint`, `override-drift`,
-`handedit-audit`), so a UI-region change still needs a `sync-all` pass before
-you commit. **Do not hand-edit the `@generated:ui-themes` regions** in
-`popup.css`, `options.css`, or `library.css` — they will be overwritten on
-the next `sync-all`.
+All except the render oracle run inside `sync-all`; the render oracle runs
+inside `scripts/verify.sh`'s separate `[render-audit]` section (playwright +
+an unpacked-extension launch is too slow for the tight `sync-all` inner
+loop). The git pre-commit hook only runs the site-side five (`diff-all
+--strict`, `token-coverage`, `cascade-lint`, `override-drift`,
+`handedit-audit`), so a UI-region change still needs a `sync-all` pass
+before you commit. **Do not hand-edit either generated region** in
+`popup.css`, `options.css`, or `library.css` — both will be overwritten on
+the next `sync-all`. Component design authority for the structure region:
+`docs/theme-surface/COMPONENTS.md`.
 
 ---
 
@@ -290,14 +354,23 @@ node docs/theme-surface/tools/override-drift.mjs     # bare overrides on scoped 
 node docs/theme-surface/tools/token-coverage.mjs     # missing token definitions
 ```
 
-`sync-all` is the orchestrator — it runs `render-all`, `apply-tokens` × N,
-`diff-all --strict`, `contrast-audit`, `layout-lint`, and `url-lint`, plus
-the three UI gates from §6 above. The other three are independent checks the
-pre-commit hook also runs.
+`sync-all` is the orchestrator — 10 steps: `render-all`, `apply-ui-themes
+--write` (both UI regions), `apply-tokens` × 13, `diff-all --strict`,
+`contrast-audit`, `css-region-audit`, `ui-token-coverage`, `layout-lint`,
+`url-lint`, `recipe-lint`. The other three commands above are independent
+checks the pre-commit hook also runs; `css-region-audit` /
+`ui-token-coverage` / `contrast-audit` / `recipe-lint` additionally run
+standalone inside `scripts/verify.sh`'s `[theme]` section (CI-gated) — see
+§6 above for what each of those four (plus the separate render oracle,
+`scripts/ui-render-audit.mjs`) checks.
 
-The pre-commit hook runs all four automatically when any `composers/`,
-`pilots/*.tokens.json`, or `tools/*.mjs` file is staged. Do not bypass with
-`--no-verify` — if a check fires it's a real bug.
+The pre-commit hook runs the four commands above automatically when any
+`composers/`, `pilots/*.tokens.json`, or `tools/*.mjs` file is staged — it
+does NOT run the four §6 UI gates or the render oracle (those need a real
+`sync-all` pass and, for the oracle, an unpacked-extension launch — both too
+slow for a commit-time hook). A tokens-only theme addition still needs a
+manual `sync-all` (or full `verify.sh`) pass before committing. Do not
+bypass any of this with `--no-verify` — if a check fires it's a real bug.
 
 ---
 
@@ -434,12 +507,22 @@ It is fully regenerated on every `sync-all` invocation from composer output +
 per-theme tokens. Any rule you add directly will be silently overwritten the
 next time sync-all runs.
 
-**`popup.css` / `options.css` / `library.css` `@generated:ui-themes` regions**
-are likewise factory output — written by `apply-ui-themes.mjs` from the pilot
-palettes.
-Do not edit between the `/* @generated:ui-themes */` and
-`/* @end:ui-themes */` markers; `css-region-audit` will catch the drift and
-block the commit.
+**`popup.css` / `options.css` / `library.css` each carry TWO generated
+regions**, both factory output, both written by `apply-ui-themes.mjs`, each
+with its own independent sentinel pair (never share one — see §6):
+
+```
+/* @generated:ui-themes start — do not edit; produced by composers/<surface>-chrome.mjs */
+...
+/* @generated:ui-themes end */
+
+/* @generated:ui-components start (<surface>) */
+...
+/* @generated:ui-components end (<surface>) */
+```
+
+Do not hand-edit inside either pair; `css-region-audit.mjs` iterates both
+kinds generically and blocks the commit on any drift.
 
 If you need a rule that doesn't fit the composer:
 
@@ -447,10 +530,19 @@ If you need a rule that doesn't fit the composer:
   (or `_patterns.mjs` if it should be opt-in per theme).
 - **Pinboard site theme, one theme only** → add it to that theme's
   `pilots/<slug>.tokens.json` `overrides.css` string.
-- **Extension UI chrome** → edit `composers/popup-chrome.mjs`,
-  `composers/options-chrome.mjs` or `composers/library-chrome.mjs` (or
-  `composers/_ui-derive.mjs` for shared derivation logic), then re-run
-  `sync-all`.
+- **Extension UI chrome colors, one theme** → that theme's pilot `ui`
+  block (§6) — this is almost always the right layer, not a composer edit.
+- **Extension UI chrome colors, all themes** → edit
+  `composers/popup-chrome.mjs`, `composers/options-chrome.mjs` or
+  `composers/library-chrome.mjs` (or `composers/_ui-derive.mjs` for shared
+  derivation logic), then re-run `sync-all`.
+- **Extension UI component structure (geometry, not color), any/all
+  surfaces** → edit `composers/ui-components.mjs` against
+  `docs/theme-surface/COMPONENTS.md`'s spec, then re-run `sync-all`. Never
+  hand-write a `.btn`/chip/form rule directly into `popup.css` /
+  `options.css` / `library.css` outside the `@generated:ui-components`
+  region — `recipe-lint.mjs` and the render oracle both assume the recipe
+  is the single source.
 
 The `handedit-audit` pre-commit hook detects any rule in
 `pinboard-themes.js` not derivable from the composer pipeline and

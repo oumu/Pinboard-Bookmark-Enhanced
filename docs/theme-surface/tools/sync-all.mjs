@@ -1,14 +1,25 @@
 #!/usr/bin/env node
 // sync-all — one-shot orchestrator for the theme-factory pipeline.
 //
-// Runs in order:
-//   1. pilots/render-all.mjs     — regenerate all <slug>.generated.css
-//   2. tools/apply-tokens.mjs <slug> --write --force × 13 — push generated
+// Runs in order (10 steps; see the numbered console.log lines below for the
+// authoritative list — this comment summarizes, it is not the source of
+// truth):
+//   1. pilots/render-all.mjs         — regenerate all <slug>.generated.css
+//   2. tools/apply-ui-themes.mjs --write — write BOTH generated regions
+//      (@generated:ui-themes + @generated:ui-components) into popup.css /
+//      options.css / library.css
+//   3. tools/apply-tokens.mjs <slug> --write --force × 13 — push generated
 //      blocks into pinboard-themes.js
-//   3. tools/diff-all.mjs        — final drift verification (must report 0/0)
+//   4. tools/diff-all.mjs --strict   — drift verification (must report 0/0)
+//   5. tools/contrast-audit.mjs      — WCAG AA / component-pair gate
+//   6. tools/css-region-audit.mjs    — all 6 generated regions un-hand-edited
+//   7. tools/ui-token-coverage.mjs   — every consumed --pp-*/--opt-*/--lib-*
+//      token resolves per theme
+//   8. tools/layout-lint.mjs         — advisory warnings + hard blockers
+//   9. tools/url-lint.mjs            — hardcoded URL drift
+//  10. tools/recipe-lint.mjs         — ui-components.mjs single-source checks
 //
-// Exit code: 0 on full success (rendered + applied + drift==0), 1 on any
-// step failure or non-zero drift.
+// Exit code: 0 when every step above passes, 1 on any step failure.
 //
 // Usage:
 //   node docs/theme-surface/tools/sync-all.mjs
