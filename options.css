@@ -983,14 +983,26 @@ html.motion-ready #preset-preview-section > summary::after {
 /* Hover is where the eye may show a fill -- a pointer affordance, and not a
    state the rest/focus invariant covers. */
 .key-toggle:hover { background: color-mix(in srgb, var(--opt-fg) 8%, var(--opt-input-bg)); border-radius: var(--opt-radius-sm); }
-/* Focus = a 2px accent underline inside the eye's own box (§8 law 6). This
-   used to paint a ghost FILL, which turned the eye into a chip visibly
-   sitting on top of the field instead of a segment of it -- the round-5
-   rejection ("眼睛段看着独立不融合"). An inset shadow tints no background,
-   changes no geometry, and moves the icon by 0px. */
+/* Focus = the project's standard button ring (§7.3), pulled INSIDE the eye's
+   own box with a negative offset so it never reaches the capsule edge and
+   never competes with the container's own :focus-within ring.
+   Two earlier attempts are recorded here because both were rejected on
+   sight and neither is worth re-inventing:
+     - a 10% ghost FILL (round 5) made the eye read as a chip sitting on top
+       of the field rather than a segment of it;
+     - a 2px accent UNDERLINE (`box-shadow: inset 0 -2px 0`, round 6) was
+       invented vocabulary -- the user's reaction was literally "是什么？？？".
+       It also caused the faint vertical hairline the same review flagged:
+       measured on the 3x captures, that inset shadow leaked a single
+       device-pixel column of dim accent up the button's right edge
+       (rgb(25,77,25) at x=1957 on terminal, absent in the same column at
+       rest) -- a sub-pixel artifact of an inset shadow on a fractionally
+       positioned box. Both defects had this one declaration as their cause.
+   An outline paints no shadow geometry, so neither problem can recur. */
 .key-toggle:focus-visible {
-  outline: none;
-  box-shadow: inset 0 -2px 0 var(--opt-accent);
+  outline: 2px solid var(--opt-accent);
+  outline-offset: -2px;
+  border-radius: var(--opt-radius-sm);
 }
 
 /* ============================================================

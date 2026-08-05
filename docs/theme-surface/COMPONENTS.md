@@ -675,8 +675,12 @@ chevron 探出边框——根因是同一处：一条 id 选择器规则把水�
    - **禁止改任何 `background-color`**（容器与内部件都不许），focus 前后同值。字段在聚焦时变白
      读起来是「控件换了材质」，不是「获得焦点」；
    - **内部件不许用底色标示焦点**——一块填充会让它从「单元的一段」变成「浮在单元里的一颗 chip」，
-     这正是眼睛钮被打回的原因。要标示当前段，用**内嵌下划线**
-     （`box-shadow: inset 0 -2px 0 var(--{ns}-accent)`）：不占布局、不动图标、不碰背景。
+     这正是眼睛钮被打回的原因。要标示当前段，用**项目统一的按钮焦点环**（§7.3 `button` 套）
+     并以负 offset 收进内部件自己的盒内：`outline: 2px solid var(--{ns}-accent); outline-offset: -2px`。
+     不占布局、不动图标、不碰背景，且不会越界与容器的 `:focus-within` 环打架。
+     **不要自造第三种视觉词汇**——本节先后试过 ghost 填充与内嵌下划线，两次都被用户当场否掉
+     （下划线那次的原话是「是什么？？？」）。另外，`box-shadow` 在分数定位的小盒上会沿边缘漏出
+     一列设备像素的细线（实测：眼睛钮右缘 `rgb(25,77,25)`，聚焦时才出现），`outline` 无此问题。
    - hover **不受**本律约束（它是指针可供性，且不会与焦点态混淆），ghost 底色留给 hover。
 
    两份参考实现都印证这条：Primer 与 Pico 的分组配方在聚焦时**都只动环与边框颜色，从不动填充**。
@@ -693,8 +697,9 @@ chevron 探出边框——根因是同一处：一条 id 选择器规则把水�
 **本仓库的适配**（两份参考都没有、必须自己判定的部分）：颜色全部换成 `--{ns}-*` token；
 焦点环取本仓库既有的 `--{ns}-focus-ring` / `--{ns}-focus-bd`（Pico 用 `:has()` 换 CSS 变量，
 本仓库用 `:focus-within` 直接换值，效果等价且不依赖 `:has()` 支持度）；
-「当前是哪一段」改用**内嵌下划线**——两份参考在这一点上都只做到「段不画自己的环」而没有正面回答
-「那用户怎么知道焦点在哪一段」，下划线是本仓库对这个缺口的补充（律 6）。
+「当前是哪一段」用**收进盒内的标准焦点环**——两份参考在这一点上都只做到「段不画自己的环」，
+没有正面回答「那用户怎么知道焦点在哪一段」。本仓库对这个缺口的答案是**复用既有语言**
+（§7.3 的 button 环 + 负 offset），不是发明新的：自造视觉词汇的两次尝试都被用户否掉（律 6）。
 
 ```css
 /* 容器（字段型：有文本录入。按钮组型见下方差异说明） */
@@ -723,8 +728,8 @@ chevron 探出边框——根因是同一处：一条 id 选择器规则把水�
 }
 .<unit> > .<seg>:hover:not(:disabled)  { background: color-mix(in srgb, var(--{ns}-fg) 6%, var(--{ns}-input-bg)); }
 .<unit> > .<seg>:active:not(:disabled) { transform: none; background: color-mix(in srgb, var(--{ns}-fg) 10%, var(--{ns}-input-bg)); transition-duration: 0s; }
-/* 律 6：聚焦不碰填充，用内嵌下划线说明「焦点在这一段」 */
-.<unit> > .<seg>:focus-visible         { outline: none; box-shadow: inset 0 -2px 0 var(--{ns}-accent); }
+/* 律 6：聚焦不碰填充；用收进盒内的标准焦点环说明「焦点在这一段」 */
+.<unit> > .<seg>:focus-visible         { outline: 2px solid var(--{ns}-accent); outline-offset: -2px; }
 ```
 
 **图标居中**：内部件是 icon-only 按钮时，**继承 `.btn` 的 `inline-flex` 居中，另加 `gap: 0`**，
@@ -930,6 +935,8 @@ focus 走 §7.3 的按钮套（`outline: 2px solid var(--{ns}-accent); outline-o
 | C32 | 融合控件全类清查与统一修复（`.vocab-group-unit` ×2 + `.vocab-sort-seg`（library）、`.key-wrap` ×19（options）、`.secret-field`（popup））——**USER CHECKPOINT 2026-08-05，分组行第四次打回**：「focus 环钻到 + 按钮底下；不聚焦时是三种边框风格拼起来的」，并点明「同类型的问题肯定不止这一处」。三表面全类清查见 §8.5 | **`.vocab-group-unit`**：容器零 chrome，输入框自带 `--lib-input-border` 1px 边框 + 圆角 + 底色，两颗步进钮是 `.btn.btn-sm`、自带 `--lib-border` 1px 边框——实测默认表面 `rgb(213,213,218)` vs `rgb(144,144,159)`，**同一颗 215px 控件里两道接缝是两个颜色两种粗细**；focus 环 `outline: 2px solid accent; outline-offset: 1px` 画在**输入框**上，实测右边缘距容器右缘还差 53px（批量条）/ 158px（详情面板），后半截直接钻进两颗按钮的不透明 `.btn` 底色下面。**`.vocab-sort-seg`**：同形，且**分隔线颜色由 `aria-pressed` 驱动**（选中格 `border-color` 混 45% accent），点一下排序方向，接缝就换个颜色。**`.key-wrap` / `.secret-field`**：律 1 本就满足（只有输入框画 chrome），但眼睛钮自绘 2px 环，实测越过字段右边框 1px（options）/ 1px + 顶部 2px（popup） | 三者统一到 §8 配方：容器唯一持有 border/radius/background + `overflow: hidden` 裁角；内部件 `border: 0`、`border-radius: 0`、`background: transparent`、`outline: none`；分隔线单色 1px 由内部件 `border-left` 提供；focus 环走 `:focus-within` 画在容器上（字段型用 `--lib-focus-bd` + `--lib-focus-ring`，按钮组型用 `outline: 2px solid accent; offset 2px`）；内部件按压 `transform: none` + 背景加深瞬时（律 4）。`.key-wrap`/`.secret-field` 只改律 2：`:focus-within` 把环画到输入框（= 单元视觉框），眼睛钮改 ghost 底色标示当前段 | **library**：分组行与排序段在 16 套主题下**全部**可见变化——静息态从「三段拼接」变成单边框胶囊（步进钮的独立边框与圆角消失，接缝统一到 `--lib-input-border` / `--lib-border` 单色 1px）；focus 态从「半截环」变成包住整颗控件的柔光环/描边环；步进钮 hover 从整颗 `.btn` 换底变成 6% ghost 混色，按压从 `scale(0.97)` 变成 10% 背景加深（缝隙不再被撑开）。步进钮前景 `--lib-btn-fg` → `--lib-fg`（同一底色下派生正确的那个，见 §8.3）。**详情面板实例另有一处布局修正**：它是 `flex: 1 1 200px` 解析到 320px 的弹性项，而内容只用 215px——容器加上 chrome 之后那 105px 空白会显形成「`-` 之后还有一截空胶囊」，故给内部输入框补 `flex: 1 1 auto` 吸收余量（批量条实例本就有 `flex: 1 1 120px`，无变化）。排序段的选中格填充保留（那是选中态本身，非 chrome），但其 `border-color` 覆盖删除。**options**：19 个密钥字段的眼睛钮 focus 从 2px accent 环变成 10% ghost 底色 + 字段整体亮环；`html[data-theme] .key-toggle:focus-visible { outline-color }` 随之删除（基类已 `outline-style: none`，它变成死代码）。**popup**：`.secret-field` 同上。**popup 的 `html[data-theme] .login-body .key-toggle { background: transparent }` 必须保留**——施工中一度当作基类重复项删掉，实测 dracula/terminal 下眼睛图标后面立刻出现一块不透明 `--pp-bg2` 方块：它压制的是两行之上的 `html[data-theme] .login-body button`（(0,3,1) 赢 (0,2,2)），不是重复声明；新加的 focus 规则改用 `.login-body .secret-field .key-toggle:focus-visible` (0,4,0) 取胜，而不是靠删它让路 | 2026-08-05 融合控件清查 |
 
 | C33 | 融合控件第五轮：图标居中 + rest↔focus 状态稳定（`.vocab-group-unit`、`.vocab-sort-seg`、`.key-wrap` ×19、`.secret-field`、`.tags-input-wrap`）——**USER CHECKPOINT 2026-08-05，第五轮打回**：加减号视觉不居中；`.secret-field`/`.key-wrap` 聚焦时「底色变白、眼睛图标偏移、眼睛段看着独立不融合」。同时下达方法整改令：禁止再手造配方，移植成熟参考实现（见 §8.3 出处表，Primer CSS + Pico.css，均 MIT） | **图标**：`.vocab-group-step` 用 `display: inline-grid; place-items: center`，而 `shared.js:112` 的 `setBtnIcon` 恒发射空 label span → 实测 `grid-template-rows: 14px 0px`，图标偏上 **2.00px**（批量条那对是静态单子节点 HTML，`18px`，从来不偏——同 CSS 不同 DOM，所以只有 JS 构建的那对出问题）。**底色**：`popup.css` 的 `.login-body input:focus` / `.tags-input-wrap:focus-within` 及各自 themed 分身在聚焦时把底换成 `--pp-input-focus-bg`，实测默认表面 `rgb(238,241,245)`→`rgb(255,255,255)`、terminal `rgb(17,17,17)`→`rgb(13,26,13)`。**眼睛段**：`.key-toggle:focus-visible` 画 10% ghost 填充（实测 options `color(srgb 0.92 0.92 0.92)`、terminal `color(srgb 0.08 0.16 0.08)`），一块不透明色块浮在字段上 | 图标：删 `inline-grid`/`place-items`，继承 `.btn` 的 `inline-flex` 居中并加 `gap: 0`（`.btn` 自带的 4px gap 会为空 span 留位、把图标左推 2px）。同一处理同步给 `.vocab-sort-btn`（它今天不暴露该差异，但共享形状可防复发）。底色：四条聚焦规则一律去掉 `background`（`--pp-input-focus-bg` **token 保留**——它仍派生 `--pp-focus-bd`，也仍填充非融合的普通输入框）。眼睛段与步进段的焦点标示改为 `box-shadow: inset 0 -2px 0 var(--{ns}-accent)` 内嵌下划线；ghost 填充移到 hover（`.key-toggle:hover` 新增，此前只改文字色） | **library**：详情面板两颗步进钮图标下移 2px 归正（16 主题；批量条那对本就正确，无变化）；步进/排序段的焦点标示从 10% 灰底改为 2px accent 下划线；排序段原先「选中+聚焦」加深填充的那条规则删除（改由下划线叠在选中填充上区分，四种组合仍可辨）。**popup**：`.secret-field` 与 `.tags-input-wrap` 聚焦时**不再变底色**（14 态全部可见变化——这是用户点名的那条）；眼睛钮新增 hover ghost 底、焦点改下划线。**options**：`.key-wrap` ×19 同上；眼睛钮新增 hover ghost 底。**未改**：`.field > input:focus`、`.search-field:focus` 两处普通输入框仍保留聚焦变底色——它们不是融合控件，不在律 6 管辖内，动它们属范围外 | 2026-08-05 第五轮 |
+
+| C34 | 融合控件第六轮：内部件焦点环归一 + 眼睛右缘细线消除（`.key-toggle` ×2 家、`.vocab-group-step`、`.vocab-sort-btn`）——**USER CHECKPOINT 2026-08-05，放大截图后两项**：① 对内嵌下划线的反应是「是什么？？？」——自造视觉词汇不成立；② 眼睛与胶囊右缘之间有一条微弱竖线，浅色与 terminal 都能看到 | 两项**同一个根因**：C33 引入的 `box-shadow: inset 0 -2px 0 var(--{ns}-accent)`。下划线本身是发明出来的词汇，用户读不出含义；而同一条 inset 阴影在分数定位的小盒上还会沿右边缘漏出**一列设备像素**——3x 采集图逐列扫描实测：terminal 聚焦态 x=1957 为 `rgb(25,77,25)`（暗 accent），**同一列在静息态是 `rgb(17,17,17)` 纯背景**，即该细线只在聚焦态出现，位置正好是眼睛钮右边缘、距胶囊边框 3 CSS px | 四处一律改用 §7.3 的 button 焦点环并以负 offset 收进自己的盒内：`outline: 2px solid var(--{ns}-accent); outline-offset: -2px`（两家 `.key-toggle` 另加 `border-radius: var(--{ns}-radius-sm)` 让环是圆角）。`outline` 不产生阴影几何，两个缺陷同时消失。§8 律 6 与 §8.3 配方同步改写，并把「不要自造第三种视觉词汇」写进条文 | 四处内部件聚焦态在 16 套主题下全部可见变化：下划线 → 收在盒内的 2px accent 圆角环；眼睛右缘的细线消失。**取证**：`screens/state-matrix/zoom-eye-200/` 的 200% 裁剪 + 逐列像素扫描——修后 `focus-input` 态该列恢复为纯背景 `rgb(17,17,17)`，`focus-adornment` 态该列是满强度 `rgb(51,255,51)`（即刻意的环，不是 1px 残影）。静息/hover 态本就无细线（修前即已实测确认），故不受影响 | 2026-08-05 第六轮 |
 
 **偏离实施计划之处**（Task 9/10 以本规范为准，但需知晓）：
 

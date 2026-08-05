@@ -1243,15 +1243,15 @@ html[data-theme="rose-pine"] .vocab-filter-toolbar select {
   color: var(--lib-accent);
   background: color-mix(in srgb, var(--lib-accent) 12%, var(--lib-btn-bg));
 }
-/* Same underline as .vocab-group-step -- one focus language for every
+/* Same inset ring as .vocab-group-step -- one focus language for every
    segment. It stacks cleanly on the pressed state instead of competing with
-   it: pressed is a fill + accent icon, focus is an underline, so all four
+   it: pressed is a fill + accent icon, focus is a ring, so all four
    combinations (rest/pressed x unfocused/focused) stay distinguishable
    without focus ever touching a fill. A colour swap could not do that --
    the pressed cell is already accent-coloured. */
 .vocab-sort-seg > .vocab-sort-btn:focus-visible {
-  outline: none;
-  box-shadow: inset 0 -2px 0 var(--lib-accent);
+  outline: 2px solid var(--lib-accent);
+  outline-offset: -2px;
 }
 /* Stats strip: read-only counts + two clickable status-filter chips. Same
    quiet-muted-text register as .notes-count; the two chip buttons join the
@@ -1491,18 +1491,20 @@ html.motion-ready .vocab-batch-bar.selecting {
   background: color-mix(in srgb, var(--lib-fg) 10%, var(--lib-input-bg));
   transition-duration: 0s;
 }
-/* Ring is the shell's; the segment only says WHICH one holds focus, with a
-   2px accent underline drawn INSIDE its own box (inset shadow, so it costs
-   no layout and moves nothing). §8 law 6 (round 5): a segment may not
-   repaint its background on focus -- a fill makes it read as a chip floating
-   inside the unit instead of part of it, which is exactly what got the eye
-   button rejected. Pico's group model reaches the same place from the other
-   side (`button:focus { box-shadow: none }` inside a group): the segment
-   surrenders its own indicator to the shell. Hover still fills; hover is not
-   covered by the rest/focus invariant. */
+/* The shell keeps its :focus-within ring; the segment says WHICH one holds
+   focus with the project's STANDARD button ring (§7.3), pulled inside its
+   own box by a negative offset so it stays clear of the shell's chrome.
+   Two rejected predecessors, recorded so neither gets re-invented:
+   a 10% ghost FILL (round 5) made a segment read as a chip floating inside
+   the unit -- and §8 law 6 forbids repainting a segment's background on
+   focus anyway; then a 2px accent UNDERLINE (round 6) was invented
+   vocabulary the user could not read ("是什么？？？") and its inset shadow
+   also leaked a one-device-pixel hairline up the box's right edge. An
+   outline has no shadow geometry and is the language already used
+   everywhere else. Hover still fills; hover is not covered by law 6. */
 .vocab-group-unit > .vocab-group-step:focus-visible {
-  outline: none;
-  box-shadow: inset 0 -2px 0 var(--lib-accent);
+  outline: 2px solid var(--lib-accent);
+  outline-offset: -2px;
 }
 .vocab-batch-cluster { display: inline-flex; gap: var(--lib-sp-1); flex: none; }
 .vocab-main-status {

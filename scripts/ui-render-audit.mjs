@@ -195,6 +195,10 @@ function probeSelector({ selector, compareSelector, extraBgVarName, childSelecto
         isActiveElement: document.activeElement === f,
         outlineStyle: fcs.outlineStyle,
         outlineWidth: parseFloat(fcs.outlineWidth) || 0,
+        // Load-bearing: fusedFocusRing now allows a segment's own ring but
+        // requires it to be INSET. Without this field that comparison reads
+        // `undefined >= 0` === false and the check silently never fires.
+        outlineOffset: parseFloat(fcs.outlineOffset) || 0,
         boxShadow: fcs.boxShadow,
       };
     } else {
@@ -711,8 +715,21 @@ function evaluateCheck(check, raw, theme) {
     if (raw.focusedSelf && raw.focusedSelf.found === false) bad.push(`focus target ${raw.focusedSelf.sel} not found`);
     else if (raw.focusedSelf) {
       if (!raw.focusedSelf.isActiveElement) bad.push(`${raw.focusedSelf.sel} is not document.activeElement`);
-      if (raw.focusedSelf.outlineStyle !== "none" && raw.focusedSelf.outlineWidth > 0) {
-        bad.push(`${raw.focusedSelf.sel} draws its OWN ${raw.focusedSelf.outlineWidth}px outline inside the unit`);
+      // The segment MAY carry the standard button ring to say which piece
+      // holds focus (user ruling, round 6: an invented per-segment vocabulary
+      // -- a fill, then an underline -- was rejected twice; the answer is the
+      // language used everywhere else, not a new one). What it may not do is
+      // let that ring grow OUTWARD, where it would cross the shell's chrome
+      // and collide with the shell's own :focus-within ring. So the rule is
+      // no longer "no outline" but "any outline must be inset".
+      if (raw.focusedSelf.outlineStyle !== "none" && raw.focusedSelf.outlineWidth > 0
+          && raw.focusedSelf.outlineOffset >= 0) {
+        bad.push(`${raw.focusedSelf.sel} draws a ${raw.focusedSelf.outlineWidth}px outline at offset `
+          + `${raw.focusedSelf.outlineOffset}px -- a segment's ring must be inset (negative offset) so it stays inside the unit`);
+      }
+      if (raw.focusedSelf.boxShadow && raw.focusedSelf.boxShadow !== "none") {
+        bad.push(`${raw.focusedSelf.sel} paints its own box-shadow (${raw.focusedSelf.boxShadow}) -- `
+          + `inset shadows on fractionally positioned segments leak sub-pixel hairlines, use an inset outline`);
       }
     }
     out.push(verdict("fusedFocusRing", bad.length === 0, bad.length ? bad.join("; ") : `shell ring ok (${hasOutline ? `outline ${raw.outlineWidth}px @${raw.outlineOffset}` : "box-shadow"})`, true));
