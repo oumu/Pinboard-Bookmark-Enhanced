@@ -80,6 +80,11 @@
      Lower it and the grid's own max width together or the double-centring
      comes straight back. */
   --lib-canvas-max: 1164px;
+  /* Seam strength (see .vocab-note-save::before). Equal mix percentages do
+     NOT give equal contrast on a near-white and a near-black panel, so the
+     dark themes take their own value below; both land around 1.5:1 against
+     the panel, which is the hairline register (a structural border is 3:1). */
+  --lib-seam-mix: 20%;
   --lib-radius-sm: 4px;
   --lib-radius-md: 8px;
   --lib-radius-lg: 12px;
@@ -1172,6 +1177,13 @@ html[data-theme="rose-pine"] .xp-dict-lang {
    input's trailing edge -- measured gap 25px->368px between 1280 and 1600px
    viewports. Capping the row instead caps everything in it; the input's
    flex:1 1 auto fills the now-bounded row and the button stays flush. */
+/* One child now (v2b moved Save into the pane's closing row), so the field
+   fills the reading column instead of stopping short of a reserved button
+   slot. Kept as a flex row rather than collapsed to the bare textarea: the
+   textarea's own `flex: 1 1 auto` is what makes it fill, and swapping the
+   display would mean re-deriving its width -- which is the mockup's known
+   trap (a `width: 100%` textarea overshoots this content-box surface by its
+   own padding+border). */
 .vocab-note-edit { display: flex; gap: var(--lib-sp-4); align-items: flex-start; margin-top: var(--lib-sp-2); }
 .vocab-note-input {
   flex: 1 1 auto; min-width: 0; resize: vertical;
@@ -1222,6 +1234,41 @@ html.motion-ready .vocab-note-save {
   transition: opacity var(--motion-pop) var(--ease-out),
               translate var(--motion-pop) var(--ease-out),
               visibility var(--motion-pop) var(--ease-out);
+}
+/* Save sits at the right end of the closing row, separated from the
+   destructive control beside it. Twice the row's own 8px gap, on top of it:
+   a delete and a commit should not read as two halves of one control. */
+.vocab-detail-footer > .vocab-note-save {
+  position: relative;                 /* containing block for the seam */
+  margin-left: var(--lib-sp-4);
+}
+/* The seam (user-confirmed final form). NOT a border token: --lib-border is
+   the 3:1 AA-derived STRUCTURAL edge, and a full-weight rule between two
+   buttons reads as a frame around one of them -- the rejected predecessor
+   did exactly that. COMPONENTS.md §9 law 4 already applies this to
+   .vocab-sort-seg's cell seam: a seam divides, it does not frame, so it is
+   the panel's own fill nudged toward the foreground and it re-derives per
+   theme for free.
+   Height is 60% of the sm rung's 20px box, leaving an equal 4px shoulder top
+   and bottom -- two equal shoulders read as deliberate inset, a rule that
+   reaches both edges reads as a frame. A percentage would self-derive but
+   resolves against the PADDING box, i.e. silently 54% of what the eye
+   measures, so the 12px is literal on purpose.
+   `left` is measured from the padding box and the button carries a 1px
+   border, so -13px (not -12px) is what puts equal air on both sides of the
+   line inside the 24px band.
+   `visibility` is inherited, so the [hidden] rule above carries the seam in
+   and out with the button -- a divider with nothing after it would be an
+   artefact in the rest state. */
+.vocab-detail-footer > .vocab-note-save::before {
+  content: "";
+  position: absolute;
+  left: calc((var(--lib-sp-3) + 1px) * -1);
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1px;
+  height: 12px;
+  background: color-mix(in srgb, var(--lib-fg) var(--lib-seam-mix), var(--lib-panel));
 }
 
 /* The vocab variant carries a fourth control (status filter). Flex, not a
@@ -1384,6 +1431,17 @@ html.motion-ready .vocab-note-save {
   font-size: 12px;
   line-height: 14px;
 }
+/* Same eight-dark-theme group as the chevron override below: 20% of a dark
+   theme's foreground on its near-black panel reads as a lit bar rather than
+   a seam (measured on terminal, whose fg is a saturated #33ff33). */
+html[data-theme="nord-night"],
+html[data-theme="terminal"],
+html[data-theme="dracula"],
+html[data-theme="flexoki-dark"],
+html[data-theme="solarized-dark"],
+html[data-theme="catppuccin-mocha"],
+html[data-theme="gruvbox-dark"],
+html[data-theme="rose-pine"] { --lib-seam-mix: 24%; }
 /* The dark themes need their own chevron: it is a data URI, so the stroke
    colour cannot come from a token. */
 html[data-theme="nord-night"] .vocab-filter-toolbar select,

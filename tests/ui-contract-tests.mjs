@@ -945,6 +945,30 @@ for (const [file, css, ns] of [["popup.css", popupCss, "pp"], ["options.css", op
   check(!!input && /field-sizing:\s*content/.test(input[1])
     && /min-height:/.test(input[1]) && /max-height:/.test(input[1]) && /resize:\s*vertical/.test(input[1]),
     "library.css: .vocab-note-input lost auto-grow (field-sizing: content) or one of its bounds — without the max-height a 500-char note pushes the rest of the detail pane off-screen");
+  // v2b (USER RULING 2026-08-06): Save is a commit control, so it lives with
+  // the other commit controls at the right end of the pane's closing row --
+  // not hanging off the textarea's trailing edge. Asserted on the JS because
+  // that is where the placement is decided; the zero-shift half is already
+  // guaranteed by the visibility rule above (the box never leaves layout).
+  check(/footer\.appendChild\(noteEditor\.save\)/.test(libraryVocabJs) &&
+    /\.vocab-detail-footer > \.vocab-note-save \{/.test(libraryCss),
+    "library-vocab.js/library.css: the note Save button left the detail pane's closing row");
+  // The seam. It must NOT be a border token: --lib-{border,border-section,
+  // pane-divider} are the 3:1 structural edges, and a full-weight rule
+  // between two buttons frames one of them instead of dividing them — which
+  // is the form the user rejected. It is the panel's own fill nudged toward
+  // the foreground, so it re-derives per theme and can never out-weigh a
+  // real border. Both halves are pinned: the recipe, and the fact that the
+  // dark themes carry their OWN strength (equal mixes are not equally
+  // legible on a near-white and a near-black panel).
+  const seam = /\.vocab-detail-footer > \.vocab-note-save::before \{([^}]*)\}/.exec(libraryCss);
+  check(!!seam && /background:\s*color-mix\(in srgb, var\(--lib-fg\) var\(--lib-seam-mix\), var\(--lib-panel\)\)/.test(seam[1])
+    && !/var\(--lib-(border|border-section|pane-divider)\)/.test(seam[1])
+    && /width:\s*1px/.test(seam[1]) && /height:\s*\d+px/.test(seam[1]),
+    "library.css: the save-button seam is gone, or went back to a structural border token (a 3:1 edge between two buttons reads as a frame around one of them, which is the form that was rejected)");
+  const seamDark = /html\[data-theme="rose-pine"\] \{ --lib-seam-mix: \d+%; \}/.test(libraryCss);
+  check(/--lib-seam-mix:\s*\d+%/.test(libraryCss) && seamDark,
+    "library.css: --lib-seam-mix lost its default or its dark-theme group — one mix percentage cannot be equally legible on a near-white and a near-black panel");
 }
 // Comments stripped first, same as the class-level gate above: BOTH of these
 // name a selector that the surrounding prose also has every reason to

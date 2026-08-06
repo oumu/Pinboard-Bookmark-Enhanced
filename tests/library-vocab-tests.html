@@ -963,6 +963,28 @@ check("selection still covers all filtered results beyond rendered chunks", _voc
       check("a rendered row activates into the detail pane",
         _pbpVocabDetailWordId === "d1" && !detailEl().hidden);
 
+      // Variant C + save v2b: the pane ends in ONE closing row -- re-lookup,
+      // then the destructive action, then Save at the far right -- and the
+      // note editor keeps only the field. Asserted on the built DOM, not just
+      // on the stylesheet, because the placement is decided in the assembly.
+      {
+        const footer = detailEl().querySelector(".vocab-detail-footer");
+        const order = footer ? [...footer.children].map((el) => el.className.split(" ").pop()) : [];
+        check("the detail pane ends in one closing row: re-lookup, delete, save",
+          !!footer &&
+          order.join(",") === "vocab-detail-relookup,vocab-detail-delete,vocab-note-save" &&
+          detailEl().lastElementChild === footer,
+          order.join(","));
+        check("the note editor keeps only its field once Save moved out",
+          detailEl().querySelectorAll(".vocab-note-edit > *").length === 1 &&
+          !!detailEl().querySelector(".vocab-note-edit > .vocab-note-input"));
+        // The zero-shift contract: hidden Save still occupies its slot, so
+        // the first keystroke cannot move the buttons beside it.
+        const save = footer.querySelector(".vocab-note-save");
+        check("a hidden Save still holds its place in the row",
+          save.hidden === true && save.getBoundingClientRect().width > 0);
+      }
+
       // (1) + (4): a mutation rebuilds the whole pane and clears the
       // selection. Half-typed text is the user's, not the store's, and a
       // single-word detail edit is not a batch action over the list.

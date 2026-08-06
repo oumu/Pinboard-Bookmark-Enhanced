@@ -304,6 +304,10 @@ function _pbpVocabBuildRow(w) {
 // copy ("may include ... notes") all existed with no way to type into it.
 // Save is explicit (mutation-at-confirm discipline, same as every other
 // vocab edit); the button only appears once the text actually differs.
+// Returns { wrap, save }: the field stays in the reading flow, the commit
+// button belongs to the pane's closing action row (v2b, user-chosen). They
+// are built together because the save button's whole existence is derived
+// from the field's dirty state.
 function _pbpVocabBuildNoteEditor(w) {
   const noteWrap = document.createElement("div");
   noteWrap.className = "vocab-note-edit";
@@ -352,8 +356,7 @@ function _pbpVocabBuildNoteEditor(w) {
     }
   });
   noteWrap.appendChild(noteInput);
-  noteWrap.appendChild(noteSave);
-  return noteWrap;
+  return { wrap: noteWrap, save: noteSave };
 }
 
 // Shared back button for narrow-mode detail panes -- the word-detail pane
@@ -552,8 +555,11 @@ function _pbpVocabRenderDetail(w, enterNarrow) {
     frag.appendChild(item);
   }
 
-  // 5. Note editor (moved from the old card body)
-  frag.appendChild(_pbpVocabBuildNoteEditor(w));
+  // 5. Note editor. The field goes here, in the reading flow; its Save lands
+  // in the closing row below (v2b) so a commit control sits with the other
+  // commit controls instead of hanging off the textarea's edge.
+  const noteEditor = _pbpVocabBuildNoteEditor(w);
+  frag.appendChild(noteEditor.wrap);
 
   // 6. Dictionary results host. Stays in the READING flow even though the
   // button that fills it now sits in the closing row below: a definition is
@@ -589,6 +595,10 @@ function _pbpVocabRenderDetail(w, enterNarrow) {
   setBtnIcon(del, "trash", t("dictDeleteWord"));
   del.addEventListener("click", () => _pbpVocabDeleteRow(w, del));
   footer.appendChild(del);
+  // Save, at the far right of the row. It stays in layout while hidden
+  // (visibility, not display -- see .vocab-note-save[hidden] in library.css),
+  // so becoming dirty moves nothing else in the row by even a subpixel.
+  footer.appendChild(noteEditor.save);
   frag.appendChild(footer);
 
   detail.replaceChildren(frag);
