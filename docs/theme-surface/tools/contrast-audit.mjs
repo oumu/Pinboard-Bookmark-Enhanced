@@ -41,7 +41,19 @@ export const hexRgb = (h) => {
 };
 export const parseRgba = (s) => {
   const m = s.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
-  return m ? [+m[1], +m[2], +m[3], m[4] !== undefined ? +m[4] : 1] : null;
+  if (m) return [+m[1], +m[2], +m[3], m[4] !== undefined ? +m[4] : 1];
+  // getComputedStyle serialises a resolved `color-mix(in srgb, ...)` as
+  // `color(srgb 0.83 0.89 0.96)`, NOT as rgb() -- so every live probe that
+  // composited a color-mix()ed background (the whole Soft Fill row-band
+  // family) used to parse as null and get silently SKIPPED by
+  // compositeStack, which then read the layer underneath instead. Found
+  // 2026-08-06 by the bandDistinct check, which reported two visibly
+  // different row states as byte-identical. Static token text never contains
+  // this form, so the theme-side audits are unaffected either way.
+  const c = s.match(/^color\(srgb\s+([\d.eE+-]+)\s+([\d.eE+-]+)\s+([\d.eE+-]+)(?:\s*\/\s*([\d.eE+-]+))?\s*\)$/);
+  if (!c) return null;
+  const to255 = (v) => Math.round(Math.min(1, Math.max(0, parseFloat(v))) * 255);
+  return [to255(c[1]), to255(c[2]), to255(c[3]), c[4] !== undefined ? parseFloat(c[4]) : 1];
 };
 export const composite = (fg, alpha, bg) => fg.map((c, i) => Math.round(alpha * c + (1 - alpha) * bg[i]));
 const resolveColor = (s, bg) => {

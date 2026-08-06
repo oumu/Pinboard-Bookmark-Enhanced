@@ -3068,13 +3068,8 @@
     "vocabSettingsSaveFailed": {
       "message": "无法保存刚才修改的集成设置。请检查设置后再试。"
     },
-    "vocabSelectWord": {
-      "message": "选择「$TERM$」",
-      "placeholders": {
-        "term": {
-          "content": "$1"
-        }
-      }
+    "vocabSelectHint": {
+      "message": "Ctrl+点击词条即可选中，Shift+点击选中一段区间"
     },
     "vocabResultCount": {
       "message": "找到 $RESULTS$ 条；当前 Pinboard 账号（$OWNER$）共保存 $TOTAL$ 条",

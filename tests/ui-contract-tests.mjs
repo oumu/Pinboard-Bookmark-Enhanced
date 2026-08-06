@@ -354,14 +354,32 @@ check(["vocab-search", "vocab-group-filter", "vocab-sort", "vocab-group-input", 
   /id="vocab-batch-toolbar"[^>]*role="group"[^>]*aria-label=/.test(libraryHtml) &&
   /id="vocab-selected-count"[^>]*aria-live="polite"/.test(libraryHtml),
   "library.html: production vocabulary controls lost accessible names, groups, or live selection status");
-// Master-detail rows: a row names its checkbox and marks itself as the one
-// the detail pane is showing. It must NOT claim to expand -- there is no
-// body under it any more, so an aria-expanded here would be a lie.
-check(libraryVocabJs.includes('select.setAttribute("aria-label", t("vocabSelectWord", w.term))') &&
+// Master-detail rows: a row reports its own selected state and marks itself
+// as the one the detail pane is showing. It must NOT claim to expand -- there
+// is no body under it any more, so an aria-expanded here would be a lie.
+// The selection half moved off a per-row checkbox onto the row itself
+// (2026-08-06 user ruling), which is why this asserts aria-selected rather
+// than a checkbox label: `aria-selected` is the ONLY thing a screen reader
+// has left, and it is only supported on grid/listbox descendants -- hence the
+// role trio, checked here because a row built with the right attribute inside
+// the wrong container announces nothing at all.
+check(libraryVocabJs.includes('card.setAttribute("aria-selected", isSelected ? "true" : "false")') &&
+  libraryVocabJs.includes('card.setAttribute("role", "row")') &&
+  libraryVocabJs.includes('top.setAttribute("role", "gridcell")') &&
+  /id="vocab-list"[^>]*role="grid"[^>]*aria-multiselectable="true"/.test(libraryHtml) &&
   libraryVocabJs.includes('card.setAttribute("aria-current", "true")') &&
   libraryVocabJs.includes("_pbpVocabOnRowActivate(w)") &&
   !libraryVocabJs.includes("aria-expanded"),
-  "library-vocab.js: production vocabulary rows lost named selection or master-detail activation state");
+  "library-vocab.js/library.html: vocabulary rows lost the grid/aria-selected selection path or master-detail activation state");
+// The keyboard half of that ruling. Ctrl/Shift+click has no keyboard twin
+// unless something intercepts Space BEFORE the button's own activation, so
+// the preventDefault is the contract, not decoration -- without it the row
+// would both select and open, and a keyboard user could never build a
+// multi-row selection at all.
+check(/head\.addEventListener\("keydown"[\s\S]{0,400}e\.preventDefault\(\)[\s\S]{0,120}_pbpVocabRowSelect\(w, true\)/.test(libraryVocabJs) &&
+  /_pbpVocabRowSelect\(w, false\)/.test(libraryVocabJs) &&
+  libraryVocabJs.includes('head.setAttribute("aria-keyshortcuts", "Control+Space Shift+Space")'),
+  "library-vocab.js: the keyboard multi-select path (Ctrl+Space toggle / Shift+Space range, announced via aria-keyshortcuts) is gone");
 check(vocabStore.includes('const _PBP_VOCAB_DB_VERSION = 2'),
   "vocabulary database is upgraded through the dedicated store");
 check(!mdDict.includes('indexedDB.open(_PBP_VOCAB_DB_NAME'),

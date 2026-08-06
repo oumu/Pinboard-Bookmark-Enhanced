@@ -231,6 +231,35 @@ export const CHECKS = [
   { surface: "library", page: "library.html", selector: ".notes-hit", state: "default",
     expect: { insetBand: { minInsetPx: 4, blockInsetPx: 2, radiusVar: "radius-md" } } },
 
+  // ---- 2026-08-06 selection rebuild (user ruling: "取消用 checkbox 标示单词
+  // 被选中，直接用选中项的底色予以区别；注意区别鼠标点击选中（激活详情）和
+  // 多项选中进行操作的状态"). With the checkbox gone, "selected for a batch
+  // action" and "current, i.e. the row the detail pane is reading" are two
+  // accent-tinted fills on the same element -- a token change on any one of
+  // 16 themes could quietly collapse them into one look, and nothing else in
+  // this oracle looks at two states of the same component at once.
+  //
+  // A pair passes on a fill gap of >= minDelta OR on a different marker
+  // (box-shadow/outline), because both are real separators: on some presets
+  // --lib-row-selected-bg and color-mix(accent 10%, bg) land close together
+  // and the accent edge is what tells them apart, while on others there is
+  // no edge and the fill is the whole signal. Asking for both would fail
+  // correct designs; asking for neither is the collapse this entry exists to
+  // catch.
+  //
+  // minTextContrast rides along because the two are one trade-off, not two:
+  // the only way to widen a fill gap is to push the fill, and the label sits
+  // on that fill. Measuring separation without measuring legibility would
+  // reward exactly the wrong fix.
+  //
+  // All FOUR states are probed, including "selected AND current" -- the runner
+  // drives one row through them with the real gestures (Ctrl+click, click,
+  // Ctrl+click) rather than looking for four rows at once, which aria-current's
+  // exclusivity makes impossible anyway. Every pair is compared, so the
+  // combined state cannot silently equal either of its halves either.
+  { surface: "library", page: "library.html", selector: "#vocab-list .vocab-card .notes-card-top", state: "rowStates",
+    expect: { bandDistinct: { minDelta: 24, minTextContrast: 4.5, textSelector: ".notes-card-head" } } },
+
   // ---- COMPONENTS.md §9 law 7 (real tabs). The header's two tabs used to be
   // buttons in tab clothing -- fill, border, radius-md -- which is what the
   // user called out on the grid. Both states are reachable in the default

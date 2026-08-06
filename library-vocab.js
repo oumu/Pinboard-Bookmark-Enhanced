@@ -148,41 +148,66 @@ function pbpVocabSelectRange(selected, rows, anchorId, targetId, checked) {
   return next;
 }
 
+// One selection gesture, four entry points: Ctrl/Cmd+click, Ctrl/Cmd+Space,
+// Shift+click, Shift+Space. `range` sets the whole anchor..target interval to
+// what a plain toggle of THIS row would have produced -- which is what keeps
+// "Shift over an already-selected block deselects it", the semantics the
+// checkbox era got for free from the browser-toggled `checkbox.checked`.
+// The anchor moves to the last operated row either way (unchanged rule).
+function _pbpVocabRowSelect(w, range) {
+  // A batch mutation is mid-flight and owns every row it is about to rewrite;
+  // the checkbox era expressed this as `checkbox.disabled`, which went away
+  // with the checkbox.
+  if (_vocabBatchBusy) return;
+  const want = !_vocabSelected.has(w.id);
+  if (range && _vocabLastSelectedId) {
+    _vocabSelected = pbpVocabSelectRange(_vocabSelected, _vocabViewRows,
+      _vocabLastSelectedId, w.id, want);
+  } else if (want) {
+    _vocabSelected.add(w.id);
+  } else {
+    _vocabSelected.delete(w.id);
+  }
+  _vocabLastSelectedId = w.id;
+  _pbpVocabSyncSelectionUi();
+}
+
+// Master-detail activation: hand the word to the detail pane and mark this row
+// as the current one. Exactly one row carries aria-current, so clear the
+// others first. Split out of the click handler because the same activation is
+// now one of three things a click can mean (see the handler below).
+function _pbpVocabActivateRow(w, card) {
+  _pbpVocabOnRowActivate(w);
+  document.querySelectorAll("#vocab-list .vocab-card[aria-current]").forEach((el) => el.removeAttribute("aria-current"));
+  card.setAttribute("aria-current", "true");
+}
+
 // No render-index parameter any more: its only job was the expandable body's
 // DOM id, and the master-detail row has no body to address.
 function _pbpVocabBuildRow(w) {
   const card = document.createElement("article");
   card.className = "notes-card vocab-card";
-  card.setAttribute("role", "listitem");
+  // role=row + role=gridcell, not listitem (user ruling 2026-08-06: the
+  // per-row checkbox is gone and selection is carried by the row's own fill).
+  // `aria-selected` is only supported on grid/listbox descendants -- declared
+  // on a `listitem` it is invalid ARIA that assistive tech drops silently, so
+  // deleting the checkbox without moving the role would have deleted the
+  // screen-reader path with it. `option` is out: it must be a leaf, and this
+  // row carries two real buttons.
+  card.setAttribute("role", "row");
   card.dataset.vocabId = w.id;
+  const isSelected = _vocabSelected.has(w.id);
+  card.setAttribute("aria-selected", isSelected ? "true" : "false");
+  card.classList.toggle("selected", isSelected); // drives the row accent band
 
   const top = document.createElement("div");
   top.className = "notes-card-top";
-
-  const select = document.createElement("input");
-  select.type = "checkbox";
-  select.className = "vocab-row-select";
-  select.dataset.vocabId = w.id;
-  select.checked = _vocabSelected.has(w.id);
-  card.classList.toggle("selected", select.checked); // drives the row accent band
-  select.setAttribute("aria-label", t("vocabSelectWord", w.term));
-  select.addEventListener("click", (e) => {
-    if (e.shiftKey && _vocabLastSelectedId) {
-      _vocabSelected = pbpVocabSelectRange(_vocabSelected, _vocabViewRows,
-        _vocabLastSelectedId, w.id, select.checked);
-    } else if (select.checked) {
-      _vocabSelected.add(w.id);
-    } else {
-      _vocabSelected.delete(w.id);
-    }
-    _vocabLastSelectedId = w.id;
-    _pbpVocabSyncSelectionUi();
-  });
-  top.appendChild(select);
+  top.setAttribute("role", "gridcell");
 
   const head = document.createElement("button");
   head.type = "button";
   head.className = "notes-card-head";
+  head.setAttribute("aria-keyshortcuts", "Control+Space Shift+Space");
 
   const main = document.createElement("span");
   main.className = "notes-card-main";
@@ -248,13 +273,26 @@ function _pbpVocabBuildRow(w) {
   top.appendChild(delBtn);
   card.appendChild(top);
 
-  // Master-detail: the head no longer discloses a body of its own, it hands
-  // the word to the detail pane and marks itself as the current row. Exactly
-  // one row carries aria-current, so clear the others first.
-  head.addEventListener("click", () => {
-    _pbpVocabOnRowActivate(w);
-    document.querySelectorAll("#vocab-list .vocab-card[aria-current]").forEach((el) => el.removeAttribute("aria-current"));
-    card.setAttribute("aria-current", "true");
+  // Desktop list grammar: a plain click reads the row (activation), a
+  // modified click selects it for the batch bar. The two are deliberately
+  // separate verbs -- selecting must NOT move the detail pane, or building a
+  // 20-row selection would re-render the right pane 20 times.
+  head.addEventListener("click", (e) => {
+    if (e.shiftKey) { _pbpVocabRowSelect(w, true); return; }
+    if (e.ctrlKey || e.metaKey) { _pbpVocabRowSelect(w, false); return; }
+    _pbpVocabActivateRow(w, card);
+  });
+  // Keyboard twins of those two modifiers, so multi-select never requires a
+  // pointer. Space is the button's OWN activation key, so the modified forms
+  // have to be caught on keydown and preventDefault'd -- otherwise the
+  // browser also synthesises the plain click and the row would activate as
+  // well as toggle. Announced through aria-keyshortcuts (below); the visible
+  // hint rides on "Select all"'s title, the one always-present control in the
+  // same region (a title on every row would tooltip the whole list).
+  head.addEventListener("keydown", (e) => {
+    if (e.key !== " " && e.key !== "Spacebar") return;
+    if (e.shiftKey) { e.preventDefault(); _pbpVocabRowSelect(w, true); }
+    else if (e.ctrlKey || e.metaKey) { e.preventDefault(); _pbpVocabRowSelect(w, false); }
   });
 
   return card;
@@ -997,20 +1035,16 @@ function _pbpVocabClearSelection() {
 function _pbpVocabSyncSelectionUi() {
   const validIds = new Set(_vocabViewRows.map((row) => row.id));
   for (const id of [..._vocabSelected]) if (!validIds.has(id)) _vocabSelected.delete(id);
-  // Keep every visible row's checkbox and .selected state in step with the
+  // Keep every visible row's band and aria-selected in step with the
   // selection set (shift-range and select-all mutate rows that were not the
-  // click target).
+  // click target). The two must move together: the fill is the sighted
+  // user's only cue and aria-selected is everyone else's.
   document.querySelectorAll("#vocab-list > .vocab-card").forEach((el) => {
     const on = _vocabSelected.has(el.dataset.vocabId);
     el.classList.toggle("selected", on);
-    const cb = el.querySelector(".vocab-row-select");
-    if (cb && cb.checked !== on) cb.checked = on;
+    el.setAttribute("aria-selected", on ? "true" : "false");
   });
   const selectedCount = _vocabSelected.size;
-  // Selection mode: any active selection keeps every row's checkbox shown
-  // (user-ratified) -- range work must not require hovering rows one by one.
-  const listEl = $id("vocab-list");
-  if (listEl) listEl.classList.toggle("selecting", selectedCount > 0);
   const selectedEl = $id("vocab-selected-count");
   if (selectedEl) selectedEl.textContent = t("vocabSelectedCount", String(selectedCount));
   // Batch bar: shown only while a selection exists; the .selecting class
@@ -1047,10 +1081,6 @@ function _pbpVocabSyncSelectionUi() {
   const learningBtn = $id("vocab-mark-learning");
   if (knownBtn) knownBtn.disabled = _vocabBatchBusy || !selectedCount;
   if (learningBtn) learningBtn.disabled = _vocabBatchBusy || !selectedCount;
-  document.querySelectorAll("#vocab-list .vocab-row-select").forEach((checkbox) => {
-    checkbox.checked = _vocabSelected.has(checkbox.dataset.vocabId);
-    checkbox.disabled = _vocabBatchBusy;
-  });
 }
 
 // How many currently-selected words carry `group`. Reads the rendered view rows,

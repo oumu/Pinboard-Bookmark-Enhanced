@@ -3068,13 +3068,8 @@
     "vocabSettingsSaveFailed": {
       "message": "変更した連携設定を保存できませんでした。設定を確認して、もう一度お試しください。"
     },
-    "vocabSelectWord": {
-      "message": "「$TERM$」を選択",
-      "placeholders": {
-        "term": {
-          "content": "$1"
-        }
-      }
+    "vocabSelectHint": {
+      "message": "Ctrl キーを押しながらクリックで選択、Shift キーを押しながらクリックで範囲選択します"
     },
     "vocabResultCount": {
       "message": "現在の Pinboard アカウント（$OWNER$）：$RESULTS$ 件一致・$TOTAL$ 件保存済み",

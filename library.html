@@ -87,7 +87,11 @@
           <span id="vocab-count" class="notes-count" aria-live="polite"></span>
         </span>
         <div class="vocab-selection-actions" role="group" data-i18n-aria="vocabSelectionActions" aria-label="Selection actions">
-          <button type="button" class="btn btn-sm" id="vocab-select-all" data-i18n="vocabSelectAll">Select all</button>
+          <!-- The multi-select hint lives here, on the one control that is
+               always on screen next to the list: a title on every row would
+               tooltip the whole list, and the batch bar only exists once a
+               selection already does. -->
+          <button type="button" class="btn btn-sm" id="vocab-select-all" data-i18n="vocabSelectAll" data-i18n-title="vocabSelectHint" title="Ctrl-click a row to add it to the selection, Shift-click for a range">Select all</button>
         </div>
         <span class="save-status vocab-main-status" id="vocab-status" role="status" aria-live="polite"></span>
       </div>
@@ -97,7 +101,12 @@
            The bar MUST stay a direct child -- any intermediate wrapper
            becomes its containing block and kills the float range. -->
       <div class="vocab-list-region">
-        <div id="vocab-list" role="list" data-i18n-aria="vocabListAria" aria-label="Saved vocabulary" aria-busy="false"></div>
+        <!-- role=grid, not list: rows are multi-selectable and carry
+             aria-selected, which ARIA only supports on grid/listbox
+             descendants. `option` is out (a row holds two real buttons), so
+             grid is the one valid shape for "rows with controls, many
+             selectable at once". -->
+        <div id="vocab-list" role="grid" aria-multiselectable="true" data-i18n-aria="vocabListAria" aria-label="Saved vocabulary" aria-busy="false"></div>
         <button type="button" class="btn btn-sm vocab-load-more" id="vocab-load-more" hidden>Load more</button>
         <div class="vocab-batch-bar" id="vocab-batch-toolbar" role="group" data-i18n-aria="vocabBatchActions" aria-label="Actions for selected words">
           <span id="vocab-selected-count" class="notes-count" aria-live="polite"></span>

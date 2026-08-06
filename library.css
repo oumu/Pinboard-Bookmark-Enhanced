@@ -1656,7 +1656,13 @@ html.motion-ready .vocab-batch-bar.selecting {
 .vocab-card,
 .vocab-card .notes-card-top { min-width: 0; }
 .vocab-card .notes-card-top {
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  /* Two tracks since the per-row checkbox went away (user ruling 2026-08-06:
+     selection is the row's own fill). The trailing `auto` is NOT vestigial:
+     .row-del-x is position:absolute at desktop, but the @media (hover: none)
+     block puts it back in flow, and that touch layout needs a track to land
+     in. It also keeps the 6px column gap reserved on the right so a long
+     headline does not run under the absolutely-positioned X. */
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 6px; /* options --opt-sp-3 (6px) */
   padding: 3px 6px; /* density pass (Task 2): tighter than --lib-sp-1 (4px), no
     token this small exists yet -- literal like the file's other sub-token
@@ -1671,10 +1677,7 @@ html.motion-ready .vocab-batch-bar.selecting {
 .vocab-card.notes-card { margin-bottom: 3px; }
 /* Collapsed-row rhythm (2026-08 redesign): controls anchor to the TITLE
    line instead of centering against whatever height the row happens to
-   reach -- on a tall card a centered checkbox floated mid-air.
-   The checkbox stays IN FLOW here, unlike options': there it crossfaded with
-   the disclosure chevron parked in the same slot, and the master-detail row
-   has no chevron to trade places with. */
+   reach -- on a tall card a centered control floated mid-air. */
 .vocab-card .notes-card-top { align-items: start; }
 /* COMPONENTS.md §9 law 3 (inset selection). The vocabulary list was the worse
    of the two: square corners AND full-bleed, so a selected row ran edge to
@@ -1689,8 +1692,6 @@ html.motion-ready .vocab-batch-bar.selecting {
    bordered card is two competing arcs 4px apart, and the outer one wins the
    eye, which is the other half of why the inset read as ~2px. */
 .vocab-card .notes-card-top { border-radius: var(--lib-radius-md); margin: 2px 4px; }
-.vocab-row-select { width: 16px; height: 16px; margin: 0; }
-.vocab-card .vocab-row-select { margin-top: 3px; }
 .vocab-card .notes-card-head { align-items: start; }
 /* The row whose word the detail pane is currently showing. Distinct from
    .selected (a batch-operation membership) -- this is "you are here".
@@ -1701,10 +1702,13 @@ html.motion-ready .vocab-batch-bar.selecting {
    .selected band must win the background (batch context stays legible) while
    this rule's accent edge still shows. Both base selectors are (0,3,0) and
    both hover companions below are (0,4,0), so ORDER decides at each tier --
-   .selected's rules come after and win --row-bg; .selected sets no
-   box-shadow, so the aria-current inset edge always survives. Keep the
-   aria-current rules first, and keep the id off every selector here (a
-   #vocab-list prefix would outrank .selected and invert the intent). */
+   .selected's rules come after and win --row-bg. Keep the aria-current rules
+   first, and keep the id off every selector here (a #vocab-list prefix would
+   outrank .selected and invert the intent).
+   box-shadow is the ONE property both states now paint (2026-08-06: .selected
+   gained a ring of its own, see below), so the combined state can no longer
+   be left to source order -- it gets its own (0,4,0) rule that composes both
+   markers explicitly. §8.6's "don't bet on source order", applied. */
 .vocab-card[aria-current] .notes-card-top {
   --row-bg: var(--lib-row-selected-bg);
   box-shadow: inset 2px 0 0 var(--lib-accent);
@@ -1722,9 +1726,31 @@ html.motion-ready .vocab-batch-bar.selecting {
    element that actually paints .notes-row-title, not on the row-bg element. */
 .vocab-card[aria-current] .notes-card-head { color: var(--lib-row-selected-fg); }
 /* Selected rows read as a scannable accent band (declared after :hover so
-   selection wins, with a deeper hover step layered on top). */
-.vocab-card.selected .notes-card-top { --row-bg: color-mix(in srgb, var(--lib-accent, #4477bb) 10%, var(--lib-bg)); }
-.vocab-card.selected .notes-card-top:hover { --row-bg: color-mix(in srgb, var(--lib-accent, #4477bb) 15%, var(--lib-bg)); }
+   selection wins, with a deeper hover step layered on top).
+   TWO SIGNALS, not one, and both were forced by measurement rather than
+   taste. When the per-row checkbox went away (2026-08-06) the fill became the
+   entire "this row is in the batch" cue, and the render oracle's bandDistinct
+   probe reported it was not carrying that weight: at accent 10% the fill sat
+   19 units from plain rest on rose-pine and 18 on solarized-dark, and -- far
+   worse -- only 4 units from --lib-row-selected-bg on rose-pine, i.e. "queued
+   for a batch action" and "open in the detail pane" were the same colour.
+   So: the mix goes to 18% (hover 24%), AND selection gets a marker of its own.
+   The marker is a full 1px inset ring, deliberately a different SHAPE from
+   aria-current's 2px left edge -- two intensities of the same shape is what
+   collapsed in the first place. Both are inset shadows, so they compose, and
+   both follow the band's border-radius for free. */
+.vocab-card.selected .notes-card-top {
+  --row-bg: color-mix(in srgb, var(--lib-accent) 18%, var(--lib-bg));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lib-accent) 55%, transparent);
+}
+.vocab-card.selected .notes-card-top:hover { --row-bg: color-mix(in srgb, var(--lib-accent) 24%, var(--lib-bg)); }
+/* Both at once: the selection ring AND the "you are here" edge. (0,4,0), so
+   it out-ranks both (0,3,0) base rules on specificity instead of on where it
+   happens to sit in the file. */
+.vocab-card.selected[aria-current] .notes-card-top {
+  box-shadow: inset 2px 0 0 var(--lib-accent),
+              inset 0 0 0 1px color-mix(in srgb, var(--lib-accent) 55%, transparent);
+}
 .vocab-card.selected .notes-card-head { color: var(--lib-row-selected-fg); }
 .vocab-row-headline {
   display: flex;
@@ -2066,7 +2092,7 @@ html[data-theme="solarized-light"] {
   --lib-pane-bg: #eee8d5;
   --lib-pane-divider: #d6cdb5;
   --lib-row-selected-bg: #eee8d5;
-  --lib-row-selected-fg: #54696f;
+  --lib-row-selected-fg: #4b5e63;
   --lib-radius-sm: 2px;
   --lib-radius-md: 4px;
   --lib-radius-lg: 4px;
@@ -2100,7 +2126,7 @@ html[data-theme="solarized-dark"] {
   --lib-pane-bg: #073642;
   --lib-pane-divider: #094b5a;
   --lib-row-selected-bg: #073642;
-  --lib-row-selected-fg: #8e9e9f;
+  --lib-row-selected-fg: #9facad;
   --lib-focus-bd: #268bd2;
   --lib-focus-ring: 0 0 0 2px rgba(38,139,210,0.25);
   --lib-radius-sm: 2px;

@@ -68,7 +68,7 @@ body.test-narrow-back .vocab-detail-back{display:inline-flex}
       <div id="vocab-empty" class="notes-empty" hidden>No saved words yet. Save words from the reader's dictionary view.</div>
       <div id="vocab-no-results" class="notes-empty" hidden>No words match the current filters.</div>
       <div class="vocab-list-region">
-        <div id="vocab-list" role="list" aria-label="Saved vocabulary" aria-busy="false"></div>
+        <div id="vocab-list" role="grid" aria-multiselectable="true" aria-label="Saved vocabulary" aria-busy="false"></div>
         <button type="button" class="btn btn-sm vocab-load-more" id="vocab-load-more" hidden>Load more</button>
         <div class="vocab-batch-bar" id="vocab-batch-toolbar" role="group" aria-label="Actions for selected words">
           <span id="vocab-selected-count" class="notes-count" aria-live="polite"></span>
@@ -435,8 +435,24 @@ _vocabRows = sample;
 _pbpVocabRefreshGroupOptions(false);
 _pbpVocabApplyView(true);
 _pbpVocabClearSelection();
-const renderedChecks = [...$id("vocab-list").querySelectorAll(".vocab-row-select")];
-check("production row checkbox has an accessible name", renderedChecks.every((checkbox) => checkbox.getAttribute("aria-label")));
+const renderedHeads = [...$id("vocab-list").querySelectorAll(".vocab-card .notes-card-head")];
+const renderedCards = [...$id("vocab-list").querySelectorAll(".vocab-card")];
+// Multi-select moved from a per-row checkbox onto the row itself (user ruling
+// 2026-08-06). aria-selected is only supported on grid/listbox descendants,
+// so the roles had to move with it -- asserting them here is what keeps the
+// screen-reader path from silently disappearing along with the checkbox.
+check("the list declares itself a multi-selectable grid",
+  $id("vocab-list").getAttribute("role") === "grid" &&
+  $id("vocab-list").getAttribute("aria-multiselectable") === "true");
+check("every row is a grid row that reports its own selected state",
+  renderedCards.length > 0 &&
+  renderedCards.every((card) => card.getAttribute("role") === "row" &&
+    card.getAttribute("aria-selected") === "false" &&
+    card.querySelector('.notes-card-top[role="gridcell"]')));
+check("the row head advertises its selection keyboard shortcuts",
+  renderedHeads.every((head) => head.getAttribute("aria-keyshortcuts") === "Control+Space Shift+Space"));
+check("the per-row checkbox is gone from every rendered row",
+  !$id("vocab-list").querySelector('input[type="checkbox"]'));
 const unknownLanguageRow = _pbpVocabBuildRow({
   id:"unknown-language", term:"mystery", language:"und", gloss:"", groups:[], contexts:[]
 });
@@ -481,10 +497,53 @@ notedRow.remove();
 check("icon-only delete button keeps an accessible name and an SVG face",
   !!notedRow.querySelector(".notes-row-del svg") &&
   !!notedRow.querySelector(".notes-row-del").getAttribute("aria-label"));
-renderedChecks[0].click();
-check("real row checkbox click establishes the selection anchor", _vocabSelected.size === 1);
-renderedChecks[2].dispatchEvent(new MouseEvent("click", { bubbles:true, cancelable:true, shiftKey:true }));
+// Live gesture path. Ctrl-click selects without disturbing the detail pane;
+// Shift-click spans the interval; a second Shift-click over the same span
+// clears it (the "range de-select" the checkbox era got from checkbox.checked).
+renderedHeads[0].click(); // plain click = activate, never select
+check("a plain row click activates without selecting",
+  _vocabSelected.size === 0 && renderedCards[0].getAttribute("aria-current") === "true");
+renderedHeads[0].dispatchEvent(new MouseEvent("click", { bubbles:true, cancelable:true, ctrlKey:true }));
+check("Ctrl-click establishes the selection anchor", _vocabSelected.size === 1 && _vocabLastSelectedId === renderedCards[0].dataset.vocabId);
+check("Ctrl-click paints the row band and reports it to assistive tech",
+  renderedCards[0].classList.contains("selected") && renderedCards[0].getAttribute("aria-selected") === "true");
+renderedHeads[1].dispatchEvent(new MouseEvent("click", { bubbles:true, cancelable:true, ctrlKey:true }));
+check("Ctrl-click does not move the detail pane's current row",
+  renderedCards[0].getAttribute("aria-current") === "true" && !renderedCards[1].hasAttribute("aria-current"));
+renderedHeads[1].dispatchEvent(new MouseEvent("click", { bubbles:true, cancelable:true, ctrlKey:true }));
+check("a second Ctrl-click deselects the same row", _vocabSelected.size === 1);
+renderedHeads[2].dispatchEvent(new MouseEvent("click", { bubbles:true, cancelable:true, shiftKey:true }));
 check("real Shift-click selects the complete current-view interval", _vocabSelected.size === 3);
+// Anchor rule (unchanged from the checkbox era): every gesture moves it to
+// the row it acted on, so this second Shift-click spans row2 -> row0 -- in
+// reverse, and over rows that are already selected, which is exactly the
+// case that has to DE-select.
+renderedHeads[0].dispatchEvent(new MouseEvent("click", { bubbles:true, cancelable:true, shiftKey:true }));
+check("Shift-click back over an already-selected range clears that range", _vocabSelected.size === 0);
+// Keyboard twins: Ctrl+Space toggles, Shift+Space spans -- and both suppress
+// the button's own Space activation so a row never activates while selecting.
+_pbpVocabClearSelection();
+_pbpVocabSyncSelectionUi();
+const ctrlSpace = new KeyboardEvent("keydown", { key:" ", ctrlKey:true, bubbles:true, cancelable:true });
+renderedHeads[0].dispatchEvent(ctrlSpace);
+check("Ctrl+Space selects the focused row and swallows the activation",
+  _vocabSelected.size === 1 && ctrlSpace.defaultPrevented);
+const shiftSpace = new KeyboardEvent("keydown", { key:" ", shiftKey:true, bubbles:true, cancelable:true });
+renderedHeads[2].dispatchEvent(shiftSpace);
+check("Shift+Space spans the interval from the keyboard",
+  _vocabSelected.size === 3 && shiftSpace.defaultPrevented);
+const plainSpace = new KeyboardEvent("keydown", { key:" ", bubbles:true, cancelable:true });
+renderedHeads[1].dispatchEvent(plainSpace);
+check("unmodified Space stays the button's own activation key",
+  _vocabSelected.size === 3 && !plainSpace.defaultPrevented);
+// A batch mutation owns the rows it is about to rewrite; the checkbox era
+// spelled this `checkbox.disabled`, which went away with the checkbox.
+_pbpVocabClearSelection();
+_pbpVocabSyncSelectionUi();
+_pbpVocabSetBatchBusy(true);
+renderedHeads[0].dispatchEvent(new MouseEvent("click", { bubbles:true, cancelable:true, ctrlKey:true }));
+check("a running batch action blocks new row selection", _vocabSelected.size === 0);
+_pbpVocabSetBatchBusy(false);
 _vocabSelected = new Set(["a"]);
 _pbpVocabSyncSelectionUi();
 check("fixture starts with a selected result", _vocabSelected.size === 1);
@@ -924,7 +983,7 @@ check("selection still covers all filtered results beyond rendered chunks", _voc
         detailEl().querySelector(".vocab-group-unit input").value === "Draft group");
       check("a detail mutation keeps the list selection it never touched",
         _vocabSelected.size === 3 &&
-        $id("vocab-list").querySelectorAll(".vocab-row-select:checked").length === 3);
+        $id("vocab-list").querySelectorAll('.vocab-card.selected[aria-selected="true"]').length === 3);
       check("a detail mutation still re-marks the shown row as current",
         $id("vocab-list").querySelector('.vocab-card[data-vocab-id="d1"]').getAttribute("aria-current") === "true");
 
@@ -1047,7 +1106,7 @@ check("selection still covers all filtered results beyond rendered chunks", _voc
       </div>
       <div class="vocab-context-bar"><span class="vocab-ctx-text"><span class="notes-count">5000</span></span><div class="vocab-selection-actions"><button class="btn btn-sm" data-label="all"></button></div><span class="save-status vocab-main-status">Saved just now</span></div>
       <div class="vocab-list-region">
-      <article class="notes-card vocab-card"><div class="notes-card-top"><input class="vocab-row-select" type="checkbox"><button class="notes-card-head"><span class="notes-card-main"><span class="vocab-row-headline"><span class="notes-row-title">Wortzusammensetzung mit außergewöhnlich langem ausgewähltem Begriff</span><span class="notes-row-meta"><span class="notes-meta-chip">Außergewöhnlich lange Gruppe</span></span></span><span class="vocab-row-gloss">Außergewöhnlich lange Definition, die auf einer Zeile bleiben muss</span></span></button><button class="btn btn-sm notes-row-del" data-label="remove"></button></div></article>
+      <article class="notes-card vocab-card"><div class="notes-card-top"><button class="notes-card-head"><span class="notes-card-main"><span class="vocab-row-headline"><span class="notes-row-title">Wortzusammensetzung mit außergewöhnlich langem ausgewähltem Begriff</span><span class="notes-row-meta"><span class="notes-meta-chip">Außergewöhnlich lange Gruppe</span></span></span><span class="vocab-row-gloss">Außergewöhnlich lange Definition, die auf einer Zeile bleiben muss</span></span></button><button class="btn btn-sm notes-row-del" data-label="remove"></button></div></article>
       <div class="vocab-batch-bar selecting"><span class="notes-count" data-label="selected-count">5000</span><button class="btn btn-sm" data-label="invert"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button><span class="vocab-group-unit"><input type="text"><button class="btn btn-sm vocab-group-step"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button><button class="btn btn-sm vocab-group-step"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button></span><span class="vocab-batch-cluster"><button class="btn btn-sm" data-label="known"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button><button class="btn btn-sm" data-label="learning"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button></span><button class="btn btn-sm danger" data-label="batch-delete"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button><button class="btn btn-sm vocab-clear-selection"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button></div>
       </div>
     </div>

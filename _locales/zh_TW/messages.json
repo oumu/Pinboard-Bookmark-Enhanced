@@ -3068,13 +3068,8 @@
     "vocabSettingsSaveFailed": {
       "message": "無法儲存剛才修改的整合設定。請檢查設定後再試。"
     },
-    "vocabSelectWord": {
-      "message": "選取「$TERM$」",
-      "placeholders": {
-        "term": {
-          "content": "$1"
-        }
-      }
+    "vocabSelectHint": {
+      "message": "Ctrl+點擊詞條即可選取，Shift+點擊選取一段範圍"
     },
     "vocabResultCount": {
       "message": "找到 $RESULTS$ 筆；目前 Pinboard 帳戶（$OWNER$）共儲存 $TOTAL$ 筆",

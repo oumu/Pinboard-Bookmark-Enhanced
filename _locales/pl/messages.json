@@ -3068,13 +3068,8 @@
     "vocabSettingsSaveFailed": {
       "message": "Nie udało się zapisać zmienionych ustawień integracji. Sprawdź je i spróbuj ponownie."
     },
-    "vocabSelectWord": {
-      "message": "Zaznacz: $TERM$",
-      "placeholders": {
-        "term": {
-          "content": "$1"
-        }
-      }
+    "vocabSelectHint": {
+      "message": "Ctrl+kliknięcie zaznacza wpis, Shift+kliknięcie zaznacza zakres"
     },
     "vocabResultCount": {
       "message": "Bieżące konto Pinboard ($OWNER$): wyniki $RESULTS$ · zapisane $TOTAL$",

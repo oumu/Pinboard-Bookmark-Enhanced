@@ -712,9 +712,11 @@ async function driveLibrary(context, extId, rep) {
       // Not fullPage: .vocab-batch-bar is `position: sticky` and a stitched
       // full-page capture can mis-place sticky elements (same reason
       // driveOptions's own vocab-batch-bar shot skips fullPage).
-      const rows = page.locator("#vocab-list .vocab-row-select");
-      await rows.nth(0).click({ timeout: 3000 });
-      await rows.nth(1).click({ timeout: 3000 });
+      // Ctrl+click the row heads: the per-row checkbox was removed 2026-08-06
+      // and a modified click on the row is the selection gesture now.
+      const rows = page.locator("#vocab-list .vocab-card .notes-card-head");
+      await rows.nth(0).click({ timeout: 3000, modifiers: ["Control"] });
+      await rows.nth(1).click({ timeout: 3000, modifiers: ["Control"] });
       await page.waitForTimeout(400);
       await rep.shot(page, s, "vocab-batch-bar");
       await page.locator("#vocab-clear-selection").click({ timeout: 3000 }).catch(() => {});

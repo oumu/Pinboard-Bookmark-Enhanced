@@ -551,6 +551,53 @@ function evaluateCheck(check, raw, theme) {
         notes.length ? notes.join("; ") : undefined));
     }
   }
+  // ---- bandDistinct: the row states a user has to tell apart at a glance
+  // must actually LOOK different, on every theme. Written for the vocabulary
+  // list's 2026-08-06 selection rebuild, where "selected" stopped being a
+  // checkbox and became the row's own fill -- at which point "selected" and
+  // "current" (the row the detail pane is reading) are two accent-tinted
+  // fills a token change could quietly collapse into one.
+  //
+  // A pair passes if EITHER the composited fill differs by at least
+  // `minDelta` per-channel-max, OR the two carry different markers
+  // (box-shadow/outline). Both halves are needed: the fills are legitimately
+  // close on some themes and it is the accent edge that separates them there,
+  // while on others there is no edge at all and the fill is the whole signal.
+  // Reported `actual` is the WORST pair, so a fix moves the number that is
+  // actually failing.
+  if ("bandDistinct" in exp) {
+    const minDelta = exp.bandDistinct.minDelta;
+    const samples = raw.bandSamples || [];
+    const notes = [];
+    let worst = null;
+    if (samples.length < 2) notes.push("fewer than two states captured -- runOneCheck's rowStates driver failed");
+    const minText = exp.bandDistinct.minTextContrast;
+    if (minText) {
+      for (const sm of samples) {
+        if (!sm.found) continue;
+        if (!sm.text) { notes.push(`"${sm.state}": textSelector matched nothing`); continue; }
+        const tbg = compositeStack(sm.text.bgStack);
+        const fg = resolveColor(sm.text.color, tbg);
+        const ratio = fg ? cr(fg, tbg) : 0;
+        if (ratio < minText) notes.push(`"${sm.state}": row text ${round2(ratio)}:1 < ${minText}:1 against its own band`);
+      }
+    }
+    for (let i = 0; i < samples.length; i++) {
+      for (let j = i + 1; j < samples.length; j++) {
+        const a = samples[i], b = samples[j];
+        if (!a.found || !b.found) { notes.push(`state not rendered: ${a.found ? b.state : a.state}`); continue; }
+        const abg = compositeStack(a.bgStack), bbg = compositeStack(b.bgStack);
+        const delta = Math.max(Math.abs(abg[0] - bbg[0]), Math.abs(abg[1] - bbg[1]), Math.abs(abg[2] - bbg[2]));
+        const markerDiffers = a.boxShadow !== b.boxShadow || a.outline !== b.outline;
+        if (worst === null || delta < worst) worst = delta;
+        if (delta < minDelta && !markerDiffers) {
+          notes.push(`"${a.state}" and "${b.state}" are indistinguishable: fill delta ${round2(delta)} < ${minDelta} and identical marker (box-shadow ${a.boxShadow})`);
+        }
+      }
+    }
+    out.push(verdict("bandDistinct", notes.length === 0, worst === null ? null : round2(worst), minDelta,
+      notes.length ? notes.join("; ") : undefined));
+  }
   // COMPONENTS.md §9 law 7: a tab is a label plus a selection edge, never a
   // button wearing a tab label. Selected = an accent underline of at least
   // `underlinePx`; unselected = no underline. BOTH branches additionally
@@ -942,7 +989,80 @@ function evaluateCheck(check, raw, theme) {
 // actual custom-property name to read).
 const NS_BY_SURFACE = { library: "lib", options: "opt", popup: "pp" };
 
-async function runOneCheck(page, theme, check, results) {
+// ---- state: "rowStates" (2026-08-06 selection rebuild) -------------------
+// Reads ONE row's band four times, driving it through every state a user can
+// put it in with the real gestures: nothing, Ctrl+click (selected), plain
+// click (activates the detail -> selected AND current), Ctrl+click again
+// (current only). aria-current is exclusive and the fixture seeds one word,
+// so the states cannot coexist on screen -- but they do not need to: what
+// has to be true is that a user can TELL THEM APART, which is a statement
+// about four fills and four markers, not about four simultaneous rows.
+//
+// Everything here is a real product gesture, including the reload that gets
+// back to "rest" (there is no un-activate control above 860px). The sequence
+// ends on selected+current, byte-for-byte the state runLibraryTheme's own
+// setup clicks produce, so every later check in the same theme pass sees the
+// page it expects.
+async function driveRowStates(page, extBase, theme, selector, textSelector) {
+  const read = (sel, textSel, state) => page.evaluate(({ sel, textSel, state }) => {
+    const stackOf = (node) => {
+      const out = [];
+      for (let n = node; n && n.nodeType === 1; n = n.parentElement) out.push(getComputedStyle(n).backgroundColor);
+      return out;
+    };
+    const el = document.querySelector(sel);
+    if (!el) return { state, found: false };
+    const cs = getComputedStyle(el);
+    // The row's text has to stay readable in EVERY state, not just the one
+    // the page happens to load in -- a band fill that gets strong enough to
+    // separate two states can just as easily eat its own label.
+    const textEl = textSel ? el.querySelector(textSel) : null;
+    return {
+      state, found: true, bgStack: stackOf(el), boxShadow: cs.boxShadow,
+      outline: `${cs.outlineStyle} ${cs.outlineWidth} ${cs.outlineColor}`,
+      text: textEl ? { color: getComputedStyle(textEl).color, bgStack: stackOf(textEl) } : null,
+    };
+  }, { sel, textSel, state });
+
+  await page.goto(`${extBase}library.html?_ra=${encodeURIComponent(theme)}-band#vocab`, { waitUntil: "load", timeout: TIMEOUT_MS });
+  await page.waitForSelector("#vocab-list .vocab-card", { timeout: TIMEOUT_MS });
+  await page.waitForTimeout(300);
+  const head = page.locator("#vocab-list .vocab-card .notes-card-head").first();
+  if (!(await head.count())) {
+    throw new Error(`SETUP: no vocab row to drive rowStates on (theme=${theme})`);
+  }
+  // Park the pointer in a dead corner before every read. A click leaves the
+  // cursor sitting ON the row, so without this each sample is really that
+  // state's HOVER variant -- and each state has a different hover formula, so
+  // the whole comparison would be between four numbers none of which is the
+  // state it claims to be. (Found the hard way: "current" measured 4.45:1
+  // text contrast, which is the hover mix, while the token derivation that
+  // actually guarantees 4.5:1 targets the resting fill.)
+  const settle = async () => { await page.mouse.move(0, 0); await page.waitForTimeout(280); };
+  await settle();
+  const samples = [await read(selector, textSelector, "rest")];
+  await head.click({ modifiers: ["Control"] }); await settle();
+  samples.push(await read(selector, textSelector, "selected"));
+  await head.click(); await settle();
+  samples.push(await read(selector, textSelector, "selected+current"));
+  await head.click({ modifiers: ["Control"] }); await settle();
+  samples.push(await read(selector, textSelector, "current"));
+  // Restore the state the rest of this theme's checks were set up in.
+  await head.click({ modifiers: ["Control"] }); await page.waitForTimeout(300);
+  return samples;
+}
+
+async function runOneCheck(page, theme, check, results, extBase) {
+  if (check.state === "rowStates") {
+    if (!extBase) throw new Error(`rowStates check on ${check.selector} reached a runner that has no extBase`);
+    const samples = await driveRowStates(page, extBase, theme, check.selector, check.expect.bandDistinct?.textSelector || null);
+    const evald = evaluateCheck(check, { found: true, rect: { width: 1, height: 1 }, bgStack: [], bandSamples: samples }, theme);
+    if (evald.setupError) {
+      throw new Error(`SETUP ERROR [${check.surface}|${theme}|${check.selector}|${check.state}]: ${evald.setupError}`);
+    }
+    for (const r of evald.results) results.push({ surface: check.surface, theme, selector: check.selector, state: check.state, ...r });
+    return;
+  }
   // ---- state: "focusWithin" (design-uplift §8) ----------------------------
   // Reads the shell TWICE -- once untouched, once while `check.focusTarget`
   // (a selector relative to the shell) holds focus -- so fusedFocusRing can
@@ -1114,13 +1234,19 @@ async function runLibraryTheme(page, extBase, theme, checks, results) {
       await head.click(); await page.waitForTimeout(250);
     }
     if (vocabChecks.some((c) => needsBatchBarOpen(c.selector))) {
-      const checkbox = page.locator("#vocab-list .vocab-card .vocab-row-select").first();
-      if (!(await checkbox.count())) {
-        throw new Error(`SETUP: no "#vocab-list .vocab-card .vocab-row-select" to reveal .vocab-batch-bar (theme=${theme}) -- seed fixture broken or markup renamed`);
+      // Ctrl+click the row head. The per-row checkbox was removed 2026-08-06
+      // (user ruling: the row's own fill IS the selected state), so the
+      // modified click that replaced it is the only way to open the batch
+      // bar. Same row the detail-open click above uses, exactly as the
+      // checkbox click did -- the seeded fixture has one word.
+      const head = page.locator("#vocab-list .vocab-card .notes-card-head").first();
+      if (!(await head.count())) {
+        throw new Error(`SETUP: no "#vocab-list .vocab-card .notes-card-head" to reveal .vocab-batch-bar (theme=${theme}) -- seed fixture broken or markup renamed`);
       }
-      await checkbox.click(); await page.waitForTimeout(350);
+      await head.click({ modifiers: ["Control"] });
+      await page.waitForTimeout(350);
     }
-    for (const check of vocabChecks) await runOneCheck(page, theme, check, results);
+    for (const check of vocabChecks) await runOneCheck(page, theme, check, results, extBase);
   }
 
   if (notesChecks.length) {
@@ -1540,9 +1666,10 @@ async function runSweep(page, sw, extBase) {
     await vocabHead.click(); await page.waitForTimeout(250);
     add(await page.evaluate(sweepProbe, SWEEP_CFG), "library", "vocab-detail");
   }
-  const vocabCheckbox = page.locator("#vocab-list .vocab-card .vocab-row-select").first();
-  if (await vocabCheckbox.count()) {
-    await vocabCheckbox.click(); await page.waitForTimeout(350);
+  // Ctrl+click on the row head, not a checkbox click: the per-row checkbox was
+  // removed 2026-08-06 and selection is now a modified click on the row itself.
+  if (await vocabHead.count()) {
+    await vocabHead.click({ modifiers: ["Control"] }); await page.waitForTimeout(350);
     add(await page.evaluate(sweepProbe, SWEEP_CFG), "library", "vocab-batch-bar");
   }
   await page.click("#lib-tab-notes");

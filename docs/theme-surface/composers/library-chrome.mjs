@@ -1,7 +1,13 @@
 import { expandPalette } from "./_util.mjs";
 import { mergeTokens } from "./compose-theme.mjs";
-import { deriveUiColors, deriveUiRadius, regularizeUiRadius, fgToAA, fgToAAMulti, borderToAA, focusBdToAA, fillSeparate, hexToRgb, rgbToHex, resolveOpaqueBg, resolveChipBg } from "./_ui-derive.mjs";
+import { deriveUiColors, deriveUiRadius, regularizeUiRadius, fgToAA, fgToAAMulti, borderToAA, focusBdToAA, fillSeparate, mix, hexToRgb, rgbToHex, resolveOpaqueBg, resolveChipBg } from "./_ui-derive.mjs";
 import { POPUP_THEME_MAP } from "./popup-chrome.mjs";
+
+// Accent-over-bg mixes library.css paints behind a row that is SELECTED for a
+// batch action (rest, then :hover). Mirrors
+// `.vocab-card.selected .notes-card-top` -- see the row-selected-fg comment
+// below for why the duplication is deliberate and what catches a drift.
+const LIB_BATCH_BAND_MIX = [0.18, 0.24];
 
 // Default-surface (no preset selected) component-layer baseline — Task 5,
 // step ① of the composer color migration. Every value below is copied
@@ -98,7 +104,22 @@ function emitLib(ui, palette, overrides, radius, focus = {}, mode) {
     "pane-bg": ui.bg2,
     "pane-divider": ui.border,
     "row-selected-bg": ui["drop-hover"],
-    "row-selected-fg": fg,
+    // Not plain `fg` any more (2026-08-06 selection rebuild). --lib-row-selected-fg
+    // is the label colour for BOTH row states now: "current" (--lib-row-selected-bg,
+    // which `fg` above already derives against) and "selected for a batch action",
+    // whose band is mixed at runtime from accent over bg. Those two live in
+    // library.css's hand-written page layer, so the percentages are duplicated
+    // here on purpose -- LIB_BATCH_BAND_MIX below and the `color-mix(...)` values
+    // in `.vocab-card.selected .notes-card-top` (+ its :hover) must stay in step.
+    // Nothing lints that pairing statically; what catches a drift is the render
+    // oracle's bandDistinct entry, which measures the label against the band the
+    // browser actually painted (it is what found this cliff: solarized's
+    // row-selected-fg had 4.71:1 of headroom at the old 10% mix and fell straight
+    // through AA at 18%).
+    "row-selected-fg": rgbToHex(fgToAAMulti(hexToRgb(fg), [
+      rowSelectedBgRgb,
+      ...LIB_BATCH_BAND_MIX.map((t) => mix(hexToRgb(ui.bg), hexToRgb(ui.accent), t).map(Math.round)),
+    ])),
     ...(focus["focus-bd"] != null ? { "focus-bd": focus["focus-bd"] } : {}),
     ...(focus["focus-ring"] != null ? { "focus-ring": focus["focus-ring"] } : {}),
     ...deriveUiRadius(radius),

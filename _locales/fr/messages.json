@@ -3068,13 +3068,8 @@
     "vocabSettingsSaveFailed": {
       "message": "Impossible d'enregistrer les paramètres d'intégration modifiés. Vérifiez-les, puis réessayez."
     },
-    "vocabSelectWord": {
-      "message": "Sélectionner $TERM$",
-      "placeholders": {
-        "term": {
-          "content": "$1"
-        }
-      }
+    "vocabSelectHint": {
+      "message": "Ctrl+clic pour sélectionner une entrée, Maj+clic pour sélectionner une plage"
     },
     "vocabResultCount": {
       "message": "Compte Pinboard actuel ($OWNER$) : $RESULTS$ résultats · $TOTAL$ mots enregistrés",

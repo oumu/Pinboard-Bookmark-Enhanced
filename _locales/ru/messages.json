@@ -3068,13 +3068,8 @@
     "vocabSettingsSaveFailed": {
       "message": "Не удалось сохранить изменённые настройки интеграции. Проверьте их и повторите попытку."
     },
-    "vocabSelectWord": {
-      "message": "Выбрать: $TERM$",
-      "placeholders": {
-        "term": {
-          "content": "$1"
-        }
-      }
+    "vocabSelectHint": {
+      "message": "Ctrl+щелчок выделяет запись, Shift+щелчок — диапазон"
     },
     "vocabResultCount": {
       "message": "Текущий аккаунт Pinboard ($OWNER$): найдено $RESULTS$ · сохранено $TOTAL$",
