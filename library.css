@@ -1040,6 +1040,16 @@ html[data-theme="rose-pine"] .xp-dict-lang {
 .vocab-note-input {
   flex: 1 1 auto; min-width: 0; resize: vertical;
   font: inherit; font-size: 12px; line-height: 1.5;
+  /* Grows with what is typed instead of parking a 2-row box and then
+     scrolling inside it. `rows="2"` (library-vocab.js) stops driving the
+     height once this is on, so the floor is restated here; the ceiling stops
+     a 500-char note from pushing the rest of the detail pane off-screen, and
+     `resize: vertical` still lets the user override both by hand.
+     Content-box, so these are 2 and 20 lines of TEXT -- there is no global
+     border-box reset on this surface. */
+  field-sizing: content;
+  min-height: 2lh;
+  max-height: min(40vh, 20lh);
   padding: 4px var(--lib-sp-2);
   border: 1px solid var(--lib-input-border, #cdd1d6);
   border-radius: var(--lib-radius-md);
@@ -1047,15 +1057,36 @@ html[data-theme="rose-pine"] .xp-dict-lang {
 }
 .vocab-note-input:focus { outline: none; border-color: var(--lib-focus-bd, var(--lib-accent)); }
 .vocab-note-input:focus-visible { box-shadow: var(--lib-focus-ring, 0 0 6px 1px color-mix(in srgb, var(--lib-accent) 45%, transparent)); }
+/* Zero-shift reveal. The button used to be `display: none` while hidden, so
+   the first keystroke inserted a whole button into the flex row and the
+   textarea jumped narrower under the cursor. Now the box is ALWAYS in
+   layout and only its paint changes.
+   `visibility` (not `display`) is what makes this free: it still drops the
+   button out of the tab order and the accessibility tree, so
+   `noteSave.hidden = true` in library-vocab.js keeps its exact semantics and
+   needs no change -- and unlike `display` it is transitionable on its own
+   (the spec pins any midpoint to `visible`, which yields hold-then-hide on
+   the way out and show-immediately on the way in). That is the whole reason
+   `allow-discrete` + `@starting-style` are gone rather than ported.
+   NOT gated on html.motion-ready: `.btn`'s author-origin `display:
+   inline-flex` already beats the UA `[hidden] { display: none }` rule
+   (origin outranks specificity), so without a base-level rule here the
+   button would be fully VISIBLE before the motion class lands. */
+.vocab-note-save[hidden] {
+  visibility: hidden;
+  opacity: 0;
+  translate: 0 2px;
+  /* Not redundant with visibility: during the fade-OUT the element stays
+     `visible` for the whole duration, and pointer-events is not transitioned
+     -- so this is what stops a click landing on a button that is on its way
+     out. */
+  pointer-events: none;
+}
 html.motion-ready .vocab-note-save {
   transition: opacity var(--motion-pop) var(--ease-out),
               translate var(--motion-pop) var(--ease-out),
-              display var(--motion-pop) allow-discrete;
+              visibility var(--motion-pop) var(--ease-out);
 }
-html.motion-ready .vocab-note-save:not([hidden]) {
-  @starting-style { opacity: 0; translate: 0 2px; }
-}
-html.motion-ready .vocab-note-save[hidden] { display: none; opacity: 0; translate: 0 2px; }
 
 /* The vocab variant carries a fourth control (status filter). Flex, not a
    wider grid: grid columns can neither wrap nor shrink a select below its

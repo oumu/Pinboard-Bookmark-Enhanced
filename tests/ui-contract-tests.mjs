@@ -759,6 +759,28 @@ for (const [file, css, ns] of [["popup.css", popupCss, "pp"], ["options.css", op
 // while the earlier kept supplying `box-shadow`, shipping a hard rectangle
 // with a glow behind it. .vocab-sort-seg's shell ring fired on mouse-down
 // (`:focus-within` has no keyboard gate) and stacked outside the cell ring.
+// Note editor (2026-08-06): the save button must stay IN LAYOUT while hidden.
+// `display: none` is what made the textarea jump narrower on the first
+// keystroke; `visibility: hidden` keeps the box, and still drops the button
+// from the tab order and the a11y tree so library-vocab.js's
+// `noteSave.hidden = true` keeps its exact meaning and needs no change.
+// Asserted statically because the render oracle has no display/visibility
+// vocabulary, and the defect is precisely a display value.
+{
+  const rule = /\.vocab-note-save\[hidden\]\s*\{([^}]*)\}/.exec(libraryCss);
+  check(!!rule && /visibility:\s*hidden/.test(rule[1]) && !/display:\s*none/.test(rule[1]),
+    "library.css: .vocab-note-save[hidden] is back on display:none (or lost visibility:hidden) — revealing the save button then reflows the note row and the textarea jumps under the cursor");
+  // .btn's author-origin `display: inline-flex` already outranks the UA
+  // `[hidden] { display: none }` rule, so this rule must NOT be nested under
+  // html.motion-ready: before that class lands the button would be fully
+  // visible rather than merely un-animated.
+  check(!/html\.motion-ready\s+\.vocab-note-save\[hidden\]/.test(libraryCss),
+    "library.css: the .vocab-note-save[hidden] rule is gated on html.motion-ready — the button renders fully visible until that class is added");
+  const input = /\.vocab-note-input\s*\{([^}]*)\}/.exec(libraryCss);
+  check(!!input && /field-sizing:\s*content/.test(input[1])
+    && /min-height:/.test(input[1]) && /max-height:/.test(input[1]) && /resize:\s*vertical/.test(input[1]),
+    "library.css: .vocab-note-input lost auto-grow (field-sizing: content) or one of its bounds — without the max-height a 500-char note pushes the rest of the detail pane off-screen");
+}
 check((libraryCss.match(/\.lib-tab:focus-visible/g) || []).length === 1,
   "library.css: .lib-tab has more than one :focus-visible rule again — the later same-specificity one silently wins `outline` while the earlier still supplies `box-shadow`");
 check(!/\.vocab-sort-seg:focus-within/.test(libraryCss),
