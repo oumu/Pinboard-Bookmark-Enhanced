@@ -172,7 +172,25 @@ async function runResponsive(page, sw, extBase) {
         const listSel = v === "vocab" ? ".vocab-list-pane" : ".notes-list-pane";
         const paneSel = v === "vocab" ? ".vocab-detail-pane" : ".notes-detail-pane";
         const pane = document.querySelector(paneSel);
-        const inner = pane && pane.firstElementChild;
+        // Centring is measured on the pane's CONTENT BOX vs a real prose
+        // child's box, not on firstElementChild (which can be a zero-width
+        // wrapper and silently reports 0 either way -- it did).
+        let colW = null, gutterL = null, gutterR = null;
+        if (pane) {
+          const pr = pane.getBoundingClientRect(), pcs = getComputedStyle(pane);
+          const innerL = pr.left + parseFloat(pcs.paddingLeft) + parseFloat(pcs.borderLeftWidth);
+          const innerR = pr.right - parseFloat(pcs.paddingRight) - parseFloat(pcs.borderRightWidth);
+          // Widest non-absolutely-positioned direct child = the grid column.
+          for (const c of pane.children) {
+            if (getComputedStyle(c).position === "absolute") continue;
+            const cr = c.getBoundingClientRect();
+            if (cr.width > (colW || 0)) {
+              colW = +cr.width.toFixed(1);
+              gutterL = +(cr.left - innerL).toFixed(1);
+              gutterR = +(innerR - cr.right).toFixed(1);
+            }
+          }
+        }
         return {
           docScrollW: document.documentElement.scrollWidth,
           clientW: document.documentElement.clientWidth,
@@ -182,7 +200,8 @@ async function runResponsive(page, sw, extBase) {
           benchCols: bench ? getComputedStyle(bench).gridTemplateColumns : null,
           listW: w(listSel),
           paneW: w(paneSel),
-          innerW: inner ? +inner.getBoundingClientRect().width.toFixed(1) : null,
+          colW, gutterL, gutterR,
+          centred: gutterL != null && Math.abs(gutterL - gutterR) <= 1,
           narrow: document.body.className,
         };
       }, view);

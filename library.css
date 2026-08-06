@@ -56,6 +56,12 @@
   --lib-note-c3: #60a5fa;
   --lib-note-c4: #f87171;
   --lib-note-c5: #c084fc;
+  /* Fixed-width canvas (2026-08-06). The workbench stops widening past this
+     and centres instead; backgrounds stay full-bleed because only the INLINE
+     PADDING of .lib-header / .lib-main grows, not a wrapper's width. Above
+     ~1680px a two-pane workbench is not using the extra width, it is just
+     dragging the eye further between list and detail. */
+  --lib-canvas-max: 1680px;
   --lib-radius-sm: 4px;
   --lib-radius-md: 8px;
   --lib-radius-lg: 12px;
@@ -564,7 +570,14 @@ html.motion-ready .notes-card-top { transition: background-color var(--motion-st
    ============================================================ */
 .notes-workbench {
   display: grid;
-  grid-template-columns: minmax(340px, 480px) 1fr;
+  /* Elastic list column (2026-08-06). A fixed 480px cap meant the list was
+     the WIDER pane at 1000-1200px -- the scan column out-sizing the reading
+     column, which is backwards. 30% keeps the proportion across the whole
+     range; the 340px floor is unchanged and still wins on narrow screens.
+     minmax(0, 1fr) rather than 1fr on the reading column: a bare 1fr floors
+     at min-content, so one long unbreakable token (a URL in a quote) could
+     push the track wider than the canvas and hand the PAGE a scrollbar. */
+  grid-template-columns: minmax(340px, 30%) minmax(0, 1fr);
   gap: var(--lib-sp-5);
   align-items: start;
 }
@@ -648,6 +661,16 @@ html.motion-ready .notes-hit-btn { transition: background-color var(--motion-sta
    UI scale) -- same values as .vocab-detail-pane, see the block comment. */
 .notes-detail-pane {
   min-width: 0;
+  /* Reading measure lives on the PANE as one centred column, not on each
+     child. Previously .notes-detail-quote / -note each carried their own
+     `max-width: 68ch`, so on a wide pane the prose hugged the left edge with
+     a growing empty gutter to its right, and any child that forgot the cap
+     ran the full width. One grid column caps and centres everything at once.
+     minmax(0, 68ch) so a long unbreakable token shrinks the column instead
+     of overflowing the pane's padding. */
+  display: grid;
+  grid-template-columns: minmax(0, 68ch);
+  justify-content: center;
   position: sticky; top: calc(var(--lib-header-h) + var(--lib-sp-2)); /* below the sticky .lib-header, with a visible gap */
   background: var(--lib-pane-bg);
   border: 1px solid var(--lib-pane-divider);
@@ -662,12 +685,11 @@ html.motion-ready .notes-hit-btn { transition: background-color var(--motion-sta
 .notes-detail-source { font-weight: bold; }
 .notes-detail-quote {
   margin: 0;
-  max-width: 68ch;
   padding-left: var(--lib-sp-3);
   border-left: 3px solid var(--hl-color, var(--lib-note-c1));
   white-space: pre-wrap;
 }
-.notes-detail-note { max-width: 68ch; margin: var(--lib-sp-3) 0 0; white-space: pre-wrap; color: var(--lib-fg-muted); }
+.notes-detail-note { margin: var(--lib-sp-3) 0 0; white-space: pre-wrap; color: var(--lib-fg-muted); }
 .notes-detail-delete { margin-top: var(--lib-sp-4); }
 .notes-detail-siblings {
   margin-top: var(--lib-sp-5);
@@ -742,13 +764,19 @@ html.motion-ready .notes-sib { transition: background-color var(--motion-state) 
    window to work with, unlike options.html's single narrow panel. */
 .vocab-workbench {
   display: grid;
-  grid-template-columns: minmax(340px, 520px) 1fr;
+  /* Same elastic column + overflow floor as .notes-workbench above; see that
+     rule's comment for why 30% and why minmax(0, 1fr). */
+  grid-template-columns: minmax(340px, 30%) minmax(0, 1fr);
   gap: var(--lib-sp-5);
   align-items: start;
 }
 .vocab-list-pane { min-width: 0; }
 .vocab-detail-pane {
   min-width: 0;
+  /* One centred reading column; see .notes-detail-pane's comment. */
+  display: grid;
+  grid-template-columns: minmax(0, 68ch);
+  justify-content: center;
   position: sticky; top: calc(var(--lib-header-h) + var(--lib-sp-2)); /* below the sticky .lib-header, with a visible gap */
   background: var(--lib-pane-bg);
   border: 1px solid var(--lib-pane-divider);
@@ -767,12 +795,12 @@ html.motion-ready .notes-sib { transition: background-color var(--motion-state) 
   line-height: 1.65;
 }
 .vocab-detail-empty { color: var(--lib-fg-hint); padding: var(--lib-sp-5) 0; text-align: center; }
-/* Prose width (Task 2): a stored definition or context quote reading edge-to-
-   edge across a wide desktop pane is the readability regression this caps --
-   68ch tracks the reading-line-length convention regardless of how wide
-   .vocab-detail-pane's 1fr grid track happens to be. Task 3's notes detail
-   pane copies this literal value into its own selectors (see plan). */
-.vocab-detail-gloss, .vocab-detail-context { max-width: 68ch; }
+/* Prose width moved to the pane itself (2026-08-06 canvas layout): the pane
+   is now a single centred minmax(0, 68ch) grid column, so every child is
+   capped AND centred by the container instead of each child capping itself
+   and then sitting left-aligned in a wider box. The per-child caps that used
+   to live here (and on .notes-detail-quote / -note / .vocab-note-edit) are
+   gone as redundant. */
 /* Controls stay at UI scale, not prose scale -- but whether an element even
    PICKS UP the ambient 15px/1.65 in the first place depends on what kind of
    element it is (fix round 1: verified A/B, computed boxes identical with
@@ -1036,7 +1064,7 @@ html[data-theme="rose-pine"] .xp-dict-lang {
    input's trailing edge -- measured gap 25px->368px between 1280 and 1600px
    viewports. Capping the row instead caps everything in it; the input's
    flex:1 1 auto fills the now-bounded row and the button stays flush. */
-.vocab-note-edit { display: flex; gap: var(--lib-sp-4); align-items: flex-start; margin-top: var(--lib-sp-2); max-width: 68ch; }
+.vocab-note-edit { display: flex; gap: var(--lib-sp-4); align-items: flex-start; margin-top: var(--lib-sp-2); }
 .vocab-note-input {
   flex: 1 1 auto; min-width: 0; resize: vertical;
   font: inherit; font-size: 12px; line-height: 1.5;
@@ -1699,7 +1727,14 @@ html.motion-ready .vocab-batch-bar.selecting {
    rule near the top of this file, next to the font-fallback-stall comment) */
 .lib-header {
   display: flex; align-items: center; gap: var(--lib-sp-4);
-  padding: var(--lib-sp-3) var(--lib-sp-5);
+  padding-block: var(--lib-sp-3);
+  /* Canvas gutter, identical to .lib-main's so the header's title/tabs line
+     up with the workbench beneath. The BACKGROUND and the bottom rule still
+     run edge to edge -- only the padding grows -- so nothing about this
+     reads as a boxed-in page. Collapses back to the plain sp-5 gutter below
+     --lib-canvas-max, i.e. every viewport narrower than the cap behaves
+     exactly as before. */
+  padding-inline: max(var(--lib-sp-5), calc((100% - var(--lib-canvas-max)) / 2));
   border-bottom: 1px solid var(--lib-border-section);
   background: var(--lib-panel);
   position: sticky; top: 0; z-index: 10;
@@ -1729,7 +1764,10 @@ html.motion-ready .vocab-batch-bar.selecting {
    shoves the sibling tab sideways on every switch -- the same zero-shift rule
    the underline itself follows. Colour + accent edge carries selection. */
 .lib-tab.active { color: var(--lib-fg); border-bottom-color: var(--lib-accent); }
-.lib-main { padding: var(--lib-sp-4) var(--lib-sp-5); }
+.lib-main {
+  padding-block: var(--lib-sp-4);
+  padding-inline: max(var(--lib-sp-5), calc((100% - var(--lib-canvas-max)) / 2));
+}
 .lib-view[hidden] { display: none; }
 
 /* ---- Reduced motion ---- (`scroll-behavior` deliberately absent: the guard lives in pbpScrollIntoView, shared.js) */

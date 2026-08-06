@@ -759,6 +759,31 @@ for (const [file, css, ns] of [["popup.css", popupCss, "pp"], ["options.css", op
 // while the earlier kept supplying `box-shadow`, shipping a hard rectangle
 // with a glow behind it. .vocab-sort-seg's shell ring fired on mouse-down
 // (`:focus-within` has no keyboard gate) and stacked outside the cell ring.
+// Fixed-width canvas (2026-08-06). Three pieces, each one load-bearing on
+// its own, so each gets its own assertion rather than one "layout looks
+// right" catch-all.
+{
+  check(/--lib-canvas-max:\s*\d+px/.test(libraryCss),
+    "library.css: --lib-canvas-max is gone — the workbench widens without limit again");
+  // The gutter MUST be `max(sp-5, ...)`: a bare calc() goes negative below
+  // the cap and would clamp to 0, deleting the page's normal side padding on
+  // every ordinary laptop width.
+  const gutter = /padding-inline:\s*max\(var\(--lib-sp-5\),\s*calc\(\(100% - var\(--lib-canvas-max\)\) \/ 2\)\)/g;
+  check((libraryCss.match(gutter) || []).length === 2,
+    "library.css: .lib-header and .lib-main no longer share the same max()-guarded canvas gutter — the header's title/tabs will drift out of alignment with the workbench, or narrow screens will lose their side padding");
+  // Both workbenches: elastic list column + an overflow floor on the reading
+  // column. Bare `1fr` floors at min-content, so one long unbreakable token
+  // in a quote could push the track past the canvas and scroll the page.
+  check((libraryCss.match(/grid-template-columns:\s*minmax\(340px,\s*30%\)\s*minmax\(0,\s*1fr\)/g) || []).length === 2,
+    "library.css: a workbench went back to a fixed list-column cap or a bare 1fr reading column (fixed cap made the scan column wider than the reading column at 1000-1200px; bare 1fr lets long tokens overflow the canvas)");
+  // The reading measure belongs to the pane, not to each child: a child that
+  // forgets its own cap is invisible until someone reads a wide screen.
+  check((libraryCss.match(/grid-template-columns:\s*minmax\(0,\s*68ch\)/g) || []).length === 2,
+    "library.css: a detail pane lost its centred 68ch content column");
+  const paneChildCaps = (libraryCss.match(/\.(notes-detail-quote|notes-detail-note|vocab-detail-gloss|vocab-detail-context|vocab-note-edit)\b[^{}]*\{[^}]*max-width:\s*68ch/g) || []);
+  check(paneChildCaps.length === 0,
+    `library.css: per-child 68ch caps are back inside the detail panes — the pane's own column already caps and CENTRES them, and a child cap only re-creates the left-hugging prose it replaced: ${paneChildCaps.join(" | ")}`);
+}
 // Note editor (2026-08-06): the save button must stay IN LAYOUT while hidden.
 // `display: none` is what made the textarea jump narrower on the first
 // keystroke; `visibility: hidden` keeps the box, and still drops the button
