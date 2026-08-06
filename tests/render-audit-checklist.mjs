@@ -655,6 +655,21 @@ export const CHECKS = [
   // stack, silently deleting the selection cue while focused.
   { surface: "library", page: "library.html", selector: ".notes-hit-btn", state: "focusWithin",
     focusTarget: ":scope", expect: { focusRecipe: "inset" } },
+  // popup's `bordered` sites (design-uplift follow-up 2026-08-06, independent
+  // review F2). These two are the reason this surface needed per-theme focus
+  // twins at all: popup carries a hand-written themed override layer whose
+  // RESTING rules (html[data-theme] .qbtn, html.dark .md-strip-btn, ...) set
+  // border-color at HIGHER specificity than the base :focus-visible rule, so
+  // the border half of the recipe rendered only on the default surface and
+  // vanished under all 13 presets. The `bordered` check asserts border-color
+  // actually CHANGED on focus, which is precisely the failure mode -- and it
+  // asserts it per theme, which a static text contract cannot. Before this,
+  // popup had zero focusRecipe entries and the C45 fix was gated by nothing
+  // but the author's own specificity arithmetic.
+  { surface: "popup", page: "popup.html", selector: ".qbtn", state: "focusWithin",
+    focusTarget: ":scope", expect: { focusRecipe: "bordered" } },
+  { surface: "popup", page: "popup.html", selector: ".md-strip-btn", state: "focusWithin",
+    focusTarget: ":scope", expect: { focusRecipe: "bordered" } },
   // `inset` CARRIED for a passenger: the vocab row's ring is drawn on
   // .notes-card-top, not on the .notes-card-head button that actually takes
   // focus -- the head spans only the first of the row's three grid columns,

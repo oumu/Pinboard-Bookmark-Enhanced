@@ -59,7 +59,18 @@
   /* Focus treatment — mirrors popup's --pp-focus-*: soft accent-tinted border
      instead of a full-strength snap, wide faint ring. Resolves per theme via
      --opt-accent/--opt-input-bg on <html>; override via pilot ui overrides. */
-  --opt-focus-bd: color-mix(in srgb, var(--opt-accent) 55%, var(--opt-input-bg));
+  /* AA-derived, NOT the old `color-mix(accent 55%, input-bg)` formula
+     (design-uplift follow-up 2026-08-06, independent review F1). §7.3's
+     `bordered` placement makes this the focus indicator's CORE, and Soft Fill
+     collapsed the resting border into the fill -- so this one value carries
+     WCAG 1.4.11's 3:1 for every button, field and fused shell on this
+     surface. The mix formula measured 1.98:1 / 1.99:1 against btn-bg / input-bg here; this literal is
+     focusBdToAA(accent, seed, [btn-bg, input-bg]) from
+     composers/_ui-derive.mjs, i.e. the same number the 14 themed blocks are
+     derived to, hand-carried because the default surface has no emit path.
+     Now 3.01:1 / 3.02:1. Re-derive (do not eyeball) if accent or either fill moves --
+     contrast-audit's `focus-bd vs btn-bg`/`vs input-bg` rows will catch it. */
+  --opt-focus-bd: #618bc4;
   --opt-focus-ring: 0 0 6px 1px color-mix(in srgb, var(--opt-accent) 45%, transparent);
 
   /* Color defaults — themes already define these in html[data-theme] blocks.
@@ -440,7 +451,7 @@ html[data-theme] .opt-error {
 .btn.danger:focus-visible {
   border-color: var(--opt-focus-bd);
 }
-.btn.danger.ghost:focus-visible {
+.btn.danger.ghost:focus-visible:not(:disabled) {
   border-color: var(--opt-focus-bd);
 }
 .confirm-popover .confirm-yes {
@@ -1040,6 +1051,7 @@ html[data-theme="modern-card"] {
   --opt-danger: #c5221f;
   --opt-warn: #b06000;
   --opt-btn-border: #eaeaec;
+  --opt-focus-bd: #3b86e9;
   --opt-btn-fg: #1a1a2e;
   --opt-danger-quiet-fg: #c5221f;
   --opt-on-danger: #ffffff;
@@ -1071,6 +1083,7 @@ html[data-theme="nord-night"] {
   --opt-danger: #de9fa5;
   --opt-warn: #de9f89;
   --opt-btn-border: #434c5e;
+  --opt-focus-bd: #75a0b0;
   --opt-btn-fg: #d8dee9;
   --opt-danger-quiet-fg: #e3aeb3;
   --opt-on-danger: #35435b;
@@ -1168,6 +1181,7 @@ html[data-theme="dracula"] {
   --opt-danger: #ff5555;
   --opt-warn: #ffb86c;
   --opt-btn-border: #343746;
+  --opt-focus-bd: #6ba0b4;
   --opt-btn-fg: #f8f8f2;
   --opt-danger-quiet-fg: #ff7e7e;
   --opt-on-danger: #282a36;
@@ -1199,6 +1213,7 @@ html[data-theme="flexoki-light"] {
   --opt-danger: #AF3029;
   --opt-warn: #846401;
   --opt-btn-border: #ebe9df;
+  --opt-focus-bd: #5f89b7;
   --opt-btn-fg: #100f0f;
   --opt-danger-quiet-fg: #af3029;
   --opt-on-danger: #fffcf0;
@@ -1230,6 +1245,7 @@ html[data-theme="flexoki-dark"] {
   --opt-danger: #E8705F;
   --opt-warn: #D0A215;
   --opt-btn-border: #343331;
+  --opt-focus-bd: #4280b6;
   --opt-btn-fg: #cecdc3;
   --opt-danger-quiet-fg: #eb8071;
   --opt-on-danger: #1c1b1a;
@@ -1261,6 +1277,7 @@ html[data-theme="solarized-light"] {
   --opt-danger: #c02b28;
   --opt-warn: #7d5f00;
   --opt-btn-border: #f4efdd;
+  --opt-focus-bd: #588fb3;
   --opt-btn-fg: #52666d;
   --opt-danger-quiet-fg: #c02b28;
   --opt-on-danger: #fdf6e3;
@@ -1325,6 +1342,7 @@ html[data-theme="catppuccin-latte"] {
   --opt-danger: #b90d32;
   --opt-warn: #8c5912;
   --opt-btn-border: #e0e2e8;
+  --opt-focus-bd: #4f7fdc;
   --opt-btn-fg: #4c4f69;
   --opt-danger-quiet-fg: #b90d32;
   --opt-on-danger: #eff1f5;
@@ -1356,6 +1374,7 @@ html[data-theme="catppuccin-mocha"] {
   --opt-danger: #f38ba8;
   --opt-warn: #f9e2af;
   --opt-btn-border: #45475a;
+  --opt-focus-bd: #7496d0;
   --opt-btn-fg: #cdd6f4;
   --opt-danger-quiet-fg: #f59db6;
   --opt-on-danger: #1e1e2e;
@@ -1387,6 +1406,7 @@ html[data-theme="gruvbox-dark"] {
   --opt-danger: #fd8265;
   --opt-warn: #fe8019;
   --opt-btn-border: #504945;
+  --opt-focus-bd: #7e9e92;
   --opt-btn-fg: #ebdbb2;
   --opt-danger-quiet-fg: #fea38d;
   --opt-on-danger: #282828;
@@ -1418,6 +1438,7 @@ html[data-theme="rose-pine"] {
   --opt-danger: #eb6f92;
   --opt-warn: #f6c177;
   --opt-btn-border: #26233a;
+  --opt-focus-bd: #7d6c99;
   --opt-btn-fg: #e0def4;
   --opt-danger-quiet-fg: #eb6f92;
   --opt-on-danger: #191724;
@@ -1449,6 +1470,7 @@ html[data-theme="github-light"] {
   --opt-danger: #cf222e;
   --opt-warn: #9a6700;
   --opt-btn-border: #f0f1f1;
+  --opt-focus-bd: #458ce0;
   --opt-btn-fg: #1f2328;
   --opt-danger-quiet-fg: #cf222e;
   --opt-on-danger: #ffffff;

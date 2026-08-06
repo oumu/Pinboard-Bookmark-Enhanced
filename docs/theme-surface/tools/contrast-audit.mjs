@@ -195,6 +195,28 @@ const COMPONENT_PAIR_SPEC = [
   // popup's btn-bg/panel to bg2 for this same registry's other rows.
   ["border", "btn-bg", 3],
   ["border", "panel", 3],
+  // Two rows below: the FOCUS EDGE vs the two fills a focusable control wears
+  // (design-uplift follow-up 2026-08-06, independent review F1). COMPONENTS.md
+  // §7.3 has demanded ">=3:1 against the adjacent background" since it was
+  // written and nothing had ever enforced it -- and after Soft Fill collapsed
+  // the resting border into the fill (btn-border == btn-bg, 1.00:1), and after
+  // §7.3's `bordered` placement made that border the focus indicator's core,
+  // --{ns}-focus-bd became the ONLY thing carrying WCAG 1.4.11 for the whole
+  // .btn family, every field and every fused shell. The old flat
+  // `color-mix(accent 55%, input-bg)` default measured 1.58-2.40:1 on most
+  // surfaces; focusBdToAA (_ui-derive.mjs) now derives it per theme, and these
+  // two rows are what keeps it derived. Same 3:1 non-text floor as the two
+  // `border` rows above, all 3 surfaces.
+  //
+  // --{ns}-focus-ring (the GLOW) is deliberately NOT gated: it is a blurred,
+  // translucent halo whose measured contrast against any fill is a property of
+  // the blur radius, not of the color -- terminal's `0 0 6px 1px rgba(...,0.4)`
+  // cannot reach 3:1 at any hue and is not supposed to. Compliance lives in the
+  // core (these rows); the glow carries theme identity. That split is written
+  // into §7.3 so a future reader does not "fix" the omission by adding a row
+  // here that no theme can pass.
+  ["focus-bd", "btn-bg", 3],
+  ["focus-bd", "input-bg", 3],
 ];
 
 // Generic `--name: value;` extractor over an arbitrary block body -- the

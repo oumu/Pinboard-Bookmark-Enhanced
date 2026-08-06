@@ -29,7 +29,18 @@
      declare an explicit glow-style override in the generated region below, which
      wins on the same element via cascade (:root and html[data-theme] both target
      <html>; the generated block only outranks a property it actually declares). */
-  --lib-focus-bd: color-mix(in srgb, var(--lib-accent, #4477bb) 55%, var(--lib-input-bg, #fff));
+  /* AA-derived, NOT the old `color-mix(accent 55%, input-bg)` formula
+     (design-uplift follow-up 2026-08-06, independent review F1). §7.3's
+     `bordered` placement makes this the focus indicator's CORE, and Soft Fill
+     collapsed the resting border into the fill -- so this one value carries
+     WCAG 1.4.11's 3:1 for every button, field and fused shell on this
+     surface. The mix formula measured 2.08:1 against both btn-bg and input-bg here; this literal is
+     focusBdToAA(accent, seed, [btn-bg, input-bg]) from
+     composers/_ui-derive.mjs, i.e. the same number the 14 themed blocks are
+     derived to, hand-carried because the default surface has no emit path.
+     Now 3.01:1 against both. Re-derive (do not eyeball) if accent or either fill moves --
+     contrast-audit's `focus-bd vs btn-bg`/`vs input-bg` rows will catch it. */
+  --lib-focus-bd: #438bea;
   --lib-focus-ring: 0 0 6px 1px color-mix(in srgb, var(--lib-accent, #4477bb) 45%, transparent);
   /* --lib-border's default lives in the composer's DEFAULT_LIGHT block now
      (design-uplift Task 16) -- same role, AA-derived against --lib-btn-bg/
@@ -199,7 +210,7 @@ a { color: var(--lib-link, #1a66c2); }
 .btn.danger:focus-visible {
   border-color: var(--lib-focus-bd);
 }
-.btn.danger.ghost:focus-visible {
+.btn.danger.ghost:focus-visible:not(:disabled) {
   border-color: var(--lib-focus-bd);
 }
 .confirm-popover .confirm-yes {
@@ -1083,8 +1094,8 @@ html[data-theme="rose-pine"] .xp-dict-lang {
   border-radius: var(--lib-radius-md);
   background: inherit; color: inherit;
 }
-.vocab-note-input:focus { outline: none; border-color: var(--lib-focus-bd, var(--lib-accent)); }
-.vocab-note-input:focus-visible { box-shadow: var(--lib-focus-ring, 0 0 6px 1px color-mix(in srgb, var(--lib-accent) 45%, transparent)); }
+.vocab-note-input:focus { outline: none; border-color: var(--lib-focus-bd); }
+.vocab-note-input:focus-visible { box-shadow: var(--lib-focus-ring); }
 /* Zero-shift reveal. The button used to be `display: none` while hidden, so
    the first keystroke inserted a whole button into the flex row and the
    textarea jumped narrower under the cursor. Now the box is ALWAYS in
@@ -1188,12 +1199,16 @@ html.motion-ready .vocab-note-save {
   color: var(--lib-fg);
   box-sizing: border-box;
 }
-/* §8 law 2: the ring belongs to the shell (`.vocab-group-unit:focus-within`
-   further down). An inner ring here is what shipped before and is exactly
-   the defect the user reported twice -- `outline-offset: 1px` on an input
-   that ends 53px (batch bar) / 158px (detail pane) short of the unit's right
-   edge draws two thirds of a rectangle and then runs underneath the two
-   stepper cells, whose opaque `.btn` background paints over it. */
+/* §8 law 2: the ring belongs to the shell -- specifically to
+   `.vocab-group-unit:has(> input[type="text"]:focus)` further down, which is
+   the rule that fires for THIS tab stop. (It was a bare `:focus-within`
+   until 2026-08-06; that also fired for the two stepper cells, which draw
+   their own inset ring, so tabbing to one produced two rings at once.)
+   An inner ring here is what shipped before and is exactly the defect the
+   user reported twice -- `outline-offset: 1px` on an input that ends 53px
+   (batch bar) / 158px (detail pane) short of the unit's right edge draws two
+   thirds of a rectangle and then runs underneath the two stepper cells,
+   whose opaque `.btn` background paints over it. */
 .vocab-group-unit > input[type="text"]:focus,
 .vocab-group-unit > input[type="text"]:focus-visible {
   outline: none;
@@ -1600,9 +1615,14 @@ html.motion-ready .vocab-batch-bar.selecting {
   background: color-mix(in srgb, var(--lib-fg) 10%, var(--lib-input-bg));
   transition-duration: 0s;
 }
-/* The shell keeps its :focus-within ring; the segment says WHICH one holds
-   focus with the project's STANDARD button ring (§7.3), pulled inside its
-   own box by a negative offset so it stays clear of the shell's chrome.
+/* When a STEPPER holds focus the shell stays inert (its ring is scoped to
+   the text input, see that rule above) and this inset core is the whole
+   indicator -- §7.3's `inset` placement, pulled inside the cell's own box by
+   a negative offset so it never crosses the shell's chrome or its neighbour.
+   `box-shadow: none` below is load-bearing, not tidiness: these cells are
+   `.btn`, and the generated `.btn:focus-visible` now carries the
+   --lib-focus-ring glow, which would spill across the welded seam onto the
+   adjacent cell and stack a second indicator on this one.
    Two rejected predecessors, recorded so neither gets re-invented:
    a 10% ghost FILL (round 5) made a segment read as a chip floating inside
    the unit -- and §8 law 6 forbids repainting a segment's background on
@@ -1811,6 +1831,7 @@ html[data-theme="modern-card"] {
   --lib-radius-md: 8px;
   --lib-radius-lg: 12px;
   --lib-btn-border: #eaeaec;
+  --lib-focus-bd: #3b86e9;
   --lib-btn-fg: #1a1a2e;
   --lib-danger-quiet-fg: #c72c22;
   --lib-on-danger: #ffffff;
@@ -1844,6 +1865,7 @@ html[data-theme="nord-night"] {
   --lib-radius-md: 4px;
   --lib-radius-lg: 4px;
   --lib-btn-border: #3f4656;
+  --lib-focus-bd: #75a0b0;
   --lib-btn-fg: #d8dee9;
   --lib-danger-quiet-fg: #ddaaaf;
   --lib-on-danger: #293547;
@@ -1947,6 +1969,7 @@ html[data-theme="dracula"] {
   --lib-radius-md: 4px;
   --lib-radius-lg: 4px;
   --lib-btn-border: #2e2f38;
+  --lib-focus-bd: #6ba0b4;
   --lib-btn-fg: #f8f8f2;
   --lib-danger-quiet-fg: #ff6969;
   --lib-on-danger: #282a36;
@@ -1980,6 +2003,7 @@ html[data-theme="flexoki-light"] {
   --lib-radius-md: 6px;
   --lib-radius-lg: 6px;
   --lib-btn-border: #ebe9df;
+  --lib-focus-bd: #5f89b7;
   --lib-btn-fg: #100f0f;
   --lib-danger-quiet-fg: #af3029;
   --lib-on-danger: #fffcf0;
@@ -2013,6 +2037,7 @@ html[data-theme="flexoki-dark"] {
   --lib-radius-md: 6px;
   --lib-radius-lg: 6px;
   --lib-btn-border: #2d2c2b;
+  --lib-focus-bd: #4079a9;
   --lib-btn-fg: #cecdc3;
   --lib-danger-quiet-fg: #dd7b73;
   --lib-on-danger: #1c1b1a;
@@ -2046,6 +2071,7 @@ html[data-theme="solarized-light"] {
   --lib-radius-md: 4px;
   --lib-radius-lg: 4px;
   --lib-btn-border: #e6e2d0;
+  --lib-focus-bd: #2485c9;
   --lib-btn-fg: #506469;
   --lib-danger-quiet-fg: #c22421;
   --lib-on-danger: #fdf6e3;
@@ -2114,6 +2140,7 @@ html[data-theme="catppuccin-latte"] {
   --lib-radius-md: 10px;
   --lib-radius-lg: 12px;
   --lib-btn-border: #dfe2e9;
+  --lib-focus-bd: #3f7bf3;
   --lib-btn-fg: #4c4f69;
   --lib-danger-quiet-fg: #c80e36;
   --lib-on-danger: #eff1f5;
@@ -2147,6 +2174,7 @@ html[data-theme="catppuccin-mocha"] {
   --lib-radius-md: 12px;
   --lib-radius-lg: 12px;
   --lib-btn-border: #353648;
+  --lib-focus-bd: #6582b5;
   --lib-btn-fg: #cdd6f4;
   --lib-danger-quiet-fg: #f38ba8;
   --lib-on-danger: #1e1e2e;
@@ -2180,6 +2208,7 @@ html[data-theme="gruvbox-dark"] {
   --lib-radius-md: 2px;
   --lib-radius-lg: 2px;
   --lib-btn-border: #403c39;
+  --lib-focus-bd: #718c81;
   --lib-btn-fg: #ebdbb2;
   --lib-danger-quiet-fg: #fc887a;
   --lib-on-danger: #282828;
@@ -2213,6 +2242,7 @@ html[data-theme="rose-pine"] {
   --lib-radius-md: 6px;
   --lib-radius-lg: 8px;
   --lib-btn-border: #242233;
+  --lib-focus-bd: #7d6c99;
   --lib-btn-fg: #e0def4;
   --lib-danger-quiet-fg: #eb6f92;
   --lib-on-danger: #191724;
@@ -2246,6 +2276,7 @@ html[data-theme="github-light"] {
   --lib-radius-md: 6px;
   --lib-radius-lg: 6px;
   --lib-btn-border: #f0f1f1;
+  --lib-focus-bd: #458ce0;
   --lib-btn-fg: #1f2328;
   --lib-danger-quiet-fg: #cf222e;
   --lib-on-danger: #ffffff;

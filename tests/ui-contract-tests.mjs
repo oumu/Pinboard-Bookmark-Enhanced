@@ -727,31 +727,120 @@ check(/\.regen-link:focus-visible \{ [^}]*\}/.test(popupCss) &&
   BORDERLESS_FOCUS("pp").test(popupCss.slice(popupCss.indexOf(".regen-link:focus-visible"),
     popupCss.indexOf(".regen-link:focus-visible") + 200)),
   "popup.css: .regen-link lost the §7.3 borderless focus recipe (1px accent core + var(--pp-focus-ring) glow)");
-// §7.3 unification, file-wide: after the 2026-08-06 sweep NO hand-written
-// rule may re-introduce the retired hard ring (`outline: 2px solid
-// var(--{ns}-accent)` growing OUTWARD). The two legitimate 2px outlines left
-// are the `inset` placement (negative offset, and it consumes --{ns}-focus-bd,
-// not --{ns}-accent) and options' .theme-preset-btn.active SELECTION ring,
-// which is not a focus indicator at all. Asked as a class, not as a list of
-// selectors: a checklist of instances would miss the next new one
-// (CLAUDE.md, "断言问得太窄等于没门").
+// §7.3 unification, file-wide, WHITELIST form: every hand-written
+// :focus-visible rule that draws a focus indicator must match one of the
+// three placements exactly. This replaced a blacklist ("no `outline: 2px
+// solid var(--ns-accent)` growing outward") that the 2026-08-06 independent
+// review defeated five different ways with the same visual regression --
+// omit outline-offset, swap declaration order, spell it in longhands, draw
+// the ring as a literal box-shadow, or delete the 1px core and keep only the
+// glow. All five are the same defect and a string blacklist can only ever
+// name the spellings someone already thought of (CLAUDE.md, "断言问得太窄
+// 等于没门" -- ask what the simplest missed counter-example looks like).
+//
+// So: parse declarations instead of matching text. Comments are stripped,
+// longhands folded into the shorthand, order irrelevant, and any box-shadow
+// that is not literally the theme's own --{ns}-focus-ring token counts as a
+// hand-drawn ring.
+const FOCUS_SHAPE_EXEMPT = {
+  // Selection marks, not focus indicators: no :focus-visible, and the render
+  // oracle gates the ring's contrast separately via outlineContrast.
+  ring: [/\.theme-preset-btn\.active/, /\.saved-theme-btn\.active/],
+  // §7.3's one sanctioned bare `outline: none`: a passenger that hands its
+  // indicator to the container drawing the ring on its behalf (§8 law 2).
+  // Listed explicitly so "defers to container" stays a deliberate, reviewed
+  // choice rather than the escape hatch every un-styled control falls into.
+  defer: [
+    /^\.notes-card-head:focus-visible$/,
+    // The fused text input inside .vocab-group-unit: the shell draws the ring
+    // for it (§8 law 2, field flavour), so the passenger must draw nothing --
+    // including not falling through to Chromium's default ring.
+    /^\.vocab-group-unit > input\[type="text"\]:focus, \.vocab-group-unit > input\[type="text"\]:focus-visible$/,
+  ],
+};
+function parseFocusShape(body) {
+  const d = {};
+  for (const decl of body.split(";")) {
+    const i = decl.indexOf(":");
+    if (i < 0) continue;
+    d[decl.slice(0, i).trim().toLowerCase()] = decl.slice(i + 1).trim();
+  }
+  const num = (v) => { const n = parseFloat(v); return Number.isFinite(n) ? n : null; };
+  const COLOR = /var\([^)]*\)|#[0-9a-fA-F]{3,8}|rgba?\([^)]*\)|color-mix\([^)]*\)/;
+  let width = null, style = null, color = null;
+  if (d.outline !== undefined) {
+    const v = d.outline.trim();
+    if (v === "none") { style = "none"; width = 0; }
+    else {
+      const w = /(-?\d*\.?\d+)px/.exec(v); if (w) width = parseFloat(w[1]);
+      const s = /\b(solid|dashed|dotted|double|none)\b/.exec(v); if (s) style = s[1];
+      const c = COLOR.exec(v); if (c) color = c[0];
+    }
+  }
+  // Longhands win over the shorthand when both appear (later-wins is already
+  // handled: `d` keeps the last declaration of each property).
+  if (d["outline-width"] !== undefined) width = num(d["outline-width"]);
+  if (d["outline-style"] !== undefined) style = d["outline-style"];
+  if (d["outline-color"] !== undefined) color = d["outline-color"];
+  return {
+    width, style, color,
+    offset: d["outline-offset"] !== undefined ? num(d["outline-offset"]) : null,
+    offsetDeclared: d["outline-offset"] !== undefined,
+    outlineTouched: ["outline", "outline-width", "outline-style", "outline-color"].some(k => d[k] !== undefined),
+    shadow: d["box-shadow"],
+    borderColor: d["border-color"],
+  };
+}
 for (const [file, css, ns] of [["popup.css", popupCss, "pp"], ["options.css", optionsCss, "opt"], ["library.css", libraryCss, "lib"]]) {
   const hand = stripGeneratedRegions(css).replace(/\/\*[\s\S]*?\*\//g, "");
-  const real = [];
-  // Selector + body together: the exemption below is decided by the SELECTOR,
-  // so a declaration-only match could never see which rule it came from.
+  const rules = [];
   for (const m of hand.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
-    const [, selector, body] = m;
-    const hit = new RegExp(`outline: 2px solid var\\(--${ns}-accent[^;]*;\\s*outline-offset: (-?[\\d.]+)px`).exec(body);
-    if (!hit || parseFloat(hit[1]) < 0) continue;
-    // .theme-preset-btn.active's ring is a SELECTION mark, not a focus
-    // indicator: it carries no :focus-visible and the render oracle gates it
-    // separately via outlineContrast.
-    if (/\.theme-preset-btn\.active|\.saved-theme-btn\.active/.test(selector)) continue;
-    real.push(`${selector.trim().replace(/\s+/g, " ")} { ${hit[0].replace(/\s+/g, " ")} }`);
+    rules.push({ selector: m[1].trim().replace(/\s+/g, " "), body: m[2] });
   }
-  check(real.length === 0,
-    `${file}: retired §7.3 hard focus ring re-introduced (outward 2px accent outline) — use the bordered/borderless/inset placement instead: ${real.join(" | ")}`);
+  const bySelector = new Map(rules.map(r => [r.selector, r.body]));
+  const RING = `var(--${ns}-focus-ring)`, BD = `var(--${ns}-focus-bd)`, ACCENT = `var(--${ns}-accent)`;
+  const bad = [];
+  for (const { selector, body } of rules) {
+    if (!/:focus-visible/.test(selector)) continue;
+    if (FOCUS_SHAPE_EXEMPT.ring.some(re => re.test(selector))) continue;
+    const s = parseFocusShape(body);
+    const drawsOutline = s.style && s.style !== "none" && s.width > 0;
+    const suppressesOutline = s.outlineTouched && (s.style === "none" || s.width === 0);
+    const fail = (why) => bad.push(`${selector} — ${why}`);
+    if (drawsOutline) {
+      // Placement is decided by the SIGN of the offset, so an omitted offset
+      // is not a cosmetic slip: it silently becomes 0 and turns `inset` into
+      // an outward ring.
+      if (!s.offsetDeclared) { fail("draws an outline with no outline-offset (0 by default flips inset into an outward ring)"); continue; }
+      if (s.offset >= 0) {
+        if (s.width !== 1) fail(`borderless core must be 1px, got ${s.width}px`);
+        else if (s.color !== ACCENT) fail(`borderless core must be ${ACCENT}, got ${s.color}`);
+        else if (s.shadow !== RING) fail(`borderless needs the ${RING} glow, got ${s.shadow === undefined ? "no box-shadow" : s.shadow}`);
+      } else {
+        if (!(s.width >= 2)) fail(`inset core must be >=2px, got ${s.width}px`);
+        else if (s.color !== BD) fail(`inset core must be ${BD}, got ${s.color}`);
+        else if (s.shadow !== "none") fail(`inset must suppress box-shadow (the .btn family's glow leaks across a fused seam and stacks on the core), got ${s.shadow === undefined ? "no box-shadow declaration" : s.shadow}`);
+      }
+    } else if (suppressesOutline) {
+      if (s.borderColor === BD && s.shadow === RING) continue;             // bordered
+      if (!s.borderColor && s.shadow === undefined
+          && FOCUS_SHAPE_EXEMPT.defer.some(re => re.test(selector))) continue; // §8 law 2 passenger
+      fail(`suppresses the outline without the bordered pair (border-color: ${BD} + box-shadow: ${RING}); got border-color=${s.borderColor} shadow=${s.shadow}`);
+    } else if (s.shadow !== undefined && s.shadow !== "none") {
+      // No outline of its own. Legal only as the glow half of `bordered`,
+      // whose core lives on the matching :focus rule -- and only as the TOKEN,
+      // never a literal (a literal here is the box-shadow spelling of a hard
+      // ring, which is what defeated the previous blacklist).
+      if (s.shadow !== RING) { fail(`box-shadow focus ring must be ${RING}, got ${s.shadow}`); continue; }
+      if (s.borderColor === BD) continue;                                   // themed bordered twin
+      const partner = bySelector.get(selector.replaceAll(":focus-visible", ":focus"));
+      if (!partner || !new RegExp(`border-color:\\s*${BD.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`).test(partner)) {
+        fail(`glow with no core — needs either border-color: ${BD} here, or the matching :focus rule to set it`);
+      }
+    }
+  }
+  check(bad.length === 0,
+    `${file}: hand-written focus rule(s) do not match any §7.3 placement (bordered / borderless / inset):\n    ${bad.join("\n    ")}`);
 }
 // The two same-specificity deletions this sweep made must stay deleted --
 // both were measured, not eyeballed (CLAUDE.md's two-way cascade rule).
@@ -806,10 +895,19 @@ for (const [file, css, ns] of [["popup.css", popupCss, "pp"], ["options.css", op
     && /min-height:/.test(input[1]) && /max-height:/.test(input[1]) && /resize:\s*vertical/.test(input[1]),
     "library.css: .vocab-note-input lost auto-grow (field-sizing: content) or one of its bounds — without the max-height a 500-char note pushes the rest of the detail pane off-screen");
 }
-check((libraryCss.match(/\.lib-tab:focus-visible/g) || []).length === 1,
-  "library.css: .lib-tab has more than one :focus-visible rule again — the later same-specificity one silently wins `outline` while the earlier still supplies `box-shadow`");
-check(!/\.vocab-sort-seg:focus-within/.test(libraryCss),
-  "library.css: the .vocab-sort-seg shell focus ring is back — it lights on plain mouse-down and double-rings on Tab (the cell's own inset ring is the indicator)");
+// Comments stripped first, same as the class-level gate above: BOTH of these
+// name a selector that the surrounding prose also has every reason to
+// mention, and a scan over raw source cannot tell a rule from an explanation
+// of why that rule is gone. This is the same failure mode CLAUDE.md records
+// for contrast-audit's orphan guard, where a comment quoting "info-fg" made
+// the guard believe the token was already handled.
+{
+  const libRules = libraryCss.replace(/\/\*[\s\S]*?\*\//g, "");
+  check((libRules.match(/\.lib-tab:focus-visible/g) || []).length === 1,
+    "library.css: .lib-tab has more than one :focus-visible rule again — the later same-specificity one silently wins `outline` while the earlier still supplies `box-shadow`");
+  check(!/\.vocab-sort-seg:focus-within/.test(libRules),
+    "library.css: the .vocab-sort-seg shell focus ring is back — it lights on plain mouse-down and double-rings on Tab (the cell's own inset ring is the indicator)");
+}
 // COMPONENTS.md §7.3 / §8 law 6, for every popup control the render oracle
 // cannot reach. The library/options ones are gated live; popup's fixture is
 // seeded logged-in, so #login-section (and with it .secret-field) has a zero

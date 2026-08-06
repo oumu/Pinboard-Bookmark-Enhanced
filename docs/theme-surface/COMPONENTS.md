@@ -610,13 +610,30 @@ accent 焦点色，等于焦点一来就抹掉危险信号——所以它们走 
   同时和 inset 芯叠成两层；② 列表行的 selected / `aria-current` 态**已经占用了 `box-shadow`**
   （`inset 0 0 0 1px` / `inset 2px 0 0` 的强调边），同特异性下后写的那条会**替换**而不是叠加，
   焦点期间静默抹掉「你在这一行」。
-- 焦点指示对相邻背景 ≥3:1（WCAG 1.4.11）。
+- **焦点指示对相邻背景 ≥3:1（WCAG 1.4.11），由「芯」承担，不由辉光承担。**
+  这条从本节写下来那天就在，但直到 2026-08-06 独立复审才第一次有执行者——在此之前
+  `--{ns}-focus-bd` 的默认公式 `color-mix(accent 55%, input-bg)` 在多数表面只有
+  **1.58–2.40:1**（默认浅色 1.90、`html.dark` 2.40、flexoki 2.10、solarized-light 1.58），
+  而 terminal(13.93) / paper-ink(9.63) / solarized-dark(3.30) 达标恰恰是因为 pilot 覆盖
+  **绕开了**那条公式。Soft Fill（§9 律 1）把静息边框塌进填充之后（`btn-border == btn-bg`，1.00:1），
+  `bordered` 落位的这圈边就是整个 `.btn` 族、全部字段、全部融合外壳**唯一**的合规载体。
+  现在 `focusBdToAA()`（`composers/_ui-derive.mjs`）逐主题派生：起点仍是原公式（已达标的主题
+  逐字节不变），不足则先沿混合比走向纯 accent（**保住主题自己的色相**），纯 accent 仍不够才动明度。
+  三个 chrome composer 发射进 `@generated:ui-themes`，pilot `ui.*` 覆盖照旧胜出。
+  默认表面无 emit 路径，三处 `:root` 与 popup 的 `html.dark` 改为**手工搬运的同一派生结果**
+  （字面 hex，注释里写明重新派生的方法），由同一道门验证。
+- **辉光 `--{ns}-focus-ring` 明确不进对比度门。** 它是带模糊半径的半透明晕，
+  对任何填充的实测对比度是**模糊半径的属性而不是颜色的属性**——terminal 的
+  `0 0 6px 1px rgba(51,255,51,0.4)` 在任何色相下都到不了 3:1，而且本来就不该到。
+  合规住在芯里（上一条的两行门），辉光负责主题身份。**别**因为「这里少了一行」就往
+  `COMPONENT_PAIR_SPEC` 里补一条没有主题能过的规则。
 - **聚焦不重绘填充**（2026-08-05 收尾统一，三表面全量）。§8 律 6 最初只约束融合控件，但「聚焦时
   底色变白」在普通输入框上同样读作「控件换了材质」而不是「获得焦点」，而且同一屏里一半控件变底、
   一半不变，本身就是不一致。现在是横切规则：**任何控件聚焦只许改 `border-color` 并加环，
   不许改 `background`、不许改 `border-width`**。popup 的 `.field > input`/`.search-field` 是最后
-  两处例外，已收敛。`--pp-input-focus-bg` token 保留（它派生 `--pp-focus-bd`，也仍供两条
-  `button:hover` 使用），但**不再有任何 `:focus` 规则消费它**。
+  两处例外，已收敛。`--pp-input-focus-bg` token 保留（仍供两条 `button:hover` 使用），但
+  **不再有任何 `:focus` 规则消费它**；2026-08-06 起它也**不再派生** `--pp-focus-bd`——
+  后者改由 `focusBdToAA()` 以它为**起点种子**算出 AA 达标值，只在派生的第一步出现。
 - **载字段的融合控件，环画在容器上**，见 §8 律 2；**纯按钮分段的环画在格子里**，见同条的格子豁免。
 - 门，四道，各管一段：
   - 渲染 oracle 的 `focusRecipe`（`bordered` / `borderless` / `inset`）按名字断言**活级联**产出的
@@ -1103,7 +1120,7 @@ label span（`<span class="btn-ic">svg</span><span></span>`），在 grid 下它
 | C42 | **分段控件的双层框与点击亮框**（`.vocab-sort-seg`、`.vocab-group-unit` 的两颗步进钮）——**USER CHECKPOINT 2026-08-06**：排序段「点一下就亮个框」「Tab 过去是两层框」 | 两个单元都用 `:focus-within` 在**外壳**画环。`:focus-within` 没有键盘门控（`:focus-visible` 才只认键盘），所以鼠标点击也亮；而格子自己另有 inset 环，于是 Tab 时外壳环 + 格子环同时出现 | §8 律 2 拆成两半并加表：**纯按钮分段外壳不画环**（`.vocab-sort-seg:focus-within` 整条删除），**载字段单元的外壳环收敛到文本录入**（`:focus-within` → `:has(> input[type="text"]:focus)`）。格子一律 `inset` | 排序段点击不再亮框，Tab 只剩格子内的一圈环；步进钮同理。**oracle 同步演进**：4 条 `fusedFocusRing` 期望改为新增的 `fusedSegmentRing`（断言外壳三属性全不变 **且** 格子画了朝内的环——两半都查，只查一半会分别放过「看不出是哪一格」和「两层框」）。group-unit 的 input 那条**仍留在 `fusedFocusRing`**，正是这一条证明收敛真的在区分而不是整个关掉 | 2026-08-06 focus-unify |
 | C43 | **卡片行焦点环缺口 + 与删除钮叠压**（`.notes-card-head` → `.notes-card-top`） | 环画在 `.notes-card-head` 上，而 head 只占 `.notes-card-top` 三列网格的**第一列**——环因此在行中间断掉，右端还压在 `.row-del-x` 底下 | 环移到整行：`.notes-card-top:has(> .notes-card-head:focus-visible)`，走 `inset` 落位；head 自身 `outline: none`（§8 律 2 的「交出指示」，否则 Chromium 会在行环里再画一圈 UA 默认环） | 行焦点环完整包住整行、不再与删除钮相撞。**刻意用 outline 而不是 box-shadow**：`.vocab-card[aria-current] .notes-card-top` 同为 (0,3,0) 且已占用 `box-shadow` 画「你在这一行」的 accent 边，同特异性下后写者会**替换**它——焦点期间静默抹掉选中提示。门：`focusRecipe: "inset"` 探行、聚焦 head，runner 追加断言 head 自己什么都不画 | 2026-08-06 focus-unify |
 | C44 | **ghost / danger 档的焦点边被静息值反超**（生成区 `.btn.ghost`、`.btn.danger`、`.btn.danger.ghost`） | `.btn:focus-visible` 换成 `bordered` 落位后要改 `border-color`，但 `.btn.ghost { border-color: transparent }`(0,2,0) 与 `.btn.danger`(0,2,0) 在生成区里**排在它后面**，同特异性由源序取胜 → 焦点边被静息值吃掉，只剩辉光 | 三条显式规则补齐特异性：`.btn.ghost:focus-visible`(0,3,0)、`.btn.danger:focus-visible`(0,3,0)、`.btn.danger.ghost:focus-visible`(0,4,0)，一律 `border-color: var(--{ns}-focus-bd)`。**不靠调整源序**（§8.6「别赌源序」） | 详情面板的两颗 ghost-danger 删除钮、以及全部 ghost 按钮，聚焦时真正画出焦点边而不只是发光。危险档语义不丢——它仍由 `--{ns}-danger-quiet-fg` 的文字色与 danger hover 填充承担 | 2026-08-06 focus-unify |
-| C45 | **popup 五个 bordered 站点的焦点边在 13 套预设下静默消失**（`.submit-bar button` / `.qbtn` / `.md-strip-btn` / `.offline-queue-actions button` / `.login-body button`） | popup 有一整层手写主题覆盖，其中 `html[data-theme] .submit-bar button`(0,2,2) 等**静息**规则设 `border-color`，特异性高于基类焦点规则 `.submit-bar button:focus-visible`(0,2,1)。默认表面焦点边正常，13 套预设 + `html.dark` 下焦点边被静息值压掉 | 逐站点量级联后补 themed 焦点孪生规则：4 条既有 `html[data-theme] …:focus-visible` 改载 `border-color` + `box-shadow`，另新增 3 条 `html.dark …:focus-visible` 与 1 条 `html[data-theme] .offline-queue-actions button:focus-visible`。孪生规则同时携带 `box-shadow`，因为 `html[data-theme] .qbtn:hover` 等同特异性且源序更早，hover+focus 并存时焦点必须仍然赢 | 这五个控件在 16 个主题态下焦点边一致出现（此前只有默认浅色态正确）。**这是 CLAUDE.md「同特异性双向查」那条铁律的又一次兑现**——`grep` 看不出问题，只有逐条算特异性才发现；渲染门里 `.vocab-detail-relookup` 的 `bordered` 条目现在会因「border-color 未变」直接 FAIL，把这类回归钉死在 16 套主题上 | 2026-08-06 focus-unify |
+| C45 | **popup 五个 bordered 站点的焦点边在 13 套预设下静默消失**（`.submit-bar button` / `.qbtn` / `.md-strip-btn` / `.offline-queue-actions button` / `.login-body button`） | popup 有一整层手写主题覆盖，其中 `html[data-theme] .submit-bar button`(0,2,2) 等**静息**规则设 `border-color`，特异性高于基类焦点规则 `.submit-bar button:focus-visible`(0,2,1)。默认表面焦点边正常，13 套预设 + `html.dark` 下焦点边被静息值压掉 | 逐站点量级联后补 themed 焦点孪生规则：4 条既有 `html[data-theme] …:focus-visible` 改载 `border-color` + `box-shadow`，另新增 3 条 `html.dark …:focus-visible` 与 1 条 `html[data-theme] .offline-queue-actions button:focus-visible`。孪生规则同时携带 `box-shadow`，因为 `html[data-theme] .qbtn:hover` 等同特异性且源序更早，hover+focus 并存时焦点必须仍然赢 | 这五个控件在 16 个主题态下焦点边一致出现（此前只有默认浅色态正确）。**这是 CLAUDE.md「同特异性双向查」那条铁律的又一次兑现**——`grep` 看不出问题，只有逐条算特异性才发现。**门禁补记（2026-08-06 独立复审 F2）**：本条最初写的是「`.vocab-detail-relookup` 的 `bordered` 条目把这类回归钉死在 16 套主题上」，**不成立**——那条探针在 library，而本条修的五个站点全在 popup，当时 checklist 的 6 条 `focusRecipe` 里 popup 占 0 条，即这五处的级联修复没有任何渲染门看管，只有作者自己的特异性算术。现已补 `.qbtn` 与 `.md-strip-btn` 两条 popup `bordered` 条目（runner 同步补 `#main-section` / `#md-actions-strip` 去 `.hidden` 的 fixture 步骤，二者本被 popup.js 的书签态解析挡住而不可渲染）。**RED 实测**：临时删掉 `html[data-theme] .qbtn:focus-visible` 一条孪生规则 → 14 套预设各报一条 FAIL，报错文本直接点名「border-color 未变，疑似 themed rest 规则反超」；默认浅色与 `html.dark` 两态不受影响（它们不走 `html[data-theme]`），与特异性分析完全一致 | 2026-08-06 focus-unify |
 
 **偏离实施计划之处**（Task 9/10 以本规范为准，但需知晓）：
 

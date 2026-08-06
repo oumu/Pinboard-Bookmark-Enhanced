@@ -211,6 +211,41 @@ export function borderToAA(border, bgs, min = 3) {
   return fgToAAMulti(border, bgs, min);
 }
 
+// The FOCUS EDGE, pushed to clear WCAG 1.4.11's 3:1 non-text floor against
+// every host fill a focusable control can wear (callers pass [btn-bg,
+// input-bg]; the worst of them wins, same repeated-worst-case shape as
+// fgToAAMulti/borderToAA).
+//
+// Why this needs a derivation at all (design-uplift follow-up 2026-08-06,
+// independent review): §7.3's `bordered` placement makes the control's own
+// 1px border the focus indicator's CORE, and Soft Fill (§9 law 1) collapsed
+// that border into the fill at rest -- `btn-border == btn-bg`, 1.00:1. So
+// this one token IS the entire compliance story for the whole .btn family,
+// every field, and every fused shell. The shipped default was a flat
+// `color-mix(accent 55%, input-focus-bg)`, which measured 1.58-2.40:1 on
+// most surfaces (default light 1.89, html.dark 2.40, flexoki 2.10,
+// solarized-light 1.58). The only three themes that passed -- terminal
+// 13.93, paper-ink 9.63, solarized-dark 3.30 -- passed precisely because a
+// pilot override bypassed that formula. §7.3 has required >=3:1 since it was
+// written; nothing had ever enforced it.
+//
+// Starts AT the historical formula so a theme that already clears 3:1 emits
+// byte-for-byte unchanged, then walks the mix toward pure accent, and only
+// if pure accent still cannot reach the floor falls back to moving lightness
+// (fgToAAMulti). Walking the mix first is what keeps the ring the theme's
+// OWN accent hue rather than an arbitrarily lightened/darkened version of
+// it -- the visible softness of this ring is supposed to come from its
+// SHAPE (the --{ns}-focus-ring glow) and not from a washed-out core.
+export function focusBdToAA(accent, seedBg, hosts, min = 3) {
+  const round = c => hexToRgb(rgbToHex(c));
+  const clears = c => hosts.every(h => contrast(round(c), round(h)) >= min);
+  for (let i = 55; i <= 100; i++) {
+    const c = mix(seedBg, accent, i / 100);
+    if (clears(c)) return c;
+  }
+  return fgToAAMulti(accent, hosts, min);
+}
+
 // Soft Fill (design-uplift 2026-08-05, USER RULING): at rest a control is
 // announced by its FILL, not by a frame -- the resting border-color collapses
 // into the fill (border-width is kept, so zero layout shift). That only works

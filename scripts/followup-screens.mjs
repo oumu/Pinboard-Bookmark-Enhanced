@@ -115,6 +115,43 @@ async function clipShot(page, selector, name, pad = 24) {
   console.log(`  ${name}.png`);
 }
 
+// popup + options focus evidence (independent review F2: the first pass shot
+// library only, while the trickiest cascade work -- popup's five `bordered`
+// sites and their per-theme twins -- had no pictures at all).
+async function runFocusPopupOptions(page, sw, extBase) {
+  for (const theme of FOCUS_THEMES) {
+    const { themePresetKey, optTheme } = themeToStorage(theme);
+    await setTheme(sw, themePresetKey, optTheme);
+    const label = theme || "default-light";
+    await page.setViewportSize({ width: 800, height: 900 });
+    await page.goto(`${extBase}popup.html?_fs=${encodeURIComponent(theme)}`, { waitUntil: "load", timeout: TIMEOUT_MS });
+    await page.waitForTimeout(600);
+    // Same fixture step scripts/ui-render-audit.mjs takes: popup.js only
+    // un-hides these once it has resolved the active tab's bookmark state,
+    // which a plain fixture page cannot produce.
+    await page.evaluate(() => {
+      document.getElementById("main-section")?.classList.remove("hidden");
+      document.getElementById("md-actions-strip")?.classList.remove("hidden");
+    });
+    await page.waitForTimeout(200);
+    for (const [sel, name] of [["#jina-md-btn", "qbtn"], ["#md-strip-copy", "mdstripbtn"]]) {
+      if (await focusVia(page, sel)) await clipShot(page, sel, `focus-popup-${name}-${label}`);
+      await page.evaluate(() => document.activeElement?.blur());
+      await page.waitForTimeout(300);
+    }
+    await page.setViewportSize({ width: 1100, height: 900 });
+    await page.goto(`${extBase}options.html?_fs=${encodeURIComponent(theme)}`, { waitUntil: "load", timeout: TIMEOUT_MS });
+    await page.waitForTimeout(700);
+    for (const [sel, name] of [[".tab-btn", "tabbtn"], [".key-toggle", "keytoggle"]]) {
+      if (await focusVia(page, sel)) {
+        await clipShot(page, name === "keytoggle" ? ".key-wrap" : sel, `focus-options-${name}-${label}`);
+      }
+      await page.evaluate(() => document.activeElement?.blur());
+      await page.waitForTimeout(300);
+    }
+  }
+}
+
 async function runFocus(page, sw, extBase) {
   console.log("== focus states ==");
   for (const theme of FOCUS_THEMES) {
@@ -148,6 +185,7 @@ async function runFocus(page, sw, extBase) {
     await focusVia(page, "#vocab-sort-time");
     await shot(page, `focus-page-${label}`);
   }
+  await runFocusPopupOptions(page, sw, extBase);
 }
 
 async function runResponsive(page, sw, extBase) {

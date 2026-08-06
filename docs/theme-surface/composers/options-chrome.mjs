@@ -1,6 +1,6 @@
 import { expandPalette } from "./_util.mjs";
 import { mergeTokens } from "./compose-theme.mjs";
-import { deriveUiColors, deriveUiRadius, regularizeUiRadius, fgToAA, fgToAAMulti, borderToAA, fillSeparate, hexToRgb, rgbToHex, resolveOpaqueBg, resolveChipBg } from "./_ui-derive.mjs";
+import { deriveUiColors, deriveUiRadius, regularizeUiRadius, fgToAA, fgToAAMulti, borderToAA, focusBdToAA, fillSeparate, hexToRgb, rgbToHex, resolveOpaqueBg, resolveChipBg } from "./_ui-derive.mjs";
 import { POPUP_THEME_MAP } from "./popup-chrome.mjs";
 
 // Default-surface (no preset selected) component-layer baseline — Task 5,
@@ -149,6 +149,20 @@ function emitOpt(ui, palette, overrides, radius, mode) {
   // identity wherever the theme's hover already sits far enough away.
   map["btn-hover"] = rgbToHex(fillSeparate(hexToRgb(map["btn-hover"]), [btnBgRgb], fgRgb));
   const btnHoverRgb = hexToRgb(map["btn-hover"]);
+  // Focus edge (design-uplift follow-up 2026-08-06, independent review F1).
+  // §7.3's `bordered` placement makes this token the focus indicator's CORE,
+  // and Soft Fill collapsed the resting border into the fill (btn-border ==
+  // btn-bg, 1.00:1) -- so it is the ONLY thing carrying WCAG 1.4.11's 3:1 for
+  // the whole .btn family, every field and every fused shell. Derived against
+  // the two fills a focusable control actually wears; worst one wins.
+  // Guarded on the MAP rather than on `ovr` so it matches library-chrome's
+  // shape (that surface has two override sources); either way an override
+  // that already landed wins outright, which is how terminal / paper-ink /
+  // solarized keep their bespoke edges.
+  if (map["focus-bd"] == null) {
+    map["focus-bd"] = rgbToHex(focusBdToAA(hexToRgb(map.accent), hexToRgb(map["input-bg"]),
+      [btnBgRgb, hexToRgb(map["input-bg"])]));
+  }
   const dangerRgb = hexToRgb(map.danger);
   // border (design-uplift Task 16, USER RULING): same gap and same
   // resolveOpaqueBg requirement (terminal's translucent #33ff3340) as

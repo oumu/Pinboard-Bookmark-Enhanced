@@ -189,7 +189,14 @@ function dangerRules(ns) {
     // focus indicator that means the same thing everywhere beats one that
     // silently degrades on exactly the buttons with the worst consequences.
     rule(".btn.danger:focus-visible", [["border-color", `var(--${ns}-focus-bd)`]], { pairColorWith: ".btn.danger" }),
-    rule(".btn.danger.ghost:focus-visible", [["border-color", `var(--${ns}-focus-bd)`]], { pairColorWith: ".btn.danger" }),
+    // `:not(:disabled)` here is a SPECIFICITY lever, not a state filter (a
+    // :disabled element cannot match :focus-visible in the first place).
+    // `.btn.danger.ghost:hover:not(:disabled)` above is (0,5,0) and is the
+    // only hover rule in this family that touches border-color, so a (0,4,0)
+    // focus patch lost the border whenever a ghost-danger button was hovered
+    // AND focused -- i.e. exactly when a pointer user tabs to the delete
+    // button they are already pointing at. Now (0,5,0) and emitted after it.
+    rule(".btn.danger.ghost:focus-visible:not(:disabled)", [["border-color", `var(--${ns}-focus-bd)`]], { pairColorWith: ".btn.danger" }),
     // Solid tier — the only allowed full-strength red. Self-paired.
     rule(".confirm-popover .confirm-yes", [
       ["background", `var(--${ns}-danger)`],

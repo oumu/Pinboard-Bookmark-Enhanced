@@ -1159,6 +1159,27 @@ async function runSimpleTheme(page, url, theme, checks, results, surface) {
     }
     await page.waitForSelector("#offline-queue-bar:not(.hidden)", { timeout: TIMEOUT_MS });
   }
+  // popup's main UI (and the markdown strip inside it) ship `class="hidden"`
+  // and are un-hidden by popup.js only after it resolves the active tab's
+  // bookmark state -- something a plain fixture page cannot produce. Dropping
+  // the class is fixture setup of exactly the same kind as library's
+  // needsDetailOpen/needsBatchBarOpen clicks: none of the rules under test
+  // (focus placement, themed twins) reads `.hidden`, they just need the
+  // element to have a box and be focusable. Without this, popup was the one
+  // surface with ZERO live focus coverage -- and it is the surface whose
+  // hand-written themed override layer made five bordered sites need
+  // per-theme focus twins in the first place (COMPONENTS.md C45).
+  if (surface === "popup" && checks.some((c) => c.state === "focusWithin")) {
+    const shown = await page.evaluate(() => {
+      const main = document.getElementById("main-section");
+      const strip = document.getElementById("md-actions-strip");
+      main?.classList.remove("hidden");
+      strip?.classList.remove("hidden");
+      return !!main && !!strip;
+    });
+    if (!shown) throw new Error(`SETUP: popup.html is missing #main-section or #md-actions-strip (theme=${theme})`);
+    await page.waitForTimeout(120);
+  }
   if (surface === "options") {
     // Two tab-scoped groups, each needs ITS OWN tab active when its checks
     // actually run -- NOT two independent "switch tab" steps that both fire

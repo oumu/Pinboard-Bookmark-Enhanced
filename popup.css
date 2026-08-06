@@ -54,7 +54,18 @@
      Fades in via the inputs' existing 0.15s transition. Color flows through each theme's own --pp-accent (custom
      properties resolve on <html>, where the theme blocks also live); a theme
      needing different geometry overrides these via pilot ui overrides. */
-  --pp-focus-bd: color-mix(in srgb, var(--pp-accent) 55%, var(--pp-input-focus-bg));
+  /* AA-derived, NOT the old `color-mix(accent 55%, input-bg)` formula
+     (design-uplift follow-up 2026-08-06, independent review F1). §7.3's
+     `bordered` placement makes this the focus indicator's CORE, and Soft Fill
+     collapsed the resting border into the fill -- so this one value carries
+     WCAG 1.4.11's 3:1 for every button, field and fused shell on this
+     surface. The mix formula measured 1.90:1 / 1.89:1 against btn-bg / input-bg here; this literal is
+     focusBdToAA(accent, seed, [btn-bg, input-bg]) from
+     composers/_ui-derive.mjs, i.e. the same number the 14 themed blocks are
+     derived to, hand-carried because the default surface has no emit path.
+     Now 3.03:1 / 3.02:1. Re-derive (do not eyeball) if accent or either fill moves --
+     contrast-audit's `focus-bd vs btn-bg`/`vs input-bg` rows will catch it. */
+  --pp-focus-bd: #5a89df;
   --pp-focus-ring: 0 0 6px 1px color-mix(in srgb, var(--pp-accent) 45%, transparent);
   /* --pp-on-accent's default lives in the composer's DEFAULT_LIGHT block now
      (design-uplift Task 13 step 2) -- same role, same #ffffff value, emitted
@@ -1224,6 +1235,9 @@ html.dark {
   --pp-divider: #26282c;
   --pp-input-bg: #26282d;
   --pp-input-focus-bg: #2b2e35;
+  /* Dark default of the focus core, same derivation as :root's (F1). The mix
+     formula measured 2.40:1 / 2.38:1 here; now 3.08:1 / 3.04:1. */
+  --pp-focus-bd: #4e71b2;
   /* --pp-on-accent's dark default lives in the composer's DEFAULT_DARK block
      now (design-uplift Task 13 step 2) -- same #10131a value, emitted into
      the generated html.dark block at the end of @generated:ui-themes below. */
@@ -1420,6 +1434,7 @@ html[data-theme="modern-card"] {
   --pp-radius-sm: 4px;
   --pp-radius-md: 8px;
   --pp-radius-lg: 12px;
+  --pp-focus-bd: #3a86ea;
   --pp-on-accent: #ffffff;
   --pp-info-bg: var(--pp-banner-bg);
   --pp-info-bd: var(--pp-banner-bd);
@@ -1473,6 +1488,7 @@ html[data-theme="nord-night"] {
   --pp-radius-md: 4px;
   --pp-radius-lg: 4px;
   --pp-radius-tag: 6px;
+  --pp-focus-bd: #759fb0;
   --pp-on-accent: #2e3440;
   --pp-info-bg: var(--pp-banner-bg);
   --pp-info-bd: var(--pp-banner-bd);
@@ -1636,6 +1652,7 @@ html[data-theme="dracula"] {
   --pp-radius-md: 4px;
   --pp-radius-lg: 4px;
   --pp-radius-tag: 4px;
+  --pp-focus-bd: #71a6bb;
   --pp-on-accent: #282a36;
   --pp-info-bg: var(--pp-banner-bg);
   --pp-info-bd: var(--pp-banner-bd);
@@ -1689,6 +1706,7 @@ html[data-theme="flexoki-light"] {
   --pp-radius-md: 6px;
   --pp-radius-lg: 8px;
   --pp-radius-tag: 6px;
+  --pp-focus-bd: #5c89ba;
   --pp-on-accent: #FFFCF0;
   --pp-info-bg: var(--pp-banner-bg);
   --pp-info-bd: var(--pp-banner-bd);
@@ -1742,6 +1760,7 @@ html[data-theme="flexoki-dark"] {
   --pp-radius-md: 6px;
   --pp-radius-lg: 8px;
   --pp-radius-tag: 6px;
+  --pp-focus-bd: #4179a9;
   --pp-on-accent: #0d0f12;
   --pp-info-bg: var(--pp-banner-bg);
   --pp-info-bd: var(--pp-banner-bd);
@@ -1795,6 +1814,7 @@ html[data-theme="solarized-light"] {
   --pp-radius-md: 4px;
   --pp-radius-lg: 4px;
   --pp-radius-tag: 3px;
+  --pp-focus-bd: #2485c9;
   --pp-on-accent: #001014;
   --pp-info-bg: var(--pp-banner-bg);
   --pp-info-bd: var(--pp-banner-bd);
@@ -1902,6 +1922,7 @@ html[data-theme="catppuccin-latte"] {
   --pp-radius-sm: 6px;
   --pp-radius-md: 10px;
   --pp-radius-lg: 12px;
+  --pp-focus-bd: #3d7bf5;
   --pp-on-accent: #ffffff;
   --pp-info-bg: var(--pp-banner-bg);
   --pp-info-bd: var(--pp-banner-bd);
@@ -1954,6 +1975,7 @@ html[data-theme="catppuccin-mocha"] {
   --pp-radius-sm: 4px;
   --pp-radius-md: 10px;
   --pp-radius-lg: 12px;
+  --pp-focus-bd: #6481b4;
   --pp-on-accent: #1e1e2e;
   --pp-info-bg: var(--pp-banner-bg);
   --pp-info-bd: var(--pp-banner-bd);
@@ -2007,6 +2029,7 @@ html[data-theme="gruvbox-dark"] {
   --pp-radius-md: 2px;
   --pp-radius-lg: 2px;
   --pp-radius-tag: 3px;
+  --pp-focus-bd: #728c82;
   --pp-on-accent: #282828;
   --pp-info-bg: var(--pp-banner-bg);
   --pp-info-bd: var(--pp-banner-bd);
@@ -2059,6 +2082,7 @@ html[data-theme="rose-pine"] {
   --pp-radius-sm: 4px;
   --pp-radius-md: 6px;
   --pp-radius-lg: 8px;
+  --pp-focus-bd: #8977a4;
   --pp-on-accent: #191724;
   --pp-info-bg: var(--pp-banner-bg);
   --pp-info-bd: var(--pp-banner-bd);
@@ -2111,6 +2135,7 @@ html[data-theme="github-light"] {
   --pp-radius-sm: 3px;
   --pp-radius-md: 6px;
   --pp-radius-lg: 6px;
+  --pp-focus-bd: #448de2;
   --pp-on-accent: #f6f8fa;
   --pp-info-bg: var(--pp-banner-bg);
   --pp-info-bd: var(--pp-banner-bd);
@@ -2411,8 +2436,12 @@ html[data-theme] .confirm-popover button:focus-visible { outline-color: var(--pp
 
 html.dark .md-strip { background: var(--pp-bg2); border-color: var(--pp-border); }
 html.dark .md-strip-btn { background: var(--pp-btn-bg); border-color: var(--pp-btn-bd); color: var(--pp-link); }
-html.dark .md-strip-btn:focus-visible { border-color: var(--pp-focus-bd); box-shadow: var(--pp-focus-ring); }
 html.dark .md-strip-btn:hover { background: var(--pp-btn-hover); border-color: var(--pp-accent); }
+/* AFTER the :hover twin above, deliberately: both are (0,3,1) and both set
+   border-color, so source order is the only tie-break -- and hovering the
+   button you just tabbed to is the common case, not an edge one. The
+   html[data-theme] pair further down is already in this order. */
+html.dark .md-strip-btn:focus-visible { border-color: var(--pp-focus-bd); box-shadow: var(--pp-focus-ring); }
 
 html[data-theme] .md-strip { background: var(--pp-bg2); border-color: var(--pp-divider); }
 html[data-theme] .md-strip-btn { background: var(--pp-btn-bg); border-color: var(--pp-btn-bd); color: var(--pp-link); }

@@ -1,6 +1,6 @@
 import { expandPalette } from "./_util.mjs";
 import { mergeTokens } from "./compose-theme.mjs";
-import { deriveUiColors, deriveUiRadius, regularizeUiRadius, fgToAA, fgToAAMulti, borderToAA, fillSeparate, hexToRgb, rgbToHex, resolveOpaqueBg } from "./_ui-derive.mjs";
+import { deriveUiColors, deriveUiRadius, regularizeUiRadius, fgToAA, fgToAAMulti, borderToAA, focusBdToAA, fillSeparate, hexToRgb, rgbToHex, resolveOpaqueBg } from "./_ui-derive.mjs";
 
 // popup theme id -> { pilot, mode, useDarkMode? }
 // 12 themes map 1:1; the flexoki pilot yields BOTH flexoki-light and flexoki-dark.
@@ -194,6 +194,19 @@ export function composePopupThemes(tokensByPilot) {
     // already far enough away, which is most themed blocks.
     ui["btn-hover"] = rgbToHex(fillSeparate(hexToRgb(ui["drop-hover"]), [btnBgRgb], fgRgb));
     const btnHoverRgb = hexToRgb(ui["btn-hover"]);
+    // Focus edge (design-uplift follow-up 2026-08-06, independent review F1).
+    // §7.3's `bordered` placement makes this token the focus indicator's CORE,
+    // and Soft Fill collapsed the resting border into the fill -- so it is the
+    // ONLY thing carrying WCAG 1.4.11's 3:1 for the whole .btn family, every
+    // field and every fused shell. Derived against the two fills a focusable
+    // control actually wears. A pilot ui.* override still wins outright (that
+    // is how terminal / paper-ink / solarized keep their bespoke edges), which
+    // is why this is guarded rather than assigned unconditionally.
+    if (ppO["focus-bd"] == null) {
+      ui["focus-bd"] = rgbToHex(focusBdToAA(hexToRgb(ui.accent),
+        hexToRgb(ui["input-focus-bg"] ?? ui["input-bg"]),
+        [btnBgRgb, hexToRgb(ui["input-bg"])]));
+    }
     const bgRgb = hexToRgb(ui.bg);
     const panelRgb = hexToRgb(ui.bg2);
     const dangerRgb = hexToRgb(ui.danger);
