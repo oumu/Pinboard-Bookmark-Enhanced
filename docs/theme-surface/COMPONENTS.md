@@ -567,27 +567,49 @@ html[data-theme="<dark preset>"] { color-scheme: dark; }
 
 ### 7.3 focus ring
 
-**三套具名配方，按控件类型三选一，不许第四套**：
+**一套语言，三种落位**（2026-08-06 用户裁决，三表面全量统一）。语言 = 「柔光环」：焦点态
+**恒**由 `--{ns}-focus-bd`（焦点边缘色）与 `--{ns}-focus-ring`（辉光）两个 token 承担，基准是
+`#vocab-status-filter` 的既有表现（边框变色 + 辉光）。变的只是「芯画在哪」，不是画不画。
 
-| # | 控件类型 | 配方 |
+| 落位 | 适用 | 配方 |
 |---|---|---|
-| `button` | 按钮 / 可点行 / chip | `outline: 2px solid var(--{ns}-accent); outline-offset: 2px` |
-| `field` | 输入类字段（含 `<select>`——它是输入类，不是按钮） | `outline: none; border-color: var(--{ns}-focus-bd); box-shadow: var(--{ns}-focus-ring)` |
-| `softRow` | **大命中区整行**：侧栏 tab、accordion / disclosure 表头 | `outline: 1px solid var(--{ns}-accent); outline-offset: 2px; box-shadow: var(--{ns}-focus-ring)` |
+| `bordered` | `.btn` 族 / 输入类字段（含 `<select>`）/ 载字段的融合外壳 / 有 1px 中性边框的 chip | `outline: none; border-color: var(--{ns}-focus-bd); box-shadow: var(--{ns}-focus-ring)` |
+| `borderless` | 侧栏 tab / 链接 / ghost 图标钮 / checkbox / 无边框药丸 / 弹层动作钮 | `outline: 1px solid var(--{ns}-accent); outline-offset: 2px; box-shadow: var(--{ns}-focus-ring)` |
+| `inset` | 列表整行 / 融合控件的格子 / stepper / `<option>` 行 | `outline: 2px solid var(--{ns}-focus-bd); outline-offset: -2px; box-shadow: none` |
 
-`softRow` 是 2026-08-05 清查时**从既有实现升格**的，不是新造：`options.css` 的
-`.tab-btn` / `.accordion-header` / `.vocab-disclosure > summary` 三者早已一致地用它，并写着理由——
-整行宽的控件套一圈硬 2px 矩形读起来不对，改成 1px 细芯 + `--{ns}-focus-ring` 辉光。理由成立、
-三个消费点一致、且辉光走 token（主题各自重定义：terminal 的 CRT 辉光、solarized 的 2px 环），
-所以正确处置是**给它一个名字并接上门**，而不是把它拍平成 `button` 套——后者是拿"配方只能有两套"
-这句话去推翻一条论证过的设计决定。**升格的代价是它从此有边界**：只有"整行宽、内容自撑高度"的
-控件能用，别拿它去修饰普通按钮；`focusRecipe` 断言按名字逐个钉住消费点。
+**落位判定只问两件事**，按顺序：
 
-**别把 `outline: none` 当成"去掉焦点环"**：它只在 `field` 套里合法，且必须与
-`border-color` + `box-shadow` 同时出现。裸 `outline: none` 一律 fail（§7.3 原有规则，不变）。
+1. **它是行、还是格子？**（列表整行、焊死分段里的一格、picker 的一行）→ `inset`。
+   理由是几何：外环会溢到邻居身上或被父级 `overflow` 裁掉。
+2. **它静息时有没有一圈「中性 chrome」边框？** 有 → `bordered`（焦点重新着色那圈边）；
+   没有，或那圈边是**语义**的（danger / warn / `currentColor` 状态边）→ `borderless`。
 
-- 控件贴着容器边缘或会被父级裁切时，`outline-offset` 取负值（`-2px`），不要改成别的形态。
-- **`outline: none` 只能与替代焦点指示同时出现**。裸 `outline: none` 在配方里一律 fail。
+第 2 条后半句是本次清扫真正吃掉时间的地方，写清楚免得下次重推：弹层里的
+`.confirm-yes` / `.confirm-no` / `.tnp-save`、popup 的 `.fc-btn`（`border: 1px solid currentColor`）
+这些控件**有**边框，但那圈边表达的是「这个操作有多危险 / 是不是主操作」。把它改涂成
+accent 焦点色，等于焦点一来就抹掉危险信号——所以它们走 `borderless`，语义边原样留着，
+1px accent 芯 + 辉光叠在外面。`.btn` 族的边框相反，是 Soft Fill 塌进填充里的中性 chrome
+（§9 律 1），涂它没有任何信息损失，所以走 `bordered`。
+
+**`--{ns}-focus-ring` 一律原样 `var()` 消费，绝不展开成字面阴影。** 这条是硬的：辉光的
+**形状本身**是主题身份，不只是颜色——terminal 是 `0 0 6px 1px`（磷光模糊晕），paper-ink 是
+`0 0 0 1px`（极简平环，无晕），solarized 是 `0 0 0 2px` 半透明平环，其余 pilot 走派生的
+`glow`。任何一处把它拍成字面值，那一处就从 13 套预设塌成一个样子，而且是静默的——控件仍然
+「有焦点环」，只是不再是这套主题的焦点环。同理，渲染门**不许断言单一形状**，只能断言各主题
+皆真的属性（存在非 inset 阴影、且与未聚焦基线不同）。`--{ns}-focus-bd` 同理，别拿
+`color-mix(accent …)` 就地替代——那会绕过 terminal / paper-ink / solarized 三套的显式覆盖。
+
+**别把 `outline: none` 当成"去掉焦点环"**：它只在 `bordered` 落位里合法，且必须与
+`border-color` + `box-shadow` 同时出现。裸 `outline: none` 一律 fail。唯一的例外是
+**把指示交给容器**的内部件（§8 律 2）——`.notes-card-head` 就是这一形状：环画在整行
+`.notes-card-top` 上，head 自己必须 `outline: none`，否则 Chromium 会在行环里面再画一圈 UA 默认环。
+这种「交出指示」的 `outline: none` 必须有一条渲染断言点名它的容器确实画了环，不许只写一句注释。
+
+- `inset` 落位**必须显式写 `box-shadow: none`**。两个理由，都被实测抓到过：① 生成区的
+  `.btn:focus-visible` 现在带辉光，而分段格子多半也是 `.btn`，不压掉就会在焊缝上溢出一圈、
+  同时和 inset 芯叠成两层；② 列表行的 selected / `aria-current` 态**已经占用了 `box-shadow`**
+  （`inset 0 0 0 1px` / `inset 2px 0 0` 的强调边），同特异性下后写的那条会**替换**而不是叠加，
+  焦点期间静默抹掉「你在这一行」。
 - 焦点指示对相邻背景 ≥3:1（WCAG 1.4.11）。
 - **聚焦不重绘填充**（2026-08-05 收尾统一，三表面全量）。§8 律 6 最初只约束融合控件，但「聚焦时
   底色变白」在普通输入框上同样读作「控件换了材质」而不是「获得焦点」，而且同一屏里一半控件变底、
@@ -595,10 +617,20 @@ html[data-theme="<dark preset>"] { color-scheme: dark; }
   不许改 `background`、不许改 `border-width`**。popup 的 `.field > input`/`.search-field` 是最后
   两处例外，已收敛。`--pp-input-focus-bg` token 保留（它派生 `--pp-focus-bd`，也仍供两条
   `button:hover` 使用），但**不再有任何 `:focus` 规则消费它**。
-- **融合控件的环画在容器上**，见 §8 律 2——内部件不各画各的。
-- 门：渲染 oracle 的 `focusRecipe`（`field` / `button` / `softRow`），按名字断言**活级联**产出的形状，
-  不是断言某条规则写了什么。渲染不可达的站点（弹层里只在用户动作后才存在的控件）改由
-  `tests/ui-contract-tests.mjs` 的静态文本契约看管——两处都要有主，不许没人管。
+- **载字段的融合控件，环画在容器上**，见 §8 律 2；**纯按钮分段的环画在格子里**，见同条的格子豁免。
+- 门，四道，各管一段：
+  - 渲染 oracle 的 `focusRecipe`（`bordered` / `borderless` / `inset`）按名字断言**活级联**产出的
+    形状，不是断言某条规则写了什么。探针元素与聚焦元素**可以不是同一个**（`.notes-card-head`
+    交给 `.notes-card-top` 那种）——此时 runner 追加要求内部件自己什么都不画，否则「两层环」
+    这类缺陷会从只看容器的断言底下溜过去。
+  - 渲染 oracle 的 `fusedFocusRing`（外壳画环）与 `fusedSegmentRing`（外壳不动、格子画 inset 环），
+    见 §8.4。
+  - `tests/ui-contract-tests.mjs` 的**类级**静态门：手写区不许再出现「向外生长的 2px accent 环」
+    这一整类写法（不是列举选择器——列举只挡得住已知的那几个，挡不住下一个新加的，
+    CLAUDE.md「断言问得太窄等于没门」）。options 的 `.theme-preset-btn.active` 是显式豁免：
+    那是**选中标记**不是焦点指示，由 `outlineContrast` 单独看管。
+  - 渲染不可达的站点（弹层里只在用户动作后才存在的控件）由 `ui-contract-tests.mjs` 的静态文本
+    契约看管——两处都要有主，不许没人管。
 
 ### 7.4 状态色一律 token 化
 
@@ -660,8 +692,21 @@ chevron 探出边框——根因是同一处：一条 id 选择器规则把水�
 
 1. **边框 / 圆角 / 背景由容器唯一持有。** 内部件一律无独立边框、无独立圆角（容器 `overflow: hidden`
    裁角）、背景透明或 ghost。
-2. **focus 环画在容器上**：`:focus-within` → §7.3 的统一配方（取哪一套看控件类型：有文本录入走字段套，
-   纯按钮组走按钮套）。内部件自身的 `outline` 抑制；键盘逐件 tab 时用内部件的轻微底色变化指示当前段。
+2. **focus 环画在容器上——但只为「载文本录入的那一半」**（2026-08-06 修订，真机反馈）。
+
+   | 单元类型 | 容器 | 格子 |
+   |---|---|---|
+   | 载字段（`.vocab-group-unit`、`.key-wrap`、`.tags-input-wrap`） | **输入框**聚焦时画 §7.3 `bordered` 环 | 步进钮聚焦时容器**不动**，格子自己画 `inset` 环 |
+   | 纯按钮分段（`.vocab-sort-seg`） | **不画环** | 聚焦格子画 `inset` 环 |
+
+   **原修订前的写法是 `:focus-within` 一把抓，两个缺陷都出在这里**：① `:focus-within` 没有键盘
+   门控，鼠标点一下分段就亮一圈框（`:focus-visible` 才只认键盘）；② tab 到格子时，容器环和格子
+   自己的 inset 环**同时**出现，读成两层框。载字段的单元用 `:has(> input[type="text"]:focus)`
+   把容器环收敛到文本录入那一条路径上——文本字段的焦点属于包着它的那圈边，按钮格子的焦点属于
+   格子自己的盒内，这两句话是这一律的全部内容。
+
+   格子的 `inset` 环见 §7.3，**必须带 `box-shadow: none`**：格子多半是 `.btn`，而生成区的
+   `.btn:focus-visible` 现在带辉光，不压掉就会从焊缝溢到邻格上。
 3. **内部分隔线单一颜色单一粗细**（1px，与容器边框同色或降饱和一档），贯穿高度一致。分隔线的颜色
    **不得随任何状态变化**——选中态改分隔线颜色是这条律最容易踩的坑（`.vocab-sort-seg` 的原实现）。
 4. **hover / press 反馈按 §3 既有语言**，但内部件用 ghost 底色变化，**`transform` 显式取消**：
@@ -713,7 +758,9 @@ chevron 探出边框——根因是同一处：一条 id 选择器规则把水�
   overflow: hidden;                     /* 裁角：内部件因此不需要任何 radius */
   transition: border-color var(--motion-state) ease, box-shadow var(--motion-state) ease;
 }
-.<unit>:focus-within { border-color: var(--{ns}-focus-bd); box-shadow: var(--{ns}-focus-ring); }
+/* 律 2：容器环只为文本录入那条路径。`:focus-within` 会连步进钮一起吃进来，
+   于是格子的 inset 环和容器环同时出现（真机打回的「两层框」）。 */
+.<unit>:has(> input[type="text"]:focus) { border-color: var(--{ns}-focus-bd); box-shadow: var(--{ns}-focus-ring); }
 
 /* 内部件。`> ` 让每条覆盖靠特异性 (0,2,0)+ 赢过生成区的 .btn (0,1,0)，不靠源序 */
 .<unit> > input[type="text"] { border: 0; border-radius: 0; background: transparent; color: var(--{ns}-fg); }
@@ -728,8 +775,9 @@ chevron 探出边框——根因是同一处：一条 id 选择器规则把水�
 }
 .<unit> > .<seg>:hover:not(:disabled)  { background: color-mix(in srgb, var(--{ns}-fg) 6%, var(--{ns}-input-bg)); }
 .<unit> > .<seg>:active:not(:disabled) { transform: none; background: color-mix(in srgb, var(--{ns}-fg) 10%, var(--{ns}-input-bg)); transition-duration: 0s; }
-/* 律 6：聚焦不碰填充；用收进盒内的标准焦点环说明「焦点在这一段」 */
-.<unit> > .<seg>:focus-visible         { outline: 2px solid var(--{ns}-accent); outline-offset: -2px; }
+/* 律 6 + §7.3 `inset`：聚焦不碰填充；环收进盒内说明「焦点在这一段」。
+   box-shadow: none 是必需的——格子是 .btn，生成区的 .btn:focus-visible 带辉光。 */
+.<unit> > .<seg>:focus-visible         { outline: 2px solid var(--{ns}-focus-bd); outline-offset: -2px; box-shadow: none; }
 ```
 
 **图标居中**：内部件是 icon-only 按钮时，**继承 `.btn` 的 `inline-flex` 居中，另加 `gap: 0`**，
@@ -741,8 +789,9 @@ label span（`<span class="btn-ic">svg</span><span></span>`），在 grid 下它
 所以断言必须钉在 **JS 构建**的那一份上。
 
 **按钮组型的三处差异**（`.vocab-sort-seg`）：容器边框取 `--{ns}-border`、底取 `--{ns}-btn-bg`；
-focus 走 §7.3 的按钮套（`outline: 2px solid var(--{ns}-accent); outline-offset: 2px`，画在容器上）；
-分隔线只画在**有左邻居**的那一格（`.<seg> + .<seg>`），因为容器的第一格左侧就是容器边框本身。
+**容器完全不画 focus 环**（2026-08-06 修订，见律 2 的表：没有文本录入就没有属于容器的焦点，
+聚焦格子的 inset 环即全部指示）；分隔线只画在**有左邻居**的那一格（`.<seg> + .<seg>`），
+因为容器的第一格左侧就是容器边框本身。
 
 **内部件的前景取 `--{ns}-fg` 而不是 `--{ns}-btn-fg`**：`btn-fg` 是对 `btn-bg`/`btn-hover` 派生的，
 而融合进字段型容器之后图标实际压在 `--{ns}-input-bg` 上。`--{ns}-fg` 才是对这个底派生过的那个
@@ -756,15 +805,22 @@ focus 走 §7.3 的按钮套（`outline: 2px solid var(--{ns}-accent); outline-o
 
 ```css
 .key-wrap:focus-within input { border-color: var(--{ns}-focus-bd); box-shadow: var(--{ns}-focus-ring); }
-.key-toggle:focus-visible    { outline: none; background: color-mix(in srgb, var(--{ns}-fg) 10%, var(--{ns}-input-bg)); border-radius: var(--{ns}-radius-sm); }
+/* 眼睛钮走 §7.3 `inset`。这里曾经写过 ghost 填充和内嵌下划线两版，都被用户当场否掉
+   （律 6 记了原委）；下面这行才是 shipped 的形状。 */
+.key-toggle:focus-visible    { outline: 2px solid var(--{ns}-focus-bd); outline-offset: -2px; box-shadow: none; border-radius: var(--{ns}-radius-sm); }
 ```
+
+`.key-wrap` 保留 `:focus-within`（不是 `:has(> input:focus)`）：它的输入框**就是**视觉框，
+眼睛钮浮在框上而不是框里的一格，两个 tab stop 落在同一个视觉盒里，容器环两次都该出现。
+`.vocab-group-unit` 的步进钮是**并排的另一格**，形状不同，所以那边才要收敛。
 
 ### 8.4 几何 / 结构约束
 
 | ID | 断言 | 层 |
 |---|---|---|
 | `fusedChildrenFlat` | 容器内每个点名的内部件：圆角为 0、有边框的边**至多一条**（那条就是分隔线）、非选中态背景 alpha 为 0；同一容器内画出来的所有分隔线颜色与粗细一致 | `[render]` |
-| `fusedFocusRing` | `state: "focusWithin"` 下：容器自身渲染出 focus 指示（`outline` 或非 inset 的 `box-shadow`）、该指示相对未聚焦态**确实变了**、方向朝外（`outline-offset ≥ 0` 或非 inset 阴影）、且**持有焦点的那个内部件允许画自己的 outline，但必须收进盒内（`outline-offset: -2px`）、不得用 `box-shadow` 标示焦点**（§8.2 律 6） | `[render]` |
+| `fusedFocusRing` | 律 2 上半（**载字段单元 + 输入框持有焦点**）。`state: "focusWithin"` 下：容器自身渲染出 focus 指示（`outline` 或非 inset 的 `box-shadow`）、该指示相对未聚焦态**确实变了**、方向朝外（`outline-offset ≥ 0` 或非 inset 阴影）、且持有焦点的内部件允许画自己的 outline 但必须收进盒内、不得用 `box-shadow` 标示焦点（律 6） | `[render]` |
+| `fusedSegmentRing` | 律 2 下半（**纯按钮分段，或载字段单元里的步进钮持有焦点**）。同一 `focusWithin` 状态下：容器的 `border-color` / `box-shadow` / `outline-style` 相对未聚焦态**三者全都没变**，且持有焦点的格子画出了自己的环、方向朝内（`outline-offset < 0`）、并且不画 `box-shadow`。**两半都要断言**：只查前者会放过「有外壳环但看不出是哪一格」，只查后者会放过「两层框」 | `[render]` |
 | `fusedStateStable` | 律 6。rest 与 focus 两趟用**同一个探针**取快照并逐值比对，容器与 `fusedStateStableChildren` 点名的每个内部件都要过三关：① `getBoundingClientRect` 四值全等（并附带 `border-width` 一起报，好直接点名位移的成因）；② `background-color` 不变；③ 内部 `svg` 中心点不变 | `[render]` |
 | `iconVCenter` | icon-only 内部件的 svg 中心与宿主内容盒中心纵向偏差 ≤1px。**必须钉在 JS 构建的实例上**——静态 HTML 的单子节点副本测不出 §8.3 说的那个空 label span 问题 | `[render]` |
 
@@ -1043,6 +1099,11 @@ focus 走 §7.3 的按钮套（`outline: 2px solid var(--{ns}-accent); outline-o
 | C38 | **terminal 逐角色恢复边框**（`pilots/terminal.tokens.json` 的 `ui.popup/options/library.dark`） | terminal 与其他 12 套一起被 Soft Fill 拉平（填充被派生、边框被塌陷），身份丢失 | §9.5：pilot 通道逐角色声明 `btn-bd`/`input-bd`（popup）、`btn-border`/`input-border`（options/library，后者是 terminal 第一次拥有 `ui.library` 通道）。composer 把「声明了该角色的边框」本身当作豁免信号，同一次声明也让该角色的填充保持 pilot 原值。值写 `var(--{ns}-border)` 而非复制字面量（派生一移动，字面量就陈旧——本轮 C35 的三处连锁正是这么坏的） | 与铺开前逐块 diff：三个表面的 terminal 块**只增不改**——原有 token 逐字节相同，新增的每一个都解析成被删掉的手写规则原本画的那个值（`--pp-btn-bg: #111111` = 原 `--pp-bg2`，`--pp-btn-hover: #1a3a1a` = 原 `--pp-drop-hover`，三个 `*-border` 就是原规则点名的同一个 token）。**唯一登记的微差**：`html[data-theme] .md-strip-btn` 的底从 `--pp-bg`(#0a0a0a) 改读 `--pp-btn-bg`(#111111)，与同表面其他按钮统一。几何（圆角/内距）**不豁免**，走 token 阶梯自然生效 | 2026-08-05 Soft Fill |
 | C39 | **列表选中带内嵌复检**（library 两个列表）——**USER CHECKPOINT 2026-08-05，网格终审打回**：paper-ink hover 行「左右只空了 ~2px 且圆角不可读，像没对齐」 | C37 落地的是 `margin-inline: 4px` + `border-radius: var(--lib-radius-sm)`。逐像素实测（1x 网格图，paper-ink）：卡片边框 x=24，卡片底色 x=25–28（**4px，规格是达标的**），带起于 x=29——但 **block 方向内距是 0**，带上下贴死卡片边框；且 `--lib-radius-sm` 在 paper-ink/dracula/solarized 是 **2px**。两侧内嵌 + 两侧贴边 = 读作「没对齐」，不是读作「浮起的卡片」；2px 弧在行高的带上 1x 下不成形 | 两个列表统一 `margin: 2px 4px`（**四边**内嵌）+ `border-radius: var(--lib-radius-md)`；同时 `.notes-card` 的边框塌陷为 `transparent`（§9 律 4：行靠间距与填充分层，不靠线）——一个圆角带套在一个圆角描边卡里，是相距 4px 的两条弧，外面那条赢眼睛，这是「内距看着只有 2px」的另一半根因。`border-width` 保留 1px，`.is-error` 仍能零 reflow 画它的红边 | 16 套主题下两个列表的 hover/选中带四边浮起、圆角可辨；vocab 行的外框消失（原 `--lib-border-section` 描边）。**oracle 收紧**见下 | 2026-08-05 网格终审 |
 | C40 | **library 顶部 Vocabulary / Notes 改真 tab**（`.lib-tab`）——**USER CHECKPOINT 2026-08-05，网格终审打回**：「现状是带壳按钮，不像 tab」 | `border: 1px solid transparent` + `border-radius: var(--lib-radius-md)` + `padding: 6px 14px`；`:hover` 换 `--lib-btn-hover` 填充；`.active` 换 `--lib-tab-active` 填充 + `--lib-border` 描边。即一颗药丸按钮，选中态靠换底色 | 无壳无填充无圆角：`border-bottom: 2px solid transparent` 常驻（选中只换颜色 → 零位移），`.active` 的下边色改 `--lib-accent`；inactive `--lib-fg-muted`、active/hover `--lib-fg`；`:focus-visible` 用 §7.3 的按钮环（`outline: 2px solid accent; offset 2px`，与本表面其他控件同一套）。**刻意不加 `font-weight`**：13px 标签 400→600 宽约 +4px，每次切换都会把邻座 tab 推开，与下划线自己遵守的零位移律相抵触 | 16 套主题下页头两颗 tab 从药丸按钮变成纯文字 + accent 下划线。下划线**贴在标签自己底下**，没有焊到 `.lib-header` 的底线上（那条线在 tab 行下方 12px = 页头自己的 block padding，够到它要重构页头布局，而 `<h1>` 兄弟需要那个 padding）。**a11y 无需补**：`library.html` 早已有 `role="tablist"`/`role="tab"`/`aria-selected`，`library.js` 的 `_pbpLibApplyView` 同步 `aria-selected` + `.active` + roving `tabIndex`。`--lib-tab` / `--lib-tab-active` 两个 token 就此零消费者，从 `library-chrome.mjs` 的 map 与手写 `:root` 一并销号（同 C30 对 `--pp-preset-bd` 的处置） | 2026-08-05 网格终审 |
+| C41 | **焦点语言三表面统一为柔光环**（`popup.css` / `options.css` / `library.css` 手写区 33 处 + 生成区 `.btn` / chip / checkbox 四条配方）——**USER CHECKPOINT 2026-08-06**：以 `#vocab-status-filter` 的表现（边框变色 + 辉光）为基准语言，三表面一起换 | 三套并存的具名配方（`button` 2px 硬环 / `field` 边框+辉光 / `softRow` 1px 芯+辉光），按「控件类型」三选一。同一屏里按钮套硬矩形与字段套柔光环并排出现 | §7.3 重写为**一套语言三种落位**：`bordered`（边框即芯）/ `borderless`（1px accent 芯 + 辉光）/ `inset`（2px focus-bd 芯收进盒内 + `box-shadow: none`）。落位判定两问：先问是不是行/格子（→ inset），再问静息边框是中性 chrome（→ bordered）还是语义边（danger/warn/currentColor，→ borderless） | 三表面全部可聚焦控件的焦点态改观：硬 2px accent 矩形消失，代之以主题自己的 `--{ns}-focus-ring`。**逐主题差异被刻意保留**——terminal 仍是 6px 磷光晕、paper-ink 仍是 `0 0 0 1px` 平环、solarized 仍是 2px 半透明环；配方一律 `var()` 消费两个 token，零展开。渲染门同步：`focusRecipe` 三个名字换成三个落位名，并且**不断言阴影字面量**（只断言「非 inset 且与未聚焦基线不同」——各主题皆真） | 2026-08-06 focus-unify |
+| C42 | **分段控件的双层框与点击亮框**（`.vocab-sort-seg`、`.vocab-group-unit` 的两颗步进钮）——**USER CHECKPOINT 2026-08-06**：排序段「点一下就亮个框」「Tab 过去是两层框」 | 两个单元都用 `:focus-within` 在**外壳**画环。`:focus-within` 没有键盘门控（`:focus-visible` 才只认键盘），所以鼠标点击也亮；而格子自己另有 inset 环，于是 Tab 时外壳环 + 格子环同时出现 | §8 律 2 拆成两半并加表：**纯按钮分段外壳不画环**（`.vocab-sort-seg:focus-within` 整条删除），**载字段单元的外壳环收敛到文本录入**（`:focus-within` → `:has(> input[type="text"]:focus)`）。格子一律 `inset` | 排序段点击不再亮框，Tab 只剩格子内的一圈环；步进钮同理。**oracle 同步演进**：4 条 `fusedFocusRing` 期望改为新增的 `fusedSegmentRing`（断言外壳三属性全不变 **且** 格子画了朝内的环——两半都查，只查一半会分别放过「看不出是哪一格」和「两层框」）。group-unit 的 input 那条**仍留在 `fusedFocusRing`**，正是这一条证明收敛真的在区分而不是整个关掉 | 2026-08-06 focus-unify |
+| C43 | **卡片行焦点环缺口 + 与删除钮叠压**（`.notes-card-head` → `.notes-card-top`） | 环画在 `.notes-card-head` 上，而 head 只占 `.notes-card-top` 三列网格的**第一列**——环因此在行中间断掉，右端还压在 `.row-del-x` 底下 | 环移到整行：`.notes-card-top:has(> .notes-card-head:focus-visible)`，走 `inset` 落位；head 自身 `outline: none`（§8 律 2 的「交出指示」，否则 Chromium 会在行环里再画一圈 UA 默认环） | 行焦点环完整包住整行、不再与删除钮相撞。**刻意用 outline 而不是 box-shadow**：`.vocab-card[aria-current] .notes-card-top` 同为 (0,3,0) 且已占用 `box-shadow` 画「你在这一行」的 accent 边，同特异性下后写者会**替换**它——焦点期间静默抹掉选中提示。门：`focusRecipe: "inset"` 探行、聚焦 head，runner 追加断言 head 自己什么都不画 | 2026-08-06 focus-unify |
+| C44 | **ghost / danger 档的焦点边被静息值反超**（生成区 `.btn.ghost`、`.btn.danger`、`.btn.danger.ghost`） | `.btn:focus-visible` 换成 `bordered` 落位后要改 `border-color`，但 `.btn.ghost { border-color: transparent }`(0,2,0) 与 `.btn.danger`(0,2,0) 在生成区里**排在它后面**，同特异性由源序取胜 → 焦点边被静息值吃掉，只剩辉光 | 三条显式规则补齐特异性：`.btn.ghost:focus-visible`(0,3,0)、`.btn.danger:focus-visible`(0,3,0)、`.btn.danger.ghost:focus-visible`(0,4,0)，一律 `border-color: var(--{ns}-focus-bd)`。**不靠调整源序**（§8.6「别赌源序」） | 详情面板的两颗 ghost-danger 删除钮、以及全部 ghost 按钮，聚焦时真正画出焦点边而不只是发光。危险档语义不丢——它仍由 `--{ns}-danger-quiet-fg` 的文字色与 danger hover 填充承担 | 2026-08-06 focus-unify |
+| C45 | **popup 五个 bordered 站点的焦点边在 13 套预设下静默消失**（`.submit-bar button` / `.qbtn` / `.md-strip-btn` / `.offline-queue-actions button` / `.login-body button`） | popup 有一整层手写主题覆盖，其中 `html[data-theme] .submit-bar button`(0,2,2) 等**静息**规则设 `border-color`，特异性高于基类焦点规则 `.submit-bar button:focus-visible`(0,2,1)。默认表面焦点边正常，13 套预设 + `html.dark` 下焦点边被静息值压掉 | 逐站点量级联后补 themed 焦点孪生规则：4 条既有 `html[data-theme] …:focus-visible` 改载 `border-color` + `box-shadow`，另新增 3 条 `html.dark …:focus-visible` 与 1 条 `html[data-theme] .offline-queue-actions button:focus-visible`。孪生规则同时携带 `box-shadow`，因为 `html[data-theme] .qbtn:hover` 等同特异性且源序更早，hover+focus 并存时焦点必须仍然赢 | 这五个控件在 16 个主题态下焦点边一致出现（此前只有默认浅色态正确）。**这是 CLAUDE.md「同特异性双向查」那条铁律的又一次兑现**——`grep` 看不出问题，只有逐条算特异性才发现；渲染门里 `.vocab-detail-relookup` 的 `bordered` 条目现在会因「border-color 未变」直接 FAIL，把这类回归钉死在 16 套主题上 | 2026-08-06 focus-unify |
 
 **偏离实施计划之处**（Task 9/10 以本规范为准，但需知晓）：
 

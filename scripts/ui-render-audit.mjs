@@ -836,39 +836,102 @@ function evaluateCheck(check, raw, theme) {
     }
     out.push(verdict("fusedStateStable", bad.length === 0, bad.length ? bad.join("; ") : "rest == focus (rect, bg, icon)", true));
   }
-  // §7.3 focus-ring recipe conformance. Three named shapes and no fourth --
-  // measured on the focused element itself (state "focusWithin" with
+  // §7.3 focus-ring conformance (2026-08-06: ONE language, three PLACEMENTS).
+  // Measured on the focused element itself (state "focusWithin" with
   // focusTarget ":scope"), so what is checked is the shape the LIVE cascade
   // produced, not the shape some rule declares.
-  //   field   outline suppressed, focus border + focus-ring shadow instead
-  //   button  a real 2px+ outline growing outward
-  //   softRow the large-hit-area variant (1px core + --{ns}-focus-ring glow)
-  //           options.css documents for full-width sidebar tabs / accordion
-  //           and disclosure headers, where a hard rectangle around a whole
-  //           row reads wrong. Gated here so it stays that bounded set
-  //           instead of drifting into a de-facto fourth recipe.
+  //   bordered   the control's own frame is the core: outline suppressed,
+  //              border-color moves to --{ns}-focus-bd, --{ns}-focus-ring glow
+  //   borderless no frame to re-tint: 1px accent core growing outward + glow
+  //   inset      list rows and fused cells: 2px core pulled INSIDE the box,
+  //              no shadow (these elements' selected/current states already
+  //              own box-shadow and a second one would replace it)
+  //
+  // DELIBERATELY SHAPE-AGNOSTIC about the glow. --{ns}-focus-ring is per-theme
+  // IDENTITY, not a constant: terminal ships a 6px phosphor blur, paper-ink a
+  // flat `0 0 0 1px`, solarized a translucent `0 0 0 2px`. Asserting any one
+  // literal would either fail 13 themes or force them all to look alike. What
+  // IS asserted is theme-invariant: a non-inset shadow exists, and it is
+  // DIFFERENT from the same element's unfocused baseline -- which is what
+  // proves the focus rule fired and that the value came from the token rather
+  // than from some unrelated resting shadow.
   if (exp.focusRecipe) {
     const hasOutline = raw.outlineStyle && raw.outlineStyle !== "none" && raw.outlineWidth > 0;
     const hasShadow = raw.boxShadow && raw.boxShadow !== "none" && !/inset/.test(raw.boxShadow);
+    const base = raw.focusBaseline;
+    const shadowChanged = base ? base.boxShadow !== raw.boxShadow : false;
     const bad = [];
-    if (exp.focusRecipe === "field") {
-      if (hasOutline) bad.push(`draws a ${raw.outlineWidth}px outline (field recipe suppresses it)`);
-      if (!hasShadow) bad.push("no focus-ring box-shadow");
-      if (raw.focusBaseline && raw.focusBaseline.borderColors === raw.borderColors) {
-        bad.push("border-color unchanged on focus");
+    if (!base) bad.push("no unfocused baseline captured (runner did not pre-probe)");
+    if (exp.focusRecipe === "bordered") {
+      if (hasOutline) bad.push(`draws a ${raw.outlineWidth}px outline (the bordered placement suppresses it — the frame IS the core)`);
+      if (!hasShadow) bad.push("no --focus-ring glow");
+      if (base && !shadowChanged) bad.push("box-shadow identical focused vs unfocused (focus rule never fired)");
+      if (base && base.borderColors === raw.borderColors) {
+        bad.push("border-color unchanged on focus — a themed rest rule is probably out-ranking the focus rule");
       }
-    } else if (exp.focusRecipe === "button") {
-      if (!hasOutline) bad.push("no outline (button recipe needs one)");
-      else if (raw.outlineWidth < 2) bad.push(`outline ${raw.outlineWidth}px < 2px`);
-      if (hasOutline && raw.outlineOffset < 0) bad.push(`outline-offset ${raw.outlineOffset}px pulls the ring inward`);
-    } else if (exp.focusRecipe === "softRow") {
+    } else if (exp.focusRecipe === "borderless") {
+      if (!hasOutline) bad.push("no outline core (the glow alone is not a legible indicator)");
+      else if (raw.outlineOffset < 0) bad.push(`outline-offset ${raw.outlineOffset}px pulls the core inward (that is the inset placement)`);
+      if (!hasShadow) bad.push("no --focus-ring glow (borderless is core + glow)");
+      if (base && !shadowChanged) bad.push("box-shadow identical focused vs unfocused (focus rule never fired)");
+    } else if (exp.focusRecipe === "inset") {
       if (!hasOutline) bad.push("no outline core");
-      if (!hasShadow) bad.push("no --focus-ring glow (soft recipe is core + glow)");
+      else if (raw.outlineWidth < 2) bad.push(`outline ${raw.outlineWidth}px < 2px`);
+      else if (raw.outlineOffset >= 0) bad.push(`outline-offset ${raw.outlineOffset}px grows outward — an inset core must stay inside its own box`);
+      if (hasShadow) bad.push(`paints a non-inset box-shadow (${raw.boxShadow}) — the inset placement is outline-only so it cannot collide with a row's selected-state shadow`);
     } else {
       bad.push(`unknown focusRecipe "${exp.focusRecipe}"`);
     }
+    // When the probed element is NOT the focus target, the ring is being
+    // carried on behalf of a passenger (§8 law 2: .notes-card-head defers its
+    // ring to the whole row, because the head spans only the first of the
+    // row's three grid columns). Then the passenger must draw nothing of its
+    // own -- otherwise the result is the two-rings-at-once defect, which a
+    // check that only looked at the carrier would happily pass.
+    const passenger = raw.focusedSelf;
+    if (passenger && passenger.found !== false && exp.focusRecipe !== undefined
+        && passenger.sel !== ":scope") {
+      if (passenger.outlineStyle !== "none" && passenger.outlineWidth > 0) {
+        bad.push(`${passenger.sel} draws its own ${passenger.outlineWidth}px outline as well — the ring is carried by ${check.selector}, so the passenger must draw none`);
+      }
+      if (passenger.boxShadow && passenger.boxShadow !== "none") {
+        bad.push(`${passenger.sel} paints its own box-shadow (${passenger.boxShadow}) alongside the carried ring`);
+      }
+    }
     out.push(verdict("focusRecipe", bad.length === 0, bad.length ? bad.join("; ")
-      : `${exp.focusRecipe}: outline=${hasOutline ? raw.outlineWidth + "px" : "none"} shadow=${hasShadow ? "yes" : "no"}`, exp.focusRecipe));
+      : `${exp.focusRecipe}: outline=${hasOutline ? raw.outlineWidth + "px@" + raw.outlineOffset : "none"} shadow=${hasShadow ? "changed" : "no"}`, exp.focusRecipe));
+  }
+  // §8 law 2, BUTTON flavour (2026-08-06). A fused unit that takes no text
+  // entry draws NO shell ring: the focused cell's own inset ring is the whole
+  // indicator. Both halves are asserted, because either one alone is the
+  // defect the user reported -- a shell ring with no cell ring cannot say
+  // WHICH cell has focus, and a shell ring PLUS a cell ring is the double
+  // rectangle that got .vocab-sort-seg rejected.
+  if (exp.fusedSegmentRing === true) {
+    const bad = [];
+    const base = raw.focusBaseline;
+    if (!base) bad.push("no unfocused baseline captured (runner did not pre-probe)");
+    else {
+      const shellChanged = base.borderColors !== raw.borderColors
+        || base.boxShadow !== raw.boxShadow || base.outlineStyle !== raw.outlineStyle;
+      if (shellChanged) {
+        bad.push(`shell reacted to focus (border ${base.borderColors} -> ${raw.borderColors}, `
+          + `shadow ${base.boxShadow} -> ${raw.boxShadow}, outline ${base.outlineStyle} -> ${raw.outlineStyle}) `
+          + "— a pure button group's indicator belongs on the focused cell only");
+      }
+    }
+    const f = raw.focusedSelf;
+    if (!f || f.found === false) bad.push(`focus target ${f ? f.sel : "(none)"} not found`);
+    else {
+      if (!f.isActiveElement) bad.push(`${f.sel} is not document.activeElement`);
+      if (f.outlineStyle === "none" || !(f.outlineWidth > 0)) bad.push(`${f.sel} draws no ring of its own`);
+      else if (f.outlineOffset >= 0) bad.push(`${f.sel} ring grows outward (offset ${f.outlineOffset}px) — it must stay inside the cell`);
+      if (f.boxShadow && f.boxShadow !== "none") {
+        bad.push(`${f.sel} paints its own box-shadow (${f.boxShadow}) — inset shadows leak sub-pixel hairlines on fractionally positioned cells`);
+      }
+    }
+    out.push(verdict("fusedSegmentRing", bad.length === 0, bad.length ? bad.join("; ")
+      : `cell ring only (${raw.focusedSelf?.outlineWidth}px @${raw.focusedSelf?.outlineOffset})`, true));
   }
   return { results: out };
 }
@@ -964,7 +1027,13 @@ async function runOneCheck(page, theme, check, results) {
     // default-state read on the same page, exactly the way a parked mouse
     // pointer leaks :hover (see the hover reset just below).
     await page.evaluate(() => document.activeElement?.blur());
-    await page.waitForTimeout(120);
+    // Must outlast the SAME transition the focus read waits 260ms for. At the
+    // old 120ms the next check's "unfocused baseline" was captured mid-fade:
+    // measured `rgba(51,255,51,0.004) 0 0 0.04px` and interpolated oklab()
+    // border colours, i.e. a shell that looked like it had reacted to focus
+    // when it had merely not finished un-reacting. That reads as a real
+    // difference to any assertion comparing rest against focus.
+    await page.waitForTimeout(260);
   }
   if (check.state === "hover") {
     // Reset the pointer to a dead corner right after reading the hover

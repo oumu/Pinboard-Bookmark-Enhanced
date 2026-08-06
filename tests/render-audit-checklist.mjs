@@ -551,10 +551,17 @@ export const CHECKS = [
     expect: { fusedChildrenFlat: { children: ['input[type="text"]', ".vocab-group-step:nth-of-type(1)", ".vocab-group-step:nth-of-type(2)"] } } },
   { surface: "library", page: "library.html", selector: ".vocab-detail-pane .vocab-group-unit", state: "focusWithin",
     focusTarget: 'input[type="text"]', expect: { fusedFocusRing: true } },
+  // The two steppers moved to fusedSegmentRing for the same reason the sort
+  // cells did: the shell's ring is now scoped to the TEXT INPUT, so tabbing
+  // to a stepper must light the cell and leave the shell alone. Keeping the
+  // input on fusedFocusRing is the point of the split -- a text field's focus
+  // belongs on the frame around it, a button cell's belongs inside the cell,
+  // and asserting both shapes from one unit is what proves the scoping
+  // actually discriminates instead of just having been switched off.
   { surface: "library", page: "library.html", selector: ".vocab-detail-pane .vocab-group-unit", state: "focusWithin",
-    focusTarget: ".vocab-group-step:nth-of-type(1)", expect: { fusedFocusRing: true } },
+    focusTarget: ".vocab-group-step:nth-of-type(1)", expect: { fusedSegmentRing: true } },
   { surface: "library", page: "library.html", selector: ".vocab-detail-pane .vocab-group-unit", state: "focusWithin",
-    focusTarget: ".vocab-group-step:nth-of-type(2)", expect: { fusedFocusRing: true } },
+    focusTarget: ".vocab-group-step:nth-of-type(2)", expect: { fusedSegmentRing: true } },
   // Sort segment: the same law in its button flavour (§7.3's outline recipe
   // on the shell rather than the field's box-shadow, because nothing here
   // takes text entry). Its pre-fix divider colour was driven by aria-pressed,
@@ -562,10 +569,17 @@ export const CHECKS = [
   // a state re-colouring the seam.
   { surface: "library", page: "library.html", selector: ".vocab-sort-seg", state: "default",
     expect: { fusedChildrenFlat: { children: ["#vocab-sort-time", "#vocab-sort-alpha"] } } },
+  // 2026-08-06: these two flipped from fusedFocusRing to fusedSegmentRing.
+  // The shell ring is GONE by ruling, and the expectation had to move with
+  // it -- a check still demanding "the shell shows an indicator" would have
+  // failed the fix. What replaces it is not weaker: fusedSegmentRing asserts
+  // BOTH that the shell stayed inert AND that the focused cell drew an inset
+  // ring, so neither of the two reported defects (a box lighting up on plain
+  // mouse-down; two stacked rectangles on Tab) can come back unnoticed.
   { surface: "library", page: "library.html", selector: ".vocab-sort-seg", state: "focusWithin",
-    focusTarget: "#vocab-sort-time", expect: { fusedFocusRing: true } },
+    focusTarget: "#vocab-sort-time", expect: { fusedSegmentRing: true } },
   { surface: "library", page: "library.html", selector: ".vocab-sort-seg", state: "focusWithin",
-    focusTarget: "#vocab-sort-alpha", expect: { fusedFocusRing: true } },
+    focusTarget: "#vocab-sort-alpha", expect: { fusedSegmentRing: true } },
   // ---- COMPONENTS.md §8 law 6: rest <-> focus state stability (user
   // checkpoint round 5: "底色变白、眼睛图标偏移、眼睛段看着独立不融合").
   // Focus may change border-COLOUR and add a ring. It may not move anything,
@@ -612,16 +626,43 @@ export const CHECKS = [
   // button-style outline on top of the field recipe's focus border, putting
   // two focus languages side by side in one toolbar row.
   { surface: "library", page: "library.html", selector: "#vocab-group-filter", state: "focusWithin",
-    focusTarget: ":scope", expect: { focusRecipe: "field" } },
-  // The soft-focus family (1px core + --opt-focus-ring glow) options.css
-  // documents for full-width rows. Deliberately NOT converged to the 2px
-  // button ring: it is a token-driven decision with a written rationale (a
-  // hard rectangle around a whole sidebar row reads wrong) and it already
-  // governs .tab-btn / .accordion-header / .vocab-disclosure > summary
-  // consistently. Pinning it as a NAMED recipe is what stops it drifting
-  // into an unowned fourth shape -- see §7.3.
+    focusTarget: ":scope", expect: { focusRecipe: "bordered" } },
+  // `borderless` (1px accent core + --{ns}-focus-ring glow) on the two
+  // full-width row families. Nothing here asserts a shadow LITERAL: the glow
+  // is per-theme identity (terminal blur / paper-ink flat 1px / solarized
+  // translucent 2px) and the runner only requires that a non-inset shadow
+  // exists and differs from the unfocused baseline -- true on all 16 themes,
+  // false the moment the rule stops firing.
   { surface: "options", page: "options.html", selector: ".tab-btn", state: "focusWithin",
-    focusTarget: ":scope", expect: { focusRecipe: "softRow" } },
+    focusTarget: ":scope", expect: { focusRecipe: "borderless" } },
+  // .lib-tab carried TWO same-specificity :focus-visible rules until
+  // 2026-08-06; the later one won `outline` while the earlier still supplied
+  // `box-shadow`, so what shipped was a hard 2px rectangle sitting inside the
+  // soft glow -- neither placement, and invisible to any check that only
+  // asked "is there a ring". This entry measures the composed result.
+  { surface: "library", page: "library.html", selector: ".lib-tab", state: "focusWithin",
+    focusTarget: ":scope", expect: { focusRecipe: "borderless" } },
+  // `bordered` on the generated .btn family itself -- the one entry that
+  // proves the recipe reaches a real button through the live cascade on all
+  // 16 themes, including that `border-color` actually lands (a themed rest
+  // rule out-ranking the focus rule is the failure mode this catches, and it
+  // is exactly what popup's 5 bordered sites needed twins for).
+  { surface: "library", page: "library.html", selector: ".vocab-detail-relookup", state: "focusWithin",
+    focusTarget: ":scope", expect: { focusRecipe: "bordered" } },
+  // `inset` on a list row. Outline-only by contract: .notes-hit[aria-current]
+  // already paints `box-shadow: inset 0 0 0 1px` as its "you are here" edge,
+  // and a focus shadow at the same specificity would replace it rather than
+  // stack, silently deleting the selection cue while focused.
+  { surface: "library", page: "library.html", selector: ".notes-hit-btn", state: "focusWithin",
+    focusTarget: ":scope", expect: { focusRecipe: "inset" } },
+  // `inset` CARRIED for a passenger: the vocab row's ring is drawn on
+  // .notes-card-top, not on the .notes-card-head button that actually takes
+  // focus -- the head spans only the first of the row's three grid columns,
+  // so its old ring stopped mid-row and ran under .row-del-x. Because the
+  // focus target differs from the probed element, the runner additionally
+  // requires the head to draw nothing of its own (no double ring).
+  { surface: "library", page: "library.html", selector: ".vocab-card .notes-card-top", state: "focusWithin",
+    focusTarget: ".notes-card-head", expect: { focusRecipe: "inset" } },
 
   // The two steppers now paint --lib-fg on --lib-input-bg instead of
   // --lib-btn-fg on --lib-btn-bg. fg-vs-input-bg is a COMPONENTS.md §6.2

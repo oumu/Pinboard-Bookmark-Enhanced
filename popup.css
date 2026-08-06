@@ -247,7 +247,7 @@ html[data-section="login"] .quick-actions { display: none !important; }
 .header-bar .header-ic .btn-ic { margin: 0; vertical-align: 0; }
 .header-bar .header-ic:hover { color: var(--pp-fg); background: color-mix(in srgb, var(--pp-fg) 8%, transparent); }
 .header-bar .header-ic:focus-visible,
-.header-bar a:focus-visible { outline: 2px solid var(--pp-accent, #4477bb); outline-offset: 2px; border-radius: var(--pp-radius-sm); }
+.header-bar a:focus-visible { outline: 1px solid var(--pp-accent); outline-offset: 2px; box-shadow: var(--pp-focus-ring); border-radius: var(--pp-radius-sm); }
 
 .login-body { padding: var(--pp-sp-6) var(--pp-sp-5); }
 .login-body p { margin-bottom: var(--pp-sp-4); font-size: 12px; color: var(--pp-fg); }
@@ -297,13 +297,14 @@ html[data-section="login"] .quick-actions { display: none !important; }
    measurement showing that the underline's inset shadow was also what
    painted the faint vertical hairline at the button's right edge. */
 .login-body .secret-field .key-toggle:focus-visible {
-  outline: 2px solid var(--pp-accent);
+  outline: 2px solid var(--pp-focus-bd);
   outline-offset: -2px;
   border-radius: var(--pp-radius-sm);
+  box-shadow: none;
 }
 .login-body button { padding: var(--pp-sp-2) var(--pp-sp-6); font-size: 12px; cursor: pointer; transition: background var(--pp-motion-state), border-color var(--pp-motion-state); }
 .login-body button:active:not(:disabled) { transform: translateY(1px); }
-.login-body button:focus-visible { outline: 2px solid var(--pp-accent, #4477bb); outline-offset: 2px; }
+.login-body button:focus-visible { outline: none; border-color: var(--pp-focus-bd); box-shadow: var(--pp-focus-ring); }
 .error-text { color: var(--pp-danger); font-size: 11px; margin-top: var(--pp-sp-2); }
 
 /* ===================== Message-surface family =====================
@@ -460,7 +461,7 @@ html[data-section="login"] .quick-actions { display: none !important; }
    its own (§0 exemption covers popup's geometry, not this button's press
    feedback) so this is written out bare rather than inherited. */
 .preset-btn:active:not(:disabled) { transform: scale(0.97); }
-.preset-btn:focus-visible { outline: 2px solid var(--pp-accent); outline-offset: 2px; }
+.preset-btn:focus-visible { outline: 1px solid var(--pp-accent); outline-offset: 2px; box-shadow: var(--pp-focus-ring); }
 .preset-btn.used { color: var(--pp-used-fg); background: var(--pp-neutral-panel); pointer-events: none; }
 /* .used means "already inserted this preset" (informational/consumed), not
    "selected" -- see the popup section of preset-variants-report.md's
@@ -527,7 +528,7 @@ button.offline-toggle {
   font: inherit; line-height: inherit; cursor: pointer;
 }
 button.action-link:focus-visible, button.clear-all-link:focus-visible,
-button.offline-clear:focus-visible, button.offline-toggle:focus-visible { outline: 2px solid var(--pp-accent, #4477bb); outline-offset: 2px; border-radius: var(--pp-radius-sm); }
+button.offline-clear:focus-visible, button.offline-toggle:focus-visible { outline: 1px solid var(--pp-accent); outline-offset: 2px; box-shadow: var(--pp-focus-ring); border-radius: var(--pp-radius-sm); }
 
 .action-link { font-size: 11px; color: var(--pp-accent2); cursor: pointer; }
 .action-link:hover { text-decoration: underline; }
@@ -577,7 +578,7 @@ button.offline-clear:focus-visible, button.offline-toggle:focus-visible { outlin
 .tag-remove::before { content: ""; position: absolute; inset: -7px; }
 .tag-remove svg { width: 10px; height: 10px; }
 .tag-remove:hover { color: var(--pp-danger); }
-.tag-remove:focus-visible { outline: 2px solid var(--pp-accent, #4477bb); outline-offset: 1px; }
+.tag-remove:focus-visible { outline: 1px solid var(--pp-accent); outline-offset: 2px; box-shadow: var(--pp-focus-ring); }
 .tag-item:hover { background: var(--pp-tag-hover); }
 /* No `transform` in the transition list: no rule and no JS ever sets a transform
    on .tag-item (drag state is opacity, the drop marker is a ::before bar). */
@@ -669,7 +670,7 @@ button.offline-clear:focus-visible, button.offline-toggle:focus-visible { outlin
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .last-used-hint:hover { color: var(--pp-link); }
-.last-used-hint:focus-visible { outline: 2px solid var(--pp-accent, #4477bb); outline-offset: 2px; }
+.last-used-hint:focus-visible { outline: 1px solid var(--pp-accent); outline-offset: 2px; box-shadow: var(--pp-focus-ring); }
 .last-used-hint .lu-label { font-weight: bold; margin-right: var(--pp-sp-2); }
 .last-used-hint .lu-tags { font-style: italic; }
 .tag-copied-flash { color: var(--pp-ok-fg, #2a8a2a) !important; }
@@ -685,7 +686,7 @@ button.offline-clear:focus-visible, button.offline-toggle:focus-visible { outlin
 }
 .stag:hover { text-decoration: underline; }
 .stag.used { color: var(--pp-used-fg); text-decoration: line-through; pointer-events: none; }
-.stag:focus-visible { outline: 2px solid var(--pp-accent, #4477bb); outline-offset: 2px; }
+.stag:focus-visible { outline: 1px solid var(--pp-accent); outline-offset: 2px; box-shadow: var(--pp-focus-ring); }
 .stag.ai { color: var(--pp-accent2); }
 .stag.ai:hover { color: color-mix(in srgb, var(--pp-accent2) 80%, #000); }
 /* Count badge inside a suggest chip: spacing via padding (not margin) so the
@@ -702,12 +703,12 @@ button.offline-clear:focus-visible, button.offline-toggle:focus-visible { outlin
 .stag.used .stag-num { visibility: hidden; }
 .add-all-link { border: 0; background: none; padding: 0; font-family: inherit; color: var(--pp-fg-hint); font-size: 11px; cursor: pointer; }
 .add-all-link:hover { text-decoration: underline; color: var(--pp-fg-muted); }
-.add-all-link:focus-visible { outline: 2px solid var(--pp-accent, #4477bb); outline-offset: 2px; }
+.add-all-link:focus-visible { outline: 1px solid var(--pp-accent); outline-offset: 2px; box-shadow: var(--pp-focus-ring); }
 .muted { color: var(--pp-fg-hint); font-size: 11px; font-style: italic; }
 
 .bottom-bar { padding: var(--pp-sp-3) var(--pp-sp-5) var(--pp-sp-2) 72px; display: flex; gap: var(--pp-sp-6); font-size: 12px; }
 .bottom-bar label { display: inline-flex; align-items: center; gap: var(--pp-sp-2); cursor: pointer; }
-.bottom-bar input[type="checkbox"]:focus-visible { outline: 2px solid var(--pp-accent, #4477bb); outline-offset: 1px; }
+.bottom-bar input[type="checkbox"]:focus-visible { outline: 1px solid var(--pp-accent); outline-offset: 2px; box-shadow: var(--pp-focus-ring); }
 .submit-bar { padding: var(--pp-sp-2) var(--pp-sp-5) var(--pp-sp-3) 72px; display: flex; gap: var(--pp-sp-3); }
 .submit-bar button {
   padding: var(--pp-sp-2) var(--pp-sp-6); font-size: 12px; cursor: pointer;
@@ -715,7 +716,7 @@ button.offline-clear:focus-visible, button.offline-toggle:focus-visible { outlin
   transition: background var(--pp-motion-state), border-color var(--pp-motion-state), transform var(--pp-motion-state), box-shadow var(--pp-motion-state);
 }
 .submit-bar button:hover { background: var(--pp-btn-hover); }
-.submit-bar button:focus-visible { outline: 2px solid var(--pp-accent, #4477bb); outline-offset: 2px; }
+.submit-bar button:focus-visible { outline: none; border-color: var(--pp-focus-bd); box-shadow: var(--pp-focus-ring); }
 #submit-btn {
   background: var(--pp-accent); color: var(--pp-on-accent); border-color: var(--pp-accent); font-weight: 600;
   /* Content-adaptive width (2a canvas feedback: the 200px-basis button read as
@@ -749,7 +750,7 @@ button.offline-clear:focus-visible, button.offline-toggle:focus-visible { outlin
   transform-origin: bottom left;
 }
 .del-confirm-popover button { padding: 1px var(--pp-sp-4); font-size: 11px; cursor: pointer; border: 1px solid var(--pp-popover-btn-border); background: var(--pp-neutral-panel); }
-.del-confirm-popover button:focus-visible { outline: 2px solid var(--pp-accent, #4477bb); outline-offset: 1px; }
+.del-confirm-popover button:focus-visible { outline: 1px solid var(--pp-accent); outline-offset: 2px; box-shadow: var(--pp-focus-ring); }
 /* Exit mirrors the popinScale entrance (scale, not translateY); popup.js
    dismiss() adds the class and delays remove(). */
 .del-confirm-popover.is-closing {
@@ -839,7 +840,7 @@ button.offline-clear:focus-visible, button.offline-toggle:focus-visible { outlin
   transform: translateY(0);
   box-shadow: none;
 }
-.qbtn:focus-visible { outline: 2px solid var(--pp-accent, #4477bb); outline-offset: 2px; }
+.qbtn:focus-visible { outline: none; border-color: var(--pp-focus-bd); box-shadow: var(--pp-focus-ring); }
 .qbtn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -943,7 +944,7 @@ html.dark .batch-progress-text { color: var(--pp-fg); mix-blend-mode: normal; fi
    action is bolded, de-emphasis via order not colour. */
 .batch-permission-actions .fc-btn:first-child { font-weight: 600; }
 .batch-permission-actions button:disabled { opacity: 0.55; cursor: default; }
-.batch-permission-actions button:focus-visible { outline: 2px solid var(--pp-accent, #4477bb); outline-offset: 1px; }
+.batch-permission-actions button:focus-visible { outline: 1px solid var(--pp-accent); outline-offset: 2px; box-shadow: var(--pp-focus-ring); }
 
 /* Cache hint & regenerate */
 .cache-hint {
@@ -972,7 +973,7 @@ html.dark .batch-progress-text { color: var(--pp-fg); mix-blend-mode: normal; fi
    focusable controls in the popup that did not follow the surface's own
    focus language, and the one place where a themed dark surface got a ring
    picked by the UA rather than by --pp-accent. */
-.regen-link:focus-visible { outline: 2px solid var(--pp-accent); outline-offset: 2px; }
+.regen-link:focus-visible { outline: 1px solid var(--pp-accent); outline-offset: 2px; box-shadow: var(--pp-focus-ring); }
 
 .regen-link + .regen-link {
   margin-left: var(--pp-sp-1);
@@ -996,7 +997,7 @@ html.dark .batch-progress-text { color: var(--pp-fg); mix-blend-mode: normal; fi
 .quick-links a:hover {
   text-decoration: underline;
 }
-.quick-links a:focus-visible { outline: 2px solid var(--pp-accent, #4477bb); outline-offset: 1px; }
+.quick-links a:focus-visible { outline: 1px solid var(--pp-accent); outline-offset: 2px; box-shadow: var(--pp-focus-ring); }
 .ql-sep {
   color: var(--pp-fg-faint);
   font-size: 10px;
@@ -1099,7 +1100,7 @@ html.dark .batch-progress-text { color: var(--pp-fg); mix-blend-mode: normal; fi
   position: relative;
   transition: background var(--pp-motion-state), color var(--pp-motion-state), border-color var(--pp-motion-state);
 }
-.offline-queue-actions button:focus-visible { outline: 2px solid var(--pp-accent, #4477bb); outline-offset: 1px; }
+.offline-queue-actions button:focus-visible { outline: none; border-color: var(--pp-focus-bd); box-shadow: var(--pp-focus-ring); }
 .offline-queue-actions button:hover:not(:disabled) { background: color-mix(in srgb, var(--pp-scrim) 6%, transparent); color: var(--pp-accent); }
 .offline-queue-actions button:disabled { opacity: 0.5; cursor: default; }
 .offline-queue-actions .offline-queue-remove:hover:not(:disabled) { color: var(--pp-danger); }
@@ -1158,7 +1159,7 @@ html.dark .batch-progress-text { color: var(--pp-fg); mix-blend-mode: normal; fi
 /* Keyboard parity: both are role=button spans with full key handling but fell
    back to the UA default ring while every other custom control in this file
    draws the token ring (.tag-remove / .edit-cancel convention). */
-.recent-bm-edit:focus-visible, .recent-bm-del:focus-visible { outline: 2px solid var(--pp-accent, #4477bb); outline-offset: 1px; }
+.recent-bm-edit:focus-visible, .recent-bm-del:focus-visible { outline: 1px solid var(--pp-accent); outline-offset: 2px; box-shadow: var(--pp-focus-ring); }
 .edit-cancel {
   display: inline-block;
   margin-left: var(--pp-sp-3);
@@ -1172,7 +1173,7 @@ html.dark .batch-progress-text { color: var(--pp-fg); mix-blend-mode: normal; fi
   user-select: none;
 }
 .edit-cancel:hover { background: color-mix(in srgb, var(--pp-scrim) 16%, transparent); color: var(--pp-danger); }
-.edit-cancel:focus-visible { outline: 2px solid var(--pp-accent, #4477bb); outline-offset: 1px; }
+.edit-cancel:focus-visible { outline: 1px solid var(--pp-accent); outline-offset: 2px; box-shadow: var(--pp-focus-ring); }
 
 .submit-bar button.saved-success { background: var(--pp-ok-bg); border-color: var(--pp-ok-bd); color: var(--pp-ok-fg); }
 /* Colour-only error state. A failed save already mounts a .feedback-card (which
@@ -1194,6 +1195,7 @@ html.dark body { background: var(--pp-bg); color: var(--pp-fg); }
 html.dark .login-body p { color: var(--pp-login-p-fg); }
 html.dark .autocomplete-dropdown { background: var(--pp-bg2); border-color: var(--pp-border); box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
 html.dark .submit-bar button { background: var(--pp-input-bg); border-color: var(--pp-border); color: var(--pp-fg); }
+html.dark .submit-bar button:focus-visible { border-color: var(--pp-focus-bd); box-shadow: var(--pp-focus-ring); }
 html.dark .submit-bar button:hover { background: var(--pp-drop-hover); }
 html.dark .del-btn:hover { background: color-mix(in srgb, var(--pp-danger) 12%, var(--pp-bg)) !important; }
 html.dark .recent-bm-area { border-top-color: var(--pp-divider); }
@@ -1301,6 +1303,7 @@ html.dark .offline-queue-item { border-bottom-color: color-mix(in srgb, var(--pp
 html.dark .offline-queue-title { color: var(--pp-offline-queue-title-fg); }
 html.dark .offline-queue-meta { color: var(--pp-offline-queue-meta-fg); }
 html.dark .offline-queue-actions button { border-color: var(--pp-offline-queue-border); color: var(--pp-oqa-btn-fg); }
+html.dark .offline-queue-actions button:focus-visible { border-color: var(--pp-focus-bd); box-shadow: var(--pp-focus-ring); }
 html.dark .offline-queue-actions button:hover:not(:disabled) { background: color-mix(in srgb, var(--pp-scrim) 8%, transparent); color: var(--pp-link); }
 html.dark .offline-queue-actions .offline-queue-remove:hover:not(:disabled) { color: var(--pp-danger); }
 html.dark .offline-queue-empty { color: var(--pp-fg-hint); }
@@ -1329,7 +1332,7 @@ html.dark .submit-bar button.loading { color: var(--pp-fg-hint); }
   font-size: 10px;
 }
 .url-clean-hint .url-clean-undo:hover { color: var(--pp-fg); }
-.url-clean-hint .url-clean-undo:focus-visible { outline: 2px solid var(--pp-accent); outline-offset: 1px; }
+.url-clean-hint .url-clean-undo:focus-visible { outline: 1px solid var(--pp-accent); outline-offset: 2px; box-shadow: var(--pp-focus-ring); }
 
 /* ===================== Auto-Close Countdown (B7) ===================== */
 .auto-close-bar {
@@ -2285,18 +2288,19 @@ html[data-theme] .offline-queue-item { border-bottom-color: color-mix(in srgb, v
 html[data-theme] .offline-queue-title { color: var(--pp-fg); }
 html[data-theme] .offline-queue-meta { color: var(--pp-fg-hint); }
 html[data-theme] .offline-queue-actions button { border-color: color-mix(in srgb, var(--pp-fg) 18%, transparent); color: var(--pp-fg-muted); background: transparent; }
+html[data-theme] .offline-queue-actions button:focus-visible { border-color: var(--pp-focus-bd); box-shadow: var(--pp-focus-ring); }
 html[data-theme] .offline-queue-actions button:hover:not(:disabled) { background: color-mix(in srgb, var(--pp-accent) 10%, transparent); color: var(--pp-accent); }
 html[data-theme] .offline-queue-actions .offline-queue-remove:hover:not(:disabled) { color: var(--pp-danger); background: color-mix(in srgb, var(--pp-danger) 12%, transparent); }
 html[data-theme] .offline-queue-empty { color: var(--pp-fg-hint); }
 /* Themed focus-visible (accent-colored focus rings) */
-html[data-theme] .login-body button:focus-visible { outline-color: var(--pp-accent); }
+html[data-theme] .login-body button:focus-visible { border-color: var(--pp-focus-bd); box-shadow: var(--pp-focus-ring); }
 /* .preset-btn:focus-visible no longer needs a themed override here: its base
    rule (Tag Presets, above) already reads bare var(--pp-accent) with no
    fallback literal, so this would be a same-value no-op under every theme. */
-html[data-theme] .submit-bar button:focus-visible { outline: 2px solid var(--pp-accent); outline-offset: 2px; }
-html[data-theme] .qbtn:focus-visible { outline: 2px solid var(--pp-accent); outline-offset: 2px; }
-html[data-theme] .quick-links a:focus-visible { outline: 2px solid var(--pp-accent); outline-offset: 1px; }
-html[data-theme] .bottom-bar input[type="checkbox"]:focus-visible { outline: 2px solid var(--pp-accent); outline-offset: 1px; }
+html[data-theme] .submit-bar button:focus-visible { border-color: var(--pp-focus-bd); box-shadow: var(--pp-focus-ring); }
+html[data-theme] .qbtn:focus-visible { border-color: var(--pp-focus-bd); box-shadow: var(--pp-focus-ring); }
+html[data-theme] .quick-links a:focus-visible { outline-color: var(--pp-accent); }
+html[data-theme] .bottom-bar input[type="checkbox"]:focus-visible { outline-color: var(--pp-accent); }
 /* Terminal monospace */
 html[data-theme="terminal"] body { font-family: "Courier New", Consolas, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei", monospace; }
 html[data-theme="terminal"] .field > textarea { font-family: "Courier New", Consolas, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei", monospace; }
@@ -2318,7 +2322,7 @@ html[data-theme="terminal"] .field > textarea { font-family: "Courier New", Cons
 .confirm-popover .confirm-yes:hover { background: color-mix(in srgb, var(--pp-danger) 85%, #000); }
 .confirm-popover .confirm-no { background: none; color: var(--pp-confirm-no-fg); border-color: var(--pp-confirm-no-border); }
 .confirm-popover .confirm-no:hover { background: var(--pp-confirm-no-hover-bg); }
-.confirm-popover button:focus-visible { outline: 2px solid var(--pp-accent, #4477bb); outline-offset: 1px; }
+.confirm-popover button:focus-visible { outline: 1px solid var(--pp-accent); outline-offset: 2px; box-shadow: var(--pp-focus-ring); }
 @keyframes confirmFadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
 /* Exit mirrors the entrance path (fade + 4px rise). shared.js dismiss() adds
    .is-closing and removes the node on transitionend; 0.1s matches its 100ms
@@ -2402,17 +2406,18 @@ html[data-theme] .confirm-popover button:focus-visible { outline-color: var(--pp
 .md-strip-btn .btn-ic { margin: 0; vertical-align: 0; }
 .md-strip-btn:hover { background: var(--pp-btn-hover); border-color: var(--pp-accent); box-shadow: var(--pp-hover-shadow); }
 .md-strip-btn:active { transform: translateY(1px); }
-.md-strip-btn:focus-visible { outline: 2px solid var(--pp-accent, #4477bb); outline-offset: 2px; }
+.md-strip-btn:focus-visible { outline: none; border-color: var(--pp-focus-bd); box-shadow: var(--pp-focus-ring); }
 .md-strip-btn .btn-ic { display: inline-flex; }
 
 html.dark .md-strip { background: var(--pp-bg2); border-color: var(--pp-border); }
 html.dark .md-strip-btn { background: var(--pp-btn-bg); border-color: var(--pp-btn-bd); color: var(--pp-link); }
+html.dark .md-strip-btn:focus-visible { border-color: var(--pp-focus-bd); box-shadow: var(--pp-focus-ring); }
 html.dark .md-strip-btn:hover { background: var(--pp-btn-hover); border-color: var(--pp-accent); }
 
 html[data-theme] .md-strip { background: var(--pp-bg2); border-color: var(--pp-divider); }
 html[data-theme] .md-strip-btn { background: var(--pp-btn-bg); border-color: var(--pp-btn-bd); color: var(--pp-link); }
 html[data-theme] .md-strip-btn:hover { background: var(--pp-btn-hover); box-shadow: var(--pp-hover-shadow); }
-html[data-theme] .md-strip-btn:focus-visible { outline: 2px solid var(--pp-accent); outline-offset: 2px; }
+html[data-theme] .md-strip-btn:focus-visible { border-color: var(--pp-focus-bd); box-shadow: var(--pp-focus-ring); }
 
 /* ===================== High-DPI Scaling ===================== */
 @media (min-resolution: 144dpi) { body { zoom: 1.12; } }

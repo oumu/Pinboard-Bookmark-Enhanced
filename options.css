@@ -214,7 +214,7 @@ h1 { font-size: 18px; color: var(--opt-fg); margin-bottom: var(--opt-sp-7); bord
   transition: color var(--motion-state);
 }
 .reset-tab-btn:hover { color: var(--opt-danger); text-decoration: underline; }
-.reset-tab-btn:focus-visible { outline: 2px solid var(--opt-accent); outline-offset: 2px; }
+.reset-tab-btn:focus-visible { outline: 1px solid var(--opt-accent); outline-offset: 2px; box-shadow: var(--opt-focus-ring); }
 
 /* Pulsing activity dot on a tab button while its panel has background work running
    (pure CSS — no glyph fonts involved). */
@@ -273,7 +273,7 @@ h1 { font-size: 18px; color: var(--opt-fg); margin-bottom: var(--opt-sp-7); bord
    same specificity as the generated selectors they override, so they need
    later source order to win -- see the block right after
    `@generated:ui-components end` below. */
-/* Soft focus for large hit-areas (full-width sidebar tabs, accordion and
+/* §7.3 `borderless` placement (full-width sidebar tabs, accordion and
    disclosure headers): 1px accent core + the --opt-focus-ring
    glow instead of a hard 2px rectangle around a whole row. The glow MUST stay
    the token -- generated themes restyle --opt-focus-ring per theme (terminal's
@@ -381,7 +381,7 @@ html[data-theme] .opt-error {
   border-radius: var(--opt-radius-md);
   background: var(--opt-btn-bg);
   color: var(--opt-btn-fg);
-  transition: background var(--motion-state), border-color var(--motion-state), color var(--motion-state);
+  transition: background var(--motion-state), border-color var(--motion-state), color var(--motion-state), box-shadow var(--motion-state);
 }
 .btn:hover:not(:disabled) {
   background: var(--opt-btn-hover);
@@ -390,8 +390,9 @@ html[data-theme] .opt-error {
   transform: scale(0.97);
 }
 .btn:focus-visible {
-  outline: 2px solid var(--opt-accent);
-  outline-offset: 2px;
+  outline: none;
+  border-color: var(--opt-focus-bd);
+  box-shadow: var(--opt-focus-ring);
 }
 .btn:disabled {
   opacity: 0.45;
@@ -408,6 +409,9 @@ html[data-theme] .opt-error {
 }
 .btn.ghost:hover:not(:disabled) {
   background: color-mix(in srgb, var(--opt-fg) 6%, var(--opt-bg));
+}
+.btn.ghost:focus-visible {
+  border-color: var(--opt-focus-bd);
 }
 
 .btn-ic {
@@ -432,6 +436,12 @@ html[data-theme] .opt-error {
 .btn.danger.ghost:hover:not(:disabled) {
   background: color-mix(in srgb, var(--opt-danger) 8%, var(--opt-bg));
   border-color: color-mix(in srgb, var(--opt-danger) 45%, transparent);
+}
+.btn.danger:focus-visible {
+  border-color: var(--opt-focus-bd);
+}
+.btn.danger.ghost:focus-visible {
+  border-color: var(--opt-focus-bd);
 }
 .confirm-popover .confirm-yes {
   background: var(--opt-danger);
@@ -482,9 +492,9 @@ input[type="checkbox"], input[type="radio"] {
   accent-color: var(--opt-accent);
 }
 .fg input[type="checkbox"]:focus-visible {
-  outline: 2px solid var(--opt-accent);
-  outline-offset: 1px;
-  box-shadow: none;
+  outline: 1px solid var(--opt-accent);
+  outline-offset: 2px;
+  box-shadow: var(--opt-focus-ring);
 }
 /* @generated:ui-components end (options) */
 /* Hand-maintained field exceptions (COMPONENTS.md §6.1): same specificity
@@ -906,7 +916,7 @@ html.motion-ready #preset-preview-section > summary::after {
 .saved-theme-btn:hover:not(:disabled) {
   background: color-mix(in srgb, var(--opt-accent) 18%, var(--opt-panel));
 }
-.theme-preset-btn:focus-visible { outline: 2px solid var(--opt-accent); outline-offset: 2px; }
+.theme-preset-btn:focus-visible { outline: 1px solid var(--opt-accent); outline-offset: 2px; box-shadow: var(--opt-focus-ring); }
 .theme-preset-btn.active,
 .saved-theme-btn.active {
   background: color-mix(in srgb, var(--opt-accent) 16%, var(--opt-panel));
@@ -934,7 +944,7 @@ html.motion-ready #preset-preview-section > summary::after {
 .saved-theme-wrap:hover .saved-theme-del,
 .saved-theme-wrap:focus-within .saved-theme-del,
 .saved-theme-del:focus-visible { opacity: 1; visibility: visible; }
-.saved-theme-del:focus-visible { outline: 2px solid var(--opt-accent); outline-offset: 1px; }
+.saved-theme-del:focus-visible { outline: 1px solid var(--opt-accent); outline-offset: 2px; box-shadow: var(--opt-focus-ring); }
 /* Larger invisible hit target for touch (expands 16px visual to 28px tap area) */
 .saved-theme-del::before {
   content: ""; position: absolute; inset: -6px; border-radius: 50%;
@@ -994,9 +1004,10 @@ html.motion-ready #preset-preview-section > summary::after {
        positioned box. Both defects had this one declaration as their cause.
    An outline paints no shadow geometry, so neither problem can recur. */
 .key-toggle:focus-visible {
-  outline: 2px solid var(--opt-accent);
+  outline: 2px solid var(--opt-focus-bd);
   outline-offset: -2px;
   border-radius: var(--opt-radius-sm);
+  box-shadow: none;
 }
 
 /* ============================================================
@@ -1625,8 +1636,9 @@ html[data-theme] .fg select:hover:not(:focus), html[data-theme] .et-field select
   }
   .fg option:focus-visible, .et-field option:focus-visible, .mobile-tab-picker option:focus-visible {
     background: var(--opt-option-hover-bg);
-    outline: 2px solid var(--opt-accent);
+    outline: 2px solid var(--opt-focus-bd);
     outline-offset: -2px;
+    box-shadow: none;
   }
   .fg option::checkmark, .et-field option::checkmark, .mobile-tab-picker option::checkmark { display: none; }
   .fg option:checked, .et-field option:checked, .mobile-tab-picker option:checked {
@@ -1728,7 +1740,7 @@ html.motion-ready .confirm-popover.is-closing {
    stays hand-written here. */
 .confirm-popover .confirm-no { background: none; color: var(--opt-fg-muted); border-color: var(--opt-border); }
 .confirm-popover .confirm-no:hover { background: var(--opt-btn-hover); }
-.confirm-popover button:focus-visible { outline: 2px solid var(--opt-accent); outline-offset: 1px; }
+.confirm-popover button:focus-visible { outline: 1px solid var(--opt-accent); outline-offset: 2px; box-shadow: var(--opt-focus-ring); }
 html[data-theme] .confirm-popover { color: var(--opt-fg); box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
 /* .confirm-yes themed override deleted (COMPONENTS.md §4.2/C14): it used
    var(--opt-panel) as an unaudited foreground borrow and outranked the
@@ -1780,7 +1792,7 @@ html.motion-ready .theme-name-popover.is-closing {
    fell through to the UA ring, the only two controls in this popover that
    did not follow the surface's own focus language. */
 .theme-name-popover .tnp-save:focus-visible,
-.theme-name-popover .tnp-cancel:focus-visible { outline: 2px solid var(--opt-accent); outline-offset: 2px; }
+.theme-name-popover .tnp-cancel:focus-visible { outline: 1px solid var(--opt-accent); outline-offset: 2px; box-shadow: var(--opt-focus-ring); }
 .theme-name-popover .tnp-overwrite {
   font-size: 11px; color: var(--opt-warn); margin: 0;
 }
@@ -1960,8 +1972,9 @@ html[data-theme] .preset-preview-content { background: var(--opt-bg); color: var
 .wayback-perm-help svg { width: 13px; height: 13px; }
 .wayback-perm-help:hover { background: var(--opt-btn-hover); }
 .wayback-perm-help:focus-visible {
-  outline: 2px solid var(--opt-accent);
-  outline-offset: 1px;
+  outline: none;
+  border-color: var(--opt-focus-bd);
+  box-shadow: var(--opt-focus-ring);
 }
 .wayback-perm-tip {
   grid-column: 1 / -1;
@@ -2373,8 +2386,9 @@ html[data-theme="flexoki-dark"] #panel-vocab .vocab-details-body > .hint {
     .mobile-tab-picker select { appearance: base-select; }
   }
   .mobile-tab-picker select:focus-visible {
-    outline: 2px solid var(--opt-accent);
-    outline-offset: 2px;
+    outline: none;
+    border-color: var(--opt-focus-bd);
+    box-shadow: var(--opt-focus-ring);
   }
   .reset-tab-btn {
     min-height: 34px;

@@ -708,10 +708,61 @@ check(/\.theme-name-popover input\[type="text"\]:focus \{[^}]*border-color: var\
   /\.theme-name-popover input\[type="text"\]:focus-visible \{ box-shadow: var\(--opt-focus-ring\); \}/.test(optionsCss) &&
   !/theme-name-popover input\[type="text"\]:focus-visible \{ box-shadow: 0 0 0 2px/.test(optionsCss),
   "options.css: the theme-name popover input is back on a bespoke focus ring instead of --opt-focus-bd/--opt-focus-ring (§7.3), so per-theme focus styling does not reach it");
-check(/\.theme-name-popover \.tnp-save:focus-visible,\s*\n\s*\.theme-name-popover \.tnp-cancel:focus-visible \{ outline: 2px solid var\(--opt-accent\); outline-offset: 2px; \}/.test(optionsCss),
-  "options.css: the theme-name popover's Save/Cancel lost their §7.3 focus ring and fall through to the UA default");
-check(/\.regen-link:focus-visible \{ outline: 2px solid var\(--pp-accent\); outline-offset: 2px; \}/.test(popupCss),
-  "popup.css: .regen-link lost its §7.3 focus ring and falls through to the UA default (unthemed on dark surfaces)");
+// The two `borderless` sites (§7.3, 2026-08-06 unification): a 1px accent
+// core PLUS the surface's --{ns}-focus-ring glow. Both halves are asserted
+// separately, and the glow specifically has to be the TOKEN: its shape is
+// per-theme identity (terminal's 6px phosphor blur, paper-ink's flat
+// `0 0 0 1px`, solarized's translucent 2px), so an inlined shadow here would
+// flatten 13 presets into one look while still "having a focus ring".
+// The tnp pair are `borderless` rather than `bordered` on purpose -- tnp-save
+// is a solid accent button whose 1px edge is its tier, not neutral chrome.
+const BORDERLESS_FOCUS = (ns) =>
+  new RegExp(`outline: 1px solid var\\(--${ns}-accent\\); outline-offset: 2px; box-shadow: var\\(--${ns}-focus-ring\\);`);
+check(/\.theme-name-popover \.tnp-save:focus-visible,\s*\n\s*\.theme-name-popover \.tnp-cancel:focus-visible \{ [^}]*\}/.test(optionsCss) &&
+  BORDERLESS_FOCUS("opt").test(
+    optionsCss.slice(optionsCss.indexOf(".theme-name-popover .tnp-save:focus-visible"),
+      optionsCss.indexOf(".theme-name-popover .tnp-save:focus-visible") + 260)),
+  "options.css: the theme-name popover's Save/Cancel lost the §7.3 borderless focus recipe (1px accent core + var(--opt-focus-ring) glow)");
+check(/\.regen-link:focus-visible \{ [^}]*\}/.test(popupCss) &&
+  BORDERLESS_FOCUS("pp").test(popupCss.slice(popupCss.indexOf(".regen-link:focus-visible"),
+    popupCss.indexOf(".regen-link:focus-visible") + 200)),
+  "popup.css: .regen-link lost the §7.3 borderless focus recipe (1px accent core + var(--pp-focus-ring) glow)");
+// §7.3 unification, file-wide: after the 2026-08-06 sweep NO hand-written
+// rule may re-introduce the retired hard ring (`outline: 2px solid
+// var(--{ns}-accent)` growing OUTWARD). The two legitimate 2px outlines left
+// are the `inset` placement (negative offset, and it consumes --{ns}-focus-bd,
+// not --{ns}-accent) and options' .theme-preset-btn.active SELECTION ring,
+// which is not a focus indicator at all. Asked as a class, not as a list of
+// selectors: a checklist of instances would miss the next new one
+// (CLAUDE.md, "断言问得太窄等于没门").
+for (const [file, css, ns] of [["popup.css", popupCss, "pp"], ["options.css", optionsCss, "opt"], ["library.css", libraryCss, "lib"]]) {
+  const hand = stripGeneratedRegions(css).replace(/\/\*[\s\S]*?\*\//g, "");
+  const real = [];
+  // Selector + body together: the exemption below is decided by the SELECTOR,
+  // so a declaration-only match could never see which rule it came from.
+  for (const m of hand.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    const [, selector, body] = m;
+    const hit = new RegExp(`outline: 2px solid var\\(--${ns}-accent[^;]*;\\s*outline-offset: (-?[\\d.]+)px`).exec(body);
+    if (!hit || parseFloat(hit[1]) < 0) continue;
+    // .theme-preset-btn.active's ring is a SELECTION mark, not a focus
+    // indicator: it carries no :focus-visible and the render oracle gates it
+    // separately via outlineContrast.
+    if (/\.theme-preset-btn\.active|\.saved-theme-btn\.active/.test(selector)) continue;
+    real.push(`${selector.trim().replace(/\s+/g, " ")} { ${hit[0].replace(/\s+/g, " ")} }`);
+  }
+  check(real.length === 0,
+    `${file}: retired §7.3 hard focus ring re-introduced (outward 2px accent outline) — use the bordered/borderless/inset placement instead: ${real.join(" | ")}`);
+}
+// The two same-specificity deletions this sweep made must stay deleted --
+// both were measured, not eyeballed (CLAUDE.md's two-way cascade rule).
+// .lib-tab had TWO (0,2,0) :focus-visible rules; the later one won `outline`
+// while the earlier kept supplying `box-shadow`, shipping a hard rectangle
+// with a glow behind it. .vocab-sort-seg's shell ring fired on mouse-down
+// (`:focus-within` has no keyboard gate) and stacked outside the cell ring.
+check((libraryCss.match(/\.lib-tab:focus-visible/g) || []).length === 1,
+  "library.css: .lib-tab has more than one :focus-visible rule again — the later same-specificity one silently wins `outline` while the earlier still supplies `box-shadow`");
+check(!/\.vocab-sort-seg:focus-within/.test(libraryCss),
+  "library.css: the .vocab-sort-seg shell focus ring is back — it lights on plain mouse-down and double-rings on Tab (the cell's own inset ring is the indicator)");
 // COMPONENTS.md §7.3 / §8 law 6, for every popup control the render oracle
 // cannot reach. The library/options ones are gated live; popup's fixture is
 // seeded logged-in, so #login-section (and with it .secret-field) has a zero

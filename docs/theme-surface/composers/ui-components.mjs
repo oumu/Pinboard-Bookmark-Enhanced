@@ -100,12 +100,24 @@ function btnRules(ns) {
       ["border-radius", `var(--${ns}-radius-md)`],
       ["background", `var(--${ns}-btn-bg)`],
       ["color", `var(--${ns}-btn-fg)`],
-      ["transition", `background ${motion(ns)}, border-color ${motion(ns)}, color ${motion(ns)}`],
+      ["transition", `background ${motion(ns)}, border-color ${motion(ns)}, color ${motion(ns)}, box-shadow ${motion(ns)}`],
     ]),
     rule(".btn:hover:not(:disabled)", [["background", `var(--${ns}-btn-hover)`]], { pairColorWith: ".btn" }),
     // Not transitioned — §3.1 decision #1/#2: press must read instantly.
     rule(".btn:active:not(:disabled)", [["transform", "scale(0.97)"]]),
-    rule(".btn:focus-visible", [["outline", `2px solid var(--${ns}-accent)`], ["outline-offset", "2px"]]),
+    // §7.3 `bordered` placement (2026-08-06 focus-language unification). The
+    // .btn family's resting frame is CHROME (--{ns}-btn-border, which Soft
+    // Fill collapses into the fill), so focus re-tints that frame and adds
+    // the surface's glow instead of stacking a hard rectangle outside it.
+    // Both values are consumed as tokens, never expanded: --{ns}-focus-ring's
+    // SHAPE is per-theme identity (terminal's phosphor blur, paper-ink's flat
+    // 1px, solarized's 2px translucent), and inlining it would flatten 13
+    // presets into one look.
+    rule(".btn:focus-visible", [
+      ["outline", "none"],
+      ["border-color", `var(--${ns}-focus-bd)`],
+      ["box-shadow", `var(--${ns}-focus-ring)`],
+    ]),
     // :disabled opacity intentionally drops contrast — WCAG 1.4.3 exempts
     // disabled controls; render oracle must skip this state (§3.4).
     rule(".btn:disabled", [["opacity", "0.45"], ["cursor", "not-allowed"]]),
@@ -117,6 +129,13 @@ function btnRules(ns) {
     rule(".btn.ghost:hover:not(:disabled)", [
       ["background", `color-mix(in srgb, var(--${ns}-fg) 6%, var(--${ns}-bg))`],
     ], { pairColorWith: ".btn" }),
+    // Ghost's `border-color: transparent` is (0,2,0) and is emitted AFTER
+    // `.btn:focus-visible` (also (0,2,0)), so source order alone would hand
+    // the resting transparent frame the win during focus and leave the
+    // bordered placement with nothing but its glow. Restated at (0,3,0) so
+    // the outcome is decided by specificity, not by where in this file the
+    // rules happen to sit (COMPONENTS.md §8.6: "别赌源序").
+    rule(".btn.ghost:focus-visible", [["border-color", `var(--${ns}-focus-bd)`]], { pairColorWith: ".btn" }),
   ];
 }
 
@@ -161,6 +180,16 @@ function dangerRules(ns) {
       ["background", `color-mix(in srgb, var(--${ns}-danger) 8%, var(--${ns}-bg))`],
       ["border-color", `color-mix(in srgb, var(--${ns}-danger) 45%, transparent)`],
     ], { pairColorWith: ".btn.danger" }),
+    // Focus wins the frame for the WHOLE .btn family, danger tiers included:
+    // `.btn.danger` (0,2,0) and `.btn.danger.ghost` (0,3,0) are emitted after
+    // the btn family's `:focus-visible`, so without these two the quiet-danger
+    // edge would out-rank the focus border and a focused delete button would
+    // show glow-only. The tier is not lost — it still reads through
+    // --{ns}-danger-quiet-fg on the label and the danger hover fill — and a
+    // focus indicator that means the same thing everywhere beats one that
+    // silently degrades on exactly the buttons with the worst consequences.
+    rule(".btn.danger:focus-visible", [["border-color", `var(--${ns}-focus-bd)`]], { pairColorWith: ".btn.danger" }),
+    rule(".btn.danger.ghost:focus-visible", [["border-color", `var(--${ns}-focus-bd)`]], { pairColorWith: ".btn.danger" }),
     // Solid tier — the only allowed full-strength red. Self-paired.
     rule(".confirm-popover .confirm-yes", [
       ["background", `var(--${ns}-danger)`],
@@ -228,8 +257,13 @@ function chipRules(ns) {
     if (pressable) {
       out.push(rule(`${selector}[aria-pressed]:hover`, [["background", `var(--${ns}-btn-hover)`]], { pairColorWith: selector }));
       out.push(rule(`${selector}[aria-pressed]:active`, [["transform", "scale(0.97)"]]));
+      // §7.3 `bordered`: a pressable chip keeps a 1px frame at rest so the
+      // pressed/focused edge costs no reflow (§9 law 1) -- that frame IS the
+      // focus core, same as the .btn family's.
       out.push(rule(`${selector}[aria-pressed]:focus-visible`, [
-        ["outline", `2px solid var(--${ns}-accent)`], ["outline-offset", "2px"],
+        ["outline", "none"],
+        ["border-color", `var(--${ns}-focus-bd)`],
+        ["box-shadow", `var(--${ns}-focus-ring)`],
       ]));
     }
   }
@@ -273,8 +307,14 @@ function formRules(ns) {
       ["box-shadow", `var(--${ns}-focus-ring)`],
     ]),
     rule('input[type="checkbox"], input[type="radio"]', [["accent-color", `var(--${ns}-accent)`]]),
+    // §7.3 `borderless`: a checkbox paints no frame of its own (the tick is
+    // UA-drawn from accent-color), so the 1px accent core carries legibility
+    // and the token glow carries the family resemblance. The core is NOT
+    // optional -- the glow alone is too faint on light surfaces.
     rule('.fg input[type="checkbox"]:focus-visible', [
-      ["outline", `2px solid var(--${ns}-accent)`], ["outline-offset", "1px"], ["box-shadow", "none"],
+      ["outline", `1px solid var(--${ns}-accent)`],
+      ["outline-offset", "2px"],
+      ["box-shadow", `var(--${ns}-focus-ring)`],
     ]),
   ];
   // §6.1 toolbar-scoped field variant (sm rung, matches the row's .btn-sm

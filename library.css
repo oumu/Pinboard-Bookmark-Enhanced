@@ -134,7 +134,7 @@ a { color: var(--lib-link, #1a66c2); }
   border-radius: var(--lib-radius-md);
   background: var(--lib-btn-bg);
   color: var(--lib-btn-fg);
-  transition: background var(--motion-state), border-color var(--motion-state), color var(--motion-state);
+  transition: background var(--motion-state), border-color var(--motion-state), color var(--motion-state), box-shadow var(--motion-state);
 }
 .btn:hover:not(:disabled) {
   background: var(--lib-btn-hover);
@@ -143,8 +143,9 @@ a { color: var(--lib-link, #1a66c2); }
   transform: scale(0.97);
 }
 .btn:focus-visible {
-  outline: 2px solid var(--lib-accent);
-  outline-offset: 2px;
+  outline: none;
+  border-color: var(--lib-focus-bd);
+  box-shadow: var(--lib-focus-ring);
 }
 .btn:disabled {
   opacity: 0.45;
@@ -161,6 +162,9 @@ a { color: var(--lib-link, #1a66c2); }
 }
 .btn.ghost:hover:not(:disabled) {
   background: color-mix(in srgb, var(--lib-fg) 6%, var(--lib-bg));
+}
+.btn.ghost:focus-visible {
+  border-color: var(--lib-focus-bd);
 }
 
 .btn-ic {
@@ -185,6 +189,12 @@ a { color: var(--lib-link, #1a66c2); }
 .btn.danger.ghost:hover:not(:disabled) {
   background: color-mix(in srgb, var(--lib-danger) 8%, var(--lib-bg));
   border-color: color-mix(in srgb, var(--lib-danger) 45%, transparent);
+}
+.btn.danger:focus-visible {
+  border-color: var(--lib-focus-bd);
+}
+.btn.danger.ghost:focus-visible {
+  border-color: var(--lib-focus-bd);
 }
 .confirm-popover .confirm-yes {
   background: var(--lib-danger);
@@ -221,8 +231,9 @@ a { color: var(--lib-link, #1a66c2); }
   transform: scale(0.97);
 }
 .vocab-stat-chip[aria-pressed]:focus-visible {
-  outline: 2px solid var(--lib-accent);
-  outline-offset: 2px;
+  outline: none;
+  border-color: var(--lib-focus-bd);
+  box-shadow: var(--lib-focus-ring);
 }
 
 .fg input[type="text"], .fg input[type="password"], .fg input[type="number"], .fg select, .fg textarea {
@@ -254,9 +265,9 @@ input[type="checkbox"], input[type="radio"] {
   accent-color: var(--lib-accent);
 }
 .fg input[type="checkbox"]:focus-visible {
-  outline: 2px solid var(--lib-accent);
-  outline-offset: 1px;
-  box-shadow: none;
+  outline: 1px solid var(--lib-accent);
+  outline-offset: 2px;
+  box-shadow: var(--lib-focus-ring);
 }
 .vocab-group-unit input[type="text"] {
   padding: 2px var(--lib-sp-2);
@@ -295,17 +306,18 @@ input[type="checkbox"], input[type="radio"] {
   cursor: pointer;
 }
 
-/* Soft focus for large hit-areas (full-width sidebar tabs, accordion and
-   disclosure headers, vocab card heads): 1px accent core + a soft glow
-   instead of a hard 2px rectangle around a whole row. Compact controls keep
-   the standard 2px ring family. */
+/* §7.3 `borderless` placement (full-width sidebar tabs, accordion and
+   disclosure headers): 1px accent core + the --lib-focus-ring glow. The core
+   is not optional -- the glow alone is too faint to locate on light presets.
+   .notes-card-head is deliberately NOT here: it spans only the first of the
+   row's three grid columns, so a ring on it stopped mid-row and ran under
+   .row-del-x. Its row carries an inset ring instead (see .notes-card-top). */
 .lib-tab:focus-visible,
 .accordion-header:focus-visible,
-.vocab-disclosure > summary:focus-visible,
-.notes-card-head:focus-visible {
-  outline: 1px solid var(--lib-accent, #4477bb);
+.vocab-disclosure > summary:focus-visible {
+  outline: 1px solid var(--lib-accent);
   outline-offset: 2px;
-  box-shadow: var(--lib-focus-ring, 0 0 6px 1px color-mix(in srgb, var(--lib-accent) 45%, transparent));
+  box-shadow: var(--lib-focus-ring);
 }
 
 /* Inline status icon (replaces ✓/✗ in test/save/import messages; the glyphs fall back to
@@ -355,7 +367,7 @@ html.motion-ready .confirm-popover.is-closing {
    stays hand-written here. */
 .confirm-popover .confirm-no { background: none; color: var(--lib-fg-muted); border-color: var(--lib-border, #ccc); }
 .confirm-popover .confirm-no:hover { background: var(--lib-btn-hover); }
-.confirm-popover button:focus-visible { outline: 2px solid var(--lib-accent, #4477bb); outline-offset: 1px; }
+.confirm-popover button:focus-visible { outline: 1px solid var(--lib-accent); outline-offset: 2px; box-shadow: var(--lib-focus-ring); }
 html[data-theme] .confirm-popover { color: var(--lib-fg); background: var(--lib-panel); border-color: var(--lib-border); }
 /* .confirm-yes themed override deleted (COMPONENTS.md §4.2/C14): it used
    var(--lib-panel) as an unaudited foreground borrow and outranked the
@@ -393,8 +405,8 @@ html[data-theme] .confirm-popover .confirm-no:hover { background: var(--lib-btn-
   transition: border-color var(--motion-state) ease, background-color var(--motion-state) ease, box-shadow var(--motion-state) ease;
 }
 .notes-toolbar input[type="search"]:hover:not(:focus) { border-color: var(--lib-fg-muted); }
-.notes-toolbar input[type="search"]:focus { outline: none; border-color: var(--lib-accent); }
-.notes-toolbar input[type="search"]:focus-visible { box-shadow: 0 0 0 3px color-mix(in srgb, var(--lib-accent) 18%, transparent); }
+.notes-toolbar input[type="search"]:focus { outline: none; border-color: var(--lib-focus-bd); }
+.notes-toolbar input[type="search"]:focus-visible { box-shadow: var(--lib-focus-ring); }
 .notes-count { color: var(--lib-fg-muted); font-size: 12px; white-space: nowrap; }
 .notes-color-filters { display: flex; align-items: center; gap: var(--lib-sp-2); }
 .notes-filter-dot {
@@ -464,7 +476,18 @@ html.motion-ready .notes-card-top { transition: background-color var(--motion-st
   text-align: left;
   cursor: pointer;
 }
-.notes-card-head:focus-visible { border-radius: var(--lib-radius-sm, 3px); }
+.notes-card-head:focus-visible { outline: none; }
+/* §7.3 `inset`. Drawn on the whole row, not on the head: the head is only
+   the first of .notes-card-top's three grid columns. `:has(> ...)` keeps the
+   selector at (0,3,0) -- deliberately NOT a box-shadow ring, because
+   .vocab-card[aria-current] .notes-card-top (also (0,3,0)) already owns
+   box-shadow for the "you are here" accent edge and the later of two
+   same-specificity rules would silently erase the other. */
+.notes-card-top:has(> .notes-card-head:focus-visible) {
+  outline: 2px solid var(--lib-focus-bd);
+  outline-offset: -2px;
+  box-shadow: none;
+}
 .notes-card-main {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -587,7 +610,7 @@ html.motion-ready .notes-card-top { transition: background-color var(--motion-st
 html.motion-ready .notes-hit-btn { transition: background-color var(--motion-state) ease, box-shadow var(--motion-state) ease; }
 .notes-hit-btn:hover { --row-bg: color-mix(in srgb, var(--lib-fg) 5%, var(--lib-bg)); }
 .notes-hit-btn:active { --row-bg: color-mix(in srgb, var(--lib-fg) 9%, var(--lib-bg)); transition-duration: 0s; }
-.notes-hit-btn:focus-visible { outline: 2px solid var(--lib-accent, #4477bb); outline-offset: -2px; }
+.notes-hit-btn:focus-visible { outline: 2px solid var(--lib-focus-bd); outline-offset: -2px; box-shadow: none; }
 /* "You are here", same --row-bg mechanism the vocabulary rows use. The accent
    marker is a ring rather than that list's inset LEFT edge, because the left
    edge here already belongs to the highlight's own colour bar. */
@@ -675,7 +698,7 @@ html.motion-ready .notes-sib { transition: background-color var(--motion-state) 
    was the one left silent. Same instant color-mix + transition-duration:0
    recipe, not the .btn family's scale(0.97): a row button, not a dialog action. */
 .notes-sib:active { background: color-mix(in srgb, var(--lib-fg) 9%, var(--lib-bg)); transition-duration: 0s; }
-.notes-sib:focus-visible { outline: 2px solid var(--lib-accent, #4477bb); outline-offset: -2px; }
+.notes-sib:focus-visible { outline: 2px solid var(--lib-focus-bd); outline-offset: -2px; box-shadow: none; }
 .notes-sib .note-dot { margin-top: 0; }
 .notes-sib-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Back button default state: hidden by default, shown only at narrow widths.
@@ -859,7 +882,7 @@ html.motion-ready .notes-sib { transition: background-color var(--motion-state) 
 .chip-remove:focus-visible { opacity: 1; }
 .chip-remove:hover { color: var(--lib-danger); background: color-mix(in srgb, var(--lib-danger) 14%, transparent); }
 .chip-remove:active { transform: scale(0.97); }
-.chip-remove:focus-visible { outline: 2px solid var(--lib-accent); outline-offset: 1px; }
+.chip-remove:focus-visible { outline: 1px solid var(--lib-accent); outline-offset: 2px; box-shadow: var(--lib-focus-ring); }
 /* Touch has no :hover to reveal the remove "x" -- same fallback .row-del-x
    already uses (library.css, @media (hover:none) block). */
 @media (hover: none) { .chip-remove { opacity: 1; } }
@@ -926,7 +949,7 @@ html.motion-ready .notes-sib { transition: background-color var(--motion-state) 
   transition: border-color var(--motion-state) ease, background-color var(--motion-state) ease;
 }
 .xp-dict-lang:hover { background-color: var(--lib-btn-hover, var(--lib-btn-bg)); border-color: var(--lib-input-border, var(--lib-border)); }
-.xp-dict-lang:focus-visible { outline: 2px solid var(--lib-accent); outline-offset: 1px; }
+.xp-dict-lang:focus-visible { outline: none; border-color: var(--lib-focus-bd); box-shadow: var(--lib-focus-ring); }
 html[data-theme="nord-night"] .xp-dict-lang,
 html[data-theme="terminal"] .xp-dict-lang,
 html[data-theme="dracula"] .xp-dict-lang,
@@ -965,14 +988,14 @@ html[data-theme="rose-pine"] .xp-dict-lang {
   cursor: pointer; font-size: 0.85em; color: var(--lib-accent);
 }
 .xp-dict-more:hover { text-decoration: underline; }
-.xp-dict-more:focus-visible { text-decoration: underline; outline: 2px solid var(--lib-accent); outline-offset: 2px; }
+.xp-dict-more:focus-visible { text-decoration: underline; outline: 1px solid var(--lib-accent); outline-offset: 2px; box-shadow: var(--lib-focus-ring); }
 /* Clickable lemma inside a form-of pointer: reads as a link, is a button. */
 .xp-dict-lemma-link {
   padding: 0; border: none; background: none; cursor: pointer; font: inherit;
   color: var(--lib-accent); text-decoration: underline;
 }
 .xp-dict-lemma-link:hover { color: var(--lib-accent); }
-.xp-dict-lemma-link:focus-visible { outline: 2px solid var(--lib-accent); outline-offset: 2px; }
+.xp-dict-lemma-link:focus-visible { outline: 1px solid var(--lib-accent); outline-offset: 2px; box-shadow: var(--lib-focus-ring); }
 /* Loading skeleton (_pbpDictSlotSkeleton) -- shimmering gradient bar, matches
    md-preview's .xp-skel, renamed keyframe to stay scoped to this file. */
 .xp-skel {
@@ -998,7 +1021,7 @@ html[data-theme="rose-pine"] .xp-dict-lang {
   transition: background-color var(--motion-state) ease;
 }
 .xp-retry:hover, .xp-dict-connect:hover:not(:disabled) { background: var(--lib-btn-hover, var(--lib-code-bg)); }
-.xp-retry:focus-visible, .xp-dict-connect:focus-visible { outline: 2px solid var(--lib-accent); outline-offset: 2px; }
+.xp-retry:focus-visible, .xp-dict-connect:focus-visible { outline: none; border-color: var(--lib-focus-bd); box-shadow: var(--lib-focus-ring); }
 .xp-retry:active, .xp-dict-connect:active:not(:disabled) { transform: translateY(1px); }
 .xp-retry svg { width: 12px; height: 12px; vertical-align: -2px; margin-right: 4px; }
 .xp-dict-connect:disabled { opacity: 0.6; cursor: default; }
@@ -1222,11 +1245,11 @@ html[data-theme="rose-pine"] .vocab-filter-toolbar select {
   overflow: hidden;
   transition: border-color var(--motion-state), box-shadow var(--motion-state);
 }
-/* §7.3's button/tab recipe (not the field one -- there is no text entry
-   here), drawn on the shell so it surrounds both cells. The old per-cell
-   `.btn:focus-visible` ring sat 2px outside a 34px cell, i.e. 2px ON TOP OF
-   the neighbouring cell, and stopped 30px short of the unit's far edge. */
-.vocab-sort-seg:focus-within { outline: 2px solid var(--lib-accent); outline-offset: 2px; }
+/* No shell ring on this unit: it takes no text entry, so the focused CELL's
+   own inset ring (below) is the whole indicator. The deleted
+   `:focus-within` rule produced both defects reported on 2026-08-06 -- a lit
+   box on plain mouse-down (`:focus-within` has no keyboard gate) and, on
+   Tab, a second rectangle stacked outside the cell's inset one. */
 .vocab-sort-seg > .vocab-sort-btn {
   width: 34px;
   padding: 0;
@@ -1269,8 +1292,12 @@ html[data-theme="rose-pine"] .vocab-filter-toolbar select {
    without focus ever touching a fill. A colour swap could not do that --
    the pressed cell is already accent-coloured. */
 .vocab-sort-seg > .vocab-sort-btn:focus-visible {
-  outline: 2px solid var(--lib-accent);
+  outline: 2px solid var(--lib-focus-bd);
   outline-offset: -2px;
+  /* The generated .btn:focus-visible now adds --lib-focus-ring; on a welded
+     cell that glow spills across the seam onto its neighbour and stacks with
+     this inset core. The inset placement is outline-only by contract. */
+  box-shadow: none;
 }
 /* Stats strip: read-only counts + two clickable status-filter chips. Same
    quiet-muted-text register as .notes-count; the two chip buttons join the
@@ -1450,11 +1477,13 @@ html.motion-ready .vocab-batch-bar.selecting {
   overflow: hidden;
   transition: border-color var(--motion-state) ease, box-shadow var(--motion-state) ease;
 }
-/* §8 law 2 + §7.3's field recipe. `:focus-within` means the ring appears for
-   ALL THREE tab stops (input, +, -) and always surrounds the whole unit --
-   a box-shadow ring paints outside the shell's border box, so it can never
-   be occluded by a passenger the way the old inner outline was. */
-.vocab-group-unit:focus-within {
+/* §8 law 2 + §7.3's `bordered` placement, scoped to the unit's TEXT ENTRY.
+   It used to be a bare `:focus-within`, which also fired for the two stepper
+   cells -- and those carry their own inset ring, so tabbing to one drew two
+   rings at once (the same defect .vocab-sort-seg was reported for). A text
+   field's focus belongs on the frame that contains it; a button cell's
+   belongs inside the cell. */
+.vocab-group-unit:has(> input[type="text"]:focus) {
   border-color: var(--lib-focus-bd);
   box-shadow: var(--lib-focus-ring);
 }
@@ -1524,8 +1553,11 @@ html.motion-ready .vocab-batch-bar.selecting {
    outline has no shadow geometry and is the language already used
    everywhere else. Hover still fills; hover is not covered by law 6. */
 .vocab-group-unit > .vocab-group-step:focus-visible {
-  outline: 2px solid var(--lib-accent);
+  outline: 2px solid var(--lib-focus-bd);
   outline-offset: -2px;
+  /* Same reason as .vocab-sort-btn: suppress the .btn family's glow so the
+     cell's indicator is the inset core alone. */
+  box-shadow: none;
 }
 .vocab-batch-cluster { display: inline-flex; gap: var(--lib-sp-1); flex: none; }
 .vocab-main-status {
@@ -1666,9 +1698,6 @@ html.motion-ready .vocab-batch-bar.selecting {
    shoves the sibling tab sideways on every switch -- the same zero-shift rule
    the underline itself follows. Colour + accent edge carries selection. */
 .lib-tab.active { color: var(--lib-fg); border-bottom-color: var(--lib-accent); }
-/* §7.3's button focus ring, the same one every other control on this surface
-   uses -- a tab is not a field and has no shell of its own to draw into. */
-.lib-tab:focus-visible { outline: 2px solid var(--lib-accent); outline-offset: 2px; }
 .lib-main { padding: var(--lib-sp-4) var(--lib-sp-5); }
 .lib-view[hidden] { display: none; }
 
