@@ -8,6 +8,9 @@
 //   node scripts/followup2-screens.mjs --rows    # vocab row states x 2 themes
 //   node scripts/followup2-screens.mjs --notes   # notes selection + batch bar
 //   node scripts/followup2-screens.mjs --sweep   # narrow-width overflow scan
+//   node scripts/followup2-screens.mjs --variantc  # variant C, 1100/1680 x 2 themes
+//   node scripts/followup2-screens.mjs --resp      # responsive matrix + measurements
+//   node scripts/followup2-screens.mjs --save      # save button rest/dirty/focus
 //
 // Needs a display: xvfb-run -a node scripts/followup2-screens.mjs --sweep
 import { createRequire } from "node:module";
@@ -274,6 +277,101 @@ async function runSweep(page, sw, extBase) {
   if (!rows.length) console.log("  none");
 }
 
+
+// ---- Variant C: the pane hugs its content, surplus width becomes margin ----
+async function runVariantC(page, sw, extBase) {
+  console.log("== variant C two-pane ==");
+  for (const theme of THEMES) {
+    const { themePresetKey, optTheme } = themeToStorage(theme);
+    await setTheme(sw, themePresetKey, optTheme);
+    const label = theme || "default-light";
+    for (const width of [1100, 1680]) {
+      for (const view of ["vocab", "notes"]) {
+        await page.setViewportSize({ width, height: 1000 });
+        await page.goto(`${extBase}library.html?_vc=${width}-${view}-${encodeURIComponent(theme)}#${view}`, { waitUntil: "load", timeout: TIMEOUT_MS });
+        const rowSel = view === "vocab" ? "#vocab-list .vocab-card .notes-card-head" : "#notes-list .notes-hit-btn";
+        await page.waitForSelector(rowSel, { timeout: TIMEOUT_MS }).catch(() => {});
+        await page.locator(rowSel).first().click().catch(() => {});
+        await page.waitForTimeout(400);
+        await shot(page, `variantc-${view}-${width}-${label}`);
+      }
+    }
+  }
+}
+
+// ---- Responsive matrix, with the numbers the layout contract is about ----
+async function runResponsive(page, sw, extBase) {
+  console.log("== responsive matrix ==");
+  const { themePresetKey, optTheme } = themeToStorage("");
+  await setTheme(sw, themePresetKey, optTheme);
+  const report = [];
+  for (const width of [800, 1000, 1280, 1680, 2200]) {
+    for (const view of ["vocab", "notes"]) {
+      await page.setViewportSize({ width, height: 1000 });
+      await page.goto(`${extBase}library.html?_rs=${width}-${view}#${view}`, { waitUntil: "load", timeout: TIMEOUT_MS });
+      const rowSel = view === "vocab" ? "#vocab-list .vocab-card .notes-card-head" : "#notes-list .notes-hit-btn";
+      await page.waitForSelector(rowSel, { timeout: TIMEOUT_MS }).catch(() => {});
+      await page.locator(rowSel).first().click().catch(() => {});
+      await page.waitForTimeout(400);
+      report.push({ width, view, ...await page.evaluate((v) => {
+        const q = (s) => document.querySelector(s);
+        const w = (el) => el ? +el.getBoundingClientRect().width.toFixed(1) : null;
+        const main = q(".lib-main"), header = q(".lib-header");
+        const bench = q(v === "vocab" ? ".vocab-workbench" : ".notes-workbench");
+        const px = (el, p) => el ? parseFloat(getComputedStyle(el)[p]) : null;
+        const mr = main && main.getBoundingClientRect(), br = bench && bench.getBoundingClientRect();
+        return {
+          hScroll: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+          mainPad: [px(main, "paddingLeft"), px(main, "paddingRight")],
+          headerPad: [px(header, "paddingLeft"), px(header, "paddingRight")],
+          cols: bench ? getComputedStyle(bench).gridTemplateColumns : null,
+          list: w(q(v === "vocab" ? ".vocab-list-pane" : ".notes-list-pane")),
+          pane: w(q(v === "vocab" ? ".vocab-detail-pane" : ".notes-detail-pane")),
+          benchGutter: mr && br ? [+(br.x - mr.x).toFixed(1), +(mr.right - br.right).toFixed(1)] : null,
+          body: document.body.className || "(none)",
+        };
+      }, view) });
+      await shot(page, `variantc-resp-${width}-${view}`);
+    }
+  }
+  console.log(JSON.stringify(report, null, 1));
+}
+
+// ---- Save button v2b: rest / dirty / focus, per theme ----
+async function runSave(page, sw, extBase) {
+  console.log("== save button v2b ==");
+  for (const theme of THEMES) {
+    const { themePresetKey, optTheme } = themeToStorage(theme);
+    await setTheme(sw, themePresetKey, optTheme);
+    const label = theme || "default-light";
+    await page.setViewportSize({ width: 1400, height: 1000 });
+    await page.goto(`${extBase}library.html?_sv=${encodeURIComponent(theme)}#vocab`, { waitUntil: "load", timeout: TIMEOUT_MS });
+    await page.waitForSelector("#vocab-list .vocab-card .notes-card-head", { timeout: TIMEOUT_MS });
+    await page.locator("#vocab-list .vocab-card .notes-card-head").first().click();
+    await page.waitForTimeout(450);
+    const measure = () => page.evaluate(() => {
+      const f = document.querySelector(".vocab-detail-footer");
+      const r = (s) => { const el = f && f.querySelector(s); return el ? +el.getBoundingClientRect().x.toFixed(2) : null; };
+      const save = f && f.querySelector(".vocab-note-save");
+      const seam = save && getComputedStyle(save, "::before");
+      return { relookupX: r(".vocab-detail-relookup"), deleteX: r(".vocab-detail-delete"), saveX: r(".vocab-note-save"),
+        footerW: f ? +f.getBoundingClientRect().width.toFixed(2) : null,
+        saveVisibility: save ? getComputedStyle(save).visibility : null,
+        seam: seam ? { w: seam.width, h: seam.height, bg: seam.backgroundColor, left: seam.left } : null };
+    });
+    const rest = await measure();
+    await clipShot(page, ".vocab-detail-footer", `save-v2b-rest-${label}`, 18);
+    await page.locator(".vocab-note-input").fill("A note typed to make the editor dirty.");
+    await page.waitForTimeout(450);
+    const dirty = await measure();
+    await clipShot(page, ".vocab-detail-footer", `save-v2b-dirty-${label}`, 18);
+    await keyboardFocus(page, ".vocab-note-save");
+    await clipShot(page, ".vocab-detail-footer", `save-v2b-focus-${label}`, 18);
+    const shift = ["relookupX", "deleteX"].map((k) => +(dirty[k] - rest[k]).toFixed(2));
+    console.log(`  [${label}] rest->dirty shift relookup/delete = ${shift.join("/")}px, seam ${JSON.stringify(dirty.seam)}, saveVisibility ${rest.saveVisibility}->${dirty.saveVisibility}`);
+  }
+}
+
 async function main() {
   mkdirSync(OUT, { recursive: true });
   const userDataDir = mkdtempSync(join(tmpdir(), "pbp-followup2-"));
@@ -290,6 +388,9 @@ async function main() {
     if (want("--rows")) await runRows(page, sw, extBase);
     if (want("--notes")) await runNotes(page, sw, extBase);
     if (want("--sweep")) await runSweep(page, sw, extBase);
+    if (want("--variantc")) await runVariantC(page, sw, extBase);
+    if (want("--resp")) await runResponsive(page, sw, extBase);
+    if (want("--save")) await runSave(page, sw, extBase);
   } finally {
     await ctx.close().catch(() => {});
     rmSync(userDataDir, { recursive: true, force: true });

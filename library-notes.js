@@ -512,15 +512,22 @@ function _pbpNotesRenderDetail(hit, enterNarrow) {
     frag.appendChild(hint);
   }
 
-  // 4. Delete. Scope is the PAGE's record (the only unit storage has, and the
+  // 4. Closing action row (variant C), symmetrical with the vocabulary pane's.
+  // Only one control lives here, and it is right-aligned like its twin --
+  // the row exists so both panes end the same way, not because this view has
+  // two actions to separate.
+  // Delete: scope is the PAGE's record (the only unit storage has, and the
   // unit the reader writes) -- the confirm popover names that page before
   // anything is removed, which is where the scope is disclosed.
+  const footer = document.createElement("div");
+  footer.className = "notes-detail-footer";
   const del = document.createElement("button");
   del.type = "button";
   del.className = "btn btn-sm danger ghost notes-detail-delete";
   setBtnIcon(del, "trash", t("notesDeleteBtn"));
   del.addEventListener("click", () => _pbpNotesDelete(hit.row, del));
-  frag.appendChild(del);
+  footer.appendChild(del);
+  frag.appendChild(footer);
 
   // 5. The rest of this page's highlights, as a jump list
   const siblings = _pbpNotesHits().filter((h) => h.row.key === hit.row.key && h.key !== hit.key);

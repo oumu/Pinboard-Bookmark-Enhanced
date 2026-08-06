@@ -67,12 +67,19 @@
   --lib-note-c3: #60a5fa;
   --lib-note-c4: #f87171;
   --lib-note-c5: #c084fc;
-  /* Fixed-width canvas (2026-08-06). The workbench stops widening past this
-     and centres instead; backgrounds stay full-bleed because only the INLINE
-     PADDING of .lib-header / .lib-main grows, not a wrapper's width. Above
-     ~1680px a two-pane workbench is not using the extra width, it is just
-     dragging the eye further between list and detail. */
-  --lib-canvas-max: 1680px;
+  /* Fixed-width canvas. The workbench stops widening past this and centres
+     instead; backgrounds stay full-bleed because only the INLINE PADDING of
+     .lib-header / .lib-main grows, not a wrapper's width.
+     1164px = 480 (list column cap) + 24 (--lib-sp-5 gap) + 660 (detail pane
+     cap). It is the workbench's own natural width under the 2026-08-06
+     "panel hugs its content" layout, NOT a taste number -- which is the
+     point: the canvas and the grid agree, so `justify-content: center` on
+     the workbench has nothing left to centre and the page has exactly ONE
+     centring mechanism. The predecessor value (1680) left the grid ~516px
+     narrower than the canvas it sat in, i.e. a second, nested centred box.
+     Lower it and the grid's own max width together or the double-centring
+     comes straight back. */
+  --lib-canvas-max: 1164px;
   --lib-radius-sm: 4px;
   --lib-radius-md: 8px;
   --lib-radius-lg: 12px;
@@ -601,14 +608,23 @@ html.motion-ready .notes-card-top { transition: background-color var(--motion-st
    ============================================================ */
 .notes-workbench {
   display: grid;
-  /* Elastic list column (2026-08-06). A fixed 480px cap meant the list was
-     the WIDER pane at 1000-1200px -- the scan column out-sizing the reading
-     column, which is backwards. 30% keeps the proportion across the whole
-     range; the 340px floor is unchanged and still wins on narrow screens.
-     minmax(0, 1fr) rather than 1fr on the reading column: a bare 1fr floors
-     at min-content, so one long unbreakable token (a URL in a quote) could
-     push the track wider than the canvas and hand the PAGE a scrollbar. */
-  grid-template-columns: minmax(340px, 30%) minmax(0, 1fr);
+  /* "The panel hugs its content" (USER RULING 2026-08-06, variant C, chosen
+     over a full-width pane -- which is permanently vetoed: the user moved
+     this page OFF full width on purpose once already).
+     fit-content(660px), not minmax(0, 1fr): a flexible track absorbs every
+     spare pixel, which is precisely what made the reading pane grow to
+     whatever the window happened to be. fit-content sizes to the content and
+     clamps at 660px, so surplus width leaves the panel alone and becomes
+     margin OUTSIDE its border -- the panel keeps one shape at 1200px and at
+     2200px. The list column goes back to a hard 480px cap for the same
+     reason (30% of a now-fixed 1164px canvas would just be 349px dressed up
+     as elasticity); its 340px floor is unchanged and still wins on narrow
+     screens.
+     justify-content: center: neither track is flexible, so below the canvas
+     cap the grid is narrower than its container and would otherwise sit
+     hard left. */
+  grid-template-columns: minmax(340px, 480px) fit-content(660px);
+  justify-content: center;
   gap: var(--lib-sp-5);
   align-items: start;
 }
@@ -724,10 +740,12 @@ html.motion-ready .notes-hit-btn { transition: background-color var(--motion-sta
      `max-width: 68ch`, so on a wide pane the prose hugged the left edge with
      a growing empty gutter to its right, and any child that forgot the cap
      ran the full width. One grid column caps and centres everything at once.
-     minmax(0, 68ch) so a long unbreakable token shrinks the column instead
-     of overflowing the pane's padding. */
+     minmax(0, 66ch) so a long unbreakable token shrinks the column instead
+     of overflowing the pane's padding. 66ch, not 68: the pane's own width is
+     now derived FROM this column (see .notes-workbench's fit-content track),
+     so the measure and the panel are the same decision made once. */
   display: grid;
-  grid-template-columns: minmax(0, 68ch);
+  grid-template-columns: minmax(0, 66ch);
   justify-content: center;
   position: sticky; top: calc(var(--lib-header-h) + var(--lib-sp-2)); /* below the sticky .lib-header, with a visible gap */
   background: var(--lib-pane-bg);
@@ -748,7 +766,6 @@ html.motion-ready .notes-hit-btn { transition: background-color var(--motion-sta
   white-space: pre-wrap;
 }
 .notes-detail-note { margin: var(--lib-sp-3) 0 0; white-space: pre-wrap; color: var(--lib-fg-muted); }
-.notes-detail-delete { margin-top: var(--lib-sp-4); }
 .notes-detail-siblings {
   margin-top: var(--lib-sp-5);
   padding-top: var(--lib-sp-3);
@@ -822,9 +839,10 @@ html.motion-ready .notes-sib { transition: background-color var(--motion-state) 
    window to work with, unlike options.html's single narrow panel. */
 .vocab-workbench {
   display: grid;
-  /* Same elastic column + overflow floor as .notes-workbench above; see that
-     rule's comment for why 30% and why minmax(0, 1fr). */
-  grid-template-columns: minmax(340px, 30%) minmax(0, 1fr);
+  /* Same content-hugging pane column as .notes-workbench above; see that
+     rule's comment for why fit-content(660px) and why the grid is centred. */
+  grid-template-columns: minmax(340px, 480px) fit-content(660px);
+  justify-content: center;
   gap: var(--lib-sp-5);
   align-items: start;
 }
@@ -833,7 +851,7 @@ html.motion-ready .notes-sib { transition: background-color var(--motion-state) 
   min-width: 0;
   /* One centred reading column; see .notes-detail-pane's comment. */
   display: grid;
-  grid-template-columns: minmax(0, 68ch);
+  grid-template-columns: minmax(0, 66ch);
   justify-content: center;
   position: sticky; top: calc(var(--lib-header-h) + var(--lib-sp-2)); /* below the sticky .lib-header, with a visible gap */
   background: var(--lib-pane-bg);
@@ -976,8 +994,34 @@ html.motion-ready .notes-sib { transition: background-color var(--motion-state) 
 .vocab-gloss-ipa { color: var(--lib-fg-muted); }
 .vocab-detail-context { margin: var(--lib-sp-3) 0; padding-left: var(--lib-sp-3); border-left: 3px solid var(--lib-border); }
 .vocab-detail-context mark { background: transparent; color: var(--lib-accent); font-weight: 600; }
-.vocab-detail-delete { margin-top: var(--lib-sp-4); }
-.vocab-detail-relookup { margin-top: var(--lib-sp-3); }
+/* Closing action row (USER RULING 2026-08-06, variant C). "Look up again"
+   and "Remove from vocabulary" used to be two separate full-width-ish rows
+   stacked at the bottom of the pane, each with its own top margin; they are
+   both "things you do to this word when you are done reading it", so they
+   share one rule-topped row. The re-lookup stays left (additive, safe), the
+   destructive one is pushed right by `margin-left: auto` -- the two are as
+   far apart as the row allows, which is the point.
+   The save button joins this row at its right end; see the note-editor block
+   further down for the seam that separates it from the delete. */
+.vocab-detail-footer,
+.notes-detail-footer {
+  display: flex;
+  align-items: center;
+  gap: var(--lib-sp-2);
+  margin-top: var(--lib-sp-4);
+  padding-top: var(--lib-sp-3);
+  border-top: 1px solid var(--lib-border-section);
+}
+.vocab-detail-footer > .vocab-detail-delete,
+.notes-detail-footer > .notes-detail-delete { margin-left: auto; }
+/* `.btn`'s author-origin `display: inline-flex` outranks the UA
+   `[hidden] { display: none }` rule (origin beats specificity), so
+   `lookupBtn.hidden = true` in library-vocab.js -- which is how the button
+   retires itself after one lookup -- did not actually hide it. Invisible
+   while the button sat alone on its own line; a dead control stranded at the
+   left end of a shared row now. Same mechanism the note-save button
+   documents below, opposite resolution: this one really should leave. */
+.vocab-detail-relookup[hidden] { display: none; }
 /* Dictionary region back down to a 14px scale (Task 2): a step below the
    15px prose baseline (this is reference/lookup material, not the word's own
    stored definition) and a step above the 12px control scale. Scoped to the
@@ -987,6 +1031,12 @@ html.motion-ready .notes-sib { transition: background-color var(--motion-state) 
    the results below it sit at 14px. Every .xp-dict-* size below this point
    is relative (em) to whatever lands here. */
 .vocab-detail-dict { margin-top: var(--lib-sp-4); border-top: 1px solid var(--lib-border-section); padding-top: var(--lib-sp-3); font-size: 14px; }
+/* The host exists on every render but stays empty until "Look up again" is
+   pressed, and an empty box still paints its own separator: with the closing
+   row's rule now sitting right under it, that was two horizontal lines with
+   nothing between them. A separator with nothing to separate is an artefact,
+   not a rule. */
+.vocab-detail-dict:empty { display: none; }
 /* Free lookup (Task 3): "already in your vocabulary" hint sits between the
    result head and the dictionary slot, same .btn-sm family as relookup. */
 .vocab-lookup-saved { margin: var(--lib-sp-2) 0; }

@@ -884,26 +884,45 @@ for (const [file, css, ns] of [["popup.css", popupCss, "pp"], ["options.css", op
 // its own, so each gets its own assertion rather than one "layout looks
 // right" catch-all.
 {
-  check(/--lib-canvas-max:\s*\d+px/.test(libraryCss),
-    "library.css: --lib-canvas-max is gone — the workbench widens without limit again");
   // The gutter MUST be `max(sp-5, ...)`: a bare calc() goes negative below
   // the cap and would clamp to 0, deleting the page's normal side padding on
   // every ordinary laptop width.
   const gutter = /padding-inline:\s*max\(var\(--lib-sp-5\),\s*calc\(\(100% - var\(--lib-canvas-max\)\) \/ 2\)\)/g;
   check((libraryCss.match(gutter) || []).length === 2,
     "library.css: .lib-header and .lib-main no longer share the same max()-guarded canvas gutter — the header's title/tabs will drift out of alignment with the workbench, or narrow screens will lose their side padding");
-  // Both workbenches: elastic list column + an overflow floor on the reading
-  // column. Bare `1fr` floors at min-content, so one long unbreakable token
-  // in a quote could push the track past the canvas and scroll the page.
-  check((libraryCss.match(/grid-template-columns:\s*minmax\(340px,\s*30%\)\s*minmax\(0,\s*1fr\)/g) || []).length === 2,
-    "library.css: a workbench went back to a fixed list-column cap or a bare 1fr reading column (fixed cap made the scan column wider than the reading column at 1000-1200px; bare 1fr lets long tokens overflow the canvas)");
+  // Variant C (USER RULING 2026-08-06): the reading pane hugs its content and
+  // surplus width becomes margin outside its border. fit-content(), not a
+  // flexible track -- `1fr` absorbs every spare pixel, which is the growth
+  // this ruling exists to stop. The list column's 340px floor stays.
+  const benchCols = /grid-template-columns:\s*minmax\(340px,\s*(\d+)px\)\s*fit-content\((\d+)px\)/g;
+  const bench = [...libraryCss.matchAll(benchCols)];
+  check(bench.length === 2 && (libraryCss.match(/^\s*justify-content:\s*center;$/gm) || []).length >= 2,
+    "library.css: a workbench lost the variant-C column pair (minmax(340px, Npx) fit-content(Npx)) or its centring — a flexible reading column grows back to whatever the window is");
+  // THE anti-double-centring invariant, and the reason this is arithmetic
+  // rather than a literal: --lib-canvas-max must equal the workbench's own
+  // natural width. If it is larger, the grid sits inside a wider canvas and
+  // gets centred twice (a centred box inside a centred box) -- exactly the
+  // shape the detail-pane proposal rejected. Any of the three numbers can
+  // move; they just have to keep agreeing.
+  const canvas = /--lib-canvas-max:\s*(\d+)px/.exec(libraryCss);
+  const gap = /--lib-sp-5:\s*(\d+)px/.exec(libraryCss);
+  const want = bench.length ? Number(bench[0][1]) + Number(gap && gap[1]) + Number(bench[0][2]) : null;
+  check(!!canvas && !!gap && Number(canvas[1]) === want,
+    `library.css: --lib-canvas-max (${canvas && canvas[1]}) is not the workbench's own width (${bench.length ? bench[0][1] : "?"} + ${gap && gap[1]} gap + ${bench.length ? bench[0][2] : "?"} = ${want}) — the grid is centred inside a canvas that is centred inside the page`);
   // The reading measure belongs to the pane, not to each child: a child that
   // forgets its own cap is invisible until someone reads a wide screen.
-  check((libraryCss.match(/grid-template-columns:\s*minmax\(0,\s*68ch\)/g) || []).length === 2,
-    "library.css: a detail pane lost its centred 68ch content column");
-  const paneChildCaps = (libraryCss.match(/\.(notes-detail-quote|notes-detail-note|vocab-detail-gloss|vocab-detail-context|vocab-note-edit)\b[^{}]*\{[^}]*max-width:\s*68ch/g) || []);
+  check((libraryCss.match(/grid-template-columns:\s*minmax\(0,\s*66ch\)/g) || []).length === 2,
+    "library.css: a detail pane lost its centred 66ch content column");
+  const paneChildCaps = (libraryCss.match(/\.(notes-detail-quote|notes-detail-note|vocab-detail-gloss|vocab-detail-context|vocab-note-edit)\b[^{}]*\{[^}]*max-width:\s*6[68]ch/g) || []);
   check(paneChildCaps.length === 0,
-    `library.css: per-child 68ch caps are back inside the detail panes — the pane's own column already caps and CENTRES them, and a child cap only re-creates the left-hugging prose it replaced: ${paneChildCaps.join(" | ")}`);
+    `library.css: per-child reading-measure caps are back inside the detail panes — the pane's own column already caps and CENTRES them, and a child cap only re-creates the left-hugging prose it replaced: ${paneChildCaps.join(" | ")}`);
+  // Both panes end the same way: one rule-topped row, destructive action
+  // pushed to its right end. Two panes, one closing gesture.
+  check(/\.vocab-detail-footer,\s*\n\.notes-detail-footer \{[^}]*border-top:/.test(libraryCss) &&
+    /\.vocab-detail-footer > \.vocab-detail-delete,\s*\n\.notes-detail-footer > \.notes-detail-delete \{ margin-left: auto; \}/.test(libraryCss) &&
+    /footer\.className = "vocab-detail-footer"/.test(libraryVocabJs) &&
+    /footer\.className = "notes-detail-footer"/.test(read("library-notes.js")),
+    "library.css/library-{vocab,notes}.js: the detail panes' shared closing action row is gone or asymmetric");
 }
 // Note editor (2026-08-06): the save button must stay IN LAYOUT while hidden.
 // `display: none` is what made the textarea jump narrower on the first

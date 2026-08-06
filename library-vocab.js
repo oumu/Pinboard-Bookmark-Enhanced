@@ -555,11 +555,23 @@ function _pbpVocabRenderDetail(w, enterNarrow) {
   // 5. Note editor (moved from the old card body)
   frag.appendChild(_pbpVocabBuildNoteEditor(w));
 
-  // 6. On-demand dictionary re-lookup: zero network until clicked. One live
-  // lookup per detail render -- the button hides itself on click, and a
-  // fresh render (word switch) always rebuilds an unclicked button.
+  // 6. Dictionary results host. Stays in the READING flow even though the
+  // button that fills it now sits in the closing row below: a definition is
+  // material to read, not an action, and hanging it under the actions would
+  // put the row's rule in the middle of the pane.
   const dictHost = document.createElement("div");
   dictHost.className = "vocab-detail-dict";
+  frag.appendChild(dictHost);
+
+  // 7. Closing action row (variant C): re-lookup left, delete right. Both are
+  // "what you do with this word once you are done reading it", so they share
+  // one rule-topped row instead of stacking as two.
+  const footer = document.createElement("div");
+  footer.className = "vocab-detail-footer";
+
+  // On-demand dictionary re-lookup: zero network until clicked. One live
+  // lookup per detail render -- the button hides itself on click, and a
+  // fresh render (word switch) always rebuilds an unclicked button.
   const lookupBtn = document.createElement("button");
   lookupBtn.type = "button";
   lookupBtn.className = "btn btn-sm vocab-detail-relookup";
@@ -568,16 +580,16 @@ function _pbpVocabRenderDetail(w, enterNarrow) {
     lookupBtn.hidden = true;
     _pbpVocabRelookup(w, dictHost);
   });
-  frag.appendChild(lookupBtn);
-  frag.appendChild(dictHost);
+  footer.appendChild(lookupBtn);
 
-  // 7. Delete (confirm popover family; on success the detail pane resets)
+  // Delete (confirm popover family; on success the detail pane resets)
   const del = document.createElement("button");
   del.type = "button";
   del.className = "btn btn-sm danger ghost vocab-detail-delete";
   setBtnIcon(del, "trash", t("dictDeleteWord"));
   del.addEventListener("click", () => _pbpVocabDeleteRow(w, del));
-  frag.appendChild(del);
+  footer.appendChild(del);
+  frag.appendChild(footer);
 
   detail.replaceChildren(frag);
   // Same focus handoff the free-lookup result does, at the root every
