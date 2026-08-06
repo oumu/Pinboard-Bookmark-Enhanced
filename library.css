@@ -525,7 +525,27 @@ html.motion-ready .notes-card-top { transition: background-color var(--motion-st
 .notes-row-meta { display: flex; flex-wrap: wrap; gap: var(--lib-sp-3); min-width: 0; font-size: 11px; color: var(--lib-fg-muted); }
 .notes-meta-chip { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .notes-row-del { white-space: nowrap; }
-.notes-row-open { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-decoration: none; }
+/* Source link under a context quote in the vocabulary detail pane (the only
+   consumer left -- library-vocab.js builds it as a bare <a>).
+   `display: block` is the fix, not decoration. On a non-replaced INLINE box,
+   `max-width`, `overflow` and `text-overflow` are all inert per CSS 2.1 --
+   but the inherited `white-space: nowrap` is not, so the declarations below
+   read as "clip this to a width" while the browser rendered one unbreakable
+   line at full intrinsic width. Measured 351px past the pane's content edge
+   at a 900px viewport, which handed the whole detail pane a 327px horizontal
+   scroll (user report, real device).
+   The 160px cap went with it: it was sized for the old wide notes ROW this
+   class used to live on, and inside a 68ch reading column it would truncate
+   an article title to a fifth of the available measure. `max-width: 100%`
+   keeps the ellipsis honest against whatever the column actually is. */
+.notes-row-open {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-decoration: none;
+}
 /* External-link mark on the row's "leaves the page" action (dot-notation
    selector, not a --lib token: sizing only, no themed color). */
 .btn .ext-icon { width: 11px; height: 11px; vertical-align: -1px; }

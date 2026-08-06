@@ -270,6 +270,29 @@ export const CHECKS = [
   // No textSelector: the notes row button IS the text host, and the driver
   // already reads `color` off the probed element in that case -- pointing it
   // at a child would measure the meta chips instead of the highlight text.
+  // ---- 2026-08-06 narrow-width overflow report: `a.notes-row-open` ran 351px
+  // past the vocabulary detail pane's right edge at a 900px viewport and
+  // handed the pane a 327px horizontal scroll. Root cause was a bare inline
+  // <a> whose max-width / overflow / text-overflow are inert per CSS 2.1
+  // while its inherited white-space: nowrap is not -- so the rule read as
+  // "clip this" and the browser painted one unbreakable full-width line.
+  //
+  // The gate is a CLASS SCAN, not a list of the selectors that were caught:
+  // an enumerated probe only ever covers what someone already thought of, and
+  // this defect was in an element nobody had thought about since the class
+  // stopped being used on the notes ROW it was sized for. The widths bracket
+  // the 860px narrow-mode threshold on the wide side (the two-pane layout is
+  // where a pane can be too small for its contents) up to the point where the
+  // reading column stops shrinking. Both panes of the view are scanned in one
+  // pass, so a fix that just moves the overflow from the list to the detail
+  // still fails. `expected` is 0 -- nothing may escape a pane, ever.
+  { surface: "library", page: "library.html", selector: ".vocab-list-pane", state: "paneFit",
+    expect: { paneFit: { widths: [900, 960, 1024, 1100, 1200], tolerancePx: 1,
+      panes: [".vocab-list-pane", "#vocab-detail-pane"] } } },
+  { surface: "library", page: "library.html", selector: ".notes-list-pane", state: "paneFit",
+    expect: { paneFit: { widths: [900, 960, 1024, 1100, 1200], tolerancePx: 1,
+      panes: [".notes-list-pane", "#notes-detail-pane"] } } },
+
   { surface: "library", page: "library.html", selector: ".notes-hit .notes-hit-btn", state: "rowStates",
     expect: { bandDistinct: { minDelta: 24, minTextContrast: 4.5, textSelector: ".notes-hit-text" } } },
 

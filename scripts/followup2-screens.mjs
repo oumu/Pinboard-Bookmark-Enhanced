@@ -58,13 +58,18 @@ async function seed(sw) {
       ["perspicacious", "Having a ready insight into and understanding of things."],
     ];
     for (const [term, gloss] of rows) {
+      // `context` (singular) -- pbpVocabSaveWord merges ONE context per call
+      // through pbpDictMergeContext; a `contexts` array is silently ignored,
+      // and the first version of this seed lost the source link entirely
+      // because of it (which is exactly the element the overflow sweep is
+      // pointed at).
       const w = await pbpVocabSaveWord(owner, {
         term, language: "en", gloss,
-        contexts: [{
+        context: {
           quote: "A context sentence long enough to wrap inside the reading column and still leave the source link on a line of its own.",
           articleTitle: "An Extremely Long Source Article Title That Has No Business Fitting Inside A Narrow Detail Pane At All",
           articleUrl: "https://example.com/an/extremely/long/path/segment/that/does/not/break/anywhere",
-        }],
+        },
       });
       if (w && w.id) await pbpVocabBatchAddGroup([w.id], owner, "Follow-up QA");
     }
@@ -213,6 +218,8 @@ const sweepInPage = ({ panes, tolerance }) => {
       const cs = getComputedStyle(el);
       if (cs.display === "none" || cs.visibility === "hidden" || el.closest("[hidden]")) continue;
       if (cs.position === "fixed") continue;
+      // Screen-reader-only labels are parked off-canvas on purpose.
+      if (el.classList.contains("sr-only") || el.closest(".sr-only")) continue;
       const r = el.getBoundingClientRect();
       if (r.width === 0 && r.height === 0) continue;
       if (r.right > contentRight + tolerance) {
@@ -220,11 +227,12 @@ const sweepInPage = ({ panes, tolerance }) => {
       } else if (r.left < contentLeft - tolerance) {
         hits.push({ pane: paneSel, el: nameOf(el), kind: "pastLeftEdge", over: +(contentLeft - r.left).toFixed(2) });
       }
-      // Clipped-but-overflowing content: an ellipsis that never renders
-      // because the box itself is wider than what can be painted.
-      if (cs.overflowX !== "visible" && el.scrollWidth > el.clientWidth + tolerance) {
-        hits.push({ pane: paneSel, el: nameOf(el), kind: "scrollWidth", over: +(el.scrollWidth - el.clientWidth).toFixed(2) });
-      }
+      // NOT scrollWidth > clientWidth: that is the NORMAL state of every
+      // correctly-ellipsised single-line element (the whole mechanism is "the
+      // content is wider than the box, so paint an ellipsis"). Reporting it
+      // buried the one real finding under five false positives on the first
+      // run. What actually matters is whether anything escapes the PANE, and
+      // the two edge tests above are that.
     }
   }
   return hits;

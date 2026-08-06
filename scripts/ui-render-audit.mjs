@@ -1063,7 +1063,82 @@ async function driveRowStates(page, extBase, theme, selector, textSelector) {
   return samples;
 }
 
+
+// ---- state: "paneFit" (2026-08-06 narrow-width overflow report) -----------
+// Walks the viewport across the widths the entry names and class-scans EVERY
+// element inside the named panes for one thing: did it escape the pane's
+// content box. Deliberately a class scan rather than a list of selectors --
+// the reported defect (`a.notes-row-open`, an inline <a> whose max-width /
+// overflow / text-ellipsis are all inert per CSS 2.1 while its inherited
+// white-space: nowrap is not) would have been caught by a hand-enumerated
+// probe only if someone had already thought to enumerate it.
+//
+// What it does NOT assert: scrollWidth > clientWidth. That is the normal,
+// correct state of every ellipsised single-line element, and reporting it
+// buries the real finding under false positives (measured: 5 of them on the
+// first run of this sweep, against 1 real).
+const PANE_FIT_SCAN = ({ panes, tolerance }) => {
+  const hits = [];
+  const nameOf = (el) => {
+    const cls = (el.className && typeof el.className === "string")
+      ? "." + el.className.trim().split(/\s+/).join(".") : "";
+    return el.tagName.toLowerCase() + (el.id ? "#" + el.id : "") + cls;
+  };
+  for (const paneSel of panes) {
+    const pane = document.querySelector(paneSel);
+    if (!pane) { hits.push({ pane: paneSel, el: paneSel, kind: "paneMissing", over: 0 }); continue; }
+    const pr = pane.getBoundingClientRect();
+    const pcs = getComputedStyle(pane);
+    const right = pr.right - (parseFloat(pcs.paddingRight) || 0) - (parseFloat(pcs.borderRightWidth) || 0);
+    const left = pr.left + (parseFloat(pcs.paddingLeft) || 0) + (parseFloat(pcs.borderLeftWidth) || 0);
+    if (pane.scrollWidth > pane.clientWidth + tolerance) {
+      hits.push({ pane: paneSel, el: paneSel, kind: "paneScroll", over: +(pane.scrollWidth - pane.clientWidth).toFixed(2) });
+    }
+    for (const el of pane.querySelectorAll("*")) {
+      const cs = getComputedStyle(el);
+      if (cs.display === "none" || cs.visibility === "hidden" || cs.position === "fixed") continue;
+      if (el.closest("[hidden]")) continue;
+      // Screen-reader-only labels are parked off-canvas on purpose.
+      if (el.classList.contains("sr-only") || el.closest(".sr-only")) continue;
+      const r = el.getBoundingClientRect();
+      if (r.width === 0 && r.height === 0) continue;
+      if (r.right > right + tolerance) hits.push({ pane: paneSel, el: nameOf(el), kind: "pastRightEdge", over: +(r.right - right).toFixed(2) });
+      else if (r.left < left - tolerance) hits.push({ pane: paneSel, el: nameOf(el), kind: "pastLeftEdge", over: +(left - r.left).toFixed(2) });
+    }
+  }
+  return hits;
+};
+
+async function drivePaneFit(page, check) {
+  const { widths, panes, tolerancePx = 1 } = check.expect.paneFit;
+  const restore = page.viewportSize();
+  const found = [];
+  try {
+    for (const width of widths) {
+      await page.setViewportSize({ width, height: restore ? restore.height : 900 });
+      await page.waitForTimeout(250);
+      for (const hit of await page.evaluate(PANE_FIT_SCAN, { panes, tolerance: tolerancePx })) {
+        found.push({ ...hit, width });
+      }
+    }
+  } finally {
+    if (restore) await page.setViewportSize(restore);
+    await page.waitForTimeout(250);
+  }
+  return found;
+}
+
 async function runOneCheck(page, theme, check, results, extBase) {
+  if (check.state === "paneFit") {
+    const hits = await drivePaneFit(page, check);
+    const worst = hits.reduce((m, h) => Math.max(m, h.over), 0);
+    const note = hits.length
+      ? hits.slice(0, 4).map((h) => `${h.kind} +${h.over}px ${h.el} at ${h.width}px (pane ${h.pane})`).join("; ")
+      : undefined;
+    results.push({ surface: check.surface, theme, selector: check.selector, state: check.state,
+      ...verdict("paneFit", hits.length === 0, round2(worst), 0, note) });
+    return;
+  }
   if (check.state === "rowStates") {
     if (!extBase) throw new Error(`rowStates check on ${check.selector} reached a runner that has no extBase`);
     const samples = await driveRowStates(page, extBase, theme, check.selector, check.expect.bandDistinct?.textSelector || null);
@@ -1838,6 +1913,18 @@ async function main() {
       term: "renderAuditFixture",
       language: "en",
       gloss: "Fixture word seeded by scripts/ui-render-audit.mjs so the vocabulary detail pane has something to render.",
+      // `context` (singular): pbpVocabSaveWord merges ONE per call, and a
+      // `contexts` array is silently dropped. Load-bearing for the paneFit
+      // entries -- the source link (a.notes-row-open) only exists when a word
+      // has a context with a safe URL, and an unbreakable title is what makes
+      // "does anything escape the pane" a question with a real answer instead
+      // of a vacuous pass. (First version of this seed used the plural form
+      // and the entries passed against a detail pane that had no link in it.)
+      context: {
+        quote: "A context sentence long enough to wrap inside the reading column and still leave the source link on a line of its own.",
+        articleTitle: "An Extremely Long Source Article Title That Has No Business Fitting Inside A Narrow Detail Pane At All",
+        articleUrl: "https://example.com/an/extremely/long/path/segment/that/does/not/break/anywhere",
+      },
     });
     if (!w || !w.id) return false;
     await pbpVocabBatchAddGroup([w.id], owner, "Render QA");
