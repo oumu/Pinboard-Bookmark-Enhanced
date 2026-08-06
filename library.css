@@ -635,22 +635,49 @@ html.motion-ready .notes-hit-btn { transition: background-color var(--motion-sta
 .notes-hit-btn:hover { --row-bg: color-mix(in srgb, var(--lib-fg) 5%, var(--lib-bg)); }
 .notes-hit-btn:active { --row-bg: color-mix(in srgb, var(--lib-fg) 9%, var(--lib-bg)); transition-duration: 0s; }
 .notes-hit-btn:focus-visible { outline: 2px solid var(--lib-focus-bd); outline-offset: -2px; box-shadow: none; }
-/* "You are here", same --row-bg mechanism the vocabulary rows use. The accent
-   marker is a ring rather than that list's inset LEFT edge, because the left
-   edge here already belongs to the highlight's own colour bar. */
+/* "You are here", same --row-bg mechanism AND the same marker the vocabulary
+   rows use: a 2px inset accent edge.
+   IT USED TO BE A RING, and the note under that version said the left edge
+   "already belongs to the highlight's own colour bar". That was measured
+   wrong rather than reasoned wrong: the bar starts after the button's own 8px
+   padding-inline, so a 2px inset edge paints in that gutter and stops 6px
+   short of it -- they never touch. The ring had to move because this list
+   gained a second state (2026-08-06: batch selection), and the ring is what
+   THAT state uses in both views. Sharing one shape between "selected" and
+   "current" here would have been indistinguishable in practice: the two fills
+   are 7 units apart on gruvbox-dark and 9 on terminal. */
 .notes-hit[aria-current] .notes-hit-btn {
   --row-bg: var(--lib-row-selected-bg);
   color: var(--lib-row-selected-fg);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lib-accent, #4477bb) 45%, transparent);
+  box-shadow: inset 2px 0 0 var(--lib-accent);
 }
 .notes-hit[aria-current] .notes-hit-btn:hover { --row-bg: color-mix(in srgb, var(--lib-fg) 5%, var(--lib-row-selected-bg)); }
+/* Batch selection, one grammar with the vocabulary list: accent 18% fill
+   (hover 24%) + a 1px inset accent ring. Both are inset shadows, so the
+   combined state composes them -- with an explicit (0,3,0) rule rather than a
+   bet on source order, since aria-current now paints box-shadow too. */
+.notes-hit.selected .notes-hit-btn {
+  --row-bg: color-mix(in srgb, var(--lib-accent) 18%, var(--lib-bg));
+  color: var(--lib-row-selected-fg);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lib-accent) 55%, transparent);
+}
+.notes-hit.selected .notes-hit-btn:hover { --row-bg: color-mix(in srgb, var(--lib-accent) 24%, var(--lib-bg)); }
+.notes-hit.selected[aria-current] .notes-hit-btn {
+  box-shadow: inset 2px 0 0 var(--lib-accent),
+              inset 0 0 0 1px color-mix(in srgb, var(--lib-accent) 55%, transparent);
+}
+/* The gridcell wrapper the row button sits in. Its only job is to carry the
+   radius down: .notes-hit-btn takes `border-radius: inherit`, so a wrapper
+   with no radius of its own would square off every row. */
+.notes-hit-cell { border-radius: inherit; }
 /* A failed delete, pinned to the row it happened on (the signal .notes-card's
    .is-error gives on the vocabulary side). */
 .notes-hit.is-error .notes-hit-btn { --row-bg: color-mix(in srgb, var(--lib-danger) 10%, var(--lib-bg)); }
 /* Same signal when the row is filtered out and only the pressed button is on
    screen. box-shadow, not background: .btn.danger:hover would outrank a
    background here and wipe the failure mark on the next pointer pass. */
-.notes-detail-delete.is-error { box-shadow: inset 0 0 0 1px var(--lib-danger); }
+.notes-detail-delete.is-error,
+#notes-batch-delete.is-error { box-shadow: inset 0 0 0 1px var(--lib-danger); }
 .notes-hit-bar { border-radius: var(--lib-radius-full); background: var(--hl-color, var(--lib-note-c1)); }
 .notes-hit-body { display: grid; gap: 2px; min-width: 0; } /* options.css --opt-sp-1 (2px) */
 .notes-hit-text {
@@ -1428,22 +1455,27 @@ html[data-theme="rose-pine"] .vocab-filter-toolbar select {
 }
 /* Select all rides next to the count in BOTH states, quiet ghost tier
    (the .row-del-x treatment): always relevant, never boxed. */
-.vocab-selection-actions { display: inline-flex; align-items: center; gap: var(--lib-sp-1); flex: none; }
-.vocab-selection-actions .btn { border-color: transparent; background: transparent; color: var(--lib-fg-muted); }
-.vocab-selection-actions .btn:hover {
+.vocab-selection-actions,
+.notes-selection-actions { display: inline-flex; align-items: center; gap: var(--lib-sp-1); flex: none; }
+.vocab-selection-actions .btn,
+.notes-selection-actions .btn { border-color: transparent; background: transparent; color: var(--lib-fg-muted); }
+.vocab-selection-actions .btn:hover,
+.notes-selection-actions .btn:hover {
   border-color: transparent;
   color: var(--lib-fg);
   background: color-mix(in srgb, var(--lib-fg) 6%, var(--lib-bg));
 }
 /* Sticky boundary wrapper: the bar floats only while this region is on
    screen; past its end the bar docks and scrolls away with the list. */
-.vocab-list-region { position: relative; }
+.vocab-list-region,
+.notes-list-region { position: relative; }
 /* Batch bar: sticky DIRECT child of the region (an intermediate wrapper
    would become the containing block and cap the float range at the bar's
    own height). Dock-slot growth and bar arrival are ONE transition set --
    the below-sections shift only ever moves in lockstep with the bar
    fading in, never jump-then-appear. */
-.vocab-batch-bar {
+.vocab-batch-bar,
+.notes-batch-bar {
   position: sticky;
   bottom: 12px;
   z-index: var(--lib-z-sticky);
@@ -1467,7 +1499,8 @@ html[data-theme="rose-pine"] .vocab-filter-toolbar select {
   visibility: hidden;
   transform: translateY(8px);
 }
-.vocab-batch-bar.selecting {
+.vocab-batch-bar.selecting,
+.notes-batch-bar.selecting {
   height: auto;
   padding: 6px var(--lib-sp-2); /* block: options --opt-sp-3 (6px) */
   border-width: 1px;
@@ -1477,7 +1510,8 @@ html[data-theme="rose-pine"] .vocab-filter-toolbar select {
 }
 /* Transitions ride behind the motion-ready gate (codebase convention: no
    load-time motion). */
-html.motion-ready .vocab-batch-bar {
+html.motion-ready .vocab-batch-bar,
+html.motion-ready .notes-batch-bar {
   transition: height var(--motion-collapse) var(--ease-out),
               padding var(--motion-collapse) var(--ease-out),
               border-width var(--motion-collapse) var(--ease-out),
@@ -1485,7 +1519,8 @@ html.motion-ready .vocab-batch-bar {
               transform var(--motion-pop-out) var(--ease-out),
               visibility 0s var(--motion-collapse);
 }
-html.motion-ready .vocab-batch-bar.selecting {
+html.motion-ready .vocab-batch-bar.selecting,
+html.motion-ready .notes-batch-bar.selecting {
   transition: height var(--motion-collapse) var(--ease-out),
               padding var(--motion-collapse) var(--ease-out),
               border-width var(--motion-collapse) var(--ease-out),
@@ -1493,13 +1528,15 @@ html.motion-ready .vocab-batch-bar.selecting {
               transform var(--motion-pop) var(--ease-out),
               visibility 0s;
 }
-.vocab-batch-bar .notes-count { flex: none; font-weight: 500; color: var(--lib-fg); }
+.vocab-batch-bar .notes-count,
+.notes-batch-bar .notes-count { flex: none; font-weight: 500; color: var(--lib-fg); }
 /* Icon-only action cells (user-ratified: no labels -- width thrift + long-
    locale safety). Names live in title/aria. Width alone clears >=24px, but
    the sm rung's height (20px, COMPONENTS.md §1.1) doesn't -- see the
    #vocab-invert-selection hit-area expansion just below for the one
    USER-RULING-mandated instance. */
 .vocab-batch-bar > .btn:not(.vocab-group-step),
+.notes-batch-bar > .btn,
 .vocab-batch-cluster > .btn { padding-inline: 6px; } /* options --opt-sp-3 (6px) */
 /* §1.5 hit-area expansion (same recipe as .row-del-x above, vertical-only
    here: the row's align-items:center means only THIS button would grow,
@@ -1521,8 +1558,10 @@ html.motion-ready .vocab-batch-bar.selecting {
    getBoundingClientRect() (which a ::before overlay never changes on its
    own host), so this key is a genuine, verified pass now -- not a known
    limitation. */
-#vocab-invert-selection { position: relative; }
-#vocab-invert-selection::before { content: ""; position: absolute; inset: -3px 0; }
+#vocab-invert-selection,
+.notes-batch-bar > .btn { position: relative; }
+#vocab-invert-selection::before,
+.notes-batch-bar > .btn::before { content: ""; position: absolute; inset: -3px 0; }
 .vocab-batch-bar input[type="text"] { flex: 1 1 120px; min-width: 0; }
 /* Input + stepper unit -- FUSED CONTROL (COMPONENTS.md §8). The shell owns
    the entire chrome: one border, one radius, one background, one focus ring.

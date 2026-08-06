@@ -1024,12 +1024,23 @@ async function driveRowStates(page, extBase, theme, selector, textSelector) {
     };
   }, { sel, textSel, state });
 
-  await page.goto(`${extBase}library.html?_ra=${encodeURIComponent(theme)}-band#vocab`, { waitUntil: "load", timeout: TIMEOUT_MS });
-  await page.waitForSelector("#vocab-list .vocab-card", { timeout: TIMEOUT_MS });
+  // Both library lists share one selection grammar, so one driver serves both;
+  // the view is read off the selector the same way runLibraryTheme reads it.
+  const view = libraryView(selector);
+  const rowSel = view === "notes" ? "#notes-list .notes-hit-btn" : "#vocab-list .vocab-card .notes-card-head";
+  // The query carries the VIEW as well as the theme. Without it the notes pass
+  // and the vocab pass differ only by fragment, and Chromium then treats the
+  // second goto as a same-document navigation and never reloads -- so the
+  // notes driver would inherit whatever aria-current the vocab pass (and the
+  // setup clicks before it) had already put on a row, and read its very first
+  // "rest" sample out of an already-current row. Same footgun runLibraryTheme
+  // documents at its own goto.
+  await page.goto(`${extBase}library.html?_ra=${encodeURIComponent(theme)}-band-${view}#${view}`, { waitUntil: "load", timeout: TIMEOUT_MS });
+  await page.waitForSelector(rowSel, { timeout: TIMEOUT_MS });
   await page.waitForTimeout(300);
-  const head = page.locator("#vocab-list .vocab-card .notes-card-head").first();
+  const head = page.locator(rowSel).first();
   if (!(await head.count())) {
-    throw new Error(`SETUP: no vocab row to drive rowStates on (theme=${theme})`);
+    throw new Error(`SETUP: no ${view} row to drive rowStates on (theme=${theme})`);
   }
   // Park the pointer in a dead corner before every read. A click leaves the
   // cursor sitting ON the row, so without this each sample is really that
@@ -1260,7 +1271,7 @@ async function runLibraryTheme(page, extBase, theme, checks, results) {
       }
       await hit.click(); await page.waitForTimeout(250);
     }
-    for (const check of notesChecks) await runOneCheck(page, theme, check, results);
+    for (const check of notesChecks) await runOneCheck(page, theme, check, results, extBase);
   }
 }
 

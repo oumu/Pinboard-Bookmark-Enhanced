@@ -780,6 +780,19 @@
       }
     }
   },
+  "notesListAria": {
+    "message": "Zapisane zaznaczenia"
+  },
+  "notesBatchActions": {
+    "message": "Działania na wybranych zaznaczeniach"
+  },
+  "notesBatchDelete": {
+    "message": "Usuń wybrane zaznaczenia"
+  },
+  "notesBatchDeleteConfirm": {
+    "message": "Usunąć wybrane zaznaczenia ($COUNT$)?",
+    "placeholders": { "count": { "content": "$1" } }
+  },
   "tabQuickActions": {
     "message": "Skróty"
   },

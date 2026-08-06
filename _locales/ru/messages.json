@@ -780,6 +780,19 @@
       }
     }
   },
+  "notesListAria": {
+    "message": "Сохранённые выделения"
+  },
+  "notesBatchActions": {
+    "message": "Действия с выбранными выделениями"
+  },
+  "notesBatchDelete": {
+    "message": "Удалить выбранные выделения"
+  },
+  "notesBatchDeleteConfirm": {
+    "message": "Удалить выбранные выделения ($COUNT$)?",
+    "placeholders": { "count": { "content": "$1" } }
+  },
   "tabQuickActions": {
     "message": "Быстрые действия"
   },

@@ -259,6 +259,19 @@ export const CHECKS = [
   // combined state cannot silently equal either of its halves either.
   { surface: "library", page: "library.html", selector: "#vocab-list .vocab-card .notes-card-top", state: "rowStates",
     expect: { bandDistinct: { minDelta: 24, minTextContrast: 4.5, textSelector: ".notes-card-head" } } },
+  // The notes list carries the SAME four states and the same grammar (accent
+  // fill + ring for "selected", neutral fill + 2px left edge for "current"),
+  // so it gets its own entry rather than being assumed covered by the
+  // vocabulary one -- the two lists paint on different elements and reach
+  // their bands through different rules. This is also the entry that forced
+  // the notes list's "current" marker to move from a ring to a left edge:
+  // sharing the ring between "current" and "selected" measured 7 units of
+  // fill apart on gruvbox-dark, which is not a difference anyone can see.
+  // No textSelector: the notes row button IS the text host, and the driver
+  // already reads `color` off the probed element in that case -- pointing it
+  // at a child would measure the meta chips instead of the highlight text.
+  { surface: "library", page: "library.html", selector: ".notes-hit .notes-hit-btn", state: "rowStates",
+    expect: { bandDistinct: { minDelta: 24, minTextContrast: 4.5, textSelector: ".notes-hit-text" } } },
 
   // ---- COMPONENTS.md §9 law 7 (real tabs). The header's two tabs used to be
   // buttons in tab clothing -- fill, border, radius-md -- which is what the

@@ -393,10 +393,24 @@ check(vocabStore.includes("function _pbpVocabLocalMutation") && vocabStore.inclu
 // the browse state reserves zero geometry above the cards. The word list
 // (and this contract) moved wholesale to the library page in Task 9 --
 // options.css/options.html no longer carry the .vocab-list-region family.
-check(libraryCss.includes(".vocab-filter-toolbar") && libraryCss.includes(".vocab-list-region") &&
-  /\.vocab-batch-bar\s*\{[\s\S]{0,500}position:\s*sticky[\s\S]{0,500}z-index:\s*var\(--lib-z-sticky\)/.test(libraryCss) &&
+// 2026-08-06: the notes list grew the same bar, so the recipe is a shared
+// selector list rather than a second copy -- the contract asserts BOTH names
+// reach it, and that both regions exist as sticky containing blocks.
+check(libraryCss.includes(".vocab-filter-toolbar") &&
+  /\.vocab-list-region,\s*\n\.notes-list-region \{ position: relative; \}/.test(libraryCss) &&
+  /\.vocab-batch-bar,\s*\n\.notes-batch-bar\s*\{[\s\S]{0,500}position:\s*sticky[\s\S]{0,500}z-index:\s*var\(--lib-z-sticky\)/.test(libraryCss) &&
   libraryCss.includes(".vocab-card .notes-card-top"),
-  "library.css: sticky vocabulary batch bar contract is missing");
+  "library.css: the sticky batch bar contract is missing, or the notes bar stopped sharing the vocabulary bar's recipe");
+// The batch bar must stay a DIRECT child of its region: an intermediate
+// wrapper becomes the sticky containing block and caps the float range at the
+// bar's own height. Cheap to assert, and impossible to see in a screenshot
+// until someone scrolls a long list.
+for (const [region, bar] of [["vocab-list-region", "vocab-batch-toolbar"], ["notes-list-region", "notes-batch-toolbar"]]) {
+  const start = libraryHtml.indexOf(`class="${region}"`);
+  const slice = start < 0 ? "" : libraryHtml.slice(start, libraryHtml.indexOf(`id="${bar}"`, start));
+  check(start >= 0 && (slice.match(/<div/g) || []).length === (slice.match(/<\/div>/g) || []).length + 1,
+    `library.html: #${bar} is no longer a direct child of .${region} (sticky containing block would move)`);
+}
 check(libraryHtml.indexOf('class="vocab-list-region"') > 0 &&
   libraryHtml.indexOf('class="vocab-list-region"') < libraryHtml.indexOf('id="vocab-list"') &&
   libraryHtml.indexOf('id="vocab-load-more"') < libraryHtml.indexOf('id="vocab-batch-toolbar"') &&

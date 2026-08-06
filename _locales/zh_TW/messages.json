@@ -780,6 +780,19 @@
       }
     }
   },
+  "notesListAria": {
+    "message": "已儲存的螢光標記"
+  },
+  "notesBatchActions": {
+    "message": "對選取螢光標記的操作"
+  },
+  "notesBatchDelete": {
+    "message": "刪除選取的螢光標記"
+  },
+  "notesBatchDeleteConfirm": {
+    "message": "刪除選取的 $COUNT$ 則螢光標記？",
+    "placeholders": { "count": { "content": "$1" } }
+  },
   "tabQuickActions": {
     "message": "快捷操作"
   },

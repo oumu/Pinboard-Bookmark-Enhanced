@@ -780,6 +780,19 @@
       }
     }
   },
+  "notesListAria": {
+    "message": "保存したハイライト"
+  },
+  "notesBatchActions": {
+    "message": "選択したハイライトの操作"
+  },
+  "notesBatchDelete": {
+    "message": "選択したハイライトを削除"
+  },
+  "notesBatchDeleteConfirm": {
+    "message": "選択した $COUNT$ 件のハイライトを削除しますか?",
+    "placeholders": { "count": { "content": "$1" } }
+  },
   "tabQuickActions": {
     "message": "クイック操作"
   },

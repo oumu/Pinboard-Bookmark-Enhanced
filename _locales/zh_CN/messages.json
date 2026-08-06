@@ -780,6 +780,19 @@
       }
     }
   },
+  "notesListAria": {
+    "message": "已保存的高亮"
+  },
+  "notesBatchActions": {
+    "message": "对选中高亮的操作"
+  },
+  "notesBatchDelete": {
+    "message": "删除选中的高亮"
+  },
+  "notesBatchDeleteConfirm": {
+    "message": "删除选中的 $COUNT$ 条高亮？",
+    "placeholders": { "count": { "content": "$1" } }
+  },
   "tabQuickActions": {
     "message": "快捷操作"
   },

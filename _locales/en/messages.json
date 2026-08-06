@@ -780,6 +780,19 @@
       }
     }
   },
+  "notesListAria": {
+    "message": "Saved highlights"
+  },
+  "notesBatchActions": {
+    "message": "Actions for selected highlights"
+  },
+  "notesBatchDelete": {
+    "message": "Delete selected highlights"
+  },
+  "notesBatchDeleteConfirm": {
+    "message": "Delete $COUNT$ selected highlights?",
+    "placeholders": { "count": { "content": "$1" } }
+  },
   "tabQuickActions": {
     "message": "Quick Actions"
   },

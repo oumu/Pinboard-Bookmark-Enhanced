@@ -780,6 +780,19 @@
       }
     }
   },
+  "notesListAria": {
+    "message": "Surlignages enregistrés"
+  },
+  "notesBatchActions": {
+    "message": "Actions sur les surlignages sélectionnés"
+  },
+  "notesBatchDelete": {
+    "message": "Supprimer les surlignages sélectionnés"
+  },
+  "notesBatchDeleteConfirm": {
+    "message": "Supprimer les $COUNT$ surlignages sélectionnés ?",
+    "placeholders": { "count": { "content": "$1" } }
+  },
   "tabQuickActions": {
     "message": "Actions rapides"
   },

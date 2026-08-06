@@ -55,6 +55,36 @@ function pbpNotesMatch(rec, q) {
   return false;
 }
 
+// Selection primitives, kept pure and in this layer so the standalone test
+// page can exercise them without a DOM. Twins of library-vocab.js's
+// pbpVocabSelectRange / pbpVocabSelectResults -- same semantics, string keys
+// instead of word ids. Deliberately NOT shared through one helper: the two
+// pages never co-load, and a shared module would have to be a fourth file
+// loaded by both for two dozen lines.
+function pbpNotesSelectRange(selected, keys, anchorKey, targetKey, want) {
+  const next = new Set(selected || []);
+  const list = Array.isArray(keys) ? keys : [];
+  const start = list.indexOf(anchorKey), end = list.indexOf(targetKey);
+  if (start < 0 || end < 0) {
+    if (targetKey) want ? next.add(targetKey) : next.delete(targetKey);
+    return next;
+  }
+  for (let i = Math.min(start, end); i <= Math.max(start, end); i++) {
+    want ? next.add(list[i]) : next.delete(list[i]);
+  }
+  return next;
+}
+
+function pbpNotesSelectResults(selected, keys, mode) {
+  const next = new Set(selected || []);
+  for (const key of (Array.isArray(keys) ? keys : [])) {
+    if (!key) continue;
+    if (mode === "invert") { if (next.has(key)) next.delete(key); else next.add(key); }
+    else next.add(key);
+  }
+  return next;
+}
+
 function pbpNotesEntryHasColor(rec, colorSet) {
   if (!colorSet || !colorSet.size) return true;
   if ([1, 2, 3, 4, 5].every((c) => colorSet.has(c))) return true;
@@ -88,6 +118,13 @@ let _notesActiveColors = new Set(PBP_NOTES_COLORS);
 // Same job _pbpVocabDetailWordId does for the vocabulary view: it outlives
 // every rebuild, so a rescan can put the selection back where it was.
 let _pbpNotesSelectedKey = null;
+// Batch selection (2026-08-06), same model as the vocabulary list: a Set of
+// hit keys plus the anchor a Shift gesture spans from. Distinct from
+// _pbpNotesSelectedKey above, which is "the one the detail pane is reading" --
+// the two are independent, and a row can be either, both or neither.
+let _notesSelected = new Set();
+let _notesLastSelectedKey = null;
+let _notesBatchBusy = false;
 
 async function _pbpNotesScan() {
   if (typeof chrome === "undefined" || !chrome.storage || !chrome.storage.local) return [];
@@ -198,14 +235,28 @@ function _pbpNotesFilterQuery() {
 function _pbpNotesBuildRow(hit) {
   const rowEl = document.createElement("div");
   rowEl.className = "notes-hit";
-  rowEl.setAttribute("role", "listitem");
+  // role=row + gridcell, matching the vocabulary list: rows are
+  // multi-selectable and carry aria-selected, which ARIA only supports on
+  // grid/listbox descendants.
+  rowEl.setAttribute("role", "row");
   rowEl.dataset.notesKey = hit.key;
+  const isSelected = _notesSelected.has(hit.key);
+  rowEl.setAttribute("aria-selected", isSelected ? "true" : "false");
+  rowEl.classList.toggle("selected", isSelected);
+
+  // The gridcell wrapper is a real box, not display:contents: the row button
+  // takes its radius via `border-radius: inherit`, and a wrapper that
+  // inherits nothing would silently square off every row's corners.
+  const cell = document.createElement("div");
+  cell.className = "notes-hit-cell";
+  cell.setAttribute("role", "gridcell");
 
   // The row content is a button so the list stays keyboard-reachable, same
   // shape the vocabulary list uses (card > head button).
   const btn = document.createElement("button");
   btn.type = "button";
   btn.className = "notes-hit-btn";
+  btn.setAttribute("aria-keyshortcuts", "Control+Space Shift+Space");
 
   const bar = document.createElement("span");
   bar.className = "notes-hit-bar notes-c" + _pbpNotesColorOf(hit.item);
@@ -248,9 +299,73 @@ function _pbpNotesBuildRow(hit) {
   body.appendChild(meta);
 
   btn.appendChild(body);
-  btn.addEventListener("click", () => _pbpNotesSelectRow(hit.key));
-  rowEl.appendChild(btn);
+  // Same three verbs as the vocabulary list, deliberately one grammar across
+  // both views: plain click reads the highlight, Ctrl/Cmd+click adds it to the
+  // batch selection without moving the reading pane, Shift+click spans the
+  // interval from the anchor (and clears it when the anchor gesture was a
+  // clear). Space is the button's own activation key, so the modified keyboard
+  // forms are caught on keydown and preventDefault'd.
+  btn.addEventListener("click", (e) => {
+    if (e.shiftKey) { _pbpNotesRowSelect(hit.key, true); return; }
+    if (e.ctrlKey || e.metaKey) { _pbpNotesRowSelect(hit.key, false); return; }
+    _pbpNotesSelectRow(hit.key);
+  });
+  btn.addEventListener("keydown", (e) => {
+    if (e.key !== " " && e.key !== "Spacebar") return;
+    if (e.shiftKey) { e.preventDefault(); _pbpNotesRowSelect(hit.key, true); }
+    else if (e.ctrlKey || e.metaKey) { e.preventDefault(); _pbpNotesRowSelect(hit.key, false); }
+  });
+  cell.appendChild(btn);
+  rowEl.appendChild(cell);
   return rowEl;
+}
+
+// One gesture, four entry points. `range` sets the whole anchor..target
+// interval to what a plain toggle of THIS row would have produced, which is
+// what makes a second Shift pass over a selected block clear it.
+function _pbpNotesRowSelect(key, range) {
+  if (_notesBatchBusy) return;
+  const want = !_notesSelected.has(key);
+  if (range && _notesLastSelectedKey) {
+    _notesSelected = pbpNotesSelectRange(_notesSelected,
+      _pbpNotesVisibleHits().map((h) => h.key), _notesLastSelectedKey, key, want);
+  } else if (want) {
+    _notesSelected.add(key);
+  } else {
+    _notesSelected.delete(key);
+  }
+  _notesLastSelectedKey = key;
+  _pbpNotesSyncSelectionUi();
+}
+
+function _pbpNotesClearSelection() {
+  _notesSelected.clear();
+  _notesLastSelectedKey = null;
+}
+
+// Keeps every visible row's band, its aria-selected and the batch bar in step
+// with the selection set -- a range gesture and Select all both mutate rows
+// that were never the click target. Prunes keys the current view no longer
+// contains first, the same way _pbpVocabSyncSelectionUi does.
+function _pbpNotesSyncSelectionUi() {
+  const visible = new Set(_pbpNotesVisibleHits().map((h) => h.key));
+  for (const key of [..._notesSelected]) if (!visible.has(key)) _notesSelected.delete(key);
+  for (const el of document.querySelectorAll("#notes-list .notes-hit")) {
+    const on = _notesSelected.has(el.dataset.notesKey);
+    el.classList.toggle("selected", on);
+    el.setAttribute("aria-selected", on ? "true" : "false");
+  }
+  const count = _notesSelected.size;
+  const countEl = $id("notes-selected-count");
+  if (countEl) countEl.textContent = t("vocabSelectedCount", String(count));
+  const bar = $id("notes-batch-toolbar");
+  if (bar) bar.classList.toggle("selecting", count > 0);
+  const allBtn = $id("notes-select-all");
+  const invertBtn = $id("notes-invert-selection");
+  const deleteBtn = $id("notes-batch-delete");
+  if (allBtn) allBtn.disabled = _notesBatchBusy || visible.size === 0;
+  if (invertBtn) invertBtn.disabled = _notesBatchBusy || visible.size === 0;
+  if (deleteBtn) deleteBtn.disabled = _notesBatchBusy || !count;
 }
 
 function _pbpNotesRowEl(key) {
@@ -462,6 +577,9 @@ function _pbpNotesBuildColorFilters() {
       if (_notesActiveColors.has(c) && _notesActiveColors.size > 1) _notesActiveColors.delete(c);
       else _notesActiveColors.add(c);
       b.setAttribute("aria-pressed", _notesActiveColors.has(c) ? "true" : "false");
+      // A colour filter is a filter: same rule as the search box, it clears
+      // the batch selection rather than leaving rows selected off-screen.
+      _pbpNotesClearSelection();
       _pbpNotesRenderList(_pbpNotesVisibleHits());
     });
     wrap.appendChild(b);
@@ -482,13 +600,16 @@ function _pbpNotesRenderList(hits) {
     empty.hidden = hits.length > 0;
     if (!hits.length) empty.textContent = total ? t("notesFilterEmpty") : t("notesEmpty");
   }
-  if (!hits.length) return;
+  if (!hits.length) { _pbpNotesSyncSelectionUi(); return; }
   const frag = document.createDocumentFragment();
   hits.forEach((hit) => frag.appendChild(_pbpNotesBuildRow(hit)));
   list.appendChild(frag);
   // A rebuild drops the marker even though the detail pane still reads that
   // highlight -- re-derive it from the surviving selection key.
   _pbpNotesMarkCurrentRow();
+  // Same for the batch selection: rows are rebuilt from _notesSelected, and
+  // this prunes whatever the fresh view no longer contains.
+  _pbpNotesSyncSelectionUi();
 }
 
 // Same anchored confirm popover as every other destructive micro-action
@@ -531,6 +652,69 @@ function _pbpNotesDelete(row, anchor) {
   });
 }
 
+// Batch delete over the SELECTED HIGHLIGHTS, which is not the same scope as
+// the detail pane's delete (that one removes the whole page record, and says
+// so). Storage still holds one pbp_hl_<page> entry with an items[] array, so
+// removing highlights means rewriting that array and dropping the key only
+// once nothing is left -- byte-for-byte the shape the reader's own
+// per-highlight delete writes (_pbpHlSave in md-highlight.js).
+//
+// The set is re-derived from _notesSelected INSIDE onConfirm and compared
+// against the snapshot taken when the popover opened: a background refresh
+// (highlights are written by the reader in another tab) can move the list
+// while the confirm is on screen, and deleting a different set than the one
+// the message counted is the failure mode worth a guard.
+function _pbpNotesBatchDelete() {
+  const button = $id("notes-batch-delete");
+  if (!button || button.disabled || _notesBatchBusy || !_notesSelected.size) return;
+  const snapshot = [..._notesSelected];
+  showConfirmPopover(button, {
+    msg: t("notesBatchDeleteConfirm", String(snapshot.length)),
+    yesText: t("delete"),
+    noText: t("cancel"),
+    onConfirm: async () => {
+      if (_notesBatchBusy) return;
+      button.classList.remove("is-error");
+      const now = _notesSelected;
+      if (now.size !== snapshot.length || !snapshot.every((k) => now.has(k))) {
+        button.classList.add("is-error");
+        return;
+      }
+      _notesBatchBusy = true;
+      _pbpNotesSyncSelectionUi();
+      const drop = new Set(snapshot);
+      let failed = 0;
+      try {
+        for (const { row, rec } of _notesAllRows) {
+          const items = Array.isArray(rec.items) ? rec.items : [];
+          const keep = items.filter((it, idx) => !drop.has(_pbpNotesHitKey(row.key, it, idx)));
+          if (keep.length === items.length) continue;
+          try {
+            if (keep.length) await chrome.storage.local.set({ [row.key]: { ...rec, items: keep } });
+            else await chrome.storage.local.remove(row.key);
+          } catch (e) {
+            // Name/message only, never highlight or note content.
+            console.warn("[notes] batch delete failed", e && e.name, e && e.message);
+            failed++;
+          }
+        }
+      } finally {
+        _notesBatchBusy = false;
+      }
+      _pbpNotesClearSelection();
+      // The detail may have been reading one of the highlights just removed.
+      const stillThere = _pbpNotesSelectedKey && drop.has(_pbpNotesSelectedKey);
+      await renderNotesPanel();
+      if (stillThere || !_pbpNotesFindHit(_pbpNotesSelectedKey)) _pbpNotesRenderDetail(null);
+      // A swallowed failure looks exactly like success (popover closed, rows
+      // still there, no feedback) -- pin it to the button that was pressed,
+      // the one control guaranteed to still be on screen.
+      if (failed) button.classList.add("is-error");
+      _pbpNotesFocusAfterDelete(0);
+    },
+  });
+}
+
 // Nearest surviving row, else the filter input -- the vocabulary list's
 // _pbpVocabFocusStable with one extra step, because notes rows are the only
 // thing between the toolbar and the bottom of the pane.
@@ -566,10 +750,37 @@ if (typeof $id === "function") {
   const _notesFilterInput = $id("notes-filter");
   if (_notesFilterInput) {
     _notesFilterInput.addEventListener("input", () => {
+      // Filters change WHICH rows exist, so they clear the selection -- the
+      // same rule the vocabulary list has shipped since 2026-08-01. (Sorting
+      // would keep it; this view has no sort.)
+      _pbpNotesClearSelection();
       _pbpNotesBuildColorFilters();
       _pbpNotesRenderList(_pbpNotesVisibleHits());
     });
   }
+  const _notesSelectAll = $id("notes-select-all");
+  if (_notesSelectAll) _notesSelectAll.addEventListener("click", () => {
+    _notesSelected = pbpNotesSelectResults(_notesSelected, _pbpNotesVisibleHits().map((h) => h.key), "all");
+    _notesLastSelectedKey = null;
+    _pbpNotesSyncSelectionUi();
+  });
+  const _notesInvert = $id("notes-invert-selection");
+  if (_notesInvert) _notesInvert.addEventListener("click", () => {
+    _notesSelected = pbpNotesSelectResults(_notesSelected, _pbpNotesVisibleHits().map((h) => h.key), "invert");
+    _notesLastSelectedKey = null;
+    _pbpNotesSyncSelectionUi();
+  });
+  const _notesClear = $id("notes-clear-selection");
+  if (_notesClear) _notesClear.addEventListener("click", () => {
+    _pbpNotesClearSelection();
+    _pbpNotesSyncSelectionUi();
+    // The bar (with the button that was just clicked) has hidden itself: hand
+    // focus to the nearest persistent selection control, not to <body>.
+    const allBtn = $id("notes-select-all");
+    if (allBtn) _pbpNotesFocus(allBtn);
+  });
+  const _notesBatchDeleteBtn = $id("notes-batch-delete");
+  if (_notesBatchDeleteBtn) _notesBatchDeleteBtn.addEventListener("click", _pbpNotesBatchDelete);
 }
 
 // Re-scan and re-render without throwing away what the user was reading.

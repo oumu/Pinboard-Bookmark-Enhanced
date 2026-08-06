@@ -780,6 +780,19 @@
       }
     }
   },
+  "notesListAria": {
+    "message": "Gespeicherte Markierungen"
+  },
+  "notesBatchActions": {
+    "message": "Aktionen für ausgewählte Markierungen"
+  },
+  "notesBatchDelete": {
+    "message": "Ausgewählte Markierungen löschen"
+  },
+  "notesBatchDeleteConfirm": {
+    "message": "$COUNT$ ausgewählte Markierungen löschen?",
+    "placeholders": { "count": { "content": "$1" } }
+  },
   "tabQuickActions": {
     "message": "Schnellaktionen"
   },
