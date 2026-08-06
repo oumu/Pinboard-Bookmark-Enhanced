@@ -71,7 +71,13 @@ const store = {
 window.chrome = {
   storage: {
     local: {
-      get: async (keys) => (keys === null ? { ...store } : {}),
+      // get(null) is the panel's full scan; get("<key>") is the batch
+      // delete's re-read immediately before it rewrites that one record.
+      get: async (keys) => {
+        if (keys === null) return { ...store };
+        const key = String(keys);
+        return key in store ? { [key]: store[key] } : {};
+      },
       set: async (obj) => { Object.assign(store, obj); },
       remove: async (key) => { delete store[key]; },
     },
@@ -343,14 +349,26 @@ const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
   check("batch delete asks first and counts the highlights, not the pages",
     batchPop && batchPop.querySelector(".confirm-msg").textContent.includes("notesBatchDeleteConfirm:2"),
     batchPop && batchPop.textContent);
+  // Another tab writes a NEW highlight to the same page while the confirm is
+  // on screen. The batch must rewrite from a fresh read, not from the scan
+  // snapshot it is looping over -- a read-modify-write off the stale copy
+  // discards this silently, and nothing on screen would ever say so.
+  store["pbp_hl_alpha"] = { ...store["pbp_hl_alpha"], items: [...store["pbp_hl_alpha"].items,
+    { id: "a4", n: 4, quote: "arrived from another tab mid-confirm", color: 2, note: "", ts: 350 }] };
   batchPop.querySelector(".confirm-yes").click();
   await tick(); await tick();
+  check("a highlight written elsewhere during the confirm is not clobbered",
+    store["pbp_hl_alpha"].items.some((it) => it.id === "a4") &&
+    rowKeys().includes("pbp_hl_alpha#a4"),
+    JSON.stringify(store["pbp_hl_alpha"].items.map((it) => it.id)));
   check("only the selected highlights are gone; their page survives",
     !rowKeys().includes("pbp_hl_alpha#a1") && !rowKeys().includes("pbp_hl_alpha#a3") &&
     rowKeys().includes("pbp_hl_alpha#a2"), rowKeys());
-  check("the surviving highlight keeps its stored page record intact",
-    store["pbp_hl_alpha"] && store["pbp_hl_alpha"].items.length === 1 &&
-    store["pbp_hl_alpha"].items[0].id === "a2" && store["pbp_hl_alpha"].title === "Alpha article");
+  check("the surviving highlights keep their stored page record intact",
+    store["pbp_hl_alpha"] && store["pbp_hl_alpha"].items.length === 2 &&
+    store["pbp_hl_alpha"].items.map((it) => it.id).join(",") === "a2,a4" &&
+    store["pbp_hl_alpha"].title === "Alpha article",
+    JSON.stringify(store["pbp_hl_alpha"]));
   check("the batch clears the selection and hides the bar afterwards",
     _notesSelected.size === 0 && !$id("notes-batch-toolbar").classList.contains("selecting"));
   // Emptying a page's last highlight removes the whole record -- the storage

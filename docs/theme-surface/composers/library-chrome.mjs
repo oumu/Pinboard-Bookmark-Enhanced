@@ -7,7 +7,7 @@ import { POPUP_THEME_MAP } from "./popup-chrome.mjs";
 // batch action (rest, then :hover). Mirrors
 // `.vocab-card.selected .notes-card-top` -- see the row-selected-fg comment
 // below for why the duplication is deliberate and what catches a drift.
-const LIB_BATCH_BAND_MIX = [0.18, 0.24];
+const LIB_BATCH_BAND_MIX = [0.20, 0.26];
 
 // Default-surface (no preset selected) component-layer baseline — Task 5,
 // step ① of the composer color migration. Every value below is copied
@@ -115,7 +115,7 @@ function emitLib(ui, palette, overrides, radius, focus = {}, mode) {
     // oracle's bandDistinct entry, which measures the label against the band the
     // browser actually painted (it is what found this cliff: solarized's
     // row-selected-fg had 4.71:1 of headroom at the old 10% mix and fell straight
-    // through AA at 18%).
+    // through AA at the shipped mix).
     "row-selected-fg": rgbToHex(fgToAAMulti(hexToRgb(fg), [
       rowSelectedBgRgb,
       ...LIB_BATCH_BAND_MIX.map((t) => mix(hexToRgb(ui.bg), hexToRgb(ui.accent), t).map(Math.round)),

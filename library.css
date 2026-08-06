@@ -698,11 +698,11 @@ html.motion-ready .notes-hit-btn { transition: background-color var(--motion-sta
    combined state composes them -- with an explicit (0,3,0) rule rather than a
    bet on source order, since aria-current now paints box-shadow too. */
 .notes-hit.selected .notes-hit-btn {
-  --row-bg: color-mix(in srgb, var(--lib-accent) 18%, var(--lib-bg));
+  --row-bg: color-mix(in srgb, var(--lib-accent) 20%, var(--lib-bg));
   color: var(--lib-row-selected-fg);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lib-accent) 55%, transparent);
 }
-.notes-hit.selected .notes-hit-btn:hover { --row-bg: color-mix(in srgb, var(--lib-accent) 24%, var(--lib-bg)); }
+.notes-hit.selected .notes-hit-btn:hover { --row-bg: color-mix(in srgb, var(--lib-accent) 26%, var(--lib-bg)); }
 .notes-hit.selected[aria-current] .notes-hit-btn {
   box-shadow: inset 2px 0 0 var(--lib-accent),
               inset 0 0 0 1px color-mix(in srgb, var(--lib-accent) 55%, transparent);
@@ -1901,16 +1901,16 @@ html.motion-ready .notes-batch-bar.selecting {
    19 units from plain rest on rose-pine and 18 on solarized-dark, and -- far
    worse -- only 4 units from --lib-row-selected-bg on rose-pine, i.e. "queued
    for a batch action" and "open in the detail pane" were the same colour.
-   So: the mix goes to 18% (hover 24%), AND selection gets a marker of its own.
+   So: the mix goes to 20% (hover 26%), AND selection gets a marker of its own.
    The marker is a full 1px inset ring, deliberately a different SHAPE from
    aria-current's 2px left edge -- two intensities of the same shape is what
    collapsed in the first place. Both are inset shadows, so they compose, and
    both follow the band's border-radius for free. */
 .vocab-card.selected .notes-card-top {
-  --row-bg: color-mix(in srgb, var(--lib-accent) 18%, var(--lib-bg));
+  --row-bg: color-mix(in srgb, var(--lib-accent) 20%, var(--lib-bg));
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lib-accent) 55%, transparent);
 }
-.vocab-card.selected .notes-card-top:hover { --row-bg: color-mix(in srgb, var(--lib-accent) 24%, var(--lib-bg)); }
+.vocab-card.selected .notes-card-top:hover { --row-bg: color-mix(in srgb, var(--lib-accent) 26%, var(--lib-bg)); }
 /* Both at once: the selection ring AND the "you are here" edge. (0,4,0), so
    it out-ranks both (0,3,0) base rules on specificity instead of on where it
    happens to sit in the file. */
@@ -2293,7 +2293,7 @@ html[data-theme="solarized-dark"] {
   --lib-pane-bg: #073642;
   --lib-pane-divider: #094b5a;
   --lib-row-selected-bg: #073642;
-  --lib-row-selected-fg: #9facad;
+  --lib-row-selected-fg: #a4b1b2;
   --lib-focus-bd: #268bd2;
   --lib-focus-ring: 0 0 0 2px rgba(38,139,210,0.25);
   --lib-radius-sm: 2px;

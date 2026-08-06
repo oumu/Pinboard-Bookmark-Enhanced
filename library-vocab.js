@@ -321,7 +321,10 @@ function _pbpVocabBuildNoteEditor(w) {
   const noteSave = document.createElement("button");
   noteSave.type = "button";
   noteSave.className = "btn btn-sm vocab-note-save";
-  noteSave.textContent = t("hlSave");
+  // icon + label, as confirmed on the mockup. `check` is the commit gesture
+  // (the tick you get back), distinct from `checkCircle`, which this page
+  // already spends on "mark as known".
+  setBtnIcon(noteSave, "check", t("hlSave"));
   noteSave.hidden = true;
   noteInput.addEventListener("input", () => {
     noteSave.hidden = noteInput.value === (w.note || "");

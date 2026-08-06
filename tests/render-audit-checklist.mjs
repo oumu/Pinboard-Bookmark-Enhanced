@@ -241,11 +241,20 @@ export const CHECKS = [
   //
   // A pair passes on a fill gap of >= minDelta OR on a different marker
   // (box-shadow/outline), because both are real separators: on some presets
-  // --lib-row-selected-bg and color-mix(accent 10%, bg) land close together
+  // --lib-row-selected-bg and color-mix(accent N%, bg) land close together
   // and the accent edge is what tells them apart, while on others there is
   // no edge and the fill is the whole signal. Asking for both would fail
   // correct designs; asking for neither is the collapse this entry exists to
   // catch.
+  //
+  // EXCEPT for rest <-> selected, named in fillOnlyPairs. That pair is the
+  // user's ruling itself ("use the selected row's BACKGROUND to tell it
+  // apart"), so the fill has to carry it -- and it is the one pair where the
+  // OR clause disarms the check completely, since `selected` always carries
+  // a ring that `rest` does not. Independent review demonstrated it: revert
+  // the band from 18% to 10% and the gate stayed green on every theme,
+  // because the delta branch was never reached. The number this entry exists
+  // to defend was the number it could not see.
   //
   // minTextContrast rides along because the two are one trade-off, not two:
   // the only way to widen a fill gap is to push the fill, and the label sits
@@ -258,18 +267,8 @@ export const CHECKS = [
   // exclusivity makes impossible anyway. Every pair is compared, so the
   // combined state cannot silently equal either of its halves either.
   { surface: "library", page: "library.html", selector: "#vocab-list .vocab-card .notes-card-top", state: "rowStates",
-    expect: { bandDistinct: { minDelta: 24, minTextContrast: 4.5, textSelector: ".notes-card-head" } } },
-  // The notes list carries the SAME four states and the same grammar (accent
-  // fill + ring for "selected", neutral fill + 2px left edge for "current"),
-  // so it gets its own entry rather than being assumed covered by the
-  // vocabulary one -- the two lists paint on different elements and reach
-  // their bands through different rules. This is also the entry that forced
-  // the notes list's "current" marker to move from a ring to a left edge:
-  // sharing the ring between "current" and "selected" measured 7 units of
-  // fill apart on gruvbox-dark, which is not a difference anyone can see.
-  // No textSelector: the notes row button IS the text host, and the driver
-  // already reads `color` off the probed element in that case -- pointing it
-  // at a child would measure the meta chips instead of the highlight text.
+    expect: { bandDistinct: { minDelta: 24, minTextContrast: 4.5, textSelector: ".notes-card-head",
+      fillOnlyPairs: [["rest", "selected"]] } } },
   // ---- 2026-08-06 narrow-width overflow report: `a.notes-row-open` ran 351px
   // past the vocabulary detail pane's right edge at a 900px viewport and
   // handed the pane a 327px horizontal scroll. Root cause was a bare inline
@@ -286,15 +285,27 @@ export const CHECKS = [
   // reading column stops shrinking. Both panes of the view are scanned in one
   // pass, so a fix that just moves the overflow from the list to the detail
   // still fails. `expected` is 0 -- nothing may escape a pane, ever.
+  // The notes list carries the SAME four states and the same grammar (accent
+  // fill + ring for "selected", neutral fill + 2px left edge for "current"),
+  // so it gets its own entry rather than being assumed covered by the
+  // vocabulary one -- the two lists paint on different elements and reach
+  // their bands through different rules. This is also the entry that forced
+  // the notes list's "current" marker to move from a ring to a left edge:
+  // sharing the ring between "current" and "selected" measured 7 units of
+  // fill apart on gruvbox-dark, which is not a difference anyone can see.
+  // No textSelector: the notes row button IS the text host, and the driver
+  // already reads `color` off the probed element in that case -- pointing it
+  // at a child would measure the meta chips instead of the highlight text.
+  { surface: "library", page: "library.html", selector: ".notes-hit .notes-hit-btn", state: "rowStates",
+    expect: { bandDistinct: { minDelta: 24, minTextContrast: 4.5, textSelector: ".notes-hit-text",
+      fillOnlyPairs: [["rest", "selected"]] } } },
+
   { surface: "library", page: "library.html", selector: ".vocab-list-pane", state: "paneFit",
     expect: { paneFit: { widths: [900, 960, 1024, 1100, 1200], tolerancePx: 1,
       panes: [".vocab-list-pane", "#vocab-detail-pane"] } } },
   { surface: "library", page: "library.html", selector: ".notes-list-pane", state: "paneFit",
     expect: { paneFit: { widths: [900, 960, 1024, 1100, 1200], tolerancePx: 1,
       panes: [".notes-list-pane", "#notes-detail-pane"] } } },
-
-  { surface: "library", page: "library.html", selector: ".notes-hit .notes-hit-btn", state: "rowStates",
-    expect: { bandDistinct: { minDelta: 24, minTextContrast: 4.5, textSelector: ".notes-hit-text" } } },
 
   // ---- COMPONENTS.md §9 law 7 (real tabs). The header's two tabs used to be
   // buttons in tab clothing -- fill, border, radius-md -- which is what the

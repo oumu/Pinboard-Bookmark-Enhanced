@@ -896,8 +896,14 @@ for (const [file, css, ns] of [["popup.css", popupCss, "pp"], ["options.css", op
   // this ruling exists to stop. The list column's 340px floor stays.
   const benchCols = /grid-template-columns:\s*minmax\(340px,\s*(\d+)px\)\s*fit-content\((\d+)px\)/g;
   const bench = [...libraryCss.matchAll(benchCols)];
-  check(bench.length === 2 && (libraryCss.match(/^\s*justify-content:\s*center;$/gm) || []).length >= 2,
-    "library.css: a workbench lost the variant-C column pair (minmax(340px, Npx) fit-content(Npx)) or its centring — a flexible reading column grows back to whatever the window is");
+  // The centring must be counted INSIDE the two workbench blocks. A bare
+  // file-wide count was fed by the detail panes' own two `justify-content:
+  // center` declarations, so deleting both workbench centrings left the
+  // check green (independent review, measured).
+  const benchCentred = (libraryCss.match(/\.(?:vocab|notes)-workbench \{[^}]*\}/g) || [])
+    .filter((block) => /justify-content:\s*center;/.test(block)).length;
+  check(bench.length === 2 && benchCentred === 2,
+    "library.css: a workbench lost the variant-C column pair (minmax(340px, Npx) fit-content(Npx)) or its own justify-content: center — a flexible reading column grows back to whatever the window is, and an uncentred grid sits hard left in its canvas");
   // THE anti-double-centring invariant, and the reason this is arithmetic
   // rather than a literal: --lib-canvas-max must equal the workbench's own
   // natural width. If it is larger, the grid sits inside a wider canvas and

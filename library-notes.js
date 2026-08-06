@@ -692,12 +692,28 @@ function _pbpNotesBatchDelete() {
       const drop = new Set(snapshot);
       let failed = 0;
       try {
-        for (const { row, rec } of _notesAllRows) {
-          const items = Array.isArray(rec.items) ? rec.items : [];
-          const keep = items.filter((it, idx) => !drop.has(_pbpNotesHitKey(row.key, it, idx)));
-          if (keep.length === items.length) continue;
+        for (const { row } of _notesAllRows) {
           try {
-            if (keep.length) await chrome.storage.local.set({ [row.key]: { ...rec, items: keep } });
+            // Re-read immediately before the rewrite. The scan snapshot
+            // (`rec`) can be seconds old by the time a confirm is answered,
+            // and the reader writes these records from another tab -- a
+            // read-modify-write off the stale copy would silently discard
+            // every highlight added to that page in between. Deliberately
+            // NOT hoisted out of the loop: one page's write must not be
+            // based on a read taken before another page's write.
+            const fresh = (await chrome.storage.local.get(row.key))[row.key];
+            // Gone already (deleted elsewhere while the confirm was open):
+            // nothing to remove, and re-creating it would be worse.
+            if (!fresh) continue;
+            const items = Array.isArray(fresh.items) ? fresh.items : [];
+            // ponytail: _pbpNotesHitKey falls back to the array index for
+            // legacy items with no `id`, so on such a record a concurrent
+            // insertion could shift which item a key names. Every item the
+            // reader writes carries an id; upgrade path is an id backfill in
+            // md-highlight.js, not more logic here.
+            const keep = items.filter((it, idx) => !drop.has(_pbpNotesHitKey(row.key, it, idx)));
+            if (keep.length === items.length) continue;
+            if (keep.length) await chrome.storage.local.set({ [row.key]: { ...fresh, items: keep } });
             else await chrome.storage.local.remove(row.key);
           } catch (e) {
             // Name/message only, never highlight or note content.

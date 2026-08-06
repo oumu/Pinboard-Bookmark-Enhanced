@@ -582,16 +582,28 @@ function evaluateCheck(check, raw, theme) {
         if (ratio < minText) notes.push(`"${sm.state}": row text ${round2(ratio)}:1 < ${minText}:1 against its own band`);
       }
     }
+    // Pairs the checklist names as FILL-ONLY: the marker escape hatch is
+    // switched off for them, so the fill itself has to clear minDelta.
+    // Without this the "OR a different marker" clause silently disarms the
+    // check for exactly the pair whose fill was the thing being tuned --
+    // independent review proved it by reverting the selected band from 18%
+    // to 10% and watching the gate stay green, because `selected` carries a
+    // ring that `rest` does not and the delta branch was therefore never
+    // reached. Ask what the simplest missed counter-example looks like.
+    const fillOnly = new Set((exp.bandDistinct.fillOnlyPairs || []).map((pair) => [...pair].sort().join("~")));
     for (let i = 0; i < samples.length; i++) {
       for (let j = i + 1; j < samples.length; j++) {
         const a = samples[i], b = samples[j];
         if (!a.found || !b.found) { notes.push(`state not rendered: ${a.found ? b.state : a.state}`); continue; }
         const abg = compositeStack(a.bgStack), bbg = compositeStack(b.bgStack);
         const delta = Math.max(Math.abs(abg[0] - bbg[0]), Math.abs(abg[1] - bbg[1]), Math.abs(abg[2] - bbg[2]));
-        const markerDiffers = a.boxShadow !== b.boxShadow || a.outline !== b.outline;
+        const fillMustCarry = fillOnly.has([a.state, b.state].sort().join("~"));
+        const markerDiffers = !fillMustCarry && (a.boxShadow !== b.boxShadow || a.outline !== b.outline);
         if (worst === null || delta < worst) worst = delta;
         if (delta < minDelta && !markerDiffers) {
-          notes.push(`"${a.state}" and "${b.state}" are indistinguishable: fill delta ${round2(delta)} < ${minDelta} and identical marker (box-shadow ${a.boxShadow})`);
+          notes.push(fillMustCarry
+            ? `"${a.state}" and "${b.state}" must be told apart by FILL alone: delta ${round2(delta)} < ${minDelta} (this pair's marker is excluded on purpose -- the band is the whole signal)`
+            : `"${a.state}" and "${b.state}" are indistinguishable: fill delta ${round2(delta)} < ${minDelta} and identical marker (box-shadow ${a.boxShadow})`);
         }
       }
     }
