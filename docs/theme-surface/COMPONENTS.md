@@ -696,8 +696,9 @@ accent 焦点色，等于焦点一来就抹掉危险信号——所以它们走 
 
 第三条豁免容易被忘：**guard 只剥每行行首的第一个自定义属性定义**，所以 `:root` 里必须**一行一个
 声明**——一行写两个 `--x: #aaa; --y: #bbb` 会让第二个字面值逃出豁免、被当成泄漏色报出来。
-`library.css:8-12` 的注释在案，它也是「library 基线 = 0」这个数字在 `:root` 有 28 个 hex 的情况下仍然
-可复现的原因。新增 token 定义时照此排版。
+`library.css:8-12` 的注释在案，它也是「library 基线 = 0」这个数字在 `:root` 本身带着一大批 hex 字面量
+（每个都合法：定义一个 token，不是消费一个）的情况下仍然可复现的原因——具体计数会随 token 增减漂移，
+不在此处写死，真实数字看 hex ratchet 脚本自己的输出。新增 token 定义时照此排版。
 
 ### 7.5 hover 的几何门控
 
@@ -1127,10 +1128,10 @@ label span（`<span class="btn-ic">svg</span><span></span>`），在 grid 下它
 | C14 | `.confirm-popover .confirm-yes`（opt + lib） | `color: var(--{ns}-panel)` | `color: var(--{ns}-on-danger)` | 前景从未审计的借用值换成派生值，个别主题下会变 | 本战役 |
 | C14b | `.confirm-popover .confirm-yes:hover`（opt + lib，**无预设明暗态**） | 底色压深（`options.css:1330` `#a00` / `library.css:208` `var(--lib-danger,#a00)`） | 底色不变，只加 `inset 0 0 0 1px var(--{ns}-on-danger)` 环 | 默认表面的确认钮 hover **失去底色加深**，改成与 13 套预设一模一样的 inset 环（预设块 `options.css:1336` / `library.css:214` 现在就是这么做的）。是三表面收敛，不是新行为 | 本战役 |
 | C14c | `.confirm-popover .confirm-yes` 边框（**仅 opt 默认亮色态**） | `border-color: #a00`（裸字面量，比 `background: #c00` 深一档，给按钮描一圈细边） | `border-color: var(--opt-danger)` = `#c00` | 边框与底色变成同一个值，视觉上"消失"——按钮从有细描边变成纯色色块。**library 无此变化**：其手写版本迁移前就已经是 `border-color: var(--lib-danger, #a00)`（`--lib-danger` 恒定义，`#a00` fallback 从未真正生效），迁移前后 border-color 取值不变 | 本战役 |
-| C17 | `html[data-theme] .btn` 三条（`options.css:1325/1326/1359`） | 存在，特异性 (0,2,1) 赢过配方 | 删除 | 无独立视觉变化（配方接管同样的值），但**不删则 `--opt-btn-fg` 在 13 套预设下全是死代码**。与发射同 commit | 本战役 |
-| C18 | `html[data-theme] .fg` 字段两条（`options.css:1187-1191`、`1192-1196`） | 存在，同上 | 删除 | themed 态字段的三色与 hover 边框改由配方供给；hover 边框值从 `--opt-fg-muted` 变成 `color-mix(input-border 55%, fg)`，暗色主题下描边会略淡 | 本战役 |
 | C15 | `color-scheme`（lib） | 全文零声明 | `:root` + 每暗色主题块 | library 的原生滚动条 / `<select>` 弹层在暗色主题下**首次**变暗 | 本战役 |
 | C16 | `--pp-tag-bg` / `--pp-tag-fg` | 直取 palette，无 AA 校正 | 由 `--pp-chip-bg` / `--pp-chip-fg` 取代，旧名退役 | 个别主题下 popup 标签 chip 配色会变 | 本战役 |
+| C17 | `html[data-theme] .btn` 三条（`options.css:1325/1326/1359`） | 存在，特异性 (0,2,1) 赢过配方 | 删除 | 无独立视觉变化（配方接管同样的值），但**不删则 `--opt-btn-fg` 在 13 套预设下全是死代码**。与发射同 commit | 本战役 |
+| C18 | `html[data-theme] .fg` 字段两条（`options.css:1187-1191`、`1192-1196`） | 存在，同上 | 删除 | themed 态字段的三色与 hover 边框改由配方供给；hover 边框值从 `--opt-fg-muted` 变成 `color-mix(input-border 55%, fg)`，暗色主题下描边会略淡 | 本战役 |
 | C19 | `.opt-error` background（opt，默认态 + 13 套主题） | 硬编码字面量：默认态 `#fff0f0`（不透明浅粉），13 套主题态恒为 `rgba(220,80,80,0.08)`（与主题无关的固定半透明红，从不跟随各主题 danger 色相） | `color-mix(in srgb, var(--opt-danger) 8%, var(--opt-bg))`，删除 `--opt-danger-bg` 这个从未在任何主题块定义过的孤儿 token | 默认态从纯浅粉变为计算色（Chromium 实测 `rgb(255,240,240)`→`color(srgb 0.948 0.884 0.866)`，极接近，肉眼几乎无差）；13 套主题态**首次**随各自 danger 色相变化，不再是恒定的通用红 tint（14 态全部实测变化，见 task-12-report.md 计算样式矩阵） | 本战役 |
 | C20 | `--opt-bg` / `--opt-panel` 默认浅色值（opt，composer DEFAULT_LIGHT） | 手写 `:root` 各给了一个通用猜测值：`--opt-bg: #fff`（与 `body` 实际渲染的 `#f5f5f0` 不符）、`--opt-panel: #fafafa`（与 `.panel` 实际渲染的 `#fff` 不符） | 移入 composer `DEFAULT_LIGHT`：`bg: #f5f5f0`（= body 真实值）、`panel: #ffffff`（= .panel 真实值） | **round 3 重写，列全全部消费点**（`grep -n "var(--opt-panel)\|var(--opt-bg)" options.css` 逐条核对，排除 `html[data-theme]` 覆盖块——那些只在主题态生效，不受默认值改动影响）：`--opt-panel` 默认态背景 `#fafafa`→`#fff` 波及 16 个消费点——`.panel`、`.sync-local-only`（9% 混色基准）、`.backup-import-preview`/`.backup-import-result`、`.accordion-header:hover`、`.saved-theme-btn.active`/`.theme-preset-btn.active`（前景色）、`.theme-preset-btn.active::after`（描边）、自定义 select 弹层的 `scrollbar-color` 第二值、`.confirm-popover`、`.theme-name-popover`、`.preset-preview-section summary`、`#wayback-log`、`.wayback-perm-tip`、`.tag-gov-group-row`、`#tag-gov-progress`、`.vocab-disclosure > summary:hover`、`.vocab-drive-fields`；`--opt-bg` 默认态 `#fff`→`#f5f5f0` 波及（除 `body` 本身这个角色的第一持有者外）：`.opt-error` 的 `color-mix`（已在 C19 单独登记）、`.btn.ghost:hover`/`.btn.danger.ghost:hover` 的 `color-mix` 混色基准（6-8% 混色下差值低于计算样式矩阵探测阈值，未在矩阵里单独出现但逻辑上同样波及）、自定义 select 弹层背景 `::picker(select)` | 本战役 |
 | C21 | `--opt-save` 默认浅色值（opt，composer DEFAULT_LIGHT） | 未定义（仅 13 套主题各自有值），两处消费点各自发明了不一致的 fallback：`.save-status` / `.auto-save-hint.saved` 用 `#080`，`.et-test-status.ok` 用 `#1a7f37`（借的是 github-light 主题的真实值） | `save: #1a7f37`（与 `#f5f5f0` 页面背景对比度 4.65:1，`#080` 仅 4.25:1，不达 AA） | `.save-status` / `.auto-save-hint.saved` 默认态文字色 `#080`→`#1a7f37`（实测），柔和的 GitHub 绿而非饱和终端绿 | 本战役 |
