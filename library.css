@@ -925,7 +925,17 @@ html.motion-ready .notes-sib { transition: background-color var(--motion-state) 
    Order is load-bearing: this rule must come BEFORE the media query so that
    the media query's inline-flex can override it via cascade (same 0,1,0
    specificity, later rule wins). */
-.vocab-detail-back { display: none; }
+/* `justify-self: start` is load-bearing, not tidiness: this button is a
+   direct child of the pane's grid, whose default justify-items is stretch --
+   without it the back button spans the entire 66ch reading column. It never
+   showed that in its previous home because there it lived inside a plain
+   block (#vocab-detail). Measured in the mockup before it shipped. */
+.vocab-detail-back { display: none; justify-self: start; margin-bottom: var(--lib-sp-2); }
+/* Hidden above the single-pane threshold: up there the real lookup row is on
+   screen in the detail pane and a second door would be noise. Order is
+   load-bearing for the same reason the rule above says it is -- this and the
+   media query's `inline-flex` are both (0,2,0), so the later one wins. */
+.vocab-filter-row > .vocab-lookup-narrow { display: none; }
 /* Below the two-pane threshold the 340px minimum would push the page into
    horizontal scroll; stack instead (the detail pane also stops being sticky,
    since it is no longer beside anything). */
@@ -1290,16 +1300,23 @@ html.motion-ready .vocab-note-save {
   display: flex;
   flex-wrap: wrap;
 }
-/* Free lookup bar reuses .vocab-filter-toolbar's row/control recipe (see
-   comment above library.html's markup) but, unlike the owner-scoped filter
-   row above it, is not read as part of the vocab list toolbar block -- it
-   needs its own panel material to read as a distinct search tool. */
+/* Free lookup bar reuses .vocab-filter-toolbar's row/control recipe. The
+   island it used to wear -- padding, panel fill, hairline border, radius --
+   is GONE (user ruling 2026-08-07): the row now sits at the top of the detail
+   panel, on the panel's own surface, and a box drawn around it there would be
+   a box inside a box whose right edge misses the reading column by its own
+   padding + border.
+   These declarations were the mockup's number-one trap: they live on an ID
+   selector, so a class-level override is silently outranked no matter how
+   many classes it stacks. The fix is to delete them here, not to fight them
+   from a class -- hence this rule keeping only the seam.
+   The seam is mixed into --lib-pane-bg, not --lib-bg: this row's background
+   is the panel, and a seam is always its own surface nudged toward the
+   foreground (COMPONENTS.md §9 law 4). */
 #vocab-lookup-bar {
-  padding: var(--lib-sp-2);
-  background: var(--lib-panel);
-  /* Section container, not a control: hairline weight (COMPONENTS.md §9 law 4). */
-  border: 1px solid var(--lib-border-section);
-  border-radius: var(--lib-radius-md);
+  margin: 0 0 var(--lib-sp-3);
+  padding-bottom: var(--lib-sp-2);
+  border-bottom: 1px solid color-mix(in srgb, var(--lib-fg) var(--lib-seam-mix), var(--lib-pane-bg));
 }
 .vocab-filter-toolbar input[type="search"] {
   flex: 1 1 220px;
@@ -1335,9 +1352,9 @@ html.motion-ready .vocab-note-save {
 .vocab-filter-row > .vocab-sort-seg { flex: none; }
 /* 8px row gap + 4px = a full 12px step clear of the sort segment, so the
    narrow-screen lookup door does not read as a third cell welded onto it.
-   Hidden entirely above the single-pane threshold: up there the real lookup
-   row is on screen in the detail pane and a second door would be noise. */
-.vocab-filter-row > .vocab-lookup-narrow { display: none; flex: none; margin-left: var(--lib-sp-1); }
+   (Its display lives up beside .vocab-detail-back's, next to the media query
+   that flips both -- same specificity, so source order decides.) */
+.vocab-filter-row > .vocab-lookup-narrow { flex: none; margin-left: var(--lib-sp-1); }
 .vocab-filter-toolbar select { flex: 0 1 auto; min-width: 0; }
 /* font-family comes from the page-wide `button, input, select, textarea {
    font-family: inherit }` rule near the top of this file regardless of the

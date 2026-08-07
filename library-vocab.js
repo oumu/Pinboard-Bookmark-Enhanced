@@ -362,21 +362,24 @@ function _pbpVocabBuildNoteEditor(w) {
   return { wrap: noteWrap, save: noteSave };
 }
 
-// Shared back button for narrow-mode detail panes -- the word-detail pane
-// (below) and the free-lookup result view both need the identical control:
-// same icon, same exit-narrow-mode-and-clear-to-empty behavior.
-function _pbpVocabBuildBackBtn() {
-  const back = document.createElement("button");
-  back.type = "button";
-  back.className = "btn btn-sm vocab-detail-back";
-  // Icon: cross (the close/dismiss family — closing the detail IS the gesture;
-  // the registry has no arrowLeft, and arrowUp/Down are scroll semantics here).
-  setBtnIcon(back, "cross", t("libraryBack"));
-  back.addEventListener("click", () => {
-    document.body.classList.remove("lib-narrow-detail");
-    _pbpVocabRenderDetail(null);
-  });
-  return back;
+// The back button is static markup at the top of the pane now, wired once --
+// it used to be rebuilt inside #vocab-detail on every render, which meant it
+// existed only when the pane had CONTENT. Arriving in narrow mode with
+// nothing selected (which the lookup door below does on purpose) was then a
+// dead end with no way back to the list.
+{
+  const back = $id("vocab-detail-back");
+  if (back) {
+    // Icon + label live in the markup (data-ic / data-i18n), not in a
+    // setBtnIcon call here: this runs at module load, where t() can only fall
+    // back to the BROWSER locale -- applyI18n has not yet loaded the user's
+    // chosen UI language. Everything static on this page takes its text the
+    // same way for that reason.
+    back.addEventListener("click", () => {
+      document.body.classList.remove("lib-narrow-detail");
+      _pbpVocabRenderDetail(null);
+    });
+  }
 }
 
 // Renders the master-detail right pane for the activated word (or clears it
@@ -410,8 +413,8 @@ function _pbpVocabRenderDetail(w, enterNarrow) {
 
   const frag = document.createDocumentFragment();
 
-  // 0. Back button (narrow mode only)
-  frag.appendChild(_pbpVocabBuildBackBtn());
+  // (The narrow-mode back button is static markup at the top of the PANE now,
+  // so it survives every state this host can be in -- including empty.)
 
   // 1. Word head: term + language chip + speak
   const head = document.createElement("div");
@@ -609,7 +612,7 @@ function _pbpVocabRenderDetail(w, enterNarrow) {
   // activation passes through: a row click is the primary way into narrow
   // mode, and the head button it started from has just been hidden with the
   // rest of the list.
-  if (enterNarrow) _pbpVocabFocusNarrowBack(detail);
+  if (enterNarrow) _pbpVocabFocusNarrowBack();
 }
 
 // On-demand dictionary re-lookup inside the detail pane. Reuses md-dict's
@@ -790,7 +793,6 @@ function _pbpVocabFreeLookup() {
   document.body.classList.add("lib-narrow-detail"); // narrow mode shows the result pane
 
   const frag = document.createDocumentFragment();
-  frag.appendChild(_pbpVocabBuildBackBtn());
 
   const head = document.createElement("div");
   head.className = "vocab-detail-head";
@@ -875,7 +877,7 @@ function _pbpVocabFreeLookup() {
   // than the result heading claims. A language change re-submits on its own.
   const run = () => _pbpVocabDictRun(term, lang, { localEl, onlineEl }, "", run);
   run();
-  _pbpVocabFocusNarrowBack(detail);
+  _pbpVocabFocusNarrowBack();
 }
 
 // Narrow (single-pane) mode. Mirrors library.css's 860px threshold -- the CSS
@@ -892,9 +894,9 @@ function _pbpVocabNarrowMode() {
 // was focused to get here (a row's head button, the lookup box). Chrome then
 // drops focus to <body>, so the next Tab restarts at the top of the page with
 // no way back. Hand it to the one control that returns to the list.
-function _pbpVocabFocusNarrowBack(host) {
-  if (!host || !_pbpVocabNarrowMode()) return;
-  const back = host.querySelector(".vocab-detail-back");
+function _pbpVocabFocusNarrowBack() {
+  if (!_pbpVocabNarrowMode()) return;
+  const back = $id("vocab-detail-back");
   if (!back) return;
   try { back.focus({ preventScroll: true }); } catch (_) { back.focus(); }
 }
@@ -1617,6 +1619,17 @@ for (const chipId of ["vocab-stat-learning", "vocab-stat-known"]) {
 // _pbpVocabWireLookupBar's own comment -- no per-render rebuild, so no
 // "already wired" guard is needed here either).
 _pbpVocabWireLookupBar();
+// Narrow-screen door to the lookup row. Below 860px the detail pane is
+// display:none until `lib-narrow-detail` is on the body, so the list needs
+// one control that flips into the pane and puts the caret where the user was
+// heading. Nothing is looked up here -- it opens the tool, it does not run it.
+const _vocabLookupNarrow = $id("vocab-lookup-narrow");
+if (_vocabLookupNarrow) _vocabLookupNarrow.addEventListener("click", () => {
+  document.body.classList.add("lib-narrow-detail");
+  const input = $id("vocab-lookup-input");
+  if (!input) return;
+  try { input.focus({ preventScroll: true }); } catch (_) { input.focus(); }
+});
 // Sort only reorders the same visible set: keep the selection (desktop
 // convention), reset the shift anchor -- a range from a pre-sort anchor
 // would span an arbitrary interval in the new visual order.

@@ -3527,7 +3527,7 @@
   "libraryTitle": { "message": "筆記與生詞本" },
   "libraryOpen": { "message": "開啟筆記與生詞本" },
   "libraryDetailTitle": { "message": "詞條詳情" },
-  "libraryDetailEmpty": { "message": "在左側選擇一個詞以查看詳情。" },
+  "libraryDetailEmpty": { "message": "從清單中選一個詞，就能看到它的詳細內容。" },
   "libraryNotesDetailEmpty": { "message": "在左側選擇一則標記以閱讀。" },
   "libraryRelookup": { "message": "重新查詞典" },
   "libraryBack": { "message": "返回列表" },
@@ -3540,5 +3540,6 @@
   "libraryLookupAria": { "message": "詞典查詢" },
   "libraryLookupPlaceholder": { "message": "查詢任何詞語" },
   "libraryLookupGo": { "message": "查詞" },
+  "libraryLookupOpen": { "message": "查詢單字" },
   "libraryLookupSaved": { "message": "已在生詞庫 · 查看" }
 }

@@ -570,7 +570,15 @@ export const CHECKS = [
   // .vocab-batch-bar input[type="text"]'s already-shipped precedent)
   // instead of the button going up to md, since this is a compact
   // single-purpose search tool, not a standalone form field. ----
+  // The lookup row moved into the detail panel 2026-08-07; these two entries
+  // follow it there. Three controls, so two comparisons -- the field against
+  // the button was the pair that was mismatched when this row was first
+  // written, and the language <select> is the third leg that a single pair
+  // cannot see (it reaches the same height through the row's own stretch, not
+  // through its own padding, so it can drift independently).
   { surface: "library", page: "library.html", selector: "#vocab-lookup-input", state: "default",
+    expect: { heightEqWith: { selector: "#vocab-lookup-go", tolerancePx: 1 } } },
+  { surface: "library", page: "library.html", selector: "#vocab-lookup-lang", state: "default",
     expect: { heightEqWith: { selector: "#vocab-lookup-go", tolerancePx: 1 } } },
 
   // ---- vocab-group-inspect-report.md 2026-08-05 Finding 8: a higher-

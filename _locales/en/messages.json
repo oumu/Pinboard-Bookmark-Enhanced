@@ -3521,7 +3521,7 @@
   "libraryTitle": { "message": "Notes & Vocabulary" },
   "libraryOpen": { "message": "Open notes and vocabulary" },
   "libraryDetailTitle": { "message": "Word details" },
-  "libraryDetailEmpty": { "message": "Select a word on the left to see its details." },
+  "libraryDetailEmpty": { "message": "Pick a word from the list to see its details." },
   "libraryNotesDetailEmpty": { "message": "Select a highlight on the left to read it." },
   "libraryRelookup": { "message": "Look up again" },
   "libraryBack": { "message": "Back to list" },
@@ -3534,5 +3534,6 @@
   "libraryLookupAria": { "message": "Dictionary lookup" },
   "libraryLookupPlaceholder": { "message": "Look up any word" },
   "libraryLookupGo": { "message": "Look up" },
+  "libraryLookupOpen": { "message": "Look up a word" },
   "libraryLookupSaved": { "message": "In your vocabulary · view" }
 }

@@ -3527,7 +3527,7 @@
   "libraryTitle": { "message": "Bloc-notes et vocabulaire" },
   "libraryOpen": { "message": "Ouvrir le bloc-notes et le vocabulaire" },
   "libraryDetailTitle": { "message": "Détails du mot" },
-  "libraryDetailEmpty": { "message": "Sélectionnez un mot à gauche pour afficher ses détails." },
+  "libraryDetailEmpty": { "message": "Choisissez un mot dans la liste pour afficher ses détails." },
   "libraryNotesDetailEmpty": { "message": "Sélectionnez un surlignage à gauche pour le lire." },
   "libraryRelookup": { "message": "Chercher à nouveau" },
   "libraryBack": { "message": "Retour à la liste" },
@@ -3540,5 +3540,6 @@
   "libraryLookupAria": { "message": "Recherche dans le dictionnaire" },
   "libraryLookupPlaceholder": { "message": "Rechercher n'importe quel mot" },
   "libraryLookupGo": { "message": "Rechercher" },
+  "libraryLookupOpen": { "message": "Rechercher un mot" },
   "libraryLookupSaved": { "message": "Déjà dans votre vocabulaire · afficher" }
 }

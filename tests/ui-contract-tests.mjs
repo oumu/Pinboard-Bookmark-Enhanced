@@ -485,7 +485,7 @@ check(!read("anki-connect.js").includes("PBP_ANKI_ENDPOINT"),
     // Entering narrow mode hides whatever was focused to get there, so the
     // handoff belongs at the render root every activation passes through --
     // not at one call site.
-    /detail\.replaceChildren\(frag\);[\s\S]{0,400}if \(enterNarrow\) _pbpVocabFocusNarrowBack\(detail\)/.test(libraryVocabJs) &&
+    /detail\.replaceChildren\(frag\);[\s\S]{0,400}if \(enterNarrow\) _pbpVocabFocusNarrowBack\(\)/.test(libraryVocabJs) &&
     /function _pbpVocabFocusNarrowBack[\s\S]{0,400}focus\(\{ preventScroll: true \}\)/.test(libraryVocabJs),
     "library: narrow mode is entered by refresh renders, left by a visibility re-fire, or strands focus on <body>");
   // Notes rebuild everything on every activation; the SELECTED highlight and
@@ -970,6 +970,43 @@ for (const [file, css, ns] of [["popup.css", popupCss, "pp"], ["options.css", op
   // right-aligned an EMPTY span and left Select all mid-row.
   check(/\.vocab-ctx-text \{[^}]*flex: 1 1 auto/.test(libraryCss),
     "library.css: .vocab-ctx-text stopped taking the count row's slack — Select all drifts back to the middle of the line");
+}
+// Lookup row moved into the detail panel (2026-08-07, L1). It filters nothing,
+// and its result renders in #vocab-detail -- a control belongs where its
+// output appears, and beside the search box it read as a second search box.
+{
+  const paneStart = libraryHtml.indexOf('id="vocab-detail-pane"');
+  const paneEnd = libraryHtml.indexOf("</aside>", paneStart);
+  const pane = paneStart < 0 ? "" : libraryHtml.slice(paneStart, paneEnd);
+  check(pane.includes('id="vocab-lookup-bar"') && pane.includes('id="vocab-detail-back"'),
+    "library.html: the lookup row and/or the back button left the detail pane — the lookup row must live where its result renders, and the back button must exist in EVERY pane state (empty included)");
+  // De-islanded. These declarations sat on an ID selector, which is why the
+  // mockup's class-level override was silently outranked twice; the fix is
+  // that they are gone from the ID rule, not fought from a class.
+  const bar = /#vocab-lookup-bar \{([^}]*)\}/.exec(libraryCss);
+  check(!!bar && !/background:/.test(bar[1]) && !/border-radius:/.test(bar[1]) &&
+    !/\bborder:/.test(bar[1]) && !/padding:\s/.test(bar[1]),
+    "library.css: #vocab-lookup-bar grew its island back (background / border / radius / padding) — on the panel that is a box inside a box, and its right edge misses the reading column by its own padding and border");
+  // The pane is a grid whose default justify-items is stretch, so a direct
+  // child button spans the whole 66ch reading column without this.
+  check(/\.vocab-detail-back \{[^}]*justify-self: start/.test(libraryCss),
+    "library.css: .vocab-detail-back lost `justify-self: start` — as a direct grid child of the pane it stretches across the entire reading column");
+  // The narrow door: list-side entry, gated to the single-pane range, and it
+  // opens the tool rather than running it.
+  check(/@media \(max-width: 860px\) \{[\s\S]*?\.vocab-filter-row > \.vocab-lookup-narrow \{ display: inline-flex; \}[\s\S]*?\n\}/.test(libraryCss) &&
+    /\.vocab-filter-row > \.vocab-lookup-narrow \{ display: none;/.test(libraryCss),
+    "library.css: the narrow lookup door is not media-gated to the single-pane range (it is the door to a pane that is only hidden down there)");
+  check(/_vocabLookupNarrow\.addEventListener\("click", \(\) => \{\s*\n\s*document\.body\.classList\.add\("lib-narrow-detail"\);[\s\S]{0,200}?input\.focus\(/.test(libraryVocabJs),
+    "library-vocab.js: the narrow lookup door stopped opening the pane and focusing the lookup box");
+  check(/id="vocab-lookup-narrow"[^>]*data-i18n-title=/.test(libraryHtml) &&
+    /id="vocab-lookup-narrow"[^>]*aria-label=/.test(libraryHtml) &&
+    /id="vocab-lookup-narrow"[^>]*title=/.test(libraryHtml),
+    "library.html: the icon-only narrow lookup door lost its title/aria-label (icon-only buttons carry both, always)");
+  // The empty-state copy must not name a direction: below 860px the page is
+  // one column and there is no "left".
+  const enMsgs = JSON.parse(read("_locales/en/messages.json"));
+  check(!/\bleft\b/i.test(enMsgs.libraryDetailEmpty.message),
+    "_locales/en: libraryDetailEmpty points at a direction again — in the single-pane layout there is nothing to the left of anything");
 }
 // Note editor (2026-08-06): the save button must stay IN LAYOUT while hidden.
 // `display: none` is what made the textarea jump narrower on the first

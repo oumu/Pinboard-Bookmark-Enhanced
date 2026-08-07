@@ -65,18 +65,13 @@
           <button type="button" class="btn btn-sm vocab-sort-btn" id="vocab-sort-time" aria-pressed="true" data-i18n-title="vocabSortOldest" data-i18n-aria="vocabSortOldest" aria-label="Least recently updated" title="Least recently updated"><span class="btn-ic" data-ic="clockArrowDown"></span></button>
           <button type="button" class="btn btn-sm vocab-sort-btn" id="vocab-sort-alpha" aria-pressed="false" data-i18n-title="vocabSortAz" data-i18n-aria="vocabSortAz" aria-label="A–Z" title="A–Z"><span class="btn-ic" data-ic="arrowDownAZ"></span></button>
         </span>
-      </div>
-      <!-- Free dictionary lookup (lookup-only, no save path): shares the
-           notes-toolbar + vocab-filter-toolbar row/control family (flex
-           row, input/select recipe, chevron, dark-theme overrides) instead
-           of duplicating that CSS for a third near-identical bar. Results
-           render into the detail pane on the right (or take over the
-           single-pane view below 860px), same host #vocab-detail owns as
-           an activated word. -->
-      <div id="vocab-lookup-bar" class="notes-toolbar vocab-filter-toolbar vocab-lookup-bar" role="search" data-i18n-aria="libraryLookupAria" aria-label="Dictionary lookup">
-        <input type="search" id="vocab-lookup-input" data-i18n-placeholder="libraryLookupPlaceholder" data-i18n-aria="libraryLookupPlaceholder" aria-label="Look up any word" placeholder="Look up any word" autocomplete="off" />
-        <select id="vocab-lookup-lang" data-i18n-aria="dictLangAria" aria-label="Dictionary language"></select>
-        <button type="button" class="btn btn-sm" id="vocab-lookup-go" data-i18n-title="libraryLookupGo" data-i18n-aria="libraryLookupGo" aria-label="Look up" title="Look up"><span class="btn-ic" data-ic="book"></span></button>
+        <!-- Narrow-screen door to the lookup row, which lives in the detail
+             pane and is display:none below 860px until the body class flips.
+             One button, never the whole row: the input and the language
+             picker stay in the panel where the result appears. A full 12px
+             step clear of the sort segment so the three do not read as one
+             welded three-cell control. -->
+        <button type="button" class="btn btn-sm vocab-lookup-narrow" id="vocab-lookup-narrow" data-i18n-title="libraryLookupOpen" data-i18n-aria="libraryLookupOpen" aria-label="Look up a word" title="Look up a word"><span class="btn-ic" data-ic="book"></span></button>
       </div>
       <!-- Stats strip, information only, computed from the full owner row set
            (not the filtered view). The two status counts became filter chips
@@ -148,7 +143,25 @@
       </div>
         </div>
         <aside class="vocab-detail-pane" id="vocab-detail-pane" aria-label="Word details" data-i18n-aria="libraryDetailTitle">
-          <div class="vocab-detail-empty" id="vocab-detail-empty" data-i18n="libraryDetailEmpty">Select a word on the left to see its details.</div>
+          <!-- Back to the list, narrow mode only. Hoisted out of #vocab-detail
+               (where it was built per render) so it exists in EVERY panel
+               state: arriving here from the narrow lookup door with nothing
+               selected used to be a dead end with no way back. `justify-self`
+               is load-bearing -- the pane is a grid and would otherwise
+               stretch this button across the whole reading column. -->
+          <button type="button" class="btn btn-sm vocab-detail-back" id="vocab-detail-back" data-i18n-title="libraryBack" data-i18n-aria="libraryBack" aria-label="Back to list" title="Back to list"><span class="btn-ic" data-ic="cross"></span><span data-i18n="libraryBack">Back to list</span></button>
+          <!-- Free dictionary lookup (lookup-only, no save path). It lives at
+               the top of the panel, not in the list header: it filters
+               nothing, and its result renders right below it in #vocab-detail.
+               Bare row, no island -- it sits directly on the panel and shares
+               the panel's reading column, so its right edge lines up with the
+               word head, the note box and the closing action row. -->
+          <div id="vocab-lookup-bar" class="vocab-filter-toolbar vocab-lookup-bar" role="search" data-i18n-aria="libraryLookupAria" aria-label="Dictionary lookup">
+            <input type="search" id="vocab-lookup-input" data-i18n-placeholder="libraryLookupPlaceholder" data-i18n-aria="libraryLookupPlaceholder" aria-label="Look up any word" placeholder="Look up any word" autocomplete="off" />
+            <select id="vocab-lookup-lang" data-i18n-aria="dictLangAria" aria-label="Dictionary language"></select>
+            <button type="button" class="btn btn-sm" id="vocab-lookup-go" data-i18n-title="libraryLookupGo" data-i18n-aria="libraryLookupGo" aria-label="Look up" title="Look up"><span class="btn-ic" data-ic="book"></span></button>
+          </div>
+          <div class="vocab-detail-empty" id="vocab-detail-empty" data-i18n="libraryDetailEmpty">Pick a word from the list to see its details.</div>
           <div class="vocab-detail" id="vocab-detail" hidden></div>
         </aside>
       </div>

@@ -3527,7 +3527,7 @@
   "libraryTitle": { "message": "Заметки и словарик" },
   "libraryOpen": { "message": "Открыть заметки и словарик" },
   "libraryDetailTitle": { "message": "Подробности о слове" },
-  "libraryDetailEmpty": { "message": "Выберите слово слева, чтобы увидеть подробности." },
+  "libraryDetailEmpty": { "message": "Выберите слово из списка, чтобы увидеть подробности." },
   "libraryNotesDetailEmpty": { "message": "Выберите выделение слева, чтобы прочитать его." },
   "libraryRelookup": { "message": "Найти снова" },
   "libraryBack": { "message": "Назад к списку" },
@@ -3540,5 +3540,6 @@
   "libraryLookupAria": { "message": "Поиск в словаре" },
   "libraryLookupPlaceholder": { "message": "Найти любое слово" },
   "libraryLookupGo": { "message": "Найти" },
+  "libraryLookupOpen": { "message": "Найти слово" },
   "libraryLookupSaved": { "message": "Уже в словарике · показать" }
 }

@@ -44,11 +44,7 @@ body.test-narrow-back .vocab-detail-back{display:inline-flex}
           <button type="button" class="btn btn-sm vocab-sort-btn" id="vocab-sort-time" aria-pressed="true" data-i18n-title="vocabSortOldest" data-i18n-aria="vocabSortOldest" aria-label="Least recently updated" title="Least recently updated"><span class="btn-ic" data-ic="clockArrowDown"></span></button>
           <button type="button" class="btn btn-sm vocab-sort-btn" id="vocab-sort-alpha" aria-pressed="false" data-i18n-title="vocabSortAz" data-i18n-aria="vocabSortAz" aria-label="A-Z" title="A-Z"><span class="btn-ic" data-ic="arrowDownAZ"></span></button>
         </span>
-      </div>
-      <div id="vocab-lookup-bar" class="notes-toolbar vocab-filter-toolbar vocab-lookup-bar" role="search" aria-label="Dictionary lookup">
-        <input type="search" id="vocab-lookup-input" aria-label="Look up any word" autocomplete="off" />
-        <select id="vocab-lookup-lang" aria-label="Dictionary language"></select>
-        <button type="button" class="btn btn-sm" id="vocab-lookup-go" aria-label="Look up" title="Look up"><span class="btn-ic" data-ic="book"></span></button>
+        <button type="button" class="btn btn-sm vocab-lookup-narrow" id="vocab-lookup-narrow" aria-label="Look up a word" title="Look up a word"><span class="btn-ic" data-ic="book"></span></button>
       </div>
       <div id="vocab-stats" class="vocab-stats" hidden>
         <span class="vocab-stat" id="vocab-stat-total"></span>
@@ -89,7 +85,13 @@ body.test-narrow-back .vocab-detail-back{display:inline-flex}
       </div>
     </div>
     <aside class="vocab-detail-pane" id="vocab-detail-pane" aria-label="Word details">
-      <div class="vocab-detail-empty" id="vocab-detail-empty">Select a word on the left to see its details.</div>
+      <button type="button" class="btn btn-sm vocab-detail-back" id="vocab-detail-back" aria-label="Back to list" title="Back to list"><span class="btn-ic" data-ic="cross"></span><span>Back to list</span></button>
+      <div id="vocab-lookup-bar" class="vocab-filter-toolbar vocab-lookup-bar" role="search" aria-label="Dictionary lookup">
+        <input type="search" id="vocab-lookup-input" aria-label="Look up any word" autocomplete="off" />
+        <select id="vocab-lookup-lang" aria-label="Dictionary language"></select>
+        <button type="button" class="btn btn-sm" id="vocab-lookup-go" aria-label="Look up" title="Look up"><span class="btn-ic" data-ic="book"></span></button>
+      </div>
+      <div class="vocab-detail-empty" id="vocab-detail-empty">Pick a word from the list to see its details.</div>
       <div class="vocab-detail" id="vocab-detail" hidden></div>
     </aside>
   </div>
@@ -376,17 +378,39 @@ check("lookup bar wiring populates the language select with no Auto leg",
       _pbpVocabNarrowMode = () => true;
       $id("vocab-lookup-input").value = "focusme";
       _pbpVocabFreeLookup();
-      check("a narrow-mode lookup moves focus to the result pane's back button",
-        document.activeElement === $id("vocab-detail").querySelector(".vocab-detail-back"));
+      check("a narrow-mode lookup moves focus to the pane's back button",
+        document.activeElement === $id("vocab-detail-back"));
       // The PRIMARY narrow entry, and the one the lookup-only fix missed: a
       // row click hides the list the head button it started from lives in.
       const narrowRow = $id("vocab-list").querySelector('.vocab-card[data-vocab-id="lk-other"] .notes-card-head');
       narrowRow.focus();
       narrowRow.click();
-      check("a narrow-mode row click moves focus to the detail pane's back button",
+      check("a narrow-mode row click moves focus to the pane's back button",
         _pbpVocabDetailWordId === "lk-other" &&
-        document.activeElement === $id("vocab-detail").querySelector(".vocab-detail-back"),
+        document.activeElement === $id("vocab-detail-back"),
         document.activeElement && (document.activeElement.className || document.activeElement.tagName));
+      // The narrow-screen door. It opens the tool, it does not run it: the
+      // pane comes forward and the caret lands in the lookup box, with no
+      // lookup fired and no word activated.
+      _pbpVocabNarrowMode = () => true;
+      document.body.classList.remove("lib-narrow-detail");
+      _pbpVocabRenderDetail(null);
+      $id("vocab-lookup-narrow").click();
+      check("the narrow lookup door opens the pane and focuses the lookup box",
+        document.body.classList.contains("lib-narrow-detail") &&
+        document.activeElement === $id("vocab-lookup-input") &&
+        $id("vocab-detail").hidden === true && _pbpVocabDetailWordId === null,
+        document.activeElement && (document.activeElement.id || document.activeElement.tagName));
+      // ...and that state must not be a dead end. The back button used to be
+      // built only when #vocab-detail rendered CONTENT, so arriving here with
+      // an empty pane left no way back to the list.
+      check("the empty pane still offers a way back to the list",
+        !!$id("vocab-detail-back") &&
+        $id("vocab-detail-pane").contains($id("vocab-detail-back")) &&
+        getComputedStyle($id("vocab-detail-back")).display !== "none");
+      $id("vocab-detail-back").click();
+      check("the back button returns to the list from the empty pane",
+        !document.body.classList.contains("lib-narrow-detail"));
       _pbpVocabNarrowMode = () => false;
       $id("vocab-lookup-input").focus();
       $id("vocab-lookup-input").value = "stayput";

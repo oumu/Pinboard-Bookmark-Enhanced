@@ -3527,7 +3527,7 @@
   "libraryTitle": { "message": "Notatki i słówka" },
   "libraryOpen": { "message": "Otwórz notatki i słówka" },
   "libraryDetailTitle": { "message": "Szczegóły słówka" },
-  "libraryDetailEmpty": { "message": "Wybierz słówko po lewej, aby zobaczyć szczegóły." },
+  "libraryDetailEmpty": { "message": "Wybierz słówko z listy, aby zobaczyć szczegóły." },
   "libraryNotesDetailEmpty": { "message": "Wybierz zaznaczenie po lewej, aby je przeczytać." },
   "libraryRelookup": { "message": "Sprawdź ponownie w słowniku" },
   "libraryBack": { "message": "Wróć do listy" },
@@ -3540,5 +3540,6 @@
   "libraryLookupAria": { "message": "Wyszukiwanie w słowniku" },
   "libraryLookupPlaceholder": { "message": "Sprawdź dowolne słowo" },
   "libraryLookupGo": { "message": "Sprawdź" },
+  "libraryLookupOpen": { "message": "Sprawdź słowo" },
   "libraryLookupSaved": { "message": "Już w słówkach · pokaż" }
 }
