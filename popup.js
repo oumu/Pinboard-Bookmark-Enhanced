@@ -387,8 +387,19 @@ async function showMain(token) {
   $id("title-input").value = pageInfo.title;
 
   // Check if URL is supported by Pinboard
-  // Tab set & batch save work regardless of current page URL
+  // Tab set, batch save, and the offline-queue bar all work regardless of
+  // current page URL -- the queue's own items already carry their own URLs,
+  // independent of whatever page the popup happens to be open on right now.
+  // (debt-sweep 2026-08-07: this used to sit after the `return` below, so it
+  // silently never ran at all on any unsupported-URL page -- chrome://,
+  // about:, file://, PDF viewer, or the popup's own extension:// URL, which
+  // is what every direct navigation to popup.html hits. A user with items
+  // stuck in the offline queue got no indication of them from any of those
+  // tabs, not a slow-loading one -- confirmed empirically: waiting 2s past
+  // the automatic call never showed the bar, only an explicit second
+  // PPOffline.refresh() call did.)
   setupTabSet();
+  showOfflineQueueStatus();
 
   const isUnsupportedUrl = !pageInfo.url || (!pageInfo.url.startsWith("http://") && !pageInfo.url.startsWith("https://"));
   if (isUnsupportedUrl) {
@@ -888,7 +899,6 @@ async function htmlToMarkdownAsync(html, opts) {
   if (settings.optShowRecent) fetchRecentBookmarks(token);
 
   document.querySelector(".tags-input-wrap")?.addEventListener("click", () => $id("tags-input").focus());
-  showOfflineQueueStatus();
 
   // Focus optimization: tags input for new bookmarks, description for existing
   setTimeout(() => {
