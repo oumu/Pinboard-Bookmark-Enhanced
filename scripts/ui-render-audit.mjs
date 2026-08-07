@@ -182,6 +182,27 @@ function probeSelector({ selector, compareSelector, extraBgVarName, radiusVarNam
         borderColors: [ccs.borderTopColor, ccs.borderRightColor, ccs.borderBottomColor, ccs.borderLeftColor],
         radii: [ccs.borderTopLeftRadius, ccs.borderTopRightRadius, ccs.borderBottomRightRadius, ccs.borderBottomLeftRadius].map((v) => parseFloat(v) || 0),
         background: ccs.backgroundColor,
+        // Feeds edgeClickable (independent review F2, hit-area-debt): a
+        // ::before hit-pad's computed width/height (what hitAreaMin reads)
+        // proves the BOX got bigger, not that a real pointer event lands
+        // there -- a fused shell's `overflow: hidden` clips exactly that
+        // silently (F1's own root cause). Two points just past this cell's
+        // own top edge (§1.5's pads on these two shells are vertical-only,
+        // so that is the one direction with something to prove), offset
+        // ±3px from centre so a seam-adjacent miscalculation would show up
+        // as a hit on the WRONG cell rather than a coincidental hit on
+        // either. `elementFromPoint` must resolve inside this cell (itself
+        // or a descendant, e.g. its svg icon) at both points.
+        edgeHit: (() => {
+          const r = c.getBoundingClientRect();
+          const cx = r.left + r.width / 2, y = r.top - 1;
+          const pts = [[cx - 3, y], [cx + 3, y]];
+          const results = pts.map(([x, py]) => {
+            const hit = document.elementFromPoint(x, py);
+            return { x: +x.toFixed(2), y: +py.toFixed(2), ok: !!hit && (hit === c || c.contains(hit)), hitPath: hit ? (hit.id ? "#" + hit.id : hit.className || hit.tagName) : null };
+          });
+          return { ok: results.every((p) => p.ok), points: results };
+        })(),
       };
     });
   }
@@ -813,18 +834,34 @@ function evaluateCheck(check, raw, theme) {
   // law explicitly permits.
   if (exp.fusedChildrenFlat) {
     const want = exp.fusedChildrenFlat.children || [];
+    // COMPONENTS.md §9.2 law 2 exception (independent review F1, hit-area-
+    // debt): law 1's "no independent radius" below has one documented carve-
+    // out -- the FIRST and LAST cell of a shell whose corners touch the
+    // shell's own rounded edge may round exactly those two OUTER corners
+    // (TL+BL for the first cell, TR+BR for the last) to nest concentrically
+    // inside it. Every other corner, on every cell, must still be exactly 0
+    // -- this is opt-in per checklist entry (`concentricEnds: true`) so
+    // every OTHER fused control (e.g. .notes-hit-btn) keeps the strict
+    // all-zero rule with no change here.
+    const concentricEnds = !!exp.fusedChildrenFlat.concentricEnds;
     const got = raw.children || [];
     const bad = [];
     const dividers = [];
-    for (const sel of want) {
+    want.forEach((sel, idx) => {
       const c = got.find((x) => x.sel === sel);
-      if (!c) { bad.push(`${sel}: not probed`); continue; }
-      if (!c.found) { bad.push(`${sel}: not found inside host`); continue; }
+      if (!c) { bad.push(`${sel}: not probed`); return; }
+      if (!c.found) { bad.push(`${sel}: not found inside host`); return; }
       const sides = c.borderWidths
         .map((w, i) => ({ w, style: c.borderStyles[i], color: c.borderColors[i] }))
         .filter((s) => s.w > 0 && s.style !== "none");
       if (sides.length > 1) bad.push(`${sel}: ${sides.length} border sides (max 1 divider)`);
-      if (c.radii.some((r) => r > 0)) bad.push(`${sel}: own border-radius ${c.radii.join("/")}`);
+      // Radii index order matches probeSelector's [TL, TR, BR, BL].
+      const allowedRadiusIdx = concentricEnds
+        ? (idx === 0 ? [0, 3] : idx === want.length - 1 ? [1, 2] : [])
+        : [];
+      if (c.radii.some((r, i) => r > 0 && !allowedRadiusIdx.includes(i))) {
+        bad.push(`${sel}: own border-radius ${c.radii.join("/")}`);
+      }
       // alpha 0 == "transparent". A passenger that paints its own resting
       // fill is drawing chrome, which is the shell's job. Selected cells are
       // exempt (see isSelected in probeSelector): their fill IS the selection
@@ -835,10 +872,37 @@ function evaluateCheck(check, raw, theme) {
         if (alpha > 0) bad.push(`${sel}: own resting background ${c.background}`);
       }
       for (const s of sides) dividers.push(`${s.w}px ${s.color}`);
-    }
+    });
     const uniqueDividers = [...new Set(dividers)];
     if (uniqueDividers.length > 1) bad.push(`dividers disagree: ${uniqueDividers.join(" vs ")}`);
     out.push(verdict("fusedChildrenFlat", bad.length === 0, bad.length ? bad.join("; ") : `${want.length} flat, divider=${uniqueDividers[0] || "none"}`, true));
+  }
+  // edgeClickable (independent review F2, hit-area-debt): hitAreaMin's
+  // family-4 sweep and this checklist's per-selector geometry both only
+  // read the ::before pad's COMPUTED width/height -- proof the BOX grew,
+  // not that a pointer event landed there. A fused shell's `overflow`
+  // clips exactly that silently (F1's own root cause: reverting
+  // `.vocab-sort-seg`/`.vocab-group-unit` to `overflow: hidden` leaves
+  // hitAreaMin's computed-style number unchanged while real clicks 1-2px
+  // past the border-box start missing). probeSelector already sampled two
+  // points just past each named cell's own top edge (§1.5's pads on these
+  // two shells are vertical-only) and recorded whether elementFromPoint
+  // resolved inside that cell; this just asserts the wired-through result.
+  if (exp.edgeClickable) {
+    const want = exp.edgeClickable.children || [];
+    const got = raw.children || [];
+    const bad = [];
+    for (const sel of want) {
+      const c = got.find((x) => x.sel === sel);
+      if (!c) { bad.push(`${sel}: not probed`); continue; }
+      if (!c.found) { bad.push(`${sel}: not found inside host`); continue; }
+      if (!c.edgeHit || !c.edgeHit.ok) {
+        const missed = (c.edgeHit?.points || []).filter((p) => !p.ok)
+          .map((p) => `(${p.x},${p.y})->${p.hitPath || "nothing"}`).join(", ");
+        bad.push(`${sel}: edge point(s) missed the cell -- ${missed || "no edgeHit data"}`);
+      }
+    }
+    out.push(verdict("edgeClickable", bad.length === 0, bad.length ? bad.join("; ") : `${want.length} cell(s), all edge points resolve inside`, true));
   }
   // law 2, measured on the shell while a passenger holds focus. Three things
   // have to hold at once, and the third is the one the user actually reported
@@ -1459,7 +1523,7 @@ async function runOneCheck(page, theme, check, results, extBase) {
     compareSelector: check.expect.heightEqWith?.selector || null,
     extraBgVarName: extraBgSelectorVar ? `--${NS_BY_SURFACE[check.surface]}-${extraBgSelectorVar}` : null,
     radiusVarName: check.expect.insetBand?.radiusVar ? `--${NS_BY_SURFACE[check.surface]}-${check.expect.insetBand.radiusVar}` : null,
-    childSelectors: check.expect.fusedChildrenFlat?.children || check.expect.fusedStateStableChildren || null,
+    childSelectors: check.expect.fusedChildrenFlat?.children || check.expect.fusedStateStableChildren || check.expect.edgeClickable?.children || null,
     focusTargetSelector: check.state === "focusWithin" ? check.focusTarget : null,
   });
   if (focusBaseline) raw.focusBaseline = focusBaseline;
@@ -2080,6 +2144,16 @@ async function runSweep(page, sw, extBase) {
   if (await notesHit.count()) {
     await notesHit.click(); await page.waitForTimeout(250);
     add(await page.evaluate(sweepProbe, SWEEP_CFG), "library", "notes-detail");
+  }
+  // Ctrl+click to open .notes-batch-bar.selecting (independent review F3):
+  // the sweep used to only single-click a notes row, so .notes-batch-bar's
+  // own buttons (including #notes-clear-selection, which shares vocab's
+  // "cross" glyph and its 23px hit-area shortfall) were never rendered in
+  // an on-screen, selected state and this debt was invisible to the gate.
+  // Same modifier-click contract as the vocab list above.
+  if (await notesHit.count()) {
+    await notesHit.click({ modifiers: ["Control"] }); await page.waitForTimeout(350);
+    add(await page.evaluate(sweepProbe, SWEEP_CFG), "library", "notes-batch-bar");
   }
 
   // ---- popup: default light + html.dark (the one surface-specific state

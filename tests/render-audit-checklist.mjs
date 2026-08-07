@@ -702,16 +702,32 @@ export const CHECKS = [
   // assertions anyway. The stepper half of the recipe is asserted on the
   // detail-pane twin below, whose steppers are never disabled; the CSS is
   // one shared rule, so coverage is not lost, only relocated.
+  // concentricEnds: true (independent review F1, hit-area-debt): the input
+  // (first/left) and #vocab-remove-group (last/right) now round their own
+  // OUTER corners to nest inside the shell (COMPONENTS.md §9.2 law 2) --
+  // #vocab-add-group, the middle cell, still has to be flat on all four.
+  // edgeClickable (independent review F2, hit-area-debt): hitAreaMin only
+  // reads the ::before pad's COMPUTED box, which stays the same number
+  // whether or not the shell's `overflow` actually lets a real pointer
+  // event reach it (F1's root cause) -- this asserts a point just past each
+  // stepper's own top edge resolves via elementFromPoint to that stepper,
+  // not the shell. RED-verified by reverting .vocab-group-unit's overflow
+  // to `hidden` (its pre-fix value): fails both points on both cells.
   { surface: "library", page: "library.html", selector: "#vocab-batch-toolbar .vocab-group-unit", state: "default",
-    expect: { fusedChildrenFlat: { children: ['input[type="text"]', "#vocab-add-group", "#vocab-remove-group"] } } },
+    expect: { fusedChildrenFlat: { children: ['input[type="text"]', "#vocab-add-group", "#vocab-remove-group"], concentricEnds: true },
+      edgeClickable: { children: ["#vocab-add-group", "#vocab-remove-group"] } } },
   { surface: "library", page: "library.html", selector: "#vocab-batch-toolbar .vocab-group-unit", state: "focusWithin",
     focusTarget: 'input[type="text"]', expect: { fusedFocusRing: true } },
   // Detail-pane twin. Its steppers carry no ids (library-vocab.js:418/428
   // builds them anonymously) so the passengers are addressed positionally,
   // and they are always enabled -- this is where all three tab stops get
   // exercised.
+  // Same concentricEnds exception as the batch-bar instance above -- one
+  // shared CSS rule (`.vocab-group-unit > input`/`:last-child`), so both
+  // DOM copies pick it up identically.
   { surface: "library", page: "library.html", selector: ".vocab-detail-pane .vocab-group-unit", state: "default",
-    expect: { fusedChildrenFlat: { children: ['input[type="text"]', ".vocab-group-step:nth-of-type(1)", ".vocab-group-step:nth-of-type(2)"] } } },
+    expect: { fusedChildrenFlat: { children: ['input[type="text"]', ".vocab-group-step:nth-of-type(1)", ".vocab-group-step:nth-of-type(2)"], concentricEnds: true },
+      edgeClickable: { children: [".vocab-group-step:nth-of-type(1)", ".vocab-group-step:nth-of-type(2)"] } } },
   { surface: "library", page: "library.html", selector: ".vocab-detail-pane .vocab-group-unit", state: "focusWithin",
     focusTarget: 'input[type="text"]', expect: { fusedFocusRing: true } },
   // The two steppers moved to fusedSegmentRing for the same reason the sort
@@ -730,8 +746,14 @@ export const CHECKS = [
   // takes text entry). Its pre-fix divider colour was driven by aria-pressed,
   // so fusedChildrenFlat's "dividers agree" clause is the live guard against
   // a state re-colouring the seam.
+  // concentricEnds: true (independent review F1, hit-area-debt): both cells
+  // are shell ends here (only 2 cells total), so both round their own OUTER
+  // corners -- #vocab-sort-time's left pair, #vocab-sort-alpha's right pair.
+  // edgeClickable (F2): same real-pointer-event assertion as the group unit
+  // above. RED-verified by reverting .vocab-sort-seg's overflow to `hidden`.
   { surface: "library", page: "library.html", selector: ".vocab-sort-seg", state: "default",
-    expect: { fusedChildrenFlat: { children: ["#vocab-sort-time", "#vocab-sort-alpha"] } } },
+    expect: { fusedChildrenFlat: { children: ["#vocab-sort-time", "#vocab-sort-alpha"], concentricEnds: true },
+      edgeClickable: { children: ["#vocab-sort-time", "#vocab-sort-alpha"] } } },
   // 2026-08-06: these two flipped from fusedFocusRing to fusedSegmentRing.
   // The shell ring is GONE by ruling, and the expectation had to move with
   // it -- a check still demanding "the shell shows an indicator" would have

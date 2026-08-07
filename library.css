@@ -1443,7 +1443,13 @@ html.motion-ready .vocab-note-save {
      `flex: 1 1 120px`.) */
   flex: 1 1 auto;
   border: 0;
-  border-radius: 0;
+  /* Concentric LEFT outer corners (COMPONENTS.md §9.2 law 2; same fix and
+     rationale as .vocab-sort-seg's end cells -- independent review F1,
+     hit-area-debt). This input is always the shell's first/left child, so
+     no :first-child qualifier is needed the way .vocab-group-step needs one
+     below. Right corners stay 0 (square): the "-" stepper sits flush
+     against this field's right edge. */
+  border-radius: calc(var(--lib-radius-md) - 1px) 0 0 calc(var(--lib-radius-md) - 1px);
   background: transparent;
   color: var(--lib-fg);
   box-sizing: border-box;
@@ -1608,11 +1614,20 @@ html[data-theme="rose-pine"] .vocab-filter-row select {
      a synthetic repro of this exact shape (stretch child, zero slack, no
      margin) silently swallowed clicks 1.5px past the border-box while an
      identical rect with `overflow-clip-margin` answered them correctly.
-     The margin only widens where CLIPPING STOPS; it paints nothing itself,
-     so the pressed cell's own corner-rounding (the reason this container
-     clips at all) is pixel-identical with or without it -- only the
-     invisible ::before below benefits. 2px covers the 1px each cell's
-     ::before needs (§8 law: vertical-only, the seam stays untouched). */
+     CORRECTION (independent review F1): an earlier version of this comment
+     claimed the margin was visually free because "the pressed cell's own
+     corner-rounding is unaffected" -- FALSE, disproved by a 4x-DPI pixel
+     diff. `overflow-clip-margin` does not just relocate the clip edge, it
+     ENLARGES the effective corner radius there by the margin amount, so a
+     square-filled cell (any `aria-pressed="true"` cell, which is the REST
+     state for #vocab-sort-time) shows measurably more square corner than
+     the shell's own border-radius promises. The real fix is below: the two
+     end cells now carry their own concentric outer-corner radius, so their
+     fill is rounded on its own terms and no longer depends on this
+     property for anything but hit-testing. With that in place, the margin
+     really is visual-cost-free -- verified live, not just asserted. 2px
+     covers the 1px each cell's ::before needs (§8 law: vertical-only, the
+     seam stays untouched). */
   overflow: clip;
   overflow-clip-margin: 2px;
   transition: border-color var(--motion-state), box-shadow var(--motion-state);
@@ -1639,6 +1654,28 @@ html[data-theme="rose-pine"] .vocab-filter-row select {
   border-radius: 0;
   background: transparent;
   color: var(--lib-fg-muted);
+}
+/* Concentric outer corners (COMPONENTS.md §9.2 law 2, "内半径 = 外半径 − 内距"):
+   independent review F1 (hit-area-debt) found that the shell's `overflow:
+   clip` + `overflow-clip-margin` fix below, while correct for HIT-TESTING,
+   quietly started doing double duty as the ONLY thing that rounded these two
+   cells' end corners -- and clip-margin ENLARGES the effective clip radius
+   by the margin amount at the exact corners it's supposed to leave alone,
+   so a nonzero margin measurably rounds LESS of the pressed cell's square
+   fill than the shell's own `border-radius` promises (real pixel diffs,
+   worst on `aria-pressed="true"`, which #vocab-sort-time carries at rest).
+   Fix: give each END cell its own OUTER-corner radius directly, so its fill
+   is rounded independent of anything the shell clips. `calc(radius - 1px)`
+   is the law's own formula, not an invented value -- 1px is the shell's own
+   `border` width immediately above, and a cell sits flush against that
+   border's inner edge with zero additional inset. The SEAM-facing corners
+   stay square (0), preserving law 1 ("no independent radius") on the one
+   side that's actually welded to a neighbour. */
+.vocab-sort-seg > .vocab-sort-btn:first-child {
+  border-radius: calc(var(--lib-radius-md) - 1px) 0 0 calc(var(--lib-radius-md) - 1px);
+}
+.vocab-sort-seg > .vocab-sort-btn:last-child {
+  border-radius: 0 calc(var(--lib-radius-md) - 1px) calc(var(--lib-radius-md) - 1px) 0;
 }
 /* One divider, on the cell that has a left neighbour. Its colour no longer
    depends on either cell's pressed state. */
@@ -1893,11 +1930,18 @@ html.motion-ready .notes-batch-bar.selecting {
    No clip risk (verified live): this row is align-items:center, not stretch,
    so even the 20px-tall siblings sit with ~7px of slack before touching
    .vocab-batch-bar's own `overflow: clip` edge -- nothing like
-   .vocab-sort-seg/.vocab-group-unit's zero-slack stretch shape above. */
+   .vocab-sort-seg/.vocab-group-unit's zero-slack stretch shape above.
+   #notes-clear-selection joins this group (independent review F3): it is
+   the exact same "cross" glyph on the exact same -3px rule above, but the
+   render-audit sweep only single-clicks a notes row (never Ctrl+clicks to
+   open .notes-batch-bar.selecting), so this 23px debt was invisible to the
+   gate -- fixed here alongside the widened sweep coverage below. */
 #vocab-mark-known,
 #vocab-mark-learning,
 #vocab-batch-delete,
-#vocab-clear-selection { position: relative; }
+#vocab-clear-selection,
+#notes-clear-selection { position: relative; }
+#notes-clear-selection::before { content: ""; position: absolute; inset: -3.5px 0; }
 #vocab-mark-known::before,
 #vocab-mark-learning::before,
 #vocab-batch-delete::before,
@@ -1932,11 +1976,19 @@ html.motion-ready .notes-batch-bar.selecting {
      `align-items: stretch`-ed to fill this shell's content box exactly
      (zero slack), so a plain `overflow: hidden` clips a ::before hit-pad's
      hit-testing the moment it grows past the cell's own box -- verified
-     live against a synthetic repro of this exact shape. The margin only
-     widens where clipping STOPS; it paints nothing, so the input's/cells'
-     own corner-rounding (the reason this container clips at all) is
-     unaffected -- only the invisible ::before below benefits. 4px covers
-     the 3.5px each stepper's ::before needs. */
+     live against a synthetic repro of this exact shape.
+     CORRECTION (independent review F1): this comment used to claim the
+     margin was visually free -- FALSE, disproved by a 4x-DPI pixel diff on
+     an ENABLED remove-group cell (hover/focus, only reachable once the
+     group name field is non-empty; the disabled rest state happened to
+     look identical, which is how this got missed the first time).
+     `overflow-clip-margin` enlarges the effective corner radius at the
+     clip edge by the margin amount, so it un-rounds a filled cell's square
+     corner measurably. Real fix: the input (left end) and
+     .vocab-group-step:last-child (right end) below now carry their own
+     concentric outer-corner radius, so the margin is genuinely visual-
+     cost-free -- verified live, not just asserted. 4px covers the 3.5px
+     each stepper's ::before needs. */
   overflow: clip;
   overflow-clip-margin: 4px;
   transition: border-color var(--motion-state) ease, box-shadow var(--motion-state) ease;
@@ -1994,6 +2046,14 @@ html.motion-ready .notes-batch-bar.selecting {
      derived for exactly this background (§6.2), which is also what the
      input's own text uses one pixel to the left. */
   color: var(--lib-fg);
+}
+/* Concentric RIGHT outer corners (COMPONENTS.md §9.2 law 2; independent
+   review F1, hit-area-debt) -- only the LAST step (remove-group) touches
+   the shell's right edge; add-group is a middle cell and correctly stays
+   square on both sides via the base rule above. Same formula and rationale
+   as .vocab-sort-seg's end cells and the input's left corners above. */
+.vocab-group-unit > .vocab-group-step:last-child {
+  border-radius: 0 calc(var(--lib-radius-md) - 1px) calc(var(--lib-radius-md) - 1px) 0;
 }
 /* §1.5 hit-area expansion, vertical-only (§8's fused-control law: a hit-pad
    may never cross the seam between the input and a cell, or between the two
