@@ -52,10 +52,9 @@
   `.danger` 全族配方，token 名差异（popup 用 `--pp-btn-bd` / `--pp-input-bd`）由
   `ui-components.mjs` 的 `TOKEN_ALIAS` 解决。**剩下的是消费侧**：给某颗按钮加 `class="btn"` 是一次
   有布局后果的迁移，因此逐颗做。已迁：`#submit-btn`（`.btn`）、`.del-btn`（`.btn danger`）。
-  未迁、仍走手写配方：`qbtn`、`preset-btn`、`fc-btn`（+`fc-btn-secondary`）、`md-strip-btn`，
-  以及 `action-link` / `clear-all-link` / `offline-clear` / `header-ic` 等链接态与图标态变体。
-  未迁的原因逐条记在 `.superpowers/sdd/2026-08-07-popup-buttons/construction-report.md`，
-  都是**待裁决的设计分岔**（阶位不合身、族配方定色与语境冲突），不是漏做。
+  未迁、仍走手写配方的四套是**登记在案的变体**，不是漏做——逐条见下表（controller 裁决
+  2026-08-07）。另有 `action-link` / `clear-all-link` / `offline-clear` / `header-ic` 等链接态与
+  图标态变体，它们没有按钮 chrome，本来就不属于本节。
 - 原文写的「按钮**手感**本战役一律不动」已推翻（用户裁决 A，2026-08-07）：popup 的按压语言收敛到
   唯一的 `scale(0.97)`，`#submit-btn` / `.qbtn` 的 hover 抬起（`translateY(-1px)`）连同承载它的
   `@media (hover:hover)` 块一并删除。§3.1 裁决表 5/6 相应改判，见该表。
@@ -66,6 +65,22 @@
   **这个缺陷对比度门永远看不见**（13 套 pilot 的 warn 对实测 4.5–5.2:1，全部达标），静态侧改由
   `tests/ui-contract-tests.mjs` 的类级门看管：手写区任何规则给 `.confirm-yes` 上色即 FAIL。
 - popup 的第二套确认弹层 `.del-confirm-popover` 同期退休，改调 `showConfirmPopover()`。
+
+**popup 按钮变体登记表**（controller 裁决 2026-08-07；这四套**永久**留在手写区，新增同类控件按此归类）：
+
+| 变体 | 为什么不迁 `.btn` | 与族语言的关系 |
+|---|---|---|
+| `.qbtn`（quick-row 等分条） | 三颗共享一行 550px 定宽、`flex: 1 1 auto` + `flex-wrap: wrap`。族配方的 `padding: 4px 16px` 每颗多 12px 水平内距，在长标签语种（de/fr）会折行——`popup.css` 的 wrap-not-truncate 样式就是为这个后果预留的 | **高度并轨**：`min-height: 26px` 钉在 md 阶（实测 24.30 → 26），与 submit bar 等高。水平内距（4px）与字号（11px）保持手写。press / focus / hover 已并轨。与 `.md-strip-btn` 同属「**等分条**」这一类：宽度由 `flex` 分配、内距不能按族配方给 |
+| `.md-strip-btn`（markdown 条，4 格） | 同为等分条（`flex: 1 1 0`），且 `height: 32px` 的 icon-only 方格在 `.btn` 的三个阶（md 26 / sm 20 / row）里**没有对应档**。命中区 32px 本来就达标 | press / focus 已并轨；几何是这一类自己的（32px 格） |
+| `.fc-btn`（+ `.fc-btn-secondary` / `.fc-dismiss`） | **语境着色变体**：它坐在 feedback card 上，卡片有 warn / ok / offline / info 四种变体色，按钮用 `border: 1px solid currentColor` + `color: inherit` 让整颗按钮的颜色跟着卡片走——这正是它在四种卡片上都可读的机制（文件注释记着：曾用 `--pp-fg-hint`，深色卡片上直接看不清）。`.btn` 会给它 `color: var(--pp-btn-fg)`、`.ghost` 会给它 `border-color: transparent`，两条都要在更高特异性上反向覆盖回去，迁完只剩 padding/radius 是族配方的 | press / focus 已并轨（focus 走 §7.3 `borderless`，因为那圈 `currentColor` 边是**语义**边）。颜色由语境提供，§7.1 的成对消费律在这颗按钮上由「卡片自己的 fg/bg 对」承担 |
+| `.preset-btn`（标签预设色板） | 几何是 pill，与 chip 族同形，但**颜色不同源**：它吃 `--pp-preset-btn-bg` / `--pp-preset-fg`，后者是 `contrast-audit` 的 `COMPONENT_PAIR_SPEC` 里 popup 专属的两行；chip 配方会把它换成 `--pp-chip-bg` / `--pp-chip-fg`。另有 `::before` 装饰点、`.used` 态语义，以及 §1.3 那段用户裁决史（边框粗细路线被否、改 2px accent 描边环） | press 早就是 `scale(0.97)`；focus 走 §7.3 `borderless`。**不并 chip 族** |
+
+**一处显式豁免**（同日裁决，宪法侧留档）：`#submit-btn:disabled` 显式写 `opacity: 1`，退出
+§3.1 裁决 9 的 `.btn:disabled { opacity: 0.45 }`。理由：这颗按钮不靠淡出表达禁用，它重绘成
+`--pp-btn-bg` 底 + `--pp-fg-hint` 字——一对专门为这个底做过对比度选择的灰；再叠 45% 会读成
+「坏了」而不是「不可用」，而 popup 开在 chrome:// 页面上时这是**每天都出现**的状态。同一条规则带
+`html[data-theme]` 孪生（(1,2,1)），否则预设下 `html[data-theme] #submit-btn` (1,1,1) 会压掉它，
+两层对「禁用长什么样」给出不同答案。这是 popup 侧唯一一处对组件语言的显式退出。
 
 ---
 

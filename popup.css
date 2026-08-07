@@ -113,7 +113,6 @@
   --pp-shadow-lg: 0 8px 24px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.06);
   --pp-shadow-focus: 0 0 0 2px color-mix(in srgb, var(--pp-accent) 25%, transparent);
 
-  --pp-hover-shadow: var(--pp-shadow-sm);
 
   /* === Batch 1 additions (2026-05-18 popup-uiux) === */
   --pp-info-bg: var(--pp-banner-bg);
@@ -304,7 +303,7 @@ input[type="checkbox"], input[type="radio"] {
 .status-ic { display: inline-flex; vertical-align: -2px; }
 .status-ic.ok { color: var(--pp-ok-fg, #2a8a2a); }
 .status-ic.bad { color: var(--pp-danger, #c0392b); }
-.status-ic svg, .add-all-link svg, .recent-bm-del svg, .offline-queue-remove svg, .offline-queue-retry svg { display: block; }
+.status-ic svg, .add-all-link svg, .recent-bm-del svg, .recent-bm-edit svg, .offline-queue-remove svg, .offline-queue-retry svg { display: block; }
 
 /* Early section visibility — popup-theme-early.js sets html[data-section] from a synchronous
    localStorage mirror so the right section paints immediately. Higher specificity than
@@ -566,7 +565,7 @@ html[data-section="login"] .quick-actions { display: none !important; }
   background: var(--pp-accent);
   flex-shrink: 0;
 }
-.preset-btn:hover { background: var(--pp-preset-btn-hover-bg); box-shadow: var(--pp-hover-shadow); }
+.preset-btn:hover { background: var(--pp-preset-btn-hover-bg); }
 /* Press language matches COMPONENTS.md §3's .btn family convention (scale,
    not translateY; kept OUT of the transition list above so press/release
    both read instantly, per §3's decision 1/2). popup has no .btn class of
@@ -953,11 +952,21 @@ html[data-theme] #submit-btn:disabled { background: var(--pp-btn-bg); border-col
   transition: background var(--pp-motion-state), color var(--pp-motion-state), border-color var(--pp-motion-state), box-shadow var(--pp-motion-state);
   font-family: inherit;
   line-height: 1.3;
+  /* md rung (26px), reached by min-height rather than by taking the family's
+     `padding: 4px 16px` (controller ruling D1, 2026-08-07). Three of these
+     share one 550px row with `flex: 1 1 auto` and `flex-wrap: wrap`; +12px of
+     horizontal padding each would fold the row in the longer locales, and the
+     wrap-not-truncate styling right above exists because that fold is real.
+     Horizontal padding and the 11px font stay hand-written; only the height
+     joins the ladder, so this button lines up with the submit bar (measured
+     24.30px before, 26px after -- a render assertion pins it to #submit-btn
+     rather than to a literal, because a drift off the rung is the failure
+     worth naming). */
+  min-height: 26px;
 }
 .qbtn:hover {
   background: var(--pp-btn-hover);
   color: var(--pp-link);
-  box-shadow: var(--pp-hover-shadow);
 }
 /* One press language for the whole popup (user ruling A, 2026-08-07 -- and
    COMPONENTS.md §3's "同族跨表面只有一种按压"). This used to be a third one:
@@ -1410,7 +1419,6 @@ html.dark {
   --pp-tag-hover: #344060;
   --pp-drop-hover: #26334d;
   --pp-danger: #e57373;
-  --pp-hover-shadow: 0 1px 2px rgba(120,150,255,0.15), 0 2px 8px rgba(120,150,255,0.18);
   /* Variant tokens (used by .feedback-card[data-variant=...]) */
   --pp-warn-bg: #392224;
   --pp-warn-bd: var(--pp-warn-bg);
@@ -1455,7 +1463,7 @@ html.dark {
 /* qbtn/submit surfaces sit on the bg2 quick-actions strip: --pp-bg would sink
    below the strip in dark mode, so lift them onto the input-bg tier instead. */
 html.dark .qbtn { background: var(--pp-input-bg); }
-html.dark .preset-btn:hover { background: var(--pp-drop-hover); box-shadow: var(--pp-hover-shadow); }
+html.dark .preset-btn:hover { background: var(--pp-drop-hover); }
 .stag { transition: color var(--pp-motion-state); }
 html.dark .stag.used { color: var(--pp-used-fg); }
 html.dark #desc-char-count.over-limit { color: var(--pp-danger); }
@@ -2432,14 +2440,13 @@ html[data-theme] .ac-new-hint:hover { background: var(--pp-drop-hover); color: v
 html[data-theme] .ac-hint-footer { color: var(--pp-fg-hint); border-top-color: var(--pp-border); background: var(--pp-bg2); }
 html[data-theme] .ac-hint-footer kbd { color: var(--pp-fg); background: var(--pp-bg); border-color: var(--pp-border); box-shadow: none; }
 html[data-theme] .qbtn { background: var(--pp-btn-bg); border-color: var(--pp-btn-bd); color: var(--pp-fg-muted); }
-html[data-theme] { --pp-hover-shadow: 0 1px 2px color-mix(in srgb, var(--pp-accent) 12%, transparent), 0 2px 6px color-mix(in srgb, var(--pp-accent) 18%, transparent); }
-html[data-theme] .qbtn:hover { background: var(--pp-btn-hover); color: var(--pp-link); box-shadow: var(--pp-hover-shadow); }
+html[data-theme] .qbtn:hover { background: var(--pp-btn-hover); color: var(--pp-link); }
 html[data-theme] .qbtn.saving { background: var(--pp-offline-bg); border-color: var(--pp-offline-bd); color: var(--pp-offline-fg); }
 html[data-theme] .qbtn.saved { background: var(--pp-ok-bg); border-color: var(--pp-ok-bd); color: var(--pp-ok-fg); }
 html[data-theme] .existing-banner { background: var(--pp-banner-bg); border-color: var(--pp-banner-bd); color: var(--pp-banner-fg); }
 html[data-theme] .url-warning { background: var(--pp-warn-bg); border-color: var(--pp-warn-bd); color: var(--pp-warn-fg); }
 html[data-theme] .preset-btn { color: var(--pp-preset-fg); background: var(--pp-preset-bg); }
-html[data-theme] .preset-btn:hover { background: var(--pp-drop-hover); box-shadow: var(--pp-hover-shadow); }
+html[data-theme] .preset-btn:hover { background: var(--pp-drop-hover); }
 html[data-theme] .preset-btn.used { color: var(--pp-fg-hint); background: var(--pp-bg2); }
 html[data-theme] .search-field { background: var(--pp-input-bg); color: var(--pp-fg); }
 html[data-theme] .search-field:focus { border-color: var(--pp-focus-bd); }
@@ -2611,7 +2618,7 @@ html[data-theme] .confirm-popover button:focus-visible { outline-color: var(--pp
   font-family: inherit;
 }
 .md-strip-btn .btn-ic { margin: 0; vertical-align: 0; }
-.md-strip-btn:hover { background: var(--pp-btn-hover); border-color: var(--pp-accent); box-shadow: var(--pp-hover-shadow); }
+.md-strip-btn:hover { background: var(--pp-btn-hover); border-color: var(--pp-accent); }
 .md-strip-btn:active:not(:disabled) { transform: scale(0.97); }
 .md-strip-btn:focus-visible { outline: none; border-color: var(--pp-focus-bd); box-shadow: var(--pp-focus-ring); }
 .md-strip-btn .btn-ic { display: inline-flex; }
@@ -2627,7 +2634,7 @@ html.dark .md-strip-btn:focus-visible { border-color: var(--pp-focus-bd); box-sh
 
 html[data-theme] .md-strip { background: var(--pp-bg2); border-color: var(--pp-divider); }
 html[data-theme] .md-strip-btn { background: var(--pp-btn-bg); border-color: var(--pp-btn-bd); color: var(--pp-link); }
-html[data-theme] .md-strip-btn:hover { background: var(--pp-btn-hover); box-shadow: var(--pp-hover-shadow); }
+html[data-theme] .md-strip-btn:hover { background: var(--pp-btn-hover); }
 html[data-theme] .md-strip-btn:focus-visible { border-color: var(--pp-focus-bd); box-shadow: var(--pp-focus-ring); }
 
 /* ===================== High-DPI Scaling ===================== */

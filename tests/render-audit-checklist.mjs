@@ -881,6 +881,19 @@ export const CHECKS = [
     expect: { textContrast: 4.5 } },
   { surface: "popup", page: "popup.html", selector: ".del-btn", state: "focusWithin",
     focusTarget: ":scope", expect: { focusRecipe: "bordered" } },
+
+  // .qbtn stays a hand-written "equal-share strip" variant -- three of them
+  // divide one 550px row, so the family's `padding: 4px 16px` would fold the
+  // row in the longer locales (COMPONENTS.md §0's popup variant table). What
+  // it DOES join is the height ladder, via min-height. Pinned to #submit-btn
+  // rather than to a literal 26: if this ever breaks, the interesting fact is
+  // "the quick row and the submit bar stopped agreeing", not "a number moved"
+  // -- and a literal would also have to be re-checked by hand every time the
+  // md rung moves. Measured 24.30px before the min-height landed, i.e. 1.7px
+  // off #submit-btn's 26 against a 1px tolerance: this entry fails on the
+  // pre-ruling geometry, which is the only reason it is worth having.
+  { surface: "popup", page: "popup.html", selector: ".qbtn", state: "default",
+    expect: { heightEqWith: { selector: "#submit-btn", tolerancePx: 1 } } },
 ];
 
 // Hand-copied literal `data-theme` values, verified at authoring time with:
