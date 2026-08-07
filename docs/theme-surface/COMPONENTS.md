@@ -211,9 +211,16 @@ composer 一旦开始发射 `color: var(--opt-btn-fg)`，它们会逐条覆盖�
 
 **适用**：三表面。design-uplift 期间这是 popup 唯一进生成区的结构规则；2026-08-07 起 popup 也发射
 按钮族与危险分级，`.btn-ic` 不再是孤例。两份配方的分野**依然成立**——popup 已迁到 `class="btn"` 的
-按钮才有 flex `gap` 可用，未迁的手写配方仍靠 `.btn-ic` 自己的 `margin-right`。**待办**：等某颗
-popup 按钮同时带 `class="btn"` 和 `.btn-ic` 时，`gap` 与 `margin-right` 会叠成 8px；已迁的两颗
-（`#submit-btn`/`.del-btn`）都是纯文字，暂未触发。
+按钮才有 flex `gap` 可用，未迁的手写配方仍靠 `.btn-ic` 自己的 `margin-right`。
+
+**`gap` 与 `margin-right` 会叠加，而且触发器不是 `.btn-ic`。** 这里原本写的是「等某颗 popup 按钮
+同时带 `class="btn"` 和 `.btn-ic` 时才会叠成 8px，已迁的两颗都是纯文字，暂未触发」——**实测证伪**
+（2026-08-07 独立复审）：`.btn` 是 flex 容器，`gap` 对**任何**flex item 生效，而 loading spinner
+的 `::before` 就是一个带 `margin-right` 的 flex item。submit bar 迁 `.btn` 之后 spinner→标签间距
+实测 4px → 8px（按钮宽 80.70 → 84.70），每次保存每次删除都出现。已修：那条 `margin-right` 交还给
+**非 flex 宿主**（`.action-link`）独有，flex 宿主的间距由 `gap` 单独负责。
+**规则**：`.btn` 宿主内的子盒一律不要自带 `margin`，间距归 `gap`；`.btn-ic` 的 `margin-right` 是
+同一叠加尚未兑现的另一个载体，给 popup 按钮加图标时先来读这一段。
 
 ### 2.1 结构配方
 
