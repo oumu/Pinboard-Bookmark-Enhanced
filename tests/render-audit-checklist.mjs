@@ -328,6 +328,45 @@ export const CHECKS = [
   { surface: "library", page: "library.html", selector: ".notes-list-pane", state: "paneFit",
     expect: { paneFit: { widths: [900, 960, 1024, 1100, 1200], tolerancePx: 1,
       panes: [".notes-list-pane", "#notes-detail-pane"] } } },
+  // Separate entry, NOT folded into the one above (debt-sweep 2026-08-07):
+  // headerRowsFlush only proves "flush single line" >=860px, where the
+  // single-pane threshold guarantees room for one. Below it wrapping is
+  // explicitly ALLOWED (the F5 fix, 473f324, gave .vocab-filter-row
+  // `flex-wrap: wrap` there) -- what still must never happen is the row
+  // pushing content past the pane's own box or forcing the pane itself to
+  // scroll horizontally, which is exactly what paneFit already measures
+  // (pastRightEdge / pastLeftEdge / paneScroll) for every element inside the
+  // pane, not just the four named header rows. F5 itself (93px overflow at
+  // 320, 53px at 360, caught only because the responsive fixture was for
+  // once aligned to real markup) is the simplest counter-example this
+  // closes: reintroduce `flex-wrap: nowrap` on `.vocab-filter-row` and
+  // paneScroll fires at both widths. `#vocab-detail-pane` is deliberately
+  // EXCLUDED from this entry's `panes` (unlike the one above): this is
+  // specifically the list-pane's OWN narrow-wrap contract, and needs
+  // `resetNarrowDetail` so it measures the list actually showing (see that
+  // flag's comment in drivePaneFit) rather than whatever `-detail-` check
+  // ran earlier in the same theme's batch and left `body.lib-narrow-detail`
+  // set -- the detail pane's OWN narrow-width behavior is a separate,
+  // unexamined question this entry does not answer.
+  // Selector deliberately distinct from the entry above ("(narrow)" suffix,
+  // not a real CSS selector) -- both are state:"paneFit" against the same
+  // element, and every paneFit result reports through the SAME literal
+  // check-type string ("paneFit", hardcoded in runOneCheck), so surface +
+  // theme + selector + state is the only thing keyOf() has left to tell two
+  // entries apart. An identical selector here would silently collide known-
+  // failures keys with the entry above.
+  { surface: "library", page: "library.html", selector: ".vocab-list-pane (narrow)", state: "paneFit",
+    expect: { paneFit: { widths: [320, 360], tolerancePx: 1, resetNarrowDetail: true,
+      panes: [".vocab-list-pane"] } } },
+  // followup3's "not fused into a third cell" ruling for the narrow-screen
+  // lookup door (library.css ".vocab-filter-row > .vocab-lookup-narrow")
+  // never had a gate (debt-sweep 2026-08-07). 500px: comfortably inside the
+  // <860px band where the door is display:inline-flex, and measured (this
+  // task) to keep the sort segment and door on one flex line without
+  // wrapping at every width down to 320 -- 500 is not a magic number, just a
+  // representative point in that always-one-line range.
+  { surface: "library", page: "library.html", selector: ".vocab-filter-row", state: "gapMin",
+    expect: { gapMin: { width: 500, fromSel: ".vocab-sort-seg", toSel: ".vocab-lookup-narrow", min: 12 } } },
 
   // ---- COMPONENTS.md §9 law 7 (real tabs). The header's two tabs used to be
   // buttons in tab clothing -- fill, border, radius-md -- which is what the
@@ -404,31 +443,46 @@ export const CHECKS = [
     expect: { iconContrast: 3, iconVCenter: 1 } },
   // .btn-ic's OWN box only ever contains its own svg -- comparing .btn-ic's
   // rect against its svg's rect for iconVCenter is a vacuous assertion
-  // (popup.css:137 `.btn-ic { display:inline-flex; align-items:center }`
+  // (popup.css's `.btn-ic { display:inline-flex; align-items:center }` rule
   // guarantees that child is always centered inside its own parent; the
   // diff is structurally 0 regardless of any real bug). iconContrast is the
   // real check here: color is inherited through the host (.header-ic sets
   // `color: var(--pp-fg-muted)`), so it genuinely exercises the token.
   { surface: "popup", page: "popup.html", selector: ".btn-ic", state: "default",
     expect: { iconContrast: 3 } },
-  // The actual defect-5 shape for popup is `.btn-ic`'s `vertical-align:-3px`
-  // (popup.css:137) -- a heuristic offset relative to the HOST button's own
-  // line box, not to .btn-ic's own interior. That only shows up when
-  // measured against the host, and only when the host isn't itself a flex
-  // container (a flex host makes `vertical-align` inert on its flex-item
-  // children, which is why `.header-ic`/`.qbtn`/`.clear-all-link` -- all
-  // `display:flex`+`align-items:center` -- do NOT reproduce it: verified by
-  // direct measurement, diff=0px on `.header-ic .btn-ic`). #offline-queue-clear
-  // (`.offline-clear`, popup.css:848) has no flex/display override at all,
-  // so its `.btn-ic` is positioned purely by the vertical-align hack --
-  // measured diff 1.7px against a 1px tolerance, a real, reproducible
-  // instance. Needs at least one offline-queue item to be visible
+  // The defect-5 shape was `.btn-ic`'s `vertical-align:-3px` (popup.css,
+  // `.btn-ic`'s own rule) -- a heuristic offset relative to the HOST
+  // button's own line box, not to .btn-ic's own interior. That only showed
+  // up when measured against the host, and only when the host wasn't itself
+  // a flex container (a flex host makes `vertical-align` inert on its
+  // flex-item children, which is why `.header-ic`/`.qbtn`/`.clear-all-link`
+  // -- all `display:flex`+`align-items:center` -- never reproduced it).
+  // `#offline-queue-clear` (`.offline-clear`) was the one member of this
+  // link-styled icon-button group that never got the declaration: 1.7px off
+  // centre on 15 themes, 2.7px on terminal (COMPONENTS.md's own account of
+  // this, popup.css's `.offline-clear` rule cites the same numbers). NOW
+  // FIXED (debt-sweep 2026-08-07 re-verified, but the fix itself predates
+  // this branch -- popup-buttons battle, `.offline-clear { display:
+  // inline-flex; align-items: center }`): re-measured diff is 0.004px, this
+  // key is no longer in known-failures.json, and this entry is a live
+  // regression guard against the fix regressing, not a description of an
+  // open defect. Needs at least one offline-queue item to be visible
   // (`#offline-queue-bar` is hidden when the queue is empty) -- the runner
   // seeds one and explicitly re-triggers `window.PPOffline.refresh()` after
-  // navigation (see scripts/ui-render-audit.mjs's popup setup: the
-  // automatic on-load refresh raced the seed and left the bar hidden in
-  // this harness on every attempt, a possible product-level race worth a
-  // separate look, not something this task fixes).
+  // navigation (see scripts/ui-render-audit.mjs's popup setup). This was
+  // NOT a fixture-only race: root-caused and fixed (debt-sweep 2026-08-07,
+  // popup.js) -- `showOfflineQueueStatus()` used to sit after the
+  // unsupported-URL early `return`, so it silently never ran at all on any
+  // unsupported-URL page (chrome://, about:, file://, a PDF viewer, or the
+  // popup's own extension:// URL -- what every direct navigation to
+  // popup.html hits, harness included). A real user with items stuck in the
+  // offline queue got no indication of them from any tab that wasn't a
+  // plain http(s) page, not merely a slow one: empirically confirmed by
+  // waiting 2s past the automatic call with no manual refresh -- the bar
+  // never appeared. Fixed by moving the call before the early return, next
+  // to `setupTabSet()` which already ran unconditionally for the same
+  // reason. The manual re-trigger below is now redundant on a patched
+  // build but kept as defense in depth for this test's own setup ordering.
   { surface: "popup", page: "popup.html", selector: "#offline-queue-clear", state: "default",
     expect: { iconVCenter: 1 } },
 
@@ -804,6 +858,16 @@ export const CHECKS = [
   // requires the head to draw nothing of its own (no double ring).
   { surface: "library", page: "library.html", selector: ".vocab-card .notes-card-top", state: "focusWithin",
     focusTarget: ".notes-card-head", expect: { focusRecipe: "inset" } },
+  // `.saved-theme-btn` (debt-sweep 2026-08-07): shares every OTHER rule in
+  // its shared-base block with `.theme-preset-btn` -- fill, hover, `.active`
+  // ring -- but the :focus-visible line at the top of that block only ever
+  // named `.theme-preset-btn`, so the pill fell through to the generic
+  // `.btn:focus-visible` (bordered) recipe, which is invisible on a
+  // `border: none` pill (only the glow showed, no >=3:1 core -- the same
+  // defect shape §7.3 exists to catch). Needs `savedThemes` seeded in
+  // storage before the button exists at all; see runSimpleTheme's seed.
+  { surface: "options", page: "options.html", selector: ".saved-theme-btn", state: "focusWithin",
+    focusTarget: ":scope", expect: { focusRecipe: "borderless" } },
 
   // The two steppers now paint --lib-fg on --lib-input-bg instead of
   // --lib-btn-fg on --lib-btn-bg. fg-vs-input-bg is a COMPONENTS.md §6.2
@@ -877,6 +941,20 @@ export const CHECKS = [
     expect: { textContrast: 4.5, heightEqWith: { selector: ".del-btn", tolerancePx: 1 } } },
   { surface: "popup", page: "popup.html", selector: "#submit-btn", state: "focusWithin",
     focusTarget: ":scope", expect: { focusRecipe: "borderless" } },
+  // #submit-btn's own (1,0,0) base rule (background/border-color/color) used
+  // to permanently outrank `.submit-bar button.saved-success` (0,2,1) and its
+  // themed twin (debt-sweep 2026-08-07, F8 in the popup-buttons review) --
+  // setSubmitState() added the class every save, and the button never
+  // repainted on any of the 16 themes; only textContent changed. The fix
+  // folds the id into both rules (same shape as the pre-existing
+  // `#submit-btn:disabled` exemption above). classState is the first check
+  // in this file to drive a state via classList rather than a real
+  // interaction -- there is no user gesture that reaches "just saved", so
+  // this reproduces exactly what setSubmitState() does to the DOM.
+  { surface: "popup", page: "popup.html", selector: "#submit-btn", state: "classState",
+    addClass: ["saved-success"], expect: { bgChangedFromRest: true } },
+  { surface: "popup", page: "popup.html", selector: "#submit-btn", state: "classState",
+    addClass: ["save-error"], expect: { bgChangedFromRest: true } },
   { surface: "popup", page: "popup.html", selector: ".del-btn", state: "default",
     expect: { textContrast: 4.5 } },
   { surface: "popup", page: "popup.html", selector: ".del-btn", state: "focusWithin",

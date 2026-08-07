@@ -503,6 +503,19 @@ function evaluateCheck(check, raw, theme) {
         round2(Math.abs(hostCenter - svgCenter)), exp.iconVCenter));
     }
   }
+  // A higher-specificity base rule (classically an #id selector) can leave a
+  // state-driven class sitting inert in the DOM -- the class is there, the
+  // cascade still paints the resting colour. Compares the SAME element's
+  // composited background with and without `check.addClass` (see the
+  // "classState" runner state) rather than asserting a literal colour, so
+  // this works across all 16 themes without hand-copying a palette.
+  if (exp.bgChangedFromRest === true) {
+    if (!raw.restBgStack) out.push(verdict("bgChangedFromRest", false, null, null, "no rest baseline captured -- classState runner state required"));
+    else {
+      const restBg = compositeStack(raw.restBgStack);
+      out.push(verdict("bgChangedFromRest", bg !== restBg, bg, `!= ${restBg}`));
+    }
+  }
   if (exp.padGteRadiusH === true) {
     if (hostZero) out.push(verdict("padGteRadiusH", false, null, null, zeroNote));
     else {
@@ -1122,10 +1135,23 @@ const PANE_FIT_SCAN = ({ panes, tolerance }) => {
 };
 
 async function drivePaneFit(page, check) {
-  const { widths, panes, tolerancePx = 1 } = check.expect.paneFit;
+  const { widths, panes, tolerancePx = 1, resetNarrowDetail = false } = check.expect.paneFit;
   const restore = page.viewportSize();
   const found = [];
   try {
+    // Opt-in (debt-sweep 2026-08-07): runLibraryTheme's needsDetailOpen click
+    // is decided once per THEME across the whole vocabChecks batch, not per
+    // check -- if anything else in that batch is a `-detail-` selector
+    // (there always is), `body.lib-narrow-detail` is already set by the time
+    // this check runs, whatever width this entry asks for. That class is
+    // inert at the wide default viewport (both panes sit side by side
+    // regardless), but becomes live the moment this resizes below 860px,
+    // hiding `.vocab-list-pane` out from under a check that wanted to
+    // measure ITS header rows -- not a real defect, a leftover click from an
+    // unrelated check earlier in the same theme's batch. Entries that are
+    // deliberately probing the single-pane DETAIL state (existing 900+
+    // width entries testing both panes together) must NOT set this.
+    if (resetNarrowDetail) await page.evaluate(() => document.body.classList.remove("lib-narrow-detail"));
     for (const width of widths) {
       await page.setViewportSize({ width, height: restore ? restore.height : 900 });
       await page.waitForTimeout(250);
@@ -1218,6 +1244,48 @@ async function driveHeaderRows(page, check) {
   return { bad, worst: +worst.toFixed(2) };
 }
 
+// ---- state: "gapMin" (debt-sweep 2026-08-07) -------------------------------
+// The narrow-screen lookup door's 12px clearance from the sort segment
+// (library.css, ".vocab-filter-row > .vocab-lookup-narrow") had no assertion
+// at all -- the comment above that rule spells out "8px row gap + 4px = a
+// full 12px step clear of the sort segment, so [it] does not read as a third
+// cell welded onto it," and nothing measured that the extra 4px margin
+// actually survives. Simplest missed counter-example: delete the
+// `margin-left` declaration and the gap silently collapses to the row's
+// plain 8px flex gap -- welded-on, exactly what the comment says it must not
+// look like.
+const GAP_MIN_SCAN = ({ fromSel, toSel }) => {
+  const a = document.querySelector(fromSel), b = document.querySelector(toSel);
+  if (!a) return { error: `not found: ${fromSel}` };
+  if (!b) return { error: `not found: ${toSel}` };
+  if (getComputedStyle(b).display === "none") return { error: `${toSel} is display:none at this width` };
+  const ar = a.getBoundingClientRect(), br = b.getBoundingClientRect();
+  return { gap: +(br.left - ar.right).toFixed(2) };
+};
+async function driveGapMin(page, check) {
+  const { width, fromSel, toSel } = check.expect.gapMin;
+  const restore = page.viewportSize();
+  let result;
+  try {
+    // Same reset as drivePaneFit's resetNarrowDetail, unconditional here
+    // since this function has exactly one caller and it always wants list
+    // view: this checks a LIST-header gap, which only exists to measure
+    // while `.vocab-list-pane` is the visible pane. Without it, a `-detail-`
+    // check earlier in the same theme's shared vocabChecks batch (see
+    // runLibraryTheme) leaves `body.lib-narrow-detail` set from an
+    // unrelated click, which this check's <860px resize then activates,
+    // hiding both probed elements and reading a false gap=0.
+    await page.evaluate(() => document.body.classList.remove("lib-narrow-detail"));
+    await page.setViewportSize({ width, height: restore ? restore.height : 900 });
+    await page.waitForTimeout(250);
+    result = await page.evaluate(GAP_MIN_SCAN, { fromSel, toSel });
+  } finally {
+    if (restore) await page.setViewportSize(restore);
+    await page.waitForTimeout(250);
+  }
+  return result;
+}
+
 async function runOneCheck(page, theme, check, results, extBase) {
   if (check.state === "headerRowsFlush") {
     const { bad, worst } = await driveHeaderRows(page, check);
@@ -1234,6 +1302,14 @@ async function runOneCheck(page, theme, check, results, extBase) {
       : undefined;
     results.push({ surface: check.surface, theme, selector: check.selector, state: check.state,
       ...verdict("paneFit", hits.length === 0, round2(worst), 0, note) });
+    return;
+  }
+  if (check.state === "gapMin") {
+    const min = check.expect.gapMin.min;
+    const result = await driveGapMin(page, check);
+    const ok = !result.error && result.gap >= min;
+    results.push({ surface: check.surface, theme, selector: check.selector, state: check.state,
+      ...verdict("gapMin", ok, result.error ? null : result.gap, min, result.error) });
     return;
   }
   if (check.state === "rowStates") {
@@ -1266,6 +1342,29 @@ async function runOneCheck(page, theme, check, results, extBase) {
   //     instead of vacuous.
   let focusBaseline = null;
   let stabilityBaseline = null;
+  let restBgStack = null;
+  if (check.state === "classState") {
+    // A class-driven state override (debt-sweep 2026-08-07, first use:
+    // #submit-btn.saved-success/.save-error). Reads the SAME element's
+    // background twice -- once untouched, once with `check.addClass` applied
+    // -- so bgChangedFromRest can prove the override actually repainted
+    // something rather than that a class merely got added. This is what a
+    // higher-specificity base rule (e.g. an #id selector) silently defeats:
+    // the class lands in the DOM, the cascade still paints the old colour.
+    if (!Array.isArray(check.addClass) || !check.addClass.length) {
+      throw new Error(`classState check on ${check.selector} has no addClass`);
+    }
+    restBgStack = await page.evaluate(({ selector }) => {
+      const el = document.querySelector(selector);
+      if (!el) return null;
+      const stack = [];
+      for (let node = el; node && node.nodeType === 1; node = node.parentElement) stack.push(getComputedStyle(node).backgroundColor);
+      return stack;
+    }, { selector: check.selector });
+    await page.evaluate(({ selector, cls }) => {
+      document.querySelector(selector)?.classList.add(...cls);
+    }, { selector: check.selector, cls: check.addClass });
+  }
   if (check.state === "focusWithin") {
     if (!check.focusTarget) throw new Error(`focusWithin check on ${check.selector} has no focusTarget`);
     focusBaseline = await page.evaluate(({ selector }) => {
@@ -1310,7 +1409,7 @@ async function runOneCheck(page, theme, check, results, extBase) {
     // drives getComputedStyle exactly the way a real user's cursor would --
     // no need to fake it by toggling a class the CSS never checks for.
     await page.hover(check.selector);
-  } else if (check.state !== "default") {
+  } else if (check.state !== "default" && check.state !== "classState") {
     throw new Error(`unsupported state "${check.state}" on ${check.selector} -- extend runOneCheck() before adding non-default states to the checklist`);
   }
   const extraBgSelectorVar = check.expect.textContrastMulti?.extraBgSelectorVar;
@@ -1324,6 +1423,15 @@ async function runOneCheck(page, theme, check, results, extBase) {
   });
   if (focusBaseline) raw.focusBaseline = focusBaseline;
   if (stabilityBaseline) raw.stabilityBaseline = stabilityBaseline;
+  if (restBgStack) raw.restBgStack = restBgStack;
+  if (check.state === "classState") {
+    // Same discipline as the hover-pointer reset below: leaving the class on
+    // would leak into the next check that reads this same element in its
+    // "default" state.
+    await page.evaluate(({ selector, cls }) => {
+      document.querySelector(selector)?.classList.remove(...cls);
+    }, { selector: check.selector, cls: check.addClass });
+  }
   if (check.state === "focusWithin") {
     // Blur before the next check reads anything: a left-over :focus-within on
     // this shell would leak its focused border-colour into every later
@@ -1447,17 +1555,27 @@ async function runLibraryTheme(page, extBase, theme, checks, results) {
   }
 }
 
-async function runSimpleTheme(page, url, theme, checks, results, surface) {
+async function runSimpleTheme(page, url, theme, checks, results, surface, sw) {
+  // .saved-theme-btn only renders once storage has at least one entry
+  // (options.js renderSavedThemes(), read once at init via syncGetLarge) --
+  // seed it BEFORE the navigation below, the same way pinboardToken is
+  // seeded elsewhere in this file. Idempotent across the per-theme loop that
+  // calls this function repeatedly, so no cleanup is needed.
+  if (surface === "options" && checks.some((c) => c.selector === ".saved-theme-btn")) {
+    await sw.evaluate(() => chrome.storage.local.set({ savedThemes: [{ name: "debt-sweep probe", css: "body{}" }] }));
+  }
   await page.goto(url, { waitUntil: "load", timeout: TIMEOUT_MS });
   await page.waitForTimeout(500); // settles the theme-early async storage.get correction
   if (surface === "popup" && checks.some((c) => c.selector === "#offline-queue-clear")) {
-    // #offline-queue-bar's own on-load refresh (popup.js showOfflineQueueStatus
-    // -> popup-offline.js refreshBar) reliably raced the seeded storage write
-    // in this harness and left the bar hidden -- confirmed by re-calling the
-    // same public API a second time, which always fixes it immediately. Using
-    // window.PPOffline.refresh() (popup.js's own exposed entry point, the
-    // same one showOfflineQueueStatus calls) here is fixture setup, not a
-    // behavior change to the extension.
+    // Was NOT actually a storage-write race (debt-sweep 2026-08-07 root
+    // cause): showOfflineQueueStatus() used to sit after popup.js's
+    // unsupported-URL early `return`, so it never ran AT ALL when the
+    // popup's own tab isn't a plain http(s) page -- which every direct
+    // navigation to popup.html is, harness included. Fixed in popup.js by
+    // moving the call earlier. This manual re-trigger is now redundant on a
+    // patched build but harmless to keep as fixture-setup defense in depth
+    // (window.PPOffline.refresh() is popup.js's own exposed entry point,
+    // the same one showOfflineQueueStatus calls -- not a behavior change).
     const refreshed = await page.evaluate(async () => {
       if (!window.PPOffline) return false;
       await window.PPOffline.refresh();
@@ -1542,6 +1660,12 @@ async function runSimpleTheme(page, url, theme, checks, results, surface) {
     // it's folded into that same click rather than a second one.
     const presetRowChecks = checks.filter((c) => c.selector === ".theme-preset-btn.active");
     const presetPreviewChecks = checks.filter((c) => c.selector.startsWith("#preset-preview-section"));
+    // .saved-theme-btn (debt-sweep 2026-08-07): same #panel-appearance tab as
+    // the preset-row group above, so it reuses that group's #tab-appearance
+    // click rather than a third one. Storage was seeded before goto() (see
+    // runSimpleTheme's top), so the button already exists once the tab is
+    // active -- no extra click of its own needed.
+    const savedThemeChecks = checks.filter((c) => c.selector === ".saved-theme-btn");
     // .key-wrap lives in #panel-general. It is visible on a bare goto(), but
     // the tagGov and preset groups above BOTH click their way to another tab
     // first, so by the time otherChecks runs the general panel is
@@ -1550,7 +1674,7 @@ async function runSimpleTheme(page, url, theme, checks, results, surface) {
     // explicitly rather than depending on group order.
     const keyWrapChecks = checks.filter((c) => c.selector === ".key-wrap");
     const otherChecks = checks.filter((c) => !tagGovChecks.includes(c) && !presetPreviewChecks.includes(c)
-      && !presetRowChecks.includes(c) && !keyWrapChecks.includes(c));
+      && !presetRowChecks.includes(c) && !savedThemeChecks.includes(c) && !keyWrapChecks.includes(c));
     if (tagGovChecks.length) {
       // .tag-gov-kind-badge lives on the "tags" tab (#panel-tags), not
       // #panel-general (the default active one on a bare goto()) -- its
@@ -1560,7 +1684,7 @@ async function runSimpleTheme(page, url, theme, checks, results, surface) {
       await page.waitForSelector(".tag-gov-kind-badge", { timeout: TIMEOUT_MS });
       for (const check of tagGovChecks) await runOneCheck(page, theme, check, results);
     }
-    if (presetPreviewChecks.length || presetRowChecks.length) {
+    if (presetPreviewChecks.length || presetRowChecks.length || savedThemeChecks.length) {
       // #preset-preview-section is `style="display:none"` (options.html)
       // until options.js's renderPresetPreview() sees a non-empty
       // currentPresetKey -- click a site-theme preset button on the
@@ -1577,6 +1701,10 @@ async function runSimpleTheme(page, url, theme, checks, results, surface) {
       await page.waitForSelector("#preset-preview-section:not([style*='display: none'])", { timeout: TIMEOUT_MS });
       for (const check of presetPreviewChecks) await runOneCheck(page, theme, check, results);
       for (const check of presetRowChecks) await runOneCheck(page, theme, check, results);
+      if (savedThemeChecks.length) {
+        await page.waitForSelector(".saved-theme-btn", { timeout: TIMEOUT_MS });
+        for (const check of savedThemeChecks) await runOneCheck(page, theme, check, results);
+      }
     }
     if (keyWrapChecks.length) {
       await page.click("#tab-general");
@@ -2164,7 +2292,7 @@ async function main() {
         const { themePresetKey, optTheme } = themeToStorage(theme);
         await setTheme(sw, themePresetKey, optTheme);
         if (surface === "library") await runLibraryTheme(page, extBase, theme, checks, results);
-        else await runSimpleTheme(page, `${extBase}${SURFACE_PAGES[surface]}`, theme, checks, results, surface);
+        else await runSimpleTheme(page, `${extBase}${SURFACE_PAGES[surface]}`, theme, checks, results, surface, sw);
       }
     }
 
