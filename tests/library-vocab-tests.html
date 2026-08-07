@@ -1128,7 +1128,19 @@ check("selection still covers all filtered results beyond rendered chunks", _voc
   // are the risky surface, unlike the settings-page accordions that used to
   // share this test with them. 320/360 sit below the 860px single-pane
   // fallback threshold (library.css:420), 1280 sits above it (two-pane).
-  const locales = ["en","de","fr","pl","ru","zh_HK","zh_CN","zh_TW","ja"];
+  //
+  // THE MARKUP BELOW MIRRORS library.html's CLASS LISTS AND NESTING, and that
+  // is load-bearing rather than tidiness (independent review F1/F3,
+  // 2026-08-07). When the lookup row moved into the detail pane it dropped
+  // `notes-toolbar` in production and lost its entire field recipe with it --
+  // while this fixture kept the class, kept the row up in the list pane, and
+  // therefore kept rendering a correctly-styled field. Every assertion below
+  // stayed green against a layout no user could get. Same failure shape as
+  // tests/vocab-gdrive-tests.html's driveFile() (CLAUDE.md, "远端 API 的测试
+  // 夹具"): a fixture that encodes what the test author remembers instead of
+  // what ships is a harness testing itself. When library.html's structure
+  // moves, move this string in the same commit.
+  const locales =["en","de","fr","pl","ru","zh_HK","zh_CN","zh_TW","ja"];
   const messages = {};
   for (const locale of locales) messages[locale] = await (await fetch(`../_locales/${locale}/messages.json`)).json();
   const frame = document.createElement("iframe");
@@ -1136,19 +1148,22 @@ check("selection still covers all filtered results beyond rendered chunks", _voc
   frame.srcdoc = `<!doctype html><html data-theme="github-light"><head><link rel="stylesheet" href="../library.css"></head><body>
     <div id="view-vocab"><div class="vocab-workbench">
     <div class="vocab-list-pane">
-      <div class="notes-toolbar vocab-filter-toolbar"><input type="search"><select><option></option></select></div>
-      <div class="notes-toolbar vocab-filter-toolbar vocab-lookup-bar">
-        <input type="search" data-label="lookup-input">
-        <select data-label="lookup-lang"></select>
-        <button type="button" class="btn btn-sm" data-label="lookup-go"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button>
+      <div class="notes-toolbar vocab-filter-toolbar"><input type="search"></div>
+      <div class="vocab-filter-row">
+        <select><option></option></select>
+        <button type="button" class="vocab-stat-chip" data-label="stat-learning"></button>
+        <button type="button" class="vocab-stat-chip" data-label="stat-known"></button>
+        <span class="vocab-sort-seg" role="group">
+          <button type="button" class="btn btn-sm vocab-sort-btn"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button>
+          <button type="button" class="btn btn-sm vocab-sort-btn"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button>
+        </span>
+        <button type="button" class="btn btn-sm vocab-lookup-narrow"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button>
       </div>
       <div class="vocab-stats">
         <span class="vocab-stat" data-label="stat-total"></span>
-        <button type="button" class="vocab-stat-chip" data-label="stat-learning"></button>
-        <button type="button" class="vocab-stat-chip" data-label="stat-known"></button>
         <span class="vocab-stat" data-label="stat-groups"></span>
         <span class="vocab-stat" data-label="stat-languages"></span>
-        <span class="vocab-stat" data-label="stat-recent"></span>
+        <span class="vocab-stat vocab-stat-trend" data-label="stat-recent"></span>
       </div>
       <div class="vocab-context-bar"><span class="vocab-ctx-text"><span class="notes-count">5000</span></span><div class="vocab-selection-actions"><button class="btn btn-sm" data-label="all"></button></div><span class="save-status vocab-main-status">Saved just now</span></div>
       <div class="vocab-list-region">
@@ -1156,7 +1171,15 @@ check("selection still covers all filtered results beyond rendered chunks", _voc
       <div class="vocab-batch-bar selecting"><span class="notes-count" data-label="selected-count">5000</span><button class="btn btn-sm" data-label="invert"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button><span class="vocab-group-unit"><input type="text"><button class="btn btn-sm vocab-group-step"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button><button class="btn btn-sm vocab-group-step"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button></span><span class="vocab-batch-cluster"><button class="btn btn-sm" data-label="known"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button><button class="btn btn-sm" data-label="learning"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button></span><button class="btn btn-sm danger" data-label="batch-delete"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button><button class="btn btn-sm vocab-clear-selection"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button></div>
       </div>
     </div>
-    <aside class="vocab-detail-pane"><div class="vocab-detail-empty">Select a word on the left to see its details.</div></aside>
+    <aside class="vocab-detail-pane">
+      <button type="button" class="btn btn-sm vocab-detail-back"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button>
+      <div class="vocab-filter-toolbar vocab-lookup-bar">
+        <input type="search" data-label="lookup-input">
+        <select data-label="lookup-lang"></select>
+        <button type="button" class="btn btn-sm" data-label="lookup-go"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button>
+      </div>
+      <div class="vocab-detail-empty">Pick a word from the list to see its details.</div>
+    </aside>
     </div></div></body></html>`;
   document.body.appendChild(frame);
   await new Promise((resolve) => frame.addEventListener("load", resolve, { once:true }));

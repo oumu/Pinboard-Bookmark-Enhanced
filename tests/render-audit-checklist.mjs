@@ -315,7 +315,12 @@ export const CHECKS = [
   // column width cannot hide.
   { surface: "library", page: "library.html", selector: ".vocab-list-pane", state: "headerRowsFlush",
     expect: { headerRowsFlush: { widths: [1680, 1100, 800], tolerancePx: 1, columnSel: ".vocab-list-pane",
-      rows: [".vocab-filter-toolbar", ".vocab-filter-row", "#vocab-stats", ".vocab-context-bar"] } } },
+      rows: [".vocab-filter-toolbar", ".vocab-filter-row", "#vocab-stats", ".vocab-context-bar"],
+      // The ONLY row allowed to be absent, and only because it ships `hidden`
+      // and stays that way until the first render has counts. Every other row
+      // going display:none is the loudest defect this gate could be asked
+      // about, so it is a failure rather than a skip (review F3, 2026-08-07).
+      mayVanish: ["#vocab-stats"] } } },
 
   { surface: "library", page: "library.html", selector: ".vocab-list-pane", state: "paneFit",
     expect: { paneFit: { widths: [900, 960, 1024, 1100, 1200], tolerancePx: 1,
@@ -545,10 +550,13 @@ export const CHECKS = [
   // browser's inherited `line-height: normal` for the same font-size, so
   // equalizing padding alone closed the whole gap. The sort control reaches
   // the SAME height a different way -- it's stretched to match its select
-  // siblings by .vocab-filter-selects's default (unset) align-items:stretch,
-  // not by its own padding/line-height, so it's the one selector that
-  // actually exercises that stretch mechanism rather than just re-testing
-  // the select fix a second time.
+  // siblings by its row's align-items:stretch, not by its own padding/
+  // line-height, so it's the one selector that actually exercises that
+  // stretch mechanism rather than just re-testing the select fix a second
+  // time. (The stretch used to come from .vocab-filter-selects's unset
+  // default; that wrapper was deleted in the 2026-08-07 header rebuild and
+  // .vocab-filter-row now declares `align-items: stretch` outright. Same
+  // mechanism, and it is still the only entry that tests it.)
   // RE-POINTED 2026-08-05 (§8) from #vocab-sort-time to .vocab-sort-seg, for
   // the same reason the group-input entry above moved to its shell: the
   // stretch target is now the SHELL, and its 1px border means the cell
@@ -727,6 +735,23 @@ export const CHECKS = [
   // button-style outline on top of the field recipe's focus border, putting
   // two focus languages side by side in one toolbar row.
   { surface: "library", page: "library.html", selector: "#vocab-group-filter", state: "focusWithin",
+    focusTarget: ":scope", expect: { focusRecipe: "bordered" } },
+  // The lookup field, added 2026-08-07 by independent review F1. When the row
+  // moved into the detail pane it dropped the `notes-toolbar` class, and with
+  // it the ENTIRE field recipe -- border, fill, radius, appearance:none AND
+  // all three focus rules -- because that recipe is scoped to
+  // `.notes-toolbar input[type="search"]`. What shipped was a UA-native search
+  // box wearing the platform's own 2px inset bevel and its own focus ring.
+  // This one entry gates both halves at once on all 16 themes: `bordered`
+  // fails on a UA control (it draws an outline, paints no --lib-focus-ring
+  // glow, and never moves its border-color), and a control that has no
+  // authored border cannot pass the border-color half either.
+  // Why the two heightEqWith entries on this same row did NOT see it: the row
+  // is `align-items: stretch`, so the select and the button were stretched to
+  // the BROKEN input's height and measured equal to it. Equality held while
+  // every member of the row was wrong together -- "漏判的最简单反例" for a
+  // pure-geometry gate, and the reason this row needed a materials gate too.
+  { surface: "library", page: "library.html", selector: "#vocab-lookup-input", state: "focusWithin",
     focusTarget: ":scope", expect: { focusRecipe: "bordered" } },
   // `borderless` (1px accent core + --{ns}-focus-ring glow) on the two
   // full-width row families. Nothing here asserts a shadow LITERAL: the glow

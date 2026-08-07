@@ -45,8 +45,12 @@
           <option value="new" data-i18n="vocabStatusLearning">Learning</option>
           <option value="known" data-i18n="vocabStatusKnown">Known</option>
         </select>
-        <button type="button" class="vocab-stat-chip" id="vocab-stat-learning" data-status="new" aria-pressed="false"></button>
-        <button type="button" class="vocab-stat-chip" id="vocab-stat-known" data-status="known" aria-pressed="false"></button>
+        <!-- `hidden` in the initial markup, same as #vocab-stats below: both
+             chips are empty until the first render fills in their counts, and
+             without this the cold page shows two blank pills for the length of
+             the IDB read. library-vocab.js clears the flag when it has counts. -->
+        <button type="button" class="vocab-stat-chip" id="vocab-stat-learning" data-status="new" aria-pressed="false" hidden></button>
+        <button type="button" class="vocab-stat-chip" id="vocab-stat-known" data-status="known" aria-pressed="false" hidden></button>
         <label class="sr-only" for="vocab-sort" data-i18n="vocabSortAria">Sort vocabulary</label>
         <!-- Hidden state carrier: every handler/test still speaks to this
              select; the two segment buttons below only proxy writes to it.

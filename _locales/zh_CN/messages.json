@@ -3522,7 +3522,7 @@
   "libraryOpen": { "message": "打开笔记与生词本" },
   "libraryDetailTitle": { "message": "词条详情" },
   "libraryDetailEmpty": { "message": "从列表里选一个词，就能看到它的详情。" },
-  "libraryNotesDetailEmpty": { "message": "在左侧选择一条高亮阅读。" },
+  "libraryNotesDetailEmpty": { "message": "从列表里选一条高亮，就能读到全文。" },
   "libraryRelookup": { "message": "重新查词典" },
   "libraryBack": { "message": "返回列表" },
   "libraryStatsWords": { "message": "$COUNT$ 个词", "placeholders": { "count": { "content": "$1" } } },
@@ -3534,6 +3534,6 @@
   "libraryLookupAria": { "message": "词典查询" },
   "libraryLookupPlaceholder": { "message": "查询任意词" },
   "libraryLookupGo": { "message": "查词" },
-  "libraryLookupOpen": { "message": "查词" },
+  "libraryLookupOpen": { "message": "查询任意词" },
   "libraryLookupSaved": { "message": "已在生词库 · 查看" }
 }

@@ -3528,7 +3528,7 @@
   "libraryOpen": { "message": "Otwórz notatki i słówka" },
   "libraryDetailTitle": { "message": "Szczegóły słówka" },
   "libraryDetailEmpty": { "message": "Wybierz słówko z listy, aby zobaczyć szczegóły." },
-  "libraryNotesDetailEmpty": { "message": "Wybierz zaznaczenie po lewej, aby je przeczytać." },
+  "libraryNotesDetailEmpty": { "message": "Wybierz zaznaczenie z listy, aby przeczytać je w całości." },
   "libraryRelookup": { "message": "Sprawdź ponownie w słowniku" },
   "libraryBack": { "message": "Wróć do listy" },
   "libraryStatsWords": { "message": "Słówka: $COUNT$", "placeholders": { "count": { "content": "$1" } } },

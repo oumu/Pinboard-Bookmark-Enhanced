@@ -446,7 +446,28 @@ async function runL1(page, sw, extBase) {
         barW: bar ? +bar.getBoundingClientRect().width.toFixed(1) : null,
         barInPane: !!(bar && pane.contains(bar)),
         kidHeights: kids.map((k) => +k.getBoundingClientRect().height.toFixed(1)).join("/"),
-        island: cs ? { bg: cs.backgroundColor, border: cs.borderTopWidth, radius: cs.borderTopLeftRadius, pad: cs.paddingTop } : null,
+        // FULL box, all four edges. Reading only the TOP edge (what this
+        // probe did until 2026-08-07) reports a flat "border: 0px, padding:
+        // 0px" and hides the one edge that is intentionally non-zero -- the
+        // bottom seam -- which then went into the batch report as if the row
+        // had no padding or border at all.
+        island: cs ? { bg: cs.backgroundColor,
+          border: `${cs.borderTopWidth} ${cs.borderRightWidth} ${cs.borderBottomWidth} ${cs.borderLeftWidth}`,
+          radius: cs.borderTopLeftRadius,
+          pad: `${cs.paddingTop} ${cs.paddingRight} ${cs.paddingBottom} ${cs.paddingLeft}` } : null,
+        // The FIELD's own materials, not just the bar's. Added 2026-08-07:
+        // this probe reported "no island, three equal heights" while the input
+        // inside was rendering as a UA-native search box, because equal
+        // heights survive a broken field (the row stretches, so its healthy
+        // siblings were pulled DOWN to match it) and the island check only
+        // ever looked at the wrapper.
+        field: (() => {
+          const i = document.getElementById("vocab-lookup-input");
+          if (!i) return null;
+          const f = getComputedStyle(i);
+          return { border: `${f.borderTopWidth} ${f.borderTopStyle} ${f.borderTopColor}`, bg: f.backgroundColor,
+            radius: f.borderTopLeftRadius, pad: `${f.paddingTop} ${f.paddingRight}`, appearance: f.appearance };
+        })(),
         backVisible: getComputedStyle(document.querySelector(".vocab-detail-back")).display };
     });
     console.log(`  [${label}] ${JSON.stringify(m)}`);

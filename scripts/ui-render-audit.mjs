@@ -1183,7 +1183,14 @@ const HEADER_ROWS_SCAN = ({ rows, columnSel }) => {
 };
 
 async function driveHeaderRows(page, check) {
-  const { rows, columnSel, widths, tolerancePx = 1 } = check.expect.headerRowsFlush;
+  const { rows, columnSel, widths, tolerancePx = 1, mayVanish = [] } = check.expect.headerRowsFlush;
+  // Fail-closed (independent review F3, 2026-08-07). This used to `continue`
+  // on ANY row whose computed display was none, which is a silent exemption
+  // for the loudest possible defect: a header row that disappears entirely
+  // would report zero violations. Only rows the checklist NAMES as legitimately
+  // absent get the pass; #vocab-stats is the one -- it is `hidden` in the
+  // markup until the first render has counts to put in it.
+  const vanishOk = new Set(mayVanish);
   const restore = page.viewportSize();
   const bad = [];
   let worst = 0;
@@ -1195,7 +1202,10 @@ async function driveHeaderRows(page, check) {
       if (res.error) { bad.push(`${width}px: ${res.error}`); continue; }
       for (const row of res.rows) {
         if (row.missing) { bad.push(`${width}px: ${row.sel} not in the DOM`); continue; }
-        if (row.hidden) continue; // a row with nothing to say is allowed to be gone
+        if (row.hidden) {
+          if (!vanishOk.has(row.sel)) bad.push(`${width}px: ${row.sel} renders display:none — the whole row is gone`);
+          continue;
+        }
         worst = Math.max(worst, Math.abs(row.widthGap), Math.abs(row.edgeGap));
         if (Math.abs(row.widthGap) > tolerancePx) bad.push(`${width}px: ${row.sel} is ${row.widthGap}px narrower than the column`);
         if (Math.abs(row.edgeGap) > tolerancePx) bad.push(`${width}px: ${row.sel} ends ${row.edgeGap}px short of its last control`);
@@ -1703,9 +1713,10 @@ function sweepProbe(cfg) {
   // ---- 3. rowHeightEq: pairwise height compare among interactive controls
   // (input/select/button/textarea) collected from a flex/grid container's
   // direct children, flattening ONE level into a child that is itself a
-  // flex/grid wrapper (e.g. .vocab-filter-selects wrapping selects + a
-  // sort-segment span) so the comparison reaches controls that aren't
-  // literal DOM siblings but ARE the same visual row. ----
+  // flex/grid wrapper (e.g. .vocab-sort-seg, a span wrapping two buttons, or
+  // .vocab-group-unit wrapping a field and its two steppers) so the
+  // comparison reaches controls that aren't literal DOM siblings but ARE the
+  // same visual row. ----
   // input[type=radio/checkbox/range/color/file] are native OS-sized toggle
   // atoms, not the text-field-shaped controls COMPONENTS.md's §6.3 rowRungEq
   // means by "input" (its own worked examples are all input[type=text]).

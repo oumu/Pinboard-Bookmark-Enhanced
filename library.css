@@ -419,7 +419,17 @@ html[data-theme] .confirm-popover .confirm-no:hover { background: var(--lib-btn-
   gap: var(--lib-sp-2);
   margin: var(--lib-sp-2) 0 var(--lib-sp-3);
 }
-.notes-toolbar input[type="search"] {
+/* `.vocab-lookup-bar` JOINS this selector list rather than getting its own
+   copy -- the same call `.vocab-filter-row select` made below when the group
+   select left the toolbar. When the lookup row moved into the detail pane
+   (2026-08-07) it dropped the `notes-toolbar` class, and every declaration
+   here is scoped to that class, so the field silently fell back to the UA's
+   own search box: 2px inset bevel, hard white fill, square corners, platform
+   focus ring. The row's two heightEqWith probes could not see it -- the row
+   stretches, so its select and button were pulled DOWN to the broken input's
+   height and measured equal to it. */
+.notes-toolbar input[type="search"],
+.vocab-lookup-bar input[type="search"] {
   width: 100%;
   padding: var(--lib-sp-1) var(--lib-sp-2);
   border: 1px solid var(--lib-input-border);
@@ -433,9 +443,12 @@ html[data-theme] .confirm-popover .confirm-no:hover { background: var(--lib-btn-
   box-shadow: none;
   transition: border-color var(--motion-state) ease, background-color var(--motion-state) ease, box-shadow var(--motion-state) ease;
 }
-.notes-toolbar input[type="search"]:hover:not(:focus) { border-color: var(--lib-fg-muted); }
-.notes-toolbar input[type="search"]:focus { outline: none; border-color: var(--lib-focus-bd); }
-.notes-toolbar input[type="search"]:focus-visible { box-shadow: var(--lib-focus-ring); }
+.notes-toolbar input[type="search"]:hover:not(:focus),
+.vocab-lookup-bar input[type="search"]:hover:not(:focus) { border-color: var(--lib-fg-muted); }
+.notes-toolbar input[type="search"]:focus,
+.vocab-lookup-bar input[type="search"]:focus { outline: none; border-color: var(--lib-focus-bd); }
+.notes-toolbar input[type="search"]:focus-visible,
+.vocab-lookup-bar input[type="search"]:focus-visible { box-shadow: var(--lib-focus-ring); }
 .notes-count { color: var(--lib-fg-muted); font-size: 12px; white-space: nowrap; }
 .notes-color-filters { display: flex; align-items: center; gap: var(--lib-sp-2); }
 .notes-filter-dot {
@@ -949,6 +962,25 @@ html.motion-ready .notes-sib { transition: background-color var(--motion-state) 
   /* The lookup row lives in the detail pane, which is display:none here
      until the body class flips -- so the list needs one door to it. */
   .vocab-filter-row > .vocab-lookup-narrow { display: inline-flex; }
+  /* The one place the nowrap law above yields (found 2026-08-07, once the
+     responsive fixture was realigned to the real markup). Four of this row's
+     five children are `flex: none` -- two count chips, the sort segment and
+     the door this very media query switches on -- so its intrinsic minimum is
+     ~413px in German. Below that the row did not just look tight, it pushed
+     the whole page into horizontal scroll: measured 93px of overflow at 320px
+     and 53px at 360px, in every theme and most locales.
+     Nowrap exists so the row can never end up narrower than the header it
+     shares an edge with, and that contract is measured by headerRowsFlush --
+     whose narrowest probe is 800px, which is why nothing caught this. Down
+     here there is no facing pane to hold an edge with, and a second line is
+     unambiguously better than a scrollbar. The declaration is inert until the
+     row genuinely cannot fit: 420px and up it still renders one line, so
+     headerRowsFlush's 800px probe measures exactly what it did before.
+     Qualified `.vocab-list-pane > ` for (0,2,0) vs the base rule's (0,1,0):
+     a media query adds NO specificity, and the base `flex-wrap: nowrap` sits
+     ~400 lines BELOW this block, so the unqualified version of this line was
+     a silent no-op -- measured, 93px of overflow unchanged (§8.6). */
+  .vocab-list-pane > .vocab-filter-row { flex-wrap: wrap; }
 }
 
 /* Detail pane content (Task 6). */
@@ -1623,10 +1655,15 @@ html[data-theme="rose-pine"] .vocab-filter-row select {
    family's fill, not the chip family's grey-on-grey label look. Overriding
    background/color here rather than in the recipe on purpose: the chip
    recipe is shared with .vocab-group-chip and .notes-meta-chip, which really
-   are labels. Later in the file than the generated region, same specificity,
-   so source order carries it -- the same split the border/cursor lines below
-   have always relied on. */
-.vocab-stat-chip {
+   are labels.
+   Qualified `.vocab-filter-row > ` deliberately (§8.6): that makes these
+   (0,2,0) against the generated region's (0,1,0) `.vocab-stat-chip`, so the
+   override wins on SPECIFICITY and not on the bet that the hand-written block
+   stays physically below the generated one. The first version of this block
+   took that bet -- and the generated region moving is exactly the kind of
+   thing sync-all does without anyone reading the diff. `.vocab-stat-chip
+   [hidden]` next door was already written this way. */
+.vocab-filter-row > .vocab-stat-chip {
   /* A chip has no frame at rest -- the border-width stays only so the
      aria-pressed accent edge below costs no reflow (COMPONENTS.md §9 law 1). */
   border: 1px solid var(--lib-btn-border);
@@ -1640,7 +1677,7 @@ html[data-theme="rose-pine"] .vocab-filter-row select {
    invent two looks. NOT --lib-row-selected-bg (measured byte-identical to
    --lib-panel on dracula, i.e. invisible) and NOT an inset accent ring (that
    is the focus language; §8's four states would collapse to three). */
-.vocab-stat-chip[aria-pressed="true"] {
+.vocab-filter-row > .vocab-stat-chip[aria-pressed="true"] {
   color: var(--lib-accent);
   background: color-mix(in srgb, var(--lib-accent) 12%, var(--lib-btn-bg));
   border-color: var(--lib-accent);
@@ -1648,7 +1685,7 @@ html[data-theme="rose-pine"] .vocab-filter-row select {
 /* Hover on an already-selected chip deepens the same accent mix instead of
    falling back to the generated neutral --lib-btn-hover, which would read as
    "turning off". */
-.vocab-stat-chip[aria-pressed="true"]:hover {
+.vocab-filter-row > .vocab-stat-chip[aria-pressed="true"]:hover {
   background: color-mix(in srgb, var(--lib-accent) 20%, var(--lib-btn-bg));
 }
 /* `.vocab-stat-chip` is display:inline-flex from the generated region, an

@@ -3522,7 +3522,7 @@
   "libraryOpen": { "message": "Open notes and vocabulary" },
   "libraryDetailTitle": { "message": "Word details" },
   "libraryDetailEmpty": { "message": "Pick a word from the list to see its details." },
-  "libraryNotesDetailEmpty": { "message": "Select a highlight on the left to read it." },
+  "libraryNotesDetailEmpty": { "message": "Pick a highlight from the list to read it in full." },
   "libraryRelookup": { "message": "Look up again" },
   "libraryBack": { "message": "Back to list" },
   "libraryStatsWords": { "message": "$COUNT$ words", "placeholders": { "count": { "content": "$1" } } },

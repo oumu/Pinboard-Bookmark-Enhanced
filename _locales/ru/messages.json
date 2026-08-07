@@ -3528,7 +3528,7 @@
   "libraryOpen": { "message": "Открыть заметки и словарик" },
   "libraryDetailTitle": { "message": "Подробности о слове" },
   "libraryDetailEmpty": { "message": "Выберите слово из списка, чтобы увидеть подробности." },
-  "libraryNotesDetailEmpty": { "message": "Выберите выделение слева, чтобы прочитать его." },
+  "libraryNotesDetailEmpty": { "message": "Выберите выделение из списка, чтобы прочитать его целиком." },
   "libraryRelookup": { "message": "Найти снова" },
   "libraryBack": { "message": "Назад к списку" },
   "libraryStatsWords": { "message": "Слова: $COUNT$", "placeholders": { "count": { "content": "$1" } } },

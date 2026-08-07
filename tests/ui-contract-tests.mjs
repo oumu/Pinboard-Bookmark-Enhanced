@@ -951,13 +951,25 @@ for (const [file, css, ns] of [["popup.css", popupCss, "pp"], ["options.css", op
   // Hand-written layer only: the generated region carries its own
   // `.vocab-stat-chip` (the shared chip recipe), and matching that one instead
   // would test the thing this override exists to beat.
+  // WHAT THIS PIN DOES AND DOES NOT GUARD (independent review F2, 2026-08-07):
+  // it reads CSS SOURCE, so it can only see that the declaration EXISTS --
+  // never that it WINS. Until 2026-08-07 the override was unqualified and beat
+  // the generated rule on source order alone, which this pin is structurally
+  // blind to: move the generated region below the hand-written block and every
+  // assertion here still passes while the chips render grey-on-grey. The
+  // `.vocab-filter-row > ` prefix is now required by the regexes for exactly
+  // that reason -- it is the (0,2,0)-vs-(0,1,0) qualifier that makes winning a
+  // property of the selector instead of a property of the file's layout, and
+  // requiring it here is the closest a text gate can get to "this takes
+  // effect". The render oracle's rowStates entries are what actually measure
+  // the composed result.
   const chipHand = stripGeneratedRegions(libraryCss);
-  const chipRule = /\.vocab-stat-chip \{([^}]*)\}/.exec(chipHand);
-  const chipOn = /\.vocab-stat-chip\[aria-pressed="true"\] \{([^}]*)\}/.exec(chipHand);
+  const chipRule = /\.vocab-filter-row > \.vocab-stat-chip \{([^}]*)\}/.exec(chipHand);
+  const chipOn = /\.vocab-filter-row > \.vocab-stat-chip\[aria-pressed="true"\] \{([^}]*)\}/.exec(chipHand);
   const segOn = /\.vocab-sort-seg > \.vocab-sort-btn\[aria-pressed="true"\] \{([^}]*)\}/.exec(chipHand);
   const mix = (body) => (/background:\s*(color-mix\([^;]*\))/.exec(body || "") || [])[1];
   check(!!chipRule && /background:\s*var\(--lib-btn-bg\)/.test(chipRule[1]) && /color:\s*var\(--lib-btn-fg\)/.test(chipRule[1]),
-    "library.css: the status chips fell back to the chip family's label fill — in a row of controls they are controls and take the button fill");
+    "library.css: the status chips fell back to the chip family's label fill, or `.vocab-filter-row > ` was dropped from the override (without it the rule ties the generated recipe and wins only on source order) — in a row of controls they are controls and take the button fill");
   check(!!chipOn && !!segOn && mix(chipOn[1]) === mix(segOn[1]) &&
     !/row-selected-bg/.test(chipOn[1]) && !/inset/.test(chipOn[1]),
     "library.css: the chip's selected fill drifted from the sort segment's pressed cell (or went back to --lib-row-selected-bg / an inset ring) — two controls in one row that both mean \"this filter is on\" must not invent two looks");
@@ -1003,10 +1015,16 @@ for (const [file, css, ns] of [["popup.css", popupCss, "pp"], ["options.css", op
     /id="vocab-lookup-narrow"[^>]*title=/.test(libraryHtml),
     "library.html: the icon-only narrow lookup door lost its title/aria-label (icon-only buttons carry both, always)");
   // The empty-state copy must not name a direction: below 860px the page is
-  // one column and there is no "left".
+  // one column and there is no "left". BOTH views, not just the vocab one --
+  // the notes view has its own single-pane fallback (body.lib-narrow-notes)
+  // and its own empty-state string, which stayed wrong for a day because this
+  // pin named one key instead of the class of strings it was defending
+  // (independent review F3, 2026-08-07).
   const enMsgs = JSON.parse(read("_locales/en/messages.json"));
-  check(!/\bleft\b/i.test(enMsgs.libraryDetailEmpty.message),
-    "_locales/en: libraryDetailEmpty points at a direction again — in the single-pane layout there is nothing to the left of anything");
+  for (const key of ["libraryDetailEmpty", "libraryNotesDetailEmpty"]) {
+    check(!/\bleft\b/i.test(enMsgs[key].message),
+      `_locales/en: ${key} points at a direction again — in the single-pane layout there is nothing to the left of anything`);
+  }
 }
 // Note editor (2026-08-06): the save button must stay IN LAYOUT while hidden.
 // `display: none` is what made the textarea jump narrower on the first
