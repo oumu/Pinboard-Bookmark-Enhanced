@@ -205,8 +205,8 @@ body {
    and popup is the one that pays a COLD first paint every single time it opens. The login button
    is a new user's first screen.
    `textarea` is deliberately NOT in this list (as in options.css, and unlike library.css): popup's
-   only textarea is `.field > textarea`, which already declares `font-family: inherit` at (0,2,1)
-   and is re-pointed at a monospace stack under terminal at (0,3,1) — both out-rank this (0,0,1)
+   only textarea is `.field > textarea`, which already declares `font-family: inherit` at (0,1,1)
+   and is re-pointed at a monospace stack under terminal at (0,2,1) — both out-rank this (0,0,1)
    rule either way, so listing it would be a no-op. Every other named stack in this file is on a
    class or descendant selector (`.login-body input`, `.ac-hint-footer kbd`, `.batch-progress-text`,
    `.fc-details`) and out-ranks this rule too; checked one by one before adding it. */

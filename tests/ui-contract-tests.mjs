@@ -2260,12 +2260,29 @@ for (const [file, css] of [["popup.css", popupCss], ["options.css", optionsCss],
 // what the rule actually targets):
 //   - names .confirm-yes                       -> yes
 //   - is a bare `button` under .confirm-popover -> yes (matches both buttons)
-//   - names .confirm-no / .confirm-msg          -> no, those are hand-written
-//                                                   by design on all three
-//                                                   surfaces
+//   - is a bare `*` under .confirm-popover      -> yes (same reason)
+//   - names .confirm-no / .confirm-msg, and does
+//     NOT negate it with :not()                 -> no, those two are
+//                                                   hand-written by design on
+//                                                   all three surfaces
 //   - is .confirm-popover itself                -> no, the container's own
 //                                                   colour is legitimate and
 //                                                   loses to the button rule
+//
+// The `:not()` carve-out in that fourth line is the second bypass review
+// found: `.confirm-popover button:not(.confirm-no)` MENTIONS .confirm-no and
+// so collected the exemption, while meaning the exact opposite -- "the button
+// in this popover that is not Cancel" is the confirm button, spelled the way
+// a person naturally writes a themed override, at (0,3,1). A tail that
+// negates the class is not a tail that targets it.
+//
+// KNOWN AND DELIBERATELY OUT OF SCOPE (review-ruled): a tail written as
+// `[class~="confirm-yes"]` evades the class-name test, and `.confirm-popover
+// > *` evades the button/`*` test by targeting children generically. The
+// first is a spelling nobody reaches for by accident; the second repaints
+// .confirm-msg along with the buttons and is obvious on sight. This gate
+// aims at the shapes a person writes while meaning well, not at someone
+// working around it.
 // `border` shorthand counts only when it carries a colour: every surface
 // ships `.confirm-popover button { border: 1px solid }` deliberately
 // colourless (it resolves to currentColor), and flagging that would make the
@@ -2278,8 +2295,8 @@ const lastCompound = (sel) => sel.split(/\s*[>+~]\s*|\s+/).filter(Boolean).pop()
 function paintsConfirmYes(selector) {
   if (!selector.includes(".confirm-popover") && !selector.includes(".confirm-yes")) return false;
   const tail = lastCompound(selector);
-  if (/\.confirm-(no|msg)\b/.test(tail)) return false;
-  return /\.confirm-yes\b/.test(tail) || /(^|[^-\w.])button\b/.test(tail);
+  if (!/:not\(/.test(tail) && /\.confirm-(no|msg)\b/.test(tail)) return false;
+  return /\.confirm-yes\b/.test(tail) || /(^|[^-\w.])button\b/.test(tail) || /(^|[^-\w.])\*/.test(tail);
 }
 for (const [file, css] of [["popup.css", popupCss], ["options.css", optionsCss], ["library.css", libraryCss]]) {
   const hand = stripGeneratedRegions(css).replace(/\/\*[\s\S]*?\*\//g, "");
