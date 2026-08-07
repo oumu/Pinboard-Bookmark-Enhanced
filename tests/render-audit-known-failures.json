@@ -1,34 +1,4 @@
 {
-  "options||button.key-toggle|tab-general|hitAreaMin": {
-    "surface": "options",
-    "theme": "",
-    "selector": "button.key-toggle",
-    "state": "tab-general",
-    "check": "hitAreaMin",
-    "actual": 18,
-    "expected": 24,
-    "note": null
-  },
-  "options||button.key-toggle|tab-ai|hitAreaMin": {
-    "surface": "options",
-    "theme": "",
-    "selector": "button.key-toggle",
-    "state": "tab-ai",
-    "check": "hitAreaMin",
-    "actual": 18,
-    "expected": 24,
-    "note": null
-  },
-  "options||button.key-toggle|tab-archive|hitAreaMin": {
-    "surface": "options",
-    "theme": "",
-    "selector": "button.key-toggle",
-    "state": "tab-archive",
-    "check": "hitAreaMin",
-    "actual": 18,
-    "expected": 24,
-    "note": null
-  },
   "library||#vocab-sort-time|vocab-list|hitAreaMin": {
     "surface": "library",
     "theme": "",

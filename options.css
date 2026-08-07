@@ -970,6 +970,17 @@ html.motion-ready #preset-preview-section > summary::after {
 /* ---- API key toggle ---- */
 .key-toggle { background: none; border: none; cursor: pointer; font-size: 13px; padding: var(--opt-sp-1) var(--opt-sp-2); color: var(--opt-fg-hint); vertical-align: middle; }
 .key-toggle svg { display: block; }
+/* §1.5 hit-area expansion (same technique as popup's .login-body .key-toggle,
+   commit 6d65d07): the 14px eye glyph + 2px/4px padding + no border renders
+   a 22x18 box, under the 24px floor on both axes. `border: none` above means
+   this host's padding box already equals its border box, so the inset below
+   is the whole gap to 24 with no border subtraction. `.key-toggle` is already
+   `position: absolute` (`.key-wrap .key-toggle` below), so this pad needs no
+   extra positioning context. -1.5px horizontal stays inside the 8px of
+   padding-right the field reserves for the icon (`.fg .key-wrap input` above
+   sets 32px, the icon's own box only reaches 24px in from the field's right
+   edge), so the pad cannot reach the field's typed text. */
+.key-toggle::before { content: ""; position: absolute; inset: -3px -1.5px; }
 /* The eye rides INSIDE the field's right edge -- as a plain sibling it fell
    below the 100%-width input and burned a whole row per credential. */
 .key-wrap { position: relative; display: block; }
