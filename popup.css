@@ -1376,12 +1376,19 @@ html.dark .batch-progress-text { color: var(--pp-fg); mix-blend-mode: normal; fi
 .edit-cancel:hover { background: color-mix(in srgb, var(--pp-scrim) 16%, transparent); color: var(--pp-danger); }
 .edit-cancel:focus-visible { outline: 1px solid var(--pp-accent); outline-offset: 2px; box-shadow: var(--pp-focus-ring); }
 
-.submit-bar button.saved-success { background: var(--pp-ok-bg); border-color: var(--pp-ok-bd); color: var(--pp-ok-fg); }
+/* #submit-btn, not `.submit-bar button` -- #submit-btn's own (1,0,0) base rule
+   (background/border/color, above) always wins a (0,2,1) class selector
+   regardless of source order, so the plain-class form never painted anything
+   (debt-sweep 2026-08-07, real getComputedStyle unchanged pre-fix on every
+   theme). setSubmitState() only ever adds this class to $id("submit-btn"),
+   so folding the id in costs no coverage. Same shape as the
+   `#submit-btn:disabled` exemption above. */
+#submit-btn.saved-success { background: var(--pp-ok-bg); border-color: var(--pp-ok-bd); color: var(--pp-ok-fg); }
 /* Colour-only error state. A failed save already mounts a .feedback-card (which
    carries the actual message) with its own entrance in the same tick, so shaking
    the button too was two motions for one event — over-feedback trains users to
    ignore all of it. The themed twin below was colour-only already. */
-.submit-bar button.save-error {
+#submit-btn.save-error {
   background: var(--pp-warn-bg);
   border-color: var(--pp-danger);
   color: var(--pp-danger);
@@ -2452,8 +2459,10 @@ html[data-theme] .submit-bar button.loading { color: var(--pp-fg-hint); }
 html[data-theme] .submit-bar button.loading::before, html[data-theme] .action-link.loading::before {
   border-color: var(--pp-spinner-bg); border-top-color: var(--pp-spinner-fg);
 }
-html[data-theme] .submit-bar button.saved-success { background: var(--pp-ok-bg); border-color: var(--pp-ok-bd); color: var(--pp-ok-fg); }
-html[data-theme] .submit-bar button.save-error { background: color-mix(in srgb, var(--pp-danger) 14%, transparent); border-color: var(--pp-danger); color: var(--pp-danger); }
+/* Same id-qualification as the base rules above: `html[data-theme] #submit-btn`
+   is (1,1,1) and outranks a (0,3,2) class-only twin. */
+html[data-theme] #submit-btn.saved-success { background: var(--pp-ok-bg); border-color: var(--pp-ok-bd); color: var(--pp-ok-fg); }
+html[data-theme] #submit-btn.save-error { background: color-mix(in srgb, var(--pp-danger) 14%, transparent); border-color: var(--pp-danger); color: var(--pp-danger); }
 
 html[data-theme] .quick-actions .divider { border-color: transparent; }
 html[data-theme] .bottom-bar label { color: var(--pp-fg); }
