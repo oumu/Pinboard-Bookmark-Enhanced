@@ -36,32 +36,43 @@
 
 | 组件族 | popup | options | library |
 |---|---|---|---|
-| 1 按钮族（几何 + 颜色 + 状态） | **豁免**（见下） | 全量 | 全量 |
-| 2 btn-ic 图标容器 | 基础规则（display/align/svg） | 全量 | 全量 |
-| 3 状态反馈 | **豁免**（现状记录在案） | 全量 | 全量 |
-| 4 危险分级 | **豁免**（confirm-popover 是 warn-on-warn） | 全量 | 全量 |
+| 1 按钮族（几何 + 颜色 + 状态） | 配方全量发射，**消费按钮逐个迁移**（见下） | 全量 | 全量 |
+| 2 btn-ic 图标容器 | 基础规则（display/align/svg），保留 `-3px`/`margin-right` 变体 | 全量 | 全量 |
+| 3 状态反馈 | 全量（press 已收敛到 `scale(0.97)`） | 全量 | 全量 |
+| 4 危险分级 | 全量 | 全量 | 全量 |
 | 5 chip / badge | 几何律适用（施工排期见附录 C） | 全量 | 全量 |
 | 6 表单控件 | 颜色对 + `accent-color` | 全量 | 全量 |
 | 7 横切（color-scheme / focus / 状态色 / 成对消费） | 全量 | 全量 | 全量 |
 | 8 融合控件（容器持 chrome / `:focus-within` 环 / 单一分隔线） | 全量 | 全量 | 全量 |
 
-**popup 豁免的确切边界**（本战役不动，随「popup 按钮族归一」后续战役再议）：
+**popup 豁免的退役记录**（design-uplift 记为欠账，「popup 按钮族归一」战役 2026-08-07 结清）：
 
-- popup **没有 `.btn` 族**：`popup.html` 零处 `class="btn"`，按钮是一次性配方——六套主力
-  （`qbtn`:650 / `preset-btn`:308 / `fc-btn`:248 / `#submit-btn`:562 / `del-btn`:579 / `md-strip-btn`:2031），
-  另有 `fc-btn-secondary`:259、`action-link`:378、`clear-all-link`:495、`offline-clear`:848、
-  `header-ic`（`.header-bar .header-ic .btn-ic`:174）等链接态与图标态变体。按钮**几何**（高度阶梯、
-  padding、字号）与**手感**（hover 抬起 `translateY(-1px)`、按下回位）本战役一律不动。
-- popup 的 `.confirm-popover` 是 **warn-on-warn**（warn 底 + warn 前景），不是 danger 实底。§4 的危险两档
-  **不适用于 popup**；统一它需要新造 `danger × warn-bg` 审计对，无门看管，本战役不做。
-- popup 在本战役吃到的是：颜色补课（成对 token + `:root` / `html.dark` 基线）、`color-scheme` 发射、
-  `.btn-ic` 基础规则等值发射、裸 hex 治理。
+- 原文写的是「popup **没有 `.btn` 族**」——那是**代码现状**，不是设计立场。现在
+  `@generated:ui-components` 区对 `pp` 发射与另外两个表面同源的 `.btn` / `.btn-sm` / `.ghost` /
+  `.danger` 全族配方，token 名差异（popup 用 `--pp-btn-bd` / `--pp-input-bd`）由
+  `ui-components.mjs` 的 `TOKEN_ALIAS` 解决。**剩下的是消费侧**：给某颗按钮加 `class="btn"` 是一次
+  有布局后果的迁移，因此逐颗做。已迁：`#submit-btn`（`.btn`）、`.del-btn`（`.btn danger`）。
+  未迁、仍走手写配方：`qbtn`、`preset-btn`、`fc-btn`（+`fc-btn-secondary`）、`md-strip-btn`，
+  以及 `action-link` / `clear-all-link` / `offline-clear` / `header-ic` 等链接态与图标态变体。
+  未迁的原因逐条记在 `.superpowers/sdd/2026-08-07-popup-buttons/construction-report.md`，
+  都是**待裁决的设计分岔**（阶位不合身、族配方定色与语境冲突），不是漏做。
+- 原文写的「按钮**手感**本战役一律不动」已推翻（用户裁决 A，2026-08-07）：popup 的按压语言收敛到
+  唯一的 `scale(0.97)`，`#submit-btn` / `.qbtn` 的 hover 抬起（`translateY(-1px)`）连同承载它的
+  `@media (hover:hover)` 块一并删除。§3.1 裁决表 5/6 相应改判，见该表。
+- 原文写的「popup 的 `.confirm-popover` 是 warn-on-warn……§4 不适用于 popup」已结清：solid 档配方
+  对三表面发射，popup 的三层手写取色（默认 danger / `html.dark` 三个一次性字面量 /
+  `html[data-theme]` **warn 家族**）全部删除。当时判断「需要新造 `danger × warn-bg` 审计对」是走错
+  了方向——正确的做法是让弹层不再是 warn 底，`on-danger × danger` 早就在 `COMPONENT_PAIR_SPEC` 里。
+  **这个缺陷对比度门永远看不见**（13 套 pilot 的 warn 对实测 4.5–5.2:1，全部达标），静态侧改由
+  `tests/ui-contract-tests.mjs` 的类级门看管：手写区任何规则给 `.confirm-yes` 上色即 FAIL。
+- popup 的第二套确认弹层 `.del-confirm-popover` 同期退休，改调 `showConfirmPopover()`。
 
 ---
 
 ## 1. 按钮族
 
-**适用**：options + library 的几何与颜色；popup 只吃 §7 的成对消费律，不吃本节几何。
+**适用**：三表面。popup 2026-08-07 起也发射本节配方（§0 有退役记录）——但 popup 侧「适用」指的是
+**配方已发射**，某颗具体按钮吃不吃得到，取决于它有没有被迁到 `class="btn"`。
 
 ### 1.1 高度阶梯（三个数，不再有第四个）
 
@@ -183,7 +194,11 @@ composer 一旦开始发射 `color: var(--opt-btn-fg)`，它们会逐条覆盖�
 
 ## 2. 按钮内图标（`.btn-ic`）
 
-**适用**：三表面。这是本战役里 popup 唯一进生成区的结构规则。
+**适用**：三表面。design-uplift 期间这是 popup 唯一进生成区的结构规则；2026-08-07 起 popup 也发射
+按钮族与危险分级，`.btn-ic` 不再是孤例。两份配方的分野**依然成立**——popup 已迁到 `class="btn"` 的
+按钮才有 flex `gap` 可用，未迁的手写配方仍靠 `.btn-ic` 自己的 `margin-right`。**待办**：等某颗
+popup 按钮同时带 `class="btn"` 和 `.btn-ic` 时，`gap` 与 `margin-right` 会叠成 8px；已迁的两颗
+（`#submit-btn`/`.del-btn`）都是纯文字，暂未触发。
 
 ### 2.1 结构配方
 
@@ -236,8 +251,8 @@ inline 元素的默认基线对齐在「图标 + 文字」场景下几乎总是�
 
 ## 3. 状态反馈（hover / active / focus-visible / disabled）
 
-**一等条目**。现状至少五种按压语言并存，本节把 options + library 收敛成两种（`.btn` 族一种、可点行一种），
-popup 维持现状并记录在案。
+**一等条目**。现状至少五种按压语言并存，本节把三表面收敛成两种（`.btn` 族一种、可点行一种）。
+popup 原先「维持现状并记录在案」的那一条已于 2026-08-07 结清（裁决 5/6 改判）。
 
 ### 3.1 裁决表
 
@@ -248,8 +263,8 @@ popup 维持现状并记录在案。
 | **收敛结果** | — | options + library | **`.btn` 族唯一按压语言 = `transform: scale(0.97)`，不进 `transition`（按下与回弹都瞬时）** | 两条既有裁决各保留自己真正论证过的那一半；`a373dbd` 的核心结论「同页不得有两种按压」在此从「同页」扩到「同族跨表面」 |
 | 3 | `library.css:945` `.vocab-stat-chip:active { transform: translateY(1px) }` | library | **推翻** → 改 `scale(0.97)` 瞬时 | stat-chip 是 `aria-pressed` 切换钮，视觉家族归 chip、按压家族归按钮；20px 高的扁 chip 上 1px 位移不可见，与收敛结果同理 |
 | 4 | `library.css:509` `.notes-sib:active { background: color-mix(--lib-fg 9%, --lib-bg); transition-duration: 0s }`，`a373dbd` 补齐，与同侪 `.notes-hit-btn:active` / `.notes-card-top:active` 同配方 | library | **保留**，并升格为第二种按压语言 | 这些是**整行可点**元素，不是 `.btn`。`scale()` 会连带缩放子元素与文字（行文字发糊）、并在密集列表里破坏相邻行的视觉对齐。行按压 = 瞬时背景加深、禁 transform，是正确的分家而不是漏收敛 |
-| 5 | `popup.css:2072` `#submit-btn:hover, .qbtn:hover { transform: translateY(-1px) }`，包在 `@media (hover:hover) and (pointer:fine)` 里；`:2067` 注释：这是本页唯一改几何的 hover，touch 上 `:hover` 会 latch，按钮会停在抬起态 | popup | **不动**（§0 豁免） | popup 无 `.btn` 族，几何与手感整体列后续战役。但其 media query 门控上升为 §7 的三表面横切规则 |
-| 6 | `popup.css:573` `#submit-btn:active { transform: translateY(0); box-shadow: none }`（从 hover 抬起态回位） | popup | **不动** | 同上。记录为已知分歧：popup 是「hover 抬起、按下回位」，options/library 是「静止、按下缩小」 |
+| 5 | `popup.css:2072` `#submit-btn:hover, .qbtn:hover { transform: translateY(-1px) }`，包在 `@media (hover:hover) and (pointer:fine)` 里；`:2067` 注释：这是本页唯一改几何的 hover，touch 上 `:hover` 会 latch，按钮会停在抬起态 | popup | **~~不动~~ → 推翻，整条删除**（用户裁决 A，2026-08-07） | 抬起是 popup 独有的第三种 hover 语言；hover 统一为「填充变化」之后它没有存在理由。删掉最后一个几何 hover 之后那个 media query 块本身也空了，一并删除。其门控规则仍作为 §7.5 保留，管的是**未来新增**的几何 hover |
+| 6 | `popup.css:573` `#submit-btn:active { transform: translateY(0); box-shadow: none }`（从 hover 抬起态回位） | popup | **~~不动~~ → 推翻**（同上） | 「按下回位」只有在「hover 抬起」存在时才成立，裁决 5 删掉前提，这条随之作废。popup 全表面按压收敛到 `scale(0.97)`——原先并存四种（`preset-btn` 已是 scale、`md-strip-btn`/登录钮 `translateY(1px)`、`qbtn` 换底+回位、`fc-btn`/`header-ic`/offline 行内动作**没有** `:active`），后者五个同时补齐，§3.4「每个可按压元素都必须有 `:active`」在 popup 首次真正成立 |
 | 7 | `a373dbd` 删掉 `a.btn` 的 `scale(0.97)` + transition 覆盖，理由「同页两种按压 + press must read instantly」 | options | **保留结论并扩大适用范围** | 本裁决表就是这条结论从「同页」扩到「同族跨表面」的执行 |
 | 8 | hover 颜色过渡：两表面 `.btn` 均为 `transition: background/border-color/color var(--motion-state)`（150ms） | options + library | **保留** | 颜色/hover 变化用默认 `ease`，150ms 落在 100–300ms 区间内；逐属性列出而非 `all` |
 | 9 | `:disabled { opacity: 0.45; cursor: not-allowed }` | options + library | **保留** | 两表面一致；opacity 同时压前景与背景，对比度必然下降——WCAG 1.4.3 豁免禁用控件，**对比度断言必须跳过 `:disabled`**，不要「修」它 |
@@ -291,7 +306,8 @@ popup 维持现状并记录在案。
 
 ## 4. 危险操作分级（两档）
 
-**适用**：options + library。popup 的 `.confirm-popover` 是 warn-on-warn，**不适用**（§0）。
+**适用**：三表面。popup 的 solid 档 2026-08-07 起也由配方发射（§0 有 warn-on-warn 的退役记录）；
+quiet 档在 popup 目前只有 `.del-btn` 一个消费者。
 
 ### 4.1 两档定义
 
@@ -861,7 +877,7 @@ label span（`<span class="btn-ic">svg</span><span></span>`），在 grid 下它
 | `.progress-bar` / `.batch-progress` | options / popup | **已合规** | 非交互，律 2/4 不适用；`overflow: hidden` 裁角的现成先例 |
 | chip + 单个 `×` 钮（`.vocab-group-chip.removable`、`.tag-item`） | library / popup | **不适用** | 只有一个交互件（药丸本身不可聚焦），不满足"两个及以上" |
 | `.saved-theme-wrap` | options | **不适用** | 删除钮是浮在药丸外的角标，不共享边 |
-| 容器类（`.vocab-batch-bar` / `#vocab-lookup-bar` / `.confirm-popover` ×3 / `.del-confirm-popover` / `.theme-name-popover` / `.md-strip` / `.tabs` / 预设行 / `.vocab-batch-cluster` / `.et-field` / `.quick-row` / `.notes-toolbar` / `.vocab-filter-toolbar` …） | 三表面 | **不适用** | 子控件之间有可见间隙（§8.1） |
+| 容器类（`.vocab-batch-bar` / `#vocab-lookup-bar` / `.confirm-popover` ×3 / `.theme-name-popover` / `.md-strip` / `.tabs` / 预设行 / `.vocab-batch-cluster` / `.et-field` / `.quick-row` / `.notes-toolbar` / `.vocab-filter-toolbar` …） | 三表面 | **不适用** | 子控件之间有可见间隙（§8.1） |
 
 ### 8.6 使用守则
 
@@ -1030,8 +1046,10 @@ label span（`<span class="btn-ic">svg</span><span></span>`），在 grid 下它
       `options.css:1325/1326/1359`（`.btn` 的 background/border-color/**color**、hover、focus outline-color，
       §1.3 有表）、`options.css:1187-1196`（`.fg` 字段的三色与 hover 边框，§6.2 有表）。
       漏删的症状是「新 token 发射了、门也绿、13 套预设下毫无变化」——死代码，不是通过。
-- [ ] 有没有 `!important` 参与这场级联？（popup `.del-btn` 带 `!important`，配方赢不了它——
-      这是 popup 豁免的成因之一。）
+- [ ] 有没有 `!important` 参与这场级联？（popup `.del-btn` 的
+      `border-color: var(--pp-danger) !important` 曾是 popup 豁免的成因之一，2026-08-07 随该按钮
+      迁到 `class="btn danger"` 一并删除；`.del-confirm-popover` 系的另外三个 `!important` 随那套
+      弹层退休消失。popup.css 现已无按钮相关 `!important`——这一条继续问的是**下一个**。）
 
 ---
 

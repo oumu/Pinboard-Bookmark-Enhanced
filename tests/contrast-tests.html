@@ -17,7 +17,6 @@
 </div>
 <div id="hover-surface-probes" style="position:fixed;left:-9999px;top:0">
   <div class="confirm-popover"><span class="confirm-msg">Delete?</span><button class="confirm-yes">Delete</button><button class="confirm-no">Cancel</button></div>
-  <div class="del-confirm-popover"><span>Delete?</span><button>Cancel</button></div>
 </div>
 <script>
 function pass(name){const d=document.createElement("div");d.className="case pass";d.textContent="OK "+name;document.getElementById("results").appendChild(d);}
@@ -148,9 +147,12 @@ test("hover and confirm surfaces stay readable across every shipped UI theme var
       for (const [fgSel, bgSel] of [
         [".confirm-msg", ".confirm-popover"],
         [".confirm-yes", ".confirm-yes"],
-        [".confirm-no", ".confirm-popover"],
-        [".del-confirm-popover", ".del-confirm-popover"],
-        [".del-confirm-popover button", ".del-confirm-popover button"]
+        [".confirm-no", ".confirm-popover"]
+        // .del-confirm-popover and its button dropped 2026-08-07: popup's
+        // second confirm system is retired (the Delete button calls the same
+        // showConfirmPopover() as every other destructive action), so those
+        // two probes were measuring selectors with no rules left -- 0.00
+        // contrast reported as a failure, which is the gate working.
       ]) {
         const fgEl = document.querySelector("#hover-surface-probes " + fgSel);
         const bgEl = document.querySelector("#hover-surface-probes " + bgSel);
