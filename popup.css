@@ -285,6 +285,17 @@ html[data-section="login"] .quick-actions { display: none !important; }
   padding: var(--pp-sp-2); border: 0; background: none; color: var(--pp-fg-soft);
 }
 .login-body .key-toggle svg { display: block; }
+/* Out-of-flow hit pad (COMPONENTS.md §1.5, same technique as .tag-remove):
+   4px padding around a 14px glyph renders a 22x22 box, under the 24px floor.
+   The render oracle never saw it because its popup passes all seed a token
+   and #login-section stays hidden -- fixed in the same commit by giving
+   ui-render-audit.mjs a logged-out sweep leg. ::before, not bigger padding:
+   this button floats over the token field's right edge, so growing the box
+   would move the eye 1px and reshape the hover fill for a hit-area bug the
+   user cannot see. Nothing sits within 1px of it, so the pad overlaps no
+   other target (which is exactly what rules the same technique OUT for the
+   recent-bookmark row -- see .recent-bm-del below). */
+.login-body .key-toggle::before { content: ""; position: absolute; inset: -1px; }
 /* FUSED CONTROL (COMPONENTS.md §8) -- options' .key-wrap under a different
    class name, same two pieces, same law, same fix, so the two surfaces stay
    byte-for-byte comparable in behaviour. Previously the eye inherited
@@ -1167,13 +1178,33 @@ html.dark .batch-progress-text { color: var(--pp-fg); mix-blend-mode: normal; fi
 }
 .recent-bm-item:hover { text-decoration: underline; }
 .recent-bm-domain { color: var(--pp-fg-hint); font-size: 10px; }
+/* The two row actions are 24x24 boxes, not padded glyphs (COMPONENTS.md §1.5
+   "把整行升到 md 阶" branch). They measured 17x13 / 17x14 before, and the
+   ::before hit pad this file uses everywhere else is NOT available to them:
+   the two sit 4px apart in the same row, and rows repeat on a 19.8px pitch,
+   so a pad wide enough to reach 24px would overlap its neighbour on BOTH
+   axes -- horizontally into the edit/delete gap, vertically into the row
+   above and below. Overlapping delete targets are worse than small ones.
+   Sizing the boxes instead keeps every target disjoint; the row grows from
+   19.8px to 24px, which is also what puts these two on the same 24px grid as
+   the header icon buttons.
+   inline-flex + centring rather than `inline-grid; place-items:center`
+   (§8.3): grid turns any empty trailing label span into a second 0px row and
+   re-centres the icon across both. These two are built with a bare
+   innerHTML today, but flex is immune either way. */
 .recent-bm-del {
   flex-shrink: 0;
   color: var(--pp-fg-faint);
   cursor: pointer;
   font-size: 10px;
-  padding: 0 var(--pp-sp-1);
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   line-height: 1;
+  border-radius: var(--pp-radius-sm);
 }
 .recent-bm-del:hover { color: var(--pp-danger); }
 .recent-bm-edit {
@@ -1181,8 +1212,14 @@ html.dark .batch-progress-text { color: var(--pp-fg); mix-blend-mode: normal; fi
   color: var(--pp-disabled-fg);
   cursor: pointer;
   font-size: 10px;
-  padding: 0 var(--pp-sp-1);
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   line-height: 1;
+  border-radius: var(--pp-radius-sm);
   opacity: 0.7;
 }
 .recent-bm-edit:hover { opacity: 1; color: var(--pp-accent); }

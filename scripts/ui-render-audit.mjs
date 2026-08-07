@@ -1778,8 +1778,21 @@ function sweepProbe(cfg) {
   // not left as --sweep-only discovery -- geometry/spacing in this codebase
   // is a hand-maintained, theme-INVARIANT layer (CLAUDE.md: --pp-sp-*/
   // --opt-sp-*/--lib-sp-* "是主题不变量...不进 composer"), so one pass here
-  // already covers every data-theme preset; no per-theme repeat needed. ----
-  for (const el of document.querySelectorAll("button")) {
+  // already covers every data-theme preset; no per-theme repeat needed.
+  //
+  // Selector widened from "button" to "button, [role='button']" (popup
+  // button-family campaign, 2026-08-07). The old scope was anchored on the
+  // TAG NAME, so an icon-only control built as `<span role="button"
+  // tabindex="0">` -- which is a button to every assistive technology and to
+  // the user's finger -- was structurally invisible to this gate no matter
+  // how small it got. That is the "断言问得太窄等于没门" shape: the simplest
+  // counter-example the old scan missed is popup's `.recent-bm-del` (13px
+  // cross glyph in 0 2px padding). Surveyed before widening: the only
+  // role="button" sites in shipped code are popup.js's three spans
+  // (.edit-cancel, .recent-bm-edit, .recent-bm-del) and md-translate.js's
+  // (not an audited surface); options.css/library.css have zero, so this
+  // cannot manufacture new failures on the other two surfaces.
+  for (const el of document.querySelectorAll("button, [role='button']")) {
     if (!visible(el)) continue;
     // Full textContent, not just direct child text nodes: setBtnIcon's standard
     // shape is <span class="btn-ic">{svg}</span><span>{label}</span> -- the label
@@ -1881,6 +1894,23 @@ async function runSweep(page, sw, extBase) {
   await page.evaluate(async () => { if (window.PPOffline) await window.PPOffline.refresh(); }).catch(() => {});
   await page.waitForSelector("#offline-queue-bar:not(.hidden)", { timeout: TIMEOUT_MS }).catch(() => {});
   add(await page.evaluate(sweepProbe, SWEEP_CFG), "popup", "dark");
+
+  // ---- popup, LOGGED OUT (popup button-family campaign, 2026-08-07). The
+  // two passes above seed a token, so popup.js's `if (!settings.pinboardToken)
+  // showLogin(); else showMain(...)` always took the showMain branch and
+  // #login-section stayed `.hidden` for the whole audit's life -- every
+  // control in .login-body was NEVER MEASURED, which is a different thing
+  // from "measured and passing" (its .key-toggle renders 22px, under the
+  // 24px floor, and nothing caught it). Clearing the token is the whole
+  // setup; restore it immediately afterwards so this stays the last popup
+  // leg regardless of who calls runSweep.
+  await sw.evaluate(() => chrome.storage.local.set({ pinboardToken: "" }));
+  await setTheme(sw, "", "light");
+  await page.goto(`${extBase}popup.html?_ra=sweeplogin`, { waitUntil: "load", timeout: TIMEOUT_MS });
+  await page.waitForSelector("#login-section:not(.hidden)", { timeout: TIMEOUT_MS }).catch(() => {});
+  await page.waitForTimeout(300);
+  add(await page.evaluate(sweepProbe, SWEEP_CFG), "popup", "login");
+  await sw.evaluate((tok) => chrome.storage.local.set({ pinboardToken: tok }), SEED_TOKEN_OBF);
 
   return hits;
 }
