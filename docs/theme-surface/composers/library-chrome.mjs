@@ -4,9 +4,14 @@ import { deriveUiColors, deriveUiRadius, regularizeUiRadius, fgToAA, fgToAAMulti
 import { POPUP_THEME_MAP } from "./popup-chrome.mjs";
 
 // Accent-over-bg mixes library.css paints behind a row that is SELECTED for a
-// batch action (rest, then :hover). Mirrors
-// `.vocab-card.selected .notes-card-top` -- see the row-selected-fg comment
-// below for why the duplication is deliberate and what catches a drift.
+// batch action (rest, then :hover). Mirrors library.css's `--lib-band-mix` /
+// `--lib-band-mix-hover` :root tokens (debt-sweep 2026-08-07 named those --
+// before that, the same two numbers were separate unnamed literals at each of
+// notes-hit's and vocab-card's two write sites) -- see the row-selected-fg
+// comment below for why THIS copy can't just reference that CSS var(): this
+// runs in Node at build time and needs the literal percentage to do
+// arithmetic, not a browser-resolved custom property. Keep the two numbers in
+// step by hand; the render oracle's bandDistinct entry is what catches a drift.
 const LIB_BATCH_BAND_MIX = [0.20, 0.26];
 
 // Default-surface (no preset selected) component-layer baseline — Task 5,
@@ -109,8 +114,8 @@ function emitLib(ui, palette, overrides, radius, focus = {}, mode) {
     // which `fg` above already derives against) and "selected for a batch action",
     // whose band is mixed at runtime from accent over bg. Those two live in
     // library.css's hand-written page layer, so the percentages are duplicated
-    // here on purpose -- LIB_BATCH_BAND_MIX below and the `color-mix(...)` values
-    // in `.vocab-card.selected .notes-card-top` (+ its :hover) must stay in step.
+    // here on purpose -- LIB_BATCH_BAND_MIX above and library.css's
+    // `--lib-band-mix` / `--lib-band-mix-hover` :root tokens must stay in step.
     // Nothing lints that pairing statically; what catches a drift is the render
     // oracle's bandDistinct entry, which measures the label against the band the
     // browser actually painted (it is what found this cliff: solarized's

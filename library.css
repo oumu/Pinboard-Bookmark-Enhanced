@@ -11,6 +11,13 @@
      definition it finds at each line start, so a multi-declaration line would
      hide its 2nd+ literal from that exemption and misreport as a leaked color. */
   --lib-bg: #f7f7f8;
+  /* Must equal --lib-pane-bg below (line ~59) -- kept by hand for exactly the
+     reason its neighbor --lib-border no longer is (see that comment): both
+     roles resolve to the SAME composer expression (`ui.bg2`) in every
+     generated per-theme block, but this default-state fallback predates the
+     composer and has no generated counterpart to move into. ui-contract-
+     tests.mjs pins the two equal so a future edit to one does not silently
+     drift from the other. */
   --lib-panel: #ffffff;
   --lib-fg: #1a1a2e;
   --lib-fg-muted: #5f6368;
@@ -55,6 +62,7 @@
      were #ffffff/#eef2f9 against a #ffffff panel. Derived there by the same
      fillSeparate() the 14 themed blocks use. */
   --lib-code-bg: #f2f2f4;
+  /* Must equal --lib-panel above (line ~14) -- see that comment. */
   --lib-pane-bg: #ffffff;
   --lib-pane-divider: #e2e2e6;
   --lib-row-selected-bg: #eef2f9;
@@ -85,6 +93,13 @@
      dark themes take their own value below; both land around 1.5:1 against
      the panel, which is the hairline register (a structural border is 3:1). */
   --lib-seam-mix: 20%;
+  /* Selected-row band mix (notes list + vocab list share this language,
+     see the "TWO SIGNALS" comment near .vocab-card.selected below for how
+     the render oracle's bandDistinct probe calibrated these two numbers).
+     Named once here instead of repeating the literals at each of the two
+     write sites. */
+  --lib-band-mix: 20%;
+  --lib-band-mix-hover: 26%;
   --lib-radius-sm: 4px;
   --lib-radius-md: 8px;
   --lib-radius-lg: 12px;
@@ -711,11 +726,11 @@ html.motion-ready .notes-hit-btn { transition: background-color var(--motion-sta
    combined state composes them -- with an explicit (0,3,0) rule rather than a
    bet on source order, since aria-current now paints box-shadow too. */
 .notes-hit.selected .notes-hit-btn {
-  --row-bg: color-mix(in srgb, var(--lib-accent) 20%, var(--lib-bg));
+  --row-bg: color-mix(in srgb, var(--lib-accent) var(--lib-band-mix), var(--lib-bg));
   color: var(--lib-row-selected-fg);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lib-accent) 55%, transparent);
 }
-.notes-hit.selected .notes-hit-btn:hover { --row-bg: color-mix(in srgb, var(--lib-accent) 26%, var(--lib-bg)); }
+.notes-hit.selected .notes-hit-btn:hover { --row-bg: color-mix(in srgb, var(--lib-accent) var(--lib-band-mix-hover), var(--lib-bg)); }
 .notes-hit.selected[aria-current] .notes-hit-btn {
   box-shadow: inset 2px 0 0 var(--lib-accent),
               inset 0 0 0 1px color-mix(in srgb, var(--lib-accent) 55%, transparent);
@@ -2040,10 +2055,10 @@ html.motion-ready .notes-batch-bar.selecting {
    collapsed in the first place. Both are inset shadows, so they compose, and
    both follow the band's border-radius for free. */
 .vocab-card.selected .notes-card-top {
-  --row-bg: color-mix(in srgb, var(--lib-accent) 20%, var(--lib-bg));
+  --row-bg: color-mix(in srgb, var(--lib-accent) var(--lib-band-mix), var(--lib-bg));
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lib-accent) 55%, transparent);
 }
-.vocab-card.selected .notes-card-top:hover { --row-bg: color-mix(in srgb, var(--lib-accent) 26%, var(--lib-bg)); }
+.vocab-card.selected .notes-card-top:hover { --row-bg: color-mix(in srgb, var(--lib-accent) var(--lib-band-mix-hover), var(--lib-bg)); }
 /* Both at once: the selection ring AND the "you are here" edge. (0,4,0), so
    it out-ranks both (0,3,0) base rules on specificity instead of on where it
    happens to sit in the file. */

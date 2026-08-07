@@ -2312,6 +2312,30 @@ for (const [file, css] of [["popup.css", popupCss], ["options.css", optionsCss],
     `${file}: hand-written rule(s) can paint the confirm popover's confirm button -- the solid-danger tier belongs to the @generated:ui-components recipe (COMPONENTS.md §4.2); an element-selector or themed override outranks it silently. Offenders: ${offenders.join(" | ")}`);
 }
 
+// --lib-panel / --lib-pane-bg default-state hand-consistency (debt-sweep
+// 2026-08-07, design-uplift final-review minor). Per theme (the generated
+// `html[data-theme="X"]` blocks) the two are structurally guaranteed equal --
+// library-chrome.mjs's map derives both from the SAME expression, `ui.bg2` --
+// but the "no preset selected" default fallback at the top of library.css has
+// no generated counterpart (unlike --lib-border, which moved into the
+// composer's DEFAULT_LIGHT block because it needed AA-derivation math the
+// composer alone can do; panel/pane-bg are a flat literal copy with no math
+// to derive, so composer migration would just be the same hand-typed literal
+// wearing a JS file instead of a CSS one). Two independent hand literals for
+// one concept is exactly the shape that drifts silently, so this pins them
+// equal without requiring a composer round-trip.
+{
+  const hand = stripGeneratedRegions(libraryCss);
+  const rootBlock = /:root\s*\{([^{}]*)\}/.exec(hand)?.[1] || "";
+  const panel = /--lib-panel\s*:\s*([^;]+);/.exec(rootBlock)?.[1]?.trim();
+  const paneBg = /--lib-pane-bg\s*:\s*([^;]+);/.exec(rootBlock)?.[1]?.trim();
+  check(!!panel && !!paneBg, `library.css: could not find both --lib-panel and --lib-pane-bg in the hand-written :root block (found panel=${panel}, pane-bg=${paneBg})`);
+  if (panel && paneBg) {
+    check(panel === paneBg,
+      `library.css: hand-written :root default has --lib-panel (${panel}) != --lib-pane-bg (${paneBg}) -- these two are the same role (COMPONENTS.md's ghost-resting composite relies on them matching) and are kept equal by hand in this one fallback block; every generated per-theme block derives both from the same source and can't drift`);
+  }
+}
+
 if (fail.length) {
   console.error(fail.join("\n"));
   process.exit(1);
