@@ -101,7 +101,11 @@ function invalidateBookmarkLookup() {
   try { localStorage.removeItem("pp-last-tab"); } catch (_) {}
   const deleteBtn = $id("delete-btn");
   if (deleteBtn) {
-    deleteBtn.querySelector(".del-confirm-popover")?.remove();
+    // The confirm popover is a body child now, not a descendant of the
+    // button, so dropping it needs the helper that owns it (and that also
+    // detaches its Escape/pointerdown listeners -- a bare .remove() would
+    // leave those bound to a detached node).
+    pbpDismissActiveConfirm();
     deleteBtn.disabled = false;
     deleteBtn.classList.remove("loading");
     deleteBtn.textContent = t("delete");
@@ -1328,8 +1332,11 @@ function setupSubmit(token) {
       if (typeof doAISummary === "function") doAISummary(false);
       if (typeof doAITags === "function") doAITags(false);
     } else if (e.key === "Escape") {
-      const delPop = document.querySelector(".del-confirm-popover");
-      if (delPop) { delPop.remove(); return; }
+      // No .del-confirm-popover branch here any more: the delete confirm is
+      // a shared showConfirmPopover() now, and that helper installs its own
+      // capture-phase Escape handler with stopImmediatePropagation -- it
+      // closes the popover before this bubble-phase listener ever runs, so a
+      // branch here could only ever be dead code that looks live.
       if (autoCloseTimer) { clearTimeout(autoCloseTimer); autoCloseTimer = null; document.querySelector(".auto-close-bar")?.remove(); return; }
       const tagsInput = $id("tags-input");
       if (tagsInput && document.activeElement === tagsInput) return;
@@ -1344,7 +1351,6 @@ function setupSubmit(token) {
 
   $id("delete-btn").addEventListener("click", () => {
     const delBtn = $id("delete-btn");
-    if (delBtn.querySelector(".del-confirm-popover")) return;
     const deleteUrl = $id("url-input").value.trim();
     if (bookmarkLookup.status !== "found" || bookmarkLookup.url !== deleteUrl || !bookmarkLookup.formLoaded) return;
     const deleteGeneration = bookmarkLookup.generation;
@@ -1354,51 +1360,37 @@ function setupSubmit(token) {
       && bookmarkLookup.formLoaded
       && $id("url-input").value.trim() === deleteUrl;
 
-    const pop = document.createElement("div");
-    pop.className = "del-confirm-popover";
-    const msg = document.createElement("span");
-    msg.textContent = t("confirmDelete");
-    const yes = document.createElement("button");
-    yes.className = "del-confirm-yes";
-    yes.textContent = t("delete");
-    const no = document.createElement("button");
-    no.className = "del-confirm-no";
-    no.textContent = t("cancel");
-    pop.appendChild(msg); pop.appendChild(yes); pop.appendChild(no);
-    delBtn.appendChild(pop);
-
-    function dismiss() {
-      if (pop.classList.contains("is-closing")) return;
-      // Exit scale-fade mirrors the popinScale entrance; instant under
-      // reduced motion so removal never lags.
-      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) { pop.remove(); return; }
-      pop.classList.add("is-closing");
-      setTimeout(() => pop.remove(), 150);
-    }
-    pop.addEventListener("click", (e) => e.stopPropagation());
-    no.addEventListener("click", dismiss);
-    setTimeout(() => document.addEventListener("click", dismiss, { once: true }), 0);
-
-    yes.addEventListener("click", async () => {
-      dismiss();
-      if (!ownsDeleteForm()) return;
-      const delOrig = delBtn.textContent;
-      delBtn.disabled = true; delBtn.classList.add("loading"); delBtn.textContent = t("deleting");
-      try {
-        const data = await (await pinboardFetch(`https://api.pinboard.in/v1/posts/delete?url=${enc(deleteUrl)}&auth_token=${token}&format=json`)).json();
-        const deleted = data.result_code === "done" || data.result_code === "item not found";
-        if (deleted) chrome.runtime.sendMessage({ type: "bookmark_deleted", url: deleteUrl, account: submitAccount });
+    // The shared helper, not a hand-built popover. This handler used to
+    // assemble its own .del-confirm-popover DOM -- a second confirm system
+    // living beside showConfirmPopover(), with its own anchoring (a child of
+    // the Delete button), its own dismiss/animation code, its own CSS across
+    // three theme layers, and its own !important overrides. The comment on
+    // the recent-bookmark delete right below already said what the intent
+    // was: "matching the other destructive actions". Now it does.
+    showConfirmPopover(delBtn, {
+      msg: t("confirmDelete"),
+      yesText: t("delete"),
+      noText: t("cancel"),
+      onConfirm: async () => {
         if (!ownsDeleteForm()) return;
-        if (deleted) {
-          showStatus("status-msg", t("deleted"), "success");
-          setTimeout(() => { if (ownsDeleteForm()) window.close(); }, 800);
-        } else showStatus("status-msg", `Error: ${data.result_code}`, "error");
-      } catch (e) {
-        if (ownsDeleteForm()) showStatus("status-msg", t("networkError"), "error");
-      }
-      if (ownsDeleteForm()) {
-        delBtn.disabled = false; delBtn.classList.remove("loading"); delBtn.textContent = delOrig;
-      }
+        const delOrig = delBtn.textContent;
+        delBtn.disabled = true; delBtn.classList.add("loading"); delBtn.textContent = t("deleting");
+        try {
+          const data = await (await pinboardFetch(`https://api.pinboard.in/v1/posts/delete?url=${enc(deleteUrl)}&auth_token=${token}&format=json`)).json();
+          const deleted = data.result_code === "done" || data.result_code === "item not found";
+          if (deleted) chrome.runtime.sendMessage({ type: "bookmark_deleted", url: deleteUrl, account: submitAccount });
+          if (!ownsDeleteForm()) return;
+          if (deleted) {
+            showStatus("status-msg", t("deleted"), "success");
+            setTimeout(() => { if (ownsDeleteForm()) window.close(); }, 800);
+          } else showStatus("status-msg", `Error: ${data.result_code}`, "error");
+        } catch (e) {
+          if (ownsDeleteForm()) showStatus("status-msg", t("networkError"), "error");
+        }
+        if (ownsDeleteForm()) {
+          delBtn.disabled = false; delBtn.classList.remove("loading"); delBtn.textContent = delOrig;
+        }
+      },
     });
   });
 }

@@ -128,6 +128,9 @@
      instead of inventing another magic number. Countdown sits on top of everything
      because it is the only warning before the popup closes itself. */
   --pp-z-menu: 10;
+  /* No consumer right now (the .del-confirm-popover that used it is retired;
+     the shared .confirm-popover sits on --pp-z-menu). Kept as a named rung --
+     that is what this ladder is for, and options.css:49 cites it by name. */
   --pp-z-popover: 20;
   --pp-z-autocomplete: 100;
   --pp-z-countdown: 9999;
@@ -151,7 +154,6 @@
   --pp-disabled-fg: #aaa;
   --pp-danger-hover-bg: #fee;
   --pp-popover-border: #ddd;
-  --pp-popover-btn-border: #ccc;
   --pp-fg-faint: #ccc;
   --pp-oqa-btn-fg: #666;
   --pp-offline-queue-bg: #fffbea;
@@ -161,7 +163,6 @@
   --pp-offline-queue-meta-fg: #999;
   --pp-progress-text-fg: #1a3a6e;
   --pp-edit-cancel-fg: #444;
-  --pp-neutral-hover-bg: #eee;
   /* --pp-confirm-no-hover-bg/-fg/-border retired: .confirm-no reads the
      shared fg-muted / border / btn-hover roles now, same as options and
      library (COMPONENTS.md §4.2 leaves .confirm-no hand-written but on real
@@ -768,32 +769,13 @@ button.offline-clear:focus-visible, button.offline-toggle:focus-visible { outlin
 #submit-btn:disabled { background: var(--pp-btn-bg); border-color: var(--pp-btn-bd); color: var(--pp-fg-hint); transform: none; box-shadow: none; }
 .del-btn { position: relative; color: var(--pp-danger); border-color: var(--pp-danger) !important; white-space: nowrap; padding: var(--pp-sp-2) var(--pp-sp-6); min-height: 28px; }
 .del-btn:hover { background: var(--pp-danger-hover-bg) !important; }
-/* Anchor left:0 (extend right from the Delete button's left edge) — the button sits
-   left-of-centre in the submit-bar, so the old right:0 made the popover extend left and
-   clip its leading text off the popup's left edge. There is ample free space to the right. */
-.del-confirm-popover {
-  position: absolute; bottom: calc(100% + 5px); left: 0;
-  background: var(--pp-bg); border: 1px solid var(--pp-popover-border); border-radius: var(--pp-radius-sm);
-  padding: var(--pp-sp-2) var(--pp-sp-4); font-size: 11px; white-space: nowrap;
-  display: flex; align-items: center; gap: var(--pp-sp-3);
-  box-shadow: var(--pp-shadow-md); animation: popinScale 0.12s var(--ease-out); z-index: var(--pp-z-popover);
-  /* Grows from the Delete button it sits on (bottom-left anchor), not from
-     its own center. */
-  transform-origin: bottom left;
-}
-.del-confirm-popover button { padding: 1px var(--pp-sp-4); font-size: 11px; cursor: pointer; border: 1px solid var(--pp-popover-btn-border); background: var(--pp-neutral-panel); }
-.del-confirm-popover button:focus-visible { outline: 1px solid var(--pp-accent); outline-offset: 2px; box-shadow: var(--pp-focus-ring); }
-/* Exit mirrors the popinScale entrance (scale, not translateY); popup.js
-   dismiss() adds the class and delays remove(). */
-.del-confirm-popover.is-closing {
-  opacity: 0;
-  transform: scale(0.95);
-  pointer-events: none;
-  transition: opacity 0.1s var(--ease-out), transform 0.1s var(--ease-out);
-}
-.del-confirm-yes { color: var(--pp-danger) !important; border-color: var(--pp-danger) !important; }
-.del-confirm-yes:hover { background: var(--pp-danger-hover-bg) !important; }
-.del-confirm-no:hover { background: var(--pp-neutral-hover-bg); }
+/* .del-confirm-popover and its .del-confirm-yes/-no children are gone: the
+   Delete button opens the SHARED .confirm-popover now (popup.js ->
+   showConfirmPopover). That retires popup's second confirm system -- its own
+   anchoring (a child of the button, growing upward), its own dismiss and
+   exit animation, its own three theme layers, and four of this file's
+   !important declarations, one of which COMPONENTS.md Appendix A listed as
+   a reason the button family could not be unified at all. */
 .status-msg { padding: var(--pp-sp-2) var(--pp-sp-5) var(--pp-sp-2) 72px; font-size: 11px; }
 .status-msg.success { color: var(--pp-ok-fg); }
 .status-msg.error { color: var(--pp-danger); }
@@ -1276,9 +1258,6 @@ html.dark .submit-bar button:focus-visible { border-color: var(--pp-focus-bd); b
 html.dark .submit-bar button:hover { background: var(--pp-drop-hover); }
 html.dark .del-btn:hover { background: color-mix(in srgb, var(--pp-danger) 12%, var(--pp-bg)) !important; }
 html.dark .recent-bm-area { border-top-color: var(--pp-divider); }
-html.dark .del-confirm-popover { background: var(--pp-bg2); border-color: var(--pp-border); box-shadow: 0 2px 8px rgba(0,0,0,0.4); }
-html.dark .del-confirm-popover button { background: var(--pp-input-bg); border-color: var(--pp-border); color: var(--pp-fg); }
-html.dark .del-confirm-yes { color: var(--pp-danger) !important; border-color: var(--pp-danger) !important; }
 html.dark {
   /* Default-dark "Soft Fill" palette (2026-07 Claude Design pilot) — full token
      parity with :root so the tokenized base rules resolve without per-component
@@ -2331,9 +2310,6 @@ html[data-theme] .submit-bar button.loading::before, html[data-theme] .action-li
   border-color: var(--pp-spinner-bg); border-top-color: var(--pp-spinner-fg);
 }
 html[data-theme] .del-btn:hover { background: color-mix(in srgb, var(--pp-danger) 10%, var(--pp-bg)) !important; }
-html[data-theme] .del-confirm-popover { background: var(--pp-bg); border-color: var(--pp-border); box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
-html[data-theme] .del-confirm-popover button { background: var(--pp-bg); border-color: var(--pp-border); color: var(--pp-fg); }
-html[data-theme] .del-confirm-yes:hover { background: color-mix(in srgb, var(--pp-danger) 10%, var(--pp-bg)) !important; }
 html[data-theme] .submit-bar button.saved-success { background: var(--pp-ok-bg); border-color: var(--pp-ok-bd); color: var(--pp-ok-fg); }
 html[data-theme] .submit-bar button.save-error { background: color-mix(in srgb, var(--pp-danger) 14%, transparent); border-color: var(--pp-danger); color: var(--pp-danger); }
 
@@ -2481,10 +2457,6 @@ html[data-theme] .confirm-popover button:focus-visible { outline-color: var(--pp
 @keyframes fadeOut {
   from { opacity: 1; transform: none; }
   to   { opacity: 0; transform: translateY(-4px); }
-}
-@keyframes popinScale {
-  from { opacity: 0; transform: scale(0.95); }
-  to   { opacity: 1; transform: scale(1); }
 }
 @keyframes autoCloseCountdown {
   from { transform: scaleX(1); }

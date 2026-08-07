@@ -54,11 +54,6 @@ const PROBES = [
   [".fc-details", false],
   [".del-btn", false],
   [".del-btn", true],
-  [".del-confirm-popover", false],
-  [".del-confirm-popover button", false],
-  [".del-confirm-yes", false],
-  [".del-confirm-yes", true],
-  [".del-confirm-no", true],
   [".batch-progress-text", false],
   [".regen-link.loading", false],
   [".regen-link + .regen-link", false],
@@ -110,7 +105,6 @@ const PROBES = [
   [".regen-link", false],
   ["#desc-char-count", false],
   [".quick-actions", false],
-  [".del-confirm-yes", false],
   [".ac-new-hint", false],
   [".ac-new-hint", true],
   [".ac-new-icon", false],
@@ -219,13 +213,12 @@ async function dump() {
     stagUsed.className = "stag used";
     body.appendChild(stagUsed);
 
-    // .del-btn > .del-confirm-popover > .del-confirm-yes/.del-confirm-no (popup.js delete-btn click handler)
+    // .del-btn (popup.js delete-btn). Its child .del-confirm-popover is gone:
+    // the Delete button opens the shared .confirm-popover now, which this
+    // harness does not need to stand up -- shared.js builds it on the body.
     const delBtn = document.createElement("button");
     delBtn.type = "button";
     delBtn.className = "del-btn";
-    delBtn.innerHTML = '<div class="del-confirm-popover"><span>confirm</span>'
-      + '<button type="button" class="del-confirm-yes">Delete</button>'
-      + '<button type="button" class="del-confirm-no">Cancel</button></div>';
     body.appendChild(delBtn);
 
     // .regen-link + .regen-link (popup-ai.js createActionLink x2, adjacent siblings)

@@ -2371,6 +2371,14 @@ function pbpIsValidTokenFormat(token) {
 
 let _activeConfirmPopover = null;
 
+// Close whatever confirm popover is open, without running onCancel and
+// without stealing focus back to its opener. For callers that are tearing
+// the anchor's context down anyway (popup's form reset drops the Delete
+// button), where "the user cancelled" is the wrong story to tell.
+function pbpDismissActiveConfirm() {
+  _activeConfirmPopover?.dismiss({ restoreFocus: false, animate: false });
+}
+
 // Render a .confirm-popover beside `anchor`, portaled to <body> so buttons are
 // never nested inside an interactive anchor.
 // Caller supplies pre-translated strings via { msg, yesText, noText }.
