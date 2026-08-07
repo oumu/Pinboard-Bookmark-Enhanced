@@ -162,9 +162,10 @@
   --pp-progress-text-fg: #1a3a6e;
   --pp-edit-cancel-fg: #444;
   --pp-neutral-hover-bg: #eee;
-  --pp-confirm-no-hover-bg: #eee;
-  --pp-confirm-no-fg: #666;
-  --pp-confirm-no-border: #ccc;
+  /* --pp-confirm-no-hover-bg/-fg/-border retired: .confirm-no reads the
+     shared fg-muted / border / btn-hover roles now, same as options and
+     library (COMPONENTS.md §4.2 leaves .confirm-no hand-written but on real
+     role tokens). */
   --pp-tag-remove-fg: #888;
   --pp-recent-bm-border: #e8e8e8;
   /* Scrim: the tint color()-mix()'d at a low percentage to darken/lighten a
@@ -214,6 +215,15 @@ a:hover { text-decoration: underline; }
 }
 .btn-ic svg {
   display: block;
+}
+
+.confirm-popover .confirm-yes {
+  background: var(--pp-danger);
+  color: var(--pp-on-danger);
+  border-color: var(--pp-danger);
+}
+.confirm-popover .confirm-yes:hover {
+  box-shadow: inset 0 0 0 1px var(--pp-on-danger);
 }
 
 input[type="checkbox"], input[type="radio"] {
@@ -1333,21 +1343,15 @@ html.dark {
   --pp-offline-queue-title-fg: #d4c890;
   --pp-offline-queue-meta-fg: #9d8f5e;
   --pp-edit-cancel-fg: #ddd;
-  --pp-confirm-no-hover-bg: #2a2a2a;
-  --pp-confirm-no-fg: #aaa;
-  --pp-confirm-no-border: #444;
   --pp-spinner-bg: #555;
   --pp-spinner-fg: #aaa;
   /* Dark-only tokens (no light counterpart -- these components already
      consume var(--pp-fg)/var(--pp-danger)/etc. in the light rule, so no
      new :root default is needed; see the individual rules below). */
   --pp-login-p-fg: #bbb;
-  --pp-confirm-popover-fg: #ff6666;
-  --pp-confirm-popover-bg: #1a1a1a;
-  --pp-confirm-popover-border: #3a3a3a;
-  --pp-confirm-yes-bg: #c33;
-  --pp-confirm-yes-fg: #fff;
-  --pp-confirm-yes-strong: #a22;
+  /* --pp-confirm-yes-bg/-fg/-strong retired with the html.dark .confirm-yes
+     rule that was their only consumer (COMPONENTS.md §4.2): the solid danger
+     tier is --pp-danger/--pp-on-danger now, both derived and audited. */
   /* Scrim: same role as :root's, tinting AWAY from the (dark) background --
      white here instead of :root's black. See :root's --pp-scrim comment. */
   --pp-scrim: #fff;
@@ -2399,10 +2403,18 @@ html[data-theme="terminal"] .field > textarea { font-family: "Courier New", Cons
 .confirm-popover button {
   padding: var(--pp-sp-1) var(--pp-sp-4); font-size: 11px; cursor: pointer; border-radius: var(--pp-radius-sm); border: 1px solid;
 }
-.confirm-popover .confirm-yes { background: var(--pp-danger); color: var(--pp-on-danger); border-color: var(--pp-danger); }
-.confirm-popover .confirm-yes:hover { background: color-mix(in srgb, var(--pp-danger) 85%, #000); }
-.confirm-popover .confirm-no { background: none; color: var(--pp-confirm-no-fg); border-color: var(--pp-confirm-no-border); }
-.confirm-popover .confirm-no:hover { background: var(--pp-confirm-no-hover-bg); }
+/* .confirm-yes (solid danger tier) now comes from @generated:ui-components
+   above (COMPONENTS.md §4.2), on all three layers -- same shape options.css
+   and library.css already ship. Its :hover no longer darkens the fill
+   (color-mix(danger 85%, #000)); it keeps the fill and adds the inset
+   on-danger ring the other two surfaces use. */
+/* .confirm-no now reads the same three role tokens options.css and
+   library.css use (fg-muted / border / btn-hover) instead of three literal
+   one-offs (--pp-confirm-no-fg #666, -border #ccc, -hover-bg #eee) that
+   existed only for this button and were never contrast-derived against
+   anything. */
+.confirm-popover .confirm-no { background: none; color: var(--pp-fg-muted); border-color: var(--pp-border); }
+.confirm-popover .confirm-no:hover { background: var(--pp-btn-hover); }
 .confirm-popover button:focus-visible { outline: 1px solid var(--pp-accent); outline-offset: 2px; box-shadow: var(--pp-focus-ring); }
 @keyframes confirmFadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
 /* Exit mirrors the entrance path (fade + 4px rise). shared.js dismiss() adds
@@ -2416,17 +2428,47 @@ html[data-theme="terminal"] .field > textarea { font-family: "Courier New", Cons
   transition: opacity 0.1s var(--ease-out), transform 0.1s var(--ease-out);
 }
 
-html.dark .confirm-popover { color: var(--pp-confirm-popover-fg); background: var(--pp-confirm-popover-bg); border-color: var(--pp-confirm-popover-border); box-shadow: 0 2px 8px rgba(0,0,0,0.4); }
-html.dark .confirm-popover .confirm-yes { background: var(--pp-confirm-yes-bg); color: var(--pp-confirm-yes-fg); border-color: var(--pp-confirm-yes-strong); }
-html.dark .confirm-popover .confirm-yes:hover { background: var(--pp-confirm-yes-strong); }
-html.dark .confirm-popover .confirm-no { color: var(--pp-confirm-no-fg); border-color: var(--pp-confirm-no-border); }
-html.dark .confirm-popover .confirm-no:hover { background: var(--pp-confirm-no-hover-bg); }
+/* Only the shadow is dark-specific now. The three colours came from
+   one-off literals (--pp-confirm-popover-fg #ff6666 / -bg #1a1a1a /
+   -border #3a3a3a) that shadowed the base rule's already-themed
+   --pp-danger / --pp-bg / --pp-border; html.dark defines all three, so the
+   base rule renders the same card without a private palette. Specificity
+   checked in both directions before deleting the declarations: nothing
+   between (0,1,0) and this rule's (0,2,1) paints .confirm-popover, and
+   html[data-theme] never co-occurs with html.dark, so this override was
+   suppressing nothing but the base. */
+html.dark .confirm-popover { box-shadow: 0 2px 8px rgba(0,0,0,0.4); }
+/* .confirm-yes dark override deleted (COMPONENTS.md §4.2): it painted three
+   one-off literals (--pp-confirm-yes-bg #c33 / -fg #fff / -strong #a22) that
+   had drifted away from --pp-danger/--pp-on-danger entirely, and at (0,2,1)
+   it outranked the generated (0,2,0) rule -- so the derived, contrast-audited
+   pair would have been dead code under html.dark. */
+/* The two html.dark .confirm-no rules are gone with the tokens they read:
+   the base rule's fg-muted / border / btn-hover are all defined by html.dark
+   itself, so it resolves to a dark-correct result on its own. Same
+   two-directional check as the container rule above -- (0,2,1) here was
+   only ever beating the (0,2,0) base. */
 
-html[data-theme] .confirm-popover { color: var(--pp-warn-fg); background: var(--pp-warn-bg); border-color: var(--pp-warn-bd); box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
-html[data-theme] .confirm-popover .confirm-yes { background: var(--pp-warn-fg); color: var(--pp-warn-bg); border-color: var(--pp-warn-fg); }
-html[data-theme] .confirm-popover .confirm-yes:hover { background: var(--pp-warn-fg); box-shadow: inset 0 0 0 1px var(--pp-warn-bg); }
-html[data-theme] .confirm-popover .confirm-no { color: var(--pp-warn-fg); border-color: var(--pp-warn-bd); background: none; }
-html[data-theme] .confirm-popover .confirm-no:hover { background: var(--pp-warn-bg); box-shadow: inset 0 0 0 1px var(--pp-warn-fg); }
+/* Neutral card, matching options.css and library.css: the popover is a
+   surface, not a warning. Its warn-family fill/edge were the other half of
+   the warn-on-warn state described below -- with the confirm button back on
+   the danger family, a warn-tinted card would put a red solid button on a
+   yellow panel. background/border-color drop out entirely (the base rule's
+   --pp-bg / --pp-border are per-theme tokens already); only `color` and the
+   shadow need a themed value, exactly as options.css:1766 does it. */
+html[data-theme] .confirm-popover { color: var(--pp-fg); box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+/* .confirm-yes themed override deleted (COMPONENTS.md §4.2/§0): this is the
+   "warn-on-warn" the §0 exemption recorded -- under all 13 presets the
+   button that performs an irreversible delete was painted in the WARN
+   family (warn-fg fill, warn-bg text), i.e. it signalled "notice" where the
+   other two surfaces signal "danger". Nothing could catch it: the warn pair
+   measures 4.5-5.2:1 on every preset, so it was a semantics bug wearing a
+   passing contrast score. At (0,2,1) it also outranked the generated
+   (0,2,0) rule, so leaving it would have made --pp-danger/--pp-on-danger
+   dead code on every preset. tests/ui-contract-tests.mjs now fails any
+   hand-written rule that paints .confirm-yes on any of the three surfaces. */
+html[data-theme] .confirm-popover .confirm-no { color: var(--pp-fg); border-color: var(--pp-border); background: none; }
+html[data-theme] .confirm-popover .confirm-no:hover { background: var(--pp-btn-hover); }
 html[data-theme] .confirm-popover button:focus-visible { outline-color: var(--pp-accent); }
 
 /* ===================== Batch 1: Shared keyframes ===================== */

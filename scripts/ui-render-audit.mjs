@@ -1489,6 +1489,22 @@ async function runSimpleTheme(page, url, theme, checks, results, surface) {
     if (!shown) throw new Error(`SETUP: popup.html is missing #main-section or #md-actions-strip (theme=${theme})`);
     await page.waitForTimeout(120);
   }
+  // popup's confirm popover only exists after a destructive action is
+  // clicked. #logout-link is the cheapest opener that reaches the SHARED
+  // showConfirmPopover() path (the same helper every other popup confirm
+  // uses), and confirming is not automatic -- the probe reads the popover
+  // and the run ends without ever pressing Yes. Without this, the solid
+  // danger tier had zero live coverage on popup: it is emitted into the
+  // generated region, but the only thing that could catch a hand-written
+  // themed override re-outranking it is a per-theme render of the real
+  // thing (COMPONENTS.md §7.1's two-door rule -- the static half lives in
+  // tests/ui-contract-tests.mjs).
+  if (surface === "popup" && checks.some((c) => c.selector.startsWith(".confirm-popover"))) {
+    await page.evaluate(() => { document.getElementById("main-section")?.classList.remove("hidden"); });
+    await page.click("#logout-link");
+    await page.waitForSelector(".confirm-popover .confirm-yes", { timeout: TIMEOUT_MS });
+    await page.waitForTimeout(150);
+  }
   if (surface === "options") {
     // Two tab-scoped groups, each needs ITS OWN tab active when its checks
     // actually run -- NOT two independent "switch tab" steps that both fire

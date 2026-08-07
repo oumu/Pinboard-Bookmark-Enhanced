@@ -826,6 +826,32 @@ export const CHECKS = [
     expect: { iconContrast: 3, iconVCenter: 1 } },
   { surface: "library", page: "library.html", selector: ".vocab-detail-pane .vocab-group-step:nth-of-type(2)", state: "default",
     expect: { iconContrast: 3, iconVCenter: 1 } },
+
+  // ---- popup's confirm popover (popup button-family campaign C3a). Until
+  // this campaign popup was the only surface where the solid-danger tier was
+  // hand-written per layer, and under all 13 presets it was painted from the
+  // WARN family instead (`background: var(--pp-warn-fg); color:
+  // var(--pp-warn-bg)`). Note what that means for gate design: the warn pair
+  // measures 4.5-5.2:1 on every preset, so a contrast assertion could not
+  // have caught the original defect and this trio does not pretend to -- the
+  // wrong-family bug is caught statically (tests/ui-contract-tests.mjs fails
+  // any hand-written rule that paints .confirm-yes). What these three DO
+  // catch is the regression that a static text scan cannot see: the popover
+  // is assembled by shared.js at click time out of three elements that
+  // inherit colour from three different layers, so "is the text actually
+  // readable on the card it lands on, in this theme" is only answerable
+  // after a real cascade + real composite. .confirm-msg is the one that has
+  // never had any gate at all -- it inherits the popover's own `color`,
+  // which is --pp-danger by default and --pp-fg under a preset, over
+  // --pp-bg; neither pair is in contrast-audit's COMPONENT_PAIR_SPEC.
+  // The runner opens the real popover via #logout-link and never confirms
+  // (see runSimpleTheme's popup setup). ----
+  { surface: "popup", page: "popup.html", selector: ".confirm-popover .confirm-msg", state: "default",
+    expect: { textContrast: 4.5 } },
+  { surface: "popup", page: "popup.html", selector: ".confirm-popover .confirm-yes", state: "default",
+    expect: { textContrast: 4.5 } },
+  { surface: "popup", page: "popup.html", selector: ".confirm-popover .confirm-no", state: "default",
+    expect: { textContrast: 4.5 } },
 ];
 
 // Hand-copied literal `data-theme` values, verified at authoring time with:

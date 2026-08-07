@@ -161,10 +161,37 @@ function btnIcRules(ns) {
 }
 
 // -----------------------------------------------------------------------
-// §4: danger operations, two tiers. options + library only (§0: popup's
-// .confirm-popover is warn-on-warn, not this scheme).
+// §4: danger operations, two tiers.
+//
+// The SOLID tier (.confirm-popover .confirm-yes) is emitted for all three
+// surfaces. popup's exemption in §0 ("popup 的 .confirm-popover 是
+// warn-on-warn ... §4 的危险两档不适用于 popup") described the state of the
+// code, not a design position: under all 13 presets popup painted its
+// confirm button `background: var(--pp-warn-fg); color: var(--pp-warn-bg)`,
+// so the button that performs an irreversible delete signalled "notice"
+// rather than "danger". No gate could see it -- the warn pair measures
+// 4.5-5.2:1 on every theme, so contrast was never the problem. Retiring the
+// exemption is the popup button-family campaign's C3a.
+//
+// The QUIET tier stays options+library-only for now: it is defined ON
+// `.btn.danger`, and popup has no `.btn` class until this campaign's C4
+// switches the button family on for pp. Emitting it earlier would ship
+// rules that match nothing.
 function dangerRules(ns) {
-  if (ns === "pp") return [];
+  const solid = [
+    // Solid tier -- the only allowed full-strength red. Self-paired.
+    rule(".confirm-popover .confirm-yes", [
+      ["background", `var(--${ns}-danger)`],
+      ["color", `var(--${ns}-on-danger)`],
+      ["border-color", `var(--${ns}-danger)`],
+    ]),
+    // Hover keeps the background and adds an inset ring -- no color change,
+    // so no background/color pairing to check here.
+    rule(".confirm-popover .confirm-yes:hover", [
+      ["box-shadow", `inset 0 0 0 1px var(--${ns}-on-danger)`],
+    ]),
+  ];
+  if (ns === "pp") return solid;
   return [
     rule(".btn.danger", [
       ["color", `var(--${ns}-danger-quiet-fg)`],
@@ -197,17 +224,7 @@ function dangerRules(ns) {
     // AND focused -- i.e. exactly when a pointer user tabs to the delete
     // button they are already pointing at. Now (0,5,0) and emitted after it.
     rule(".btn.danger.ghost:focus-visible:not(:disabled)", [["border-color", `var(--${ns}-focus-bd)`]], { pairColorWith: ".btn.danger" }),
-    // Solid tier — the only allowed full-strength red. Self-paired.
-    rule(".confirm-popover .confirm-yes", [
-      ["background", `var(--${ns}-danger)`],
-      ["color", `var(--${ns}-on-danger)`],
-      ["border-color", `var(--${ns}-danger)`],
-    ]),
-    // Hover keeps the background and adds an inset ring — no color change,
-    // so no background/color pairing to check here.
-    rule(".confirm-popover .confirm-yes:hover", [
-      ["box-shadow", `inset 0 0 0 1px var(--${ns}-on-danger)`],
-    ]),
+    ...solid,
   ];
 }
 

@@ -1134,9 +1134,17 @@ check(/\.wayback-log-row:focus-within\s+\.wayback-perm-tip/.test(optionsCss) &&
 // one scans the HAND-WRITTEN area of options.css for someone re-adding a
 // literal `html[data-theme] .confirm-popover .confirm-yes { background:
 // #c00 }` override by hand later (a new selector there is legal content as
-// far as both gates are concerned). Low risk, not zero risk.
-check(popupCss.includes("html[data-theme] .confirm-popover .confirm-yes:hover { background: var(--pp-warn-fg)") &&
-  popupCss.includes("html[data-theme] .confirm-popover .confirm-no:hover { background: var(--pp-warn-bg)") &&
+// far as both gates are concerned). Low risk, not zero risk -- and that
+// residual risk is what the class-level `.confirm-yes` paint gate at the
+// bottom of this file now closes, for all three surfaces at once.
+//
+// popup's .confirm-yes clause left this list for the same reason options'
+// did (campaign C3a): the solid tier is emitted for pp too now, and the
+// themed warn-family override it used to pin here is deleted. The surviving
+// .confirm-no clause moved from --pp-warn-bg to --pp-btn-hover in the same
+// commit -- what this line guards is "a per-theme token, not a literal",
+// and the popover is a neutral card now rather than a warning-coloured one.
+check(popupCss.includes("html[data-theme] .confirm-popover .confirm-no:hover { background: var(--pp-btn-hover)") &&
   optionsCss.includes("html[data-theme] .theme-name-popover .tnp-save:hover { background: var(--opt-fg)"),
   "custom themed popovers can fall back to hardcoded hover backgrounds with unreadable foregrounds");
 {
@@ -2218,6 +2226,39 @@ for (const [file, css] of [["popup.css", popupCss], ["options.css", optionsCss],
   const offenders = findInconsistentVarFallbacks(css);
   check(offenders.length === 0,
     `${file}: var(--X, literal) fallback text disagrees across call sites for the same token -- pick one value (add/fix the :root default and consume bare, or align every fallback) -- ${offenders.join("; ")}`);
+}
+
+// COMPONENTS.md §4.2 solid-danger tier, file-wide: the confirm popover's
+// confirm button is the ONE place a full-strength --{ns}-danger fill is
+// allowed, and on all three surfaces its paint is owned by the
+// @generated:ui-components recipe. A hand-written rule that paints
+// .confirm-yes wins the moment it carries a theme prefix -- `html.dark
+// .confirm-popover .confirm-yes` and `html[data-theme] .confirm-popover
+// .confirm-yes` are both (0,2,1) against the recipe's (0,2,0) -- and the
+// failure is SILENT: the recipe still emits, css-region-audit still passes,
+// contrast-audit still greenlights on-danger x danger, and the presets
+// quietly render a different palette family. popup shipped exactly that for
+// 13 presets (`background: var(--pp-warn-fg); color: var(--pp-warn-bg)` --
+// a warn-on-warn confirm button whose contrast measured 4.5-5.2:1 on every
+// theme, so no contrast gate could ever have noticed).
+//
+// Class-level rather than a list of the selectors that once did it: the
+// simplest counter-example to a blacklist is the next hand-written override
+// nobody has written yet. Any hand-written rule whose selector mentions
+// .confirm-yes and that sets one of the three paint properties fails --
+// :hover's `box-shadow` inset ring is deliberately still allowed, that is
+// how §4.2's hover state is specified.
+const SOLID_DANGER_PAINT = /(?:^|;)\s*(background|background-color|color|border-color)\s*:/;
+for (const [file, css] of [["popup.css", popupCss], ["options.css", optionsCss], ["library.css", libraryCss]]) {
+  const hand = stripGeneratedRegions(css).replace(/\/\*[\s\S]*?\*\//g, "");
+  const offenders = [];
+  for (const m of hand.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    const selector = m[1].trim().replace(/\s+/g, " ");
+    if (!selector.includes(".confirm-yes")) continue;
+    if (SOLID_DANGER_PAINT.test(";" + m[2])) offenders.push(selector);
+  }
+  check(offenders.length === 0,
+    `${file}: hand-written rule(s) paint .confirm-yes -- the solid-danger tier belongs to the @generated:ui-components recipe (COMPONENTS.md §4.2); a themed override outranks it silently. Offenders: ${offenders.join(" | ")}`);
 }
 
 if (fail.length) {
