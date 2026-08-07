@@ -335,6 +335,7 @@ html[data-section="login"] .quick-actions { display: none !important; }
 }
 .header-bar .header-ic .btn-ic { margin: 0; vertical-align: 0; }
 .header-bar .header-ic:hover { color: var(--pp-fg); background: color-mix(in srgb, var(--pp-fg) 8%, transparent); }
+.header-bar .header-ic:active:not(:disabled) { transform: scale(0.97); }
 .header-bar .header-ic:focus-visible,
 .header-bar a:focus-visible { outline: 1px solid var(--pp-accent); outline-offset: 2px; box-shadow: var(--pp-focus-ring); border-radius: var(--pp-radius-sm); }
 
@@ -403,7 +404,7 @@ html[data-section="login"] .quick-actions { display: none !important; }
   box-shadow: none;
 }
 .login-body button { padding: var(--pp-sp-2) var(--pp-sp-6); font-size: 12px; cursor: pointer; transition: background var(--pp-motion-state), border-color var(--pp-motion-state); }
-.login-body button:active:not(:disabled) { transform: translateY(1px); }
+.login-body button:active:not(:disabled) { transform: scale(0.97); }
 .login-body button:focus-visible { outline: none; border-color: var(--pp-focus-bd); box-shadow: var(--pp-focus-ring); }
 .error-text { color: var(--pp-danger); font-size: 11px; margin-top: var(--pp-sp-2); }
 
@@ -462,17 +463,28 @@ html[data-section="login"] .quick-actions { display: none !important; }
   white-space: nowrap;
 }
 .fc-btn:hover { background: color-mix(in srgb, currentColor 18%, transparent); }
+.fc-btn:active:not(:disabled) { transform: scale(0.97); }
+/* The focus rule this button never had -- it fell through to the UA ring on
+   every theme. `borderless` per COMPONENTS.md §7.3's second question: its
+   1px `currentColor` edge is SEMANTIC (it carries the feedback card's own
+   variant colour), so re-tinting it to the focus colour would erase the
+   warn/ok/offline signal exactly when focus lands on it. §7.3 names .fc-btn
+   as a borderless site by hand. */
+.fc-btn:focus-visible { outline: 1px solid var(--pp-accent); outline-offset: 2px; box-shadow: var(--pp-focus-ring); }
 /* Secondary/dismiss controls sit ON the variant card (warn/ok/offline/info) bg, so they
    must inherit the card's foreground — which is AA against the card bg by construction.
    (Using --pp-fg-hint here, a main-bg grey, made "Details"/× unreadable on dark cards.)
    De-emphasis comes from smaller size + a subtle hover wash, not a different colour. */
 .fc-btn-secondary { border: 0; color: inherit; font-size: 10px; padding: var(--pp-sp-1) var(--pp-sp-3); }
 .fc-btn-secondary:hover { background: color-mix(in srgb, currentColor 14%, transparent); }
+.fc-btn-secondary:active:not(:disabled) { transform: scale(0.97); }
 .fc-dismiss {
   background: transparent; border: 0; color: inherit;
   cursor: pointer; padding: 0 var(--pp-sp-2); font-size: 14px; line-height: 1; font-family: inherit;
 }
 .fc-dismiss:hover { background: color-mix(in srgb, currentColor 18%, transparent); border-radius: var(--pp-radius-sm); }
+.fc-dismiss:active:not(:disabled) { transform: scale(0.97); }
+.fc-dismiss:focus-visible { outline: 1px solid var(--pp-accent); outline-offset: 2px; box-shadow: var(--pp-focus-ring); border-radius: var(--pp-radius-sm); }
 .fc-details {
   margin-top: var(--pp-sp-3); padding: var(--pp-sp-3) var(--pp-sp-4);
   max-height: 120px; overflow: auto;
@@ -935,7 +947,10 @@ html[data-theme] #submit-btn:disabled { background: var(--pp-btn-bg); border-col
   cursor: pointer;
   text-decoration: none;
   text-align: center;
-  transition: background var(--pp-motion-state), color var(--pp-motion-state), border-color var(--pp-motion-state), box-shadow var(--pp-motion-state), transform var(--pp-motion-state);
+  /* No `transform` in this list any more: the press below is scale(0.97),
+     and COMPONENTS.md §3.1 decisions 1/2 keep press OUT of the transition so
+     both the press and the release read instantly. */
+  transition: background var(--pp-motion-state), color var(--pp-motion-state), border-color var(--pp-motion-state), box-shadow var(--pp-motion-state);
   font-family: inherit;
   line-height: 1.3;
 }
@@ -944,11 +959,11 @@ html[data-theme] #submit-btn:disabled { background: var(--pp-btn-bg); border-col
   color: var(--pp-link);
   box-shadow: var(--pp-hover-shadow);
 }
-.qbtn:active {
-  background: var(--pp-input-bg);
-  transform: translateY(0);
-  box-shadow: none;
-}
+/* One press language for the whole popup (user ruling A, 2026-08-07 -- and
+   COMPONENTS.md §3's "同族跨表面只有一种按压"). This used to be a third one:
+   a fill swap plus a translateY(0) that only made sense as "come back down
+   from the hover lift", which no longer exists. */
+.qbtn:active:not(:disabled) { transform: scale(0.97); }
 .qbtn:focus-visible { outline: none; border-color: var(--pp-focus-bd); box-shadow: var(--pp-focus-ring); }
 .qbtn:disabled {
   opacity: 0.5;
@@ -1230,6 +1245,7 @@ html.dark .batch-progress-text { color: var(--pp-fg); mix-blend-mode: normal; fi
 }
 .offline-queue-actions button:focus-visible { outline: none; border-color: var(--pp-focus-bd); box-shadow: var(--pp-focus-ring); }
 .offline-queue-actions button:hover:not(:disabled) { background: color-mix(in srgb, var(--pp-scrim) 6%, transparent); color: var(--pp-accent); }
+.offline-queue-actions button:active:not(:disabled) { transform: scale(0.97); }
 .offline-queue-actions button:disabled { opacity: 0.5; cursor: default; }
 .offline-queue-actions .offline-queue-remove:hover:not(:disabled) { color: var(--pp-danger); }
 .offline-queue-actions .offline-queue-failed { color: var(--pp-danger); border-color: var(--pp-danger); }
@@ -2596,7 +2612,7 @@ html[data-theme] .confirm-popover button:focus-visible { outline-color: var(--pp
 }
 .md-strip-btn .btn-ic { margin: 0; vertical-align: 0; }
 .md-strip-btn:hover { background: var(--pp-btn-hover); border-color: var(--pp-accent); box-shadow: var(--pp-hover-shadow); }
-.md-strip-btn:active { transform: translateY(1px); }
+.md-strip-btn:active:not(:disabled) { transform: scale(0.97); }
 .md-strip-btn:focus-visible { outline: none; border-color: var(--pp-focus-bd); box-shadow: var(--pp-focus-ring); }
 .md-strip-btn .btn-ic { display: inline-flex; }
 
@@ -2618,12 +2634,11 @@ html[data-theme] .md-strip-btn:focus-visible { border-color: var(--pp-focus-bd);
 @media (min-resolution: 144dpi) { body { zoom: 1.12; } }
 @media (min-resolution: 192dpi) { body { zoom: 1.22; } }
 
-/* The hover LIFT is the only hover here that changes geometry rather than
-   colour, and on touch :hover latches after a tap -- leaving the button parked
-   1px up with its hover shadow. The colour half above stays ungated. */
-@media (hover: hover) and (pointer: fine) {
-  .qbtn:hover, html[data-theme] .qbtn:hover { transform: translateY(-1px); }
-}
+/* The @media (hover: hover) and (pointer: fine) block that used to sit here
+   is gone with its only tenant: popup no longer has ANY hover that changes
+   geometry (user ruling A -- hover is a fill change, press is scale(0.97)),
+   so there is nothing left that could latch in the raised state after a tap
+   on a touch device. COMPONENTS.md §7.5's rule stands for anything new. */
 
 /* Reduced motion. `scroll-behavior` is deliberately absent -- it cannot reach
    these calls; the guard lives in pbpScrollIntoView (shared.js). */
