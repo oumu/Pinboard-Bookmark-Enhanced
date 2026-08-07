@@ -175,6 +175,18 @@ const COMPONENT_PAIR_SPEC = [
   ["danger-quiet-fg", "panel", 4.5],
   ["danger-quiet-fg", "btn-bg", 4.5],
   ["on-danger", "danger", 4.5],
+  // warn-fg/warn-bg (debt-sweep 2026-08-08, independent review F1): both
+  // come out of the same pairToAA(destroy, bg, mode) call in
+  // deriveUiColors (_ui-derive.mjs) -- the foreground's lightness is
+  // adjusted until it clears 4.5:1 against that exact background, so this
+  // row is AA-safe by construction on every theme, not a new derivation.
+  // Registered because #submit-btn.save-error now consumes this pair
+  // directly (was --pp-danger on --pp-warn-bg, an unpaired combination that
+  // failed on 9/13 presets + default). popup-only: options/library have no
+  // warn-fg/warn-bg role at all (a single --{ns}-warn instead), so ["pp"]
+  // keeps this row from FAILing every themed block over a role those two
+  // surfaces never declare.
+  ["warn-fg", "warn-bg", 4.5, ["pp"]],
   // Four rows below: popup-only roles (design-uplift Task 13, USER RULING --
   // Task 7's orphan guard surfaced all three as real, never-audited gaps).
   // preset-fg/tag-fg/spinner-fg have no --opt-*/--lib-* counterpart (tag
@@ -364,11 +376,15 @@ const ORPHAN_ALLOWLIST = new Set([
   // identical banner-fg×banner-bg comparison under a different label, not
   // add real coverage. A genuine alias, not a gap.
   "pp:info-fg",
-  // --pp-warn-fg / --pp-banner-fg / --pp-ok-fg / --pp-offline-fg: audited by
-  // the warn/banner/ok/offline loop in auditCssThemes (grab(fgK) against
+  // --pp-banner-fg / --pp-ok-fg / --pp-offline-fg: audited by the
+  // warn/banner/ok/offline loop in auditCssThemes (grab(fgK) against
   // grab(bgK), BLOCKING, pairToAA-guaranteed) -- real coverage, just not
   // expressed as a COMPONENT_PAIR_SPEC role (that loop predates this task).
-  "pp:warn-fg",
+  // --pp-warn-fg graduated out of this list (debt-sweep 2026-08-08): it's a
+  // real COMPONENT_PAIR_SPEC row now (#submit-btn.save-error consumes it
+  // directly), so COMPONENT_PAIR_ROLES already short-circuits it above --
+  // leaving the allowlist entry here would have been unreachable dead code,
+  // exactly the failure shape this guard's own history warns about.
   "pp:banner-fg",
   "pp:ok-fg",
   "pp:offline-fg",

@@ -1387,11 +1387,25 @@ html.dark .batch-progress-text { color: var(--pp-fg); mix-blend-mode: normal; fi
 /* Colour-only error state. A failed save already mounts a .feedback-card (which
    carries the actual message) with its own entrance in the same tick, so shaking
    the button too was two motions for one event — over-feedback trains users to
-   ignore all of it. The themed twin below was colour-only already. */
+   ignore all of it. The themed twin below was colour-only already.
+   --pp-warn-fg/--pp-warn-bg, not --pp-danger on --pp-warn-bg (independent
+   review F1, 2026-08-08): --pp-danger was never PAIRED with --pp-warn-bg --
+   two roles that happened to share a rule, not a designed combination, and
+   measured below 4.5:1 on 9/13 presets + default (default 4.34, flexoki-dark
+   3.46, modern-card 3.48, solarized-light 3.52). --pp-warn-fg IS paired with
+   --pp-warn-bg already: both come out of the SAME pairToAA(destroy, bg,
+   mode) call in _ui-derive.mjs (deriveUiColors), which adjusts the
+   foreground's lightness until it clears 4.5:1 against that exact
+   background by construction -- and "destroy" is the same palette seed
+   --pp-danger itself reads verbatim, so this is still a danger-toned
+   pairing, just the one this codebase already derives AA-safe rather than a
+   second, uncoordinated one. Verified: all 16 theme states 4.51-6.83:1 (this
+   file's warn-fg/warn-bg declarations, computed). Now a registered
+   COMPONENT_PAIR_SPEC pair (contrast-audit.mjs). */
 #submit-btn.save-error {
   background: var(--pp-warn-bg);
-  border-color: var(--pp-danger);
-  color: var(--pp-danger);
+  border-color: var(--pp-warn-bd);
+  color: var(--pp-warn-fg);
 }
 
 /* ===================== Dark Mode ===================== */
@@ -2462,7 +2476,16 @@ html[data-theme] .submit-bar button.loading::before, html[data-theme] .action-li
 /* Same id-qualification as the base rules above: `html[data-theme] #submit-btn`
    is (1,1,1) and outranks a (0,3,2) class-only twin. */
 html[data-theme] #submit-btn.saved-success { background: var(--pp-ok-bg); border-color: var(--pp-ok-bd); color: var(--pp-ok-fg); }
-html[data-theme] #submit-btn.save-error { background: color-mix(in srgb, var(--pp-danger) 14%, transparent); border-color: var(--pp-danger); color: var(--pp-danger); }
+/* Same warn-fg/warn-bg pairing as the default rule above (independent review
+   F1) -- the old `color-mix(danger 14%, transparent)` was an ad-hoc tint
+   with no derived, paired foreground, and unlike the default rule's
+   --pp-warn-bg it composited onto "transparent", i.e. whatever sat behind
+   the button, which contrast-audit cannot resolve to a stable colour at
+   all. --pp-warn-bg/--pp-warn-fg are real per-theme tokens (already
+   AA-paired by construction), so this now unifies default + dark + all 13
+   presets on one background/foreground pair instead of three different
+   ones. */
+html[data-theme] #submit-btn.save-error { background: var(--pp-warn-bg); border-color: var(--pp-warn-bd); color: var(--pp-warn-fg); }
 
 html[data-theme] .quick-actions .divider { border-color: transparent; }
 html[data-theme] .bottom-bar label { color: var(--pp-fg); }

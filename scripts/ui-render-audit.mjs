@@ -513,7 +513,18 @@ function evaluateCheck(check, raw, theme) {
     if (!raw.restBgStack) out.push(verdict("bgChangedFromRest", false, null, null, "no rest baseline captured -- classState runner state required"));
     else {
       const restBg = compositeStack(raw.restBgStack);
-      out.push(verdict("bgChangedFromRest", bg !== restBg, bg, `!= ${restBg}`));
+      // .join(",") not `!==` (found chasing down independent review F2/F3,
+      // 2026-08-08): compositeStack returns an RGB ARRAY, and `bg !== restBg`
+      // compares two array REFERENCES -- always true, regardless of their
+      // contents, since they're never the same object. This made the check
+      // vacuously pass on every run, fixed code or broken: the F2/F3 settle-
+      // timing hypothesis wasn't actually why the first version's RED test
+      // looked clean, THIS was -- reverting E's id-specificity fix (which
+      // should have failed this) still read 0 FAIL, and a debug trace showed
+      // bg/restBg genuinely equal-by-value on the broken build while the
+      // comparison still returned true. Same failure shape as comparing two
+      // `new Date()` instances with `!==`.
+      out.push(verdict("bgChangedFromRest", bg.join(",") !== restBg.join(","), bg, `!= ${restBg}`));
     }
   }
   if (exp.padGteRadiusH === true) {
@@ -1258,6 +1269,13 @@ const GAP_MIN_SCAN = ({ fromSel, toSel }) => {
   const a = document.querySelector(fromSel), b = document.querySelector(toSel);
   if (!a) return { error: `not found: ${fromSel}` };
   if (!b) return { error: `not found: ${toSel}` };
+  // Symmetric (independent review F5, 2026-08-08): the first version only
+  // checked `b`. A hidden `a` collapses to an all-zero rect too, and
+  // `br.left - 0` reads as a large POSITIVE number -- a false PASS, not the
+  // false FAIL a missing check usually produces. Simplest counter-example:
+  // hide fromSel (`.vocab-sort-seg`) at this width and the old code read a
+  // comfortably-over-12px gap instead of erroring.
+  if (getComputedStyle(a).display === "none") return { error: `${fromSel} is display:none at this width` };
   if (getComputedStyle(b).display === "none") return { error: `${toSel} is display:none at this width` };
   const ar = a.getBoundingClientRect(), br = b.getBoundingClientRect();
   return { gap: +(br.left - ar.right).toFixed(2) };
@@ -1354,6 +1372,24 @@ async function runOneCheck(page, theme, check, results, extBase) {
     if (!Array.isArray(check.addClass) || !check.addClass.length) {
       throw new Error(`classState check on ${check.selector} has no addClass`);
     }
+    // `removeClass`/`clearDisabled` (both optional, debt-sweep 2026-08-07
+    // fix round): mirror the REAL DOM mutation the state machine this
+    // targets performs, not just the one class add. #submit-btn's own
+    // setSubmitState() always does `classList.remove("loading",
+    // "saved-success", "save-error")` + `disabled = false` before adding the
+    // new state class -- skipping that here meant the "rest" baseline this
+    // captures could be measuring whatever OTHER state (disabled, a
+    // different .btn class) the element happened to be left in, not the
+    // idle resting cascade the fix actually has to out-rank. Applied to
+    // BOTH the baseline read and the target-state read, so they differ by
+    // exactly one class the way the real state machine's transitions do.
+    const mirror = async () => page.evaluate(({ selector, removeCls, clearDisabled }) => {
+      const el = document.querySelector(selector);
+      if (!el) return;
+      if (removeCls && removeCls.length) el.classList.remove(...removeCls);
+      if (clearDisabled) el.disabled = false;
+    }, { selector: check.selector, removeCls: check.removeClass || null, clearDisabled: !!check.clearDisabled });
+    await mirror();
     restBgStack = await page.evaluate(({ selector }) => {
       const el = document.querySelector(selector);
       if (!el) return null;
@@ -1364,6 +1400,11 @@ async function runOneCheck(page, theme, check, results, extBase) {
     await page.evaluate(({ selector, cls }) => {
       document.querySelector(selector)?.classList.add(...cls);
     }, { selector: check.selector, cls: check.addClass });
+    // Same settle discipline as focusWithin below (:1405): `.btn`'s
+    // `transition: background var(--pp-motion-state), ...` means a read
+    // taken in the same task as classList.add() can land mid-interpolation
+    // instead of at the transition's target value.
+    await page.waitForTimeout(260);
   }
   if (check.state === "focusWithin") {
     if (!check.focusTarget) throw new Error(`focusWithin check on ${check.selector} has no focusTarget`);
@@ -1572,18 +1613,19 @@ async function runSimpleTheme(page, url, theme, checks, results, surface, sw) {
     // unsupported-URL early `return`, so it never ran AT ALL when the
     // popup's own tab isn't a plain http(s) page -- which every direct
     // navigation to popup.html is, harness included. Fixed in popup.js by
-    // moving the call earlier. This manual re-trigger is now redundant on a
-    // patched build but harmless to keep as fixture-setup defense in depth
-    // (window.PPOffline.refresh() is popup.js's own exposed entry point,
-    // the same one showOfflineQueueStatus calls -- not a behavior change).
-    const refreshed = await page.evaluate(async () => {
-      if (!window.PPOffline) return false;
-      await window.PPOffline.refresh();
-      return true;
-    });
-    if (!refreshed) {
-      throw new Error(`SETUP: window.PPOffline is undefined on popup.html (theme=${theme}) -- popup-offline.js failed to load`);
-    }
+    // moving the call earlier.
+    //
+    // No manual `window.PPOffline.refresh()` call here any more
+    // (independent review F4, 2026-08-08): a fixture-side re-trigger of the
+    // exact function the fix makes automatic would silently mask a
+    // regression of that fix -- popup.js could regress back to skipping
+    // showOfflineQueueStatus() and this block would still force the bar
+    // visible, and every check below would keep reading PASS. This wait is
+    // now pure observation: if the automatic on-load path is doing its job,
+    // #offline-queue-bar loses `.hidden` well within the timeout (measured:
+    // well under 500ms) with no help from here. If it doesn't, this throws
+    // instead of the checks below silently reading a hidden/zero-size
+    // element as passing.
     await page.waitForSelector("#offline-queue-bar:not(.hidden)", { timeout: TIMEOUT_MS });
   }
   // popup's main UI (and the markdown strip inside it) ship `class="hidden"`

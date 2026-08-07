@@ -949,12 +949,38 @@ export const CHECKS = [
   // folds the id into both rules (same shape as the pre-existing
   // `#submit-btn:disabled` exemption above). classState is the first check
   // in this file to drive a state via classList rather than a real
-  // interaction -- there is no user gesture that reaches "just saved", so
-  // this reproduces exactly what setSubmitState() does to the DOM.
+  // interaction -- there is no user gesture that reaches "just saved".
+  //
+  // `removeClass`/`clearDisabled` (independent review F2/F3, 2026-08-08):
+  // the first version of this check only added the target class, which does
+  // NOT reproduce setSubmitState()'s actual DOM mutation -- that function
+  // always does `classList.remove("loading", "saved-success", "save-error")`
+  // + `disabled = false` first. Skipping that meant the "rest" baseline this
+  // check reads could be measuring whatever OTHER state the element had been
+  // left in by an earlier check, not the idle resting cascade the fix
+  // actually has to out-rank -- and with no settle wait, a read taken in the
+  // same task as classList.add() could land mid-transition on `.btn`'s own
+  // `transition: background ...` instead of at the target value. Both fixed:
+  // the DOM mutation now mirrors setSubmitState() exactly (mirror() above),
+  // and the read is taken 260ms after the class add (same settle discipline
+  // focusWithin uses just below).
+  //
+  // save-error also gates textContrast now (independent review F1): the
+  // rule used to pair --pp-danger with --pp-warn-bg, two roles that were
+  // never a designed combination and measured below 4.5:1 on 9/13 presets +
+  // default. Fixed to consume --pp-warn-fg/--pp-warn-bg (popup.css, both
+  // out of the same pairToAA(destroy, bg, mode) call -- AA-safe by
+  // construction, now a registered COMPONENT_PAIR_SPEC row). This entry is
+  // what would have actually caught the original bug -- COMPONENT_PAIR_SPEC
+  // only proves a NAMED token pair is safe, it has no way to know which
+  // rule consumes which tokens; measuring the real rendered button is the
+  // only check that traces to the actual CSS selector.
   { surface: "popup", page: "popup.html", selector: "#submit-btn", state: "classState",
-    addClass: ["saved-success"], expect: { bgChangedFromRest: true } },
+    addClass: ["saved-success"], removeClass: ["loading", "saved-success", "save-error"], clearDisabled: true,
+    expect: { bgChangedFromRest: true } },
   { surface: "popup", page: "popup.html", selector: "#submit-btn", state: "classState",
-    addClass: ["save-error"], expect: { bgChangedFromRest: true } },
+    addClass: ["save-error"], removeClass: ["loading", "saved-success", "save-error"], clearDisabled: true,
+    expect: { bgChangedFromRest: true, textContrast: 4.5 } },
   { surface: "popup", page: "popup.html", selector: ".del-btn", state: "default",
     expect: { textContrast: 4.5 } },
   { surface: "popup", page: "popup.html", selector: ".del-btn", state: "focusWithin",
