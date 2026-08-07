@@ -852,6 +852,35 @@ export const CHECKS = [
     expect: { textContrast: 4.5 } },
   { surface: "popup", page: "popup.html", selector: ".confirm-popover .confirm-no", state: "default",
     expect: { textContrast: 4.5 } },
+
+  // ---- popup's submit bar, the first two buttons to carry `class="btn"`
+  // (campaign C4a). Both had ZERO render coverage before -- scoping found no
+  // assertion of any kind on #submit-btn / .del-btn -- which is how a
+  // focus-indicator gap survived on the popup's primary action across all 16
+  // themes: #submit-btn's own (1,0,0) `border-color: var(--pp-accent)` (and
+  // its themed twin at (1,1,1)) out-ranked `.submit-bar button:focus-visible`
+  // (0,2,1), so focus produced a glow and no >=3:1 core.
+  //
+  // `borderless` for #submit-btn is a deliberate placement call, not the
+  // family default: §7.3's second question asks whether the resting frame is
+  // neutral chrome or semantic, and this one is the same accent as the fill
+  // -- it IS the primary-action tier. .del-btn is `bordered` because it takes
+  // the .btn family's frame, which Soft Fill collapses into the fill and
+  // which therefore costs nothing to re-tint.
+  //
+  // heightEqWith is the §6.3 rowRungEq for this bar: the two buttons sat at
+  // 28px on a hand-written `min-height` before, and the migration drops them
+  // to the family's 26px md rung -- pinning them to EACH OTHER (rather than
+  // to a literal 26) keeps the assertion about the thing that is actually
+  // wrong when it breaks, which is one of them drifting off the rung.
+  { surface: "popup", page: "popup.html", selector: "#submit-btn", state: "default",
+    expect: { textContrast: 4.5, heightEqWith: { selector: ".del-btn", tolerancePx: 1 } } },
+  { surface: "popup", page: "popup.html", selector: "#submit-btn", state: "focusWithin",
+    focusTarget: ":scope", expect: { focusRecipe: "borderless" } },
+  { surface: "popup", page: "popup.html", selector: ".del-btn", state: "default",
+    expect: { textContrast: 4.5 } },
+  { surface: "popup", page: "popup.html", selector: ".del-btn", state: "focusWithin",
+    focusTarget: ":scope", expect: { focusRecipe: "bordered" } },
 ];
 
 // Hand-copied literal `data-theme` values, verified at authoring time with:

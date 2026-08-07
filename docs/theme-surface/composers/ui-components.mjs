@@ -46,6 +46,21 @@ export const SPACING = {
 };
 export const sp = (ns, px) => SPACING[ns][px] ?? `${px}px`;
 
+// Per-surface token NAME differences for the same role. popup spells the two
+// control-frame roles with a `-bd` suffix (--pp-btn-bd / --pp-input-bd) --
+// COMPONENTS.md §9.1 law 1 states this explicitly ("popup 用自己的 -bd 后缀"),
+// and those are the names popup-chrome.mjs emits per theme. A recipe that
+// spelled `--pp-btn-border` would reference a token no theme defines: not a
+// silent wrong colour but a hard ui-token-coverage failure, which is the good
+// outcome -- still, the recipe has to ask for the name that exists. Roles with
+// no entry here fall through unchanged.
+const TOKEN_ALIAS = {
+  pp: { "btn-border": "btn-bd", "input-border": "input-bd" },
+  opt: {},
+  lib: {},
+};
+const v = (ns, role) => `var(--${ns}-${TOKEN_ALIAS[ns][role] ?? role})`;
+
 // Motion token per surface (COMPONENTS.md "记号约定": options/library share
 // --motion-state, popup has its own --pp-motion-state).
 const MOTION = { pp: "var(--pp-motion-state)", opt: "var(--motion-state)", lib: "var(--motion-state)" };
@@ -75,11 +90,17 @@ function stringifyRules(rules) {
 // -----------------------------------------------------------------------
 // §1 + §3: button family (structural geometry + state-feedback recipe,
 // COMPONENTS.md §1.2/§1.3/§3.2 — the two sections share one recipe, §3.2
-// says so explicitly). popup is NOT included: §2 states .btn-ic is "the
-// only structural rule popup gets into the generated region this campaign"
-// (popup has no `.btn` class at all — see §0's "popup 没有 .btn 族").
+// says so explicitly).
+//
+// popup joined this family in the popup button-family campaign (C4a),
+// retiring §0's "popup 没有 .btn 族" exemption. It is emitted for pp exactly
+// as for the other two -- the exemption was about popup having six one-off
+// button recipes with no shared class, not about popup wanting a different
+// geometry. What is NOT claimed here: adding the class to a given popup
+// button is a per-button migration with its own layout consequences, so the
+// hand-written recipes that have not been migrated yet keep their own rules
+// and simply never match `.btn`.
 function btnRules(ns) {
-  if (ns === "pp") return [];
   return [
     rule(".btn", [
       ["display", "inline-flex"],
@@ -96,7 +117,7 @@ function btnRules(ns) {
       // the ones whose pilot restores a real frame (terminal). border-width
       // stays 1px so the collapse costs zero layout shift, and :hover /
       // :focus-visible / .danger still paint a real edge on top of it.
-      ["border", `1px solid var(--${ns}-btn-border)`],
+      ["border", `1px solid ${v(ns, "btn-border")}`],
       ["border-radius", `var(--${ns}-radius-md)`],
       ["background", `var(--${ns}-btn-bg)`],
       ["color", `var(--${ns}-btn-fg)`],
@@ -191,7 +212,6 @@ function dangerRules(ns) {
       ["box-shadow", `inset 0 0 0 1px var(--${ns}-on-danger)`],
     ]),
   ];
-  if (ns === "pp") return solid;
   return [
     rule(".btn.danger", [
       ["color", `var(--${ns}-danger-quiet-fg)`],

@@ -1478,15 +1478,32 @@ async function runSimpleTheme(page, url, theme, checks, results, surface) {
   // surface with ZERO live focus coverage -- and it is the surface whose
   // hand-written themed override layer made five bordered sites need
   // per-theme focus twins in the first place (COMPONENTS.md C45).
-  if (surface === "popup" && checks.some((c) => c.state === "focusWithin")) {
+  //
+  // The submit bar needs three more pieces of the same kind of setup, all of
+  // them consequences of the fixture page being its own chrome-extension://
+  // URL, which popup.js correctly treats as unsaveable: it puts
+  // `.unsupported-url` on #main-section (whose CSS display:none's every
+  // .form-body child except the warning, submit bar included), it DISABLES
+  // Save, and the Delete button ships `.hidden` until a bookmark is found.
+  // None of those is a state worth auditing -- a display:none control has no
+  // box to measure and cannot be focused, and a :disabled one is exempt from
+  // contrast (WCAG 1.4.3, the runner SKIPs it) -- so leaving them as-is
+  // would have turned every submit-bar assertion into a silent SKIP dressed
+  // up as coverage.
+  if (surface === "popup" && checks.some((c) => c.state === "focusWithin"
+      || c.selector === "#submit-btn" || c.selector === ".del-btn")) {
     const shown = await page.evaluate(() => {
       const main = document.getElementById("main-section");
       const strip = document.getElementById("md-actions-strip");
-      main?.classList.remove("hidden");
+      main?.classList.remove("hidden", "unsupported-url");
       strip?.classList.remove("hidden");
-      return !!main && !!strip;
+      const del = document.getElementById("delete-btn");
+      const submit = document.getElementById("submit-btn");
+      del?.classList.remove("hidden");
+      if (submit) submit.disabled = false;
+      return !!main && !!strip && !!del && !!submit;
     });
-    if (!shown) throw new Error(`SETUP: popup.html is missing #main-section or #md-actions-strip (theme=${theme})`);
+    if (!shown) throw new Error(`SETUP: popup.html is missing #main-section / #md-actions-strip / #delete-btn / #submit-btn (theme=${theme})`);
     await page.waitForTimeout(120);
   }
   // popup's confirm popover only exists after a destructive action is

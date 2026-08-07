@@ -152,7 +152,6 @@
   --pp-used-fg: #bbb;
   --pp-neutral-panel: #f5f5f0;
   --pp-disabled-fg: #aaa;
-  --pp-danger-hover-bg: #fee;
   --pp-popover-border: #ddd;
   --pp-fg-faint: #ccc;
   --pp-oqa-btn-fg: #666;
@@ -208,6 +207,53 @@ a:hover { text-decoration: underline; }
    they don't fall back to Segoe UI Emoji (1-3s first-render stall, Windows hi-DPI). */
 :root { font-variant-emoji: text; }
 /* @generated:ui-components start (popup) */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--pp-sp-2);
+  padding: var(--pp-sp-2) var(--pp-sp-6);
+  font-size: 12px;
+  line-height: 16px;
+  font-family: inherit;
+  cursor: pointer;
+  border: 1px solid var(--pp-btn-bd);
+  border-radius: var(--pp-radius-md);
+  background: var(--pp-btn-bg);
+  color: var(--pp-btn-fg);
+  transition: background var(--pp-motion-state), border-color var(--pp-motion-state), color var(--pp-motion-state), box-shadow var(--pp-motion-state);
+}
+.btn:hover:not(:disabled) {
+  background: var(--pp-btn-hover);
+}
+.btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.btn:focus-visible {
+  outline: none;
+  border-color: var(--pp-focus-bd);
+  box-shadow: var(--pp-focus-ring);
+}
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.btn-sm {
+  padding: var(--pp-sp-1) var(--pp-sp-4);
+  font-size: 11px;
+  line-height: 14px;
+}
+.btn.ghost {
+  background: transparent;
+  border-color: transparent;
+}
+.btn.ghost:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--pp-fg) 6%, var(--pp-bg));
+}
+.btn.ghost:focus-visible {
+  border-color: var(--pp-focus-bd);
+}
+
 .btn-ic {
   display: inline-flex;
   align-items: center;
@@ -218,6 +264,27 @@ a:hover { text-decoration: underline; }
   display: block;
 }
 
+.btn.danger {
+  color: var(--pp-danger-quiet-fg);
+  border-color: color-mix(in srgb, var(--pp-danger) 55%, var(--pp-border));
+}
+.btn.danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--pp-danger) 8%, var(--pp-btn-bg));
+}
+.btn.danger.ghost {
+  border-color: transparent;
+  background: transparent;
+}
+.btn.danger.ghost:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--pp-danger) 8%, var(--pp-bg));
+  border-color: color-mix(in srgb, var(--pp-danger) 45%, transparent);
+}
+.btn.danger:focus-visible {
+  border-color: var(--pp-focus-bd);
+}
+.btn.danger.ghost:focus-visible:not(:disabled) {
+  border-color: var(--pp-focus-bd);
+}
 .confirm-popover .confirm-yes {
   background: var(--pp-danger);
   color: var(--pp-on-danger);
@@ -743,32 +810,60 @@ button.offline-clear:focus-visible, button.offline-toggle:focus-visible { outlin
 .bottom-bar label { display: inline-flex; align-items: center; gap: var(--pp-sp-2); cursor: pointer; }
 .bottom-bar input[type="checkbox"]:focus-visible { outline: 1px solid var(--pp-accent); outline-offset: 2px; box-shadow: var(--pp-focus-ring); }
 .submit-bar { padding: var(--pp-sp-2) var(--pp-sp-5) var(--pp-sp-3) 72px; display: flex; gap: var(--pp-sp-3); }
-.submit-bar button {
-  padding: var(--pp-sp-2) var(--pp-sp-6); font-size: 12px; cursor: pointer;
-  border: 1px solid var(--pp-btn-bd); background: var(--pp-btn-bg); border-radius: var(--pp-radius-md);
-  transition: background var(--pp-motion-state), border-color var(--pp-motion-state), transform var(--pp-motion-state), box-shadow var(--pp-motion-state);
-}
-.submit-bar button:hover { background: var(--pp-btn-hover); }
-.submit-bar button:focus-visible { outline: none; border-color: var(--pp-focus-bd); box-shadow: var(--pp-focus-ring); }
+/* Both buttons in this bar carry class="btn" now, so their chrome (padding,
+   border, fill, radius, transition, hover, press, focus, disabled) comes
+   from @generated:ui-components. The .submit-bar button base rule that used
+   to supply it is deleted rather than left as a same-value duplicate: at
+   (0,1,1) it outranks nothing here, but its `transform` in the transition
+   list would have re-animated the press the recipe deliberately keeps
+   instant (COMPONENTS.md §3.1 decisions 1/2). What stays below is only what
+   is genuinely specific to these two buttons. */
 #submit-btn {
   background: var(--pp-accent); color: var(--pp-on-accent); border-color: var(--pp-accent); font-weight: 600;
   /* Content-adaptive width (2a canvas feedback: the 200px-basis button read as
      visually intrusive). white-space pins two-glyph CJK labels ("保存") on one
      line. Left edge keeps the 72px field-alignment indent. */
-  flex: 0 0 auto; white-space: nowrap; padding: var(--pp-sp-2) var(--pp-sp-7); min-height: 28px; box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+  flex: 0 0 auto; white-space: nowrap; padding: var(--pp-sp-2) var(--pp-sp-7);
 }
-#submit-btn:hover {
-  background: color-mix(in srgb, var(--pp-accent) 92%, #000);
-  box-shadow: 0 2px 4px color-mix(in srgb, var(--pp-accent) 30%, transparent);
-}
-#submit-btn:active { transform: translateY(0); box-shadow: none; }
+#submit-btn:hover { background: color-mix(in srgb, var(--pp-accent) 92%, #000); }
+/* The focus core, which this button never had on any theme. Before this
+   commit the only rule that could have supplied one was
+   `.submit-bar button:focus-visible` (0,2,1), and #submit-btn's own (1,0,0)
+   `border-color: var(--pp-accent)` -- plus its themed twin at (1,1,1) --
+   out-ranked it, so the entire indicator was the glow, with no >=3:1 core
+   (COMPONENTS.md §7.3 says the core carries WCAG 1.4.11, never the glow).
+   `borderless`, not `bordered`, per §7.3's second question: this button's
+   1px edge is the same accent as its fill -- it is the button's TIER, not
+   neutral chrome, so re-tinting it would erase the "primary action" signal
+   the moment focus lands. options.css's .tnp-save is the same shape and the
+   same call, and popup's own .preset-btn:focus-visible already ships this
+   exact recipe, so it is a reuse rather than a fourth spelling. */
+#submit-btn:focus-visible { outline: 1px solid var(--pp-accent); outline-offset: 2px; box-shadow: var(--pp-focus-ring); }
 /* Tokens, not literals: white-on-#aaa was 2.3:1. fg-hint is tuned ≥4.5:1 on
    bg2 in every palette, so the label stays readable on chrome:// pages where
-   the button is disabled daily. (Themed presets additionally dim via the
-   html[data-theme] opacity rule — that one starts from darker fills.) */
-#submit-btn:disabled { background: var(--pp-btn-bg); border-color: var(--pp-btn-bd); color: var(--pp-fg-hint); transform: none; box-shadow: none; }
-.del-btn { position: relative; color: var(--pp-danger); border-color: var(--pp-danger) !important; white-space: nowrap; padding: var(--pp-sp-2) var(--pp-sp-6); min-height: 28px; }
-.del-btn:hover { background: var(--pp-danger-hover-bg) !important; }
+   the button is disabled daily.
+   `opacity: 1` is a DELIBERATE opt-out of `.btn:disabled { opacity: 0.45 }`
+   (COMPONENTS.md §3.1 decision 9), and the one place in popup that takes it:
+   this button does not signal "disabled" by fading, it repaints to a muted
+   fill with a foreground that was contrast-picked for exactly that fill.
+   Stacking the family's 45% on top of an already-muted pair reads as broken
+   rather than unavailable, and this is the state a user sees every time the
+   popup opens on a chrome:// page.
+   The themed twin exists because `html[data-theme] #submit-btn` is (1,1,1)
+   and outranks this rule's (1,1,0) -- without it, presets kept the full
+   accent fill and the ONLY disabled cue was the family opacity, i.e. the two
+   layers disagreed about what "disabled" looks like. */
+#submit-btn:disabled,
+html[data-theme] #submit-btn:disabled { background: var(--pp-btn-bg); border-color: var(--pp-btn-bd); color: var(--pp-fg-hint); opacity: 1; }
+/* Everything that used to be here is now `class="btn danger"` (COMPONENTS.md
+   §4.1 quiet tier: this button only OPENS the confirm popover, so it is not
+   the solid tier -- and §4.1 also says the chrome comes from the host, which
+   in a two-button action bar is `.btn`, not `.ghost`). That retires the
+   `border-color: ... !important` COMPONENTS.md Appendix A named as a reason
+   the button family could not be unified, and swaps a raw --pp-danger label
+   for the AA-derived --pp-danger-quiet-fg. `position: relative` goes with
+   the popover that used to be its child. */
+.del-btn { white-space: nowrap; }
 /* .del-confirm-popover and its .del-confirm-yes/-no children are gone: the
    Delete button opens the SHARED .confirm-popover now (popup.js ->
    showConfirmPopover). That retires popup's second confirm system -- its own
@@ -1253,10 +1348,16 @@ html.dark .batch-progress-text { color: var(--pp-fg); mix-blend-mode: normal; fi
 html.dark body { background: var(--pp-bg); color: var(--pp-fg); }
 html.dark .login-body p { color: var(--pp-login-p-fg); }
 html.dark .autocomplete-dropdown { background: var(--pp-bg2); border-color: var(--pp-border); box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
-html.dark .submit-bar button { background: var(--pp-input-bg); border-color: var(--pp-border); color: var(--pp-fg); }
+/* The four superseded rules that used to surround this one are gone (resting
+   fill/border/colour and hover for both theme layers, plus the two
+   #submit-btn press/disabled transform resets): the .btn recipe supplies
+   all of them from --pp-btn-bg / --pp-btn-bd / --pp-btn-fg / --pp-btn-hover,
+   which are exactly the per-theme tokens those hand rules were reaching for
+   by hand. This focus twin STAYS: at (0,3,1) it is what keeps the focus
+   border winning over any surviving resting rule, and it costs one line to
+   not have to re-derive that every time this area changes (COMPONENTS.md
+   C45 is the history). */
 html.dark .submit-bar button:focus-visible { border-color: var(--pp-focus-bd); box-shadow: var(--pp-focus-ring); }
-html.dark .submit-bar button:hover { background: var(--pp-drop-hover); }
-html.dark .del-btn:hover { background: color-mix(in srgb, var(--pp-danger) 12%, var(--pp-bg)) !important; }
 html.dark .recent-bm-area { border-top-color: var(--pp-divider); }
 html.dark {
   /* Default-dark "Soft Fill" palette (2026-07 Claude Design pilot) — full token
@@ -2298,18 +2399,13 @@ html[data-theme] .regen-link { color: var(--pp-accent2); }
 html[data-theme] .regen-link + .regen-link { border-color: var(--pp-divider); }
 html[data-theme] #desc-char-count.over-limit { color: var(--pp-danger); }
 /* Themed skeleton: base rule's var(--pp-divider) already picks the theme's divider color. */
-html[data-theme] .submit-bar button { background: var(--pp-btn-bg); border-color: var(--pp-btn-bd); color: var(--pp-fg); }
-html[data-theme] .submit-bar button:hover { background: var(--pp-input-focus-bg); }
 /* on-accent falls back to the theme bg (the long-standing derivation); themes
    may pin an explicit --pp-on-accent via pilot ui overrides. */
 html[data-theme] #submit-btn { background: var(--pp-accent); color: var(--pp-on-accent, var(--pp-bg)); border-color: var(--pp-accent); }
-html[data-theme] #submit-btn:active { opacity: 1; transform: translateY(0); box-shadow: none; }
-html[data-theme] #submit-btn:disabled { opacity: 0.4; transform: none; box-shadow: none; }
 html[data-theme] .submit-bar button.loading { color: var(--pp-fg-hint); }
 html[data-theme] .submit-bar button.loading::before, html[data-theme] .action-link.loading::before {
   border-color: var(--pp-spinner-bg); border-top-color: var(--pp-spinner-fg);
 }
-html[data-theme] .del-btn:hover { background: color-mix(in srgb, var(--pp-danger) 10%, var(--pp-bg)) !important; }
 html[data-theme] .submit-bar button.saved-success { background: var(--pp-ok-bg); border-color: var(--pp-ok-bd); color: var(--pp-ok-fg); }
 html[data-theme] .submit-bar button.save-error { background: color-mix(in srgb, var(--pp-danger) 14%, transparent); border-color: var(--pp-danger); color: var(--pp-danger); }
 
@@ -2526,7 +2622,7 @@ html[data-theme] .md-strip-btn:focus-visible { border-color: var(--pp-focus-bd);
    colour, and on touch :hover latches after a tap -- leaving the button parked
    1px up with its hover shadow. The colour half above stays ungated. */
 @media (hover: hover) and (pointer: fine) {
-  #submit-btn:hover, .qbtn:hover, html[data-theme] .qbtn:hover { transform: translateY(-1px); }
+  .qbtn:hover, html[data-theme] .qbtn:hover { transform: translateY(-1px); }
 }
 
 /* Reduced motion. `scroll-behavior` is deliberately absent -- it cannot reach
