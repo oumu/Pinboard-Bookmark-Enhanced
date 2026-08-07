@@ -656,22 +656,15 @@ async function driveOptions(context, extId, rep) {
         await page.waitForTimeout(tab === "vocab" ? 1200 : 400);
         await rep.shot(page, s, `tab-${tab}`, { fullPage: true });
         if (tab === "general") await axeScan(page, s, "options");
-        if (tab === "vocab") {
-          // Batch-selection flow: sticky action bar + delete confirm popover.
-          try {
-            await page.locator("#vocab-select-all").click({ timeout: 3000 });
-            await page.waitForTimeout(400);
-            await rep.shot(page, s, "vocab-batch-bar");
-            await page.locator("#vocab-batch-delete").click({ timeout: 3000 });
-            await page.waitForTimeout(500);
-            await rep.shot(page, s, "vocab-delete-confirm");
-            await page.keyboard.press("Escape"); // cancel — no data mutation
-            await page.waitForTimeout(300);
-            await page.locator("#vocab-select-all").click({ timeout: 3000 }).catch(() => {});
-          } catch (e) {
-            s.failures.push(`vocab-batch: ${e.message}`);
-          }
-        }
+        // The vocab-batch-bar / select-all / batch-delete flow this used to
+        // drive here (#vocab-select-all, #vocab-batch-delete) moved to
+        // library.html when the vocab list left options for its own page --
+        // #panel-vocab now only hosts the "Open notes and vocabulary" link
+        // and Drive sync settings, neither id exists in options.html any
+        // more (stale since the library migration, debt-sweep 2026-08-07
+        // removed the dead selectors rather than fix them in place; the real
+        // batch-selection flow is driveLibrary's own vocab-batch-bar step,
+        // which already uses the current Ctrl+click-row gesture).
       } catch (e) {
         s.failures.push(`tab-${tab}: ${e.message}`);
       }
@@ -710,8 +703,7 @@ async function driveLibrary(context, extId, rep) {
 
     await step("vocab-batch-bar", async () => {
       // Not fullPage: .vocab-batch-bar is `position: sticky` and a stitched
-      // full-page capture can mis-place sticky elements (same reason
-      // driveOptions's own vocab-batch-bar shot skips fullPage).
+      // full-page capture can mis-place sticky elements.
       // Ctrl+click the row heads: the per-row checkbox was removed 2026-08-06
       // and a modified click on the row is the selection gesture now.
       const rows = page.locator("#vocab-list .vocab-card .notes-card-head");
@@ -963,6 +955,11 @@ async function driveThemes(context, worker, extId, rep) {
           await page.goto(url, { waitUntil: "load", timeout: TIMEOUT_MS });
           await page.waitForSelector("#vocab-list .vocab-card", { timeout: TIMEOUT_MS }).catch(() => {});
           await page.waitForTimeout(350);
+          // fullPage here, unlike the options shot above (debt-sweep 2026-08-07,
+          // design-uplift Task 4 minor: this asymmetry was previously
+          // uncommented): options' single #appearance panel fits the viewport,
+          // but the vocab list's height varies with word count and routinely
+          // exceeds it -- a non-fullPage shot would crop it.
           await rep.shot(page, s, `library-${preset || "default"}-${mode}`, { fullPage: true });
         } catch (e) {
           s.failures.push(`library-${preset || "default"}-${mode}: ${e.message}`);
@@ -1054,6 +1051,13 @@ async function driveThemes(context, worker, extId, rep) {
         await clearTheme();
         await page.emulateMedia({ colorScheme: scheme });
         await page.goto(`chrome-extension://${extId}/popup.html?_qa=unset-${scheme}`, { waitUntil: "load", timeout: TIMEOUT_MS });
+        // Same reload the options/library unset loop above already does
+        // (debt-sweep 2026-08-07, design-uplift Task 4 minor): without it
+        // this loop implicitly relied on THAT loop having already run and
+        // settled popup-theme-early.js's async prefers-color-scheme
+        // correction, an ordering dependency this loop shouldn't need on
+        // its own page.
+        await page.reload({ waitUntil: "load", timeout: TIMEOUT_MS });
         await page.waitForTimeout(600);
         await rep.shot(page, s, `popup-unset-${scheme}`);
       }
