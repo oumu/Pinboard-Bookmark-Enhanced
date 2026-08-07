@@ -620,7 +620,12 @@ html.motion-ready .notes-card-top { transition: background-color var(--motion-st
 }
 .notes-card:hover .row-del-x,
 .row-del-x:focus-visible { opacity: 1; }
-.row-del-x::before { content: ""; position: absolute; inset: -3px -1px; }
+/* -4px vertical (was -3px): the vocab list's instance (.btn.btn-sm, built via
+   setBtnIcon's icon+gap+empty-label shape) measures 27x19, an 18px padding
+   box once its 1px border is excluded -- -3px landed at 23px, one short of
+   the 24px floor (hit-area-debt sweep). -1px horizontal is untouched: 27px
+   already clears 24 on that axis. */
+.row-del-x::before { content: ""; position: absolute; inset: -4px -1px; }
 .row-del-x:hover {
   color: var(--lib-danger);
   border-color: color-mix(in srgb, var(--lib-danger) 55%, var(--lib-border, #ccc));
@@ -1001,6 +1006,14 @@ html.motion-ready .notes-sib { transition: background-color var(--motion-state) 
 /* Detail pane content (Task 6). */
 .vocab-detail-head { display: flex; align-items: center; gap: var(--lib-sp-2); flex-wrap: wrap; }
 .vocab-detail-term { margin: 0; font-size: 22px; line-height: 1.2; letter-spacing: -0.01em; }
+/* §1.5 hit-area expansion, vertical-only: .vocab-detail-speak measures 36x20
+   (width already clears 24px via setBtnIcon's icon+gap+empty-label shape,
+   only the 20px sm-rung height is short). .vocab-detail-head is a plain flex
+   row with a real 8px gap to its left neighbour (the language chip) and no
+   clip -- not a fused unit, so the pad is free to grow past the button's own
+   border box without touching anything. */
+.vocab-detail-speak { position: relative; }
+.vocab-detail-speak::before { content: ""; position: absolute; inset: -3.5px 0; }
 .vocab-detail-actions { display: flex; gap: var(--lib-sp-2); margin: var(--lib-sp-3) 0; flex-wrap: wrap; }
 /* Group chips get their own row, always (vocab-group-inspect-report.md
    2026-08-05 Finding 6): flex-basis:100% on a flex-wrap item forces a wrap
@@ -1531,6 +1544,14 @@ html.motion-ready .vocab-note-save {
   font-size: 12px;
   line-height: 14px;
 }
+/* §1.5 hit-area expansion, vertical-only: #vocab-lookup-go measures 33x21
+   (short on height only), and #vocab-lookup-bar is a plain toolbar row
+   (§8.1 -- visible gaps between its three controls, not a fused unit), so
+   there is no seam or clip to respect. `inset: -3px 0` never reaches past
+   this button's own 33px width, so the zero-gap seam against the language
+   select on its left (measured live) is untouched. */
+#vocab-lookup-go { position: relative; }
+#vocab-lookup-go::before { content: ""; position: absolute; inset: -3px 0; }
 /* Same eight-dark-theme group as the chevron override below: 20% of a dark
    theme's foreground on its near-black panel reads as a lit bar rather than
    a seam (measured on terminal, whose fg is a saturated #33ff33). */
@@ -1579,7 +1600,21 @@ html[data-theme="rose-pine"] .vocab-filter-row select {
   border-radius: var(--lib-radius-md);
   background: var(--lib-btn-bg);
   color: var(--lib-btn-fg);
-  overflow: hidden;
+  /* `clip` + a margin, not bare `hidden` (COMPONENTS.md §1.5/§8): the two
+     cells are `align-items: stretch`-ed to fill this shell's content box
+     exactly (measured 23.5px against a 24px floor, zero slack), so a plain
+     `overflow: hidden` clips a ::before hit-pad's paint AND its hit-testing
+     the instant it tries to grow past the cell's own box -- verified live,
+     a synthetic repro of this exact shape (stretch child, zero slack, no
+     margin) silently swallowed clicks 1.5px past the border-box while an
+     identical rect with `overflow-clip-margin` answered them correctly.
+     The margin only widens where CLIPPING STOPS; it paints nothing itself,
+     so the pressed cell's own corner-rounding (the reason this container
+     clips at all) is pixel-identical with or without it -- only the
+     invisible ::before below benefits. 2px covers the 1px each cell's
+     ::before needs (§8 law: vertical-only, the seam stays untouched). */
+  overflow: clip;
+  overflow-clip-margin: 2px;
   transition: border-color var(--motion-state), box-shadow var(--motion-state);
 }
 /* No shell ring on this unit: it takes no text entry, so the focused CELL's
@@ -1588,6 +1623,9 @@ html[data-theme="rose-pine"] .vocab-filter-row select {
    box on plain mouse-down (`:focus-within` has no keyboard gate) and, on
    Tab, a second rectangle stacked outside the cell's inset one. */
 .vocab-sort-seg > .vocab-sort-btn {
+  /* Containing block for the §1.5 hit-pad below -- this cell has no other
+     reason to be positioned. */
+  position: relative;
   width: 34px;
   padding: 0;
   /* Same centering recipe as .vocab-group-step above -- one rule for both
@@ -1608,6 +1646,14 @@ html[data-theme="rose-pine"] .vocab-filter-row select {
    the seam divides two cells of ONE control, it does not frame anything
    (COMPONENTS.md §9 law 4). */
 .vocab-sort-seg > .vocab-sort-btn + .vocab-sort-btn { border-left: 1px solid color-mix(in srgb, var(--lib-fg) 14%, var(--lib-btn-bg)); }
+/* §1.5 hit-area expansion, vertical-only (§8's fused-control law: a hit-pad
+   may never cross the seam between cells, and this cell's 34px width already
+   clears the 24px floor -- only the 23.5px height is short). `border: 0`
+   above means this cell's padding box already equals its border box, so a
+   1px inset here is the whole gap to the shell's `overflow-clip-margin: 2px`
+   above -- the pad reaches 25.5px effective height, 1px inside the allowed
+   margin, not at its edge. */
+.vocab-sort-seg > .vocab-sort-btn::before { content: ""; position: absolute; inset: -1px 0; }
 .vocab-sort-seg > .vocab-sort-btn:hover:not(:disabled) {
   background: color-mix(in srgb, var(--lib-fg) 6%, var(--lib-btn-bg));
 }
@@ -1838,6 +1884,24 @@ html.motion-ready .notes-batch-bar.selecting {
 .notes-batch-bar > .btn { position: relative; }
 #vocab-invert-selection::before,
 .notes-batch-bar > .btn::before { content: ""; position: absolute; inset: -3px 0; }
+/* Same fix, same row, same math, for the four .vocab-batch-bar actions the
+   hit-area debt sweep found still under 24px (hit-area-debt battle). Not
+   folded into the -3px rule above: #vocab-clear-selection's "cross" glyph is
+   13x13 against these three's 14x14, one padding-box pixel shorter (17px vs
+   18px), so -3px alone would land it at 23px, not 24 -- -3.5px clears all
+   four with the same padding-box math the comment above already spells out.
+   No clip risk (verified live): this row is align-items:center, not stretch,
+   so even the 20px-tall siblings sit with ~7px of slack before touching
+   .vocab-batch-bar's own `overflow: clip` edge -- nothing like
+   .vocab-sort-seg/.vocab-group-unit's zero-slack stretch shape above. */
+#vocab-mark-known,
+#vocab-mark-learning,
+#vocab-batch-delete,
+#vocab-clear-selection { position: relative; }
+#vocab-mark-known::before,
+#vocab-mark-learning::before,
+#vocab-batch-delete::before,
+#vocab-clear-selection::before { content: ""; position: absolute; inset: -3.5px 0; }
 .vocab-batch-bar input[type="text"] { flex: 1 1 120px; min-width: 0; }
 /* Input + stepper unit -- FUSED CONTROL (COMPONENTS.md §8). The shell owns
    the entire chrome: one border, one radius, one background, one focus ring.
@@ -1863,7 +1927,18 @@ html.motion-ready .notes-batch-bar.selecting {
   border-radius: var(--lib-radius-md);
   background: var(--lib-input-bg);
   color: var(--lib-fg);
-  overflow: hidden;
+  /* `clip` + a margin, not bare `hidden` (COMPONENTS.md §1.5/§8, same
+     reasoning as .vocab-sort-seg above): the two 28x18 stepper cells are
+     `align-items: stretch`-ed to fill this shell's content box exactly
+     (zero slack), so a plain `overflow: hidden` clips a ::before hit-pad's
+     hit-testing the moment it grows past the cell's own box -- verified
+     live against a synthetic repro of this exact shape. The margin only
+     widens where clipping STOPS; it paints nothing, so the input's/cells'
+     own corner-rounding (the reason this container clips at all) is
+     unaffected -- only the invisible ::before below benefits. 4px covers
+     the 3.5px each stepper's ::before needs. */
+  overflow: clip;
+  overflow-clip-margin: 4px;
   transition: border-color var(--motion-state) ease, box-shadow var(--motion-state) ease;
 }
 /* §8 law 2 + §7.3's `bordered` placement, scoped to the unit's TEXT ENTRY.
@@ -1880,6 +1955,9 @@ html.motion-ready .notes-batch-bar.selecting {
    generated .btn chrome (0,1,0) on specificity rather than on source order
    -- Task 9 already got burned once by a same-specificity rule moving. */
 .vocab-group-unit > .vocab-group-step {
+  /* Containing block for the §1.5 hit-pad below -- this cell has no other
+     reason to be positioned. */
+  position: relative;
   flex: none;
   width: 28px;
   /* Centering: inherit .btn's own `inline-flex + align-items:center +
@@ -1917,6 +1995,14 @@ html.motion-ready .notes-batch-bar.selecting {
      input's own text uses one pixel to the left. */
   color: var(--lib-fg);
 }
+/* §1.5 hit-area expansion, vertical-only (§8's fused-control law: a hit-pad
+   may never cross the seam between the input and a cell, or between the two
+   cells -- and this cell's 28px width already clears the 24px floor, only
+   its 18px height is short). `border: 0` above (the border-left divider is
+   the only exception, and doesn't affect height) means this cell's padding
+   box already equals its border box, so -3.5px lands the pad 0.5px inside
+   the shell's `overflow-clip-margin: 4px` above rather than at its edge. */
+.vocab-group-unit > .vocab-group-step::before { content: ""; position: absolute; inset: -3.5px 0; }
 /* §8 law 4: passengers give ghost feedback, not .btn feedback. scale(0.97)
    on a segment welded to its neighbours tears open the seams, so press is a
    background step with no transition (§3.2's row-press language) and the
