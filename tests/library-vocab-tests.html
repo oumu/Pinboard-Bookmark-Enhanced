@@ -24,24 +24,26 @@ body.test-narrow-back .vocab-detail-back{display:inline-flex}
     <div class="vocab-list-pane">
       <div class="notes-toolbar vocab-filter-toolbar">
         <input type="search" id="vocab-search" aria-label="Search words, definitions, context, and groups" autocomplete="off" />
-        <div class="vocab-filter-selects">
-          <select id="vocab-group-filter" aria-label="Filter by group"><option value="">All groups</option></select>
-          <select id="vocab-status-filter" aria-label="Filter by status">
-            <option value="">All statuses</option>
-            <option value="new">Learning</option>
-            <option value="known">Known</option>
-          </select>
-          <select id="vocab-sort" aria-label="Sort vocabulary" hidden>
-            <option value="latest">Recently updated</option>
-            <option value="oldest">Least recently updated</option>
-            <option value="az">A-Z</option>
-            <option value="za">Z-A</option>
-          </select>
-          <span class="vocab-sort-seg" role="group" aria-label="Sort vocabulary">
-            <button type="button" class="btn btn-sm vocab-sort-btn" id="vocab-sort-time" aria-pressed="true" data-i18n-title="vocabSortOldest" data-i18n-aria="vocabSortOldest" aria-label="Least recently updated" title="Least recently updated"><span class="btn-ic" data-ic="clockArrowDown"></span></button>
-            <button type="button" class="btn btn-sm vocab-sort-btn" id="vocab-sort-alpha" aria-pressed="false" data-i18n-title="vocabSortAz" data-i18n-aria="vocabSortAz" aria-label="A-Z" title="A-Z"><span class="btn-ic" data-ic="arrowDownAZ"></span></button>
-          </span>
-        </div>
+      </div>
+      <div class="vocab-filter-row">
+        <select id="vocab-group-filter" aria-label="Filter by group"><option value="">All groups</option></select>
+        <select id="vocab-status-filter" aria-label="Filter by status" hidden>
+          <option value="">All statuses</option>
+          <option value="new">Learning</option>
+          <option value="known">Known</option>
+        </select>
+        <button type="button" class="vocab-stat-chip" id="vocab-stat-learning" data-status="new" aria-pressed="false"></button>
+        <button type="button" class="vocab-stat-chip" id="vocab-stat-known" data-status="known" aria-pressed="false"></button>
+        <select id="vocab-sort" aria-label="Sort vocabulary" hidden>
+          <option value="latest">Recently updated</option>
+          <option value="oldest">Least recently updated</option>
+          <option value="az">A-Z</option>
+          <option value="za">Z-A</option>
+        </select>
+        <span class="vocab-sort-seg" role="group" aria-label="Sort vocabulary">
+          <button type="button" class="btn btn-sm vocab-sort-btn" id="vocab-sort-time" aria-pressed="true" data-i18n-title="vocabSortOldest" data-i18n-aria="vocabSortOldest" aria-label="Least recently updated" title="Least recently updated"><span class="btn-ic" data-ic="clockArrowDown"></span></button>
+          <button type="button" class="btn btn-sm vocab-sort-btn" id="vocab-sort-alpha" aria-pressed="false" data-i18n-title="vocabSortAz" data-i18n-aria="vocabSortAz" aria-label="A-Z" title="A-Z"><span class="btn-ic" data-ic="arrowDownAZ"></span></button>
+        </span>
       </div>
       <div id="vocab-lookup-bar" class="notes-toolbar vocab-filter-toolbar vocab-lookup-bar" role="search" aria-label="Dictionary lookup">
         <input type="search" id="vocab-lookup-input" aria-label="Look up any word" autocomplete="off" />
@@ -50,11 +52,9 @@ body.test-narrow-back .vocab-detail-back{display:inline-flex}
       </div>
       <div id="vocab-stats" class="vocab-stats" hidden>
         <span class="vocab-stat" id="vocab-stat-total"></span>
-        <button type="button" class="vocab-stat-chip" id="vocab-stat-learning" data-status="new" aria-pressed="false"></button>
-        <button type="button" class="vocab-stat-chip" id="vocab-stat-known" data-status="known" aria-pressed="false"></button>
         <span class="vocab-stat" id="vocab-stat-groups"></span>
         <span class="vocab-stat" id="vocab-stat-languages"></span>
-        <span class="vocab-stat" id="vocab-stat-recent"></span>
+        <span class="vocab-stat vocab-stat-trend" id="vocab-stat-recent"></span>
       </div>
       <div class="vocab-context-bar" id="vocab-context-bar">
         <span class="vocab-ctx-text">

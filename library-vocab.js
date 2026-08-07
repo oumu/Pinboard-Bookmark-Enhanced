@@ -1190,9 +1190,18 @@ function _pbpVocabRenderList(append) {
 function _pbpVocabRenderStats() {
   const bar = $id("vocab-stats");
   if (!bar) return;
-  if (!_vocabRows.length) { bar.hidden = true; return; }
+  // The two status chips left this strip for the filter row (header round 2),
+  // so they no longer disappear with it -- hide them on the same condition or
+  // an owner with no words gets two empty buttons in the middle of the row.
+  const chips = [$id("vocab-stat-learning"), $id("vocab-stat-known")];
+  if (!_vocabRows.length) {
+    bar.hidden = true;
+    for (const chip of chips) if (chip) chip.hidden = true;
+    return;
+  }
   const s = pbpVocabStats(_vocabRows, Date.now());
   bar.hidden = false;
+  for (const chip of chips) if (chip) chip.hidden = false;
   $id("vocab-stat-total").textContent = t("libraryStatsWords", String(s.total));
   const filter = $id("vocab-status-filter");
   const learningBtn = $id("vocab-stat-learning");

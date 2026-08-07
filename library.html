@@ -20,20 +20,33 @@
     <section id="view-vocab" class="lib-view" role="tabpanel" aria-labelledby="lib-tab-vocab">
       <div class="vocab-workbench">
         <div class="vocab-list-pane">
+      <!-- Header, round 2 (user ruling 2026-08-07): four bare rows, every one
+           of them full width, split by ONE seam into "filter this list" /
+           "what this list is". The lookup row that used to sit here has moved
+           into the detail pane -- it filtered nothing, and sitting next to the
+           search box it read as a second search box. -->
       <div class="notes-toolbar vocab-filter-toolbar">
         <input type="search" id="vocab-search" placeholder="Search words, definitions, context, and groups" data-i18n-placeholder="vocabSearchPlaceholder" data-i18n-aria="vocabSearchPlaceholder" aria-label="Search words, definitions, context, and groups" autocomplete="off" />
-        <!-- One flex unit: the three selects travel together. Beside the
-             search when the row fits, as one full second row when it
-             doesn't -- never scattered one-per-line. -->
-        <div class="vocab-filter-selects">
+      </div>
+      <!-- Filter row. The .vocab-filter-selects wrapper is gone on purpose:
+           as one non-shrinking flex unit it could only fit whole or drop
+           whole, which is what made this row fall off the header. Its members
+           are direct children now, the group select eats the slack, and the
+           row stretches so every control lands on one rung. -->
+      <div class="vocab-filter-row">
         <label class="sr-only" for="vocab-group-filter" data-i18n="vocabGroupFilterAria">Filter by group</label>
         <select id="vocab-group-filter" data-i18n-aria="vocabGroupFilterAria" aria-label="Filter by group"><option value="" data-i18n="vocabAllGroups">All groups</option></select>
         <label class="sr-only" for="vocab-status-filter" data-i18n="vocabStatusFilterAria">Filter by status</label>
-        <select id="vocab-status-filter" data-i18n-aria="vocabStatusFilterAria" aria-label="Filter by status">
+        <!-- Hidden state carrier, same pattern as #vocab-sort below: the two
+             chips write into it and dispatch `change`, so every handler and
+             every test still talks to a <select>. -->
+        <select id="vocab-status-filter" data-i18n-aria="vocabStatusFilterAria" aria-label="Filter by status" hidden>
           <option value="" data-i18n="vocabStatusAll">All statuses</option>
           <option value="new" data-i18n="vocabStatusLearning">Learning</option>
           <option value="known" data-i18n="vocabStatusKnown">Known</option>
         </select>
+        <button type="button" class="vocab-stat-chip" id="vocab-stat-learning" data-status="new" aria-pressed="false"></button>
+        <button type="button" class="vocab-stat-chip" id="vocab-stat-known" data-status="known" aria-pressed="false"></button>
         <label class="sr-only" for="vocab-sort" data-i18n="vocabSortAria">Sort vocabulary</label>
         <!-- Hidden state carrier: every handler/test still speaks to this
              select; the two segment buttons below only proxy writes to it.
@@ -52,7 +65,6 @@
           <button type="button" class="btn btn-sm vocab-sort-btn" id="vocab-sort-time" aria-pressed="true" data-i18n-title="vocabSortOldest" data-i18n-aria="vocabSortOldest" aria-label="Least recently updated" title="Least recently updated"><span class="btn-ic" data-ic="clockArrowDown"></span></button>
           <button type="button" class="btn btn-sm vocab-sort-btn" id="vocab-sort-alpha" aria-pressed="false" data-i18n-title="vocabSortAz" data-i18n-aria="vocabSortAz" aria-label="A–Z" title="A–Z"><span class="btn-ic" data-ic="arrowDownAZ"></span></button>
         </span>
-        </div>
       </div>
       <!-- Free dictionary lookup (lookup-only, no save path): shares the
            notes-toolbar + vocab-filter-toolbar row/control family (flex
@@ -66,17 +78,19 @@
         <select id="vocab-lookup-lang" data-i18n-aria="dictLangAria" aria-label="Dictionary language"></select>
         <button type="button" class="btn btn-sm" id="vocab-lookup-go" data-i18n-title="libraryLookupGo" data-i18n-aria="libraryLookupGo" aria-label="Look up" title="Look up"><span class="btn-ic" data-ic="book"></span></button>
       </div>
-      <!-- Read-only stats strip: total/learning/known/groups/languages/recent,
-           computed from the full owner row set (not the filtered view). The
-           two status counts are also filter chips (click = set/clear
-           #vocab-status-filter and reuse the existing change pipeline). -->
+      <!-- Stats strip, information only, computed from the full owner row set
+           (not the filtered view). The two status counts became filter chips
+           and moved up into the filter row; what is left is what this list
+           IS, with the trend pushed to the right edge. -->
       <div id="vocab-stats" class="vocab-stats" hidden>
+        <!-- CSS-hidden: the count line right below already states how many
+             words are saved, and printing the number twice is what made this
+             strip read as clutter (user-approved cut). Kept in the DOM so the
+             render path and its tests keep one shape. -->
         <span class="vocab-stat" id="vocab-stat-total"></span>
-        <button type="button" class="vocab-stat-chip" id="vocab-stat-learning" data-status="new" aria-pressed="false"></button>
-        <button type="button" class="vocab-stat-chip" id="vocab-stat-known" data-status="known" aria-pressed="false"></button>
         <span class="vocab-stat" id="vocab-stat-groups"></span>
         <span class="vocab-stat" id="vocab-stat-languages"></span>
-        <span class="vocab-stat" id="vocab-stat-recent"></span>
+        <span class="vocab-stat vocab-stat-trend" id="vocab-stat-recent"></span>
       </div>
       <!-- Count line: identical in browse and selection. The batch tools
            live in the sticky bar inside .vocab-list-region below -- nothing

@@ -930,6 +930,47 @@ for (const [file, css, ns] of [["popup.css", popupCss, "pp"], ["options.css", op
     /footer\.className = "notes-detail-footer"/.test(read("library-notes.js")),
     "library.css/library-{vocab,notes}.js: the detail panes' shared closing action row is gone or asymmetric");
 }
+// List header, round 2 (2026-08-07). Four bare rows that each run the full
+// width of the list column; the geometry itself is measured live by the render
+// oracle's headerRowsFlush entry. What is asserted here is the wiring the
+// oracle cannot see.
+{
+  // The status filter keeps its <select> -- hidden, as a state carrier, the
+  // same shape #vocab-sort has used since the sort segment landed. Every
+  // handler and every test still writes a value and dispatches `change`; if
+  // the chips ever mutated their own state directly instead, filtering and
+  // the URL of that state would fork.
+  check(/id="vocab-status-filter"[^>]*\shidden/.test(libraryHtml),
+    "library.html: #vocab-status-filter lost its `hidden` attribute — the status chips replaced it in the UI, it may not come back as a second visible control");
+  check(/const target = chip\.dataset\.status;\s*\n\s*filter\.value = filter\.value === target \? "" : target;\s*\n\s*filter\.dispatchEvent\(new Event\("change"\)\);/.test(libraryVocabJs),
+    "library-vocab.js: the status chips stopped writing #vocab-status-filter + dispatching change — they must drive the existing filter pipeline, not a parallel one");
+  // Chips are controls, so they wear the button fill; and pressed is
+  // byte-identical to the sort segment's pressed cell, which sits in the same
+  // row and means the same thing. --lib-row-selected-bg is explicitly out: it
+  // is byte-identical to --lib-panel on dracula (measured), i.e. invisible.
+  // Hand-written layer only: the generated region carries its own
+  // `.vocab-stat-chip` (the shared chip recipe), and matching that one instead
+  // would test the thing this override exists to beat.
+  const chipHand = stripGeneratedRegions(libraryCss);
+  const chipRule = /\.vocab-stat-chip \{([^}]*)\}/.exec(chipHand);
+  const chipOn = /\.vocab-stat-chip\[aria-pressed="true"\] \{([^}]*)\}/.exec(chipHand);
+  const segOn = /\.vocab-sort-seg > \.vocab-sort-btn\[aria-pressed="true"\] \{([^}]*)\}/.exec(chipHand);
+  const mix = (body) => (/background:\s*(color-mix\([^;]*\))/.exec(body || "") || [])[1];
+  check(!!chipRule && /background:\s*var\(--lib-btn-bg\)/.test(chipRule[1]) && /color:\s*var\(--lib-btn-fg\)/.test(chipRule[1]),
+    "library.css: the status chips fell back to the chip family's label fill — in a row of controls they are controls and take the button fill");
+  check(!!chipOn && !!segOn && mix(chipOn[1]) === mix(segOn[1]) &&
+    !/row-selected-bg/.test(chipOn[1]) && !/inset/.test(chipOn[1]),
+    "library.css: the chip's selected fill drifted from the sort segment's pressed cell (or went back to --lib-row-selected-bg / an inset ring) — two controls in one row that both mean \"this filter is on\" must not invent two looks");
+  // An empty status span still carried its 8px margin and stole 16px off the
+  // right edge of the count row, which is the row that has to end flush.
+  check(/\.save-status:empty \{ display: none; \}/.test(libraryCss),
+    "library.css: .save-status:empty no longer collapses — an empty status span takes its margin with it and the count row stops ending flush");
+  // The count text takes the slack so Select all lands on the right edge.
+  // Without it the slack went to the status span's `margin-left: auto`, which
+  // right-aligned an EMPTY span and left Select all mid-row.
+  check(/\.vocab-ctx-text \{[^}]*flex: 1 1 auto/.test(libraryCss),
+    "library.css: .vocab-ctx-text stopped taking the count row's slack — Select all drifts back to the middle of the line");
+}
 // Note editor (2026-08-06): the save button must stay IN LAYOUT while hidden.
 // `display: none` is what made the textarea jump narrower on the first
 // keystroke; `visibility: hidden` keeps the box, and still drops the button

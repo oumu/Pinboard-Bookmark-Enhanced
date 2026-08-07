@@ -11,6 +11,9 @@
 //   node scripts/followup2-screens.mjs --variantc  # variant C, 1100/1680 x 2 themes
 //   node scripts/followup2-screens.mjs --resp      # responsive matrix + measurements
 //   node scripts/followup2-screens.mjs --save      # save button rest/dirty/focus
+//   node scripts/followup2-screens.mjs --header    # batch 3: list header, 3 widths x 2 themes
+//   node scripts/followup2-screens.mjs --l1        # batch 3: lookup row in the panel
+//   node scripts/followup2-screens.mjs --narrow    # batch 3: narrow lookup door flow
 //
 // Needs a display: xvfb-run -a node scripts/followup2-screens.mjs --sweep
 import { createRequire } from "node:module";
@@ -22,6 +25,10 @@ import { tmpdir } from "node:os";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "..");
 const OUT = resolve(ROOT, "docs/superpowers/design-uplift-2026-08/screens/followup2");
+// The third batch (header + lookup migration) files its evidence under its own
+// directory; `shot`/`clipShot` write wherever OUTDIR currently points.
+const OUT3 = resolve(ROOT, "docs/superpowers/design-uplift-2026-08/screens/followup3");
+let OUTDIR = OUT;
 const TIMEOUT_MS = 15000;
 const req = createRequire(resolve(ROOT, ".qa-scan", "package.json"));
 const { chromium } = req("playwright");
@@ -98,7 +105,7 @@ async function seed(sw) {
 }
 
 const shot = async (page, name) => {
-  await page.screenshot({ path: join(OUT, `${name}.png`) });
+  await page.screenshot({ path: join(OUTDIR, `${name}.png`) });
   console.log(`  ${name}.png`);
 };
 
@@ -112,7 +119,7 @@ async function clipShot(page, selector, name, pad = 14) {
   if (!box) { console.log(`  SKIP clip (not found): ${selector}`); return; }
   const vp = page.viewportSize();
   await page.screenshot({
-    path: join(OUT, `${name}.png`),
+    path: join(OUTDIR, `${name}.png`),
     clip: {
       x: Math.max(0, box.x - pad), y: Math.max(0, box.y - pad),
       width: Math.min(vp.width - Math.max(0, box.x - pad), box.width + pad * 2),
@@ -372,8 +379,118 @@ async function runSave(page, sw, extBase) {
   }
 }
 
+
+// ---- batch 3: the rebuilt list header ----
+async function runHeader(page, sw, extBase) {
+  console.log("== list header (batch 3) ==");
+  OUTDIR = OUT3;
+  const report = [];
+  for (const theme of THEMES) {
+    const { themePresetKey, optTheme } = themeToStorage(theme);
+    await setTheme(sw, themePresetKey, optTheme);
+    const label = theme || "default-light";
+    for (const width of [1680, 1100, 800]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(`${extBase}library.html?_h3=${width}-${encodeURIComponent(theme)}#vocab`, { waitUntil: "load", timeout: TIMEOUT_MS });
+      await page.waitForSelector("#vocab-list .vocab-card", { timeout: TIMEOUT_MS }).catch(() => {});
+      await page.waitForTimeout(400);
+      report.push({ theme: label, width, ...await page.evaluate(() => {
+        const pane = document.querySelector(".vocab-list-pane");
+        const rows = [".vocab-filter-toolbar", ".vocab-filter-row", "#vocab-stats", ".vocab-context-bar"];
+        const measured = rows.map((sel) => {
+          const el = document.querySelector(sel);
+          if (!el || getComputedStyle(el).display === "none") return null;
+          const r = el.getBoundingClientRect();
+          const kids = [...el.children].filter((k) => getComputedStyle(k).display !== "none");
+          const right = kids.length ? Math.max(...kids.map((k) => k.getBoundingClientRect().right)) : r.right;
+          return { sel, w: +r.width.toFixed(1), h: +r.height.toFixed(1), edgeGap: +(r.right - right).toFixed(1) };
+        }).filter(Boolean);
+        return { paneW: +pane.getBoundingClientRect().width.toFixed(1), rows: measured,
+          hScroll: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1 };
+      }) });
+      await clipShot(page, ".vocab-list-pane", `header-${width}-${label}`, 8);
+    }
+    // Chip pressed state, 3x-style closeup.
+    await page.setViewportSize({ width: 1680, height: 900 });
+    await page.goto(`${extBase}library.html?_h3c=${encodeURIComponent(theme)}#vocab`, { waitUntil: "load", timeout: TIMEOUT_MS });
+    await page.waitForSelector("#vocab-stat-learning", { timeout: TIMEOUT_MS }).catch(() => {});
+    await page.waitForTimeout(400);
+    await page.locator("#vocab-stat-learning").click().catch(() => {});
+    await page.mouse.move(0, 0);
+    await page.waitForTimeout(350);
+    await clipShot(page, ".vocab-filter-row", `header-chip-pressed-${label}`, 10);
+  }
+  console.log(JSON.stringify(report, null, 1));
+  OUTDIR = OUT;
+}
+
+// ---- batch 3: the lookup row at the top of the detail panel ----
+async function runL1(page, sw, extBase) {
+  console.log("== L1 lookup row (batch 3) ==");
+  OUTDIR = OUT3;
+  for (const theme of THEMES) {
+    const { themePresetKey, optTheme } = themeToStorage(theme);
+    await setTheme(sw, themePresetKey, optTheme);
+    const label = theme || "default-light";
+    await page.setViewportSize({ width: 1400, height: 950 });
+    await page.goto(`${extBase}library.html?_l1=${encodeURIComponent(theme)}#vocab`, { waitUntil: "load", timeout: TIMEOUT_MS });
+    await page.waitForSelector("#vocab-list .vocab-card", { timeout: TIMEOUT_MS });
+    await page.waitForTimeout(400);
+    await shot(page, `l1-empty-${label}`);
+    const m = await page.evaluate(() => {
+      const pane = document.querySelector(".vocab-detail-pane");
+      const bar = document.getElementById("vocab-lookup-bar");
+      const cs = bar && getComputedStyle(bar);
+      const kids = bar ? [...bar.children].filter((k) => getComputedStyle(k).display !== "none") : [];
+      return { paneW: +pane.getBoundingClientRect().width.toFixed(1),
+        barW: bar ? +bar.getBoundingClientRect().width.toFixed(1) : null,
+        barInPane: !!(bar && pane.contains(bar)),
+        kidHeights: kids.map((k) => +k.getBoundingClientRect().height.toFixed(1)).join("/"),
+        island: cs ? { bg: cs.backgroundColor, border: cs.borderTopWidth, radius: cs.borderTopLeftRadius, pad: cs.paddingTop } : null,
+        backVisible: getComputedStyle(document.querySelector(".vocab-detail-back")).display };
+    });
+    console.log(`  [${label}] ${JSON.stringify(m)}`);
+    await page.locator("#vocab-list .vocab-card .notes-card-head").first().click();
+    await page.waitForTimeout(400);
+    await shot(page, `l1-withword-${label}`);
+  }
+  OUTDIR = OUT;
+}
+
+// ---- batch 3: the narrow-screen door ----
+async function runNarrow(page, sw, extBase) {
+  console.log("== narrow lookup door (batch 3) ==");
+  OUTDIR = OUT3;
+  const { themePresetKey, optTheme } = themeToStorage("");
+  await setTheme(sw, themePresetKey, optTheme);
+  await page.setViewportSize({ width: 800, height: 900 });
+  await page.goto(`${extBase}library.html?_nd=1#vocab`, { waitUntil: "load", timeout: TIMEOUT_MS });
+  await page.waitForSelector("#vocab-list .vocab-card", { timeout: TIMEOUT_MS });
+  await page.waitForTimeout(400);
+  await shot(page, "narrow-list");
+  await clipShot(page, ".vocab-filter-row", "narrow-door-closeup", 10);
+  await page.locator("#vocab-lookup-narrow").click();
+  await page.waitForTimeout(450);
+  const after = await page.evaluate(() => ({
+    narrowClass: document.body.classList.contains("lib-narrow-detail"),
+    focused: document.activeElement && document.activeElement.id,
+    listHidden: getComputedStyle(document.querySelector(".vocab-list-pane")).display === "none",
+    backVisible: getComputedStyle(document.querySelector(".vocab-detail-back")).display !== "none",
+  }));
+  console.log(`  after door click: ${JSON.stringify(after)}`);
+  await shot(page, "narrow-lookup-open");
+  await page.locator(".vocab-detail-back").click();
+  await page.waitForTimeout(400);
+  const back = await page.evaluate(() => ({ narrowClass: document.body.classList.contains("lib-narrow-detail"),
+    listVisible: getComputedStyle(document.querySelector(".vocab-list-pane")).display !== "none" }));
+  console.log(`  after back click: ${JSON.stringify(back)}`);
+  await shot(page, "narrow-back-to-list");
+  OUTDIR = OUT;
+}
+
 async function main() {
   mkdirSync(OUT, { recursive: true });
+  mkdirSync(OUT3, { recursive: true });
   const userDataDir = mkdtempSync(join(tmpdir(), "pbp-followup2-"));
   const ctx = await chromium.launchPersistentContext(userDataDir, {
     headless: false,
@@ -391,6 +508,9 @@ async function main() {
     if (want("--variantc")) await runVariantC(page, sw, extBase);
     if (want("--resp")) await runResponsive(page, sw, extBase);
     if (want("--save")) await runSave(page, sw, extBase);
+    if (want("--header")) await runHeader(page, sw, extBase);
+    if (want("--l1")) await runL1(page, sw, extBase);
+    if (want("--narrow")) await runNarrow(page, sw, extBase);
   } finally {
     await ctx.close().catch(() => {});
     rmSync(userDataDir, { recursive: true, force: true });

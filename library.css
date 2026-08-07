@@ -838,6 +838,13 @@ html.motion-ready .notes-sib { transition: background-color var(--motion-state) 
 /* --lib-save/--lib-danger are always set on :root, so tokenizing here already
    covers every theme -- no separate html[data-theme] override needed. */
 .save-status { font-size: 12px; color: var(--lib-save); margin-left: var(--lib-sp-2); }
+/* An empty status is not a zero-width status: it still carries that 8px
+   margin, and in the vocabulary count row it was stealing 16px off the right
+   edge of a row whose whole job is to end flush. It has content only while
+   there is something to say, so collapse it the rest of the time. (The
+   element becomes visible in the same frame its text is written, so the
+   aria-live announcement is unaffected.) */
+.save-status:empty { display: none; }
 .save-status.bad { color: var(--lib-danger); }
 
 /* Master (list) + detail two-pane workbench. The library page has the whole
@@ -929,6 +936,9 @@ html.motion-ready .notes-sib { transition: background-color var(--motion-state) 
   body.lib-narrow-detail .vocab-list-pane { display: none; }
   body:not(.lib-narrow-detail) .vocab-detail-pane { display: none; }
   .vocab-detail-back { display: inline-flex; }
+  /* The lookup row lives in the detail pane, which is display:none here
+     until the body class flips -- so the list needs one door to it. */
+  .vocab-filter-row > .vocab-lookup-narrow { display: inline-flex; }
 }
 
 /* Detail pane content (Task 6). */
@@ -1296,20 +1306,38 @@ html.motion-ready .vocab-note-save {
   width: auto;
   min-width: 0;
 }
-/* The three selects are ONE flex unit. Line breaking in a wrapping flex
-   container works on hypothetical (basis) sizes, and this unit refuses to
-   shrink -- so it either fits whole beside the search or drops whole onto
-   its own row (search then grows to the full first row). max-width lets
-   the selects wrap among themselves only once the unit's own row is
-   narrower than the three of them. */
-.vocab-filter-selects {
+/* Filter row (header round 2). One stretched, non-wrapping flex line:
+   group select | learning chip | known chip | sort segment [| lookup door].
+   Its predecessor wrapped the selects in ONE non-shrinking flex unit, which
+   could only fit whole or drop whole -- that is what made this row fall off
+   the header and leave a ragged right edge behind it.
+   `align-items: stretch` (not center) is what puts every control on one rung
+   without anyone declaring a height: the tallest control -- the select --
+   sets it, and the chips and the segment grow into it. `nowrap` because a
+   row that is allowed to wrap is a row that can be narrower than the header.
+   The group select takes ALL the slack and is deliberately NOT capped: a cap
+   on the one growable item is how you manufacture a gap at the right edge. */
+.vocab-filter-row {
   display: flex;
-  flex-wrap: wrap;
+  align-items: stretch;
+  flex-wrap: nowrap;
   gap: var(--lib-sp-2);
-  flex: 0 0 auto;
-  min-width: 0;
-  max-width: 100%;
+  margin-bottom: var(--lib-sp-2);
+  padding-bottom: var(--lib-sp-2);
+  /* The seam. Same family and parameters as the save button's
+     (COMPONENTS.md §9 law 4: a seam divides, it does not frame), mixed into
+     the page background rather than the panel because this row sits on
+     --lib-bg. It cuts the header in two: filter this list / what this list is. */
+  border-bottom: 1px solid color-mix(in srgb, var(--lib-fg) var(--lib-seam-mix), var(--lib-bg));
 }
+.vocab-filter-row > select { flex: 1 1 auto; min-width: 0; }
+.vocab-filter-row > .vocab-stat-chip,
+.vocab-filter-row > .vocab-sort-seg { flex: none; }
+/* 8px row gap + 4px = a full 12px step clear of the sort segment, so the
+   narrow-screen lookup door does not read as a third cell welded onto it.
+   Hidden entirely above the single-pane threshold: up there the real lookup
+   row is on screen in the detail pane and a second door would be noise. */
+.vocab-filter-row > .vocab-lookup-narrow { display: none; flex: none; margin-left: var(--lib-sp-1); }
 .vocab-filter-toolbar select { flex: 0 1 auto; min-width: 0; }
 /* font-family comes from the page-wide `button, input, select, textarea {
    font-family: inherit }` rule near the top of this file regardless of the
@@ -1359,8 +1387,13 @@ html.motion-ready .vocab-note-save {
 }
 /* A toolbar select is still a select: same closed-control recipe as
    `.fg select` above, written token-first so it needs no themed twin. Only
-   the chevron, being a data URI, needs the dark variant below. */
-.vocab-filter-toolbar select {
+   the chevron, being a data URI, needs the dark variant below.
+   .vocab-filter-row joins the selector list rather than getting a copy: when
+   the header rebuild moved the group select out of the toolbar wrapper it
+   silently lost this whole recipe -- measured 20.5px tall with a native
+   chevron next to a 25.5px search box. */
+.vocab-filter-toolbar select,
+.vocab-filter-row select {
   min-width: 0;
   /* width:auto, NOT 100%: under a flex toolbar 100% becomes the flex basis
      and parks every select on its own full-width row. Content-sized is the
@@ -1373,8 +1406,8 @@ html.motion-ready .vocab-note-save {
      same font-size and inherited `line-height: normal`, so equal block
      padding is sufficient for the two formulas to land on the same computed
      height, no explicit line-height needed. .vocab-sort-btn's height comes
-     along for free too -- .vocab-filter-selects's default align-items:
-     stretch (no override) matches it to whichever sibling here is tallest. */
+     along for free too -- .vocab-filter-row's align-items: stretch matches
+     it to whichever sibling there is tallest. */
   padding: var(--lib-sp-1) 26px var(--lib-sp-1) var(--lib-sp-3);
   border: 1px solid var(--lib-input-border, #cdd1d6);
   border-radius: var(--lib-radius-md);
@@ -1392,7 +1425,8 @@ html.motion-ready .vocab-note-save {
   box-shadow: none;
   transition: border-color var(--motion-state) ease, background-color var(--motion-state) ease, box-shadow var(--motion-state) ease;
 }
-.vocab-filter-toolbar select:hover:not(:focus) {
+.vocab-filter-toolbar select:hover:not(:focus),
+.vocab-filter-row select:hover:not(:focus) {
   background-color: var(--lib-btn-hover);
   border-color: var(--lib-input-border, #cdd1d6);
 }
@@ -1404,11 +1438,13 @@ html.motion-ready .vocab-note-save {
    different focus languages side by side in one row (#vocab-lookup-input,
    an <input> two elements away, has always drawn the shadow). Covers
    #vocab-group-filter / #vocab-status-filter / #vocab-lookup-lang. */
-.vocab-filter-toolbar select:focus {
+.vocab-filter-toolbar select:focus,
+.vocab-filter-row select:focus {
   outline: none;
   border-color: var(--lib-focus-bd);
 }
-.vocab-filter-toolbar select:focus-visible {
+.vocab-filter-toolbar select:focus-visible,
+.vocab-filter-row select:focus-visible {
   box-shadow: var(--lib-focus-ring);
 }
 /* #vocab-lookup-go is a bare icon .btn-sm (COMPONENTS.md §1.5's "dense
@@ -1451,7 +1487,15 @@ html[data-theme="flexoki-dark"] .vocab-filter-toolbar select,
 html[data-theme="solarized-dark"] .vocab-filter-toolbar select,
 html[data-theme="catppuccin-mocha"] .vocab-filter-toolbar select,
 html[data-theme="gruvbox-dark"] .vocab-filter-toolbar select,
-html[data-theme="rose-pine"] .vocab-filter-toolbar select {
+html[data-theme="rose-pine"] .vocab-filter-toolbar select,
+html[data-theme="nord-night"] .vocab-filter-row select,
+html[data-theme="terminal"] .vocab-filter-row select,
+html[data-theme="dracula"] .vocab-filter-row select,
+html[data-theme="flexoki-dark"] .vocab-filter-row select,
+html[data-theme="solarized-dark"] .vocab-filter-row select,
+html[data-theme="catppuccin-mocha"] .vocab-filter-row select,
+html[data-theme="gruvbox-dark"] .vocab-filter-row select,
+html[data-theme="rose-pine"] .vocab-filter-row select {
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M3 4.5 6 7.5 9 4.5' stroke='%23aaa' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
 }
 /* Sort segment: two fused direction-toggle cells replacing the widest select
@@ -1540,6 +1584,11 @@ html[data-theme="rose-pine"] .vocab-filter-toolbar select {
   color: var(--lib-fg-muted);
   font-size: 12px;
 }
+/* Information only now (header round 2). Nothing in this row is clickable,
+   so nothing in it gets a hover, a border or a chip fill -- the two counts
+   that WERE interactive became filter chips and moved up a row. */
+#vocab-stat-total { display: none; } /* see library.html: the count line owns this number */
+.vocab-stat-trend { margin-left: auto; } /* trend rides the right edge */
 /* Geometry/color (display/padding/font-size/line-height/radius/background/
    color) and the [aria-pressed]:hover/:active/:focus-visible interaction
    states now come from @generated:ui-components above (COMPONENTS.md §5,
@@ -1552,18 +1601,44 @@ html[data-theme="rose-pine"] .vocab-filter-toolbar select {
    background/border-color/color changes, and the persistent "currently
    filtering by this status" look when aria-pressed="true" -- none of which
    COMPONENTS.md's chip section covers. */
+/* These two are the only chips on the page that are CONTROLS, and since the
+   header rebuild they sit in a row of controls -- so they wear the button
+   family's fill, not the chip family's grey-on-grey label look. Overriding
+   background/color here rather than in the recipe on purpose: the chip
+   recipe is shared with .vocab-group-chip and .notes-meta-chip, which really
+   are labels. Later in the file than the generated region, same specificity,
+   so source order carries it -- the same split the border/cursor lines below
+   have always relied on. */
 .vocab-stat-chip {
   /* A chip has no frame at rest -- the border-width stays only so the
      aria-pressed accent edge below costs no reflow (COMPONENTS.md §9 law 1). */
-  border: 1px solid var(--lib-chip-bg);
+  border: 1px solid var(--lib-btn-border);
+  background: var(--lib-btn-bg);
+  color: var(--lib-btn-fg);
   cursor: pointer;
   transition: background var(--motion-state), border-color var(--motion-state), color var(--motion-state);
 }
+/* Selected = byte-identical to the sort segment's pressed cell, deliberately:
+   two controls in the same row that both mean "this filter is on" must not
+   invent two looks. NOT --lib-row-selected-bg (measured byte-identical to
+   --lib-panel on dracula, i.e. invisible) and NOT an inset accent ring (that
+   is the focus language; §8's four states would collapse to three). */
 .vocab-stat-chip[aria-pressed="true"] {
-  background: var(--lib-row-selected-bg);
-  color: var(--lib-row-selected-fg);
+  color: var(--lib-accent);
+  background: color-mix(in srgb, var(--lib-accent) 12%, var(--lib-btn-bg));
   border-color: var(--lib-accent);
 }
+/* Hover on an already-selected chip deepens the same accent mix instead of
+   falling back to the generated neutral --lib-btn-hover, which would read as
+   "turning off". */
+.vocab-stat-chip[aria-pressed="true"]:hover {
+  background: color-mix(in srgb, var(--lib-accent) 20%, var(--lib-btn-bg));
+}
+/* `.vocab-stat-chip` is display:inline-flex from the generated region, an
+   author-origin value that outranks the UA `[hidden] { display: none }`
+   rule -- so without this the chips would sit in the filter row showing
+   nothing at all while the owner has no words. */
+.vocab-stat-chip[hidden] { display: none; }
 /* Count line: one row, identical in browse and selection. The status
    message rides inline at the right edge -- it never reserves a line of
    its own. The batch tools live in the sticky bar below the list. */
@@ -1574,7 +1649,11 @@ html[data-theme="rose-pine"] .vocab-filter-toolbar select {
   margin: 0 0 var(--lib-sp-2);
   min-height: 28px;
 }
-.vocab-ctx-text { display: grid; align-items: center; min-width: 0; }
+/* flex: 1 so the count text takes the whole slack and "Select all" lands on
+   the row's right edge. Before this the slack went to .vocab-main-status's
+   `margin-left: auto`, which right-aligned an EMPTY span and left Select all
+   floating in the middle of the line. */
+.vocab-ctx-text { display: grid; align-items: center; min-width: 0; flex: 1 1 auto; }
 .vocab-ctx-text > .notes-count {
   min-width: 0;
   white-space: normal;

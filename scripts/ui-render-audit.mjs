@@ -1140,7 +1140,82 @@ async function drivePaneFit(page, check) {
   return found;
 }
 
+
+// ---- state: "headerRowsFlush" (list header, round 2) ---------------------
+// The header's whole point is that every row runs the full width of the list
+// column -- the version this replaced lost its right edge whenever a row
+// wrapped or a non-shrinking unit dropped. Measures, per row: the row's own
+// width against the column's, and the gap between the row's right edge and
+// its right-most visible child.
+//
+// Both halves are needed and neither implies the other. A row can be full
+// width and still end 40px short of its last control (the old count row did
+// exactly that: an empty status span with `margin-left: auto` ate the slack),
+// and a row can hug its contents perfectly while being narrower than the
+// column. `expected` is the tolerance in px.
+const HEADER_ROWS_SCAN = ({ rows, columnSel }) => {
+  const col = document.querySelector(columnSel);
+  if (!col) return { error: `column not found: ${columnSel}` };
+  const colW = col.getBoundingClientRect().width;
+  const out = [];
+  for (const sel of rows) {
+    const el = document.querySelector(sel);
+    if (!el) { out.push({ sel, missing: true }); continue; }
+    if (getComputedStyle(el).display === "none") { out.push({ sel, hidden: true }); continue; }
+    const r = el.getBoundingClientRect();
+    // Only children that actually OCCUPY the row count. A zero-width child
+    // sitting at the right edge satisfies "something reaches the edge" while
+    // showing nothing -- which is the exact pre-fix defect here: an empty
+    // status span with `margin-left: auto` parked itself flush right and left
+    // the real last control ("Select all") stranded 40px inboard. Measured:
+    // this check passed that layout until zero-width children were excluded.
+    // Out-of-flow children are skipped for the same reason (sr-only labels).
+    const kids = [...el.children].filter((k) => {
+      const cs = getComputedStyle(k);
+      if (cs.display === "none" || cs.position === "absolute" || cs.position === "fixed") return false;
+      const kr = k.getBoundingClientRect();
+      return kr.width > 0.5 && kr.height > 0.5;
+    });
+    const right = kids.length ? Math.max(...kids.map((k) => k.getBoundingClientRect().right)) : r.right;
+    out.push({ sel, widthGap: +(colW - r.width).toFixed(2), edgeGap: +(r.right - right).toFixed(2) });
+  }
+  return { colW: +colW.toFixed(2), rows: out };
+};
+
+async function driveHeaderRows(page, check) {
+  const { rows, columnSel, widths, tolerancePx = 1 } = check.expect.headerRowsFlush;
+  const restore = page.viewportSize();
+  const bad = [];
+  let worst = 0;
+  try {
+    for (const width of widths) {
+      await page.setViewportSize({ width, height: restore ? restore.height : 900 });
+      await page.waitForTimeout(250);
+      const res = await page.evaluate(HEADER_ROWS_SCAN, { rows, columnSel });
+      if (res.error) { bad.push(`${width}px: ${res.error}`); continue; }
+      for (const row of res.rows) {
+        if (row.missing) { bad.push(`${width}px: ${row.sel} not in the DOM`); continue; }
+        if (row.hidden) continue; // a row with nothing to say is allowed to be gone
+        worst = Math.max(worst, Math.abs(row.widthGap), Math.abs(row.edgeGap));
+        if (Math.abs(row.widthGap) > tolerancePx) bad.push(`${width}px: ${row.sel} is ${row.widthGap}px narrower than the column`);
+        if (Math.abs(row.edgeGap) > tolerancePx) bad.push(`${width}px: ${row.sel} ends ${row.edgeGap}px short of its last control`);
+      }
+    }
+  } finally {
+    if (restore) await page.setViewportSize(restore);
+    await page.waitForTimeout(250);
+  }
+  return { bad, worst: +worst.toFixed(2) };
+}
+
 async function runOneCheck(page, theme, check, results, extBase) {
+  if (check.state === "headerRowsFlush") {
+    const { bad, worst } = await driveHeaderRows(page, check);
+    results.push({ surface: check.surface, theme, selector: check.selector, state: check.state,
+      ...verdict("headerRowsFlush", bad.length === 0, worst, check.expect.headerRowsFlush.tolerancePx ?? 1,
+        bad.length ? bad.slice(0, 4).join("; ") : undefined) });
+    return;
+  }
   if (check.state === "paneFit") {
     const hits = await drivePaneFit(page, check);
     const worst = hits.reduce((m, h) => Math.max(m, h.over), 0);

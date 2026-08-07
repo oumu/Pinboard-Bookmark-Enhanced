@@ -300,6 +300,23 @@ export const CHECKS = [
     expect: { bandDistinct: { minDelta: 24, minTextContrast: 4.5, textSelector: ".notes-hit-text",
       fillOnlyPairs: [["rest", "selected"]] } } },
 
+  // ---- List header, round 2 (user ruling 2026-08-07). Four bare rows, and
+  // the one thing that has to hold for all of them is that they run the full
+  // width of the list column and end flush with their own last control. The
+  // version this replaced failed both ways at once: the filter controls were
+  // wrapped in a single non-shrinking flex unit that could only fit whole or
+  // drop whole, and the count row handed its slack to an EMPTY status span's
+  // `margin-left: auto`, leaving "Select all" stranded mid-row.
+  //
+  // Two measurements per row, because neither implies the other -- a row can
+  // be full width and still end 40px short of its last control, and it can hug
+  // its contents while being narrower than the column. Widths bracket the
+  // single-pane threshold on both sides so a row that only breaks in one
+  // column width cannot hide.
+  { surface: "library", page: "library.html", selector: ".vocab-list-pane", state: "headerRowsFlush",
+    expect: { headerRowsFlush: { widths: [1680, 1100, 800], tolerancePx: 1, columnSel: ".vocab-list-pane",
+      rows: [".vocab-filter-toolbar", ".vocab-filter-row", "#vocab-stats", ".vocab-context-bar"] } } },
+
   { surface: "library", page: "library.html", selector: ".vocab-list-pane", state: "paneFit",
     expect: { paneFit: { widths: [900, 960, 1024, 1100, 1200], tolerancePx: 1,
       panes: [".vocab-list-pane", "#vocab-detail-pane"] } } },
