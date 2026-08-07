@@ -1025,11 +1025,30 @@ html.dark .batch-progress-text { color: var(--pp-fg); mix-blend-mode: normal; fi
   font-size: 11px;
   color: var(--pp-offline-fg);
 }
+/* `display: inline-flex` is NOT cosmetic here -- it is the fix for the 16
+   frozen iconVCenter keys. `.btn-ic`'s `vertical-align: -3px` (generated
+   region, §2.1) is a heuristic baseline nudge measured against the HOST
+   button's own line box, and it is only ever meant for hosts that aren't
+   flex containers. Every sibling in this link-styled icon-button group
+   (`.clear-all-link`, `.header-bar .header-ic`, `.qbtn`) already declares
+   flex + align-items:center, which makes vertical-align inert on their
+   flex-item children and centres the icon exactly (measured diff 0px).
+   `.offline-clear` was the one member that never got the declaration, so it
+   was positioned purely by the -3px approximation: 1.7px off centre on 15
+   themes, 2.7px on terminal (different line-height from its monospace body
+   font). Adding flex makes vertical-align inert here too and the offset
+   drops to 0 structurally, not by re-tuning the magic number.
+   `gap` matches `.clear-all-link`'s: `.btn-ic`'s own margin-right is zeroed
+   for both of them two rules up, and without a gap the glyph and the word
+   render flush against each other. */
 .offline-clear {
   color: var(--pp-danger);
   font-size: 10px;
   cursor: pointer;
   position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pp-sp-1);
 }
 /* Expand/collapse caret, CSS-drawn (a ▸/▾ glyph fell back to Segoe UI Emoji
    and stalled first paint). 2026-08: thin chevron matching the disclosure
