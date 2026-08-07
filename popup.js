@@ -104,8 +104,12 @@ function invalidateBookmarkLookup() {
     // The confirm popover is a body child now, not a descendant of the
     // button, so dropping it needs the helper that owns it (and that also
     // detaches its Escape/pointerdown listeners -- a bare .remove() would
-    // leave those bound to a detached node).
-    pbpDismissActiveConfirm();
+    // leave those bound to a detached node). Passing the anchor keeps this
+    // to the Delete button's OWN popover: the old code could only ever
+    // remove a child of that button, and only one confirm is open at a time,
+    // so an unguarded call would close an unrelated one (offline-queue clear,
+    // recent-bookmark delete, logout) whenever the URL field changed.
+    pbpDismissActiveConfirm(deleteBtn);
     deleteBtn.disabled = false;
     deleteBtn.classList.remove("loading");
     deleteBtn.textContent = t("delete");

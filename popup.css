@@ -198,6 +198,19 @@ body {
   background: var(--pp-bg);
   line-height: 1.4;
 }
+/* Form controls don't inherit font-family by default — without this, <button>/<input>/<select>
+   fall to the UA default ("Arial"), which has NO CJK glyphs, so their Chinese labels drop to the
+   profile's Standard font (e.g. Sarasa UI SC) and pay the slow first-load stall. Same line
+   options.css and library.css have carried since 2026-06; popup was the surface still missing it,
+   and popup is the one that pays a COLD first paint every single time it opens. The login button
+   is a new user's first screen.
+   `textarea` is deliberately NOT in this list (as in options.css, and unlike library.css): popup's
+   only textarea is `.field > textarea`, which already declares `font-family: inherit` at (0,2,1)
+   and is re-pointed at a monospace stack under terminal at (0,3,1) — both out-rank this (0,0,1)
+   rule either way, so listing it would be a no-op. Every other named stack in this file is on a
+   class or descendant selector (`.login-body input`, `.ac-hint-footer kbd`, `.batch-progress-text`,
+   `.fc-details`) and out-ranks this rule too; checked one by one before adding it. */
+button, input, select { font-family: inherit; }
 a { color: var(--pp-link); text-decoration: none; transition: color var(--pp-motion-state); }
 a:hover { text-decoration: underline; }
 .hidden { display: none !important; }
@@ -652,9 +665,18 @@ button.offline-clear:focus-visible, button.offline-toggle:focus-visible { outlin
   border-top-color: var(--pp-spinner-fg);
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
-  margin-right: var(--pp-sp-2);
   vertical-align: middle;
 }
+/* The gap between spinner and label belongs to the HOST, and the two hosts
+   provide it differently. `.submit-bar button` is a `.btn` now: it is a flex
+   container with `gap: var(--pp-sp-2)`, and this pseudo-element is a flex
+   item, so the gap already spaces it -- a `margin-right` on top of that
+   measured 8px instead of 4 (button 80.70px -> 84.70px), on every save and
+   every delete. `.action-link` is not a flex container, so it still needs the
+   margin. Adding a control to the submit bar WITHOUT class="btn" would leave
+   its spinner flush against the label; that is the trade for not writing a
+   `:not(.btn)` guard nobody would maintain. */
+.action-link.loading::before { margin-right: var(--pp-sp-2); }
 @keyframes spin { to { transform: rotate(360deg); } }
 .submit-bar button.loading {
   color: var(--pp-fg-hint); cursor: wait;

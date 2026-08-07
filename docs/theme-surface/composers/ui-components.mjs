@@ -194,10 +194,12 @@ function btnIcRules(ns) {
 // 4.5-5.2:1 on every theme, so contrast was never the problem. Retiring the
 // exemption is the popup button-family campaign's C3a.
 //
-// The QUIET tier stays options+library-only for now: it is defined ON
-// `.btn.danger`, and popup has no `.btn` class until this campaign's C4
-// switches the button family on for pp. Emitting it earlier would ship
-// rules that match nothing.
+// The QUIET tier is emitted for all three too, as of C4a: it is defined ON
+// `.btn.danger`, so it was held back only while popup had no `.btn` class at
+// all -- popup.html's Delete button now carries `class="btn danger"` and
+// consumes it. (This comment said "options+library-only" for one commit too
+// long; a single source whose prose contradicts its own emitted bytes is the
+// exact failure mode CLAUDE.md's "文本 grep 覆盖判定必被注释击穿" is about.)
 function dangerRules(ns) {
   const solid = [
     // Solid tier -- the only allowed full-strength red. Self-paired.
@@ -332,7 +334,7 @@ function formRules(ns) {
       ["font-size", "13px"],
       ["line-height", "16px"],
       ["font-family", "inherit"],
-      ["border", `1px solid var(--${ns}-input-border)`],
+      ["border", `1px solid ${v(ns, "input-border")}`],
       ["border-radius", `var(--${ns}-radius-md)`],
       ["background-color", `var(--${ns}-input-bg)`],
       ["color", `var(--${ns}-fg)`],
@@ -342,7 +344,7 @@ function formRules(ns) {
       ["transition", `border-color ${motion(ns)} ease, background-color ${motion(ns)} ease, box-shadow ${motion(ns)} ease`],
     ]),
     rule(`.fg input:hover:not(:focus), .fg select:hover:not(:focus), .fg textarea:hover:not(:focus)`, [
-      ["border-color", `color-mix(in srgb, var(--${ns}-input-border) 55%, var(--${ns}-fg))`],
+      ["border-color", `color-mix(in srgb, ${v(ns, "input-border")} 55%, var(--${ns}-fg))`],
     ], { pairColorWith: FIELD_SEL }),
     rule(`.fg input:focus, .fg select:focus, .fg textarea:focus`, [
       ["outline", "none"], ["border-color", `var(--${ns}-focus-bd)`],

@@ -2371,11 +2371,19 @@ function pbpIsValidTokenFormat(token) {
 
 let _activeConfirmPopover = null;
 
-// Close whatever confirm popover is open, without running onCancel and
-// without stealing focus back to its opener. For callers that are tearing
-// the anchor's context down anyway (popup's form reset drops the Delete
-// button), where "the user cancelled" is the wrong story to tell.
-function pbpDismissActiveConfirm() {
+// Close the open confirm popover, without running onCancel and without
+// stealing focus back to its opener. For callers that are tearing the
+// anchor's context down anyway (popup's form reset drops the Delete button),
+// where "the user cancelled" is the wrong story to tell.
+//
+// `anchor` is optional but callers should pass it: only ONE popover is ever
+// open (showConfirmPopover dismisses the previous one before building the
+// next), so an unguarded call closes whichever popover happens to be up --
+// including one the caller has nothing to do with. Real path, found in
+// review: open "clear the offline queue", tab to the URL field, type, and
+// popup's form reset silently closed that confirm.
+function pbpDismissActiveConfirm(anchor) {
+  if (anchor && _activeConfirmPopover?.anchor !== anchor) return;
   _activeConfirmPopover?.dismiss({ restoreFocus: false, animate: false });
 }
 

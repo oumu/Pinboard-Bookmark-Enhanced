@@ -2244,21 +2244,55 @@ for (const [file, css] of [["popup.css", popupCss], ["options.css", optionsCss],
 //
 // Class-level rather than a list of the selectors that once did it: the
 // simplest counter-example to a blacklist is the next hand-written override
-// nobody has written yet. Any hand-written rule whose selector mentions
-// .confirm-yes and that sets one of the three paint properties fails --
-// :hover's `box-shadow` inset ring is deliberately still allowed, that is
-// how §4.2's hover state is specified.
+// nobody has written yet.
+//
+// The first version of this gate asked "does the selector TEXT contain
+// .confirm-yes", and independent review found the counter-example it missed
+// in one try: `html[data-theme] .confirm-popover button { background: … }`
+// is (0,2,1), out-ranks the recipe's (0,2,0), repaints the confirm button in
+// any colour you like -- and never spells `.confirm-yes`. Not a paper
+// example either: this file already carries `html[data-theme]
+// .confirm-popover button:focus-visible` rules written exactly that way, so
+// the element-selector shape is the natural one for the next hand override.
+//
+// So the question the gate asks is now "COULD this rule paint the confirm
+// button", answered from the selector's last compound (the part that decides
+// what the rule actually targets):
+//   - names .confirm-yes                       -> yes
+//   - is a bare `button` under .confirm-popover -> yes (matches both buttons)
+//   - names .confirm-no / .confirm-msg          -> no, those are hand-written
+//                                                   by design on all three
+//                                                   surfaces
+//   - is .confirm-popover itself                -> no, the container's own
+//                                                   colour is legitimate and
+//                                                   loses to the button rule
+// `border` shorthand counts only when it carries a colour: every surface
+// ships `.confirm-popover button { border: 1px solid }` deliberately
+// colourless (it resolves to currentColor), and flagging that would make the
+// gate unusable on the very code it is meant to protect. :hover's inset
+// `box-shadow` ring stays allowed -- that is how §4.2 specifies the state.
 const SOLID_DANGER_PAINT = /(?:^|;)\s*(background|background-color|color|border-color)\s*:/;
+const SOLID_DANGER_BORDER_COLOUR = /(?:^|;)\s*border\s*:[^;]*(var\(|#[0-9a-fA-F]{3}|rgba?\(|color-mix\()/;
+// Last compound = everything after the final descendant/child/sibling combinator.
+const lastCompound = (sel) => sel.split(/\s*[>+~]\s*|\s+/).filter(Boolean).pop() || "";
+function paintsConfirmYes(selector) {
+  if (!selector.includes(".confirm-popover") && !selector.includes(".confirm-yes")) return false;
+  const tail = lastCompound(selector);
+  if (/\.confirm-(no|msg)\b/.test(tail)) return false;
+  return /\.confirm-yes\b/.test(tail) || /(^|[^-\w.])button\b/.test(tail);
+}
 for (const [file, css] of [["popup.css", popupCss], ["options.css", optionsCss], ["library.css", libraryCss]]) {
   const hand = stripGeneratedRegions(css).replace(/\/\*[\s\S]*?\*\//g, "");
   const offenders = [];
   for (const m of hand.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
     const selector = m[1].trim().replace(/\s+/g, " ");
-    if (!selector.includes(".confirm-yes")) continue;
-    if (SOLID_DANGER_PAINT.test(";" + m[2])) offenders.push(selector);
+    // A selector list is only as safe as its worst branch.
+    if (!selector.split(",").some(paintsConfirmYes)) continue;
+    const body = ";" + m[2];
+    if (SOLID_DANGER_PAINT.test(body) || SOLID_DANGER_BORDER_COLOUR.test(body)) offenders.push(selector);
   }
   check(offenders.length === 0,
-    `${file}: hand-written rule(s) paint .confirm-yes -- the solid-danger tier belongs to the @generated:ui-components recipe (COMPONENTS.md §4.2); a themed override outranks it silently. Offenders: ${offenders.join(" | ")}`);
+    `${file}: hand-written rule(s) can paint the confirm popover's confirm button -- the solid-danger tier belongs to the @generated:ui-components recipe (COMPONENTS.md §4.2); an element-selector or themed override outranks it silently. Offenders: ${offenders.join(" | ")}`);
 }
 
 if (fail.length) {
