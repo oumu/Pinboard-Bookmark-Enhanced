@@ -18,22 +18,22 @@ Une extension Chrome pour [Pinboard](https://pinboard.in) : étiquettes et résu
 
 ### Enregistrer
 - **Un clic, tout est rempli** : le titre, la description et le texte sélectionné sont repris, et les paramètres de suivi retirés de l'URL
-- **Enregistrement au raccourci clavier** : sans ouvrir la fenêtre ; ou enregistrez d'un coup tous les onglets ouverts
-- **Fonctionne hors ligne** : les enregistrements passent par une file locale et sont renvoyés au retour de la connexion
+- **Enregistrement par raccourci clavier** : sans ouvrir la fenêtre ; ou tous les onglets ouverts d'un coup
+- **Fonctionne hors ligne** : les enregistrements passent par une file d'attente locale et sont renvoyés au retour de la connexion
 
 ![Enregistrement en un clic avec étiquettes et résumé par IA](docs/cws-assets/originals/screenshot-1-save.png)
 
 ### Étiquettes
-- **Étiquettes et résumé par IA** : l'IA lit le corps de l'article, débarrassé des publicités, des menus et des barres latérales ; votre propre clé API, 14 fournisseurs ou tout point d'accès compatible OpenAI
-- **Autocomplétion** : à partir de vos étiquettes, des suggestions Pinboard et de préréglages en un clic
+- **Étiquettes et résumé par IA** : l'IA lit le corps de l'article, débarrassé des publicités, des menus et des barres latérales ; votre propre clé API, 14 fournisseurs ou tout point de terminaison compatible OpenAI
+- **Autocomplétion** : à partir de vos étiquettes, des suggestions de Pinboard et de préréglages en un clic
 - **Nettoyage des étiquettes** : repérez les doublons et les étiquettes peu utilisées, puis fusionnez-les par lots
 
 ### Lecture
-- **Chaque page devient une lecture claire** : vue Markdown avec table des matières, recherche et aperçu des notes de bas de page
-- **Surlignage en cinq couleurs, avec notes** : surlignages et notes survivent aux nouveaux rendus, à la traduction et aux modifications de la page
+- **Chaque page passe en mode lecture épuré** : vue Markdown avec table des matières, recherche et aperçu des notes de bas de page
+- **Surlignage en cinq couleurs, avec notes** : les surlignages et les notes survivent aux nouveaux rendus, à la traduction et aux modifications de la page
 - **Traduisez la page ou posez-lui vos questions** : traduction intégrale avec vue bilingue ; les réponses citent la source et y renvoient d'un clic
-- **Consultez et révisez les mots pendant la lecture** : le dictionnaire affiche d'abord le sens qui correspond à votre phrase ; les mots enregistrés gardent vos notes et leur statut d'apprentissage, et peuvent être recherchés, triés, classés par groupes, exportés ou envoyés vers Anki et Eudic. En option, des packs de dictionnaire hors connexion couvrent le chinois vers l'anglais et l'anglais vers le chinois
-- **Une page entière pour les notes et le vocabulaire** : vos mots enregistrés et vos surlignages occupent toute la fenêtre ; vous y consultez le détail d'un mot, le cherchez à nouveau dans le dictionnaire, ou supprimez et regroupez des mots par lots
+- **Cherchez et révisez les mots au fil de la lecture** : le dictionnaire affiche d'abord le sens qui correspond à votre phrase ; les mots enregistrés gardent vos notes et leur statut d'apprentissage, et peuvent être envoyés vers Anki ou Eudic. En option, des packs de dictionnaires hors connexion chinois-anglais et anglais-chinois
+- **Une page entière pour les notes et le vocabulaire** : vos mots enregistrés et vos surlignages réunis au même endroit, avec recherche dans le dictionnaire et gestion par lots
 - **Envoyer ou télécharger** : vers [Obsidian](https://obsidian.md), un Gist GitHub ou n'importe quel webhook ; ou en `.md`, `.html`, `.epub` pour votre liseuse
 
 ![Lecture claire avec traduction bilingue et surlignages](docs/cws-assets/originals/screenshot-2-reader.png)
@@ -43,7 +43,7 @@ Une extension Chrome pour [Pinboard](https://pinboard.in) : étiquettes et résu
 ### Personnalisation
 - **13 thèmes pour pinboard.in** (Dracula · Nord · Catppuccin · Solarized · …) plus votre CSS personnalisé
 - **Archivage automatique dans la [Wayback Machine](https://web.archive.org)** : à chaque enregistrement si vous le souhaitez ; les pages restent accessibles même quand le lien d'origine disparaît
-- **Sauvegarde et synchronisation** : les paramètres via Chrome Sync, le vocabulaire via votre propre Google Drive, et des sauvegardes JSON manuelles pouvant inclure les surlignages, les notes, le vocabulaire et vos clés API. Chaque option est facultative ; la section Confidentialité ci-dessous en précise les modalités exactes
+- **Sauvegarde et synchronisation** : les paramètres via Chrome Sync, le vocabulaire via votre propre Google Drive, et des sauvegardes JSON manuelles pouvant inclure les surlignages, les notes, le vocabulaire et vos clés API. Chaque option est facultative ; les conditions exactes figurent dans la section Confidentialité ci-dessous
 - **9 langues** · raccourcis configurables · stockage local en priorité · aucun pistage
 
 ![13 thèmes pour pinboard.in](docs/cws-assets/originals/screenshot-4-themes.png)

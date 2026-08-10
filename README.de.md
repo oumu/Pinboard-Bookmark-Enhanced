@@ -2,7 +2,7 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md) | [繁體中文（香港）](README.zh-HK.md) | **Deutsch** | [Français](README.fr.md) | [日本語](README.ja.md) | [Polski](README.pl.md) | [Русский](README.ru.md)
 
-Eine Chrome-Erweiterung für [Pinboard](https://pinboard.in): AI-Tags und Zusammenfassungen, eine eingebaute Leseansicht mit Übersetzung und Markierungen sowie 13 Themes für die Website selbst.
+Eine Chrome-Erweiterung für [Pinboard](https://pinboard.in): KI-Tags und Zusammenfassungen, eine eingebaute Leseansicht mit Übersetzung und Markierungen sowie 13 Themes für die Website selbst.
 
 > **Hinweis:** Erfordert ein Pinboard.in-Konto — [Pinboard](https://pinboard.in) ist ein unabhängiger, **kostenpflichtiger** Lesezeichendienst. Diese Erweiterung ist ein Drittanbieter-Client, der sich mit deinem eigenen API-Token mit deinem bestehenden Pinboard-Konto verbindet. Sie ist nicht mit Pinboard verbunden, wird nicht von Pinboard gesponsert oder unterstützt. Zur Nutzung dieser Erweiterung musst du bereits ein kostenpflichtiges Pinboard.in-Konto besitzen (oder eines anlegen).
 
@@ -19,21 +19,21 @@ Eine Chrome-Erweiterung für [Pinboard](https://pinboard.in): AI-Tags und Zusamm
 ### Speichern
 - **Ein Klick, alles ausgefüllt** – Titel, Beschreibung und markierter Text werden übernommen, Tracking-Parameter aus der URL entfernt
 - **Per Tastenkürzel speichern** – ohne das Popup zu öffnen; auf Wunsch alle offenen Tabs auf einmal
-- **Funktioniert auch offline** – Speicherungen landen in einer lokalen Warteschlange und werden nach der Wiederverbindung erneut übertragen
+- **Funktioniert auch offline** – Gespeichertes landet in einer lokalen Warteschlange und wird erneut gesendet, sobald du wieder online bist
 
-![Speichern mit einem Klick, AI-Tags und Zusammenfassung](docs/cws-assets/originals/screenshot-1-save.png)
+![Speichern mit einem Klick, KI-Tags und Zusammenfassung](docs/cws-assets/originals/screenshot-1-save.png)
 
 ### Tags
-- **AI-Tags und Zusammenfassung** – gelesen wird der Artikeltext ohne Werbung, Menüs und Seitenleisten; eigener API-Schlüssel, 14 Anbieter oder ein beliebiger OpenAI-kompatibler Endpunkt
+- **KI-Tags und Zusammenfassung** – gelesen wird der Artikeltext ohne Werbung, Menüs und Seitenleisten; eigener API-Schlüssel, 14 Anbieter oder ein beliebiger OpenAI-kompatibler Endpunkt
 - **Autovervollständigung** – aus deinen Tags, Pinboards Vorschlägen und Ein-Klick-Voreinstellungen
-- **Tags aufräumen** – doppelte und selten genutzte Tags finden und in Stapeln zusammenführen
+- **Tags aufräumen** – doppelte und selten genutzte Tags finden und stapelweise zusammenführen
 
 ### Lesen
 - **Jede Seite wird zur Leseansicht** – Markdown-Ansicht mit Inhaltsverzeichnis, Suche und Fußnoten-Vorschau
-- **Markieren in fünf Farben, mit Notizen** – Markierungen und Notizen überstehen Neu-Rendern, Übersetzung und Änderungen an der Seite
-- **Seite übersetzen oder befragen** – Ganzseiten-Übersetzung mit zweisprachiger Ansicht; Antworten zitieren die Quelle und springen direkt dorthin
-- **Wörter beim Lesen nachschlagen und wiederholen**: Definitionen zeigen zuerst die zum Satz passende Bedeutung; gespeicherte Vokabeln tragen Notizen und einen Lernstatus und lassen sich durchsuchen, sortieren, gruppieren, exportieren oder an Anki und Eudic senden. Optionale Offline-Wörterbuchpakete decken Chinesisch–Englisch und Englisch–Chinesisch ab
-- **Eine eigene Seite für Notizen und Vokabeln**: gespeicherte Wörter und Markierungen füllen ein ganzes Fenster; dort siehst du die Details zu einem Wort, schlägst es erneut im Wörterbuch nach oder löschst und gruppierst Vokabeln in Stapeln
+- **Markieren in fünf Farben, mit Notizen** – Markierungen und Notizen überstehen erneutes Rendern, Übersetzung und Änderungen an der Seite
+- **Seite übersetzen oder befragen** – Ganzseiten-Übersetzung mit zweisprachiger Ansicht; Antworten zitieren die Quelle, ein Klick führt direkt zur Fundstelle
+- **Wörter beim Lesen nachschlagen und wiederholen**: Definitionen zeigen zuerst die zum Satz passende Bedeutung; gespeicherte Vokabeln lassen sich mit Notizen und einem Lernstatus versehen und an Anki oder Eudic senden. Optional gibt es Offline-Wörterbuchpakete für Chinesisch–Englisch und Englisch–Chinesisch
+- **Eine eigene Seite für Notizen und Vokabeln**: gespeicherte Wörter und Markierungen an einem Ort, mit Wörterbuchsuche und Stapelbearbeitung
 - **Senden oder herunterladen** – an [Obsidian](https://obsidian.md), ein GitHub Gist oder einen beliebigen Webhook senden; als `.md`, `.html` oder `.epub` für den E-Reader herunterladen
 
 ![Leseansicht mit zweisprachiger Übersetzung und Markierungen](docs/cws-assets/originals/screenshot-2-reader.png)
@@ -57,7 +57,7 @@ Oder als entpackte Erweiterung aus einem Release-ZIP laden:
 2. Entpacken
 3. `chrome://extensions/` → **Entwicklermodus** aktivieren → **Entpackte Erweiterung laden** → entpackten Ordner auswählen
 
-Der Quellcode verwendet eine eigene feste Entwicklungs-ID und kann deshalb zu Testzwecken neben der Version aus dem Chrome Web Store installiert werden. Das Release-ZIP verwendet dagegen die ID des Chrome Web Store und kann nicht gleichzeitig mit der Store-Version im selben Chrome-Profil installiert sein. Chrome Sync kann die Einstellungen teilen, nachdem die Einstellungssynchronisierung auf jedem Gerät aktiviert wurde. Vor dem Wechsel von einem älteren entpackten Release zuerst dessen Einstellungen exportieren und die Sicherung nach dem Laden des neuen Releases importieren.
+Der Quellcode verwendet eine eigene feste Entwicklungs-ID und kann deshalb zu Testzwecken neben der Version aus dem Chrome Web Store installiert werden. Das Release-ZIP verwendet dagegen die ID des Chrome Web Store und kann nicht gleichzeitig mit der Store-Version im selben Chrome-Profil installiert sein. Chrome Sync gleicht die Einstellungen ab, sobald die Einstellungssynchronisierung auf jedem Gerät aktiviert ist. Vor dem Wechsel von einem älteren entpackten Release zuerst dessen Einstellungen exportieren und die Sicherung nach dem Laden des neuen Releases importieren.
 
 Nach der Installation: Auf das Symbol in der Symbolleiste klicken → deinen [Pinboard-API-Token](https://pinboard.in/settings/password) einfügen → speichern
 

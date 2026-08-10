@@ -25,26 +25,26 @@ Rozszerzenie Chrome dla [Pinboard](https://pinboard.in): tagi i streszczenia od 
 
 ### Tagi
 - **Tagi i streszczenie od AI** — AI czyta treść artykułu bez reklam, menu i pasków bocznych; własny klucz API, 14 dostawców lub dowolny endpoint zgodny z OpenAI
-- **Autouzupełnianie** — z twoich tagów, podpowiedzi Pinboarda i gotowych zestawów na jedno kliknięcie
+- **Autouzupełnianie** — z własnych tagów, podpowiedzi Pinboarda i gotowych zestawów na jedno kliknięcie
 - **Porządki w tagach** — znajdź duplikaty i rzadko używane tagi, po czym scal je partiami
 
 ### Czytanie
 - **Każda strona staje się czytelna** — widok Markdown ze spisem treści, wyszukiwaniem i podglądem przypisów
-- **Zakreślenia w pięciu kolorach, z notatkami** — zakreślenia i notatki przetrwają ponowne renderowanie, tłumaczenie, a nawet zmiany na stronie
+- **Zakreślenia w pięciu kolorach, z notatkami** — jedne i drugie przetrwają ponowne renderowanie, tłumaczenie, a nawet zmiany na stronie
 - **Przetłumacz stronę albo zadaj jej pytanie** — tłumaczenie całości z widokiem dwujęzycznym; odpowiedzi cytują źródło i prowadzą prosto do niego
-- **Sprawdzaj i powtarzaj słownictwo podczas czytania** — słownik pokazuje najpierw znaczenie pasujące do bieżącego zdania; zapisane słówka mogą mieć notatki i status opanowania, a do tego możesz je wyszukiwać, sortować, grupować, eksportować oraz wysyłać do Anki i Eudic. Opcjonalne pakiety słowników offline obejmują oba kierunki: chińsko-angielski i angielsko-chiński.
-- **Notatki i słówka mają własną stronę** — zapisane słówka i zakreślenia wypełniają całe okno; obejrzysz tam szczegóły słówka, sprawdzisz je ponownie w słowniku, a same słówka usuniesz i pogrupujesz partiami
-- **Wyślij albo pobierz** — do [Obsidiana](https://obsidian.md), GitHub Gist lub dowolnego webhooka; albo jako `.md`, `.html`, `.epub` na czytnik e-booków
+- **Sprawdzaj i powtarzaj słownictwo podczas czytania** — słownik pokazuje najpierw znaczenie pasujące do bieżącego zdania; zapisane słówka mogą mieć notatki i status opanowania, można je też wysyłać do Anki i Eudic. Do wyboru są pakiety słowników offline: chińsko-angielski i angielsko-chiński.
+- **Notatki i słówka mają własną stronę** — zapisane słówka i zakreślenia w jednym miejscu, z wyszukiwaniem w słowniku i zarządzaniem partiami
+- **Wyślij albo pobierz** — do [Obsidiana](https://obsidian.md), do serwisu GitHub Gist lub dowolnego webhooka; albo jako `.md`, `.html`, `.epub` na czytnik e-booków
 
 ![Czytelny widok z tłumaczeniem dwujęzycznym i zakreśleniami](docs/cws-assets/originals/screenshot-2-reader.png)
 
 ![Zadaj stronie pytanie — odpowiedzi cytują źródło](docs/cws-assets/originals/screenshot-3-ask.png)
 
 ### Personalizacja
-- **13 motywów dla pinboard.in** (Dracula · Nord · Catppuccin · Solarized · …) plus własny CSS
+- **13 motywów dla pinboard.in** (Dracula · Nord · Catppuccin · Solarized · …) oraz własny CSS
 - **Automatyczna archiwizacja w [Wayback Machine](https://web.archive.org)** — opcjonalnie przy każdym zapisie; strony pozostają dostępne, nawet gdy oryginalny link przestanie działać
-- **Kopie zapasowe i synchronizacja** — ustawienia synchronizuje Chrome Sync, słówka trafiają na twój własny Google Drive, a do ręcznej kopii JSON możesz dołączyć zakreślenia, notatki, słówka i twoje klucze API. Każda z tych funkcji jest opcjonalna; szczegóły znajdziesz w sekcji Prywatność poniżej.
-- **9 języków** · konfigurowalne skróty · pamięć lokalna w pierwszej kolejności · zero śledzenia
+- **Kopie zapasowe i synchronizacja** — ustawienia synchronizuje Chrome Sync, słówka trafiają na twój własny Google Drive, a do ręcznej kopii JSON możesz dołączyć zakreślenia, notatki, słówka i klucze API. Każda z tych funkcji jest opcjonalna; szczegóły znajdziesz w sekcji Prywatność poniżej.
+- **9 języków** · konfigurowalne skróty · dane przede wszystkim lokalnie · zero śledzenia
 
 ![13 motywów dla pinboard.in](docs/cws-assets/originals/screenshot-4-themes.png)
 
@@ -57,7 +57,7 @@ Lub załaduj rozpakowane z ZIP-a release:
 2. Rozpakuj
 3. `chrome://extensions/` → włącz **Tryb dewelopera** → **Załaduj rozpakowane** → wybierz rozpakowany folder
 
-Katalog źródłowy ma osobny, stały identyfikator deweloperski, dlatego podczas testów może działać obok wersji z Chrome Web Store. ZIP z release używa identyfikatora Chrome Web Store i nie może działać jednocześnie z wersją sklepową w tym samym profilu Chrome. Chrome Sync może synchronizować ustawienia po włączeniu ich synchronizacji na każdym urządzeniu. Przed zastąpieniem starszego release wczytanego ręcznie wyeksportuj jego ustawienia, a po wczytaniu nowego release zaimportuj kopię zapasową.
+Katalog źródłowy ma osobny, stały identyfikator deweloperski, dlatego podczas testów może działać obok wersji z Chrome Web Store. ZIP z release używa identyfikatora Chrome Web Store i nie może działać jednocześnie z wersją sklepową w tym samym profilu Chrome. Ustawienia będą wspólne dzięki Chrome Sync, gdy na każdym urządzeniu włączysz ich synchronizację. Przed zastąpieniem starszego release wczytanego ręcznie wyeksportuj jego ustawienia, a po wczytaniu nowego release zaimportuj kopię zapasową.
 
 Po instalacji: kliknij ikonę paska narzędzi → wklej swój [token API Pinboard](https://pinboard.in/settings/password) → zapisz
 
