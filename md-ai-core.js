@@ -633,7 +633,10 @@ async function pbpTrCacheSet(url, lang, model, blocksMap, account, meta) {
   // through pbpAiCacheAppend puts it in ONE readwrite IDB transaction, which
   // IndexedDB serializes across tabs/connections. `meta` (optional, ZH-1a) is
   // the run's generation record; the transform merges it against the stored
-  // one (see pbpTrCacheApplyWrite).
+  // one (see pbpTrCacheApplyWrite). NOTE (ZH-2): the `blocks` key order
+  // carries NO time or document semantics -- viewport-priority claiming means
+  // writes arrive in whatever order batches finish; consumers must key by
+  // blockHash only, never by insertion order.
   const key = _pbpTrCacheKey(url, lang, model, account);
   await pbpAiCacheAppend(key, (prev) => pbpTrCacheApplyWrite(prev, blocksMap, meta), Date.now());
 }

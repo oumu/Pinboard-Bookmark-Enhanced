@@ -393,6 +393,48 @@ function _pbpTrMissingIds(batch, filledSet) {
 
 const PBP_TR_BACKOFF_MS = [2000, 8000, 32000];
 
+// ---- ZH-2: viewport-priority batch claiming (pure) ----
+// Batches stay PACKED in document order (pbpTrPackBatches unchanged, so batch
+// composition and payloads are byte-identical); these helpers only decide
+// which packed batch a worker takes NEXT. Distances are measured in BLOCK
+// NUMBERS, never pixels: bilingual fills keep growing the document during a
+// run, so any offset snapshot and the live scrollY sit in different
+// coordinate spaces, while block order is layout-immune.
+
+// remaining: batch indices not yet claimed; batchBlockNs[i]: the real block
+// numbers batch i covers (part ids already mapped back via segMap); anchor:
+// the block number to translate near. Nearest batch wins; ties take the
+// smaller index (stable, predictable); a degenerate anchor keeps document
+// order.
+function pbpTrPickBatch(remaining, batchBlockNs, anchor) {
+  if (!Array.isArray(remaining) || !remaining.length) return undefined;
+  if (!Number.isFinite(anchor)) return remaining[0];
+  let best = remaining[0];
+  let bestDist = Infinity;
+  for (const idx of remaining) {
+    const ns = batchBlockNs[idx] || [];
+    let d = Infinity;
+    for (const n of ns) { const dd = Math.abs(n - anchor); if (dd < d) d = dd; }
+    if (d < bestDist || (d === bestDist && idx < best)) { bestDist = d; best = idx; }
+  }
+  return best;
+}
+
+// Anchor for the run. Mandatory condition 1 (spec ZH-2): a CONTINUE run --
+// st.trMd non-empty at run start beyond the skip verdicts, which covers both
+// the probe-partial path AND same-session Stop -> Continue -- anchors on the
+// FIRST untranslated block, not the live viewport. ZH-0's incremental cache
+// makes partial caches routine; viewport anchoring there would punch random
+// holes ("swiss cheese") into the remaining prefix. Fresh runs follow the
+// viewport reading when one exists.
+function pbpTrRunAnchor(pendingNs, totalWork, skippedCount, viewTopBlock) {
+  if (!Array.isArray(pendingNs) || !pendingNs.length) return 1;
+  const first = Math.min.apply(null, pendingNs);
+  const continueRun = pendingNs.length < totalWork - (skippedCount || 0);
+  if (continueRun) return first;
+  return (Number.isFinite(viewTopBlock) && viewTopBlock > 0) ? viewTopBlock : first;
+}
+
 // ZH-0: incremental cache flush thresholds -- write paid-for translations to
 // IDB every N blocks or M ms instead of only once after the whole run, so a
 // closed tab / crash / network drop loses at most this window's output.
@@ -437,7 +479,21 @@ async function pbpTrRunQueue(plan) {
   let done = 0;
   const downgrade = [];   // [{id, text}] -> single-block retry phase
   let slow = false;       // any 429 seen -> drain pool to 1 worker
-  let next = 0;           // next batch index to claim
+  // ZH-2: workers claim from this shared index pool. plan.claim (optional)
+  // picks WHICH batch goes next -- reordering only; a claim returning a
+  // non-member degrades to document order so a buggy callback can never
+  // wedge or starve the queue. Claim + splice run synchronously within one
+  // worker turn, so two workers cannot claim the same batch.
+  const remaining = batches.map((_, i) => i);
+  const claim = plan.claim || ((arr) => arr[0]);
+  const claimNext = () => {
+    if (!remaining.length) return -1;
+    let idx;
+    try { idx = claim(remaining.slice()); } catch (_) { idx = remaining[0]; }
+    let at = remaining.indexOf(idx);
+    if (at === -1) at = 0;
+    return remaining.splice(at, 1)[0];
+  };
   let permissionError = null;
   const halted = () => aborted() || !!permissionError;
 
@@ -495,8 +551,8 @@ async function pbpTrRunQueue(plan) {
     while (true) {
       if (halted()) return;
       if (slow && index > 0) return;                       // pool 2 -> 1 after a 429
-      const i = next++;
-      if (i >= batches.length) return;
+      const i = claimNext();
+      if (i === -1) return;
       await runBatch(batches[i]);
     }
   }
@@ -868,6 +924,28 @@ async function pbpTrInit(detail) {
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "hidden") _pbpTrFlushCache(st);
   });
+
+  // ZH-2: track which block sits at the viewport top, as a block NUMBER.
+  // passive + rAF-merged, one elementFromPoint per frame (no batched rects --
+  // the FluentRead report's autoUpdate-every-frame idle burn is the named
+  // anti-pattern here). A miss (rail, margins, between blocks) keeps the last
+  // good reading; .pb-tr siblings map back to their block via data-pb-tr.
+  let viewTrackPending = false;
+  window.addEventListener("scroll", () => {
+    if (viewTrackPending) return;
+    viewTrackPending = true;
+    requestAnimationFrame(() => {
+      viewTrackPending = false;
+      const rect = view.getBoundingClientRect();
+      const x = Math.max(0, Math.min(window.innerWidth - 1, rect.left + rect.width / 2));
+      const el = document.elementFromPoint(x, 1);
+      const hit = el && el.closest && (el.closest("[data-pb]") || el.closest(".pb-tr"));
+      if (hit) {
+        const n = Number(hit.dataset.pb || hit.dataset.pbTr);
+        if (Number.isFinite(n) && n > 0) st.viewTopBlock = n;
+      }
+    });
+  }, { passive: true });
 
   // Bare translation shortcuts share one modifier/typing/raw-view gate.
   document.addEventListener("keydown", (e) => {
@@ -1532,10 +1610,24 @@ async function _pbpTrStart(st) {
       });
     }
   }
+  // ZH-2: batches stay packed in document order; the claim callback only
+  // reorders which one a worker takes next. Fresh runs read st.viewTopBlock
+  // AT CLAIM TIME (the user keeps reading while batches run); continue runs
+  // pin the anchor to the first untranslated block inside pbpTrRunAnchor
+  // (mandatory condition 1 -- see that function's comment). Part ids map
+  // back to real block numbers via segMap.
+  const batchesPacked = pbpTrPackBatches(segs);
+  const pendingNs = pending.map((w) => w.n);
+  const batchBlockNs = batchesPacked.map((b) => b.map((seg) => {
+    const m = segMap.get(seg.id);
+    return m ? m.n : seg.id;
+  }));
   const queueResult = await pbpTrRunQueue({
     targetCode: st.target.code,
     describeError: (e) => pbpAiErrorText(e),
-    batches: pbpTrPackBatches(segs),
+    batches: batchesPacked,
+    claim: (remaining) => pbpTrPickBatch(remaining, batchBlockNs,
+      pbpTrRunAnchor(pendingNs, st.work.length, st.skippedCount || 0, st.viewTopBlock)),
     requestBatch, requestSingle, signal: st.ctrl.signal,
     onFill: (id, text) => {
       const m = segMap.get(id);
