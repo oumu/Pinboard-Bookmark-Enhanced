@@ -2497,6 +2497,15 @@
   "trErrTimeout": {
     "message": "Przekroczono limit czasu usługi AI, spróbuj ponownie"
   },
+  "trRetranslate": {
+    "message": "Przetłumacz ponownie"
+  },
+  "trStaleNote": {
+    "message": "To tłumaczenie z pamięci podręcznej powstało ze starszą wersją słownika lub promptu"
+  },
+  "trStaleMixed": {
+    "message": "To tłumaczenie zostało złożone z fragmentów różnych wersji"
+  },
   "trFailedSummary": {
     "message": "$COUNT$ segmentów z błędem: $MESSAGE$",
     "placeholders": {

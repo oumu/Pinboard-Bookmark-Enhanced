@@ -2497,6 +2497,15 @@
   "trErrTimeout": {
     "message": "AI 服務回應逾時，請重試"
   },
+  "trRetranslate": {
+    "message": "重新翻譯"
+  },
+  "trStaleNote": {
+    "message": "本篇快取譯文來自舊版本的詞彙表或提示詞"
+  },
+  "trStaleMixed": {
+    "message": "本篇譯文由不同版本分段拼成"
+  },
   "trFailedSummary": {
     "message": "$COUNT$ 段翻譯失敗：$MESSAGE$",
     "placeholders": {

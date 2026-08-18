@@ -2497,6 +2497,15 @@
   "trErrTimeout": {
     "message": "Zeitüberschreitung beim KI-Dienst, bitte erneut versuchen"
   },
+  "trRetranslate": {
+    "message": "Neu übersetzen"
+  },
+  "trStaleNote": {
+    "message": "Diese zwischengespeicherte Übersetzung stammt von einer älteren Glossar- oder Prompt-Version"
+  },
+  "trStaleMixed": {
+    "message": "Diese Übersetzung wurde über verschiedene Versionen hinweg zusammengesetzt"
+  },
   "trFailedSummary": {
     "message": "$COUNT$ Abschnitte fehlgeschlagen: $MESSAGE$",
     "placeholders": {

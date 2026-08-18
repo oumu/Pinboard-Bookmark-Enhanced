@@ -2497,6 +2497,15 @@
   "trErrTimeout": {
     "message": "AI サービスがタイムアウトしました。もう一度お試しください"
   },
+  "trRetranslate": {
+    "message": "再翻訳"
+  },
+  "trStaleNote": {
+    "message": "この翻訳キャッシュは古いバージョンの用語集またはプロンプトで作成されたものです"
+  },
+  "trStaleMixed": {
+    "message": "この翻訳は異なるバージョンで分割生成されたものです"
+  },
   "trFailedSummary": {
     "message": "$COUNT$ 個のセグメントが失敗しました：$MESSAGE$",
     "placeholders": {

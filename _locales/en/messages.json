@@ -2497,6 +2497,15 @@
   "trErrTimeout": {
     "message": "The AI service timed out, try again"
   },
+  "trRetranslate": {
+    "message": "Retranslate"
+  },
+  "trStaleNote": {
+    "message": "This cached translation was made with an older glossary or prompt version"
+  },
+  "trStaleMixed": {
+    "message": "This translation was assembled across different versions"
+  },
   "trFailedSummary": {
     "message": "$COUNT$ segments failed: $MESSAGE$",
     "placeholders": {

@@ -6664,6 +6664,71 @@ suiteIf("tr cache generation ledger (ZH-1a)", "pbpTrGensPush", () => {
   });
 });
 
+suiteIf("tr stale retranslate (ZH-1b)", "_pbpTrRetranslate", () => {
+  function statusFixture() {
+    const wrap = document.createElement("div");
+    wrap.innerHTML =
+      '<button id="btn-translate"><span class="btn-label">x</span></button>' +
+      '<button id="btn-tr-stop" hidden></button>' +
+      '<div id="tr-progress" hidden></div>' +
+      '<div id="tr-estimate" hidden></div>' +
+      '<div id="tr-usage" hidden></div>' +
+      '<div id="tr-stale-note" hidden></div>';
+    document.body.appendChild(wrap);
+    return wrap;
+  }
+  function mkSt(verdict) {
+    return {
+      staleVerdict: verdict, permissionError: null,
+      work: [{ n: 1, shielded: { text: "hello world hello world" } }],
+      trMd: { 1: "x" }, s: { aiProvider: "gemini" }, mode: "original"
+    };
+  }
+  test("done + stale keeps the translate button as a priced retranslate action", () => {
+    const wrap = statusFixture();
+    try {
+      const st = mkSt("prompt");
+      _pbpTrSetStatus(st, "done");
+      const btn = document.getElementById("btn-translate");
+      // Shape constraint (reader-research veto): visible-but-inactionable is
+      // the killed form -- a stale verdict must come WITH the action AND its
+      // price, or not show at all.
+      assertEq(btn.hidden, false, "stale done state must keep the action");
+      assertEq(btn.querySelector(".btn-label").textContent, "trRetranslate", "label switches");
+      assertEq(document.getElementById("tr-estimate").hidden, false, "price shown next to retranslate");
+    } finally { wrap.remove(); }
+  });
+  test("done without stale hides the button (pre-ZH-1b shape unchanged)", () => {
+    const wrap = statusFixture();
+    try {
+      const st = mkSt(null);
+      _pbpTrSetStatus(st, "done");
+      assertEq(document.getElementById("btn-translate").hidden, true, "no stale, no button");
+      assertEq(document.getElementById("tr-estimate").hidden, true, "no price line");
+    } finally { wrap.remove(); }
+  });
+  test("stale note renders per verdict and clears on null", () => {
+    const wrap = statusFixture();
+    try {
+      const note = document.getElementById("tr-stale-note");
+      _pbpTrSyncStaleNote({ staleVerdict: "prompt" });
+      assertEq(note.hidden, false); assertEq(note.textContent, "trStaleNote");
+      _pbpTrSyncStaleNote({ staleVerdict: "mixed" });
+      assertEq(note.textContent, "trStaleMixed", "mixed gets its own wording");
+      _pbpTrSyncStaleNote({ staleVerdict: null });
+      assertEq(note.hidden, true); assertEq(note.textContent, "");
+    } finally { wrap.remove(); }
+  });
+  test("D11 source pin: retranslate deletes the entry before rerunning", () => {
+    // The append transform MERGES meta (gens would become [old, current] =
+    // permanently "mixed"); the delete is what makes D11 hold. Source-pinned
+    // in the same style as the owner-threading assertions above.
+    const src = _pbpTrRetranslate.toString();
+    assert(src.includes("pbpAiCacheDelete(_pbpTrCacheKey(st.url, st.target.code, st.modelKey, st.account))"),
+      "retranslate must drop the stale entry first");
+  });
+});
+
 suiteIf("tr incremental flush (ZH-0)", "_pbpTrFlushCache", () => {
   function mkSt(overrides) {
     return Object.assign({
@@ -6853,6 +6918,20 @@ suiteIf("tr_ independent cache pool (ZH-6)", "_pbpAiTrRange", () => {
     });
     assertEq(failedIds.length, 3, "every block still fails visibly");
     assertEq(describeCalls, 1, "the shared error object is classified once per batch failure");
+  });
+
+  await atest("D11 runtime: delete-then-write yields a single-generation entry", async () => {
+    const url = "https://pbp-test/tr-retr-" + Date.now();
+    const key = _pbpTrCacheKey(url, "zh-Hans", "m", "acct");
+    await pbpTrCacheSet(url, "zh-Hans", "m", { h1: "旧" }, "acct", { pg: 1, gf: "", sm: 0 });
+    await pbpTrCacheSet(url, "zh-Hans", "m", { h2: "新" }, "acct", { pg: 2, gf: "", sm: 0 });
+    let got = await pbpTrCacheGet(url, "zh-Hans", "m", "acct");
+    assert(JSON.stringify(got.meta.gens) === "[1,2]", "merge path records mixed (the trap D11 exists for)");
+    await pbpAiCacheDelete(key);
+    await pbpTrCacheSet(url, "zh-Hans", "m", { h1: "重", h2: "译" }, "acct", { pg: 2, gf: "", sm: 0 });
+    got = await pbpTrCacheGet(url, "zh-Hans", "m", "acct");
+    assert(JSON.stringify(got.meta.gens) === "[2]", "after delete the rerun writes a pure current-gen entry, got " + JSON.stringify(got.meta.gens));
+    await pbpAiCacheDelete(key);
   });
 
   await atest("flush inflight flag resets after async rejection (ZH-0)", async () => {

@@ -2497,6 +2497,15 @@
   "trErrTimeout": {
     "message": "Время ожидания ответа ИИ истекло, попробуйте ещё раз"
   },
+  "trRetranslate": {
+    "message": "Перевести заново"
+  },
+  "trStaleNote": {
+    "message": "Этот кешированный перевод создан со старой версией глоссария или промпта"
+  },
+  "trStaleMixed": {
+    "message": "Этот перевод собран из фрагментов разных версий"
+  },
   "trFailedSummary": {
     "message": "$COUNT$ сегментов не переведено: $MESSAGE$",
     "placeholders": {

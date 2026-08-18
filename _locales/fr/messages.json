@@ -2497,6 +2497,15 @@
   "trErrTimeout": {
     "message": "Le service d'IA n'a pas répondu à temps, réessayez"
   },
+  "trRetranslate": {
+    "message": "Retraduire"
+  },
+  "trStaleNote": {
+    "message": "Cette traduction en cache provient d'une version antérieure du glossaire ou du prompt"
+  },
+  "trStaleMixed": {
+    "message": "Cette traduction a été assemblée à partir de versions différentes"
+  },
   "trFailedSummary": {
     "message": "$COUNT$ segments en échec : $MESSAGE$",
     "placeholders": {

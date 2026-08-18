@@ -930,7 +930,18 @@ async function _pbpTrProbeCache(st) {
   try {
     const cached = await pbpTrCacheGet(st.url, st.target.code, st.modelKey, st.account);
     if (cached) {
-      st.cacheMeta = cached.meta;   // may be undefined (legacy entry); consumed by _pbpTrEnsureGlossary (ag) and ZH-1b later
+      st.cacheMeta = cached.meta;   // may be undefined (legacy entry); consumed by _pbpTrEnsureGlossary (ag)
+      // ZH-1b D10: classify the entry's generation record against the current
+      // world (prompt generation + THIS article's user-glossary hit subset).
+      // Computable here because st.work is built before the probe runs; a
+      // legacy meta-less entry classifies to null and stays silent.
+      st.staleVerdict = pbpTrCacheGenStale(cached.meta, {
+        pg: PBP_TR_PROMPT_GEN,
+        gf: pbpTrGlossaryFingerprint(pbpTrMatchGlossary(
+          pbpTrParseGlossary(st.s.translateGlossary),
+          st.work.map((w) => ({ text: w.shielded.text }))))
+      });
+      _pbpTrSyncStaleNote(st);
       let hits = 0;
       for (const w of st.work) {
         const ttext = cached.blocks[w.hash];
@@ -1060,6 +1071,15 @@ function _pbpTrBuildSection(st) {
   skipNote.hidden = true;
   sec.appendChild(skipNote);
 
+  // ZH-1b: "this cached translation predates your current glossary/prompt"
+  // line. Same .tr-meta family as the skip note; populated by
+  // _pbpTrSyncStaleNote after the cache probe (never mid-run).
+  const staleNote = document.createElement("div");
+  staleNote.id = "tr-stale-note";
+  staleNote.className = "tr-meta";
+  staleNote.hidden = true;
+  sec.appendChild(staleNote);
+
   const glossaryHits = document.createElement("details");
   glossaryHits.id = "tr-glossary-hits";
   glossaryHits.className = "tr-meta tr-glossary";
@@ -1115,7 +1135,17 @@ function _pbpTrBuildSection(st) {
 function _pbpTrTrigger(st) {
   if (st.running) return;
   if (st.railHandle) st.railHandle.expand(true);
-  if (st.status === "done") return;
+  if (st.status === "done") {
+    // ZH-1b: a completed-but-stale (or mixed) translation re-arms the button
+    // as an explicit, priced retranslate; a current one stays inert.
+    if (!st.staleVerdict) return;
+    _pbpTrRetranslate(st).catch(() => {
+      st.running = false;
+      const doneAll = st.work.every((w) => (w.n in st.trMd));
+      _pbpTrSetStatus(st, doneAll ? "done" : "partial");
+    });
+    return;
+  }
   _pbpTrStart(st).catch(() => {
     // Unexpected rejection (setup error etc.): never leave the UI stuck on
     // "翻译中". Reset run flag and settle to a terminal status the user can act on.
@@ -1123,6 +1153,19 @@ function _pbpTrTrigger(st) {
     const doneAll = st.work.every((w) => (w.n in st.trMd));
     _pbpTrSetStatus(st, doneAll ? "done" : "partial");
   });
+}
+
+// ZH-1b: full retranslate of a stale/mixed cached translation. Gate D11: the
+// rerun must END as a single-generation entry, and the cache's append
+// transform MERGES meta (gens would become [old, current] = permanently
+// "mixed") -- so the stale entry is dropped first; the rerun's writes then
+// create a fresh entry whose gens hold only the current generation. The user
+// explicitly asked to redo the whole article, so discarding the stale blocks
+// is the point, not a loss.
+async function _pbpTrRetranslate(st) {
+  try { await pbpAiCacheDelete(_pbpTrCacheKey(st.url, st.target.code, st.modelKey, st.account)); } catch (_) {}
+  _pbpTrResetTranslations(st);
+  await _pbpTrStart(st);
 }
 
 // T4: if the provider didn't emit usage for this call, estimate it (chars/4)
@@ -1196,6 +1239,51 @@ function _pbpTrAddGlossaryHits(st, glossary) {
   _pbpTrRenderGlossaryHits(st);
 }
 
+// ZH-1b: reflect st.staleVerdict in the rail. Wording deliberately says the
+// translation comes from an older version, NOT that it "should have been
+// stable" (ZH-6's companion rule: translations are not stable across reruns
+// even today -- temperature, gloss_ eviction, summary expiry).
+function _pbpTrSyncStaleNote(st) {
+  const note = document.getElementById("tr-stale-note");
+  if (!note) return;
+  if (!st || !st.staleVerdict) { note.hidden = true; note.textContent = ""; return; }
+  note.textContent = t(st.staleVerdict === "mixed" ? "trStaleMixed" : "trStaleNote");
+  note.hidden = false;
+}
+
+// Drop every translation-derived piece of state so the page can be translated
+// afresh: filled markdown + DOM, glossary (both halves), run-derived cache
+// artifacts (flush buffer / run meta / probed cacheMeta -- the review-batch
+// lesson: these are language- and generation-keyed and must never outlive the
+// state they were derived from), skip verdicts, stale verdict, highlights'
+// tr layer, and the view mode. Shared by the target-language switch and the
+// ZH-1b retranslate path.
+function _pbpTrResetTranslations(st) {
+  st.glossary = null;
+  st.glossaryAuto = null;
+  st.trMd = Object.create(null);
+  st.glossaryHits = Object.create(null);
+  if (st.flushBuf) st.flushBuf = Object.create(null);
+  st.runMeta = undefined;
+  st.cacheMeta = undefined;
+  st.staleVerdict = null;
+  _pbpTrRenderGlossaryHits(st);
+  _pbpTrSyncStaleNote(st);
+  st.skippedSet = new Set();      // T3: stale skip verdicts were computed for the OLD state
+  st.skippedCount = 0;
+  const skipNote = document.getElementById("tr-skip-note");
+  if (skipNote) { skipNote.hidden = true; skipNote.textContent = ""; }
+  document.querySelectorAll("#rendered-view .pb-tr").forEach((el) => el.remove());
+  document.querySelectorAll("#rendered-view .pb-tr-err").forEach((el) => el.remove());
+  document.querySelectorAll("#rendered-view [data-pb-tr-done]").forEach((el) => { delete el.dataset.pbTrDone; });
+  // H5 (spec 1.3): the whole translated layer just vanished -- drop every
+  // tr-side highlight range + regray its Notebook rows. typeof-guarded so
+  // md-translate never hard-depends on md-highlight (spec 7.2).
+  if (typeof window.pbpHlTrLayerCleared === "function") { try { window.pbpHlTrLayerCleared(); } catch (_) {} }
+  _pbpTrSyncRetryAll();
+  if (st.mode !== "original") _pbpTrSetMode(st, "original", false);
+}
+
 // Re-resolve target language from settings and update the rail label.
 // `s` may be passed (test / storage-change fast path) or fetched.
 // No-op-safe if the label element isn't mounted yet.
@@ -1215,32 +1303,12 @@ async function _pbpTrApplyTargetLang(st, s) {
   // button so the page can be translated afresh into the new language. Cache/view keys
   // use st.target.code, so the next run reads the correct entries. ponytail: no cache
   // re-probe — clicking Translate re-requests; correctness only needs "can retranslate".
-  st.glossary = null;
-  st.trMd = Object.create(null);
-  st.glossaryHits = Object.create(null);
-  // Review blocker #1 + findings #2/#4: run-derived cache artifacts are
-  // language-keyed state too. A stale flush buffer would be re-keyed under the
-  // NEW language by the next visibilitychange flush (permanent wrong-language
-  // tr_ entries); st.cacheMeta.ag would inject the OLD language's auto
-  // glossary into the new language's prompts and self-perpetuate via
-  // runMeta.ag. Drop all three; the next run rebuilds them.
-  if (st.flushBuf) st.flushBuf = Object.create(null);
-  st.runMeta = undefined;
-  st.cacheMeta = undefined;
-  _pbpTrRenderGlossaryHits(st);
-  st.skippedSet = new Set();      // T3: stale skip verdicts were computed for the OLD language
-  st.skippedCount = 0;
-  const skipNote = document.getElementById("tr-skip-note");
-  if (skipNote) { skipNote.hidden = true; skipNote.textContent = ""; }
-  document.querySelectorAll("#rendered-view .pb-tr").forEach((el) => el.remove());
-  document.querySelectorAll("#rendered-view .pb-tr-err").forEach((el) => el.remove());
-  document.querySelectorAll("#rendered-view [data-pb-tr-done]").forEach((el) => { delete el.dataset.pbTrDone; });
-  // H5 (spec 1.3): the whole translated layer just vanished -- drop every
-  // tr-side highlight range + regray its Notebook rows. typeof-guarded so
-  // md-translate never hard-depends on md-highlight (spec 7.2).
-  if (typeof window.pbpHlTrLayerCleared === "function") { try { window.pbpHlTrLayerCleared(); } catch (_) {} }
-  _pbpTrSyncRetryAll();
-  if (st.mode !== "original") _pbpTrSetMode(st, "original", false);
+  // Review blocker #1 + findings #2/#4: the reset drops run-derived cache
+  // artifacts too (flush buffer / runMeta / cacheMeta) -- a stale flush
+  // buffer would be re-keyed under the NEW language by the next
+  // visibilitychange flush, and st.cacheMeta.ag would inject the OLD
+  // language's auto glossary into the new language's prompts.
+  _pbpTrResetTranslations(st);
   _pbpTrSetStatus(st, "idle");
 }
 
@@ -1544,6 +1612,12 @@ async function _pbpTrStart(st) {
     await _pbpTrApplyTargetLang(st, pending).catch(() => {});
     return;
   }
+  // ZH-1b: a run that CONTINUED over a stale cache merged current-generation
+  // blocks into an old-generation entry -- exactly what the on-disk gens set
+  // now records as "mixed"; keep the session verdict in step. A full
+  // retranslate cleared the verdict before starting, so it stays null there.
+  if (st.staleVerdict) st.staleVerdict = "mixed";
+  _pbpTrSyncStaleNote(st);
   const doneAll = st.work.every((w) => (w.n in st.trMd));
   _pbpTrSetStatus(st, doneAll ? "done" : "partial"); // partial = Stop / failures: Continue
   // A run where every block fails (offline, dead key) used to leave
@@ -1945,13 +2019,27 @@ function _pbpTrSetStatus(st, status) {
       est.hidden = true;
     }
   } else if (status === "done") {
+    const stale = !!st.staleVerdict;
     btn.disabled = false;
-    btn.hidden = true;
+    // ZH-1b: a stale/mixed completed translation keeps the button as an
+    // explicit retranslate WITH its full-article price -- visible-but-
+    // inactionable is the form reader-research vetoed, and an unpriced paid
+    // button is the other banned form. A current translation hides it as
+    // before.
+    btn.hidden = !stale;
+    if (label) label.textContent = t(stale ? "trRetranslate" : "trTranslate");
     stop.hidden = true;
-    est.hidden = true;
-    // Explicit completion indicator (the button hides, and the view toggle is
-    // already shown from the progressive-display start, so without this the run
-    // has no visible "finished" signal). Show the translated-block count.
+    if (stale) {
+      const chars = st.work.reduce((a, w) => a + w.shielded.text.length, 0);
+      est.hidden = false;
+      est.textContent = t("trEstCost", String(pbpAiEstimateTokens(chars) * 3),
+        (st.s.aiProvider || "gemini") + "/" + (pbpAiResolveModelOverride(st.s) || "default"));
+    } else {
+      est.hidden = true;
+    }
+    // Explicit completion indicator (the view toggle is already shown from
+    // the progressive-display start, so without this the run has no visible
+    // "finished" signal). Show the translated-block count.
     const n = st.work.filter((w) => w.n in st.trMd).length;
     prog.hidden = false;
     prog.textContent = t("trDone", String(n));
