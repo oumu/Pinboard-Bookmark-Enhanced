@@ -2485,6 +2485,18 @@
   "trBlockFailed": {
     "message": "此段翻譯失敗"
   },
+  "trErrKey": {
+    "message": "API 金鑰無效或被拒絕，請到設定中檢查"
+  },
+  "trErrQuota": {
+    "message": "已觸發限流或配額用盡，請稍後再試"
+  },
+  "trErrNetwork": {
+    "message": "網絡或伺服器錯誤，請稍後再試"
+  },
+  "trErrTimeout": {
+    "message": "AI 服務回應逾時，請重試"
+  },
   "trFailedSummary": {
     "message": "$COUNT$ 段翻譯失敗：$MESSAGE$",
     "placeholders": {

@@ -2485,6 +2485,18 @@
   "trBlockFailed": {
     "message": "この段落の翻訳に失敗しました"
   },
+  "trErrKey": {
+    "message": "API キーが無効か拒否されました。設定で確認してください"
+  },
+  "trErrQuota": {
+    "message": "レート制限またはクォータ超過です。しばらくしてからもう一度お試しください"
+  },
+  "trErrNetwork": {
+    "message": "ネットワークまたはサーバーエラーです。しばらくしてからもう一度お試しください"
+  },
+  "trErrTimeout": {
+    "message": "AI サービスがタイムアウトしました。もう一度お試しください"
+  },
   "trFailedSummary": {
     "message": "$COUNT$ 個のセグメントが失敗しました：$MESSAGE$",
     "placeholders": {

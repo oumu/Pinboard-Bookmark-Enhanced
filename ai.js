@@ -1036,6 +1036,44 @@ function refineTags(tags, opts) {
   return out;
 }
 
+// ---- User-facing AI failure text (ZH-3) ----
+// One shared classifier for the translate UI's failure strings. Rules, in
+// order (structured fields FIRST -- keyword matching misclassifies, see the
+// DashScope precedent in handleAIError above):
+//   1. err.code non-empty -> return err.message verbatim. Every code's message
+//      is already specific at its throw site (network's is localized there,
+//      _pbpStreamRead D4-2); a second mapping only blurs it. Tests pin this
+//      pass-through -- do not "unify" it into a table lookup.
+//   2. err.status -> 401/403 key, 429 quota, >=500 network.
+//   3. conservative message keywords (quota/rate limit, api key, timeout,
+//      failed-to-fetch). Never match a bare "model" substring.
+//   4. unclassified -> String(err.message), never swallowed.
+// Writes nothing; callers put the result into textContent/dataset.tip/
+// aria-label only (spec ZH-3 write-surface allowlist).
+function pbpAiErrorText(err) {
+  const msg = String((err && err.message) || "") || "translation failed";
+  // CLAUDE.md "swallowed exceptions must leave a trace": log the raw shape
+  // before folding it into a product string (no keys/tokens in these fields).
+  try { console.warn("[pbp-ai] request failed:", err && err.name, err && err.status, msg); } catch (_) {}
+  if (err && err.code) return msg;
+  const status = err && err.status;
+  if (status === 401 || status === 403) return t("trErrKey");
+  if (status === 429) return t("trErrQuota");
+  if (typeof status === "number" && status >= 500) return t("trErrNetwork");
+  if (/rate.?limit|too many requests|quota|resource.*exhausted|insufficient.*(?:balance|credit)/i.test(msg)) return t("trErrQuota");
+  if (/invalid.*api.?key|incorrect api key|api key not valid|unauthorized|authentication/i.test(msg)) return t("trErrKey");
+  if (/\btimed? ?out\b|timeout/i.test(msg)) return t("trErrTimeout");
+  if (/failed to fetch|network/i.test(msg)) return t("trErrNetwork");
+  return msg;
+}
+
+// ZH-3 §5: single composer for the model-not-found guidance popup-ai.js and
+// options-connectivity.js previously each assembled by hand. Presentation
+// stays with each caller (panel vs concatenated status line).
+function pbpAiModelNotFoundText(providerLabel) {
+  return { msg: t("aiErrorModelNotFound", providerLabel), hint: t("aiErrorModelNotFoundHint") };
+}
+
 // ---- In-flight dedup registry ----
 // Prevents duplicate paid API calls when auto-click and manual click race
 // (e.g. popup boot auto-clicks ai-tags-btn while user clicks it too).

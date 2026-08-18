@@ -55,7 +55,8 @@ function counts(entries) {
   const dict2 = entries.filter((entry) => _pbpAiIsDict2Key(entry.key)).length;
   const dictctx = entries.filter((entry) => _pbpAiIsDictCtxKey(entry.key)).length;
   const summaryOwner = entries.filter((entry) => _pbpAiIsSummaryOwnerKey(entry.key)).length;
-  return { dict2, dictctx, summaryOwner, other: entries.length - dict2 - dictctx - summaryOwner };
+  const tr = entries.filter((entry) => _pbpAiIsTrKey(entry.key)).length;
+  return { dict2, dictctx, summaryOwner, tr, other: entries.length - dict2 - dictctx - summaryOwner - tr };
 }
 
 (async () => {
@@ -95,14 +96,14 @@ function counts(entries) {
 
   await test("other-cache boundary is 200 and record 201 evicts its oldest ts", async () => {
     await clearEntries();
-    await seed(rows("tr_test_", 199, 1));
+    await seed(rows("skim_test_", 199, 1));
     await pbpAiCacheSet("ask_boundary", "two-hundred", 200);
     let count = counts(await allEntries());
     assert(count.other === 200, "boundary=" + JSON.stringify(count));
     await pbpAiCacheSet("skim_overflow", "two-hundred-one", 201);
     count = counts(await allEntries());
     assert(count.other === 200 && count.dict2 === 0, "overflow=" + JSON.stringify(count));
-    assert(!await rawEntry("tr_test_0"), "oldest other record survived");
+    assert(!await rawEntry("skim_test_0"), "oldest other record survived");
   });
 
   await test("summary ownership boundary keeps exactly 500 records", async () => {
@@ -117,26 +118,26 @@ function counts(entries) {
   await test("summary ownership record 501 evicts only its oldest receipt", async () => {
     await clearEntries();
     await seed(rows("summary_owner_alice|url", 500, 1)
-      .concat(rows("dict2_en|word", 500, 1001), rows("tr_owner_mix_", 200, 2001)));
+      .concat(rows("dict2_en|word", 500, 1001), rows("skim_owner_mix_", 200, 2001)));
     await pbpAiCacheSet("summary_owner_alice|newest", "new", 3001);
     const count = counts(await allEntries());
     assert(count.summaryOwner === 500 && count.dict2 === 500 && count.other === 200,
       JSON.stringify(count));
     assert(!await rawEntry("summary_owner_alice|url0"), "oldest receipt survived");
     assert(await rawEntry("dict2_en|word0"), "receipt overflow evicted dict2");
-    assert(await rawEntry("tr_owner_mix_0"), "receipt overflow evicted ordinary cache");
+    assert(await rawEntry("skim_owner_mix_0"), "receipt overflow evicted ordinary cache");
   });
 
   await test("contextual-gloss pool keeps 500 without touching neighbours", async () => {
     await clearEntries();
     await seed(rows("dictctx2_owner_", 500, 1)
-      .concat(rows("tr_ctx_mix_", 200, 1001), rows("dict2_en|ctx", 500, 2001)));
+      .concat(rows("skim_ctx_mix_", 200, 1001), rows("dict2_en|ctx", 500, 2001)));
     await pbpAiCacheSet("dictctx2_owner_newest", "new", 3001);
     const count = counts(await allEntries());
     assert(count.dictctx === 500 && count.other === 200 && count.dict2 === 500,
       JSON.stringify(count));
     assert(!await rawEntry("dictctx2_owner_0"), "oldest gloss survived");
-    assert(await rawEntry("tr_ctx_mix_0"), "gloss overflow evicted ordinary cache");
+    assert(await rawEntry("skim_ctx_mix_0"), "gloss overflow evicted ordinary cache");
     assert(await rawEntry("dict2_en|ctx0"), "gloss overflow evicted dict2");
   });
 
@@ -145,7 +146,9 @@ function counts(entries) {
     await seed(rows("tr_article_", 200, 1));
     await pbpAiCacheSet("dictctx2_owner_word", "gloss", 1001);
     const count = counts(await allEntries());
-    assert(count.other === 200 && count.dictctx === 1, JSON.stringify(count));
+    // ZH-6: translations now sit in their own tr pool (300), doubly out of a
+    // gloss write's reach -- same intent, stronger isolation.
+    assert(count.tr === 200 && count.dictctx === 1 && count.other === 0, JSON.stringify(count));
     assert(await rawEntry("tr_article_0"), "a gloss write evicted a translation");
   });
 
@@ -173,11 +176,11 @@ function counts(entries) {
 
   await test("mixed dict2 and other quotas never evict each other", async () => {
     await clearEntries();
-    await seed(rows("dict2_de|word", 500, 1).concat(rows("tr_mixed_", 200, 1001)));
+    await seed(rows("dict2_de|word", 500, 1).concat(rows("skim_mixed_", 200, 1001)));
     await pbpAiCacheSet("dict2_de|newest", "dict", 2001);
     let count = counts(await allEntries());
     assert(count.dict2 === 500 && count.other === 200, "dict overflow=" + JSON.stringify(count));
-    assert(await rawEntry("tr_mixed_0"), "dict overflow evicted other cache");
+    assert(await rawEntry("skim_mixed_0"), "dict overflow evicted other cache");
     await pbpAiCacheSet("ask_mixed_newest", "other", 2002);
     count = counts(await allEntries());
     assert(count.dict2 === 500 && count.other === 200, "other overflow=" + JSON.stringify(count));
@@ -234,7 +237,7 @@ function counts(entries) {
   await test("legacy dict_ keys stay in the 200-record other pool", async () => {
     await clearEntries();
     await seed(rows("dict2_ja|word", 500, 1000).concat(
-      [{ key: "dict_legacy", result: "legacy", ts: 1 }], rows("tr_legacy_", 198, 2)));
+      [{ key: "dict_legacy", result: "legacy", ts: 1 }], rows("skim_legacy_fill_", 198, 2)));
     assert(!_pbpAiIsDict2Key("dict_legacy"), "legacy prefix misclassified as dict2");
     await pbpAiCacheSet("ask_legacy_boundary", "other-200", 200);
     await pbpAiCacheSet("skim_legacy_overflow", "other-201", 201);
@@ -258,7 +261,7 @@ function counts(entries) {
   await test("full other pool keeps all concurrent 2, 5, and 10 new writes", async () => {
     for (const concurrency of [2, 5, 10]) {
       await clearEntries();
-      await seed(rows("tr_concurrent_old_", 200, 1));
+      await seed(rows("skim_concurrent_old_", 200, 1));
       const keys = Array.from({ length: concurrency }, (_, i) => "ask_concurrent_new_" + i);
       await Promise.all(keys.map((key, i) => pbpAiCacheSet(key, "new", 10000 + i)));
       const count = counts(await allEntries());
@@ -269,7 +272,7 @@ function counts(entries) {
 
   await test("simultaneous writes to full pools never cross-evict", async () => {
     await clearEntries();
-    await seed(rows("dict2_mixed_concurrent|old", 500, 1).concat(rows("tr_mixed_concurrent_", 200, 1)));
+    await seed(rows("dict2_mixed_concurrent|old", 500, 1).concat(rows("skim_mixed_concurrent_", 200, 1)));
     const dictKeys = Array.from({ length: 10 }, (_, i) => "dict2_mixed_concurrent|new" + i);
     const otherKeys = Array.from({ length: 10 }, (_, i) => "ask_mixed_concurrent_" + i);
     await Promise.all(dictKeys.map((key, i) => pbpAiCacheSet(key, "dict", 10000 + i))
@@ -284,16 +287,27 @@ function counts(entries) {
     const dictWrites = Array.from({ length: 501 }, (_, i) =>
       pbpAiCacheSet("dict2_empty|" + i, i, i + 1));
     const otherWrites = Array.from({ length: 201 }, (_, i) =>
-      pbpAiCacheSet("tr_empty_" + i, i, i + 1));
+      pbpAiCacheSet("skim_empty_" + i, i, i + 1));
     await Promise.all(dictWrites.concat(otherWrites));
     const count = counts(await allEntries());
     assert(count.dict2 === 500 && count.other === 200, JSON.stringify(count));
-    assert(await rawEntry("dict2_empty|500") && await rawEntry("tr_empty_200"), "newest empty-pool writes missing");
+    assert(await rawEntry("dict2_empty|500") && await rawEntry("skim_empty_200"), "newest empty-pool writes missing");
+  });
+
+  await test("tr pool settles at its own 300 cap without touching other pools", async () => {
+    await clearEntries();
+    const trWrites = Array.from({ length: 301 }, (_, i) =>
+      pbpAiCacheSet("tr_cap_" + i, i, i + 1));
+    await Promise.all(trWrites.concat([pbpAiCacheSet("ask_cap_witness", "w", 5000)]));
+    const count = counts(await allEntries());
+    assert(count.tr === 300 && count.other === 1, JSON.stringify(count));
+    assert(await rawEntry("tr_cap_300"), "newest tr write missing");
+    assert(!await rawEntry("tr_cap_0"), "oldest tr entry survived past the cap");
   });
 
   await test("concurrent same-key append preserves every update while pruning its pool", async () => {
     await clearEntries();
-    await seed(rows("tr_append_old_", 200, 1));
+    await seed(rows("skim_append_old_", 200, 1));
     const key = "ask_append_concurrent";
     await Promise.all(Array.from({ length: 10 }, (_, i) =>
       pbpAiCacheAppend(key, (previous) => (Array.isArray(previous) ? previous : []).concat([i]), 10000 + i)));
@@ -306,7 +320,7 @@ function counts(entries) {
 
   await test("throwing append transform rolls back without changing the existing record", async () => {
     await clearEntries();
-    await seed(rows("tr_rollback_old_", 199, 1).concat([
+    await seed(rows("skim_rollback_old_", 199, 1).concat([
       { key: "ask_append_rollback", result: ["kept"], ts: 200 }
     ]));
     await pbpAiCacheAppend("ask_append_rollback", () => { throw new Error("stop"); }, 10000);

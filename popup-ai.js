@@ -388,10 +388,11 @@ function showAIError(op, err, opSettings) {
   msgEl.parentElement.querySelector(".model-not-found-hint")?.remove();
 
   if (err?.code === "model_not_found") {
-    msgEl.textContent = t("aiErrorModelNotFound", provLabel);
+    const mnf = pbpAiModelNotFoundText(provLabel);
+    msgEl.textContent = mnf.msg;
     const hintEl = document.createElement("div");
     hintEl.className = "model-not-found-hint";
-    hintEl.textContent = t("aiErrorModelNotFoundHint");
+    hintEl.textContent = mnf.hint;
     msgEl.parentElement.insertBefore(hintEl, msgEl.nextSibling);
   } else {
     msgEl.textContent = `[${provLabel}] ${short}`;

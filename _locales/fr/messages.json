@@ -2485,6 +2485,18 @@
   "trBlockFailed": {
     "message": "Échec de la traduction de ce paragraphe"
   },
+  "trErrKey": {
+    "message": "Clé API invalide ou refusée, vérifiez-la dans les réglages"
+  },
+  "trErrQuota": {
+    "message": "Limite de débit ou quota dépassé, réessayez plus tard"
+  },
+  "trErrNetwork": {
+    "message": "Erreur réseau ou serveur, réessayez plus tard"
+  },
+  "trErrTimeout": {
+    "message": "Le service d'IA n'a pas répondu à temps, réessayez"
+  },
   "trFailedSummary": {
     "message": "$COUNT$ segments en échec : $MESSAGE$",
     "placeholders": {

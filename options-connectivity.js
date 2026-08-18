@@ -101,7 +101,8 @@ function setupApiTests() {
       } catch (err) {
         let msg = err.name === "AbortError" ? t("testTimeout") : err.message;
         if (err?.code === "model_not_found") {
-          msg = t("aiErrorModelNotFound", cs.aiProvider) + " " + t("aiErrorModelNotFoundHint");
+          const mnf = pbpAiModelNotFoundText(cs.aiProvider);
+          msg = mnf.msg + " " + mnf.hint;
         }
         setStatusIcon(statusEl, false, msg);
         statusEl.style.color = "#c00";

@@ -2485,6 +2485,18 @@
   "trBlockFailed": {
     "message": "Übersetzung dieses Absatzes fehlgeschlagen"
   },
+  "trErrKey": {
+    "message": "API-Schlüssel ungültig oder abgelehnt, bitte in den Einstellungen prüfen"
+  },
+  "trErrQuota": {
+    "message": "Ratenlimit oder Kontingent erschöpft, bitte später erneut versuchen"
+  },
+  "trErrNetwork": {
+    "message": "Netzwerk- oder Serverfehler, bitte später erneut versuchen"
+  },
+  "trErrTimeout": {
+    "message": "Zeitüberschreitung beim KI-Dienst, bitte erneut versuchen"
+  },
   "trFailedSummary": {
     "message": "$COUNT$ Abschnitte fehlgeschlagen: $MESSAGE$",
     "placeholders": {

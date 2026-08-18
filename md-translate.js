@@ -36,6 +36,9 @@ function pbpTrPackBatches(blocks, maxBlocks = 15, maxChars = 8000) {
 // The model must answer ONLY {"translations":[{"id":N,"text":"..."}]} so
 // pbpAiMakeStreamJsonParser can fill blocks incrementally and finish()
 // can diff seenIds against the request (failure ladder step 1).
+// GEN PIN: any wording change here requires PBP_TR_PROMPT_GEN += 1 (see the
+// cache generation ledger below) and re-pinning its hash in
+// tests/md-ai-tests.html ("tr cache generation ledger" suite).
 const PBP_TR_SYSTEM = [
   "You are a professional translator.",
   'Output ONLY a JSON object of the exact shape {"translations":[{"id":N,"text":"..."}]} - no markdown fences, no commentary, nothing else.',
@@ -58,6 +61,9 @@ const PBP_TR_SYSTEM = [
 // rules (the appended clause says so) -- the placeholder-conservation
 // gate and JSON shape are untouched. Cost: ~60-100 input tokens per
 // batch; the (priced-heavier) output side is unchanged.
+// GEN PIN: any wording change to PBP_TR_STYLE_GENERIC / PBP_TR_STYLE_PACKS
+// requires PBP_TR_PROMPT_GEN += 1 and re-pinning the ledger hash in
+// tests/md-ai-tests.html.
 const PBP_TR_STYLE_GENERIC = "Write as a skilled native editor of targetLanguage, not a literal translator: natural word order, the target language's own punctuation conventions, no source-language calques.";
 const PBP_TR_STYLE_PACKS = {
   "zh-Hans": "Simplified Chinese: write like a native editor, not a literal translator. Match the source's register (\u4f60 by default for web prose); drop pronouns where natural Chinese would. Full-width punctuation \uff08\uff0c\u3002\uff1b\uff09 and one space between CJK and Latin/digits. No calqued idioms; minimal \u88ab-passives; strong verbs instead of \u8fdb\u884c/\u4f5c\u51fa+noun. Keep established English tech terms as-is.",
@@ -156,6 +162,9 @@ function _pbpTrGlossaryWorthIt(st) {
   const total = (st.work || []).reduce((a, w) => a + (w.shielded ? w.shielded.text.length : 0), 0);
   return total >= PBP_TR_GLOSSARY_SKIP_CHARS;
 }
+// GEN PIN: any wording change here requires PBP_TR_GLOSSARY_GEN += 1 (see the
+// cache generation ledger below) and re-pinning its hash in
+// tests/md-ai-tests.html.
 const PBP_TR_GLOSSARY_SYSTEM = [
   "You are a terminology extractor for a document translator.",
   "Read the whole source text and extract the key terms that must be translated CONSISTENTLY:",
@@ -173,6 +182,54 @@ function pbpTrBuildGlossaryPrompt(text, targetLanguage) {
     system: PBP_TR_GLOSSARY_SYSTEM,
     prompt: JSON.stringify({ targetLanguage: String(targetLanguage || ""), text: String(text == null ? "" : text) })
   };
+}
+
+// ---- Cache generation ledger (ZH-1a) ----
+// PBP_TR_PROMPT_GEN covers PBP_TR_SYSTEM + PBP_TR_STYLE_PACKS/GENERIC;
+// PBP_TR_GLOSSARY_GEN covers PBP_TR_GLOSSARY_SYSTEM. Bump the matching
+// constant by hand whenever the covered text changes; the "tr cache
+// generation ledger" suite in tests/md-ai-tests.html pins each text's hash to
+// its constant, so forgetting the bump turns the tests red (gate D1). Gen 2 =
+// the 2026-07 style-pack rollout counted as the first uncaptured change.
+const PBP_TR_PROMPT_GEN = 2;
+const PBP_TR_GLOSSARY_GEN = 1;
+
+// Fingerprint of the USER glossary subset that actually hits this article
+// (matched via pbpTrMatchGlossary over st.work): key AND value sorted then
+// hashed -- the most common edit is changing a term's TRANSLATION, so a
+// key-only hash would miss the main use case (gate D4). Empty table -> "" (a
+// legal fingerprint value: compare with ===, never truthiness). Deliberately
+// NOT covering the auto-extracted table (it lives behind the gloss_ key /
+// meta.ag) and NOT any run-nondeterministic quantity -- anything that cannot
+// enter this fingerprint deterministically must not influence model output
+// (the killed previousTranslation channel is the precedent; see
+// proposals.md ZH-8 (2)).
+function pbpTrGlossaryFingerprint(entries) {
+  const keys = Object.keys(entries || {}).sort();
+  if (!keys.length) return "";
+  return pbpAiHash(keys.map((k) => k + "=" + entries[k]).join("\n"));
+}
+
+// Stale classifier consumed by ZH-1b's UI half (not wired to any UI in the
+// ZH-1a batch). meta === undefined (legacy / unknown generation) NEVER
+// prompts. gens.length > 1 means the entry was assembled across prompt
+// generations ("mixed"). meta.sm is recorded for diagnostics but deliberately
+// excluded from the verdict: the summary bit flips when ai_cache_summary
+// naturally expires, and nagging on natural expiry is a false alarm.
+function pbpTrCacheGenStale(meta, cur) {
+  if (meta === undefined || meta === null) return null;
+  const gens = meta.gens;
+  if (!Array.isArray(gens) || !gens.length) return null;
+  const gfs = Array.isArray(meta.gfs) ? meta.gfs : [];
+  // Mixed on EITHER axis (review finding #3): prompt generations OR user-
+  // glossary fingerprints assembled across continue-runs.
+  if (gens.length > 1 || gfs.length > 1) return "mixed";
+  const promptStale = gens[0] !== cur.pg;
+  const glossStale = gfs.length === 1 && cur.gf !== undefined && gfs[0] !== cur.gf;
+  if (promptStale && glossStale) return "both";
+  if (promptStale) return "prompt";
+  if (glossStale) return "glossary";
+  return null;
 }
 
 // Per-batch trimming (spec T0-a): keep only terms that actually appear in this
@@ -336,6 +393,12 @@ function _pbpTrMissingIds(batch, filledSet) {
 
 const PBP_TR_BACKOFF_MS = [2000, 8000, 32000];
 
+// ZH-0: incremental cache flush thresholds -- write paid-for translations to
+// IDB every N blocks or M ms instead of only once after the whole run, so a
+// closed tab / crash / network drop loses at most this window's output.
+const PBP_TR_FLUSH_BLOCKS = 8;
+const PBP_TR_FLUSH_MS = 5000;
+
 // pbpTrRunQueue(plan) -> Promise<{done, total, failed:[{id,message}], stopped}>
 //   plan: {
 //     batches:      [[{id, text}]]            (pbpTrPackBatches output; text = SHIELDED md)
@@ -363,6 +426,10 @@ async function pbpTrRunQueue(plan) {
   const sleep = plan.sleep || ((ms) => new Promise((r) => setTimeout(r, ms)));
   const signal = plan.signal;
   const aborted = () => !!(signal && signal.aborted);
+  // ZH-3: caught request errors are humanized at THIS boundary (the only place
+  // the Error object with code/status still exists). Injected to keep the
+  // queue engine DOM/i18n-free; default reproduces the old behavior verbatim.
+  const describe = plan.describeError || ((e) => (e && e.message));
 
   const total = batches.reduce((n, b) => n + b.length, 0);
   const filled = new Set();
@@ -412,8 +479,11 @@ async function pbpTrRunQueue(plan) {
           await sleep(backoff[attempt]);
           continue;
         }
-        // hard batch failure: every unfilled block gets the inline error
-        for (const id of _pbpTrMissingIds(batch, filled)) fail(id, e && e.message);
+        // hard batch failure: classify the shared error object ONCE (review
+        // finding #6: per-block describe() re-ran its console.warn per block),
+        // then give every unfilled block the same inline text.
+        const msg = describe(e);
+        for (const id of _pbpTrMissingIds(batch, filled)) fail(id, msg);
         return;
       }
     }
@@ -448,7 +518,7 @@ async function pbpTrRunQueue(plan) {
     } catch (e) {
       if (aborted()) break;
       if (e && e.code === "host_permission") { permissionError = e; break; }
-      fail(seg.id, e && e.message);
+      fail(seg.id, describe(e));
     }
   }
 
@@ -730,6 +800,7 @@ async function pbpTrInit(detail) {
     url: String((detail && detail.url) || ""),
     title: String((detail && detail.title) || ""),
     account: String((detail && detail.account) || ""),
+    articleLang: view.lang || "",  // detectArticleLang result (md-preview.js:1562); "" for Latin/ambiguous
     target,
     // pbpAiEffectiveModel (not just the override): with no preview override,
     // switching the provider's configured model must invalidate translation/
@@ -790,6 +861,13 @@ async function pbpTrInit(detail) {
   });
   // Page close terminates every in-flight request (error matrix last row).
   window.addEventListener("pagehide", () => { if (st.ctrl) st.ctrl.abort(); });
+  // ZH-0 §5: pagehide's IDB transaction rarely completes before teardown, so
+  // it stays abort-only. visibilitychange->hidden fires earlier (page still
+  // alive) and is the honest best-effort flush point; the guarantee is "at
+  // most the last <8 blocks / 5s window is lost", not "zero loss".
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") _pbpTrFlushCache(st);
+  });
 
   // Bare translation shortcuts share one modifier/typing/raw-view gate.
   document.addEventListener("keydown", (e) => {
@@ -852,6 +930,7 @@ async function _pbpTrProbeCache(st) {
   try {
     const cached = await pbpTrCacheGet(st.url, st.target.code, st.modelKey, st.account);
     if (cached) {
+      st.cacheMeta = cached.meta;   // may be undefined (legacy entry); consumed by _pbpTrEnsureGlossary (ag) and ZH-1b later
       let hits = 0;
       for (const w of st.work) {
         const ttext = cached.blocks[w.hash];
@@ -1011,7 +1090,20 @@ function _pbpTrBuildSection(st) {
   // in `sec` at install time PLUS anything appended to `sec` later, e.g.
   // _pbpTrShowViewToggle's view-toggle wrap and _pbpTrRenderUsage's #tr-usage
   // line below -- both still land as direct children of `sec`).
-  st.railHandle = pbpRailCollapsible(sec, "tr", { label, defaultCollapsed: true });
+  // EN-5: a non-empty detected article language means the reader landed on a
+  // CJK/RTL article where translation is typically the point of opening the
+  // page -- default the section EXPANDED. detectArticleLang "" (Latin or
+  // ambiguous) keeps the collapsed default. Users who ever toggled the section
+  // keep their stored choice (pbpRailCollapseState prefers the stored
+  // boolean), applied by the async storage catch-up -- so when their stored
+  // choice differs from this default, they see pbpRailCollapsible's existing
+  // one-visible-retoggle on first paint (review finding #5: previously the tr
+  // default was constant so a stored "collapsed" could never disagree with it
+  // on CJK pages; accepted as that engine's documented catch-up behavior).
+  // Accepted side effect: a zh reader opening a ja/ko article also defaults
+  // expanded -- the same "translation is the main purpose" situation, not a
+  // bug. Never auto-translates: expanding costs zero tokens.
+  st.railHandle = pbpRailCollapsible(sec, "tr", { label, defaultCollapsed: !st.articleLang });
 
   anchor.insertAdjacentElement("afterend", sec);
   btn.addEventListener("click", () => { _pbpTrTrigger(st); });
@@ -1126,6 +1218,15 @@ async function _pbpTrApplyTargetLang(st, s) {
   st.glossary = null;
   st.trMd = Object.create(null);
   st.glossaryHits = Object.create(null);
+  // Review blocker #1 + findings #2/#4: run-derived cache artifacts are
+  // language-keyed state too. A stale flush buffer would be re-keyed under the
+  // NEW language by the next visibilitychange flush (permanent wrong-language
+  // tr_ entries); st.cacheMeta.ag would inject the OLD language's auto
+  // glossary into the new language's prompts and self-perpetuate via
+  // runMeta.ag. Drop all three; the next run rebuilds them.
+  if (st.flushBuf) st.flushBuf = Object.create(null);
+  st.runMeta = undefined;
+  st.cacheMeta = undefined;
   _pbpTrRenderGlossaryHits(st);
   st.skippedSet = new Set();      // T3: stale skip verdicts were computed for the OLD language
   st.skippedCount = 0;
@@ -1197,15 +1298,29 @@ async function _pbpTrExtractGlossary(st) {
 async function _pbpTrEnsureGlossary(st) {
   if (st.glossary) return st.glossary;
   const user = pbpTrParseGlossary(st.s.translateGlossary);
-  if (!_pbpTrGlossaryWorthIt(st)) { st.glossary = pbpTrMergeGlossary(Object.create(null), user); return st.glossary; }
+  if (!_pbpTrGlossaryWorthIt(st)) {
+    st.glossaryAuto = Object.create(null);   // a REAL empty auto table (extraction not applicable), cacheable as ag
+    st.glossary = pbpTrMergeGlossary(st.glossaryAuto, user);
+    return st.glossary;
+  }
   let auto = null;
   try {
-    auto = await pbpTrGlossaryCacheGet(st.url, st.target.code, st.modelKey, st.account);
-    if (!auto) {
-      auto = await _pbpTrExtractGlossary(st);
-      if (auto) { try { await pbpTrGlossaryCacheSet(st.url, st.target.code, st.modelKey, auto, st.account); } catch (_) {} }
+    if (st.cacheMeta && st.cacheMeta.ag && typeof st.cacheMeta.ag === "object") {
+      // ZH-1a section 4 / ZH-6 condition 3: reuse the auto table this
+      // article's cached translation was actually produced with -- survives
+      // gloss_ eviction and avoids a nondeterministic re-extraction
+      // mid-article. AUTO ONLY: the user table is re-read fresh below so user
+      // edits are never frozen into the cache.
+      auto = st.cacheMeta.ag;
+    } else {
+      auto = await pbpTrGlossaryCacheGet(st.url, st.target.code, st.modelKey, st.account);
+      if (!auto) {
+        auto = await _pbpTrExtractGlossary(st);
+        if (auto) { try { await pbpTrGlossaryCacheSet(st.url, st.target.code, st.modelKey, auto, st.account); } catch (_) {} }
+      }
     }
   } catch (_) { auto = null; }
+  st.glossaryAuto = auto || null;   // null = extraction failed/degraded -> runMeta.ag omitted so a later run can retry
   st.glossary = pbpTrMergeGlossary(auto || Object.create(null), user);
   return st.glossary;
 }
@@ -1214,6 +1329,15 @@ async function _pbpTrStart(st) {
   if (st.running) return;
   st.running = true;                       // claim the run synchronously so a double-click during
                                            // the rAF-chunked st.work build can't start two runs
+  // Reset the run buffers FIRST (review blocker #1): st.flushBuf could hold a
+  // previous run's residue, and everything between here and the queue launch
+  // awaits (permission recovery / workReady / glossary extraction) -- a
+  // visibilitychange flush inside any of those windows would write stale
+  // blocks under whatever st.target currently says.
+  st.newly = Object.create(null);          // blockHash -> shielded translation (end-of-run write)
+  st.flushBuf = Object.create(null);       // ZH-0: pending incremental flush
+  st.flushInflight = false;
+  st.lastFlushTs = Date.now();
   if (st.permissionError) {
     const recovered = await pbpAiRetryWithPermission(st.permissionError, st.s, () => {});
     if (!recovered) { st.running = false; return; }
@@ -1250,6 +1374,21 @@ async function _pbpTrStart(st) {
   const prog0 = document.getElementById("tr-progress");
   if (prog0) prog0.textContent = t("trExtracting");
   await _pbpTrEnsureGlossary(st);
+  // ZH-1a: the run's cache meta, computed once here (deterministic, known
+  // before the first request) and attached to every cache write of this run
+  // (incremental flushes included). gf covers only the USER glossary subset
+  // that hits THIS article: pbpTrMatchGlossary is pure substring matching, so
+  // the document-level hit set equals the union of per-batch hit sets, and
+  // "gf changed" <=> "the user terms actually injected into this article
+  // changed" -- a whole-table fingerprint would false-alarm whenever the user
+  // edits a term for some OTHER article.
+  const userTable = pbpTrParseGlossary(st.s.translateGlossary);
+  st.runMeta = {
+    pg: PBP_TR_PROMPT_GEN,
+    gf: pbpTrGlossaryFingerprint(pbpTrMatchGlossary(userTable, st.work.map((w) => ({ text: w.shielded.text })))),
+    sm: summary ? 1 : 0
+  };
+  if (st.glossaryAuto) st.runMeta.ag = st.glossaryAuto;
   const model = pbpAiResolveModelOverride(st.s);
   const baseArgs = { targetLanguage: st.target.name, targetCode: st.target.code, title: st.title, summary };
   // pbpAiEstimateTokens is chars/4, a Latin calibration, and it was being fed
@@ -1301,7 +1440,6 @@ async function _pbpTrStart(st) {
   };
 
   const byId = new Map(st.work.map((w) => [w.n, w]));
-  const newly = {};                                 // blockHash -> shielded translation
   // Sub-split oversize blocks into parts so no single request truncates at the
   // output cap. Each part is its own queued segment (part 0 reuses the block id
   // n; later parts get fresh ids past max(n)); parts reassemble in order with
@@ -1328,6 +1466,7 @@ async function _pbpTrStart(st) {
   }
   const queueResult = await pbpTrRunQueue({
     targetCode: st.target.code,
+    describeError: (e) => pbpAiErrorText(e),
     batches: pbpTrPackBatches(segs),
     requestBatch, requestSingle, signal: st.ctrl.signal,
     onFill: (id, text) => {
@@ -1335,15 +1474,12 @@ async function _pbpTrStart(st) {
       if (!m) return;
       const w = byId.get(m.n);
       if (!w) return;
-      if (m.parts === 1) { _pbpTrFill(st, w, text); newly[w.hash] = text; return; }
+      if (m.parts === 1) { _pbpTrFill(st, w, text); _pbpTrRecordFill(st, w, text); return; }
       const pb = partBuf.get(m.n);
       if (!pb) return;
       _pbpTrPartFill(pb, m.idx, text);
       const done = _pbpTrPartDone(pb);
-      if (done) {
-        _pbpTrFill(st, w, done.text);
-        if (done.partial) _pbpTrMarkPartial(st, w, pb.failed); else newly[w.hash] = done.text;
-      }
+      if (done) _pbpTrCommitAssembled(st, w, done, pb.failed);
     },
     onBlockFail: (id, message) => {
       const m = segMap.get(id);
@@ -1356,7 +1492,7 @@ async function _pbpTrStart(st) {
       const done = _pbpTrPartDone(pb);
       if (!done) return;
       if (done.allFailed) { _pbpTrMarkFailed(st, w, message); return; }  // 0 parts translated: whole-block failure, not a fake success (don't fill st.trMd / count as done)
-      _pbpTrFill(st, w, done.text); _pbpTrMarkPartial(st, w, pb.failed); // partial (>=1 real part) -> not cached
+      _pbpTrCommitAssembled(st, w, done, pb.failed);                     // partial (>=1 real part) -> displayed, never cached (D7)
     },
     onProgress: (done, total) => {
       const prog = document.getElementById("tr-progress");
@@ -1372,9 +1508,17 @@ async function _pbpTrStart(st) {
       if (headProg) headProg.textContent = "(" + d + "/" + tt + ")";
     }
   });
-  if (Object.keys(newly).length) {
-    try { await pbpTrCacheSet(st.url, st.target.code, st.modelKey, newly, st.account); } catch (_) {}
+  // End-of-run write keeps the FULL st.newly (not just the unflushed residue):
+  // the append transform is an idempotent merge, so rewriting flushed blocks is
+  // free, and any blocks a failed flush dropped are retried here.
+  if (Object.keys(st.newly).length) {
+    try { await pbpTrCacheSet(st.url, st.target.code, st.modelKey, st.newly, st.account, st.runMeta); } catch (_) {}
   }
+  // Review blocker #1: everything in the flush buffer is now on disk via the
+  // full st.newly write above; residue must not outlive the run -- a later
+  // language switch plus a hidden-flush would re-key it under the NEW language
+  // (permanent wrong-language cache entries, no TTL to age them out).
+  st.flushBuf = Object.create(null);
   if (queueResult.permissionError) {
     st.running = false;
     st.permissionError = queueResult.permissionError;
@@ -1423,6 +1567,60 @@ async function _pbpTrStart(st) {
   if (st.mode !== "original") {
     pbpTrViewSet(st.url, { mode: st.mode, lang: st.target.code }, st.account).catch(() => {});
   }
+}
+
+// ZH-0 constraint 1 (D7): the ONE write point feeding the cache buffers. Only
+// full, gate-passed translations may enter -- the partial-assembly paths call
+// _pbpTrFill for DISPLAY but deliberately never this function (a half-
+// translated block cached as done would make the next open report a full hit,
+// state "done", and the user permanently loses the retry entry: worse than
+// the lost-cache defect ZH-0 fixes). pbpAiCacheAppend's merge being idempotent
+// does NOT substitute for this rule -- idempotence is exactly what would make
+// the wrong write irreversible.
+function _pbpTrRecordFill(st, w, text) {
+  if (!st.newly) return;
+  st.newly[w.hash] = text;
+  st.flushBuf[w.hash] = text;
+  if (Object.keys(st.flushBuf).length >= PBP_TR_FLUSH_BLOCKS
+    || Date.now() - st.lastFlushTs >= PBP_TR_FLUSH_MS) _pbpTrFlushCache(st);
+}
+
+// Fire-and-forget incremental flush. Constraint 2 (D8): every cache-key input
+// is snapshotted SYNCHRONOUSLY at initiation -- _pbpTrApplyTargetLang rewrites
+// st.target in place once a run settles, and an in-flight flush reading st.*
+// after an await would file this run's blocks under the WRONG language key
+// (silent corruption restored as a "cache hit" next open). Constraint 3 (D9):
+// st.runMeta rides along. Constraint 4: take-drain-write snapshot semantics +
+// degrade on failure (console.warn, never blocks the run; the blocks stay in
+// st.newly, so the end-of-run write retries them). st.flushFn exists for the
+// unit tests only -- production always uses pbpTrCacheSet.
+function _pbpTrFlushCache(st) {
+  if (!st || !st.flushBuf || st.flushInflight) return;
+  if (!Object.keys(st.flushBuf).length) return;
+  const url = st.url, lang = st.target.code, model = st.modelKey, account = st.account, meta = st.runMeta;
+  const batch = st.flushBuf;
+  st.flushBuf = Object.create(null);
+  st.flushInflight = true;
+  st.lastFlushTs = Date.now();
+  const setFn = st.flushFn || pbpTrCacheSet;
+  let p;
+  try { p = Promise.resolve(setFn(url, lang, model, batch, account, meta)); }
+  catch (e) {
+    st.flushInflight = false;
+    try { console.warn("tr flush failed:", e && e.name, e && e.message); } catch (_) {}
+    return;
+  }
+  p.catch((e) => { try { console.warn("tr flush failed:", e && e.name, e && e.message); } catch (_) {} })
+    .finally(() => { st.flushInflight = false; });
+}
+
+// Shared tail of the multi-part assembly (onFill and onBlockFail converge
+// here once every part settled). Display always; record for the cache ONLY
+// when no part fell back to its original (D7).
+function _pbpTrCommitAssembled(st, w, done, failedParts) {
+  _pbpTrFill(st, w, done.text);
+  if (done.partial) _pbpTrMarkPartial(st, w, failedParts);
+  else _pbpTrRecordFill(st, w, done.text);
 }
 
 // Fill one block: restore placeholders, render via renderMarkdown (the
@@ -1636,14 +1834,16 @@ async function _pbpTrRetryBlock(st, w, btn) {
     _pbpTrSyncRetryAll();
     const one = {};
     one[w.hash] = got;
-    try { await pbpTrCacheSet(st.url, st.target.code, st.modelKey, one, st.account); } catch (_) {}
+    // st.runMeta may be undefined (retry without a prior run this session);
+    // a meta-less write keeps the stored meta untouched (D5 semantics).
+    try { await pbpTrCacheSet(st.url, st.target.code, st.modelKey, one, st.account, st.runMeta); } catch (_) {}
     _pbpTrShowViewToggle(st);
     if (st.work.every((x) => x.n in st.trMd)) _pbpTrSetStatus(st, "done");
   } catch (e) {
     if (e && e.code === "host_permission") st.permissionError = e;
     if (label) label.textContent = t(e && e.code === "host_permission" ? "aiGrantRetry" : "trRetryBlock");
     btn.disabled = false;
-    btn.dataset.tip = t("trBlockFailed") + " - " + String((e && e.message) || "");
+    btn.dataset.tip = t("trBlockFailed") + " - " + pbpAiErrorText(e);
     btn.setAttribute("aria-label", btn.dataset.tip);
   } finally {
     window.removeEventListener("pagehide", onHide);

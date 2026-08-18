@@ -549,6 +549,54 @@ function pbpAiCacheUrlNorm(url) {
 function _pbpTrCacheKey(url, lang, model, account) {
   return "tr_" + _pbpTrOwnerScope(account) + "_" + lang + "_" + model + "_" + pbpAiHash(String(url || ""));
 }
+
+// ---- tr_ cache meta helpers (ZH-1a; pure, unit-tested) ----
+// Bounded generation set: append-if-absent, cap 4, drop oldest. gens.length>1
+// is the "mixed generations" signal, so a single-value meta would let the
+// continue-run merge overwrite history and certify a 60% old + 40% new entry
+// as pure-new -- the mechanism switching itself off on its main path (D3).
+function pbpTrGensPush(gens, gen) {
+  const out = Array.isArray(gens) ? gens.slice() : [];
+  if (out.indexOf(gen) === -1) out.push(gen);
+  while (out.length > 4) out.shift();
+  return out;
+}
+
+// The single write-transform behind pbpTrCacheSet (runs inside the
+// pbpAiCacheAppend transaction; pure so tests can drive it directly).
+// meta undefined (retry path / a flush without a run meta) -> carry the
+// previous meta through unchanged; stripping it here is exactly the
+// high-frequency-flush defect gate D5 pins. A LEGACY entry (blocks present,
+// meta undefined) never gains a fabricated meta: its blocks' generation is
+// unknown, and certifying them as current would mislabel a mixed article as
+// pure-new (spec ZH-1a section 6 -- legacy entries stay "generation unknown"
+// and never prompt). All absence checks use === undefined ("" and 0 are
+// legal values).
+function pbpTrCacheApplyWrite(prev, blocksMap, meta) {
+  const prevBlocks = (prev && prev.blocks && typeof prev.blocks === "object") ? prev.blocks : {};
+  const hadPrevBlocks = Object.keys(prevBlocks).length > 0;
+  const out = { blocks: Object.assign({}, prevBlocks, blocksMap || {}) };
+  const prevMeta = (prev && typeof prev === "object") ? prev.meta : undefined;
+  if (meta === undefined) {
+    if (prevMeta !== undefined) out.meta = prevMeta;
+    return out;
+  }
+  if (prevMeta === undefined && hadPrevBlocks) return out;
+  // gfs is a bounded SET like gens, not a last-write value (review finding #3):
+  // a continue-run after a user-glossary edit produces blocks from two term
+  // tables in one entry, and overwriting the fingerprint would certify that
+  // mixed entry as "current". ag stays last-write on purpose -- it is reuse
+  // material for the next run's extraction skip, not a certification record.
+  const next = {
+    gens: pbpTrGensPush(prevMeta ? prevMeta.gens : [], meta.pg),
+    gfs: pbpTrGensPush(prevMeta ? prevMeta.gfs : [], meta.gf),
+    sm: meta.sm
+  };
+  const ag = meta.ag !== undefined ? meta.ag : (prevMeta ? prevMeta.ag : undefined);
+  if (ag !== undefined) next.ag = ag;
+  out.meta = next;
+  return out;
+}
 // Owner-scoped like the tr_/trview_/gloss_ families (account-isolation
 // invariant): ask Q&A is account-derived data — an ownerless key let a
 // later Pinboard login on this machine read (and clear) the previous
@@ -571,26 +619,37 @@ async function pbpTrCacheGet(url, lang, model, account) {
   const entry = await pbpAiCacheGet(_pbpTrCacheKey(url, lang, model, account));
   const r = entry && entry.result;
   if (!r || typeof r !== "object" || !r.blocks || typeof r.blocks !== "object") return null;
-  return { blocks: r.blocks };
+  // ZH-1a D5: the allowlist carries meta through -- the strip here was one of
+  // the two places that silently ate it. === undefined, never truthiness.
+  const out = { blocks: r.blocks };
+  if (r.meta !== undefined) out.meta = r.meta;
+  return out;
 }
 
-async function pbpTrCacheSet(url, lang, model, blocksMap, account) {
+async function pbpTrCacheSet(url, lang, model, blocksMap, account, meta) {
   // Atomic merge (mirrors pbpAskHistAppend): a plain get-then-put lets two
   // preview tabs on the same URL/lang/model race and silently drop one tab's
   // freshly-translated (and paid-for) blocks. Routing the read-merge-write
   // through pbpAiCacheAppend puts it in ONE readwrite IDB transaction, which
-  // IndexedDB serializes across tabs/connections.
+  // IndexedDB serializes across tabs/connections. `meta` (optional, ZH-1a) is
+  // the run's generation record; the transform merges it against the stored
+  // one (see pbpTrCacheApplyWrite).
   const key = _pbpTrCacheKey(url, lang, model, account);
-  await pbpAiCacheAppend(key, (prev) => {
-    const prevBlocks = (prev && prev.blocks && typeof prev.blocks === "object") ? prev.blocks : {};
-    return { blocks: Object.assign({}, prevBlocks, blocksMap || {}) };
-  }, Date.now());
+  await pbpAiCacheAppend(key, (prev) => pbpTrCacheApplyWrite(prev, blocksMap, meta), Date.now());
 }
 
 // Auto-extracted terminology cache (spec T1): one entry per account/article/(lang, model),
 // parallel to the translation cache. Entry shape: {key, result:{terms:{...}}, ts}.
 function _pbpTrGlossaryCacheKey(url, lang, model, account) {
-  return "gloss_" + _pbpTrOwnerScope(account) + "_" + lang + "_" + model + "_" + pbpAiHash(String(url || ""));
+  // ZH-1a D6: the extraction-prompt generation lives in the KEY, not in meta --
+  // extraction has no "stale but usable" middle state; a bumped generation
+  // should simply re-extract (one cheap noThinking call). This also closes the
+  // seam where a later PBP_TR_GLOSSARY_SYSTEM change (ZH-4 / ZH-9 / EN-2)
+  // would otherwise never trigger re-extraction. The constant is defined in
+  // md-translate.js's pure top (next to the prompt it covers) and resolved at
+  // call time; md-preview.html and the test page load both files.
+  const gen = (typeof PBP_TR_GLOSSARY_GEN === "number") ? PBP_TR_GLOSSARY_GEN : 0;
+  return "gloss_" + _pbpTrOwnerScope(account) + "_g" + gen + "_" + lang + "_" + model + "_" + pbpAiHash(String(url || ""));
 }
 async function pbpTrGlossaryCacheGet(url, lang, model, account) {
   const entry = await pbpAiCacheGet(_pbpTrGlossaryCacheKey(url, lang, model, account));

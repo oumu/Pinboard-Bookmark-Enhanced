@@ -2485,6 +2485,18 @@
   "trBlockFailed": {
     "message": "Tłumaczenie tego akapitu nie powiodło się"
   },
+  "trErrKey": {
+    "message": "Klucz API jest nieprawidłowy lub został odrzucony, sprawdź go w ustawieniach"
+  },
+  "trErrQuota": {
+    "message": "Przekroczono limit żądań lub wyczerpano przydział, spróbuj ponownie później"
+  },
+  "trErrNetwork": {
+    "message": "Błąd sieci lub serwera, spróbuj ponownie później"
+  },
+  "trErrTimeout": {
+    "message": "Przekroczono limit czasu usługi AI, spróbuj ponownie"
+  },
   "trFailedSummary": {
     "message": "$COUNT$ segmentów z błędem: $MESSAGE$",
     "placeholders": {

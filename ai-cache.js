@@ -20,6 +20,16 @@ const _PBP_AI_DICTCTX_MAX_ENTRIES = 500;
 const _PBP_AI_DICTCTX_PREFIX = "dictctx2_";
 const _PBP_AI_SUMMARY_OWNER_MAX_ENTRIES = 500;
 const _PBP_AI_SUMMARY_OWNER_PREFIX = "summary_owner_";
+// Full-text translations: one key per ARTICLE x (lang, model), the priciest
+// entries in the store (a whole article's paid output). In the shared
+// 200-slot pool a heavy reader's footprint is 5-7 keys per article
+// (tr_/trview_/gloss_/ai_cache_tags/ai_cache_summary/ask_/skim_), so 200
+// slots covered only ~30-45 articles; reopening an older bookmark meant
+// paying for a full retranslation. Deliberately NO TTL, unlike FluentRead
+// (24h) / OnlyTranslate (30d): bookmarks are read-later, a translation is
+// still worth its cost half a year on; LRU + this bound suffice.
+const _PBP_AI_TR_MAX_ENTRIES = 300;
+const _PBP_AI_TR_PREFIX = "tr_";
 let _pbpAiDbPromise = null;
 
 function _pbpAiOpenDB() {
@@ -113,10 +123,15 @@ function _pbpAiIsSummaryOwnerKey(key) {
   return typeof key === "string" && key.startsWith(_PBP_AI_SUMMARY_OWNER_PREFIX);
 }
 
+function _pbpAiIsTrKey(key) {
+  return typeof key === "string" && key.startsWith(_PBP_AI_TR_PREFIX);
+}
+
 function _pbpAiPoolForKey(key) {
   if (_pbpAiIsDict2Key(key)) return "dict2";
   if (_pbpAiIsDictCtxKey(key)) return "dictctx";
   if (_pbpAiIsSummaryOwnerKey(key)) return "summary-owner";
+  if (_pbpAiIsTrKey(key)) return "tr";
   return "other";
 }
 
@@ -138,6 +153,14 @@ function _pbpAiSummaryOwnerRange() {
   return _pbpAiPrefixRange(_PBP_AI_SUMMARY_OWNER_PREFIX);
 }
 
+// "trview_" sorts ABOVE "tr_￿" ('v' U+0076 > '_' U+005F at index 2), and no
+// other family starts with "tr_", so this range holds exactly the tr_ pool.
+// Pinned by the "prefix range geometry" test -- an easy invariant to break in
+// a rename; keep the test with the code.
+function _pbpAiTrRange() {
+  return _pbpAiPrefixRange(_PBP_AI_TR_PREFIX);
+}
+
 function _pbpAiDeleteOldestInPool(store, overflow, pool) {
   if (overflow <= 0) return;
   const cursorReq = store.index("ts").openCursor(); // ASC by ts (oldest first)
@@ -154,14 +177,26 @@ function _pbpAiDeleteOldestInPool(store, overflow, pool) {
   };
 }
 
+// Pure arithmetic for the shared pool's overflow: the other pool is whatever
+// is NOT in a dedicated pool, so every dedicated pool must be subtracted --
+// adding a pool without extending this subtraction silently over-evicts the
+// innocent other-pool families (ask/skim/tags/summary). Unit-tested (ZH-6).
+function _pbpAiOtherOverflow(totalCount, dict2Count, dictCtxCount, summaryOwnerCount, trCount) {
+  return Math.max(0,
+    Math.max(0, totalCount - dict2Count - dictCtxCount - summaryOwnerCount - trCount)
+      - _PBP_AI_CACHE_MAX_ENTRIES);
+}
+
 function _pbpAiPruneWrittenPool(store, key) {
   const pool = _pbpAiPoolForKey(key);
   if (pool !== "other") {
     const range = pool === "dict2" ? _pbpAiDict2Range()
       : pool === "dictctx" ? _pbpAiDictCtxRange()
+      : pool === "tr" ? _pbpAiTrRange()
       : _pbpAiSummaryOwnerRange();
     const max = pool === "dict2" ? _PBP_AI_DICT2_MAX_ENTRIES
       : pool === "dictctx" ? _PBP_AI_DICTCTX_MAX_ENTRIES
+      : pool === "tr" ? _PBP_AI_TR_MAX_ENTRIES
       : _PBP_AI_SUMMARY_OWNER_MAX_ENTRIES;
     const countReq = store.count(range);
     countReq.onsuccess = () => {
@@ -174,13 +209,13 @@ function _pbpAiPruneWrittenPool(store, key) {
   let dict2Count = 0;
   let dictCtxCount = 0;
   let summaryOwnerCount = 0;
-  let pending = 4;
+  let trCount = 0;
+  let pending = 5;   // ZH-6: 4 -> 5 with the tr pool; MUST stay equal to the count requests below
   const prune = () => {
     pending--;
     if (pending !== 0) return;
     _pbpAiDeleteOldestInPool(store,
-      Math.max(0, totalCount - dict2Count - dictCtxCount - summaryOwnerCount)
-        - _PBP_AI_CACHE_MAX_ENTRIES,
+      _pbpAiOtherOverflow(totalCount, dict2Count, dictCtxCount, summaryOwnerCount, trCount),
       "other");
   };
   const totalReq = store.count();
@@ -191,6 +226,8 @@ function _pbpAiPruneWrittenPool(store, key) {
   ctxReq.onsuccess = () => { dictCtxCount = ctxReq.result || 0; prune(); };
   const ownerReq = store.count(_pbpAiSummaryOwnerRange());
   ownerReq.onsuccess = () => { summaryOwnerCount = ownerReq.result || 0; prune(); };
+  const trReq = store.count(_pbpAiTrRange());
+  trReq.onsuccess = () => { trCount = trReq.result || 0; prune(); };
 }
 
 // One store-scoped readwrite transaction owns the final write, target-pool
@@ -198,7 +235,8 @@ function _pbpAiPruneWrittenPool(store, key) {
 // connections/tabs, so concurrent writers cannot observe the same overflow
 // and delete it repeatedly. Versioned online dictionary records (exact
 // `dict2_` prefix), contextual glosses (`dictctx2_`) and `summary_owner_`
-// receipts each have independent 500-entry pools; every other family
+// receipts each have independent 500-entry pools; full-text translations
+// (`tr_`) have an independent 300-entry pool (ZH-6); every other family
 // shares 200.
 // `makeResult` is synchronous; append passes the latest value read inside this
 // same transaction, preserving its existing no-lost-update guarantee.

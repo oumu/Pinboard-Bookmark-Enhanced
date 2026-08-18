@@ -2485,6 +2485,18 @@
   "trBlockFailed": {
     "message": "Translation failed for this paragraph"
   },
+  "trErrKey": {
+    "message": "API key invalid or rejected, check it in Settings"
+  },
+  "trErrQuota": {
+    "message": "Rate limit or quota exceeded, try again later"
+  },
+  "trErrNetwork": {
+    "message": "Network or server error, try again later"
+  },
+  "trErrTimeout": {
+    "message": "The AI service timed out, try again"
+  },
   "trFailedSummary": {
     "message": "$COUNT$ segments failed: $MESSAGE$",
     "placeholders": {

@@ -29,7 +29,7 @@ const CLEANUP_TIMEOUT_MS = 5000;
 // unregistered suite is rejected instead of guessed complete.
 const EXPECTED_RESULTS = Object.freeze({
   "tests/a11y-tests.html": 32,
-  "tests/ai-cache-tests.html": 22,
+  "tests/ai-cache-tests.html": 23,
   "tests/ai-tags-tests.html": 70,
   "tests/anki-connect-tests.html": 41,
   "tests/background-active-tab-tests.html": 31,
@@ -44,7 +44,7 @@ const EXPECTED_RESULTS = Object.freeze({
   "tests/jina-cache-tests.html": 25,
   "tests/library-notes-tests.html": 62,
   "tests/library-vocab-tests.html": 158,
-  "tests/md-ai-tests.html": 710,
+  "tests/md-ai-tests.html": 741,
   "tests/md-convert-tests.html": 554,
   "tests/md-dict-tests.html": 368,
   "tests/md-embed-tests.html": 37,

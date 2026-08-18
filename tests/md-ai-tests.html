@@ -982,7 +982,7 @@ suite("md-ai IDB key conventions", () => {
     assert(_pbpAskHistLegacyKey("https://a.test/x") === "ask_" + pbpAiHash("https://a.test/x"), "legacy ownerless key shape (delete-on-sight target)");
     assert(_pbpTrViewKey("https://a.test/x", "alice") === "trview_acct_alice_" + pbpAiHash("https://a.test/x"), "trview key");
     assert(_pbpTrViewKey("https://a.test/x", "") === "trview_ownerless_" + pbpAiHash("https://a.test/x"), "ownerless trview key");
-    assert(_pbpTrGlossaryCacheKey("https://a.test/x", "zh-CN", "gemini", "alice") === "gloss_acct_alice_zh-CN_gemini_" + pbpAiHash("https://a.test/x"), "glossary key");
+    assert(_pbpTrGlossaryCacheKey("https://a.test/x", "zh-CN", "gemini", "alice") === "gloss_acct_alice_g" + PBP_TR_GLOSSARY_GEN + "_zh-CN_gemini_" + pbpAiHash("https://a.test/x"), "glossary key (owner scope + ZH-1a generation)");
   });
   test("ask run/clear/restore pass the owner to history persistence", () => {
     const run = _pbpAskRun.toString();
@@ -997,7 +997,7 @@ suite("md-ai IDB key conventions", () => {
     const start = _pbpTrStart.toString();
     assert(init.includes('account: String((detail && detail.account) || "")'), "render detail owner not captured");
     assert(start.includes('getAICache(st.url, "summary", st.s.aiCacheDuration, source, st.account, st.s)'), "summary context owner missing");
-    assert(start.includes("pbpTrCacheSet(st.url, st.target.code, st.modelKey, newly, st.account)"), "translation write owner missing");
+    assert(start.includes("pbpTrCacheSet(st.url, st.target.code, st.modelKey, st.newly, st.account, st.runMeta)"), "translation write owner or run meta missing");
     assert(_pbpTrEnsureGlossary.toString().includes("pbpTrGlossaryCacheGet(st.url, st.target.code, st.modelKey, st.account)"), "glossary owner missing");
   });
   test("ask history trimmed to last 20, oldest dropped", () => {
@@ -6553,5 +6553,318 @@ test("explain popover keeps its downward bias but abandons a cramped one", () =>
   assert(PBP_EXPLAIN_COMFORT_CARD > PBP_EXPLAIN_MIN_CARD, "comfort must be stricter than the bare minimum");
   assert(pbpExplainOpensDown(PBP_EXPLAIN_MIN_CARD, 1000) === false, "the bare minimum is no longer enough to open down");
 });
+</script>
+<script>
+// ============ Translate batch 1 (2026-08-18): ZH-3 / ZH-1a / ZH-0 / ZH-6 ============
+
+suiteIf("pbpAiErrorText (ZH-3)", "pbpAiErrorText", () => {
+  // Contract 1 (the one future refactors will break): an error that ALREADY
+  // carries a code passes its message through verbatim -- the message at the
+  // throw site is more specific than any table lookup (ai.js:632 bakes the
+  // localized offline text in; remapping would blur it).
+  test("coded error passes message through, never remapped", () => {
+    assertEq(pbpAiErrorText({ code: "network", message: "网络已断" }), "网络已断");
+    assertEq(pbpAiErrorText({ code: "model_not_found", message: "openai: no such model" }), "openai: no such model");
+    // category generalization: ANY code wins over status/keywords
+    assertEq(pbpAiErrorText({ code: "host_permission", status: 429, message: "grant it" }), "grant it");
+  });
+  // In the test page t(key) falls back to the key itself (chrome.i18n stub
+  // returns ""), so classification is asserted by key name.
+  test("status classification before keywords", () => {
+    assertEq(pbpAiErrorText({ status: 401, message: "x" }), "trErrKey");
+    assertEq(pbpAiErrorText({ status: 403, message: "x" }), "trErrKey");
+    assertEq(pbpAiErrorText({ status: 429, message: "HTTP 429" }), "trErrQuota");
+    assertEq(pbpAiErrorText({ status: 503, message: "x" }), "trErrNetwork");
+  });
+  test("DashScope trap class: status wins even when message mentions model", () => {
+    // ai.js:179-188 precedent: a bad-KEY message embedding ".../model-studio/..."
+    // must classify by the structured field, not by text.
+    assertEq(pbpAiErrorText({ status: 401, message: "invalid key, see https://x/model-studio/error-code" }), "trErrKey");
+  });
+  test("conservative keyword layer when no code/status", () => {
+    assertEq(pbpAiErrorText({ message: "AI stream timeout" }), "trErrTimeout");
+    assertEq(pbpAiErrorText({ message: "Rate limit reached for requests" }), "trErrQuota");
+    assertEq(pbpAiErrorText(new TypeError("Failed to fetch")), "trErrNetwork");
+  });
+  test("unclassified message passes through, never swallowed", () => {
+    assertEq(pbpAiErrorText({ message: "weird provider prose" }), "weird provider prose");
+    assertEq(pbpAiErrorText(null), "translation failed");
+  });
+});
+
+suiteIf("tr cache generation ledger (ZH-1a)", "pbpTrGensPush", () => {
+  // D1 -- generation ledger: changing any covered prompt text without bumping
+  // its GEN constant turns these red. The pinned hashes are re-derived from
+  // the FAIL output whenever a text change legitimately bumps the generation;
+  // updating a hash WITHOUT bumping the paired constant is the defect this
+  // suite exists to catch.
+  test("D1 prompt-generation ledger: text hash pinned to PBP_TR_PROMPT_GEN", () => {
+    assertEq(PBP_TR_PROMPT_GEN, 2, "PBP_TR_PROMPT_GEN");
+    assertEq(pbpAiHash(PBP_TR_SYSTEM), "987f48a2", "PBP_TR_SYSTEM hash");
+    assertEq(pbpAiHash(JSON.stringify(PBP_TR_STYLE_PACKS) + PBP_TR_STYLE_GENERIC), "bfdd0f40", "style packs hash");
+  });
+  test("D1 glossary-generation ledger", () => {
+    assertEq(PBP_TR_GLOSSARY_GEN, 1, "PBP_TR_GLOSSARY_GEN");
+    assertEq(pbpAiHash(PBP_TR_GLOSSARY_SYSTEM), "0e18dff4", "PBP_TR_GLOSSARY_SYSTEM hash");
+  });
+  test("D2 gens set semantics", () => {
+    assertEq(JSON.stringify(pbpTrGensPush([], 2)), "[2]");
+    assertEq(JSON.stringify(pbpTrGensPush([2], 2)), "[2]", "same gen never duplicates");
+    assertEq(JSON.stringify(pbpTrGensPush([1], 2)), "[1,2]");
+    assertEq(JSON.stringify(pbpTrGensPush([1, 2, 3, 4], 5)), "[2,3,4,5]", "cap 4 drops oldest");
+    assertEq(pbpTrCacheGenStale(undefined, { pg: 2, gf: "" }), null, "meta undefined never prompts");
+    assertEq(pbpTrCacheGenStale({ gens: [1, 2], gfs: [""] }, { pg: 2, gf: "" }), "mixed");
+    assertEq(pbpTrCacheGenStale({ gens: [1], gfs: [""] }, { pg: 2, gf: "" }), "prompt");
+    assertEq(pbpTrCacheGenStale({ gens: [2], gfs: ["a"] }, { pg: 2, gf: "b" }), "glossary");
+    assertEq(pbpTrCacheGenStale({ gens: [1], gfs: ["a"] }, { pg: 2, gf: "b" }), "both");
+    assertEq(pbpTrCacheGenStale({ gens: [2], gfs: [""] }, { pg: 2, gf: "" }), null, "current gen, same gf");
+  });
+  test("D3 continue-run merges gens instead of overwriting", () => {
+    const first = pbpTrCacheApplyWrite(undefined, { h1: "t1" }, { pg: 1, gf: "", sm: 0 });
+    assertEq(JSON.stringify(first.meta.gens), "[1]");
+    const second = pbpTrCacheApplyWrite(first, { h2: "t2" }, { pg: 2, gf: "", sm: 0 });
+    assertEq(JSON.stringify(second.meta.gens), "[1,2]", "60% old + 40% new must read as mixed, not pure-new");
+    assertEq(JSON.stringify(second.meta.gfs), JSON.stringify([""]), "same gf never duplicates in the set");
+    assert(second.blocks.h1 === "t1" && second.blocks.h2 === "t2", "blocks merged");
+  });
+  test("review-fix #3: gf drift across continue-runs marks the entry mixed", () => {
+    // The gens rationale (a 60/40 entry must not read as pure-new) holds on the
+    // user-glossary axis too: a continue-run after a glossary edit produces
+    // blocks from two term tables in one entry.
+    const a = pbpTrCacheApplyWrite(undefined, { h1: "t1" }, { pg: 2, gf: "aaa", sm: 0 });
+    const b = pbpTrCacheApplyWrite(a, { h2: "t2" }, { pg: 2, gf: "bbb", sm: 0 });
+    assertEq(JSON.stringify(b.meta.gfs), JSON.stringify(["aaa", "bbb"]), "both fingerprints recorded");
+    assertEq(pbpTrCacheGenStale(b.meta, { pg: 2, gf: "bbb" }), "mixed",
+      "a mixed-glossary entry must not be certified as current");
+  });
+  test("D4 fingerprint locality: value change flips it, key order does not", () => {
+    assert(pbpTrGlossaryFingerprint({ Foo: "旧译" }) !== pbpTrGlossaryFingerprint({ Foo: "新译" }),
+      "changing a TRANSLATION must change gf (the most common user edit)");
+    assertEq(pbpTrGlossaryFingerprint({ A: "1", B: "2" }), pbpTrGlossaryFingerprint({ B: "2", A: "1" }),
+      "property order must not matter (canonicalize)");
+    assertEq(pbpTrGlossaryFingerprint({}), "", "empty table is the legal empty-string fingerprint");
+  });
+  test("D5 meta survives meta-less writes and repeated writes", () => {
+    const seeded = pbpTrCacheApplyWrite(undefined, { h1: "t1" }, { pg: 2, gf: "x", sm: 1, ag: { T: "y" } });
+    const metaless = pbpTrCacheApplyWrite(seeded, { h2: "t2" }, undefined);
+    assert(metaless.meta !== undefined, "retry-path write (no meta arg) must not strip meta");
+    assertEq(JSON.stringify(metaless.meta.gfs), JSON.stringify(["x"]));
+    assertEq(JSON.stringify(metaless.meta.ag), JSON.stringify({ T: "y" }), "ag carried");
+  });
+  test("legacy entry (blocks, no meta) never gains a fabricated meta", () => {
+    const legacy = { blocks: { old1: "旧" } };   // pre-ZH-1a shape
+    const out = pbpTrCacheApplyWrite(legacy, { new1: "新" }, { pg: 2, gf: "", sm: 0 });
+    assertEq(out.meta, undefined,
+      "certifying unknown-generation blocks as current would mislabel mixed as pure-new");
+    assert(out.blocks.old1 === "旧" && out.blocks.new1 === "新", "blocks still merge");
+  });
+  test("D6 gloss_ key carries the extraction generation", () => {
+    const k = _pbpTrGlossaryCacheKey("https://x", "zh-Hans", "m", "acct");
+    assert(k.indexOf("_g" + PBP_TR_GLOSSARY_GEN + "_") !== -1, "got " + k);
+  });
+});
+
+suiteIf("tr incremental flush (ZH-0)", "_pbpTrFlushCache", () => {
+  function mkSt(overrides) {
+    return Object.assign({
+      newly: Object.create(null), flushBuf: Object.create(null),
+      flushInflight: false, lastFlushTs: Date.now(),
+      url: "https://a", target: { code: "zh-Hans" }, modelKey: "p:m", account: "acct",
+      runMeta: { pg: 2, gf: "", sm: 0 }, trMd: Object.create(null), mode: "original"
+    }, overrides || {});
+  }
+  function mkW(n, text) { return { n, md: text, hash: "h" + n, shielded: { text, slots: [] } }; }
+  test("record fill feeds BOTH newly and flushBuf at the single write point", () => {
+    const st = mkSt({ flushFn: () => Promise.resolve() });
+    _pbpTrRecordFill(st, mkW(1, "hello"), "你好");
+    assertEq(st.newly.h1, "你好");
+    assertEq(st.flushBuf.h1, "你好");
+  });
+  test("flush triggers at PBP_TR_FLUSH_BLOCKS and drains the buffer", () => {
+    const calls = [];
+    const st = mkSt({ flushFn: (...a) => { calls.push(a); return Promise.resolve(); } });
+    for (let i = 1; i <= PBP_TR_FLUSH_BLOCKS; i++) _pbpTrRecordFill(st, mkW(i, "t" + i), "x" + i);
+    assertEq(calls.length, 1, "one flush at the block threshold");
+    assertEq(Object.keys(calls[0][3]).length, PBP_TR_FLUSH_BLOCKS, "payload carries the drained batch");
+    assertEq(Object.keys(st.flushBuf).length, 0, "buffer drained");
+    assertEq(Object.keys(st.newly).length, PBP_TR_FLUSH_BLOCKS, "newly keeps everything for the end-of-run write");
+  });
+  test("D8 flush snapshots cache-key inputs at initiation", () => {
+    const calls = [];
+    const st = mkSt({ flushFn: (...a) => { calls.push(a); return new Promise(() => {}); } });
+    st.flushBuf.h1 = "x";
+    _pbpTrFlushCache(st);
+    st.target = { code: "ja" };            // _pbpTrApplyTargetLang rewrites st.target in place
+    st.modelKey = "other:model";
+    assertEq(calls[0][1], "zh-Hans", "lang snapshotted before any await");
+    assertEq(calls[0][2], "p:m", "model snapshotted");
+  });
+  test("D9 flush carries the run meta", () => {
+    const calls = [];
+    const st = mkSt({ flushFn: (...a) => { calls.push(a); return Promise.resolve(); } });
+    st.flushBuf.h1 = "x";
+    _pbpTrFlushCache(st);
+    assertEq(calls[0][5], st.runMeta, "meta rides every incremental write");
+  });
+  test("in-flight merge: no concurrent flushes, later blocks keep buffering", () => {
+    const calls = [];
+    const st = mkSt({ flushFn: (...a) => { calls.push(a); return new Promise(() => {}); } });
+    st.flushBuf.h1 = "x";
+    _pbpTrFlushCache(st);
+    st.flushBuf.h2 = "y";
+    _pbpTrFlushCache(st);                   // inflight -> returns, buffer untouched
+    assertEq(calls.length, 1);
+    assertEq(st.flushBuf.h2, "y", "second block waits for the next round");
+  });
+  test("D7 a partially-failed multi-part block never reaches the cache buffers", () => {
+    const st = mkSt({ flushFn: () => Promise.resolve() });
+    const w = mkW(1, "long text");
+    const pb = _pbpTrMakePartBuf({ chunks: ["aa", "bb"], seps: ["", "\n\n"] });
+    _pbpTrPartFail(pb, 1);                  // one part fell back to its original
+    _pbpTrPartFill(pb, 0, "AA");
+    const done = _pbpTrPartDone(pb);
+    assert(done && done.partial, "assembled but partial");
+    _pbpTrCommitAssembled(st, w, done, pb.failed);
+    assertEq(st.newly.h1, undefined, "half-translated block must NOT enter newly");
+    assertEq(st.flushBuf.h1, undefined, "nor the flush buffer");
+    assert(typeof st.trMd[1] === "string", "but it IS displayed (trMd filled)");
+  });
+  test("D7 counterpart: a fully-translated multi-part block IS recorded", () => {
+    const st = mkSt({ flushFn: () => Promise.resolve() });
+    const w = mkW(1, "long text");
+    const pb = _pbpTrMakePartBuf({ chunks: ["aa", "bb"], seps: ["", "\n\n"] });
+    _pbpTrPartFill(pb, 0, "AA"); _pbpTrPartFill(pb, 1, "BB");
+    const done = _pbpTrPartDone(pb);
+    _pbpTrCommitAssembled(st, w, done, pb.failed);
+    assertEq(st.newly.h1, "AA\n\nBB");
+  });
+  test("flush failure degrades: sync throw clears inflight, run continues", () => {
+    const st = mkSt({ flushFn: () => { throw new Error("idb gone"); } });
+    st.flushBuf.h1 = "x";
+    _pbpTrFlushCache(st);
+    assertEq(st.flushInflight, false, "sync-throw path resets inflight");
+    assert(true, "no throw escaped");
+  });
+});
+
+suiteIf("tr_ independent cache pool (ZH-6)", "_pbpAiTrRange", () => {
+  test("pool routing: tr_ gets its own pool, trview_/gloss_ stay in other", () => {
+    assertEq(_pbpAiPoolForKey("tr_acct_x_zh-Hans_m_12345678"), "tr");
+    assertEq(_pbpAiPoolForKey("trview_acct_x_12345678"), "other");
+    assertEq(_pbpAiPoolForKey("gloss_acct_x_g1_zh-Hans_m_12345678"), "other");
+    assertEq(_pbpAiPoolForKey("ask_acct_x_12345678"), "other");
+  });
+  test("prefix range geometry: trview_ sorts ABOVE tr_￿ (documented invariant)", () => {
+    const r = _pbpAiTrRange();
+    assert(r.includes("tr_anything"), "tr_ keys inside");
+    assert(!r.includes("trview_anything"), "'v'(U+0076) > '_'(U+005F) at index 2, so trview_ is outside");
+    assert(!r.includes("gloss_x"), "gloss_ outside");
+  });
+  test("other-pool overflow arithmetic subtracts the tr pool (silent-overeviction gate)", () => {
+    // total 500: 100 dict2 + 50 dictctx + 30 summary + 110 tr + 210 other.
+    assertEq(_pbpAiOtherOverflow(500, 100, 50, 30, 110), 10, "true other pool = 210, overflow 10");
+    // WITHOUT the tr subtraction the same numbers claim overflow 120 and would
+    // silently evict 110 innocent ask/skim/tags/summary entries:
+    assertEq(_pbpAiOtherOverflow(500, 100, 50, 30, 0), 120, "the defect shape being gated");
+    assertEq(_pbpAiOtherOverflow(100, 0, 0, 0, 0), 0, "under the cap: no eviction");
+  });
+});
+
+// Async half of the batch-1 suites (same harness shape as the C1 section above).
+(async function () {
+  const host = document.createElement("div");
+  host.className = "suite";
+  const h = document.createElement("h2");
+  h.textContent = "translate batch 1 async (ZH-3 / ZH-1a / ZH-0)";
+  host.appendChild(h);
+  document.getElementById("results").appendChild(host);
+  function report(name, err) {
+    const div = document.createElement("div");
+    if (!err) { PASS++; div.className = "case pass"; div.textContent = "PASS " + name; }
+    else { FAIL++; div.className = "case fail"; div.textContent = "FAIL " + name + "\n  " + err.message; }
+    host.appendChild(div);
+  }
+  async function atest(name, fn) { try { await fn(); report(name); } catch (e) { report(name, e); } }
+
+  await atest("pbpTrRunQueue routes hard failures through describeError", async () => {
+    const failedMsgs = [];
+    const r = await pbpTrRunQueue({
+      batches: [[{ id: 1, text: "hello world" }]],
+      requestBatch: async () => { const e = new Error("raw provider text"); e.status = 401; throw e; },
+      requestSingle: async () => null,
+      describeError: (e) => "described:" + (e && e.status),
+      onFill: () => {}, onBlockFail: (id, m) => failedMsgs.push(m), onProgress: () => {},
+      backoffMs: [1, 1, 1]
+    });
+    assert(r.failed.length === 1, "one failed block");
+    assert(failedMsgs[0] === "described:401", "got " + failedMsgs[0]);
+  });
+
+  await atest("tr cache round-trips meta through IDB (D5 runtime)", async () => {
+    const url = "https://pbp-test/tr-meta-" + Date.now();
+    await pbpTrCacheSet(url, "zh-Hans", "m", { h1: "t1" }, "acct", { pg: 2, gf: "", sm: 0 });
+    const got = await pbpTrCacheGet(url, "zh-Hans", "m", "acct");
+    assert(got && got.blocks.h1 === "t1", "blocks");
+    assert(got.meta && JSON.stringify(got.meta.gens) === "[2]", "meta out: " + JSON.stringify(got && got.meta));
+    await pbpAiCacheDelete(_pbpTrCacheKey(url, "zh-Hans", "m", "acct"));
+  });
+
+  await atest("ensureGlossary reuses meta.ag and keeps user priority", async () => {
+    const longText = "x".repeat(1600);
+    const st = {
+      glossary: null,
+      s: { translateGlossary: "Foo=USER" },
+      work: [{ n: 1, md: longText, hash: "h", shielded: { text: longText, slots: [] } }],
+      cacheMeta: { ag: { Foo: "AUTO", Bar: "B" } }
+    };
+    const g = await _pbpTrEnsureGlossary(st);   // must NOT call _pbpTrExtractGlossary (st has no target/ctrl -> it would throw)
+    assertEq(g.Foo, "USER", "user entry must win the merge (v3 caught the reversed-args defect class)");
+    assertEq(g.Bar, "B", "auto snapshot entries flow in");
+    assertEq(JSON.stringify(st.glossaryAuto), JSON.stringify({ Foo: "AUTO", Bar: "B" }), "auto kept separately for runMeta.ag");
+  });
+
+  await atest("review-fix #1/#2: target-language change clears run-derived cache state", async () => {
+    const st = {
+      s: { aiProvider: "gemini", geminiApiKey: "k" },
+      target: { code: "zh-Hans", name: "Simplified Chinese" },
+      mode: "original", status: "idle", trMd: { 1: "x" },
+      glossary: { A: "B" }, glossaryHits: {}, skippedSet: new Set([1]),
+      flushBuf: { h1: "旧语言残留" }, flushInflight: false, lastFlushTs: 0,
+      runMeta: { pg: 2, gf: "", sm: 0 }, cacheMeta: { ag: { X: "旧" } }
+    };
+    await _pbpTrApplyTargetLang(st, { translateTargetLang: "ja" });
+    assertEq(st.target.code, "ja", "language switched");
+    assertEq(Object.keys(st.flushBuf || {}).length, 0,
+      "stale flush buffer must not survive a language switch (a later hidden-flush would re-key it)");
+    assertEq(st.runMeta, undefined, "old run meta dropped");
+    assertEq(st.cacheMeta, undefined, "old cacheMeta (wrong-language ag) dropped");
+  });
+
+  await atest("review-fix #6: one hard batch failure classifies the error once, not per block", async () => {
+    let describeCalls = 0;
+    const failedIds = [];
+    await pbpTrRunQueue({
+      batches: [[{ id: 1, text: "aa" }, { id: 2, text: "bb" }, { id: 3, text: "cc" }]],
+      requestBatch: async () => { throw new Error("batch died"); },
+      requestSingle: async () => null,
+      describeError: () => { describeCalls++; return "described"; },
+      onFill: () => {}, onBlockFail: (id) => failedIds.push(id), onProgress: () => {},
+      backoffMs: [1, 1, 1]
+    });
+    assertEq(failedIds.length, 3, "every block still fails visibly");
+    assertEq(describeCalls, 1, "the shared error object is classified once per batch failure");
+  });
+
+  await atest("flush inflight flag resets after async rejection (ZH-0)", async () => {
+    const st = {
+      newly: {}, flushBuf: { h1: "x" }, flushInflight: false, lastFlushTs: Date.now(),
+      url: "u", target: { code: "zh-Hans" }, modelKey: "m", account: "a", runMeta: undefined,
+      flushFn: () => Promise.reject(new Error("boom"))
+    };
+    _pbpTrFlushCache(st);
+    await new Promise((r) => setTimeout(r, 10));
+    assert(st.flushInflight === false, "cleared after rejection");
+  });
+})();
 </script>
 </body></html>
