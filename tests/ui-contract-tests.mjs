@@ -657,7 +657,10 @@ check(mdTranslateJs.includes("pbpTrSingleKeyAllowed(") && mdAskJs.includes("pbpT
   const explainInit = mdAskJs.slice(mdAskJs.indexOf("function pbpExplainInit"),
     mdAskJs.indexOf('document.addEventListener("pbp:rendered"', mdAskJs.indexOf("function pbpExplainInit")));
   check(mdTranslateJs.includes("_pbpTrTrigger(st)") &&
-    /if \(st\.running\) return;[\s\S]{0,120}if \(st\.status === "done"\) return;/.test(mdTranslateJs) &&
+    // ZH-1b: a completed CURRENT translation stays inert (no re-entry, no
+    // tokens), while a stale/mixed one may re-arm as an explicit retranslate
+    // -- the guard chain is running -> done -> !staleVerdict.
+    /if \(st\.running\) return;[\s\S]{0,160}if \(st\.status === "done"\) \{[\s\S]{0,500}if \(!st\.staleVerdict\) return;/.test(mdTranslateJs) &&
     explainShortcut.includes('_pbpExplainTrigger === "off"') &&
     explainShortcut.includes('pbpExplainInvoke(key === "d" ? "dict" : "explain")') &&
     explainInit.indexOf('if (_pbpExplainTrigger === "off") return') >= 0 &&

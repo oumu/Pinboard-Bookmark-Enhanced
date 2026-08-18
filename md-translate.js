@@ -420,6 +420,18 @@ function pbpTrPickBatch(remaining, batchBlockNs, anchor) {
   return best;
 }
 
+// ZH-2 wiring helper: batches carry SEG ids, and an oversize block's parts
+// get synthetic ids past max(block n) (_pbpTrStart's nextSegId) -- distance
+// math on raw seg ids would shove any batch containing a long block to the
+// document's end. Map every seg id back to its real block number via segMap;
+// an unknown id degrades to itself (document-order-ish, never throws).
+function pbpTrBatchBlockNs(batches, segMap) {
+  return (batches || []).map((b) => b.map((seg) => {
+    const m = segMap.get(seg.id);
+    return m ? m.n : seg.id;
+  }));
+}
+
 // Anchor for the run. Mandatory condition 1 (spec ZH-2): a CONTINUE run --
 // st.trMd non-empty at run start beyond the skip verdicts, which covers both
 // the probe-partial path AND same-session Stop -> Continue -- anchors on the
@@ -1009,21 +1021,27 @@ async function _pbpTrProbeCache(st) {
     const cached = await pbpTrCacheGet(st.url, st.target.code, st.modelKey, st.account);
     if (cached) {
       st.cacheMeta = cached.meta;   // may be undefined (legacy entry); consumed by _pbpTrEnsureGlossary (ag)
-      // ZH-1b D10: classify the entry's generation record against the current
-      // world (prompt generation + THIS article's user-glossary hit subset).
-      // Computable here because st.work is built before the probe runs; a
-      // legacy meta-less entry classifies to null and stays silent.
-      st.staleVerdict = pbpTrCacheGenStale(cached.meta, {
-        pg: PBP_TR_PROMPT_GEN,
-        gf: pbpTrGlossaryFingerprint(pbpTrMatchGlossary(
-          pbpTrParseGlossary(st.s.translateGlossary),
-          st.work.map((w) => ({ text: w.shielded.text }))))
-      });
-      _pbpTrSyncStaleNote(st);
       let hits = 0;
       for (const w of st.work) {
         const ttext = cached.blocks[w.hash];
         if (typeof ttext === "string") { _pbpTrFill(st, w, ttext); hits++; }
+      }
+      if (hits === 0) {
+        // Every stored block missed the current article (content revised, or
+        // the extraction engine changed every block's markdown). Nothing from
+        // the entry is displayable, so a stale banner would point at nothing
+        // (review #10); and merging a fresh run into it would fossilize the
+        // orphan blocks plus old-generation meta into a forever-"mixed"
+        // record (review #4). Arm the next run as a full replace instead.
+        st.staleVerdict = null;
+        st.replaceRun = true;
+      } else {
+        // ZH-1b D10: classify the entry's generation record against the
+        // current world (prompt generation + THIS article's user-glossary hit
+        // subset). Only when something from the entry is actually shown; a
+        // legacy meta-less entry classifies to null and stays silent.
+        st.staleVerdict = pbpTrCacheGenStale(cached.meta, { pg: PBP_TR_PROMPT_GEN, gf: _pbpTrCurrentGf(st) });
+        _pbpTrSyncStaleNote(st);
       }
       if (hits === st.work.length) {
         _pbpTrSetStatus(st, "done");
@@ -1062,6 +1080,10 @@ function _pbpTrApplySkips(st) {
     }
   }
   st.skippedCount = set.size;
+  // ZH-1b: the retranslate price excludes skipped blocks, but skips are only
+  // known after this pass -- re-render a stale done state so the figure
+  // matches what a rerun would actually send (review #7/#17).
+  if (st.status === "done" && st.staleVerdict) _pbpTrSetStatus(st, "done");
   const note = document.getElementById("tr-skip-note");
   if (!note) return;
   if (st.skippedCount > 0) {
@@ -1233,17 +1255,24 @@ function _pbpTrTrigger(st) {
   });
 }
 
-// ZH-1b: full retranslate of a stale/mixed cached translation. Gate D11: the
-// rerun must END as a single-generation entry, and the cache's append
-// transform MERGES meta (gens would become [old, current] = permanently
-// "mixed") -- so the stale entry is dropped first; the rerun's writes then
-// create a fresh entry whose gens hold only the current generation. The user
-// explicitly asked to redo the whole article, so discarding the stale blocks
-// is the point, not a loss.
-async function _pbpTrRetranslate(st) {
-  try { await pbpAiCacheDelete(_pbpTrCacheKey(st.url, st.target.code, st.modelKey, st.account)); } catch (_) {}
-  _pbpTrResetTranslations(st);
-  await _pbpTrStart(st);
+// ZH-1b: full retranslate of a stale/mixed cached translation, REPLACE
+// semantics (review batch-2 redesign). Gate D11 needs the rerun to END as a
+// single-generation entry, and the append transform would merge gens into a
+// permanently "mixed" record -- but a pre-run DELETE opened two worse doors:
+// an await before st.running's synchronous claim (double-click / held-down
+// `t` / a language switch landing a reset inside the live run) and an
+// unrecoverable window where Stop/offline destroyed the paid old entry.
+// Instead the run carries st.replaceRun: its FIRST successful cache write
+// atomically replaces the whole entry (blocks + meta). Nothing here awaits
+// before _pbpTrStart, so the run is claimed synchronously; the old entry
+// survives on disk until new content actually lands (reloading the page
+// restores it after a failed rerun). keepMode: a translated-only reader
+// keeps their view and blocks refill progressively like a first run.
+function _pbpTrRetranslate(st) {
+  _pbpTrResetTranslations(st, { keepMode: true });
+  st.replaceRun = true;
+  _pbpTrSetStatus(st, "idle");
+  return _pbpTrStart(st);
 }
 
 // T4: if the provider didn't emit usage for this call, estimate it (chars/4)
@@ -1317,6 +1346,15 @@ function _pbpTrAddGlossaryHits(st, glossary) {
   _pbpTrRenderGlossaryHits(st);
 }
 
+// The current-world user-glossary fingerprint for THIS article (hit subset,
+// key AND value): one definition shared by the probe-side verdict and the
+// run-side meta so the two can never drift apart.
+function _pbpTrCurrentGf(st) {
+  return pbpTrGlossaryFingerprint(pbpTrMatchGlossary(
+    pbpTrParseGlossary(st.s.translateGlossary),
+    st.work.map((w) => ({ text: w.shielded.text }))));
+}
+
 // ZH-1b: reflect st.staleVerdict in the rail. Wording deliberately says the
 // translation comes from an older version, NOT that it "should have been
 // stable" (ZH-6's companion rule: translations are not stable across reruns
@@ -1336,7 +1374,7 @@ function _pbpTrSyncStaleNote(st) {
 // state they were derived from), skip verdicts, stale verdict, highlights'
 // tr layer, and the view mode. Shared by the target-language switch and the
 // ZH-1b retranslate path.
-function _pbpTrResetTranslations(st) {
+function _pbpTrResetTranslations(st, opts) {
   st.glossary = null;
   st.glossaryAuto = null;
   st.trMd = Object.create(null);
@@ -1345,6 +1383,7 @@ function _pbpTrResetTranslations(st) {
   st.runMeta = undefined;
   st.cacheMeta = undefined;
   st.staleVerdict = null;
+  st.replaceRun = false;
   _pbpTrRenderGlossaryHits(st);
   _pbpTrSyncStaleNote(st);
   st.skippedSet = new Set();      // T3: stale skip verdicts were computed for the OLD state
@@ -1359,7 +1398,12 @@ function _pbpTrResetTranslations(st) {
   // md-translate never hard-depends on md-highlight (spec 7.2).
   if (typeof window.pbpHlTrLayerCleared === "function") { try { window.pbpHlTrLayerCleared(); } catch (_) {} }
   _pbpTrSyncRetryAll();
-  if (st.mode !== "original") _pbpTrSetMode(st, "original", false);
+  // keepMode (retranslate): a translated-only reader keeps their view -- the
+  // cleared blocks fall back to visible originals (tr-only CSS only hides
+  // [data-pb-tr-done] blocks) and refill progressively like a first run. The
+  // language switch does NOT keep it: the whole translated layer is gone for
+  // good there, so original is the only honest view.
+  if (!(opts && opts.keepMode) && st.mode !== "original") _pbpTrSetMode(st, "original", false);
 }
 
 // Re-resolve target language from settings and update the rail label.
@@ -1484,6 +1528,7 @@ async function _pbpTrStart(st) {
   st.flushBuf = Object.create(null);       // ZH-0: pending incremental flush
   st.flushInflight = false;
   st.lastFlushTs = Date.now();
+  st.wroteOk = false;                      // did any cache write of THIS run actually land? (stale->mixed escalation gate)
   if (st.permissionError) {
     const recovered = await pbpAiRetryWithPermission(st.permissionError, st.s, () => {});
     if (!recovered) { st.running = false; return; }
@@ -1528,10 +1573,9 @@ async function _pbpTrStart(st) {
   // "gf changed" <=> "the user terms actually injected into this article
   // changed" -- a whole-table fingerprint would false-alarm whenever the user
   // edits a term for some OTHER article.
-  const userTable = pbpTrParseGlossary(st.s.translateGlossary);
   st.runMeta = {
     pg: PBP_TR_PROMPT_GEN,
-    gf: pbpTrGlossaryFingerprint(pbpTrMatchGlossary(userTable, st.work.map((w) => ({ text: w.shielded.text })))),
+    gf: _pbpTrCurrentGf(st),
     sm: summary ? 1 : 0
   };
   if (st.glossaryAuto) st.runMeta.ag = st.glossaryAuto;
@@ -1618,10 +1662,7 @@ async function _pbpTrStart(st) {
   // back to real block numbers via segMap.
   const batchesPacked = pbpTrPackBatches(segs);
   const pendingNs = pending.map((w) => w.n);
-  const batchBlockNs = batchesPacked.map((b) => b.map((seg) => {
-    const m = segMap.get(seg.id);
-    return m ? m.n : seg.id;
-  }));
+  const batchBlockNs = pbpTrBatchBlockNs(batchesPacked, segMap);
   const queueResult = await pbpTrRunQueue({
     targetCode: st.target.code,
     describeError: (e) => pbpAiErrorText(e),
@@ -1670,15 +1711,28 @@ async function _pbpTrStart(st) {
   });
   // End-of-run write keeps the FULL st.newly (not just the unflushed residue):
   // the append transform is an idempotent merge, so rewriting flushed blocks is
-  // free, and any blocks a failed flush dropped are retried here.
+  // free, and any blocks a failed flush dropped are retried here. A still-armed
+  // replaceRun (no flush consumed it) makes this THE atomic replace write.
   if (Object.keys(st.newly).length) {
-    try { await pbpTrCacheSet(st.url, st.target.code, st.modelKey, st.newly, st.account, st.runMeta); } catch (_) {}
+    try {
+      await pbpTrCacheSet(st.url, st.target.code, st.modelKey, st.newly, st.account, st.runMeta, st.replaceRun);
+      st.wroteOk = true;
+      st.replaceRun = false;
+    } catch (_) {}
   }
   // Review blocker #1: everything in the flush buffer is now on disk via the
   // full st.newly write above; residue must not outlive the run -- a later
   // language switch plus a hidden-flush would re-key it under the NEW language
   // (permanent wrong-language cache entries, no TTL to age them out).
   st.flushBuf = Object.create(null);
+  // ZH-1b (review #5/#12): escalate the session verdict to "mixed" only when
+  // this run actually LANDED writes into the old-generation entry -- a run
+  // that wrote nothing (instant Stop, total failure) leaves the disk
+  // single-generation and the verdict as-is. Sits before the permission-error
+  // return below so that exit reflects reality too. Retranslate runs cleared
+  // the verdict before starting, so they never escalate.
+  if (st.staleVerdict && st.wroteOk) st.staleVerdict = "mixed";
+  _pbpTrSyncStaleNote(st);
   if (queueResult.permissionError) {
     st.running = false;
     st.permissionError = queueResult.permissionError;
@@ -1704,12 +1758,6 @@ async function _pbpTrStart(st) {
     await _pbpTrApplyTargetLang(st, pending).catch(() => {});
     return;
   }
-  // ZH-1b: a run that CONTINUED over a stale cache merged current-generation
-  // blocks into an old-generation entry -- exactly what the on-disk gens set
-  // now records as "mixed"; keep the session verdict in step. A full
-  // retranslate cleared the verdict before starting, so it stays null there.
-  if (st.staleVerdict) st.staleVerdict = "mixed";
-  _pbpTrSyncStaleNote(st);
   const doneAll = st.work.every((w) => (w.n in st.trMd));
   _pbpTrSetStatus(st, doneAll ? "done" : "partial"); // partial = Stop / failures: Continue
   // A run where every block fails (offline, dead key) used to leave
@@ -1764,19 +1812,27 @@ function _pbpTrFlushCache(st) {
   if (!st || !st.flushBuf || st.flushInflight) return;
   if (!Object.keys(st.flushBuf).length) return;
   const url = st.url, lang = st.target.code, model = st.modelKey, account = st.account, meta = st.runMeta;
-  const batch = st.flushBuf;
+  // Replace-run flushes (ZH-1b retranslate / full-miss probe) carry the
+  // CUMULATIVE run output and replace the whole entry; on the first success
+  // the flag is consumed and later flushes merge as usual. A failed replace
+  // flush keeps the flag, so the next write retries the replace with an even
+  // fuller snapshot -- self-healing in every ordering, and the pre-rerun
+  // entry survives until the first new write lands (review batch-2 #2/#9).
+  const replace = !!st.replaceRun;
+  const batch = replace ? Object.assign(Object.create(null), st.newly) : st.flushBuf;
   st.flushBuf = Object.create(null);
   st.flushInflight = true;
   st.lastFlushTs = Date.now();
   const setFn = st.flushFn || pbpTrCacheSet;
   let p;
-  try { p = Promise.resolve(setFn(url, lang, model, batch, account, meta)); }
+  try { p = Promise.resolve(setFn(url, lang, model, batch, account, meta, replace)); }
   catch (e) {
     st.flushInflight = false;
     try { console.warn("tr flush failed:", e && e.name, e && e.message); } catch (_) {}
     return;
   }
-  p.catch((e) => { try { console.warn("tr flush failed:", e && e.name, e && e.message); } catch (_) {} })
+  p.then(() => { st.wroteOk = true; if (replace) st.replaceRun = false; })
+    .catch((e) => { try { console.warn("tr flush failed:", e && e.name, e && e.message); } catch (_) {} })
     .finally(() => { st.flushInflight = false; });
 }
 
@@ -2095,6 +2151,13 @@ function _pbpTrSetStatus(st, status) {
     if (document.activeElement === btn) stop.focus();
     btn.disabled = true;
   } else if (status === "partial") {
+    // NOTE (review #3/#11, accepted two-step closure): a partial+stale entry
+    // shows the stale note while the single button stays Continue -- the
+    // cheaper action. Continuing honestly records the entry as mixed (gens on
+    // disk + session verdict), after which the done state offers the full
+    // Retranslate. Swapping Continue for Retranslate here would remove the
+    // cheap path; a second control next to the note is a design decision
+    // deferred to the user.
     label.textContent = t(st.permissionError ? "aiGrantRetry" : "trContinue");
     btn.disabled = false;
     btn.hidden = false;
@@ -2120,9 +2183,15 @@ function _pbpTrSetStatus(st, status) {
     // before.
     btn.hidden = !stale;
     if (label) label.textContent = t(stale ? "trRetranslate" : "trTranslate");
+    btn.title = t(stale ? "trRetranslate" : "trTranslate") + " (t)";   // keep the tooltip in step with the label (review #18)
     stop.hidden = true;
     if (stale) {
-      const chars = st.work.reduce((a, w) => a + w.shielded.text.length, 0);
+      // Skip-aware price (review #7/#17): blocks _pbpTrApplySkips marks as
+      // already-in-target never get sent, so they must not be billed here --
+      // same convention as the initial estimate (st.approxChars) and the
+      // partial-state remainder.
+      const chars = st.work.reduce((a, w) =>
+        (st.skippedSet && st.skippedSet.has(w.n)) ? a : a + w.shielded.text.length, 0);
       est.hidden = false;
       est.textContent = t("trEstCost", String(pbpAiEstimateTokens(chars) * 3),
         (st.s.aiProvider || "gemini") + "/" + (pbpAiResolveModelOverride(st.s) || "default"));
@@ -2139,6 +2208,7 @@ function _pbpTrSetStatus(st, status) {
     // Pristine pre-translation state (used when a target-language change resets the
     // page): re-arm the Translate button, hide progress, show the cost estimate again.
     label.textContent = t("trTranslate");
+    btn.title = t("trTranslate") + " (t)";   // undo a possible Retranslate tooltip (review #18)
     btn.disabled = false;
     btn.hidden = false;
     stop.hidden = true;

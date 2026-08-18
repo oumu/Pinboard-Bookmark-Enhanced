@@ -626,7 +626,13 @@ async function pbpTrCacheGet(url, lang, model, account) {
   return out;
 }
 
-async function pbpTrCacheSet(url, lang, model, blocksMap, account, meta) {
+// `replace` (ZH-1b retranslate / full-miss runs): discard the stored blocks
+// AND meta atomically with this write instead of merging -- the fresh entry
+// holds only the current run's output and generation (gate D11). Crucially
+// there is NO separate pre-run delete: the old paid translation survives on
+// disk until new content actually lands (review batch-2 #2/#9 -- Stop,
+// offline or a total failure then lose nothing; reloading restores it).
+async function pbpTrCacheSet(url, lang, model, blocksMap, account, meta, replace) {
   // Atomic merge (mirrors pbpAskHistAppend): a plain get-then-put lets two
   // preview tabs on the same URL/lang/model race and silently drop one tab's
   // freshly-translated (and paid-for) blocks. Routing the read-merge-write
@@ -638,7 +644,7 @@ async function pbpTrCacheSet(url, lang, model, blocksMap, account, meta) {
   // writes arrive in whatever order batches finish; consumers must key by
   // blockHash only, never by insertion order.
   const key = _pbpTrCacheKey(url, lang, model, account);
-  await pbpAiCacheAppend(key, (prev) => pbpTrCacheApplyWrite(prev, blocksMap, meta), Date.now());
+  await pbpAiCacheAppend(key, (prev) => pbpTrCacheApplyWrite(replace ? undefined : prev, blocksMap, meta), Date.now());
 }
 
 // Auto-extracted terminology cache (spec T1): one entry per account/article/(lang, model),

@@ -997,7 +997,7 @@ suite("md-ai IDB key conventions", () => {
     const start = _pbpTrStart.toString();
     assert(init.includes('account: String((detail && detail.account) || "")'), "render detail owner not captured");
     assert(start.includes('getAICache(st.url, "summary", st.s.aiCacheDuration, source, st.account, st.s)'), "summary context owner missing");
-    assert(start.includes("pbpTrCacheSet(st.url, st.target.code, st.modelKey, st.newly, st.account, st.runMeta)"), "translation write owner or run meta missing");
+    assert(start.includes("pbpTrCacheSet(st.url, st.target.code, st.modelKey, st.newly, st.account, st.runMeta, st.replaceRun)"), "translation write owner, run meta or replace flag missing");
     assert(_pbpTrEnsureGlossary.toString().includes("pbpTrGlossaryCacheGet(st.url, st.target.code, st.modelKey, st.account)"), "glossary owner missing");
   });
   test("ask history trimmed to last 20, oldest dropped", () => {
@@ -6695,8 +6695,48 @@ suiteIf("tr stale retranslate (ZH-1b)", "_pbpTrRetranslate", () => {
       // price, or not show at all.
       assertEq(btn.hidden, false, "stale done state must keep the action");
       assertEq(btn.querySelector(".btn-label").textContent, "trRetranslate", "label switches");
+      assertEq(btn.title, "trRetranslate (t)", "tooltip follows the label (review #18)");
       assertEq(document.getElementById("tr-estimate").hidden, false, "price shown next to retranslate");
     } finally { wrap.remove(); }
+  });
+  test("retranslate price excludes skipped blocks (review #7/#17)", () => {
+    const wrap = statusFixture();
+    const realT = window.t;
+    window.t = (k, ...args) => k + "|" + args.join("|");
+    try {
+      const st = mkSt("prompt");
+      st.work = [
+        { n: 1, shielded: { text: "x".repeat(400) } },
+        { n: 2, shielded: { text: "y".repeat(400) } }
+      ];
+      st.skippedSet = new Set([2]);   // block 2 is already in the target language: never sent, never billed
+      _pbpTrSetStatus(st, "done");
+      const est = document.getElementById("tr-estimate").textContent;
+      assert(est.indexOf("trEstCost|" + String(Math.ceil(400 / 4) * 3) + "|") === 0,
+        "billed only the non-skipped 400 chars, got: " + est);
+    } finally { window.t = realT; wrap.remove(); }
+  });
+  test("every non-mixed verdict uses the stale wording (category, not instances)", () => {
+    const wrap = statusFixture();
+    try {
+      const note = document.getElementById("tr-stale-note");
+      for (const v of ["prompt", "glossary", "both"]) {
+        _pbpTrSyncStaleNote({ staleVerdict: v });
+        assertEq(note.textContent, "trStaleNote", v + " is a single (outdated) generation, not mixed");
+      }
+    } finally { wrap.remove(); }
+  });
+  test("reset keeps the view mode only when asked (retranslate path)", () => {
+    const st = {
+      mode: "translated", trMd: { 1: "x" }, glossary: {}, glossaryHits: {},
+      skippedSet: new Set(), flushBuf: { h: "x" }, runMeta: {}, cacheMeta: {},
+      staleVerdict: "prompt", replaceRun: false
+    };
+    _pbpTrResetTranslations(st, { keepMode: true });
+    assertEq(st.mode, "translated", "translated-only readers keep their view");
+    assertEq(st.replaceRun, false, "reset always clears the replace flag (retranslate re-arms it after)");
+    assertEq(st.staleVerdict, null);
+    assertEq(Object.keys(st.flushBuf).length, 0);
   });
   test("done without stale hides the button (pre-ZH-1b shape unchanged)", () => {
     const wrap = statusFixture();
@@ -6719,14 +6759,6 @@ suiteIf("tr stale retranslate (ZH-1b)", "_pbpTrRetranslate", () => {
       assertEq(note.hidden, true); assertEq(note.textContent, "");
     } finally { wrap.remove(); }
   });
-  test("D11 source pin: retranslate deletes the entry before rerunning", () => {
-    // The append transform MERGES meta (gens would become [old, current] =
-    // permanently "mixed"); the delete is what makes D11 hold. Source-pinned
-    // in the same style as the owner-threading assertions above.
-    const src = _pbpTrRetranslate.toString();
-    assert(src.includes("pbpAiCacheDelete(_pbpTrCacheKey(st.url, st.target.code, st.modelKey, st.account))"),
-      "retranslate must drop the stale entry first");
-  });
 });
 
 suiteIf("tr viewport-priority claim (ZH-2)", "pbpTrPickBatch", () => {
@@ -6743,6 +6775,23 @@ suiteIf("tr viewport-priority claim (ZH-2)", "pbpTrPickBatch", () => {
     assertEq(pbpTrPickBatch([0, 1, 2], NS, undefined), 0);
     assertEq(pbpTrPickBatch([0, 1, 2], NS, NaN), 0);
     assertEq(pbpTrPickBatch([2], NS, 1), 2, "single remaining is always legal");
+    assertEq(pbpTrPickBatch([0, 1], [[], [5]], 5), 1, "a batch with no known blocks never outranks a real match");
+  });
+  test("batch block-number mapping resolves synthetic part ids (review #16)", () => {
+    // Block 2 was oversize and split into parts: part 0 keeps id 2, later
+    // parts get synthetic ids past max(n) (here 7, 8). Raw seg ids would
+    // shove this batch to the document's end; the mapping must ground every
+    // part back to block 2.
+    const segMap = new Map([
+      [1, { n: 1, idx: 0, parts: 1 }],
+      [2, { n: 2, idx: 0, parts: 3 }],
+      [7, { n: 2, idx: 1, parts: 3 }],
+      [8, { n: 2, idx: 2, parts: 3 }]
+    ]);
+    const batches = [[{ id: 1, text: "a" }], [{ id: 2, text: "b" }, { id: 7, text: "c" }, { id: 8, text: "d" }]];
+    const ns = pbpTrBatchBlockNs(batches, segMap);
+    assertEq(JSON.stringify(ns), "[[1],[2,2,2]]", "part ids ground to their real block");
+    assertEq(pbpTrPickBatch([0, 1], ns, 2), 1, "viewport at block 2 claims the split-block batch first");
   });
   test("run anchor: BOTH continue paths take min(untranslated), fresh takes the viewport", () => {
     // probe-partial continue: 10 work, 0 skipped, 6 pending
@@ -6798,6 +6847,18 @@ suiteIf("tr incremental flush (ZH-0)", "_pbpTrFlushCache", () => {
     st.flushBuf.h1 = "x";
     _pbpTrFlushCache(st);
     assertEq(calls[0][5], st.runMeta, "meta rides every incremental write");
+    assert(!calls[0][6], "ordinary runs never pass the replace flag");
+  });
+  test("replace-run flush carries the cumulative payload and the replace flag", () => {
+    const calls = [];
+    const st = mkSt({ flushFn: (...a) => { calls.push(a); return Promise.resolve(); } });
+    st.replaceRun = true;
+    st.newly = { h1: "a", h2: "b" };       // earlier fills already recorded
+    st.flushBuf = { h2: "b" };             // only h2 still buffered
+    _pbpTrFlushCache(st);
+    assertEq(Object.keys(calls[0][3]).length, 2, "cumulative newly, not just the buffer");
+    assertEq(calls[0][6], true, "replace flag rides along");
+    assertEq(Object.keys(st.flushBuf).length, 0, "buffer still drains");
   });
   test("in-flight merge: no concurrent flushes, later blocks keep buffering", () => {
     const calls = [];
@@ -6987,18 +7048,134 @@ suiteIf("tr_ independent cache pool (ZH-6)", "_pbpAiTrRange", () => {
     assertEq(r.done, 2, "every block still translates");
   });
 
-  await atest("D11 runtime: delete-then-write yields a single-generation entry", async () => {
+  await atest("D11 cache layer: a replace write discards stored blocks and meta", async () => {
     const url = "https://pbp-test/tr-retr-" + Date.now();
     const key = _pbpTrCacheKey(url, "zh-Hans", "m", "acct");
     await pbpTrCacheSet(url, "zh-Hans", "m", { h1: "旧" }, "acct", { pg: 1, gf: "", sm: 0 });
     await pbpTrCacheSet(url, "zh-Hans", "m", { h2: "新" }, "acct", { pg: 2, gf: "", sm: 0 });
     let got = await pbpTrCacheGet(url, "zh-Hans", "m", "acct");
     assert(JSON.stringify(got.meta.gens) === "[1,2]", "merge path records mixed (the trap D11 exists for)");
-    await pbpAiCacheDelete(key);
-    await pbpTrCacheSet(url, "zh-Hans", "m", { h1: "重", h2: "译" }, "acct", { pg: 2, gf: "", sm: 0 });
+    await pbpTrCacheSet(url, "zh-Hans", "m", { h3: "重译" }, "acct", { pg: 2, gf: "", sm: 0 }, true);
     got = await pbpTrCacheGet(url, "zh-Hans", "m", "acct");
-    assert(JSON.stringify(got.meta.gens) === "[2]", "after delete the rerun writes a pure current-gen entry, got " + JSON.stringify(got.meta.gens));
+    assert(got.blocks.h1 === undefined && got.blocks.h2 === undefined, "replace drops the stored blocks");
+    assertEq(got.blocks.h3, "重译");
+    assert(JSON.stringify(got.meta.gens) === "[2]", "replace writes a pure current-gen entry, got " + JSON.stringify(got.meta.gens));
     await pbpAiCacheDelete(key);
+  });
+
+  await atest("replace flag consumed by the first successful flush, kept by a failed one", async () => {
+    const stFail = {
+      newly: { h1: "x" }, flushBuf: { h1: "x" }, flushInflight: false, lastFlushTs: 0,
+      url: "u", target: { code: "zh-Hans" }, modelKey: "m", account: "a", runMeta: undefined,
+      replaceRun: true, wroteOk: false, flushFn: () => Promise.reject(new Error("boom"))
+    };
+    _pbpTrFlushCache(stFail);
+    await new Promise((r) => setTimeout(r, 10));
+    assertEq(stFail.replaceRun, true, "failed replace keeps the flag so the next write retries it");
+    const stOk = {
+      newly: { h1: "x" }, flushBuf: { h1: "x" }, flushInflight: false, lastFlushTs: 0,
+      url: "u", target: { code: "zh-Hans" }, modelKey: "m", account: "a", runMeta: undefined,
+      replaceRun: true, wroteOk: false, flushFn: () => Promise.resolve()
+    };
+    _pbpTrFlushCache(stOk);
+    await new Promise((r) => setTimeout(r, 10));
+    assertEq(stOk.replaceRun, false, "successful replace consumes the flag");
+    assertEq(stOk.wroteOk, true, "landed writes are recorded for the mixed-escalation gate");
+  });
+
+  function retrFixtureDom() {
+    const dom = document.createElement("div");
+    dom.innerHTML =
+      '<div id="tr-section"></div>' +
+      '<button id="btn-translate"><span class="btn-label">x</span></button>' +
+      '<button id="btn-tr-stop" hidden></button>' +
+      '<div id="tr-progress" hidden></div>' +
+      '<div id="tr-estimate" hidden></div>' +
+      '<div id="tr-skip-note" hidden></div>' +
+      '<div id="tr-stale-note" hidden></div>';
+    document.body.appendChild(dom);
+    return dom;
+  }
+  function retrFixtureSt(url) {
+    return {
+      s: { aiProvider: "gemini", geminiApiKey: "k", translateGlossary: "" },
+      url, account: "acct", title: "T", modelKey: "p:m",
+      target: { code: "zh-Hans", name: "Simplified Chinese" },
+      work: [{ n: 1, md: "hello world", hash: "hNEW", shielded: { text: "hello world", slots: [] } }],
+      trMd: Object.create(null), mode: "original", status: "done", running: false,
+      staleVerdict: "prompt", glossaryHits: Object.create(null), permissionError: null,
+      railHandle: null
+    };
+  }
+
+  await atest("review-fix: a failed retranslate leaves the old paid entry on disk", async () => {
+    const url = "https://pbp-test/retr-fail-" + Date.now();
+    const key = _pbpTrCacheKey(url, "zh-Hans", "p:m", "acct");
+    await pbpTrCacheSet(url, "zh-Hans", "p:m", { hOLD: "旧译文" }, "acct", { pg: 1, gf: "", sm: 0 });
+    const dom = retrFixtureDom();
+    const realStream = window.callAIStream;
+    window.callAIStream = async () => { throw new Error("offline"); };
+    const st = retrFixtureSt(url);
+    try {
+      await _pbpTrRetranslate(st).catch(() => {});
+      const entry = await pbpTrCacheGet(url, "zh-Hans", "p:m", "acct");
+      assert(entry && entry.blocks.hOLD === "旧译文", "old entry must survive a failed rerun (no pre-run delete)");
+      assert(JSON.stringify(entry.meta.gens) === "[1]", "meta untouched too");
+      assertEq(st.staleVerdict, null, "verdict stays cleared, never falsely escalated to mixed");
+    } finally {
+      window.callAIStream = realStream;
+      dom.remove();
+      await pbpAiCacheDelete(key);
+      await pbpAiCacheDelete(_pbpTrViewKey(url, "acct"));
+    }
+  });
+
+  await atest("review-fix: trigger on a stale done state performs a REPLACE rerun (D11 target quantity)", async () => {
+    const url = "https://pbp-test/retr-ok-" + Date.now();
+    const key = _pbpTrCacheKey(url, "zh-Hans", "p:m", "acct");
+    await pbpTrCacheSet(url, "zh-Hans", "p:m", { hOLD: "旧译文" }, "acct", { pg: 1, gf: "", sm: 0 });
+    const dom = retrFixtureDom();
+    const realStream = window.callAIStream;
+    window.callAIStream = async (s, prompt, opts, onDelta) => {
+      const full = '{"translations":[{"id":1,"text":"NEW TRANSLATION TEXT"}]}';
+      onDelta(full, full);
+      return full;
+    };
+    const st = retrFixtureSt(url);
+    try {
+      _pbpTrTrigger(st);          // the ACTION half of the shape constraint (review #14)
+      for (let i = 0; i < 150 && (st.running || st.status !== "done"); i++) {
+        await new Promise((r) => setTimeout(r, 20));
+      }
+      assertEq(st.status, "done", "rerun completed");
+      const entry = await pbpTrCacheGet(url, "zh-Hans", "p:m", "acct");
+      assert(entry.blocks.hOLD === undefined, "old blocks replaced, not merged");
+      assertEq(entry.blocks.hNEW, "NEW TRANSLATION TEXT");
+      assertEq(JSON.stringify(entry.meta.gens), "[" + PBP_TR_PROMPT_GEN + "]",
+        "fresh entry holds ONLY the current generation");
+    } finally {
+      window.callAIStream = realStream;
+      dom.remove();
+      await pbpAiCacheDelete(key);
+      await pbpAiCacheDelete(_pbpTrViewKey(url, "acct"));
+    }
+  });
+
+  await atest("review-fix: a full-miss cache entry arms a replace run instead of a stale banner", async () => {
+    const url = "https://pbp-test/retr-miss-" + Date.now();
+    const key = _pbpTrCacheKey(url, "zh-Hans", "p:m", "acct");
+    await pbpTrCacheSet(url, "zh-Hans", "p:m", { hGONE: "旧" }, "acct", { pg: 1, gf: "", sm: 0 });
+    const st = retrFixtureSt(url);
+    st.status = "idle";
+    st.staleVerdict = null;
+    try {
+      await _pbpTrProbeCache(st);
+      assertEq(st.staleVerdict, null, "no banner pointing at nothing (review #10)");
+      assertEq(st.replaceRun, true, "next run replaces the orphaned entry (review #4)");
+      assertEq(st.status, "idle", "no state transition on a full miss");
+    } finally {
+      await pbpAiCacheDelete(key);
+    }
   });
 
   await atest("flush inflight flag resets after async rejection (ZH-0)", async () => {
