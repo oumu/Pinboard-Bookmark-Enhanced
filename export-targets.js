@@ -54,6 +54,14 @@ const _PBP_ICON_GITHUB =
 const _PBP_ICON_WEBHOOK =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h11"/><path d="M10 7l5 5-5 5"/><circle cx="19.5" cy="12" r="2.5"/></svg>';
 
+// docs/privacy.md (Network requests, item 3) states the extension runs no
+// translation snapshot/sharing service and that translations leave the device
+// only via explicit Send-to exports. That sentence assumes two behaviors
+// defined below: the Gist target stays a SECRET gist (public:false; URL still
+// shareable), and the Webhook target posts only to the user-configured
+// endpoint. Changing either must update that privacy.md sentence in the same
+// commit (release.sh's privacy gate only fires on NEW egress, not on behavior
+// changes -- this comment is the only reminder channel).
 const PBP_EXPORT_TARGETS = {
   obsidian: {
     id: "obsidian",

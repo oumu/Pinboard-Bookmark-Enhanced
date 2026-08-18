@@ -7,6 +7,11 @@ title: Pinboard Bookmark Enhanced
 
 A Chrome extension for [Pinboard](https://pinboard.in) with AI tags and summaries, a reader with translation and highlights, and 13 themes for pinboard.in.
 
+## Reading and translation
+
+- The reader works on the extracted article text, not on the live page, so full-text translation never has to fight the original site's layout: headings, lists, tables, code blocks, and math keep their structure in both the bilingual and translated views.
+- Translation runs between your browser and the AI provider you configured with your own key. The extension operates no translation snapshot or sharing service, so a translated page cannot appear on a public URL unless you export it yourself.
+
 ## Sync and backup
 
 - Chrome Sync can share settings between devices where you enable it. Credential sync is a separate opt-in.
