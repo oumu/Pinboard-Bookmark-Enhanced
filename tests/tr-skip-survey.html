@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>EN-1 skip-predicate field survey (QVP-4)</title>
+<style>
+body { font-family: monospace; padding: 16px; max-width: 1100px; margin: 0 auto; }
+h1 { font-size: 18px; } h2 { font-size: 15px; margin-top: 24px; }
+textarea { width: 100%; height: 220px; box-sizing: border-box; font-family: inherit; }
+input, select, button { font-family: inherit; }
+table { border-collapse: collapse; margin-top: 8px; width: 100%; }
+th, td { border: 1px solid #ccc; padding: 4px 8px; text-align: left; font-size: 13px; }
+.hit { background: #fff7e0; border-left: 3px solid #d90; padding: 6px 8px; margin: 6px 0; white-space: pre-wrap; }
+.veto { color: #b00; font-weight: bold; }
+.ok { color: #176; }
+#summary { font-weight: bold; margin-top: 8px; }
+.note { color: #666; font-size: 12px; }
+</style></head>
+<body>
+<h1>EN-1 · pbpTrBlockLacksSourceScript field survey (QVP-4)</h1>
+<p class="note">
+Protocol (proposals.md v3, EN-1): paste the EXTRACTED markdown/text of 8-12 real
+Chinese technical articles (papers / reports / forum threads / code-heavy
+tutorials), one at a time. For each article this page reports how many blocks
+the proposed predicate would skip and their character share. <b>Veto metric
+comes FIRST</b>: read every hit block below and judge its language -- if ANY hit
+block is non-English Latin (French/German/...), the proposal is dead (D) per
+spec. Only then apply the tiering rule on the median hit-char share:
+&ge;10% &rarr; P1, 5-10% &rarr; P2, &lt;5% &rarr; P3/drop.
+Blocks are approximated by blank-line splitting of the pasted text; the real
+pipeline segments by rendered DOM blocks, so treat shares as estimates.
+</p>
+
+<label>Article name <input id="name" size="30" placeholder="e.g. paper-01"></label>
+<label style="margin-left:12px">articleLang
+  <select id="lang">
+    <option>zh-Hans</option><option>zh-Hant</option><option>ja</option>
+    <option>ko</option><option>ar</option><option>he</option>
+  </select>
+</label>
+<button id="run" style="margin-left:12px">Analyze</button>
+<br><br>
+<textarea id="src" placeholder="Paste the article's extracted markdown / plain text here"></textarea>
+
+<h2>Session results</h2>
+<table id="results"><tr>
+  <th>#</th><th>article</th><th>lang</th><th>blocks</th><th>hit blocks</th>
+  <th>chars</th><th>hit chars</th><th>hit share</th>
+</tr></table>
+<div id="summary"></div>
+
+<h2>Hit blocks of the last article (judge each one's language!)</h2>
+<div id="hits"></div>
+
+<script>
+window.chrome = window.chrome || {
+  i18n: { getMessage: () => "" },
+  storage: { local: { get: async (d) => d || {} } }
+};
+</script>
+<script src="../md-ai-core.js"></script>
+<script src="../md-translate.js"></script>
+<script>
+const rows = [];
+document.getElementById("run").addEventListener("click", () => {
+  const lang = document.getElementById("lang").value;
+  const name = document.getElementById("name").value.trim() || ("article-" + (rows.length + 1));
+  const text = document.getElementById("src").value;
+  const blocks = text.split(/\n{2,}/).map((b) => b.trim()).filter(Boolean);
+  if (!blocks.length) return;
+  let totalChars = 0, hitChars = 0;
+  const hits = [];
+  for (const b of blocks) {
+    const shielded = pbpAiShield(b).text;
+    totalChars += shielded.length;
+    if (pbpTrBlockLacksSourceScript(shielded, lang, "en")) {
+      hitChars += shielded.length;
+      hits.push(b);
+    }
+  }
+  const share = totalChars ? (hitChars / totalChars) : 0;
+  rows.push({ name, lang, blocks: blocks.length, hitBlocks: hits.length, totalChars, hitChars, share });
+
+  const table = document.getElementById("results");
+  const tr = document.createElement("tr");
+  for (const v of [rows.length, name, lang, blocks.length, hits.length, totalChars, hitChars, (share * 100).toFixed(1) + "%"]) {
+    const td = document.createElement("td");
+    td.textContent = String(v);
+    tr.appendChild(td);
+  }
+  table.appendChild(tr);
+
+  const shares = rows.map((r) => r.share).sort((a, b) => a - b);
+  const mid = shares.length % 2
+    ? shares[(shares.length - 1) / 2]
+    : (shares[shares.length / 2 - 1] + shares[shares.length / 2]) / 2;
+  const tier = mid >= 0.10 ? "P1" : mid >= 0.05 ? "P2" : "P3 / drop";
+  document.getElementById("summary").textContent =
+    "articles: " + rows.length + "  |  median hit-char share: " + (mid * 100).toFixed(1) +
+    "%  ->  tier (ONLY if the veto below is clean): " + tier;
+
+  const hitBox = document.getElementById("hits");
+  hitBox.replaceChildren();
+  if (!hits.length) {
+    const p = document.createElement("p");
+    p.className = "ok";
+    p.textContent = "No hit blocks in this article.";
+    hitBox.appendChild(p);
+  } else {
+    const p = document.createElement("p");
+    p.className = "veto";
+    p.textContent = "VETO CHECK: if any block below is NOT English (e.g. a French/German quote), the proposal is dead.";
+    hitBox.appendChild(p);
+    for (const h of hits) {
+      const div = document.createElement("div");
+      div.className = "hit";
+      div.textContent = h.length > 400 ? h.slice(0, 400) + " …" : h;
+      hitBox.appendChild(div);
+    }
+  }
+});
+</script>
+</body></html>

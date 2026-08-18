@@ -669,6 +669,45 @@ function pbpTrBlockIsTargetLang(text, targetCode) {
   return false; // Latin targets + unrecognized/custom codes: never skip (see file-header rationale)
 }
 
+// ---- EN-1: source-script-missing skip predicate (NOT yet wired) ----
+// Complements pbpTrBlockIsTargetLang from the opposite direction: in a
+// script-detectable article (CJK/RTL), a block containing ZERO source-script
+// characters and mostly Latin letters is "not the source language" -- for an
+// ENGLISH target that almost always means an English abstract/quote that
+// needs no translation (and would be billed again otherwise).
+// Deliberately narrow, in this order of importance:
+//   1. targetBase must be exactly "en" (the v2 defect class: a zh article
+//      translated to ja/de/fr must never skip its English quotes -- those are
+//      precisely what the user wants translated; for target en the residual
+//      miss probability is lowest).
+//   2. STRICT ZERO source-script characters (one Han/kana/hangul char vetoes).
+//   3. Latin ratio >= PBP_TR_SCRIPT_THRESHOLD over >= PBP_TR_SCRIPT_MIN_LETTERS
+//      letters, on the same placeholder-stripped text as the sibling predicate.
+// Documented residual (pinned by the QVP-0 gate): a French/German quote inside
+// a zh article passes -- which is why WIRING this into _pbpTrApplySkips is
+// gated on the QVP-4 field measurement (tests/tr-skip-survey.html; veto metric
+// first: any non-English Latin hit block kills the proposal) plus a visible,
+// undoable skip note. Until that gate passes, the only consumers are the
+// survey harness and the category-regression tests.
+const PBP_TR_SOURCE_SCRIPTS = {
+  "zh-Hans": ["han"], "zh-Hant": ["han"],
+  ja: ["han", "kana"], ko: ["hangul", "han"],
+  ar: ["arabic"], he: ["hebrew"]
+};
+function pbpTrBlockLacksSourceScript(text, articleLang, targetCode) {
+  const base = String(targetCode || "").toLowerCase().split(/[-_]/)[0];
+  if (base !== "en") return false;
+  const scripts = PBP_TR_SOURCE_SCRIPTS[articleLang];
+  if (!scripts) return false;
+  const bare = String(text == null ? "" : text).replace(/⟦[CLIM]\d+⟧/g, "");
+  const letters = _pbpTrScriptCount(bare, /\p{L}/gu);
+  if (letters < PBP_TR_SCRIPT_MIN_LETTERS) return false;
+  for (const s of scripts) {
+    if (_pbpTrScriptCount(bare, PBP_TR_SCRIPT_RX[s]) > 0) return false;
+  }
+  return (_pbpTrScriptCount(bare, /[A-Za-z]/g) / letters) >= PBP_TR_SCRIPT_THRESHOLD;
+}
+
 // Localized language name for UI display (e.g. zh UI shows "简体中文", not the
 // English "Simplified Chinese"). Uses the built-in Intl.DisplayNames (zero-dep);
 // falls back to the English name for custom/free-text targets Intl can't resolve

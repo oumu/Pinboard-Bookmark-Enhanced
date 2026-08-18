@@ -6664,6 +6664,55 @@ suiteIf("tr cache generation ledger (ZH-1a)", "pbpTrGensPush", () => {
   });
 });
 
+suiteIf("tr source-script skip predicate (EN-1, QVP-0)", "pbpTrBlockLacksSourceScript", () => {
+  // Category regression gate (spec EN-1): table-driven by CATEGORY, never by
+  // instance enumeration. The predicate is NOT yet wired into
+  // _pbpTrApplySkips -- wiring is gated on the QVP-4 field measurement
+  // (tests/tr-skip-survey.html); these gates pin its shape beforehand.
+  const EN_ABSTRACT = "This paper presents a comprehensive survey of neural machine translation methods and their evaluation across domains.";
+  test("category: target language gate -- only en, everything else is hard false", () => {
+    // The v2 defect class: a source-language detector used as a target-language
+    // detector. zh article translated to ja/de/fr must NEVER skip its English
+    // quotes -- those are exactly what the user wants translated.
+    for (const target of ["ja", "de", "fr", "zh-Hans", "ko", ""]) {
+      assertEq(pbpTrBlockLacksSourceScript(EN_ABSTRACT, "zh-Hans", target), false,
+        "target " + (target || "(empty)") + " must never skip");
+    }
+    assertEq(pbpTrBlockLacksSourceScript(EN_ABSTRACT, "zh-Hans", "en"), true, "en target skips the English abstract");
+    assertEq(pbpTrBlockLacksSourceScript(EN_ABSTRACT, "zh-Hans", "en-US"), true, "base-language split applies");
+  });
+  test("category: too little signal never skips (short headings)", () => {
+    assertEq(pbpTrBlockLacksSourceScript("Quick Start", "zh-Hans", "en"), false, "letters < 20");
+  });
+  test("category: ANY source-script character vetoes the skip (strict zero)", () => {
+    assertEq(pbpTrBlockLacksSourceScript(EN_ABSTRACT + " 图", "zh-Hans", "en"), false, "a single Han character");
+    assertEq(pbpTrBlockLacksSourceScript(EN_ABSTRACT + " の", "ja", "en"), false, "kana counts as ja source script");
+    assertEq(pbpTrBlockLacksSourceScript(EN_ABSTRACT + " 図", "ja", "en"), false, "han counts as ja source script too");
+    assertEq(pbpTrBlockLacksSourceScript(EN_ABSTRACT + " 한", "ko", "en"), false, "hangul vetoes for ko");
+  });
+  test("category: full-width punctuation alone does not veto (it is not a source-script letter)", () => {
+    assertEq(pbpTrBlockLacksSourceScript(EN_ABSTRACT + "，Really。", "zh-Hans", "en"), true,
+      "an English block that only borrowed zh punctuation is still English");
+  });
+  test("category: unknown/latin article language never skips", () => {
+    assertEq(pbpTrBlockLacksSourceScript(EN_ABSTRACT, "", "en"), false, "latin/ambiguous article");
+    assertEq(pbpTrBlockLacksSourceScript(EN_ABSTRACT, "fr", "en"), false, "unsupported articleLang");
+  });
+  test("category: placeholders are stripped before counting", () => {
+    assertEq(pbpTrBlockLacksSourceScript("⟦C1⟧ " + EN_ABSTRACT + " ⟦L2⟧", "zh-Hans", "en"), true,
+      "shield placeholders must not dilute the ratio");
+  });
+  test("category: non-English LATIN quotes are the DOCUMENTED residual miss", () => {
+    // A French quote inside a zh article passes the predicate (no Han, mostly
+    // Latin letters). This is the known residual the spec accepts ONLY behind
+    // the QVP-4 veto metric + the visible, undoable skip note -- pinned here
+    // so nobody claims the predicate is miss-free.
+    assertEq(pbpTrBlockLacksSourceScript(
+      "Les données ont été analysées avec soin et présentées clairement dans le rapport final.",
+      "zh-Hans", "en"), true, "documented residual: French survives the script test");
+  });
+});
+
 suiteIf("tr stale retranslate (ZH-1b)", "_pbpTrRetranslate", () => {
   function statusFixture() {
     const wrap = document.createElement("div");
