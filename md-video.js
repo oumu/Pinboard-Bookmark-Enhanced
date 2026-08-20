@@ -405,6 +405,8 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       if (seekable) {
         row.title = t("mdVideoSeekTo", pbpVideoFmtTime(seg.from));
         row.addEventListener("click", () => seekTo(Math.floor(seg.from)));
+      } else {
+        row.tabIndex = -1;
       }
       frag.appendChild(row);
     });
