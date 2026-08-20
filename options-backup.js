@@ -16,6 +16,8 @@ function importThemesResult(err) {
 
 const PBP_BACKUP_TARGET_FIELDS = Object.freeze({
   obsidian: Object.freeze({ enabled: "boolean", route: "string", vault: "string", folder: "string" }),
+  notion: Object.freeze({ enabled: "boolean", parent: "string" }),
+  notebooklm: Object.freeze({ enabled: "boolean" }),
   github: Object.freeze({ enabled: "boolean" }),
   webhook: Object.freeze({ enabled: "boolean" }),
 });
