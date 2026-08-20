@@ -14,6 +14,7 @@ For Chrome Web Store reviewers: every file in this directory is unmodified upstr
 | `purify.min.js` | 3.4.12 | https://github.com/cure53/DOMPurify | Apache-2.0 / MPL-2.0 | The single sanitize point: cleans all HTML before it enters the preview DOM (both `marked` output and arbitrary web-page Markdown). Loaded only inside `md-preview.html`. |
 | `highlight.min.js`, `hljs-github*.min.css` | 11.11.1 | https://github.com/highlightjs/highlight.js | BSD-3-Clause | Syntax-highlights fenced/auto-detected code blocks in the Markdown preview. Loaded only inside `md-preview.html`. |
 | `katex/` | 0.17.0 | https://github.com/KaTeX/KaTeX | MIT | Renders LaTeX math (`$...$` / `$$...$$`) in the Markdown preview. Lazy-loaded in `md-preview.html` only for content flagged math-bearing (e.g. arXiv abstracts) — never on other pages, so currency `$` is never touched. woff2 fonts only (Chrome supports woff2). |
+| `mermaid.min.js` | 11.17.0 | https://github.com/mermaid-js/mermaid | MIT | Renders Mermaid diagram code fences to inline SVG in the Markdown preview. Lazy-loaded by `md-mermaid.js` only when Mermaid-flagged content is present. Manually pinned from the jsDelivr CDN build — not covered by `scripts/update-vendor.sh`. |
 
 ## Reproduction (for source verification)
 
@@ -71,9 +72,15 @@ tar -xzf katex-0.17.0.tgz
 # (auto-render.min.js flattened out of contrib/; .woff/.ttf fonts dropped — Chrome uses woff2)
 ```
 
+### `mermaid.min.js`
+```bash
+curl -fsSL https://cdn.jsdelivr.net/npm/mermaid@11.17.0/dist/mermaid.min.js | diff - vendor/mermaid.min.js
+```
+Vendored straight from the jsDelivr CDN build (not the npm tarball) since mermaid ships no single-file UMD bundle in its published package; `dist/mermaid.min.js` is the same esbuild output jsDelivr serves for `<script src="https://cdn.jsdelivr.net/npm/mermaid@11.17.0/dist/mermaid.min.js">` usage upstream.
+
 ## Update Policy
 
-Vendor files are pinned and updated only when needed (security fix, breaking compatibility). `scripts/update-vendor.sh` refreshes **`defuddle.js`, `turndown.js`, `marked.min.js`, `purify.min.js`, and `highlight.min.js` (+ its github theme CSS)** to the true npm-registry `latest`. It fetches release tarballs straight from `registry.npmjs.org` (and cdnjs for the highlight.js browser bundle) and verifies the SHA-1 the registry publishes — which deliberately **bypasses any local npm cooldown** (e.g. Aikido safe-chain's rolling ~7-day `before` window, which otherwise resolves `@latest` to an older version and hides freshly-published releases; safe-chain wraps `npm`/`npx`, not `curl`). `katex/` is refreshed manually (multi-file dist + woff2 fonts) per the Reproduction steps above. Note: a `marked` major bump requires adapting the custom `renderer.heading` in `md-convert.js` — v13+ passes a token object instead of positional `(text, level, raw)`.
+Vendor files are pinned and updated only when needed (security fix, breaking compatibility). `scripts/update-vendor.sh` refreshes **`defuddle.js`, `turndown.js`, `marked.min.js`, `purify.min.js`, and `highlight.min.js` (+ its github theme CSS)** to the true npm-registry `latest`. It fetches release tarballs straight from `registry.npmjs.org` (and cdnjs for the highlight.js browser bundle) and verifies the SHA-1 the registry publishes — which deliberately **bypasses any local npm cooldown** (e.g. Aikido safe-chain's rolling ~7-day `before` window, which otherwise resolves `@latest` to an older version and hides freshly-published releases; safe-chain wraps `npm`/`npx`, not `curl`). `katex/` is refreshed manually (multi-file dist + woff2 fonts) per the Reproduction steps above. `mermaid.min.js` is likewise refreshed manually (single-file CDN pin, not npm-registry-managed) per its Reproduction step above. Note: a `marked` major bump requires adapting the custom `renderer.heading` in `md-convert.js` — v13+ passes a token object instead of positional `(text, level, raw)`.
 
 ## Why Bundled Instead of npm-installed
 
