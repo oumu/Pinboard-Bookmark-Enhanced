@@ -2506,6 +2506,14 @@
   "trStaleMixed": {
     "message": "To tłumaczenie zostało złożone z fragmentów różnych wersji"
   },
+  "trRetranslateAll": {
+    "message": "Przetłumacz wszystko ponownie (około ~$TOKENS$ tokenów)",
+    "placeholders": {
+      "tokens": {
+        "content": "$1"
+      }
+    }
+  },
   "trFailedSummary": {
     "message": "$COUNT$ segmentów z błędem: $MESSAGE$",
     "placeholders": {

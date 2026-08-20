@@ -2506,6 +2506,14 @@
   "trStaleMixed": {
     "message": "This translation was assembled across different versions"
   },
+  "trRetranslateAll": {
+    "message": "Retranslate all (~$TOKENS$ tokens)",
+    "placeholders": {
+      "tokens": {
+        "content": "$1"
+      }
+    }
+  },
   "trFailedSummary": {
     "message": "$COUNT$ segments failed: $MESSAGE$",
     "placeholders": {

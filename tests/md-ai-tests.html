@@ -6604,8 +6604,8 @@ suiteIf("tr cache generation ledger (ZH-1a)", "pbpTrGensPush", () => {
     assertEq(pbpAiHash(JSON.stringify(PBP_TR_STYLE_PACKS) + PBP_TR_STYLE_GENERIC), "bfdd0f40", "style packs hash");
   });
   test("D1 glossary-generation ledger", () => {
-    assertEq(PBP_TR_GLOSSARY_GEN, 2, "PBP_TR_GLOSSARY_GEN");   // gen 2 = ZH-4 untrusted-material line
-    assertEq(pbpAiHash(PBP_TR_GLOSSARY_SYSTEM), "18f93137", "PBP_TR_GLOSSARY_SYSTEM hash");
+    assertEq(PBP_TR_GLOSSARY_GEN, 3, "PBP_TR_GLOSSARY_GEN");   // gen 3 = ZH-9 repeat-priority + tiered cap
+    assertEq(pbpAiHash(PBP_TR_GLOSSARY_SYSTEM), "45531df3", "PBP_TR_GLOSSARY_SYSTEM hash");
   });
   test("ZH-4 wording gates: untrusted framing without glossary collateral", () => {
     // The REPLACED tail declares title/summary untrusted and re-anchors the
@@ -6731,6 +6731,32 @@ suiteIf("tr source-script skip predicate (EN-1, QVP-0)", "pbpTrBlockLacksSourceS
   });
 });
 
+suiteIf("tr glossary cap tiers (ZH-9, QVP-0)", "pbpTrGlossaryCap", () => {
+  test("tiers by article length with a hard ceiling", () => {
+    assertEq(pbpTrGlossaryCap(1500), 40);
+    assertEq(pbpTrGlossaryCap(20000), 40, "boundary stays in the old tier");
+    assertEq(pbpTrGlossaryCap(20001), 60);
+    assertEq(pbpTrGlossaryCap(60000), 60);
+    assertEq(pbpTrGlossaryCap(60001), 80);
+    assertEq(pbpTrGlossaryCap(10000000), 80, "hard ceiling: the table never grows past 80");
+  });
+  test("cap reaches the prompt; the pinned static text no longer hardcodes a count", () => {
+    assert(PBP_TR_GLOSSARY_SYSTEM.indexOf("40") === -1, "count moved out of the generation-pinned static text");
+    assert(/recur|Prioritise/i.test(PBP_TR_GLOSSARY_SYSTEM), "repeat-priority wording present");
+    const p40 = pbpTrBuildGlossaryPrompt("x", "Simplified Chinese", 40);
+    const p80 = pbpTrBuildGlossaryPrompt("x", "Simplified Chinese", 80);
+    assert(p40.system.indexOf("~40") >= 0, "tier 40 reaches the prompt");
+    assert(p80.system.indexOf("~80") >= 0, "tier 80 reaches the prompt");
+    const pDefault = pbpTrBuildGlossaryPrompt("x", "Simplified Chinese");
+    assert(pDefault.system.indexOf("~40") >= 0, "omitted cap keeps today's 40 (zero regression)");
+  });
+  test("tier table is pinned to the glossary generation", () => {
+    // Changing any threshold changes extraction prompts for the affected
+    // lengths -- this red is the reminder to bump PBP_TR_GLOSSARY_GEN.
+    assertEq(JSON.stringify(PBP_TR_GLOSSARY_CAP_TIERS), JSON.stringify([[60000, 80], [20000, 60], [0, 40]]));
+  });
+});
+
 suiteIf("tr stale retranslate (ZH-1b)", "_pbpTrRetranslate", () => {
   function statusFixture() {
     const wrap = document.createElement("div");
@@ -6740,7 +6766,8 @@ suiteIf("tr stale retranslate (ZH-1b)", "_pbpTrRetranslate", () => {
       '<div id="tr-progress" hidden></div>' +
       '<div id="tr-estimate" hidden></div>' +
       '<div id="tr-usage" hidden></div>' +
-      '<div id="tr-stale-note" hidden></div>';
+      '<div id="tr-stale-note" hidden></div>' +
+      '<div id="tr-stale-act" hidden><button id="tr-stale-retranslate" class="tr-link"></button></div>';
     document.body.appendChild(wrap);
     return wrap;
   }
@@ -6791,6 +6818,47 @@ suiteIf("tr stale retranslate (ZH-1b)", "_pbpTrRetranslate", () => {
         _pbpTrSyncStaleNote({ staleVerdict: v });
         assertEq(note.textContent, "trStaleNote", v + " is a single (outdated) generation, not mixed");
       }
+    } finally { wrap.remove(); }
+  });
+  test("partial + stale offers a priced retranslate-all link (user-approved second action)", () => {
+    const wrap = statusFixture();
+    const realT = window.t;
+    window.t = (k, ...args) => k + "|" + args.join("|");
+    try {
+      const st = mkSt("prompt");
+      st.status = "partial";
+      st.work = [
+        { n: 1, shielded: { text: "x".repeat(400) } },
+        { n: 2, shielded: { text: "y".repeat(400) } }
+      ];
+      st.skippedSet = new Set([2]);
+      st.trMd = { 1: "done" };
+      _pbpTrSetStatus(st, "partial");
+      const act = document.getElementById("tr-stale-act");
+      assertEq(act.hidden, false, "second action visible at partial+stale");
+      assertEq(document.getElementById("tr-stale-retranslate").textContent,
+        "trRetranslateAll|" + String(Math.ceil(400 / 4) * 3),
+        "link carries the skip-aware full-article price");
+    } finally { window.t = realT; wrap.remove(); }
+  });
+  test("the link yields to the main button at done, and hides while running", () => {
+    const wrap = statusFixture();
+    try {
+      const st = mkSt("prompt");
+      _pbpTrSetStatus(st, "done");
+      assertEq(document.getElementById("tr-stale-act").hidden, true, "done: main button owns the action");
+      st.running = true;
+      _pbpTrSetStatus(st, "translating");
+      assertEq(document.getElementById("tr-stale-act").hidden, true, "running: no re-entry entry point");
+    } finally { wrap.remove(); }
+  });
+  test("no stale verdict, no link (shape constraint holds both ways)", () => {
+    const wrap = statusFixture();
+    try {
+      const st = mkSt(null);
+      st.status = "partial";
+      _pbpTrSetStatus(st, "partial");
+      assertEq(document.getElementById("tr-stale-act").hidden, true, "a current partial cache offers only Continue");
     } finally { wrap.remove(); }
   });
   test("reset keeps the view mode only when asked (retranslate path)", () => {
@@ -7220,6 +7288,37 @@ suiteIf("tr_ independent cache pool (ZH-6)", "_pbpAiTrRange", () => {
       assertEq(entry.blocks.hNEW, "NEW TRANSLATION TEXT");
       assertEq(JSON.stringify(entry.meta.gens), "[" + PBP_TR_PROMPT_GEN + "]",
         "fresh entry holds ONLY the current generation");
+    } finally {
+      window.callAIStream = realStream;
+      dom.remove();
+      await pbpAiCacheDelete(key);
+      await pbpAiCacheDelete(_pbpTrViewKey(url, "acct"));
+    }
+  });
+
+  await atest("partial+stale link drives the same replace rerun (action half, product path)", async () => {
+    const url = "https://pbp-test/retr-link-" + Date.now();
+    const key = _pbpTrCacheKey(url, "zh-Hans", "p:m", "acct");
+    await pbpTrCacheSet(url, "zh-Hans", "p:m", { hOLD: "旧译文" }, "acct", { pg: 1, gf: "", sm: 0 });
+    const dom = retrFixtureDom();
+    const realStream = window.callAIStream;
+    window.callAIStream = async (s, prompt, opts, onDelta) => {
+      const full = '{"translations":[{"id":1,"text":"NEW TRANSLATION TEXT"}]}';
+      onDelta(full, full);
+      return full;
+    };
+    const st = retrFixtureSt(url);
+    st.status = "partial";
+    st.staleVerdict = "prompt";
+    try {
+      _pbpTrStaleRetranslateClick(st);
+      for (let i = 0; i < 150 && (st.running || st.status !== "done"); i++) {
+        await new Promise((r) => setTimeout(r, 20));
+      }
+      const entry = await pbpTrCacheGet(url, "zh-Hans", "p:m", "acct");
+      assert(entry.blocks.hOLD === undefined && entry.blocks.hNEW === "NEW TRANSLATION TEXT",
+        "link path replaces like the done-state button");
+      assertEq(JSON.stringify(entry.meta.gens), "[" + PBP_TR_PROMPT_GEN + "]", "single current generation");
     } finally {
       window.callAIStream = realStream;
       dom.remove();

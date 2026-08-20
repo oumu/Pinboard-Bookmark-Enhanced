@@ -2506,6 +2506,14 @@
   "trStaleMixed": {
     "message": "本篇譯文由不同版本分段拼成"
   },
+  "trRetranslateAll": {
+    "message": "重新翻譯全文（約 ~$TOKENS$ tokens）",
+    "placeholders": {
+      "tokens": {
+        "content": "$1"
+      }
+    }
+  },
   "trFailedSummary": {
     "message": "$COUNT$ 段翻譯失敗：$MESSAGE$",
     "placeholders": {

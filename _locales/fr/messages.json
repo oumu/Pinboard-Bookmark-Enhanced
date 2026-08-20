@@ -2506,6 +2506,14 @@
   "trStaleMixed": {
     "message": "Cette traduction a été assemblée à partir de versions différentes"
   },
+  "trRetranslateAll": {
+    "message": "Tout retraduire (environ ~$TOKENS$ jetons)",
+    "placeholders": {
+      "tokens": {
+        "content": "$1"
+      }
+    }
+  },
   "trFailedSummary": {
     "message": "$COUNT$ segments en échec : $MESSAGE$",
     "placeholders": {

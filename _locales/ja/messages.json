@@ -2506,6 +2506,14 @@
   "trStaleMixed": {
     "message": "この翻訳は異なるバージョンで分割生成されたものです"
   },
+  "trRetranslateAll": {
+    "message": "全文を再翻訳（約 ~$TOKENS$ tokens）",
+    "placeholders": {
+      "tokens": {
+        "content": "$1"
+      }
+    }
+  },
   "trFailedSummary": {
     "message": "$COUNT$ 個のセグメントが失敗しました：$MESSAGE$",
     "placeholders": {
