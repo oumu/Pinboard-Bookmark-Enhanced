@@ -426,6 +426,19 @@ function _pbpTrStripCtxLines(text, n) {
   if (!n) return String(text == null ? "" : text);
   return String(text == null ? "" : text).split("\n").slice(n).join("\n");
 }
+// A7 shape gate: a part sent with header ctx must strip back cleanly by LINE
+// COUNT. If the model changes the number of ctx lines (merges header +
+// separator into one line, or splits a data row across lines), a strip by
+// count silently misaligns the row -- the caller's useCtx gate guarantees the
+// raw chunk always opened with "|", so a stripped result that no longer does
+// means the count drifted. Refuse (ok:false) instead of filling corrupted
+// text; callers route that into the existing partial-fill path (keep the
+// original chunk, never cache -- D7).
+function _pbpTrCtxStripSafe(text, ctxLines) {
+  const stripped = _pbpTrStripCtxLines(text, ctxLines);
+  if (!ctxLines) return { ok: true, text: stripped };
+  return { ok: stripped.trimStart().startsWith("|"), text: stripped };
+}
 
 // ============================================================
 // Batch queue engine (DOM-free; all I/O injected for testability)
@@ -1829,7 +1842,11 @@ async function _pbpTrStart(st) {
       if (m.parts === 1) { _pbpTrFill(st, w, text); _pbpTrRecordFill(st, w, text); return; }
       const pb = partBuf.get(m.n);
       if (!pb) return;
-      _pbpTrPartFill(pb, m.idx, _pbpTrStripCtxLines(text, m.ctxLines));
+      const safe = _pbpTrCtxStripSafe(text, m.ctxLines);
+      // A7 shape gate: ctx line-count drifted on strip -- don't fill, route
+      // through the same partial-fill path a normal part failure takes.
+      if (safe.ok) _pbpTrPartFill(pb, m.idx, safe.text);
+      else _pbpTrPartFail(pb, m.idx);
       const done = _pbpTrPartDone(pb);
       if (done) _pbpTrCommitAssembled(st, w, done, pb.failed);
     },
@@ -2135,17 +2152,25 @@ function _pbpTrMarkPartial(st, w, failedParts) {
 }
 
 // Translate one whole block, sub-splitting if it exceeds the part limit so its
-// translation never truncates at the output cap. Returns the (still-shielded)
-// translation; throws on an invalid/failed part. Parts reassemble in order with
-// their original separators.
+// translation never truncates at the output cap. Returns {text, partial,
+// failedParts} (still-shielded text); throws on an invalid/failed part EXCEPT
+// the A7 shape gate below, which degrades just that one part instead (D7:
+// caller must skip caching when partial is true). Parts reassemble in order
+// with their original separators.
 async function _pbpTrTranslateBlock(st, w, signal) {
   const glossary = st.glossary || pbpTrParseGlossary(st.s.translateGlossary);
   const split = w.shielded.text.length <= PBP_TR_PART_LIMIT
     ? { chunks: [w.shielded.text], seps: [""] }
     : _pbpTrSplitText(w.shielded.text, PBP_TR_PART_LIMIT);
+  const ctx = _pbpTrTableHeaderCtx(split.chunks);   // A7: same three-gate ctx as the batch queue path (_pbpTrStart)
   const out = [];
+  let failedParts = 0;
   for (let i = 0; i < split.chunks.length; i++) {
-    const seg = { id: w.n, text: split.chunks[i] };
+    // Only a continuation part that itself opens as a table row gets the
+    // header ctx -- mirrors the seg-build loop's useCtx gate in _pbpTrStart.
+    const useCtx = !!(ctx && i > 0 && split.chunks[i].lastIndexOf("|", 0) === 0);
+    const sendText = useCtx ? ctx.text + split.chunks[i] : split.chunks[i];
+    const seg = { id: w.n, text: sendText };
     const hits = pbpTrMatchGlossary(glossary, [seg]);
     _pbpTrAddGlossaryHits(st, hits);
     const { system, prompt } = pbpTrBuildPrompt({
@@ -2157,15 +2182,25 @@ async function _pbpTrTranslateBlock(st, w, signal) {
     const full = await callAIStream(st.s, prompt, {
       system, model: pbpAiResolveModelOverride(st.s),
       temperature: 0.1, noThinking: true, signal,
-      maxTokens: Math.min(8192, Math.max(1024, pbpAiEstimateTokens(split.chunks[i].length) * 3))
+      maxTokens: Math.min(8192, Math.max(1024, pbpAiEstimateTokens(sendText.length) * 3))
     }, (d, acc) => parser.push(acc));
     parser.finish(full);
-    if (typeof got !== "string" || !pbpTrPlaceholdersConserved(split.chunks[i], got) || !pbpTrLengthRatioOk(split.chunks[i], got, st.target.code)) {
+    // Conservation/length-ratio gates compare SENT vs RETURNED text, same as
+    // the queue path -- ctx is present on both sides here, so it can't skew them.
+    if (typeof got !== "string" || !pbpTrPlaceholdersConserved(sendText, got) || !pbpTrLengthRatioOk(sendText, got, st.target.code)) {
       throw new Error("invalid single-block translation");
     }
-    out.push(got);
+    const safe = _pbpTrCtxStripSafe(got, useCtx ? ctx.lines : 0);
+    // A7 shape gate: the model changed the ctx line count -- strip-by-count
+    // would misalign the row. Per-chunk failure handling: keep this part's
+    // original (untranslated) text instead of corrupting it, same intent as
+    // the queue path's _pbpTrPartFail, but this loop has no partBuf to route
+    // through -- so it degrades this ONE chunk rather than throwing and
+    // discarding every part the block already translated successfully.
+    if (safe.ok) { out.push(safe.text); } else { out.push(split.chunks[i]); failedParts++; }
   }
-  return split.chunks.length === 1 ? out[0] : out.map((c, i) => (split.seps[i] || "") + c).join("");
+  const text = split.chunks.length === 1 ? out[0] : out.map((c, i) => (split.seps[i] || "") + c).join("");
+  return { text, partial: failedParts > 0, failedParts };
 }
 
 async function _pbpTrRetryBlock(st, w, btn) {
@@ -2187,13 +2222,13 @@ async function _pbpTrRetryBlock(st, w, btn) {
   const onHide = () => ctrl.abort();
   window.addEventListener("pagehide", onHide, { once: true });
   try {
-    const got = await _pbpTrTranslateBlock(st, w, ctrl.signal);
+    const result = await _pbpTrTranslateBlock(st, w, ctrl.signal);
     // Fill BEFORE removing the pill: _pbpTrFill creates/updates the .pb-tr
     // sibling we want to move focus into. If the pill (btn) is the currently
     // focused element, hand focus to that new .pb-tr instead of letting
     // btn.remove() drop focus to <body> (audit md-translate.js:1000).
     const hadFocus = document.activeElement === btn;
-    _pbpTrFill(st, w, got);
+    _pbpTrFill(st, w, result.text);
     if (hadFocus) {
       const tr = pbpAiBlockEl(w.n) && pbpAiBlockEl(w.n).nextElementSibling;
       if (tr && tr.classList && tr.classList.contains("pb-tr")) {
@@ -2203,13 +2238,20 @@ async function _pbpTrRetryBlock(st, w, btn) {
         tr.focus();
       }
     }
-    btn.remove(); // no-op if _pbpTrFill's own cleanup already removed it
-    _pbpTrSyncRetryAll();
-    const one = {};
-    one[w.hash] = got;
-    // st.runMeta may be undefined (retry without a prior run this session);
-    // a meta-less write keeps the stored meta untouched (D5 semantics).
-    try { await pbpTrCacheSet(st.url, st.target.code, st.modelKey, one, st.account, st.runMeta); } catch (_) {}
+    btn.remove(); // no-op if _pbpTrFill's own cleanup (or _pbpTrMarkPartial below) already removed it
+    if (result.partial) {
+      // A7 shape gate tripped on >=1 part: displayed, but D7 says never cache
+      // a result with a fallen-back part. _pbpTrMarkPartial re-arms a fresh
+      // retry pill for the still-damaged block, mirroring _pbpTrCommitAssembled.
+      _pbpTrMarkPartial(st, w, result.failedParts);
+    } else {
+      _pbpTrSyncRetryAll();
+      const one = {};
+      one[w.hash] = result.text;
+      // st.runMeta may be undefined (retry without a prior run this session);
+      // a meta-less write keeps the stored meta untouched (D5 semantics).
+      try { await pbpTrCacheSet(st.url, st.target.code, st.modelKey, one, st.account, st.runMeta); } catch (_) {}
+    }
     _pbpTrShowViewToggle(st);
     if (st.work.every((x) => x.n in st.trMd)) _pbpTrSetStatus(st, "done");
   } catch (e) {

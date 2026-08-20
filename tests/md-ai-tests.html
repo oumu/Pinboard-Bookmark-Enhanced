@@ -1562,6 +1562,17 @@ suiteIf("_pbpTrTableHeaderCtx / _pbpTrStripCtxLines", "_pbpTrTableHeaderCtx", ()
       if (_pbpTrStripCtxLines(sent, ctx.lines) !== split.chunks[i]) throw new Error("strip must invert prepend");
     }
   });
+  test("A7 shape gate: ctx line-count drift refused, clean strip passes through", () => {
+    // Model collapsed the translated header + separator into ONE line -- a
+    // blind 2-line strip then eats that merged line AND the real data row,
+    // leaving nothing (or non-table text) behind. Must be refused, not filled.
+    const drifted = _pbpTrCtxStripSafe("合并后的表头行\n| 数据一 | 数据二 |", 2);
+    if (drifted.ok) throw new Error("line-count drift must be refused: " + JSON.stringify(drifted));
+    const clean = _pbpTrCtxStripSafe("| 表头 |\n| --- |\n| 数据一 | 数据二 |", 2);
+    if (!clean.ok || clean.text !== "| 数据一 | 数据二 |") throw new Error("clean strip must pass through: " + JSON.stringify(clean));
+    const noCtx = _pbpTrCtxStripSafe("| 数据一 | 数据二 |", 0);
+    if (!noCtx.ok || noCtx.text !== "| 数据一 | 数据二 |") throw new Error("ctxLines 0 is always ok (identity): " + JSON.stringify(noCtx));
+  });
 });
 
 suiteIf("_pbpTrHasText", "_pbpTrHasText", () => {
@@ -2001,6 +2012,44 @@ suiteIf("_pbpTrIs429 / _pbpTrMissingIds", "_pbpTrIs429", () => {
       window.callAIStream = realStream;
       window.chrome = prevChrome;
     }
+  });
+
+  await atest("A7 symmetry: _pbpTrTranslateBlock sends the same header ctx to continuation table parts as the queue path", async () => {
+    const realStream = window.callAIStream;
+    const header = "| Col A | Col B |\n| --- | --- |";
+    let body = "";
+    for (let i = 0; i < 400; i++) body += "\n| value " + i + " | data data data data |";
+    const bigTable = header + body;
+    const split = _pbpTrSplitText(bigTable, PBP_TR_PART_LIMIT);
+    if (split.chunks.length < 2) throw new Error("fixture must split into >=2 parts");
+    const ctx = _pbpTrTableHeaderCtx(split.chunks);
+    if (!ctx) throw new Error("ctx expected for this fixture");
+    const bigW = { n: 9, hash: "h9", shielded: { text: bigTable } };
+    const sentTexts = [];
+    window.callAIStream = async (s, prompt) => {
+      // Echo the sent segment text back verbatim -- a clean round-trip that
+      // must NOT trip the A7 shape gate, so this test isolates the "was ctx
+      // sent" question from the shape-gate behavior covered separately above.
+      const payload = JSON.parse(prompt);
+      const seg = payload.segments[0];
+      sentTexts.push(seg.text);
+      return JSON.stringify({ translations: [{ id: seg.id, text: seg.text }] });
+    };
+    try {
+      const ctrl = new AbortController();
+      const result = await _pbpTrTranslateBlock(makeSt(), bigW, ctrl.signal);
+      if (sentTexts.length !== split.chunks.length) {
+        throw new Error("call count must match part count: " + sentTexts.length + " vs " + split.chunks.length);
+      }
+      if (sentTexts[0] !== split.chunks[0]) throw new Error("part 0 sent bare -- it IS the header, no ctx to prepend");
+      for (let i = 1; i < split.chunks.length; i++) {
+        if (split.chunks[i].lastIndexOf("|", 0) !== 0) continue;   // trailing prose tail stays untouched
+        if (sentTexts[i] !== ctx.text + split.chunks[i]) {
+          throw new Error("continuation part " + i + " must carry the header ctx, same as _pbpTrStart's seg-build loop");
+        }
+      }
+      if (result.partial) throw new Error("a clean echo round-trip must not trip the A7 shape gate");
+    } finally { window.callAIStream = realStream; }
   });
 })();
 </script>
