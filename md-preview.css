@@ -885,6 +885,12 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
   #rendered-view .pb-table-wrap { animation: none; }
 }
 
+/* Raw-HTML tables (complex-table passthrough) are marked html tokens — the
+   renderer.table wrapper never sees them, so they carry no .pb-table-wrap.
+   The GitHub containment trick (block + own scroll) keeps a wide one from
+   punching through the article column. */
+#rendered-view :not(.pb-table-wrap) > table { display: block; overflow-x: auto; }
+
 /* Horizontal rule */
 #rendered-view hr {
   border: none;

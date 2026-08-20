@@ -60,18 +60,26 @@ function _splitMergedComments(html) {
 // instance, so one shared instance is safe. Built lazily so popup's deferred
 // turndown.js injection still works (TurndownService undefined at module load).
 let _pbpTurndown = null;
+const PBP_COMPLEX_TABLE_ATTRS = new Set([
+  "colspan", "rowspan", "align", "headers", "scope", "role",  // table structure
+  "href", "target", "rel",                                     // links in cells
+  "src", "alt", "title"                                        // images in cells
+]);
 function _pbpSanitizeComplexTableHtml(node) {
   const clone = node.cloneNode(true);
   clone.querySelectorAll("script, style, iframe, object, embed, link, meta").forEach((el) => el.remove());
-  clone.querySelectorAll("*").forEach((el) => {
+  // Include the root itself, not just descendants -- querySelectorAll("*")
+  // alone would leave the outer <table>'s own class/id/data-*/style intact.
+  [clone, ...Array.from(clone.querySelectorAll("*"))].forEach((el) => {
     Array.from(el.attributes).forEach((attr) => {
       const name = attr.name.toLowerCase();
       const value = String(attr.value || "").trim();
-      if (name.startsWith("on") || name === "style" || name === "srcdoc") {
-        el.removeAttribute(attr.name);
-        return;
-      }
-      if ((name === "href" || name === "src" || name === "xlink:href") && /^(?:javascript|vbscript|data):/i.test(value)) {
+      // A4 allowlist: everything else — class/id/data-*/aria-*/style/on* —
+      // drops, so the site-rules extraction path (which does no attribute
+      // pass of its own) converges with the Defuddle path instead of leaking
+      // source-page classes into the rendered DOM.
+      if (!PBP_COMPLEX_TABLE_ATTRS.has(name)) { el.removeAttribute(attr.name); return; }
+      if ((name === "href" || name === "src") && /^(?:javascript|vbscript|data):/i.test(value)) {
         el.removeAttribute(attr.name);
       }
     });
@@ -748,6 +756,7 @@ html,body{margin:0;background:var(--x-bg)}
 .export-doc li{margin:.35em 0}
 .export-doc .pb-table-wrap{margin:1.5em 0;overflow-x:auto}
 .export-doc .pb-table-wrap>table{margin:0}
+.export-doc :not(.pb-table-wrap)>table{display:block;overflow-x:auto}
 .export-doc table{border-collapse:collapse;width:100%;margin:1.5em 0;font-size:.9375em;border:1px solid var(--x-bd);border-radius:8px;overflow:hidden}
 .export-doc th,.export-doc td{padding:10px 16px;text-align:left;border-bottom:1px solid var(--x-bdl);overflow-wrap:anywhere}
 .export-doc thead{background:var(--x-code-bg)}

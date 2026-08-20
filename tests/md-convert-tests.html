@@ -592,6 +592,22 @@ function assertEq(actual, expected, label) {
     check("A3 inner table structure intact inside the outer HTML", (md.match(/<table/g) || []).length === 2 && />inner<\/td>/.test(md), md);
   })();
 
+  section("A4: complex-table sanitize allowlist (site-rules path converges with Defuddle)");
+  (() => {
+    const md = htmlToMarkdown('<table class="infobox" id="t1" data-x="1" style="color:red"><tbody><tr><th colspan="2" class="head" onclick="x()">H</th></tr><tr><td rowspan="2" aria-label="c">a</td><td><a href="https://e.com/p" class="lnk" target="_blank">L</a> <img src="https://e.com/i.png" alt="pic" data-src="x"></td></tr></tbody></table>');
+    check("A4 structural attrs survive", /colspan="2"/.test(md) && /rowspan="2"/.test(md), md);
+    check("A4 class/id/data-*/aria-*/style stripped", !/class=|id=|data-|aria-|style=/.test(md), md);
+    check("A4 link href/target + img src/alt survive", /href="https:\/\/e\.com\/p"/.test(md) && /target="_blank"/.test(md) && /src="https:\/\/e\.com\/i\.png"/.test(md) && /alt="pic"/.test(md), md);
+    check("A4 on* stripped", !/onclick/.test(md), md);
+    check("A4 javascript: href still stripped", !/javascript:/.test(htmlToMarkdown('<table><tbody><tr><td colspan="2"><a href="javascript:x()">j</a></td></tr></tbody></table>')), "");
+  })();
+  section("A5: colspan/rowspan survive renderMarkdown end-to-end");
+  (() => {
+    const h = norm(renderMarkdown('<table><tbody><tr><th colspan="2">H</th></tr><tr><td rowspan="2">a</td><td>b</td></tr></tbody></table>'));
+    check("A5 colspan survives the DOMPurify pass", /colspan="2"/.test(h), h);
+    check("A5 rowspan survives the DOMPurify pass", /rowspan="2"/.test(h), h);
+  })();
+
   // ---- GitHub alerts: Defuddle -> Obsidian callout (data-callout) -> > [!TYPE] ----
   section("htmlToMarkdown GitHub alert (callout) restore");
   (() => {
