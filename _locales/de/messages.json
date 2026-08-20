@@ -3608,5 +3608,17 @@
   "libraryLookupPlaceholder": { "message": "Ein beliebiges Wort nachschlagen" },
   "libraryLookupGo": { "message": "Nachschlagen" },
   "libraryLookupOpen": { "message": "Wort nachschlagen" },
-  "libraryLookupSaved": { "message": "Bereits in deiner Vokabelliste · ansehen" }
+  "libraryLookupSaved": { "message": "Bereits in deiner Vokabelliste · ansehen" },
+  "mdVideoTitle": { "message": "Video & Untertitel" },
+  "mdVideoLoad": { "message": "Video & Untertitel laden" },
+  "mdVideoLoading": { "message": "Untertitel werden geladen…" },
+  "mdVideoTrackAria": { "message": "Untertitelsprache" },
+  "mdVideoNoTracks": { "message": "Für dieses Video sind keine Untertitel verfügbar" },
+  "mdVideoFailed": { "message": "Untertitel konnten nicht geladen werden; YouTube lehnt die Anfrage möglicherweise gerade ab. Versuchen Sie es später erneut." },
+  "mdVideoPermMissing": { "message": "Berechtigung abgelehnt; es wurde nichts geladen" },
+  "mdVideoCopyMd": { "message": "Transkript als Markdown kopieren" },
+  "mdVideoCopied": { "message": "Transkript kopiert" },
+  "mdVideoAsr": { "message": "automatisch erstellt" },
+  "mdVideoSeekTo": { "message": "Zu $TIME$ springen", "placeholders": { "time": { "content": "$1" } } },
+  "mdVideoCopyFailed": { "message": "Kopieren fehlgeschlagen" }
 }

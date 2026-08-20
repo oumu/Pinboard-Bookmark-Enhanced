@@ -3608,5 +3608,17 @@
   "libraryLookupPlaceholder": { "message": "任意の単語を調べる" },
   "libraryLookupGo": { "message": "調べる" },
   "libraryLookupOpen": { "message": "単語を調べる" },
-  "libraryLookupSaved": { "message": "単語帳に登録済み · 表示" }
+  "libraryLookupSaved": { "message": "単語帳に登録済み · 表示" },
+  "mdVideoTitle": { "message": "動画と字幕" },
+  "mdVideoLoad": { "message": "動画と字幕を読み込む" },
+  "mdVideoLoading": { "message": "字幕を読み込んでいます…" },
+  "mdVideoTrackAria": { "message": "字幕の言語" },
+  "mdVideoNoTracks": { "message": "この動画には利用できる字幕がありません" },
+  "mdVideoFailed": { "message": "字幕を読み込めませんでした。YouTube がリクエストを拒否している可能性があります。しばらくしてから再試行してください。" },
+  "mdVideoPermMissing": { "message": "権限が拒否されたため、何も読み込まれませんでした" },
+  "mdVideoCopyMd": { "message": "文字起こしを Markdown としてコピー" },
+  "mdVideoCopied": { "message": "文字起こしをコピーしました" },
+  "mdVideoAsr": { "message": "自動生成" },
+  "mdVideoSeekTo": { "message": "$TIME$ へ移動", "placeholders": { "time": { "content": "$1" } } },
+  "mdVideoCopyFailed": { "message": "コピーに失敗しました" }
 }

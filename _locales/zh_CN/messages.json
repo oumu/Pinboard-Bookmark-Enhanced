@@ -3602,5 +3602,17 @@
   "libraryLookupPlaceholder": { "message": "查询任意词" },
   "libraryLookupGo": { "message": "查词" },
   "libraryLookupOpen": { "message": "查询任意词" },
-  "libraryLookupSaved": { "message": "已在生词库 · 查看" }
+  "libraryLookupSaved": { "message": "已在生词库 · 查看" },
+  "mdVideoTitle": { "message": "视频与字幕" },
+  "mdVideoLoad": { "message": "加载视频与字幕" },
+  "mdVideoLoading": { "message": "正在加载字幕…" },
+  "mdVideoTrackAria": { "message": "字幕语言" },
+  "mdVideoNoTracks": { "message": "该视频没有可用字幕" },
+  "mdVideoFailed": { "message": "字幕加载失败，可能是 YouTube 暂时拒绝了请求。稍后再试。" },
+  "mdVideoPermMissing": { "message": "已拒绝授权，未加载任何内容" },
+  "mdVideoCopyMd": { "message": "复制字幕为 Markdown" },
+  "mdVideoCopied": { "message": "已复制字幕" },
+  "mdVideoAsr": { "message": "自动生成" },
+  "mdVideoSeekTo": { "message": "跳转到 $TIME$", "placeholders": { "time": { "content": "$1" } } },
+  "mdVideoCopyFailed": { "message": "复制失败" }
 }

@@ -3608,5 +3608,17 @@
   "libraryLookupPlaceholder": { "message": "Найти любое слово" },
   "libraryLookupGo": { "message": "Найти" },
   "libraryLookupOpen": { "message": "Найти слово" },
-  "libraryLookupSaved": { "message": "Уже в словарике · показать" }
+  "libraryLookupSaved": { "message": "Уже в словарике · показать" },
+  "mdVideoTitle": { "message": "Видео и субтитры" },
+  "mdVideoLoad": { "message": "Загрузить видео и субтитры" },
+  "mdVideoLoading": { "message": "Загрузка субтитров…" },
+  "mdVideoTrackAria": { "message": "Язык субтитров" },
+  "mdVideoNoTracks": { "message": "Для этого видео нет доступных субтитров" },
+  "mdVideoFailed": { "message": "Не удалось загрузить субтитры; возможно, YouTube сейчас отклоняет запрос. Повторите попытку позже." },
+  "mdVideoPermMissing": { "message": "В разрешении отказано; ничего не загружено" },
+  "mdVideoCopyMd": { "message": "Скопировать расшифровку как Markdown" },
+  "mdVideoCopied": { "message": "Расшифровка скопирована" },
+  "mdVideoAsr": { "message": "автоматические" },
+  "mdVideoSeekTo": { "message": "Перейти к $TIME$", "placeholders": { "time": { "content": "$1" } } },
+  "mdVideoCopyFailed": { "message": "Не удалось скопировать" }
 }

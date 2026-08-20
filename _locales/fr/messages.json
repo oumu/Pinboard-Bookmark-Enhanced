@@ -3608,5 +3608,17 @@
   "libraryLookupPlaceholder": { "message": "Rechercher n'importe quel mot" },
   "libraryLookupGo": { "message": "Rechercher" },
   "libraryLookupOpen": { "message": "Rechercher un mot" },
-  "libraryLookupSaved": { "message": "Déjà dans votre vocabulaire · afficher" }
+  "libraryLookupSaved": { "message": "Déjà dans votre vocabulaire · afficher" },
+  "mdVideoTitle": { "message": "Vidéo et sous-titres" },
+  "mdVideoLoad": { "message": "Charger la vidéo et les sous-titres" },
+  "mdVideoLoading": { "message": "Chargement des sous-titres…" },
+  "mdVideoTrackAria": { "message": "Langue des sous-titres" },
+  "mdVideoNoTracks": { "message": "Aucun sous-titre disponible pour cette vidéo" },
+  "mdVideoFailed": { "message": "Impossible de charger les sous-titres ; YouTube refuse peut-être la requête pour le moment. Réessayez plus tard." },
+  "mdVideoPermMissing": { "message": "Autorisation refusée ; rien n'a été chargé" },
+  "mdVideoCopyMd": { "message": "Copier la transcription en Markdown" },
+  "mdVideoCopied": { "message": "Transcription copiée" },
+  "mdVideoAsr": { "message": "générés automatiquement" },
+  "mdVideoSeekTo": { "message": "Aller à $TIME$", "placeholders": { "time": { "content": "$1" } } },
+  "mdVideoCopyFailed": { "message": "Échec de la copie" }
 }

@@ -1599,6 +1599,7 @@ function pbpApplyColorScheme(mode) {
       }
     }));
   }
+  if (typeof pbpVideoInit === "function") pbpVideoInit({ pageUrl: sourceTabUrl || url });
 
   // ---- Build TOC sidebar from the canonical markdown ----
   const tocNav = document.getElementById("toc");

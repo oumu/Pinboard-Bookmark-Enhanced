@@ -199,3 +199,142 @@ async function pbpYtFetchCaptionBody(baseUrl, fetchFn) {
   return [];
 }
 // ── end PURE SECTION ──
+
+// ── RUNTIME (chrome/fetch/DOM; md-preview only) ──
+// Panel lives as a SIBLING above #rendered-view: translation re-renders
+// replace renderedView's content and must never destroy the player.
+(function () {
+  if (typeof window === "undefined" || typeof document === "undefined") return;
+
+  const YT_ORIGIN = "https://www.youtube.com/*";
+  const EMBED_BASE = "https://www.youtube-nocookie.com"; // privacy-enhanced embed
+
+  let _panel = null, _iframe = null, _segments = [], _meta = {};
+
+  function el(tag, cls, text) {
+    const n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  }
+
+  function seekTo(sec) {
+    if (!_iframe || !_iframe.contentWindow) return;
+    // youtube iframe API accepts serialized commands once enablejsapi=1.
+    // Best-effort: if the player isn't ready the message is dropped — the
+    // row click then simply does nothing (degrade, never throw).
+    const post = (func, args) => _iframe.contentWindow.postMessage(
+      JSON.stringify({ event: "command", func, args: args || [] }), EMBED_BASE);
+    post("seekTo", [sec, true]);
+    post("playVideo");
+  }
+
+  function renderTranscript(listEl, segments) {
+    listEl.textContent = "";
+    const frag = document.createDocumentFragment();
+    segments.forEach((seg) => {
+      const row = el("button", "pbv-row");
+      row.type = "button";
+      const time = el("span", "pbv-time", pbpVideoFmtTime(seg.from));
+      const text = el("span", "pbv-text", seg.content);
+      row.appendChild(time); row.appendChild(text);
+      row.title = t("mdVideoSeekTo", pbpVideoFmtTime(seg.from));
+      row.addEventListener("click", () => seekTo(Math.floor(seg.from)));
+      frag.appendChild(row);
+    });
+    listEl.appendChild(frag);
+  }
+
+  async function loadFlow(detected, statusEl, bodyEl, trackSel, copyBtn) {
+    statusEl.textContent = t("mdVideoLoading");
+    let granted = false;
+    try { granted = await chrome.permissions.request({ origins: [YT_ORIGIN] }) === true; } catch (_) {}
+    if (!granted) { statusEl.textContent = t("mdVideoPermMissing"); return; }
+    const uiLang = (chrome.i18n && chrome.i18n.getUILanguage && chrome.i18n.getUILanguage()) || "en";
+    const res = await pbpYtFetchTranscript(detected.videoId, { uiLang });
+    if (res.error === "player") { statusEl.textContent = t("mdVideoFailed"); return; }
+    if (res.error === "no-tracks" || res.error === "caption-body") {
+      statusEl.textContent = t("mdVideoNoTracks");
+      if (!res.tracks) return;
+    }
+    statusEl.textContent = "";
+    // track picker
+    trackSel.textContent = "";
+    (res.tracks || []).forEach((tr) => {
+      const opt = document.createElement("option");
+      opt.value = tr.baseUrl;
+      opt.textContent = tr.label + (tr.asr ? " (" + t("mdVideoAsr") + ")" : "");
+      if (res.track && tr.baseUrl === res.track.baseUrl) opt.selected = true;
+      trackSel.appendChild(opt);
+    });
+    trackSel.hidden = !(res.tracks || []).length;
+    copyBtn.hidden = !(res.segments || []).length;
+    _segments = res.segments || [];
+    _meta.trackLabel = res.track ? res.track.label : "";
+    if (_segments.length) renderTranscript(bodyEl, _segments);
+    trackSel.addEventListener("change", async () => {
+      statusEl.textContent = t("mdVideoLoading");
+      const segs = await pbpYtFetchCaptionBody(trackSel.value);
+      statusEl.textContent = segs.length ? "" : t("mdVideoNoTracks");
+      _segments = segs;
+      const sel = trackSel.selectedOptions && trackSel.selectedOptions[0];
+      _meta.trackLabel = sel ? sel.textContent : "";
+      copyBtn.hidden = !segs.length;
+      renderTranscript(bodyEl, segs);
+    });
+  }
+
+  window.pbpVideoInit = function pbpVideoInit(ctx) {
+    const detected = pbpVideoDetect(ctx && ctx.pageUrl);
+    if (!detected) return;
+    const view = document.getElementById("rendered-view");
+    if (!view || !view.parentNode || document.getElementById("video-panel")) return;
+    _meta = { title: document.title || "", url: ctx.pageUrl };
+
+    const panel = el("section", "video-panel");
+    panel.id = "video-panel";
+    panel.setAttribute("aria-label", t("mdVideoTitle"));
+
+    // CTA state: one button; the panel body appears on load.
+    const cta = el("button", "pbv-cta");
+    cta.type = "button";
+    cta.appendChild(el("span", "pbv-cta-label", t("mdVideoLoad")));
+    panel.appendChild(cta);
+    view.parentNode.insertBefore(panel, view);
+    _panel = panel;
+
+    cta.addEventListener("click", async () => {
+      cta.disabled = true;
+      // player iframe mounts immediately (no permission needed for a frame)
+      const media = el("div", "pbv-media");
+      _iframe = document.createElement("iframe");
+      _iframe.src = EMBED_BASE + "/embed/" + detected.videoId + "?enablejsapi=1&rel=0";
+      _iframe.allow = "encrypted-media; picture-in-picture; fullscreen";
+      _iframe.title = t("mdVideoTitle");
+      media.appendChild(_iframe);
+      const bar = el("div", "pbv-bar");
+      const status = el("span", "pbv-status");
+      status.setAttribute("aria-live", "polite");
+      const trackSel = document.createElement("select");
+      trackSel.className = "pbv-tracks";
+      trackSel.hidden = true;
+      trackSel.setAttribute("aria-label", t("mdVideoTrackAria"));
+      const copyBtn = el("button", "pbv-copy");
+      copyBtn.type = "button";
+      copyBtn.hidden = true;
+      copyBtn.textContent = t("mdVideoCopyMd");
+      copyBtn.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(pbpVideoTranscriptMarkdown(_segments, _meta));
+          const prev = copyBtn.textContent;
+          copyBtn.textContent = t("mdVideoCopied");
+          setTimeout(() => { copyBtn.textContent = prev; }, 1800);
+        } catch (_) { status.textContent = t("mdVideoCopyFailed"); }
+      });
+      bar.appendChild(trackSel); bar.appendChild(copyBtn); bar.appendChild(status);
+      const body = el("div", "pbv-list");
+      panel.replaceChildren(media, bar, body);
+      await loadFlow(detected, status, body, trackSel, copyBtn);
+    });
+  };
+})();

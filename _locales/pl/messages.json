@@ -3608,5 +3608,17 @@
   "libraryLookupPlaceholder": { "message": "Sprawdź dowolne słowo" },
   "libraryLookupGo": { "message": "Sprawdź" },
   "libraryLookupOpen": { "message": "Sprawdź słowo" },
-  "libraryLookupSaved": { "message": "Już w słówkach · pokaż" }
+  "libraryLookupSaved": { "message": "Już w słówkach · pokaż" },
+  "mdVideoTitle": { "message": "Wideo i napisy" },
+  "mdVideoLoad": { "message": "Wczytaj wideo i napisy" },
+  "mdVideoLoading": { "message": "Wczytywanie napisów…" },
+  "mdVideoTrackAria": { "message": "Język napisów" },
+  "mdVideoNoTracks": { "message": "Dla tego wideo nie ma dostępnych napisów" },
+  "mdVideoFailed": { "message": "Nie udało się wczytać napisów; YouTube może w tej chwili odrzucać żądanie. Spróbuj ponownie później." },
+  "mdVideoPermMissing": { "message": "Odmówiono uprawnienia; niczego nie wczytano" },
+  "mdVideoCopyMd": { "message": "Skopiuj transkrypcję jako Markdown" },
+  "mdVideoCopied": { "message": "Skopiowano transkrypcję" },
+  "mdVideoAsr": { "message": "generowane automatycznie" },
+  "mdVideoSeekTo": { "message": "Przejdź do $TIME$", "placeholders": { "time": { "content": "$1" } } },
+  "mdVideoCopyFailed": { "message": "Kopiowanie nie powiodło się" }
 }
