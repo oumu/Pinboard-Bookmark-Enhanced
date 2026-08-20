@@ -764,6 +764,17 @@ suite("pbpAiShield", () => {
     if (!/Header text/.test(r.text) || !/cell/.test(r.text) || !/link/.test(r.text)) throw new Error("cell text must stay translatable: " + r.text);
     if (pbpAiRestore(r.text, r.slots) !== src) throw new Error("restore mismatch: " + pbpAiRestore(r.text, r.slots));
   });
+  test("A6 T-shield: attribute value with a bare unescaped '>' doesn't truncate the tag", () => {
+    // DOM serialization never escapes ">" inside an attribute value, so a real
+    // <table> block can legally contain alt="Home > Products". A naive
+    // [^>]* tag-body regex stops at that first bare ">" and leaks the rest of
+    // the attribute (and the literal "<" / ">" characters) as unshielded text.
+    const src = '<table><tbody><tr><td><img src="https://e.com/i.png" alt="Home > Products" title="a>b"></td></tr></tbody></table>';
+    const r = pbpAiShield(src);
+    if (/[<>]/.test(r.text)) throw new Error("tag leaked: " + r.text);
+    if (pbpAiRestore(r.text, r.slots) !== src) throw new Error("restore mismatch: " + pbpAiRestore(r.text, r.slots));
+    if (!pbpTrPlaceholdersConserved(r.text, r.text)) throw new Error("conservation gate must pass on identity");
+  });
   test("A6 T-shield: prose with <3 / angle text never mints T", () => {
     const r = pbpAiShield("I <3 markdown, and <tables> in prose stay prose");
     if (r.slots.some((s) => /^⟦T/.test(s.ph))) throw new Error("false-positive T slot");
@@ -2076,6 +2087,32 @@ suiteIf("pbpTrBlockIsTargetLang", "pbpTrBlockIsTargetLang", () => {
   });
   test("zh: placeholders stripped before counting -> dilution doesn't sink the ratio", () => {
     assertEq(pbpTrBlockIsTargetLang(zhHit + dilute, "zh-Hans"), true, "zh dilution");
+  });
+  test("A6 T-shield: real pbpAiShield() table output doesn't let literal 'T' letters pollute either script predicate", () => {
+    // A raw-HTML table with lots of empty cells mints many ⟦Tn⟧ placeholders
+    // around a small amount of real text -- if the [CLIM] strip regex in
+    // pbpTrBlockIsTargetLang / pbpTrBlockLacksSourceScript were NOT widened to
+    // [CLIMT], every un-stripped "T" letter would itself count toward \p{L},
+    // diluting the han-ratio denominator without ever counting as Han.
+    let rows = "";
+    for (let i = 0; i < 8; i++) rows += "<tr><td></td><td></td></tr>";
+    const zhSrc = "<table><tbody>" + rows + "<tr><td>" + zhHit + "</td></tr></tbody></table>";
+    const zhShielded = pbpAiShield(zhSrc).text;
+    const tCount = (zhShielded.match(/⟦T\d+⟧/g) || []).length;
+    assert(tCount >= 20, "fixture must actually mint a heavy T load, got " + tCount + ": " + zhShielded);
+    assertEq(pbpTrBlockIsTargetLang(zhShielded, "zh-Hans"), true,
+      "T-heavy real table block still reads as 100% Han once T is stripped: " + zhShielded);
+    // Companion function (also widened to [CLIMT] this round): same T-heavy
+    // shape, but with English-only cell text and target "en" -- the veto-zero-
+    // source-script path must still say "no source script" through the T noise.
+    const enSrc = "<table><tbody>" + rows + "<tr><td>" + enLong + "</td></tr></tbody></table>";
+    const enShielded = pbpAiShield(enSrc).text;
+    assertEq(pbpTrBlockLacksSourceScript(enShielded, "zh-Hans", "en"), true,
+      "T-heavy English-only table block still skip-eligible for en target: " + enShielded);
+    // And the Han veto itself must still fire through the same T noise (not
+    // just accidentally pass because T dilution silently defeats the veto).
+    assertEq(pbpTrBlockLacksSourceScript(zhShielded, "zh-Hans", "en"), false,
+      "Han veto still fires through T-tag noise: " + zhShielded);
   });
 
   // -- ja (Han+Kana; pure Han must NOT match -- "may be Chinese") --

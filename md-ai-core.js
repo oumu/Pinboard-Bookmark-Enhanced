@@ -268,8 +268,13 @@ function pbpAiShield(md) {
   // every tag so the model only ever sees cell text; the conservation gate
   // then guarantees the structure round-trips byte-exact. Gated on the
   // <table prefix so prose "<3" or angle-bracket text can never mint a T.
+  // Quote-aware: an attribute value can legally contain a bare ">" (DOM
+  // serialization never escapes it, e.g. alt="Home > Products"), so the tag
+  // body must skip over "..."/'...' spans rather than stopping at the first
+  // ">" -- a naive [^>]* would truncate the tag there and leak the rest of
+  // the attribute value as unshielded text.
   if (/^\s*<table[\s>]/i.test(text)) {
-    text = text.replace(/<\/?[a-zA-Z][^>]*>/g, (m) => take("T", m));
+    text = text.replace(/<\/?[a-zA-Z](?:"[^"]*"|'[^']*'|[^>"'])*>/g, (m) => take("T", m));
   }
   text = text.replace(/``[^`]+``|`[^`\n]+`/g, (m) => take("C", m));
   text = text.replace(/\$\$[^$]+\$\$/g, (m) => take("M", m));

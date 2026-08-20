@@ -18,7 +18,7 @@ paths:
 
 ## 全文翻译（md-translate.js）
 
-block 切分 → `pbpAiShield` 占位符 `⟦C/L/I/M\d+⟧` 屏蔽代码/链接/图片/数学 → JSON `{translations:[{id,text}]}` 流式 → 块 hash 缓存。三条不变量勿破坏：
+block 切分 → `pbpAiShield` 占位符 `⟦C/L/I/M/T\d+⟧` 屏蔽代码/链接/图片/数学 → JSON `{translations:[{id,text}]}` 流式 → 块 hash 缓存。三条不变量勿破坏：
 
 1. **占位符守恒门**（`pbpTrPlaceholdersConserved`，硬）+ 长度比（软）二者皆过才 fill；
 2. glossary = 用户表 ∪ 自动抽取（**用户优先**）按批命中裁剪注入；
