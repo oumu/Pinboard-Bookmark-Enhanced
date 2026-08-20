@@ -2367,7 +2367,26 @@
     "message": "Model override (optional)"
   },
   "previewAiModelHint": {
-    "message": "Model name used only by preview-page AI features, still on the provider from the AI Providers tab. Leave empty to use the model configured there."
+    "message": "Model name used only by preview-page AI features, saved separately for each provider. Leave empty to use the model configured on the AI Providers tab."
+  },
+  "previewAiModelFor": {
+    "message": "Applies to $PROVIDER$.",
+    "placeholders": {
+      "provider": {
+        "content": "$1"
+      }
+    }
+  },
+  "previewAiOverrideErrHint": {
+    "message": "Model “$MODEL$” comes from the Reader tab's model override. If $PROVIDER$ does not offer it, clear that override in Settings.",
+    "placeholders": {
+      "model": {
+        "content": "$1"
+      },
+      "provider": {
+        "content": "$2"
+      }
+    }
   },
   "translateTargetLangLabel": {
     "message": "Translation target language"

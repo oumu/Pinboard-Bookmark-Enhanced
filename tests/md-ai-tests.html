@@ -961,10 +961,52 @@ suite("pbpAiAvailable / pbpAiResolveModelOverride", () => {
   test("previewAiEnabled undefined treated as enabled (default true)", () => {
     assert(pbpAiAvailable({ aiProvider: "ollama" }) === true, "undefined !== false");
   });
-  test("model override trims; empty/whitespace -> undefined", () => {
+  test("legacy single-key override trims; applies only while the map has no entry", () => {
     assert(pbpAiResolveModelOverride({ previewAiModel: " gpt-x " }) === "gpt-x", "trimmed");
     assert(pbpAiResolveModelOverride({ previewAiModel: "   " }) === undefined, "whitespace");
     assert(pbpAiResolveModelOverride({}) === undefined, "absent");
+    assert(pbpAiResolveModelOverride({ previewAiModel: "gpt-x", previewAiModelByProvider: {} }) === "gpt-x", "empty map falls back to legacy");
+  });
+  test("per-provider map wins over legacy and isolates providers", () => {
+    const s = { aiProvider: "zhipu", previewAiModel: "gpt-x", previewAiModelByProvider: { zhipu: " glm-z ", openai: "gpt-y" } };
+    assert(pbpAiResolveModelOverride(s) === "glm-z", "current provider entry, trimmed");
+    assert(pbpAiResolveModelOverride({ ...s, aiProvider: "openai" }) === "gpt-y", "provider switch reads its own entry");
+    assert(pbpAiResolveModelOverride({ ...s, aiProvider: "groq" }) === "gpt-x", "unrecorded provider falls back to legacy");
+    assert(pbpAiResolveModelOverride({ previewAiModelByProvider: { gemini: "g1" } }) === "g1", "missing aiProvider defaults to gemini");
+  });
+  test("explicit empty map entry means no override -- legacy must NOT leak back", () => {
+    const s = { aiProvider: "openai", previewAiModel: "stale-model", previewAiModelByProvider: { openai: "" } };
+    assert(pbpAiResolveModelOverride(s) === undefined, "explicit '' blocks the legacy key");
+    assert(pbpAiResolveModelOverride({ aiProvider: "gemini", previewAiModelByProvider: { gemini: "   " } }) === undefined, "whitespace entry -> undefined");
+  });
+  test("malformed map shapes fail closed", () => {
+    assert(pbpAiResolveModelOverride({ previewAiModel: "m", previewAiModelByProvider: ["x"] }) === "m", "array ignored -> legacy");
+    assert(pbpAiResolveModelOverride({ previewAiModel: "m", previewAiModelByProvider: "x" }) === "m", "string ignored -> legacy");
+    assert(pbpAiResolveModelOverride({ aiProvider: "gemini", previewAiModelByProvider: { gemini: 42 } }) === undefined, "non-string entry -> no override, no legacy leak");
+  });
+});
+
+// ============ pbpAiOverrideErrHint: override attribution on model failures ============
+suite("pbpAiOverrideErrHint", () => {
+  // Stubbed chrome.i18n returns "" so t() falls through to the KEY string --
+  // assertions pin the key, the locale files own the wording.
+  const S = { aiProvider: "openai", previewAiModelByProvider: { openai: "gpt-oops" } };
+  test("model-shaped failures with an active override name the override", () => {
+    assert(pbpAiOverrideErrHint({ code: "model_not_found", message: "x" }, S) === "previewAiOverrideErrHint", "model_not_found code");
+    assert(pbpAiOverrideErrHint({ status: 400, message: "x" }, S) === "previewAiOverrideErrHint", "400");
+    assert(pbpAiOverrideErrHint({ status: 404, message: "x" }, S) === "previewAiOverrideErrHint", "404");
+    assert(pbpAiOverrideErrHint({ status: 422, message: "x" }, S) === "previewAiOverrideErrHint", "422");
+    assert(pbpAiOverrideErrHint({ code: "model_not_found" }, { aiProvider: "groq", previewAiModel: "legacy-m" }) === "previewAiOverrideErrHint", "legacy single-key override also attributed");
+  });
+  test("silent without an override or on error classes the override cannot cause", () => {
+    assert(pbpAiOverrideErrHint({ code: "model_not_found" }, { aiProvider: "openai" }) === "", "no override -> silent");
+    assert(pbpAiOverrideErrHint({ code: "model_not_found" }, { aiProvider: "zhipu", previewAiModelByProvider: { openai: "gpt-oops", zhipu: "" } }) === "", "override on another provider only -> silent");
+    assert(pbpAiOverrideErrHint({ status: 401, message: "x" }, S) === "", "bad key 401");
+    assert(pbpAiOverrideErrHint({ status: 403, message: "x" }, S) === "", "403");
+    assert(pbpAiOverrideErrHint({ status: 429, message: "x" }, S) === "", "quota 429");
+    assert(pbpAiOverrideErrHint({ status: 500, message: "x" }, S) === "", "server 500");
+    assert(pbpAiOverrideErrHint({ code: "host_permission" }, S) === "", "permission error");
+    assert(pbpAiOverrideErrHint(null, S) === "", "null error");
   });
 });
 

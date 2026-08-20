@@ -2367,7 +2367,26 @@
     "message": "Zastąpienie modelu (opcjonalne)"
   },
   "previewAiModelHint": {
-    "message": "Nazwa modelu używana tylko przez funkcje AI strony podglądu; dostawca pozostaje ten wybrany na karcie „Dostawcy AI”. Pozostaw puste, aby użyć modelu skonfigurowanego na tej karcie."
+    "message": "Nazwa modelu używana tylko przez funkcje AI strony podglądu, zapisywana osobno dla każdego dostawcy. Pozostaw puste, aby użyć modelu skonfigurowanego na karcie „Dostawcy AI”."
+  },
+  "previewAiModelFor": {
+    "message": "Dotyczy: $PROVIDER$.",
+    "placeholders": {
+      "provider": {
+        "content": "$1"
+      }
+    }
+  },
+  "previewAiOverrideErrHint": {
+    "message": "Model „$MODEL$” pochodzi z zastąpienia modelu na karcie „Czytnik”. Jeśli $PROVIDER$ nie obsługuje tego modelu, wyczyść to zastąpienie w ustawieniach.",
+    "placeholders": {
+      "model": {
+        "content": "$1"
+      },
+      "provider": {
+        "content": "$2"
+      }
+    }
   },
   "translateTargetLangLabel": {
     "message": "Język docelowy tłumaczenia"

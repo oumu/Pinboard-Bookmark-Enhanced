@@ -434,6 +434,10 @@ const SETTINGS_DEFAULTS = {
   // user must opt in explicitly (spec: docs/superpowers/specs/2026-07-07-skim-layer-design.md).
   previewSkimEnabled: false,
   previewAiModel: "",
+  // Per-provider preview model override map {providerId: model}. previewAiModel
+  // above is the legacy single-key value (provider unknown); it applies only for
+  // providers the map has never recorded (see pbpAiResolveModelOverride).
+  previewAiModelByProvider: {},
   translateTargetLang: "auto",
   translateGlossary: "",
   dictEchoEnabled: true,    // md-vocab-echo: underline saved vocab words in the reader

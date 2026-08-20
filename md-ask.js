@@ -619,7 +619,9 @@ function _pbpAskAppendRound(question) {
 function _pbpAskErrorUi(aEl, error, question) {
   const err = document.createElement("p");
   err.className = "ask-err";
-  err.textContent = (error && error.message) ? error.message : String(error || "");
+  const overrideHint = pbpAiOverrideErrHint(error, _pbpAskState && _pbpAskState.s);
+  err.textContent = ((error && error.message) ? error.message : String(error || ""))
+    + (overrideHint ? " " + overrideHint : "");
   const retry = document.createElement("button");
   retry.type = "button";
   retry.className = "action-btn ask-retry";
@@ -2578,7 +2580,9 @@ async function _pbpExplainRun(cap, ctx, pop) {
     const wrap = document.createElement("div");
     wrap.className = "xp-error";
     const msg = document.createElement("p");
-    msg.textContent = (e && e.message) || "Request failed"; // handleAIError text, plain
+    const overrideHint = pbpAiOverrideErrHint(e, s);
+    msg.textContent = ((e && e.message) || "Request failed") // handleAIError text, plain
+      + (overrideHint ? " " + overrideHint : "");
     const retry = document.createElement("button");
     retry.type = "button";
     retry.className = "xp-retry";

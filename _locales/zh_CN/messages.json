@@ -2367,7 +2367,26 @@
     "message": "模型覆盖（可选）"
   },
   "previewAiModelHint": {
-    "message": "仅供预览页 AI 功能使用的模型名，服务商仍沿用「AI 服务商」中的配置。留空则使用其中配置的模型。"
+    "message": "仅供预览页 AI 功能使用的模型名，按服务商分别保存。留空则使用「AI 服务商」中配置的模型。"
+  },
+  "previewAiModelFor": {
+    "message": "作用于 $PROVIDER$。",
+    "placeholders": {
+      "provider": {
+        "content": "$1"
+      }
+    }
+  },
+  "previewAiOverrideErrHint": {
+    "message": "模型 $MODEL$ 来自「阅读器」设置中的模型覆盖；若 $PROVIDER$ 不提供该模型，请到该处清空覆盖。",
+    "placeholders": {
+      "model": {
+        "content": "$1"
+      },
+      "provider": {
+        "content": "$2"
+      }
+    }
   },
   "translateTargetLangLabel": {
     "message": "翻译目标语言"

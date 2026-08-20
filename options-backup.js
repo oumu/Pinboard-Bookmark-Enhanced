@@ -29,6 +29,25 @@ const PBP_BACKUP_ENUMS = Object.freeze({
   selectionTrigger: ["icon", "hotkey", "off"],
 });
 
+// Per-provider preview model overrides: keys must look like provider ids and
+// values like model names. Bounded (entry count / value length) because backup
+// files are untrusted input and this object round-trips into synced settings.
+function pbpSanitizeBackupPreviewModelMap(value) {
+  if (!pbpIsPlainRecord(value)) throw pbpBackupValueError("previewAiModelByProvider");
+  const out = {};
+  const keys = Object.keys(value);
+  if (keys.length > 32) throw pbpBackupValueError("previewAiModelByProvider");
+  for (const key of keys) {
+    if (!/^[a-z][a-z0-9_-]{0,31}$/.test(key)) throw pbpBackupValueError("previewAiModelByProvider." + key);
+    const model = value[key];
+    if (typeof model !== "string" || model.length > 200) {
+      throw pbpBackupValueError("previewAiModelByProvider." + key);
+    }
+    out[key] = model;
+  }
+  return out;
+}
+
 function pbpSanitizeBackupUrlClean(value) {
   if (!pbpIsPlainRecord(value)) throw pbpBackupValueError("urlClean");
   const out = {};
@@ -106,6 +125,10 @@ function pbpSanitizeBackupSettings(data, exportableKeys) {
     }
     if (key === "urlClean") {
       safe[key] = pbpSanitizeBackupUrlClean(value);
+      continue;
+    }
+    if (key === "previewAiModelByProvider") {
+      safe[key] = pbpSanitizeBackupPreviewModelMap(value);
       continue;
     }
     const expected = SETTINGS_DEFAULTS[key];

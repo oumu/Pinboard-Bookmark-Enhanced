@@ -1049,6 +1049,22 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
+  // ---- Preview model override: per-provider session map ----
+  // The input shows ONE provider's entry at a time (the provider selected on
+  // the AI Providers tab); switching providers stashes the visible value and
+  // loads the new provider's (updateProviderFields). Legacy single-key
+  // previewAiModel migrates into the map under the provider active at load --
+  // the only provider it can plausibly belong to (md-ai-core falls back to the
+  // legacy key at read time until this first write lands).
+  const _previewModelMap = (s.previewAiModelByProvider && typeof s.previewAiModelByProvider === "object"
+      && !Array.isArray(s.previewAiModelByProvider))
+    ? { ...s.previewAiModelByProvider } : {};
+  let _previewModelProvider = s.aiProvider || "gemini";
+  if (!Object.prototype.hasOwnProperty.call(_previewModelMap, _previewModelProvider)
+      && typeof s.previewAiModel === "string" && s.previewAiModel.trim()) {
+    _previewModelMap[_previewModelProvider] = s.previewAiModel.trim();
+  }
+
   // ---- Fill text/password/select fields ----
   const fieldMap = {
     "opt-pinboard-token": s.pinboardToken,
@@ -1080,7 +1096,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     "opt-tag-presets": s.tagPresets,
     "opt-wayback-s3key": s.waybackS3Key,
     "opt-wayback-s3secret": s.waybackS3Secret,
-    "opt-preview-ai-model": s.previewAiModel,
+    "opt-preview-ai-model": _previewModelMap[s.aiProvider || "gemini"] ?? "",
     "opt-translate-glossary": s.translateGlossary,
     "opt-selection-trigger": s.selectionTrigger,
     "dict-anki-deck": s.dictAnkiDeck || "",
@@ -1516,12 +1532,28 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // ---- Provider field toggle ----
   const providers = ["gemini","openai","claude","deepseek","qwen","minimax","openrouter","groq","mistral","cohere","siliconflow","zhipu","kimi","githubmodels","ollama","custom"];
+  // Reader tab's model-override input follows the selected provider: stash the
+  // visible value under the outgoing provider, show the incoming provider's
+  // entry (absent -> empty, NOT the legacy single key: showing a stale
+  // cross-provider model here is the exact bug this map exists to kill).
+  function syncPreviewModelToProvider(selected) {
+    const el = $id("opt-preview-ai-model");
+    if (el && selected && selected !== _previewModelProvider) {
+      _previewModelMap[_previewModelProvider] = el.value.trim();
+      _previewModelProvider = selected;
+      el.value = _previewModelMap[selected] ?? "";
+    }
+    const cap = $id("preview-ai-model-provider");
+    const opt = $id("opt-ai-provider").selectedOptions[0];
+    if (cap) cap.textContent = t("previewAiModelFor", opt ? opt.textContent.trim() : selected);
+  }
   function updateProviderFields() {
     const selected = $id("opt-ai-provider").value;
     providers.forEach(p => {
       const el = $id("fields-" + p);
       if (el) el.hidden = p !== selected; // native hidden: .pf reveal transition keys off [hidden]
     });
+    syncPreviewModelToProvider(selected);
   }
   updateProviderFields();
   $id("opt-ai-provider").addEventListener("change", updateProviderFields);
@@ -1743,7 +1775,15 @@ document.addEventListener("DOMContentLoaded", async () => {
       // Preview-page AI (md-preview explain / ask / translate)
       previewAiEnabled: $id("opt-preview-ai-enabled").checked,
       previewSkimEnabled: $id("opt-preview-skim").checked,
-      previewAiModel: $id("opt-preview-ai-model").value.trim(),
+      // Per-provider override: commit the visible input under the provider it
+      // belongs to, persist the whole map, and retire the legacy single key
+      // (folded into the map at load; left non-empty it would keep leaking
+      // into providers the map has no entry for via md-ai-core's fallback).
+      previewAiModelByProvider: (() => {
+        _previewModelMap[_previewModelProvider] = $id("opt-preview-ai-model").value.trim();
+        return { ..._previewModelMap };
+      })(),
+      previewAiModel: "",
       translateTargetLang: resolveTranslateTargetLang(),
       translateGlossary: $id("opt-translate-glossary").value,
       dictEchoEnabled: $id("dict-echo-enabled").checked,

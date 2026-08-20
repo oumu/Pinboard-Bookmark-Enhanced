@@ -604,7 +604,10 @@
       <div class="fg">
         <label class="bl" for="opt-preview-ai-model" data-i18n="previewAiModelLabel">Model override (optional)</label>
         <input type="text" id="opt-preview-ai-model" />
-        <p class="hint" data-i18n="previewAiModelHint">Model name used only by preview-page AI features, still on the provider from the AI Providers tab. Leave empty to use the model configured there.</p>
+        <!-- Filled by syncPreviewModelToProvider (options.js): names the provider
+             this input currently edits, so a provider switch visibly swaps it. -->
+        <p class="hint" id="preview-ai-model-provider"></p>
+        <p class="hint" data-i18n="previewAiModelHint">Model name used only by preview-page AI features, saved separately for each provider. Leave empty to use the model configured on the AI Providers tab.</p>
       </div>
 
       <div class="fg">

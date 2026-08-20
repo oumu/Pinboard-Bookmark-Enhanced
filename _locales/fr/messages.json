@@ -2367,7 +2367,26 @@
     "message": "Remplacement du modèle (optionnel)"
   },
   "previewAiModelHint": {
-    "message": "Nom du modèle utilisé uniquement par les fonctionnalités IA de la page de prévisualisation ; le fournisseur reste celui choisi dans l'onglet « Fournisseurs IA ». Laisser vide pour utiliser le modèle configuré dans cet onglet."
+    "message": "Nom du modèle utilisé uniquement par les fonctionnalités IA de la page de prévisualisation, enregistré séparément pour chaque fournisseur. Laisser vide pour utiliser le modèle configuré dans l'onglet « Fournisseurs IA »."
+  },
+  "previewAiModelFor": {
+    "message": "S'applique à $PROVIDER$.",
+    "placeholders": {
+      "provider": {
+        "content": "$1"
+      }
+    }
+  },
+  "previewAiOverrideErrHint": {
+    "message": "Le modèle « $MODEL$ » provient du remplacement de modèle de l'onglet « Lecture ». Si $PROVIDER$ ne propose pas ce modèle, effacez ce remplacement dans les réglages.",
+    "placeholders": {
+      "model": {
+        "content": "$1"
+      },
+      "provider": {
+        "content": "$2"
+      }
+    }
   },
   "translateTargetLangLabel": {
     "message": "Langue cible de traduction"

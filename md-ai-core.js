@@ -483,9 +483,35 @@ function pbpAiAvailable(s) {
   return s.previewAiEnabled !== false && hasAIKey(s);
 }
 
+// Preview model override is PER PROVIDER (previewAiModelByProvider): a model
+// name written for one provider is meaningless on another, and the old single
+// key silently leaked across an AI-provider switch (translate failed while the
+// provider's own test connection passed). The legacy single key previewAiModel
+// applies only while the map has NO entry for the current provider -- an
+// explicit "" entry means "no override", so hasOwnProperty, not truthiness.
 function pbpAiResolveModelOverride(s) {
-  const m = (s && typeof s.previewAiModel === "string") ? s.previewAiModel.trim() : "";
+  const st = s || {};
+  const p = st.aiProvider || "gemini";
+  const map = st.previewAiModelByProvider;
+  const raw = (map && typeof map === "object" && !Array.isArray(map)
+      && Object.prototype.hasOwnProperty.call(map, p))
+    ? map[p] : st.previewAiModel;
+  const m = (typeof raw === "string") ? raw.trim() : "";
   return m || undefined;
+}
+
+// Error attribution for the override: when a preview request dies on a
+// model-shaped failure while an override is active, name the override as the
+// suspect -- the AI Providers tab's test connection never exercises it, so
+// without this line the failure looks unexplainable. Returns "" when silent
+// (no override, or an error class the override can't cause: 401/403/429/5xx).
+function pbpAiOverrideErrHint(err, s) {
+  const model = pbpAiResolveModelOverride(s);
+  if (!model) return "";
+  const code = err && err.code;
+  const status = err && err.status;
+  if (code !== "model_not_found" && status !== 400 && status !== 404 && status !== 422) return "";
+  return t("previewAiOverrideErrHint", model, (s && s.aiProvider) || "gemini");
 }
 
 // Cache-identity model: the preview override if set, else the provider's

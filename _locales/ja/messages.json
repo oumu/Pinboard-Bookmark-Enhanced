@@ -2367,7 +2367,26 @@
     "message": "モデルの上書き（任意）"
   },
   "previewAiModelHint": {
-    "message": "プレビューページの AI 機能専用のモデル名（プロバイダーは「AI プロバイダー」タブの設定のまま）。空欄にすると、そのタブで設定したモデルを使用します。"
+    "message": "プレビューページの AI 機能専用のモデル名で、プロバイダーごとに保存されます。空欄にすると「AI プロバイダー」タブで設定したモデルを使用します。"
+  },
+  "previewAiModelFor": {
+    "message": "$PROVIDER$ に適用されます。",
+    "placeholders": {
+      "provider": {
+        "content": "$1"
+      }
+    }
+  },
+  "previewAiOverrideErrHint": {
+    "message": "モデル「$MODEL$」は「リーダー」タブのモデル上書きによる指定です。$PROVIDER$ で利用できない場合は、設定でこの上書きを空欄にしてください。",
+    "placeholders": {
+      "model": {
+        "content": "$1"
+      },
+      "provider": {
+        "content": "$2"
+      }
+    }
   },
   "translateTargetLangLabel": {
     "message": "翻訳先の言語"

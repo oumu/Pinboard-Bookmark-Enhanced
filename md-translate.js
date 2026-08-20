@@ -1787,7 +1787,10 @@ async function _pbpTrStart(st) {
   const batchBlockNs = pbpTrBatchBlockNs(batchesPacked, segMap);
   const queueResult = await pbpTrRunQueue({
     targetCode: st.target.code,
-    describeError: (e) => pbpAiErrorText(e),
+    describeError: (e) => {
+      const hint = pbpAiOverrideErrHint(e, st.s);
+      return hint ? pbpAiErrorText(e) + " " + hint : pbpAiErrorText(e);
+    },
     batches: batchesPacked,
     claim: (remaining) => pbpTrPickBatch(remaining, batchBlockNs,
       pbpTrRunAnchor(pendingNs, st.work.length, st.skippedCount || 0, st.viewTopBlock)),
@@ -2187,7 +2190,9 @@ async function _pbpTrRetryBlock(st, w, btn) {
     if (e && e.code === "host_permission") st.permissionError = e;
     if (label) label.textContent = t(e && e.code === "host_permission" ? "aiGrantRetry" : "trRetryBlock");
     btn.disabled = false;
-    btn.dataset.tip = t("trBlockFailed") + " - " + pbpAiErrorText(e);
+    const overrideHint = pbpAiOverrideErrHint(e, st.s);
+    btn.dataset.tip = t("trBlockFailed") + " - " + pbpAiErrorText(e)
+      + (overrideHint ? " " + overrideHint : "");
     btn.setAttribute("aria-label", btn.dataset.tip);
   } finally {
     window.removeEventListener("pagehide", onHide);

@@ -2234,6 +2234,25 @@ async function run() {
     try { pbpPreflightBackupPayload({ _schemaVersion: 2, optTheme: false }, exportableKeys); }
     catch (error) { typeError = error; }
     check("E7b preflight: wrong primitive type is rejected", typeError instanceof TypeError);
+
+    const previewMapOk = pbpPreflightBackupPayload({
+      _schemaVersion: 2,
+      previewAiModelByProvider: { openai: " gpt-x ", zhipu: "glm-z" },
+    }, exportableKeys);
+    check("E7b preflight: per-provider preview model map keeps string entries",
+      previewMapOk.safeData.previewAiModelByProvider.openai === " gpt-x " &&
+      previewMapOk.safeData.previewAiModelByProvider.zhipu === "glm-z");
+    const badPreviewMaps = [
+      { openai: 42 },                       // non-string value
+      { "Bad Key!": "x" },                  // key does not look like a provider id
+      { openai: "m".repeat(201) },          // oversized model name
+      ["x"],                                // non-record shape
+    ];
+    check("E7b preflight: preview model map rejects non-string values, malformed keys, oversize names, and non-record shapes",
+      badPreviewMaps.every((bad) => {
+        try { pbpPreflightBackupPayload({ _schemaVersion: 2, previewAiModelByProvider: bad }, exportableKeys); return false; }
+        catch (error) { return error instanceof TypeError; }
+      }));
     let enumError = null;
     try { pbpPreflightBackupPayload({ _schemaVersion: 2, mdExportImagePolicy: "embed" }, exportableKeys); }
     catch (error) { enumError = error; }

@@ -2367,7 +2367,26 @@
     "message": "Modell-Überschreibung (optional)"
   },
   "previewAiModelHint": {
-    "message": "Modellname, der nur von KI-Funktionen der Vorschauseite verwendet wird; der Anbieter richtet sich weiterhin nach dem Tab „KI-Anbieter“. Leer lassen, um das dort konfigurierte Modell zu verwenden."
+    "message": "Modellname, der nur von KI-Funktionen der Vorschauseite verwendet wird und je Anbieter separat gespeichert ist. Leer lassen, um das im Tab „KI-Anbieter“ konfigurierte Modell zu verwenden."
+  },
+  "previewAiModelFor": {
+    "message": "Gilt für $PROVIDER$.",
+    "placeholders": {
+      "provider": {
+        "content": "$1"
+      }
+    }
+  },
+  "previewAiOverrideErrHint": {
+    "message": "Das Modell „$MODEL$“ stammt aus der Modell-Überschreibung im Tab „Leseansicht“. Falls $PROVIDER$ dieses Modell nicht anbietet, leere dort die Überschreibung.",
+    "placeholders": {
+      "model": {
+        "content": "$1"
+      },
+      "provider": {
+        "content": "$2"
+      }
+    }
   },
   "translateTargetLangLabel": {
     "message": "Übersetzungszielsprache"
