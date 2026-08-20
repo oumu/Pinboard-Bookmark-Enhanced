@@ -714,7 +714,7 @@ check(/orig\.dataset\.pbTrDone = "1";[\s\S]{0,380}_pbpTrSyncToc\(st, "translated
 check(mdTranslateJs.includes('const targetCode = plan.targetCode || ""') &&
   mdTranslateJs.includes("pbpTrLengthRatioOk(seg.text, item.text, targetCode)") &&
   mdTranslateJs.includes("pbpTrLengthRatioOk(seg.text, text, targetCode)") &&
-  mdTranslateJs.includes("pbpTrLengthRatioOk(split.chunks[i], got, st.target.code)") &&
+  mdTranslateJs.includes("pbpTrLengthRatioOk(sendText, got, st.target.code)") &&
   /pbpTrRunQueue\(\{[\s\S]{0,140}targetCode:\s*st\.target\.code/.test(mdTranslateJs),
   "md-translate.js: target language code does not reach batch, downgrade and manual retry quality gates");
 {

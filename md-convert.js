@@ -855,7 +855,7 @@ html,body{margin:0;background:var(--x-bg)}
 .export-doc li{margin:.35em 0}
 .export-doc .pb-table-wrap{margin:1.5em 0;overflow-x:auto}
 .export-doc .pb-table-wrap>table{margin:0}
-.export-doc :not(.pb-table-wrap)>table{display:block;overflow-x:auto}
+.export-doc table:not(.pb-table-wrap>table){display:block;overflow-x:auto}
 .export-doc table{border-collapse:collapse;width:100%;margin:1.5em 0;font-size:.9375em;border:1px solid var(--x-bd);border-radius:8px;overflow:hidden}
 .export-doc th,.export-doc td{padding:10px 16px;text-align:left;border-bottom:1px solid var(--x-bdl);overflow-wrap:anywhere}
 .export-doc thead{background:var(--x-code-bg)}

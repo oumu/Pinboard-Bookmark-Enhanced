@@ -888,8 +888,18 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
 /* Raw-HTML tables (complex-table passthrough) are marked html tokens — the
    renderer.table wrapper never sees them, so they carry no .pb-table-wrap.
    The GitHub containment trick (block + own scroll) keeps a wide one from
-   punching through the article column. */
-#rendered-view :not(.pb-table-wrap) > table { display: block; overflow-x: auto; }
+   punching through the article column.
+   Selectors-4 complex :not() -- NOT a descendant-combinator ":not(.pb-table-wrap) > table"
+   (that requires an ancestor element BETWEEN #rendered-view and table that
+   isn't .pb-table-wrap; when the table's parentElement IS #rendered-view
+   itself, no such element exists and the rule silently never matches its
+   own most common case: a top-level raw table). This form instead asks of
+   the <table> itself: "is your parent NOT .pb-table-wrap?" -- true for a
+   table sitting directly under #rendered-view, inside a .pb-tr translated
+   block, in a blockquote/list, wherever -- while a table that IS wrapped
+   (.pb-table-wrap > table) is excluded so it keeps using the wrap's own
+   scroll container instead of double-containing. */
+#rendered-view table:not(.pb-table-wrap > table) { display: block; overflow-x: auto; }
 
 /* Mermaid figures (md-mermaid.js): the rendered data-URI diagram that
    replaces its hidden source fence. Background stays transparent — the SVG
