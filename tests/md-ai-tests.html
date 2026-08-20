@@ -6599,13 +6599,31 @@ suiteIf("tr cache generation ledger (ZH-1a)", "pbpTrGensPush", () => {
   // updating a hash WITHOUT bumping the paired constant is the defect this
   // suite exists to catch.
   test("D1 prompt-generation ledger: text hash pinned to PBP_TR_PROMPT_GEN", () => {
-    assertEq(PBP_TR_PROMPT_GEN, 2, "PBP_TR_PROMPT_GEN");
-    assertEq(pbpAiHash(PBP_TR_SYSTEM), "987f48a2", "PBP_TR_SYSTEM hash");
+    assertEq(PBP_TR_PROMPT_GEN, 3, "PBP_TR_PROMPT_GEN");   // gen 3 = ZH-4 untrusted-context wording
+    assertEq(pbpAiHash(PBP_TR_SYSTEM), "de9ce47b", "PBP_TR_SYSTEM hash");
     assertEq(pbpAiHash(JSON.stringify(PBP_TR_STYLE_PACKS) + PBP_TR_STYLE_GENERIC), "bfdd0f40", "style packs hash");
   });
   test("D1 glossary-generation ledger", () => {
-    assertEq(PBP_TR_GLOSSARY_GEN, 1, "PBP_TR_GLOSSARY_GEN");
-    assertEq(pbpAiHash(PBP_TR_GLOSSARY_SYSTEM), "0e18dff4", "PBP_TR_GLOSSARY_SYSTEM hash");
+    assertEq(PBP_TR_GLOSSARY_GEN, 2, "PBP_TR_GLOSSARY_GEN");   // gen 2 = ZH-4 untrusted-material line
+    assertEq(pbpAiHash(PBP_TR_GLOSSARY_SYSTEM), "18f93137", "PBP_TR_GLOSSARY_SYSTEM hash");
+  });
+  test("ZH-4 wording gates: untrusted framing without glossary collateral", () => {
+    // The REPLACED tail declares title/summary untrusted and re-anchors the
+    // output contract. Three traps the review pinned, asserted by category:
+    assert(PBP_TR_SYSTEM.indexOf("untrusted reference context") >= 0, "untrusted clause present");
+    assert(PBP_TR_SYSTEM.indexOf("context only - do not translate or return them") === -1, "old tail absorbed, not duplicated");
+    // "any field" would sweep the glossary into the untrusted framing and
+    // risk demoting Rule 4's strict term enforcement -- banned wording.
+    assert(PBP_TR_SYSTEM.indexOf("any field") === -1, "glossary must stay outside the untrusted framing");
+    // Rule count stays 5, so the style splice tail ("never overrides Rules
+    // 1-5") remains truthful without edits.
+    assert(PBP_TR_SYSTEM.indexOf("\n5.") >= 0 && PBP_TR_SYSTEM.indexOf("\n6.") === -1, "still exactly Rules 1-5");
+    assert(PBP_TR_GLOSSARY_SYSTEM.indexOf("untrusted reference material") >= 0, "extractor gets the short defense line");
+  });
+  test("ZH-4 explain-translate prompt carries the untrusted clause", () => {
+    const r = pbpExplainBuildTranslatePrompt({ selection: "hi", blockText: "b", title: "t", targetLangName: "English" });
+    assert(r.system.indexOf("untrusted document content") >= 0, "selection path defended too");
+    assert(r.system.indexOf("only the translation") >= 0, "output contract re-anchored, not a refusal invitation");
   });
   test("D2 gens set semantics", () => {
     assertEq(JSON.stringify(pbpTrGensPush([], 2)), "[2]");
