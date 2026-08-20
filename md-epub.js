@@ -127,6 +127,7 @@ thead th,tr>th{font-weight:bold;background:#eee}
 pre{overflow-x:auto;white-space:pre-wrap}
 img{max-width:100%;height:auto}
 figure{margin:1.5em 0;text-align:center}
+figure.pb-mermaid{background:#fff;padding:8px;border-radius:8px}
 blockquote{border-left:3px solid #999;margin:1em 0;padding:0 1em}`;
 // ── end PURE SECTION ──
 // ── RUNTIME (DOM) ──

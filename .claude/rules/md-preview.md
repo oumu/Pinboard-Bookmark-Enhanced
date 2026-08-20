@@ -11,6 +11,7 @@ paths:
   - "md-skim.js"
   - "md-convert.js"
   - "md-epub.js"
+  - "md-mermaid.js"
   - "md-export-send.js"
 ---
 

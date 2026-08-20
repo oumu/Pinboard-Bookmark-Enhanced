@@ -600,6 +600,14 @@ function assertEq(actual, expected, label) {
     check("A4 link href/target + img src/alt survive", /href="https:\/\/e\.com\/p"/.test(md) && /target="_blank"/.test(md) && /src="https:\/\/e\.com\/i\.png"/.test(md) && /alt="pic"/.test(md), md);
     check("A4 on* stripped", !/onclick/.test(md), md);
     check("A4 javascript: href still stripped", !/javascript:/.test(htmlToMarkdown('<table><tbody><tr><td colspan="2"><a href="javascript:x()">j</a></td></tr></tbody></table>')), "");
+    // F2: B3's data-URI diagram images land in complex tables too (a mermaid
+    // fence or inline SVG inside a merged-cell table) -- the data: protocol
+    // check must not strip an image data URI, only javascript:/vbscript: and
+    // non-image data: (e.g. data:text/html).
+    check("A4 data-URI image src survives (B3 diagrams inside complex tables)",
+      /<img src="data:image\/svg\+xml;base64,PHN2Zy8\+" alt="d">/.test(
+        htmlToMarkdown('<table><tbody><tr><td colspan="2"><img src="data:image/svg+xml;base64,PHN2Zy8+" alt="d"></td></tr></tbody></table>')
+      ), "");
   })();
   section("A5: colspan/rowspan survive renderMarkdown end-to-end");
   (() => {

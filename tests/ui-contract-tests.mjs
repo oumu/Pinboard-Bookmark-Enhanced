@@ -2339,6 +2339,17 @@ for (const [file, css] of [["popup.css", popupCss], ["options.css", optionsCss],
   }
 }
 
+// A1/A2 table-scroll CSS contract (final-review fix batch, 2026-08-20): pin
+// the two literal declarations that make wide tables behave -- overflow-wrap
+// on th/td (A1: lowers min-content contribution so a long unbreakable token
+// can't drag the whole table into horizontal scroll) and the scroll-driven
+// edge-fade timeline on .pb-table-wrap (A2) -- so a refactor can't silently
+// drop either without this test noticing.
+check(/#rendered-view th, #rendered-view td \{ overflow-wrap: anywhere; \}/.test(mdCss),
+  "md-preview.css: th/td lost overflow-wrap: anywhere (A1 -- a long unbroken table cell token drags the table into horizontal scroll again)");
+check(mdCss.includes("animation-timeline: scroll(self inline);"),
+  "md-preview.css: .pb-table-wrap lost animation-timeline: scroll(self inline) (A2 -- the edge-fade scroll affordance stops tracking horizontal scroll)");
+
 if (fail.length) {
   console.error(fail.join("\n"));
   process.exit(1);

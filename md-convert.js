@@ -80,6 +80,12 @@ function _pbpSanitizeComplexTableHtml(node) {
       // source-page classes into the rendered DOM.
       if (!PBP_COMPLEX_TABLE_ATTRS.has(name)) { el.removeAttribute(attr.name); return; }
       if ((name === "href" || name === "src") && /^(?:javascript|vbscript|data):/i.test(value)) {
+        // B3 renders diagrams/SVGs to <img src="data:image/...;base64,...">
+        // before this ever runs -- DOMPurify's own single sanitize point
+        // already allows img data URIs, so mirror that here instead of
+        // stripping the src bare. javascript:/vbscript: and any non-image
+        // data: (e.g. data:text/html) still strip on both href and src.
+        if (name === "src" && /^data:image\//i.test(value)) return;
         el.removeAttribute(attr.name);
       }
     });
@@ -139,10 +145,12 @@ function _pbpGetTurndown() {
       if (node.querySelector && node.querySelector("th[rowspan],td[rowspan],th[colspan],td[colspan],table")) {
         return "\n\n" + _pbpSanitizeComplexTableHtml(node) + "\n\n";
       }
-      // :scope-limited to this table's own direct rows -- a plain "tr" query would
-      // also pull in a nested <table>'s rows (cell content), which then gets output
-      // twice: once flattened into this table (wrong column count) and once again
-      // via the cell's own recursive td.turndown() call below.
+      // :scope-limited to this table's own direct rows. A nested <table> now
+      // always takes the complex-table passthrough above (querySelector("table")
+      // in that gate matches any descendant table), so the double-output this
+      // guards against is no longer reachable from this branch -- kept anyway
+      // as a harmless belt-and-suspenders limit on which rows count as "this
+      // table's own" if that gate's reach ever narrows.
       const rows = Array.from(node.querySelectorAll(":scope > thead > tr, :scope > tbody > tr, :scope > tr, :scope > tfoot > tr"));
       if (!rows.length) return content;
       // Convert each cell's INNER HTML to markdown so inline formatting
@@ -317,7 +325,10 @@ function pbpB64Utf8(s) {
 
 function _pbpInlineSvgToImg(root) {
   root.querySelectorAll("svg").forEach((svg) => {
-    if (svg.closest("svg") !== svg) return;   // nested svg: handled with its root
+    // nested svg: promoted together with its outer root's own serialization,
+    // not lifted individually (svg.closest("svg") always matches itself
+    // first, so an ancestor check has to start from parentElement instead).
+    if (svg.parentElement && svg.parentElement.closest("svg")) return;
     const dims = _pbpSvgDims(svg);
     if (!dims || Math.min(dims.w, dims.h) < PBP_SVG_MIN_SIDE) return; // icon/unsized: existing drop behavior
     let xml;
@@ -532,6 +543,7 @@ function highlightCodeBlocks(root) {
   const blocks = root.querySelectorAll('pre > code');
   blocks.forEach((block) => {
     if (block.classList.contains("hljs")) return; // idempotent: skip already-highlighted blocks
+    if (block.classList.contains("language-mermaid")) return; // rendered as a diagram elsewhere; hljs 11 logs a console.error for the unknown language
     try {
       hljs.highlightElement(block);
     } catch (_) {
@@ -558,6 +570,7 @@ function highlightCodeBlocksChunked(root) {
     for (; i < end; i++) {
       const block = blocks[i];
       if (block.classList.contains("hljs")) continue; // idempotent
+      if (block.classList.contains("language-mermaid")) continue; // rendered as a diagram elsewhere; hljs 11 logs a console.error for the unknown language
       try {
         hljs.highlightElement(block);
       } catch (_) {

@@ -2238,7 +2238,7 @@ async function _pbpTrRetryBlock(st, w, btn) {
         tr.focus();
       }
     }
-    btn.remove(); // no-op if _pbpTrFill's own cleanup (or _pbpTrMarkPartial below) already removed it
+    btn.remove(); // no-op if _pbpTrFill's own cleanup above already removed it; _pbpTrMarkPartial below runs AFTER this line (not before) and always inserts its own fresh pill regardless
     if (result.partial) {
       // A7 shape gate tripped on >=1 part: displayed, but D7 says never cache
       // a result with a fallen-back part. _pbpTrMarkPartial re-arms a fresh

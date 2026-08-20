@@ -31,7 +31,7 @@ library.{html,css,js}        # 笔记与生词本独立页 + library-{vocab,note
 md-preview.{html,css,js}     # 阅读器弹窗 + md-preview-theme-early.js（明暗 bootstrap 防白闪）
 md-*.js                      # 阅读器子模块：ai-core / translate / ask / highlight / reader / skim（默认关，花 token）
                              #   / dict / vocab-echo（默认开，不花 token）/ convert（marked→DOMPurify 单点 sanitize）
-                             #   / embed / epub / export-send
+                             #   / embed / epub / export-send / mermaid
 vocab-store.js               # pbp-vocab IndexedDB 唯一写边界（words + vector/outbox/tombstone/sync 状态）
 vocab-gdrive.js              # SW-only Google Drive appDataFolder 同步
 dict-pack.js                 # 离线词典包导入（CC-CEDICT + 用户自备 ECDICT）
