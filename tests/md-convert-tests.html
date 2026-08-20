@@ -2813,6 +2813,38 @@ const b3decode = (md) => {
 </script>
 
 <script>
+section("pbpLatexNormalize: pre-KaTeX repair");
+(function () {
+  const N = pbpLatexNormalize;
+  check("bare aligned env gets $$-wrapped",
+    N("intro\n\\begin{aligned}\na &= b \\\\\nc &= d\n\\end{aligned}\nafter") ===
+    "intro\n$$\n\\begin{aligned}\na &= b \\\\\nc &= d\n\\end{aligned}\n$$\nafter");
+  const wrapped = "x\n$$\n\\begin{aligned}\na &= b\n\\end{aligned}\n$$\ny";
+  check("already-wrapped env is byte-identical", N(wrapped) === wrapped);
+  const fenced = "```\n\\begin{aligned}\nraw\n\\end{aligned}\n```";
+  check("env inside a code fence is untouched", N(fenced) === fenced);
+  const spanned = "text `\\begin{aligned}` more";
+  check("env inside an inline code span is untouched", N(spanned) === spanned);
+  check("$$$ runs collapse to $$", N("$$$x=1$$$") === "$$x=1$$");
+  check("align* maps to aligned inside $$",
+    N("$$\\begin{align*}a&=b\\end{align*}$$") === "$$\\begin{aligned}a&=b\\end{aligned}$$");
+  check("gather* maps to gathered inside $$",
+    N("$$\\begin{gather*}a\\\\b\\end{gather*}$$") === "$$\\begin{gathered}a\\\\b\\end{gathered}$$");
+  check("inline $...$ star env also maps",
+    N("t $\\begin{align*}a\\end{align*}$ t") === "t $\\begin{aligned}a\\end{aligned}$ t");
+  check("\\bbox strips keeping nested-brace content",
+    N("$$\\bbox[5px,border:1px]{x_{i}+\\frac{1}{2}}$$") === "$$x_{i}+\\frac{1}{2}$$");
+  check("\\tag{...} is removed", N("$$a=b\\tag{3.1}$$") === "$$a=b$$");
+  check("size commands are removed", N("$$\\Huge x + \\tiny y$$") === "$$x + y$$");
+  check("unknown env is untouched",
+    N("\\begin{customthing}\nx\n\\end{customthing}") === "\\begin{customthing}\nx\n\\end{customthing}");
+  check("plain currency survives byte-identical", N("costs $5 and $6 today") === "costs $5 and $6 today");
+  const once = N("intro\n\\begin{align*}\na &= b\n\\end{align*}\nafter $$\\bbox{q}\\tag{1}$$");
+  check("idempotent: N(N(x)) === N(x)", N(once) === once);
+})();
+</script>
+
+<script>
 (async () => {
   if (window._pbpEpubIntegrationDone) await window._pbpEpubIntegrationDone;
   if (window._pbpEpubA8Done) await window._pbpEpubA8Done;

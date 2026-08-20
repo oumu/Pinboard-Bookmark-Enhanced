@@ -885,6 +885,154 @@ function _xmlEscape(s) {
     .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
+// ---- LaTeX normalization (pre-KaTeX repair of scraped TeX) --------------
+// Scraped math pages carry TeX shapes KaTeX shows as raw source or errors on:
+// bare display environments with no $$ wrapper, $$$-run delimiter damage,
+// MathJax-only commands (\bbox, \tag), star environments inside $-delimited
+// segments, and font-size commands. Repair INPUT damage only: valid math must
+// pass byte-identical, the whole pass is idempotent, and fenced/inline code is
+// never rewritten. Callers gate on the math flag so non-math pages never enter.
+
+const _PBP_TEX_WRAP_ENVS = ["align", "align*", "aligned", "alignat", "alignat*", "eqnarray", "eqnarray*", "equation", "equation*", "gather", "gather*", "gathered", "multline", "multline*", "cases", "dcases", "split", "CD"];
+const _PBP_TEX_ENV_MAP = { "align": "aligned", "align*": "aligned", "eqnarray": "aligned", "eqnarray*": "aligned", "gather": "gathered", "gather*": "gathered", "multline": "gathered", "multline*": "gathered", "equation*": "equation", "alignat*": "alignat" };
+const _PBP_TEX_SIZE_CMDS = /\\(?:Huge|huge|LARGE|Large|large|normalsize|small|footnotesize|scriptsize|tiny)\b\s*/g;
+
+// Strip \cmd[opt]{arg} keeping arg, with real brace matching (\bbox nests).
+function _pbpTexStripBraceCmd(s, cmd) {
+  const marker = "\\" + cmd;
+  let idx = s.indexOf(marker);
+  while (idx !== -1) {
+    let i = idx + marker.length;
+    if (s[i] === "[") {                      // optional [..] argument
+      const close = s.indexOf("]", i);
+      if (close === -1) break;
+      i = close + 1;
+    }
+    if (s[i] !== "{") { idx = s.indexOf(marker, idx + marker.length); continue; }
+    let depth = 0, j = i;
+    for (; j < s.length; j++) {
+      if (s[j] === "{") depth++;
+      else if (s[j] === "}") { depth--; if (depth === 0) break; }
+    }
+    if (depth !== 0) break;                  // unbalanced: leave untouched
+    s = s.slice(0, idx) + s.slice(i + 1, j) + s.slice(j + 1);
+    idx = s.indexOf(marker);
+  }
+  return s;
+}
+
+// Content-level repairs applied INSIDE a $$..$$ or $..$ segment: map star/legacy
+// env names to the aliases KaTeX ships (\aligned etc.), drop \bbox (MathJax-only,
+// keep its nested-brace content), drop \tag{...}, drop font-size commands.
+function _pbpTexFixMathContent(content) {
+  let out = content.replace(/\\(begin|end)\{([a-zA-Z*]+)\}/g, (m, be, env) =>
+    _PBP_TEX_ENV_MAP[env] ? "\\" + be + "{" + _PBP_TEX_ENV_MAP[env] + "}" : m);
+  out = _pbpTexStripBraceCmd(out, "bbox");
+  out = out.replace(/\\tag\*?\{[^{}]*\}\s*/g, "");
+  out = out.replace(_PBP_TEX_SIZE_CMDS, "");
+  return out;
+}
+
+function _pbpTexFixDollarRuns(line) {
+  return line.replace(/\${3,}/g, "$$$$"); // "$$$$" in a replacement string emits "$$"
+}
+
+// Wrap TOP-LEVEL bare display environments in $$. Line-oriented: a wrap
+// candidate is a line whose trimmed text STARTS with \begin{env} (env in the
+// wrap set) while we are not inside a fence or a $$ block. The block runs to
+// the line containing the matching \end at depth 0 (same-name nesting tracked).
+function _pbpTexWrapBareEnvs(md) {
+  const lines = md.split("\n");
+  const out = [];
+  let inFence = false, inDollars = false;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (/^\s*(```|~~~)/.test(line)) { inFence = !inFence; out.push(line); continue; }
+    if (inFence) { out.push(line); continue; }
+    const dd = (line.match(/\$\$/g) || []).length;
+    if (inDollars) { if (dd % 2 === 1) inDollars = false; out.push(line); continue; }
+    const m = line.match(/^\s*\\begin\{([a-zA-Z*]+)\}/);
+    if (!m || _PBP_TEX_WRAP_ENVS.indexOf(m[1]) === -1) {
+      if (dd % 2 === 1) inDollars = true;
+      out.push(line);
+      continue;
+    }
+    // collect until matching \end{same} at depth 0
+    const env = m[1];
+    const beginRe = new RegExp("\\\\begin\\{" + env.replace("*", "\\*") + "\\}", "g");
+    const endRe = new RegExp("\\\\end\\{" + env.replace("*", "\\*") + "\\}", "g");
+    const block = [];
+    let depth = 0, closed = false;
+    for (let j = i; j < lines.length; j++) {
+      const l = lines[j];
+      depth += (l.match(beginRe) || []).length;
+      depth -= (l.match(endRe) || []).length;
+      block.push(l);
+      if (depth === 0) { i = j; closed = true; break; }
+    }
+    if (!closed) { out.push(line); continue; }  // no \end: leave as-is
+    out.push("$$");
+    out.push.apply(out, block);
+    out.push("$$");
+  }
+  return out.join("\n");
+}
+
+// Apply _pbpTexFixMathContent to the CONTENT of $$..$$ then $..$ segments,
+// fence-aware: fenced runs are copied through untouched and never buffered
+// into a transformable chunk (a fence can straddle many lines, so this walks
+// the whole line list rather than regexing per line like the two passes above).
+function _pbpTexTransformSegments(md) {
+  const lines = md.split("\n");
+  const out = [];
+  let inFence = false, buf = [];
+  const flush = () => {
+    if (!buf.length) return;
+    let chunk = buf.join("\n");
+    chunk = chunk.replace(/\$\$([\s\S]+?)\$\$/g, (m, c) => "$$" + _pbpTexFixMathContent(c) + "$$");
+    chunk = chunk.replace(/(^|[^$\\])\$(?!\$)([^$\n]+)\$(?!\$)/g, (m, pre, c) => pre + "$" + _pbpTexFixMathContent(c) + "$");
+    out.push(chunk);
+    buf = [];
+  };
+  for (const line of lines) {
+    if (/^\s*(```|~~~)/.test(line)) { flush(); inFence = !inFence; out.push(line); continue; }
+    if (inFence) { out.push(line); continue; }
+    buf.push(line);
+  }
+  flush();
+  return out.join("\n");
+}
+
+// pbpLatexNormalize: the one public entry (Task 2 wires it in ahead of KaTeX
+// auto-render, gated on the math flag). Inline code spans (`...`) must stay
+// shielded through ALL THREE passes, not just the dollar-run fix -- a `\begin{x}`
+// sample inside a code span must never trip the bare-env wrap or the $$/$
+// segment transform either. So masking happens once, up front, into a SINGLE
+// stash shared across the whole document (not re-stashed per line), and is
+// restored only after wrap + segment have both run on the masked text. The
+// stash markers ("\x00T<n>\x00") contain no $, \, or backtick themselves, so
+// they are inert against every regex the later passes use.
+function pbpLatexNormalize(md) {
+  if (md == null) return "";
+  md = String(md);
+  if (md.indexOf("\\") === -1 && md.indexOf("$") === -1) return md;
+  const stash = [];
+  const maskCodeSpans = (line) => line.replace(/(`+)[\s\S]*?\1/g, (m) => {
+    stash.push(m);
+    return "\x00T" + (stash.length - 1) + "\x00";
+  });
+  const fixed = [];
+  let inFence = false;
+  for (const line of md.split("\n")) {
+    if (/^\s*(```|~~~)/.test(line)) { inFence = !inFence; fixed.push(line); continue; }
+    if (inFence) { fixed.push(line); continue; }
+    fixed.push(_pbpTexFixDollarRuns(maskCodeSpans(line)));
+  }
+  const wrapped = _pbpTexWrapBareEnvs(fixed.join("\n"));
+  const transformed = _pbpTexTransformSegments(wrapped);
+  return transformed.replace(/\x00T(\d+)\x00/g, (mm, k) => stash[+k] !== undefined ? stash[+k] : mm);
+}
+
 // composeStyledHtml: canonical markdown -> a complete self-contained HTML doc.
 // Honors imagePolicy + includeToc via composeExport; frontmatter is rendered as a
 // VISIBLE header (never YAML). renderMarkdown + highlightCodeBlocks run on a
