@@ -94,6 +94,63 @@
     return count;
   }
 
+  // Real-src upgrade (separate from the lazy pass above, whose "real src is
+  // never touched" contract is test-pinned): when an <img> keeps a genuine
+  // src but its srcset describes strictly larger candidates, promote the
+  // largest `w`-descriptor candidate for archival quality. Fires only with
+  // >=2 width-described candidates whose max is >=600w, only when the winner
+  // resolves to http(s), and never on placeholder imgs (those belong to the
+  // lazy pass). Same whitespace tokenizer as lastSrcsetCandidate (URLs may
+  // embed commas).
+  function pbpUpgradeSrcsetImages(rootEl, baseHref) {
+    if (!rootEl || typeof rootEl.querySelectorAll !== "function") return 0;
+    var count = 0;
+    rootEl.querySelectorAll("img[srcset], img[data-srcset]").forEach(function (img) {
+      var src = img.getAttribute("src");
+      var trimmed = (src == null) ? "" : String(src).replace(/^\s+|\s+$/g, "");
+      if (src === null || trimmed === "" || trimmed.indexOf("data:") === 0) return; // placeholder: lazy pass owns it
+      var srcset = img.getAttribute("srcset") || img.getAttribute("data-srcset") || "";
+      var toks = String(srcset).trim().split(/\s+/);
+      var pendingUrl = null, best = null, described = 0;
+      for (var i = 0; i < toks.length; i++) {
+        var t = toks[i].replace(/^,+|,+$/g, "");
+        if (!t) continue;
+        var wm = t.match(/^([\d.]+)w$/i);
+        if (wm) {
+          if (pendingUrl) {
+            described++;
+            var w = parseFloat(wm[1]);
+            if (!best || w > best.w) best = { url: pendingUrl, w: w };
+            pendingUrl = null;
+          }
+          continue;
+        }
+        if (/^[\d.]+[xh]$/i.test(t)) { pendingUrl = null; continue; } // density/height descriptor: not width-described
+        var fused = t.match(/^([\d.]+)w,(.+)$/i); // "400w,next.jpg": descriptor fused to the next URL
+        if (fused) {
+          if (pendingUrl) {
+            described++;
+            var fw = parseFloat(fused[1]);
+            if (!best || fw > best.w) best = { url: pendingUrl, w: fw };
+          }
+          pendingUrl = fused[2];
+          continue;
+        }
+        pendingUrl = t;
+      }
+      if (described < 2 || !best || best.w < 600) return;
+      var resolved;
+      try { resolved = new URL(best.url, baseHref || undefined).href; } catch (_) { return; }
+      if (!/^https?:$/.test(new URL(resolved).protocol)) return;
+      var current;
+      try { current = new URL(trimmed, baseHref || undefined).href; } catch (_) { current = trimmed; }
+      if (resolved === current) return;
+      img.setAttribute("src", resolved);
+      count++;
+    });
+    return count;
+  }
+
   // Flatten a site-rule hit's contentHtml to prompt text (ai.js AI tags/
   // summary + batch save): newline after block closers and <br> so textContent
   // keeps block breaks — bare textContent glues "Line one<br>Line two" and
@@ -976,6 +1033,7 @@
   g.applySiteRule = applySiteRule;
   g.pbpSiteRuleText = pbpSiteRuleText;
   g.pbpNormalizeLazyImages = pbpNormalizeLazyImages;
+  g.pbpUpgradeSrcsetImages = pbpUpgradeSrcsetImages;
   g.buildReplyTree = buildReplyTree;
   g.buildDepthTree = buildDepthTree;
   g.renderThreadHtml = renderThreadHtml;

@@ -2422,6 +2422,7 @@ function extractPageForMarkdown() {
         const div = document.createElement("div");
         div.innerHTML = hit.contentHtml;
         if (typeof pbpNormalizeLazyImages === "function") pbpNormalizeLazyImages(div, location.href);
+        if (typeof pbpUpgradeSrcsetImages === "function") pbpUpgradeSrcsetImages(div, location.href);
         return { contentHtml: div.innerHTML, title: hit.title || document.title, url: location.href, math: !!hit.math, forum: !!hit.forum };
       }
     }
@@ -2445,6 +2446,7 @@ function extractPageForMarkdown() {
     // E1: normalize lazy-load img placeholders on the CLONE before Defuddle
     // parses it -- the live DOM is never touched.
     if (typeof pbpNormalizeLazyImages === "function") pbpNormalizeLazyImages(clone, location.href);
+    if (typeof pbpUpgradeSrcsetImages === "function") pbpUpgradeSrcsetImages(clone, location.href);
     if (typeof pbpPreDefuddleNormalize === "function") pbpPreDefuddleNormalize(clone);
     const _origCE = console.error;
     console.error = (...a) => { if (!String(a[0]).startsWith("Defuddle:")) _origCE.apply(console, a); };

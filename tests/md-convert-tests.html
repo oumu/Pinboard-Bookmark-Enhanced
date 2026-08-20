@@ -1703,6 +1703,8 @@ section("site-rules: popup/background extractor mirror invariants");
     ["site-rule dispatch", 'applySiteRule(document, location.href)'],
     ["lazy-img pass on site-rule output", 'pbpNormalizeLazyImages(div, location.href)'],
     ["lazy-img pass on Defuddle clone", 'pbpNormalizeLazyImages(clone, location.href)'],
+    ["srcset upgrade after site-rule lazy pass", 'pbpUpgradeSrcsetImages(div, location.href)'],
+    ["srcset upgrade after Defuddle-clone lazy pass", 'pbpUpgradeSrcsetImages(clone, location.href)'],
     ["site-rule payload incl. math/forum flags", 'title: hit.title || document.title, url: location.href, math: !!hit.math, forum: !!hit.forum'],
     ["MathML-derived math flag on Defuddle path", 'math: !!document.querySelector("math")'],
     ["Defuddle metadata forwarding", 'author: result.author || "", published: result.published || "", site: result.site || "", image: result.image || ""'],
@@ -2015,6 +2017,30 @@ section("site-rules: pbpNormalizeLazyImages");
     check("mixed batch: srcset promoted", imgs[3].getAttribute("src") === "https://example.com/articles/d.jpg", d.innerHTML);
   }
 }
+</script>
+
+<script>
+section("site-rules: pbpUpgradeSrcsetImages");
+(function () {
+  const BASE = "https://ex.com/a/";
+  const mk = (html) => { const d = document.createElement("div"); d.innerHTML = html; return d; };
+  let d = mk('<img src="https://ex.com/s.jpg" srcset="https://ex.com/s.jpg 320w, https://ex.com/m.jpg 800w, https://ex.com/l.jpg 1600w">');
+  assertEq(pbpUpgradeSrcsetImages(d, BASE), 1, "upgrade count 1");
+  check("largest w candidate wins", d.querySelector("img").getAttribute("src") === "https://ex.com/l.jpg");
+  d = mk('<img src="https://ex.com/s.jpg" srcset="https://ex.com/l.jpg 1600w">');
+  assertEq(pbpUpgradeSrcsetImages(d, BASE), 0, "single candidate is a no-op");
+  d = mk('<img src="https://ex.com/s.jpg" srcset="https://ex.com/a.jpg 1x, https://ex.com/b.jpg 2x">');
+  assertEq(pbpUpgradeSrcsetImages(d, BASE), 0, "x-descriptors only is a no-op");
+  d = mk('<img data-src="https://ex.com/real.jpg" srcset="https://ex.com/a.jpg 320w, https://ex.com/b.jpg 1600w">');
+  assertEq(pbpUpgradeSrcsetImages(d, BASE), 0, "placeholder img is left to the lazy pass");
+  d = mk('<img src="https://ex.com/s.jpg" srcset="https://ex.com/a.jpg 320w, https://ex.com/b.jpg 500w">');
+  assertEq(pbpUpgradeSrcsetImages(d, BASE), 0, "max width under 600 is a no-op");
+  d = mk('<img src="https://ex.com/l.jpg" srcset="https://ex.com/s.jpg 320w, https://ex.com/l.jpg 1600w">');
+  assertEq(pbpUpgradeSrcsetImages(d, BASE), 0, "src already the largest candidate is a no-op");
+  d = mk('<img src="https://ex.com/s.jpg" srcset="img/w-400.jpg 400w, img/w-1200.jpg 1200w">');
+  check("relative candidates resolve against baseHref",
+    pbpUpgradeSrcsetImages(d, BASE) === 1 && d.querySelector("img").getAttribute("src") === "https://ex.com/a/img/w-1200.jpg");
+})();
 </script>
 
 <script>
