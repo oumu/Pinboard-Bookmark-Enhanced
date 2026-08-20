@@ -3513,6 +3513,9 @@
   "mdTargetWebhookHttpWarn": {
     "message": "ブロックしました。HTTPS、または localhost、127.0.0.1、[::1] に限り HTTP を使用してください。LAN／公開 HTTP、不正な URL、認証情報を含む URL は送信されません。"
   },
+  "mdTargetNotionParentWarn": {
+    "message": "この値からページ ID を読み取れません。アドレスバーからページの完全な URL を貼り付けてください。"
+  },
   "hlColorQuote": { "message": "引用" },
   "hlColorDefinition": { "message": "定義" },
   "hlColorExample": { "message": "例" },

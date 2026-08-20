@@ -3507,6 +3507,9 @@
   "mdTargetWebhookHttpWarn": {
     "message": "Blocked: use HTTPS, or HTTP only for localhost, 127.0.0.1, or [::1]. LAN/public HTTP, malformed URLs, and URLs containing credentials are not sent."
   },
+  "mdTargetNotionParentWarn": {
+    "message": "No page ID found in this value. Paste the page's full URL from your browser's address bar."
+  },
   "hlColorQuote": { "message": "Quote" },
   "hlColorDefinition": { "message": "Definition" },
   "hlColorExample": { "message": "Example" },

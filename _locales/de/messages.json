@@ -3513,6 +3513,9 @@
   "mdTargetWebhookHttpWarn": {
     "message": "Blockiert: Verwende HTTPS oder HTTP nur für localhost, 127.0.0.1 oder [::1]. LAN-/öffentliches HTTP, ungültige URLs und URLs mit Zugangsdaten werden nicht gesendet."
   },
+  "mdTargetNotionParentWarn": {
+    "message": "Aus diesem Wert lässt sich keine Seiten-ID lesen. Fügen Sie die vollständige URL der Seite aus der Adressleiste ein."
+  },
   "hlColorQuote": { "message": "Zitat" },
   "hlColorDefinition": { "message": "Begriffsdefinition" },
   "hlColorExample": { "message": "Beispiel" },

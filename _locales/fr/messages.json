@@ -3513,6 +3513,9 @@
   "mdTargetWebhookHttpWarn": {
     "message": "Bloqué : utilisez HTTPS, ou HTTP uniquement pour localhost, 127.0.0.1 ou [::1]. Les URL HTTP sur réseau local/public, non valides ou contenant des identifiants ne sont pas envoyées."
   },
+  "mdTargetNotionParentWarn": {
+    "message": "Impossible d'en extraire un ID de page. Collez l'URL complète de la page depuis la barre d'adresse."
+  },
   "hlColorQuote": { "message": "Citation" },
   "hlColorDefinition": { "message": "Définition" },
   "hlColorExample": { "message": "Exemple" },

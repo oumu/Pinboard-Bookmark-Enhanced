@@ -3513,6 +3513,9 @@
   "mdTargetWebhookHttpWarn": {
     "message": "Заблокировано: используйте HTTPS либо HTTP только для localhost, 127.0.0.1 или [::1]. HTTP в локальной/публичной сети, неверные URL и URL с учётными данными не отправляются."
   },
+  "mdTargetNotionParentWarn": {
+    "message": "Не удалось извлечь ID страницы. Вставьте полный URL страницы из адресной строки."
+  },
   "hlColorQuote": { "message": "Цитата" },
   "hlColorDefinition": { "message": "Определение" },
   "hlColorExample": { "message": "Пример" },

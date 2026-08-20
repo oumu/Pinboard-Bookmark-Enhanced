@@ -3513,6 +3513,9 @@
   "mdTargetWebhookHttpWarn": {
     "message": "Zablokowano: użyj HTTPS albo HTTP tylko dla localhost, 127.0.0.1 lub [::1]. Adresy HTTP w sieci LAN/publicznej, nieprawidłowe adresy URL i adresy z danymi logowania nie są wysyłane."
   },
+  "mdTargetNotionParentWarn": {
+    "message": "Nie można odczytać ID strony z tej wartości. Wklej pełny adres URL strony z paska adresu."
+  },
   "hlColorQuote": { "message": "Cytat" },
   "hlColorDefinition": { "message": "Definicja" },
   "hlColorExample": { "message": "Przykład" },

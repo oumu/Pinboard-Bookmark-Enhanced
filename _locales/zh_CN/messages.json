@@ -3507,6 +3507,9 @@
   "mdTargetWebhookHttpWarn": {
     "message": "已阻止：请使用 HTTPS；HTTP 仅允许 localhost、127.0.0.1 或 [::1]。局域网/公网 HTTP、无效地址及含账号密码的地址不会发送。"
   },
+  "mdTargetNotionParentWarn": {
+    "message": "无法从这个值解析出页面 ID。请从浏览器地址栏复制页面完整链接后粘贴。"
+  },
   "hlColorQuote": { "message": "金句" },
   "hlColorDefinition": { "message": "定义" },
   "hlColorExample": { "message": "例子" },

@@ -3513,6 +3513,9 @@
   "mdTargetWebhookHttpWarn": {
     "message": "已阻止：請使用 HTTPS；HTTP 僅允許 localhost、127.0.0.1 或 [::1]。區域網絡／公網 HTTP、無效位址及含帳號密碼的位址不會傳送。"
   },
+  "mdTargetNotionParentWarn": {
+    "message": "無法從這個值解析出頁面 ID。請從瀏覽器網址列複製頁面完整連結後貼上。"
+  },
   "hlColorQuote": { "message": "金句" },
   "hlColorDefinition": { "message": "定義" },
   "hlColorExample": { "message": "例子" },

@@ -695,6 +695,22 @@ document.addEventListener("DOMContentLoaded", async () => {
           syncWarn();
           card.appendChild(warn);
         }
+        // Same inline mirror for the Notion parent: warn while the pasted
+        // value cannot yield a page id (the runtime would then send the raw
+        // string and the API would answer 400/404).
+        if (id === "notion" && s.key === "parent") {
+          const warn = document.createElement("p");
+          warn.className = "hint hint-warn";
+          warn.hidden = true;
+          warn.textContent = t("mdTargetNotionParentWarn");
+          const syncWarn = () => {
+            const v = inp.value.trim();
+            warn.hidden = !v || !(typeof pbpNotionParseParentId === "function" && pbpNotionParseParentId(v) === "");
+          };
+          inp.addEventListener("input", syncWarn);
+          syncWarn();
+          card.appendChild(warn);
+        }
       });
 
       if (row.onboarding) {
