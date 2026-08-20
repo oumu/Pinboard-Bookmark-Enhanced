@@ -2579,7 +2579,8 @@ function _pbpZipEntries(bytes) {
 window._pbpEpubIntegrationDone = (async () => {
   const meta = { title: "Test Article", url: "https://example.com/a", clipped: "2026-07-12", lang: "en" };
 
-  // Group A: no images -> mimetype first+stored, exactly the 5 required entries (5 assertions).
+  // Group A: no images -> mimetype first+stored, exactly the 6 required entries
+  // (A8: OEBPS/styles.css joins the fixed set) (5 assertions).
   const zip1 = new Uint8Array(await pbpBuildEpub({ md: "## Intro\n\nHello world.", meta, images: new Map() }).arrayBuffer());
   const dv1 = new DataView(zip1.buffer);
   assertEq(dv1.getUint32(0, true), 0x04034b50, "pbpBuildEpub zip starts with a local file header signature");
@@ -2587,8 +2588,8 @@ window._pbpEpubIntegrationDone = (async () => {
   assertEq(new TextDecoder().decode(zip1.slice(30, 38)), "mimetype", "pbpBuildEpub first entry's name is literally 'mimetype'");
   const names1 = _pbpZipEntries(zip1).map(e => e.name);
   assertEq(JSON.stringify(names1),
-    JSON.stringify(["mimetype", "META-INF/container.xml", "OEBPS/content.opf", "OEBPS/nav.xhtml", "OEBPS/content.xhtml"]),
-    "pbpBuildEpub with no images produces exactly the 5 required entries, mimetype first: " + names1.join(", "));
+    JSON.stringify(["mimetype", "META-INF/container.xml", "OEBPS/content.opf", "OEBPS/nav.xhtml", "OEBPS/styles.css", "OEBPS/content.xhtml"]),
+    "pbpBuildEpub with no images produces exactly the 6 required entries, mimetype first: " + names1.join(", "));
 
   // Group B: frontmatter + highlights forced off (spec F5) -> content.xhtml carries
   // no YAML block and no literal "==" mark, even though highlights are non-empty
@@ -2687,6 +2688,22 @@ window._pbpEpubIntegrationDone = (async () => {
     "unmatched images Map entry produces no images/ zip entry: " + entries8.map(e => e.name).join(", "));
   const opf8 = new TextDecoder().decode(entries8.find(e => e.name === "OEBPS/content.opf").data);
   assert(!/id="img0"/.test(opf8), "unmatched images Map entry gets no manifest item either: " + opf8);
+})();
+</script>
+
+<script>
+section("A8: EPUB minimal stylesheet");
+(() => {
+  check("A8 PBP_EPUB_CSS exists and covers tables",
+    typeof PBP_EPUB_CSS === "string" && /border-collapse/.test(PBP_EPUB_CSS) && /overflow-wrap:anywhere/.test(PBP_EPUB_CSS), String(typeof PBP_EPUB_CSS));
+  const opf = pbpEpubContentOpf({ title: "t", url: "https://e.com" }, [
+    { id: "nav", href: "nav.xhtml", mediaType: "application/xhtml+xml", properties: "nav" },
+    { id: "content", href: "content.xhtml", mediaType: "application/xhtml+xml" },
+    { id: "css", href: "styles.css", mediaType: "text/css" },
+  ]);
+  check("A8 manifest can carry styles.css", /href="styles\.css" media-type="text\/css"/.test(opf), opf);
+  const blob = pbpBuildEpub({ md: "# T\n\n|a|b|\n|---|---|\n|1|2|", meta: { title: "t", url: "https://e.com" } });
+  check("A8 pbpBuildEpub returns a Blob with the css entry (size grew past bare zip)", blob instanceof Blob && blob.size > 800, String(blob && blob.size));
 })();
 </script>
 

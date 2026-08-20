@@ -117,6 +117,17 @@ function pbpEpubNavXhtml(headings, fallbackTitle) {
 </html>
 `;
 }
+// A8: minimal structural stylesheet for the EPUB package. Neutral grays only
+// — e-readers carry their own light/dark machinery and often force colors;
+// structure (borders, cell padding, code scroll, image bounds) is what the
+// default rendering lacks.
+const PBP_EPUB_CSS = `table{border-collapse:collapse;width:100%;margin:1.5em 0}
+th,td{border:1px solid #999;padding:.4em .6em;text-align:left;overflow-wrap:anywhere}
+thead th,tr>th{font-weight:bold;background:#eee}
+pre{overflow-x:auto;white-space:pre-wrap}
+img{max-width:100%;height:auto}
+figure{margin:1.5em 0;text-align:center}
+blockquote{border-left:3px solid #999;margin:1em 0;padding:0 1em}`;
 // ── end PURE SECTION ──
 // ── RUNTIME (DOM) ──
 // pbpBuildEpub({ md, meta, images }) -> Blob. Caller contract (md-preview.js):
@@ -145,6 +156,7 @@ function pbpBuildEpub({ md, meta, images }) {
   const items = [
     { id: "nav", href: "nav.xhtml", mediaType: "application/xhtml+xml", properties: "nav" },
     { id: "content", href: "content.xhtml", mediaType: "application/xhtml+xml" },
+    { id: "css", href: "styles.css", mediaType: "text/css" },
   ];
   const imgEntries = [];
   if (images && images.size) {
@@ -175,12 +187,13 @@ function pbpBuildEpub({ md, meta, images }) {
   const bodyXhtml = new XMLSerializer().serializeToString(host)
     .replace(/^<div[^>]*>/, "").replace(/<\/div>$/, "");
   const esc = pbpEpubXmlEscape;
-  const contentXhtml = `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE html>\n<html xmlns="http://www.w3.org/1999/xhtml"><head><title>${esc(meta.title || "Untitled")}</title></head><body>\n<h1>${esc(meta.title || "Untitled")}</h1>\n${bodyXhtml}\n</body></html>\n`;
+  const contentXhtml = `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE html>\n<html xmlns="http://www.w3.org/1999/xhtml"><head><title>${esc(meta.title || "Untitled")}</title><link rel="stylesheet" type="text/css" href="styles.css"/></head><body>\n<h1>${esc(meta.title || "Untitled")}</h1>\n${bodyXhtml}\n</body></html>\n`;
   const zip = pbpZipStore([
     { name: "mimetype", data: enc.encode("application/epub+zip") },   // 必须第一且 stored
     { name: "META-INF/container.xml", data: enc.encode(pbpEpubContainerXml()) },
     { name: "OEBPS/content.opf", data: enc.encode(pbpEpubContentOpf(meta, items)) },
     { name: "OEBPS/nav.xhtml", data: enc.encode(pbpEpubNavXhtml(headings, meta.title)) },
+    { name: "OEBPS/styles.css", data: enc.encode(PBP_EPUB_CSS) },
     { name: "OEBPS/content.xhtml", data: enc.encode(contentXhtml) },
     ...imgEntries,
   ]);
