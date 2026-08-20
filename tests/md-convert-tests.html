@@ -2761,6 +2761,39 @@ section("B2: mermaid language survives Defuddle (pre-normalize)");
 </script>
 
 <script>
+section("B3: inline SVG diagrams become data-URI images");
+const b3decode = (md) => {
+  const b64 = (md.match(/base64,([A-Za-z0-9+/=]+)\)/) || [])[1] || "";
+  return b64 ? new TextDecoder().decode(Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))) : "";
+};
+(() => {
+  const md = htmlToMarkdown('<p>before</p><svg viewBox="0 0 400 200" aria-label="flow chart"><rect width="400" height="200" fill="#eee"/><text x="10" y="20">Start</text></svg><p>after</p>');
+  check("B3 diagram becomes a markdown image", /!\[flow chart\]\(data:image\/svg\+xml;base64,/.test(md), md.slice(0, 200));
+  check("B3 labels no longer leak as loose prose", !/(^|\n)Start(\n|$)/.test(md.replace(/data:image[^)]*/g, "")), md);
+  check("B3 serialized svg carries xmlns", /xmlns="http:\/\/www\.w3\.org\/2000\/svg"/.test(b3decode(md)), b3decode(md).slice(0, 200));
+  check("B3 width/height sized from viewBox", /width="400" height="200"/.test(md), md);
+})();
+(() => {
+  check("B3 icon-size svg still dropped", !/data:image\/svg/.test(htmlToMarkdown('<p>t</p><svg width="16" height="16"><path d="M0 0h16v16z"/></svg>')), "");
+  check("B3 unsized svg still dropped", !/data:image\/svg/.test(htmlToMarkdown('<p>t</p><svg><path d="M0 0h500v500z"/></svg>')), "");
+})();
+(() => {
+  const md = htmlToMarkdown('<svg viewBox="0 0 200 100"><script>alert(1)<\/script><a href="https://evil.com" onclick="x()"><text x="1" y="10">L</text></a><use href="#g"/></svg>');
+  const xml = b3decode(md);
+  check("B3 script/on*/external href stripped", xml && !/script|onclick|evil\.com/.test(xml), xml);
+  check("B3 fragment use ref kept", /#g/.test(xml), xml);
+})();
+(() => {
+  let d = "M0 0"; while (d.length < 310000) d += " L9 9";
+  check("B3 oversize svg dropped at the byte cap", !/data:image\/svg/.test(htmlToMarkdown('<svg viewBox="0 0 100 100"><path d="' + d + '"/></svg><p>x</p>')), "");
+})();
+(() => {
+  const h = norm(renderMarkdown("![d](data:image/svg+xml;base64,PHN2Zy8+)"));
+  check("B3 data-URI svg image survives renderMarkdown untouched", /<img[^>]*src="data:image\/svg\+xml;base64,PHN2Zy8\+"/.test(h), h);
+})();
+</script>
+
+<script>
 (async () => {
   if (window._pbpEpubIntegrationDone) await window._pbpEpubIntegrationDone;
   if (window._pbpEpubA8Done) await window._pbpEpubA8Done;

@@ -196,6 +196,26 @@ function _pbpGetTurndown() {
       return "\n\n![" + alt + "](" + src + ")" + (caption ? "\n*" + caption.textContent.trim() + "*" : "") + "\n\n";
     }
   });
+  // B3: the stock image rule (below, unmodified) only emits alt/src/title,
+  // dropping width/height -- fine for ordinary content images, but our
+  // SVG-derived data-URI images (_pbpInlineSvgToImg) have no other place to
+  // carry the dimensions the source SVG only stated via viewBox, and a data:
+  // URI with no explicit size can collapse to 0x0 in some renderers. Scoped
+  // tightly to our own image shape (exact data:image/svg+xml;base64, prefix
+  // + both dims present) so ordinary images are untouched. The trailing
+  // {width="" height=""} is the Pandoc/kramdown image-attribute-list
+  // convention: plain CommonMark renderers ignore it, ones that support it
+  // honor it.
+  td.addRule("svgImage", {
+    filter: (n) => n.nodeName === "IMG" && n.hasAttribute("width") && n.hasAttribute("height") &&
+      /^data:image\/svg\+xml;base64,/.test(n.getAttribute("src") || ""),
+    replacement: (content, node) => {
+      const alt = node.getAttribute("alt") || "";
+      const src = node.getAttribute("src") || "";
+      const w = node.getAttribute("width"), h = node.getAttribute("height");
+      return "![" + alt + "](" + src + ')' + '{width="' + w + '" height="' + h + '"}';
+    }
+  });
   td.addRule("listItem", {
     filter: "li",
     replacement: (content, node) => {
@@ -244,12 +264,104 @@ function _pbpAbsolutizeLinks(html, baseUrl) {
   return touched ? root.innerHTML : html;
 }
 
+// ---- Inline SVG diagrams -> data-URI images (B3) ----
+// Turndown has no svg rules, and its blank check runs BEFORE custom rules
+// (vendor/turndown.js:541): a text-free diagram is "blank" (silently
+// dropped), one with <text> leaks its labels as loose prose. So qualifying
+// inline <svg> is rewritten into <img src="data:image/svg+xml;base64,...">
+// on the inert document BEFORE conversion — the stock image rule then emits
+// ![label](dataURI) and everything downstream (I-placeholder shield,
+// DOMPurify's default data-URI img allowance, every export) treats it as an
+// ordinary image. SVG inside an <img> renders in the browser's secure
+// static mode — scripts never run, external subresources never load — so
+// this adds no undisclosed request surface; the sanitize pass below is
+// defense in depth.
+const PBP_SVG_MIN_SIDE = 64;      // below this it's an icon: keep dropping it
+const PBP_SVG_MAX_BYTES = 300000; // serialized cap: beyond this, keep dropping
+
+function _pbpSvgDims(node) {
+  const num = (v) => {
+    const m = /^([\d.]+)(?:px)?$/.exec(String(v || "").trim());
+    return m ? parseFloat(m[1]) : NaN;
+  };
+  let w = num(node.getAttribute("width")), h = num(node.getAttribute("height"));
+  if (!(w > 0) || !(h > 0)) {
+    const vb = String(node.getAttribute("viewBox") || "").trim().split(/[\s,]+/);
+    if (vb.length === 4) { if (!(w > 0)) w = parseFloat(vb[2]); if (!(h > 0)) h = parseFloat(vb[3]); }
+  }
+  return (w > 0 && h > 0) ? { w, h } : null;
+}
+
+function _pbpSanitizeSvgForImage(node) {
+  const clone = node.cloneNode(true);
+  clone.querySelectorAll("script").forEach((el) => el.remove());
+  [clone, ...clone.querySelectorAll("*")].forEach((el) => {
+    Array.from(el.attributes).forEach((attr) => {
+      const name = attr.name.toLowerCase();
+      const value = String(attr.value || "").trim();
+      if (name.startsWith("on")) { el.removeAttribute(attr.name); return; }
+      // External refs can't load in image context anyway; strip them so the
+      // serialized document is honestly self-contained. Keep #fragment refs
+      // (<use>, gradients) and inline data: fills.
+      if ((name === "href" || name === "xlink:href") && value && value[0] !== "#" && !/^data:/i.test(value)) {
+        el.removeAttribute(attr.name);
+        return;
+      }
+      if (/^(?:javascript|vbscript):/i.test(value)) el.removeAttribute(attr.name);
+    });
+  });
+  // XMLSerializer stamps xmlns on the SVG-namespace root — required for the
+  // string to work as a standalone image document.
+  return new XMLSerializer().serializeToString(clone);
+}
+
+// UTF-8 -> base64 without a spread (a 300KB SVG would blow the arg stack).
+// Also consumed by md-mermaid.js (loads after this file on md-preview.html).
+function pbpB64Utf8(s) {
+  const bytes = new TextEncoder().encode(String(s == null ? "" : s));
+  let bin = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) {
+    bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  }
+  return btoa(bin);
+}
+
+function _pbpInlineSvgToImg(root) {
+  root.querySelectorAll("svg").forEach((svg) => {
+    if (svg.closest("svg") !== svg) return;   // nested svg: handled with its root
+    const dims = _pbpSvgDims(svg);
+    if (!dims || Math.min(dims.w, dims.h) < PBP_SVG_MIN_SIDE) return; // icon/unsized: existing drop behavior
+    let xml;
+    try { xml = _pbpSanitizeSvgForImage(svg); } catch (_) { return; }
+    if (!xml || xml.length > PBP_SVG_MAX_BYTES) return;
+    const titleEl = svg.querySelector(":scope > title");
+    const label = (svg.getAttribute("aria-label") || (titleEl && titleEl.textContent) || "diagram")
+      .trim().replace(/[\[\]()\n]/g, " ").slice(0, 200).trim() || "diagram";
+    const img = svg.ownerDocument.createElement("img");
+    img.setAttribute("alt", label);
+    img.setAttribute("width", String(Math.round(dims.w)));
+    img.setAttribute("height", String(Math.round(dims.h)));
+    img.setAttribute("src", "data:image/svg+xml;base64," + pbpB64Utf8(xml));
+    svg.replaceWith(img);
+  });
+}
+
 function htmlToMarkdown(html, opts) {
   const td = _pbpGetTurndown();
   if (!td) return html;
   html = _splitMergedComments(String(html == null ? "" : html));
   const baseUrl = (opts && opts.baseUrl) || "";
   if (baseUrl) html = _pbpAbsolutizeLinks(html, baseUrl);
+  // B3: inline SVG diagrams -> data-URI <img> BEFORE turndown (see
+  // _pbpInlineSvgToImg). Same inert-document pattern as _pbpAbsolutizeLinks;
+  // gated on a cheap substring test so svg-free pages pay nothing.
+  if (typeof document !== "undefined" && /<svg[\s>]/i.test(html)) {
+    const doc = document.implementation.createHTMLDocument("");
+    const root = doc.createElement("div");
+    root.innerHTML = html;
+    _pbpInlineSvgToImg(root);
+    html = root.innerHTML;
+  }
   return td.turndown(html);
 }
 
