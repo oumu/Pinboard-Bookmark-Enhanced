@@ -114,6 +114,27 @@ _pbpMermaidLoad = Promise.resolve();
       if (fx.querySelector("figure.pb-mermaid img").src === before) throw new Error("src must change");
     } finally { document.documentElement.style.colorScheme = prev; }
   });
+  // Placed after every test that depends on the short-circuited _pbpMermaidLoad —
+  // this one deliberately clears it so _pbpMermaidEnsure() injects a REAL <script
+  // src="vendor/mermaid.min.js">, which 404s from tests/ (the path is only valid
+  // relative to md-preview.html at the repo root). Restores the short-circuit in a
+  // finally so nothing after it (there is nothing after it) would be polluted.
+  await atest("_pbpMermaidEnsure: script-load failure is memoized, not re-injected", async () => {
+    _pbpMermaidLoad = null;
+    try {
+      const p1 = _pbpMermaidEnsure();
+      const p2 = _pbpMermaidEnsure();
+      if (p1 !== p2) throw new Error("two calls must return the same (memoized) promise object");
+      let rejected = false;
+      try { await p1; } catch (_) { rejected = true; }
+      if (rejected) throw new Error("a load failure must resolve, not reject");
+      await p2; // second call's promise is the same object; must also settle without throwing
+      const tags = document.head.querySelectorAll('script[src$="vendor/mermaid.min.js"]');
+      if (tags.length !== 1) throw new Error("expected exactly 1 injected script tag, got " + tags.length);
+    } finally {
+      _pbpMermaidLoad = Promise.resolve();
+    }
+  });
   document.getElementById("summary").textContent = PASS + " pass, " + FAIL + " fail";
 })();
 </script>

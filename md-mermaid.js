@@ -49,13 +49,24 @@ let _pbpMermaidTheme = null;   // theme mermaid.initialize() currently holds
 const _pbpMermaidCache = new Map(); // pbpAiHash(source)+"|"+theme -> {svg,dataUri,w,h}
 let _pbpMermaidSeq = 0;
 
+// Failure is memoized (same convention as ensureHljs/ensureKatex in
+// md-preview.js): a failed <script> load resolves — never rejects, never
+// clears _pbpMermaidLoad — so a run of N mermaid fences in one enhance pass
+// triggers exactly one injection attempt, not N. `mermaid` stays undefined;
+// the `mermaid.initialize` call in _pbpMermaidRender then throws a
+// ReferenceError, which the caller's existing try/catch (enhance/retheme)
+// already degrades on.
 function _pbpMermaidEnsure() {
   if (_pbpMermaidLoad) return _pbpMermaidLoad;
-  _pbpMermaidLoad = new Promise((res, rej) => {
+  _pbpMermaidLoad = new Promise((res) => {
     const s = document.createElement("script");
     s.src = PBP_MERMAID_SRC;
     s.onload = () => res();
-    s.onerror = () => { _pbpMermaidLoad = null; rej(new Error("mermaid load failed")); };
+    s.onerror = () => res();   // failure is remembered: the cached promise resolves,
+                               // mermaid stays undefined, and the initialize call
+                               // below throws into the caller's try/catch — degrade
+                               // once, never re-inject (same convention as
+                               // ensureHljs/ensureKatex in md-preview.js).
     document.head.appendChild(s);
   });
   return _pbpMermaidLoad;
