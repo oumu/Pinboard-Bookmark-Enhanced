@@ -685,6 +685,27 @@ function assertEq(actual, expected, label) {
 
     assert(/KATEXMARKER/.test(composeStyledHtml(md, meta, { hljsCss: "", katexCss: "/*KATEXMARKER*/" })), "injects caller katexCss");
 
+    // Task 2: composeStyledHtml normalizes scraped TeX before parsing, gated on
+    // opts.math. This harness DOES load real KaTeX (unlike a bare unit test), so
+    // opts.math:true would otherwise consume the source into rendered katex spans
+    // before we can see it; renderMathInElement is removed here the same way the
+    // degrade test above does, so the (now-normalized) TeX SOURCE lands in the
+    // HTML output -- exactly what this asserts.
+    (() => {
+      const saved = window.renderMathInElement;
+      try {
+        delete window.renderMathInElement;
+        check("composeStyledHtml normalizes TeX when opts.math is set",
+          composeStyledHtml("\\begin{align*}\na &= b\n\\end{align*}", { title: "t" }, { math: true })
+            .includes("$$\n\\begin{aligned}"));
+      } finally {
+        window.renderMathInElement = saved;
+      }
+    })();
+    check("composeStyledHtml leaves TeX-shaped text alone without opts.math",
+      composeStyledHtml("\\begin{align*}\na &= b\n\\end{align*}", { title: "t" }, {})
+        .includes("\\begin{align*}"));
+
     // Degrade: opts.math requested but renderMathInElement unavailable on the caller's
     // page (e.g. a load failure) must not throw, and the TeX source stays untouched.
     (() => {

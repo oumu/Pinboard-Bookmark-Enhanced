@@ -710,7 +710,11 @@ function pbpApplyColorScheme(mode) {
   }
   // Canonical Markdown: Defuddle HTML -> Turndown; Jina already gives MD.
   // Single source of truth for Raw view, Copy MD, Download .md, and Rendered.
-  const canonicalMarkdown = info.markdown || (contentHtml ? htmlToMarkdown(contentHtml, { baseUrl }) : "");
+  const _canonicalMarkdown0 = info.markdown || (contentHtml ? htmlToMarkdown(contentHtml, { baseUrl }) : "");
+  // Math pages only: repair scraped TeX once at the source so the live view,
+  // TOC, translate blocks, and every export see the same normalized text.
+  const canonicalMarkdown = (info.math && typeof pbpLatexNormalize === "function")
+    ? pbpLatexNormalize(_canonicalMarkdown0) : _canonicalMarkdown0;
   function getMarkdown() { return canonicalMarkdown; }
   if (!canonicalMarkdown.trim()) {
     renderEmptyState(t("mdPreviewNoContent"));

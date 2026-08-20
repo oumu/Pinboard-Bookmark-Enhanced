@@ -1086,6 +1086,9 @@ function pbpLatexNormalize(md) {
 // meta: {title,url,date,tags,source,description?,author?,published?,clipped?,site?,image?,words?}
 // opts: { frontmatter, imagePolicy, includeToc, hljsCss, math, katexCss, highlights }
 function composeStyledHtml(canonicalMd, meta, opts) {
+  // Math pages: repair scraped TeX before parsing (idempotent — md-preview may
+  // hand over already-normalized markdown; non-math callers never enter).
+  if (opts && opts.math && typeof pbpLatexNormalize === "function") canonicalMd = pbpLatexNormalize(canonicalMd);
   meta = meta || {};
   opts = opts || {};
   // highlightsInline:false -- styled HTML gets ONLY the aggregation section (spec
