@@ -1536,6 +1536,34 @@ suiteIf("_pbpTrSplitText", "_pbpTrSplitText", () => {
   });
 });
 
+suiteIf("_pbpTrTableHeaderCtx / _pbpTrStripCtxLines", "_pbpTrTableHeaderCtx", () => {
+  test("A7 header ctx: pipe-table header detected, prose and placeholder headers refused", () => {
+    const c = _pbpTrTableHeaderCtx(["| A | B |\n| --- | --- |\n| 1 | 2 |"]);
+    if (!c || c.lines !== 2 || c.text !== "| A | B |\n| --- | --- |\n") throw new Error(JSON.stringify(c));
+    if (_pbpTrTableHeaderCtx(["plain paragraph text\nsecond line"])) throw new Error("prose false positive");
+    if (_pbpTrTableHeaderCtx(["| A ⟦C1⟧ |\n| --- |\n| x |"])) throw new Error("placeholder header must disable ctx");
+  });
+  test("A7 strip removes exactly the ctx line count", () => {
+    if (_pbpTrStripCtxLines("H\nS\n| a |", 2) !== "| a |") throw new Error("strip 2");
+    if (_pbpTrStripCtxLines("| a |", 0) !== "| a |") throw new Error("strip 0 identity");
+  });
+  test("A7 continuation chunks: prepend + strip invert exactly", () => {
+    const header = "| Col A | Col B |\n| --- | --- |";
+    let body = "";
+    for (let i = 0; i < 400; i++) body += "\n| value " + i + " | data data data data |";
+    const split = _pbpTrSplitText(header + body, 2000);
+    if (split.chunks.length < 2) throw new Error("fixture must split");
+    const ctx = _pbpTrTableHeaderCtx(split.chunks);
+    if (!ctx) throw new Error("ctx expected");
+    for (let i = 1; i < split.chunks.length; i++) {
+      if (split.chunks[i].lastIndexOf("|", 0) !== 0) continue;
+      const sent = ctx.text + split.chunks[i];
+      if (!sent.startsWith(header + "\n")) throw new Error("ctx not prepended");
+      if (_pbpTrStripCtxLines(sent, ctx.lines) !== split.chunks[i]) throw new Error("strip must invert prepend");
+    }
+  });
+});
+
 suiteIf("_pbpTrHasText", "_pbpTrHasText", () => {
   test("prose and link-text have translatable text", () => {
     assert(_pbpTrHasText("Meshery is a manager.") === true, "prose");

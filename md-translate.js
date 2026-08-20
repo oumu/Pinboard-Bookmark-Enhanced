@@ -405,6 +405,28 @@ function _pbpTrSplitText(text, limit) {
   return { chunks, seps };
 }
 
+// A7: a pipe table longer than PBP_TR_PART_LIMIT splits at line boundaries,
+// so parts 2+ are bare data rows with no header context — the model
+// translates column values blind (units and enums drift). Prepend
+// header+separator to each continuation part as context, and strip the same
+// number of LINES from the translated part before reassembly (the model may
+// well have translated the header; stripping by count, not text match,
+// tolerates that). Guard: a header carrying ANY placeholder would duplicate
+// it across parts and break the conservation gate — no ctx in that case.
+function _pbpTrTableHeaderCtx(chunks) {
+  const first = String((chunks && chunks[0]) || "");
+  const lines = first.split("\n");
+  if (lines.length < 2) return null;
+  if (!/^\s*\|.*\|\s*$/.test(lines[0]) || !/^\s*\|[\s|:-]+\|\s*$/.test(lines[1])) return null;
+  const ctx = lines[0] + "\n" + lines[1] + "\n";
+  if (/⟦[CLIMT]\d+⟧/.test(ctx)) return null;
+  return { text: ctx, lines: 2 };
+}
+function _pbpTrStripCtxLines(text, n) {
+  if (!n) return String(text == null ? "" : text);
+  return String(text == null ? "" : text).split("\n").slice(n).join("\n");
+}
+
 // ============================================================
 // Batch queue engine (DOM-free; all I/O injected for testability)
 // ============================================================
@@ -1756,7 +1778,7 @@ async function _pbpTrStart(st) {
   // output cap. Each part is its own queued segment (part 0 reuses the block id
   // n; later parts get fresh ids past max(n)); parts reassemble in order with
   // their original separators into the block's full translation.
-  const segMap = new Map();                          // segId -> {n, idx, parts}
+  const segMap = new Map();                          // segId -> {n, idx, parts, ctxLines}
   const partBuf = new Map();                         // n -> {chunks:Array, seps:[]}
   const segs = [];
   // Base fresh part ids past EVERY block id (st.work, not just pending) so a
@@ -1769,10 +1791,14 @@ async function _pbpTrStart(st) {
     } else {
       const split = _pbpTrSplitText(w.shielded.text, PBP_TR_PART_LIMIT);
       partBuf.set(w.n, _pbpTrMakePartBuf(split));
+      const ctx = _pbpTrTableHeaderCtx(split.chunks);   // A7: null unless chunk 0 opens a pipe table
       split.chunks.forEach((chunk, idx) => {
         const id = idx === 0 ? w.n : nextSegId++;
-        segs.push({ id, text: chunk });
-        segMap.set(id, { n: w.n, idx, parts: split.chunks.length });
+        // Only continuation parts that themselves start as table rows get the
+        // header ctx — a tail chunk of trailing prose stays untouched.
+        const useCtx = !!(ctx && idx > 0 && chunk.lastIndexOf("|", 0) === 0);
+        segs.push({ id, text: useCtx ? ctx.text + chunk : chunk });
+        segMap.set(id, { n: w.n, idx, parts: split.chunks.length, ctxLines: useCtx ? ctx.lines : 0 });
       });
     }
   }
@@ -1803,7 +1829,7 @@ async function _pbpTrStart(st) {
       if (m.parts === 1) { _pbpTrFill(st, w, text); _pbpTrRecordFill(st, w, text); return; }
       const pb = partBuf.get(m.n);
       if (!pb) return;
-      _pbpTrPartFill(pb, m.idx, text);
+      _pbpTrPartFill(pb, m.idx, _pbpTrStripCtxLines(text, m.ctxLines));
       const done = _pbpTrPartDone(pb);
       if (done) _pbpTrCommitAssembled(st, w, done, pb.failed);
     },
