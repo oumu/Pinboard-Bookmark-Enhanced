@@ -1070,9 +1070,9 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
    controls (.view-toggle) keep ONE row and wrap/hyphenate INSIDE segments
    (breaking a segment to a new line destroys the one-control gestalt;
    de/ru users read dictionary hyphenation as normal orthography);
-   independent toggle chips (.exp-toggles) flow WHOLE buttons to the next
-   line and never break their text (chip-group convention; per-chip
-   identity costs nothing to reflow).
+   independent toggle chips (.exp-toggles) are icon-only (text labels used
+   to reflow whole chips to a second line in wordy locales; the flex-wrap
+   stays as a safety net only).
    CITE-CHIP STATE SEMANTICS (do not "clean up"): .ask-chip's dashed border
    means unverified; .verified flips it solid + green dot. The border is a
    functional signal, not decoration - suggestion chips (#ask-chips) carry
@@ -1085,17 +1085,20 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
 /* exp-toggles: the three boolean export options (frontmatter/toc/hl), real
    <button aria-pressed> toggles -- not checkboxes (spec sec.0 control
    vocabulary #2: "toggle button", real button + aria-pressed, no checkmark
-   glyph). Natural width + wrap so a long locale (e.g. German "Markierungen")
-   drops to a second line instead of truncating (Codex: wrap-not-truncate is
-   the deliberate overflow strategy). */
+   glyph). Icon-only (Lucide braces/table-of-contents/highlighter): the old
+   text labels reflowed the row in wordy locales (German "Markierungen");
+   identity lives in title + aria-label now. flex-wrap stays as a safety
+   net; the icon-only padding keeps each chip past the 24px hit-area floor
+   (6+14+6 tall, 9+14+9 wide). */
 .exp-toggles { display: flex; flex-wrap: wrap; gap: 6px; }
-.exp-toggles .exp-tgl { flex: none; }
+.exp-toggles .exp-tgl { flex: none; padding: 6px 9px; justify-content: center; }
 /* Pressed state reuses .toggle-btn.active's color declarations
    (md-preview.css ~:163) -- same --active-bg/--active-fg tokens, so the
    dark-mode AA contrast already established for that control carries over
    instead of inventing a new pair. No font-weight bump here (unlike
-   .toggle-btn.active): these buttons wrap in a flex row, and the weight
-   change alone shifts line width enough to cause layout jitter on toggle. */
+   .toggle-btn.active): historically the weight change alone shifted line
+   width enough to jitter the then-text chips on toggle (the .action-btn
+   transition comment still points here), and icons have no weight to bump. */
 .exp-tgl[aria-pressed="true"] {
   background: var(--active-bg);
   color: var(--active-fg);

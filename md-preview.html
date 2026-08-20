@@ -39,9 +39,18 @@
     <div class="rail-section" id="export-section">
       <div class="rail-label" data-i18n="mdExportSection">Export</div>
       <div class="exp-toggles" role="group" aria-label="Export" data-i18n-aria="mdExportSection">
-        <button type="button" id="exp-frontmatter" class="action-btn exp-tgl" aria-pressed="true">Frontmatter</button>
-        <button type="button" id="exp-include-toc" class="action-btn exp-tgl" aria-pressed="false" data-i18n="mdTglToc">TOC</button>
-        <button type="button" id="exp-include-hl" class="action-btn exp-tgl" aria-pressed="true" data-i18n="mdTglHl">Highlights</button>
+        <!-- Icon-only toggles (Lucide braces / table-of-contents / highlighter):
+             text labels wrapped the row in wordy locales; identity moved to
+             title + aria-label (same i18n keys), pressed state stays aria-pressed. -->
+        <button type="button" id="exp-frontmatter" class="action-btn exp-tgl" aria-pressed="true" title="Frontmatter" aria-label="Frontmatter">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5c0 1.1.9 2 2 2h1"/><path d="M16 21h1a2 2 0 0 0 2-2v-5c0-1.1.9-2 2-2a2 2 0 0 1-2-2V5a2 2 0 0 0-2-2h-1"/></svg>
+        </button>
+        <button type="button" id="exp-include-toc" class="action-btn exp-tgl" aria-pressed="false" title="TOC" data-i18n-title="mdTglToc" aria-label="TOC" data-i18n-aria="mdTglToc">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 12H3"/><path d="M16 18H3"/><path d="M16 6H3"/><path d="M21 12h.01"/><path d="M21 18h.01"/><path d="M21 6h.01"/></svg>
+        </button>
+        <button type="button" id="exp-include-hl" class="action-btn exp-tgl" aria-pressed="true" title="Highlights" data-i18n-title="mdTglHl" aria-label="Highlights" data-i18n-aria="mdTglHl">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 11-6 6v3h9l3-3"/><path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4"/></svg>
+        </button>
       </div>
       <label class="exp-img-row"><span data-i18n="mdOptImages">Images</span>
         <select id="exp-image-policy">
