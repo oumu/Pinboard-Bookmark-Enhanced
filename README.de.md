@@ -34,7 +34,7 @@ Eine Chrome-Erweiterung für [Pinboard](https://pinboard.in): KI-Tags und Zusamm
 - **Seite übersetzen oder befragen** – Ganzseiten-Übersetzung mit zweisprachiger Ansicht; Antworten zitieren die Quelle, ein Klick führt direkt zur Fundstelle
 - **Wörter beim Lesen nachschlagen und wiederholen**: Definitionen zeigen zuerst die zum Satz passende Bedeutung; gespeicherte Vokabeln lassen sich mit Notizen und einem Lernstatus versehen und an Anki oder Eudic senden. Optional gibt es Offline-Wörterbuchpakete für Chinesisch–Englisch und Englisch–Chinesisch
 - **Eine eigene Seite für Notizen und Vokabeln**: gespeicherte Wörter und Markierungen an einem Ort, mit Wörterbuchsuche und Stapelbearbeitung
-- **Senden oder herunterladen** – an [Obsidian](https://obsidian.md), ein GitHub Gist oder einen beliebigen Webhook senden; als `.md`, `.html` oder `.epub` für den E-Reader herunterladen
+- **Senden oder herunterladen** – an [Obsidian](https://obsidian.md), Notion, NotebookLM, ein GitHub Gist oder einen beliebigen Webhook senden; als `.md`, `.html` oder `.epub` für den E-Reader herunterladen
 
 ![Leseansicht mit zweisprachiger Übersetzung und Markierungen](docs/cws-assets/originals/screenshot-2-reader.png)
 

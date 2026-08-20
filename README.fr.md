@@ -34,7 +34,7 @@ Une extension Chrome pour [Pinboard](https://pinboard.in) : étiquettes et résu
 - **Traduisez la page ou posez-lui vos questions** : traduction intégrale avec vue bilingue ; les réponses citent la source et y renvoient d'un clic
 - **Cherchez et révisez les mots au fil de la lecture** : le dictionnaire affiche d'abord le sens qui correspond à votre phrase ; les mots enregistrés gardent vos notes et leur statut d'apprentissage, et peuvent être envoyés vers Anki ou Eudic. En option, des packs de dictionnaires hors connexion chinois-anglais et anglais-chinois
 - **Une page entière pour les notes et le vocabulaire** : vos mots enregistrés et vos surlignages réunis au même endroit, avec recherche dans le dictionnaire et gestion par lots
-- **Envoyer ou télécharger** : vers [Obsidian](https://obsidian.md), un Gist GitHub ou n'importe quel webhook ; ou en `.md`, `.html`, `.epub` pour votre liseuse
+- **Envoyer ou télécharger** : vers [Obsidian](https://obsidian.md), Notion, NotebookLM, un Gist GitHub ou n'importe quel webhook ; ou en `.md`, `.html`, `.epub` pour votre liseuse
 
 ![Lecture claire avec traduction bilingue et surlignages](docs/cws-assets/originals/screenshot-2-reader.png)
 

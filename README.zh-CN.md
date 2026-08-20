@@ -34,7 +34,7 @@
 - **整页翻译，或向文章提问**：支持双语对照；回答附带引用，点击即可跳到原文出处
 - **边读边查词和复习生词**：查词优先显示贴合当前句子的释义；生词能记笔记、标记已掌握，也能发送到 Anki 和欧路词典；可以选择离线汉英、英汉词典包
 - **笔记和生词独立成页**：保存的生词和高亮集中在一个整页，随手查词、批量管理
-- **发送或下载**：发送到 [Obsidian](https://obsidian.md)、GitHub Gist 或任意 webhook；也可下载 `.md`、`.html`、`.epub`，供电子书阅读器使用
+- **发送或下载**：发送到 [Obsidian](https://obsidian.md)、Notion、NotebookLM、GitHub Gist 或任意 webhook；也可下载 `.md`、`.html`、`.epub`，供电子书阅读器使用
 
 ![清爽阅读器：双语对照、五色高亮与笔记](docs/cws-assets/originals/screenshot-2-reader.png)
 

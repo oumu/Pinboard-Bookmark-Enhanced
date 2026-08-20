@@ -34,7 +34,7 @@ A Chrome extension for [Pinboard](https://pinboard.in): AI tags and summaries, a
 - **Translate the page or ask it questions**: full-page translation with a bilingual view; answers cite the source and jump straight to it
 - **Look up and review words as you read**: definitions open on the sense that fits your sentence; saved words keep notes and a learning status, and can be sent to Anki or Eudic. Optional offline dictionary packs cover Chinese-English and English-Chinese
 - **A full page for notes and vocabulary**: your saved words and highlights in one place, with dictionary lookup and batch management
-- **Send or download**: send to [Obsidian](https://obsidian.md), a GitHub Gist, or any webhook; download as `.md`, `.html`, or `.epub` for your e-reader
+- **Send or download**: send to [Obsidian](https://obsidian.md), Notion, NotebookLM, a GitHub Gist, or any webhook; download as `.md`, `.html`, or `.epub` for your e-reader
 
 ![Reader with bilingual translation and highlights](docs/cws-assets/originals/screenshot-2-reader.png)
 
