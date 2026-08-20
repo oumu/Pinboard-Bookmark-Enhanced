@@ -1958,6 +1958,7 @@ function pbpApplyColorScheme(mode) {
     // Codex-C3: pbpEpubLang canonicalizes to BCP-47 (or "und") -- the translate
     // target can be a free-text label ("Classical Chinese") that isn't a legal tag.
     meta.lang = pbpEpubLang((inTrView && typeof window.pbpTrExportTargetLang === "function" && window.pbpTrExportTargetLang()) || "und");
+    if (typeof pbpMermaidWarmExport === "function") await pbpMermaidWarmExport(renderedView);
     downloadFile(safeTitle + ".epub", pbpBuildEpub({ md, meta, images: emb.fetched }), "application/epub+zip");
     if (emb.note > 0) showExportNote(t("mdEmbedPartial", String(emb.note))); // args through t() -- chrome.i18n consumes $COUNT$ before a manual replace could
   });

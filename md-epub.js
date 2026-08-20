@@ -140,6 +140,12 @@ blockquote{border-left:3px solid #999;margin:1em 0;padding:0 1em}`;
 function pbpBuildEpub({ md, meta, images }) {
   const host = document.createElement("div");
   host.innerHTML = renderMarkdown(md);            // 单点 sanitize：唯一入口
+  // B1: mermaid fences already rendered on the page swap to their cached
+  // light-theme data-URI figures (data URLs in img are EPUB-3.3-legal and
+  // need no manifest entry). typeof-guarded for the md-convert test harness.
+  if (typeof pbpMermaidApplyCached === "function") {
+    try { pbpMermaidApplyCached(host); } catch (_) { /* fence stays */ }
+  }
   // nav 数据源 = 渲染后 DOM 的真实 id（含 marked 的 -1/-2 去重），不是 buildToc slug。
   // 选全部 h2-h4；缺 id / 空 id（纯标点标题 slugify 为空、raw HTML 标题无 id）
   // 补写确定性 id 并写回 DOM——先写回再序列化，nav 锚点才真实存在。
