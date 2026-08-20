@@ -757,6 +757,26 @@ suite("pbpAiShield", () => {
     const r = pbpAiShield(md);
     assertEq(pbpAiRestore(r.text, r.slots), md, "round trip");
   });
+  test("A6 T-shield: complex-table block shields every tag, text stays", () => {
+    const src = '<table><tbody><tr><th colspan="2">Header text</th></tr><tr><td>cell</td><td><a href="https://e.com" target="_blank" rel="noopener">link</a></td></tr></tbody></table>';
+    const r = pbpAiShield(src);
+    if (/[<>]/.test(r.text)) throw new Error("tag leaked: " + r.text);
+    if (!/Header text/.test(r.text) || !/cell/.test(r.text) || !/link/.test(r.text)) throw new Error("cell text must stay translatable: " + r.text);
+    if (pbpAiRestore(r.text, r.slots) !== src) throw new Error("restore mismatch: " + pbpAiRestore(r.text, r.slots));
+  });
+  test("A6 T-shield: prose with <3 / angle text never mints T", () => {
+    const r = pbpAiShield("I <3 markdown, and <tables> in prose stay prose");
+    if (r.slots.some((s) => /^⟦T/.test(s.ph))) throw new Error("false-positive T slot");
+  });
+  test("A6 conservation gate counts T placeholders", () => {
+    const r = pbpAiShield('<table><tbody><tr><td>alpha</td></tr></tbody></table>');
+    if (!pbpTrPlaceholdersConserved(r.text, r.text)) throw new Error("identity must conserve");
+    if (pbpTrPlaceholdersConserved(r.text, r.text.replace(/⟦T1⟧/, ""))) throw new Error("a dropped T must fail the gate");
+  });
+  test("A6 _pbpTrHasText sees through T placeholders", () => {
+    const r = pbpAiShield('<table><tbody><tr><td>42</td></tr></tbody></table>');
+    if (_pbpTrHasText(r.text)) throw new Error("digits-only table must be skip-eligible");
+  });
 });
 
 suite("pbpAiRestore", () => {
@@ -6643,8 +6663,8 @@ suiteIf("tr cache generation ledger (ZH-1a)", "pbpTrGensPush", () => {
   // updating a hash WITHOUT bumping the paired constant is the defect this
   // suite exists to catch.
   test("D1 prompt-generation ledger: text hash pinned to PBP_TR_PROMPT_GEN", () => {
-    assertEq(PBP_TR_PROMPT_GEN, 3, "PBP_TR_PROMPT_GEN");   // gen 3 = ZH-4 untrusted-context wording
-    assertEq(pbpAiHash(PBP_TR_SYSTEM), "de9ce47b", "PBP_TR_SYSTEM hash");
+    assertEq(PBP_TR_PROMPT_GEN, 4, "PBP_TR_PROMPT_GEN");   // gen 4 = A6 ⟦T5⟧ table-shield example in Rule 2
+    assertEq(pbpAiHash(PBP_TR_SYSTEM), "a30507f5", "PBP_TR_SYSTEM hash");
     assertEq(pbpAiHash(JSON.stringify(PBP_TR_STYLE_PACKS) + PBP_TR_STYLE_GENERIC), "bfdd0f40", "style packs hash");
   });
   test("D1 glossary-generation ledger", () => {

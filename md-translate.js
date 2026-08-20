@@ -44,7 +44,7 @@ const PBP_TR_SYSTEM = [
   'Output ONLY a JSON object of the exact shape {"translations":[{"id":N,"text":"..."}]} - no markdown fences, no commentary, nothing else.',
   "Rules:",
   "1. Translate every segment's \"text\" into targetLanguage. Return exactly one item per input segment; ids must match the input ids exactly.",
-  "2. Placeholders like ⟦C1⟧, ⟦L2⟧, ⟦I3⟧, ⟦M4⟧ are protected content: keep every placeholder verbatim and in position. Never translate, alter, drop or duplicate them.",
+  "2. Placeholders like ⟦C1⟧, ⟦L2⟧, ⟦I3⟧, ⟦M4⟧, ⟦T5⟧ are protected content: keep every placeholder verbatim and in position. Never translate, alter, drop or duplicate them.",
   "3. Preserve the markdown structure of each segment (headings #, list markers -, blockquote >, emphasis, tables). Do not translate proper nouns, code identifiers or product names.",
   "4. If a glossary object is provided, apply it strictly: a non-empty value means always translate the term that way; an empty value (\"\") means keep the term in its source language, untranslated.",
   "5. Translate faithfully; do not add, omit or summarize content.",
@@ -224,7 +224,7 @@ function pbpTrBuildGlossaryPrompt(text, targetLanguage, cap) {
 // generation ledger" suite in tests/md-ai-tests.html pins each text's hash to
 // its constant, so forgetting the bump turns the tests red (gate D1). Gen 2 =
 // the 2026-07 style-pack rollout counted as the first uncaptured change.
-const PBP_TR_PROMPT_GEN = 3;      // gen 3: ZH-4 untrusted-context tail in PBP_TR_SYSTEM
+const PBP_TR_PROMPT_GEN = 4;      // gen 4: A6 ⟦T5⟧ table-shield example added to Rule 2 (gen 3 was ZH-4's untrusted tail)
 const PBP_TR_GLOSSARY_GEN = 3;    // gen 3: ZH-9 repeat-priority wording + tiered entry cap (gen 2 was ZH-4's untrusted line)
 
 // Fingerprint of the USER glossary subset that actually hits this article
@@ -330,11 +330,11 @@ function pbpTrLengthRatioOk(orig, translated, targetCode) {
 }
 
 // Placeholder conservation gate (spec T0-b): a faithful translation keeps every
-// ⟦C/L/I/M n⟧ placeholder exactly once and adds no new/unknown ones. Compares the
+// ⟦C/L/I/M/T n⟧ placeholder exactly once and adds no new/unknown ones. Compares the
 // MULTISET of placeholders in the shielded original vs the shielded translation
 // (run BEFORE pbpAiRestore). The cheapest, most reliable omission/corruption signal.
 function pbpTrPlaceholdersConserved(orig, translated) {
-  const rx = /⟦[CLIM]\d+⟧/g;
+  const rx = /⟦[CLIMT]\d+⟧/g;
   const count = (s) => {
     const m = new Map();
     for (const ph of (String(s == null ? "" : s).match(rx) || [])) m.set(ph, (m.get(ph) || 0) + 1);
@@ -354,7 +354,7 @@ function pbpTrPlaceholdersConserved(orig, translated) {
 // same way. Skip such blocks: keep the original (images still render), no
 // .pb-tr line, no error pill.
 function _pbpTrHasText(shielded) {
-  const bare = String(shielded == null ? "" : shielded).replace(/⟦[CLIM]\d+⟧/g, "");
+  const bare = String(shielded == null ? "" : shielded).replace(/⟦[CLIMT]\d+⟧/g, "");
   return /\p{L}/u.test(bare);
 }
 
@@ -685,7 +685,7 @@ function _pbpTrScriptCount(s, rx) { return (s.match(rx) || []).length; }
 // free-text target, which never matches a branch below and correctly falls
 // through to "never skip").
 function pbpTrBlockIsTargetLang(text, targetCode) {
-  const bare = String(text == null ? "" : text).replace(/⟦[CLIM]\d+⟧/g, "");
+  const bare = String(text == null ? "" : text).replace(/⟦[CLIMT]\d+⟧/g, "");
   const letters = _pbpTrScriptCount(bare, /\p{L}/gu);
   if (letters < PBP_TR_SCRIPT_MIN_LETTERS) return false;
   const base = String(targetCode || "").toLowerCase().split(/[-_]/)[0];
@@ -732,7 +732,7 @@ function pbpTrBlockLacksSourceScript(text, articleLang, targetCode) {
   if (base !== "en") return false;
   const scripts = PBP_TR_SOURCE_SCRIPTS[articleLang];
   if (!scripts) return false;
-  const bare = String(text == null ? "" : text).replace(/⟦[CLIM]\d+⟧/g, "");
+  const bare = String(text == null ? "" : text).replace(/⟦[CLIMT]\d+⟧/g, "");
   const letters = _pbpTrScriptCount(bare, /\p{L}/gu);
   if (letters < PBP_TR_SCRIPT_MIN_LETTERS) return false;
   for (const s of scripts) {
