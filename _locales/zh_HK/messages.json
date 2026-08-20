@@ -3498,6 +3498,9 @@
   "mdSendViewGist": {
     "message": "檢視 gist →"
   },
+  "mdSendViewNotion": {
+    "message": "在 Notion 中檢視 →"
+  },
   "mdSendApiPerm": {
     "message": "存取權限被拒絕，全文已複製到剪貼簿；貼上即可完成。"
   },

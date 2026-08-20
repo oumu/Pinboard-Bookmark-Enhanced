@@ -3498,6 +3498,9 @@
   "mdSendViewGist": {
     "message": "gist を表示 →"
   },
+  "mdSendViewNotion": {
+    "message": "Notion で表示 →"
+  },
   "mdSendApiPerm": {
     "message": "アクセス権限が拒否されました。全文をクリップボードにコピーしました。貼り付けて完了してください。"
   },

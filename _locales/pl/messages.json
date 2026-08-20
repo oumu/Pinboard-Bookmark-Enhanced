@@ -3498,6 +3498,9 @@
   "mdSendViewGist": {
     "message": "Zobacz gist →"
   },
+  "mdSendViewNotion": {
+    "message": "Zobacz w Notion →"
+  },
   "mdSendApiPerm": {
     "message": "Odmówiono uprawnień dostępu. Pełny tekst skopiowano do schowka — wklej, aby zakończyć."
   },

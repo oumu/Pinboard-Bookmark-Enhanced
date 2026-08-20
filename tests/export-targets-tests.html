@@ -258,6 +258,7 @@ const nbodyNoUrl = JSON.parse(NROW.buildRequest({ title: "T" }, "body text", { p
 assertEq(nbodyNoUrl.markdown, "body text", "no source url means the body ships verbatim");
 const nbodyRawParent = JSON.parse(NROW.buildRequest({ title: "T" }, "b", { parent: "  weird-value " }, "tok").body);
 assertEq(nbodyRawParent.parent.page_id, "weird-value", "unparseable parent falls back to the raw trimmed value");
+assert(PBP_EXPORT_TARGETS.notion.viewLabel === "mdSendViewNotion", "notion declares its own view-link label");
 
 section("notebooklm registry row");
 const LROW = PBP_EXPORT_TARGETS.notebooklm;

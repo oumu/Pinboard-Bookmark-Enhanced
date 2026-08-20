@@ -175,7 +175,8 @@ const PBP_EXPORT_TARGETS = {
       { key: "token", type: "secret", required: true, label: "mdTargetNotionToken" },
       { key: "parent", type: "text", required: true, label: "mdTargetNotionParent", placeholder: "https://www.notion.so/…" }
     ],
-    onboarding: "mdTargetNotionOnboarding"
+    onboarding: "mdTargetNotionOnboarding",
+    viewLabel: "mdSendViewNotion"
   },
 
   // NotebookLM — guided hand-off, NOT an API push: consumer NotebookLM has no

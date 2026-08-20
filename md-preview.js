@@ -2000,7 +2000,7 @@ function pbpApplyColorScheme(mode) {
     const menu = document.getElementById("send-menu");
     const sendStatus = document.getElementById("send-status");
     let sendStatusTimer;
-    function showSendStatus(msg, isError, url) {
+    function showSendStatus(msg, isError, url, viewLabel) {
       if (!sendStatus) return;
       clearTimeout(sendStatusTimer);
       sendStatus.classList.toggle("error", !!isError);
@@ -2019,7 +2019,7 @@ function pbpApplyColorScheme(mode) {
           a.href = safe;
           a.target = "_blank";
           a.rel = "noopener noreferrer";
-          a.textContent = t("mdSendViewGist");
+          a.textContent = viewLabel || t("mdSendViewGist");
           // Let the link open without the parent's dismiss-on-click swallowing it.
           a.addEventListener("click", (e) => e.stopPropagation());
           sendStatus.appendChild(a);
@@ -2100,7 +2100,7 @@ function pbpApplyColorScheme(mode) {
             showSendStatus(t("mdSentUrlScheme").replace("{name}", row.label), false);
           } else {
             flashButtonLabel(primary, t("mdSentTo").replace("{name}", row.label));        // short -> button
-            if (res.url) showSendStatus(t("mdSentTo").replace("{name}", row.label), false, res.url); // + clickable link
+            if (res.url) showSendStatus(t("mdSentTo").replace("{name}", row.label), false, res.url, row.viewLabel ? t(row.viewLabel) : undefined); // + clickable link
           }
         } else if (res.error === "open-blocked") {
           showSendStatus(t("mdSendOpenBlocked"), true);

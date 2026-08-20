@@ -3498,6 +3498,9 @@
   "mdSendViewGist": {
     "message": "Voir le gist →"
   },
+  "mdSendViewNotion": {
+    "message": "Voir dans Notion →"
+  },
   "mdSendApiPerm": {
     "message": "L'autorisation d'accès a été refusée. Texte complet copié dans le presse-papiers ; collez pour terminer."
   },

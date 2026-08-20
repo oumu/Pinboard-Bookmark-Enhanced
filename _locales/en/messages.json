@@ -3492,6 +3492,9 @@
   "mdSendViewGist": {
     "message": "View gist →"
   },
+  "mdSendViewNotion": {
+    "message": "View in Notion →"
+  },
   "mdSendApiPerm": {
     "message": "Access permission was denied. Full text copied to clipboard; paste to finish."
   },

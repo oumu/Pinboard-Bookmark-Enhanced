@@ -38,7 +38,7 @@ const EXPECTED_RESULTS = Object.freeze({
   "tests/dict-pack-tests.html": 187,
   "tests/escape-html-tests.html": 8,
   "tests/eudic-sync-tests.html": 39,
-  "tests/export-targets-tests.html": 137,
+  "tests/export-targets-tests.html": 138,
   "tests/i18n-parity-tests.html": 206,
   "tests/icon-state-tests.html": 11,
   "tests/jina-cache-tests.html": 25,

@@ -3498,6 +3498,9 @@
   "mdSendViewGist": {
     "message": "gist ansehen →"
   },
+  "mdSendViewNotion": {
+    "message": "In Notion ansehen →"
+  },
   "mdSendApiPerm": {
     "message": "Zugriffsberechtigung verweigert. Volltext in die Zwischenablage kopiert; zum Abschließen einfügen."
   },

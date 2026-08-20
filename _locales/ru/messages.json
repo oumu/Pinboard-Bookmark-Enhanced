@@ -3498,6 +3498,9 @@
   "mdSendViewGist": {
     "message": "Открыть gist →"
   },
+  "mdSendViewNotion": {
+    "message": "Открыть в Notion →"
+  },
   "mdSendApiPerm": {
     "message": "Разрешение на доступ отклонено. Полный текст скопирован в буфер обмена — вставьте, чтобы завершить."
   },
