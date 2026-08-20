@@ -891,6 +891,12 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
    punching through the article column. */
 #rendered-view :not(.pb-table-wrap) > table { display: block; overflow-x: auto; }
 
+/* Mermaid figures (md-mermaid.js): the rendered data-URI diagram that
+   replaces its hidden source fence. Background stays transparent — the SVG
+   carries the active theme's own colors. */
+#rendered-view figure.pb-mermaid { margin: 1.5em 0; text-align: center; }
+#rendered-view figure.pb-mermaid img { max-width: 100%; height: auto; }
+
 /* Horizontal rule */
 #rendered-view hr {
   border: none;

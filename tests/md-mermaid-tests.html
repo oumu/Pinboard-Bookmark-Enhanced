@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>md-mermaid Tests</title>
+<style>
+body { font-family: monospace; padding: 16px; max-width: 1000px; }
+.case { padding: 6px; border-bottom: 1px solid #eee; white-space: pre-wrap; }
+.pass { color: #0a0; } .fail { color: #c00; font-weight: bold; }
+</style></head>
+<body>
+<h1>md-mermaid.js tests</h1>
+<div id="summary"></div>
+<div id="results"></div>
+<div id="fixture" style="position:absolute;left:-9999px"></div>
+
+<script src="../vendor/turndown.js"></script>
+<script src="../vendor/marked.min.js"></script>
+<script src="../vendor/purify.min.js"></script>
+<script src="../vendor/mermaid.min.js"></script>
+<script src="../md-convert.js"></script>
+<script src="../md-ai-core.js"></script>
+<script src="../md-mermaid.js"></script>
+<script>
+let PASS = 0, FAIL = 0;
+function test(name, fn) {
+  const div = document.createElement("div");
+  try { fn(); PASS++; div.className = "case pass"; div.textContent = "PASS " + name; }
+  catch (e) { FAIL++; div.className = "case fail"; div.textContent = "FAIL " + name + "\n  " + e.message; }
+  document.getElementById("results").appendChild(div);
+}
+async function atest(name, fn) {
+  const div = document.createElement("div");
+  try { await fn(); PASS++; div.className = "case pass"; div.textContent = "PASS " + name; }
+  catch (e) { FAIL++; div.className = "case fail"; div.textContent = "FAIL " + name + "\n  " + e.message; }
+  document.getElementById("results").appendChild(div);
+}
+// mermaid is statically loaded above (file:// page, extension CSP does not
+// apply here — Task 1's real-page smoke covers that); short-circuit the lazy
+// loader so _pbpMermaidRender never injects "vendor/mermaid.min.js" (a path
+// that is wrong relative to tests/).
+_pbpMermaidLoad = Promise.resolve();
+
+(async () => {
+  test("pure: pbpMermaidBlocks finds mermaid fences, skips empty", () => {
+    const d = document.createElement("div");
+    d.innerHTML = '<pre><code class="language-mermaid">graph TD;A-->B;</code></pre>'
+      + '<pre><code class="language-mermaid">   </code></pre>'
+      + '<pre><code class="language-js">x=1</code></pre>';
+    const got = pbpMermaidBlocks(d);
+    if (got.length !== 1) throw new Error("expected 1, got " + got.length);
+  });
+  test("pure: pbpMermaidConfig pins strict + theme mapping", () => {
+    if (pbpMermaidConfig(true).theme !== "dark") throw new Error("dark theme");
+    if (pbpMermaidConfig(false).theme !== "default") throw new Error("light theme");
+    if (pbpMermaidConfig(true).securityLevel !== "strict") throw new Error("strict pinned");
+    if (pbpMermaidConfig(true).startOnLoad !== false) throw new Error("startOnLoad off");
+  });
+  test("pure: pbpMermaidIsDark honors the forced colorScheme override", () => {
+    const el = document.documentElement;
+    const prev = el.style.colorScheme;
+    try {
+      el.style.colorScheme = "dark";
+      if (!pbpMermaidIsDark()) throw new Error("forced dark");
+      el.style.colorScheme = "light";
+      if (pbpMermaidIsDark()) throw new Error("forced light");
+    } finally { el.style.colorScheme = prev; }
+  });
+  await atest("render: valid flowchart yields cached svg/dataUri with dimensions", async () => {
+    const e = await _pbpMermaidRender("graph TD;A-->B;", false);
+    if (!/^data:image\/svg\+xml;base64,/.test(e.dataUri)) throw new Error("dataUri prefix");
+    if (!/<svg/.test(e.svg)) throw new Error("svg missing");
+    if (!(e.w > 0 && e.h > 0)) throw new Error("dims: " + e.w + "x" + e.h);
+    const again = await _pbpMermaidRender("graph TD;A-->B;", false);
+    if (again !== e) throw new Error("cache must return the same entry object");
+  });
+  await atest("render: dark and light cache separately", async () => {
+    const l = await _pbpMermaidRender("graph TD;A-->B;", false);
+    const d = await _pbpMermaidRender("graph TD;A-->B;", true);
+    if (l.dataUri === d.dataUri) throw new Error("themes must differ");
+  });
+  await atest("render: invalid source rejects (parse gate)", async () => {
+    let threw = false;
+    try { await _pbpMermaidRender("graph TD;;;%%% not mermaid [[", false); } catch (_) { threw = true; }
+    if (!threw) throw new Error("must reject");
+  });
+  await atest("enhance: fence becomes hidden pre + figure img", async () => {
+    const fx = document.getElementById("fixture");
+    fx.innerHTML = '<pre><code class="language-mermaid">graph TD;A-->B;</code></pre>';
+    await pbpMermaidEnhance(fx);
+    const pre = fx.querySelector("pre");
+    const fig = fx.querySelector("figure.pb-mermaid img");
+    if (!pre.hidden) throw new Error("pre must hide");
+    if (!fig || !/^data:image\/svg\+xml/.test(fig.src)) throw new Error("figure img missing");
+  });
+  await atest("enhance: idempotent (second pass adds nothing)", async () => {
+    const fx = document.getElementById("fixture");
+    await pbpMermaidEnhance(fx);
+    if (fx.querySelectorAll("figure.pb-mermaid").length !== 1) throw new Error("duplicate figure");
+  });
+  await atest("enhance: broken fence degrades — pre stays visible, no figure", async () => {
+    const fx = document.getElementById("fixture");
+    fx.innerHTML = '<pre><code class="language-mermaid">graph TD;;;%%% not mermaid [[</code></pre>';
+    await pbpMermaidEnhance(fx);
+    if (fx.querySelector("pre").hidden) throw new Error("broken pre must stay visible");
+    if (fx.querySelector("figure.pb-mermaid")) throw new Error("no figure on failure");
+  });
+  await atest("retheme: swaps img src to the other theme's render", async () => {
+    const fx = document.getElementById("fixture");
+    fx.innerHTML = '<pre><code class="language-mermaid">graph TD;A-->B;</code></pre>';
+    await pbpMermaidEnhance(fx);           // current (light in headless) render
+    const before = fx.querySelector("figure.pb-mermaid img").src;
+    const prev = document.documentElement.style.colorScheme;
+    try {
+      document.documentElement.style.colorScheme = pbpMermaidIsDark() ? "light" : "dark";
+      await pbpMermaidRetheme(fx);
+      if (fx.querySelector("figure.pb-mermaid img").src === before) throw new Error("src must change");
+    } finally { document.documentElement.style.colorScheme = prev; }
+  });
+  document.getElementById("summary").textContent = PASS + " pass, " + FAIL + " fail";
+})();
+</script>
+</body></html>

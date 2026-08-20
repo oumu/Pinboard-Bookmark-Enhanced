@@ -1575,6 +1575,11 @@ function pbpApplyColorScheme(mode) {
   if (renderedView.querySelector("pre > code")) {
     requestAnimationFrame(() => { ensureHljs().then(() => highlightCodeBlocksChunked(renderedView)); });
   }
+  // Mermaid fences render locally into data-URI figures — lazy (module only
+  // loads its 3.4MB vendor when a fence exists) and off the first paint.
+  if (typeof pbpMermaidEnhance === "function" && renderedView.querySelector("pre > code.language-mermaid")) {
+    requestAnimationFrame(() => { pbpMermaidEnhance(renderedView).catch(() => {}); });
+  }
   // Math rendering — ONLY for LaTeX-bearing content (info.math, e.g. arXiv). Gating on
   // the flag (not just a "$") keeps KaTeX off every other page so currency like "$5"
   // is never mangled. Off the first-paint path (rAF), degrades to $...$ source on error.
