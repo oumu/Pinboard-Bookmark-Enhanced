@@ -2845,6 +2845,10 @@ section("pbpLatexNormalize: pre-KaTeX repair");
   check("multi-line code span is untouched", N(mlspan) === mlspan);
   const mlenv = "a `x\n\\begin{aligned}\ny` b";
   check("line-start env inside a multi-line span is not wrapped", N(mlenv) === mlenv);
+  const twospans = "one `a\nb` two `c\nd` three $$\\Huge z$$";
+  check("two spans sharing a connecting line stay separate", N(twospans) === "one `a\nb` two `c\nd` three $$z$$");
+  check("no control bytes ever leak", !/\x00/.test(N("one `a\nb` two `c\nd` three")));
+  check("connecting-line shape is idempotent", N(N(twospans)) === N(twospans));
 })();
 </script>
 

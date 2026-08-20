@@ -1003,21 +1003,29 @@ function _pbpTexTransformSegments(md) {
   return out.join("\n");
 }
 
-// Second masking sweep, run AFTER the per-line pass in pbpLatexNormalize below:
-// a valid CommonMark inline code span can straddle a line break ("`a\nb`" is
-// ONE span, not a stray backtick on each of two lines). The per-line pass
-// can't see that -- it only pairs backticks found within a single line -- so
-// a multi-line span's content (which may itself contain TeX-looking text, or
-// a line that starts with \begin{...}) would otherwise reach the wrap/segment
-// passes unmasked. Re-run the same masking regex here, but on the
-// FENCE-EXTERNAL text joined across line breaks (fenced runs are skipped
-// exactly like the passes above), appending to the SAME shared stash so
-// restoration stays a single final pass. Pathological residual, accepted not
-// fixed: a multi-line span whose content contains a line that itself looks
-// like a ``` fence marker will still get split there by this function's own
-// fence tracking (real ``` fences don't occur inside real inline code spans
-// in the scraped-math-page input this function repairs, so this is not worth
-// the added complexity to close).
+// THE sole code-span masker, run FIRST in pbpLatexNormalize, before any other
+// transform. A valid CommonMark inline code span can straddle a line break
+// ("`a\nb`" is ONE span, not a stray backtick on each of two lines), so
+// masking must see the FENCE-EXTERNAL text as one continuous stream, not
+// line-by-line -- a per-line masker can false-pair the closing backtick of one
+// span with the opening backtick of the NEXT span when both land on the same
+// connecting line (e.g. "one `a\nb` two `c\nd` three"), corrupting everything
+// between them. Buffering each fence-external run and running ONE global,
+// non-greedy backtick-run regex over it in document order avoids that: matches
+// are found left-to-right against the real (already-masked-nothing) text, so
+// "`a\nb`" and "`c\nd`" pair correctly as two independent spans, single-line
+// spans are just the same regex finding both backticks on one line. Every
+// match (single- or multi-line) appends to the SAME shared stash, so the
+// whole document restores in one final pass with no re-scanning of
+// already-masked output (re-scanning masked text was the earlier bug: a
+// second masking pass over text containing stash tokens could itself match
+// across a token and swallow it into a new, never-restored entry). Fenced
+// runs are skipped entirely -- never buffered, never masked. Pathological
+// residual, accepted not fixed: a multi-line span whose content contains a
+// line that itself looks like a ``` fence marker will still get split there
+// by this function's own fence tracking (real ``` fences don't occur inside
+// real inline code spans in the scraped-math-page input this function
+// repairs, so this is not worth the added complexity to close).
 function _pbpTexMaskMultilineSpans(md, stash) {
   const lines = md.split("\n");
   const out = [];
@@ -1042,35 +1050,30 @@ function _pbpTexMaskMultilineSpans(md, stash) {
 
 // pbpLatexNormalize: the one public entry (Task 2 wires it in ahead of KaTeX
 // auto-render, gated on the math flag). Inline code spans (`...`) must stay
-// shielded through ALL THREE downstream passes, not just the dollar-run fix --
-// a `\begin{x}` sample inside a code span must never trip the bare-env wrap
-// or the $$/$ segment transform either. Masking is two steps feeding one
-// SINGLE stash shared across the whole document: pass 1 masks single-line
-// spans per line (alongside the line-oriented dollar-run fix), then
-// _pbpTexMaskMultilineSpans masks any span that straddles a line break, on
-// the fence-external text as a whole. Both append to the same stash; wrap +
-// segment run only after BOTH masking steps, and restoration is a single
-// final pass. The stash markers ("\x00T<n>\x00") contain no $, \, or
-// backtick themselves, so they are inert against every regex the later
-// passes use.
+// shielded through ALL of wrap + dollar-run fix + segment transform -- a
+// `\begin{x}` sample inside a code span must never trip the bare-env wrap or
+// get its TeX rewritten. Order is: mask (the ONE unified pass, see
+// _pbpTexMaskMultilineSpans above) FIRST, so every later pass only ever sees
+// already-masked text and never has to reason about code spans itself; THEN
+// fence-tracked dollar-run repair (line-oriented, since the fix itself only
+// needs same-line context); THEN wrap; THEN segment; THEN restore the stash
+// once at the very end. The stash markers ("\x00T<n>\x00") contain no $, \,
+// or backtick themselves, so they are inert against every regex the later
+// passes use, and are never re-scanned by a second masking pass.
 function pbpLatexNormalize(md) {
   if (md == null) return "";
   md = String(md);
   if (md.indexOf("\\") === -1 && md.indexOf("$") === -1) return md;
   const stash = [];
-  const maskCodeSpans = (line) => line.replace(/(`+)[\s\S]*?\1/g, (m) => {
-    stash.push(m);
-    return "\x00T" + (stash.length - 1) + "\x00";
-  });
+  const masked = _pbpTexMaskMultilineSpans(md, stash);
   const fixed = [];
   let inFence = false;
-  for (const line of md.split("\n")) {
+  for (const line of masked.split("\n")) {
     if (/^\s*(```|~~~)/.test(line)) { inFence = !inFence; fixed.push(line); continue; }
     if (inFence) { fixed.push(line); continue; }
-    fixed.push(_pbpTexFixDollarRuns(maskCodeSpans(line)));
+    fixed.push(_pbpTexFixDollarRuns(line));
   }
-  const masked = _pbpTexMaskMultilineSpans(fixed.join("\n"), stash);
-  const wrapped = _pbpTexWrapBareEnvs(masked);
+  const wrapped = _pbpTexWrapBareEnvs(fixed.join("\n"));
   const transformed = _pbpTexTransformSegments(wrapped);
   return transformed.replace(/\x00T(\d+)\x00/g, (mm, k) => stash[+k] !== undefined ? stash[+k] : mm);
 }
