@@ -114,6 +114,12 @@ async function pbpSendToTarget(id, ctx) {
         // Reuse the "api-token" code so the user gets the same "re-copy a
         // classic PAT" guidance instead of a dead-end "request failed".
         if (id === "github" && (resp.status === 403 || resp.status === 404)) return apiFail("api-token");
+        // Notion-only: 404 object_not_found (and 403 restricted_resource) on
+        // POST /pages almost always means the parent page was never shared
+        // with the integration -- the single most common Notion setup
+        // mistake. Surface dedicated guidance instead of a dead-end
+        // "request failed".
+        if (id === "notion" && (resp.status === 404 || resp.status === 403)) return apiFail("api-notion-share");
         if (!resp.ok) return apiFail("api-failed");
         const json = await resp.json().catch(() => null);
         // Success: row-defined (webhook = any 2xx, since it returns no id) else

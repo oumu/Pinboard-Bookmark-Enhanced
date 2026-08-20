@@ -3463,6 +3463,7 @@
   },
   "mdSendApiDown": { "message": "无法连接到导出服务器。全文已复制到剪贴板，粘贴即可完成。" },
   "mdSendApiBadToken": { "message": "服务器拒绝了令牌，请从应用中重新复制。全文已复制到剪贴板。" },
+  "mdSendNotionNotShared": { "message": "Notion 拒绝了父页面。请在该页面的 ··· 菜单「连接」中添加你的集成后重试。全文已复制到剪贴板。" },
   "mdSendApiFailed": { "message": "导出请求失败。全文已复制到剪贴板，粘贴即可完成。" },
   "mdSendTest": { "message": "测试连接" },
   "mdSendTestOk": { "message": "连接成功" },

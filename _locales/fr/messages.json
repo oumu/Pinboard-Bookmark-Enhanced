@@ -3463,6 +3463,7 @@
   },
   "mdSendApiDown": { "message": "Impossible de joindre le serveur d'export. Texte complet copié dans le presse-papiers ; collez pour terminer." },
   "mdSendApiBadToken": { "message": "Le serveur a rejeté le jeton. Recopiez-le depuis l'application. Texte complet copié dans le presse-papiers." },
+  "mdSendNotionNotShared": { "message": "Notion a refusé la page parente. Partagez cette page avec votre intégration (menu ···, Connexions), puis réessayez. Texte intégral copié dans le presse-papiers." },
   "mdSendApiFailed": { "message": "La requête d'export a échoué. Texte complet copié dans le presse-papiers ; collez pour terminer." },
   "mdSendTest": {
     "message": "Tester la connexion"

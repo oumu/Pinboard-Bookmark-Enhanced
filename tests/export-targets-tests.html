@@ -339,6 +339,25 @@ async function runSendNetworkPolicyTests() {
     assert(github.ok === true, "safe token API request still succeeds");
     assert(redirects.length === 2, "GitHub precheck and main request both run");
     assert(redirects.every((mode) => mode === "error"), "every token API fetch rejects redirects");
+
+    globalThis.fetch = async (url) => {
+      if (url.endsWith("/users/me")) return { ok: true, status: 200 };
+      return { ok: false, status: 404, json: async () => ({ object: "error", code: "object_not_found" }) };
+    };
+    const copiedBeforeNotion = copied.length;
+    const notion404 = await pbpSendToTarget("notion", { meta: { title: "T", url: "https://e.x/a", tags: ["t"] }, rawBody: "body", cfg: { token: "tok", parent: "0123456789abcdef0123456789abcdef" } });
+    assert(notion404.error === "api-notion-share", "notion 404 maps to the share-guidance code");
+    assert(copied.length === copiedBeforeNotion + 1, "notion 404 still lands the body on the clipboard");
+
+    let notionSentBody = null;
+    globalThis.fetch = async (url, opts) => {
+      if (url.endsWith("/users/me")) return { ok: true, status: 200 };
+      notionSentBody = JSON.parse(opts.body);
+      return { ok: true, status: 200, json: async () => ({ object: "page", id: "p1", url: "https://www.notion.so/p1" }) };
+    };
+    const notionOk = await pbpSendToTarget("notion", { meta: { title: "T", url: "https://e.x/a", tags: [] }, rawBody: "body", cfg: { token: "tok", parent: "https://www.notion.so/X-0123456789abcdef0123456789abcdef" } });
+    assert(notionOk.ok === true && notionOk.url === "https://www.notion.so/p1", "notion success returns the created page url");
+    assert(notionSentBody && notionSentBody.parent.page_id === "01234567-89ab-cdef-0123-456789abcdef" && typeof notionSentBody.markdown === "string", "notion request body carries the parsed parent and a markdown string");
   } finally {
     globalThis.chrome = prevChrome;
     globalThis.fetch = prevFetch;

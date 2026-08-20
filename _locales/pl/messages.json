@@ -3463,6 +3463,7 @@
   },
   "mdSendApiDown": { "message": "Nie można połączyć się z serwerem eksportu. Pełny tekst skopiowano do schowka — wklej, aby zakończyć." },
   "mdSendApiBadToken": { "message": "Serwer odrzucił token. Skopiuj go ponownie z aplikacji. Pełny tekst skopiowano do schowka." },
+  "mdSendNotionNotShared": { "message": "Notion odrzucił stronę nadrzędną. Udostępnij ją swojej integracji (menu ··· , Połączenia) i spróbuj ponownie. Pełny tekst skopiowano do schowka." },
   "mdSendApiFailed": { "message": "Żądanie eksportu nie powiodło się. Pełny tekst skopiowano do schowka — wklej, aby zakończyć." },
   "mdSendTest": {
     "message": "Testuj połączenie"

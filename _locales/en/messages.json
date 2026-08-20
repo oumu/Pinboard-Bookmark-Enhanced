@@ -3463,6 +3463,7 @@
   },
   "mdSendApiDown": { "message": "Couldn't reach the export server. Full text copied to clipboard; paste to finish." },
   "mdSendApiBadToken": { "message": "The server rejected the token. Re-copy it from the app. Full text copied to clipboard." },
+  "mdSendNotionNotShared": { "message": "Notion rejected the parent page. Share that page with your integration (··· menu, Connections), then retry. Full text copied to clipboard." },
   "mdSendApiFailed": { "message": "The export request failed. Full text copied to clipboard; paste to finish." },
   "mdSendTest": { "message": "Test connection" },
   "mdSendTestOk": { "message": "Connected" },

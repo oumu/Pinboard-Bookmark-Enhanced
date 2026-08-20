@@ -3463,6 +3463,7 @@
   },
   "mdSendApiDown": { "message": "無法連接到匯出伺服器。全文已複製到剪貼簿，貼上即可完成。" },
   "mdSendApiBadToken": { "message": "伺服器拒絕了 Token，請從應用程式中重新複製。全文已複製到剪貼簿。" },
+  "mdSendNotionNotShared": { "message": "Notion 拒絕了父頁面。請在該頁面的 ··· 選單「連接」中加入你的整合後重試。全文已複製到剪貼簿。" },
   "mdSendApiFailed": { "message": "匯出請求失敗。全文已複製到剪貼簿，貼上即可完成。" },
   "mdSendTest": {
     "message": "測試連接"

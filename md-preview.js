@@ -2116,6 +2116,8 @@ function pbpApplyColorScheme(mode) {
           showSendStatus(t("mdSendApiDown"), true);
         } else if (res.error === "api-token") {
           showSendStatus(t("mdSendApiBadToken"), true);
+        } else if (res.error === "api-notion-share") {
+          showSendStatus(t("mdSendNotionNotShared"), true);
         } else if (res.error === "api-failed") {
           showSendStatus(t("mdSendApiFailed"), true);
         } else {

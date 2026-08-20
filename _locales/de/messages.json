@@ -3463,6 +3463,7 @@
   },
   "mdSendApiDown": { "message": "Export-Server nicht erreichbar. Volltext in die Zwischenablage kopiert; zum Abschließen einfügen." },
   "mdSendApiBadToken": { "message": "Der Server hat den Token abgelehnt. Erneut aus der App kopieren. Volltext in die Zwischenablage kopiert." },
+  "mdSendNotionNotShared": { "message": "Notion hat die übergeordnete Seite abgelehnt. Geben Sie die Seite über das Menü ··· unter Verbindungen für Ihre Integration frei und versuchen Sie es erneut. Der gesamte Text wurde in die Zwischenablage kopiert." },
   "mdSendApiFailed": { "message": "Die Export-Anfrage ist fehlgeschlagen. Volltext in die Zwischenablage kopiert; zum Abschließen einfügen." },
   "mdSendTest": {
     "message": "Verbindung testen"
