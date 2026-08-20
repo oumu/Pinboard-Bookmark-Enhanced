@@ -111,6 +111,15 @@ await (async () => {
   check("no captionTracks yields error:'no-tracks'", noCaps.error === "no-tracks");
   const allFail = await pbpYtFetchTranscript("vid", { fetchFn: async () => ({ ok: false, status: 403 }), uiLang: "en" });
   check("all four clients failing yields error:'player'", allFail.error === "player");
+
+  let sawSignal = false;
+  const okPlayer2 = { captions: { playerCaptionsTracklistRenderer: { captionTracks: [ { baseUrl: "https://www.youtube.com/api/timedtext?x=1", languageCode: "en", name: { simpleText: "English" } } ] } } };
+  await pbpYtFetchTranscript("vid", { uiLang: "en", fetchFn: async (url, o) => {
+    if (o && o.signal && typeof o.signal.aborted === "boolean") sawSignal = true;
+    if (url.includes("/youtubei/")) return { ok: true, status: 200, json: async () => okPlayer2 };
+    return { ok: true, status: 200, text: async () => JSON.stringify({ events: [{ tStartMs: 0, dDurationMs: 1000, segs: [{ utf8: "x" }] }] }) };
+  } });
+  check("fetches carry an abort signal", sawSignal);
 })();
 
 document.getElementById("summary").textContent = `${pass} passed, ${fail} failed`;

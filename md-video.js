@@ -167,7 +167,7 @@ async function pbpYtFetchTranscript(videoId, opts) {
   for (let i = 0; i < PBP_YT_CLIENTS.length; i++) {
     const req = pbpYtPlayerRequest(videoId, i, opts.uiLang);
     try {
-      const resp = await fetchFn(req.url, { method: req.method, headers: req.headers, body: req.body, credentials: "omit" });
+      const resp = await fetchFn(req.url, { method: req.method, headers: req.headers, body: req.body, credentials: "omit", signal: AbortSignal.timeout(15000) });
       if (!resp.ok) continue;
       const json = await resp.json();
       if (json && typeof json === "object") { playerJson = json; break; }
@@ -185,7 +185,7 @@ async function pbpYtFetchTranscript(videoId, opts) {
 async function pbpYtFetchCaptionBody(baseUrl, fetchFn) {
   fetchFn = fetchFn || ((u, o) => fetch(u, o));
   try {
-    const r1 = await fetchFn(baseUrl, { credentials: "omit" });
+    const r1 = await fetchFn(baseUrl, { credentials: "omit", signal: AbortSignal.timeout(15000) });
     if (r1.ok) {
       const fromXml = pbpYtParseTimedtextXml(await r1.text());
       if (fromXml.length) return fromXml;
@@ -193,7 +193,7 @@ async function pbpYtFetchCaptionBody(baseUrl, fetchFn) {
   } catch (_) { /* fall through to json3 */ }
   try {
     const jUrl = baseUrl + (baseUrl.includes("?") ? "&" : "?") + "fmt=json3";
-    const r2 = await fetchFn(jUrl, { credentials: "omit" });
+    const r2 = await fetchFn(jUrl, { credentials: "omit", signal: AbortSignal.timeout(15000) });
     if (r2.ok) return pbpYtParseJson3(await r2.text());
   } catch (_) {}
   return [];
@@ -257,7 +257,7 @@ async function pbpYtFetchCaptionBody(baseUrl, fetchFn) {
       statusEl.textContent = t("mdVideoNoTracks");
       if (!res.tracks) return;
     }
-    statusEl.textContent = "";
+    if (!res.error) statusEl.textContent = "";
     // track picker
     trackSel.textContent = "";
     (res.tracks || []).forEach((tr) => {
@@ -289,7 +289,7 @@ async function pbpYtFetchCaptionBody(baseUrl, fetchFn) {
     if (!detected) return;
     const view = document.getElementById("rendered-view");
     if (!view || !view.parentNode || document.getElementById("video-panel")) return;
-    _meta = { title: document.title || "", url: ctx.pageUrl };
+    _meta = { title: (ctx && ctx.title) || document.title || "", url: ctx.pageUrl };
 
     const panel = el("section", "video-panel");
     panel.id = "video-panel";
