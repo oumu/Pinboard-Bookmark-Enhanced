@@ -862,6 +862,29 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
 #rendered-view tbody tr:last-child td { border-bottom: none; }
 #rendered-view tbody tr:nth-child(even) { background: var(--table-stripe); }
 
+/* A1: a long unbreakable token (URL, identifier) used to widen a column's
+   min-content to the token's full length, dragging the whole table into
+   horizontal scroll. overflow-wrap:anywhere is the only property that lowers
+   min-content contribution — the inherited break-word on #rendered-view
+   breaks lines but not intrinsic widths. */
+#rendered-view th, #rendered-view td { overflow-wrap: anywhere; }
+/* A2: scroll affordance for wide tables. A scroll-driven animation on the
+   wrap's OWN inline-axis progress (Chrome 115+) drives an edge-fade mask:
+   right fade while columns remain, left fade once scrolled. Non-scrollable
+   wraps have an inactive timeline — the animation (and mask) never applies.
+   Older Chrome: unknown property, no mask, behavior identical to before. */
+@keyframes pbp-table-edge-fade {
+  0%   { mask-image: linear-gradient(to right, transparent 0, #000 0,    #000 calc(100% - 28px), transparent 100%); }
+  100% { mask-image: linear-gradient(to right, transparent 0, #000 28px, #000 100%,              transparent 100%); }
+}
+#rendered-view .pb-table-wrap {
+  animation: pbp-table-edge-fade linear both;
+  animation-timeline: scroll(self inline);
+}
+@media print {
+  #rendered-view .pb-table-wrap { animation: none; }
+}
+
 /* Horizontal rule */
 #rendered-view hr {
   border: none;

@@ -744,7 +744,7 @@ html,body{margin:0;background:var(--x-bg)}
 .export-doc .pb-table-wrap{margin:1.5em 0;overflow-x:auto}
 .export-doc .pb-table-wrap>table{margin:0}
 .export-doc table{border-collapse:collapse;width:100%;margin:1.5em 0;font-size:.9375em;border:1px solid var(--x-bd);border-radius:8px;overflow:hidden}
-.export-doc th,.export-doc td{padding:10px 16px;text-align:left;border-bottom:1px solid var(--x-bdl)}
+.export-doc th,.export-doc td{padding:10px 16px;text-align:left;border-bottom:1px solid var(--x-bdl);overflow-wrap:anywhere}
 .export-doc thead{background:var(--x-code-bg)}
 .export-doc tbody tr:nth-child(even){background:var(--x-stripe)}
 .export-doc hr{border:none;border-top:1px solid var(--x-bd);margin:2.5em 0}
