@@ -2693,7 +2693,7 @@ window._pbpEpubIntegrationDone = (async () => {
 
 <script>
 section("A8: EPUB minimal stylesheet");
-(() => {
+window._pbpEpubA8Done = (async () => {
   check("A8 PBP_EPUB_CSS exists and covers tables",
     typeof PBP_EPUB_CSS === "string" && /border-collapse/.test(PBP_EPUB_CSS) && /overflow-wrap:anywhere/.test(PBP_EPUB_CSS), String(typeof PBP_EPUB_CSS));
   const opf = pbpEpubContentOpf({ title: "t", url: "https://e.com" }, [
@@ -2702,8 +2702,24 @@ section("A8: EPUB minimal stylesheet");
     { id: "css", href: "styles.css", mediaType: "text/css" },
   ]);
   check("A8 manifest can carry styles.css", /href="styles\.css" media-type="text\/css"/.test(opf), opf);
+
+  // Real-product assertions (round-1 fix): a blob-size threshold is
+  // non-discriminative -- a bare EPUB is already >2KB, so it stays true
+  // whether or not any of the three integration points actually wired the
+  // stylesheet in. Read the zip pbpBuildEpub actually produced instead.
   const blob = pbpBuildEpub({ md: "# T\n\n|a|b|\n|---|---|\n|1|2|", meta: { title: "t", url: "https://e.com" } });
-  check("A8 pbpBuildEpub returns a Blob with the css entry (size grew past bare zip)", blob instanceof Blob && blob.size > 800, String(blob && blob.size));
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  const entries = _pbpZipEntries(bytes);
+  const dec = new TextDecoder();
+  const opfOut = dec.decode((entries.find(e => e.name === "OEBPS/content.opf") || { data: new Uint8Array() }).data);
+  const contentOut = dec.decode((entries.find(e => e.name === "OEBPS/content.xhtml") || { data: new Uint8Array() }).data);
+  const cssOut = dec.decode((entries.find(e => e.name === "OEBPS/styles.css") || { data: new Uint8Array() }).data);
+  check("A8 pbpBuildEpub's content.opf manifest registers styles.css",
+    opfOut.includes('href="styles.css" media-type="text/css"'), opfOut);
+  check("A8 pbpBuildEpub's content.xhtml <head> links styles.css",
+    contentOut.includes('<link rel="stylesheet" type="text/css" href="styles.css"/>'), contentOut.slice(0, 300));
+  check("A8 pbpBuildEpub's OEBPS/styles.css entry is byte-identical to PBP_EPUB_CSS",
+    cssOut === PBP_EPUB_CSS, "got " + cssOut.length + " chars, expected " + PBP_EPUB_CSS.length + " chars");
 })();
 </script>
 
@@ -2747,6 +2763,7 @@ section("B2: mermaid language survives Defuddle (pre-normalize)");
 <script>
 (async () => {
   if (window._pbpEpubIntegrationDone) await window._pbpEpubIntegrationDone;
+  if (window._pbpEpubA8Done) await window._pbpEpubA8Done;
   document.getElementById("summary").textContent = `${pass} passed, ${fail} failed`;
   document.getElementById("summary").style.color = fail ? "#c00" : "#0a0";
 })();
