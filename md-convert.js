@@ -196,26 +196,6 @@ function _pbpGetTurndown() {
       return "\n\n![" + alt + "](" + src + ")" + (caption ? "\n*" + caption.textContent.trim() + "*" : "") + "\n\n";
     }
   });
-  // B3: the stock image rule (below, unmodified) only emits alt/src/title,
-  // dropping width/height -- fine for ordinary content images, but our
-  // SVG-derived data-URI images (_pbpInlineSvgToImg) have no other place to
-  // carry the dimensions the source SVG only stated via viewBox, and a data:
-  // URI with no explicit size can collapse to 0x0 in some renderers. Scoped
-  // tightly to our own image shape (exact data:image/svg+xml;base64, prefix
-  // + both dims present) so ordinary images are untouched. The trailing
-  // {width="" height=""} is the Pandoc/kramdown image-attribute-list
-  // convention: plain CommonMark renderers ignore it, ones that support it
-  // honor it.
-  td.addRule("svgImage", {
-    filter: (n) => n.nodeName === "IMG" && n.hasAttribute("width") && n.hasAttribute("height") &&
-      /^data:image\/svg\+xml;base64,/.test(n.getAttribute("src") || ""),
-    replacement: (content, node) => {
-      const alt = node.getAttribute("alt") || "";
-      const src = node.getAttribute("src") || "";
-      const w = node.getAttribute("width"), h = node.getAttribute("height");
-      return "![" + alt + "](" + src + ')' + '{width="' + w + '" height="' + h + '"}';
-    }
-  });
   td.addRule("listItem", {
     filter: "li",
     replacement: (content, node) => {
@@ -292,8 +272,17 @@ function _pbpSvgDims(node) {
   return (w > 0 && h > 0) ? { w, h } : null;
 }
 
-function _pbpSanitizeSvgForImage(node) {
+function _pbpSanitizeSvgForImage(node, dims) {
   const clone = node.cloneNode(true);
+  // A source SVG that only states its size via viewBox has no intrinsic
+  // size once it's the sole document behind an <img> src -- browsers fall
+  // back to the replaced-element default (300x150), not the viewBox aspect
+  // ratio. Stamp the dims _pbpSvgDims already derived onto the root so the
+  // standalone SVG document is honestly self-sized.
+  if (dims && dims.w > 0 && dims.h > 0) {
+    clone.setAttribute("width", String(Math.round(dims.w)));
+    clone.setAttribute("height", String(Math.round(dims.h)));
+  }
   clone.querySelectorAll("script").forEach((el) => el.remove());
   [clone, ...clone.querySelectorAll("*")].forEach((el) => {
     Array.from(el.attributes).forEach((attr) => {
@@ -332,15 +321,13 @@ function _pbpInlineSvgToImg(root) {
     const dims = _pbpSvgDims(svg);
     if (!dims || Math.min(dims.w, dims.h) < PBP_SVG_MIN_SIDE) return; // icon/unsized: existing drop behavior
     let xml;
-    try { xml = _pbpSanitizeSvgForImage(svg); } catch (_) { return; }
+    try { xml = _pbpSanitizeSvgForImage(svg, dims); } catch (_) { return; }
     if (!xml || xml.length > PBP_SVG_MAX_BYTES) return;
     const titleEl = svg.querySelector(":scope > title");
     const label = (svg.getAttribute("aria-label") || (titleEl && titleEl.textContent) || "diagram")
       .trim().replace(/[\[\]()\n]/g, " ").slice(0, 200).trim() || "diagram";
     const img = svg.ownerDocument.createElement("img");
     img.setAttribute("alt", label);
-    img.setAttribute("width", String(Math.round(dims.w)));
-    img.setAttribute("height", String(Math.round(dims.h)));
     img.setAttribute("src", "data:image/svg+xml;base64," + pbpB64Utf8(xml));
     svg.replaceWith(img);
   });

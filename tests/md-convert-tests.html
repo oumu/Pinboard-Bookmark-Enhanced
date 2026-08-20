@@ -2771,7 +2771,8 @@ const b3decode = (md) => {
   check("B3 diagram becomes a markdown image", /!\[flow chart\]\(data:image\/svg\+xml;base64,/.test(md), md.slice(0, 200));
   check("B3 labels no longer leak as loose prose", !/(^|\n)Start(\n|$)/.test(md.replace(/data:image[^)]*/g, "")), md);
   check("B3 serialized svg carries xmlns", /xmlns="http:\/\/www\.w3\.org\/2000\/svg"/.test(b3decode(md)), b3decode(md).slice(0, 200));
-  check("B3 width/height sized from viewBox", /width="400" height="200"/.test(md), md);
+  check("B3 svg root sized from viewBox (no explicit width/height on source)",
+    /<svg[^>]*width="400"[^>]*height="200"[^>]*>/.test(b3decode(md)), b3decode(md).slice(0, 200));
 })();
 (() => {
   check("B3 icon-size svg still dropped", !/data:image\/svg/.test(htmlToMarkdown('<p>t</p><svg width="16" height="16"><path d="M0 0h16v16z"/></svg>')), "");
@@ -2790,6 +2791,16 @@ const b3decode = (md) => {
 (() => {
   const h = norm(renderMarkdown("![d](data:image/svg+xml;base64,PHN2Zy8+)"));
   check("B3 data-URI svg image survives renderMarkdown untouched", /<img[^>]*src="data:image\/svg\+xml;base64,PHN2Zy8\+"/.test(h), h);
+})();
+(() => {
+  // pbpB64Utf8 round-trip at the 300KB serialized cap, multi-byte UTF-8
+  // included (a naive spread-based btoa would blow the arg stack at this
+  // length -- this is the coverage gap the chunked implementation exists for).
+  let src = "图表 → "; // "图表 → " (CJK + arrow, multi-byte)
+  while (src.length < 300000) src += "aé中";
+  src = src.slice(0, 300000);
+  const decoded = new TextDecoder().decode(Uint8Array.from(atob(pbpB64Utf8(src)), (c) => c.charCodeAt(0)));
+  check("B3 pbpB64Utf8 round-trips 300,000 chars of multi-byte UTF-8 intact", decoded === src, "length " + decoded.length + " vs " + src.length);
 })();
 </script>
 
