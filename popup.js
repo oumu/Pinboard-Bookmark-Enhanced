@@ -555,6 +555,7 @@ async function extractLocalMarkdown(tabId) {
           // E1: normalize lazy-load img placeholders on the CLONE before
           // Defuddle parses it -- the live DOM is never touched.
           if (typeof pbpNormalizeLazyImages === "function") pbpNormalizeLazyImages(clone, location.href);
+          if (typeof pbpPreDefuddleNormalize === "function") pbpPreDefuddleNormalize(clone);
           // Suppress Defuddle's internal console.error for malformed schema.org JSON on third-party pages
           const _origCE = console.error;
           console.error = (...a) => { if (!String(a[0]).startsWith("Defuddle:")) _origCE.apply(console, a); };

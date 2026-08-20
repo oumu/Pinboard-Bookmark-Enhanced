@@ -12,6 +12,7 @@ h2 { margin-top: 24px; }
 <div id="summary"></div>
 <div id="results"></div>
 
+<script src="../vendor/defuddle.js"></script>
 <script src="../vendor/turndown.js"></script>
 <script src="../vendor/marked.min.js"></script>
 <script src="../vendor/purify.min.js"></script>
@@ -2663,6 +2664,43 @@ window._pbpEpubIntegrationDone = (async () => {
     "unmatched images Map entry produces no images/ zip entry: " + entries8.map(e => e.name).join(", "));
   const opf8 = new TextDecoder().decode(entries8.find(e => e.name === "OEBPS/content.opf").data);
   assert(!/id="img0"/.test(opf8), "unmatched images Map entry gets no manifest item either: " + opf8);
+})();
+</script>
+
+<script>
+section("B2: mermaid language survives Defuddle (pre-normalize)");
+(() => {
+  // Realistic article-page DOM fixture (hand-written page shape, not a
+  // client-side echo): enough prose that Defuddle keeps the article body.
+  const mk = (inner) => {
+    const doc = document.implementation.createHTMLDocument("t");
+    doc.body.innerHTML = '<article><h1>Post</h1><p>' + "prose word ".repeat(60)
+      + '</p>' + inner + '<p>' + "closing prose ".repeat(40) + '</p></article>';
+    return doc;
+  };
+  const doc = mk('<pre><code class="language-mermaid">graph TD;A-->B;</code></pre>');
+  pbpPreDefuddleNormalize(doc);
+  const code = doc.querySelector("pre code");
+  check("B2 stamps data-lang on language-mermaid code", code && code.getAttribute("data-lang") === "mermaid", doc.body.innerHTML);
+  const result = new Defuddle(doc).parse();
+  check("B2 HARD GATE: language survives the Defuddle rebuild",
+    /language-mermaid|data-lang="mermaid"/.test(result.content || ""), (result.content || "").slice(0, 400));
+  const md = htmlToMarkdown(result.content || "");
+  check("B2 fence carries mermaid language after turndown", /```mermaid\n/.test(md), md);
+
+  const doc2 = mk('<div class="mermaid">graph LR;X-->Y;</div>');
+  pbpPreDefuddleNormalize(doc2);
+  check("B2 unrendered div.mermaid rewritten to pre>code[data-lang]",
+    doc2.querySelector('pre code[data-lang="mermaid"]') && !doc2.querySelector("div.mermaid"), doc2.body.innerHTML);
+  check("B2 rewritten source text intact", /graph LR;X-->Y;/.test(doc2.querySelector("pre code").textContent), doc2.body.innerHTML);
+
+  const doc3 = mk('<div class="mermaid"><svg viewBox="0 0 10 10"></svg></div>');
+  pbpPreDefuddleNormalize(doc3);
+  check("B2 rendered div.mermaid (svg child) left untouched", !!doc3.querySelector("div.mermaid svg"), doc3.body.innerHTML);
+
+  const doc4 = mk('<div class="mermaid">   </div>');
+  pbpPreDefuddleNormalize(doc4);
+  check("B2 empty div.mermaid left untouched", !doc4.querySelector("pre code[data-lang]"), doc4.body.innerHTML);
 })();
 </script>
 

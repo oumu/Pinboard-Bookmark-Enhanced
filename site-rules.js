@@ -981,3 +981,34 @@
   g.renderThreadHtml = renderThreadHtml;
   g.soCommentsHtml = soCommentsHtml;
 })();
+
+// ---- Pre-Defuddle normalize (generic; NOT a per-site rule) ----
+// Defuddle's code-block standardizer rebuilds every <pre> and keeps the
+// language only when it hits its ~90-entry allowlist — "mermaid" is not in
+// it, so class="language-mermaid" dies during extraction. Its language
+// detector reads data-lang FIRST and unrestricted; stamping the attribute up
+// front carries the language through the rebuild (md-convert's
+// preformattedCode rule already reads data-lang as a fallback). Runs on the
+// CLONED document popup.js/background.js hand to Defuddle — never the live
+// page DOM.
+function pbpPreDefuddleNormalize(root) {
+  try {
+    root.querySelectorAll('pre code[class*="language-mermaid"]').forEach((c) => {
+      c.setAttribute("data-lang", "mermaid");
+    });
+    // Unrendered <div class="mermaid">graph…</div> (startOnLoad pages where
+    // the mermaid script never ran, CDN blocked, etc.): rewrite to a real
+    // code block. A rendered one (svg child) is left for the inline-svg
+    // image pass in md-convert.
+    root.querySelectorAll("div.mermaid, pre.mermaid").forEach((d) => {
+      if (d.querySelector("svg") || !(d.textContent || "").trim()) return;
+      const doc = d.ownerDocument;
+      const pre = doc.createElement("pre");
+      const code = doc.createElement("code");
+      code.setAttribute("data-lang", "mermaid");
+      code.textContent = d.textContent.trim();
+      pre.appendChild(code);
+      d.replaceWith(pre);
+    });
+  } catch (_) { /* a normalize step must never fail extraction */ }
+}
