@@ -2841,6 +2841,10 @@ section("pbpLatexNormalize: pre-KaTeX repair");
   check("plain currency survives byte-identical", N("costs $5 and $6 today") === "costs $5 and $6 today");
   const once = N("intro\n\\begin{align*}\na &= b\n\\end{align*}\nafter $$\\bbox{q}\\tag{1}$$");
   check("idempotent: N(N(x)) === N(x)", N(once) === once);
+  const mlspan = "text `$$\\Huge x\n= y$$` more";
+  check("multi-line code span is untouched", N(mlspan) === mlspan);
+  const mlenv = "a `x\n\\begin{aligned}\ny` b";
+  check("line-start env inside a multi-line span is not wrapped", N(mlenv) === mlenv);
 })();
 </script>
 
