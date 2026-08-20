@@ -35,6 +35,7 @@
 - **邊讀邊查詞、複習生詞**：查詞時會依你正在讀的句子，優先顯示最貼切的釋義；生詞可加筆記、標記為已掌握，也可傳送到 Anki 與歐路詞典；另可選用離線中英、英中詞典包
 - **筆記與生詞獨立成頁**：儲存的生詞與劃重點集中在同一頁，隨手查詞、批次管理
 - **傳送或下載**：傳送到 [Obsidian](https://obsidian.md)、Notion、NotebookLM、GitHub Gist 或任何 webhook；也可下載為 `.md`、`.html`、`.epub`，在電子書閱讀器上閱讀
+- **邊讀邊看**：YouTube 頁面的預覽可載入影片與多語種字幕，點擊字幕行跳轉播放，還能把全文字幕複製為 Markdown
 
 ![清爽閱讀器：雙語對照、五色劃重點與筆記](docs/cws-assets/originals/screenshot-2-reader.png)
 
