@@ -122,6 +122,74 @@ await (async () => {
   check("fetches carry an abort signal", sawSignal);
 })();
 
+section("pbpVideoDetect: bilibili");
+assertEq(pbpVideoDetect("https://www.bilibili.com/video/BV1xx411c7mD").bvid, "BV1xx411c7mD", "bvid from /video/");
+assertEq(pbpVideoDetect("https://www.bilibili.com/video/BV1xx411c7mD?p=3&t=1").part, 3, "?p= part");
+assertEq(pbpVideoDetect("https://www.bilibili.com/video/BV1xx411c7mD").part, 1, "default part 1");
+assertEq(pbpVideoDetect("https://www.bilibili.com/video/BV1xx411c7mD").provider, "bilibili", "provider tag");
+assertEq(pbpVideoDetect("https://m.bilibili.com/video/BV1xx411c7mD").bvid, "BV1xx411c7mD", "mobile host");
+assertEq(pbpVideoDetect("https://www.bilibili.com/festival/x?bvid=BV1xx411c7mD").bvid, "BV1xx411c7mD", "festival page bvid param");
+assertEq(pbpVideoDetect("https://www.bilibili.com/"), null, "non-video bilibili page null");
+assertEq(pbpVideoDetect("https://www.youtube.com/watch?v=dQw4w9WgXcQ").provider, "youtube", "youtube still detected");
+
+section("pbpMd5");
+assertEq(pbpMd5(""), "d41d8cd98f00b204e9800998ecf8427e", "md5 empty");
+assertEq(pbpMd5("abc"), "900150983cd24fb0d6963f7d28e17f72", "md5 abc");
+assertEq(pbpMd5("The quick brown fox jumps over the lazy dog"), "9e107d9d372bb6826bd81d3542a419d6", "md5 pangram");
+
+section("WBI signing");
+assertEq(PBP_BILI_MIXIN_TAB.length, 64, "mixin table has 64 entries");
+const navJson = { data: { wbi_img: { img_url: "https://i0.hdslb.com/bfs/wbi/7cd084941338484aae1ad9425b84077c.png", sub_url: "https://i0.hdslb.com/bfs/wbi/4932caff0ff746eab6f01bf08b70ac45.png" } } };
+const mk = pbpBiliMixinKey(navJson);
+assertEq(mk.length, 32, "mixin key is 32 chars");
+check("mixin key is deterministic", pbpBiliMixinKey(navJson) === mk);
+assertEq(pbpBiliMixinKey({}), "", "missing wbi_img yields empty key");
+const signed = pbpBiliSign({ bvid: "BV1x", cid: "123" }, mk);
+check("sign adds wts and w_rid", typeof signed.wts === "number" && /^[0-9a-f]{32}$/.test(signed.w_rid));
+check("w_rid = md5(sorted-encoded-params + mixinKey)", (function () {
+  const q = Object.keys({ bvid: "BV1x", cid: "123", wts: signed.wts }).sort()
+    .map((k) => encodeURIComponent(k) + "=" + encodeURIComponent({ bvid: "BV1x", cid: "123", wts: signed.wts }[k])).join("&");
+  return signed.w_rid === pbpMd5(q + mk);
+})());
+
+section("cid + subtitle parse + pick");
+const viewJson = { data: { cid: 555, title: "T", pic: "//i.hdslb.com/x.jpg", owner: { name: "UP" }, pages: [ { cid: 555, part: "P1", page: 1 }, { cid: 666, part: "P2", page: 2 } ] } };
+assertEq(pbpBiliExtractCid(viewJson, 1).cid, 555, "part 1 cid");
+assertEq(pbpBiliExtractCid(viewJson, 2).cid, 666, "part 2 cid from pages[]");
+assertEq(pbpBiliExtractCid(viewJson, 9).cid, 555, "out-of-range part falls to top-level cid");
+assertEq(pbpBiliExtractCid({}, 1), null, "no data yields null");
+const subs = [ { lan: "ai-zh", lan_doc: "中文(AI)", subtitle_url: "//x/ai.json" }, { lan: "zh-CN", lan_doc: "中文", subtitle_url: "//x/human.json" }, { lan: "en", lan_doc: "English", subtitle_url: "//x/en.json" } ];
+assertEq(pbpBiliPickSubtitle(subs).lan, "zh-CN", "human zh beats ai-zh");
+assertEq(pbpBiliPickSubtitle([subs[0], subs[2]]).lan, "ai-zh", "ai-zh when no human zh");
+assertEq(pbpBiliPickSubtitle([]), null, "empty subs null");
+const subJson = { body: [ { from: 1.2, to: 3.5, content: "第一句" }, { from: 3.5, to: 5, content: "第二句" } ] };
+const segs = pbpBiliParseSubtitleJson(subJson);
+check("subtitle json body -> segments", segs.length === 2 && segs[0].from === 1.2 && segs[0].to === 3.5 && segs[1].content === "第二句");
+assertEq(pbpBiliParseSubtitleJson({}).length, 0, "no body yields empty");
+
+section("pbpBiliFetchTranscript orchestration");
+await (async () => {
+  const nav = navJson, view = viewJson;
+  const fetchFn = async (url) => {
+    if (url.includes("/x/web-interface/nav")) return { ok: true, json: async () => nav };
+    if (url.includes("/x/web-interface/view")) return { ok: true, json: async () => view };
+    if (url.includes("/x/player/wbi/v2")) return { ok: true, json: async () => ({ data: { subtitle: { subtitles: subs } } }) };
+    if (url.includes("human.json")) return { ok: true, json: async () => subJson };
+    return { ok: true, json: async () => ({}) };
+  };
+  const res = await pbpBiliFetchTranscript("BV1x", 1, { fetchFn });
+  check("segments delivered", res.segments && res.segments.length === 2);
+  check("picked human zh track", res.track && res.track.lan === "zh-CN");
+  check("tracks + meta delivered", res.tracks.length === 3 && res.meta && res.meta.title === "T");
+  const loggedOut = await pbpBiliFetchTranscript("BV1x", 1, { fetchFn: async (url) => {
+    if (url.includes("/x/web-interface/nav")) return { ok: true, json: async () => nav };
+    if (url.includes("/x/web-interface/view")) return { ok: true, json: async () => view };
+    if (url.includes("/x/player/wbi/v2")) return { ok: true, json: async () => ({ data: { subtitle: { subtitles: [] } } }) };
+    return { ok: true, json: async () => ({}) };
+  } });
+  check("empty subtitle list -> error:'login'", loggedOut.error === "login");
+})();
+
 document.getElementById("summary").textContent = `${pass} passed, ${fail} failed`;
 })();
 </script>

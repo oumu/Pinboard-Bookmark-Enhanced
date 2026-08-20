@@ -27,6 +27,15 @@ function pbpVideoDetect(pageUrl) {
     const m = u.pathname.match(/^\/([\w-]{6,20})/);
     return m ? { provider: "youtube", videoId: m[1] } : null;
   }
+  if (host === "bilibili.com") {
+    let bvid = "";
+    const m = u.pathname.match(/\/video\/(BV[\w]{8,12})/i);
+    if (m) bvid = m[1];
+    else if (/^BV[\w]{8,12}$/i.test(u.searchParams.get("bvid") || "")) bvid = u.searchParams.get("bvid");
+    if (!bvid) return null;
+    const p = parseInt(u.searchParams.get("p") || "1", 10);
+    return { provider: "bilibili", bvid: bvid, part: Number.isFinite(p) && p > 0 ? p : 1 };
+  }
   return null;
 }
 
@@ -195,6 +204,158 @@ async function pbpYtFetchCaptionBody(baseUrl, fetchFn) {
     const jUrl = baseUrl + (baseUrl.includes("?") ? "&" : "?") + "fmt=json3";
     const r2 = await fetchFn(jUrl, { credentials: "omit", signal: AbortSignal.timeout(15000) });
     if (r2.ok) return pbpYtParseJson3(await r2.text());
+  } catch (_) {}
+  return [];
+}
+
+// ---- Bilibili WBI-signed subtitle extraction ---------------------------
+// Subtitles come from x/player/wbi/v2, which needs a WBI signature (mixin key
+// from x/web-interface/nav) AND the user's bilibili login (SESSDATA, sent as
+// credentials:"include" by the runtime): logged out, the subtitle list is
+// empty by design -> the orchestrator returns error:"login". Algorithm + the
+// 64-int table are the shipping bilibili scheme (verified against a production
+// extension; the community doc repo was taken down 2026-01).
+
+const PBP_BILI_MIXIN_TAB = [46,47,18,2,53,8,23,32,15,50,10,31,58,3,45,35,27,43,5,49,33,9,42,19,29,28,14,39,12,38,41,13,37,48,7,16,24,55,40,61,26,17,0,1,60,51,30,4,22,25,54,21,56,59,6,63,57,62,11,36,20,34,44,52];
+
+// Compact RFC1321 MD5 (self-contained; zero deps). Returns lowercase 32-hex.
+function pbpMd5(str) {
+  function rl(n, c) { return (n << c) | (n >>> (32 - c)); }
+  function add(a, b) { const l = (a & 0xffff) + (b & 0xffff); return (((a >> 16) + (b >> 16) + (l >> 16)) << 16) | (l & 0xffff); }
+  function cmn(q, a, b, x, s, t) { return add(rl(add(add(a, q), add(x, t)), s), b); }
+  function ff(a, b, c, d, x, s, t) { return cmn((b & c) | (~b & d), a, b, x, s, t); }
+  function gg(a, b, c, d, x, s, t) { return cmn((b & d) | (c & ~d), a, b, x, s, t); }
+  function hh(a, b, c, d, x, s, t) { return cmn(b ^ c ^ d, a, b, x, s, t); }
+  function ii(a, b, c, d, x, s, t) { return cmn(c ^ (b | ~d), a, b, x, s, t); }
+  // UTF-8 encode
+  const bytes = [];
+  for (let i = 0; i < str.length; i++) {
+    let c = str.charCodeAt(i);
+    if (c < 0x80) bytes.push(c);
+    else if (c < 0x800) { bytes.push(0xc0 | (c >> 6), 0x80 | (c & 0x3f)); }
+    else if (c < 0xd800 || c >= 0xe000) { bytes.push(0xe0 | (c >> 12), 0x80 | ((c >> 6) & 0x3f), 0x80 | (c & 0x3f)); }
+    else { i++; c = 0x10000 + (((c & 0x3ff) << 10) | (str.charCodeAt(i) & 0x3ff)); bytes.push(0xf0 | (c >> 18), 0x80 | ((c >> 12) & 0x3f), 0x80 | ((c >> 6) & 0x3f), 0x80 | (c & 0x3f)); }
+  }
+  const n = bytes.length;
+  const words = [];
+  for (let i = 0; i < n; i++) words[i >> 2] = (words[i >> 2] || 0) | (bytes[i] << ((i % 4) * 8));
+  words[n >> 2] = (words[n >> 2] || 0) | (0x80 << ((n % 4) * 8));
+  const bitLen = n * 8;
+  const total = (((n + 8) >> 6) + 1) * 16;
+  while (words.length < total) words.push(0);
+  words[total - 2] = bitLen;
+  words[total - 1] = 0;
+  let a = 1732584193, b = -271733879, c = -1732584194, d = 271733878;
+  const S = [7,12,17,22,5,9,14,20,4,11,16,23,6,10,15,21];
+  const K = [-680876936,-389564586,606105819,-1044525330,-176418897,1200080426,-1473231341,-45705983,1770035416,-1958414417,-42063,-1990404162,1804603682,-40341101,-1502002290,1236535329,-165796510,-1069501632,643717713,-373897302,-701558691,38016083,-660478335,-405537848,568446438,-1019803690,-187363961,1163531501,-1444681467,-51403784,1735328473,-1926607734,-378558,-2022574463,1839030562,-35309556,-1530992060,1272893353,-155497632,-1094730640,681279174,-358537222,-722521979,76029189,-640364487,-421815835,530742520,-995338651,-198630844,1126891415,-1416354905,-57434055,1700485571,-1894986606,-1051523,-2054922799,1873313359,-30611744,-1560198380,1309151649,-145523070,-1120210379,718787259,-343485551];
+  for (let i = 0; i < words.length; i += 16) {
+    let a0 = a, b0 = b, c0 = c, d0 = d;
+    for (let j = 0; j < 64; j++) {
+      let f, g, sIdx;
+      if (j < 16) { f = ff; g = j; sIdx = j % 4; }
+      else if (j < 32) { f = gg; g = (5 * j + 1) % 16; sIdx = 4 + (j % 4); }
+      else if (j < 48) { f = hh; g = (3 * j + 5) % 16; sIdx = 8 + (j % 4); }
+      else { f = ii; g = (7 * j) % 16; sIdx = 12 + (j % 4); }
+      const nb = f(a0, b0, c0, d0, words[i + g], S[sIdx], K[j]);
+      a0 = d0; d0 = c0; c0 = b0; b0 = nb;
+    }
+    a = add(a, a0); b = add(b, b0); c = add(c, c0); d = add(d, d0);
+  }
+  function toHex(x) {
+    let s = "";
+    for (let i = 0; i < 4; i++) s += ((x >> (i * 8)) & 0xff).toString(16).padStart(2, "0");
+    return s;
+  }
+  return toHex(a) + toHex(b) + toHex(c) + toHex(d);
+}
+
+function pbpBiliMixinKey(navJson) {
+  const img = navJson && navJson.data && navJson.data.wbi_img;
+  if (!img || !img.img_url || !img.sub_url) return "";
+  const base = (u) => String(u).split("/").pop().split(".")[0];
+  const raw = base(img.img_url) + base(img.sub_url);
+  return PBP_BILI_MIXIN_TAB.map((i) => raw[i]).join("").slice(0, 32);
+}
+
+function pbpBiliSign(params, mixinKey) {
+  const p = Object.assign({}, params, { wts: Math.floor(Date.now() / 1000) });
+  const query = Object.keys(p).sort()
+    .map((k) => encodeURIComponent(k) + "=" + encodeURIComponent(p[k])).join("&");
+  p.w_rid = pbpMd5(query + (mixinKey || ""));
+  return p;
+}
+
+function pbpBiliExtractCid(viewJson, part) {
+  const d = viewJson && viewJson.data;
+  if (!d || (!d.cid && !Array.isArray(d.pages))) return null;
+  let cid = d.cid;
+  if (Array.isArray(d.pages) && d.pages.length) {
+    const pg = d.pages.find((x) => x && x.page === part) || d.pages[part - 1];
+    if (pg && pg.cid) cid = pg.cid;
+  }
+  return { cid: cid, title: d.title || "", pic: d.pic || "", owner: (d.owner && d.owner.name) || "", pages: d.pages || [] };
+}
+
+function _pbpBiliIsZh(t) { return /^zh|^ai-zh/i.test(t.lan || "") || /中文|中文\(AI\)|Chinese/i.test(t.lan_doc || ""); }
+function _pbpBiliIsAi(t) { return /^ai-/i.test(t.lan || "") || /AI|智能/i.test(t.lan_doc || ""); }
+function pbpBiliPickSubtitle(subs) {
+  if (!Array.isArray(subs) || !subs.length) return null;
+  const zh = subs.filter(_pbpBiliIsZh);
+  const human = zh.find((s) => !_pbpBiliIsAi(s));
+  return human || zh[0] || subs[0];
+}
+
+function pbpBiliParseSubtitleJson(json) {
+  const body = json && json.body;
+  if (!Array.isArray(body)) return [];
+  return body.filter((b) => b && b.content != null).map((b) => ({
+    from: +b.from || 0, to: +b.to || 0, content: String(b.content).replace(/\s+/g, " ").trim()
+  })).filter((s) => s.content);
+}
+
+// Orchestrator. credentials handling lives in the runtime caller's fetchFn;
+// the injected test fetchFn ignores it. error: "view" | "login" | "no-tracks"
+// | "caption-body". "login" specifically = the API returned an EMPTY subtitle
+// list, which for a public API means the user isn't logged into bilibili.
+async function pbpBiliFetchTranscript(bvid, part, opts) {
+  opts = opts || {};
+  const fetchFn = opts.fetchFn || ((u, o) => fetch(u, o));
+  let view;
+  try {
+    const r = await fetchFn("https://api.bilibili.com/x/web-interface/view?bvid=" + encodeURIComponent(bvid), { credentials: "include", signal: AbortSignal.timeout(15000) });
+    if (!r.ok) return { error: "view" };
+    view = await r.json();
+  } catch (_) { return { error: "view" }; }
+  const info = pbpBiliExtractCid(view, part);
+  if (!info || !info.cid) return { error: "view" };
+  let mixinKey = "";
+  try {
+    const nr = await fetchFn("https://api.bilibili.com/x/web-interface/nav", { credentials: "include", signal: AbortSignal.timeout(15000) });
+    if (nr.ok) mixinKey = pbpBiliMixinKey(await nr.json());
+  } catch (_) { /* unsigned attempt below may still work for some videos */ }
+  const signed = pbpBiliSign({ bvid: bvid, cid: info.cid }, mixinKey);
+  const qs = Object.keys(signed).map((k) => encodeURIComponent(k) + "=" + encodeURIComponent(signed[k])).join("&");
+  let player;
+  try {
+    const pr = await fetchFn("https://api.bilibili.com/x/player/wbi/v2?" + qs, { credentials: "include", signal: AbortSignal.timeout(15000) });
+    if (!pr.ok) return { error: "no-tracks", meta: info };
+    player = await pr.json();
+  } catch (_) { return { error: "no-tracks", meta: info }; }
+  const subs = (player && player.data && player.data.subtitle && player.data.subtitle.subtitles) || [];
+  if (!subs.length) return { error: "login", meta: info };
+  const track = opts.pickSubtitleUrl ? (subs.find((s) => s.subtitle_url === opts.pickSubtitleUrl) || pbpBiliPickSubtitle(subs)) : pbpBiliPickSubtitle(subs);
+  const segments = await pbpBiliFetchSubtitleBody(track.subtitle_url, fetchFn);
+  if (!segments.length) return { error: "caption-body", tracks: subs, track: track, meta: info };
+  return { tracks: subs, track: track, segments: segments, meta: info };
+}
+
+async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
+  fetchFn = fetchFn || ((u, o) => fetch(u, o));
+  const url = String(subtitleUrl || "").startsWith("//") ? "https:" + subtitleUrl : subtitleUrl;
+  if (!url) return [];
+  try {
+    const r = await fetchFn(url, { credentials: "omit", signal: AbortSignal.timeout(15000) });
+    if (r.ok) return pbpBiliParseSubtitleJson(await r.json());
   } catch (_) {}
   return [];
 }
