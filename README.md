@@ -35,7 +35,7 @@ A Chrome extension for [Pinboard](https://pinboard.in): AI tags and summaries, a
 - **Look up and review words as you read**: definitions open on the sense that fits your sentence; saved words keep notes and a learning status, and can be sent to Anki or Eudic. Optional offline dictionary packs cover Chinese-English and English-Chinese
 - **A full page for notes and vocabulary**: your saved words and highlights in one place, with dictionary lookup and batch management
 - **Send or download**: send to [Obsidian](https://obsidian.md), Notion, NotebookLM, a GitHub Gist, or any webhook; download as `.md`, `.html`, or `.epub` for your e-reader
-- **Watch while you read**: previews of YouTube pages can load the video and its subtitles side by side, jump the player from any line, and copy the transcript as Markdown
+- **Watch while you read**: previews of YouTube and bilibili pages can load the video and its subtitles side by side, jump the player from any line, and copy the transcript as Markdown
 
 ![Reader with bilingual translation and highlights](docs/cws-assets/originals/screenshot-2-reader.png)
 
