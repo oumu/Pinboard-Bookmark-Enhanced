@@ -3476,6 +3476,18 @@
   "mdTargetGithubOnboarding": {
     "message": "在 GitHub → Settings → Developer settings → Tokens (classic) 创建一个经典个人访问令牌，勾选「gist」权限，粘贴到下方。每条剪藏会保存为一个私有 gist。注意：细粒度（fine-grained）令牌暂不支持创建 gist，请使用 classic 令牌。"
   },
+  "mdTargetNotionToken": {
+    "message": "内部集成令牌"
+  },
+  "mdTargetNotionParent": {
+    "message": "父页面（URL 或 ID）"
+  },
+  "mdTargetNotionOnboarding": {
+    "message": "在 Notion 开发者设置（app.notion.com/developers）创建集成并复制内部令牌；再打开目标页面的 ··· 菜单，在「连接」中添加该集成，最后把页面链接粘贴到这里。每次发送都会在该页面下新建一个子页面。"
+  },
+  "mdTargetNotebookLmOnboarding": {
+    "message": "无需配置。发送时会把全文复制到剪贴板并打开 NotebookLM；在里面新增来源、选择「复制的文字」，然后粘贴即可。NotebookLM 没有公开 API，最后一步只能手动完成。"
+  },
   "mdSendViewGist": {
     "message": "查看 gist →"
   },

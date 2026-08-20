@@ -3482,6 +3482,18 @@
   "mdTargetGithubOnboarding": {
     "message": "Erstelle bei GitHub → Settings → Developer settings → Tokens (classic) einen Personal Access Token (classic) mit dem „gist“-Scope und füge ihn unten ein. Jeder Clip wird als privater gist gespeichert. Hinweis: fine-grained Tokens können noch keine gists erstellen, verwende daher einen classic Token."
   },
+  "mdTargetNotionToken": {
+    "message": "Interner Integrations-Token"
+  },
+  "mdTargetNotionParent": {
+    "message": "Übergeordnete Seite (URL oder ID)"
+  },
+  "mdTargetNotionOnboarding": {
+    "message": "Erstellen Sie in Notions Entwicklereinstellungen (app.notion.com/developers) eine Integration und kopieren Sie deren internen Token. Fügen Sie die Integration dann auf der Zielseite über das Menü ··· unter Verbindungen hinzu und tragen Sie hier die URL der Seite ein. Jeder Versand legt darunter eine neue Unterseite an."
+  },
+  "mdTargetNotebookLmOnboarding": {
+    "message": "Keine Einrichtung nötig. Beim Senden wird der gesamte Text in die Zwischenablage kopiert und NotebookLM geöffnet. Fügen Sie dort eine Quelle hinzu, wählen Sie »Kopierter Text« und fügen Sie den Inhalt ein. NotebookLM hat keine öffentliche API, der letzte Schritt bleibt daher manuell."
+  },
   "mdSendViewGist": {
     "message": "gist ansehen →"
   },

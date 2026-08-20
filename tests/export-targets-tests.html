@@ -42,7 +42,7 @@ assertEq(pbpStripFrontmatter(pbpStripFrontmatter("---\na: b\n---\nx")), "x", "id
 assertEq(pbpStripFrontmatter("---\ntitle: X\n---"), "", "strips a closing --- with no trailing newline");
 
 section("registry shape");
-assertEq(pbpExportTargetIds().join(","), "obsidian,github,webhook", "id order");
+assertEq(pbpExportTargetIds().join(","), "obsidian,notion,notebooklm,github,webhook", "id order");
 assert(PBP_EXPORT_TARGETS.obsidian.mechanism === "url-scheme", "obsidian is url-scheme");
 assert(PBP_EXPORT_TARGETS.obsidian.viaClipboard === true, "obsidian uses clipboard");
 assert(PBP_EXPORT_TARGETS.obsidian.settings.some((s) => s.key === "route" && s.type === "select"), "obsidian has a route select");
@@ -221,6 +221,51 @@ section("obsidian.buildUri");
   assert(!dailyUri.includes("file="), "daily route does not force the clipped page filename");
   assert(dailyUri.includes("vault=V") && dailyUri.includes("&clipboard") && dailyUri.includes("&append"), "daily route passes vault, clipboard, append");
 }
+
+section("notion parent id parsing");
+const NID = "0123456789abcdef0123456789abcdef";
+const NID_D = "01234567-89ab-cdef-0123-456789abcdef";
+assertEq(pbpNotionParseParentId(NID), NID_D, "bare 32-hex becomes a dashed uuid");
+assertEq(pbpNotionParseParentId(NID_D), NID_D, "dashed uuid passes through");
+assertEq(pbpNotionParseParentId("https://www.notion.so/My-Page-" + NID), NID_D, "page URL with slug yields the trailing id");
+assertEq(pbpNotionParseParentId("https://www.notion.so/acme/Clips-" + NID + "?v=ffffffffffffffffffffffffffffffff"), NID_D, "?v= view id in the query never wins over the path id");
+assertEq(pbpNotionParseParentId(NID.toUpperCase()), NID_D, "uppercase hex is accepted and lowercased");
+assertEq(pbpNotionParseParentId("not a url"), "", "garbage yields empty");
+assertEq(pbpNotionParseParentId("https://www.notion.so/"), "", "URL without an id yields empty");
+assertEq(pbpNotionParseParentId("https://www.notion.so/cafe-babe-" + NID), NID_D, "hex-looking slug words do not shift the id window");
+
+section("notion registry row");
+const NROW = PBP_EXPORT_TARGETS.notion;
+assert(NROW.mechanism === "token-api", "notion is token-api");
+assert(NROW.frontmatter === "strip", "notion strips YAML frontmatter");
+assertEq(NROW.origin, "https://api.notion.com/*", "notion origin is the exact api host pattern");
+assert(NROW.settings.some((s) => s.key === "token" && s.type === "secret" && s.required === true)
+    && NROW.settings.some((s) => s.key === "parent" && s.type === "text" && s.required === true),
+  "notion settings: required secret token + required text parent");
+const npre = NROW.precheckRequest({}, "tok");
+assert(npre.url === "https://api.notion.com/v1/users/me" && npre.method === "GET", "precheck hits GET /v1/users/me");
+assert(npre.headers["Authorization"] === "Bearer tok" && npre.headers["Notion-Version"] === "2026-03-11", "precheck carries Bearer + pinned Notion-Version");
+const nreq = NROW.buildRequest({ title: "T", url: "https://e.x/a", tags: ["a", "b"] }, "body text", { parent: "https://www.notion.so/My-Page-" + NID }, "tok");
+assert(nreq.url === "https://api.notion.com/v1/pages" && nreq.method === "POST", "send hits POST /v1/pages");
+assert(nreq.headers["Authorization"] === "Bearer tok" && nreq.headers["Notion-Version"] === "2026-03-11" && nreq.headers["Content-Type"] === "application/json", "send carries Bearer + version + JSON content type");
+const nbody = JSON.parse(nreq.body);
+assertEq(nbody.parent.page_id, NID_D, "parent URL is parsed to the dashed page id");
+assertEq(nbody.properties.title.title[0].text.content, "T", "title property carries the page title");
+assert(nbody.markdown.startsWith("> Source: <https://e.x/a>\n> Tags: a, b\n\nbody text".slice(0, 20)) && nbody.markdown.includes("> Tags: a, b") && nbody.markdown.endsWith("body text"), "markdown = source quote + tags line + body");
+const nbodyNoTags = JSON.parse(NROW.buildRequest({ title: "T", url: "https://e.x/a", tags: [] }, "body text", { parent: NID }, "tok").body);
+assert(!nbodyNoTags.markdown.includes("> Tags:") && nbodyNoTags.markdown === "> Source: <https://e.x/a>\n\nbody text", "empty tags omit the tags line");
+const nbodyNoUrl = JSON.parse(NROW.buildRequest({ title: "T" }, "body text", { parent: NID }, "tok").body);
+assertEq(nbodyNoUrl.markdown, "body text", "no source url means the body ships verbatim");
+const nbodyRawParent = JSON.parse(NROW.buildRequest({ title: "T" }, "b", { parent: "  weird-value " }, "tok").body);
+assertEq(nbodyRawParent.parent.page_id, "weird-value", "unparseable parent falls back to the raw trimmed value");
+
+section("notebooklm registry row");
+const LROW = PBP_EXPORT_TARGETS.notebooklm;
+assert(LROW.mechanism === "url-scheme" && LROW.viaClipboard === true, "notebooklm is url-scheme via clipboard");
+assert(LROW.frontmatter === "strip", "notebooklm strips YAML frontmatter");
+assertEq(LROW.buildUri(), "https://notebooklm.google.com/", "notebooklm opens the NotebookLM site");
+assert(Array.isArray(LROW.settings) && LROW.settings.length === 0, "notebooklm needs zero settings");
+assert(!LROW.buildRequest, "notebooklm has no token-api branch (no permission request)");
 
 async function runSendNetworkPolicyTests() {
   section("pbpSendToTarget network boundary");

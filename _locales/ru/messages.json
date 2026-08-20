@@ -3482,6 +3482,18 @@
   "mdTargetGithubOnboarding": {
     "message": "Создайте Personal Access Token (classic) в GitHub → Settings → Developer settings → Tokens (classic) с областью «gist», затем вставьте его ниже. Каждая заметка сохраняется как приватный gist. Примечание: токены fine-grained пока не могут создавать gist — используйте токен classic."
   },
+  "mdTargetNotionToken": {
+    "message": "Токен внутренней интеграции"
+  },
+  "mdTargetNotionParent": {
+    "message": "Родительская страница (URL или ID)"
+  },
+  "mdTargetNotionOnboarding": {
+    "message": "Создайте интеграцию в настройках разработчика Notion (app.notion.com/developers) и скопируйте её внутренний токен. Затем на целевой странице откройте меню ··· , выберите «Подключения» и добавьте интеграцию. Вставьте сюда URL страницы. Каждая отправка создаёт под ней новую подстраницу."
+  },
+  "mdTargetNotebookLmOnboarding": {
+    "message": "Настройка не нужна. При отправке весь текст копируется в буфер обмена и открывается NotebookLM. Добавьте там источник, выберите «Скопированный текст» и вставьте содержимое. У NotebookLM нет публичного API, поэтому последний шаг выполняется вручную."
+  },
   "mdSendViewGist": {
     "message": "Открыть gist →"
   },

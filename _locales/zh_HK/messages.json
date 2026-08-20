@@ -3482,6 +3482,18 @@
   "mdTargetGithubOnboarding": {
     "message": "在 GitHub → Settings → Developer settings → Tokens (classic) 建立一個 classic 類型的個人存取 Token，勾選「gist」權限，然後貼到下方。每次剪藏都會儲存為一個私人 gist。注意：fine-grained Token 暫時無法建立 gist，請改用 classic Token。"
   },
+  "mdTargetNotionToken": {
+    "message": "內部整合權杖"
+  },
+  "mdTargetNotionParent": {
+    "message": "父頁面（URL 或 ID）"
+  },
+  "mdTargetNotionOnboarding": {
+    "message": "在 Notion 開發者設定（app.notion.com/developers）建立整合並複製內部權杖；再開啟目標頁面的 ··· 選單，在「連接」中加入該整合，最後把頁面連結貼到這裡。每次傳送都會在該頁面下建立一個子頁面。"
+  },
+  "mdTargetNotebookLmOnboarding": {
+    "message": "無需設定。傳送時會把全文複製到剪貼簿並開啟 NotebookLM；在裡面新增來源、選擇「複製的文字」，然後貼上即可。NotebookLM 沒有公開 API，最後一步只能手動完成。"
+  },
   "mdSendViewGist": {
     "message": "檢視 gist →"
   },

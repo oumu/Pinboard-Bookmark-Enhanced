@@ -53,6 +53,31 @@ const _PBP_ICON_GITHUB =
   '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 1C5.9 1 1 5.9 1 12c0 4.9 3.2 9 7.6 10.4.6.1.8-.2.8-.5v-1.8c-3.1.7-3.8-1.5-3.8-1.5-.5-1.3-1.2-1.6-1.2-1.6-1-.7.1-.7.1-.7 1.1.1 1.7 1.1 1.7 1.1 1 1.7 2.6 1.2 3.2.9.1-.7.4-1.2.7-1.5-2.5-.3-5.1-1.2-5.1-5.5 0-1.2.4-2.2 1.1-3-.1-.3-.5-1.4.1-2.9 0 0 .9-.3 3 1.1.9-.2 1.8-.4 2.7-.4.9 0 1.8.1 2.7.4 2.1-1.4 3-1.1 3-1.1.6 1.5.2 2.6.1 2.9.7.8 1.1 1.8 1.1 3 0 4.3-2.6 5.2-5.1 5.5.4.3.8 1 .8 2.1v3.1c0 .3.2.6.8.5C19.8 21 23 16.9 23 12c0-6.1-4.9-11-11-11z"/></svg>';
 const _PBP_ICON_WEBHOOK =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h11"/><path d="M10 7l5 5-5 5"/><circle cx="19.5" cy="12" r="2.5"/></svg>';
+const _PBP_ICON_NOTION =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>';
+const _PBP_ICON_NOTEBOOKLM =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6h4"/><path d="M2 10h4"/><path d="M2 14h4"/><path d="M2 18h4"/><rect width="16" height="20" x="4" y="2" rx="2"/><path d="M9.5 8h5"/><path d="M9.5 12H16"/><path d="M9.5 16H14"/></svg>';
+
+// Notion parent page reference -> dashed UUID ("" when unparseable). Accepts a
+// bare 32-hex id, a dashed UUID, or a notion.so page URL whose LAST path
+// segment ends in the 32-hex id ("/My-Page-<32hex>"). A database VIEW id only
+// ever appears in the query string (?v=<32hex>), so only the path is consulted.
+function pbpNotionParseParentId(input) {
+  const raw = String(input == null ? "" : input).trim();
+  if (!raw) return "";
+  const bare = raw.replace(/-/g, "");
+  if (/^[0-9a-f]{32}$/i.test(bare)) return _pbpNotionDashUuid(bare);
+  let path = "";
+  try { path = new URL(raw).pathname; } catch (_) { return ""; }
+  const seg = path.split("/").filter(Boolean).pop() || "";
+  const tail = seg.split("-").pop() || "";
+  return /^[0-9a-f]{32}$/i.test(tail) ? _pbpNotionDashUuid(tail) : "";
+}
+
+function _pbpNotionDashUuid(h) {
+  h = h.toLowerCase();
+  return h.slice(0, 8) + "-" + h.slice(8, 12) + "-" + h.slice(12, 16) + "-" + h.slice(16, 20) + "-" + h.slice(20);
+}
 
 // docs/privacy.md (Network requests, item 3) states the extension runs no
 // translation snapshot/sharing service and that translations leave the device
@@ -91,6 +116,83 @@ const PBP_EXPORT_TARGETS = {
       { key: "folder", type: "text", label: "mdObsidianFolder" }
     ],
     onboarding: ""
+  },
+
+  // Notion — token-api via the 2026-03-11 markdown ingestion: POST /v1/pages
+  // accepts the whole article as ONE `markdown` string (no client-side
+  // markdown->blocks conversion, no 100-block batching; `markdown` is
+  // mutually exclusive with `children`). Auth = user-created internal
+  // integration token; the parent page must be shared with that integration
+  // or the API answers 404/403 (mapped to api-notion-share in
+  // md-export-send.js). YAML frontmatter would render as literal text in
+  // Notion, so the body strips it and carries source metadata as a leading
+  // blockquote instead. Very long articles may exceed the 20s send timeout
+  // and degrade to the clipboard (known MVP limit; chunked append via
+  // PATCH /v1/pages/{id}/markdown is a later phase).
+  notion: {
+    id: "notion",
+    label: "Notion",
+    icon: _PBP_ICON_NOTION,
+    mechanism: "token-api",
+    frontmatter: "strip",
+    origin: "https://api.notion.com/*",
+    _headers(token, extra) {
+      return Object.assign(
+        { "Authorization": "Bearer " + token, "Notion-Version": "2026-03-11" }, extra || {});
+    },
+    // Leading source block keeps url/tags visible on the page until a
+    // database-properties phase exists. English labels match the frontmatter
+    // key convention the other targets use.
+    _body(meta, body) {
+      meta = meta || {};
+      const lines = [];
+      if (meta.url) lines.push("> Source: <" + String(meta.url) + ">");
+      if (Array.isArray(meta.tags) && meta.tags.length) lines.push("> Tags: " + meta.tags.join(", "));
+      const head = lines.join("\n");
+      return head ? head + "\n\n" + String(body || "") : String(body || "");
+    },
+    precheckRequest(cfg, token) {
+      return { url: "https://api.notion.com/v1/users/me", method: "GET", headers: this._headers(token) };
+    },
+    buildRequest(meta, body, cfg, token) {
+      meta = meta || {};
+      // Unparseable parent ships the raw trimmed value: the API then answers
+      // with a clear 400/404 instead of this row inventing a guess. The
+      // options card mirrors the same parser as an inline warning.
+      const parent = pbpNotionParseParentId((cfg || {}).parent) || String((cfg || {}).parent || "").trim();
+      return {
+        url: "https://api.notion.com/v1/pages",
+        method: "POST",
+        headers: this._headers(token, { "Content-Type": "application/json" }),
+        body: JSON.stringify({
+          parent: { page_id: parent },
+          properties: { title: { title: [{ text: { content: String(meta.title || "Untitled").slice(0, 2000) } }] } },
+          markdown: this._body(meta, body)
+        })
+      };
+    },
+    settings: [
+      { key: "token", type: "secret", required: true, label: "mdTargetNotionToken" },
+      { key: "parent", type: "text", required: true, label: "mdTargetNotionParent", placeholder: "https://www.notion.so/…" }
+    ],
+    onboarding: "mdTargetNotionOnboarding"
+  },
+
+  // NotebookLM — guided hand-off, NOT an API push: consumer NotebookLM has no
+  // public write API (verified 2026-08), so this row copies the full text to
+  // the clipboard and opens notebooklm.google.com; the user pastes it as a
+  // "Copied text" source there. Zero network from the extension, zero host
+  // grants (pbpRequestTargetPermission short-circuits: no buildRequest).
+  notebooklm: {
+    id: "notebooklm",
+    label: "NotebookLM",
+    icon: _PBP_ICON_NOTEBOOKLM,
+    mechanism: "url-scheme",
+    viaClipboard: true,
+    frontmatter: "strip",
+    buildUri() { return "https://notebooklm.google.com/"; },
+    settings: [],
+    onboarding: "mdTargetNotebookLmOnboarding"
   },
 
   // GitHub Gist — token-api. A gist file IS raw markdown (GitHub renders the
@@ -188,4 +290,4 @@ const PBP_EXPORT_TARGETS = {
 };
 
 // Display order for the menu + settings rendering.
-function pbpExportTargetIds() { return ["obsidian", "github", "webhook"]; }
+function pbpExportTargetIds() { return ["obsidian", "notion", "notebooklm", "github", "webhook"]; }

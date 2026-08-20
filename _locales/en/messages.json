@@ -3476,6 +3476,18 @@
   "mdTargetGithubOnboarding": {
     "message": "Create a Personal Access Token (classic) at GitHub → Settings → Developer settings → Tokens (classic) with the \"gist\" scope, then paste it below. Each clip is saved as a private gist. Note: fine-grained tokens can't create gists yet, so use a classic token."
   },
+  "mdTargetNotionToken": {
+    "message": "Internal integration token"
+  },
+  "mdTargetNotionParent": {
+    "message": "Parent page (URL or ID)"
+  },
+  "mdTargetNotionOnboarding": {
+    "message": "Create an integration in Notion's developer settings (app.notion.com/developers), copy its internal token, then open the target page's ··· menu, choose Connections, and add the integration. Paste the page URL here. Each send creates a new sub-page under it."
+  },
+  "mdTargetNotebookLmOnboarding": {
+    "message": "No setup needed. Sending copies the full text to your clipboard and opens NotebookLM. There, add a source, choose Copied text, and paste. NotebookLM has no public API, so the last step stays manual."
+  },
   "mdSendViewGist": {
     "message": "View gist →"
   },

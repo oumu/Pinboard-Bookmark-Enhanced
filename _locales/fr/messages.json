@@ -3482,6 +3482,18 @@
   "mdTargetGithubOnboarding": {
     "message": "Créez un jeton d'accès personnel (classic) sur GitHub → Settings → Developer settings → Tokens (classic) avec la portée « gist », puis collez-le ci-dessous. Chaque extrait est enregistré comme un gist privé. Remarque : les jetons fine-grained ne peuvent pas encore créer de gists, utilisez donc un jeton classic."
   },
+  "mdTargetNotionToken": {
+    "message": "Jeton d'intégration interne"
+  },
+  "mdTargetNotionParent": {
+    "message": "Page parente (URL ou ID)"
+  },
+  "mdTargetNotionOnboarding": {
+    "message": "Créez une intégration dans les réglages développeur de Notion (app.notion.com/developers) et copiez son jeton interne. Ajoutez ensuite l'intégration à la page cible via le menu ··· puis Connexions, et collez ici l'URL de la page. Chaque envoi crée une sous-page."
+  },
+  "mdTargetNotebookLmOnboarding": {
+    "message": "Aucune configuration requise. L'envoi copie le texte intégral dans le presse-papiers et ouvre NotebookLM. Ajoutez-y une source, choisissez « Texte copié », puis collez. NotebookLM n'a pas d'API publique, la dernière étape reste donc manuelle."
+  },
   "mdSendViewGist": {
     "message": "Voir le gist →"
   },
