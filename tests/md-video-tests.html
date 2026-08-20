@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>md-video Tests</title>
+<style>
+body { font-family: monospace; padding: 16px; max-width: 1000px; }
+.case { padding: 6px; border-bottom: 1px solid #eee; white-space: pre-wrap; }
+.pass { color: #0a0; } .fail { color: #c00; font-weight: bold; }
+h2 { margin-top: 24px; }
+</style></head>
+<body>
+<h1>md-video.js tests</h1>
+<div id="summary"></div>
+<div id="results"></div>
+
+<script src="../md-video.js"></script>
+<script>
+const root = document.getElementById("results");
+let pass = 0, fail = 0;
+function check(name, cond, detail) {
+  const ok = !!cond; ok ? pass++ : fail++;
+  const div = document.createElement("div");
+  div.className = "case " + (ok ? "pass" : "fail");
+  div.textContent = `${ok ? "✓" : "✗"}  ${name}${ok ? "" : "\n   " + (detail || "")}`;
+  root.appendChild(div);
+}
+function section(name) { const h = document.createElement("h2"); h.textContent = name; root.appendChild(h); }
+function assert(cond, detail) { check(detail || String(cond), cond, detail); }
+function assertEq(a, e, label) {
+  const ok = a === e;
+  check(label || (String(e) + " === " + String(a)), ok, ok ? "" : "expected " + JSON.stringify(e) + " got " + JSON.stringify(a));
+}
+
+(async function () {
+
+section("pbpVideoDetect");
+assertEq(pbpVideoDetect("https://www.youtube.com/watch?v=dQw4w9WgXcQ").videoId, "dQw4w9WgXcQ", "watch URL");
+assertEq(pbpVideoDetect("https://m.youtube.com/watch?v=dQw4w9WgXcQ&t=42s").videoId, "dQw4w9WgXcQ", "mobile watch URL with extra params");
+assertEq(pbpVideoDetect("https://youtu.be/dQw4w9WgXcQ?si=xyz").videoId, "dQw4w9WgXcQ", "youtu.be short link");
+assertEq(pbpVideoDetect("https://www.youtube.com/shorts/abcDEF12345").videoId, "abcDEF12345", "shorts URL");
+assertEq(pbpVideoDetect("https://www.youtube.com/watch?v=dQw4w9WgXcQ").provider, "youtube", "provider tag");
+assertEq(pbpVideoDetect("https://example.com/watch?v=dQw4w9WgXcQ"), null, "non-YouTube host is null");
+assertEq(pbpVideoDetect("https://www.youtube.com/feed/subscriptions"), null, "non-video YouTube page is null");
+assertEq(pbpVideoDetect("not a url"), null, "garbage is null");
+
+section("pbpYtPlayerRequest");
+const req0 = pbpYtPlayerRequest("vid123", 0, "zh-CN");
+assertEq(req0.url, "https://www.youtube.com/youtubei/v1/player?prettyPrint=false", "InnerTube endpoint");
+assertEq(req0.method, "POST", "POST");
+const body0 = JSON.parse(req0.body);
+assertEq(body0.videoId, "vid123", "videoId in body");
+assertEq(body0.context.client.clientName, "5", "client 0 is IOS (clientName 5)");
+assertEq(body0.context.client.hl, "zh-CN", "hl carries the ui language");
+check("contentCheckOk/racyCheckOk set", body0.contentCheckOk === true && body0.racyCheckOk === true);
+assertEq(JSON.parse(pbpYtPlayerRequest("v", 3, "en").body).context.client.clientName, "2", "client 3 is MWEB (clientName 2)");
+
+section("pbpYtExtractTracks + pick");
+const PR = { captions: { playerCaptionsTracklistRenderer: { captionTracks: [
+  { baseUrl: "https://www.youtube.com/api/timedtext?a=1", languageCode: "en", name: { simpleText: "English" } },
+  { baseUrl: "https://www.youtube.com/api/timedtext?a=2", languageCode: "zh-Hans", name: { runs: [{ text: "中文（简体）" }] }, kind: "asr" },
+  { baseUrl: "https://www.youtube.com/api/timedtext?a=3", languageCode: "ja", name: {} }
+] } } };
+const tracks = pbpYtExtractTracks(PR);
+assertEq(tracks.length, 3, "three tracks");
+check("labels: simpleText, runs, languageCode fallback",
+  tracks[0].label === "English" && tracks[1].label === "中文（简体）" && tracks[2].label === "ja");
+check("asr flag mapped", tracks[0].asr === false && tracks[1].asr === true);
+assertEq(pbpYtExtractTracks({}).length, 0, "missing captions yields empty list");
+assertEq(pbpYtPickTrack(tracks, "zh-CN").lang, "zh-Hans", "zh UI prefers zh track even when asr");
+assertEq(pbpYtPickTrack(tracks, "fr").lang, "en", "no lang match falls to first non-asr");
+assertEq(pbpYtPickTrack([], "en"), null, "empty list picks null");
+
+section("timedtext parsers");
+const XML = '<?xml version="1.0"?><transcript><text start="1.2" dur="2.3">Hello &amp;amp; welcome</text><text start="4.0" dur="1.0">第二句</text></transcript>';
+const sx = pbpYtParseTimedtextXml(XML);
+check("xml: two segments with times", sx.length === 2 && sx[0].from === 1.2 && sx[0].to === 3.5 && sx[1].from === 4);
+assertEq(sx[0].content, "Hello & welcome", "xml entities decoded (double-encoded amp)");
+const J3 = JSON.stringify({ events: [ { tStartMs: 0, dDurationMs: 1500, segs: [{ utf8: "one " }, { utf8: "two" }] }, { tStartMs: 2000, segs: [{ utf8: "\n" }] }, { tStartMs: 3000, dDurationMs: 800, segs: [{ utf8: "three" }] } ] });
+const sj = pbpYtParseJson3(J3);
+check("json3: newline-only event dropped", sj.length === 2 && sj[0].content === "one two" && sj[1].content === "three");
+check("json3: ms converted to seconds", sj[0].from === 0 && sj[0].to === 1.5 && sj[1].from === 3);
+assertEq(pbpYtParseJson3("not json").length, 0, "bad json3 yields empty");
+assertEq(pbpYtParseTimedtextXml("<transcript></transcript>").length, 0, "empty xml yields empty");
+
+section("merge + markdown + time");
+const SEGS = [ { from: 0, to: 2, content: "Sentence one." }, { from: 2.1, to: 4, content: "and continues" }, { from: 10, to: 12, content: "After a gap" } ];
+const paras = pbpVideoMergeParagraphs(SEGS);
+check("merge: sentence end breaks; trailing run flushes", paras.length === 2 && paras[0] === "Sentence one." && paras[1] === "and continues After a gap");
+const md = pbpVideoTranscriptMarkdown(SEGS, { title: "T", url: "https://youtu.be/x", trackLabel: "English" });
+check("markdown: heading + source line + paragraphs", md.startsWith("## ") && md.includes("https://youtu.be/x") && md.includes("English") && md.includes("Sentence one."));
+assertEq(pbpVideoFmtTime(65), "1:05", "m:ss");
+assertEq(pbpVideoFmtTime(3671), "1:01:11", "h:mm:ss");
+
+section("pbpYtFetchTranscript orchestration (injected fetch)");
+await (async () => {
+  const calls = [];
+  const okPlayer = { captions: { playerCaptionsTracklistRenderer: { captionTracks: [ { baseUrl: "https://www.youtube.com/api/timedtext?x=1", languageCode: "en", name: { simpleText: "English" } } ] } } };
+  const fetchFn = async (url, opts) => {
+    calls.push(url);
+    if (url.includes("/youtubei/")) {
+      if (calls.filter((u) => u.includes("/youtubei/")).length === 1) return { ok: false, status: 403 };
+      return { ok: true, status: 200, json: async () => okPlayer };
+    }
+    if (url.includes("fmt=json3")) return { ok: true, status: 200, text: async () => JSON.stringify({ events: [{ tStartMs: 0, dDurationMs: 1000, segs: [{ utf8: "hi" }] }] }) };
+    return { ok: true, status: 200, text: async () => "" };  // XML attempt returns empty -> falls to json3
+  };
+  const res = await pbpYtFetchTranscript("vid", { fetchFn, uiLang: "en" });
+  check("client chain advances past a 403", calls.filter((u) => u.includes("/youtubei/")).length === 2);
+  check("xml-empty falls back to fmt=json3", calls.some((u) => u.includes("fmt=json3")));
+  check("segments delivered", res.segments && res.segments.length === 1 && res.segments[0].content === "hi");
+  check("track list delivered for the picker UI", res.tracks && res.tracks.length === 1 && res.track && res.track.lang === "en");
+  const noCaps = await pbpYtFetchTranscript("vid", { fetchFn: async () => ({ ok: true, status: 200, json: async () => ({}) }), uiLang: "en" });
+  check("no captionTracks yields error:'no-tracks'", noCaps.error === "no-tracks");
+  const allFail = await pbpYtFetchTranscript("vid", { fetchFn: async () => ({ ok: false, status: 403 }), uiLang: "en" });
+  check("all four clients failing yields error:'player'", allFail.error === "player");
+})();
+
+document.getElementById("summary").textContent = `${pass} passed, ${fail} failed`;
+})();
+</script>
+</body></html>
