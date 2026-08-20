@@ -7,7 +7,7 @@
 
 ## 项目概述
 
-Chrome Extension (Manifest V3)，一键将当前页面保存到 Pinboard，支持多 LLM 提供商的 AI 标签/摘要/全文翻译/Ask-the-page 问答与 opt-in 要点提炼（skim）。md-preview 阅读器带划词高亮/笔记/搜索/专注模式、在线词典与可选离线词典（CC-CEDICT 汉英 + 用户自备 ECDICT 英汉）；高亮/笔记与生词集中在独立的「笔记与生词本」页（library.html，主从双栏）；生词按当前 Pinboard 账号隔离，可管理/导出/发送到 Anki 或欧路词典，并支持 Google Drive 同步。导出可 Send-to Obsidian/Gist/Webhook，另有 Wayback 自动归档、标签治理和 13 套 pinboard.in 站点主题。功能全貌见 README.md。
+Chrome Extension (Manifest V3)，一键将当前页面保存到 Pinboard，支持多 LLM 提供商的 AI 标签/摘要/全文翻译/Ask-the-page 问答与 opt-in 要点提炼（skim）。md-preview 阅读器带划词高亮/笔记/搜索/专注模式、在线词典与可选离线词典（CC-CEDICT 汉英 + 用户自备 ECDICT 英汉）；高亮/笔记与生词集中在独立的「笔记与生词本」页（library.html，主从双栏）；生词按当前 Pinboard 账号隔离，可管理/导出/发送到 Anki 或欧路词典，并支持 Google Drive 同步。导出可 Send-to Obsidian/Notion/NotebookLM/Gist/Webhook，另有 Wayback 自动归档、标签治理和 13 套 pinboard.in 站点主题。功能全貌见 README.md。
 
 ## 技术栈
 
@@ -37,7 +37,7 @@ vocab-gdrive.js              # SW-only Google Drive appDataFolder 同步
 dict-pack.js                 # 离线词典包导入（CC-CEDICT + 用户自备 ECDICT）
 anki-connect.js / eudic-sync.js  # 生词外发（本机 AnkiConnect / 欧路 OpenAPI；纯层，测试页可载）
 ai.js / ai-cache.js          # AI 调用核心（popup/options/md-preview 共载）/ 结果 IDB 缓存
-export-targets.js            # Send-to 目标注册表（Obsidian / Gist / Webhook；纯层）
+export-targets.js            # Send-to 目标注册表（Obsidian / Notion / NotebookLM / Gist / Webhook；纯层）
 shared.js                    # 跨文件常量 + $id 记忆化 DOM 缓存
 jina.js / i18n.js / tag-gov.js / wayback.js / site-rules.js  # 兜底抽取 / 多语言 / 标签治理 / 归档队列 / 站点适配器
 pinboard-style.js / pinboard-sort.js / pinboard-themes.js    # pinboard.in 注入：主题 CSS（生成产物，勿手改）+ 标签热度排序
@@ -84,7 +84,7 @@ docs/superpowers/ DESIGN-IS-2026-07-22/ release/  # gitignored 本地产物（.q
 ## 跨领域安全铁律
 
 - **Pinboard 账号隔离**：所有 Pinboard v1 请求（`auth_token` 认证）在实际 dispatch 前原子重读有效凭据；同用户名 token 轮换时用新 token 重写请求，登出或跨用户名切换时取消且不得发网。账号数据派生的 cache / message / preview payload / 持久任务必须携带非秘密 owner，并在读取、异步回写、UI 提交时逐次校验 owner。
-- **网络端点与 host 权限**：required host 仅 Pinboard；AI / Jina / Wayback / Gist / Webhook / Free Dictionary / 欧路、AnkiConnect 精确回环 origin（`127.0.0.1:8765`）与 Batch 所选站点，只能从对应的直接用户动作请求当前精确 origin。后台/自动路径只做 `permissions.contains`，禁止运行时申请 wildcard。可配置端点必须 HTTPS，HTTP 仅允许字面 `localhost` / `127.0.0.1` / `[::1]`；LAN/public HTTP、凭据 URL 与无权限请求一律阻断并保留配置。升级时一次性清理 legacy all-sites grant。
+- **网络端点与 host 权限**：required host 仅 Pinboard；AI / Jina / Wayback / Gist / Webhook / Notion / Free Dictionary / 欧路、AnkiConnect 精确回环 origin（`127.0.0.1:8765`）与 Batch 所选站点，只能从对应的直接用户动作请求当前精确 origin。后台/自动路径只做 `permissions.contains`，禁止运行时申请 wildcard。可配置端点必须 HTTPS，HTTP 仅允许字面 `localhost` / `127.0.0.1` / `[::1]`；LAN/public HTTP、凭据 URL 与无权限请求一律阻断并保留配置。升级时一次性清理 legacy all-sites grant。
 - AI 请求统一走各 provider 的 chat completion 接口（关思考方言勿凭记忆改，见 rules/ai-providers.md）。
 - Defuddle 在 popup 打开时**懒注入**；site-rules.js 与其成对注入且**先于** Defuddle 运行（命中站点规则即短路）。
 
