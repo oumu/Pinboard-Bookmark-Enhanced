@@ -114,6 +114,22 @@ _pbpMermaidLoad = Promise.resolve();
       if (fx.querySelector("figure.pb-mermaid img").src === before) throw new Error("src must change");
     } finally { document.documentElement.style.colorScheme = prev; }
   });
+  await atest("export: pbpMermaidApplyCached swaps cached fences, leaves cold ones", async () => {
+    await _pbpMermaidRender("graph TD;A-->B;", false);   // warm the light entry
+    const d = document.createElement("div");
+    d.innerHTML = '<pre><code class="language-mermaid">graph TD;A-->B;</code></pre>'
+      + '<pre><code class="language-mermaid">graph LR;NEVER-->RENDERED;</code></pre>';
+    pbpMermaidApplyCached(d);
+    if (!d.querySelector("figure.pb-mermaid img")) throw new Error("cached fence must swap");
+    if (d.querySelectorAll("pre").length !== 1) throw new Error("cold fence must stay");
+  });
+  await atest("export: pbpMermaidWarmExport primes the light cache", async () => {
+    const d = document.createElement("div");
+    d.innerHTML = '<pre><code class="language-mermaid">graph LR;W1-->W2;</code></pre>';
+    await pbpMermaidWarmExport(d);
+    pbpMermaidApplyCached(d);
+    if (!d.querySelector("figure.pb-mermaid img")) throw new Error("warm+apply must swap");
+  });
   // Placed after every test that depends on the short-circuited _pbpMermaidLoad —
   // this one deliberately clears it so _pbpMermaidEnsure() injects a REAL <script
   // src="vendor/mermaid.min.js">, which 404s from tests/ (the path is only valid

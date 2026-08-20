@@ -162,3 +162,35 @@ if (typeof window !== "undefined" && window.matchMedia) {
     });
   } catch (_) { /* older engines: no live OS-flip re-render */ }
 }
+
+// ---- Export substitution (Download .html / EPUB) ----
+// Sync, cache-only: composeStyledHtml and pbpBuildEpub run synchronously
+// after renderMarkdown, so they can only consume entries already rendered.
+// Exports always use the LIGHT ("default") theme — the destination's theme
+// is unknowable and a transparent dark-theme SVG is unreadable on a light
+// page; the .export-doc/EPUB css gives the figure a white card instead.
+function pbpMermaidApplyCached(root) {
+  if (!root || !root.querySelectorAll) return;
+  root.querySelectorAll("pre > code.language-mermaid").forEach((code) => {
+    const entry = _pbpMermaidCache.get(pbpAiHash((code.textContent || "").trim()) + "|default");
+    if (!entry) return;                       // never rendered: fence stays
+    const doc = root.ownerDocument || document;
+    const fig = doc.createElement("figure");
+    fig.className = "pb-mermaid";
+    const img = doc.createElement("img");
+    img.alt = "diagram";
+    if (entry.w && entry.h) { img.width = entry.w; img.height = entry.h; }
+    img.src = entry.dataUri;
+    fig.appendChild(img);
+    code.parentElement.replaceWith(fig);
+  });
+}
+
+// Pre-render the light-theme entry for every fence under root so the sync
+// substitution above finds them. Per-block failures resolve silently (those
+// fences just stay fenced in the export).
+async function pbpMermaidWarmExport(root) {
+  for (const code of pbpMermaidBlocks(root || document)) {
+    try { await _pbpMermaidRender((code.textContent || "").trim(), false); } catch (_) {}
+  }
+}

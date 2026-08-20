@@ -1892,6 +1892,7 @@ function pbpApplyColorScheme(mode) {
     const katexCss = info.math ? await loadKatexCss() : "";
     const _copyOpts = buildExportOpts();
     // Copy cannot embed: clamp like buildExportMarkdown above (Codex, plan A).
+    if (typeof pbpMermaidWarmExport === "function") await pbpMermaidWarmExport(renderedView);
     const doc = composeStyledHtml(getViewMarkdown(), buildMeta(), { ..._copyOpts, imagePolicy: _copyOpts.imagePolicy === "embed" ? "keep" : _copyOpts.imagePolicy, hljsCss, katexCss });
     await copyToClipboard(doc, btn);
   });
@@ -1927,6 +1928,7 @@ function pbpApplyColorScheme(mode) {
     // does, but pass RAW view markdown (getViewMarkdown, no YAML frontmatter):
     // composeStyledHtml turns frontmatter into a styled <header>. Passing the
     // YAML-prefixed buildExportMarkdown() rendered the YAML into the body as text.
+    if (typeof pbpMermaidWarmExport === "function") await pbpMermaidWarmExport(renderedView);
     const doc = composeStyledHtml(emb.md, meta, { ...opts, imagePolicy: opts.imagePolicy === "embed" ? "keep" : opts.imagePolicy, hljsCss, katexCss });
     downloadFile(safeTitle + ".html", doc, "text/html;charset=utf-8");
     if (emb.note > 0) showExportNote(t("mdEmbedPartial", String(emb.note))); // args through t() -- chrome.i18n consumes $COUNT$ before a manual replace could

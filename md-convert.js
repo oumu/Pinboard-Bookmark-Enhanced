@@ -860,6 +860,8 @@ html,body{margin:0;background:var(--x-bg)}
 .export-doc th,.export-doc td{padding:10px 16px;text-align:left;border-bottom:1px solid var(--x-bdl);overflow-wrap:anywhere}
 .export-doc thead{background:var(--x-code-bg)}
 .export-doc tbody tr:nth-child(even){background:var(--x-stripe)}
+.export-doc figure.pb-mermaid{margin:1.5em 0;text-align:center;background:#fff;border:1px solid var(--x-bd);border-radius:8px;padding:8px}
+.export-doc figure.pb-mermaid img{border:none;margin:0}
 .export-doc hr{border:none;border-top:1px solid var(--x-bd);margin:2.5em 0}
 @media print{:root{--x-fg:#1a202c;--x-mut:#5a6473;--x-bd:#e2e8f0;--x-bdl:#eef2f7;--x-link:#2563eb;--x-code-bg:#f1f5f9;--x-code-fg:#334155;--x-bq-bd:#2563eb;--x-bq-bg:#f0f9ff;--x-bq-fg:#1e3a5f;--x-stripe:#f8fafc;--x-surface:#fff;--x-bg:#fff;--x-pre-bg:#fff}html,body{background:#fff}.export-doc{max-width:100%;padding:0}.export-doc pre,.export-doc pre code,.export-doc pre span{color:#1f2328 !important;background:transparent !important}}
 `;
@@ -915,6 +917,14 @@ function composeStyledHtml(canonicalMd, meta, opts) {
       });
       article = tmp.innerHTML;
     } catch (_) { /* leave $...$ source untouched on failure */ }
+  }
+  // B1: substitute mermaid fences already rendered on the preview page with
+  // their cached light-theme data-URI figures. typeof-guarded — the popup
+  // and the test harness never load md-mermaid.js and keep the fence.
+  if (typeof pbpMermaidApplyCached === "function") {
+    const tmp = document.createElement("div");
+    tmp.innerHTML = article;
+    try { pbpMermaidApplyCached(tmp); article = tmp.innerHTML; } catch (_) { /* fence stays */ }
   }
   let header = "";
   if (opts.frontmatter) {
