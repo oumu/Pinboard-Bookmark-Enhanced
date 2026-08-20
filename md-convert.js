@@ -123,7 +123,12 @@ function _pbpGetTurndown() {
   td.addRule("table", {
     filter: "table",
     replacement: (content, node) => {
-      if (node.querySelector && node.querySelector("th[rowspan],td[rowspan],th[colspan],td[colspan]")) {
+      // Complex = merged cells OR a nested table. A nested table used to
+      // recurse through this same rule and then get flattened to one line by
+      // cellMd's newline collapse — unreadable garbage. querySelector on the
+      // table matches DESCENDANTS only, so the outer table itself never
+      // self-triggers.
+      if (node.querySelector && node.querySelector("th[rowspan],td[rowspan],th[colspan],td[colspan],table")) {
         return "\n\n" + _pbpSanitizeComplexTableHtml(node) + "\n\n";
       }
       // :scope-limited to this table's own direct rows -- a plain "tr" query would

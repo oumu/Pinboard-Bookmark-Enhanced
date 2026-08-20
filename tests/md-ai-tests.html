@@ -3902,19 +3902,21 @@ suite("applyImagePolicy: fenced code blocks are left untouched", () => {
 });
 </script>
 <script>
-// ============ Task B4 #26: table rule collects only direct rows ============
-suite("htmlToMarkdown table rule: nested table in a cell is not flattened/duplicated", () => {
-  test("outer table row count unaffected by a nested table's rows", () => {
+// ============ Task B4 #26 / A3: nested table promotes outer table to HTML passthrough ============
+suite("htmlToMarkdown table rule: nested table promotes outer table to HTML passthrough", () => {
+  test("outer table with a nested table emits raw HTML, not a pipe table", () => {
     const html = "<table><tr><th>Name</th><th>Sub</th></tr>" +
       "<tr><td>Alice</td><td><table><tr><td>inner1</td></tr><tr><td>inner2</td></tr></table></td></tr></table>";
     const md = htmlToMarkdown(html);
-    const pipeLines = md.split("\n").filter((l) => /^\|/.test(l));
-    assertEq(pipeLines.length, 3, "outer table emits exactly header+separator+1 row: " + md);
+    // A3: a nested table now promotes the OUTER table to raw-HTML passthrough.
+    assert(/<table/.test(md), "outer table must be HTML passthrough: " + md);
+    assert(!/\|\s*---/.test(md), "no pipe residue allowed: " + md);
   });
-  test("nested table's cell content appears exactly once (no duplicate top-level row)", () => {
+  test("nested table's cell content survives intact inside the outer HTML, not duplicated", () => {
     const html = "<table><tr><th>Name</th><th>Sub</th></tr>" +
       "<tr><td>Alice</td><td><table><tr><td>inner1</td></tr><tr><td>inner2</td></tr></table></td></tr></table>";
     const md = htmlToMarkdown(html);
+    assertEq((md.match(/<table/g) || []).length, 2, "inner table must survive intact (outer + inner <table>): " + md);
     assertEq((md.match(/inner1/g) || []).length, 1, "inner1 not duplicated: " + md);
     assertEq((md.match(/inner2/g) || []).length, 1, "inner2 not duplicated: " + md);
   });

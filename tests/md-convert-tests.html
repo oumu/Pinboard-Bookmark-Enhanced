@@ -585,6 +585,13 @@ function assertEq(actual, expected, label) {
       !/(onclick|style=|<script|javascript:)/i.test(md), md);
   })();
 
+  section("A3: nested table promotes the outer table to HTML passthrough");
+  (() => {
+    const md = htmlToMarkdown('<table><tbody><tr><th>H</th></tr><tr><td><table><tbody><tr><td>inner</td></tr></tbody></table></td></tr></tbody></table>');
+    check("A3 outer table emits raw HTML, no pipe rows", /<table/.test(md) && !/^\s*\|/m.test(md), md);
+    check("A3 inner table structure intact inside the outer HTML", (md.match(/<table/g) || []).length === 2 && />inner<\/td>/.test(md), md);
+  })();
+
   // ---- GitHub alerts: Defuddle -> Obsidian callout (data-callout) -> > [!TYPE] ----
   section("htmlToMarkdown GitHub alert (callout) restore");
   (() => {
