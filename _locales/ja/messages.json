@@ -3614,6 +3614,7 @@
   "mdVideoLoading": { "message": "字幕を読み込んでいます…" },
   "mdVideoTrackAria": { "message": "字幕の言語" },
   "mdVideoNoTracks": { "message": "この動画には利用できる字幕がありません" },
+  "mdVideoBiliLogin": { "message": "字幕が見つかりません。Bilibili はログイン時のみ字幕を返します。bilibili.com にログインしてから再試行してください。" },
   "mdVideoFailed": { "message": "字幕を読み込めませんでした。YouTube がリクエストを拒否している可能性があります。しばらくしてから再試行してください。" },
   "mdVideoPermMissing": { "message": "権限が拒否されたため、何も読み込まれませんでした" },
   "mdVideoCopyMd": { "message": "文字起こしを Markdown としてコピー" },

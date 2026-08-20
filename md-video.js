@@ -368,6 +368,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   if (typeof window === "undefined" || typeof document === "undefined") return;
 
   const YT_ORIGIN = "https://www.youtube.com/*";
+  const BILI_ORIGIN = "https://api.bilibili.com/*";
   const EMBED_BASE = "https://www.youtube-nocookie.com"; // privacy-enhanced embed
 
   let _panel = null, _iframe = null, _segments = [], _meta = {};
@@ -390,17 +391,21 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     post("playVideo");
   }
 
-  function renderTranscript(listEl, segments) {
+  // seekable=false renders static rows (no click, no seek title) — the
+  // bilibili iframe exposes no clean postMessage seek API.
+  function renderTranscript(listEl, segments, seekable) {
     listEl.textContent = "";
     const frag = document.createDocumentFragment();
     segments.forEach((seg) => {
-      const row = el("button", "pbv-row");
+      const row = el("button", seekable ? "pbv-row" : "pbv-row pbv-row--static");
       row.type = "button";
       const time = el("span", "pbv-time", pbpVideoFmtTime(seg.from));
       const text = el("span", "pbv-text", seg.content);
       row.appendChild(time); row.appendChild(text);
-      row.title = t("mdVideoSeekTo", pbpVideoFmtTime(seg.from));
-      row.addEventListener("click", () => seekTo(Math.floor(seg.from)));
+      if (seekable) {
+        row.title = t("mdVideoSeekTo", pbpVideoFmtTime(seg.from));
+        row.addEventListener("click", () => seekTo(Math.floor(seg.from)));
+      }
       frag.appendChild(row);
     });
     listEl.appendChild(frag);
@@ -408,12 +413,20 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
 
   async function loadFlow(detected, statusEl, bodyEl, trackSel, copyBtn) {
     statusEl.textContent = t("mdVideoLoading");
+    const isBili = detected.provider === "bilibili";
     let granted = false;
-    try { granted = await chrome.permissions.request({ origins: [YT_ORIGIN] }) === true; } catch (_) {}
+    try { granted = await chrome.permissions.request({ origins: [isBili ? BILI_ORIGIN : YT_ORIGIN] }) === true; } catch (_) {}
     if (!granted) { statusEl.textContent = t("mdVideoPermMissing"); return; }
-    const uiLang = (chrome.i18n && chrome.i18n.getUILanguage && chrome.i18n.getUILanguage()) || "en";
-    const res = await pbpYtFetchTranscript(detected.videoId, { uiLang });
-    if (res.error === "player") { statusEl.textContent = t("mdVideoFailed"); return; }
+    let res;
+    if (isBili) {
+      res = await pbpBiliFetchTranscript(detected.bvid, detected.part, {});
+      if (res.meta && res.meta.title) _meta.title = res.meta.title;
+    } else {
+      const uiLang = (chrome.i18n && chrome.i18n.getUILanguage && chrome.i18n.getUILanguage()) || "en";
+      res = await pbpYtFetchTranscript(detected.videoId, { uiLang });
+    }
+    if (res.error === "player" || res.error === "view") { statusEl.textContent = t("mdVideoFailed"); return; }
+    if (res.error === "login") { statusEl.textContent = t("mdVideoBiliLogin"); return; }
     if (res.error === "no-tracks" || res.error === "caption-body") {
       statusEl.textContent = t("mdVideoNoTracks");
       if (!res.tracks) return;
@@ -423,25 +436,27 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     trackSel.textContent = "";
     (res.tracks || []).forEach((tr) => {
       const opt = document.createElement("option");
-      opt.value = tr.baseUrl;
-      opt.textContent = tr.label + (tr.asr ? " (" + t("mdVideoAsr") + ")" : "");
-      if (res.track && tr.baseUrl === res.track.baseUrl) opt.selected = true;
+      const value = isBili ? tr.subtitle_url : tr.baseUrl;
+      const label = isBili ? tr.lan_doc : tr.label;
+      opt.value = value;
+      opt.textContent = label + (tr.asr ? " (" + t("mdVideoAsr") + ")" : "");
+      if (res.track && value === (isBili ? res.track.subtitle_url : res.track.baseUrl)) opt.selected = true;
       trackSel.appendChild(opt);
     });
     trackSel.hidden = !(res.tracks || []).length;
     copyBtn.hidden = !(res.segments || []).length;
     _segments = res.segments || [];
-    _meta.trackLabel = res.track ? res.track.label : "";
-    if (_segments.length) renderTranscript(bodyEl, _segments);
+    _meta.trackLabel = res.track ? (isBili ? res.track.lan_doc : res.track.label) : "";
+    if (_segments.length) renderTranscript(bodyEl, _segments, !isBili);
     trackSel.addEventListener("change", async () => {
       statusEl.textContent = t("mdVideoLoading");
-      const segs = await pbpYtFetchCaptionBody(trackSel.value);
+      const segs = isBili ? await pbpBiliFetchSubtitleBody(trackSel.value) : await pbpYtFetchCaptionBody(trackSel.value);
       statusEl.textContent = segs.length ? "" : t("mdVideoNoTracks");
       _segments = segs;
       const sel = trackSel.selectedOptions && trackSel.selectedOptions[0];
       _meta.trackLabel = sel ? sel.textContent : "";
       copyBtn.hidden = !segs.length;
-      renderTranscript(bodyEl, segs);
+      renderTranscript(bodyEl, segs, !isBili);
     });
   }
 
@@ -469,7 +484,9 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       // player iframe mounts immediately (no permission needed for a frame)
       const media = el("div", "pbv-media");
       _iframe = document.createElement("iframe");
-      _iframe.src = EMBED_BASE + "/embed/" + detected.videoId + "?enablejsapi=1&rel=0";
+      _iframe.src = detected.provider === "bilibili"
+        ? "https://player.bilibili.com/player.html?bvid=" + detected.bvid + "&page=" + detected.part + "&high_quality=1&danmaku=0"
+        : EMBED_BASE + "/embed/" + detected.videoId + "?enablejsapi=1&rel=0";
       _iframe.allow = "encrypted-media; picture-in-picture; fullscreen";
       _iframe.title = t("mdVideoTitle");
       media.appendChild(_iframe);

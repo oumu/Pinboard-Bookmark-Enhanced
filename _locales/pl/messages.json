@@ -3614,6 +3614,7 @@
   "mdVideoLoading": { "message": "Wczytywanie napisów…" },
   "mdVideoTrackAria": { "message": "Język napisów" },
   "mdVideoNoTracks": { "message": "Dla tego wideo nie ma dostępnych napisów" },
+  "mdVideoBiliLogin": { "message": "Nie znaleziono napisów. Bilibili zwraca napisy tylko po zalogowaniu — zaloguj się w bilibili.com i spróbuj ponownie." },
   "mdVideoFailed": { "message": "Nie udało się wczytać napisów; YouTube może w tej chwili odrzucać żądanie. Spróbuj ponownie później." },
   "mdVideoPermMissing": { "message": "Odmówiono uprawnienia; niczego nie wczytano" },
   "mdVideoCopyMd": { "message": "Skopiuj transkrypcję jako Markdown" },

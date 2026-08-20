@@ -3608,6 +3608,7 @@
   "mdVideoLoading": { "message": "Loading subtitles…" },
   "mdVideoTrackAria": { "message": "Subtitle language" },
   "mdVideoNoTracks": { "message": "No subtitles are available for this video" },
+  "mdVideoBiliLogin": { "message": "No subtitles found. Bilibili only returns subtitles when you are logged in — sign in at bilibili.com, then try again." },
   "mdVideoFailed": { "message": "Couldn't load subtitles; YouTube may be refusing the request right now. Try again later." },
   "mdVideoPermMissing": { "message": "Permission was declined; nothing was loaded" },
   "mdVideoCopyMd": { "message": "Copy transcript as Markdown" },

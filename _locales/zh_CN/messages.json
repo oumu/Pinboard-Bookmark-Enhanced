@@ -3608,6 +3608,7 @@
   "mdVideoLoading": { "message": "正在加载字幕…" },
   "mdVideoTrackAria": { "message": "字幕语言" },
   "mdVideoNoTracks": { "message": "该视频没有可用字幕" },
+  "mdVideoBiliLogin": { "message": "未找到字幕。B 站仅在登录后返回字幕，请先登录 bilibili.com 再重试。" },
   "mdVideoFailed": { "message": "字幕加载失败，可能是 YouTube 暂时拒绝了请求。稍后再试。" },
   "mdVideoPermMissing": { "message": "已拒绝授权，未加载任何内容" },
   "mdVideoCopyMd": { "message": "复制字幕为 Markdown" },

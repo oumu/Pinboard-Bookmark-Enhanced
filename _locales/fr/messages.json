@@ -3614,6 +3614,7 @@
   "mdVideoLoading": { "message": "Chargement des sous-titres…" },
   "mdVideoTrackAria": { "message": "Langue des sous-titres" },
   "mdVideoNoTracks": { "message": "Aucun sous-titre disponible pour cette vidéo" },
+  "mdVideoBiliLogin": { "message": "Aucun sous-titre trouvé. Bilibili ne renvoie des sous-titres que si vous êtes connecté — connectez-vous sur bilibili.com, puis réessayez." },
   "mdVideoFailed": { "message": "Impossible de charger les sous-titres ; YouTube refuse peut-être la requête pour le moment. Réessayez plus tard." },
   "mdVideoPermMissing": { "message": "Autorisation refusée ; rien n'a été chargé" },
   "mdVideoCopyMd": { "message": "Copier la transcription en Markdown" },

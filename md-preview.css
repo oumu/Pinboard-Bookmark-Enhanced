@@ -3467,5 +3467,7 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
 }
 .pbv-row:hover { background: var(--row-hover, rgba(127,127,127,.14)); }
 .pbv-row:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+.pbv-row--static { cursor: default; }
+.pbv-row--static:hover { background: transparent; }
 .pbv-time { flex: 0 0 auto; opacity: 0.65; font-variant-numeric: tabular-nums; }
 .pbv-text { flex: 1; }

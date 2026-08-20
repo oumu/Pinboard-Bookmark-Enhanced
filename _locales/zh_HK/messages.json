@@ -3614,6 +3614,7 @@
   "mdVideoLoading": { "message": "正在載入字幕…" },
   "mdVideoTrackAria": { "message": "字幕語言" },
   "mdVideoNoTracks": { "message": "此影片沒有可用字幕" },
+  "mdVideoBiliLogin": { "message": "找不到字幕。B 站僅在登入後回傳字幕，請先登入 bilibili.com 再重試。" },
   "mdVideoFailed": { "message": "字幕載入失敗，可能是 YouTube 暫時拒絕了請求。稍後再試。" },
   "mdVideoPermMissing": { "message": "已拒絕授權，未載入任何內容" },
   "mdVideoCopyMd": { "message": "複製字幕為 Markdown" },

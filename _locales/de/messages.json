@@ -3614,6 +3614,7 @@
   "mdVideoLoading": { "message": "Untertitel werden geladen…" },
   "mdVideoTrackAria": { "message": "Untertitelsprache" },
   "mdVideoNoTracks": { "message": "Für dieses Video sind keine Untertitel verfügbar" },
+  "mdVideoBiliLogin": { "message": "Keine Untertitel gefunden. Bilibili liefert Untertitel nur im angemeldeten Zustand — melden Sie sich bei bilibili.com an und versuchen Sie es erneut." },
   "mdVideoFailed": { "message": "Untertitel konnten nicht geladen werden; YouTube lehnt die Anfrage möglicherweise gerade ab. Versuchen Sie es später erneut." },
   "mdVideoPermMissing": { "message": "Berechtigung abgelehnt; es wurde nichts geladen" },
   "mdVideoCopyMd": { "message": "Transkript als Markdown kopieren" },
