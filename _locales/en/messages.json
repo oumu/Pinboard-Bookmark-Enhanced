@@ -3463,7 +3463,7 @@
   },
   "mdSendApiDown": { "message": "Couldn't reach the export server. Full text copied to clipboard; paste to finish." },
   "mdSendApiBadToken": { "message": "The server rejected the token. Re-copy it from the app. Full text copied to clipboard." },
-  "mdSendNotionNotShared": { "message": "Notion rejected the parent page. Share that page with your integration (··· menu, Connections), then retry. Full text copied to clipboard." },
+  "mdSendNotionNotShared": { "message": "Notion rejected the parent page. Share that page with your connection (··· menu, Add connections), then retry. Full text copied to clipboard." },
   "mdSendApiFailed": { "message": "The export request failed. Full text copied to clipboard; paste to finish." },
   "mdSendTest": { "message": "Test connection" },
   "mdSendTestOk": { "message": "Connected" },
@@ -3478,13 +3478,13 @@
     "message": "Create a Personal Access Token (classic) at GitHub → Settings → Developer settings → Tokens (classic) with the \"gist\" scope, then paste it below. Each clip is saved as a private gist. Note: fine-grained tokens can't create gists yet, so use a classic token."
   },
   "mdTargetNotionToken": {
-    "message": "Internal integration token"
+    "message": "Internal connection token"
   },
   "mdTargetNotionParent": {
     "message": "Parent page (URL or ID)"
   },
   "mdTargetNotionOnboarding": {
-    "message": "Create an integration in Notion's developer settings (app.notion.com/developers), copy its internal token, then open the target page's ··· menu, choose Connections, and add the integration. Paste the page URL here. Each send creates a new sub-page under it."
+    "message": "Create an internal connection in Notion's developer settings (app.notion.com/developers/connections → New connection), copy its internal token, then open the target page's ··· menu, choose Add connections, and add the connection. Paste the page URL here. Each send creates a new sub-page under it."
   },
   "mdTargetNotebookLmOnboarding": {
     "message": "No setup needed. Sending copies the full text to your clipboard and opens NotebookLM. There, add a source, choose Copied text, and paste. NotebookLM has no public API, so the last step stays manual."

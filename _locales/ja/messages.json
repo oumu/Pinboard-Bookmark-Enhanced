@@ -3463,7 +3463,7 @@
   },
   "mdSendApiDown": { "message": "エクスポートサーバーに接続できませんでした。全文をクリップボードにコピーしました。貼り付けて完了してください。" },
   "mdSendApiBadToken": { "message": "サーバーがトークンを拒否しました。アプリからコピーし直してください。全文をクリップボードにコピーしました。" },
-  "mdSendNotionNotShared": { "message": "Notion が親ページを拒否しました。ページの ··· メニューの「接続」でインテグレーションを追加してから再試行してください。全文はクリップボードにコピー済みです。" },
+  "mdSendNotionNotShared": { "message": "Notion が親ページを拒否しました。ページの ··· メニューの「接続を追加」で接続を追加してから再試行してください。全文はクリップボードにコピー済みです。" },
   "mdSendApiFailed": { "message": "エクスポートリクエストに失敗しました。全文をクリップボードにコピーしました。貼り付けて完了してください。" },
   "mdSendTest": {
     "message": "接続テスト"
@@ -3484,13 +3484,13 @@
     "message": "GitHub → Settings → Developer settings → Tokens (classic) で「gist」スコープを付与した個人アクセストークン（classic）を作成し、下に貼り付けてください。各クリップは非公開 gist として保存されます。注意：fine-grained トークンはまだ gist を作成できないため、classic トークンを使用してください。"
   },
   "mdTargetNotionToken": {
-    "message": "内部インテグレーションのトークン"
+    "message": "内部接続のトークン"
   },
   "mdTargetNotionParent": {
     "message": "親ページ（URL または ID）"
   },
   "mdTargetNotionOnboarding": {
-    "message": "Notion の開発者設定（app.notion.com/developers）でインテグレーションを作成し、トークンをコピーします。次に送信先ページの ··· メニューから「接続」でそのインテグレーションを追加し、ページの URL をここに貼り付けてください。送信のたびに配下へ新しいサブページが作成されます。"
+    "message": "Notion の開発者設定（app.notion.com/developers/connections）で「新規接続」から接続を作成し、トークンをコピーします。次に送信先ページの ··· メニューから「接続を追加」でその接続を追加し、ページの URL をここに貼り付けてください。送信のたびに配下へ新しいサブページが作成されます。"
   },
   "mdTargetNotebookLmOnboarding": {
     "message": "設定は不要です。送信すると全文がクリップボードにコピーされ、NotebookLM が開きます。ソースを追加して「コピーしたテキスト」を選び、貼り付けてください。NotebookLM には公開 API がないため、最後の手順は手動になります。"

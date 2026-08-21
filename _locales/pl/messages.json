@@ -3463,7 +3463,7 @@
   },
   "mdSendApiDown": { "message": "Nie można połączyć się z serwerem eksportu. Pełny tekst skopiowano do schowka — wklej, aby zakończyć." },
   "mdSendApiBadToken": { "message": "Serwer odrzucił token. Skopiuj go ponownie z aplikacji. Pełny tekst skopiowano do schowka." },
-  "mdSendNotionNotShared": { "message": "Notion odrzucił stronę nadrzędną. Udostępnij ją swojej integracji (menu ··· , Połączenia) i spróbuj ponownie. Pełny tekst skopiowano do schowka." },
+  "mdSendNotionNotShared": { "message": "Notion odrzucił stronę nadrzędną. Udostępnij ją swojemu połączeniu (menu ··· , Dodaj połączenia) i spróbuj ponownie. Pełny tekst skopiowano do schowka." },
   "mdSendApiFailed": { "message": "Żądanie eksportu nie powiodło się. Pełny tekst skopiowano do schowka — wklej, aby zakończyć." },
   "mdSendTest": {
     "message": "Testuj połączenie"
@@ -3484,13 +3484,13 @@
     "message": "Utwórz osobisty token dostępu (classic) w GitHub → Settings → Developer settings → Tokens (classic) z zakresem „gist”, a następnie wklej go poniżej. Każdy wycinek zapisywany jest jako prywatny gist. Uwaga: tokeny fine-grained nie mogą jeszcze tworzyć gistów — użyj tokena classic."
   },
   "mdTargetNotionToken": {
-    "message": "Wewnętrzny token integracji"
+    "message": "Wewnętrzny token połączenia"
   },
   "mdTargetNotionParent": {
     "message": "Strona nadrzędna (URL lub ID)"
   },
   "mdTargetNotionOnboarding": {
-    "message": "Utwórz integrację w ustawieniach deweloperskich Notion (app.notion.com/developers) i skopiuj jej wewnętrzny token. Następnie na stronie docelowej otwórz menu ··· , wybierz Połączenia i dodaj integrację. Wklej tutaj adres URL strony. Każda wysyłka utworzy pod nią nową podstronę."
+    "message": "Utwórz połączenie w ustawieniach deweloperskich Notion (app.notion.com/developers/connections → „Nowe połączenie”) i skopiuj jego token. Następnie na stronie docelowej otwórz menu ··· , wybierz Dodaj połączenia i dodaj to połączenie. Wklej tutaj adres URL strony. Każda wysyłka utworzy pod nią nową podstronę."
   },
   "mdTargetNotebookLmOnboarding": {
     "message": "Nie wymaga konfiguracji. Wysyłka kopiuje pełny tekst do schowka i otwiera NotebookLM. Dodaj tam źródło, wybierz „Skopiowany tekst” i wklej treść. NotebookLM nie ma publicznego API, więc ostatni krok pozostaje ręczny."

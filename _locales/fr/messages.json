@@ -3463,7 +3463,7 @@
   },
   "mdSendApiDown": { "message": "Impossible de joindre le serveur d'export. Texte complet copié dans le presse-papiers ; collez pour terminer." },
   "mdSendApiBadToken": { "message": "Le serveur a rejeté le jeton. Recopiez-le depuis l'application. Texte complet copié dans le presse-papiers." },
-  "mdSendNotionNotShared": { "message": "Notion a refusé la page parente. Partagez cette page avec votre intégration (menu ···, Connexions), puis réessayez. Texte intégral copié dans le presse-papiers." },
+  "mdSendNotionNotShared": { "message": "Notion a refusé la page parente. Partagez cette page avec votre connexion (menu ···, Ajouter des connexions), puis réessayez. Texte intégral copié dans le presse-papiers." },
   "mdSendApiFailed": { "message": "La requête d'export a échoué. Texte complet copié dans le presse-papiers ; collez pour terminer." },
   "mdSendTest": {
     "message": "Tester la connexion"
@@ -3484,13 +3484,13 @@
     "message": "Créez un jeton d'accès personnel (classic) sur GitHub → Settings → Developer settings → Tokens (classic) avec la portée « gist », puis collez-le ci-dessous. Chaque extrait est enregistré comme un gist privé. Remarque : les jetons fine-grained ne peuvent pas encore créer de gists, utilisez donc un jeton classic."
   },
   "mdTargetNotionToken": {
-    "message": "Jeton d'intégration interne"
+    "message": "Jeton de connexion interne"
   },
   "mdTargetNotionParent": {
     "message": "Page parente (URL ou ID)"
   },
   "mdTargetNotionOnboarding": {
-    "message": "Créez une intégration dans les réglages développeur de Notion (app.notion.com/developers) et copiez son jeton interne. Ajoutez ensuite l'intégration à la page cible via le menu ··· puis Connexions, et collez ici l'URL de la page. Chaque envoi crée une sous-page."
+    "message": "Créez une connexion interne dans les réglages développeur de Notion (app.notion.com/developers/connections → « Nouvelle connexion ») et copiez son jeton. Ajoutez ensuite la connexion à la page cible via le menu ··· puis Ajouter des connexions, et collez ici l'URL de la page. Chaque envoi crée une sous-page."
   },
   "mdTargetNotebookLmOnboarding": {
     "message": "Aucune configuration requise. L'envoi copie le texte intégral dans le presse-papiers et ouvre NotebookLM. Ajoutez-y une source, choisissez « Texte copié », puis collez. NotebookLM n'a pas d'API publique, la dernière étape reste donc manuelle."

@@ -3463,7 +3463,7 @@
   },
   "mdSendApiDown": { "message": "Export-Server nicht erreichbar. Volltext in die Zwischenablage kopiert; zum Abschließen einfügen." },
   "mdSendApiBadToken": { "message": "Der Server hat den Token abgelehnt. Erneut aus der App kopieren. Volltext in die Zwischenablage kopiert." },
-  "mdSendNotionNotShared": { "message": "Notion hat die übergeordnete Seite abgelehnt. Geben Sie die Seite über das Menü ··· unter Verbindungen für Ihre Integration frei und versuchen Sie es erneut. Der gesamte Text wurde in die Zwischenablage kopiert." },
+  "mdSendNotionNotShared": { "message": "Notion hat die übergeordnete Seite abgelehnt. Geben Sie die Seite über das Menü ··· (Verbindungen hinzufügen) für Ihre Verbindung frei und versuchen Sie es erneut. Der gesamte Text wurde in die Zwischenablage kopiert." },
   "mdSendApiFailed": { "message": "Die Export-Anfrage ist fehlgeschlagen. Volltext in die Zwischenablage kopiert; zum Abschließen einfügen." },
   "mdSendTest": {
     "message": "Verbindung testen"
@@ -3484,13 +3484,13 @@
     "message": "Erstelle bei GitHub → Settings → Developer settings → Tokens (classic) einen Personal Access Token (classic) mit dem „gist“-Scope und füge ihn unten ein. Jeder Clip wird als privater gist gespeichert. Hinweis: fine-grained Tokens können noch keine gists erstellen, verwende daher einen classic Token."
   },
   "mdTargetNotionToken": {
-    "message": "Interner Integrations-Token"
+    "message": "Interner Verbindungstoken"
   },
   "mdTargetNotionParent": {
     "message": "Übergeordnete Seite (URL oder ID)"
   },
   "mdTargetNotionOnboarding": {
-    "message": "Erstellen Sie in Notions Entwicklereinstellungen (app.notion.com/developers) eine Integration und kopieren Sie deren internen Token. Fügen Sie die Integration dann auf der Zielseite über das Menü ··· unter Verbindungen hinzu und tragen Sie hier die URL der Seite ein. Jeder Versand legt darunter eine neue Unterseite an."
+    "message": "Erstellen Sie in Notions Entwicklereinstellungen (app.notion.com/developers/connections) über „Neue Verbindung“ eine interne Verbindung und kopieren Sie deren Token. Fügen Sie die Verbindung dann über das Menü ··· der Zielseite (Verbindungen hinzufügen) hinzu und tragen Sie hier die URL der Seite ein. Jeder Versand legt darunter eine neue Unterseite an."
   },
   "mdTargetNotebookLmOnboarding": {
     "message": "Keine Einrichtung nötig. Beim Senden wird der gesamte Text in die Zwischenablage kopiert und NotebookLM geöffnet. Fügen Sie dort eine Quelle hinzu, wählen Sie »Kopierter Text« und fügen Sie den Inhalt ein. NotebookLM hat keine öffentliche API, der letzte Schritt bleibt daher manuell."

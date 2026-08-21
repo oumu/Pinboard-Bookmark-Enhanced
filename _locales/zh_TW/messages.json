@@ -3463,7 +3463,7 @@
   },
   "mdSendApiDown": { "message": "無法連接到匯出伺服器。全文已複製到剪貼簿，貼上即可完成。" },
   "mdSendApiBadToken": { "message": "伺服器拒絕了 Token，請從應用程式中重新複製。全文已複製到剪貼簿。" },
-  "mdSendNotionNotShared": { "message": "Notion 拒絕了父頁面。請在該頁面的 ··· 選單「連接」中加入你的整合後重試。全文已複製到剪貼簿。" },
+  "mdSendNotionNotShared": { "message": "Notion 拒絕了父頁面。請在該頁面的 ··· 選單「新增連接」中加入你的連接後重試。全文已複製到剪貼簿。" },
   "mdSendApiFailed": { "message": "匯出請求失敗。全文已複製到剪貼簿，貼上即可完成。" },
   "mdSendTest": {
     "message": "測試連接"
@@ -3484,13 +3484,13 @@
     "message": "在 GitHub → Settings → Developer settings → Tokens (classic) 建立一個 classic 類型的個人存取 Token，並勾選「gist」範圍，然後貼到下方。每則剪藏都會儲存為一個私有 gist。注意：fine-grained Token 目前還無法建立 gist，請改用 classic Token。"
   },
   "mdTargetNotionToken": {
-    "message": "內部整合權杖"
+    "message": "內部連接權杖"
   },
   "mdTargetNotionParent": {
     "message": "父頁面（URL 或 ID）"
   },
   "mdTargetNotionOnboarding": {
-    "message": "在 Notion 開發者設定（app.notion.com/developers）建立整合並複製內部權杖；再開啟目標頁面的 ··· 選單，在「連接」中加入該整合，最後把頁面連結貼到這裡。每次傳送都會在該頁面下建立一個子頁面。"
+    "message": "在 Notion 開發者設定（app.notion.com/developers/connections）點選「新連接」建立連接並複製它的權杖；再開啟目標頁面的 ··· 選單，選擇「新增連接」並加入該連接，最後把頁面連結貼到這裡。每次傳送都會在該頁面下建立一個子頁面。"
   },
   "mdTargetNotebookLmOnboarding": {
     "message": "無需設定。傳送時會把全文複製到剪貼簿並開啟 NotebookLM；在裡面新增來源、選擇「複製的文字」，然後貼上即可。NotebookLM 沒有公開 API，最後一步只能手動完成。"
