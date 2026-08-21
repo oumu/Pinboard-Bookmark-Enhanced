@@ -20,7 +20,14 @@
     "?enablejsapi=1&rel=0&origin=" + encodeURIComponent(location.origin);
   document.body.appendChild(f);
   // Forward only the two commands the reader uses; ignore everything else.
+  // Source check first: this page is only ever framed by the reader, so a
+  // message from anything other than our own parent is not ours to act on.
+  // The command allowlist below stays as defence in depth, not as the gate.
+  // (The sender is a chrome-extension:// origin whose id differs between the
+  // unpacked and Web Store builds, so identity is established by "is my
+  // parent" rather than by matching a hardcoded origin string.)
   window.addEventListener("message", function (e) {
+    if (window.parent === window || e.source !== window.parent) return;
     var d = e.data;
     if (!d || typeof d !== "object" || d.pbpVideo !== 1) return;
     if (d.func !== "seekTo" && d.func !== "playVideo") return;
