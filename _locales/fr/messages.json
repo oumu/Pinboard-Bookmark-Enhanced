@@ -1706,7 +1706,7 @@
     "message": "Envoyer les cookies de connexion YouTube avec les requêtes de sous-titres"
   },
   "optVideoUseLoginHint": {
-    "message": "Envoie vos cookies de connexion YouTube à chaque requête de sous-titres, ce qui peut améliorer le taux de réussite sur les vidéos réservées aux comptes connectés ; désactivé par défaut."
+    "message": "Envoie vos cookies de connexion YouTube avec chaque requête de sous-titres. Activé par défaut : une requête anonyme risque davantage d'être considérée comme un robot et refusée. Désactivé, ces requêtes restent sans cookie, au prix d'un taux de réussite plus faible."
   },
   "mdTglToc": {
     "message": "TDM"

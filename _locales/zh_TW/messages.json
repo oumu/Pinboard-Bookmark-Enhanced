@@ -1706,7 +1706,7 @@
     "message": "隨字幕請求傳送 YouTube 登入 Cookie"
   },
   "optVideoUseLoginHint": {
-    "message": "會將你的 YouTube 登入 Cookie 隨每次字幕請求一併傳送，可提高需要登入才能觀看的影片的字幕取得成功率；預設關閉。"
+    "message": "會將你的 YouTube 登入 Cookie 隨每次字幕請求一起傳送。預設開啟：匿名請求更容易被判定為機器人而遭拒。關閉後這些請求不帶 Cookie，但字幕取得成功率會下降。"
   },
   "mdTglToc": {
     "message": "目錄"

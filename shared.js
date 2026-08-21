@@ -448,7 +448,7 @@ const SETTINGS_DEFAULTS = {
   // md-video: opt into sending YouTube login cookies with the watch-page
   // scrape to raise the caption hit rate on login-gated videos. Off by
   // default (privacy).
-  mdVideoUseLogin: false,
+  mdVideoUseLogin: true,
   selectionTrigger: "icon"
 };
 

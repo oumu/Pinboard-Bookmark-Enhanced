@@ -1676,7 +1676,7 @@
     "message": "Send YouTube login cookies with subtitle requests"
   },
   "optVideoUseLoginHint": {
-    "message": "Sends your YouTube login cookies with each caption request, which can raise the subtitle hit rate for videos that require being signed in; off by default."
+    "message": "Sends your YouTube login cookies with each caption request. On by default: an anonymous request is more likely to be treated as a bot and refused. Turn it off to keep these requests cookieless, at the cost of a lower subtitle hit rate."
   },
   "mdTglToc": {
     "message": "TOC"

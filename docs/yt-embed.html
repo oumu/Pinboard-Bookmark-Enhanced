@@ -16,7 +16,13 @@
   var f = document.createElement("iframe");
   f.allow = "encrypted-media; picture-in-picture; fullscreen";
   f.allowFullscreen = true;
-  f.src = "https://www.youtube-nocookie.com/embed/" + id +
+  // youtube.com, NOT youtube-nocookie.com. The privacy-enhanced domain is a
+  // separate registrable domain, so the viewer's youtube.com login cookies
+  // never reach it; an anonymous embed then routinely trips YouTube's
+  // "confirm you're not a bot" gate even for a signed-in viewer. Using the
+  // main domain lets the existing session identify the viewer, at the cost of
+  // the cookies that domain sets (disclosed in privacy.md).
+  f.src = "https://www.youtube.com/embed/" + id +
     "?enablejsapi=1&rel=0&origin=" + encodeURIComponent(location.origin);
   document.body.appendChild(f);
   // Forward only the two commands the reader uses; ignore everything else.
@@ -33,7 +39,7 @@
     if (d.func !== "seekTo" && d.func !== "playVideo") return;
     f.contentWindow.postMessage(JSON.stringify({
       event: "command", func: d.func, args: d.args || []
-    }), "https://www.youtube-nocookie.com");
+    }), "https://www.youtube.com");
   });
 })();
 </script>

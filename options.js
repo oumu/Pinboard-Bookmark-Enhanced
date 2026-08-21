@@ -572,7 +572,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       fields: {
         "opt-md-frontmatter": true, "opt-md-extended-meta": true,
         "opt-md-image-policy": "keep", "opt-md-include-toc": false,
-        "opt-md-include-hl": true, "opt-md-video-use-login": false
+        "opt-md-include-hl": true, "opt-md-video-use-login": true
       }
     },
     archive: {

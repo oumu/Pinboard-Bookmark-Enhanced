@@ -1706,7 +1706,7 @@
     "message": "YouTube-Anmeldecookies mit Untertitelanfragen senden"
   },
   "optVideoUseLoginHint": {
-    "message": "Sendet Ihre YouTube-Anmeldecookies bei jeder Untertitelanfrage mit, was die Trefferquote bei anmeldepflichtigen Videos erhöhen kann; standardmäßig deaktiviert."
+    "message": "Sendet Ihre YouTube-Login-Cookies mit jeder Untertitelanfrage. Standardmäßig aktiviert, da eine anonyme Anfrage eher als Bot eingestuft und abgelehnt wird. Ausgeschaltet bleiben diese Anfragen cookiefrei, dafür werden seltener Untertitel gefunden."
   },
   "mdTglToc": {
     "message": "Inhaltsverzeichnis"

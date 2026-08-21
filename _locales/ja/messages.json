@@ -1706,7 +1706,7 @@
     "message": "字幕リクエストに YouTube のログイン Cookie を送信する"
   },
   "optVideoUseLoginHint": {
-    "message": "字幕リクエストのたびに YouTube のログイン Cookie を送信し、ログインが必要な動画での取得成功率を高めます。デフォルトはオフです。"
+    "message": "字幕リクエストのたびに YouTube のログイン Cookie を送信します。既定でオン：匿名のリクエストはボットと見なされて拒否されやすいためです。オフにするとこれらのリクエストは Cookie なしになりますが、字幕の取得成功率は下がります。"
   },
   "mdTglToc": {
     "message": "目次"

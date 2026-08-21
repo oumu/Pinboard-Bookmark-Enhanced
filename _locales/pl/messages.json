@@ -1706,7 +1706,7 @@
     "message": "Wysyłaj pliki cookie logowania YouTube z żądaniami napisów"
   },
   "optVideoUseLoginHint": {
-    "message": "Wysyła Twoje pliki cookie logowania YouTube przy każdym żądaniu napisów, co może zwiększyć skuteczność w przypadku filmów wymagających zalogowania; domyślnie wyłączone."
+    "message": "Wysyła Twoje pliki cookie logowania YouTube z każdym żądaniem napisów. Domyślnie włączone: anonimowe żądanie częściej jest uznawane za bota i odrzucane. Po wyłączeniu żądania nie zawierają plików cookie, ale rzadziej udaje się pobrać napisy."
   },
   "mdTglToc": {
     "message": "Spis treści"
