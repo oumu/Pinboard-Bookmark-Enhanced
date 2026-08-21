@@ -3622,6 +3622,7 @@
   "mdVideoNoTracks": { "message": "Dla tego wideo nie ma dostępnych napisów" },
   "mdVideoBiliLogin": { "message": "Nie znaleziono napisów. Bilibili zwraca napisy tylko po zalogowaniu — zaloguj się w bilibili.com i spróbuj ponownie." },
   "mdVideoFailed": { "message": "Napisy do tego filmu nie są dostępne przez rozszerzenie. YouTube ogranicza dostęp do napisów w przypadku niektórych filmów." },
+  "mdVideoBlocked": { "message": "YouTube zablokował to żądanie i prosi o potwierdzenie, że nie jesteś botem. Nie ma to związku z napisami do tego filmu. Skorzystaj z odnośnika otwierającego film w YouTube albo włącz w ustawieniach opcję plików cookie logowania." },
   "mdVideoPermMissing": { "message": "Odmówiono uprawnienia; niczego nie wczytano" },
   "mdVideoCopyMd": { "message": "Skopiuj transkrypcję jako Markdown" },
   "mdVideoCopied": { "message": "Skopiowano transkrypcję" },

@@ -3622,6 +3622,7 @@
   "mdVideoNoTracks": { "message": "此影片沒有可用字幕" },
   "mdVideoBiliLogin": { "message": "找不到字幕。B 站僅在登入後回傳字幕，請先登入 bilibili.com 再重試。" },
   "mdVideoFailed": { "message": "無法透過擴充功能取得此影片的字幕。YouTube 對部分影片限制了字幕存取。" },
+  "mdVideoBlocked": { "message": "YouTube 攔截了這次請求（它要求確認你不是機械人），與該影片有沒有字幕無關。可以點「在 YouTube 上開啟」，或在設定裡開啟登入 cookie 選項後重試。" },
   "mdVideoPermMissing": { "message": "已拒絕授權，未載入任何內容" },
   "mdVideoCopyMd": { "message": "複製字幕為 Markdown" },
   "mdVideoCopied": { "message": "已複製字幕" },

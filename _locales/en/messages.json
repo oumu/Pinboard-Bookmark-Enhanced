@@ -3616,6 +3616,7 @@
   "mdVideoNoTracks": { "message": "No subtitles are available for this video" },
   "mdVideoBiliLogin": { "message": "No subtitles found. Bilibili only returns subtitles when you are logged in — sign in at bilibili.com, then try again." },
   "mdVideoFailed": { "message": "Subtitles are not available for this video through the extension. YouTube restricts caption access for some videos." },
+  "mdVideoBlocked": { "message": "YouTube blocked this request (it asks to confirm you are not a bot). This is not about the video's subtitles. Try the open on YouTube link, or turn on the login-cookie setting in options." },
   "mdVideoPermMissing": { "message": "Permission was declined; nothing was loaded" },
   "mdVideoCopyMd": { "message": "Copy transcript as Markdown" },
   "mdVideoCopied": { "message": "Transcript copied" },

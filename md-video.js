@@ -190,6 +190,16 @@ function pbpVideoTranscriptMarkdown(segments, meta) {
   return lines.join("\n");
 }
 
+// Playability gate from a watch-page player response. "OK" means YouTube
+// served us a real video; anything else (LOGIN_REQUIRED for the bot check,
+// AGE_VERIFICATION_REQUIRED, UNPLAYABLE, ERROR) means the answer we got is
+// about US, not about the video's captions. Missing status -> "" (unknown),
+// which callers treat as "carry on" rather than as a refusal.
+function pbpYtPlayabilityStatus(playerJson) {
+  const st = playerJson && playerJson.playabilityStatus && playerJson.playabilityStatus.status;
+  return typeof st === "string" ? st : "";
+}
+
 // Orchestrator: watch page (carries ytInitialPlayerResponse) -> tracks ->
 // pick -> caption body (XML first, fmt=json3 fallback). fetchFn injectable
 // for tests; every network step is fail-soft and reports a coarse error code
@@ -205,6 +215,15 @@ async function pbpYtFetchTranscript(videoId, opts) {
     if (resp.ok) playerJson = pbpYtExtractPlayerJson(await resp.text());
   } catch (_) { /* leave playerJson null */ }
   if (!playerJson) return { error: "player" };
+  // Distinguish "YouTube refused us" from "this video has no captions" before
+  // reading the track list. A bot-gated response still parses and still has no
+  // captions field, so without this check every rate-limited request was
+  // reported to the user as "no subtitles available" -- a claim that is simply
+  // untrue and sends them looking for the wrong problem. LOGIN_REQUIRED with a
+  // bot-check reason is exactly what the embedded player shows as "Sign in to
+  // confirm you're not a bot".
+  const status = pbpYtPlayabilityStatus(playerJson);
+  if (status && status !== "OK") return { error: "blocked", status: status };
   const tracks = pbpYtExtractTracks(playerJson);
   if (!tracks.length) return { error: "no-tracks" };
   const track = opts.pickBaseUrl ? (tracks.find((tr) => tr.baseUrl === opts.pickBaseUrl) || pbpYtPickTrack(tracks, opts.uiLang)) : pbpYtPickTrack(tracks, opts.uiLang);
@@ -473,6 +492,10 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     }
     if (res.error === "player" || res.error === "view") { statusEl.textContent = t("mdVideoFailed"); return; }
     if (res.error === "login") { statusEl.textContent = t("mdVideoBiliLogin"); return; }
+    // YouTube answered, but about us rather than about the video: the request
+    // was gated (bot check / age wall / unplayable). Saying "no subtitles"
+    // here would be a lie, and would point the user at the wrong problem.
+    if (res.error === "blocked") { statusEl.textContent = t("mdVideoBlocked"); return; }
     if (res.error === "no-tracks" || res.error === "caption-body") {
       statusEl.textContent = t("mdVideoNoTracks");
       if (!res.tracks) return;

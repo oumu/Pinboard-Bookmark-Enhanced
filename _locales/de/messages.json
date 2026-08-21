@@ -3622,6 +3622,7 @@
   "mdVideoNoTracks": { "message": "Für dieses Video sind keine Untertitel verfügbar" },
   "mdVideoBiliLogin": { "message": "Keine Untertitel gefunden. Bilibili liefert Untertitel nur im angemeldeten Zustand — melden Sie sich bei bilibili.com an und versuchen Sie es erneut." },
   "mdVideoFailed": { "message": "Für dieses Video sind über die Erweiterung keine Untertitel verfügbar. YouTube schränkt den Untertitelzugriff bei manchen Videos ein." },
+  "mdVideoBlocked": { "message": "YouTube hat diese Anfrage blockiert und verlangt eine Bestätigung, dass Sie kein Bot sind. Das sagt nichts über die Untertitel des Videos aus. Nutzen Sie den Link zum Öffnen auf YouTube oder aktivieren Sie in den Einstellungen die Option für Login-Cookies." },
   "mdVideoPermMissing": { "message": "Berechtigung abgelehnt; es wurde nichts geladen" },
   "mdVideoCopyMd": { "message": "Transkript als Markdown kopieren" },
   "mdVideoCopied": { "message": "Transkript kopiert" },
