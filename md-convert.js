@@ -76,9 +76,21 @@ function _pbpTexForMarkdown(tex) { return String(tex).replace(/\\/g, "\\\\"); }
 // passthrough): given a <math> node, extract its TeX source -- alttext, else
 // Defuddle's data-latex (vendor 0.19.1 rewrites Wikipedia's alttext into this,
 // dropping the MathML annotation too), else the annotation -- and return it
-// $/$$-wrapped with backslashes doubled for markdown re-parse safety. Returns
-// null when no TeX source is found (caller degrades to plain text).
-function _pbpMathTexWrapped(node) {
+// $/$$-wrapped. Returns null when no TeX source is found (caller degrades to
+// plain text).
+//
+// doubleEscape (fix round 2): _pbpTexForMarkdown's doubling exists SOLELY to
+// survive marked's CommonMark inline-unescape pass ("\," -> ",", "\\" -> "\"),
+// which only runs when the output text is re-parsed as markdown. The two call
+// sites do NOT have the same fate: the turndown "mathml" rule's return value
+// becomes markdown that marked parses inline (doubling IS undone -> pass true)
+// -- but _pbpSanitizeComplexTableHtml embeds this text inside a raw HTML block,
+// and marked never runs inline unescaping over raw HTML block content (doubling
+// is NEVER undone -> pass false, or KaTeX silently receives literal "\\displaystyle"
+// and misreads it as a forced linebreak + literal letters -- no thrown error,
+// no .katex-error span, just silently wrong math). Callers MUST pass the flag
+// that matches whether their output round-trips through marked's inline parser.
+function _pbpMathTexWrapped(node, doubleEscape) {
   let tex = (node.getAttribute("alttext") || "").trim();
   if (!tex) tex = (node.getAttribute("data-latex") || "").trim();
   if (!tex && node.querySelector) {
@@ -86,7 +98,7 @@ function _pbpMathTexWrapped(node) {
     tex = ann ? (ann.textContent || "").trim() : "";
   }
   if (!tex) return null;
-  const safe = _pbpTexForMarkdown(tex);
+  const safe = doubleEscape ? _pbpTexForMarkdown(tex) : tex;
   return node.getAttribute("display") === "block" ? ("$$" + safe + "$$") : ("$" + safe + "$");
 }
 
@@ -100,8 +112,12 @@ function _pbpSanitizeComplexTableHtml(node) {
   // the SAME $/$$-wrapped text KaTeX's auto-render expects: it scans the whole
   // rendered DOM's text nodes for delimiters regardless of whether the HTML
   // came from marked-parsed markdown or a raw passthrough block like this one.
+  // doubleEscape:false -- this text lands inside a raw HTML block, which marked
+  // NEVER runs inline unescaping over (see _pbpMathTexWrapped's comment); doubling
+  // here would never be undone and KaTeX would silently misread "\\," as a forced
+  // linebreak + literal comma instead of a thin space.
   clone.querySelectorAll("math").forEach((m) => {
-    const wrapped = _pbpMathTexWrapped(m);
+    const wrapped = _pbpMathTexWrapped(m, false);
     m.replaceWith((m.ownerDocument || document).createTextNode(wrapped == null ? (m.textContent || "") : wrapped));
   });
   clone.querySelectorAll("script, style, iframe, object, embed, link, meta").forEach((el) => el.remove());
@@ -143,7 +159,11 @@ function _pbpGetTurndown() {
   td.addRule("mathml", {
     filter: "math",
     replacement: (content, node) => {
-      const wrapped = _pbpMathTexWrapped(node);
+      // doubleEscape:true -- this return value becomes markdown text that
+      // marked re-parses and inline-unescapes ("\," -> ",", "\\" -> "\"); the
+      // doubling here is what survives that pass intact (see
+      // _pbpMathTexWrapped's comment).
+      const wrapped = _pbpMathTexWrapped(node, true);
       return wrapped == null ? content : wrapped;
     }
   });

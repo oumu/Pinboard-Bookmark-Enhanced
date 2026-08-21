@@ -2954,18 +2954,101 @@ section("table: synthetic header only when the source has one");
 
 section("TeX survives table-cell escaping");
 (function () {
+  // Fix round 2: these were `.includes("\\,")` substring checks -- BLIND,
+  // because a DOUBLED "\\,\\!" also contains "\," as a substring (starting at
+  // the pair's second backslash), so the check could never fail even when the
+  // escaping was wrong. This table is headerless -> raw-HTML passthrough ->
+  // doubleEscape:false -> the source's single backslash must survive
+  // UNCHANGED (never doubled, since a raw HTML block never gets marked's
+  // inline-unescape pass to undo doubling). Assert the exact single-backslash
+  // substring AND the absence of the doubled form.
   const md = htmlToMarkdown('<table><tr><td><math data-latex="{\\displaystyle 1,2\\,\\!}">t</math></td><td>b</td></tr></table>', {});
-  check("thin-space command survives into markdown", md.includes("\\,"));
+  check("thin-space command survives into markdown with a single backslash (not doubled)",
+    md.includes("${\\displaystyle 1,2\\,\\!}$") && !md.includes("\\\\,"), md);
   const rendered = renderMarkdown(md);
-  check("thin-space command survives marked rendering", rendered.includes("\\,"));
+  check("thin-space command survives marked rendering with a single backslash (not doubled)",
+    rendered.includes("${\\displaystyle 1,2\\,\\!}$") && !rendered.includes("\\\\,"), rendered);
   // Fix round 1, requirement 2: re-verify the Wikipedia shape end to end --
   // this table has no <th>/<thead> (exactly Wikipedia's example-table shape),
   // so it now takes the raw-HTML passthrough above. Confirm it still renders
   // as a real <table> with no synthetic <th> AND the TeX source survives.
   check("headerless math table renders as a real table, not literal pipes", /<table[\s>]/i.test(rendered));
   check("headerless math table renders no th", !/<th[\s>]/i.test(rendered));
-  const mat = renderMarkdown(htmlToMarkdown('<table><tr><td><math data-latex="{\\begin{matrix}a\\\\b\\end{matrix}}">t</math></td></tr></table>', {}));
-  check("matrix row break survives marked rendering", mat.includes("\\\\"));
+  // Same blindness fix for the matrix row break: `.includes("\\\\")` (2
+  // backslash chars) matches EITHER the source's genuine 2-backslash row-break
+  // command OR a wrongly-doubled single backslash elsewhere in the string --
+  // it can't tell "correct" from "bug" apart. Assert the source's EXACT
+  // backslash counts (1 before \begin/\end, 2 for the genuine \\ row break)
+  // survive verbatim, and that no 4-backslash run appears (which is what
+  // doubling an already-2-backslash command, then never undoing it, produces).
+  const matMd = htmlToMarkdown('<table><tr><td><math data-latex="{\\begin{matrix}a\\\\b\\end{matrix}}">t</math></td></tr></table>', {});
+  const mat = renderMarkdown(matMd);
+  check("matrix row break survives marked rendering with the source's exact backslash count (not doubled)",
+    mat.includes("${\\begin{matrix}a\\\\b\\end{matrix}}$") && !mat.includes("\\\\\\\\"), mat);
+})();
+
+// Fix round 2 (HIGH defect from a scoped re-review, real Chromium + real
+// KaTeX, full production call order): _pbpMathTexWrapped doubled backslashes
+// UNCONDITIONALLY, but its two call sites have OPPOSITE fates --
+//   - turndown "mathml" rule -> output is markdown text marked re-parses and
+//     inline-unescapes ("\\," -> "\,") -> doubling is REQUIRED (doubleEscape:true).
+//   - _pbpSanitizeComplexTableHtml -> output lands inside a raw HTML block,
+//     which marked NEVER runs inline unescaping over -> doubling is NEVER
+//     undone -> KaTeX silently misreads "\\displaystyle"/"\\," as a forced
+//     linebreak + literal characters. No thrown error, no .katex-error span --
+//     it just renders wrong (doubleEscape:false).
+// Every check below uses the SAME probe (a thin-space + bang command, both
+// backslash+ASCII-punctuation, so marked's escape rule actually engages) and
+// the SAME assertion shape: the single-backslash form is an exact substring
+// AND the doubled form is absent. That shape is what makes these
+// DISCRIMINATING -- a plain `.includes("\\,")` substring check (fix round 1's
+// mistake) matches the doubled form too (it contains "\," as a sub-sequence
+// starting at its second backslash), so it can never go red no matter which
+// way the escaping is broken.
+section("escaping is path-conditional: doubleEscape true only for markdown re-parse paths");
+(function () {
+  const probe = '\\displaystyle 1,2,3\\,\\!';               // source TeX, single backslashes
+  const single = '$' + probe + '$';                          // correct inline render
+  const singleBlock = '$$' + probe + '$$';                   // correct block render
+  const doubled = '\\\\,';                                    // the doubled-and-never-undone bug's signature
+
+  // Prose path (no table): turndown "mathml" rule, doubleEscape:true.
+  const proseInline = renderMarkdown(htmlToMarkdown('<math data-latex="' + probe + '">ignored</math>', {}));
+  check("prose inline $ math: single backslash survives marked's unescape",
+    proseInline.includes(single) && !proseInline.includes(doubled), proseInline);
+  const proseBlock = renderMarkdown(htmlToMarkdown('<math display="block" data-latex="' + probe + '">ignored</math>', {}));
+  check("prose block $$ math: single backslash survives marked's unescape",
+    proseBlock.includes(singleBlock) && !proseBlock.includes(doubled), proseBlock);
+
+  // Pipe-table path (header present -> cellMd -> td.turndown -> same mathml
+  // rule, doubleEscape:true -- GFM table cell content is inline-parsed by
+  // marked same as prose, so it round-trips through the same unescape pass).
+  const pipeInline = renderMarkdown(htmlToMarkdown('<table><tr><th>H</th></tr><tr><td><math data-latex="' + probe + '">ignored</math></td></tr></table>', {}));
+  check("pipe-table (header present) inline $ math: single backslash survives marked's unescape",
+    pipeInline.includes(single) && !pipeInline.includes(doubled), pipeInline);
+  const pipeBlock = renderMarkdown(htmlToMarkdown('<table><tr><th>H</th></tr><tr><td><math display="block" data-latex="' + probe + '">ignored</math></td></tr></table>', {}));
+  check("pipe-table (header present) block $$ math: single backslash survives marked's unescape",
+    pipeBlock.includes(singleBlock) && !pipeBlock.includes(doubled), pipeBlock);
+
+  // Raw-HTML path via the NEW headerless-table branch (fix round 1):
+  // _pbpSanitizeComplexTableHtml, doubleEscape:false.
+  const rawInline = renderMarkdown(htmlToMarkdown('<table><tr><td><math data-latex="' + probe + '">ignored</math></td></tr></table>', {}));
+  check("headerless-table (raw-HTML) inline $ math reaches KaTeX with a single backslash, not doubled",
+    rawInline.includes(single) && !rawInline.includes(doubled), rawInline);
+  const rawBlock = renderMarkdown(htmlToMarkdown('<table><tr><td><math display="block" data-latex="' + probe + '">ignored</math></td></tr></table>', {}));
+  check("headerless-table (raw-HTML) block $$ math reaches KaTeX with a single backslash, not doubled",
+    rawBlock.includes(singleBlock) && !rawBlock.includes(doubled), rawBlock);
+
+  // Raw-HTML path via the PRE-EXISTING complex-table branch (rowspan/colspan),
+  // same _pbpSanitizeComplexTableHtml call, doubleEscape:false -- this branch
+  // had the identical latent gap before fix round 1 ever touched headerless
+  // tables; it was just never exercised by a test until now.
+  const complexInline = renderMarkdown(htmlToMarkdown('<table><tr><td rowspan="2"><math data-latex="' + probe + '">ignored</math></td><td>b</td></tr><tr><td>c</td></tr></table>', {}));
+  check("complex table (rowspan) inline $ math reaches KaTeX with a single backslash, not doubled",
+    complexInline.includes(single) && !complexInline.includes(doubled), complexInline);
+  const complexBlock = renderMarkdown(htmlToMarkdown('<table><tr><td rowspan="2"><math display="block" data-latex="' + probe + '">ignored</math></td><td>b</td></tr><tr><td>c</td></tr></table>', {}));
+  check("complex table (rowspan) block $$ math reaches KaTeX with a single backslash, not doubled",
+    complexBlock.includes(singleBlock) && !complexBlock.includes(doubled), complexBlock);
 })();
 
 // CRITICAL interaction check (see task-1-report.md): _pbpTexForMarkdown doubles
