@@ -262,6 +262,31 @@ async function pbpYtFetchCaptionBody(baseUrl, fetchFn, useLogin) {
   return [];
 }
 
+// Hand-build the get_transcript params protobuf (base64) for a video +
+// track, so the transcript-panel endpoint stays reachable even when the
+// page's own data carries no getTranscriptEndpoint (observed live on a
+// device: "no params in page data"). Wire layout is the community-verified
+// one shipping in Invidious' produce_transcript_params: an outer message
+// { 1: videoId, 2: urlsafe-b64+escaped inner { 1: "asr"?, 2: lang, 3: "" },
+// 3: 1, 5: panel id, 6: 1, 7: 1, 8: 1 }.
+function pbpYtTranscriptParams(videoId, langCode, asr) {
+  const enc = (s) => Array.from(new TextEncoder().encode(String(s)));
+  const varint = (n) => { const out = []; let v = n >>> 0; do { let b = v & 0x7f; v >>>= 7; if (v) b |= 0x80; out.push(b); } while (v); return out; };
+  const str = (field, s) => { const b = enc(s); return [(field << 3) | 2, ...varint(b.length), ...b]; };
+  const num = (field, v) => [(field << 3) | 0, ...varint(v)];
+  const b64 = (bytes) => btoa(String.fromCharCode.apply(null, bytes));
+  const inner = [...(asr ? str(1, "asr") : []), ...str(2, langCode || "en"), ...str(3, "")];
+  const innerTok = encodeURIComponent(b64(inner).replace(/\+/g, "-").replace(/\//g, "_"));
+  const outer = [
+    ...str(1, videoId),
+    ...str(2, innerTok),
+    ...num(3, 1),
+    ...str(5, "engagement-panel-searchable-transcript-search-panel"),
+    ...num(6, 1), ...num(7, 1), ...num(8, 1),
+  ];
+  return b64(outer);
+}
+
 // Parse a /youtubei/v1/get_transcript response (the endpoint behind
 // YouTube's own "Show transcript" panel) into segments. Shape verified
 // against the shipping implementation in the page-assist extension:
@@ -564,13 +589,13 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   //     the call the UI itself makes, from the environment the UI runs in.
   //  2. /youtubei/v1/player with the IOS client: its captionTracks baseUrls
   //     are not PO-Token-gated (community-verified 2026-01), then json3.
-  async function ytTabPanelTranscript(tabId, videoId, hl) {
+  async function ytTabPanelTranscript(tabId, videoId, hl, fallbackParams) {
     let inj = null;
     try {
       inj = await chrome.scripting.executeScript({
         target: { tabId },
         world: "MAIN",
-        func: async (vid, lang) => {
+        func: async (vid, lang, fbParams) => {
           // out.trace carries WHY each route failed back to the extension
           // page, where it is console.warn'd -- this chain being silent is
           // how four device-report rounds went undiagnosable.
@@ -588,7 +613,10 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
               return "";
             };
             let params = "";
-            try { const app = document.querySelector("ytd-app"); params = scan(app && app.data); } catch (_) {}
+            try {
+              const app = document.querySelector("ytd-app");
+              params = scan(app && app.data) || scan(app && app.data && app.data.response);
+            } catch (_) {}
             if (!params) { try { params = scan(window.ytInitialData); } catch (_) {} }
             if (params) {
               try {
@@ -606,8 +634,9 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
             return { client: { clientName: "WEB", clientVersion: "2.20260101.00.00" } };
           };
           try {
-            const params = paramsFor();
-            if (!params) out.trace.push("get_transcript: no params in page data");
+            let params = paramsFor();
+            if (!params && fbParams) { params = fbParams; out.trace.push("get_transcript: using hand-built params"); }
+            if (!params) out.trace.push("get_transcript: no params at all");
             if (params) {
               const r = await fetch("/youtubei/v1/get_transcript?prettyPrint=false", {
                 method: "POST", credentials: "same-origin",
@@ -626,13 +655,11 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           } catch (e) { out.trace.push("get_transcript: " + String((e && e.message) || e)); }
           try {
             const r = await fetch("/youtubei/v1/player?prettyPrint=false", {
-              // omit, NOT same-origin: every verified success of this route
-              // was cookieless (our own 2221-row run fired from an empty
-              // profile; the community reference implementation calls it
-              // anonymously from a server), while the one logged-in device
-              // test with cookies attached came back empty. A web session
-              // riding an IOS client context is the inconsistent variant.
-              method: "POST", credentials: "omit",
+              // same-origin: the fully anonymous form was tried and refused
+              // live on a clean residential device (trace: "ios player:
+              // status LOGIN_REQUIRED, tracks 0"), while the one verified
+              // success carried the page's visitor session. Keep the session.
+              method: "POST", credentials: "same-origin",
               headers: { "content-type": "application/json" },
               body: JSON.stringify({
                 context: { client: { clientName: "IOS", clientVersion: "20.10.38", deviceMake: "Apple", deviceModel: "iPhone16,2", osName: "iPhone", osVersion: "18.3.2.22D82" } },
@@ -650,7 +677,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
                 const tr = list.find((t) => String(t.languageCode || "").toLowerCase().split("-")[0] === base && t.kind !== "asr")
                   || list.find((t) => t.kind !== "asr") || list[0];
                 const u = tr.baseUrl + (tr.baseUrl.indexOf("?") !== -1 ? "&" : "?") + "fmt=json3";
-                const r2 = await fetch(u, { credentials: "omit", signal: AbortSignal.timeout(15000) });
+                const r2 = await fetch(u, { credentials: "same-origin", signal: AbortSignal.timeout(15000) });
                 if (r2.ok) {
                   const t3 = await r2.text();
                   if (t3 && t3.length > 20) { out.kind = "json3"; out.body = t3; return out; }
@@ -667,7 +694,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           } catch (e) { out.trace.push("ios player: " + String((e && e.message) || e)); }
           return out;
         },
-        args: [videoId, hl || ""],
+        args: [videoId, hl || "", fallbackParams || ""],
       });
     } catch (e) {
       console.warn("[pbp-video] rescue injection failed:", (e && e.message) || e);
@@ -774,7 +801,14 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       // is dropped on success: its timedtext URLs are exactly what just
       // failed, so offering them as "switch track" would be a trap.
       if (ytHadTab && res && res.error) {
-        const segs = await ytTabPanelTranscript(fetchTabId, detected.videoId, uiLang);
+        // Hand-build a transcript-panel params token from the track list the
+        // failed timedtext round already gave us (language + asr), so the
+        // rescue no longer depends on finding an endpoint in the page data.
+        const rTrack = (res.tracks && res.tracks.length)
+          ? (pbpYtPickTrack(res.tracks, uiLang) || res.tracks[0]) : null;
+        const fbParams = pbpYtTranscriptParams(detected.videoId,
+          rTrack ? rTrack.lang : (String(uiLang || "en").split("-")[0]), !!(rTrack && rTrack.asr));
+        const segs = await ytTabPanelTranscript(fetchTabId, detected.videoId, uiLang, fbParams);
         console.info("[pbp-video] panel rescue:", segs ? segs.length + " segments" : "failed");
         if (segs && segs.length) res = { tracks: [], track: null, segments: segs };
       }

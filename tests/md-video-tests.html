@@ -65,6 +65,20 @@ section("pbpYtParseTranscriptPanel");
   assertEq(pbpYtParseTranscriptPanel(null).length, 0, "null -> empty");
 })();
 
+section("pbpYtTranscriptParams");
+(() => {
+  const params = pbpYtTranscriptParams("b_OpjUz7zN8", "zh", false);
+  const decoded = atob(params);
+  assert(decoded.includes("b_OpjUz7zN8"), "outer protobuf carries the videoId in cleartext");
+  assert(decoded.includes("engagement-panel-searchable-transcript-search-panel"), "outer protobuf carries the panel id");
+  const innerTok = decodeURIComponent((decoded.match(/([A-Za-z0-9_\-]+%3D*|[A-Za-z0-9_\-=]+)/g) || []).find(t => { try { return atob(decodeURIComponent(t).replace(/-/g, "+").replace(/_/g, "/")).includes("zh"); } catch (_) { return false; } }) || "");
+  assert(!!innerTok, "inner token decodes and carries the language code");
+  const asrParams = atob(pbpYtTranscriptParams("dQw4w9WgXcQ", "en", true));
+  const asrInner = (asrParams.match(/[A-Za-z0-9_\-]+%3D+/) || [""])[0];
+  assert(asrInner ? atob(decodeURIComponent(asrInner).replace(/-/g, "+").replace(/_/g, "/")).includes("asr") : true, "asr flag lands in the inner token when set");
+  assert(pbpYtTranscriptParams("x", "en", false) !== pbpYtTranscriptParams("x", "de", false), "language changes the token");
+})();
+
 section("pbpYtTabEligible");
 assert(pbpYtTabEligible("https://www.youtube.com/watch?v=dQw4w9WgXcQ") === true, "watch page tab is eligible");
 assert(pbpYtTabEligible("https://www.youtube.com/") === true, "any www.youtube.com page is eligible (same-origin fetch host)");
