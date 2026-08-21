@@ -1672,6 +1672,12 @@
   "mdOptIncludeHl": {
     "message": "Include highlights"
   },
+  "optVideoUseLogin": {
+    "message": "Send YouTube login cookies with subtitle requests"
+  },
+  "optVideoUseLoginHint": {
+    "message": "Sends your YouTube login cookies with each caption request, which can raise the subtitle hit rate for videos that require being signed in; off by default."
+  },
   "mdTglToc": {
     "message": "TOC"
   },
@@ -3609,7 +3615,7 @@
   "mdVideoTrackAria": { "message": "Subtitle language" },
   "mdVideoNoTracks": { "message": "No subtitles are available for this video" },
   "mdVideoBiliLogin": { "message": "No subtitles found. Bilibili only returns subtitles when you are logged in — sign in at bilibili.com, then try again." },
-  "mdVideoFailed": { "message": "Couldn't load subtitles; YouTube may be refusing the request right now. Try again later." },
+  "mdVideoFailed": { "message": "Subtitles are not available for this video through the extension. YouTube restricts caption access for some videos." },
   "mdVideoPermMissing": { "message": "Permission was declined; nothing was loaded" },
   "mdVideoCopyMd": { "message": "Copy transcript as Markdown" },
   "mdVideoCopied": { "message": "Transcript copied" },

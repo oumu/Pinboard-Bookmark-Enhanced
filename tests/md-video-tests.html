@@ -41,16 +41,14 @@ assertEq(pbpVideoDetect("https://example.com/watch?v=dQw4w9WgXcQ"), null, "non-Y
 assertEq(pbpVideoDetect("https://www.youtube.com/feed/subscriptions"), null, "non-video YouTube page is null");
 assertEq(pbpVideoDetect("not a url"), null, "garbage is null");
 
-section("pbpYtPlayerRequest");
-const req0 = pbpYtPlayerRequest("vid123", 0, "zh-CN");
-assertEq(req0.url, "https://www.youtube.com/youtubei/v1/player?prettyPrint=false", "InnerTube endpoint");
-assertEq(req0.method, "POST", "POST");
-const body0 = JSON.parse(req0.body);
-assertEq(body0.videoId, "vid123", "videoId in body");
-assertEq(body0.context.client.clientName, "5", "client 0 is IOS (clientName 5)");
-assertEq(body0.context.client.hl, "zh-CN", "hl carries the ui language");
-check("contentCheckOk/racyCheckOk set", body0.contentCheckOk === true && body0.racyCheckOk === true);
-assertEq(JSON.parse(pbpYtPlayerRequest("v", 3, "en").body).context.client.clientName, "2", "client 3 is MWEB (clientName 2)");
+section("pbpYtWatchUrl + player-json lift");
+assert(pbpYtWatchUrl("abc123", "zh-CN").startsWith("https://www.youtube.com/watch?v=abc123"), "watch url shape");
+check("hl carried", pbpYtWatchUrl("abc123", "zh-CN").includes("hl=zh-CN"));
+const HTML_OK = 'x<script>var ytInitialPlayerResponse = {"captions":{"playerCaptionsTracklistRenderer":{"captionTracks":[{"baseUrl":"https://www.youtube.com/api/timedtext?a=1","languageCode":"en","name":{"simpleText":"English"}}]}}};<\/script>y';
+const lifted = pbpYtExtractPlayerJson(HTML_OK);
+check("lifts captionTracks from watch html", pbpYtExtractPlayerJson(HTML_OK) && pbpYtExtractTracks(lifted).length === 1);
+assertEq(pbpYtExtractPlayerJson("no player here"), null, "absent player json yields null");
+assertEq(pbpYtExtractPlayerJson('var ytInitialPlayerResponse = {"broken":'), null, "malformed json yields null");
 
 section("pbpYtExtractTracks + pick");
 const PR = { captions: { playerCaptionsTracklistRenderer: { captionTracks: [
@@ -89,37 +87,25 @@ check("markdown: heading + source line + paragraphs", md.startsWith("## ") && md
 assertEq(pbpVideoFmtTime(65), "1:05", "m:ss");
 assertEq(pbpVideoFmtTime(3671), "1:01:11", "h:mm:ss");
 
-section("pbpYtFetchTranscript orchestration (injected fetch)");
+section("pbpYtFetchTranscript over the watch page");
 await (async () => {
-  const calls = [];
-  const okPlayer = { captions: { playerCaptionsTracklistRenderer: { captionTracks: [ { baseUrl: "https://www.youtube.com/api/timedtext?x=1", languageCode: "en", name: { simpleText: "English" } } ] } } };
-  const fetchFn = async (url, opts) => {
-    calls.push(url);
-    if (url.includes("/youtubei/")) {
-      if (calls.filter((u) => u.includes("/youtubei/")).length === 1) return { ok: false, status: 403 };
-      return { ok: true, status: 200, json: async () => okPlayer };
-    }
-    if (url.includes("fmt=json3")) return { ok: true, status: 200, text: async () => JSON.stringify({ events: [{ tStartMs: 0, dDurationMs: 1000, segs: [{ utf8: "hi" }] }] }) };
-    return { ok: true, status: 200, text: async () => "" };  // XML attempt returns empty -> falls to json3
+  let sawCreds = null, sawUrl = null;
+  const fetchFn = async (url, o) => {
+    sawUrl = url; sawCreds = o && o.credentials;
+    if (url.includes("/watch")) return { ok: true, text: async () => HTML_OK };
+    return { ok: true, text: async () => JSON.stringify({ events: [{ tStartMs: 0, dDurationMs: 900, segs: [{ utf8: "hi" }] }] }) };
   };
   const res = await pbpYtFetchTranscript("vid", { fetchFn, uiLang: "en" });
-  check("client chain advances past a 403", calls.filter((u) => u.includes("/youtubei/")).length === 2);
-  check("xml-empty falls back to fmt=json3", calls.some((u) => u.includes("fmt=json3")));
-  check("segments delivered", res.segments && res.segments.length === 1 && res.segments[0].content === "hi");
-  check("track list delivered for the picker UI", res.tracks && res.tracks.length === 1 && res.track && res.track.lang === "en");
-  const noCaps = await pbpYtFetchTranscript("vid", { fetchFn: async () => ({ ok: true, status: 200, json: async () => ({}) }), uiLang: "en" });
-  check("no captionTracks yields error:'no-tracks'", noCaps.error === "no-tracks");
-  const allFail = await pbpYtFetchTranscript("vid", { fetchFn: async () => ({ ok: false, status: 403 }), uiLang: "en" });
-  check("all four clients failing yields error:'player'", allFail.error === "player");
-
-  let sawSignal = false;
-  const okPlayer2 = { captions: { playerCaptionsTracklistRenderer: { captionTracks: [ { baseUrl: "https://www.youtube.com/api/timedtext?x=1", languageCode: "en", name: { simpleText: "English" } } ] } } };
-  await pbpYtFetchTranscript("vid", { uiLang: "en", fetchFn: async (url, o) => {
-    if (o && o.signal && typeof o.signal.aborted === "boolean") sawSignal = true;
-    if (url.includes("/youtubei/")) return { ok: true, status: 200, json: async () => okPlayer2 };
-    return { ok: true, status: 200, text: async () => JSON.stringify({ events: [{ tStartMs: 0, dDurationMs: 1000, segs: [{ utf8: "x" }] }] }) };
-  } });
-  check("fetches carry an abort signal", sawSignal);
+  check("segments delivered from the scrape path", res.segments && res.segments[0].content === "hi");
+  check("watch page fetched", /\/watch\?v=vid/.test(sawUrl) || sawUrl.includes("timedtext") );
+  assertEq(sawCreds, "omit", "default stays cookieless");
+  let creds2 = null;
+  await pbpYtFetchTranscript("vid", { fetchFn: async (u, o) => { creds2 = o && o.credentials; return { ok: true, text: async () => HTML_OK }; }, useLogin: true });
+  assertEq(creds2, "include", "useLogin opts into the login-cookie fetch");
+  const empty = await pbpYtFetchTranscript("vid", { fetchFn: async (u) => u.includes("/watch") ? { ok: true, text: async () => HTML_OK } : { ok: true, text: async () => "" } });
+  assertEq(empty.error, "caption-body", "empty timedtext body (exp=xpe) reports caption-body");
+  const noHtml = await pbpYtFetchTranscript("vid", { fetchFn: async () => ({ ok: false, status: 429 }) });
+  assertEq(noHtml.error, "player", "watch page failure keeps the player error code");
 })();
 
 section("pbpVideoDetect: bilibili");

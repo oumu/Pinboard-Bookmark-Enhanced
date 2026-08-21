@@ -1702,6 +1702,12 @@
   "mdOptIncludeHl": {
     "message": "包含標記"
   },
+  "optVideoUseLogin": {
+    "message": "隨字幕請求傳送 YouTube 登入 Cookie"
+  },
+  "optVideoUseLoginHint": {
+    "message": "會將你的 YouTube 登入 Cookie 隨每次字幕請求一併傳送，可提高需要登入才能觀看的影片的字幕取得成功率；預設關閉。"
+  },
   "mdTglToc": {
     "message": "目錄"
   },
@@ -3615,7 +3621,7 @@
   "mdVideoTrackAria": { "message": "字幕語言" },
   "mdVideoNoTracks": { "message": "此影片沒有可用字幕" },
   "mdVideoBiliLogin": { "message": "找不到字幕。B 站僅在登入後回傳字幕，請先登入 bilibili.com 再重試。" },
-  "mdVideoFailed": { "message": "字幕載入失敗，可能是 YouTube 暫時拒絕了請求。稍後再試。" },
+  "mdVideoFailed": { "message": "無法透過擴充功能取得此影片的字幕。YouTube 對部分影片限制了字幕存取。" },
   "mdVideoPermMissing": { "message": "已拒絕授權，未載入任何內容" },
   "mdVideoCopyMd": { "message": "複製字幕為 Markdown" },
   "mdVideoCopied": { "message": "已複製字幕" },

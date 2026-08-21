@@ -572,7 +572,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       fields: {
         "opt-md-frontmatter": true, "opt-md-extended-meta": true,
         "opt-md-image-policy": "keep", "opt-md-include-toc": false,
-        "opt-md-include-hl": true
+        "opt-md-include-hl": true, "opt-md-video-use-login": false
       }
     },
     archive: {
@@ -1210,6 +1210,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     "opt-md-extended-meta": s.mdExportExtendedMeta,
     "opt-md-include-toc": s.mdExportIncludeToc,
     "opt-md-include-hl": s.mdExportIncludeHighlights,
+    "opt-md-video-use-login": s.mdVideoUseLogin === true,
     "opt-tag-sort-by-pop": s.tagSortByPopEnabled,
     "opt-wayback-enabled": s.waybackArchiveEnabled === true,
     "opt-wayback-batch": s.waybackArchiveBatch === true,
@@ -1805,6 +1806,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       mdExportImagePolicy: $id("opt-md-image-policy").value,
       mdExportIncludeToc: $id("opt-md-include-toc").checked,
       mdExportIncludeHighlights: $id("opt-md-include-hl").checked,
+      mdVideoUseLogin: $id("opt-md-video-use-login").checked,
       exportTargets: _ets,
       // Mirror obsidian into legacy keys so popup.js "Send to Obsidian" strip (which still
       // reads obsidianEnabled/Vault/Folder) stays in sync. P2 migrates popup to read exportTargets.

@@ -445,6 +445,10 @@ const SETTINGS_DEFAULTS = {
   dictAnkiPort: "8765",         // anki-connect: AnkiConnect port (host stays loopback-only)
   dictAnkiKey: "",              // anki-connect: optional AnkiConnect API key (credential)
   dictEudicToken: "",           // eudic-sync: Eudic OpenAPI authorization (credential)
+  // md-video: opt into sending YouTube login cookies with the watch-page
+  // scrape to raise the caption hit rate on login-gated videos. Off by
+  // default (privacy).
+  mdVideoUseLogin: false,
   selectionTrigger: "icon"
 };
 

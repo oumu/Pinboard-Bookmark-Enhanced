@@ -1702,6 +1702,12 @@
   "mdOptIncludeHl": {
     "message": "Inclure les surlignages"
   },
+  "optVideoUseLogin": {
+    "message": "Envoyer les cookies de connexion YouTube avec les requêtes de sous-titres"
+  },
+  "optVideoUseLoginHint": {
+    "message": "Envoie vos cookies de connexion YouTube à chaque requête de sous-titres, ce qui peut améliorer le taux de réussite sur les vidéos réservées aux comptes connectés ; désactivé par défaut."
+  },
   "mdTglToc": {
     "message": "TDM"
   },
@@ -3615,7 +3621,7 @@
   "mdVideoTrackAria": { "message": "Langue des sous-titres" },
   "mdVideoNoTracks": { "message": "Aucun sous-titre disponible pour cette vidéo" },
   "mdVideoBiliLogin": { "message": "Aucun sous-titre trouvé. Bilibili ne renvoie des sous-titres que si vous êtes connecté — connectez-vous sur bilibili.com, puis réessayez." },
-  "mdVideoFailed": { "message": "Impossible de charger les sous-titres ; YouTube refuse peut-être la requête pour le moment. Réessayez plus tard." },
+  "mdVideoFailed": { "message": "Les sous-titres ne sont pas disponibles pour cette vidéo via l'extension. YouTube restreint l'accès aux sous-titres pour certaines vidéos." },
   "mdVideoPermMissing": { "message": "Autorisation refusée ; rien n'a été chargé" },
   "mdVideoCopyMd": { "message": "Copier la transcription en Markdown" },
   "mdVideoCopied": { "message": "Transcription copiée" },

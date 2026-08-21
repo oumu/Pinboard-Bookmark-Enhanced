@@ -1,7 +1,7 @@
 // ============================================================
 // Pinboard Bookmark Enhanced — md-video.js (md-preview only)
 // Video + subtitles panel for video-page bookmarks. PURE section first
-// (URL detect / InnerTube request builders / timedtext parsers /
+// (URL detect / watch-page scrape / timedtext parsers /
 // paragraph merge) — loaded file:// by tests/md-video-tests.html.
 // Runtime section (fetch + panel DOM) is guarded behind typeof checks.
 // Subtitle fetches run in the preview page itself after a click-time
@@ -39,27 +39,42 @@ function pbpVideoDetect(pageUrl) {
   return null;
 }
 
-// Anonymous InnerTube client chain (community-standard: mobile/TV client
-// impersonation needs no API key and no login). Order matters: IOS first
-// (most reliable for captions as of 2026-08), MWEB last.
-const PBP_YT_CLIENTS = [
-  { name: "IOS", clientName: "5", clientVersion: "20.10.3" },
-  { name: "ANDROID", clientName: "3", clientVersion: "20.10.38" },
-  { name: "TVHTML5_SIMPLY_EMBEDDED_PLAYER", clientName: "85", clientVersion: "2.0" },
-  { name: "MWEB", clientName: "2", clientVersion: "2.20260101.00.00" },
-];
+// YouTube's InnerTube endpoint now demands a PO Token on every client we
+// could impersonate (yt-dlp PO Token Guide, 2026-07), and a browser cannot
+// produce one -- attestation needs the native app runtime. The watch page
+// itself still carries the caption track list, so lift it from there.
+function pbpYtWatchUrl(videoId, hl) {
+  return "https://www.youtube.com/watch?v=" + encodeURIComponent(videoId) +
+    (hl ? "&hl=" + encodeURIComponent(hl) : "");
+}
 
-function pbpYtPlayerRequest(videoId, clientIdx, hl) {
-  const c = PBP_YT_CLIENTS[clientIdx];
-  return {
-    url: "https://www.youtube.com/youtubei/v1/player?prettyPrint=false",
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      context: { client: { clientName: c.clientName, clientVersion: c.clientVersion, hl: hl || "en", gl: "US" } },
-      videoId: videoId, contentCheckOk: true, racyCheckOk: true
-    })
-  };
+// Lift ytInitialPlayerResponse from watch-page HTML. Brace-matched rather
+// than regex-terminated: the JSON contains nested braces and escaped quotes.
+function pbpYtExtractPlayerJson(html) {
+  const s = String(html || "");
+  const key = "ytInitialPlayerResponse";
+  let i = s.indexOf(key);
+  while (i !== -1) {
+    const brace = s.indexOf("{", i);
+    if (brace === -1) return null;
+    let depth = 0, inStr = false, esc = false;
+    for (let j = brace; j < s.length; j++) {
+      const c = s[j];
+      if (esc) { esc = false; continue; }
+      if (c === "\\") { esc = true; continue; }
+      if (c === '"') { inStr = !inStr; continue; }
+      if (inStr) continue;
+      if (c === "{") depth++;
+      else if (c === "}") {
+        depth--;
+        if (depth === 0) {
+          try { return JSON.parse(s.slice(brace, j + 1)); } catch (_) { break; }
+        }
+      }
+    }
+    i = s.indexOf(key, i + key.length);
+  }
+  return null;
 }
 
 function pbpYtExtractTracks(playerJson) {
@@ -166,35 +181,34 @@ function pbpVideoTranscriptMarkdown(segments, meta) {
   return lines.join("\n");
 }
 
-// Orchestrator: player (4-client chain) -> tracks -> pick -> caption body
-// (XML first, fmt=json3 fallback). fetchFn injectable for tests; every
-// network step is fail-soft and reports a coarse error code the UI maps.
+// Orchestrator: watch page (carries ytInitialPlayerResponse) -> tracks ->
+// pick -> caption body (XML first, fmt=json3 fallback). fetchFn injectable
+// for tests; every network step is fail-soft and reports a coarse error code
+// the UI maps. opts.useLogin switches every fetch (watch page AND caption
+// body) between cookieless and login-cookie credentials.
 async function pbpYtFetchTranscript(videoId, opts) {
   opts = opts || {};
   const fetchFn = opts.fetchFn || ((u, o) => fetch(u, o));
+  const credentials = opts.useLogin ? "include" : "omit";
   let playerJson = null;
-  for (let i = 0; i < PBP_YT_CLIENTS.length; i++) {
-    const req = pbpYtPlayerRequest(videoId, i, opts.uiLang);
-    try {
-      const resp = await fetchFn(req.url, { method: req.method, headers: req.headers, body: req.body, credentials: "omit", signal: AbortSignal.timeout(15000) });
-      if (!resp.ok) continue;
-      const json = await resp.json();
-      if (json && typeof json === "object") { playerJson = json; break; }
-    } catch (_) { /* next client */ }
-  }
+  try {
+    const resp = await fetchFn(pbpYtWatchUrl(videoId, opts.uiLang), { credentials, signal: AbortSignal.timeout(15000) });
+    if (resp.ok) playerJson = pbpYtExtractPlayerJson(await resp.text());
+  } catch (_) { /* leave playerJson null */ }
   if (!playerJson) return { error: "player" };
   const tracks = pbpYtExtractTracks(playerJson);
   if (!tracks.length) return { error: "no-tracks" };
   const track = opts.pickBaseUrl ? (tracks.find((tr) => tr.baseUrl === opts.pickBaseUrl) || pbpYtPickTrack(tracks, opts.uiLang)) : pbpYtPickTrack(tracks, opts.uiLang);
-  const segments = await pbpYtFetchCaptionBody(track.baseUrl, fetchFn);
+  const segments = await pbpYtFetchCaptionBody(track.baseUrl, fetchFn, opts.useLogin);
   if (!segments.length) return { error: "caption-body", tracks, track };
   return { tracks, track, segments };
 }
 
-async function pbpYtFetchCaptionBody(baseUrl, fetchFn) {
+async function pbpYtFetchCaptionBody(baseUrl, fetchFn, useLogin) {
   fetchFn = fetchFn || ((u, o) => fetch(u, o));
+  const credentials = useLogin ? "include" : "omit";
   try {
-    const r1 = await fetchFn(baseUrl, { credentials: "omit", signal: AbortSignal.timeout(15000) });
+    const r1 = await fetchFn(baseUrl, { credentials, signal: AbortSignal.timeout(15000) });
     if (r1.ok) {
       const fromXml = pbpYtParseTimedtextXml(await r1.text());
       if (fromXml.length) return fromXml;
@@ -202,7 +216,7 @@ async function pbpYtFetchCaptionBody(baseUrl, fetchFn) {
   } catch (_) { /* fall through to json3 */ }
   try {
     const jUrl = baseUrl + (baseUrl.includes("?") ? "&" : "?") + "fmt=json3";
-    const r2 = await fetchFn(jUrl, { credentials: "omit", signal: AbortSignal.timeout(15000) });
+    const r2 = await fetchFn(jUrl, { credentials, signal: AbortSignal.timeout(15000) });
     if (r2.ok) return pbpYtParseJson3(await r2.text());
   } catch (_) {}
   return [];
@@ -420,12 +434,17 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     try { granted = await chrome.permissions.request({ origins: [isBili ? BILI_ORIGIN : YT_ORIGIN] }) === true; } catch (_) {}
     if (!granted) { statusEl.textContent = t("mdVideoPermMissing"); return; }
     let res;
+    let useLogin = false;
     if (isBili) {
       res = await pbpBiliFetchTranscript(detected.bvid, detected.part, {});
       if (res.meta && res.meta.title) _meta.title = res.meta.title;
     } else {
       const uiLang = (chrome.i18n && chrome.i18n.getUILanguage && chrome.i18n.getUILanguage()) || "en";
-      res = await pbpYtFetchTranscript(detected.videoId, { uiLang });
+      try {
+        const s = await pbpReadSettingsWithSecrets({ mdVideoUseLogin: SETTINGS_DEFAULTS.mdVideoUseLogin });
+        useLogin = s && s.mdVideoUseLogin === true;
+      } catch (_) {}
+      res = await pbpYtFetchTranscript(detected.videoId, { uiLang, useLogin });
     }
     if (res.error === "player" || res.error === "view") { statusEl.textContent = t("mdVideoFailed"); return; }
     if (res.error === "login") { statusEl.textContent = t("mdVideoBiliLogin"); return; }
@@ -452,7 +471,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     if (_segments.length) renderTranscript(bodyEl, _segments, !isBili);
     trackSel.addEventListener("change", async () => {
       statusEl.textContent = t("mdVideoLoading");
-      const segs = isBili ? await pbpBiliFetchSubtitleBody(trackSel.value) : await pbpYtFetchCaptionBody(trackSel.value);
+      const segs = isBili ? await pbpBiliFetchSubtitleBody(trackSel.value) : await pbpYtFetchCaptionBody(trackSel.value, undefined, useLogin);
       statusEl.textContent = segs.length ? "" : t("mdVideoNoTracks");
       _segments = segs;
       const sel = trackSel.selectedOptions && trackSel.selectedOptions[0];

@@ -1702,6 +1702,12 @@
   "mdOptIncludeHl": {
     "message": "Markierungen einbeziehen"
   },
+  "optVideoUseLogin": {
+    "message": "YouTube-Anmeldecookies mit Untertitelanfragen senden"
+  },
+  "optVideoUseLoginHint": {
+    "message": "Sendet Ihre YouTube-Anmeldecookies bei jeder Untertitelanfrage mit, was die Trefferquote bei anmeldepflichtigen Videos erhöhen kann; standardmäßig deaktiviert."
+  },
   "mdTglToc": {
     "message": "Inhaltsverzeichnis"
   },
@@ -3615,7 +3621,7 @@
   "mdVideoTrackAria": { "message": "Untertitelsprache" },
   "mdVideoNoTracks": { "message": "Für dieses Video sind keine Untertitel verfügbar" },
   "mdVideoBiliLogin": { "message": "Keine Untertitel gefunden. Bilibili liefert Untertitel nur im angemeldeten Zustand — melden Sie sich bei bilibili.com an und versuchen Sie es erneut." },
-  "mdVideoFailed": { "message": "Untertitel konnten nicht geladen werden; YouTube lehnt die Anfrage möglicherweise gerade ab. Versuchen Sie es später erneut." },
+  "mdVideoFailed": { "message": "Für dieses Video sind über die Erweiterung keine Untertitel verfügbar. YouTube schränkt den Untertitelzugriff bei manchen Videos ein." },
   "mdVideoPermMissing": { "message": "Berechtigung abgelehnt; es wurde nichts geladen" },
   "mdVideoCopyMd": { "message": "Transkript als Markdown kopieren" },
   "mdVideoCopied": { "message": "Transkript kopiert" },

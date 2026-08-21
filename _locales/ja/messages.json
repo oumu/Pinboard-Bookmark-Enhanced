@@ -1702,6 +1702,12 @@
   "mdOptIncludeHl": {
     "message": "ハイライトを含める"
   },
+  "optVideoUseLogin": {
+    "message": "字幕リクエストに YouTube のログイン Cookie を送信する"
+  },
+  "optVideoUseLoginHint": {
+    "message": "字幕リクエストのたびに YouTube のログイン Cookie を送信し、ログインが必要な動画での取得成功率を高めます。デフォルトはオフです。"
+  },
   "mdTglToc": {
     "message": "目次"
   },
@@ -3615,7 +3621,7 @@
   "mdVideoTrackAria": { "message": "字幕の言語" },
   "mdVideoNoTracks": { "message": "この動画には利用できる字幕がありません" },
   "mdVideoBiliLogin": { "message": "字幕が見つかりません。Bilibili はログイン時のみ字幕を返します。bilibili.com にログインしてから再試行してください。" },
-  "mdVideoFailed": { "message": "字幕を読み込めませんでした。YouTube がリクエストを拒否している可能性があります。しばらくしてから再試行してください。" },
+  "mdVideoFailed": { "message": "この拡張機能ではこの動画の字幕を取得できません。YouTube は一部の動画で字幕アクセスを制限しています。" },
   "mdVideoPermMissing": { "message": "権限が拒否されたため、何も読み込まれませんでした" },
   "mdVideoCopyMd": { "message": "文字起こしを Markdown としてコピー" },
   "mdVideoCopied": { "message": "文字起こしをコピーしました" },

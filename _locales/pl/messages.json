@@ -1702,6 +1702,12 @@
   "mdOptIncludeHl": {
     "message": "Uwzględnij zaznaczenia"
   },
+  "optVideoUseLogin": {
+    "message": "Wysyłaj pliki cookie logowania YouTube z żądaniami napisów"
+  },
+  "optVideoUseLoginHint": {
+    "message": "Wysyła Twoje pliki cookie logowania YouTube przy każdym żądaniu napisów, co może zwiększyć skuteczność w przypadku filmów wymagających zalogowania; domyślnie wyłączone."
+  },
   "mdTglToc": {
     "message": "Spis treści"
   },
@@ -3615,7 +3621,7 @@
   "mdVideoTrackAria": { "message": "Język napisów" },
   "mdVideoNoTracks": { "message": "Dla tego wideo nie ma dostępnych napisów" },
   "mdVideoBiliLogin": { "message": "Nie znaleziono napisów. Bilibili zwraca napisy tylko po zalogowaniu — zaloguj się w bilibili.com i spróbuj ponownie." },
-  "mdVideoFailed": { "message": "Nie udało się wczytać napisów; YouTube może w tej chwili odrzucać żądanie. Spróbuj ponownie później." },
+  "mdVideoFailed": { "message": "Napisy do tego filmu nie są dostępne przez rozszerzenie. YouTube ogranicza dostęp do napisów w przypadku niektórych filmów." },
   "mdVideoPermMissing": { "message": "Odmówiono uprawnienia; niczego nie wczytano" },
   "mdVideoCopyMd": { "message": "Skopiuj transkrypcję jako Markdown" },
   "mdVideoCopied": { "message": "Skopiowano transkrypcję" },
