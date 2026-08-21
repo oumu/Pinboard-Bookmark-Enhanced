@@ -3621,5 +3621,6 @@
   "mdVideoCopied": { "message": "已复制字幕" },
   "mdVideoAsr": { "message": "自动生成" },
   "mdVideoSeekTo": { "message": "跳转到 $TIME$", "placeholders": { "time": { "content": "$1" } } },
-  "mdVideoCopyFailed": { "message": "复制失败" }
+  "mdVideoCopyFailed": { "message": "复制失败" },
+  "mdVideoOpenExternal": { "message": "在 YouTube 上打开" }
 }

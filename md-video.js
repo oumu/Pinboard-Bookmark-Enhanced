@@ -39,6 +39,15 @@ function pbpVideoDetect(pageUrl) {
   return null;
 }
 
+// Deterministic poster URL -- no API call. hqdefault exists for every video;
+// maxresdefault does not, so prefer the one that always resolves. bilibili
+// has no equivalent stable thumbnail endpoint reachable without an API call,
+// so its poster card falls back to the plain placeholder card.
+function pbpVideoPosterUrl(detected) {
+  return detected && detected.provider === "youtube"
+    ? "https://i.ytimg.com/vi/" + detected.videoId + "/hqdefault.jpg" : "";
+}
+
 // YouTube's InnerTube endpoint now demands a PO Token on every client we
 // could impersonate (yt-dlp PO Token Guide, 2026-07), and a browser cannot
 // produce one -- attestation needs the native app runtime. The watch page
@@ -383,7 +392,21 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
 
   const YT_ORIGIN = "https://www.youtube.com/*";
   const BILI_ORIGIN = "https://api.bilibili.com/*";
-  const EMBED_BASE = "https://www.youtube-nocookie.com"; // privacy-enhanced embed
+  // Chrome sends no Referer from chrome-extension:// frames, and YouTube's
+  // enablejsapi=1 path rejects that with "Error 153". This page lives on the
+  // project's own GitHub Pages origin (docs/yt-embed.html, published verbatim
+  // -- docs/_config.yml only excludes superpowers/theme-surface/*.json/*.mjs/
+  // README.md) so YouTube sees a real https referrer; it only ever forwards
+  // the two player commands the reader uses and never reads or stores anything.
+  const RELAY_BASE = "https://pine2d.github.io/Pinboard-Bookmark-Enhanced/yt-embed.html";
+  const RELAY_ORIGIN = "https://pine2d.github.io";
+  // Lucide v0.525.0 "play" (ISC, https://unpkg.com/lucide-static@0.525.0/icons/play.svg),
+  // byte-copied rather than hand-drawn. Kept local (not added to shared.js's
+  // PBP_ICONS) since this is the poster card's only consumer.
+  const PBV_PLAY_SVG = '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg>';
+  // extOpen is PBP_ICONS's real-external-link icon (shared.js, already loaded
+  // by md-preview.html before this file); guarded for the standalone test page.
+  const PBV_EXTERNAL_SVG = typeof PBP_ICONS !== "undefined" ? PBP_ICONS.extOpen : "";
 
   let _panel = null, _iframe = null, _segments = [], _meta = {};
 
@@ -396,11 +419,13 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
 
   function seekTo(sec) {
     if (!_iframe || !_iframe.contentWindow) return;
-    // youtube iframe API accepts serialized commands once enablejsapi=1.
-    // Best-effort: if the player isn't ready the message is dropped — the
+    // The relay forwards only these two commands to the nested YouTube
+    // iframe (see docs/yt-embed.html) -- the extension speaks the relay's
+    // small protocol, not the raw IFrame API, and never posts to "*".
+    // Best-effort: if the player isn't ready the message is dropped -- the
     // row click then simply does nothing (degrade, never throw).
     const post = (func, args) => _iframe.contentWindow.postMessage(
-      JSON.stringify({ event: "command", func, args: args || [] }), EMBED_BASE);
+      { pbpVideo: 1, func, args: args || [] }, RELAY_ORIGIN);
     post("seekTo", [sec, true]);
     post("playVideo");
   }
@@ -492,10 +517,29 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     panel.id = "video-panel";
     panel.setAttribute("aria-label", t("mdVideoTitle"));
 
-    // CTA state: one button; the panel body appears on load.
-    const cta = el("button", "pbv-cta");
+    // Poster-card state (design option A): a 16:9 card the same size as the
+    // player that replaces it, so loading causes no layout shift.
+    const cta = el("button", "pbv-poster");
     cta.type = "button";
-    cta.appendChild(el("span", "pbv-cta-label", t("mdVideoLoad")));
+    cta.title = t("mdVideoLoad");
+    cta.setAttribute("aria-label", t("mdVideoLoad"));
+    const posterUrl = pbpVideoPosterUrl(detected);
+    if (posterUrl) {
+      const poster = document.createElement("img");
+      poster.src = posterUrl;
+      poster.loading = "lazy";
+      poster.referrerPolicy = "no-referrer";
+      poster.alt = "";
+      // A blocked/missing poster degrades to the plain placeholder card
+      // instead of a broken-image icon.
+      poster.addEventListener("error", () => { poster.style.display = "none"; }, { once: true });
+      cta.appendChild(poster);
+    }
+    const play = el("span", "pbv-play");
+    play.setAttribute("aria-hidden", "true");
+    play.innerHTML = PBV_PLAY_SVG;
+    cta.appendChild(play);
+    cta.appendChild(el("span", "pbv-poster-label", t("mdVideoLoad")));
     panel.appendChild(cta);
     view.parentNode.insertBefore(panel, view);
     _panel = panel;
@@ -507,7 +551,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       _iframe = document.createElement("iframe");
       _iframe.src = detected.provider === "bilibili"
         ? "https://player.bilibili.com/player.html?bvid=" + detected.bvid + "&page=" + detected.part + "&high_quality=1&danmaku=0"
-        : EMBED_BASE + "/embed/" + detected.videoId + "?enablejsapi=1&rel=0";
+        : RELAY_BASE + "?v=" + encodeURIComponent(detected.videoId);
       _iframe.allow = "encrypted-media; picture-in-picture; fullscreen";
       _iframe.title = t("mdVideoTitle");
       media.appendChild(_iframe);
@@ -530,7 +574,22 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           setTimeout(() => { copyBtn.textContent = prev; }, 1800);
         } catch (_) { status.textContent = t("mdVideoCopyFailed"); }
       });
-      bar.appendChild(trackSel); bar.appendChild(copyBtn); bar.appendChild(status);
+      bar.appendChild(trackSel); bar.appendChild(copyBtn);
+      if (detected.provider === "youtube") {
+        // Relay-failure degrade: the player depends on GitHub Pages staying
+        // up; this always-present link needs no failure detection (a
+        // cross-origin iframe load can't be inspected for a 404/DNS failure)
+        // and bounds the dependency by giving a working path regardless.
+        const openExt = document.createElement("a");
+        openExt.className = "action-btn pbv-open-ext";
+        openExt.href = "https://www.youtube.com/watch?v=" + encodeURIComponent(detected.videoId);
+        openExt.target = "_blank";
+        openExt.rel = "noopener noreferrer";
+        openExt.innerHTML = PBV_EXTERNAL_SVG;
+        openExt.appendChild(el("span", "btn-label", t("mdVideoOpenExternal")));
+        bar.appendChild(openExt);
+      }
+      bar.appendChild(status);
       const body = el("div", "pbv-list");
       panel.replaceChildren(media, bar, body);
       await loadFlow(detected, status, body, trackSel, copyBtn);

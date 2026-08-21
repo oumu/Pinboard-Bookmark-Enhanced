@@ -1,0 +1,33 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>Video embed</title>
+<style>html,body{margin:0;height:100%;background:#000}iframe{border:0;width:100%;height:100%;display:block}</style>
+<body>
+<script>
+// Relay page: an extension page cannot embed YouTube directly because Chrome
+// sends no Referer from chrome-extension:// frames and YouTube's IFrame API
+// rejects that with error 153. This page lives on the project's GitHub Pages
+// origin, so YouTube sees a real https referrer. It only ever forwards player
+// commands from its opener; it reads nothing and stores nothing.
+(function () {
+  var id = new URLSearchParams(location.search).get("v") || "";
+  if (!/^[\w-]{6,20}$/.test(id)) return;
+  var f = document.createElement("iframe");
+  f.allow = "encrypted-media; picture-in-picture; fullscreen";
+  f.allowFullscreen = true;
+  f.src = "https://www.youtube-nocookie.com/embed/" + id +
+    "?enablejsapi=1&rel=0&origin=" + encodeURIComponent(location.origin);
+  document.body.appendChild(f);
+  // Forward only the two commands the reader uses; ignore everything else.
+  window.addEventListener("message", function (e) {
+    var d = e.data;
+    if (!d || typeof d !== "object" || d.pbpVideo !== 1) return;
+    if (d.func !== "seekTo" && d.func !== "playVideo") return;
+    f.contentWindow.postMessage(JSON.stringify({
+      event: "command", func: d.func, args: d.args || []
+    }), "https://www.youtube-nocookie.com");
+  });
+})();
+</script>
+</body>

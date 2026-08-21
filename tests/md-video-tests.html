@@ -41,6 +41,13 @@ assertEq(pbpVideoDetect("https://example.com/watch?v=dQw4w9WgXcQ"), null, "non-Y
 assertEq(pbpVideoDetect("https://www.youtube.com/feed/subscriptions"), null, "non-video YouTube page is null");
 assertEq(pbpVideoDetect("not a url"), null, "garbage is null");
 
+section("pbpVideoPosterUrl");
+assertEq(pbpVideoPosterUrl(pbpVideoDetect("https://www.youtube.com/watch?v=dQw4w9WgXcQ")),
+  "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg", "youtube: deterministic hqdefault URL");
+assertEq(pbpVideoPosterUrl(pbpVideoDetect("https://www.bilibili.com/video/BV1xx411c7mD")), "", "bilibili: no poster");
+assertEq(pbpVideoPosterUrl(null), "", "null-safe: null input");
+assertEq(pbpVideoPosterUrl(undefined), "", "null-safe: undefined input");
+
 section("pbpYtWatchUrl + player-json lift");
 assert(pbpYtWatchUrl("abc123", "zh-CN").startsWith("https://www.youtube.com/watch?v=abc123"), "watch url shape");
 check("hl carried", pbpYtWatchUrl("abc123", "zh-CN").includes("hl=zh-CN"));

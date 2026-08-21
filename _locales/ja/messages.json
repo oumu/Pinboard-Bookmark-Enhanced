@@ -3627,5 +3627,6 @@
   "mdVideoCopied": { "message": "文字起こしをコピーしました" },
   "mdVideoAsr": { "message": "自動生成" },
   "mdVideoSeekTo": { "message": "$TIME$ へ移動", "placeholders": { "time": { "content": "$1" } } },
-  "mdVideoCopyFailed": { "message": "コピーに失敗しました" }
+  "mdVideoCopyFailed": { "message": "コピーに失敗しました" },
+  "mdVideoOpenExternal": { "message": "YouTube で開く" }
 }

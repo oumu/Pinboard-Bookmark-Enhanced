@@ -3627,5 +3627,6 @@
   "mdVideoCopied": { "message": "Transcription copiée" },
   "mdVideoAsr": { "message": "générés automatiquement" },
   "mdVideoSeekTo": { "message": "Aller à $TIME$", "placeholders": { "time": { "content": "$1" } } },
-  "mdVideoCopyFailed": { "message": "Échec de la copie" }
+  "mdVideoCopyFailed": { "message": "Échec de la copie" },
+  "mdVideoOpenExternal": { "message": "Ouvrir sur YouTube" }
 }

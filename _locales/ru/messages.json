@@ -3627,5 +3627,6 @@
   "mdVideoCopied": { "message": "Расшифровка скопирована" },
   "mdVideoAsr": { "message": "автоматические" },
   "mdVideoSeekTo": { "message": "Перейти к $TIME$", "placeholders": { "time": { "content": "$1" } } },
-  "mdVideoCopyFailed": { "message": "Не удалось скопировать" }
+  "mdVideoCopyFailed": { "message": "Не удалось скопировать" },
+  "mdVideoOpenExternal": { "message": "Открыть на YouTube" }
 }
