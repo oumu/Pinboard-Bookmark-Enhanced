@@ -262,6 +262,42 @@ async function pbpYtFetchCaptionBody(baseUrl, fetchFn, useLogin) {
   return [];
 }
 
+// Parse a /youtubei/v1/get_transcript response (the endpoint behind
+// YouTube's own "Show transcript" panel) into segments. Shape verified
+// against the shipping implementation in the page-assist extension:
+// actions[] -> updateEngagementPanelAction -> transcriptRenderer.content
+// .transcriptSearchPanelRenderer.body.transcriptSegmentListRenderer
+// .initialSegments[] -> transcriptSegmentRenderer { startMs, endMs,
+// snippet.runs[].text }; continuations arrive as
+// appendContinuationItemsAction.continuationItems instead.
+function pbpYtParseTranscriptPanel(data) {
+  const out = [];
+  const actions = data && data.actions;
+  if (!Array.isArray(actions)) return out;
+  for (const action of actions) {
+    const upd = action && action.updateEngagementPanelAction;
+    const segs =
+      (upd && upd.content && upd.content.transcriptRenderer && upd.content.transcriptRenderer.content
+        && upd.content.transcriptRenderer.content.transcriptSearchPanelRenderer
+        && upd.content.transcriptRenderer.content.transcriptSearchPanelRenderer.body
+        && upd.content.transcriptRenderer.content.transcriptSearchPanelRenderer.body.transcriptSegmentListRenderer
+        && upd.content.transcriptRenderer.content.transcriptSearchPanelRenderer.body.transcriptSegmentListRenderer.initialSegments)
+      || (action && action.appendContinuationItemsAction && action.appendContinuationItemsAction.continuationItems)
+      || null;
+    if (!Array.isArray(segs)) continue;
+    for (const seg of segs) {
+      const r = seg && seg.transcriptSegmentRenderer;
+      if (!r) continue;
+      const content = ((r.snippet && r.snippet.runs) || []).map((x) => (x && x.text) || "").join("").replace(/\s+/g, " ").trim();
+      if (!content) continue;
+      const from = (+r.startMs || 0) / 1000;
+      const to = (+r.endMs || 0) / 1000;
+      out.push({ from, to, content });
+    }
+  }
+  return out;
+}
+
 // ---- Bilibili WBI-signed subtitle extraction ---------------------------
 // Subtitles come from x/player/wbi/v2, which needs a WBI signature (mixin key
 // from x/web-interface/nav) AND the user's bilibili login (SESSDATA, sent as
@@ -517,6 +553,111 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     };
   }
 
+  // Last-resort caption rescue, run when the timedtext route came back empty
+  // or gated. Two in-page routes, both same-origin from the YouTube tab:
+  //  1. /youtubei/v1/get_transcript -- the endpoint behind YouTube's own
+  //     "Show transcript" panel. params comes from the page's live data
+  //     (ytd-app polymer data tracks SPA navigation; the load-time
+  //     ytInitialData is the direct-open fallback) and is accepted only if
+  //     its protobuf carries this videoId in cleartext. context comes from
+  //     the page's real ytcfg (correct clientVersion/visitorData). This is
+  //     the call the UI itself makes, from the environment the UI runs in.
+  //  2. /youtubei/v1/player with the IOS client: its captionTracks baseUrls
+  //     are not PO-Token-gated (community-verified 2026-01), then json3.
+  async function ytTabPanelTranscript(tabId, videoId, hl) {
+    let inj = null;
+    try {
+      inj = await chrome.scripting.executeScript({
+        target: { tabId },
+        world: "MAIN",
+        func: async (vid, lang) => {
+          const out = { kind: "", body: "" };
+          const paramsFor = () => {
+            const scan = (root) => {
+              try {
+                const panels = root && root.engagementPanels;
+                if (!Array.isArray(panels)) return "";
+                for (const p of panels) {
+                  const m = JSON.stringify(p).match(/"getTranscriptEndpoint":\{"params":"([^"]+)"/);
+                  if (m) return m[1];
+                }
+              } catch (_) {}
+              return "";
+            };
+            let params = "";
+            try { const app = document.querySelector("ytd-app"); params = scan(app && app.data); } catch (_) {}
+            if (!params) { try { params = scan(window.ytInitialData); } catch (_) {} }
+            if (params) {
+              try {
+                if (!atob(params.replace(/-/g, "+").replace(/_/g, "/")).includes(vid)) params = "";
+              } catch (_) { params = ""; }
+            }
+            return params;
+          };
+          const pageContext = () => {
+            try {
+              const c = window.ytcfg && (window.ytcfg.data_ ? window.ytcfg.data_.INNERTUBE_CONTEXT
+                : (window.ytcfg.get && window.ytcfg.get("INNERTUBE_CONTEXT")));
+              if (c && c.client) return JSON.parse(JSON.stringify(c));
+            } catch (_) {}
+            return { client: { clientName: "WEB", clientVersion: "2.20260101.00.00" } };
+          };
+          try {
+            const params = paramsFor();
+            if (params) {
+              const r = await fetch("/youtubei/v1/get_transcript?prettyPrint=false", {
+                method: "POST", credentials: "same-origin",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ context: pageContext(), params: params }),
+                signal: AbortSignal.timeout(15000),
+              });
+              if (r.ok) {
+                const txt = await r.text();
+                if (txt && txt.length > 50) { out.kind = "panel"; out.body = txt; return out; }
+              }
+            }
+          } catch (_) { /* fall through to the iOS route */ }
+          try {
+            const r = await fetch("/youtubei/v1/player?prettyPrint=false", {
+              method: "POST", credentials: "same-origin",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({
+                context: { client: { clientName: "IOS", clientVersion: "20.10.38", deviceMake: "Apple", deviceModel: "iPhone16,2", osName: "iPhone", osVersion: "18.3.2.22D82" } },
+                videoId: vid, contentCheckOk: true, racyCheckOk: true,
+              }),
+              signal: AbortSignal.timeout(15000),
+            });
+            if (r.ok) {
+              const pj = await r.json();
+              const list = pj && pj.captions && pj.captions.playerCaptionsTracklistRenderer
+                && pj.captions.playerCaptionsTracklistRenderer.captionTracks;
+              if (Array.isArray(list) && list.length) {
+                const base = String(lang || "").toLowerCase().split("-")[0];
+                const tr = list.find((t) => String(t.languageCode || "").toLowerCase().split("-")[0] === base && t.kind !== "asr")
+                  || list.find((t) => t.kind !== "asr") || list[0];
+                const u = tr.baseUrl + (tr.baseUrl.indexOf("?") !== -1 ? "&" : "?") + "fmt=json3";
+                const r2 = await fetch(u, { credentials: "same-origin", signal: AbortSignal.timeout(15000) });
+                if (r2.ok) {
+                  const t3 = await r2.text();
+                  if (t3 && t3.length > 20) { out.kind = "json3"; out.body = t3; return out; }
+                }
+              }
+            }
+          } catch (_) {}
+          return out;
+        },
+        args: [videoId, hl || ""],
+      });
+    } catch (_) { return null; }
+    const r = inj && inj[0] && inj[0].result;
+    if (!r || !r.kind) return null;
+    try {
+      if (r.kind === "panel") return pbpYtParseTranscriptPanel(JSON.parse(r.body));
+      if (r.kind === "json3") return pbpYtParseJson3(r.body);
+    } catch (_) {}
+    return null;
+  }
+
   function el(tag, cls, text) {
     const n = document.createElement(tag);
     if (cls) n.className = cls;
@@ -595,6 +736,15 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         // Keep whichever answer got further: a fallback that also failed must
         // not overwrite a tab result that at least carried the track list.
         if (!res || !fb.error || fb.tracks) { res = fb; _ytFetchFn = null; }
+      }
+      // Both timedtext routes failed (typically exp=xpe: the text is
+      // PO-Token-gated even when the track list arrives). Ask the tab for the
+      // transcript the way YouTube's own panel does. The stale track picker
+      // is dropped on success: its timedtext URLs are exactly what just
+      // failed, so offering them as "switch track" would be a trap.
+      if (ytHadTab && res && res.error) {
+        const segs = await ytTabPanelTranscript(fetchTabId, detected.videoId, uiLang);
+        if (segs && segs.length) res = { tracks: [], track: null, segments: segs };
       }
     }
     if (res.error === "player" || res.error === "view") { statusEl.textContent = t("mdVideoFailed"); return; }

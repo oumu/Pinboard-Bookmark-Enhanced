@@ -41,6 +41,30 @@ assertEq(pbpVideoDetect("https://example.com/watch?v=dQw4w9WgXcQ"), null, "non-Y
 assertEq(pbpVideoDetect("https://www.youtube.com/feed/subscriptions"), null, "non-video YouTube page is null");
 assertEq(pbpVideoDetect("not a url"), null, "garbage is null");
 
+section("pbpYtParseTranscriptPanel");
+(() => {
+  // Hand-written from the real get_transcript response shape (verified via
+  // page-assist's shipping parser): actions -> updateEngagementPanelAction
+  // -> transcriptRenderer -> ... -> initialSegments -> transcriptSegmentRenderer.
+  const panelResp = { actions: [{ updateEngagementPanelAction: { content: { transcriptRenderer: { content: {
+    transcriptSearchPanelRenderer: { body: { transcriptSegmentListRenderer: { initialSegments: [
+      { transcriptSegmentRenderer: { startMs: "1200", endMs: "3100", snippet: { runs: [{ text: "hello " }, { text: "world" }] } } },
+      { transcriptSegmentRenderer: { startMs: "3200", endMs: "5000", snippet: { runs: [{ text: "  second   line " }] } } },
+      { transcriptSectionHeaderRenderer: { } },
+    ] } } } } } } } }] };
+  const segs = pbpYtParseTranscriptPanel(panelResp);
+  assertEq(segs.length, 2, "two text segments parsed, header renderer skipped");
+  assertEq(segs[0].content, "hello world", "runs joined into one text");
+  assert(Math.abs(segs[0].from - 1.2) < 1e-9 && Math.abs(segs[0].to - 3.1) < 1e-9, "startMs/endMs converted to seconds");
+  assertEq(segs[1].content, "second line", "whitespace collapsed");
+  const contResp = { actions: [{ appendContinuationItemsAction: { continuationItems: [
+    { transcriptSegmentRenderer: { startMs: "0", endMs: "900", snippet: { runs: [{ text: "cont" }] } } },
+  ] } }] };
+  assertEq(pbpYtParseTranscriptPanel(contResp).length, 1, "continuation items accepted");
+  assertEq(pbpYtParseTranscriptPanel({}).length, 0, "no actions -> empty");
+  assertEq(pbpYtParseTranscriptPanel(null).length, 0, "null -> empty");
+})();
+
 section("pbpYtTabEligible");
 assert(pbpYtTabEligible("https://www.youtube.com/watch?v=dQw4w9WgXcQ") === true, "watch page tab is eligible");
 assert(pbpYtTabEligible("https://www.youtube.com/") === true, "any www.youtube.com page is eligible (same-origin fetch host)");
