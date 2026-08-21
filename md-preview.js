@@ -694,6 +694,14 @@ function pbpApplyColorScheme(mode) {
         () => retryExtract(attemptedEngine, pr),
         pr && pr.error === "host_permission"
       );
+      // Video pages reach HERE, not the canonical-markdown guard further down:
+      // a bilibili/YouTube watch page has no article to extract, so the
+      // extraction reports "empty" and this branch renders the error and
+      // returns. Mount the panel over that error shell too -- for a video page
+      // the video IS the content, so "extraction failed" is not the whole
+      // story. (Fixing only the later guard is why bilibili still showed a
+      // bare error after the previous round.)
+      if (typeof pbpVideoInit === "function") pbpVideoInit({ pageUrl: sourceTabUrl || url, title: title });
       applyAvailability(attemptedEngine);
     }
     if (sourceEl) {
@@ -2215,6 +2223,10 @@ function pbpApplyColorScheme(mode) {
   // etc.) previously left the page mid-render — title/rail filled in, #rendered-view
   // blank, no error text, no aria-busy cleared. Fall back to the empty state instead of
   // a silent half-rendered page.
+  // Deliberately does NOT mount the video panel the way the three in-flow
+  // dead ends do: this backstop fires on a genuine thrown fault, and the
+  // identifiers it would need (sourceTabUrl/title) live inside the IIFE scope
+  // above. A video page that merely extracts to nothing never reaches here.
   console.error("md-preview init failed:", e);
   renderEmptyState(t("mdEngineExtractFailed"));
 });
