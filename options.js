@@ -680,7 +680,26 @@ document.addEventListener("DOMContentLoaded", async () => {
           inp.value = cfg[s.key] || "";
         }
         if (s.placeholder) inp.placeholder = s.placeholder;
-        wrap.appendChild(lab); wrap.appendChild(inp);
+        wrap.appendChild(lab);
+        // Secret fields get the same show/hide affordance as every other
+        // credential in this page (AI keys, Pinboard token): the .key-wrap +
+        // .key-toggle pair setupSecretToggles() binds by data-target. Without
+        // it an export token was the only credential you could never re-read.
+        if (s.type === "secret" || s.secret === true) {
+          const keyWrap = document.createElement("span");
+          keyWrap.className = "key-wrap";
+          const toggle = document.createElement("button");
+          toggle.type = "button";
+          toggle.className = "key-toggle";
+          toggle.dataset.target = inp.id;
+          toggle.title = t("showHideKey");
+          toggle.setAttribute("aria-label", t("showHideKey"));
+          keyWrap.appendChild(inp);
+          keyWrap.appendChild(toggle);
+          wrap.appendChild(keyWrap);
+        } else {
+          wrap.appendChild(inp);
+        }
         card.appendChild(wrap);
         // Mirror the runtime endpoint policy while the user edits the URL.
         if (id === "webhook" && s.key === "url") {
@@ -760,6 +779,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       host.appendChild(sec);
     });
     pbpAccRestore(host);
+    // These cards are built AFTER the page-level setupSecretToggles() pass, and
+    // are rebuilt on panel reset -- bind the freshly created .key-toggle buttons
+    // here so every render (initial and reset) gets a working show/hide.
+    if (typeof setupSecretToggles === "function") setupSecretToggles(host);
   }
 
   // Collect the rendered target cards back into an exportTargets object.

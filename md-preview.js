@@ -717,7 +717,13 @@ function pbpApplyColorScheme(mode) {
     ? pbpLatexNormalize(_canonicalMarkdown0) : _canonicalMarkdown0;
   function getMarkdown() { return canonicalMarkdown; }
   if (!canonicalMarkdown.trim()) {
+    // A video page's "content" IS the video: YouTube/bilibili watch pages
+    // routinely extract to nothing, and returning here used to kill the whole
+    // preview before the video panel could mount (bilibili never showed a
+    // panel at all; a YouTube re-open that extracted empty lost its button).
+    // Render the empty-state shell first, then let the panel attach above it.
     renderEmptyState(t("mdPreviewNoContent"));
+    if (typeof pbpVideoInit === "function") pbpVideoInit({ pageUrl: sourceTabUrl || url, title: title });
     return;
   }
 
