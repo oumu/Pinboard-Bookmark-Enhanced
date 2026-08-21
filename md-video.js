@@ -712,6 +712,64 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     return null;
   }
 
+  // Final rescue tier: read the transcript YouTube's own UI renders. All four
+  // network routes are now bot-walled (timedtext: PO Token; web
+  // get_transcript: BotGuard 400, device-traced; iOS player: LOGIN_REQUIRED;
+  // extension-page fetch: LOGIN_REQUIRED) -- but the page's OWN frontend
+  // attaches its attestation and renders the panel fine. Open that panel the
+  // way the user would, read the rendered rows, close it again if we opened
+  // it. DOM-shape-dependent by nature; every surviving caption extension
+  // (SubtideX et al.) sits on this same surface.
+  async function ytTabDomTranscript(tabId) {
+    let inj = null;
+    try {
+      inj = await chrome.scripting.executeScript({
+        target: { tabId },
+        world: "ISOLATED",
+        func: async () => {
+          const out = { segs: [], trace: "" };
+          const q = (s, r) => (r || document).querySelector(s);
+          const qa = (s, r) => Array.from((r || document).querySelectorAll(s));
+          const parseTs = (t) => {
+            const parts = String(t || "").trim().split(":").map(Number);
+            if (!parts.length || parts.some(isNaN)) return 0;
+            return parts.reduce((a, b) => a * 60 + b, 0);
+          };
+          const read = () => qa("ytd-transcript-segment-renderer").map((seg) => ({
+            from: parseTs((q(".segment-timestamp", seg) || {}).textContent),
+            to: 0,
+            content: ((q(".segment-text", seg) || q("yt-formatted-string", seg) || {}).textContent || "").replace(/\s+/g, " ").trim(),
+          })).filter((s) => s.content);
+          let segs = read();
+          let openedPanel = null;
+          if (!segs.length) {
+            const panel = q('ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-searchable-transcript"]');
+            const btn = q("ytd-video-description-transcript-section-renderer button");
+            if (btn) { btn.click(); openedPanel = panel; }
+            else if (panel) { panel.setAttribute("visibility", "ENGAGEMENT_PANEL_VISIBILITY_EXPANDED"); openedPanel = panel; }
+            else { out.trace = "no transcript entry in page"; return out; }
+            for (let i = 0; i < 20 && !segs.length; i++) {
+              await new Promise((r) => setTimeout(r, 400));
+              segs = read();
+            }
+            if (!segs.length) out.trace = "panel opened but no segments appeared";
+            // Leave the page as we found it -- the panel only flashed open
+            // because we opened it.
+            if (openedPanel) { try { openedPanel.setAttribute("visibility", "ENGAGEMENT_PANEL_VISIBILITY_HIDDEN"); } catch (_) {} }
+          }
+          out.segs = segs;
+          return out;
+        },
+      });
+    } catch (e) {
+      console.warn("[pbp-video] dom transcript injection failed:", (e && e.message) || e);
+      return null;
+    }
+    const r = inj && inj[0] && inj[0].result;
+    if (r && r.trace) console.warn("[pbp-video] dom transcript:", r.trace);
+    return (r && r.segs && r.segs.length) ? r.segs : null;
+  }
+
   function el(tag, cls, text) {
     const n = document.createElement(tag);
     if (cls) n.className = cls;
@@ -811,6 +869,12 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         const segs = await ytTabPanelTranscript(fetchTabId, detected.videoId, uiLang, fbParams);
         console.info("[pbp-video] panel rescue:", segs ? segs.length + " segments" : "failed");
         if (segs && segs.length) res = { tracks: [], track: null, segments: segs };
+        // Endpoint rescue exhausted -> read what YouTube's own UI renders.
+        if (res.error) {
+          const domSegs = await ytTabDomTranscript(fetchTabId);
+          console.info("[pbp-video] dom rescue:", domSegs ? domSegs.length + " segments" : "failed");
+          if (domSegs && domSegs.length) res = { tracks: [], track: null, segments: domSegs };
+        }
       }
     }
     if (res.error === "player" || res.error === "view") { statusEl.textContent = t("mdVideoFailed"); return; }

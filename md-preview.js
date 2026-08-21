@@ -723,7 +723,13 @@ function pbpApplyColorScheme(mode) {
       // the video IS the content, so "extraction failed" is not the whole
       // story. (Fixing only the later guard is why bilibili still showed a
       // bare error after the previous round.)
+      // md-video.js is the LAST defer script; this async flow can resume ahead
+      // of it (storage/sendMessage round-trips vary), and the typeof guard then
+      // silently skipped the mount -- the intermittent "no panel" of six device
+      // rounds. Wait for the defer chain before deciding.
+      await pbpDeferredScriptsReady;
       if (typeof pbpVideoInit === "function") pbpVideoInit({ pageUrl: sourceTabUrl || url, title: title, tabId: srcTabId });
+      else console.warn("[pbp-video] mount unavailable: pbpVideoInit missing after deferred scripts");
       applyAvailability(attemptedEngine);
     }
     if (sourceEl) {
@@ -753,7 +759,13 @@ function pbpApplyColorScheme(mode) {
     // panel at all; a YouTube re-open that extracted empty lost its button).
     // Render the empty-state shell first, then let the panel attach above it.
     renderEmptyState(t("mdPreviewNoContent"));
-    if (typeof pbpVideoInit === "function") pbpVideoInit({ pageUrl: sourceTabUrl || url, title: title, tabId: srcTabId });
+    // md-video.js is the LAST defer script; this async flow can resume ahead
+      // of it (storage/sendMessage round-trips vary), and the typeof guard then
+      // silently skipped the mount -- the intermittent "no panel" of six device
+      // rounds. Wait for the defer chain before deciding.
+      await pbpDeferredScriptsReady;
+      if (typeof pbpVideoInit === "function") pbpVideoInit({ pageUrl: sourceTabUrl || url, title: title, tabId: srcTabId });
+      else console.warn("[pbp-video] mount unavailable: pbpVideoInit missing after deferred scripts");
     return;
   }
   // Real article present: transcript adoption would clobber it -- the video
@@ -1641,7 +1653,13 @@ function pbpApplyColorScheme(mode) {
       }
     }));
   }
-  if (typeof pbpVideoInit === "function") pbpVideoInit({ pageUrl: sourceTabUrl || url, title: title, tabId: srcTabId });
+  // md-video.js is the LAST defer script; this async flow can resume ahead
+      // of it (storage/sendMessage round-trips vary), and the typeof guard then
+      // silently skipped the mount -- the intermittent "no panel" of six device
+      // rounds. Wait for the defer chain before deciding.
+      await pbpDeferredScriptsReady;
+      if (typeof pbpVideoInit === "function") pbpVideoInit({ pageUrl: sourceTabUrl || url, title: title, tabId: srcTabId });
+      else console.warn("[pbp-video] mount unavailable: pbpVideoInit missing after deferred scripts");
 
   // ---- Build TOC sidebar from the canonical markdown ----
   const tocNav = document.getElementById("toc");
