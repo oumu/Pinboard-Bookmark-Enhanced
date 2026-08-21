@@ -92,6 +92,12 @@ function _pbpSanitizeComplexTableHtml(node) {
   });
   return clone.outerHTML;
 }
+// A TeX string headed into markdown will be re-parsed by marked, whose
+// CommonMark inline escaping eats a backslash before ASCII punctuation
+// ("\," -> ",", "\\" -> "\"). Double the backslashes so the escape pass
+// consumes the added layer and KaTeX still receives the original source.
+function _pbpTexForMarkdown(tex) { return String(tex).replace(/\\/g, "\\\\"); }
+
 function _pbpGetTurndown() {
   if (_pbpTurndown) return _pbpTurndown;
   if (typeof TurndownService === "undefined") return null;
@@ -106,12 +112,19 @@ function _pbpGetTurndown() {
     filter: "math",
     replacement: (content, node) => {
       let tex = (node.getAttribute("alttext") || "").trim();
+      // Defuddle (vendor 0.19.1) rewrites Wikipedia's <math alttext> into
+      // <math data-latex> and drops the MathML annotation, so a page that
+      // extracts through Defuddle reaches us in a third shape. Read it too,
+      // else the TeX falls through as plain text with no $ delimiters and
+      // KaTeX never sees a formula (real-device bug, zh.wikipedia.org/wiki/数学).
+      if (!tex) tex = (node.getAttribute("data-latex") || "").trim();
       if (!tex && node.querySelector) {
         const ann = node.querySelector('annotation[encoding="application/x-tex"]');
         tex = ann ? (ann.textContent || "").trim() : "";
       }
       if (!tex) return content;
-      return node.getAttribute("display") === "block" ? ("$$" + tex + "$$") : ("$" + tex + "$");
+      const safe = _pbpTexForMarkdown(tex);
+      return node.getAttribute("display") === "block" ? ("$$" + safe + "$$") : ("$" + safe + "$");
     }
   });
   td.addRule("preformattedCode", {
@@ -162,11 +175,18 @@ function _pbpGetTurndown() {
         try { md = td.turndown(c.innerHTML); } catch (_) { md = c.textContent || ""; }
         return md.replace(/\n+/g, " ").replace(/\|/g, "\\|").trim();
       };
+      // GFM needs a header separator, but synthesizing one for a table that
+      // has no header promotes an ordinary first row to <th>, which the
+      // reader styles with text-transform:uppercase -- that is what turned
+      // Wikipedia's example rows into shouting LaTeX. Only synthesize when
+      // the source actually marks a header.
+      const hasHeader = !!node.querySelector(":scope > thead") ||
+        rows.some((r) => r.querySelector(":scope > th"));
       const out = [];
       rows.forEach((row, i) => {
         const cells = Array.from(row.querySelectorAll(":scope > th, :scope > td")).map(cellMd);
         out.push("| " + cells.join(" | ") + " |");
-        if (i === 0) out.push("| " + cells.map(() => "---").join(" | ") + " |");
+        if (i === 0 && hasHeader) out.push("| " + cells.map(() => "---").join(" | ") + " |");
       });
       return "\n\n" + out.join("\n") + "\n\n";
     }
@@ -895,13 +915,26 @@ function _xmlEscape(s) {
 
 const _PBP_TEX_WRAP_ENVS = ["align", "align*", "aligned", "alignat", "alignat*", "eqnarray", "eqnarray*", "equation", "equation*", "gather", "gather*", "gathered", "multline", "multline*", "cases", "dcases", "split", "CD"];
 const _PBP_TEX_ENV_MAP = { "align": "aligned", "align*": "aligned", "eqnarray": "aligned", "eqnarray*": "aligned", "gather": "gathered", "gather*": "gathered", "multline": "gathered", "multline*": "gathered", "equation*": "equation", "alignat*": "alignat" };
-const _PBP_TEX_SIZE_CMDS = /\\(?:Huge|huge|LARGE|Large|large|normalsize|small|footnotesize|scriptsize|tiny)\b\s*/g;
+// \\{1,2} (not a bare \\) on both removal patterns below: TeX arriving from
+// the mathml turndown rule has its backslashes DOUBLED (_pbpTexForMarkdown,
+// so marked's CommonMark escaping hands the original single backslash back
+// out) by the time this normalizer runs (md-preview.js wires pbpLatexNormalize
+// AFTER htmlToMarkdown). Matching only a single backslash here would strip
+// "\\Huge"/"\\tag{...}" but leave the sibling backslash behind as a stray
+// literal character in the rendered formula -- match the whole run instead.
+const _PBP_TEX_SIZE_CMDS = /\\{1,2}(?:Huge|huge|LARGE|Large|large|normalsize|small|footnotesize|scriptsize|tiny)\b\s*/g;
 
 // Strip \cmd[opt]{arg} keeping arg, with real brace matching (\bbox nests).
 function _pbpTexStripBraceCmd(s, cmd) {
   const marker = "\\" + cmd;
   let idx = s.indexOf(marker);
   while (idx !== -1) {
+    // A preceding sibling backslash means this command's own backslash was
+    // doubled by _pbpTexForMarkdown (mathml rule's markdown-escape layer) --
+    // fold it into the strip so no orphan "\" is left in the output (see
+    // _PBP_TEX_SIZE_CMDS comment above for why doubling reaches this point).
+    let start = idx;
+    if (start > 0 && s[start - 1] === "\\") start--;
     let i = idx + marker.length;
     if (s[i] === "[") {                      // optional [..] argument
       const close = s.indexOf("]", i);
@@ -915,7 +948,7 @@ function _pbpTexStripBraceCmd(s, cmd) {
       else if (s[j] === "}") { depth--; if (depth === 0) break; }
     }
     if (depth !== 0) break;                  // unbalanced: leave untouched
-    s = s.slice(0, idx) + s.slice(i + 1, j) + s.slice(j + 1);
+    s = s.slice(0, start) + s.slice(i + 1, j) + s.slice(j + 1);
     idx = s.indexOf(marker);
   }
   return s;
@@ -928,7 +961,9 @@ function _pbpTexFixMathContent(content) {
   let out = content.replace(/\\(begin|end)\{([a-zA-Z*]+)\}/g, (m, be, env) =>
     _PBP_TEX_ENV_MAP[env] ? "\\" + be + "{" + _PBP_TEX_ENV_MAP[env] + "}" : m);
   out = _pbpTexStripBraceCmd(out, "bbox");
-  out = out.replace(/\\tag\*?\{[^{}]*\}\s*/g, "");
+  // \\{1,2}: see _PBP_TEX_SIZE_CMDS comment -- doubled input must have the
+  // WHOLE backslash run consumed, or a sibling backslash is left orphaned.
+  out = out.replace(/\\{1,2}tag\*?\{[^{}]*\}\s*/g, "");
   out = out.replace(_PBP_TEX_SIZE_CMDS, "");
   return out;
 }

@@ -2900,6 +2900,81 @@ section("pbpLatexNormalize: pre-KaTeX repair");
 </script>
 
 <script>
+// Task 1: Wikipedia math -- data-latex extraction, header-row inference,
+// TeX escape protection (real-device bug: raw uppercase LaTeX text instead
+// of rendered formulas on zh.wikipedia.org/wiki/数学).
+section("mathml: Defuddle data-latex form");
+(function () {
+  const mk = (html) => { const d = document.createElement("div"); d.innerHTML = html; return d.innerHTML; };
+  const inline = htmlToMarkdown('<math display="inline" data-latex="{\\displaystyle P\\Rightarrow Q\\,}">{\\displaystyle P\\Rightarrow Q\\,}</math>', {});
+  // Backslashes are DOUBLED here (_pbpTexForMarkdown, fix 3c) so marked's
+  // CommonMark escaping hands the original single-backslash TeX back out --
+  // see "TeX survives table-cell escaping" below and task-1-report.md. Match
+  // 2 literal backslashes per command, not 1.
+  check("data-latex inline yields $-wrapped tex", /\$\{\\\\displaystyle P\\\\Rightarrow Q\\\\,\}\$/.test(inline));
+  const block = htmlToMarkdown('<math display="block" data-latex="x^2">x^2</math>', {});
+  check("data-latex block yields $$-wrapped tex", block.includes("$$x^2$$"));
+  const alt = htmlToMarkdown('<math alttext="a+b">ignored</math>', {});
+  check("alttext still wins when present", alt.includes("$a+b$"));
+  const ann = htmlToMarkdown('<math><annotation encoding="application/x-tex">c+d</annotation></math>', {});
+  check("annotation still works", ann.includes("$c+d$"));
+  const none = htmlToMarkdown('<math>plain</math>', {});
+  check("no tex source degrades to text, not $$", !none.includes("$"));
+})();
+
+section("table: synthetic header only when the source has one");
+(function () {
+  const withTh = htmlToMarkdown("<table><tr><th>H</th><th>I</th></tr><tr><td>a</td><td>b</td></tr></table>", {});
+  check("explicit th keeps the GFM header separator", withTh.includes("| --- |"));
+  const withThead = htmlToMarkdown("<table><thead><tr><td>H</td></tr></thead><tbody><tr><td>a</td></tr></tbody></table>", {});
+  check("thead counts as a header signal", withThead.includes("| --- |"));
+  const noHeader = htmlToMarkdown("<table><tr><td>x</td><td>y</td></tr><tr><td>a</td><td>b</td></tr></table>", {});
+  check("header-less table gets no synthetic header row", !noHeader.includes("| --- |"));
+  check("header-less table still renders both rows", noHeader.includes("| x | y |") && noHeader.includes("| a | b |"));
+})();
+
+section("TeX survives table-cell escaping");
+(function () {
+  const md = htmlToMarkdown('<table><tr><td><math data-latex="{\\displaystyle 1,2\\,\\!}">t</math></td><td>b</td></tr></table>', {});
+  check("thin-space command survives into markdown", md.includes("\\,"));
+  const rendered = renderMarkdown(md);
+  check("thin-space command survives marked rendering", rendered.includes("\\,"));
+  const mat = renderMarkdown(htmlToMarkdown('<table><tr><td><math data-latex="{\\begin{matrix}a\\\\b\\end{matrix}}">t</math></td></tr></table>', {}));
+  check("matrix row break survives marked rendering", mat.includes("\\\\"));
+})();
+
+// CRITICAL interaction check (see task-1-report.md): _pbpTexForMarkdown doubles
+// every backslash so marked's CommonMark escaping hands the original TeX back
+// out. pbpLatexNormalize (added in an earlier battle) then runs on that ALREADY-
+// doubled markdown -- md-preview.js wires it in right after htmlToMarkdown (line
+// ~716), so production math ALWAYS reaches the normalizer doubled, never before.
+// _pbpTexStripBraceCmd (\bbox), the \tag regex, and _PBP_TEX_SIZE_CMDS are
+// REMOVAL passes; an unmodified single-backslash match only consumes the LAST
+// backslash of a doubled pair, orphaning the sibling backslash in the rendered
+// output (worse for \tag: a trailing orphaned backslash lands right before the
+// closing "$$" and gets eaten by marked's OWN escaping, corrupting the math
+// delimiter itself). Fixed to consume the whole run; \begin/\end env aliasing
+// needed no change (unanchored match + doubled replacement already reconstitute
+// a correctly-doubled pair, verified by the last check below).
+section("mathml + pbpLatexNormalize: doubled backslashes survive normalization");
+(function () {
+  const pipeline = (html) => renderMarkdown(pbpLatexNormalize(htmlToMarkdown(html, {})));
+  const bbox = pipeline('<math display="block" data-latex="\\bbox[5px,border:1px]{x}">ignored</math>');
+  check("\\bbox strips with no orphan backslash after doubled-backslash normalization",
+    bbox.includes("$$x$$") && !bbox.includes("\\"), bbox);
+  const tag = pipeline('<math display="block" data-latex="y=1\\tag{1}">ignored</math>');
+  check("\\tag strips with no orphan backslash after doubled-backslash normalization",
+    tag.includes("$$y=1$$") && !tag.includes("\\"), tag);
+  const size = pipeline('<math display="block" data-latex="\\Huge z">ignored</math>');
+  check("size command strips with no orphan backslash after doubled-backslash normalization",
+    size.includes("$$z$$") && !size.includes("\\"), size);
+  const env = pipeline('<math display="block" data-latex="\\begin{align*}p=q\\end{align*}">ignored</math>');
+  check("align* still maps to \\begin{aligned} (single backslash) after doubled-backslash normalization",
+    env.includes("$$\\begin{aligned}p=q\\end{aligned}$$"), env);
+})();
+</script>
+
+<script>
 (async () => {
   if (window._pbpEpubIntegrationDone) await window._pbpEpubIntegrationDone;
   if (window._pbpEpubA8Done) await window._pbpEpubA8Done;
