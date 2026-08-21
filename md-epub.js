@@ -128,6 +128,9 @@ pre{overflow-x:auto;white-space:pre-wrap}
 img{max-width:100%;height:auto}
 figure{margin:1.5em 0;text-align:center}
 figure.pb-mermaid{background:#fff;padding:8px;border-radius:8px}
+.pbp-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin:1.5em 0}
+.pbp-gallery figure{margin:0}
+.pbp-gallery figcaption{margin-top:.4em;font-size:.85em}
 blockquote{border-left:3px solid #999;margin:1em 0;padding:0 1em}`;
 // ── end PURE SECTION ──
 // ── RUNTIME (DOM) ──
