@@ -3485,3 +3485,41 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
 .pbv-row--static:hover { background: transparent; }
 .pbv-time { flex: 0 0 auto; opacity: 0.65; font-variant-numeric: tabular-nums; }
 .pbv-text { flex: 1; }
+
+/* ---- Image galleries (md-convert.js's turndown "gallery" rule) ---- */
+/* MediaWiki ul.gallery.mw-gallery-traditional (and its structurally-detected
+   equivalents once Defuddle strips the class) render as a raw-HTML grid
+   instead of a Markdown list -- without this a 6x2 gallery became 12
+   stacked single-column rows, each with a lone ::marker dot and an indented
+   caption paragraph underneath. auto-fill + minmax needs no media query to
+   collapse on a narrow reading column: once fewer than two 150px tracks
+   fit, the grid drops to one column on its own. */
+#rendered-view .pbp-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+  margin: 1.5em 0;
+}
+/* #rendered-view figure already zeroes figure>img margin (see the "Images"
+   section above), so the img override below is belt-and-suspenders --
+   kept explicit so this block stays correct even if that rule's selector
+   ever narrows. #rendered-view .pbp-gallery figure/img both carry an extra
+   class over #rendered-view figure/#rendered-view img, so both beat the
+   general 1.5em-margin figure/img rules on specificity alone, independent
+   of source order. */
+#rendered-view .pbp-gallery figure {
+  margin: 0;
+}
+#rendered-view .pbp-gallery img {
+  margin: 0;
+  width: 100%;
+  height: auto;
+  display: block;
+}
+#rendered-view .pbp-gallery figcaption {
+  margin-top: 0.4em;
+  font-size: 0.8125em;
+  line-height: 1.35;
+  text-align: center;
+  color: var(--fg-secondary);
+}

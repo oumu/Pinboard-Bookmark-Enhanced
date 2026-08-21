@@ -616,6 +616,75 @@ function assertEq(actual, expected, label) {
     check("A5 rowspan survives the DOMPurify pass", /rowspan="2"/.test(h), h);
   })();
 
+  // ---- Image galleries: MediaWiki ul.gallery -> a raw-HTML grid, not a
+  // "- " markdown list (zh.wikipedia.org/wiki/数学 repro, 2026-08-21) ----
+  section("htmlToMarkdown image gallery grid (pbp-gallery)");
+  (() => {
+    // Class-based detection path (site-rules extraction keeps the source
+    // page's own class -- Defuddle strips it, see the structural-heuristic
+    // case below). Mirrors MediaWiki's real ul.gallery.mw-gallery-traditional
+    // > li.gallerybox > (div.thumb>span>a>img) + div.gallerytext shape.
+    const galleryHtml = '<ul class="gallery mw-gallery-traditional">' +
+      '<li class="gallerybox"><div class="thumb"><span><a href="/wiki/File:A.jpg"><img src="https://e.com/a.jpg" alt="A" width="120" height="120"></a></span></div><div class="gallerytext"><p>Caption A</p></div></li>' +
+      '<li class="gallerybox"><div class="thumb"><span><a href="/wiki/File:B.jpg"><img src="https://e.com/b.jpg" alt="B" width="120" height="120"></a></span></div><div class="gallerytext"><p>Caption <a href="/wiki/B">B link</a></p></div></li>' +
+      '<li class="gallerybox"><div class="thumb"><span><a href="/wiki/File:C.jpg"><img src="https://e.com/c.jpg" alt="C" width="120" height="120"></a></span></div><div class="gallerytext"><p>Caption C</p></div></li>' +
+      '</ul>';
+    const md = htmlToMarkdown(galleryHtml, { baseUrl: "https://e.com/" });
+    check("gallery ul emits a pbp-gallery raw-HTML block, no markdown list marker",
+      /class="pbp-gallery"/.test(md) && !/^-\s/m.test(md), md);
+    check("each li becomes figure+figcaption with its img src preserved",
+      (md.match(/<figure>/g) || []).length === 3 && (md.match(/<figcaption>/g) || []).length === 3 &&
+      /<img src="https:\/\/e\.com\/a\.jpg"/.test(md) && /<img src="https:\/\/e\.com\/b\.jpg"/.test(md), md);
+    check("a link inside a caption (gallerytext) survives, absolutized like any other link",
+      /<a href="https:\/\/e\.com\/wiki\/B">B link<\/a>/.test(md), md);
+
+    // Structural-heuristic path: no "gallery" class (the Defuddle path),
+    // but >=3 li, each with exactly one img and a short own-text caption.
+    const structHtml = '<ul>' +
+      '<li><img src="https://e.com/1.jpg" alt="one">One</li>' +
+      '<li><img src="https://e.com/2.jpg" alt="two">Two</li>' +
+      '<li><img src="https://e.com/3.jpg" alt="three">Three</li>' +
+      '</ul>';
+    const structMd = htmlToMarkdown(structHtml);
+    check("structural heuristic (no class, >=3 one-img short-caption li) also grids",
+      /class="pbp-gallery"/.test(structMd) && (structMd.match(/<figure>/g) || []).length === 3, structMd);
+
+    // Negative: an ordinary list must NOT be force-gridded just because it
+    // happens to embed one image per item -- the heuristic's <=80-char own-
+    // text bound is what tells a gallery caption apart from real prose.
+    const longListHtml = '<ul>' +
+      '<li><img src="https://e.com/1.jpg" alt="one">This is a much longer descriptive sentence that easily exceeds the eighty character short-caption budget for the gallery heuristic.</li>' +
+      '<li><img src="https://e.com/2.jpg" alt="two">Another long descriptive sentence that also exceeds the eighty character budget used by this same heuristic check.</li>' +
+      '<li><img src="https://e.com/3.jpg" alt="three">A third long descriptive sentence that likewise exceeds the eighty character budget used above here.</li>' +
+      '</ul>';
+    const longListMd = htmlToMarkdown(longListHtml);
+    check("ordinary list with long per-item prose is NOT force-gridded",
+      /^-\s/m.test(longListMd) && !/class="pbp-gallery"/.test(longListMd), longListMd);
+
+    // Negative: an ordinary list with no images at all.
+    const noImgMd = htmlToMarkdown('<ul><li>Alpha</li><li>Beta</li><li>Gamma</li></ul>');
+    check("ordinary list without images is NOT force-gridded",
+      /^-\s/m.test(noImgMd) && !/class="pbp-gallery"/.test(noImgMd), noImgMd);
+
+    // Malicious attributes (on gallerybox li, on the image itself, and a
+    // javascript: caption link) are stripped by the SAME allowlist scrub
+    // the complex-table passthrough uses (_pbpStripDisallowedAttrs).
+    const evilHtml = '<ul class="gallery">' +
+      '<li onclick="alert(1)"><img src="https://e.com/x.jpg" alt="x" onerror="alert(2)"><p>Cap <a href="javascript:alert(3)">bad</a></p></li>' +
+      '<li><img src="https://e.com/y.jpg" alt="y"><p>Cap y</p></li>' +
+      '<li><img src="https://e.com/z.jpg" alt="z"><p>Cap z</p></li>' +
+      '</ul>';
+    const evilMd = htmlToMarkdown(evilHtml);
+    check("gallery strips onclick/onerror and a javascript: caption href",
+      !/onclick|onerror|javascript:/i.test(evilMd) && /class="pbp-gallery"/.test(evilMd), evilMd);
+
+    // Render layer: the raw HTML block survives marked+DOMPurify as an
+    // actual grid -- no <li> anywhere, unlike the old markdown-list output.
+    const rendered = norm(renderMarkdown(md));
+    check("renderMarkdown keeps the pbp-gallery div + figure, no <li> in the output",
+      /<div class="pbp-gallery">/.test(rendered) && /<figure>/.test(rendered) && !/<li[\s>]/.test(rendered), rendered);
+  })();
+
   // ---- GitHub alerts: Defuddle -> Obsidian callout (data-callout) -> > [!TYPE] ----
   section("htmlToMarkdown GitHub alert (callout) restore");
   (() => {

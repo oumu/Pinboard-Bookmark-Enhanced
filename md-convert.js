@@ -65,6 +65,15 @@ const PBP_COMPLEX_TABLE_ATTRS = new Set([
   "href", "target", "rel",                                     // links in cells
   "src", "alt", "title"                                        // images in cells
 ]);
+// Allowlist for the image-gallery raw-HTML passthrough (see
+// _pbpGalleryGridHtml / the turndown "gallery" rule). Deliberately narrower
+// than PBP_COMPLEX_TABLE_ATTRS -- a gallery figure has no table-structure
+// attrs (colspan/rowspan/headers/scope/role) to keep -- srcset is the one
+// addition (galleries commonly carry responsive image sources tables don't).
+const PBP_GALLERY_ATTRS = new Set([
+  "src", "srcset", "alt",   // image
+  "href", "target", "rel"   // links inside a caption (task: preserve them)
+]);
 // A TeX string headed into markdown will be re-parsed by marked, whose
 // CommonMark inline escaping eats a backslash before ASCII punctuation
 // ("\," -> ",", "\\" -> "\"). Double the backslashes so the escape pass
@@ -102,6 +111,30 @@ function _pbpMathTexWrapped(node, doubleEscape) {
   return node.getAttribute("display") === "block" ? ("$$" + safe + "$$") : ("$" + safe + "$");
 }
 
+// Attribute allowlist scrub shared by every raw-HTML passthrough this file
+// produces (complex tables, headerless tables, and image galleries): drop
+// every attribute not in `allowed`, then drop javascript:/vbscript:/non-image
+// data: on href/src regardless of allowlist membership. B3 renders
+// diagrams/SVGs to <img src="data:image/...;base64,..."> upstream of this --
+// DOMPurify's own single sanitize point already allows img data URIs, so
+// this mirrors that instead of stripping the src bare. Mutates `root` (and
+// its descendants) in place; callers read back root.outerHTML/innerHTML
+// themselves. Include the root itself, not just descendants --
+// querySelectorAll("*") alone would leave the root's own class/id/style intact.
+function _pbpStripDisallowedAttrs(root, allowed) {
+  [root, ...Array.from(root.querySelectorAll("*"))].forEach((el) => {
+    Array.from(el.attributes).forEach((attr) => {
+      const name = attr.name.toLowerCase();
+      const value = String(attr.value || "").trim();
+      if (!allowed.has(name)) { el.removeAttribute(attr.name); return; }
+      if ((name === "href" || name === "src") && /^(?:javascript|vbscript|data):/i.test(value)) {
+        if (name === "src" && /^data:image\//i.test(value)) return;
+        el.removeAttribute(attr.name);
+      }
+    });
+  });
+}
+
 function _pbpSanitizeComplexTableHtml(node) {
   const clone = node.cloneNode(true);
   // A raw-HTML passthrough never runs the turndown "mathml" rule (this whole
@@ -121,29 +154,119 @@ function _pbpSanitizeComplexTableHtml(node) {
     m.replaceWith((m.ownerDocument || document).createTextNode(wrapped == null ? (m.textContent || "") : wrapped));
   });
   clone.querySelectorAll("script, style, iframe, object, embed, link, meta").forEach((el) => el.remove());
-  // Include the root itself, not just descendants -- querySelectorAll("*")
-  // alone would leave the outer <table>'s own class/id/data-*/style intact.
-  [clone, ...Array.from(clone.querySelectorAll("*"))].forEach((el) => {
-    Array.from(el.attributes).forEach((attr) => {
-      const name = attr.name.toLowerCase();
-      const value = String(attr.value || "").trim();
-      // A4 allowlist: everything else — class/id/data-*/aria-*/style/on* —
-      // drops, so the site-rules extraction path (which does no attribute
-      // pass of its own) converges with the Defuddle path instead of leaking
-      // source-page classes into the rendered DOM.
-      if (!PBP_COMPLEX_TABLE_ATTRS.has(name)) { el.removeAttribute(attr.name); return; }
-      if ((name === "href" || name === "src") && /^(?:javascript|vbscript|data):/i.test(value)) {
-        // B3 renders diagrams/SVGs to <img src="data:image/...;base64,...">
-        // before this ever runs -- DOMPurify's own single sanitize point
-        // already allows img data URIs, so mirror that here instead of
-        // stripping the src bare. javascript:/vbscript: and any non-image
-        // data: (e.g. data:text/html) still strip on both href and src.
-        if (name === "src" && /^data:image\//i.test(value)) return;
-        el.removeAttribute(attr.name);
-      }
-    });
-  });
+  // A4 allowlist: everything else — class/id/data-*/aria-*/style/on* —
+  // drops, so the site-rules extraction path (which does no attribute
+  // pass of its own) converges with the Defuddle path instead of leaking
+  // source-page classes into the rendered DOM.
+  _pbpStripDisallowedAttrs(clone, PBP_COMPLEX_TABLE_ATTRS);
   return clone.outerHTML;
+}
+
+// ---- Image galleries (MediaWiki ul.gallery.mw-gallery-traditional and
+// structural equivalents) -> a raw-HTML grid instead of a Markdown list ----
+// Root cause (2026-08-21, zh.wikipedia.org/wiki/数学 repro): a 6x2 image
+// gallery survives Defuddle as ul.gallery > li.gallerybox >
+// (div.thumb>span>a>img) + div.gallerytext, but Defuddle strips every class
+// and turndown's default list rule turns each <li> into a "- " item -- 12
+// images stacked one per row, each followed by a lone ::marker dot and an
+// indented caption paragraph. See the turndown "gallery" rule below (added
+// via td.addRule, so it is checked before turndown's built-in "list" rule --
+// TurndownService.Rules.add unshifts, so every custom rule takes priority
+// over the constructor-time defaults regardless of which custom rule was
+// added first) for the detection filter.
+
+// Caption text for one gallery <li>: its own content minus the pure
+// image-wrapper chain (MediaWiki's div.thumb>span>a>img, class-stripped by
+// Defuddle into an anonymous div>span>a>img with no text of its own). Walk
+// up from the <img> while each ancestor's OWN textContent is empty, so only
+// that pure-wrapper chain is removed and a REAL caption sibling (Defuddle's
+// div.gallerytext -> <p>) is left untouched -- any link the caption itself
+// carries is not on this img-only-text chain, so it survives verbatim.
+// `li` (and everything cloned/created from its ownerDocument below, in this
+// function and in _pbpGalleryGridHtml) belongs to turndown's OWN parse tree
+// -- td.turndown() builds it via DOMParser().parseFromString, which per spec
+// is inert (scripts never run, <img>/resources never load) -- the exact
+// same non-execution guarantee _splitMergedComments/_pbpAbsolutizeLinks get
+// from an explicit document.implementation.createHTMLDocument(""). The
+// .innerHTML assignments below parse untrusted markup back into this same
+// inert tree; _pbpStripDisallowedAttrs (called by the caller) strips
+// on*/href/src dangers before this ever becomes a string DOMPurify has to
+// re-sanitize at render time.
+function _pbpGalleryCaptionHtml(li) {
+  const clone = li.cloneNode(true);
+  const img = clone.querySelector("img");
+  if (img) {
+    let anc = img;
+    while (anc.parentNode && anc.parentNode !== clone && (anc.parentNode.textContent || "").trim() === "") {
+      anc = anc.parentNode;
+    }
+    if (anc.parentNode) anc.parentNode.removeChild(anc);
+  }
+  return clone.innerHTML.trim();
+}
+
+// Structural heuristic used once the source class is already gone (the
+// Defuddle path -- see _pbpIsGalleryList). Both thresholds are deliberately
+// loose in the SAME direction: a false NEGATIVE just leaves today's status
+// quo (a long single-column list -- not a regression), while a false
+// POSITIVE force-grids an ordinary list, so the bar only matches shapes an
+// ordinary bulleted list essentially never has.
+//   - >=3 <li>: rules out an ordinary 1-2 image "before/after" pair, which
+//     reads fine as a plain list and gains little from a grid.
+//   - EXACTLY one <img> per li: some ordinary bullets legitimately embed one
+//     small inline image, so this alone is not the discriminator -- combined
+//     with the next check it is.
+//   - <=80 chars of the li's OWN text: an ordinary list item that embeds an
+//     image alongside substantial prose (a "reasons why" post with one photo
+//     per point) is long; a MediaWiki gallery caption is a short
+//     title/attribution line.
+// Honest failure mode this accepts: a list whose every item happens to be a
+// short-captioned single image but was never a gallery (e.g. a spec's
+// "icon: name" reference list) gets force-gridded -- visually harmless
+// (multi-column image+short-label is exactly what the grid is for) but a
+// real false positive worth naming.
+function _pbpIsGalleryList(node) {
+  if (node.nodeName !== "UL") return false;
+  const cls = (node.getAttribute && node.getAttribute("class")) || "";
+  // Site-rules extraction preserves the source page's own HTML (classes
+  // included); only the Defuddle path strips them, so check the real class
+  // first -- exact, and free of the heuristic's false-positive risk.
+  if (/\bgallery\b/i.test(cls)) return true;
+  const lis = Array.from(node.children).filter((c) => c.nodeName === "LI");
+  if (lis.length < 3) return false;
+  return lis.every((li) => {
+    if (li.querySelectorAll("img").length !== 1) return false;
+    return (li.textContent || "").trim().length <= 80;
+  });
+}
+
+// Build the sanitized raw-HTML grid: one <figure><img><figcaption> per <li>,
+// wrapped in <div class="pbp-gallery"> (see md-preview.css's grid rule).
+// Reuses _pbpStripDisallowedAttrs -- the SAME scrub complex tables use --
+// against a gallery-specific allowlist; no second, looser allowlist for this
+// second raw-HTML passthrough surface.
+function _pbpGalleryGridHtml(node) {
+  const doc = node.ownerDocument || document;
+  const wrap = doc.createElement("div");
+  Array.from(node.children).filter((c) => c.nodeName === "LI").forEach((li) => {
+    const figure = doc.createElement("figure");
+    const img = li.querySelector("img");
+    if (img) figure.appendChild(img.cloneNode(false));
+    const captionHtml = _pbpGalleryCaptionHtml(li);
+    if (captionHtml) {
+      const figcaption = doc.createElement("figcaption");
+      figcaption.innerHTML = captionHtml;
+      figure.appendChild(figcaption);
+    }
+    wrap.appendChild(figure);
+  });
+  wrap.querySelectorAll("script, style, iframe, object, embed, link, meta").forEach((el) => el.remove());
+  _pbpStripDisallowedAttrs(wrap, PBP_GALLERY_ATTRS);
+  // class="pbp-gallery" is our own attribute, appended to the STRING after
+  // the allowlist pass (which has no "class" entry and would otherwise strip
+  // it exactly like any source-page class) rather than smuggled through the
+  // scrub as a special case.
+  return '<div class="pbp-gallery">' + wrap.innerHTML + "</div>";
 }
 
 function _pbpGetTurndown() {
@@ -236,6 +359,16 @@ function _pbpGetTurndown() {
       });
       return "\n\n" + out.join("\n") + "\n\n";
     }
+  });
+  // Image galleries (see _pbpIsGalleryList / _pbpGalleryGridHtml above): a
+  // raw-HTML grid passthrough, same shape as the table rule's HTML branches.
+  // addRule unshifts onto the front of turndown's rule array, so a rule
+  // added here is checked BEFORE the built-in "list" rule that would
+  // otherwise turn every <li> into a "- " item regardless of source order
+  // among this file's OTHER addRule calls (none of which filter on "UL").
+  td.addRule("gallery", {
+    filter: _pbpIsGalleryList,
+    replacement: (content, node) => "\n\n" + _pbpGalleryGridHtml(node) + "\n\n"
   });
   // GitHub alerts (> [!TIP] etc.): Defuddle normalizes them to Obsidian-style
   // callouts (<div data-callout="tip" class="callout"><div class="callout-title">…
