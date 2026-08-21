@@ -65,8 +65,45 @@ const PBP_COMPLEX_TABLE_ATTRS = new Set([
   "href", "target", "rel",                                     // links in cells
   "src", "alt", "title"                                        // images in cells
 ]);
+// A TeX string headed into markdown will be re-parsed by marked, whose
+// CommonMark inline escaping eats a backslash before ASCII punctuation
+// ("\," -> ",", "\\" -> "\"). Double the backslashes so the escape pass
+// consumes the added layer and KaTeX still receives the original source.
+function _pbpTexForMarkdown(tex) { return String(tex).replace(/\\/g, "\\\\"); }
+
+// Shared by the turndown "mathml" rule (below) AND _pbpSanitizeComplexTableHtml
+// (the complex-table AND, since fix round 1, headerless-table raw-HTML
+// passthrough): given a <math> node, extract its TeX source -- alttext, else
+// Defuddle's data-latex (vendor 0.19.1 rewrites Wikipedia's alttext into this,
+// dropping the MathML annotation too), else the annotation -- and return it
+// $/$$-wrapped with backslashes doubled for markdown re-parse safety. Returns
+// null when no TeX source is found (caller degrades to plain text).
+function _pbpMathTexWrapped(node) {
+  let tex = (node.getAttribute("alttext") || "").trim();
+  if (!tex) tex = (node.getAttribute("data-latex") || "").trim();
+  if (!tex && node.querySelector) {
+    const ann = node.querySelector('annotation[encoding="application/x-tex"]');
+    tex = ann ? (ann.textContent || "").trim() : "";
+  }
+  if (!tex) return null;
+  const safe = _pbpTexForMarkdown(tex);
+  return node.getAttribute("display") === "block" ? ("$$" + safe + "$$") : ("$" + safe + "$");
+}
+
 function _pbpSanitizeComplexTableHtml(node) {
   const clone = node.cloneNode(true);
+  // A raw-HTML passthrough never runs the turndown "mathml" rule (this whole
+  // subtree is serialized as literal DOM, never walked by turndown), and the
+  // attribute allowlist below strips data-latex/alttext along with every other
+  // non-listed attribute -- without this pass a <math data-latex="..."> cell
+  // would degrade to a bare, TeX-less <math> element. Replace each <math> with
+  // the SAME $/$$-wrapped text KaTeX's auto-render expects: it scans the whole
+  // rendered DOM's text nodes for delimiters regardless of whether the HTML
+  // came from marked-parsed markdown or a raw passthrough block like this one.
+  clone.querySelectorAll("math").forEach((m) => {
+    const wrapped = _pbpMathTexWrapped(m);
+    m.replaceWith((m.ownerDocument || document).createTextNode(wrapped == null ? (m.textContent || "") : wrapped));
+  });
   clone.querySelectorAll("script, style, iframe, object, embed, link, meta").forEach((el) => el.remove());
   // Include the root itself, not just descendants -- querySelectorAll("*")
   // alone would leave the outer <table>'s own class/id/data-*/style intact.
@@ -92,11 +129,6 @@ function _pbpSanitizeComplexTableHtml(node) {
   });
   return clone.outerHTML;
 }
-// A TeX string headed into markdown will be re-parsed by marked, whose
-// CommonMark inline escaping eats a backslash before ASCII punctuation
-// ("\," -> ",", "\\" -> "\"). Double the backslashes so the escape pass
-// consumes the added layer and KaTeX still receives the original source.
-function _pbpTexForMarkdown(tex) { return String(tex).replace(/\\/g, "\\\\"); }
 
 function _pbpGetTurndown() {
   if (_pbpTurndown) return _pbpTurndown;
@@ -111,20 +143,8 @@ function _pbpGetTurndown() {
   td.addRule("mathml", {
     filter: "math",
     replacement: (content, node) => {
-      let tex = (node.getAttribute("alttext") || "").trim();
-      // Defuddle (vendor 0.19.1) rewrites Wikipedia's <math alttext> into
-      // <math data-latex> and drops the MathML annotation, so a page that
-      // extracts through Defuddle reaches us in a third shape. Read it too,
-      // else the TeX falls through as plain text with no $ delimiters and
-      // KaTeX never sees a formula (real-device bug, zh.wikipedia.org/wiki/数学).
-      if (!tex) tex = (node.getAttribute("data-latex") || "").trim();
-      if (!tex && node.querySelector) {
-        const ann = node.querySelector('annotation[encoding="application/x-tex"]');
-        tex = ann ? (ann.textContent || "").trim() : "";
-      }
-      if (!tex) return content;
-      const safe = _pbpTexForMarkdown(tex);
-      return node.getAttribute("display") === "block" ? ("$$" + safe + "$$") : ("$" + safe + "$");
+      const wrapped = _pbpMathTexWrapped(node);
+      return wrapped == null ? content : wrapped;
     }
   });
   td.addRule("preformattedCode", {
@@ -182,6 +202,12 @@ function _pbpGetTurndown() {
       // the source actually marks a header.
       const hasHeader = !!node.querySelector(":scope > thead") ||
         rows.some((r) => r.querySelector(":scope > th"));
+      // GFM only recognizes a pipe block as a table when a header separator
+      // row is present, so a headerless table cannot be expressed in pipe
+      // syntax without inventing a header (which the reader would uppercase).
+      // Emit sanitized HTML instead -- same passthrough complex tables use --
+      // so the table still renders, with td-only cells and no synthetic th.
+      if (!hasHeader) return "\n\n" + _pbpSanitizeComplexTableHtml(node) + "\n\n";
       const out = [];
       rows.forEach((row, i) => {
         const cells = Array.from(row.querySelectorAll(":scope > th, :scope > td")).map(cellMd);

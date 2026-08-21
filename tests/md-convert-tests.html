@@ -2930,7 +2930,26 @@ section("table: synthetic header only when the source has one");
   check("thead counts as a header signal", withThead.includes("| --- |"));
   const noHeader = htmlToMarkdown("<table><tr><td>x</td><td>y</td></tr><tr><td>a</td><td>b</td></tr></table>", {});
   check("header-less table gets no synthetic header row", !noHeader.includes("| --- |"));
-  check("header-less table still renders both rows", noHeader.includes("| x | y |") && noHeader.includes("| a | b |"));
+  // Fix round 1 (HIGH defect from review): GFM only recognizes a pipe block
+  // as a table when a header separator row is present, so the naive fix
+  // (drop the separator, keep pipe syntax) made marked/GFM stop recognizing
+  // the block as a table AT ALL -- it degraded to a <p> full of literal "|"
+  // characters (verified by the reviewer executing real marked.min.js). That
+  // gap existed because the ORIGINAL assertions here were markdown-level only
+  // and passed while rendering was broken. Headerless simple tables now route
+  // through the same sanitized raw-HTML passthrough complex tables use (see
+  // _pbpSanitizeComplexTableHtml) -- assert both the markdown-level shape
+  // (raw <table> HTML, not pipe syntax) AND the rendered-level shape.
+  check("header-less table emits raw HTML, not broken pipe syntax",
+    /<table[\s>]/i.test(noHeader) && !noHeader.includes("|"));
+  check("header-less table still carries both rows' cell text",
+    noHeader.includes(">x<") && noHeader.includes(">y<") && noHeader.includes(">a<") && noHeader.includes(">b<"));
+  const renderedNoHeader = renderMarkdown(noHeader);
+  check("header-less table still renders as a real table", /<table/i.test(renderedNoHeader));
+  check("header-less table renders no th", !/<th[\s>]/i.test(renderedNoHeader));
+  check("header-less table does not leak literal pipes", !/<p[^>]*>[^<]*\|/i.test(renderedNoHeader));
+  const renderedWithTh = renderMarkdown(withTh);
+  check("header table still renders th", /<th[\s>]/i.test(renderedWithTh));
 })();
 
 section("TeX survives table-cell escaping");
@@ -2939,6 +2958,12 @@ section("TeX survives table-cell escaping");
   check("thin-space command survives into markdown", md.includes("\\,"));
   const rendered = renderMarkdown(md);
   check("thin-space command survives marked rendering", rendered.includes("\\,"));
+  // Fix round 1, requirement 2: re-verify the Wikipedia shape end to end --
+  // this table has no <th>/<thead> (exactly Wikipedia's example-table shape),
+  // so it now takes the raw-HTML passthrough above. Confirm it still renders
+  // as a real <table> with no synthetic <th> AND the TeX source survives.
+  check("headerless math table renders as a real table, not literal pipes", /<table[\s>]/i.test(rendered));
+  check("headerless math table renders no th", !/<th[\s>]/i.test(rendered));
   const mat = renderMarkdown(htmlToMarkdown('<table><tr><td><math data-latex="{\\begin{matrix}a\\\\b\\end{matrix}}">t</math></td></tr></table>', {}));
   check("matrix row break survives marked rendering", mat.includes("\\\\"));
 })();
