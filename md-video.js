@@ -476,20 +476,33 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           // A page the user can actually watch already holds an OK player
           // response whose caption baseUrls carry their pot (PO Token)
           // parameter -- strictly better evidence than re-fetching the watch
-          // HTML, which the botguard may gate even same-origin. Only trust it
-          // when it is for the requested video (YouTube's SPA navigation
-          // leaves a STALE ytInitialPlayerResponse behind) and actually OK.
-          try {
-            const pr = window.ytInitialPlayerResponse;
-            const prVid = pr && pr.videoDetails && pr.videoDetails.videoId;
-            const prOk = pr && pr.playabilityStatus && pr.playabilityStatus.status === "OK";
-            // Watch-page requests only: caption (timedtext) URLs also carry a
-            // v= param, and handing them the player response instead of the
-            // track body would break both the XML and json3 parses.
-            if (wantVid && prVid === wantVid && prOk && new URL(u, location.href).pathname === "/watch") {
-              return { ok: true, status: 200, body: "ytInitialPlayerResponse = " + JSON.stringify(pr) + ";" };
-            }
-          } catch (_) { /* fall through to the network */ }
+          // HTML, which the botguard gates even same-origin (a script fetch
+          // carries Sec-Fetch-Dest: empty, unlike a navigation). Two page
+          // sources, both videoId-checked and OK-checked: the player API
+          // (movie_player.getPlayerResponse() tracks SPA navigation, so it is
+          // current even when the user browsed INTO this video), then the
+          // load-time global (present on direct opens, STALE after SPA moves).
+          // Watch-page requests only: caption (timedtext) URLs also carry a
+          // v= param, and handing them the player response instead of the
+          // track body would break both the XML and json3 parses.
+          const isWatch = (() => { try { return new URL(u, location.href).pathname === "/watch"; } catch (_) { return false; } })();
+          if (wantVid && isWatch) {
+            const usable = (pr) => {
+              try {
+                return pr && pr.videoDetails && pr.videoDetails.videoId === wantVid &&
+                  pr.playabilityStatus && pr.playabilityStatus.status === "OK";
+              } catch (_) { return false; }
+            };
+            try {
+              const player = document.getElementById("movie_player");
+              const pr = player && typeof player.getPlayerResponse === "function" ? player.getPlayerResponse() : null;
+              if (usable(pr)) return { ok: true, status: 200, body: "ytInitialPlayerResponse = " + JSON.stringify(pr) + ";" };
+            } catch (_) { /* try the global next */ }
+            try {
+              const pr = window.ytInitialPlayerResponse;
+              if (usable(pr)) return { ok: true, status: 200, body: "ytInitialPlayerResponse = " + JSON.stringify(pr) + ";" };
+            } catch (_) { /* fall through to the network */ }
+          }
           try {
             const r = await fetch(u, { credentials: "same-origin", signal: AbortSignal.timeout(15000) });
             return { ok: r.ok, status: r.status, body: await r.text() };
@@ -546,7 +559,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     listEl.appendChild(frag);
   }
 
-  async function loadFlow(detected, statusEl, bodyEl, trackSel, copyBtn) {
+  async function loadFlow(detected, statusEl, bodyEl, trackSel, copyBtn, adoptBtn) {
     statusEl.textContent = t("mdVideoLoading");
     const isBili = detected.provider === "bilibili";
     let granted = false;
@@ -595,7 +608,10 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       return;
     }
     if (res.error === "no-tracks" || res.error === "caption-body") {
-      statusEl.textContent = t("mdVideoNoTracks");
+      // "no subtitles" would be a lie when the track list is sitting right
+      // there -- caption-body means the TEXT was withheld (PO-Token-gated
+      // timedtext), and switching tracks re-fetches through the picker.
+      statusEl.textContent = t(res.error === "caption-body" && res.tracks ? "mdVideoBodyBlocked" : "mdVideoNoTracks");
       if (!res.tracks) return;
     }
     if (!res.error) statusEl.textContent = "";
@@ -612,6 +628,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     });
     trackSel.hidden = !(res.tracks || []).length;
     copyBtn.hidden = !(res.segments || []).length;
+    if (adoptBtn) adoptBtn.hidden = !((res.segments || []).length && typeof window.pbpAdoptTranscript === "function");
     _segments = res.segments || [];
     _meta.trackLabel = res.track ? (isBili ? res.track.lan_doc : res.track.label) : "";
     if (_segments.length) renderTranscript(bodyEl, _segments, !isBili);
@@ -696,7 +713,22 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           setTimeout(() => { copyBtn.textContent = prev; }, 1800);
         } catch (_) { status.textContent = t("mdVideoCopyFailed"); }
       });
-      bar.appendChild(trackSel); bar.appendChild(copyBtn);
+      // "Use as article": only offered on the empty-document shells (the two
+      // video-page mount paths define pbpAdoptTranscript; the normal article
+      // path nulls it). Rebuilds the page THROUGH the canonical payload +
+      // reload, so the rail, exports, Ask, and translation all run on the
+      // transcript exactly as they would on an extracted article.
+      const adoptBtn = el("button", "pbv-adopt");
+      adoptBtn.type = "button";
+      adoptBtn.hidden = true;
+      adoptBtn.textContent = t("mdVideoAdoptDoc");
+      adoptBtn.addEventListener("click", () => {
+        if (typeof window.pbpAdoptTranscript !== "function" || !_segments.length) return;
+        adoptBtn.disabled = true;
+        try { window.pbpAdoptTranscript(pbpVideoTranscriptMarkdown(_segments, _meta), _meta.title || ""); }
+        catch (_) { adoptBtn.disabled = false; }
+      });
+      bar.appendChild(trackSel); bar.appendChild(copyBtn); bar.appendChild(adoptBtn);
       if (detected.provider === "youtube") {
         // Relay-failure degrade: the player depends on GitHub Pages staying
         // up; this always-present link needs no failure detection (a
@@ -714,7 +746,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       bar.appendChild(status);
       const body = el("div", "pbv-list");
       panel.replaceChildren(media, bar, body);
-      await loadFlow(detected, status, body, trackSel, copyBtn);
+      await loadFlow(detected, status, body, trackSel, copyBtn, adoptBtn);
     });
   };
 })();

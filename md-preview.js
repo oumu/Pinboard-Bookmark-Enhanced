@@ -646,6 +646,28 @@ function pbpApplyColorScheme(mode) {
     });
   }
 
+  // "Use as article" hook for the video panel's transcript (md-video.js).
+  // Defined here, not in md-video.js, so the rewritten payload keeps this
+  // page's account/tags/description contract intact (owner isolation). Writes
+  // the transcript as the canonical markdown and reloads into the normal
+  // article path -- rail, exports, Ask, and translation then all run on the
+  // transcript. Only meaningful on the empty-document shells; the normal
+  // article path below nulls it before the panel mounts.
+  window.pbpAdoptTranscript = async (transcriptMd, trackTitle) => {
+    if (!transcriptMd || !String(transcriptMd).trim()) return;
+    try {
+      await chrome.storage.local.set({
+        [MP_KEY]: {
+          markdown: String(transcriptMd), title: title || trackTitle || "",
+          url, baseUrl, sourceTabUrl, tabId: srcTabId,
+          source: source === "jina" ? "jina" : "local",
+          account: previewAccount, tags, description, ts: Date.now()
+        }
+      });
+      location.reload();
+    } catch (_) { /* quota -- keep the panel as-is; Copy still works */ }
+  };
+
   // Shortcut opens the preview INSTANTLY with a pending placeholder, then the
   // preview drives extraction via the reextract path (so the tab appears immediately
   // even when Jina needs a network round-trip). On success the SW has written the
@@ -734,6 +756,9 @@ function pbpApplyColorScheme(mode) {
     if (typeof pbpVideoInit === "function") pbpVideoInit({ pageUrl: sourceTabUrl || url, title: title, tabId: srcTabId });
     return;
   }
+  // Real article present: transcript adoption would clobber it -- the video
+  // panel hides its "Use as article" button when this hook is null.
+  window.pbpAdoptTranscript = null;
 
   // Reload/Memory-Saver recovery: replace the (now redundant) full payload with a
   // lightweight restore record — url/tabId/engine/tags, NO markdown/contentHtml (avoids
