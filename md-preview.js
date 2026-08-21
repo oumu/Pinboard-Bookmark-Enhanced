@@ -887,7 +887,10 @@ function pbpApplyColorScheme(mode) {
     const el = document.getElementById("export-note");
     if (!el) return;
     el.textContent = msg; el.hidden = !msg;
-    clearTimeout(el._t); el._t = setTimeout(() => { el.hidden = true; }, 6000);
+    // Scale visibility with content: the broken-image note carries an actual
+    // instruction ("pick Embed"), and 6s was gone before anyone finished it.
+    const ms = Math.min(12000, 4000 + (msg ? msg.length * 60 : 0));
+    clearTimeout(el._t); el._t = setTimeout(() => { el.hidden = true; }, ms);
   }
 
   // Honest broken-image note (plan A, Codex-adjudicated): fires on any exit whose
