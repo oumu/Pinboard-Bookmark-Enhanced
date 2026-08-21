@@ -571,7 +571,10 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         target: { tabId },
         world: "MAIN",
         func: async (vid, lang) => {
-          const out = { kind: "", body: "" };
+          // out.trace carries WHY each route failed back to the extension
+          // page, where it is console.warn'd -- this chain being silent is
+          // how four device-report rounds went undiagnosable.
+          const out = { kind: "", body: "", trace: [] };
           const paramsFor = () => {
             const scan = (root) => {
               try {
@@ -604,6 +607,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           };
           try {
             const params = paramsFor();
+            if (!params) out.trace.push("get_transcript: no params in page data");
             if (params) {
               const r = await fetch("/youtubei/v1/get_transcript?prettyPrint=false", {
                 method: "POST", credentials: "same-origin",
@@ -614,12 +618,21 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
               if (r.ok) {
                 const txt = await r.text();
                 if (txt && txt.length > 50) { out.kind = "panel"; out.body = txt; return out; }
+                out.trace.push("get_transcript: 200 but body len " + (txt ? txt.length : 0));
+              } else {
+                out.trace.push("get_transcript: HTTP " + r.status);
               }
             }
-          } catch (_) { /* fall through to the iOS route */ }
+          } catch (e) { out.trace.push("get_transcript: " + String((e && e.message) || e)); }
           try {
             const r = await fetch("/youtubei/v1/player?prettyPrint=false", {
-              method: "POST", credentials: "same-origin",
+              // omit, NOT same-origin: every verified success of this route
+              // was cookieless (our own 2221-row run fired from an empty
+              // profile; the community reference implementation calls it
+              // anonymously from a server), while the one logged-in device
+              // test with cookies attached came back empty. A web session
+              // riding an IOS client context is the inconsistent variant.
+              method: "POST", credentials: "omit",
               headers: { "content-type": "application/json" },
               body: JSON.stringify({
                 context: { client: { clientName: "IOS", clientVersion: "20.10.38", deviceMake: "Apple", deviceModel: "iPhone16,2", osName: "iPhone", osVersion: "18.3.2.22D82" } },
@@ -629,6 +642,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
             });
             if (r.ok) {
               const pj = await r.json();
+              const ps = pj && pj.playabilityStatus && pj.playabilityStatus.status;
               const list = pj && pj.captions && pj.captions.playerCaptionsTracklistRenderer
                 && pj.captions.playerCaptionsTracklistRenderer.captionTracks;
               if (Array.isArray(list) && list.length) {
@@ -636,25 +650,38 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
                 const tr = list.find((t) => String(t.languageCode || "").toLowerCase().split("-")[0] === base && t.kind !== "asr")
                   || list.find((t) => t.kind !== "asr") || list[0];
                 const u = tr.baseUrl + (tr.baseUrl.indexOf("?") !== -1 ? "&" : "?") + "fmt=json3";
-                const r2 = await fetch(u, { credentials: "same-origin", signal: AbortSignal.timeout(15000) });
+                const r2 = await fetch(u, { credentials: "omit", signal: AbortSignal.timeout(15000) });
                 if (r2.ok) {
                   const t3 = await r2.text();
                   if (t3 && t3.length > 20) { out.kind = "json3"; out.body = t3; return out; }
+                  out.trace.push("ios timedtext: 200 but body len " + (t3 ? t3.length : 0));
+                } else {
+                  out.trace.push("ios timedtext: HTTP " + r2.status);
                 }
+              } else {
+                out.trace.push("ios player: status " + (ps || "?") + ", tracks " + (Array.isArray(list) ? list.length : 0));
               }
+            } else {
+              out.trace.push("ios player: HTTP " + r.status);
             }
-          } catch (_) {}
+          } catch (e) { out.trace.push("ios player: " + String((e && e.message) || e)); }
           return out;
         },
         args: [videoId, hl || ""],
       });
-    } catch (_) { return null; }
+    } catch (e) {
+      console.warn("[pbp-video] rescue injection failed:", (e && e.message) || e);
+      return null;
+    }
     const r = inj && inj[0] && inj[0].result;
+    if (r && Array.isArray(r.trace) && r.trace.length) console.warn("[pbp-video] rescue trace:", r.trace.join(" | "));
     if (!r || !r.kind) return null;
     try {
       if (r.kind === "panel") return pbpYtParseTranscriptPanel(JSON.parse(r.body));
       if (r.kind === "json3") return pbpYtParseJson3(r.body);
-    } catch (_) {}
+    } catch (e) {
+      console.warn("[pbp-video] rescue parse (" + r.kind + "):", (e && e.message) || e);
+    }
     return null;
   }
 
@@ -725,7 +752,10 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       if (ytHadTab) {
         const tabFetch = ytTabFetchFn(fetchTabId, detected.videoId);
         res = await pbpYtFetchTranscript(detected.videoId, { uiLang, fetchFn: tabFetch });
+        console.info("[pbp-video] tab route (tab " + fetchTabId + "):", res.error || ("ok, " + (res.segments || []).length + " segments"));
         if (!res.error || res.tracks) _ytFetchFn = tabFetch;
+      } else {
+        console.info("[pbp-video] no eligible www.youtube.com tab; using extension-page fetch only");
       }
       if (!res || (res.error && !res.tracks)) {
         try {
@@ -733,6 +763,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           useLogin = s && s.mdVideoUseLogin === true;
         } catch (_) {}
         const fb = await pbpYtFetchTranscript(detected.videoId, { uiLang, useLogin });
+        console.info("[pbp-video] extension-page fallback (login " + useLogin + "):", fb.error || ("ok, " + (fb.segments || []).length + " segments"));
         // Keep whichever answer got further: a fallback that also failed must
         // not overwrite a tab result that at least carried the track list.
         if (!res || !fb.error || fb.tracks) { res = fb; _ytFetchFn = null; }
@@ -744,6 +775,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       // failed, so offering them as "switch track" would be a trap.
       if (ytHadTab && res && res.error) {
         const segs = await ytTabPanelTranscript(fetchTabId, detected.videoId, uiLang);
+        console.info("[pbp-video] panel rescue:", segs ? segs.length + " segments" : "failed");
         if (segs && segs.length) res = { tracks: [], track: null, segments: segs };
       }
     }
@@ -796,9 +828,16 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
 
   window.pbpVideoInit = function pbpVideoInit(ctx) {
     const detected = pbpVideoDetect(ctx && ctx.pageUrl);
-    if (!detected) return;
+    if (!detected) {
+      console.info("[pbp-video] mount skipped: no video detected in", (ctx && ctx.pageUrl) || "(no pageUrl)");
+      return;
+    }
     const view = document.getElementById("rendered-view");
-    if (!view || !view.parentNode || document.getElementById("video-panel")) return;
+    if (!view || !view.parentNode || document.getElementById("video-panel")) {
+      console.info("[pbp-video] mount skipped:", !view ? "no #rendered-view" : (document.getElementById("video-panel") ? "panel already mounted" : "detached view"));
+      return;
+    }
+    console.info("[pbp-video] panel mounted for", detected.provider, ctx.pageUrl);
     _meta = { title: (ctx && ctx.title) || document.title || "", url: ctx.pageUrl };
     _ctxTabId = (ctx && typeof ctx.tabId === "number") ? ctx.tabId : null;
 
