@@ -48,6 +48,18 @@ function pbpVideoPosterUrl(detected) {
     ? "https://i.ytimg.com/vi/" + detected.videoId + "/hqdefault.jpg" : "";
 }
 
+// A tab qualifies as a same-origin caption-fetch host only when it is
+// plainly on https://www.youtube.com -- the click-time permission grant
+// covers exactly that origin, and scripting.executeScript rides host access.
+// m.youtube.com / youtu.be tabs are NOT eligible: the grant doesn't cover
+// them, so injection there would be an ungranted-origin injection.
+function pbpYtTabEligible(tabUrl) {
+  try {
+    const u = new URL(String(tabUrl || ""));
+    return u.protocol === "https:" && u.hostname === "www.youtube.com";
+  } catch (_) { return false; }
+}
+
 // YouTube's InnerTube endpoint now demands a PO Token on every client we
 // could impersonate (yt-dlp PO Token Guide, 2026-07), and a browser cannot
 // produce one -- attestation needs the native app runtime. The watch page
@@ -428,6 +440,69 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   const PBV_EXTERNAL_SVG = typeof PBP_ICONS !== "undefined" ? PBP_ICONS.extOpen : "";
 
   let _panel = null, _iframe = null, _segments = [], _meta = {};
+  let _ctxTabId = null;   // source tab from pbpVideoInit ctx (may be gone by click time)
+  let _ytFetchFn = null;  // tab-injected fetchFn when the tab route won; null = extension-page fetch
+
+  // Same-origin caption fetch, executed INSIDE an open YouTube tab. From the
+  // page's own context the watch HTML answers with an OK playabilityStatus
+  // and caption baseUrls complete with their pot (PO Token) parameter; the
+  // extension page's cross-site fetch gets LOGIN_REQUIRED instead -- login
+  // cookies don't attach cross-site, and the botguard has no page context to
+  // attest (probed live 2026-08: cookieless watch fetch = LOGIN_REQUIRED,
+  // zero tracks). Injection rides the click-time https://www.youtube.com/*
+  // grant plus the existing "scripting" permission -- no new permissions.
+  async function ytFindFetchTab() {
+    if (typeof _ctxTabId === "number") {
+      try {
+        const tab = await chrome.tabs.get(_ctxTabId);
+        if (tab && pbpYtTabEligible(tab.url)) return tab.id;
+      } catch (_) { /* source tab is gone; any YouTube tab works the same */ }
+    }
+    try {
+      const tabs = await chrome.tabs.query({ url: "https://www.youtube.com/*" });
+      for (const tab of tabs || []) {
+        if (tab && typeof tab.id === "number" && pbpYtTabEligible(tab.url)) return tab.id;
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  function ytTabFetchFn(tabId, videoId) {
+    return async (url) => {
+      const inj = await chrome.scripting.executeScript({
+        target: { tabId },
+        world: "MAIN", // window.ytInitialPlayerResponse lives in the page world
+        func: async (u, wantVid) => {
+          // A page the user can actually watch already holds an OK player
+          // response whose caption baseUrls carry their pot (PO Token)
+          // parameter -- strictly better evidence than re-fetching the watch
+          // HTML, which the botguard may gate even same-origin. Only trust it
+          // when it is for the requested video (YouTube's SPA navigation
+          // leaves a STALE ytInitialPlayerResponse behind) and actually OK.
+          try {
+            const pr = window.ytInitialPlayerResponse;
+            const prVid = pr && pr.videoDetails && pr.videoDetails.videoId;
+            const prOk = pr && pr.playabilityStatus && pr.playabilityStatus.status === "OK";
+            // Watch-page requests only: caption (timedtext) URLs also carry a
+            // v= param, and handing them the player response instead of the
+            // track body would break both the XML and json3 parses.
+            if (wantVid && prVid === wantVid && prOk && new URL(u, location.href).pathname === "/watch") {
+              return { ok: true, status: 200, body: "ytInitialPlayerResponse = " + JSON.stringify(pr) + ";" };
+            }
+          } catch (_) { /* fall through to the network */ }
+          try {
+            const r = await fetch(u, { credentials: "same-origin", signal: AbortSignal.timeout(15000) });
+            return { ok: r.ok, status: r.status, body: await r.text() };
+          } catch (e) {
+            return { ok: false, status: 0, body: "" };
+          }
+        },
+        args: [url, videoId || ""],
+      });
+      const r = (inj && inj[0] && inj[0].result) || { ok: false, status: 0, body: "" };
+      return { ok: r.ok, status: r.status, text: async () => r.body, json: async () => JSON.parse(r.body) };
+    };
+  }
 
   function el(tag, cls, text) {
     const n = document.createElement(tag);
@@ -479,23 +554,46 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     if (!granted) { statusEl.textContent = t("mdVideoPermMissing"); return; }
     let res;
     let useLogin = false;
+    let ytHadTab = false;
     if (isBili) {
       res = await pbpBiliFetchTranscript(detected.bvid, detected.part, {});
       if (res.meta && res.meta.title) _meta.title = res.meta.title;
     } else {
       const uiLang = (chrome.i18n && chrome.i18n.getUILanguage && chrome.i18n.getUILanguage()) || "en";
-      try {
-        const s = await pbpReadSettingsWithSecrets({ mdVideoUseLogin: SETTINGS_DEFAULTS.mdVideoUseLogin });
-        useLogin = s && s.mdVideoUseLogin === true;
-      } catch (_) {}
-      res = await pbpYtFetchTranscript(detected.videoId, { uiLang, useLogin });
+      // Tab route first: the page's own session succeeds where the extension
+      // page's cross-site fetch is bot-gated (see ytTabFetchFn). The
+      // extension-page fetch stays as the no-tab fallback, still governed by
+      // the login opt-in (the tab route needs no opt-in -- it reads through
+      // the user's own open page, adding nothing they haven't already sent).
+      _ytFetchFn = null;
+      const fetchTabId = await ytFindFetchTab();
+      ytHadTab = fetchTabId != null;
+      if (ytHadTab) {
+        const tabFetch = ytTabFetchFn(fetchTabId, detected.videoId);
+        res = await pbpYtFetchTranscript(detected.videoId, { uiLang, fetchFn: tabFetch });
+        if (!res.error || res.tracks) _ytFetchFn = tabFetch;
+      }
+      if (!res || (res.error && !res.tracks)) {
+        try {
+          const s = await pbpReadSettingsWithSecrets({ mdVideoUseLogin: SETTINGS_DEFAULTS.mdVideoUseLogin });
+          useLogin = s && s.mdVideoUseLogin === true;
+        } catch (_) {}
+        const fb = await pbpYtFetchTranscript(detected.videoId, { uiLang, useLogin });
+        // Keep whichever answer got further: a fallback that also failed must
+        // not overwrite a tab result that at least carried the track list.
+        if (!res || !fb.error || fb.tracks) { res = fb; _ytFetchFn = null; }
+      }
     }
     if (res.error === "player" || res.error === "view") { statusEl.textContent = t("mdVideoFailed"); return; }
     if (res.error === "login") { statusEl.textContent = t("mdVideoBiliLogin"); return; }
     // YouTube answered, but about us rather than about the video: the request
     // was gated (bot check / age wall / unplayable). Saying "no subtitles"
-    // here would be a lie, and would point the user at the wrong problem.
-    if (res.error === "blocked") { statusEl.textContent = t("mdVideoBlocked"); return; }
+    // here would be a lie, and would point the user at the wrong problem. When
+    // no YouTube tab was open to fetch through, say what actually helps.
+    if (res.error === "blocked") {
+      statusEl.textContent = t("mdVideoBlocked") + (ytHadTab ? "" : " " + t("mdVideoOpenTabHint"));
+      return;
+    }
     if (res.error === "no-tracks" || res.error === "caption-body") {
       statusEl.textContent = t("mdVideoNoTracks");
       if (!res.tracks) return;
@@ -519,7 +617,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     if (_segments.length) renderTranscript(bodyEl, _segments, !isBili);
     trackSel.addEventListener("change", async () => {
       statusEl.textContent = t("mdVideoLoading");
-      const segs = isBili ? await pbpBiliFetchSubtitleBody(trackSel.value) : await pbpYtFetchCaptionBody(trackSel.value, undefined, useLogin);
+      const segs = isBili ? await pbpBiliFetchSubtitleBody(trackSel.value) : await pbpYtFetchCaptionBody(trackSel.value, _ytFetchFn || undefined, useLogin);
       statusEl.textContent = segs.length ? "" : t("mdVideoNoTracks");
       _segments = segs;
       const sel = trackSel.selectedOptions && trackSel.selectedOptions[0];
@@ -535,6 +633,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     const view = document.getElementById("rendered-view");
     if (!view || !view.parentNode || document.getElementById("video-panel")) return;
     _meta = { title: (ctx && ctx.title) || document.title || "", url: ctx.pageUrl };
+    _ctxTabId = (ctx && typeof ctx.tabId === "number") ? ctx.tabId : null;
 
     const panel = el("section", "video-panel");
     panel.id = "video-panel";

@@ -701,7 +701,7 @@ function pbpApplyColorScheme(mode) {
       // the video IS the content, so "extraction failed" is not the whole
       // story. (Fixing only the later guard is why bilibili still showed a
       // bare error after the previous round.)
-      if (typeof pbpVideoInit === "function") pbpVideoInit({ pageUrl: sourceTabUrl || url, title: title });
+      if (typeof pbpVideoInit === "function") pbpVideoInit({ pageUrl: sourceTabUrl || url, title: title, tabId: srcTabId });
       applyAvailability(attemptedEngine);
     }
     if (sourceEl) {
@@ -731,7 +731,7 @@ function pbpApplyColorScheme(mode) {
     // panel at all; a YouTube re-open that extracted empty lost its button).
     // Render the empty-state shell first, then let the panel attach above it.
     renderEmptyState(t("mdPreviewNoContent"));
-    if (typeof pbpVideoInit === "function") pbpVideoInit({ pageUrl: sourceTabUrl || url, title: title });
+    if (typeof pbpVideoInit === "function") pbpVideoInit({ pageUrl: sourceTabUrl || url, title: title, tabId: srcTabId });
     return;
   }
 
@@ -1613,7 +1613,7 @@ function pbpApplyColorScheme(mode) {
       }
     }));
   }
-  if (typeof pbpVideoInit === "function") pbpVideoInit({ pageUrl: sourceTabUrl || url, title: title });
+  if (typeof pbpVideoInit === "function") pbpVideoInit({ pageUrl: sourceTabUrl || url, title: title, tabId: srcTabId });
 
   // ---- Build TOC sidebar from the canonical markdown ----
   const tocNav = document.getElementById("toc");

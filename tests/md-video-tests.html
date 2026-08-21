@@ -41,6 +41,14 @@ assertEq(pbpVideoDetect("https://example.com/watch?v=dQw4w9WgXcQ"), null, "non-Y
 assertEq(pbpVideoDetect("https://www.youtube.com/feed/subscriptions"), null, "non-video YouTube page is null");
 assertEq(pbpVideoDetect("not a url"), null, "garbage is null");
 
+section("pbpYtTabEligible");
+assert(pbpYtTabEligible("https://www.youtube.com/watch?v=dQw4w9WgXcQ") === true, "watch page tab is eligible");
+assert(pbpYtTabEligible("https://www.youtube.com/") === true, "any www.youtube.com page is eligible (same-origin fetch host)");
+assert(pbpYtTabEligible("https://m.youtube.com/watch?v=dQw4w9WgXcQ") === false, "m.youtube.com is NOT eligible (grant covers www only)");
+assert(pbpYtTabEligible("http://www.youtube.com/") === false, "plain http is not eligible");
+assert(pbpYtTabEligible("https://youtu.be/dQw4w9WgXcQ") === false, "youtu.be is not eligible");
+assert(pbpYtTabEligible("not a url") === false, "garbage is not eligible");
+
 section("pbpVideoPosterUrl");
 assertEq(pbpVideoPosterUrl(pbpVideoDetect("https://www.youtube.com/watch?v=dQw4w9WgXcQ")),
   "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg", "youtube: deterministic hqdefault URL");
