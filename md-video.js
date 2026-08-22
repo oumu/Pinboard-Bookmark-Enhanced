@@ -674,6 +674,17 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   const PBV_EXTERNAL_SVG = typeof PBP_ICONS !== "undefined" ? PBP_ICONS.extOpen : "";
 
   let _panel = null, _iframe = null, _segments = [], _meta = {};
+  // Fix round 1 (reviewer-caught): renderTranscript's rAF batch chain had no
+  // cancellation. A track-change (~1372) or AI-punctuation re-render (~1614)
+  // firing while a PRIOR call's chain is still mid-flight (realistic on a
+  // >200-segment transcript + a fast track switch) let the stale closure keep
+  // appending old-track rows into the freshly cleared list after the new call
+  // had already started rendering -- silent data pollution, and those rows'
+  // seek handlers carried old-track timestamps. Each renderTranscript call
+  // stamps its own epoch and every deferred continuation (the step() rAF
+  // callback and the requestAnimationFrame(step) call itself) bails once a
+  // newer call has bumped _renderEpoch past it.
+  let _renderEpoch = 0;
   let _isBili = false; // provider of the mounted player -- seekTo() picks its jump mechanism by it
   let _aiPunctParas = null; // AI-punctuated paragraphs; Copy/Use-as-article prefer them when present
   let _ctxTabId = null;   // source tab from pbpVideoInit ctx (may be gone by click time)
@@ -1162,6 +1173,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   // everything else synchronously rather than silently stalling forever.
   function renderTranscript(listEl, segments, seekable) {
     listEl.textContent = "";
+    const epoch = ++_renderEpoch; // this call's token -- see the field comment above
     const BATCH = 200;
     const total = segments.length;
     let i = 0;
@@ -1171,15 +1183,16 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       for (; i < end; i++) frag.appendChild(renderVideoRow(segments[i], seekable));
       listEl.appendChild(frag);
     }
-    appendBatch(BATCH);
+    appendBatch(BATCH); // first batch: same tick as the call, inherently safe
     if (i >= total) return;
     if (typeof requestAnimationFrame === "undefined") {
       appendBatch(total - i);
       return;
     }
     const step = () => {
+      if (epoch !== _renderEpoch) return; // superseded by a newer render -- stop
       appendBatch(BATCH);
-      if (i < total) requestAnimationFrame(step);
+      if (i < total && epoch === _renderEpoch) requestAnimationFrame(step);
     };
     requestAnimationFrame(step);
   }
