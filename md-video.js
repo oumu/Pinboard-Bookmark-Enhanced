@@ -645,8 +645,13 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
 // ── end PURE SECTION ──
 
 // ── RUNTIME (chrome/fetch/DOM; md-preview only) ──
-// Panel lives as a SIBLING above #rendered-view: translation re-renders
-// replace renderedView's content and must never destroy the player.
+// Panel and #rendered-view are never nested inside each other: translation
+// re-renders replace renderedView's content and must never destroy the
+// player. In video-mode (A2 workspace, mountVideoWorkspace) #video-panel
+// lives in .pbv-col-player and #rendered-view in .pbv-col-study -- sibling
+// grid columns, not sibling DOM nodes, but still disjoint subtrees. Outside
+// video-mode (defensive fallback only) the panel stays a plain SIBLING
+// above #rendered-view, as before.
 (function () {
   if (typeof window === "undefined" || typeof document === "undefined") return;
 

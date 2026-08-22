@@ -3493,22 +3493,42 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
 /* ---- video-mode workspace (A2) ---- */
 /* Widens the reading column edge-to-edge for the two-column layout below.
    --pbp-width's 680/880/1080 zen cycle (see the note above .doc-body) is a
-   custom property read through var(); this rule sets max-width to a plain
-   literal instead, so it wins on specificity alone (body.video-mode
-   .doc-body outranks the bare .doc-body rule) regardless of the current
-   zen step -- video-mode is not part of that width system. */
-body.video-mode .doc-body { max-width: min(2160px, 100%); }
+   custom property read through var(); max-width here is a plain literal
+   instead, so it wins on specificity alone (body.video-mode .doc-body
+   outranks the bare .doc-body rule) regardless of the current zen step --
+   video-mode is not part of that width system.
+   container-type MUST live on an ancestor of .pbv-workspace, never on
+   .pbv-workspace itself: a container cannot be the subject of a query
+   keyed off its own containment context (CSS Containment spec) -- putting
+   it on .pbv-workspace made the @container rule below simply never match
+   at any viewport (Fix round 1, reviewer-caught: grid stayed two-column
+   down to ~768px, with content clipped/no horizontal scroll instead of
+   overflowing, since inline-size containment on the query's own subject
+   also constrains its own reported size). .doc-body is the nearest
+   ancestor and this selector is already video-mode-scoped, so normal
+   (non-video) pages get no containment at all. contain:layout (which
+   container-type:inline-size implies) does not create a scroll container
+   or clip content -- verified the sticky player and page scroll both still
+   work after this move (Fix round 1, see task-3-report.md). */
+body.video-mode .doc-body { max-width: min(2160px, 100%); container-type: inline-size; }
 
-/* container-type on the workspace itself, not .doc-body -- so the
-   @container query below tracks the workspace's own available width. */
-.pbv-workspace { container-type: inline-size; }
-
-/* Wide (default): two columns, player left / study right. */
+/* Wide (default): two columns, player left / study right. No align-items
+   here (default stretch): a grid item is #video-panel's containing block
+   for sticky purposes, and align-items:start was tried first (Fix round 1)
+   -- it shrinks .pbv-col-player's box down to #video-panel's own height,
+   leaving the sticky element zero room to move inside its own container,
+   so it silently never pinned (empirically verified: scrolling 1200px
+   moved the panel off-screen with the page instead of holding at top:24px,
+   reproducible even with containment removed entirely -- containment was
+   never the cause). Default stretch makes .pbv-col-player match the tall
+   .pbv-col-study row height instead; #video-panel is an ordinary block
+   child (not itself a grid item), so it keeps its own small natural height
+   and gets room to stick within that stretched, invisible (no
+   background/border of its own) parent box. */
 .pbv-workspace {
   display: grid;
   grid-template-columns: minmax(720px, 1.7fr) minmax(440px, 0.8fr);
   gap: 32px;
-  align-items: start;
 }
 /* Sticky player -- wide state only, cleared below. */
 .pbv-col-player #video-panel { position: sticky; top: 24px; }
