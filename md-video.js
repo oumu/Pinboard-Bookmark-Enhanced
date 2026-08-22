@@ -985,14 +985,22 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
             }
             if (captured) { out.kind = "net"; out.body = captured; return out; }
             if (segs.length) {
-              // virtualized list: scroll and accumulate. Keyed by timestamp
-              // with LAST read winning: rows caught mid-recycle during the
-              // scroll yield garbled mixed text, and the stable re-read a
-              // beat later must replace them (a first-read-wins content key
-              // kept both the garbled and the clean row).
+              // virtualized list: scroll and accumulate. Two safeguards,
+              // both learned from garbled rows on device: a row only counts
+              // when two reads 120ms apart agree (a node caught mid-recycle
+              // never survives that), and the FIRST stable version of a
+              // timestamp is final -- last-read-wins let a row's dying
+              // glimpse (recycled as it scrolled out) overwrite a good read.
               const seen = new Map();
-              const keep = (list) => list.forEach((s) => seen.set(s.from, s));
-              keep(segs);
+              const keep = (list) => list.forEach((s) => { if (!seen.has(s.from)) seen.set(s.from, s); });
+              const readStable = async () => {
+                const a = readRows();
+                await sleep(120);
+                const b = readRows();
+                const bk = new Set(b.map((s) => s.from + "|" + s.content));
+                return a.filter((s) => bk.has(s.from + "|" + s.content));
+              };
+              keep(await readStable());
               const row0 = q(ROW_SEL);
               let scroller = row0 && row0.parentElement;
               while (scroller && scroller !== document.body && scroller.scrollHeight <= scroller.clientHeight + 4) scroller = scroller.parentElement;
@@ -1000,8 +1008,8 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
                 let stable = 0, lastCount = seen.size;
                 for (let i = 0; i < 80 && stable < 3; i++) {
                   scroller.scrollTop += Math.max(120, scroller.clientHeight * 0.9);
-                  await sleep(280); // let recycled rows settle before reading
-                  keep(readRows());
+                  await sleep(240);
+                  keep(await readStable());
                   if (seen.size === lastCount) stable++; else { stable = 0; lastCount = seen.size; }
                 }
                 scroller.scrollTop = 0;
@@ -1104,7 +1112,15 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     statusEl.textContent = t("mdVideoLoading");
     const isBili = detected.provider === "bilibili";
     let granted = false;
-    try { granted = await chrome.permissions.request({ origins: [isBili ? BILI_ORIGIN : YT_ORIGIN] }) === true; } catch (_) {}
+    const originPat = isBili ? BILI_ORIGIN : YT_ORIGIN;
+    // contains BEFORE request: permissions.request demands a user gesture
+    // even for already-granted origins, so the adopted-page autoload (no
+    // gesture) died on "permission declined" despite the standing grant.
+    // Automatic paths only ever check; the request stays on real clicks.
+    try { granted = await chrome.permissions.contains({ origins: [originPat] }) === true; } catch (_) {}
+    if (!granted) {
+      try { granted = await chrome.permissions.request({ origins: [originPat] }) === true; } catch (_) {}
+    }
     if (!granted) { statusEl.textContent = t("mdVideoPermMissing"); return; }
     let res;
     let useLogin = false;
