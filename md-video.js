@@ -204,6 +204,48 @@ function pbpVideoMergeParagraphs(segments) {
   return out.filter(Boolean);
 }
 
+// Unpunctuated-track detection: ASR subtitles (bilibili's especially) carry
+// no sentence-final punctuation at all. Only tracks like that qualify for
+// punctuation enhancement -- properly punctuated tracks are never touched.
+function pbpVideoNeedsPunctuation(segments) {
+  const segs = (segments || []).filter((s) => s && s.content);
+  if (segs.length < 10) return false;
+  let punct = 0;
+  for (const s of segs) if (/[.!?。！？…]["')\]]?$/.test(s.content)) punct++;
+  return punct / segs.length < 0.1;
+}
+
+// Zero-token heuristic tier: pause length decides the mark (short pause ->
+// comma, long pause -> full stop; interrogative particles -> question mark).
+// Chinese-specific rules, so non-CJK segments are left alone. Returns new
+// segment objects; never mutates the input.
+function pbpVideoHeuristicPunctuate(segments) {
+  const segs = segments || [];
+  const out = [];
+  for (let i = 0; i < segs.length; i++) {
+    const s = segs[i];
+    const content = String((s && s.content) || "");
+    if (!/[一-鿿]/.test(content) || /[，。！？…、；：,.!?;:]$/.test(content)) { out.push(s); continue; }
+    const next = segs[i + 1];
+    const end = typeof s.to === "number" && s.to > 0 ? s.to : (typeof s.from === "number" ? s.from : -1);
+    const gap = next && typeof next.from === "number" && end >= 0 ? next.from - end : Infinity;
+    let mark = "";
+    if (!next || gap >= 1.5) mark = /[吗呢]$/.test(content) ? "？" : "。";
+    else if (gap >= 0.4) mark = "，";
+    out.push(mark ? { ...s, content: content + mark } : s);
+  }
+  return out;
+}
+
+// Conservation gate for the AI tier: stripping punctuation and whitespace
+// from both sides must leave identical character sequences -- the model may
+// only insert or adjust marks, never touch a word (fail-closed per batch).
+function pbpVideoPunctConserved(original, punctuated) {
+  const strip = (t) => String(t || "").replace(/[\s，。！？；：、“”‘’（）《》【】…—,.!?;:'"()\[\]{}·-]+/g, "");
+  const a = strip(original);
+  return a.length > 0 && a === strip(punctuated);
+}
+
 function pbpVideoFmtTime(sec) {
   sec = Math.max(0, Math.floor(+sec || 0));
   const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
@@ -211,12 +253,14 @@ function pbpVideoFmtTime(sec) {
   return h ? h + ":" + p2(m) + ":" + p2(s) : m + ":" + p2(s);
 }
 
-function pbpVideoTranscriptMarkdown(segments, meta) {
+function pbpVideoTranscriptMarkdown(segments, meta, paragraphsOverride) {
   meta = meta || {};
   const lines = ["## Transcript" + (meta.trackLabel ? " (" + meta.trackLabel + ")" : "")];
   if (meta.url) lines.push("", "> " + (meta.title ? "[" + meta.title + "](" + meta.url + ")" : "<" + meta.url + ">"));
   lines.push("");
-  lines.push(pbpVideoMergeParagraphs(segments).join("\n\n"));
+  const paras = (Array.isArray(paragraphsOverride) && paragraphsOverride.length)
+    ? paragraphsOverride : pbpVideoMergeParagraphs(segments);
+  lines.push(paras.join("\n\n"));
   return lines.join("\n");
 }
 
@@ -565,6 +609,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
 
   let _panel = null, _iframe = null, _segments = [], _meta = {};
   let _isBili = false; // provider of the mounted player -- seekTo() picks its jump mechanism by it
+  let _aiPunctParas = null; // AI-punctuated paragraphs; Copy/Use-as-article prefer them when present
   let _ctxTabId = null;   // source tab from pbpVideoInit ctx (may be gone by click time)
   let _ytFetchFn = null;  // tab-injected fetchFn when the tab route won; null = extension-page fetch
 
@@ -1015,7 +1060,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     listEl.appendChild(frag);
   }
 
-  async function loadFlow(detected, statusEl, bodyEl, trackSel, copyBtn, adoptBtn) {
+  async function loadFlow(detected, statusEl, bodyEl, trackSel, copyBtn, adoptBtn, aiBtn) {
     statusEl.textContent = t("mdVideoLoading");
     const isBili = detected.provider === "bilibili";
     let granted = false;
@@ -1110,6 +1155,22 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       trackSel.appendChild(opt);
     });
     trackSel.hidden = !(res.tracks || []).length;
+    // punctuation enhancement: heuristic tier applies silently; the AI
+    // button only appears for tracks the detector judged unpunctuated.
+    _aiPunctParas = null;
+    let wasUnpunct = false;
+    if ((res.segments || []).length && typeof pbpVideoNeedsPunctuation === "function" && pbpVideoNeedsPunctuation(res.segments)) {
+      wasUnpunct = true;
+      res.segments = pbpVideoHeuristicPunctuate(res.segments);
+    }
+    if (aiBtn) {
+      let aiOk = false;
+      try {
+        const sa = typeof pbpAiGetSettings === "function" ? await pbpAiGetSettings() : null;
+        aiOk = !!(sa && typeof pbpAiAvailable === "function" && pbpAiAvailable(sa));
+      } catch (_) {}
+      aiBtn.hidden = !(wasUnpunct && (res.segments || []).length && aiOk);
+    }
     copyBtn.hidden = !(res.segments || []).length;
     if (adoptBtn) adoptBtn.hidden = !((res.segments || []).length && typeof window.pbpAdoptTranscript === "function");
     _segments = res.segments || [];
@@ -1119,6 +1180,10 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       statusEl.textContent = t("mdVideoLoading");
       const segs = isBili ? await pbpBiliFetchSubtitleBody(trackSel.value) : await pbpYtFetchCaptionBody(trackSel.value, _ytFetchFn || undefined, useLogin);
       statusEl.textContent = segs.length ? "" : t("mdVideoNoTracks");
+      if (segs.length && typeof pbpVideoNeedsPunctuation === "function" && pbpVideoNeedsPunctuation(segs)) {
+        segs = pbpVideoHeuristicPunctuate(segs);
+      }
+      _aiPunctParas = null; // a new track invalidates the previous AI pass
       _segments = segs;
       const sel = trackSel.selectedOptions && trackSel.selectedOptions[0];
       _meta.trackLabel = sel ? sel.textContent : "";
@@ -1198,7 +1263,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       copyBtn.textContent = t("mdVideoCopyMd");
       copyBtn.addEventListener("click", async () => {
         try {
-          await navigator.clipboard.writeText(pbpVideoTranscriptMarkdown(_segments, _meta));
+          await navigator.clipboard.writeText(pbpVideoTranscriptMarkdown(_segments, _meta, _aiPunctParas));
           const prev = copyBtn.textContent;
           copyBtn.textContent = t("mdVideoCopied");
           setTimeout(() => { copyBtn.textContent = prev; }, 1800);
@@ -1216,10 +1281,53 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       adoptBtn.addEventListener("click", () => {
         if (typeof window.pbpAdoptTranscript !== "function" || !_segments.length) return;
         adoptBtn.disabled = true;
-        try { window.pbpAdoptTranscript(pbpVideoTranscriptMarkdown(_segments, _meta), _meta.title || ""); }
+        try { window.pbpAdoptTranscript(pbpVideoTranscriptMarkdown(_segments, _meta, _aiPunctParas), _meta.title || ""); }
         catch (_) { adoptBtn.disabled = false; }
       });
-      bar.appendChild(trackSel); bar.appendChild(copyBtn); bar.appendChild(adoptBtn);
+      // AI punctuation (combo plan, user-picked): heuristic tier applies
+      // automatically in loadFlow; this button upgrades the Copy/Use-as-
+      // article text via the configured AI provider. Spends tokens, so it
+      // is a deliberate click behind the robot icon (icon contract) and only
+      // shows for tracks the detector judged unpunctuated.
+      const aiBtn = el("button", "pbv-ai-punct");
+      aiBtn.type = "button";
+      aiBtn.hidden = true;
+      aiBtn.innerHTML = typeof PBP_ICONS !== "undefined" ? PBP_ICONS.robot : "";
+      const aiLabel = el("span", "", t("mdVideoAiPunct"));
+      aiBtn.appendChild(aiLabel);
+      aiBtn.addEventListener("click", async () => {
+        if (!_segments.length || aiBtn.disabled) return;
+        aiBtn.disabled = true;
+        aiLabel.textContent = t("mdVideoAiPunct") + "…";
+        try {
+          const paras = pbpVideoMergeParagraphs(_segments);
+          const batches = [];
+          let cur = [], len = 0;
+          for (const para of paras) {
+            cur.push(para); len += para.length;
+            if (len > 1600) { batches.push(cur.join("\n")); cur = []; len = 0; }
+          }
+          if (cur.length) batches.push(cur.join("\n"));
+          const sa = await pbpAiGetSettings();
+          const outBatches = [];
+          for (const b of batches) {
+            const prompt = "为下面的语音转写文本添加或修正标点符号，并按语义用空行分段。严格保持文字本身不变：不得增加、删除或改写任何非标点文字。直接输出处理后的文本，不要任何解释。\n\n" + b;
+            const text = await callAI(sa, prompt);
+            // fail-closed per batch: a batch the model rewrote keeps its input
+            outBatches.push(pbpVideoPunctConserved(b, text) ? String(text).trim() : b);
+          }
+          _aiPunctParas = outBatches.join("\n\n").split(/\n{2,}/)
+            .map((x) => x.replace(/\s+/g, " ").trim()).filter(Boolean);
+          aiLabel.textContent = t("mdVideoAiPunctDone");
+        } catch (e) {
+          console.warn("[pbp-video] ai punctuation:", (e && e.message) || e);
+          _aiPunctParas = null;
+          status.textContent = t("mdVideoAiPunctFail");
+          aiLabel.textContent = t("mdVideoAiPunct");
+          aiBtn.disabled = false;
+        }
+      });
+      bar.appendChild(trackSel); bar.appendChild(copyBtn); bar.appendChild(adoptBtn); bar.appendChild(aiBtn);
       if (detected.provider === "youtube") {
         // Relay-failure degrade: the player depends on GitHub Pages staying
         // up; this always-present link needs no failure detection (a
@@ -1237,7 +1345,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       bar.appendChild(status);
       const body = el("div", "pbv-list");
       panel.replaceChildren(media, bar, body);
-      await loadFlow(detected, status, body, trackSel, copyBtn, adoptBtn);
+      await loadFlow(detected, status, body, trackSel, copyBtn, adoptBtn, aiBtn);
     });
   };
 })();

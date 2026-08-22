@@ -97,6 +97,32 @@ section("pbpYtTranscriptParams");
   assert(pbpYtTranscriptParams("x", "en", false) !== pbpYtTranscriptParams("x", "de", false), "language changes the token");
 })();
 
+section("punctuation enhancement");
+(() => {
+  const mk = (n, content, gapAfter) => ({ from: n * 3, to: n * 3 + (gapAfter != null ? 3 - gapAfter : 2.9), content });
+  const unp = []; for (let i = 0; i < 12; i++) unp.push({ from: i * 3, to: i * 3 + 2.9, content: "这是没有标点的第" + i + "句" });
+  assert(pbpVideoNeedsPunctuation(unp) === true, "needs: 12 unpunctuated CJK segments qualify");
+  const punc = unp.map((s) => ({ ...s, content: s.content + "。" }));
+  assert(pbpVideoNeedsPunctuation(punc) === false, "needs: punctuated track never qualifies");
+  assert(pbpVideoNeedsPunctuation(unp.slice(0, 5)) === false, "needs: short tracks are left alone");
+  const segs = [
+    { from: 0, to: 2.8, content: "这是第一句" },      // 0.2s gap -> nothing
+    { from: 3, to: 5, content: "然后短停顿" },        // 1.0s gap -> comma
+    { from: 6, to: 8, content: "长停顿之前说的话" },   // 4s gap -> full stop
+    { from: 12, to: 14, content: "你说对吗" },        // last + particle -> question mark
+  ];
+  const hp = pbpVideoHeuristicPunctuate(segs);
+  assertEq(hp[0].content, "这是第一句", "heuristic: tiny gap gets no mark");
+  assertEq(hp[1].content, "然后短停顿，", "heuristic: short pause gets a comma");
+  assertEq(hp[2].content, "长停顿之前说的话。", "heuristic: long pause gets a full stop");
+  assertEq(hp[3].content, "你说对吗？", "heuristic: trailing interrogative particle gets a question mark");
+  assertEq(pbpVideoHeuristicPunctuate([{ from: 0, to: 9, content: "english asr line" }])[0].content, "english asr line", "heuristic: non-CJK untouched");
+  assertEq(segs[1].content, "然后短停顿", "heuristic: input segments not mutated");
+  assert(pbpVideoPunctConserved("我们蒸馒头 蒸饭", "我们蒸馒头，蒸饭。") === true, "conserved: pure punctuation insertion passes");
+  assert(pbpVideoPunctConserved("我们蒸馒头", "我们蒸包子。") === false, "conserved: rewritten words fail closed");
+  assert(pbpVideoPunctConserved("", "") === false, "conserved: empty input fails closed");
+})();
+
 section("pbpYtTabEligible");
 assert(pbpYtTabEligible("https://www.youtube.com/watch?v=dQw4w9WgXcQ") === true, "watch page tab is eligible");
 assert(pbpYtTabEligible("https://www.youtube.com/") === true, "any www.youtube.com page is eligible (same-origin fetch host)");
