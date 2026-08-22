@@ -3627,7 +3627,6 @@
   "mdVideoBodyBlocked": { "message": "Des pistes de sous-titres ont été trouvées, mais YouTube n'a pas fourni leur texte. Gardez l'onglet YouTube de cette vidéo ouvert et réessayez, ou choisissez une autre piste." },
   "mdVideoPermMissing": { "message": "Autorisation refusée ; rien n'a été chargé" },
   "mdVideoCopyMd": { "message": "Copier la transcription en Markdown" },
-  "mdVideoAdoptDoc": { "message": "Utiliser comme texte" },
   "mdVideoAiPunct": { "message": "Ponctuation IA" },
   "mdVideoAiPunctDone": { "message": "Ponctué" },
   "mdVideoAiPunctFail": { "message": "Échec de la ponctuation IA ; résultat local conservé" },

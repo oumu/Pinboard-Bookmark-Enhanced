@@ -1110,8 +1110,8 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   }
 
   // permissions.request demands a user gesture even for already-granted
-  // origins, so the adopted-page autoload (no gesture) died on "permission
-  // declined" despite the standing grant if this ran unconditionally.
+  // origins, so an automatic load (no gesture) dies on "permission declined"
+  // despite the standing grant if this runs unconditionally.
   // Callers therefore check chrome.permissions.contains() first and only
   // reach this helper on a real click when that check came back false.
   async function requestVideoOrigin(detected) {
@@ -1220,10 +1220,24 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     return session;
   }
 
-  async function loadFlow(detected, statusEl, bodyEl, trackSel, copyBtn, adoptBtn, aiBtn) {
+  // Is the stored session about THIS video? md-preview.js runs the session
+  // before it renders, so by the time the panel loads the transcript is
+  // usually already in hand -- reusing it is the difference between one
+  // capture round-trip per page and two. Identity is provider + video id (the
+  // whole point is that a stale session from another video must re-fetch).
+  function sessionMatches(session, detected) {
+    const d = session && session.detected;
+    if (!d || !detected || d.provider !== detected.provider) return false;
+    return detected.provider === "bilibili" ? d.bvid === detected.bvid : d.videoId === detected.videoId;
+  }
+
+  async function loadFlow(detected, statusEl, bodyEl, trackSel, copyBtn, aiBtn) {
     statusEl.textContent = t("mdVideoLoading");
     const isBili = detected.provider === "bilibili";
-    const session = await prepareVideoSession({ pageUrl: (_meta && _meta.url) || "", tabId: _ctxTabId });
+    const cached = window.pbpVideoSession;
+    const session = (cached && sessionMatches(cached, detected) && cached.segments && cached.segments.length)
+      ? cached
+      : await prepareVideoSession({ pageUrl: (_meta && _meta.url) || "", tabId: _ctxTabId });
     if (!session.granted) { statusEl.textContent = t("mdVideoPermMissing"); return; }
     if (session.meta && session.meta.title) _meta.title = session.meta.title;
     _ytFetchFn = session.ytFetchFn || null;
@@ -1273,7 +1287,6 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       aiBtn.hidden = !(wasUnpunct && (res.segments || []).length && aiOk);
     }
     copyBtn.hidden = !(res.segments || []).length;
-    if (adoptBtn) adoptBtn.hidden = !((res.segments || []).length && typeof window.pbpAdoptTranscript === "function");
     _segments = res.segments || [];
     _meta.trackLabel = res.track ? (isBili ? res.track.lan_doc : res.track.label) : "";
     if (_segments.length) renderTranscript(bodyEl, _segments, true);
@@ -1340,14 +1353,8 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     panel.appendChild(cta);
     view.parentNode.insertBefore(panel, view);
     _panel = panel;
-    // Adopted-transcript pages reload straight into the player: the user
-    // already clicked once to get here, and the origin grant from that
-    // click makes the permission check silent. First-ever use still needs
-    // a manual click (no gesture -> the request is refused quietly, the
-    // poster card stays).
-    if (ctx && ctx.autoload) setTimeout(() => { try { cta.click(); } catch (_) {} }, 0);
 
-    cta.addEventListener("click", async () => {
+    async function runLoad() {
       cta.disabled = true;
       // player iframe mounts immediately (no permission needed for a frame)
       const media = el("div", "pbv-media");
@@ -1378,26 +1385,12 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           setTimeout(() => { copyBtn.textContent = prev; }, 1800);
         } catch (_) { status.textContent = t("mdVideoCopyFailed"); }
       });
-      // "Use as article": only offered on the empty-document shells (the two
-      // video-page mount paths define pbpAdoptTranscript; the normal article
-      // path nulls it). Rebuilds the page THROUGH the canonical payload +
-      // reload, so the rail, exports, Ask, and translation all run on the
-      // transcript exactly as they would on an extracted article.
-      const adoptBtn = el("button", "pbv-adopt");
-      adoptBtn.type = "button";
-      adoptBtn.hidden = true;
-      adoptBtn.textContent = t("mdVideoAdoptDoc");
-      adoptBtn.addEventListener("click", () => {
-        if (typeof window.pbpAdoptTranscript !== "function" || !_segments.length) return;
-        adoptBtn.disabled = true;
-        try { window.pbpAdoptTranscript(pbpVideoTranscriptMarkdown(_segments, _meta, _aiPunctParas), _meta.title || ""); }
-        catch (_) { adoptBtn.disabled = false; }
-      });
       // AI punctuation (combo plan, user-picked): heuristic tier applies
-      // automatically in loadFlow; this button upgrades the Copy/Use-as-
-      // article text via the configured AI provider. Spends tokens, so it
-      // is a deliberate click behind the robot icon (icon contract) and only
-      // shows for tracks the detector judged unpunctuated.
+      // automatically in loadFlow; this button upgrades the Copy text -- and,
+      // when the transcript IS this page's article, the article itself --
+      // via the configured AI provider. Spends tokens, so it is a deliberate
+      // click behind the robot icon (icon contract) and only shows for tracks
+      // the detector judged unpunctuated.
       const aiBtn = el("button", "pbv-ai-punct");
       aiBtn.type = "button";
       aiBtn.hidden = true;
@@ -1441,10 +1434,13 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
             renderTranscript(body, _segments, true);
           }
           aiLabel.textContent = t("mdVideoAiPunctDone");
-          // If the article IS this transcript, refresh it in place -- the
-          // user should not need to know to click "Use as article" again.
-          if (window.pbpTranscriptArticle && typeof window.pbpAdoptTranscript === "function" && _segments.length) {
-            window.pbpAdoptTranscript(pbpVideoTranscriptMarkdown(_segments, _meta, _aiPunctParas), _meta.title || "");
+          // The article IS this transcript on every video page that had
+          // captions, so refresh it in place: md-preview.js owns the payload
+          // write + reload (account/tags/description contract), this file only
+          // hands it the punctuated markdown.
+          if (window.pbpVideoDoc && window.pbpVideoDoc.kind === "video-transcript"
+              && typeof window.pbpVideoCommitTranscript === "function" && _segments.length) {
+            window.pbpVideoCommitTranscript(pbpVideoTranscriptMarkdown(_segments, _meta, _aiPunctParas), _meta.title || "");
           }
         } catch (e) {
           console.warn("[pbp-video] ai punctuation:", (e && e.message) || e);
@@ -1454,7 +1450,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           aiBtn.disabled = false;
         }
       });
-      bar.appendChild(trackSel); bar.appendChild(copyBtn); bar.appendChild(adoptBtn); bar.appendChild(aiBtn);
+      bar.appendChild(trackSel); bar.appendChild(copyBtn); bar.appendChild(aiBtn);
       if (detected.provider === "youtube") {
         // Relay-failure degrade: the player depends on GitHub Pages staying
         // up; this always-present link needs no failure detection (a
@@ -1473,16 +1469,33 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       const body = el("div", "pbv-list");
       panel.replaceChildren(media, bar, body);
       // contains BEFORE request: permissions.request demands a user gesture
-      // even for already-granted origins, so the adopted-page autoload (no
-      // gesture) died on "permission declined" despite the standing grant.
+      // even for already-granted origins, so the automatic load below (no
+      // gesture) would die on "permission declined" despite a standing grant.
       // prepareVideoSession's automatic path only ever checks; the request
-      // stays here, on the real click -- the only user gesture this flow has.
+      // stays here, and only ever fires on a real poster-card click -- the
+      // only user gesture this flow has.
       const originPat = detected.provider === "bilibili" ? BILI_ORIGIN : YT_ORIGIN;
       let granted = false;
       try { granted = await chrome.permissions.contains({ origins: [originPat] }) === true; } catch (_) {}
       if (!granted) granted = await requestVideoOrigin(detected);
       if (!granted) { status.textContent = t("mdVideoPermMissing"); return; }
-      await loadFlow(detected, status, body, trackSel, copyBtn, adoptBtn, aiBtn);
-    });
+      await loadFlow(detected, status, body, trackSel, copyBtn, aiBtn);
+    }
+
+    cta.addEventListener("click", runLoad);
+    // The session already holds this video's transcript (md-preview.js ran it
+    // before rendering, and the article the user is reading IS that
+    // transcript), so the origin grant is standing and there is nothing left
+    // to ask for -- go straight to the player instead of making the user click
+    // a poster card to reach content that is already on screen. runLoad swaps
+    // the panel's children synchronously, before this task yields, so the
+    // poster never paints. Without a session (permission not granted yet, or
+    // no captions) the poster card + requestVideoOrigin flow stays exactly as
+    // it was: that click is the gesture the grant needs.
+    const booted = window.pbpVideoSession;
+    if (booted && sessionMatches(booted, detected) && booted.granted
+        && booted.segments && booted.segments.length) {
+      runLoad();
+    }
   };
 })();

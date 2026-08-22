@@ -3627,7 +3627,6 @@
   "mdVideoBodyBlocked": { "message": "Untertitelspuren wurden gefunden, aber YouTube hat deren Text nicht geliefert. Lassen Sie den YouTube-Tab dieses Videos geöffnet und versuchen Sie es erneut, oder wählen Sie eine andere Spur." },
   "mdVideoPermMissing": { "message": "Berechtigung abgelehnt; es wurde nichts geladen" },
   "mdVideoCopyMd": { "message": "Transkript als Markdown kopieren" },
-  "mdVideoAdoptDoc": { "message": "Als Artikeltext verwenden" },
   "mdVideoAiPunct": { "message": "KI-Interpunktion" },
   "mdVideoAiPunctDone": { "message": "Interpunktion fertig" },
   "mdVideoAiPunctFail": { "message": "KI-Interpunktion fehlgeschlagen; lokales Ergebnis bleibt erhalten" },

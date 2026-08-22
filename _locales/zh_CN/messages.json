@@ -3621,7 +3621,6 @@
   "mdVideoBodyBlocked": { "message": "已找到字幕轨，但 YouTube 未返回字幕内容。保持该视频的 YouTube 标签页打开后重试，或切换另一条字幕轨。" },
   "mdVideoPermMissing": { "message": "已拒绝授权，未加载任何内容" },
   "mdVideoCopyMd": { "message": "复制字幕为 Markdown" },
-  "mdVideoAdoptDoc": { "message": "用作正文" },
   "mdVideoAiPunct": { "message": "AI 标点" },
   "mdVideoAiPunctDone": { "message": "已标点" },
   "mdVideoAiPunctFail": { "message": "AI 标点失败，已保留本地结果" },

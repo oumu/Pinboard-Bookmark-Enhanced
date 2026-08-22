@@ -646,27 +646,36 @@ function pbpApplyColorScheme(mode) {
     });
   }
 
-  // "Use as article" hook for the video panel's transcript (md-video.js).
-  // Defined here, not in md-video.js, so the rewritten payload keeps this
-  // page's account/tags/description contract intact (owner isolation). Writes
-  // the transcript as the canonical markdown and reloads into the normal
-  // article path -- rail, exports, Ask, and translation then all run on the
-  // transcript. Only meaningful on the empty-document shells; the normal
-  // article path below nulls it before the panel mounts.
-  window.pbpAdoptTranscript = async (transcriptMd, trackTitle) => {
-    if (!transcriptMd || !String(transcriptMd).trim()) return;
+  // Single writer for "the transcript becomes this page's article". Defined
+  // here, not in md-video.js, so the rewritten payload keeps this page's
+  // account/tags/description contract intact (owner isolation). Writes the
+  // transcript as the canonical markdown and reloads into the normal article
+  // path -- rail, exports, Ask, and translation then all run on the
+  // transcript. Callers: the pending/restore branch below (extraction failed
+  // on a video page but captions exist) and md-video.js's AI-punctuation pass
+  // (refresh the article in place once the marks land).
+  // videoTranscript marks the payload as ALREADY being a transcript, so the
+  // reloaded normal path keeps this exact markdown instead of re-deriving one
+  // from the session (which would silently drop the AI punctuation) and does
+  // not stash it as the collapsed description (it is not a description).
+  // Returns true only when the payload was written and the reload is under
+  // way, so callers can fall back when storage refuses the write.
+  window.pbpVideoCommitTranscript = async (transcriptMd, fallbackTitle) => {
+    if (!transcriptMd || !String(transcriptMd).trim()) return false;
     try {
       await chrome.storage.local.set({
         [MP_KEY]: {
-          markdown: String(transcriptMd), title: title || trackTitle || "",
-          videoAuto: true, // the adopted page loads its player without another click
+          markdown: String(transcriptMd), title: title || fallbackTitle || "",
+          videoTranscript: true,
           url, baseUrl, sourceTabUrl, tabId: srcTabId,
           source: source === "jina" ? "jina" : "local",
           account: previewAccount, tags, description, ts: Date.now()
         }
       });
       location.reload();
+      return true;
     } catch (_) { /* quota -- keep the panel as-is; Copy still works */ }
+    return false;
   };
 
   // Shortcut opens the preview INSTANTLY with a pending placeholder, then the
@@ -729,7 +738,30 @@ function pbpApplyColorScheme(mode) {
       // silently skipped the mount -- the intermittent "no panel" of six device
       // rounds. Wait for the defer chain before deciding.
       await pbpDeferredScriptsReady;
-      if (typeof pbpVideoInit === "function") pbpVideoInit({ pageUrl: sourceTabUrl || url, title: title, tabId: srcTabId, autoload: !!info.videoAuto });
+      // Extraction dead-ended, but on a video page the transcript IS the
+      // article: try the capture session and, when it yields captions,
+      // rebuild the page THROUGH the canonical payload + reload so the normal
+      // path (rail, TOC, exports, Ask, translation) runs on the transcript.
+      // Reloads exactly ONCE and only with segments: the payload written is a
+      // full one, so the reloaded page never re-enters this branch.
+      const vDetectedErr = typeof pbpVideoDetect === "function" ? pbpVideoDetect(sourceTabUrl || url) : null;
+      if (vDetectedErr) {
+        document.body.classList.add("video-mode");
+        let vSession = null;
+        if (typeof window.pbpPrepareVideoSession === "function") {
+          try { vSession = await window.pbpPrepareVideoSession({ pageUrl: sourceTabUrl || url, tabId: srcTabId }); }
+          catch (e) { console.warn("[pbp-video] session failed on error shell:", (e && e.message) || e); }
+        }
+        if (vSession && vSession.granted && vSession.segments && vSession.segments.length
+            && typeof pbpVideoTranscriptMarkdown === "function") {
+          const committed = await window.pbpVideoCommitTranscript(
+            pbpVideoTranscriptMarkdown(vSession.segments, { title: title || "", url: sourceTabUrl || url }),
+            title || ""
+          );
+          if (committed) return; // reload is under way; do not also mount the panel
+        }
+      }
+      if (typeof pbpVideoInit === "function") pbpVideoInit({ pageUrl: sourceTabUrl || url, title: title, tabId: srcTabId });
       else console.warn("[pbp-video] mount unavailable: pbpVideoInit missing after deferred scripts");
       applyAvailability(attemptedEngine);
     }
@@ -747,11 +779,51 @@ function pbpApplyColorScheme(mode) {
   }
   // Canonical Markdown: Defuddle HTML -> Turndown; Jina already gives MD.
   // Single source of truth for Raw view, Copy MD, Download .md, and Rendered.
-  const _canonicalMarkdown0 = info.markdown || (contentHtml ? htmlToMarkdown(contentHtml, { baseUrl }) : "");
+  const _extractedMarkdown0 = info.markdown || (contentHtml ? htmlToMarkdown(contentHtml, { baseUrl }) : "");
   // Math pages only: repair scraped TeX once at the source so the live view,
   // TOC, translate blocks, and every export see the same normalized text.
-  const canonicalMarkdown = (info.math && typeof pbpLatexNormalize === "function")
-    ? pbpLatexNormalize(_canonicalMarkdown0) : _canonicalMarkdown0;
+  // Applied to the EXTRACTED text only -- a caption transcript carries no
+  // scraped TeX, and normalizing it would only risk mangling plain speech.
+  const _extractedMarkdown = (info.math && typeof pbpLatexNormalize === "function")
+    ? pbpLatexNormalize(_extractedMarkdown0) : _extractedMarkdown0;
+
+  // Video bootstrap: on a watch page the transcript IS the article. Run the
+  // capture session BEFORE the canonical text is fixed, so the empty guard,
+  // TOC, stats, language detection, render, and every export downstream see
+  // the transcript with no further special-casing. The extracted text (usually
+  // just the video description) is stashed on pbpVideoDoc for the collapsed
+  // description block. No captions -> keep the extracted text as-is
+  // ("video-fallback"), including the empty-extraction case, which still falls
+  // into the empty-state + panel-mount guard below.
+  let _videoMarkdown = null;
+  {
+    // md-video.js is the LAST defer script; this async flow can resume ahead of
+    // it, so wait for the defer chain before probing for its globals.
+    await pbpDeferredScriptsReady;
+    const vDetected = typeof pbpVideoDetect === "function" ? pbpVideoDetect(sourceTabUrl || url) : null;
+    if (vDetected) {
+      document.body.classList.add("video-mode");
+      let vSession = null;
+      if (typeof window.pbpPrepareVideoSession === "function") {
+        try { vSession = await window.pbpPrepareVideoSession({ pageUrl: sourceTabUrl || url, tabId: srcTabId }); }
+        catch (e) { console.warn("[pbp-video] session failed:", (e && e.message) || e); }
+      }
+      const vSegments = (vSession && vSession.granted && vSession.segments) || [];
+      if (info.videoTranscript === true) {
+        // This payload was written by pbpVideoCommitTranscript: the markdown
+        // already IS the transcript (possibly AI-punctuated). Re-deriving one
+        // from the session would throw that pass away, and there is no
+        // extracted description to collapse.
+        window.pbpVideoDoc = { kind: "video-transcript", descriptionMarkdown: "" };
+      } else if (vSegments.length && typeof pbpVideoTranscriptMarkdown === "function") {
+        window.pbpVideoDoc = { kind: "video-transcript", descriptionMarkdown: _extractedMarkdown };
+        _videoMarkdown = pbpVideoTranscriptMarkdown(vSegments, { title: title || "", url: sourceTabUrl || url });
+      } else {
+        window.pbpVideoDoc = { kind: "video-fallback", descriptionMarkdown: "" };
+      }
+    }
+  }
+  const canonicalMarkdown = _videoMarkdown !== null ? _videoMarkdown : _extractedMarkdown;
   function getMarkdown() { return canonicalMarkdown; }
   if (!canonicalMarkdown.trim()) {
     // A video page's "content" IS the video: YouTube/bilibili watch pages
@@ -760,23 +832,13 @@ function pbpApplyColorScheme(mode) {
     // panel at all; a YouTube re-open that extracted empty lost its button).
     // Render the empty-state shell first, then let the panel attach above it.
     renderEmptyState(t("mdPreviewNoContent"));
-    // md-video.js is the LAST defer script; this async flow can resume ahead
-      // of it (storage/sendMessage round-trips vary), and the typeof guard then
-      // silently skipped the mount -- the intermittent "no panel" of six device
-      // rounds. Wait for the defer chain before deciding.
-      await pbpDeferredScriptsReady;
-      if (typeof pbpVideoInit === "function") pbpVideoInit({ pageUrl: sourceTabUrl || url, title: title, tabId: srcTabId, autoload: !!info.videoAuto });
-      else console.warn("[pbp-video] mount unavailable: pbpVideoInit missing after deferred scripts");
+    // pbpDeferredScriptsReady is already awaited above (video bootstrap), so
+    // md-video.js -- the LAST defer script -- has run by now; the typeof guard
+    // only covers it failing to load at all.
+    if (typeof pbpVideoInit === "function") pbpVideoInit({ pageUrl: sourceTabUrl || url, title: title, tabId: srcTabId });
+    else console.warn("[pbp-video] mount unavailable: pbpVideoInit missing after deferred scripts");
     return;
   }
-  // The hook stays defined on the normal article path too (user decision):
-  // a video page's extracted "article" is usually just the description, and
-  // replacing it with the transcript is an explicit click on the panel.
-
-  // A transcript adopted as the article announces itself, so a later AI
-  // punctuation pass can rewrite the article in place instead of relying on
-  // the user knowing to click "Use as article" a second time.
-  window.pbpTranscriptArticle = /^## Transcript\b/.test(canonicalMarkdown);
 
   // Reload/Memory-Saver recovery: replace the (now redundant) full payload with a
   // lightweight restore record — url/tabId/engine/tags, NO markdown/contentHtml (avoids
@@ -1659,13 +1721,11 @@ function pbpApplyColorScheme(mode) {
       }
     }));
   }
-  // md-video.js is the LAST defer script; this async flow can resume ahead
-      // of it (storage/sendMessage round-trips vary), and the typeof guard then
-      // silently skipped the mount -- the intermittent "no panel" of six device
-      // rounds. Wait for the defer chain before deciding.
-      await pbpDeferredScriptsReady;
-      if (typeof pbpVideoInit === "function") pbpVideoInit({ pageUrl: sourceTabUrl || url, title: title, tabId: srcTabId, autoload: !!info.videoAuto });
-      else console.warn("[pbp-video] mount unavailable: pbpVideoInit missing after deferred scripts");
+  // pbpDeferredScriptsReady is already awaited by the video bootstrap above,
+  // so md-video.js -- the LAST defer script -- has run; the typeof guard only
+  // covers it failing to load at all.
+  if (typeof pbpVideoInit === "function") pbpVideoInit({ pageUrl: sourceTabUrl || url, title: title, tabId: srcTabId });
+  else console.warn("[pbp-video] mount unavailable: pbpVideoInit missing after deferred scripts");
 
   // ---- Build TOC sidebar from the canonical markdown ----
   const tocNav = document.getElementById("toc");

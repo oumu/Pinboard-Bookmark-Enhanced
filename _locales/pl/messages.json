@@ -3627,7 +3627,6 @@
   "mdVideoBodyBlocked": { "message": "Znaleziono ścieżki napisów, ale YouTube nie zwrócił ich tekstu. Zostaw kartę YouTube z tym filmem otwartą i spróbuj ponownie albo wybierz inną ścieżkę." },
   "mdVideoPermMissing": { "message": "Odmówiono uprawnienia; niczego nie wczytano" },
   "mdVideoCopyMd": { "message": "Skopiuj transkrypcję jako Markdown" },
-  "mdVideoAdoptDoc": { "message": "Użyj jako treści" },
   "mdVideoAiPunct": { "message": "Interpunkcja AI" },
   "mdVideoAiPunctDone": { "message": "Gotowe" },
   "mdVideoAiPunctFail": { "message": "Interpunkcja AI nie powiodła się; zachowano wynik lokalny" },

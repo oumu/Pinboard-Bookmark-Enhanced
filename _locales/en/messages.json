@@ -3621,7 +3621,6 @@
   "mdVideoBodyBlocked": { "message": "Caption tracks were found, but YouTube withheld their text. Keep this video's YouTube tab open and retry, or pick another track." },
   "mdVideoPermMissing": { "message": "Permission was declined; nothing was loaded" },
   "mdVideoCopyMd": { "message": "Copy transcript as Markdown" },
-  "mdVideoAdoptDoc": { "message": "Use as article" },
   "mdVideoAiPunct": { "message": "AI punctuation" },
   "mdVideoAiPunctDone": { "message": "Punctuated" },
   "mdVideoAiPunctFail": { "message": "AI punctuation failed; keeping the local result" },
