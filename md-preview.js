@@ -656,8 +656,11 @@ function pbpApplyColorScheme(mode) {
   // (refresh the article in place once the marks land).
   // videoTranscript marks the payload as ALREADY being a transcript, so the
   // reloaded normal path keeps this exact markdown instead of re-deriving one
-  // from the session (which would silently drop the AI punctuation) and does
-  // not stash it as the collapsed description (it is not a description).
+  // from the session (which would silently drop the AI punctuation).
+  // videoDescriptionMd carries the extracted description ALONGSIDE it: the
+  // description is not recoverable from a transcript payload (the extraction
+  // that produced it is long gone), so dropping it here would empty the
+  // collapsed description block on every commit.
   // Returns true only when the payload was written and the reload is under
   // way, so callers can fall back when storage refuses the write.
   window.pbpVideoCommitTranscript = async (transcriptMd, fallbackTitle) => {
@@ -667,6 +670,7 @@ function pbpApplyColorScheme(mode) {
         [MP_KEY]: {
           markdown: String(transcriptMd), title: title || fallbackTitle || "",
           videoTranscript: true,
+          videoDescriptionMd: (window.pbpVideoDoc && window.pbpVideoDoc.descriptionMarkdown) || "",
           url, baseUrl, sourceTabUrl, tabId: srcTabId,
           source: source === "jina" ? "jina" : "local",
           account: previewAccount, tags, description, ts: Date.now()
@@ -686,6 +690,15 @@ function pbpApplyColorScheme(mode) {
     const titleEl0 = document.getElementById("preview-title");
     if (titleEl0) { titleEl0.textContent = title || t("mdPreviewUntitled"); titleEl0.title = title || ""; }
     document.title = (title || "Markdown") + " — " + t("mdStripPreview");
+    // video-mode BEFORE any extraction work: the page is a watch page no
+    // matter how the extraction turns out, so the shell should not spend the
+    // whole (possibly slow) attempt styled as an ordinary article and then
+    // reflow. md-video.js is the last defer script and this runs before the
+    // barrier below, so the typeof guard covers "not parsed yet"; the
+    // post-failure path re-adds the class once the barrier has passed.
+    if (typeof pbpVideoDetect === "function" && pbpVideoDetect(sourceTabUrl || url)) {
+      document.body.classList.add("video-mode");
+    }
 
     // One function drives the initial attempt, the error state's retry button, and the
     // rail's engine-switch badge clicks — all funnel back through the same
@@ -747,19 +760,35 @@ function pbpApplyColorScheme(mode) {
       const vDetectedErr = typeof pbpVideoDetect === "function" ? pbpVideoDetect(sourceTabUrl || url) : null;
       if (vDetectedErr) {
         document.body.classList.add("video-mode");
-        let vSession = null;
-        if (typeof window.pbpPrepareVideoSession === "function") {
-          try { vSession = await window.pbpPrepareVideoSession({ pageUrl: sourceTabUrl || url, tabId: srcTabId }); }
-          catch (e) { console.warn("[pbp-video] session failed on error shell:", (e && e.message) || e); }
+        // The caption session is extraction work too: leaving inFlight false
+        // here let a .src-seg badge click start a concurrent attemptExtract
+        // while a transcript commit + reload was already under way, so two
+        // writers raced for MP_KEY. Held for the whole block and released only
+        // if we are NOT reloading.
+        inFlight = true;
+        let committed = false;
+        try {
+          let vSession = null;
+          if (typeof window.pbpPrepareVideoSession === "function") {
+            try { vSession = await window.pbpPrepareVideoSession({ pageUrl: sourceTabUrl || url, tabId: srcTabId }); }
+            catch (e) { console.warn("[pbp-video] session failed on error shell:", (e && e.message) || e); }
+          }
+          if (vSession && vSession.granted && vSession.segments && vSession.segments.length
+              && typeof pbpVideoTranscriptMarkdown === "function" && typeof pbpVideoTranscriptMeta === "function") {
+            committed = await window.pbpVideoCommitTranscript(
+              pbpVideoTranscriptMarkdown(vSession.segments, pbpVideoTranscriptMeta(vSession, title, sourceTabUrl || url)),
+              title || ""
+            );
+          }
+        } finally {
+          if (!committed) inFlight = false;
         }
-        if (vSession && vSession.granted && vSession.segments && vSession.segments.length
-            && typeof pbpVideoTranscriptMarkdown === "function") {
-          const committed = await window.pbpVideoCommitTranscript(
-            pbpVideoTranscriptMarkdown(vSession.segments, { title: title || "", url: sourceTabUrl || url }),
-            title || ""
-          );
-          if (committed) return; // reload is under way; do not also mount the panel
-        }
+        if (committed) return; // reload is under way; do not also mount the panel
+        // The panel about to mount can still promote the transcript once the
+        // user grants the origin (md-video.js's first-run commit), which needs
+        // a pbpVideoDoc to key off. No transcript reached the article here, so
+        // this shell is a fallback by definition.
+        if (!window.pbpVideoDoc) window.pbpVideoDoc = { kind: "video-fallback", descriptionMarkdown: "" };
       }
       if (typeof pbpVideoInit === "function") pbpVideoInit({ pageUrl: sourceTabUrl || url, title: title, tabId: srcTabId });
       else console.warn("[pbp-video] mount unavailable: pbpVideoInit missing after deferred scripts");
@@ -812,12 +841,13 @@ function pbpApplyColorScheme(mode) {
       if (info.videoTranscript === true) {
         // This payload was written by pbpVideoCommitTranscript: the markdown
         // already IS the transcript (possibly AI-punctuated). Re-deriving one
-        // from the session would throw that pass away, and there is no
-        // extracted description to collapse.
-        window.pbpVideoDoc = { kind: "video-transcript", descriptionMarkdown: "" };
-      } else if (vSegments.length && typeof pbpVideoTranscriptMarkdown === "function") {
+        // from the session would throw that pass away. The description rides
+        // along in the payload -- it cannot be re-extracted from here.
+        window.pbpVideoDoc = { kind: "video-transcript", descriptionMarkdown: info.videoDescriptionMd || "" };
+      } else if (vSegments.length && typeof pbpVideoTranscriptMarkdown === "function"
+                 && typeof pbpVideoTranscriptMeta === "function") {
         window.pbpVideoDoc = { kind: "video-transcript", descriptionMarkdown: _extractedMarkdown };
-        _videoMarkdown = pbpVideoTranscriptMarkdown(vSegments, { title: title || "", url: sourceTabUrl || url });
+        _videoMarkdown = pbpVideoTranscriptMarkdown(vSegments, pbpVideoTranscriptMeta(vSession, title, sourceTabUrl || url));
       } else {
         window.pbpVideoDoc = { kind: "video-fallback", descriptionMarkdown: "" };
       }
@@ -846,14 +876,30 @@ function pbpApplyColorScheme(mode) {
   // the SAME reextractMarkdown path the engine-switch control uses (below), instead of
   // landing on the "no preview data" empty state. Best-effort: a write failure just
   // degrades to the pre-existing behavior (empty state on the next reload).
-  try {
-    await chrome.storage.local.set({
-      [MP_KEY]: {
+  //
+  // A COMMITTED TRANSCRIPT is the one thing re-extraction cannot rebuild: the
+  // watch page has no article, so the restore record's reextract would fail,
+  // fall into the error shell, and re-derive a heuristic transcript --
+  // silently throwing away an AI punctuation pass the user paid for. Keep the
+  // full payload (markdown + description) for those pages instead, WITHOUT
+  // restore:true so the reload lands straight back in the flag branch above.
+  // Transcripts run ~100KB, well inside storage.local; the try/catch degrade
+  // is unchanged.
+  const _restoreRecord = info.videoTranscript === true
+    ? {
+        videoTranscript: true, markdown: canonicalMarkdown,
+        videoDescriptionMd: (window.pbpVideoDoc && window.pbpVideoDoc.descriptionMarkdown) || "",
+        title: title || "", url, baseUrl, sourceTabUrl, tabId: srcTabId,
+        source: source === "jina" ? "jina" : "local",
+        account: previewAccount, tags, description, ts: Date.now()
+      }
+    : {
         restore: true, url, tabId: srcTabId, sourceTabUrl,
         engine: source === "jina" ? "jina" : "local",
         account: previewAccount, tags, description, ts: Date.now()
-      }
-    });
+      };
+  try {
+    await chrome.storage.local.set({ [MP_KEY]: _restoreRecord });
   } catch (_) { /* degrade to current behavior: next reload hits the empty state */ }
 
   // Export-options defaults from settings (per-export overridable via the header row).

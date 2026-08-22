@@ -287,6 +287,33 @@ function pbpVideoFmtTime(sec) {
   return h ? h + ":" + p2(m) + ":" + p2(s) : m + ":" + p2(s);
 }
 
+// THE meta builder for pbpVideoTranscriptMarkdown. Every caller that turns a
+// session into transcript markdown -- md-preview.js's pre-render bootstrap,
+// its error-shell commit, and md-video.js's panel (Copy, first-run commit, AI
+// punctuation) -- goes through here, so the H2 heading, the track label, and
+// the source blockquote are byte-identical across commits. Two commits of the
+// same video that disagreed on the title would silently rewrite the article's
+// first heading (and with it the TOC) under the reader.
+function pbpVideoTranscriptMeta(session, fallbackTitle, pageUrl) {
+  const track = session && session.track;
+  return {
+    title: (session && session.meta && session.meta.title) || fallbackTitle || "",
+    url: pageUrl || "",
+    trackLabel: track ? (track.label || track.lan_doc || "") : ""
+  };
+}
+
+// Is a captured session about THIS video? md-preview.js runs the session
+// before it renders, so by the time the panel mounts the transcript is usually
+// already in hand -- reusing it is the difference between one capture
+// round-trip per page and two. Identity is provider + video id: a stale
+// session from another video must re-fetch.
+function pbpVideoSessionMatches(session, detected) {
+  const d = session && session.detected;
+  if (!d || !detected || d.provider !== detected.provider) return false;
+  return detected.provider === "bilibili" ? d.bvid === detected.bvid : d.videoId === detected.videoId;
+}
+
 function pbpVideoTranscriptMarkdown(segments, meta, paragraphsOverride) {
   meta = meta || {};
   const lines = ["## Transcript" + (meta.trackLabel ? " (" + meta.trackLabel + ")" : "")];
@@ -1220,26 +1247,14 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     return session;
   }
 
-  // Is the stored session about THIS video? md-preview.js runs the session
-  // before it renders, so by the time the panel loads the transcript is
-  // usually already in hand -- reusing it is the difference between one
-  // capture round-trip per page and two. Identity is provider + video id (the
-  // whole point is that a stale session from another video must re-fetch).
-  function sessionMatches(session, detected) {
-    const d = session && session.detected;
-    if (!d || !detected || d.provider !== detected.provider) return false;
-    return detected.provider === "bilibili" ? d.bvid === detected.bvid : d.videoId === detected.videoId;
-  }
-
   async function loadFlow(detected, statusEl, bodyEl, trackSel, copyBtn, aiBtn) {
     statusEl.textContent = t("mdVideoLoading");
     const isBili = detected.provider === "bilibili";
     const cached = window.pbpVideoSession;
-    const session = (cached && sessionMatches(cached, detected) && cached.segments && cached.segments.length)
+    const session = (cached && pbpVideoSessionMatches(cached, detected) && cached.segments && cached.segments.length)
       ? cached
       : await prepareVideoSession({ pageUrl: (_meta && _meta.url) || "", tabId: _ctxTabId });
     if (!session.granted) { statusEl.textContent = t("mdVideoPermMissing"); return; }
-    if (session.meta && session.meta.title) _meta.title = session.meta.title;
     _ytFetchFn = session.ytFetchFn || null;
     const useLogin = session.useLogin;
     const ytHadTab = session.ytHadTab;
@@ -1288,7 +1303,11 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     }
     copyBtn.hidden = !(res.segments || []).length;
     _segments = res.segments || [];
-    _meta.trackLabel = res.track ? (isBili ? res.track.lan_doc : res.track.label) : "";
+    // ONE meta construction (pbpVideoTranscriptMeta) shared with md-preview.js:
+    // Copy, the first-run commit below, and the AI-punctuation commit all read
+    // this object, so every transcript this page ever writes carries the same
+    // heading, track label, and source link.
+    _meta = pbpVideoTranscriptMeta(session, _meta && _meta.title, _meta && _meta.url);
     if (_segments.length) renderTranscript(bodyEl, _segments, true);
     trackSel.addEventListener("change", async () => {
       statusEl.textContent = t("mdVideoLoading");
@@ -1304,6 +1323,16 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       copyBtn.hidden = !segs.length;
       renderTranscript(bodyEl, segs, true);
     });
+    // First run: the bootstrap could not fetch captions because the origin
+    // grant did not exist yet, so md-preview.js settled for "video-fallback"
+    // (the extracted description as the article). The click that got us here
+    // IS that grant, and the transcript is now in hand -- promote it to the
+    // article instead of making the user reload the page by hand. Runs once:
+    // the payload this writes comes back as kind "video-transcript".
+    if (_segments.length && window.pbpVideoDoc && window.pbpVideoDoc.kind === "video-fallback"
+        && typeof window.pbpVideoCommitTranscript === "function") {
+      window.pbpVideoCommitTranscript(pbpVideoTranscriptMarkdown(_segments, _meta, _aiPunctParas), _meta.title || "");
+    }
   }
 
   window.pbpPrepareVideoSession = prepareVideoSession;
@@ -1354,6 +1383,10 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     view.parentNode.insertBefore(panel, view);
     _panel = panel;
 
+    // Set by runLoad once the status line exists, so the automatic-load
+    // rejection handler below has somewhere to report to.
+    let statusRef = null;
+
     async function runLoad() {
       cta.disabled = true;
       // player iframe mounts immediately (no permission needed for a frame)
@@ -1369,6 +1402,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       const bar = el("div", "pbv-bar");
       const status = el("span", "pbv-status");
       status.setAttribute("aria-live", "polite");
+      statusRef = status;
       const trackSel = document.createElement("select");
       trackSel.className = "pbv-tracks";
       trackSel.hidden = true;
@@ -1493,9 +1527,17 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     // no captions) the poster card + requestVideoOrigin flow stays exactly as
     // it was: that click is the gesture the grant needs.
     const booted = window.pbpVideoSession;
-    if (booted && sessionMatches(booted, detected) && booted.granted
+    if (booted && pbpVideoSessionMatches(booted, detected) && booted.granted
         && booted.segments && booted.segments.length) {
-      runLoad();
+      // No click means no click handler to swallow a rejection: an unhandled
+      // one would leave the panel wedged mid-swap with no way back. Report it
+      // where the user is looking, and if the swap never got as far as the
+      // status line, put the poster card back as the retry entry.
+      runLoad().catch((e) => {
+        console.warn("[pbp-video] auto load:", (e && e.message) || e);
+        if (statusRef) statusRef.textContent = t("mdVideoFailed");
+        else { cta.disabled = false; panel.replaceChildren(cta); }
+      });
     }
   };
 })();

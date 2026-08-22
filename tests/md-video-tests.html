@@ -238,6 +238,18 @@ assertEq(pbpVideoDetect("https://www.bilibili.com/festival/x?bvid=BV1xx411c7mD")
 assertEq(pbpVideoDetect("https://www.bilibili.com/"), null, "non-video bilibili page null");
 assertEq(pbpVideoDetect("https://www.youtube.com/watch?v=dQw4w9WgXcQ").provider, "youtube", "youtube still detected");
 
+section("pbpVideoSessionMatches");
+const ytDet = pbpVideoDetect("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
+const biliDet = pbpVideoDetect("https://www.bilibili.com/video/BV1xx411c7mD");
+assertEq(pbpVideoSessionMatches({ detected: pbpVideoDetect("https://youtu.be/dQw4w9WgXcQ") }, ytDet), true,
+  "same provider + videoId matches across URL shapes");
+assertEq(pbpVideoSessionMatches({ detected: pbpVideoDetect("https://www.youtube.com/watch?v=abcDEF12345") }, ytDet), false,
+  "different videoId rejects");
+assertEq(pbpVideoSessionMatches({ detected: pbpVideoDetect("https://m.bilibili.com/video/BV1xx411c7mD") }, biliDet), true,
+  "bilibili bvid matches");
+assertEq(pbpVideoSessionMatches(null, ytDet), false, "null session rejects");
+assertEq(pbpVideoSessionMatches({ detected: ytDet }, null), false, "null detected rejects");
+
 section("pbpMd5");
 assertEq(pbpMd5(""), "d41d8cd98f00b204e9800998ecf8427e", "md5 empty");
 assertEq(pbpMd5("abc"), "900150983cd24fb0d6963f7d28e17f72", "md5 abc");
