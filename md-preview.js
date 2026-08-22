@@ -659,6 +659,7 @@ function pbpApplyColorScheme(mode) {
       await chrome.storage.local.set({
         [MP_KEY]: {
           markdown: String(transcriptMd), title: title || trackTitle || "",
+          videoAuto: true, // the adopted page loads its player without another click
           url, baseUrl, sourceTabUrl, tabId: srcTabId,
           source: source === "jina" ? "jina" : "local",
           account: previewAccount, tags, description, ts: Date.now()
@@ -728,7 +729,7 @@ function pbpApplyColorScheme(mode) {
       // silently skipped the mount -- the intermittent "no panel" of six device
       // rounds. Wait for the defer chain before deciding.
       await pbpDeferredScriptsReady;
-      if (typeof pbpVideoInit === "function") pbpVideoInit({ pageUrl: sourceTabUrl || url, title: title, tabId: srcTabId });
+      if (typeof pbpVideoInit === "function") pbpVideoInit({ pageUrl: sourceTabUrl || url, title: title, tabId: srcTabId, autoload: !!info.videoAuto });
       else console.warn("[pbp-video] mount unavailable: pbpVideoInit missing after deferred scripts");
       applyAvailability(attemptedEngine);
     }
@@ -764,13 +765,18 @@ function pbpApplyColorScheme(mode) {
       // silently skipped the mount -- the intermittent "no panel" of six device
       // rounds. Wait for the defer chain before deciding.
       await pbpDeferredScriptsReady;
-      if (typeof pbpVideoInit === "function") pbpVideoInit({ pageUrl: sourceTabUrl || url, title: title, tabId: srcTabId });
+      if (typeof pbpVideoInit === "function") pbpVideoInit({ pageUrl: sourceTabUrl || url, title: title, tabId: srcTabId, autoload: !!info.videoAuto });
       else console.warn("[pbp-video] mount unavailable: pbpVideoInit missing after deferred scripts");
     return;
   }
   // The hook stays defined on the normal article path too (user decision):
   // a video page's extracted "article" is usually just the description, and
   // replacing it with the transcript is an explicit click on the panel.
+
+  // A transcript adopted as the article announces itself, so a later AI
+  // punctuation pass can rewrite the article in place instead of relying on
+  // the user knowing to click "Use as article" a second time.
+  window.pbpTranscriptArticle = /^## Transcript\b/.test(canonicalMarkdown);
 
   // Reload/Memory-Saver recovery: replace the (now redundant) full payload with a
   // lightweight restore record — url/tabId/engine/tags, NO markdown/contentHtml (avoids
@@ -1658,7 +1664,7 @@ function pbpApplyColorScheme(mode) {
       // silently skipped the mount -- the intermittent "no panel" of six device
       // rounds. Wait for the defer chain before deciding.
       await pbpDeferredScriptsReady;
-      if (typeof pbpVideoInit === "function") pbpVideoInit({ pageUrl: sourceTabUrl || url, title: title, tabId: srcTabId });
+      if (typeof pbpVideoInit === "function") pbpVideoInit({ pageUrl: sourceTabUrl || url, title: title, tabId: srcTabId, autoload: !!info.videoAuto });
       else console.warn("[pbp-video] mount unavailable: pbpVideoInit missing after deferred scripts");
 
   // ---- Build TOC sidebar from the canonical markdown ----

@@ -1277,6 +1277,12 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     panel.appendChild(cta);
     view.parentNode.insertBefore(panel, view);
     _panel = panel;
+    // Adopted-transcript pages reload straight into the player: the user
+    // already clicked once to get here, and the origin grant from that
+    // click makes the permission check silent. First-ever use still needs
+    // a manual click (no gesture -> the request is refused quietly, the
+    // poster card stays).
+    if (ctx && ctx.autoload) setTimeout(() => { try { cta.click(); } catch (_) {} }, 0);
 
     cta.addEventListener("click", async () => {
       cta.disabled = true;
@@ -1367,6 +1373,11 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
             renderTranscript(body, _segments, true);
           }
           aiLabel.textContent = t("mdVideoAiPunctDone");
+          // If the article IS this transcript, refresh it in place -- the
+          // user should not need to know to click "Use as article" again.
+          if (window.pbpTranscriptArticle && typeof window.pbpAdoptTranscript === "function" && _segments.length) {
+            window.pbpAdoptTranscript(pbpVideoTranscriptMarkdown(_segments, _meta, _aiPunctParas), _meta.title || "");
+          }
         } catch (e) {
           console.warn("[pbp-video] ai punctuation:", (e && e.message) || e);
           _aiPunctParas = null;

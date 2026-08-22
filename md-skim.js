@@ -210,7 +210,11 @@ function _pbpSkimBuildSection(view) {
     '<div id="skim-body" aria-busy="false"></div>',
     '<div id="skim-usage" hidden></div>'
   ].join("\n");
-  docBody.insertBefore(sec, view);
+  // Key points sit ABOVE the video panel when one is mounted (device
+  // feedback 2026-08-22): the panel is #rendered-view's previous sibling,
+  // so anchoring on it (when present) keeps skim on top in either
+  // mount order.
+  docBody.insertBefore(sec, document.getElementById("video-panel") || view);
   applyI18n(sec);
 
   const regenBtn = sec.querySelector("#skim-regen");
