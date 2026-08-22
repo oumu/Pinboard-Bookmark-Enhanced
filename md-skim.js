@@ -210,11 +210,23 @@ function _pbpSkimBuildSection(view) {
     '<div id="skim-body" aria-busy="false"></div>',
     '<div id="skim-usage" hidden></div>'
   ].join("\n");
-  // Key points sit ABOVE the video panel when one is mounted (device
-  // feedback 2026-08-22): the panel is #rendered-view's previous sibling,
-  // so anchoring on it (when present) keeps skim on top in either
-  // mount order.
-  docBody.insertBefore(sec, document.getElementById("video-panel") || view);
+  // A2 workspace (video-mode): md-video.js's mountVideoWorkspace builds
+  // #video-skim-slot as .pbv-col-study's first child BEFORE this ever runs
+  // (pbp:rendered, which triggers this build, dispatches after every
+  // pbpVideoInit call site) -- append there so key points land inside the
+  // study column, above the article, instead of outside the workspace
+  // entirely (docBody is no longer #rendered-view's parent once the
+  // workspace has moved it).
+  const skimSlot = document.getElementById("video-skim-slot");
+  if (skimSlot) {
+    skimSlot.appendChild(sec);
+  } else {
+    // Key points sit ABOVE the video panel when one is mounted (device
+    // feedback 2026-08-22): the panel is #rendered-view's previous sibling,
+    // so anchoring on it (when present) keeps skim on top in either
+    // mount order.
+    docBody.insertBefore(sec, document.getElementById("video-panel") || view);
+  }
   applyI18n(sec);
 
   const regenBtn = sec.querySelector("#skim-regen");

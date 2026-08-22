@@ -834,8 +834,24 @@ function pbpApplyColorScheme(mode) {
       document.body.classList.add("video-mode");
       let vSession = null;
       if (typeof window.pbpPrepareVideoSession === "function") {
+        // #rendered-view is still empty here (the render() call that fills
+        // it is far below, after this whole block) -- without this the page
+        // shows a blank article while captions fetch. The pending/restore
+        // branch above already shows its own loading state via
+        // attemptExtract, so this is the normal-path bootstrap's only gap.
+        renderLoadingState(t("mdVideoLoading"), "");
         try { vSession = await window.pbpPrepareVideoSession({ pageUrl: sourceTabUrl || url, tabId: srcTabId }); }
         catch (e) { console.warn("[pbp-video] session failed:", (e && e.message) || e); }
+        // renderLoadingState's md-empty hides the rail (CSS: body.md-empty
+        // .rail{display:none}) and its aria-busy="true" marks #rendered-view
+        // as loading -- both fine while the spinner is showing, but this
+        // path (unlike the pending branch, which always reloads on success)
+        // falls straight through to the real render below, so it must undo
+        // both itself. The empty-content guard further down re-adds
+        // md-empty on its own if canonicalMarkdown ends up blank.
+        document.body.classList.remove("md-empty");
+        const _rvAfterVideoLoad = document.getElementById("rendered-view");
+        if (_rvAfterVideoLoad) _rvAfterVideoLoad.removeAttribute("aria-busy");
       }
       const vSegments = (vSession && vSession.granted && vSession.segments) || [];
       if (info.videoTranscript === true) {

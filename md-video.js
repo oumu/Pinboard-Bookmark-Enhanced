@@ -1337,6 +1337,44 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
 
   window.pbpPrepareVideoSession = prepareVideoSession;
 
+  // A2 dual-column workspace (video-mode only). Builds .pbv-workspace inside
+  // .doc-body: .pbv-col-player gets #video-panel, .pbv-col-study gets (in
+  // order) an empty #video-skim-slot then #rendered-view -- moved via
+  // appendChild, so every id-based consumer elsewhere in the codebase (TOC,
+  // highlights, scroll restore, Ask, translation...) keeps working
+  // unchanged; only its ancestor chain changes. view-toggle/.pbv-list/
+  // description slots are Task 4/5 territory and are deliberately NOT built
+  // here. Runs only when body.video-mode is actually set -- a detect hit
+  // without the class (defensive; Tasks 1/2 set it early on every branch
+  // that reaches this mount, so this should not happen in practice) falls
+  // back to the pre-workspace sibling insert, unchanged.
+  function mountVideoWorkspace(view, panel) {
+    const docBody = view.parentNode;
+    if (!document.body.classList.contains("video-mode")) {
+      docBody.insertBefore(panel, view);
+      return;
+    }
+    const workspace = el("div", "pbv-workspace");
+    const playerCol = el("div", "pbv-col-player");
+    const studyCol = el("div", "pbv-col-study");
+    const skimSlot = document.createElement("div");
+    skimSlot.id = "video-skim-slot";
+    // md-skim.js builds #skim-section lazily on "pbp:rendered", which
+    // dispatches (md-preview.js) strictly after every pbpVideoInit call
+    // site -- so in practice this mount always runs first and there is
+    // nothing to adopt yet. Move an existing section into the slot anyway
+    // (appendChild moves, never clones) so a future build-order change
+    // can't strand key points outside the workspace.
+    const existingSkim = document.getElementById("skim-section");
+    studyCol.appendChild(skimSlot);
+    if (existingSkim) skimSlot.appendChild(existingSkim);
+    playerCol.appendChild(panel);
+    docBody.insertBefore(workspace, view);
+    studyCol.appendChild(view); // moves the existing node; id lookups unaffected
+    workspace.appendChild(playerCol);
+    workspace.appendChild(studyCol);
+  }
+
   window.pbpVideoInit = function pbpVideoInit(ctx) {
     const detected = pbpVideoDetect(ctx && ctx.pageUrl);
     if (!detected) {
@@ -1380,7 +1418,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     cta.appendChild(play);
     cta.appendChild(el("span", "pbv-poster-label", t("mdVideoLoad")));
     panel.appendChild(cta);
-    view.parentNode.insertBefore(panel, view);
+    mountVideoWorkspace(view, panel);
     _panel = panel;
 
     // Set by runLoad once the status line exists, so the automatic-load
