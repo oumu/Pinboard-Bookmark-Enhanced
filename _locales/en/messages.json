@@ -3611,6 +3611,8 @@
   "libraryLookupSaved": { "message": "In your vocabulary · view" },
   "mdVideoTitle": { "message": "Video & subtitles" },
   "mdVideoLoad": { "message": "Load video & subtitles" },
+  "mdVideoEnable": { "message": "Enable subtitles & load video" },
+  "mdVideoDescription": { "message": "Video description" },
   "mdVideoLoading": { "message": "Loading subtitles…" },
   "mdVideoTrackAria": { "message": "Subtitle language" },
   "mdVideoNoTracks": { "message": "No subtitles are available for this video" },

@@ -3617,6 +3617,8 @@
   "libraryLookupSaved": { "message": "Już w słówkach · pokaż" },
   "mdVideoTitle": { "message": "Wideo i napisy" },
   "mdVideoLoad": { "message": "Wczytaj wideo i napisy" },
+  "mdVideoEnable": { "message": "Włącz napisy i wczytaj film" },
+  "mdVideoDescription": { "message": "Opis filmu" },
   "mdVideoLoading": { "message": "Wczytywanie napisów…" },
   "mdVideoTrackAria": { "message": "Język napisów" },
   "mdVideoNoTracks": { "message": "Dla tego wideo nie ma dostępnych napisów" },

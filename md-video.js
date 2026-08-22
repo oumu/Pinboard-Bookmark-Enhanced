@@ -1378,11 +1378,25 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         segs = pbpVideoHeuristicPunctuate(segs);
       }
       _aiPunctParas = null; // a new track invalidates the previous AI pass
+      const priorSegments = _segments; // captured BEFORE reassignment, for the no-op guard below
       _segments = segs;
       const sel = trackSel.selectedOptions && trackSel.selectedOptions[0];
       _meta.trackLabel = sel ? sel.textContent : "";
       copyBtn.hidden = !segs.length;
       renderTranscript(bodyEl, segs, true);
+      // Atomic track switch (Task 5): the timeline above already follows the
+      // newly selected track; when the transcript IS this page's article
+      // too, keep it in sync the same way as the AI-punctuation pass --
+      // write + reload through the single committer (md-preview.js owns the
+      // account/tags/description contract). Guarded against an empty fetch
+      // (session.error paths already messaged via statusEl above) and a
+      // reference-identical no-op switch (segs === the segments already on
+      // screen -- nothing actually changed, so no reload is warranted).
+      if (segs.length && segs !== priorSegments && window.pbpVideoDoc
+          && window.pbpVideoDoc.kind === "video-transcript"
+          && typeof window.pbpVideoCommitTranscript === "function") {
+        window.pbpVideoCommitTranscript(pbpVideoTranscriptMarkdown(segs, _meta, null), _meta.title || "");
+      }
     });
     // First run: the bootstrap could not fetch captions because the origin
     // grant did not exist yet, so md-preview.js settled for "video-fallback"
@@ -1444,6 +1458,31 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   function ensureReadingView() { setStudyView("reading"); }
   document.addEventListener("pbp:ensure-article-visible", ensureReadingView);
 
+  // Collapsed source description (Task 5). md-preview.js stashes the video's
+  // extracted/committed description on window.pbpVideoDoc BEFORE mounting
+  // this panel (video-transcript bootstrap and pbpVideoCommitTranscript's
+  // reload both set it) -- only that kind carries a description worth
+  // showing (video-fallback's IS the article already, nothing to collapse).
+  // Rendered through renderMarkdown(), the SAME single sanitize point the
+  // article itself uses (md-convert.js) -- never a raw innerHTML of
+  // markdown-derived text. Empty/missing description -> no element at all,
+  // not an empty collapsed shell.
+  function buildVideoDescription() {
+    const doc = window.pbpVideoDoc;
+    if (!doc || doc.kind !== "video-transcript") return null;
+    const md = doc.descriptionMarkdown;
+    if (!md || !String(md).trim()) return null;
+    const details = document.createElement("details");
+    details.id = "video-description";
+    const summary = document.createElement("summary");
+    summary.textContent = t("mdVideoDescription");
+    details.appendChild(summary);
+    const body = el("div", "desc-body");
+    if (typeof renderMarkdown === "function") body.innerHTML = renderMarkdown(md);
+    details.appendChild(body);
+    return details;
+  }
+
   // A2 dual-column workspace (video-mode only). Builds .pbv-workspace inside
   // .doc-body: .pbv-col-player gets #video-panel, .pbv-col-study gets (in
   // order) an empty #video-skim-slot, the reading/timeline toggle,
@@ -1491,6 +1530,11 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     studyCol.appendChild(list);
     _studyListEl = list;
 
+    // Last element of the study column: below the article/timeline, not
+    // competing with either for attention while still reachable.
+    const descEl = buildVideoDescription();
+    if (descEl) studyCol.appendChild(descEl);
+
     workspace.appendChild(playerCol);
     workspace.appendChild(studyCol);
     setStudyView("reading");
@@ -1517,10 +1561,19 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
 
     // Poster-card state (design option A): a 16:9 card the same size as the
     // player that replaces it, so loading causes no layout shift.
-    const cta = el("button", "pbv-poster");
+    // First-run: prepareVideoSession's automatic (no-gesture) check already
+    // ran before this mount and found no standing origin grant -- granted is
+    // explicitly false (not merely absent/unset). Make that state legible
+    // instead of reusing the generic "load" label: this poster IS the one
+    // primary action that both asks for the permission (a real user gesture)
+    // and loads the video, so it says so. Declined keeps this same card/label
+    // (mdVideoPermMissing renders in the status line below it) -- no loop.
+    const firstRun = !!(window.pbpVideoSession && window.pbpVideoSession.granted === false);
+    const posterLabel = t(firstRun ? "mdVideoEnable" : "mdVideoLoad");
+    const cta = el("button", firstRun ? "pbv-poster pbv-poster--enable" : "pbv-poster");
     cta.type = "button";
-    cta.title = t("mdVideoLoad");
-    cta.setAttribute("aria-label", t("mdVideoLoad"));
+    cta.title = posterLabel;
+    cta.setAttribute("aria-label", posterLabel);
     const posterUrl = pbpVideoPosterUrl(detected);
     if (posterUrl) {
       const poster = document.createElement("img");
@@ -1537,7 +1590,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     play.setAttribute("aria-hidden", "true");
     play.innerHTML = PBV_PLAY_SVG;
     cta.appendChild(play);
-    cta.appendChild(el("span", "pbv-poster-label", t("mdVideoLoad")));
+    cta.appendChild(el("span", "pbv-poster-label", posterLabel));
     panel.appendChild(cta);
     mountVideoWorkspace(view, panel);
     _panel = panel;

@@ -3617,6 +3617,8 @@
   "libraryLookupSaved": { "message": "Уже в словарике · показать" },
   "mdVideoTitle": { "message": "Видео и субтитры" },
   "mdVideoLoad": { "message": "Загрузить видео и субтитры" },
+  "mdVideoEnable": { "message": "Включить субтитры и загрузить видео" },
+  "mdVideoDescription": { "message": "Описание видео" },
   "mdVideoLoading": { "message": "Загрузка субтитров…" },
   "mdVideoTrackAria": { "message": "Язык субтитров" },
   "mdVideoNoTracks": { "message": "Для этого видео нет доступных субтитров" },

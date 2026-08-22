@@ -3617,6 +3617,8 @@
   "libraryLookupSaved": { "message": "Déjà dans votre vocabulaire · afficher" },
   "mdVideoTitle": { "message": "Vidéo et sous-titres" },
   "mdVideoLoad": { "message": "Charger la vidéo et les sous-titres" },
+  "mdVideoEnable": { "message": "Activer les sous-titres et charger la vidéo" },
+  "mdVideoDescription": { "message": "Description de la vidéo" },
   "mdVideoLoading": { "message": "Chargement des sous-titres…" },
   "mdVideoTrackAria": { "message": "Langue des sous-titres" },
   "mdVideoNoTracks": { "message": "Aucun sous-titre disponible pour cette vidéo" },

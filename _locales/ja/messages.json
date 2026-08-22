@@ -3617,6 +3617,8 @@
   "libraryLookupSaved": { "message": "単語帳に登録済み · 表示" },
   "mdVideoTitle": { "message": "動画と字幕" },
   "mdVideoLoad": { "message": "動画と字幕を読み込む" },
+  "mdVideoEnable": { "message": "字幕を有効にして動画を読み込む" },
+  "mdVideoDescription": { "message": "動画の概要" },
   "mdVideoLoading": { "message": "字幕を読み込んでいます…" },
   "mdVideoTrackAria": { "message": "字幕の言語" },
   "mdVideoNoTracks": { "message": "この動画には利用できる字幕がありません" },

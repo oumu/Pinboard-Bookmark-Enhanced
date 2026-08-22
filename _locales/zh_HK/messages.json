@@ -3617,6 +3617,8 @@
   "libraryLookupSaved": { "message": "已在生詞庫 · 查看" },
   "mdVideoTitle": { "message": "影片與字幕" },
   "mdVideoLoad": { "message": "載入影片與字幕" },
+  "mdVideoEnable": { "message": "啟用字幕並載入影片" },
+  "mdVideoDescription": { "message": "影片簡介" },
   "mdVideoLoading": { "message": "正在載入字幕…" },
   "mdVideoTrackAria": { "message": "字幕語言" },
   "mdVideoNoTracks": { "message": "此影片沒有可用字幕" },
