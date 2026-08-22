@@ -809,15 +809,43 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           const ROW_SEL = "transcript-segment-view-model, ytd-transcript-segment-renderer";
           const TS_SEL = ".ytwTranscriptSegmentViewModelTimestamp, .segment-timestamp";
           const TX_SEL = ".yt-core-attributed-string[role='text'], span[role='text'], .segment-text, yt-formatted-string";
-          const readRows = () => qa(ROW_SEL).map((row) => {
-            const ts = q(TS_SEL, row);
-            const tx = q(TX_SEL, row);
-            return {
-              from: parseTs(ts && ts.textContent),
-              to: 0,
-              content: ((tx && tx.textContent) || "").replace(/\s+/g, " ").trim(),
+          // Shadow-piercing queries: the 2026 panel generations render rows
+          // inside open shadow roots that plain querySelectorAll never sees
+          // (the prime suspect behind "panel opened but no rows"). Scoped to
+          // the panel subtree to stay cheap inside the poll loop.
+          const deepQA = (sel, root) => {
+            const out = [];
+            const walk = (r) => {
+              try { r.querySelectorAll(sel).forEach((n) => out.push(n)); } catch (_) {}
+              let all = [];
+              try { all = r.querySelectorAll("*"); } catch (_) { return; }
+              for (const n of all) if (n.shadowRoot) walk(n.shadowRoot);
             };
-          }).filter((s) => s.content);
+            walk(root || document);
+            return out;
+          };
+          const deepQ = (sel, root) => deepQA(sel, root)[0] || null;
+          const panels = () => qa('ytd-engagement-panel-section-list-renderer[target-id*="transcript"]');
+          const readRows = () => {
+            let rows = qa(ROW_SEL);
+            if (!rows.length) for (const p of panels()) { rows = deepQA(ROW_SEL, p); if (rows.length) break; }
+            return rows.map((row) => {
+              const ts = q(TS_SEL, row) || deepQ(TS_SEL, row);
+              const tx = q(TX_SEL, row) || deepQ(TX_SEL, row);
+              return {
+                from: parseTs(ts && ts.textContent),
+                to: 0,
+                content: ((tx && tx.textContent) || "").replace(/\s+/g, " ").trim(),
+              };
+            }).filter((s) => s.content);
+          };
+          // What is ACTUALLY inside the panels -- read the answer instead of
+          // guessing the next selector when rows stay at zero.
+          const panelDiag = () => panels().map((p) => {
+            const tags = new Set();
+            deepQA("*", p).slice(0, 400).forEach((n) => { if (tags.size < 15) tags.add(n.tagName.toLowerCase()); });
+            return (p.getAttribute("target-id") || "?") + "[vis=" + (p.getAttribute("visibility") || "?") + ",h=" + p.offsetHeight + "]{" + Array.from(tags).join(",") + "}";
+          }).join(" ; ") || "no transcript panels in DOM";
 
           // -- network taps (restored in finally) --
           const origFetch = window.fetch;
@@ -897,7 +925,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
               out.segs = Array.from(seen.values()).sort((a, b) => a.from - b.from);
               return out;
             }
-            if (!out.trace) out.trace = "panel opened but no rows and no captured response";
+            if (!out.trace) out.trace = "no rows, no captured response; panels: " + panelDiag();
             return out;
           } finally {
             window.fetch = origFetch;
