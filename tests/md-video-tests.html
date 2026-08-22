@@ -65,6 +65,24 @@ section("pbpYtParseTranscriptPanel");
   assertEq(pbpYtParseTranscriptPanel(null).length, 0, "null -> empty");
 })();
 
+section("pbpYtParseTranscriptDeep");
+(() => {
+  // PAmodern /get_panel grade: viewmodel rows under shifting wrappers --
+  // fixture nesting mirrors the shape reported by youtube-transcript-downloader.
+  const panelGrade = { some: { wrapper: { contents: [
+    { itemSectionRenderer: { contents: [ { deep: { transcriptSegmentViewModel: { timestamp: "1:05", simpleText: "view model row" } } } ] } },
+    { transcriptSegmentViewModel: { timestamp: { simpleText: "12:34" }, simpleText: "second row" } },
+  ] } } };
+  const vm = pbpYtParseTranscriptDeep(panelGrade);
+  check("deep: viewmodel rows found under arbitrary nesting", vm.length === 2 && vm[0].content === "view model row" && vm[1].content === "second row");
+  check("deep: timestamp string and simpleText object both parse", vm[0].from === 65 && vm[1].from === 754);
+  const classic = { actions: [{ x: { transcriptSegmentRenderer: { startMs: "2000", endMs: "4000", snippet: { runs: [{ text: "classic row" }] } } } }] };
+  const cl = pbpYtParseTranscriptDeep(classic);
+  check("deep: classic renderer rows also collected", cl.length === 1 && cl[0].content === "classic row" && cl[0].from === 2);
+  assertEq(pbpYtParseTranscriptDeep({}).length, 0, "deep: empty object -> empty");
+  assertEq(pbpYtParseTranscriptDeep(null).length, 0, "deep: null -> empty");
+})();
+
 section("pbpYtTranscriptParams");
 (() => {
   const params = pbpYtTranscriptParams("b_OpjUz7zN8", "zh", false);

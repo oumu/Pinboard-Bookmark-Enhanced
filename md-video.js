@@ -341,6 +341,51 @@ function pbpYtParseTranscriptPanel(data) {
   return out;
 }
 
+// Deep-scan parser for captured transcript network bodies. YouTube is
+// mid-migration (2026): /get_transcript still answers with the classic
+// transcriptSegmentRenderer actions tree, while the PAmodern /get_panel
+// grade answers with transcriptSegmentViewModel { timestamp, simpleText }
+// nested under shifting wrapper paths. A bounded recursive walk that
+// collects BOTH shapes survives the A/B mix; exact-path parsing does not
+// (research: Codex 2026-08-22, cross-checked against Distill /
+// YouTubeTranscriptCopier / youtube-transcript-downloader).
+function pbpYtParseTranscriptDeep(data) {
+  const out = [];
+  const parseTs = (t) => {
+    const p = String(t || "").trim().split(":").map(Number);
+    return (!p.length || p.some(isNaN)) ? 0 : p.reduce((a, b) => a * 60 + b, 0);
+  };
+  const textOf = (v) => {
+    if (v == null) return "";
+    if (typeof v === "string") return v;
+    if (typeof v.simpleText === "string") return v.simpleText;
+    if (typeof v.content === "string") return v.content;
+    if (Array.isArray(v.runs)) return v.runs.map((r) => (r && r.text) || "").join("");
+    return "";
+  };
+  const walk = (node, depth) => {
+    if (!node || typeof node !== "object" || depth > 40) return;
+    const vm = node.transcriptSegmentViewModel;
+    if (vm && typeof vm === "object") {
+      const content = (textOf(vm.simpleText) || textOf(vm.text) || textOf(vm.snippet)).replace(/\s+/g, " ").trim();
+      if (content) out.push({ from: parseTs(textOf(vm.timestamp) || textOf(vm.startTimeText)), to: 0, content });
+      return; // segments don't nest inside each other
+    }
+    const r = node.transcriptSegmentRenderer;
+    if (r && typeof r === "object") {
+      const content = textOf(r.snippet).replace(/\s+/g, " ").trim();
+      if (content) out.push({ from: (+r.startMs || 0) / 1000, to: (+r.endMs || 0) / 1000, content });
+      return;
+    }
+    for (const k in node) {
+      const v = node[k];
+      if (v && typeof v === "object") walk(v, depth + 1);
+    }
+  };
+  walk(data, 0);
+  return out;
+}
+
 // ---- Bilibili WBI-signed subtitle extraction ---------------------------
 // Subtitles come from x/player/wbi/v2, which needs a WBI signature (mixin key
 // from x/web-interface/nav) AND the user's bilibili login (SESSDATA, sent as
@@ -731,53 +776,142 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     return null;
   }
 
-  // Final rescue tier: read the transcript YouTube's own UI renders. All four
-  // network routes are now bot-walled (timedtext: PO Token; web
-  // get_transcript: BotGuard 400, device-traced; iOS player: LOGIN_REQUIRED;
-  // extension-page fetch: LOGIN_REQUIRED) -- but the page's OWN frontend
-  // attaches its attestation and renders the panel fine. Open that panel the
-  // way the user would, read the rendered rows, close it again if we opened
-  // it. DOM-shape-dependent by nature; every surviving caption extension
-  // (SubtideX et al.) sits on this same surface.
+  // Final rescue tier, research-corrected (Codex 2026-08-22). All four
+  // direct network routes are bot-walled, but the page's OWN frontend
+  // authenticates fine -- so make IT do the work and take the result:
+  //  1. MAIN-world temporary fetch/XHR taps capture the transcript JSON the
+  //     page itself requests (/get_transcript classic tree, or the PAmodern
+  //     /get_panel viewmodel grade);
+  //  2. the panel is opened through the REAL control chain (expand the
+  //     description, click "Show transcript") -- setAttribute only flips the
+  //     shell and never loads data, which is why the previous tier saw
+  //     "panel opened but no segments appeared";
+  //  3. DOM fallback reads BOTH row generations (2026 migration:
+  //     transcript-segment-view-model vs ytd-transcript-segment-renderer)
+  //     with scroll-and-accumulate, since the list is virtualized and
+  //     recycles off-screen rows.
   async function ytTabDomTranscript(tabId) {
     let inj = null;
     try {
       inj = await chrome.scripting.executeScript({
         target: { tabId },
-        world: "ISOLATED",
+        world: "MAIN", // the fetch/XHR taps must live in the page world
         func: async () => {
-          const out = { segs: [], trace: "" };
+          const out = { kind: "", body: "", segs: [], trace: "" };
           const q = (s, r) => (r || document).querySelector(s);
           const qa = (s, r) => Array.from((r || document).querySelectorAll(s));
+          const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
           const parseTs = (t) => {
             const parts = String(t || "").trim().split(":").map(Number);
             if (!parts.length || parts.some(isNaN)) return 0;
             return parts.reduce((a, b) => a * 60 + b, 0);
           };
-          const read = () => qa("ytd-transcript-segment-renderer").map((seg) => ({
-            from: parseTs((q(".segment-timestamp", seg) || {}).textContent),
-            to: 0,
-            content: ((q(".segment-text", seg) || q("yt-formatted-string", seg) || {}).textContent || "").replace(/\s+/g, " ").trim(),
-          })).filter((s) => s.content);
-          let segs = read();
-          let openedPanel = null;
-          if (!segs.length) {
-            const panel = q('ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-searchable-transcript"]');
-            const btn = q("ytd-video-description-transcript-section-renderer button");
-            if (btn) { btn.click(); openedPanel = panel; }
-            else if (panel) { panel.setAttribute("visibility", "ENGAGEMENT_PANEL_VISIBILITY_EXPANDED"); openedPanel = panel; }
-            else { out.trace = "no transcript entry in page"; return out; }
-            for (let i = 0; i < 20 && !segs.length; i++) {
-              await new Promise((r) => setTimeout(r, 400));
-              segs = read();
+          const ROW_SEL = "transcript-segment-view-model, ytd-transcript-segment-renderer";
+          const TS_SEL = ".ytwTranscriptSegmentViewModelTimestamp, .segment-timestamp";
+          const TX_SEL = ".yt-core-attributed-string[role='text'], span[role='text'], .segment-text, yt-formatted-string";
+          const readRows = () => qa(ROW_SEL).map((row) => {
+            const ts = q(TS_SEL, row);
+            const tx = q(TX_SEL, row);
+            return {
+              from: parseTs(ts && ts.textContent),
+              to: 0,
+              content: ((tx && tx.textContent) || "").replace(/\s+/g, " ").trim(),
+            };
+          }).filter((s) => s.content);
+
+          // -- network taps (restored in finally) --
+          const origFetch = window.fetch;
+          const origOpen = XMLHttpRequest.prototype.open;
+          const origSend = XMLHttpRequest.prototype.send;
+          let captured = "";
+          let opened = false;
+          const wants = (u) => /\/youtubei\/v1\/(get_transcript|get_panel)/.test(String(u || ""));
+          const keeps = (t) => t && /transcriptSegment(ViewModel|Renderer)|transcriptSearchPanelRenderer/.test(t);
+          try {
+            window.fetch = function (...a) {
+              const p = origFetch.apply(this, a);
+              try {
+                const u = (a[0] && a[0].url) || a[0];
+                if (!captured && wants(u)) {
+                  p.then((resp) => resp.clone().text().then((t) => { if (!captured && keeps(t)) captured = t; }).catch(() => {})).catch(() => {});
+                }
+              } catch (_) {}
+              return p;
+            };
+            XMLHttpRequest.prototype.open = function (m, u, ...rest) {
+              this.__pbpUrl = u;
+              return origOpen.call(this, m, u, ...rest);
+            };
+            XMLHttpRequest.prototype.send = function (...a) {
+              try {
+                if (!captured && wants(this.__pbpUrl)) {
+                  this.addEventListener("load", () => {
+                    try { if (!captured && keeps(this.responseText)) captured = this.responseText; } catch (_) {}
+                  });
+                }
+              } catch (_) {}
+              return origSend.apply(this, a);
+            };
+
+            // already-open panel with rows? read it without touching the UI
+            let segs = readRows();
+            if (!segs.length) {
+              // real control chain: expand the description, then the button
+              const expand = q("ytd-text-inline-expander #expand, tp-yt-paper-button#expand, #description #expand");
+              if (expand) { try { expand.click(); } catch (_) {} await sleep(400); }
+              let btn = q("ytd-video-description-transcript-section-renderer button");
+              for (let i = 0; i < 8 && !btn; i++) { await sleep(400); btn = q("ytd-video-description-transcript-section-renderer button"); }
+              if (btn) { btn.click(); opened = true; }
+              else {
+                const panel = qa('ytd-engagement-panel-section-list-renderer[target-id*="transcript"]')[0];
+                if (panel) { panel.setAttribute("visibility", "ENGAGEMENT_PANEL_VISIBILITY_EXPANDED"); opened = true; out.trace = "no transcript button; shell-opened panel (may not load data)"; }
+                else { out.trace = "no transcript entry in page"; return out; }
+              }
+              // wait for the page's own request or for rows, whichever first
+              for (let i = 0; i < 36 && !captured; i++) {
+                await sleep(400);
+                segs = readRows();
+                if (segs.length) break;
+              }
             }
-            if (!segs.length) out.trace = "panel opened but no segments appeared";
-            // Leave the page as we found it -- the panel only flashed open
-            // because we opened it.
-            if (openedPanel) { try { openedPanel.setAttribute("visibility", "ENGAGEMENT_PANEL_VISIBILITY_HIDDEN"); } catch (_) {} }
+            if (captured) { out.kind = "net"; out.body = captured; return out; }
+            if (segs.length) {
+              // virtualized list: scroll and accumulate, keyed for dedupe
+              const seen = new Map();
+              const keep = (list) => list.forEach((s) => { const k = s.from + "|" + s.content; if (!seen.has(k)) seen.set(k, s); });
+              keep(segs);
+              const row0 = q(ROW_SEL);
+              let scroller = row0 && row0.parentElement;
+              while (scroller && scroller !== document.body && scroller.scrollHeight <= scroller.clientHeight + 4) scroller = scroller.parentElement;
+              if (scroller && scroller !== document.body) {
+                let stable = 0, lastCount = seen.size;
+                for (let i = 0; i < 80 && stable < 3; i++) {
+                  scroller.scrollTop += Math.max(120, scroller.clientHeight * 0.9);
+                  await sleep(180);
+                  keep(readRows());
+                  if (seen.size === lastCount) stable++; else { stable = 0; lastCount = seen.size; }
+                }
+                scroller.scrollTop = 0;
+              }
+              out.kind = "dom";
+              out.segs = Array.from(seen.values()).sort((a, b) => a.from - b.from);
+              return out;
+            }
+            if (!out.trace) out.trace = "panel opened but no rows and no captured response";
+            return out;
+          } finally {
+            window.fetch = origFetch;
+            XMLHttpRequest.prototype.open = origOpen;
+            XMLHttpRequest.prototype.send = origSend;
+            // leave the page as we found it -- close only what we opened
+            if (opened) {
+              try {
+                const p = qa('ytd-engagement-panel-section-list-renderer[target-id*="transcript"]')
+                  .find((x) => x.getAttribute("visibility") === "ENGAGEMENT_PANEL_VISIBILITY_EXPANDED");
+                if (p) p.setAttribute("visibility", "ENGAGEMENT_PANEL_VISIBILITY_HIDDEN");
+              } catch (_) {}
+            }
           }
-          out.segs = segs;
-          return out;
         },
       });
     } catch (e) {
@@ -786,7 +920,19 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     }
     const r = inj && inj[0] && inj[0].result;
     if (r && r.trace) console.warn("[pbp-video] dom transcript:", r.trace);
-    return (r && r.segs && r.segs.length) ? r.segs : null;
+    if (!r) return null;
+    if (r.kind === "net") {
+      try {
+        const data = JSON.parse(r.body);
+        const viaActions = pbpYtParseTranscriptPanel(data);
+        const segs = viaActions.length ? viaActions : pbpYtParseTranscriptDeep(data);
+        if (segs.length) return segs;
+      } catch (e) {
+        console.warn("[pbp-video] captured transcript parse:", (e && e.message) || e);
+      }
+      return null;
+    }
+    return (r.segs && r.segs.length) ? r.segs : null;
   }
 
   function el(tag, cls, text) {
