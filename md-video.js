@@ -173,16 +173,34 @@ function pbpYtParseJson3(jsonText) {
 }
 
 // Reading-paragraph merge for the Markdown copy (the interactive panel keeps
-// raw segments): break only after a segment that ends on sentence-final
-// punctuation; any trailing partial run flushes as its own paragraph.
+// raw segments). Three breakers, because punctuation alone is not enough:
+// bilibili's ASR tracks carry NO sentence-final punctuation at all, and the
+// punctuation-only rule rendered a 25-minute video as one wall of text.
+//  1. sentence-final punctuation (original rule);
+//  2. a silent gap (>2.5s between one segment's end and the next's start) --
+//     a real pause in speech is a paragraph boundary;
+//  3. an accumulated-length ceiling (~200 chars) so unpunctuated,
+//     gap-free runs still break into readable blocks.
 function pbpVideoMergeParagraphs(segments) {
   const out = [];
   let buf = [];
+  let bufLen = 0;
+  let lastEnd = -1;
+  const flush = () => {
+    if (!buf.length) return;
+    out.push(buf.join(" ").replace(/\s+/g, " ").trim());
+    buf = []; bufLen = 0;
+  };
   for (const seg of segments || []) {
+    const from = typeof seg.from === "number" ? seg.from : -1;
+    if (lastEnd >= 0 && from >= 0 && from - lastEnd > 2.5) flush();
     buf.push(seg.content);
-    if (/[.!?。！？…]["')\]]?$/.test(seg.content)) { out.push(buf.join(" ").replace(/\s+/g, " ").trim()); buf = []; }
+    bufLen += String(seg.content || "").length;
+    const to = typeof seg.to === "number" && seg.to > 0 ? seg.to : from;
+    if (to >= 0) lastEnd = to;
+    if (/[.!?。！？…]["')\]]?$/.test(seg.content) || bufLen >= 200) flush();
   }
-  if (buf.length) out.push(buf.join(" ").replace(/\s+/g, " ").trim());
+  flush();
   return out.filter(Boolean);
 }
 
@@ -501,6 +519,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   const PBV_EXTERNAL_SVG = typeof PBP_ICONS !== "undefined" ? PBP_ICONS.extOpen : "";
 
   let _panel = null, _iframe = null, _segments = [], _meta = {};
+  let _isBili = false; // provider of the mounted player -- seekTo() picks its jump mechanism by it
   let _ctxTabId = null;   // source tab from pbpVideoInit ctx (may be gone by click time)
   let _ytFetchFn = null;  // tab-injected fetchFn when the tab route won; null = extension-page fetch
 
@@ -779,6 +798,18 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
 
   function seekTo(sec) {
     if (!_iframe || !_iframe.contentWindow) return;
+    if (_isBili) {
+      // player.bilibili.com exposes no postMessage seek API; the only
+      // working jump is reloading the iframe with its t= start parameter.
+      // Costs a reload flash, buys clickable transcript rows.
+      try {
+        const u = new URL(_iframe.src);
+        u.searchParams.set("t", String(Math.max(0, Math.floor(sec))));
+        u.searchParams.set("autoplay", "1");
+        _iframe.src = u.toString();
+      } catch (_) {}
+      return;
+    }
     // The relay forwards only these two commands to the nested YouTube
     // iframe (see docs/yt-embed.html) -- the extension speaks the relay's
     // small protocol, not the raw IFrame API, and never posts to "*".
@@ -790,8 +821,6 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     post("playVideo");
   }
 
-  // seekable=false renders static rows (no click, no seek title) — the
-  // bilibili iframe exposes no clean postMessage seek API.
   function renderTranscript(listEl, segments, seekable) {
     listEl.textContent = "";
     const frag = document.createDocumentFragment();
@@ -911,7 +940,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     if (adoptBtn) adoptBtn.hidden = !((res.segments || []).length && typeof window.pbpAdoptTranscript === "function");
     _segments = res.segments || [];
     _meta.trackLabel = res.track ? (isBili ? res.track.lan_doc : res.track.label) : "";
-    if (_segments.length) renderTranscript(bodyEl, _segments, !isBili);
+    if (_segments.length) renderTranscript(bodyEl, _segments, true);
     trackSel.addEventListener("change", async () => {
       statusEl.textContent = t("mdVideoLoading");
       const segs = isBili ? await pbpBiliFetchSubtitleBody(trackSel.value) : await pbpYtFetchCaptionBody(trackSel.value, _ytFetchFn || undefined, useLogin);
@@ -920,7 +949,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       const sel = trackSel.selectedOptions && trackSel.selectedOptions[0];
       _meta.trackLabel = sel ? sel.textContent : "";
       copyBtn.hidden = !segs.length;
-      renderTranscript(bodyEl, segs, !isBili);
+      renderTranscript(bodyEl, segs, true);
     });
   }
 
@@ -975,6 +1004,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       // player iframe mounts immediately (no permission needed for a frame)
       const media = el("div", "pbv-media");
       _iframe = document.createElement("iframe");
+      _isBili = detected.provider === "bilibili";
       _iframe.src = detected.provider === "bilibili"
         ? "https://player.bilibili.com/player.html?bvid=" + detected.bvid + "&page=" + detected.part + "&high_quality=1&danmaku=0"
         : RELAY_BASE + "?v=" + encodeURIComponent(detected.videoId);

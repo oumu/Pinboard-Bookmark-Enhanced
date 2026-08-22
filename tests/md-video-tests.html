@@ -134,7 +134,14 @@ assertEq(pbpYtParseTimedtextXml("<transcript></transcript>").length, 0, "empty x
 section("merge + markdown + time");
 const SEGS = [ { from: 0, to: 2, content: "Sentence one." }, { from: 2.1, to: 4, content: "and continues" }, { from: 10, to: 12, content: "After a gap" } ];
 const paras = pbpVideoMergeParagraphs(SEGS);
-check("merge: sentence end breaks; trailing run flushes", paras.length === 2 && paras[0] === "Sentence one." && paras[1] === "and continues After a gap");
+// The 6s silence between "and continues" (ends 4s) and "After a gap" (starts
+// 10s) is a paragraph boundary now -- the punctuation-only rule rendered
+// bilibili's unpunctuated ASR tracks as one wall of text.
+check("merge: sentence end breaks; a 6s silent gap breaks too", paras.length === 3 && paras[0] === "Sentence one." && paras[1] === "and continues" && paras[2] === "After a gap");
+const CJK = []; for (let i = 0; i < 30; i++) CJK.push({ from: i, to: i + 0.9, content: "十个字十个字十个字十" });
+const cjkParas = pbpVideoMergeParagraphs(CJK);
+check("merge: unpunctuated gapless run breaks on the length ceiling", cjkParas.length > 1 && cjkParas.every(p => p.replace(/ /g, "").length <= 220));
+check("merge: nothing lost across ceiling breaks", cjkParas.join("").replace(/ /g, "").length === 300);
 const md = pbpVideoTranscriptMarkdown(SEGS, { title: "T", url: "https://youtu.be/x", trackLabel: "English" });
 check("markdown: heading + source line + paragraphs", md.startsWith("## ") && md.includes("https://youtu.be/x") && md.includes("English") && md.includes("Sentence one."));
 assertEq(pbpVideoFmtTime(65), "1:05", "m:ss");
