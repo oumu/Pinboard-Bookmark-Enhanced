@@ -1378,8 +1378,13 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
             // fail-closed per batch: a batch the model rewrote keeps its input
             outBatches.push(pbpVideoPunctConserved(b, text) ? String(text).trim() : b);
           }
-          _aiPunctParas = outBatches.join("\n\n").split(/\n{2,}/)
-            .map((x) => x.replace(/\s+/g, " ").trim()).filter(Boolean);
+          // Split on ANY newline run: the prompt asks for blank-line breaks
+          // but models routinely emit single newlines, and the blank-line-only
+          // split glued whole batches into one wall (device report: punctuated
+          // but unbroken article). Overlong runs still split on sentence ends.
+          _aiPunctParas = outBatches.join("\n\n").split(/\n+/)
+            .map((x) => x.replace(/\s+/g, " ").trim()).filter(Boolean)
+            .flatMap((x) => x.length > 300 ? x.split(/(?<=[。！？.!?])\s*/).filter(Boolean) : [x]);
           // Make the pass visible where the user is looking: map the marks
           // back onto the timed rows and re-render the panel (fail-closed --
           // on any stream mismatch the rows simply keep their current text).
