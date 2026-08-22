@@ -3632,6 +3632,8 @@
   "mdVideoAiPunctFail": { "message": "AI 句読点の付与に失敗しました。ローカル結果を保持します" },
   "mdVideoCopied": { "message": "文字起こしをコピーしました" },
   "mdVideoAsr": { "message": "自動生成" },
+  "mdVideoViewReading": { "message": "読み物ビュー" },
+  "mdVideoViewTimeline": { "message": "タイムライン" },
   "mdVideoSeekTo": { "message": "$TIME$ へ移動", "placeholders": { "time": { "content": "$1" } } },
   "mdVideoCopyFailed": { "message": "コピーに失敗しました" },
   "mdVideoOpenExternal": { "message": "YouTube で開く" }

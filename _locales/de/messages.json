@@ -3632,6 +3632,8 @@
   "mdVideoAiPunctFail": { "message": "KI-Interpunktion fehlgeschlagen; lokales Ergebnis bleibt erhalten" },
   "mdVideoCopied": { "message": "Transkript kopiert" },
   "mdVideoAsr": { "message": "automatisch erstellt" },
+  "mdVideoViewReading": { "message": "Lesetext" },
+  "mdVideoViewTimeline": { "message": "Zeitleiste" },
   "mdVideoSeekTo": { "message": "Zu $TIME$ springen", "placeholders": { "time": { "content": "$1" } } },
   "mdVideoCopyFailed": { "message": "Kopieren fehlgeschlagen" },
   "mdVideoOpenExternal": { "message": "Auf YouTube öffnen" }

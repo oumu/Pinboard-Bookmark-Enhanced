@@ -3478,16 +3478,25 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
   max-height: 40vh; overflow-y: auto; display: flex; flex-direction: column; gap: 2px;
   border: 1px solid var(--border); border-radius: 10px; padding: 6px;
 }
+/* Task 4 row shape: .pbv-row is a plain container div (not a button) so
+   .pbv-text stays natively selectable; only .pbv-time is a real button.
+   content-visibility defers off-screen rows' layout/paint (a long
+   transcript runs into the thousands); contain-intrinsic-size holds
+   scrollbar geometry stable before a row's first real layout pass. */
 .pbv-row {
   display: flex; gap: 10px; align-items: baseline; text-align: left;
-  border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer;
-  padding: 4px 8px; border-radius: 6px; min-height: 24px;
+  padding: 4px 8px; border-radius: 6px;
+  content-visibility: auto; contain-intrinsic-size: auto 28px;
 }
-.pbv-row:hover { background: var(--row-hover, rgba(127,127,127,.14)); }
-.pbv-row:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
-.pbv-row--static { cursor: default; }
-.pbv-row--static:hover { background: transparent; }
-.pbv-time { flex: 0 0 auto; opacity: 0.65; font-variant-numeric: tabular-nums; }
+.pbv-time {
+  flex: 0 0 auto; opacity: 0.65; font-variant-numeric: tabular-nums;
+  min-height: 24px; padding: 0 2px; border-radius: 4px;
+  border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer;
+}
+.pbv-time:hover { background: var(--row-hover, rgba(127,127,127,.14)); opacity: 0.85; }
+.pbv-time:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.pbv-row--static .pbv-time { cursor: default; }
+.pbv-row--static .pbv-time:hover { background: transparent; opacity: 0.65; }
 .pbv-text { flex: 1; }
 
 /* ---- video-mode workspace (A2) ---- */
@@ -3542,6 +3551,17 @@ body.video-mode .doc-body { max-width: min(2160px, 100%); container-type: inline
   .pbv-workspace { grid-template-columns: 1fr; }
   .pbv-col-player #video-panel { position: static; top: auto; }
 }
+
+/* Reading/timeline toggle (Task 4) -- reuses .source-badge/.src-seg (see
+   #source-badge in md-preview.html/.js) for the whole look; this only adds
+   the study-column spacing below it, above #rendered-view/.pbv-list. */
+.pbv-view-toggle { margin: 0 0 16px; }
+
+/* Page scroll owns the timeline list in video-mode -- the 40vh inner-scroll
+   box on .pbv-list above only made sense while the list sat inside the
+   small player-side panel. The non-video defensive mount (list still lives
+   inside #video-panel there) keeps that old constraint. */
+body.video-mode .pbv-col-study .pbv-list { max-height: none; overflow: visible; }
 
 /* Player scales to its column instead of a fixed height computed against
    .pbv-media's own aspect-ratio box (the pre-workspace method, now

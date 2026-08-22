@@ -3626,6 +3626,8 @@
   "mdVideoAiPunctFail": { "message": "AI 标点失败，已保留本地结果" },
   "mdVideoCopied": { "message": "已复制字幕" },
   "mdVideoAsr": { "message": "自动生成" },
+  "mdVideoViewReading": { "message": "阅读稿" },
+  "mdVideoViewTimeline": { "message": "时间轴" },
   "mdVideoSeekTo": { "message": "跳转到 $TIME$", "placeholders": { "time": { "content": "$1" } } },
   "mdVideoCopyFailed": { "message": "复制失败" },
   "mdVideoOpenExternal": { "message": "在 YouTube 上打开" }

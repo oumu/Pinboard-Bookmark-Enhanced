@@ -3632,6 +3632,8 @@
   "mdVideoAiPunctFail": { "message": "Пунктуация ИИ не удалась; сохранён локальный результат" },
   "mdVideoCopied": { "message": "Расшифровка скопирована" },
   "mdVideoAsr": { "message": "автоматические" },
+  "mdVideoViewReading": { "message": "Текст" },
+  "mdVideoViewTimeline": { "message": "Хронология" },
   "mdVideoSeekTo": { "message": "Перейти к $TIME$", "placeholders": { "time": { "content": "$1" } } },
   "mdVideoCopyFailed": { "message": "Не удалось скопировать" },
   "mdVideoOpenExternal": { "message": "Открыть на YouTube" }

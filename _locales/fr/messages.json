@@ -3632,6 +3632,8 @@
   "mdVideoAiPunctFail": { "message": "Échec de la ponctuation IA ; résultat local conservé" },
   "mdVideoCopied": { "message": "Transcription copiée" },
   "mdVideoAsr": { "message": "générés automatiquement" },
+  "mdVideoViewReading": { "message": "Texte" },
+  "mdVideoViewTimeline": { "message": "Chronologie" },
   "mdVideoSeekTo": { "message": "Aller à $TIME$", "placeholders": { "time": { "content": "$1" } } },
   "mdVideoCopyFailed": { "message": "Échec de la copie" },
   "mdVideoOpenExternal": { "message": "Ouvrir sur YouTube" }

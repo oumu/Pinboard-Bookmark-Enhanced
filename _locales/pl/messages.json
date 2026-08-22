@@ -3632,6 +3632,8 @@
   "mdVideoAiPunctFail": { "message": "Interpunkcja AI nie powiodła się; zachowano wynik lokalny" },
   "mdVideoCopied": { "message": "Skopiowano transkrypcję" },
   "mdVideoAsr": { "message": "generowane automatycznie" },
+  "mdVideoViewReading": { "message": "Tekst" },
+  "mdVideoViewTimeline": { "message": "Oś czasu" },
   "mdVideoSeekTo": { "message": "Przejdź do $TIME$", "placeholders": { "time": { "content": "$1" } } },
   "mdVideoCopyFailed": { "message": "Kopiowanie nie powiodło się" },
   "mdVideoOpenExternal": { "message": "Otwórz w YouTube" }

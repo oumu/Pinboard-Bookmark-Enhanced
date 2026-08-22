@@ -680,6 +680,13 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   let _ytFetchFn = null;  // tab-injected fetchFn when the tab route won; null = extension-page fetch
   window.pbpVideoSession = null; // latest prepareVideoSession() result, for md-preview.js
 
+  // Study-column reading/timeline toggle (Task 4). Set by mountVideoWorkspace
+  // only in video-mode workspaces; a non-video defensive mount (panel stays a
+  // plain sibling of #rendered-view, .pbv-list stays inside the panel) leaves
+  // these null, so setStudyView is a harmless no-op there.
+  let _studyReadingEl = null, _studyListEl = null;
+  let _toggleReadingBtn = null, _toggleTimelineBtn = null;
+
   // Same-origin caption fetch, executed INSIDE an open YouTube tab. From the
   // page's own context the watch HTML answers with an OK playabilityStatus
   // and caption baseUrls complete with their pot (PO Token) parameter; the
@@ -1121,24 +1128,60 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     post("playVideo");
   }
 
+  // Task 4 row shape: .pbv-row is a plain container (selectable text needs a
+  // non-button ancestor), button.pbv-time is the only interactive control
+  // (seek), span.pbv-text carries the transcript text. Static (non-seekable)
+  // rows keep the button present but inert -- same tabIndex=-1/no-title/
+  // no-listener treatment the old row-as-button gave them -- so the
+  // .pbv-row--static class keeps working the day a non-seekable provider
+  // actually ships one.
+  function renderVideoRow(seg, seekable) {
+    const row = el("div", seekable ? "pbv-row" : "pbv-row pbv-row--static");
+    const time = el("button", "pbv-time", pbpVideoFmtTime(seg.from));
+    time.type = "button";
+    const text = el("span", "pbv-text", seg.content);
+    if (seekable) {
+      const label = t("mdVideoSeekTo", pbpVideoFmtTime(seg.from));
+      time.title = label;
+      time.setAttribute("aria-label", label);
+      time.addEventListener("click", () => seekTo(Math.floor(seg.from)));
+    } else {
+      time.tabIndex = -1;
+    }
+    row.appendChild(time);
+    row.appendChild(text);
+    return row;
+  }
+
+  // Batched so a long transcript (an hour-plus video runs into the
+  // thousands of segments) never blocks the main thread building rows in one
+  // pass. The first 200 land synchronously -- short lists, and every test
+  // fixture, render with nothing left to schedule -- and the remainder
+  // follow in rAF-paced DocumentFragment batches of 200. requestAnimationFrame
+  // is absent in some minimal test/automation DOM shims; without it, append
+  // everything else synchronously rather than silently stalling forever.
   function renderTranscript(listEl, segments, seekable) {
     listEl.textContent = "";
-    const frag = document.createDocumentFragment();
-    segments.forEach((seg) => {
-      const row = el("button", seekable ? "pbv-row" : "pbv-row pbv-row--static");
-      row.type = "button";
-      const time = el("span", "pbv-time", pbpVideoFmtTime(seg.from));
-      const text = el("span", "pbv-text", seg.content);
-      row.appendChild(time); row.appendChild(text);
-      if (seekable) {
-        row.title = t("mdVideoSeekTo", pbpVideoFmtTime(seg.from));
-        row.addEventListener("click", () => seekTo(Math.floor(seg.from)));
-      } else {
-        row.tabIndex = -1;
-      }
-      frag.appendChild(row);
-    });
-    listEl.appendChild(frag);
+    const BATCH = 200;
+    const total = segments.length;
+    let i = 0;
+    function appendBatch(count) {
+      const frag = document.createDocumentFragment();
+      const end = Math.min(i + count, total);
+      for (; i < end; i++) frag.appendChild(renderVideoRow(segments[i], seekable));
+      listEl.appendChild(frag);
+    }
+    appendBatch(BATCH);
+    if (i >= total) return;
+    if (typeof requestAnimationFrame === "undefined") {
+      appendBatch(total - i);
+      return;
+    }
+    const step = () => {
+      appendBatch(BATCH);
+      if (i < total) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
   }
 
   // permissions.request demands a user gesture even for already-granted
@@ -1341,18 +1384,67 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   }
 
   window.pbpPrepareVideoSession = prepareVideoSession;
+  window.pbpVideoEnsureReadingView = ensureReadingView;
+
+  // Reading/timeline toggle (Task 4). Pattern-matched on #source-badge/
+  // .src-seg (md-preview.js's applyAvailability): same container+segment
+  // classes, same aria-pressed/active contract. .src-seg's CSS carries no
+  // #source-badge scoping (md-preview.css), so reusing the class here picks
+  // up the existing look with no new rules beyond .pbv-view-toggle's own
+  // study-column spacing.
+  function buildViewToggle() {
+    const wrap = el("div", "pbv-view-toggle source-badge");
+    wrap.setAttribute("role", "group");
+    const reading = el("button", "src-seg", t("mdVideoViewReading"));
+    reading.type = "button";
+    reading.setAttribute("data-view", "reading");
+    reading.addEventListener("click", () => setStudyView("reading"));
+    const timeline = el("button", "src-seg", t("mdVideoViewTimeline"));
+    timeline.type = "button";
+    timeline.setAttribute("data-view", "timeline");
+    timeline.addEventListener("click", () => setStudyView("timeline"));
+    wrap.appendChild(reading);
+    wrap.appendChild(timeline);
+    _toggleReadingBtn = reading;
+    _toggleTimelineBtn = timeline;
+    return wrap;
+  }
+
+  function setStudyView(mode) {
+    const reading = mode !== "timeline";
+    if (_studyReadingEl) _studyReadingEl.hidden = !reading;
+    if (_studyListEl) _studyListEl.hidden = reading;
+    if (_toggleReadingBtn) {
+      _toggleReadingBtn.classList.toggle("active", reading);
+      _toggleReadingBtn.setAttribute("aria-pressed", reading ? "true" : "false");
+    }
+    if (_toggleTimelineBtn) {
+      _toggleTimelineBtn.classList.toggle("active", !reading);
+      _toggleTimelineBtn.setAttribute("aria-pressed", !reading ? "true" : "false");
+    }
+  }
+
+  // Ask/skim citation jumps into the transcript need the reading view on
+  // screen even when the reader is parked on the timeline segment. No
+  // dispatch site exists yet (that wiring is optional follow-up for md-ask.js
+  // / md-skim.js); the contract is live from here on regardless.
+  function ensureReadingView() { setStudyView("reading"); }
+  document.addEventListener("pbp:ensure-article-visible", ensureReadingView);
 
   // A2 dual-column workspace (video-mode only). Builds .pbv-workspace inside
   // .doc-body: .pbv-col-player gets #video-panel, .pbv-col-study gets (in
-  // order) an empty #video-skim-slot then #rendered-view -- moved via
-  // appendChild, so every id-based consumer elsewhere in the codebase (TOC,
-  // highlights, scroll restore, Ask, translation...) keeps working
-  // unchanged; only its ancestor chain changes. view-toggle/.pbv-list/
-  // description slots are Task 4/5 territory and are deliberately NOT built
-  // here. Runs only when body.video-mode is actually set -- a detect hit
-  // without the class (defensive; Tasks 1/2 set it early on every branch
-  // that reaches this mount, so this should not happen in practice) falls
-  // back to the pre-workspace sibling insert, unchanged.
+  // order) an empty #video-skim-slot, the reading/timeline toggle,
+  // #rendered-view -- moved via appendChild, so every id-based consumer
+  // elsewhere in the codebase (TOC, highlights, scroll restore, Ask,
+  // translation...) keeps working unchanged; only its ancestor chain changes
+  // -- then an empty .pbv-list (hidden; renderTranscript fills it once the
+  // transcript loads). #video-panel itself now holds only .pbv-media +
+  // .pbv-bar (runLoad no longer builds its own .pbv-list). Runs only when
+  // body.video-mode is actually set -- a detect hit without the class
+  // (defensive; Tasks 1/2 set it early on every branch that reaches this
+  // mount, so this should not happen in practice) falls back to the
+  // pre-workspace sibling insert, unchanged, and mounts no toggle at all --
+  // that non-video panel keeps its list in-panel, as today.
   function mountVideoWorkspace(view, panel) {
     const docBody = view.parentNode;
     if (!document.body.classList.contains("video-mode")) {
@@ -1373,11 +1465,22 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     const existingSkim = document.getElementById("skim-section");
     studyCol.appendChild(skimSlot);
     if (existingSkim) skimSlot.appendChild(existingSkim);
+
+    studyCol.appendChild(buildViewToggle());
+
     playerCol.appendChild(panel);
     docBody.insertBefore(workspace, view);
     studyCol.appendChild(view); // moves the existing node; id lookups unaffected
+    _studyReadingEl = view;
+
+    const list = el("div", "pbv-list");
+    list.hidden = true; // reading is the default view
+    studyCol.appendChild(list);
+    _studyListEl = list;
+
     workspace.appendChild(playerCol);
     workspace.appendChild(studyCol);
+    setStudyView("reading");
   }
 
   window.pbpVideoInit = function pbpVideoInit(ctx) {
@@ -1543,8 +1646,14 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         bar.appendChild(openExt);
       }
       bar.appendChild(status);
-      const body = el("div", "pbv-list");
-      panel.replaceChildren(media, bar, body);
+      // Video-mode workspaces already have an empty .pbv-list waiting in the
+      // study column (mountVideoWorkspace built it); #video-panel then holds
+      // only .pbv-media + .pbv-bar. The non-video defensive mount never set
+      // _studyListEl, so it keeps building + keeping the list in-panel, as
+      // before.
+      const body = _studyListEl || el("div", "pbv-list");
+      panel.replaceChildren(media, bar);
+      if (!_studyListEl) panel.appendChild(body);
       // contains BEFORE request: permissions.request demands a user gesture
       // even for already-granted origins, so the automatic load below (no
       // gesture) would die on "permission declined" despite a standing grant.
