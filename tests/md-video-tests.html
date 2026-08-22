@@ -123,6 +123,22 @@ section("punctuation enhancement");
   assert(pbpVideoPunctConserved("", "") === false, "conserved: empty input fails closed");
 })();
 
+section("pbpVideoApplyPunctText");
+(() => {
+  const segs = [
+    { from: 0, to: 2, content: "我们几千年前就蒸馒头蒸饭" },
+    { from: 3, to: 5, content: "为什么蒸汽机是外国人发明的呢" },
+  ];
+  const ai = "我们几千年前就蒸馒头、蒸饭，为什么蒸汽机是外国人发明的呢？";
+  const applied = pbpVideoApplyPunctText(segs, ai);
+  assert(!!applied && applied.length === 2, "apply: aligned onto both segments");
+  assertEq(applied[0].content, "我们几千年前就蒸馒头、蒸饭，", "apply: internal and trailing marks absorbed");
+  assertEq(applied[1].content, "为什么蒸汽机是外国人发明的呢？", "apply: question mark lands on the right row");
+  assertEq(applied[0].from, 0, "apply: timing preserved");
+  assert(pbpVideoApplyPunctText(segs, "我们几千年前就蒸包子。为什么蒸汽机是外国人发明的呢？") === null, "apply: rewritten text fails closed");
+  assert(pbpVideoApplyPunctText(segs, "我们几千年前就蒸馒头") === null, "apply: short text fails closed");
+})();
+
 section("pbpYtTabEligible");
 assert(pbpYtTabEligible("https://www.youtube.com/watch?v=dQw4w9WgXcQ") === true, "watch page tab is eligible");
 assert(pbpYtTabEligible("https://www.youtube.com/") === true, "any www.youtube.com page is eligible (same-origin fetch host)");

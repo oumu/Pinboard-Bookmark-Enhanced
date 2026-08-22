@@ -246,6 +246,40 @@ function pbpVideoPunctConserved(original, punctuated) {
   return a.length > 0 && a === strip(punctuated);
 }
 
+// Map AI-punctuated text back onto the timed segments, so the panel rows
+// (and their seek timestamps) get the punctuation too -- without this the
+// AI pass was invisible until Copy/Use-as-article. Deterministic because
+// the conservation gate guarantees identical non-punctuation character
+// streams: each segment consumes its own count of non-punctuation chars
+// from the AI text, absorbing the marks between and right after them.
+// Any mismatch returns null (fail-closed; caller keeps its segments).
+function pbpVideoApplyPunctText(segments, punctText) {
+  const isMark = (ch) => /[\s，。！？；：、“”‘’（）《》【】…—,.!?;:'"()\[\]{}·-]/.test(ch);
+  const src = String(punctText || "");
+  let i = 0;
+  const out = [];
+  for (const seg of segments || []) {
+    const plainLen = String((seg && seg.content) || "").split("").filter((c) => !isMark(c)).length;
+    if (!plainLen) { out.push(seg); continue; }
+    let taken = 0;
+    let piece = "";
+    while (i < src.length && taken < plainLen) {
+      const ch = src[i++];
+      piece += ch;
+      if (!isMark(ch)) taken++;
+    }
+    if (taken < plainLen) return null; // AI text ran short -- refuse
+    // absorb trailing marks (not whitespace) belonging to this sentence
+    while (i < src.length && isMark(src[i]) && !/\s/.test(src[i])) piece += src[i++];
+    const content = piece.replace(/\s+/g, " ").trim();
+    if (!content) return null;
+    out.push({ ...seg, content });
+  }
+  // leftover non-punctuation chars mean the streams diverged -- refuse
+  while (i < src.length) { if (!isMark(src[i])) return null; i++; }
+  return out;
+}
+
 function pbpVideoFmtTime(sec) {
   sec = Math.max(0, Math.floor(+sec || 0));
   const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
@@ -810,7 +844,9 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       return null;
     }
     const r = inj && inj[0] && inj[0].result;
-    if (r && Array.isArray(r.trace) && r.trace.length) console.warn("[pbp-video] rescue trace:", r.trace.join(" | "));
+    // info, not warn: these are intermediate tiers -- the run often still
+    // succeeds a tier later, and a warn here reads as a fault to the user.
+    if (r && Array.isArray(r.trace) && r.trace.length) console.info("[pbp-video] rescue trace:", r.trace.join(" | "));
     if (!r || !r.kind) return null;
     try {
       if (r.kind === "panel") return pbpYtParseTranscriptPanel(JSON.parse(r.body));
@@ -949,9 +985,13 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
             }
             if (captured) { out.kind = "net"; out.body = captured; return out; }
             if (segs.length) {
-              // virtualized list: scroll and accumulate, keyed for dedupe
+              // virtualized list: scroll and accumulate. Keyed by timestamp
+              // with LAST read winning: rows caught mid-recycle during the
+              // scroll yield garbled mixed text, and the stable re-read a
+              // beat later must replace them (a first-read-wins content key
+              // kept both the garbled and the clean row).
               const seen = new Map();
-              const keep = (list) => list.forEach((s) => { const k = s.from + "|" + s.content; if (!seen.has(k)) seen.set(k, s); });
+              const keep = (list) => list.forEach((s) => seen.set(s.from, s));
               keep(segs);
               const row0 = q(ROW_SEL);
               let scroller = row0 && row0.parentElement;
@@ -960,7 +1000,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
                 let stable = 0, lastCount = seen.size;
                 for (let i = 0; i < 80 && stable < 3; i++) {
                   scroller.scrollTop += Math.max(120, scroller.clientHeight * 0.9);
-                  await sleep(180);
+                  await sleep(280); // let recycled rows settle before reading
                   keep(readRows());
                   if (seen.size === lastCount) stable++; else { stable = 0; lastCount = seen.size; }
                 }
@@ -1318,6 +1358,14 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           }
           _aiPunctParas = outBatches.join("\n\n").split(/\n{2,}/)
             .map((x) => x.replace(/\s+/g, " ").trim()).filter(Boolean);
+          // Make the pass visible where the user is looking: map the marks
+          // back onto the timed rows and re-render the panel (fail-closed --
+          // on any stream mismatch the rows simply keep their current text).
+          const applied = pbpVideoApplyPunctText(_segments, outBatches.join("\n"));
+          if (applied) {
+            _segments = applied;
+            renderTranscript(body, _segments, true);
+          }
           aiLabel.textContent = t("mdVideoAiPunctDone");
         } catch (e) {
           console.warn("[pbp-video] ai punctuation:", (e && e.message) || e);

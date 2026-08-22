@@ -768,9 +768,9 @@ function pbpApplyColorScheme(mode) {
       else console.warn("[pbp-video] mount unavailable: pbpVideoInit missing after deferred scripts");
     return;
   }
-  // Real article present: transcript adoption would clobber it -- the video
-  // panel hides its "Use as article" button when this hook is null.
-  window.pbpAdoptTranscript = null;
+  // The hook stays defined on the normal article path too (user decision):
+  // a video page's extracted "article" is usually just the description, and
+  // replacing it with the transcript is an explicit click on the panel.
 
   // Reload/Memory-Saver recovery: replace the (now redundant) full payload with a
   // lightweight restore record — url/tabId/engine/tags, NO markdown/contentHtml (avoids
