@@ -646,6 +646,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   let _aiPunctParas = null; // AI-punctuated paragraphs; Copy/Use-as-article prefer them when present
   let _ctxTabId = null;   // source tab from pbpVideoInit ctx (may be gone by click time)
   let _ytFetchFn = null;  // tab-injected fetchFn when the tab route won; null = extension-page fetch
+  window.pbpVideoSession = null; // latest prepareVideoSession() result, for md-preview.js
 
   // Same-origin caption fetch, executed INSIDE an open YouTube tab. From the
   // page's own context the watch HTML answers with an OK playabilityStatus
@@ -655,10 +656,10 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   // attest (probed live 2026-08: cookieless watch fetch = LOGIN_REQUIRED,
   // zero tracks). Injection rides the click-time https://www.youtube.com/*
   // grant plus the existing "scripting" permission -- no new permissions.
-  async function ytFindFetchTab() {
-    if (typeof _ctxTabId === "number") {
+  async function ytFindFetchTab(tabId) {
+    if (typeof tabId === "number") {
       try {
-        const tab = await chrome.tabs.get(_ctxTabId);
+        const tab = await chrome.tabs.get(tabId);
         if (tab && pbpYtTabEligible(tab.url)) return tab.id;
       } catch (_) { /* source tab is gone; any YouTube tab works the same */ }
     }
@@ -1108,26 +1109,47 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     listEl.appendChild(frag);
   }
 
-  async function loadFlow(detected, statusEl, bodyEl, trackSel, copyBtn, adoptBtn, aiBtn) {
-    statusEl.textContent = t("mdVideoLoading");
+  // permissions.request demands a user gesture even for already-granted
+  // origins, so the adopted-page autoload (no gesture) died on "permission
+  // declined" despite the standing grant if this ran unconditionally.
+  // Callers therefore check chrome.permissions.contains() first and only
+  // reach this helper on a real click when that check came back false.
+  async function requestVideoOrigin(detected) {
+    const originPat = detected.provider === "bilibili" ? BILI_ORIGIN : YT_ORIGIN;
+    try { return await chrome.permissions.request({ origins: [originPat] }) === true; } catch (_) { return false; }
+  }
+
+  // Data-layer capture chain: URL detect -> permission check (contains
+  // ONLY; automatic/no-gesture path) -> provider fetch -> punctuation tier.
+  // Extracted out of loadFlow so a future caller (md-preview.js) can await
+  // a video's transcript session directly. ctx = { pageUrl, tabId }.
+  async function prepareVideoSession(ctx) {
+    const detected = pbpVideoDetect(ctx && ctx.pageUrl);
+    if (!detected) {
+      const session = { detected: null, granted: false };
+      window.pbpVideoSession = session;
+      return session;
+    }
     const isBili = detected.provider === "bilibili";
-    let granted = false;
     const originPat = isBili ? BILI_ORIGIN : YT_ORIGIN;
-    // contains BEFORE request: permissions.request demands a user gesture
-    // even for already-granted origins, so the adopted-page autoload (no
-    // gesture) died on "permission declined" despite the standing grant.
-    // Automatic paths only ever check; the request stays on real clicks.
+    // contains ONLY here: this path runs on automatic (no-gesture) callers
+    // too, and permissions.request would refuse those even when already
+    // granted. The user-gesture request lives in requestVideoOrigin, called
+    // from the poster-card click handler before this function runs.
+    let granted = false;
     try { granted = await chrome.permissions.contains({ origins: [originPat] }) === true; } catch (_) {}
     if (!granted) {
-      try { granted = await chrome.permissions.request({ origins: [originPat] }) === true; } catch (_) {}
+      const session = { detected, granted: false };
+      window.pbpVideoSession = session;
+      return session;
     }
-    if (!granted) { statusEl.textContent = t("mdVideoPermMissing"); return; }
     let res;
     let useLogin = false;
     let ytHadTab = false;
+    let ytFetchFn = null;
+    const tabId = ctx && typeof ctx.tabId === "number" ? ctx.tabId : null;
     if (isBili) {
       res = await pbpBiliFetchTranscript(detected.bvid, detected.part, {});
-      if (res.meta && res.meta.title) _meta.title = res.meta.title;
     } else {
       const uiLang = (chrome.i18n && chrome.i18n.getUILanguage && chrome.i18n.getUILanguage()) || "en";
       // Tab route first: the page's own session succeeds where the extension
@@ -1135,14 +1157,13 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       // extension-page fetch stays as the no-tab fallback, still governed by
       // the login opt-in (the tab route needs no opt-in -- it reads through
       // the user's own open page, adding nothing they haven't already sent).
-      _ytFetchFn = null;
-      const fetchTabId = await ytFindFetchTab();
+      const fetchTabId = await ytFindFetchTab(tabId);
       ytHadTab = fetchTabId != null;
       if (ytHadTab) {
         const tabFetch = ytTabFetchFn(fetchTabId, detected.videoId);
         res = await pbpYtFetchTranscript(detected.videoId, { uiLang, fetchFn: tabFetch });
         console.info("[pbp-video] tab route (tab " + fetchTabId + "):", res.error || ("ok, " + (res.segments || []).length + " segments"));
-        if (!res.error || res.tracks) _ytFetchFn = tabFetch;
+        if (!res.error || res.tracks) ytFetchFn = tabFetch;
       } else {
         console.info("[pbp-video] no eligible www.youtube.com tab; using extension-page fetch only");
       }
@@ -1155,7 +1176,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         console.info("[pbp-video] extension-page fallback (login " + useLogin + "):", fb.error || ("ok, " + (fb.segments || []).length + " segments"));
         // Keep whichever answer got further: a fallback that also failed must
         // not overwrite a tab result that at least carried the track list.
-        if (!res || !fb.error || fb.tracks) { res = fb; _ytFetchFn = null; }
+        if (!res || !fb.error || fb.tracks) { res = fb; ytFetchFn = null; }
       }
       // Both timedtext routes failed (typically exp=xpe: the text is
       // PO-Token-gated even when the track list arrives). Ask the tab for the
@@ -1181,6 +1202,34 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         }
       }
     }
+    // punctuation enhancement: heuristic tier applies silently here so every
+    // consumer of the session sees already-punctuated segments; wasUnpunct
+    // tells the caller whether the AI upgrade button should be offered.
+    let segments = res.segments || [];
+    let wasUnpunct = false;
+    if (segments.length && typeof pbpVideoNeedsPunctuation === "function" && pbpVideoNeedsPunctuation(segments)) {
+      wasUnpunct = true;
+      segments = pbpVideoHeuristicPunctuate(segments);
+    }
+    const session = {
+      detected, granted: true,
+      tracks: res.tracks, track: res.track, segments, error: res.error,
+      wasUnpunct, meta: res.meta, useLogin, ytHadTab, ytFetchFn,
+    };
+    window.pbpVideoSession = session;
+    return session;
+  }
+
+  async function loadFlow(detected, statusEl, bodyEl, trackSel, copyBtn, adoptBtn, aiBtn) {
+    statusEl.textContent = t("mdVideoLoading");
+    const isBili = detected.provider === "bilibili";
+    const session = await prepareVideoSession({ pageUrl: (_meta && _meta.url) || "", tabId: _ctxTabId });
+    if (!session.granted) { statusEl.textContent = t("mdVideoPermMissing"); return; }
+    if (session.meta && session.meta.title) _meta.title = session.meta.title;
+    _ytFetchFn = session.ytFetchFn || null;
+    const useLogin = session.useLogin;
+    const ytHadTab = session.ytHadTab;
+    const res = { tracks: session.tracks, track: session.track, segments: session.segments, error: session.error };
     if (res.error === "player" || res.error === "view") { statusEl.textContent = t("mdVideoFailed"); return; }
     if (res.error === "login") { statusEl.textContent = t("mdVideoBiliLogin"); return; }
     // YouTube answered, but about us rather than about the video: the request
@@ -1211,14 +1260,10 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       trackSel.appendChild(opt);
     });
     trackSel.hidden = !(res.tracks || []).length;
-    // punctuation enhancement: heuristic tier applies silently; the AI
+    // punctuation enhancement already applied by prepareVideoSession; the AI
     // button only appears for tracks the detector judged unpunctuated.
     _aiPunctParas = null;
-    let wasUnpunct = false;
-    if ((res.segments || []).length && typeof pbpVideoNeedsPunctuation === "function" && pbpVideoNeedsPunctuation(res.segments)) {
-      wasUnpunct = true;
-      res.segments = pbpVideoHeuristicPunctuate(res.segments);
-    }
+    const wasUnpunct = session.wasUnpunct;
     if (aiBtn) {
       let aiOk = false;
       try {
@@ -1247,6 +1292,8 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       renderTranscript(bodyEl, segs, true);
     });
   }
+
+  window.pbpPrepareVideoSession = prepareVideoSession;
 
   window.pbpVideoInit = function pbpVideoInit(ctx) {
     const detected = pbpVideoDetect(ctx && ctx.pageUrl);
@@ -1425,6 +1472,16 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       bar.appendChild(status);
       const body = el("div", "pbv-list");
       panel.replaceChildren(media, bar, body);
+      // contains BEFORE request: permissions.request demands a user gesture
+      // even for already-granted origins, so the adopted-page autoload (no
+      // gesture) died on "permission declined" despite the standing grant.
+      // prepareVideoSession's automatic path only ever checks; the request
+      // stays here, on the real click -- the only user gesture this flow has.
+      const originPat = detected.provider === "bilibili" ? BILI_ORIGIN : YT_ORIGIN;
+      let granted = false;
+      try { granted = await chrome.permissions.contains({ origins: [originPat] }) === true; } catch (_) {}
+      if (!granted) granted = await requestVideoOrigin(detected);
+      if (!granted) { status.textContent = t("mdVideoPermMissing"); return; }
       await loadFlow(detected, status, body, trackSel, copyBtn, adoptBtn, aiBtn);
     });
   };
