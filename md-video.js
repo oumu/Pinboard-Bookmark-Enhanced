@@ -1234,7 +1234,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     if (_segments.length) renderTranscript(bodyEl, _segments, true);
     trackSel.addEventListener("change", async () => {
       statusEl.textContent = t("mdVideoLoading");
-      const segs = isBili ? await pbpBiliFetchSubtitleBody(trackSel.value) : await pbpYtFetchCaptionBody(trackSel.value, _ytFetchFn || undefined, useLogin);
+      let segs = isBili ? await pbpBiliFetchSubtitleBody(trackSel.value) : await pbpYtFetchCaptionBody(trackSel.value, _ytFetchFn || undefined, useLogin);
       statusEl.textContent = segs.length ? "" : t("mdVideoNoTracks");
       if (segs.length && typeof pbpVideoNeedsPunctuation === "function" && pbpVideoNeedsPunctuation(segs)) {
         segs = pbpVideoHeuristicPunctuate(segs);
