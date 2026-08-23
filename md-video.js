@@ -447,13 +447,16 @@ function pbpVideoStateBuild(opts) {
 // Fail-closed hydration gate: everything F5 restores from storage is
 // untrusted until it passes here. Checks, cheapest/identity-shaped first:
 // version, video identity (bilibili's `part` included -- see
-// pbpVideoSessionMatches above), segment array shape/bounds, and finally
-// that segments + paragraphs + meta reconstruct byte-identical markdown to
-// the canonical article the page actually committed. That last check is the
-// one that matters most: any drift between persisted timeline state and the
-// committed article (a bug in this file, a manual storage edit, a schema
-// migration gone wrong) must fall back to a live refetch rather than render
-// a timeline that silently disagrees with the article above it.
+// pbpVideoSessionMatches above), tracks/selectedTrackKey shape (display-only
+// data that never flows through the markdown-equality check below, so it
+// needs its own guard here -- see the inline comment at that check), segment
+// array shape/bounds, and finally that segments + paragraphs + meta
+// reconstruct byte-identical markdown to the canonical article the page
+// actually committed. That last check is the one that matters most: any
+// drift between persisted timeline state and the committed article (a bug
+// in this file, a manual storage edit, a schema migration gone wrong) must
+// fall back to a live refetch rather than render a timeline that silently
+// disagrees with the article above it.
 function pbpVideoStateValidate(state, detected, canonicalMarkdown) {
   if (!state || typeof state !== "object") return false;
   if (state.v !== 1) return false;
@@ -462,6 +465,27 @@ function pbpVideoStateValidate(state, detected, canonicalMarkdown) {
   if (detected.provider === "bilibili") {
     if (state.bvid !== detected.bvid || state.part !== detected.part) return false;
   } else if (state.videoId !== detected.videoId) return false;
+  // tracks/selectedTrackKey are describe-only picker data: nothing forces
+  // them through the markdown-equality check below (unlike segments/
+  // paragraphs), so a corrupted shape here would otherwise sail through
+  // validation and only blow up later when a hydration consumer does
+  // state.tracks.map(...) or compares against selectedTrackKey. Guard the
+  // exact shape pbpVideoStateBuild always produces. selectedTrackKey "" is
+  // accepted even when tracks is non-empty: the DOM-scrape rescue tier
+  // (loadFlow's last-resort transcript capture) legitimately reports a
+  // non-empty track list with no known selection (track: null -- "track:null
+  // is honest here" per loadFlow's own comment), and
+  // pbpVideoTrackKey(null, ...) is exactly "" -- rejecting that combination
+  // would fail-close a real, valid session state.
+  if (!Array.isArray(state.tracks)) return false;
+  for (const tr of state.tracks) {
+    if (!tr || typeof tr !== "object") return false;
+    if (typeof tr.key !== "string") return false;
+    if (typeof tr.lang !== "string") return false;
+    if (typeof tr.label !== "string") return false;
+    if (typeof tr.asr !== "boolean") return false;
+  }
+  if (typeof state.selectedTrackKey !== "string") return false;
   const segs = state.segments;
   if (!Array.isArray(segs) || segs.length > 20000) return false;
   let totalChars = 0;

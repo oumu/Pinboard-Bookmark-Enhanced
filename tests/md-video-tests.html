@@ -351,6 +351,8 @@ assertEq(pbpVideoTrackKey({ lan_doc: "中文" }, "bilibili"), "bili:中文", "bi
 assertEq(pbpVideoTrackKey(null, "youtube"), "", "null track is safe -> \"\"");
 assertEq(pbpVideoTrackKey({ lang: "en" }, undefined), "", "undefined provider is safe -> \"\"");
 assertEq(pbpVideoTrackKey({ lang: "en" }, "vimeo"), "", "unrecognized provider -> \"\"");
+assertEq(pbpVideoTrackKey({ label: "Unknown", asr: false }, "youtube"), "", "truthy youtube track with no lang property -> \"\"");
+assertEq(pbpVideoTrackKey({ lang: "", label: "Unknown" }, "youtube"), "", "truthy youtube track with empty-string lang -> \"\"");
 check("key is stable across a re-fetch that only changed the display label",
   pbpVideoTrackKey({ lang: "en", label: "English" }, "youtube")
     === pbpVideoTrackKey({ lang: "en", label: "English (United States)" }, "youtube"));
@@ -460,6 +462,61 @@ section("pbpVideoStateValidate");
   const paraState = pbpVideoStateBuild({ detected, track, tracks: [track], segments: paraSegments, aiParas: paras, wasUnpunct: true, aiPunct: true, meta });
   const paraCanonical = pbpVideoTranscriptMarkdown(paraSegments, meta, paras);
   assertEq(pbpVideoStateValidate(paraState, detected, paraCanonical), true, "AI-punctuated paragraphs preserved through round trip -> true");
+
+  // F1 fix-round: tracks/selectedTrackKey are display-only data that never
+  // flows through the markdown-equality check, so they need their own shape
+  // guard -- exercise it directly (corrupted/malformed shapes reject; the
+  // real "" + non-empty-tracks combination from the DOM-rescue tier accepts).
+  const tracksNotArray = { ...state, tracks: "not-an-array" };
+  assertEq(pbpVideoStateValidate(tracksNotArray, detected, canonical), false, "state.tracks not an array -> false");
+
+  const tracksWithJunk = { ...state, tracks: [null, 42, { weird: 1 }] };
+  assertEq(pbpVideoStateValidate(tracksWithJunk, detected, canonical), false, "state.tracks with null/primitive/malformed entries -> false");
+
+  const trackEntryMissingKey = { ...state, tracks: [{ lang: "en", label: "English", asr: false }] };
+  assertEq(pbpVideoStateValidate(trackEntryMissingKey, detected, canonical), false, "track descriptor missing string key -> false");
+
+  const trackEntryBadAsr = { ...state, tracks: [{ key: "yt:en", lang: "en", label: "English", asr: "no" }] };
+  assertEq(pbpVideoStateValidate(trackEntryBadAsr, detected, canonical), false, "track descriptor with non-boolean asr -> false");
+
+  const selectedKeyNotString = { ...state, selectedTrackKey: 12345 };
+  assertEq(pbpVideoStateValidate(selectedKeyNotString, detected, canonical), false, "selectedTrackKey not a string -> false");
+
+  const selectedKeyObject = { ...state, selectedTrackKey: {} };
+  assertEq(pbpVideoStateValidate(selectedKeyObject, detected, canonical), false, "selectedTrackKey as an object -> false");
+
+  // Real, valid combination: DOM-scrape rescue reports a non-empty track
+  // list with no known selection (build with track: null), so
+  // selectedTrackKey is legitimately "" even though tracks is non-empty --
+  // must NOT be rejected.
+  const rescueState = pbpVideoStateBuild({ detected, track: null, tracks: [track], segments, aiParas: null, meta });
+  const rescueCanonical = pbpVideoTranscriptMarkdown(segments, rescueState.meta, null);
+  assertEq(rescueState.selectedTrackKey, "", "sanity: track:null builds selectedTrackKey \"\"");
+  assertEq(pbpVideoStateValidate(rescueState, detected, rescueCanonical), true,
+    "selectedTrackKey \"\" with non-empty tracks accepts (DOM-rescue tier has no known selection)");
+
+  const emptyTracksState = pbpVideoStateBuild({ detected, track: null, tracks: [], segments, aiParas: null, meta });
+  const emptyTracksCanonical = pbpVideoTranscriptMarkdown(segments, emptyTracksState.meta, null);
+  assertEq(pbpVideoStateValidate(emptyTracksState, detected, emptyTracksCanonical), true,
+    "selectedTrackKey \"\" with empty tracks also accepts");
+
+  // F2 fix-round: positive boundary tests at the two inclusive limits.
+  const seg20000 = new Array(20000).fill(0).map((_, i) => ({ from: i, to: i + 0.5, content: "s" }));
+  const paras20000 = ["twenty thousand segments, boundary case"];
+  const state20000 = pbpVideoStateBuild({ detected, track, tracks: [track], segments: seg20000, aiParas: paras20000, meta });
+  const canonical20000 = pbpVideoTranscriptMarkdown(seg20000, state20000.meta, paras20000);
+  assertEq(state20000.segments.length, 20000, "sanity: exactly 20000 segments built");
+  assertEq(pbpVideoStateValidate(state20000, detected, canonical20000), true, "exactly 20000 segments -> true (inclusive upper boundary)");
+
+  const oneMiB = 1024 * 1024;
+  const segExactly2MiB = [{ from: 0, to: 1, content: "a".repeat(oneMiB) }, { from: 1, to: 2, content: "b".repeat(oneMiB) }];
+  const parasExactly2MiB = ["boundary paragraph, content overridden so the merge never runs over 2MiB of text"];
+  const stateExactly2MiB = pbpVideoStateBuild({ detected, track, tracks: [track], segments: segExactly2MiB, aiParas: parasExactly2MiB, meta });
+  const canonicalExactly2MiB = pbpVideoTranscriptMarkdown(segExactly2MiB, stateExactly2MiB.meta, parasExactly2MiB);
+  const totalChars2MiB = stateExactly2MiB.segments.reduce((n, s) => n + s.content.length, 0);
+  assertEq(totalChars2MiB, 2 * 1024 * 1024, "sanity: exactly 2*1024*1024 total segment chars built");
+  assertEq(pbpVideoStateValidate(stateExactly2MiB, detected, canonicalExactly2MiB), true,
+    "exactly 2*1024*1024 total segment chars -> true (inclusive upper boundary)");
 })();
 
 document.getElementById("summary").textContent = `${pass} passed, ${fail} failed`;
