@@ -339,15 +339,41 @@ function pbpVideoTranscriptMeta(session, fallbackTitle, pageUrl) {
   };
 }
 
+// Stable identity for a subtitle track, independent of its fetch endpoint
+// (baseUrl/subtitle_url can expire or get re-signed on refetch) and of its
+// display label (YouTube/bilibili can localize track names between fetches).
+// YouTube: language + whether it's the auto-generated (asr) variant, since a
+// video can carry both a manual and an asr track for the same language.
+// bilibili: lan is the API's own stable id; a bare id covers list entries
+// that arrive without one; lan_doc is the last resort. Null/undefined track
+// or an unrecognized provider return "" rather than throwing -- callers
+// (state build/validate, track-switch matching) treat "" as "no key".
+function pbpVideoTrackKey(track, provider) {
+  if (!track || !provider) return "";
+  if (provider === "youtube") {
+    const lang = track.lang || "";
+    return lang ? "yt:" + lang + (track.asr ? ":asr" : "") : "";
+  }
+  if (provider === "bilibili") {
+    const id = track.lan || track.id || track.lan_doc || "";
+    return id ? "bili:" + id : "";
+  }
+  return "";
+}
+
 // Is a captured session about THIS video? md-preview.js runs the session
 // before it renders, so by the time the panel mounts the transcript is usually
 // already in hand -- reusing it is the difference between one capture
-// round-trip per page and two. Identity is provider + video id: a stale
-// session from another video must re-fetch.
+// round-trip per page and two. Identity is provider + video id; bilibili
+// additionally compares `part`, since one bvid can host many parts (episodes)
+// with entirely different subtitle tracks -- matching on bvid alone would
+// silently reuse part 1's transcript on part 2's page.
 function pbpVideoSessionMatches(session, detected) {
   const d = session && session.detected;
   if (!d || !detected || d.provider !== detected.provider) return false;
-  return detected.provider === "bilibili" ? d.bvid === detected.bvid : d.videoId === detected.videoId;
+  return detected.provider === "bilibili"
+    ? (d.bvid === detected.bvid && d.part === detected.part)
+    : d.videoId === detected.videoId;
 }
 
 function pbpVideoTranscriptMarkdown(segments, meta, paragraphsOverride) {
@@ -359,6 +385,97 @@ function pbpVideoTranscriptMarkdown(segments, meta, paragraphsOverride) {
     ? paragraphsOverride : pbpVideoMergeParagraphs(segments);
   lines.push(paras.join("\n\n"));
   return lines.join("\n");
+}
+
+// Safe track descriptor for videoState.tracks -- key + display fields only,
+// deliberately dropping baseUrl/subtitle_url. Those endpoints can be signed
+// and expire; persisting them would let an F5 restore hand the picker a URL
+// that 404s. Runtime re-maps a stable key back to a live endpoint only when
+// the user actually switches tracks.
+function _pbpVideoTrackDescribe(track, provider) {
+  if (provider === "bilibili") {
+    return {
+      key: pbpVideoTrackKey(track, provider),
+      lang: (track && track.lan) || "",
+      label: (track && track.lan_doc) || "",
+      asr: !!(track && _pbpBiliIsAi(track))
+    };
+  }
+  return {
+    key: pbpVideoTrackKey(track, provider),
+    lang: (track && track.lang) || "",
+    label: (track && track.label) || "",
+    asr: !!(track && track.asr)
+  };
+}
+
+// Versioned F5-persistence payload for a video transcript session. Bundles
+// exactly what loadFlow() needs to redraw the panel and the article without
+// a refetch: current segments, the AI-punctuation paragraphs (loadFlow
+// currently zeroes _aiPunctParas unconditionally on every mount -- without
+// carrying `paragraphs` through here, a reload would silently revert an
+// AI-punctuated article to the heuristic tier), and enough video identity +
+// track metadata for the picker to redraw its selection. Returns null when
+// there is no video identity to key the state by -- nothing to persist.
+function pbpVideoStateBuild(opts) {
+  opts = opts || {};
+  const detected = opts.detected;
+  if (!detected) return null;
+  const provider = detected.provider;
+  const tracks = Array.isArray(opts.tracks) ? opts.tracks : [];
+  const segments = Array.isArray(opts.segments) ? opts.segments : [];
+  const aiParas = Array.isArray(opts.aiParas) && opts.aiParas.length ? opts.aiParas.slice() : null;
+  const meta = opts.meta || {};
+  const state = {
+    v: 1,
+    provider,
+    selectedTrackKey: pbpVideoTrackKey(opts.track, provider),
+    tracks: tracks.map((tr) => _pbpVideoTrackDescribe(tr, provider)),
+    segments: segments.map((s) => ({
+      from: +(s && s.from) || 0, to: +(s && s.to) || 0, content: String((s && s.content) || "")
+    })),
+    paragraphs: aiParas,
+    wasUnpunct: !!opts.wasUnpunct,
+    aiPunct: !!opts.aiPunct,
+    meta: { title: meta.title || "", url: meta.url || "", trackLabel: meta.trackLabel || "" }
+  };
+  if (provider === "bilibili") { state.bvid = detected.bvid; state.part = detected.part; }
+  else { state.videoId = detected.videoId; }
+  return state;
+}
+
+// Fail-closed hydration gate: everything F5 restores from storage is
+// untrusted until it passes here. Checks, cheapest/identity-shaped first:
+// version, video identity (bilibili's `part` included -- see
+// pbpVideoSessionMatches above), segment array shape/bounds, and finally
+// that segments + paragraphs + meta reconstruct byte-identical markdown to
+// the canonical article the page actually committed. That last check is the
+// one that matters most: any drift between persisted timeline state and the
+// committed article (a bug in this file, a manual storage edit, a schema
+// migration gone wrong) must fall back to a live refetch rather than render
+// a timeline that silently disagrees with the article above it.
+function pbpVideoStateValidate(state, detected, canonicalMarkdown) {
+  if (!state || typeof state !== "object") return false;
+  if (state.v !== 1) return false;
+  if (!detected) return false;
+  if (state.provider !== detected.provider) return false;
+  if (detected.provider === "bilibili") {
+    if (state.bvid !== detected.bvid || state.part !== detected.part) return false;
+  } else if (state.videoId !== detected.videoId) return false;
+  const segs = state.segments;
+  if (!Array.isArray(segs) || segs.length > 20000) return false;
+  let totalChars = 0;
+  for (const s of segs) {
+    if (!s || typeof s !== "object") return false;
+    if (typeof s.from !== "number" || !Number.isFinite(s.from)) return false;
+    if (typeof s.to !== "number" || !Number.isFinite(s.to)) return false;
+    if (typeof s.content !== "string") return false;
+    totalChars += s.content.length;
+    if (totalChars > 2 * 1024 * 1024) return false;
+  }
+  if (state.paragraphs != null && !Array.isArray(state.paragraphs)) return false;
+  if (typeof canonicalMarkdown !== "string") return false;
+  return pbpVideoTranscriptMarkdown(segs, state.meta, state.paragraphs) === canonicalMarkdown;
 }
 
 // Playability gate from a watch-page player response. "OK" means YouTube

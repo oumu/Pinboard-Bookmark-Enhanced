@@ -277,6 +277,10 @@ assertEq(pbpVideoSessionMatches({ detected: pbpVideoDetect("https://m.bilibili.c
   "bilibili bvid matches");
 assertEq(pbpVideoSessionMatches(null, ytDet), false, "null session rejects");
 assertEq(pbpVideoSessionMatches({ detected: ytDet }, null), false, "null detected rejects");
+assertEq(pbpVideoSessionMatches({ detected: { provider: "bilibili", bvid: "BV1xx411c7mD", part: 1 } }, biliDet), true,
+  "bilibili same bvid + same part matches");
+assertEq(pbpVideoSessionMatches({ detected: { provider: "bilibili", bvid: "BV1xx411c7mD", part: 2 } }, biliDet), false,
+  "bilibili same bvid, different part rejects (multi-part video)");
 
 section("pbpMd5");
 assertEq(pbpMd5(""), "d41d8cd98f00b204e9800998ecf8427e", "md5 empty");
@@ -334,6 +338,128 @@ await (async () => {
     return { ok: true, json: async () => ({}) };
   } });
   check("empty subtitle list -> error:'login'", loggedOut.error === "login");
+})();
+
+section("pbpVideoTrackKey");
+assertEq(pbpVideoTrackKey({ lang: "en", label: "English", asr: false }, "youtube"), "yt:en", "youtube manual key");
+assertEq(pbpVideoTrackKey({ lang: "en", label: "English (auto)", asr: true }, "youtube"), "yt:en:asr", "youtube asr key");
+check("asr distinguishes manual from auto-generated for the same language",
+  pbpVideoTrackKey({ lang: "en", asr: false }, "youtube") !== pbpVideoTrackKey({ lang: "en", asr: true }, "youtube"));
+assertEq(pbpVideoTrackKey({ lan: "zh-CN", lan_doc: "中文" }, "bilibili"), "bili:zh-CN", "bilibili key from lan");
+assertEq(pbpVideoTrackKey({ id: "7", lan_doc: "中文" }, "bilibili"), "bili:7", "bilibili key falls back to id when lan missing");
+assertEq(pbpVideoTrackKey({ lan_doc: "中文" }, "bilibili"), "bili:中文", "bilibili key falls back to lan_doc as last resort");
+assertEq(pbpVideoTrackKey(null, "youtube"), "", "null track is safe -> \"\"");
+assertEq(pbpVideoTrackKey({ lang: "en" }, undefined), "", "undefined provider is safe -> \"\"");
+assertEq(pbpVideoTrackKey({ lang: "en" }, "vimeo"), "", "unrecognized provider -> \"\"");
+check("key is stable across a re-fetch that only changed the display label",
+  pbpVideoTrackKey({ lang: "en", label: "English" }, "youtube")
+    === pbpVideoTrackKey({ lang: "en", label: "English (United States)" }, "youtube"));
+
+section("pbpVideoStateBuild");
+(() => {
+  const ytDetected = { provider: "youtube", videoId: "dQw4w9WgXcQ" };
+  const ytTrack = { baseUrl: "https://x/en.xml", lang: "en", label: "English", asr: false };
+  const ytTracks = [ytTrack, { baseUrl: "https://x/en-asr.xml", lang: "en", label: "English (auto)", asr: true }];
+  const ytSegments = [{ from: 0, to: 1.5, content: "hello" }, { from: 1.5, to: 3, content: "world" }];
+  const ytMeta = { title: "Rick Astley", url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", trackLabel: "English" };
+  const yt = pbpVideoStateBuild({
+    detected: ytDetected, track: ytTrack, tracks: ytTracks, segments: ytSegments,
+    aiParas: null, wasUnpunct: true, aiPunct: false, meta: ytMeta
+  });
+  assertEq(yt.v, 1, "youtube: v === 1");
+  assertEq(yt.provider, "youtube", "youtube: provider carried");
+  assertEq(yt.videoId, "dQw4w9WgXcQ", "youtube: videoId carried");
+  assertEq(yt.bvid, undefined, "youtube: no bvid key");
+  assertEq(yt.part, undefined, "youtube: no part key");
+  assertEq(yt.selectedTrackKey, pbpVideoTrackKey(ytTrack, "youtube"), "youtube: selectedTrackKey via pbpVideoTrackKey");
+  assertEq(yt.tracks.length, 2, "youtube: all tracks described");
+  check("youtube: track descriptor has key/lang/label/asr and drops the URL",
+    yt.tracks[0].key === "yt:en" && yt.tracks[0].lang === "en" && yt.tracks[0].label === "English"
+      && yt.tracks[0].asr === false && !("baseUrl" in yt.tracks[0]));
+  check("youtube: asr track descriptor flagged",
+    yt.tracks[1].asr === true && yt.tracks[1].key === "yt:en:asr");
+  check("youtube: segments copied as {from,to,content}",
+    yt.segments.length === 2 && yt.segments[0].from === 0 && yt.segments[0].to === 1.5 && yt.segments[1].content === "world");
+  assertEq(yt.paragraphs, null, "youtube: paragraphs null when aiParas not given");
+  assertEq(yt.wasUnpunct, true, "youtube: wasUnpunct carried");
+  assertEq(yt.aiPunct, false, "youtube: aiPunct carried");
+  check("youtube: meta carried verbatim",
+    yt.meta.title === "Rick Astley" && yt.meta.url === ytMeta.url && yt.meta.trackLabel === "English");
+
+  const biliDetected = { provider: "bilibili", bvid: "BV1xx411c7mD", part: 2 };
+  const biliTrackHuman = { subtitle_url: "//x/human.json", lan: "zh-CN", lan_doc: "中文" };
+  const biliTrackAi = { subtitle_url: "//x/ai.json", lan: "ai-zh", lan_doc: "中文(AI)" };
+  const bili = pbpVideoStateBuild({
+    detected: biliDetected, track: biliTrackHuman, tracks: [biliTrackHuman, biliTrackAi],
+    segments: [{ from: 0, to: 2, content: "你好" }], aiParas: ["段落一", "段落二"], wasUnpunct: true, aiPunct: true,
+    meta: { title: "B站视频", url: "https://www.bilibili.com/video/BV1xx411c7mD?p=2", trackLabel: "中文" }
+  });
+  assertEq(bili.provider, "bilibili", "bilibili: provider carried");
+  assertEq(bili.bvid, "BV1xx411c7mD", "bilibili: bvid carried");
+  assertEq(bili.part, 2, "bilibili: part carried");
+  assertEq(bili.videoId, undefined, "bilibili: no videoId key");
+  check("bilibili: human track descriptor asr === false",
+    bili.tracks[0].asr === false && bili.tracks[0].key === "bili:zh-CN" && bili.tracks[0].lang === "zh-CN" && bili.tracks[0].label === "中文");
+  check("bilibili: ai-zh track descriptor asr === true", bili.tracks[1].asr === true && bili.tracks[1].key === "bili:ai-zh");
+  check("bilibili: paragraphs carried when aiParas non-empty", Array.isArray(bili.paragraphs) && bili.paragraphs.join("|") === "段落一|段落二");
+
+  const emptyParas = pbpVideoStateBuild({ detected: ytDetected, track: ytTrack, tracks: [], segments: [], aiParas: [], meta: {} });
+  assertEq(emptyParas.paragraphs, null, "empty aiParas array normalizes to null, not []");
+
+  assertEq(pbpVideoStateBuild({ track: ytTrack, segments: ytSegments }), null, "missing detected -> null (nothing to key state by)");
+})();
+
+section("pbpVideoStateValidate");
+(() => {
+  const detected = { provider: "youtube", videoId: "dQw4w9WgXcQ" };
+  const track = { baseUrl: "https://x/en.xml", lang: "en", label: "English", asr: false };
+  const segments = [{ from: 0, to: 1.5, content: "hello" }, { from: 1.5, to: 3, content: "world." }];
+  const meta = { title: "T", url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", trackLabel: "English" };
+  const state = pbpVideoStateBuild({ detected, track, tracks: [track], segments, aiParas: null, wasUnpunct: true, aiPunct: false, meta });
+  const canonical = pbpVideoTranscriptMarkdown(segments, meta, null);
+  assertEq(pbpVideoStateValidate(state, detected, canonical), true, "valid round trip -> true");
+
+  const wrongVideo = { provider: "youtube", videoId: "otherVideoId12" };
+  assertEq(pbpVideoStateValidate(state, wrongVideo, canonical), false, "videoId mismatch -> false (fail closed)");
+
+  const biliDetected = { provider: "bilibili", bvid: "BV1xx411c7mD", part: 1 };
+  const biliState = pbpVideoStateBuild({ detected: biliDetected, track: { lan: "zh-CN", lan_doc: "中文" }, tracks: [], segments, meta });
+  const biliCanonical = pbpVideoTranscriptMarkdown(segments, biliState.meta, null);
+  assertEq(pbpVideoStateValidate(biliState, biliDetected, biliCanonical), true, "bilibili valid round trip -> true");
+  const otherPart = { provider: "bilibili", bvid: "BV1xx411c7mD", part: 2 };
+  assertEq(pbpVideoStateValidate(biliState, otherPart, biliCanonical), false, "bilibili part mismatch -> false (fail closed)");
+
+  assertEq(pbpVideoStateValidate(state, detected, canonical + " extra"), false, "canonical markdown mismatch -> false (fail closed)");
+
+  const badTypeState = JSON.parse(JSON.stringify(state));
+  badTypeState.segments[0].content = 123;
+  assertEq(pbpVideoStateValidate(badTypeState, detected, canonical), false, "non-string segment content -> false");
+
+  const badFromState = JSON.parse(JSON.stringify(state));
+  badFromState.segments[0].from = "0";
+  assertEq(pbpVideoStateValidate(badFromState, detected, canonical), false, "non-number segment.from -> false");
+
+  const tooManySegs = { ...state, segments: new Array(20001).fill(0).map((_, i) => ({ from: i, to: i + 1, content: "x" })) };
+  assertEq(pbpVideoStateValidate(tooManySegs, detected, canonical), false, "segments.length > 20000 -> false (bound, checked before markdown rebuild)");
+
+  const bigContent = "x".repeat(710000);
+  const overCharLimit = { ...state, segments: [{ from: 0, to: 1, content: bigContent }, { from: 1, to: 2, content: bigContent }, { from: 2, to: 3, content: bigContent }] };
+  assertEq(pbpVideoStateValidate(overCharLimit, detected, canonical), false, "total segment chars > 2MB -> false");
+
+  const badVersion = { ...state, v: 2 };
+  assertEq(pbpVideoStateValidate(badVersion, detected, canonical), false, "v !== 1 -> false");
+
+  assertEq(pbpVideoStateValidate(null, detected, canonical), false, "null state -> false");
+  assertEq(pbpVideoStateValidate(state, detected, undefined), false, "non-string canonicalMarkdown -> false");
+
+  const badParas = { ...state, paragraphs: "not an array" };
+  assertEq(pbpVideoStateValidate(badParas, detected, canonical), false, "non-array, non-null paragraphs -> false");
+
+  const paraSegments = [{ from: 0, to: 1, content: "第一句。" }, { from: 1, to: 2, content: "第二句。" }];
+  const paras = ["第一句。", "第二句。"];
+  const paraState = pbpVideoStateBuild({ detected, track, tracks: [track], segments: paraSegments, aiParas: paras, wasUnpunct: true, aiPunct: true, meta });
+  const paraCanonical = pbpVideoTranscriptMarkdown(paraSegments, meta, paras);
+  assertEq(pbpVideoStateValidate(paraState, detected, paraCanonical), true, "AI-punctuated paragraphs preserved through round trip -> true");
 })();
 
 document.getElementById("summary").textContent = `${pass} passed, ${fail} failed`;
