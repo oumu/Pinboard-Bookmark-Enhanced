@@ -1658,9 +1658,22 @@ window.pbpDictOnActionSwitch = () => {
 
 // Owner arrives with the page render (dict-run/save read _pbpDictOwner; the
 // vocabulary panel itself now lives in the options tab, options-vocab.js).
-document.addEventListener("pbp:rendered", (e) => {
-  const account = e && e.detail ? e.detail.account : "";
+// Article-scoped state, reset per document: the manual language override the
+// reader picked for the PREVIOUS article, and the CLD prior sampled from its
+// text. Both are wrong the moment the article underneath changes.
+function pbpDictOnArticle(detail) {
+  const account = detail ? detail.account : "";
   _pbpDictOwner = pbpDictOwnerScope(account);
   _pbpDictManualLang = ""; // language override is per-document, never carried over
   _pbpDictArticlePrior = null; // article CLD prior is per-document too
-});
+}
+document.addEventListener("pbp:rendered", (e) => pbpDictOnArticle((e && e.detail) || null));
+// In-place article replacement (md-preview.js _applyArticleCommit): pbp:rendered
+// stays a once-per-page event, so the same reset has to ride the replacement
+// lifecycle. NOT {once:true} -- a page can replace its article repeatedly.
+// will: kill the query that is still resolving against the old article (the
+// same teardown an action switch performs -- aborts the child request, drops
+// the save target and the current entry). replaced: re-derive the per-document
+// state, exactly as a fresh render would.
+document.addEventListener("pbp:article-will-replace", () => window.pbpDictOnActionSwitch());
+document.addEventListener("pbp:article-replaced", (e) => pbpDictOnArticle((e && e.detail) || null));

@@ -30,6 +30,13 @@ function pbpAskIsTypingTarget(el) {
 
 let _pbpAskState = null;
 let _pbpAskRailHandle = null; // rail accordion (spec 2026-07-04): headless handle, see _pbpAskBuildRailEntry
+// Article revision (in-place transcript replacement, md-preview.js
+// _applyArticleCommit). Module-level rather than a field of _pbpAskState: the
+// history restore and the explain popover both need the fence and neither can
+// assume the ask panel ever initialized. Bumped by the will-replace handler at
+// the bottom of this file; readers capture it and compare on the far side of
+// an await.
+let _pbpAskArticleRev = 0;
 
 async function pbpAskInit(detail) {
   const view = document.getElementById("rendered-view");
@@ -657,6 +664,10 @@ async function _pbpAskRun(question, aEl, opts) {
   opts = opts || {};
   st.rounds = st.rounds || []; // lazy: Task 12's state object predates this field
   st.running = true;
+  // Which article this answer is about. An AbortError carrying a bumped
+  // revision means "the page swapped the article out from under this stream",
+  // not "the user pressed Stop" -- the two must not settle the same way.
+  const runRev = _pbpAskArticleRev;
   st.ctrl = new AbortController();
   _pbpAskWireStop();
   const stopBtn = document.getElementById("ask-stop");
@@ -691,6 +702,15 @@ async function _pbpAskRun(question, aEl, opts) {
         if (!raf) raf = requestAnimationFrame(paint);
       })
     );
+    // The article was replaced while this answer streamed (the abort raced the
+    // final chunk and lost). The text below describes paragraphs that are no
+    // longer on the page, so it must not be finalized, counted or persisted --
+    // route it through the same branch a replacement-abort takes.
+    if (_pbpAskArticleRev !== runRev) {
+      const replacedErr = new Error("article replaced");
+      replacedErr.name = "AbortError";
+      throw replacedErr;
+    }
     if (raf) { cancelAnimationFrame(raf); raf = 0; }
     aEl.classList.remove("streaming");
     aEl.removeAttribute("aria-busy");
@@ -737,9 +757,19 @@ async function _pbpAskRun(question, aEl, opts) {
     if (raf) { cancelAnimationFrame(raf); raf = 0; }
     aEl.classList.remove("streaming");
     aEl.removeAttribute("aria-busy");
+    // Replacement, not user Stop: the partial answer is about an article that
+    // no longer exists on the page. Finalizing it would render its [Pn] chips
+    // against the NEW block index (chips pointing at unrelated paragraphs) and
+    // hang a Regenerate button off a dead question. Fall through to the plain
+    // "keep what streamed" branch below instead -- visible, inert, unsaved.
+    const replaced = _pbpAskArticleRev !== runRev;
     if (opts.restoreNodes && opts.restoreNodes.length) {
       aEl.replaceChildren(...opts.restoreNodes);
-    } else if (e && e.name === "AbortError" && acc && aEl.isConnected) {
+      // These nodes were DETACHED while the replacement ran, so the
+      // article-replaced sweep over #ask-thread could not reach their chips.
+      // They index the old article exactly like every other restored answer.
+      if (replaced) _pbpAskMarkCitesStale(aEl);
+    } else if (e && e.name === "AbortError" && acc && aEl.isConnected && !replaced) {
       // isConnected: Clear aborts in-flight streams AFTER detaching the
       // thread's children - finalizing the detached element would be
       // invisible busywork, and its _pbpAskDecorate -> _pbpAskEnsureClear
@@ -1386,6 +1416,18 @@ async function _pbpAskHistRestore() {
   const thread = _pbpAskHistThread();
   if (_pbpAskHistRestored || !thread || !_pbpAskHistUrl) return;
   _pbpAskHistRestored = true;
+  // Article the restore is building against. Every record's chips are verified
+  // against the CURRENT block index (_pbpAskFinalize -> _pbpAskChipPass) and
+  // its staleness is judged against the CURRENT fingerprint, so a fragment
+  // built for the previous article must never be inserted. Bailing also clears
+  // the single-shot flag, and the article-replaced handler calls this again --
+  // the thread is restored once, against the article the reader can see.
+  const rev = _pbpAskArticleRev;
+  const superseded = () => {
+    if (_pbpAskArticleRev === rev) return false;
+    _pbpAskHistRestored = false;
+    return true;
+  };
   // Pre-owner-scope hygiene: legacy ownerless "ask_<rawhash>" entries can
   // never be read again (fail-closed, no adoption) — delete on sight so the
   // leaked-to-nobody data actually disappears instead of waiting on LRU.
@@ -1399,6 +1441,7 @@ async function _pbpAskHistRestore() {
   // repopulate st.records (export would copy erased history) or touch the
   // freshly-reset empty hint / starter chips.
   if (!_pbpAskHistRestored) return;
+  if (superseded()) return;
   if (!hist.length) return;
   if (_pbpAskState) _pbpAskState.records = hist.slice();
   // Restored rounds replace the empty-state hint; the starter chips
@@ -1440,6 +1483,10 @@ async function _pbpAskHistRestore() {
       // (no ABA risk that would call for a generation token instead). Stop
       // seeding st.rounds from now-erased history and never insert frag.
       if (!_pbpAskHistRestored) { resolve(); return; }
+      // Article replaced between chunks: curFp below was taken against the old
+      // index, so every remaining record would be judged with a fingerprint
+      // that no longer describes the page.
+      if (superseded()) { resolve(); return; }
       const end = Math.min(hi + PBP_ASK_HIST_CHUNK, hist.length);
       for (; hi < end; hi++) {
         const rec = hist[hi];
@@ -1490,6 +1537,7 @@ async function _pbpAskHistRestore() {
   // last chunk (between its guard check and this line) must still block
   // the insert, or cleared history would silently reappear in the DOM.
   if (!_pbpAskHistRestored) return;
+  if (superseded()) return;
   // Prepend: if a live round raced in before the async build finished,
   // restored history still reads in chronological order above it - and
   // st.rounds gets the SAME ordering (history first, live rounds after),
@@ -2715,3 +2763,94 @@ window.pbpExplainOpenForItem = function (opts) {
   };
   _pbpExplainOpenPop(cap, opts.action);
 };
+
+// ============================================================
+// In-place article replacement (md-preview.js _applyArticleCommit).
+// ============================================================
+// A committed video transcript swaps #rendered-view's content without a page
+// reload. pbpAskInit / pbpExplainInit stay {once:true}: the panel, its open or
+// closed state, the textarea's contents and every COMPLETED question and answer
+// survive -- only what is bound to the article being replaced is torn down.
+//
+// The shared event detail is FROZEN and owned by md-preview.js: read only.
+
+// Every chip in `root` (default: the whole thread) now indexes a block list
+// that no longer exists. Same treatment a stale restored answer gets
+// (_pbpAskHistRestore): visibly greyed and disabled, so clicking cannot scroll
+// the reader to an unrelated paragraph. `disabled` also drops them from the tab
+// order.
+function _pbpAskMarkCitesStale(root) {
+  const scope = root || document.getElementById("ask-thread");
+  if (!scope) return;
+  scope.querySelectorAll(".ask-chip").forEach((chip) => {
+    chip.classList.add("stale");
+    chip.disabled = true;
+  });
+}
+
+function _pbpAskOnArticleWillReplace(detail) {
+  // Monotonic under any input, including a detail with no usable revision.
+  const claimed = Number(detail && detail.revision);
+  _pbpAskArticleRev = (Number.isFinite(claimed) && claimed > _pbpAskArticleRev)
+    ? claimed : _pbpAskArticleRev + 1;
+  const st = _pbpAskState;
+  if (st) {
+    // Abort now; the revision captured by _pbpAskRun is what tells its catch
+    // that this was a replacement and not the Stop button, so the partial
+    // answer is never finalized into the thread.
+    if (st.ctrl) st.ctrl.abort();
+    // Context is built once and cached forever (md-ask.js:544-555). Dropping it
+    // is what makes the NEXT question read the new article; the thread itself
+    // is deliberately kept.
+    st.ctx = null;
+  }
+  // Explain / dict card: cap holds a Range into the DOM about to be discarded
+  // and ctx the text packed from it, and the action buttons re-run straight off
+  // both. Clear them before anything can re-enter with a detached selection.
+  _pbpExplainCap = null;
+  _pbpExplainCtx = null;
+  _pbpExplainSaveTarget = null;
+  _pbpExplainAnswerText = "";
+  if (_pbpExplainAbort) { _pbpExplainAbort.abort(); _pbpExplainAbort = null; }
+  // Dictionary side: aborts its own child request and drops the save target
+  // (md-dict.js:1653-1657).
+  if (typeof window.pbpDictOnActionSwitch === "function") {
+    try { window.pbpDictOnActionSwitch(); } catch (_) {}
+  }
+  // Force-close EVEN IF PINNED: a pinned card is precisely the one that would
+  // otherwise sit there showing an explanation of text the reader can no longer
+  // find, with a save button aimed at a dead Range. _pbpExplainClose's
+  // beforetoggle also unpins and cancels speech; the explicit unpin covers the
+  // case where the card was already closed with the flag still set.
+  if (_pbpExplainPopEl) _pbpExplainClose(_pbpExplainPopEl);
+  _pbpExplainSetPinned(_pbpExplainPopEl, false);
+}
+
+function _pbpAskOnArticleReplaced(detail) {
+  // Runs after md-preview.js rebuilt the AI block index, so a chip's [Pn] would
+  // now resolve against the NEW article: mark every existing chip stale before
+  // the reader can click one.
+  _pbpAskMarkCitesStale();
+  const st = _pbpAskState;
+  if (st && Array.isArray(st.rounds)) {
+    // Prompt history keeps the prose but loses the dead paragraph numbers --
+    // the same rule _pbpAskHistRestore applies to a stale record, so the model
+    // is never re-taught indexes the UI has just disabled. st.records is left
+    // alone on purpose: it is the persisted transcript, and its per-record
+    // blocksHash is what makes the NEXT restore detect the drift by itself.
+    st.rounds = st.rounds.map((r) => ({
+      q: String((r && r.q) || ""),
+      a: _pbpAskStripCiteTokens(String((r && r.a) || ""))
+    }));
+  }
+  // No-op unless a restore bailed on the revision check above (panel never
+  // opened / restore already finished both return immediately).
+  _pbpAskHistRestore().catch(() => {});
+}
+
+if (typeof document !== "undefined") {
+  // Deliberately NOT {once:true}: one page can commit any number of articles
+  // (track switch, AI punctuation, first-authorization promotion).
+  document.addEventListener("pbp:article-will-replace", (e) => _pbpAskOnArticleWillReplace((e && e.detail) || {}));
+  document.addEventListener("pbp:article-replaced", (e) => _pbpAskOnArticleReplaced((e && e.detail) || {}));
+}

@@ -982,8 +982,16 @@ async function pbpTrInit(detail) {
     // glossary caches too — same defect skim's cache meta had.
     modelKey: (s.aiProvider || "gemini") + ":" + ((typeof pbpAiEffectiveModel === "function")
       ? pbpAiEffectiveModel(s) : (pbpAiResolveModelOverride(s) || "default")),
-    work: [],                      // non-pre blocks: {n, md, hash, shielded:{text,slots}}
+    work: [],                      // non-pre blocks: {n, md, hash, shielded:{text,slots}, rev}
     workReady: null,               // Promise: resolves once the rAF-chunked st.work build finishes
+    // Article revision fence (in-place transcript replacement, md-preview.js
+    // _applyArticleCommit). Bumped by _pbpTrOnArticleWillReplace; every work
+    // item is stamped with the revision it was built for, and every write path
+    // refuses an item whose stamp no longer matches. Abort alone cannot do
+    // this: a batch already parsed when the abort lands still calls onFill,
+    // and .pb-tr would then be inserted next to whatever block of the NEW
+    // article happens to carry the same index.
+    rev: 0,
     trMd: Object.create(null),     // n -> RESTORED translated markdown (export + TOC)
     mode: "original",
     status: "idle",
@@ -1102,10 +1110,17 @@ async function pbpTrInit(detail) {
 // (pbpAiMdOf) doesn't block the first paint. Resolves when every candidate is done.
 const PBP_TR_WORK_CHUNK = 20;
 function _pbpTrBuildWork(st, cand) {
+  // The build spans frames, so the article can be replaced halfway through it
+  // (spec risk table, md-translate.js workReady sharding). `cand` holds element
+  // references from the revision this build started on; a later chunk must
+  // neither read them against the new index nor push them into the freshly
+  // emptied st.work, or the queue would translate a mixed old/new article.
+  const rev = st.rev;
   return new Promise((resolve) => {
     const raf = (typeof requestAnimationFrame === "function") ? requestAnimationFrame : (fn) => setTimeout(fn, 0);
     let i = 0;
     const step = () => {
+      if (st.rev !== rev) { resolve(); return; }
       const end = Math.min(i + PBP_TR_WORK_CHUNK, cand.length);
       for (; i < end; i++) {
         const b = cand[i];
@@ -1113,12 +1128,21 @@ function _pbpTrBuildWork(st, cand) {
         if (!md.trim()) continue;
         const shielded = pbpAiShield(md);
         if (!_pbpTrHasText(shielded.text)) continue;   // image/badge/logo wall: nothing to translate
-        st.work.push({ n: b.n, md, hash: pbpAiHash(md), shielded });
+        st.work.push({ n: b.n, md, hash: pbpAiHash(md), shielded, rev });
       }
       if (i < cand.length) raf(step); else resolve();
     };
     raf(step);
   });
+}
+
+// One write gate for every article-derived translation write (DOM fill, error
+// pill, cache buffer). A work item built for a superseded article must never
+// touch the current one -- see the st.rev comment in pbpTrInit. Unstamped
+// items fail the check on purpose: fail-closed is the safe direction, and the
+// only producer of work items (_pbpTrBuildWork) always stamps.
+function _pbpTrItemCurrent(st, w) {
+  return !!(st && w && w.rev === st.rev);
 }
 
 // Cache probe (partial-hit aware): full hit -> zero requests + restore the remembered
@@ -1202,6 +1226,18 @@ function _pbpTrApplySkips(st) {
   }
 }
 
+// Pre-request cost estimate (spec 4.1: chars/4 x 3). Written when the section
+// is built and rewritten whenever the article underneath it changes -- the
+// section survives an in-place replacement, so without the second call the
+// price shown would be the PREVIOUS article's.
+function _pbpTrRenderEstimate(st, est) {
+  est = est || document.getElementById("tr-estimate");
+  if (!est) return;
+  const chars = st.approxChars || st.work.reduce((a, w) => a + w.shielded.text.length, 0);
+  est.textContent = t("trEstCost", String(pbpAiEstimateTokens(chars) * 3),
+    (st.s.aiProvider || "gemini") + "/" + (pbpAiResolveModelOverride(st.s) || "default"));
+}
+
 function _pbpTrBuildSection(st) {
   const rail = document.getElementById("rail");
   const anchor = rail ? rail.querySelector(".view-toggle") : null;
@@ -1263,9 +1299,7 @@ function _pbpTrBuildSection(st) {
   const est = document.createElement("div");
   est.id = "tr-estimate";
   est.className = "tr-meta";
-  const chars = st.approxChars || st.work.reduce((a, w) => a + w.shielded.text.length, 0);
-  est.textContent = t("trEstCost", String(pbpAiEstimateTokens(chars) * 3),
-    (st.s.aiProvider || "gemini") + "/" + (pbpAiResolveModelOverride(st.s) || "default"));
+  _pbpTrRenderEstimate(st, est);
   sec.appendChild(est);
 
   // T3: "N blocks already in target language, skipped" -- a separate element
@@ -1676,6 +1710,7 @@ async function _pbpTrStart(st) {
   if (st.running) return;
   st.running = true;                       // claim the run synchronously so a double-click during
                                            // the rAF-chunked st.work build can't start two runs
+  const runRev = st.rev;                   // article this run was launched for (fence, see pbpTrInit)
   // Reset the run buffers FIRST (review blocker #1): st.flushBuf could hold a
   // previous run's residue, and everything between here and the queue launch
   // awaits (permission recovery / workReady / glossary extraction) -- a
@@ -1692,6 +1727,13 @@ async function _pbpTrStart(st) {
     st.permissionError = null;
   }
   if (st.workReady) await st.workReady;    // ensure the deferred st.work build finished
+  // The article was replaced while this run was parked on one of the awaits
+  // above (permission recovery / work build). Everything below spends tokens,
+  // and the replaced handler has already rebuilt st.work from the NEW blocks --
+  // so continuing would silently bill the user for a translation they never
+  // asked for, on an article they did not click Translate on. Product rule:
+  // a replacement NEVER auto-spends.
+  if (st.rev !== runRev) { st.running = false; return; }
   _pbpTrApplySkips(st);                    // T3: re-detect every run -- target may have changed since init/last run
   const pending = st.work.filter((w) => !(w.n in st.trMd));
   if (!pending.length) { st.running = false; _pbpTrSetStatus(st, "done"); _pbpTrShowViewToggle(st); return; }
@@ -1877,6 +1919,14 @@ async function _pbpTrStart(st) {
       if (headProg) headProg.textContent = "(" + d + "/" + tt + ")";
     }
   });
+  // Replaced mid-run: everything below writes state derived from an article
+  // that is no longer on screen -- the end-of-run cache entry (st.runMeta was
+  // cleared by the teardown), the status/progress text, the usage line and the
+  // persisted view mode. The blocks this run actually paid for reached disk
+  // through the incremental flush; the residue is dropped rather than filed
+  // under a dead generation. st.running is released so the user can translate
+  // the NEW article by hand.
+  if (st.rev !== runRev) { st.running = false; return; }
   // End-of-run write keeps the FULL st.newly (not just the unflushed residue):
   // the append transform is an idempotent merge, so rewriting flushed blocks is
   // free, and any blocks a failed flush dropped are retried here. A still-armed
@@ -1961,6 +2011,12 @@ async function _pbpTrStart(st) {
 // the wrong write irreversible.
 function _pbpTrRecordFill(st, w, text) {
   if (!st.newly) return;
+  // Superseded article: the block's own translation is legitimate, but the run
+  // meta it would be filed under (st.runMeta / st.replaceRun) was reset by the
+  // will-replace teardown, so the entry would land generation-less. Blocks
+  // translated before the replacement are already on disk via the incremental
+  // flush; nothing here is worth a mis-keyed write.
+  if (!_pbpTrItemCurrent(st, w)) return;
   st.newly[w.hash] = text;
   st.flushBuf[w.hash] = text;
   if (Object.keys(st.flushBuf).length >= PBP_TR_FLUSH_BLOCKS
@@ -2018,6 +2074,10 @@ function _pbpTrCommitAssembled(st, w, done, failedParts) {
 // renderer slugged inside the copy (heading ids always derive from the
 // ORIGINAL, spec 4.4), then re-render KaTeX in the translated block.
 function _pbpTrFill(st, w, shieldedTranslation) {
+  // Late response from a replaced article: pbpAiBlockEl(w.n) now resolves to a
+  // block of the NEW article, so filling would paste the old transcript's
+  // translation under unrelated text (spec risk table, md-translate.js:2020).
+  if (!_pbpTrItemCurrent(st, w)) return;
   const restored = pbpAiRestore(shieldedTranslation, w.shielded.slots);
   st.trMd[w.n] = restored;
   const orig = pbpAiBlockEl(w.n);
@@ -2086,6 +2146,7 @@ function _pbpTrFill(st, w, shieldedTranslation) {
 // Per-block failure: inline error pill after the block. Hover/focus shows the
 // error; click retries this single block.
 function _pbpTrMarkFailed(st, w, message) {
+  if (!_pbpTrItemCurrent(st, w)) return;   // same fence as _pbpTrFill: no pill on a replaced article
   const orig = pbpAiBlockEl(w.n);
   if (!orig) return;
   const sib = orig.nextElementSibling;
@@ -2626,10 +2687,98 @@ function _pbpTrSyncToc(st, mode) {
   });
 }
 
+// ============================================================
+// In-place article replacement (md-preview.js _applyArticleCommit).
+// ============================================================
+// The page is NOT reloaded when a video transcript is committed: #rendered-view
+// gets new content, the AI block index is rebuilt, and the two lifecycle events
+// below bracket the swap. pbpTrInit stays {once:true} -- the rail section, the
+// hotkeys, the scroll tracker and the run state all survive; only the
+// article-derived half is torn down here and rebuilt after.
+//
+// The shared event detail is FROZEN and belongs to md-preview.js: read only.
+function _pbpTrOnArticleWillReplace(detail) {
+  const st = _pbpTrState;
+  if (!st) return;                         // AI off / entry hidden: nothing was ever built
+  // Monotonic under any input: a detail without a usable revision (or one that
+  // did not advance) still invalidates everything built so far.
+  const claimed = Number(detail && detail.revision);
+  const cur = Number(st.rev) || 0;
+  st.rev = (Number.isFinite(claimed) && claimed > cur) ? claimed : cur + 1;
+  if (st.ctrl) st.ctrl.abort();            // stop the network; the fence stops the write-back
+  st.ctrl = null;
+  // Invalidate the work builder: the rev bump already makes its next chunk
+  // bail, and emptying st.work means nothing downstream can read a half-old
+  // index. A _pbpTrStart parked on the old promise resolves immediately.
+  st.work = [];
+  st.workReady = null;
+  st.viewTopBlock = 0;                     // block numbers belong to the old article
+  // Same teardown the target-language switch performs: filled markdown, .pb-tr
+  // DOM, glossary + run-derived cache artifacts, skip/stale verdicts, tr-side
+  // highlights, and back to the Original view.
+  _pbpTrResetTranslations(st);
+  // Explicit, and NOT covered by the reset above: _pbpTrSetMode only rewrites
+  // the export hook when the mode actually CHANGES, so a reader already in
+  // Original keeps a live pbpViewMarkdown closure over the old st.trMd --
+  // md-preview.js consults it at export time and would serve the previous
+  // article's translation instead of the new canonical markdown (spec risk
+  // table, "导出" row).
+  window.pbpViewMarkdown = null;
+  _pbpTrSetStatus(st, "idle");
+}
+
+function _pbpTrOnArticleReplaced(detail) {
+  const st = _pbpTrState;
+  if (!st) return;
+  // Failure containment: article-replaced fires even when the swap threw, so
+  // the new article may be missing or half-rendered. Everything below tolerates
+  // an empty block index.
+  const view = document.getElementById("rendered-view");
+  if (!view) return;
+  st.articleLang = view.lang || "";        // md-preview re-detects lang/dir per render
+  const rev = st.rev;
+  // The block index was already rebuilt by md-preview.js before this event.
+  const cand = pbpAiBlocks().filter((b) => b.tag !== "pre" && (b.el.textContent || "").trim());
+  st.approxChars = cand.reduce((a, b) => {
+    const txt = b.el.textContent || "";
+    return pbpTrBlockIsTargetLang(txt, st.target.code) ? a : a + txt.length;
+  }, 0);
+  if (!cand.length) {
+    const sec = document.getElementById("tr-section");
+    if (sec) sec.remove();
+    return;
+  }
+  // The section is removed when an article has nothing to translate; a later
+  // replacement can bring translatable text back, so rebuild it if it is gone
+  // (no-op when it is still mounted), and re-price it for the new article.
+  _pbpTrBuildSection(st);
+  _pbpTrRenderEstimate(st);
+  // Rebuild work from the NEW index, then PROBE THE CACHE ONLY. A replacement
+  // never starts a paid run: the reader chose a subtitle track, not a
+  // translation. A free cache hit still restores instantly, exactly as on a
+  // fresh page open.
+  st.workReady = _pbpTrBuildWork(st, cand).then(() => {
+    if (st.rev !== rev) return;            // a third article arrived mid-build
+    if (!st.work.length) {
+      const sec = document.getElementById("tr-section");
+      if (sec) sec.remove();
+      return;
+    }
+    return _pbpTrProbeCache(st);
+  }).then(() => {
+    if (st.rev !== rev) return;
+    _pbpTrApplySkips(st);
+  }).catch(() => {});
+}
+
 // Init hookup: top-level listener registration only (no other side effects;
 // the tests page loads this file on file:// and never fires the event).
 if (typeof document !== "undefined") {
   document.addEventListener("pbp:rendered", (e) => {
     pbpTrInit((e && e.detail) || {}).catch(() => {});
   }, { once: true });
+  // Deliberately NOT {once:true}: an article can be replaced any number of
+  // times in one page life (track switch, AI punctuation, promotion).
+  document.addEventListener("pbp:article-will-replace", (e) => _pbpTrOnArticleWillReplace((e && e.detail) || {}));
+  document.addEventListener("pbp:article-replaced", (e) => _pbpTrOnArticleReplaced((e && e.detail) || {}));
 }

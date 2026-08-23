@@ -39,6 +39,8 @@ window.chrome = window.chrome || {
 <script src="../md-highlight.js"></script>
 <script src="../md-reader.js"></script>
 <script src="../md-skim.js"></script>
+<script src="../vocab-store.js"></script>
+<script src="../md-dict.js"></script>
 
 <script>
 let PASS = 0, FAIL = 0, SKIP = 0;
@@ -7531,6 +7533,612 @@ suiteIf("tr_ independent cache pool (ZH-6)", "_pbpAiTrRange", () => {
     _pbpTrFlushCache(st);
     await new Promise((r) => setTimeout(r, 10));
     assert(st.flushInflight === false, "cleared after rejection");
+  });
+})();
+</script>
+<script>
+// ============================================================
+// Task 4: article-replacement lifecycle in the AI subscriber modules.
+// md-preview.js swaps #rendered-view in place (no page reload) and brackets the
+// swap with pbp:article-will-replace / pbp:article-replaced, sharing ONE frozen
+// detail. These suites dispatch the REAL events, so "the handler is registered,
+// and is not once-only" is part of what is under test.
+// ============================================================
+
+// Frozen exactly as md-preview.js freezes it, so a handler that tried to mutate
+// the shared detail would be doing it against the production shape.
+function _t4Detail(rev) {
+  return Object.freeze({
+    revision: rev, reason: "video-track-switch",
+    url: "https://example.test/t4", title: "T4 transcript", forum: false, account: ""
+  });
+}
+function _t4Fire(name, rev) {
+  document.dispatchEvent(new CustomEvent(name, { detail: _t4Detail(rev) }));
+}
+// Same dispatch, with the explain-popover half of md-ask's handler neutralized:
+// another async suite on this page owns the real popover ACROSS awaits, and
+// force-closing it from an unrelated test would break it. The force-close has
+// its own dedicated test below, which installs its own popover first.
+function _t4FireQuiet(name, rev) {
+  const pop = _pbpExplainPopEl, pinned = _pbpExplainPinned, abort = _pbpExplainAbort;
+  const cap = _pbpExplainCap, ctx = _pbpExplainCtx, tgt = _pbpExplainSaveTarget, ans = _pbpExplainAnswerText;
+  _pbpExplainPopEl = null;
+  _pbpExplainAbort = null;
+  try {
+    _t4Fire(name, rev);
+  } finally {
+    _pbpExplainPopEl = pop; _pbpExplainPinned = pinned; _pbpExplainAbort = abort;
+    _pbpExplainCap = cap; _pbpExplainCtx = ctx; _pbpExplainSaveTarget = tgt; _pbpExplainAnswerText = ans;
+  }
+}
+// Prepended, never appended: another suite's fixture may already own the
+// #rendered-view id, and getElementById resolves to the FIRST match. Ours wins
+// while it is mounted and theirs is intact again the moment we remove it.
+function _t4View(html) {
+  const view = document.createElement("div");
+  view.id = "rendered-view";
+  view.innerHTML = html;
+  document.body.insertBefore(view, document.body.firstChild);
+  pbpAiIndexBlocks(view);
+  return view;
+}
+// Run fn with a synchronous requestAnimationFrame, so the rAF-chunked work
+// builder finishes inside the dispatch instead of a frame later. Keeps these
+// assertions immune to whatever another parked suite does to the shared block
+// index between frames.
+function _t4WithSyncRaf(fn) {
+  const real = window.requestAnimationFrame;
+  window.requestAnimationFrame = (cb) => { cb(0); return 0; };
+  try { return fn(); } finally { window.requestAnimationFrame = real; }
+}
+function _t4TrState(url) {
+  return {
+    s: { aiProvider: "gemini" },
+    url: url || "https://example.test/t4",
+    title: "T4 transcript",
+    account: "",
+    articleLang: "",
+    target: { code: "zh-Hans", name: "Chinese", display: "Chinese" },
+    modelKey: "gemini:default",
+    work: [], workReady: null,
+    trMd: Object.create(null),
+    mode: "original", status: "idle", running: false, ctrl: null,
+    glossaryHits: Object.create(null), permissionError: null,
+    rev: 0
+  };
+}
+function _t4Work(n, text, rev) {
+  return { n, md: text, hash: "h" + n + "_" + rev, shielded: { text, slots: [] }, rev };
+}
+
+suiteIf("T4 translate: article replacement", "_pbpTrOnArticleWillReplace", () => {
+  test("a response captured before the swap never writes into the new article", () => {
+    const saved = _pbpTrState;
+    const st = _t4TrState("https://example.test/t4-stale");
+    const view = _t4View("<p>alpha one</p><p>alpha two</p>");
+    _pbpTrState = st;
+    try {
+      const w = _t4Work(pbpAiBlocks()[0].n, "alpha one", st.rev);
+      st.work = [w];
+      // Control: while this article is live, that exact call fills the block.
+      _pbpTrFill(st, w, "control translation");
+      assertEq(view.querySelectorAll(".pb-tr").length, 1, "control: a current work item fills");
+      _t4WithSyncRaf(() => {
+        _t4FireQuiet("pbp:article-will-replace", 1);
+        view.innerHTML = "<p>beta one</p><p>beta two</p>";   // md-preview swaps the DOM here
+        pbpAiIndexBlocks(view);
+        _t4FireQuiet("pbp:article-replaced", 1);
+      });
+      // The in-flight batch settles now. Block index 1 exists in the NEW
+      // article too, so nothing but the revision fence stops this write.
+      _pbpTrFill(st, w, "stale translation");
+      assertEq(view.querySelectorAll(".pb-tr").length, 0, "no .pb-tr from the superseded revision");
+      assertEq(w.n in st.trMd, false, "stale text never enters st.trMd (export + TOC source)");
+      _pbpTrMarkFailed(st, w, "boom");
+      assertEq(view.querySelectorAll(".pb-tr-err").length, 0, "no failure pill from the old revision either");
+    } finally {
+      _pbpTrState = saved;
+      view.remove();
+    }
+  });
+
+  test("will-replace clears window.pbpViewMarkdown even when the view is already Original", () => {
+    const saved = _pbpTrState;
+    const savedHook = window.pbpViewMarkdown;
+    const st = _t4TrState();
+    st.mode = "original";                    // so the reset's own mode switch is a no-op
+    _pbpTrState = st;
+    try {
+      window.pbpViewMarkdown = () => "OLD TRANSLATED EXPORT";
+      _t4FireQuiet("pbp:article-will-replace", 5);
+      assertEq(window.pbpViewMarkdown, null, "export hook cleared: exports must serve the new canonical");
+    } finally {
+      _pbpTrState = saved;
+      window.pbpViewMarkdown = savedHook;
+    }
+  });
+
+  test("will-replace aborts the live run and invalidates the work builder", () => {
+    const saved = _pbpTrState;
+    const st = _t4TrState();
+    const ctrl = new AbortController();
+    st.ctrl = ctrl;
+    st.running = true;
+    st.work = [_t4Work(1, "alpha", 0)];
+    st.workReady = Promise.resolve();
+    st.viewTopBlock = 7;
+    _pbpTrState = st;
+    try {
+      assertEq(ctrl.signal.aborted, false, "control: the request starts un-aborted");
+      _t4FireQuiet("pbp:article-will-replace", 3);
+      assertEq(ctrl.signal.aborted, true, "in-flight translation aborted");
+      assertEq(st.ctrl, null, "controller dropped");
+      assertEq(st.work.length, 0, "work list emptied: no mixed old/new index");
+      assertEq(st.workReady, null, "builder promise dropped");
+      assertEq(st.viewTopBlock, 0, "reading anchor was an old block number");
+      assertEq(st.rev, 3, "revision adopted from the frozen detail");
+    } finally {
+      _pbpTrState = saved;
+    }
+  });
+
+  test("the fence advances even when the detail carries no usable revision", () => {
+    const saved = _pbpTrState;
+    const st = _t4TrState();
+    _pbpTrState = st;
+    try {
+      _pbpTrOnArticleWillReplace({});
+      assertEq(st.rev, 1, "a detail without a revision still invalidates what was built");
+      _pbpTrOnArticleWillReplace({ revision: "not a number" });
+      assertEq(st.rev, 2, "garbage revision still advances the fence");
+      _pbpTrOnArticleWillReplace({ revision: 2 });
+      assertEq(st.rev, 3, "a non-advancing revision never freezes the fence");
+    } finally {
+      _pbpTrState = saved;
+    }
+  });
+
+  test("replaced rebuilds work from the NEW block index and starts no paid run", () => {
+    const saved = _pbpTrState;
+    const st = _t4TrState("https://example.test/t4-rebuild");
+    const view = _t4View("<p>alpha one paragraph</p><p>alpha two paragraph</p>");
+    _pbpTrState = st;
+    try {
+      _t4WithSyncRaf(() => {
+        _t4FireQuiet("pbp:article-will-replace", 1);
+        assertEq(st.work.length, 0, "will-replace emptied the work list");
+        view.innerHTML = "<p>gamma one paragraph</p><p>gamma two paragraph</p>";
+        pbpAiIndexBlocks(view);
+        _t4FireQuiet("pbp:article-replaced", 1);
+      });
+      assertEq(st.work.length, 2, "work rebuilt from the new index");
+      assertEq(st.work.every((w) => w.rev === st.rev), true, "every item stamped with the current revision");
+      assert(st.work.map((w) => w.md).join("|").indexOf("gamma") !== -1, "work carries the NEW article's text");
+      assertEq(st.work.map((w) => w.md).join("|").indexOf("alpha"), -1, "and none of the old article's");
+      assertEq(st.running, false, "no translation run was started");
+      assertEq(st.ctrl, null, "no request controller: a replacement never spends tokens by itself");
+    } finally {
+      _pbpTrState = saved;
+      view.remove();
+    }
+  });
+
+  test("a work build spanning frames stops at the chunk boundary when the article changes", () => {
+    const saved = _pbpTrState;
+    const st = _t4TrState("https://example.test/t4-shard");
+    const parts = [];
+    for (let i = 1; i <= PBP_TR_WORK_CHUNK + 5; i++) parts.push("<p>paragraph number " + i + " text</p>");
+    const view = _t4View(parts.join(""));
+    _pbpTrState = st;
+    const realRaf = window.requestAnimationFrame;
+    const frames = [];
+    window.requestAnimationFrame = (cb) => { frames.push(cb); return frames.length; };
+    try {
+      _t4FireQuiet("pbp:article-will-replace", 1);
+      _t4FireQuiet("pbp:article-replaced", 1);
+      assertEq(frames.length, 1, "control: the build queued its first chunk");
+      frames.shift()(0);
+      assertEq(st.work.length, PBP_TR_WORK_CHUNK, "control: exactly one chunk was built");
+      assertEq(frames.length, 1, "control: the builder queued the next chunk");
+      _t4FireQuiet("pbp:article-will-replace", 2);   // the article changes mid-build
+      assertEq(st.work.length, 0, "will-replace emptied the list the stale chunk would push into");
+      frames.shift()(0);                             // the superseded chunk runs now
+      assertEq(st.work.length, 0, "the superseded build contributed nothing to the new work list");
+    } finally {
+      window.requestAnimationFrame = realRaf;
+      _pbpTrState = saved;
+      view.remove();
+    }
+  });
+
+  test("two replacement cycles: the fence keeps working and is not a blanket disable", () => {
+    const saved = _pbpTrState;
+    const st = _t4TrState("https://example.test/t4-twice");
+    const view = _t4View("<p>one alpha</p>");
+    _pbpTrState = st;
+    try {
+      _t4WithSyncRaf(() => {
+        _t4FireQuiet("pbp:article-will-replace", 1);
+        view.innerHTML = "<p>two beta</p>";
+        pbpAiIndexBlocks(view);
+        _t4FireQuiet("pbp:article-replaced", 1);
+      });
+      assertEq(st.rev, 1, "first cycle");
+      const w1 = _t4Work(pbpAiBlocks()[0].n, "two beta", st.rev);
+      _pbpTrFill(st, w1, "cycle-1 translation");
+      assertEq(view.querySelectorAll(".pb-tr").length, 1, "a revision-1 item fills the revision-1 article");
+
+      _t4WithSyncRaf(() => {
+        _t4FireQuiet("pbp:article-will-replace", 2);
+        view.innerHTML = "<p>three gamma</p>";
+        pbpAiIndexBlocks(view);
+        _t4FireQuiet("pbp:article-replaced", 2);
+      });
+      assertEq(st.rev, 2, "second cycle advanced: the handlers are not once-only");
+      _pbpTrFill(st, w1, "cycle-1 late answer");
+      assertEq(view.querySelectorAll(".pb-tr").length, 0, "the first cycle's late answer is still refused");
+      const w2 = _t4Work(pbpAiBlocks()[0].n, "three gamma", st.rev);
+      _pbpTrFill(st, w2, "cycle-2 translation");
+      assertEq(view.querySelectorAll(".pb-tr").length, 1, "a revision-2 item fills: the fence is not a blanket disable");
+    } finally {
+      _pbpTrState = saved;
+      view.remove();
+    }
+  });
+});
+
+suiteIf("T4 dict: article replacement", "pbpDictOnArticle", () => {
+  test("article-replaced re-derives owner and drops per-document language state", () => {
+    const savedOwner = _pbpDictOwner, savedLang = _pbpDictManualLang, savedPrior = _pbpDictArticlePrior;
+    try {
+      _pbpDictOwner = "someone-else";
+      _pbpDictManualLang = "de";
+      _pbpDictArticlePrior = Promise.resolve({ lang: "de", reliable: true });
+      _t4FireQuiet("pbp:article-replaced", 1);
+      assertEq(_pbpDictManualLang, "", "manual language override is per-document");
+      assertEq(_pbpDictArticlePrior, null, "article CLD prior is per-document too");
+      assertEq(_pbpDictOwner, pbpDictOwnerScope(""), "owner re-derived from the event's account");
+      _pbpDictManualLang = "fr";
+      _t4FireQuiet("pbp:article-replaced", 2);
+      assertEq(_pbpDictManualLang, "", "and again on the next replacement: not a once-only listener");
+    } finally {
+      _pbpDictOwner = savedOwner; _pbpDictManualLang = savedLang; _pbpDictArticlePrior = savedPrior;
+    }
+  });
+
+  test("will-replace aborts the in-flight lookup and drops the current entry", () => {
+    const savedCtrl = _pbpDictChildCtrl, savedCur = _pbpDictCurrent, savedTarget = _pbpDictSaveTarget;
+    try {
+      const ctrl = new AbortController();
+      _pbpDictChildCtrl = ctrl;
+      _pbpDictCurrent = { term: "old", owner: "ownerless" };
+      _pbpDictSaveTarget = { itemId: "old-item" };
+      assertEq(ctrl.signal.aborted, false, "control: the lookup starts un-aborted");
+      _t4FireQuiet("pbp:article-will-replace", 1);
+      assertEq(ctrl.signal.aborted, true, "dictionary lookup aborted");
+      assertEq(_pbpDictCurrent, null, "current entry dropped: its sentence came from the old article");
+      assertEq(_pbpDictSaveTarget, null, "save target dropped: it points at an old Range/highlight");
+    } finally {
+      _pbpDictChildCtrl = savedCtrl; _pbpDictCurrent = savedCur; _pbpDictSaveTarget = savedTarget;
+    }
+  });
+});
+
+suiteIf("T4 explain popover: article replacement", "_pbpAskOnArticleWillReplace", () => {
+  test("a PINNED card is force-closed, unpinned, aborted, and its captured selection dropped", () => {
+    const savedPop = _pbpExplainPopEl, savedPinned = _pbpExplainPinned, savedAbort = _pbpExplainAbort;
+    const savedCap = _pbpExplainCap, savedCtx = _pbpExplainCtx, savedSave = _pbpExplainSaveTarget;
+    const savedAns = _pbpExplainAnswerText;
+    const pop = document.createElement("div");
+    pop.setAttribute("popover", "manual");
+    document.body.appendChild(pop);
+    try {
+      pop.showPopover();
+      _pbpExplainPopEl = pop;
+      _pbpExplainSetPinned(pop, true);
+      const ctrl = new AbortController();
+      _pbpExplainAbort = ctrl;
+      _pbpExplainCap = { text: "old term", range: document.createRange() };
+      _pbpExplainCtx = { blockText: "old block text" };
+      _pbpExplainSaveTarget = { itemId: "old" };
+      assertEq(pop.matches(":popover-open"), true, "control: the card starts open");
+      assertEq(_pbpExplainPinned, true, "control: and PINNED (a dismiss-if-unpinned would leave it up)");
+      _t4Fire("pbp:article-will-replace", 9);
+      assertEq(pop.matches(":popover-open"), false, "pinned card force-closed");
+      assertEq(_pbpExplainPinned, false, "pin state released");
+      assertEq(ctrl.signal.aborted, true, "in-flight explain/dict request aborted");
+      assertEq(_pbpExplainAbort, null, "controller dropped");
+      assertEq(_pbpExplainCap, null, "captured selection (old Range) dropped");
+      assertEq(_pbpExplainCtx, null, "packed context dropped");
+      assertEq(_pbpExplainSaveTarget, null, "save-as-note target dropped");
+    } finally {
+      pop.remove();
+      _pbpExplainPopEl = savedPop; _pbpExplainPinned = savedPinned; _pbpExplainAbort = savedAbort;
+      _pbpExplainCap = savedCap; _pbpExplainCtx = savedCtx; _pbpExplainSaveTarget = savedSave;
+      _pbpExplainAnswerText = savedAns;
+    }
+  });
+});
+
+suiteIf("T4 ask: citations after a replacement", "_pbpAskOnArticleReplaced", () => {
+  test("completed answers survive, their chips go stale, and [Pn] leaves the prompt history", () => {
+    const root = document.createElement("div");
+    root.innerHTML = "<p>alpha beta gamma</p><p>second block text</p>";
+    pbpAiIndexBlocks(root);
+    const host = document.createElement("div");
+    const thread = document.createElement("div");
+    thread.id = "ask-thread";
+    host.appendChild(thread);
+    document.body.appendChild(host);
+    const saved = _pbpAskState;
+    try {
+      const aEl = document.createElement("div");
+      aEl.className = "ask-a";
+      aEl.dataset.askQuestion = "what is alpha?";
+      thread.appendChild(aEl);
+      _pbpAskFinalize(aEl, "Claim [P1] and [P2] end.");
+      _pbpAskState = {
+        rounds: [{ q: "what is alpha?", a: "Claim [P1] and [P2] end." }],
+        records: [{ q: "what is alpha?", a: "Claim [P1] and [P2] end.", blocksHash: "old" }],
+        ctx: { text: "old context" }, running: false, ctrl: null
+      };
+      const chips = Array.from(aEl.querySelectorAll(".ask-chip"));
+      assert(chips.length >= 2, "control: the finished answer carries citation chips");
+      assertEq(chips.some((c) => c.disabled), false, "control: chips start clickable");
+      _t4FireQuiet("pbp:article-replaced", 4);
+      assert(thread.contains(aEl), "the completed answer is NOT cleared from the thread");
+      assertEq(chips.every((c) => c.disabled && c.classList.contains("stale")), true,
+        "every chip is stale + disabled: it indexes a block list that no longer exists");
+      assertEq(_pbpAskState.rounds[0].a.indexOf("[P1]"), -1, "prompt history no longer teaches dead indexes");
+      assert(_pbpAskState.rounds[0].a.indexOf("Claim") !== -1, "the prose itself survives the strip");
+      assert(_pbpAskState.records[0].a.indexOf("[P1]") !== -1,
+        "persisted records untouched: their blocksHash is what makes the NEXT restore detect the drift");
+    } finally {
+      _pbpAskState = saved;
+      host.remove();
+      const clear = document.getElementById("ask-clear");
+      if (clear) clear.remove();
+    }
+  });
+});
+</script>
+
+<script>
+// ============ T4 (async): parked translate run + ask stream + history ============
+(async function () {
+  const host = document.createElement("div");
+  host.className = "suite";
+  const h = document.createElement("h2");
+  h.textContent = "T4 async: no auto-spend, ask stream abort semantics, history restore";
+  host.appendChild(h);
+  document.getElementById("results").appendChild(host);
+  function report(name, err) {
+    const div = document.createElement("div");
+    if (!err) { PASS++; div.className = "case pass"; div.textContent = "PASS " + name; }
+    else { FAIL++; div.className = "case fail"; div.textContent = "FAIL " + name + "\n  " + err.message; }
+    host.appendChild(div);
+  }
+  async function atest(name, fn) { try { await fn(); report(name); } catch (e) { report(name, e); } }
+  if (typeof _pbpAskRun !== "function" || typeof _pbpAskOnArticleWillReplace !== "function"
+      || typeof _pbpTrOnArticleWillReplace !== "function") {
+    const div = document.createElement("div");
+    div.className = "case skip";
+    div.textContent = "SKIP T4 async (replacement handlers not loaded)";
+    host.appendChild(div); SKIP++; return;
+  }
+
+  await atest("a translate run parked on the work build issues no request after a replacement", async () => {
+    const saved = _pbpTrState;
+    const savedStream = window.callAIStream;
+    const sec = document.createElement("div");
+    sec.id = "tr-section";
+    document.body.appendChild(sec);
+    const st = _t4TrState("https://example.test/t4-parked-" + Date.now());
+    _pbpTrState = st;
+    // Without the fence the run proceeds to real requests; keep that bounded.
+    window.callAIStream = () => Promise.reject(new Error("no network in tests"));
+    try {
+      let release;
+      st.workReady = new Promise((r) => { release = r; });
+      const runP = _pbpTrStart(st);
+      assertEq(st.running, true, "control: the run claimed itself and parked on the build");
+      assertEq(st.ctrl, null, "control: no controller yet -- it is created after the build");
+      _t4FireQuiet("pbp:article-will-replace", 1);
+      // A non-empty queue on the far side of the await, so only the revision
+      // fence can stop this run from spending tokens.
+      st.work = [_t4Work(1, "gamma one paragraph", st.rev)];
+      release();
+      await runP;
+      assertEq(st.ctrl, null, "no AbortController was ever created: no request left the page");
+      assertEq(st.running, false, "run released so the reader can translate the new article by hand");
+    } finally {
+      _pbpTrState = saved;
+      window.callAIStream = savedStream;
+      sec.remove();
+    }
+  });
+
+  const PARTIAL = "**Partial** answer so far";
+  function mkThread() {
+    const wrap = document.createElement("div");
+    const thread = document.createElement("div");
+    thread.id = "ask-thread";
+    wrap.appendChild(thread);
+    document.body.appendChild(wrap);
+    return { wrap, thread };
+  }
+  function mkAskState(url) {
+    return {
+      s: { aiProvider: "gemini" },
+      url, title: "T4 transcript", account: "", forum: false,
+      panel: null, ctx: { text: "context", sent: [], sentBlocks: 1, totalBlocks: 1 },
+      rounds: [], records: [], running: false, ctrl: null
+    };
+  }
+  function mkAnswerEl(thread, question) {
+    const aEl = document.createElement("div");
+    aEl.className = "ask-a streaming";
+    aEl.dataset.askQuestion = question;
+    thread.appendChild(aEl);
+    return aEl;
+  }
+  // Streams one delta, then hangs until the caller's AbortSignal fires.
+  function streamUntilAbort() {
+    return (s, prompt, opts, onDelta) => new Promise((resolve, reject) => {
+      onDelta("Partial ", PARTIAL);
+      opts.signal.addEventListener("abort", () => {
+        const err = new Error("aborted");
+        err.name = "AbortError";
+        reject(err);
+      });
+    });
+  }
+  function askCleanup(bits, savedState, savedStream) {
+    _pbpAskState = savedState;
+    window.callAIStream = savedStream;
+    bits.wrap.remove();
+    const clear = document.getElementById("ask-clear");
+    if (clear) clear.remove();
+  }
+
+  await atest("user Stop finalizes the partial answer into the thread", async () => {
+    const bits = mkThread();
+    const saved = _pbpAskState, savedStream = window.callAIStream;
+    const st = mkAskState("https://example.test/t4-stop-" + Date.now());
+    _pbpAskState = st;
+    window.callAIStream = streamUntilAbort();
+    try {
+      const aEl = mkAnswerEl(bits.thread, "stop question");
+      const p = _pbpAskRun("stop question", aEl);
+      assert(st.ctrl && !st.ctrl.signal.aborted, "control: the stream is running");
+      st.ctrl.abort();                            // the Stop button's exact action
+      await p;
+      assert(aEl.querySelector("strong"), "Stop renders the partial as markdown: finalize ran");
+      assertEq(aEl.dataset.askStopped, "1", "stopped flag set so a later Regenerate appends");
+      assert(aEl.querySelector(".ask-stopped"), "stopped note appended");
+      assertEq(st.rounds.length, 0, "a stopped partial still never enters the prompt history");
+    } finally {
+      askCleanup(bits, saved, savedStream);
+    }
+  });
+
+  await atest("an article replacement aborts the stream WITHOUT finalizing it", async () => {
+    const bits = mkThread();
+    const saved = _pbpAskState, savedStream = window.callAIStream;
+    const st = mkAskState("https://example.test/t4-replace-" + Date.now());
+    _pbpAskState = st;
+    window.callAIStream = streamUntilAbort();
+    try {
+      const aEl = mkAnswerEl(bits.thread, "replaced question");
+      const p = _pbpAskRun("replaced question", aEl);
+      assert(st.ctrl && !st.ctrl.signal.aborted, "control: the stream is running");
+      _t4FireQuiet("pbp:article-will-replace", 21);
+      await p;
+      assertEq(aEl.querySelector("strong"), null, "no markdown render: the partial was not finalized");
+      assertEq(aEl.querySelector(".ask-copy-btn"), null, "no copy button: decorate never ran");
+      assertEq(aEl.querySelector(".ask-chip"), null, "no citation chips resolved against the NEW article");
+      assertEq(aEl.dataset.askStopped, undefined, "no stopped flag: this round is not a regenerable one");
+      assert(aEl.textContent.indexOf(PARTIAL) !== -1, "what already streamed stays visible, inert");
+      assert(aEl.querySelector(".ask-stopped"), "the reader is still told the answer stopped");
+      assertEq(st.rounds.length, 0, "nothing entered the prompt history");
+      assertEq(st.records.length, 0, "nothing entered the persisted records");
+      assertEq(st.ctx, null, "context dropped: the next question is built from the new article");
+    } finally {
+      askCleanup(bits, saved, savedStream);
+    }
+  });
+
+  await atest("a stream that RESOLVES after the replacement is neither finalized nor persisted", async () => {
+    const bits = mkThread();
+    const saved = _pbpAskState, savedStream = window.callAIStream;
+    const st = mkAskState("https://example.test/t4-race-" + Date.now());
+    _pbpAskState = st;
+    let finish;
+    // The abort loses the race: the provider's last chunk had already arrived.
+    window.callAIStream = (s, prompt, opts, onDelta) => new Promise((resolve) => {
+      onDelta("Partial ", PARTIAL);
+      finish = () => resolve(PARTIAL);
+    });
+    try {
+      const aEl = mkAnswerEl(bits.thread, "race question");
+      const p = _pbpAskRun("race question", aEl);
+      _t4FireQuiet("pbp:article-will-replace", 31);
+      _t4FireQuiet("pbp:article-replaced", 31);
+      finish();
+      await p;
+      assertEq(aEl.querySelector("strong"), null, "no markdown render: the answer was not finalized");
+      assertEq(st.rounds.length, 0, "no round recorded for an article that is gone");
+      assertEq(st.records.length, 0, "nothing persisted");
+    } finally {
+      askCleanup(bits, saved, savedStream);
+    }
+  });
+
+  await atest("a SECOND replacement fences the next stream too (handlers are not once-only)", async () => {
+    const bits = mkThread();
+    const saved = _pbpAskState, savedStream = window.callAIStream;
+    const st = mkAskState("https://example.test/t4-twice-" + Date.now());
+    _pbpAskState = st;
+    window.callAIStream = streamUntilAbort();
+    try {
+      const first = mkAnswerEl(bits.thread, "first question");
+      const p1 = _pbpAskRun("first question", first);
+      _t4FireQuiet("pbp:article-will-replace", 41);
+      _t4FireQuiet("pbp:article-replaced", 41);
+      await p1;
+      st.ctx = { text: "second context", sent: [], sentBlocks: 1, totalBlocks: 1 };
+      const second = mkAnswerEl(bits.thread, "second question");
+      const p2 = _pbpAskRun("second question", second);
+      assert(st.ctrl && !st.ctrl.signal.aborted, "control: a new question runs normally after a replacement");
+      _t4FireQuiet("pbp:article-will-replace", 42);
+      await p2;
+      assertEq(second.querySelector("strong"), null, "the second cycle also refuses to finalize");
+      assertEq(st.rounds.length, 0, "still nothing in the prompt history");
+      assertEq(st.ctx, null, "and the context was dropped again");
+    } finally {
+      askCleanup(bits, saved, savedStream);
+    }
+  });
+
+  await atest("a history restore in flight when the article changes bails and re-runs", async () => {
+    const root = document.createElement("div");
+    root.innerHTML = "<p>alpha beta gamma</p><p>second block text</p>";
+    pbpAiIndexBlocks(root);
+    const bits = mkThread();
+    const saved = _pbpAskState;
+    const savedUrl = _pbpAskHistUrl, savedAcct = _pbpAskHistAccount, savedFlag = _pbpAskHistRestored;
+    const url = "https://example.test/t4-hist-" + Date.now() + "-" + Math.random();
+    try {
+      await pbpAskHistAppend(url, { q: "q1", a: "Answer [P1] one.", blocksHash: "old-fp" }, "");
+      await pbpAskHistAppend(url, { q: "q2", a: "Answer [P1] two.", blocksHash: "old-fp" }, "");
+      _pbpAskState = mkAskState(url);
+      _pbpAskHistUrl = url;
+      _pbpAskHistAccount = "";
+      _pbpAskHistRestored = false;
+      const inflight = _pbpAskHistRestore();
+      _t4FireQuiet("pbp:article-will-replace", 51);   // lands while the IDB read is out
+      await inflight;
+      assertEq(bits.thread.querySelector(".ask-restored"), null,
+        "the fragment built for the old article was never inserted");
+      assertEq(_pbpAskHistRestored, false, "the single-shot flag was released for a re-run");
+      _t4FireQuiet("pbp:article-replaced", 51);       // which the replaced handler performs
+      for (let i = 0; i < 300 && !bits.thread.querySelector(".ask-restored"); i++) {
+        await new Promise((r) => setTimeout(r, 10));
+      }
+      assert(bits.thread.querySelector(".ask-restored"), "history restored against the NEW article");
+      assertEq(bits.thread.querySelectorAll(".ask-a").length, 2, "both rounds restored exactly once");
+      const chips = Array.from(bits.thread.querySelectorAll(".ask-chip"));
+      assert(chips.length > 0, "control: the restored answers carry chips");
+      assertEq(chips.every((c) => c.disabled), true,
+        "and every one is disabled: the stored fingerprint no longer matches this article");
+    } finally {
+      _pbpAskState = saved;
+      _pbpAskHistUrl = savedUrl; _pbpAskHistAccount = savedAcct; _pbpAskHistRestored = savedFlag;
+      bits.wrap.remove();
+      const clear = document.getElementById("ask-clear");
+      if (clear) clear.remove();
+    }
   });
 })();
 </script>
