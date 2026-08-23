@@ -386,8 +386,21 @@ async function _echoReadEnabled() {
   return s.dictEchoEnabled === true;
 }
 
-document.addEventListener("pbp:rendered", (e) => {
-  const owner = pbpDictOwnerScope(e && e.detail ? e.detail.account : "");
+// One handler for both "the first article finished rendering" (pbp:rendered)
+// and "the article was replaced in place" (pbp:article-replaced, dispatched by
+// md-preview.js after a video track switch / AI punctuation pass / promotion
+// swaps #rendered-view's children). It needs no replacement-specific
+// machinery: everything it does is already a rebuild from scratch --
+// synchronous invalidation (epoch bump, disable, clear, disconnect) followed
+// by a fresh owner-scoped term read -- which is exactly what a new article
+// wants. The frozen event detail carries the same `account` field, so owner
+// isolation is re-derived per article rather than inherited.
+//
+// No will-replace handler on purpose: the two events arrive back to back in
+// ONE synchronous task, so nothing of this module's can run in between, and
+// the clear below happens before any of the new DOM is ever scanned.
+function _echoOnArticle(detail) {
+  const owner = pbpDictOwnerScope(detail ? detail.account : "");
   const readSeq = ++_echoReadSeq;
   // SYNCHRONOUS invalidation before any await: the old owner's idle queue
   // must die NOW, not after the settings read resolves (Codex plan-review
@@ -407,7 +420,12 @@ document.addEventListener("pbp:rendered", (e) => {
     _echoEnabled = on;
     if (on) _echoRestart();
   }).catch(() => {});
-});
+}
+
+document.addEventListener("pbp:rendered", (e) => _echoOnArticle((e && e.detail) || null));
+// Deliberately NOT {once:true}: one page life can see any number of
+// replacements (track switch, AI punctuation, promotion).
+document.addEventListener("pbp:article-replaced", (e) => _echoOnArticle((e && e.detail) || null));
 
 document.addEventListener("pbp:vocab-changed", (e) => {
   const owner = e && e.detail ? e.detail.owner : "";

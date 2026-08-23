@@ -579,6 +579,43 @@ _pbpDictManualLang = "en";
 document.dispatchEvent(new CustomEvent("pbp:rendered", { detail: { account: "" } }));
 assertEq(_pbpDictManualLang, "", "pbp:rendered resets the override (never carried across documents)");
 
+// The reader can replace the article IN PLACE (video track switch, AI
+// punctuation pass, first-authorization promotion): md-preview.js swaps
+// #rendered-view's children and dispatches pbp:article-replaced. Vocab echo
+// subscribes with the SAME handler it uses for the first render -- these cases
+// pin the synchronous half of that rebuild, which is the half that has to run
+// before any of the new DOM is scanned.
+section("vocab echo: article replacement");
+{
+  const savedOwner = _echoOwner, savedEnabled = _echoEnabled, savedEpoch = _echoEpoch, savedTotal = _echoTotal;
+  try {
+    // State as an ACTIVE scan of the outgoing article would leave it.
+    _echoOwner = "someone-else";
+    _echoEnabled = true;
+    _echoTotal = 3;
+    _echoRanges.set("o1", []);
+    _echoDirty.add("o1");
+    const epochBefore = _echoEpoch;
+    document.dispatchEvent(new CustomEvent("pbp:article-replaced", { detail: { account: "" } }));
+    assertEq(_echoEpoch, epochBefore + 1, "epoch bumped: the outgoing article's idle queue can never resume");
+    assertEq(_echoEnabled, false, "suspended synchronously, before the settings read even starts");
+    assertEq(_echoRanges.size, 0, "ranges into the replaced DOM dropped immediately, not 400ms later");
+    assertEq(_echoTotal, 0, "and the draw budget released with them");
+    assertEq(_echoDirty.size, 0, "pending dirty keys dropped too");
+    assertEq(_echoOwner, pbpDictOwnerScope(""), "owner re-derived from the event account, never inherited");
+    const epochMid = _echoEpoch;
+    _echoOwner = "another-owner";
+    _echoEnabled = true;
+    document.dispatchEvent(new CustomEvent("pbp:article-replaced", { detail: { account: "" } }));
+    assertEq(_echoEpoch, epochMid + 1, "a SECOND replacement is handled too: the listener is not once-only");
+    assertEq(_echoEnabled, false, "and suspends again");
+    assertEq(_echoOwner, pbpDictOwnerScope(""), "re-deriving the owner every time");
+  } finally {
+    _echoOwner = savedOwner; _echoEnabled = savedEnabled; _echoEpoch = savedEpoch; _echoTotal = savedTotal;
+    _echoRanges.clear(); _echoDirty.clear();
+  }
+}
+
 async function runDictNetworkTests() {
   section("dictionary abort causes / circuit runtime");
   const parent = new AbortController();

@@ -1532,6 +1532,35 @@ function _pbpCopyCodeInit() {
   document.addEventListener("pbp:rendered", _pbpCopyCodeInject);
 }
 
+// ---- In-place article replacement (video track switch / AI punctuation /
+// first-authorization promotion). md-preview.js replaces #rendered-view's
+// CHILDREN and brackets the swap with pbp:article-will-replace /
+// pbp:article-replaced, sharing ONE frozen detail (never mutate it).
+//
+// Everything one-shot in this file stays exactly as it is, by design rather
+// than by omission: the keyboard, zen and typography handlers are
+// document-level; the footnote click handler and the search observer hang off
+// #rendered-view ITSELF, which survives the swap (only its children are
+// replaced), and the search observer already treats a root-level child swap as
+// its rescan trigger. Only two things in here are per-ARTICLE.
+function _pbpReaderOnArticleWillReplace() {
+  if (!_pbpFnPop) return;
+  // The popover body is a CLONE of a definition <li> from the article being
+  // replaced, and its jump button scrolls to _pbpFnCurrentLi -- about to be a
+  // detached node, i.e. a scroll to nowhere plus a flash on an element that is
+  // no longer in the document.
+  try { _pbpFnPop.hidePopover(); } catch (_) {}
+  _pbpFnCurrentLi = null;
+}
+
+function _pbpReaderOnArticleReplaced() {
+  // The buttons lived inside the article, so the swap took them with it.
+  // Injection is idempotent per <pre> (it skips one that already has a
+  // .pb-copy-code), which is what makes this safe to call after a swap that
+  // completed, half-completed, or threw.
+  try { _pbpCopyCodeInject(); } catch (_) {}
+}
+
 if (typeof document !== "undefined") {
   document.addEventListener("pbp:rendered", () => {
     try { _pbpFnInit(); } catch (_) {}
@@ -1541,4 +1570,8 @@ if (typeof document !== "undefined") {
     try { _pbpTypoInit(); } catch (_) {}
     try { _pbpCopyCodeInit(); } catch (_) {}
   }, { once: true });
+  // Deliberately NOT {once:true}: one page life can see any number of
+  // replacements (track switch, AI punctuation, promotion).
+  document.addEventListener("pbp:article-will-replace", _pbpReaderOnArticleWillReplace);
+  document.addEventListener("pbp:article-replaced", _pbpReaderOnArticleReplaced);
 }

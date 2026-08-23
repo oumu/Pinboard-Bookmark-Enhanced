@@ -7982,8 +7982,544 @@ suiteIf("T4 ask: citations after a replacement", "_pbpAskOnArticleReplaced", () 
 </script>
 
 <script>
+// ============================================================
+// Task 5: article-replacement lifecycle in skim / highlight / reader.
+// Same producer contract as the T4 suites above: ONE frozen detail shared by
+// pbp:article-will-replace and pbp:article-replaced, dispatched back to back
+// in a single synchronous task with only the DOM swap + index rebuild between
+// them. These suites dispatch the REAL events, so "the handler is registered,
+// and is not once-only" is part of what is under test.
+// ============================================================
+
+// Unlike _t4Detail, the reason is a parameter: it is the whole subject of the
+// highlight suite (the punctuation-tolerant tier keys strictly on it).
+function _t5Detail(rev, reason) {
+  return Object.freeze({
+    revision: rev, reason: reason || "video-track-switch",
+    url: "https://example.test/t5", title: "T5 transcript", forum: false, account: ""
+  });
+}
+// Neutralizes the two surfaces OTHER suites on this page keep alive across
+// awaits and would be broken by an unrelated teardown: md-ask's explain
+// popover (a pinned one, see _t4FireQuiet) and md-highlight's card globals
+// (the dirty-note race suite owns them mid-await, and our will-handler both
+// commits the note and clears the binding). Tests that are actually about the
+// card use _t5FireCard below instead.
+function _t5FireCard(name, rev, reason) {
+  // Explain-popover half neutralized exactly as _t4FireQuiet does it.
+  const pop = _pbpExplainPopEl, pinned = _pbpExplainPinned, abort = _pbpExplainAbort;
+  const cap = _pbpExplainCap, ctx = _pbpExplainCtx, tgt = _pbpExplainSaveTarget, ans = _pbpExplainAnswerText;
+  _pbpExplainPopEl = null;
+  _pbpExplainAbort = null;
+  try {
+    document.dispatchEvent(new CustomEvent(name, { detail: _t5Detail(rev, reason) }));
+  } finally {
+    _pbpExplainPopEl = pop; _pbpExplainPinned = pinned; _pbpExplainAbort = abort;
+    _pbpExplainCap = cap; _pbpExplainCtx = ctx; _pbpExplainSaveTarget = tgt; _pbpExplainAnswerText = ans;
+  }
+}
+function _t5Fire(name, rev, reason) {
+  const card = _pbpHlCard, cardId = _pbpHlCardItemId, dirty = _pbpHlNoteDirty, base = _pbpHlCardBaseNote;
+  _pbpHlCard = null;
+  _pbpHlCardItemId = null;
+  _pbpHlNoteDirty = false;
+  try {
+    _t5FireCard(name, rev, reason);
+  } finally {
+    _pbpHlCard = card; _pbpHlCardItemId = cardId; _pbpHlNoteDirty = dirty; _pbpHlCardBaseNote = base;
+  }
+}
+// Prepended for the same reason _t4View prepends: another suite may already
+// own the #rendered-view id and getElementById takes the first match.
+function _t5View(html) {
+  const view = document.createElement("div");
+  view.id = "rendered-view";
+  view.innerHTML = html;
+  document.body.insertBefore(view, document.body.firstChild);
+  pbpAiIndexBlocks(view);
+  return view;
+}
+function _t5Swap(view, html) {
+  view.innerHTML = html;          // md-preview.js replaces #rendered-view's CHILDREN
+  pbpAiIndexBlocks(view);         // ...and rebuilds the AI block index BEFORE article-replaced
+}
+
+// ============ T5: pbpHlPunctTolerantFind (pure) ============
+suiteIf("T5 pbpHlPunctTolerantFind (AI-punctuation tolerant anchor)", "pbpHlPunctTolerantFind", () => {
+  test("punctuation-only diff -> REAL offsets covering the punctuated span", () => {
+    const article = "so the model runs; then it stops. and we wait";
+    const r = pbpHlPunctTolerantFind(article, "the model runs then it stops");
+    assert(r, "found");
+    assertEq(article.slice(r.start, r.end), "the model runs; then it stops",
+      "offsets index the REAL text, marks included -- not the reduced stream");
+    assertEq(article[r.start], "t", "starts on the quote's first non-punctuation character");
+    assertEq(article[r.end - 1], "s", "and ends on its last: no trailing '.' swallowed");
+  });
+
+  test("ambiguous reduced match -> null (never guesses between two candidates)", () => {
+    assertEq(pbpHlPunctTolerantFind("it stops. and later, it stops again", "it stops"), null,
+      "two occurrences -> refuse");
+    assert(pbpHlPunctTolerantFind("it stops. and later we wait", "it stops"),
+      "control: the same quote resolves when it occurs exactly once");
+  });
+
+  test("a changed non-punctuation character -> null (this tier is not fuzzy)", () => {
+    assertEq(pbpHlPunctTolerantFind("the model runs, then it halts.", "the model runs then it stops"), null,
+      "one different word is a different sentence, not a punctuation edit");
+    assertEq(pbpHlPunctTolerantFind("the model run; then it stops.", "the model runs then it stops"), null,
+      "a single dropped letter is enough to refuse");
+  });
+
+  test("CJK: inserted marks map back to the right characters", () => {
+    // "今天天气很好，我们去公园吧？" -- the AI pass inserted the comma and the
+    // question mark into a transcript that had neither.
+    const article = "今天天气很好，我们去公园吧？";
+    const quote = "天气很好我们去公园"; // "天气很好我们去公园", spanning the comma
+    const r = pbpHlPunctTolerantFind(article, quote);
+    assert(r, "found across the inserted comma");
+    assertEq(article.slice(r.start, r.end),
+      "天气很好，我们去公园",
+      "a mark INSIDE the span is covered; the trailing one is not");
+    const q2 = "今天天气"; // "今天天气" -- prefix, ends before any mark
+    const r2 = pbpHlPunctTolerantFind(article, q2);
+    assert(r2, "prefix quote found");
+    assertEq(article.slice(r2.start, r2.end), q2, "no punctuation to absorb -> exact span");
+  });
+
+  test("a quote made entirely of punctuation -> null (indexOf('') would answer 0)", () => {
+    assertEq(pbpHlPunctTolerantFind("hello world", "..."), null, "nothing left to match on");
+    assertEq(pbpHlPunctTolerantFind("hello world", "   "), null, "whitespace-only likewise");
+    assertEq(pbpHlPunctTolerantFind("...", "hello"), null, "and an all-punctuation TEXT matches nothing");
+    // Straight at the scanner: without its own empty-quote guard this reports
+    // "2 occurrences" (indexOf("") answers 0, then 1) instead of "no match".
+    // Both refuse, but only one of them means what it says.
+    assertEq(_pbpHlPunctScan("hello world", "...").count, 0, "zero occurrences, not an ambiguity");
+  });
+
+  test("non-string / empty inputs -> null", () => {
+    assertEq(pbpHlPunctTolerantFind(null, "quote"), null, "no text");
+    assertEq(pbpHlPunctTolerantFind("some text", null), null, "no quote");
+    assertEq(pbpHlPunctTolerantFind("", ""), null, "both empty");
+  });
+
+  test("the quote may carry marks the ARTICLE lacks (works in either direction)", () => {
+    const article = "chapter two the long march begins";
+    const r = pbpHlPunctTolerantFind(article, "two, the long march");
+    assert(r, "found");
+    assertEq(article.slice(r.start, r.end), "two the long march",
+      "real offsets always follow the article's own punctuation");
+  });
+
+  test("pbpHlPunctReduce: the map is what makes the offsets real", () => {
+    const red = pbpHlPunctReduce("a, b. c");
+    assertEq(red.reduced, "abc", "marks and whitespace dropped");
+    assertEq(red.map.join(","), "0,3,6", "each survivor remembers where it came from");
+  });
+
+  test("pbpHlPunctTolerantLocate: unique across the WHOLE pool, or nothing", () => {
+    const blocks = [{ n: 1, text: "the rain, in spain" }, { n: 2, text: "stays mainly. in the plain" }];
+    const hit = pbpHlPunctTolerantLocate(blocks, { quote: "stays mainly in the plain" });
+    assert(hit, "found");
+    assertEq(hit.n, 2, "reports the block it lives in");
+    assertEq(blocks[1].text.slice(hit.start, hit.end), "stays mainly. in the plain", "offsets are block-local");
+    assertEq(pbpHlPunctTolerantLocate(
+      [{ n: 1, text: "one two three" }, { n: 2, text: "one, two three" }],
+      { quote: "one two three" }), null,
+      "the same reduced quote in two DIFFERENT blocks is an ambiguity, not a first-wins");
+    assertEq(pbpHlPunctTolerantLocate(blocks, { quote: "" }), null, "empty quote");
+    assertEq(pbpHlPunctTolerantLocate(null, { quote: "anything" }), null, "no pool");
+  });
+});
+</script>
+
+<script>
+// ============ T5 highlight: re-anchoring across a replacement (DOM) ============
+suiteIf("T5 highlight: article replacement", "_pbpHlOnArticleReplaced", () => {
+  const OLD = "<p>so the model runs then it stops</p><p>we wait for the next batch</p>";
+  const PUNCT = "<p>So, the model runs; then it stops.</p><p>We wait for the next batch.</p>";
+  const QUOTE = "the model runs then it stops";
+
+  function setup() {
+    // Test isolation: the tolerant tier is armed per REVISION and this counter
+    // is module-wide, so a previous case's arm must not leak into the next.
+    _pbpHlPunctArmedRev = -1;
+    const view = _t5View(OLD);
+    _pbpHlState = {
+      url: "https://example.test/t5", title: "T5",
+      // fp deliberately not the current one: that is what a replaced article
+      // looks like, and it routes the item straight to the global search.
+      items: [{ id: "t5a", n: pbpAiBlocks()[0].n, quote: QUOTE, prefix: "so ", suffix: "", color: 1, note: "", ts: 1, fp: "stale-fp" }],
+      ranges: Object.create(null), degraded: Object.create(null),
+      resolvedN: Object.create(null), orphans: Object.create(null),
+    };
+    pbpHlRestore();
+    return view;
+  }
+  function teardown(view) {
+    if (typeof CSS !== "undefined" && CSS.highlights) {
+      for (const c of [1, 2, 3, 4, 5]) CSS.highlights.delete("pbp-hl-" + c);
+    }
+    _pbpHlState = null;
+    view.remove();
+  }
+
+  test("AI punctuation: a highlight whose quote gained marks is re-anchored, precisely", () => {
+    if (typeof Highlight !== "function") return; // runner is Chromium; mirrors pbpHlRestore's own guard
+    const view = setup();
+    try {
+      assert(_pbpHlState.ranges.t5a, "control: painted against the unpunctuated article");
+      assertEq(_pbpHlState.ranges.t5a.range.toString(), QUOTE, "control: exactly the quote");
+      _t5Fire("pbp:article-will-replace", 1, "video-ai-punctuation");
+      _t5Swap(view, PUNCT);
+      _t5Fire("pbp:article-replaced", 1, "video-ai-punctuation");
+      assert(_pbpHlState.ranges.t5a, "re-anchored after the swap");
+      assertEq(!!_pbpHlState.orphans.t5a, false, "and not orphaned");
+      assertEq(_pbpHlState.ranges.t5a.range.toString(), "the model runs; then it stops",
+        "the Range covers the punctuated span, mark included");
+      assertEq(_pbpHlState.degraded.t5a, undefined,
+        "a precise Range, not a whole-block degrade");
+      assertEq(_pbpHlState.items[0].quote, QUOTE, "the stored quote is never rewritten");
+    } finally { teardown(view); }
+  });
+
+  test("track switch: the SAME unmatched quote orphans instead (the reason is the whole gate)", () => {
+    if (typeof Highlight !== "function") return;
+    const view = setup();
+    try {
+      assert(_pbpHlState.ranges.t5a, "control: painted before the switch");
+      _t5Fire("pbp:article-will-replace", 1, "video-track-switch");
+      _t5Swap(view, PUNCT);   // byte-identical to the punctuation case: only the reason differs
+      _t5Fire("pbp:article-replaced", 1, "video-track-switch");
+      assertEq(!!_pbpHlState.ranges.t5a, false, "not painted");
+      assertEq(_pbpHlState.orphans.t5a, true, "orphaned -- the Notebook shows it, the article does not");
+      assertEq(_pbpHlState.degraded.t5a, undefined, "and never degraded onto a whole wrong block");
+    } finally { teardown(view); }
+  });
+
+  test("track switch to another language never mis-anchors", () => {
+    if (typeof Highlight !== "function") return;
+    const view = setup();
+    try {
+      _t5Fire("pbp:article-will-replace", 1, "video-track-switch");
+      _t5Swap(view, "<p>模型先运行，然后停下。</p>");
+      _t5Fire("pbp:article-replaced", 1, "video-track-switch");
+      assertEq(_pbpHlState.orphans.t5a, true, "an English quote has no home in a Chinese track");
+    } finally { teardown(view); }
+  });
+
+  test("two replacement cycles: the tolerance re-arms, and a later track switch disarms it", () => {
+    if (typeof Highlight !== "function") return;
+    const view = setup();
+    try {
+      _t5Fire("pbp:article-will-replace", 1, "video-ai-punctuation");
+      _t5Swap(view, PUNCT);
+      _t5Fire("pbp:article-replaced", 1, "video-ai-punctuation");
+      assert(_pbpHlState.ranges.t5a, "cycle 1 painted");
+      // Cycle 2, a SECOND punctuation pass with different marks.
+      _t5Fire("pbp:article-will-replace", 2, "video-ai-punctuation");
+      _t5Swap(view, "<p>So, the model runs; then, it stops!</p><p>We wait -- for the next batch.</p>");
+      _t5Fire("pbp:article-replaced", 2, "video-ai-punctuation");
+      assert(_pbpHlState.ranges.t5a, "cycle 2 painted too: not a one-shot handler");
+      assertEq(_pbpHlState.ranges.t5a.range.toString(), "the model runs; then, it stops",
+        "and re-derived against cycle 2's marks");
+      // Cycle 3: a track switch. Nothing about the DOM changes, only the reason
+      // -- so the ONLY thing that can orphan the item is the arm expiring.
+      _t5Fire("pbp:article-will-replace", 3, "video-track-switch");
+      _t5Fire("pbp:article-replaced", 3, "video-track-switch");
+      assertEq(_pbpHlState.orphans.t5a, true, "the arm did not survive the next replacement");
+    } finally { teardown(view); }
+  });
+
+  test("an item that still matches literally is untouched by any of this", () => {
+    if (typeof Highlight !== "function") return;
+    const view = setup();
+    try {
+      _t5Fire("pbp:article-will-replace", 1, "video-track-switch");
+      _t5Swap(view, "<p>a new opening line</p><p>so the model runs then it stops</p>");
+      _t5Fire("pbp:article-replaced", 1, "video-track-switch");
+      assert(_pbpHlState.ranges.t5a, "exact global relocation still works with the tier disarmed");
+      assertEq(_pbpHlState.ranges.t5a.range.toString(), QUOTE, "and lands on the quote");
+      assertEq(_pbpHlState.resolvedN.t5a, pbpAiBlocks()[1].n, "relocated to the block that now holds it");
+    } finally { teardown(view); }
+  });
+
+  test("replaced refreshes the Notebook (orphan/degraded verdicts just changed)", () => {
+    if (typeof Highlight !== "function") return;
+    const view = setup();
+    const realRender = _pbpHlNotebookRender;
+    let renders = 0;
+    try {
+      _pbpHlNotebookRender = () => { renders++; };
+      assertEq(renders, 0, "control: nothing has rendered yet");
+      _t5Fire("pbp:article-will-replace", 1, "video-track-switch");
+      _t5Swap(view, PUNCT);
+      _t5Fire("pbp:article-replaced", 1, "video-track-switch");
+      assertEq(renders, 1, "the rail list is re-rendered once per replacement");
+    } finally {
+      _pbpHlNotebookRender = realRender;
+      teardown(view);
+    }
+  });
+
+  test("a replacement that THREW mid-swap still leaves a usable module", () => {
+    if (typeof Highlight !== "function") return;
+    const view = setup();
+    try {
+      // article-replaced fires from md-preview's finally, so the article can be
+      // missing entirely. Everything must degrade to orphan, not throw.
+      _t5Fire("pbp:article-will-replace", 1, "video-ai-punctuation");
+      view.innerHTML = "";
+      pbpAiIndexBlocks(view);
+      _t5Fire("pbp:article-replaced", 1, "video-ai-punctuation");
+      assertEq(_pbpHlState.orphans.t5a, true, "orphaned against an empty pool");
+      assertEq(!!_pbpHlState.ranges.t5a, false, "nothing painted");
+    } finally { teardown(view); }
+  });
+
+  test("the init retry is gated on the page's article runtime having actually started", () => {
+    const savedState = _pbpHlState, savedRendered = _pbpHlRendered, realInit = pbpHlInit;
+    let inits = 0;
+    try {
+      pbpHlInit = async () => { inits++; };
+      _pbpHlState = null;
+      _pbpHlRendered = false;
+      _t5Fire("pbp:article-replaced", 1, "video-track-switch");
+      assertEq(inits, 0,
+        "an empty / extraction-error shell never ran the article runtime: mounting here would half-init the page");
+      _pbpHlRendered = true;
+      _t5Fire("pbp:article-replaced", 2, "video-track-switch");
+      assertEq(inits, 1,
+        "but a page whose article only ARRIVED with the captions gets highlighting for the rest of the session");
+      _pbpHlState = { url: "u", title: "t", items: [], ranges: {}, degraded: {}, resolvedN: {}, orphans: {} };
+      _t5Fire("pbp:article-replaced", 3, "video-track-switch");
+      assertEq(inits, 1, "and once state exists the retry is never attempted again");
+    } finally {
+      pbpHlInit = realInit;
+      _pbpHlState = savedState;
+      _pbpHlRendered = savedRendered;
+    }
+  });
+
+  test("will-replace drops the live selection and the bar's captured Range", () => {
+    if (typeof Highlight !== "function") return;
+    const view = setup();
+    try {
+      const range = document.createRange();
+      range.selectNodeContents(pbpAiBlockEl(pbpAiBlocks()[0].n));
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      const savedBar = _pbpHlBarEl;
+      const bar = document.createElement("div");
+      bar.setAttribute("popover", "auto");
+      document.body.appendChild(bar);
+      bar.showPopover();
+      _pbpHlBarEl = bar;
+      _pbpHlBarRange = range;
+      try {
+        assertEq(sel.rangeCount, 1, "control: a live selection exists");
+        assertEq(bar.matches(":popover-open"), true, "control: the creation bar is up");
+        _t5Fire("pbp:article-will-replace", 1, "video-track-switch");
+        assertEq(window.getSelection().rangeCount, 0,
+          "cleared: every creation path reads it, and it is about to point at detached nodes");
+        assertEq(bar.matches(":popover-open"), false, "the floating creation bar is dismissed");
+        assertEq(_pbpHlBarRange, null, "and its captured Range dropped");
+      } finally {
+        _pbpHlBarEl = savedBar;
+        bar.remove();
+      }
+    } finally { teardown(view); }
+  });
+});
+</script>
+
+<script>
+// ============ T5 skim: never spends on a replacement (DOM) ============
+suiteIf("T5 skim: article replacement", "_pbpSkimOnArticleWillReplace", () => {
+  // The REAL builder, so the mount decision (#video-skim-slot vs .doc-body)
+  // is what the tests see.
+  function mount(videoMode) {
+    const docBody = document.createElement("div");
+    docBody.className = "doc-body";
+    const view = document.createElement("div");
+    view.id = "rendered-view";
+    view.innerHTML = "<p>alpha one paragraph</p><p>alpha two paragraph</p>";
+    if (videoMode) {
+      const slot = document.createElement("div");
+      slot.id = "video-skim-slot";
+      docBody.appendChild(slot);     // the study column's first child
+    }
+    docBody.appendChild(view);
+    document.body.insertBefore(docBody, document.body.firstChild);
+    pbpAiIndexBlocks(view);
+    _pbpSkimBuildSection(view);
+    return { docBody, view, sec: document.getElementById("skim-section") };
+  }
+  function unmount(bits) {
+    bits.docBody.remove();
+    const stray = document.getElementById("skim-section");
+    if (stray) stray.remove();
+  }
+  function state() {
+    return {
+      s: { aiProvider: "ollama", previewAiEnabled: true, previewSkimEnabled: true },
+      url: "https://example.test/t5", title: "T5", forum: false,
+      section: null, running: false, ctrl: null, gen: 0, permissionError: null
+    };
+  }
+
+  test("the skim section lives OUTSIDE #rendered-view, so the swap cannot touch it", () => {
+    for (const videoMode of [false, true]) {
+      const bits = mount(videoMode);
+      try {
+        const sec = bits.sec;
+        assert(sec, "section built (" + (videoMode ? "video workspace" : "plain doc-body") + ")");
+        assertEq(bits.view.contains(sec), false,
+          "not inside #rendered-view -- renderArticleContent only replaces its CHILDREN");
+        assertEq(sec.parentElement.id, videoMode ? "video-skim-slot" : "",
+          videoMode ? "mounted in the study column's slot" : "mounted in .doc-body");
+        sec.classList.add("collapsed");
+        const home = sec.parentElement;
+        bits.view.innerHTML = "<p>beta one paragraph</p>";   // the swap
+        assertEq(document.getElementById("skim-section"), sec, "same node, still on the page");
+        assertEq(sec.parentElement, home, "same DOM home");
+        assertEq(sec.classList.contains("collapsed"), true, "collapse state preserved");
+      } finally { unmount(bits); }
+    }
+  });
+
+  test("a replacement issues no request, marks the results stale and disables their chips", () => {
+    const bits = mount(false);
+    const saved = _pbpSkimState;
+    const savedStream = window.callAIStream;
+    let calls = 0;
+    try {
+      window.callAIStream = () => { calls++; return Promise.reject(new Error("no network in tests")); };
+      _pbpSkimState = state();
+      const body = document.getElementById("skim-body");
+      body.innerHTML = '<ul><li>a point <button class="ask-chip">P1</button></li></ul>';
+      const chip = body.querySelector(".ask-chip");
+      assertEq(chip.disabled, false, "control: the chip starts clickable");
+      assertEq(document.getElementById("skim-stale").hidden, true, "control: no stale bar yet");
+      _t5Fire("pbp:article-will-replace", 1, "video-track-switch");
+      bits.view.innerHTML = "<p>gamma one paragraph</p><p>gamma two paragraph</p>";
+      pbpAiIndexBlocks(bits.view);
+      _t5Fire("pbp:article-replaced", 1, "video-track-switch");
+      assertEq(calls, 0, "not one request: a replacement may never spend tokens");
+      assertEq(document.getElementById("skim-stale").hidden, false, "stale bar shown instead");
+      assertEq(body.querySelector("li") !== null, true, "the existing key points are KEPT, not wiped");
+      assertEq(chip.disabled && chip.classList.contains("stale"), true,
+        "old [Pn] chips index a block list that no longer exists");
+    } finally {
+      _pbpSkimState = saved;
+      window.callAIStream = savedStream;
+      unmount(bits);
+    }
+  });
+
+  test("will-replace fences the in-flight run and hands the panel back to the reader", () => {
+    const bits = mount(false);
+    const saved = _pbpSkimState;
+    try {
+      const st = state();
+      st.gen = 3;
+      st.running = true;
+      st.ctrl = new AbortController();
+      _pbpSkimState = st;
+      const stop = document.getElementById("skim-stop");
+      const regen = document.getElementById("skim-regen");
+      const body = document.getElementById("skim-body");
+      stop.hidden = false;
+      regen.disabled = true;
+      body.setAttribute("aria-busy", "true");
+      _pbpSkimSetStatus("generating...");
+      assertEq(st.ctrl.signal.aborted, false, "control: the stream starts un-aborted");
+      const ctrl = st.ctrl;
+      _t5Fire("pbp:article-will-replace", 7, "video-ai-punctuation");
+      assertEq(ctrl.signal.aborted, true, "in-flight generation aborted");
+      assertEq(st.ctrl, null, "controller dropped");
+      assertEq(st.gen, 4, "gen bumped: the run's own paint/finalize/finally all lose their myGen check");
+      assertEq(st.running, false,
+        "running released -- the fenced-out finally can no longer do it, and Regenerate checks it");
+      assertEq(stop.hidden, true, "Stop hidden again");
+      assertEq(regen.disabled, false, "Regenerate clickable again");
+      assertEq(body.hasAttribute("aria-busy"), false, "no busy residue");
+      assertEq(document.getElementById("skim-status").hidden, true, "status line cleared");
+    } finally {
+      _pbpSkimState = saved;
+      unmount(bits);
+    }
+  });
+
+  test("the fence advances even when the detail carries no usable revision", () => {
+    const before = _pbpSkimArticleRev;
+    try {
+      _pbpSkimOnArticleWillReplace({});
+      assertEq(_pbpSkimArticleRev, before + 1, "a detail without a revision still invalidates");
+      _pbpSkimOnArticleWillReplace({ revision: "not a number" });
+      assertEq(_pbpSkimArticleRev, before + 2, "garbage revision still advances the fence");
+      _pbpSkimOnArticleWillReplace({ revision: before + 2 });
+      assertEq(_pbpSkimArticleRev, before + 3, "a non-advancing revision never freezes it");
+    } finally {
+      _pbpSkimArticleRev = before;
+    }
+  });
+});
+</script>
+
+<script>
+// ============ T5 reader: footnote popover + code-copy buttons ============
+suiteIf("T5 reader: article replacement", "_pbpReaderOnArticleReplaced", () => {
+  test("will-replace closes the footnote popover and drops its captured <li>", () => {
+    const savedPop = _pbpFnPop, savedLi = _pbpFnCurrentLi;
+    const pop = document.createElement("div");
+    pop.setAttribute("popover", "auto");
+    document.body.appendChild(pop);
+    const li = document.createElement("li");
+    document.body.appendChild(li);
+    try {
+      pop.showPopover();
+      _pbpFnPop = pop;
+      _pbpFnCurrentLi = li;
+      assertEq(pop.matches(":popover-open"), true, "control: the popover starts open");
+      _t5Fire("pbp:article-will-replace", 1, "video-track-switch");
+      assertEq(pop.matches(":popover-open"), false, "closed: its body is a clone of the outgoing article");
+      assertEq(_pbpFnCurrentLi, null, "captured <li> dropped: its jump target is about to detach");
+    } finally {
+      _pbpFnPop = savedPop; _pbpFnCurrentLi = savedLi;
+      pop.remove(); li.remove();
+    }
+  });
+
+  test("replaced re-injects the code-copy buttons, idempotently", () => {
+    const view = _t5View("<pre><code>const x = 1;</code></pre><pre><code>const y = 2;</code></pre>");
+    try {
+      assertEq(view.querySelectorAll(".pb-copy-code").length, 0,
+        "control: a fresh article has none -- they are runtime-injected, never rendered");
+      _t5Fire("pbp:article-replaced", 1, "video-track-switch");
+      assertEq(view.querySelectorAll(".pb-copy-code").length, 2, "one per code block");
+      _t5Fire("pbp:article-replaced", 2, "video-track-switch");
+      assertEq(view.querySelectorAll(".pb-copy-code").length, 2,
+        "a second replacement adds none: the per-<pre> check makes injection idempotent");
+    } finally { view.remove(); }
+  });
+
+  test("an empty code block still gets no button (existing gate survives the new caller)", () => {
+    const view = _t5View("<pre><code>   </code></pre>");
+    try {
+      _t5Fire("pbp:article-replaced", 1, "video-track-switch");
+      assertEq(view.querySelectorAll(".pb-copy-code").length, 0, "nothing to copy, no button");
+    } finally { view.remove(); }
+  });
+});
+</script>
+
+<script>
 // ============ T4 (async): parked translate run + ask stream + history ============
-(async function () {
+// Exposed as a promise: the T5 async suite fires the SAME lifecycle events at
+// the same module state, so the two must not interleave (they did, and it made
+// a T5 assertion pass vacuously).
+window._t4AsyncDone = (async function () {
   const host = document.createElement("div");
   host.className = "suite";
   const h = document.createElement("h2");
@@ -8328,6 +8864,219 @@ suiteIf("T4 ask: citations after a replacement", "_pbpAskOnArticleReplaced", () 
       bits.wrap.remove();
       const clear = document.getElementById("ask-clear");
       if (clear) clear.remove();
+    }
+  });
+})();
+</script>
+
+<script>
+// ============ T5 (async): skim never auto-spends; the dirty note survives ============
+(async function () {
+  // Strictly after the T4 async suite: it dispatches pbp:article-will-replace /
+  // pbp:article-replaced too, and those handlers write the very module state
+  // (skim's revision fence, its stale bar) these cases assert on.
+  try { await window._t4AsyncDone; } catch (_) {}
+  const host = document.createElement("div");
+  host.className = "suite";
+  const h = document.createElement("h2");
+  h.textContent = "T5 async: skim token protection, highlight card teardown";
+  host.appendChild(h);
+  document.getElementById("results").appendChild(host);
+  function report(name, err) {
+    const div = document.createElement("div");
+    if (!err) { PASS++; div.className = "case pass"; div.textContent = "PASS " + name; }
+    else { FAIL++; div.className = "case fail"; div.textContent = "FAIL " + name + "\n  " + err.message; }
+    host.appendChild(div);
+  }
+  async function atest(name, fn) { try { await fn(); report(name); } catch (e) { report(name, e); } }
+  if (typeof _pbpSkimRegen !== "function" || typeof _pbpSkimOnArticleWillReplace !== "function"
+      || typeof _pbpHlOnArticleWillReplace !== "function") {
+    const div = document.createElement("div");
+    div.className = "case skip";
+    div.textContent = "SKIP T5 async (replacement handlers not loaded)";
+    host.appendChild(div); SKIP++; return;
+  }
+
+  function skimMount() {
+    const docBody = document.createElement("div");
+    docBody.className = "doc-body";
+    const view = document.createElement("div");
+    view.id = "rendered-view";
+    view.innerHTML = "<p>alpha one paragraph of the transcript</p><p>alpha two paragraph of it</p>";
+    docBody.appendChild(view);
+    document.body.insertBefore(docBody, document.body.firstChild);
+    pbpAiIndexBlocks(view);
+    _pbpSkimBuildSection(view);
+    return { docBody, view };
+  }
+  function skimUnmount(bits) {
+    bits.docBody.remove();
+    const stray = document.getElementById("skim-section");
+    if (stray) stray.remove();
+  }
+  function skimSettings() {
+    // ollama needs no key, so pbpAiAvailable passes without inventing one.
+    return Object.assign({}, SETTINGS_DEFAULTS, {
+      aiProvider: "ollama", previewAiEnabled: true, previewSkimEnabled: true
+    });
+  }
+  function skimState(url) {
+    return {
+      s: skimSettings(), url, title: "T5", forum: false,
+      section: null, running: false, ctrl: null, gen: 0, permissionError: null
+    };
+  }
+
+  await atest("control: Regenerate DOES issue a request when nothing interrupts it", async () => {
+    const bits = skimMount();
+    const saved = _pbpSkimState, savedStream = window.callAIStream, savedGet = window.pbpAiGetSettings;
+    let calls = 0;
+    try {
+      window.callAIStream = () => { calls++; return Promise.reject(new Error("no network in tests")); };
+      window.pbpAiGetSettings = () => Promise.resolve(skimSettings());
+      _pbpSkimState = skimState("https://example.test/t5-spend-" + Date.now());
+      await _pbpSkimRegen();
+      assertEq(calls, 1, "the request seam is live and reachable from a real Regenerate click");
+      assertEq(_pbpSkimState.running, false, "and the module is released afterwards");
+    } finally {
+      _pbpSkimState = saved; window.callAIStream = savedStream; window.pbpAiGetSettings = savedGet;
+      skimUnmount(bits);
+    }
+  });
+
+  await atest("a Regenerate parked across a replacement buys nothing", async () => {
+    const bits = skimMount();
+    const saved = _pbpSkimState, savedStream = window.callAIStream, savedGet = window.pbpAiGetSettings;
+    let calls = 0;
+    try {
+      window.callAIStream = () => { calls++; return Promise.reject(new Error("no network in tests")); };
+      let release = null;
+      const parked = new Promise((res) => { release = () => res(skimSettings()); });
+      window.pbpAiGetSettings = () => parked;
+      const st = skimState("https://example.test/t5-parked-" + Date.now());
+      _pbpSkimState = st;
+      const p = _pbpSkimRegen();
+      assertEq(st.running, true, "control: the regen claimed the module and parked on the settings read");
+      // Real settings again BEFORE the events: md-translate's own replaced
+      // handler retries pbpTrInit when it has no state, and it must not park on
+      // (or consume) the promise this test is holding for skim.
+      window.pbpAiGetSettings = savedGet;
+      // Production ordering: both events in one synchronous task.
+      _t5Fire("pbp:article-will-replace", 1, "video-track-switch");
+      _t5Fire("pbp:article-replaced", 1, "video-track-switch");
+      release();
+      await p;
+      assertEq(calls, 0,
+        "no request: the reader clicked Regenerate for an article that is no longer on screen");
+      assertEq(st.running, false, "module left usable -- a fresh click can still generate by hand");
+    } finally {
+      _pbpSkimState = saved; window.callAIStream = savedStream; window.pbpAiGetSettings = savedGet;
+      skimUnmount(bits);
+    }
+  });
+
+  await atest("a superseded Regenerate never releases a NEWER one's claim on the module", async () => {
+    const bits = skimMount();
+    const saved = _pbpSkimState, savedStream = window.callAIStream, savedGet = window.pbpAiGetSettings;
+    let calls = 0;
+    try {
+      window.callAIStream = () => { calls++; return Promise.reject(new Error("no network in tests")); };
+      let release1 = null;
+      const parked1 = new Promise((res) => { release1 = () => res(skimSettings()); });
+      window.pbpAiGetSettings = () => parked1;
+      const st = skimState("https://example.test/t5-owned-" + Date.now());
+      _pbpSkimState = st;
+      const p1 = _pbpSkimRegen();                       // click 1, parks
+      window.pbpAiGetSettings = savedGet;
+      _pbpSkimOnArticleWillReplace({ revision: 1 });    // the swap releases st.running
+      assertEq(st.running, false, "control: the teardown handed the module back");
+      let release2 = null;
+      const parked2 = new Promise((res) => { release2 = () => res(skimSettings()); });
+      window.pbpAiGetSettings = () => parked2;
+      const p2 = _pbpSkimRegen();                       // click 2, on the NEW article
+      window.pbpAiGetSettings = savedGet;
+      assertEq(st.running, true, "control: click 2 owns the module now");
+      release1();
+      await p1;
+      assertEq(st.running, true,
+        "click 1 bailed on the fence and must not clear a flag it no longer owns");
+      assertEq(calls, 0, "and it issued nothing");
+      release2();
+      await p2;
+      assertEq(calls, 1, "click 2, which the reader made on the article they are looking at, does spend");
+    } finally {
+      _pbpSkimState = saved; window.callAIStream = savedStream; window.pbpAiGetSettings = savedGet;
+      skimUnmount(bits);
+    }
+  });
+
+  await atest("init parked across a replacement generates nothing either", async () => {
+    const bits = skimMount();
+    const saved = _pbpSkimState, savedStream = window.callAIStream, savedGet = window.pbpAiGetSettings;
+    let calls = 0;
+    try {
+      window.callAIStream = () => { calls++; return Promise.reject(new Error("no network in tests")); };
+      let release = null;
+      const parked = new Promise((res) => { release = () => res(skimSettings()); });
+      window.pbpAiGetSettings = () => parked;
+      _pbpSkimState = null;
+      const p = pbpSkimInit({ url: "https://example.test/t5-init-" + Date.now(), title: "T5", forum: false });
+      window.pbpAiGetSettings = savedGet;   // nobody else may consume this test's parked promise
+      // The cache read inside _pbpSkimLoad is a miss for this url, so without
+      // the fence the init would auto-generate -- for an article that arrived
+      // AFTER the reader opened the page.
+      _pbpSkimOnArticleWillReplace({ revision: 99 });
+      release();
+      await p;
+      assertEq(calls, 0, "the cache-miss auto-generation is fenced by the article revision");
+      assertEq(document.getElementById("skim-stale").hidden, false,
+        "the panel says so, and its Regenerate button is the way back");
+    } finally {
+      _pbpSkimState = saved; window.callAIStream = savedStream; window.pbpAiGetSettings = savedGet;
+      skimUnmount(bits);
+    }
+  });
+
+  await atest("will-replace saves the dirty note and closes the card before the swap", async () => {
+    const prevSave = _pbpHlSave, prevRender = _pbpHlNotebookRender, prevState = _pbpHlState;
+    const prevCard = _pbpHlCard, prevId = _pbpHlCardItemId, prevBase = _pbpHlCardBaseNote;
+    const prevDirty = _pbpHlNoteDirty, prevQueue = _pbpHlWriteQueue;
+    const card = document.createElement("div");
+    card.setAttribute("popover", "auto");
+    try {
+      _pbpHlSave = async () => true;
+      _pbpHlNotebookRender = () => {};
+      _pbpHlWriteQueue = Promise.resolve();
+      const item = { id: "h5", n: 1, quote: "quote", note: "stored", color: 1, ts: 1 };
+      _pbpHlState = {
+        url: "https://example.test/t5", title: "T5", items: [item],
+        ranges: Object.create(null), degraded: Object.create(null),
+        resolvedN: Object.create(null), orphans: Object.create(null)
+      };
+      const note = document.createElement("textarea");
+      note.className = "hl-card-note";
+      note.value = "half-typed thought";
+      card.appendChild(note);
+      document.body.appendChild(card);
+      card.showPopover();
+      _pbpHlCard = card;
+      _pbpHlCardItemId = "h5";
+      _pbpHlCardBaseNote = "stored";
+      _pbpHlNoteDirty = true;
+      assertEq(card.matches(":popover-open"), true, "control: the card starts open");
+      assertEq(item.note, "stored", "control: the draft is not in storage yet");
+      _t5FireCard("pbp:article-will-replace", 1, "video-track-switch");
+      await _pbpHlWriteQueue;
+      assertEq(item.note, "half-typed thought",
+        "read synchronously and queued: the write outlives the swap");
+      assertEq(card.matches(":popover-open"), false, "card closed -- it renders a Range about to detach");
+      assertEq(_pbpHlCardItemId, null,
+        "binding cleared synchronously; the card's own toggle listener is queued, not immediate");
+    } finally {
+      _pbpHlSave = prevSave; _pbpHlNotebookRender = prevRender; _pbpHlState = prevState;
+      _pbpHlCard = prevCard; _pbpHlCardItemId = prevId; _pbpHlCardBaseNote = prevBase;
+      _pbpHlNoteDirty = prevDirty; _pbpHlWriteQueue = prevQueue;
+      card.remove();
     }
   });
 })();

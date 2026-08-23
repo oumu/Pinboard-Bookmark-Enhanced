@@ -179,6 +179,92 @@ function pbpHlGlobalLocateNormalized(blocks, item) {
   return { n: hit.n, start: map[hit.start], end: map[hit.end - 1] + 1 };
 }
 
+// ---- AI-punctuation tolerant relocation (pure/testable). Used by exactly
+// ONE caller: pbpHlRestore, and only for an article produced by the video AI
+// punctuation pass (pbp:article-replaced with reason "video-ai-punctuation").
+//
+// Why it is sound there and nowhere else: that pass is conservation-gated
+// upstream by pbpVideoPunctConserved (md-video.js), which accepts a
+// punctuated batch ONLY when its non-punctuation character stream is
+// byte-identical to the original's, and falls back to the unpunctuated batch
+// otherwise. So for that one article, "same reduced stream" really does mean
+// "the same words". For any OTHER reason -- above all a subtitle TRACK
+// SWITCH, which usually swaps the language outright -- no such guarantee
+// exists and this tier must never run: an unmatched highlight belongs in the
+// Notebook as an orphan, not mis-anchored into another language's text.
+//
+// The mark class below is byte-for-byte the class pbpVideoPunctConserved
+// strips before comparing. The two definitions are a matched pair -- widening
+// this one without widening the gate would let a real content difference hide
+// inside "punctuation". Written with \u escapes (project rule: no literal
+// non-ASCII in .js source): full-width comma, ideographic full stop,
+// full-width ! ? ; :, ideographic comma, curly quotes, full-width parens,
+// double angle brackets, lenticular brackets, ellipsis, em dash, middle dot.
+const PBP_HL_PUNCT_RE = /[\s\uFF0C\u3002\uFF01\uFF1F\uFF1B\uFF1A\u3001\u201C\u201D\u2018\u2019\uFF08\uFF09\u300A\u300B\u3010\u3011\u2026\u2014,.!?;:'"()\[\]{}\u00B7-]/;
+
+// text -> {reduced, map}: every punctuation/whitespace character dropped, and
+// reduced[i] came from text[map[i]]. The map is the whole point -- it is what
+// turns a match on the reduced stream back into REAL offsets, so the eventual
+// Range still covers the live text (marks included) rather than a phantom
+// string. Same shape as pbpHlWsNormalize, deliberately.
+function pbpHlPunctReduce(text) {
+  const t = typeof text === "string" ? text : "";
+  let reduced = "";
+  const map = [];
+  for (let i = 0; i < t.length; i++) {
+    if (PBP_HL_PUNCT_RE.test(t[i])) continue;
+    reduced += t[i];
+    map.push(i);
+  }
+  return { reduced, map };
+}
+
+// Occurrence scan on the reduced stream. Returns {start, end, count} where
+// start/end are REAL offsets into `text` for the FIRST occurrence and count is
+// capped at 2 (the only question anyone asks is "exactly one?"; walking a
+// pathological stream past that buys nothing). An empty reduced quote -- a
+// quote made entirely of punctuation -- reports count 0 rather than matching
+// at offset 0, which is what indexOf("") would otherwise hand back.
+function _pbpHlPunctScan(text, quote) {
+  const miss = { start: -1, end: -1, count: 0 };
+  const a = pbpHlPunctReduce(text);
+  const q = pbpHlPunctReduce(quote);
+  if (!q.reduced || !a.reduced) return miss;
+  let idx = a.reduced.indexOf(q.reduced);
+  if (idx === -1) return miss;
+  const first = idx;
+  const count = a.reduced.indexOf(q.reduced, idx + 1) === -1 ? 1 : 2;
+  return { start: a.map[first], end: a.map[first + q.reduced.length - 1] + 1, count };
+}
+
+// Public single-text form (the testable seam): real-text offsets for a quote
+// that differs from articleText only in punctuation/whitespace, or null.
+// STRICT uniqueness -- two occurrences are an ambiguity this tier refuses to
+// guess at, exactly like pbpHlGlobalLocate's tie rule.
+function pbpHlPunctTolerantFind(articleText, quote) {
+  const r = _pbpHlPunctScan(articleText, quote);
+  return r.count === 1 ? { start: r.start, end: r.end } : null;
+}
+
+// Block-pool form, mirroring pbpHlGlobalLocate's signature. Uniqueness is
+// GLOBAL: a second occurrence anywhere in the pool -- same block or another
+// one -- disqualifies the whole search. A per-block "unique here" rule would
+// happily anchor to block B while block A held two equally good candidates.
+function pbpHlPunctTolerantLocate(blocks, item) {
+  const quote = item && typeof item.quote === "string" ? item.quote : "";
+  if (!quote) return null;
+  let hit = null;
+  let total = 0;
+  for (const b of (Array.isArray(blocks) ? blocks : [])) {
+    const r = _pbpHlPunctScan((b && typeof b.text === "string") ? b.text : "", quote);
+    if (!r.count) continue;
+    total += r.count;
+    if (total > 1) return null;
+    hit = { n: b.n, start: r.start, end: r.end };
+  }
+  return total === 1 ? hit : null;
+}
+
 // ---- H5 translated-side paint gate (spec 1.3, pure/testable). An
 // original-side item (no side, or side !== "tr") is always eligible here --
 // its own block-existence check lives in the DOM layer. A translated-side
@@ -483,6 +569,29 @@ const PBP_HL_COLORS = [1, 2, 3, 4, 5];
 // permanent user data, see _pbpHlSave).
 let _pbpHlState = null;
 
+// ---- In-place article replacement fences (see the two handlers at the
+// bottom of this file). _pbpHlArticleRev counts replacements monotonically;
+// _pbpHlPunctArmedRev records the revision an AI punctuation pass produced.
+//
+// The tolerant relocation tier is armed for a REVISION, not for a single
+// restore pass, and that is deliberate: after the punctuation commit, every
+// later pbpHlRestore in that article (a color switch, a delete, a translated
+// layer rebuild) has to re-derive the same Ranges from the same stored
+// quotes, so a one-shot arm would paint the highlights once and orphan them
+// on the reader's next click. The moment ANY further replacement lands the
+// counter advances and the arm no longer matches -- a track switch therefore
+// disarms it before its (possibly different-language) article is ever
+// searched.
+let _pbpHlArticleRev = 0;
+let _pbpHlPunctArmedRev = -1;
+// "the page's one-shot article runtime actually ran" -- see the retry gate in
+// _pbpHlOnArticleReplaced.
+let _pbpHlRendered = false;
+
+function _pbpHlPunctTolerant() {
+  return _pbpHlPunctArmedRev === _pbpHlArticleRev;
+}
+
 // Effective block for an item THIS render: the relocation result when one
 // exists, else the stored n. Every DOM consumer (jump/card/rect/observer
 // re-anchor) must resolve through this, or the paint lands in the new
@@ -630,7 +739,17 @@ function pbpHlRestore() {
           if (loc) range = _pbpAskRangeFromOffsets(blockEl, loc.start, loc.end);
         }
         if (!range) {
-          const g = pbpHlGlobalLocate(origBlocks(), item) || pbpHlGlobalLocateNormalized(origBlocks(), item);
+          let g = pbpHlGlobalLocate(origBlocks(), item) || pbpHlGlobalLocateNormalized(origBlocks(), item);
+          // Third and last tier, armed ONLY while the article on screen is the
+          // one an AI punctuation pass produced (see _pbpHlPunctTolerant).
+          // Reached only after both exact and whitespace-normalized search
+          // have failed, so a highlight that still matches literally is
+          // completely unaffected by it.
+          let viaPunct = false;
+          if (!g && _pbpHlPunctTolerant()) {
+            g = pbpHlPunctTolerantLocate(origBlocks(), item);
+            viaPunct = !!g;
+          }
           const gEl = g ? pbpAiBlockEl(g.n) : null;
           if (gEl) {
             effN = g.n;
@@ -639,8 +758,15 @@ function pbpHlRestore() {
             // whitespace-normalized, so normalized-path hits pass too): a
             // rewrite landing between pool build and mapping can produce
             // offsets that are in-bounds yet point at the wrong characters
-            // (Codex acceptance HIGH-2's verification half).
-            if (range && pbpHlWsNormalize(range.toString()).norm !== pbpHlWsNormalize(item.quote).norm) range = null;
+            // (Codex acceptance HIGH-2's verification half). A punct-tier hit
+            // is verified on the REDUCED stream instead -- its whole premise
+            // is that the live text carries marks the stored quote predates,
+            // so the whitespace-normalized comparison would reject every one
+            // of them.
+            const sameText = viaPunct
+              ? pbpHlPunctReduce(range && range.toString()).reduced === pbpHlPunctReduce(item.quote).reduced
+              : pbpHlWsNormalize(range && range.toString()).norm === pbpHlWsNormalize(item.quote).norm;
+            if (range && !sameText) range = null;
             if (!range) {
               // Confident relocation but the live tree diverged from the
               // frozen snapshot (hljs/KaTeX rewrite in the NEW block):
@@ -831,13 +957,91 @@ function pbpHlTrLayerCleared() {
 }
 window.pbpHlTrLayerCleared = pbpHlTrLayerCleared; // explicit window attach: md-translate calls it by name.
 
+// ---- In-place article replacement (video track switch / AI punctuation /
+// first-authorization promotion). md-preview.js replaces #rendered-view's
+// CHILDREN and brackets the swap with pbp:article-will-replace /
+// pbp:article-replaced, sharing ONE frozen detail (never mutate it). The two
+// events arrive back to back in a single synchronous task, so neither handler
+// may park on an await and expect the DOM it started with.
+//
+// Nothing is re-bound here: mouseup lives on #rendered-view itself and the
+// keydown/scroll/selectionchange listeners on document/window, and the element
+// #rendered-view survives the swap intact.
+function _pbpHlOnArticleWillReplace(detail) {
+  const claimed = Number(detail && detail.revision);
+  _pbpHlArticleRev = (Number.isFinite(claimed) && claimed > _pbpHlArticleRev)
+    ? claimed : _pbpHlArticleRev + 1;
+  // FIRST, while the card still describes the item the reader was typing
+  // about: _pbpHlCommitNote reads the textarea SYNCHRONOUSLY and hands the
+  // write to the serialized queue, so an unsaved note survives even though the
+  // swap lands long before that write resolves. Doing this after the close
+  // would lose it -- the close clears the binding this read needs.
+  try { _pbpHlCommitNote(); } catch (_) {}
+  // Then every surface holding a Range into the DOM about to be detached.
+  if (_pbpHlCard) { try { _pbpHlCard.hidePopover(); } catch (_) {} }
+  // The card's own "toggle" listener also clears this, but toggle is QUEUED,
+  // not synchronous -- it would still be set for the whole swap.
+  _pbpHlCardItemId = null;
+  _pbpHlHideBar();
+  _pbpHlBarRange = null;
+  // The live selection itself. Every creation path (the bar's dots, the h/1-5
+  // hotkeys) reads window.getSelection(); after the swap its Range points at
+  // detached nodes, so a highlight created from it would be anchored to text
+  // that is no longer on the page.
+  try {
+    const sel = window.getSelection && window.getSelection();
+    if (sel && sel.rangeCount) sel.removeAllRanges();
+  } catch (_) {}
+}
+
+function _pbpHlOnArticleReplaced(detail) {
+  // Arm the punctuation-tolerant tier for THIS revision, before the restore
+  // below reads it. Strictly reason-keyed: "video-track-switch" (a different
+  // language, in general) and "video-promotion" must fall through to the
+  // orphan path instead, so an old-language highlight shows up in the Notebook
+  // as unlocatable rather than mis-anchored into the new text.
+  if (detail && detail.reason === "video-ai-punctuation") _pbpHlPunctArmedRev = _pbpHlArticleRev;
+  if (!_pbpHlState) {
+    // Highlights never mounted for this page -- pbpHlInit bails when the block
+    // index is empty, which is exactly what an empty/fallback first article
+    // gives it. Without this retry the reader would have no highlighting for
+    // the rest of the session on a page whose article only ARRIVED with the
+    // captions. pbpHlInit's own `if (!view || _pbpHlState) return` makes the
+    // retry a no-op once state exists, and it costs one IDB read, never a
+    // request.
+    //
+    // Gated on the article runtime having actually started: md-preview.js
+    // returns before that init on an empty / extraction-error shell, and a
+    // module that mounted itself there would be exactly the "looks like an
+    // article, half the page is dead" state the spec warns about (its phase-2
+    // continuation owns that case, not this handler).
+    if (_pbpHlRendered) pbpHlInit(detail || {}).catch(() => {});
+    return;
+  }
+  // article-replaced fires even when the swap threw, so the article may be
+  // missing or half-rendered: pbpHlRestore tolerates that by construction
+  // (every item simply orphans against an empty pool). It is explicitly
+  // re-runnable -- it clears all five Highlight registries and re-derives
+  // everything from _pbpHlState.items.
+  try { pbpHlRestore(); } catch (_) {}
+  // Ranges, degraded flags and orphan verdicts all just changed, and the
+  // Notebook renders exactly those; it lives in the rail, outside the swapped
+  // subtree, so it survives with stale contents until this runs.
+  try { _pbpHlNotebookRender(); } catch (_) {}
+}
+
 // Init hookup: top-level listener registration only (no other side effects;
 // the tests page loads this file on file:// and never fires the event) --
 // same idiom as md-ask.js:279-283 / md-translate.js:1650-1654.
 if (typeof document !== "undefined") {
   document.addEventListener("pbp:rendered", (e) => {
+    _pbpHlRendered = true;
     pbpHlInit((e && e.detail) || {}).catch(() => {});
   }, { once: true });
+  // Deliberately NOT {once:true}: one page life can see any number of
+  // replacements (track switch, AI punctuation, promotion).
+  document.addEventListener("pbp:article-will-replace", (e) => _pbpHlOnArticleWillReplace((e && e.detail) || {}));
+  document.addEventListener("pbp:article-replaced", (e) => _pbpHlOnArticleReplaced((e && e.detail) || {}));
 }
 
 // ---- Range <-> block-text-offset seam (creation side; DOM layer, not the

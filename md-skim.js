@@ -143,6 +143,12 @@ function _pbpSkimCacheMatches(r, st, curBlocksHash) {
 async function pbpSkimInit(detail) {
   const view = document.getElementById("rendered-view");
   if (!view || _pbpSkimState) return;
+  // Captured BEFORE the first await. Everything below this line can be parked
+  // across an in-place article replacement (the settings read here, then the
+  // cache read inside _pbpSkimLoad), and _pbpSkimLoad's cache-miss branch is a
+  // PAID generation -- one that would buy key points for an article the reader
+  // never opened. See _pbpSkimLoad's own fence.
+  const rev = _pbpSkimArticleRev;
   const s = await pbpAiGetSettings();
   if (!pbpAiAvailable(s) || s.previewSkimEnabled !== true) return;
   if (!pbpAiBlocks().length) pbpAiIndexBlocks(view);
@@ -164,7 +170,7 @@ async function pbpSkimInit(detail) {
   window.addEventListener("pagehide", () => {
     if (_pbpSkimState && _pbpSkimState.ctrl) _pbpSkimState.ctrl.abort();
   });
-  await _pbpSkimLoad();
+  await _pbpSkimLoad(rev);
 }
 
 // Builds #skim-section as .doc-body's first child, directly before
@@ -292,7 +298,7 @@ function _pbpSkimWireCollapse(sec, collapseBtn) {
 // jump) and show the stale banner; NEVER auto-regenerate on drift --
 // the banner's own button (and the header's Regen button) are the only
 // ways back to a fresh generation. Miss -> auto-generate once.
-async function _pbpSkimLoad() {
+async function _pbpSkimLoad(rev) {
   const st = _pbpSkimState;
   let entry = null;
   try { entry = await pbpAiCacheGet(_pbpSkimCacheKey(st.url)); } catch (_) {}
@@ -310,6 +316,18 @@ async function _pbpSkimLoad() {
       && r.modelKey === meta.modelKey
       && curFp && (!r.blocksHash || r.blocksHash !== curFp)) {
     _pbpSkimRenderCached(r);
+    const stale = document.getElementById("skim-stale");
+    if (stale) stale.hidden = false;
+    return;
+  }
+  // The one paid path init owns -- fenced against an article replacement that
+  // landed while this load was parked on the cache read. A request from here
+  // would be a generation the reader never asked for, on content that arrived
+  // after they opened the page; it degrades to the same stale bar the drift
+  // branch above uses, whose Regenerate button is the only way back to a
+  // generation (token-protection invariant #1, spec sec.3). Callers that pass
+  // no revision (there are none today) keep the unfenced behavior.
+  if (Number.isFinite(rev) && rev !== _pbpSkimArticleRev) {
     const stale = document.getElementById("skim-stale");
     if (stale) stale.hidden = false;
     return;
@@ -522,6 +540,16 @@ function _pbpSkimShowError(error) {
 async function _pbpSkimRegen() {
   const st = _pbpSkimState;
   if (!st || st.running) return;
+  // Article-replacement fence. The reader clicked Regenerate for the article
+  // that was on screen THEN; both awaits below (the settings read, and the
+  // permission prompt, which waits on a human) can park across a track switch,
+  // and resuming would spend tokens summarizing an article they never asked
+  // about. `owned` keeps the release in the finally honest: a superseded regen
+  // must NOT clear st.running, because the will-replace teardown already did
+  // and a newer regen may already own the flag.
+  const rev = _pbpSkimArticleRev;
+  let owned = true;
+  const superseded = () => rev !== _pbpSkimArticleRev || _pbpSkimState !== st;
   st.running = true;
   const retry = document.querySelector("#skim-body .skim-retry");
   if (retry) retry.disabled = true;
@@ -533,10 +561,12 @@ async function _pbpSkimRegen() {
     // Fail CLOSED on a read failure: without confirmed-current settings a
     // paid request must not fire on the stale snapshot.
     try { st.s = await pbpAiGetSettings(); } catch (_) { return; }
+    if (superseded()) { owned = false; return; }
     if (!pbpAiAvailable(st.s) || st.s.previewSkimEnabled !== true) return;
     if (st.permissionError) {
       const recovered = await pbpAiRetryWithPermission(st.permissionError, st.s, () => {});
       if (!recovered) return;
+      if (superseded()) { owned = false; return; }
       st.permissionError = null;
     }
     if (st.ctrl) st.ctrl.abort();
@@ -552,9 +582,77 @@ async function _pbpSkimRegen() {
     }
     await _pbpSkimRun();
   } finally {
-    st.running = false;
+    if (owned) st.running = false;
     if (retry) retry.disabled = false;
   }
+}
+
+// ---- In-place article replacement (video track switch / AI punctuation /
+// first-authorization promotion). md-preview.js swaps #rendered-view's
+// children and brackets the swap with pbp:article-will-replace /
+// pbp:article-replaced, both carrying ONE frozen detail (never mutate it).
+//
+// Skim's contract here is almost entirely NEGATIVE: it must spend nothing. A
+// replacement invalidates what is on screen, but only the reader's own
+// Regenerate click may pay for a new pass (token-protection invariant #1,
+// spec sec.3). The panel, its collapse state and whatever text is in it are
+// all kept -- #skim-section lives OUTSIDE #rendered-view (in .doc-body, or in
+// #video-skim-slot inside .pbv-col-study when the video workspace is
+// mounted), and renderArticleContent only replaces #rendered-view's children,
+// so the section itself is never touched by the swap.
+
+// Monotonic under ANY detail, including a missing or garbage revision: the
+// fence has to advance even when the payload is malformed, or a parked regen
+// would resume and buy a summary of the article that just arrived.
+let _pbpSkimArticleRev = 0;
+
+function _pbpSkimOnArticleWillReplace(detail) {
+  const claimed = Number(detail && detail.revision);
+  _pbpSkimArticleRev = (Number.isFinite(claimed) && claimed > _pbpSkimArticleRev)
+    ? claimed : _pbpSkimArticleRev + 1;
+  const st = _pbpSkimState;
+  if (!st) return;
+  // st.gen is the existing supersede fence (_pbpSkimRun's myGen checks). One
+  // bump and every closure of the in-flight run -- its rAF paint, its
+  // finalize, its error UI, its finally -- loses that check and touches
+  // nothing. The abort stops the stream; the bump is what stops a response
+  // that was already parsed when the abort landed.
+  st.gen += 1;
+  if (st.ctrl) { try { st.ctrl.abort(); } catch (_) {} }
+  st.ctrl = null;
+  // The run's finally is now fenced out, so this teardown owns everything it
+  // would have restored. st.running especially: without the release here,
+  // _pbpSkimRegen's `if (st.running) return` would refuse the reader's
+  // Regenerate click for the rest of the session.
+  st.running = false;
+  const stopBtn = document.getElementById("skim-stop");
+  if (stopBtn) stopBtn.hidden = true;
+  const regenBtn = document.getElementById("skim-regen");
+  if (regenBtn) regenBtn.disabled = false;
+  const body = document.getElementById("skim-body");
+  if (body) body.removeAttribute("aria-busy");
+  _pbpSkimSetStatus("");
+}
+
+function _pbpSkimOnArticleReplaced() {
+  const st = _pbpSkimState;
+  if (!st) return;
+  // No cache probe, no generation, no request of any kind -- not even a free
+  // one: the cache key is the page url, which a track switch does not change,
+  // so a probe could only ever serve the PREVIOUS track's key points as if
+  // they were fresh. Whatever is on screen (a full summary, the partial the
+  // aborted stream left, an error, or nothing) stays exactly as it is and is
+  // MARKED instead, so the reader decides whether new key points are worth the
+  // tokens. The stale bar's Regenerate button is the way back.
+  const stale = document.getElementById("skim-stale");
+  if (stale) stale.hidden = false;
+  // Citation chips index the block list of the article that is now gone. The
+  // index has already been rebuilt against the NEW DOM by the time this fires
+  // (md-preview.js calls pbpAiIndexBlocks before dispatching), so a click
+  // would jump to, and flash, unrelated text. Same stale+disabled semantics
+  // ask uses for its own chips after a replacement.
+  const body = document.getElementById("skim-body");
+  if (body && typeof _pbpAskMarkCitesStale === "function") _pbpAskMarkCitesStale(body);
 }
 
 // Init hookup: top-level listener registration only (no other side
@@ -564,4 +662,8 @@ if (typeof document !== "undefined") {
   document.addEventListener("pbp:rendered", (e) => {
     pbpSkimInit((e && e.detail) || {}).catch(() => {});
   }, { once: true });
+  // Deliberately NOT {once:true}: one page life can see any number of
+  // replacements (track switch, AI punctuation, promotion).
+  document.addEventListener("pbp:article-will-replace", (e) => _pbpSkimOnArticleWillReplace((e && e.detail) || {}));
+  document.addEventListener("pbp:article-replaced", () => _pbpSkimOnArticleReplaced());
 }
