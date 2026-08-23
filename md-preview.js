@@ -2236,24 +2236,34 @@ function pbpApplyColorScheme(mode) {
     // plain speech ("$5", "100%"); info.math stays the extraction-time flag it
     // has always been, and renderArticleContent's own KaTeX gate keeps
     // deciding per render whether the new text contains any "$" at all.
-    const detail = { revision: _articleRevision, reason: meta.reason, url, title, forum: _isForumPage, account: previewAccount };
+    // Frozen: ONE object serves both events (T3 review F4) -- a listener
+    // mutating it would silently corrupt what every later listener sees.
+    const detail = Object.freeze({ revision: _articleRevision, reason: meta.reason, url, title, forum: _isForumPage, account: previewAccount });
     document.dispatchEvent(new CustomEvent("pbp:article-will-replace", { detail }));
-    canonicalMarkdown = markdown;
-    renderArticleContent(canonicalMarkdown);
-    rebuildToc();
-    refreshReadingStats();
-    // Raw view: content follows canonical immediately, but the view MODE does
-    // not change. A reader sitting in raw stays in raw (syncRawView keeps their
-    // position); forcing them back to rendered would be its own felt reset.
-    syncRawView();
-    // md-ai-core's block index still points at the OLD elements until this
-    // runs. The first render's index was built by md-ai-core's pbp:rendered
-    // listener -- which must NOT be re-dispatched (that event means "first
-    // render finished" and re-firing it would re-run every one-shot init in
-    // the md-ai layer), so the index is rebuilt explicitly, and BEFORE
-    // article-replaced lets any listener read it.
-    if (typeof pbpAiIndexBlocks === "function") pbpAiIndexBlocks(renderedView);
-    document.dispatchEvent(new CustomEvent("pbp:article-replaced", { detail }));
+    // Failure containment (T3 review F1): will-replace has told every
+    // subscriber to tear down; if any step below throws, article-replaced must
+    // STILL fire, or the subscribers stay torn down for the session -- a page
+    // with a half-rendered article and live subscribers beats one with dead
+    // subscribers. The throw still propagates for traceability.
+    try {
+      canonicalMarkdown = markdown;
+      renderArticleContent(canonicalMarkdown);
+      rebuildToc();
+      refreshReadingStats();
+      // Raw view: content follows canonical immediately, but the view MODE does
+      // not change. A reader sitting in raw stays in raw (syncRawView keeps their
+      // position); forcing them back to rendered would be its own felt reset.
+      syncRawView();
+      // md-ai-core's block index still points at the OLD elements until this
+      // runs. The first render's index was built by md-ai-core's pbp:rendered
+      // listener -- which must NOT be re-dispatched (that event means "first
+      // render finished" and re-firing it would re-run every one-shot init in
+      // the md-ai layer), so the index is rebuilt explicitly, and BEFORE
+      // article-replaced lets any listener read it.
+      if (typeof pbpAiIndexBlocks === "function") pbpAiIndexBlocks(renderedView);
+    } finally {
+      document.dispatchEvent(new CustomEvent("pbp:article-replaced", { detail }));
+    }
   };
 
   // Reading-position mapping across the switch: Raw (13px <pre>) and Rendered

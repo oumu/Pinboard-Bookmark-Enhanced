@@ -2659,7 +2659,7 @@ check(mdCss.includes("animation-timeline: scroll(self inline);"),
     "md-preview.js: an _applyArticleCommit implementation is async -- the applier must run start to finish in one task (renderArticleContent swaps the children, rebuildToc disposes the spy that was watching them)");
   // The event contract T4/T5/T6 consume. Detail keys, not just the names.
   for (const key of ["revision", "reason", "url", "title", "forum", "account"]) {
-    check(new RegExp(`const detail = \\{[^}]*\\b${key}\\b`).test(applier),
+    check(new RegExp(`const detail = (?:Object\\.freeze\\()?\\{[^}]*\\b${key}\\b`).test(applier),
       `md-preview.js: the article-replacement event detail no longer carries \`${key}\` -- md-video/md-ask/md-highlight listeners fence and re-anchor on that detail`);
   }
   const reasonsAt = src.indexOf("const VIDEO_COMMIT_REASONS = new Set(");
