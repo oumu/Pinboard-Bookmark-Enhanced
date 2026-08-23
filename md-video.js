@@ -1365,8 +1365,32 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     // scroller with the article -- following while the user reads would drag
     // the article out from under them.
     if (_followOn && !list.hidden && playerHoldsPosition()) {
-      try { _currentRowEl.scrollIntoView({ block: "nearest" }); } catch (_) {}
+      try { followScrollTo(_currentRowEl, list); } catch (_) {}
     }
+  }
+
+  // Park the current row at ~35% viewport height -- upper-middle, level with
+  // the sticky player's vertical center -- so the eye never travels between
+  // video and caption (device feedback 2026-08-23; block:"nearest" only kept
+  // the row on-screen, usually pinned to the bottom edge). Manual scrolling
+  // still wins: any wheel/touch/key in the study column flips _followOn off
+  // (bindFollowPause), and a user scroll naturally cancels an in-flight
+  // smooth animation. Position correctness never depends on the animation
+  // (md-preview rule), so reduced-motion simply jumps.
+  function followScrollTo(row, list) {
+    const behavior = (typeof matchMedia === "function"
+      && matchMedia("(prefers-reduced-motion: reduce)").matches) ? "auto" : "smooth";
+    // The non-video defensive mount keeps the list as its own scroller
+    // (max-height 40vh); the video-mode workspace unclamps it, so the PAGE
+    // scrolls. The overflow state IS the layout answer -- read it rather
+    // than re-deriving the mode here.
+    if (list.scrollHeight > list.clientHeight + 4) {
+      list.scrollTo({ top: Math.max(0, row.offsetTop - Math.round(list.clientHeight * 0.35)), behavior });
+      return;
+    }
+    const r = row.getBoundingClientRect();
+    const top = Math.max(0, (window.scrollY || 0) + r.top - Math.round(window.innerHeight * 0.35));
+    window.scrollTo({ top, behavior });
   }
 
   // Follow is only safe while the player stays put as the page scrolls. In
