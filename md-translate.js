@@ -1919,14 +1919,6 @@ async function _pbpTrStart(st) {
       if (headProg) headProg.textContent = "(" + d + "/" + tt + ")";
     }
   });
-  // Replaced mid-run: everything below writes state derived from an article
-  // that is no longer on screen -- the end-of-run cache entry (st.runMeta was
-  // cleared by the teardown), the status/progress text, the usage line and the
-  // persisted view mode. The blocks this run actually paid for reached disk
-  // through the incremental flush; the residue is dropped rather than filed
-  // under a dead generation. st.running is released so the user can translate
-  // the NEW article by hand.
-  if (st.rev !== runRev) { st.running = false; return; }
   // End-of-run write keeps the FULL st.newly (not just the unflushed residue):
   // the append transform is an idempotent merge, so rewriting flushed blocks is
   // free, and any blocks a failed flush dropped are retried here. A still-armed
@@ -1943,6 +1935,21 @@ async function _pbpTrStart(st) {
   // language switch plus a hidden-flush would re-key it under the NEW language
   // (permanent wrong-language cache entries, no TTL to age them out).
   st.flushBuf = Object.create(null);
+  // Replaced mid-run. The cache write above deliberately stays on THIS side of
+  // the fence (review F3): st.newly holds only blocks this run paid for, keyed
+  // by their own content hashes, so they are correct data that a switch back to
+  // the old track restores for free. The teardown disarmed st.replaceRun, so it
+  // is a merge and never a destructive replace, and it cleared st.runMeta, which
+  // makes it a meta-less write -- the same shape _pbpTrRetryBlock performs and
+  // documents as leaving the stored meta untouched (D5). Dropping it would have
+  // thrown away already-paid work twice over, since the teardown also wipes
+  // st.flushBuf.
+  //
+  // Everything BELOW is what must not continue: session verdict, status and
+  // progress text, the usage line and the persisted view mode all describe an
+  // article that is no longer on screen. st.running is released so the reader
+  // can translate the NEW article by hand.
+  if (st.rev !== runRev) { st.running = false; return; }
   // ZH-1b (review #5/#12): escalate the session verdict to "mixed" only when
   // this run actually LANDED writes into the old-generation entry -- a run
   // that wrote nothing (instant Stop, total failure) leaves the disk
@@ -2063,6 +2070,10 @@ function _pbpTrFlushCache(st) {
 // Shared tail of the multi-part assembly (onFill and onBlockFail converge
 // here once every part settled). Display always; record for the cache ONLY
 // when no part fell back to its original (D7).
+// All three calls below are individually fenced on st.rev (_pbpTrItemCurrent):
+// a batch from a replaced article must not fill, must not plant a retry pill,
+// and must not enter the cache buffer. Keep it that way if a fourth write path
+// is ever added here.
 function _pbpTrCommitAssembled(st, w, done, failedParts) {
   _pbpTrFill(st, w, done.text);
   if (done.partial) _pbpTrMarkPartial(st, w, failedParts);
@@ -2191,6 +2202,13 @@ function _pbpTrPartDone(pb) {
 // (wrapping it would break marked's block parsing), so the pill is the one
 // place that can say it.
 function _pbpTrMarkPartial(st, w, failedParts) {
+  // Third write path of _pbpTrCommitAssembled, fenced like its two siblings
+  // (review F2). Without it a partial batch that settled after a replacement --
+  // pbpTrRunQueue's downgrade phase calls fill/fail after an await with no
+  // post-await abort recheck -- plants a "retry this block" pill anchored to a
+  // block of the NEW article, and clicking it spends tokens re-translating the
+  // OLD article's text.
+  if (!_pbpTrItemCurrent(st, w)) return;
   const orig = pbpAiBlockEl(w.n);
   if (!orig) return;
   const tr = orig.nextElementSibling;
@@ -2265,6 +2283,11 @@ async function _pbpTrTranslateBlock(st, w, signal) {
 }
 
 async function _pbpTrRetryBlock(st, w, btn) {
+  // Money gate (review F2): this is the one PAID action a pill offers, so it
+  // re-checks the revision at click time rather than trusting that the pill
+  // could only have been planted by a current-revision batch. A pill for a
+  // replaced article buys a translation of text nobody can see any more.
+  if (!_pbpTrItemCurrent(st, w)) { btn.remove(); _pbpTrSyncRetryAll(); return; }
   if (st.running) return;   // a batch run owns the queue + cache; don't fire a concurrent single-block request
   if (btn.disabled) return;
   btn.disabled = true;
@@ -2729,7 +2752,19 @@ function _pbpTrOnArticleWillReplace(detail) {
 
 function _pbpTrOnArticleReplaced(detail) {
   const st = _pbpTrState;
-  if (!st) return;
+  if (!st) {
+    // Translate never initialized for THIS page: either AI was unavailable at
+    // first render, or _pbpTrShouldHideEntry suppressed the entry because the
+    // first article was already in the target language. That second case is the
+    // common video one -- a zh default subtitle track under a zh UI -- and
+    // without this retry the reader could switch to an English track and never
+    // get a Translate button for the rest of the session (review F4).
+    // pbpTrInit's own `if (!view || _pbpTrState) return` makes the retry a
+    // no-op once state exists, so it re-runs the full gate chain against the
+    // NEW article and nothing more; it never auto-translates.
+    pbpTrInit(detail || {}).catch(() => {});
+    return;
+  }
   // Failure containment: article-replaced fires even when the swap threw, so
   // the new article may be missing or half-rendered. Everything below tolerates
   // an empty block index.

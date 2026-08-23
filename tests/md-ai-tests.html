@@ -28,19 +28,23 @@ window.chrome = window.chrome || {
   storage: { local: { get: async (defaults) => defaults || {} } }
 };
 </script>
+<!-- Load order mirrors md-preview.html:136-148 exactly (vocab-store before ai,
+     md-dict BEFORE md-ask) so the suite exercises the same listener
+     registration order production does -- both modules subscribe to
+     pbp:article-will-replace, and listeners run in registration order. -->
 <script src="../i18n.js"></script>
 <script src="../shared.js"></script>
+<script src="../vocab-store.js"></script>
 <script src="../ai.js"></script>
 <script src="../ai-cache.js"></script>
 <script src="../md-preview.js"></script>
 <script src="../md-ai-core.js"></script>
 <script src="../md-translate.js"></script>
+<script src="../md-dict.js"></script>
 <script src="../md-ask.js"></script>
 <script src="../md-highlight.js"></script>
 <script src="../md-reader.js"></script>
 <script src="../md-skim.js"></script>
-<script src="../vocab-store.js"></script>
-<script src="../md-dict.js"></script>
 
 <script>
 let PASS = 0, FAIL = 0, SKIP = 0;
@@ -7637,6 +7641,14 @@ suiteIf("T4 translate: article replacement", "_pbpTrOnArticleWillReplace", () =>
       assertEq(w.n in st.trMd, false, "stale text never enters st.trMd (export + TOC source)");
       _pbpTrMarkFailed(st, w, "boom");
       assertEq(view.querySelectorAll(".pb-tr-err").length, 0, "no failure pill from the old revision either");
+      // Third write path of the commit trio (review F2): a multi-part batch
+      // that settled partial after the swap must not plant a retry pill on the
+      // new article -- clicking it would spend tokens on the old text.
+      _pbpTrMarkPartial(st, w, 1);
+      assertEq(view.querySelectorAll(".pb-tr-err").length, 0, "no partial-retry pill from the old revision");
+      _pbpTrCommitAssembled(st, w, { text: "stale partial", partial: true }, 1);
+      assertEq(view.querySelectorAll(".pb-tr-err").length, 0, "nor through _pbpTrCommitAssembled's partial branch");
+      assertEq(view.querySelectorAll(".pb-tr").length, 0, "and its fill half is still refused");
     } finally {
       _pbpTrState = saved;
       view.remove();
@@ -7719,6 +7731,64 @@ suiteIf("T4 translate: article replacement", "_pbpTrOnArticleWillReplace", () =>
       assertEq(st.running, false, "no translation run was started");
       assertEq(st.ctrl, null, "no request controller: a replacement never spends tokens by itself");
     } finally {
+      _pbpTrState = saved;
+      view.remove();
+    }
+  });
+
+  test("a retry pill from a replaced article can never spend tokens", () => {
+    const saved = _pbpTrState;
+    const realTranslate = window._pbpTrTranslateBlock;
+    const st = _t4TrState("https://example.test/t4-retry");
+    const view = _t4View("<p>alpha one</p>");
+    _pbpTrState = st;
+    let calls = 0;
+    window._pbpTrTranslateBlock = () => { calls++; return Promise.resolve({ text: "x", partial: false, failedParts: 0 }); };
+    try {
+      const w = _t4Work(pbpAiBlocks()[0].n, "alpha one", st.rev);
+      st.work = [w];
+      const live = document.createElement("button");
+      live.className = "pb-tr-err";
+      view.appendChild(live);
+      _pbpTrRetryBlock(st, w, live).catch(() => {});
+      assertEq(calls, 1, "control: a current-revision pill does issue its paid request");
+      _t4WithSyncRaf(() => {
+        _t4FireQuiet("pbp:article-will-replace", 1);
+        view.innerHTML = "<p>beta one</p>";
+        pbpAiIndexBlocks(view);
+        _t4FireQuiet("pbp:article-replaced", 1);
+      });
+      const dead = document.createElement("button");
+      dead.className = "pb-tr-err";
+      view.appendChild(dead);
+      _pbpTrRetryBlock(st, w, dead).catch(() => {});
+      assertEq(calls, 1, "a pill for the replaced article buys nothing");
+      assertEq(dead.isConnected, false, "and it removes itself instead of sitting there inert");
+    } finally {
+      window._pbpTrTranslateBlock = realTranslate;
+      _pbpTrState = saved;
+      view.remove();
+    }
+  });
+
+  test("a replacement retries translate init when the first article suppressed the entry", () => {
+    const saved = _pbpTrState;
+    const realInit = window.pbpTrInit;
+    const view = _t4View("<p>alpha one</p>");
+    const calls = [];
+    window.pbpTrInit = (d) => { calls.push(d); return Promise.resolve(); };
+    try {
+      // First render hid the entry (_pbpTrShouldHideEntry: the article was
+      // already in the target language), so no state was ever created.
+      _pbpTrState = null;
+      _t4FireQuiet("pbp:article-replaced", 1);
+      assertEq(calls.length, 1, "the replacement re-runs the init gate chain against the new article");
+      assertEq(calls[0] && calls[0].revision, 1, "and hands it the replacement detail (url/title/account)");
+      _pbpTrState = _t4TrState("https://example.test/t4-reinit");
+      _t4WithSyncRaf(() => _t4FireQuiet("pbp:article-replaced", 2));
+      assertEq(calls.length, 1, "but never re-inits once translate is already live");
+    } finally {
+      window.pbpTrInit = realInit;
       _pbpTrState = saved;
       view.remove();
     }
@@ -7832,6 +7902,10 @@ suiteIf("T4 explain popover: article replacement", "_pbpAskOnArticleWillReplace"
     const savedAns = _pbpExplainAnswerText;
     const pop = document.createElement("div");
     pop.setAttribute("popover", "manual");
+    const body = document.createElement("div");
+    body.className = "xp-body";
+    body.setAttribute("aria-busy", "true");     // a run was streaming into it
+    pop.appendChild(body);
     document.body.appendChild(pop);
     try {
       pop.showPopover();
@@ -7852,6 +7926,9 @@ suiteIf("T4 explain popover: article replacement", "_pbpAskOnArticleWillReplace"
       assertEq(_pbpExplainCap, null, "captured selection (old Range) dropped");
       assertEq(_pbpExplainCtx, null, "packed context dropped");
       assertEq(_pbpExplainSaveTarget, null, "save-as-note target dropped");
+      // The run's own finally can no longer match (_pbpExplainAbort was just
+      // dropped), so the close has to clear the busy flag itself.
+      assertEq(body.hasAttribute("aria-busy"), false, "no aria-busy residue on the closed card");
     } finally {
       pop.remove();
       _pbpExplainPopEl = savedPop; _pbpExplainPinned = savedPinned; _pbpExplainAbort = savedAbort;
@@ -8101,7 +8178,20 @@ suiteIf("T4 ask: citations after a replacement", "_pbpAskOnArticleReplaced", () 
     }
   });
 
-  await atest("a history restore in flight when the article changes bails and re-runs", async () => {
+  // PRODUCTION ORDERING (review F1). md-preview.js _applyArticleCommit
+  // dispatches will-replace and article-replaced inside ONE synchronous block
+  // ("Deliberately SYNCHRONOUS end to end ... Do not make this async"), so a
+  // parked restore has NOT reached any bail point when the replaced handler
+  // runs. Any test that awaits between the two dispatches invents an interleave
+  // the producer cannot emit -- and passes over a mechanism that never fires.
+  async function settleRestore(thread) {
+    for (let i = 0; i < 300 && !thread.querySelector(".ask-restored"); i++) {
+      await new Promise((r) => setTimeout(r, 10));
+    }
+    await new Promise((r) => setTimeout(r, 60));   // let a duplicate insert, if any, land too
+  }
+
+  await atest("a history restore in flight when the article changes still restores, exactly once", async () => {
     const root = document.createElement("div");
     root.innerHTML = "<p>alpha beta gamma</p><p>second block text</p>";
     pbpAiIndexBlocks(root);
@@ -8116,22 +8206,122 @@ suiteIf("T4 ask: citations after a replacement", "_pbpAskOnArticleReplaced", () 
       _pbpAskHistUrl = url;
       _pbpAskHistAccount = "";
       _pbpAskHistRestored = false;
-      const inflight = _pbpAskHistRestore();
-      _t4FireQuiet("pbp:article-will-replace", 51);   // lands while the IDB read is out
-      await inflight;
-      assertEq(bits.thread.querySelector(".ask-restored"), null,
-        "the fragment built for the old article was never inserted");
-      assertEq(_pbpAskHistRestored, false, "the single-shot flag was released for a re-run");
-      _t4FireQuiet("pbp:article-replaced", 51);       // which the replaced handler performs
-      for (let i = 0; i < 300 && !bits.thread.querySelector(".ask-restored"); i++) {
-        await new Promise((r) => setTimeout(r, 10));
-      }
-      assert(bits.thread.querySelector(".ask-restored"), "history restored against the NEW article");
-      assertEq(bits.thread.querySelectorAll(".ask-a").length, 2, "both rounds restored exactly once");
+      _pbpAskHistRestore();                          // parks on its IDB read
+      // Both dispatches back to back, with only the DOM swap + index rebuild
+      // between them -- byte-for-byte the producer's sequence.
+      _t4FireQuiet("pbp:article-will-replace", 51);
+      const newRoot = document.createElement("div");
+      newRoot.innerHTML = "<p>brand new paragraph one</p><p>brand new paragraph two</p>";
+      pbpAiIndexBlocks(newRoot);
+      _t4FireQuiet("pbp:article-replaced", 51);
+      await settleRestore(bits.thread);
+      assert(bits.thread.querySelector(".ask-restored"),
+        "persisted Q&A appears: the superseded restore re-armed itself");
+      assertEq(bits.thread.querySelectorAll(".ask-restored").length, 1, "restored once, not twice");
+      assertEq(bits.thread.querySelectorAll(".ask-a").length, 2, "both rounds, no duplicates");
+      assertEq(_pbpAskHistRestored, true, "and the single-shot flag ends up claimed again");
       const chips = Array.from(bits.thread.querySelectorAll(".ask-chip"));
       assert(chips.length > 0, "control: the restored answers carry chips");
       assertEq(chips.every((c) => c.disabled), true,
-        "and every one is disabled: the stored fingerprint no longer matches this article");
+        "every one is disabled: the stored fingerprint no longer matches this article");
+    } finally {
+      _pbpAskState = saved;
+      _pbpAskHistUrl = savedUrl; _pbpAskHistAccount = savedAcct; _pbpAskHistRestored = savedFlag;
+      bits.wrap.remove();
+      const clear = document.getElementById("ask-clear");
+      if (clear) clear.remove();
+    }
+  });
+
+  await atest("a replacement landing mid-chunk re-arms the restore exactly once", async () => {
+    // The other ordering: the restore is already PAST its IDB read and inside
+    // the rAF-chunked build when the swap lands. Two of its three bail points
+    // then trip in the same run (the re-entered restore claims the single-shot
+    // flag again, so the plain !_pbpAskHistRestored guard passes), and a second
+    // re-entry would leave two restores running concurrently -- both inserting.
+    //
+    // Made deterministic by deferring only the FIRST pbpAskHistGet, so the
+    // restore can be parked exactly between its post-IDB check and its first
+    // chunk. No rAF stubbing: this page's popover suite schedules its own
+    // frames across awaits and a global rAF queue makes it flaky.
+    const root = document.createElement("div");
+    root.innerHTML = "<p>alpha beta gamma</p><p>second block text</p>";
+    pbpAiIndexBlocks(root);
+    const bits = mkThread();
+    const saved = _pbpAskState;
+    const savedUrl = _pbpAskHistUrl, savedAcct = _pbpAskHistAccount, savedFlag = _pbpAskHistRestored;
+    const realGet = window.pbpAskHistGet;
+    const url = "https://example.test/t4-hist3-" + Date.now() + "-" + Math.random();
+    try {
+      // More rounds than md-ask's PBP_ASK_HIST_CHUNK (2, function-scoped), so a
+      // duplicate restore is unmistakable in the row count.
+      const ROUNDS = 5;
+      for (let i = 1; i <= ROUNDS; i++) {
+        await pbpAskHistAppend(url, { q: "q" + i, a: "Answer [P1] " + i + ".", blocksHash: "old-fp" }, "");
+      }
+      _pbpAskState = mkAskState(url);
+      _pbpAskHistUrl = url;
+      _pbpAskHistAccount = "";
+      _pbpAskHistRestored = false;
+      // Resolve with an already-READ value, never with a pending IDB promise:
+      // adopting a thenable would keep the restore parked until a macrotask,
+      // and the park has to end on microtasks alone so no frame slips in.
+      const preloaded = await realGet(url, "");
+      let deferFirst = true, releaseGet = null;
+      window.pbpAskHistGet = (...args) => {
+        if (!deferFirst) return realGet(...args);     // re-entrant restores read normally
+        deferFirst = false;
+        return new Promise((r) => { releaseGet = () => r(preloaded); });
+      };
+      _pbpAskHistRestore();
+      for (let i = 0; i < 300 && !releaseGet; i++) await new Promise((r) => setTimeout(r, 10));
+      assert(releaseGet, "control: the restore reached its history read");
+      releaseGet();
+      // Microtask turns only -- no timer or frame may run here, or the chunk
+      // loop would start before the swap and the bail point would move.
+      for (let i = 0; i < 20; i++) await Promise.resolve();
+      _t4FireQuiet("pbp:article-will-replace", 71);   // production ordering, mid-build
+      const newRoot = document.createElement("div");
+      newRoot.innerHTML = "<p>brand new paragraph one</p><p>brand new paragraph two</p>";
+      pbpAiIndexBlocks(newRoot);
+      _t4FireQuiet("pbp:article-replaced", 71);
+      await settleRestore(bits.thread);
+      assert(bits.thread.querySelector(".ask-restored"), "persisted Q&A still appears");
+      assertEq(bits.thread.querySelectorAll(".ask-restored").length, 1, "restored once, not twice");
+      assertEq(bits.thread.querySelectorAll(".ask-a").length, ROUNDS,
+        "every round exactly once -- no concurrent second restore");
+    } finally {
+      window.pbpAskHistGet = realGet;
+      _pbpAskState = saved;
+      _pbpAskHistUrl = savedUrl; _pbpAskHistAccount = savedAcct; _pbpAskHistRestored = savedFlag;
+      bits.wrap.remove();
+      const clear = document.getElementById("ask-clear");
+      if (clear) clear.remove();
+    }
+  });
+
+  await atest("a replacement AFTER the restore finished does not insert the transcript twice", async () => {
+    const root = document.createElement("div");
+    root.innerHTML = "<p>alpha beta gamma</p><p>second block text</p>";
+    pbpAiIndexBlocks(root);
+    const bits = mkThread();
+    const saved = _pbpAskState;
+    const savedUrl = _pbpAskHistUrl, savedAcct = _pbpAskHistAccount, savedFlag = _pbpAskHistRestored;
+    const url = "https://example.test/t4-hist2-" + Date.now() + "-" + Math.random();
+    try {
+      await pbpAskHistAppend(url, { q: "q1", a: "Answer [P1] one.", blocksHash: "old-fp" }, "");
+      _pbpAskState = mkAskState(url);
+      _pbpAskHistUrl = url;
+      _pbpAskHistAccount = "";
+      _pbpAskHistRestored = false;
+      await _pbpAskHistRestore();
+      await settleRestore(bits.thread);
+      assertEq(bits.thread.querySelectorAll(".ask-a").length, 1, "control: restored once before the replacement");
+      _t4FireQuiet("pbp:article-will-replace", 61);
+      _t4FireQuiet("pbp:article-replaced", 61);
+      await settleRestore(bits.thread);
+      assertEq(bits.thread.querySelectorAll(".ask-restored").length, 1, "still one restored-note");
+      assertEq(bits.thread.querySelectorAll(".ask-a").length, 1, "the completed transcript is not duplicated");
     } finally {
       _pbpAskState = saved;
       _pbpAskHistUrl = savedUrl; _pbpAskHistAccount = savedAcct; _pbpAskHistRestored = savedFlag;

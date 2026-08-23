@@ -1419,13 +1419,32 @@ async function _pbpAskHistRestore() {
   // Article the restore is building against. Every record's chips are verified
   // against the CURRENT block index (_pbpAskFinalize -> _pbpAskChipPass) and
   // its staleness is judged against the CURRENT fingerprint, so a fragment
-  // built for the previous article must never be inserted. Bailing also clears
-  // the single-shot flag, and the article-replaced handler calls this again --
-  // the thread is restored once, against the article the reader can see.
+  // built for the previous article must never be inserted.
+  //
+  // The re-arm has to happen HERE, not in the article-replaced handler: the
+  // producer dispatches will-replace and article-replaced inside ONE
+  // synchronous block (md-preview.js _applyArticleCommit, "Deliberately
+  // SYNCHRONOUS end to end ... Do not make this async"), so at replaced time
+  // this restore has not reached any of its bail points yet and the single-shot
+  // flag is still true -- the handler's call would return at the top guard, and
+  // the flag we clear a moment later would have nothing left to re-arm it. The
+  // whole persisted transcript would then never appear for the rest of the page
+  // session (review F1). Re-entering from the bail point instead restores
+  // against the revision that is actually on screen.
+  //
+  // `reentered` makes that exactly-once: the three bail points can all trip in
+  // one run (the flag the re-entered restore sets makes the plain
+  // !_pbpAskHistRestored guards pass again), and a second re-entry would run two
+  // restores concurrently and insert the transcript twice.
   const rev = _pbpAskArticleRev;
+  let reentered = false;
   const superseded = () => {
     if (_pbpAskArticleRev === rev) return false;
-    _pbpAskHistRestored = false;
+    if (!reentered) {
+      reentered = true;
+      _pbpAskHistRestored = false;
+      _pbpAskHistRestore().catch(() => {});
+    }
     return true;
   };
   // Pre-owner-scope hygiene: legacy ownerless "ask_<rawhash>" entries can
@@ -2822,7 +2841,14 @@ function _pbpAskOnArticleWillReplace(detail) {
   // find, with a save button aimed at a dead Range. _pbpExplainClose's
   // beforetoggle also unpins and cancels speech; the explicit unpin covers the
   // case where the card was already closed with the flag still set.
-  if (_pbpExplainPopEl) _pbpExplainClose(_pbpExplainPopEl);
+  if (_pbpExplainPopEl) {
+    // _pbpExplainRun's finally only clears aria-busy when it still owns
+    // _pbpExplainAbort, and we just dropped that reference -- so the card would
+    // keep aria-busy="true" while closed and empty (review F7). Clear it here.
+    const body = _pbpExplainPopEl.querySelector(".xp-body");
+    if (body) body.removeAttribute("aria-busy");
+    _pbpExplainClose(_pbpExplainPopEl);
+  }
   _pbpExplainSetPinned(_pbpExplainPopEl, false);
 }
 
@@ -2843,8 +2869,13 @@ function _pbpAskOnArticleReplaced(detail) {
       a: _pbpAskStripCiteTokens(String((r && r.a) || ""))
     }));
   }
-  // No-op unless a restore bailed on the revision check above (panel never
-  // opened / restore already finished both return immediately).
+  // Only covers "the restore had not started yet" (e.g. the panel mounted its
+  // thread but the URL arrived later). A restore that is already IN FLIGHT
+  // re-arms itself from its own bail point -- see the comment in
+  // _pbpAskHistRestore -- because at this instant its single-shot flag is still
+  // true and this call would return at the top guard. Deliberately NOT an
+  // unconditional flag reset: a restore that already COMPLETED must not be
+  // re-run, or the transcript is inserted twice.
   _pbpAskHistRestore().catch(() => {});
 }
 
