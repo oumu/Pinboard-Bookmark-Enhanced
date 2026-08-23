@@ -122,6 +122,20 @@ function detectArticleLang(text) {
   return ""; // Latin / Cyrillic → default stack's Latin head
 }
 
+// Monotonic article generation counter. renderArticleContent() captures it at
+// call time and every deferred enhancer it schedules (hljs / Mermaid / KaTeX,
+// all of them rAF- or promise-continuations that outlive the render call)
+// re-checks it before touching the DOM, so a callback queued for article N can
+// never write into article N+1's DOM. Nothing bumps it yet — the first render
+// is the only render — so today every check trivially matches and the guards
+// are inert; the in-place replacement path bumps it.
+let _articleRevision = 0;
+// Dispose handle for the scroll-spy belonging to the CURRENT article. Lives at
+// module scope beside setupScrollSpy() itself; the render pipeline inside the
+// IIFE calls the stored dispose before installing a new spy, so observers and
+// the scroll listener can't accumulate across rebuilds.
+let _scrollSpyDispose = null;
+
 // Lazy-load the vendored highlight.js (~122KB) on demand: only articles that actually
 // contain code blocks pay its parse/compile cost, and never on the blocking first-paint
 // path. Cached so concurrent callers share one load; degrades to no-highlight on error.
@@ -882,7 +896,12 @@ function pbpApplyColorScheme(mode) {
       }
     }
   }
-  const canonicalMarkdown = _videoMarkdown !== null ? _videoMarkdown : _extractedMarkdown;
+  // `let`, not const: an in-place article replacement reassigns this after its
+  // payload is persisted, so getMarkdown() (and everything downstream of it —
+  // export, Copy, Raw, reading stats) follows without a page reload. Nothing
+  // reassigns it today; every reader already goes through getMarkdown(), which
+  // is why widening the binding is enough.
+  let canonicalMarkdown = _videoMarkdown !== null ? _videoMarkdown : _extractedMarkdown;
   function getMarkdown() { return canonicalMarkdown; }
   if (!canonicalMarkdown.trim()) {
     // A video page's "content" IS the video: YouTube/bilibili watch pages
@@ -1312,13 +1331,30 @@ function pbpApplyColorScheme(mode) {
 
   // Reading stats (header) — computed from canonical Markdown
   let queueReadingStats = null;
+  // Recompute the word/CJK/minutes base from the CURRENT canonical markdown and
+  // repaint. No-op when the header element is absent. Used by the in-place
+  // replacement path; the first render deliberately does NOT call it (see
+  // computeStatBase below).
+  let refreshReadingStats = () => {};
   const statsEl = document.getElementById("reading-stats");
   if (statsEl) {
-    const stats = readingStats(getMarkdown());
-    const wordLabel = stats.cjkChars > 0
-      ? `${t("mdStatWords", stats.words.toLocaleString())} · ${t("mdStatCjk", stats.cjkChars.toLocaleString())}`
-      : t("mdStatWords", stats.words.toLocaleString());
-    const statBase = `${wordLabel} · ${t("mdStatMin", String(stats.minutes))}`;
+    // statBase is the article-derived half of the line ("913 words · ~5 min");
+    // the scroll-progress half is appended per repaint. It used to be a const
+    // captured from the FIRST markdown, which silently froze the counts for any
+    // later article — hence the separate recompute step.
+    let statBase = "";
+    const computeStatBase = () => {
+      const stats = readingStats(getMarkdown());
+      const wordLabel = stats.cjkChars > 0
+        ? `${t("mdStatWords", stats.words.toLocaleString())} · ${t("mdStatCjk", stats.cjkChars.toLocaleString())}`
+        : t("mdStatWords", stats.words.toLocaleString());
+      statBase = `${wordLabel} · ${t("mdStatMin", String(stats.minutes))}`;
+    };
+    // First render computes the base ONLY: the repaint is queued later by
+    // renderArticleContent(), after the article DOM exists, so the very first
+    // progress measurement isn't taken against an empty document. Callers on
+    // the replacement path want both, so refreshReadingStats() below does both.
+    computeStatBase();
     let statTick = false;
     const renderStats = () => {
       statTick = false;
@@ -1332,6 +1368,7 @@ function pbpApplyColorScheme(mode) {
       requestAnimationFrame(renderStats);
     };
     queueReadingStats = queueStats;
+    refreshReadingStats = () => { computeStatBase(); queueStats(); };
     window.addEventListener("scroll", queueStats, { passive: true });
     window.addEventListener("resize", queueStats);
   }
@@ -1751,52 +1788,91 @@ function pbpApplyColorScheme(mode) {
     imgFixTimer = setTimeout(imgFixAutoCheck, 400);
   }, true);
 
-  let renderedHtml = renderMarkdown(canonicalMarkdown);
-  // Lazy-load images / async decode (sanitizer keeps these attributes).
-  renderedHtml = renderedHtml.replace(/<img(?=\s)/gi, '<img loading="lazy" decoding="async"');
-  renderedView.innerHTML = renderedHtml;
-  // Forum pages + any page with a nested blockquote: split into per-comment blocks
-  // BEFORE the AI layer indexes (pbp:rendered). Structural detection (blockquote blockquote)
-  // means Reddit and similar pages benefit without a per-site rule. Single-level quotes
-  // are untouched. canonicalMarkdown (export/Copy/Raw) is unaffected — DOM-only.
-  if (typeof pbpForumShouldMark === "function" && pbpForumShouldMark(info, renderedView) && typeof pbpForumMarkComments === "function") pbpForumMarkComments(renderedView);
-  const _articleLang = detectArticleLang(canonicalMarkdown);
-  if (_articleLang) renderedView.lang = _articleLang; // article-script font for the reading content
-  // D9-3: RTL article -> container-level dir so blockquote/list/TOC physical
-  // direction CSS mirrors along with the text (renderedView is fresh DOM per
-  // page load — no stale dir from a prior render to clear on the LTR path).
-  if (_articleLang === "ar" || _articleLang === "he") renderedView.dir = "rtl";
-  if (queueReadingStats) {
-    queueReadingStats(); // first measurement runs in rAF, after article injection/layout
-    if (typeof ResizeObserver === "function") new ResizeObserver(queueReadingStats).observe(renderedView);
+  // ---- The article render, as ONE re-callable step ----------------------
+  // Markdown -> renderMarkdown() (still the lone sanitize point; this function
+  // adds no second HTML-producing path) -> lazy-img attrs -> innerHTML ->
+  // forum marking -> lang/dir -> stats repaint -> post-paint enhancers, in
+  // exactly that order. Extracted verbatim from the inline first-render block
+  // so an in-place replacement can re-run the identical sequence instead of
+  // reloading the page; the first render below is its only caller today.
+  //
+  // Everything it touches is scoped to #rendered-view's CHILDREN — the element
+  // itself is never replaced, which is what lets the one-time ResizeObserver,
+  // the image-error capture listener installed above, and the TOC click
+  // delegate all survive a re-render.
+  function renderArticleContent(markdown) {
+    // Captured once per render; the deferred enhancers below compare against
+    // the live counter so a slow lazy-load can't paint into a newer article.
+    const rev = _articleRevision;
+    let renderedHtml = renderMarkdown(markdown);
+    // Lazy-load images / async decode (sanitizer keeps these attributes).
+    renderedHtml = renderedHtml.replace(/<img(?=\s)/gi, '<img loading="lazy" decoding="async"');
+    renderedView.innerHTML = renderedHtml;
+    // Forum pages + any page with a nested blockquote: split into per-comment blocks
+    // BEFORE the AI layer indexes (pbp:rendered). Structural detection (blockquote blockquote)
+    // means Reddit and similar pages benefit without a per-site rule. Single-level quotes
+    // are untouched. canonicalMarkdown (export/Copy/Raw) is unaffected — DOM-only.
+    if (typeof pbpForumShouldMark === "function" && pbpForumShouldMark(info, renderedView) && typeof pbpForumMarkComments === "function") pbpForumMarkComments(renderedView);
+    // Clear BEFORE detecting: on the first render #rendered-view is fresh DOM
+    // and both removals are no-ops, but a re-render inherits the previous
+    // article's attributes — an Arabic article followed by an English one would
+    // otherwise keep dir="rtl" (and its lang) forever, since the detection
+    // branches below only ever SET. Detection must therefore be idempotent.
+    renderedView.removeAttribute("lang");
+    renderedView.removeAttribute("dir");
+    const articleLang = detectArticleLang(markdown);
+    if (articleLang) renderedView.lang = articleLang; // article-script font for the reading content
+    // D9-3: RTL article -> container-level dir so blockquote/list/TOC physical
+    // direction CSS mirrors along with the text.
+    if (articleLang === "ar" || articleLang === "he") renderedView.dir = "rtl";
+    // First measurement runs in rAF, after article injection/layout. The
+    // ResizeObserver that keeps it fresh is installed ONCE at the call site
+    // below — it observes #rendered-view, which this function never replaces.
+    if (queueReadingStats) queueReadingStats();
+    // Syntax highlighting is OFF the critical first-paint path: the article paints
+    // immediately, then — only if it actually contains code — highlight.js is lazy-loaded
+    // and applied after paint (rAF). Avoids blocking the page on a 122KB compile + a
+    // synchronous whole-document highlight pass (the cold-load spinner).
+    if (renderedView.querySelector("pre > code")) {
+      requestAnimationFrame(() => {
+        if (rev !== _articleRevision) return;
+        ensureHljs().then(() => { if (rev === _articleRevision) highlightCodeBlocksChunked(renderedView); });
+      });
+    }
+    // Mermaid fences render locally into data-URI figures — lazy (module only
+    // loads its 3.4MB vendor when a fence exists) and off the first paint.
+    if (typeof pbpMermaidEnhance === "function" && renderedView.querySelector("pre > code.language-mermaid")) {
+      requestAnimationFrame(() => {
+        if (rev !== _articleRevision) return;
+        pbpMermaidEnhance(renderedView).catch(() => {});
+      });
+    }
+    // Math rendering — ONLY for LaTeX-bearing content (info.math, e.g. arXiv). Gating on
+    // the flag (not just a "$") keeps KaTeX off every other page so currency like "$5"
+    // is never mangled. Off the first-paint path (rAF), degrades to $...$ source on error.
+    if (info.math && /\$/.test(renderedView.textContent)) {
+      requestAnimationFrame(() => {
+        if (rev !== _articleRevision) return;
+        return ensureKatex().then(() => {
+          if (rev !== _articleRevision) return;
+          if (typeof renderMathInElement === "function") {
+            try {
+              renderMathInElement(renderedView, {
+                delimiters: [{ left: "$$", right: "$$", display: true }, { left: "$", right: "$", display: false }],
+                throwOnError: false
+              });
+            } catch (_) { /* leave $...$ source visible on failure */ }
+          }
+        });
+      });
+    }
   }
-  // Syntax highlighting is OFF the critical first-paint path: the article paints
-  // immediately, then — only if it actually contains code — highlight.js is lazy-loaded
-  // and applied after paint (rAF). Avoids blocking the page on a 122KB compile + a
-  // synchronous whole-document highlight pass (the cold-load spinner).
-  if (renderedView.querySelector("pre > code")) {
-    requestAnimationFrame(() => { ensureHljs().then(() => highlightCodeBlocksChunked(renderedView)); });
-  }
-  // Mermaid fences render locally into data-URI figures — lazy (module only
-  // loads its 3.4MB vendor when a fence exists) and off the first paint.
-  if (typeof pbpMermaidEnhance === "function" && renderedView.querySelector("pre > code.language-mermaid")) {
-    requestAnimationFrame(() => { pbpMermaidEnhance(renderedView).catch(() => {}); });
-  }
-  // Math rendering — ONLY for LaTeX-bearing content (info.math, e.g. arXiv). Gating on
-  // the flag (not just a "$") keeps KaTeX off every other page so currency like "$5"
-  // is never mangled. Off the first-paint path (rAF), degrades to $...$ source on error.
-  if (info.math && /\$/.test(renderedView.textContent)) {
-    requestAnimationFrame(() => ensureKatex().then(() => {
-      if (typeof renderMathInElement === "function") {
-        try {
-          renderMathInElement(renderedView, {
-            delimiters: [{ left: "$$", right: "$$", display: true }, { left: "$", right: "$", display: false }],
-            throwOnError: false
-          });
-        } catch (_) { /* leave $...$ source visible on failure */ }
-      }
-    }));
-  }
+
+  renderArticleContent(canonicalMarkdown);
+  // One observer for the life of the page: #rendered-view is a stable element
+  // (renderArticleContent only swaps its children), so re-installing this per
+  // render would stack duplicate observers on the same target for nothing.
+  if (queueReadingStats && typeof ResizeObserver === "function") new ResizeObserver(queueReadingStats).observe(renderedView);
   // pbpDeferredScriptsReady is already awaited by the video bootstrap above,
   // so md-video.js -- the LAST defer script -- has run; the typeof guard only
   // covers it failing to load at all.
@@ -1806,21 +1882,60 @@ function pbpApplyColorScheme(mode) {
   // ---- Build TOC sidebar from the canonical markdown ----
   const tocNav = document.getElementById("toc");
   const tocList = document.getElementById("toc-list");
-  // Rail accordion (spec 2026-07-04): install regardless of whether headings
-  // exist below -- #toc's own [hidden] gate (unset only inside the
-  // headings.length branch) stays the orthogonal "does a TOC exist at all"
-  // control; this is "is its content collapsed" and coexists with it.
+  // Rail accordion (spec 2026-07-04): installed ONCE here, regardless of
+  // whether headings exist below -- #toc's own [hidden] gate (owned by
+  // rebuildToc) stays the orthogonal "does a TOC exist at all" control; this is
+  // "is its content collapsed" and coexists with it. Keeping it outside
+  // rebuildToc is what lets the collapsed/expanded state survive a rebuild.
   pbpRailCollapsible(tocNav, "toc", { label: tocNav.querySelector(".rail-label"), defaultCollapsed: false });
   const expSec = document.getElementById("export-section");
   if (expSec) pbpRailCollapsible(expSec, "export", { label: expSec.querySelector(".rail-label"), defaultCollapsed: true });
-  // Walk the already-rendered (and sanitized) headings so each TOC anchor
-  // equals a real element id (buildToc's markdown-derived slugs can diverge from
-  // marked's rendered ids for headings with inline links/images or duplicates).
-  const headings = Array.from(renderedView.querySelectorAll("h2[id], h3[id], h4[id]"))
-    .map((el) => ({ level: +el.tagName[1], text: el.textContent, slug: el.id }))
-    .filter((h) => h.slug);
+  // ONE delegated click handler for the whole TOC, bound to the container that
+  // outlives every rebuild. It used to be an anonymous listener added inside
+  // the "has headings" branch, i.e. per build — harmless while there was only
+  // ever one build, but a second one would have stacked a duplicate handler
+  // (and every jump would fire twice). Delegation also means rebuildToc() can
+  // freely discard and recreate the <a> elements it targets.
+  //
+  // tr-only view hides the ORIGINAL heading and shows its .pb-tr translation
+  // sibling instead (see trOnlyScrollTarget) — the anchor's native #slug jump
+  // targets the (display:none) original, which never scrolls (0-size rect).
+  // Intercept and redirect to the visible sibling; the id stays owned by the
+  // original heading (untouched invariant), only the SCROLL target changes.
+  tocList.addEventListener("click", (e) => {
+    const a = e.target.closest("a[data-slug]");
+    if (!a) return;
+    const headEl = renderedView.querySelector("#" + cssEscape(a.dataset.slug));
+    if (!headEl) return;
+    const target = trOnlyScrollTarget(headEl);
+    pbpFocusArticleTarget(target);
+    if (target !== headEl) {
+      e.preventDefault();
+      pbpScrollIntoView(target, { behavior: "smooth", block: "start" });
+    }
+  });
 
-  if (headings && headings.length) {
+  // Rebuild the sidebar from whatever is currently in #rendered-view. Safe to
+  // call repeatedly: it clears the list, re-hides #toc when the new article has
+  // no headings (the old build could only ever REVEAL it, so a headingless
+  // replacement would have left an empty TOC on screen), and swaps the
+  // scroll-spy rather than stacking a second observer over the first.
+  function rebuildToc() {
+    // Walk the already-rendered (and sanitized) headings so each TOC anchor
+    // equals a real element id (buildToc's markdown-derived slugs can diverge from
+    // marked's rendered ids for headings with inline links/images or duplicates).
+    const headings = Array.from(renderedView.querySelectorAll("h2[id], h3[id], h4[id]"))
+      .map((el) => ({ level: +el.tagName[1], text: el.textContent, slug: el.id }))
+      .filter((h) => h.slug);
+
+    // Tear the old spy down BEFORE the links it holds leave the DOM, so its
+    // IntersectionObserver and scroll listener never outlive their targets.
+    if (_scrollSpyDispose) { _scrollSpyDispose(); _scrollSpyDispose = null; }
+    tocList.replaceChildren();
+    if (!headings.length) {
+      tocNav.hidden = true; // #toc ships hidden, so this is a no-op on first render
+      return;
+    }
     const frag = document.createDocumentFragment();
     headings.forEach((h) => {
       const li = document.createElement("li");
@@ -1834,26 +1949,10 @@ function pbpApplyColorScheme(mode) {
       frag.appendChild(li);
     });
     tocList.appendChild(frag);
-    // tr-only view hides the ORIGINAL heading and shows its .pb-tr translation
-    // sibling instead (see trOnlyScrollTarget) — the anchor's native #slug jump
-    // targets the (display:none) original, which never scrolls (0-size rect).
-    // Intercept and redirect to the visible sibling; the id stays owned by the
-    // original heading (untouched invariant), only the SCROLL target changes.
-    tocList.addEventListener("click", (e) => {
-      const a = e.target.closest("a[data-slug]");
-      if (!a) return;
-      const headEl = renderedView.querySelector("#" + cssEscape(a.dataset.slug));
-      if (!headEl) return;
-      const target = trOnlyScrollTarget(headEl);
-      pbpFocusArticleTarget(target);
-      if (target !== headEl) {
-        e.preventDefault();
-        pbpScrollIntoView(target, { behavior: "smooth", block: "start" });
-      }
-    });
     tocNav.hidden = false;
-    setupScrollSpy(renderedView, tocList);
+    _scrollSpyDispose = setupScrollSpy(renderedView, tocList);
   }
+  rebuildToc();
   setupDrawer();
 
   // Notify the md-ai layer (md-ai-core / md-translate / md-ask) that the
@@ -1877,6 +1976,24 @@ function pbpApplyColorScheme(mode) {
   const btnRaw = document.getElementById("btn-raw");
   const btnRendered = document.getElementById("btn-rendered");
   const rawView = document.getElementById("raw-view");
+  // Has the raw <pre> ever been filled? The fill used to be guarded on
+  // `!rawView.textContent`, which is the same test as this flag for a first
+  // fill (canonical markdown is non-empty — the blank case returned long ago)
+  // but says nothing about staleness afterwards: once populated, the old guard
+  // could never refresh it, so a canonical change would silently leave the raw
+  // view showing the previous article. The flag separates "not filled yet"
+  // (lazy fill, below) from "filled and therefore must be kept in sync"
+  // (syncRawView).
+  let _rawFilled = false;
+  // Push the current canonical markdown into the raw view — but only if the
+  // user has ever opened it. Deliberately does NOT switch views or fill it
+  // early: an untouched raw view stays lazy and gets the fresh text on its
+  // first activation anyway. Nothing changes canonical markdown today, so this
+  // is unreachable on the first-render path.
+  function syncRawView() {
+    if (!_rawFilled) return;
+    rawView.textContent = getMarkdown();
+  }
 
   // Reading-position mapping across the switch: Raw (13px <pre>) and Rendered
   // (clamp 17-22px article typography) are the same content at very different
@@ -1899,7 +2016,7 @@ function pbpApplyColorScheme(mode) {
       const idx = blocks.findIndex((b) => trOnlyScrollTarget(b.el).getBoundingClientRect().bottom > 0);
       frac = (idx === -1 ? blocks.length - 1 : idx) / blocks.length;
     }
-    if (!rawView.textContent) rawView.textContent = getMarkdown();
+    if (!_rawFilled) { rawView.textContent = getMarkdown(); _rawFilled = true; }
     rawView.classList.remove("hidden");
     renderedView.classList.add("hidden");
     btnRaw.classList.add("active");
@@ -2601,9 +2718,17 @@ function trOnlyScrollTarget(headEl) {
 }
 
 // ---- Scroll-spy: highlight the TOC entry for the heading nearest the top ----
+// Returns a dispose function that unhooks EVERYTHING this installs (observer,
+// scroll listener, any rAF still in flight). Callers must run it before
+// rebuilding the TOC: the observer and the listener are page-lifetime objects
+// holding on to the old headings and old <a> elements, so without a teardown a
+// second install would leave the previous spy running and fighting the new one
+// over the .active class. The no-op returns keep the contract uniform — a
+// caller can always store and later call whatever came back.
 function setupScrollSpy(renderedView, tocList) {
+  const noop = () => {};
   const links = Array.from(tocList.querySelectorAll("a"));
-  if (!links.length) return;
+  if (!links.length) return noop;
 
   // No sticky toolbar overlays the content now (rail is beside it); a small
   // top clearance keeps the heading at the very top from flickering.
@@ -2616,7 +2741,7 @@ function setupScrollSpy(renderedView, tocList) {
   const targets = links
     .map((a) => renderedView.querySelector("#" + cssEscape(a.dataset.slug)))
     .filter(Boolean);
-  if (!targets.length) return;
+  if (!targets.length) return noop;
 
   let activeSlug = null;
   const setActive = (slug) => {
@@ -2675,11 +2800,21 @@ function setupScrollSpy(renderedView, tocList) {
   // In original/bilingual views `visible` stays populated by the observer,
   // so this bails out immediately and costs nothing.
   let spyRaf = 0;
-  window.addEventListener("scroll", () => {
+  // Named (was anonymous) so dispose can remove exactly this listener.
+  const onSpyScroll = () => {
     if (visible.size) return;
     if (spyRaf) return;
     spyRaf = requestAnimationFrame(() => { spyRaf = 0; runFallback(); });
-  }, { passive: true });
+  };
+  window.addEventListener("scroll", onSpyScroll, { passive: true });
+
+  return () => {
+    observer.disconnect();
+    window.removeEventListener("scroll", onSpyScroll);
+    // A pending frame would otherwise still call runFallback() against the
+    // detached old headings after teardown.
+    if (spyRaf) { cancelAnimationFrame(spyRaf); spyRaf = 0; }
+  };
 }
 
 // CSS.escape fallback for slugs used in querySelector("#"+id).
