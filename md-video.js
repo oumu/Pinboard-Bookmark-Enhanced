@@ -538,7 +538,11 @@ async function pbpYtFetchTranscript(videoId, opts) {
   if (status && status !== "OK") return { error: "blocked", status: status };
   const tracks = pbpYtExtractTracks(playerJson);
   if (!tracks.length) return { error: "no-tracks" };
-  const track = opts.pickBaseUrl ? (tracks.find((tr) => tr.baseUrl === opts.pickBaseUrl) || pbpYtPickTrack(tracks, opts.uiLang)) : pbpYtPickTrack(tracks, opts.uiLang);
+  // Default-track pick only. The old opts.pickBaseUrl branch existed so a
+  // track switch could re-enter this whole chain with a chosen URL; the picker
+  // now fetches the chosen endpoint directly (pbpYtFetchCaptionBody), so
+  // nothing has passed it since -- removed rather than left as a dead option.
+  const track = pbpYtPickTrack(tracks, opts.uiLang);
   const segments = await pbpYtFetchCaptionBody(track.baseUrl, fetchFn, opts.useLogin);
   if (!segments.length) return { error: "caption-body", tracks, track };
   return { tracks, track, segments };
@@ -803,7 +807,10 @@ async function pbpBiliFetchTranscript(bvid, part, opts) {
   } catch (_) { return { error: "no-tracks", meta: info }; }
   const subs = (player && player.data && player.data.subtitle && player.data.subtitle.subtitles) || [];
   if (!subs.length) return { error: "login", meta: info };
-  const track = opts.pickSubtitleUrl ? (subs.find((s) => s.subtitle_url === opts.pickSubtitleUrl) || pbpBiliPickSubtitle(subs)) : pbpBiliPickSubtitle(subs);
+  // Default-track pick only -- see the pbpYtFetchTranscript twin: the removed
+  // opts.pickSubtitleUrl branch was the URL-addressed track switch, which now
+  // goes straight to pbpBiliFetchSubtitleBody.
+  const track = pbpBiliPickSubtitle(subs);
   const segments = await pbpBiliFetchSubtitleBody(track.subtitle_url, fetchFn);
   if (!segments.length) return { error: "caption-body", tracks: subs, track: track, meta: info };
   return { tracks: subs, track: track, segments: segments, meta: info };
@@ -881,13 +888,31 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   // The committer's serial lock would refuse a stale commit -- but only after
   // being asked to persist the wrong track, and a refusal cannot un-ask.
   let _trackSwitchSeq = 0;
-  // Stable key of the track the ARTICLE currently carries. Doubles as the
-  // picker's rollback target and as the value its <option>s carry (endpoints
-  // expire and F5-hydrated sessions have none -- see pbpVideoTrackKey).
+  // Bumped every time the panel ADOPTS a different transcript -- a track
+  // switch's segments landing, or a rollback putting the previous ones back.
+  // A long-running operation that captured the transcript before the bump is
+  // working from words that are no longer on screen; that is a different
+  // question from _trackSwitchSeq, which only tells one switch from another
+  // and is already bumped (at handler entry) before a switch has adopted
+  // anything. The paid AI pass fences on THIS one.
+  let _transcriptEpoch = 0;
+  // Picker option values, index-aligned with the track list the picker was
+  // built from. Usually just each track's pbpVideoTrackKey -- see
+  // buildTrackValues for why "usually" is not "always".
+  let _trackValues = [];
+  // Value of the option matching the track the ARTICLE currently carries
+  // (picker rollback target). This is the picker's value space, which may
+  // carry a collision suffix; the persisted selectedTrackKey is always the
+  // plain pbpVideoTrackKey and is computed separately.
   let _selectedTrackKey = "";
   // Did the CURRENT track arrive unpunctuated? Decides the AI offer and rides
   // into videoState. Re-evaluated per track switch, not frozen at mount.
   let _wasUnpunct = false;
+  // A pass whose result is already in the article: the button stays disabled
+  // through any later freeze/unfreeze until refreshAiOffer re-offers it for a
+  // new track. Kept out of the freeze counters so an unfreeze cannot re-arm a
+  // pass the user already paid for.
+  let _aiPassDone = false;
 
   // Study-column reading/timeline toggle (Task 4). Set by mountVideoWorkspace
   // only in video-mode workspaces; a non-video defensive mount (panel stays a
@@ -1804,14 +1829,68 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     return session;
   }
 
-  // Freeze the two controls that can start a new transcript transaction for
-  // the duration of one commit. The committer holds a serial lock, but a lock
-  // can only REFUSE a second commit -- it cannot un-swap a half-applied
-  // article, and a refusal nobody asked for reads as a dead button. Disabling
-  // is what turns "one at a time" into something the user can see.
-  function setTranscriptControlsBusy(busy) {
-    if (_trackSelEl) _trackSelEl.disabled = !!busy;
-    if (_aiBtnEl) _aiBtnEl.disabled = !!busy;
+  // ---- Control freeze: per-control hold COUNTS, not a boolean ----
+  // The two transcript transactions overlap by design: a track switch keeps
+  // the picker live through its FETCH so last-selection-wins works, while the
+  // AI pass must be frozen out for that whole switch. A single boolean let
+  // whichever transaction finished first unfreeze the OTHER one's controls
+  // mid-flight -- that is what allowed a paid AI pass to be started against
+  // the outgoing transcript and then committed under the incoming track's
+  // heading (review F1). Counting holds means a release only ever gives back
+  // what its own holder took.
+  //
+  // The committer's serial lock is not a substitute: a lock can only REFUSE a
+  // second commit, and by then the caller has already asked it to persist the
+  // wrong text. Freezing is what stops the ask.
+  let _freezeTrack = 0, _freezeAi = 0;
+  function applyControlFreeze() {
+    if (_trackSelEl) _trackSelEl.disabled = _freezeTrack > 0;
+    if (_aiBtnEl) _aiBtnEl.disabled = _freezeAi > 0 || _aiPassDone;
+  }
+  // Returns an idempotent release. Idempotent because the AI pass releases
+  // from a `finally` that can be reached twice-over on some paths, and a
+  // double release would hand the controls back while another transaction
+  // still holds them.
+  function freezeControls(what) {
+    const track = !!(what && what.track), ai = !!(what && what.ai);
+    if (track) _freezeTrack++;
+    if (ai) _freezeAi++;
+    applyControlFreeze();
+    let released = false;
+    return function release() {
+      if (released) return;
+      released = true;
+      if (track) _freezeTrack--;
+      if (ai) _freezeAi--;
+      applyControlFreeze();
+    };
+  }
+
+  // Picker option values, one per track, index-aligned with the list.
+  //
+  // pbpVideoTrackKey is deliberately NOT injective over a real track list: two
+  // YouTube manual tracks can share languageCode ("English" and "English
+  // (CC)"), and two bilibili entries can share lan. Two <option>s with the
+  // same value collapse -- the second becomes unselectable and clicking it
+  // silently switches to the first (review F4). So the Nth track carrying an
+  // already-seen key gets "#N" appended, purely to keep the DOM values
+  // distinct.
+  //
+  // The suffix never leaves this file. videoState.selectedTrackKey stays the
+  // plain pbpVideoTrackKey, because the persistence format genuinely cannot
+  // address a duplicate: an F5 can only restore "the track with this key",
+  // and among duplicates that is the first. Disambiguating the picker is
+  // still strictly better than not -- a live session CAN address the second
+  // one (by index, below), and losing that on reload beats never having it.
+  function buildTrackValues(tracks, provider) {
+    const seen = new Map();
+    return (tracks || []).map((tr) => {
+      const key = pbpVideoTrackKey(tr, provider);
+      if (!key) return ""; // keyless -> unaddressable; the option is disabled
+      const n = (seen.get(key) || 0) + 1;
+      seen.set(key, n);
+      return n === 1 ? key : key + "#" + n;
+    });
   }
 
   // Everything a commit can change about "which transcript this page shows",
@@ -1846,13 +1925,18 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       snap.sess.wasUnpunct = snap.sessWasUnpunct;
       snap.sess.error = snap.sessError;
     }
+    // The words on screen just changed again, so anything still running
+    // against the ones it replaced is stale -- same fence as an adoption.
+    _transcriptEpoch++;
     if (_listEl) renderTranscript(_listEl, _segments, true);
   }
 
-  // The cached session has to describe the transcript the ARTICLE carries, or
-  // the next loadFlow() cache hit (a re-mount, an F5 hydration) redraws the
-  // panel from a track the reader is not looking at. Called only once a
-  // commit's payload is actually persisted.
+  // The cached session has to describe the transcript the PANEL shows, or the
+  // next loadFlow() cache hit (a re-mount, an F5 hydration) redraws it from a
+  // track the reader is not looking at. Called whenever the panel settles on a
+  // transcript it is going to keep -- after a persisted commit, and on the
+  // no-commit branch where the transcript is not this page's article at all
+  // and there is nothing to persist.
   function syncSessionToCommitted(track, wasUnpunct) {
     const sess = window.pbpVideoSession;
     if (!sess) return;
@@ -1904,26 +1988,34 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     if (!res.error) statusEl.textContent = "";
     // track picker
     trackSel.textContent = "";
-    const selectedKey0 = res.track ? pbpVideoTrackKey(res.track, detected.provider) : "";
-    (res.tracks || []).forEach((tr) => {
+    // Option values are STABLE KEYS, never endpoints: baseUrl/subtitle_url are
+    // signed and expire, and an F5-hydrated session carries no endpoints at
+    // all. The change handler maps a value back to whatever endpoint the
+    // session currently holds (spec: F5 持久化协议).
+    _trackValues = buildTrackValues(res.tracks || [], detected.provider);
+    // Which option is the session's own track? By list IDENTITY first, so a
+    // duplicate-key pair still selects the right one; the rescue tiers rebuild
+    // their track objects (pbpYtRescueTracks), so fall back to the key.
+    let selIdx = res.track ? (res.tracks || []).indexOf(res.track) : -1;
+    if (selIdx < 0 && res.track) {
+      const k0 = pbpVideoTrackKey(res.track, detected.provider);
+      selIdx = k0 ? (res.tracks || []).findIndex((tr) => pbpVideoTrackKey(tr, detected.provider) === k0) : -1;
+    }
+    (res.tracks || []).forEach((tr, i) => {
       const opt = document.createElement("option");
-      // Option value is the STABLE KEY, never the endpoint: baseUrl /
-      // subtitle_url are signed and expire, and an F5-hydrated session carries
-      // no endpoints at all. The change handler maps the key back to whatever
-      // endpoint the session currently holds (spec: F5 持久化协议).
-      const key = pbpVideoTrackKey(tr, detected.provider);
+      const value = _trackValues[i];
       const label = isBili ? tr.lan_doc : tr.label;
-      opt.value = key;
+      opt.value = value;
       opt.textContent = label + (tr.asr ? " (" + t("mdVideoAsr") + ")" : "");
       // A track this provider cannot give a stable key (no lang / no lan / no
       // id) is a track the runtime cannot address by key, cannot persist, and
       // cannot restore. Show it -- the list should stay honest about what the
       // video has -- but do not offer a selection that would silently no-op.
-      opt.disabled = !key;
-      if (key && key === selectedKey0) opt.selected = true;
+      opt.disabled = !value;
+      if (value && i === selIdx) opt.selected = true;
       trackSel.appendChild(opt);
     });
-    _selectedTrackKey = selectedKey0;
+    _selectedTrackKey = (selIdx >= 0 && _trackValues[selIdx]) || "";
     // Rescue sessions may not know which track the capture returned (the DOM
     // scrape reads whatever language the page panel shows) -- letting the
     // browser mark the first option selected would be a lie, so lead with a
@@ -1972,11 +2064,16 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       const show = !!(_wasUnpunct && _segments.length && aiOk && !committedAi);
       aiBtn.hidden = !show;
       // A re-offer has to arrive usable: a previous pass left the button
-      // disabled under a "Punctuated" label, and a new track is a new pass.
+      // retired under a "Punctuated" label, and a new track is a new pass.
+      // Clearing the latch and then re-deriving `disabled` from the freeze
+      // counters is what keeps this from handing the button back while a
+      // transaction still holds it (an unconditional `disabled = false` here
+      // would defeat the freeze it is called next to).
       if (show) {
-        aiBtn.disabled = false;
+        _aiPassDone = false;
         if (_aiLabelEl) _aiLabelEl.textContent = t("mdVideoAiPunct");
       }
+      applyControlFreeze();
     }
     copyBtn.hidden = !(res.segments || []).length;
     // Reveal the study-view toggle and the follow control only when there
@@ -2004,105 +2101,150 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     trackSel.addEventListener("change", async () => {
       const key = trackSel.value;
       if (!key) return; // the neutral placeholder is not a track
+      // The picker is disabled on screen while another transaction owns the
+      // transcript, so reaching here means a programmatic dispatch (a test, an
+      // extension). `disabled` does not block dispatchEvent -- refuse
+      // explicitly rather than race a running commit or a paid AI pass.
+      if (_freezeTrack > 0) { trackSel.value = _selectedTrackKey; return; }
       // This event's last-selection-wins token. Re-checked after every await
       // below, so a response for a selection the user already moved off is
       // dropped before it can render, mutate state, or reach the committer.
       const seq = ++_trackSwitchSeq;
-      statusEl.textContent = t("mdVideoLoading");
-      // Resolve the selection through the stable KEY, then read the endpoint
-      // off whatever the session currently holds -- the option value is no
-      // longer a URL, and the URL a hydrated session was restored from would
-      // have expired anyway.
-      const sessionTracks = (window.pbpVideoSession && window.pbpVideoSession.tracks) || [];
-      const selTrack = sessionTracks.find((tr) => pbpVideoTrackKey(tr, detected.provider) === key) || null;
-      const endpoint = selTrack ? ((isBili ? selTrack.subtitle_url : selTrack.baseUrl) || "") : "";
-      let segs = endpoint
-        ? (isBili ? await pbpBiliFetchSubtitleBody(endpoint) : await pbpYtFetchCaptionBody(endpoint, _ytFetchFn || undefined, useLogin))
-        : [];
-      if (seq !== _trackSwitchSeq) return; // a newer selection owns the panel now
-      // Rescue cascade (device report 2026-08-23: no YouTube language
-      // switching): on sessions that needed a rescue, the picker's timedtext
-      // URLs are PO-Token-walled -- and a hydrated session has no URL at all
-      // -- so re-fetch through the page player's own caption machinery, the
-      // verified per-language route. It keys off lang, not the endpoint.
-      if (!segs.length && !isBili && _ytFetchTabId != null && selTrack) {
-        segs = (await ytTabPlayerCaptionCapture(_ytFetchTabId, selTrack.lang)) || [];
-        if (seq !== _trackSwitchSeq) return;
-      }
-      if (!segs.length) {
-        // Keep the transcript the user already has: replacing a working
-        // timeline with an empty list would turn a failed switch into data
-        // loss. mdVideoBodyBlocked names the real problem for YouTube.
-        statusEl.textContent = t(isBili ? "mdVideoNoTracks" : "mdVideoBodyBlocked");
-        // ...and put the picker back on the track the panel and the article
-        // actually carry, so it stops advertising a switch that never landed.
-        trackSel.value = _selectedTrackKey;
-        return;
-      }
-      statusEl.textContent = "";
-      // Verdict on the NEW track, taken BEFORE the heuristic tier runs (after
-      // it, nothing "needs punctuation" any more). It decides both the AI
-      // offer below and what videoState records for the F5 restore.
-      const newUnpunct = !!(typeof pbpVideoNeedsPunctuation === "function" && pbpVideoNeedsPunctuation(segs));
-      if (newUnpunct) segs = pbpVideoHeuristicPunctuate(segs);
-      const prev = captureTranscriptState();
-      _aiPunctParas = null; // a new track invalidates the previous AI pass
-      _segments = segs;
-      _wasUnpunct = newUnpunct;
-      _selectedTrackKey = key;
-      // Heading label through the single meta builder's vocabulary, NOT the
-      // option text -- the option carries the " (auto-generated)" UI suffix,
-      // and committing that rewrote the article H2/TOC (final-review L4).
-      _meta.trackLabel = selTrack ? (selTrack.label || selTrack.lan_doc || "") : "";
-      copyBtn.hidden = false;
-      // Draw first, commit second, and keep that order: the timeline is what
-      // the reader is looking at, and a refused commit rolls it back below.
-      // Rendering only after the commit would leave the panel stale for the
-      // whole storage round-trip.
-      renderTranscript(bodyEl, segs, true);
-      // Atomic track switch (Task 5): when the transcript IS this page's
-      // article, keep it in sync through the single committer (md-preview.js
-      // owns the account/tags/description contract) -- in place now, no
-      // reload, so the player never stops. A track switch always carries the
-      // heuristic tier, so the AI flag rides as false and the paid upgrade
-      // goes back on offer for the new track.
-      if (!(window.pbpVideoDoc
-            && window.pbpVideoDoc.kind === "video-transcript"
-            && typeof window.pbpVideoCommitTranscript === "function")) {
-        syncSessionToCommitted(selTrack, newUnpunct);
-        refreshAiOffer();
-        return;
-      }
-      const videoState = pbpVideoStateBuild({
-        detected, track: selTrack, tracks: sessionTracks, segments: segs,
-        aiParas: null, wasUnpunct: newUnpunct, aiPunct: false, meta: _meta
-      });
-      setTranscriptControlsBusy(true);
-      let ok = false, threw = false;
+      // Freeze the AI button for the WHOLE switch, starting BEFORE the fetch.
+      // The picker deliberately stays live (that is what makes
+      // last-selection-wins possible), but a paid pass started against the
+      // outgoing transcript would compute its paragraphs from those words and
+      // then commit them under the incoming track's heading -- and
+      // pbpVideoTranscriptMarkdown ignores segments whenever paragraphs are
+      // supplied, so the F5 gate cannot even detect the mismatch (review F1).
+      // Counted, not boolean: two overlapping switches each hold their own,
+      // and the loser's release must not hand the button back under the winner.
+      const releaseAiFreeze = freezeControls({ ai: true });
       try {
-        ok = await window.pbpVideoCommitTranscript(
-          pbpVideoTranscriptMarkdown(segs, _meta, null), _meta.title || "",
-          { aiPunct: false, reason: "video-track-switch", videoState });
-      } catch (e) {
-        threw = true;
-        console.warn("[pbp-video] track-switch commit threw:", (e && e.name) || "", (e && e.message) || e);
+        statusEl.textContent = t("mdVideoLoading");
+        // Resolve the selection through the picker's own value space, then
+        // read the endpoint off whatever the session currently holds -- the
+        // option value is no longer a URL, and the URL a hydrated session was
+        // restored from would have expired anyway. Index first so a
+        // duplicate-key pair resolves to the option that was actually clicked.
+        const sessionTracks = (window.pbpVideoSession && window.pbpVideoSession.tracks) || [];
+        const idx = _trackValues.indexOf(key);
+        let selTrack = (idx >= 0 && idx < sessionTracks.length) ? sessionTracks[idx] : null;
+        if (!selTrack) {
+          // The session's track list was replaced since the picker was built.
+          // Fall back to the stable key -- exact first, then without the
+          // collision suffix buildTrackValues may have appended.
+          const bare = key.replace(/#\d+$/, "");
+          selTrack = sessionTracks.find((tr) => pbpVideoTrackKey(tr, detected.provider) === key)
+            || sessionTracks.find((tr) => pbpVideoTrackKey(tr, detected.provider) === bare)
+            || null;
+        }
+        const endpoint = selTrack ? ((isBili ? selTrack.subtitle_url : selTrack.baseUrl) || "") : "";
+        let segs = endpoint
+          ? (isBili ? await pbpBiliFetchSubtitleBody(endpoint) : await pbpYtFetchCaptionBody(endpoint, _ytFetchFn || undefined, useLogin))
+          : [];
+        if (seq !== _trackSwitchSeq) return; // a newer selection owns the panel now
+        // Rescue cascade (device report 2026-08-23: no YouTube language
+        // switching): on sessions that needed a rescue, the picker's timedtext
+        // URLs are PO-Token-walled -- and a hydrated session has no URL at all
+        // -- so re-fetch through the page player's own caption machinery, the
+        // verified per-language route. It keys off lang, not the endpoint.
+        if (!segs.length && !isBili && _ytFetchTabId != null && selTrack) {
+          segs = (await ytTabPlayerCaptionCapture(_ytFetchTabId, selTrack.lang)) || [];
+          if (seq !== _trackSwitchSeq) return;
+        }
+        if (!segs.length) {
+          // Keep the transcript the user already has: replacing a working
+          // timeline with an empty list would turn a failed switch into data
+          // loss. mdVideoBodyBlocked names the real problem for YouTube.
+          statusEl.textContent = t(isBili ? "mdVideoNoTracks" : "mdVideoBodyBlocked");
+          // ...and put the picker back on the track the panel and the article
+          // actually carry, so it stops advertising a switch that never landed.
+          trackSel.value = _selectedTrackKey;
+          return;
+        }
+        statusEl.textContent = "";
+        // Verdict on the NEW track, taken BEFORE the heuristic tier runs
+        // (after it, nothing "needs punctuation" any more). It decides both
+        // the AI offer below and what videoState records for the F5 restore.
+        const newUnpunct = !!(typeof pbpVideoNeedsPunctuation === "function" && pbpVideoNeedsPunctuation(segs));
+        if (newUnpunct) segs = pbpVideoHeuristicPunctuate(segs);
+        const prev = captureTranscriptState();
+        _aiPunctParas = null; // a new track invalidates the previous AI pass
+        _segments = segs;
+        _wasUnpunct = newUnpunct;
+        _selectedTrackKey = key;
+        _transcriptEpoch++; // different words on screen: fence anything older
+        // Heading label through the single meta builder's vocabulary, NOT the
+        // option text -- the option carries the " (auto-generated)" UI suffix,
+        // and committing that rewrote the article H2/TOC (final-review L4).
+        _meta.trackLabel = selTrack ? (selTrack.label || selTrack.lan_doc || "") : "";
+        copyBtn.hidden = false;
+        // Draw first, commit second, and keep that order: the timeline is what
+        // the reader is looking at, and a refused commit rolls it back below.
+        // Rendering only after the commit would leave the panel stale for the
+        // whole storage round-trip.
+        renderTranscript(bodyEl, segs, true);
+        // Atomic track switch (Task 5): when the transcript IS this page's
+        // article, keep it in sync through the single committer (md-preview.js
+        // owns the account/tags/description contract) -- in place now, no
+        // reload, so the player never stops. A track switch always carries the
+        // heuristic tier, so the AI flag rides as false and the paid upgrade
+        // goes back on offer for the new track.
+        if (!(window.pbpVideoDoc
+              && window.pbpVideoDoc.kind === "video-transcript"
+              && typeof window.pbpVideoCommitTranscript === "function")) {
+          syncSessionToCommitted(selTrack, newUnpunct);
+          refreshAiOffer();
+          return;
+        }
+        const releaseCommit = freezeControls({ track: true });
+        let ok = false, threwInCommit = false;
+        // `phase` is what makes `threwInCommit` mean what its comment says.
+        // Argument construction runs inside this try (so a throw is handled
+        // rather than escaping the listener with state already mutated) but
+        // BEFORE the await, and a throw there is a PRE-persist failure --
+        // nothing was ever asked of the committer -- so it must take the
+        // rollback arm, not the keep arm (review F2).
+        let phase = "build";
+        try {
+          const commitMd = pbpVideoTranscriptMarkdown(segs, _meta, null);
+          const commitTitle = _meta.title || "";
+          const videoState = pbpVideoStateBuild({
+            detected, track: selTrack, tracks: sessionTracks, segments: segs,
+            aiParas: null, wasUnpunct: newUnpunct, aiPunct: false, meta: _meta
+          });
+          phase = "commit";
+          ok = await window.pbpVideoCommitTranscript(commitMd, commitTitle,
+            { aiPunct: false, reason: "video-track-switch", videoState });
+        } catch (e) {
+          threwInCommit = phase === "commit";
+          console.warn("[pbp-video] track-switch commit threw in", phase + ":", (e && e.name) || "", (e && e.message) || e);
+        } finally {
+          releaseCommit();
+        }
+        // Two failure shapes, two different repairs -- telling them apart is
+        // the whole reason this awaits the committer:
+        //   * returned false, or threw before the committer ran -- nothing was
+        //     persisted and nothing swapped, so the article is still the
+        //     previous track and the timeline, picker and cached session have
+        //     to roll back to match it.
+        //   * threw INSIDE the committer -- the only throw it can propagate
+        //     comes from the applier, which runs after the payload is
+        //     persisted and after canonicalMarkdown already points at the new
+        //     transcript. Keeping the new timeline holds it level with
+        //     canonical, storage and whatever an F5 lands on; rolling back
+        //     would instead make the already-persisted videoState disagree
+        //     with the timeline, i.e. a fork that SURVIVES the reload. (The
+        //     rendered DOM may lag inside renderArticleContent's own throw
+        //     window; canonical/storage is the state that outlives it.)
+        if (ok || threwInCommit) syncSessionToCommitted(selTrack, newUnpunct);
+        else restoreTranscriptState(prev);
+        if (!ok) statusEl.textContent = t("mdPreviewQuotaFull");
+        refreshAiOffer();
       } finally {
-        setTranscriptControlsBusy(false);
+        releaseAiFreeze();
       }
-      // Two failure shapes, two different repairs -- telling them apart is the
-      // whole reason this awaits the committer:
-      //   * returned false -- rejected BEFORE storage or the DOM was touched,
-      //     so the article is still the previous track and the timeline,
-      //     picker and cached session have to roll back to match it.
-      //   * threw -- the applier can only throw AFTER the payload was
-      //     persisted and canonicalMarkdown already pointed at the new
-      //     transcript, so rolling back here would MANUFACTURE the exact
-      //     article/timeline fork the rollback exists to prevent. Keep the new
-      //     state; still say the transaction did not finish cleanly.
-      if (ok || threw) syncSessionToCommitted(selTrack, newUnpunct);
-      else restoreTranscriptState(prev);
-      if (!ok) statusEl.textContent = t("mdPreviewQuotaFull");
-      refreshAiOffer();
     });
     // First run: the bootstrap could not fetch captions because the origin
     // grant did not exist yet, so md-preview.js settled for "video-fallback"
@@ -2112,21 +2254,25 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     // the payload this writes comes back as kind "video-transcript".
     if (_segments.length && window.pbpVideoDoc && window.pbpVideoDoc.kind === "video-fallback"
         && typeof window.pbpVideoCommitTranscript === "function") {
-      const videoState = pbpVideoStateBuild({
-        detected, track: session.track || null, tracks: res.tracks || [],
-        segments: _segments, aiParas: _aiPunctParas, wasUnpunct: _wasUnpunct,
-        aiPunct: !!_aiPunctParas, meta: _meta
-      });
-      setTranscriptControlsBusy(true);
+      const releaseCommit = freezeControls({ track: true, ai: true });
       let ok = false;
       try {
-        ok = await window.pbpVideoCommitTranscript(
-          pbpVideoTranscriptMarkdown(_segments, _meta, _aiPunctParas), _meta.title || "",
+        const commitMd = pbpVideoTranscriptMarkdown(_segments, _meta, _aiPunctParas);
+        const commitTitle = _meta.title || "";
+        const videoState = pbpVideoStateBuild({
+          detected, track: session.track || null, tracks: res.tracks || [],
+          segments: _segments, aiParas: _aiPunctParas, wasUnpunct: _wasUnpunct,
+          aiPunct: !!_aiPunctParas, meta: _meta
+        });
+        ok = await window.pbpVideoCommitTranscript(commitMd, commitTitle,
           { aiPunct: !!_aiPunctParas, reason: "video-promotion", videoState });
       } catch (e) {
+        // No pre/post-persist split needed here: both arms do the same thing
+        // (leave the panel alone, say it did not save), so the phase does not
+        // change the repair.
         console.warn("[pbp-video] promotion commit threw:", (e && e.name) || "", (e && e.message) || e);
       } finally {
-        setTranscriptControlsBusy(false);
+        releaseCommit();
       }
       // No timeline rollback here, and nothing to roll back TO: this panel has
       // shown exactly this transcript since it mounted, and the article a
@@ -2385,10 +2531,24 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       // puts the upgrade back on offer, so it needs a handle to it.
       _aiLabelEl = aiLabel;
       aiBtn.addEventListener("click", async () => {
-        if (!_segments.length || aiBtn.disabled) return;
+        // `disabled` blocks real clicks but not dispatchEvent/.click() from
+        // script, so the freeze counters are re-checked directly.
+        if (!_segments.length || aiBtn.disabled || _freezeAi > 0 || _aiPassDone) return;
+        // Bind the pass to the transcript that is on screen RIGHT NOW. A track
+        // switch may already have a fetch in flight (the picker stays live so
+        // last-selection-wins works); when its segments land they replace
+        // _segments and _meta under this pass, and
+        // pbpVideoTranscriptMarkdown IGNORES segments whenever paragraphs are
+        // supplied -- so committing afterwards would put this track's words
+        // under the other track's heading, and pbpVideoStateValidate could not
+        // detect it because the paragraphs shadow the segments in the rebuild
+        // (review F1). Freezing (below) closes the door; this fence is what
+        // catches anything that got through before it shut.
+        const epoch = _transcriptEpoch;
+        const superseded = () => epoch !== _transcriptEpoch;
         // Freezes the track picker as well: a track switch landing mid-pass
         // would punctuate one track's words into another track's article.
-        setTranscriptControlsBusy(true);
+        const releaseFreeze = freezeControls({ track: true, ai: true });
         // A completed pass must not be re-offered once the freeze lifts --
         // re-running it would spend tokens to produce what is already there.
         let passDone = false;
@@ -2403,10 +2563,12 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           }
           if (cur.length) batches.push(cur.join("\n"));
           const sa = await pbpAiGetSettings();
+          if (superseded()) return; // the words this pass was built from are gone
           const outBatches = [];
           for (const b of batches) {
             const prompt = "为下面的语音转写文本添加或修正标点符号，并按语义用空行分段。严格保持文字本身不变：不得增加、删除或改写任何非标点文字。直接输出处理后的文本，不要任何解释。\n\n" + b;
             const text = await callAI(sa, prompt);
+            if (superseded()) return;
             // fail-closed per batch: a batch the model rewrote keeps its input
             outBatches.push(pbpVideoPunctConserved(b, text) ? String(text).trim() : b);
           }
@@ -2439,26 +2601,35 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           if (window.pbpVideoDoc && window.pbpVideoDoc.kind === "video-transcript"
               && typeof window.pbpVideoCommitTranscript === "function" && _segments.length) {
             const sess = window.pbpVideoSession || {};
-            const videoState = pbpVideoStateBuild({
-              detected, track: sess.track || null, tracks: sess.tracks || [],
-              segments: _segments, aiParas: _aiPunctParas, wasUnpunct: _wasUnpunct,
-              aiPunct: true, meta: _meta
-            });
-            let ok = false, threw = false;
+            let ok = false, threwInCommit = false;
+            // Same phase split as the track switch (review F2): argument
+            // construction is inside the try so a throw is handled rather than
+            // escaping the listener, but it happens BEFORE the await, and a
+            // throw there is a PRE-persist failure that must take the rollback
+            // arm.
+            let phase = "build";
             try {
-              ok = await window.pbpVideoCommitTranscript(
-                pbpVideoTranscriptMarkdown(_segments, _meta, _aiPunctParas), _meta.title || "",
+              const commitMd = pbpVideoTranscriptMarkdown(_segments, _meta, _aiPunctParas);
+              const commitTitle = _meta.title || "";
+              const videoState = pbpVideoStateBuild({
+                detected, track: sess.track || null, tracks: sess.tracks || [],
+                segments: _segments, aiParas: _aiPunctParas, wasUnpunct: _wasUnpunct,
+                aiPunct: true, meta: _meta
+              });
+              phase = "commit";
+              ok = await window.pbpVideoCommitTranscript(commitMd, commitTitle,
                 { aiPunct: true, reason: "video-ai-punctuation", videoState });
             } catch (e) {
-              threw = true;
-              console.warn("[pbp-video] ai-punctuation commit threw:", (e && e.name) || "", (e && e.message) || e);
+              threwInCommit = phase === "commit";
+              console.warn("[pbp-video] ai-punctuation commit threw in", phase + ":", (e && e.name) || "", (e && e.message) || e);
             }
-            // Same false/threw split as the track switch: `false` means
-            // storage and the article were never touched, so the panel goes
-            // back to the pre-pass transcript; a throw means the payload is
-            // already persisted and the article already swapped, so rolling
-            // back would create the fork instead of preventing it.
-            if (ok || threw) {
+            // Same false/threw split as the track switch: `false` (or a
+            // pre-commit throw) means storage and canonical were never
+            // touched, so the panel goes back to the pre-pass transcript; a
+            // throw from inside the committer means the payload is already
+            // persisted and canonical already advanced, so rolling back would
+            // create the fork instead of preventing it.
+            if (ok || threwInCommit) {
               syncSessionToCommitted(sess.track || null, _wasUnpunct);
               // The pass is in the article now (pbpVideoDoc.aiPunct is true
               // either way -- the committer sets it before applying), so
@@ -2468,7 +2639,6 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
               passDone = true;
             } else {
               restoreTranscriptState(prev);
-              aiLabel.textContent = t("mdVideoAiPunct");
             }
             if (!ok) status.textContent = t("mdPreviewQuotaFull");
           } else {
@@ -2481,13 +2651,16 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           console.warn("[pbp-video] ai punctuation:", (e && e.message) || e);
           _aiPunctParas = null;
           status.textContent = t("mdVideoAiPunctFail");
-          aiLabel.textContent = t("mdVideoAiPunct");
         } finally {
-          // Unfreeze both controls on every exit path -- a leak here would
-          // wedge the track picker for the life of the page -- then re-apply
-          // the one state the unfreeze must not undo.
-          setTranscriptControlsBusy(false);
-          if (passDone) aiBtn.disabled = true;
+          // One place decides the button's resting state, so no exit path can
+          // leave the label saying "Punctuated" over a pass that never
+          // landed, or hand the control back while another transaction still
+          // holds it: `passDone` latches the retirement, the release gives
+          // back only this pass's own holds, and applyControlFreeze (called by
+          // the release) re-derives `disabled` from both.
+          if (passDone) _aiPassDone = true;
+          else if (_aiLabelEl) _aiLabelEl.textContent = t("mdVideoAiPunct");
+          releaseFreeze();
         }
       });
       bar.appendChild(trackSel); bar.appendChild(copyBtn); bar.appendChild(aiBtn);

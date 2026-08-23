@@ -656,6 +656,51 @@ section("commit call-site videoState round trips");
   // back, so offering them would be a silent no-op.
   assertEq(pbpVideoTrackKey({ baseUrl: "https://x/none.xml", label: "Unknown" }, "youtube"), "",
     "a track with no language yields no key (picker marks such options disabled)");
+
+  // ---- 6. duplicate keys: the picker must still address every track ----
+  // pbpVideoTrackKey is NOT injective over a real list -- "English" and
+  // "English (CC)" are both manual en. The picker's value space has to break
+  // the tie or the second option silently switches to the first.
+  const dupTracks = [
+    { baseUrl: "https://x/en1.xml", lang: "en", label: "English", asr: false },
+    { baseUrl: "https://x/en2.xml", lang: "en", label: "English (CC)", asr: false },
+    { baseUrl: "https://x/de.xml", lang: "de", label: "Deutsch", asr: false }
+  ];
+  const dupKeys = dupTracks.map((tr) => pbpVideoTrackKey(tr, "youtube"));
+  assertEq(dupKeys[0], dupKeys[1], "sanity: two manual same-language tracks DO collide on the stable key");
+  check("a bare-key picker would make the collided pair indistinguishable (this is the defect being fixed)",
+    new Set(dupKeys).size === 2 && dupKeys.length === 3);
+  // Mirror of buildTrackValues (md-video.js): first occurrence keeps the bare
+  // key, later ones get "#N". Kept here as an executable statement of the
+  // property the picker relies on, not as a copy of the implementation.
+  const disambiguate = (tracks, provider) => {
+    const seen = new Map();
+    return tracks.map((tr) => {
+      const k = pbpVideoTrackKey(tr, provider);
+      if (!k) return "";
+      const n = (seen.get(k) || 0) + 1;
+      seen.set(k, n);
+      return n === 1 ? k : k + "#" + n;
+    });
+  };
+  const dupValues = disambiguate(dupTracks, "youtube");
+  assertEq(new Set(dupValues).size, 3, "disambiguated picker values are unique per track");
+  assertEq(dupValues[0], "yt:en", "the first occurrence keeps the bare key (no suffix on the common case)");
+  assertEq(dupValues[1], "yt:en#2", "the second occurrence carries a positional suffix");
+  assertEq(dupValues[2], "yt:de", "an uncollided track is untouched");
+  assertEq(dupValues.indexOf("yt:en#2"), 1, "the suffixed value resolves back to the SECOND track by index");
+  // The suffix is picker-only: what gets persisted stays the plain key,
+  // because the persistence format cannot address a duplicate at all.
+  const dupState = pbpVideoStateBuild({
+    detected, track: dupTracks[1], tracks: dupTracks, segments: enSegs,
+    aiParas: null, wasUnpunct: false, aiPunct: false, meta: metaFor("English (CC)")
+  });
+  assertEq(dupState.selectedTrackKey, "yt:en", "videoState.selectedTrackKey stays the PLAIN key (no picker suffix leaks into storage)");
+  assertEq(pbpVideoStateValidate(dupState, detected, pbpVideoTranscriptMarkdown(enSegs, metaFor("English (CC)"), null)), true,
+    "a duplicate-key track's state still round-trips");
+  // A list with no collisions must gain no suffixes at all -- otherwise every
+  // stored key would drift away from every picker value.
+  assertEq(disambiguate(tracks, "youtube").join(","), "yt:en,yt:de", "a collision-free list gains no suffixes");
 })();
 
 document.getElementById("summary").textContent = `${pass} passed, ${fail} failed`;

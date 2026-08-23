@@ -2669,7 +2669,7 @@ check(mdCss.includes("animation-timeline: scroll(self inline);"),
       `md-preview.js: the commit reason "${r}" left VIDEO_COMMIT_REASONS -- unknown reasons collapse to "legacy", which silently disables the per-reason behaviour keyed on it (e.g. punctuation-tolerant highlight re-anchoring)`);
   }
   check(commitFn.includes("VIDEO_COMMIT_REASONS.has(o.reason)") && commitFn.includes('aiPunct: opts === true'),
-    "md-preview.js: pbpVideoCommitTranscript must validate opts.reason against the enum and keep the legacy boolean third-argument mapping -- md-video.js still calls it with a bare boolean");
+    "md-preview.js: pbpVideoCommitTranscript must validate opts.reason against the enum and keep the legacy third-argument mapping -- md-preview.js's OWN error-shell commit still calls it with two arguments, which lands on that fallback; deleting it would set reason:undefined on that path");
 
   // --- Payload/restore-record parity, read off the two object literals rather
   // than off a list in this file: both write the SAME MP_KEY slot and both are
