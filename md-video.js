@@ -508,19 +508,58 @@ function pbpVideoStateValidate(state, detected, canonicalMarkdown) {
     if (typeof tr.asr !== "boolean") return false;
   }
   if (typeof state.selectedTrackKey !== "string") return false;
+  // meta's own shape, because the equality check below cannot see all of it:
+  // pbpVideoTranscriptMarkdown only emits the source blockquote (and with it
+  // the title) when meta.url is truthy, so on a URL-less state the title
+  // would ride in completely unconstrained -- and it does reach the article,
+  // on the NEXT commit (pbpVideoTranscriptMeta takes title from the session
+  // but url from the live page). A title that never entered the article it
+  // was persisted with must not be restorable from storage either, so the
+  // two are bound together (review F3).
+  const meta = state.meta;
+  if (!meta || typeof meta !== "object" || Array.isArray(meta)) return false;
+  if (typeof meta.title !== "string" || typeof meta.url !== "string" || typeof meta.trackLabel !== "string") return false;
+  if (!meta.url && meta.title) return false;
   const segs = state.segments;
   if (!Array.isArray(segs) || segs.length > 20000) return false;
   let totalChars = 0;
+  let prevFrom = -Infinity;
   for (const s of segs) {
     if (!s || typeof s !== "object") return false;
     if (typeof s.from !== "number" || !Number.isFinite(s.from)) return false;
     if (typeof s.to !== "number" || !Number.isFinite(s.to)) return false;
     if (typeof s.content !== "string") return false;
+    // Track order, the invariant this file already RELIES on: pbpVideoRowIndexAt
+    // binary-searches these rows ("Segments are assumed sorted by `from` --
+    // every producer in this file emits them in track order"), and follow-mode
+    // seeking reads the result. Free for every legitimate producer; a persisted
+    // state whose timings were shuffled would silently mis-seek instead.
+    if (s.from < prevFrom) return false;
+    prevFrom = s.from;
     totalChars += s.content.length;
     if (totalChars > 2 * 1024 * 1024) return false;
   }
   if (state.paragraphs != null && !Array.isArray(state.paragraphs)) return false;
   if (typeof canonicalMarkdown !== "string") return false;
+  // THE gap the byte-equality check below cannot close on its own (review F1):
+  // pbpVideoTranscriptMarkdown IGNORES segments entirely whenever paragraphs
+  // are non-empty -- i.e. exactly the AI-punctuated tier this format exists
+  // for -- so equality with the canonical article says nothing at all about
+  // the rows this state would hydrate into the timeline. Unbound, a corrupt
+  // or hand-edited record could put words on screen that the article does not
+  // contain, and (through the re-offered AI pass, which rebuilds its prompt
+  // from _segments) commit them into the article itself.
+  //
+  // Bind them with the same conservation invariant every legitimate producer
+  // already satisfies, so nothing real is rejected: pbpVideoMergeParagraphs
+  // only joins rows with spaces and normalizes whitespace, the AI pass gates
+  // every batch on this very predicate, and pbpVideoApplyPunctText consumes
+  // exactly each row's non-mark characters. What it bounds is "no word can
+  // appear in the timeline that is not in the article"; what it deliberately
+  // cannot bound is which ROW a given word sits in, because the persistence
+  // format has no way to express row boundaries once paragraphs shadow them.
+  if (Array.isArray(state.paragraphs) && state.paragraphs.length
+      && !pbpVideoPunctConserved(segs.map((s) => s.content).join(" "), state.paragraphs.join(" "))) return false;
   return pbpVideoTranscriptMarkdown(segs, state.meta, state.paragraphs) === canonicalMarkdown;
 }
 
@@ -1990,17 +2029,31 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   // (captureTranscriptState holds a reference, not the global). So the
   // panel's session is put back and only the live directory is taken from the
   // fresh one.
-  async function refreshTrackDirectory() {
-    const keep = window.pbpVideoSession;
-    let fresh = null;
-    try {
-      fresh = await prepareVideoSession({ pageUrl: (_meta && _meta.url) || "", tabId: _ctxTabId });
-    } catch (e) {
-      console.warn("[pbp-video] track directory refresh failed:", (e && e.name) || "", (e && e.message) || e);
-    } finally {
-      if (keep) window.pbpVideoSession = keep;
-    }
-    return fresh;
+  // ONE capture at a time, shared by every switch that asks while it runs
+  // (review F7). The picker deliberately stays live during a switch (that is
+  // what makes last-selection-wins possible), so two rapid selections on a
+  // hydrated session would otherwise each start a full prepareVideoSession --
+  // and on YouTube each can drive ytTabPlayerCaptionCapture against the user's
+  // OPEN watch tab, toggling its captions twice. Correctness never depended on
+  // this (both restore the same session and the loser bails on its seq check);
+  // the duplicate is a visible side effect on a page the user is looking at.
+  // The result is read-only data, so sharing it is safe.
+  let _dirRefreshInFlight = null;
+  function refreshTrackDirectory() {
+    if (_dirRefreshInFlight) return _dirRefreshInFlight;
+    _dirRefreshInFlight = (async () => {
+      const keep = window.pbpVideoSession;
+      try {
+        return await prepareVideoSession({ pageUrl: (_meta && _meta.url) || "", tabId: _ctxTabId });
+      } catch (e) {
+        console.warn("[pbp-video] track directory refresh failed:", (e && e.name) || "", (e && e.message) || e);
+        return null;
+      } finally {
+        if (keep) window.pbpVideoSession = keep;
+        _dirRefreshInFlight = null;
+      }
+    })();
+    return _dirRefreshInFlight;
   }
 
   async function loadFlow(detected, statusEl, bodyEl, trackSel, copyBtn, aiBtn) {
@@ -2065,8 +2118,15 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       // lives under `label` there, so read that as the fallback rather than
       // painting "undefined" into the picker.
       const label = (isBili ? (tr.lan_doc || tr.label) : tr.label) || "";
+      // The "(auto-generated)" suffix is YOUTUBE-only, deliberately: a live
+      // bilibili track is the raw API object and carries no `asr` property at
+      // all, while a hydrated descriptor carries `asr: _pbpBiliIsAi(track)` --
+      // so reading tr.asr for both would make the same track read "中文(AI)"
+      // before a reload and "中文(AI) (auto-generated)" after it (review F4).
+      // bilibili already marks those tracks in lan_doc, which IS this label.
+      const asrSuffix = (!isBili && tr.asr) ? " (" + t("mdVideoAsr") + ")" : "";
       opt.value = value;
-      opt.textContent = label + (tr.asr ? " (" + t("mdVideoAsr") + ")" : "");
+      opt.textContent = label + asrSuffix;
       // A track this provider cannot give a stable key (no lang / no lan / no
       // id) is a track the runtime cannot address by key, cannot persist, and
       // cannot restore. Show it -- the list should stay honest about what the
@@ -2242,6 +2302,14 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           if (aligned && window.pbpVideoSession) {
             window.pbpVideoSession.tracks = liveTracks;
             sessionTracks = liveTracks;
+            // `hydrated` means exactly two things: this object came out of
+            // storage unverified, so its granted:true is NOT a standing grant,
+            // and its tracks carry no endpoints. Adopting the live directory
+            // ends both at once -- the contains() inside prepareVideoSession
+            // just answered, and these tracks have real URLs -- so the flag
+            // would otherwise decay into "was once restored", which is not
+            // what any reader should key off (review F6).
+            delete window.pbpVideoSession.hydrated;
           }
         }
         let segs = endpoint

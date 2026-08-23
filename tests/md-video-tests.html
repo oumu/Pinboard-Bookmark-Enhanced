@@ -501,8 +501,11 @@ section("pbpVideoStateValidate");
     "selectedTrackKey \"\" with empty tracks also accepts");
 
   // F2 fix-round: positive boundary tests at the two inclusive limits.
+  // T7 fix-round: a paragraph-tier state must now also conserve the segments'
+  // non-punctuation character stream (review F1), so these fixtures carry the
+  // rows' own text instead of a synthetic stand-in paragraph.
   const seg20000 = new Array(20000).fill(0).map((_, i) => ({ from: i, to: i + 0.5, content: "s" }));
-  const paras20000 = ["twenty thousand segments, boundary case"];
+  const paras20000 = ["s".repeat(20000)];
   const state20000 = pbpVideoStateBuild({ detected, track, tracks: [track], segments: seg20000, aiParas: paras20000, meta });
   const canonical20000 = pbpVideoTranscriptMarkdown(seg20000, state20000.meta, paras20000);
   assertEq(state20000.segments.length, 20000, "sanity: exactly 20000 segments built");
@@ -510,7 +513,7 @@ section("pbpVideoStateValidate");
 
   const oneMiB = 1024 * 1024;
   const segExactly2MiB = [{ from: 0, to: 1, content: "a".repeat(oneMiB) }, { from: 1, to: 2, content: "b".repeat(oneMiB) }];
-  const parasExactly2MiB = ["boundary paragraph, content overridden so the merge never runs over 2MiB of text"];
+  const parasExactly2MiB = ["a".repeat(oneMiB), "b".repeat(oneMiB)];
   const stateExactly2MiB = pbpVideoStateBuild({ detected, track, tracks: [track], segments: segExactly2MiB, aiParas: parasExactly2MiB, meta });
   const canonicalExactly2MiB = pbpVideoTranscriptMarkdown(segExactly2MiB, stateExactly2MiB.meta, parasExactly2MiB);
   const totalChars2MiB = stateExactly2MiB.segments.reduce((n, s) => n + s.content.length, 0);
@@ -774,6 +777,14 @@ section("F5 hydration: videoState -> session");
     "bilibili descriptor keys to itself (recomputing from lan/lan_doc would yield \"\" and disable every option)");
   assertEq(pbpVideoTranscriptMeta({ track: biliHyd, meta: biliState.meta }, "", biliMeta.url).trackLabel, "中文(AI)",
     "bilibili: the hydrated track still yields the persisted trackLabel");
+  // The asymmetry behind review F4: a LIVE bilibili track is the raw API
+  // object and has no `asr` property at all, while its descriptor derives one.
+  // Reading tr.asr for both is what made the same option read "中文(AI)" before
+  // a reload and "中文(AI) (auto-generated)" after it, so the picker's suffix is
+  // YouTube-only by construction (loadFlow). Pinned here so a future change to
+  // the descriptor cannot quietly re-introduce the drift.
+  assertEq("asr" in biliTracks[1], false, "bilibili: a live track object carries no asr property (raw API shape)");
+  assertEq(biliHyd.asr, true, "bilibili: ...while its descriptor derives asr from _pbpBiliIsAi -- the two sides disagree by design");
 
   // A commit made ON a hydrated session rebuilds videoState from the session's
   // tracks -- which are descriptors. Describing them a second time has to be a
@@ -860,6 +871,153 @@ section("F5 hydration: videoState -> session");
   assertEq(pbpVideoStateValidate(biliState, { provider: "bilibili", bvid: "BV1xx411c7mD", part: 4 },
     pbpVideoTranscriptMarkdown(biliSegs, biliMeta, null)), false,
     "part 3's state does not hydrate on part 4 (same bvid, different episode, different subtitles)");
+})();
+
+// Fix round 1 (review F1/F2/F3): the byte-equality gate is blind to `segments`
+// on exactly the tier this format exists for -- pbpVideoTranscriptMarkdown
+// ignores them whenever `paragraphs` is non-empty -- so the AI tier needs its
+// own binding. Everything here is built through the REAL producer pipeline
+// (merge -> punctuation-conserving rewrite -> pbpVideoApplyPunctText), because
+// the only way to be sure the new gate rejects nothing legitimate is to feed it
+// what the runtime actually writes.
+section("F5 hydration: paragraph-tier segments are bound too (review F1)");
+(() => {
+  const detected = { provider: "youtube", videoId: "dQw4w9WgXcQ" };
+  const track = { baseUrl: "https://x/fr.xml", lang: "fr", label: "Francais", asr: false };
+  const meta = { title: "V", url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", trackLabel: "Francais" };
+  const rawRows = Array.from({ length: 12 }, (_, i) => ({
+    from: i * 2, to: i * 2 + 2, content: "bonjour ceci est la piste francaise ligne " + i
+  }));
+  // What the AI pass does: merge rows into paragraphs, hand them to the model,
+  // accept the answer only if it conserved every non-punctuation character,
+  // then map the marks back onto the timed rows.
+  const merged = pbpVideoMergeParagraphs(rawRows);
+  const aiText = merged.join("\n").replace(/(ligne \d+)/g, "$1.");
+  const applied = pbpVideoApplyPunctText(rawRows, aiText);
+  const aiParas = aiText.split(/\n+/).map((x) => x.replace(/\s+/g, " ").trim()).filter(Boolean);
+  assertEq(pbpVideoPunctConserved(merged.join("\n"), aiText), true,
+    "fixture is the real shape: the simulated pass conserves every non-punctuation character");
+  check("fixture is the real shape: the marks landed back on the timed rows",
+    !!applied && applied.length === 12 && applied.every((s) => /\.$/.test(s.content)));
+  const aiState = pbpVideoStateBuild({
+    detected, track, tracks: [track], segments: applied, aiParas,
+    wasUnpunct: true, aiPunct: true, meta
+  });
+  const aiCanonical = pbpVideoTranscriptMarkdown(applied, meta, aiParas);
+  assertEq(pbpVideoStateValidate(aiState, detected, aiCanonical), true,
+    "a genuine AI-tier payload still validates (the new binding rejects nothing the runtime writes)");
+
+  // The reviewer's probe: with paragraphs present, the rebuild never reads the
+  // rows, so before this fix ANY row text validated against the real article.
+  const tamperedText = JSON.parse(JSON.stringify(aiState));
+  tamperedText.segments.forEach((s) => { s.content = "ATTACKER CONTROLLED TEXT"; });
+  assertEq(pbpVideoStateValidate(tamperedText, detected, aiCanonical), false,
+    "every row rewritten, paragraphs untouched -> false (this validated true before the fix)");
+  const oneChar = JSON.parse(JSON.stringify(aiState));
+  oneChar.segments[3].content = oneChar.segments[3].content.replace("piste", "pisto");
+  assertEq(pbpVideoStateValidate(oneChar, detected, aiCanonical), false,
+    "ONE flipped character in one row -> false, on the paragraph tier too");
+  const dropped = JSON.parse(JSON.stringify(aiState));
+  dropped.segments.splice(5, 1);
+  assertEq(pbpVideoStateValidate(dropped, detected, aiCanonical), false,
+    "a dropped row (row count changed, text lost) -> false");
+  const added = JSON.parse(JSON.stringify(aiState));
+  added.segments.push({ from: 99, to: 100, content: "une ligne en plus." });
+  assertEq(pbpVideoStateValidate(added, detected, aiCanonical), false,
+    "an injected extra row -> false");
+
+  // The bound is "no word can appear in the timeline that is not in the
+  // article", NOT "row boundaries are pinned": once paragraphs shadow the
+  // segments, the format has no way to express where one row ends. A
+  // re-partition of the SAME text is therefore accepted, deliberately --
+  // stated as an executable limitation rather than left to a comment.
+  const repartitioned = JSON.parse(JSON.stringify(aiState));
+  repartitioned.segments.splice(0, 2, {
+    from: repartitioned.segments[0].from, to: repartitioned.segments[1].to,
+    content: repartitioned.segments[0].content + " " + repartitioned.segments[1].content
+  });
+  assertEq(repartitioned.segments.length, 11, "sanity: the re-partition really changed the row count");
+  assertEq(pbpVideoStateValidate(repartitioned, detected, aiCanonical), true,
+    "two adjacent rows merged with their text preserved -> still true (documented limit of the conservation bound)");
+
+  // Timings: out-of-order rows are rejected on BOTH tiers, because
+  // pbpVideoRowIndexAt binary-searches them and follow-mode seeks on the result.
+  const shuffled = JSON.parse(JSON.stringify(aiState));
+  const row = shuffled.segments[8];
+  row.from = 0.5; row.to = 1;
+  assertEq(pbpVideoStateValidate(shuffled, detected, aiCanonical), false,
+    "a row moved out of track order -> false (the binary search assumes sorted `from`)");
+  const plainRows = [{ from: 0, to: 2, content: "Guten Tag." }, { from: 2, to: 4, content: "Danke." }];
+  const plainMeta = { title: "V", url: meta.url, trackLabel: "Deutsch" };
+  const plainState = pbpVideoStateBuild({
+    detected, track: { lang: "de", label: "Deutsch", asr: false }, tracks: [track],
+    segments: plainRows, aiParas: null, wasUnpunct: false, aiPunct: false, meta: plainMeta
+  });
+  const plainCanonical = pbpVideoTranscriptMarkdown(plainRows, plainMeta, null);
+  assertEq(pbpVideoStateValidate(plainState, detected, plainCanonical), true, "control: the plain tier still validates");
+  const plainShuffled = JSON.parse(JSON.stringify(plainState));
+  plainShuffled.segments[1].from = -1;
+  assertEq(pbpVideoStateValidate(plainShuffled, detected, plainCanonical), false,
+    "...and out-of-order timings are rejected there too");
+  const sameFrom = JSON.parse(JSON.stringify(plainState));
+  sameFrom.segments[1].from = sameFrom.segments[0].from;
+  assertEq(pbpVideoStateValidate(sameFrom, detected,
+    pbpVideoTranscriptMarkdown(sameFrom.segments, plainMeta, null)), true,
+    "equal `from` on two rows is NOT out of order (non-decreasing, not strictly increasing)");
+
+  // meta: the equality check only sees the title when meta.url is non-empty
+  // (pbpVideoTranscriptMarkdown emits the source blockquote only then), so the
+  // validator has to bound the rest itself (review F3).
+  const noMetaType = JSON.parse(JSON.stringify(plainState));
+  noMetaType.meta = "not an object";
+  assertEq(pbpVideoStateValidate(noMetaType, detected, plainCanonical), false, "a non-object meta -> false");
+  const missingField = JSON.parse(JSON.stringify(plainState));
+  delete missingField.meta.trackLabel;
+  assertEq(pbpVideoStateValidate(missingField, detected, plainCanonical), false, "a meta missing trackLabel -> false");
+  // The type bound is not redundant with the equality check: a non-string
+  // title RENDERS identically (the markdown builder concatenates), so equality
+  // sees nothing while the type check rejects.
+  const numTitleMeta = { title: "5", url: meta.url, trackLabel: "Deutsch" };
+  const numState = pbpVideoStateBuild({
+    detected, track: { lang: "de", label: "Deutsch", asr: false }, tracks: [track],
+    segments: plainRows, aiParas: null, wasUnpunct: false, aiPunct: false, meta: numTitleMeta
+  });
+  const numCanonical = pbpVideoTranscriptMarkdown(plainRows, numTitleMeta, null);
+  assertEq(pbpVideoStateValidate(numState, detected, numCanonical), true, "control: a numeric-looking string title validates");
+  const numTampered = JSON.parse(JSON.stringify(numState));
+  numTampered.meta.title = 5;
+  assertEq(pbpVideoStateValidate(numTampered, detected, numCanonical), false,
+    "a non-string title that renders identically is still rejected (equality cannot see it; the type bound can)");
+
+  const urllessMeta = { title: "", url: "", trackLabel: "Deutsch" };
+  const urlless = pbpVideoStateBuild({
+    detected, track: { lang: "de", label: "Deutsch", asr: false }, tracks: [track],
+    segments: plainRows, aiParas: null, wasUnpunct: false, aiPunct: false, meta: urllessMeta
+  });
+  const urllessCanonical = pbpVideoTranscriptMarkdown(plainRows, urllessMeta, null);
+  assertEq(pbpVideoStateValidate(urlless, detected, urllessCanonical), true,
+    "a URL-less state with no title validates (the markdown simply carries no source line)");
+  const smuggledTitle = JSON.parse(JSON.stringify(urlless));
+  smuggledTitle.meta.title = "a title the article never carried";
+  assertEq(pbpVideoStateValidate(smuggledTitle, detected, urllessCanonical), false,
+    "...but a title the equality check cannot see is rejected (it would re-enter the article on the next commit)");
+
+  // Descriptor exclusivity: the validator checks TYPES, so an injected endpoint
+  // passes here on purpose -- md-preview.js's hydration rebuilds each
+  // descriptor from the whitelist, which is where the endpoint dies (review F2).
+  const injected = JSON.parse(JSON.stringify(plainState));
+  injected.tracks[0].baseUrl = "https://attacker.example/steal?x=1";
+  assertEq(pbpVideoStateValidate(injected, detected, plainCanonical), true,
+    "an extra field on a descriptor still passes the type-shaped gate (this is why hydration rebuilds, not adopts)");
+  // Mirror of that rebuild: whitelist = exactly _pbpVideoTrackDescribe's output.
+  const rebuild = (tracks) => tracks.map((tr) => ({ key: tr.key, lang: tr.lang, label: tr.label, asr: tr.asr }));
+  const rebuilt = rebuild(injected.tracks);
+  check("the rebuilt descriptor drops every field outside the whitelist",
+    !("baseUrl" in rebuilt[0]) && !("subtitle_url" in rebuilt[0]) && Object.keys(rebuilt[0]).length === 4);
+  check("...while keeping the four fields the picker and the key resolver need",
+    rebuilt[0].key === injected.tracks[0].key && rebuilt[0].lang === injected.tracks[0].lang
+      && rebuilt[0].label === injected.tracks[0].label && rebuilt[0].asr === injected.tracks[0].asr
+      && pbpVideoTrackKey(rebuilt[0], "youtube") === injected.tracks[0].key);
 })();
 
 document.getElementById("summary").textContent = `${pass} passed, ${fail} failed`;

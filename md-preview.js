@@ -1010,12 +1010,26 @@ function pbpApplyColorScheme(mode) {
         // stays null for a committed payload), so the check is against the
         // article the reader actually gets, not against the raw record.
         const vState = info.videoState;
+        // videoAiPunct (top level, what pbpVideoDoc above reads) and
+        // videoState.aiPunct are two copies of one fact, written together by
+        // every commit site. Nothing forces them to agree once the record is
+        // on disk, and the AI-button suppression reads one while the gate
+        // validates the other -- so make agreement a hydration precondition
+        // and then use the top-level field as THE source (review F5).
+        const vAiPunct = info.videoAiPunct === true;
         if (vState && typeof pbpVideoStateValidate === "function"
+            && vState.aiPunct === vAiPunct
             && pbpVideoStateValidate(vState, vDetected, _extractedMarkdown)) {
-          const vTracks = Array.isArray(vState.tracks) ? vState.tracks : [];
-          // Descriptors only -- baseUrl/subtitle_url are deliberately not
-          // persisted (signed, expiring). A later track switch re-reads the
-          // live directory; nothing here touches the network.
+          // REBUILT, never adopted: the gate checks that the four descriptor
+          // fields have the right types, not that they are the only ones, so a
+          // record carrying an extra baseUrl/subtitle_url would restore an
+          // endpoint the track switch fetches WITHOUT the directory refresh
+          // that exists to re-derive it (spec 「不要持久化 baseUrl、subtitle_url」 is a
+          // read-side rule here, and this is the only place the data is
+          // untrusted). Whitelist = exactly what _pbpVideoTrackDescribe emits
+          // (review F2).
+          const vTracks = (Array.isArray(vState.tracks) ? vState.tracks : [])
+            .map((tr) => ({ key: tr.key, lang: tr.lang, label: tr.label, asr: tr.asr }));
           // Duplicate keys collapse to the first match: the persistence format
           // addresses a track by key, and among duplicates that is all it can
           // say (T6 review F4 -- accepted, documented limitation).
@@ -1027,13 +1041,15 @@ function pbpApplyColorScheme(mode) {
             // "the payload carried caption data", NOT "the origin grant is
             // standing": pbpVideoInit's committed auto-boot re-checks the
             // permission with contains() before it loads anything, and
-            // `hydrated` is what routes this session to that branch.
+            // `hydrated` is what routes this session to that branch. md-video.js
+            // clears the flag when it adopts a live track directory, i.e. when
+            // both halves of that meaning stop being true.
             granted: true, hydrated: true,
             tracks: vTracks, track: vTrack,
             segments: vState.segments,
             wasUnpunct: vState.wasUnpunct === true,
             paragraphs: Array.isArray(vState.paragraphs) ? vState.paragraphs : null,
-            aiPunct: vState.aiPunct === true,
+            aiPunct: vAiPunct,
             meta: vState.meta, error: undefined,
             // No fetch handles survive a reload (a function and a tab id are
             // not persistable); the directory refresh on the first real track
