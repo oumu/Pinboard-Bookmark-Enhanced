@@ -660,45 +660,135 @@ function pbpApplyColorScheme(mode) {
     });
   }
 
+  // Why a transcript commit happened. The reason rides BOTH lifecycle events
+  // because subsystems have to tell "the same spoken words, now punctuated"
+  // apart from "a different language track": an AI punctuation pass conserves
+  // every non-punctuation character (so a highlight can be re-anchored across
+  // it), a track switch conserves nothing. Unknown reasons collapse to
+  // "legacy" -- every downstream relaxation is opt-in per reason, so an
+  // unrecognized one must never unlock one.
+  const VIDEO_COMMIT_REASONS = new Set(["video-track-switch", "video-ai-punctuation", "video-promotion", "legacy"]);
+  // How a committed article reaches the screen ON THIS PAGE. Assigned exactly
+  // once, by whichever shell finished initializing:
+  //   * the full article runtime (far below, once the raw view exists)
+  //     installs the in-place transaction -- no reload, so the player keeps
+  //     playing and the reader keeps their position;
+  //   * the pending/error shell and the empty-content shell install a reload:
+  //     both RETURN before the article runtime is built, so there is no render
+  //     pipeline, no TOC, no raw view and no AI index to swap into, and
+  //     filling #rendered-view alone would produce a page that looks like an
+  //     article while missing half its functionality. Phase 2 of the spec
+  //     (docs/superpowers/codex-in-place-replace-spec-2026-08-23.md, section
+  //     "首次授权 promotion") turns that into a real runtime activation and
+  //     deletes the last reload.
+  // null = neither has finished yet; the payload is still written, and the
+  // committer says so rather than silently doing nothing.
+  let _applyArticleCommit = null;
+  // Serial lock, no queue: two overlapping commits would interleave A's
+  // storage write with B's DOM swap and leave the page disagreeing with its
+  // own payload.
+  let _commitInFlight = false;
+
   // Single writer for "the transcript becomes this page's article". Defined
   // here, not in md-video.js, so the rewritten payload keeps this page's
-  // account/tags/description contract intact (owner isolation). Writes the
-  // transcript as the canonical markdown and reloads into the normal article
-  // path -- rail, exports, Ask, and translation then all run on the
-  // transcript. Callers: the pending/restore branch below (extraction failed
-  // on a video page but captions exist) and md-video.js's AI-punctuation pass
-  // (refresh the article in place once the marks land).
-  // videoTranscript marks the payload as ALREADY being a transcript, so the
-  // reloaded normal path keeps this exact markdown instead of re-deriving one
-  // from the session (which would silently drop the AI punctuation).
+  // account/tags/description contract intact (owner isolation): callers pass
+  // markdown and a title only, never account/tags/description. Writes the
+  // transcript as the canonical markdown and then REPLACES THE ARTICLE IN
+  // PLACE -- rail, exports, Ask, and translation carry on against the new
+  // text. Callers: the pending/restore branch below (extraction failed on a
+  // video page but captions exist) and md-video.js's track-switch,
+  // AI-punctuation and first-run promotion passes.
+  // videoTranscript marks the payload as ALREADY being a transcript, so an F5
+  // keeps this exact markdown instead of re-deriving one from the session
+  // (which would silently drop the AI punctuation).
   // videoDescriptionMd carries the extracted description ALONGSIDE it: the
   // description is not recoverable from a transcript payload (the extraction
   // that produced it is long gone), so dropping it here would empty the
   // collapsed description block on every commit.
-  // Returns true only when the payload was written and the reload is under
-  // way, so callers can fall back when storage refuses the write.
-  // aiPunct=true marks the markdown as carrying a PAID AI-punctuation pass:
-  // the reloaded page hides the AI button only for those payloads (paying
-  // twice for the same track would be the bug), while heuristic-tier commits
-  // (first-run promotion, track switches) keep the upgrade on offer.
-  window.pbpVideoCommitTranscript = async (transcriptMd, fallbackTitle, aiPunct) => {
-    if (!transcriptMd || !String(transcriptMd).trim()) return false;
+  // videoState carries the caption runtime's own state (segments, selected
+  // track, AI paragraphs) so an F5 restores the timeline instead of re-fetching
+  // a heuristic default track; undefined until the video layer passes it.
+  // Returns true only when the payload was written (and, where a runtime
+  // exists, the article swapped), so callers can fall back when storage
+  // refuses the write.
+  // opts.aiPunct=true marks the markdown as carrying a PAID AI-punctuation
+  // pass: the AI button is suppressed only for those (paying twice for the
+  // same track would be the bug), while heuristic-tier commits (first-run
+  // promotion, track switches) keep the upgrade on offer. The third argument
+  // used to be that bare boolean; legacy callers still work.
+  window.pbpVideoCommitTranscript = async (transcriptMd, fallbackTitle, opts) => {
+    const o = (opts && typeof opts === "object") ? opts : { aiPunct: opts === true, reason: "legacy" };
+    const aiPunct = o.aiPunct === true;
+    const reason = VIDEO_COMMIT_REASONS.has(o.reason) ? o.reason : "legacy";
+    if (o.reason != null && reason !== o.reason) {
+      console.warn("[pbp-video] commit: unknown reason", String(o.reason), "-- treated as legacy");
+    }
+    const md = transcriptMd == null ? "" : String(transcriptMd);
+    if (!md.trim()) return false;
+    if (_commitInFlight) {
+      console.warn("[pbp-video] commit refused: another commit is still in flight");
+      return false;
+    }
+    _commitInFlight = true;
     try {
-      await chrome.storage.local.set({
-        [MP_KEY]: {
-          markdown: String(transcriptMd), title: title || fallbackTitle || "",
-          videoTranscript: true,
-          videoAiPunct: aiPunct === true,
-          videoDescriptionMd: (window.pbpVideoDoc && window.pbpVideoDoc.descriptionMarkdown) || "",
-          url, baseUrl, sourceTabUrl, tabId: srcTabId,
-          source: source === "jina" ? "jina" : "local",
-          account: previewAccount, tags, description, ts: Date.now()
-        }
-      });
-      location.reload();
+      // (1) Pre-render validation, through our OWN renderMarkdown() call.
+      // renderArticleContent() renders and commits in one breath and so cannot
+      // serve as the validator: by the time it threw, storage would already be
+      // ahead of the DOM. The extra parse buys "a throw here leaves storage AND
+      // the article untouched". Same md-convert.js entry point the render uses
+      // -- the single sanitize point is unchanged.
+      let probe = "";
+      try { probe = renderMarkdown(md); }
+      catch (e) {
+        console.warn("[pbp-video] commit rejected: markdown render failed:", (e && e.name) || "", (e && e.message) || e);
+        return false;
+      }
+      if (!probe || !String(probe).trim()) {
+        console.warn("[pbp-video] commit rejected: markdown rendered to nothing");
+        return false;
+      }
+      // Read BEFORE pbpVideoDoc is rewritten below -- that object is the only
+      // place the extracted description still exists.
+      const descMd = (window.pbpVideoDoc && window.pbpVideoDoc.descriptionMarkdown) || "";
+      // (2) Persist first, swap second: once this resolves true, storage, the
+      // in-memory canonical markdown and the DOM all agree, so an F5 taken at
+      // any later moment lands on exactly what is on screen. Field-for-field
+      // the same record the bootstrap re-writes for a committed page (see
+      // _restoreRecord below) -- the two shapes have to stay in step or a
+      // reload silently drops whatever only one of them carries.
+      try {
+        await chrome.storage.local.set({
+          [MP_KEY]: {
+            markdown: md, title: title || fallbackTitle || "",
+            videoTranscript: true,
+            videoAiPunct: aiPunct,
+            videoState: o.videoState,
+            videoDescriptionMd: descMd,
+            url, baseUrl, sourceTabUrl, tabId: srcTabId,
+            source: source === "jina" ? "jina" : "local",
+            account: previewAccount, tags, description, ts: Date.now()
+          }
+        });
+      } catch (e) {
+        // quota / corrupt area -- keep the panel as-is; Copy still works
+        console.warn("[pbp-video] commit rejected: storage write failed:", (e && e.name) || "", (e && e.message) || e);
+        return false;
+      }
+      // The video panel reads this doc synchronously (AI-button suppression,
+      // the collapsed description, the committed auto-load branch), so it must
+      // describe the article that is about to be on screen -- and must match
+      // the shape the committed-payload bootstrap builds on F5, or the same
+      // page would behave differently before and after a reload.
+      window.pbpVideoDoc = { kind: "video-transcript", descriptionMarkdown: descMd, committed: true, aiPunct };
+      // (3)-(5): revision bump, will-replace, canonical + DOM, replaced.
+      if (typeof _applyArticleCommit === "function") _applyArticleCommit(md, { reason, aiPunct, videoState: o.videoState });
+      else console.warn("[pbp-video] commit: no article runtime on this page yet -- payload written, the caller has to surface it");
       return true;
-    } catch (_) { /* quota -- keep the panel as-is; Copy still works */ }
-    return false;
+    } finally {
+      // Every exit path, throws included: a lock leaked here would refuse
+      // every later commit for the life of the page.
+      _commitInFlight = false;
+    }
   };
 
   // Shortcut opens the preview INSTANTLY with a pending placeholder, then the
@@ -802,12 +892,28 @@ function pbpApplyColorScheme(mode) {
         } finally {
           if (!committed) inFlight = false;
         }
-        if (committed) return; // reload is under way; do not also mount the panel
+        if (committed) {
+          // PHASE-1 BOUNDARY. The committer no longer reloads -- replacing the
+          // article in place is the whole point of this campaign -- but this
+          // shell returns long before the article runtime is built, so the
+          // transcript it just persisted has no pipeline to be swapped into.
+          // The reload therefore belongs to the caller, and here it is. Phase 2
+          // of the spec (docs/superpowers/codex-in-place-replace-spec-2026-08-23.md,
+          // "首次授权 promotion") replaces this with a real runtime activation.
+          location.reload();
+          return; // reload under way; do not also mount the panel
+        }
         // The panel about to mount can still promote the transcript once the
         // user grants the origin (md-video.js's first-run commit), which needs
         // a pbpVideoDoc to key off. No transcript reached the article here, so
         // this shell is a fallback by definition.
         if (!window.pbpVideoDoc) window.pbpVideoDoc = { kind: "video-fallback", descriptionMarkdown: "" };
+        // Same phase-1 boundary for THAT commit: it goes through the same
+        // single writer, which has no runtime to replace into on this shell
+        // either. Registering the reload as this page's applier keeps the
+        // decision here (with its sibling above) instead of putting a reload
+        // back inside the committer.
+        _applyArticleCommit = () => { location.reload(); };
       }
       if (typeof pbpVideoInit === "function") pbpVideoInit({ pageUrl: sourceTabUrl || url, title: title, tabId: srcTabId });
       else console.warn("[pbp-video] mount unavailable: pbpVideoInit missing after deferred scripts");
@@ -910,6 +1016,11 @@ function pbpApplyColorScheme(mode) {
     // panel at all; a YouTube re-open that extracted empty lost its button).
     // Render the empty-state shell first, then let the panel attach above it.
     renderEmptyState(t("mdPreviewNoContent"));
+    // Phase-1 boundary, same as the error shell above: this guard RETURNS
+    // before the article runtime exists, so a transcript the panel commits
+    // later (first-run promotion once the user grants the caption origin) can
+    // only reach the screen through a reload.
+    _applyArticleCommit = () => { location.reload(); };
     // pbpDeferredScriptsReady is already awaited above (video bootstrap), so
     // md-video.js -- the LAST defer script -- has run by now; the typeof guard
     // only covers it failing to load at all.
@@ -933,10 +1044,19 @@ function pbpApplyColorScheme(mode) {
   // restore:true so the reload lands straight back in the flag branch above.
   // Transcripts run ~100KB, well inside storage.local; the try/catch degrade
   // is unchanged.
+  //
+  // Field-for-field the same record pbpVideoCommitTranscript writes (both are
+  // the same MP_KEY slot and both are read back by the SAME bootstrap branch),
+  // so anything only one of them carries is silently lost on the F5 after the
+  // other wrote last. videoState rides through unread here on purpose: this
+  // page never re-derives it, it only forwards whatever the payload that
+  // opened it carried, so a second F5 keeps the timeline the first one
+  // restored.
   const _restoreRecord = info.videoTranscript === true
     ? {
         videoTranscript: true, markdown: canonicalMarkdown,
         videoAiPunct: info.videoAiPunct === true,
+        videoState: info.videoState,
         videoDescriptionMd: (window.pbpVideoDoc && window.pbpVideoDoc.descriptionMarkdown) || "",
         title: title || "", url, baseUrl, sourceTabUrl, tabId: srcTabId,
         source: source === "jina" ? "jina" : "local",
@@ -2078,6 +2198,63 @@ function pbpApplyColorScheme(mode) {
       window.scrollTo(0, top + frac * rawView.scrollHeight);
     }
   }
+
+  // ---- In-place article replacement (spec: 最小安全渲染切口) ----
+  // Everything the swap needs now exists and is re-callable: the canonical
+  // markdown binding, the render pipeline, the TOC rebuild, the reading-stat
+  // recompute, the raw-view sync. Installing the applier HERE (and not
+  // earlier) is what makes "commit succeeded" mean "the article on screen is
+  // the committed one" rather than "half of it is".
+  //
+  // Steps 3-5 of the commit transaction; steps 1-2 (validation, storage) ran
+  // in pbpVideoCommitTranscript before this was called. Deliberately
+  // SYNCHRONOUS end to end: rebuildToc() tears the old scroll spy down, and
+  // that teardown sits structurally AFTER renderArticleContent() has already
+  // swapped #rendered-view's children, so an await between them would leave an
+  // IntersectionObserver holding links that are already detached from the
+  // document. Do not make this async.
+  _applyArticleCommit = (markdown, meta) => {
+    // Bump BEFORE announcing and before rendering. Listeners fence their
+    // in-flight work on detail.revision, and renderArticleContent() captures
+    // the counter as the fence for its own deferred enhancers (its caller
+    // contract: bump first, never inside).
+    _articleRevision++;
+    // ONE detail object for both events, so a will-replace listener and the
+    // matching replaced listener cannot disagree about which revision they are
+    // looking at.
+    //
+    // forum: the bootstrap determination, deliberately NOT recomputed. It has
+    // to be known at will-replace time, i.e. before the new DOM exists, and
+    // the site-rule half (info.forum) is a property of the page, not of the
+    // article text. The structural half re-runs by itself inside
+    // renderArticleContent (pbpForumShouldMark + pbpForumMarkComments against
+    // the new DOM), so the comment MARKUP always matches the new article even
+    // when this flag describes the page it was opened as.
+    //
+    // Not re-run here on purpose: pbpLatexNormalize. A caption transcript is
+    // spoken text with no scraped TeX, so normalizing it could only mangle
+    // plain speech ("$5", "100%"); info.math stays the extraction-time flag it
+    // has always been, and renderArticleContent's own KaTeX gate keeps
+    // deciding per render whether the new text contains any "$" at all.
+    const detail = { revision: _articleRevision, reason: meta.reason, url, title, forum: _isForumPage, account: previewAccount };
+    document.dispatchEvent(new CustomEvent("pbp:article-will-replace", { detail }));
+    canonicalMarkdown = markdown;
+    renderArticleContent(canonicalMarkdown);
+    rebuildToc();
+    refreshReadingStats();
+    // Raw view: content follows canonical immediately, but the view MODE does
+    // not change. A reader sitting in raw stays in raw (syncRawView keeps their
+    // position); forcing them back to rendered would be its own felt reset.
+    syncRawView();
+    // md-ai-core's block index still points at the OLD elements until this
+    // runs. The first render's index was built by md-ai-core's pbp:rendered
+    // listener -- which must NOT be re-dispatched (that event means "first
+    // render finished" and re-firing it would re-run every one-shot init in
+    // the md-ai layer), so the index is rebuilt explicitly, and BEFORE
+    // article-replaced lets any listener read it.
+    if (typeof pbpAiIndexBlocks === "function") pbpAiIndexBlocks(renderedView);
+    document.dispatchEvent(new CustomEvent("pbp:article-replaced", { detail }));
+  };
 
   // Reading-position mapping across the switch: Raw (13px <pre>) and Rendered
   // (clamp 17-22px article typography) are the same content at very different

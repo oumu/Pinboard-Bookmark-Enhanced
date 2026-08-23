@@ -2568,6 +2568,147 @@ check(mdCss.includes("animation-timeline: scroll(self inline);"),
   const rawWinRestoreAt = rawSync.indexOf("window.scrollTo(");
   check(rawWriteAt >= 0 && rawTopRestoreAt > rawWriteAt && rawWinRestoreAt > rawWriteAt,
     "md-preview.js: syncRawView must restore reading position (rawView.scrollTop AND the window offset) AFTER rewriting the <pre> -- writing textContent rebuilds the box and dumps the reader at the top, which is the same felt regression as the reload this campaign removes");
+
+  // ---- The commit transaction itself (in-place-replace campaign, T3).
+  // pbpVideoCommitTranscript used to write the payload and reload the page;
+  // it now writes the payload and swaps the article in place. The properties
+  // that make that safe are ordering properties, and ordering is exactly what
+  // no other gate in this repo checks.
+  const commitFn = slice("window.pbpVideoCommitTranscript = async (", "\n  };", "pbpVideoCommitTranscript");
+  const applier = slice("_applyArticleCommit = (markdown, meta) => {", "\n  };", "the in-place commit applier");
+  // Slice self-check FIRST. Both anchors end on the same generic `\n  };`, so
+  // an over-run would quietly hand the checks below a region containing the
+  // other function (and every "must not contain" assertion would still pass).
+  check(commitFn.includes("chrome.storage.local.set") && commitFn.includes("return true;") &&
+    !commitFn.includes("_applyArticleCommit = ") && !commitFn.includes("renderArticleContent(") &&
+    applier.includes("renderArticleContent(") && applier.includes("rebuildToc()") &&
+    !applier.includes("chrome.storage.local.set"),
+    "ui-contract: the T3 slices came back wrong (committer / applier anchors moved or over-ran) -- every T3 invariant below is UNVERIFIED");
+
+  // --- No reload. This is the campaign's entire premise: a reload restarts
+  // the player, drops the scroll position, and throws away the Ask/translate
+  // session. The two page shells that genuinely cannot replace in place
+  // install their own reload applier instead (asserted below), which is why
+  // the file still contains the call at all.
+  check(!/location\.reload\(/.test(commitFn),
+    "md-preview.js: pbpVideoCommitTranscript reloads the page -- removing exactly that is the point of the in-place replacement campaign; a shell that cannot replace in place must install a reload applier instead");
+  check(!/location\.reload\(/.test(applier),
+    "md-preview.js: the in-place commit applier reloads the page -- it exists precisely to avoid that");
+  check((src.match(/_applyArticleCommit = \(\) => \{ location\.reload\(\); \};/g) || []).length === 2,
+    "md-preview.js: expected exactly 2 reload appliers (the pending/error shell and the empty-content guard, both of which return before the article runtime is built) -- if a shell lost its applier, a transcript committed there is written to storage and never shown; if a third appeared, an in-place-capable page is reloading for nothing");
+
+  // --- pbp:rendered means "the FIRST render finished" and drives one-shot
+  // init across the whole md-ai layer. Re-dispatching it on a replacement
+  // would re-run every one of those inits; the two lifecycle events exist so
+  // it does not have to be.
+  check((src.match(/CustomEvent\("pbp:rendered"/g) || []).length === 1,
+    "md-preview.js: pbp:rendered is dispatched more than once -- the in-place replacement path must announce itself with pbp:article-will-replace / pbp:article-replaced, never by re-firing the first-render event");
+  check(!commitFn.includes("pbp:rendered") && !applier.includes("pbp:rendered"),
+    "md-preview.js: the commit path dispatches pbp:rendered -- that event is the first render's, and re-firing it re-runs every one-shot md-ai init");
+
+  // --- Transaction order in the committer: validate, THEN persist, THEN
+  // swap. Validation via its own renderMarkdown() call is what makes a bad
+  // transcript leave storage and the DOM untouched (renderArticleContent
+  // renders and commits in one breath, so it cannot be the validator).
+  const probeAt = commitFn.indexOf("renderMarkdown(");
+  const setAt = commitFn.indexOf("chrome.storage.local.set");
+  const applyAt = commitFn.indexOf("_applyArticleCommit(");
+  check(probeAt >= 0 && setAt > probeAt && applyAt > setAt,
+    "md-preview.js: pbpVideoCommitTranscript must pre-render (renderMarkdown) BEFORE the storage write and swap the article only AFTER it -- any other order can leave storage, memory and the DOM disagreeing");
+  // Serial lock, released in a finally so a throw cannot wedge the page.
+  const lockSetAt = commitFn.indexOf("_commitInFlight = true;");
+  const finallyAt = commitFn.indexOf("} finally {");
+  const lockClearAt = commitFn.indexOf("_commitInFlight = false;");
+  check(commitFn.indexOf("if (_commitInFlight)") >= 0 && lockSetAt > commitFn.indexOf("if (_commitInFlight)") &&
+    finallyAt > lockSetAt && lockClearAt > finallyAt,
+    "md-preview.js: pbpVideoCommitTranscript must refuse a re-entrant commit and release its lock in a finally -- a lock leaked on a throw refuses every later commit for the life of the page");
+
+  // --- Transaction order in the applier. Each of these is load-bearing:
+  // the bump must precede the announcement (listeners fence on the revision
+  // they are told about, and renderArticleContent captures the same counter);
+  // canonical must be assigned before the render (every export/Copy/Raw reader
+  // goes through it); the AI block index must be rebuilt before
+  // article-replaced, or the first listener to read a block index reads the
+  // previous article's detached elements.
+  const bumpAt = applier.indexOf("_articleRevision++");
+  const willAt = applier.indexOf('"pbp:article-will-replace"');
+  const canonAt = applier.indexOf("canonicalMarkdown = markdown");
+  const renderAt = applier.indexOf("renderArticleContent(canonicalMarkdown)");
+  const tocAt = applier.indexOf("rebuildToc()");
+  const statsAt = applier.indexOf("refreshReadingStats()");
+  const rawAt = applier.indexOf("syncRawView()");
+  const indexAt = applier.indexOf("pbpAiIndexBlocks(renderedView)");
+  const replacedAt = applier.indexOf('"pbp:article-replaced"');
+  check([bumpAt, willAt, canonAt, renderAt, tocAt, statsAt, rawAt, indexAt, replacedAt].every((i) => i >= 0),
+    "md-preview.js: the in-place applier is missing one of its steps (revision bump / will-replace / canonical assignment / renderArticleContent / rebuildToc / refreshReadingStats / syncRawView / pbpAiIndexBlocks / article-replaced)");
+  check(bumpAt < willAt && willAt < canonAt,
+    "md-preview.js: the in-place applier must bump _articleRevision and dispatch pbp:article-will-replace BEFORE assigning canonicalMarkdown -- a listener that learns about the swap after the text changed cannot snapshot or abort anything");
+  check(canonAt < renderAt && renderAt < tocAt && tocAt < indexAt && indexAt < replacedAt,
+    "md-preview.js: the in-place applier's order must be canonical -> render -> TOC -> AI block index -> pbp:article-replaced; pbpAiIndexBlocks after the announcement means the first listener reads the OLD article's detached blocks");
+  check(rawAt > canonAt && statsAt > canonAt,
+    "md-preview.js: the in-place applier must refresh the reading stats and the raw view AFTER canonicalMarkdown is reassigned -- both read it through getMarkdown() and would otherwise repeat the previous article's text");
+  // Synchronous end to end: rebuildToc()'s scroll-spy teardown sits AFTER
+  // renderArticleContent() has already swapped the children, so any suspension
+  // between them leaves an IntersectionObserver holding detached links.
+  // Two independent clauses on purpose: the `async` one is checked against the
+  // WHOLE file, so it still fires when marking the applier async is what moved
+  // the slice anchor (which would otherwise be reported only as "anchor moved").
+  check(!/\bawait\b/.test(applier),
+    "md-preview.js: the in-place applier awaits -- the scroll-spy teardown inside rebuildToc runs after the DOM swap and is only safe while both happen in one synchronous task");
+  check(!/_applyArticleCommit\s*=\s*async\b/.test(src),
+    "md-preview.js: an _applyArticleCommit implementation is async -- the applier must run start to finish in one task (renderArticleContent swaps the children, rebuildToc disposes the spy that was watching them)");
+  // The event contract T4/T5/T6 consume. Detail keys, not just the names.
+  for (const key of ["revision", "reason", "url", "title", "forum", "account"]) {
+    check(new RegExp(`const detail = \\{[^}]*\\b${key}\\b`).test(applier),
+      `md-preview.js: the article-replacement event detail no longer carries \`${key}\` -- md-video/md-ask/md-highlight listeners fence and re-anchor on that detail`);
+  }
+  const reasonsAt = src.indexOf("const VIDEO_COMMIT_REASONS = new Set(");
+  const reasonsDecl = reasonsAt >= 0 ? src.slice(reasonsAt, src.indexOf(";", reasonsAt)) : "";
+  for (const r of ["video-track-switch", "video-ai-punctuation", "video-promotion", "legacy"]) {
+    check(reasonsDecl.includes(`"${r}"`),
+      `md-preview.js: the commit reason "${r}" left VIDEO_COMMIT_REASONS -- unknown reasons collapse to "legacy", which silently disables the per-reason behaviour keyed on it (e.g. punctuation-tolerant highlight re-anchoring)`);
+  }
+  check(commitFn.includes("VIDEO_COMMIT_REASONS.has(o.reason)") && commitFn.includes('aiPunct: opts === true'),
+    "md-preview.js: pbpVideoCommitTranscript must validate opts.reason against the enum and keep the legacy boolean third-argument mapping -- md-video.js still calls it with a bare boolean");
+
+  // --- Payload/restore-record parity, read off the two object literals rather
+  // than off a list in this file: both write the SAME MP_KEY slot and both are
+  // read back by the SAME committed-transcript bootstrap branch, so a field
+  // only one of them carries is silently lost on the F5 after the other wrote
+  // last (this is how videoState would have been dropped).
+  const braceBody = (text, from) => {
+    const open = text.indexOf("{", from);
+    if (open < 0) return "";
+    let depth = 0;
+    for (let i = open; i < text.length; i++) {
+      if (text[i] === "{") depth++;
+      else if (text[i] === "}") { depth--; if (depth === 0) return text.slice(open + 1, i); }
+    }
+    return "";
+  };
+  const objectKeys = (body) => {
+    const parts = [];
+    let depth = 0, cur = "";
+    for (const ch of body) {
+      if ("{[(".includes(ch)) depth++;
+      else if ("}])".includes(ch)) depth--;
+      if (ch === "," && depth === 0) { parts.push(cur); cur = ""; continue; }
+      cur += ch;
+    }
+    parts.push(cur);
+    return parts.map((p) => p.trim()).filter(Boolean)
+      .map((p) => (p.includes(":") ? p.slice(0, p.indexOf(":")) : p).trim())
+      .filter((key) => /^[A-Za-z_$][\w$]*$/.test(key));
+  };
+  const payloadKeys = objectKeys(braceBody(commitFn, commitFn.indexOf("[MP_KEY]:")));
+  const restoreAt = src.indexOf("const _restoreRecord = info.videoTranscript === true");
+  const restoreKeys = objectKeys(braceBody(src, restoreAt));
+  check(payloadKeys.length >= 12 && restoreKeys.length >= 12,
+    `ui-contract: could not read the commit payload / restore record object literals (${payloadKeys.length} and ${restoreKeys.length} keys) -- the parity check below is UNVERIFIED`);
+  const missingInRestore = payloadKeys.filter((key) => !restoreKeys.includes(key));
+  const missingInPayload = restoreKeys.filter((key) => !payloadKeys.includes(key));
+  check(missingInRestore.length === 0 && missingInPayload.length === 0,
+    `md-preview.js: the commit payload and the committed-transcript restore record disagree -- only in the payload: [${missingInRestore.join(", ")}]; only in the restore record: [${missingInPayload.join(", ")}]. Both write the same MP_KEY slot, so whichever wrote last decides what an F5 gets, and a field missing from one is lost the moment that one wins`);
 }
 
 if (fail.length) {
