@@ -3488,13 +3488,24 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
 }
 .pbv-tracks:hover { background-color: var(--btn-hover); }
 .pbv-tracks:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+/* Icon-only bar controls (device feedback 2026-08-24): everything except
+   the track <select> is an icon with title + aria-label. 28x28 keeps the
+   >=24px hit-area contract; inline-flex centers the glyph. The svg size
+   rule enumerates CLASSES (not `button`) because .pbv-open-ext is an <a> --
+   a bare `button svg` selector would leave it at its embedded 14px and the
+   row would mix glyph sizes. */
 .pbv-copy, .pbv-ai-punct, .pbv-follow {
-  min-height: 28px; padding: 4px 10px; font: inherit; cursor: pointer;
+  min-height: 28px; min-width: 28px; padding: 4px; font: inherit; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
   border: 1px solid var(--btn-border); background: var(--btn-bg); color: var(--btn-fg); border-radius: 6px;
 }
 .pbv-copy:hover, .pbv-ai-punct:hover, .pbv-follow:hover { background: var(--btn-hover); }
 .pbv-copy:focus-visible, .pbv-ai-punct:focus-visible, .pbv-follow:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
-.pbv-ai-punct { display: inline-flex; align-items: center; gap: 5px; }
+.pbv-copy svg, .pbv-ai-punct svg, .pbv-follow svg, .pbv-open-ext svg { width: 16px; height: 16px; }
+/* Copy success flash: the check glyph in the success tone (same idiom as
+   .action-btn.copied, restated here because .pbv-copy is not in that
+   family). */
+.pbv-copy.copied { color: var(--success, #16a34a); border-color: var(--success, #16a34a); }
 /* Follow-playback toggle (Task 6): a real toggle button (aria-pressed, no
    checkbox, no checkmark glyph), pressed in the same vocabulary as
    .srch-regex / .typo-seg-btn. Declared after :hover so the pressed state

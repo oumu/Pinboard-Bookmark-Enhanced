@@ -3630,7 +3630,7 @@
   "mdVideoAsr": { "message": "自动生成" },
   "mdVideoViewReading": { "message": "阅读稿" },
   "mdVideoViewTimeline": { "message": "时间轴" },
-  "mdVideoFollow": { "message": "跟随播放" },
+  "mdVideoFollow": { "message": "字幕跟随播放进度" },
   "mdVideoSeekTo": { "message": "跳转到 $TIME$", "placeholders": { "time": { "content": "$1" } } },
   "mdVideoCopyFailed": { "message": "复制失败" },
   "mdVideoOpenExternal": { "message": "在 YouTube 上打开" }

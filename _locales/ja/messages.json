@@ -3636,7 +3636,7 @@
   "mdVideoAsr": { "message": "自動生成" },
   "mdVideoViewReading": { "message": "読み物ビュー" },
   "mdVideoViewTimeline": { "message": "タイムライン" },
-  "mdVideoFollow": { "message": "再生に追従" },
+  "mdVideoFollow": { "message": "字幕を再生位置に追従させる" },
   "mdVideoSeekTo": { "message": "$TIME$ へ移動", "placeholders": { "time": { "content": "$1" } } },
   "mdVideoCopyFailed": { "message": "コピーに失敗しました" },
   "mdVideoOpenExternal": { "message": "YouTube で開く" }

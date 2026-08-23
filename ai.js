@@ -425,7 +425,14 @@ async function callOllama(s, prompt, opts = {}) {
   const base = (s.ollamaBaseUrl || "http://localhost:11434").replace(/\/+$/, "");
   const res = await fetchWithTimeout(`${base}/api/chat`, {
     method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ model: s.ollamaModel || "llama3.2", messages: [{ role: "user", content: prompt }], stream: false })
+    // options mirrors the streaming path (_streamOllama): without num_predict
+    // the non-streaming call ignored opts.maxTokens entirely, so callers that
+    // size the output budget per request (AI punctuation batches) silently got
+    // the server default and truncated long outputs.
+    body: JSON.stringify({
+      model: s.ollamaModel || "llama3.2", messages: [{ role: "user", content: prompt }], stream: false,
+      options: { num_predict: opts.maxTokens || 1024 }
+    })
   });
   if (!res.ok) await handleAIError(res, "Ollama");
   const text = (await res.json()).message?.content?.trim();

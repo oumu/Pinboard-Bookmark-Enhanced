@@ -914,6 +914,10 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   // byte-copied rather than hand-drawn. Kept local (not added to shared.js's
   // PBP_ICONS) since this is the poster card's only consumer.
   const PBV_PLAY_SVG = '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg>';
+  // Lucide v0.525.0 "locate-fixed" (same byte-copy rule) -- the follow-
+  // playback toggle's icon: a locked crosshair reads as "stay locked onto
+  // the position". Local for the same single-consumer reason as PLAY above.
+  const PBV_FOLLOW_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" x2="5" y1="12" y2="12"/><line x1="19" x2="22" y1="12" y2="12"/><line x1="12" x2="12" y1="2" y2="5"/><line x1="12" x2="12" y1="19" y2="22"/><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="3"/></svg>';
   // extOpen is PBP_ICONS's real-external-link icon (shared.js, already loaded
   // by md-preview.html before this file); guarded for the standalone test page.
   const PBV_EXTERNAL_SVG = typeof PBP_ICONS !== "undefined" ? PBP_ICONS.extOpen : "";
@@ -942,7 +946,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   // list the timeline renders into. They are BUILT in runLoad and USED from
   // loadFlow, the track-change handler and the AI pass; threading four more
   // parameters through two call chains would only hide that coupling.
-  let _trackSelEl = null, _aiBtnEl = null, _aiLabelEl = null, _listEl = null;
+  let _trackSelEl = null, _aiBtnEl = null, _listEl = null;
   // Last-selection-wins token. Every track-change event takes one, and every
   // await re-checks it: a response for a track the user has already moved off
   // must render nothing, touch no state, and above all never ATTEMPT a commit.
@@ -1410,21 +1414,61 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   // overlay flips on in the source tab for the capture's duration; prior
   // caption state is restored in finally (an empty getOption("captions",
   // "track") object means captions were off -- probed live).
-  async function ytTabPlayerCaptionCapture(tabId, langCode) {
+  // Tab-injection mutex. Every transcript grab that installs fetch/XHR taps
+  // in the user's YouTube tab (player capture, DOM scrape) runs through this
+  // chain: overlapping injections un-hook each other's taps in the finally
+  // (non-LIFO restore leaves dead wrapper chains) and fight over the single
+  // #movie_player's caption state -- the confirmed root of the "switched ~10
+  // times, then everything locked up" device report (2026-08-24; overlapping
+  // runs ALL fail and each burns its full budget). Serialized, a superseded
+  // caller can also skip its injection entirely via the stillWanted probe.
+  let _tabInjectChain = Promise.resolve();
+  function queueTabInjection(runFn, stillWanted) {
+    const run = async () => {
+      if (stillWanted && !stillWanted()) return null; // superseded while queued
+      return runFn();
+    };
+    const p = _tabInjectChain.then(run, run);
+    _tabInjectChain = p.then(() => {}, () => {}); // the chain never carries a rejection
+    return p;
+  }
+
+  async function ytTabPlayerCaptionCapture(tabId, langCode, videoId) {
     let inj = null;
     try {
       inj = await chrome.scripting.executeScript({
         target: { tabId },
         world: "MAIN", // the fetch/XHR taps must live in the page world
-        func: async (lang) => {
-          const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+        func: async (lang, vid) => {
+          // Wrong-tab guard: the tab may have navigated to another video
+          // since it was picked as the fetch tab -- driving ITS player would
+          // capture another video's captions.
+          if (vid && !String(location.href).includes(vid)) return { body: "", trace: "tab no longer on the target video" };
           const player = document.querySelector("#movie_player");
           if (!player || typeof player.setOption !== "function") return { body: "", trace: "no player api" };
           const origFetch = window.fetch;
           const origOpen = XMLHttpRequest.prototype.open;
           const origSend = XMLHttpRequest.prototype.send;
+          // EVENT-DRIVEN: the taps resolve this promise the moment the
+          // player's timedtext round-trip lands. The old 400ms poll loop
+          // throttled to >=1s/tick in a background tab (and to minutes under
+          // intensive throttling), so a capture that had already succeeded
+          // sat waiting for the next poll -- the bulk of the 2-3s track-switch
+          // delay the device reported. Timers now serve only as the failure
+          // backstop; the success path needs none.
+          let resolveCap = null;
           let captured = "";
-          const wants = (u) => /timedtext/.test(String(u || ""));
+          const capReady = new Promise((r) => { resolveCap = r; });
+          const gotBody = (t) => { if (!captured && t) { captured = t; resolveCap(t); } };
+          // Language-tightened match: the user's own tab traffic (their
+          // caption choice in another language) must not satisfy a capture
+          // for lang X. No lang requested -> accept any timedtext.
+          const wants = (u) => {
+            const s = String(u || "");
+            if (!/timedtext/.test(s)) return false;
+            if (!lang) return true;
+            try { return new URL(s, location.href).searchParams.get("lang") === lang; } catch (_) { return true; }
+          };
           let prior = null;
           try { prior = player.getOption("captions", "track"); } catch (_) {}
           try {
@@ -1433,7 +1477,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
               try {
                 const u = (a[0] && a[0].url) || a[0];
                 if (!captured && wants(u)) {
-                  p.then((resp) => resp.clone().text().then((t) => { if (!captured && t) captured = t; }).catch(() => {})).catch(() => {});
+                  p.then((resp) => resp.clone().text().then(gotBody).catch(() => {})).catch(() => {});
                 }
               } catch (_) {}
               return p;
@@ -1443,28 +1487,28 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
               try {
                 if (!captured && wants(this.__pbpUrl)) {
                   this.addEventListener("load", () => {
-                    try { if (!captured && this.responseText) captured = this.responseText; } catch (_) {}
+                    try { gotBody(this.responseText); } catch (_) {}
                   });
                 }
               } catch (_) {}
               return origSend.apply(this, a);
             };
-            const drive = async () => {
+            const backstop = (ms) => new Promise((r) => setTimeout(() => r(""), ms));
+            const drive = () => {
               try { player.loadModule("captions"); } catch (_) {}
-              await sleep(250);
               if (lang) { try { player.setOption("captions", "track", { languageCode: lang }); } catch (_) {} }
-              // background-tab timers throttle to ~1Hz, so 15 ticks bounds
-              // the wait at ~15s there while the foreground case lands in
-              // one or two ticks (the XHR fires right after setOption)
-              for (let i = 0; i < 15 && !captured; i++) await sleep(400);
             };
-            await drive();
+            // The deadline clock starts AFTER setOption (drive is synchronous),
+            // so throttled timers can only delay the FAILURE exit, never the
+            // success (event) path.
+            drive();
+            await Promise.race([capReady, backstop(12000)]);
             if (!captured) {
               // a track the player already holds re-fetches only after a
               // module bounce
               try { player.unloadModule("captions"); } catch (_) {}
-              await sleep(250);
-              await drive();
+              drive();
+              await Promise.race([capReady, backstop(12000)]);
             }
             return { body: captured, trace: captured ? "" : "no timedtext round-trip" };
           } finally {
@@ -1477,7 +1521,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
             } catch (_) {}
           }
         },
-        args: [langCode || ""],
+        args: [langCode || "", videoId || ""],
       });
     } catch (e) {
       console.warn("[pbp-video] player capture injection failed:", (e && e.message) || e);
@@ -1852,23 +1896,24 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         const segs = await ytTabPanelTranscript(fetchTabId, detected.videoId, uiLang, fbParams);
         console.info("[pbp-video] panel rescue:", segs ? segs.length + " segments" : "failed");
         // rTrack is accurate here: the hand-built params requested exactly it
-        if (segs && segs.length) res = { tracks: rTracks, track: rTrack, segments: segs };
+        if (segs && segs.length) res = { tracks: rTracks, track: rTrack, segments: segs, via: "panel" };
         // Player-capture tier: drive the page player's own caption machinery
         // and take the signed timedtext round-trip it makes. Better data than
         // the DOM tier below (real from/to timings, no panel scrape).
         if (res.error) {
-          const capSegs = await ytTabPlayerCaptionCapture(fetchTabId, rTrack ? rTrack.lang : null);
+          const capSegs = await queueTabInjection(
+            () => ytTabPlayerCaptionCapture(fetchTabId, rTrack ? rTrack.lang : null, detected.videoId));
           console.info("[pbp-video] player capture rescue:", capSegs ? capSegs.length + " segments" : "failed");
-          if (capSegs && capSegs.length) res = { tracks: rTracks, track: rTrack, segments: capSegs };
+          if (capSegs && capSegs.length) res = { tracks: rTracks, track: rTrack, segments: capSegs, via: "capture" };
         }
         // Endpoint rescues exhausted -> read what YouTube's own UI renders.
         // track:null is honest here: the DOM scrape returns whatever language
         // the page panel happens to show, so no picker entry gets marked
         // selected (loadFlow renders a neutral placeholder instead).
         if (res.error) {
-          const domSegs = await ytTabDomTranscript(fetchTabId);
+          const domSegs = await queueTabInjection(() => ytTabDomTranscript(fetchTabId));
           console.info("[pbp-video] dom rescue:", domSegs ? domSegs.length + " segments" : "failed");
-          if (domSegs && domSegs.length) res = { tracks: rTracks, track: null, segments: domSegs };
+          if (domSegs && domSegs.length) res = { tracks: rTracks, track: null, segments: domSegs, via: "dom" };
         }
       }
     }
@@ -1885,6 +1930,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       detected, granted: true,
       tracks: res.tracks, track: res.track, segments, error: res.error,
       wasUnpunct, meta: res.meta, useLogin, ytHadTab, ytFetchFn, ytFetchTabId,
+      captionsVia: res.via, // set only by the rescue tiers: timedtext is PROVEN dead for this session
     };
     window.pbpVideoSession = session;
     return session;
@@ -2191,7 +2237,8 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       // would defeat the freeze it is called next to).
       if (show) {
         _aiPassDone = false;
-        if (_aiLabelEl) _aiLabelEl.textContent = t("mdVideoAiPunct");
+        // icon-only button: the offer state lives in title/aria-label
+        if (_aiBtnEl) { _aiBtnEl.title = t("mdVideoAiPunct"); _aiBtnEl.setAttribute("aria-label", t("mdVideoAiPunct")); }
       }
       applyControlFreeze();
     }
@@ -2312,7 +2359,14 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
             delete window.pbpVideoSession.hydrated;
           }
         }
-        let segs = endpoint
+        // Rescue sessions (captionsVia set) reached their captions because
+        // every timedtext route FAILED -- trying the endpoint first there
+        // only burns the 15s fetch timeout before the capture that will
+        // actually succeed (the 10-15s "slow switch" of the 2026-08-24
+        // device report; the fast switches were the ones whose endpoint
+        // failed instantly). Go straight to the capture tier.
+        const timedtextDead = !isBili && window.pbpVideoSession && window.pbpVideoSession.captionsVia;
+        let segs = (endpoint && !timedtextDead)
           ? (isBili ? await pbpBiliFetchSubtitleBody(endpoint) : await pbpYtFetchCaptionBody(endpoint, _ytFetchFn || undefined, useLogin))
           : [];
         if (seq !== _trackSwitchSeq) return; // a newer selection owns the panel now
@@ -2322,7 +2376,13 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         // -- so re-fetch through the page player's own caption machinery, the
         // verified per-language route. It keys off lang, not the endpoint.
         if (!segs.length && !isBili && _ytFetchTabId != null && selTrack) {
-          segs = (await ytTabPlayerCaptionCapture(_ytFetchTabId, selTrack.lang)) || [];
+          // Through the injection mutex, with a superseded probe: a rapid
+          // A->B switch drops A's queued capture WITHOUT ever injecting it
+          // (saving its whole in-tab budget), and two captures can never
+          // overlap in the tab.
+          segs = (await queueTabInjection(
+            () => ytTabPlayerCaptionCapture(_ytFetchTabId, selTrack.lang, detected.videoId),
+            () => seq === _trackSwitchSeq)) || [];
           if (seq !== _trackSwitchSeq) return;
         }
         if (!segs.length) {
@@ -2419,6 +2479,17 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         refreshAiOffer();
       } finally {
         releaseAiFreeze();
+        // Stale-loading sweep (device report 2026-08-24: "Loading subtitles…"
+        // left standing after a rapid-switch storm): a superseded switch
+        // returns without finalizing the status it wrote, and when the
+        // superseding switch was itself refused at entry, nobody ever
+        // rewrites it. Once no operation holds a freeze, a lingering loading
+        // line describes nothing -- clear it. Terminal messages (failure
+        // copy) are not the loading string and stay.
+        if (_freezeTrack === 0 && _freezeAi === 0
+            && statusEl.textContent === t("mdVideoLoading")) {
+          statusEl.textContent = "";
+        }
       }
     });
     // First run: the bootstrap could not fetch captions because the origin
@@ -2703,16 +2774,32 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       trackSel.className = "pbv-tracks";
       trackSel.hidden = true;
       trackSel.setAttribute("aria-label", t("mdVideoTrackAria"));
+      // Icon-only bar (device feedback 2026-08-24): every control except the
+      // track <select> is an icon with title + aria-label. Success feedback
+      // swaps the copy icon for the check icon briefly -- with the re-entry
+      // guard flashButtonLabel taught us (clearTimeout + fixed resting state,
+      // never "capture whatever is there now" which a rapid second click
+      // would capture mid-flash).
       const copyBtn = el("button", "pbv-copy");
       copyBtn.type = "button";
       copyBtn.hidden = true;
-      copyBtn.textContent = t("mdVideoCopyMd");
+      copyBtn.innerHTML = typeof PBP_ICONS !== "undefined" ? PBP_ICONS.copy : "";
+      copyBtn.title = t("mdVideoCopyMd");
+      copyBtn.setAttribute("aria-label", t("mdVideoCopyMd"));
+      let copyFlashTimer = null;
       copyBtn.addEventListener("click", async () => {
         try {
           await navigator.clipboard.writeText(pbpVideoTranscriptMarkdown(_segments, _meta, _aiPunctParas));
-          const prev = copyBtn.textContent;
-          copyBtn.textContent = t("mdVideoCopied");
-          setTimeout(() => { copyBtn.textContent = prev; }, 1800);
+          if (copyFlashTimer) clearTimeout(copyFlashTimer);
+          copyBtn.innerHTML = typeof PBP_ICONS !== "undefined" ? PBP_ICONS.check : "";
+          copyBtn.classList.add("copied");
+          copyBtn.title = t("mdVideoCopied");
+          copyFlashTimer = setTimeout(() => {
+            copyFlashTimer = null;
+            copyBtn.innerHTML = typeof PBP_ICONS !== "undefined" ? PBP_ICONS.copy : "";
+            copyBtn.classList.remove("copied");
+            copyBtn.title = t("mdVideoCopyMd");
+          }, 1800);
         } catch (_) { status.textContent = t("mdVideoCopyFailed"); }
       });
       // AI punctuation (combo plan, user-picked): heuristic tier applies
@@ -2725,11 +2812,8 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       aiBtn.type = "button";
       aiBtn.hidden = true;
       aiBtn.innerHTML = typeof PBP_ICONS !== "undefined" ? PBP_ICONS.robot : "";
-      const aiLabel = el("span", "", t("mdVideoAiPunct"));
-      aiBtn.appendChild(aiLabel);
-      // loadFlow's AI-offer refresh relabels this span when a track switch
-      // puts the upgrade back on offer, so it needs a handle to it.
-      _aiLabelEl = aiLabel;
+      aiBtn.title = t("mdVideoAiPunct");
+      aiBtn.setAttribute("aria-label", t("mdVideoAiPunct"));
       aiBtn.addEventListener("click", async () => {
         // `disabled` blocks real clicks but not dispatchEvent/.click() from
         // script, so the freeze counters are re-checked directly.
@@ -2752,7 +2836,8 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         // A completed pass must not be re-offered once the freeze lifts --
         // re-running it would spend tokens to produce what is already there.
         let passDone = false;
-        aiLabel.textContent = t("mdVideoAiPunct") + "…";
+        // icon-only button: progress reads out in the aria-live status line
+        status.textContent = t("mdVideoAiPunct") + "…";
         try {
           const paras = pbpVideoMergeParagraphs(_segments);
           const batches = [];
@@ -2765,12 +2850,53 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           const sa = await pbpAiGetSettings();
           if (superseded()) return; // the words this pass was built from are gone
           const outBatches = [];
-          for (const b of batches) {
+          let rejected = 0;
+          for (const [bi, b] of batches.entries()) {
             const prompt = "为下面的语音转写文本添加或修正标点符号，并按语义用空行分段。严格保持文字本身不变：不得增加、删除或改写任何非标点文字。直接输出处理后的文本，不要任何解释。\n\n" + b;
-            const text = await callAI(sa, prompt);
+            // Output ≈ input + marks: the provider DEFAULT of ~1024 output
+            // tokens truncates any full-size (~1600+ char) CJK batch, and a
+            // truncated echo can never pass the conservation gate below -- the
+            // primary suspect behind "clicked AI punctuation, nothing changed"
+            // (device report 2026-08-24). 2 tokens/char + headroom covers every
+            // provider's tokenizer; 4096 is within all providers' caps.
+            const text = await callAI(sa, prompt, { maxTokens: Math.min(4096, b.length * 2 + 256) });
             if (superseded()) return;
-            // fail-closed per batch: a batch the model rewrote keeps its input
-            outBatches.push(pbpVideoPunctConserved(b, text) ? String(text).trim() : b);
+            // fail-closed per batch: a batch the model rewrote keeps its input.
+            // One resilience step first: strip a markdown code fence the model
+            // may have wrapped the (otherwise correct) output in -- the
+            // unwrapped text still has to pass the SAME conservation gate, so
+            // fail-closed is not weakened.
+            let out = String(text || "");
+            let ok = pbpVideoPunctConserved(b, out);
+            if (!ok) {
+              const unfenced = out.replace(/^```[^\n]*\n?/, "").replace(/\n?```\s*$/, "");
+              if (unfenced !== out && pbpVideoPunctConserved(b, unfenced)) { out = unfenced; ok = true; }
+            }
+            if (!ok) {
+              rejected++;
+              // Breadcrumb, not content (privacy: no transcript text in logs).
+              // The length ratio doubles as the diagnosis: out << in means the
+              // model truncated or refused; out ≈ in means it rewrote words
+              // (typo fixes / script conversion) or used marks outside the
+              // conservation whitelist.
+              console.warn("[pbp-video] ai punctuation: batch " + (bi + 1) + "/" + batches.length
+                + " failed conservation (in " + b.length + " chars, out " + out.length + " chars) -- keeping original");
+            }
+            outBatches.push(ok ? out.trim() : b);
+          }
+          // A pass that changed nothing must not commit: committing the
+          // original text with aiPunct:true retires the button FOREVER (the
+          // flag persists across F5) over words that never gained a mark --
+          // the exact silent dead-end the device reported. Covers both "every
+          // batch failed conservation" and "the model echoed its input".
+          // The early return flows through the finally below: passDone stays
+          // false, the label resets, the freeze releases -- the button
+          // survives for a (free) retry.
+          if (!outBatches.some((o, i) => o !== batches[i])) {
+            console.warn("[pbp-video] ai punctuation: pass produced no change ("
+              + rejected + "/" + batches.length + " batches failed conservation) -- transcript kept, button stays");
+            status.textContent = t("mdVideoAiPunctFail");
+            return;
           }
           // Split on ANY newline run: the prompt asks for blank-line breaks
           // but models routinely emit single newlines, and the blank-line-only
@@ -2791,8 +2917,17 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           if (applied) {
             _segments = applied;
             renderTranscript(body, _segments, true);
+          } else {
+            // Silent-half breadcrumb: the ARTICLE will carry the pass but the
+            // timeline rows keep their pre-pass text (stream remap refused).
+            console.warn("[pbp-video] ai punctuation: segment remap refused; rows keep pre-pass text");
           }
-          aiLabel.textContent = t("mdVideoAiPunctDone");
+          // Done state: status line for the moment, title for posterity (the
+          // copy-only branch keeps the retired button in the bar -- its title
+          // is what carries "already punctuated" now that there is no label).
+          status.textContent = t("mdVideoAiPunctDone");
+          aiBtn.title = t("mdVideoAiPunctDone");
+          aiBtn.setAttribute("aria-label", t("mdVideoAiPunctDone"));
           // The article IS this transcript on every video page that had
           // captions, so refresh it in place: md-preview.js owns the payload
           // write (account/tags/description contract), this file only hands it
@@ -2861,7 +2996,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           // back only this pass's own holds, and applyControlFreeze (called by
           // the release) re-derives `disabled` from both.
           if (passDone) _aiPassDone = true;
-          else if (_aiLabelEl) _aiLabelEl.textContent = t("mdVideoAiPunct");
+          else { aiBtn.title = t("mdVideoAiPunct"); aiBtn.setAttribute("aria-label", t("mdVideoAiPunct")); }
           releaseFreeze();
         }
       });
@@ -2876,7 +3011,9 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         // and the timeline it scrolls lives in the workspace study column.
         const followBtn = el("button", "pbv-follow");
         followBtn.type = "button";
-        followBtn.textContent = t("mdVideoFollow");
+        followBtn.innerHTML = PBV_FOLLOW_SVG;
+        followBtn.title = t("mdVideoFollow");
+        followBtn.setAttribute("aria-label", t("mdVideoFollow"));
         // starts hidden even in video-mode: a page whose captions never
         // arrive must not offer a follow control (final-review M6);
         // loadFlow unhides it when segments actually exist.
@@ -2895,7 +3032,8 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         openExt.target = "_blank";
         openExt.rel = "noopener noreferrer";
         openExt.innerHTML = PBV_EXTERNAL_SVG;
-        openExt.appendChild(el("span", "btn-label", t("mdVideoOpenExternal")));
+        openExt.title = t("mdVideoOpenExternal");
+        openExt.setAttribute("aria-label", t("mdVideoOpenExternal"));
         bar.appendChild(openExt);
       }
       bar.appendChild(status);

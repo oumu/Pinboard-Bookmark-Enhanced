@@ -3636,7 +3636,7 @@
   "mdVideoAsr": { "message": "generowane automatycznie" },
   "mdVideoViewReading": { "message": "Tekst" },
   "mdVideoViewTimeline": { "message": "Oś czasu" },
-  "mdVideoFollow": { "message": "Podążaj za odtwarzaniem" },
+  "mdVideoFollow": { "message": "Napisy podążają za odtwarzaniem" },
   "mdVideoSeekTo": { "message": "Przejdź do $TIME$", "placeholders": { "time": { "content": "$1" } } },
   "mdVideoCopyFailed": { "message": "Kopiowanie nie powiodło się" },
   "mdVideoOpenExternal": { "message": "Otwórz w YouTube" }

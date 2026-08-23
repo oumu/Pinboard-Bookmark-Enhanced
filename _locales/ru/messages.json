@@ -3636,7 +3636,7 @@
   "mdVideoAsr": { "message": "автоматические" },
   "mdVideoViewReading": { "message": "Текст" },
   "mdVideoViewTimeline": { "message": "Хронология" },
-  "mdVideoFollow": { "message": "Следовать за воспроизведением" },
+  "mdVideoFollow": { "message": "Субтитры следуют за воспроизведением" },
   "mdVideoSeekTo": { "message": "Перейти к $TIME$", "placeholders": { "time": { "content": "$1" } } },
   "mdVideoCopyFailed": { "message": "Не удалось скопировать" },
   "mdVideoOpenExternal": { "message": "Открыть на YouTube" }
