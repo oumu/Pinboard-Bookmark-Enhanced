@@ -3507,14 +3507,19 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
 }
 /* Task 4 row shape: .pbv-row is a plain container div (not a button) so
    .pbv-text stays natively selectable; only .pbv-time is a real button.
+   The row still seeks on click (md-video.js skips clicks that end a text
+   selection), so it shows the pointer affordance -- while .pbv-text keeps
+   the text cursor to keep "this is selectable" legible.
    content-visibility defers off-screen rows' layout/paint (a long
    transcript runs into the thousands); contain-intrinsic-size holds
    scrollbar geometry stable before a row's first real layout pass. */
 .pbv-row {
   display: flex; gap: 10px; align-items: baseline; text-align: left;
-  padding: 4px 8px; border-radius: 6px;
+  padding: 4px 8px; border-radius: 6px; cursor: pointer;
   content-visibility: auto; contain-intrinsic-size: auto 28px;
 }
+.pbv-row:not(.pbv-row--static):hover { background: var(--row-hover, rgba(127,127,127,.08)); }
+.pbv-row--static { cursor: default; }
 .pbv-time {
   flex: 0 0 auto; opacity: 0.65; font-variant-numeric: tabular-nums;
   min-height: 24px; padding: 0 2px; border-radius: 4px;
@@ -3524,7 +3529,7 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
 .pbv-time:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
 .pbv-row--static .pbv-time { cursor: default; }
 .pbv-row--static .pbv-time:hover { background: transparent; opacity: 0.65; }
-.pbv-text { flex: 1; }
+.pbv-text { flex: 1; cursor: text; }
 /* The row the player is currently inside (Task 6, fed by the relay's position
    reports). Never a colour-only signal: the inset start border is the same
    box-shadow idiom the highlight mirrors use ([data-pb-hl-mirror] above), so

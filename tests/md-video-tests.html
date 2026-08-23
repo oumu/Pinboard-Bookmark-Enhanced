@@ -179,6 +179,22 @@ assertEq(pbpYtPickTrack(tracks, "zh-CN").lang, "zh-Hans", "zh UI prefers zh trac
 assertEq(pbpYtPickTrack(tracks, "fr").lang, "en", "no lang match falls to first non-asr");
 assertEq(pbpYtPickTrack([], "en"), null, "empty list picks null");
 
+section("pbpYtRescueTracks (player-route picker filter)");
+const RT = [
+  { baseUrl: "u1", lang: "en", label: "English", asr: false },
+  { baseUrl: "u2", lang: "en", label: "English (auto-generated)", asr: true },
+  { baseUrl: "u3", lang: "ja", label: "Japanese", asr: false },
+  { baseUrl: "u4", lang: "ko", label: "Korean (auto-generated)", asr: true },
+];
+const rt = pbpYtRescueTracks(RT);
+check("asr variant dropped when a manual track shares the language",
+  rt.length === 3 && !rt.some((x) => x.lang === "en" && x.asr));
+check("asr-only language survives (the player CAN serve it)",
+  rt.some((x) => x.lang === "ko" && x.asr));
+check("manual tracks all survive", rt.filter((x) => !x.asr).length === 2);
+assertEq(pbpYtRescueTracks(undefined).length, 0, "no track list yields empty, not a throw");
+assertEq(pbpYtRescueTracks([null]).length, 0, "null entries filtered, not a throw");
+
 section("timedtext parsers");
 const XML = '<?xml version="1.0"?><transcript><text start="1.2" dur="2.3">Hello &amp;amp; welcome</text><text start="4.0" dur="1.0">第二句</text></transcript>';
 const sx = pbpYtParseTimedtextXml(XML);

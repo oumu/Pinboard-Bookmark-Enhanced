@@ -123,6 +123,20 @@ function pbpYtPickTrack(tracks, uiLang) {
   return best;
 }
 
+// Track list a RESCUE session may offer for switching. Rescue sessions can
+// only re-fetch per language through the page player's own caption machinery
+// (ytTabPlayerCaptionCapture), and the player exposes one track per language:
+// its tracklist hides the asr variant whenever a manual track exists for the
+// same language (verified live 2026-08-23: player response carried ".en" AND
+// "a.en", player tracklist only ".en", and setOption{kind:"asr"} silently
+// fetched the manual track). Offering unswitchable asr variants in the picker
+// would be a trap, so mirror the player's rule.
+function pbpYtRescueTracks(tracks) {
+  const list = Array.isArray(tracks) ? tracks : [];
+  const manual = new Set(list.filter((tr) => tr && !tr.asr).map((tr) => String(tr.lang || "")));
+  return list.filter((tr) => tr && (!tr.asr || !manual.has(String(tr.lang || ""))));
+}
+
 // Two full decode passes: timedtext double-encodes entities
 // ("&amp;amp;" -> pass 1 "&amp;" -> pass 2 "&"), so a single ordered
 // replace chain cannot resolve it — each pass must independently handle
@@ -711,6 +725,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   let _aiPunctParas = null; // AI-punctuated paragraphs; Copy and the transcript commits prefer them
   let _ctxTabId = null;   // source tab from pbpVideoInit ctx (may be gone by click time)
   let _ytFetchFn = null;  // tab-injected fetchFn when the tab route won; null = extension-page fetch
+  let _ytFetchTabId = null; // the tab behind _ytFetchFn -- the player-capture track switch injects into it
   window.pbpVideoSession = null; // latest prepareVideoSession() result, for md-preview.js
 
   // Study-column reading/timeline toggle (Task 4). Set by mountVideoWorkspace
@@ -1137,6 +1152,105 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     return (r.segs && r.segs.length) ? r.segs : null;
   }
 
+  // Player-driven caption capture: the one per-language fetch route that
+  // still works (verified live 2026-08-23 on a 22-track video). Direct
+  // timedtext answers 200/empty without a runtime PO Token even from the
+  // page context with credentials, and hand-built get_transcript params die
+  // on HTTP 400 (BotGuard) -- but the page player's OWN caption machinery
+  // fetches through its signed internal URL and succeeds (43-53KB json3
+  // captured for ja / zh-Hans / en). So make the player load the track
+  // (loadModule + setOption) and tap its fetch/XHR round-trip. The caption
+  // overlay flips on in the source tab for the capture's duration; prior
+  // caption state is restored in finally (an empty getOption("captions",
+  // "track") object means captions were off -- probed live).
+  async function ytTabPlayerCaptionCapture(tabId, langCode) {
+    let inj = null;
+    try {
+      inj = await chrome.scripting.executeScript({
+        target: { tabId },
+        world: "MAIN", // the fetch/XHR taps must live in the page world
+        func: async (lang) => {
+          const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+          const player = document.querySelector("#movie_player");
+          if (!player || typeof player.setOption !== "function") return { body: "", trace: "no player api" };
+          const origFetch = window.fetch;
+          const origOpen = XMLHttpRequest.prototype.open;
+          const origSend = XMLHttpRequest.prototype.send;
+          let captured = "";
+          const wants = (u) => /timedtext/.test(String(u || ""));
+          let prior = null;
+          try { prior = player.getOption("captions", "track"); } catch (_) {}
+          try {
+            window.fetch = function (...a) {
+              const p = origFetch.apply(this, a);
+              try {
+                const u = (a[0] && a[0].url) || a[0];
+                if (!captured && wants(u)) {
+                  p.then((resp) => resp.clone().text().then((t) => { if (!captured && t) captured = t; }).catch(() => {})).catch(() => {});
+                }
+              } catch (_) {}
+              return p;
+            };
+            XMLHttpRequest.prototype.open = function (m, u, ...rest) { this.__pbpUrl = u; return origOpen.call(this, m, u, ...rest); };
+            XMLHttpRequest.prototype.send = function (...a) {
+              try {
+                if (!captured && wants(this.__pbpUrl)) {
+                  this.addEventListener("load", () => {
+                    try { if (!captured && this.responseText) captured = this.responseText; } catch (_) {}
+                  });
+                }
+              } catch (_) {}
+              return origSend.apply(this, a);
+            };
+            const drive = async () => {
+              try { player.loadModule("captions"); } catch (_) {}
+              await sleep(250);
+              if (lang) { try { player.setOption("captions", "track", { languageCode: lang }); } catch (_) {} }
+              // background-tab timers throttle to ~1Hz, so 15 ticks bounds
+              // the wait at ~15s there while the foreground case lands in
+              // one or two ticks (the XHR fires right after setOption)
+              for (let i = 0; i < 15 && !captured; i++) await sleep(400);
+            };
+            await drive();
+            if (!captured) {
+              // a track the player already holds re-fetches only after a
+              // module bounce
+              try { player.unloadModule("captions"); } catch (_) {}
+              await sleep(250);
+              await drive();
+            }
+            return { body: captured, trace: captured ? "" : "no timedtext round-trip" };
+          } finally {
+            window.fetch = origFetch;
+            XMLHttpRequest.prototype.open = origOpen;
+            XMLHttpRequest.prototype.send = origSend;
+            try {
+              if (prior && prior.languageCode) player.setOption("captions", "track", prior);
+              else player.unloadModule("captions");
+            } catch (_) {}
+          }
+        },
+        args: [langCode || ""],
+      });
+    } catch (e) {
+      console.warn("[pbp-video] player capture injection failed:", (e && e.message) || e);
+      return null;
+    }
+    const r = inj && inj[0] && inj[0].result;
+    if (r && r.trace) console.info("[pbp-video] player capture:", r.trace);
+    if (!r || !r.body) return null;
+    // json3 first (the format observed live); srv/XML as the fallback shape
+    try {
+      const segs = pbpYtParseJson3(r.body);
+      if (segs.length) return segs;
+    } catch (e) { console.warn("[pbp-video] player capture parse:", (e && e.message) || e); }
+    try {
+      const segs = pbpYtParseTimedtextXml(r.body);
+      if (segs.length) return segs;
+    } catch (_) {}
+    return null;
+  }
+
   function el(tag, cls, text) {
     const n = document.createElement(tag);
     if (cls) n.className = cls;
@@ -1322,6 +1436,18 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       time.title = label;
       time.setAttribute("aria-label", label);
       time.addEventListener("click", () => seekTo(Math.floor(seg.from)));
+      // The whole row seeks again (device feedback 2026-08-23: row clicks
+      // stopped jumping after the Task 4 button split) -- EXCEPT when the
+      // click ends a text selection: the selectable-text contract and the
+      // seek contract share this row, and the collapsed-selection check is
+      // what keeps them from fighting. Keyboard access stays on the time
+      // button, so the row itself needs no tabindex.
+      row.addEventListener("click", (ev) => {
+        if (ev.target && ev.target.closest && ev.target.closest("button")) return;
+        const sel = typeof window.getSelection === "function" ? window.getSelection() : null;
+        if (sel && !sel.isCollapsed) return;
+        seekTo(Math.floor(seg.from));
+      });
     } else {
       time.tabIndex = -1;
     }
@@ -1402,6 +1528,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     let useLogin = false;
     let ytHadTab = false;
     let ytFetchFn = null;
+    let ytFetchTabId = null; // survives into the session: the track-switch player capture injects into it
     const tabId = ctx && typeof ctx.tabId === "number" ? ctx.tabId : null;
     if (isBili) {
       res = await pbpBiliFetchTranscript(detected.bvid, detected.part, {});
@@ -1414,6 +1541,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       // the user's own open page, adding nothing they haven't already sent).
       const fetchTabId = await ytFindFetchTab(tabId);
       ytHadTab = fetchTabId != null;
+      if (ytHadTab) ytFetchTabId = fetchTabId;
       if (ytHadTab) {
         const tabFetch = ytTabFetchFn(fetchTabId, detected.videoId);
         res = await pbpYtFetchTranscript(detected.videoId, { uiLang, fetchFn: tabFetch });
@@ -1435,25 +1563,41 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       }
       // Both timedtext routes failed (typically exp=xpe: the text is
       // PO-Token-gated even when the track list arrives). Ask the tab for the
-      // transcript the way YouTube's own panel does. The stale track picker
-      // is dropped on success: its timedtext URLs are exactly what just
-      // failed, so offering them as "switch track" would be a trap.
+      // transcript the way YouTube's own panel does. The track picker is KEPT
+      // on rescue success (device report 2026-08-23: bilibili could switch
+      // subtitle languages, YouTube could not) -- switching re-fetches through
+      // ytTabPlayerCaptionCapture, the verified per-language route, so the
+      // list is filtered to what that route can actually serve
+      // (pbpYtRescueTracks: one track per language, player semantics).
       if (ytHadTab && res && res.error) {
         // Hand-build a transcript-panel params token from the track list the
         // failed timedtext round already gave us (language + asr), so the
         // rescue no longer depends on finding an endpoint in the page data.
         const rTrack = (res.tracks && res.tracks.length)
           ? (pbpYtPickTrack(res.tracks, uiLang) || res.tracks[0]) : null;
+        const rTracks = pbpYtRescueTracks(res.tracks);
         const fbParams = pbpYtTranscriptParams(detected.videoId,
           rTrack ? rTrack.lang : (String(uiLang || "en").split("-")[0]), !!(rTrack && rTrack.asr));
         const segs = await ytTabPanelTranscript(fetchTabId, detected.videoId, uiLang, fbParams);
         console.info("[pbp-video] panel rescue:", segs ? segs.length + " segments" : "failed");
-        if (segs && segs.length) res = { tracks: [], track: null, segments: segs };
-        // Endpoint rescue exhausted -> read what YouTube's own UI renders.
+        // rTrack is accurate here: the hand-built params requested exactly it
+        if (segs && segs.length) res = { tracks: rTracks, track: rTrack, segments: segs };
+        // Player-capture tier: drive the page player's own caption machinery
+        // and take the signed timedtext round-trip it makes. Better data than
+        // the DOM tier below (real from/to timings, no panel scrape).
+        if (res.error) {
+          const capSegs = await ytTabPlayerCaptionCapture(fetchTabId, rTrack ? rTrack.lang : null);
+          console.info("[pbp-video] player capture rescue:", capSegs ? capSegs.length + " segments" : "failed");
+          if (capSegs && capSegs.length) res = { tracks: rTracks, track: rTrack, segments: capSegs };
+        }
+        // Endpoint rescues exhausted -> read what YouTube's own UI renders.
+        // track:null is honest here: the DOM scrape returns whatever language
+        // the page panel happens to show, so no picker entry gets marked
+        // selected (loadFlow renders a neutral placeholder instead).
         if (res.error) {
           const domSegs = await ytTabDomTranscript(fetchTabId);
           console.info("[pbp-video] dom rescue:", domSegs ? domSegs.length + " segments" : "failed");
-          if (domSegs && domSegs.length) res = { tracks: [], track: null, segments: domSegs };
+          if (domSegs && domSegs.length) res = { tracks: rTracks, track: null, segments: domSegs };
         }
       }
     }
@@ -1469,7 +1613,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     const session = {
       detected, granted: true,
       tracks: res.tracks, track: res.track, segments, error: res.error,
-      wasUnpunct, meta: res.meta, useLogin, ytHadTab, ytFetchFn,
+      wasUnpunct, meta: res.meta, useLogin, ytHadTab, ytFetchFn, ytFetchTabId,
     };
     window.pbpVideoSession = session;
     return session;
@@ -1484,6 +1628,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       : await prepareVideoSession({ pageUrl: (_meta && _meta.url) || "", tabId: _ctxTabId });
     if (!session.granted) { statusEl.textContent = t("mdVideoPermMissing"); return; }
     _ytFetchFn = session.ytFetchFn || null;
+    _ytFetchTabId = (typeof session.ytFetchTabId === "number") ? session.ytFetchTabId : null;
     const useLogin = session.useLogin;
     const ytHadTab = session.ytHadTab;
     const res = { tracks: session.tracks, track: session.track, segments: session.segments, error: session.error };
@@ -1516,6 +1661,18 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       if (res.track && value === (isBili ? res.track.subtitle_url : res.track.baseUrl)) opt.selected = true;
       trackSel.appendChild(opt);
     });
+    // Rescue sessions may not know which track the capture returned (the DOM
+    // scrape reads whatever language the page panel shows) -- letting the
+    // browser mark the first option selected would be a lie, so lead with a
+    // neutral disabled placeholder instead. Reuses the picker's own aria
+    // label ("subtitle language") rather than minting a new locale key.
+    if ((res.tracks || []).length && !res.track) {
+      const ph = document.createElement("option");
+      ph.value = "";
+      ph.textContent = t("mdVideoTrackAria");
+      ph.selected = true; ph.disabled = true; ph.hidden = true;
+      trackSel.insertBefore(ph, trackSel.firstChild);
+    }
     trackSel.hidden = !(res.tracks || []).length;
     // punctuation enhancement already applied by prepareVideoSession; the AI
     // button only appears for tracks the detector judged unpunctuated.
@@ -1527,8 +1684,13 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         const sa = typeof pbpAiGetSettings === "function" ? await pbpAiGetSettings() : null;
         aiOk = !!(sa && typeof pbpAiAvailable === "function" && pbpAiAvailable(sa));
       } catch (_) {}
-      const committedDoc = !!(window.pbpVideoDoc && window.pbpVideoDoc.committed);
-      aiBtn.hidden = !(wasUnpunct && (res.segments || []).length && aiOk && !committedDoc);
+      // No re-offer only after an AI pass actually committed (videoAiPunct
+      // rode the payload): a committed page whose article is still the
+      // heuristic tier -- first-run promotion, or a track switch after an AI
+      // pass -- must keep the button, or the AI upgrade dead-ends forever on
+      // every committed page (device report 2026-08-23).
+      const committedAi = !!(window.pbpVideoDoc && window.pbpVideoDoc.committed && window.pbpVideoDoc.aiPunct);
+      aiBtn.hidden = !(wasUnpunct && (res.segments || []).length && aiOk && !committedAi);
     }
     copyBtn.hidden = !(res.segments || []).length;
     // Reveal the study-view toggle and the follow control only when there
@@ -1543,35 +1705,58 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     // this object, so every transcript this page ever writes carries the same
     // heading, track label, and source link.
     _meta = pbpVideoTranscriptMeta(session, _meta && _meta.title, _meta && _meta.url);
-    if (_segments.length) renderTranscript(bodyEl, _segments, true);
+    if (_segments.length) {
+      renderTranscript(bodyEl, _segments, true);
+      // Timeline is the default study view once a transcript exists (device
+      // feedback 2026-08-23: "优先显示时间轴") -- the reading article stays one
+      // toggle click away, and the follow highlight lands where the user is
+      // looking. Runs once per mount (loadFlow), so a later manual toggle to
+      // reading is never fought.
+      setStudyView("timeline");
+    }
     trackSel.addEventListener("change", async () => {
+      if (!trackSel.value) return; // the neutral placeholder is not a track
       statusEl.textContent = t("mdVideoLoading");
-      let segs = isBili ? await pbpBiliFetchSubtitleBody(trackSel.value) : await pbpYtFetchCaptionBody(trackSel.value, _ytFetchFn || undefined, useLogin);
-      statusEl.textContent = segs.length ? "" : t("mdVideoNoTracks");
-      if (segs.length && typeof pbpVideoNeedsPunctuation === "function" && pbpVideoNeedsPunctuation(segs)) {
-        segs = pbpVideoHeuristicPunctuate(segs);
-      }
-      _aiPunctParas = null; // a new track invalidates the previous AI pass
-      _segments = segs;
-      const sel = trackSel.selectedOptions && trackSel.selectedOptions[0];
       // Heading label through the single meta builder's vocabulary, NOT the
       // option text -- the option carries the " (auto-generated)" UI suffix,
       // and committing that rewrote the article H2/TOC (final-review L4).
       const selTrack = (window.pbpVideoSession && (window.pbpVideoSession.tracks || []).find(
         (tr) => (tr.baseUrl || tr.subtitle_url) === trackSel.value)) || null;
+      let segs = isBili ? await pbpBiliFetchSubtitleBody(trackSel.value) : await pbpYtFetchCaptionBody(trackSel.value, _ytFetchFn || undefined, useLogin);
+      // Rescue cascade (device report 2026-08-23: no YouTube language
+      // switching): on sessions that needed a rescue, the picker's timedtext
+      // URLs are PO-Token-walled, so re-fetch through the page player's own
+      // caption machinery -- the verified per-language route.
+      if (!segs.length && !isBili && _ytFetchTabId != null && selTrack) {
+        segs = (await ytTabPlayerCaptionCapture(_ytFetchTabId, selTrack.lang)) || [];
+      }
+      if (!segs.length) {
+        // Keep the transcript the user already has: replacing a working
+        // timeline with an empty list would turn a failed switch into data
+        // loss. mdVideoBodyBlocked names the real problem for YouTube.
+        statusEl.textContent = t(isBili ? "mdVideoNoTracks" : "mdVideoBodyBlocked");
+        return;
+      }
+      statusEl.textContent = "";
+      if (typeof pbpVideoNeedsPunctuation === "function" && pbpVideoNeedsPunctuation(segs)) {
+        segs = pbpVideoHeuristicPunctuate(segs);
+      }
+      _aiPunctParas = null; // a new track invalidates the previous AI pass
+      _segments = segs;
+      const sel = trackSel.selectedOptions && trackSel.selectedOptions[0];
       _meta.trackLabel = selTrack ? (selTrack.label || selTrack.lan_doc || "") : ((sel && sel.textContent) || "");
-      copyBtn.hidden = !segs.length;
+      copyBtn.hidden = false;
       renderTranscript(bodyEl, segs, true);
       // Atomic track switch (Task 5): the timeline above already follows the
       // newly selected track; when the transcript IS this page's article
       // too, keep it in sync the same way as the AI-punctuation pass --
       // write + reload through the single committer (md-preview.js owns the
-      // account/tags/description contract). Guarded against an empty fetch
-      // (session.error paths already messaged via statusEl above).
-      if (segs.length && window.pbpVideoDoc
+      // account/tags/description contract). A track switch always carries
+      // the heuristic tier, so the AI flag rides as false.
+      if (window.pbpVideoDoc
           && window.pbpVideoDoc.kind === "video-transcript"
           && typeof window.pbpVideoCommitTranscript === "function") {
-        window.pbpVideoCommitTranscript(pbpVideoTranscriptMarkdown(segs, _meta, null), _meta.title || "");
+        window.pbpVideoCommitTranscript(pbpVideoTranscriptMarkdown(segs, _meta, null), _meta.title || "", false);
       }
     });
     // First run: the bootstrap could not fetch captions because the origin
@@ -1582,7 +1767,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     // the payload this writes comes back as kind "video-transcript".
     if (_segments.length && window.pbpVideoDoc && window.pbpVideoDoc.kind === "video-fallback"
         && typeof window.pbpVideoCommitTranscript === "function") {
-      window.pbpVideoCommitTranscript(pbpVideoTranscriptMarkdown(_segments, _meta, _aiPunctParas), _meta.title || "");
+      window.pbpVideoCommitTranscript(pbpVideoTranscriptMarkdown(_segments, _meta, _aiPunctParas), _meta.title || "", !!_aiPunctParas);
     }
   }
 
@@ -1873,7 +2058,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           // hands it the punctuated markdown.
           if (window.pbpVideoDoc && window.pbpVideoDoc.kind === "video-transcript"
               && typeof window.pbpVideoCommitTranscript === "function" && _segments.length) {
-            window.pbpVideoCommitTranscript(pbpVideoTranscriptMarkdown(_segments, _meta, _aiPunctParas), _meta.title || "");
+            window.pbpVideoCommitTranscript(pbpVideoTranscriptMarkdown(_segments, _meta, _aiPunctParas), _meta.title || "", true);
           }
         } catch (e) {
           console.warn("[pbp-video] ai punctuation:", (e && e.message) || e);
@@ -1983,6 +2168,26 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       // status line, put the poster card back as the retry entry.
       runLoad(false).catch((e) => {
         console.warn("[pbp-video] auto load:", (e && e.message) || e);
+        if (statusRef) statusRef.textContent = t("mdVideoFailed");
+        else { cta.disabled = false; panel.replaceChildren(cta); }
+      });
+    } else if (window.pbpVideoDoc && window.pbpVideoDoc.committed === true) {
+      // Committed-transcript reloads skip the bootstrap session entirely
+      // (final-review M2), so there is no cached session to satisfy the
+      // branch above -- yet the article on screen IS this video's transcript.
+      // Parking it behind a poster click regressed the AI-punctuation loop
+      // into a dead end (device report 2026-08-23: the commit's reload landed
+      // on "load video & subtitles"). The grant that captured this transcript
+      // is standing unless the user revoked it: contains() decides (automatic
+      // path -- only ever checks, never requests), and a revoked grant keeps
+      // the poster flow, whose click is the re-request gesture.
+      (async () => {
+        const originPat = detected.provider === "bilibili" ? BILI_ORIGIN : YT_ORIGIN;
+        let g = false;
+        try { g = await chrome.permissions.contains({ origins: [originPat] }) === true; } catch (_) {}
+        if (g) await runLoad(false);
+      })().catch((e) => {
+        console.warn("[pbp-video] committed auto load:", (e && e.message) || e);
         if (statusRef) statusRef.textContent = t("mdVideoFailed");
         else { cta.disabled = false; panel.replaceChildren(cta); }
       });

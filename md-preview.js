@@ -663,13 +663,18 @@ function pbpApplyColorScheme(mode) {
   // collapsed description block on every commit.
   // Returns true only when the payload was written and the reload is under
   // way, so callers can fall back when storage refuses the write.
-  window.pbpVideoCommitTranscript = async (transcriptMd, fallbackTitle) => {
+  // aiPunct=true marks the markdown as carrying a PAID AI-punctuation pass:
+  // the reloaded page hides the AI button only for those payloads (paying
+  // twice for the same track would be the bug), while heuristic-tier commits
+  // (first-run promotion, track switches) keep the upgrade on offer.
+  window.pbpVideoCommitTranscript = async (transcriptMd, fallbackTitle, aiPunct) => {
     if (!transcriptMd || !String(transcriptMd).trim()) return false;
     try {
       await chrome.storage.local.set({
         [MP_KEY]: {
           markdown: String(transcriptMd), title: title || fallbackTitle || "",
           videoTranscript: true,
+          videoAiPunct: aiPunct === true,
           videoDescriptionMd: (window.pbpVideoDoc && window.pbpVideoDoc.descriptionMarkdown) || "",
           url, baseUrl, sourceTabUrl, tabId: srcTabId,
           source: source === "jina" ? "jina" : "local",
@@ -864,7 +869,7 @@ function pbpApplyColorScheme(mode) {
         // already IS the transcript (possibly AI-punctuated). Re-deriving one
         // from the session would throw that pass away. The description rides
         // along in the payload -- it cannot be re-extracted from here.
-        window.pbpVideoDoc = { kind: "video-transcript", descriptionMarkdown: info.videoDescriptionMd || "", committed: true };
+        window.pbpVideoDoc = { kind: "video-transcript", descriptionMarkdown: info.videoDescriptionMd || "", committed: true, aiPunct: info.videoAiPunct === true };
       } else if (vSegments.length && typeof pbpVideoTranscriptMarkdown === "function"
                  && typeof pbpVideoTranscriptMeta === "function") {
         window.pbpVideoDoc = { kind: "video-transcript", descriptionMarkdown: _extractedMarkdown };
@@ -912,6 +917,7 @@ function pbpApplyColorScheme(mode) {
   const _restoreRecord = info.videoTranscript === true
     ? {
         videoTranscript: true, markdown: canonicalMarkdown,
+        videoAiPunct: info.videoAiPunct === true,
         videoDescriptionMd: (window.pbpVideoDoc && window.pbpVideoDoc.descriptionMarkdown) || "",
         title: title || "", url, baseUrl, sourceTabUrl, tabId: srcTabId,
         source: source === "jina" ? "jina" : "local",
