@@ -217,6 +217,7 @@ assertEq(pbpVideoRowIndexAt(ROWS, 8.4), 1, "mid-segment t");
 assertEq(pbpVideoRowIndexAt(ROWS, 9999), 2, "past the end holds the last segment");
 assertEq(pbpVideoRowIndexAt([], 5), -1, "empty transcript -> -1");
 assertEq(pbpVideoRowIndexAt([{ from: 0, to: 3, content: "only" }], 2), 0, "single segment");
+assertEq(pbpVideoRowIndexAt([{ to: 3, content: "x" }], 5), -1, "segment without from never reads as 0");
 
 section("pbpYtFetchTranscript over the watch page");
 await (async () => {

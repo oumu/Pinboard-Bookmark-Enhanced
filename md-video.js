@@ -1250,9 +1250,22 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     // hidden list is pointless, and in video-mode the list shares the page
     // scroller with the article -- following while the user reads would drag
     // the article out from under them.
-    if (_followOn && !list.hidden) {
+    if (_followOn && !list.hidden && playerHoldsPosition()) {
       try { _currentRowEl.scrollIntoView({ block: "nearest" }); } catch (_) {}
     }
+  }
+
+  // Follow is only safe while the player stays put as the page scrolls. In
+  // the narrow single-column layout (@container max-width:1220px in
+  // md-preview.css) the panel drops to position:static ABOVE the list, so a
+  // page-level scrollIntoView walks the video off screen -- the exact thing
+  // following is meant to prevent. The computed position IS the layout state,
+  // so read it instead of re-deriving the breakpoint here (also correct for
+  // the non-video defensive mount, where the panel was never sticky). Read
+  // per row change, not per report: a row changes at transcript pace.
+  function playerHoldsPosition() {
+    if (!_panel || typeof getComputedStyle !== "function") return false;
+    try { return getComputedStyle(_panel).position === "sticky"; } catch (_) { return false; }
   }
 
   function clearCurrentRow() {
@@ -1283,6 +1296,13 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     list.addEventListener("wheel", onListWheel, { passive: true });
     list.addEventListener("touchstart", onListTouch, { passive: true });
     list.addEventListener("keydown", onListKeydown);
+    // The list is not the scroller in video-mode -- the page is, and the
+    // pointer is usually over the study COLUMN (article, skim, whitespace)
+    // rather than over a row. Wheeling there is the same "I took the wheel"
+    // signal, so it pauses too. Same named handler, so a second runLoad
+    // re-registers nothing.
+    const col = list.closest ? list.closest(".pbv-col-study") : null;
+    if (col) col.addEventListener("wheel", onListWheel, { passive: true });
   }
 
   // Task 4 row shape: .pbv-row is a plain container (selectable text needs a

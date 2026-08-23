@@ -3636,7 +3636,7 @@
   "mdVideoAsr": { "message": "automatisch erstellt" },
   "mdVideoViewReading": { "message": "Lesetext" },
   "mdVideoViewTimeline": { "message": "Zeitleiste" },
-  "mdVideoFollow": { "message": "Wiedergabe folgen" },
+  "mdVideoFollow": { "message": "Automatisch scrollen" },
   "mdVideoSeekTo": { "message": "Zu $TIME$ springen", "placeholders": { "time": { "content": "$1" } } },
   "mdVideoCopyFailed": { "message": "Kopieren fehlgeschlagen" },
   "mdVideoOpenExternal": { "message": "Auf YouTube öffnen" }

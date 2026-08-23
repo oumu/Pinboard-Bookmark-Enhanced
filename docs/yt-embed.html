@@ -15,6 +15,15 @@
 //   inbound  {pbpVideo:1, func:"hello"|"seekTo"|"playVideo", args:[]}
 //   outbound {pbpVideo:1, event:"ready"}
 //            {pbpVideo:1, event:"time", t:<seconds>, state:<YT state int>}
+// `state` is carried for a future consumer; today's reader reads only `t`.
+//
+// Two player modes. Normally YouTube's IFrame API builds the player and the
+// outbound half works. When that script never arrives -- content blockers
+// (uBlock Origin and friends), a DNS sinkhole, an offline moment -- a ~3s
+// timer falls back to the plain <iframe> embed this page used before the
+// two-way protocol existed: commands still work (forwarded as the classic
+// JSON "command" messages), position reporting does not. Degrading to
+// pre-protocol behaviour beats degrading to a black box.
 //
 // Privacy stance for the outbound half: the ONLY thing that ever leaves this
 // page is the playback position of a public video the user is watching right
@@ -34,6 +43,8 @@
   var readySent = false;
   var timer = 0;            // 250ms position reporter, PLAYING state only
   var pendingSeek = null;   // a seek that arrived before the player existed
+  var apiFired = false;     // onYouTubeIframeAPIReady ran (API script arrived)
+  var fallbackFrame = null; // plain <iframe> embed when the API never arrives
 
   function post(msg) {
     if (!parentOrigin) return; // not armed: stay silent
@@ -62,9 +73,12 @@
   function onStateChange(ev) {
     var state = ev && typeof ev.data === "number" ? ev.data : -1;
     stopTimer();
-    // One report on every state change -- including the non-playing ones, so
-    // the reader can hold (paused) or settle (ended) its row highlight
-    // instead of freezing on a stale position.
+    // One report on every state change, the non-playing ones included: the
+    // position at the moment playback stopped is the last true one, so the
+    // reader's row marker settles where the player actually is instead of
+    // wherever the final 250ms tick happened to land. The `state` field rides
+    // along for a future consumer -- the reader today reads only `t` and does
+    // nothing special on pause or end.
     postTime();
     if (state === 1 /* YT.PlayerState.PLAYING */) timer = setInterval(postTime, 250);
   }
@@ -78,6 +92,46 @@
     }
     postReady(); // no-op until the handshake arms parentOrigin
   }
+
+  // ---- fallback mode: no IFrame API ----
+  // Classic command channel of the plain embed: a JSON string, posted to
+  // youtube.com. This is exactly what this page did before the two-way
+  // protocol, kept alive for the blocked-API case.
+  function forward(func, args) {
+    if (!fallbackFrame || !fallbackFrame.contentWindow) return;
+    try {
+      fallbackFrame.contentWindow.postMessage(JSON.stringify({
+        event: "command", func: func, args: args || []
+      }), "https://www.youtube.com");
+    } catch (_) {}
+  }
+
+  // Guarded in BOTH directions against a double mount: this bails once the
+  // API has fired or a player exists, and onYouTubeIframeAPIReady bails once
+  // this has mounted (a late API arrival must not build a second player on
+  // top of a working fallback, nor reach for the #player div this replaced).
+  function mountFallback() {
+    if (fallbackFrame || player || apiFired) return;
+    var f = document.createElement("iframe");
+    f.allow = "encrypted-media; picture-in-picture; fullscreen";
+    f.allowFullscreen = true;
+    f.src = "https://www.youtube.com/embed/" + id +
+      "?enablejsapi=1&rel=0&origin=" + encodeURIComponent(location.origin);
+    f.addEventListener("load", function () {
+      if (pendingSeek === null) return;
+      var s = pendingSeek;
+      pendingSeek = null;
+      forward("seekTo", [s, true]);
+      forward("playVideo", []);
+    });
+    var host = document.getElementById("player");
+    if (host && host.parentNode) host.parentNode.replaceChild(f, host);
+    else document.body.appendChild(f);
+    fallbackFrame = f;
+    // No position reporting in this mode: there is no player object to ask.
+    // The reader's greeting simply goes unanswered and it stops asking.
+  }
+  setTimeout(mountFallback, 3000);
 
   // Inbound half. The gate is EXACTLY as strict as it was before the
   // two-way protocol landed: this page is only ever framed by the reader, so
@@ -104,10 +158,12 @@
     if (d.func === "seekTo") {
       var sec = Number(args[0]);
       if (!isFinite(sec) || sec < 0) return;
+      if (fallbackFrame) { forward("seekTo", [sec, true]); return; }
       if (!player || typeof player.seekTo !== "function") { pendingSeek = sec; return; }
       try { player.seekTo(sec, true); } catch (_) {}
       return;
     }
+    if (fallbackFrame) { forward("playVideo", []); return; }
     if (!player || typeof player.playVideo !== "function") return;
     try { player.playVideo(); } catch (_) {}
   });
@@ -119,6 +175,8 @@
   // main domain lets the existing session identify the viewer, at the cost of
   // the cookies that domain sets (disclosed in privacy.md).
   window.onYouTubeIframeAPIReady = function () {
+    apiFired = true;
+    if (fallbackFrame) return; // the fallback already owns the frame
     try {
       player = new YT.Player("player", {
         videoId: id,
@@ -131,6 +189,11 @@
   };
   var api = document.createElement("script");
   api.src = "https://www.youtube.com/iframe_api";
+  // A blocked request usually fails fast and loudly -- take the shortcut to
+  // the fallback instead of making the user watch a black box for 3s. The
+  // timer above still covers the silent cases (script served but neutered,
+  // DNS blackhole that hangs).
+  api.addEventListener("error", mountFallback);
   document.head.appendChild(api);
 })();
 </script>
