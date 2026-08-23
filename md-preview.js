@@ -1718,6 +1718,42 @@ function pbpApplyColorScheme(mode) {
     imgFixNote.textContent = (!total || imgFixFixed === total)
       ? "" : t("mdImgFixPartial", String(imgFixFixed), String(total));
   }
+
+  // Drop the PER-ARTICLE half of the image-fix state. renderArticleContent()
+  // calls this before it swaps #rendered-view's children; on the first render
+  // everything below is already at these values, so it is a no-op there.
+  //
+  // Without it a replaced article inherits the previous one's accounting: the
+  // sr-only note would announce "N of M" summed across two documents (a wrong
+  // number read aloud, not merely a stale one), and imgFixObserved -- the
+  // source of the export honesty note -- would leak the OLD article's broken
+  // image URLs into the NEW article's exports. imgFixFailed/imgFixTried hold
+  // detached <img> nodes and settled verdicts that say nothing about the new
+  // document, and a queued imgFixTimer would drain against them.
+  //
+  // Deliberately NOT reset, in two groups:
+  //   * Page-lifetime ceilings -- imgFixBudget (bytes), imgFixOriginsSeen
+  //     (maxOrigins), imgFixCache (url -> dataUri). Resetting the first two
+  //     would let each replacement punch a fresh hole through the page's
+  //     network budget, which is the whole point of them being page-level; the
+  //     cache is a deliberate cross-render win (raw toggle / translation
+  //     re-renders already reuse it, and so will a replacement).
+  //   * Live async state -- imgFixInFlight / imgFixRunning / imgFixRerun are
+  //     owned by a run that is mid-fetch. Clearing them would strand its
+  //     completion handler. imgFixAttempted therefore carries the still-
+  //     outstanding URLs forward rather than zeroing, so an in-flight batch
+  //     stays charged against maxImages instead of being silently refunded.
+  function imgFixResetForNewArticle() {
+    imgFixFailed.clear();
+    imgFixTried.clear();
+    imgFixObserved.clear();
+    imgFixAttempted = imgFixInFlight.size;
+    imgFixFixed = 0;
+    imgFixStranded = 0;
+    clearTimeout(imgFixTimer);
+    imgFixTimer = null;
+    if (imgFixNote) imgFixNote.textContent = "";
+  }
   async function imgFixAutoCheck() {
     imgFixPrune(); // renders the note too
     if (!imgFixSourceOrigin || !imgFixFailed.size) return;
@@ -1801,12 +1837,34 @@ function pbpApplyColorScheme(mode) {
   // the image-error capture listener installed above, and the TOC click
   // delegate all survive a re-render.
   function renderArticleContent(markdown) {
-    // Captured once per render; the deferred enhancers below compare against
-    // the live counter so a slow lazy-load can't paint into a newer article.
+    // Captured at SCHEDULING time (here), not inside the callbacks: a callback
+    // that read _articleRevision itself would always see the current value and
+    // never bail. CALLER CONTRACT: bump _articleRevision BEFORE calling this,
+    // never inside it — the spec's transaction needs the new revision in hand
+    // for pbp:article-will-replace, i.e. strictly before the render, and a
+    // bump made after this line would leave the outgoing article's in-flight
+    // enhancers fenced with the SAME value the new render captured, i.e. not
+    // fenced at all.
+    //
+    // Scope of the fence, precisely: it guards enhancer ENTRY, not the
+    // interiors of the multi-frame loops they start. highlightCodeBlocksChunked
+    // snapshots its block list and walks it 4 blocks per rAF; pbpMermaidEnhance
+    // awaits one render per fence in a for-loop. A bump mid-loop stops neither.
+    // That is bounded and benign rather than a correctness hole: both snapshot
+    // their nodes BEFORE the swap, so a straggler writes into elements already
+    // detached from the document and nothing visible changes — wasted CPU (and
+    // a 3.4MB mermaid pipeline racing the new article's own), not DOM
+    // corruption. Do not read the guards below as stronger than that.
     const rev = _articleRevision;
     let renderedHtml = renderMarkdown(markdown);
     // Lazy-load images / async decode (sanitizer keeps these attributes).
     renderedHtml = renderedHtml.replace(/<img(?=\s)/gi, '<img loading="lazy" decoding="async"');
+    // Everything above is pure: a throw in renderMarkdown leaves the current
+    // article and this state untouched. From here on we are committing, so the
+    // per-article image-fix accounting is dropped in the same breath as the
+    // DOM it describes (no-op on first render; see imgFixResetForNewArticle
+    // for what deliberately survives).
+    imgFixResetForNewArticle();
     renderedView.innerHTML = renderedHtml;
     // Forum pages + any page with a nested blockquote: split into per-comment blocks
     // BEFORE the AI layer indexes (pbp:rendered). Structural detection (blockquote blockquote)
@@ -1990,9 +2048,35 @@ function pbpApplyColorScheme(mode) {
   // early: an untouched raw view stays lazy and gets the fresh text on its
   // first activation anyway. Nothing changes canonical markdown today, so this
   // is unreachable on the first-render path.
+  //
+  // Writing textContent tears the <pre>'s box down and rebuilds it, so the
+  // reader is dumped at the top unless we put them back — and "silently
+  // scrolled to the top" is the same felt regression as the page reload this
+  // whole campaign exists to remove. Position is preserved on both axes it
+  // could live on: rawView.scrollTop (zero today — the WINDOW is the scroller,
+  // not this element — but correct the day the layout changes) and, when raw
+  // is the view actually on screen, the window's position expressed as a
+  // fraction of the raw box, reusing the same mapping the btnRaw/btnRendered
+  // handlers below already use across a view switch. Approximate by design:
+  // the old content's fraction lands on the new content's height.
   function syncRawView() {
     if (!_rawFilled) return;
+    const onScreen = !rawView.classList.contains("hidden");
+    const prevScrollTop = rawView.scrollTop;
+    let frac = null;
+    if (onScreen) {
+      const top = rawView.getBoundingClientRect().top + window.scrollY;
+      const h = rawView.scrollHeight || 1; // guard: div-by-zero if not yet laid out
+      frac = Math.min(Math.max((window.scrollY - top) / h, 0), 0.999);
+    }
     rawView.textContent = getMarkdown();
+    rawView.scrollTop = prevScrollTop;
+    if (frac !== null) {
+      // getBoundingClientRect forces the layout the write invalidated, so the
+      // height below is the NEW content's.
+      const top = rawView.getBoundingClientRect().top + window.scrollY;
+      window.scrollTo(0, top + frac * rawView.scrollHeight);
+    }
   }
 
   // Reading-position mapping across the switch: Raw (13px <pre>) and Rendered

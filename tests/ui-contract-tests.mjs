@@ -2350,6 +2350,226 @@ check(/#rendered-view th, #rendered-view td \{ overflow-wrap: anywhere; \}/.test
 check(mdCss.includes("animation-timeline: scroll(self inline);"),
   "md-preview.css: .pb-table-wrap lost animation-timeline: scroll(self inline) (A2 -- the edge-fade scroll affordance stops tracking horizontal scroll)");
 
+// ---- md-preview article-render pipeline invariants (in-place-replace
+// campaign, T2). The first-render pipeline was extracted into re-callable
+// functions (renderArticleContent / rebuildToc / setupScrollSpy's dispose /
+// refreshReadingStats / syncRawView) so a later task can swap the article in
+// place instead of reloading the page. Several of the properties that makes
+// SAFE are structural and have no other gate in this repo: nothing under
+// tests/ or scripts/ covers md-preview.js, and the render oracle has zero
+// md-preview references, so a JS-only commit here passes through no automated
+// check at all. Behavioural coverage of an actual SECOND render is Task 8's
+// job -- the four closure-scoped functions are unreachable until a caller
+// exists -- but the shape they depend on can be pinned now.
+//
+// Everything below runs on a COMMENT-STRIPPED copy of the source. This repo's
+// own rule is that a "has this been handled" judgement must not be satisfiable
+// by prose, and md-preview.js's comments name every symbol these checks look
+// for -- an unstripped scan would go green on a deleted guard sitting next to
+// a comment that still describes it.
+{
+  // Character scanner, not a line/regex filter. A naive version of this is
+  // wrong on md-preview.js in two specific ways that both showed up on the
+  // first run: `o + "/*"` (the permission-origin suffix, three sites) reads as
+  // the start of a block comment and swallows the rest of the file, and
+  // `/^https?:\/\//i` (engine/URL guards) contains a literal `//` that reads as
+  // a line comment and truncates its line. So quotes, template literals and
+  // regex literals are all tracked, and newlines are always emitted so slice
+  // anchors that pin indentation still match.
+  const REGEX_CAN_FOLLOW = "(,=:[!&|?{};+-*%~^";
+  const stripJsComments = (input) => {
+    let out = "";
+    let i = 0;
+    const prevSignificant = () => {
+      for (let k = out.length - 1; k >= 0; k--) {
+        if (out[k] !== " " && out[k] !== "\t" && out[k] !== "\n") return out[k];
+      }
+      return "";
+    };
+    while (i < input.length) {
+      const c = input[i], d = input[i + 1];
+      if (c === "/" && d === "/") {                       // line comment
+        while (i < input.length && input[i] !== "\n") i++;
+        continue;
+      }
+      if (c === "/" && d === "*") {                       // block comment
+        i += 2;
+        while (i < input.length && !(input[i] === "*" && input[i + 1] === "/")) {
+          if (input[i] === "\n") out += "\n";
+          i++;
+        }
+        i += 2;
+        continue;
+      }
+      if (c === '"' || c === "'" || c === "`") {           // string / template
+        out += c; i++;
+        while (i < input.length) {
+          if (input[i] === "\\") { out += input.slice(i, i + 2); i += 2; continue; }
+          out += input[i];
+          const done = input[i] === c;
+          i++;
+          if (done) break;
+        }
+        continue;
+      }
+      const prev = prevSignificant();
+      if (c === "/" && (prev === "" || REGEX_CAN_FOLLOW.includes(prev))) { // regex literal
+        out += c; i++;
+        let inClass = false;
+        while (i < input.length) {
+          if (input[i] === "\\") { out += input.slice(i, i + 2); i += 2; continue; }
+          if (input[i] === "[") inClass = true;
+          else if (input[i] === "]") inClass = false;
+          out += input[i];
+          const done = input[i] === "/" && !inClass;
+          i++;
+          if (done) break;
+        }
+        continue;
+      }
+      out += c; i++;
+    }
+    return out;
+  };
+  const src = stripJsComments(mdPreviewJs);
+  // Self-test the stripper before trusting it. A stripper that returned its
+  // input would make every check below satisfiable by prose again; one that
+  // over-stripped would make them all vacuously fail somewhere confusing. Both
+  // hazards named above are pinned here as regression cases, along with
+  // landmarks from the start, middle and end of the file so a runaway state
+  // machine that ate a whole region cannot go unnoticed.
+  check(!src.includes("Lazy-load images / async decode") &&
+    !src.includes("leave $...$ source visible on failure") &&
+    src.includes("renderMarkdown(markdown)") &&
+    src.includes("function detectArticleLang(text)") &&
+    src.includes("function cssEscape(s)") &&
+    src.includes('o + "/*"') &&
+    src.includes("i.test(srcUrlForSwitch)"),
+    "ui-contract: the md-preview.js comment stripper is broken -- it must remove line AND block comments while preserving string literals like `o + \"/*\"` and regex literals like /^https?:\\/\\//i; until it is correct, every invariant in this block is unverified");
+
+  const slice = (startNeedle, endNeedle, label) => {
+    const a = src.indexOf(startNeedle);
+    const b = a >= 0 ? src.indexOf(endNeedle, a + startNeedle.length) : -1;
+    check(a >= 0 && b > a,
+      `ui-contract: cannot slice ${label} out of md-preview.js (anchor moved) -- every invariant in this block is UNVERIFIED until the anchor is fixed`);
+    return a >= 0 && b > a ? src.slice(a, b) : "";
+  };
+  const render = slice("function renderArticleContent(markdown) {", "\n  renderArticleContent(canonicalMarkdown);", "renderArticleContent");
+  const toc = slice("function rebuildToc() {", "\n  rebuildToc();", "rebuildToc");
+  const spy = slice("function setupScrollSpy(renderedView, tocList) {", "function cssEscape(s) {", "setupScrollSpy");
+  const imgReset = slice("function imgFixResetForNewArticle() {", "async function imgFixAutoCheck", "imgFixResetForNewArticle");
+  const rawSync = slice("function syncRawView() {", "function pbpScrollMapBlocks()", "syncRawView");
+  check(render.includes("renderMarkdown(") && toc.includes("tocList.replaceChildren()") &&
+    spy.includes("IntersectionObserver") && imgReset.includes("imgFixFailed") && rawSync.includes("getMarkdown()"),
+    "ui-contract: an md-preview.js slice came back without its landmark -- the anchors are matching the wrong region");
+
+  // --- Revision fence: captured at SCHEDULING time, re-checked in every
+  // deferred continuation. A fence read inside the callback instead would
+  // always see the current value and never fire, so the capture must precede
+  // the first deferral; and any continuation that skips the re-check is a hole
+  // through which a stale enhancer paints into the next article.
+  check((render.match(/const rev = _articleRevision;/g) || []).length === 1,
+    "md-preview.js: renderArticleContent must capture the article revision exactly once, as `const rev = _articleRevision;`");
+  const capAt = render.indexOf("const rev = _articleRevision;");
+  const deferOffsets = [...render.matchAll(/requestAnimationFrame\(|\.then\(/g)].map((m) => m.index);
+  check(capAt >= 0 && deferOffsets.length > 0 && capAt < deferOffsets[0],
+    "md-preview.js: renderArticleContent captures the revision AFTER its first deferred continuation -- a fence captured that late cannot fence anything");
+  check(deferOffsets.length >= 5,
+    `md-preview.js: renderArticleContent has ${deferOffsets.length} deferred continuations, expected at least 5 (hljs rAF + its .then, mermaid rAF, KaTeX rAF + its .then) -- the enhancer set changed, so re-check by hand that every new continuation carries the revision fence, then update this count`);
+  const unfenced = deferOffsets.filter((i) => !render.slice(i, i + 160).includes("_articleRevision"));
+  check(unfenced.length === 0,
+    `md-preview.js: ${unfenced.length} deferred continuation(s) in renderArticleContent do not re-check _articleRevision -- a late hljs/mermaid/KaTeX callback can paint into a newer article`);
+
+  // --- lang/dir must be cleared before re-detection, or an RTL article
+  // followed by an LTR one keeps dir="rtl" forever (the branches only ever SET).
+  const detectAt = render.indexOf("detectArticleLang(");
+  const langRmAt = render.indexOf('removeAttribute("lang")');
+  const dirRmAt = render.indexOf('removeAttribute("dir")');
+  check(langRmAt >= 0 && dirRmAt >= 0 && detectAt > langRmAt && detectAt > dirRmAt,
+    "md-preview.js: renderArticleContent must removeAttribute lang AND dir before detectArticleLang -- otherwise language/direction detection is not idempotent across renders");
+
+  // --- Per-article image-fix accounting is dropped with the DOM it describes,
+  // and only the per-article half: the page-level ceilings must survive or each
+  // replacement punches a fresh hole through the page's network budget.
+  const resetAt = render.indexOf("imgFixResetForNewArticle()");
+  const injectAt = render.indexOf("renderedView.innerHTML =");
+  check(resetAt >= 0 && injectAt > resetAt,
+    "md-preview.js: renderArticleContent must reset the per-article image-fix state before swapping #rendered-view's children (else the sr-only note sums counts across two articles and old broken URLs leak into the new article's exports)");
+  for (const stmt of ["imgFixFailed.clear()", "imgFixTried.clear()", "imgFixObserved.clear()", "imgFixFixed = 0", "imgFixStranded = 0", "clearTimeout(imgFixTimer)"]) {
+    check(imgReset.includes(stmt), `md-preview.js: imgFixResetForNewArticle no longer does \`${stmt}\` -- that state survives an article swap and describes the previous document`);
+  }
+  check(!/imgFixBudget|imgFixOriginsSeen|imgFixCache\.clear|imgFixRunning\s*=|imgFixRerun\s*=/.test(imgReset),
+    "md-preview.js: imgFixResetForNewArticle clears page-lifetime state (byte budget / origins seen / data-URI cache) or live run state -- those must survive a replacement, or every swap refunds the page's network ceiling");
+
+  // --- TOC: one delegated listener bound once on the container, never
+  // per-rebuild; and the rebuild clears before it appends.
+  check((src.match(/tocList\.addEventListener\(/g) || []).length === 1,
+    "md-preview.js: #toc-list must carry exactly one click listener (delegated) -- a second binding makes every TOC jump fire twice");
+  check(!/addEventListener\(/.test(toc),
+    "md-preview.js: rebuildToc() binds an event listener -- listeners must live outside the rebuild or each rebuild stacks another handler on the same container");
+  const bindAt = src.indexOf('tocList.addEventListener("click"');
+  const rebuildAt = src.indexOf("function rebuildToc() {");
+  check(bindAt >= 0 && rebuildAt > bindAt,
+    "md-preview.js: the delegated TOC click listener must be bound before/outside rebuildToc()");
+  const clearAt = toc.indexOf("tocList.replaceChildren()");
+  const appendAt = toc.indexOf("tocList.appendChild(");
+  check(clearAt >= 0 && appendAt > clearAt,
+    "md-preview.js: rebuildToc() appends without calling tocList.replaceChildren() first -- a second build would append to the first one's items");
+  check(toc.includes("tocNav.hidden = true"),
+    "md-preview.js: rebuildToc() no longer re-hides #toc on the no-headings path -- replacing an article with a headingless one would leave an empty TOC on screen");
+
+  // --- Scroll spy hands back a dispose that unhooks ALL THREE things it
+  // installs, and the rebuild runs it before the links it holds leave the DOM.
+  // Brace-depth scoped: setupScrollSpy's nested helpers (runFallback, the
+  // observer callback, onSpyScroll) legitimately use bare `return;`, so a
+  // whole-body /\breturn;/ scan would flag them. Only the function's OWN exits
+  // -- depth 1 -- have to hand back a dispose.
+  const topLevelReturns = [];
+  {
+    let depth = 0;
+    for (let i = 0; i < spy.length; i++) {
+      const ch = spy[i];
+      if (ch === "{") depth++;
+      else if (ch === "}") depth--;
+      else if (depth === 1 && spy.startsWith("return", i) &&
+        !/[\w$]/.test(spy[i - 1] || " ") && !/[\w$]/.test(spy[i + 6] || " ")) {
+        topLevelReturns.push(spy.slice(i, i + 24));
+      }
+    }
+  }
+  check(topLevelReturns.length === 3,
+    `md-preview.js: setupScrollSpy has ${topLevelReturns.length} top-level returns, expected 3 (two early no-ops + the dispose) -- a new exit path must also hand back a callable`);
+  check(topLevelReturns.every((r) => !/^return\s*;/.test(r)),
+    "md-preview.js: setupScrollSpy has a bare `return;` at its top level -- every exit must hand back a callable dispose so callers can store and invoke it unconditionally");
+  check((spy.match(/return noop;/g) || []).length === 2,
+    "md-preview.js: setupScrollSpy's two early-exit paths must both return the no-op dispose");
+  const disposeAt = spy.indexOf("return () => {");
+  const dispose = disposeAt >= 0 ? spy.slice(disposeAt) : "";
+  check(dispose.includes("observer.disconnect()") &&
+    dispose.includes('removeEventListener("scroll", onSpyScroll)') &&
+    dispose.includes("cancelAnimationFrame(spyRaf)"),
+    "md-preview.js: setupScrollSpy's dispose must disconnect the observer, remove the named scroll listener, AND cancel a pending rAF -- a surviving frame runs runFallback() against the old headings after teardown");
+  check((src.match(/_scrollSpyDispose = setupScrollSpy\(/g) || []).length === 1,
+    "md-preview.js: the scroll-spy dispose must be stored in the module-level holder at its single install site");
+  const disposeCallAt = toc.indexOf("_scrollSpyDispose()");
+  check(disposeCallAt >= 0 && clearAt > disposeCallAt,
+    "md-preview.js: rebuildToc() must dispose the old scroll spy BEFORE clearing the list -- otherwise the observer briefly holds links already detached from the document");
+
+  // --- Raw view: filled lazily, but once filled it is kept in sync, and the
+  // sync must not silently scroll the reader to the top (the campaign's whole
+  // premise is that nothing about the page resets).
+  check(rawSync.includes("_rawFilled") && rawSync.includes("rawView.textContent = getMarkdown()"),
+    "md-preview.js: syncRawView must be gated on _rawFilled and write the current canonical markdown");
+  // Ordering, not mere presence: the position has to be READ before the write
+  // and RESTORED after it. A presence-only scan went green when the restore was
+  // deleted, because the capture line still mentioned rawView.scrollTop.
+  const rawWriteAt = rawSync.indexOf("rawView.textContent = getMarkdown()");
+  const rawTopRestoreAt = rawSync.indexOf("rawView.scrollTop = ");
+  const rawWinRestoreAt = rawSync.indexOf("window.scrollTo(");
+  check(rawWriteAt >= 0 && rawTopRestoreAt > rawWriteAt && rawWinRestoreAt > rawWriteAt,
+    "md-preview.js: syncRawView must restore reading position (rawView.scrollTop AND the window offset) AFTER rewriting the <pre> -- writing textContent rebuilds the box and dumps the reader at the top, which is the same felt regression as the reload this campaign removes");
+}
+
 if (fail.length) {
   console.error(fail.join("\n"));
   process.exit(1);
