@@ -519,6 +519,145 @@ section("pbpVideoStateValidate");
     "exactly 2*1024*1024 total segment chars -> true (inclusive upper boundary)");
 })();
 
+// md-video.js has three commit call sites (track switch, AI punctuation,
+// first-run promotion) and each one hands the committer BOTH a markdown
+// string and a videoState. Those two arguments are built from the same
+// runtime state by two different functions, and nothing at the call site
+// checks that they agree -- the check happens on the far side, at F5, inside
+// pbpVideoStateValidate. So the contract worth testing here is the round
+// trip: for the exact argument shape each call site passes, does the state
+// validate against the markdown that same call passed? Every positive below
+// is paired with the negative it would otherwise pass vacuously.
+section("commit call-site videoState round trips");
+(() => {
+  const detected = { provider: "youtube", videoId: "dQw4w9WgXcQ" };
+  const pageUrl = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
+  const trEn = { baseUrl: "https://x/en.xml", lang: "en", label: "English", asr: false };
+  const trDe = { baseUrl: "https://x/de.xml", lang: "de", label: "Deutsch", asr: false };
+  const tracks = [trEn, trDe];
+  const metaFor = (trackLabel) => ({ title: "Video", url: pageUrl, trackLabel });
+
+  // ---- 1. track switch: aiParas null, aiPunct false, key = the NEW track ----
+  const enSegs = [{ from: 0, to: 2, content: "Good day." }, { from: 2, to: 4, content: "How are you?" }];
+  const deSegs = [{ from: 0, to: 2, content: "Guten Tag." }, { from: 2, to: 4, content: "Wie geht es?" }];
+  const deMeta = metaFor("Deutsch");
+  const switchState = pbpVideoStateBuild({
+    detected, track: trDe, tracks, segments: deSegs,
+    aiParas: null, wasUnpunct: false, aiPunct: false, meta: deMeta
+  });
+  const switchMd = pbpVideoTranscriptMarkdown(deSegs, deMeta, null);
+  assertEq(pbpVideoStateValidate(switchState, detected, switchMd), true,
+    "track-switch shape: state validates against the markdown the same call commits");
+  assertEq(switchState.selectedTrackKey, "yt:de", "track-switch shape: selectedTrackKey names the NEWLY selected track");
+  assertEq(switchState.aiPunct, false, "track-switch shape: aiPunct false (a switch always carries the heuristic tier)");
+  assertEq(switchState.paragraphs, null, "track-switch shape: paragraphs cleared (a new track invalidates the AI pass)");
+  // Falsification: the previous track's state committed alongside the new
+  // track's article -- exactly what a missing last-selection-wins guard, or a
+  // state built before the switch, would produce.
+  const staleState = pbpVideoStateBuild({
+    detected, track: trEn, tracks, segments: enSegs,
+    aiParas: null, wasUnpunct: false, aiPunct: false, meta: metaFor("English")
+  });
+  assertEq(pbpVideoStateValidate(staleState, detected, switchMd), false,
+    "track-switch shape: the PREVIOUS track's state fails against the new article (a stale commit is caught)");
+  // ...and the two really are different markdowns, so the check above is not
+  // passing for the trivial reason that everything fails.
+  check("track-switch shape: the two tracks produce different markdown (previous assertion is not vacuous)",
+    pbpVideoTranscriptMarkdown(enSegs, metaFor("English"), null) !== switchMd);
+
+  // ---- 2. AI punctuation: paragraphs carried, aiPunct true ----
+  const aiSegs = [{ from: 0, to: 2, content: "你好。" }, { from: 2, to: 4, content: "今天天气不错。" }];
+  const aiParas = ["你好。今天天气不错。"];
+  const aiMeta = metaFor("English");
+  const aiState = pbpVideoStateBuild({
+    detected, track: trEn, tracks, segments: aiSegs,
+    aiParas, wasUnpunct: true, aiPunct: true, meta: aiMeta
+  });
+  const aiMd = pbpVideoTranscriptMarkdown(aiSegs, aiMeta, aiParas);
+  assertEq(pbpVideoStateValidate(aiState, detected, aiMd), true,
+    "ai-punctuation shape: state validates against the markdown the same call commits");
+  check("ai-punctuation shape: aiPunct + wasUnpunct both true (the paid pass is recorded, and so is why it was offered)",
+    aiState.aiPunct === true && aiState.wasUnpunct === true);
+  check("ai-punctuation shape: the AI paragraphs actually change the markdown (round trip is not vacuous)",
+    aiMd !== pbpVideoTranscriptMarkdown(aiSegs, aiMeta, null));
+  // Falsification: the call site forgets to pass _aiPunctParas into the state
+  // build while still committing the AI markdown. F5 would then rebuild the
+  // heuristic merge and silently drop a pass the user paid for.
+  const parasDropped = pbpVideoStateBuild({
+    detected, track: trEn, tracks, segments: aiSegs,
+    aiParas: null, wasUnpunct: true, aiPunct: true, meta: aiMeta
+  });
+  assertEq(pbpVideoStateValidate(parasDropped, detected, aiMd), false,
+    "ai-punctuation shape: a state built WITHOUT the paragraphs fails against the committed markdown");
+
+  // ---- 3. first-run promotion: aiPunct = !!_aiPunctParas ----
+  const promoSegs = [{ from: 0, to: 3, content: "First line." }, { from: 3, to: 6, content: "Second line." }];
+  const promoMeta = metaFor("English");
+  const promoMd = pbpVideoTranscriptMarkdown(promoSegs, promoMeta, null);
+  const promoState = pbpVideoStateBuild({
+    detected, track: trEn, tracks, segments: promoSegs,
+    aiParas: null, wasUnpunct: true, aiPunct: false, meta: promoMeta
+  });
+  assertEq(pbpVideoStateValidate(promoState, detected, promoMd), true,
+    "promotion shape: state validates against the markdown the same call commits");
+  assertEq(promoState.aiPunct, false, "promotion shape: aiPunct is !!_aiPunctParas -> false when no AI pass is carried");
+  assertEq(promoState.wasUnpunct, true, "promotion shape: wasUnpunct survives so the AI upgrade stays on offer after the commit");
+  // A promotion on a page whose session RESTORED AI paragraphs commits the
+  // paragraph markdown and must say so -- this is the shape loadFlow's
+  // no-longer-unconditional _aiPunctParas clear makes reachable.
+  const promoParas = ["First line. Second line."];
+  const promoAiMd = pbpVideoTranscriptMarkdown(promoSegs, promoMeta, promoParas);
+  const promoAiState = pbpVideoStateBuild({
+    detected, track: trEn, tracks, segments: promoSegs,
+    aiParas: promoParas, wasUnpunct: true, aiPunct: true, meta: promoMeta
+  });
+  assertEq(pbpVideoStateValidate(promoAiState, detected, promoAiMd), true,
+    "promotion shape carrying restored AI paragraphs round-trips (aiPunct = !!_aiPunctParas -> true)");
+  check("promotion shape: restored paragraphs change the markdown (round trip is not vacuous)", promoAiMd !== promoMd);
+  // Falsification of the OLD behaviour: loadFlow used to zero _aiPunctParas
+  // unconditionally, so the promotion would commit the MERGED markdown while a
+  // hydrated state still claimed paragraphs. Those two disagree and must fail.
+  assertEq(pbpVideoStateValidate(promoAiState, detected, promoMd), false,
+    "promotion shape: paragraphs in state but merged markdown committed -> false (the unconditional clear is caught)");
+
+  // ---- 4. bilibili track switch: same contract, other provider/identity ----
+  const biliDetected = { provider: "bilibili", bvid: "BV1xx411c7mD", part: 3 };
+  const biliZh = { subtitle_url: "//x/zh.json", lan: "zh-CN", lan_doc: "中文" };
+  const biliAi = { subtitle_url: "//x/ai.json", lan: "ai-zh", lan_doc: "中文(AI)" };
+  const biliSegs = [{ from: 0, to: 2, content: "第一句。" }, { from: 2, to: 5, content: "第二句。" }];
+  const biliMeta = { title: "B站视频", url: "https://www.bilibili.com/video/BV1xx411c7mD?p=3", trackLabel: "中文(AI)" };
+  const biliState = pbpVideoStateBuild({
+    detected: biliDetected, track: biliAi, tracks: [biliZh, biliAi], segments: biliSegs,
+    aiParas: null, wasUnpunct: false, aiPunct: false, meta: biliMeta
+  });
+  const biliMd = pbpVideoTranscriptMarkdown(biliSegs, biliMeta, null);
+  assertEq(pbpVideoStateValidate(biliState, biliDetected, biliMd), true,
+    "bilibili track-switch shape: state validates against the markdown the same call commits");
+  assertEq(biliState.selectedTrackKey, "bili:ai-zh", "bilibili track-switch shape: selectedTrackKey from lan");
+  assertEq(pbpVideoStateValidate(biliState, { provider: "bilibili", bvid: "BV1xx411c7mD", part: 4 }, biliMd), false,
+    "bilibili track-switch shape: a switch committed on part 3 does not validate on part 4");
+
+  // ---- 5. the picker's key -> live endpoint mapping the change handler does ----
+  const key = pbpVideoTrackKey(trDe, "youtube");
+  const resolved = tracks.filter((tr) => pbpVideoTrackKey(tr, "youtube") === key);
+  assertEq(resolved.length, 1, "picker key resolves to exactly one track in the session list");
+  assertEq(resolved[0].baseUrl, "https://x/de.xml", "resolved track still carries the live endpoint (the key never replaces the fetch URL)");
+  // The whole reason the option value stopped being the URL: endpoints get
+  // re-signed between fetches, so a URL-valued option would stop matching.
+  const refetched = [
+    { baseUrl: "https://x/en.xml?pot=NEW", lang: "en", label: "English", asr: false },
+    { baseUrl: "https://x/de.xml?pot=NEW", lang: "de", label: "Deutsch (Deutschland)", asr: false }
+  ];
+  assertEq(refetched.filter((tr) => pbpVideoTrackKey(tr, "youtube") === key).length, 1,
+    "a re-signed, re-labelled track list still resolves the SAME key");
+  assertEq(refetched.filter((tr) => tr.baseUrl === trDe.baseUrl).length, 0,
+    "...while the old URL matches nothing in it (URL-valued options would have missed the track)");
+  // Keyless tracks are the case the picker disables: they cannot be resolved
+  // back, so offering them would be a silent no-op.
+  assertEq(pbpVideoTrackKey({ baseUrl: "https://x/none.xml", label: "Unknown" }, "youtube"), "",
+    "a track with no language yields no key (picker marks such options disabled)");
+})();
+
 document.getElementById("summary").textContent = `${pass} passed, ${fail} failed`;
 })();
 </script>
