@@ -2,45 +2,136 @@
 <meta charset="utf-8">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>Video embed</title>
-<style>html,body{margin:0;height:100%;background:#000}iframe{border:0;width:100%;height:100%;display:block}</style>
+<style>html,body{margin:0;height:100%;background:#000}#player,iframe{border:0;width:100%;height:100%;display:block}</style>
 <body>
+<div id="player"></div>
 <script>
 // Relay page: an extension page cannot embed YouTube directly because Chrome
 // sends no Referer from chrome-extension:// frames and YouTube's IFrame API
 // rejects that with error 153. This page lives on the project's GitHub Pages
-// origin, so YouTube sees a real https referrer. It only ever forwards player
-// commands from its opener; it reads nothing and stores nothing.
+// origin, so YouTube sees a real https referrer.
+//
+// It speaks a tiny two-way protocol with its opener (the reader):
+//   inbound  {pbpVideo:1, func:"hello"|"seekTo"|"playVideo", args:[]}
+//   outbound {pbpVideo:1, event:"ready"}
+//            {pbpVideo:1, event:"time", t:<seconds>, state:<YT state int>}
+//
+// Privacy stance for the outbound half: the ONLY thing that ever leaves this
+// page is the playback position of a public video the user is watching right
+// now, plus the player's own state integer. No identifiers, no cookies, no
+// account data, nothing read out of the YouTube frame. And it goes to exactly
+// one place: the origin that proved itself by messaging in first (captured
+// from that message's e.origin). Before that handshake this page posts
+// NOTHING -- there is no targetOrigin "*" anywhere here, and no fallback that
+// would introduce one.
 (function () {
   var id = new URLSearchParams(location.search).get("v") || "";
   if (!/^[\w-]{6,20}$/.test(id)) return;
-  var f = document.createElement("iframe");
-  f.allow = "encrypted-media; picture-in-picture; fullscreen";
-  f.allowFullscreen = true;
+
+  var player = null;        // YT.Player once the API has built it
+  var ready = false;        // player fired onReady
+  var parentOrigin = "";    // armed by the first valid inbound message
+  var readySent = false;
+  var timer = 0;            // 250ms position reporter, PLAYING state only
+  var pendingSeek = null;   // a seek that arrived before the player existed
+
+  function post(msg) {
+    if (!parentOrigin) return; // not armed: stay silent
+    try { window.parent.postMessage(msg, parentOrigin); } catch (_) {}
+  }
+
+  function postReady() {
+    if (readySent || !ready || !parentOrigin) return;
+    readySent = true;
+    post({ pbpVideo: 1, event: "ready" });
+  }
+
+  function postTime() {
+    if (!player || typeof player.getCurrentTime !== "function") return;
+    var t, state;
+    try {
+      t = player.getCurrentTime();
+      state = typeof player.getPlayerState === "function" ? player.getPlayerState() : -1;
+    } catch (_) { return; }
+    if (typeof t !== "number" || !isFinite(t)) return;
+    post({ pbpVideo: 1, event: "time", t: t, state: state });
+  }
+
+  function stopTimer() { if (timer) { clearInterval(timer); timer = 0; } }
+
+  function onStateChange(ev) {
+    var state = ev && typeof ev.data === "number" ? ev.data : -1;
+    stopTimer();
+    // One report on every state change -- including the non-playing ones, so
+    // the reader can hold (paused) or settle (ended) its row highlight
+    // instead of freezing on a stale position.
+    postTime();
+    if (state === 1 /* YT.PlayerState.PLAYING */) timer = setInterval(postTime, 250);
+  }
+
+  function onReady() {
+    ready = true;
+    if (pendingSeek !== null) {
+      var s = pendingSeek;
+      pendingSeek = null;
+      try { player.seekTo(s, true); player.playVideo(); } catch (_) {}
+    }
+    postReady(); // no-op until the handshake arms parentOrigin
+  }
+
+  // Inbound half. The gate is EXACTLY as strict as it was before the
+  // two-way protocol landed: this page is only ever framed by the reader, so
+  // a message from anything other than our own parent is not ours to act on,
+  // and the command allowlist stays as defence in depth behind that check.
+  // (The sender is a chrome-extension:// origin whose id differs between the
+  // unpacked and Web Store builds, so identity is established by "is my
+  // parent" rather than by matching a hardcoded origin string -- which is
+  // also why the reply origin has to be learned from the message itself.)
+  window.addEventListener("message", function (e) {
+    if (window.parent === window || e.source !== window.parent) return;
+    var d = e.data;
+    if (!d || typeof d !== "object" || d.pbpVideo !== 1) return;
+    if (d.func !== "seekTo" && d.func !== "playVideo" && d.func !== "hello") return;
+    // Arm outbound reporting on the FIRST valid inbound message, whichever it
+    // is. "null" is what an opaque origin serializes to and is not a legal
+    // postMessage target, so it never arms anything.
+    if (!parentOrigin && e.origin && e.origin !== "null") {
+      parentOrigin = e.origin;
+      postReady(); // the player may already have been ready before this
+    }
+    if (d.func === "hello") return;
+    var args = Array.isArray(d.args) ? d.args : [];
+    if (d.func === "seekTo") {
+      var sec = Number(args[0]);
+      if (!isFinite(sec) || sec < 0) return;
+      if (!player || typeof player.seekTo !== "function") { pendingSeek = sec; return; }
+      try { player.seekTo(sec, true); } catch (_) {}
+      return;
+    }
+    if (!player || typeof player.playVideo !== "function") return;
+    try { player.playVideo(); } catch (_) {}
+  });
+
   // youtube.com, NOT youtube-nocookie.com. The privacy-enhanced domain is a
   // separate registrable domain, so the viewer's youtube.com login cookies
   // never reach it; an anonymous embed then routinely trips YouTube's
   // "confirm you're not a bot" gate even for a signed-in viewer. Using the
   // main domain lets the existing session identify the viewer, at the cost of
   // the cookies that domain sets (disclosed in privacy.md).
-  f.src = "https://www.youtube.com/embed/" + id +
-    "?enablejsapi=1&rel=0&origin=" + encodeURIComponent(location.origin);
-  document.body.appendChild(f);
-  // Forward only the two commands the reader uses; ignore everything else.
-  // Source check first: this page is only ever framed by the reader, so a
-  // message from anything other than our own parent is not ours to act on.
-  // The command allowlist below stays as defence in depth, not as the gate.
-  // (The sender is a chrome-extension:// origin whose id differs between the
-  // unpacked and Web Store builds, so identity is established by "is my
-  // parent" rather than by matching a hardcoded origin string.)
-  window.addEventListener("message", function (e) {
-    if (window.parent === window || e.source !== window.parent) return;
-    var d = e.data;
-    if (!d || typeof d !== "object" || d.pbpVideo !== 1) return;
-    if (d.func !== "seekTo" && d.func !== "playVideo") return;
-    f.contentWindow.postMessage(JSON.stringify({
-      event: "command", func: d.func, args: d.args || []
-    }), "https://www.youtube.com");
-  });
+  window.onYouTubeIframeAPIReady = function () {
+    try {
+      player = new YT.Player("player", {
+        videoId: id,
+        width: "100%",
+        height: "100%",
+        playerVars: { enablejsapi: 1, rel: 0, origin: location.origin },
+        events: { onReady: onReady, onStateChange: onStateChange }
+      });
+    } catch (_) { /* no player: the page stays a black box, as before */ }
+  };
+  var api = document.createElement("script");
+  api.src = "https://www.youtube.com/iframe_api";
+  document.head.appendChild(api);
 })();
 </script>
 </body>

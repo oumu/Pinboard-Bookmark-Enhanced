@@ -3630,6 +3630,7 @@
   "mdVideoAsr": { "message": "auto-generated" },
   "mdVideoViewReading": { "message": "Reading view" },
   "mdVideoViewTimeline": { "message": "Timeline" },
+  "mdVideoFollow": { "message": "Follow playback" },
   "mdVideoSeekTo": { "message": "Jump to $TIME$", "placeholders": { "time": { "content": "$1" } } },
   "mdVideoCopyFailed": { "message": "Copy failed" },
   "mdVideoOpenExternal": { "message": "Open on YouTube" }

@@ -3636,6 +3636,7 @@
   "mdVideoAsr": { "message": "自動產生" },
   "mdVideoViewReading": { "message": "閱讀稿" },
   "mdVideoViewTimeline": { "message": "時間軸" },
+  "mdVideoFollow": { "message": "跟隨播放" },
   "mdVideoSeekTo": { "message": "跳至 $TIME$", "placeholders": { "time": { "content": "$1" } } },
   "mdVideoCopyFailed": { "message": "複製失敗" },
   "mdVideoOpenExternal": { "message": "在 YouTube 開啟" }

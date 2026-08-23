@@ -207,6 +207,17 @@ check("markdown: heading + source line + paragraphs", md.startsWith("## ") && md
 assertEq(pbpVideoFmtTime(65), "1:05", "m:ss");
 assertEq(pbpVideoFmtTime(3671), "1:01:11", "h:mm:ss");
 
+section("pbpVideoRowIndexAt (current-row search)");
+// SEGS starts at 0/2.1/10; ROWS below adds a non-zero first segment so
+// "before the first row" is a real state rather than an impossible one.
+const ROWS = [ { from: 5, to: 7, content: "a" }, { from: 7, to: 9, content: "b" }, { from: 20, to: 22, content: "c" } ];
+assertEq(pbpVideoRowIndexAt(ROWS, 1), -1, "t before the first segment -> -1");
+assertEq(pbpVideoRowIndexAt(ROWS, 7), 1, "exact boundary belongs to the segment it starts");
+assertEq(pbpVideoRowIndexAt(ROWS, 8.4), 1, "mid-segment t");
+assertEq(pbpVideoRowIndexAt(ROWS, 9999), 2, "past the end holds the last segment");
+assertEq(pbpVideoRowIndexAt([], 5), -1, "empty transcript -> -1");
+assertEq(pbpVideoRowIndexAt([{ from: 0, to: 3, content: "only" }], 2), 0, "single segment");
+
 section("pbpYtFetchTranscript over the watch page");
 await (async () => {
   let sawCreds = null, sawUrl = null;

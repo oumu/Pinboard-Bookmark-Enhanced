@@ -280,6 +280,28 @@ function pbpVideoApplyPunctText(segments, punctText) {
   return out;
 }
 
+// Which transcript row is the player inside at time t? Index of the LAST
+// segment whose `from` is <= t, or -1 when t precedes the first segment (and
+// for an empty list). Binary search rather than a scan because the relay
+// reports four times a second and an hour-long video runs into the thousands
+// of segments. Segments are assumed sorted by `from` -- every producer in
+// this file emits them in track order.
+function pbpVideoRowIndexAt(segments, t) {
+  const segs = segments || [];
+  const time = +t;
+  if (!segs.length || !Number.isFinite(time)) return -1;
+  let lo = 0, hi = segs.length - 1, found = -1;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    // Number(undefined) is NaN, not 0: a segment with no `from` must not read
+    // as "starts at 0" and swallow every earlier row.
+    const from = Number(segs[mid] && segs[mid].from);
+    if (Number.isFinite(from) && from <= time) { found = mid; lo = mid + 1; }
+    else hi = mid - 1;
+  }
+  return found;
+}
+
 function pbpVideoFmtTime(sec) {
   sec = Math.max(0, Math.floor(+sec || 0));
   const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
@@ -697,6 +719,14 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   // these null, so setStudyView is a harmless no-op there.
   let _studyReadingEl = null, _studyListEl = null;
   let _toggleReadingBtn = null, _toggleTimelineBtn = null;
+
+  // Playback-position sync (Task 6). _followOn is the toggle's state (default
+  // ON); _currentRowIdx/_currentRowEl are the highlighted row (index for
+  // change detection, element for the actual class removal -- a re-render
+  // replaces the nodes, so the index alone would clear the wrong row).
+  let _followOn = true, _followBtn = null;
+  let _currentRowIdx = -1, _currentRowEl = null;
+  let _helloTimer = null, _helloTries = 0, _relayAlive = false;
 
   // Same-origin caption fetch, executed INSIDE an open YouTube tab. From the
   // page's own context the watch HTML answers with an OK playabilityStatus
@@ -1139,6 +1169,122 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     post("playVideo");
   }
 
+  // ---- playback-position sync (Task 6) -------------------------------
+  // The relay (docs/yt-embed.html) stays silent until we speak: it arms its
+  // outbound reporting on the FIRST valid inbound message and replies only to
+  // that message's origin. "hello" is that opener. The relay page loads
+  // YouTube's IFrame API before its player exists, but its message listener
+  // is registered synchronously -- still, the frame's document may not have
+  // run at all when we mount it, so the greeting repeats until an answer
+  // comes back (or 10s of silence: no relay, no protocol, no harm).
+  function sendRelayHello() {
+    if (!_iframe || !_iframe.contentWindow) return;
+    try {
+      _iframe.contentWindow.postMessage({ pbpVideo: 1, func: "hello", args: [] }, RELAY_ORIGIN);
+    } catch (_) { /* frame gone mid-flight; the interval below stops itself */ }
+  }
+
+  function stopRelayHello() {
+    if (_helloTimer) { clearInterval(_helloTimer); _helloTimer = null; }
+  }
+
+  function startRelayHello() {
+    stopRelayHello();
+    _relayAlive = false;
+    _helloTries = 0;
+    sendRelayHello();
+    _helloTimer = setInterval(() => {
+      if (_relayAlive || !_iframe || ++_helloTries > 20) { stopRelayHello(); return; }
+      sendRelayHello();
+    }, 500);
+  }
+
+  // Inbound half of the protocol. Registered ONCE, at module load, and every
+  // message is validated on BOTH origin and source before a single field is
+  // read out of it: any page can postMessage to this one, and e.origin alone
+  // does not prove the message came from OUR frame. Anything that fails is
+  // dropped in silence -- no logging (it would be a free console-spam channel
+  // for third parties).
+  function onRelayMessage(e) {
+    if (e.origin !== RELAY_ORIGIN) return;
+    if (!_iframe || !_iframe.contentWindow || e.source !== _iframe.contentWindow) return;
+    const d = e.data;
+    if (!d || typeof d !== "object" || d.pbpVideo !== 1) return;
+    // "ready" carries no data and moves nothing on screen; it is proof of
+    // life only, which is what lets the greeting loop stop early.
+    if (d.event === "ready") { _relayAlive = true; return; }
+    if (d.event !== "time") return;
+    _relayAlive = true;
+    highlightRowAt(d.t);
+  }
+  window.addEventListener("message", onRelayMessage);
+
+  function transcriptListEl() {
+    return _studyListEl || (_panel ? _panel.querySelector(".pbv-list") : null);
+  }
+
+  // Move the current-row marker. Cheap by design: the relay reports 4x/second
+  // but a row change happens at transcript pace, so everything below the
+  // index comparison runs only on an actual change.
+  function highlightRowAt(t) {
+    const list = transcriptListEl();
+    if (!list) return;
+    const idx = pbpVideoRowIndexAt(_segments, t);
+    if (idx === _currentRowIdx) return;
+    const rows = list.children;
+    // renderTranscript appends in rAF-paced batches, so on a long transcript
+    // the target row may not exist yet. Skip this tick entirely (keeping the
+    // old index so the change is still pending) and let the next report --
+    // 250ms later, by which time more batches have landed -- catch up.
+    if (idx >= 0 && idx >= rows.length) return;
+    if (_currentRowEl) {
+      _currentRowEl.classList.remove("pbv-row--current");
+      _currentRowEl.removeAttribute("aria-current");
+    }
+    _currentRowIdx = idx;
+    _currentRowEl = idx >= 0 ? rows[idx] : null;
+    if (!_currentRowEl) return;
+    _currentRowEl.classList.add("pbv-row--current");
+    _currentRowEl.setAttribute("aria-current", "true");
+    // Follow only when the timeline is the visible study view: scrolling a
+    // hidden list is pointless, and in video-mode the list shares the page
+    // scroller with the article -- following while the user reads would drag
+    // the article out from under them.
+    if (_followOn && !list.hidden) {
+      try { _currentRowEl.scrollIntoView({ block: "nearest" }); } catch (_) {}
+    }
+  }
+
+  function clearCurrentRow() {
+    if (_currentRowEl) {
+      _currentRowEl.classList.remove("pbv-row--current");
+      _currentRowEl.removeAttribute("aria-current");
+    }
+    _currentRowIdx = -1;
+    _currentRowEl = null;
+  }
+
+  function setFollow(on) {
+    _followOn = !!on;
+    if (_followBtn) _followBtn.setAttribute("aria-pressed", _followOn ? "true" : "false");
+  }
+
+  // Any scroll/seek intent inside the list means the user took the wheel;
+  // auto-scrolling on top of that is the classic fight-the-user bug. Follow
+  // stays off until they press the toggle again -- named handlers so a second
+  // runLoad on the same list re-registers nothing.
+  function onListWheel() { if (_followOn) setFollow(false); }
+  function onListTouch() { if (_followOn) setFollow(false); }
+  const FOLLOW_PAUSE_KEYS = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "PageUp", "PageDown", "Home", "End"]);
+  function onListKeydown(e) { if (_followOn && FOLLOW_PAUSE_KEYS.has(e.key)) setFollow(false); }
+
+  function bindFollowPause(list) {
+    if (!list) return;
+    list.addEventListener("wheel", onListWheel, { passive: true });
+    list.addEventListener("touchstart", onListTouch, { passive: true });
+    list.addEventListener("keydown", onListKeydown);
+  }
+
   // Task 4 row shape: .pbv-row is a plain container (selectable text needs a
   // non-button ancestor), button.pbv-time is the only interactive control
   // (seek), span.pbv-text carries the transcript text. Static (non-seekable)
@@ -1173,6 +1319,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   // everything else synchronously rather than silently stalling forever.
   function renderTranscript(listEl, segments, seekable) {
     listEl.textContent = "";
+    clearCurrentRow(); // the highlighted node just stopped existing
     const epoch = ++_renderEpoch; // this call's token -- see the field comment above
     const BATCH = 200;
     const total = segments.length;
@@ -1610,6 +1757,12 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         : RELAY_BASE + "?v=" + encodeURIComponent(detected.videoId);
       _iframe.allow = "encrypted-media; picture-in-picture; fullscreen";
       _iframe.title = t("mdVideoTitle");
+      // First chance to greet the relay: its listener is registered in the
+      // page's first synchronous script, so by load it is certainly up. The
+      // repeating greeting below covers the race where this fires early or
+      // not at all (cross-origin load events are still delivered, but a
+      // failed load fires none).
+      _iframe.addEventListener("load", sendRelayHello);
       media.appendChild(_iframe);
       const bar = el("div", "pbv-bar");
       const status = el("span", "pbv-status");
@@ -1698,6 +1851,21 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       });
       bar.appendChild(trackSel); bar.appendChild(copyBtn); bar.appendChild(aiBtn);
       if (detected.provider === "youtube") {
+        // Follow toggle (Task 6). Same bar-button family as Copy / AI
+        // punctuation (.pbv-copy, .pbv-ai-punct in md-preview.css), plus the
+        // project's standard pressed vocabulary for a real toggle button
+        // (aria-pressed, no checkbox, no checkmark glyph). Labelled text, so
+        // no icon and no separate aria-label. YouTube-only (this branch) and
+        // video-mode-only: the position protocol exists for the relay player,
+        // and the timeline it scrolls lives in the workspace study column.
+        const followBtn = el("button", "pbv-follow");
+        followBtn.type = "button";
+        followBtn.textContent = t("mdVideoFollow");
+        followBtn.hidden = !document.body.classList.contains("video-mode");
+        _followBtn = followBtn;
+        setFollow(true); // default ON; also writes the initial aria-pressed
+        followBtn.addEventListener("click", () => setFollow(!_followOn));
+        bar.appendChild(followBtn);
         // Relay-failure degrade: the player depends on GitHub Pages staying
         // up; this always-present link needs no failure detection (a
         // cross-origin iframe load can't be inspected for a 404/DNS failure)
@@ -1718,8 +1886,11 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       // _studyListEl, so it keeps building + keeping the list in-panel, as
       // before.
       const body = _studyListEl || el("div", "pbv-list");
+      bindFollowPause(body);
       panel.replaceChildren(media, bar);
       if (!_studyListEl) panel.appendChild(body);
+      // The frame is in the document now, so it has a contentWindow to greet.
+      if (detected.provider === "youtube") startRelayHello();
       // contains BEFORE request: permissions.request demands a user gesture
       // even for already-granted origins, so the automatic load below (no
       // gesture) would die on "permission declined" despite a standing grant.

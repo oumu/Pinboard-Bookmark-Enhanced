@@ -3470,13 +3470,18 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
 }
 .pbv-tracks:hover { background-color: var(--btn-hover); }
 .pbv-tracks:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
-.pbv-copy, .pbv-ai-punct {
+.pbv-copy, .pbv-ai-punct, .pbv-follow {
   min-height: 28px; padding: 4px 10px; font: inherit; cursor: pointer;
   border: 1px solid var(--btn-border); background: var(--btn-bg); color: var(--btn-fg); border-radius: 6px;
 }
-.pbv-copy:hover, .pbv-ai-punct:hover { background: var(--btn-hover); }
-.pbv-copy:focus-visible, .pbv-ai-punct:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.pbv-copy:hover, .pbv-ai-punct:hover, .pbv-follow:hover { background: var(--btn-hover); }
+.pbv-copy:focus-visible, .pbv-ai-punct:focus-visible, .pbv-follow:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
 .pbv-ai-punct { display: inline-flex; align-items: center; gap: 5px; }
+/* Follow-playback toggle (Task 6): a real toggle button (aria-pressed, no
+   checkbox, no checkmark glyph), pressed in the same vocabulary as
+   .srch-regex / .typo-seg-btn. Declared after :hover so the pressed state
+   wins while the pointer is over it. */
+.pbv-follow[aria-pressed="true"] { background: var(--btn-hover); border-color: var(--link); color: var(--link); }
 .pbv-status { font-size: 0.9em; color: var(--fg-muted); }
 .pbv-list {
   max-height: 40vh; overflow-y: auto; display: flex; flex-direction: column; gap: 2px;
@@ -3502,6 +3507,12 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
 .pbv-row--static .pbv-time { cursor: default; }
 .pbv-row--static .pbv-time:hover { background: transparent; opacity: 0.65; }
 .pbv-text { flex: 1; }
+/* The row the player is currently inside (Task 6, fed by the relay's position
+   reports). Never a colour-only signal: the inset start border is the same
+   box-shadow idiom the highlight mirrors use ([data-pb-hl-mirror] above), so
+   it adds no border box and no layout shift as the marker moves down the
+   list four times a second. */
+.pbv-row--current { background: var(--btn-hover); box-shadow: inset 2px 0 0 0 var(--link); }
 
 /* ---- video-mode workspace (A2) ---- */
 /* Widens the reading column edge-to-edge for the two-column layout below.
