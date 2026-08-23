@@ -3593,6 +3593,13 @@ body.video-mode .pbv-col-study .pbv-list { max-height: none; overflow: visible; 
 }
 #video-description > summary { cursor: pointer; color: var(--fg-muted); }
 #video-description[open] > summary { margin-bottom: 8px; }
+/* Minimal reading rhythm for the rendered description markdown (fix round 1
+   -- UA defaults alone read too cramped). Tokens only, scoped to this block;
+   #rendered-view's own prose rules don't reach here (different ancestor). */
+details#video-description .desc-body { line-height: 1.65; color: var(--fg, inherit); }
+details#video-description .desc-body p { margin: 0.6em 0; }
+details#video-description .desc-body img { max-width: 100%; height: auto; }
+details#video-description .desc-body a { color: var(--link); }
 
 /* ---- Image galleries (md-convert.js's turndown "gallery" rule) ---- */
 /* MediaWiki ul.gallery.mw-gallery-traditional (and its structurally-detected

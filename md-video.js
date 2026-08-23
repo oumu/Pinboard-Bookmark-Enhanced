@@ -1730,7 +1730,21 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       let granted = false;
       try { granted = await chrome.permissions.contains({ origins: [originPat] }) === true; } catch (_) {}
       if (!granted) granted = await requestVideoOrigin(detected);
-      if (!granted) { status.textContent = t("mdVideoPermMissing"); return; }
+      if (!granted) {
+        status.textContent = t("mdVideoPermMissing");
+        // Declined/failed permission dead end (fix round 1): cta was already
+        // detached from the panel above (replaceChildren(media, bar), before
+        // this check ran) -- disabling it alone would leave nothing on
+        // screen to click again. Restore the poster card as the retry entry
+        // point, same idiom the auto-load catch handler below already uses
+        // for an early failure. Each click is a fresh user gesture, so this
+        // creates no loop: nothing re-clicks cta automatically while ungranted.
+        cta.disabled = false;
+        // Keep the bar too: the decline message lives in it -- restoring the
+        // poster alone would silently eat the "permission declined" status.
+        panel.replaceChildren(cta, bar);
+        return;
+      }
       await loadFlow(detected, status, body, trackSel, copyBtn, aiBtn);
     }
 
