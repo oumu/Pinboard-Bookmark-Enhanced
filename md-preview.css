@@ -1469,6 +1469,20 @@ body.raw-active #toc { display: none; }
 /* Skim is an AI overlay on the rendered doc; raw view shows literal
    markdown source with zero AI chrome. */
 body.raw-active #skim-section { display: none; }
+/* video-mode workspace (A2/Task 7): raw markdown IS the transcript, so the
+   player, the reading/timeline toggle, the timeline list, and the collapsed
+   source description add nothing over the literal source text -- same
+   treatment as #toc/#skim-section above. #raw-view itself needs no rule
+   here; the existing raw-view toggle (md-preview.js) already shows it. Each
+   selector already outranks its own feature's base rule on specificity
+   alone (#video-panel and details#video-description carry an id;
+   .pbv-view-toggle/.pbv-list gain the extra body.raw-active class), so this
+   is order-independent -- unlike the print rules below, which need source
+   order (see the note there). */
+body.raw-active #video-panel,
+body.raw-active .pbv-view-toggle,
+body.raw-active .pbv-list,
+body.raw-active details#video-description { display: none; }
 
 /* Empty state: hide the rail + reset the doc offset so the .empty-state centers. */
 body.md-empty .rail { display: none; }
@@ -3611,6 +3625,29 @@ details#video-description .desc-body { line-height: 1.65; color: var(--fg, inher
 details#video-description .desc-body p { margin: 0.6em 0; }
 details#video-description .desc-body img { max-width: 100%; height: auto; }
 details#video-description .desc-body a { color: var(--link); }
+
+/* video-mode print (Task 7). MUST live AFTER every rule above it selects
+   against, equal-specificity ties included: media queries add no
+   specificity of their own (same trap the main @media print block and the
+   consolidated open-popover block above already document), so a rule
+   placed earlier in the file loses a tie to one declared later, print
+   media or not.
+   - body.video-mode .doc-body (0,2,0) ties the unscoped
+     `body.video-mode .doc-body { max-width: min(2160px, 100%); ... }`
+     above (~:3551) -- placed after it here so paper gets the same
+     880px pin as every other page (--pbp-width, the screen zen/reading
+     width, is likewise not a print concern; see the main print block).
+   - .pbv-list (0,1,0) ties its own `display: flex` base rule above
+     (~:3500) for the same reason.
+   #video-panel (an id) and details#video-description (an id) already
+   outrank their own base rules on specificity alone and would print-hide
+   regardless of position; kept here anyway so every video-mode print rule
+   reads as one group. The transcript article (#rendered-view) is left
+   untouched -- it is the thing printing. */
+@media print {
+  body.video-mode .doc-body { max-width: 880px; }
+  #video-panel, .pbv-view-toggle, .pbv-list, details#video-description { display: none; }
+}
 
 /* ---- Image galleries (md-convert.js's turndown "gallery" rule) ---- */
 /* MediaWiki ul.gallery.mw-gallery-traditional (and its structurally-detected
