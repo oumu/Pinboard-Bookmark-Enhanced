@@ -2654,7 +2654,7 @@ check(mdCss.includes("animation-timeline: scroll(self inline);"),
   // WHOLE file, so it still fires when marking the applier async is what moved
   // the slice anchor (which would otherwise be reported only as "anchor moved").
   check(!/\bawait\b/.test(applier),
-    "md-preview.js: the in-place applier awaits -- the scroll-spy teardown inside rebuildToc runs after the DOM swap and is only safe while both happen in one synchronous task");
+    "md-preview.js: the in-place applier awaits -- (1) the scroll-spy teardown inside rebuildToc runs after the DOM swap and is only safe while both happen in one synchronous task; (2) every article-replacement subscriber assumes will-replace and article-replaced arrive back-to-back in ONE task, and md-vocab-echo.js rests on that EXCLUSIVELY (it has no will handler at all) -- an await here silently breaks them");
   check(!/_applyArticleCommit\s*=\s*async\b/.test(src),
     "md-preview.js: an _applyArticleCommit implementation is async -- the applier must run start to finish in one task (renderArticleContent swaps the children, rebuildToc disposes the spy that was watching them)");
   // The event contract T4/T5/T6 consume. Detail keys, not just the names.

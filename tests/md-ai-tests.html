@@ -8871,7 +8871,12 @@ window._t4AsyncDone = (async function () {
 
 <script>
 // ============ T5 (async): skim never auto-spends; the dirty note survives ============
-(async function () {
+// CHAIN CONTRACT (T5 review F2): every async suite that dispatches the
+// article-replacement events must serialize on the previous suite's
+// _t<N>AsyncDone AND publish its own, so the next suite has a handle to
+// join -- two suites firing these events concurrently race the shared
+// module state and produce false greens (caught live during T5).
+window._t5AsyncDone = (async function () {
   // Strictly after the T4 async suite: it dispatches pbp:article-will-replace /
   // pbp:article-replaced too, and those handlers write the very module state
   // (skim's revision fence, its stale bar) these cases assert on.

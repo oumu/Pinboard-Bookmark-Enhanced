@@ -568,6 +568,7 @@ const PBP_HL_COLORS = [1, 2, 3, 4, 5];
 // destroy the original selector on the first mis-anchor (highlights are
 // permanent user data, see _pbpHlSave).
 let _pbpHlState = null;
+let _pbpHlInitInFlight = false; // pbpHlInit re-entry latch (T5 review F1)
 
 // ---- In-place article replacement fences (see the two handlers at the
 // bottom of this file). _pbpHlArticleRev counts replacements monotonically;
@@ -617,7 +618,13 @@ function _pbpHlCurrentFp() {
 
 async function pbpHlInit(detail) {
   const view = document.getElementById("rendered-view");
-  if (!view || _pbpHlState) return;
+  // _pbpHlState is only assigned AFTER the storage read below, so two calls
+  // landing inside one read (a second article-replaced during the first's
+  // await -- reachable since the replaced retry, T5 review F1) would both
+  // pass the state guard and both reach _pbpHlBindInteractions, duplicating
+  // its anonymous listeners. The in-flight latch closes that window; it
+  // releases in finally so a bailed init never wedges the retry path.
+  if (!view || _pbpHlState || _pbpHlInitInFlight) return;
   // D10 guard 2 (never unconditionally re-index): only take the first-index
   // path when there is BOTH no index yet AND no .pb-tr sentinel (meaning
   // translation never ran and never indexed either); otherwise, if the
@@ -627,16 +634,21 @@ async function pbpHlInit(detail) {
     if (!view.querySelector(".pb-tr")) pbpAiIndexBlocks(view);
     if (!pbpAiBlocks().length) return;
   }
-  const url = String((detail && detail.url) || "");
-  const title = String((detail && detail.title) || "");
-  const items = await _pbpHlLoad(url);
-  _pbpHlState = { url, title, items, ranges: Object.create(null), degraded: Object.create(null), resolvedN: Object.create(null), orphans: Object.create(null) };
-  pbpHlRestore();
-  // Restored-from-storage highlights must surface the rail entry on first
-  // paint too -- storage.local.get fires no onChanged, so without this call
-  // the rail stays hidden until the session's first mutation (create/delete).
-  _pbpHlNotebookRender();
-  _pbpHlBindInteractions(view); // Task 4
+  _pbpHlInitInFlight = true;
+  try {
+    const url = String((detail && detail.url) || "");
+    const title = String((detail && detail.title) || "");
+    const items = await _pbpHlLoad(url);
+    _pbpHlState = { url, title, items, ranges: Object.create(null), degraded: Object.create(null), resolvedN: Object.create(null), orphans: Object.create(null) };
+    pbpHlRestore();
+    // Restored-from-storage highlights must surface the rail entry on first
+    // paint too -- storage.local.get fires no onChanged, so without this call
+    // the rail stays hidden until the session's first mutation (create/delete).
+    _pbpHlNotebookRender();
+    _pbpHlBindInteractions(view); // Task 4
+  } finally {
+    _pbpHlInitInFlight = false;
+  }
 }
 
 // Build (or rebuild) one item's Range: locate the quote in blockText, map
