@@ -1479,6 +1479,10 @@ body.raw-active #skim-section { display: none; }
    .pbv-view-toggle/.pbv-list gain the extra body.raw-active class), so this
    is order-independent -- unlike the print rules below, which need source
    order (see the note there). */
+/* Raw view in video-mode: the raw <pre> never joins the workspace, so pin
+   it back to the article width instead of the 2160px workspace ceiling
+   (final-review L2). */
+body.video-mode.raw-active .doc-body { max-width: 880px; }
 body.raw-active #video-panel,
 body.raw-active .pbv-view-toggle,
 body.raw-active .pbv-list,

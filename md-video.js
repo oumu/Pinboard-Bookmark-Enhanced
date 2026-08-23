@@ -248,7 +248,7 @@ function pbpVideoPunctConserved(original, punctuated) {
 
 // Map AI-punctuated text back onto the timed segments, so the panel rows
 // (and their seek timestamps) get the punctuation too -- without this the
-// AI pass was invisible until Copy/Use-as-article. Deterministic because
+// AI pass was invisible everywhere except the committed article text. Deterministic because
 // the conservation gate guarantees identical non-punctuation character
 // streams: each segment consumes its own count of non-punctuation chars
 // from the AI text, absorbing the marks between and right after them.
@@ -708,7 +708,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   // newer call has bumped _renderEpoch past it.
   let _renderEpoch = 0;
   let _isBili = false; // provider of the mounted player -- seekTo() picks its jump mechanism by it
-  let _aiPunctParas = null; // AI-punctuated paragraphs; Copy/Use-as-article prefer them when present
+  let _aiPunctParas = null; // AI-punctuated paragraphs; Copy and the transcript commits prefer them
   let _ctxTabId = null;   // source tab from pbpVideoInit ctx (may be gone by click time)
   let _ytFetchFn = null;  // tab-injected fetchFn when the tab route won; null = extension-page fetch
   window.pbpVideoSession = null; // latest prepareVideoSession() result, for md-preview.js
@@ -1527,9 +1527,16 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         const sa = typeof pbpAiGetSettings === "function" ? await pbpAiGetSettings() : null;
         aiOk = !!(sa && typeof pbpAiAvailable === "function" && pbpAiAvailable(sa));
       } catch (_) {}
-      aiBtn.hidden = !(wasUnpunct && (res.segments || []).length && aiOk);
+      const committedDoc = !!(window.pbpVideoDoc && window.pbpVideoDoc.committed);
+      aiBtn.hidden = !(wasUnpunct && (res.segments || []).length && aiOk && !committedDoc);
     }
     copyBtn.hidden = !(res.segments || []).length;
+    // Reveal the study-view toggle and the follow control only when there
+    // is a transcript to switch to / follow (final-review M6).
+    const hasSegs = (res.segments || []).length > 0;
+    const tgEl = document.querySelector(".pbv-view-toggle");
+    if (tgEl) tgEl.hidden = !hasSegs;
+    if (_followBtn) _followBtn.hidden = !(hasSegs && document.body.classList.contains("video-mode") && detected.provider === "youtube");
     _segments = res.segments || [];
     // ONE meta construction (pbpVideoTranscriptMeta) shared with md-preview.js:
     // Copy, the first-run commit below, and the AI-punctuation commit all read
@@ -1545,10 +1552,14 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         segs = pbpVideoHeuristicPunctuate(segs);
       }
       _aiPunctParas = null; // a new track invalidates the previous AI pass
-      const priorSegments = _segments; // captured BEFORE reassignment, for the no-op guard below
       _segments = segs;
       const sel = trackSel.selectedOptions && trackSel.selectedOptions[0];
-      _meta.trackLabel = sel ? sel.textContent : "";
+      // Heading label through the single meta builder's vocabulary, NOT the
+      // option text -- the option carries the " (auto-generated)" UI suffix,
+      // and committing that rewrote the article H2/TOC (final-review L4).
+      const selTrack = (window.pbpVideoSession && (window.pbpVideoSession.tracks || []).find(
+        (tr) => (tr.baseUrl || tr.subtitle_url) === trackSel.value)) || null;
+      _meta.trackLabel = selTrack ? (selTrack.label || selTrack.lan_doc || "") : ((sel && sel.textContent) || "");
       copyBtn.hidden = !segs.length;
       renderTranscript(bodyEl, segs, true);
       // Atomic track switch (Task 5): the timeline above already follows the
@@ -1556,10 +1567,8 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       // too, keep it in sync the same way as the AI-punctuation pass --
       // write + reload through the single committer (md-preview.js owns the
       // account/tags/description contract). Guarded against an empty fetch
-      // (session.error paths already messaged via statusEl above) and a
-      // reference-identical no-op switch (segs === the segments already on
-      // screen -- nothing actually changed, so no reload is warranted).
-      if (segs.length && segs !== priorSegments && window.pbpVideoDoc
+      // (session.error paths already messaged via statusEl above).
+      if (segs.length && window.pbpVideoDoc
           && window.pbpVideoDoc.kind === "video-transcript"
           && typeof window.pbpVideoCommitTranscript === "function") {
         window.pbpVideoCommitTranscript(pbpVideoTranscriptMarkdown(segs, _meta, null), _meta.title || "");
@@ -1685,7 +1694,12 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     studyCol.appendChild(skimSlot);
     if (existingSkim) skimSlot.appendChild(existingSkim);
 
-    studyCol.appendChild(buildViewToggle());
+    const viewToggle = buildViewToggle();
+    // Hidden until captions actually exist: on caption-less pages the
+    // Timeline segment swapped the article for an empty bordered box with
+    // no explanation (final-review M6). loadFlow unhides it.
+    viewToggle.hidden = true;
+    studyCol.appendChild(viewToggle);
 
     playerCol.appendChild(panel);
     docBody.insertBefore(workspace, view);
@@ -1766,7 +1780,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     // rejection handler below has somewhere to report to.
     let statusRef = null;
 
-    async function runLoad() {
+    async function runLoad(fromClick) {
       cta.disabled = true;
       // player iframe mounts immediately (no permission needed for a frame)
       const media = el("div", "pbv-media");
@@ -1881,7 +1895,10 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         const followBtn = el("button", "pbv-follow");
         followBtn.type = "button";
         followBtn.textContent = t("mdVideoFollow");
-        followBtn.hidden = !document.body.classList.contains("video-mode");
+        // starts hidden even in video-mode: a page whose captions never
+        // arrive must not offer a follow control (final-review M6);
+        // loadFlow unhides it when segments actually exist.
+        followBtn.hidden = true;
         _followBtn = followBtn;
         setFollow(true); // default ON; also writes the initial aria-pressed
         followBtn.addEventListener("click", () => setFollow(!_followOn));
@@ -1920,7 +1937,11 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       const originPat = detected.provider === "bilibili" ? BILI_ORIGIN : YT_ORIGIN;
       let granted = false;
       try { granted = await chrome.permissions.contains({ origins: [originPat] }) === true; } catch (_) {}
-      if (!granted) granted = await requestVideoOrigin(detected);
+      // Only a real click may escalate to permissions.request (Chrome
+      // rejects it without a gesture anyway, and the host-permission rule
+      // says automatic paths only ever check) -- the auto-boot path lands
+      // on the poster card instead, whose click re-enters with the gesture.
+      if (!granted && fromClick === true) granted = await requestVideoOrigin(detected);
       if (!granted) {
         status.textContent = t("mdVideoPermMissing");
         // Declined/failed permission dead end (fix round 1): cta was already
@@ -1933,13 +1954,17 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         cta.disabled = false;
         // Keep the bar too: the decline message lives in it -- restoring the
         // poster alone would silently eat the "permission declined" status.
-        panel.replaceChildren(cta, bar);
+        // And keep the PLAYER when it already mounted: privacy.md guarantees
+        // the embed loads without the subtitle grant, so a decline must only
+        // cost the captions, never tear the video out (final-review H2).
+        if (_iframe && _iframe.isConnected) panel.replaceChildren(media, bar);
+        else panel.replaceChildren(cta, bar);
         return;
       }
       await loadFlow(detected, status, body, trackSel, copyBtn, aiBtn);
     }
 
-    cta.addEventListener("click", runLoad);
+    cta.addEventListener("click", () => runLoad(true));
     // The session already holds this video's transcript (md-preview.js ran it
     // before rendering, and the article the user is reading IS that
     // transcript), so the origin grant is standing and there is nothing left
@@ -1956,7 +1981,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       // one would leave the panel wedged mid-swap with no way back. Report it
       // where the user is looking, and if the swap never got as far as the
       // status line, put the poster card back as the retry entry.
-      runLoad().catch((e) => {
+      runLoad(false).catch((e) => {
         console.warn("[pbp-video] auto load:", (e && e.message) || e);
         if (statusRef) statusRef.textContent = t("mdVideoFailed");
         else { cta.disabled = false; panel.replaceChildren(cta); }

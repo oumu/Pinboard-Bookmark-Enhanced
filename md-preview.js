@@ -833,7 +833,12 @@ function pbpApplyColorScheme(mode) {
     if (vDetected) {
       document.body.classList.add("video-mode");
       let vSession = null;
-      if (typeof window.pbpPrepareVideoSession === "function") {
+      // Committed-transcript payloads (videoTranscript flag) skip the whole
+      // capture session: the article is already decided, and gating first
+      // paint on a network chain whose result gets ignored held every F5 of
+      // a committed page at "Loading subtitles" (final-review M2). The panel
+      // still fetches captions lazily through loadFlow after mount.
+      if (info.videoTranscript !== true && typeof window.pbpPrepareVideoSession === "function") {
         // #rendered-view is still empty here (the render() call that fills
         // it is far below, after this whole block) -- without this the page
         // shows a blank article while captions fetch. The pending/restore
@@ -859,13 +864,16 @@ function pbpApplyColorScheme(mode) {
         // already IS the transcript (possibly AI-punctuated). Re-deriving one
         // from the session would throw that pass away. The description rides
         // along in the payload -- it cannot be re-extracted from here.
-        window.pbpVideoDoc = { kind: "video-transcript", descriptionMarkdown: info.videoDescriptionMd || "" };
+        window.pbpVideoDoc = { kind: "video-transcript", descriptionMarkdown: info.videoDescriptionMd || "", committed: true };
       } else if (vSegments.length && typeof pbpVideoTranscriptMarkdown === "function"
                  && typeof pbpVideoTranscriptMeta === "function") {
         window.pbpVideoDoc = { kind: "video-transcript", descriptionMarkdown: _extractedMarkdown };
         _videoMarkdown = pbpVideoTranscriptMarkdown(vSegments, pbpVideoTranscriptMeta(vSession, title, sourceTabUrl || url));
       } else {
-        window.pbpVideoDoc = { kind: "video-fallback", descriptionMarkdown: "" };
+        // Keep the description here too: the first-run promotion commit reads
+        // it off this object, and an empty stash silently killed the
+        // description block for that whole session (final-review M1).
+        window.pbpVideoDoc = { kind: "video-fallback", descriptionMarkdown: _extractedMarkdown };
       }
     }
   }
@@ -1881,7 +1889,7 @@ function pbpApplyColorScheme(mode) {
   btnRaw.addEventListener("click", () => {
     const blocks = pbpScrollMapBlocks();
     let frac = null;
-    if (blocks.length && !renderedView.classList.contains("hidden")) {
+    if (blocks.length && !renderedView.classList.contains("hidden") && !renderedView.hidden) {
       const idx = blocks.findIndex((b) => trOnlyScrollTarget(b.el).getBoundingClientRect().bottom > 0);
       frac = (idx === -1 ? blocks.length - 1 : idx) / blocks.length;
     }
@@ -1945,7 +1953,7 @@ function pbpApplyColorScheme(mode) {
   let _pbpScrollRestoreUntil = 0;
 
   function _pbpReaderSaveScroll() {
-    if (renderedView.classList.contains("hidden")) return; // raw view active: rects would read 0x0
+    if (renderedView.classList.contains("hidden") || renderedView.hidden) return; // raw or timeline view active: rects would read 0x0
     if (typeof pbpAiHash !== "function") return;
     const key = "scroll_" + pbpAiHash(url);
     if (window.scrollY <= window.innerHeight) {
