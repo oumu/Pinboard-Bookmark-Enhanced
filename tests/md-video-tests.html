@@ -703,6 +703,165 @@ section("commit call-site videoState round trips");
   assertEq(disambiguate(tracks, "youtube").join(","), "yt:en,yt:de", "a collision-free list gains no suffixes");
 })();
 
+// The F5 half of the same contract: md-preview.js's committed bootstrap
+// hydrates a persisted videoState back into window.pbpVideoSession, and the
+// panel then redraws the timeline and the picker from it WITHOUT touching the
+// network. Everything below is what that hydration depends on -- the gate
+// accepting a state its own builder produced, the selected key finding its
+// track again, a descriptor still being addressable as a track, and the gate
+// refusing anything that drifted from the article.
+section("F5 hydration: videoState -> session");
+(() => {
+  // Mirror of the ONE decision md-preview.js makes on hydration: map
+  // selectedTrackKey back onto an entry of videoState.tracks. Kept here as an
+  // executable statement of the property, not as a copy of that file.
+  const resolveTrack = (state) => {
+    const tracks = Array.isArray(state.tracks) ? state.tracks : [];
+    return state.selectedTrackKey
+      ? (tracks.find((tr) => tr && tr.key === state.selectedTrackKey) || null)
+      : null;
+  };
+
+  const ytDet = { provider: "youtube", videoId: "dQw4w9WgXcQ" };
+  const enTrack = { baseUrl: "https://x/en.xml?pot=OLD", lang: "en", label: "English", asr: false };
+  const deTrack = { baseUrl: "https://x/de.xml?pot=OLD", lang: "de", label: "Deutsch", asr: false };
+  const tracks = [enTrack, deTrack];
+  const segs = [{ from: 0, to: 2, content: "Guten Tag." }, { from: 2, to: 4, content: "Danke." }];
+  const meta = { title: "V", url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", trackLabel: "Deutsch" };
+  const state = pbpVideoStateBuild({
+    detected: ytDet, track: deTrack, tracks, segments: segs,
+    aiParas: null, wasUnpunct: false, aiPunct: false, meta
+  });
+  const canonical = pbpVideoTranscriptMarkdown(segs, meta, null);
+  assertEq(pbpVideoStateValidate(state, ytDet, canonical), true, "hydration gate accepts the state its own builder produced");
+  const hydTrack = resolveTrack(state);
+  check("selectedTrackKey resolves back to the descriptor the reader was on",
+    !!hydTrack && hydTrack.key === "yt:de" && hydTrack.label === "Deutsch");
+  check("the restored descriptor carries NO endpoint (a signed URL could never survive the reload anyway)",
+    !!hydTrack && !("baseUrl" in hydTrack) && !("subtitle_url" in hydTrack));
+  assertEq(state.tracks.indexOf(hydTrack), 1,
+    "the resolved descriptor IS the list element (the picker marks its selection by identity)");
+  // The picker builds one option per session track and keys each by
+  // pbpVideoTrackKey, so a descriptor has to key to itself or the whole
+  // restored list becomes unaddressable.
+  assertEq(pbpVideoTrackKey(hydTrack, "youtube"), "yt:de", "a descriptor keys to its own stored key");
+  assertEq(pbpVideoTrackKey(state.tracks[0], "youtube"), "yt:en", "...for every entry of the restored list");
+  // A later commit rebuilds the article's H2 from this label. If it differed
+  // from the persisted one, the heading (and the TOC) would change under the
+  // reader on the first Copy/commit after an F5.
+  assertEq(pbpVideoTranscriptMeta({ track: hydTrack, meta: state.meta }, "", meta.url).trackLabel, state.meta.trackLabel,
+    "meta rebuilt from the hydrated track reproduces the persisted trackLabel");
+
+  // bilibili is the case that makes descriptor-awareness load-bearing rather
+  // than cosmetic: a descriptor keeps `lan` under `lang` and `lan_doc` under
+  // `label`, so a key recomputed from the provider-native fields is "".
+  const biliDet = { provider: "bilibili", bvid: "BV1xx411c7mD", part: 3 };
+  const biliTracks = [
+    { subtitle_url: "//x/zh.json", lan: "zh-CN", lan_doc: "中文" },
+    { subtitle_url: "//x/ai.json", lan: "ai-zh", lan_doc: "中文(AI)" }
+  ];
+  const biliSegs = [{ from: 0, to: 2, content: "你好。" }];
+  const biliMeta = { title: "B", url: "https://www.bilibili.com/video/BV1xx411c7mD?p=3", trackLabel: "中文(AI)" };
+  const biliState = pbpVideoStateBuild({
+    detected: biliDet, track: biliTracks[1], tracks: biliTracks, segments: biliSegs,
+    aiParas: null, wasUnpunct: false, aiPunct: false, meta: biliMeta
+  });
+  assertEq(pbpVideoStateValidate(biliState, biliDet, pbpVideoTranscriptMarkdown(biliSegs, biliMeta, null)), true,
+    "bilibili state round trips through the gate");
+  const biliHyd = resolveTrack(biliState);
+  assertEq(biliHyd && biliHyd.key, "bili:ai-zh", "bilibili: selectedTrackKey resolves to the AI track descriptor");
+  assertEq(pbpVideoTrackKey(biliHyd, "bilibili"), "bili:ai-zh",
+    "bilibili descriptor keys to itself (recomputing from lan/lan_doc would yield \"\" and disable every option)");
+  assertEq(pbpVideoTranscriptMeta({ track: biliHyd, meta: biliState.meta }, "", biliMeta.url).trackLabel, "中文(AI)",
+    "bilibili: the hydrated track still yields the persisted trackLabel");
+
+  // A commit made ON a hydrated session rebuilds videoState from the session's
+  // tracks -- which are descriptors. Describing them a second time has to be a
+  // no-op, or every reload would degrade the stored list a little further.
+  const rebuiltBili = pbpVideoStateBuild({
+    detected: biliDet, track: biliHyd, tracks: biliState.tracks, segments: biliSegs,
+    aiParas: null, wasUnpunct: false, aiPunct: false, meta: biliMeta
+  });
+  assertEq(JSON.stringify(rebuiltBili.tracks), JSON.stringify(biliState.tracks),
+    "re-describing descriptors is idempotent (bilibili's list survives a commit made after an F5)");
+  assertEq(rebuiltBili.selectedTrackKey, biliState.selectedTrackKey, "...and so does the selected key");
+  const rebuiltYt = pbpVideoStateBuild({
+    detected: ytDet, track: hydTrack, tracks: state.tracks, segments: segs,
+    aiParas: null, wasUnpunct: false, aiPunct: false, meta
+  });
+  assertEq(JSON.stringify(rebuiltYt), JSON.stringify(state),
+    "youtube: a whole state rebuilt from a hydrated session is identical to the one it was hydrated from");
+
+  // "" is a real selection state, not corruption: the DOM-scrape rescue tier
+  // reports a track list with no known selection, and the picker answers with
+  // its neutral placeholder instead of claiming a track.
+  const noSelMeta = { title: "V", url: meta.url, trackLabel: "" };
+  const noSel = pbpVideoStateBuild({
+    detected: ytDet, track: null, tracks, segments: segs,
+    aiParas: null, wasUnpunct: false, aiPunct: false, meta: noSelMeta
+  });
+  assertEq(noSel.selectedTrackKey, "", "a rescue-tier state persists an empty selectedTrackKey");
+  assertEq(pbpVideoStateValidate(noSel, ytDet, pbpVideoTranscriptMarkdown(segs, noSelMeta, null)), true,
+    "...which the gate accepts (a track list with no selection is a legitimate state)");
+  assertEq(resolveTrack(noSel), null, "...and which hydrates to track:null, NOT to the first track");
+
+  // A key that no longer matches anything in the list hydrates to null too:
+  // the placeholder is honest, silently selecting another language is not.
+  const orphan = JSON.parse(JSON.stringify(state));
+  orphan.selectedTrackKey = "yt:xx";
+  assertEq(pbpVideoStateValidate(orphan, ytDet, canonical), true,
+    "an unresolvable selectedTrackKey is still a well-formed state (only the shape is checked)");
+  assertEq(resolveTrack(orphan), null, "...and it resolves to null rather than to an arbitrary track");
+
+  // Duplicate keys: the picker's #N suffix is a live-session affordance only,
+  // so a reload can only restore "the track with this key" -- the first one.
+  const dup = [
+    { baseUrl: "https://x/en1.xml", lang: "en", label: "English", asr: false },
+    { baseUrl: "https://x/en2.xml", lang: "en", label: "English (CC)", asr: false }
+  ];
+  const dupState = pbpVideoStateBuild({
+    detected: ytDet, track: dup[1], tracks: dup, segments: segs,
+    aiParas: null, wasUnpunct: false, aiPunct: false, meta
+  });
+  assertEq(dupState.selectedTrackKey, "yt:en", "a duplicate-key selection persists as the bare key (no #N reaches storage)");
+  const dupHyd = resolveTrack(dupState);
+  assertEq(dupState.tracks.indexOf(dupHyd), 0, "on hydration a duplicate pair collapses to the FIRST match (documented limitation)");
+  assertEq(dupHyd.label, "English", "...so the picker lands on 'English', not on the 'English (CC)' that was committed");
+
+  // The paid pass: paragraphs must come back verbatim, and a state that lost
+  // them must not hydrate -- an article visibly carrying AI punctuation whose
+  // Copy/commit re-derives heuristic paragraphs is the exact silent downgrade
+  // this field exists to prevent.
+  const paras = ["Guten Tag. Danke."];
+  const aiMd = pbpVideoTranscriptMarkdown(segs, meta, paras);
+  const aiState = pbpVideoStateBuild({
+    detected: ytDet, track: deTrack, tracks, segments: segs,
+    aiParas: paras, wasUnpunct: true, aiPunct: true, meta
+  });
+  assertEq(pbpVideoStateValidate(aiState, ytDet, aiMd), true, "an AI-punctuated state round trips against the AI markdown");
+  check("hydration carries the paid paragraphs, which really do differ from the heuristic merge",
+    Array.isArray(aiState.paragraphs) && aiState.paragraphs.join("|") === paras.join("|")
+      && aiState.paragraphs.join("|") !== pbpVideoMergeParagraphs(segs).join("|"));
+  assertEq(aiState.aiPunct, true, "...and the aiPunct flag rides along (the AI button stays retired after the reload)");
+  const stripped = JSON.parse(JSON.stringify(aiState));
+  stripped.paragraphs = null;
+  assertEq(pbpVideoStateValidate(stripped, ytDet, aiMd), false,
+    "a state that lost its paragraphs fails the gate (F5 refetches instead of downgrading the article)");
+
+  // Fail-closed, character by character.
+  const tampered = JSON.parse(JSON.stringify(state));
+  tampered.segments[0].content = tampered.segments[0].content.replace("Guten", "Guteo");
+  assertEq(pbpVideoStateValidate(tampered, ytDet, canonical), false,
+    "one flipped character in one segment fails the gate (the timeline may never disagree with the article)");
+  const tamperedMeta = JSON.parse(JSON.stringify(state));
+  tamperedMeta.meta.trackLabel = "English";
+  assertEq(pbpVideoStateValidate(tamperedMeta, ytDet, canonical), false,
+    "a rewritten trackLabel fails the gate (the rebuilt H2 would not be the article's H2)");
+  assertEq(pbpVideoStateValidate(biliState, { provider: "bilibili", bvid: "BV1xx411c7mD", part: 4 },
+    pbpVideoTranscriptMarkdown(biliSegs, biliMeta, null)), false,
+    "part 3's state does not hydrate on part 4 (same bvid, different episode, different subtitles)");
+})();
+
 document.getElementById("summary").textContent = `${pass} passed, ${fail} failed`;
 })();
 </script>

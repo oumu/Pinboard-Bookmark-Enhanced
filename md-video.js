@@ -350,6 +350,16 @@ function pbpVideoTranscriptMeta(session, fallbackTitle, pageUrl) {
 // (state build/validate, track-switch matching) treat "" as "no key".
 function pbpVideoTrackKey(track, provider) {
   if (!track || !provider) return "";
+  // A SAFE DESCRIPTOR (_pbpVideoTrackDescribe's output -- videoState.tracks,
+  // and therefore every track an F5-hydrated session carries) already IS its
+  // own stable key: it stores `key` and deliberately drops the
+  // provider-native fields read below. bilibili is the case that makes this
+  // load-bearing rather than an optimization -- a descriptor keeps `lan`
+  // under `lang` and `lan_doc` under `label`, so recomputing would return ""
+  // and leave every restored track unaddressable by the picker. Real
+  // provider tracks never carry a `key` property, so this branch is
+  // descriptor-only.
+  if (typeof track.key === "string") return track.key;
   if (provider === "youtube") {
     const lang = track.lang || "";
     return lang ? "yt:" + lang + (track.asr ? ":asr" : "") : "";
@@ -393,6 +403,18 @@ function pbpVideoTranscriptMarkdown(segments, meta, paragraphsOverride) {
 // that 404s. Runtime re-maps a stable key back to a live endpoint only when
 // the user actually switches tracks.
 function _pbpVideoTrackDescribe(track, provider) {
+  // IDEMPOTENT: a commit made ON an F5-hydrated session rebuilds its
+  // videoState from the session's tracks, which are already descriptors. Read
+  // through them once more and bilibili would lose everything (a descriptor
+  // has no lan/lan_doc at all -> key "", empty labels), quietly degrading the
+  // persisted track list one reload at a time. Pass a descriptor through
+  // unchanged instead; the four-field shape below is exactly what
+  // pbpVideoStateValidate enforces, and no provider-native track carries a
+  // `key` property.
+  if (track && typeof track.key === "string" && typeof track.lang === "string"
+      && typeof track.label === "string" && typeof track.asr === "boolean") {
+    return { key: track.key, lang: track.lang, label: track.label, asr: track.asr };
+  }
   if (provider === "bilibili") {
     return {
       key: pbpVideoTrackKey(track, provider),
@@ -1949,6 +1971,38 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     sess.error = undefined;
   }
 
+  // Re-read the provider's live track directory WITHOUT surrendering the
+  // panel's own session. An F5-hydrated session (md-preview.js's committed
+  // bootstrap) carries safe track descriptors and no endpoints at all --
+  // baseUrl/subtitle_url are signed and expire, so the persistence format
+  // deliberately drops them (spec 「F5 持久化协议」) -- and the only way back to a
+  // fetchable URL is to ask the provider again.
+  //
+  // Called ONLY from a real switch attempt that found no endpoint, never
+  // eagerly: an F5 that just reads the restored transcript must not re-enter
+  // the network at all, which is the entire point of hydrating.
+  //
+  // prepareVideoSession PUBLISHES its result (window.pbpVideoSession = ...).
+  // Letting that stand would (a) drop the transcript the panel is showing in
+  // favour of whatever default track the fresh capture picked -- a failed
+  // switch would then silently leave the next mount on the wrong track -- and
+  // (b) detach the object a refused commit rolls back into
+  // (captureTranscriptState holds a reference, not the global). So the
+  // panel's session is put back and only the live directory is taken from the
+  // fresh one.
+  async function refreshTrackDirectory() {
+    const keep = window.pbpVideoSession;
+    let fresh = null;
+    try {
+      fresh = await prepareVideoSession({ pageUrl: (_meta && _meta.url) || "", tabId: _ctxTabId });
+    } catch (e) {
+      console.warn("[pbp-video] track directory refresh failed:", (e && e.name) || "", (e && e.message) || e);
+    } finally {
+      if (keep) window.pbpVideoSession = keep;
+    }
+    return fresh;
+  }
+
   async function loadFlow(detected, statusEl, bodyEl, trackSel, copyBtn, aiBtn) {
     statusEl.textContent = t("mdVideoLoading");
     // Bind the transaction's control surface before the first await: every
@@ -1965,7 +2019,10 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     if (!session.granted) { statusEl.textContent = t("mdVideoPermMissing"); return; }
     _ytFetchFn = session.ytFetchFn || null;
     _ytFetchTabId = (typeof session.ytFetchTabId === "number") ? session.ytFetchTabId : null;
-    const useLogin = session.useLogin;
+    // `let`: a hydrated session has no fetch handles at all (they are
+    // functions and tab ids, not persistable data), so a later track switch
+    // re-reads the directory and adopts that capture's handles instead.
+    let useLogin = session.useLogin;
     const ytHadTab = session.ytHadTab;
     const res = { tracks: session.tracks, track: session.track, segments: session.segments, error: session.error };
     if (res.error === "player" || res.error === "view") { statusEl.textContent = t("mdVideoFailed"); return; }
@@ -2004,7 +2061,10 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     (res.tracks || []).forEach((tr, i) => {
       const opt = document.createElement("option");
       const value = _trackValues[i];
-      const label = isBili ? tr.lan_doc : tr.label;
+      // A hydrated session's tracks are safe descriptors: bilibili's lan_doc
+      // lives under `label` there, so read that as the fallback rather than
+      // painting "undefined" into the picker.
+      const label = (isBili ? (tr.lan_doc || tr.label) : tr.label) || "";
       opt.value = value;
       opt.textContent = label + (tr.asr ? " (" + t("mdVideoAsr") + ")" : "");
       // A track this provider cannot give a stable key (no lang / no lan / no
@@ -2127,19 +2187,63 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         // option value is no longer a URL, and the URL a hydrated session was
         // restored from would have expired anyway. Index first so a
         // duplicate-key pair resolves to the option that was actually clicked.
-        const sessionTracks = (window.pbpVideoSession && window.pbpVideoSession.tracks) || [];
+        let sessionTracks = (window.pbpVideoSession && window.pbpVideoSession.tracks) || [];
+        const bare = key.replace(/#\d+$/, "");
         const idx = _trackValues.indexOf(key);
         let selTrack = (idx >= 0 && idx < sessionTracks.length) ? sessionTracks[idx] : null;
         if (!selTrack) {
           // The session's track list was replaced since the picker was built.
           // Fall back to the stable key -- exact first, then without the
           // collision suffix buildTrackValues may have appended.
-          const bare = key.replace(/#\d+$/, "");
           selTrack = sessionTracks.find((tr) => pbpVideoTrackKey(tr, detected.provider) === key)
             || sessionTracks.find((tr) => pbpVideoTrackKey(tr, detected.provider) === bare)
             || null;
         }
-        const endpoint = selTrack ? ((isBili ? selTrack.subtitle_url : selTrack.baseUrl) || "") : "";
+        let endpoint = selTrack ? ((isBili ? selTrack.subtitle_url : selTrack.baseUrl) || "") : "";
+        // Nothing to fetch: on an F5-HYDRATED session that is the normal
+        // state, not a failure -- descriptors carry no endpoints by design.
+        // Re-read the live directory now (and only now, on a real switch
+        // attempt) and map the stable key onto a fresh endpoint. Never falls
+        // back to the heuristic default track: the key the user picked is the
+        // only thing this switch is allowed to fetch.
+        if (!endpoint) {
+          const fresh = await refreshTrackDirectory();
+          if (seq !== _trackSwitchSeq) return; // a newer selection owns the panel now
+          if (!fresh || !fresh.granted) {
+            // The caption origin was revoked since the article was committed
+            // (or the refresh threw). Blaming the track would point the user
+            // at the wrong problem -- nothing is fetchable at all right now.
+            statusEl.textContent = t("mdVideoPermMissing");
+            trackSel.value = _selectedTrackKey;
+            return;
+          }
+          const liveTracks = Array.isArray(fresh.tracks) ? fresh.tracks : [];
+          const live = liveTracks.find((tr) => pbpVideoTrackKey(tr, detected.provider) === key)
+            || liveTracks.find((tr) => pbpVideoTrackKey(tr, detected.provider) === bare)
+            || null;
+          if (live) { selTrack = live; endpoint = (isBili ? live.subtitle_url : live.baseUrl) || ""; }
+          // The rescue tier below is per-LANGUAGE, not per-endpoint, and it
+          // needs this capture's fetch handles -- a hydrated session has none
+          // (functions and tab ids are not persistable), which is exactly the
+          // case where YouTube's timedtext URLs are PO-Token-walled anyway.
+          _ytFetchFn = fresh.ytFetchFn || _ytFetchFn;
+          if (typeof fresh.ytFetchTabId === "number") _ytFetchTabId = fresh.ytFetchTabId;
+          useLogin = fresh.useLogin;
+          // Adopt the live list into the session only when it lines up with
+          // the picker ON SCREEN, key for key: this handler resolves a
+          // duplicate-key option BY INDEX into _trackValues, so adopting a
+          // list of another shape would silently point that index at a
+          // different track. When it does not line up, this switch still uses
+          // the track it just resolved by key and the next one refreshes
+          // again -- one extra directory read beats fetching the wrong track.
+          const liveKeys = liveTracks.map((tr) => pbpVideoTrackKey(tr, detected.provider));
+          const aligned = liveKeys.length === _trackValues.length
+            && liveKeys.every((k, i) => k === String(_trackValues[i]).replace(/#\d+$/, ""));
+          if (aligned && window.pbpVideoSession) {
+            window.pbpVideoSession.tracks = liveTracks;
+            sessionTracks = liveTracks;
+          }
+        }
         let segs = endpoint
           ? (isBili ? await pbpBiliFetchSubtitleBody(endpoint) : await pbpYtFetchCaptionBody(endpoint, _ytFetchFn || undefined, useLogin))
           : [];
@@ -2280,6 +2384,12 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       // the legitimate pre-promotion state, not a fork. Report "not saved" and
       // leave both halves as they are.
       if (!ok) statusEl.textContent = t("mdPreviewQuotaFull");
+      // The description just stopped being the article and became the
+      // collapsed block -- on an in-place promotion nothing else ever builds
+      // it (T3 review F2). Only on success: a refused commit leaves the
+      // description AS the article, where a second copy of it below the
+      // timeline would be pure duplication.
+      else ensureVideoDescription();
     }
   }
 
@@ -2354,6 +2464,25 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     if (typeof renderMarkdown === "function") body.innerHTML = renderMarkdown(md);
     details.appendChild(body);
     return details;
+  }
+
+  // The description block is built ONCE, by mountVideoWorkspace -- and
+  // buildVideoDescription returns null on a "video-fallback" page, where the
+  // description IS the article and there is nothing to collapse. The first-run
+  // promotion now flips that kind IN PLACE (the reload that used to rebuild
+  // the whole page went away with this campaign), so on a runtime-ready
+  // fallback page the block never appeared again for the rest of the session
+  // (T3 review F2). Build it on demand into the same slot the mount uses:
+  // last in the study column, below the article and the timeline.
+  //
+  // Idempotent by id -- a second commit finds the block and leaves it alone,
+  // rather than stacking a duplicate #video-description under the first.
+  function ensureVideoDescription() {
+    if (document.getElementById("video-description")) return;
+    const host = _studyListEl && _studyListEl.parentNode;
+    if (!host) return; // no workspace (the non-video-mode defensive mount)
+    const descEl = buildVideoDescription();
+    if (descEl) host.appendChild(descEl);
   }
 
   // A2 dual-column workspace (video-mode only). Builds .pbv-workspace inside
@@ -2755,7 +2884,15 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     // no captions) the poster card + requestVideoOrigin flow stays exactly as
     // it was: that click is the gesture the grant needs.
     const booted = window.pbpVideoSession;
-    if (booted && pbpVideoSessionMatches(booted, detected) && booted.granted
+    // `!booted.hydrated` on purpose: an F5-hydrated session's granted:true
+    // means "the payload carried caption data", NOT "the origin grant is
+    // standing" -- it was restored from storage, and the user may have
+    // revoked the permission since. Those pages fall through to the committed
+    // branch below, whose contains() is the authoritative re-check and whose
+    // revoked path keeps the poster card (the click that re-requests the
+    // grant). Reaching runLoad first would instead mount the player and then
+    // dead-end on "permission missing" with no way to ask again.
+    if (booted && !booted.hydrated && pbpVideoSessionMatches(booted, detected) && booted.granted
         && booted.segments && booted.segments.length) {
       // No click means no click handler to swallow a rejection: an unhandled
       // one would leave the panel wedged mid-swap with no way back. Report it

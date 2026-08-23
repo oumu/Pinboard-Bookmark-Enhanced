@@ -990,6 +990,57 @@ function pbpApplyColorScheme(mode) {
         // from the session would throw that pass away. The description rides
         // along in the payload -- it cannot be re-extracted from here.
         window.pbpVideoDoc = { kind: "video-transcript", descriptionMarkdown: info.videoDescriptionMd || "", committed: true, aiPunct: info.videoAiPunct === true };
+        // F5 HYDRATION (spec 「F5 持久化协议」). Without this the panel mounts
+        // with no cached session, loadFlow() re-fetches captions over the
+        // network and lands on the heuristically chosen DEFAULT track -- so a
+        // reload silently threw away the track the reader chose and the
+        // AI-punctuation paragraphs they paid for, while the article above the
+        // timeline still showed both.
+        //
+        // FAIL CLOSED: pbpVideoStateValidate re-derives the transcript
+        // markdown from segments + paragraphs + meta and demands it equal the
+        // canonical article byte for byte (plus video identity and field
+        // shapes). Anything short of that -- an older schema, a hand-edited
+        // storage record, a bug in this file -- hydrates NOTHING, and the
+        // panel falls back to today's refetch. A timeline that disagrees with
+        // the article above it is worse than a refetch.
+        //
+        // Validated against _extractedMarkdown, not info.markdown: that is the
+        // value canonicalMarkdown takes below on this branch (_videoMarkdown
+        // stays null for a committed payload), so the check is against the
+        // article the reader actually gets, not against the raw record.
+        const vState = info.videoState;
+        if (vState && typeof pbpVideoStateValidate === "function"
+            && pbpVideoStateValidate(vState, vDetected, _extractedMarkdown)) {
+          const vTracks = Array.isArray(vState.tracks) ? vState.tracks : [];
+          // Descriptors only -- baseUrl/subtitle_url are deliberately not
+          // persisted (signed, expiring). A later track switch re-reads the
+          // live directory; nothing here touches the network.
+          // Duplicate keys collapse to the first match: the persistence format
+          // addresses a track by key, and among duplicates that is all it can
+          // say (T6 review F4 -- accepted, documented limitation).
+          const vTrack = vState.selectedTrackKey
+            ? (vTracks.find((tr) => tr && tr.key === vState.selectedTrackKey) || null)
+            : null;
+          window.pbpVideoSession = {
+            detected: vDetected,
+            // "the payload carried caption data", NOT "the origin grant is
+            // standing": pbpVideoInit's committed auto-boot re-checks the
+            // permission with contains() before it loads anything, and
+            // `hydrated` is what routes this session to that branch.
+            granted: true, hydrated: true,
+            tracks: vTracks, track: vTrack,
+            segments: vState.segments,
+            wasUnpunct: vState.wasUnpunct === true,
+            paragraphs: Array.isArray(vState.paragraphs) ? vState.paragraphs : null,
+            aiPunct: vState.aiPunct === true,
+            meta: vState.meta, error: undefined,
+            // No fetch handles survive a reload (a function and a tab id are
+            // not persistable); the directory refresh on the first real track
+            // switch is what re-acquires them.
+            ytFetchFn: null, ytFetchTabId: null, useLogin: undefined, ytHadTab: undefined
+          };
+        }
       } else if (vSegments.length && typeof pbpVideoTranscriptMarkdown === "function"
                  && typeof pbpVideoTranscriptMeta === "function") {
         window.pbpVideoDoc = { kind: "video-transcript", descriptionMarkdown: _extractedMarkdown };
