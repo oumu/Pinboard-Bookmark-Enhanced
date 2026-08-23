@@ -32,7 +32,7 @@ Extension settings, caches, and temporary state are stored locally by default. B
 | Tag cache & tag-cleanup state (account-scoped records include the non-secret plaintext Pinboard username owner) | `chrome.storage.local` | No |
 | Bookmark-status cache (account-scoped in memory) | Service Worker memory | No |
 | Offline save queue (URL, title, notes, tags, save options, time, and a non-secret plaintext Pinboard username binding) | `chrome.storage.local` | No |
-| Batch progress & Markdown preview data (account-scoped records include the non-secret plaintext Pinboard username owner) | `chrome.storage.local` | No |
+| Batch progress & Markdown preview data (account-scoped records include the non-secret plaintext Pinboard username owner); for video pages this includes the captured subtitle text, the selected caption track, and AI punctuation results, so the reader can restore them after a reload without refetching | `chrome.storage.local` | No |
 | Reader highlights & notes | `chrome.storage.local` | No |
 | Wayback archive log | `chrome.storage.local` | No |
 

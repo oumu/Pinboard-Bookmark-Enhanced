@@ -2647,6 +2647,21 @@ check(mdCss.includes("animation-timeline: scroll(self inline);"),
     "md-preview.js: the in-place applier's order must be canonical -> render -> TOC -> AI block index -> pbp:article-replaced; pbpAiIndexBlocks after the announcement means the first listener reads the OLD article's detached blocks");
   check(rawAt > canonAt && statsAt > canonAt,
     "md-preview.js: the in-place applier must refresh the reading stats and the raw view AFTER canonicalMarkdown is reassigned -- both read it through getMarkdown() and would otherwise repeat the previous article's text");
+  // Final review M1: the "replaced ALWAYS pairs with will-replace" invariant
+  // had no gate -- moving the dispatch out of its finally broke nothing.
+  // Every subscriber tears down on will-replace and only recovers on
+  // article-replaced, so a swap that throws WITHOUT this pairing leaves the
+  // whole md-ai layer dead for the session. Structural pin: the replaced
+  // dispatch must sit inside a finally block within the applier.
+  // The dispatch must sit INSIDE the finally body, not merely after a finally
+  // somewhere: slice from "} finally {" to its first closing brace -- an empty
+  // finally with the dispatch moved below it fails this (the first draft of
+  // this check only compared positions and passed exactly that mutation).
+  const replFinallyAt = applier.indexOf("} finally {");
+  const replFinallyBody = replFinallyAt >= 0
+    ? applier.slice(replFinallyAt, applier.indexOf("}", replFinallyAt + "} finally {".length) + 1) : "";
+  check(replFinallyBody.includes('"pbp:article-replaced"'),
+    "md-preview.js: pbp:article-replaced must be dispatched from INSIDE a finally block -- a throw mid-swap would otherwise leave every will-replace subscriber torn down for the session");
   // Synchronous end to end: rebuildToc()'s scroll-spy teardown sits AFTER
   // renderArticleContent() has already swapped the children, so any suspension
   // between them leaves an IntersectionObserver holding detached links.

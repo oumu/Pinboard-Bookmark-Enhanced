@@ -2412,7 +2412,10 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         //     window; canonical/storage is the state that outlives it.)
         if (ok || threwInCommit) syncSessionToCommitted(selTrack, newUnpunct);
         else restoreTranscriptState(prev);
-        if (!ok) statusEl.textContent = t("mdPreviewQuotaFull");
+        // Quota copy only when the payload truly failed to persist: on the
+        // threwInCommit arm the write already landed (final review L1) --
+        // claiming "couldn't be saved" there would be a lie.
+        if (!ok && !threwInCommit) statusEl.textContent = t("mdPreviewQuotaFull");
         refreshAiOffer();
       } finally {
         releaseAiFreeze();
@@ -2837,7 +2840,9 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
             } else {
               restoreTranscriptState(prev);
             }
-            if (!ok) status.textContent = t("mdPreviewQuotaFull");
+            // Same L1 gate as the track switch: threwInCommit means the
+            // payload persisted -- only a true non-persist earns the quota copy.
+            if (!ok && !threwInCommit) status.textContent = t("mdPreviewQuotaFull");
           } else {
             // Copy-only page: the transcript is not this page's article, so
             // there is nothing to commit and the Copy text already carries the
