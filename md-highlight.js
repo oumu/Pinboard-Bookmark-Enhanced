@@ -1240,7 +1240,7 @@ function _pbpHlEnsureBar() {
   seekBtn.className = "pb-hl-seek-btn";
   seekBtn.title = t("hlSeekHere");
   seekBtn.setAttribute("aria-label", t("hlSeekHere"));
-  seekBtn.innerHTML = (typeof PBV_PLAY_SVG === "string" && PBV_PLAY_SVG) || "";
+  seekBtn.innerHTML = (typeof PBP_ICONS !== "undefined" && PBP_ICONS.play) || ""; // shared contract icon (retro: the md-video const is IIFE-local)
   seekBtn.addEventListener("mousedown", (e) => e.preventDefault());
   seekBtn.addEventListener("click", () => {
     const r = _pbpHlBarRange;

@@ -3689,5 +3689,7 @@
   "mdVideoResumeRestart": { "message": "从头开始" },
   "mdVideoDensityPara": { "message": "按段落显示" },
   "mdVideoAuxTrack": { "message": "对照字幕" },
-  "mdVideoAuxNone": { "message": "无对照字幕" }
+  "mdVideoAuxNone": { "message": "无对照字幕" },
+  "mdVideoStateOn": { "message": "已开启" },
+  "mdVideoStateOff": { "message": "已关闭" }
 }

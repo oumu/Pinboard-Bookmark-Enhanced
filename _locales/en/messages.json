@@ -3689,5 +3689,7 @@
   "mdVideoResumeRestart": { "message": "Start over" },
   "mdVideoDensityPara": { "message": "Show by paragraph" },
   "mdVideoAuxTrack": { "message": "Companion captions" },
-  "mdVideoAuxNone": { "message": "No companion captions" }
+  "mdVideoAuxNone": { "message": "No companion captions" },
+  "mdVideoStateOn": { "message": "on" },
+  "mdVideoStateOff": { "message": "off" }
 }

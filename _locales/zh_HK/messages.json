@@ -3695,5 +3695,7 @@
   "mdVideoResumeRestart": { "message": "從頭開始" },
   "mdVideoDensityPara": { "message": "依段落顯示" },
   "mdVideoAuxTrack": { "message": "對照字幕" },
-  "mdVideoAuxNone": { "message": "無對照字幕" }
+  "mdVideoAuxNone": { "message": "無對照字幕" },
+  "mdVideoStateOn": { "message": "已開啟" },
+  "mdVideoStateOff": { "message": "已關閉" }
 }

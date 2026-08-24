@@ -89,7 +89,10 @@ function pbpStudyHost(node) {
   const el = node.nodeType === 3 ? node.parentElement : node;
   if (!el || typeof el.closest !== "function") return null;
   const view = document.getElementById("rendered-view");
-  if (view && view.contains(el)) return view;
+  // Same visibility test on both surfaces (retro VID-R1-06): a selection
+  // left behind in the article after switching to the timeline is not a
+  // study surface either.
+  if (view && view.contains(el)) return (!view.hidden && view.offsetParent !== null) ? view : null;
   const list = el.closest(".pbv-list");
   if (list && !list.hidden && list.offsetParent !== null) return list;
   return null;

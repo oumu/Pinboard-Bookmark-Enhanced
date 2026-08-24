@@ -30,6 +30,12 @@ const _PBP_AI_SUMMARY_OWNER_PREFIX = "summary_owner_";
 // still worth its cost half a year on; LRU + this bound suffice.
 const _PBP_AI_TR_MAX_ENTRIES = 300;
 const _PBP_AI_TR_PREFIX = "tr_";
+// Video AI-punctuation aggregates (`vpunct_`, md-video.js): one whole
+// transcript's paid pass per entry -- the same weight class as `tr_`, so
+// it gets its own pool instead of evicting tags/summary/ask/skim out of the
+// shared 200 (video retro V2).
+const _PBP_AI_VPUNCT_MAX_ENTRIES = 300;
+const _PBP_AI_VPUNCT_PREFIX = "vpunct_";
 let _pbpAiDbPromise = null;
 
 function _pbpAiOpenDB() {
@@ -127,11 +133,16 @@ function _pbpAiIsTrKey(key) {
   return typeof key === "string" && key.startsWith(_PBP_AI_TR_PREFIX);
 }
 
+function _pbpAiIsVpunctKey(key) {
+  return typeof key === "string" && key.startsWith(_PBP_AI_VPUNCT_PREFIX);
+}
+
 function _pbpAiPoolForKey(key) {
   if (_pbpAiIsDict2Key(key)) return "dict2";
   if (_pbpAiIsDictCtxKey(key)) return "dictctx";
   if (_pbpAiIsSummaryOwnerKey(key)) return "summary-owner";
   if (_pbpAiIsTrKey(key)) return "tr";
+  if (_pbpAiIsVpunctKey(key)) return "vpunct";
   return "other";
 }
 
@@ -161,6 +172,12 @@ function _pbpAiTrRange() {
   return _pbpAiPrefixRange(_PBP_AI_TR_PREFIX);
 }
 
+// "vpunct_" shares no prefix with any other family ("v" is unique as a
+// leading letter), so the range holds exactly the vpunct_ pool.
+function _pbpAiVpunctRange() {
+  return _pbpAiPrefixRange(_PBP_AI_VPUNCT_PREFIX);
+}
+
 function _pbpAiDeleteOldestInPool(store, overflow, pool) {
   if (overflow <= 0) return;
   const cursorReq = store.index("ts").openCursor(); // ASC by ts (oldest first)
@@ -181,9 +198,9 @@ function _pbpAiDeleteOldestInPool(store, overflow, pool) {
 // is NOT in a dedicated pool, so every dedicated pool must be subtracted --
 // adding a pool without extending this subtraction silently over-evicts the
 // innocent other-pool families (ask/skim/tags/summary). Unit-tested (ZH-6).
-function _pbpAiOtherOverflow(totalCount, dict2Count, dictCtxCount, summaryOwnerCount, trCount) {
+function _pbpAiOtherOverflow(totalCount, dict2Count, dictCtxCount, summaryOwnerCount, trCount, vpunctCount) {
   return Math.max(0,
-    Math.max(0, totalCount - dict2Count - dictCtxCount - summaryOwnerCount - trCount)
+    Math.max(0, totalCount - dict2Count - dictCtxCount - summaryOwnerCount - trCount - (vpunctCount || 0))
       - _PBP_AI_CACHE_MAX_ENTRIES);
 }
 
@@ -193,10 +210,12 @@ function _pbpAiPruneWrittenPool(store, key) {
     const range = pool === "dict2" ? _pbpAiDict2Range()
       : pool === "dictctx" ? _pbpAiDictCtxRange()
       : pool === "tr" ? _pbpAiTrRange()
+      : pool === "vpunct" ? _pbpAiVpunctRange()
       : _pbpAiSummaryOwnerRange();
     const max = pool === "dict2" ? _PBP_AI_DICT2_MAX_ENTRIES
       : pool === "dictctx" ? _PBP_AI_DICTCTX_MAX_ENTRIES
       : pool === "tr" ? _PBP_AI_TR_MAX_ENTRIES
+      : pool === "vpunct" ? _PBP_AI_VPUNCT_MAX_ENTRIES
       : _PBP_AI_SUMMARY_OWNER_MAX_ENTRIES;
     const countReq = store.count(range);
     countReq.onsuccess = () => {
@@ -210,12 +229,13 @@ function _pbpAiPruneWrittenPool(store, key) {
   let dictCtxCount = 0;
   let summaryOwnerCount = 0;
   let trCount = 0;
-  let pending = 5;   // ZH-6: 4 -> 5 with the tr pool; MUST stay equal to the count requests below
+  let vpunctCount = 0;
+  let pending = 6;   // ZH-6: 4 -> 5 with the tr pool, 6 with vpunct; MUST stay equal to the count requests below
   const prune = () => {
     pending--;
     if (pending !== 0) return;
     _pbpAiDeleteOldestInPool(store,
-      _pbpAiOtherOverflow(totalCount, dict2Count, dictCtxCount, summaryOwnerCount, trCount),
+      _pbpAiOtherOverflow(totalCount, dict2Count, dictCtxCount, summaryOwnerCount, trCount, vpunctCount),
       "other");
   };
   const totalReq = store.count();
@@ -228,6 +248,8 @@ function _pbpAiPruneWrittenPool(store, key) {
   ownerReq.onsuccess = () => { summaryOwnerCount = ownerReq.result || 0; prune(); };
   const trReq = store.count(_pbpAiTrRange());
   trReq.onsuccess = () => { trCount = trReq.result || 0; prune(); };
+  const vpReq = store.count(_pbpAiVpunctRange());
+  vpReq.onsuccess = () => { vpunctCount = vpReq.result || 0; prune(); };
 }
 
 // One store-scoped readwrite transaction owns the final write, target-pool

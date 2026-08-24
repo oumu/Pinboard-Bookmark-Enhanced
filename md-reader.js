@@ -419,7 +419,17 @@ function _pbpSearchVisibleCandidates(view) {
   // seeks the player. The open description joins in either view.
   const list = document.querySelector(".pbv-col-study .pbv-list");
   if (view.hidden && list && !list.hidden) {
-    for (const el of list.querySelectorAll(".pbv-row > .pbv-text")) out.push(el);
+    // The VISIBLE side of each row (retro #4): translated-only hides the
+    // original on projected rows, bilingual shows both, companion-track
+    // lines always show.
+    for (const row of list.querySelectorAll(".pbv-row")) {
+      const txt = row.querySelector(":scope > .pbv-text");
+      const tr = row.querySelector(":scope > .pbv-tr");
+      const projected = row.classList.contains("pbv-row--tr");
+      const aux = row.classList.contains("pbv-row--aux");
+      if (txt && !(trOnly && projected)) out.push(txt);
+      if (tr && (aux || (projected && (bilingual || trOnly)))) out.push(tr);
+    }
     _pbpSearchPushDescription(out);
     return out;
   }
@@ -645,6 +655,12 @@ function _pbpSearchArmObserver() {
     }, 300);
   });
   _pbpSearchMo.observe(view, { childList: true, subtree: true, attributes: true, characterData: true });
+  // The timeline list is a search candidate source too (video pages); a
+  // density switch or track change rebuilds it wholesale, which must
+  // rescan rather than leave counts pointing at detached rows (retro
+  // VID-R1-02/SRCH-1). One observer, two targets -- the echo module's idiom.
+  const list = document.querySelector(".pbv-col-study .pbv-list");
+  if (list) _pbpSearchMo.observe(list, { childList: true, subtree: true, characterData: true });
 }
 
 function _pbpSearchDisarmObserver() {
@@ -845,8 +861,28 @@ function _pbpKbdHelpEnsurePop() {
   pop.appendChild(title);
   const list = document.createElement("ul");
   list.className = "kbd-help-list";
-  const rows = document.body.classList.contains("video-mode")
-    ? PBP_KBD_HELP_ROWS.concat(PBP_KBD_HELP_VIDEO_ROWS) : PBP_KBD_HELP_ROWS;
+  _pbpKbdHelpFillList(list);
+  pop.appendChild(list);
+  document.body.appendChild(pop);
+  _pbpKbdHelpPopEl = pop;
+  return pop;
+}
+
+// Mutual exclusion with the other popover families (explain-pop / pb-hl-bar
+// / pb-hl-card / fn-pop / search-pop): explicitly hide any other open
+// popover first, same belt-and-suspenders pattern md-highlight.js already
+// uses before opening #explain-pop.
+// Rows are (re)built on every open (retro KBD-3): the video rows depend on
+// what the page can actually do right now -- md-video.js publishes the
+// live key set (bilibili has no player protocol, so Space / arrows / r / f
+// are not offered there), and captions may land after the first open.
+function _pbpKbdHelpFillList(list) {
+  list.replaceChildren();
+  let rows = PBP_KBD_HELP_ROWS;
+  if (document.body.classList.contains("video-mode")) {
+    const live = (typeof window.pbpVideoShortcutKeys === "function") ? window.pbpVideoShortcutKeys() : null;
+    rows = rows.concat(PBP_KBD_HELP_VIDEO_ROWS.filter((r) => !live || r.chips.every((c) => live.has(c))));
+  }
   rows.forEach((row) => {
     const li = document.createElement("li");
     li.className = "kbd-help-row";
@@ -865,18 +901,12 @@ function _pbpKbdHelpEnsurePop() {
     li.appendChild(desc);
     list.appendChild(li);
   });
-  pop.appendChild(list);
-  document.body.appendChild(pop);
-  _pbpKbdHelpPopEl = pop;
-  return pop;
 }
 
-// Mutual exclusion with the other popover families (explain-pop / pb-hl-bar
-// / pb-hl-card / fn-pop / search-pop): explicitly hide any other open
-// popover first, same belt-and-suspenders pattern md-highlight.js already
-// uses before opening #explain-pop.
 function _pbpKbdHelpOpen() {
   const pop = _pbpKbdHelpEnsurePop();
+  const lst = pop.querySelector(".kbd-help-list");
+  if (lst) _pbpKbdHelpFillList(lst);
   _pbpReaderHideOtherPopovers(pop);
   if (!pop.matches(":popover-open")) pop.showPopover();
 }

@@ -43,6 +43,8 @@
   var readySent = false;
   var timer = 0;            // 250ms position reporter, PLAYING state only
   var pendingSeek = null;   // a seek that arrived before the player existed
+  var pendingPlay = false;  // a playVideo that arrived before the player existed (retro #14)
+  var pendingRate = null;   // a setPlaybackRate that arrived before the player existed
   var apiFired = false;     // onYouTubeIframeAPIReady ran (API script arrived)
   var readyTimer = 0;       // no-onReady fallback timer, cleared by onReady
   var fallbackFrame = null; // plain <iframe> embed when the API never arrives
@@ -87,10 +89,22 @@
   function onReady() {
     ready = true;
     if (readyTimer) { clearTimeout(readyTimer); readyTimer = 0; }
+    // Replay what arrived early, each verb with its own meaning: a seek is
+    // just a seek (continue-watching must not autoplay), play only if play
+    // was asked for, and a rate that was set before ready is not lost.
     if (pendingSeek !== null) {
       var s = pendingSeek;
       pendingSeek = null;
-      try { player.seekTo(s, true); player.playVideo(); } catch (_) {}
+      try { player.seekTo(s, true); } catch (_) {}
+    }
+    if (pendingRate !== null) {
+      var r0 = pendingRate;
+      pendingRate = null;
+      try { player.setPlaybackRate(r0); } catch (_) {}
+    }
+    if (pendingPlay) {
+      pendingPlay = false;
+      try { player.playVideo(); } catch (_) {}
     }
     postReady(); // no-op until the handshake arms parentOrigin
   }
@@ -120,11 +134,9 @@
     f.src = "https://www.youtube.com/embed/" + id +
       "?enablejsapi=1&rel=0&origin=" + encodeURIComponent(location.origin);
     f.addEventListener("load", function () {
-      if (pendingSeek === null) return;
-      var s = pendingSeek;
-      pendingSeek = null;
-      forward("seekTo", [s, true]);
-      forward("playVideo", []);
+      if (pendingSeek !== null) { var s = pendingSeek; pendingSeek = null; forward("seekTo", [s, true]); }
+      if (pendingRate !== null) { var r0 = pendingRate; pendingRate = null; forward("setPlaybackRate", [r0]); }
+      if (pendingPlay) { pendingPlay = false; forward("playVideo", []); }
     });
     var host = document.getElementById("player");
     if (host && host.parentNode) host.parentNode.replaceChild(f, host);
@@ -179,6 +191,7 @@
       return;
     }
     if (d.func === "pauseVideo") {
+      pendingPlay = false; // a pause after an early play cancels it
       if (fallbackFrame) { forward("pauseVideo", []); return; }
       if (!player || typeof player.pauseVideo !== "function") return;
       try { player.pauseVideo(); } catch (_) {}
@@ -189,12 +202,12 @@
       var rate = Number(args[0]);
       if (!isFinite(rate) || rate < 0.25 || rate > 2) return;
       if (fallbackFrame) { forward("setPlaybackRate", [rate]); return; }
-      if (!player || typeof player.setPlaybackRate !== "function") return;
+      if (!player || typeof player.setPlaybackRate !== "function") { pendingRate = rate; return; }
       try { player.setPlaybackRate(rate); } catch (_) {}
       return;
     }
     if (fallbackFrame) { forward("playVideo", []); return; }
-    if (!player || typeof player.playVideo !== "function") return;
+    if (!player || typeof player.playVideo !== "function") { pendingPlay = true; return; }
     try { player.playVideo(); } catch (_) {}
   });
 

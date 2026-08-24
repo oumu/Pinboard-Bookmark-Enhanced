@@ -1163,6 +1163,12 @@ section("extracted runtime primitives (audit E1/E4/E5)");
   assert(pbpYtPickTrack(ytTr, "zh-CN", ["fr", "ja"]) === ytTr[3], "yt pick: first preferred language present wins");
   assert(pbpYtPickTrack(ytTr, "zh-CN", ["en"], pbpVideoTrackKey(ytTr[3], "youtube")) === ytTr[3], "yt pick: a remembered key for this video wins outright");
   assert(pbpYtPickTrack(ytTr, "zh-CN", ["en"], "no-such-key") === ytTr[2], "yt pick: a stale remembered key is ignored (fail-open)");
+  assert(pbpYtPickTrack(ytTr, "zh-CN", ["en", "ja"]) === ytTr[2] && pbpYtPickTrack([ytTr[1], ytTr[3]], "zh-CN", ["en", "ja"]) === ytTr[1],
+    "yt pick: the first preferred language wins even when only its ASR track exists (retro #5)");
+  const dupTr = [{ lang: "en", asr: false, vssId: ".en" }, { lang: "en", asr: false, vssId: ".en" }, { lang: "ja", asr: false, vssId: ".ja" }];
+  const dupKey = pbpVideoTrackKey(dupTr[0], "youtube");
+  assert(pbpVideoResolvePreferKey(dupTr, "youtube", dupKey + "#2") === dupTr[1] && pbpVideoResolvePreferKey(dupTr, "youtube", dupKey) === dupTr[0] && pbpVideoResolvePreferKey(dupTr, "youtube", dupKey + "#3") === null,
+    "remembered key: a #N ordinal resolves to the N-th duplicate, a missing ordinal fails open (retro #6)");
   const biSubs = [{ lan: "ai-zh", lan_doc: "中文（自动）" }, { lan: "zh-CN", lan_doc: "中文" }, { lan: "ai-en", lan_doc: "English (auto)" }];
   assert(pbpBiliPickSubtitle(biSubs) === biSubs[1], "bili pick: default stays zh human");
   assert(pbpBiliPickSubtitle(biSubs, ["en"]) === biSubs[2], "bili pick: preferred language finds the ai- track when no human one exists");

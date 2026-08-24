@@ -3695,5 +3695,7 @@
   "mdVideoResumeRestart": { "message": "Von vorn" },
   "mdVideoDensityPara": { "message": "Nach Absätzen anzeigen" },
   "mdVideoAuxTrack": { "message": "Begleituntertitel" },
-  "mdVideoAuxNone": { "message": "Keine Begleituntertitel" }
+  "mdVideoAuxNone": { "message": "Keine Begleituntertitel" },
+  "mdVideoStateOn": { "message": "an" },
+  "mdVideoStateOff": { "message": "aus" }
 }

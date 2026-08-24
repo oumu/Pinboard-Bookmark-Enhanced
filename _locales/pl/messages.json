@@ -3695,5 +3695,7 @@
   "mdVideoResumeRestart": { "message": "Od początku" },
   "mdVideoDensityPara": { "message": "Pokaż akapitami" },
   "mdVideoAuxTrack": { "message": "Napisy towarzyszące" },
-  "mdVideoAuxNone": { "message": "Bez napisów towarzyszących" }
+  "mdVideoAuxNone": { "message": "Bez napisów towarzyszących" },
+  "mdVideoStateOn": { "message": "włączone" },
+  "mdVideoStateOff": { "message": "wyłączone" }
 }

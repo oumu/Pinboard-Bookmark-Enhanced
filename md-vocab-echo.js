@@ -164,7 +164,13 @@ function _echoKeyEl(key) {
   if (key[0] === "r") {
     const list = _echoTimelineList();
     const row = list ? list.children[n] : null;
-    return row ? row.querySelector(".pbv-text") : null;
+    if (!row) return null;
+    // The VISIBLE side of the row (retro VID-R1-07): translated-only hides
+    // the original on projected rows; companion-track lines always show
+    // next to the original, so the original keeps the echo there.
+    const tr = row.querySelector(":scope > .pbv-tr");
+    if (tr && document.body.classList.contains("tr-only") && row.classList.contains("pbv-row--tr")) return tr;
+    return row.querySelector(":scope > .pbv-text");
   }
   const el = typeof pbpAiBlockEl === "function" ? pbpAiBlockEl(n) : null;
   if (!el) return null;
@@ -179,8 +185,11 @@ function _echoKeyOf(el) {
     const prev = el.previousElementSibling;
     if (prev && prev.dataset && prev.dataset.pb) return "t" + prev.dataset.pb;
   }
-  if (el.classList && el.classList.contains("pbv-row") && el.parentElement) {
-    return "r" + Array.prototype.indexOf.call(el.parentElement.children, el);
+  if (el.classList && el.classList.contains("pbv-row")) {
+    // Rows carry their index (data-i, stamped at render); indexOf over
+    // thousands of siblings per mutation was quadratic (retro #11).
+    if (el.dataset && el.dataset.i != null) return "r" + el.dataset.i;
+    if (el.parentElement) return "r" + Array.prototype.indexOf.call(el.parentElement.children, el);
   }
   return null;
 }

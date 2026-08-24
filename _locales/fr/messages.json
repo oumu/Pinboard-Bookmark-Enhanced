@@ -3695,5 +3695,7 @@
   "mdVideoResumeRestart": { "message": "Recommencer" },
   "mdVideoDensityPara": { "message": "Afficher par paragraphe" },
   "mdVideoAuxTrack": { "message": "Sous-titres compagnons" },
-  "mdVideoAuxNone": { "message": "Aucun sous-titre compagnon" }
+  "mdVideoAuxNone": { "message": "Aucun sous-titre compagnon" },
+  "mdVideoStateOn": { "message": "activé" },
+  "mdVideoStateOff": { "message": "désactivé" }
 }

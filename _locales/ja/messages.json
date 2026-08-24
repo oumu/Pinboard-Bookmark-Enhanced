@@ -3695,5 +3695,7 @@
   "mdVideoResumeRestart": { "message": "最初から" },
   "mdVideoDensityPara": { "message": "段落ごとに表示" },
   "mdVideoAuxTrack": { "message": "対訳字幕" },
-  "mdVideoAuxNone": { "message": "対訳字幕なし" }
+  "mdVideoAuxNone": { "message": "対訳字幕なし" },
+  "mdVideoStateOn": { "message": "オン" },
+  "mdVideoStateOff": { "message": "オフ" }
 }
