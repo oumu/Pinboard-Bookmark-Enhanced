@@ -65,6 +65,36 @@ function renderErrorState(message, retryFn, permissionRequired) {
   document.body.classList.remove("md-empty"); // undo renderLoadingState's rail-hide so the engine-switch badge stays reachable
 }
 
+// ---- F5-hydration gate, extracted for testability (audit E2/E3): the
+// file:// test pages execute the REAL predicates instead of hand-written
+// mirrors that can silently drift from this file. ----
+// Acceptance: both copies of the aiPunct fact must agree (review F5), and
+// the full videoState must validate against the canonical article
+// (fail-closed; pbpVideoStateValidate lives in md-video.js).
+function pbpVideoHydrationAccept(info, vDetected, canonicalMd) {
+  if (!info || !vDetected) return false;
+  const vState = info.videoState;
+  const vAiPunct = info.videoAiPunct === true;
+  return !!(vState && typeof pbpVideoStateValidate === "function"
+    && vState.aiPunct === vAiPunct
+    && pbpVideoStateValidate(vState, vDetected, canonicalMd));
+}
+// Descriptor whitelist: exactly what _pbpVideoTrackDescribe emits, so a
+// record carrying an extra baseUrl/subtitle_url cannot smuggle an endpoint
+// past the directory refresh (review F2).
+function pbpVideoHydrationTracks(vState) {
+  return (Array.isArray(vState && vState.tracks) ? vState.tracks : [])
+    .map((tr) => ({ key: tr.key, lang: tr.lang, label: tr.label, asr: tr.asr }));
+}
+// The ONE track-resolution decision hydration makes: address by exact key;
+// no match (or no selection) is the honest null -- the neutral placeholder,
+// never a silent fall-through to the first track.
+function pbpVideoHydrationResolveTrack(vTracks, selectedTrackKey) {
+  return selectedTrackKey
+    ? (vTracks.find((tr) => tr && tr.key === selectedTrackKey) || null)
+    : null;
+}
+
 // Jina extraction runs in the Service Worker, which cannot prompt. This helper is
 // called only from a retrying user click after the worker reported host_permission.
 async function pbpRequestJinaHostPermission() {
@@ -1033,25 +1063,14 @@ function pbpApplyColorScheme(mode) {
         // validates the other -- so make agreement a hydration precondition
         // and then use the top-level field as THE source (review F5).
         const vAiPunct = info.videoAiPunct === true;
-        if (vState && typeof pbpVideoStateValidate === "function"
-            && vState.aiPunct === vAiPunct
-            && pbpVideoStateValidate(vState, vDetected, _extractedMarkdown)) {
-          // REBUILT, never adopted: the gate checks that the four descriptor
-          // fields have the right types, not that they are the only ones, so a
-          // record carrying an extra baseUrl/subtitle_url would restore an
-          // endpoint the track switch fetches WITHOUT the directory refresh
-          // that exists to re-derive it (spec 「不要持久化 baseUrl、subtitle_url」 is a
-          // read-side rule here, and this is the only place the data is
-          // untrusted). Whitelist = exactly what _pbpVideoTrackDescribe emits
-          // (review F2).
-          const vTracks = (Array.isArray(vState.tracks) ? vState.tracks : [])
-            .map((tr) => ({ key: tr.key, lang: tr.lang, label: tr.label, asr: tr.asr }));
-          // Duplicate keys collapse to the first match: the persistence format
-          // addresses a track by key, and among duplicates that is all it can
-          // say (T6 review F4 -- accepted, documented limitation).
-          const vTrack = vState.selectedTrackKey
-            ? (vTracks.find((tr) => tr && tr.key === vState.selectedTrackKey) || null)
-            : null;
+        if (pbpVideoHydrationAccept(info, vDetected, _extractedMarkdown)) {
+          // REBUILT, never adopted (review F2): descriptor whitelist + exact
+          // key resolution live in the top-level helpers above so the test
+          // pages exercise the real code (audit E2/E3). Persisted keys carry
+          // the picker's #N collision suffix since audit B12, so duplicates
+          // resolve to the exact committed track.
+          const vTracks = pbpVideoHydrationTracks(vState);
+          const vTrack = pbpVideoHydrationResolveTrack(vTracks, vState.selectedTrackKey);
           window.pbpVideoSession = {
             detected: vDetected,
             // "the payload carried caption data", NOT "the origin grant is

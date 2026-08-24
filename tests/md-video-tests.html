@@ -1065,6 +1065,31 @@ section("F5 hydration: paragraph-tier segments are bound too (review F1)");
       && pbpVideoTrackKey(rebuilt[0], "youtube") === injected.tracks[0].key);
 })();
 
+section("extracted runtime primitives (audit E1/E4/E5)");
+(() => {
+  assertEq(pbpVideoTierOrder(null).join(","), "panel,capture,dom", "tier order: default panel-first");
+  assertEq(pbpVideoTierOrder("capture").join(","), "capture,panel,dom", "tier order: capture memory runs first");
+  assertEq(pbpVideoTierOrder("dom").join(","), "dom,capture,panel", "tier order: dom memory runs first");
+  assertEq(pbpVideoTierOrder("bogus").join(","), "panel,capture,dom", "tier order: unknown memory falls back to default");
+  const sb = pbpVideoSplitBatches(["a".repeat(1000), "b".repeat(700), "c".repeat(100)], 1600);
+  assertEq(sb.length, 2, "split: cap closes a batch only after it is exceeded");
+  assertEq(sb[0], "a".repeat(1000) + "\n" + "b".repeat(700), "split: the overshoot batch keeps both paragraphs");
+  assertEq(pbpVideoSplitBatches([], 1600).length, 0, "split: empty input yields no batches");
+  assert(pbpVideoPunctChanged(["x，y"], ["x y"]) === true, "changed: a new mark counts as change");
+  assert(pbpVideoPunctChanged(["a  b\n\nc"], ["a b c"]) === false, "changed: whitespace-only reshuffle is NO change");
+  assert(pbpVideoPunctChanged([], []) === false, "changed: an empty pass is no change");
+  assertEq(pbpVideoStripFence("```md\nX\n```"), "X", "fence: one outer pair stripped");
+  assertEq(pbpVideoStripFence("plain"), "plain", "fence: unfenced text untouched");
+  // E5: the 48-char sentence-promotion boundary, hit exactly
+  const mkrun = (lens) => {
+    const segsX = []; let t0 = 0;
+    for (const n of lens) { segsX.push({ from: t0, to: t0 + 2, content: "字".repeat(n) }); t0 += 2; }
+    return pbpVideoHeuristicPunctuate(segsX);
+  };
+  assertEq(mkrun([47, 10])[0].content.slice(-1), "，", "48-boundary: a 47-char run stays a comma");
+  assertEq(mkrun([48, 10])[0].content.slice(-1), "。", "48-boundary: a 48-char run promotes to a full stop");
+})();
+
 document.getElementById("summary").textContent = `${pass} passed, ${fail} failed`;
 })();
 </script>

@@ -458,6 +458,60 @@ function pbpVideoSessionMatches(session, detected) {
     : d.videoId === detected.videoId;
 }
 
+// Injection-queue factory (audit E1): FIFO, stillWanted probed at RUN time
+// not enqueue time, and a rejected run never breaks the chain -- semantics
+// with real product weight (the 2026-08-24 rapid-switch storm hang), so
+// they live in a pure factory the file:// test page can drive.
+function pbpVideoMakeInjectQueue() {
+  let chain = Promise.resolve();
+  return function queue(runFn, stillWanted) {
+    const run = async () => {
+      if (stillWanted && !stillWanted()) return null; // superseded while queued
+      return runFn();
+    };
+    const p = chain.then(run, run);
+    chain = p.then(() => {}, () => {}); // the chain never carries a rejection
+    return p;
+  };
+}
+
+// Rescue-tier ordering from the success-tier memory (plan 丙-乙): reorder
+// only, never drop -- a stale memory may cost latency, never coverage.
+function pbpVideoTierOrder(cachedVia) {
+  return cachedVia === "capture" ? ["capture", "panel", "dom"]
+    : cachedVia === "dom" ? ["dom", "capture", "panel"]
+    : ["panel", "capture", "dom"];
+}
+
+// AI batch splitting: paragraphs pack until the cap is EXCEEDED, so a batch
+// may overshoot by up to one paragraph -- budgeted, because maxTokens is
+// sized from the real batch length downstream.
+function pbpVideoSplitBatches(paras, cap) {
+  const batches = [];
+  let cur = [], len = 0;
+  for (const para of paras || []) {
+    cur.push(para); len += para.length;
+    if (len > cap) { batches.push(cur.join("\n")); cur = []; len = 0; }
+  }
+  if (cur.length) batches.push(cur.join("\n"));
+  return batches;
+}
+
+// Whitespace-insensitive change test: a model that only rewraps lines
+// changed the string but punctuated nothing -- committing that would retire
+// the AI button (aiPunct persists) over words that never gained a mark.
+function pbpVideoPunctChanged(outBatches, batches) {
+  const norm = (x) => String(x || "").replace(/\s+/g, " ").trim();
+  return (outBatches || []).some((o, i) => norm(o) !== norm((batches || [])[i]));
+}
+
+// Markdown-fence unwrap for AI output: strips ONE outer fence pair; the
+// unwrapped text still faces the same conservation gate afterwards, so
+// fail-closed is not weakened.
+function pbpVideoStripFence(text) {
+  return String(text || "").replace(/^```[^\n]*\n?/, "").replace(/\n?```\s*$/, "");
+}
+
 // Markdown-escape publisher-controlled text (video titles) before it is
 // concatenated into Markdown source (audit A7): a title like "[x](url)"
 // must render as its own characters, never as a link or heading structure.
@@ -1637,16 +1691,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   // times, then everything locked up" device report (2026-08-24; overlapping
   // runs ALL fail and each burns its full budget). Serialized, a superseded
   // caller can also skip its injection entirely via the stillWanted probe.
-  let _tabInjectChain = Promise.resolve();
-  function queueTabInjection(runFn, stillWanted) {
-    const run = async () => {
-      if (stillWanted && !stillWanted()) return null; // superseded while queued
-      return runFn();
-    };
-    const p = _tabInjectChain.then(run, run);
-    _tabInjectChain = p.then(() => {}, () => {}); // the chain never carries a rejection
-    return p;
-  }
+  const queueTabInjection = pbpVideoMakeInjectQueue();
 
   async function ytTabPlayerCaptionCapture(tabId, langCode, videoId) {
     let inj = null;
@@ -2189,10 +2234,8 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           console.info("[pbp-video] dom rescue:", domSegs ? domSegs.length + " segments" : "failed");
           if (domSegs && domSegs.length) res = { tracks: rTracks, track: null, segments: domSegs, via: "dom" };
         };
-        const order = cachedVia === "capture" ? [tryCapture, tryPanel, tryDom]
-          : cachedVia === "dom" ? [tryDom, tryCapture, tryPanel]
-          : [tryPanel, tryCapture, tryDom];
-        for (const tier of order) await tier();
+        const tierByName = { panel: tryPanel, capture: tryCapture, dom: tryDom };
+        for (const name of pbpVideoTierOrder(cachedVia)) await tierByName[name]();
         if (res.via) {
           try { await chrome.storage.local.set({ pbp_video_tier_youtube: { via: res.via, ts: Date.now() } }); } catch (_) {}
         }
@@ -3269,13 +3312,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
             _aiHostGranted = true;
           }
           const paras = pbpVideoMergeParagraphs(_segments);
-          const batches = [];
-          let cur = [], len = 0;
-          for (const para of paras) {
-            cur.push(para); len += para.length;
-            if (len > 1600) { batches.push(cur.join("\n")); cur = []; len = 0; }
-          }
-          if (cur.length) batches.push(cur.join("\n"));
+          const batches = pbpVideoSplitBatches(paras, 1600);
           const sa = await pbpAiGetSettings();
           if (superseded()) return; // the words this pass was built from are gone
           // The provider origin may never have been granted on this profile
@@ -3321,7 +3358,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
             let out = String(text || "");
             let ok = pbpVideoPunctConserved(b, out);
             if (!ok) {
-              const unfenced = out.replace(/^```[^\n]*\n?/, "").replace(/\n?```\s*$/, "");
+              const unfenced = pbpVideoStripFence(out);
               if (unfenced !== out && pbpVideoPunctConserved(b, unfenced)) { out = unfenced; ok = true; }
             }
             if (!ok) {
@@ -3358,8 +3395,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           // lines "changed" the string while punctuating nothing, and
           // committing that would retire the button (aiPunct persists across
           // F5) over words that never gained a mark.
-          const wsNorm = (x) => x.replace(/\s+/g, " ").trim();
-          if (!outBatches.some((o, i) => wsNorm(o) !== wsNorm(batches[i]))) {
+          if (!pbpVideoPunctChanged(outBatches, batches)) {
             console.warn("[pbp-video] ai punctuation: pass produced no change ("
               + rejected + "/" + batches.length + " batches failed conservation) -- transcript kept, button stays");
             pbvSetStatus(status, t("mdVideoAiPunctFail"), true);

@@ -38,6 +38,7 @@ window.chrome = window.chrome || {
 <script src="../ai.js"></script>
 <script src="../ai-cache.js"></script>
 <script src="../md-preview.js"></script>
+<script src="../md-video.js"></script>
 <script src="../md-ai-core.js"></script>
 <script src="../md-translate.js"></script>
 <script src="../md-dict.js"></script>
@@ -9083,6 +9084,46 @@ window._t5AsyncDone = (async function () {
       _pbpHlNoteDirty = prevDirty; _pbpHlWriteQueue = prevQueue;
       card.remove();
     }
+  });
+})();
+
+// ---- F5-hydration gate, REAL predicates (audit E2/E3): md-preview.js's
+// pbpVideoHydrationAccept/Tracks/ResolveTrack with md-video.js's validate
+// underneath -- no hand-written mirrors. ----
+(() => {
+  const det = { provider: "youtube", videoId: "abc12345678" };
+  const segs = [
+    { from: 0, to: 2, content: "第一句字幕内容。" },
+    { from: 2, to: 4, content: "第二句字幕内容。" }
+  ];
+  const meta = { title: "V", url: "https://www.youtube.com/watch?v=abc12345678", trackLabel: "中文" };
+  const md = pbpVideoTranscriptMarkdown(segs, meta, null);
+  const st = pbpVideoStateBuild({ detected: det, track: null, tracks: [], segments: segs, aiParas: null, wasUnpunct: false, aiPunct: false, meta });
+  test("hydration gate: agreeing aiPunct copies + valid state accept", () => {
+    assert(pbpVideoHydrationAccept({ videoState: st, videoAiPunct: false }, det, md) === true);
+  });
+  test("hydration gate: aiPunct copy disagreement refuses (review F5)", () => {
+    assert(pbpVideoHydrationAccept({ videoState: st, videoAiPunct: true }, det, md) === false);
+  });
+  test("hydration gate: a state that no longer rebuilds the canonical article refuses", () => {
+    const bad = JSON.parse(JSON.stringify(st));
+    bad.segments[0].content += "x";
+    assert(pbpVideoHydrationAccept({ videoState: bad, videoAiPunct: false }, det, md) === false);
+  });
+  const vTracks = [
+    { key: "yt:en", lang: "en", label: "English", asr: false },
+    { key: "yt:en#2", lang: "en", label: "English (CC)", asr: false }
+  ];
+  test("hydration resolve: suffixed key addresses the second duplicate (audit B12)", () => {
+    assertEq(pbpVideoHydrationResolveTrack(vTracks, "yt:en#2").label, "English (CC)");
+  });
+  test("hydration resolve: unknown key is the honest null, never the first track", () => {
+    assert(pbpVideoHydrationResolveTrack(vTracks, "yt:xx") === null);
+  });
+  test("hydration resolve: no selection is null; descriptor whitelist drops extras", () => {
+    assert(pbpVideoHydrationResolveTrack(vTracks, "") === null);
+    const t0 = pbpVideoHydrationTracks({ tracks: [{ key: "k", lang: "l", label: "b", asr: true, baseUrl: "https://x" }] })[0];
+    assert(!("baseUrl" in t0) && t0.key === "k" && t0.asr === true);
   });
 })();
 </script>
