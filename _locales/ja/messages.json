@@ -3651,7 +3651,7 @@
   "mdVideoFollowReadingOff": { "message": "再生追従にはタイムライン表示が必要です" },
   "mdVideoOpenExternalBili": { "message": "bilibili で開く" },
   "mdVideoAwaitingTranscript": { "message": "字幕を取得中。まもなく文字起こしに切り替わります…" },
-  "mdVideoAiPunctProgress": { "message": "句読点付与中：$CUR$/$TOTAL$ バッチ…", "placeholders": { "cur": { "content": "$1" }, "total": { "content": "$2" } } },
+  "mdVideoAiPunctProgress": { "message": "AI 句読点 $CUR$/$TOTAL$…", "placeholders": { "cur": { "content": "$1" }, "total": { "content": "$2" } } },
   "mdVideoSwitchingTo": { "message": "$TRACK$ に切り替え中…", "placeholders": { "track": { "content": "$1" } } },
   "mdVideoSeeking": { "message": "$TIME$ へ移動します。プレーヤーが再読み込みされます", "placeholders": { "time": { "content": "$1" } } },
   "mdVideoViaPanel": { "message": "字幕ソース：公式エンドポイント" },

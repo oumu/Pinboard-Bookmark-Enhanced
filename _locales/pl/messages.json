@@ -3651,7 +3651,7 @@
   "mdVideoFollowReadingOff": { "message": "Śledzenie odtwarzania wymaga widoku osi czasu" },
   "mdVideoOpenExternalBili": { "message": "Otwórz w bilibili" },
   "mdVideoAwaitingTranscript": { "message": "Pobieranie napisów; transkrypcja wkrótce je zastąpi…" },
-  "mdVideoAiPunctProgress": { "message": "Interpunkcja: partia $CUR$ z $TOTAL$…", "placeholders": { "cur": { "content": "$1" }, "total": { "content": "$2" } } },
+  "mdVideoAiPunctProgress": { "message": "Interpunkcja AI $CUR$/$TOTAL$…", "placeholders": { "cur": { "content": "$1" }, "total": { "content": "$2" } } },
   "mdVideoSwitchingTo": { "message": "Przełączanie na $TRACK$…", "placeholders": { "track": { "content": "$1" } } },
   "mdVideoSeeking": { "message": "Przejście do $TIME$; odtwarzacz zostanie przeładowany", "placeholders": { "time": { "content": "$1" } } },
   "mdVideoViaPanel": { "message": "Źródło napisów: oficjalny interfejs" },

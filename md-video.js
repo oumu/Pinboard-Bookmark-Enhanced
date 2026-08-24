@@ -2007,15 +2007,53 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     try { highlightRowAt(_lastRelayTime); } catch (_) {}
   }
 
-  // Status writes with a semantic tone (audit U5): errors get data-state so
-  // the CSS can color them; every non-error write clears it so the tone
-  // never outlives the failure it described. Adopted call-site by call-site
-  // -- a plain textContent write still works, it just stays toneless.
-  function pbvSetStatus(elx, text, isError) {
+  // Status writes with a semantic tone (audit U5 / 方案A): the status line
+  // is a message bar now. kind true|"error" = persistent error (red
+  // stripe); "busy" = ongoing work (stays until the next write); anything
+  // else = transient info that stands 4s and fades out. A plain textContent
+  // write elsewhere still works, it just stays toneless and permanent.
+  let _statusFadeTimer = null;
+  function pbvSetStatus(elx, text, kind) {
     if (!elx) return;
+    if (_statusFadeTimer) { clearTimeout(_statusFadeTimer); _statusFadeTimer = null; }
+    delete elx.dataset.fading;
     elx.textContent = text;
-    if (isError) elx.dataset.state = "error";
-    else delete elx.dataset.state;
+    if (kind === true || kind === "error") { elx.dataset.state = "error"; return; }
+    if (kind === "busy") { elx.dataset.state = "busy"; return; }
+    delete elx.dataset.state;
+    if (!text) return;
+    _statusFadeTimer = setTimeout(() => {
+      elx.dataset.fading = "1";
+      _statusFadeTimer = setTimeout(() => {
+        delete elx.dataset.fading;
+        if (elx.textContent === text) elx.textContent = "";
+        _statusFadeTimer = null;
+      }, 320);
+    }, 4000);
+  }
+
+  // 方案A: transient toast over the player for events that describe the
+  // PLAYER (the bilibili seek reload), not the caption toolbar. Time-based,
+  // never hover-triggered (reading-surface overlay rule).
+  let _toastEl = null, _toastTimer = null, _toastTimer2 = null;
+  function pbvToast(text) {
+    const host = _iframe && _iframe.parentElement;
+    if (!host) return;
+    if (!_toastEl || !_toastEl.isConnected || _toastEl.parentElement !== host) {
+      if (_toastEl) { try { _toastEl.remove(); } catch (_) {} }
+      _toastEl = el("div", "pbv-toast");
+      _toastEl.setAttribute("role", "status");
+      host.appendChild(_toastEl);
+    }
+    if (_toastTimer) clearTimeout(_toastTimer);
+    if (_toastTimer2) clearTimeout(_toastTimer2);
+    delete _toastEl.dataset.fading;
+    _toastEl.textContent = text;
+    _toastTimer = setTimeout(() => {
+      if (!_toastEl) return;
+      _toastEl.dataset.fading = "1";
+      _toastTimer2 = setTimeout(() => { if (_toastEl) { _toastEl.remove(); _toastEl = null; } }, 320);
+    }, 2000);
   }
 
   function seekTo(sec) {
@@ -2023,9 +2061,9 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     if (_isBili) {
       // player.bilibili.com exposes no postMessage seek API; the only
       // working jump is reloading the iframe with its t= start parameter.
-      // Announce it (audit U12): the reload flashes and autoplays, which
-      // read as a glitch when nothing said a jump was coming.
-      if (_statusEl) pbvSetStatus(_statusEl, t("mdVideoSeeking", pbpVideoFmtTime(sec)), false);
+      // Announce it (audit U12 / 方案A): as a toast over the player -- it
+      // describes the player, not the caption toolbar.
+      pbvToast(t("mdVideoSeeking", pbpVideoFmtTime(sec)));
       // Costs a reload flash, buys clickable transcript rows.
       try {
         const u = new URL(_iframe.src);
@@ -2602,7 +2640,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   }
 
   async function loadFlow(detected, statusEl, bodyEl, trackSel, copyBtn, aiBtn) {
-    statusEl.textContent = t("mdVideoLoading");
+    pbvSetStatus(statusEl, t("mdVideoLoading"), "busy");
     // Bind the transaction's control surface before the first await: every
     // path below (and the AI pass mounted alongside it) freezes and restores
     // through these.
@@ -2748,22 +2786,25 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       // gone"). A stable note next to the picker says which state this
       // track is in; it stays empty only while there is no transcript.
       if (_aiNoteEl) {
+        // 方案A: the chip shows the punctuation STATE only; the secondary
+        // facts (caption source tier -- audit U13 -- and the missing-AI
+        // hint) live in the chip's native tooltip so the toolbar stays calm.
         let note = "";
+        let hint = "";
         if (_segments.length) {
           if (committedAi) note = t("mdVideoAiPunctDone");
           else if (!_wasUnpunct) note = t("mdVideoPunctSource");
-          else if (!aiOk) note = t("mdVideoPunctHeuristic") + " · " + t("mdVideoAiUnconfigured");
-          else note = t("mdVideoPunctHeuristic");
+          else {
+            note = t("mdVideoPunctHeuristic");
+            if (!aiOk) hint = t("mdVideoAiUnconfigured");
+          }
         }
-        // Caption source tier rides along when a rescue tier fed this
-        // session (audit U13): the DOM tier especially deserves a caveat --
-        // a degraded scrape can be incomplete without knowing it.
         const via = window.pbpVideoSession && window.pbpVideoSession.captionsVia;
         const viaTxt = via === "panel" ? t("mdVideoViaPanel")
           : via === "capture" ? t("mdVideoViaCapture")
           : via === "dom" ? t("mdVideoViaDom") : "";
-        if (viaTxt) note = note ? note + " \u00b7 " + viaTxt : viaTxt;
         _aiNoteEl.textContent = note;
+        _aiNoteEl.title = [hint, viaTxt].filter(Boolean).join(" · ");
         _aiNoteEl.hidden = !note;
       }
       // A re-offer has to arrive usable: a previous pass left the button
@@ -2838,7 +2879,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         // "loading" line over an unchanged panel read as a hang.
         const selOpt = trackSel.selectedOptions && trackSel.selectedOptions[0];
         pbvSetStatus(statusEl, selOpt && selOpt.textContent
-          ? t("mdVideoSwitchingTo", selOpt.textContent) : t("mdVideoLoading"), false);
+          ? t("mdVideoSwitchingTo", selOpt.textContent) : t("mdVideoLoading"), "busy");
         // Resolve the selection through the picker's own value space, then
         // read the endpoint off whatever the session currently holds -- the
         // option value is no longer a URL, and the URL a hydrated session was
@@ -3045,9 +3086,10 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         // rewrites it. Once no operation holds a freeze, a lingering loading
         // line describes nothing -- clear it. Terminal messages (failure
         // copy) are not the loading string and stay.
-        if (_freezeTrack === 0 && _freezeAi === 0
-            && statusEl.textContent === t("mdVideoLoading")) {
-          statusEl.textContent = "";
+        if (_freezeTrack === 0 && _freezeAi === 0 && statusEl.dataset.state === "busy") {
+          // Any lingering BUSY line (loading or 切换到 X) describes work no
+          // one holds any more -- clear text and tone together (方案A).
+          pbvSetStatus(statusEl, "", false);
         }
       }
     });
@@ -3461,6 +3503,27 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       aiBtn.innerHTML = typeof PBP_ICONS !== "undefined" ? PBP_ICONS.robot : "";
       aiBtn.title = t("mdVideoAiPunct");
       aiBtn.setAttribute("aria-label", t("mdVideoAiPunct"));
+      // 方案A: progress ring around the robot while a pass runs. SVG
+      // geometry, not a glyph -- the Lucide contract governs glyphs; rings
+      // and triangles are layout drawings. Batch progress drives the
+      // stroke; the status bar carries the textual count in parallel.
+      const ringNS = "http://www.w3.org/2000/svg";
+      const ringSvg = document.createElementNS(ringNS, "svg");
+      ringSvg.setAttribute("class", "pbv-ring");
+      ringSvg.setAttribute("viewBox", "0 0 28 28");
+      ringSvg.setAttribute("aria-hidden", "true");
+      const ringC = document.createElementNS(ringNS, "circle");
+      ringC.setAttribute("cx", "14"); ringC.setAttribute("cy", "14"); ringC.setAttribute("r", "12.5");
+      ringSvg.appendChild(ringC);
+      ringSvg.style.display = "none";
+      aiBtn.appendChild(ringSvg);
+      const RING_LEN = 2 * Math.PI * 12.5;
+      ringC.style.strokeDasharray = String(RING_LEN);
+      const setAiRing = (cur, total) => {
+        if (cur == null || !total) { ringSvg.style.display = "none"; return; }
+        ringSvg.style.display = "";
+        ringC.style.strokeDashoffset = String(RING_LEN * (1 - Math.min(1, cur / total)));
+      };
       aiBtn.addEventListener("click", async () => {
         // `disabled` blocks real clicks but not dispatchEvent/.click() from
         // script, so the freeze counters are re-checked directly.
@@ -3484,10 +3547,11 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         // re-running it would spend tokens to produce what is already there.
         let passDone = false;
         // icon-only button: progress reads out in the aria-live status line
-        pbvSetStatus(status, t("mdVideoAiPunct") + "…", false);
+        pbvSetStatus(status, t("mdVideoAiPunct") + "…", "busy");
         _aiCancelRequested = false;
         aiCancelBtn.hidden = false;
         aiCancelBtn.disabled = false;
+        setAiRing(0, 1);
         try {
           // Missing provider grant: permissions.request is the FIRST await
           // in this click (audit B10) -- origins and the contains() answer
@@ -3551,7 +3615,8 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
             const cached = _aiBatchCache.get(b);
             if (cached != null) { outBatches.push(cached); continue; }
             freshCur++;
-            pbvSetStatus(status, t("mdVideoAiPunctProgress", String(freshCur), String(freshTotal)), false);
+            pbvSetStatus(status, t("mdVideoAiPunctProgress", String(freshCur), String(freshTotal)), "busy");
+            setAiRing(freshCur - 1 || 0.05, freshTotal);
             const prompt = "为下面的语音转写文本添加或修正标点符号，并按语义用空行分段。严格保持文字本身不变：不得增加、删除或改写任何非标点文字；原文中的错别字、重复和口误也必须原样保留，不要纠正。直接输出处理后的文本，不要任何解释。\n\n" + b;
             // Output ≈ input + marks: the provider DEFAULT of ~1024 output
             // tokens truncates any full-size (~1600+ char) CJK batch, and a
@@ -3600,6 +3665,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
               _aiBatchCache.set(b, out.trim());
             }
             outBatches.push(ok ? out.trim() : b);
+            setAiRing(freshCur, freshTotal);
           }
           // A cancel during the LAST batch's round-trip must not commit
           // either (closing review F8): the loop-top check never runs again.
@@ -3742,6 +3808,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           if (passDone) _aiPassDone = true;
           else { aiBtn.title = t("mdVideoAiPunct"); aiBtn.setAttribute("aria-label", t("mdVideoAiPunct")); }
           aiCancelBtn.hidden = true;
+          setAiRing(null);
           releaseFreeze();
         }
       });
@@ -3768,7 +3835,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           if (!g) g = await requestVideoOrigin(detected); // this click IS the gesture
           if (!g) { pbvSetStatus(status, t("mdVideoPermDeclined"), true); retryBtn.hidden = false; return; }
           window.pbpVideoSession = null; // force a fresh directory + captions
-          pbvSetStatus(status, t("mdVideoLoading"), false);
+          pbvSetStatus(status, t("mdVideoLoading"), "busy");
           await loadFlow(detected, status, body, trackSel, copyBtn, aiBtn);
           if (!_segments.length) retryBtn.hidden = false;
         } catch (e) {

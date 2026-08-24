@@ -3651,7 +3651,7 @@
   "mdVideoFollowReadingOff": { "message": "Слежение за воспроизведением требует вида «таймлайн»" },
   "mdVideoOpenExternalBili": { "message": "Открыть на bilibili" },
   "mdVideoAwaitingTranscript": { "message": "Загружаем субтитры; вскоре их заменит расшифровка…" },
-  "mdVideoAiPunctProgress": { "message": "Пунктуация: часть $CUR$ из $TOTAL$…", "placeholders": { "cur": { "content": "$1" }, "total": { "content": "$2" } } },
+  "mdVideoAiPunctProgress": { "message": "ИИ-пунктуация $CUR$/$TOTAL$…", "placeholders": { "cur": { "content": "$1" }, "total": { "content": "$2" } } },
   "mdVideoSwitchingTo": { "message": "Переключение на $TRACK$…", "placeholders": { "track": { "content": "$1" } } },
   "mdVideoSeeking": { "message": "Переход к $TIME$; плеер перезагрузится", "placeholders": { "time": { "content": "$1" } } },
   "mdVideoViaPanel": { "message": "Источник субтитров: официальный интерфейс" },

@@ -3651,7 +3651,7 @@
   "mdVideoFollowReadingOff": { "message": "Wiedergabe folgen erfordert die Zeitleistenansicht" },
   "mdVideoOpenExternalBili": { "message": "Auf bilibili öffnen" },
   "mdVideoAwaitingTranscript": { "message": "Untertitel werden geladen; das Transkript übernimmt gleich…" },
-  "mdVideoAiPunctProgress": { "message": "Zeichensetzung: Abschnitt $CUR$ von $TOTAL$…", "placeholders": { "cur": { "content": "$1" }, "total": { "content": "$2" } } },
+  "mdVideoAiPunctProgress": { "message": "KI-Zeichensetzung $CUR$/$TOTAL$…", "placeholders": { "cur": { "content": "$1" }, "total": { "content": "$2" } } },
   "mdVideoSwitchingTo": { "message": "Wechsel zu $TRACK$…", "placeholders": { "track": { "content": "$1" } } },
   "mdVideoSeeking": { "message": "Springe zu $TIME$; der Player wird neu geladen", "placeholders": { "time": { "content": "$1" } } },
   "mdVideoViaPanel": { "message": "Untertitelquelle: offizielle Schnittstelle" },

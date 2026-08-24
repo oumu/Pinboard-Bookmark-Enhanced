@@ -3645,7 +3645,7 @@
   "mdVideoFollowReadingOff": { "message": "跟随播放需要时间轴视图" },
   "mdVideoOpenExternalBili": { "message": "在 bilibili 打开" },
   "mdVideoAwaitingTranscript": { "message": "正在获取字幕，稍后自动替换为文字稿…" },
-  "mdVideoAiPunctProgress": { "message": "正在标点第 $CUR$/$TOTAL$ 批…", "placeholders": { "cur": { "content": "$1" }, "total": { "content": "$2" } } },
+  "mdVideoAiPunctProgress": { "message": "AI 标点 $CUR$/$TOTAL$…", "placeholders": { "cur": { "content": "$1" }, "total": { "content": "$2" } } },
   "mdVideoSwitchingTo": { "message": "正在切换到 $TRACK$…", "placeholders": { "track": { "content": "$1" } } },
   "mdVideoSeeking": { "message": "正在跳转到 $TIME$，播放器将重新加载", "placeholders": { "time": { "content": "$1" } } },
   "mdVideoViaPanel": { "message": "字幕来源：官方接口" },

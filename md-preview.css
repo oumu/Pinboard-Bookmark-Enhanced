@@ -3479,7 +3479,7 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
 /* Sizing (aspect-ratio/width/height) lives on the iframe itself in the
    video-mode workspace region below (A2) -- applies here too since that's
    a plain #video-panel .pbv-media iframe selector, not workspace-gated. */
-.pbv-media { margin-bottom: 8px; }
+.pbv-media { margin-bottom: 8px; position: relative; }
 .pbv-media iframe { border: 0; border-radius: 10px; }
 .pbv-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
 .pbv-tracks {
@@ -3514,14 +3514,48 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
    .srch-regex / .typo-seg-btn. Declared after :hover so the pressed state
    wins while the pointer is over it. */
 .pbv-follow[aria-pressed="true"] { background: var(--btn-hover); border-color: var(--link); color: var(--link); }
-/* Status owns its own row (audit U5): sharing the flex row with the picker
-   and the icon buttons squeezed long failure copy and shoved controls
-   around. data-state adds the semantic tone; the words still carry the
-   meaning on their own. */
-.pbv-status { font-size: 0.9em; color: var(--fg-muted); flex-basis: 100%; }
-.pbv-status[data-state="error"] { color: var(--danger); }
-/* Punctuation-state note (audit U1): quiet, picker-adjacent. */
-.pbv-ai-note { font-size: 0.82em; color: var(--fg-muted); align-self: center; }
+/* Status as a MESSAGE BAR (audit U5 / 方案A), in the .send-status family
+   look: own row, light ground, 3px semantic stripe. busy/info ride the
+   link stripe, errors the danger one; transient info fades out via
+   data-fading (driven by pbvSetStatus). Empty = gone. */
+.pbv-status {
+  flex-basis: 100%; padding: 6px 10px;
+  font-size: 0.85em; line-height: 1.45; word-break: break-word;
+  color: var(--fg-secondary); background: var(--btn-bg);
+  border: 1px solid var(--border); border-left: 3px solid var(--link);
+  border-radius: 6px; transition: opacity 0.3s;
+}
+.pbv-status:empty { display: none; }
+.pbv-status[data-state="error"] { color: var(--danger); border-left-color: var(--danger); }
+.pbv-status[data-fading="1"] { opacity: 0; }
+/* Punctuation-state CHIP beside the picker (audit U1 / 方案A): the state
+   word only; secondary facts live in its native tooltip. */
+.pbv-ai-note {
+  align-self: center; white-space: nowrap;
+  font-size: 0.78em; color: var(--fg-muted);
+  background: var(--btn-bg); border: 1px solid var(--border);
+  border-radius: 999px; padding: 2px 9px;
+}
+/* AI progress ring around the robot button (方案A): stroke advances per
+   batch; sized to the button, immune to the 16px glyph rule below by
+   coming later at equal specificity. */
+.pbv-ai-punct { position: relative; }
+.pbv-ai-punct .pbv-ring { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.pbv-ai-punct .pbv-ring circle {
+  fill: none; stroke: var(--link); stroke-width: 2; stroke-linecap: round;
+  transform: rotate(-90deg); transform-origin: 50% 50%;
+  transition: stroke-dashoffset 0.3s;
+}
+/* Player-corner toast (方案A): time-based transient for events that
+   describe the PLAYER (bilibili seek reload). Dark translucent holds on
+   both themes -- it sits over video content. */
+.pbv-toast {
+  position: absolute; left: 10px; bottom: 12px; z-index: 3;
+  padding: 4px 10px; border-radius: 6px; font-size: 0.8em;
+  background: rgba(17, 22, 28, 0.85); color: #fff;
+  opacity: 1; transition: opacity 0.3s; pointer-events: none;
+}
+.pbv-toast[data-fading="1"] { opacity: 0; }
 /* Grant-scope note on the first-run poster card (audit U2). */
 .pbv-poster-note { display: block; font-size: 0.82em; color: var(--fg-muted); margin-top: 4px; }
 .pbv-list {
