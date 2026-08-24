@@ -673,6 +673,16 @@ function _pbpVideoTrackDescribe(track, provider) {
   };
 }
 
+// Pre-click cost accounting for an AI punctuation pass (research T4.2):
+// characters the NEXT click would actually send -- batches with a cached
+// conservation-passing answer are free, so a retry's estimate shows only
+// the remaining debt. Pure; the token math stays with the caller.
+function pbpVideoAiEstChars(batches, cachedHas) {
+  let chars = 0;
+  for (const b of batches || []) if (!cachedHas || !cachedHas(b)) chars += b.length;
+  return chars;
+}
+
 // Versioned F5-persistence payload for a video transcript session. Bundles
 // exactly what loadFlow() needs to redraw the panel and the article without
 // a refetch: current segments, the AI-punctuation paragraphs (loadFlow
@@ -1316,6 +1326,38 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   // clears the row highlight, and a paused player sends no new time events
   // to restore it -- so the re-render sites replay this instead.
   let _lastRelayTime = null;
+
+  // Video duration for the header stats line (research T1.6): the last
+  // segment's end IS the length, no network involved. md-preview.js reads
+  // this from computeStatBase; 0 = no transcript yet, caller falls back.
+  window.pbpVideoDuration = () => {
+    const s = _segments;
+    return (s && s.length) ? Math.max(0, Math.floor(s[s.length - 1].to || 0)) : 0;
+  };
+
+  // Pre-click cost estimate for the AI punctuation button (research T4.2):
+  // same ×3 calibration the translation estimator applies on CJK-heavy text
+  // (pbpAiEstimateTokens is chars/4, Latin-calibrated), covering an echo
+  // pass's input + output. Cached batches are subtracted, so after a
+  // partial failure the title advertises only what the retry still pays.
+  function aiCostTitle() {
+    const base = t("mdVideoAiPunct");
+    try {
+      if (!_segments.length) return base;
+      const batches = pbpVideoSplitBatches(pbpVideoMergeParagraphs(_segments), 1600);
+      const chars = pbpVideoAiEstChars(batches, (b) => _aiBatchCache.has(b));
+      if (!chars) return base;
+      const tok = (typeof pbpAiEstimateTokens === "function"
+        ? pbpAiEstimateTokens(chars) : Math.ceil(chars / 4)) * 3;
+      return base + " · " + t("mdVideoAiPunctEst", tok.toLocaleString());
+    } catch (_) { return base; }
+  }
+  function applyAiCostTitle(btn) {
+    if (!btn) return;
+    const label = aiCostTitle();
+    btn.title = label;
+    btn.setAttribute("aria-label", label);
+  }
 
   // Study-column reading/timeline toggle (Task 4). Set by mountVideoWorkspace
   // only in video-mode workspaces; a non-video defensive mount (panel stays a
@@ -2007,19 +2049,46 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     try { highlightRowAt(_lastRelayTime); } catch (_) {}
   }
 
+  // Screen-reader mirror for status writes (research T7.4). The visual
+  // status bar is deliberately NOT a live region: the AI pass rewrites it
+  // once per batch, and polite live-region semantics would read every one
+  // of those out ("7 batches = 7 full-sentence announcements"). Milestones
+  // route through here instead; per-batch progress stays visual-only via
+  // pbvSetStatus's "busy-quiet" kind. Clear-then-write across a task
+  // boundary so a repeated identical message still registers as a change.
+  let _srStatusEl = null, _srStatusTimer = null;
+  function srAnnounce(text) {
+    if (!text) return;
+    if (!_srStatusEl || !_srStatusEl.isConnected) {
+      _srStatusEl = el("span", "pbv-sr-only");
+      _srStatusEl.setAttribute("role", "status");
+      document.body.appendChild(_srStatusEl);
+    }
+    _srStatusEl.textContent = "";
+    if (_srStatusTimer) clearTimeout(_srStatusTimer);
+    const val = text;
+    _srStatusTimer = setTimeout(() => {
+      _srStatusTimer = null;
+      if (_srStatusEl) _srStatusEl.textContent = val;
+    }, 30);
+  }
+
   // Status writes with a semantic tone (audit U5 / 方案A): the status line
   // is a message bar now. kind true|"error" = persistent error (red
-  // stripe); "busy" = ongoing work (stays until the next write); anything
-  // else = transient info that stands 4s and fades out. A plain textContent
-  // write elsewhere still works, it just stays toneless and permanent.
+  // stripe); "busy" = ongoing work (stays until the next write);
+  // "busy-quiet" = busy visuals without a screen-reader announcement (the
+  // per-batch AI progress); anything else = transient info that stands 4s
+  // and fades out. A plain textContent write elsewhere still works, it
+  // just stays toneless, permanent and unannounced.
   let _statusFadeTimer = null;
   function pbvSetStatus(elx, text, kind) {
     if (!elx) return;
     if (_statusFadeTimer) { clearTimeout(_statusFadeTimer); _statusFadeTimer = null; }
     delete elx.dataset.fading;
     elx.textContent = text;
+    if (kind !== "busy-quiet") srAnnounce(text);
     if (kind === true || kind === "error") { elx.dataset.state = "error"; return; }
-    if (kind === "busy") { elx.dataset.state = "busy"; return; }
+    if (kind === "busy" || kind === "busy-quiet") { elx.dataset.state = "busy"; return; }
     delete elx.dataset.state;
     if (!text) return;
     _statusFadeTimer = setTimeout(() => {
@@ -2070,6 +2139,11 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         u.searchParams.set("t", String(Math.max(0, Math.floor(sec))));
         u.searchParams.set("autoplay", "1");
         _iframe.src = u.toString();
+        // (research T3.6①) bilibili has no position protocol, but THIS
+        // jump's target is exact knowledge -- mark the row so the timeline
+        // shows where the player now is instead of nothing at all.
+        _lastRelayTime = Math.max(0, Math.floor(sec));
+        replayHighlight();
       } catch (_) {}
       return;
     }
@@ -2815,8 +2889,9 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       // would defeat the freeze it is called next to).
       if (show) {
         _aiPassDone = false;
-        // icon-only button: the offer state lives in title/aria-label
-        if (_aiBtnEl) { _aiBtnEl.title = t("mdVideoAiPunct"); _aiBtnEl.setAttribute("aria-label", t("mdVideoAiPunct")); }
+        // icon-only button: the offer state lives in title/aria-label --
+        // with the pre-click token estimate appended (research T4.2).
+        applyAiCostTitle(_aiBtnEl);
       }
       applyControlFreeze();
     }
@@ -2916,7 +2991,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
             // The caption origin was revoked since the article was committed
             // (or the refresh threw). Blaming the track would point the user
             // at the wrong problem -- nothing is fetchable at all right now.
-            statusEl.textContent = t("mdVideoPermMissing");
+            pbvSetStatus(statusEl, t("mdVideoPermMissing"), true);
             trackSel.value = _selectedTrackKey;
             return;
           }
@@ -2985,13 +3060,13 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           // Keep the transcript the user already has: replacing a working
           // timeline with an empty list would turn a failed switch into data
           // loss. mdVideoBodyBlocked names the real problem for YouTube.
-          statusEl.textContent = t(isBili ? "mdVideoNoTracks" : "mdVideoBodyBlocked");
+          pbvSetStatus(statusEl, t(isBili ? "mdVideoNoTracks" : "mdVideoBodyBlocked"), true);
           // ...and put the picker back on the track the panel and the article
           // actually carry, so it stops advertising a switch that never landed.
           trackSel.value = _selectedTrackKey;
           return;
         }
-        statusEl.textContent = "";
+        pbvSetStatus(statusEl, "", null); // also clears any leftover tone
         // Verdict on the NEW track, taken BEFORE the heuristic tier runs
         // (after it, nothing "needs punctuation" any more). It decides both
         // the AI offer below and what videoState records for the F5 restore.
@@ -3075,7 +3150,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         // Quota copy only when the payload truly failed to persist: on the
         // threwInCommit arm the write already landed (final review L1) --
         // claiming "couldn't be saved" there would be a lie.
-        if (!ok && !threwInCommit) statusEl.textContent = t("mdPreviewQuotaFull");
+        if (!ok && !threwInCommit) pbvSetStatus(statusEl, t("mdPreviewQuotaFull"), true);
         refreshAiOffer();
       } finally {
         releaseAiFreeze();
@@ -3135,7 +3210,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       // the legitimate pre-promotion state, not a fork. The quota copy only on
       // a true non-persist; a post-persist throw keeps quiet (console carries
       // it) rather than claiming an on-disk record was not saved.
-      if (!ok && !threwInCommit) statusEl.textContent = t("mdPreviewQuotaFull");
+      if (!ok && !threwInCommit) pbvSetStatus(statusEl, t("mdPreviewQuotaFull"), true);
       // The description just stopped being the article and became the
       // collapsed block -- on an in-place promotion nothing else ever builds
       // it (T3 review F2). On the post-persist-throw arm the payload IS the
@@ -3384,13 +3459,20 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     play.setAttribute("aria-hidden", "true");
     play.innerHTML = PBV_PLAY_SVG;
     cta.appendChild(play);
-    cta.appendChild(el("span", "pbv-poster-label", posterLabel));
-    // Scope note (audit U2): the button's own label bundles "enable
-    // subtitles" and "load video", which read as one permission. Say what
-    // the grant actually covers before Chrome's prompt appears.
+    // Scope note (audit U2, placement research T7.1): says what the grant
+    // actually covers before Chrome's prompt appears. It must live INSIDE
+    // the absolutely-positioned bottom label bar -- as the card's only
+    // normal-flow child it painted UNDER the absolutely-positioned cover
+    // img (in-flow content paints before positioned descendants), so
+    // YouTube's always-present poster hid it exactly when it mattered.
+    // The label text gets its own span so the async first-run upgrade
+    // below can swap the label without wiping the note.
+    const posterLabelEl = el("span", "pbv-poster-label");
+    posterLabelEl.appendChild(el("span", "pbv-poster-label-text", posterLabel));
     const posterNote = el("span", "pbv-poster-note", t("mdVideoGrantScope"));
     posterNote.hidden = !firstRun;
-    cta.appendChild(posterNote);
+    posterLabelEl.appendChild(posterNote);
+    cta.appendChild(posterLabelEl);
     // Progressive first paint mounts BEFORE any session exists (audit B15:
     // pbpVideoSession is null here since the plan-丙 bootstrap change), so
     // the granted===false read above can no longer fire. Derive first-run
@@ -3407,7 +3489,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
             const lbl = t("mdVideoEnable");
             cta.title = lbl;
             cta.setAttribute("aria-label", lbl);
-            const span = cta.querySelector(".pbv-poster-label");
+            const span = cta.querySelector(".pbv-poster-label-text");
             if (span) span.textContent = lbl;
             posterNote.hidden = false; // scope note joins the enable state (audit U2)
           }
@@ -3453,8 +3535,10 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       if (detected.provider === "youtube") _iframe.addEventListener("load", startRelayHello);
       media.appendChild(_iframe);
       const bar = el("div", "pbv-bar");
+      // No aria-live here (research T7.4): announcements go through the
+      // srAnnounce mirror, which pbvSetStatus feeds for every write except
+      // the per-batch "busy-quiet" progress ticks.
       const status = el("span", "pbv-status");
-      status.setAttribute("aria-live", "polite");
       statusRef = status;
       const trackSel = document.createElement("select");
       trackSel.className = "pbv-tracks";
@@ -3524,7 +3608,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         ringSvg.style.display = "";
         ringC.style.strokeDashoffset = String(RING_LEN * (1 - Math.min(1, cur / total)));
       };
-      aiBtn.addEventListener("click", async () => {
+      const runAiPass = async () => {
         // `disabled` blocks real clicks but not dispatchEvent/.click() from
         // script, so the freeze counters are re-checked directly.
         if (!_segments.length || aiBtn.disabled || _freezeAi > 0 || _aiPassDone) return;
@@ -3548,6 +3632,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         let passDone = false;
         // icon-only button: progress reads out in the aria-live status line
         pbvSetStatus(status, t("mdVideoAiPunct") + "…", "busy");
+        aiBtn.setAttribute("aria-busy", "true"); // research T7.4
         _aiCancelRequested = false;
         aiCancelBtn.hidden = false;
         aiCancelBtn.disabled = false;
@@ -3615,7 +3700,9 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
             const cached = _aiBatchCache.get(b);
             if (cached != null) { outBatches.push(cached); continue; }
             freshCur++;
-            pbvSetStatus(status, t("mdVideoAiPunctProgress", String(freshCur), String(freshTotal)), "busy");
+            // busy-quiet: visual count only -- the SR milestone announcements
+            // are the pass start and its terminal line (research T7.4).
+            pbvSetStatus(status, t("mdVideoAiPunctProgress", String(freshCur), String(freshTotal)), "busy-quiet");
             setAiRing(freshCur - 1 || 0.05, freshTotal);
             const prompt = "为下面的语音转写文本添加或修正标点符号，并按语义用空行分段。严格保持文字本身不变：不得增加、删除或改写任何非标点文字；原文中的错别字、重复和口误也必须原样保留，不要纠正。直接输出处理后的文本，不要任何解释。\n\n" + b;
             // Output ≈ input + marks: the provider DEFAULT of ~1024 output
@@ -3806,11 +3893,38 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           // back only this pass's own holds, and applyControlFreeze (called by
           // the release) re-derives `disabled` from both.
           if (passDone) _aiPassDone = true;
-          else { aiBtn.title = t("mdVideoAiPunct"); aiBtn.setAttribute("aria-label", t("mdVideoAiPunct")); }
+          // Fresh estimate on the resting label: after a partial failure the
+          // cache holds the passed batches, so the retry title advertises
+          // only the remaining cost (research T4.2).
+          else applyAiCostTitle(aiBtn);
+          aiBtn.removeAttribute("aria-busy");
           aiCancelBtn.hidden = true;
           setAiRing(null);
           releaseFreeze();
         }
+      };
+      aiBtn.addEventListener("click", () => {
+        if (!_segments.length || aiBtn.disabled || _freezeAi > 0 || _aiPassDone) return;
+        // (research T4.3) the commit this pass ends in replaces the article
+        // wholesale: md-translate resets every filled translation and md-ask
+        // greys every citation -- correct (paragraph boundaries move under
+        // the pass), but before this gate it was also silent, and the
+        // translation it wipes was paid for with the user's own tokens.
+        // Paid work on screen gets a confirm; a clean page starts at once.
+        // The confirm button's own click carries the user gesture the
+        // pass's permissions.request needs.
+        const hasPaidWork = !!document.querySelector("#rendered-view .pb-tr")
+          || !!document.querySelector("#ask-thread .ask-chip:not(.stale)");
+        if (hasPaidWork && typeof showConfirmPopover === "function") {
+          showConfirmPopover(aiBtn, {
+            msg: t("mdVideoAiPunctConfirm"),
+            yesText: t("mdVideoAiPunct"),
+            noText: t("cancel"),
+            onConfirm: () => { runAiPass(); },
+          });
+          return;
+        }
+        runAiPass();
       });
       // Terminal-failure recovery (audit B2/B3): every caption dead end used
       // to strand the page with a status line and no control. One retry
@@ -3922,8 +4036,24 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       // before.
       const body = _studyListEl || el("div", "pbv-list");
       bindFollowPause(body);
+      // (research T7.2) replaceChildren is about to remove the poster the
+      // user just activated; without a hand-off the focus silently falls to
+      // <body> and the next Tab restarts from the top of the page (same
+      // problem zen mode already solves for its own surface swap,
+      // md-reader.js). Captured BEFORE the swap; re-checked at focus time
+      // so a user who moved on meanwhile is never yanked back.
+      const hadPosterFocus = document.activeElement === cta;
+      const focusFell = () => !document.activeElement || document.activeElement === document.body;
+      const focusBar = () => {
+        if (!hadPosterFocus || !focusFell()) return;
+        const target = [trackSel, copyBtn, aiBtn, retryBtn, openExt]
+          .find((c) => c && !c.hidden && !c.disabled) || status;
+        if (target === status) status.tabIndex = -1;
+        try { target.focus({ preventScroll: true }); } catch (_) {}
+      };
       panel.replaceChildren(media, bar);
       if (!_studyListEl) panel.appendChild(body);
+      focusBar();
       // (The relay greeting arms itself from the iframe's load event above --
       // greeting an unloaded frame only ever produced console errors.)
       // contains BEFORE request: permissions.request demands a user gesture
@@ -3956,6 +4086,13 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         // cost the captions, never tear the video out (final-review H2).
         if (playerUp) panel.replaceChildren(media, bar);
         else panel.replaceChildren(cta, bar);
+        // (research T7.2) the retry button is the next action on this path;
+        // hand focus there (or back to the restored poster) instead of
+        // leaving it wherever the swap dropped it.
+        if (hadPosterFocus && focusFell()) {
+          const target = playerUp ? retryBtn : cta;
+          try { target.focus({ preventScroll: true }); } catch (_) {}
+        }
         return;
       }
       await loadFlow(detected, status, body, trackSel, copyBtn, aiBtn);

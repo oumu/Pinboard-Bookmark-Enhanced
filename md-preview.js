@@ -1288,6 +1288,29 @@ function pbpApplyColorScheme(mode) {
       if (image) meta.image = image;
       const stats = readingStats(getViewMarkdown());
       meta.words = stats.words + stats.cjkChars;
+      // (research T7.12) structured video metadata, only when this article
+      // IS a verified transcript session. Fields come from the safe track
+      // descriptor (never signed subtitle endpoints); downstream Send-to
+      // targets can then tell provider / caption language / ASR-vs-manual /
+      // punctuation tier apart without parsing the body.
+      if (window.pbpVideoDoc && window.pbpVideoDoc.kind === "video-transcript"
+          && window.pbpVideoSession) {
+        try {
+          const det = typeof pbpVideoDetect === "function" ? pbpVideoDetect(url) : null;
+          if (det) {
+            meta.media = "video";
+            meta.video_provider = det.provider;
+            const sess = window.pbpVideoSession;
+            const desc = (sess.track && typeof _pbpVideoTrackDescribe === "function")
+              ? _pbpVideoTrackDescribe(sess.track, det.provider) : null;
+            if (desc && desc.lang) meta.subtitle_language = desc.lang;
+            if (desc && desc.label) meta.subtitle_track = desc.label;
+            if (desc) meta.subtitle_kind = desc.asr ? "asr" : "manual";
+            meta.punctuation_tier = window.pbpVideoDoc.aiPunct === true ? "ai"
+              : (sess.wasUnpunct === true ? "heuristic" : "source");
+          }
+        } catch (_) { /* metadata is garnish -- never block an export */ }
+      }
     }
     return meta;
   }
@@ -1600,7 +1623,17 @@ function pbpApplyColorScheme(mode) {
       const wordLabel = stats.cjkChars > 0
         ? `${t("mdStatWords", stats.words.toLocaleString())} · ${t("mdStatCjk", stats.cjkChars.toLocaleString())}`
         : t("mdStatWords", stats.words.toLocaleString());
-      statBase = `${wordLabel} · ${t("mdStatMin", String(stats.minutes))}`;
+      // (research T1.6) a transcript's "~N min read" is the wrong axis --
+      // neither watch time nor honest read time. The last segment's end IS
+      // the video length; md-video.js exposes it, zero when no transcript
+      // has landed yet (then the ordinary reading-minutes label stands).
+      // refreshReadingStats runs on every article commit, so the duration
+      // appears the moment the transcript does.
+      const vidSec = (document.body.classList.contains("video-mode")
+        && typeof window.pbpVideoDuration === "function") ? window.pbpVideoDuration() : 0;
+      statBase = (vidSec > 0 && typeof pbpVideoFmtTime === "function")
+        ? `${t("mdStatVideoLen", pbpVideoFmtTime(vidSec))} · ${wordLabel}`
+        : `${wordLabel} · ${t("mdStatMin", String(stats.minutes))}`;
     };
     // First render computes the base ONLY: the repaint is queued later by
     // renderArticleContent(), after the article DOM exists, so the very first

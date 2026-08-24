@@ -3659,5 +3659,8 @@
   "mdVideoViaDom": { "message": "字幕來源：頁面面板（降級，建議核對完整性）" },
   "mdVideoTranscriptHeading": { "message": "字幕稿" },
   "mdVideoPromoted": { "message": "字幕已就緒，內文已替換" },
-  "mdVideoAiCancel": { "message": "取消 AI 標點" }
+  "mdVideoAiCancel": { "message": "取消 AI 標點" },
+  "mdVideoAiPunctEst": { "message": "約 ~$TOKENS$ tokens", "placeholders": { "tokens": { "content": "$1" } } },
+  "mdVideoAiPunctConfirm": { "message": "AI 標點會替換正文：已有翻譯將被清空、問答引用將失效。繼續？" },
+  "mdStatVideoLen": { "message": "片長 $TIME$", "placeholders": { "time": { "content": "$1" } } }
 }

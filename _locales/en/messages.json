@@ -3638,8 +3638,8 @@
   "mdVideoPermDeclined": { "message": "Video loaded; subtitles not enabled" },
   "mdVideoAiPunctPartial": { "message": "$FAIL$ of $TOTAL$ batches failed the check; original text kept. Click again to retry only the failed ones.", "placeholders": { "fail": { "content": "$1" }, "total": { "content": "$2" } } },
   "mdVideoAiCancelled": { "message": "Cancelled at $DONE$ of $TOTAL$ batches; progress is cached, click to continue.", "placeholders": { "done": { "content": "$1" }, "total": { "content": "$2" } } },
-  "mdVideoPunctSource": { "message": "Source captions already punctuated" },
-  "mdVideoPunctHeuristic": { "message": "Basic punctuation added automatically" },
+  "mdVideoPunctSource": { "message": "Already punctuated" },
+  "mdVideoPunctHeuristic": { "message": "Basic auto-punctuation" },
   "mdVideoAiUnconfigured": { "message": "No AI provider configured" },
   "mdVideoGrantScope": { "message": "The player needs no permission; the grant only reads subtitles" },
   "mdVideoFollowReadingOff": { "message": "Follow playback needs the timeline view" },
@@ -3653,5 +3653,8 @@
   "mdVideoViaDom": { "message": "Captions via the page panel (degraded; check completeness)" },
   "mdVideoTranscriptHeading": { "message": "Transcript" },
   "mdVideoPromoted": { "message": "Transcript ready; the article was replaced" },
-  "mdVideoAiCancel": { "message": "Cancel AI punctuation" }
+  "mdVideoAiCancel": { "message": "Cancel AI punctuation" },
+  "mdVideoAiPunctEst": { "message": "≈ $TOKENS$ tokens", "placeholders": { "tokens": { "content": "$1" } } },
+  "mdVideoAiPunctConfirm": { "message": "AI punctuation replaces the article: existing translations are cleared and Ask citations go stale. Continue?" },
+  "mdStatVideoLen": { "message": "Video $TIME$", "placeholders": { "time": { "content": "$1" } } }
 }

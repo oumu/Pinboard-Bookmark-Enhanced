@@ -3644,8 +3644,8 @@
   "mdVideoPermDeclined": { "message": "Видео загружено; субтитры не включены" },
   "mdVideoAiPunctPartial": { "message": "$FAIL$ из $TOTAL$ частей не прошли проверку; исходный текст сохранён. Нажмите ещё раз, чтобы повторить только их.", "placeholders": { "fail": { "content": "$1" }, "total": { "content": "$2" } } },
   "mdVideoAiCancelled": { "message": "Отменено на $DONE$ из $TOTAL$ частей; прогресс сохранён, нажмите, чтобы продолжить.", "placeholders": { "done": { "content": "$1" }, "total": { "content": "$2" } } },
-  "mdVideoPunctSource": { "message": "В исходных субтитрах уже есть пунктуация" },
-  "mdVideoPunctHeuristic": { "message": "Базовая пунктуация расставлена автоматически" },
+  "mdVideoPunctSource": { "message": "Пунктуация есть" },
+  "mdVideoPunctHeuristic": { "message": "Базовая пунктуация" },
   "mdVideoAiUnconfigured": { "message": "ИИ-провайдер не настроен" },
   "mdVideoGrantScope": { "message": "Плееру разрешение не нужно; доступ используется только для чтения субтитров" },
   "mdVideoFollowReadingOff": { "message": "Слежение за воспроизведением требует вида «таймлайн»" },
@@ -3659,5 +3659,8 @@
   "mdVideoViaDom": { "message": "Источник субтитров: панель страницы (упрощённый режим; проверьте полноту)" },
   "mdVideoTranscriptHeading": { "message": "Расшифровка" },
   "mdVideoPromoted": { "message": "Расшифровка готова; статья заменена" },
-  "mdVideoAiCancel": { "message": "Отменить ИИ-пунктуацию" }
+  "mdVideoAiCancel": { "message": "Отменить ИИ-пунктуацию" },
+  "mdVideoAiPunctEst": { "message": "≈ $TOKENS$ токенов", "placeholders": { "tokens": { "content": "$1" } } },
+  "mdVideoAiPunctConfirm": { "message": "ИИ-пунктуация заменит статью: готовый перевод будет сброшен, цитаты Ask устареют. Продолжить?" },
+  "mdStatVideoLen": { "message": "Видео $TIME$", "placeholders": { "time": { "content": "$1" } } }
 }

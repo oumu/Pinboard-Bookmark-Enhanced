@@ -1112,6 +1112,12 @@ section("extracted runtime primitives (audit E1/E4/E5)");
   assert(r1 != null && pbpVideoPunctConserved("会冒热气气热气能把食物加热", r1) === true, "repair: output passes the conservation gate by construction");
   const longSrc = "字".repeat(300);
   assert(pbpVideoPunctRepair(longSrc, longSrc.slice(0, 100) + "。") === null, "repair: truncation stays rejected (fail-closed intact)");
+  // Pre-click cost accounting (research T4.2): cached batches are free.
+  const estBatches = ["一二三四五", "六七八", "九十"];
+  assert(pbpVideoAiEstChars(estBatches, () => false) === 10, "est: all-fresh pass sums every batch");
+  assert(pbpVideoAiEstChars(estBatches, (b) => b === "一二三四五") === 5, "est: a cached batch drops out of the estimate");
+  assert(pbpVideoAiEstChars([], () => false) === 0 && pbpVideoAiEstChars(estBatches, () => true) === 0,
+    "est: empty input and fully-cached passes both cost zero");
 })();
 
 document.getElementById("summary").textContent = `${pass} passed, ${fail} failed`;

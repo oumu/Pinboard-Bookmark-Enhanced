@@ -3644,8 +3644,8 @@
   "mdVideoPermDeclined": { "message": "Vidéo chargée ; sous-titres non activés" },
   "mdVideoAiPunctPartial": { "message": "$FAIL$ lots sur $TOTAL$ ont échoué au contrôle ; texte d'origine conservé. Cliquez à nouveau pour ne relancer que ceux-là.", "placeholders": { "fail": { "content": "$1" }, "total": { "content": "$2" } } },
   "mdVideoAiCancelled": { "message": "Annulé à $DONE$ lots sur $TOTAL$ ; progression conservée, cliquez pour continuer.", "placeholders": { "done": { "content": "$1" }, "total": { "content": "$2" } } },
-  "mdVideoPunctSource": { "message": "Sous-titres déjà ponctués" },
-  "mdVideoPunctHeuristic": { "message": "Ponctuation de base ajoutée automatiquement" },
+  "mdVideoPunctSource": { "message": "Déjà ponctué" },
+  "mdVideoPunctHeuristic": { "message": "Ponctuation de base" },
   "mdVideoAiUnconfigured": { "message": "Aucun fournisseur d'IA configuré" },
   "mdVideoGrantScope": { "message": "Le lecteur n'exige aucune autorisation ; elle sert uniquement à lire les sous-titres" },
   "mdVideoFollowReadingOff": { "message": "Suivre la lecture requiert la vue chronologique" },
@@ -3659,5 +3659,8 @@
   "mdVideoViaDom": { "message": "Sous-titres via le panneau de la page (dégradé ; vérifiez l’intégralité)" },
   "mdVideoTranscriptHeading": { "message": "Transcription" },
   "mdVideoPromoted": { "message": "Transcription prête ; l’article a été remplacé" },
-  "mdVideoAiCancel": { "message": "Annuler la ponctuation IA" }
+  "mdVideoAiCancel": { "message": "Annuler la ponctuation IA" },
+  "mdVideoAiPunctEst": { "message": "≈ $TOKENS$ tokens", "placeholders": { "tokens": { "content": "$1" } } },
+  "mdVideoAiPunctConfirm": { "message": "La ponctuation IA remplace l'article : les traductions existantes seront effacées et les citations Ask invalidées. Continuer ?" },
+  "mdStatVideoLen": { "message": "Vidéo $TIME$", "placeholders": { "time": { "content": "$1" } } }
 }

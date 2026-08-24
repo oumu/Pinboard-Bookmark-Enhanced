@@ -3644,8 +3644,8 @@
   "mdVideoPermDeclined": { "message": "Wideo załadowane; napisy nieaktywne" },
   "mdVideoAiPunctPartial": { "message": "$FAIL$ z $TOTAL$ partii nie przeszło weryfikacji; zachowano oryginalny tekst. Kliknij ponownie, aby powtórzyć tylko te partie.", "placeholders": { "fail": { "content": "$1" }, "total": { "content": "$2" } } },
   "mdVideoAiCancelled": { "message": "Anulowano po $DONE$ z $TOTAL$ partii; postęp zapisany, kliknij, aby kontynuować.", "placeholders": { "done": { "content": "$1" }, "total": { "content": "$2" } } },
-  "mdVideoPunctSource": { "message": "Napisy źródłowe mają już interpunkcję" },
-  "mdVideoPunctHeuristic": { "message": "Dodano automatyczną interpunkcję podstawową" },
+  "mdVideoPunctSource": { "message": "Z interpunkcją" },
+  "mdVideoPunctHeuristic": { "message": "Interpunkcja podstawowa" },
   "mdVideoAiUnconfigured": { "message": "Nie skonfigurowano dostawcy AI" },
   "mdVideoGrantScope": { "message": "Odtwarzacz nie wymaga uprawnienia; zgoda służy tylko odczytowi napisów" },
   "mdVideoFollowReadingOff": { "message": "Śledzenie odtwarzania wymaga widoku osi czasu" },
@@ -3659,5 +3659,8 @@
   "mdVideoViaDom": { "message": "Źródło napisów: panel strony (tryb awaryjny; sprawdź kompletność)" },
   "mdVideoTranscriptHeading": { "message": "Transkrypcja" },
   "mdVideoPromoted": { "message": "Transkrypcja gotowa; artykuł został zastąpiony" },
-  "mdVideoAiCancel": { "message": "Anuluj interpunkcję AI" }
+  "mdVideoAiCancel": { "message": "Anuluj interpunkcję AI" },
+  "mdVideoAiPunctEst": { "message": "≈ $TOKENS$ tokenów", "placeholders": { "tokens": { "content": "$1" } } },
+  "mdVideoAiPunctConfirm": { "message": "Interpunkcja AI zastąpi artykuł: istniejące tłumaczenia zostaną wyczyszczone, a cytaty Ask wygasną. Kontynuować?" },
+  "mdStatVideoLen": { "message": "Wideo $TIME$", "placeholders": { "time": { "content": "$1" } } }
 }

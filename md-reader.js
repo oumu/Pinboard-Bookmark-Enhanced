@@ -748,6 +748,12 @@ function _pbpSearchEnsurePop() {
 // since it degrades to a safe no-op (null) whether or not that feature
 // happened to mount.
 function _pbpSearchOpen() {
+  // (research T2.1) In video-mode the timeline may be the visible study view
+  // with #rendered-view hidden -- search would then count matches painted
+  // into display:none and every jump would land nowhere (a ghost "1/12").
+  // U6 gave every other jump entry this dispatch; search was the missed one.
+  // md-video.js listens and flips the study view back to reading.
+  try { document.dispatchEvent(new CustomEvent("pbp:ensure-article-visible")); } catch (_) {}
   const pop = _pbpSearchEnsurePop();
   _pbpReaderHideOtherPopovers(pop);
   _pbpSearchTeardown();

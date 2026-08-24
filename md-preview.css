@@ -3523,11 +3523,27 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
   font-size: 0.85em; line-height: 1.45; word-break: break-word;
   color: var(--fg-secondary); background: var(--btn-bg);
   border: 1px solid var(--border); border-left: 3px solid var(--link);
-  border-radius: 6px; transition: opacity 0.3s;
+  border-radius: 6px;
 }
 .pbv-status:empty { display: none; }
 .pbv-status[data-state="error"] { color: var(--danger); border-left-color: var(--danger); }
 .pbv-status[data-fading="1"] { opacity: 0; }
+/* busy = ongoing work (research T7.4): before this rule "still running" and
+   "finished, message standing" were visually identical. The stripe pulses
+   as an indeterminate-progress cue; reduced-motion keeps the static link
+   stripe (already the base), which stays a real busy signal because
+   transient info fades and busy does not. */
+@keyframes pbv-busy-pulse {
+  50% { border-left-color: color-mix(in srgb, var(--link) 30%, transparent); }
+}
+html.motion-ready .pbv-status[data-state="busy"] { animation: pbv-busy-pulse 1.2s ease-in-out infinite; }
+/* Screen-reader-only live region fed by md-video.js's srAnnounce
+   (research T7.4) -- visually hidden, never display:none (that would mute
+   the live region itself). */
+.pbv-sr-only {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+  overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
+}
 /* Punctuation-state CHIP beside the picker (audit U1 / 方案A): the state
    word only; secondary facts live in its native tooltip. */
 .pbv-ai-note {
@@ -3544,7 +3560,6 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
 .pbv-ai-punct .pbv-ring circle {
   fill: none; stroke: var(--link); stroke-width: 2; stroke-linecap: round;
   transform: rotate(-90deg); transform-origin: 50% 50%;
-  transition: stroke-dashoffset 0.3s;
 }
 /* Player-corner toast (方案A): time-based transient for events that
    describe the PLAYER (bilibili seek reload). Dark translucent holds on
@@ -3553,10 +3568,24 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
   position: absolute; left: 10px; bottom: 12px; z-index: 3;
   padding: 4px 10px; border-radius: 6px; font-size: 0.8em;
   background: rgba(17, 22, 28, 0.85); color: #fff;
-  opacity: 1; transition: opacity 0.3s; pointer-events: none;
+  opacity: 1; pointer-events: none;
 }
 .pbv-toast[data-fading="1"] { opacity: 0; }
-/* Grant-scope note on the first-run poster card (audit U2). */
+/* Motion gates (research T7.5): every .pbv-* transition rides the same two
+   doors as the rest of this file -- html.motion-ready (no first-paint
+   tweens) and the reduced-motion opt-out. Correctness never depends on the
+   animation: the fade timers in md-video.js remove the text either way. */
+html.motion-ready .pbv-status, html.motion-ready .pbv-toast { transition: opacity 0.3s; }
+html.motion-ready .pbv-ai-punct .pbv-ring circle { transition: stroke-dashoffset 0.3s; }
+@media (prefers-reduced-motion: reduce) {
+  html.motion-ready .pbv-status, html.motion-ready .pbv-toast { transition: none; }
+  html.motion-ready .pbv-ai-punct .pbv-ring circle { transition: none; }
+  html.motion-ready .pbv-status[data-state="busy"] { animation: none; }
+}
+/* Grant-scope note on the first-run poster card (audit U2; research T7.1
+   moved it INSIDE the absolutely-positioned label bar -- as the card's only
+   normal-flow child it painted under the cover img, invisible exactly when
+   Chrome's permission prompt was about to appear). */
 .pbv-poster-note { display: block; font-size: 0.82em; color: var(--fg-muted); margin-top: 4px; }
 .pbv-list {
   max-height: 40vh; overflow-y: auto; display: flex; flex-direction: column; gap: 2px;
@@ -3664,6 +3693,15 @@ body.video-mode .pbv-col-study .pbv-list { max-height: none; overflow: visible; 
    around the whole scroll column read as a giant input well. */
 body.video-mode .pbv-col-study .pbv-list { border: none; border-radius: 0; padding: 0; }
 body.video-mode .pbv-text { font-size: var(--panel-payload-fs); line-height: var(--pbp-prose-leading, 1.75); }
+/* Reading-width dial works again in video-mode (research T7.11): the
+   workspace deliberately opts .doc-body out of --pbp-width (the 2160px pin
+   above), which left the rail/zen width buttons writing a value nothing
+   read -- they still cycled 680/880/1080 and wrote storage while the page
+   never moved. Pin the dial to the one thing it should govern here: the
+   article's line length inside the study column. The default matches
+   .doc-body's 880px fallback, which is also a net win on ultra-wide
+   two-column layouts where the study column outgrows a readable measure. */
+body.video-mode .pbv-col-study #rendered-view { max-width: var(--pbp-width, 880px); }
 
 /* Player scales to its column instead of a fixed height computed against
    .pbv-media's own aspect-ratio box (the pre-workspace method, now

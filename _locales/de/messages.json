@@ -3644,8 +3644,8 @@
   "mdVideoPermDeclined": { "message": "Video geladen; Untertitel nicht aktiviert" },
   "mdVideoAiPunctPartial": { "message": "$FAIL$ von $TOTAL$ Abschnitten haben die Prüfung nicht bestanden; Originaltext beibehalten. Erneut klicken, um nur diese zu wiederholen.", "placeholders": { "fail": { "content": "$1" }, "total": { "content": "$2" } } },
   "mdVideoAiCancelled": { "message": "Abgebrochen bei $DONE$ von $TOTAL$ Abschnitten; Fortschritt gespeichert, zum Fortsetzen erneut klicken.", "placeholders": { "done": { "content": "$1" }, "total": { "content": "$2" } } },
-  "mdVideoPunctSource": { "message": "Untertitel bereits interpunktiert" },
-  "mdVideoPunctHeuristic": { "message": "Basiszeichensetzung automatisch ergänzt" },
+  "mdVideoPunctSource": { "message": "Bereits interpunktiert" },
+  "mdVideoPunctHeuristic": { "message": "Basis-Interpunktion" },
   "mdVideoAiUnconfigured": { "message": "Kein KI-Anbieter konfiguriert" },
   "mdVideoGrantScope": { "message": "Der Player braucht keine Berechtigung; sie gilt nur dem Lesen der Untertitel" },
   "mdVideoFollowReadingOff": { "message": "Wiedergabe folgen erfordert die Zeitleistenansicht" },
@@ -3659,5 +3659,8 @@
   "mdVideoViaDom": { "message": "Untertitelquelle: Seitenpanel (reduziert; Vollständigkeit prüfen)" },
   "mdVideoTranscriptHeading": { "message": "Transkript" },
   "mdVideoPromoted": { "message": "Transkript bereit; der Artikel wurde ersetzt" },
-  "mdVideoAiCancel": { "message": "KI-Zeichensetzung abbrechen" }
+  "mdVideoAiCancel": { "message": "KI-Zeichensetzung abbrechen" },
+  "mdVideoAiPunctEst": { "message": "≈ $TOKENS$ Tokens", "placeholders": { "tokens": { "content": "$1" } } },
+  "mdVideoAiPunctConfirm": { "message": "KI-Interpunktion ersetzt den Artikel: vorhandene Übersetzungen werden gelöscht, Ask-Zitate werden ungültig. Fortfahren?" },
+  "mdStatVideoLen": { "message": "Video $TIME$", "placeholders": { "time": { "content": "$1" } } }
 }
