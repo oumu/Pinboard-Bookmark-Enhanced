@@ -969,11 +969,16 @@ function pbpApplyColorScheme(mode) {
         // there, none of which this shell has. The caption auto-boot then
         // re-runs the chain with the runtime present.
         try {
-          await chrome.storage.local.set({ [MP_KEY]: {
-            markdown: "", title: title || "", url, baseUrl, sourceTabUrl, tabId: srcTabId,
-            source: attemptedEngine === "jina" ? "jina" : "local",
-            account: previewAccount, tags, description, ts: Date.now(), nonce: _pageNonce
-          } });
+          // Stranger check (closing review H1): another page's newer record
+          // owns the slot -- reload into IT instead of overwriting it.
+          const cur1 = (await chrome.storage.local.get(MP_KEY))[MP_KEY];
+          if (!(cur1 && typeof cur1.nonce === "string" && cur1.nonce !== _pageNonce && (cur1.ts || 0) > _pageLoadTs)) {
+            await chrome.storage.local.set({ [MP_KEY]: {
+              markdown: "", title: title || "", url, baseUrl, sourceTabUrl, tabId: srcTabId,
+              source: attemptedEngine === "jina" ? "jina" : "local",
+              account: previewAccount, tags, description, ts: Date.now(), nonce: _pageNonce
+            } });
+          }
           location.reload();
           return;
         } catch (e) {
@@ -1189,7 +1194,13 @@ function pbpApplyColorScheme(mode) {
         nonce: _pageNonce
       };
   try {
-    await chrome.storage.local.set({ [MP_KEY]: _restoreRecord });
+    // Same-slot stranger check as the committer (closing review H1): a
+    // duplicated tab's commit landing during THIS page's first milliseconds
+    // must not be overwritten by our restore record.
+    const cur0 = (await chrome.storage.local.get(MP_KEY))[MP_KEY];
+    if (!(cur0 && typeof cur0.nonce === "string" && cur0.nonce !== _pageNonce && (cur0.ts || 0) > _pageLoadTs)) {
+      await chrome.storage.local.set({ [MP_KEY]: _restoreRecord });
+    }
   } catch (_) { /* degrade to current behavior: next reload hits the empty state */ }
 
   // Export-options defaults from settings (per-export overridable via the header row).

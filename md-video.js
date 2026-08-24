@@ -2751,12 +2751,17 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         const idx = _trackValues.indexOf(key);
         let selTrack = (idx >= 0 && idx < sessionTracks.length) ? sessionTracks[idx] : null;
         if (!selTrack) {
-          // The session's track list was replaced since the picker was built.
-          // Fall back to the stable key -- exact first, then without the
-          // collision suffix buildTrackValues may have appended.
-          selTrack = sessionTracks.find((tr) => pbpVideoTrackKey(tr, detected.provider) === key)
-            || sessionTracks.find((tr) => pbpVideoTrackKey(tr, detected.provider) === bare)
-            || null;
+          // The session's track list was replaced since the picker was
+          // built. Re-run the SAME dedup pass on the live list so a suffixed
+          // key still addresses its duplicate (closing review H6); the bare
+          // fallback stays reserved for keys that never had a suffix --
+          // resolving "yt:en#2" to the FIRST bare match was the wrong track.
+          const liveVals = buildTrackValues(sessionTracks, detected.provider);
+          const li = liveVals.indexOf(key);
+          if (li >= 0) selTrack = sessionTracks[li];
+          else if (!/#\d+$/.test(key)) {
+            selTrack = sessionTracks.find((tr) => pbpVideoTrackKey(tr, detected.provider) === bare) || null;
+          }
         }
         let endpoint = selTrack ? ((isBili ? selTrack.subtitle_url : selTrack.baseUrl) || "") : "";
         // Nothing to fetch: on an F5-HYDRATED session that is the normal
