@@ -3662,5 +3662,7 @@
   "mdVideoDownloadSrt": { "message": "Download SRT subtitles" },
   "mdVideoSrtSaved": { "message": "SRT file saved" },
   "askScopeNear": { "message": "Near the current moment" },
-  "askScopeNearHint": { "message": "Send only the two paragraphs around the current caption -- fewer tokens" }
+  "askScopeNearHint": { "message": "Send only the two paragraphs around the current caption -- fewer tokens" },
+  "hlTimelineHint": { "message": "Switch to the reading view to highlight" },
+  "hlSeekHere": { "message": "Play from here" }
 }

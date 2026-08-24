@@ -78,6 +78,26 @@ function pbpAiBlockEl(n) {
   return b ? b.el : null;
 }
 
+// Study-surface host for selection-driven actions (research T2.2): the
+// article (#rendered-view) as always, OR the visible timeline list of a
+// video page (.pbv-list, md-video.js). Returns the host element that
+// contains `node`, else null. Visibility matters: the two surfaces are
+// shown in alternation, and a selection inside the hidden one is nothing
+// to act on. Both ends of a selection must resolve to the SAME host.
+function pbpStudyHost(node) {
+  if (!node) return null;
+  const el = node.nodeType === 3 ? node.parentElement : node;
+  if (!el || typeof el.closest !== "function") return null;
+  const view = document.getElementById("rendered-view");
+  if (view && view.contains(el)) return view;
+  const list = el.closest(".pbv-list");
+  if (list && !list.hidden && list.offsetParent !== null) return list;
+  return null;
+}
+function pbpStudyHostIsTimeline(host) {
+  return !!(host && host.classList && host.classList.contains("pbv-list"));
+}
+
 function pbpAiTextOf(n) {
   const key = String(n);
   if (key in _pbpAiTextCache) return _pbpAiTextCache[key];

@@ -489,7 +489,16 @@ function _pbpAskEnsureCtx(st) {
     if (near) { st.ctx = near; return; }
     st.scopeNear = false;
   }
-  if (!st.ctx || st.ctx.near) st.ctx = pbpAskBuildContext(pbpAiBlocks(), PBP_ASK_CTX_BUDGET);
+  if (!st.ctx || st.ctx.near) {
+    st.ctx = pbpAskBuildContext(pbpAiBlocks(), PBP_ASK_CTX_BUDGET);
+    // (research T2.4) a video's description -- chapter list, links, errata --
+    // lives outside the article blocks; give the model the first part of it
+    // as an uncited preamble (a few hundred chars, no [Pn] so chips never
+    // point at it).
+    const desc = (window.pbpVideoDoc && window.pbpVideoDoc.kind === "video-transcript")
+      ? String(window.pbpVideoDoc.descriptionMarkdown || "").replace(/\s+/g, " ").trim() : "";
+    if (desc) st.ctx = { ...st.ctx, text: "[Description] " + desc.slice(0, 800) + "\n" + st.ctx.text };
+  }
 }
 
 // Show the scope toggle only where it means something: a video page whose
@@ -1711,12 +1720,17 @@ const PBP_EXPLAIN_PILL_SVG = typeof PBP_ICONS !== "undefined" ? PBP_ICONS.help :
 // endpoints inside #rendered-view, and pbpExplainSelectionValid (>= 2 chars,
 // or a single Han/Kana character). Returns { range, text } | null.
 function _pbpExplainGetSelection() {
-  const view = document.getElementById("rendered-view");
-  if (!view) return null;
   const sel = window.getSelection();
   if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return null;
   const range = sel.getRangeAt(0);
-  if (!view.contains(range.startContainer) || !view.contains(range.endContainer)) return null;
+  // (research T2.2) both ends in the SAME study host -- the article or the
+  // visible timeline list -- so d/e work on caption rows too, while a drag
+  // across surfaces is still rejected.
+  const hostOf = (n) => (typeof pbpStudyHost === "function") ? pbpStudyHost(n)
+    : ((document.getElementById("rendered-view") && document.getElementById("rendered-view").contains(n))
+      ? document.getElementById("rendered-view") : null);
+  const host = hostOf(range.startContainer);
+  if (!host || host !== hostOf(range.endContainer)) return null;
   const text = sel.toString();
   if (!pbpExplainSelectionValid(text)) return null;
   return { range, text: text.trim() };
@@ -2516,6 +2530,36 @@ function _pbpExplainPackContext(cap) {
   let node = cap.range.startContainer;
   if (node && node.nodeType !== 1) node = node.parentElement;
   const blockEl = node ? node.closest("[data-pb], .pb-tr, #rendered-view > *") : null;
+  // (research T2.2) a caption row is not an indexed block: the row's own
+  // text is the sentence, the neighbouring rows stand in for the paragraph
+  // and its neighbours. No block number (chips never point at rows).
+  const rowEl = (!blockEl && node && node.closest) ? node.closest(".pbv-row") : null;
+  if (rowEl) {
+    const rowText = (el) => {
+      const sp = el && el.querySelector ? el.querySelector(".pbv-text") : null;
+      return sp ? String(sp.textContent || "").trim() : "";
+    };
+    const cur = rowText(rowEl);
+    const idx = cur.indexOf(cap.text);
+    const sentence = idx === -1 ? cap.text : pbpExplainSentenceAround(cur, idx, idx + cap.text.length);
+    const around = (dir, count) => {
+      const parts = [];
+      let e = rowEl;
+      for (let i = 0; i < count; i++) {
+        e = dir < 0 ? e.previousElementSibling : e.nextElementSibling;
+        if (!e) break;
+        if (dir < 0) parts.unshift(rowText(e)); else parts.push(rowText(e));
+      }
+      return parts.join(" ");
+    };
+    return {
+      sentence,
+      blockText: (around(-1, 2) + " " + cur + " " + around(1, 2)).trim().slice(0, PBP_EXPLAIN_BLOCK_CAP),
+      prevText: around(-1, 4).slice(0, PBP_EXPLAIN_NEIGHBOR_CAP),
+      nextText: around(1, 4).slice(0, PBP_EXPLAIN_NEIGHBOR_CAP),
+      selLang: ""
+    };
+  }
   let n = 0;
   let trText = "";
   if (blockEl && blockEl.dataset.pb) {

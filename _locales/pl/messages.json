@@ -3668,5 +3668,7 @@
   "mdVideoDownloadSrt": { "message": "Pobierz napisy SRT" },
   "mdVideoSrtSaved": { "message": "Zapisano plik SRT" },
   "askScopeNear": { "message": "W pobliżu bieżącego momentu" },
-  "askScopeNearHint": { "message": "Wysyłaj tylko dwa akapity wokół bieżącego napisu -- mniej tokenów" }
+  "askScopeNearHint": { "message": "Wysyłaj tylko dwa akapity wokół bieżącego napisu -- mniej tokenów" },
+  "hlTimelineHint": { "message": "Aby zaznaczyć, przełącz na widok czytania" },
+  "hlSeekHere": { "message": "Odtwarzaj stąd" }
 }

@@ -139,6 +139,14 @@ function _echoView() { return document.getElementById("rendered-view"); }
 // Keys "o<n>" / "t<n>". Hidden originals (tr-only view) are scanned anyway:
 // unpainted ranges cost nothing and mode switches are class-only mutations
 // this module deliberately does not observe.
+// Video pages (research T2.2): the timeline rows are a third block family,
+// keyed "r<index>" -- the row's .pbv-text span is what gets scanned (never
+// the time button's label). Rows are rebuilt by track switches and AI
+// passes, both of which end in an article commit that restarts this module.
+function _echoTimelineList() {
+  return document.querySelector(".pbv-col-study .pbv-list");
+}
+
 function _echoBlockKeys() {
   const keys = [];
   for (const b of (typeof pbpAiBlocks === "function" ? pbpAiBlocks() : [])) {
@@ -146,11 +154,18 @@ function _echoBlockKeys() {
     const sib = b.el && b.el.nextElementSibling;
     if (sib && sib.classList && sib.classList.contains("pb-tr")) keys.push("t" + b.n);
   }
+  const list = _echoTimelineList();
+  if (list) for (let i = 0; i < list.children.length; i++) keys.push("r" + i);
   return keys;
 }
 
 function _echoKeyEl(key) {
   const n = Number(key.slice(1));
+  if (key[0] === "r") {
+    const list = _echoTimelineList();
+    const row = list ? list.children[n] : null;
+    return row ? row.querySelector(".pbv-text") : null;
+  }
   const el = typeof pbpAiBlockEl === "function" ? pbpAiBlockEl(n) : null;
   if (!el) return null;
   if (key[0] === "o") return el;
@@ -163,6 +178,9 @@ function _echoKeyOf(el) {
   if (el.classList && el.classList.contains("pb-tr")) {
     const prev = el.previousElementSibling;
     if (prev && prev.dataset && prev.dataset.pb) return "t" + prev.dataset.pb;
+  }
+  if (el.classList && el.classList.contains("pbv-row") && el.parentElement) {
+    return "r" + Array.prototype.indexOf.call(el.parentElement.children, el);
   }
   return null;
 }
@@ -296,7 +314,7 @@ function _echoObserve() {
     let unresolvable = false;
     const mark = (node) => {
       const el = node.nodeType === 1 ? node : node.parentElement;
-      const host = el && el.closest ? el.closest("[data-pb], .pb-tr") : null;
+      const host = el && el.closest ? el.closest("[data-pb], .pb-tr, .pbv-row") : null;
       if (host) {
         const key = _echoKeyOf(host);
         if (key) { _echoDirty.add(key); return; }
@@ -310,7 +328,7 @@ function _echoObserve() {
         // Detached nodes have lost their siblings; a removed block/.pb-tr
         // can't be keyed reliably -> full rescan.
         if (node.nodeType === 1 && node.matches
-            && node.matches("[data-pb], .pb-tr")) unresolvable = true;
+            && node.matches("[data-pb], .pb-tr, .pbv-row")) unresolvable = true;
         else mark(m.target);
       }
     }
@@ -335,6 +353,10 @@ function _echoObserve() {
     }, 400);
   });
   _echoObserver.observe(view, { childList: true, subtree: true, characterData: true });
+  // Timeline rows arrive in rAF batches and are rebuilt on every track
+  // switch / AI pass (research T2.2): the same observer watches the list.
+  const list = _echoTimelineList();
+  if (list) _echoObserver.observe(list, { childList: true, subtree: true, characterData: true });
 }
 
 function _echoDisconnect() {

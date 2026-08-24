@@ -3460,6 +3460,16 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
 #skim-section.collapsed #skim-status,
 #skim-section.collapsed #skim-usage { display: none; }
 
+/* Highlight bar in timeline mode (research T2.2/T2.3): colour dots and the
+   note button step aside (no row-level anchors), lookup/explain stay, a
+   "play from here" button and the reading-view hint appear. Outside that
+   mode the two new nodes never render. */
+#pb-hl-bar .pb-hl-seek-btn, #pb-hl-bar .pb-hl-hint { display: none; }
+#pb-hl-bar.pb-hl-bar--timeline .pb-hl-dot, #pb-hl-bar.pb-hl-bar--timeline .pb-hl-note-btn { display: none; }
+#pb-hl-bar.pb-hl-bar--timeline .pb-hl-seek-btn { display: inline-flex; }
+#pb-hl-bar.pb-hl-bar--timeline .pb-hl-hint { display: inline-block; font-size: 0.78em; color: var(--fg-muted); padding: 0 6px; align-self: center; white-space: nowrap; }
+#pb-hl-bar .pb-hl-seek-btn svg { width: 16px; height: 16px; }
+
 /* ---- video panel (md-video.js) ---- */
 .video-panel { margin: 0 0 20px; }
 /* Poster-card CTA (design option A): occupies the same 16:9 box the player

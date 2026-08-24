@@ -411,6 +411,18 @@ function _pbpSearchVisibleCandidates(view) {
   const bilingual = document.body.classList.contains("tr-bilingual");
   const trOnly = document.body.classList.contains("tr-only");
   const out = [];
+  // (research T2.1) Video pages: when the timeline is the visible study
+  // view (#rendered-view hidden by md-video.js's setStudyView), search the
+  // caption rows instead of the hidden article -- counting matches painted
+  // into display:none was the "ghost 1/12" the audit found. Each row's
+  // text span is a candidate; stepping scrolls to the row, whose own click
+  // seeks the player. The open description joins in either view.
+  const list = document.querySelector(".pbv-col-study .pbv-list");
+  if (view.hidden && list && !list.hidden) {
+    for (const el of list.querySelectorAll(".pbv-row > .pbv-text")) out.push(el);
+    _pbpSearchPushDescription(out);
+    return out;
+  }
   for (const el of view.children) {
     if (el.classList.contains("pb-tr")) {
       if (!bilingual && !trOnly) continue;
@@ -419,7 +431,16 @@ function _pbpSearchVisibleCandidates(view) {
     }
     out.push(el);
   }
+  _pbpSearchPushDescription(out);
   return out;
+}
+// The video description (<details#video-description>) is outside the
+// article; it is searchable only while expanded -- a collapsed one would
+// produce exactly the invisible matches the rule above removes.
+function _pbpSearchPushDescription(out) {
+  const desc = document.querySelector("details#video-description[open] > .desc-body");
+  if (!desc) return;
+  for (const el of desc.children) out.push(el);
 }
 
 // Gate matches md-ask.js's _pbpAskFlash precedent verbatim (typeof Highlight
@@ -748,12 +769,6 @@ function _pbpSearchEnsurePop() {
 // since it degrades to a safe no-op (null) whether or not that feature
 // happened to mount.
 function _pbpSearchOpen() {
-  // (research T2.1) In video-mode the timeline may be the visible study view
-  // with #rendered-view hidden -- search would then count matches painted
-  // into display:none and every jump would land nowhere (a ghost "1/12").
-  // U6 gave every other jump entry this dispatch; search was the missed one.
-  // md-video.js listens and flips the study view back to reading.
-  try { document.dispatchEvent(new CustomEvent("pbp:ensure-article-visible")); } catch (_) {}
   const pop = _pbpSearchEnsurePop();
   _pbpReaderHideOtherPopovers(pop);
   _pbpSearchTeardown();

@@ -3668,5 +3668,7 @@
   "mdVideoDownloadSrt": { "message": "SRT-Untertitel herunterladen" },
   "mdVideoSrtSaved": { "message": "SRT-Datei gespeichert" },
   "askScopeNear": { "message": "Nahe der aktuellen Stelle" },
-  "askScopeNearHint": { "message": "Nur die zwei Absätze um die aktuelle Untertitelzeile senden -- weniger Tokens" }
+  "askScopeNearHint": { "message": "Nur die zwei Absätze um die aktuelle Untertitelzeile senden -- weniger Tokens" },
+  "hlTimelineHint": { "message": "Zum Markieren in die Leseansicht wechseln" },
+  "hlSeekHere": { "message": "Ab hier abspielen" }
 }

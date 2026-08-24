@@ -3668,5 +3668,7 @@
   "mdVideoDownloadSrt": { "message": "Скачать субтитры SRT" },
   "mdVideoSrtSaved": { "message": "Файл SRT сохранён" },
   "askScopeNear": { "message": "Рядом с текущим моментом" },
-  "askScopeNearHint": { "message": "Отправлять только два абзаца вокруг текущего субтитра -- меньше токенов" }
+  "askScopeNearHint": { "message": "Отправлять только два абзаца вокруг текущего субтитра -- меньше токенов" },
+  "hlTimelineHint": { "message": "Для выделения переключитесь в режим чтения" },
+  "hlSeekHere": { "message": "Воспроизвести отсюда" }
 }

@@ -1343,7 +1343,19 @@ function pbpApplyColorScheme(mode) {
   // imagePolicy/TOC applied yet — composeExport/composeStyledHtml do that.
   function getViewMarkdown() {
     const viewMd = (typeof window.pbpViewMarkdown === "function") ? window.pbpViewMarkdown() : null;
-    return viewMd || getMarkdown();
+    return withVideoDescription(viewMd || getMarkdown());
+  }
+  // (research T2.4) Exports carry the video description as a trailing
+  // section: the chapter list / reference links / errata a bookmarking tool
+  // should keep travel with the transcript to Obsidian/Notion/EPUB. Only for
+  // committed transcript articles, only when there is one; the canonical
+  // markdown itself is untouched (this is export composition).
+  function withVideoDescription(md) {
+    const doc = window.pbpVideoDoc;
+    if (!doc || doc.kind !== "video-transcript") return md;
+    const desc = String(doc.descriptionMarkdown || "").trim();
+    if (!desc) return md;
+    return String(md || "").replace(/\s+$/, "") + "\n\n## " + t("mdVideoDescription") + "\n\n" + desc + "\n";
   }
   function buildExportMarkdown() {
     const opts = buildExportOpts();

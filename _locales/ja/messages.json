@@ -3668,5 +3668,7 @@
   "mdVideoDownloadSrt": { "message": "SRT 字幕をダウンロード" },
   "mdVideoSrtSaved": { "message": "SRT ファイルを保存しました" },
   "askScopeNear": { "message": "現在位置の周辺" },
-  "askScopeNearHint": { "message": "現在の字幕の前後 2 段落だけを送信します（トークン節約）" }
+  "askScopeNearHint": { "message": "現在の字幕の前後 2 段落だけを送信します（トークン節約）" },
+  "hlTimelineHint": { "message": "ハイライトするには読み物ビューに切り替えてください" },
+  "hlSeekHere": { "message": "ここから再生" }
 }

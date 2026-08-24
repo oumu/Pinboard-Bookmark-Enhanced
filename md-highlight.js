@@ -1229,6 +1229,30 @@ function _pbpHlEnsureBar() {
     if (typeof pbpExplainInvoke === "function") pbpExplainInvoke("dict");
   });
   bar.appendChild(dictBtn);
+  // Timeline mode (research T2.2/T2.3): on a caption row the bar offers
+  // lookup / explain / "play from here" and says where highlighting lives
+  // -- rows are re-rendered by track switches and AI passes, so a row-level
+  // anchor could never survive, and the honest answer is the hint rather
+  // than a silent no-op. Both nodes stay hidden outside timeline mode
+  // (md-preview.css keys off .pb-hl-bar--timeline).
+  const seekBtn = document.createElement("button");
+  seekBtn.type = "button";
+  seekBtn.className = "pb-hl-seek-btn";
+  seekBtn.title = t("hlSeekHere");
+  seekBtn.setAttribute("aria-label", t("hlSeekHere"));
+  seekBtn.innerHTML = (typeof PBV_PLAY_SVG === "string" && PBV_PLAY_SVG) || "";
+  seekBtn.addEventListener("mousedown", (e) => e.preventDefault());
+  seekBtn.addEventListener("click", () => {
+    const r = _pbpHlBarRange;
+    const sec = (r && typeof window.pbpVideoTimeForNode === "function") ? window.pbpVideoTimeForNode(r.startContainer) : null;
+    if (sec != null && typeof window.pbpVideoSeek === "function") window.pbpVideoSeek(sec);
+    _pbpHlHideBar();
+  });
+  bar.appendChild(seekBtn);
+  const hint = document.createElement("span");
+  hint.className = "pb-hl-hint";
+  hint.textContent = t("hlTimelineHint");
+  bar.appendChild(hint);
   // Visibility gate memoized once at bar creation (same accepted pattern as
   // the hl-card AI row, md-highlight.js:1111 -- see _pbpHlEnsureCard):
   // dict P1: the buttons open the dict-capable popover; AI availability no
@@ -1248,8 +1272,9 @@ function _pbpHlEnsureBar() {
   return bar;
 }
 
-function _pbpHlShowBar(range) {
+function _pbpHlShowBar(range, timeline) {
   const bar = _pbpHlEnsureBar();
+  bar.classList.toggle("pb-hl-bar--timeline", !!timeline);
   _pbpHlBarRange = range;
   if (typeof window.pbpExplainDismissIfUnpinned === "function") window.pbpExplainDismissIfUnpinned();
   try { bar.hidePopover(); } catch (_) {} // re-invoke while open: reset first (mirrors _pbpExplainOpenPop)
@@ -1379,14 +1404,25 @@ async function _pbpHlCreateWithNote(btn) {
 // scroll/selection-collapse hide. Esc + click-elsewhere dismiss are free
 // via the popover's own light-dismiss (no listener needed for those). ----
 function _pbpHlOnMouseUp(e) {
-  const view = document.getElementById("rendered-view");
-  if (!view || !view.contains(e.target)) return;
+  // (research T2.2) the host is the article OR the visible timeline list.
+  const host = (typeof pbpStudyHost === "function") ? pbpStudyHost(e.target)
+    : (document.getElementById("rendered-view") && document.getElementById("rendered-view").contains(e.target)
+      ? document.getElementById("rendered-view") : null);
+  if (!host) return;
   const sel = window.getSelection();
   if (!sel || sel.isCollapsed || sel.rangeCount === 0) { _pbpHlHideBar(); return; }
   const range = sel.getRangeAt(0);
+  const timeline = typeof pbpStudyHostIsTimeline === "function" && pbpStudyHostIsTimeline(host);
+  if (timeline) {
+    // No block anchors on caption rows: the bar shows lookup/explain/seek
+    // plus the "highlight lives in the reading view" hint (research T2.3).
+    if (host !== (typeof pbpStudyHost === "function" ? pbpStudyHost(range.endContainer) : host)) { _pbpHlHideBar(); return; }
+    _pbpHlShowBar(range, true);
+    return;
+  }
   const segments = _pbpHlSelectionSegments(range);
   if (!segments.length) { _pbpHlHideBar(); return; }
-  _pbpHlShowBar(range);
+  _pbpHlShowBar(range, false);
 }
 
 // Same shared modifier/typing/raw-view gate as the t/v/e/d shortcuts:
@@ -1401,8 +1437,17 @@ function _pbpHlOnKeyDown(e) {
   const sel = window.getSelection();
   if (!sel || sel.isCollapsed || sel.rangeCount === 0) return;
   const range = sel.getRangeAt(0);
-  const view = document.getElementById("rendered-view");
-  if (!view || !view.contains(range.commonAncestorContainer)) return;
+  const host = (typeof pbpStudyHost === "function") ? pbpStudyHost(range.commonAncestorContainer)
+    : (document.getElementById("rendered-view") && document.getElementById("rendered-view").contains(range.commonAncestorContainer)
+      ? document.getElementById("rendered-view") : null);
+  if (!host) return;
+  if (typeof pbpStudyHostIsTimeline === "function" && pbpStudyHostIsTimeline(host)) {
+    // (research T2.3) h / 1-5 on a caption row: say where highlighting
+    // works instead of doing nothing -- the timeline bar carries the hint.
+    e.preventDefault();
+    _pbpHlShowBar(range, true);
+    return;
+  }
   const segments = _pbpHlSelectionSegments(range);
   if (!segments.length) return;
   e.preventDefault();
@@ -1416,7 +1461,11 @@ function _pbpHlOnKeyDown(e) {
 }
 
 function _pbpHlBindInteractions(view) {
-  view.addEventListener("mouseup", _pbpHlOnMouseUp);
+  // Document-level (research T2.2): the handler gates on pbpStudyHost, so
+  // a mouseup outside the article/timeline returns at once, while a
+  // selection on a caption row -- a sibling of #rendered-view -- can now
+  // reach it at all (bound to `view` it never did).
+  document.addEventListener("mouseup", _pbpHlOnMouseUp);
   document.addEventListener("keydown", _pbpHlOnKeyDown);
   window.addEventListener("scroll", () => _pbpHlHideBar(), true);
   document.addEventListener("selectionchange", () => {

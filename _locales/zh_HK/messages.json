@@ -3668,5 +3668,7 @@
   "mdVideoDownloadSrt": { "message": "下載 SRT 字幕" },
   "mdVideoSrtSaved": { "message": "已匯出 SRT 檔案" },
   "askScopeNear": { "message": "目前位置附近" },
-  "askScopeNearHint": { "message": "只傳送目前字幕前後各兩段，更省 token" }
+  "askScopeNearHint": { "message": "只傳送目前字幕前後各兩段，更省 token" },
+  "hlTimelineHint": { "message": "要標示請切換到閱讀稿檢視" },
+  "hlSeekHere": { "message": "跳轉到此處播放" }
 }

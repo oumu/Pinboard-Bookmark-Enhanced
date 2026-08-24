@@ -3668,5 +3668,7 @@
   "mdVideoDownloadSrt": { "message": "Télécharger les sous-titres SRT" },
   "mdVideoSrtSaved": { "message": "Fichier SRT enregistré" },
   "askScopeNear": { "message": "Autour du moment actuel" },
-  "askScopeNearHint": { "message": "N'envoie que les deux paragraphes autour du sous-titre actuel -- moins de tokens" }
+  "askScopeNearHint": { "message": "N'envoie que les deux paragraphes autour du sous-titre actuel -- moins de tokens" },
+  "hlTimelineHint": { "message": "Passez en vue lecture pour surligner" },
+  "hlSeekHere": { "message": "Lire à partir d'ici" }
 }
