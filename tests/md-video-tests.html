@@ -1100,6 +1100,18 @@ section("extracted runtime primitives (audit E1/E4/E5)");
   const legacyMd = pbpVideoTranscriptMarkdown(tSegs, tMeta, null, "Transcript", true);
   assert(pbpVideoStateValidate(tState, tDet, legacyMd) === true, "pre-campaign record with a RAW special-char title still hydrates (title-axis migration)");
   assert(pbpVideoStateValidate(tState, tDet, pbpVideoTranscriptMarkdown(tSegs, tMeta, null)) === true, "the current escaped shape validates too");
+  // Word-drift repair (device round 6): the model's marks are kept, the
+  // source's characters win.
+  const r1 = pbpVideoPunctRepair("会冒热气气热气能把食物加热", "会冒热气，热气能把食物加热。");
+  assert(r1 != null && pbpVideoPunctStrip(r1) === "会冒热气气热气能把食物加热" && /，/.test(r1) && /。/.test(r1),
+    "repair: a dropped stutter char is reinserted, the marks stay");
+  const r2 = pbpVideoPunctRepair("然后水会沸腾起来这就是原理", "然后水会废腾起来，这就是原理。");
+  assert(r2 != null && r2.includes("沸") && !r2.includes("废"), "repair: a homophone substitution is undone to the source char");
+  const r3 = pbpVideoPunctRepair("今天天气很好我们出门走走", "今天的天气很好，我们出门走走。");
+  assert(r3 != null && pbpVideoPunctStrip(r3) === "今天天气很好我们出门走走", "repair: a model-invented character is dropped");
+  assert(r1 != null && pbpVideoPunctConserved("会冒热气气热气能把食物加热", r1) === true, "repair: output passes the conservation gate by construction");
+  const longSrc = "字".repeat(300);
+  assert(pbpVideoPunctRepair(longSrc, longSrc.slice(0, 100) + "。") === null, "repair: truncation stays rejected (fail-closed intact)");
 })();
 
 document.getElementById("summary").textContent = `${pass} passed, ${fail} failed`;

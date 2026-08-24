@@ -330,6 +330,104 @@ function pbpVideoPunctConserved(original, punctuated) {
   return a.length > 0 && a === pbpVideoPunctStrip(punctuated);
 }
 
+// Banded edit script between two conserved character streams (repair tier
+// below). Ops are aligned to `b`: match/sub consume one char of each side
+// (sub carries the SOURCE char), del carries a source char missing from b,
+// ins marks a model-invented char to drop. Returns null when the distance
+// exceeds maxEdits -- that is a rewrite or truncation, not typo drift.
+function _pbpVideoEditOps(a, b, maxEdits) {
+  const n = a.length, m = b.length;
+  if (Math.abs(n - m) > maxEdits) return null;
+  const band = maxEdits;
+  const W = 2 * band + 1;
+  const INF = 0x3fffffff;
+  const dp = new Int32Array((n + 1) * W).fill(INF);
+  const at = (i, j) => {
+    const o = j - i + band;
+    return (o >= 0 && o < W) ? i * W + o : -1;
+  };
+  dp[at(0, 0)] = 0;
+  for (let i = 0; i <= n; i++) {
+    const jLo = Math.max(0, i - band), jHi = Math.min(m, i + band);
+    for (let j = jLo; j <= jHi; j++) {
+      const cur = dp[at(i, j)];
+      if (cur >= INF) continue;
+      if (i < n && j < m) {
+        const c = cur + (a[i] === b[j] ? 0 : 1);
+        const q = at(i + 1, j + 1);
+        if (q >= 0 && c < dp[q]) dp[q] = c;
+      }
+      if (i < n) { const q = at(i + 1, j); if (q >= 0 && cur + 1 < dp[q]) dp[q] = cur + 1; }
+      if (j < m) { const q = at(i, j + 1); if (q >= 0 && cur + 1 < dp[q]) dp[q] = cur + 1; }
+    }
+  }
+  const endQ = at(n, m);
+  if (endQ < 0 || dp[endQ] > maxEdits) return null;
+  const ops = [];
+  let i = n, j = m;
+  while (i > 0 || j > 0) {
+    const cur = dp[at(i, j)];
+    let stepped = false;
+    if (i > 0 && j > 0) {
+      const q = at(i - 1, j - 1);
+      if (q >= 0 && dp[q] + (a[i - 1] === b[j - 1] ? 0 : 1) === cur) {
+        ops.push(a[i - 1] === b[j - 1] ? { op: "match" } : { op: "sub", ch: a[i - 1] });
+        i--; j--; stepped = true;
+      }
+    }
+    if (!stepped && i > 0) {
+      const q = at(i - 1, j);
+      if (q >= 0 && dp[q] + 1 === cur) { ops.push({ op: "del", ch: a[i - 1] }); i--; stepped = true; }
+    }
+    if (!stepped && j > 0) {
+      const q = at(i, j - 1);
+      if (q >= 0 && dp[q] + 1 === cur) { ops.push({ op: "ins" }); j--; stepped = true; }
+    }
+    if (!stepped) return null;
+  }
+  ops.reverse();
+  return ops;
+}
+
+// Word-drift repair for the AI tier (device round 6, BV1YGKk6dE8b): real
+// models silently "fix" ASR output even when told not to -- stutter
+// duplicates dropped, homophone typos corrected (~9 single-char edits per
+// 1600-char batch measured live) -- and the fail-closed gate then rejected
+// most batches of exactly the content that needs punctuating most. The
+// marks are the ONLY thing we want from the model, so this restores the
+// SOURCE's characters wherever the conserved streams diverge and keeps the
+// model's marks where they sit. Bounded (~3%): a larger drift is a rewrite
+// or truncation and still fails closed. The result passes the conservation
+// gate BY CONSTRUCTION -- and is asserted to, so fail-closed is intact.
+function pbpVideoPunctRepair(original, aiOutput) {
+  const a = pbpVideoPunctStrip(original);
+  const src = String(aiOutput || "");
+  const b = pbpVideoPunctStrip(src);
+  if (!a.length || !b.length) return null;
+  if (a === b) return src;
+  const maxEdits = Math.min(48, Math.max(12, Math.round(a.length * 0.03)));
+  const ops = _pbpVideoEditOps(a, b, maxEdits);
+  if (!ops) return null;
+  let out = "";
+  let oi = 0;
+  for (let i = 0; i < src.length; i++) {
+    const ch = src[i];
+    if (PBP_VIDEO_MARK_RE.test(ch) && !pbpVideoIsIntraMark(src, i)) { out += ch; continue; }
+    while (oi < ops.length && ops[oi].op === "del") { out += ops[oi].ch; oi++; }
+    const op = ops[oi++];
+    if (!op) return null;
+    if (op.op === "match") out += ch;
+    else if (op.op === "sub") out += op.ch; // the source's character wins
+    // op "ins": the model invented this character -- drop it
+  }
+  while (oi < ops.length) {
+    if (ops[oi].op === "del") out += ops[oi].ch;
+    else if (ops[oi].op !== "ins") return null;
+    oi++;
+  }
+  return pbpVideoPunctConserved(original, out) ? out : null;
+}
+
 // Map AI-punctuated text back onto the timed segments, so the panel rows
 // (and their seek timestamps) get the punctuation too -- without this the
 // AI pass was invisible everywhere except the committed article text. Deterministic because
@@ -3435,6 +3533,11 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           }
           const outBatches = [];
           let rejected = 0;
+          // Progress counts the batches THIS pass actually pays for (device
+          // round 6: a retry that resumed at "1/7" read as starting over --
+          // it was numbering by batch index, not by work remaining).
+          const freshTotal = batches.filter((x) => !_aiBatchCache.has(x)).length || batches.length;
+          let freshCur = 0;
           for (const [bi, b] of batches.entries()) {
             // Retry economics (audit B9): a batch this page already got a
             // conservation-passing answer for answers from the cache -- the
@@ -3442,13 +3545,14 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
             if (_aiCancelRequested) {
               // Between-batch cancel (audit U8): finished batches stay in
               // the cache, nothing commits, the button survives via finally.
-              pbvSetStatus(status, t("mdVideoAiPunctPartial", String(outBatches.length), String(batches.length)), true);
+              pbvSetStatus(status, t("mdVideoAiCancelled", String(outBatches.length), String(batches.length)), false);
               return;
             }
             const cached = _aiBatchCache.get(b);
             if (cached != null) { outBatches.push(cached); continue; }
-            pbvSetStatus(status, t("mdVideoAiPunctProgress", String(bi + 1), String(batches.length)), false);
-            const prompt = "为下面的语音转写文本添加或修正标点符号，并按语义用空行分段。严格保持文字本身不变：不得增加、删除或改写任何非标点文字。直接输出处理后的文本，不要任何解释。\n\n" + b;
+            freshCur++;
+            pbvSetStatus(status, t("mdVideoAiPunctProgress", String(freshCur), String(freshTotal)), false);
+            const prompt = "为下面的语音转写文本添加或修正标点符号，并按语义用空行分段。严格保持文字本身不变：不得增加、删除或改写任何非标点文字；原文中的错别字、重复和口误也必须原样保留，不要纠正。直接输出处理后的文本，不要任何解释。\n\n" + b;
             // Output ≈ input + marks: the provider DEFAULT of ~1024 output
             // tokens truncates any full-size (~1600+ char) CJK batch, and a
             // truncated echo can never pass the conservation gate below -- the
@@ -3469,13 +3573,24 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
               if (unfenced !== out && pbpVideoPunctConserved(b, unfenced)) { out = unfenced; ok = true; }
             }
             if (!ok) {
+              // Word-drift repair (device round 6): restore the source's
+              // characters under the model's marks. Non-null means the
+              // repaired text already passed the conservation gate.
+              const repaired = pbpVideoPunctRepair(b, pbpVideoStripFence(out));
+              if (repaired != null) {
+                console.info("[pbp-video] ai punctuation: batch " + (bi + 1) + "/" + batches.length
+                  + " repaired (model word drift undone, marks kept)");
+                out = repaired; ok = true;
+              }
+            }
+            if (!ok) {
               rejected++;
               // Breadcrumb, not content (privacy: no transcript text in logs).
               // The length ratio doubles as the diagnosis: out << in means the
               // model truncated or refused; out ≈ in means it rewrote words
               // (typo fixes / script conversion) or used marks outside the
               // conservation whitelist.
-              console.warn("[pbp-video] ai punctuation: batch " + (bi + 1) + "/" + batches.length
+              console.info("[pbp-video] ai punctuation: batch " + (bi + 1) + "/" + batches.length
                 + " failed conservation (in " + b.length + " chars, out " + out.length + " chars) -- keeping original");
             } else if (pbpVideoPunctChanged([out], [b])) {
               // Cache only outputs that actually punctuated something: a
@@ -3489,7 +3604,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           // A cancel during the LAST batch's round-trip must not commit
           // either (closing review F8): the loop-top check never runs again.
           if (_aiCancelRequested) {
-            pbvSetStatus(status, t("mdVideoAiPunctPartial", String(outBatches.length), String(batches.length)), true);
+            pbvSetStatus(status, t("mdVideoAiCancelled", String(outBatches.length), String(batches.length)), false);
             return;
           }
           // Partial success must NOT commit (audit B9): committing would
@@ -3497,7 +3612,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           // batches that still carry heuristic text. Passed batches are
           // cached above, so the retry click only re-pays for the failures.
           if (rejected > 0) {
-            pbvSetStatus(status, t("mdVideoAiPunctPartial", String(batches.length - rejected), String(batches.length)), true);
+            pbvSetStatus(status, t("mdVideoAiPunctPartial", String(rejected), String(batches.length)), true);
             return;
           }
           // A pass that changed nothing must not commit: committing the
@@ -3513,7 +3628,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           // committing that would retire the button (aiPunct persists across
           // F5) over words that never gained a mark.
           if (!pbpVideoPunctChanged(outBatches, batches)) {
-            console.warn("[pbp-video] ai punctuation: pass produced no change ("
+            console.info("[pbp-video] ai punctuation: pass produced no change ("
               + rejected + "/" + batches.length + " batches failed conservation) -- transcript kept, button stays");
             pbvSetStatus(status, t("mdVideoAiPunctFail"), true);
             return;
