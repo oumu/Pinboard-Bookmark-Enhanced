@@ -112,12 +112,24 @@ section("punctuation enhancement");
     { from: 12, to: 14, content: "你说对吗" },        // last + particle -> question mark
   ];
   const hp = pbpVideoHeuristicPunctuate(segs);
-  assertEq(hp[0].content, "这是第一句", "heuristic: tiny gap gets no mark");
+  assertEq(hp[0].content, "这是第一句，", "heuristic: contiguous boundary still earns a comma (ASR tier)");
   assertEq(hp[1].content, "然后短停顿，", "heuristic: short pause gets a comma");
   assertEq(hp[2].content, "长停顿之前说的话。", "heuristic: long pause gets a full stop");
   assertEq(hp[3].content, "你说对吗？", "heuristic: trailing interrogative particle gets a question mark");
   assertEq(pbpVideoHeuristicPunctuate([{ from: 0, to: 9, content: "english asr line" }])[0].content, "english asr line", "heuristic: non-CJK untouched");
   assertEq(segs[1].content, "然后短停顿", "heuristic: input segments not mutated");
+  // bilibili ai-zh shape (device round 4: 125 of 132 real boundaries at
+  // exactly gap 0): cues tile the timeline edge-to-edge, so the pause rules
+  // alone marked nothing -- the boundary tier must mark every cue, and the
+  // sentence-length promotion must bound the comma run-ons.
+  const tile = []; for (let i = 0; i < 20; i++) tile.push({ from: i * 2, to: (i + 1) * 2, content: "无缝衔接的机器字幕行第" + "几".repeat(1) + "条" });
+  const tiled = pbpVideoHeuristicPunctuate(tile);
+  assert(tiled.every((s) => /[，。！？]$/.test(s.content)), "heuristic: every contiguous CJK cue ends marked");
+  assert(tiled.some((s) => /。$/.test(s.content) && s !== tiled[tiled.length - 1]), "heuristic: long comma runs promote to full stops mid-track");
+  assert(/。$/.test(tiled[tiled.length - 1].content), "heuristic: track end closes the sentence");
+  assert(tile.every((s) => !/[，。！？]$/.test(s.content)), "heuristic: tiled input not mutated");
+  const q = pbpVideoHeuristicPunctuate([{ from: 0, to: 2, content: "你知道吗" }, { from: 2, to: 4, content: "其实很简单" }]);
+  assertEq(q[0].content, "你知道吗？", "heuristic: interrogative particle wins at a contiguous boundary too");
   assert(pbpVideoPunctConserved("我们蒸馒头 蒸饭", "我们蒸馒头，蒸饭。") === true, "conserved: pure punctuation insertion passes");
   assert(pbpVideoPunctConserved("我们蒸馒头", "我们蒸包子。") === false, "conserved: rewritten words fail closed");
   assert(pbpVideoPunctConserved("", "") === false, "conserved: empty input fails closed");

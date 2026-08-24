@@ -229,24 +229,42 @@ function pbpVideoNeedsPunctuation(segments) {
   return punct / segs.length < 0.1;
 }
 
-// Zero-token heuristic tier: pause length decides the mark (short pause ->
-// comma, long pause -> full stop; interrogative particles -> question mark).
+// Zero-token heuristic tier. Two signals decide the mark:
+//   * a real pause between cues (human-timed tracks): short pause -> comma,
+//     long pause -> full stop; interrogative particles -> question mark;
+//   * the cue boundary itself. Machine captions (bilibili ai-zh, YouTube
+//     ASR) tile the timeline edge-to-edge -- device round 4 measured 125 of
+//     132 boundaries at exactly gap 0 -- so the pause rules alone mark
+//     almost nothing on precisely the tracks that need them. An ASR
+//     segmenter still breaks at phrase edges, so a contiguous boundary
+//     earns a comma, promoted to a full stop once the running sentence has
+//     grown past a readable length (a marks-free wall was the device
+//     report; unbounded comma run-ons would be its sibling).
 // Chinese-specific rules, so non-CJK segments are left alone. Returns new
 // segment objects; never mutates the input.
 function pbpVideoHeuristicPunctuate(segments) {
   const segs = segments || [];
   const out = [];
+  let run = 0; // chars since the last sentence-ending mark
   for (let i = 0; i < segs.length; i++) {
     const s = segs[i];
     const content = String((s && s.content) || "");
-    if (!/[一-鿿]/.test(content) || /[，。！？…、；：,.!?;:]$/.test(content)) { out.push(s); continue; }
+    if (!/[一-鿿]/.test(content) || /[，。！？…、；：,.!?;:]$/.test(content)) {
+      run = /[。！？…!?]$/.test(content) ? 0 : run + content.length;
+      out.push(s);
+      continue;
+    }
     const next = segs[i + 1];
     const end = typeof s.to === "number" && s.to > 0 ? s.to : (typeof s.from === "number" ? s.from : -1);
     const gap = next && typeof next.from === "number" && end >= 0 ? next.from - end : Infinity;
-    let mark = "";
+    run += content.length;
+    let mark;
     if (!next || gap >= 1.5) mark = /[吗呢]$/.test(content) ? "？" : "。";
+    else if (/[吗呢]$/.test(content)) mark = "？";
     else if (gap >= 0.4) mark = "，";
-    out.push(mark ? { ...s, content: content + mark } : s);
+    else mark = run >= 48 ? "。" : "，"; // contiguous ASR boundary
+    if (mark === "。" || mark === "？") run = 0;
+    out.push({ ...s, content: content + mark });
   }
   return out;
 }
@@ -1577,11 +1595,13 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   // ---- playback-position sync (Task 6) -------------------------------
   // The relay (docs/yt-embed.html) stays silent until we speak: it arms its
   // outbound reporting on the FIRST valid inbound message and replies only to
-  // that message's origin. "hello" is that opener. The relay page loads
-  // YouTube's IFrame API before its player exists, but its message listener
-  // is registered synchronously -- still, the frame's document may not have
-  // run at all when we mount it, so the greeting repeats until an answer
-  // comes back (or 10s of silence: no relay, no protocol, no harm).
+  // that message's origin. "hello" is that opener. startRelayHello is wired
+  // to the iframe's load event (never called on an unloaded frame -- those
+  // posts hit the frame's initial extension-origin document and each one
+  // logs a target-origin error); the relay registers its listener in its
+  // first synchronous script, so by load it can hear us, and the repeating
+  // greeting only covers a slow ANSWER (10s of silence: no relay, no
+  // protocol, no harm).
   function sendRelayHello() {
     if (!_iframe || !_iframe.contentWindow) return;
     try {
@@ -2789,12 +2809,15 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         : RELAY_BASE + "?v=" + encodeURIComponent(detected.videoId);
       _iframe.allow = "encrypted-media; picture-in-picture; fullscreen";
       _iframe.title = t("mdVideoTitle");
-      // First chance to greet the relay: its listener is registered in the
-      // page's first synchronous script, so by load it is certainly up. The
-      // repeating greeting below covers the race where this fires early or
-      // not at all (cross-origin load events are still delivered, but a
-      // failed load fires none).
-      _iframe.addEventListener("load", sendRelayHello);
+      // Greet only once the relay DOCUMENT is up: posting into a
+      // not-yet-loaded frame hits its initial extension-origin document, and
+      // every such post logs a target-origin error into chrome://extensions
+      // (device round 4's error-list bulk, 20+ entries). load re-fires after
+      // every src change (the seek fallback rewrites src), so each
+      // navigation re-arms its own greeting loop; the loop itself covers the
+      // relay being slow to ANSWER after load. bilibili's player speaks no
+      // relay protocol -- never greet it.
+      if (detected.provider === "youtube") _iframe.addEventListener("load", startRelayHello);
       media.appendChild(_iframe);
       const bar = el("div", "pbv-bar");
       const status = el("span", "pbv-status");
@@ -2879,6 +2902,17 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           if (cur.length) batches.push(cur.join("\n"));
           const sa = await pbpAiGetSettings();
           if (superseded()) return; // the words this pass was built from are gone
+          // The provider origin may never have been granted on this profile
+          // (the options-page Test button is the only other surface that
+          // asks; device round 4: six "No access" dead-ends behind a generic
+          // failure label). Every other AI click surface requests the exact
+          // origin on its own gesture -- this one went straight to callAI.
+          // Ask HERE, on this click's activation; declining throws the
+          // actionable host_permission message into the catch below.
+          if (typeof ensureAIHostPermissionWithGesture === "function") {
+            await ensureAIHostPermissionWithGesture(sa);
+            if (superseded()) return;
+          }
           const outBatches = [];
           let rejected = 0;
           for (const [bi, b] of batches.entries()) {
@@ -2922,7 +2956,12 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           // The early return flows through the finally below: passDone stays
           // false, the label resets, the freeze releases -- the button
           // survives for a (free) retry.
-          if (!outBatches.some((o, i) => o !== batches[i])) {
+          // Whitespace-normalized on BOTH sides: a model that only rewraps
+          // lines "changed" the string while punctuating nothing, and
+          // committing that would retire the button (aiPunct persists across
+          // F5) over words that never gained a mark.
+          const wsNorm = (x) => x.replace(/\s+/g, " ").trim();
+          if (!outBatches.some((o, i) => wsNorm(o) !== wsNorm(batches[i]))) {
             console.warn("[pbp-video] ai punctuation: pass produced no change ("
               + rejected + "/" + batches.length + " batches failed conservation) -- transcript kept, button stays");
             status.textContent = t("mdVideoAiPunctFail");
@@ -3017,7 +3056,12 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         } catch (e) {
           console.warn("[pbp-video] ai punctuation:", (e && e.message) || e);
           _aiPunctParas = null;
-          status.textContent = t("mdVideoAiPunctFail");
+          // A declined/missing host grant has an actionable, localized
+          // message of its own ("No access to ... Grant access and retry.")
+          // -- the generic failure label hid exactly that from six real
+          // clicks (device round 4).
+          status.textContent = (e && e.code === "host_permission" && e.message)
+            ? e.message : t("mdVideoAiPunctFail");
         } finally {
           // One place decides the button's resting state, so no exit path can
           // leave the label saying "Punctuated" over a pass that never
@@ -3076,8 +3120,8 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       bindFollowPause(body);
       panel.replaceChildren(media, bar);
       if (!_studyListEl) panel.appendChild(body);
-      // The frame is in the document now, so it has a contentWindow to greet.
-      if (detected.provider === "youtube") startRelayHello();
+      // (The relay greeting arms itself from the iframe's load event above --
+      // greeting an unloaded frame only ever produced console errors.)
       // contains BEFORE request: permissions.request demands a user gesture
       // even for already-granted origins, so the automatic load below (no
       // gesture) would die on "permission declined" despite a standing grant.

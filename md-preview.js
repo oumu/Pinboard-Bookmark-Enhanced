@@ -1046,23 +1046,37 @@ function pbpApplyColorScheme(mode) {
   let canonicalMarkdown = _extractedMarkdown;
   function getMarkdown() { return canonicalMarkdown; }
   if (!canonicalMarkdown.trim()) {
-    // A video page's "content" IS the video: YouTube/bilibili watch pages
-    // routinely extract to nothing, and returning here used to kill the whole
-    // preview before the video panel could mount (bilibili never showed a
-    // panel at all; a YouTube re-open that extracted empty lost its button).
-    // Render the empty-state shell first, then let the panel attach above it.
-    renderEmptyState(t("mdPreviewNoContent"));
-    // Phase-1 boundary, same as the error shell above: this guard RETURNS
-    // before the article runtime exists, so a transcript the panel commits
-    // later (first-run promotion once the user grants the caption origin) can
-    // only reach the screen through a reload.
-    _applyArticleCommit = () => { location.reload(); };
-    // pbpDeferredScriptsReady is already awaited above (video bootstrap), so
-    // md-video.js -- the LAST defer script -- has run by now; the typeof guard
-    // only covers it failing to load at all.
-    if (typeof pbpVideoInit === "function") pbpVideoInit({ pageUrl: sourceTabUrl || url, title: title, tabId: srcTabId });
-    else console.warn("[pbp-video] mount unavailable: pbpVideoInit missing after deferred scripts");
-    return;
+    // A video page's "content" IS the video, and watch pages routinely
+    // extract to nothing (background only checks contentHtml is truthy, so a
+    // player-shell page converts to zero Markdown). The empty shell below
+    // hides the rail (body.md-empty) and RETURNS before the article runtime
+    // exists -- exactly the "video + captions, no left rail, stuck until a
+    // manual refresh" page of device round 4. Synthesize a minimal article
+    // (title + source link) instead and fall through into the FULL
+    // progressive runtime: rail, exports and the in-place replacement
+    // transaction all exist there, and the caption auto-boot's first-run
+    // promotion swaps the transcript in with no reload seam (the same
+    // plan-丙 path a non-empty description already takes). The description
+    // stash on pbpVideoDoc stays "" on purpose -- this placeholder is not a
+    // description, and promoting it into the collapsed description block
+    // would preserve junk.
+    if (window.pbpVideoDoc && window.pbpVideoDoc.kind === "video-fallback") {
+      canonicalMarkdown = "# " + (title || t("mdPreviewUntitled")) + "\n\n<" + (sourceTabUrl || url) + ">";
+    } else {
+      // A non-video page with nothing to show: the empty-state shell is
+      // still the honest answer (nothing to retry, nothing to mount).
+      renderEmptyState(t("mdPreviewNoContent"));
+      // Phase-1 boundary, same as the error shell above: this branch RETURNS
+      // before the article runtime exists, so anything committed later could
+      // only reach the screen through a reload.
+      _applyArticleCommit = () => { location.reload(); };
+      // pbpDeferredScriptsReady is already awaited above (video bootstrap),
+      // so md-video.js -- the LAST defer script -- has run by now; the
+      // typeof guard only covers it failing to load at all.
+      if (typeof pbpVideoInit === "function") pbpVideoInit({ pageUrl: sourceTabUrl || url, title: title, tabId: srcTabId });
+      else console.warn("[pbp-video] mount unavailable: pbpVideoInit missing after deferred scripts");
+      return;
+    }
   }
 
   // Reload/Memory-Saver recovery: replace the (now redundant) full payload with a

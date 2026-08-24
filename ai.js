@@ -344,6 +344,22 @@ function requestAIHostPermissions(s, additionalOrigins = []) {
   }
 }
 
+// Gesture-time companion to the contains-only gate below: callAI itself only
+// ever CHECKS (automatic paths must never prompt), so a click surface that
+// goes straight to callAI dead-ends forever when the provider origin was
+// never granted -- the options-page Test button is not a step users know to
+// take (device round 4: six "No access" failures behind a generic label).
+// Must be called from a real user gesture. Re-throws the same actionable
+// host_permission error when the user declines the prompt.
+async function ensureAIHostPermissionWithGesture(s) {
+  try {
+    await _ensureAIHostPermission(s);
+  } catch (e) {
+    if (!e || e.code !== "host_permission") throw e;
+    if (!(await requestAIHostPermissions(s))) throw e;
+  }
+}
+
 // Throw an actionable error when the configured endpoint's origin is not granted.
 // Read-only: chrome.permissions.contains needs no user gesture and works in the SW.
 // No-op only outside an extension context (e.g. unit-test pages).
