@@ -142,8 +142,17 @@ function pbpYtRescueTracks(tracks) {
 // replace chain cannot resolve it — each pass must independently handle
 // numeric refs before named refs, then the whole thing runs twice.
 function _pbpVideoDecodeEntities(s) {
+  // fromCodePoint, not fromCharCode: supplementary characters (emoji in
+  // captions arrive as &#128512;) truncate to a garbage BMP unit under
+  // fromCharCode. Hex refs (&#x1F600;) are legal XML and appear too; a
+  // reference outside Unicode range is left as literal text (audit A8).
+  const num = (n) => {
+    const cp = Number(n);
+    return Number.isInteger(cp) && cp >= 0 && cp <= 0x10FFFF ? String.fromCodePoint(cp) : null;
+  };
   const once = (x) => String(x)
-    .replace(/&#(\d+);/g, (m, n) => String.fromCharCode(+n))
+    .replace(/&#x([0-9a-fA-F]+);/g, (m, h) => { const c = num(parseInt(h, 16)); return c == null ? m : c; })
+    .replace(/&#(\d+);/g, (m, n) => { const c = num(n); return c == null ? m : c; })
     .replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'")
     .replace(/&amp;/g, "&");
   return once(once(s));
@@ -221,11 +230,19 @@ function pbpVideoMergeParagraphs(segments) {
 // Unpunctuated-track detection: ASR subtitles (bilibili's especially) carry
 // no sentence-final punctuation at all. Only tracks like that qualify for
 // punctuation enhancement -- properly punctuated tracks are never touched.
+// Sentence/clause-end predicates shared by the detector and the heuristic
+// below (audit A6: two hand-kept regexes disagreed on quote-closed cues, so
+// 『他说“好。”』 read as unpunctuated to one and punctuated to the other and
+// earned a second mark after the quote). A run of closing quotes/brackets
+// may follow the mark.
+const PBP_VIDEO_SENT_END_RE = /[.!?。！？…][”’」』）)\]"']*$/;
+const PBP_VIDEO_CLAUSE_END_RE = /[，。！？…、；：,.!?;:][”’」』）)\]"']*$/;
+
 function pbpVideoNeedsPunctuation(segments) {
   const segs = (segments || []).filter((s) => s && s.content);
   if (segs.length < 10) return false;
   let punct = 0;
-  for (const s of segs) if (/[.!?。！？…]["')\]]?$/.test(s.content)) punct++;
+  for (const s of segs) if (PBP_VIDEO_SENT_END_RE.test(s.content)) punct++;
   return punct / segs.length < 0.1;
 }
 
@@ -249,8 +266,8 @@ function pbpVideoHeuristicPunctuate(segments) {
   for (let i = 0; i < segs.length; i++) {
     const s = segs[i];
     const content = String((s && s.content) || "");
-    if (!/[一-鿿]/.test(content) || /[，。！？…、；：,.!?;:]$/.test(content)) {
-      run = /[。！？…!?]$/.test(content) ? 0 : run + content.length;
+    if (!/[一-鿿]/.test(content) || PBP_VIDEO_CLAUSE_END_RE.test(content)) {
+      run = PBP_VIDEO_SENT_END_RE.test(content) ? 0 : run + content.length;
       out.push(s);
       continue;
     }
@@ -258,9 +275,11 @@ function pbpVideoHeuristicPunctuate(segments) {
     const end = typeof s.to === "number" && s.to > 0 ? s.to : (typeof s.from === "number" ? s.from : -1);
     const gap = next && typeof next.from === "number" && end >= 0 ? next.from - end : Infinity;
     run += content.length;
+    // Interrogative particle may sit inside closing quotes ("你说对吗”").
+    const interrog = /[吗呢][”’」』）)\]"']*$/.test(content);
     let mark;
-    if (!next || gap >= 1.5) mark = /[吗呢]$/.test(content) ? "？" : "。";
-    else if (/[吗呢]$/.test(content)) mark = "？";
+    if (!next || gap >= 1.5) mark = interrog ? "？" : "。";
+    else if (interrog) mark = "？";
     else if (gap >= 0.4) mark = "，";
     else mark = run >= 48 ? "。" : "，"; // contiguous ASR boundary
     if (mark === "。" || mark === "？") run = 0;
@@ -269,13 +288,44 @@ function pbpVideoHeuristicPunctuate(segments) {
   return out;
 }
 
-// Conservation gate for the AI tier: stripping punctuation and whitespace
-// from both sides must leave identical character sequences -- the model may
-// only insert or adjust marks, never touch a word (fail-closed per batch).
+// ONE punctuation vocabulary for the conservation gate and the timeline
+// remap below (audit A5: two hand-kept copies had already drifted, and the
+// old list both missed real-model marks and stripped word-internal ones).
+// A character is a FREE mark (insertable/removable by the AI tier) when it
+// is whitespace or listed punctuation -- EXCEPT when it glues two word
+// characters together: the apostrophe in don't, the hyphen in re-enter,
+// the decimal point in 3.14 and the name dot in 哈利·波特 are content, and
+// a model that drops them has rewritten the words (fail-closed).
+// 「」『』・～〜 joined the list: CJK models punctuate with them routinely,
+// and their absence rejected whole legitimate batches.
+const PBP_VIDEO_MARK_RE = /[\s，。！？；：、“”‘’（）《》【】…—「」『』・～〜·,.!?;:'"()\[\]{}\-]/;
+function pbpVideoIsIntraMark(s, i) {
+  const ch = s[i];
+  if (ch === "·" || ch === "・") {
+    return /[A-Za-z0-9一-鿿]/.test(s[i - 1] || "") && /[A-Za-z0-9一-鿿]/.test(s[i + 1] || "");
+  }
+  if (ch === "'" || ch === "’" || ch === "." || ch === "-") {
+    return /[A-Za-z0-9]/.test(s[i - 1] || "") && /[A-Za-z0-9]/.test(s[i + 1] || "");
+  }
+  return false;
+}
+// The conserved character stream: free marks dropped, everything else --
+// words AND word-internal marks -- kept in order.
+function pbpVideoPunctStrip(text) {
+  const s = String(text || "");
+  let out = "";
+  for (let i = 0; i < s.length; i++) {
+    if (!PBP_VIDEO_MARK_RE.test(s[i]) || pbpVideoIsIntraMark(s, i)) out += s[i];
+  }
+  return out;
+}
+
+// Conservation gate for the AI tier: the conserved streams of both sides
+// must be identical -- the model may only insert or adjust free marks,
+// never touch a word (fail-closed per batch).
 function pbpVideoPunctConserved(original, punctuated) {
-  const strip = (t) => String(t || "").replace(/[\s，。！？；：、“”‘’（）《》【】…—,.!?;:'"()\[\]{}·-]+/g, "");
-  const a = strip(original);
-  return a.length > 0 && a === strip(punctuated);
+  const a = pbpVideoPunctStrip(original);
+  return a.length > 0 && a === pbpVideoPunctStrip(punctuated);
 }
 
 // Map AI-punctuated text back onto the timed segments, so the panel rows
@@ -286,29 +336,33 @@ function pbpVideoPunctConserved(original, punctuated) {
 // from the AI text, absorbing the marks between and right after them.
 // Any mismatch returns null (fail-closed; caller keeps its segments).
 function pbpVideoApplyPunctText(segments, punctText) {
-  const isMark = (ch) => /[\s，。！？；：、“”‘’（）《》【】…—,.!?;:'"()\[\]{}·-]/.test(ch);
+  // Free-mark test shared with the conservation gate (audit A5): a mark is
+  // absorbable only when the SAME predicate the gate used also treats it as
+  // free -- word-internal marks count as content on both sides, keeping the
+  // two character streams aligned by construction.
   const src = String(punctText || "");
+  const isFree = (s, idx) => PBP_VIDEO_MARK_RE.test(s[idx]) && !pbpVideoIsIntraMark(s, idx);
   let i = 0;
   const out = [];
   for (const seg of segments || []) {
-    const plainLen = String((seg && seg.content) || "").split("").filter((c) => !isMark(c)).length;
+    const plainLen = pbpVideoPunctStrip(String((seg && seg.content) || "")).length;
     if (!plainLen) { out.push(seg); continue; }
     let taken = 0;
     let piece = "";
     while (i < src.length && taken < plainLen) {
-      const ch = src[i++];
-      piece += ch;
-      if (!isMark(ch)) taken++;
+      piece += src[i];
+      if (!isFree(src, i)) taken++;
+      i++;
     }
     if (taken < plainLen) return null; // AI text ran short -- refuse
     // absorb trailing marks (not whitespace) belonging to this sentence
-    while (i < src.length && isMark(src[i]) && !/\s/.test(src[i])) piece += src[i++];
+    while (i < src.length && isFree(src, i) && !/\s/.test(src[i])) { piece += src[i]; i++; }
     const content = piece.replace(/\s+/g, " ").trim();
     if (!content) return null;
     out.push({ ...seg, content });
   }
-  // leftover non-punctuation chars mean the streams diverged -- refuse
-  while (i < src.length) { if (!isMark(src[i])) return null; i++; }
+  // leftover conserved chars mean the streams diverged -- refuse
+  while (i < src.length) { if (!isFree(src, i)) return null; i++; }
   return out;
 }
 
@@ -404,10 +458,17 @@ function pbpVideoSessionMatches(session, detected) {
     : d.videoId === detected.videoId;
 }
 
+// Markdown-escape publisher-controlled text (video titles) before it is
+// concatenated into Markdown source (audit A7): a title like "[x](url)"
+// must render as its own characters, never as a link or heading structure.
+function pbpVideoEscapeMdText(text) {
+  return String(text || "").replace(/([\\`*_[\]<>#|])/g, "\\$1");
+}
+
 function pbpVideoTranscriptMarkdown(segments, meta, paragraphsOverride) {
   meta = meta || {};
   const lines = ["## Transcript" + (meta.trackLabel ? " (" + meta.trackLabel + ")" : "")];
-  if (meta.url) lines.push("", "> " + (meta.title ? "[" + meta.title + "](" + meta.url + ")" : "<" + meta.url + ">"));
+  if (meta.url) lines.push("", "> " + (meta.title ? "[" + pbpVideoEscapeMdText(meta.title) + "](" + meta.url + ")" : "<" + meta.url + ">"));
   lines.push("");
   const paras = (Array.isArray(paragraphsOverride) && paragraphsOverride.length)
     ? paragraphsOverride : pbpVideoMergeParagraphs(segments);
@@ -835,6 +896,10 @@ function pbpBiliExtractCid(viewJson, part) {
   if (Array.isArray(d.pages) && d.pages.length) {
     const pg = d.pages.find((x) => x && x.page === part) || d.pages[part - 1];
     if (pg && pg.cid) cid = pg.cid;
+    // A multi-part URL pointing at a part that no longer exists must FAIL,
+    // not silently fall back to part 1's cid -- that would fetch and commit
+    // the wrong part's subtitles as this bookmark's article (audit A9).
+    else if (part > 1) return null;
   }
   return { cid: cid, title: d.title || "", pic: d.pic || "", owner: (d.owner && d.owner.name) || "", pages: d.pages || [] };
 }
@@ -1236,14 +1301,34 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   //     transcript-segment-view-model vs ytd-transcript-segment-renderer)
   //     with scroll-and-accumulate, since the list is virtualized and
   //     recycles off-screen rows.
-  async function ytTabDomTranscript(tabId) {
+  async function ytTabDomTranscript(tabId, videoId) {
     let inj = null;
     try {
       inj = await chrome.scripting.executeScript({
         target: { tabId },
         world: "MAIN", // the fetch/XHR taps must live in the page world
-        func: async () => {
+        args: [videoId || ""],
+        func: async (vid) => {
           const out = { kind: "", body: "", segs: [], trace: "" };
+          // Wrong-tab guard, same class as the player-capture guard (device
+          // 2026-08-24): the fetch tab was picked by HOSTNAME and the rescue
+          // chain ahead of this tier can burn tens of seconds -- the tab may
+          // be showing ANOTHER video by now, and this scraper reads whatever
+          // transcript panel that page happens to show. Without this, video
+          // B's captions get returned as A's "success" and even poison the
+          // tier cache (audit round 5, A1).
+          if (vid && !String(location.href).includes(vid)) {
+            out.trace = "tab no longer on target video";
+            return out;
+          }
+          // Same cross-page tap lease as the player capture (audit A3): this
+          // scraper installs the same fetch/XHR wrappers.
+          const myLease = { exp: Date.now() + 90000 };
+          if (window.__pbpTapLease && window.__pbpTapLease.exp > Date.now()) {
+            out.trace = "another capture holds this tab";
+            return out;
+          }
+          window.__pbpTapLease = myLease;
           const q = (s, r) => (r || document).querySelector(s);
           const qa = (s, r) => Array.from((r || document).querySelectorAll(s));
           const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -1272,10 +1357,18 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           };
           const deepQ = (sel, root) => deepQA(sel, root)[0] || null;
           const panels = () => qa('ytd-engagement-panel-section-list-renderer[target-id*="transcript"]');
-          const readRows = () => {
+          // Row NODES, not mapped objects: the scroller search below needs a
+          // real element to climb from, and rows can live inside shadow roots
+          // where the light-DOM q(ROW_SEL) never finds them (audit A2: row0
+          // null skipped the scroll accumulation and first-screen rows were
+          // returned as the "complete" transcript).
+          const rowNodes = () => {
             let rows = qa(ROW_SEL);
             if (!rows.length) for (const p of panels()) { rows = deepQA(ROW_SEL, p); if (rows.length) break; }
-            return rows.map((row) => {
+            return rows;
+          };
+          const readRows = () => {
+            return rowNodes().map((row) => {
               const ts = q(TS_SEL, row) || deepQ(TS_SEL, row);
               const tx = q(TX_SEL, row) || deepQ(TX_SEL, row);
               return {
@@ -1356,8 +1449,11 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
               // never survives that), and the FIRST stable version of a
               // timestamp is final -- last-read-wins let a row's dying
               // glimpse (recycled as it scrolled out) overwrite a good read.
+              // Key on from|content, not from alone: machine captions can
+              // put two different lines on the same timestamp, and a
+              // from-only map silently dropped the second (audit A2).
               const seen = new Map();
-              const keep = (list) => list.forEach((s) => { if (!seen.has(s.from)) seen.set(s.from, s); });
+              const keep = (list) => list.forEach((s) => { const k = s.from + "|" + s.content; if (!seen.has(k)) seen.set(k, s); });
               const readStable = async () => {
                 const a = readRows();
                 await sleep(120);
@@ -1366,9 +1462,14 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
                 return a.filter((s) => bk.has(s.from + "|" + s.content));
               };
               keep(await readStable());
-              const row0 = q(ROW_SEL);
-              let scroller = row0 && row0.parentElement;
-              while (scroller && scroller !== document.body && scroller.scrollHeight <= scroller.clientHeight + 4) scroller = scroller.parentElement;
+              // Climb from a real row node and keep climbing THROUGH shadow
+              // boundaries (parentElement is null at a shadow root's top; the
+              // host continues the chain) -- the light-DOM-only climb is what
+              // made row0 null for shadow panels and skipped accumulation.
+              const up = (el) => el && (el.parentElement || (el.getRootNode && el.getRootNode().host) || null);
+              const row0 = rowNodes()[0] || null;
+              let scroller = up(row0);
+              while (scroller && scroller !== document.body && scroller.scrollHeight <= scroller.clientHeight + 4) scroller = up(scroller);
               if (scroller && scroller !== document.body) {
                 let stable = 0, lastCount = seen.size;
                 for (let i = 0; i < 80 && stable < 3; i++) {
@@ -1378,6 +1479,15 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
                   if (seen.size === lastCount) stable++; else { stable = 0; lastCount = seen.size; }
                 }
                 scroller.scrollTop = 0;
+              } else if (seen.size < 12) {
+                // No scroller found AND only a handful of rows: almost
+                // certainly the visible slice of a virtualized list, not a
+                // genuinely short track. Committing it would present a
+                // fragment as the full transcript -- fail this tier instead.
+                out.trace = "no scroller; refusing " + seen.size + " possibly-partial rows";
+                return out;
+              } else {
+                out.trace = "no scroller found; rows may be partial";
               }
               out.kind = "dom";
               out.segs = Array.from(seen.values()).sort((a, b) => a.from - b.from);
@@ -1389,6 +1499,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
             window.fetch = origFetch;
             XMLHttpRequest.prototype.open = origOpen;
             XMLHttpRequest.prototype.send = origSend;
+            if (window.__pbpTapLease === myLease) delete window.__pbpTapLease;
             // leave the page as we found it -- close only what we opened
             if (opened) {
               try {
@@ -1464,6 +1575,18 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           if (vid && !String(location.href).includes(vid)) return { body: "", trace: "tab no longer on the target video" };
           const player = document.querySelector("#movie_player");
           if (!player || typeof player.setOption !== "function") return { body: "", trace: "no player api" };
+          // Cross-page tap lease (audit A3): queueTabInjection serializes
+          // taps within ONE preview page, but a duplicated/second preview
+          // page runs its own chain -- both would nest fetch/XHR wrappers in
+          // this SAME tab and un-hook each other's in finally, leaving a dead
+          // wrapper installed for good. A live foreign lease fails this run
+          // cleanly; 30s expiry (> the 2x12s capture budget) means a crashed
+          // holder can never wedge the tab forever.
+          const myLease = { exp: Date.now() + 30000 };
+          if (window.__pbpTapLease && window.__pbpTapLease.exp > Date.now()) {
+            return { body: "", trace: "another capture holds this tab" };
+          }
+          window.__pbpTapLease = myLease;
           const origFetch = window.fetch;
           const origOpen = XMLHttpRequest.prototype.open;
           const origSend = XMLHttpRequest.prototype.send;
@@ -1533,10 +1656,19 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
             window.fetch = origFetch;
             XMLHttpRequest.prototype.open = origOpen;
             XMLHttpRequest.prototype.send = origSend;
+            // Restore only OUR caption state (audit A4): if the user picked
+            // a different track by hand during the capture window, their
+            // choice is newer than this run's snapshot -- leave it standing.
             try {
-              if (prior && prior.languageCode) player.setOption("captions", "track", prior);
-              else player.unloadModule("captions");
+              let cur = null;
+              try { cur = player.getOption("captions", "track"); } catch (_) {}
+              const foreign = lang && cur && cur.languageCode && cur.languageCode !== lang;
+              if (!foreign) {
+                if (prior && prior.languageCode) player.setOption("captions", "track", prior);
+                else player.unloadModule("captions");
+              }
             } catch (_) {}
+            if (window.__pbpTapLease === myLease) delete window.__pbpTapLease;
           }
         },
         args: [langCode || "", videoId || ""],
@@ -1945,7 +2077,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         // a neutral placeholder instead).
         const tryDom = async () => {
           if (!res.error) return;
-          const domSegs = await queueTabInjection(() => ytTabDomTranscript(fetchTabId));
+          const domSegs = await queueTabInjection(() => ytTabDomTranscript(fetchTabId, detected.videoId));
           console.info("[pbp-video] dom rescue:", domSegs ? domSegs.length + " segments" : "failed");
           if (domSegs && domSegs.length) res = { tracks: rTracks, track: null, segments: domSegs, via: "dom" };
         };

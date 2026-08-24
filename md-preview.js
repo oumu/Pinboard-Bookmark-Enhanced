@@ -1061,7 +1061,11 @@ function pbpApplyColorScheme(mode) {
     // description, and promoting it into the collapsed description block
     // would preserve junk.
     if (window.pbpVideoDoc && window.pbpVideoDoc.kind === "video-fallback") {
-      canonicalMarkdown = "# " + (title || t("mdPreviewUntitled")) + "\n\n<" + (sourceTabUrl || url) + ">";
+      // Title is publisher-controlled text: escape it so a title carrying
+      // Markdown syntax renders as its own characters (audit A7).
+      const safeTitle = typeof pbpVideoEscapeMdText === "function"
+        ? pbpVideoEscapeMdText(title || t("mdPreviewUntitled")) : (title || t("mdPreviewUntitled"));
+      canonicalMarkdown = "# " + safeTitle + "\n\n<" + (sourceTabUrl || url) + ">";
     } else {
       // A non-video page with nothing to show: the empty-state shell is
       // still the honest answer (nothing to retry, nothing to mount).

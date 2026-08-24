@@ -133,6 +133,23 @@ section("punctuation enhancement");
   assert(pbpVideoPunctConserved("我们蒸馒头 蒸饭", "我们蒸馒头，蒸饭。") === true, "conserved: pure punctuation insertion passes");
   assert(pbpVideoPunctConserved("我们蒸馒头", "我们蒸包子。") === false, "conserved: rewritten words fail closed");
   assert(pbpVideoPunctConserved("", "") === false, "conserved: empty input fails closed");
+  // audit A5: word-internal marks are content, CJK model marks are legal
+  assert(pbpVideoPunctConserved("I don't know", "I don't know.") === true, "conserved: intra-word apostrophe kept on both sides passes");
+  assert(pbpVideoPunctConserved("I don't know", "I dont know.") === false, "conserved: dropping a word-internal apostrophe fails closed");
+  assert(pbpVideoPunctConserved("圆周率是3.14左右", "圆周率是314左右。") === false, "conserved: dropping a decimal point fails closed");
+  assert(pbpVideoPunctConserved("哈利·波特与魔法石", "哈利波特与魔法石。") === false, "conserved: dropping a name middle-dot fails closed");
+  assert(pbpVideoPunctConserved("他说好我们走", "他说「好」，我们走。") === true, "conserved: CJK corner quotes are legal AI marks");
+  assert(pbpVideoPunctConserved("大家好呀今天继续", "大家好呀～今天继续。") === true, "conserved: fullwidth tilde is a legal AI mark");
+  // audit A6: quote-closed sentence ends
+  const punc2 = unp.map((s) => ({ ...s, content: s.content + "。”" }));
+  assert(pbpVideoNeedsPunctuation(punc2) === false, "needs: quote-closed sentence ends count as punctuated");
+  const hq = pbpVideoHeuristicPunctuate([
+    { from: 0, to: 2, content: "他说“好。”" },
+    { from: 2, to: 4, content: "然后我们出发了" },
+  ]);
+  assertEq(hq[0].content, "他说“好。”", "heuristic: quote-closed sentence gets no second mark");
+  const hq2 = pbpVideoHeuristicPunctuate([{ from: 0, to: 2, content: "你说对吗”" }, { from: 2, to: 4, content: "其实很简单" }]);
+  assertEq(hq2[0].content, "你说对吗”？", "heuristic: interrogative inside a closing quote still gets its question mark");
 })();
 
 section("pbpVideoApplyPunctText");
@@ -318,12 +335,19 @@ section("cid + subtitle parse + pick");
 const viewJson = { data: { cid: 555, title: "T", pic: "//i.hdslb.com/x.jpg", owner: { name: "UP" }, pages: [ { cid: 555, part: "P1", page: 1 }, { cid: 666, part: "P2", page: 2 } ] } };
 assertEq(pbpBiliExtractCid(viewJson, 1).cid, 555, "part 1 cid");
 assertEq(pbpBiliExtractCid(viewJson, 2).cid, 666, "part 2 cid from pages[]");
-assertEq(pbpBiliExtractCid(viewJson, 9).cid, 555, "out-of-range part falls to top-level cid");
+assert(pbpBiliExtractCid(viewJson, 9) === null, "out-of-range part fails instead of falling back to part 1 (audit A9)");
 assertEq(pbpBiliExtractCid({}, 1), null, "no data yields null");
 const subs = [ { lan: "ai-zh", lan_doc: "中文(AI)", subtitle_url: "//x/ai.json" }, { lan: "zh-CN", lan_doc: "中文", subtitle_url: "//x/human.json" }, { lan: "en", lan_doc: "English", subtitle_url: "//x/en.json" } ];
 assertEq(pbpBiliPickSubtitle(subs).lan, "zh-CN", "human zh beats ai-zh");
 assertEq(pbpBiliPickSubtitle([subs[0], subs[2]]).lan, "ai-zh", "ai-zh when no human zh");
 assertEq(pbpBiliPickSubtitle([]), null, "empty subs null");
+// audit A8: supplementary chars + hex refs in timedtext XML entities
+assertEq(_pbpVideoDecodeEntities("&#128512;"), "\u{1F600}", "entities: supplementary decimal ref decodes via codePoint");
+assertEq(_pbpVideoDecodeEntities("&#x1F600;"), "\u{1F600}", "entities: hex ref decodes");
+assertEq(_pbpVideoDecodeEntities("&#99999999;x"), "&#99999999;x", "entities: out-of-range ref left as literal text");
+// audit A7: publisher-controlled title escaping
+assertEq(pbpVideoEscapeMdText("[t] `c` #h"), "\\[t\\] \\`c\\` \\#h", "escape: markdown syntax chars neutralized");
+assert(pbpVideoTranscriptMarkdown([], { title: "[x](https://e)", url: "https://v" }, ["p"]).includes("\\[x\\]"), "escape: transcript source line escapes the title");
 const subJson = { body: [ { from: 1.2, to: 3.5, content: "第一句" }, { from: 3.5, to: 5, content: "第二句" } ] };
 const segs = pbpBiliParseSubtitleJson(subJson);
 check("subtitle json body -> segments", segs.length === 2 && segs[0].from === 1.2 && segs[0].to === 3.5 && segs[1].content === "第二句");
