@@ -3494,14 +3494,14 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
    rule enumerates CLASSES (not `button`) because .pbv-open-ext is an <a> --
    a bare `button svg` selector would leave it at its embedded 14px and the
    row would mix glyph sizes. */
-.pbv-copy, .pbv-ai-punct, .pbv-follow, .pbv-retry {
+.pbv-copy, .pbv-ai-punct, .pbv-follow, .pbv-retry, .pbv-ai-cancel {
   min-height: 28px; min-width: 28px; padding: 4px; font: inherit; cursor: pointer;
   display: inline-flex; align-items: center; justify-content: center;
   border: 1px solid var(--btn-border); background: var(--btn-bg); color: var(--btn-fg); border-radius: 6px;
 }
-.pbv-copy:hover, .pbv-ai-punct:hover, .pbv-follow:hover, .pbv-retry:hover { background: var(--btn-hover); }
-.pbv-copy:focus-visible, .pbv-ai-punct:focus-visible, .pbv-follow:focus-visible, .pbv-retry:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
-.pbv-copy svg, .pbv-ai-punct svg, .pbv-follow svg, .pbv-retry svg, .pbv-open-ext svg { width: 16px; height: 16px; }
+.pbv-copy:hover, .pbv-ai-punct:hover, .pbv-follow:hover, .pbv-retry:hover, .pbv-ai-cancel:hover { background: var(--btn-hover); }
+.pbv-copy:focus-visible, .pbv-ai-punct:focus-visible, .pbv-follow:focus-visible, .pbv-retry:focus-visible, .pbv-ai-cancel:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.pbv-copy svg, .pbv-ai-punct svg, .pbv-follow svg, .pbv-retry svg, .pbv-ai-cancel svg, .pbv-open-ext svg { width: 16px; height: 16px; }
 /* Narrow stacked workspace: no sticky player to follow (audit B14); the
    layout observer in md-video.js sets this class on the button. */
 .pbv-follow.pbv-follow-narrow { display: none; }
@@ -3623,6 +3623,13 @@ body.video-mode .doc-body { max-width: min(2160px, 100%); container-type: inline
    small player-side panel. The non-video defensive mount (list still lives
    inside #video-panel there) keeps that old constraint. */
 body.video-mode .pbv-col-study .pbv-list { max-height: none; overflow: visible; }
+/* Timeline as a reading surface (audit U10): the row text follows the same
+   typography tier family the other payload panels use (--panel-payload-fs =
+   prose clamp x Aa tier x 0.9), instead of being the one view stuck at the
+   UA default; and the page-height list drops its boxed border -- a frame
+   around the whole scroll column read as a giant input well. */
+body.video-mode .pbv-col-study .pbv-list { border: none; border-radius: 0; padding: 0; }
+body.video-mode .pbv-text { font-size: var(--panel-payload-fs); line-height: var(--pbp-prose-leading, 1.75); }
 
 /* Player scales to its column instead of a fixed height computed against
    .pbv-media's own aspect-ratio box (the pre-workspace method, now

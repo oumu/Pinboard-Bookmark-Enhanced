@@ -1108,7 +1108,10 @@ function pbpApplyColorScheme(mode) {
       // Markdown syntax renders as its own characters (audit A7).
       const safeTitle = typeof pbpVideoEscapeMdText === "function"
         ? pbpVideoEscapeMdText(title || t("mdPreviewUntitled")) : (title || t("mdPreviewUntitled"));
-      canonicalMarkdown = "# " + safeTitle + "\n\n<" + (sourceTabUrl || url) + ">";
+      // A waiting line (audit U7): title + bare link alone read as a failed
+      // extraction; say the transcript is on its way and will take over.
+      canonicalMarkdown = "# " + safeTitle + "\n\n" + t("mdVideoAwaitingTranscript")
+        + "\n\n<" + (sourceTabUrl || url) + ">";
     } else {
       // A non-video page with nothing to show: the empty-state shell is
       // still the honest answer (nothing to retry, nothing to mount).

@@ -3648,5 +3648,15 @@
   "mdVideoAiUnconfigured": { "message": "Aucun fournisseur d'IA configuré" },
   "mdVideoGrantScope": { "message": "Le lecteur n'exige aucune autorisation ; elle sert uniquement à lire les sous-titres" },
   "mdVideoFollowReadingOff": { "message": "Suivre la lecture requiert la vue chronologique" },
-  "mdVideoOpenExternalBili": { "message": "Ouvrir sur bilibili" }
+  "mdVideoOpenExternalBili": { "message": "Ouvrir sur bilibili" },
+  "mdVideoAwaitingTranscript": { "message": "Récupération des sous-titres ; la transcription prendra le relais…" },
+  "mdVideoAiPunctProgress": { "message": "Ponctuation du lot $CUR$ sur $TOTAL$…", "placeholders": { "cur": { "content": "$1" }, "total": { "content": "$2" } } },
+  "mdVideoSwitchingTo": { "message": "Passage à $TRACK$…", "placeholders": { "track": { "content": "$1" } } },
+  "mdVideoSeeking": { "message": "Saut à $TIME$ ; le lecteur va se recharger", "placeholders": { "time": { "content": "$1" } } },
+  "mdVideoViaPanel": { "message": "Sous-titres via l’interface officielle" },
+  "mdVideoViaCapture": { "message": "Sous-titres via la capture du lecteur" },
+  "mdVideoViaDom": { "message": "Sous-titres via le panneau de la page (dégradé ; vérifiez l’intégralité)" },
+  "mdVideoTranscriptHeading": { "message": "Transcription" },
+  "mdVideoPromoted": { "message": "Transcription prête ; l’article a été remplacé" },
+  "mdVideoAiCancel": { "message": "Annuler la ponctuation IA" }
 }

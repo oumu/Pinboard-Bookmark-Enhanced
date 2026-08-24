@@ -3648,5 +3648,15 @@
   "mdVideoAiUnconfigured": { "message": "AI プロバイダー未設定" },
   "mdVideoGrantScope": { "message": "プレーヤーに権限は不要です。許可は字幕の読み取りにのみ使われます" },
   "mdVideoFollowReadingOff": { "message": "再生追従にはタイムライン表示が必要です" },
-  "mdVideoOpenExternalBili": { "message": "bilibili で開く" }
+  "mdVideoOpenExternalBili": { "message": "bilibili で開く" },
+  "mdVideoAwaitingTranscript": { "message": "字幕を取得中。まもなく文字起こしに切り替わります…" },
+  "mdVideoAiPunctProgress": { "message": "句読点付与中：$CUR$/$TOTAL$ バッチ…", "placeholders": { "cur": { "content": "$1" }, "total": { "content": "$2" } } },
+  "mdVideoSwitchingTo": { "message": "$TRACK$ に切り替え中…", "placeholders": { "track": { "content": "$1" } } },
+  "mdVideoSeeking": { "message": "$TIME$ へ移動します。プレーヤーが再読み込みされます", "placeholders": { "time": { "content": "$1" } } },
+  "mdVideoViaPanel": { "message": "字幕ソース：公式エンドポイント" },
+  "mdVideoViaCapture": { "message": "字幕ソース：プレーヤーキャプチャ" },
+  "mdVideoViaDom": { "message": "字幕ソース：ページパネル（縮退。完全性の確認を推奨）" },
+  "mdVideoTranscriptHeading": { "message": "文字起こし" },
+  "mdVideoPromoted": { "message": "文字起こしが完了し、本文を置き換えました" },
+  "mdVideoAiCancel": { "message": "AI 句読点をキャンセル" }
 }

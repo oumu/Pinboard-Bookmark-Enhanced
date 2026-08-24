@@ -3648,5 +3648,15 @@
   "mdVideoAiUnconfigured": { "message": "Nie skonfigurowano dostawcy AI" },
   "mdVideoGrantScope": { "message": "Odtwarzacz nie wymaga uprawnienia; zgoda służy tylko odczytowi napisów" },
   "mdVideoFollowReadingOff": { "message": "Śledzenie odtwarzania wymaga widoku osi czasu" },
-  "mdVideoOpenExternalBili": { "message": "Otwórz w bilibili" }
+  "mdVideoOpenExternalBili": { "message": "Otwórz w bilibili" },
+  "mdVideoAwaitingTranscript": { "message": "Pobieranie napisów; transkrypcja wkrótce je zastąpi…" },
+  "mdVideoAiPunctProgress": { "message": "Interpunkcja: partia $CUR$ z $TOTAL$…", "placeholders": { "cur": { "content": "$1" }, "total": { "content": "$2" } } },
+  "mdVideoSwitchingTo": { "message": "Przełączanie na $TRACK$…", "placeholders": { "track": { "content": "$1" } } },
+  "mdVideoSeeking": { "message": "Przejście do $TIME$; odtwarzacz zostanie przeładowany", "placeholders": { "time": { "content": "$1" } } },
+  "mdVideoViaPanel": { "message": "Źródło napisów: oficjalny interfejs" },
+  "mdVideoViaCapture": { "message": "Źródło napisów: przechwycenie odtwarzacza" },
+  "mdVideoViaDom": { "message": "Źródło napisów: panel strony (tryb awaryjny; sprawdź kompletność)" },
+  "mdVideoTranscriptHeading": { "message": "Transkrypcja" },
+  "mdVideoPromoted": { "message": "Transkrypcja gotowa; artykuł został zastąpiony" },
+  "mdVideoAiCancel": { "message": "Anuluj interpunkcję AI" }
 }

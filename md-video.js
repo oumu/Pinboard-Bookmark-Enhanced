@@ -465,9 +465,15 @@ function pbpVideoEscapeMdText(text) {
   return String(text || "").replace(/([\\`*_[\]<>#|])/g, "\\$1");
 }
 
-function pbpVideoTranscriptMarkdown(segments, meta, paragraphsOverride) {
+function pbpVideoTranscriptMarkdown(segments, meta, paragraphsOverride, headingOverride) {
   meta = meta || {};
-  const lines = ["## Transcript" + (meta.trackLabel ? " (" + meta.trackLabel + ")" : "")];
+  // Localized heading (audit U14): the literal "Transcript" leaked into the
+  // TOC and every export for non-English readers. Falls back to the legacy
+  // literal outside an extension context (file:// test pages have no t()).
+  // headingOverride exists for the hydration gate's legacy dual-accept.
+  const heading = headingOverride
+    || (typeof t === "function" && t("mdVideoTranscriptHeading")) || "Transcript";
+  const lines = ["## " + heading + (meta.trackLabel ? " (" + meta.trackLabel + ")" : "")];
   if (meta.url) lines.push("", "> " + (meta.title ? "[" + pbpVideoEscapeMdText(meta.title) + "](" + meta.url + ")" : "<" + meta.url + ">"));
   lines.push("");
   const paras = (Array.isArray(paragraphsOverride) && paragraphsOverride.length)
@@ -658,7 +664,12 @@ function pbpVideoStateValidate(state, detected, canonicalMarkdown) {
   // format has no way to express row boundaries once paragraphs shadow them.
   if (Array.isArray(state.paragraphs) && state.paragraphs.length
       && !pbpVideoPunctConserved(segs.map((s) => s.content).join(" "), state.paragraphs.join(" "))) return false;
-  return pbpVideoTranscriptMarkdown(segs, state.meta, state.paragraphs) === canonicalMarkdown;
+  if (pbpVideoTranscriptMarkdown(segs, state.meta, state.paragraphs) === canonicalMarkdown) return true;
+  // Heading migration (audit U14): records committed before the heading was
+  // localized carry the literal "Transcript". Accept that exact legacy
+  // rebuild too -- otherwise localization would orphan every existing
+  // committed payload into a refetch (and silently drop paid AI passes).
+  return pbpVideoTranscriptMarkdown(segs, state.meta, state.paragraphs, "Transcript") === canonicalMarkdown;
 }
 
 // Playability gate from a watch-page player response. "OK" means YouTube
@@ -1052,9 +1063,18 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   // Punctuation-state note beside the picker (audit U1): says WHY the AI
   // button is or is not on offer for the current track.
   let _aiNoteEl = null;
+  // Status element for module-level writers (seek preannounce, audit U12).
+  let _statusEl = null;
   // Current video identity for per-video persistence (audit U4). Set at
   // mount; null on non-video defensive mounts.
   let _detectedNow = null;
+  // Per-view scroll memory within this page session (audit U11): both study
+  // views share the PAGE scroller in video-mode, so switching used to dump
+  // the reader at whatever offset the other view left behind.
+  const _viewScroll = { reading: null, timeline: null };
+  // Cancel flag for a running AI-punctuation pass (audit U8): checked
+  // between batches; finished batches stay cached.
+  let _aiCancelRequested = false;
 
   // ---- per-video view memory (audit U4): local-only, 50-entry LRU ----
   function _videoViewKey(d) {
@@ -1781,6 +1801,9 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     if (_isBili) {
       // player.bilibili.com exposes no postMessage seek API; the only
       // working jump is reloading the iframe with its t= start parameter.
+      // Announce it (audit U12): the reload flashes and autoplays, which
+      // read as a glitch when nothing said a jump was coming.
+      if (_statusEl) pbvSetStatus(_statusEl, t("mdVideoSeeking", pbpVideoFmtTime(sec)), false);
       // Costs a reload flash, buys clickable transcript rows.
       try {
         const u = new URL(_iframe.src);
@@ -2366,6 +2389,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     _trackSelEl = trackSel;
     _aiBtnEl = aiBtn || null;
     _listEl = bodyEl;
+    _statusEl = statusEl;
     const isBili = detected.provider === "bilibili";
     const cached = window.pbpVideoSession;
     const session = (cached && pbpVideoSessionMatches(cached, detected) && cached.segments && cached.segments.length)
@@ -2511,6 +2535,14 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           else if (!aiOk) note = t("mdVideoPunctHeuristic") + " · " + t("mdVideoAiUnconfigured");
           else note = t("mdVideoPunctHeuristic");
         }
+        // Caption source tier rides along when a rescue tier fed this
+        // session (audit U13): the DOM tier especially deserves a caveat --
+        // a degraded scrape can be incomplete without knowing it.
+        const via = window.pbpVideoSession && window.pbpVideoSession.captionsVia;
+        const viaTxt = via === "panel" ? t("mdVideoViaPanel")
+          : via === "capture" ? t("mdVideoViaCapture")
+          : via === "dom" ? t("mdVideoViaDom") : "";
+        if (viaTxt) note = note ? note + " \u00b7 " + viaTxt : viaTxt;
         _aiNoteEl.textContent = note;
         _aiNoteEl.hidden = !note;
       }
@@ -2575,7 +2607,11 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       // and the loser's release must not hand the button back under the winner.
       const releaseAiFreeze = freezeControls({ ai: true });
       try {
-        statusEl.textContent = t("mdVideoLoading");
+        // Name the destination (audit U9): ten seconds of a generic
+        // "loading" line over an unchanged panel read as a hang.
+        const selOpt = trackSel.selectedOptions && trackSel.selectedOptions[0];
+        pbvSetStatus(statusEl, selOpt && selOpt.textContent
+          ? t("mdVideoSwitchingTo", selOpt.textContent) : t("mdVideoLoading"), false);
         // Resolve the selection through the picker's own value space, then
         // read the endpoint off whatever the session currently holds -- the
         // option value is no longer a URL, and the URL a hydrated session was
@@ -2831,6 +2867,9 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       if (ok || threwInCommit) {
         syncSessionToCommitted(session.track || null, _wasUnpunct);
         try { ensureVideoDescription(); } catch (_) {}
+        // One-shot notice (audit U15): the article was just swapped and the
+        // view flipped under the reader -- say so once, quietly.
+        pbvSetStatus(statusEl, t("mdVideoPromoted"), false);
       }
     }
   }
@@ -2864,8 +2903,20 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
 
   function setStudyView(mode, persist) {
     const reading = mode !== "timeline";
+    // Save the outgoing view's scroll, restore the incoming view's (audit
+    // U11) -- only when this call actually flips the views.
+    let flipped = false;
+    if (_studyReadingEl && _studyListEl) {
+      const prevReading = !_studyReadingEl.hidden;
+      flipped = prevReading !== reading;
+      if (flipped) _viewScroll[prevReading ? "reading" : "timeline"] = window.scrollY;
+    }
     if (_studyReadingEl) _studyReadingEl.hidden = !reading;
     if (_studyListEl) _studyListEl.hidden = reading;
+    if (flipped) {
+      const saved = _viewScroll[reading ? "reading" : "timeline"];
+      if (saved != null) { try { window.scrollTo({ top: saved, behavior: "instant" }); } catch (_) {} }
+    }
     // Follow can only act on the timeline (audit U4): in the reading view
     // the pressed toggle silently did nothing. Disabled with the reason in
     // its title; restored the moment the timeline is back.
@@ -3198,6 +3249,9 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         let passDone = false;
         // icon-only button: progress reads out in the aria-live status line
         status.textContent = t("mdVideoAiPunct") + "…";
+        _aiCancelRequested = false;
+        aiCancelBtn.hidden = false;
+        aiCancelBtn.disabled = false;
         try {
           // Missing provider grant: permissions.request is the FIRST await
           // in this click (audit B10) -- origins and the contains() answer
@@ -3241,8 +3295,15 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
             // Retry economics (audit B9): a batch this page already got a
             // conservation-passing answer for answers from the cache -- the
             // retry after a partial failure re-pays only for what failed.
+            if (_aiCancelRequested) {
+              // Between-batch cancel (audit U8): finished batches stay in
+              // the cache, nothing commits, the button survives via finally.
+              pbvSetStatus(status, t("mdVideoAiPunctPartial", [String(outBatches.length), String(batches.length)]), true);
+              return;
+            }
             const cached = _aiBatchCache.get(b);
             if (cached != null) { outBatches.push(cached); continue; }
+            pbvSetStatus(status, t("mdVideoAiPunctProgress", [String(bi + 1), String(batches.length)]), false);
             const prompt = "为下面的语音转写文本添加或修正标点符号，并按语义用空行分段。严格保持文字本身不变：不得增加、删除或改写任何非标点文字。直接输出处理后的文本，不要任何解释。\n\n" + b;
             // Output ≈ input + marks: the provider DEFAULT of ~1024 output
             // tokens truncates any full-size (~1600+ char) CJK batch, and a
@@ -3409,6 +3470,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           // the release) re-derives `disabled` from both.
           if (passDone) _aiPassDone = true;
           else { aiBtn.title = t("mdVideoAiPunct"); aiBtn.setAttribute("aria-label", t("mdVideoAiPunct")); }
+          aiCancelBtn.hidden = true;
           releaseFreeze();
         }
       });
@@ -3449,7 +3511,17 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       const aiNote = el("span", "pbv-ai-note");
       aiNote.hidden = true;
       _aiNoteEl = aiNote;
-      bar.appendChild(trackSel); bar.appendChild(copyBtn); bar.appendChild(aiBtn); bar.appendChild(aiNote); bar.appendChild(retryBtn);
+      // Cancel for a running AI pass (audit U8): cross icon per the icon
+      // contract (close/remove family). Deliberately OUTSIDE the freeze
+      // family -- it must stay clickable while the pass holds the freeze.
+      const aiCancelBtn = el("button", "pbv-ai-cancel");
+      aiCancelBtn.type = "button";
+      aiCancelBtn.hidden = true;
+      aiCancelBtn.innerHTML = typeof PBP_ICONS !== "undefined" ? PBP_ICONS.cross : "";
+      aiCancelBtn.title = t("mdVideoAiCancel");
+      aiCancelBtn.setAttribute("aria-label", t("mdVideoAiCancel"));
+      aiCancelBtn.addEventListener("click", () => { _aiCancelRequested = true; aiCancelBtn.disabled = true; });
+      bar.appendChild(trackSel); bar.appendChild(copyBtn); bar.appendChild(aiBtn); bar.appendChild(aiNote); bar.appendChild(aiCancelBtn); bar.appendChild(retryBtn);
       if (detected.provider === "youtube") {
         // Follow toggle (Task 6). Same bar-button family as Copy / AI
         // punctuation (.pbv-copy, .pbv-ai-punct in md-preview.css), plus the

@@ -3642,5 +3642,15 @@
   "mdVideoAiUnconfigured": { "message": "未配置 AI 服务" },
   "mdVideoGrantScope": { "message": "播放器无需此权限，授权仅用于读取字幕" },
   "mdVideoFollowReadingOff": { "message": "跟随播放需要时间轴视图" },
-  "mdVideoOpenExternalBili": { "message": "在 bilibili 打开" }
+  "mdVideoOpenExternalBili": { "message": "在 bilibili 打开" },
+  "mdVideoAwaitingTranscript": { "message": "正在获取字幕，稍后自动替换为文字稿…" },
+  "mdVideoAiPunctProgress": { "message": "正在标点第 $CUR$/$TOTAL$ 批…", "placeholders": { "cur": { "content": "$1" }, "total": { "content": "$2" } } },
+  "mdVideoSwitchingTo": { "message": "正在切换到 $TRACK$…", "placeholders": { "track": { "content": "$1" } } },
+  "mdVideoSeeking": { "message": "正在跳转到 $TIME$，播放器将重新加载", "placeholders": { "time": { "content": "$1" } } },
+  "mdVideoViaPanel": { "message": "字幕来源：官方接口" },
+  "mdVideoViaCapture": { "message": "字幕来源：播放器捕获" },
+  "mdVideoViaDom": { "message": "字幕来源：页面面板（降级，建议核对完整性）" },
+  "mdVideoTranscriptHeading": { "message": "字幕稿" },
+  "mdVideoPromoted": { "message": "字幕已就位，正文已替换" },
+  "mdVideoAiCancel": { "message": "取消 AI 标点" }
 }

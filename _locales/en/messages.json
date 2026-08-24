@@ -3642,5 +3642,15 @@
   "mdVideoAiUnconfigured": { "message": "No AI provider configured" },
   "mdVideoGrantScope": { "message": "The player needs no permission; the grant only reads subtitles" },
   "mdVideoFollowReadingOff": { "message": "Follow playback needs the timeline view" },
-  "mdVideoOpenExternalBili": { "message": "Open on bilibili" }
+  "mdVideoOpenExternalBili": { "message": "Open on bilibili" },
+  "mdVideoAwaitingTranscript": { "message": "Fetching subtitles; the transcript will take over shortly…" },
+  "mdVideoAiPunctProgress": { "message": "Punctuating batch $CUR$ of $TOTAL$…", "placeholders": { "cur": { "content": "$1" }, "total": { "content": "$2" } } },
+  "mdVideoSwitchingTo": { "message": "Switching to $TRACK$…", "placeholders": { "track": { "content": "$1" } } },
+  "mdVideoSeeking": { "message": "Jumping to $TIME$; the player will reload", "placeholders": { "time": { "content": "$1" } } },
+  "mdVideoViaPanel": { "message": "Captions via the official endpoint" },
+  "mdVideoViaCapture": { "message": "Captions via player capture" },
+  "mdVideoViaDom": { "message": "Captions via the page panel (degraded; check completeness)" },
+  "mdVideoTranscriptHeading": { "message": "Transcript" },
+  "mdVideoPromoted": { "message": "Transcript ready; the article was replaced" },
+  "mdVideoAiCancel": { "message": "Cancel AI punctuation" }
 }
