@@ -3684,5 +3684,13 @@
   "kbdHelpVideoLoop": { "message": "循環目前句" },
   "kbdHelpVideoFollow": { "message": "跟隨播放進度" },
   "kbdHelpVideoCurrent": { "message": "回到目前句" },
-  "kbdHelpVideoView": { "message": "閱讀稿 / 時間軸" }
+  "kbdHelpVideoView": { "message": "閱讀稿 / 時間軸" },
+  "secVideoPreview": { "message": "影片預覽" },
+  "optVideoLangPref": { "message": "偏好字幕語言" },
+  "optVideoLangPrefHint": { "message": "依優先順序填寫語言代碼，例如 en, ja；留空則跟隨介面語言。" },
+  "optVideoPauseOnLookup": { "message": "查詞時暫停播放" },
+  "optVideoPauseOnLookupHint": { "message": "選取文字或開啟解釋彈層時暫停 YouTube 播放，查完自動繼續。" },
+  "mdVideoResumePrompt": { "message": "上次看到 $TIME$", "placeholders": { "time": { "content": "$1" } } },
+  "mdVideoResumeGo": { "message": "繼續" },
+  "mdVideoResumeRestart": { "message": "從頭開始" }
 }

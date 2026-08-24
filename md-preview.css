@@ -3579,6 +3579,16 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
   border-radius: 6px;
 }
 .pbv-status:empty { display: none; }
+/* Continue-watching strip (research T6.3): message-bar look plus two
+   explicit actions -- the reader chooses; nothing seeks on its own. */
+.pbv-resume {
+  flex-basis: 100%; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 6px 10px; font-size: 0.85em; line-height: 1.45;
+  color: var(--fg-secondary); background: var(--btn-bg);
+  border: 1px solid var(--border); border-left: 3px solid var(--link); border-radius: 6px;
+}
+.pbv-resume[hidden] { display: none; }
+.pbv-resume .pbv-resume-text { margin-right: auto; }
 .pbv-status[data-state="error"] { color: var(--danger); border-left-color: var(--danger); }
 .pbv-status[data-fading="1"] { opacity: 0; }
 /* busy = ongoing work (research T7.4): before this rule "still running" and

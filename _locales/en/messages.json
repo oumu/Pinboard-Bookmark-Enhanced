@@ -3678,5 +3678,13 @@
   "kbdHelpVideoLoop": { "message": "Repeat this cue" },
   "kbdHelpVideoFollow": { "message": "Follow playback" },
   "kbdHelpVideoCurrent": { "message": "Back to the current cue" },
-  "kbdHelpVideoView": { "message": "Reading / timeline" }
+  "kbdHelpVideoView": { "message": "Reading / timeline" },
+  "secVideoPreview": { "message": "Video preview" },
+  "optVideoLangPref": { "message": "Preferred caption languages" },
+  "optVideoLangPrefHint": { "message": "Language codes in order of preference, e.g. en, ja. Leave empty to follow the interface language." },
+  "optVideoPauseOnLookup": { "message": "Pause the player while looking a word up" },
+  "optVideoPauseOnLookupHint": { "message": "Selecting text or opening the explain popover pauses YouTube playback; it resumes when the lookup ends." },
+  "mdVideoResumePrompt": { "message": "Last watched to $TIME$", "placeholders": { "time": { "content": "$1" } } },
+  "mdVideoResumeGo": { "message": "Continue" },
+  "mdVideoResumeRestart": { "message": "Start over" }
 }

@@ -3662,7 +3662,7 @@
   "mdVideoAiCancel": { "message": "KI-Zeichensetzung abbrechen" },
   "mdVideoAiPunctEst": { "message": "≈ $TOKENS$ Tokens", "placeholders": { "tokens": { "content": "$1" } } },
   "mdVideoAiPunctConfirm": { "message": "KI-Interpunktion ersetzt den Artikel: vorhandene Übersetzungen werden gelöscht, Ask-Zitate werden ungültig. Fortfahren?" },
-  "mdStatVideoLen": { "message": "Video $TIME$", "placeholders": { "time": { "content": "$1" } } },
+  "mdStatVideoLen": { "message": "Länge $TIME$", "placeholders": { "time": { "content": "$1" } } },
   "mdVideoCopyMore": { "message": "Weitere Kopierformate" },
   "mdVideoCopyTimed": { "message": "Markdown mit Zeitstempeln kopieren" },
   "mdVideoDownloadSrt": { "message": "SRT-Untertitel herunterladen" },
@@ -3684,5 +3684,13 @@
   "kbdHelpVideoLoop": { "message": "Diesen Untertitel wiederholen" },
   "kbdHelpVideoFollow": { "message": "Wiedergabe folgen" },
   "kbdHelpVideoCurrent": { "message": "Zurück zum aktuellen Untertitel" },
-  "kbdHelpVideoView": { "message": "Lesetext / Zeitleiste" }
+  "kbdHelpVideoView": { "message": "Lesetext / Zeitleiste" },
+  "secVideoPreview": { "message": "Videovorschau" },
+  "optVideoLangPref": { "message": "Bevorzugte Untertitelsprachen" },
+  "optVideoLangPrefHint": { "message": "Sprachcodes in Reihenfolge der Präferenz, z. B. en, ja. Leer lassen, um der Oberflächensprache zu folgen." },
+  "optVideoPauseOnLookup": { "message": "Beim Nachschlagen pausieren" },
+  "optVideoPauseOnLookupHint": { "message": "Textauswahl oder das Erklären-Popover pausiert die YouTube-Wiedergabe; danach geht es weiter." },
+  "mdVideoResumePrompt": { "message": "Zuletzt bis $TIME$ gesehen", "placeholders": { "time": { "content": "$1" } } },
+  "mdVideoResumeGo": { "message": "Fortsetzen" },
+  "mdVideoResumeRestart": { "message": "Von vorn" }
 }

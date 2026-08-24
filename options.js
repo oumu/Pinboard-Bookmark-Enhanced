@@ -1166,6 +1166,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Markdown export image policy select
   const mdImgSel = $id("opt-md-image-policy");
   if (mdImgSel) mdImgSel.value = s.mdExportImagePolicy || "keep";
+  // Video preview (research T6.1 / T3.5)
+  const vidLang = $id("opt-md-video-lang");
+  if (vidLang) vidLang.value = typeof s.mdVideoLangPref === "string" ? s.mdVideoLangPref : "";
   // Migrate the legacy obsidian* keys into exportTargets.obsidian (one-time,
   // non-destructive — old keys stay readable as a fallback).
   const _et = s.exportTargets || {};
@@ -1211,6 +1214,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     "opt-md-include-toc": s.mdExportIncludeToc,
     "opt-md-include-hl": s.mdExportIncludeHighlights,
     "opt-md-video-use-login": s.mdVideoUseLogin === true,
+    "opt-md-video-pause-lookup": s.mdVideoPauseOnLookup !== false,
     "opt-tag-sort-by-pop": s.tagSortByPopEnabled,
     "opt-wayback-enabled": s.waybackArchiveEnabled === true,
     "opt-wayback-batch": s.waybackArchiveBatch === true,
@@ -1807,6 +1811,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       mdExportIncludeToc: $id("opt-md-include-toc").checked,
       mdExportIncludeHighlights: $id("opt-md-include-hl").checked,
       mdVideoUseLogin: $id("opt-md-video-use-login").checked,
+      mdVideoLangPref: $id("opt-md-video-lang").value.trim().slice(0, 80),
+      mdVideoPauseOnLookup: $id("opt-md-video-pause-lookup").checked,
       exportTargets: _ets,
       // Mirror obsidian into legacy keys so popup.js "Send to Obsidian" strip (which still
       // reads obsidianEnabled/Vault/Folder) stays in sync. P2 migrates popup to read exportTargets.

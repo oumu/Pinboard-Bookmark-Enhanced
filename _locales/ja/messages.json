@@ -3684,5 +3684,13 @@
   "kbdHelpVideoLoop": { "message": "この字幕を繰り返す" },
   "kbdHelpVideoFollow": { "message": "再生に追従" },
   "kbdHelpVideoCurrent": { "message": "現在の字幕へ戻る" },
-  "kbdHelpVideoView": { "message": "読み物 / タイムライン" }
+  "kbdHelpVideoView": { "message": "読み物 / タイムライン" },
+  "secVideoPreview": { "message": "動画プレビュー" },
+  "optVideoLangPref": { "message": "優先する字幕言語" },
+  "optVideoLangPrefHint": { "message": "優先順に言語コードを入力します（例: en, ja）。空欄ならインターフェース言語に従います。" },
+  "optVideoPauseOnLookup": { "message": "単語を調べる間は再生を一時停止" },
+  "optVideoPauseOnLookupHint": { "message": "テキストを選択するか説明ポップアップを開くと YouTube の再生を一時停止し、終わると再開します。" },
+  "mdVideoResumePrompt": { "message": "前回は $TIME$ まで視聴", "placeholders": { "time": { "content": "$1" } } },
+  "mdVideoResumeGo": { "message": "続きから" },
+  "mdVideoResumeRestart": { "message": "最初から" }
 }

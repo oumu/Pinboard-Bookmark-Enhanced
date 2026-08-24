@@ -3678,5 +3678,13 @@
   "kbdHelpVideoLoop": { "message": "循环当前句" },
   "kbdHelpVideoFollow": { "message": "跟随播放进度" },
   "kbdHelpVideoCurrent": { "message": "回到当前句" },
-  "kbdHelpVideoView": { "message": "阅读稿 / 时间轴" }
+  "kbdHelpVideoView": { "message": "阅读稿 / 时间轴" },
+  "secVideoPreview": { "message": "视频预览" },
+  "optVideoLangPref": { "message": "首选字幕语言" },
+  "optVideoLangPrefHint": { "message": "按优先顺序填写语言代码，如 en, ja；留空则跟随界面语言。" },
+  "optVideoPauseOnLookup": { "message": "查词时暂停播放" },
+  "optVideoPauseOnLookupHint": { "message": "选中文字或打开解释弹层时暂停 YouTube 播放，查完自动继续。" },
+  "mdVideoResumePrompt": { "message": "上次看到 $TIME$", "placeholders": { "time": { "content": "$1" } } },
+  "mdVideoResumeGo": { "message": "继续" },
+  "mdVideoResumeRestart": { "message": "从头开始" }
 }

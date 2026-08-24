@@ -110,13 +110,43 @@ function pbpYtExtractTracks(playerJson) {
   }));
 }
 
-function pbpYtPickTrack(tracks, uiLang) {
+// Default-track hints (research T6.1/T6.2), set by the reader before a
+// fetch: the ordered language preference from settings and the track key
+// remembered for this video. A plain holder because the two pick sites sit
+// in the fetch helpers, which take no reader state.
+const PBP_VIDEO_PICK_HINTS = { prefs: [], preferKey: "" };
+
+// Ordered caption-language preference (research T6.1): "en, ja" -> ["en",
+// "ja"]; base subtags only, lower-cased, de-duplicated, empty for "auto".
+function pbpVideoLangPrefs(raw) {
+  const out = [];
+  for (const part of String(raw || "").split(/[,\s;]+/)) {
+    const b = part.trim().toLowerCase().split("-")[0];
+    if (b && !out.includes(b)) out.push(b);
+  }
+  return out;
+}
+
+// Default track. Order (research T6.1/T6.2): the track remembered for THIS
+// video (preferKey) > preferred language, human > preferred language, ASR
+// > UI language, human > UI language, ASR > any human > first. A
+// remembered key that no longer matches a live track is simply ignored
+// (fail-open; provider re-orderings can retire a key, known B12).
+function pbpYtPickTrack(tracks, uiLang, prefs, preferKey) {
   if (!Array.isArray(tracks) || !tracks.length) return null;
+  if (preferKey) {
+    const hit = tracks.find((tr) => pbpVideoTrackKey(tr, "youtube") === preferKey);
+    if (hit) return hit;
+  }
   const base = String(uiLang || "").toLowerCase().split("-")[0];
+  const pref = Array.isArray(prefs) ? prefs : [];
   let best = null, bestScore = -1;
   for (const tr of tracks) {
+    const lb = String(tr.lang || "").toLowerCase().split("-")[0];
     let score = 0;
-    if (base && String(tr.lang).toLowerCase().split("-")[0] === base) score += 100;
+    const pi = pref.indexOf(lb);
+    if (pi >= 0) score += 1000 - pi * 10;
+    if (base && lb === base) score += 100;
     if (!tr.asr) score += 50;
     if (score > bestScore) { bestScore = score; best = tr; }
   }
@@ -1010,7 +1040,7 @@ async function pbpYtFetchTranscript(videoId, opts) {
   // track switch could re-enter this whole chain with a chosen URL; the picker
   // now fetches the chosen endpoint directly (pbpYtFetchCaptionBody), so
   // nothing has passed it since -- removed rather than left as a dead option.
-  const track = pbpYtPickTrack(tracks, opts.uiLang);
+  const track = pbpYtPickTrack(tracks, opts.uiLang, PBP_VIDEO_PICK_HINTS.prefs, PBP_VIDEO_PICK_HINTS.preferKey);
   const segments = await pbpYtFetchCaptionBody(track.baseUrl, fetchFn, opts.useLogin);
   if (!segments.length) return { error: "caption-body", tracks, track };
   return { tracks, track, segments };
@@ -1234,8 +1264,20 @@ function pbpBiliExtractCid(viewJson, part) {
 
 function _pbpBiliIsZh(t) { return /^zh|^ai-zh/i.test(t.lan || "") || /中文|中文\(AI\)|Chinese/i.test(t.lan_doc || ""); }
 function _pbpBiliIsAi(t) { return /^ai-/i.test(t.lan || "") || /AI|智能/i.test(t.lan_doc || ""); }
-function pbpBiliPickSubtitle(subs) {
+// bilibili default subtitle: remembered key > preferred languages in order
+// (human before AI within a language) > the zh default > first.
+function pbpBiliPickSubtitle(subs, prefs, preferKey) {
   if (!Array.isArray(subs) || !subs.length) return null;
+  if (preferKey) {
+    const hit = subs.find((s) => pbpVideoTrackKey(s, "bilibili") === preferKey);
+    if (hit) return hit;
+  }
+  const baseOf = (s) => String((s && s.lan) || "").toLowerCase().replace(/^ai-/, "").split("-")[0];
+  for (const b of (Array.isArray(prefs) ? prefs : [])) {
+    const lang = subs.filter((s) => baseOf(s) === b);
+    if (!lang.length) continue;
+    return lang.find((s) => !_pbpBiliIsAi(s)) || lang[0];
+  }
   const zh = subs.filter(_pbpBiliIsZh);
   const human = zh.find((s) => !_pbpBiliIsAi(s));
   return human || zh[0] || subs[0];
@@ -1282,7 +1324,7 @@ async function pbpBiliFetchTranscript(bvid, part, opts) {
   // Default-track pick only -- see the pbpYtFetchTranscript twin: the removed
   // opts.pickSubtitleUrl branch was the URL-addressed track switch, which now
   // goes straight to pbpBiliFetchSubtitleBody.
-  const track = pbpBiliPickSubtitle(subs);
+  const track = pbpBiliPickSubtitle(subs, PBP_VIDEO_PICK_HINTS.prefs, PBP_VIDEO_PICK_HINTS.preferKey);
   const segments = await pbpBiliFetchSubtitleBody(track.subtitle_url, fetchFn);
   if (!segments.length) return { error: "caption-body", tracks: subs, track: track, meta: info };
   return { tracks: subs, track: track, segments: segments, meta: info };
@@ -1390,17 +1432,27 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       ? "bili:" + d.bvid + ":" + (d.part || 1)
       : "yt:" + d.videoId);
   }
-  async function pbpVideoSavedView(d) {
+  // Whole per-video record (research T6.2/T6.3): { view, trackKey, t, ts }.
+  async function pbpVideoSavedRecord(d) {
     try {
       const rec = (await chrome.storage.local.get("pbp_video_view")).pbp_video_view || {};
       const e = rec[_videoViewKey(d)];
-      return e && (e.view === "reading" || e.view === "timeline") ? e.view : null;
+      return (e && typeof e === "object") ? e : null;
     } catch (_) { return null; }
   }
-  async function pbpVideoSaveView(d, view) {
+  async function pbpVideoSavedView(d) {
+    const e = await pbpVideoSavedRecord(d);
+    return e && (e.view === "reading" || e.view === "timeline") ? e.view : null;
+  }
+  // Merge-write: each caller patches only its own field (view / trackKey /
+  // t); same owner-scoped key, same 50-entry LRU, local-only.
+  async function pbpVideoSaveView(d, patch) {
     try {
       const rec = (await chrome.storage.local.get("pbp_video_view")).pbp_video_view || {};
-      rec[_videoViewKey(d)] = { view, ts: Date.now() };
+      const k = _videoViewKey(d);
+      const prev = (rec[k] && typeof rec[k] === "object") ? rec[k] : {};
+      const p = (patch && typeof patch === "object") ? patch : { view: patch };
+      rec[k] = { ...prev, ...p, ts: Date.now() };
       const keys = Object.keys(rec);
       if (keys.length > 50) {
         keys.sort((a, b) => ((rec[a] && rec[a].ts) || 0) - ((rec[b] && rec[b].ts) || 0));
@@ -1446,6 +1498,48 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   // answer from here. Page-lifetime; a track switch changes the batch text,
   // so stale entries simply never match.
   const _aiBatchCache = new Map();
+  // Cross-session punctuation cache (research T4.1): the page-lifetime map
+  // above is seeded from, and fed into, one aggregate pbp-ai-cache entry
+  // per owner + video + track + provider/model + generation. Only answers
+  // that pass the conservation gate AND actually punctuate are admitted --
+  // on both the write and the (re-verified) read. Bump the generation when
+  // the prompt, the mark whitelist or the repair rules change.
+  const PBP_VIDEO_PUNCT_GEN = 1;
+  let _aiSettingsSnap = null;
+  let _aiAbort = null; // per-pass AbortController (research T4.4)
+  function punctCacheKey(sa) {
+    if (!_detectedNow || !sa || typeof pbpAiHash !== "function") return "";
+    const model = (typeof pbpAiEffectiveModel === "function") ? pbpAiEffectiveModel(sa) : String(sa.aiProvider || "");
+    const owner = (typeof _pbpTrOwnerScope === "function") ? _pbpTrOwnerScope(_ownerNow) : String(_ownerNow || "");
+    const raw = _videoViewKey(_detectedNow) + "|" + (_selectedTrackKey || "") + "|" + (sa.aiProvider || "") + "|" + model + "|g" + PBP_VIDEO_PUNCT_GEN;
+    return "vpunct_" + owner + "_" + pbpAiHash(raw);
+  }
+  async function seedPunctCache(sa, batches) {
+    const key = punctCacheKey(sa);
+    if (!key || typeof pbpAiCacheGet !== "function") return 0;
+    let entry = null;
+    try { entry = await pbpAiCacheGet(key); } catch (_) { return 0; }
+    const map = entry && entry.result && entry.result.batches;
+    if (!map || typeof map !== "object") return 0;
+    let n = 0;
+    for (const b of batches || []) {
+      if (_aiBatchCache.has(b)) continue;
+      const out = map[pbpAiHash(b)];
+      if (typeof out !== "string") continue;
+      if (pbpVideoPunctConserved(b, out) && pbpVideoPunctChanged([out], [b])) { _aiBatchCache.set(b, out); n++; }
+    }
+    if (n) console.info("[pbp-video] ai punctuation: " + n + " batch(es) restored from the cross-session cache");
+    return n;
+  }
+  function persistPunctBatch(sa, b, out) {
+    const key = punctCacheKey(sa);
+    if (!key || typeof pbpAiCacheAppend !== "function") return;
+    const h = pbpAiHash(b);
+    pbpAiCacheAppend(key, (prev) => {
+      const base = (prev && typeof prev === "object" && prev.batches && typeof prev.batches === "object") ? prev.batches : {};
+      return { gen: PBP_VIDEO_PUNCT_GEN, batches: { ...base, [h]: out } };
+    }, Date.now()).catch(() => {});
+  }
   // Provider host-grant state settled at OFFER time (audit B10):
   // permissions.request demands the click's transient activation, so the
   // origins and the contains() answer are computed ahead of the click and
@@ -1585,6 +1679,8 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   let _seekGraceUntil = 0, _seekTarget = null; // stale ticks right after a seek
   let _rovingBtn = null;                         // the one time button in the tab order (T3.4)
   let _estOn = false, _estBtn = null, _estTimer = null, _estAnchor = null; // bilibili estimate clock (T3.6)
+  let _videoPrefs = { langPrefs: [], pauseOnLookup: true }; // settings snapshot (T6.1/T3.5)
+  let _savedRec = null, _resumeEl = null, _lastPosSaveAt = 0;  // continue-watching (T6.3)
 
   // Same-origin caption fetch, executed INSIDE an open YouTube tab. From the
   // page's own context the watch HTML answers with an OK playabilityStatus
@@ -2357,6 +2453,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         _lastRelayTime = Math.max(0, Math.floor(sec));
         replayHighlight();
         estAnchor(_lastRelayTime); // re-anchor the estimate clock, if on
+        _lastPosSaveAt = 0; savePos(_lastRelayTime); // an explicit jump is worth remembering now
       } catch (_) {}
       return;
     }
@@ -2438,6 +2535,53 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     _backBtn.hidden = !show;
     if (show) _backBtn.textContent = t("mdVideoBackToCurrent", pbpVideoFmtTime(_lastRelayTime));
   }
+  // Saved playback position (research T6.3): throttled to one write per 5s
+  // of playback; cleared once the tail is reached so a finished video
+  // never offers "continue".
+  function savePos(sec) {
+    if (!_detectedNow || !_segments.length || typeof sec !== "number" || !isFinite(sec)) return;
+    const now = Date.now();
+    if (now - _lastPosSaveAt < 5000) return;
+    _lastPosSaveAt = now;
+    const dur = window.pbpVideoDuration();
+    const near = dur > 0 && dur - sec < 30;
+    pbpVideoSaveView(_detectedNow, { t: near ? 0 : Math.max(0, Math.floor(sec)) });
+  }
+  function offerResume(sec) {
+    if (!_resumeEl) return;
+    _resumeEl.textContent = "";
+    const label = el("span", "pbv-resume-text", t("mdVideoResumePrompt", pbpVideoFmtTime(sec)));
+    const go = el("button", "action-btn pbv-resume-go", t("mdVideoResumeGo"));
+    go.type = "button";
+    const restart = el("button", "action-btn pbv-resume-restart", t("mdVideoResumeRestart"));
+    restart.type = "button";
+    go.addEventListener("click", () => {
+      _resumeEl.hidden = true;
+      if (_isBili) {
+        // t= start parameter, no autoplay -- the player reloads paused there.
+        try {
+          const u = new URL(_iframe.src);
+          u.searchParams.set("t", String(Math.max(0, Math.floor(sec))));
+          u.searchParams.delete("autoplay");
+          _iframe.src = u.toString();
+        } catch (_) {}
+      } else {
+        relayPost("seekTo", [sec, true]); // no playVideo: the reader presses play
+      }
+      _lastRelayTime = sec;
+      replayHighlight();
+      estAnchor(sec);
+    });
+    restart.addEventListener("click", () => {
+      _resumeEl.hidden = true;
+      if (_detectedNow) pbpVideoSaveView(_detectedNow, { t: 0 });
+    });
+    _resumeEl.appendChild(label);
+    _resumeEl.appendChild(go);
+    _resumeEl.appendChild(restart);
+    _resumeEl.hidden = false;
+  }
+
   // Pause while the reader looks a word up (research T3.5): a non-collapsed
   // selection on a study surface, or an open explain popover, holds the
   // player; the moment both are gone the SAME pause is released. A pause
@@ -2450,6 +2594,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   }
   function lookupPauseCheck() {
     if (_isBili || !_segments.length || !document.body.classList.contains("video-mode")) return;
+    if (!_videoPrefs.pauseOnLookup) return; // settings: opt-out (research T3.5)
     if (_lookupTimer) clearTimeout(_lookupTimer);
     _lookupTimer = setTimeout(() => {
       _lookupTimer = null;
@@ -2480,6 +2625,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       _lastRelayTime = tv;
       try { highlightRowAt(tv); } catch (_) {}
       updateBackBtn();
+      savePos(tv);
     }, 500);
   }
   function setEstimate(on) {
@@ -2594,6 +2740,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     // advanced, so the previous cue is complete -- stop here.
     if (_autoPauseOn && prevIdx >= 0 && _currentRowIdx !== prevIdx && _relayState === 1) relayPause();
     updateBackBtn();
+    if (_relayState === 1) savePos(d.t); // research T6.3
   }
   window.addEventListener("message", onRelayMessage);
 
@@ -2896,7 +3043,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         // failed timedtext round already gave us (language + asr), so the
         // rescue no longer depends on finding an endpoint in the page data.
         const rTrack = (res.tracks && res.tracks.length)
-          ? (pbpYtPickTrack(res.tracks, uiLang) || res.tracks[0]) : null;
+          ? (pbpYtPickTrack(res.tracks, uiLang, PBP_VIDEO_PICK_HINTS.prefs, PBP_VIDEO_PICK_HINTS.preferKey) || res.tracks[0]) : null;
         const rTracks = pbpYtRescueTracks(res.tracks);
         // Success-tier memory (device round 3, plan 丙-乙): remember which
         // rescue tier fed this site last time and RUN IT FIRST next time --
@@ -3127,6 +3274,19 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   }
 
   async function loadFlow(detected, statusEl, bodyEl, trackSel, copyBtn, aiBtn) {
+    // Per-video memory + preferences BEFORE any fetch picks a track
+    // (research T6.1/T6.2/T6.3): the remembered track key and the ordered
+    // language preference steer the default pick; the saved position feeds
+    // the continue-watching offer once the transcript is up.
+    try {
+      const s = await pbpReadSettingsWithSecrets({
+        mdVideoLangPref: SETTINGS_DEFAULTS.mdVideoLangPref, mdVideoPauseOnLookup: SETTINGS_DEFAULTS.mdVideoPauseOnLookup
+      });
+      _videoPrefs = { langPrefs: pbpVideoLangPrefs(s && s.mdVideoLangPref), pauseOnLookup: !(s && s.mdVideoPauseOnLookup === false) };
+    } catch (_) { _videoPrefs = { langPrefs: [], pauseOnLookup: true }; }
+    try { _savedRec = await pbpVideoSavedRecord(detected); } catch (_) { _savedRec = null; }
+    PBP_VIDEO_PICK_HINTS.prefs = _videoPrefs.langPrefs;
+    PBP_VIDEO_PICK_HINTS.preferKey = (_savedRec && typeof _savedRec.trackKey === "string") ? _savedRec.trackKey : "";
     pbvSetStatus(statusEl, t("mdVideoLoading"), "busy");
     // Bind the transaction's control surface before the first await: every
     // path below (and the AI pass mounted alongside it) freezes and restores
@@ -3243,6 +3403,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       try {
         const sa = typeof pbpAiGetSettings === "function" ? await pbpAiGetSettings() : null;
         aiOk = !!(sa && typeof pbpAiAvailable === "function" && pbpAiAvailable(sa));
+        _aiSettingsSnap = sa;
         // Settle the provider's origin patterns and the contains() answer
         // NOW (audit B10): the AI click can then make permissions.request
         // its first await, inside the gesture's transient activation.
@@ -3305,6 +3466,11 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         // icon-only button: the offer state lives in title/aria-label --
         // with the pre-click token estimate appended (research T4.2).
         applyAiCostTitle(_aiBtnEl);
+        // Cross-session hits make the estimate cheaper (research T4.1).
+        try {
+          seedPunctCache(_aiSettingsSnap, pbpVideoSplitBatches(pbpVideoMergeParagraphs(_segments), 1600))
+            .then((n) => { if (n && _aiBtnEl && !_aiBtnEl.hidden) applyAiCostTitle(_aiBtnEl); });
+        } catch (_) {}
       }
       applyControlFreeze();
     }
@@ -3341,9 +3507,14 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       // view for THIS video before (audit U4): their choice survives the F5.
       // Runs once per mount (loadFlow), so a later manual toggle is never
       // fought.
-      let savedView = null;
-      try { savedView = await pbpVideoSavedView(detected); } catch (_) {}
+      const savedView = (_savedRec && (_savedRec.view === "reading" || _savedRec.view === "timeline")) ? _savedRec.view : null;
       setStudyView(savedView || "timeline");
+      // Continue watching (research T6.3): an explicit choice, never a
+      // silent jump and never autoplay. Only worth offering past the first
+      // 15s and before the last 30s.
+      const dur = window.pbpVideoDuration();
+      const savedT = _savedRec && Number(_savedRec.t);
+      if (savedT >= 15 && dur > 0 && dur - savedT > 30) offerResume(savedT);
     }
     // Wire-once (closing review M3): the retry button re-enters loadFlow on
     // the SAME trackSel; stacking a listener per pass double-fires every
@@ -3501,6 +3672,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         _segments = segs;
         _wasUnpunct = newUnpunct;
         _selectedTrackKey = key;
+        if (_detectedNow) pbpVideoSaveView(_detectedNow, { trackKey: key }); // research T6.2
         _transcriptEpoch++; // different words on screen: fence anything older
         // Heading label through the single meta builder's vocabulary, NOT the
         // option text -- the option carries the " (auto-generated)" UI suffix,
@@ -3703,7 +3875,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     }
     // Persist only USER choices (audit U4): programmatic flips (defaults,
     // ensure-article-visible) must not overwrite what the reader picked.
-    if (persist && _detectedNow) { pbpVideoSaveView(_detectedNow, reading ? "reading" : "timeline"); }
+    if (persist && _detectedNow) { pbpVideoSaveView(_detectedNow, { view: reading ? "reading" : "timeline" }); }
     if (_toggleReadingBtn) {
       _toggleReadingBtn.classList.toggle("active", reading);
       _toggleReadingBtn.setAttribute("aria-pressed", reading ? "true" : "false");
@@ -3981,6 +4153,11 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       const status = el("span", "pbv-status");
       statusRef = status;
       _statusElRef = status;
+      // Continue-watching strip (research T6.3): message-bar look, two
+      // explicit actions; filled by offerResume, hidden until then.
+      const resume = el("div", "pbv-resume");
+      resume.hidden = true;
+      _resumeEl = resume;
       const trackSel = document.createElement("select");
       trackSel.className = "pbv-tracks";
       trackSel.hidden = true;
@@ -4151,6 +4328,8 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         // A completed pass must not be re-offered once the freeze lifts --
         // re-running it would spend tokens to produce what is already there.
         let passDone = false;
+        let doneCount = 0, totalCount = 0; // for the cancel/abort status line
+        _aiAbort = (typeof AbortController === "function") ? new AbortController() : null;
         // icon-only button: progress reads out in the aria-live status line
         pbvSetStatus(status, t("mdVideoAiPunct") + "…", "busy");
         aiBtn.setAttribute("aria-busy", "true"); // research T7.4
@@ -4178,6 +4357,11 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           const batches = pbpVideoSplitBatches(paras, 1600);
           const sa = await pbpAiGetSettings();
           if (superseded()) return; // the words this pass was built from are gone
+          totalCount = batches.length;
+          // Cross-session cache (research T4.1): a batch answered on an earlier
+          // visit is free again -- seeded before freshTotal is counted.
+          await seedPunctCache(sa, batches);
+          if (superseded()) return;
           // Provider changed since the offer settled (closing review M4):
           // refresh the origin snapshot so the backstop below asks for the
           // RIGHT provider instead of the stale one.
@@ -4232,7 +4416,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
             // primary suspect behind "clicked AI punctuation, nothing changed"
             // (device report 2026-08-24). 2 tokens/char + headroom covers every
             // provider's tokenizer; 4096 is within all providers' caps.
-            const text = await callAI(sa, prompt, { maxTokens: Math.min(4096, b.length * 2 + 256) });
+            const text = await callAI(sa, prompt, { maxTokens: Math.min(4096, b.length * 2 + 256), signal: _aiAbort ? _aiAbort.signal : undefined });
             if (superseded()) return;
             // fail-closed per batch: a batch the model rewrote keeps its input.
             // One resilience step first: strip a markdown code fence the model
@@ -4271,8 +4455,10 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
               // poisons every later retry into the no-change guard (caught
               // live by the mock-Z discriminator, 2026-08-24).
               _aiBatchCache.set(b, out.trim());
+              persistPunctBatch(sa, b, out.trim());
             }
             outBatches.push(ok ? out.trim() : b);
+            doneCount = outBatches.length;
             setAiRing(freshCur, freshTotal);
           }
           // A cancel during the LAST batch's round-trip must not commit
@@ -4398,8 +4584,15 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
             passDone = true;
           }
         } catch (e) {
-          console.warn("[pbp-video] ai punctuation:", (e && e.message) || e);
           _aiPunctParas = null;
+          // Cancel aborted the in-flight request (research T4.4): that is a
+          // user action, not a provider failure -- same line as the
+          // between-batch cancel, finished batches stay cached.
+          if (_aiCancelRequested || (e && e.name === "AbortError")) {
+            pbvSetStatus(status, t("mdVideoAiCancelled", String(doneCount), String(totalCount)), false);
+            return;
+          }
+          console.warn("[pbp-video] ai punctuation:", (e && e.message) || e);
           // A declined/missing host grant has an actionable, localized
           // message of its own ("No access to ... Grant access and retry.")
           // -- the generic failure label hid exactly that from six real
@@ -4494,7 +4687,11 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       aiCancelBtn.innerHTML = typeof PBP_ICONS !== "undefined" ? PBP_ICONS.cross : "";
       aiCancelBtn.title = t("mdVideoAiCancel");
       aiCancelBtn.setAttribute("aria-label", t("mdVideoAiCancel"));
-      aiCancelBtn.addEventListener("click", () => { _aiCancelRequested = true; aiCancelBtn.disabled = true; });
+      aiCancelBtn.addEventListener("click", () => {
+        _aiCancelRequested = true;
+        aiCancelBtn.disabled = true;
+        if (_aiAbort) { try { _aiAbort.abort(); } catch (_) {} } // research T4.4
+      });
       bar.appendChild(trackSel); bar.appendChild(copyGroup); bar.appendChild(aiBtn); bar.appendChild(aiNote); bar.appendChild(aiCancelBtn); bar.appendChild(retryBtn);
       if (detected.provider === "youtube") {
         // Follow toggle (Task 6). Same bar-button family as Copy / AI
@@ -4603,6 +4800,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       openExt.setAttribute("aria-label", extLabel);
       bar.appendChild(openExt);
       bar.appendChild(status);
+      bar.appendChild(resume);
       // Video-mode workspaces already have an empty .pbv-list waiting in the
       // study column (mountVideoWorkspace built it); #video-panel then holds
       // only .pbv-media + .pbv-bar. The non-video defensive mount never set

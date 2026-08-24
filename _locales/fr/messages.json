@@ -3660,7 +3660,7 @@
   "mdVideoTranscriptHeading": { "message": "Transcription" },
   "mdVideoPromoted": { "message": "Transcription prête ; l’article a été remplacé" },
   "mdVideoAiCancel": { "message": "Annuler la ponctuation IA" },
-  "mdVideoAiPunctEst": { "message": "≈ $TOKENS$ tokens", "placeholders": { "tokens": { "content": "$1" } } },
+  "mdVideoAiPunctEst": { "message": "≈ $TOKENS$ jetons", "placeholders": { "tokens": { "content": "$1" } } },
   "mdVideoAiPunctConfirm": { "message": "La ponctuation IA remplace l'article : les traductions existantes seront effacées et les citations Ask invalidées. Continuer ?" },
   "mdStatVideoLen": { "message": "Vidéo $TIME$", "placeholders": { "time": { "content": "$1" } } },
   "mdVideoCopyMore": { "message": "Autres formats de copie" },
@@ -3684,5 +3684,13 @@
   "kbdHelpVideoLoop": { "message": "Répéter ce sous-titre" },
   "kbdHelpVideoFollow": { "message": "Suivre la lecture" },
   "kbdHelpVideoCurrent": { "message": "Revenir au sous-titre actuel" },
-  "kbdHelpVideoView": { "message": "Lecture / chronologie" }
+  "kbdHelpVideoView": { "message": "Lecture / chronologie" },
+  "secVideoPreview": { "message": "Aperçu vidéo" },
+  "optVideoLangPref": { "message": "Langues de sous-titres préférées" },
+  "optVideoLangPrefHint": { "message": "Codes de langue par ordre de préférence, p. ex. en, ja. Laissez vide pour suivre la langue de l'interface." },
+  "optVideoPauseOnLookup": { "message": "Mettre en pause pendant une recherche" },
+  "optVideoPauseOnLookupHint": { "message": "Sélectionner du texte ou ouvrir le popover d'explication met YouTube en pause ; la lecture reprend ensuite." },
+  "mdVideoResumePrompt": { "message": "Vu jusqu'à $TIME$", "placeholders": { "time": { "content": "$1" } } },
+  "mdVideoResumeGo": { "message": "Reprendre" },
+  "mdVideoResumeRestart": { "message": "Recommencer" }
 }

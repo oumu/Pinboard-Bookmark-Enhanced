@@ -3684,5 +3684,13 @@
   "kbdHelpVideoLoop": { "message": "Повторять эту реплику" },
   "kbdHelpVideoFollow": { "message": "Следовать за воспроизведением" },
   "kbdHelpVideoCurrent": { "message": "К текущей реплике" },
-  "kbdHelpVideoView": { "message": "Текст / шкала" }
+  "kbdHelpVideoView": { "message": "Текст / шкала" },
+  "secVideoPreview": { "message": "Предпросмотр видео" },
+  "optVideoLangPref": { "message": "Предпочитаемые языки субтитров" },
+  "optVideoLangPrefHint": { "message": "Коды языков в порядке предпочтения, например en, ja. Пусто — язык интерфейса." },
+  "optVideoPauseOnLookup": { "message": "Пауза при поиске слова" },
+  "optVideoPauseOnLookupHint": { "message": "Выделение текста или окно объяснения ставит YouTube на паузу; после — продолжает." },
+  "mdVideoResumePrompt": { "message": "В прошлый раз до $TIME$", "placeholders": { "time": { "content": "$1" } } },
+  "mdVideoResumeGo": { "message": "Продолжить" },
+  "mdVideoResumeRestart": { "message": "Сначала" }
 }

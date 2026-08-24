@@ -1155,6 +1155,18 @@ section("extracted runtime primitives (audit E1/E4/E5)");
   assert(pbpVideoCueStep(csSegs, 1, 0, 1) === 2 && pbpVideoCueStep(csSegs, 1, 0, -1) === 0, "cue step: moves from the current row");
   assert(pbpVideoCueStep(csSegs, -1, 3, 1) === 2 && pbpVideoCueStep(csSegs, -1, 3, -1) === 0, "cue step: no current row -> starts from the row at the given second");
   assert(pbpVideoCueStep(csSegs, 2, 0, 1) === 2 && pbpVideoCueStep(csSegs, 0, 0, -1) === 0 && pbpVideoCueStep([], 0, 0, 1) === -1, "cue step: clamped at both ends, -1 on an empty transcript");
+  // Caption-language preference + remembered track (research T6.1/T6.2)
+  assert(JSON.stringify(pbpVideoLangPrefs(" en-US, ja ;zh-Hans en")) === '["en","ja","zh"]', "lang prefs: base subtags, ordered, de-duplicated");
+  const ytTr = [{ lang: "zh-Hans", asr: false, vssId: ".zh-Hans" }, { lang: "en", asr: true, vssId: "a.en" }, { lang: "en", asr: false, vssId: ".en" }, { lang: "ja", asr: false, vssId: ".ja" }];
+  assert(pbpYtPickTrack(ytTr, "zh-CN").lang === "zh-Hans", "yt pick: no preference -> UI language, human (unchanged default)");
+  assert(pbpYtPickTrack(ytTr, "zh-CN", ["en"]) === ytTr[2], "yt pick: preferred language beats the UI language, human before ASR");
+  assert(pbpYtPickTrack(ytTr, "zh-CN", ["fr", "ja"]) === ytTr[3], "yt pick: first preferred language present wins");
+  assert(pbpYtPickTrack(ytTr, "zh-CN", ["en"], pbpVideoTrackKey(ytTr[3], "youtube")) === ytTr[3], "yt pick: a remembered key for this video wins outright");
+  assert(pbpYtPickTrack(ytTr, "zh-CN", ["en"], "no-such-key") === ytTr[2], "yt pick: a stale remembered key is ignored (fail-open)");
+  const biSubs = [{ lan: "ai-zh", lan_doc: "中文（自动）" }, { lan: "zh-CN", lan_doc: "中文" }, { lan: "ai-en", lan_doc: "English (auto)" }];
+  assert(pbpBiliPickSubtitle(biSubs) === biSubs[1], "bili pick: default stays zh human");
+  assert(pbpBiliPickSubtitle(biSubs, ["en"]) === biSubs[2], "bili pick: preferred language finds the ai- track when no human one exists");
+  assert(pbpBiliPickSubtitle(biSubs, ["fr"]) === biSubs[1] && pbpBiliPickSubtitle(biSubs, ["en"], pbpVideoTrackKey(biSubs[0], "bilibili")) === biSubs[0], "bili pick: unmet preference falls back; remembered key wins");
 })();
 
 document.getElementById("summary").textContent = `${pass} passed, ${fail} failed`;

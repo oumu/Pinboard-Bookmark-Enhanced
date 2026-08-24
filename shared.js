@@ -449,6 +449,8 @@ const SETTINGS_DEFAULTS = {
   // scrape to raise the caption hit rate on login-gated videos. Off by
   // default (privacy).
   mdVideoUseLogin: true,
+  mdVideoLangPref: "",        // ordered caption-language preference, "" = auto (research T6.1)
+  mdVideoPauseOnLookup: true, // pause the player while a word is looked up (research T3.5)
   selectionTrigger: "icon"
 };
 

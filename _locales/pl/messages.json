@@ -3684,5 +3684,13 @@
   "kbdHelpVideoLoop": { "message": "Powtarzaj tę kwestię" },
   "kbdHelpVideoFollow": { "message": "Śledź odtwarzanie" },
   "kbdHelpVideoCurrent": { "message": "Wróć do bieżącej kwestii" },
-  "kbdHelpVideoView": { "message": "Tekst / oś czasu" }
+  "kbdHelpVideoView": { "message": "Tekst / oś czasu" },
+  "secVideoPreview": { "message": "Podgląd wideo" },
+  "optVideoLangPref": { "message": "Preferowane języki napisów" },
+  "optVideoLangPrefHint": { "message": "Kody języków w kolejności preferencji, np. en, ja. Puste pole oznacza język interfejsu." },
+  "optVideoPauseOnLookup": { "message": "Pauza podczas sprawdzania słowa" },
+  "optVideoPauseOnLookupHint": { "message": "Zaznaczenie tekstu lub otwarcie objaśnienia wstrzymuje YouTube; potem odtwarzanie wznawia się." },
+  "mdVideoResumePrompt": { "message": "Ostatnio do $TIME$", "placeholders": { "time": { "content": "$1" } } },
+  "mdVideoResumeGo": { "message": "Kontynuuj" },
+  "mdVideoResumeRestart": { "message": "Od początku" }
 }

@@ -165,6 +165,14 @@ async function getPageInfoFromTab(tabId, opts = {}) {
 function fetchWithTimeout(url, options = {}, timeoutMs = 30000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
+  // A caller's signal is CHAINED, not replaced (research T4.4): Cancel in
+  // the reader aborts the in-flight request instead of waiting out the
+  // round-trip; the timeout controller still governs on its own.
+  const caller = options.signal;
+  if (caller) {
+    if (caller.aborted) controller.abort();
+    else caller.addEventListener("abort", () => controller.abort(), { once: true });
+  }
   return fetch(url, { ...options, redirect: "error", signal: controller.signal }).finally(() => clearTimeout(timer));
 }
 
@@ -401,7 +409,7 @@ async function callGemini(s, prompt, opts = {}) {
   const maxTokens = opts.maxTokens || 1024;
   // Gemini API requires key as URL param (no Authorization header support) — API design limitation
   const res = await fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${s.geminiApiKey}`, {
-    method: "POST", headers: { "Content-Type": "application/json" },
+    method: "POST", headers: { "Content-Type": "application/json" }, signal: opts.signal,
     body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.3, maxOutputTokens: maxTokens } })
   });
   if (!res.ok) await handleAIError(res, "Gemini");
@@ -413,7 +421,7 @@ async function callGemini(s, prompt, opts = {}) {
 async function callClaude(s, prompt, opts = {}) {
   const maxTokens = opts.maxTokens || 1024;
   const res = await fetchWithTimeout("https://api.anthropic.com/v1/messages", {
-    method: "POST",
+    method: "POST", signal: opts.signal,
     headers: { "Content-Type": "application/json", "x-api-key": s.claudeApiKey, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
     body: JSON.stringify({ model: s.claudeModel || "claude-haiku-4-5", max_tokens: maxTokens, messages: [{ role: "user", content: prompt }] })
   });
@@ -428,7 +436,7 @@ async function callOpenAICompat(baseUrl, apiKey, model, prompt, opts = {}) {
   const headers = { "Content-Type": "application/json" };
   if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
   const res = await fetchWithTimeout(`${baseUrl.replace(/\/+$/, "")}/chat/completions`, {
-    method: "POST", headers,
+    method: "POST", headers, signal: opts.signal,
     body: JSON.stringify({ model, messages: [{ role: "user", content: prompt }], temperature: 0.3, max_tokens: maxTokens, ...(opts.extraBody || {}) })
   });
   if (!res.ok) await handleAIError(res, "API");
@@ -440,7 +448,7 @@ async function callOpenAICompat(baseUrl, apiKey, model, prompt, opts = {}) {
 async function callOllama(s, prompt, opts = {}) {
   const base = (s.ollamaBaseUrl || "http://localhost:11434").replace(/\/+$/, "");
   const res = await fetchWithTimeout(`${base}/api/chat`, {
-    method: "POST", headers: { "Content-Type": "application/json" },
+    method: "POST", headers: { "Content-Type": "application/json" }, signal: opts.signal,
     // options mirrors the streaming path (_streamOllama): without num_predict
     // the non-streaming call ignored opts.maxTokens entirely, so callers that
     // size the output budget per request (AI punctuation batches) silently got
