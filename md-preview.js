@@ -3070,6 +3070,11 @@ function pbpRailDrawerClose() {
 // Drawer-originated jumps must not leave focus inside hidden controls.
 function pbpFocusArticleTarget(target) {
   if (!target) return;
+  // Every jump INTO the article implies the article must be on screen: a
+  // video workspace parked on the timeline view otherwise scrolls a hidden
+  // element (audit U6 -- md-video.js's listener existed with no dispatch
+  // site). Covers TOC, Ask citations and highlight jumps in one place.
+  try { document.dispatchEvent(new CustomEvent("pbp:ensure-article-visible")); } catch (_) {}
   pbpRailDrawerClose();
   if (!target.hasAttribute("tabindex")) target.tabIndex = -1;
   target.focus({ preventScroll: true });

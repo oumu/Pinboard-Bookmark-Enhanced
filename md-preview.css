@@ -3514,7 +3514,16 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
    .srch-regex / .typo-seg-btn. Declared after :hover so the pressed state
    wins while the pointer is over it. */
 .pbv-follow[aria-pressed="true"] { background: var(--btn-hover); border-color: var(--link); color: var(--link); }
-.pbv-status { font-size: 0.9em; color: var(--fg-muted); }
+/* Status owns its own row (audit U5): sharing the flex row with the picker
+   and the icon buttons squeezed long failure copy and shoved controls
+   around. data-state adds the semantic tone; the words still carry the
+   meaning on their own. */
+.pbv-status { font-size: 0.9em; color: var(--fg-muted); flex-basis: 100%; }
+.pbv-status[data-state="error"] { color: var(--danger); }
+/* Punctuation-state note (audit U1): quiet, picker-adjacent. */
+.pbv-ai-note { font-size: 0.82em; color: var(--fg-muted); align-self: center; }
+/* Grant-scope note on the first-run poster card (audit U2). */
+.pbv-poster-note { display: block; font-size: 0.82em; color: var(--fg-muted); margin-top: 4px; }
 .pbv-list {
   max-height: 40vh; overflow-y: auto; display: flex; flex-direction: column; gap: 2px;
   border: 1px solid var(--border); border-radius: 10px; padding: 6px;

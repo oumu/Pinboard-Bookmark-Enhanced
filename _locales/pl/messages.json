@@ -3642,5 +3642,11 @@
   "mdVideoOpenExternal": { "message": "Otwórz w YouTube" },
   "mdVideoRetry": { "message": "Sprawdź napisy ponownie" },
   "mdVideoPermDeclined": { "message": "Wideo załadowane; napisy nieaktywne" },
-  "mdVideoAiPunctPartial": { "message": "Ukończono $DONE$ z $TOTAL$ partii; reszta zachowała oryginalny tekst. Kliknij ponownie, aby powtórzyć tylko nieudane.", "placeholders": { "done": { "content": "$1" }, "total": { "content": "$2" } } }
+  "mdVideoAiPunctPartial": { "message": "Ukończono $DONE$ z $TOTAL$ partii; reszta zachowała oryginalny tekst. Kliknij ponownie, aby powtórzyć tylko nieudane.", "placeholders": { "done": { "content": "$1" }, "total": { "content": "$2" } } },
+  "mdVideoPunctSource": { "message": "Napisy źródłowe mają już interpunkcję" },
+  "mdVideoPunctHeuristic": { "message": "Dodano automatyczną interpunkcję podstawową" },
+  "mdVideoAiUnconfigured": { "message": "Nie skonfigurowano dostawcy AI" },
+  "mdVideoGrantScope": { "message": "Odtwarzacz nie wymaga uprawnienia; zgoda służy tylko odczytowi napisów" },
+  "mdVideoFollowReadingOff": { "message": "Śledzenie odtwarzania wymaga widoku osi czasu" },
+  "mdVideoOpenExternalBili": { "message": "Otwórz w bilibili" }
 }

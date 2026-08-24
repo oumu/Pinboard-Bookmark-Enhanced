@@ -541,6 +541,9 @@ const PBP_TR_FLUSH_MS = 5000;
 // permission recovery when `permissionError` is set. The ratio gate
 // (pbpTrLengthRatioOk) runs on every fill, batch AND single.
 async function pbpTrRunQueue(plan) {
+  // Translation fills into the article; make it visible before the first
+  // block lands (audit U6; no-op outside video workspaces).
+  try { document.dispatchEvent(new CustomEvent("pbp:ensure-article-visible")); } catch (_) {}
   const batches = plan.batches || [];
   const targetCode = plan.targetCode || "";
   const conc = plan.concurrency || 2;
@@ -2646,6 +2649,9 @@ function _pbpTrApplyMode(st, mode, anchor, focusHandoff) {
 
 function _pbpTrSetMode(st, mode, persist) {
   if (!st || !["original", "bilingual", "translated"].includes(mode) || mode === st.mode) return;
+  // A view-mode change is about the ARTICLE: surface it if a video
+  // workspace has the timeline in front (audit U6; no-op elsewhere).
+  try { document.dispatchEvent(new CustomEvent("pbp:ensure-article-visible")); } catch (_) {}
   const anchor = _pbpTrCaptureViewAnchor();
   const focusHandoff = _pbpTrCaptureFocusHandoff(mode);
   // State changes synchronously even when the native transition schedules the

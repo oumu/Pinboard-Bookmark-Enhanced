@@ -1049,6 +1049,38 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   // loadFlow, the track-change handler and the AI pass; threading four more
   // parameters through two call chains would only hide that coupling.
   let _trackSelEl = null, _aiBtnEl = null, _listEl = null;
+  // Punctuation-state note beside the picker (audit U1): says WHY the AI
+  // button is or is not on offer for the current track.
+  let _aiNoteEl = null;
+  // Current video identity for per-video persistence (audit U4). Set at
+  // mount; null on non-video defensive mounts.
+  let _detectedNow = null;
+
+  // ---- per-video view memory (audit U4): local-only, 50-entry LRU ----
+  function _videoViewKey(d) {
+    return d.provider === "bilibili"
+      ? "bili:" + d.bvid + ":" + (d.part || 1)
+      : "yt:" + d.videoId;
+  }
+  async function pbpVideoSavedView(d) {
+    try {
+      const rec = (await chrome.storage.local.get("pbp_video_view")).pbp_video_view || {};
+      const e = rec[_videoViewKey(d)];
+      return e && (e.view === "reading" || e.view === "timeline") ? e.view : null;
+    } catch (_) { return null; }
+  }
+  async function pbpVideoSaveView(d, view) {
+    try {
+      const rec = (await chrome.storage.local.get("pbp_video_view")).pbp_video_view || {};
+      rec[_videoViewKey(d)] = { view, ts: Date.now() };
+      const keys = Object.keys(rec);
+      if (keys.length > 50) {
+        keys.sort((a, b) => ((rec[a] && rec[a].ts) || 0) - ((rec[b] && rec[b].ts) || 0));
+        for (const k of keys.slice(0, keys.length - 50)) delete rec[k];
+      }
+      await chrome.storage.local.set({ pbp_video_view: rec });
+    } catch (_) {}
+  }
   // Last-selection-wins token. Every track-change event takes one, and every
   // await re-checks it: a response for a track the user has already moved off
   // must render nothing, touch no state, and above all never ATTEMPT a commit.
@@ -1731,6 +1763,17 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     if (cls) n.className = cls;
     if (text != null) n.textContent = text;
     return n;
+  }
+
+  // Status writes with a semantic tone (audit U5): errors get data-state so
+  // the CSS can color them; every non-error write clears it so the tone
+  // never outlives the failure it described. Adopted call-site by call-site
+  // -- a plain textContent write still works, it just stays toneless.
+  function pbvSetStatus(elx, text, isError) {
+    if (!elx) return;
+    elx.textContent = text;
+    if (isError) elx.dataset.state = "error";
+    else delete elx.dataset.state;
   }
 
   function seekTo(sec) {
@@ -2456,6 +2499,21 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       const committedAi = !!(window.pbpVideoDoc && window.pbpVideoDoc.committed && window.pbpVideoDoc.aiPunct);
       const show = !!(_wasUnpunct && _segments.length && aiOk && !committedAi);
       aiBtn.hidden = !show;
+      // Four kinds of "no button" used to be indistinguishable (device round
+      // 5: the user could not tell "already punctuated" from "feature
+      // gone"). A stable note next to the picker says which state this
+      // track is in; it stays empty only while there is no transcript.
+      if (_aiNoteEl) {
+        let note = "";
+        if (_segments.length) {
+          if (committedAi) note = t("mdVideoAiPunctDone");
+          else if (!_wasUnpunct) note = t("mdVideoPunctSource");
+          else if (!aiOk) note = t("mdVideoPunctHeuristic") + " · " + t("mdVideoAiUnconfigured");
+          else note = t("mdVideoPunctHeuristic");
+        }
+        _aiNoteEl.textContent = note;
+        _aiNoteEl.hidden = !note;
+      }
       // A re-offer has to arrive usable: a previous pass left the button
       // retired under a "Punctuated" label, and a new track is a new pass.
       // Clearing the latch and then re-deriving `disabled` from the freeze
@@ -2486,11 +2544,13 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     if (_segments.length) {
       renderTranscript(bodyEl, _segments, true);
       // Timeline is the default study view once a transcript exists (device
-      // feedback 2026-08-23: "优先显示时间轴") -- the reading article stays one
-      // toggle click away, and the follow highlight lands where the user is
-      // looking. Runs once per mount (loadFlow), so a later manual toggle to
-      // reading is never fought.
-      setStudyView("timeline");
+      // feedback 2026-08-23: "优先显示时间轴") -- unless the reader picked a
+      // view for THIS video before (audit U4): their choice survives the F5.
+      // Runs once per mount (loadFlow), so a later manual toggle is never
+      // fought.
+      let savedView = null;
+      try { savedView = await pbpVideoSavedView(detected); } catch (_) {}
+      setStudyView(savedView || "timeline");
     }
     trackSel.addEventListener("change", async () => {
       const key = trackSel.value;
@@ -2790,11 +2850,11 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     const reading = el("button", "src-seg", t("mdVideoViewReading"));
     reading.type = "button";
     reading.setAttribute("data-view", "reading");
-    reading.addEventListener("click", () => setStudyView("reading"));
+    reading.addEventListener("click", () => setStudyView("reading", true));
     const timeline = el("button", "src-seg", t("mdVideoViewTimeline"));
     timeline.type = "button";
     timeline.setAttribute("data-view", "timeline");
-    timeline.addEventListener("click", () => setStudyView("timeline"));
+    timeline.addEventListener("click", () => setStudyView("timeline", true));
     wrap.appendChild(reading);
     wrap.appendChild(timeline);
     _toggleReadingBtn = reading;
@@ -2802,10 +2862,22 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     return wrap;
   }
 
-  function setStudyView(mode) {
+  function setStudyView(mode, persist) {
     const reading = mode !== "timeline";
     if (_studyReadingEl) _studyReadingEl.hidden = !reading;
     if (_studyListEl) _studyListEl.hidden = reading;
+    // Follow can only act on the timeline (audit U4): in the reading view
+    // the pressed toggle silently did nothing. Disabled with the reason in
+    // its title; restored the moment the timeline is back.
+    if (_followBtn) {
+      _followBtn.disabled = reading;
+      const lbl = t(reading ? "mdVideoFollowReadingOff" : "mdVideoFollow");
+      _followBtn.title = lbl;
+      _followBtn.setAttribute("aria-label", lbl);
+    }
+    // Persist only USER choices (audit U4): programmatic flips (defaults,
+    // ensure-article-visible) must not overwrite what the reader picked.
+    if (persist && _detectedNow) { pbpVideoSaveView(_detectedNow, reading ? "reading" : "timeline"); }
     if (_toggleReadingBtn) {
       _toggleReadingBtn.classList.toggle("active", reading);
       _toggleReadingBtn.setAttribute("aria-pressed", reading ? "true" : "false");
@@ -2938,6 +3010,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       console.info("[pbp-video] mount skipped: no video detected in", (ctx && ctx.pageUrl) || "(no pageUrl)");
       return;
     }
+    _detectedNow = detected; // per-video persistence identity (audit U4)
     const view = document.getElementById("rendered-view");
     if (!view || !view.parentNode || document.getElementById("video-panel")) {
       console.info("[pbp-video] mount skipped:", !view ? "no #rendered-view" : (document.getElementById("video-panel") ? "panel already mounted" : "detached view"));
@@ -2983,6 +3056,12 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     play.innerHTML = PBV_PLAY_SVG;
     cta.appendChild(play);
     cta.appendChild(el("span", "pbv-poster-label", posterLabel));
+    // Scope note (audit U2): the button's own label bundles "enable
+    // subtitles" and "load video", which read as one permission. Say what
+    // the grant actually covers before Chrome's prompt appears.
+    const posterNote = el("span", "pbv-poster-note", t("mdVideoGrantScope"));
+    posterNote.hidden = !firstRun;
+    cta.appendChild(posterNote);
     // Progressive first paint mounts BEFORE any session exists (audit B15:
     // pbpVideoSession is null here since the plan-丙 bootstrap change), so
     // the granted===false read above can no longer fire. Derive first-run
@@ -3001,6 +3080,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
             cta.setAttribute("aria-label", lbl);
             const span = cta.querySelector(".pbv-poster-label");
             if (span) span.textContent = lbl;
+            posterNote.hidden = false; // scope note joins the enable state (audit U2)
           }
         } catch (_) {}
       })();
@@ -3069,7 +3149,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           await navigator.clipboard.writeText(pbpVideoTranscriptMarkdown(_segments, _meta, _aiPunctParas));
           // A prior "Copy failed" line must not outlive a later success
           // (audit B16); the success copy also feeds the aria-live region.
-          status.textContent = t("mdVideoCopied");
+          pbvSetStatus(status, t("mdVideoCopied"), false);
           if (copyFlashTimer) clearTimeout(copyFlashTimer);
           copyBtn.innerHTML = typeof PBP_ICONS !== "undefined" ? PBP_ICONS.check : "";
           copyBtn.classList.add("copied");
@@ -3080,7 +3160,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
             copyBtn.classList.remove("copied");
             copyBtn.title = t("mdVideoCopyMd");
           }, 1800);
-        } catch (_) { status.textContent = t("mdVideoCopyFailed"); }
+        } catch (_) { pbvSetStatus(status, t("mdVideoCopyFailed"), true); }
       });
       // AI punctuation (combo plan, user-picked): heuristic tier applies
       // automatically in loadFlow; this button upgrades the Copy text -- and,
@@ -3202,7 +3282,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           // batches that still carry heuristic text. Passed batches are
           // cached above, so the retry click only re-pays for the failures.
           if (rejected > 0) {
-            status.textContent = t("mdVideoAiPunctPartial", [String(batches.length - rejected), String(batches.length)]);
+            pbvSetStatus(status, t("mdVideoAiPunctPartial", [String(batches.length - rejected), String(batches.length)]), true);
             return;
           }
           // A pass that changed nothing must not commit: committing the
@@ -3221,7 +3301,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           if (!outBatches.some((o, i) => wsNorm(o) !== wsNorm(batches[i]))) {
             console.warn("[pbp-video] ai punctuation: pass produced no change ("
               + rejected + "/" + batches.length + " batches failed conservation) -- transcript kept, button stays");
-            status.textContent = t("mdVideoAiPunctFail");
+            pbvSetStatus(status, t("mdVideoAiPunctFail"), true);
             return;
           }
           // Split on ANY newline run: the prompt asks for blank-line breaks
@@ -3252,7 +3332,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           // Done state: status line for the moment, title for posterity (the
           // copy-only branch keeps the retired button in the bar -- its title
           // is what carries "already punctuated" now that there is no label).
-          status.textContent = t("mdVideoAiPunctDone");
+          pbvSetStatus(status, t("mdVideoAiPunctDone"), false);
           aiBtn.title = t("mdVideoAiPunctDone");
           aiBtn.setAttribute("aria-label", t("mdVideoAiPunctDone"));
           // The article IS this transcript on every video page that had
@@ -3304,7 +3384,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
             }
             // Same L1 gate as the track switch: threwInCommit means the
             // payload persisted -- only a true non-persist earns the quota copy.
-            if (!ok && !threwInCommit) status.textContent = t("mdPreviewQuotaFull");
+            if (!ok && !threwInCommit) pbvSetStatus(status, t("mdPreviewQuotaFull"), true);
           } else {
             // Copy-only page: the transcript is not this page's article, so
             // there is nothing to commit and the Copy text already carries the
@@ -3318,8 +3398,8 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           // message of its own ("No access to ... Grant access and retry.")
           // -- the generic failure label hid exactly that from six real
           // clicks (device round 4).
-          status.textContent = (e && e.code === "host_permission" && e.message)
-            ? e.message : t("mdVideoAiPunctFail");
+          pbvSetStatus(status, (e && e.code === "host_permission" && e.message)
+            ? e.message : t("mdVideoAiPunctFail"), true);
         } finally {
           // One place decides the button's resting state, so no exit path can
           // leave the label saying "Punctuated" over a pass that never
@@ -3352,20 +3432,24 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           let g = false;
           try { g = await chrome.permissions.contains({ origins: [originPat] }) === true; } catch (_) {}
           if (!g) g = await requestVideoOrigin(detected); // this click IS the gesture
-          if (!g) { status.textContent = t("mdVideoPermDeclined"); retryBtn.hidden = false; return; }
+          if (!g) { pbvSetStatus(status, t("mdVideoPermDeclined"), true); retryBtn.hidden = false; return; }
           window.pbpVideoSession = null; // force a fresh directory + captions
-          status.textContent = t("mdVideoLoading");
+          pbvSetStatus(status, t("mdVideoLoading"), false);
           await loadFlow(detected, status, body, trackSel, copyBtn, aiBtn);
           if (!_segments.length) retryBtn.hidden = false;
         } catch (e) {
           console.warn("[pbp-video] retry:", (e && e.message) || e);
-          status.textContent = t("mdVideoFailed");
+          pbvSetStatus(status, t("mdVideoFailed"), true);
           retryBtn.hidden = false;
         } finally {
           retryBtn.disabled = false;
         }
       });
-      bar.appendChild(trackSel); bar.appendChild(copyBtn); bar.appendChild(aiBtn); bar.appendChild(retryBtn);
+      // Punctuation-state note (audit U1): filled by refreshAiOffer.
+      const aiNote = el("span", "pbv-ai-note");
+      aiNote.hidden = true;
+      _aiNoteEl = aiNote;
+      bar.appendChild(trackSel); bar.appendChild(copyBtn); bar.appendChild(aiBtn); bar.appendChild(aiNote); bar.appendChild(retryBtn);
       if (detected.provider === "youtube") {
         // Follow toggle (Task 6). Same bar-button family as Copy / AI
         // punctuation (.pbv-copy, .pbv-ai-punct in md-preview.css), plus the
@@ -3401,20 +3485,24 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
             ro.observe(layoutHost);
           }
         }
-        // Relay-failure degrade: the player depends on GitHub Pages staying
-        // up; this always-present link needs no failure detection (a
-        // cross-origin iframe load can't be inspected for a 404/DNS failure)
-        // and bounds the dependency by giving a working path regardless.
-        const openExt = document.createElement("a");
-        openExt.className = "action-btn pbv-open-ext";
-        openExt.href = "https://www.youtube.com/watch?v=" + encodeURIComponent(detected.videoId);
-        openExt.target = "_blank";
-        openExt.rel = "noopener noreferrer";
-        openExt.innerHTML = PBV_EXTERNAL_SVG;
-        openExt.title = t("mdVideoOpenExternal");
-        openExt.setAttribute("aria-label", t("mdVideoOpenExternal"));
-        bar.appendChild(openExt);
       }
+      // Player-failure degrade for BOTH providers (audit U12: bilibili had
+      // no way out when its embed or login wall misbehaved): an
+      // always-present link to the ordinary watch page. Needs no failure
+      // detection (a cross-origin iframe load can't be inspected) and
+      // bounds the dependency by giving a working path regardless.
+      const openExt = document.createElement("a");
+      openExt.className = "action-btn pbv-open-ext";
+      openExt.href = detected.provider === "bilibili"
+        ? "https://www.bilibili.com/video/" + encodeURIComponent(detected.bvid) + "/" + (detected.part > 1 ? "?p=" + detected.part : "")
+        : "https://www.youtube.com/watch?v=" + encodeURIComponent(detected.videoId);
+      openExt.target = "_blank";
+      openExt.rel = "noopener noreferrer";
+      openExt.innerHTML = PBV_EXTERNAL_SVG;
+      const extLabel = t(detected.provider === "bilibili" ? "mdVideoOpenExternalBili" : "mdVideoOpenExternal");
+      openExt.title = extLabel;
+      openExt.setAttribute("aria-label", extLabel);
+      bar.appendChild(openExt);
       bar.appendChild(status);
       // Video-mode workspaces already have an empty .pbv-list waiting in the
       // study column (mountVideoWorkspace built it); #video-panel then holds
@@ -3448,7 +3536,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         // (its click can re-request the grant); the poster stays the entry
         // when the player never mounted.
         const playerUp = _iframe && _iframe.isConnected;
-        status.textContent = t(playerUp ? "mdVideoPermDeclined" : "mdVideoPermMissing");
+        pbvSetStatus(status, t(playerUp ? "mdVideoPermDeclined" : "mdVideoPermMissing"), true);
         cta.disabled = false;
         _runLoadEntered = false; // the retry click must be able to re-enter
         retryBtn.hidden = false;

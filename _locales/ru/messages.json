@@ -3642,5 +3642,11 @@
   "mdVideoOpenExternal": { "message": "Открыть на YouTube" },
   "mdVideoRetry": { "message": "Проверить субтитры ещё раз" },
   "mdVideoPermDeclined": { "message": "Видео загружено; субтитры не включены" },
-  "mdVideoAiPunctPartial": { "message": "Готово $DONE$ из $TOTAL$ частей; остальные сохранили исходный текст. Нажмите ещё раз, чтобы повторить только неудавшиеся.", "placeholders": { "done": { "content": "$1" }, "total": { "content": "$2" } } }
+  "mdVideoAiPunctPartial": { "message": "Готово $DONE$ из $TOTAL$ частей; остальные сохранили исходный текст. Нажмите ещё раз, чтобы повторить только неудавшиеся.", "placeholders": { "done": { "content": "$1" }, "total": { "content": "$2" } } },
+  "mdVideoPunctSource": { "message": "В исходных субтитрах уже есть пунктуация" },
+  "mdVideoPunctHeuristic": { "message": "Базовая пунктуация расставлена автоматически" },
+  "mdVideoAiUnconfigured": { "message": "ИИ-провайдер не настроен" },
+  "mdVideoGrantScope": { "message": "Плееру разрешение не нужно; доступ используется только для чтения субтитров" },
+  "mdVideoFollowReadingOff": { "message": "Слежение за воспроизведением требует вида «таймлайн»" },
+  "mdVideoOpenExternalBili": { "message": "Открыть на bilibili" }
 }

@@ -3642,5 +3642,11 @@
   "mdVideoOpenExternal": { "message": "YouTube で開く" },
   "mdVideoRetry": { "message": "字幕を再チェック" },
   "mdVideoPermDeclined": { "message": "動画は読み込み済み、字幕は未有効" },
-  "mdVideoAiPunctPartial": { "message": "$DONE$/$TOTAL$ 件のバッチが完了。残りは元のテキストのままです。もう一度クリックすると失敗分のみ再試行します。", "placeholders": { "done": { "content": "$1" }, "total": { "content": "$2" } } }
+  "mdVideoAiPunctPartial": { "message": "$DONE$/$TOTAL$ 件のバッチが完了。残りは元のテキストのままです。もう一度クリックすると失敗分のみ再試行します。", "placeholders": { "done": { "content": "$1" }, "total": { "content": "$2" } } },
+  "mdVideoPunctSource": { "message": "元の字幕には句読点があります" },
+  "mdVideoPunctHeuristic": { "message": "基本的な句読点を自動付与しました" },
+  "mdVideoAiUnconfigured": { "message": "AI プロバイダー未設定" },
+  "mdVideoGrantScope": { "message": "プレーヤーに権限は不要です。許可は字幕の読み取りにのみ使われます" },
+  "mdVideoFollowReadingOff": { "message": "再生追従にはタイムライン表示が必要です" },
+  "mdVideoOpenExternalBili": { "message": "bilibili で開く" }
 }

@@ -3636,5 +3636,11 @@
   "mdVideoOpenExternal": { "message": "Open on YouTube" },
   "mdVideoRetry": { "message": "Re-check subtitles" },
   "mdVideoPermDeclined": { "message": "Video loaded; subtitles not enabled" },
-  "mdVideoAiPunctPartial": { "message": "$DONE$ of $TOTAL$ batches done; the rest kept their original text. Click again to retry only the failed ones.", "placeholders": { "done": { "content": "$1" }, "total": { "content": "$2" } } }
+  "mdVideoAiPunctPartial": { "message": "$DONE$ of $TOTAL$ batches done; the rest kept their original text. Click again to retry only the failed ones.", "placeholders": { "done": { "content": "$1" }, "total": { "content": "$2" } } },
+  "mdVideoPunctSource": { "message": "Source captions already punctuated" },
+  "mdVideoPunctHeuristic": { "message": "Basic punctuation added automatically" },
+  "mdVideoAiUnconfigured": { "message": "No AI provider configured" },
+  "mdVideoGrantScope": { "message": "The player needs no permission; the grant only reads subtitles" },
+  "mdVideoFollowReadingOff": { "message": "Follow playback needs the timeline view" },
+  "mdVideoOpenExternalBili": { "message": "Open on bilibili" }
 }

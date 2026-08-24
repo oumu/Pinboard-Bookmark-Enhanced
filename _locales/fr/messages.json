@@ -3642,5 +3642,11 @@
   "mdVideoOpenExternal": { "message": "Ouvrir sur YouTube" },
   "mdVideoRetry": { "message": "Revérifier les sous-titres" },
   "mdVideoPermDeclined": { "message": "Vidéo chargée ; sous-titres non activés" },
-  "mdVideoAiPunctPartial": { "message": "$DONE$ lots sur $TOTAL$ terminés ; le reste garde le texte d'origine. Cliquez à nouveau pour ne relancer que les lots en échec.", "placeholders": { "done": { "content": "$1" }, "total": { "content": "$2" } } }
+  "mdVideoAiPunctPartial": { "message": "$DONE$ lots sur $TOTAL$ terminés ; le reste garde le texte d'origine. Cliquez à nouveau pour ne relancer que les lots en échec.", "placeholders": { "done": { "content": "$1" }, "total": { "content": "$2" } } },
+  "mdVideoPunctSource": { "message": "Sous-titres déjà ponctués" },
+  "mdVideoPunctHeuristic": { "message": "Ponctuation de base ajoutée automatiquement" },
+  "mdVideoAiUnconfigured": { "message": "Aucun fournisseur d'IA configuré" },
+  "mdVideoGrantScope": { "message": "Le lecteur n'exige aucune autorisation ; elle sert uniquement à lire les sous-titres" },
+  "mdVideoFollowReadingOff": { "message": "Suivre la lecture requiert la vue chronologique" },
+  "mdVideoOpenExternalBili": { "message": "Ouvrir sur bilibili" }
 }

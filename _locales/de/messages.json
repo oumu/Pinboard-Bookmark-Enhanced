@@ -3642,5 +3642,11 @@
   "mdVideoOpenExternal": { "message": "Auf YouTube öffnen" },
   "mdVideoRetry": { "message": "Untertitel erneut prüfen" },
   "mdVideoPermDeclined": { "message": "Video geladen; Untertitel nicht aktiviert" },
-  "mdVideoAiPunctPartial": { "message": "$DONE$ von $TOTAL$ Abschnitten fertig; der Rest behält den Originaltext. Klicken Sie erneut, um nur die fehlgeschlagenen zu wiederholen.", "placeholders": { "done": { "content": "$1" }, "total": { "content": "$2" } } }
+  "mdVideoAiPunctPartial": { "message": "$DONE$ von $TOTAL$ Abschnitten fertig; der Rest behält den Originaltext. Klicken Sie erneut, um nur die fehlgeschlagenen zu wiederholen.", "placeholders": { "done": { "content": "$1" }, "total": { "content": "$2" } } },
+  "mdVideoPunctSource": { "message": "Untertitel bereits interpunktiert" },
+  "mdVideoPunctHeuristic": { "message": "Basiszeichensetzung automatisch ergänzt" },
+  "mdVideoAiUnconfigured": { "message": "Kein KI-Anbieter konfiguriert" },
+  "mdVideoGrantScope": { "message": "Der Player braucht keine Berechtigung; sie gilt nur dem Lesen der Untertitel" },
+  "mdVideoFollowReadingOff": { "message": "Wiedergabe folgen erfordert die Zeitleistenansicht" },
+  "mdVideoOpenExternalBili": { "message": "Auf bilibili öffnen" }
 }

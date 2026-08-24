@@ -3636,5 +3636,11 @@
   "mdVideoOpenExternal": { "message": "在 YouTube 上打开" },
   "mdVideoRetry": { "message": "重新检测字幕" },
   "mdVideoPermDeclined": { "message": "视频已加载，字幕未启用" },
-  "mdVideoAiPunctPartial": { "message": "已完成 $DONE$/$TOTAL$ 批，其余保留原文；再点一次只重试失败部分", "placeholders": { "done": { "content": "$1" }, "total": { "content": "$2" } } }
+  "mdVideoAiPunctPartial": { "message": "已完成 $DONE$/$TOTAL$ 批，其余保留原文；再点一次只重试失败部分", "placeholders": { "done": { "content": "$1" }, "total": { "content": "$2" } } },
+  "mdVideoPunctSource": { "message": "原字幕已有标点" },
+  "mdVideoPunctHeuristic": { "message": "已自动基础断句" },
+  "mdVideoAiUnconfigured": { "message": "未配置 AI 服务" },
+  "mdVideoGrantScope": { "message": "播放器无需此权限，授权仅用于读取字幕" },
+  "mdVideoFollowReadingOff": { "message": "跟随播放需要时间轴视图" },
+  "mdVideoOpenExternalBili": { "message": "在 bilibili 打开" }
 }

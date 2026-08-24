@@ -1219,6 +1219,9 @@ function _pbpZenDisarmFade() {
 // mid-document.
 function _pbpZenEnter() {
   if (document.body.classList.contains("zen")) return;
+  // Zen is a reading mode of the ARTICLE: surface it if a video workspace
+  // has the timeline in front (audit U6; no-op elsewhere).
+  try { document.dispatchEvent(new CustomEvent("pbp:ensure-article-visible")); } catch (_) {}
   const anchor = _pbpZenCaptureAnchor();
   const ae = document.activeElement;
   const focusWasInRail = !!(ae && typeof ae.closest === "function" && ae.closest("#rail"));
