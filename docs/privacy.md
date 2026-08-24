@@ -30,6 +30,7 @@ Extension settings, caches, and temporary state are stored locally by default. B
 | CC-CEDICT offline dictionary pack (Chinese word, pinyin, and definition records from a file you import) | IndexedDB (`pbp-dict-packs`) | No |
 | Offline English–Chinese dictionary pack in the ECDICT CSV field layout (headword, a lookup key derived from it, and Chinese definition text, all from a file you import), plus a record of how many entries were stored, when, the entry-selection level used, the decoded byte count, and a CRC32 checksum of those bytes for diagnostics | IndexedDB (`pbp-dict-packs`) | No |
 | Tag cache & tag-cleanup state (account-scoped records include the non-secret plaintext Pinboard username owner) | `chrome.storage.local` | No |
+| Video reading-view choice (per video: reading or timeline, with a last-used timestamp; account-scoped keys include the non-secret plaintext Pinboard username owner; at most 50 recent entries) | `chrome.storage.local` | No |
 | Bookmark-status cache (account-scoped in memory) | Service Worker memory | No |
 | Offline save queue (URL, title, notes, tags, save options, time, and a non-secret plaintext Pinboard username binding) | `chrome.storage.local` | No |
 | Batch progress & Markdown preview data (account-scoped records include the non-secret plaintext Pinboard username owner); for video pages this includes the captured subtitle text, the selected caption track, and AI punctuation results, so the reader can restore them after a reload without refetching | `chrome.storage.local` | No |

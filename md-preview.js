@@ -988,7 +988,7 @@ function pbpApplyColorScheme(mode) {
       } else {
         inFlight = false;
       }
-      if (typeof pbpVideoInit === "function") pbpVideoInit({ pageUrl: sourceTabUrl || url, title: title, tabId: srcTabId });
+      if (typeof pbpVideoInit === "function") pbpVideoInit({ pageUrl: sourceTabUrl || url, title: title, tabId: srcTabId, account: previewAccount });
       else console.warn("[pbp-video] mount unavailable: pbpVideoInit missing after deferred scripts");
       applyAvailability(attemptedEngine);
     }
@@ -1142,7 +1142,7 @@ function pbpApplyColorScheme(mode) {
       // pbpDeferredScriptsReady is already awaited above (video bootstrap),
       // so md-video.js -- the LAST defer script -- has run by now; the
       // typeof guard only covers it failing to load at all.
-      if (typeof pbpVideoInit === "function") pbpVideoInit({ pageUrl: sourceTabUrl || url, title: title, tabId: srcTabId });
+      if (typeof pbpVideoInit === "function") pbpVideoInit({ pageUrl: sourceTabUrl || url, title: title, tabId: srcTabId, account: previewAccount });
       else console.warn("[pbp-video] mount unavailable: pbpVideoInit missing after deferred scripts");
       return;
     }
@@ -2175,7 +2175,7 @@ function pbpApplyColorScheme(mode) {
   // pbpDeferredScriptsReady is already awaited by the video bootstrap above,
   // so md-video.js -- the LAST defer script -- has run; the typeof guard only
   // covers it failing to load at all.
-  if (typeof pbpVideoInit === "function") pbpVideoInit({ pageUrl: sourceTabUrl || url, title: title, tabId: srcTabId });
+  if (typeof pbpVideoInit === "function") pbpVideoInit({ pageUrl: sourceTabUrl || url, title: title, tabId: srcTabId, account: previewAccount });
   else console.warn("[pbp-video] mount unavailable: pbpVideoInit missing after deferred scripts");
 
   // ---- Build TOC sidebar from the canonical markdown ----

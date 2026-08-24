@@ -44,6 +44,7 @@
   var timer = 0;            // 250ms position reporter, PLAYING state only
   var pendingSeek = null;   // a seek that arrived before the player existed
   var apiFired = false;     // onYouTubeIframeAPIReady ran (API script arrived)
+  var readyTimer = 0;       // no-onReady fallback timer, cleared by onReady
   var fallbackFrame = null; // plain <iframe> embed when the API never arrives
 
   function post(msg) {
@@ -85,6 +86,7 @@
 
   function onReady() {
     ready = true;
+    if (readyTimer) { clearTimeout(readyTimer); readyTimer = 0; }
     if (pendingSeek !== null) {
       var s = pendingSeek;
       pendingSeek = null;
@@ -160,6 +162,9 @@
     // parent that navigated cross-origin keeps the same WindowProxy, so the
     // source check alone stops proving identity (audit B8).
     if (parentOrigin && e.origin !== parentOrigin) return;
+    // Never armed (non-extension parent): commands are not ours to run
+    // either (closing review L4) -- arming is the admission ticket.
+    if (!parentOrigin) return;
     if (d.func === "hello") return;
     var args = Array.isArray(d.args) ? d.args : [];
     if (d.func === "seekTo") {
@@ -209,7 +214,7 @@
         }
       });
     } catch (_) { apiPathFailed(); return; }
-    setTimeout(apiPathFailed, 8000); // no onReady by then -> plain embed
+    readyTimer = setTimeout(apiPathFailed, 8000); // no onReady by then -> plain embed
   };
   var api = document.createElement("script");
   api.src = "https://www.youtube.com/iframe_api";

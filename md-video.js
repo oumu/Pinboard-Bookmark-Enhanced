@@ -148,7 +148,9 @@ function _pbpVideoDecodeEntities(s) {
   // reference outside Unicode range is left as literal text (audit A8).
   const num = (n) => {
     const cp = Number(n);
-    return Number.isInteger(cp) && cp >= 0 && cp <= 0x10FFFF ? String.fromCodePoint(cp) : null;
+    if (!Number.isInteger(cp) || cp < 0 || cp > 0x10FFFF) return null;
+    if (cp >= 0xD800 && cp <= 0xDFFF) return null; // lone surrogate: not a character
+    return String.fromCodePoint(cp);
   };
   const once = (x) => String(x)
     .replace(/&#x([0-9a-fA-F]+);/g, (m, h) => { const c = num(parseInt(h, 16)); return c == null ? m : c; })
@@ -235,8 +237,8 @@ function pbpVideoMergeParagraphs(segments) {
 // 『他说“好。”』 read as unpunctuated to one and punctuated to the other and
 // earned a second mark after the quote). A run of closing quotes/brackets
 // may follow the mark.
-const PBP_VIDEO_SENT_END_RE = /[.!?。！？…][”’」』）)\]"']*$/;
-const PBP_VIDEO_CLAUSE_END_RE = /[，。！？…、；：,.!?;:][”’」』）)\]"']*$/;
+const PBP_VIDEO_SENT_END_RE = /[.!?。！？…][”’」』）)\]》】}"']*$/;
+const PBP_VIDEO_CLAUSE_END_RE = /[，。！？…、；：,.!?;:][”’」』）)\]》】}"']*$/;
 
 function pbpVideoNeedsPunctuation(segments) {
   const segs = (segments || []).filter((s) => s && s.content);
@@ -301,11 +303,11 @@ function pbpVideoHeuristicPunctuate(segments) {
 const PBP_VIDEO_MARK_RE = /[\s，。！？；：、“”‘’（）《》【】…—「」『』・～〜·,.!?;:'"()\[\]{}\-]/;
 function pbpVideoIsIntraMark(s, i) {
   const ch = s[i];
-  if (ch === "·" || ch === "・") {
-    return /[A-Za-z0-9一-鿿]/.test(s[i - 1] || "") && /[A-Za-z0-9一-鿿]/.test(s[i + 1] || "");
-  }
-  if (ch === "'" || ch === "’" || ch === "." || ch === "-") {
-    return /[A-Za-z0-9]/.test(s[i - 1] || "") && /[A-Za-z0-9]/.test(s[i + 1] || "");
+  // Unicode word classes (closing review H5): ASCII-only context let
+  // l’été lose its apostrophe and 中-英 its hyphen -- any letter or
+  // digit counts as a word character now.
+  if (ch === "\u00b7" || ch === "\u30fb" || ch === "'" || ch === "\u2019" || ch === "." || ch === "-") {
+    return /[\p{L}\p{N}]/u.test(s[i - 1] || "") && /[\p{L}\p{N}]/u.test(s[i + 1] || "");
   }
   return false;
 }
@@ -519,16 +521,19 @@ function pbpVideoEscapeMdText(text) {
   return String(text || "").replace(/([\\`*_[\]<>#|])/g, "\\$1");
 }
 
-function pbpVideoTranscriptMarkdown(segments, meta, paragraphsOverride, headingOverride) {
+function pbpVideoTranscriptMarkdown(segments, meta, paragraphsOverride, headingOverride, rawTitle) {
   meta = meta || {};
   // Localized heading (audit U14): the literal "Transcript" leaked into the
   // TOC and every export for non-English readers. Falls back to the legacy
   // literal outside an extension context (file:// test pages have no t()).
-  // headingOverride exists for the hydration gate's legacy dual-accept.
+  // headingOverride/rawTitle exist for the hydration gate's migration
+  // accepts: heading AND title escaping both changed in the same campaign,
+  // so validate must be able to rebuild every pre-campaign shape.
   const heading = headingOverride
     || (typeof t === "function" && t("mdVideoTranscriptHeading")) || "Transcript";
   const lines = ["## " + heading + (meta.trackLabel ? " (" + meta.trackLabel + ")" : "")];
-  if (meta.url) lines.push("", "> " + (meta.title ? "[" + pbpVideoEscapeMdText(meta.title) + "](" + meta.url + ")" : "<" + meta.url + ">"));
+  const titleTxt = meta.title ? (rawTitle ? meta.title : pbpVideoEscapeMdText(meta.title)) : "";
+  if (meta.url) lines.push("", "> " + (meta.title ? "[" + titleTxt + "](" + meta.url + ")" : "<" + meta.url + ">"));
   lines.push("");
   const paras = (Array.isArray(paragraphsOverride) && paragraphsOverride.length)
     ? paragraphsOverride : pbpVideoMergeParagraphs(segments);
@@ -719,11 +724,17 @@ function pbpVideoStateValidate(state, detected, canonicalMarkdown) {
   if (Array.isArray(state.paragraphs) && state.paragraphs.length
       && !pbpVideoPunctConserved(segs.map((s) => s.content).join(" "), state.paragraphs.join(" "))) return false;
   if (pbpVideoTranscriptMarkdown(segs, state.meta, state.paragraphs) === canonicalMarkdown) return true;
-  // Heading migration (audit U14): records committed before the heading was
-  // localized carry the literal "Transcript". Accept that exact legacy
-  // rebuild too -- otherwise localization would orphan every existing
-  // committed payload into a refetch (and silently drop paid AI passes).
-  return pbpVideoTranscriptMarkdown(segs, state.meta, state.paragraphs, "Transcript") === canonicalMarkdown;
+  // Migration accepts (audit U14 + closing review): the heading was
+  // localized AND the title gained markdown escaping in the SAME campaign,
+  // so a pre-campaign record can differ on either axis or both. Accept
+  // every remaining combination -- otherwise old payloads (titles with
+  // | [ ] # etc. are common on YouTube/bilibili) orphan into a refetch and
+  // silently drop paid AI passes (node-reproduced, closing review).
+  const accepts = [["Transcript", false], [null, true], ["Transcript", true]];
+  for (const [h, raw] of accepts) {
+    if (pbpVideoTranscriptMarkdown(segs, state.meta, state.paragraphs, h, raw) === canonicalMarkdown) return true;
+  }
+  return false;
 }
 
 // Playability gate from a watch-page player response. "OK" means YouTube
@@ -1119,9 +1130,15 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   let _aiNoteEl = null;
   // Status element for module-level writers (seek preannounce, audit U12).
   let _statusEl = null;
+  // Retry control, module-level so loadFlow successes can retire it and
+  // every failure catch can surface it (closing review M2/F3).
+  let _retryBtnEl = null;
   // Current video identity for per-video persistence (audit U4). Set at
   // mount; null on non-video defensive mounts.
   let _detectedNow = null;
+  // Owner scope for that persistence (closing review M7): view choices are
+  // per-Pinboard-account, like every other account-derived record.
+  let _ownerNow = "ownerless";
   // Per-view scroll memory within this page session (audit U11): both study
   // views share the PAGE scroller in video-mode, so switching used to dump
   // the reader at whatever offset the other view left behind.
@@ -1132,9 +1149,9 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
 
   // ---- per-video view memory (audit U4): local-only, 50-entry LRU ----
   function _videoViewKey(d) {
-    return d.provider === "bilibili"
+    return _ownerNow + "|" + (d.provider === "bilibili"
       ? "bili:" + d.bvid + ":" + (d.part || 1)
-      : "yt:" + d.videoId;
+      : "yt:" + d.videoId);
   }
   async function pbpVideoSavedView(d) {
     try {
@@ -1534,6 +1551,11 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           let opened = false;
           const wants = (u) => /\/youtubei\/v1\/(get_transcript|get_panel)/.test(String(u || ""));
           const keeps = (t) => t && /transcriptSegment(ViewModel|Renderer)|transcriptSearchPanelRenderer/.test(t);
+          const tagTap = () => {
+            try { window.fetch.__pbpTap = myLease; } catch (_) {}
+            try { XMLHttpRequest.prototype.open.__pbpTap = myLease; } catch (_) {}
+            try { XMLHttpRequest.prototype.send.__pbpTap = myLease; } catch (_) {}
+          };
           try {
             window.fetch = function (...a) {
               const p = origFetch.apply(this, a);
@@ -1559,6 +1581,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
               } catch (_) {}
               return origSend.apply(this, a);
             };
+            tagTap();
 
             // already-open panel with rows? read it without touching the UI
             let segs = readRows();
@@ -1581,7 +1604,13 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
                 if (segs.length) break;
               }
             }
-            if (captured) { out.kind = "net"; out.body = captured; return out; }
+            if (captured) {
+              if (vid && !String(location.href).includes(vid)) {
+                out.trace = "tab navigated away mid-scrape";
+                return out;
+              }
+              out.kind = "net"; out.body = captured; return out;
+            }
             if (segs.length) {
               // virtualized list: scroll and accumulate. Two safeguards,
               // both learned from garbled rows on device: a row only counts
@@ -1619,15 +1648,33 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
                   if (seen.size === lastCount) stable++; else { stable = 0; lastCount = seen.size; }
                 }
                 scroller.scrollTop = 0;
-              } else if (seen.size < 12) {
-                // No scroller found AND only a handful of rows: almost
-                // certainly the visible slice of a virtualized list, not a
-                // genuinely short track. Committing it would present a
-                // fragment as the full transcript -- fail this tier instead.
-                out.trace = "no scroller; refusing " + seen.size + " possibly-partial rows";
-                return out;
               } else {
-                out.trace = "no scroller found; rows may be partial";
+                // No scroller found (closing review H4): row COUNT proves
+                // nothing about completeness on a long video. Accept only
+                // when the collected rows demonstrably cover the video --
+                // last timestamp within the final 20% of the duration --
+                // otherwise fail the tier rather than pose a first screen as
+                // the full transcript.
+                let dur = 0;
+                try {
+                  const pl = document.querySelector("#movie_player");
+                  if (pl && typeof pl.getDuration === "function") dur = Number(pl.getDuration()) || 0;
+                } catch (_) {}
+                const lastFrom = Math.max(0, ...Array.from(seen.values()).map((x) => x.from || 0));
+                if (!(dur > 0 && lastFrom >= dur * 0.8)) {
+                  out.trace = "no scroller; refusing " + seen.size + " rows (coverage " +
+                    (dur > 0 ? Math.round((lastFrom / dur) * 100) + "%" : "unknown") + ")";
+                  return out;
+                }
+                out.trace = "no scroller; accepted on duration coverage";
+              }
+              // Return-time identity recheck (closing review H2): the tab can
+              // SPA-navigate mid-scrape; rows read after that may be another
+              // video's panel.
+              if (vid && !String(location.href).includes(vid)) {
+                out.kind = ""; out.segs = [];
+                out.trace = "tab navigated away mid-scrape";
+                return out;
               }
               out.kind = "dom";
               out.segs = Array.from(seen.values()).sort((a, b) => a.from - b.from);
@@ -1636,9 +1683,9 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
             if (!out.trace) out.trace = "no rows, no captured response; panels: " + panelDiag();
             return out;
           } finally {
-            window.fetch = origFetch;
-            XMLHttpRequest.prototype.open = origOpen;
-            XMLHttpRequest.prototype.send = origSend;
+            if (window.fetch && window.fetch.__pbpTap === myLease) window.fetch = origFetch;
+            if (XMLHttpRequest.prototype.open.__pbpTap === myLease) XMLHttpRequest.prototype.open = origOpen;
+            if (XMLHttpRequest.prototype.send.__pbpTap === myLease) XMLHttpRequest.prototype.send = origSend;
             if (window.__pbpTapLease === myLease) delete window.__pbpTapLease;
             // leave the page as we found it -- close only what we opened
             if (opened) {
@@ -1721,6 +1768,16 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           const origFetch = window.fetch;
           const origOpen = XMLHttpRequest.prototype.open;
           const origSend = XMLHttpRequest.prototype.send;
+          // Ownership-checked restore (closing review H3): a throttled
+          // background tab can outlive the lease's wall-clock expiry, and an
+          // unconditional restore would then rip out a SUCCESSOR run's
+          // wrappers. Each wrapper is tagged with its lease; restore only
+          // unhooks what still belongs to this run.
+          const tagTap = () => {
+            try { window.fetch.__pbpTap = myLease; } catch (_) {}
+            try { XMLHttpRequest.prototype.open.__pbpTap = myLease; } catch (_) {}
+            try { XMLHttpRequest.prototype.send.__pbpTap = myLease; } catch (_) {}
+          };
           // EVENT-DRIVEN: the taps resolve this promise the moment the
           // player's timedtext round-trip lands. The old 400ms poll loop
           // throttled to >=1s/tick in a background tab (and to minutes under
@@ -1765,6 +1822,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
               } catch (_) {}
               return origSend.apply(this, a);
             };
+            tagTap();
             const backstop = (ms) => new Promise((r) => setTimeout(() => r(""), ms));
             const drive = () => {
               try { player.loadModule("captions"); } catch (_) {}
@@ -1782,19 +1840,30 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
               drive();
               await Promise.race([capReady, backstop(12000)]);
             }
+            // Return-time identity recheck (closing review H2): the tab can
+            // SPA-navigate to another video DURING the capture window; a body
+            // captured after that may belong to the new video.
+            if (vid && !String(location.href).includes(vid)) {
+              return { body: "", trace: "tab navigated away mid-capture" };
+            }
             return { body: captured, trace: captured ? "" : "no timedtext round-trip" };
           } finally {
-            window.fetch = origFetch;
-            XMLHttpRequest.prototype.open = origOpen;
-            XMLHttpRequest.prototype.send = origSend;
+            if (window.fetch && window.fetch.__pbpTap === myLease) window.fetch = origFetch;
+            if (XMLHttpRequest.prototype.open.__pbpTap === myLease) XMLHttpRequest.prototype.open = origOpen;
+            if (XMLHttpRequest.prototype.send.__pbpTap === myLease) XMLHttpRequest.prototype.send = origSend;
             // Restore only OUR caption state (audit A4): if the user picked
             // a different track by hand during the capture window, their
             // choice is newer than this run's snapshot -- leave it standing.
             try {
               let cur = null;
               try { cur = player.getOption("captions", "track"); } catch (_) {}
-              const foreign = lang && cur && cur.languageCode && cur.languageCode !== lang;
-              if (!foreign) {
+              // Ours ONLY when the track is still exactly the one this run
+              // set (closing review M1): an empty state means the user turned
+              // captions off mid-capture, and a different-language state
+              // means they picked their own -- both are theirs to keep. With
+              // no lang requested this run set nothing, so restore freely.
+              const ours = !lang || !!(cur && cur.languageCode === lang);
+              if (ours) {
                 if (prior && prior.languageCode) player.setOption("captions", "track", prior);
                 else player.unloadModule("captions");
               }
@@ -1828,6 +1897,16 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     if (cls) n.className = cls;
     if (text != null) n.textContent = text;
     return n;
+  }
+
+  // Replay the last relay-reported position after a re-render or view
+  // return (audit B13 + closing review M5): highlightRowAt's same-index
+  // fast path would otherwise swallow the replay -- the index did not
+  // change, but the DOM node or the scroll context did.
+  function replayHighlight() {
+    if (_lastRelayTime == null) return;
+    _currentRowIdx = -1; // force the full path (class re-apply + follow scroll)
+    try { highlightRowAt(_lastRelayTime); } catch (_) {}
   }
 
   // Status writes with a semantic tone (audit U5): errors get data-state so
@@ -2013,7 +2092,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     if (_followBtn) _followBtn.setAttribute("aria-pressed", _followOn ? "true" : "false");
     // Re-enabling follow on a PAUSED player: no new time event will come to
     // re-anchor the highlight, so replay the last reported position (B13).
-    if (_followOn && _lastRelayTime != null) { try { highlightRowAt(_lastRelayTime); } catch (_) {} }
+    if (_followOn) replayHighlight();
   }
 
   // Any scroll/seek intent inside the list means the user took the wheel;
@@ -2438,7 +2517,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     const session = (cached && pbpVideoSessionMatches(cached, detected) && cached.segments && cached.segments.length)
       ? cached
       : await prepareVideoSession({ pageUrl: (_meta && _meta.url) || "", tabId: _ctxTabId });
-    if (!session.granted) { statusEl.textContent = t("mdVideoPermMissing"); return; }
+    if (!session.granted) { pbvSetStatus(statusEl, t("mdVideoPermMissing"), true); return; }
     _ytFetchFn = session.ytFetchFn || null;
     _ytFetchTabId = (typeof session.ytFetchTabId === "number") ? session.ytFetchTabId : null;
     // `let`: a hydrated session has no fetch handles at all (they are
@@ -2447,24 +2526,24 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     let useLogin = session.useLogin;
     const ytHadTab = session.ytHadTab;
     const res = { tracks: session.tracks, track: session.track, segments: session.segments, error: session.error };
-    if (res.error === "player" || res.error === "view") { statusEl.textContent = t("mdVideoFailed"); return; }
-    if (res.error === "login") { statusEl.textContent = t("mdVideoBiliLogin"); return; }
+    if (res.error === "player" || res.error === "view") { pbvSetStatus(statusEl, t("mdVideoFailed"), true); return; }
+    if (res.error === "login") { pbvSetStatus(statusEl, t("mdVideoBiliLogin"), true); return; }
     // YouTube answered, but about us rather than about the video: the request
     // was gated (bot check / age wall / unplayable). Saying "no subtitles"
     // here would be a lie, and would point the user at the wrong problem. When
     // no YouTube tab was open to fetch through, say what actually helps.
     if (res.error === "blocked") {
-      statusEl.textContent = t("mdVideoBlocked") + (ytHadTab ? "" : " " + t("mdVideoOpenTabHint"));
+      pbvSetStatus(statusEl, t("mdVideoBlocked") + (ytHadTab ? "" : " " + t("mdVideoOpenTabHint")), true);
       return;
     }
     if (res.error === "no-tracks" || res.error === "caption-body") {
       // "no subtitles" would be a lie when the track list is sitting right
       // there -- caption-body means the TEXT was withheld (PO-Token-gated
       // timedtext), and switching tracks re-fetches through the picker.
-      statusEl.textContent = t(res.error === "caption-body" && res.tracks ? "mdVideoBodyBlocked" : "mdVideoNoTracks");
+      pbvSetStatus(statusEl, t(res.error === "caption-body" && res.tracks ? "mdVideoBodyBlocked" : "mdVideoNoTracks"), true);
       if (!res.tracks) return;
     }
-    if (!res.error) statusEl.textContent = "";
+    if (!res.error) pbvSetStatus(statusEl, "", false);
     // track picker
     trackSel.textContent = "";
     // Option values are STABLE KEYS, never endpoints: baseUrl/subtitle_url are
@@ -2617,6 +2696,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     _meta = pbpVideoTranscriptMeta(session, _meta && _meta.title, _meta && _meta.url);
     refreshAiOffer(); // needs _segments; the offer is a function of the CURRENT track
     if (_segments.length) {
+      if (_retryBtnEl) _retryBtnEl.hidden = true; // captions are here (F3)
       renderTranscript(bodyEl, _segments, true);
       // Timeline is the default study view once a transcript exists (device
       // feedback 2026-08-23: "优先显示时间轴") -- unless the reader picked a
@@ -2627,6 +2707,12 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       try { savedView = await pbpVideoSavedView(detected); } catch (_) {}
       setStudyView(savedView || "timeline");
     }
+    // Wire-once (closing review M3): the retry button re-enters loadFlow on
+    // the SAME trackSel; stacking a listener per pass double-fires every
+    // later selection (duplicate fetches). The handler reads live state, so
+    // one registration serves every pass.
+    if (trackSel._pbpChangeWired) { /* already wired by an earlier pass */ } else {
+    trackSel._pbpChangeWired = true;
     trackSel.addEventListener("change", async () => {
       const key = trackSel.value;
       if (!key) return; // the neutral placeholder is not a track
@@ -2782,10 +2868,11 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         // the reader is looking at, and a refused commit rolls it back below.
         // Rendering only after the commit would leave the panel stale for the
         // whole storage round-trip.
+        _viewScroll.reading = _viewScroll.timeline = null; // old offsets described the old article (F6)
         renderTranscript(bodyEl, segs, true);
         // Re-render cleared the current-row highlight; a paused player sends
         // no new time event to restore it -- replay the last one (B13).
-        if (_lastRelayTime != null) { try { highlightRowAt(_lastRelayTime); } catch (_) {} }
+        replayHighlight();
         // Atomic track switch (Task 5): when the transcript IS this page's
         // article, keep it in sync through the single committer (md-preview.js
         // owns the account/tags/description contract) -- in place now, no
@@ -2861,6 +2948,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         }
       }
     });
+    } // end wire-once (closing review M3)
     // Picker goes live only now that its change handler exists (audit B11).
     trackSel.hidden = !(res.tracks || []).length;
     // First run: the bootstrap could not fetch captions because the origin
@@ -2982,7 +3070,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     }
     // Returning to the timeline while paused: replay the last reported
     // position so the current-row highlight survives the round trip (B13).
-    if (!reading && _lastRelayTime != null) { try { highlightRowAt(_lastRelayTime); } catch (_) {} }
+    if (!reading) replayHighlight();
   }
 
   // Ask/skim citation jumps into the transcript need the reading view on
@@ -3105,6 +3193,8 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       return;
     }
     _detectedNow = detected; // per-video persistence identity (audit U4)
+    _ownerNow = (typeof ctx.account === "string" && ctx.account)
+      ? "acct_" + encodeURIComponent(ctx.account) : "ownerless"; // owner scope (M7)
     const view = document.getElementById("rendered-view");
     if (!view || !view.parentNode || document.getElementById("video-panel")) {
       console.info("[pbp-video] mount skipped:", !view ? "no #rendered-view" : (document.getElementById("video-panel") ? "panel already mounted" : "detached view"));
@@ -3291,7 +3381,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         // re-running it would spend tokens to produce what is already there.
         let passDone = false;
         // icon-only button: progress reads out in the aria-live status line
-        status.textContent = t("mdVideoAiPunct") + "…";
+        pbvSetStatus(status, t("mdVideoAiPunct") + "…", false);
         _aiCancelRequested = false;
         aiCancelBtn.hidden = false;
         aiCancelBtn.disabled = false;
@@ -3315,6 +3405,18 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           const batches = pbpVideoSplitBatches(paras, 1600);
           const sa = await pbpAiGetSettings();
           if (superseded()) return; // the words this pass was built from are gone
+          // Provider changed since the offer settled (closing review M4):
+          // refresh the origin snapshot so the backstop below asks for the
+          // RIGHT provider instead of the stale one.
+          if (typeof _aiRequiredOriginPatterns === "function") {
+            try {
+              const fresh = _aiRequiredOriginPatterns(sa);
+              if (fresh && _aiOrigins && fresh.join() !== _aiOrigins.join()) {
+                _aiOrigins = fresh;
+                _aiHostGranted = false; // let the gesture backstop re-check
+              }
+            } catch (_) {}
+          }
           // The provider origin may never have been granted on this profile
           // (the options-page Test button is the only other surface that
           // asks; device round 4: six "No access" dead-ends behind a generic
@@ -3379,6 +3481,12 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
             }
             outBatches.push(ok ? out.trim() : b);
           }
+          // A cancel during the LAST batch's round-trip must not commit
+          // either (closing review F8): the loop-top check never runs again.
+          if (_aiCancelRequested) {
+            pbvSetStatus(status, t("mdVideoAiPunctPartial", String(outBatches.length), String(batches.length)), true);
+            return;
+          }
           // Partial success must NOT commit (audit B9): committing would
           // stamp aiPunct:true -- retiring the button across F5s -- over
           // batches that still carry heuristic text. Passed batches are
@@ -3424,7 +3532,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           if (applied) {
             _segments = applied;
             renderTranscript(body, _segments, true);
-            if (_lastRelayTime != null) { try { highlightRowAt(_lastRelayTime); } catch (_) {} } // B13
+            replayHighlight(); // B13
           } else {
             // Silent-half breadcrumb: the ARTICLE will carry the pass but the
             // timeline rows keep their pre-pass text (stream remap refused).
@@ -3480,6 +3588,9 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
               // place: no reload does it for us any more.
               aiBtn.hidden = true;
               passDone = true;
+              // The note beside the picker still said "basic punctuation"
+              // (closing review F5) -- it describes an APPLIED pass now.
+              if (_aiNoteEl) { _aiNoteEl.textContent = t("mdVideoAiPunctDone"); _aiNoteEl.hidden = false; }
             } else {
               restoreTranscriptState(prev);
             }
@@ -3526,6 +3637,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       retryBtn.innerHTML = typeof PBP_ICONS !== "undefined" ? PBP_ICONS.refresh : "";
       retryBtn.title = t("mdVideoRetry");
       retryBtn.setAttribute("aria-label", t("mdVideoRetry"));
+      _retryBtnEl = retryBtn;
       retryBtn.addEventListener("click", async () => {
         if (retryBtn.disabled) return;
         retryBtn.disabled = true;
@@ -3670,9 +3782,10 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     // out of a click-started run left a permanent loading shell behind.
     cta.addEventListener("click", () => runLoad(true).catch((e) => {
       console.warn("[pbp-video] load:", (e && e.message) || e);
-      if (statusRef) statusRef.textContent = t("mdVideoFailed");
+      if (statusRef) pbvSetStatus(statusRef, t("mdVideoFailed"), true);
       cta.disabled = false;
       _runLoadEntered = false;
+      if (_retryBtnEl) _retryBtnEl.hidden = false; // closing review M2
       if (!statusRef) panel.replaceChildren(cta);
     }));
     // The session already holds this video's transcript (md-preview.js ran it
@@ -3701,8 +3814,9 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       // status line, put the poster card back as the retry entry.
       runLoad(false).catch((e) => {
         console.warn("[pbp-video] auto load:", (e && e.message) || e);
-        if (statusRef) statusRef.textContent = t("mdVideoFailed");
-        else { cta.disabled = false; _runLoadEntered = false; panel.replaceChildren(cta); }
+        _runLoadEntered = false; // closing review M2: catch must release the latch
+        if (statusRef) { pbvSetStatus(statusRef, t("mdVideoFailed"), true); if (_retryBtnEl) _retryBtnEl.hidden = false; }
+        else { cta.disabled = false; panel.replaceChildren(cta); }
       });
     } else if (window.pbpVideoDoc && window.pbpVideoDoc.committed === true) {
       // Committed-transcript reloads skip the bootstrap session entirely
@@ -3721,8 +3835,9 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         if (g) await runLoad(false);
       })().catch((e) => {
         console.warn("[pbp-video] committed auto load:", (e && e.message) || e);
-        if (statusRef) statusRef.textContent = t("mdVideoFailed");
-        else { cta.disabled = false; _runLoadEntered = false; panel.replaceChildren(cta); }
+        _runLoadEntered = false; // closing review M2
+        if (statusRef) { pbvSetStatus(statusRef, t("mdVideoFailed"), true); if (_retryBtnEl) _retryBtnEl.hidden = false; }
+        else { cta.disabled = false; panel.replaceChildren(cta); }
       });
     } else if (window.pbpVideoDoc && window.pbpVideoDoc.kind === "video-fallback") {
       // Progressive first paint (device round 3, plan 丙-甲): the bootstrap no
@@ -3742,8 +3857,9 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         if (g) await runLoad(false);
       })().catch((e) => {
         console.warn("[pbp-video] fallback auto load:", (e && e.message) || e);
-        if (statusRef) statusRef.textContent = t("mdVideoFailed");
-        else { cta.disabled = false; _runLoadEntered = false; panel.replaceChildren(cta); }
+        _runLoadEntered = false; // closing review M2
+        if (statusRef) { pbvSetStatus(statusRef, t("mdVideoFailed"), true); if (_retryBtnEl) _retryBtnEl.hidden = false; }
+        else { cta.disabled = false; panel.replaceChildren(cta); }
       });
     }
   };

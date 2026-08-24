@@ -1088,6 +1088,18 @@ section("extracted runtime primitives (audit E1/E4/E5)");
   };
   assertEq(mkrun([47, 10])[0].content.slice(-1), "，", "48-boundary: a 47-char run stays a comma");
   assertEq(mkrun([48, 10])[0].content.slice(-1), "。", "48-boundary: a 48-char run promotes to a full stop");
+  assertEq(mkrun([49, 10])[0].content.slice(-1), "。", "48-boundary: a 49-char run also promotes");
+  // Closing review: title-escaping migration accepts (A7 x U14) -- a record
+  // committed BEFORE the campaign carries a RAW title; validate must accept
+  // it or old payloads orphan into a refetch.
+  const tMeta = { title: "Deep [4K] | #2", url: "https://v", trackLabel: "" };
+  const tDet = { provider: "youtube", videoId: "abcdefghijk" };
+  const tSegs = [];
+  for (let i = 0; i < 3; i++) tSegs.push({ from: i * 2, to: i * 2 + 2, content: "行内容第" + i + "句。" });
+  const tState = pbpVideoStateBuild({ detected: tDet, track: null, tracks: [], segments: tSegs, aiParas: null, wasUnpunct: false, aiPunct: false, meta: tMeta });
+  const legacyMd = pbpVideoTranscriptMarkdown(tSegs, tMeta, null, "Transcript", true);
+  assert(pbpVideoStateValidate(tState, tDet, legacyMd) === true, "pre-campaign record with a RAW special-char title still hydrates (title-axis migration)");
+  assert(pbpVideoStateValidate(tState, tDet, pbpVideoTranscriptMarkdown(tSegs, tMeta, null)) === true, "the current escaped shape validates too");
 })();
 
 document.getElementById("summary").textContent = `${pass} passed, ${fail} failed`;
