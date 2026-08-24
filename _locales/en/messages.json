@@ -3656,5 +3656,11 @@
   "mdVideoAiCancel": { "message": "Cancel AI punctuation" },
   "mdVideoAiPunctEst": { "message": "≈ $TOKENS$ tokens", "placeholders": { "tokens": { "content": "$1" } } },
   "mdVideoAiPunctConfirm": { "message": "AI punctuation replaces the article: existing translations are cleared and Ask citations go stale. Continue?" },
-  "mdStatVideoLen": { "message": "Video $TIME$", "placeholders": { "time": { "content": "$1" } } }
+  "mdStatVideoLen": { "message": "Video $TIME$", "placeholders": { "time": { "content": "$1" } } },
+  "mdVideoCopyMore": { "message": "More copy formats" },
+  "mdVideoCopyTimed": { "message": "Copy Markdown with timestamps" },
+  "mdVideoDownloadSrt": { "message": "Download SRT subtitles" },
+  "mdVideoSrtSaved": { "message": "SRT file saved" },
+  "askScopeNear": { "message": "Near the current moment" },
+  "askScopeNearHint": { "message": "Send only the two paragraphs around the current caption -- fewer tokens" }
 }

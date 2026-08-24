@@ -3662,5 +3662,11 @@
   "mdVideoAiCancel": { "message": "Отменить ИИ-пунктуацию" },
   "mdVideoAiPunctEst": { "message": "≈ $TOKENS$ токенов", "placeholders": { "tokens": { "content": "$1" } } },
   "mdVideoAiPunctConfirm": { "message": "ИИ-пунктуация заменит статью: готовый перевод будет сброшен, цитаты Ask устареют. Продолжить?" },
-  "mdStatVideoLen": { "message": "Видео $TIME$", "placeholders": { "time": { "content": "$1" } } }
+  "mdStatVideoLen": { "message": "Видео $TIME$", "placeholders": { "time": { "content": "$1" } } },
+  "mdVideoCopyMore": { "message": "Другие форматы копирования" },
+  "mdVideoCopyTimed": { "message": "Копировать Markdown с метками времени" },
+  "mdVideoDownloadSrt": { "message": "Скачать субтитры SRT" },
+  "mdVideoSrtSaved": { "message": "Файл SRT сохранён" },
+  "askScopeNear": { "message": "Рядом с текущим моментом" },
+  "askScopeNearHint": { "message": "Отправлять только два абзаца вокруг текущего субтитра -- меньше токенов" }
 }

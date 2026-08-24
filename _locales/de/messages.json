@@ -3662,5 +3662,11 @@
   "mdVideoAiCancel": { "message": "KI-Zeichensetzung abbrechen" },
   "mdVideoAiPunctEst": { "message": "≈ $TOKENS$ Tokens", "placeholders": { "tokens": { "content": "$1" } } },
   "mdVideoAiPunctConfirm": { "message": "KI-Interpunktion ersetzt den Artikel: vorhandene Übersetzungen werden gelöscht, Ask-Zitate werden ungültig. Fortfahren?" },
-  "mdStatVideoLen": { "message": "Video $TIME$", "placeholders": { "time": { "content": "$1" } } }
+  "mdStatVideoLen": { "message": "Video $TIME$", "placeholders": { "time": { "content": "$1" } } },
+  "mdVideoCopyMore": { "message": "Weitere Kopierformate" },
+  "mdVideoCopyTimed": { "message": "Markdown mit Zeitstempeln kopieren" },
+  "mdVideoDownloadSrt": { "message": "SRT-Untertitel herunterladen" },
+  "mdVideoSrtSaved": { "message": "SRT-Datei gespeichert" },
+  "askScopeNear": { "message": "Nahe der aktuellen Stelle" },
+  "askScopeNearHint": { "message": "Nur die zwei Absätze um die aktuelle Untertitelzeile senden -- weniger Tokens" }
 }

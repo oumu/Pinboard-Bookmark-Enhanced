@@ -175,6 +175,7 @@ function _pbpAskBuildPanel() {
     '<form id="ask-form">',
     '  <textarea id="ask-input" rows="2" dir="auto" maxlength="4000" data-i18n-placeholder="askPlaceholder"></textarea>',
     '  <div class="ask-actions">',
+    '    <button type="button" id="ask-scope-near" class="action-btn" aria-pressed="false" hidden data-i18n="askScopeNear" data-i18n-title="askScopeNearHint" data-i18n-aria="askScopeNear"></button>',
     '    <button type="button" id="ask-stop" class="action-btn" hidden data-i18n="askStop">Stop</button>',
     '    <button type="submit" id="ask-send" class="action-btn">' + PBP_ASK_SEND_SVG + '<span class="btn-label" data-i18n="askSend">Send</span></button>',
     '  </div>',
@@ -198,6 +199,15 @@ function _pbpAskBuildPanel() {
   _pbpAskHistRestore().catch(() => {});
 
   panel.querySelector("#ask-close").addEventListener("click", () => _pbpAskSetOpen(false));
+  // Scope toggle (research T1.5): session-only state, no storage; the
+  // context is rebuilt on the next meta/send pass.
+  panel.querySelector("#ask-scope-near").addEventListener("click", (ev) => {
+    const b = ev.currentTarget;
+    _pbpAskState.scopeNear = !_pbpAskState.scopeNear;
+    b.setAttribute("aria-pressed", _pbpAskState.scopeNear ? "true" : "false");
+    _pbpAskState.ctx = null;
+    if (typeof _pbpAskUpdateMeta === "function") _pbpAskUpdateMeta();
+  });
   panel.querySelector("#ask-export").addEventListener("click", _pbpAskCopyThread);
   // Clear seam: Task 15 appends _pbpAskShowClearConfirm (inline confirm
   // strip) to this same file - function declarations hoist file-wide, so
@@ -441,6 +451,63 @@ function pbpAskBuildContext(blocks, budgetTokens) {
   return { text: lines.join("\n"), sentBlocks: lines.length, totalBlocks, sent: picked };
 }
 
+// "Near the current moment" scope (research T1.5): on a transcript whose
+// paragraphs carry their start second (data-t, md-video.js gutter), send
+// only the two paragraphs either side of the one the player is in. Lines
+// keep the [Pn] contract (chips resolve as usual) and add the paragraph's
+// mm:ss so the model can speak in moments. Rebuilt on every call -- the
+// moment moves. null when no paragraph is timed (caller falls back).
+function pbpAskBuildNearContext(blocks, curSec, budgetTokens) {
+  const list = Array.isArray(blocks) ? blocks : [];
+  const timed = [];
+  for (const b of list) {
+    const tv = b && b.el && b.el.dataset ? b.el.dataset.t : undefined;
+    if (tv == null || tv === "") continue;
+    const tn = Number(tv);
+    if (Number.isFinite(tn)) timed.push({ b, t: tn });
+  }
+  if (!timed.length) return null;
+  const cur = Number(curSec) || 0;
+  let ci = 0;
+  for (let i = 0; i < timed.length; i++) if (timed[i].t <= cur) ci = i;
+  const win = timed.slice(Math.max(0, ci - 2), ci + 3);
+  const fmt = (typeof pbpVideoFmtTime === "function") ? pbpVideoFmtTime : (s) => String(Math.floor(s)) + "s";
+  const lines = win.map(({ b, t: tv }) => "[P" + b.n + "] (" + fmt(tv) + ") "
+    + String(pbpAiTextOfKatex(b.n) || "").slice(0, PBP_ASK_BLOCK_CAP).replace(/\s+/g, " ").trim());
+  const sent = new Set(win.map(({ b }) => b.n));
+  return { text: lines.join("\n"), sentBlocks: lines.length, totalBlocks: list.length, sent, near: true };
+}
+
+// One place decides which context a send/meta pass uses (research T1.5):
+// the near scope is rebuilt every time (the moment moves), the full-article
+// context stays cached as before. A near scope with nothing timed reverts
+// silently -- the toggle itself only shows on timed transcripts.
+function _pbpAskEnsureCtx(st) {
+  if (st.scopeNear) {
+    const cur = (typeof window.pbpVideoCurrentTime === "function") ? window.pbpVideoCurrentTime() : null;
+    const near = pbpAskBuildNearContext(pbpAiBlocks(), cur == null ? 0 : cur, PBP_ASK_CTX_BUDGET);
+    if (near) { st.ctx = near; return; }
+    st.scopeNear = false;
+  }
+  if (!st.ctx || st.ctx.near) st.ctx = pbpAskBuildContext(pbpAiBlocks(), PBP_ASK_CTX_BUDGET);
+}
+
+// Show the scope toggle only where it means something: a video page whose
+// article paragraphs are timed. Cheap, so it runs on every meta refresh.
+function _pbpAskRefreshScopeToggle() {
+  const btn = document.getElementById("ask-scope-near");
+  if (!btn) return;
+  const usable = document.body.classList.contains("video-mode")
+    && !!document.querySelector("#rendered-view > p[data-t]")
+    && typeof window.pbpVideoCurrentTime === "function";
+  btn.hidden = !usable;
+  if (!usable && _pbpAskState.scopeNear) {
+    _pbpAskState.scopeNear = false;
+    btn.setAttribute("aria-pressed", "false");
+    if (_pbpAskState.ctx && _pbpAskState.ctx.near) _pbpAskState.ctx = null;
+  }
+}
+
 // History serialization budget (est tokens) + per-answer char cap. The
 // article context is bounded (PBP_ASK_CTX_BUDGET) but history was not:
 // 4 rounds x 4096-token answers stacked past 40k est tokens per request,
@@ -559,7 +626,8 @@ function _pbpAskUpdateMeta() {
   // refreshes across translation/three-state changes -- the model stays
   // grounded on the original text so [Pn] citations resolve against original
   // paragraphs.
-  if (!st.ctx) st.ctx = pbpAskBuildContext(pbpAiBlocks(), PBP_ASK_CTX_BUDGET);
+  _pbpAskRefreshScopeToggle();
+  _pbpAskEnsureCtx(st);
   const _askQuestion = document.getElementById("ask-input");
   const _askQ = _askQuestion ? _askQuestion.value : "";
   const _askRounds = (st.rounds || []);
@@ -678,7 +746,7 @@ async function _pbpAskRun(question, aEl, opts) {
   let acc = "";
   const paint = () => { raf = 0; aEl.textContent = acc; };
   try {
-    if (!st.ctx) st.ctx = pbpAskBuildContext(pbpAiBlocks(), PBP_ASK_CTX_BUDGET);
+    _pbpAskEnsureCtx(st);
     // Regenerate must not show the model the very answer it is replacing:
     // replaceLast swaps st.rounds only AFTER success, so at build time the
     // old round is still the last element - and a model that sees its own
@@ -975,6 +1043,18 @@ function _pbpAskChipPass(el, cites, sent) {
       chip.dataset.seq = String(seq);
       chip.textContent = String(seq);
       chip.setAttribute("aria-label", "P" + seg.p);
+      // (research T1.4/T1.5) On a transcript the cited paragraph knows its
+      // second (data-t, md-video.js gutter): show THAT instead of a bare
+      // sequence number -- the chip list becomes a chapter list, and the
+      // model never sees or invents a time (it still cites [Pn]).
+      const cel = pbpAiBlockEl(seg.p);
+      if (document.body.classList.contains("video-mode") && cel && cel.dataset && cel.dataset.t != null
+          && typeof pbpVideoFmtTime === "function") {
+        const tl = pbpVideoFmtTime(Number(cel.dataset.t));
+        chip.textContent = tl;
+        chip.classList.add("ask-chip--time");
+        chip.setAttribute("aria-label", "P" + seg.p + " · " + tl);
+      }
       const quote = quoteByP.get(seg.p);
       if (quote) chip.dataset.quote = quote;
       const hit = (sentSet && !sentSet.has(seg.p)) ? null : verify(seg.p);
@@ -1074,6 +1154,12 @@ function _pbpAskJump(chip) {
   let target = (typeof trOnlyScrollTarget === "function") ? trOnlyScrollTarget(orig) : orig;
   pbpFocusArticleTarget(target);
   pbpScrollIntoView(target, { block: "center", behavior: "smooth" });
+  // (research T1.5) a timed paragraph also moves the player: jump-to-text
+  // and jump-to-moment are the same gesture on a transcript.
+  if (document.body.classList.contains("video-mode") && orig.dataset && orig.dataset.t != null
+      && typeof window.pbpVideoSeek === "function") {
+    window.pbpVideoSeek(Number(orig.dataset.t));
+  }
   let range = null;
   // Verified offsets index the ORIGINAL block's textContent (translation
   // inserts siblings, never mutates the original's text nodes), so they

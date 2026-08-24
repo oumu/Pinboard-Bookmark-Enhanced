@@ -3662,5 +3662,11 @@
   "mdVideoAiCancel": { "message": "AI 句読点をキャンセル" },
   "mdVideoAiPunctEst": { "message": "約 $TOKENS$ トークン", "placeholders": { "tokens": { "content": "$1" } } },
   "mdVideoAiPunctConfirm": { "message": "AI 句読点は本文を置き換えます。既存の翻訳は消去され、質問の引用は無効になります。続行しますか？" },
-  "mdStatVideoLen": { "message": "動画 $TIME$", "placeholders": { "time": { "content": "$1" } } }
+  "mdStatVideoLen": { "message": "動画 $TIME$", "placeholders": { "time": { "content": "$1" } } },
+  "mdVideoCopyMore": { "message": "その他のコピー形式" },
+  "mdVideoCopyTimed": { "message": "タイムスタンプ付き Markdown をコピー" },
+  "mdVideoDownloadSrt": { "message": "SRT 字幕をダウンロード" },
+  "mdVideoSrtSaved": { "message": "SRT ファイルを保存しました" },
+  "askScopeNear": { "message": "現在位置の周辺" },
+  "askScopeNearHint": { "message": "現在の字幕の前後 2 段落だけを送信します（トークン節約）" }
 }

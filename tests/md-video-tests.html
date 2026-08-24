@@ -1118,6 +1118,38 @@ section("extracted runtime primitives (audit E1/E4/E5)");
   assert(pbpVideoAiEstChars(estBatches, (b) => b === "一二三四五") === 5, "est: a cached batch drops out of the estimate");
   assert(pbpVideoAiEstChars([], () => false) === 0 && pbpVideoAiEstChars(estBatches, () => true) === 0,
     "est: empty input and fully-cached passes both cost zero");
+  // Unified time anchor (research T1.1): records carry the first segment's
+  // start; the string projection stays byte-identical to the old merge.
+  const anSegs = [
+    { from: 0, to: 2, content: "第一句话" }, { from: 2, to: 4, content: "还没完。" },
+    { from: 10, to: 12, content: "隔了很久的第二段" }, { from: 12, to: 14, content: "继续说。" },
+  ];
+  const recs = pbpVideoMergeParagraphRecords(anSegs);
+  assert(recs.length === 2 && recs[0].from === 0 && recs[1].from === 10, "records: one start per paragraph, taken from its first segment");
+  assert(JSON.stringify(pbpVideoMergeParagraphs(anSegs)) === JSON.stringify(recs.map((r) => r.text)), "records: the string merge is exactly the text projection");
+  const aiParas = ["第一句话，还没完。", "隔了很久的第二段，继续说。"];
+  assert(JSON.stringify(pbpVideoParaStarts(anSegs, aiParas)) === "[0,10]", "starts: an AI re-cut with new marks maps back onto segment starts");
+  assert(JSON.stringify(pbpVideoParaStarts(anSegs, ["第一句话还", "没完隔了很久的第二段继续说"])) === "[0,2]", "starts: a paragraph cut inside segment 2 starts at segment 2 (not the paragraph boundary before it)");
+  assert(pbpVideoParaStarts(anSegs, ["第一句话还没完。"]) === null, "starts: leftover characters fail closed (null)");
+  assert(pbpVideoParaStarts(anSegs, aiParas.concat(["多出来的段落"])) === null, "starts: paragraphs past the stream fail closed (null)");
+  assert(pbpVideoDeepLink("https://www.youtube.com/watch?v=abcdefghijk", 754.9) === "https://www.youtube.com/watch?v=abcdefghijk&t=754s", "deep link: youtube t=Ns");
+  assert(pbpVideoDeepLink("https://www.bilibili.com/video/BV1YGKk6dE8b/?p=2", 61) === "https://www.bilibili.com/video/BV1YGKk6dE8b/?p=2&t=61", "deep link: bilibili keeps the part and adds t");
+  assert(pbpVideoDeepLink("https://example.com/x", 5) === "", "deep link: non-video URL yields empty");
+  // Side-channel exports (research T1.2)
+  const srt = pbpVideoSrt([{ from: 0, to: 2.5, content: "第一句" }, { from: 2.5, to: 0, content: "  第二句  " }, { from: 4, to: 4.5, content: "" }, { from: 5, to: 0, content: "末句" }]);
+  assert(srt === "1\n00:00:00,000 --> 00:00:02,500\n第一句\n\n2\n00:00:02,500 --> 00:00:04,000\n第二句\n\n3\n00:00:05,000 --> 00:00:08,000\n末句\n",
+    "srt: numbered cues, comma millis, a missing end runs to the next cue's start (even a skipped empty one) or +3s at the tail");
+  assert(pbpVideoSrtTime(3661.25) === "01:01:01,250", "srt time: hours roll over and millis keep three digits");
+  const tmMeta = { title: "T", url: "https://www.youtube.com/watch?v=abcdefghijk", trackLabel: "中文" };
+  const tmSegs = [{ from: 0, to: 2, content: "第一段第一句。" }, { from: 65, to: 67, content: "第二段。" }];
+  const tm = pbpVideoTimedMarkdown(tmSegs, tmMeta, null);
+  assert(tm.startsWith(pbpVideoTranscriptHeaderLines(tmMeta).join("\n")), "timed md: shares the canonical header verbatim");
+  assert(/\[0:00\]\(https:\/\/www\.youtube\.com\/watch\?v=abcdefghijk&t=0s\) 第一段第一句。\n\n\[1:05\]\(https:\/\/www\.youtube\.com\/watch\?v=abcdefghijk&t=65s\) 第二段。$/.test(tm),
+    "timed md: each paragraph leads with a linked [mm:ss]");
+  const tmAi = pbpVideoTimedMarkdown(tmSegs, { title: "T", url: "https://example.com/p" }, ["第一段，第一句。", "第二段。"]);
+  assert(/\[0:00\] 第一段，第一句。\n\n\[1:05\] 第二段。$/.test(tmAi), "timed md: AI paragraphs keep their marks; a non-video URL gets a bare tag");
+  assert(pbpVideoTranscriptMarkdown(tmSegs, tmMeta, null) === pbpVideoTranscriptHeaderLines(tmMeta).concat([pbpVideoMergeParagraphs(tmSegs).join("\n\n")]).join("\n"),
+    "canonical md: unchanged by the header extraction (byte-identical rebuild)");
 })();
 
 document.getElementById("summary").textContent = `${pass} passed, ${fail} failed`;

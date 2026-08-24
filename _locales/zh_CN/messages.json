@@ -3656,5 +3656,11 @@
   "mdVideoAiCancel": { "message": "取消 AI 标点" },
   "mdVideoAiPunctEst": { "message": "约 ~$TOKENS$ tokens", "placeholders": { "tokens": { "content": "$1" } } },
   "mdVideoAiPunctConfirm": { "message": "AI 标点会替换正文：已有翻译将被清空、问答引用将失效。继续？" },
-  "mdStatVideoLen": { "message": "片长 $TIME$", "placeholders": { "time": { "content": "$1" } } }
+  "mdStatVideoLen": { "message": "片长 $TIME$", "placeholders": { "time": { "content": "$1" } } },
+  "mdVideoCopyMore": { "message": "更多复制格式" },
+  "mdVideoCopyTimed": { "message": "复制带时间戳的 Markdown" },
+  "mdVideoDownloadSrt": { "message": "下载 SRT 字幕" },
+  "mdVideoSrtSaved": { "message": "已导出 SRT 文件" },
+  "askScopeNear": { "message": "当前位置附近" },
+  "askScopeNearHint": { "message": "只发送当前字幕前后各两段，更省 token" }
 }

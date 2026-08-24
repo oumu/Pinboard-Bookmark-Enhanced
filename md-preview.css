@@ -413,7 +413,9 @@ body.zen main { margin-left: 0; }
    tr/ask/hl panels), not part of the article body (like highlights) --
    hidden in zen to preserve its distraction-free intent, mirroring how
    #rail's own chrome is hidden above. */
-body.zen #skim-section { display: none; }
+/* Video pages keep the skim section in zen (research T1.4): there it is
+   the AI chapter list, i.e. navigation, not a distraction. */
+body.zen:not(.video-mode) #skim-section { display: none; }
 
 /* #zen-bar: the ONLY new chrome zen introduces -- fixed top-right, two
    icon buttons (width cycle / exit). Same border/surface/radius/focus-
@@ -2052,6 +2054,16 @@ html.motion-ready .xp-gear-menu[hidden] {
    the base rule); dark switches to --link-hover for 5.35:1. */
 .ask-chip:hover { background: var(--btn-hover); border-color: var(--link); color: light-dark(var(--link), var(--link-hover)); }
 .ask-chip:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+/* Timed chip on transcripts (research T1.4/T1.5): shows the cited
+   paragraph's mm:ss instead of a sequence number -- a little wider, and
+   tabular so a column of them lines up as a chapter list. */
+.ask-chip--time { padding: 0 6px; font-variant-numeric: tabular-nums; }
+/* Ask scope toggle (research T1.5): a real toggle in the project's
+   aria-pressed vocabulary (same pressed look as .pbv-follow); sits left of
+   Stop/Send. Hidden unless the transcript paragraphs are timed. */
+#ask-scope-near { margin-right: auto; }
+#ask-scope-near[hidden] { display: none; }
+#ask-scope-near[aria-pressed="true"] { background: var(--btn-hover); border-color: var(--link); color: var(--link); }
 /* Verified marker: pure CSS dot (no glyph). */
 .ask-chip.verified::after {
   content: "";
@@ -3505,6 +3517,22 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
 /* Narrow stacked workspace: no sticky player to follow (audit B14); the
    layout observer in md-video.js sets this class on the button. */
 .pbv-follow.pbv-follow-narrow { display: none; }
+/* Copy split (research T1.2): primary copy + caret menu, the send-button
+   split idiom (.send-tri caret, .send-menu/.send-mi menu). The caret keeps
+   the 24px hit-area contract at 28x24; the menu anchors to the group. */
+.pbv-copy-group { position: relative; display: inline-flex; align-items: center; }
+.pbv-copy-group[hidden] { display: none; }
+.pbv-copy-group > .pbv-copy { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.pbv-copy-caret {
+  min-height: 28px; min-width: 24px; padding: 0 4px; margin-left: -1px; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; font: inherit;
+  border: 1px solid var(--btn-border); background: var(--btn-bg); color: var(--btn-fg);
+  border-radius: 0 6px 6px 0;
+}
+.pbv-copy-caret:hover { background: var(--btn-hover); }
+.pbv-copy-caret:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.pbv-copy-caret[hidden] { display: none; }
+.pbv-copy-menu { right: auto; min-width: 240px; white-space: nowrap; }
 /* Copy success flash: the check glyph in the success tone (same idiom as
    .action-btn.copied, restated here because .pbv-copy is not in that
    family). */
@@ -3622,6 +3650,20 @@ html.motion-ready .pbv-ai-punct .pbv-ring circle { transition: stroke-dashoffset
    it adds no border box and no layout shift as the marker moves down the
    list four times a second. */
 .pbv-row--current { background: var(--btn-hover); box-shadow: inset 2px 0 0 0 var(--link); }
+/* Paragraph time gutter in the reading view (research T1.1): a zero-text
+   button at each paragraph's start; the label is CSS content so no text
+   consumer (highlight anchors, translation hashes, copy) ever sees it.
+   Same quiet tabular-numerals treatment as .pbv-time. */
+body.video-mode #rendered-view > p > .pbv-ptime {
+  display: inline-block; vertical-align: baseline; margin-right: 8px;
+  min-height: 24px; padding: 0 4px; border: 0; border-radius: 4px;
+  background: transparent; color: inherit; cursor: pointer;
+  font: inherit; font-size: 0.78em; line-height: 1.4;
+  font-variant-numeric: tabular-nums; opacity: 0.65;
+}
+body.video-mode #rendered-view > p > .pbv-ptime::before { content: attr(data-label); }
+body.video-mode #rendered-view > p > .pbv-ptime:hover { background: var(--row-hover, rgba(127,127,127,.14)); opacity: 0.85; }
+body.video-mode #rendered-view > p > .pbv-ptime:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
 
 /* ---- video-mode workspace (A2) ---- */
 /* Widens the reading column edge-to-edge for the two-column layout below.
@@ -3758,6 +3800,7 @@ details#video-description .desc-body a { color: var(--link); }
 @media print {
   body.video-mode .doc-body { max-width: 880px; }
   #video-panel, .pbv-view-toggle, .pbv-list, details#video-description { display: none; }
+  body.video-mode #rendered-view > p > .pbv-ptime { display: none; }
 }
 
 /* ---- Image galleries (md-convert.js's turndown "gallery" rule) ---- */

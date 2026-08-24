@@ -206,19 +206,22 @@ function pbpYtParseJson3(jsonText) {
 //     a real pause in speech is a paragraph boundary;
 //  3. an accumulated-length ceiling (~200 chars) so unpunctuated,
 //     gap-free runs still break into readable blocks.
-function pbpVideoMergeParagraphs(segments) {
+function pbpVideoMergeParagraphRecords(segments) {
   const out = [];
   let buf = [];
   let bufLen = 0;
+  let bufFrom = -1; // first segment's start inside the building paragraph
   let lastEnd = -1;
   const flush = () => {
     if (!buf.length) return;
-    out.push(buf.join(" ").replace(/\s+/g, " ").trim());
-    buf = []; bufLen = 0;
+    const text = buf.join(" ").replace(/\s+/g, " ").trim();
+    if (text) out.push({ text, from: bufFrom >= 0 ? bufFrom : 0 });
+    buf = []; bufLen = 0; bufFrom = -1;
   };
   for (const seg of segments || []) {
     const from = typeof seg.from === "number" ? seg.from : -1;
     if (lastEnd >= 0 && from >= 0 && from - lastEnd > 2.5) flush();
+    if (!buf.length) bufFrom = from;
     buf.push(seg.content);
     bufLen += String(seg.content || "").length;
     const to = typeof seg.to === "number" && seg.to > 0 ? seg.to : from;
@@ -226,7 +229,40 @@ function pbpVideoMergeParagraphs(segments) {
     if (/[.!?。！？…]["')\]]?$/.test(seg.content) || bufLen >= 200) flush();
   }
   flush();
-  return out.filter(Boolean);
+  return out;
+}
+
+// The string shape every existing caller (markdown build, AI batching,
+// tests) consumes -- a thin projection of the records above so text and
+// time can never drift apart (research T1.1).
+function pbpVideoMergeParagraphs(segments) {
+  return pbpVideoMergeParagraphRecords(segments).map((r) => r.text);
+}
+
+// Paragraph start times for an ARBITRARY paragraph split of the same
+// transcript (research T1.1). The AI pass re-cuts paragraphs wherever the
+// model put its newlines, so the records above can't time those -- but the
+// conservation gate guarantees the mark-and-whitespace-stripped character
+// stream is identical, so walking that stream maps every paragraph's first
+// character back onto the segment that carries it. Returns one start
+// second per paragraph, or null whenever the streams disagree -- callers
+// must treat null as "no gutter", never guess (fail-closed).
+function pbpVideoParaStarts(segments, paras) {
+  const clean = (x) => pbpVideoPunctStrip(String(x || "")).replace(/\s+/g, "");
+  const segs = segments || [];
+  const bounds = [];
+  let total = 0;
+  for (const seg of segs) { total += clean(seg.content).length; bounds.push(total); }
+  const starts = [];
+  let pos = 0;
+  for (const p of paras || []) {
+    let idx = bounds.findIndex((b) => b > pos);
+    if (idx < 0) return null; // paragraphs run past the segment stream
+    starts.push(typeof segs[idx].from === "number" ? segs[idx].from : 0);
+    pos += clean(p).length;
+  }
+  if (pos !== total) return null; // leftover characters -- not the same text
+  return starts;
 }
 
 // Unpunctuated-track detection: ASR subtitles (bilibili's especially) carry
@@ -627,15 +663,78 @@ function pbpVideoTranscriptMarkdown(segments, meta, paragraphsOverride, headingO
   // headingOverride/rawTitle exist for the hydration gate's migration
   // accepts: heading AND title escaping both changed in the same campaign,
   // so validate must be able to rebuild every pre-campaign shape.
+  const lines = pbpVideoTranscriptHeaderLines(meta, headingOverride, rawTitle);
+  const paras = (Array.isArray(paragraphsOverride) && paragraphsOverride.length)
+    ? paragraphsOverride : pbpVideoMergeParagraphs(segments);
+  lines.push(paras.join("\n\n"));
+  return lines.join("\n");
+}
+
+// Heading + source-link lines shared by the canonical transcript and the
+// timestamped export (research T1.2) -- single-sourced so the two never
+// drift on escaping or heading localisation.
+function pbpVideoTranscriptHeaderLines(meta, headingOverride, rawTitle) {
+  meta = meta || {};
   const heading = headingOverride
     || (typeof t === "function" && t("mdVideoTranscriptHeading")) || "Transcript";
   const lines = ["## " + heading + (meta.trackLabel ? " (" + meta.trackLabel + ")" : "")];
   const titleTxt = meta.title ? (rawTitle ? meta.title : pbpVideoEscapeMdText(meta.title)) : "";
   if (meta.url) lines.push("", "> " + (meta.title ? "[" + titleTxt + "](" + meta.url + ")" : "<" + meta.url + ">"));
   lines.push("");
-  const paras = (Array.isArray(paragraphsOverride) && paragraphsOverride.length)
-    ? paragraphsOverride : pbpVideoMergeParagraphs(segments);
-  lines.push(paras.join("\n\n"));
+  return lines;
+}
+
+// SRT timestamp: HH:MM:SS,mmm (comma is the SRT spec's decimal mark).
+function pbpVideoSrtTime(sec) {
+  const s = Math.max(0, Number(sec) || 0);
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), r = Math.floor(s % 60);
+  const ms = Math.round((s - Math.floor(s)) * 1000) % 1000;
+  const p2 = (n) => String(n).padStart(2, "0");
+  return p2(h) + ":" + p2(m) + ":" + p2(r) + "," + String(ms).padStart(3, "0");
+}
+
+// Side-channel exports (research T1.2): built straight from the in-memory
+// segments, never from the committed article -- so the canonical markdown,
+// videoState and the hydration matrix stay exactly as they are (the reason
+// U14 was parked). A cue with no usable end runs to the next cue's start,
+// or 3s when it is the last one.
+function pbpVideoSrt(segments) {
+  const segs = segments || [];
+  const out = [];
+  let n = 0;
+  for (let i = 0; i < segs.length; i++) {
+    const s = segs[i];
+    const text = String((s && s.content) || "").replace(/\s+/g, " ").trim();
+    if (!text) continue;
+    const from = Math.max(0, Number(s.from) || 0);
+    let to = Number(s.to);
+    if (!(to > from)) {
+      const nx = segs[i + 1];
+      to = (nx && Number(nx.from) > from) ? Number(nx.from) : from + 3;
+    }
+    out.push(String(++n), pbpVideoSrtTime(from) + " --> " + pbpVideoSrtTime(to), text, "");
+  }
+  return out.join("\n");
+}
+
+// Paragraph markdown with a leading [mm:ss](deep link) per paragraph. Uses
+// the AI paragraphs when they align with the segment stream, else the
+// heuristic records; a page URL that is not a recognised video keeps the
+// bare [mm:ss] tag without a link.
+function pbpVideoTimedMarkdown(segments, meta, aiParas) {
+  meta = meta || {};
+  let recs = null;
+  if (Array.isArray(aiParas) && aiParas.length) {
+    const starts = pbpVideoParaStarts(segments, aiParas);
+    if (starts) recs = aiParas.map((text, i) => ({ text, from: starts[i] }));
+  }
+  if (!recs) recs = pbpVideoMergeParagraphRecords(segments);
+  const lines = pbpVideoTranscriptHeaderLines(meta);
+  lines.push(recs.map((r) => {
+    const label = pbpVideoFmtTime(r.from);
+    const link = meta.url ? pbpVideoDeepLink(meta.url, r.from) : "";
+    return (link ? "[" + label + "](" + link + ")" : "[" + label + "]") + " " + r.text;
+  }).join("\n\n"));
   return lines.join("\n");
 }
 
@@ -681,6 +780,21 @@ function pbpVideoAiEstChars(batches, cachedHas) {
   let chars = 0;
   for (const b of batches || []) if (!cachedHas || !cachedHas(b)) chars += b.length;
   return chars;
+}
+
+// Watch-page deep link at a second (research T1.1/T1.3): the one URL shape
+// every time-carrying consumer (vocab context, timestamped export, Ask/skim
+// chips) shares. Mirrors the open-external link construction; empty string
+// when the page is not a recognised video URL.
+function pbpVideoDeepLink(pageUrl, sec) {
+  const det = pbpVideoDetect(pageUrl);
+  if (!det) return "";
+  const s = Math.max(0, Math.floor(Number(sec) || 0));
+  if (det.provider === "bilibili") {
+    return "https://www.bilibili.com/video/" + encodeURIComponent(det.bvid) + "/?"
+      + (det.part > 1 ? "p=" + det.part + "&" : "") + "t=" + s;
+  }
+  return "https://www.youtube.com/watch?v=" + encodeURIComponent(det.videoId) + "&t=" + s + "s";
 }
 
 // Versioned F5-persistence payload for a video transcript session. Bundles
@@ -1358,6 +1472,77 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     btn.title = label;
     btn.setAttribute("aria-label", label);
   }
+
+  // ---- paragraph time gutter (research T1.1) ----------------------------
+  // The reading view's paragraphs learn their start second: `data-t` on the
+  // <p> plus a ZERO-TEXT seek button as its first child whose label paints
+  // via CSS content:attr(data-label). Zero text by contract -- highlight
+  // anchors, translation block hashes, Ask/skim block text and the copied
+  // selection all read textContent, and DOMPurify's FORBID_TAGS (button)
+  // strips it again on any DOM->markdown->render round trip. The canonical
+  // markdown, videoState and the hydration matrix are untouched.
+  // Fail-closed: any paragraph-count or character-stream disagreement means
+  // no gutter at all rather than a wrong time on a right paragraph.
+  function applyParaTimes() {
+    if (!document.body.classList.contains("video-mode")) return;
+    if (!window.pbpVideoDoc || window.pbpVideoDoc.kind !== "video-transcript") return;
+    if (!_segments.length) return;
+    const view = document.getElementById("rendered-view");
+    if (!view) return;
+    const paras = (_aiPunctParas && _aiPunctParas.length) ? _aiPunctParas : pbpVideoMergeParagraphs(_segments);
+    const starts = pbpVideoParaStarts(_segments, paras);
+    if (!starts) { console.info("[pbp-video] para-times: stream mismatch -- gutter skipped"); return; }
+    const ps = view.querySelectorAll(":scope > p");
+    if (ps.length !== starts.length) {
+      console.info("[pbp-video] para-times: " + ps.length + " paragraphs vs " + starts.length + " starts -- gutter skipped");
+      return;
+    }
+    ps.forEach((p, i) => {
+      const sec = Math.max(0, Math.floor(starts[i]));
+      p.dataset.t = String(sec);
+      let btn = p.querySelector(":scope > .pbv-ptime");
+      if (!btn) {
+        btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "pbv-ptime";
+        btn.addEventListener("click", (ev) => {
+          ev.stopPropagation();
+          seekTo(Number(btn.dataset.t || "0"));
+        });
+        p.insertBefore(btn, p.firstChild);
+      }
+      const label = pbpVideoFmtTime(sec);
+      btn.dataset.t = String(sec);
+      btn.dataset.label = label;
+      const aria = t("mdVideoSeekTo", label);
+      btn.title = aria;
+      btn.setAttribute("aria-label", aria);
+    });
+  }
+  // Every article commit re-renders #rendered-view (the gutter goes with
+  // the old nodes); md-preview.js dispatches this after the new DOM is up.
+  document.addEventListener("pbp:article-replaced", () => { try { applyParaTimes(); } catch (_) {} });
+
+  // Node -> second bridge for the reader modules (vocab deep links, Ask/skim
+  // chip seeks): a timeline row carries data-from, a gutter paragraph
+  // carries data-t. null when the node sits in neither.
+  window.pbpVideoTimeForNode = (node) => {
+    let n = node && node.nodeType === 3 ? node.parentElement : node;
+    while (n && n !== document.body) {
+      if (n.dataset) {
+        if (n.classList && n.classList.contains("pbv-row") && n.dataset.from != null) return Number(n.dataset.from);
+        if (n.tagName === "P" && n.dataset.t != null) return Number(n.dataset.t);
+      }
+      n = n.parentElement;
+    }
+    return null;
+  };
+  window.pbpVideoDeepLinkAt = (sec) => (_meta && _meta.url) ? pbpVideoDeepLink(_meta.url, sec) : "";
+  // Current playback second (relay-reported on YouTube; the last explicit
+  // seek on bilibili) for the Ask "near the current caption" scope.
+  window.pbpVideoCurrentTime = () => _lastRelayTime;
+  // Seek entry for reader modules (Ask/skim chips): same best-effort seekTo.
+  window.pbpVideoSeek = (sec) => { try { seekTo(Math.max(0, Math.floor(Number(sec) || 0))); } catch (_) {} };
 
   // Study-column reading/timeline toggle (Task 4). Set by mountVideoWorkspace
   // only in video-mode workspaces; a non-video defensive mount (panel stays a
@@ -2341,6 +2526,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     time.type = "button";
     const text = el("span", "pbv-text", seg.content);
     if (seekable) {
+      row.dataset.from = String(Math.max(0, Math.floor(seg.from))); // node->time bridge (T1.3/T2.2)
       const label = t("mdVideoSeekTo", pbpVideoFmtTime(seg.from));
       time.title = label;
       time.setAttribute("aria-label", label);
@@ -2909,6 +3095,10 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     // heading, track label, and source link.
     _meta = pbpVideoTranscriptMeta(session, _meta && _meta.title, _meta && _meta.url);
     refreshAiOffer(); // needs _segments; the offer is a function of the CURRENT track
+    // Hydrated (F5) sessions render the article before this module runs, so
+    // no article-replaced event will fire for them -- time the gutter here.
+    // First loads reach the same code via the promotion commit's event.
+    try { applyParaTimes(); } catch (_) {}
     if (_segments.length) {
       if (_retryBtnEl) _retryBtnEl.hidden = true; // captions are here (F3)
       renderTranscript(bodyEl, _segments, true);
@@ -3557,9 +3747,9 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       copyBtn.title = t("mdVideoCopyMd");
       copyBtn.setAttribute("aria-label", t("mdVideoCopyMd"));
       let copyFlashTimer = null;
-      copyBtn.addEventListener("click", async () => {
+      const doCopy = async (text) => {
         try {
-          await navigator.clipboard.writeText(pbpVideoTranscriptMarkdown(_segments, _meta, _aiPunctParas));
+          await navigator.clipboard.writeText(text);
           // A prior "Copy failed" line must not outlive a later success
           // (audit B16); the success copy also feeds the aria-live region.
           pbvSetStatus(status, t("mdVideoCopied"), false);
@@ -3574,7 +3764,87 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
             copyBtn.title = t("mdVideoCopyMd");
           }, 1800);
         } catch (_) { pbvSetStatus(status, t("mdVideoCopyFailed"), true); }
+      };
+      copyBtn.addEventListener("click", () => doCopy(pbpVideoTranscriptMarkdown(_segments, _meta, _aiPunctParas)));
+      // Export formats (research T1.2): the primary click stays the plain
+      // markdown copy; a caret (the send-button split idiom, .send-tri) opens
+      // a small menu with the timestamped markdown and an SRT download. All
+      // three are side channels built from the in-memory segments -- the
+      // committed article is never touched. Group visibility mirrors the
+      // copy button's, which loadFlow toggles.
+      const copyGroup = el("span", "pbv-copy-group");
+      copyGroup.hidden = true;
+      const copyCaret = el("button", "pbv-copy-caret");
+      copyCaret.type = "button";
+      copyCaret.innerHTML = '<span class="send-tri" aria-hidden="true"></span>';
+      copyCaret.title = t("mdVideoCopyMore");
+      copyCaret.setAttribute("aria-label", t("mdVideoCopyMore"));
+      copyCaret.setAttribute("aria-haspopup", "menu");
+      copyCaret.setAttribute("aria-expanded", "false");
+      const copyMenu = el("div", "send-menu pbv-copy-menu");
+      copyMenu.setAttribute("role", "menu");
+      copyMenu.hidden = true;
+      const menuItem = (labelKey, onPick) => {
+        const mi = el("button", "send-mi", t(labelKey));
+        mi.type = "button";
+        mi.setAttribute("role", "menuitem");
+        mi.addEventListener("click", () => { closeCopyMenu(); onPick(); });
+        copyMenu.appendChild(mi);
+        return mi;
+      };
+      const closeCopyMenu = (refocus) => {
+        if (copyMenu.hidden) return;
+        copyMenu.hidden = true;
+        copyCaret.setAttribute("aria-expanded", "false");
+        document.removeEventListener("click", onDocClickForMenu, true);
+        if (refocus) { try { copyCaret.focus({ preventScroll: true }); } catch (_) {} }
+      };
+      const onDocClickForMenu = (ev) => {
+        if (!copyGroup.contains(ev.target)) closeCopyMenu(false);
+      };
+      copyCaret.addEventListener("click", () => {
+        if (!copyMenu.hidden) { closeCopyMenu(true); return; }
+        copyMenu.hidden = false;
+        copyCaret.setAttribute("aria-expanded", "true");
+        const first = copyMenu.querySelector(".send-mi");
+        if (first) { try { first.focus({ preventScroll: true }); } catch (_) {} }
+        setTimeout(() => document.addEventListener("click", onDocClickForMenu, true), 0);
       });
+      copyMenu.addEventListener("keydown", (ev) => {
+        if (ev.key === "Escape") { ev.preventDefault(); closeCopyMenu(true); return; }
+        if (ev.key === "ArrowDown" || ev.key === "ArrowUp") {
+          ev.preventDefault();
+          const items = Array.from(copyMenu.querySelectorAll(".send-mi"));
+          const i = items.indexOf(document.activeElement);
+          const nx = items[(i + (ev.key === "ArrowDown" ? 1 : items.length - 1)) % items.length];
+          if (nx) nx.focus();
+        }
+      });
+      menuItem("mdVideoCopyMd", () => doCopy(pbpVideoTranscriptMarkdown(_segments, _meta, _aiPunctParas)));
+      menuItem("mdVideoCopyTimed", () => doCopy(pbpVideoTimedMarkdown(_segments, _meta, _aiPunctParas)));
+      menuItem("mdVideoDownloadSrt", () => {
+        try {
+          const blob = new Blob([pbpVideoSrt(_segments)], { type: "application/x-subrip;charset=utf-8" });
+          const a = document.createElement("a");
+          a.href = URL.createObjectURL(blob);
+          a.download = (String((_meta && _meta.title) || "transcript").replace(/[\\/:*?"<>|\s]+/g, " ").trim().slice(0, 80) || "transcript") + ".srt";
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+          pbvSetStatus(status, t("mdVideoSrtSaved"), false);
+        } catch (_) { pbvSetStatus(status, t("mdVideoCopyFailed"), true); }
+      });
+      copyGroup.appendChild(copyBtn);
+      copyGroup.appendChild(copyCaret);
+      copyGroup.appendChild(copyMenu);
+      // loadFlow toggles copyBtn.hidden; the group (and its caret) follow.
+      if (typeof MutationObserver === "function") {
+        new MutationObserver(() => {
+          copyGroup.hidden = copyBtn.hidden;
+          if (copyBtn.hidden) closeCopyMenu(false);
+        }).observe(copyBtn, { attributes: true, attributeFilter: ["hidden"] });
+      }
       // AI punctuation (combo plan, user-picked): heuristic tier applies
       // automatically in loadFlow; this button upgrades the Copy text -- and,
       // when the transcript IS this page's article, the article itself --
@@ -3974,7 +4244,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       aiCancelBtn.title = t("mdVideoAiCancel");
       aiCancelBtn.setAttribute("aria-label", t("mdVideoAiCancel"));
       aiCancelBtn.addEventListener("click", () => { _aiCancelRequested = true; aiCancelBtn.disabled = true; });
-      bar.appendChild(trackSel); bar.appendChild(copyBtn); bar.appendChild(aiBtn); bar.appendChild(aiNote); bar.appendChild(aiCancelBtn); bar.appendChild(retryBtn);
+      bar.appendChild(trackSel); bar.appendChild(copyGroup); bar.appendChild(aiBtn); bar.appendChild(aiNote); bar.appendChild(aiCancelBtn); bar.appendChild(retryBtn);
       if (detected.provider === "youtube") {
         // Follow toggle (Task 6). Same bar-button family as Copy / AI
         // punctuation (.pbv-copy, .pbv-ai-punct in md-preview.css), plus the

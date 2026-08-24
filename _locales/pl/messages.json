@@ -3662,5 +3662,11 @@
   "mdVideoAiCancel": { "message": "Anuluj interpunkcję AI" },
   "mdVideoAiPunctEst": { "message": "≈ $TOKENS$ tokenów", "placeholders": { "tokens": { "content": "$1" } } },
   "mdVideoAiPunctConfirm": { "message": "Interpunkcja AI zastąpi artykuł: istniejące tłumaczenia zostaną wyczyszczone, a cytaty Ask wygasną. Kontynuować?" },
-  "mdStatVideoLen": { "message": "Wideo $TIME$", "placeholders": { "time": { "content": "$1" } } }
+  "mdStatVideoLen": { "message": "Wideo $TIME$", "placeholders": { "time": { "content": "$1" } } },
+  "mdVideoCopyMore": { "message": "Więcej formatów kopiowania" },
+  "mdVideoCopyTimed": { "message": "Kopiuj Markdown ze znacznikami czasu" },
+  "mdVideoDownloadSrt": { "message": "Pobierz napisy SRT" },
+  "mdVideoSrtSaved": { "message": "Zapisano plik SRT" },
+  "askScopeNear": { "message": "W pobliżu bieżącego momentu" },
+  "askScopeNearHint": { "message": "Wysyłaj tylko dwa akapity wokół bieżącego napisu -- mniej tokenów" }
 }

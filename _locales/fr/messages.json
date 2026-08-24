@@ -3662,5 +3662,11 @@
   "mdVideoAiCancel": { "message": "Annuler la ponctuation IA" },
   "mdVideoAiPunctEst": { "message": "≈ $TOKENS$ tokens", "placeholders": { "tokens": { "content": "$1" } } },
   "mdVideoAiPunctConfirm": { "message": "La ponctuation IA remplace l'article : les traductions existantes seront effacées et les citations Ask invalidées. Continuer ?" },
-  "mdStatVideoLen": { "message": "Vidéo $TIME$", "placeholders": { "time": { "content": "$1" } } }
+  "mdStatVideoLen": { "message": "Vidéo $TIME$", "placeholders": { "time": { "content": "$1" } } },
+  "mdVideoCopyMore": { "message": "Autres formats de copie" },
+  "mdVideoCopyTimed": { "message": "Copier le Markdown horodaté" },
+  "mdVideoDownloadSrt": { "message": "Télécharger les sous-titres SRT" },
+  "mdVideoSrtSaved": { "message": "Fichier SRT enregistré" },
+  "askScopeNear": { "message": "Autour du moment actuel" },
+  "askScopeNearHint": { "message": "N'envoie que les deux paragraphes autour du sous-titre actuel -- moins de tokens" }
 }

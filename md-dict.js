@@ -1626,11 +1626,35 @@ async function pbpDictSaveCurrent() {
   else if (target && target.range && typeof window.pbpHlItemIdAtRange === "function") {
     try { highlightId = window.pbpHlItemIdAtRange(target.range) || null; } catch (_) {}
   }
+  let articleUrl = pbpDictSafeUrl(urlEl ? urlEl.href : "");
+  // (research T1.3) A word learned from a transcript keeps the SECOND it was
+  // heard at: articleUrl becomes the watch-page deep link (?t=). The context
+  // schema is untouched -- articleUrl was always a free URL, pbpDictSafeUrl
+  // still vets it, Drive/Anki/Eudic shapes stay identical. Dedup is
+  // articleUrl+quote, so the same word at another moment keeps its own
+  // context, which is the behaviour wanted. Node -> second comes from the
+  // gutter paragraph (data-t) or timeline row (data-from) the selection
+  // sits in; no time known = plain page URL, never a guess.
+  if (document.body.classList.contains("video-mode")
+      && typeof window.pbpVideoTimeForNode === "function" && typeof window.pbpVideoDeepLinkAt === "function") {
+    try {
+      let node = (target && target.range) ? target.range.startContainer : null;
+      if (!node && typeof window.getSelection === "function") {
+        const sel = window.getSelection();
+        node = sel ? sel.anchorNode : null;
+      }
+      const sec = node ? window.pbpVideoTimeForNode(node) : null;
+      if (sec != null) {
+        const dl = pbpDictSafeUrl(window.pbpVideoDeepLinkAt(sec));
+        if (dl) articleUrl = dl;
+      }
+    } catch (_) {}
+  }
   const entry = await pbpVocabSaveWord(cur.owner, {
     term: cur.term, lemma: cur.lemma, language: cur.lang || "und",
     gloss: cur.gloss, ipa: cur.ipa, sourceUrl: cur.sourceUrl, license: cur.license,
     context: {
-      quote: cur.sentence, articleUrl: pbpDictSafeUrl(urlEl ? urlEl.href : ""),
+      quote: cur.sentence, articleUrl,
       articleTitle: titleEl ? titleEl.textContent : "", highlightId, createdAt: Date.now()
     }
   });
