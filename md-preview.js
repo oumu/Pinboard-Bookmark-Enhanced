@@ -941,15 +941,16 @@ function pbpApplyColorScheme(mode) {
   const _extractedMarkdown = (info.math && typeof pbpLatexNormalize === "function")
     ? pbpLatexNormalize(_extractedMarkdown0) : _extractedMarkdown0;
 
-  // Video bootstrap: on a watch page the transcript IS the article. Run the
-  // capture session BEFORE the canonical text is fixed, so the empty guard,
-  // TOC, stats, language detection, render, and every export downstream see
-  // the transcript with no further special-casing. The extracted text (usually
-  // just the video description) is stashed on pbpVideoDoc for the collapsed
-  // description block. No captions -> keep the extracted text as-is
-  // ("video-fallback"), including the empty-extraction case, which still falls
-  // into the empty-state + panel-mount guard below.
-  let _videoMarkdown = null;
+  // Video bootstrap. PROGRESSIVE (device round 3, plan 丙-甲): first paint no
+  // longer waits for the caption chain. A non-committed watch page renders
+  // the EXTRACTED text (the video description) as a "video-fallback" article
+  // immediately -- 2s-class first paint instead of the 15s-class "Loading
+  // subtitles" wall -- and pbpVideoInit's fallback auto-boot then runs the
+  // caption session in the background; when captions land, the existing
+  // first-run promotion commit upgrades the article IN PLACE through the
+  // replacement pipeline (runtime-ready promotion is reload-free since the
+  // in-place campaign). Committed payloads still hydrate synchronously (the
+  // article is already decided; nothing here blocks on the network).
   {
     // md-video.js is the LAST defer script; this async flow can resume ahead of
     // it, so wait for the defer chain before probing for its globals.
@@ -957,33 +958,6 @@ function pbpApplyColorScheme(mode) {
     const vDetected = typeof pbpVideoDetect === "function" ? pbpVideoDetect(sourceTabUrl || url) : null;
     if (vDetected) {
       document.body.classList.add("video-mode");
-      let vSession = null;
-      // Committed-transcript payloads (videoTranscript flag) skip the whole
-      // capture session: the article is already decided, and gating first
-      // paint on a network chain whose result gets ignored held every F5 of
-      // a committed page at "Loading subtitles" (final-review M2). The panel
-      // still fetches captions lazily through loadFlow after mount.
-      if (info.videoTranscript !== true && typeof window.pbpPrepareVideoSession === "function") {
-        // #rendered-view is still empty here (the render() call that fills
-        // it is far below, after this whole block) -- without this the page
-        // shows a blank article while captions fetch. The pending/restore
-        // branch above already shows its own loading state via
-        // attemptExtract, so this is the normal-path bootstrap's only gap.
-        renderLoadingState(t("mdVideoLoading"), "");
-        try { vSession = await window.pbpPrepareVideoSession({ pageUrl: sourceTabUrl || url, tabId: srcTabId }); }
-        catch (e) { console.warn("[pbp-video] session failed:", (e && e.message) || e); }
-        // renderLoadingState's md-empty hides the rail (CSS: body.md-empty
-        // .rail{display:none}) and its aria-busy="true" marks #rendered-view
-        // as loading -- both fine while the spinner is showing, but this
-        // path (unlike the pending branch, which always reloads on success)
-        // falls straight through to the real render below, so it must undo
-        // both itself. The empty-content guard further down re-adds
-        // md-empty on its own if canonicalMarkdown ends up blank.
-        document.body.classList.remove("md-empty");
-        const _rvAfterVideoLoad = document.getElementById("rendered-view");
-        if (_rvAfterVideoLoad) _rvAfterVideoLoad.removeAttribute("aria-busy");
-      }
-      const vSegments = (vSession && vSession.granted && vSession.segments) || [];
       if (info.videoTranscript === true) {
         // This payload was written by pbpVideoCommitTranscript: the markdown
         // already IS the transcript (possibly AI-punctuated). Re-deriving one
@@ -1005,10 +979,9 @@ function pbpApplyColorScheme(mode) {
         // panel falls back to today's refetch. A timeline that disagrees with
         // the article above it is worse than a refetch.
         //
-        // Validated against _extractedMarkdown, not info.markdown: that is the
-        // value canonicalMarkdown takes below on this branch (_videoMarkdown
-        // stays null for a committed payload), so the check is against the
-        // article the reader actually gets, not against the raw record.
+        // Validated against _extractedMarkdown, not info.markdown: that is
+        // the value canonicalMarkdown takes below, so the check is against
+        // the article the reader actually gets, not against the raw record.
         const vState = info.videoState;
         // videoAiPunct (top level, what pbpVideoDoc above reads) and
         // videoState.aiPunct are two copies of one fact, written together by
@@ -1057,24 +1030,20 @@ function pbpApplyColorScheme(mode) {
             ytFetchFn: null, ytFetchTabId: null, useLogin: undefined, ytHadTab: undefined
           };
         }
-      } else if (vSegments.length && typeof pbpVideoTranscriptMarkdown === "function"
-                 && typeof pbpVideoTranscriptMeta === "function") {
-        window.pbpVideoDoc = { kind: "video-transcript", descriptionMarkdown: _extractedMarkdown };
-        _videoMarkdown = pbpVideoTranscriptMarkdown(vSegments, pbpVideoTranscriptMeta(vSession, title, sourceTabUrl || url));
       } else {
-        // Keep the description here too: the first-run promotion commit reads
-        // it off this object, and an empty stash silently killed the
-        // description block for that whole session (final-review M1).
+        // Non-committed watch page: the description IS the first-paint
+        // article ("video-fallback"); the promotion commit reads the
+        // description off this object when captions arrive (an empty stash
+        // silently killed the description block for the whole session --
+        // final-review M1 -- so it is kept even when blank-ish).
         window.pbpVideoDoc = { kind: "video-fallback", descriptionMarkdown: _extractedMarkdown };
       }
     }
   }
   // `let`, not const: an in-place article replacement reassigns this after its
   // payload is persisted, so getMarkdown() (and everything downstream of it —
-  // export, Copy, Raw, reading stats) follows without a page reload. Nothing
-  // reassigns it today; every reader already goes through getMarkdown(), which
-  // is why widening the binding is enough.
-  let canonicalMarkdown = _videoMarkdown !== null ? _videoMarkdown : _extractedMarkdown;
+  // export, Copy, Raw, reading stats) follows without a page reload.
+  let canonicalMarkdown = _extractedMarkdown;
   function getMarkdown() { return canonicalMarkdown; }
   if (!canonicalMarkdown.trim()) {
     // A video page's "content" IS the video: YouTube/bilibili watch pages

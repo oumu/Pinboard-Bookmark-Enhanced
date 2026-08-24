@@ -1891,29 +1891,50 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         const rTrack = (res.tracks && res.tracks.length)
           ? (pbpYtPickTrack(res.tracks, uiLang) || res.tracks[0]) : null;
         const rTracks = pbpYtRescueTracks(res.tracks);
-        const fbParams = pbpYtTranscriptParams(detected.videoId,
-          rTrack ? rTrack.lang : (String(uiLang || "en").split("-")[0]), !!(rTrack && rTrack.asr));
-        const segs = await ytTabPanelTranscript(fetchTabId, detected.videoId, uiLang, fbParams);
-        console.info("[pbp-video] panel rescue:", segs ? segs.length + " segments" : "failed");
-        // rTrack is accurate here: the hand-built params requested exactly it
-        if (segs && segs.length) res = { tracks: rTracks, track: rTrack, segments: segs, via: "panel" };
+        // Success-tier memory (device round 3, plan 丙-乙): remember which
+        // rescue tier fed this site last time and RUN IT FIRST next time --
+        // reordering, never removing, so a stale memory only costs the old
+        // ordering's latency, never coverage. 7-day TTL: YouTube's walls move.
+        let cachedVia = null;
+        try {
+          const rec = (await chrome.storage.local.get("pbp_video_tier_youtube")).pbp_video_tier_youtube;
+          if (rec && rec.via && Date.now() - (rec.ts || 0) < 7 * 24 * 3600 * 1000) cachedVia = rec.via;
+        } catch (_) {}
+        const tryPanel = async () => {
+          if (!res.error) return;
+          const fbParams = pbpYtTranscriptParams(detected.videoId,
+            rTrack ? rTrack.lang : (String(uiLang || "en").split("-")[0]), !!(rTrack && rTrack.asr));
+          const segs = await ytTabPanelTranscript(fetchTabId, detected.videoId, uiLang, fbParams);
+          console.info("[pbp-video] panel rescue:", segs ? segs.length + " segments" : "failed");
+          // rTrack is accurate here: the hand-built params requested exactly it
+          if (segs && segs.length) res = { tracks: rTracks, track: rTrack, segments: segs, via: "panel" };
+        };
         // Player-capture tier: drive the page player's own caption machinery
         // and take the signed timedtext round-trip it makes. Better data than
-        // the DOM tier below (real from/to timings, no panel scrape).
-        if (res.error) {
+        // the DOM tier (real from/to timings, no panel scrape).
+        const tryCapture = async () => {
+          if (!res.error) return;
           const capSegs = await queueTabInjection(
             () => ytTabPlayerCaptionCapture(fetchTabId, rTrack ? rTrack.lang : null, detected.videoId));
           console.info("[pbp-video] player capture rescue:", capSegs ? capSegs.length + " segments" : "failed");
           if (capSegs && capSegs.length) res = { tracks: rTracks, track: rTrack, segments: capSegs, via: "capture" };
-        }
-        // Endpoint rescues exhausted -> read what YouTube's own UI renders.
-        // track:null is honest here: the DOM scrape returns whatever language
-        // the page panel happens to show, so no picker entry gets marked
-        // selected (loadFlow renders a neutral placeholder instead).
-        if (res.error) {
+        };
+        // DOM tier: read what YouTube's own UI renders. track:null is honest
+        // here: the scrape returns whatever language the page panel happens
+        // to show, so no picker entry gets marked selected (loadFlow renders
+        // a neutral placeholder instead).
+        const tryDom = async () => {
+          if (!res.error) return;
           const domSegs = await queueTabInjection(() => ytTabDomTranscript(fetchTabId));
           console.info("[pbp-video] dom rescue:", domSegs ? domSegs.length + " segments" : "failed");
           if (domSegs && domSegs.length) res = { tracks: rTracks, track: null, segments: domSegs, via: "dom" };
+        };
+        const order = cachedVia === "capture" ? [tryCapture, tryPanel, tryDom]
+          : cachedVia === "dom" ? [tryDom, tryCapture, tryPanel]
+          : [tryPanel, tryCapture, tryDom];
+        for (const tier of order) await tier();
+        if (res.via) {
+          try { await chrome.storage.local.set({ pbp_video_tier_youtube: { via: res.via, ts: Date.now() } }); } catch (_) {}
         }
       }
     }
@@ -2748,7 +2769,16 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     // rejection handler below has somewhere to report to.
     let statusRef = null;
 
+    // Re-entry latch: the fallback auto-boot's contains() round-trip opens a
+    // window where the user can click the poster before the automatic
+    // runLoad(false) lands -- two concurrent runLoads would double-mount the
+    // player iframe. First entry wins; a FAILED run releases the latch on
+    // every existing recovery path (they all restore the poster card, so the
+    // retry click must be able to re-enter).
+    let _runLoadEntered = false;
     async function runLoad(fromClick) {
+      if (_runLoadEntered) return;
+      _runLoadEntered = true;
       cta.disabled = true;
       // player iframe mounts immediately (no permission needed for a frame)
       const media = el("div", "pbv-media");
@@ -3072,6 +3102,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         // for an early failure. Each click is a fresh user gesture, so this
         // creates no loop: nothing re-clicks cta automatically while ungranted.
         cta.disabled = false;
+        _runLoadEntered = false; // the retry click must be able to re-enter
         // Keep the bar too: the decline message lives in it -- restoring the
         // poster alone would silently eat the "permission declined" status.
         // And keep the PLAYER when it already mounted: privacy.md guarantees
@@ -3112,7 +3143,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       runLoad(false).catch((e) => {
         console.warn("[pbp-video] auto load:", (e && e.message) || e);
         if (statusRef) statusRef.textContent = t("mdVideoFailed");
-        else { cta.disabled = false; panel.replaceChildren(cta); }
+        else { cta.disabled = false; _runLoadEntered = false; panel.replaceChildren(cta); }
       });
     } else if (window.pbpVideoDoc && window.pbpVideoDoc.committed === true) {
       // Committed-transcript reloads skip the bootstrap session entirely
@@ -3132,7 +3163,28 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       })().catch((e) => {
         console.warn("[pbp-video] committed auto load:", (e && e.message) || e);
         if (statusRef) statusRef.textContent = t("mdVideoFailed");
-        else { cta.disabled = false; panel.replaceChildren(cta); }
+        else { cta.disabled = false; _runLoadEntered = false; panel.replaceChildren(cta); }
+      });
+    } else if (window.pbpVideoDoc && window.pbpVideoDoc.kind === "video-fallback") {
+      // Progressive first paint (device round 3, plan 丙-甲): the bootstrap no
+      // longer blocks on the caption chain, so a granted user lands here with
+      // the description as the article and NO session. Auto-boot the caption
+      // chain in the background; when loadFlow's first-run promotion commit
+      // lands, the article upgrades to the transcript IN PLACE (reload-free
+      // on this runtime-ready page). contains() only -- an ungranted user
+      // keeps the poster card, whose click is the granting gesture. This is
+      // the SAME product semantics as before (grant standing -> opening a
+      // video preview captures automatically), only no longer paid for at
+      // first paint.
+      (async () => {
+        const originPat = detected.provider === "bilibili" ? BILI_ORIGIN : YT_ORIGIN;
+        let g = false;
+        try { g = await chrome.permissions.contains({ origins: [originPat] }) === true; } catch (_) {}
+        if (g) await runLoad(false);
+      })().catch((e) => {
+        console.warn("[pbp-video] fallback auto load:", (e && e.message) || e);
+        if (statusRef) statusRef.textContent = t("mdVideoFailed");
+        else { cta.disabled = false; _runLoadEntered = false; panel.replaceChildren(cta); }
       });
     }
   };
