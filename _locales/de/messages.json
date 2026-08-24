@@ -3692,5 +3692,8 @@
   "optVideoPauseOnLookupHint": { "message": "Textauswahl oder das Erklären-Popover pausiert die YouTube-Wiedergabe; danach geht es weiter." },
   "mdVideoResumePrompt": { "message": "Zuletzt bis $TIME$ gesehen", "placeholders": { "time": { "content": "$1" } } },
   "mdVideoResumeGo": { "message": "Fortsetzen" },
-  "mdVideoResumeRestart": { "message": "Von vorn" }
+  "mdVideoResumeRestart": { "message": "Von vorn" },
+  "mdVideoDensityPara": { "message": "Nach Absätzen anzeigen" },
+  "mdVideoAuxTrack": { "message": "Begleituntertitel" },
+  "mdVideoAuxNone": { "message": "Keine Begleituntertitel" }
 }

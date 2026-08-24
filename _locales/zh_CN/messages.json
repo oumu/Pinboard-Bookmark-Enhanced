@@ -3686,5 +3686,8 @@
   "optVideoPauseOnLookupHint": { "message": "选中文字或打开解释弹层时暂停 YouTube 播放，查完自动继续。" },
   "mdVideoResumePrompt": { "message": "上次看到 $TIME$", "placeholders": { "time": { "content": "$1" } } },
   "mdVideoResumeGo": { "message": "继续" },
-  "mdVideoResumeRestart": { "message": "从头开始" }
+  "mdVideoResumeRestart": { "message": "从头开始" },
+  "mdVideoDensityPara": { "message": "按段落显示" },
+  "mdVideoAuxTrack": { "message": "对照字幕" },
+  "mdVideoAuxNone": { "message": "无对照字幕" }
 }

@@ -3692,5 +3692,8 @@
   "optVideoPauseOnLookupHint": { "message": "Выделение текста или окно объяснения ставит YouTube на паузу; после — продолжает." },
   "mdVideoResumePrompt": { "message": "В прошлый раз до $TIME$", "placeholders": { "time": { "content": "$1" } } },
   "mdVideoResumeGo": { "message": "Продолжить" },
-  "mdVideoResumeRestart": { "message": "Сначала" }
+  "mdVideoResumeRestart": { "message": "Сначала" },
+  "mdVideoDensityPara": { "message": "По абзацам" },
+  "mdVideoAuxTrack": { "message": "Параллельные субтитры" },
+  "mdVideoAuxNone": { "message": "Без параллельных субтитров" }
 }

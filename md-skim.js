@@ -298,7 +298,16 @@ function _pbpSkimWireCollapse(sec, collapseBtn) {
 // jump) and show the stale banner; NEVER auto-regenerate on drift --
 // the banner's own button (and the header's Regen button) are the only
 // ways back to a fresh generation. Miss -> auto-generate once.
+// Video pages (research follow-up R2-1): the first article on screen is a
+// synthetic "fetching captions" placeholder that the transcript replaces
+// seconds later. Generating key points for it is pure waste; defer the
+// auto-run until the transcript has landed (see _pbpSkimOnArticleReplaced).
+let _pbpSkimDeferredVideo = false;
 async function _pbpSkimLoad(rev) {
+  if (window.pbpVideoDoc && window.pbpVideoDoc.kind === "video-fallback") {
+    _pbpSkimDeferredVideo = true;
+    return;
+  }
   const st = _pbpSkimState;
   let entry = null;
   try { entry = await pbpAiCacheGet(_pbpSkimCacheKey(st.url)); } catch (_) {}
@@ -637,6 +646,14 @@ function _pbpSkimOnArticleWillReplace(detail) {
 function _pbpSkimOnArticleReplaced() {
   const st = _pbpSkimState;
   if (!st) return;
+  // The deferred first run (see _pbpSkimLoad): the transcript is here now,
+  // nothing was generated before, so this IS the auto-run the reader opted
+  // into -- through the same cache-probe-then-generate path.
+  if (_pbpSkimDeferredVideo && window.pbpVideoDoc && window.pbpVideoDoc.kind === "video-transcript") {
+    _pbpSkimDeferredVideo = false;
+    _pbpSkimLoad(_pbpSkimArticleRev).catch(() => {});
+    return;
+  }
   // No cache probe, no generation, no request of any kind -- not even a free
   // one: the cache key is the page url, which a track switch does not change,
   // so a probe could only ever serve the PREVIOUS track's key points as if

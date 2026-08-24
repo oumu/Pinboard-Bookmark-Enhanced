@@ -2650,8 +2650,15 @@ function _pbpTrApplyMode(st, mode, anchor, focusHandoff) {
 function _pbpTrSetMode(st, mode, persist) {
   if (!st || !["original", "bilingual", "translated"].includes(mode) || mode === st.mode) return;
   // A view-mode change is about the ARTICLE: surface it if a video
-  // workspace has the timeline in front (audit U6; no-op elsewhere).
-  try { document.dispatchEvent(new CustomEvent("pbp:ensure-article-visible")); } catch (_) {}
+  // workspace has the timeline in front (audit U6; no-op elsewhere) --
+  // unless the timeline already carries the projected translation
+  // (research T5.1): then v only changes what the rows show, in place.
+  const rv = document.getElementById("rendered-view");
+  const timelineProjects = document.body.classList.contains("video-mode") && rv && rv.hidden
+    && !!document.querySelector(".pbv-col-study .pbv-list .pbv-row--tr");
+  if (!timelineProjects) {
+    try { document.dispatchEvent(new CustomEvent("pbp:ensure-article-visible")); } catch (_) {}
+  }
   const anchor = _pbpTrCaptureViewAnchor();
   const focusHandoff = _pbpTrCaptureFocusHandoff(mode);
   // State changes synchronously even when the native transition schedules the

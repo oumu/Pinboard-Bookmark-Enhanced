@@ -812,6 +812,66 @@ function pbpVideoAiEstChars(batches, cachedHas) {
   return chars;
 }
 
+// Paragraph rows for the timeline's paragraph density (research T7.10):
+// one row per reading paragraph, timed [first segment start, next
+// paragraph start or last segment end). AI paragraphs are used when they
+// align with the segment stream, else the heuristic records -- the SAME
+// choice the reading view makes, so row i is article paragraph i.
+function pbpVideoParagraphRows(segments, aiParas) {
+  const segs = segments || [];
+  if (!segs.length) return [];
+  let recs = null;
+  if (Array.isArray(aiParas) && aiParas.length) {
+    const starts = pbpVideoParaStarts(segs, aiParas);
+    if (starts) recs = aiParas.map((text, i) => ({ text, from: starts[i] }));
+  }
+  if (!recs) recs = pbpVideoMergeParagraphRecords(segs);
+  const last = segs[segs.length - 1];
+  const end = (typeof last.to === "number" && last.to > 0) ? last.to : (Number(last.from) || 0);
+  return recs.map((r, i) => ({ from: r.from, to: i + 1 < recs.length ? recs[i + 1].from : end, content: r.text }));
+}
+
+// Auxiliary-track pairing (research T5.2): each row takes the aux cues
+// whose midpoint falls inside [row start, next row start) -- rows tile the
+// timeline, so every cue lands in exactly one row or, before the first
+// row, in none. Returns one joined string per row ("" = nothing paired).
+function pbpVideoPairByTime(rows, aux) {
+  const list = rows || [], cues = aux || [];
+  const out = [];
+  let j = 0;
+  for (let i = 0; i < list.length; i++) {
+    const from = Number(list[i].from) || 0;
+    const nextFrom = i + 1 < list.length ? Number(list[i + 1].from) : NaN;
+    const to = (Number(list[i].to) > from) ? Number(list[i].to) : from + 3;
+    const end = Number.isFinite(nextFrom) ? nextFrom : to;
+    const parts = [];
+    while (j < cues.length) {
+      const c = cues[j];
+      const cf = Number(c.from) || 0;
+      const ct = (Number(c.to) > cf) ? Number(c.to) : cf + 2;
+      const mid = (cf + ct) / 2;
+      if (mid < from) { j++; continue; }
+      if (mid >= end) break;
+      const txt = String((c && c.content) || "").trim();
+      if (txt) parts.push(txt);
+      j++;
+    }
+    out.push(parts.join(" "));
+  }
+  return out;
+}
+
+// Row that carries a paragraph's projection (research T5.1): the first row
+// starting inside [start, nextStart). -1 when none does.
+function pbpVideoRowForParagraph(rows, start, nextStart) {
+  const list = rows || [];
+  for (let i = 0; i < list.length; i++) {
+    const f = Number(list[i] && list[i].from);
+    if (Number.isFinite(f) && f >= start && (nextStart == null || f < nextStart)) return i;
+  }
+  return -1;
+}
+
 // Previous/next cue index for keyboard stepping (research T3.3): from the
 // current row, or from the row at `sec` when nothing is current yet;
 // clamped to the transcript. -1 only for an empty transcript.
@@ -1627,6 +1687,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       btn.title = aria;
       btn.setAttribute("aria-label", aria);
     });
+    scheduleProjectTranslations();
   }
   // Every article commit re-renders #rendered-view (the gutter goes with
   // the old nodes); md-preview.js dispatches this after the new DOM is up.
@@ -1680,6 +1741,9 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   let _rovingBtn = null;                         // the one time button in the tab order (T3.4)
   let _estOn = false, _estBtn = null, _estTimer = null, _estAnchor = null; // bilibili estimate clock (T3.6)
   let _videoPrefs = { langPrefs: [], pauseOnLookup: true }; // settings snapshot (T6.1/T3.5)
+  let _rowSegs = [], _density = "cue", _densityBtn = null;  // timeline rows as rendered (T7.10)
+  let _trObserver = null, _trProjTimer = null;                // translation projection (T5.1)
+  let _auxSel = null, _auxSegs = null;                         // auxiliary track (T5.2)
   let _savedRec = null, _resumeEl = null, _lastPosSaveAt = 0;  // continue-watching (T6.3)
 
   // Same-origin caption fetch, executed INSIDE an open YouTube tab. From the
@@ -2450,7 +2514,10 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         // (research T3.6①) bilibili has no position protocol, but THIS
         // jump's target is exact knowledge -- mark the row so the timeline
         // shows where the player now is instead of nothing at all.
-        _lastRelayTime = Math.max(0, Math.floor(sec));
+        // Precise for the marker (the t= parameter above is floored): a
+        // floored value sits a hair before the row's start and the marker
+        // settles on the previous row (batch-F smoke).
+        _lastRelayTime = Math.max(0, Number(sec) || 0);
         replayHighlight();
         estAnchor(_lastRelayTime); // re-anchor the estimate clock, if on
         _lastPosSaveAt = 0; savePos(_lastRelayTime); // an explicit jump is worth remembering now
@@ -2489,8 +2556,8 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     seekTo(Math.max(0, Math.floor(_lastRelayTime + delta)));
   }
   function stepCue(dir) {
-    const idx = pbpVideoCueStep(_segments, _currentRowIdx, _lastRelayTime || 0, dir);
-    if (idx >= 0) seekTo(Math.floor(_segments[idx].from));
+    const idx = pbpVideoCueStep(_rowSegs, _currentRowIdx, _lastRelayTime || 0, dir);
+    if (idx >= 0) seekTo(Math.floor(_rowSegs[idx].from));
   }
   function setLoop(on) {
     _loopOn = !!on;
@@ -2728,8 +2795,8 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     if (nowMs < _seekGraceUntil && _seekTarget != null && Math.abs(d.t - _seekTarget) > 2) return;
     // Cue loop (research T3.2): hold inside the current cue -- pure reader
     // logic on the relay's 250ms reports, no new relay verb needed.
-    if (_loopOn && _currentRowIdx >= 0 && _segments[_currentRowIdx]) {
-      const seg = _segments[_currentRowIdx];
+    if (_loopOn && _currentRowIdx >= 0 && _rowSegs[_currentRowIdx]) {
+      const seg = _rowSegs[_currentRowIdx];
       const end = (typeof seg.to === "number" && seg.to > seg.from) ? seg.to : seg.from + 2;
       if (d.t >= end - 0.05) { seekTo(Math.floor(seg.from)); return; }
     }
@@ -2754,7 +2821,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   function highlightRowAt(t) {
     const list = transcriptListEl();
     if (!list) return;
-    const idx = pbpVideoRowIndexAt(_segments, t);
+    const idx = pbpVideoRowIndexAt(_rowSegs, t);
     if (idx === _currentRowIdx) return;
     const rows = list.children;
     // renderTranscript appends in rAF-paced batches, so on a long transcript
@@ -2896,24 +2963,20 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     time.type = "button";
     const text = el("span", "pbv-text", seg.content);
     if (seekable) {
-      row.dataset.from = String(Math.max(0, Math.floor(seg.from))); // node->time bridge (T1.3/T2.2)
+      // Precise (ms), not floored: a delegated click seeks HERE and marks
+      // THIS row -- a floored value lands a hair before the row's start and
+      // the marker settles on the previous row (batch-F smoke). Deep links
+      // floor on their own.
+      row.dataset.from = String(Math.max(0, Math.round((Number(seg.from) || 0) * 1000) / 1000)); // node->time bridge (T1.3/T2.2)
       time.tabIndex = -1; // roving: setRoving() promotes exactly one (T3.4)
       const label = t("mdVideoSeekTo", pbpVideoFmtTime(seg.from));
       time.title = label;
       time.setAttribute("aria-label", label);
-      time.addEventListener("click", () => seekTo(Math.floor(seg.from)));
-      // The whole row seeks again (device feedback 2026-08-23: row clicks
-      // stopped jumping after the Task 4 button split) -- EXCEPT when the
-      // click ends a text selection: the selectable-text contract and the
-      // seek contract share this row, and the collapsed-selection check is
-      // what keeps them from fighting. Keyboard access stays on the time
-      // button, so the row itself needs no tabindex.
-      row.addEventListener("click", (ev) => {
-        if (ev.target && ev.target.closest && ev.target.closest("button")) return;
-        const sel = typeof window.getSelection === "function" ? window.getSelection() : null;
-        if (sel && !sel.isCollapsed) return;
-        seekTo(Math.floor(seg.from));
-      });
+      // Clicks are delegated to the list (research T7.10): one listener
+      // instead of two closures per row -- the time button and the row
+      // itself both seek to data-from (selection-ending clicks excepted,
+      // see onListClick). Keyboard access stays on the time button.
+      if (_density === "paragraph") row.classList.add("pbv-row--para");
     } else {
       time.tabIndex = -1;
     }
@@ -2934,29 +2997,169 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     listEl.textContent = "";
     clearCurrentRow(); // the highlighted node just stopped existing
     const epoch = ++_renderEpoch; // this call's token -- see the field comment above
+    // Density (research T7.10): cue rows as delivered, or one row per
+    // reading paragraph. _rowSegs is what every row-indexed consumer
+    // (current-row marker, loop, cue stepping) reads from now on.
+    const rows = (_density === "paragraph") ? pbpVideoParagraphRows(segments, _aiPunctParas) : segments;
+    _rowSegs = rows;
     const BATCH = 200;
-    const total = segments.length;
+    const total = rows.length;
     let i = 0;
     function appendBatch(count) {
       const frag = document.createDocumentFragment();
       const end = Math.min(i + count, total);
-      for (; i < end; i++) frag.appendChild(renderVideoRow(segments[i], seekable));
+      for (; i < end; i++) frag.appendChild(renderVideoRow(rows[i], seekable));
       listEl.appendChild(frag);
     }
     appendBatch(BATCH); // first batch: same tick as the call, inherently safe
     _rovingBtn = null;
     setRoving(listEl.querySelector(".pbv-row:not(.pbv-row--static) > .pbv-time"));
-    if (i >= total) return;
+    if (i >= total) { scheduleProjectTranslations(); return; }
     if (typeof requestAnimationFrame === "undefined") {
       appendBatch(total - i);
+      scheduleProjectTranslations();
       return;
     }
     const step = () => {
       if (epoch !== _renderEpoch) return; // superseded by a newer render -- stop
       appendBatch(BATCH);
       if (i < total && epoch === _renderEpoch) requestAnimationFrame(step);
+      else scheduleProjectTranslations();
     };
     requestAnimationFrame(step);
+  }
+
+  // Delegated row clicks (research T7.10): the time button and the row both
+  // seek to data-from; a click that ends a text selection does not (the
+  // selectable-text contract and the seek contract share the row).
+  function onListClick(ev) {
+    const target = ev.target;
+    const row = target && target.closest ? target.closest(".pbv-row") : null;
+    if (!row || row.classList.contains("pbv-row--static") || row.dataset.from == null) return;
+    if (!target.closest(".pbv-time")) {
+      if (target.closest("button, a, select")) return;
+      const sel = typeof window.getSelection === "function" ? window.getSelection() : null;
+      if (sel && !sel.isCollapsed) return;
+    }
+    seekTo(Number(row.dataset.from) || 0);
+  }
+  function bindRowClicks(list) {
+    if (!list || list._pbpRowClicksWired) return;
+    list._pbpRowClicksWired = true;
+    list.addEventListener("click", onListClick);
+  }
+
+  // Density switch (research T7.10): re-renders the timeline from the same
+  // segments; per-video memory rides pbp_video_view like the view choice.
+  function setDensity(mode, persist) {
+    _density = mode === "paragraph" ? "paragraph" : "cue";
+    syncDensityBtn();
+    const list = transcriptListEl();
+    if (list && _segments.length) { renderTranscript(list, _segments, true); replayHighlight(); }
+    if (persist && _detectedNow) pbpVideoSaveView(_detectedNow, { density: _density });
+  }
+  function syncDensityBtn() {
+    if (_densityBtn) _densityBtn.setAttribute("aria-pressed", _density === "paragraph" ? "true" : "false");
+  }
+
+  // Translation projection (research T5.1): the article's per-paragraph
+  // translations (.pb-tr siblings md-translate fills) are mirrored onto
+  // the timeline -- onto the row that starts each paragraph -- WITHOUT a
+  // second AI request. Driven by a mutation observer on the article and
+  // re-run after every timeline render; the v-key body classes decide
+  // visibility in CSS. Rows carrying an auxiliary track keep theirs.
+  function scheduleProjectTranslations() {
+    if (_trProjTimer) clearTimeout(_trProjTimer);
+    _trProjTimer = setTimeout(() => {
+      _trProjTimer = null;
+      try { projectTranslations(); } catch (_) {}
+      try { if (_auxSegs) applyAux(); } catch (_) {}
+    }, 300);
+  }
+  // Auxiliary track (research T5.2): options = every track except the
+  // primary; the previous choice survives a rebuild when still offered.
+  function fillAuxOptions(tracks, isBiliProv) {
+    if (!_auxSel) return;
+    const prevVal = _auxSel.value;
+    _auxSel.textContent = "";
+    const none = document.createElement("option");
+    none.value = "";
+    none.textContent = t("mdVideoAuxNone");
+    _auxSel.appendChild(none);
+    let n = 0;
+    (tracks || []).forEach((tr, i) => {
+      const value = _trackValues[i];
+      if (!value || value === _selectedTrackKey) return;
+      const opt = document.createElement("option");
+      opt.value = value;
+      opt.textContent = ((isBiliProv ? (tr.lan_doc || tr.label) : tr.label) || "")
+        + ((!isBiliProv && tr.asr) ? " (" + t("mdVideoAsr") + ")" : "");
+      _auxSel.appendChild(opt);
+      n++;
+    });
+    _auxSel.hidden = n === 0;
+    const keep = prevVal && Array.from(_auxSel.options).some((o) => o.value === prevVal);
+    _auxSel.value = keep ? prevVal : "";
+    if (!keep && _auxSegs) { _auxSegs = null; applyAux(); }
+  }
+  function applyAux() {
+    const list = transcriptListEl();
+    if (!list) return;
+    const rows = list.children;
+    if (!_auxSegs) {
+      for (const r of rows) {
+        if (r.dataset.aux !== "1") continue;
+        delete r.dataset.aux;
+        r.classList.remove("pbv-row--aux");
+        const old = r.querySelector(":scope > .pbv-tr");
+        if (old) old.remove();
+      }
+      scheduleProjectTranslations();
+      return;
+    }
+    const paired = pbpVideoPairByTime(_rowSegs, _auxSegs);
+    for (let i = 0; i < rows.length && i < paired.length; i++) {
+      const r = rows[i];
+      const old = r.querySelector(":scope > .pbv-tr");
+      if (!paired[i]) {
+        if (r.dataset.aux === "1") { delete r.dataset.aux; r.classList.remove("pbv-row--aux"); if (old) old.remove(); }
+        continue;
+      }
+      if (old) old.remove();
+      r.classList.remove("pbv-row--tr");
+      r.appendChild(el("span", "pbv-tr", paired[i]));
+      r.dataset.aux = "1";
+      r.classList.add("pbv-row--aux");
+    }
+  }
+  function projectTranslations() {
+    const list = transcriptListEl();
+    const view = document.getElementById("rendered-view");
+    if (!list || !view || !_rowSegs.length) return;
+    const rows = list.children;
+    for (const r of rows) {
+      if (r.dataset.aux === "1") continue;
+      const old = r.querySelector(":scope > .pbv-tr");
+      if (old) old.remove();
+      r.classList.remove("pbv-row--tr");
+    }
+    const ps = view.querySelectorAll(":scope > p[data-t]");
+    if (!ps.length) return;
+    const starts = Array.from(ps, (p) => Number(p.dataset.t));
+    ps.forEach((p, i) => {
+      const sib = p.nextElementSibling;
+      if (!sib || !sib.classList || !sib.classList.contains("pb-tr")) return;
+      const text = String(sib.textContent || "").trim();
+      if (!text) return;
+      const ri = pbpVideoRowForParagraph(_rowSegs, starts[i], i + 1 < starts.length ? starts[i + 1] : null);
+      const row = ri >= 0 ? rows[ri] : null;
+      if (!row || row.dataset.aux === "1") return;
+      const tr = el("span", "pbv-tr", text);
+      const lang = sib.getAttribute("lang") || sib.dataset.pbTrLang || "";
+      if (lang) tr.setAttribute("lang", lang);
+      row.appendChild(tr);
+      row.classList.add("pbv-row--tr");
+    });
   }
 
   // permissions.request demands a user gesture even for already-granted
@@ -3285,6 +3488,8 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       _videoPrefs = { langPrefs: pbpVideoLangPrefs(s && s.mdVideoLangPref), pauseOnLookup: !(s && s.mdVideoPauseOnLookup === false) };
     } catch (_) { _videoPrefs = { langPrefs: [], pauseOnLookup: true }; }
     try { _savedRec = await pbpVideoSavedRecord(detected); } catch (_) { _savedRec = null; }
+    _density = (_savedRec && _savedRec.density === "paragraph") ? "paragraph" : "cue";
+    syncDensityBtn();
     PBP_VIDEO_PICK_HINTS.prefs = _videoPrefs.langPrefs;
     PBP_VIDEO_PICK_HINTS.preferKey = (_savedRec && typeof _savedRec.trackKey === "string") ? _savedRec.trackKey : "";
     pbvSetStatus(statusEl, t("mdVideoLoading"), "busy");
@@ -3367,6 +3572,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       trackSel.appendChild(opt);
     });
     _selectedTrackKey = (selIdx >= 0 && _trackValues[selIdx]) || "";
+    fillAuxOptions(res.tracks || [], isBili); // research T5.2
     // Rescue sessions may not know which track the capture returned (the DOM
     // scrape reads whatever language the page panel shows) -- letting the
     // browser mark the first option selected would be a lie, so lead with a
@@ -3673,6 +3879,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         _wasUnpunct = newUnpunct;
         _selectedTrackKey = key;
         if (_detectedNow) pbpVideoSaveView(_detectedNow, { trackKey: key }); // research T6.2
+        fillAuxOptions(sessionTracks, isBili); // the new primary leaves the aux list (T5.2)
         _transcriptEpoch++; // different words on screen: fence anything older
         // Heading label through the single meta builder's vocabulary, NOT the
         // option text -- the option carries the " (auto-generated)" UI suffix,
@@ -3764,6 +3971,61 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         }
       }
     });
+    // Auxiliary track fetch (research T5.2): the switch handler's endpoint
+    // resolution, minus its commit -- nothing here touches the article,
+    // the session track or the canonical markdown.
+    async function fetchAuxSegments(key) {
+      const sessionTracks = (window.pbpVideoSession && window.pbpVideoSession.tracks) || [];
+      const bare = key.replace(/#\d+$/, "");
+      const idx = _trackValues.indexOf(key);
+      let selTrack = (idx >= 0 && idx < sessionTracks.length) ? sessionTracks[idx] : null;
+      if (!selTrack) selTrack = sessionTracks.find((tr) => pbpVideoTrackKey(tr, detected.provider) === bare) || null;
+      let endpoint = selTrack ? ((isBili ? selTrack.subtitle_url : selTrack.baseUrl) || "") : "";
+      if (!endpoint) {
+        const fresh = await refreshTrackDirectory();
+        if (!fresh || !fresh.granted) return [];
+        const liveTracks = Array.isArray(fresh.tracks) ? fresh.tracks : [];
+        const live = liveTracks.find((tr) => pbpVideoTrackKey(tr, detected.provider) === key)
+          || liveTracks.find((tr) => pbpVideoTrackKey(tr, detected.provider) === bare) || null;
+        if (live) { selTrack = live; endpoint = (isBili ? live.subtitle_url : live.baseUrl) || ""; }
+        _ytFetchFn = fresh.ytFetchFn || _ytFetchFn;
+        if (typeof fresh.ytFetchTabId === "number") _ytFetchTabId = fresh.ytFetchTabId;
+        useLogin = fresh.useLogin;
+      }
+      const timedtextDead = !isBili && window.pbpVideoSession && window.pbpVideoSession.captionsVia;
+      let segs = (endpoint && !timedtextDead)
+        ? (isBili ? await pbpBiliFetchSubtitleBody(endpoint) : await pbpYtFetchCaptionBody(endpoint, _ytFetchFn || undefined, useLogin))
+        : [];
+      if (!segs.length && !isBili && _ytFetchTabId != null && selTrack) {
+        segs = (await queueTabInjection(
+          () => ytTabPlayerCaptionCapture(_ytFetchTabId, selTrack.lang, detected.videoId), () => true)) || [];
+      }
+      return segs;
+    }
+    if (_auxSel && !_auxSel._pbpChangeWired) {
+      _auxSel._pbpChangeWired = true;
+      let auxSeq = 0;
+      _auxSel.addEventListener("change", async () => {
+        const key = _auxSel.value;
+        const mySeq = ++auxSeq;
+        if (!key) { _auxSegs = null; applyAux(); return; }
+        const selOpt = _auxSel.selectedOptions && _auxSel.selectedOptions[0];
+        pbvSetStatus(statusEl, selOpt && selOpt.textContent ? t("mdVideoSwitchingTo", selOpt.textContent) : t("mdVideoLoading"), "busy");
+        let segs = [];
+        try { segs = await fetchAuxSegments(key); } catch (e) { console.warn("[pbp-video] aux track:", (e && e.message) || e); }
+        if (mySeq !== auxSeq) return;
+        if (!segs.length) {
+          pbvSetStatus(statusEl, t(isBili ? "mdVideoNoTracks" : "mdVideoBodyBlocked"), true);
+          _auxSel.value = "";
+          _auxSegs = null;
+          applyAux();
+          return;
+        }
+        pbvSetStatus(statusEl, "", null);
+        _auxSegs = segs;
+        applyAux();
+      });
+    }
     } // end wire-once (closing review M3)
     // Picker goes live only now that its change handler exists (audit B11).
     trackSel.hidden = !(res.tracks || []).length;
@@ -3843,6 +4105,15 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     timeline.addEventListener("click", () => setStudyView("timeline", true));
     wrap.appendChild(reading);
     wrap.appendChild(timeline);
+    // Density toggle (research T7.10), timeline-only: a real toggle in the
+    // aria-pressed vocabulary inside the same segmented group.
+    const density = el("button", "src-seg pbv-density", t("mdVideoDensityPara"));
+    density.type = "button";
+    density.hidden = true;
+    density.setAttribute("aria-pressed", "false");
+    density.addEventListener("click", () => setDensity(_density === "paragraph" ? "cue" : "paragraph", true));
+    wrap.appendChild(density);
+    _densityBtn = density;
     _toggleReadingBtn = reading;
     _toggleTimelineBtn = timeline;
     return wrap;
@@ -3884,6 +4155,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       _toggleTimelineBtn.classList.toggle("active", !reading);
       _toggleTimelineBtn.setAttribute("aria-pressed", !reading ? "true" : "false");
     }
+    if (_densityBtn) _densityBtn.hidden = reading;
     // Returning to the timeline while paused: replay the last reported
     // position so the current-row highlight survives the round trip (B13).
     if (!reading) replayHighlight();
@@ -3991,7 +4263,14 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     list.hidden = true; // reading is the default view
     list.setAttribute("role", "list");
     list.setAttribute("aria-label", t("mdVideoTimelineAria"));
+    bindRowClicks(list);
     studyCol.appendChild(list);
+    // Article observer for the translation projection (research T5.1):
+    // .pb-tr siblings appear and fill as md-translate streams.
+    if (typeof MutationObserver === "function" && !_trObserver) {
+      _trObserver = new MutationObserver(() => scheduleProjectTranslations());
+      _trObserver.observe(view, { childList: true, subtree: true, characterData: true });
+    }
     // Back-to-current affordance (research T3.7): sticky under the list,
     // shown only while follow is off AND the current row is off-screen.
     const backBtn = el("button", "pbv-back-current");
@@ -4162,6 +4441,15 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       trackSel.className = "pbv-tracks";
       trackSel.hidden = true;
       trackSel.setAttribute("aria-label", t("mdVideoTrackAria"));
+      // Auxiliary track picker (research T5.2): a second native caption
+      // track shown under each row, paired by time. Same form-control
+      // family as the primary picker; hidden until two tracks exist.
+      const auxSel = document.createElement("select");
+      auxSel.className = "pbv-tracks pbv-aux";
+      auxSel.hidden = true;
+      auxSel.title = t("mdVideoAuxTrack");
+      auxSel.setAttribute("aria-label", t("mdVideoAuxTrack"));
+      _auxSel = auxSel;
       // Icon-only bar (device feedback 2026-08-24): every control except the
       // track <select> is an icon with title + aria-label. Success feedback
       // swaps the copy icon for the check icon briefly -- with the re-entry
@@ -4692,7 +4980,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         aiCancelBtn.disabled = true;
         if (_aiAbort) { try { _aiAbort.abort(); } catch (_) {} } // research T4.4
       });
-      bar.appendChild(trackSel); bar.appendChild(copyGroup); bar.appendChild(aiBtn); bar.appendChild(aiNote); bar.appendChild(aiCancelBtn); bar.appendChild(retryBtn);
+      bar.appendChild(trackSel); bar.appendChild(auxSel); bar.appendChild(copyGroup); bar.appendChild(aiBtn); bar.appendChild(aiNote); bar.appendChild(aiCancelBtn); bar.appendChild(retryBtn);
       if (detected.provider === "youtube") {
         // Follow toggle (Task 6). Same bar-button family as Copy / AI
         // punctuation (.pbv-copy, .pbv-ai-punct in md-preview.css), plus the
@@ -4754,16 +5042,18 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         rateSel.addEventListener("change", () => relaySetRate(Number(rateSel.value)));
         _rateSel = rateSel;
         bar.appendChild(rateSel);
-        // Below the workspace's 1220px container breakpoint the columns
-        // stack and the player stops being sticky -- a lit follow toggle
-        // there is a no-op lie (audit B14). Hidden via a layout class so
-        // loadFlow's hidden-attribute management stays untouched;
-        // highlightRowAt reads the same class to suppress follow scrolling.
+        // Below the workspace's container breakpoint the columns stack and
+        // the player stops being sticky -- a lit follow toggle there is a
+        // no-op lie (audit B14). The COMPUTED sticky state is the layout
+        // answer (research T7.7: the old hard-coded 1220 constant silently
+        // drifted from the CSS breakpoint); re-read on every resize.
+        // Hidden via a layout class so loadFlow's hidden-attribute
+        // management stays untouched; highlightRowAt reads the same class.
         if (typeof ResizeObserver === "function") {
           const layoutHost = document.querySelector(".doc-body");
           if (layoutHost) {
             const ro = new ResizeObserver(() => {
-              followBtn.classList.toggle("pbv-follow-narrow", layoutHost.clientWidth <= 1220);
+              followBtn.classList.toggle("pbv-follow-narrow", !playerHoldsPosition());
             });
             ro.observe(layoutHost);
           }
@@ -4808,6 +5098,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       // before.
       const body = _studyListEl || el("div", "pbv-list");
       bindFollowPause(body);
+      bindRowClicks(body);
       // (research T7.2) replaceChildren is about to remove the poster the
       // user just activated; without a hand-off the focus silently falls to
       // <body> and the next Tab restarts from the top of the page (same

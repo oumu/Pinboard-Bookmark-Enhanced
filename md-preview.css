@@ -3663,10 +3663,25 @@ html.motion-ready .pbv-ai-punct .pbv-ring circle { transition: stroke-dashoffset
    transcript runs into the thousands); contain-intrinsic-size holds
    scrollbar geometry stable before a row's first real layout pass. */
 .pbv-row {
-  display: flex; gap: 10px; align-items: baseline; text-align: left;
+  display: flex; flex-wrap: wrap; gap: 10px; align-items: baseline; text-align: left;
   padding: 4px 8px; border-radius: 6px; cursor: pointer;
   content-visibility: auto; contain-intrinsic-size: auto 28px;
 }
+/* Paragraph density (research T7.10): one row per reading paragraph. */
+.pbv-row--para { padding: 8px; }
+.pbv-row--para > .pbv-time { align-self: flex-start; }
+/* Projected translation / auxiliary track line under a row (research
+   T5.1/T5.2): hidden by default; the v-key body classes show projected
+   translations, auxiliary-track rows show theirs regardless. In
+   translated-only view the original text steps aside on projected rows. */
+.pbv-row > .pbv-tr {
+  display: none; flex-basis: 100%; padding-left: calc(3.4em + 10px);
+  color: var(--fg-secondary); font-size: var(--panel-payload-fs); line-height: var(--pbp-prose-leading, 1.75);
+}
+body.tr-bilingual .pbv-row--tr > .pbv-tr, body.tr-only .pbv-row--tr > .pbv-tr, .pbv-row--aux > .pbv-tr { display: block; }
+body.tr-only .pbv-row--tr > .pbv-text { display: none; }
+.pbv-density[hidden] { display: none; }
+.pbv-aux[hidden] { display: none; }
 .pbv-row:not(.pbv-row--static):hover { background: var(--row-hover, rgba(127,127,127,.08)); }
 .pbv-row--static { cursor: default; }
 .pbv-time {
@@ -3735,15 +3750,20 @@ body.video-mode .doc-body { max-width: min(2160px, 100%); container-type: inline
    child (not itself a grid item), so it keeps its own small natural height
    and gets room to stick within that stretched, invisible (no
    background/border of its own) parent box. */
+/* Column floors (research T7.7): the old 720+440+32 = 1192px minimum,
+   after the 264px rail and 64px of padding, put every 1440/1536 laptop
+   BELOW the two-column threshold -- the layout's whole point only showed
+   on wider screens. 520+360+24 = 904px fits both; the player stays
+   readable at 520px (16:9 -> ~292px tall). */
 .pbv-workspace {
   display: grid;
-  grid-template-columns: minmax(720px, 1.7fr) minmax(440px, 0.8fr);
-  gap: 32px;
+  grid-template-columns: minmax(520px, 1.25fr) minmax(360px, 0.9fr);
+  gap: 24px;
 }
 /* Sticky player -- wide state only, cleared below. */
 .pbv-col-player #video-panel { position: sticky; top: 24px; }
 
-@container (max-width: 1220px) {
+@container (max-width: 960px) {
   /* Narrow: single column. Skim lives INSIDE the study column (see
      md-skim.js's #video-skim-slot branch), so reordering the two columns
      here would put the whole study column -- article included -- above the

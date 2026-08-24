@@ -1167,6 +1167,21 @@ section("extracted runtime primitives (audit E1/E4/E5)");
   assert(pbpBiliPickSubtitle(biSubs) === biSubs[1], "bili pick: default stays zh human");
   assert(pbpBiliPickSubtitle(biSubs, ["en"]) === biSubs[2], "bili pick: preferred language finds the ai- track when no human one exists");
   assert(pbpBiliPickSubtitle(biSubs, ["fr"]) === biSubs[1] && pbpBiliPickSubtitle(biSubs, ["en"], pbpVideoTrackKey(biSubs[0], "bilibili")) === biSubs[0], "bili pick: unmet preference falls back; remembered key wins");
+  // Paragraph density rows + projection row lookup (research T7.10/T5.1)
+  const prSegs = [{ from: 0, to: 2, content: "第一句话" }, { from: 2, to: 4, content: "还没完。" }, { from: 10, to: 12, content: "第二段" }, { from: 12, to: 14.5, content: "继续说。" }];
+  const prRows = pbpVideoParagraphRows(prSegs, null);
+  assert(prRows.length === 2 && prRows[0].from === 0 && prRows[0].to === 10 && prRows[1].from === 10 && prRows[1].to === 14.5 && /第二段/.test(prRows[1].content),
+    "paragraph rows: one per record, timed to the next paragraph start / last segment end");
+  const prAi = pbpVideoParagraphRows(prSegs, ["第一句话，还没完。", "第二段，继续说。"]);
+  assert(prAi.length === 2 && prAi[0].content === "第一句话，还没完。" && prAi[1].from === 10, "paragraph rows: aligned AI paragraphs are used verbatim");
+  assert(pbpVideoRowForParagraph(prSegs, 10, null) === 2 && pbpVideoRowForParagraph(prSegs, 0, 10) === 0 && pbpVideoRowForParagraph(prSegs, 5, 9) === -1,
+    "row for paragraph: first row starting inside the window, -1 when none");
+  assert(pbpVideoRowForParagraph(prRows, 10, null) === 1, "row for paragraph: paragraph density maps 1:1");
+  // Auxiliary track pairing (research T5.2)
+  const pbRows = [{ from: 0, to: 4, content: "a" }, { from: 4, to: 8, content: "b" }, { from: 8, to: 0, content: "c" }];
+  const pbAux = [{ from: -3, to: -1, content: "before" }, { from: 0, to: 2, content: "A1" }, { from: 2, to: 4, content: "A2" }, { from: 5, to: 7, content: "B" }, { from: 9, to: 12, content: "C" }, { from: 30, to: 32, content: "far" }];
+  assert(JSON.stringify(pbpVideoPairByTime(pbRows, pbAux)) === '["A1 A2","B","C"]', "pair by time: cues land in the row whose window holds their midpoint; cues before the first row or past the last row's end pair nowhere");
+  assert(JSON.stringify(pbpVideoPairByTime(pbRows, [])) === '["","",""]' && JSON.stringify(pbpVideoPairByTime([], pbAux)) === "[]", "pair by time: empty sides yield empty strings / no rows");
 })();
 
 document.getElementById("summary").textContent = `${pass} passed, ${fail} failed`;

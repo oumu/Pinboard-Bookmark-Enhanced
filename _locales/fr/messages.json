@@ -3692,5 +3692,8 @@
   "optVideoPauseOnLookupHint": { "message": "Sélectionner du texte ou ouvrir le popover d'explication met YouTube en pause ; la lecture reprend ensuite." },
   "mdVideoResumePrompt": { "message": "Vu jusqu'à $TIME$", "placeholders": { "time": { "content": "$1" } } },
   "mdVideoResumeGo": { "message": "Reprendre" },
-  "mdVideoResumeRestart": { "message": "Recommencer" }
+  "mdVideoResumeRestart": { "message": "Recommencer" },
+  "mdVideoDensityPara": { "message": "Afficher par paragraphe" },
+  "mdVideoAuxTrack": { "message": "Sous-titres compagnons" },
+  "mdVideoAuxNone": { "message": "Aucun sous-titre compagnon" }
 }
