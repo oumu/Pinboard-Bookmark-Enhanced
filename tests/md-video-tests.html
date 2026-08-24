@@ -728,13 +728,14 @@ section("commit call-site videoState round trips");
   assertEq(dupValues[1], "yt:en#2", "the second occurrence carries a positional suffix");
   assertEq(dupValues[2], "yt:de", "an uncollided track is untouched");
   assertEq(dupValues.indexOf("yt:en#2"), 1, "the suffixed value resolves back to the SECOND track by index");
-  // The suffix is picker-only: what gets persisted stays the plain key,
-  // because the persistence format cannot address a duplicate at all.
+  // audit B12: the persisted state now carries the SAME collision suffix the
+  // picker uses, so an F5 can address the second duplicate too.
   const dupState = pbpVideoStateBuild({
     detected, track: dupTracks[1], tracks: dupTracks, segments: enSegs,
     aiParas: null, wasUnpunct: false, aiPunct: false, meta: metaFor("English (CC)")
   });
-  assertEq(dupState.selectedTrackKey, "yt:en", "videoState.selectedTrackKey stays the PLAIN key (no picker suffix leaks into storage)");
+  assertEq(dupState.selectedTrackKey, "yt:en#2", "videoState.selectedTrackKey carries the picker's collision suffix (audit B12)");
+  assertEq(dupState.tracks[1].key, "yt:en#2", "the persisted descriptor list carries the same suffix");
   assertEq(pbpVideoStateValidate(dupState, detected, pbpVideoTranscriptMarkdown(enSegs, metaFor("English (CC)"), null)), true,
     "a duplicate-key track's state still round-trips");
   // A list with no collisions must gain no suffixes at all -- otherwise every
@@ -860,8 +861,8 @@ section("F5 hydration: videoState -> session");
     "an unresolvable selectedTrackKey is still a well-formed state (only the shape is checked)");
   assertEq(resolveTrack(orphan), null, "...and it resolves to null rather than to an arbitrary track");
 
-  // Duplicate keys: the picker's #N suffix is a live-session affordance only,
-  // so a reload can only restore "the track with this key" -- the first one.
+  // Duplicate keys (audit B12): persisted descriptors carry the picker's #N
+  // suffix, so hydration addresses the exact track that was committed.
   const dup = [
     { baseUrl: "https://x/en1.xml", lang: "en", label: "English", asr: false },
     { baseUrl: "https://x/en2.xml", lang: "en", label: "English (CC)", asr: false }
@@ -870,10 +871,18 @@ section("F5 hydration: videoState -> session");
     detected: ytDet, track: dup[1], tracks: dup, segments: segs,
     aiParas: null, wasUnpunct: false, aiPunct: false, meta
   });
-  assertEq(dupState.selectedTrackKey, "yt:en", "a duplicate-key selection persists as the bare key (no #N reaches storage)");
+  assertEq(dupState.selectedTrackKey, "yt:en#2", "a duplicate-key selection persists WITH its collision suffix (audit B12)");
   const dupHyd = resolveTrack(dupState);
-  assertEq(dupState.tracks.indexOf(dupHyd), 0, "on hydration a duplicate pair collapses to the FIRST match (documented limitation)");
-  assertEq(dupHyd.label, "English", "...so the picker lands on 'English', not on the 'English (CC)' that was committed");
+  assertEq(dupState.tracks.indexOf(dupHyd), 1, "hydration resolves the suffixed key to the SECOND track");
+  assertEq(dupHyd.label, "English (CC)", "...so the picker lands on the 'English (CC)' that was committed");
+  // Idempotency: a commit made ON a hydrated session re-persists descriptors
+  // whose keys already carry their suffix -- no double-suffixing.
+  const rebuilt = pbpVideoStateBuild({
+    detected: ytDet, track: dupState.tracks[1], tracks: dupState.tracks, segments: segs,
+    aiParas: null, wasUnpunct: false, aiPunct: false, meta
+  });
+  assertEq(rebuilt.tracks[1].key, "yt:en#2", "re-persisting hydrated descriptors keeps #2, not #2#2");
+  assertEq(rebuilt.selectedTrackKey, "yt:en#2", "the selection key survives the round trip unchanged");
 
   // The paid pass: paragraphs must come back verbatim, and a state that lost
   // them must not hydrate -- an article visibly carrying AI punctuation whose

@@ -527,11 +527,30 @@ function pbpVideoStateBuild(opts) {
   const segments = Array.isArray(opts.segments) ? opts.segments : [];
   const aiParas = Array.isArray(opts.aiParas) && opts.aiParas.length ? opts.aiParas.slice() : null;
   const meta = opts.meta || {};
+  // Persisted keys carry the same "#N" collision suffix the live picker
+  // uses (audit B12): without it, selecting the second of two same-key
+  // tracks (English + English CC) survived the session but an F5 restored
+  // the FIRST one under the second one's words. Suffixing is idempotent --
+  // descriptors from a hydrated session already carry their suffix, which
+  // makes their keys distinct and leaves this pass a no-op.
+  const seenKeys = new Map();
+  const descs = tracks.map((tr) => {
+    const d = _pbpVideoTrackDescribe(tr, provider);
+    if (d && d.key) {
+      const n = (seenKeys.get(d.key) || 0) + 1;
+      seenKeys.set(d.key, n);
+      if (n > 1) d.key = d.key + "#" + n;
+    }
+    return d;
+  });
+  const selIdx = opts.track ? tracks.indexOf(opts.track) : -1;
   const state = {
     v: 1,
     provider,
-    selectedTrackKey: pbpVideoTrackKey(opts.track, provider),
-    tracks: tracks.map((tr) => _pbpVideoTrackDescribe(tr, provider)),
+    selectedTrackKey: selIdx >= 0
+      ? ((descs[selIdx] && descs[selIdx].key) || "")
+      : pbpVideoTrackKey(opts.track, provider),
+    tracks: descs,
     segments: segments.map((s) => ({
       from: +(s && s.from) || 0, to: +(s && s.to) || 0, content: String((s && s.content) || "")
     })),
@@ -1061,6 +1080,21 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   // new track. Kept out of the freeze counters so an unfreeze cannot re-arm a
   // pass the user already paid for.
   let _aiPassDone = false;
+  // Per-batch AI-punctuation result cache, keyed by the batch's exact text
+  // (audit B9): a pass where some batches failed no longer commits, and the
+  // retry click re-pays ONLY for the failed batches -- the passed ones
+  // answer from here. Page-lifetime; a track switch changes the batch text,
+  // so stale entries simply never match.
+  const _aiBatchCache = new Map();
+  // Provider host-grant state settled at OFFER time (audit B10):
+  // permissions.request demands the click's transient activation, so the
+  // origins and the contains() answer are computed ahead of the click and
+  // the request becomes the handler's FIRST await when a grant is missing.
+  let _aiOrigins = null, _aiHostGranted = false;
+  // Last playback position the relay reported (audit B13): a re-render
+  // clears the row highlight, and a paused player sends no new time events
+  // to restore it -- so the re-render sites replay this instead.
+  let _lastRelayTime = null;
 
   // Study-column reading/timeline toggle (Task 4). Set by mountVideoWorkspace
   // only in video-mode workspaces; a non-video defensive mount (panel stays a
@@ -1772,6 +1806,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     if (d.event === "ready") { _relayAlive = true; return; }
     if (d.event !== "time") return;
     _relayAlive = true;
+    _lastRelayTime = d.t; // replayed after re-renders (audit B13)
     highlightRowAt(d.t);
   }
   window.addEventListener("message", onRelayMessage);
@@ -1807,7 +1842,11 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     // hidden list is pointless, and in video-mode the list shares the page
     // scroller with the article -- following while the user reads would drag
     // the article out from under them.
-    if (_followOn && !list.hidden && playerHoldsPosition()) {
+    // The narrow stacked layout has no sticky player to stay level with --
+    // follow-scrolling there just drags the page from under the reader
+    // (audit B14; the class is set by the layout observer on the button).
+    const narrow = _followBtn && _followBtn.classList.contains("pbv-follow-narrow");
+    if (_followOn && !narrow && !list.hidden && playerHoldsPosition()) {
       try { followScrollTo(_currentRowEl, list); } catch (_) {}
     }
   }
@@ -1861,6 +1900,9 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   function setFollow(on) {
     _followOn = !!on;
     if (_followBtn) _followBtn.setAttribute("aria-pressed", _followOn ? "true" : "false");
+    // Re-enabling follow on a PAUSED player: no new time event will come to
+    // re-anchor the highlight, so replay the last reported position (B13).
+    if (_followOn && _lastRelayTime != null) { try { highlightRowAt(_lastRelayTime); } catch (_) {} }
   }
 
   // Any scroll/seek intent inside the list means the user took the wheel;
@@ -2156,12 +2198,10 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   // already-seen key gets "#N" appended, purely to keep the DOM values
   // distinct.
   //
-  // The suffix never leaves this file. videoState.selectedTrackKey stays the
-  // plain pbpVideoTrackKey, because the persistence format genuinely cannot
-  // address a duplicate: an F5 can only restore "the track with this key",
-  // and among duplicates that is the first. Disambiguating the picker is
-  // still strictly better than not -- a live session CAN address the second
-  // one (by index, below), and losing that on reload beats never having it.
+  // pbpVideoStateBuild applies this same suffix pass to its persisted
+  // descriptors (audit B12), so an F5 CAN now address the second duplicate:
+  // the hydrated descriptor keys and these picker values agree by
+  // construction (same list order, same algorithm).
   function buildTrackValues(tracks, provider) {
     const seen = new Map();
     return (tracks || []).map((tr) => {
@@ -2367,7 +2407,9 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       ph.selected = true; ph.disabled = true; ph.hidden = true;
       trackSel.insertBefore(ph, trackSel.firstChild);
     }
-    trackSel.hidden = !(res.tracks || []).length;
+    // (Picker unhide moved below the change-listener registration -- audit
+    // B11: unhidden here, a selection made during the settings await below
+    // was swallowed because no handler existed yet.)
     // punctuation enhancement already applied by prepareVideoSession; the AI
     // button only appears for tracks the detector judged unpunctuated.
     //
@@ -2389,6 +2431,18 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       try {
         const sa = typeof pbpAiGetSettings === "function" ? await pbpAiGetSettings() : null;
         aiOk = !!(sa && typeof pbpAiAvailable === "function" && pbpAiAvailable(sa));
+        // Settle the provider's origin patterns and the contains() answer
+        // NOW (audit B10): the AI click can then make permissions.request
+        // its first await, inside the gesture's transient activation.
+        if (aiOk && typeof _aiRequiredOriginPatterns === "function") {
+          try { _aiOrigins = _aiRequiredOriginPatterns(sa); } catch (_) { _aiOrigins = null; }
+          let g = false;
+          try {
+            g = (_aiOrigins && _aiOrigins.length)
+              ? await chrome.permissions.contains({ origins: _aiOrigins }) === true : false;
+          } catch (_) {}
+          _aiHostGranted = g;
+        }
       } catch (_) {}
     }
     // No re-offer only after an AI pass actually committed (videoAiPunct rode
@@ -2590,6 +2644,9 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         // Rendering only after the commit would leave the panel stale for the
         // whole storage round-trip.
         renderTranscript(bodyEl, segs, true);
+        // Re-render cleared the current-row highlight; a paused player sends
+        // no new time event to restore it -- replay the last one (B13).
+        if (_lastRelayTime != null) { try { highlightRowAt(_lastRelayTime); } catch (_) {} }
         // Atomic track switch (Task 5): when the transcript IS this page's
         // article, keep it in sync through the single committer (md-preview.js
         // owns the account/tags/description contract) -- in place now, no
@@ -2665,6 +2722,8 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         }
       }
     });
+    // Picker goes live only now that its change handler exists (audit B11).
+    trackSel.hidden = !(res.tracks || []).length;
     // First run: the bootstrap could not fetch captions because the origin
     // grant did not exist yet, so md-preview.js settled for "video-fallback"
     // (the extracted description as the article). The click that got us here
@@ -2674,7 +2733,13 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     if (_segments.length && window.pbpVideoDoc && window.pbpVideoDoc.kind === "video-fallback"
         && typeof window.pbpVideoCommitTranscript === "function") {
       const releaseCommit = freezeControls({ track: true, ai: true });
-      let ok = false;
+      let ok = false, threwInCommit = false;
+      // Same phase split as the track switch and the AI pass (audit B7): a
+      // throw from INSIDE the committer happens after the payload persisted
+      // and canonical advanced, so treating it as "not saved" both lies
+      // (quota copy over a record that IS on disk) and desyncs the session
+      // from what an F5 will restore.
+      let phase = "build";
       try {
         const commitMd = pbpVideoTranscriptMarkdown(_segments, _meta, _aiPunctParas);
         const commitTitle = _meta.title || "";
@@ -2683,28 +2748,30 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           segments: _segments, aiParas: _aiPunctParas, wasUnpunct: _wasUnpunct,
           aiPunct: !!_aiPunctParas, meta: _meta
         });
+        phase = "commit";
         ok = await window.pbpVideoCommitTranscript(commitMd, commitTitle,
           { aiPunct: !!_aiPunctParas, reason: "video-promotion", videoState });
       } catch (e) {
-        // No pre/post-persist split needed here: both arms do the same thing
-        // (leave the panel alone, say it did not save), so the phase does not
-        // change the repair.
-        console.warn("[pbp-video] promotion commit threw:", (e && e.name) || "", (e && e.message) || e);
+        threwInCommit = phase === "commit";
+        console.warn("[pbp-video] promotion commit threw in", phase + ":", (e && e.name) || "", (e && e.message) || e);
       } finally {
         releaseCommit();
       }
       // No timeline rollback here, and nothing to roll back TO: this panel has
       // shown exactly this transcript since it mounted, and the article a
       // failed promotion leaves in place is the extracted video description --
-      // the legitimate pre-promotion state, not a fork. Report "not saved" and
-      // leave both halves as they are.
-      if (!ok) statusEl.textContent = t("mdPreviewQuotaFull");
+      // the legitimate pre-promotion state, not a fork. The quota copy only on
+      // a true non-persist; a post-persist throw keeps quiet (console carries
+      // it) rather than claiming an on-disk record was not saved.
+      if (!ok && !threwInCommit) statusEl.textContent = t("mdPreviewQuotaFull");
       // The description just stopped being the article and became the
       // collapsed block -- on an in-place promotion nothing else ever builds
-      // it (T3 review F2). Only on success: a refused commit leaves the
-      // description AS the article, where a second copy of it below the
-      // timeline would be pure duplication.
-      else ensureVideoDescription();
+      // it (T3 review F2). On the post-persist-throw arm the payload IS the
+      // transcript now, so the description block belongs there too.
+      if (ok || threwInCommit) {
+        syncSessionToCommitted(session.track || null, _wasUnpunct);
+        try { ensureVideoDescription(); } catch (_) {}
+      }
     }
   }
 
@@ -2747,6 +2814,9 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       _toggleTimelineBtn.classList.toggle("active", !reading);
       _toggleTimelineBtn.setAttribute("aria-pressed", !reading ? "true" : "false");
     }
+    // Returning to the timeline while paused: replay the last reported
+    // position so the current-row highlight survives the round trip (B13).
+    if (!reading && _lastRelayTime != null) { try { highlightRowAt(_lastRelayTime); } catch (_) {} }
   }
 
   // Ask/skim citation jumps into the transcript need the reading view on
@@ -2913,6 +2983,28 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     play.innerHTML = PBV_PLAY_SVG;
     cta.appendChild(play);
     cta.appendChild(el("span", "pbv-poster-label", posterLabel));
+    // Progressive first paint mounts BEFORE any session exists (audit B15:
+    // pbpVideoSession is null here since the plan-丙 bootstrap change), so
+    // the granted===false read above can no longer fire. Derive first-run
+    // from the same authority the auto-boot uses -- contains() -- and
+    // upgrade the poster asynchronously; granted pages keep the generic
+    // label and their auto-boot takes over anyway.
+    if (!window.pbpVideoSession && !firstRun) {
+      (async () => {
+        try {
+          const pat = detected.provider === "bilibili" ? BILI_ORIGIN : YT_ORIGIN;
+          const g = await chrome.permissions.contains({ origins: [pat] }) === true;
+          if (!g) {
+            cta.classList.add("pbv-poster--enable");
+            const lbl = t("mdVideoEnable");
+            cta.title = lbl;
+            cta.setAttribute("aria-label", lbl);
+            const span = cta.querySelector(".pbv-poster-label");
+            if (span) span.textContent = lbl;
+          }
+        } catch (_) {}
+      })();
+    }
     panel.appendChild(cta);
     mountVideoWorkspace(view, panel);
     _panel = panel;
@@ -2975,6 +3067,9 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       copyBtn.addEventListener("click", async () => {
         try {
           await navigator.clipboard.writeText(pbpVideoTranscriptMarkdown(_segments, _meta, _aiPunctParas));
+          // A prior "Copy failed" line must not outlive a later success
+          // (audit B16); the success copy also feeds the aria-live region.
+          status.textContent = t("mdVideoCopied");
           if (copyFlashTimer) clearTimeout(copyFlashTimer);
           copyBtn.innerHTML = typeof PBP_ICONS !== "undefined" ? PBP_ICONS.check : "";
           copyBtn.classList.add("copied");
@@ -3024,6 +3119,21 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         // icon-only button: progress reads out in the aria-live status line
         status.textContent = t("mdVideoAiPunct") + "…";
         try {
+          // Missing provider grant: permissions.request is the FIRST await
+          // in this click (audit B10) -- origins and the contains() answer
+          // were settled at offer time, so nothing burns the transient
+          // activation before Chrome checks for it. Denial throws the same
+          // actionable host_permission error the catch below surfaces.
+          if (_aiOrigins && _aiOrigins.length && !_aiHostGranted) {
+            let granted = false;
+            try { granted = await chrome.permissions.request({ origins: _aiOrigins }) === true; } catch (_) {}
+            if (!granted) {
+              const err = new Error(t("aiErrorHostPermission", String(_aiOrigins[0] || "").replace(/\/\*$/, "")));
+              err.code = "host_permission";
+              throw err;
+            }
+            _aiHostGranted = true;
+          }
           const paras = pbpVideoMergeParagraphs(_segments);
           const batches = [];
           let cur = [], len = 0;
@@ -3048,6 +3158,11 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           const outBatches = [];
           let rejected = 0;
           for (const [bi, b] of batches.entries()) {
+            // Retry economics (audit B9): a batch this page already got a
+            // conservation-passing answer for answers from the cache -- the
+            // retry after a partial failure re-pays only for what failed.
+            const cached = _aiBatchCache.get(b);
+            if (cached != null) { outBatches.push(cached); continue; }
             const prompt = "为下面的语音转写文本添加或修正标点符号，并按语义用空行分段。严格保持文字本身不变：不得增加、删除或改写任何非标点文字。直接输出处理后的文本，不要任何解释。\n\n" + b;
             // Output ≈ input + marks: the provider DEFAULT of ~1024 output
             // tokens truncates any full-size (~1600+ char) CJK batch, and a
@@ -3077,8 +3192,18 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
               // conservation whitelist.
               console.warn("[pbp-video] ai punctuation: batch " + (bi + 1) + "/" + batches.length
                 + " failed conservation (in " + b.length + " chars, out " + out.length + " chars) -- keeping original");
+            } else {
+              _aiBatchCache.set(b, out.trim());
             }
             outBatches.push(ok ? out.trim() : b);
+          }
+          // Partial success must NOT commit (audit B9): committing would
+          // stamp aiPunct:true -- retiring the button across F5s -- over
+          // batches that still carry heuristic text. Passed batches are
+          // cached above, so the retry click only re-pays for the failures.
+          if (rejected > 0) {
+            status.textContent = t("mdVideoAiPunctPartial", [String(batches.length - rejected), String(batches.length)]);
+            return;
           }
           // A pass that changed nothing must not commit: committing the
           // original text with aiPunct:true retires the button FOREVER (the
@@ -3118,6 +3243,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           if (applied) {
             _segments = applied;
             renderTranscript(body, _segments, true);
+            if (_lastRelayTime != null) { try { highlightRowAt(_lastRelayTime); } catch (_) {} } // B13
           } else {
             // Silent-half breadcrumb: the ARTICLE will carry the pass but the
             // timeline rows keep their pre-pass text (stream remap refused).
@@ -3206,7 +3332,40 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           releaseFreeze();
         }
       });
-      bar.appendChild(trackSel); bar.appendChild(copyBtn); bar.appendChild(aiBtn);
+      // Terminal-failure recovery (audit B2/B3): every caption dead end used
+      // to strand the page with a status line and no control. One retry
+      // button re-runs the load flow with a FRESH session; its click is a
+      // real user gesture, so a missing/declined origin grant can be
+      // re-requested right here (the decline path's way back in). refresh
+      // icon per the icon contract: it re-runs this same action.
+      const retryBtn = el("button", "pbv-retry");
+      retryBtn.type = "button";
+      retryBtn.hidden = true;
+      retryBtn.innerHTML = typeof PBP_ICONS !== "undefined" ? PBP_ICONS.refresh : "";
+      retryBtn.title = t("mdVideoRetry");
+      retryBtn.setAttribute("aria-label", t("mdVideoRetry"));
+      retryBtn.addEventListener("click", async () => {
+        if (retryBtn.disabled) return;
+        retryBtn.disabled = true;
+        retryBtn.hidden = true;
+        try {
+          let g = false;
+          try { g = await chrome.permissions.contains({ origins: [originPat] }) === true; } catch (_) {}
+          if (!g) g = await requestVideoOrigin(detected); // this click IS the gesture
+          if (!g) { status.textContent = t("mdVideoPermDeclined"); retryBtn.hidden = false; return; }
+          window.pbpVideoSession = null; // force a fresh directory + captions
+          status.textContent = t("mdVideoLoading");
+          await loadFlow(detected, status, body, trackSel, copyBtn, aiBtn);
+          if (!_segments.length) retryBtn.hidden = false;
+        } catch (e) {
+          console.warn("[pbp-video] retry:", (e && e.message) || e);
+          status.textContent = t("mdVideoFailed");
+          retryBtn.hidden = false;
+        } finally {
+          retryBtn.disabled = false;
+        }
+      });
+      bar.appendChild(trackSel); bar.appendChild(copyBtn); bar.appendChild(aiBtn); bar.appendChild(retryBtn);
       if (detected.provider === "youtube") {
         // Follow toggle (Task 6). Same bar-button family as Copy / AI
         // punctuation (.pbv-copy, .pbv-ai-punct in md-preview.css), plus the
@@ -3228,6 +3387,20 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         setFollow(true); // default ON; also writes the initial aria-pressed
         followBtn.addEventListener("click", () => setFollow(!_followOn));
         bar.appendChild(followBtn);
+        // Below the workspace's 1220px container breakpoint the columns
+        // stack and the player stops being sticky -- a lit follow toggle
+        // there is a no-op lie (audit B14). Hidden via a layout class so
+        // loadFlow's hidden-attribute management stays untouched;
+        // highlightRowAt reads the same class to suppress follow scrolling.
+        if (typeof ResizeObserver === "function") {
+          const layoutHost = document.querySelector(".doc-body");
+          if (layoutHost) {
+            const ro = new ResizeObserver(() => {
+              followBtn.classList.toggle("pbv-follow-narrow", layoutHost.clientWidth <= 1220);
+            });
+            ro.observe(layoutHost);
+          }
+        }
         // Relay-failure degrade: the player depends on GitHub Pages staying
         // up; this always-present link needs no failure detection (a
         // cross-origin iframe load can't be inspected for a 404/DNS failure)
@@ -3269,29 +3442,39 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       // on the poster card instead, whose click re-enters with the gesture.
       if (!granted && fromClick === true) granted = await requestVideoOrigin(detected);
       if (!granted) {
-        status.textContent = t("mdVideoPermMissing");
-        // Declined/failed permission dead end (fix round 1): cta was already
-        // detached from the panel above (replaceChildren(media, bar), before
-        // this check ran) -- disabling it alone would leave nothing on
-        // screen to click again. Restore the poster card as the retry entry
-        // point, same idiom the auto-load catch handler below already uses
-        // for an early failure. Each click is a fresh user gesture, so this
-        // creates no loop: nothing re-clicks cta automatically while ungranted.
+        // Honest decline copy (audit B2): with the player mounted, "nothing
+        // was loaded" contradicted the screen -- the video IS there, only the
+        // captions are not. The retry button in the bar is the way back in
+        // (its click can re-request the grant); the poster stays the entry
+        // when the player never mounted.
+        const playerUp = _iframe && _iframe.isConnected;
+        status.textContent = t(playerUp ? "mdVideoPermDeclined" : "mdVideoPermMissing");
         cta.disabled = false;
         _runLoadEntered = false; // the retry click must be able to re-enter
-        // Keep the bar too: the decline message lives in it -- restoring the
-        // poster alone would silently eat the "permission declined" status.
-        // And keep the PLAYER when it already mounted: privacy.md guarantees
+        retryBtn.hidden = false;
+        // Keep the PLAYER when it already mounted: privacy.md guarantees
         // the embed loads without the subtitle grant, so a decline must only
         // cost the captions, never tear the video out (final-review H2).
-        if (_iframe && _iframe.isConnected) panel.replaceChildren(media, bar);
+        if (playerUp) panel.replaceChildren(media, bar);
         else panel.replaceChildren(cta, bar);
         return;
       }
       await loadFlow(detected, status, body, trackSel, copyBtn, aiBtn);
+      // Any caption-less terminal state gets the retry control (audit B3):
+      // loadFlow's failure exits only write a status line, and re-checking
+      // is always safe here.
+      if (!_segments.length) retryBtn.hidden = false;
     }
 
-    cta.addEventListener("click", () => runLoad(true));
+    // Same rejection net as the auto paths (audit B3): an unhandled throw
+    // out of a click-started run left a permanent loading shell behind.
+    cta.addEventListener("click", () => runLoad(true).catch((e) => {
+      console.warn("[pbp-video] load:", (e && e.message) || e);
+      if (statusRef) statusRef.textContent = t("mdVideoFailed");
+      cta.disabled = false;
+      _runLoadEntered = false;
+      if (!statusRef) panel.replaceChildren(cta);
+    }));
     // The session already holds this video's transcript (md-preview.js ran it
     // before rendering, and the article the user is reading IS that
     // transcript), so the origin grant is standing and there is nothing left

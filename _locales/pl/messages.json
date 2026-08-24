@@ -3639,5 +3639,8 @@
   "mdVideoFollow": { "message": "Napisy podążają za odtwarzaniem" },
   "mdVideoSeekTo": { "message": "Przejdź do $TIME$", "placeholders": { "time": { "content": "$1" } } },
   "mdVideoCopyFailed": { "message": "Kopiowanie nie powiodło się" },
-  "mdVideoOpenExternal": { "message": "Otwórz w YouTube" }
+  "mdVideoOpenExternal": { "message": "Otwórz w YouTube" },
+  "mdVideoRetry": { "message": "Sprawdź napisy ponownie" },
+  "mdVideoPermDeclined": { "message": "Wideo załadowane; napisy nieaktywne" },
+  "mdVideoAiPunctPartial": { "message": "Ukończono $DONE$ z $TOTAL$ partii; reszta zachowała oryginalny tekst. Kliknij ponownie, aby powtórzyć tylko nieudane.", "placeholders": { "done": { "content": "$1" }, "total": { "content": "$2" } } }
 }

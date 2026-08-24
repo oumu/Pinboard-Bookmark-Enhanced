@@ -3639,5 +3639,8 @@
   "mdVideoFollow": { "message": "Untertitel folgen der Wiedergabe" },
   "mdVideoSeekTo": { "message": "Zu $TIME$ springen", "placeholders": { "time": { "content": "$1" } } },
   "mdVideoCopyFailed": { "message": "Kopieren fehlgeschlagen" },
-  "mdVideoOpenExternal": { "message": "Auf YouTube öffnen" }
+  "mdVideoOpenExternal": { "message": "Auf YouTube öffnen" },
+  "mdVideoRetry": { "message": "Untertitel erneut prüfen" },
+  "mdVideoPermDeclined": { "message": "Video geladen; Untertitel nicht aktiviert" },
+  "mdVideoAiPunctPartial": { "message": "$DONE$ von $TOTAL$ Abschnitten fertig; der Rest behält den Originaltext. Klicken Sie erneut, um nur die fehlgeschlagenen zu wiederholen.", "placeholders": { "done": { "content": "$1" }, "total": { "content": "$2" } } }
 }

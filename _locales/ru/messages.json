@@ -3639,5 +3639,8 @@
   "mdVideoFollow": { "message": "Субтитры следуют за воспроизведением" },
   "mdVideoSeekTo": { "message": "Перейти к $TIME$", "placeholders": { "time": { "content": "$1" } } },
   "mdVideoCopyFailed": { "message": "Не удалось скопировать" },
-  "mdVideoOpenExternal": { "message": "Открыть на YouTube" }
+  "mdVideoOpenExternal": { "message": "Открыть на YouTube" },
+  "mdVideoRetry": { "message": "Проверить субтитры ещё раз" },
+  "mdVideoPermDeclined": { "message": "Видео загружено; субтитры не включены" },
+  "mdVideoAiPunctPartial": { "message": "Готово $DONE$ из $TOTAL$ частей; остальные сохранили исходный текст. Нажмите ещё раз, чтобы повторить только неудавшиеся.", "placeholders": { "done": { "content": "$1" }, "total": { "content": "$2" } } }
 }

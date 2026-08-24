@@ -146,13 +146,20 @@
     var d = e.data;
     if (!d || typeof d !== "object" || d.pbpVideo !== 1) return;
     if (d.func !== "seekTo" && d.func !== "playVideo" && d.func !== "hello") return;
-    // Arm outbound reporting on the FIRST valid inbound message, whichever it
-    // is. "null" is what an opaque origin serializes to and is not a legal
-    // postMessage target, so it never arms anything.
-    if (!parentOrigin && e.origin && e.origin !== "null") {
+    // Arm outbound reporting on the FIRST valid inbound message -- and only
+    // for an extension parent (audit B8): the reader is the one legitimate
+    // embedder, and its origin is always chrome-extension:// (the id differs
+    // between unpacked and Web Store builds, the scheme never does). "null"
+    // is what an opaque origin serializes to and is not a legal postMessage
+    // target, so it never arms anything.
+    if (!parentOrigin && e.origin && e.origin.indexOf("chrome-extension://") === 0) {
       parentOrigin = e.origin;
       postReady(); // the player may already have been ready before this
     }
+    // Once armed, later messages must still come from that same origin: a
+    // parent that navigated cross-origin keeps the same WindowProxy, so the
+    // source check alone stops proving identity (audit B8).
+    if (parentOrigin && e.origin !== parentOrigin) return;
     if (d.func === "hello") return;
     var args = Array.isArray(d.args) ? d.args : [];
     if (d.func === "seekTo") {
@@ -174,6 +181,18 @@
   // "confirm you're not a bot" gate even for a signed-in viewer. Using the
   // main domain lets the existing session identify the viewer, at the cost of
   // the cookies that domain sets (disclosed in privacy.md).
+  // The API firing is not the player working (audit B8): the constructor can
+  // throw, the player can call onError, or onReady can simply never come --
+  // and the old apiFired latch then blocked the fallback forever, a black
+  // box. The latch now releases on every one of those, and a ready-timeout
+  // covers the silent case.
+  function apiPathFailed() {
+    if (ready || fallbackFrame) return;
+    try { if (player && typeof player.destroy === "function") player.destroy(); } catch (_) {}
+    player = null;
+    apiFired = false;
+    mountFallback();
+  }
   window.onYouTubeIframeAPIReady = function () {
     apiFired = true;
     if (fallbackFrame) return; // the fallback already owns the frame
@@ -183,9 +202,14 @@
         width: "100%",
         height: "100%",
         playerVars: { enablejsapi: 1, rel: 0, origin: location.origin },
-        events: { onReady: onReady, onStateChange: onStateChange }
+        events: {
+          onReady: onReady,
+          onStateChange: onStateChange,
+          onError: function () { apiPathFailed(); }
+        }
       });
-    } catch (_) { /* no player: the page stays a black box, as before */ }
+    } catch (_) { apiPathFailed(); return; }
+    setTimeout(apiPathFailed, 8000); // no onReady by then -> plain embed
   };
   var api = document.createElement("script");
   api.src = "https://www.youtube.com/iframe_api";

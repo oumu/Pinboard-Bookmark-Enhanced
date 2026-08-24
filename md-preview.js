@@ -559,6 +559,13 @@ function pbpApplyColorScheme(mode) {
   // legacy global key so it still opens.
   const k = new URLSearchParams(location.search).get("k");
   const MP_KEY = k ? "md_preview_data_" + k : "md_preview_data";
+  // Slot ownership for commit-time writes (audit B6): the slot is keyed by
+  // the URL's k param, so Duplicate Tab / session restore gives two live
+  // pages the SAME slot. Every record this page writes carries this nonce;
+  // the committer refuses to overwrite a record another page wrote after
+  // this page loaded, instead of silently clobbering it.
+  const _pageNonce = (crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Math.random()).slice(2);
+  const _pageLoadTs = Date.now();
   // Read preview data from storage. The reader typography tiers (plan B) ride
   // this SAME read -- no extra IPC -- and are applied BEFORE the first render
   // below, so a non-default tier never paints at the default and re-lays out.
@@ -577,13 +584,13 @@ function pbpApplyColorScheme(mode) {
     renderEmptyState(t("mdPreviewEmpty"));
     return;
   }
-  // Clear temporary data — but KEEP a pending/restore placeholder so a manual reload
-  // during extraction (or before it retriggers, on F5 / Memory Saver discard) re-drives
-  // it instead of hitting the empty state (the reextract success path overwrites
-  // md_preview_data with the full payload, which that load then clears).
-  if (!info.pending && !info.restore) {
-    await chrome.storage.local.remove(MP_KEY);
-  }
+  // Deferred cleanup (audit B5): the slot is REPLACED by the lighter restore
+  // record further down in this same load, so nothing is removed here any
+  // more. The old early remove opened a delete-then-rewrite window where an
+  // F5, crash or Memory-Saver discard between the two landed on "no preview
+  // data" -- for a committed transcript that meant silently losing a paid
+  // AI-punctuation pass. A load that dies before the rewrite now re-renders
+  // this same payload instead.
 
   const { contentHtml, title, url, tokens, source } = info;
   const srcTabId = info.tabId;
@@ -756,6 +763,18 @@ function pbpApplyColorScheme(mode) {
       // the same record the bootstrap re-writes for a committed page (see
       // _restoreRecord below) -- the two shapes have to stay in step or a
       // reload silently drops whatever only one of them carries.
+      // Same-slot stranger check (audit B6): a duplicated preview tab shares
+      // this slot. If a record with a DIFFERENT page nonce landed after this
+      // page loaded, that page owns the slot now -- overwriting it would
+      // clobber its article and fork what an F5 restores. This page keeps
+      // its in-memory article; only the persistence is refused.
+      try {
+        const cur = (await chrome.storage.local.get(MP_KEY))[MP_KEY];
+        if (cur && typeof cur.nonce === "string" && cur.nonce !== _pageNonce && (cur.ts || 0) > _pageLoadTs) {
+          console.warn("[pbp-video] commit refused: another preview page wrote this slot after we loaded");
+          return false;
+        }
+      } catch (_) {}
       try {
         await chrome.storage.local.set({
           [MP_KEY]: {
@@ -766,7 +785,8 @@ function pbpApplyColorScheme(mode) {
             videoDescriptionMd: descMd,
             url, baseUrl, sourceTabUrl, tabId: srcTabId,
             source: source === "jina" ? "jina" : "local",
-            account: previewAccount, tags, description, ts: Date.now()
+            account: previewAccount, tags, description, ts: Date.now(),
+            nonce: _pageNonce
           }
         });
       } catch (e) {
@@ -827,6 +847,10 @@ function pbpApplyColorScheme(mode) {
       await attemptExtract(engine);
     }
     async function attemptExtract(engine) {
+      // A committed transcript page must never be re-extracted from this
+      // shell (audit B4): the reextract success path would overwrite the
+      // transcript payload with a plain extraction and reload over it.
+      if (window.pbpVideoDoc && window.pbpVideoDoc.committed === true) return;
       inFlight = true;
       attemptedEngine = engine;
       applyAvailability(engine);
@@ -841,7 +865,11 @@ function pbpApplyColorScheme(mode) {
           account: previewAccount, tags, description, k
         });
       } catch (_) { pr = { ok: false, error: "network" }; }
-      inFlight = false;
+      // inFlight stays HELD past this point (audit B4): the old release here
+      // let a .src-seg retry or engine switch run concurrently with the
+      // video branch's caption session and payload writes below, racing two
+      // writers for MP_KEY. Non-video pages release right after detection;
+      // video pages hold it until this attempt's terminal decision.
       if (pr && pr.ok) { location.reload(); return; }
       renderErrorState(
         friendlyEngineErr(pr),
@@ -869,51 +897,66 @@ function pbpApplyColorScheme(mode) {
       const vDetectedErr = typeof pbpVideoDetect === "function" ? pbpVideoDetect(sourceTabUrl || url) : null;
       if (vDetectedErr) {
         document.body.classList.add("video-mode");
-        // The caption session is extraction work too: leaving inFlight false
-        // here let a .src-seg badge click start a concurrent attemptExtract
-        // while a transcript commit + reload was already under way, so two
-        // writers raced for MP_KEY. Held for the whole block and released only
-        // if we are NOT reloading.
-        inFlight = true;
+        // inFlight is still held from the dispatch above (audit B4).
         let committed = false;
-        try {
-          let vSession = null;
-          if (typeof window.pbpPrepareVideoSession === "function") {
-            try { vSession = await window.pbpPrepareVideoSession({ pageUrl: sourceTabUrl || url, tabId: srcTabId }); }
-            catch (e) { console.warn("[pbp-video] session failed on error shell:", (e && e.message) || e); }
-          }
-          if (vSession && vSession.granted && vSession.segments && vSession.segments.length
-              && typeof pbpVideoTranscriptMarkdown === "function" && typeof pbpVideoTranscriptMeta === "function") {
-            committed = await window.pbpVideoCommitTranscript(
-              pbpVideoTranscriptMarkdown(vSession.segments, pbpVideoTranscriptMeta(vSession, title, sourceTabUrl || url)),
-              title || ""
-            );
-          }
-        } finally {
-          if (!committed) inFlight = false;
+        let vSession = null;
+        if (typeof window.pbpPrepareVideoSession === "function") {
+          try { vSession = await window.pbpPrepareVideoSession({ pageUrl: sourceTabUrl || url, tabId: srcTabId }); }
+          catch (e) { console.warn("[pbp-video] session failed on error shell:", (e && e.message) || e); }
+        }
+        if (vSession && vSession.granted && vSession.segments && vSession.segments.length
+            && typeof pbpVideoTranscriptMarkdown === "function" && typeof pbpVideoTranscriptMeta === "function") {
+          // audit B1: this commit used to pass no videoState at all, so the
+          // committed page could never hydrate -- every later F5 re-fetched
+          // captions over the network and re-derived the default track.
+          // Same state constructor as the panel's promotion commit.
+          const commitMeta = pbpVideoTranscriptMeta(vSession, title, sourceTabUrl || url);
+          const vState = typeof pbpVideoStateBuild === "function" ? pbpVideoStateBuild({
+            detected: vDetectedErr, track: vSession.track || null, tracks: vSession.tracks || [],
+            segments: vSession.segments, aiParas: null, wasUnpunct: vSession.wasUnpunct === true,
+            aiPunct: false, meta: commitMeta
+          }) : undefined;
+          committed = await window.pbpVideoCommitTranscript(
+            pbpVideoTranscriptMarkdown(vSession.segments, commitMeta),
+            title || "",
+            { aiPunct: false, reason: "video-promotion", videoState: vState }
+          );
         }
         if (committed) {
           // PHASE-1 BOUNDARY. The committer no longer reloads -- replacing the
           // article in place is the whole point of this campaign -- but this
           // shell returns long before the article runtime is built, so the
           // transcript it just persisted has no pipeline to be swapped into.
-          // The reload therefore belongs to the caller, and here it is. Phase 2
-          // of the spec (docs/superpowers/codex-in-place-replace-spec-2026-08-23.md,
-          // "首次授权 promotion") replaces this with a real runtime activation.
+          // The reload therefore belongs to the caller, and here it is.
           location.reload();
           return; // reload under way; do not also mount the panel
         }
-        // The panel about to mount can still promote the transcript once the
-        // user grants the origin (md-video.js's first-run commit), which needs
-        // a pbpVideoDoc to key off. No transcript reached the article here, so
-        // this shell is a fallback by definition.
+        // No captions in hand (audit B5b): rebuild THIS page as the
+        // synthesized-article page instead of parking on the half shell. The
+        // reloaded page's empty-content guard synthesizes the title+link
+        // article and enters the FULL progressive runtime -- rail, exports,
+        // engine-switch badges and the in-place promotion pipeline all exist
+        // there, none of which this shell has. The caption auto-boot then
+        // re-runs the chain with the runtime present.
+        try {
+          await chrome.storage.local.set({ [MP_KEY]: {
+            markdown: "", title: title || "", url, baseUrl, sourceTabUrl, tabId: srcTabId,
+            source: attemptedEngine === "jina" ? "jina" : "local",
+            account: previewAccount, tags, description, ts: Date.now(), nonce: _pageNonce
+          } });
+          location.reload();
+          return;
+        } catch (e) {
+          console.warn("[pbp-video] shell payload rewrite failed:", (e && e.name) || "", (e && e.message) || e);
+        }
+        // Storage refused the rewrite: the old half shell is the fallback.
+        // The panel about to mount can still promote the transcript later,
+        // which needs a pbpVideoDoc to key off and a reload applier.
         if (!window.pbpVideoDoc) window.pbpVideoDoc = { kind: "video-fallback", descriptionMarkdown: "" };
-        // Same phase-1 boundary for THAT commit: it goes through the same
-        // single writer, which has no runtime to replace into on this shell
-        // either. Registering the reload as this page's applier keeps the
-        // decision here (with its sibling above) instead of putting a reload
-        // back inside the committer.
         _applyArticleCommit = () => { location.reload(); };
+        inFlight = false;
+      } else {
+        inFlight = false;
       }
       if (typeof pbpVideoInit === "function") pbpVideoInit({ pageUrl: sourceTabUrl || url, title: title, tabId: srcTabId });
       else console.warn("[pbp-video] mount unavailable: pbpVideoInit missing after deferred scripts");
@@ -1114,12 +1157,14 @@ function pbpApplyColorScheme(mode) {
         videoDescriptionMd: (window.pbpVideoDoc && window.pbpVideoDoc.descriptionMarkdown) || "",
         title: title || "", url, baseUrl, sourceTabUrl, tabId: srcTabId,
         source: source === "jina" ? "jina" : "local",
-        account: previewAccount, tags, description, ts: Date.now()
+        account: previewAccount, tags, description, ts: Date.now(),
+        nonce: _pageNonce
       }
     : {
         restore: true, url, tabId: srcTabId, sourceTabUrl,
         engine: source === "jina" ? "jina" : "local",
-        account: previewAccount, tags, description, ts: Date.now()
+        account: previewAccount, tags, description, ts: Date.now(),
+        nonce: _pageNonce
       };
   try {
     await chrome.storage.local.set({ [MP_KEY]: _restoreRecord });

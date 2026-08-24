@@ -3639,5 +3639,8 @@
   "mdVideoFollow": { "message": "字幕跟隨播放進度" },
   "mdVideoSeekTo": { "message": "跳至 $TIME$", "placeholders": { "time": { "content": "$1" } } },
   "mdVideoCopyFailed": { "message": "複製失敗" },
-  "mdVideoOpenExternal": { "message": "在 YouTube 開啟" }
+  "mdVideoOpenExternal": { "message": "在 YouTube 開啟" },
+  "mdVideoRetry": { "message": "重新偵測字幕" },
+  "mdVideoPermDeclined": { "message": "影片已載入，字幕未啟用" },
+  "mdVideoAiPunctPartial": { "message": "已完成 $DONE$/$TOTAL$ 批，其餘保留原文；再點一次只重試失敗部分", "placeholders": { "done": { "content": "$1" }, "total": { "content": "$2" } } }
 }

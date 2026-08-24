@@ -3639,5 +3639,8 @@
   "mdVideoFollow": { "message": "Sous-titres synchronisés avec la lecture" },
   "mdVideoSeekTo": { "message": "Aller à $TIME$", "placeholders": { "time": { "content": "$1" } } },
   "mdVideoCopyFailed": { "message": "Échec de la copie" },
-  "mdVideoOpenExternal": { "message": "Ouvrir sur YouTube" }
+  "mdVideoOpenExternal": { "message": "Ouvrir sur YouTube" },
+  "mdVideoRetry": { "message": "Revérifier les sous-titres" },
+  "mdVideoPermDeclined": { "message": "Vidéo chargée ; sous-titres non activés" },
+  "mdVideoAiPunctPartial": { "message": "$DONE$ lots sur $TOTAL$ terminés ; le reste garde le texte d'origine. Cliquez à nouveau pour ne relancer que les lots en échec.", "placeholders": { "done": { "content": "$1" }, "total": { "content": "$2" } } }
 }

@@ -3633,5 +3633,8 @@
   "mdVideoFollow": { "message": "Transcript follows playback position" },
   "mdVideoSeekTo": { "message": "Jump to $TIME$", "placeholders": { "time": { "content": "$1" } } },
   "mdVideoCopyFailed": { "message": "Copy failed" },
-  "mdVideoOpenExternal": { "message": "Open on YouTube" }
+  "mdVideoOpenExternal": { "message": "Open on YouTube" },
+  "mdVideoRetry": { "message": "Re-check subtitles" },
+  "mdVideoPermDeclined": { "message": "Video loaded; subtitles not enabled" },
+  "mdVideoAiPunctPartial": { "message": "$DONE$ of $TOTAL$ batches done; the rest kept their original text. Click again to retry only the failed ones.", "placeholders": { "done": { "content": "$1" }, "total": { "content": "$2" } } }
 }
