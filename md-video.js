@@ -3335,12 +3335,12 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
             if (_aiCancelRequested) {
               // Between-batch cancel (audit U8): finished batches stay in
               // the cache, nothing commits, the button survives via finally.
-              pbvSetStatus(status, t("mdVideoAiPunctPartial", [String(outBatches.length), String(batches.length)]), true);
+              pbvSetStatus(status, t("mdVideoAiPunctPartial", String(outBatches.length), String(batches.length)), true);
               return;
             }
             const cached = _aiBatchCache.get(b);
             if (cached != null) { outBatches.push(cached); continue; }
-            pbvSetStatus(status, t("mdVideoAiPunctProgress", [String(bi + 1), String(batches.length)]), false);
+            pbvSetStatus(status, t("mdVideoAiPunctProgress", String(bi + 1), String(batches.length)), false);
             const prompt = "为下面的语音转写文本添加或修正标点符号，并按语义用空行分段。严格保持文字本身不变：不得增加、删除或改写任何非标点文字。直接输出处理后的文本，不要任何解释。\n\n" + b;
             // Output ≈ input + marks: the provider DEFAULT of ~1024 output
             // tokens truncates any full-size (~1600+ char) CJK batch, and a
@@ -3370,7 +3370,11 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
               // conservation whitelist.
               console.warn("[pbp-video] ai punctuation: batch " + (bi + 1) + "/" + batches.length
                 + " failed conservation (in " + b.length + " chars, out " + out.length + " chars) -- keeping original");
-            } else {
+            } else if (pbpVideoPunctChanged([out], [b])) {
+              // Cache only outputs that actually punctuated something: a
+              // whitespace-only echo passes conservation, and caching it
+              // poisons every later retry into the no-change guard (caught
+              // live by the mock-Z discriminator, 2026-08-24).
               _aiBatchCache.set(b, out.trim());
             }
             outBatches.push(ok ? out.trim() : b);
@@ -3380,7 +3384,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           // batches that still carry heuristic text. Passed batches are
           // cached above, so the retry click only re-pays for the failures.
           if (rejected > 0) {
-            pbvSetStatus(status, t("mdVideoAiPunctPartial", [String(batches.length - rejected), String(batches.length)]), true);
+            pbvSetStatus(status, t("mdVideoAiPunctPartial", String(batches.length - rejected), String(batches.length)), true);
             return;
           }
           // A pass that changed nothing must not commit: committing the
