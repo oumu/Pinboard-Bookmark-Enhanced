@@ -306,6 +306,10 @@ let _pbpSkimDeferredVideo = false;
 async function _pbpSkimLoad(rev) {
   if (window.pbpVideoDoc && window.pbpVideoDoc.kind === "video-fallback") {
     _pbpSkimDeferredVideo = true;
+    // Say so (critic #2): if the transcript never lands (grant declined, no
+    // tracks, quota), the panel must not sit empty and mute -- the status
+    // names the wait and Regenerate stays the manual way out.
+    _pbpSkimSetStatus(t("skimWaitingCaptions"));
     return;
   }
   const st = _pbpSkimState;
@@ -559,6 +563,7 @@ async function _pbpSkimRegen() {
   const rev = _pbpSkimArticleRev;
   let owned = true;
   const superseded = () => rev !== _pbpSkimArticleRev || _pbpSkimState !== st;
+  _pbpSkimDeferredVideo = false; // an explicit Regenerate overrides the video deferral
   st.running = true;
   const retry = document.querySelector("#skim-body .skim-retry");
   if (retry) retry.disabled = true;

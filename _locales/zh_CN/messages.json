@@ -3691,5 +3691,6 @@
   "mdVideoAuxTrack": { "message": "对照字幕" },
   "mdVideoAuxNone": { "message": "无对照字幕" },
   "mdVideoStateOn": { "message": "已开启" },
-  "mdVideoStateOff": { "message": "已关闭" }
+  "mdVideoStateOff": { "message": "已关闭" },
+  "skimWaitingCaptions": { "message": "字幕就位后自动生成要点；也可点「重新生成」立即生成" }
 }

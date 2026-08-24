@@ -3697,5 +3697,6 @@
   "mdVideoAuxTrack": { "message": "Napisy towarzyszące" },
   "mdVideoAuxNone": { "message": "Bez napisów towarzyszących" },
   "mdVideoStateOn": { "message": "włączone" },
-  "mdVideoStateOff": { "message": "wyłączone" }
+  "mdVideoStateOff": { "message": "wyłączone" },
+  "skimWaitingCaptions": { "message": "Kluczowe punkty powstaną, gdy pojawią się napisy; „Wygeneruj ponownie” zrobi to teraz" }
 }

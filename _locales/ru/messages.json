@@ -3697,5 +3697,6 @@
   "mdVideoAuxTrack": { "message": "Параллельные субтитры" },
   "mdVideoAuxNone": { "message": "Без параллельных субтитров" },
   "mdVideoStateOn": { "message": "включено" },
-  "mdVideoStateOff": { "message": "выключено" }
+  "mdVideoStateOff": { "message": "выключено" },
+  "skimWaitingCaptions": { "message": "Ключевые тезисы появятся, когда загрузятся субтитры; «Сгенерировать заново» — сразу" }
 }

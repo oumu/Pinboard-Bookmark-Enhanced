@@ -485,9 +485,12 @@ function pbpAskBuildNearContext(blocks, curSec, budgetTokens) {
 function _pbpAskEnsureCtx(st) {
   if (st.scopeNear) {
     const cur = (typeof window.pbpVideoCurrentTime === "function") ? window.pbpVideoCurrentTime() : null;
-    const near = pbpAskBuildNearContext(pbpAiBlocks(), cur == null ? 0 : cur, PBP_ASK_CTX_BUDGET);
+    // No position -> full-article scope, never a guessed 0:00 (critic #1).
+    const near = (cur == null) ? null : pbpAskBuildNearContext(pbpAiBlocks(), cur, PBP_ASK_CTX_BUDGET);
     if (near) { st.ctx = near; return; }
     st.scopeNear = false;
+    const btn = document.getElementById("ask-scope-near");
+    if (btn) btn.setAttribute("aria-pressed", "false");
   }
   if (!st.ctx || st.ctx.near) {
     st.ctx = pbpAskBuildContext(pbpAiBlocks(), PBP_ASK_CTX_BUDGET);
@@ -506,9 +509,14 @@ function _pbpAskEnsureCtx(st) {
 function _pbpAskRefreshScopeToggle() {
   const btn = document.getElementById("ask-scope-near");
   if (!btn) return;
+  // A real position is required, not just the accessor (critic #1): on
+  // bilibili (no position protocol) and on YouTube before first play the
+  // accessor returns null, and "near the current moment" would silently
+  // anchor to 0:00 -- a paid wrong answer, not a degradation.
+  const cur = (typeof window.pbpVideoCurrentTime === "function") ? window.pbpVideoCurrentTime() : null;
   const usable = document.body.classList.contains("video-mode")
     && !!document.querySelector("#rendered-view > p[data-t]")
-    && typeof window.pbpVideoCurrentTime === "function";
+    && cur != null;
   btn.hidden = !usable;
   if (!usable && _pbpAskState.scopeNear) {
     _pbpAskState.scopeNear = false;

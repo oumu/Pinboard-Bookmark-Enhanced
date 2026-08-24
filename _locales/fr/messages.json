@@ -3697,5 +3697,6 @@
   "mdVideoAuxTrack": { "message": "Sous-titres compagnons" },
   "mdVideoAuxNone": { "message": "Aucun sous-titre compagnon" },
   "mdVideoStateOn": { "message": "activé" },
-  "mdVideoStateOff": { "message": "désactivé" }
+  "mdVideoStateOff": { "message": "désactivé" },
+  "skimWaitingCaptions": { "message": "Les points clés seront générés dès l'arrivée des sous-titres ; « Régénérer » le fait maintenant" }
 }

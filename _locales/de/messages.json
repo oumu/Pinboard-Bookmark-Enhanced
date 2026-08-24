@@ -3697,5 +3697,6 @@
   "mdVideoAuxTrack": { "message": "Begleituntertitel" },
   "mdVideoAuxNone": { "message": "Keine Begleituntertitel" },
   "mdVideoStateOn": { "message": "an" },
-  "mdVideoStateOff": { "message": "aus" }
+  "mdVideoStateOff": { "message": "aus" },
+  "skimWaitingCaptions": { "message": "Kernpunkte werden erzeugt, sobald die Untertitel da sind; „Neu erzeugen“ macht es sofort" }
 }

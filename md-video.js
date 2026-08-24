@@ -1735,7 +1735,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         btn.tabIndex = -1; // 165 tab stops otherwise; keyboard seeking lives on the timeline / [ ] / c (retro A11Y-2)
         btn.addEventListener("click", (ev) => {
           ev.stopPropagation();
-          seekTo(Number(btn.dataset.t || "0"));
+          seekTo(Number(btn.dataset.t || "0"), false); // jump, keep the play state (critic #3)
         });
         p.insertBefore(btn, p.firstChild);
       }
@@ -1781,7 +1781,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     return s;
   };
   // Seek entry for reader modules (Ask/skim chips): same best-effort seekTo.
-  window.pbpVideoSeek = (sec) => { try { seekTo(Math.max(0, Math.floor(Number(sec) || 0))); } catch (_) {} };
+  window.pbpVideoSeek = (sec) => { try { seekTo(Math.max(0, Number(sec) || 0), false); } catch (_) {} }; // citation jumps keep the play state
 
   // Study-column reading/timeline toggle (Task 4). Set by mountVideoWorkspace
   // only in video-mode workspaces; a non-video defensive mount (panel stays a
@@ -2573,8 +2573,14 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     }, 2000);
   }
 
-  function seekTo(sec) {
+  // play: true (default) = the entry means "play from here" (timeline row,
+  // selection bar, cue stepping, loop); false = a pure jump that keeps the
+  // player's play/pause state (gutter badge, Ask/skim chips, resume) so it
+  // never fights the auto-pause / lookup-pause it may have just triggered
+  // (critic #3).
+  function seekTo(sec, play) {
     if (!_iframe || !_iframe.contentWindow) return;
+    const wantPlay = play !== false;
     if (_isBili) {
       // player.bilibili.com exposes no postMessage seek API; the only
       // working jump is reloading the iframe with its t= start parameter.
@@ -2585,7 +2591,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       try {
         const u = new URL(_iframe.src);
         u.searchParams.set("t", String(Math.max(0, Math.floor(sec))));
-        u.searchParams.set("autoplay", "1");
+        u.searchParams.set("autoplay", wantPlay ? "1" : "0");
         _iframe.src = u.toString();
         // (research T3.6①) bilibili has no position protocol, but THIS
         // jump's target is exact knowledge -- mark the row so the timeline
@@ -2606,7 +2612,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     // Best-effort: if the player isn't ready the message is dropped -- the
     // row click then simply does nothing (degrade, never throw).
     relayPost("seekTo", [sec, true]);
-    relayPost("playVideo");
+    if (wantPlay || _relayState === 1) relayPost("playVideo");
     markSeek(sec);
   }
   // Seek as a pending transaction (retro #10): mark the target row now (the
@@ -3034,16 +3040,21 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     // rows' time buttons; Enter/Space are the button's own activation.
     if (!/^(ArrowUp|ArrowDown|Home|End)$/.test(e.key)) return;
     const list = e.currentTarget;
-    const btns = Array.from(list.querySelectorAll(".pbv-row:not(.pbv-row--static) > .pbv-time"));
-    if (!btns.length) return;
-    let i = btns.indexOf(document.activeElement);
-    if (e.key === "Home") i = 0;
-    else if (e.key === "End") i = btns.length - 1;
-    else if (i < 0) i = e.key === "ArrowDown" ? 0 : btns.length - 1;
-    else i = Math.min(btns.length - 1, Math.max(0, i + (e.key === "ArrowDown" ? 1 : -1)));
+    // Structural walk, O(1) per key (critic #4): a full querySelectorAll
+    // per repeat would also defeat content-visibility on thousands of rows.
+    const seekableRow = (r, dir) => { while (r && r.classList.contains("pbv-row--static")) r = dir < 0 ? r.previousElementSibling : r.nextElementSibling; return r; };
+    const ae = document.activeElement;
+    const curRow = ae && ae.closest ? ae.closest(".pbv-row") : null;
+    let row = null;
+    if (e.key === "Home") row = seekableRow(list.firstElementChild, 1);
+    else if (e.key === "End") row = seekableRow(list.lastElementChild, -1);
+    else if (!curRow || curRow.parentElement !== list) row = seekableRow(e.key === "ArrowDown" ? list.firstElementChild : list.lastElementChild, e.key === "ArrowDown" ? 1 : -1);
+    else row = seekableRow(e.key === "ArrowDown" ? curRow.nextElementSibling : curRow.previousElementSibling, e.key === "ArrowDown" ? 1 : -1) || curRow;
+    const btn = row ? row.querySelector(":scope > .pbv-time") : null;
+    if (!btn) return;
     e.preventDefault();
-    setRoving(btns[i]);
-    try { btns[i].focus({ preventScroll: false }); } catch (_) {}
+    setRoving(btn);
+    try { btn.focus({ preventScroll: false }); } catch (_) {}
   }
 
   function bindFollowPause(list) {
@@ -5258,6 +5269,10 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       // _studyListEl, so it keeps building + keeping the list in-panel, as
       // before.
       const body = _studyListEl || el("div", "pbv-list");
+      if (!_studyListEl) { // defensive mount: same list semantics as the workspace list (critic #6)
+        body.setAttribute("role", "list");
+        body.setAttribute("aria-label", t("mdVideoTimelineAria"));
+      }
       bindFollowPause(body);
       bindRowClicks(body);
       // (research T7.2) replaceChildren is about to remove the poster the

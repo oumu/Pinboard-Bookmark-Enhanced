@@ -3691,5 +3691,6 @@
   "mdVideoAuxTrack": { "message": "Companion captions" },
   "mdVideoAuxNone": { "message": "No companion captions" },
   "mdVideoStateOn": { "message": "on" },
-  "mdVideoStateOff": { "message": "off" }
+  "mdVideoStateOff": { "message": "off" },
+  "skimWaitingCaptions": { "message": "Key points will be generated once the captions land; Regenerate makes them now" }
 }

@@ -3697,5 +3697,6 @@
   "mdVideoAuxTrack": { "message": "対訳字幕" },
   "mdVideoAuxNone": { "message": "対訳字幕なし" },
   "mdVideoStateOn": { "message": "オン" },
-  "mdVideoStateOff": { "message": "オフ" }
+  "mdVideoStateOff": { "message": "オフ" },
+  "skimWaitingCaptions": { "message": "字幕が揃うと要点を自動生成します。「再生成」で今すぐ生成できます" }
 }

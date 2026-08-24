@@ -169,11 +169,17 @@ function fetchWithTimeout(url, options = {}, timeoutMs = 30000) {
   // the reader aborts the in-flight request instead of waiting out the
   // round-trip; the timeout controller still governs on its own.
   const caller = options.signal;
+  const onAbort = () => controller.abort();
   if (caller) {
     if (caller.aborted) controller.abort();
-    else caller.addEventListener("abort", () => controller.abort(), { once: true });
+    else caller.addEventListener("abort", onAbort, { once: true });
   }
-  return fetch(url, { ...options, redirect: "error", signal: controller.signal }).finally(() => clearTimeout(timer));
+  return fetch(url, { ...options, redirect: "error", signal: controller.signal }).finally(() => {
+    clearTimeout(timer);
+    // Unhook on settle (critic #5): one pass shares a signal across N batch
+    // requests, and { once } only fires-and-removes on abort, not on success.
+    if (caller) { try { caller.removeEventListener("abort", onAbort); } catch (_) {} }
+  });
 }
 
 // ---- Unified AI error handler ----
