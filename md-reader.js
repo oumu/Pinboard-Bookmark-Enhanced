@@ -821,6 +821,17 @@ const PBP_KBD_HELP_ROWS = [
   { chips: ["?"], key: "kbdHelpShowHelp" },
   { chips: ["Esc"], key: "kbdHelpClose" }
 ];
+// Video pages only (research T3.3) -- appended at build time when the page
+// is in video-mode (set before the help can be opened).
+const PBP_KBD_HELP_VIDEO_ROWS = [
+  { chips: ["Space"], key: "kbdHelpVideoPlay" },
+  { chips: ["←", "→"], key: "kbdHelpVideoSeek" },
+  { chips: ["[", "]"], key: "kbdHelpVideoCue" },
+  { chips: ["r"], key: "kbdHelpVideoLoop" },
+  { chips: ["f"], key: "kbdHelpVideoFollow" },
+  { chips: ["c"], key: "kbdHelpVideoCurrent" },
+  { chips: ["b"], key: "kbdHelpVideoView" }
+];
 let _pbpKbdHelpPopEl = null;
 
 function _pbpKbdHelpEnsurePop() {
@@ -834,7 +845,9 @@ function _pbpKbdHelpEnsurePop() {
   pop.appendChild(title);
   const list = document.createElement("ul");
   list.className = "kbd-help-list";
-  PBP_KBD_HELP_ROWS.forEach((row) => {
+  const rows = document.body.classList.contains("video-mode")
+    ? PBP_KBD_HELP_ROWS.concat(PBP_KBD_HELP_VIDEO_ROWS) : PBP_KBD_HELP_ROWS;
+  rows.forEach((row) => {
     const li = document.createElement("li");
     li.className = "kbd-help-row";
     const chipWrap = document.createElement("span");

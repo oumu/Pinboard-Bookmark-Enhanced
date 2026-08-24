@@ -3664,5 +3664,19 @@
   "askScopeNear": { "message": "Near the current moment" },
   "askScopeNearHint": { "message": "Send only the two paragraphs around the current caption -- fewer tokens" },
   "hlTimelineHint": { "message": "Switch to the reading view to highlight" },
-  "hlSeekHere": { "message": "Play from here" }
+  "hlSeekHere": { "message": "Play from here" },
+  "mdVideoLoop": { "message": "Repeat this cue" },
+  "mdVideoAutoPause": { "message": "Pause after each cue" },
+  "mdVideoRate": { "message": "Playback speed" },
+  "mdVideoFollowPaused": { "message": "Follow paused" },
+  "mdVideoBackToCurrent": { "message": "Back to the current cue $TIME$", "placeholders": { "time": { "content": "$1" } } },
+  "mdVideoEstimate": { "message": "Estimated position (extrapolated from the last jump; may drift)" },
+  "mdVideoTimelineAria": { "message": "Caption timeline" },
+  "kbdHelpVideoPlay": { "message": "Play / pause" },
+  "kbdHelpVideoSeek": { "message": "Back / forward 3 s" },
+  "kbdHelpVideoCue": { "message": "Previous / next cue" },
+  "kbdHelpVideoLoop": { "message": "Repeat this cue" },
+  "kbdHelpVideoFollow": { "message": "Follow playback" },
+  "kbdHelpVideoCurrent": { "message": "Back to the current cue" },
+  "kbdHelpVideoView": { "message": "Reading / timeline" }
 }

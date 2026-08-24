@@ -147,7 +147,10 @@
     if (window.parent === window || e.source !== window.parent) return;
     var d = e.data;
     if (!d || typeof d !== "object" || d.pbpVideo !== 1) return;
-    if (d.func !== "seekTo" && d.func !== "playVideo" && d.func !== "hello") return;
+    // Allowlist (research T3.1 added pauseVideo + setPlaybackRate): still a
+    // closed set -- the reader speaks these five verbs, nothing else.
+    if (d.func !== "seekTo" && d.func !== "playVideo" && d.func !== "hello"
+        && d.func !== "pauseVideo" && d.func !== "setPlaybackRate") return;
     // Arm outbound reporting on the FIRST valid inbound message -- and only
     // for an extension parent (audit B8): the reader is the one legitimate
     // embedder, and its origin is always chrome-extension:// (the id differs
@@ -173,6 +176,21 @@
       if (fallbackFrame) { forward("seekTo", [sec, true]); return; }
       if (!player || typeof player.seekTo !== "function") { pendingSeek = sec; return; }
       try { player.seekTo(sec, true); } catch (_) {}
+      return;
+    }
+    if (d.func === "pauseVideo") {
+      if (fallbackFrame) { forward("pauseVideo", []); return; }
+      if (!player || typeof player.pauseVideo !== "function") return;
+      try { player.pauseVideo(); } catch (_) {}
+      return;
+    }
+    if (d.func === "setPlaybackRate") {
+      // Bounded to what the IFrame API accepts; anything else is dropped.
+      var rate = Number(args[0]);
+      if (!isFinite(rate) || rate < 0.25 || rate > 2) return;
+      if (fallbackFrame) { forward("setPlaybackRate", [rate]); return; }
+      if (!player || typeof player.setPlaybackRate !== "function") return;
+      try { player.setPlaybackRate(rate); } catch (_) {}
       return;
     }
     if (fallbackFrame) { forward("playVideo", []); return; }

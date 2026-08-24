@@ -3670,5 +3670,19 @@
   "askScopeNear": { "message": "Nahe der aktuellen Stelle" },
   "askScopeNearHint": { "message": "Nur die zwei Absätze um die aktuelle Untertitelzeile senden -- weniger Tokens" },
   "hlTimelineHint": { "message": "Zum Markieren in die Leseansicht wechseln" },
-  "hlSeekHere": { "message": "Ab hier abspielen" }
+  "hlSeekHere": { "message": "Ab hier abspielen" },
+  "mdVideoLoop": { "message": "Diesen Untertitel wiederholen" },
+  "mdVideoAutoPause": { "message": "Nach jedem Untertitel pausieren" },
+  "mdVideoRate": { "message": "Wiedergabegeschwindigkeit" },
+  "mdVideoFollowPaused": { "message": "Mitlaufen pausiert" },
+  "mdVideoBackToCurrent": { "message": "Zurück zum aktuellen Untertitel $TIME$", "placeholders": { "time": { "content": "$1" } } },
+  "mdVideoEstimate": { "message": "Geschätzte Position (vom letzten Sprung hochgerechnet, kann abweichen)" },
+  "mdVideoTimelineAria": { "message": "Untertitel-Zeitleiste" },
+  "kbdHelpVideoPlay": { "message": "Wiedergabe / Pause" },
+  "kbdHelpVideoSeek": { "message": "3 s zurück / vor" },
+  "kbdHelpVideoCue": { "message": "Voriger / nächster Untertitel" },
+  "kbdHelpVideoLoop": { "message": "Diesen Untertitel wiederholen" },
+  "kbdHelpVideoFollow": { "message": "Wiedergabe folgen" },
+  "kbdHelpVideoCurrent": { "message": "Zurück zum aktuellen Untertitel" },
+  "kbdHelpVideoView": { "message": "Lesetext / Zeitleiste" }
 }

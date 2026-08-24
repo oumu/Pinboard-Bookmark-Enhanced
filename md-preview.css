@@ -3516,14 +3516,29 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
    rule enumerates CLASSES (not `button`) because .pbv-open-ext is an <a> --
    a bare `button svg` selector would leave it at its embedded 14px and the
    row would mix glyph sizes. */
-.pbv-copy, .pbv-ai-punct, .pbv-follow, .pbv-retry, .pbv-ai-cancel {
+.pbv-copy, .pbv-ai-punct, .pbv-follow, .pbv-retry, .pbv-ai-cancel, .pbv-loop, .pbv-autopause, .pbv-estimate {
   min-height: 28px; min-width: 28px; padding: 4px; font: inherit; cursor: pointer;
   display: inline-flex; align-items: center; justify-content: center;
   border: 1px solid var(--btn-border); background: var(--btn-bg); color: var(--btn-fg); border-radius: 6px;
 }
-.pbv-copy:hover, .pbv-ai-punct:hover, .pbv-follow:hover, .pbv-retry:hover, .pbv-ai-cancel:hover { background: var(--btn-hover); }
-.pbv-copy:focus-visible, .pbv-ai-punct:focus-visible, .pbv-follow:focus-visible, .pbv-retry:focus-visible, .pbv-ai-cancel:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
-.pbv-copy svg, .pbv-ai-punct svg, .pbv-follow svg, .pbv-retry svg, .pbv-ai-cancel svg, .pbv-open-ext svg { width: 16px; height: 16px; }
+.pbv-copy:hover, .pbv-ai-punct:hover, .pbv-follow:hover, .pbv-retry:hover, .pbv-ai-cancel:hover, .pbv-loop:hover, .pbv-autopause:hover, .pbv-estimate:hover { background: var(--btn-hover); }
+.pbv-copy:focus-visible, .pbv-ai-punct:focus-visible, .pbv-follow:focus-visible, .pbv-retry:focus-visible, .pbv-ai-cancel:focus-visible, .pbv-loop:focus-visible, .pbv-autopause:focus-visible, .pbv-estimate:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.pbv-copy svg, .pbv-ai-punct svg, .pbv-follow svg, .pbv-retry svg, .pbv-ai-cancel svg, .pbv-open-ext svg, .pbv-loop svg, .pbv-autopause svg, .pbv-estimate svg { width: 16px; height: 16px; }
+.pbv-loop[hidden], .pbv-autopause[hidden], .pbv-estimate[hidden], .pbv-rate[hidden] { display: none; }
+/* Playback-rate select: the track picker's form-control family, narrower. */
+.pbv-rate { max-width: 5.5em; padding: 4px 6px; font-variant-numeric: tabular-nums; }
+/* Back-to-current (research T3.7): a labelled button, sticky under the
+   timeline so it stays reachable while the page scrolls away from the
+   playing row; hidden whenever follow is on or the row is on screen. */
+.pbv-back-current {
+  position: sticky; bottom: 12px; align-self: center; z-index: 2;
+  margin: 8px auto 0; padding: 6px 14px; font: inherit; font-size: 0.85em; cursor: pointer;
+  border: 1px solid var(--link); border-radius: 999px; background: var(--surface); color: var(--link);
+  box-shadow: 0 4px 14px rgba(0,0,0,.12);
+}
+.pbv-back-current[hidden] { display: none; }
+.pbv-back-current:hover { background: var(--btn-hover); }
+.pbv-back-current:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
 /* Narrow stacked workspace: no sticky player to follow (audit B14); the
    layout observer in md-video.js sets this class on the button. */
 .pbv-follow.pbv-follow-narrow { display: none; }
@@ -3551,7 +3566,7 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
    checkbox, no checkmark glyph), pressed in the same vocabulary as
    .srch-regex / .typo-seg-btn. Declared after :hover so the pressed state
    wins while the pointer is over it. */
-.pbv-follow[aria-pressed="true"] { background: var(--btn-hover); border-color: var(--link); color: var(--link); }
+.pbv-follow[aria-pressed="true"], .pbv-loop[aria-pressed="true"], .pbv-autopause[aria-pressed="true"], .pbv-estimate[aria-pressed="true"] { background: var(--btn-hover); border-color: var(--link); color: var(--link); }
 /* Status as a MESSAGE BAR (audit U5 / 方案A), in the .send-status family
    look: own row, light ground, 3px semantic stripe. busy/info ride the
    link stripe, errors the danger one; transient info fades out via

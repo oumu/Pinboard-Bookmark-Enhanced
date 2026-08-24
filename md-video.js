@@ -782,6 +782,17 @@ function pbpVideoAiEstChars(batches, cachedHas) {
   return chars;
 }
 
+// Previous/next cue index for keyboard stepping (research T3.3): from the
+// current row, or from the row at `sec` when nothing is current yet;
+// clamped to the transcript. -1 only for an empty transcript.
+function pbpVideoCueStep(segments, currentIdx, sec, dir) {
+  const n = (segments || []).length;
+  if (!n) return -1;
+  let idx = currentIdx >= 0 ? currentIdx : pbpVideoRowIndexAt(segments, Number(sec) || 0);
+  if (idx < 0) idx = 0;
+  return Math.min(n - 1, Math.max(0, idx + (dir < 0 ? -1 : 1)));
+}
+
 // Watch-page deep link at a second (research T1.1/T1.3): the one URL shape
 // every time-carrying consumer (vocab context, timestamped export, Ask/skim
 // chips) shares. Mirrors the open-external link construction; empty string
@@ -1318,6 +1329,10 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   // playback toggle's icon: a locked crosshair reads as "stay locked onto
   // the position". Local for the same single-consumer reason as PLAY above.
   const PBV_FOLLOW_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" x2="5" y1="12" y2="12"/><line x1="19" x2="22" y1="12" y2="12"/><line x1="12" x2="12" y1="2" y2="5"/><line x1="12" x2="12" y1="19" y2="22"/><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="3"/></svg>';
+  // Learning-loop glyphs (research T3.2/T3.6), Lucide v0.525.0 repeat-1 / pause / timer.
+  const PBV_LOOP_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/><path d="M11 10h1v4"/></svg>';
+  const PBV_PAUSE_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="14" y="4" width="4" height="16" rx="1"/><rect x="6" y="4" width="4" height="16" rx="1"/></svg>';
+  const PBV_CLOCK_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="10" x2="14" y1="2" y2="2"/><line x1="12" x2="15" y1="14" y2="11"/><circle cx="12" cy="14" r="8"/></svg>';
   // extOpen is PBP_ICONS's real-external-link icon (shared.js, already loaded
   // by md-preview.html before this file); guarded for the standalone test page.
   const PBV_EXTERNAL_SVG = typeof PBP_ICONS !== "undefined" ? PBP_ICONS.extOpen : "";
@@ -1558,6 +1573,18 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   let _followOn = true, _followBtn = null;
   let _currentRowIdx = -1, _currentRowEl = null;
   let _helloTimer = null, _helloTries = 0, _relayAlive = false;
+  // Playback controls (research T3.x). _relayState = last YT.PlayerState the
+  // relay reported (1 = playing). Loop / auto-pause / lookup-pause / rate
+  // ride the relay's verbs; an older relay page ignores the new ones, so
+  // every command is best-effort and no UI claims a state it did not see.
+  let _relayState = -1;
+  let _loopOn = false, _loopBtn = null;
+  let _autoPauseOn = false, _autoPauseBtn = null, _rateSel = null;
+  let _pausedByLookup = false, _lookupTimer = null;
+  let _backBtn = null, _statusElRef = null;
+  let _seekGraceUntil = 0, _seekTarget = null; // stale ticks right after a seek
+  let _rovingBtn = null;                         // the one time button in the tab order (T3.4)
+  let _estOn = false, _estBtn = null, _estTimer = null, _estAnchor = null; // bilibili estimate clock (T3.6)
 
   // Same-origin caption fetch, executed INSIDE an open YouTube tab. From the
   // page's own context the watch HTML answers with an OK playabilityStatus
@@ -2329,6 +2356,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         // shows where the player now is instead of nothing at all.
         _lastRelayTime = Math.max(0, Math.floor(sec));
         replayHighlight();
+        estAnchor(_lastRelayTime); // re-anchor the estimate clock, if on
       } catch (_) {}
       return;
     }
@@ -2337,11 +2365,167 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     // small protocol, not the raw IFrame API, and never posts to "*".
     // Best-effort: if the player isn't ready the message is dropped -- the
     // row click then simply does nothing (degrade, never throw).
-    const post = (func, args) => _iframe.contentWindow.postMessage(
-      { pbpVideo: 1, func, args: args || [] }, RELAY_ORIGIN);
-    post("seekTo", [sec, true]);
-    post("playVideo");
+    relayPost("seekTo", [sec, true]);
+    relayPost("playVideo");
+    // Mark the target row now (the relay's next tick may still carry the
+    // pre-seek position) and ignore such stale ticks briefly -- otherwise
+    // the cue loop below could snap back to the row we just left.
+    _seekTarget = sec;
+    _seekGraceUntil = (typeof performance !== "undefined" ? performance.now() : Date.now()) + 700;
+    _lastRelayTime = sec;
+    replayHighlight();
   }
+  function relayPost(func, args) {
+    if (!_iframe || !_iframe.contentWindow || _isBili) return;
+    try { _iframe.contentWindow.postMessage({ pbpVideo: 1, func, args: args || [] }, RELAY_ORIGIN); } catch (_) {}
+  }
+  function relayPause() { relayPost("pauseVideo"); }
+  function relayPlay() { relayPost("playVideo"); }
+  function relaySetRate(rate) {
+    const r = Number(rate);
+    if (!(r >= 0.25 && r <= 2)) return;
+    relayPost("setPlaybackRate", [r]);
+  }
+  function togglePlay() { if (_relayState === 1) relayPause(); else relayPlay(); }
+  function seekBy(delta) {
+    if (_lastRelayTime == null || _isBili) return;
+    seekTo(Math.max(0, Math.floor(_lastRelayTime + delta)));
+  }
+  function stepCue(dir) {
+    const idx = pbpVideoCueStep(_segments, _currentRowIdx, _lastRelayTime || 0, dir);
+    if (idx >= 0) seekTo(Math.floor(_segments[idx].from));
+  }
+  function setLoop(on) {
+    _loopOn = !!on;
+    if (_loopBtn) _loopBtn.setAttribute("aria-pressed", _loopOn ? "true" : "false");
+    if (_loopOn && _currentRowIdx < 0 && _lastRelayTime != null) { try { highlightRowAt(_lastRelayTime); } catch (_) {} }
+    srAnnounce(t("mdVideoLoop") + (_loopOn ? " ✓" : ""));
+  }
+  function setAutoPause(on) {
+    _autoPauseOn = !!on;
+    if (_autoPauseBtn) _autoPauseBtn.setAttribute("aria-pressed", _autoPauseOn ? "true" : "false");
+  }
+  // "Back to the current cue" (research T3.7): scrolls to where playback
+  // is, in whichever study view is showing. No follow re-arm on its own.
+  function jumpToCurrent() {
+    const list = transcriptListEl();
+    if (_studyReadingEl && !_studyReadingEl.hidden) {
+      const tv = _lastRelayTime;
+      if (tv == null) return;
+      let target = null;
+      for (const p of _studyReadingEl.querySelectorAll(":scope > p[data-t]")) {
+        if (Number(p.dataset.t) <= tv) target = p; else break;
+      }
+      if (target && typeof pbpScrollIntoView === "function") pbpScrollIntoView(target, { block: "center", behavior: "smooth" });
+      return;
+    }
+    if (_currentRowEl && list) { try { followScrollTo(_currentRowEl, list); } catch (_) {} }
+  }
+  function toggleStudyView() {
+    if (!_studyReadingEl || !_studyListEl) return;
+    setStudyView(_studyReadingEl.hidden ? "reading" : "timeline", true);
+  }
+  // Follow was switched off by scrolling: a visible way back (research
+  // T3.7) -- shows only while the current row is off-screen.
+  function updateBackBtn() {
+    if (!_backBtn) return;
+    const list = transcriptListEl();
+    let show = !_followOn && !!_currentRowEl && !!list && !list.hidden && _lastRelayTime != null;
+    if (show) {
+      const r = _currentRowEl.getBoundingClientRect();
+      show = r.bottom < 0 || r.top > window.innerHeight;
+    }
+    _backBtn.hidden = !show;
+    if (show) _backBtn.textContent = t("mdVideoBackToCurrent", pbpVideoFmtTime(_lastRelayTime));
+  }
+  // Pause while the reader looks a word up (research T3.5): a non-collapsed
+  // selection on a study surface, or an open explain popover, holds the
+  // player; the moment both are gone the SAME pause is released. A pause
+  // the user made themselves is never released here (flag-gated).
+  function lookupActive() {
+    const pop = document.getElementById("explain-pop");
+    if (pop && pop.matches && pop.matches(":popover-open")) return true;
+    const sel = typeof window.getSelection === "function" ? window.getSelection() : null;
+    return !!(sel && !sel.isCollapsed && typeof pbpStudyHost === "function" && pbpStudyHost(sel.anchorNode));
+  }
+  function lookupPauseCheck() {
+    if (_isBili || !_segments.length || !document.body.classList.contains("video-mode")) return;
+    if (_lookupTimer) clearTimeout(_lookupTimer);
+    _lookupTimer = setTimeout(() => {
+      _lookupTimer = null;
+      const active = lookupActive();
+      if (active && _relayState === 1 && !_pausedByLookup) { _pausedByLookup = true; relayPause(); return; }
+      if (!active && _pausedByLookup) { _pausedByLookup = false; relayPlay(); }
+    }, 150);
+  }
+  document.addEventListener("selectionchange", lookupPauseCheck);
+  document.addEventListener("click", lookupPauseCheck, true);
+  document.addEventListener("keyup", (e) => { if (e.key === "Escape") lookupPauseCheck(); }, true);
+  // bilibili estimate clock (research T3.6): no position protocol exists,
+  // so after each explicit seek a local clock advances the row marker.
+  // Opt-in, labelled as an estimate, re-anchored by every row click; any
+  // pause or drag inside the player drifts it -- which is why it is off
+  // by default and says so.
+  function estStop() { if (_estTimer) { clearInterval(_estTimer); _estTimer = null; } }
+  function estAnchor(sec) {
+    if (!_estOn) return;
+    _estAnchor = { sec: Math.max(0, sec), at: (typeof performance !== "undefined" ? performance.now() : Date.now()) };
+    estStop();
+    _estTimer = setInterval(() => {
+      if (!_estOn || !_estAnchor || !_segments.length) { estStop(); return; }
+      const now = (typeof performance !== "undefined" ? performance.now() : Date.now());
+      const tv = _estAnchor.sec + (now - _estAnchor.at) / 1000;
+      const last = _segments[_segments.length - 1];
+      if (tv > (last.to || last.from) + 2) { estStop(); return; }
+      _lastRelayTime = tv;
+      try { highlightRowAt(tv); } catch (_) {}
+      updateBackBtn();
+    }, 500);
+  }
+  function setEstimate(on) {
+    _estOn = !!on;
+    if (_estBtn) _estBtn.setAttribute("aria-pressed", _estOn ? "true" : "false");
+    if (_estOn) estAnchor(_lastRelayTime != null ? _lastRelayTime : 0); else estStop();
+  }
+  // Roving tabindex for the timeline (research T3.4): exactly one time
+  // button in the tab order -- the current row's while playback moves and
+  // the list is not focused, else the last one the keyboard visited.
+  function setRoving(btn) {
+    if (!btn || btn === _rovingBtn) return;
+    if (_rovingBtn) _rovingBtn.tabIndex = -1;
+    _rovingBtn = btn;
+    btn.tabIndex = 0;
+  }
+  // Video shortcut layer (research T3.3): scoped to video pages with a
+  // transcript, behind the same typing/modifier gate as the reader's single
+  // keys. Space and the arrows defer to focused controls and to the
+  // timeline list (whose own arrow keys navigate rows); [ ] r f c b are
+  // free in the reader's key map.
+  function onVideoKeydown(e) {
+    if (!_segments.length || !document.body.classList.contains("video-mode")) return;
+    const ae = document.activeElement;
+    const tag = ae && ae.tagName;
+    const allowed = (typeof pbpTrSingleKeyAllowed === "function")
+      ? pbpTrSingleKeyAllowed(e, tag, !!(ae && ae.isContentEditable), document.body.classList.contains("raw-active"))
+      : !(e.ctrlKey || e.metaKey || e.altKey || e.shiftKey);
+    if (!allowed) return;
+    const list = transcriptListEl();
+    const inList = !!(list && ae && list.contains(ae));
+    const onControl = !!(ae && /^(BUTTON|A|SELECT|INPUT|TEXTAREA|SUMMARY)$/.test(tag || "")) && !inList;
+    let handled = true;
+    switch (e.key) {
+      case " ": if (onControl || inList || _isBili) return; togglePlay(); break;
+      case "ArrowLeft": case "ArrowRight": if (onControl || inList || _isBili) return; seekBy(e.key === "ArrowLeft" ? -3 : 3); break;
+      case "[": case "]": stepCue(e.key === "[" ? -1 : 1); break;
+      case "r": case "R": if (_isBili || !_loopBtn || _loopBtn.hidden) return; setLoop(!_loopOn); break;
+      case "f": case "F": if (!_followBtn || _followBtn.hidden || _followBtn.disabled) return; setFollow(!_followOn); break;
+      case "c": case "C": jumpToCurrent(); break;
+      case "b": case "B": toggleStudyView(); break;
+      default: handled = false;
+    }
+    if (handled) e.preventDefault();
+  }
+  document.addEventListener("keydown", onVideoKeydown);
 
   // ---- playback-position sync (Task 6) -------------------------------
   // The relay (docs/yt-embed.html) stays silent until we speak: it arms its
@@ -2391,8 +2575,25 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     if (d.event === "ready") { _relayAlive = true; return; }
     if (d.event !== "time") return;
     _relayAlive = true;
+    if (typeof d.state === "number") _relayState = d.state;
+    if (typeof d.t !== "number" || !isFinite(d.t)) return;
+    // Stale tick right after an explicit seek (see seekTo): drop it.
+    const nowMs = (typeof performance !== "undefined" ? performance.now() : Date.now());
+    if (nowMs < _seekGraceUntil && _seekTarget != null && Math.abs(d.t - _seekTarget) > 2) return;
+    // Cue loop (research T3.2): hold inside the current cue -- pure reader
+    // logic on the relay's 250ms reports, no new relay verb needed.
+    if (_loopOn && _currentRowIdx >= 0 && _segments[_currentRowIdx]) {
+      const seg = _segments[_currentRowIdx];
+      const end = (typeof seg.to === "number" && seg.to > seg.from) ? seg.to : seg.from + 2;
+      if (d.t >= end - 0.05) { seekTo(Math.floor(seg.from)); return; }
+    }
     _lastRelayTime = d.t; // replayed after re-renders (audit B13)
+    const prevIdx = _currentRowIdx;
     highlightRowAt(d.t);
+    // Auto-pause at cue end (research T3.2, shadowing): the row just
+    // advanced, so the previous cue is complete -- stop here.
+    if (_autoPauseOn && prevIdx >= 0 && _currentRowIdx !== prevIdx && _relayState === 1) relayPause();
+    updateBackBtn();
   }
   window.addEventListener("message", onRelayMessage);
 
@@ -2423,6 +2624,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     if (!_currentRowEl) return;
     _currentRowEl.classList.add("pbv-row--current");
     _currentRowEl.setAttribute("aria-current", "true");
+    if (!list.contains(document.activeElement)) setRoving(_currentRowEl.querySelector(":scope > .pbv-time"));
     // Follow only when the timeline is the visible study view: scrolling a
     // hidden list is pointless, and in video-mode the list shares the page
     // scroller with the article -- following while the user reads would drag
@@ -2482,22 +2684,43 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     _currentRowEl = null;
   }
 
-  function setFollow(on) {
+  function setFollow(on, auto) {
+    const was = _followOn;
     _followOn = !!on;
     if (_followBtn) _followBtn.setAttribute("aria-pressed", _followOn ? "true" : "false");
     // Re-enabling follow on a PAUSED player: no new time event will come to
     // re-anchor the highlight, so replay the last reported position (B13).
     if (_followOn) replayHighlight();
+    // Scroll/touch/keys switched it off silently before (research T3.7):
+    // say so once, transiently, and let the back-to-current button appear.
+    if (was && !_followOn && auto && _statusElRef) pbvSetStatus(_statusElRef, t("mdVideoFollowPaused"), false);
+    updateBackBtn();
   }
 
   // Any scroll/seek intent inside the list means the user took the wheel;
   // auto-scrolling on top of that is the classic fight-the-user bug. Follow
   // stays off until they press the toggle again -- named handlers so a second
   // runLoad on the same list re-registers nothing.
-  function onListWheel() { if (_followOn) setFollow(false); }
-  function onListTouch() { if (_followOn) setFollow(false); }
+  function onListWheel() { if (_followOn) setFollow(false, true); }
+  function onListTouch() { if (_followOn) setFollow(false, true); }
   const FOLLOW_PAUSE_KEYS = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "PageUp", "PageDown", "Home", "End"]);
-  function onListKeydown(e) { if (_followOn && FOLLOW_PAUSE_KEYS.has(e.key)) setFollow(false); }
+  function onListKeydown(e) {
+    if (_followOn && FOLLOW_PAUSE_KEYS.has(e.key)) setFollow(false, true);
+    // Roving navigation (research T3.4): Up/Down/Home/End move between the
+    // rows' time buttons; Enter/Space are the button's own activation.
+    if (!/^(ArrowUp|ArrowDown|Home|End)$/.test(e.key)) return;
+    const list = e.currentTarget;
+    const btns = Array.from(list.querySelectorAll(".pbv-row:not(.pbv-row--static) > .pbv-time"));
+    if (!btns.length) return;
+    let i = btns.indexOf(document.activeElement);
+    if (e.key === "Home") i = 0;
+    else if (e.key === "End") i = btns.length - 1;
+    else if (i < 0) i = e.key === "ArrowDown" ? 0 : btns.length - 1;
+    else i = Math.min(btns.length - 1, Math.max(0, i + (e.key === "ArrowDown" ? 1 : -1)));
+    e.preventDefault();
+    setRoving(btns[i]);
+    try { btns[i].focus({ preventScroll: false }); } catch (_) {}
+  }
 
   function bindFollowPause(list) {
     if (!list) return;
@@ -2527,6 +2750,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     const text = el("span", "pbv-text", seg.content);
     if (seekable) {
       row.dataset.from = String(Math.max(0, Math.floor(seg.from))); // node->time bridge (T1.3/T2.2)
+      time.tabIndex = -1; // roving: setRoving() promotes exactly one (T3.4)
       const label = t("mdVideoSeekTo", pbpVideoFmtTime(seg.from));
       time.title = label;
       time.setAttribute("aria-label", label);
@@ -2546,6 +2770,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     } else {
       time.tabIndex = -1;
     }
+    row.setAttribute("role", "listitem");
     row.appendChild(time);
     row.appendChild(text);
     return row;
@@ -2572,6 +2797,8 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       listEl.appendChild(frag);
     }
     appendBatch(BATCH); // first batch: same tick as the call, inherently safe
+    _rovingBtn = null;
+    setRoving(listEl.querySelector(".pbv-row:not(.pbv-row--static) > .pbv-time"));
     if (i >= total) return;
     if (typeof requestAnimationFrame === "undefined") {
       appendBatch(total - i);
@@ -3088,6 +3315,13 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     const tgEl = document.querySelector(".pbv-view-toggle");
     if (tgEl) tgEl.hidden = !hasSegs;
     if (_followBtn) _followBtn.hidden = !(hasSegs && document.body.classList.contains("video-mode") && detected.provider === "youtube");
+    // Learning controls ride follow's visibility (research T3.2/T3.3); the
+    // bilibili estimate toggle needs only rows.
+    const learn = !!(_followBtn && !_followBtn.hidden);
+    if (_loopBtn) _loopBtn.hidden = !learn;
+    if (_autoPauseBtn) _autoPauseBtn.hidden = !learn;
+    if (_rateSel) _rateSel.hidden = !learn;
+    if (_estBtn) _estBtn.hidden = !(hasSegs && detected.provider === "bilibili");
     _segments = res.segments || [];
     // ONE meta construction (pbpVideoTranscriptMeta) shared with md-preview.js:
     // Copy, the first-run commit below, and the AI-punctuation commit all read
@@ -3583,7 +3817,23 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
 
     const list = el("div", "pbv-list");
     list.hidden = true; // reading is the default view
+    list.setAttribute("role", "list");
+    list.setAttribute("aria-label", t("mdVideoTimelineAria"));
     studyCol.appendChild(list);
+    // Back-to-current affordance (research T3.7): sticky under the list,
+    // shown only while follow is off AND the current row is off-screen.
+    const backBtn = el("button", "pbv-back-current");
+    backBtn.type = "button";
+    backBtn.hidden = true;
+    backBtn.addEventListener("click", () => { jumpToCurrent(); setFollow(true); });
+    _backBtn = backBtn;
+    studyCol.appendChild(backBtn);
+    let _backTick = false;
+    window.addEventListener("scroll", () => {
+      if (_backTick) return;
+      _backTick = true;
+      requestAnimationFrame(() => { _backTick = false; updateBackBtn(); });
+    }, { passive: true });
     _studyListEl = list;
 
     // Last element of the study column: below the article/timeline, not
@@ -3730,6 +3980,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       // the per-batch "busy-quiet" progress ticks.
       const status = el("span", "pbv-status");
       statusRef = status;
+      _statusElRef = status;
       const trackSel = document.createElement("select");
       trackSel.className = "pbv-tracks";
       trackSel.hidden = true;
@@ -4264,8 +4515,48 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         followBtn.hidden = true;
         _followBtn = followBtn;
         setFollow(true); // default ON; also writes the initial aria-pressed
+        followBtn.setAttribute("aria-keyshortcuts", "f");
         followBtn.addEventListener("click", () => setFollow(!_followOn));
         bar.appendChild(followBtn);
+        // Learning loop (research T3.2/T3.3): repeat the current cue, pause
+        // at every cue end, playback rate. Same 28px icon family; real
+        // toggles in the aria-pressed vocabulary; unhidden with follow.
+        const loopBtn = el("button", "pbv-loop");
+        loopBtn.type = "button";
+        loopBtn.hidden = true;
+        loopBtn.innerHTML = PBV_LOOP_SVG;
+        loopBtn.title = t("mdVideoLoop");
+        loopBtn.setAttribute("aria-label", t("mdVideoLoop"));
+        loopBtn.setAttribute("aria-pressed", "false");
+        loopBtn.setAttribute("aria-keyshortcuts", "r");
+        loopBtn.addEventListener("click", () => setLoop(!_loopOn));
+        _loopBtn = loopBtn;
+        bar.appendChild(loopBtn);
+        const apBtn = el("button", "pbv-autopause");
+        apBtn.type = "button";
+        apBtn.hidden = true;
+        apBtn.innerHTML = PBV_PAUSE_SVG;
+        apBtn.title = t("mdVideoAutoPause");
+        apBtn.setAttribute("aria-label", t("mdVideoAutoPause"));
+        apBtn.setAttribute("aria-pressed", "false");
+        apBtn.addEventListener("click", () => setAutoPause(!_autoPauseOn));
+        _autoPauseBtn = apBtn;
+        bar.appendChild(apBtn);
+        const rateSel = document.createElement("select");
+        rateSel.className = "pbv-tracks pbv-rate";
+        rateSel.hidden = true;
+        rateSel.setAttribute("aria-label", t("mdVideoRate"));
+        rateSel.title = t("mdVideoRate");
+        for (const r of [0.75, 1, 1.25, 1.5, 2]) {
+          const o = document.createElement("option");
+          o.value = String(r);
+          o.textContent = r + "\u00d7";
+          if (r === 1) o.selected = true;
+          rateSel.appendChild(o);
+        }
+        rateSel.addEventListener("change", () => relaySetRate(Number(rateSel.value)));
+        _rateSel = rateSel;
+        bar.appendChild(rateSel);
         // Below the workspace's 1220px container breakpoint the columns
         // stack and the player stops being sticky -- a lit follow toggle
         // there is a no-op lie (audit B14). Hidden via a layout class so
@@ -4280,6 +4571,19 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
             ro.observe(layoutHost);
           }
         }
+      }
+      if (detected.provider === "bilibili") {
+        // Estimate clock toggle (research T3.6): opt-in, labelled estimate.
+        const estBtn = el("button", "pbv-estimate");
+        estBtn.type = "button";
+        estBtn.hidden = true;
+        estBtn.innerHTML = PBV_CLOCK_SVG;
+        estBtn.title = t("mdVideoEstimate");
+        estBtn.setAttribute("aria-label", t("mdVideoEstimate"));
+        estBtn.setAttribute("aria-pressed", "false");
+        estBtn.addEventListener("click", () => setEstimate(!_estOn));
+        _estBtn = estBtn;
+        bar.appendChild(estBtn);
       }
       // Player-failure degrade for BOTH providers (audit U12: bilibili had
       // no way out when its embed or login wall misbehaved): an

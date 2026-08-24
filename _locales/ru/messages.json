@@ -3670,5 +3670,19 @@
   "askScopeNear": { "message": "Рядом с текущим моментом" },
   "askScopeNearHint": { "message": "Отправлять только два абзаца вокруг текущего субтитра -- меньше токенов" },
   "hlTimelineHint": { "message": "Для выделения переключитесь в режим чтения" },
-  "hlSeekHere": { "message": "Воспроизвести отсюда" }
+  "hlSeekHere": { "message": "Воспроизвести отсюда" },
+  "mdVideoLoop": { "message": "Повторять эту реплику" },
+  "mdVideoAutoPause": { "message": "Пауза после каждой реплики" },
+  "mdVideoRate": { "message": "Скорость воспроизведения" },
+  "mdVideoFollowPaused": { "message": "Слежение приостановлено" },
+  "mdVideoBackToCurrent": { "message": "К текущей реплике $TIME$", "placeholders": { "time": { "content": "$1" } } },
+  "mdVideoEstimate": { "message": "Оценочная позиция (по последнему переходу, возможен сдвиг)" },
+  "mdVideoTimelineAria": { "message": "Шкала субтитров" },
+  "kbdHelpVideoPlay": { "message": "Воспроизведение / пауза" },
+  "kbdHelpVideoSeek": { "message": "Назад / вперёд на 3 с" },
+  "kbdHelpVideoCue": { "message": "Предыдущая / следующая реплика" },
+  "kbdHelpVideoLoop": { "message": "Повторять эту реплику" },
+  "kbdHelpVideoFollow": { "message": "Следовать за воспроизведением" },
+  "kbdHelpVideoCurrent": { "message": "К текущей реплике" },
+  "kbdHelpVideoView": { "message": "Текст / шкала" }
 }

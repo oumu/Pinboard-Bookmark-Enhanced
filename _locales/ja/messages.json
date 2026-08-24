@@ -3670,5 +3670,19 @@
   "askScopeNear": { "message": "現在位置の周辺" },
   "askScopeNearHint": { "message": "現在の字幕の前後 2 段落だけを送信します（トークン節約）" },
   "hlTimelineHint": { "message": "ハイライトするには読み物ビューに切り替えてください" },
-  "hlSeekHere": { "message": "ここから再生" }
+  "hlSeekHere": { "message": "ここから再生" },
+  "mdVideoLoop": { "message": "この字幕を繰り返す" },
+  "mdVideoAutoPause": { "message": "各字幕の終わりで一時停止" },
+  "mdVideoRate": { "message": "再生速度" },
+  "mdVideoFollowPaused": { "message": "追従を一時停止しました" },
+  "mdVideoBackToCurrent": { "message": "現在の字幕へ戻る $TIME$", "placeholders": { "time": { "content": "$1" } } },
+  "mdVideoEstimate": { "message": "推定再生位置（最後のジャンプから推定、ずれることがあります）" },
+  "mdVideoTimelineAria": { "message": "字幕タイムライン" },
+  "kbdHelpVideoPlay": { "message": "再生 / 一時停止" },
+  "kbdHelpVideoSeek": { "message": "3 秒戻る / 進む" },
+  "kbdHelpVideoCue": { "message": "前の字幕 / 次の字幕" },
+  "kbdHelpVideoLoop": { "message": "この字幕を繰り返す" },
+  "kbdHelpVideoFollow": { "message": "再生に追従" },
+  "kbdHelpVideoCurrent": { "message": "現在の字幕へ戻る" },
+  "kbdHelpVideoView": { "message": "読み物 / タイムライン" }
 }

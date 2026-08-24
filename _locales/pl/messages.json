@@ -3670,5 +3670,19 @@
   "askScopeNear": { "message": "W pobliżu bieżącego momentu" },
   "askScopeNearHint": { "message": "Wysyłaj tylko dwa akapity wokół bieżącego napisu -- mniej tokenów" },
   "hlTimelineHint": { "message": "Aby zaznaczyć, przełącz na widok czytania" },
-  "hlSeekHere": { "message": "Odtwarzaj stąd" }
+  "hlSeekHere": { "message": "Odtwarzaj stąd" },
+  "mdVideoLoop": { "message": "Powtarzaj tę kwestię" },
+  "mdVideoAutoPause": { "message": "Pauza po każdej kwestii" },
+  "mdVideoRate": { "message": "Prędkość odtwarzania" },
+  "mdVideoFollowPaused": { "message": "Śledzenie wstrzymane" },
+  "mdVideoBackToCurrent": { "message": "Wróć do bieżącej kwestii $TIME$", "placeholders": { "time": { "content": "$1" } } },
+  "mdVideoEstimate": { "message": "Szacowana pozycja (od ostatniego skoku, może się rozjechać)" },
+  "mdVideoTimelineAria": { "message": "Oś czasu napisów" },
+  "kbdHelpVideoPlay": { "message": "Odtwarzaj / pauza" },
+  "kbdHelpVideoSeek": { "message": "Cofnij / przewiń o 3 s" },
+  "kbdHelpVideoCue": { "message": "Poprzednia / następna kwestia" },
+  "kbdHelpVideoLoop": { "message": "Powtarzaj tę kwestię" },
+  "kbdHelpVideoFollow": { "message": "Śledź odtwarzanie" },
+  "kbdHelpVideoCurrent": { "message": "Wróć do bieżącej kwestii" },
+  "kbdHelpVideoView": { "message": "Tekst / oś czasu" }
 }

@@ -3670,5 +3670,19 @@
   "askScopeNear": { "message": "Autour du moment actuel" },
   "askScopeNearHint": { "message": "N'envoie que les deux paragraphes autour du sous-titre actuel -- moins de tokens" },
   "hlTimelineHint": { "message": "Passez en vue lecture pour surligner" },
-  "hlSeekHere": { "message": "Lire à partir d'ici" }
+  "hlSeekHere": { "message": "Lire à partir d'ici" },
+  "mdVideoLoop": { "message": "Répéter ce sous-titre" },
+  "mdVideoAutoPause": { "message": "Pause après chaque sous-titre" },
+  "mdVideoRate": { "message": "Vitesse de lecture" },
+  "mdVideoFollowPaused": { "message": "Suivi en pause" },
+  "mdVideoBackToCurrent": { "message": "Revenir au sous-titre actuel $TIME$", "placeholders": { "time": { "content": "$1" } } },
+  "mdVideoEstimate": { "message": "Position estimée (extrapolée depuis le dernier saut, peut dériver)" },
+  "mdVideoTimelineAria": { "message": "Chronologie des sous-titres" },
+  "kbdHelpVideoPlay": { "message": "Lecture / pause" },
+  "kbdHelpVideoSeek": { "message": "Reculer / avancer de 3 s" },
+  "kbdHelpVideoCue": { "message": "Sous-titre précédent / suivant" },
+  "kbdHelpVideoLoop": { "message": "Répéter ce sous-titre" },
+  "kbdHelpVideoFollow": { "message": "Suivre la lecture" },
+  "kbdHelpVideoCurrent": { "message": "Revenir au sous-titre actuel" },
+  "kbdHelpVideoView": { "message": "Lecture / chronologie" }
 }
