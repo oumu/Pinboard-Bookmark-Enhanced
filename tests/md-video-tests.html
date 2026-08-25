@@ -197,6 +197,61 @@ section("pbpYtPickCaptureTab");
   assertEq(pbpYtPickCaptureTab([], 12, "BBB"), null, "no tabs -> null");
   assertEq(pbpYtPickCaptureTab([{ id: 20, url: "https://www.youtube.com/shorts/BBB" }, { id: 21, url: "https://www.youtube.com/watch?v=BBB" }], null, "BBB"), 20, "shorts path counts as on-video");
   assertEq(pbpYtPickCaptureTab([{ url: "https://www.youtube.com/watch?v=BBB" }, { id: "x", url: "https://www.youtube.com/watch?v=BBB" }], null, "BBB"), null, "tabs without a numeric id are skipped");
+  // Readiness (device 2026-08-26): the scraper injected into a tab that had
+  // not hydrated yet saw no transcript entry and bailed. A complete tab on
+  // the same video beats a loading one; a loading tab is still usable alone.
+  const YT = "https://www.youtube.com/watch?v=";
+  assertEq(pbpYtPickCaptureTab([{ id: 30, url: YT + "BBB", status: "loading" }, { id: 31, url: YT + "BBB", status: "complete" }], 30, "BBB"), 31, "a still-loading tab yields to a complete tab on the same video, even when it is the remembered one");
+  assertEq(pbpYtPickCaptureTab([{ id: 32, url: YT + "BBB", status: "loading" }], null, "BBB"), 32, "a loading tab is still chosen when it is the only tab on the video (the page function waits for hydration)");
+  assertEq(pbpYtPickCaptureTab([{ id: 33, url: YT + "CCC", status: "complete" }, { id: 34, url: YT + "BBB", status: "loading" }], null, "BBB"), 34, "readiness never lifts an off-video tab over a loading on-video tab");
+  assertEq(pbpYtPickCaptureTab([{ id: 35, url: YT + "BBB", status: "unloaded" }, { id: 36, url: YT + "BBB", status: "complete" }], 35, "BBB"), 36, "a discarded (unloaded) tab counts as not ready");
+})();
+
+section("pbpYtDomTranscriptInPage (DOM rescue tier, run against this page's own DOM)");
+await (async () => {
+  // The injected scraper is a top-level, closure-free function, so it runs
+  // here unchanged on a real DOM; fixtures stand in for YouTube's watch page.
+  const VID = "TESTVID0001";
+  const stage = document.createElement("div"); stage.id = "yt-stage"; document.body.appendChild(stage);
+  const savedHash = location.hash; location.hash = "v=" + VID; // the wrong-tab guard reads location.href
+  const okPR = (captionTracks) => ({ videoDetails: { videoId: VID }, playabilityStatus: { status: "OK" },
+    captions: captionTracks ? { playerCaptionsTracklistRenderer: { captionTracks } } : undefined });
+  const reset = (pr) => { stage.textContent = ""; delete window.ytInitialPlayerResponse; delete window.__pbpTapLease; if (pr) window.ytInitialPlayerResponse = pr; };
+  const hydrate = () => { const flexy = document.createElement("ytd-watch-flexy"); stage.appendChild(flexy); return flexy; };
+  try {
+    reset(okPR(null));
+    let r = await pbpYtDomTranscriptInPage(VID, { hydrateMs: 200 });
+    assertEq(r.trace, "video has no caption tracks", "page fn: an OK player response for THIS video with no caption tracks ends the tier at once (no wait, no scrape)");
+    assert(r.kind === "" && r.segs.length === 0, "page fn: the no-captions bail returns nothing");
+    reset({ videoDetails: { videoId: VID }, playabilityStatus: { status: "LOGIN_REQUIRED" } });
+    r = await pbpYtDomTranscriptInPage(VID, { hydrateMs: 200 });
+    assertEq(r.trace, "page not hydrated within 200ms", "page fn: a non-OK player response proves nothing about captions -> the tier waits for hydration instead of bailing");
+    reset(Object.assign(okPR(null), { videoDetails: { videoId: "OTHERVIDEO0" } }));
+    r = await pbpYtDomTranscriptInPage(VID, { hydrateMs: 200 });
+    assertEq(r.trace, "page not hydrated within 200ms", "page fn: a stale player response (another video, left behind by SPA navigation) is not trusted for the no-captions bail");
+    reset(okPR([{ languageCode: "en" }])); hydrate();
+    r = await pbpYtDomTranscriptInPage(VID, { hydrateMs: 200 });
+    assertEq(r.trace, "no transcript entry in page", "page fn: a hydrated watch page with neither a Show-transcript button nor a transcript panel still reports the classic trace");
+    // Late hydration: the watch layout mounts 3.6s in -- past the 3.2s the
+    // old button poll allowed (device 2026-08-26: ytd-watch-flexy measured
+    // ~22s behind readyState=complete in a background tab).
+    reset(okPR([{ languageCode: "en" }]));
+    setTimeout(() => {
+      const flexy = hydrate();
+      flexy.innerHTML = '<tp-yt-paper-button id="expand"></tp-yt-paper-button>' +
+        '<ytd-video-description-transcript-section-renderer><button>Show transcript</button></ytd-video-description-transcript-section-renderer>' +
+        '<div id="movie_player"></div><div id="rows"></div>';
+      flexy.querySelector("#movie_player").getDuration = () => 10;
+      flexy.querySelector("button").addEventListener("click", () => {
+        flexy.querySelector("#rows").innerHTML = [[0, "zero"], [5, "five"], [9, "nine"]].map(([s, t]) =>
+          '<ytd-transcript-segment-renderer><div class="segment-timestamp">0:0' + s + '</div><div class="segment-text">' + t + '</div></ytd-transcript-segment-renderer>').join("");
+      });
+    }, 3600);
+    r = await pbpYtDomTranscriptInPage(VID, { hydrateMs: 6000 });
+    assertEq(r.kind, "dom", "page fn: a watch page that hydrates AFTER the old 3.2s button poll is still scraped");
+    assertEq(r.segs.map((s) => s.from + ":" + s.content).join(","), "0:zero,5:five,9:nine", "page fn: rows read after late hydration -- timestamps parsed, accepted on duration coverage");
+    assert(window.fetch.__pbpTap === undefined && window.__pbpTapLease === undefined, "page fn: taps and the tab lease are released after the scrape");
+  } finally { reset(); stage.remove(); location.hash = savedHash; }
 })();
 
 section("pbpYtTabEligible");

@@ -62,8 +62,15 @@ function pbpYtPickCaptureTab(tabs, preferredId, videoId) {
   };
   const same = list.filter(onVideo);
   const pool = same.length ? same : list;
-  const pref = pool.find((tb) => tb.id === preferredId);
-  return (pref || pool[0]).id;
+  // A tab still loading (or discarded) can be injected into, but its watch
+  // layout may not exist yet (device 2026-08-26: the scraper saw no
+  // transcript entry in a tab that had not hydrated). Prefer a complete tab
+  // on the same video; a loading one still serves when it is all there is
+  // -- the page function waits for hydration.
+  const ready = pool.filter((tb) => tb.status !== "loading" && tb.status !== "unloaded");
+  const pick = ready.length ? ready : pool;
+  const pref = pick.find((tb) => tb.id === preferredId);
+  return (pref || pick[0]).id;
 }
 
 // YouTube's InnerTube endpoint now demands a PO Token on every client we
@@ -1582,6 +1589,281 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   } catch (_) {}
   return [];
 }
+// ── DOM rescue tier: page function ──
+// Injected VERBATIM into the user's www.youtube.com tab (world: MAIN) by
+// ytTabDomTranscript through scripting.executeScript, which serializes the
+// function source: it must stay closure-free -- nothing else from this file,
+// only page globals and its own arguments. It lives at top level so
+// tests/md-video-tests.html can run it against a real DOM.
+// opts.hydrateMs: how long to wait for the watch layout to mount (default
+// 20000ms; tests shorten it).
+async function pbpYtDomTranscriptInPage(vid, opts) {
+  const out = { kind: "", body: "", segs: [], trace: "" };
+  // Wrong-tab guard, same class as the player-capture guard (device
+  // 2026-08-24): the fetch tab was picked by HOSTNAME and the rescue
+  // chain ahead of this tier can burn tens of seconds -- the tab may
+  // be showing ANOTHER video by now, and this scraper reads whatever
+  // transcript panel that page happens to show. Without this, video
+  // B's captions get returned as A's "success" and even poison the
+  // tier cache (audit round 5, A1).
+  if (vid && !String(location.href).includes(vid)) {
+    out.trace = "tab no longer on target video";
+    return out;
+  }
+  const q = (s, r) => (r || document).querySelector(s);
+  const qa = (s, r) => Array.from((r || document).querySelectorAll(s));
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  // Caption-presence gate: the player response is on the page long before
+  // the watch layout mounts, so an OK response for THIS video that lists no
+  // caption tracks ends the tier at once -- no transcript entry can ever
+  // appear. Only an OK, same-video response counts as evidence: a non-OK
+  // status (LOGIN_REQUIRED, age gate) omits captions it would otherwise
+  // list, and the load-time global goes stale after SPA navigation, which
+  // is why the live player is asked first.
+  try {
+    let pr = null;
+    try {
+      const pl = document.getElementById("movie_player");
+      const live = pl && typeof pl.getPlayerResponse === "function" ? pl.getPlayerResponse() : null;
+      pr = live && live.videoDetails ? live : (window.ytInitialPlayerResponse || null);
+    } catch (_) { pr = window.ytInitialPlayerResponse || null; }
+    const own = !!(pr && pr.videoDetails && (!vid || pr.videoDetails.videoId === vid) &&
+      pr.playabilityStatus && pr.playabilityStatus.status === "OK");
+    const tracks = own && pr.captions && pr.captions.playerCaptionsTracklistRenderer &&
+      pr.captions.playerCaptionsTracklistRenderer.captionTracks;
+    if (own && !(Array.isArray(tracks) && tracks.length)) { out.trace = "video has no caption tracks"; return out; }
+  } catch (_) {}
+  // Hydration wait (device 2026-08-26): readyState is "complete" long before
+  // YouTube's app mounts the watch layout (ytd-watch-flexy measured ~22s
+  // behind it in a background tab), and the description entry and the
+  // transcript panel this scrape reads exist only after that mount. The
+  // button poll below (8 x 400ms) never covered it, so the tier reported
+  // "no transcript entry in page" for videos that had one. Waiting costs
+  // nothing on a mounted page and is the only path to a result on a
+  // mounting one; a page that never mounts is reported as such.
+  const hydrateMs = Math.max(0, Number(opts && opts.hydrateMs) || 20000);
+  const LAYOUT_SEL = "ytd-watch-flexy, ytd-watch-grid";
+  for (let waited = 0; !q(LAYOUT_SEL); waited += 400) {
+    if (waited >= hydrateMs) { out.trace = "page not hydrated within " + hydrateMs + "ms"; return out; }
+    await sleep(400);
+  }
+  // Same cross-page tap lease as the player capture (audit A3): this
+  // scraper installs the same fetch/XHR wrappers.
+  const myLease = { exp: Date.now() + 90000 };
+  if (window.__pbpTapLease && window.__pbpTapLease.exp > Date.now()) {
+    out.trace = "another capture holds this tab";
+    return out;
+  }
+  window.__pbpTapLease = myLease;
+  const parseTs = (t) => {
+    const parts = String(t || "").trim().split(":").map(Number);
+    if (!parts.length || parts.some(isNaN)) return 0;
+    return parts.reduce((a, b) => a * 60 + b, 0);
+  };
+  const ROW_SEL = "transcript-segment-view-model, ytd-transcript-segment-renderer";
+  const TS_SEL = ".ytwTranscriptSegmentViewModelTimestamp, .segment-timestamp";
+  const TX_SEL = ".yt-core-attributed-string[role='text'], span[role='text'], .segment-text, yt-formatted-string";
+  // Shadow-piercing queries: the 2026 panel generations render rows
+  // inside open shadow roots that plain querySelectorAll never sees
+  // (the prime suspect behind "panel opened but no rows"). Scoped to
+  // the panel subtree to stay cheap inside the poll loop.
+  const deepQA = (sel, root) => {
+    const out = [];
+    const walk = (r) => {
+      try { r.querySelectorAll(sel).forEach((n) => out.push(n)); } catch (_) {}
+      let all = [];
+      try { all = r.querySelectorAll("*"); } catch (_) { return; }
+      for (const n of all) if (n.shadowRoot) walk(n.shadowRoot);
+    };
+    walk(root || document);
+    return out;
+  };
+  const deepQ = (sel, root) => deepQA(sel, root)[0] || null;
+  const panels = () => qa('ytd-engagement-panel-section-list-renderer[target-id*="transcript"]');
+  // Row NODES, not mapped objects: the scroller search below needs a
+  // real element to climb from, and rows can live inside shadow roots
+  // where the light-DOM q(ROW_SEL) never finds them (audit A2: row0
+  // null skipped the scroll accumulation and first-screen rows were
+  // returned as the "complete" transcript).
+  const rowNodes = () => {
+    let rows = qa(ROW_SEL);
+    if (!rows.length) for (const p of panels()) { rows = deepQA(ROW_SEL, p); if (rows.length) break; }
+    return rows;
+  };
+  const readRows = () => {
+    return rowNodes().map((row) => {
+      const ts = q(TS_SEL, row) || deepQ(TS_SEL, row);
+      const tx = q(TX_SEL, row) || deepQ(TX_SEL, row);
+      return {
+        from: parseTs(ts && ts.textContent),
+        to: 0,
+        content: ((tx && tx.textContent) || "").replace(/\s+/g, " ").trim(),
+      };
+    }).filter((s) => s.content);
+  };
+  // What is ACTUALLY inside the panels -- read the answer instead of
+  // guessing the next selector when rows stay at zero.
+  const panelDiag = () => panels().map((p) => {
+    const tags = new Set();
+    deepQA("*", p).slice(0, 400).forEach((n) => { if (tags.size < 15) tags.add(n.tagName.toLowerCase()); });
+    return (p.getAttribute("target-id") || "?") + "[vis=" + (p.getAttribute("visibility") || "?") + ",h=" + p.offsetHeight + "]{" + Array.from(tags).join(",") + "}";
+  }).join(" ; ") || "no transcript panels in DOM";
+
+  // -- network taps (restored in finally) --
+  const origFetch = window.fetch;
+  const origOpen = XMLHttpRequest.prototype.open;
+  const origSend = XMLHttpRequest.prototype.send;
+  let captured = "";
+  let opened = false;
+  const wants = (u) => /\/youtubei\/v1\/(get_transcript|get_panel)/.test(String(u || ""));
+  const keeps = (t) => t && /transcriptSegment(ViewModel|Renderer)|transcriptSearchPanelRenderer/.test(t);
+  const tagTap = () => {
+    try { window.fetch.__pbpTap = myLease; } catch (_) {}
+    try { XMLHttpRequest.prototype.open.__pbpTap = myLease; } catch (_) {}
+    try { XMLHttpRequest.prototype.send.__pbpTap = myLease; } catch (_) {}
+  };
+  try {
+    window.fetch = function (...a) {
+      const p = origFetch.apply(this, a);
+      try {
+        const u = (a[0] && a[0].url) || a[0];
+        if (!captured && wants(u)) {
+          p.then((resp) => resp.clone().text().then((t) => { if (!captured && keeps(t)) captured = t; }).catch(() => {})).catch(() => {});
+        }
+      } catch (_) {}
+      return p;
+    };
+    XMLHttpRequest.prototype.open = function (m, u, ...rest) {
+      this.__pbpUrl = u;
+      return origOpen.call(this, m, u, ...rest);
+    };
+    XMLHttpRequest.prototype.send = function (...a) {
+      try {
+        if (!captured && wants(this.__pbpUrl)) {
+          this.addEventListener("load", () => {
+            try { if (!captured && keeps(this.responseText)) captured = this.responseText; } catch (_) {}
+          });
+        }
+      } catch (_) {}
+      return origSend.apply(this, a);
+    };
+    tagTap();
+
+    // already-open panel with rows? read it without touching the UI
+    let segs = readRows();
+    if (!segs.length) {
+      // real control chain: expand the description, then the button
+      const expand = q("ytd-text-inline-expander #expand, tp-yt-paper-button#expand, #description #expand");
+      if (expand) { try { expand.click(); } catch (_) {} await sleep(400); }
+      let btn = q("ytd-video-description-transcript-section-renderer button");
+      for (let i = 0; i < 8 && !btn; i++) { await sleep(400); btn = q("ytd-video-description-transcript-section-renderer button"); }
+      if (btn) { btn.click(); opened = true; }
+      else {
+        const panel = qa('ytd-engagement-panel-section-list-renderer[target-id*="transcript"]')[0];
+        if (panel) { panel.setAttribute("visibility", "ENGAGEMENT_PANEL_VISIBILITY_EXPANDED"); opened = true; out.trace = "no transcript button; shell-opened panel (may not load data)"; }
+        else { out.trace = "no transcript entry in page"; return out; }
+      }
+      // wait for the page's own request or for rows, whichever first
+      for (let i = 0; i < 36 && !captured; i++) {
+        await sleep(400);
+        segs = readRows();
+        if (segs.length) break;
+      }
+    }
+    if (captured) {
+      if (vid && !String(location.href).includes(vid)) {
+        out.trace = "tab navigated away mid-scrape";
+        return out;
+      }
+      out.kind = "net"; out.body = captured; return out;
+    }
+    if (segs.length) {
+      // virtualized list: scroll and accumulate. Two safeguards,
+      // both learned from garbled rows on device: a row only counts
+      // when two reads 120ms apart agree (a node caught mid-recycle
+      // never survives that), and the FIRST stable version of a
+      // timestamp is final -- last-read-wins let a row's dying
+      // glimpse (recycled as it scrolled out) overwrite a good read.
+      // Key on from|content, not from alone: machine captions can
+      // put two different lines on the same timestamp, and a
+      // from-only map silently dropped the second (audit A2).
+      const seen = new Map();
+      const keep = (list) => list.forEach((s) => { const k = s.from + "|" + s.content; if (!seen.has(k)) seen.set(k, s); });
+      const readStable = async () => {
+        const a = readRows();
+        await sleep(120);
+        const b = readRows();
+        const bk = new Set(b.map((s) => s.from + "|" + s.content));
+        return a.filter((s) => bk.has(s.from + "|" + s.content));
+      };
+      keep(await readStable());
+      // Climb from a real row node and keep climbing THROUGH shadow
+      // boundaries (parentElement is null at a shadow root's top; the
+      // host continues the chain) -- the light-DOM-only climb is what
+      // made row0 null for shadow panels and skipped accumulation.
+      const up = (el) => el && (el.parentElement || (el.getRootNode && el.getRootNode().host) || null);
+      const row0 = rowNodes()[0] || null;
+      let scroller = up(row0);
+      while (scroller && scroller !== document.body && scroller.scrollHeight <= scroller.clientHeight + 4) scroller = up(scroller);
+      if (scroller && scroller !== document.body) {
+        let stable = 0, lastCount = seen.size;
+        for (let i = 0; i < 80 && stable < 3; i++) {
+          scroller.scrollTop += Math.max(120, scroller.clientHeight * 0.9);
+          await sleep(240);
+          keep(await readStable());
+          if (seen.size === lastCount) stable++; else { stable = 0; lastCount = seen.size; }
+        }
+        scroller.scrollTop = 0;
+      } else {
+        // No scroller found (closing review H4): row COUNT proves
+        // nothing about completeness on a long video. Accept only
+        // when the collected rows demonstrably cover the video --
+        // last timestamp within the final 20% of the duration --
+        // otherwise fail the tier rather than pose a first screen as
+        // the full transcript.
+        let dur = 0;
+        try {
+          const pl = document.querySelector("#movie_player");
+          if (pl && typeof pl.getDuration === "function") dur = Number(pl.getDuration()) || 0;
+        } catch (_) {}
+        const lastFrom = Math.max(0, ...Array.from(seen.values()).map((x) => x.from || 0));
+        if (!(dur > 0 && lastFrom >= dur * 0.8)) {
+          out.trace = "no scroller; refusing " + seen.size + " rows (coverage " +
+            (dur > 0 ? Math.round((lastFrom / dur) * 100) + "%" : "unknown") + ")";
+          return out;
+        }
+        out.trace = "no scroller; accepted on duration coverage";
+      }
+      // Return-time identity recheck (closing review H2): the tab can
+      // SPA-navigate mid-scrape; rows read after that may be another
+      // video's panel.
+      if (vid && !String(location.href).includes(vid)) {
+        out.kind = ""; out.segs = [];
+        out.trace = "tab navigated away mid-scrape";
+        return out;
+      }
+      out.kind = "dom";
+      out.segs = Array.from(seen.values()).sort((a, b) => a.from - b.from);
+      return out;
+    }
+    if (!out.trace) out.trace = "no rows, no captured response; panels: " + panelDiag();
+    return out;
+  } finally {
+    if (window.fetch && window.fetch.__pbpTap === myLease) window.fetch = origFetch;
+    if (XMLHttpRequest.prototype.open.__pbpTap === myLease) XMLHttpRequest.prototype.open = origOpen;
+    if (XMLHttpRequest.prototype.send.__pbpTap === myLease) XMLHttpRequest.prototype.send = origSend;
+    if (window.__pbpTapLease === myLease) delete window.__pbpTapLease;
+    // leave the page as we found it -- close only what we opened
+    if (opened) {
+      try {
+        const p = qa('ytd-engagement-panel-section-list-renderer[target-id*="transcript"]')
+          .find((x) => x.getAttribute("visibility") === "ENGAGEMENT_PANEL_VISIBILITY_EXPANDED");
+        if (p) p.setAttribute("visibility", "ENGAGEMENT_PANEL_VISIBILITY_HIDDEN");
+      } catch (_) {}
+    }
+  }
+}
+
 // ── end PURE SECTION ──
 
 // ── RUNTIME (chrome/fetch/DOM; md-preview only) ──
@@ -2258,238 +2540,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         target: { tabId },
         world: "MAIN", // the fetch/XHR taps must live in the page world
         args: [videoId || ""],
-        func: async (vid) => {
-          const out = { kind: "", body: "", segs: [], trace: "" };
-          // Wrong-tab guard, same class as the player-capture guard (device
-          // 2026-08-24): the fetch tab was picked by HOSTNAME and the rescue
-          // chain ahead of this tier can burn tens of seconds -- the tab may
-          // be showing ANOTHER video by now, and this scraper reads whatever
-          // transcript panel that page happens to show. Without this, video
-          // B's captions get returned as A's "success" and even poison the
-          // tier cache (audit round 5, A1).
-          if (vid && !String(location.href).includes(vid)) {
-            out.trace = "tab no longer on target video";
-            return out;
-          }
-          // Same cross-page tap lease as the player capture (audit A3): this
-          // scraper installs the same fetch/XHR wrappers.
-          const myLease = { exp: Date.now() + 90000 };
-          if (window.__pbpTapLease && window.__pbpTapLease.exp > Date.now()) {
-            out.trace = "another capture holds this tab";
-            return out;
-          }
-          window.__pbpTapLease = myLease;
-          const q = (s, r) => (r || document).querySelector(s);
-          const qa = (s, r) => Array.from((r || document).querySelectorAll(s));
-          const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-          const parseTs = (t) => {
-            const parts = String(t || "").trim().split(":").map(Number);
-            if (!parts.length || parts.some(isNaN)) return 0;
-            return parts.reduce((a, b) => a * 60 + b, 0);
-          };
-          const ROW_SEL = "transcript-segment-view-model, ytd-transcript-segment-renderer";
-          const TS_SEL = ".ytwTranscriptSegmentViewModelTimestamp, .segment-timestamp";
-          const TX_SEL = ".yt-core-attributed-string[role='text'], span[role='text'], .segment-text, yt-formatted-string";
-          // Shadow-piercing queries: the 2026 panel generations render rows
-          // inside open shadow roots that plain querySelectorAll never sees
-          // (the prime suspect behind "panel opened but no rows"). Scoped to
-          // the panel subtree to stay cheap inside the poll loop.
-          const deepQA = (sel, root) => {
-            const out = [];
-            const walk = (r) => {
-              try { r.querySelectorAll(sel).forEach((n) => out.push(n)); } catch (_) {}
-              let all = [];
-              try { all = r.querySelectorAll("*"); } catch (_) { return; }
-              for (const n of all) if (n.shadowRoot) walk(n.shadowRoot);
-            };
-            walk(root || document);
-            return out;
-          };
-          const deepQ = (sel, root) => deepQA(sel, root)[0] || null;
-          const panels = () => qa('ytd-engagement-panel-section-list-renderer[target-id*="transcript"]');
-          // Row NODES, not mapped objects: the scroller search below needs a
-          // real element to climb from, and rows can live inside shadow roots
-          // where the light-DOM q(ROW_SEL) never finds them (audit A2: row0
-          // null skipped the scroll accumulation and first-screen rows were
-          // returned as the "complete" transcript).
-          const rowNodes = () => {
-            let rows = qa(ROW_SEL);
-            if (!rows.length) for (const p of panels()) { rows = deepQA(ROW_SEL, p); if (rows.length) break; }
-            return rows;
-          };
-          const readRows = () => {
-            return rowNodes().map((row) => {
-              const ts = q(TS_SEL, row) || deepQ(TS_SEL, row);
-              const tx = q(TX_SEL, row) || deepQ(TX_SEL, row);
-              return {
-                from: parseTs(ts && ts.textContent),
-                to: 0,
-                content: ((tx && tx.textContent) || "").replace(/\s+/g, " ").trim(),
-              };
-            }).filter((s) => s.content);
-          };
-          // What is ACTUALLY inside the panels -- read the answer instead of
-          // guessing the next selector when rows stay at zero.
-          const panelDiag = () => panels().map((p) => {
-            const tags = new Set();
-            deepQA("*", p).slice(0, 400).forEach((n) => { if (tags.size < 15) tags.add(n.tagName.toLowerCase()); });
-            return (p.getAttribute("target-id") || "?") + "[vis=" + (p.getAttribute("visibility") || "?") + ",h=" + p.offsetHeight + "]{" + Array.from(tags).join(",") + "}";
-          }).join(" ; ") || "no transcript panels in DOM";
-
-          // -- network taps (restored in finally) --
-          const origFetch = window.fetch;
-          const origOpen = XMLHttpRequest.prototype.open;
-          const origSend = XMLHttpRequest.prototype.send;
-          let captured = "";
-          let opened = false;
-          const wants = (u) => /\/youtubei\/v1\/(get_transcript|get_panel)/.test(String(u || ""));
-          const keeps = (t) => t && /transcriptSegment(ViewModel|Renderer)|transcriptSearchPanelRenderer/.test(t);
-          const tagTap = () => {
-            try { window.fetch.__pbpTap = myLease; } catch (_) {}
-            try { XMLHttpRequest.prototype.open.__pbpTap = myLease; } catch (_) {}
-            try { XMLHttpRequest.prototype.send.__pbpTap = myLease; } catch (_) {}
-          };
-          try {
-            window.fetch = function (...a) {
-              const p = origFetch.apply(this, a);
-              try {
-                const u = (a[0] && a[0].url) || a[0];
-                if (!captured && wants(u)) {
-                  p.then((resp) => resp.clone().text().then((t) => { if (!captured && keeps(t)) captured = t; }).catch(() => {})).catch(() => {});
-                }
-              } catch (_) {}
-              return p;
-            };
-            XMLHttpRequest.prototype.open = function (m, u, ...rest) {
-              this.__pbpUrl = u;
-              return origOpen.call(this, m, u, ...rest);
-            };
-            XMLHttpRequest.prototype.send = function (...a) {
-              try {
-                if (!captured && wants(this.__pbpUrl)) {
-                  this.addEventListener("load", () => {
-                    try { if (!captured && keeps(this.responseText)) captured = this.responseText; } catch (_) {}
-                  });
-                }
-              } catch (_) {}
-              return origSend.apply(this, a);
-            };
-            tagTap();
-
-            // already-open panel with rows? read it without touching the UI
-            let segs = readRows();
-            if (!segs.length) {
-              // real control chain: expand the description, then the button
-              const expand = q("ytd-text-inline-expander #expand, tp-yt-paper-button#expand, #description #expand");
-              if (expand) { try { expand.click(); } catch (_) {} await sleep(400); }
-              let btn = q("ytd-video-description-transcript-section-renderer button");
-              for (let i = 0; i < 8 && !btn; i++) { await sleep(400); btn = q("ytd-video-description-transcript-section-renderer button"); }
-              if (btn) { btn.click(); opened = true; }
-              else {
-                const panel = qa('ytd-engagement-panel-section-list-renderer[target-id*="transcript"]')[0];
-                if (panel) { panel.setAttribute("visibility", "ENGAGEMENT_PANEL_VISIBILITY_EXPANDED"); opened = true; out.trace = "no transcript button; shell-opened panel (may not load data)"; }
-                else { out.trace = "no transcript entry in page"; return out; }
-              }
-              // wait for the page's own request or for rows, whichever first
-              for (let i = 0; i < 36 && !captured; i++) {
-                await sleep(400);
-                segs = readRows();
-                if (segs.length) break;
-              }
-            }
-            if (captured) {
-              if (vid && !String(location.href).includes(vid)) {
-                out.trace = "tab navigated away mid-scrape";
-                return out;
-              }
-              out.kind = "net"; out.body = captured; return out;
-            }
-            if (segs.length) {
-              // virtualized list: scroll and accumulate. Two safeguards,
-              // both learned from garbled rows on device: a row only counts
-              // when two reads 120ms apart agree (a node caught mid-recycle
-              // never survives that), and the FIRST stable version of a
-              // timestamp is final -- last-read-wins let a row's dying
-              // glimpse (recycled as it scrolled out) overwrite a good read.
-              // Key on from|content, not from alone: machine captions can
-              // put two different lines on the same timestamp, and a
-              // from-only map silently dropped the second (audit A2).
-              const seen = new Map();
-              const keep = (list) => list.forEach((s) => { const k = s.from + "|" + s.content; if (!seen.has(k)) seen.set(k, s); });
-              const readStable = async () => {
-                const a = readRows();
-                await sleep(120);
-                const b = readRows();
-                const bk = new Set(b.map((s) => s.from + "|" + s.content));
-                return a.filter((s) => bk.has(s.from + "|" + s.content));
-              };
-              keep(await readStable());
-              // Climb from a real row node and keep climbing THROUGH shadow
-              // boundaries (parentElement is null at a shadow root's top; the
-              // host continues the chain) -- the light-DOM-only climb is what
-              // made row0 null for shadow panels and skipped accumulation.
-              const up = (el) => el && (el.parentElement || (el.getRootNode && el.getRootNode().host) || null);
-              const row0 = rowNodes()[0] || null;
-              let scroller = up(row0);
-              while (scroller && scroller !== document.body && scroller.scrollHeight <= scroller.clientHeight + 4) scroller = up(scroller);
-              if (scroller && scroller !== document.body) {
-                let stable = 0, lastCount = seen.size;
-                for (let i = 0; i < 80 && stable < 3; i++) {
-                  scroller.scrollTop += Math.max(120, scroller.clientHeight * 0.9);
-                  await sleep(240);
-                  keep(await readStable());
-                  if (seen.size === lastCount) stable++; else { stable = 0; lastCount = seen.size; }
-                }
-                scroller.scrollTop = 0;
-              } else {
-                // No scroller found (closing review H4): row COUNT proves
-                // nothing about completeness on a long video. Accept only
-                // when the collected rows demonstrably cover the video --
-                // last timestamp within the final 20% of the duration --
-                // otherwise fail the tier rather than pose a first screen as
-                // the full transcript.
-                let dur = 0;
-                try {
-                  const pl = document.querySelector("#movie_player");
-                  if (pl && typeof pl.getDuration === "function") dur = Number(pl.getDuration()) || 0;
-                } catch (_) {}
-                const lastFrom = Math.max(0, ...Array.from(seen.values()).map((x) => x.from || 0));
-                if (!(dur > 0 && lastFrom >= dur * 0.8)) {
-                  out.trace = "no scroller; refusing " + seen.size + " rows (coverage " +
-                    (dur > 0 ? Math.round((lastFrom / dur) * 100) + "%" : "unknown") + ")";
-                  return out;
-                }
-                out.trace = "no scroller; accepted on duration coverage";
-              }
-              // Return-time identity recheck (closing review H2): the tab can
-              // SPA-navigate mid-scrape; rows read after that may be another
-              // video's panel.
-              if (vid && !String(location.href).includes(vid)) {
-                out.kind = ""; out.segs = [];
-                out.trace = "tab navigated away mid-scrape";
-                return out;
-              }
-              out.kind = "dom";
-              out.segs = Array.from(seen.values()).sort((a, b) => a.from - b.from);
-              return out;
-            }
-            if (!out.trace) out.trace = "no rows, no captured response; panels: " + panelDiag();
-            return out;
-          } finally {
-            if (window.fetch && window.fetch.__pbpTap === myLease) window.fetch = origFetch;
-            if (XMLHttpRequest.prototype.open.__pbpTap === myLease) XMLHttpRequest.prototype.open = origOpen;
-            if (XMLHttpRequest.prototype.send.__pbpTap === myLease) XMLHttpRequest.prototype.send = origSend;
-            if (window.__pbpTapLease === myLease) delete window.__pbpTapLease;
-            // leave the page as we found it -- close only what we opened
-            if (opened) {
-              try {
-                const p = qa('ytd-engagement-panel-section-list-renderer[target-id*="transcript"]')
-                  .find((x) => x.getAttribute("visibility") === "ENGAGEMENT_PANEL_VISIBILITY_EXPANDED");
-                if (p) p.setAttribute("visibility", "ENGAGEMENT_PANEL_VISIBILITY_HIDDEN");
-              } catch (_) {}
-            }
-          }
-        },
+        func: pbpYtDomTranscriptInPage,
       });
     } catch (e) {
       console.warn("[pbp-video] dom transcript injection failed:", (e && e.message) || e);
