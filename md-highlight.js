@@ -1177,9 +1177,9 @@ function _pbpHlEnsureBar() {
     dot.dataset.color = String(c);
     dot.title = names[c - 1];
     dot.setAttribute("aria-label", names[c - 1]);
-    // Visible digit doubles as the 1-5 shortcut legend and a non-color cue
-    // (the five swatches were previously distinguishable by hue alone).
-    dot.textContent = String(c);
+    // A plain swatch: the 1-5 digit that used to sit inside it was pulled on
+    // device feedback (2026-08-25, "very ugly"). The shortcut stays live and
+    // announced; the name rides title + aria-label.
     dot.setAttribute("aria-keyshortcuts", String(c));
     // Keep the live text selection alive through the click (mousedown on
     // any element normally clears window.getSelection()).
