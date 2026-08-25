@@ -1245,7 +1245,11 @@ function _pbpHlEnsureBar() {
   seekBtn.addEventListener("click", () => {
     const r = _pbpHlBarRange;
     const sec = (r && typeof window.pbpVideoTimeForNode === "function") ? window.pbpVideoTimeForNode(r.startContainer) : null;
-    if (sec != null && typeof window.pbpVideoSeek === "function") window.pbpVideoSeek(sec);
+    // "Play from here" plays (Codex retro 1c: the label promised it, the
+    // call kept the pause). The selection goes first: left standing, it
+    // would re-trigger the lookup pause 150ms after the play.
+    try { const s = window.getSelection(); if (s) s.removeAllRanges(); } catch (_) {}
+    if (sec != null && typeof window.pbpVideoSeek === "function") window.pbpVideoSeek(sec, true);
     _pbpHlHideBar();
   });
   bar.appendChild(seekBtn);

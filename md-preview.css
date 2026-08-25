@@ -2355,7 +2355,7 @@ html.motion-ready #pb-hl-bar:popover-open {
    md-ask.js). Same box as .pb-hl-note-btn, plus a divider on the left to set
    it apart from the color dots/note button. .pb-hl-dict-btn (real-device
    feedback: dedicated dictionary entry) joins this same family verbatim. */
-.pb-hl-explain-btn, .pb-hl-dict-btn {
+.pb-hl-explain-btn, .pb-hl-dict-btn, .pb-hl-seek-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2371,8 +2371,9 @@ html.motion-ready #pb-hl-bar:popover-open {
    action group off the color dots/note button. */
 .pb-hl-explain-btn { margin-left: 2px; border-left: 1px solid var(--border); }
 .pb-hl-explain-btn:hover, .pb-hl-explain-btn:focus-visible,
-.pb-hl-dict-btn:hover, .pb-hl-dict-btn:focus-visible { color: var(--fg); background: var(--btn-hover); outline: none; }
-.pb-hl-explain-btn svg, .pb-hl-dict-btn svg { width: 13px; height: 13px; }
+.pb-hl-dict-btn:hover, .pb-hl-dict-btn:focus-visible,
+.pb-hl-seek-btn:hover, .pb-hl-seek-btn:focus-visible { color: var(--fg); background: var(--btn-hover); outline: none; }
+.pb-hl-explain-btn svg, .pb-hl-dict-btn svg, .pb-hl-seek-btn svg { width: 13px; height: 13px; }
 .pb-hl-explain-btn[hidden], .pb-hl-dict-btn[hidden] { display: none; }
 
 /* ============================================================
@@ -3466,9 +3467,8 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
    mode the two new nodes never render. */
 #pb-hl-bar .pb-hl-seek-btn, #pb-hl-bar .pb-hl-hint { display: none; }
 #pb-hl-bar.pb-hl-bar--timeline .pb-hl-dot, #pb-hl-bar.pb-hl-bar--timeline .pb-hl-note-btn { display: none; }
-#pb-hl-bar.pb-hl-bar--timeline .pb-hl-seek-btn { display: inline-flex; }
+#pb-hl-bar.pb-hl-bar--timeline .pb-hl-seek-btn { display: flex; } /* same box as .pb-hl-dict-btn (device feedback 2026-08-25: the bare button chrome read as a foreign control) */
 #pb-hl-bar.pb-hl-bar--timeline .pb-hl-hint { display: inline-block; font-size: 0.78em; color: var(--fg-muted); padding: 0 6px; align-self: center; white-space: nowrap; }
-#pb-hl-bar .pb-hl-seek-btn svg { width: 16px; height: 16px; }
 
 /* ---- video panel (md-video.js) ---- */
 .video-panel { margin: 0 0 20px; }

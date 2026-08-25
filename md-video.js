@@ -60,6 +60,29 @@ function pbpYtTabEligible(tabUrl) {
   } catch (_) { return false; }
 }
 
+// Which tab to inject into. Ranked, never trusted: the id remembered at
+// session time may be closed by now ("No tab with id" in the device error
+// panel, 2026-08-25) or navigated to another video, while a different tab
+// sits on exactly this video. Same-video tabs first (the player capture's
+// wrong-tab guard needs one), the remembered id as the tie-break, then any
+// eligible www.youtube.com tab (a same-origin fetch host is all the timedtext
+// route needs). Returns a tab id or null.
+function pbpYtPickCaptureTab(tabs, preferredId, videoId) {
+  const list = (Array.isArray(tabs) ? tabs : []).filter((tb) => tb && typeof tb.id === "number" && pbpYtTabEligible(tb.url));
+  if (!list.length) return null;
+  const onVideo = (tb) => {
+    if (!videoId) return false;
+    try {
+      const u = new URL(tb.url);
+      return u.searchParams.get("v") === videoId || u.pathname === "/shorts/" + videoId;
+    } catch (_) { return false; }
+  };
+  const same = list.filter(onVideo);
+  const pool = same.length ? same : list;
+  const pref = pool.find((tb) => tb.id === preferredId);
+  return (pref || pool[0]).id;
+}
+
 // YouTube's InnerTube endpoint now demands a PO Token on every client we
 // could impersonate (yt-dlp PO Token Guide, 2026-07), and a browser cannot
 // produce one -- attestation needs the native app runtime. The watch page
@@ -1374,10 +1397,27 @@ function pbpBiliParseSubtitleJson(json) {
   })).filter((s) => s.content);
 }
 
+// Logged-out verdict for an EMPTY subtitle list. An empty list alone proved
+// nothing (device report 2026-08-25: a signed-in reader saw the "sign in"
+// copy on a video that simply has no subtitles). Shapes probed live
+// 2026-08-25 -- anonymous: player/wbi/v2 data.login_mid = 0 and
+// need_login_subtitle = true, nav code -101 with data.isLogin false; signed
+// in: login_mid > 0, need_login_subtitle false, isLogin true. Fields missing
+// (older fixture, API drift) is NOT a login verdict: "no subtitles" is the
+// honest default, "sign in" would send a signed-in reader in circles.
+function pbpBiliLoggedOut(playerData, navData) {
+  if (playerData && typeof playerData.login_mid === "number") return playerData.login_mid === 0;
+  if (playerData && typeof playerData.need_login_subtitle === "boolean") return playerData.need_login_subtitle;
+  if (navData && typeof navData.isLogin === "boolean") return navData.isLogin === false;
+  return false;
+}
+
 // Orchestrator. credentials handling lives in the runtime caller's fetchFn;
-// the injected test fetchFn ignores it. error: "view" | "login" | "no-tracks"
-// | "caption-body". "login" specifically = the API returned an EMPTY subtitle
-// list, which for a public API means the user isn't logged into bilibili.
+// the injected test fetchFn ignores it. error: "view" | "player" (the
+// player API failed: HTTP/JSON, not a verdict about subtitles) | "login" |
+// "no-tracks" | "caption-body". "login" = the subtitle list came back EMPTY and the
+// response says the session is anonymous (pbpBiliLoggedOut); empty while
+// signed in is "no-tracks".
 async function pbpBiliFetchTranscript(bvid, part, opts) {
   opts = opts || {};
   const fetchFn = opts.fetchFn || ((u, o) => fetch(u, o));
@@ -1389,21 +1429,21 @@ async function pbpBiliFetchTranscript(bvid, part, opts) {
   } catch (_) { return { error: "view" }; }
   const info = pbpBiliExtractCid(view, part);
   if (!info || !info.cid) return { error: "view" };
-  let mixinKey = "";
+  let mixinKey = "", navData = null;
   try {
     const nr = await fetchFn("https://api.bilibili.com/x/web-interface/nav", { credentials: "include", signal: AbortSignal.timeout(15000) });
-    if (nr.ok) mixinKey = pbpBiliMixinKey(await nr.json());
+    if (nr.ok) { const nj = await nr.json(); navData = (nj && nj.data) || null; mixinKey = pbpBiliMixinKey(nj); }
   } catch (_) { /* unsigned attempt below may still work for some videos */ }
   const signed = pbpBiliSign({ bvid: bvid, cid: info.cid }, mixinKey);
   const qs = Object.keys(signed).map((k) => encodeURIComponent(k) + "=" + encodeURIComponent(signed[k])).join("&");
   let player;
   try {
     const pr = await fetchFn("https://api.bilibili.com/x/player/wbi/v2?" + qs, { credentials: "include", signal: AbortSignal.timeout(15000) });
-    if (!pr.ok) return { error: "no-tracks", meta: info };
+    if (!pr.ok) return { error: "player", meta: info };
     player = await pr.json();
-  } catch (_) { return { error: "no-tracks", meta: info }; }
+  } catch (_) { return { error: "player", meta: info }; }
   const subs = (player && player.data && player.data.subtitle && player.data.subtitle.subtitles) || [];
-  if (!subs.length) return { error: "login", meta: info };
+  if (!subs.length) return { error: pbpBiliLoggedOut(player && player.data, navData) ? "login" : "no-tracks", meta: info };
   // Default-track pick only -- see the pbpYtFetchTranscript twin: the removed
   // opts.pickSubtitleUrl branch was the URL-addressed track switch, which now
   // goes straight to pbpBiliFetchSubtitleBody.
@@ -1781,7 +1821,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     return s;
   };
   // Seek entry for reader modules (Ask/skim chips): same best-effort seekTo.
-  window.pbpVideoSeek = (sec) => { try { seekTo(Math.max(0, Number(sec) || 0), false); } catch (_) {} }; // citation jumps keep the play state
+  window.pbpVideoSeek = (sec, play) => { try { seekTo(Math.max(0, Number(sec) || 0), play === true); } catch (_) {} }; // citation jumps keep the play state; the selection bar's "play from here" passes true
 
   // Study-column reading/timeline toggle (Task 4). Set by mountVideoWorkspace
   // only in video-mode workspaces; a non-video defensive mount (panel stays a
@@ -1795,6 +1835,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   // change detection, element for the actual class removal -- a re-render
   // replaces the nodes, so the index alone would clear the wrong row).
   let _followOn = true, _followBtn = null;
+  let _followAutoOff = false; // follow was switched off by scroll/keys (not by the toggle)
   let _currentRowIdx = -1, _currentRowEl = null;
   let _helloTimer = null, _helloTries = 0, _relayAlive = false;
   // Playback controls (research T3.x). _relayState = last YT.PlayerState the
@@ -1804,13 +1845,14 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   let _relayState = -1;
   let _loopOn = false, _loopBtn = null;
   let _autoPauseOn = false, _autoPauseBtn = null, _rateSel = null;
-  let _pausedByLookup = false, _lookupTimer = null;
+  let _pausedByLookup = false, _lookupTimer = null, _lookupPauseSeen = false;
   let _backBtn = null, _statusElRef = null;
   let _seekGraceUntil = 0, _seekTarget = null, _seekDir = 1; // stale ticks right after a seek
   let _autoPauseLatch = -1, _endedCleared = false; // one pause per cue; one resume-clear per ending
   let _auxGen = 0;                                 // bumped when the primary track changes (retro #7)
   let _rovingBtn = null;                         // the one time button in the tab order (T3.4)
   let _estOn = false, _estBtn = null, _estTimer = null, _estAnchor = null; // bilibili estimate clock (T3.6)
+  let _biliPlaying = false; // bilibili: the player's state is KNOWN only right after our own reload (autoplay decides it); a click into the player makes it unknown again
   let _videoPrefs = { langPrefs: [], pauseOnLookup: true }; // settings snapshot (T6.1/T3.5)
   let _rowSegs = [], _density = "cue", _densityBtn = null;  // timeline rows as rendered (T7.10)
   let _trObserver = null, _trProjTimer = null;                // translation projection (T5.1)
@@ -1825,26 +1867,20 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   // attest (probed live 2026-08: cookieless watch fetch = LOGIN_REQUIRED,
   // zero tracks). Injection rides the click-time https://www.youtube.com/*
   // grant plus the existing "scripting" permission -- no new permissions.
-  async function ytFindFetchTab(tabId) {
-    if (typeof tabId === "number") {
-      try {
-        const tab = await chrome.tabs.get(tabId);
-        if (tab && pbpYtTabEligible(tab.url)) return tab.id;
-      } catch (_) { /* source tab is gone; any YouTube tab works the same */ }
-    }
-    try {
-      const tabs = await chrome.tabs.query({ url: "https://www.youtube.com/*" });
-      for (const tab of tabs || []) {
-        if (tab && typeof tab.id === "number" && pbpYtTabEligible(tab.url)) return tab.id;
-      }
-    } catch (_) {}
-    return null;
+  async function ytFindFetchTab(tabId, videoId) {
+    let tabs = [];
+    try { tabs = (await chrome.tabs.query({ url: "https://www.youtube.com/*" })) || []; } catch (_) {}
+    return pbpYtPickCaptureTab(tabs, typeof tabId === "number" ? tabId : null, videoId || "");
   }
 
   function ytTabFetchFn(tabId, videoId) {
     return async (url) => {
+      // Re-resolved per call: the tab this closure was built on may be gone
+      // by the time a track switch reuses it (device error panel 2026-08-25).
+      const liveTab = await ytFindFetchTab(tabId, videoId);
+      if (liveTab == null) throw new Error("no www.youtube.com tab to fetch through");
       const inj = await chrome.scripting.executeScript({
-        target: { tabId },
+        target: { tabId: liveTab },
         world: "MAIN", // window.ytInitialPlayerResponse lives in the page world
         func: async (u, wantVid) => {
           // A page the user can actually watch already holds an OK player
@@ -2324,16 +2360,29 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   const queueTabInjection = pbpVideoMakeInjectQueue();
 
   async function ytTabPlayerCaptionCapture(tabId, langCode, videoId) {
+    // A live tab, resolved NOW (device error panel 2026-08-25: "No tab with
+    // id" -- the remembered tab had been closed while another tab on the
+    // same video was open the whole time). No tab is an expected state and
+    // is reported as info: a warn lands in the chrome://extensions error list.
+    const liveTab = await ytFindFetchTab(tabId, videoId);
+    if (liveTab == null) { console.info("[pbp-video] player capture: no www.youtube.com tab is open"); return null; }
+    _ytFetchTabId = liveTab;
     let inj = null;
     try {
       inj = await chrome.scripting.executeScript({
-        target: { tabId },
+        target: { tabId: liveTab },
         world: "MAIN", // the fetch/XHR taps must live in the page world
         func: async (lang, vid) => {
           // Wrong-tab guard: the tab may have navigated to another video
           // since it was picked as the fetch tab -- driving ITS player would
           // capture another video's captions.
-          if (vid && !String(location.href).includes(vid)) return { body: "", trace: "tab no longer on the target video" };
+          // Exact identity (Codex retro A): a playlist or query param can
+          // CONTAIN the id while the player shows another video.
+          if (vid) {
+            let onVideo = false;
+            try { const u = new URL(location.href); onVideo = u.searchParams.get("v") === vid || u.pathname === "/shorts/" + vid; } catch (_) {}
+            if (!onVideo) return { body: "", trace: "tab no longer on the target video" };
+          }
           const player = document.querySelector("#movie_player");
           if (!player || typeof player.setOption !== "function") return { body: "", trace: "no player api" };
           // Cross-page tap lease (audit A3): queueTabInjection serializes
@@ -2457,7 +2506,10 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         args: [langCode || "", videoId || ""],
       });
     } catch (e) {
-      console.warn("[pbp-video] player capture injection failed:", (e && e.message) || e);
+      const msg = (e && e.message) || String(e);
+      // Closed between the query and the injection: expected, not an error.
+      if (/No tab with id/i.test(msg)) console.info("[pbp-video] player capture: the tab closed mid-run");
+      else console.warn("[pbp-video] player capture injection failed:", msg);
       return null;
     }
     const r = inj && inj[0] && inj[0].result;
@@ -2601,7 +2653,11 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         // settles on the previous row (batch-F smoke).
         _lastRelayTime = Math.max(0, Number(sec) || 0);
         replayHighlight();
-        estAnchor(_lastRelayTime); // re-anchor the estimate clock, if on
+        // The reload is the ONE moment the player's state is known (autoplay
+        // decides it); the estimate clock runs only from such a moment
+        // (device feedback 2026-08-25: it kept scrolling past a manual pause).
+        _biliPlaying = wantPlay;
+        estAnchor(_lastRelayTime);
         _lastPosSaveAt = 0; savePos(_lastRelayTime); // an explicit jump is worth remembering now
       } catch (_) {}
       return;
@@ -2629,6 +2685,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     _autoPauseLatch = -1;
     _lastRelayTime = sec;
     replayHighlight();
+    updateBackBtn(); // a paused player sends no tick to refresh it (Codex retro 1c)
   }
   function relayPost(func, args) {
     if (!_iframe || !_iframe.contentWindow || _isBili) return;
@@ -2662,19 +2719,28 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   }
   // "Back to the current cue" (research T3.7): scrolls to where playback
   // is, in whichever study view is showing. No follow re-arm on its own.
-  function jumpToCurrent() {
-    const list = transcriptListEl();
+  // The element that stands for "now" in whichever study view is showing:
+  // the current timeline row, or the reading-view paragraph whose start is
+  // the latest at/before the playback position. Null when neither is known.
+  function currentStudyAnchor() {
     if (_studyReadingEl && !_studyReadingEl.hidden) {
       const tv = _lastRelayTime;
-      if (tv == null) return;
+      if (tv == null) return null;
       let target = null;
       for (const p of _studyReadingEl.querySelectorAll(":scope > p[data-t]")) {
         if (Number(p.dataset.t) <= tv) target = p; else break;
       }
-      if (target && typeof pbpScrollIntoView === "function") pbpScrollIntoView(target, { block: "center", behavior: "smooth" });
-      return;
+      return target;
     }
-    if (_currentRowEl && list) { try { followScrollTo(_currentRowEl, list); } catch (_) {} }
+    const list = transcriptListEl();
+    return (list && !list.hidden) ? _currentRowEl : null;
+  }
+  function jumpToCurrent() {
+    const anchor = currentStudyAnchor();
+    if (!anchor) return;
+    const list = transcriptListEl();
+    if (anchor === _currentRowEl && list) { try { followScrollTo(anchor, list); } catch (_) {} return; }
+    if (typeof pbpScrollIntoView === "function") pbpScrollIntoView(anchor, { block: "center", behavior: "smooth" });
   }
   function toggleStudyView() {
     if (!_studyReadingEl || !_studyListEl) return;
@@ -2691,10 +2757,14 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   }
   function updateBackBtnNow() {
     if (!_backBtn) return;
-    const list = transcriptListEl();
-    let show = !_followOn && !!_currentRowEl && !!list && !list.hidden && _lastRelayTime != null;
+    // Timeline: only while follow is off (on, the list keeps the row in
+    // view itself). Reading view: follow never scrolls it, so the way back
+    // is always on offer once the current paragraph has left the screen.
+    const readingVisible = !!(_studyReadingEl && !_studyReadingEl.hidden);
+    const anchor = (_lastRelayTime != null && (readingVisible || !_followOn)) ? currentStudyAnchor() : null;
+    let show = !!anchor;
     if (show) {
-      const r = _currentRowEl.getBoundingClientRect();
+      const r = anchor.getBoundingClientRect();
       show = r.bottom < 0 || r.top > window.innerHeight;
     }
     if (_backBtn.hidden === show) _backBtn.hidden = !show;
@@ -2735,7 +2805,8 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         relayPost("seekTo", [sec, true]); // no playVideo: the reader presses play
       }
       markSeek(sec);
-      estAnchor(sec);
+      _biliPlaying = false; // reloaded paused: nothing to extrapolate from until the reader jumps or presses play
+      estAnchor(sec);       // -> stops the bilibili estimate clock; a no-op on YouTube
     });
     restart.addEventListener("click", () => {
       _resumeEl.hidden = true;
@@ -2764,7 +2835,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     _lookupTimer = setTimeout(() => {
       _lookupTimer = null;
       const active = lookupActive();
-      if (active && _relayState === 1 && !_pausedByLookup) { _pausedByLookup = true; relayPause(); return; }
+      if (active && _relayState === 1 && !_pausedByLookup) { _pausedByLookup = true; _lookupPauseSeen = false; relayPause(); return; }
       if (!active && _pausedByLookup) { _pausedByLookup = false; relayPlay(); }
     }, 150);
   }
@@ -2778,7 +2849,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   // by default and says so.
   function estStop() { if (_estTimer) { clearInterval(_estTimer); _estTimer = null; } }
   function estAnchor(sec) {
-    if (!_estOn) return;
+    if (!_estOn || !_biliPlaying) { estStop(); return; }
     _estAnchor = { sec: Math.max(0, sec), at: (typeof performance !== "undefined" ? performance.now() : Date.now()) };
     estStop();
     _estTimer = setInterval(() => {
@@ -2796,7 +2867,11 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   function setEstimate(on) {
     _estOn = !!on;
     if (_estBtn) _estBtn.setAttribute("aria-pressed", _estOn ? "true" : "false");
-    if (_estOn) estAnchor(_lastRelayTime != null ? _lastRelayTime : 0); else estStop();
+    if (!_estOn) { estStop(); return; }
+    estAnchor(_lastRelayTime != null ? _lastRelayTime : 0);
+    // Player state unknown (nothing jumped yet, or the player was touched):
+    // the clock is armed, not running -- say what starts it.
+    if (!_estTimer && _statusElRef) pbvSetStatus(_statusElRef, t("mdVideoEstimateIdle"), false);
   }
   // Roving tabindex for the timeline (research T3.4): exactly one time
   // button in the tab order -- the current row's while playback moves and
@@ -2870,7 +2945,17 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     _helloTries = 0;
     sendRelayHello();
     _helloTimer = setInterval(() => {
-      if (_relayAlive || !_iframe || ++_helloTries > 20) { stopRelayHello(); return; }
+      if (_relayAlive || !_iframe) { stopRelayHello(); return; }
+      if (++_helloTries > 20) {
+        stopRelayHello();
+        // 10s without an answer: the relay's IFrame API never came up (its
+        // plain-embed fallback reports no position, so follow / shortcuts /
+        // study controls have nothing to work from). Say so once, transient,
+        // never over a busy line -- a late answer still arms everything as
+        // usual (Codex retro 1b).
+        if (_statusElRef && _segments.length && _statusElRef.dataset.state !== "busy") pbvSetStatus(_statusElRef, t("mdVideoRelaySilent"), false);
+        return;
+      }
       sendRelayHello();
     }, 500);
   }
@@ -2891,20 +2976,32 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     if (d.event === "ready") { _relayAlive = true; return; }
     if (d.event !== "time") return;
     _relayAlive = true;
-    if (typeof d.state === "number") _relayState = d.state;
+    if (typeof d.state === "number") {
+      _relayState = d.state;
+      // The lookup pause's right to resume ends the moment the reader
+      // presses play themselves: our pause was SEEN (a PAUSED report), then
+      // PLAYING again (Codex retro G). A tick still in flight from before
+      // the pause is not that -- the pause has to have been observed first.
+      if (_pausedByLookup) {
+        if (_relayState === 2) _lookupPauseSeen = true;
+        else if (_relayState === 1 && _lookupPauseSeen) { _pausedByLookup = false; _lookupPauseSeen = false; }
+      }
+    }
     if (typeof d.t !== "number" || !isFinite(d.t)) return;
     // Stale tick right after an explicit seek (see seekTo): drop it.
     const nowMs = (typeof performance !== "undefined" ? performance.now() : Date.now());
     if (nowMs < _seekGraceUntil && _seekTarget != null) {
       if (_seekDir > 0 && d.t < _seekTarget - 0.5) return; // stale, behind a forward seek
       if (_seekDir < 0 && d.t > _seekTarget + 0.5) return; // stale, ahead of a backward seek
-      _seekGraceUntil = 0; // first confirming tick closes the transaction
+      _seekGraceUntil = 0; _seekTarget = null; // first confirming tick closes the transaction
     }
     const cur = (_currentRowIdx >= 0) ? _rowSegs[_currentRowIdx] : null;
     const curEnd = cur ? ((typeof cur.to === "number" && cur.to > cur.from) ? cur.to : cur.from + 2) : 0;
     // Cue loop (research T3.2): hold inside the current cue -- pure reader
     // logic on the relay's 250ms reports, no new relay verb needed.
-    if (_loopOn && cur && d.t >= curEnd - 0.05) { seekTo(cur.from); return; }
+    // Only while PLAYING: the pause report can land past the cue's tail, and
+    // the loop's seek would resume the video the reader just stopped.
+    if (_loopOn && cur && _relayState === 1 && d.t >= curEnd - 0.05) { seekTo(cur.from); return; }
     // Auto-pause at cue END (research T3.2, retro #1): judged on the cue's
     // own end time with a one-shot latch per row, so a gap before the next
     // cue or the very last cue still pauses; the latch resets on seeks
@@ -2919,6 +3016,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     if (_currentRowIdx !== prevIdx) _autoPauseLatch = -1;
     updateBackBtn();
     if (_relayState === 1) savePos(d.t); // research T6.3
+    else if (_relayState === 2) { _lastPosSaveAt = 0; savePos(d.t); } // the pause report is the true resting position: one write past the throttle
     // Finished (YT.PlayerState.ENDED = 0): the continue-watching record is
     // cleared HERE, on the player's own word, never from the caption tail
     // (retro #9: credits and silent stretches run past the last cue).
@@ -2926,6 +3024,20 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     if (_relayState === 1) _endedCleared = false;
   }
   window.addEventListener("message", onRelayMessage);
+  // A click into the bilibili player is the ONE signal this document gets
+  // about it (focus leaves for the frame) -- and it means play, pause, seek
+  // or anything else, so the player's state is unknown from here on. The
+  // estimate clock stops rather than guess (device feedback 2026-08-25:
+  // rows kept scrolling past a manual pause); the next row jump reloads the
+  // player into a known state and re-anchors it.
+  function onWindowBlur() {
+    if (!_isBili || !_iframe || document.activeElement !== _iframe) return;
+    _biliPlaying = false;
+    if (!_estTimer) return;
+    estStop();
+    if (_estOn && _statusElRef) pbvSetStatus(_statusElRef, t("mdVideoEstimateStopped"), false);
+  }
+  window.addEventListener("blur", onWindowBlur);
 
   function transcriptListEl() {
     return _studyListEl || (_panel ? _panel.querySelector(".pbv-list") : null);
@@ -3017,6 +3129,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   function setFollow(on, auto) {
     const was = _followOn;
     _followOn = !!on;
+    _followAutoOff = !_followOn && !!auto;
     if (_followBtn) _followBtn.setAttribute("aria-pressed", _followOn ? "true" : "false");
     // Re-enabling follow on a PAUSED player: no new time event will come to
     // re-anchor the highlight, so replay the last reported position (B13).
@@ -3163,6 +3276,9 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       if (sel && !sel.isCollapsed) return;
     }
     seekTo(Number(row.dataset.from) || 0);
+    // A row jump ends a scroll-paused look-around: "play from here" means
+    // follow from here too. A toggle-off is the reader's choice and stays.
+    if (!_followOn && _followAutoOff) setFollow(true);
   }
   function bindRowClicks(list) {
     if (!list || list._pbpRowClicksWired) return;
@@ -3367,7 +3483,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       // extension-page fetch stays as the no-tab fallback, still governed by
       // the login opt-in (the tab route needs no opt-in -- it reads through
       // the user's own open page, adding nothing they haven't already sent).
-      const fetchTabId = await ytFindFetchTab(tabId);
+      const fetchTabId = await ytFindFetchTab(tabId, detected.videoId);
       ytHadTab = fetchTabId != null;
       if (ytHadTab) ytFetchTabId = fetchTabId;
       if (ytHadTab) {
@@ -3462,6 +3578,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       detected, granted: true,
       tracks: res.tracks, track: res.track, segments, error: res.error,
       wasUnpunct, meta: res.meta, useLogin, ytHadTab, ytFetchFn, ytFetchTabId,
+      errorStatus: (res && res.status) || null, // playabilityStatus behind error:"blocked" (transient: not part of the persisted session)
       captionsVia: res.via, // set only by the rescue tiers: timedtext is PROVEN dead for this session
     };
     window.pbpVideoSession = session;
@@ -3665,21 +3782,26 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     let useLogin = session.useLogin;
     const ytHadTab = session.ytHadTab;
     const res = { tracks: session.tracks, track: session.track, segments: session.segments, error: session.error };
-    if (res.error === "player" || res.error === "view") { pbvSetStatus(statusEl, t("mdVideoFailed"), true); return; }
+    if (res.error === "player" || res.error === "view") { pbvSetStatus(statusEl, t(isBili ? "mdVideoBiliFailed" : "mdVideoFailed"), true); return; }
     if (res.error === "login") { pbvSetStatus(statusEl, t("mdVideoBiliLogin"), true); return; }
     // YouTube answered, but about us rather than about the video: the request
     // was gated (bot check / age wall / unplayable). Saying "no subtitles"
     // here would be a lie, and would point the user at the wrong problem. When
     // no YouTube tab was open to fetch through, say what actually helps.
     if (res.error === "blocked") {
-      pbvSetStatus(statusEl, t("mdVideoBlocked") + (ytHadTab ? "" : " " + t("mdVideoOpenTabHint")), true);
+      // LOGIN_REQUIRED is the bot check; every other non-OK playability
+      // status (UNPLAYABLE, ERROR, age/region walls) is about the video, and
+      // the bot-check copy would send the reader after the wrong fix.
+      const ps = String(session.errorStatus || "");
+      const botCheck = !ps || ps === "LOGIN_REQUIRED";
+      pbvSetStatus(statusEl, (botCheck ? t("mdVideoBlocked") : t("mdVideoUnplayable", ps)) + (botCheck && !ytHadTab ? " " + t("mdVideoOpenTabHint") : ""), true);
       return;
     }
     if (res.error === "no-tracks" || res.error === "caption-body") {
       // "no subtitles" would be a lie when the track list is sitting right
       // there -- caption-body means the TEXT was withheld (PO-Token-gated
       // timedtext), and switching tracks re-fetches through the picker.
-      pbvSetStatus(statusEl, t(res.error === "caption-body" && res.tracks ? "mdVideoBodyBlocked" : "mdVideoNoTracks"), true);
+      pbvSetStatus(statusEl, t(res.error === "caption-body" && res.tracks ? (isBili ? "mdVideoBiliBodyFailed" : "mdVideoBodyBlocked") : "mdVideoNoTracks"), true);
       if (!res.tracks) return;
     }
     if (!res.error) pbvSetStatus(statusEl, "", false);
@@ -3940,10 +4062,12 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           const fresh = await refreshTrackDirectory();
           if (seq !== _trackSwitchSeq) return; // a newer selection owns the panel now
           if (!fresh || !fresh.granted) {
-            // The caption origin was revoked since the article was committed
-            // (or the refresh threw). Blaming the track would point the user
-            // at the wrong problem -- nothing is fetchable at all right now.
-            pbvSetStatus(statusEl, t("mdVideoPermMissing"), true);
+            // The caption origin was revoked since the article was committed,
+            // or the refresh itself threw (network, API): blaming the track
+            // would point the user at the wrong problem -- nothing is
+            // fetchable at all right now -- and a thrown refresh is not a
+            // declined permission (Codex retro 2).
+            pbvSetStatus(statusEl, t(!fresh ? (isBili ? "mdVideoBiliFailed" : "mdVideoFailed") : "mdVideoPermMissing"), true);
             trackSel.value = _selectedTrackKey;
             return;
           }
@@ -3998,7 +4122,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         // URLs are PO-Token-walled -- and a hydrated session has no URL at all
         // -- so re-fetch through the page player's own caption machinery, the
         // verified per-language route. It keys off lang, not the endpoint.
-        if (!segs.length && !isBili && _ytFetchTabId != null && selTrack) {
+        if (!segs.length && !isBili && selTrack) {
           // Through the injection mutex, with a superseded probe: a rapid
           // A->B switch drops A's queued capture WITHOUT ever injecting it
           // (saving its whole in-tab budget), and two captures can never
@@ -4012,7 +4136,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           // Keep the transcript the user already has: replacing a working
           // timeline with an empty list would turn a failed switch into data
           // loss. mdVideoBodyBlocked names the real problem for YouTube.
-          pbvSetStatus(statusEl, t(isBili ? "mdVideoNoTracks" : "mdVideoBodyBlocked"), true);
+          pbvSetStatus(statusEl, t(isBili ? "mdVideoBiliBodyFailed" : "mdVideoBodyBlocked"), true);
           // ...and put the picker back on the track the panel and the article
           // actually carry, so it stops advertising a switch that never landed.
           trackSel.value = _selectedTrackKey;
@@ -4126,7 +4250,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     // Auxiliary track fetch (research T5.2): the switch handler's endpoint
     // resolution, minus its commit -- nothing here touches the article,
     // the session track or the canonical markdown.
-    async function fetchAuxSegments(key) {
+    async function fetchAuxSegments(key, stillWanted) {
       const sessionTracks = (window.pbpVideoSession && window.pbpVideoSession.tracks) || [];
       const bare = key.replace(/#\d+$/, "");
       const idx = _trackValues.indexOf(key);
@@ -4148,30 +4272,44 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       let segs = (endpoint && !timedtextDead)
         ? (isBili ? await pbpBiliFetchSubtitleBody(endpoint) : await pbpYtFetchCaptionBody(endpoint, _ytFetchFn || undefined, useLogin))
         : [];
-      if (!segs.length && !isBili && _ytFetchTabId != null && selTrack) {
+      if (!segs.length && !isBili && selTrack) {
         segs = (await queueTabInjection(
-          () => ytTabPlayerCaptionCapture(_ytFetchTabId, selTrack.lang, detected.videoId), () => true)) || [];
+          () => ytTabPlayerCaptionCapture(_ytFetchTabId, selTrack.lang, detected.videoId), stillWanted || (() => true))) || [];
       }
       return segs;
     }
     if (_auxSel && !_auxSel._pbpChangeWired) {
       _auxSel._pbpChangeWired = true;
-      let auxSeq = 0;
+      let auxSeq = 0, auxBusyText = "";
       _auxSel.addEventListener("change", async () => {
         const key = _auxSel.value;
         const mySeq = ++auxSeq;
         const gen = _auxGen, epoch = _transcriptEpoch;
-        if (!key) { _auxSegs = null; applyAux(); return; }
+        // The busy line belongs to the newest request: "no companion" takes
+        // it back, and a stale request clears it only while it still shows
+        // its own text (Codex retro E: a superseded fetch left it busy for good).
+        if (!key) {
+          if (auxBusyText && statusEl.textContent === auxBusyText) pbvSetStatus(statusEl, "", null);
+          auxBusyText = "";
+          _auxSegs = null; applyAux(); return;
+        }
         const selOpt = _auxSel.selectedOptions && _auxSel.selectedOptions[0];
-        pbvSetStatus(statusEl, selOpt && selOpt.textContent ? t("mdVideoSwitchingTo", selOpt.textContent) : t("mdVideoLoading"), "busy");
+        const myBusy = selOpt && selOpt.textContent ? t("mdVideoSwitchingTo", selOpt.textContent) : t("mdVideoLoading");
+        auxBusyText = myBusy;
+        pbvSetStatus(statusEl, myBusy, "busy");
+        const stillWanted = () => mySeq === auxSeq && gen === _auxGen && epoch === _transcriptEpoch && _auxSel.value === key;
         let segs = [];
-        try { segs = await fetchAuxSegments(key); } catch (e) { console.warn("[pbp-video] aux track:", (e && e.message) || e); }
-        // Stale if the reader picked another companion, the primary track
-        // changed (it may even BE this track now), or the transcript was
-        // replaced meanwhile (retro #7).
-        if (mySeq !== auxSeq || gen !== _auxGen || epoch !== _transcriptEpoch || _auxSel.value !== key || key === _selectedTrackKey) return;
+        try { segs = await fetchAuxSegments(key, stillWanted); } catch (e) { console.warn("[pbp-video] aux track:", (e && e.message) || e); }
+        // Stale if the reader picked another companion (that request owns the
+        // line now), the primary track changed (it may even BE this track
+        // now), or the transcript was replaced meanwhile (retro #7).
+        if (mySeq !== auxSeq) return;
+        if (gen !== _auxGen || epoch !== _transcriptEpoch || _auxSel.value !== key || key === _selectedTrackKey) {
+          if (statusEl.textContent === myBusy) pbvSetStatus(statusEl, "", null);
+          return;
+        }
         if (!segs.length) {
-          pbvSetStatus(statusEl, t(isBili ? "mdVideoNoTracks" : "mdVideoBodyBlocked"), true);
+          pbvSetStatus(statusEl, t(isBili ? "mdVideoBiliBodyFailed" : "mdVideoBodyBlocked"), true);
           _auxSel.value = "";
           _auxSegs = null;
           applyAux();

@@ -168,6 +168,27 @@ section("pbpVideoApplyPunctText");
   assert(pbpVideoApplyPunctText(segs, "我们几千年前就蒸馒头") === null, "apply: short text fails closed");
 })();
 
+section("pbpYtPickCaptureTab");
+(() => {
+  const tabs = [
+    { id: 11, url: "https://www.youtube.com/" },
+    { id: 12, url: "https://www.youtube.com/watch?v=AAA" },
+    { id: 13, url: "https://www.youtube.com/watch?v=BBB&t=5" },
+    { id: 14, url: "https://m.youtube.com/watch?v=BBB" },
+    { id: 15, url: "https://www.youtube.com/watch?v=BBB" },
+  ];
+  assertEq(pbpYtPickCaptureTab(tabs, 999, "BBB"), 13, "remembered tab closed: the first tab ON the video wins (device 2026-08-25: 'No tab with id')");
+  assertEq(pbpYtPickCaptureTab(tabs, 15, "BBB"), 15, "remembered tab still on the video: it stays the choice among same-video tabs");
+  assertEq(pbpYtPickCaptureTab(tabs, 12, "BBB"), 13, "remembered tab navigated to another video: a same-video tab beats it");
+  assertEq(pbpYtPickCaptureTab(tabs, 12, "CCC"), 12, "no tab on the video: the remembered eligible tab is the fetch host");
+  assertEq(pbpYtPickCaptureTab(tabs, 999, "CCC"), 11, "no tab on the video, remembered gone: first eligible tab");
+  assertEq(pbpYtPickCaptureTab(tabs, null, ""), 11, "no video id: first eligible tab");
+  assertEq(pbpYtPickCaptureTab([{ id: 14, url: "https://m.youtube.com/watch?v=BBB" }], 14, "BBB"), null, "m.youtube.com only: nothing eligible");
+  assertEq(pbpYtPickCaptureTab([], 12, "BBB"), null, "no tabs -> null");
+  assertEq(pbpYtPickCaptureTab([{ id: 20, url: "https://www.youtube.com/shorts/BBB" }, { id: 21, url: "https://www.youtube.com/watch?v=BBB" }], null, "BBB"), 20, "shorts path counts as on-video");
+  assertEq(pbpYtPickCaptureTab([{ url: "https://www.youtube.com/watch?v=BBB" }, { id: "x", url: "https://www.youtube.com/watch?v=BBB" }], null, "BBB"), null, "tabs without a numeric id are skipped");
+})();
+
 section("pbpYtTabEligible");
 assert(pbpYtTabEligible("https://www.youtube.com/watch?v=dQw4w9WgXcQ") === true, "watch page tab is eligible");
 assert(pbpYtTabEligible("https://www.youtube.com/") === true, "any www.youtube.com page is eligible (same-origin fetch host)");
@@ -370,11 +391,35 @@ await (async () => {
   const loggedOut = await pbpBiliFetchTranscript("BV1x", 1, { fetchFn: async (url) => {
     if (url.includes("/x/web-interface/nav")) return { ok: true, json: async () => nav };
     if (url.includes("/x/web-interface/view")) return { ok: true, json: async () => view };
-    if (url.includes("/x/player/wbi/v2")) return { ok: true, json: async () => ({ data: { subtitle: { subtitles: [] } } }) };
+    // Anonymous shape probed live 2026-08-25 (player/wbi/v2 with credentials omitted).
+    if (url.includes("/x/player/wbi/v2")) return { ok: true, json: async () => ({ code: 0, data: { login_mid: 0, login_mid_hash: "", need_login_subtitle: true, subtitle: { allow_submit: false, lan: "", lan_doc: "", subtitles: [] } } }) };
     return { ok: true, json: async () => ({}) };
   } });
-  check("empty subtitle list -> error:'login'", loggedOut.error === "login");
+  check("empty subtitle list + anonymous response -> error:'login'", loggedOut.error === "login");
+  const noSubs = await pbpBiliFetchTranscript("BV1x", 1, { fetchFn: async (url) => {
+    if (url.includes("/x/web-interface/nav")) return { ok: true, json: async () => nav };
+    if (url.includes("/x/web-interface/view")) return { ok: true, json: async () => view };
+    // Signed-in shape probed live 2026-08-25 on a video with no subtitles.
+    if (url.includes("/x/player/wbi/v2")) return { ok: true, json: async () => ({ code: 0, data: { login_mid: 170896, login_mid_hash: "abc", need_login_subtitle: false, subtitle: { allow_submit: true, lan: "", lan_doc: "", subtitles: [] } } }) };
+    return { ok: true, json: async () => ({}) };
+  } });
+  check("empty subtitle list while signed in -> error:'no-tracks' (device 2026-08-25: the sign-in copy was shown to a signed-in reader)", noSubs.error === "no-tracks");
+  const apiDown = await pbpBiliFetchTranscript("BV1x", 1, { fetchFn: async (url) => {
+    if (url.includes("/x/web-interface/nav")) return { ok: true, json: async () => nav };
+    if (url.includes("/x/web-interface/view")) return { ok: true, json: async () => view };
+    if (url.includes("/x/player/wbi/v2")) return { ok: false, status: 502 };
+    return { ok: true, json: async () => ({}) };
+  } });
+  check("player API failure -> error:'player', never 'no subtitles' (Codex retro 2)", apiDown.error === "player");
 })();
+
+section("pbpBiliLoggedOut");
+check("anonymous player response -> logged out", pbpBiliLoggedOut({ login_mid: 0, need_login_subtitle: true }, { isLogin: false }) === true);
+check("signed-in player response -> not logged out", pbpBiliLoggedOut({ login_mid: 170896, need_login_subtitle: false }, { isLogin: true }) === false);
+check("login_mid wins over need_login_subtitle", pbpBiliLoggedOut({ login_mid: 5, need_login_subtitle: true }, null) === false);
+check("no login_mid: need_login_subtitle decides", pbpBiliLoggedOut({ need_login_subtitle: true }, { isLogin: true }) === true);
+check("no player fields: nav isLogin decides", pbpBiliLoggedOut({}, { isLogin: false }) === true && pbpBiliLoggedOut({}, { isLogin: true }) === false);
+check("nothing known is NOT a login verdict", pbpBiliLoggedOut(null, null) === false && pbpBiliLoggedOut({}, {}) === false);
 
 section("pbpVideoTrackKey");
 assertEq(pbpVideoTrackKey({ lang: "en", label: "English", asr: false }, "youtube"), "yt:en", "youtube manual key");

@@ -15,7 +15,8 @@
 //   inbound  {pbpVideo:1, func:"hello"|"seekTo"|"playVideo", args:[]}
 //   outbound {pbpVideo:1, event:"ready"}
 //            {pbpVideo:1, event:"time", t:<seconds>, state:<YT state int>}
-// `state` is carried for a future consumer; today's reader reads only `t`.
+// `state` (YT.PlayerState) is read by the reader: PLAYING gates the cue loop and
+// position saves, a PAUSED report is saved as the resting position, ENDED clears it.
 //
 // Two player modes. Normally YouTube's IFrame API builds the player and the
 // outbound half works. When that script never arrives -- content blockers
@@ -79,9 +80,9 @@
     // One report on every state change, the non-playing ones included: the
     // position at the moment playback stopped is the last true one, so the
     // reader's row marker settles where the player actually is instead of
-    // wherever the final 250ms tick happened to land. The `state` field rides
-    // along for a future consumer -- the reader today reads only `t` and does
-    // nothing special on pause or end.
+    // wherever the final 250ms tick happened to land. The `state` field is
+    // read by the reader: PLAYING gates the cue loop and position saves, a
+    // PAUSED report is saved as the resting position, ENDED clears it.
     postTime();
     if (state === 1 /* YT.PlayerState.PLAYING */) timer = setInterval(postTime, 250);
   }
