@@ -93,7 +93,7 @@
   "ui": {
     "popup": {
       "dark": {
-        "fg-hint": "#9399b2",
+        "fg-hint": "#999fb6",
         "input-bg": "#11111b",
         "input-focus-bg": "#181825",
         "tag-hover": "#585b70",
@@ -110,7 +110,7 @@
       "dark": {
         "btn-bg": "#45475a",
         "btn-hover": "#585b70",
-        "fg-hint": "#9399b2",
+        "fg-hint": "#999fb6",
         "danger": "#f38ba8",
         "warn": "#f9e2af",
         "radius-sm": "4px",

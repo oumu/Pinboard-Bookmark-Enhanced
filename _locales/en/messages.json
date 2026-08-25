@@ -1105,7 +1105,7 @@
     "message": "Open Chrome Shortcut Settings"
   },
   "mdShortcutLabel": {
-    "message": "Markdown preview shortcut"
+    "message": "Open the reader"
   },
   "mdShortcutUnset": {
     "message": "Not set"
@@ -1341,11 +1341,12 @@
     "message": "Dark"
   },
   "optPopupFollowTheme": {
-    "message": "Popup follows Pinboard theme preset"
+    "message": "Extension pages follow the Pinboard theme preset"
   },
   "popupFollowHint": {
-    "message": "When enabled, the popup appearance matches the selected Pinboard CSS theme."
+    "message": "When on, the popup, this settings page and the notes & vocabulary page use the palette of the selected Pinboard preset; when off they use the default palette in the light/dark mode above. The reader always keeps its own reading palette."
   },
+  "optThemeHint": { "message": "Switches the popup, this settings page, the notes & vocabulary page and the reader between light and dark. Presets with a built-in scheme (Dracula, for example) override it on the pages that follow the preset; the reader can override it per device from its \"Aa\" panel." },
   "secPopupElements": {
     "message": "Popup Elements"
   },
@@ -1563,7 +1564,7 @@
     "message": "Custom OpenAI-compatible"
   },
   "jinaMarkdownBtn": {
-    "message": "Markdown"
+    "message": "Reader"
   },
   "jinaMarkdownTitle": {
     "message": "Convert page to Markdown (Local)"
@@ -1679,7 +1680,7 @@
     "message": "Send YouTube login cookies with subtitle requests"
   },
   "optVideoUseLoginHint": {
-    "message": "Sends your YouTube login cookies with each caption request. On by default: an anonymous request is more likely to be treated as a bot and refused. Turn it off to keep these requests cookieless, at the cost of a lower subtitle hit rate."
+    "message": "Only affects the fallback request the reader sends itself when no www.youtube.com tab is open; with a YouTube tab open, captions are read through that tab and its own session. On by default: an anonymous fallback request is more likely to be treated as a bot and refused."
   },
   "mdTglToc": {
     "message": "TOC"
@@ -1732,6 +1733,7 @@
   "mdPreviewNoContent": {
     "message": "No content was extracted from this page."
   },
+  "mdPreviewFrameHint": { "message": "The article may be inside an embedded frame from $HOST$. Reading that frame needs access to that site, which Chrome asks you to confirm and keeps until you revoke it; nothing inside the frame is read before you grant it.", "placeholders": { "host": { "content": "$1" } } },
   "mdStatWords": {
     "message": "$COUNT$ words",
     "placeholders": {
@@ -2362,16 +2364,16 @@
     "message": "Already bookmarked; save skipped"
   },
   "secPreviewAi": {
-    "message": "Preview Page AI"
+    "message": "Reader AI"
   },
   "previewAiSectionHint": {
-    "message": "Explain selection, Ask, and full-text translation on the Markdown preview page are user-invoked and use the AI provider and key configured on the AI Providers tab. If the opt-in key-points skim is enabled, it may run when Markdown preview opens; nothing runs as a hidden background task."
+    "message": "Explain selection, Ask, and full-text translation on the reader page are user-invoked and use the AI provider and key configured on the AI Providers tab. If the opt-in key-points skim is enabled, it may run when the reader opens; nothing runs as a hidden background task."
   },
   "previewAiEnabled": {
-    "message": "Enable AI features on the preview page"
+    "message": "Enable AI features in the reader"
   },
   "previewAiEnabledHint": {
-    "message": "Turning this off removes every AI entry point from the preview page. Entry points are also hidden automatically when no API key is configured."
+    "message": "Turning this off removes every AI entry point from the reader. Entry points are also hidden automatically when no API key is configured."
   },
   "previewAiModelLabel": {
     "message": "Model override (optional)"
@@ -3421,7 +3423,7 @@
     "message": "Send-to Destinations"
   },
   "secSendDestinationsHint": {
-    "message": "Each enabled destination appears in the preview page's \"Send to\" menu."
+    "message": "Each enabled destination appears in the reader's \"Send to\" menu."
   },
   "mdSendEnableTo": {
     "message": "Enable export to {name}"
@@ -3547,7 +3549,7 @@
   "mdImgFixPartial": {"message": "Fixed $OK$ of $TOTAL$ images", "placeholders": {"ok": {"content": "$1"}, "total": {"content": "$2"}}},
   "hlSectionTitle": { "message": "Highlights" },
   "kbdHelpTitle": { "message": "Keyboard Shortcuts" },
-  "kbdHelpIntro": { "message": "These shortcuts work on the Markdown preview page (not here in Settings)." },
+  "kbdHelpIntro": { "message": "These shortcuts work on the reader page (not here in Settings)." },
   "kbdHelpRailBtn": { "message": "Keyboard shortcuts" },
   "kbdHelpTranslate": { "message": "Start or continue translating the article" },
   "kbdHelpDictionary": { "message": "Look up the current selection" },
@@ -3586,8 +3588,12 @@
   "typoLeadingCompact": { "message": "Compact" },
   "typoLeadingNormal": { "message": "Standard" },
   "typoLeadingRelaxed": { "message": "Relaxed" },
-  "skimEnable": { "message": "Generate an AI key-points summary on the preview page" },
-  "skimEnableHint": { "message": "Shows 3-5 key points at the top of the preview page. Each generation uses AI tokens; results are cached per article." },
+  "typoSchemeLabel": { "message": "Appearance" },
+  "typoSchemeAuto": { "message": "Follow" },
+  "typoSchemeLight": { "message": "Light" },
+  "typoSchemeDark": { "message": "Dark" },
+  "skimEnable": { "message": "Generate an AI key-points summary in the reader" },
+  "skimEnableHint": { "message": "Shows 3-5 key points at the top of the reader. Each generation uses AI tokens; results are cached per article." },
   "skimTitle": { "message": "Key Points" },
   "skimRegen": { "message": "Regenerate" },
   "skimCollapseAria": { "message": "Toggle key points section" },
@@ -3693,11 +3699,16 @@
   "kbdHelpVideoFollow": { "message": "Follow playback" },
   "kbdHelpVideoCurrent": { "message": "Back to the current cue" },
   "kbdHelpVideoView": { "message": "Reading / timeline" },
-  "secVideoPreview": { "message": "Video preview" },
+  "kbdHelpVideoSection": { "message": "Video pages" },
+  "kbdHelpVideoNote": { "message": "Space, Left, Right, r and f need the player to report its position: always on YouTube, on bilibili once playback follow is enabled." },
+  "secVideoPreview": { "message": "Video pages" },
   "optVideoLangPref": { "message": "Preferred caption languages" },
-  "optVideoLangPrefHint": { "message": "Language codes in order of preference, e.g. en, ja. Leave empty to follow the interface language." },
+  "optVideoLangPrefHint": { "message": "Language codes in order of preference, comma separated, e.g. en, zh (English first, then Chinese); a full tag such as zh-Hant is accepted too. The list order always wins; within one language a full tag is matched exactly before falling back to its base code. Leave empty to follow the interface language." },
+  "optVideoLangCodesLink": { "message": "Language code list" },
   "optVideoPauseOnLookup": { "message": "Pause the player while looking a word up" },
-  "optVideoPauseOnLookupHint": { "message": "Selecting text or opening the explain popover pauses YouTube playback; it resumes when the lookup ends." },
+  "optVideoPauseOnLookupHint": { "message": "Selecting text or opening the explain popover pauses the player (YouTube; bilibili once playback follow is enabled); it resumes when the lookup ends." },
+  "optVideoDarkScheme": { "message": "Open video pages in dark" },
+  "optVideoDarkSchemeHint": { "message": "With Theme set to Auto or Light, video pages still open in the dark reading palette. The reader's \"Aa\" panel can override this for every reader page on this device." },
   "mdVideoResumePrompt": { "message": "Last watched to $TIME$", "placeholders": { "time": { "content": "$1" } } },
   "mdVideoResumeGo": { "message": "Continue" },
   "mdVideoResumeRestart": { "message": "Start over" },

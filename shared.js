@@ -483,12 +483,14 @@ const SETTINGS_DEFAULTS = {
   dictAnkiPort: "8765",         // anki-connect: AnkiConnect port (host stays loopback-only)
   dictAnkiKey: "",              // anki-connect: optional AnkiConnect API key (credential)
   dictEudicToken: "",           // eudic-sync: Eudic OpenAPI authorization (credential)
-  // md-video: opt into sending YouTube login cookies with the watch-page
-  // scrape to raise the caption hit rate on login-gated videos. Off by
-  // default (privacy).
+  // md-video: send YouTube login cookies with the extension page's own
+  // fallback watch-page scrape (only used when no www.youtube.com tab is
+  // open) -- anonymous fallback requests are refused as bot traffic, so on
+  // by default.
   mdVideoUseLogin: true,
   mdVideoLangPref: "",        // ordered caption-language preference, "" = auto (research T6.1)
   mdVideoPauseOnLookup: true, // pause the player while a word is looked up (research T3.5)
+  mdVideoDarkScheme: false,   // open video pages in the dark reading palette (reader theme model 2026-08-25)
   aiUseTranscript: true, // popup AI: prefer the video's subtitles as the content on video pages -- only where the caption origin grant already stands (contains only, never prompts)
   selectionTrigger: "icon"
 };
@@ -1230,6 +1232,92 @@ async function getSettingsStorage() {
   } catch (_) {
     return chrome.storage.local;
   }
+}
+
+// Name of the area getSettingsStorage() routes to ("sync" | "local"), for
+// storage.onChanged listeners that must ignore the OTHER area: a change
+// arriving from Chrome Sync while this device keeps its settings local
+// (optSyncEnabled off) is another device's setting, not this one's
+// (settings batch D3; the initial reads already route this way).
+async function pbpSettingsAreaName() {
+  try { return (await getSettingsStorage()) === chrome.storage.sync ? "sync" : "local"; }
+  catch (_) { return "local"; }
+}
+
+// Canonical form of one language tag for caption-preference matching
+// (settings batch C2, Codex review F11/F13): lower-case, "_" -> "-", and the
+// Chinese region tags folded onto the script subtag the providers actually
+// use -- YouTube lists zh-Hans / zh-Hant, bilibili zh-CN -- so a "zh-CN" a
+// user types is the same tag as a zh-Hans track. Other tags are kept as
+// typed (no BCP 47 validation: an unknown tag simply never matches).
+const PBP_LANG_REGION_TO_SCRIPT = {
+  "zh-cn": "zh-hans", "zh-sg": "zh-hans", "zh-my": "zh-hans",
+  "zh-tw": "zh-hant", "zh-hk": "zh-hant", "zh-mo": "zh-hant"
+};
+function pbpVideoCanonLang(tag) {
+  const t = String(tag || "").trim().toLowerCase().replace(/_/g, "-");
+  return PBP_LANG_REGION_TO_SCRIPT[t] || t;
+}
+
+// Ordered caption-language preference (research T6.1): "en, zh-Hant" ->
+// ["en", "zh-hant"]; canonical tags (pbpVideoCanonLang), de-duplicated on
+// the exact tag, empty for "auto". Lives here because options.js normalises
+// the setting on load/save with the SAME parser the md-video.js pickers
+// consume (settings batch C2/C3); the pickers try the exact tag first and
+// fall back to the base subtag ("zh-hant" also accepts a bare "zh" track,
+// "zh" any zh-*).
+function pbpVideoLangPrefs(raw) {
+  const out = [];
+  for (const part of String(raw || "").split(/[,\s;]+/)) {
+    const tag = pbpVideoCanonLang(part);
+    if (tag && !out.includes(tag)) out.push(tag);
+  }
+  return out;
+}
+
+// Stored form of the preference list, whole tags only (Codex r2 L1): the
+// canonical ", "-joined string can be longer than what the 80-char input
+// accepted ("zh-cn" -> "zh-hans", added spaces), so a blind slice could
+// store half a tag. Drops trailing tags that no longer fit instead.
+function pbpVideoLangPrefsClamp(list, max) {
+  const out = [];
+  let len = 0;
+  for (const tag of (Array.isArray(list) ? list : [])) {
+    const add = (out.length ? 2 : 0) + tag.length;
+    if (len + add > max) break;
+    out.push(tag);
+    len += add;
+  }
+  return out.join(", ");
+}
+
+// Embedded-frame candidate rule (reader "Grant access and retry", 2026-08-25/26),
+// as a PURE function over pre-collected frame descriptors so the rule itself
+// is unit-tested (tests/md-video-tests.html). The two page-context copies
+// (background.js extractPageForMarkdown, popup.js extractLocalMarkdown) are
+// injected as standalone functions and cannot call this file, so they inline
+// the same rule; tests/ui-contract-tests.mjs asserts they keep every guard.
+//   frames: [{ origin, srcdoc, sandbox, hidden, rect: {left, top, right, bottom} }]
+// Returns the origin of the largest VISIBLE cross-origin https frame that
+// covers >= 40% of the viewport, else "". Excluded: srcdoc frames (src is
+// decorative), same-origin frames, non-https origins, frames sandboxed
+// without allow-same-origin (opaque origin, no grant can name it), hidden
+// frames (own or ancestor display/visibility/opacity).
+function pbpPickDominantFrame(frames, vw, vh, pageOrigin) {
+  const W = Math.max(1, Number(vw) || 0), H = Math.max(1, Number(vh) || 0);
+  let best = "", bestArea = 0;
+  for (const f of (Array.isArray(frames) ? frames : [])) {
+    if (!f || f.srcdoc || f.hidden) continue;
+    const origin = String(f.origin || "");
+    if (!/^https:\/\//.test(origin) || origin === pageOrigin) continue;
+    if (typeof f.sandbox === "string" && !/\ballow-same-origin\b/.test(f.sandbox)) continue;
+    const r = f.rect || {};
+    const w = Math.min(Number(r.right) || 0, W) - Math.max(Number(r.left) || 0, 0);
+    const h = Math.min(Number(r.bottom) || 0, H) - Math.max(Number(r.top) || 0, 0);
+    const area = Math.max(0, w) * Math.max(0, h);
+    if (area > bestArea) { bestArea = area; best = origin; }
+  }
+  return best && bestArea >= 0.4 * W * H ? best : "";
 }
 
 // Invalidate cache + mirror when user toggles optSyncEnabled

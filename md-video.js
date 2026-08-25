@@ -123,15 +123,40 @@ function pbpYtExtractTracks(playerJson) {
 // in the fetch helpers, which take no reader state.
 const PBP_VIDEO_PICK_HINTS = { prefs: [], preferKey: "" };
 
-// Ordered caption-language preference (research T6.1): "en, ja" -> ["en",
-// "ja"]; base subtags only, lower-cased, de-duplicated, empty for "auto".
-function pbpVideoLangPrefs(raw) {
-  const out = [];
-  for (const part of String(raw || "").split(/[,\s;]+/)) {
-    const b = part.trim().toLowerCase().split("-")[0];
-    if (b && !out.includes(b)) out.push(b);
+// pbpVideoLangPrefs (the ordered caption-language parser, research T6.1)
+// lives in shared.js: options.js normalises the setting on save with the
+// same parser the pickers below consume.
+
+// Preference tier of one track for both pickers: the index of the FIRST
+// preference the track satisfies, by exact tag ("zh-hant" = "zh-Hant") or
+// by base subtag ("zh" ~ "zh-Hans", "zh-hant" ~ "zh"). List order is
+// absolute: an earlier preference's base hit outranks a later one's exact
+// hit (the options hint says so). Both sides go through pbpVideoCanonLang
+// (shared.js), so "zh-CN" and "zh-Hans" are the same tag. exact is true
+// only when that first hit is the exact tag AND the preference names a
+// script or region: a bare "en" is a family request, so between "en" and
+// "en-US" (or bilibili's "ai-en" and "en-US") the human/ASR rank still
+// decides. -1 = no preference matched.
+function pbpVideoPrefTier(prefs, langTag) {
+  const full = pbpVideoCanonLang(langTag);
+  const base = full.split("-")[0];
+  for (let i = 0; i < prefs.length; i++) {
+    const p = pbpVideoCanonLang(prefs[i]); // prefs normally arrive canonical (pbpVideoLangPrefs); re-canonicalising keeps direct callers honest
+    if (p === full) return { tier: i, exact: full.indexOf("-") >= 0 };
+    if (p.split("-")[0] === base) return { tier: i, exact: false };
   }
-  return out;
+  return { tier: -1, exact: false };
+}
+
+// Speed picker <-> player rate (settings batch C4): the option value that
+// represents a reported playback rate, or null when the player is at a
+// speed the picker does not list (the caller then shows a synthetic
+// option rather than letting the picker lie about the current speed).
+function pbpVideoRateOption(values, rate) {
+  const r = Number(rate);
+  if (!(r > 0) || !Array.isArray(values)) return null;
+  for (const v of values) if (Math.abs(Number(v) - r) < 0.001) return String(v);
+  return null;
 }
 
 // Remembered-track resolution (research T6.2, retro #6): the picker's
@@ -171,13 +196,14 @@ function pbpYtPickTrack(tracks, uiLang, prefs, preferKey) {
   let best = null, bestScore = -1;
   for (const tr of tracks) {
     const lb = String(tr.lang || "").toLowerCase().split("-")[0];
+    const { tier, exact } = pbpVideoPrefTier(pref, tr.lang);
     let score = 0;
-    const pi = pref.indexOf(lb);
-    // Preference tiers are 100 apart so the human/ASR bonus (50) and the
-    // UI-language bonus (100, only below the tiers) can never cross a
-    // language boundary (retro #5: "en, ja" with en-ASR + ja-human must
-    // still pick en).
-    if (pi >= 0) score += 10000 - pi * 100;
+    // Strictly lexicographic: preference tier (10000 apart) > exact tag
+    // (1000) > UI language (100) > human over ASR (50). No lower bonus can
+    // cross a higher boundary (retro #5: "en, ja" with en-ASR + ja-human
+    // must still pick en; a UI-language hit never lifts a later preference
+    // over an earlier one).
+    if (tier >= 0) score += 1000000 - tier * 10000 + (exact ? 1000 : 0);
     if (base && lb === base) score += 100;
     if (!tr.asr) score += 50;
     if (score > bestScore) { bestScore = score; best = tr; }
@@ -1452,17 +1478,31 @@ function pbpBiliExtractCid(viewJson, part) {
 function _pbpBiliIsZh(t) { return /^zh|^ai-zh/i.test(t.lan || "") || /中文|中文\(AI\)|Chinese/i.test(t.lan_doc || ""); }
 function _pbpBiliIsAi(t) { return /^ai-/i.test(t.lan || "") || /AI|智能/i.test(t.lan_doc || ""); }
 // bilibili default subtitle: remembered key > preferred languages in order
-// (human before AI within a language) > the zh default > first.
-function pbpBiliPickSubtitle(subs, prefs, preferKey) {
+// (exact tag > base subtag, human before AI within a language) > the
+// interface language (settings batch B1: the options hint promises "empty
+// = follow the interface language" for both providers) > the zh default >
+// first. Same lexicographic weights as pbpYtPickTrack; the "ai-" prefix is
+// stripped before matching so "en" reaches both "en-US" and "ai-en".
+function pbpBiliPickSubtitle(subs, prefs, preferKey, uiLang) {
   if (!Array.isArray(subs) || !subs.length) return null;
   const remembered = pbpVideoResolvePreferKey(subs, "bilibili", preferKey);
   if (remembered) return remembered;
-  const baseOf = (s) => String((s && s.lan) || "").toLowerCase().replace(/^ai-/, "").split("-")[0];
-  for (const b of (Array.isArray(prefs) ? prefs : [])) {
-    const lang = subs.filter((s) => baseOf(s) === b);
-    if (!lang.length) continue;
-    return lang.find((s) => !_pbpBiliIsAi(s)) || lang[0];
+  const pref = Array.isArray(prefs) ? prefs : [];
+  const uiBase = String(uiLang || "").toLowerCase().split("-")[0];
+  const tagOf = (s) => String((s && s.lan) || "").toLowerCase().replace(/^ai-/, "");
+  let best = null, bestScore = 0;
+  for (const s of subs) {
+    const tag = tagOf(s);
+    const { tier, exact } = pbpVideoPrefTier(pref, tag);
+    let score = 0;
+    if (tier >= 0) score += 1000000 - tier * 10000 + (exact ? 1000 : 0);
+    if (uiBase && tag.split("-")[0] === uiBase) score += 100;
+    // Human bonus only on top of a language hit: with no hit at all the
+    // score stays 0 so the zh default below still decides.
+    if (score && !_pbpBiliIsAi(s)) score += 50;
+    if (score > bestScore) { bestScore = score; best = s; }
   }
+  if (best) return best;
   const zh = subs.filter(_pbpBiliIsZh);
   const human = zh.find((s) => !_pbpBiliIsAi(s));
   return human || zh[0] || subs[0];
@@ -1526,7 +1566,7 @@ async function pbpBiliFetchTranscript(bvid, part, opts) {
   // Default-track pick only -- see the pbpYtFetchTranscript twin: the removed
   // opts.pickSubtitleUrl branch was the URL-addressed track switch, which now
   // goes straight to pbpBiliFetchSubtitleBody.
-  const track = pbpBiliPickSubtitle(subs, PBP_VIDEO_PICK_HINTS.prefs, PBP_VIDEO_PICK_HINTS.preferKey);
+  const track = pbpBiliPickSubtitle(subs, PBP_VIDEO_PICK_HINTS.prefs, PBP_VIDEO_PICK_HINTS.preferKey, opts && opts.uiLang);
   const segments = await pbpBiliFetchSubtitleBody(track.subtitle_url, fetchFn);
   if (!segments.length) return { error: "caption-body", tracks: subs, track: track, meta: info };
   return { tracks: subs, track: track, segments: segments, meta: info };
@@ -1571,7 +1611,8 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   // project's own GitHub Pages origin (docs/yt-embed.html, published verbatim
   // -- docs/_config.yml only excludes superpowers/theme-surface/*.json/*.mjs/
   // README.md) so YouTube sees a real https referrer; it only ever forwards
-  // the two player commands the reader uses and never reads or stores anything.
+  // the player commands the reader uses (seek / play / pause / rate), reports
+  // position, state, duration and rate back, and never reads or stores anything.
   const RELAY_BASE = "https://pine2d.github.io/Pinboard-Bookmark-Enhanced/yt-embed.html";
   const RELAY_ORIGIN = "https://pine2d.github.io";
   // Lucide v0.525.0 "play" (ISC, https://unpkg.com/lucide-static@0.525.0/icons/play.svg),
@@ -1944,7 +1985,9 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     // feed that has spoken and the timeline on screen; a toggle key needs
     // its button on screen.
     const list = transcriptListEl();
-    if (list && !list.hidden && _relayAlive && _lastRelayTime != null) { s.add("Space"); s.add("\u2190"); s.add("\u2192"); }
+    // Key NAMES, not arrow glyphs: the chips are rendered as text and a literal
+    // symbol risks the slow-font fallback (CLAUDE.md font iron rule).
+    if (list && !list.hidden && _relayAlive && _lastRelayTime != null) { s.add("Space"); s.add("Left"); s.add("Right"); }
     if (_followBtn && !_followBtn.hidden && !_followBtn.disabled) s.add("f");
     if (_loopBtn && !_loopBtn.hidden) s.add("r");
     return s;
@@ -1975,6 +2018,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   let _relayState = -1;
   let _loopOn = false, _loopBtn = null;
   let _autoPauseOn = false, _autoPauseBtn = null, _rateSel = null;
+  const PBV_RATE_STEPS = [0.75, 1, 1.25, 1.5, 2]; // the speed picker's listed rates (research T3.3)
   let _pausedByLookup = false, _lookupTimer = null, _lookupPauseSeen = false;
   let _backBtn = null, _statusElRef = null;
   let _seekGraceUntil = 0, _seekTarget = null, _seekDir = 1; // stale ticks right after a seek
@@ -2880,6 +2924,34 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     if (!(r >= 0.25 && r <= 2)) return;
     relayPost("setPlaybackRate", [r]);
   }
+  // Mirror the player's reported rate into the speed picker (settings batch
+  // C4). A rate the picker does not list (0.5x set in the player's own menu)
+  // gets one synthetic option so the control never shows a wrong speed;
+  // the synthetic option is dropped again once a listed rate is reported.
+  function syncRateSelect(rate) {
+    if (!_rateSel) return;
+    const r = Number(rate);
+    if (!(r > 0)) return;
+    const synthetic = _rateSel.querySelector('option[data-synthetic="1"]');
+    const listed = pbpVideoRateOption(PBV_RATE_STEPS, r);
+    if (listed) {
+      if (synthetic) synthetic.remove();
+      if (_rateSel.value !== listed) _rateSel.value = listed;
+      return;
+    }
+    const label = String(Math.round(r * 100) / 100) + "×";
+    if (synthetic) {
+      synthetic.value = String(r);
+      synthetic.textContent = label;
+    } else {
+      const o = document.createElement("option");
+      o.value = String(r);
+      o.textContent = label;
+      o.dataset.synthetic = "1";
+      _rateSel.appendChild(o);
+    }
+    _rateSel.value = String(r);
+  }
   function togglePlay() { if (_relayState === 1) relayPause(); else relayPlay(); }
   function seekBy(delta) {
     if (_lastRelayTime == null || (_isBili && !_relayAlive)) return;
@@ -3186,6 +3258,25 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     _relayGaveUp = false; // a late answer arms everything as usual
     if (_isBili && _estOn) setEstimate(false); // a real position feed supersedes the estimate clock
     syncLiveControls();
+    applySavedRate();
+  }
+  // Remembered per-video speed (settings batch C4): re-applied once BOTH a
+  // position feed and the saved record exist -- the relay usually answers
+  // before loadFlow has read the record (iframe mounts first, the record
+  // read waits behind the permission gate), so this runs from onRelayAlive
+  // AND from the record read, and applies each record once (Codex r2 H1).
+  // Every legal rate replays, 1x included: a saved 1x must beat the rate
+  // YouTube itself remembers for the account. The YouTube relay queues a
+  // rate that arrives before its player is built; the bilibili bridge sets
+  // it directly. The report that follows mirrors it back into the picker.
+  let _rateAppliedFor = null;
+  function applySavedRate() {
+    if (!_relayAlive || !_savedRec || _rateAppliedFor === _savedRec) return;
+    const savedRate = Number(_savedRec.rate);
+    if (!(savedRate >= 0.25 && savedRate <= 2)) return;
+    _rateAppliedFor = _savedRec;
+    relaySetRate(savedRate);
+    syncRateSelect(savedRate);
   }
   // Which playback controls exist depends on whether a position feed does:
   // for YouTube from the start (the relay is expected) until the greeting
@@ -3262,6 +3353,10 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         if (_lastRelayTime == null && d.state !== 1) maybeOfferResume(); // the real length may admit an offer the caption tail vetoed
       }
     }
+    // Rate rides every report from both relays (settings batch C4); absent
+    // on an older cached YouTube relay page, which simply leaves the picker
+    // as the reader last set it.
+    if (typeof d.r === "number" && isFinite(d.r) && d.r > 0) syncRateSelect(d.r);
     if (typeof d.state === "number") {
       _relayState = d.state;
       // The lookup pause's right to resume ends the moment the reader
@@ -3778,16 +3873,62 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   // at their empty defaults for that path. The per-video record (owner-
   // keyed) still belongs to loadFlow.
   let _videoPrefsLoaded = false;
+  // Generation counter (Codex r2 M1): a reroute re-read that lands after a
+  // newer per-key change (or a newer reroute) must not overwrite it.
+  let _videoPrefsGen = 0;
+  // Singleflight (Codex r3 M2): concurrent callers share ONE in-flight read,
+  // and a caller only returns once a read that was not superseded has
+  // landed -- a reroute during the read leaves the latch open, so the
+  // caller loops onto the newer read instead of continuing on stale values.
+  let _videoPrefsInflight = null;
   async function ensureVideoPrefs() {
-    if (_videoPrefsLoaded) return;
-    try {
-      const s = await pbpReadSettingsWithSecrets({
-        mdVideoLangPref: SETTINGS_DEFAULTS.mdVideoLangPref, mdVideoPauseOnLookup: SETTINGS_DEFAULTS.mdVideoPauseOnLookup
-      });
-      _videoPrefs = { langPrefs: pbpVideoLangPrefs(s && s.mdVideoLangPref), pauseOnLookup: !(s && s.mdVideoPauseOnLookup === false) };
-    } catch (_) { _videoPrefs = { langPrefs: [], pauseOnLookup: true }; }
-    PBP_VIDEO_PICK_HINTS.prefs = _videoPrefs.langPrefs;
-    _videoPrefsLoaded = true;
+    while (!_videoPrefsLoaded) {
+      if (!_videoPrefsInflight) {
+        const gen = ++_videoPrefsGen;
+        _videoPrefsInflight = (async () => {
+          let next;
+          try {
+            const s = await pbpReadSettingsWithSecrets({
+              mdVideoLangPref: SETTINGS_DEFAULTS.mdVideoLangPref, mdVideoPauseOnLookup: SETTINGS_DEFAULTS.mdVideoPauseOnLookup
+            });
+            next = { langPrefs: pbpVideoLangPrefs(s && s.mdVideoLangPref), pauseOnLookup: !(s && s.mdVideoPauseOnLookup === false) };
+          } catch (_) { next = { langPrefs: [], pauseOnLookup: true }; }
+          if (gen !== _videoPrefsGen) return; // superseded: the loop below starts the newer read
+          _videoPrefs = next;
+          PBP_VIDEO_PICK_HINTS.prefs = _videoPrefs.langPrefs;
+          _videoPrefsLoaded = true;
+        })().finally(() => { _videoPrefsInflight = null; });
+      }
+      await _videoPrefsInflight;
+    }
+  }
+  // Live settings (settings batch C1): an open video page follows changes
+  // made in Options instead of keeping its boot snapshot -- the caption
+  // preference feeds the next default-track pick, pause-on-lookup applies
+  // immediately. Only the area this device routes its settings to counts
+  // (pbpSettingsAreaName, same filter as md-preview.js's optTheme listener).
+  if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.onChanged) {
+    chrome.storage.onChanged.addListener(async (changes, area) => {
+      const rerouted = area === "local" && !!changes.optSyncEnabled;
+      if ((area !== "sync" && area !== "local") || !(rerouted || changes.mdVideoLangPref || changes.mdVideoPauseOnLookup)) return;
+      if (rerouted) {
+        // Routing switch (Codex review F7): re-read the whole snapshot from
+        // the newly routed area (shared.js already dropped its routing cache).
+        // Bump the generation FIRST (Codex r4): a read still in flight from
+        // the old area must be discarded, not accepted as the fresh snapshot.
+        ++_videoPrefsGen;
+        _videoPrefsLoaded = false;
+        await ensureVideoPrefs();
+        return;
+      }
+      if (typeof pbpSettingsAreaName === "function" && area !== await pbpSettingsAreaName()) return;
+      ++_videoPrefsGen; // a per-key change outranks any reroute read still in flight
+      if (changes.mdVideoLangPref) {
+        _videoPrefs.langPrefs = pbpVideoLangPrefs(changes.mdVideoLangPref.newValue);
+        PBP_VIDEO_PICK_HINTS.prefs = _videoPrefs.langPrefs;
+      }
+      if (changes.mdVideoPauseOnLookup) _videoPrefs.pauseOnLookup = changes.mdVideoPauseOnLookup.newValue !== false;
+    });
   }
   async function prepareVideoSession(ctx) {
     const detected = pbpVideoDetect(ctx && ctx.pageUrl);
@@ -3816,10 +3957,12 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     let ytFetchFn = null;
     let ytFetchTabId = null; // survives into the session: the track-switch player capture injects into it
     const tabId = ctx && typeof ctx.tabId === "number" ? ctx.tabId : null;
+    // Both providers honour the "empty preference = interface language"
+    // promise of the caption-language setting (settings batch B1).
+    const uiLang = (chrome.i18n && chrome.i18n.getUILanguage && chrome.i18n.getUILanguage()) || "en";
     if (isBili) {
-      res = await pbpBiliFetchTranscript(detected.bvid, detected.part, {});
+      res = await pbpBiliFetchTranscript(detected.bvid, detected.part, { uiLang });
     } else {
-      const uiLang = (chrome.i18n && chrome.i18n.getUILanguage && chrome.i18n.getUILanguage()) || "en";
       // Tab route first: the page's own session succeeds where the extension
       // page's cross-site fetch is bot-gated (see ytTabFetchFn). The
       // extension-page fetch stays as the no-tab fallback, still governed by
@@ -4106,6 +4249,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     // the continue-watching offer once the transcript is up.
     await ensureVideoPrefs();
     try { _savedRec = await pbpVideoSavedRecord(detected); } catch (_) { _savedRec = null; }
+    applySavedRate(); // the relay may already be alive (Codex r2 H1)
     _resumeOffered = false;
     _density = (_savedRec && _savedRec.density === "paragraph") ? "paragraph" : "cue";
     syncDensityBtn();
@@ -5066,7 +5210,11 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       _isBili = detected.provider === "bilibili";
       _iframe.src = detected.provider === "bilibili"
         ? "https://player.bilibili.com/player.html?bvid=" + detected.bvid + "&page=" + detected.part + "&high_quality=1&danmaku=0&autoplay=0" // explicit: with autoplay delegated to the frame (bridge), the embed's default would start playing on open
-        : RELAY_BASE + "?v=" + encodeURIComponent(detected.videoId);
+        // p=2 is the relay protocol version (r on time reports, batch 2 C4):
+        // a cache-buster so a browser/CDN copy of the previous relay page is
+        // not reused after a Pages deploy; the page itself ignores it. An
+        // older relay still served works, minus the rate read-back.
+        : RELAY_BASE + "?v=" + encodeURIComponent(detected.videoId) + "&p=2";
       _iframe.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen"; // autoplay: the bridge's playVideo needs the delegation
       _iframe.title = t("mdVideoTitle");
       // Greet only once the relay DOCUMENT is up: posting into a
@@ -5687,14 +5835,23 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         rateSel.hidden = true;
         rateSel.setAttribute("aria-label", t("mdVideoRate"));
         rateSel.title = t("mdVideoRate");
-        for (const r of [0.75, 1, 1.25, 1.5, 2]) {
+        for (const r of PBV_RATE_STEPS) {
           const o = document.createElement("option");
           o.value = String(r);
           o.textContent = r + "\u00d7";
           if (r === 1) o.selected = true;
           rateSel.appendChild(o);
         }
-        rateSel.addEventListener("change", () => relaySetRate(Number(rateSel.value)));
+        // The picker is a real control, not a write-only command: the user's
+        // choice is remembered for THIS video (pbp_video_view, like view /
+        // density) and the player's reported rate flows back in (settings
+        // batch C4) -- a speed changed in the player's own controls, or the
+        // remembered rate re-applied on load, never leaves a stale "1x".
+        rateSel.addEventListener("change", () => {
+          const r = Number(rateSel.value);
+          relaySetRate(r);
+          if (_detectedNow && r >= 0.25 && r <= 2) pbpVideoSaveView(_detectedNow, { rate: r });
+        });
         _rateSel = rateSel;
         bar.appendChild(rateSel);
         // Below the workspace's container breakpoint the columns stack and

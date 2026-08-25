@@ -82,8 +82,9 @@ const SEED_OWNER = "acct_" + encodeURIComponent(SEED_TOKEN_ACCOUNT);
 // ---- Theme storage mapping. Hand-copied from shared.js's ADAPTIVE_THEME_MAP
 // (verified at authoring time, not imported: shared.js is a plain script,
 // not an ES module, and this keeps the mapping legible next to the THEMES
-// list it serves). "popup-dark" and "" are not real storage values -- they
-// decode to the (themePresetKey, optTheme) pair that PRODUCES that state. ----
+// list it serves). "" is not a real storage value -- it decodes to the
+// (themePresetKey, optTheme) pair that PRODUCES the default-light state; the
+// no-preset dark state is "flexoki-dark" on every surface (batch 2 D6). ----
 const ADAPTIVE_VARIANTS = {
   flexoki: ["flexoki-light", "flexoki-dark"],
   solarized: ["solarized-light", "solarized-dark"],
@@ -95,14 +96,13 @@ const ADAPTIVE_VARIANTS = {
 // census the checklist's own THEMES comment documents) -- NOT imported, same
 // independence-from-the-composer-layer reasoning as ADAPTIVE_VARIANTS above.
 const DARK_THEME_IDS = new Set([
-  "popup-dark", "nord-night", "terminal", "dracula", "flexoki-dark",
+  "nord-night", "terminal", "dracula", "flexoki-dark",
   "solarized-dark", "catppuccin-mocha", "gruvbox-dark", "rose-pine",
 ]);
 function isDarkTheme(themeKey) { return DARK_THEME_IDS.has(themeKey); }
 
 function themeToStorage(themeKey) {
   if (themeKey === "") return { themePresetKey: "", optTheme: "light" };
-  if (themeKey === "popup-dark") return { themePresetKey: "", optTheme: "dark" };
   for (const [umbrella, [light, dark]] of Object.entries(ADAPTIVE_VARIANTS)) {
     if (themeKey === light) return { themePresetKey: umbrella, optTheme: "light" };
     if (themeKey === dark) return { themePresetKey: umbrella, optTheme: "dark" };
@@ -2156,8 +2156,10 @@ async function runSweep(page, sw, extBase) {
     add(await page.evaluate(sweepProbe, SWEEP_CFG), "library", "notes-batch-bar");
   }
 
-  // ---- popup: default light + html.dark (the one surface-specific state
-  // the task calls out -- popup's dark default has its own layout deltas). ----
+  // ---- popup: default light + no-preset dark (since batch 2 D6 the latter
+  // resolves to the flexoki-dark preset, same as options/library; kept as a
+  // separate sweep context because the popup's dark layout deltas live in
+  // its own hand-written rules). ----
   await setTheme(sw, "", "light");
   await page.goto(`${extBase}popup.html?_ra=sweeplight`, { waitUntil: "load", timeout: TIMEOUT_MS });
   await page.waitForTimeout(500);
@@ -2399,12 +2401,9 @@ async function main() {
       const checks = CHECKS.filter((c) => c.surface === surface);
       if (!checks.length) continue;
       for (const theme of THEMES) {
-        // popup-dark decodes to (themePresetKey:"", optTheme:"dark"), which
-        // for options/library resolves to data-theme="flexoki-dark" via
-        // PBP_OPTIONS_ADAPTIVE_MAP's fallback -- already covered by the
-        // "flexoki-dark" THEMES entry, so re-running it under this surface
-        // would just duplicate that run under a different label.
-        if (theme === "popup-dark" && surface !== "popup") continue;
+        // No bare-dark state on any surface: no-preset+dark resolves to
+        // data-theme="flexoki-dark" on popup, options and library alike (batch
+        // 2 D6), so the "flexoki-dark" THEMES entry covers it everywhere.
         const { themePresetKey, optTheme } = themeToStorage(theme);
         await setTheme(sw, themePresetKey, optTheme);
         if (surface === "library") await runLibraryTheme(page, extBase, theme, checks, results);
@@ -2424,7 +2423,7 @@ async function main() {
     for (const h of hitAreaHits) {
       results.push({
         surface: h.surface,
-        theme: h.surface === "popup" ? (h.context === "dark" ? "popup-dark" : "") : "",
+        theme: h.surface === "popup" && h.context === "dark" ? "flexoki-dark" : "", // popup's dark sweep context renders the flexoki-dark fallback (batch 2 D6)
         selector: h.path,
         state: h.context,
         check: "hitAreaMin",

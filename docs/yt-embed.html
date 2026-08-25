@@ -12,9 +12,9 @@
 // origin, so YouTube sees a real https referrer.
 //
 // It speaks a tiny two-way protocol with its opener (the reader):
-//   inbound  {pbpVideo:1, func:"hello"|"seekTo"|"playVideo", args:[]}
+//   inbound  {pbpVideo:1, func:"hello"|"seekTo"|"playVideo"|"pauseVideo"|"setPlaybackRate", args:[...]}
 //   outbound {pbpVideo:1, event:"ready"}
-//            {pbpVideo:1, event:"time", t:<seconds>, state:<YT state int>, d?:<duration seconds, once known>}
+//            {pbpVideo:1, event:"time", t:<seconds>, state:<YT state int>, d?:<duration seconds, once known>, r?:<playback rate>}
 // `state` (YT.PlayerState) is read by the reader: PLAYING gates the cue loop and
 // position saves, a PAUSED report is saved as the resting position, ENDED clears it.
 //
@@ -75,6 +75,14 @@
     // reader treats an absent field as "unknown" and keeps its caption-tail
     // estimate, so no sentinel value is ever sent.
     if (typeof dur === "number" && isFinite(dur) && dur > 0) msg.d = dur;
+    // Playback rate rides every report so the reader's speed picker mirrors
+    // the player (a speed changed inside the YouTube controls, or a
+    // remembered per-video rate re-applied on load). Absent on an older
+    // cached relay: the reader treats a missing field as "unknown".
+    try {
+      var rate = typeof player.getPlaybackRate === "function" ? player.getPlaybackRate() : NaN;
+      if (typeof rate === "number" && isFinite(rate) && rate > 0) msg.r = rate;
+    } catch (_) {}
     post(msg);
   }
 
@@ -248,6 +256,11 @@
         events: {
           onReady: onReady,
           onStateChange: onStateChange,
+          // A speed change made in the player's own menu while PAUSED would
+          // otherwise go unreported until the next tick (the timer only runs
+          // while playing): report it at once so the reader's picker never
+          // shows a stale speed (Codex r2 M4).
+          onPlaybackRateChange: function () { postTime(); },
           onError: function () { apiPathFailed(); }
         }
       });

@@ -1,0 +1,77 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Embedded-frame candidate tests</title>
+<style>body{font-family:monospace;padding:16px;}.case{padding:6px;border-bottom:1px solid #eee;white-space:pre-wrap;}.pass{color:#0a0;}.fail{color:#c00;}#fx{position:fixed;left:0;top:0;}</style>
+</head><body><h1>dominantFrameOrigin() -- real-DOM behaviour of the two injected detectors</h1>
+<p>The reader's "Grant access and retry" candidate is chosen by a function that is INJECTED into the page
+(background.js extractPageForMarkdown / popup.js extractLocalMarkdown), so it cannot import shared.js.
+This page fetches both source files, evaluates each copy's own function body and runs it against live
+iframe fixtures: a string check on the source (tests/ui-contract-tests.mjs) cannot see whether an
+ancestor's opacity or a srcdoc frame actually changes the answer -- this can.</p>
+<div id="results"></div>
+<div id="fx"></div>
+<script>
+const root = document.getElementById("results");
+let pass = 0, fail = 0;
+function check(name, cond, detail) {
+  const ok = !!cond; ok ? pass++ : fail++;
+  const div = document.createElement("div");
+  div.className = "case " + (ok ? "pass" : "fail");
+  div.textContent = (ok ? "OK " : "X ") + name + (ok ? "" : " :: " + (detail || ""));
+  root.appendChild(div);
+}
+// Slice `function dominantFrameOrigin() { ... }` out of a source file: it ends
+// right after its `} catch (_) { return ""; }` line's closing brace.
+function extractDetector(src, label) {
+  const start = src.indexOf("function dominantFrameOrigin()");
+  if (start < 0) throw new Error(label + ": dominantFrameOrigin not found");
+  const catchAt = src.indexOf('} catch (_) { return ""; }', start);
+  const close = src.indexOf("}", catchAt + '} catch (_) { return ""; }'.length);
+  const body = src.slice(start, close + 1);
+  return new Function(body + "\nreturn dominantFrameOrigin;")();
+}
+const fx = document.getElementById("fx");
+const ORIGIN_A = "https://frame-a.invalid";
+function frame(attrs) {
+  const f = document.createElement("iframe");
+  f.src = (attrs.src || ORIGIN_A + "/doc");
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const w = attrs.w != null ? attrs.w : Math.round(vw * 0.8), h = attrs.h != null ? attrs.h : Math.round(vh * 0.8);
+  f.style.cssText = "display:block;border:0;width:" + w + "px;height:" + h + "px;" + (attrs.style || "");
+  if (attrs.sandbox != null) f.setAttribute("sandbox", attrs.sandbox);
+  if (attrs.srcdoc != null) f.setAttribute("srcdoc", attrs.srcdoc);
+  return f;
+}
+function mount(build) {
+  fx.replaceChildren();
+  build(fx);
+  fx.getBoundingClientRect(); // force layout before the detector measures
+}
+(async function () {
+  const [bgSrc, ppSrc] = await Promise.all([fetch("../background.js").then(r => r.text()), fetch("../popup.js").then(r => r.text())]);
+  for (const [label, src] of [["background.js", bgSrc], ["popup.js", ppSrc]]) {
+    let detect;
+    try { detect = extractDetector(src, label); } catch (e) { check(label + ": detector extracted", false, e.message); continue; }
+    const run = (build) => { mount(build); return detect(); };
+    check(label + ": a visible cross-origin https frame covering 64% of the viewport is the candidate",
+      run((c) => c.appendChild(frame({}))) === ORIGIN_A);
+    check(label + ": the same frame under an opacity:0 ancestor is NOT a candidate (opacity does not inherit)",
+      run((c) => { const w = document.createElement("div"); w.style.opacity = "0"; w.appendChild(frame({})); c.appendChild(w); }) === "");
+    check(label + ": a visibility:hidden ancestor / display:none ancestor excludes the frame",
+      run((c) => { const w = document.createElement("div"); w.style.visibility = "hidden"; w.appendChild(frame({})); c.appendChild(w); }) === "" &&
+      run((c) => { const w = document.createElement("div"); w.style.display = "none"; w.appendChild(frame({})); c.appendChild(w); }) === "");
+    check(label + ": a srcdoc frame is never a candidate even with a big https src",
+      run((c) => c.appendChild(frame({ srcdoc: "<p>x</p>" }))) === "");
+    check(label + ": sandbox without allow-same-origin (opaque origin) excludes; with it the frame qualifies",
+      run((c) => c.appendChild(frame({ sandbox: "allow-scripts" }))) === "" &&
+      run((c) => c.appendChild(frame({ sandbox: "allow-scripts allow-same-origin" }))) === ORIGIN_A);
+    check(label + ": a frame under 40% of the viewport (25%) and an http frame are not candidates",
+      run((c) => c.appendChild(frame({ w: Math.round(window.innerWidth * 0.5), h: Math.round(window.innerHeight * 0.5) }))) === "" &&
+      run((c) => c.appendChild(frame({ src: "http://frame-a.invalid/doc" }))) === "");
+    check(label + ": only the VISIBLE intersection counts -- a wide frame mostly off-screen (20% on screen) is not a candidate",
+      run((c) => c.appendChild(frame({ w: window.innerWidth, style: "position:relative;left:-" + Math.round(window.innerWidth * 0.8) + "px" }))) === "");
+  }
+  fx.replaceChildren();
+  document.title = (fail ? "FAIL " : "PASS ") + document.title;
+  const s = document.createElement("div"); s.id = "summary"; s.textContent = pass + " passed, " + fail + " failed"; root.appendChild(s);
+})();
+</script>
+</body></html>

@@ -463,7 +463,14 @@ html[data-theme] .confirm-popover .confirm-no:hover { background: var(--lib-btn-
 .notes-toolbar input[type="search"]:focus,
 .vocab-lookup-bar input[type="search"]:focus { outline: none; border-color: var(--lib-focus-bd); }
 .notes-toolbar input[type="search"]:focus-visible,
-.vocab-lookup-bar input[type="search"]:focus-visible { box-shadow: var(--lib-focus-ring); }
+.vocab-lookup-bar input[type="search"]:focus-visible {
+  box-shadow: var(--lib-focus-ring);
+  /* The ring is a 6px halo drawn outside the box; a later sibling with an
+     opaque fill would otherwise paint over its trailing edge. Lift the
+     focused field above its row neighbours (no layout change). */
+  position: relative;
+  z-index: 1;
+}
 .notes-count { color: var(--lib-fg-muted); font-size: 12px; white-space: nowrap; }
 .notes-color-filters { display: flex; align-items: center; gap: var(--lib-sp-2); }
 .notes-filter-dot {
@@ -1376,6 +1383,12 @@ html.motion-ready .vocab-note-save {
 #vocab-lookup-bar {
   margin: 0 0 var(--lib-sp-3);
   padding-bottom: var(--lib-sp-2);
+  /* The row's three controls are meant to read as a plain toolbar with
+     visible gaps (§8.1, and the #vocab-lookup-go note below) -- but
+     .vocab-filter-toolbar's recipe carries no gap, so the input and the
+     language select were flush (measured 0px live, 2026-08-25) and the
+     select painted over the focused input's right border + focus ring. */
+  gap: var(--lib-sp-1);
   border-bottom: 1px solid color-mix(in srgb, var(--lib-fg) var(--lib-seam-mix), var(--lib-pane-bg));
 }
 .vocab-filter-toolbar input[type="search"] {
@@ -1554,8 +1567,8 @@ html.motion-ready .vocab-note-save {
    (short on height only), and #vocab-lookup-bar is a plain toolbar row
    (§8.1 -- visible gaps between its three controls, not a fused unit), so
    there is no seam or clip to respect. `inset: -3px 0` never reaches past
-   this button's own 33px width, so the zero-gap seam against the language
-   select on its left (measured live) is untouched. */
+   this button's own 33px width, so the 4px row gap to the language select
+   on its left (#vocab-lookup-bar's gap, 2026-08-25) is untouched. */
 #vocab-lookup-go { position: relative; }
 #vocab-lookup-go::before { content: ""; position: absolute; inset: -3px 0; }
 /* Same eight-dark-theme group as the chevron override below: 20% of a dark
@@ -2232,6 +2245,16 @@ html.motion-ready .notes-batch-bar.selecting {
 
 /* ---- Page layout ---- (body's margin/background/color live in the merged
    rule near the top of this file, next to the font-fallback-stall comment) */
+/* Stable first frame (theme model 2026-08-25, F8): options-theme-early.js
+   paints the theme from the localStorage mirror synchronously and corrects
+   it from chrome.storage a moment later. The page stays invisible until that
+   authoritative read has landed (`data-options-ready`, set by the early
+   script on this page; options.js sets it on the Options page) or the early
+   script's 3s fail-open fires -- same gate options.css puts on .container.
+   Header + main only: the document background paints at once, so the wait
+   never reads as a blank tab. */
+.lib-header, .lib-main { visibility: hidden; }
+html[data-options-ready] .lib-header, html[data-options-ready] .lib-main { visibility: visible; }
 .lib-header {
   display: flex; align-items: center; gap: var(--lib-sp-4);
   padding-block: var(--lib-sp-3);
@@ -2331,7 +2354,7 @@ html[data-theme="nord-night"] {
   --lib-panel: #3b4252;
   --lib-fg: #d8dee9;
   --lib-fg-muted: #9cb5ce;
-  --lib-fg-hint: #939db2;
+  --lib-fg-hint: #abb3c3;
   --lib-accent: #88c0d0;
   --lib-link: #88c0d0;
   --lib-save: #a3be8c;
@@ -2364,8 +2387,8 @@ html[data-theme="terminal"] {
   --lib-bg: #0a0a0a;
   --lib-panel: #111111;
   --lib-fg: #33ff33;
-  --lib-fg-muted: #22aa22;
-  --lib-fg-hint: #448844;
+  --lib-fg-muted: #24b324;
+  --lib-fg-hint: #5cad5c;
   --lib-accent: #33ff33;
   --lib-link: #33ff33;
   --lib-save: #008f00;
@@ -2400,7 +2423,7 @@ html[data-theme="paper-ink"] {
   --lib-panel: #f5f0e8;
   --lib-fg: #2c2c2c;
   --lib-fg-muted: #6b4c3b;
-  --lib-fg-hint: #707070;
+  --lib-fg-hint: #6b6b6b;
   --lib-accent: #1a3a5c;
   --lib-link: #1a3a5c;
   --lib-save: #8b4513;
@@ -2469,7 +2492,7 @@ html[data-theme="flexoki-light"] {
   --lib-panel: #F2F0E5;
   --lib-fg: #100f0f;
   --lib-fg-muted: #6a6964;
-  --lib-fg-hint: #777467;
+  --lib-fg-hint: #6c6a5e;
   --lib-accent: #205EA6;
   --lib-link: #205ea6;
   --lib-save: #5f770a;
@@ -2502,8 +2525,8 @@ html[data-theme="flexoki-dark"] {
   --lib-bg: #1C1B1A;
   --lib-panel: #282726;
   --lib-fg: #cecdc3;
-  --lib-fg-muted: #908e8a;
-  --lib-fg-hint: #878580;
+  --lib-fg-muted: #9f9e9a;
+  --lib-fg-hint: #a09e9a;
   --lib-accent: #4385BE;
   --lib-link: #5a94c6;
   --lib-save: #879a39;
@@ -2537,7 +2560,7 @@ html[data-theme="solarized-light"] {
   --lib-panel: #eee8d5;
   --lib-fg: #54696f;
   --lib-fg-muted: #54696f;
-  --lib-fg-hint: #657474;
+  --lib-fg-hint: #5b6969;
   --lib-accent: #268bd2;
   --lib-link: #1d699e;
   --lib-save: #1f7972;
@@ -2570,8 +2593,8 @@ html[data-theme="solarized-dark"] {
   --lib-bg: #002b36;
   --lib-panel: #073642;
   --lib-fg: #8e9e9f;
-  --lib-fg-muted: #869ca4;
-  --lib-fg-hint: #7a939b;
+  --lib-fg-muted: #859ca3;
+  --lib-fg-hint: #859ca3;
   --lib-accent: #268bd2;
   --lib-link: #4ca2df;
   --lib-save: #859900;
@@ -2605,8 +2628,8 @@ html[data-theme="catppuccin-latte"] {
   --lib-bg: #eff1f5;
   --lib-panel: #e6e9ef;
   --lib-fg: #4c4f69;
-  --lib-fg-muted: #626579;
-  --lib-fg-hint: #666b80;
+  --lib-fg-muted: #5e6174;
+  --lib-fg-hint: #5d6275;
   --lib-accent: #1e66f5;
   --lib-link: #0b59f4;
   --lib-save: #307820;
@@ -2640,7 +2663,7 @@ html[data-theme="catppuccin-mocha"] {
   --lib-panel: #313244;
   --lib-fg: #cdd6f4;
   --lib-fg-muted: #a6adc8;
-  --lib-fg-hint: #85889f;
+  --lib-fg-hint: #9c9eb1;
   --lib-accent: #89b4fa;
   --lib-link: #89b4fa;
   --lib-save: #94e2d5;
@@ -2674,7 +2697,7 @@ html[data-theme="gruvbox-dark"] {
   --lib-panel: #3c3836;
   --lib-fg: #ebdbb2;
   --lib-fg-muted: #b0a390;
-  --lib-fg-hint: #9b8f85;
+  --lib-fg-hint: #ada39c;
   --lib-accent: #83a598;
   --lib-link: #89a99d;
   --lib-save: #539fa3;
@@ -2708,7 +2731,7 @@ html[data-theme="rose-pine"] {
   --lib-panel: #1f1d2e;
   --lib-fg: #e0def4;
   --lib-fg-muted: #908caa;
-  --lib-fg-hint: #837f9a;
+  --lib-fg-hint: #8e8aa3;
   --lib-accent: #c4a7e7;
   --lib-link: #c4a7e7;
   --lib-save: #9ccfd8;
@@ -2742,7 +2765,7 @@ html[data-theme="github-light"] {
   --lib-panel: #ffffff;
   --lib-fg: #1f2328;
   --lib-fg-muted: #656d76;
-  --lib-fg-hint: #68717c;
+  --lib-fg-hint: #636c76;
   --lib-accent: #0969da;
   --lib-link: #0969da;
   --lib-save: #227c3b;

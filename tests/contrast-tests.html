@@ -26,8 +26,12 @@ function test(name,fn){try{fn();pass(name);}catch(e){fail(name,e.message);}}
 // WCAG relative-luminance contrast (same formula as tools/contrast-audit.mjs).
 function _rgb(s){
   const m = s.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
-  if (!m) throw new Error("not an rgb() color: " + s);
-  return [+m[1], +m[2], +m[3]];
+  if (m) return [+m[1], +m[2], +m[3]];
+  // Chrome serialises color-mix() results as color(srgb r g b [/ a]) with
+  // 0-1 channels (the preset themes' elevated surfaces use color-mix).
+  const c = s.match(/color\(srgb\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)/);
+  if (c) return [Math.round(+c[1] * 255), Math.round(+c[2] * 255), Math.round(+c[3] * 255)];
+  throw new Error("not an rgb() color: " + s);
 }
 function _lum(c){
   const f = v => { v/=255; return v <= 0.03928 ? v/12.92 : Math.pow((v+0.055)/1.055, 2.4); };
@@ -87,55 +91,40 @@ test("I3 solarized-light --pp-fg meets AA on --pp-bg", () => {
   }
 });
 
-// ---- F1: default-dark layer (html.dark) AA — the hand-maintained layer the
-// factory does NOT generate. Mirrors tools/contrast-audit.mjs's html.dark probe.
-// Run each probe with html.dark set so the shipped dark rules + token palette apply.
-function withDark(fn){
-  document.documentElement.classList.add("dark");
-  try { return fn(); } finally { document.documentElement.classList.remove("dark"); }
-}
-// Resolve a (color-var, bg-var) pair to its shipped rgb() under the current root.
-function varPairRatio(fgVar, bgVar){
-  const probe = document.createElement("div");
-  probe.style.color = "var(" + fgVar + ")";
-  probe.style.backgroundColor = "var(" + bgVar + ")";
-  probe.style.position = "fixed";
-  probe.style.visibility = "hidden";
-  document.body.appendChild(probe);
-  const cs = getComputedStyle(probe);
-  const fgRgb = cs.color, bgRgb = cs.backgroundColor;
-  document.body.removeChild(probe);
-  if (!/^rgb/.test(bgRgb) || bgRgb === "rgba(0, 0, 0, 0)") throw new Error(bgVar + " did not resolve (" + bgRgb + ")");
-  return ratio(fgRgb, bgRgb);
-}
-test("F1 dark .ac-count >= AA 4.5:1", () => withDark(() => {
-  const el = document.getElementById("acc");
-  const r = ratio(getComputedStyle(el).color, effectiveBg(el));
-  if (r < 4.5) throw new Error("dark contrast " + r.toFixed(2) + ":1 < 4.5:1");
-}));
-test("F1 dark .ac-hint-footer >= AA 4.5:1", () => withDark(() => {
-  const el = document.getElementById("ach");
-  const r = ratio(getComputedStyle(el).color, effectiveBg(el));
-  if (r < 4.5) throw new Error("dark contrast " + r.toFixed(2) + ":1 < 4.5:1");
-}));
-test("F1 dark .offline-queue-empty >= AA 4.5:1", () => withDark(() => {
-  const el = document.getElementById("oqe");
-  const r = ratio(getComputedStyle(el).color, effectiveBg(el));
-  if (r < 4.5) throw new Error("dark contrast " + r.toFixed(2) + ":1 < 4.5:1");
-}));
-// Token-tier probes against the strictest surface each tier lands on (bg2=#252525).
-test("F1 dark --pp-fg-hint meets AA on --pp-bg2", () => withDark(() => {
-  const r = varPairRatio("--pp-fg-hint", "--pp-bg2");
-  if (r < 4.5) throw new Error("fg-hint on bg2 " + r.toFixed(2) + ":1 < 4.5:1");
-}));
-test("F1 dark --pp-fg-muted meets AA on --pp-bg2", () => withDark(() => {
-  const r = varPairRatio("--pp-fg-muted", "--pp-bg2");
-  if (r < 4.5) throw new Error("fg-muted on bg2 " + r.toFixed(2) + ":1 < 4.5:1");
-}));
-test("F1 dark --pp-fg meets AA on --pp-bg", () => withDark(() => {
-  const r = varPairRatio("--pp-fg", "--pp-bg");
-  if (r < 4.5) throw new Error("fg on bg " + r.toFixed(2) + ":1 < 4.5:1");
-}));
+// (F1 html.dark probes retired 2026-08-25: the popup's no-preset dark is the
+// flexoki-dark preset. The three components those probes covered are now
+// checked under EVERY shipped theme below, against the background each one
+// actually sits on -- the html.dark versions only ever checked one palette.)
+test("hint-tier components (.ac-count / .ac-hint-footer / .offline-queue-empty) meet AA under every shipped UI theme", () => {
+  const themes = ["github-light", "nord-night", "terminal", "modern-card", "paper-ink",
+    "dracula", "flexoki-light", "flexoki-dark", "solarized-light", "solarized-dark",
+    "catppuccin-latte", "catppuccin-mocha", "gruvbox-dark", "rose-pine"];
+  const failures = [];
+  try {
+    for (const theme of themes) {
+      document.documentElement.dataset.theme = theme;
+      for (const [id, label] of [["acc", ".ac-count"], ["ach", ".ac-hint-footer"], ["oqe", ".offline-queue-empty"]]) {
+        const el = document.getElementById(id);
+        const r = ratio(getComputedStyle(el).color, effectiveBg(el));
+        if (r < 4.5) failures.push(theme + " " + label + " " + r.toFixed(2) + ":1");
+      }
+      // The SELECTED / hovered candidate row swaps its fill for --pp-drop-hover
+      // (popup-tags.js adds .selected to the current candidate); the count
+      // must stay readable there too (terminal read 3.5:1 before the text
+      // tiers were derived against that fill, Codex 2026-08-26).
+      const acc = document.getElementById("acc");
+      const row = acc.closest(".ac-item");
+      row.classList.add("selected");
+      try {
+        const r = ratio(getComputedStyle(acc).color, effectiveBg(acc));
+        if (r < 4.5) failures.push(theme + " .ac-item.selected .ac-count " + r.toFixed(2) + ":1");
+      } finally { row.classList.remove("selected"); }
+    }
+  } finally {
+    document.documentElement.removeAttribute("data-theme");
+  }
+  if (failures.length) throw new Error(failures.join("; "));
+});
 test("hover and confirm surfaces stay readable across every shipped UI theme variant", () => {
   const themes = ["github-light", "nord-night", "terminal", "modern-card", "paper-ink",
     "dracula", "flexoki-light", "flexoki-dark", "solarized-light", "solarized-dark",

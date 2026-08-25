@@ -78,9 +78,9 @@
         </div>
       </div>
       <div class="divider"></div>
-      <label class="section-title" for="opt-lang" data-i18n="secLanguage">Language</label>
+      <h2 class="section-title" id="sec-language" data-i18n="secLanguage">Language</h2>
       <div class="fg">
-        <select id="opt-lang">
+        <select id="opt-lang" aria-labelledby="sec-language">
           <option value="auto" data-i18n="langAuto">Auto (follow browser)</option>
           <option value="en">English</option>
           <option value="ja">日本語</option>
@@ -318,9 +318,9 @@
 
     <!-- Tab 5: AI -->
     <div id="panel-ai" class="panel" role="tabpanel" aria-labelledby="tab-ai">
-      <label class="section-title" for="opt-ai-provider" data-i18n="secAiProvider">AI Provider</label>
+      <h2 class="section-title" id="sec-ai-provider" data-i18n="secAiProvider">AI Provider</h2>
       <div class="fg">
-        <select id="opt-ai-provider">
+        <select id="opt-ai-provider" aria-labelledby="sec-ai-provider">
           <option value="gemini" data-i18n="provGemini">Google Gemini</option>
           <option value="openai" data-i18n="provOpenai">OpenAI (ChatGPT)</option>
           <option value="claude" data-i18n="provClaude">Anthropic Claude</option>
@@ -663,8 +663,35 @@
       </div>
 
       <div class="divider"></div>
+      <h2 class="section-title" data-i18n="secVideoPreview">Video pages</h2>
+      <div class="fg">
+        <label class="bl" for="opt-md-video-lang" data-i18n="optVideoLangPref">Preferred caption languages</label>
+        <input type="text" id="opt-md-video-lang" placeholder="en, zh" maxlength="80" autocomplete="off" spellcheck="false" aria-describedby="opt-md-video-lang-hint" />
+        <p class="hint" id="opt-md-video-lang-hint"><span data-i18n="optVideoLangPrefHint">ISO 639-1 language codes in order of preference, comma separated, e.g. en, zh (English first, then Chinese). A full tag such as zh-Hant is matched exactly before falling back to zh. Leave empty to follow the interface language.</span> <a href="https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes" target="_blank" rel="noopener" data-i18n="optVideoLangCodesLink">Language code list</a></p>
+      </div>
+      <div class="fg">
+        <label><input type="checkbox" id="opt-md-video-dark" aria-describedby="opt-md-video-dark-hint" /> <span data-i18n="optVideoDarkScheme">Open video pages in dark</span></label>
+        <p class="hint" id="opt-md-video-dark-hint" data-i18n="optVideoDarkSchemeHint">With Theme set to Auto or Light, video pages still open in the dark reading palette. The reader's "Aa" panel can override this for every reader page on this device.</p>
+      </div>
+      <div class="fg">
+        <label><input type="checkbox" id="opt-md-video-pause-lookup" checked aria-describedby="opt-md-video-pause-lookup-hint" /> <span data-i18n="optVideoPauseOnLookup">Pause the player while looking a word up</span></label>
+        <p class="hint" id="opt-md-video-pause-lookup-hint" data-i18n="optVideoPauseOnLookupHint">Selecting text or opening the explain popover pauses the player (YouTube; bilibili once playback follow is enabled); it resumes when the lookup ends.</p>
+      </div>
+      <div class="fg">
+        <label><input type="checkbox" id="opt-md-video-use-login" checked aria-describedby="opt-md-video-use-login-hint" /> <span data-i18n="optVideoUseLogin">Send YouTube login cookies with subtitle requests</span></label>
+        <p class="hint" id="opt-md-video-use-login-hint" data-i18n="optVideoUseLoginHint">Only affects the fallback request the reader sends itself when no www.youtube.com tab is open; with a YouTube tab open, captions are read through that tab and its own session. On by default.</p>
+      </div>
+
+      <div class="divider"></div>
       <h2 class="section-title" data-i18n="kbdHelpTitle">Keyboard Shortcuts</h2>
-      <p class="hint" data-i18n="kbdHelpIntro">These shortcuts work on the Markdown preview page (not here in Settings).</p>
+      <div class="fg">
+        <label class="bl" data-i18n="mdShortcutLabel">Open the reader</label>
+        <p class="hint">
+          <span id="md-shortcut-current" class="shortcut-current" data-command="markdown_preview"></span>
+          <a href="chrome://extensions/shortcuts" id="open-shortcuts-link-md" class="btn btn-sm" style="text-decoration:none;margin-left:8px;" data-i18n="openShortcuts">Open Chrome Shortcut Settings</a>
+        </p>
+      </div>
+      <p class="hint" data-i18n="kbdHelpIntro">These shortcuts work on the reader page (not here in Settings).</p>
       <ul class="kbd-help-list">
         <li class="kbd-help-row"><span class="kbd-help-chips"><kbd>t</kbd></span><span data-i18n="kbdHelpTranslate">Start or continue translating the article</span></li>
         <li class="kbd-help-row"><span class="kbd-help-chips"><kbd>v</kbd></span><span data-i18n="kbdHelpToggleView">Cycle through original, bilingual, and translated views</span></li>
@@ -677,6 +704,21 @@
         <li class="kbd-help-row"><span class="kbd-help-chips"><kbd>?</kbd></span><span data-i18n="kbdHelpShowHelp">Show this shortcuts list</span></li>
         <li class="kbd-help-row"><span class="kbd-help-chips"><kbd>Esc</kbd></span><span data-i18n="kbdHelpClose">Close the open popover</span></li>
       </ul>
+      <!-- Video pages: same rows as md-reader.js PBP_KBD_HELP_VIDEO_ROWS, same order. -->
+      <h3 class="kbd-help-subtitle" data-i18n="kbdHelpVideoSection">Video pages</h3>
+      <ul class="kbd-help-list">
+        <li class="kbd-help-row"><span class="kbd-help-chips"><kbd>Space</kbd></span><span data-i18n="kbdHelpVideoPlay">Play / pause</span></li>
+        <!-- Key names as text, not arrow glyphs: Options is cold-start
+             sensitive and literal symbol characters risk the slow-font
+             fallback (CLAUDE.md font iron rule). -->
+        <li class="kbd-help-row"><span class="kbd-help-chips"><kbd>Left</kbd> <kbd>Right</kbd></span><span data-i18n="kbdHelpVideoSeek">Back / forward 3 s</span></li>
+        <li class="kbd-help-row"><span class="kbd-help-chips"><kbd>[</kbd> <kbd>]</kbd></span><span data-i18n="kbdHelpVideoCue">Previous / next cue</span></li>
+        <li class="kbd-help-row"><span class="kbd-help-chips"><kbd>r</kbd></span><span data-i18n="kbdHelpVideoLoop">Repeat this cue</span></li>
+        <li class="kbd-help-row"><span class="kbd-help-chips"><kbd>f</kbd></span><span data-i18n="kbdHelpVideoFollow">Follow playback</span></li>
+        <li class="kbd-help-row"><span class="kbd-help-chips"><kbd>c</kbd></span><span data-i18n="kbdHelpVideoCurrent">Back to the current cue</span></li>
+        <li class="kbd-help-row"><span class="kbd-help-chips"><kbd>b</kbd></span><span data-i18n="kbdHelpVideoView">Reading / timeline</span></li>
+      </ul>
+      <p class="hint" data-i18n="kbdHelpVideoNote">Space, the arrow keys, r and f need the player to report its position: always on YouTube, on bilibili once playback follow is enabled.</p>
     </div>
 
     <!-- Tab: Vocabulary -->
@@ -770,13 +812,6 @@
 
     <!-- Tab: Markdown -->
     <div id="panel-markdown" class="panel" role="tabpanel" aria-labelledby="tab-markdown">
-      <div class="fg">
-        <label class="bl" data-i18n="mdShortcutLabel">Markdown preview shortcut</label>
-        <p class="hint">
-          <span id="md-shortcut-current" class="shortcut-current" data-command="markdown_preview"></span>
-          <a href="chrome://extensions/shortcuts" id="open-shortcuts-link-md" class="btn btn-sm" style="text-decoration:none;margin-left:8px;" data-i18n="openShortcuts">Open Chrome Shortcut Settings</a>
-        </p>
-      </div>
       <h2 class="section-title" data-i18n="secMdExport">Markdown Export Defaults</h2>
       <div class="fg"><label><input type="checkbox" id="opt-md-frontmatter" checked /> <span data-i18n="mdExportFrontmatter">Add YAML frontmatter to exported Markdown</span></label></div>
       <div class="fg"><label><input type="checkbox" id="opt-md-extended-meta" checked /> <span data-i18n="mdExportExtendedMeta">Include extended metadata (author, published, site, image, word count)</span></label></div>
@@ -792,16 +827,8 @@
       </div>
       <div class="fg"><label><input type="checkbox" id="opt-md-include-toc" /> <span data-i18n="mdExportIncludeToc">Include table of contents</span></label></div>
       <div class="fg"><label><input type="checkbox" id="opt-md-include-hl" checked /> <span data-i18n="mdOptIncludeHl">Include highlights</span></label></div>
-      <h2 class="section-title" data-i18n="secVideoPreview">Video preview</h2>
-      <div class="fg">
-        <label class="bl" for="opt-md-video-lang" data-i18n="optVideoLangPref">Preferred caption languages</label>
-        <input type="text" id="opt-md-video-lang" placeholder="en, ja" autocomplete="off" spellcheck="false" />
-        <p class="hint" data-i18n="optVideoLangPrefHint">Language codes in order of preference, e.g. "en, ja". Leave empty to follow the interface language.</p>
-      </div>
-      <div class="fg"><label><input type="checkbox" id="opt-md-video-pause-lookup" checked /> <span data-i18n="optVideoPauseOnLookup">Pause the player while looking a word up</span></label></div>
-      <p class="hint" data-i18n="optVideoPauseOnLookupHint">Selecting text or opening the explain popover pauses YouTube playback; it resumes when the lookup ends.</p>
-      <div class="fg"><label><input type="checkbox" id="opt-md-video-use-login" /> <span data-i18n="optVideoUseLogin">Send YouTube login cookies with subtitle requests</span></label></div>
-      <p class="hint" data-i18n="optVideoUseLoginHint">Sends your YouTube login cookies with each caption request, which can raise the subtitle hit rate for videos that require being signed in; off by default.</p>
+
+      <div class="divider"></div>
       <h2 class="section-title" data-i18n="secSendDestinations">Send-to Destinations</h2>
       <p class="hint" data-i18n="secSendDestinationsHint">Each enabled destination appears in the preview page's "Send to" menu.</p>
       <div id="export-targets"></div>
@@ -883,17 +910,20 @@
 
     <!-- Tab 6: Appearance -->
     <div id="panel-appearance" class="panel" role="tabpanel" aria-labelledby="tab-appearance">
-      <label class="section-title" for="opt-theme" data-i18n="secTheme">Theme</label>
+      <h2 class="section-title" id="sec-theme" data-i18n="secTheme">Theme</h2>
       <div class="fg">
-        <select id="opt-theme">
+        <select id="opt-theme" aria-labelledby="sec-theme" aria-describedby="opt-theme-hint">
           <option value="auto" data-i18n="themeAuto">Auto (follow system)</option>
           <option value="light" data-i18n="themeLight">Light</option>
           <option value="dark" data-i18n="themeDark">Dark</option>
         </select>
+        <p class="hint" id="opt-theme-hint" data-i18n="optThemeHint">Switches the popup, this settings page, the notes &amp; vocabulary page and the reader between light and dark. Presets with a built-in scheme (Dracula, for example) override it on the pages that follow the preset; the reader can override it per device from its "Aa" panel.</p>
       </div>
 
-      <div class="fg"><label><input type="checkbox" id="opt-popup-follow-theme" checked /> <span data-i18n="optPopupFollowTheme">Popup follows Pinboard theme preset</span></label></div>
-      <p class="hint" data-i18n="popupFollowHint">When enabled, the popup appearance matches the selected Pinboard CSS theme.</p>
+      <div class="fg">
+        <label><input type="checkbox" id="opt-popup-follow-theme" checked aria-describedby="opt-popup-follow-theme-hint" /> <span data-i18n="optPopupFollowTheme">Extension pages follow the Pinboard theme preset</span></label>
+        <p class="hint" id="opt-popup-follow-theme-hint" data-i18n="popupFollowHint">When on, the popup, this settings page and the notes &amp; vocabulary page use the palette of the selected Pinboard preset; when off they use the default palette in the light/dark mode above. The reader always keeps its own reading palette.</p>
+      </div>
 
       <div class="divider"></div>
       <h2 class="section-title" data-i18n="secCustomStyle">Pinboard.in Custom Style</h2>

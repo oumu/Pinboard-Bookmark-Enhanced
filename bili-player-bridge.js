@@ -16,7 +16,7 @@
 //   - Same message shapes as the YouTube relay (docs/yt-embed.html), so the
 //     reader's one state machine serves both providers:
 //       out: {pbpVideo:1, event:"ready"}
-//            {pbpVideo:1, event:"time", t:<sec>, state:<0 ended|1 playing|2 paused|3 buffering>, d:<duration?>}
+//            {pbpVideo:1, event:"time", t:<sec>, state:<0 ended|1 playing|2 paused|3 buffering>, d:<duration?>, r:<playbackRate?>}
 //       in:  {pbpVideo:1, func:"hello"|"seekTo"|"playVideo"|"pauseVideo"|"setPlaybackRate", args:[...]}
 //   - Nothing about the video (title, url, cookies) is read or sent: only
 //     currentTime / paused / ended / duration / playbackRate.
@@ -56,6 +56,11 @@
     const d = m.duration;
     const msg = { pbpVideo: 1, event: "time", t: t, state: stateOf(m) };
     if (typeof d === "number" && isFinite(d) && d > 0) msg.d = d;
+    // Playback rate rides every report so the reader's speed picker mirrors
+    // the player (speed changed in the player's own controls, or the
+    // remembered per-video rate re-applied on load).
+    const r = m.playbackRate;
+    if (typeof r === "number" && isFinite(r) && r > 0) msg.r = r;
     post(msg);
   }
   function stopTimer() { if (timer) { clearInterval(timer); timer = 0; } }

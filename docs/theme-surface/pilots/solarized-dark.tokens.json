@@ -91,8 +91,8 @@
     "popup": {
       "dark": {
         "fg": "#93a1a1",
-        "fg-muted": "#839496",
-        "fg-hint": "#839496",
+        "fg-muted": "#8e9e9f",
+        "fg-hint": "#8e9e9f",
         "link": "#5eabe2",
         "accent2": "#9193cb",
         "tag-fg": "#4aada3",
@@ -117,8 +117,8 @@
     "options": {
       "dark": {
         "fg": "#93a1a1",
-        "fg-muted": "#839496",
-        "fg-hint": "#839496",
+        "fg-muted": "#8e9e9f",
+        "fg-hint": "#8e9e9f",
         "input-bg": "#002b36",
         "btn-hover": "#0f4b66",
         "save": "#9dab2d",

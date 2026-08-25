@@ -1202,9 +1202,121 @@ check(/<input type="password" id="opt-pinboard-token"/.test(optionsHtml) && /dat
   "options.html: Pinboard token is not masked with a reveal control");
 check(/<button[^>]+id="import-settings"/.test(optionsHtml) && /id="import-status"[^>]+role="status"/.test(optionsHtml),
   "options.html: settings import is not a keyboard button with live status");
-for (const [id, label] of [["opt-lang", "secLanguage"], ["opt-ai-provider", "secAiProvider"], ["opt-theme", "secTheme"]]) {
-  check(new RegExp(`<label[^>]+for="${id}"[^>]+data-i18n="${label}"`).test(optionsHtml),
-    `options.html: ${id} lacks its visible label`);
+// Section titles are real <h2>s (outline-navigable); the select borrows the
+// heading as its accessible name via aria-labelledby (settings batch E).
+for (const [id, label, heading] of [["opt-lang", "secLanguage", "sec-language"], ["opt-ai-provider", "secAiProvider", "sec-ai-provider"], ["opt-theme", "secTheme", "sec-theme"]]) {
+  check(new RegExp(`<h2[^>]+id="${heading}"[^>]+data-i18n="${label}"`).test(optionsHtml) &&
+    new RegExp(`<select id="${id}"[^>]+aria-labelledby="${heading}"`).test(optionsHtml),
+    `options.html: ${id} lacks its section heading as accessible name`);
+}
+
+// Reset-map coverage gate (settings batch A1): every persisted control inside
+// a #panel-* must be listed in that panel's PANEL_DEFAULTS entry -- fields
+// (by id, radios included), nested groups, radios (by group name) or skip --
+// otherwise "Reset this tab" silently leaves it untouched while the confirm
+// dialog promises a full reset. The allowlist names controls excluded on
+// purpose; extend it with a reason, never to make the gate pass.
+{
+  const RESET_ALLOWLIST = {
+    general: [
+      "opt-sync-api-keys",                // credential routing toggle: a reset must never move secrets
+      "opt-backup-include-vocabulary", "opt-backup-include-secrets",   // export pickers: session UI
+      "backup-section-settings", "backup-section-themes", "backup-section-highlights",
+      "backup-section-vocabulary", "backup-section-secrets",          // import preview pickers: session UI
+    ],
+    tags: ["tag-gov-select-all"],         // list selection helper, not a setting
+  };
+  const RESET_PANELS_WITHOUT_DEFAULTS = new Set(["storage"]); // nothing persisted to reset
+  const pdStart = optionsJs.indexOf("const PANEL_DEFAULTS = {");
+  const pdEnd = optionsJs.indexOf("\n  };", pdStart) + 4;
+  let panelDefaults = null;
+  try { panelDefaults = runInNewContext("(" + optionsJs.slice(pdStart + "const PANEL_DEFAULTS = ".length, pdEnd) + ")", {}); } catch (_) {}
+  check(panelDefaults && typeof panelDefaults === "object", "options.js: PANEL_DEFAULTS is not a plain literal the coverage gate can evaluate");
+  const panels = [...optionsHtml.matchAll(/<div id="panel-([a-z-]+)"[^>]*>/g)].map(m => ({ name: m[1], at: m.index }));
+  const offenders = [];
+  panels.forEach((p, i) => {
+    const body = optionsHtml.slice(p.at, i + 1 < panels.length ? panels[i + 1].at : optionsHtml.length);
+    const def = panelDefaults && panelDefaults[p.name];
+    if (!def) { if (!RESET_PANELS_WITHOUT_DEFAULTS.has(p.name)) offenders.push(`${p.name}: no PANEL_DEFAULTS entry`); return; }
+    const known = new Set([...Object.keys(def.fields || {}), ...(def.skip || []), ...(RESET_ALLOWLIST[p.name] || [])]);
+    for (const group of Object.values(def.nested || {})) for (const id of Object.keys(group)) known.add(id);
+    const radioGroups = new Set(Object.keys(def.radios || {}));
+    for (const m of body.matchAll(/<(input|select|textarea)\b([^>]*)>/g)) {
+      const attrs = m[2];
+      const id = (attrs.match(/\bid="([^"]+)"/) || [])[1];
+      const type = (attrs.match(/\btype="([^"]+)"/) || [])[1] || "";
+      if (type === "hidden" || type === "file" || type === "button" || type === "submit") continue;
+      if (type === "radio") {
+        const name = (attrs.match(/\bname="([^"]+)"/) || [])[1];
+        if (radioGroups.has(name) || (id && known.has(id))) continue;
+        offenders.push(`${p.name}: radio ${name || id}`);
+        continue;
+      }
+      if (!id || !known.has(id)) offenders.push(`${p.name}: ${id || "<" + m[1] + " without id>"}`);
+    }
+  });
+  check(offenders.length === 0, "options.js: controls missing from the reset map -> " + offenders.join(", "));
+  // Non-DOM reset state the walk above cannot see (Codex r2 M3): the active
+  // Pinboard preset lives in options.js closure state, so the Appearance
+  // entry must clear it through an `after` hook.
+  check(panelDefaults && panelDefaults.appearance && typeof panelDefaults.appearance.after === "function",
+    "options.js: Appearance reset lacks the after() hook that clears the active preset");
+  // mdVideoDarkScheme data chain: default -> Options load -> collect -> reset
+  // (the setting is otherwise invisible to every other gate).
+  const sharedJsText = read("shared.js");
+  check(/\bmdVideoDarkScheme:\s*false\b/.test(sharedJsText), "shared.js: SETTINGS_DEFAULTS lacks mdVideoDarkScheme: false");
+  check(/"opt-md-video-dark":\s*s\.mdVideoDarkScheme === true/.test(optionsJs) &&
+    /mdVideoDarkScheme:\s*\$id\("opt-md-video-dark"\)\.checked/.test(optionsJs) &&
+    panelDefaults && panelDefaults.reader && panelDefaults.reader.fields && panelDefaults.reader.fields["opt-md-video-dark"] === false,
+    "options.js: mdVideoDarkScheme is not wired through load, collect and the Reader reset map");
+}
+
+// Embedded-frame extraction (2026-08-25/26): the candidate rule lives as a
+// pure, unit-tested function in shared.js (pbpPickDominantFrame), but the two
+// page-context detectors are injected as standalone functions and inline the
+// same rule -- keep every guard present in BOTH copies, and keep the Service
+// Worker's grant binding in order: permissions.contains for the exact origin
+// BEFORE extractForPreview, a per-frame origin probe BEFORE any Defuddle
+// injection, and a strict origin match on the picked result (no fallback).
+{
+  const backgroundJs = read("background.js");
+  const popupJs = read("popup.js");
+  // Source-shape checks (comments are stripped first so a guard cannot survive
+  // in a comment); the detectors' BEHAVIOUR is exercised on a real DOM by
+  // tests/frame-candidate-tests.html, which evaluates these very function
+  // bodies against iframe fixtures.
+  const stripComments = (s) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+  const guards = ['f.hasAttribute("srcdoc")', 'allow-same-origin', 'cs.display === "none"', 'cs.visibility === "hidden"', 'Number(cs.opacity) === 0', 'n = n.parentElement', 'bestArea >= 0.4 * vw * vh', '/^https:\\/\\//.test(origin)', 'origin === location.origin', 'Math.min(r.right, vw)', 'Math.min(r.bottom, vh)'];
+  for (const [name, src] of [["background.js", backgroundJs], ["popup.js", popupJs]]) {
+    const start = src.indexOf("function dominantFrameOrigin()");
+    const body = start >= 0 ? stripComments(src.slice(start, src.indexOf('} catch (_) { return ""; }', start))) : "";
+    check(start >= 0 && guards.every((g) => body.includes(g)),
+      `${name}: the embedded-frame detector lost one of its guards (${guards.filter((g) => !body.includes(g)).join(", ") || "none"})`);
+  }
+  const hStart = backgroundJs.indexOf('message.type === "reextractMarkdown"');
+  const hEnd = backgroundJs.indexOf('message.type === "mdPreviewBookmarkInfo"', hStart);
+  const handler = stripComments(backgroundJs.slice(hStart, hEnd));
+  const containsAt = handler.indexOf("held = await chrome.permissions.contains({ origins: [frameOrigin + \"/*\"] })");
+  const refuseAt = handler.indexOf('if (!held) { sendResponse({ ok: false, error: "host_permission" }); return; }');
+  const extractAt = handler.indexOf("await extractForPreview(");
+  check(hStart >= 0 && hEnd > hStart && containsAt >= 0 && refuseAt > containsAt && extractAt > refuseAt &&
+    handler.includes('u.protocol === "https:" && u.origin === message.frameOrigin') &&
+    handler.includes("frame, frameOrigin });"),
+    "background.js: the frame pass must URL-parse the origin, hold an exact-origin permissions.contains grant, refuse with host_permission otherwise, and only then extract");
+  const eStart = backgroundJs.indexOf("async function extractForPreview(");
+  const eEnd = backgroundJs.indexOf("async function openMarkdownPreviewFromShortcut", eStart);
+  const extract = stripComments(backgroundJs.slice(eStart, eEnd));
+  const probeAt = extract.indexOf("func: () => location.origin");
+  const targetAt = extract.indexOf("target = { tabId, frameIds };");
+  const defuddleAt = extract.indexOf('files: ["vendor/defuddle.js"]');
+  const branchStart = extract.indexOf("if (frame === true && Array.isArray(results))");
+  const branch = branchStart >= 0 ? extract.slice(branchStart, extract.indexOf("}", extract.indexOf("frameBase = pick.result.url", branchStart))) : "";
+  check(eStart >= 0 && eEnd > eStart && probeAt >= 0 && targetAt > probeAt && defuddleAt > targetAt &&
+    extract.includes("r.result === frameOrigin).map((r) => r.frameId)") &&
+    branch.includes("new URL(u).origin === frameOrigin") &&
+    branch.includes("out = pick ? pick.result : null") &&
+    !/results\[0\]|\.at\(0\)|framed\[0\]|=\s*top\b/.test(branch), // no positional or top-frame fallback assignment inside the frame branch
+    "background.js: the frame pass must probe frame origins, inject only into the equal-origin frameIds, take only an equal-origin result, and never fall back to another frame");
 }
 check(/id="translate-target-lang-custom"[^>]+aria-labelledby="translate-target-lang-label"/.test(optionsHtml),
   "options.html: custom translation language lacks an accessible name");
@@ -1327,7 +1439,9 @@ check(/const PBP_JINA_ORIGIN_PATTERN = "https:\/\/r\.jina\.ai\/\*";/.test(shared
   !/const\s+JINA_ORIGIN_PATTERN/.test(jinaJs) && /PBP_JINA_ORIGIN_PATTERN/.test(jinaJs),
   "Jina exact-origin pattern is not shared by preview and Service Worker paths");
 const jinaRetryStart = mdPreviewJs.indexOf("async function retryExtract(engine, failure)");
-const jinaRetryEnd = mdPreviewJs.indexOf("async function attemptExtract(engine)", jinaRetryStart);
+// attemptExtract carries an `opts` bag since the embedded-frame pass (2026-08-25);
+// match the signature by prefix so the slice still ends at that function.
+const jinaRetryEnd = mdPreviewJs.indexOf("async function attemptExtract(engine", jinaRetryStart);
 const jinaRetry = mdPreviewJs.slice(jinaRetryStart, jinaRetryEnd);
 check(jinaRetryStart >= 0 && jinaRetryEnd > jinaRetryStart &&
   jinaRetry.indexOf("inFlight = true") >= 0 &&
@@ -1522,13 +1636,13 @@ function inOrder(source, ...parts) {
 const optionsThemeApplyStart = optionsJs.indexOf("function applyOptionsPageTheme");
 const optionsThemeApplyEnd = optionsJs.indexOf("// Track active preset key", optionsThemeApplyStart);
 const optionsThemeApply = optionsJs.slice(optionsThemeApplyStart, optionsThemeApplyEnd);
-check(optionsThemeApply.includes("pbpApplyOptionsEarlyTheme(themeMode, presetKey)") &&
+check(optionsThemeApply.includes('pbpApplyOptionsEarlyTheme(themeMode, presetKey, $id("opt-popup-follow-theme").checked)') &&
   !optionsThemeApply.includes("pbpStoreOptionsThemeMirror"),
   "options.js: visual theme apply also mutates the persisted mirror");
 check(inOrder(optionsJs,
   "Object.entries(fieldMap)", "el.value = val", "Object.entries(checkMap)", "el.checked = val",
   "syncKeysToggle.checked = syncApiKeys", "applyOptionsPageTheme(currentPresetKey, s.optTheme);",
-  "pbpStoreOptionsThemeMirror(s.optTheme, currentPresetKey);",
+  "pbpStoreOptionsThemeMirror(s.optTheme, currentPresetKey, s.optPopupFollowTheme !== false);",
   'document.documentElement.dataset.optionsReady = "1";', "// Language change"),
   "options.js: General values, authoritative theme/mirror, and ready gate are out of order");
 const optionsSnapshotStart = optionsJs.indexOf("async function pbpSaveOptionsSnapshot");
@@ -1540,7 +1654,7 @@ const optionsSaveAll = optionsJs.slice(optionsSaveAllStart, optionsSaveAllEnd);
 check(inOrder(optionsSnapshot, "await persist(settingsDelta)", "if (!res.ok)",
   "if (onSettingsSaved) onSettingsSaved(settingsDelta);",
   "overlay = await saveOverlay(overlayValue);") &&
-  /onSettingsSaved\(settingsDelta\)[\s\S]*pbpStoreOptionsThemeMirror\(data\.optTheme, data\.themePresetKey\)/.test(optionsSaveAll),
+  /onSettingsSaved\(settingsDelta\)[\s\S]*pbpStoreOptionsThemeMirror\(data\.optTheme, data\.themePresetKey, data\.optPopupFollowTheme !== false\)/.test(optionsSaveAll),
   "options.js: theme mirror is updated before settings persistence succeeds or after overlay work");
 
 check(/const el = document\.createElement\("button"\);[\s\S]{0,240}el\.className = "stag";/.test(popupTagsJs), "popup-tags.js: suggested tag is not a button");

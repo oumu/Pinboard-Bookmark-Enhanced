@@ -587,7 +587,6 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--{ns}-accent); 
 ```css
 /* 默认基线（生成区发射，不再手写） */
 :root { color-scheme: light; }          /* options / library */
-html.dark { color-scheme: dark; }       /* popup 暗色默认表面 */
 html[data-theme="<dark preset>"] { color-scheme: dark; }
 ```
 
@@ -658,7 +657,7 @@ accent 焦点色，等于焦点一来就抹掉危险信号——所以它们走 
   现在 `focusBdToAA()`（`composers/_ui-derive.mjs`）逐主题派生：起点仍是原公式（已达标的主题
   逐字节不变），不足则先沿混合比走向纯 accent（**保住主题自己的色相**），纯 accent 仍不够才动明度。
   三个 chrome composer 发射进 `@generated:ui-themes`，pilot `ui.*` 覆盖照旧胜出。
-  默认表面无 emit 路径，三处 `:root` 与 popup 的 `html.dark` 改为**手工搬运的同一派生结果**
+  默认表面无 emit 路径，三处 `:root` 改为**手工搬运的同一派生结果**（popup 的 `html.dark` 层已于 2026-08-25 退役，无预设深色统一为 flexoki-dark 预设）
   （字面 hex，注释里写明重新派生的方法），由同一道门验证。
 - **辉光 `--{ns}-focus-ring` 明确不进对比度门。** 它是带模糊半径的半透明晕，
   对任何填充的实测对比度是**模糊半径的属性而不是颜色的属性**——terminal 的

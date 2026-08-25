@@ -1268,7 +1268,8 @@ section("extracted runtime primitives (audit E1/E4/E5)");
   assert(pbpVideoCueStep(csSegs, -1, 3, 1) === 2 && pbpVideoCueStep(csSegs, -1, 3, -1) === 0, "cue step: no current row -> starts from the row at the given second");
   assert(pbpVideoCueStep(csSegs, 2, 0, 1) === 2 && pbpVideoCueStep(csSegs, 0, 0, -1) === 0 && pbpVideoCueStep([], 0, 0, 1) === -1, "cue step: clamped at both ends, -1 on an empty transcript");
   // Caption-language preference + remembered track (research T6.1/T6.2)
-  assert(JSON.stringify(pbpVideoLangPrefs(" en-US, ja ;zh-Hans en")) === '["en","ja","zh"]', "lang prefs: base subtags, ordered, de-duplicated");
+  assert(JSON.stringify(pbpVideoLangPrefs(" en-US, ja ;zh-Hans en")) === '["en-us","ja","zh-hans","en"]', "lang prefs: full tags lower-cased, ordered, de-duplicated on the exact tag (a script/region is kept, not dropped)");
+  assert(JSON.stringify(pbpVideoLangPrefs("EN, en,, ;")) === '["en"]' && JSON.stringify(pbpVideoLangPrefs("")) === "[]", "lang prefs: case-folded duplicates collapse; empty input is auto");
   const ytTr = [{ lang: "zh-Hans", asr: false, vssId: ".zh-Hans" }, { lang: "en", asr: true, vssId: "a.en" }, { lang: "en", asr: false, vssId: ".en" }, { lang: "ja", asr: false, vssId: ".ja" }];
   assert(pbpYtPickTrack(ytTr, "zh-CN").lang === "zh-Hans", "yt pick: no preference -> UI language, human (unchanged default)");
   assert(pbpYtPickTrack(ytTr, "zh-CN", ["en"]) === ytTr[2], "yt pick: preferred language beats the UI language, human before ASR");
@@ -1285,6 +1286,39 @@ section("extracted runtime primitives (audit E1/E4/E5)");
   assert(pbpBiliPickSubtitle(biSubs) === biSubs[1], "bili pick: default stays zh human");
   assert(pbpBiliPickSubtitle(biSubs, ["en"]) === biSubs[2], "bili pick: preferred language finds the ai- track when no human one exists");
   assert(pbpBiliPickSubtitle(biSubs, ["fr"]) === biSubs[1] && pbpBiliPickSubtitle(biSubs, ["en"], pbpVideoTrackKey(biSubs[0], "bilibili")) === biSubs[0], "bili pick: unmet preference falls back; remembered key wins");
+  // Full-tag preference (settings batch C2) + bilibili interface-language tier (B1)
+  const scTr = [{ lang: "zh-Hans", asr: false, vssId: ".zh-Hans" }, { lang: "zh-Hant", asr: true, vssId: "a.zh-Hant" }, { lang: "en", asr: false, vssId: ".en" }];
+  assert(pbpYtPickTrack(scTr, "en", ["zh-hant"]) === scTr[1], "yt pick: an exact tag beats the sibling script even when only its ASR track exists");
+  assert(pbpYtPickTrack(scTr, "en", ["zh"]) === scTr[0], "yt pick: a bare base tag still matches any script, human first");
+  assert(pbpYtPickTrack(scTr, "en", ["en", "zh-hant"]) === scTr[2] && pbpYtPickTrack(scTr, "zh-TW", ["en", "zh-hant"]) === scTr[2], "yt pick: preference order dominates both the exact-tag bonus and the UI language");
+  assert(pbpYtPickTrack([ytTr[2], ytTr[3]], "ja", ["en", "ja"]) === ytTr[2], "yt pick: the UI-language bonus never lifts a later preference over an earlier one");
+  const uiSubs = [{ lan: "zh-CN", lan_doc: "中文（中国）" }, { lan: "ai-en", lan_doc: "英语（自动生成）" }, { lan: "en-US", lan_doc: "英语（美国）" }];
+  assert(pbpBiliPickSubtitle(uiSubs, [], "", "en-GB") === uiSubs[2], "bili pick: an empty preference follows the interface language, human before AI");
+  assert(pbpBiliPickSubtitle(uiSubs, [], "", "ja") === uiSubs[0] && pbpBiliPickSubtitle(uiSubs, ["en"], "", "zh-CN") === uiSubs[2], "bili pick: interface language absent -> zh default; a preference beats the interface language");
+  assert(pbpBiliPickSubtitle(uiSubs, ["en-us"]) === uiSubs[2] && pbpBiliPickSubtitle([uiSubs[1], uiSubs[0]], ["zh-cn"]) === uiSubs[0], "bili pick: an exact tag (ai- prefix stripped) matches the full lan code");
+  // Canonical tags (Codex review F11/F13): zh region -> script, "_" -> "-", case
+  assert(JSON.stringify(pbpVideoLangPrefs("zh-CN, pt_BR, EN, zh_TW")) === '["zh-hans","pt-br","en","zh-hant"]', "lang prefs: zh regions fold onto their script, underscores become hyphens, case folds");
+  assert(pbpYtPickTrack(scTr, "en", ["zh-cn"]) === scTr[0] && pbpYtPickTrack(scTr, "en", ["zh-tw"]) === scTr[1], "yt pick: zh-CN / zh-TW preferences reach the zh-Hans / zh-Hant tracks exactly");
+  assert(pbpBiliPickSubtitle(uiSubs, ["zh-hans"]) === uiSubs[0] && pbpBiliPickSubtitle(uiSubs, ["zh-hant"]) === uiSubs[0], "bili pick: a zh-Hans preference matches bilibili's zh-CN exactly; zh-Hant still reaches it by base");
+  assert(pbpYtPickTrack([{ lang: "pt", asr: false, vssId: ".pt" }, { lang: "pt-BR", asr: false, vssId: ".pt-BR" }], "en", ["pt_br"]).lang === "pt-BR", "yt pick: an underscore region tag matches the hyphenated track exactly");
+  // Speed picker <-> reported rate (settings batch C4)
+  const rateSteps = [0.75, 1, 1.25, 1.5, 2];
+  assert(pbpVideoRateOption(rateSteps, 1.25) === "1.25" && pbpVideoRateOption(rateSteps, 1.2500004) === "1.25" && pbpVideoRateOption(rateSteps, "2") === "2", "rate option: a listed rate (float noise tolerated, string accepted) maps to its option value");
+  assert(pbpVideoRateOption(rateSteps, 0.5) === null && pbpVideoRateOption(rateSteps, 0) === null && pbpVideoRateOption(rateSteps, NaN) === null && pbpVideoRateOption(null, 1) === null, "rate option: an unlisted, zero, NaN or listless rate is null (caller shows a synthetic option)");
+  // Stored-form clamp keeps whole tags (Codex r2 L1)
+  assert(pbpVideoLangPrefsClamp(["en", "zh-hans", "ja"], 80) === "en, zh-hans, ja" && pbpVideoLangPrefsClamp(["en", "zh-hans", "ja"], 11) === "en, zh-hans" && pbpVideoLangPrefsClamp(["en", "zh-hans"], 10) === "en" && pbpVideoLangPrefsClamp([], 80) === "" && pbpVideoLangPrefsClamp(null, 80) === "",
+    "lang prefs clamp: drops trailing tags that no longer fit instead of slicing one in half");
+  // Embedded-frame candidate rule (reader grant-and-retry, 2026-08-25/26) -- pure twin of the injected detectors
+  const fr = (o, extra) => Object.assign({ origin: o, srcdoc: false, sandbox: null, hidden: false, rect: { left: 0, top: 0, right: 1000, bottom: 800 } }, extra || {});
+  assert(pbpPickDominantFrame([fr("https://x.frame.example")], 1000, 800, "https://page.example") === "https://x.frame.example", "frame pick: one visible cross-origin https frame covering the viewport is the candidate");
+  assert(pbpPickDominantFrame([fr("https://x.frame.example", { rect: { left: 0, top: 0, right: 600, bottom: 500 } })], 1000, 800, "https://page.example") === "", "frame pick: below 40% of the viewport -> no candidate (600x500 of 1000x800 = 37.5%)");
+  assert(pbpPickDominantFrame([fr("https://x.frame.example", { rect: { left: -1000, top: 0, right: 350, bottom: 800 } })], 1000, 800, "https://page.example") === ""
+    && pbpPickDominantFrame([fr("https://x.frame.example", { rect: { left: -1000, top: 0, right: 500, bottom: 800 } })], 1000, 800, "https://page.example") === "https://x.frame.example",
+    "frame pick: the VISIBLE intersection counts, not the element's own size (1350px wide but 350px on screen = 35% -> no; 500px on screen = 50% -> yes)");
+  assert(pbpPickDominantFrame([fr("https://x.frame.example", { srcdoc: true })], 1000, 800, "https://page.example") === "" && pbpPickDominantFrame([fr("https://x.frame.example", { hidden: true })], 1000, 800, "https://page.example") === "", "frame pick: srcdoc and hidden (own or ancestor) frames are never candidates");
+  assert(pbpPickDominantFrame([fr("https://x.frame.example", { sandbox: "allow-scripts" })], 1000, 800, "https://page.example") === "" && pbpPickDominantFrame([fr("https://x.frame.example", { sandbox: "allow-scripts allow-same-origin" })], 1000, 800, "https://page.example") === "https://x.frame.example", "frame pick: a sandbox without allow-same-origin is an opaque origin -> excluded; with it -> candidate");
+  assert(pbpPickDominantFrame([fr("http://x.frame.example"), fr("https://page.example")], 1000, 800, "https://page.example") === "", "frame pick: non-https and same-origin frames are excluded");
+  assert(pbpPickDominantFrame([fr("https://small.example", { rect: { left: 0, top: 0, right: 700, bottom: 800 } }), fr("https://big.example")], 1000, 800, "https://page.example") === "https://big.example" && pbpPickDominantFrame(null, 1000, 800, "x") === "", "frame pick: the largest visible candidate wins; a missing list is no candidate");
   // Paragraph density rows + projection row lookup (research T7.10/T5.1)
   const prSegs = [{ from: 0, to: 2, content: "第一句话" }, { from: 2, to: 4, content: "还没完。" }, { from: 10, to: 12, content: "第二段" }, { from: 12, to: 14.5, content: "继续说。" }];
   const prRows = pbpVideoParagraphRows(prSegs, null);

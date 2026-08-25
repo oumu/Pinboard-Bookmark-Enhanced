@@ -203,7 +203,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   settings = await pbpReadSettingsWithSecrets(SETTINGS_DEFAULTS);
   deobfuscateSettings(settings);
 
-  // Apply theme: preset-based data-theme (if enabled), or fallback to generic .dark
+  // Apply theme: preset-based data-theme (if enabled); with no preset, dark
+  // resolves to the flexoki-dark preset -- the same fallback Options /
+  // Library and the reader's own dark palette use (theme model 2026-08-25,
+  // batch 2 D6), so the four surfaces share one warm-neutral dark.
   function applyTheme() {
     const prefersDark = settings.optTheme === "dark" ||
       (settings.optTheme === "auto" && window.matchMedia("(prefers-color-scheme: dark)").matches);
@@ -211,13 +214,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (ADAPTIVE_THEME_MAP[key]) {
       const [light, dark] = ADAPTIVE_THEME_MAP[key];
       document.documentElement.dataset.theme = prefersDark ? dark : light;
-      document.documentElement.classList.remove("dark");
     } else if (key) {
       document.documentElement.dataset.theme = key;
-      document.documentElement.classList.remove("dark");
+    } else if (prefersDark) {
+      document.documentElement.dataset.theme = "flexoki-dark";
     } else {
       delete document.documentElement.dataset.theme;
-      document.documentElement.classList.toggle("dark", prefersDark);
     }
   }
   applyTheme();
@@ -516,6 +518,39 @@ async function extractLocalMarkdown(tabId) {
     const results = await _cbExecuteScript({
       target: { tabId },
       func: () => {
+        // Embedded-frame candidate (2026-08-25): twin of background.js's
+        // extractPageForMarkdown helper (isolated script contexts may carry a
+        // small duplicate, CLAUDE.md). Origin only, https only, cross-origin
+        // only, opaque sandboxed frames excluded, must cover >= 40% of the
+        // viewport -- the reader turns it into a one-click exact-origin grant.
+        function dominantFrameOrigin() {
+          try {
+            const vw = Math.max(1, window.innerWidth), vh = Math.max(1, window.innerHeight);
+            let best = null, bestArea = 0;
+            for (const f of document.querySelectorAll("iframe")) {
+              if (f.hasAttribute("srcdoc")) continue; // src is decorative on srcdoc frames
+              let origin;
+              try { origin = new URL(f.src, location.href).origin; } catch (_) { continue; }
+              if (!/^https:\/\//.test(origin) || origin === location.origin) continue;
+              const sb = f.getAttribute("sandbox");
+              if (sb !== null && !/\ballow-same-origin\b/.test(sb)) continue;
+              // Hidden by itself OR by any ancestor (opacity does not inherit)
+              let hidden = false;
+              for (let n = f; n && !hidden; n = n.parentElement) {
+                const cs = getComputedStyle(n);
+                hidden = cs.display === "none" || cs.visibility === "hidden" || Number(cs.opacity) === 0;
+              }
+              if (hidden) continue;
+              const r = f.getBoundingClientRect();
+              // Visible intersection with the viewport, not the element's raw size
+              const w = Math.min(r.right, vw) - Math.max(r.left, 0);
+              const h = Math.min(r.bottom, vh) - Math.max(r.top, 0);
+              const area = Math.max(0, w) * Math.max(0, h);
+              if (area > bestArea) { bestArea = area; best = origin; }
+            }
+            return best && bestArea >= 0.4 * vw * vh ? best : "";
+          } catch (_) { return ""; }
+        }
         // Per-site custom extractor (site-rules.js) runs first; falls through to Defuddle.
         try {
           if (typeof applySiteRule === "function") {
@@ -563,7 +598,7 @@ async function extractLocalMarkdown(tabId) {
           console.error = (...a) => { if (!String(a[0]).startsWith("Defuddle:")) _origCE.apply(console, a); };
           let result;
           try { result = new Defuddle(clone).parse(); } finally { console.error = _origCE; }
-          if (!result?.content) return { error: "No content extracted" };
+          if (!result?.content) return { error: "No content extracted", frameOrigin: dominantFrameOrigin() };
           // X4: Defuddle's parse() result also carries author/published/site/image
           // (its internal MetadataExtractor already does JSON-LD + meta-tag
           // resolution) -- keep them so the preview/export layer can surface them.
@@ -662,6 +697,35 @@ async function htmlToMarkdownAsync(html, opts) {
       }
 
       if (result.error) {
+        // Nothing in the top document but one dominant cross-origin frame
+        // (2026-08-25): hand the page to the reader as a PENDING preview -- the
+        // same shape the keyboard-shortcut opener writes -- so its error shell
+        // offers the exact-origin grant and re-runs extraction in that frame.
+        // The popup itself never requests the origin.
+        if (typeof result.frameOrigin === "string" && /^https:\/\/[^/]+$/.test(result.frameOrigin)) {
+          let opened = false;
+          try {
+            const k = crypto.randomUUID();
+            const engine = settings.aiContentSource === "jina" ? "jina" : "local";
+            await chrome.storage.local.set({
+              ["md_preview_data_" + k]: {
+                pending: true, engine, source: engine,
+                tabId: tab.id, url, baseUrl: url, sourceTabUrl: tab.url || url,
+                title: $id("title-input")?.value || "",
+                account: sessionAccount,
+                tags: Array.isArray(currentTags) ? currentTags.slice() : [],
+                description: $id("description-input")?.value || "",
+                ts: Date.now()
+              }
+            });
+            await chrome.tabs.create({ url: "md-preview.html?k=" + k });
+            opened = true;
+          } catch (_) { /* storage quota / tab failure: fall through to the ordinary failure feedback below */ }
+          if (opened) {
+            setBtnIcon(jinaMdBtn, "doc", origLabel); jinaMdBtn.disabled = false; jinaMdBtn.title = "";
+            return;
+          }
+        }
         if (result.code === "host_permission") {
           jinaGrantPending = true;
           setBtnIcon(jinaMdBtn, "doc", t("aiGrantRetry"));
@@ -788,7 +852,11 @@ async function htmlToMarkdownAsync(html, opts) {
               ts: Date.now() // sweep grace: don't orphan-collect a slot mid-handoff
             }
           });
-          await chrome.tabs.create({ url: "md-preview.html?k=" + k });
+          // video=1 (non-sensitive) lets md-preview-theme-early.js resolve the
+          // "open video pages in dark" default before first paint (theme model
+          // 2026-08-25); the reader still decides video-mode from the payload.
+          const videoQ = (typeof pbpVideoDetect === "function" && pbpVideoDetect(tab.url || url)) ? "&video=1" : "";
+          await chrome.tabs.create({ url: "md-preview.html?k=" + k + videoQ });
         } catch (e) {
           // Quota-full is recoverable: offer a one-click path to the Storage
           // panel where the user can reclaim cache, then reopen the preview.

@@ -5212,6 +5212,52 @@ suiteIf("pbpHlLatestColorOnSide", "pbpHlLatestColorOnSide", () => {
 </script>
 
 <script>
+// ============ md-preview.js: pbpResolveReaderScheme (reader light/dark model) ============
+suiteIf("pbpResolveReaderScheme", "pbpResolveReaderScheme", () => {
+  const R = (optTheme, override, videoMode, videoDark) => pbpResolveReaderScheme({ optTheme, override, videoMode, videoDark });
+
+  test("per-device override wins over the video default and the global theme", () => {
+    assertEq(R("dark", "light", true, true), "light", "light override on a dark video page");
+    assertEq(R("light", "dark", false, false), "dark", "dark override on a light article");
+  });
+
+  test("video-dark default applies only in video-mode while the override is on follow", () => {
+    assertEq(R("light", "auto", true, true), "dark", "video page + checkbox -> dark");
+    assertEq(R("auto", "auto", true, true), "dark", "auto theme + video + checkbox -> dark");
+    assertEq(R("light", "auto", false, true), "light", "article page ignores the video checkbox");
+    assertEq(R("light", "auto", true, false), "light", "video page without the checkbox follows the theme");
+  });
+
+  test("full matrix: 3 optTheme x 3 override x video-mode x video-dark (36 combos) against the stated rule", () => {
+    // The rule, restated independently of the implementation: an explicit
+    // override wins; otherwise a video page with the checkbox on is dark;
+    // otherwise the global theme passes through.
+    const expect = (optTheme, override, videoMode, videoDark) =>
+      override !== "auto" ? override : (videoMode && videoDark) ? "dark" : optTheme;
+    let combos = 0;
+    for (const optTheme of ["auto", "light", "dark"]) {
+      for (const override of ["auto", "light", "dark"]) {
+        for (const videoMode of [false, true]) {
+          for (const videoDark of [false, true]) {
+            combos++;
+            assertEq(R(optTheme, override, videoMode, videoDark), expect(optTheme, override, videoMode, videoDark),
+              `optTheme=${optTheme} override=${override} video=${videoMode} videoDark=${videoDark}`);
+          }
+        }
+      }
+    }
+    assertEq(combos, 36, "matrix size");
+  });
+
+  test("follow passes optTheme through; unknown values normalise to auto / follow", () => {
+    assertEq(R("dark", "auto", false, false), "dark", "dark theme");
+    assertEq(R("auto", "auto", false, false), "auto", "auto theme");
+    assertEq(R("nord", "auto", false, false), "auto", "legacy/unknown optTheme -> auto");
+    assertEq(R("dark", "bogus", false, false), "dark", "unknown override -> follow");
+    assertEq(R(undefined, undefined, undefined, undefined), "auto", "missing input -> auto");
+  });
+});
+
 // ============ md-preview.js: pbpRailCollapseState (rail accordion) ============
 suiteIf("pbpRailCollapseState", "pbpRailCollapseState", () => {
   const DEFAULTS = { tr: true, ask: true, export: true, toc: false, hl: false };

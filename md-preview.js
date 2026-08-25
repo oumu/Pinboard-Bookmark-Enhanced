@@ -554,6 +554,46 @@ function pbpApplyColorScheme(mode) {
   } catch (_) { /* degrade: leave the system-following CSS default in place */ }
 }
 
+// Reader light/dark model (theme model 2026-08-25): the per-device override
+// from the "Aa" panel (pbp_color_scheme, chrome.storage.local, same family
+// as the typography tiers) > the "open video pages in dark" setting
+// (mdVideoDarkScheme, video-mode only) > the global optTheme. Pure --
+// md-preview-theme-early.js carries a verbatim twin (its video term comes
+// from the opener's video=1 URL mark and the md-preview-video-dark mirror,
+// this one from the body class and the authoritative read), same contract
+// as pbpResolveColorScheme. Change one side, change the other.
+function pbpResolveReaderScheme(input) {
+  const s = input || {};
+  const override = s.override === "light" || s.override === "dark" ? s.override : "auto";
+  if (override !== "auto") return override;
+  if (s.videoMode && s.videoDark) return "dark";
+  return s.optTheme === "light" || s.optTheme === "dark" ? s.optTheme : "auto";
+}
+
+const _pbpScheme = { optTheme: "auto", override: "auto", videoDark: false, applied: null };
+// Stored override values are normalised on the way in (a stale or foreign
+// value must never leave the "Aa" segment with no pressed button).
+function pbpReaderSchemeNorm(v) { return v === "light" || v === "dark" ? v : "auto"; }
+function pbpReaderSchemeApply() {
+  const mode = pbpResolveReaderScheme({
+    optTheme: _pbpScheme.optTheme, override: _pbpScheme.override,
+    videoMode: document.body.classList.contains("video-mode"), videoDark: _pbpScheme.videoDark
+  });
+  if (mode === _pbpScheme.applied) return; // body-class observer fires on every class flip
+  _pbpScheme.applied = mode;
+  pbpApplyColorScheme(mode);
+}
+// md-reader.js's "Aa" panel edits the override through these two hooks
+// (exposed on window: that script loads later and must not depend on load
+// order). Persists the per-device value plus its pre-paint mirror.
+window.pbpReaderSchemeGet = function () { return _pbpScheme.override; };
+window.pbpReaderSchemeSet = function (mode) {
+  _pbpScheme.override = mode === "light" || mode === "dark" ? mode : "auto";
+  try { localStorage.setItem("md-preview-scheme", _pbpScheme.override); } catch (_) {}
+  try { chrome.storage.local.set({ pbp_color_scheme: _pbpScheme.override }).catch(() => {}); } catch (_) {}
+  pbpReaderSchemeApply();
+};
+
 (async function () {
   initI18n();
   applyI18n();
@@ -563,25 +603,79 @@ function pbpApplyColorScheme(mode) {
   // guard already used for md-highlight.js's top-level chrome.storage.onChanged wiring.
   if (typeof chrome === "undefined" || !chrome.storage) return;
 
-  // optTheme: authoritative confirmation pass. md-preview-theme-early.js already
-  // applied a best-effort guess (localStorage mirror) before first paint; this read
-  // is the real chrome.storage source of truth, run as early as possible (before
-  // extraction/render below) so it never lags behind on a slow page. Own try/catch
-  // (must never block the render path on a settings hiccup) -- degrades to whatever
-  // the early script (or the CSS default) already set. storage.onChanged keeps an
-  // already-open preview in sync when optTheme changes in Options (same dynamic
-  // sync/local area handling as md-translate.js's translateTargetLang listener).
+  // Reader scheme: authoritative confirmation pass. md-preview-theme-early.js
+  // already applied a best-effort guess (localStorage mirrors) before first
+  // paint; this read is the real chrome.storage source of truth, run as early
+  // as possible (before extraction/render below) so it never lags behind on a
+  // slow page. Own try/catch (must never block the render path on a settings
+  // hiccup) -- degrades to whatever the early script (or the CSS default)
+  // already set. storage.onChanged keeps an already-open reader in sync with
+  // Options and with the "Aa" panel of another reader tab; settings keys are
+  // taken only from the area this device routes its settings to
+  // (pbpSettingsAreaName) so another device's synced theme cannot flip a
+  // local-settings device (settings batch D3).
   try {
     const settingsArea = await getSettingsStorage();
-    const { optTheme } = await settingsArea.get({ optTheme: "auto" });
-    pbpApplyColorScheme(optTheme);
+    const [s, loc] = await Promise.all([
+      settingsArea.get({ optTheme: "auto", mdVideoDarkScheme: false }),
+      chrome.storage.local.get({ pbp_color_scheme: "auto" })
+    ]);
+    _pbpScheme.optTheme = s.optTheme;
+    _pbpScheme.videoDark = s.mdVideoDarkScheme === true;
+    _pbpScheme.override = pbpReaderSchemeNorm(loc.pbp_color_scheme);
+    // Pre-paint mirror for the next video page (md-preview-theme-early.js
+    // reads it together with the opener's video=1 URL mark).
+    try { localStorage.setItem("md-preview-video-dark", _pbpScheme.videoDark ? "1" : "0"); } catch (_) {}
+    pbpReaderSchemeApply();
   } catch (_) { /* degrade: leave whatever md-preview-theme-early.js (or the CSS default) set */ }
   if (chrome.storage.onChanged) {
-    chrome.storage.onChanged.addListener((changes, area) => {
-      if ((area !== "sync" && area !== "local") || !changes.optTheme) return;
-      pbpApplyColorScheme(changes.optTheme.newValue);
+    let schemeGen = 0;
+    chrome.storage.onChanged.addListener(async (changes, area) => {
+      if (area !== "sync" && area !== "local") return;
+      // Only events this device actually consumes advance the generation
+      // (Codex r2 M1 / r3 M1): an unrelated write, or a theme write in the
+      // area this device does NOT route to, must not discard a reroute
+      // snapshot still in flight -- so the area filter runs BEFORE the
+      // generation is taken. pbp_color_scheme and optSyncEnabled are local-
+      // only keys and always count.
+      const localOnly = area === "local" && !!(changes.pbp_color_scheme || changes.optSyncEnabled);
+      const themed = !!(changes.optTheme || changes.mdVideoDarkScheme);
+      if (!localOnly && !themed) return;
+      if (!localOnly && area !== await pbpSettingsAreaName()) return;
+      const gen = ++schemeGen;
+      let touched = false;
+      if (area === "local" && changes.pbp_color_scheme) {
+        _pbpScheme.override = pbpReaderSchemeNorm(changes.pbp_color_scheme.newValue);
+        touched = true;
+      }
+      if (area === "local" && changes.optSyncEnabled) {
+        // Routing switch (Codex review F7): the theme keys need not change at
+        // all, so re-read the whole snapshot from the newly routed area
+        // (shared.js's own listener has already dropped the routing cache).
+        // A newer consumed event that landed while this read was in flight wins.
+        try {
+          const s = await (await getSettingsStorage()).get({ optTheme: "auto", mdVideoDarkScheme: false });
+          if (gen !== schemeGen) return;
+          _pbpScheme.optTheme = s.optTheme;
+          _pbpScheme.videoDark = s.mdVideoDarkScheme === true;
+          touched = true;
+        } catch (_) {}
+      } else if (themed) {
+        if (changes.optTheme) { _pbpScheme.optTheme = changes.optTheme.newValue; touched = true; }
+        if (changes.mdVideoDarkScheme) { _pbpScheme.videoDark = changes.mdVideoDarkScheme.newValue === true; touched = true; }
+      }
+      if (!touched) return;
+      try { localStorage.setItem("md-preview-video-dark", _pbpScheme.videoDark ? "1" : "0"); } catch (_) {}
+      pbpReaderSchemeApply();
     });
   }
+  // video-mode is decided after the payload read (three add sites below); one
+  // observer re-resolves the scheme when the body class changes, so the
+  // "open video pages in dark" default lands the moment the mode is known
+  // (the body is still empty then) instead of being wired into each site.
+  try {
+    new MutationObserver(pbpReaderSchemeApply).observe(document.body, { attributes: true, attributeFilter: ["class"] });
+  } catch (_) {}
 
   // Per-tab token key: the opener (popup / shortcut) minted ?k=<uuid> and wrote the
   // payload to md_preview_data_<uuid>, so this tab reads ONLY its own slot and can't
@@ -848,7 +942,7 @@ function pbpApplyColorScheme(mode) {
   if (info.pending || info.restore) {
     const titleEl0 = document.getElementById("preview-title");
     if (titleEl0) { titleEl0.textContent = title || t("mdPreviewUntitled"); titleEl0.title = title || ""; }
-    document.title = (title || "Markdown") + " — " + t("mdStripPreview");
+    document.title = (title || "Markdown") + " — " + t("tabReader"); // the page is "Reader" everywhere now (batch 2 B4)
     // video-mode BEFORE any extraction work: the page is a watch page no
     // matter how the extraction turns out, so the shell should not spend the
     // whole (possibly slow) attempt styled as an ordinary article and then
@@ -877,7 +971,26 @@ function pbpApplyColorScheme(mode) {
       }
       await attemptExtract(engine);
     }
-    async function attemptExtract(engine) {
+    // Embedded-frame pass (2026-08-25): the top document had nothing, but the
+    // extractor reported one large cross-origin https frame. The button in the
+    // error shell asks for THAT exact origin (a user gesture, the only way a
+    // first grant is ever requested here -- same rule as the caption origins)
+    // and, once granted, re-runs extraction with the frame pass on. Declining
+    // just leaves the error shell in place.
+    async function grantFrameAndRetry(engine, frameOrigin) {
+      if (inFlight) return;
+      inFlight = true;
+      let granted = false;
+      try {
+        granted = await chrome.permissions.request({ origins: [frameOrigin + "/*"] });
+      } catch (_) { granted = false; }
+      finally { inFlight = false; }
+      if (!granted) return;
+      // The origin rides along so the Service Worker binds the frame pass to
+      // exactly the grant the user just made (Codex 2026-08-26).
+      await attemptExtract(engine, { frame: true, frameOrigin });
+    }
+    async function attemptExtract(engine, opts) {
       // A committed transcript page must never be re-extracted from this
       // shell (audit B4): the reextract success path would overwrite the
       // transcript payload with a plain extraction and reload over it.
@@ -893,7 +1006,9 @@ function pbpApplyColorScheme(mode) {
       try {
         pr = await chrome.runtime.sendMessage({
           type: "reextractMarkdown", tabId: srcTabId, url, engine, sourceTabUrl,
-          account: previewAccount, tags, description, k
+          account: previewAccount, tags, description, k,
+          frame: !!(opts && opts.frame), // embedded-frame pass, only from grantFrameAndRetry
+          frameOrigin: (opts && typeof opts.frameOrigin === "string") ? opts.frameOrigin : ""
         });
       } catch (_) { pr = { ok: false, error: "network" }; }
       // inFlight stays HELD past this point (audit B4): the old release here
@@ -902,11 +1017,27 @@ function pbpApplyColorScheme(mode) {
       // writers for MP_KEY. Non-video pages release right after detection;
       // video pages hold it until this attempt's terminal decision.
       if (pr && pr.ok) { location.reload(); return; }
-      renderErrorState(
-        friendlyEngineErr(pr),
-        () => retryExtract(attemptedEngine, pr),
-        pr && pr.error === "host_permission"
-      );
+      // An empty top document with one dominant cross-origin https frame:
+      // offer the grant-and-retry for exactly that origin (see grantFrameAndRetry)
+      // instead of the bare "no content" shell. Origin string only, https only.
+      const frameOrigin = (() => {
+        if (!pr || pr.ok || typeof pr.frameOrigin !== "string") return "";
+        // True origin form only (URL parse + origin === input): no wildcard,
+        // path, query or credentials can ride into the permission request.
+        try { const u = new URL(pr.frameOrigin); return (u.protocol === "https:" && u.origin === pr.frameOrigin) ? u.origin : ""; }
+        catch (_) { return ""; }
+      })();
+      if (frameOrigin) {
+        let host = frameOrigin;
+        try { host = new URL(frameOrigin).host; } catch (_) {}
+        renderErrorState(t("mdPreviewFrameHint", host), () => grantFrameAndRetry(attemptedEngine, frameOrigin), true);
+      } else {
+        renderErrorState(
+          friendlyEngineErr(pr),
+          () => retryExtract(attemptedEngine, pr),
+          pr && pr.error === "host_permission"
+        );
+      }
       // Video pages reach HERE, not the canonical-markdown guard further down:
       // a bilibili/YouTube watch page has no article to extract, so the
       // extraction reports "empty" and this branch renders the error and
@@ -1615,7 +1746,7 @@ function pbpApplyColorScheme(mode) {
       });
     });
   }
-  document.title = `${title || "Markdown"} — ${t("mdStripPreview")}`;
+  document.title = `${title || "Markdown"} — ${t("tabReader")}`; // the page is "Reader" everywhere now (batch 2 B4)
 
   // Reading stats (header) — computed from canonical Markdown
   let queueReadingStats = null;

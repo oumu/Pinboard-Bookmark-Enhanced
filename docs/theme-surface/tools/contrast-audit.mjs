@@ -545,6 +545,25 @@ function auditCssThemes(label, varPrefix, cssPath) {
       const c = resolveColor(mutedS, bg);
       if (c) console.log(check(label, theme, "fg-muted vs bg", cr(c, bg), 4.5));
     }
+    // Same two tiers on the ELEVATED surface (bg2): the popup's autocomplete
+    // footer and offline empty state, options' panels put them there, and
+    // "vs bg" alone let flexoki-dark's fg-hint through at 4.05:1 on bg2
+    // (2026-08-26, Codex). BLOCKING like the bg rows.
+    const bg2S = grab("bg2");
+    const bg2 = bg2S && bg2S.startsWith("#") ? hexRgb(bg2S) : null;
+    if (bg2) {
+      if (hintS) { const c = resolveColor(hintS, bg2); if (c) console.log(check(label, theme, "fg-hint vs bg2", cr(c, bg2), 4.5)); }
+      if (mutedS) { const c = resolveColor(mutedS, bg2); if (c) console.log(check(label, theme, "fg-muted vs bg2", cr(c, bg2), 4.5)); }
+    }
+    // ...and on the accent-tinted hover/selected row fill (popup's
+    // .ac-item.selected keeps its hint-tier count there; terminal read 3.5:1
+    // before the derivation covered it -- Codex 2026-08-26). BLOCKING.
+    const dropS = grab("drop-hover");
+    const drop = dropS && dropS.startsWith("#") ? hexRgb(dropS) : null;
+    if (drop) {
+      if (hintS) { const c = resolveColor(hintS, drop); if (c) console.log(check(label, theme, "fg-hint vs drop-hover", cr(c, drop), 4.5)); }
+      if (mutedS) { const c = resolveColor(mutedS, drop); if (c) console.log(check(label, theme, "fg-muted vs drop-hover", cr(c, drop), 4.5)); }
+    }
     // Status pairs (NEW, BLOCKING): warn/banner/ok/offline fg must clear AA
     // against their own tinted bg. The engine (pairToAA) derives these to pass
     // by construction, so a FAIL here is a derivation bug — do NOT allowlist.
@@ -662,50 +681,11 @@ function auditLibraryThemes(cssPath) {
 }
 auditLibraryThemes(resolve(ROOT, "library.css"));
 
-// Default-dark layer (html.dark { --pp-* }) — the one popup surface NOT generated
-// by the factory (no pilot, hand-maintained). It now defines AA-safe text tiers
-// (token-driven, parity with the generated html[data-theme] layer). fg-muted and
-// fg-hint land on the ELEVATED surface (bg2 = #252525), so they're checked against
-// bg2 — the lightest surface they touch — which guarantees AA on the darker body
-// bg too. BLOCKING, like the themed probe: a FAIL here is a real regression.
-function auditDarkDefault(cssPath) {
-  console.log("\n=== popup default-dark (html.dark --pp-*) ===");
-  const text = readFileSync(cssPath, "utf8");
-  const m = text.match(/html\.dark\s*\{([^}]+)\}/);
-  if (!m) { console.log("  (no html.dark palette block found — skipped)"); return; }
-  const body = m[1];
-  const grab = (k) => {
-    const mm = body.match(new RegExp("--pp-" + k + ":\\s*([^;]+)"));
-    return mm ? mm[1].trim() : null;
-  };
-  const bgS = grab("bg"), bg2S = grab("bg2"), fgS = grab("fg");
-  const hintS = grab("fg-hint"), mutedS = grab("fg-muted");
-  const bg = bgS && bgS.startsWith("#") ? hexRgb(bgS) : null;
-  if (!bg) { console.log("  (html.dark has no --pp-bg — skipped)"); return; }
-  const bg2 = bg2S && bg2S.startsWith("#") ? hexRgb(bg2S) : bg; // fall back to bg
-  if (fgS) { const c = resolveColor(fgS, bg); if (c) console.log(check("popup", "default-dark", "fg vs bg", cr(c, bg), 4.5)); }
-  if (mutedS) { const c = resolveColor(mutedS, bg2); if (c) console.log(check("popup", "default-dark", "fg-muted vs bg2", cr(c, bg2), 4.5)); }
-  if (hintS) { const c = resolveColor(hintS, bg2); if (c) console.log(check("popup", "default-dark", "fg-hint vs bg2", cr(c, bg2), 4.5)); }
-  // Variant status pairs (warn/banner/ok/offline fg vs their own tinted bg), same
-  // family of regression the themed probe guards. All hand-set values clear AA today.
-  for (const [fgK, bgK, lbl] of [
-    ["warn-fg", "warn-bg", "warn fg vs bg"],
-    ["banner-fg", "banner-bg", "banner fg vs bg"],
-    ["ok-fg", "ok-bg", "ok fg vs bg"],
-    ["offline-fg", "offline-bg", "offline fg vs bg"],
-  ]) {
-    const fS = grab(fgK), bS = grab(bgK);
-    if (!fS || !bS) continue;
-    const bb = bS.startsWith("#") ? hexRgb(bS) : null;
-    if (!bb) continue;
-    const ff = resolveColor(fS, bb);
-    if (ff) console.log(check("popup", "default-dark", lbl, cr(ff, bb), 4.5));
-  }
-}
-auditDarkDefault(resolve(ROOT, "popup.css"));
+// (The popup's html.dark default-dark probe was retired 2026-08-25: no-preset
+// dark is the flexoki-dark preset on every surface, audited as a theme above.)
 
 // Component-layer paired tokens on the DEFAULT (no-preset) surfaces — Task 5's
-// :root baseline blocks (popup also has html.dark), the first time the
+// :root baseline blocks, the first time the
 // default surface enters this door at all. foldSelectorBlocks merges each
 // file's hand-maintained :root (bg/panel/btn-bg/btn-hover/danger/border —
 // pre-existing, NOT touched by Task 5) with the generated :root appended at
@@ -728,7 +708,7 @@ function auditComponentPairsDefault(scope, ns, cssPath, selectorSrc, blockLabel)
   // small :root blocks in these files is font/motion-only and none declares
   // `bg`) every pair would resolve as "not declared", SKIP, and the whole
   // audit would still exit 0 having checked nothing. `bg` is the one role
-  // every :root/html.dark baseline in these 3 files has always declared
+  // every :root baseline in these 3 files has always declared
   // (verified for all three), so its absence from the fold means the
   // selector regex missed the block entirely, not a legitimate gap -- FAIL.
   if (Object.keys(dict).length === 0 || !dict[`${ns}-bg`]) {
@@ -739,11 +719,10 @@ function auditComponentPairsDefault(scope, ns, cssPath, selectorSrc, blockLabel)
   }
   auditComponentPairs(scope, ns, blockLabel, dict, false);
 }
-console.log("\n=== component pairs: default surfaces (:root / html.dark) ===");
+console.log("\n=== component pairs: default surfaces (:root) ===");
 auditComponentPairsDefault("options", "opt", resolve(ROOT, "options.css"), ":root", "default");
 auditComponentPairsDefault("library", "lib", resolve(ROOT, "library.css"), ":root", "default");
 auditComponentPairsDefault("popup", "pp", resolve(ROOT, "popup.css"), ":root", "default-light");
-auditComponentPairsDefault("popup", "pp", resolve(ROOT, "popup.css"), "html\\.dark", "default-dark");
 
 // Default-surface .preset-btn text (design-uplift Task 13 review round):
 // the generic COMPONENT_PAIR_SPEC "preset-fg vs preset-bg"/"preset-fg vs

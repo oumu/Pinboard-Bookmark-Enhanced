@@ -41,4 +41,5 @@ block 切分 → `pbpAiShield` 占位符 `⟦C/L/I/M/T\d+⟧` 屏蔽代码/链�
 - md-highlight.js：五色划词高亮 + 笔记 + Notebook 面板；高亮必须在重渲染/翻译切换后按锚定恢复。
 - md-epub.js 顶段是纯层（zip/OPF/nav/XML 转义，无 DOM/chrome，测试页可载）；运行时 XHTML 序列化与 DOM 派生目录在 `pbpBuildEpub`。
 - 阅读视图**不提案 hover 触发的浮层交互**（用户真机反馈否决，历史上 tr 悬停气泡被点名全删）。
+- **明暗解析模型**（2026-08-25）：`pbpResolveReaderScheme` = 页内覆盖（`pbp_color_scheme`，local、按设备，「Aa」面板第三行）＞ 视频默认深色（`mdVideoDarkScheme`，仅 video-mode）＞ 全局 `optTheme`；阅读器永不套 Pinboard 预设。`md-preview-theme-early.js` 是它的 verbatim twin，靠 `pp-theme` / `md-preview-scheme` / `md-preview-video-dark` 三个 localStorage 镜像 + opener 附加的 `video=1` URL 参数在首帧前解析——改任何一侧必须同步另一侧。settings 类 `storage.onChanged` 一律经 `pbpSettingsAreaName()` 过滤非本机路由的 area，并在 `optSyncEnabled` 切换时整组重读。
 - `md-convert.js` 是 marked→DOMPurify 的单点 sanitize 中枢；导出与 frontmatter/byline 都走它。

@@ -31,7 +31,12 @@ const PBP_POPUP_ADAPTIVE_MAP = {
   } else if (key) {
     root.dataset.theme = key;
   } else if (prefersDark) {
-    root.classList.add("dark");
+    // No-preset dark resolves to the flexoki-dark preset, the same fallback
+    // Options / Library (options-theme-early.js) and the reader's own dark
+    // palette use -- one warm-neutral dark across all four surfaces (theme
+    // model 2026-08-25, batch 2 D6). popup.css carries no html.dark layer
+    // any more (retired with this switch).
+    root.dataset.theme = "flexoki-dark";
   }
 })();
 
@@ -76,14 +81,18 @@ chrome.storage.local.get({ optSyncEnabled: false }).then(({ optSyncEnabled }) =>
 
   // Reset before re-applying
   delete root.dataset.theme;
-  root.classList.remove("dark");
 
   if (PBP_POPUP_ADAPTIVE_MAP[key]) {
     root.dataset.theme = prefersDark ? PBP_POPUP_ADAPTIVE_MAP[key][1] : PBP_POPUP_ADAPTIVE_MAP[key][0];
   } else if (key) {
     root.dataset.theme = key;
   } else if (prefersDark) {
-    root.classList.add("dark");
+    // No-preset dark resolves to the flexoki-dark preset, the same fallback
+    // Options / Library (options-theme-early.js) and the reader's own dark
+    // palette use -- one warm-neutral dark across all four surfaces (theme
+    // model 2026-08-25, batch 2 D6). popup.css carries no html.dark layer
+    // any more (retired with this switch).
+    root.dataset.theme = "flexoki-dark";
   }
 
   const w = Math.max(420, Math.min(720, Number(s.popupWidth) || 550));

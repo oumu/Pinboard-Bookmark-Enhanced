@@ -1035,18 +1035,14 @@ export const CHECKS = [
 // with a `modes.dark` block that still renders TWO selectors, so the
 // rendered-selector count is 14, not 13; both numbers are correct, they're
 // just counting different things. On top of the 14: "" is the undecorated
-// default-light surface (no data-theme attribute, no dark class) and
-// "popup-dark" is popup's own hand-maintained `html.dark` default (§7.2) --
-// options/library have no equivalent bare-dark state of their own: their
-// no-preset+dark combination resolves to data-theme="flexoki-dark" via
-// PBP_OPTIONS_ADAPTIVE_MAP's fallback (options-theme-early.js), which is
-// already covered by the "flexoki-dark" entry below. scripts/ui-render-audit.mjs
-// skips "popup-dark" for any surface other than "popup" for exactly this
-// reason (testing it there would just re-run "flexoki-dark" under a
-// different name).
+// default-light surface (no data-theme attribute). There is no bare-dark
+// state on any surface any more: the no-preset+dark combination resolves to
+// data-theme="flexoki-dark" on popup, options and library alike
+// (popup-theme-early.js / options-theme-early.js, theme model 2026-08-25,
+// batch 2 D6), which the "flexoki-dark" entry below already covers; the
+// popup's former hand-maintained `html.dark` block was retired with it.
 export const THEMES = [
   "",                  // default light -- no data-theme attribute
-  "popup-dark",        // popup's html.dark default (popup surface only)
   "catppuccin-latte", "catppuccin-mocha",
   "dracula",
   "flexoki-light", "flexoki-dark",

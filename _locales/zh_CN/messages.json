@@ -1105,7 +1105,7 @@
     "message": "打开 Chrome 快捷键设置"
   },
   "mdShortcutLabel": {
-    "message": "Markdown 预览快捷键"
+    "message": "打开阅读器"
   },
   "mdShortcutUnset": {
     "message": "未设置"
@@ -1341,11 +1341,12 @@
     "message": "深色"
   },
   "optPopupFollowTheme": {
-    "message": "弹窗跟随 Pinboard 主题预设"
+    "message": "扩展页面跟随 Pinboard 主题预设"
   },
   "popupFollowHint": {
-    "message": "启用后，弹窗外观将与所选的 Pinboard CSS 主题保持一致。"
+    "message": "启用后，弹窗、本设置页和笔记与生词本页使用所选 Pinboard 预设的配色；关闭则按上方的明暗模式使用默认配色。阅读器始终使用自己的阅读配色。"
   },
+  "optThemeHint": { "message": "切换弹窗、本设置页、笔记与生词本页和阅读器的明暗。自带明暗的预设（如 Dracula）会在跟随预设的页面上覆盖此项；阅读器可在其「Aa」面板中按设备单独覆盖。" },
   "secPopupElements": {
     "message": "弹窗元素"
   },
@@ -1563,7 +1564,7 @@
     "message": "自定义 OpenAI 兼容"
   },
   "jinaMarkdownBtn": {
-    "message": "Markdown"
+    "message": "阅读器"
   },
   "jinaMarkdownTitle": {
     "message": "将页面转换为 Markdown（本地）"
@@ -1709,7 +1710,7 @@
     "message": "随字幕请求发送 YouTube 登录 Cookie"
   },
   "optVideoUseLoginHint": {
-    "message": "会将你的 YouTube 登录 Cookie 随每次字幕请求一起发送。默认开启：匿名请求更容易被判定为机器人而遭拒。关闭后这些请求不带 Cookie，但字幕获取成功率会下降。"
+    "message": "只影响没有已打开的 www.youtube.com 标签页时，由阅读器自己发出的兜底请求；有 YouTube 标签页打开时，字幕经该标签页及其登录态读取，不受此项影响。默认开启：匿名的兜底请求更容易被判定为机器人而遭拒。"
   },
   "mdTglToc": {
     "message": "目录"
@@ -1762,6 +1763,7 @@
   "mdPreviewNoContent": {
     "message": "未能从该页面提取到内容。"
   },
+  "mdPreviewFrameHint": { "message": "正文可能在来自 $HOST$ 的内嵌框架里。读取该框架需要你授予该站点的访问权限——Chrome 会弹窗确认，权限会一直保留到你撤销；授权前不会读取框架里的任何内容。", "placeholders": { "host": { "content": "$1" } } },
   "mdStatWords": {
     "message": "$COUNT$ 词",
     "placeholders": {
@@ -2362,16 +2364,16 @@
     "message": "已收藏过，已跳过保存"
   },
   "secPreviewAi": {
-    "message": "预览页 AI"
+    "message": "阅读器 AI"
   },
   "previewAiSectionHint": {
-    "message": "Markdown 预览页的划词解释、全文问答和全文翻译均由你主动调用，并使用「AI 服务商」中配置的服务商与 Key。若启用可选的 AI 要点速览，它可能会在 Markdown 预览打开时运行；所有功能都不会作为隐藏的后台任务运行。"
+    "message": "阅读器的划词解释、全文问答和全文翻译均由你主动调用，并使用「AI 服务商」中配置的服务商与 Key。若启用可选的 AI 要点速览，它可能会在阅读器打开时运行；所有功能都不会作为隐藏的后台任务运行。"
   },
   "previewAiEnabled": {
-    "message": "在预览页启用 AI 功能"
+    "message": "在阅读器启用 AI 功能"
   },
   "previewAiEnabledHint": {
-    "message": "关闭后预览页不再出现任何 AI 入口。未配置 API Key 时入口也会自动隐藏。"
+    "message": "关闭后阅读器不再出现任何 AI 入口。未配置 API Key 时入口也会自动隐藏。"
   },
   "previewAiModelLabel": {
     "message": "模型覆盖（可选）"
@@ -3421,7 +3423,7 @@
     "message": "发送目标"
   },
   "secSendDestinationsHint": {
-    "message": "每个启用的目标都会出现在预览页的「发送到」菜单中。"
+    "message": "每个启用的目标都会出现在阅读器的「发送到」菜单中。"
   },
   "mdSendEnableTo": {
     "message": "启用导出到 {name}"
@@ -3547,7 +3549,7 @@
   "mdImgFixPartial": {"message": "已修复 $OK$/$TOTAL$ 张图片", "placeholders": {"ok": {"content": "$1"}, "total": {"content": "$2"}}},
   "hlSectionTitle": { "message": "高亮" },
   "kbdHelpTitle": { "message": "键盘快捷键" },
-  "kbdHelpIntro": { "message": "以下快捷键仅在 Markdown 预览页面生效（本设置页不适用）。" },
+  "kbdHelpIntro": { "message": "以下快捷键仅在阅读器页面生效（本设置页不适用）。" },
   "kbdHelpRailBtn": { "message": "键盘快捷键" },
   "kbdHelpTranslate": { "message": "开始或继续翻译全文" },
   "kbdHelpDictionary": { "message": "查询当前选中内容" },
@@ -3586,8 +3588,12 @@
   "typoLeadingCompact": { "message": "紧凑" },
   "typoLeadingNormal": { "message": "标准" },
   "typoLeadingRelaxed": { "message": "宽松" },
-  "skimEnable": { "message": "在预览页生成 AI 要点摘要" },
-  "skimEnableHint": { "message": "在预览页顶部自动生成 3-5 条要点。每次生成都会消耗 AI token，结果按文章缓存。" },
+  "typoSchemeLabel": { "message": "外观" },
+  "typoSchemeAuto": { "message": "跟随" },
+  "typoSchemeLight": { "message": "浅色" },
+  "typoSchemeDark": { "message": "深色" },
+  "skimEnable": { "message": "在阅读器生成 AI 要点摘要" },
+  "skimEnableHint": { "message": "在阅读器顶部自动生成 3-5 条要点。每次生成都会消耗 AI token，结果按文章缓存。" },
   "skimTitle": { "message": "要点" },
   "skimRegen": { "message": "重新生成" },
   "skimCollapseAria": { "message": "折叠或展开要点区块" },
@@ -3693,11 +3699,16 @@
   "kbdHelpVideoFollow": { "message": "跟随播放进度" },
   "kbdHelpVideoCurrent": { "message": "回到当前句" },
   "kbdHelpVideoView": { "message": "阅读稿 / 时间轴" },
-  "secVideoPreview": { "message": "视频预览" },
+  "kbdHelpVideoSection": { "message": "视频页" },
+  "kbdHelpVideoNote": { "message": "空格、左右方向键、r 和 f 需要播放器回传进度：YouTube 始终可用，B 站需先启用播放跟随。" },
+  "secVideoPreview": { "message": "视频页" },
   "optVideoLangPref": { "message": "首选字幕语言" },
-  "optVideoLangPrefHint": { "message": "按优先顺序填写语言代码，如 en, ja；留空则跟随界面语言。" },
+  "optVideoLangPrefHint": { "message": "按优先顺序填写语言代码，逗号分隔，如 en, zh 表示英语优先、其次中文；也可以填 zh-Hant 这类完整标签。顺序绝对优先；同一语言内先精确匹配完整标签，再退到主语言代码。留空则跟随界面语言。" },
+  "optVideoLangCodesLink": { "message": "语言代码列表" },
   "optVideoPauseOnLookup": { "message": "查词时暂停播放" },
-  "optVideoPauseOnLookupHint": { "message": "选中文字或打开解释弹层时暂停 YouTube 播放，查完自动继续。" },
+  "optVideoPauseOnLookupHint": { "message": "选中文字或打开解释弹层时暂停播放（YouTube；B 站需先启用播放跟随），查完自动继续。" },
+  "optVideoDarkScheme": { "message": "视频页默认使用深色" },
+  "optVideoDarkSchemeHint": { "message": "主题为自动或浅色时，视频页仍以深色阅读配色打开。阅读器的「Aa」面板可以为本设备的所有阅读器页面覆盖此项。" },
   "mdVideoResumePrompt": { "message": "上次看到 $TIME$", "placeholders": { "time": { "content": "$1" } } },
   "mdVideoResumeGo": { "message": "继续" },
   "mdVideoResumeRestart": { "message": "从头开始" },

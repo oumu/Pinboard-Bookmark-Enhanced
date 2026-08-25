@@ -841,7 +841,7 @@ const PBP_KBD_HELP_ROWS = [
 // is in video-mode (set before the help can be opened).
 const PBP_KBD_HELP_VIDEO_ROWS = [
   { chips: ["Space"], key: "kbdHelpVideoPlay" },
-  { chips: ["←", "→"], key: "kbdHelpVideoSeek" },
+  { chips: ["Left", "Right"], key: "kbdHelpVideoSeek" }, // key names, not arrow glyphs (font iron rule; mirrors pbpVideoShortcutKeys)
   { chips: ["[", "]"], key: "kbdHelpVideoCue" },
   { chips: ["r"], key: "kbdHelpVideoLoop" },
   { chips: ["f"], key: "kbdHelpVideoFollow" },
@@ -1420,8 +1420,10 @@ function _pbpTypoSyncPop() {
   const plus = _pbpTypoPopEl.querySelector("#typo-font-plus");
   if (minus) minus.setAttribute("aria-disabled", _pbpTypoFont <= -2 ? "true" : "false");
   if (plus) plus.setAttribute("aria-disabled", _pbpTypoFont >= 2 ? "true" : "false");
+  const scheme = (typeof window.pbpReaderSchemeGet === "function") ? window.pbpReaderSchemeGet() : "auto";
   _pbpTypoPopEl.querySelectorAll(".typo-seg-btn").forEach((b) => {
-    b.setAttribute("aria-pressed", Number(b.dataset.tier) === _pbpTypoLeading ? "true" : "false");
+    const on = ("scheme" in b.dataset) ? b.dataset.scheme === scheme : Number(b.dataset.tier) === _pbpTypoLeading;
+    b.setAttribute("aria-pressed", on ? "true" : "false");
   });
 }
 
@@ -1491,6 +1493,36 @@ function _pbpTypoEnsurePop() {
   });
   leadRow.appendChild(seg);
   pop.appendChild(leadRow);
+
+  // Third row (theme model 2026-08-25): the reader's per-device light/dark
+  // override -- Follow (the global Theme, plus the video-page default) /
+  // Light / Dark. Same three-way segment family as line spacing; the value
+  // lives in md-preview.js (pbpReaderSchemeGet/Set), which persists it as
+  // pbp_color_scheme next to the typography tiers.
+  const schemeRow = document.createElement("div");
+  schemeRow.className = "typo-row";
+  const schemeLabel = document.createElement("span");
+  schemeLabel.className = "typo-label";
+  schemeLabel.textContent = t("typoSchemeLabel");
+  schemeRow.appendChild(schemeLabel);
+  const schemeSeg = document.createElement("div");
+  schemeSeg.className = "typo-seg";
+  schemeSeg.setAttribute("role", "group");
+  schemeSeg.setAttribute("aria-label", t("typoSchemeLabel"));
+  [["auto", "typoSchemeAuto"], ["light", "typoSchemeLight"], ["dark", "typoSchemeDark"]].forEach(([mode, key]) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "typo-seg-btn";
+    b.dataset.scheme = mode;
+    b.textContent = t(key);
+    b.addEventListener("click", () => {
+      if (typeof window.pbpReaderSchemeSet === "function") window.pbpReaderSchemeSet(mode);
+      _pbpTypoSyncPop();
+    });
+    schemeSeg.appendChild(b);
+  });
+  schemeRow.appendChild(schemeSeg);
+  pop.appendChild(schemeRow);
 
   document.body.appendChild(pop);
   _pbpTypoPopEl = pop;

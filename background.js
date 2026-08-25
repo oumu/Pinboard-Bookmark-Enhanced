@@ -2047,6 +2047,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   if (message.type === "reextractMarkdown") {
     const { tabId, url, engine, k, sourceTabUrl } = message;
+    const frame = message.frame === true; // embedded-frame pass, only after the reader's grant button
+    // The origin the reader says the user granted: origin form only (no path),
+    // https only; checked against the live grant below before any injection.
+    // True origin-form check (Codex 2026-08-26): the URL parser rejects
+    // wildcards / spaces, and `origin === input` rejects any path, query,
+    // fragment, credentials or default-port noise a regex would let through.
+    const frameOrigin = (() => {
+      if (!frame || typeof message.frameOrigin !== "string") return "";
+      try { const u = new URL(message.frameOrigin); return (u.protocol === "https:" && u.origin === message.frameOrigin) ? u.origin : ""; }
+      catch (_) { return ""; }
+    })();
     if (!url || (engine !== "local" && engine !== "jina")) {
       sendResponse({ ok: false, error: "bad_request" }); return true;
     }
@@ -2073,8 +2084,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       // overwrites `url`) would erase it and re-brick the local engine.
       const tabUrl = (typeof stored.sourceTabUrl === "string" && stored.sourceTabUrl)
         || (typeof sourceTabUrl === "string" && sourceTabUrl) || url;
-      const out = await extractForPreview({ tabId, url, engine, sourceTabUrl: tabUrl });
-      if (out.error) { sendResponse({ ok: false, error: out.error }); return; }
+      // Frame pass: the grant must exist for exactly the origin the reader
+      // names (contains only -- the SW never requests), else the message is a
+      // stale or forged request and gets the same host_permission answer the
+      // reader already knows how to show.
+      if (frame) {
+        let held = false;
+        if (frameOrigin) {
+          try { held = await chrome.permissions.contains({ origins: [frameOrigin + "/*"] }); } catch (_) { held = false; }
+        }
+        if (!held) { sendResponse({ ok: false, error: "host_permission" }); return; }
+      }
+      const out = await extractForPreview({ tabId, url, engine, sourceTabUrl: tabUrl, frame, frameOrigin });
+      if (out.error) {
+        // frameOrigin (origin string only) lets the reader offer the one-click
+        // grant for an article that lives in an embedded cross-origin frame.
+        sendResponse(out.frameOrigin ? { ok: false, error: out.error, frameOrigin: out.frameOrigin } : { ok: false, error: out.error });
+        return;
+      }
       const latest = (await chrome.storage.local.get(key))[key];
       if (!latest || latest.url !== url || latest.tabId !== tabId
           || (typeof latest.account === "string" ? latest.account : "") !== owner.account) {
@@ -2083,7 +2110,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       }
       await chrome.storage.local.set({
         [key]: {
-          ...out, baseUrl: out.url || url, tabId, sourceTabUrl: tabUrl,
+          // baseUrl resolves relative links/images: for a frame pass it is the
+          // FRAME's own URL (out.baseUrl), never the top page's (Codex 2026-08-26).
+          ...out, baseUrl: out.baseUrl || out.url || url, tabId, sourceTabUrl: tabUrl,
           account: owner.account,
           tags: owner.tags,
           description: owner.description,
@@ -2411,6 +2440,47 @@ chrome.storage.onChanged.addListener((changes) => {
 // Mirrors popup.js extractLocalMarkdown's inner func: per-site rule first,
 // then Defuddle. Returns HTML only — md-preview.html runs Turndown itself.
 function extractPageForMarkdown() {
+  // Embedded-frame candidate (2026-08-25): app shells such as claude.ai
+  // artifacts keep the whole article in one large cross-origin iframe, so
+  // the top document has nothing to extract. Report the frame's ORIGIN only
+  // (no path, no query) so the reader can offer a one-click, user-gesture
+  // grant for exactly that origin and re-run extraction in every frame.
+  // Sandboxed frames without allow-same-origin have an opaque origin no
+  // grant can name, so they are not candidates. The src is page-controlled,
+  // so the candidate is only ever a SUGGESTION the user confirms in Chrome's
+  // own prompt (Codex 2026-08-26): srcdoc frames (src is decorative there),
+  // hidden frames and off-screen frames are excluded, and the 40% is measured
+  // on the frame's VISIBLE intersection with the viewport; the grant is then
+  // bound to the frame's real origin by the Service Worker, never to this src.
+  function dominantFrameOrigin() {
+    try {
+      const vw = Math.max(1, window.innerWidth), vh = Math.max(1, window.innerHeight);
+      let best = null, bestArea = 0;
+      for (const f of document.querySelectorAll("iframe")) {
+        if (f.hasAttribute("srcdoc")) continue;
+        let origin;
+        try { origin = new URL(f.src, location.href).origin; } catch (_) { continue; }
+        if (!/^https:\/\//.test(origin) || origin === location.origin) continue;
+        const sb = f.getAttribute("sandbox");
+        if (sb !== null && !/\ballow-same-origin\b/.test(sb)) continue;
+        // Hidden by itself OR by any ancestor: opacity does not inherit, so a
+        // frame under an opacity:0 wrapper still reports opacity 1 on its own
+        // computed style (Codex 2026-08-26).
+        let hidden = false;
+        for (let n = f; n && !hidden; n = n.parentElement) {
+          const cs = getComputedStyle(n);
+          hidden = cs.display === "none" || cs.visibility === "hidden" || Number(cs.opacity) === 0;
+        }
+        if (hidden) continue;
+        const r = f.getBoundingClientRect();
+        const w = Math.min(r.right, vw) - Math.max(r.left, 0);
+        const h = Math.min(r.bottom, vh) - Math.max(r.top, 0);
+        const area = Math.max(0, w) * Math.max(0, h);
+        if (area > bestArea) { bestArea = area; best = origin; }
+      }
+      return best && bestArea >= 0.4 * vw * vh ? best : "";
+    } catch (_) { return ""; }
+  }
   try {
     if (typeof applySiteRule === "function") {
       const hit = applySiteRule(document, location.href);
@@ -2452,7 +2522,7 @@ function extractPageForMarkdown() {
     console.error = (...a) => { if (!String(a[0]).startsWith("Defuddle:")) _origCE.apply(console, a); };
     let result;
     try { result = new Defuddle(clone).parse(); } finally { console.error = _origCE; }
-    if (!result?.content) return { error: "No content extracted" };
+    if (!result?.content) return { error: "No content extracted", frameOrigin: dominantFrameOrigin() };
     // X4: mirrors popup.js's extractLocalMarkdown -- keep Defuddle's
     // author/published/site/image alongside content/title/url/math.
     return {
@@ -2467,7 +2537,7 @@ function extractPageForMarkdown() {
 // opener and the in-preview engine toggle (reextractMarkdown). Returns the
 // md_preview_data payload fields (minus tags/description/tabId, added by caller)
 // or { error }. engine is "local" (Defuddle) or "jina".
-async function extractForPreview({ tabId, url, engine, sourceTabUrl }) {
+async function extractForPreview({ tabId, url, engine, sourceTabUrl, frame, frameOrigin }) {
   if (engine === "jina") {
     // Fresh read — do NOT use loadSettings() (its _settingsCache can be stale
     // when the user edits settings while the SW is warm). getSettingsStorage()
@@ -2505,18 +2575,59 @@ async function extractForPreview({ tabId, url, engine, sourceTabUrl }) {
     if (!live || !live.url || live.url !== (sourceTabUrl || url)) return { error: "tab_navigated" };
   } catch (_) { return { error: "tab_unavailable" }; }
   // Defuddle is required; injection failure (tab closed / CSP / no permission) → degrade.
+  // `frame` (2026-08-25): the reader asked for the embedded-frame pass after the
+  // user granted that frame's exact origin -- inject into every frame Chrome
+  // lets us reach (frames without a host grant are silently skipped by the
+  // platform) and take the first frame that yields an article, preferring
+  // the candidate origin the top document reported. Never automatic: the top
+  // frame alone is the default, and the grant itself only ever comes from the
+  // reader's button (permissions.request needs that user gesture anyway).
+  let target = { tabId };
+  if (frame === true) {
+    // Locate the frames that really ARE the granted origin first (a cheap
+    // probe returns each reachable frame's own origin; frames we hold no
+    // grant for are skipped by Chrome), then inject only into those. The
+    // page-reported src decides nothing past the prompt (Codex 2026-08-26):
+    // no matching frame, or no article in it, is "nothing here" -- never a
+    // fallback to some other frame.
+    if (!frameOrigin) return { error: "empty" };
+    const probe = await chrome.scripting
+      .executeScript({ target: { tabId, allFrames: true }, func: () => location.origin }).catch(() => null);
+    const frameIds = (Array.isArray(probe) ? probe : [])
+      .filter((r) => r && r.frameId !== 0 && r.result === frameOrigin).map((r) => r.frameId);
+    if (!frameIds.length) return { error: "empty" };
+    target = { tabId, frameIds };
+  }
   const injected = await chrome.scripting
-    .executeScript({ target: { tabId }, files: ["vendor/defuddle.js"] }).catch(() => null);
+    .executeScript({ target, files: ["vendor/defuddle.js"] }).catch(() => null);
   if (!injected) return { error: "tab_unavailable" };
   // site-rules.js is OPTIONAL — ignore failure so a broken rule can't mask Defuddle.
-  await chrome.scripting.executeScript({ target: { tabId }, files: ["site-rules.js"] }).catch(() => {});
+  await chrome.scripting.executeScript({ target, files: ["site-rules.js"] }).catch(() => {});
   const results = await chrome.scripting
-    .executeScript({ target: { tabId }, func: extractPageForMarkdown }).catch(() => null);
-  const out = results && results[0] && results[0].result;
-  if (!out || out.error || !out.contentHtml) return { error: (out && out.error) || "empty" };
+    .executeScript({ target, func: extractPageForMarkdown }).catch(() => null);
+  const top = results && results[0] && results[0].result;
+  let out = top;
+  let frameBase = "";
+  if (frame === true && Array.isArray(results)) {
+    const sameOrigin = (u) => { try { return new URL(u).origin === frameOrigin; } catch (_) { return false; } };
+    const pick = results.find((r) => r && r.result && r.result.contentHtml && sameOrigin(r.result.url));
+    out = pick ? pick.result : null;
+    if (pick) frameBase = pick.result.url; // relative links resolve against the FRAME, not the top page
+  }
+  if (!out || out.error || !out.contentHtml) {
+    // Defuddle's own "nothing here" string is the same product state as a
+    // missing result: report it as `empty` so the reader shows the no-content
+    // copy (and the frame offer) instead of the generic failure text.
+    const raw = out && out.error;
+    const err = { error: (raw && raw !== "No content extracted") ? raw : "empty" };
+    // Surface the candidate only on a plain "nothing here" -- a real error keeps its own text.
+    if (top && typeof top.frameOrigin === "string" && top.frameOrigin && frame !== true) err.frameOrigin = top.frameOrigin;
+    return err;
+  }
   return {
     source: "local", markdown: "", contentHtml: out.contentHtml,
     title: out.title || "", url: url, // prefer caller url over extractor's
+    baseUrl: frameBase || url,        // frame pass: the frame's own URL for relative links
     tokens: 0, hasApiKey: false, math: !!out.math, forum: !!out.forum,
     // X4: forward the four metadata fields extractPageForMarkdown's Defuddle
     // branch now keeps. The reextractMarkdown handler's `...out` spread
@@ -2555,7 +2666,11 @@ async function openMarkdownPreviewFromShortcut() {
         account: auth.account || "", tags: [], description: "", ts: Date.now() // sweep grace (see pbpSweepPreviewOrphans)
       }
     });
-    await chrome.tabs.create({ url: "md-preview.html?k=" + k });
+    // video=1 (non-sensitive) lets md-preview-theme-early.js resolve the
+    // "open video pages in dark" default before first paint; the page itself
+    // still decides video-mode from the payload (theme model 2026-08-25).
+    const videoQ = (typeof pbpVideoDetect === "function" && pbpVideoDetect(tab.url)) ? "&video=1" : "";
+    await chrome.tabs.create({ url: "md-preview.html?k=" + k + videoQ });
   } catch (e) {
     // storage.local.set can reject on quota; tabs.create can reject too. Surface
     // it instead of silently opening nothing (aligns with the read_later/quick_save

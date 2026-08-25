@@ -1105,7 +1105,7 @@
     "message": "Chrome ショートカット設定を開く"
   },
   "mdShortcutLabel": {
-    "message": "Markdown プレビューのショートカット"
+    "message": "リーダーを開く"
   },
   "mdShortcutUnset": {
     "message": "未設定"
@@ -1341,11 +1341,12 @@
     "message": "ダーク"
   },
   "optPopupFollowTheme": {
-    "message": "ポップアップを Pinboard テーマプリセットに合わせる"
+    "message": "拡張機能のページを Pinboard テーマプリセットに合わせる"
   },
   "popupFollowHint": {
-    "message": "有効にすると、ポップアップの外観が選択した Pinboard CSS テーマに合わせて変わります。"
+    "message": "オンにすると、ポップアップ、この設定ページ、メモと単語帳ページが選択した Pinboard プリセットの配色を使います。オフにすると上のライト／ダーク設定に従った既定の配色になります。リーダーは常に独自の読書配色を使います。"
   },
+  "optThemeHint": { "message": "ポップアップ、この設定ページ、メモと単語帳ページ、リーダーのライト／ダークを切り替えます。固有の配色を持つプリセット（Dracula など）は、プリセットに合わせるページでこの設定より優先されます。リーダーは「Aa」パネルからデバイスごとに上書きできます。" },
   "secPopupElements": {
     "message": "ポップアップの要素"
   },
@@ -1563,7 +1564,7 @@
     "message": "カスタム OpenAI互換"
   },
   "jinaMarkdownBtn": {
-    "message": "Markdown"
+    "message": "リーダー"
   },
   "jinaMarkdownTitle": {
     "message": "ページを Markdown に変換（ローカル）"
@@ -1709,7 +1710,7 @@
     "message": "字幕リクエストに YouTube のログイン Cookie を送信する"
   },
   "optVideoUseLoginHint": {
-    "message": "字幕リクエストのたびに YouTube のログイン Cookie を送信します。既定でオン：匿名のリクエストはボットと見なされて拒否されやすいためです。オフにするとこれらのリクエストは Cookie なしになりますが、字幕の取得成功率は下がります。"
+    "message": "www.youtube.com のタブが開いていないときにリーダー自身が送るフォールバック要求にのみ影響します。YouTube のタブが開いていれば字幕はそのタブとそのセッション経由で読み取られ、この設定の影響を受けません。既定でオン：匿名のフォールバック要求はボットと見なされて拒否されやすいためです。"
   },
   "mdTglToc": {
     "message": "目次"
@@ -1762,6 +1763,7 @@
   "mdPreviewNoContent": {
     "message": "このページからコンテンツを抽出できませんでした。"
   },
+  "mdPreviewFrameHint": { "message": "本文は $HOST$ の埋め込みフレーム内にある可能性があります。そのフレームを読み取るにはこのサイトへのアクセス許可が必要です。Chrome が確認を求め、許可は取り消すまで保持されます。許可するまでフレーム内の内容は読み取りません。", "placeholders": { "host": { "content": "$1" } } },
   "mdStatWords": {
     "message": "$COUNT$ 語",
     "placeholders": {
@@ -2362,16 +2364,16 @@
     "message": "既にブックマークされています。保存をスキップしました"
   },
   "secPreviewAi": {
-    "message": "プレビューページ AI"
+    "message": "リーダーの AI"
   },
   "previewAiSectionHint": {
-    "message": "Markdown プレビューの選択範囲の解説、ページへの質問、全文翻訳はユーザーが実行し、「AI プロバイダー」タブで設定したプロバイダーとキーを使用します。オプトインの要点スキムを有効にすると、Markdown プレビューを開いたときに実行される場合があります。非表示のバックグラウンドタスクとして実行される機能はありません。"
+    "message": "リーダーの選択範囲の解説、ページへの質問、全文翻訳はユーザーが実行し、「AI プロバイダー」タブで設定したプロバイダーとキーを使用します。オプトインの要点スキムを有効にすると、リーダーを開いたときに実行される場合があります。非表示のバックグラウンドタスクとして実行される機能はありません。"
   },
   "previewAiEnabled": {
-    "message": "プレビューページで AI 機能を有効にする"
+    "message": "リーダーで AI 機能を有効にする"
   },
   "previewAiEnabledHint": {
-    "message": "オフにするとプレビューページから AI の入口がすべて消えます。API キーが設定されていない場合も入口は自動的に非表示になります。"
+    "message": "オフにするとリーダーから AI の入口がすべて消えます。API キーが設定されていない場合も入口は自動的に非表示になります。"
   },
   "previewAiModelLabel": {
     "message": "モデルの上書き（任意）"
@@ -3421,7 +3423,7 @@
     "message": "送信先"
   },
   "secSendDestinationsHint": {
-    "message": "有効にした送信先は、プレビューページの「送信先」メニューに表示されます。"
+    "message": "有効にした送信先は、リーダーの「送信先」メニューに表示されます。"
   },
   "mdSendEnableTo": {
     "message": "{name} へのエクスポートを有効化"
@@ -3553,7 +3555,7 @@
   "mdImgFixPartial": {"message": "$TOTAL$ 枚中 $OK$ 枚の画像を修復しました", "placeholders": {"ok": {"content": "$1"}, "total": {"content": "$2"}}},
   "hlSectionTitle": { "message": "ハイライト" },
   "kbdHelpTitle": { "message": "キーボードショートカット" },
-  "kbdHelpIntro": { "message": "これらのショートカットは Markdown プレビュー画面でのみ有効です(この設定画面では動作しません)。" },
+  "kbdHelpIntro": { "message": "これらのショートカットはリーダー画面でのみ有効です（この設定画面では動作しません）。" },
   "kbdHelpRailBtn": { "message": "キーボードショートカット" },
   "kbdHelpTranslate": { "message": "記事の翻訳を開始または続行する" },
   "kbdHelpDictionary": { "message": "選択範囲を辞書で調べる" },
@@ -3592,8 +3594,12 @@
   "typoLeadingCompact": { "message": "狭い" },
   "typoLeadingNormal": { "message": "標準" },
   "typoLeadingRelaxed": { "message": "広い" },
-  "skimEnable": { "message": "プレビューページで AI 要点まとめを生成する" },
-  "skimEnableHint": { "message": "プレビューページの上部に3〜5個の要点を表示します。生成のたびに AI トークンを消費し、結果は記事ごとにキャッシュされます。" },
+  "typoSchemeLabel": { "message": "外観" },
+  "typoSchemeAuto": { "message": "設定どおり" },
+  "typoSchemeLight": { "message": "ライト" },
+  "typoSchemeDark": { "message": "ダーク" },
+  "skimEnable": { "message": "リーダーで AI 要点まとめを生成する" },
+  "skimEnableHint": { "message": "リーダーの上部に3〜5個の要点を表示します。生成のたびに AI トークンを消費し、結果は記事ごとにキャッシュされます。" },
   "skimTitle": { "message": "要点まとめ" },
   "skimRegen": { "message": "再生成" },
   "skimCollapseAria": { "message": "要点まとめの折りたたみを切り替え" },
@@ -3699,11 +3705,16 @@
   "kbdHelpVideoFollow": { "message": "再生に追従" },
   "kbdHelpVideoCurrent": { "message": "現在の字幕へ戻る" },
   "kbdHelpVideoView": { "message": "読み物 / タイムライン" },
-  "secVideoPreview": { "message": "動画プレビュー" },
+  "kbdHelpVideoSection": { "message": "動画ページ" },
+  "kbdHelpVideoNote": { "message": "Space、左右キー、r、f はプレーヤーが再生位置を報告する場合に使えます。YouTube では常に、bilibili では再生追従を有効にした後に使えます。" },
+  "secVideoPreview": { "message": "動画ページ" },
   "optVideoLangPref": { "message": "優先する字幕言語" },
-  "optVideoLangPrefHint": { "message": "優先順に言語コードを入力します（例: en, ja）。空欄ならインターフェース言語に従います。" },
+  "optVideoLangPrefHint": { "message": "言語コードを優先順にコンマ区切りで入力します（例: en, zh は英語を優先し、次に中国語）。zh-Hant のような完全なタグも使えます。並び順が常に優先され、同じ言語内では完全なタグを先に照合し、見つからなければ基本コードに戻ります。空欄ならインターフェース言語に従います。" },
+  "optVideoLangCodesLink": { "message": "言語コード一覧" },
   "optVideoPauseOnLookup": { "message": "単語を調べる間は再生を一時停止" },
-  "optVideoPauseOnLookupHint": { "message": "テキストを選択するか説明ポップアップを開くと YouTube の再生を一時停止し、終わると再開します。" },
+  "optVideoPauseOnLookupHint": { "message": "テキストを選択したり解説ポップオーバーを開いたりすると再生を一時停止します（YouTube。bilibili では再生追従を有効にした後）。調べ終わると再開します。" },
+  "optVideoDarkScheme": { "message": "動画ページはダークで開く" },
+  "optVideoDarkSchemeHint": { "message": "テーマが自動またはライトでも、動画ページはダークの読書配色で開きます。リーダーの「Aa」パネルで、このデバイスのすべてのリーダーページについて上書きできます。" },
   "mdVideoResumePrompt": { "message": "前回は $TIME$ まで視聴", "placeholders": { "time": { "content": "$1" } } },
   "mdVideoResumeGo": { "message": "続きから" },
   "mdVideoResumeRestart": { "message": "最初から" },

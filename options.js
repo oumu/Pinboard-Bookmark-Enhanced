@@ -543,7 +543,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         "opt-ollama-baseurl": "http://localhost:11434", "opt-ollama-model": "llama3.2",
         "opt-custom-name": "Custom", "opt-custom-baseurl": "", "opt-custom-model": ""
       },
-      skip: ["opt-gemini-key","opt-openai-key","opt-claude-key","opt-deepseek-key","opt-qwen-key","opt-minimax-key","opt-openrouter-key","opt-groq-key","opt-mistral-key","opt-cohere-key","opt-siliconflow-key","opt-zhipu-key","opt-kimi-key","opt-githubmodels-key","opt-custom-key"]
+      skip: ["opt-gemini-key","opt-openai-key","opt-claude-key","opt-deepseek-key","opt-qwen-key","opt-minimax-key","opt-openrouter-key","opt-groq-key","opt-mistral-key","opt-cohere-key","opt-siliconflow-key","opt-zhipu-key","opt-kimi-key","opt-githubmodels-key","opt-custom-key","opt-jina-key"]
     },
     "ai-behavior": {
       fields: {
@@ -557,7 +557,12 @@ document.addEventListener("DOMContentLoaded", async () => {
       fields: {
         "opt-preview-ai-enabled": true, "opt-preview-skim": false, "opt-preview-ai-model": "",
         "translate-target-lang": "auto", "translate-target-lang-custom": "",
-        "opt-translate-glossary": "", "opt-selection-trigger": "icon"
+        "opt-translate-glossary": "", "opt-selection-trigger": "icon",
+        // Video pages (moved here from the Export tab, settings batch A1):
+        // defaults mirror shared.js mdVideoLangPref / mdVideoDarkScheme /
+        // mdVideoPauseOnLookup / mdVideoUseLogin.
+        "opt-md-video-lang": "", "opt-md-video-dark": false,
+        "opt-md-video-pause-lookup": true, "opt-md-video-use-login": true
       }
     },
     quick: {
@@ -572,7 +577,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       fields: {
         "opt-md-frontmatter": true, "opt-md-extended-meta": true,
         "opt-md-image-policy": "keep", "opt-md-include-toc": false,
-        "opt-md-include-hl": true, "opt-md-video-use-login": true
+        "opt-md-include-hl": true
       }
     },
     archive: {
@@ -580,7 +585,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       // never consults skip, so listing them in both cleared the S3 keys
       // while the confirm dialog promised they were kept.
       fields: {
-        "opt-wayback-enabled": false, "opt-wayback-batch": false
+        "opt-wayback-enabled": false, "opt-wayback-batch": false,
+        "opt-wayback-skip-private": true
       },
       skip: ["opt-wayback-s3key", "opt-wayback-s3secret"]
     },
@@ -588,7 +594,13 @@ document.addEventListener("DOMContentLoaded", async () => {
       fields: {
         "opt-theme": "auto", "opt-popup-follow-theme": true, "opt-custom-font": "",
         "opt-custom-css": ""
-      }
+      },
+      // The active Pinboard preset is closure state (currentPresetKey), not a
+      // form control, so the fields walk cannot reach it (Codex r2 M3):
+      // applyPreset("") clears it, refreshes the preset buttons/preview and
+      // re-applies the page theme, then autosaves. applyPreset is a hoisted
+      // function declaration in this same scope.
+      after: () => applyPreset("")
     },
     tags: {
       fields: { "opt-tag-sort-by-pop": true },
@@ -1168,7 +1180,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (mdImgSel) mdImgSel.value = s.mdExportImagePolicy || "keep";
   // Video preview (research T6.1 / T3.5)
   const vidLang = $id("opt-md-video-lang");
-  if (vidLang) vidLang.value = typeof s.mdVideoLangPref === "string" ? s.mdVideoLangPref : "";
+  // Shown canonical (Codex review F19): a legacy raw value such as " EN-us,
+  // zh-CN " is displayed -- and, since the collected form differs from the
+  // stored raw string, re-saved -- in the normalised form the pickers use.
+  if (vidLang) vidLang.value = pbpVideoLangPrefs(s.mdVideoLangPref).join(", ");
   // Migrate the legacy obsidian* keys into exportTargets.obsidian (one-time,
   // non-destructive — old keys stay readable as a fallback).
   const _et = s.exportTargets || {};
@@ -1216,6 +1231,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     "opt-md-include-hl": s.mdExportIncludeHighlights,
     "opt-md-video-use-login": s.mdVideoUseLogin === true,
     "opt-md-video-pause-lookup": s.mdVideoPauseOnLookup !== false,
+    "opt-md-video-dark": s.mdVideoDarkScheme === true,
     "opt-tag-sort-by-pop": s.tagSortByPopEnabled,
     "opt-wayback-enabled": s.waybackArchiveEnabled === true,
     "opt-wayback-batch": s.waybackArchiveBatch === true,
@@ -1524,14 +1540,21 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   // ---- Apply options page theme based on Pinboard theme preset ----
+  // The preset applies only while "Extension pages follow the Pinboard theme
+  // preset" is on -- the same gate the popup has always had (theme model
+  // 2026-08-25, settings batch D4); the checkbox is the live source so every
+  // call site stays a two-argument call.
   function applyOptionsPageTheme(presetKey, themeMode) {
-    pbpApplyOptionsEarlyTheme(themeMode, presetKey);
+    pbpApplyOptionsEarlyTheme(themeMode, presetKey, $id("opt-popup-follow-theme").checked);
   }
   // Track active preset key — schema v2: themePresetKey is authoritative
   let currentPresetKey = s.themePresetKey || "";
   applyOptionsPageTheme(currentPresetKey, s.optTheme);
-  pbpStoreOptionsThemeMirror(s.optTheme, currentPresetKey);
+  pbpStoreOptionsThemeMirror(s.optTheme, currentPresetKey, s.optPopupFollowTheme !== false);
   document.documentElement.dataset.optionsReady = "1";
+  $id("opt-popup-follow-theme").addEventListener("change", () => {
+    applyOptionsPageTheme(currentPresetKey, $id("opt-theme").value);
+  });
 
   // Language change: save immediately and reload to apply
   $id("opt-lang").addEventListener("change", async () => {
@@ -1813,8 +1836,12 @@ document.addEventListener("DOMContentLoaded", async () => {
       mdExportIncludeToc: $id("opt-md-include-toc").checked,
       mdExportIncludeHighlights: $id("opt-md-include-hl").checked,
       mdVideoUseLogin: $id("opt-md-video-use-login").checked,
-      mdVideoLangPref: $id("opt-md-video-lang").value.trim().slice(0, 80),
+      // Normalised with the parser the pickers consume (shared.js), so the
+      // stored value is canonical ("en, zh-hant") and spacing/case noise
+      // never reaches storage; the slice mirrors the input's maxlength.
+      mdVideoLangPref: pbpVideoLangPrefsClamp(pbpVideoLangPrefs($id("opt-md-video-lang").value), 80),
       mdVideoPauseOnLookup: $id("opt-md-video-pause-lookup").checked,
+      mdVideoDarkScheme: $id("opt-md-video-dark").checked,
       exportTargets: _ets,
       // Mirror obsidian into legacy keys so popup.js "Send to Obsidian" strip (which still
       // reads obsidianEnabled/Vault/Folder) stays in sync. P2 migrates popup to read exportTargets.
@@ -1914,8 +1941,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         saveOverlay: saveOverlayWithFallback,
         assertOverlay: pbpAssertOverlaySize,
         onSettingsSaved(settingsDelta) {
-          if ("optTheme" in settingsDelta || "themePresetKey" in settingsDelta) {
-            pbpStoreOptionsThemeMirror(data.optTheme, data.themePresetKey);
+          if ("optTheme" in settingsDelta || "themePresetKey" in settingsDelta || "optPopupFollowTheme" in settingsDelta) {
+            pbpStoreOptionsThemeMirror(data.optTheme, data.themePresetKey, data.optPopupFollowTheme !== false);
+          }
+          // Reader pre-paint mirror for "open video pages in dark" (read by
+          // md-preview-theme-early.js; same origin, so this page can seed it).
+          if ("mdVideoDarkScheme" in settingsDelta) {
+            try { localStorage.setItem("md-preview-video-dark", data.mdVideoDarkScheme ? "1" : "0"); } catch (_) {}
           }
         },
       });

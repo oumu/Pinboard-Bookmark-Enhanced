@@ -78,33 +78,11 @@ const DEFAULT_LIGHT = {
                                  // borderToAA(border, [btn-bg, panel]) — 3.05:1 / 3.25:1. Re-derived
                                  // 2026-08-05 (was #848fa4 against a btn-bg that was still bg2).
 };
-const DEFAULT_DARK = {
-  "btn-fg": "#e6e7ea",          // = --pp-fg, html.dark (popup.css:1044)
-  "chip-bg": "#2a3550",         // = --pp-tag-bg, html.dark (popup.css:1057)
-  "chip-fg": "#a9c3f2",         // = --pp-tag-fg, html.dark (popup.css:1058)
-  "danger-quiet-fg": "#e57373", // = --pp-danger, html.dark (popup.css:1061)
-  "on-danger": "#10131a",       // NOT a literal copy: html.dark .confirm-yes today hardcodes
-                                 // color:#fff on a background:#c33 (popup.css:2066) that never reads
-                                 // --pp-danger, so #fff isn't actually paired with the value this
-                                 // token stands in for — and #fff on the REAL --pp-danger dark
-                                 // (#e57373) is only 2.99:1, below AA. Derived the same way the
-                                 // themed on-danger is: fgToAA(candidate, danger), candidate = the
-                                 // surface's own "text on a solid brand fill" choice, --pp-on-accent
-                                 // dark (#10131a) — 6.22:1 against #e57373, already clears AA (identity).
-  "on-accent": "#10131a",       // = --pp-on-accent, html.dark (popup.css:1102) -- moved here design-
-                                 // uplift Task 13 step 2, same reason as DEFAULT_LIGHT's entry above.
-  "btn-bg": "#26272b",          // Soft Fill, same derivation as DEFAULT_LIGHT's entry:
-                                 // fillSeparate(bg2, [bg, bg2], fg) — 1.15:1 vs --pp-bg, 1.07:1 vs --pp-bg2.
-  "btn-bd": "#26272b",          // = btn-bg (resting frame collapsed into the fill).
-  "btn-hover": "#26334d",       // identity: dark --pp-drop-hover is already 1.18:1 against the new
-                                 // rest fill, so fillSeparate returns it unchanged. Emitted anyway so
-                                 // both surfaces read the same token, not a var() fallback chain.
-  "input-bd": "#26282d",        // = --pp-input-bg dark, which fillSeparate already leaves untouched
-                                 // (1.17:1 vs bg / 1.08:1 vs bg2 out of the box).
-  "border": "#6e7380",          // NOT a literal copy: html.dark's old #2c2e33 was only 1.17:1 against
-                                 // --pp-bg2 dark (#212226). borderToAA(border, [btn-bg, panel]) — 3.15:1 / 3.35:1
-                                 // (re-derived 2026-08-05, was #696e7a).
-};
+// DEFAULT_DARK (the popup's `html.dark` component-layer tokens) is gone:
+// since the theme model of 2026-08-25 (batch 2 D6) the popup's no-preset
+// dark resolves to the flexoki-dark preset, so nothing sets the `dark` class
+// and the block it emitted was dead. The preset's own html[data-theme]
+// block carries every one of those roles, derived + audited like any theme.
 
 // mode drives the native-control scheme (scrollbar, number spinner, calendar
 // picker etc.) for this theme's own block -- Task 6. Previously a separate
@@ -276,20 +254,10 @@ export function composePopupThemes(tokensByPilot) {
     ui["spinner-fg"] = rgbToHex(fgToAA(hexToRgb(ui["spinner-fg"]), resolveOpaqueBg(ui["spinner-bg"], btnBgRgb), 3));
     blocks.push(`html[data-theme="${entry.id}"] {\n${emitPp(ui, entry.mode)}\n}`);
   }
-  // `html.dark` here has the SAME selector (so the same specificity, 0,1,0)
-  // as the hand-maintained `html.dark {...}` block earlier in popup.css --
-  // for any property both declare, source order alone decides, and this one
-  // is later. It's a non-issue for the 5 names below (verified via grep:
-  // none of them exist anywhere in popup.css before this change). The
-  // broader reason `html.dark` and `html[data-theme=X]` never fight each
-  // other is NOT about specificity at all: popup-theme-early.js's boot
-  // logic is an if/else-if chain that sets `dataset.theme` OR adds the
-  // `.dark` class, never both, and its async tail explicitly clears the
-  // other (`delete root.dataset.theme; root.classList.remove("dark")`)
-  // before re-applying -- the two states are mutually exclusive on <html>
-  // by construction, not by cascade math.
+  // Default surface = the light baseline only: the popup's no-preset dark is
+  // the flexoki-dark preset block above (theme model 2026-08-25, batch 2 D6),
+  // the same fallback options-theme-early.js uses for Options / Library.
   const emitDefault = (obj, scheme) => [`  color-scheme: ${scheme};`, ...Object.entries(obj).map(([k, v]) => `  --pp-${k}: ${v};`)].join("\n");
   blocks.push(`:root {\n${emitDefault(DEFAULT_LIGHT, "light")}\n}`);
-  blocks.push(`html.dark {\n${emitDefault(DEFAULT_DARK, "dark")}\n}`);
   return blocks.join("\n");
 }

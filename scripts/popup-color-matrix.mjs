@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // design-uplift Task 13 verification: computed-style matrix for popup.html
-// across the default (no preset, no dark class) surface + html.dark (manual
-// dark toggle, no preset) + all 14 data-theme presets, for every selector
+// across the default (no preset) surface + all 14 data-theme presets (the
+// former bare dark-class state is retired: no-preset dark is flexoki-dark
+// since 2026-08-25), for every selector
 // this task's hex/rgba->var() migration touched -- base state AND forced
 // :hover where the changed rule is a :hover variant. Adapted from
 // scripts/options-color-matrix.mjs (Task 12's own matrix, itself the base
@@ -25,18 +26,17 @@ const req = createRequire(resolve(ROOT, ".qa-scan", "package.json"));
 const { chromium } = req("playwright");
 const MIME = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".mjs": "text/javascript", ".json": "application/json" };
 
-// null = default surface (no dataset.theme, no .dark class)
-// "DARK" = html.dark (manual dark-mode toggle, no preset) -- popup's own
-// third surface state that options.html has no equivalent of.
+// null = default surface (no dataset.theme). The former "DARK" pseudo-theme
+// (the bare dark class) is gone: no-preset dark is the flexoki-dark preset (2026-08-25).
 const THEMES = [
-  null, "DARK",
+  null,
   "modern-card", "nord-night", "terminal", "paper-ink", "dracula",
   "flexoki-light", "flexoki-dark", "solarized-light", "solarized-dark",
   "catppuccin-latte", "catppuccin-mocha", "gruvbox-dark", "rose-pine", "github-light",
 ];
 
-// [selector, hasHover] -- every selector Task 13's default-light / html.dark
-// / preset-override-cleanup batches touch. Hover probed where the changed
+// [selector, hasHover] -- every selector Task 13's default-light / former
+// bare-dark-class / preset-override-cleanup batches touched. Hover probed where the changed
 // rule is a :hover variant. ::before support added (popup's loading spinner
 // lives on ::before, options had no ::before probe to model this on).
 const PROBES = [
@@ -178,7 +178,7 @@ async function dump() {
   // inject minimal fixture markup mirroring the real DOM shape each producer
   // builds (verified by reading popup.js/popup-tags.js/popup-ai.js/
   // popup-batch.js/popup-offline.js/shared.js's showConfirmPopover -- not
-  // guessed). Theme-agnostic: renders correctly under any data-theme/.dark.
+  // guessed). Theme-agnostic: renders correctly under any data-theme.
   await page.evaluate(() => {
     const body = document.body;
 
@@ -277,10 +277,8 @@ async function dump() {
   for (const theme of THEMES) {
     const key = theme || "default";
     await page.evaluate((t) => {
-      document.documentElement.classList.remove("dark");
       delete document.documentElement.dataset.theme;
-      if (t === "DARK") document.documentElement.classList.add("dark");
-      else if (t) document.documentElement.dataset.theme = t;
+      if (t) document.documentElement.dataset.theme = t;
     }, theme);
     // Double-rAF wait after every dataset.theme/classList switch (Task 12
     // re-review finding: reducedMotion's 0.01ms transition-duration alone

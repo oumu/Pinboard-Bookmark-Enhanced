@@ -128,7 +128,7 @@
   "ui": {
     "popup": {
       "light": {
-        "fg-hint": "#6F6E69",
+        "fg-hint": "#6a6964",
         "accent2": "#5E409D",
         "input-bg": "#F2F0E5",
         "tag-bg": "#FAEEC6",

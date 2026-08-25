@@ -1024,9 +1024,29 @@ async function pbpTrInit(detail) {
   // Area is dynamic (sync or local per optSyncEnabled); pass newValue directly to
   // bypass the memoized stale pbpAiGetSettings promise.
   if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.onChanged) {
-    chrome.storage.onChanged.addListener((changes, area) => {
-      if ((area !== "sync" && area !== "local") || !changes.translateTargetLang) return;
-      const next = { translateTargetLang: changes.translateTargetLang.newValue };
+    let trLangGen = 0; // Codex r2 M1: a slower reroute read must not overwrite a newer change
+    chrome.storage.onChanged.addListener(async (changes, area) => {
+      const rerouted = area === "local" && !!changes.optSyncEnabled;
+      if ((area !== "sync" && area !== "local") || !(rerouted || changes.translateTargetLang)) return;
+      // Only the area this device routes its settings to (settings batch D3):
+      // a synced value from another device must not retarget a local-settings
+      // device. Same filter as md-preview.js's optTheme listener -- and it runs
+      // BEFORE the generation is taken (Codex r3 M1), so a foreign-area event
+      // can never discard a reroute read still in flight.
+      if (!rerouted && typeof pbpSettingsAreaName === "function" && area !== await pbpSettingsAreaName()) return;
+      const gen = ++trLangGen;
+      let value;
+      if (rerouted) {
+        // Routing switch (Codex review F7): the key itself need not change, so
+        // re-read it from the newly routed area (shared.js already dropped its
+        // routing cache).
+        try { value = (await (await getSettingsStorage()).get({ translateTargetLang: "auto" })).translateTargetLang; }
+        catch (_) { return; }
+        if (gen !== trLangGen) return; // a newer consumed event already carried fresher state
+      } else {
+        value = changes.translateTargetLang.newValue;
+      }
+      const next = { translateTargetLang: value };
       // Don't swap target mid-run (mixes languages + mis-keys the end-of-run cache);
       // stash it and apply once the run settles (see _pbpTrStart tail).
       if (st.running) { st.pendingLangChange = next; return; }

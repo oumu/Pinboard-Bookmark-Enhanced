@@ -336,8 +336,16 @@ export function deriveUiColors(p, mode) {
     : hx("bg");
   return {
     bg: hx("bg"), bg2: hx("bg-surface"), fg: hx("fg"),
-    "fg-muted": rgbToHex(fgToAA(rgb("muted"), bg)),
-    "fg-hint": rgbToHex(fgToAA(rgb("muted-soft"), bg)),
+    // Both text tiers land on bg AND on the elevated bg2 surface (popup's
+    // autocomplete footer / offline empty state, options' panels), so they
+    // are derived against both (2026-08-26, Codex: flexoki-dark's fg-hint
+    // cleared bg at 4.67:1 but sat at 4.05:1 on bg2 once the popup's
+    // hand-tuned html.dark layer was retired).
+    // ...and on the accent-tinted hover/selected row fill (drop-hover =
+    // accent-soft): the autocomplete's selected candidate keeps its hint-tier
+    // count on that fill (terminal read 3.5:1 there, Codex 2026-08-26).
+    "fg-muted": rgbToHex(fgToAAMulti(rgb("muted"), [bg, rgb("bg-surface"), rgb("accent-soft")])),
+    "fg-hint": rgbToHex(fgToAAMulti(rgb("muted-soft"), [bg, rgb("bg-surface"), rgb("accent-soft")])),
     border: hx("border"), divider: hx("border-soft"),
     accent: hx("accent"), accent2: hx("link-visited"), link: hx("accent"),
     "tag-bg": hx("tag-bg"), "tag-fg": hx("tag-fg"), "tag-hover": hx("row-hover"),

@@ -2,7 +2,8 @@
 
 :root {
   /* === Default light-mode design tokens ===
-     Theme overrides live in html.dark and html[data-theme] blocks below. */
+     Theme overrides live in the html[data-theme] blocks below (the popup's
+     no-preset dark is the flexoki-dark preset since 2026-08-25). */
 
   /* Spacing scale — 2026-07 density tokenization (Claude Design round 1).
      Theme-invariant, hand-maintained (NOT composer-emitted). Literal 0 and
@@ -113,7 +114,6 @@
   --pp-shadow-lg: 0 8px 24px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.06);
   --pp-shadow-focus: 0 0 0 2px color-mix(in srgb, var(--pp-accent) 25%, transparent);
 
-
   /* === Batch 1 additions (2026-05-18 popup-uiux) === */
   --pp-info-bg: var(--pp-banner-bg);
   --pp-info-bd: var(--pp-banner-bd);
@@ -141,10 +141,9 @@
   /* One-off page-local tokens (design-uplift Task 13, var()-first hex/rgba
      migration). Real :root defaults only -- no var(--pp-X, literal) fallback
      form (CLAUDE.md single-default-per-token discipline, options.css's
-     Task 12 precedent). Paired dark values for the components that need one
-     live in html.dark below (step 2); components with no dark override here
-     intentionally inherit these light values unchanged in dark mode, same
-     as before this migration. */
+     Task 12 precedent). Dark values come from the preset blocks in the
+     generated region: the popup's no-preset dark is the flexoki-dark preset
+     (theme model 2026-08-25), so there is no separate html.dark layer. */
   --pp-fg-soft: #666;
   --pp-preset-btn-bg: #eef2ff;
   --pp-preset-btn-hover-bg: #d5e0ff;
@@ -1066,8 +1065,6 @@ html[data-theme] .batch-progress-text {
     1px 1px 0 var(--pp-input-bg), -1px -1px 0 var(--pp-input-bg),
     1px -1px 0 var(--pp-input-bg), -1px 1px 0 var(--pp-input-bg);
 }
-html.dark .batch-progress { background: var(--pp-input-bg); border-color: var(--pp-input-bg); }
-html.dark .batch-progress-text { color: var(--pp-fg); mix-blend-mode: normal; filter: none; }
 
 /* Card-family member, YELLOW warning semantics (blocking authorization
    prompt): binds the offline-* group — see the message-surface family note.
@@ -1408,132 +1405,7 @@ html.dark .batch-progress-text { color: var(--pp-fg); mix-blend-mode: normal; fi
   color: var(--pp-warn-fg);
 }
 
-/* ===================== Dark Mode ===================== */
-/* JS adds .dark to <html> based on theme setting (auto/dark/light) */
-/* Most dark component colors now resolve through the tokenized base rules +
-   the html.dark token palette below (Soft Fill port, 2026-07). Only dark-only
-   deviations the tokens can't express remain as explicit overrides here. */
-html.dark body { background: var(--pp-bg); color: var(--pp-fg); }
-html.dark .login-body p { color: var(--pp-login-p-fg); }
-html.dark .autocomplete-dropdown { background: var(--pp-bg2); border-color: var(--pp-border); box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
-/* The four superseded rules that used to surround this one are gone (resting
-   fill/border/colour and hover for both theme layers, plus the two
-   #submit-btn press/disabled transform resets): the .btn recipe supplies
-   all of them from --pp-btn-bg / --pp-btn-bd / --pp-btn-fg / --pp-btn-hover,
-   which are exactly the per-theme tokens those hand rules were reaching for
-   by hand. This focus twin STAYS: at (0,3,1) it is what keeps the focus
-   border winning over any surviving resting rule, and it costs one line to
-   not have to re-derive that every time this area changes (COMPONENTS.md
-   C45 is the history). */
-html.dark .submit-bar button:focus-visible { border-color: var(--pp-focus-bd); box-shadow: var(--pp-focus-ring); }
-html.dark .recent-bm-area { border-top-color: var(--pp-divider); }
-html.dark {
-  /* Default-dark "Soft Fill" palette (2026-07 Claude Design pilot) — full token
-     parity with :root so the tokenized base rules resolve without per-component
-     dark overrides. AA-gated by contrast-audit.mjs's html.dark probe; verified:
-     fg-hint on bg2 (#212226) = 4.58, fg-muted on bg2 = 6.29, on-accent on
-     accent = 5.45 (white text was only 3.4 — hence the dark-on-accent value).
-     Decorative/disabled greys (.stag.used / .ql-sep, via --pp-used-fg /
-     --pp-fg-faint below) are now tokenized too (design-uplift Task 13) --
-     no longer a stated hardcoded exemption. */
-  --pp-bg: #1a1b1e;
-  --pp-bg2: #212226;
-  --pp-fg: #e6e7ea;
-  --pp-fg-muted: #a0a3aa;
-  --pp-fg-hint: #868a91;
-  --pp-link: #8ab0f4;
-  --pp-accent: #5b8ae0;
-  --pp-accent2: #b08ae6;
-  /* --pp-border's dark default lives in the composer's DEFAULT_DARK block
-     now (design-uplift Task 16), same reason as :root's entry above. */
-  --pp-divider: #26282c;
-  --pp-input-bg: #26282d;
-  --pp-input-focus-bg: #2b2e35;
-  /* Dark default of the focus core, same derivation as :root's (F1). The mix
-     formula measured 2.40:1 / 2.38:1 here; now 3.08:1 / 3.04:1. */
-  --pp-focus-bd: #4e71b2;
-  /* --pp-on-accent's dark default lives in the composer's DEFAULT_DARK block
-     now (design-uplift Task 13 step 2) -- same #10131a value, emitted into
-     the generated html.dark block at the end of @generated:ui-themes below. */
-  --pp-label-fg: #a0a3aa;
-  --pp-scrollbar-thumb: #70747e; /* 3.4:1 vs bg2 track; fg-muted (6.3:1) is text-tier */
-  --pp-tag-bg: #2a3550;
-  --pp-tag-fg: #a9c3f2;
-  --pp-tag-hover: #344060;
-  --pp-drop-hover: #26334d;
-  --pp-danger: #e57373;
-  /* Variant tokens (used by .feedback-card[data-variant=...]) */
-  --pp-warn-bg: #392224;
-  --pp-warn-bd: var(--pp-warn-bg);
-  --pp-warn-fg: #ef9a9a;
-  --pp-ok-bg: #1e3328;
-  --pp-ok-bd: var(--pp-ok-bg);
-  --pp-ok-fg: #7fd39a;
-  --pp-offline-bg: #363019;
-  --pp-offline-bd: var(--pp-offline-bg);
-  --pp-offline-fg: #e6c26a;
-  --pp-banner-bg: #20304a;
-  --pp-banner-bd: var(--pp-banner-bg);
-  --pp-banner-fg: #8ab0f4;
-
-  /* Dark-side values for the page-local one-off tokens step 1 added to
-     :root (design-uplift Task 13 step 2). Consumers with no line here
-     intentionally keep inheriting their :root light value unchanged in
-     dark mode -- same as before this migration (verified per-selector,
-     see step 2's commit message and task-13-report.md). */
-  --pp-used-fg: #444;
-  --pp-preset-btn-bg: #1e2a3a;
-  --pp-fg-faint: #444;
-  --pp-oqa-btn-fg: #aaa;
-  --pp-offline-queue-bg: #1f1c0e;
-  --pp-offline-queue-border: #4a4020;
-  --pp-offline-queue-title-fg: #d4c890;
-  --pp-offline-queue-meta-fg: #9d8f5e;
-  --pp-edit-cancel-fg: #ddd;
-  --pp-spinner-bg: #555;
-  --pp-spinner-fg: #aaa;
-  /* Dark-only tokens (no light counterpart -- these components already
-     consume var(--pp-fg)/var(--pp-danger)/etc. in the light rule, so no
-     new :root default is needed; see the individual rules below). */
-  --pp-login-p-fg: #bbb;
-  /* --pp-confirm-yes-bg/-fg/-strong retired with the html.dark .confirm-yes
-     rule that was their only consumer (COMPONENTS.md §4.2): the solid danger
-     tier is --pp-danger/--pp-on-danger now, both derived and audited. */
-  /* Scrim: same role as :root's, tinting AWAY from the (dark) background --
-     white here instead of :root's black. See :root's --pp-scrim comment. */
-  --pp-scrim: #fff;
-}
-/* qbtn/submit surfaces sit on the bg2 quick-actions strip: --pp-bg would sink
-   below the strip in dark mode, so lift them onto the input-bg tier instead. */
-html.dark .qbtn { background: var(--pp-input-bg); }
-html.dark .preset-btn:hover { background: var(--pp-drop-hover); }
 .stag { transition: color var(--pp-motion-state); }
-html.dark .stag.used { color: var(--pp-used-fg); }
-html.dark #desc-char-count.over-limit { color: var(--pp-danger); }
-html.dark .recent-bm-del { color: var(--pp-fg-hint); }
-html.dark .recent-bm-edit { color: var(--pp-fg-hint); }
-html.dark .edit-cancel { background: color-mix(in srgb, var(--pp-scrim) 12%, transparent); color: var(--pp-edit-cancel-fg); }
-html.dark .edit-cancel:hover { background: color-mix(in srgb, var(--pp-scrim) 22%, transparent); color: var(--pp-danger); }
-html.dark .edit-cancel:focus-visible { outline-color: var(--pp-accent); }
-html.dark .recent-bm-edit:focus-visible, html.dark .recent-bm-del:focus-visible { outline-color: var(--pp-accent); }
-html.dark .preset-btn { color: var(--pp-link); background: var(--pp-preset-btn-bg); }
-html.dark .preset-btn.used { color: var(--pp-used-fg); background: var(--pp-bg2); }
-html.dark .ql-sep { color: var(--pp-fg-faint); }
-html.dark .offline-queue-list { background: var(--pp-offline-queue-bg); border-top-color: var(--pp-offline-queue-border); }
-html.dark .offline-queue-item { border-bottom-color: color-mix(in srgb, var(--pp-scrim) 6%, transparent); }
-html.dark .offline-queue-title { color: var(--pp-offline-queue-title-fg); }
-html.dark .offline-queue-meta { color: var(--pp-offline-queue-meta-fg); }
-html.dark .offline-queue-actions button { border-color: var(--pp-offline-queue-border); color: var(--pp-oqa-btn-fg); }
-html.dark .offline-queue-actions button:focus-visible { border-color: var(--pp-focus-bd); box-shadow: var(--pp-focus-ring); }
-html.dark .offline-queue-actions button:hover:not(:disabled) { background: color-mix(in srgb, var(--pp-scrim) 8%, transparent); color: var(--pp-link); }
-html.dark .offline-queue-actions .offline-queue-remove:hover:not(:disabled) { color: var(--pp-danger); }
-html.dark .offline-queue-empty { color: var(--pp-fg-hint); }
-html.dark .submit-bar button.loading { color: var(--pp-fg-hint); }
-/* No html.dark override for the loading-spinner border colors: the base
-   rule (.action-link.loading::before, .submit-bar button.loading::before)
-   already consumes var(--pp-spinner-bg)/var(--pp-spinner-fg), and html.dark
-   now defines both above -- a dedicated override here would be a pure
-   duplicate (design-uplift Task 13 step 2, redundant-rule cleanup). */
 
 /* ===================== URL Cleaned Hint (B4) ===================== */
 .url-clean-hint {
@@ -1706,8 +1578,8 @@ html[data-theme="terminal"] {
   --pp-bg: #0a0a0a;
   --pp-bg2: #111111;
   --pp-fg: #33ff33;
-  --pp-fg-muted: #22aa22;
-  --pp-fg-hint: #1c9c1c;
+  --pp-fg-muted: #24b324;
+  --pp-fg-hint: #21b621;
   --pp-link: #33ff33;
   --pp-accent: #33ff33;
   --pp-accent2: #aaaa33;
@@ -1762,7 +1634,7 @@ html[data-theme="paper-ink"] {
   --pp-bg2: #f5f0e8;
   --pp-fg: #2c2c2c;
   --pp-fg-muted: #6b4c3b;
-  --pp-fg-hint: #707070;
+  --pp-fg-hint: #6b6b6b;
   --pp-link: #1a3a5c;
   --pp-accent: #1a3a5c;
   --pp-accent2: #8b4513;
@@ -1870,8 +1742,8 @@ html[data-theme="flexoki-light"] {
   --pp-bg: #FFFCF0;
   --pp-bg2: #F2F0E5;
   --pp-fg: #100F0F;
-  --pp-fg-muted: #6f6e69;
-  --pp-fg-hint: #6F6E69;
+  --pp-fg-muted: #6a6964;
+  --pp-fg-hint: #6a6964;
   --pp-link: #205EA6;
   --pp-accent: #205EA6;
   --pp-accent2: #5E409D;
@@ -1925,7 +1797,7 @@ html[data-theme="flexoki-dark"] {
   --pp-bg2: #282726;
   --pp-fg: #CECDC3;
   --pp-fg-muted: #9F9D96;
-  --pp-fg-hint: #878580;
+  --pp-fg-hint: #a09e9a;
   --pp-link: #4385BE;
   --pp-accent: #4385BE;
   --pp-accent2: #8B7EC8;
@@ -1978,8 +1850,8 @@ html[data-theme="solarized-light"] {
   --pp-bg: #fdf6e3;
   --pp-bg2: #eee8d5;
   --pp-fg: #586e75;
-  --pp-fg-muted: #586e75;
-  --pp-fg-hint: #657474;
+  --pp-fg-muted: #54696f;
+  --pp-fg-hint: #5b6969;
   --pp-link: #1e6ca4;
   --pp-accent: #268bd2;
   --pp-accent2: #6c71c4;
@@ -2032,8 +1904,8 @@ html[data-theme="solarized-dark"] {
   --pp-bg: #002b36;
   --pp-bg2: #073642;
   --pp-fg: #93a1a1;
-  --pp-fg-muted: #839496;
-  --pp-fg-hint: #839496;
+  --pp-fg-muted: #8e9e9f;
+  --pp-fg-hint: #8e9e9f;
   --pp-link: #5eabe2;
   --pp-accent: #268bd2;
   --pp-accent2: #9193cb;
@@ -2141,7 +2013,7 @@ html[data-theme="catppuccin-mocha"] {
   --pp-bg2: #313244;
   --pp-fg: #cdd6f4;
   --pp-fg-muted: #a6adc8;
-  --pp-fg-hint: #9399b2;
+  --pp-fg-hint: #999fb6;
   --pp-link: #89b4fa;
   --pp-accent: #89b4fa;
   --pp-accent2: #cba6f7;
@@ -2193,7 +2065,7 @@ html[data-theme="gruvbox-dark"] {
   --pp-bg: #282828;
   --pp-bg2: #3c3836;
   --pp-fg: #ebdbb2;
-  --pp-fg-muted: #a89984;
+  --pp-fg-muted: #b0a390;
   --pp-fg-hint: #aca093;
   --pp-link: #83a598;
   --pp-accent: #83a598;
@@ -2301,7 +2173,7 @@ html[data-theme="github-light"] {
   --pp-bg2: #ffffff;
   --pp-fg: #1f2328;
   --pp-fg-muted: #656d76;
-  --pp-fg-hint: #68717c;
+  --pp-fg-hint: #636c76;
   --pp-link: #0969da;
   --pp-accent: #0969da;
   --pp-accent2: #8250df;
@@ -2363,23 +2235,9 @@ html[data-theme="github-light"] {
   --pp-input-bd: #edf0f4;
   --pp-border: #7e8aa0;
 }
-html.dark {
-  color-scheme: dark;
-  --pp-btn-fg: #e6e7ea;
-  --pp-chip-bg: #2a3550;
-  --pp-chip-fg: #a9c3f2;
-  --pp-danger-quiet-fg: #e57373;
-  --pp-on-danger: #10131a;
-  --pp-on-accent: #10131a;
-  --pp-btn-bg: #26272b;
-  --pp-btn-bd: #26272b;
-  --pp-btn-hover: #26334d;
-  --pp-input-bd: #26282d;
-  --pp-border: #6e7380;
-}
 /* @generated:ui-themes end */
 
-/* Scrollbars — ALL surfaces (default light, html.dark, and every preset theme)
+/* Scrollbars — ALL surfaces (default light and every preset theme)
  * share the same token contract: track=bg2, thumb=fg-muted, hover=accent.
  * Unscoped on purpose: the default surface previously had no webkit rules and
  * fell back to the UA classic path — arrow buttons on Windows (the acbe621
@@ -2525,7 +2383,15 @@ html[data-theme] .offline-queue-actions button { border-color: color-mix(in srgb
 html[data-theme] .offline-queue-actions button:focus-visible { border-color: var(--pp-focus-bd); box-shadow: var(--pp-focus-ring); }
 html[data-theme] .offline-queue-actions button:hover:not(:disabled) { background: color-mix(in srgb, var(--pp-accent) 10%, transparent); color: var(--pp-accent); }
 html[data-theme] .offline-queue-actions .offline-queue-remove:hover:not(:disabled) { color: var(--pp-danger); background: color-mix(in srgb, var(--pp-danger) 12%, transparent); }
-html[data-theme] .offline-queue-empty { color: var(--pp-fg-hint); }
+/* The empty-state line sits ON the tinted .offline-queue-list strip (75%
+   --pp-offline-bg over --pp-bg), so it reads the strip's own AA-derived text
+   role: --pp-fg-hint painted at 3.7:1 on dracula's strip (4.4-4.5:1 on
+   terminal / flexoki-dark / rose-pine) once the popup's html.dark layer was
+   retired; --pp-offline-fg clears 4.5:1 on every shipped theme's strip
+   (2026-08-26, measured; tests/contrast-tests.html probes all 14). Same
+   specificity as the rules above -- source order is what makes this one win,
+   keep it last in this block. */
+html[data-theme] .offline-queue-empty { color: var(--pp-offline-fg); }
 /* Themed focus-visible (accent-colored focus rings) */
 html[data-theme] .login-body button:focus-visible { border-color: var(--pp-focus-bd); box-shadow: var(--pp-focus-ring); }
 /* .preset-btn:focus-visible no longer needs a themed override here: its base
@@ -2576,27 +2442,6 @@ html[data-theme="terminal"] .field > textarea { font-family: "Courier New", Cons
   pointer-events: none;
   transition: opacity 0.1s var(--ease-out), transform 0.1s var(--ease-out);
 }
-
-/* Only the shadow is dark-specific now. The three colours came from
-   one-off literals (--pp-confirm-popover-fg #ff6666 / -bg #1a1a1a /
-   -border #3a3a3a) that shadowed the base rule's already-themed
-   --pp-danger / --pp-bg / --pp-border; html.dark defines all three, so the
-   base rule renders the same card without a private palette. Specificity
-   checked in both directions before deleting the declarations: nothing
-   between (0,1,0) and this rule's (0,2,1) paints .confirm-popover, and
-   html[data-theme] never co-occurs with html.dark, so this override was
-   suppressing nothing but the base. */
-html.dark .confirm-popover { box-shadow: 0 2px 8px rgba(0,0,0,0.4); }
-/* .confirm-yes dark override deleted (COMPONENTS.md §4.2): it painted three
-   one-off literals (--pp-confirm-yes-bg #c33 / -fg #fff / -strong #a22) that
-   had drifted away from --pp-danger/--pp-on-danger entirely, and at (0,2,1)
-   it outranked the generated (0,2,0) rule -- so the derived, contrast-audited
-   pair would have been dead code under html.dark. */
-/* The two html.dark .confirm-no rules are gone with the tokens they read:
-   the base rule's fg-muted / border / btn-hover are all defined by html.dark
-   itself, so it resolves to a dark-correct result on its own. Same
-   two-directional check as the container rule above -- (0,2,1) here was
-   only ever beating the (0,2,0) base. */
 
 /* Neutral card, matching options.css and library.css: the popover is a
    surface, not a warning. Its warn-family fill/edge were the other half of
@@ -2676,15 +2521,6 @@ html[data-theme] .confirm-popover button:focus-visible { outline-color: var(--pp
 .md-strip-btn:active:not(:disabled) { transform: scale(0.97); }
 .md-strip-btn:focus-visible { outline: none; border-color: var(--pp-focus-bd); box-shadow: var(--pp-focus-ring); }
 .md-strip-btn .btn-ic { display: inline-flex; }
-
-html.dark .md-strip { background: var(--pp-bg2); border-color: var(--pp-border); }
-html.dark .md-strip-btn { background: var(--pp-btn-bg); border-color: var(--pp-btn-bd); color: var(--pp-link); }
-html.dark .md-strip-btn:hover { background: var(--pp-btn-hover); border-color: var(--pp-accent); }
-/* AFTER the :hover twin above, deliberately: both are (0,3,1) and both set
-   border-color, so source order is the only tie-break -- and hovering the
-   button you just tabbed to is the common case, not an edge one. The
-   html[data-theme] pair further down is already in this order. */
-html.dark .md-strip-btn:focus-visible { border-color: var(--pp-focus-bd); box-shadow: var(--pp-focus-ring); }
 
 html[data-theme] .md-strip { background: var(--pp-bg2); border-color: var(--pp-divider); }
 html[data-theme] .md-strip-btn { background: var(--pp-btn-bg); border-color: var(--pp-btn-bd); color: var(--pp-link); }

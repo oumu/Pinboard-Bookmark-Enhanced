@@ -92,7 +92,7 @@
   "ui": {
     "popup": {
       "dark": {
-        "fg-hint": "#1c9c1c",
+        "fg-hint": "#21b621",
         "input-focus-bg": "#0d1a0d",
         "banner-bg": "#062323",
         "banner-bd": "#0e6b6b",
@@ -112,7 +112,7 @@
     },
     "options": {
       "dark": {
-        "fg-hint": "#1c9c1c",
+        "fg-hint": "#21b621",
         "save": "#22aa22",
         "danger": "#ff3333",
         "warn": "#cccc00",
