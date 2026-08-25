@@ -64,14 +64,14 @@
   function guardSeek(m) {
     if (!seekGuard || m.seeking) return;
     if (seekGuard.tries >= 2 || performance.now() > seekGuard.until) { seekGuard = null; return; }
-    if (Math.abs(m.currentTime - seekGuard.target) > 2) {
-      if (performance.now() - lastPlayAt > 1500) return; // not the resume jump: leave it alone
-      seekGuard.tries++;
-      selfSeek = true;
-      try { m.currentTime = seekGuard.target; } catch (_) { selfSeek = false; }
-    } else if (!m.paused) {
-      seekGuard = null; // playing at the target: settled
-    }
+    // At the target: nothing to do, and the guard STAYS -- the resume jump
+    // lands after the play event that finds us here, so "playing at the
+    // target" is not settled yet (Codex r9 H1); time and tries expire it.
+    if (Math.abs(m.currentTime - seekGuard.target) <= 2) return;
+    if (performance.now() - lastPlayAt > 1500) return; // not the resume jump: leave it alone
+    seekGuard.tries++;
+    selfSeek = true;
+    try { m.currentTime = seekGuard.target; } catch (_) { selfSeek = false; }
   }
   function onState() {
     const m = media();
@@ -88,9 +88,12 @@
     if (m !== bound) {
       if (bound) { for (const ev of EVENTS) bound.removeEventListener(ev, onState); bound.removeEventListener("seeking", onSeeking); bound.removeEventListener("play", onPlay); }
       bound = m;
+      // onPlay FIRST: listeners run in registration order, and onState's own
+      // play handler (guardSeek) reads lastPlayAt (Codex r9 H1 -- registered
+      // last, the stamp it read was the previous play's).
+      m.addEventListener("play", onPlay);
       for (const ev of EVENTS) m.addEventListener(ev, onState);
       m.addEventListener("seeking", onSeeking);
-      m.addEventListener("play", onPlay); // before onState's own play handler runs guardSeek
     }
     return m;
   }

@@ -135,19 +135,28 @@ async function enrichPageTextIfJina(s) {
   }
 }
 
-// The cache namespaces a fast-path read may hit, most specific first: on a
-// video page with the transcript tier on, the "transcript" namespace (that
-// is where the last run wrote) before the configured source (review: a
-// miss here re-ran the whole caption capture on every popup open).
+// The video page's caption grant, if it stands: the detected video, else
+// null. contains() ONLY (never a prompt): the first grant belongs to the
+// preview's own "Enable subtitles & load video" click, never to a popup AI
+// action. Off video pages this touches no permission API at all.
+async function pbpAiVideoGrant(s) {
+  if (s.aiUseTranscript === false) return null;
+  const det = (typeof pbpVideoDetect === "function" && pageInfo && pageInfo.url) ? pbpVideoDetect(pageInfo.url) : null;
+  if (!det) return null;
+  const originPat = det.provider === "bilibili" ? PBP_BILI_ORIGIN_PATTERN : PBP_YT_ORIGIN_PATTERN;
+  try { return (await chrome.permissions.contains({ origins: [originPat] }) === true) ? det : null; } catch (_) { return null; }
+}
+
+// The ONE namespace a fast-path read may hit: the one ensurePageText would
+// write to. With the caption grant standing that is "transcript" -- and
+// only that: falling through to the configured source would serve a
+// page-text result made before the grant and never try the captions
+// (Codex r9 H2). A miss re-runs the capture (passive routes only, see
+// pbpAiTranscriptText); a video without captions then finds its page-text
+// result under the actual source inside fetchAIArtifacts.
 async function pbpAiFastCached(kind, s, account) {
-  const sources = [];
-  if (s.aiUseTranscript !== false && typeof pbpVideoDetect === "function" && pageInfo && pageInfo.url && pbpVideoDetect(pageInfo.url)) sources.push("transcript");
-  sources.push(s.aiContentSource);
-  for (const src of sources) {
-    const hit = await getAICache(pageInfo.url, kind, s.aiCacheDuration, src, account, s);
-    if (hit) return hit;
-  }
-  return null;
+  const src = (await pbpAiVideoGrant(s)) ? "transcript" : s.aiContentSource;
+  return getAICache(pageInfo.url, kind, s.aiCacheDuration, src, account, s);
 }
 
 // ---- Video transcript as AI content (T7.13) ----
@@ -168,23 +177,20 @@ function pbpEnsureVideoModule() {
   });
   return _videoModulePromise;
 }
-// "" when this is not a video page, the caption origin is not granted, or
-// no transcript came back -- the caller then uses the configured source.
-// contains() ONLY on this path: the first grant belongs to the preview's
-// own "Enable subtitles & load video" click, never to a popup AI action.
+// "" when this is not a video page, the caption origin is not granted
+// (pbpAiVideoGrant), or no transcript came back -- the caller then uses the
+// configured source.
 async function pbpAiTranscriptText(s, buttonId) {
-  const det = (typeof pbpVideoDetect === "function" && pageInfo && pageInfo.url) ? pbpVideoDetect(pageInfo.url) : null;
-  if (!det) return "";
-  const originPat = det.provider === "bilibili" ? PBP_BILI_ORIGIN_PATTERN : PBP_YT_ORIGIN_PATTERN;
-  let granted = false;
-  try { granted = await chrome.permissions.contains({ origins: [originPat] }) === true; } catch (_) {}
-  if (!granted) return "";
+  if (!(await pbpAiVideoGrant(s))) return "";
   if (buttonId) setAiProgress(buttonId, { provider: s.aiProvider, stage: "transcript" });
   try { await pbpEnsureVideoModule(); } catch (e) { console.warn("[pbp-video] popup transcript module:", e && e.message); return ""; }
   let sess = null;
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    sess = await window.pbpPrepareVideoSession({ pageUrl: pageInfo.url, tabId: tab ? tab.id : null });
+    // passive: timedtext routes only -- the rescue tiers drive the reader's
+    // own YouTube tab (caption track, transcript panel), which an AI action
+    // in the popup must never do (review C8).
+    sess = await window.pbpPrepareVideoSession({ pageUrl: pageInfo.url, tabId: tab ? tab.id : null, passive: true });
   } catch (e) {
     console.warn("[pbp-video] popup transcript:", e && e.name, e && e.message); // no page text, no token
     return "";
@@ -606,8 +612,9 @@ function setupAIFeatures() {
   // checkExistingBookmark (popup.js) restores the user's saved `extended` — we
   // must not race it (lost summary) or append on top (duplicate summary).
   const restoreAccount = pbpPopupAiAccount();
-  getAICache(pageInfo.url, "summary", settings.aiCacheDuration,
-    settings.aiContentSource, restoreAccount, settings).then(async (cached) => {
+  // Same namespace rule as a click (review C9): a video summary made from
+  // the captions lives under "transcript", not the configured source.
+  pbpAiFastCached("summary", settings, restoreAccount).then(async (cached) => {
     await _aiAwaitBookmarkLookup();
     if (!_aiOpStillCurrent(restoreAccount)) return;
     if (existingBookmark) {
@@ -795,11 +802,13 @@ async function fetchAIArtifacts(kind, forceRefresh, account, s, source) {
 
   if (forceRefresh) return callSingle();
 
-  // Codex r2 M2: extraction fell back to a different source than the
-  // configured one (Jina -> local). The caller's fast-path cache check ran
-  // under the CONFIGURED namespace; re-check our own kind under the
-  // ACTUAL namespace before paying for a call.
-  if (source !== s.aiContentSource) {
+  // Codex r2 M2: extraction may have fallen back to a different source than
+  // the one the caller's fast-path cache check probed (Jina -> local; and
+  // with a caption grant that probe is "transcript" alone, so a video
+  // without captions lands here with source "local" -- Codex r9 H2).
+  // Re-check our own kind under the ACTUAL namespace before paying for a
+  // call; one local read.
+  {
     const own = await getAICache(url, kind, s.aiCacheDuration, source, account, s);
     if (!pbpPopupAiAccountIsCurrent(account)) return null;
     if (own != null) return own;

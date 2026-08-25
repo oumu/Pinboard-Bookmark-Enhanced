@@ -1157,6 +1157,16 @@ suite("md-ai IDB key conventions", () => {
   test("ask history trim tolerates non-array", () => {
     assert(Array.isArray(_pbpAskHistTrim(null)) && _pbpAskHistTrim(null).length === 0, "null -> []");
   });
+  test("pbpAskBuildNearContext: before the first timed paragraph the window stops AT that anchor (Codex r9 M5)", () => {
+    const mk = (n, t) => { const el = document.createElement("p"); if (t != null) el.dataset.t = String(t); return { n, el }; };
+    const blocks = [mk(1), mk(2), mk(3, 30), mk(4, 60), mk(5, 90)];
+    const early = pbpAskBuildNearContext(blocks, 5, 4000);
+    assert(early && early.near === true, "still a near scope");
+    assert([...early.sent].join(",") === "1,2,3", "the untimed run + the first anchor, nothing after it: " + [...early.sent].join(","));
+    const mid = pbpAskBuildNearContext(blocks, 65, 4000);
+    assert([...mid.sent].join(",") === "2,3,4,5", "at 65s the anchor is P4 (60s): two before, two after: " + [...mid.sent].join(","));
+    assert(pbpAskBuildNearContext([mk(1), mk(2)], 5, 4000) === null, "nothing timed -> null (caller falls back)");
+  });
 });
 </script>
 

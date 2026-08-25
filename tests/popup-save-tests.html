@@ -563,11 +563,35 @@ test("posts/add default remains replace=yes for existing callers", () => {
       assert(fn.includes('return "transcript"'), "transcript source reported");
       assert(fn.indexOf("pbpAiTranscriptText(") < fn.indexOf('if (s.aiContentSource === "jina") {'), "transcript tier runs before the jina branch");
       assert(!popupAiSource.includes("permissions.request"), "popup-ai.js must never request a permission (automatic path)");
-      const helper = popupAiSource.slice(popupAiSource.indexOf("async function pbpAiTranscriptText"));
+      const helper = popupAiSource.slice(popupAiSource.indexOf("async function pbpAiVideoGrant"));
       assert(helper.indexOf("pbpVideoDetect(") < helper.indexOf("permissions.contains"), "URL detect precedes the permission probe: non-video pages never touch permissions");
       assert(helper.includes("permissions.contains"), "the tier is gated on an existing grant");
       assert(popupAiSource.includes('"md-video.js"'), "the video module is loaded at runtime, on demand");
       assert(!popupHtml.includes("md-video.js"), "popup.html never lists md-video.js: zero parse cost on non-video pages");
+    });
+
+    await testAsync("pbpAiFastCached reads ONE namespace: transcript with a standing caption grant, the configured source otherwise (Codex r9 H2)", async () => {
+      // Behavioural, not source-grep (review C18): the two helpers run
+      // against stubs, and the assertions are on what they read.
+      const fnSrc = (name) => { const i = popupAiSource.indexOf("async function " + name); return popupAiSource.slice(i, popupAiSource.indexOf("\n}\n", i) + 3); };
+      const calls = [];
+      const build = new Function("pbpVideoDetect", "pageInfo", "chrome", "getAICache", "PBP_BILI_ORIGIN_PATTERN", "PBP_YT_ORIGIN_PATTERN",
+        fnSrc("pbpAiVideoGrant") + "\n" + fnSrc("pbpAiFastCached") + "\nreturn pbpAiFastCached;");
+      let probed = 0;
+      const run = (granted, url) => build(
+        (u) => /youtube\.com\/watch/.test(u) ? { provider: "youtube", videoId: "x" } : null,
+        { url },
+        { permissions: { contains: async () => { probed++; return granted; } } },
+        async (u, kind, dur, source) => { calls.push(source); return source === "local" ? "STALE_PAGE_TEXT" : null; },
+        "https://api.bilibili.com/*", "https://www.youtube.com/*")("summary", { aiContentSource: "local", aiCacheDuration: 1 }, "acct");
+      const withGrant = await run(true, "https://www.youtube.com/watch?v=x");
+      assert(withGrant === null && calls.join(",") === "transcript", "grant standing: transcript only -- the stale page-text hit is NOT served: " + calls.join(","));
+      calls.length = 0;
+      const noGrant = await run(false, "https://www.youtube.com/watch?v=x");
+      assert(noGrant === "STALE_PAGE_TEXT" && calls.join(",") === "local", "no grant: the configured namespace, one probe: " + calls.join(","));
+      calls.length = 0; probed = 0;
+      await run(true, "https://example.com/article");
+      assert(calls.join(",") === "local" && probed === 0, "not a video page: configured namespace and no permission probe at all");
     });
 
     test("a rider on an in-flight combined never re-enters the combined branch (r2 M4)", () => {
@@ -629,7 +653,7 @@ test("posts/add default remains replace=yes for existing callers", () => {
         "cached-summary initialization source not found");
       const events = [];
       const start = new Function(
-        "pbpPopupAiAccount", "getAICache", "pageInfo", "settings", "_aiOpStillCurrent",
+        "pbpPopupAiAccount", "getAICache", "pbpAiFastCached", "pageInfo", "settings", "_aiOpStillCurrent",
         "_aiRestoreSummaryOwnership", "pbpShouldRestoreCachedSummary", "$id",
         "upsertSummary", "showSummaryActions",
         "let bookmarkLookup = { promise: null }; let existingBookmark = null;" +
@@ -642,6 +666,7 @@ test("posts/add default remains replace=yes for existing callers", () => {
       )(
         () => "alice",
         () => Promise.resolve("cached"),
+        () => Promise.resolve("cached"), // the restore reads through pbpAiFastCached (review C9)
         { url: URL },
         { aiCacheDuration: 60, aiContentSource: "local" },
         () => true,

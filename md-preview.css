@@ -261,6 +261,9 @@ button, input, select, textarea { font-family: inherit; }
 .src-seg:last-child { border-radius: 0 6px 6px 0; }
 .src-seg + .src-seg { border-left: 1px solid var(--btn-border); }
 .src-seg.active { color: var(--active-fg); background: var(--active-bg); cursor: default; }
+/* A toggle member (the density switch, aria-pressed) lights up in the same
+   tone as its .active siblings; it stays clickable, so no cursor change. */
+.src-seg[aria-pressed="true"] { color: var(--active-fg); background: var(--active-bg); }
 .src-seg:focus-visible {
   outline: 2px solid var(--link);
   outline-offset: -2px;
@@ -1543,6 +1546,11 @@ body.md-empty main { margin-left: 0; }
 .send-tri { width: 0; height: 0;
   border-left: 4px solid transparent; border-right: 4px solid transparent;
   border-top: 5px solid currentColor; }
+/* Forced colors repaint every border, transparent sides included, so the
+   border-drawn triangle becomes an 8x5 block (device screenshot 2026-08-25).
+   Opting the glyph out keeps the sides transparent; the top edge still
+   follows the forced currentColor of its button. */
+@media (forced-colors: active) { .send-tri { forced-color-adjust: none; } }
 .send-empty .send-primary { justify-content: center;
   border-top-right-radius: 6px; border-bottom-right-radius: 6px; opacity: .85; }
 .send-menu { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 20;
@@ -3533,33 +3541,40 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
    together (syncLiveControls), so the third gap applies once. A hidden
    first child collapses its gap with it -- an empty group gets no gap. */
 .pbv-copy-group, .pbv-follow, .pbv-estimate { margin-left: 12px; }
-.pbv-tracks {
-  font: inherit; max-width: 16em; padding: 4px 10px; border-radius: 6px;
-  border: 1px solid var(--btn-border); background-color: var(--btn-bg); color: var(--btn-fg);
-}
-.pbv-tracks:hover { background-color: var(--btn-hover); }
-.pbv-tracks:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
-/* Icon-only bar controls (device feedback 2026-08-24): everything except
-   the track <select> is an icon with title + aria-label. 28x28 keeps the
-   >=24px hit-area contract; inline-flex centers the glyph. The svg size
-   rule enumerates CLASSES (not `button`) because .pbv-open-ext is an <a> --
-   a bare `button svg` selector would leave it at its embedded 14px and the
-   row would mix glyph sizes. */
-.pbv-copy, .pbv-ai-punct, .pbv-follow, .pbv-retry, .pbv-ai-cancel, .pbv-loop, .pbv-autopause, .pbv-estimate, .pbv-open-ext {
-  min-height: 28px; min-width: 28px; padding: 4px; font: inherit; cursor: pointer;
+/* ONE control family for the whole strip (device feedback 2026-08-25: the
+   selects sat at 32px/16px, the icon buttons at 28px, the state chip at
+   26px/12.5px and the bridge text button at 30px/13px -- four sizes in a
+   single row). Every direct control -- the track / aux / rate <select>, the
+   icon buttons, the bridge text button, the external-link <a>, the state
+   chip -- plus the copy split one level down shares ONE height and ONE type
+   size. :where() keeps the family at .pbv-bar's own specificity, so the
+   per-class rules that follow (icon-only width, chip tone, caret, pressed,
+   copied, narrow) win by order alone, and the global [hidden] rule still
+   hides. The <select> keeps its native arrow; box-sizing pins it to the
+   buttons' 28px instead of letting padding + 16px text grow it to 32. */
+.pbv-bar > :where(select, button, a, .pbv-ai-note), .pbv-copy-group > :where(button) {
+  box-sizing: border-box; height: 28px; min-height: 28px; padding: 0 10px;
+  font: inherit; font-size: 13px; font-weight: 500; line-height: 1; white-space: nowrap;
   display: inline-flex; align-items: center; justify-content: center;
-  border: 1px solid var(--btn-border); background: var(--btn-bg); color: var(--btn-fg); border-radius: 6px;
+  border: 1px solid var(--btn-border); border-radius: 6px;
+  background: var(--btn-bg); color: var(--btn-fg); cursor: pointer; text-decoration: none;
 }
-.pbv-copy:hover, .pbv-ai-punct:hover, .pbv-follow:hover, .pbv-retry:hover, .pbv-ai-cancel:hover, .pbv-loop:hover, .pbv-autopause:hover, .pbv-estimate:hover, .pbv-open-ext:hover { background: var(--btn-hover); }
-.pbv-copy:focus-visible, .pbv-ai-punct:focus-visible, .pbv-follow:focus-visible, .pbv-retry:focus-visible, .pbv-ai-cancel:focus-visible, .pbv-loop:focus-visible, .pbv-autopause:focus-visible, .pbv-estimate:focus-visible, .pbv-open-ext:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
-/* Coarse pointers (T7.8): every bar control reaches the 44px target. */
-@media (pointer: coarse) {
-  .pbv-copy, .pbv-ai-punct, .pbv-follow, .pbv-retry, .pbv-ai-cancel, .pbv-loop, .pbv-autopause, .pbv-estimate, .pbv-open-ext, .pbv-copy-caret { min-height: 44px; min-width: 44px; }
-}
+.pbv-bar > :where(select, button, a):hover, .pbv-copy-group > :where(button):hover { background: var(--btn-hover); }
+.pbv-bar > :where(select, button, a):focus-visible, .pbv-copy-group > :where(button):focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.pbv-tracks { max-width: 16em; }
+/* Playback-rate select: the same family, narrower. */
+.pbv-rate { max-width: 5.5em; padding: 0 6px; font-variant-numeric: tabular-nums; }
+/* Icon-only members: square, glyph centred. Enumerated by CLASS (not
+   `button`) because .pbv-open-ext is an <a> and .pbv-bridge-enable is a
+   labelled button that must keep the text padding. */
+.pbv-copy, .pbv-ai-punct, .pbv-follow, .pbv-retry, .pbv-ai-cancel, .pbv-loop, .pbv-autopause, .pbv-estimate, .pbv-open-ext { width: 28px; min-width: 28px; padding: 0; }
 .pbv-copy svg, .pbv-ai-punct svg, .pbv-follow svg, .pbv-retry svg, .pbv-ai-cancel svg, .pbv-open-ext svg, .pbv-loop svg, .pbv-autopause svg, .pbv-estimate svg { width: 16px; height: 16px; }
-.pbv-loop[hidden], .pbv-autopause[hidden], .pbv-estimate[hidden], .pbv-rate[hidden] { display: none; }
-/* Playback-rate select: the track picker's form-control family, narrower. */
-.pbv-rate { max-width: 5.5em; padding: 4px 6px; font-variant-numeric: tabular-nums; }
+/* Coarse pointers (T7.8): every interactive member reaches the 44px target
+   (min-width beats the icon rule's explicit width); the chip is not a
+   target and keeps the resting size. */
+@media (pointer: coarse) {
+  .pbv-bar > :where(select, button, a), .pbv-copy-group > :where(button) { height: 44px; min-height: 44px; min-width: 44px; }
+}
 /* Back-to-current (research T3.7): a labelled button, sticky under the
    timeline so it stays reachable while the page scrolls away from the
    playing row; hidden whenever follow is on or the row is on screen. */
@@ -3577,19 +3592,10 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
 .pbv-follow.pbv-follow-narrow { display: none; }
 /* Copy split (research T1.2): primary copy + caret menu, the send-button
    split idiom (.send-tri caret, .send-menu/.send-mi menu). The caret keeps
-   the 24px hit-area contract at 28x24; the menu anchors to the group. */
+   the 24px hit-area contract at 24x28; the menu anchors to the group. */
 .pbv-copy-group { position: relative; display: inline-flex; align-items: center; }
-.pbv-copy-group[hidden] { display: none; }
 .pbv-copy-group > .pbv-copy { border-top-right-radius: 0; border-bottom-right-radius: 0; }
-.pbv-copy-caret {
-  min-height: 28px; min-width: 24px; padding: 0 4px; margin-left: -1px; cursor: pointer;
-  display: inline-flex; align-items: center; justify-content: center; font: inherit;
-  border: 1px solid var(--btn-border); background: var(--btn-bg); color: var(--btn-fg);
-  border-radius: 0 6px 6px 0;
-}
-.pbv-copy-caret:hover { background: var(--btn-hover); }
-.pbv-copy-caret:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
-.pbv-copy-caret[hidden] { display: none; }
+.pbv-copy-caret { min-width: 24px; padding: 0 4px; margin-left: -1px; border-radius: 0 6px 6px 0; }
 .pbv-copy-menu { right: auto; min-width: 240px; white-space: nowrap; }
 /* Copy success flash: the check glyph in the success tone (same idiom as
    .action-btn.copied, restated here because .pbv-copy is not in that
@@ -3623,12 +3629,7 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
 }
 /* Punctuation-state CHIP beside the picker (audit U1 / 方案A): the state
    word only; secondary facts live in its native tooltip. */
-.pbv-ai-note {
-  align-self: center; white-space: nowrap;
-  font-size: 0.78em; color: var(--fg-muted);
-  background: var(--btn-bg); border: 1px solid var(--border);
-  border-radius: 999px; padding: 2px 9px;
-}
+.pbv-ai-note { font-weight: 400; color: var(--fg-muted); border-color: var(--border); border-radius: 999px; cursor: default; }
 /* AI progress ring around the robot button (方案A): stroke advances per
    batch; sized to the button, immune to the 16px glyph rule below by
    coming later at equal specificity. */
@@ -3694,7 +3695,6 @@ html.motion-ready .pbv-ai-punct .pbv-ring circle { transition: stroke-dashoffset
 body.tr-bilingual .pbv-row--tr > .pbv-tr, body.tr-only .pbv-row--tr > .pbv-tr, .pbv-row--aux > .pbv-tr { display: block; }
 body.tr-only .pbv-row--tr > .pbv-text { display: none; }
 .pbv-density[hidden] { display: none; }
-.pbv-aux[hidden] { display: none; }
 .pbv-row:not(.pbv-row--static):hover { background: var(--row-hover, rgba(127,127,127,.08)); }
 .pbv-row--static { cursor: default; }
 .pbv-time {

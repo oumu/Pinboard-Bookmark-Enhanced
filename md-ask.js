@@ -468,14 +468,20 @@ function pbpAskBuildNearContext(blocks, curSec, budgetTokens) {
   }
   if (!timed.length) return null;
   const cur = Number(curSec) || 0;
-  let ci = 0;
+  // The current timed paragraph is the LAST one that started at or before
+  // now. Before the first one starts, the moment lives in the untimed run
+  // that precedes it, so the window ends AT that first anchor instead of
+  // reaching into paragraphs the player has not reached (Codex r9 M5).
+  let ci = -1;
   for (let i = 0; i < timed.length; i++) if (timed[i].t <= cur) ci = i;
+  const before = ci < 0;
+  if (before) ci = 0;
   // Neighbours in DOCUMENT order around the current timed paragraph, timed
   // or not: paragraph times are stamped partially (text-anchored alignment
   // skips what it cannot anchor), so slicing the timed list alone could
   // leap over untimed paragraphs in between (review).
   const at = list.indexOf(timed[ci].b);
-  const win = (at >= 0 ? list.slice(Math.max(0, at - 2), at + 3) : [timed[ci].b])
+  const win = (at >= 0 ? list.slice(Math.max(0, at - 2), before ? at + 1 : at + 3) : [timed[ci].b])
     .map((b) => ({ b, t: (b && b.el && b.el.dataset && b.el.dataset.t !== "" && b.el.dataset.t != null) ? Number(b.el.dataset.t) : null }));
   const fmt = (typeof pbpVideoFmtTime === "function") ? pbpVideoFmtTime : (s) => String(Math.floor(s)) + "s";
   const lines = win.map(({ b, t: tv }) => "[P" + b.n + "]" + (Number.isFinite(tv) ? " (" + fmt(tv) + ")" : "") + " "
@@ -530,6 +536,9 @@ function _pbpAskRefreshScopeToggle() {
     if (_pbpAskState.ctx && _pbpAskState.ctx.near) _pbpAskState.ctx = null;
   }
 }
+// The player's first position (md-video.js setRelayTime): a panel opened
+// before the player spoke re-checks the toggle once (Codex r9 L2).
+document.addEventListener("pbp:video-position", () => _pbpAskRefreshScopeToggle());
 
 // History serialization budget (est tokens) + per-answer char cap. The
 // article context is bounded (PBP_ASK_CTX_BUDGET) but history was not:

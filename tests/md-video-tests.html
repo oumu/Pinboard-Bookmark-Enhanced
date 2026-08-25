@@ -1224,6 +1224,24 @@ section("extracted runtime primitives (audit E1/E4/E5)");
   const al5 = pbpVideoAlignParas(alKey(["thanks for watching everyone", "some other paragraph entirely", "thanks for watching everyone"]),
     alKey(["some other paragraph entirely", "thanks for watching everyone"]));
   assert(JSON.stringify(al5.map) === "[1,2]", "align: the record pointer only ever moves forward");
+  // Duplicate prefixes (Codex r9 M4): an earlier copy that rendered as a
+  // list item must not hand its time to the later copy's <p>; unique
+  // neighbours settle which copy a duplicate is; equal counts pair in order.
+  const al6 = pbpVideoAlignParas(alKey(["- thanks for watching everyone", "some other paragraph entirely", "thanks for watching everyone"]), alKey(["thanks for watching everyone"]));
+  assert(JSON.stringify(al6.map) === "[-1]" && al6.matched === 0, "align: a key with more records than paragraphs and no anchor to settle it is left untimed");
+  const al7 = pbpVideoAlignParas(alKey(["thanks for watching everyone", "some other paragraph entirely", "thanks for watching everyone", "and finally the closing words"]),
+    alKey(["some other paragraph entirely", "thanks for watching everyone", "and finally the closing words"]));
+  assert(JSON.stringify(al7.map) === "[1,2,3]", "align: unique neighbours settle which copy a duplicate is");
+  const al8 = pbpVideoAlignParas(alKey(["thanks for watching everyone", "thanks for watching everyone"]), alKey(["thanks for watching everyone", "thanks for watching everyone"]));
+  assert(JSON.stringify(al8.map) === "[0,1]", "align: equal counts of a duplicate pair in order");
+  // Track identity (Codex r9 H3): two manual tracks of one language differ
+  // only by vssId, and a re-ordered directory must still restore the one
+  // remembered; a key remembered before vssId joined still resolves.
+  const twoEn = [{ lang: "en", asr: false, vssId: ".en" }, { lang: "en", asr: false, vssId: ".en.abc" }];
+  assert(pbpVideoTrackKey(twoEn[0], "youtube") !== pbpVideoTrackKey(twoEn[1], "youtube"), "yt key: distinct vssIds -> distinct keys");
+  assert(pbpVideoResolvePreferKey(twoEn.slice().reverse(), "youtube", pbpVideoTrackKey(twoEn[1], "youtube")) === twoEn[1], "yt prefer: a re-ordered directory still resolves the remembered vssId track");
+  assert(pbpVideoResolvePreferKey(twoEn, "youtube", "yt:en") === twoEn[0], "yt prefer: a legacy vssId-less key still resolves by stem");
+  assert(pbpVideoTrackKey({ lang: "en", asr: false }, "youtube") === "yt:en", "yt key: no vssId -> the legacy shape");
   assert(pbpVideoAlignParas(null, null).matched === 0 && pbpVideoAlignParas([], ["abcdefgh"]).map[0] === -1,
     "align: empty inputs are harmless");
   assert(pbpVideoDeepLink("https://www.youtube.com/watch?v=abcdefghijk", 754.9) === "https://www.youtube.com/watch?v=abcdefghijk&t=754s", "deep link: youtube t=Ns");

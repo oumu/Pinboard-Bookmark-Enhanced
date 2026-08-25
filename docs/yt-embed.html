@@ -136,7 +136,7 @@
   function mountFallback() {
     if (fallbackFrame || player || apiFired) return;
     var f = document.createElement("iframe");
-    f.allow = "encrypted-media; picture-in-picture; fullscreen";
+    f.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen"; // autoplay delegated through: "play from here" must play, not only seek (review C5)
     f.allowFullscreen = true;
     f.src = "https://www.youtube.com/embed/" + id +
       "?enablejsapi=1&rel=0&origin=" + encodeURIComponent(location.origin);
