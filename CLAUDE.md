@@ -1,7 +1,7 @@
 # Pinboard Bookmark Enhanced 项目配置
 
 作者：pine2D
-更新：2026-08-10
+更新：2026-08-26
 
 > 本文件只保留每个会话都需要的跨领域约定。子系统深水区规则在 `.claude/rules/`（按 paths 匹配自动加载，见文末索引表）；机器可验证的铁律已由 pre-commit / verify.sh / release 硬门强制——prose 是提醒，lint 是底线。
 

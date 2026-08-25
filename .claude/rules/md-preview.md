@@ -13,6 +13,8 @@ paths:
   - "md-epub.js"
   - "md-mermaid.js"
   - "md-export-send.js"
+  - "md-video.js"
+  - "bili-player-bridge.js"
 ---
 
 # md-preview 阅读器深水区
@@ -43,3 +45,10 @@ block 切分 → `pbpAiShield` 占位符 `⟦C/L/I/M/T\d+⟧` 屏蔽代码/链�
 - 阅读视图**不提案 hover 触发的浮层交互**（用户真机反馈否决，历史上 tr 悬停气泡被点名全删）。
 - **明暗解析模型**（2026-08-25）：`pbpResolveReaderScheme` = 页内覆盖（`pbp_color_scheme`，local、按设备，「Aa」面板第三行）＞ 视频默认深色（`mdVideoDarkScheme`，仅 video-mode）＞ 全局 `optTheme`；阅读器永不套 Pinboard 预设。`md-preview-theme-early.js` 是它的 verbatim twin，靠 `pp-theme` / `md-preview-scheme` / `md-preview-video-dark` 三个 localStorage 镜像 + opener 附加的 `video=1` URL 参数在首帧前解析——改任何一侧必须同步另一侧。settings 类 `storage.onChanged` 一律经 `pbpSettingsAreaName()` 过滤非本机路由的 area，并在 `optSyncEnabled` 切换时整组重读。
 - `md-convert.js` 是 marked→DOMPurify 的单点 sanitize 中枢；导出与 frontmatter/byline 都走它。
+
+## 视频面板（md-video.js）
+
+- 纯层/运行时分界见文件头注释；纯层含注入 YouTube 标签页的页函数 `pbpYtDomTranscriptInPage`——`executeScript` 按源码序列化，它必须**闭包零引用**（只用页面全局与自身参数），并留在顶层供 `tests/md-video-tests.html` 在真实 DOM 上直接跑。
+- YouTube 救援链顺序由 `pbp_video_tier_youtube` 缓存决定（上次成功层优先，`pbpVideoTierOrder`）；所有标签页注入经 `queueTabInjection` 串行，并持 90s tap lease；注入前后都要做 videoId 守卫（标签页可能已 SPA 导航到别的视频）。
+- **`readyState=complete` 不等于 SPA 水合**（2026-08-26 真机：`ytd-watch-flexy` 比 complete 晚 20 余秒）。DOM 层先用 playerResponse 判有无字幕轨，再等 `ytd-watch-flexy` 出现（默认 20s）才找转录入口；三种 trace 语义分明：`video has no caption tracks` / `page not hydrated within Nms` / `no transcript entry in page`。取数标签页同视频内 `complete` 优先于 `loading`。
+- 权限路径铁律在 CLAUDE.md「网络端点与 host 权限」；自动路径只 `permissions.contains`，首次申请只能来自用户点击。

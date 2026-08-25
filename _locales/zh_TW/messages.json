@@ -1344,7 +1344,7 @@
     "message": "擴充功能頁面跟隨 Pinboard 主題預設"
   },
   "popupFollowHint": {
-    "message": "啟用後，彈出視窗、此設定頁與筆記與生詞本頁會使用所選 Pinboard 預設的配色；關閉則依上方的明暗模式使用預設配色。閱讀器一律使用自己的閱讀配色。"
+    "message": "啟用後，彈出視窗、此設定頁和筆記與生詞本頁會使用所選 Pinboard 預設的配色；關閉則依上方的明暗模式使用預設配色。閱讀器一律使用自己的閱讀配色。"
   },
   "optThemeHint": { "message": "切換彈出視窗、此設定頁、筆記與生詞本頁和閱讀器的明暗。自帶明暗的預設（例如 Dracula）會在跟隨預設的頁面上覆寫此項；閱讀器可在其「Aa」面板中依裝置單獨覆寫。" },
   "secPopupElements": {
@@ -2367,7 +2367,7 @@
     "message": "閱讀器 AI"
   },
   "previewAiSectionHint": {
-    "message": "閱讀器的劃詞解釋、全文問答與全文翻譯均由你主動使用，並使用「AI 服務商」中設定的服務商與 Key。若啟用選用的 AI 重點速覽，它可能會在閱讀器開啟時執行；所有功能都不會以隱藏的背景工作形式執行。"
+    "message": "閱讀器的劃詞解釋、全文問答與全文翻譯都只在你主動觸發時執行，並使用「AI 服務商」中設定的服務商與 Key。若你已開啟 AI 要點摘要，它可能會在閱讀器開啟時執行；所有功能都不會以隱藏的背景工作形式執行。"
   },
   "previewAiEnabled": {
     "message": "在閱讀器啟用 AI 功能"
@@ -2379,7 +2379,7 @@
     "message": "模型覆寫（選填）"
   },
   "previewAiModelHint": {
-    "message": "僅供預覽頁 AI 功能使用的模型名稱，按服務商分別儲存。留空則使用「AI 服務商」中設定的模型。"
+    "message": "僅供閱讀器 AI 功能使用的模型名稱，按服務商分別儲存。留空則使用「AI 服務商」中設定的模型。"
   },
   "previewAiModelFor": {
     "message": "套用於 $PROVIDER$。",
@@ -2535,10 +2535,10 @@
     "message": "本篇快取譯文來自舊版本的詞彙表或提示詞"
   },
   "trStaleMixed": {
-    "message": "本篇譯文由不同版本分段拼成"
+    "message": "本篇譯文的部分段落來自不同版本的詞彙表或提示詞"
   },
   "trRetranslateAll": {
-    "message": "重新翻譯全文（約 ~$TOKENS$ tokens）",
+    "message": "重新翻譯全文（約 $TOKENS$ tokens）",
     "placeholders": {
       "tokens": {
         "content": "$1"
@@ -3529,7 +3529,7 @@
     "message": "已封鎖：請使用 HTTPS；HTTP 僅允許 localhost、127.0.0.1 或 [::1]。區域網路／公網 HTTP、無效網址及含帳號密碼的網址不會傳送。"
   },
   "mdTargetNotionParentWarn": {
-    "message": "無法從這個值解析出頁面 ID。請從瀏覽器網址列複製頁面完整連結後貼上。"
+    "message": "無法從這個欄位解析出頁面 ID。請從瀏覽器網址列複製頁面完整連結後貼上。"
   },
   "hlColorQuote": { "message": "金句" },
   "hlColorDefinition": { "message": "定義" },
@@ -3595,7 +3595,7 @@
   "typoLeadingNormal": { "message": "標準" },
   "typoLeadingRelaxed": { "message": "寬鬆" },
   "typoSchemeLabel": { "message": "外觀" },
-  "typoSchemeAuto": { "message": "跟隨" },
+  "typoSchemeAuto": { "message": "自動" },
   "typoSchemeLight": { "message": "淺色" },
   "typoSchemeDark": { "message": "深色" },
   "skimEnable": { "message": "在閱讀器生成 AI 要點摘要" },
@@ -3634,7 +3634,7 @@
   "mdVideoNoTracks": { "message": "此影片沒有可用字幕" },
   "mdVideoBiliLogin": { "message": "找不到字幕。B 站僅在登入後回傳字幕，請先登入 bilibili.com 再重試。" },
   "mdVideoFailed": { "message": "無法透過擴充功能取得此影片的字幕。YouTube 對部分影片限制了字幕存取。" },
-  "mdVideoBlocked": { "message": "YouTube 攔截了這次請求（它要求確認你不是機器人），與該影片有沒有字幕無關。可以點「在 YouTube 上開啟」，或在設定裡開啟登入 cookie 選項後重試。" },
+  "mdVideoBlocked": { "message": "YouTube 攔截了這次請求（它要求確認你不是機器人），與該影片有沒有字幕無關。可點選「在 YouTube 開啟」，或在設定中開啟登入 Cookie 選項後重試。" },
   "mdVideoOpenTabHint": { "message": "提示：開啟該影片的 YouTube 分頁並保持開啟，然後回來重試——字幕會經由該分頁讀取。" },
   "mdVideoBodyBlocked": { "message": "已找到字幕軌，但 YouTube 未回傳字幕內容。保持該影片的 YouTube 分頁開啟後重試，或切換另一條字幕軌。" },
   "mdVideoPermMissing": { "message": "已拒絕授權，未載入任何內容" },
@@ -3652,34 +3652,34 @@
   "mdVideoOpenExternal": { "message": "在 YouTube 開啟" },
   "mdVideoRetry": { "message": "重新偵測字幕" },
   "mdVideoPermDeclined": { "message": "影片已載入，字幕未啟用" },
-  "mdVideoAiPunctPartial": { "message": "$FAIL$/$TOTAL$ 批未通過校驗，已保留原文；再點一次只重試失敗批", "placeholders": { "fail": { "content": "$1" }, "total": { "content": "$2" } } },
-  "mdVideoAiCancelled": { "message": "已取消，完成 $DONE$/$TOTAL$ 批（進度已快取，再點繼續）", "placeholders": { "done": { "content": "$1" }, "total": { "content": "$2" } } },
+  "mdVideoAiPunctPartial": { "message": "$FAIL$/$TOTAL$ 批未通過檢查，已保留原文；再點一次可只重試失敗的批次", "placeholders": { "fail": { "content": "$1" }, "total": { "content": "$2" } } },
+  "mdVideoAiCancelled": { "message": "已取消，完成 $DONE$/$TOTAL$ 批（進度已快取，再點一次可繼續）", "placeholders": { "done": { "content": "$1" }, "total": { "content": "$2" } } },
   "mdVideoPunctSource": { "message": "原字幕已有標點" },
-  "mdVideoPunctHeuristic": { "message": "已自動基礎斷句" },
-  "mdVideoAiUnconfigured": { "message": "未設定 AI 服務" },
+  "mdVideoPunctHeuristic": { "message": "已自動加上基本標點" },
+  "mdVideoAiUnconfigured": { "message": "未設定 AI 服務商" },
   "mdVideoGrantScope": { "message": "播放器無需此權限，授權僅用於讀取字幕" },
   "mdVideoFollowReadingOff": { "message": "跟隨播放需要時間軸檢視" },
   "mdVideoOpenExternalBili": { "message": "在 bilibili 開啟" },
-  "mdVideoAwaitingTranscript": { "message": "正在取得字幕，稍後自動替換為文字稿…" },
+  "mdVideoAwaitingTranscript": { "message": "正在取得字幕，字幕稿稍後會顯示在這裡…" },
   "mdVideoAiPunctProgress": { "message": "AI 標點 $CUR$/$TOTAL$…", "placeholders": { "cur": { "content": "$1" }, "total": { "content": "$2" } } },
   "mdVideoSwitchingTo": { "message": "正在切換到 $TRACK$…", "placeholders": { "track": { "content": "$1" } } },
   "mdVideoSeeking": { "message": "正在跳轉到 $TIME$，播放器將重新載入", "placeholders": { "time": { "content": "$1" } } },
-  "mdVideoViaPanel": { "message": "字幕來源：官方介面" },
+  "mdVideoViaPanel": { "message": "字幕來源：官方 API" },
   "mdVideoViaCapture": { "message": "字幕來源：播放器擷取" },
-  "mdVideoViaDom": { "message": "字幕來源：頁面面板（降級，建議核對完整性）" },
+  "mdVideoViaDom": { "message": "字幕來源：頁面的字幕稿面板（品質較低，請檢查是否有漏句）" },
   "mdVideoTranscriptHeading": { "message": "字幕稿" },
-  "mdVideoPromoted": { "message": "字幕已就緒，內文已替換" },
+  "mdVideoPromoted": { "message": "字幕稿已就緒，已取代原本的正文" },
   "mdVideoAiCancel": { "message": "取消 AI 標點" },
-  "mdVideoAiPunctEst": { "message": "約 ~$TOKENS$ tokens", "placeholders": { "tokens": { "content": "$1" } } },
-  "mdVideoAiPunctConfirm": { "message": "AI 標點會替換正文：已有翻譯將被清空、問答引用將失效。繼續？" },
+  "mdVideoAiPunctEst": { "message": "約 $TOKENS$ tokens", "placeholders": { "tokens": { "content": "$1" } } },
+  "mdVideoAiPunctConfirm": { "message": "AI 標點會替換正文：已有翻譯將被清空，問答引用將失效。繼續？" },
   "mdStatVideoLen": { "message": "片長 $TIME$", "placeholders": { "time": { "content": "$1" } } },
   "mdVideoCopyMore": { "message": "更多複製格式" },
-  "mdVideoCopyTimed": { "message": "複製帶時間戳的 Markdown" },
+  "mdVideoCopyTimed": { "message": "複製含時間戳記的 Markdown" },
   "mdVideoDownloadSrt": { "message": "下載 SRT 字幕" },
-  "mdVideoSrtSaved": { "message": "已匯出 SRT 檔案" },
+  "mdVideoSrtSaved": { "message": "已儲存 SRT 檔案" },
   "askScopeNear": { "message": "目前位置附近" },
   "askScopeNearHint": { "message": "只傳送目前字幕前後各兩段，更省 token" },
-  "hlTimelineHint": { "message": "要標示請切換到閱讀稿檢視" },
+  "hlTimelineHint": { "message": "要標記請切換到閱讀稿檢視" },
   "hlSeekHere": { "message": "跳轉到此處播放" },
   "mdVideoLoop": { "message": "循環目前句" },
   "mdVideoAutoPause": { "message": "每句結束後暫停" },
@@ -3689,13 +3689,13 @@
   "mdVideoEstimate": { "message": "估計播放位置（B 站不回傳進度：點選任一行後依時間推算；一旦操作播放器即停止，再點一行重新對齊）" },
   "mdVideoEstimateIdle": { "message": "推算已開啟：點選任一行後開始" },
   "mdVideoEstimateStopped": { "message": "偵測到播放器操作，推算已停止；點選任一行重新對齊" },
-  "mdVideoBiliFailed": { "message": "無法取得此影片資訊：B 站介面未回應，或此影片無法使用。" },
+  "mdVideoBiliFailed": { "message": "無法取得此影片資訊：B 站的 API 未回應，或此影片無法使用。" },
   "mdVideoBiliBodyFailed": { "message": "已找到字幕軌，但字幕內容下載失敗。請重試，或切換另一條字幕軌。" },
-  "mdVideoRelaySilent": { "message": "播放器未回傳進度（YouTube 播放器介面未載入）：跟隨、快捷鍵與學習控制暫不可用" },
-  "mdVideoUnplayable": { "message": "YouTube 回報此影片目前無法播放（$STATUS$），與字幕無關。可點「在 YouTube 上開啟」查看原因。", "placeholders": { "status": { "content": "$1" } } },
+  "mdVideoRelaySilent": { "message": "播放器未回傳進度（YouTube 播放器 API 未載入）：跟隨播放進度、鍵盤快捷鍵、循環目前句、每句結束後暫停與播放速度暫時無法使用" },
+  "mdVideoUnplayable": { "message": "YouTube 回報此影片目前無法播放（$STATUS$），與字幕無關。可點選「在 YouTube 開啟」查看原因。", "placeholders": { "status": { "content": "$1" } } },
   "mdVideoBridgeEnable": { "message": "啟用播放跟隨" },
-  "mdVideoBridgeEnableHint": { "message": "授權擴充功能讀取 player.bilibili.com 播放器的播放位置（僅在本預覽頁內，只讀進度與播放狀態），字幕即可像 YouTube 一樣跟隨、循環、句尾暫停。" },
-  "mdVideoGrantScopeBili": { "message": "授權範圍：B 站字幕介面與播放器頁面（讀取字幕與播放進度）" },
+  "mdVideoBridgeEnableHint": { "message": "授權擴充功能從 player.bilibili.com 讀取播放位置（僅在本預覽頁內，只讀取播放位置與播放狀態），字幕稿即可像在 YouTube 上一樣跟隨播放進度、循環目前句與每句結束後暫停。" },
+  "mdVideoGrantScopeBili": { "message": "授權範圍：B 站字幕 API 與播放器頁面（讀取字幕與播放進度）" },
   "mdVideoBridgeSilent": { "message": "播放器未回傳進度：可改用「估計播放位置」，或重新開啟預覽再試" },
   "mdVideoTimelineAria": { "message": "字幕時間軸" },
   "kbdHelpVideoPlay": { "message": "播放 / 暫停" },
@@ -3712,7 +3712,7 @@
   "optVideoLangPrefHint": { "message": "依優先順序填寫語言代碼，以逗號分隔，例如 en, zh 表示英文優先、其次中文；也可以填 zh-Hant 這類完整標籤。順序絕對優先；同一語言內先精確比對完整標籤，再退回主語言代碼。留空則跟隨介面語言。" },
   "optVideoLangCodesLink": { "message": "語言代碼列表" },
   "optVideoPauseOnLookup": { "message": "查詞時暫停播放" },
-  "optVideoPauseOnLookupHint": { "message": "選取文字或開啟解釋彈層時暫停播放（YouTube；bilibili 需先啟用播放跟隨），查完自動繼續。" },
+  "optVideoPauseOnLookupHint": { "message": "選取文字或開啟解釋浮層時暫停播放（YouTube；bilibili 需先啟用播放跟隨），查完自動繼續。" },
   "optVideoDarkScheme": { "message": "影片頁預設使用深色" },
   "optVideoDarkSchemeHint": { "message": "主題為自動或淺色時，影片頁仍以深色閱讀配色開啟。閱讀器的「Aa」面板可為此裝置上的所有閱讀器頁面覆寫此項。" },
   "mdVideoResumePrompt": { "message": "上次看到 $TIME$", "placeholders": { "time": { "content": "$1" } } },
@@ -3723,5 +3723,5 @@
   "mdVideoAuxNone": { "message": "無對照字幕" },
   "mdVideoStateOn": { "message": "已開啟" },
   "mdVideoStateOff": { "message": "已關閉" },
-  "skimWaitingCaptions": { "message": "字幕就位後自動產生要點；也可按「重新產生」立即產生" }
+  "skimWaitingCaptions": { "message": "字幕載入完成後就會生成要點；也可按「重新生成」立即生成" }
 }

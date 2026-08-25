@@ -1344,9 +1344,9 @@
     "message": "Les pages de l'extension suivent le thème Pinboard sélectionné"
   },
   "popupFollowHint": {
-    "message": "Activé, le popup, cette page de réglages et la page Bloc-notes et vocabulaire utilisent la palette du préréglage Pinboard sélectionné ; désactivé, ils utilisent la palette par défaut dans le mode clair/sombre ci-dessus. La page Lecture conserve toujours sa propre palette de lecture."
+    "message": "Lorsque l'option est activée, le popup, cette page de réglages et la page Bloc-notes et vocabulaire utilisent la palette du préréglage Pinboard sélectionné ; lorsqu'elle est désactivée, ils utilisent la palette par défaut dans le mode clair/sombre ci-dessus. La page Lecture conserve toujours sa propre palette de lecture."
   },
-  "optThemeHint": { "message": "Bascule le popup, cette page de réglages, la page Bloc-notes et vocabulaire et la page Lecture entre clair et sombre. Les préréglages dotés de leur propre schéma (Dracula, par exemple) l'emportent sur les pages qui suivent le préréglage ; la page Lecture peut le remplacer par appareil depuis son panneau « Aa »." },
+  "optThemeHint": { "message": "Bascule le popup, cette page de réglages, la page Bloc-notes et vocabulaire et la page Lecture entre clair et sombre. Les préréglages dotés de leur propre schéma (Dracula, par exemple) remplacent ce réglage sur les pages qui suivent le préréglage ; la page Lecture permet de le redéfinir sur chaque appareil depuis son panneau « Aa »." },
   "secPopupElements": {
     "message": "Éléments du popup"
   },
@@ -1710,7 +1710,7 @@
     "message": "Envoyer les cookies de connexion YouTube avec les requêtes de sous-titres"
   },
   "optVideoUseLoginHint": {
-    "message": "N'agit que sur la requête de secours envoyée par la page Lecture elle-même lorsqu'aucun onglet www.youtube.com n'est ouvert ; si un onglet YouTube est ouvert, les sous-titres sont lus via cet onglet et sa session. Activé par défaut : une requête de secours anonyme risque davantage d'être prise pour un robot et refusée."
+    "message": "N'agit que sur la requête de secours que la page Lecture envoie directement lorsqu'aucun onglet www.youtube.com n'est ouvert ; si un onglet YouTube est ouvert, les sous-titres sont lus via cet onglet et sa session. Activé par défaut : une requête de secours anonyme risque davantage d'être prise pour un robot et refusée."
   },
   "mdTglToc": {
     "message": "TDM"
@@ -2367,19 +2367,19 @@
     "message": "IA de la page Lecture"
   },
   "previewAiSectionHint": {
-    "message": "L'explication d'une sélection, les questions à la page et la traduction intégrale sur la page Lecture sont lancées par l'utilisateur et utilisent le fournisseur et la clé configurés dans l'onglet « Fournisseurs IA ». Si l'aperçu facultatif des points clés est activé, il peut s'exécuter à l'ouverture de la page Lecture ; rien ne s'exécute comme tâche masquée en arrière-plan."
+    "message": "L'explication d'une sélection, « Interroger la page » et la traduction intégrale sur la page Lecture ne s'exécutent que si vous les lancez, et utilisent le fournisseur d'IA et la clé configurés dans l'onglet « Fournisseurs IA ». Si vous avez activé le résumé des points clés, il peut s'exécuter à l'ouverture de la page Lecture ; rien ne s'exécute comme tâche masquée en arrière-plan."
   },
   "previewAiEnabled": {
     "message": "Activer les fonctionnalités IA sur la page Lecture"
   },
   "previewAiEnabledHint": {
-    "message": "Désactiver supprime tous les points d'entrée IA de la page Lecture. Les points d'entrée sont également masqués automatiquement si aucune clé API n'est configurée."
+    "message": "Désactiver cette option supprime tous les points d'entrée IA de la page Lecture. Les points d'entrée sont également masqués automatiquement si aucune clé API n'est configurée."
   },
   "previewAiModelLabel": {
     "message": "Remplacement du modèle (optionnel)"
   },
   "previewAiModelHint": {
-    "message": "Nom du modèle utilisé uniquement par les fonctionnalités IA de la page de prévisualisation, enregistré séparément pour chaque fournisseur. Laisser vide pour utiliser le modèle configuré dans l'onglet « Fournisseurs IA »."
+    "message": "Nom du modèle utilisé uniquement par les fonctionnalités IA de la page Lecture, enregistré séparément pour chaque fournisseur. Laisser vide pour utiliser le modèle configuré dans l'onglet « Fournisseurs IA »."
   },
   "previewAiModelFor": {
     "message": "S'applique à $PROVIDER$.",
@@ -2535,10 +2535,10 @@
     "message": "Cette traduction en cache provient d'une version antérieure du glossaire ou du prompt"
   },
   "trStaleMixed": {
-    "message": "Cette traduction a été assemblée à partir de versions différentes"
+    "message": "Certains passages de cette traduction proviennent de versions différentes du glossaire ou du prompt"
   },
   "trRetranslateAll": {
-    "message": "Tout retraduire (environ ~$TOKENS$ jetons)",
+    "message": "Tout retraduire (~$TOKENS$ jetons)",
     "placeholders": {
       "tokens": {
         "content": "$1"
@@ -3529,7 +3529,7 @@
     "message": "Bloqué : utilisez HTTPS, ou HTTP uniquement pour localhost, 127.0.0.1 ou [::1]. Les URL HTTP sur réseau local/public, non valides ou contenant des identifiants ne sont pas envoyées."
   },
   "mdTargetNotionParentWarn": {
-    "message": "Impossible d'en extraire un ID de page. Collez l'URL complète de la page depuis la barre d'adresse."
+    "message": "Aucun ID de page trouvé dans ce champ. Collez l'URL complète de la page depuis la barre d'adresse."
   },
   "hlColorQuote": { "message": "Citation" },
   "hlColorDefinition": { "message": "Définition" },
@@ -3595,10 +3595,10 @@
   "typoLeadingNormal": { "message": "Normal" },
   "typoLeadingRelaxed": { "message": "Aéré" },
   "typoSchemeLabel": { "message": "Apparence" },
-  "typoSchemeAuto": { "message": "Selon réglages" },
+  "typoSchemeAuto": { "message": "Automatique" },
   "typoSchemeLight": { "message": "Clair" },
   "typoSchemeDark": { "message": "Sombre" },
-  "skimEnable": { "message": "Générer un résumé des points clés IA sur la page Lecture" },
+  "skimEnable": { "message": "Générer un résumé IA des points clés sur la page Lecture" },
   "skimEnableHint": { "message": "Affiche 3 à 5 points clés en haut de la page Lecture. Chaque génération consomme des jetons IA ; les résultats sont mis en cache par article." },
   "skimTitle": { "message": "Points clés" },
   "skimRegen": { "message": "Régénérer" },
@@ -3634,7 +3634,7 @@
   "mdVideoNoTracks": { "message": "Aucun sous-titre disponible pour cette vidéo" },
   "mdVideoBiliLogin": { "message": "Aucun sous-titre trouvé. Bilibili ne renvoie des sous-titres que si vous êtes connecté — connectez-vous sur bilibili.com, puis réessayez." },
   "mdVideoFailed": { "message": "Les sous-titres ne sont pas disponibles pour cette vidéo via l'extension. YouTube restreint l'accès aux sous-titres pour certaines vidéos." },
-  "mdVideoBlocked": { "message": "YouTube a bloqué cette requête et demande de confirmer que vous n'êtes pas un robot. Cela ne dit rien sur les sous-titres de la vidéo. Utilisez le lien pour ouvrir sur YouTube, ou activez l'option de cookies de connexion dans les réglages." },
+  "mdVideoBlocked": { "message": "YouTube a bloqué cette requête et demande de confirmer que vous n'êtes pas un robot. Cela ne concerne pas les sous-titres de la vidéo. Utilisez le lien « Ouvrir sur YouTube », ou activez les cookies de connexion dans les réglages." },
   "mdVideoOpenTabHint": { "message": "Astuce : ouvrez la vidéo dans un onglet YouTube, laissez-le ouvert et réessayez — les sous-titres seront alors lus via cet onglet." },
   "mdVideoBodyBlocked": { "message": "Des pistes de sous-titres ont été trouvées, mais YouTube n'a pas fourni leur texte. Gardez l'onglet YouTube de cette vidéo ouvert et réessayez, ou choisissez une autre piste." },
   "mdVideoPermMissing": { "message": "Autorisation refusée ; rien n'a été chargé" },
@@ -3646,57 +3646,57 @@
   "mdVideoAsr": { "message": "générés automatiquement" },
   "mdVideoViewReading": { "message": "Texte" },
   "mdVideoViewTimeline": { "message": "Chronologie" },
-  "mdVideoFollow": { "message": "Sous-titres synchronisés avec la lecture" },
+  "mdVideoFollow": { "message": "La transcription suit la position de lecture" },
   "mdVideoSeekTo": { "message": "Aller à $TIME$", "placeholders": { "time": { "content": "$1" } } },
   "mdVideoCopyFailed": { "message": "Échec de la copie" },
   "mdVideoOpenExternal": { "message": "Ouvrir sur YouTube" },
   "mdVideoRetry": { "message": "Revérifier les sous-titres" },
   "mdVideoPermDeclined": { "message": "Vidéo chargée ; sous-titres non activés" },
   "mdVideoAiPunctPartial": { "message": "$FAIL$ lots sur $TOTAL$ ont échoué au contrôle ; texte d'origine conservé. Cliquez à nouveau pour ne relancer que ceux-là.", "placeholders": { "fail": { "content": "$1" }, "total": { "content": "$2" } } },
-  "mdVideoAiCancelled": { "message": "Annulé à $DONE$ lots sur $TOTAL$ ; progression conservée, cliquez pour continuer.", "placeholders": { "done": { "content": "$1" }, "total": { "content": "$2" } } },
+  "mdVideoAiCancelled": { "message": "Annulé après $DONE$ lots sur $TOTAL$. Progression conservée ; cliquez pour continuer.", "placeholders": { "done": { "content": "$1" }, "total": { "content": "$2" } } },
   "mdVideoPunctSource": { "message": "Déjà ponctué" },
   "mdVideoPunctHeuristic": { "message": "Ponctuation de base" },
   "mdVideoAiUnconfigured": { "message": "Aucun fournisseur d'IA configuré" },
-  "mdVideoGrantScope": { "message": "Le lecteur n'exige aucune autorisation ; elle sert uniquement à lire les sous-titres" },
+  "mdVideoGrantScope": { "message": "Le lecteur n'exige aucune autorisation ; l'accès demandé sert uniquement à lire les sous-titres" },
   "mdVideoFollowReadingOff": { "message": "Suivre la lecture requiert la vue chronologique" },
   "mdVideoOpenExternalBili": { "message": "Ouvrir sur bilibili" },
-  "mdVideoAwaitingTranscript": { "message": "Récupération des sous-titres ; la transcription prendra le relais…" },
+  "mdVideoAwaitingTranscript": { "message": "Récupération des sous-titres ; la transcription s'affichera ici dans un instant…" },
   "mdVideoAiPunctProgress": { "message": "Ponctuation IA $CUR$/$TOTAL$…", "placeholders": { "cur": { "content": "$1" }, "total": { "content": "$2" } } },
   "mdVideoSwitchingTo": { "message": "Passage à $TRACK$…", "placeholders": { "track": { "content": "$1" } } },
   "mdVideoSeeking": { "message": "Saut à $TIME$ ; le lecteur va se recharger", "placeholders": { "time": { "content": "$1" } } },
-  "mdVideoViaPanel": { "message": "Sous-titres via l’interface officielle" },
+  "mdVideoViaPanel": { "message": "Sous-titres via l'API officielle" },
   "mdVideoViaCapture": { "message": "Sous-titres via la capture du lecteur" },
-  "mdVideoViaDom": { "message": "Sous-titres via le panneau de la page (dégradé ; vérifiez l’intégralité)" },
+  "mdVideoViaDom": { "message": "Sous-titres via le panneau de transcription de la page (qualité moindre ; vérifiez qu'il ne manque rien)" },
   "mdVideoTranscriptHeading": { "message": "Transcription" },
-  "mdVideoPromoted": { "message": "Transcription prête ; l’article a été remplacé" },
+  "mdVideoPromoted": { "message": "Transcription prête ; elle a remplacé l'article" },
   "mdVideoAiCancel": { "message": "Annuler la ponctuation IA" },
   "mdVideoAiPunctEst": { "message": "≈ $TOKENS$ jetons", "placeholders": { "tokens": { "content": "$1" } } },
-  "mdVideoAiPunctConfirm": { "message": "La ponctuation IA remplace l'article : les traductions existantes seront effacées et les citations Ask invalidées. Continuer ?" },
+  "mdVideoAiPunctConfirm": { "message": "La ponctuation IA remplace l'article : les traductions existantes seront effacées et les citations du panneau « Interroger la page » ne seront plus valides. Continuer ?" },
   "mdStatVideoLen": { "message": "Vidéo $TIME$", "placeholders": { "time": { "content": "$1" } } },
   "mdVideoCopyMore": { "message": "Autres formats de copie" },
   "mdVideoCopyTimed": { "message": "Copier le Markdown horodaté" },
   "mdVideoDownloadSrt": { "message": "Télécharger les sous-titres SRT" },
   "mdVideoSrtSaved": { "message": "Fichier SRT enregistré" },
   "askScopeNear": { "message": "Autour du moment actuel" },
-  "askScopeNearHint": { "message": "N'envoie que les deux paragraphes autour du sous-titre actuel -- moins de tokens" },
-  "hlTimelineHint": { "message": "Passez en vue lecture pour surligner" },
+  "askScopeNearHint": { "message": "N'envoie que les deux paragraphes autour du sous-titre actuel — moins de jetons" },
+  "hlTimelineHint": { "message": "Passez en vue « Texte » pour surligner" },
   "hlSeekHere": { "message": "Lire à partir d'ici" },
   "mdVideoLoop": { "message": "Répéter ce sous-titre" },
   "mdVideoAutoPause": { "message": "Pause après chaque sous-titre" },
   "mdVideoRate": { "message": "Vitesse de lecture" },
   "mdVideoFollowPaused": { "message": "Suivi en pause" },
   "mdVideoBackToCurrent": { "message": "Revenir au sous-titre actuel $TIME$", "placeholders": { "time": { "content": "$1" } } },
-  "mdVideoEstimate": { "message": "Position estimée (Bilibili ne transmet pas la position de lecture : l'horloge part de la ligne cliquée et s'arrête dès que vous touchez le lecteur ; cliquez une ligne pour réaligner)" },
-  "mdVideoEstimateIdle": { "message": "Estimation activée : cliquez une ligne pour la lancer" },
-  "mdVideoEstimateStopped": { "message": "Lecteur manipulé : estimation arrêtée ; cliquez une ligne pour réaligner" },
+  "mdVideoEstimate": { "message": "Position estimée (Bilibili ne transmet pas la position de lecture : l'horloge part de la ligne cliquée et s'arrête dès que vous utilisez le lecteur ; cliquez sur une ligne pour réaligner)" },
+  "mdVideoEstimateIdle": { "message": "Estimation activée : cliquez sur une ligne pour la lancer" },
+  "mdVideoEstimateStopped": { "message": "Estimation arrêtée car vous avez utilisé le lecteur ; cliquez sur une ligne pour réaligner" },
   "mdVideoBiliFailed": { "message": "Impossible de charger les informations de la vidéo : l'API Bilibili ne répond pas, ou la vidéo est indisponible." },
   "mdVideoBiliBodyFailed": { "message": "Une piste de sous-titres a été trouvée, mais son texte n'a pas pu être téléchargé. Réessayez ou choisissez une autre piste." },
-  "mdVideoRelaySilent": { "message": "Le lecteur ne transmet pas sa position (l'API du lecteur YouTube n'a pas chargé) : suivi, raccourcis et commandes d'étude indisponibles pour l'instant" },
+  "mdVideoRelaySilent": { "message": "Le lecteur ne transmet pas sa position (l'API du lecteur YouTube n'a pas chargé) : le suivi de lecture, les raccourcis clavier, la répétition, la pause automatique et la vitesse de lecture sont indisponibles pour l'instant" },
   "mdVideoUnplayable": { "message": "YouTube indique que cette vidéo n'est pas lisible pour le moment ($STATUS$) ; cela ne concerne pas les sous-titres. Ouvrez-la sur YouTube pour en connaître la raison.", "placeholders": { "status": { "content": "$1" } } },
   "mdVideoBridgeEnable": { "message": "Activer le suivi de lecture" },
-  "mdVideoBridgeEnableHint": { "message": "Autorise l'extension à lire la position du lecteur player.bilibili.com (dans cet aperçu seulement ; position et état de lecture, rien d'autre) pour que les sous-titres suivent, bouclent et se mettent en pause comme sur YouTube." },
+  "mdVideoBridgeEnableHint": { "message": "Autorise l'extension à lire la position de lecture depuis player.bilibili.com (dans cet aperçu seulement ; position et état de lecture, rien d'autre) pour que la transcription puisse suivre la lecture, répéter un sous-titre et se mettre en pause après chaque sous-titre, comme sur YouTube." },
   "mdVideoGrantScopeBili": { "message": "L'autorisation couvre l'API de sous-titres de Bilibili et sa page lecteur (sous-titres et position de lecture)" },
-  "mdVideoBridgeSilent": { "message": "Le lecteur ne transmet pas sa position : utilisez la position estimée ou rouvrez l'aperçu" },
+  "mdVideoBridgeSilent": { "message": "Le lecteur ne transmet pas sa position : utilisez la position estimée ou rouvrez l'aperçu pour réessayer" },
   "mdVideoTimelineAria": { "message": "Chronologie des sous-titres" },
   "kbdHelpVideoPlay": { "message": "Lecture / pause" },
   "kbdHelpVideoSeek": { "message": "Reculer / avancer de 3 s" },
@@ -3704,24 +3704,24 @@
   "kbdHelpVideoLoop": { "message": "Répéter ce sous-titre" },
   "kbdHelpVideoFollow": { "message": "Suivre la lecture" },
   "kbdHelpVideoCurrent": { "message": "Revenir au sous-titre actuel" },
-  "kbdHelpVideoView": { "message": "Lecture / chronologie" },
+  "kbdHelpVideoView": { "message": "Texte / chronologie" },
   "kbdHelpVideoSection": { "message": "Pages vidéo" },
   "kbdHelpVideoNote": { "message": "Espace, Gauche, Droite, r et f nécessitent que le lecteur signale sa position : toujours sur YouTube, sur bilibili une fois le suivi de lecture activé." },
   "secVideoPreview": { "message": "Pages vidéo" },
   "optVideoLangPref": { "message": "Langues de sous-titres préférées" },
   "optVideoLangPrefHint": { "message": "Codes de langue par ordre de préférence, séparés par des virgules, p. ex. en, zh (anglais d'abord, puis chinois) ; un code complet comme zh-Hant est aussi accepté. L'ordre de la liste prime toujours ; au sein d'une même langue, un code complet est d'abord recherché tel quel avant de revenir au code de base. Laissez vide pour suivre la langue de l'interface." },
   "optVideoLangCodesLink": { "message": "Liste des codes de langue" },
-  "optVideoPauseOnLookup": { "message": "Mettre en pause pendant une recherche" },
+  "optVideoPauseOnLookup": { "message": "Mettre le lecteur en pause pendant la recherche d'un mot" },
   "optVideoPauseOnLookupHint": { "message": "Sélectionner du texte ou ouvrir la fenêtre d'explication met le lecteur en pause (YouTube ; bilibili une fois le suivi de lecture activé) ; la lecture reprend à la fin de la recherche." },
-  "optVideoDarkScheme": { "message": "Ouvrir les pages vidéo en sombre" },
+  "optVideoDarkScheme": { "message": "Ouvrir les pages vidéo en mode sombre" },
   "optVideoDarkSchemeHint": { "message": "Même avec le thème Auto ou Clair, les pages vidéo s'ouvrent dans la palette de lecture sombre. Le panneau « Aa » de la page Lecture peut remplacer ce réglage pour toutes les pages Lecture de cet appareil." },
-  "mdVideoResumePrompt": { "message": "Vu jusqu'à $TIME$", "placeholders": { "time": { "content": "$1" } } },
+  "mdVideoResumePrompt": { "message": "Vous en étiez à $TIME$", "placeholders": { "time": { "content": "$1" } } },
   "mdVideoResumeGo": { "message": "Reprendre" },
   "mdVideoResumeRestart": { "message": "Recommencer" },
   "mdVideoDensityPara": { "message": "Afficher par paragraphe" },
-  "mdVideoAuxTrack": { "message": "Sous-titres compagnons" },
-  "mdVideoAuxNone": { "message": "Aucun sous-titre compagnon" },
+  "mdVideoAuxTrack": { "message": "Sous-titres secondaires" },
+  "mdVideoAuxNone": { "message": "Aucun sous-titre secondaire" },
   "mdVideoStateOn": { "message": "activé" },
   "mdVideoStateOff": { "message": "désactivé" },
-  "skimWaitingCaptions": { "message": "Les points clés seront générés dès l'arrivée des sous-titres ; « Régénérer » le fait maintenant" }
+  "skimWaitingCaptions": { "message": "Les points clés seront générés une fois les sous-titres chargés ; utilisez « Régénérer » pour les créer maintenant" }
 }

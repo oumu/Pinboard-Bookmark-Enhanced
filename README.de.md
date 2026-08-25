@@ -24,12 +24,12 @@ Eine Chrome-Erweiterung für [Pinboard](https://pinboard.in): KI-Tags und Zusamm
 ![Speichern mit einem Klick, KI-Tags und Zusammenfassung](docs/cws-assets/originals/screenshot-1-save.png)
 
 ### Tags
-- **KI-Tags und Zusammenfassung** – gelesen wird der Artikeltext ohne Werbung, Menüs und Seitenleisten; eigener API-Schlüssel, 14 Anbieter oder ein beliebiger OpenAI-kompatibler Endpunkt
+- **KI-Tags und Zusammenfassung** – gelesen wird der Artikeltext ohne Werbung, Menüs und Seitenleisten; eigener API-Schlüssel, 15 Anbieter oder ein beliebiger OpenAI-kompatibler Endpunkt
 - **Autovervollständigung** – aus deinen Tags, Pinboards Vorschlägen und Ein-Klick-Voreinstellungen
 - **Tags aufräumen** – doppelte und selten genutzte Tags finden und stapelweise zusammenführen
 
 ### Lesen
-- **Jede Seite wird zur Leseansicht** – Markdown-Ansicht mit Inhaltsverzeichnis, Suche und Fußnoten-Vorschau
+- **Jede Seite wird zur Leseansicht** – Markdown-Ansicht mit Inhaltsverzeichnis, Suche und Fußnoten-Vorschau; Formeln, Diagramme und Tabellen werden sauber dargestellt
 - **Markieren in fünf Farben, mit Notizen** – Markierungen und Notizen überstehen erneutes Rendern, Übersetzung und Änderungen an der Seite
 - **Seite übersetzen oder befragen** – Ganzseiten-Übersetzung mit zweisprachiger Ansicht; Antworten zitieren die Quelle, ein Klick führt direkt zur Fundstelle
 - **Wörter beim Lesen nachschlagen und wiederholen**: Definitionen zeigen zuerst die zum Satz passende Bedeutung; gespeicherte Vokabeln lassen sich mit Notizen und einem Lernstatus versehen und an Anki oder Eudic senden. Optional gibt es Offline-Wörterbuchpakete für Chinesisch–Englisch und Englisch–Chinesisch

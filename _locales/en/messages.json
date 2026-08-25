@@ -1680,7 +1680,7 @@
     "message": "Send YouTube login cookies with subtitle requests"
   },
   "optVideoUseLoginHint": {
-    "message": "Only affects the fallback request the reader sends itself when no www.youtube.com tab is open; with a YouTube tab open, captions are read through that tab and its own session. On by default: an anonymous fallback request is more likely to be treated as a bot and refused."
+    "message": "Only affects the fallback request the reader sends directly when no www.youtube.com tab is open; with a YouTube tab open, captions are read through that tab and its own session. On by default: an anonymous fallback request is more likely to be treated as a bot and refused."
   },
   "mdTglToc": {
     "message": "TOC"
@@ -2367,7 +2367,7 @@
     "message": "Reader AI"
   },
   "previewAiSectionHint": {
-    "message": "Explain selection, Ask, and full-text translation on the reader page are user-invoked and use the AI provider and key configured on the AI Providers tab. If the opt-in key-points skim is enabled, it may run when the reader opens; nothing runs as a hidden background task."
+    "message": "Explain selection, Ask, and full-text translation on the reader page run only when you start them, and use the AI provider and key configured on the AI Providers tab. If you have turned on the key-points summary, it may run when the reader opens; nothing runs as a hidden background task."
   },
   "previewAiEnabled": {
     "message": "Enable AI features in the reader"
@@ -2379,7 +2379,7 @@
     "message": "Model override (optional)"
   },
   "previewAiModelHint": {
-    "message": "Model name used only by preview-page AI features, saved separately for each provider. Leave empty to use the model configured on the AI Providers tab."
+    "message": "Model name used only by the reader's AI features, saved separately for each provider. Leave empty to use the model configured on the AI Providers tab."
   },
   "previewAiModelFor": {
     "message": "Applies to $PROVIDER$.",
@@ -2517,16 +2517,16 @@
     "message": "Translation failed for this paragraph"
   },
   "trErrKey": {
-    "message": "API key invalid or rejected, check it in Settings"
+    "message": "API key invalid or rejected; check it in Settings"
   },
   "trErrQuota": {
-    "message": "Rate limit or quota exceeded, try again later"
+    "message": "Rate limit or quota exceeded; try again later"
   },
   "trErrNetwork": {
-    "message": "Network or server error, try again later"
+    "message": "Network or server error; try again later"
   },
   "trErrTimeout": {
-    "message": "The AI service timed out, try again"
+    "message": "The AI service timed out; try again"
   },
   "trRetranslate": {
     "message": "Retranslate"
@@ -2535,7 +2535,7 @@
     "message": "This cached translation was made with an older glossary or prompt version"
   },
   "trStaleMixed": {
-    "message": "This translation was assembled across different versions"
+    "message": "Parts of this translation came from different glossary or prompt versions"
   },
   "trRetranslateAll": {
     "message": "Retranslate all (~$TOKENS$ tokens)",
@@ -3523,7 +3523,7 @@
     "message": "Blocked: use HTTPS, or HTTP only for localhost, 127.0.0.1, or [::1]. LAN/public HTTP, malformed URLs, and URLs containing credentials are not sent."
   },
   "mdTargetNotionParentWarn": {
-    "message": "No page ID found in this value. Paste the page's full URL from your browser's address bar."
+    "message": "No page ID found in this field. Paste the page's full URL from your browser's address bar."
   },
   "hlColorQuote": { "message": "Quote" },
   "hlColorDefinition": { "message": "Definition" },
@@ -3589,7 +3589,7 @@
   "typoLeadingNormal": { "message": "Standard" },
   "typoLeadingRelaxed": { "message": "Relaxed" },
   "typoSchemeLabel": { "message": "Appearance" },
-  "typoSchemeAuto": { "message": "Follow" },
+  "typoSchemeAuto": { "message": "Auto" },
   "typoSchemeLight": { "message": "Light" },
   "typoSchemeDark": { "message": "Dark" },
   "skimEnable": { "message": "Generate an AI key-points summary in the reader" },
@@ -3627,10 +3627,10 @@
   "mdVideoTrackAria": { "message": "Subtitle language" },
   "mdVideoNoTracks": { "message": "No subtitles are available for this video" },
   "mdVideoBiliLogin": { "message": "No subtitles found. Bilibili only returns subtitles when you are logged in — sign in at bilibili.com, then try again." },
-  "mdVideoFailed": { "message": "Subtitles are not available for this video through the extension. YouTube restricts caption access for some videos." },
-  "mdVideoBlocked": { "message": "YouTube blocked this request (it asks to confirm you are not a bot). This is not about the video's subtitles. Try the open on YouTube link, or turn on the login-cookie setting in options." },
+  "mdVideoFailed": { "message": "Subtitles are not available for this video through the extension. YouTube restricts subtitle access for some videos." },
+  "mdVideoBlocked": { "message": "YouTube blocked this request (it asks to confirm you are not a bot). This is not about the video's subtitles. Try the \"Open on YouTube\" link, or turn on login cookies in Settings." },
   "mdVideoOpenTabHint": { "message": "Tip: open this video in a YouTube tab, keep it open, and retry — subtitles are then read through that tab." },
-  "mdVideoBodyBlocked": { "message": "Caption tracks were found, but YouTube withheld their text. Keep this video's YouTube tab open and retry, or pick another track." },
+  "mdVideoBodyBlocked": { "message": "Subtitle tracks were found, but YouTube withheld their text. Keep this video's YouTube tab open and retry, or pick another track." },
   "mdVideoPermMissing": { "message": "Permission was declined; nothing was loaded" },
   "mdVideoCopyMd": { "message": "Copy transcript as Markdown" },
   "mdVideoAiPunct": { "message": "AI punctuation" },
@@ -3647,22 +3647,22 @@
   "mdVideoRetry": { "message": "Re-check subtitles" },
   "mdVideoPermDeclined": { "message": "Video loaded; subtitles not enabled" },
   "mdVideoAiPunctPartial": { "message": "$FAIL$ of $TOTAL$ batches failed the check; original text kept. Click again to retry only the failed ones.", "placeholders": { "fail": { "content": "$1" }, "total": { "content": "$2" } } },
-  "mdVideoAiCancelled": { "message": "Cancelled at $DONE$ of $TOTAL$ batches; progress is cached, click to continue.", "placeholders": { "done": { "content": "$1" }, "total": { "content": "$2" } } },
+  "mdVideoAiCancelled": { "message": "Cancelled at $DONE$ of $TOTAL$ batches. Progress is cached; click to continue.", "placeholders": { "done": { "content": "$1" }, "total": { "content": "$2" } } },
   "mdVideoPunctSource": { "message": "Already punctuated" },
   "mdVideoPunctHeuristic": { "message": "Basic auto-punctuation" },
   "mdVideoAiUnconfigured": { "message": "No AI provider configured" },
-  "mdVideoGrantScope": { "message": "The player needs no permission; the grant only reads subtitles" },
+  "mdVideoGrantScope": { "message": "The player needs no permission; the grant is used only to read subtitles" },
   "mdVideoFollowReadingOff": { "message": "Follow playback needs the timeline view" },
   "mdVideoOpenExternalBili": { "message": "Open on bilibili" },
-  "mdVideoAwaitingTranscript": { "message": "Fetching subtitles; the transcript will take over shortly…" },
+  "mdVideoAwaitingTranscript": { "message": "Fetching subtitles; the transcript will appear here shortly…" },
   "mdVideoAiPunctProgress": { "message": "AI punctuation $CUR$/$TOTAL$…", "placeholders": { "cur": { "content": "$1" }, "total": { "content": "$2" } } },
   "mdVideoSwitchingTo": { "message": "Switching to $TRACK$…", "placeholders": { "track": { "content": "$1" } } },
   "mdVideoSeeking": { "message": "Jumping to $TIME$; the player will reload", "placeholders": { "time": { "content": "$1" } } },
   "mdVideoViaPanel": { "message": "Captions via the official endpoint" },
   "mdVideoViaCapture": { "message": "Captions via player capture" },
-  "mdVideoViaDom": { "message": "Captions via the page panel (degraded; check completeness)" },
+  "mdVideoViaDom": { "message": "Captions via the page's transcript panel (lower quality; check for missing lines)" },
   "mdVideoTranscriptHeading": { "message": "Transcript" },
-  "mdVideoPromoted": { "message": "Transcript ready; the article was replaced" },
+  "mdVideoPromoted": { "message": "Transcript ready; it has replaced the article" },
   "mdVideoAiCancel": { "message": "Cancel AI punctuation" },
   "mdVideoAiPunctEst": { "message": "≈ $TOKENS$ tokens", "placeholders": { "tokens": { "content": "$1" } } },
   "mdVideoAiPunctConfirm": { "message": "AI punctuation replaces the article: existing translations are cleared and Ask citations go stale. Continue?" },
@@ -3672,7 +3672,7 @@
   "mdVideoDownloadSrt": { "message": "Download SRT subtitles" },
   "mdVideoSrtSaved": { "message": "SRT file saved" },
   "askScopeNear": { "message": "Near the current moment" },
-  "askScopeNearHint": { "message": "Send only the two paragraphs around the current caption -- fewer tokens" },
+  "askScopeNearHint": { "message": "Send only the two paragraphs around the current caption — fewer tokens" },
   "hlTimelineHint": { "message": "Switch to the reading view to highlight" },
   "hlSeekHere": { "message": "Play from here" },
   "mdVideoLoop": { "message": "Repeat this cue" },
@@ -3680,15 +3680,15 @@
   "mdVideoRate": { "message": "Playback speed" },
   "mdVideoFollowPaused": { "message": "Follow paused" },
   "mdVideoBackToCurrent": { "message": "Back to the current cue $TIME$", "placeholders": { "time": { "content": "$1" } } },
-  "mdVideoEstimate": { "message": "Estimated position (Bilibili reports no playback position: the clock starts from the row you click and stops as soon as you touch the player; click a row to realign)" },
+  "mdVideoEstimate": { "message": "Estimated position (Bilibili reports no playback position: the clock starts from the row you click and stops as soon as you use the player; click a row to realign)" },
   "mdVideoEstimateIdle": { "message": "Estimate on: click a row to start it" },
-  "mdVideoEstimateStopped": { "message": "Player touched: estimate stopped; click a row to realign" },
-  "mdVideoBiliFailed": { "message": "Could not load this video's details: the Bilibili API did not answer, or the video is unavailable." },
+  "mdVideoEstimateStopped": { "message": "Estimate stopped because you used the player; click a row to realign" },
+  "mdVideoBiliFailed": { "message": "Could not load this video's details: bilibili's API did not answer, or the video is unavailable." },
   "mdVideoBiliBodyFailed": { "message": "A subtitle track was found, but its text failed to download. Retry, or pick another track." },
-  "mdVideoRelaySilent": { "message": "The player is not reporting its position (the YouTube player API did not load): follow, shortcuts and study controls are unavailable for now" },
+  "mdVideoRelaySilent": { "message": "The player is not reporting its position (the YouTube player API did not load): playback follow, the keyboard shortcuts, repeat, auto-pause and playback speed are unavailable for now" },
   "mdVideoUnplayable": { "message": "YouTube reports this video as not playable right now ($STATUS$); this is not about subtitles. Open it on YouTube to see why.", "placeholders": { "status": { "content": "$1" } } },
   "mdVideoBridgeEnable": { "message": "Enable playback sync" },
-  "mdVideoBridgeEnableHint": { "message": "Let the extension read the player.bilibili.com player's position (inside this preview only; position and play state, nothing else) so captions follow, loop and auto-pause as they do on YouTube." },
+  "mdVideoBridgeEnableHint": { "message": "Let the extension read the playback position from player.bilibili.com (inside this preview only; position and play state, nothing else) so the transcript can follow playback, repeat a cue and pause after each cue, as it does on YouTube." },
   "mdVideoGrantScopeBili": { "message": "The grant covers bilibili's subtitle API and its player page (subtitles and the playback position)" },
   "mdVideoBridgeSilent": { "message": "The player is not reporting its position: use the estimated position instead, or reopen the preview to try again" },
   "mdVideoTimelineAria": { "message": "Caption timeline" },
@@ -3699,23 +3699,23 @@
   "kbdHelpVideoFollow": { "message": "Follow playback" },
   "kbdHelpVideoCurrent": { "message": "Back to the current cue" },
   "kbdHelpVideoView": { "message": "Reading / timeline" },
-  "kbdHelpVideoSection": { "message": "Video pages" },
+  "kbdHelpVideoSection": { "message": "Video Pages" },
   "kbdHelpVideoNote": { "message": "Space, Left, Right, r and f need the player to report its position: always on YouTube, on bilibili once playback follow is enabled." },
-  "secVideoPreview": { "message": "Video pages" },
-  "optVideoLangPref": { "message": "Preferred caption languages" },
+  "secVideoPreview": { "message": "Video Pages" },
+  "optVideoLangPref": { "message": "Preferred subtitle languages" },
   "optVideoLangPrefHint": { "message": "Language codes in order of preference, comma separated, e.g. en, zh (English first, then Chinese); a full tag such as zh-Hant is accepted too. The list order always wins; within one language a full tag is matched exactly before falling back to its base code. Leave empty to follow the interface language." },
   "optVideoLangCodesLink": { "message": "Language code list" },
   "optVideoPauseOnLookup": { "message": "Pause the player while looking a word up" },
   "optVideoPauseOnLookupHint": { "message": "Selecting text or opening the explain popover pauses the player (YouTube; bilibili once playback follow is enabled); it resumes when the lookup ends." },
-  "optVideoDarkScheme": { "message": "Open video pages in dark" },
+  "optVideoDarkScheme": { "message": "Open video pages in dark mode" },
   "optVideoDarkSchemeHint": { "message": "With Theme set to Auto or Light, video pages still open in the dark reading palette. The reader's \"Aa\" panel can override this for every reader page on this device." },
-  "mdVideoResumePrompt": { "message": "Last watched to $TIME$", "placeholders": { "time": { "content": "$1" } } },
+  "mdVideoResumePrompt": { "message": "You stopped at $TIME$", "placeholders": { "time": { "content": "$1" } } },
   "mdVideoResumeGo": { "message": "Continue" },
   "mdVideoResumeRestart": { "message": "Start over" },
   "mdVideoDensityPara": { "message": "Show by paragraph" },
-  "mdVideoAuxTrack": { "message": "Companion captions" },
-  "mdVideoAuxNone": { "message": "No companion captions" },
+  "mdVideoAuxTrack": { "message": "Secondary subtitles" },
+  "mdVideoAuxNone": { "message": "No secondary subtitles" },
   "mdVideoStateOn": { "message": "on" },
   "mdVideoStateOff": { "message": "off" },
-  "skimWaitingCaptions": { "message": "Key points will be generated once the captions land; Regenerate makes them now" }
+  "skimWaitingCaptions": { "message": "Key points will be generated once the captions have loaded; use Regenerate to create them now" }
 }

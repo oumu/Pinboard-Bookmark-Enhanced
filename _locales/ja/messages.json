@@ -1246,7 +1246,7 @@
     "message": "ポップアップを開いたときに AI タグを自動生成"
   },
   "optAiUseTranscript": { "message": "動画ページでは字幕を AI の内容ソースにする" },
-  "optAiUseTranscriptHint": { "message": "YouTube と Bilibili の動画ページでは、AI タグと要約がページ本文ではなく字幕を読みます。字幕の読み取りを許可済みの場合のみ有効で、自動で許可を求めることはありません。" },
+  "optAiUseTranscriptHint": { "message": "YouTube と bilibili の動画ページでは、AI タグと要約がページ本文ではなく字幕を読みます。字幕の読み取りを許可済みの場合のみ有効で、自動で許可を求めることはありません。" },
   "labelAiTagLang": {
     "message": "AI タグの言語"
   },
@@ -1710,7 +1710,7 @@
     "message": "字幕リクエストに YouTube のログイン Cookie を送信する"
   },
   "optVideoUseLoginHint": {
-    "message": "www.youtube.com のタブが開いていないときにリーダー自身が送るフォールバック要求にのみ影響します。YouTube のタブが開いていれば字幕はそのタブとそのセッション経由で読み取られ、この設定の影響を受けません。既定でオン：匿名のフォールバック要求はボットと見なされて拒否されやすいためです。"
+    "message": "www.youtube.com のタブが開いていないときにリーダーが直接送るフォールバック要求にのみ影響します。YouTube のタブが開いていれば字幕はそのタブとそのセッション経由で読み取られ、この設定の影響を受けません。既定でオン：匿名のフォールバック要求はボットと見なされて拒否されやすいためです。"
   },
   "mdTglToc": {
     "message": "目次"
@@ -2367,7 +2367,7 @@
     "message": "リーダーの AI"
   },
   "previewAiSectionHint": {
-    "message": "リーダーの選択範囲の解説、ページへの質問、全文翻訳はユーザーが実行し、「AI プロバイダー」タブで設定したプロバイダーとキーを使用します。オプトインの要点スキムを有効にすると、リーダーを開いたときに実行される場合があります。非表示のバックグラウンドタスクとして実行される機能はありません。"
+    "message": "リーダーの選択範囲の解説、ページへの質問、全文翻訳は、自分で実行したときだけ動作し、「AI プロバイダー」タブで設定したプロバイダーとキーを使用します。AI 要点まとめをオンにしている場合は、リーダーを開いたときに実行されることがあります。非表示のバックグラウンドタスクとして実行される機能はありません。"
   },
   "previewAiEnabled": {
     "message": "リーダーで AI 機能を有効にする"
@@ -2379,7 +2379,7 @@
     "message": "モデルの上書き（任意）"
   },
   "previewAiModelHint": {
-    "message": "プレビューページの AI 機能専用のモデル名で、プロバイダーごとに保存されます。空欄にすると「AI プロバイダー」タブで設定したモデルを使用します。"
+    "message": "リーダーの AI 機能専用のモデル名で、プロバイダーごとに保存されます。空欄にすると「AI プロバイダー」タブで設定したモデルを使用します。"
   },
   "previewAiModelFor": {
     "message": "$PROVIDER$ に適用されます。",
@@ -2535,10 +2535,10 @@
     "message": "この翻訳キャッシュは古いバージョンの用語集またはプロンプトで作成されたものです"
   },
   "trStaleMixed": {
-    "message": "この翻訳は異なるバージョンで分割生成されたものです"
+    "message": "この翻訳には、異なるバージョンの用語集またはプロンプトで作成された部分が混在しています"
   },
   "trRetranslateAll": {
-    "message": "全文を再翻訳（約 ~$TOKENS$ tokens）",
+    "message": "全文を再翻訳（約 $TOKENS$ トークン）",
     "placeholders": {
       "tokens": {
         "content": "$1"
@@ -3529,7 +3529,7 @@
     "message": "ブロックしました。HTTPS、または localhost、127.0.0.1、[::1] に限り HTTP を使用してください。LAN／公開 HTTP、不正な URL、認証情報を含む URL は送信されません。"
   },
   "mdTargetNotionParentWarn": {
-    "message": "この値からページ ID を読み取れません。アドレスバーからページの完全な URL を貼り付けてください。"
+    "message": "この欄からページ ID を読み取れません。アドレスバーからページの完全な URL を貼り付けてください。"
   },
   "hlColorQuote": { "message": "引用" },
   "hlColorDefinition": { "message": "定義" },
@@ -3595,11 +3595,11 @@
   "typoLeadingNormal": { "message": "標準" },
   "typoLeadingRelaxed": { "message": "広い" },
   "typoSchemeLabel": { "message": "外観" },
-  "typoSchemeAuto": { "message": "設定どおり" },
+  "typoSchemeAuto": { "message": "自動" },
   "typoSchemeLight": { "message": "ライト" },
   "typoSchemeDark": { "message": "ダーク" },
   "skimEnable": { "message": "リーダーで AI 要点まとめを生成する" },
-  "skimEnableHint": { "message": "リーダーの上部に3〜5個の要点を表示します。生成のたびに AI トークンを消費し、結果は記事ごとにキャッシュされます。" },
+  "skimEnableHint": { "message": "リーダーの上部に 3〜5 個の要点を表示します。生成のたびに AI トークンを消費し、結果は記事ごとにキャッシュされます。" },
   "skimTitle": { "message": "要点まとめ" },
   "skimRegen": { "message": "再生成" },
   "skimCollapseAria": { "message": "要点まとめの折りたたみを切り替え" },
@@ -3632,7 +3632,7 @@
   "mdVideoLoading": { "message": "字幕を読み込んでいます…" },
   "mdVideoTrackAria": { "message": "字幕の言語" },
   "mdVideoNoTracks": { "message": "この動画には利用できる字幕がありません" },
-  "mdVideoBiliLogin": { "message": "字幕が見つかりません。Bilibili はログイン時のみ字幕を返します。bilibili.com にログインしてから再試行してください。" },
+  "mdVideoBiliLogin": { "message": "字幕が見つかりません。bilibili はログイン時のみ字幕を返します。bilibili.com にログインしてから再試行してください。" },
   "mdVideoFailed": { "message": "この拡張機能ではこの動画の字幕を取得できません。YouTube は一部の動画で字幕アクセスを制限しています。" },
   "mdVideoBlocked": { "message": "YouTube がこのリクエストをブロックしました（ボットでないことの確認を求めています）。動画に字幕があるかどうかとは無関係です。「YouTube で開く」を使うか、設定でログイン Cookie のオプションを有効にして再試行してください。" },
   "mdVideoOpenTabHint": { "message": "ヒント：この動画を YouTube のタブで開いたままにして再試行すると、そのタブ経由で字幕を読み取れます。" },
@@ -3641,7 +3641,7 @@
   "mdVideoCopyMd": { "message": "文字起こしを Markdown としてコピー" },
   "mdVideoAiPunct": { "message": "AI 句読点" },
   "mdVideoAiPunctDone": { "message": "句読点済み" },
-  "mdVideoAiPunctFail": { "message": "AI 句読点の付与に失敗しました。ローカル結果を保持します" },
+  "mdVideoAiPunctFail": { "message": "AI 句読点の付与に失敗しました。ローカルの結果を保持します" },
   "mdVideoCopied": { "message": "文字起こしをコピーしました" },
   "mdVideoAsr": { "message": "自動生成" },
   "mdVideoViewReading": { "message": "読み物ビュー" },
@@ -3651,22 +3651,22 @@
   "mdVideoCopyFailed": { "message": "コピーに失敗しました" },
   "mdVideoOpenExternal": { "message": "YouTube で開く" },
   "mdVideoRetry": { "message": "字幕を再チェック" },
-  "mdVideoPermDeclined": { "message": "動画は読み込み済み、字幕は未有効" },
+  "mdVideoPermDeclined": { "message": "動画は読み込み済み、字幕は有効になっていません" },
   "mdVideoAiPunctPartial": { "message": "$TOTAL$ 件中 $FAIL$ 件のバッチが検証を通過せず、元のテキストを保持しました。もう一度クリックすると失敗分のみ再試行します。", "placeholders": { "fail": { "content": "$1" }, "total": { "content": "$2" } } },
-  "mdVideoAiCancelled": { "message": "$TOTAL$ 件中 $DONE$ 件で中止しました。進捗は保存済み。クリックで続行します。", "placeholders": { "done": { "content": "$1" }, "total": { "content": "$2" } } },
+  "mdVideoAiCancelled": { "message": "$TOTAL$ 件中 $DONE$ 件で中止しました。進捗は保存済みです。クリックすると続きから再開します。", "placeholders": { "done": { "content": "$1" }, "total": { "content": "$2" } } },
   "mdVideoPunctSource": { "message": "句読点あり" },
-  "mdVideoPunctHeuristic": { "message": "自動句読点" },
+  "mdVideoPunctHeuristic": { "message": "簡易自動句読点" },
   "mdVideoAiUnconfigured": { "message": "AI プロバイダー未設定" },
   "mdVideoGrantScope": { "message": "プレーヤーに権限は不要です。許可は字幕の読み取りにのみ使われます" },
   "mdVideoFollowReadingOff": { "message": "再生追従にはタイムライン表示が必要です" },
   "mdVideoOpenExternalBili": { "message": "bilibili で開く" },
-  "mdVideoAwaitingTranscript": { "message": "字幕を取得中。まもなく文字起こしに切り替わります…" },
+  "mdVideoAwaitingTranscript": { "message": "字幕を取得しています。まもなく文字起こしがここに表示されます…" },
   "mdVideoAiPunctProgress": { "message": "AI 句読点 $CUR$/$TOTAL$…", "placeholders": { "cur": { "content": "$1" }, "total": { "content": "$2" } } },
   "mdVideoSwitchingTo": { "message": "$TRACK$ に切り替え中…", "placeholders": { "track": { "content": "$1" } } },
   "mdVideoSeeking": { "message": "$TIME$ へ移動します。プレーヤーが再読み込みされます", "placeholders": { "time": { "content": "$1" } } },
   "mdVideoViaPanel": { "message": "字幕ソース：公式エンドポイント" },
   "mdVideoViaCapture": { "message": "字幕ソース：プレーヤーキャプチャ" },
-  "mdVideoViaDom": { "message": "字幕ソース：ページパネル（縮退。完全性の確認を推奨）" },
+  "mdVideoViaDom": { "message": "字幕ソース：ページの文字起こしパネル（品質は低め。行の抜けがないか確認してください）" },
   "mdVideoTranscriptHeading": { "message": "文字起こし" },
   "mdVideoPromoted": { "message": "文字起こしが完了し、本文を置き換えました" },
   "mdVideoAiCancel": { "message": "AI 句読点をキャンセル" },
@@ -3686,16 +3686,16 @@
   "mdVideoRate": { "message": "再生速度" },
   "mdVideoFollowPaused": { "message": "追従を一時停止しました" },
   "mdVideoBackToCurrent": { "message": "現在の字幕へ戻る $TIME$", "placeholders": { "time": { "content": "$1" } } },
-  "mdVideoEstimate": { "message": "推定再生位置（Bilibili は再生位置を返しません。クリックした行から時間で推定し、プレーヤーを操作すると停止します。行をクリックすると再調整）" },
+  "mdVideoEstimate": { "message": "推定再生位置（bilibili は再生位置を返しません。クリックした行から時間で推定し、プレーヤーを操作すると停止します。行をクリックすると再調整）" },
   "mdVideoEstimateIdle": { "message": "推定オン：行をクリックすると開始します" },
   "mdVideoEstimateStopped": { "message": "プレーヤー操作を検出したため推定を停止しました。行をクリックすると再調整します" },
-  "mdVideoBiliFailed": { "message": "動画情報を取得できません。Bilibili の API が応答しないか、動画が利用できません。" },
+  "mdVideoBiliFailed": { "message": "動画情報を取得できません。bilibili の API が応答しないか、動画が利用できません。" },
   "mdVideoBiliBodyFailed": { "message": "字幕トラックは見つかりましたが、字幕本文のダウンロードに失敗しました。再試行するか、別のトラックを選んでください。" },
-  "mdVideoRelaySilent": { "message": "プレーヤーが再生位置を返していません（YouTube プレーヤー API が読み込まれていません）。追従・ショートカット・学習コントロールは現在使えません" },
+  "mdVideoRelaySilent": { "message": "プレーヤーが再生位置を返していません（YouTube プレーヤー API が読み込まれていません）。再生追従・キーボードショートカット・字幕の繰り返し・自動一時停止・再生速度は現在使えません" },
   "mdVideoUnplayable": { "message": "YouTube はこの動画を現在再生できないと報告しています（$STATUS$）。字幕の問題ではありません。YouTube で開いて理由を確認してください。", "placeholders": { "status": { "content": "$1" } } },
   "mdVideoBridgeEnable": { "message": "再生追従を有効化" },
-  "mdVideoBridgeEnableHint": { "message": "拡張機能に player.bilibili.com プレーヤーの再生位置の読み取りを許可します（このプレビュー内のみ、位置と再生状態だけ）。字幕が YouTube と同様に追従・ループ・文末停止できるようになります。" },
-  "mdVideoGrantScopeBili": { "message": "許可の範囲：Bilibili の字幕 API とプレーヤーページ（字幕と再生位置の読み取り）" },
+  "mdVideoBridgeEnableHint": { "message": "拡張機能が player.bilibili.com から再生位置を読み取れるようにします（このプレビュー内のみ、再生位置と再生状態だけ）。YouTube と同じように、文字起こしを再生に追従させ、字幕を繰り返し、各字幕の終わりで一時停止できるようになります。" },
+  "mdVideoGrantScopeBili": { "message": "許可の範囲：bilibili の字幕 API とプレーヤーページ（字幕と再生位置の読み取り）" },
   "mdVideoBridgeSilent": { "message": "プレーヤーが再生位置を返していません。「推定再生位置」を使うか、プレビューを開き直してください" },
   "mdVideoTimelineAria": { "message": "字幕タイムライン" },
   "kbdHelpVideoPlay": { "message": "再生 / 一時停止" },
@@ -3709,18 +3709,18 @@
   "kbdHelpVideoNote": { "message": "Space、左右キー、r、f はプレーヤーが再生位置を報告する場合に使えます。YouTube では常に、bilibili では再生追従を有効にした後に使えます。" },
   "secVideoPreview": { "message": "動画ページ" },
   "optVideoLangPref": { "message": "優先する字幕言語" },
-  "optVideoLangPrefHint": { "message": "言語コードを優先順にコンマ区切りで入力します（例: en, zh は英語を優先し、次に中国語）。zh-Hant のような完全なタグも使えます。並び順が常に優先され、同じ言語内では完全なタグを先に照合し、見つからなければ基本コードに戻ります。空欄ならインターフェース言語に従います。" },
+  "optVideoLangPrefHint": { "message": "言語コードを優先順にカンマ区切りで入力します（例：en, zh は英語を優先し、次に中国語）。zh-Hant のような完全なタグも使えます。並び順が常に優先され、同じ言語内では完全なタグを先に照合し、見つからなければ基本コードに戻ります。空欄ならインターフェース言語に従います。" },
   "optVideoLangCodesLink": { "message": "言語コード一覧" },
   "optVideoPauseOnLookup": { "message": "単語を調べる間は再生を一時停止" },
-  "optVideoPauseOnLookupHint": { "message": "テキストを選択したり解説ポップオーバーを開いたりすると再生を一時停止します（YouTube。bilibili では再生追従を有効にした後）。調べ終わると再開します。" },
-  "optVideoDarkScheme": { "message": "動画ページはダークで開く" },
+  "optVideoPauseOnLookupHint": { "message": "テキストを選択したり解説ポップオーバーを開いたりすると再生を一時停止し、調べ終わると再開します。対象は YouTube、および再生追従を有効にした bilibili です。" },
+  "optVideoDarkScheme": { "message": "動画ページをダークモードで開く" },
   "optVideoDarkSchemeHint": { "message": "テーマが自動またはライトでも、動画ページはダークの読書配色で開きます。リーダーの「Aa」パネルで、このデバイスのすべてのリーダーページについて上書きできます。" },
-  "mdVideoResumePrompt": { "message": "前回は $TIME$ まで視聴", "placeholders": { "time": { "content": "$1" } } },
+  "mdVideoResumePrompt": { "message": "前回は $TIME$ まで視聴しました", "placeholders": { "time": { "content": "$1" } } },
   "mdVideoResumeGo": { "message": "続きから" },
   "mdVideoResumeRestart": { "message": "最初から" },
   "mdVideoDensityPara": { "message": "段落ごとに表示" },
-  "mdVideoAuxTrack": { "message": "対訳字幕" },
-  "mdVideoAuxNone": { "message": "対訳字幕なし" },
+  "mdVideoAuxTrack": { "message": "副字幕" },
+  "mdVideoAuxNone": { "message": "副字幕なし" },
   "mdVideoStateOn": { "message": "オン" },
   "mdVideoStateOff": { "message": "オフ" },
   "skimWaitingCaptions": { "message": "字幕が揃うと要点を自動生成します。「再生成」で今すぐ生成できます" }

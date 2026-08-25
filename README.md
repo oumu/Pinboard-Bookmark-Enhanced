@@ -24,12 +24,12 @@ A Chrome extension for [Pinboard](https://pinboard.in): AI tags and summaries, a
 ![One-click save with AI tags and summary](docs/cws-assets/originals/screenshot-1-save.png)
 
 ### Tag
-- **AI tags & summary**: the AI reads the article body with ads, menus, and sidebars stripped out; bring your own key (14 providers, or any OpenAI-compatible endpoint)
+- **AI tags & summary**: the AI reads the article body with ads, menus, and sidebars stripped out; bring your own key (15 providers, or any OpenAI-compatible endpoint)
 - **Autocomplete** from your own tags, Pinboard's suggested tags, and one-tap presets
 - **Tag cleanup**: find duplicate and rarely-used tags and merge them in batches
 
 ### Read
-- **Any page becomes a clean reader**: a Markdown view with a table of contents, search, and footnote peek
+- **Any page becomes a clean reader**: a Markdown view with a table of contents, search, and footnote peek; math, diagrams, and tables render properly
 - **Five-color highlights with notes**: both survive re-renders, translation, even page edits
 - **Translate the page or ask it questions**: full-page translation with a bilingual view; answers cite the source and jump straight to it
 - **Look up and review words as you read**: definitions open on the sense that fits your sentence; saved words keep notes and a learning status, and can be sent to Anki or Eudic. Optional offline dictionary packs cover Chinese-English and English-Chinese

@@ -1246,7 +1246,7 @@
     "message": "Automatycznie generuj tagi AI po otwarciu okienka"
   },
   "optAiUseTranscript": { "message": "Na stronach wideo używaj napisów jako źródła treści dla AI" },
-  "optAiUseTranscriptHint": { "message": "Na stronach wideo YouTube i Bilibili tagi i podsumowania AI czytają napisy zamiast tekstu strony. Działa tylko po udzieleniu dostępu do napisów; nigdy nie prosi o zgodę samo z siebie." },
+  "optAiUseTranscriptHint": { "message": "Na stronach wideo YouTube i bilibili tagi i podsumowania AI czytają napisy zamiast tekstu strony. Działa tylko po udzieleniu dostępu do napisów; nigdy nie prosi o zgodę samo z siebie." },
   "labelAiTagLang": {
     "message": "Język tagów AI"
   },
@@ -1346,7 +1346,7 @@
   "popupFollowHint": {
     "message": "Po włączeniu okienko, ta strona ustawień i strona „Notatki i słówka” używają palety wybranego motywu Pinboard; po wyłączeniu używają domyślnej palety w wybranym wyżej trybie jasnym/ciemnym. Czytnik zawsze zachowuje własną paletę czytania."
   },
-  "optThemeHint": { "message": "Przełącza okienko, tę stronę ustawień, stronę „Notatki i słówka” i czytnik między trybem jasnym a ciemnym. Motywy z własnym schematem (np. Dracula) mają pierwszeństwo na stronach, które podążają za motywem; czytnik może to zmienić dla urządzenia w panelu „Aa”." },
+  "optThemeHint": { "message": "Przełącza okienko, tę stronę ustawień, stronę „Notatki i słówka” i czytnik między trybem jasnym a ciemnym. Motywy z własnym schematem (np. Dracula) mają pierwszeństwo na stronach, które podążają za motywem; czytnik może to zmienić osobno na każdym urządzeniu w panelu „Aa”." },
   "secPopupElements": {
     "message": "Elementy okienka"
   },
@@ -1710,7 +1710,7 @@
     "message": "Wysyłaj pliki cookie logowania YouTube z żądaniami napisów"
   },
   "optVideoUseLoginHint": {
-    "message": "Dotyczy tylko żądania zapasowego, które czytnik wysyła sam, gdy nie jest otwarta żadna karta www.youtube.com; przy otwartej karcie YouTube napisy są odczytywane przez tę kartę i jej sesję. Domyślnie włączone: anonimowe żądanie zapasowe częściej jest uznawane za bota i odrzucane."
+    "message": "Dotyczy tylko żądania zapasowego, które czytnik wysyła bezpośrednio, gdy nie jest otwarta żadna karta www.youtube.com; przy otwartej karcie YouTube napisy są odczytywane przez tę kartę i jej sesję. Domyślnie włączone: anonimowe żądanie zapasowe częściej jest uznawane za bota i odrzucane."
   },
   "mdTglToc": {
     "message": "Spis treści"
@@ -2367,7 +2367,7 @@
     "message": "AI w czytniku"
   },
   "previewAiSectionHint": {
-    "message": "Wyjaśnianie zaznaczenia, pytania do strony i pełne tłumaczenie w czytniku są uruchamiane przez użytkownika i korzystają z dostawcy oraz klucza skonfigurowanych na karcie „Dostawcy AI”. Jeśli opcjonalny przegląd kluczowych punktów jest włączony, może uruchomić się po otwarciu czytnika; nic nie działa jako ukryte zadanie w tle."
+    "message": "Wyjaśnianie zaznaczenia, pytania do strony i pełne tłumaczenie w czytniku działają tylko wtedy, gdy je uruchomisz, i korzystają z dostawcy oraz klucza skonfigurowanych na karcie „Dostawcy AI”. Jeśli podsumowanie kluczowych punktów jest włączone, może uruchomić się po otwarciu czytnika; nic nie działa jako ukryte zadanie w tle."
   },
   "previewAiEnabled": {
     "message": "Włącz funkcje AI w czytniku"
@@ -2379,7 +2379,7 @@
     "message": "Zastąpienie modelu (opcjonalne)"
   },
   "previewAiModelHint": {
-    "message": "Nazwa modelu używana tylko przez funkcje AI strony podglądu, zapisywana osobno dla każdego dostawcy. Pozostaw puste, aby użyć modelu skonfigurowanego na karcie „Dostawcy AI”."
+    "message": "Nazwa modelu używana tylko przez funkcje AI czytnika, zapisywana osobno dla każdego dostawcy. Pozostaw puste, aby użyć modelu skonfigurowanego na karcie „Dostawcy AI”."
   },
   "previewAiModelFor": {
     "message": "Dotyczy: $PROVIDER$.",
@@ -2532,13 +2532,13 @@
     "message": "Przetłumacz ponownie"
   },
   "trStaleNote": {
-    "message": "To tłumaczenie z pamięci podręcznej powstało ze starszą wersją słownika lub promptu"
+    "message": "To tłumaczenie z pamięci podręcznej powstało przy użyciu starszej wersji słownika lub promptu"
   },
   "trStaleMixed": {
-    "message": "To tłumaczenie zostało złożone z fragmentów różnych wersji"
+    "message": "Fragmenty tego tłumaczenia pochodzą z różnych wersji słownika lub promptu"
   },
   "trRetranslateAll": {
-    "message": "Przetłumacz wszystko ponownie (około ~$TOKENS$ tokenów)",
+    "message": "Przetłumacz wszystko ponownie (~$TOKENS$ tokenów)",
     "placeholders": {
       "tokens": {
         "content": "$1"
@@ -3475,7 +3475,7 @@
   },
   "mdSendApiDown": { "message": "Nie można połączyć się z serwerem eksportu. Pełny tekst skopiowano do schowka — wklej, aby zakończyć." },
   "mdSendApiBadToken": { "message": "Serwer odrzucił token. Skopiuj go ponownie z aplikacji. Pełny tekst skopiowano do schowka." },
-  "mdSendNotionNotShared": { "message": "Notion odrzucił stronę nadrzędną. Udostępnij ją swojemu połączeniu (menu ··· , Dodaj połączenia) i spróbuj ponownie. Pełny tekst skopiowano do schowka." },
+  "mdSendNotionNotShared": { "message": "Notion odrzucił stronę nadrzędną. Udostępnij ją swojemu połączeniu (menu ···, Dodaj połączenia) i spróbuj ponownie. Pełny tekst skopiowano do schowka." },
   "mdSendApiFailed": { "message": "Żądanie eksportu nie powiodło się. Pełny tekst skopiowano do schowka — wklej, aby zakończyć." },
   "mdSendTest": {
     "message": "Testuj połączenie"
@@ -3502,7 +3502,7 @@
     "message": "Strona nadrzędna (URL lub ID)"
   },
   "mdTargetNotionOnboarding": {
-    "message": "Utwórz połączenie w ustawieniach deweloperskich Notion (app.notion.com/developers/connections → „Nowe połączenie”) i skopiuj jego token. Następnie na stronie docelowej otwórz menu ··· , wybierz Dodaj połączenia i dodaj to połączenie. Wklej tutaj adres URL strony. Każda wysyłka utworzy pod nią nową podstronę."
+    "message": "Utwórz wewnętrzne połączenie w ustawieniach deweloperskich Notion (app.notion.com/developers/connections → „Nowe połączenie”) i skopiuj jego wewnętrzny token. Następnie na stronie docelowej otwórz menu ···, wybierz Dodaj połączenia i dodaj to połączenie. Wklej tutaj adres URL strony. Każda wysyłka utworzy pod nią nową podstronę."
   },
   "mdTargetNotebookLmOnboarding": {
     "message": "Nie wymaga konfiguracji. Wysyłka kopiuje pełny tekst do schowka i otwiera NotebookLM. Dodaj tam źródło, wybierz „Skopiowany tekst” i wklej treść. NotebookLM nie ma publicznego API, więc ostatni krok pozostaje ręczny."
@@ -3529,7 +3529,7 @@
     "message": "Zablokowano: użyj HTTPS albo HTTP tylko dla localhost, 127.0.0.1 lub [::1]. Adresy HTTP w sieci LAN/publicznej, nieprawidłowe adresy URL i adresy z danymi logowania nie są wysyłane."
   },
   "mdTargetNotionParentWarn": {
-    "message": "Nie można odczytać ID strony z tej wartości. Wklej pełny adres URL strony z paska adresu."
+    "message": "Nie znaleziono ID strony w tym polu. Wklej pełny adres URL strony z paska adresu przeglądarki."
   },
   "hlColorQuote": { "message": "Cytat" },
   "hlColorDefinition": { "message": "Definicja" },
@@ -3595,11 +3595,11 @@
   "typoLeadingNormal": { "message": "Zwykła" },
   "typoLeadingRelaxed": { "message": "Luźna" },
   "typoSchemeLabel": { "message": "Wygląd" },
-  "typoSchemeAuto": { "message": "Jak w ustawieniach" },
+  "typoSchemeAuto": { "message": "Automatycznie" },
   "typoSchemeLight": { "message": "Jasny" },
   "typoSchemeDark": { "message": "Ciemny" },
-  "skimEnable": { "message": "Generuj podsumowanie kluczowych punktów AI w czytniku" },
-  "skimEnableHint": { "message": "Pokazuje 3-5 kluczowych punktów u góry czytnika. Każde generowanie zużywa tokeny AI; wyniki są buforowane dla każdego artykułu." },
+  "skimEnable": { "message": "Generuj w czytniku podsumowanie kluczowych punktów przy użyciu AI" },
+  "skimEnableHint": { "message": "Pokazuje 3–5 kluczowych punktów u góry czytnika. Każde generowanie zużywa tokeny AI; wyniki są zapisywane w pamięci podręcznej osobno dla każdego artykułu." },
   "skimTitle": { "message": "Kluczowe punkty" },
   "skimRegen": { "message": "Wygeneruj ponownie" },
   "skimCollapseAria": { "message": "Przełącz sekcję kluczowych punktów" },
@@ -3627,18 +3627,18 @@
   "libraryLookupSaved": { "message": "Już w słówkach · pokaż" },
   "mdVideoTitle": { "message": "Wideo i napisy" },
   "mdVideoLoad": { "message": "Wczytaj wideo i napisy" },
-  "mdVideoEnable": { "message": "Włącz napisy i wczytaj film" },
+  "mdVideoEnable": { "message": "Włącz napisy i wczytaj wideo" },
   "mdVideoDescription": { "message": "Opis filmu" },
   "mdVideoLoading": { "message": "Wczytywanie napisów…" },
   "mdVideoTrackAria": { "message": "Język napisów" },
-  "mdVideoNoTracks": { "message": "Dla tego wideo nie ma dostępnych napisów" },
+  "mdVideoNoTracks": { "message": "Do tego filmu nie ma dostępnych napisów" },
   "mdVideoBiliLogin": { "message": "Nie znaleziono napisów. Bilibili zwraca napisy tylko po zalogowaniu — zaloguj się w bilibili.com i spróbuj ponownie." },
   "mdVideoFailed": { "message": "Napisy do tego filmu nie są dostępne przez rozszerzenie. YouTube ogranicza dostęp do napisów w przypadku niektórych filmów." },
-  "mdVideoBlocked": { "message": "YouTube zablokował to żądanie i prosi o potwierdzenie, że nie jesteś botem. Nie ma to związku z napisami do tego filmu. Skorzystaj z odnośnika otwierającego film w YouTube albo włącz w ustawieniach opcję plików cookie logowania." },
+  "mdVideoBlocked": { "message": "YouTube zablokował to żądanie i prosi o potwierdzenie, że nie jesteś botem. Nie ma to związku z napisami do tego filmu. Skorzystaj z odnośnika „Otwórz w YouTube” albo włącz w ustawieniach pliki cookie logowania." },
   "mdVideoOpenTabHint": { "message": "Wskazówka: otwórz ten film w karcie YouTube, zostaw ją otwartą i spróbuj ponownie — napisy zostaną odczytane przez tę kartę." },
   "mdVideoBodyBlocked": { "message": "Znaleziono ścieżki napisów, ale YouTube nie zwrócił ich tekstu. Zostaw kartę YouTube z tym filmem otwartą i spróbuj ponownie albo wybierz inną ścieżkę." },
   "mdVideoPermMissing": { "message": "Odmówiono uprawnienia; niczego nie wczytano" },
-  "mdVideoCopyMd": { "message": "Skopiuj transkrypcję jako Markdown" },
+  "mdVideoCopyMd": { "message": "Kopiuj transkrypcję jako Markdown" },
   "mdVideoAiPunct": { "message": "Interpunkcja AI" },
   "mdVideoAiPunctDone": { "message": "Gotowe" },
   "mdVideoAiPunctFail": { "message": "Interpunkcja AI nie powiodła się; zachowano wynik lokalny" },
@@ -3646,59 +3646,59 @@
   "mdVideoAsr": { "message": "generowane automatycznie" },
   "mdVideoViewReading": { "message": "Tekst" },
   "mdVideoViewTimeline": { "message": "Oś czasu" },
-  "mdVideoFollow": { "message": "Napisy podążają za odtwarzaniem" },
+  "mdVideoFollow": { "message": "Transkrypcja podąża za odtwarzaniem" },
   "mdVideoSeekTo": { "message": "Przejdź do $TIME$", "placeholders": { "time": { "content": "$1" } } },
   "mdVideoCopyFailed": { "message": "Kopiowanie nie powiodło się" },
   "mdVideoOpenExternal": { "message": "Otwórz w YouTube" },
   "mdVideoRetry": { "message": "Sprawdź napisy ponownie" },
-  "mdVideoPermDeclined": { "message": "Wideo załadowane; napisy nieaktywne" },
-  "mdVideoAiPunctPartial": { "message": "$FAIL$ z $TOTAL$ partii nie przeszło weryfikacji; zachowano oryginalny tekst. Kliknij ponownie, aby powtórzyć tylko te partie.", "placeholders": { "fail": { "content": "$1" }, "total": { "content": "$2" } } },
-  "mdVideoAiCancelled": { "message": "Anulowano po $DONE$ z $TOTAL$ partii; postęp zapisany, kliknij, aby kontynuować.", "placeholders": { "done": { "content": "$1" }, "total": { "content": "$2" } } },
+  "mdVideoPermDeclined": { "message": "Wideo wczytane; napisy nieaktywne" },
+  "mdVideoAiPunctPartial": { "message": "Weryfikacja nie powiodła się w $FAIL$ z $TOTAL$ partii; zachowano oryginalny tekst. Kliknij ponownie, aby powtórzyć tylko nieudane partie.", "placeholders": { "fail": { "content": "$1" }, "total": { "content": "$2" } } },
+  "mdVideoAiCancelled": { "message": "Anulowano po $DONE$ z $TOTAL$ partii. Postęp został zapisany; kliknij, aby kontynuować.", "placeholders": { "done": { "content": "$1" }, "total": { "content": "$2" } } },
   "mdVideoPunctSource": { "message": "Z interpunkcją" },
   "mdVideoPunctHeuristic": { "message": "Interpunkcja podstawowa" },
   "mdVideoAiUnconfigured": { "message": "Nie skonfigurowano dostawcy AI" },
-  "mdVideoGrantScope": { "message": "Odtwarzacz nie wymaga uprawnienia; zgoda służy tylko odczytowi napisów" },
+  "mdVideoGrantScope": { "message": "Odtwarzacz nie wymaga uprawnienia; zgoda służy tylko do odczytu napisów" },
   "mdVideoFollowReadingOff": { "message": "Śledzenie odtwarzania wymaga widoku osi czasu" },
   "mdVideoOpenExternalBili": { "message": "Otwórz w bilibili" },
-  "mdVideoAwaitingTranscript": { "message": "Pobieranie napisów; transkrypcja wkrótce je zastąpi…" },
+  "mdVideoAwaitingTranscript": { "message": "Pobieranie napisów; transkrypcja wkrótce się tu pojawi…" },
   "mdVideoAiPunctProgress": { "message": "Interpunkcja AI $CUR$/$TOTAL$…", "placeholders": { "cur": { "content": "$1" }, "total": { "content": "$2" } } },
   "mdVideoSwitchingTo": { "message": "Przełączanie na $TRACK$…", "placeholders": { "track": { "content": "$1" } } },
-  "mdVideoSeeking": { "message": "Przejście do $TIME$; odtwarzacz zostanie przeładowany", "placeholders": { "time": { "content": "$1" } } },
-  "mdVideoViaPanel": { "message": "Źródło napisów: oficjalny interfejs" },
+  "mdVideoSeeking": { "message": "Przejście do $TIME$; odtwarzacz zostanie wczytany ponownie", "placeholders": { "time": { "content": "$1" } } },
+  "mdVideoViaPanel": { "message": "Źródło napisów: oficjalne API" },
   "mdVideoViaCapture": { "message": "Źródło napisów: przechwycenie odtwarzacza" },
-  "mdVideoViaDom": { "message": "Źródło napisów: panel strony (tryb awaryjny; sprawdź kompletność)" },
+  "mdVideoViaDom": { "message": "Źródło napisów: panel transkrypcji na stronie (niższa jakość; sprawdź, czy nie brakuje wierszy)" },
   "mdVideoTranscriptHeading": { "message": "Transkrypcja" },
-  "mdVideoPromoted": { "message": "Transkrypcja gotowa; artykuł został zastąpiony" },
+  "mdVideoPromoted": { "message": "Transkrypcja gotowa; zastąpiła artykuł" },
   "mdVideoAiCancel": { "message": "Anuluj interpunkcję AI" },
   "mdVideoAiPunctEst": { "message": "≈ $TOKENS$ tokenów", "placeholders": { "tokens": { "content": "$1" } } },
-  "mdVideoAiPunctConfirm": { "message": "Interpunkcja AI zastąpi artykuł: istniejące tłumaczenia zostaną wyczyszczone, a cytaty Ask wygasną. Kontynuować?" },
+  "mdVideoAiPunctConfirm": { "message": "Interpunkcja AI zastąpi artykuł: istniejące tłumaczenia zostaną wyczyszczone, a cytaty w „Zapytaj” staną się nieaktualne. Kontynuować?" },
   "mdStatVideoLen": { "message": "Wideo $TIME$", "placeholders": { "time": { "content": "$1" } } },
   "mdVideoCopyMore": { "message": "Więcej formatów kopiowania" },
   "mdVideoCopyTimed": { "message": "Kopiuj Markdown ze znacznikami czasu" },
   "mdVideoDownloadSrt": { "message": "Pobierz napisy SRT" },
   "mdVideoSrtSaved": { "message": "Zapisano plik SRT" },
   "askScopeNear": { "message": "W pobliżu bieżącego momentu" },
-  "askScopeNearHint": { "message": "Wysyłaj tylko dwa akapity wokół bieżącego napisu -- mniej tokenów" },
-  "hlTimelineHint": { "message": "Aby zaznaczyć, przełącz na widok czytania" },
+  "askScopeNearHint": { "message": "Wysyła tylko dwa akapity wokół bieżącego napisu — mniej tokenów" },
+  "hlTimelineHint": { "message": "Aby zaznaczyć, przełącz na widok tekstu" },
   "hlSeekHere": { "message": "Odtwarzaj stąd" },
   "mdVideoLoop": { "message": "Powtarzaj tę kwestię" },
   "mdVideoAutoPause": { "message": "Pauza po każdej kwestii" },
   "mdVideoRate": { "message": "Prędkość odtwarzania" },
   "mdVideoFollowPaused": { "message": "Śledzenie wstrzymane" },
   "mdVideoBackToCurrent": { "message": "Wróć do bieżącej kwestii $TIME$", "placeholders": { "time": { "content": "$1" } } },
-  "mdVideoEstimate": { "message": "Szacowana pozycja (Bilibili nie zgłasza pozycji odtwarzania: zegar rusza od klikniętego wiersza i zatrzymuje się, gdy dotkniesz odtwarzacza; kliknij wiersz, aby wyrównać)" },
+  "mdVideoEstimate": { "message": "Szacowana pozycja (Bilibili nie zgłasza pozycji odtwarzania: zegar rusza od klikniętego wiersza i zatrzymuje się, gdy użyjesz odtwarzacza; kliknij wiersz, aby wyrównać)" },
   "mdVideoEstimateIdle": { "message": "Szacowanie włączone: kliknij wiersz, aby je uruchomić" },
-  "mdVideoEstimateStopped": { "message": "Użyto odtwarzacza – szacowanie zatrzymane; kliknij wiersz, aby wyrównać" },
-  "mdVideoBiliFailed": { "message": "Nie udało się pobrać danych filmu: API Bilibili nie odpowiada lub film jest niedostępny." },
+  "mdVideoEstimateStopped": { "message": "Szacowanie zatrzymane po użyciu odtwarzacza; kliknij wiersz, aby wyrównać" },
+  "mdVideoBiliFailed": { "message": "Nie udało się pobrać danych filmu: API bilibili nie odpowiada lub film jest niedostępny." },
   "mdVideoBiliBodyFailed": { "message": "Znaleziono ścieżkę napisów, ale nie udało się pobrać jej treści. Spróbuj ponownie lub wybierz inną ścieżkę." },
-  "mdVideoRelaySilent": { "message": "Odtwarzacz nie zgłasza pozycji (API odtwarzacza YouTube nie załadowało się): śledzenie, skróty i sterowanie nauką są na razie niedostępne" },
+  "mdVideoRelaySilent": { "message": "Odtwarzacz nie zgłasza pozycji (API odtwarzacza YouTube nie załadowało się): śledzenie odtwarzania, skróty klawiszowe, powtarzanie, automatyczna pauza i prędkość odtwarzania są na razie niedostępne" },
   "mdVideoUnplayable": { "message": "YouTube zgłasza, że tego filmu nie można teraz odtworzyć ($STATUS$); nie dotyczy to napisów. Otwórz go w YouTube, aby poznać powód.", "placeholders": { "status": { "content": "$1" } } },
   "mdVideoBridgeEnable": { "message": "Włącz synchronizację odtwarzania" },
-  "mdVideoBridgeEnableHint": { "message": "Pozwala rozszerzeniu odczytywać pozycję odtwarzacza player.bilibili.com (tylko w tym podglądzie; wyłącznie pozycję i stan odtwarzania), aby napisy podążały, zapętlały się i pauzowały jak w YouTube." },
-  "mdVideoGrantScopeBili": { "message": "Zgoda obejmuje API napisów Bilibili i stronę odtwarzacza (napisy i pozycję odtwarzania)" },
+  "mdVideoBridgeEnableHint": { "message": "Pozwala rozszerzeniu odczytywać pozycję odtwarzania ze strony player.bilibili.com (tylko w tym podglądzie; wyłącznie pozycję i stan odtwarzania), aby transkrypcja mogła podążać za odtwarzaniem, powtarzać kwestię i wstrzymywać odtwarzanie po każdej kwestii, tak jak w YouTube." },
+  "mdVideoGrantScopeBili": { "message": "Zgoda obejmuje API napisów bilibili i stronę odtwarzacza (napisy i pozycję odtwarzania)" },
   "mdVideoBridgeSilent": { "message": "Odtwarzacz nie zgłasza pozycji: użyj pozycji szacowanej lub otwórz podgląd ponownie" },
   "mdVideoTimelineAria": { "message": "Oś czasu napisów" },
-  "kbdHelpVideoPlay": { "message": "Odtwarzaj / pauza" },
+  "kbdHelpVideoPlay": { "message": "Odtwarzanie / pauza" },
   "kbdHelpVideoSeek": { "message": "Cofnij / przewiń o 3 s" },
   "kbdHelpVideoCue": { "message": "Poprzednia / następna kwestia" },
   "kbdHelpVideoLoop": { "message": "Powtarzaj tę kwestię" },
@@ -3711,17 +3711,17 @@
   "optVideoLangPref": { "message": "Preferowane języki napisów" },
   "optVideoLangPrefHint": { "message": "Kody języków w kolejności preferencji, rozdzielone przecinkami, np. en, zh (najpierw angielski, potem chiński); pełny tag, taki jak zh-Hant, również jest akceptowany. Kolejność listy zawsze ma pierwszeństwo; w obrębie jednego języka pełny tag jest najpierw dopasowywany dokładnie, a dopiero potem następuje powrót do kodu podstawowego. Puste pole oznacza język interfejsu." },
   "optVideoLangCodesLink": { "message": "Lista kodów języków" },
-  "optVideoPauseOnLookup": { "message": "Pauza podczas sprawdzania słowa" },
+  "optVideoPauseOnLookup": { "message": "Wstrzymuj odtwarzacz podczas sprawdzania słowa" },
   "optVideoPauseOnLookupHint": { "message": "Zaznaczenie tekstu lub otwarcie okienka wyjaśnienia wstrzymuje odtwarzacz (YouTube; bilibili po włączeniu podążania za odtwarzaniem); po zakończeniu sprawdzania odtwarzanie wznawia się." },
   "optVideoDarkScheme": { "message": "Otwieraj strony wideo w ciemnym motywie" },
   "optVideoDarkSchemeHint": { "message": "Nawet przy motywie Auto lub Jasny strony wideo otwierają się w ciemnej palecie czytania. Panel „Aa” w czytniku może to zmienić dla wszystkich stron czytnika na tym urządzeniu." },
-  "mdVideoResumePrompt": { "message": "Ostatnio do $TIME$", "placeholders": { "time": { "content": "$1" } } },
+  "mdVideoResumePrompt": { "message": "Zatrzymano na $TIME$", "placeholders": { "time": { "content": "$1" } } },
   "mdVideoResumeGo": { "message": "Kontynuuj" },
   "mdVideoResumeRestart": { "message": "Od początku" },
   "mdVideoDensityPara": { "message": "Pokaż akapitami" },
-  "mdVideoAuxTrack": { "message": "Napisy towarzyszące" },
-  "mdVideoAuxNone": { "message": "Bez napisów towarzyszących" },
+  "mdVideoAuxTrack": { "message": "Napisy dodatkowe" },
+  "mdVideoAuxNone": { "message": "Bez napisów dodatkowych" },
   "mdVideoStateOn": { "message": "włączone" },
   "mdVideoStateOff": { "message": "wyłączone" },
-  "skimWaitingCaptions": { "message": "Kluczowe punkty powstaną, gdy pojawią się napisy; „Wygeneruj ponownie” zrobi to teraz" }
+  "skimWaitingCaptions": { "message": "Kluczowe punkty powstaną po wczytaniu napisów; użyj przycisku „Wygeneruj ponownie”, aby utworzyć je teraz" }
 }

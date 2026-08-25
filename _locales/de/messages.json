@@ -1246,7 +1246,7 @@
     "message": "KI-Tags beim Öffnen des Popups automatisch generieren"
   },
   "optAiUseTranscript": { "message": "Auf Videoseiten die Untertitel als KI-Inhaltsquelle nutzen" },
-  "optAiUseTranscriptHint": { "message": "Auf YouTube- und Bilibili-Videoseiten lesen KI-Tags und -Zusammenfassungen die Untertitel statt des Seitentexts. Nur aktiv, wenn du den Untertitelzugriff bereits erlaubt hast; es fragt nie von selbst nach." },
+  "optAiUseTranscriptHint": { "message": "Auf YouTube- und bilibili-Videoseiten lesen KI-Tags und -Zusammenfassungen die Untertitel statt des Seitentexts. Nur aktiv, wenn du den Untertitelzugriff bereits erlaubt hast; die Erweiterung fragt nie von selbst danach." },
   "labelAiTagLang": {
     "message": "KI-Tag-Sprache"
   },
@@ -1341,7 +1341,7 @@
     "message": "Dunkel"
   },
   "optPopupFollowTheme": {
-    "message": "Erweiterungsseiten folgen dem Pinboard Theme-Preset"
+    "message": "Erweiterungsseiten folgen dem Pinboard-Theme-Preset"
   },
   "popupFollowHint": {
     "message": "Eingeschaltet verwenden Popup, diese Einstellungsseite und die Seite „Notizen & Vokabeln“ die Farben des gewählten Pinboard-Presets; ausgeschaltet die Standardpalette im oben gewählten Hell-/Dunkelmodus. Die Leseansicht behält immer ihre eigene Lesepalette."
@@ -1763,7 +1763,7 @@
   "mdPreviewNoContent": {
     "message": "Aus dieser Seite konnte kein Inhalt extrahiert werden."
   },
-  "mdPreviewFrameHint": { "message": "Der Artikel liegt möglicherweise in einem eingebetteten Frame von $HOST$. Um diesen Frame zu lesen, braucht die Erweiterung Zugriff auf diese Site; Chrome fragt nach und behält die Freigabe, bis Sie sie widerrufen. Vor der Freigabe wird nichts aus dem Frame gelesen.", "placeholders": { "host": { "content": "$1" } } },
+  "mdPreviewFrameHint": { "message": "Der Artikel liegt möglicherweise in einem eingebetteten Frame von $HOST$. Um diesen Frame zu lesen, braucht die Erweiterung Zugriff auf diese Website; Chrome fragt nach und behält die Freigabe, bis du sie widerrufst. Vor der Freigabe wird nichts aus dem Frame gelesen.", "placeholders": { "host": { "content": "$1" } } },
   "mdStatWords": {
     "message": "$COUNT$ Wörter",
     "placeholders": {
@@ -2367,7 +2367,7 @@
     "message": "KI in der Leseansicht"
   },
   "previewAiSectionHint": {
-    "message": "Auswahl erklären, Seite fragen und Volltextübersetzung in der Leseansicht werden vom Benutzer aufgerufen und verwenden den Anbieter und den Schlüssel aus dem Tab „KI-Anbieter“. Wenn der optionale Schnellüberblick über die wichtigsten Punkte aktiviert ist, kann er beim Öffnen der Leseansicht ausgeführt werden; nichts läuft als verborgene Hintergrundaufgabe."
+    "message": "Auswahl erklären, Seite befragen und Volltextübersetzung in der Leseansicht laufen nur, wenn du sie startest, und verwenden den Anbieter und den Schlüssel aus dem Tab „KI-Anbieter“. Wenn du die Kernpunkte-Zusammenfassung eingeschaltet hast, kann sie beim Öffnen der Leseansicht laufen; nichts läuft als verborgene Hintergrundaufgabe."
   },
   "previewAiEnabled": {
     "message": "KI-Funktionen in der Leseansicht aktivieren"
@@ -2379,7 +2379,7 @@
     "message": "Modell-Überschreibung (optional)"
   },
   "previewAiModelHint": {
-    "message": "Modellname, der nur von KI-Funktionen der Vorschauseite verwendet wird und je Anbieter separat gespeichert ist. Leer lassen, um das im Tab „KI-Anbieter“ konfigurierte Modell zu verwenden."
+    "message": "Modellname, der nur von den KI-Funktionen der Leseansicht verwendet wird und je Anbieter separat gespeichert ist. Leer lassen, um das im Tab „KI-Anbieter“ konfigurierte Modell zu verwenden."
   },
   "previewAiModelFor": {
     "message": "Gilt für $PROVIDER$.",
@@ -2390,7 +2390,7 @@
     }
   },
   "previewAiOverrideErrHint": {
-    "message": "Das Modell „$MODEL$“ stammt aus der Modell-Überschreibung im Tab „Leseansicht“. Falls $PROVIDER$ dieses Modell nicht anbietet, leere dort die Überschreibung.",
+    "message": "Das Modell „$MODEL$“ stammt aus der Modell-Überschreibung im Tab „Leseansicht“. Falls $PROVIDER$ dieses Modell nicht anbietet, lösche dort die Überschreibung.",
     "placeholders": {
       "model": {
         "content": "$1"
@@ -2517,16 +2517,16 @@
     "message": "Übersetzung dieses Absatzes fehlgeschlagen"
   },
   "trErrKey": {
-    "message": "API-Schlüssel ungültig oder abgelehnt, bitte in den Einstellungen prüfen"
+    "message": "API-Schlüssel ungültig oder abgelehnt; prüfe ihn in den Einstellungen"
   },
   "trErrQuota": {
-    "message": "Ratenlimit oder Kontingent erschöpft, bitte später erneut versuchen"
+    "message": "Ratenlimit oder Kontingent erschöpft; versuche es später erneut"
   },
   "trErrNetwork": {
-    "message": "Netzwerk- oder Serverfehler, bitte später erneut versuchen"
+    "message": "Netzwerk- oder Serverfehler; versuche es später erneut"
   },
   "trErrTimeout": {
-    "message": "Zeitüberschreitung beim KI-Dienst, bitte erneut versuchen"
+    "message": "Zeitüberschreitung beim KI-Dienst; versuche es erneut"
   },
   "trRetranslate": {
     "message": "Neu übersetzen"
@@ -2535,10 +2535,10 @@
     "message": "Diese zwischengespeicherte Übersetzung stammt von einer älteren Glossar- oder Prompt-Version"
   },
   "trStaleMixed": {
-    "message": "Diese Übersetzung wurde über verschiedene Versionen hinweg zusammengesetzt"
+    "message": "Teile dieser Übersetzung stammen aus unterschiedlichen Glossar- oder Prompt-Versionen"
   },
   "trRetranslateAll": {
-    "message": "Alles neu übersetzen (ca. ~$TOKENS$ Tokens)",
+    "message": "Alles neu übersetzen (ca. $TOKENS$ Tokens)",
     "placeholders": {
       "tokens": {
         "content": "$1"
@@ -3475,7 +3475,7 @@
   },
   "mdSendApiDown": { "message": "Export-Server nicht erreichbar. Volltext in die Zwischenablage kopiert; zum Abschließen einfügen." },
   "mdSendApiBadToken": { "message": "Der Server hat den Token abgelehnt. Erneut aus der App kopieren. Volltext in die Zwischenablage kopiert." },
-  "mdSendNotionNotShared": { "message": "Notion hat die übergeordnete Seite abgelehnt. Geben Sie die Seite über das Menü ··· (Verbindungen hinzufügen) für Ihre Verbindung frei und versuchen Sie es erneut. Der gesamte Text wurde in die Zwischenablage kopiert." },
+  "mdSendNotionNotShared": { "message": "Notion hat die übergeordnete Seite abgelehnt. Gib die Seite über das Menü ··· (Verbindungen hinzufügen) für deine Verbindung frei und versuche es erneut. Der gesamte Text wurde in die Zwischenablage kopiert." },
   "mdSendApiFailed": { "message": "Die Export-Anfrage ist fehlgeschlagen. Volltext in die Zwischenablage kopiert; zum Abschließen einfügen." },
   "mdSendTest": {
     "message": "Verbindung testen"
@@ -3502,10 +3502,10 @@
     "message": "Übergeordnete Seite (URL oder ID)"
   },
   "mdTargetNotionOnboarding": {
-    "message": "Erstellen Sie in Notions Entwicklereinstellungen (app.notion.com/developers/connections) über „Neue Verbindung“ eine interne Verbindung und kopieren Sie deren Token. Fügen Sie die Verbindung dann über das Menü ··· der Zielseite (Verbindungen hinzufügen) hinzu und tragen Sie hier die URL der Seite ein. Jeder Versand legt darunter eine neue Unterseite an."
+    "message": "Erstelle in Notions Entwicklereinstellungen (app.notion.com/developers/connections) über „Neue Verbindung“ eine interne Verbindung und kopiere deren Token. Füge die Verbindung dann über das Menü ··· der Zielseite (Verbindungen hinzufügen) hinzu und trage hier die URL der Seite ein. Jeder Versand legt darunter eine neue Unterseite an."
   },
   "mdTargetNotebookLmOnboarding": {
-    "message": "Keine Einrichtung nötig. Beim Senden wird der gesamte Text in die Zwischenablage kopiert und NotebookLM geöffnet. Fügen Sie dort eine Quelle hinzu, wählen Sie »Kopierter Text« und fügen Sie den Inhalt ein. NotebookLM hat keine öffentliche API, der letzte Schritt bleibt daher manuell."
+    "message": "Keine Einrichtung nötig. Beim Senden wird der gesamte Text in die Zwischenablage kopiert und NotebookLM geöffnet. Füge dort eine Quelle hinzu, wähle „Kopierter Text“ und füge den Inhalt ein. NotebookLM hat keine öffentliche API, der letzte Schritt bleibt daher manuell."
   },
   "mdSendViewGist": {
     "message": "gist ansehen →"
@@ -3529,7 +3529,7 @@
     "message": "Blockiert: Verwende HTTPS oder HTTP nur für localhost, 127.0.0.1 oder [::1]. LAN-/öffentliches HTTP, ungültige URLs und URLs mit Zugangsdaten werden nicht gesendet."
   },
   "mdTargetNotionParentWarn": {
-    "message": "Aus diesem Wert lässt sich keine Seiten-ID lesen. Fügen Sie die vollständige URL der Seite aus der Adressleiste ein."
+    "message": "Aus diesem Feld lässt sich keine Seiten-ID lesen. Füge die vollständige URL der Seite aus der Adressleiste ein."
   },
   "hlColorQuote": { "message": "Zitat" },
   "hlColorDefinition": { "message": "Begriffsdefinition" },
@@ -3595,7 +3595,7 @@
   "typoLeadingNormal": { "message": "Normal" },
   "typoLeadingRelaxed": { "message": "Weit" },
   "typoSchemeLabel": { "message": "Darstellung" },
-  "typoSchemeAuto": { "message": "Wie eingestellt" },
+  "typoSchemeAuto": { "message": "Automatisch" },
   "typoSchemeLight": { "message": "Hell" },
   "typoSchemeDark": { "message": "Dunkel" },
   "skimEnable": { "message": "KI-Kernpunkte-Zusammenfassung in der Leseansicht aktivieren" },
@@ -3632,11 +3632,11 @@
   "mdVideoLoading": { "message": "Untertitel werden geladen…" },
   "mdVideoTrackAria": { "message": "Untertitelsprache" },
   "mdVideoNoTracks": { "message": "Für dieses Video sind keine Untertitel verfügbar" },
-  "mdVideoBiliLogin": { "message": "Keine Untertitel gefunden. Bilibili liefert Untertitel nur im angemeldeten Zustand — melden Sie sich bei bilibili.com an und versuchen Sie es erneut." },
+  "mdVideoBiliLogin": { "message": "Keine Untertitel gefunden. Bilibili liefert Untertitel nur im angemeldeten Zustand – melde dich bei bilibili.com an und versuche es erneut." },
   "mdVideoFailed": { "message": "Für dieses Video sind über die Erweiterung keine Untertitel verfügbar. YouTube schränkt den Untertitelzugriff bei manchen Videos ein." },
-  "mdVideoBlocked": { "message": "YouTube hat diese Anfrage blockiert und verlangt eine Bestätigung, dass Sie kein Bot sind. Das sagt nichts über die Untertitel des Videos aus. Nutzen Sie den Link zum Öffnen auf YouTube oder aktivieren Sie in den Einstellungen die Option für Login-Cookies." },
-  "mdVideoOpenTabHint": { "message": "Tipp: Öffnen Sie das Video in einem YouTube-Tab, lassen Sie ihn geöffnet und versuchen Sie es erneut – die Untertitel werden dann über diesen Tab gelesen." },
-  "mdVideoBodyBlocked": { "message": "Untertitelspuren wurden gefunden, aber YouTube hat deren Text nicht geliefert. Lassen Sie den YouTube-Tab dieses Videos geöffnet und versuchen Sie es erneut, oder wählen Sie eine andere Spur." },
+  "mdVideoBlocked": { "message": "YouTube hat diese Anfrage blockiert und verlangt eine Bestätigung, dass du kein Bot bist. Das sagt nichts über die Untertitel des Videos aus. Nutze den Link „Auf YouTube öffnen“ oder aktiviere in den Einstellungen die Anmeldecookies." },
+  "mdVideoOpenTabHint": { "message": "Tipp: Öffne das Video in einem YouTube-Tab, lass ihn geöffnet und versuche es erneut – die Untertitel werden dann über diesen Tab gelesen." },
+  "mdVideoBodyBlocked": { "message": "Untertitelspuren wurden gefunden, aber YouTube hat deren Text nicht geliefert. Lass den YouTube-Tab dieses Videos geöffnet und versuche es erneut, oder wähle eine andere Spur." },
   "mdVideoPermMissing": { "message": "Berechtigung abgelehnt; es wurde nichts geladen" },
   "mdVideoCopyMd": { "message": "Transkript als Markdown kopieren" },
   "mdVideoAiPunct": { "message": "KI-Interpunktion" },
@@ -3657,71 +3657,71 @@
   "mdVideoPunctSource": { "message": "Bereits interpunktiert" },
   "mdVideoPunctHeuristic": { "message": "Basis-Interpunktion" },
   "mdVideoAiUnconfigured": { "message": "Kein KI-Anbieter konfiguriert" },
-  "mdVideoGrantScope": { "message": "Der Player braucht keine Berechtigung; sie gilt nur dem Lesen der Untertitel" },
-  "mdVideoFollowReadingOff": { "message": "Wiedergabe folgen erfordert die Zeitleistenansicht" },
+  "mdVideoGrantScope": { "message": "Der Player braucht keine Berechtigung; die Freigabe dient nur dem Lesen der Untertitel" },
+  "mdVideoFollowReadingOff": { "message": "Die Wiedergabeverfolgung erfordert die Zeitleistenansicht" },
   "mdVideoOpenExternalBili": { "message": "Auf bilibili öffnen" },
-  "mdVideoAwaitingTranscript": { "message": "Untertitel werden geladen; das Transkript übernimmt gleich…" },
-  "mdVideoAiPunctProgress": { "message": "KI-Zeichensetzung $CUR$/$TOTAL$…", "placeholders": { "cur": { "content": "$1" }, "total": { "content": "$2" } } },
+  "mdVideoAwaitingTranscript": { "message": "Untertitel werden geladen; das Transkript erscheint gleich hier…" },
+  "mdVideoAiPunctProgress": { "message": "KI-Interpunktion $CUR$/$TOTAL$…", "placeholders": { "cur": { "content": "$1" }, "total": { "content": "$2" } } },
   "mdVideoSwitchingTo": { "message": "Wechsel zu $TRACK$…", "placeholders": { "track": { "content": "$1" } } },
-  "mdVideoSeeking": { "message": "Springe zu $TIME$; der Player wird neu geladen", "placeholders": { "time": { "content": "$1" } } },
+  "mdVideoSeeking": { "message": "Sprung zu $TIME$; der Player wird neu geladen", "placeholders": { "time": { "content": "$1" } } },
   "mdVideoViaPanel": { "message": "Untertitelquelle: offizielle Schnittstelle" },
   "mdVideoViaCapture": { "message": "Untertitelquelle: Player-Mitschnitt" },
-  "mdVideoViaDom": { "message": "Untertitelquelle: Seitenpanel (reduziert; Vollständigkeit prüfen)" },
+  "mdVideoViaDom": { "message": "Untertitelquelle: Transkript-Panel der Seite (geringere Qualität; auf fehlende Zeilen prüfen)" },
   "mdVideoTranscriptHeading": { "message": "Transkript" },
-  "mdVideoPromoted": { "message": "Transkript bereit; der Artikel wurde ersetzt" },
-  "mdVideoAiCancel": { "message": "KI-Zeichensetzung abbrechen" },
+  "mdVideoPromoted": { "message": "Transkript bereit; es hat den Artikel ersetzt" },
+  "mdVideoAiCancel": { "message": "KI-Interpunktion abbrechen" },
   "mdVideoAiPunctEst": { "message": "≈ $TOKENS$ Tokens", "placeholders": { "tokens": { "content": "$1" } } },
-  "mdVideoAiPunctConfirm": { "message": "KI-Interpunktion ersetzt den Artikel: vorhandene Übersetzungen werden gelöscht, Ask-Zitate werden ungültig. Fortfahren?" },
+  "mdVideoAiPunctConfirm": { "message": "KI-Interpunktion ersetzt den Artikel: Vorhandene Übersetzungen werden gelöscht, die Zitate in „Seite befragen“ werden ungültig. Fortfahren?" },
   "mdStatVideoLen": { "message": "Länge $TIME$", "placeholders": { "time": { "content": "$1" } } },
   "mdVideoCopyMore": { "message": "Weitere Kopierformate" },
   "mdVideoCopyTimed": { "message": "Markdown mit Zeitstempeln kopieren" },
   "mdVideoDownloadSrt": { "message": "SRT-Untertitel herunterladen" },
   "mdVideoSrtSaved": { "message": "SRT-Datei gespeichert" },
   "askScopeNear": { "message": "Nahe der aktuellen Stelle" },
-  "askScopeNearHint": { "message": "Nur die zwei Absätze um die aktuelle Untertitelzeile senden -- weniger Tokens" },
-  "hlTimelineHint": { "message": "Zum Markieren in die Leseansicht wechseln" },
+  "askScopeNearHint": { "message": "Nur die zwei Absätze um die aktuelle Untertitelzeile senden – weniger Tokens" },
+  "hlTimelineHint": { "message": "Zum Markieren in den Lesetext wechseln" },
   "hlSeekHere": { "message": "Ab hier abspielen" },
   "mdVideoLoop": { "message": "Diesen Untertitel wiederholen" },
   "mdVideoAutoPause": { "message": "Nach jedem Untertitel pausieren" },
   "mdVideoRate": { "message": "Wiedergabegeschwindigkeit" },
-  "mdVideoFollowPaused": { "message": "Mitlaufen pausiert" },
+  "mdVideoFollowPaused": { "message": "Wiedergabeverfolgung pausiert" },
   "mdVideoBackToCurrent": { "message": "Zurück zum aktuellen Untertitel $TIME$", "placeholders": { "time": { "content": "$1" } } },
-  "mdVideoEstimate": { "message": "Geschätzte Position (Bilibili meldet keine Abspielposition: Die Uhr startet bei der angeklickten Zeile und stoppt, sobald der Player bedient wird; zum Neuausrichten eine Zeile anklicken)" },
-  "mdVideoEstimateIdle": { "message": "Schätzung aktiv: Eine Zeile anklicken, um zu starten" },
-  "mdVideoEstimateStopped": { "message": "Player bedient – Schätzung gestoppt; eine Zeile anklicken, um neu auszurichten" },
-  "mdVideoBiliFailed": { "message": "Videodaten konnten nicht geladen werden: Die Bilibili-API antwortet nicht, oder das Video ist nicht verfügbar." },
+  "mdVideoEstimate": { "message": "Geschätzte Position (Bilibili meldet keine Abspielposition: Die Uhr startet bei der angeklickten Zeile und stoppt, sobald du den Player bedienst; zum Neuausrichten eine Zeile anklicken)" },
+  "mdVideoEstimateIdle": { "message": "Schätzung aktiv: zum Starten eine Zeile anklicken" },
+  "mdVideoEstimateStopped": { "message": "Schätzung gestoppt, weil du den Player bedient hast; zum Neuausrichten eine Zeile anklicken" },
+  "mdVideoBiliFailed": { "message": "Videodaten konnten nicht geladen werden: Die bilibili-API antwortet nicht, oder das Video ist nicht verfügbar." },
   "mdVideoBiliBodyFailed": { "message": "Eine Untertitelspur wurde gefunden, ihr Text ließ sich aber nicht laden. Erneut versuchen oder eine andere Spur wählen." },
-  "mdVideoRelaySilent": { "message": "Der Player meldet keine Position (die YouTube-Player-API wurde nicht geladen): Mitlaufen, Tastenkürzel und Lernsteuerung sind vorerst nicht verfügbar" },
+  "mdVideoRelaySilent": { "message": "Der Player meldet keine Position (die YouTube-Player-API wurde nicht geladen): Wiedergabeverfolgung, Tastenkürzel, Wiederholen, automatische Pause und Wiedergabegeschwindigkeit sind vorerst nicht verfügbar" },
   "mdVideoUnplayable": { "message": "YouTube meldet, dass dieses Video derzeit nicht abspielbar ist ($STATUS$); das hat nichts mit Untertiteln zu tun. Öffne es auf YouTube, um den Grund zu sehen.", "placeholders": { "status": { "content": "$1" } } },
   "mdVideoBridgeEnable": { "message": "Wiedergabe-Sync aktivieren" },
-  "mdVideoBridgeEnableHint": { "message": "Erlaubt der Erweiterung, die Abspielposition des player.bilibili.com-Players zu lesen (nur in dieser Vorschau; nur Position und Abspielzustand), damit Untertitel wie bei YouTube mitlaufen, loopen und am Satzende pausieren." },
-  "mdVideoGrantScopeBili": { "message": "Die Freigabe umfasst Bilibilis Untertitel-API und die Player-Seite (Untertitel und Abspielposition)" },
+  "mdVideoBridgeEnableHint": { "message": "Erlaubt der Erweiterung, die Abspielposition von player.bilibili.com zu lesen (nur in dieser Vorschau; nur Position und Abspielzustand, sonst nichts), damit das Transkript wie bei YouTube der Wiedergabe folgen, einen Untertitel wiederholen und nach jedem Untertitel pausieren kann." },
+  "mdVideoGrantScopeBili": { "message": "Die Freigabe umfasst die Untertitel-API und die Player-Seite von bilibili (Untertitel und Abspielposition)" },
   "mdVideoBridgeSilent": { "message": "Der Player meldet keine Position: Nutze die geschätzte Position oder öffne die Vorschau erneut" },
   "mdVideoTimelineAria": { "message": "Untertitel-Zeitleiste" },
   "kbdHelpVideoPlay": { "message": "Wiedergabe / Pause" },
   "kbdHelpVideoSeek": { "message": "3 s zurück / vor" },
   "kbdHelpVideoCue": { "message": "Voriger / nächster Untertitel" },
   "kbdHelpVideoLoop": { "message": "Diesen Untertitel wiederholen" },
-  "kbdHelpVideoFollow": { "message": "Wiedergabe folgen" },
+  "kbdHelpVideoFollow": { "message": "Der Wiedergabe folgen" },
   "kbdHelpVideoCurrent": { "message": "Zurück zum aktuellen Untertitel" },
   "kbdHelpVideoView": { "message": "Lesetext / Zeitleiste" },
   "kbdHelpVideoSection": { "message": "Videoseiten" },
   "kbdHelpVideoNote": { "message": "Leertaste, Links, Rechts, r und f setzen voraus, dass der Player seine Position meldet: bei YouTube immer, bei bilibili nach Aktivierung der Wiedergabeverfolgung." },
   "secVideoPreview": { "message": "Videoseiten" },
   "optVideoLangPref": { "message": "Bevorzugte Untertitelsprachen" },
-  "optVideoLangPrefHint": { "message": "Sprachcodes in Reihenfolge der Präferenz, durch Kommas getrennt, z. B. en, zh (zuerst Englisch, dann Chinesisch); ein vollständiges Tag wie zh-Hant ist ebenfalls zulässig. Die Reihenfolge der Liste hat immer Vorrang; innerhalb einer Sprache wird ein vollständiges Tag zuerst genau abgeglichen, bevor auf den Basiscode zurückgegriffen wird. Leer lassen, um der Oberflächensprache zu folgen." },
+  "optVideoLangPrefHint": { "message": "Sprachcodes in der gewünschten Reihenfolge, durch Kommas getrennt, z. B. en, zh (zuerst Englisch, dann Chinesisch); ein vollständiges Tag wie zh-Hant ist ebenfalls zulässig. Die Reihenfolge der Liste hat immer Vorrang; innerhalb einer Sprache wird ein vollständiges Tag zuerst genau abgeglichen, bevor auf den Basiscode zurückgegriffen wird. Leer lassen, um der Oberflächensprache zu folgen." },
   "optVideoLangCodesLink": { "message": "Liste der Sprachcodes" },
-  "optVideoPauseOnLookup": { "message": "Beim Nachschlagen pausieren" },
+  "optVideoPauseOnLookup": { "message": "Wiedergabe beim Nachschlagen pausieren" },
   "optVideoPauseOnLookupHint": { "message": "Beim Markieren von Text oder Öffnen des Erklärfensters wird die Wiedergabe angehalten (YouTube; bei bilibili nach Aktivierung der Wiedergabeverfolgung) und nach dem Nachschlagen fortgesetzt." },
-  "optVideoDarkScheme": { "message": "Videoseiten dunkel öffnen" },
-  "optVideoDarkSchemeHint": { "message": "Auch bei Design „Automatisch“ oder „Hell“ öffnen Videoseiten in der dunklen Lesepalette. Im „Aa“-Fenster der Leseansicht lässt sich das für alle Leseansichten auf diesem Gerät überschreiben." },
-  "mdVideoResumePrompt": { "message": "Zuletzt bis $TIME$ gesehen", "placeholders": { "time": { "content": "$1" } } },
+  "optVideoDarkScheme": { "message": "Videoseiten im dunklen Modus öffnen" },
+  "optVideoDarkSchemeHint": { "message": "Auch bei Design „Automatisch“ oder „Hell“ werden Videoseiten in der dunklen Lesepalette geöffnet. Im „Aa“-Fenster der Leseansicht lässt sich das für alle Leseansichten auf diesem Gerät überschreiben." },
+  "mdVideoResumePrompt": { "message": "Du hast bei $TIME$ aufgehört", "placeholders": { "time": { "content": "$1" } } },
   "mdVideoResumeGo": { "message": "Fortsetzen" },
   "mdVideoResumeRestart": { "message": "Von vorn" },
   "mdVideoDensityPara": { "message": "Nach Absätzen anzeigen" },
-  "mdVideoAuxTrack": { "message": "Begleituntertitel" },
-  "mdVideoAuxNone": { "message": "Keine Begleituntertitel" },
+  "mdVideoAuxTrack": { "message": "Zweite Untertitelspur" },
+  "mdVideoAuxNone": { "message": "Keine zweite Untertitelspur" },
   "mdVideoStateOn": { "message": "an" },
   "mdVideoStateOff": { "message": "aus" },
-  "skimWaitingCaptions": { "message": "Kernpunkte werden erzeugt, sobald die Untertitel da sind; „Neu erzeugen“ macht es sofort" }
+  "skimWaitingCaptions": { "message": "Kernpunkte werden erzeugt, sobald die Untertitel geladen sind; „Neu erzeugen“ erstellt sie sofort" }
 }

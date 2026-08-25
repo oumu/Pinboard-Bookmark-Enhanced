@@ -1710,7 +1710,7 @@
     "message": "随字幕请求发送 YouTube 登录 Cookie"
   },
   "optVideoUseLoginHint": {
-    "message": "只影响没有已打开的 www.youtube.com 标签页时，由阅读器自己发出的兜底请求；有 YouTube 标签页打开时，字幕经该标签页及其登录态读取，不受此项影响。默认开启：匿名的兜底请求更容易被判定为机器人而遭拒。"
+    "message": "没有打开 www.youtube.com 标签页时，阅读器会直接发出兜底请求——此项只影响这个请求。有 YouTube 标签页打开时，字幕经该标签页及其登录态读取，不受此项影响。默认开启：匿名的兜底请求更容易被判定为机器人而遭拒。"
   },
   "mdTglToc": {
     "message": "目录"
@@ -2367,7 +2367,7 @@
     "message": "阅读器 AI"
   },
   "previewAiSectionHint": {
-    "message": "阅读器的划词解释、全文问答和全文翻译均由你主动调用，并使用「AI 服务商」中配置的服务商与 Key。若启用可选的 AI 要点速览，它可能会在阅读器打开时运行；所有功能都不会作为隐藏的后台任务运行。"
+    "message": "阅读器的划词解释、全文问答和全文翻译均由你主动调用，并使用「AI 服务商」中配置的服务商与 Key。若你开启了 AI 要点摘要，它可能会在阅读器打开时运行；所有功能都不会作为隐藏的后台任务运行。"
   },
   "previewAiEnabled": {
     "message": "在阅读器启用 AI 功能"
@@ -2379,7 +2379,7 @@
     "message": "模型覆盖（可选）"
   },
   "previewAiModelHint": {
-    "message": "仅供预览页 AI 功能使用的模型名，按服务商分别保存。留空则使用「AI 服务商」中配置的模型。"
+    "message": "仅供阅读器 AI 功能使用的模型名，按服务商分别保存。留空则使用「AI 服务商」中配置的模型。"
   },
   "previewAiModelFor": {
     "message": "作用于 $PROVIDER$。",
@@ -2535,7 +2535,7 @@
     "message": "本篇缓存译文来自旧版本的术语表或提示词"
   },
   "trStaleMixed": {
-    "message": "本篇译文由不同版本分段拼成"
+    "message": "本篇译文的部分段落来自不同版本的术语表或提示词"
   },
   "trRetranslateAll": {
     "message": "重新翻译全文（约 ~$TOKENS$ tokens）",
@@ -3475,7 +3475,7 @@
   },
   "mdSendApiDown": { "message": "无法连接到导出服务器。全文已复制到剪贴板，粘贴即可完成。" },
   "mdSendApiBadToken": { "message": "服务器拒绝了令牌，请从应用中重新复制。全文已复制到剪贴板。" },
-  "mdSendNotionNotShared": { "message": "Notion 拒绝了父页面。请在该页面的 ··· 菜单「添加连接」中加入你的连接后重试。全文已复制到剪贴板。" },
+  "mdSendNotionNotShared": { "message": "Notion 拒绝了父页面。请打开该页面的 ··· 菜单，选择「添加连接」并加入你的连接，然后重试。全文已复制到剪贴板。" },
   "mdSendApiFailed": { "message": "导出请求失败。全文已复制到剪贴板，粘贴即可完成。" },
   "mdSendTest": { "message": "测试连接" },
   "mdSendTestOk": { "message": "连接成功" },
@@ -3523,7 +3523,7 @@
     "message": "已阻止：请使用 HTTPS；HTTP 仅允许 localhost、127.0.0.1 或 [::1]。局域网/公网 HTTP、无效地址及含账号密码的地址不会发送。"
   },
   "mdTargetNotionParentWarn": {
-    "message": "无法从这个值解析出页面 ID。请从浏览器地址栏复制页面完整链接后粘贴。"
+    "message": "输入框里没有找到页面 ID。请从浏览器地址栏复制页面完整链接后粘贴。"
   },
   "hlColorQuote": { "message": "金句" },
   "hlColorDefinition": { "message": "定义" },
@@ -3589,7 +3589,7 @@
   "typoLeadingNormal": { "message": "标准" },
   "typoLeadingRelaxed": { "message": "宽松" },
   "typoSchemeLabel": { "message": "外观" },
-  "typoSchemeAuto": { "message": "跟随" },
+  "typoSchemeAuto": { "message": "自动" },
   "typoSchemeLight": { "message": "浅色" },
   "typoSchemeDark": { "message": "深色" },
   "skimEnable": { "message": "在阅读器生成 AI 要点摘要" },
@@ -3628,7 +3628,7 @@
   "mdVideoNoTracks": { "message": "该视频没有可用字幕" },
   "mdVideoBiliLogin": { "message": "未找到字幕。B 站仅在登录后返回字幕，请先登录 bilibili.com 再重试。" },
   "mdVideoFailed": { "message": "无法通过扩展获取该视频的字幕。YouTube 对部分视频限制了字幕访问。" },
-  "mdVideoBlocked": { "message": "YouTube 拦截了这次请求（它要求确认你不是机器人），与该视频有没有字幕无关。可以点「在 YouTube 上打开」，或在设置里开启登录 cookie 选项后重试。" },
+  "mdVideoBlocked": { "message": "YouTube 拦截了这次请求（它要求确认你不是机器人），与该视频有没有字幕无关。可以点「在 YouTube 上打开」，或在设置中开启登录 Cookie 选项后重试。" },
   "mdVideoOpenTabHint": { "message": "提示：打开该视频的 YouTube 标签页并保持开启，然后回来重试——字幕会经由该标签页读取。" },
   "mdVideoBodyBlocked": { "message": "已找到字幕轨，但 YouTube 未返回字幕内容。保持该视频的 YouTube 标签页打开后重试，或切换另一条字幕轨。" },
   "mdVideoPermMissing": { "message": "已拒绝授权，未加载任何内容" },
@@ -3647,25 +3647,25 @@
   "mdVideoRetry": { "message": "重新检测字幕" },
   "mdVideoPermDeclined": { "message": "视频已加载，字幕未启用" },
   "mdVideoAiPunctPartial": { "message": "$FAIL$/$TOTAL$ 批未通过校验，已保留原文；再点一次只重试失败批", "placeholders": { "fail": { "content": "$1" }, "total": { "content": "$2" } } },
-  "mdVideoAiCancelled": { "message": "已取消，完成 $DONE$/$TOTAL$ 批（进度已缓存，再点继续）", "placeholders": { "done": { "content": "$1" }, "total": { "content": "$2" } } },
+  "mdVideoAiCancelled": { "message": "已取消，完成 $DONE$/$TOTAL$ 批；进度已缓存，再点一次可继续", "placeholders": { "done": { "content": "$1" }, "total": { "content": "$2" } } },
   "mdVideoPunctSource": { "message": "原字幕已有标点" },
-  "mdVideoPunctHeuristic": { "message": "已自动基础断句" },
-  "mdVideoAiUnconfigured": { "message": "未配置 AI 服务" },
+  "mdVideoPunctHeuristic": { "message": "已自动添加基础标点" },
+  "mdVideoAiUnconfigured": { "message": "未配置 AI 服务商" },
   "mdVideoGrantScope": { "message": "播放器无需此权限，授权仅用于读取字幕" },
   "mdVideoFollowReadingOff": { "message": "跟随播放需要时间轴视图" },
-  "mdVideoOpenExternalBili": { "message": "在 bilibili 打开" },
-  "mdVideoAwaitingTranscript": { "message": "正在获取字幕，稍后自动替换为文字稿…" },
+  "mdVideoOpenExternalBili": { "message": "在 B 站打开" },
+  "mdVideoAwaitingTranscript": { "message": "正在获取字幕，稍后会在这里显示字幕稿…" },
   "mdVideoAiPunctProgress": { "message": "AI 标点 $CUR$/$TOTAL$…", "placeholders": { "cur": { "content": "$1" }, "total": { "content": "$2" } } },
   "mdVideoSwitchingTo": { "message": "正在切换到 $TRACK$…", "placeholders": { "track": { "content": "$1" } } },
   "mdVideoSeeking": { "message": "正在跳转到 $TIME$，播放器将重新加载", "placeholders": { "time": { "content": "$1" } } },
   "mdVideoViaPanel": { "message": "字幕来源：官方接口" },
   "mdVideoViaCapture": { "message": "字幕来源：播放器捕获" },
-  "mdVideoViaDom": { "message": "字幕来源：页面面板（降级，建议核对完整性）" },
+  "mdVideoViaDom": { "message": "字幕来源：页面的字幕稿面板（质量较低，请检查是否有缺行）" },
   "mdVideoTranscriptHeading": { "message": "字幕稿" },
-  "mdVideoPromoted": { "message": "字幕已就位，正文已替换" },
+  "mdVideoPromoted": { "message": "字幕稿已就绪，已替换原正文" },
   "mdVideoAiCancel": { "message": "取消 AI 标点" },
   "mdVideoAiPunctEst": { "message": "约 ~$TOKENS$ tokens", "placeholders": { "tokens": { "content": "$1" } } },
-  "mdVideoAiPunctConfirm": { "message": "AI 标点会替换正文：已有翻译将被清空、问答引用将失效。继续？" },
+  "mdVideoAiPunctConfirm": { "message": "AI 标点会替换正文：已有翻译将被清空，问答引用将失效。继续？" },
   "mdStatVideoLen": { "message": "片长 $TIME$", "placeholders": { "time": { "content": "$1" } } },
   "mdVideoCopyMore": { "message": "更多复制格式" },
   "mdVideoCopyTimed": { "message": "复制带时间戳的 Markdown" },
@@ -3685,20 +3685,20 @@
   "mdVideoEstimateStopped": { "message": "检测到播放器操作，推算已停止；点击任一行重新对齐" },
   "mdVideoBiliFailed": { "message": "无法获取该视频信息：B 站接口未响应，或该视频不可用。" },
   "mdVideoBiliBodyFailed": { "message": "已找到字幕轨，但字幕内容下载失败。请重试，或切换另一条字幕轨。" },
-  "mdVideoRelaySilent": { "message": "播放器未回传进度（YouTube 播放器接口未加载）：跟随、快捷键与学习控制暂不可用" },
+  "mdVideoRelaySilent": { "message": "播放器未回传进度（YouTube 播放器接口未加载）：跟随播放、快捷键、循环当前句、每句结束后暂停和播放速度暂不可用" },
   "mdVideoUnplayable": { "message": "YouTube 报告该视频当前不可播放（$STATUS$），与字幕无关。可以点「在 YouTube 上打开」查看原因。", "placeholders": { "status": { "content": "$1" } } },
   "mdVideoBridgeEnable": { "message": "启用播放跟随" },
-  "mdVideoBridgeEnableHint": { "message": "授权扩展读取 player.bilibili.com 播放器的播放位置（仅在本预览页内，只读进度与播放状态），字幕即可像 YouTube 一样跟随、循环、句尾暂停。" },
+  "mdVideoBridgeEnableHint": { "message": "授权扩展从 player.bilibili.com 读取播放位置（仅在本预览页内，只读进度与播放状态），字幕稿即可像在 YouTube 上一样跟随播放、循环当前句、每句结束后暂停。" },
   "mdVideoGrantScopeBili": { "message": "授权范围：B 站字幕接口与播放器页面（读取字幕与播放进度）" },
   "mdVideoBridgeSilent": { "message": "播放器未回传进度：可改用「估计播放位置」，或重新打开预览再试" },
   "mdVideoTimelineAria": { "message": "字幕时间轴" },
-  "kbdHelpVideoPlay": { "message": "播放 / 暂停" },
-  "kbdHelpVideoSeek": { "message": "后退 / 前进 3 秒" },
-  "kbdHelpVideoCue": { "message": "上一句 / 下一句" },
+  "kbdHelpVideoPlay": { "message": "播放/暂停" },
+  "kbdHelpVideoSeek": { "message": "后退/前进 3 秒" },
+  "kbdHelpVideoCue": { "message": "上一句/下一句" },
   "kbdHelpVideoLoop": { "message": "循环当前句" },
   "kbdHelpVideoFollow": { "message": "跟随播放进度" },
   "kbdHelpVideoCurrent": { "message": "回到当前句" },
-  "kbdHelpVideoView": { "message": "阅读稿 / 时间轴" },
+  "kbdHelpVideoView": { "message": "阅读稿/时间轴" },
   "kbdHelpVideoSection": { "message": "视频页" },
   "kbdHelpVideoNote": { "message": "空格、左右方向键、r 和 f 需要播放器回传进度：YouTube 始终可用，B 站需先启用播放跟随。" },
   "secVideoPreview": { "message": "视频页" },
@@ -3717,5 +3717,5 @@
   "mdVideoAuxNone": { "message": "无对照字幕" },
   "mdVideoStateOn": { "message": "已开启" },
   "mdVideoStateOff": { "message": "已关闭" },
-  "skimWaitingCaptions": { "message": "字幕就位后自动生成要点；也可点「重新生成」立即生成" }
+  "skimWaitingCaptions": { "message": "字幕加载完成后自动生成要点；也可点「重新生成」立即生成" }
 }

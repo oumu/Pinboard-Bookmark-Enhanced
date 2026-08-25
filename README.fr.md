@@ -24,12 +24,12 @@ Une extension Chrome pour [Pinboard](https://pinboard.in) : étiquettes et résu
 ![Enregistrement en un clic avec étiquettes et résumé par IA](docs/cws-assets/originals/screenshot-1-save.png)
 
 ### Étiquettes
-- **Étiquettes et résumé par IA** : l'IA lit le corps de l'article, débarrassé des publicités, des menus et des barres latérales ; votre propre clé API, 14 fournisseurs ou tout point de terminaison compatible OpenAI
+- **Étiquettes et résumé par IA** : l'IA lit le corps de l'article, débarrassé des publicités, des menus et des barres latérales ; votre propre clé API, 15 fournisseurs ou tout point de terminaison compatible OpenAI
 - **Autocomplétion** : à partir de vos étiquettes, des suggestions de Pinboard et de préréglages en un clic
 - **Nettoyage des étiquettes** : repérez les doublons et les étiquettes peu utilisées, puis fusionnez-les par lots
 
 ### Lecture
-- **Chaque page passe en mode lecture épuré** : vue Markdown avec table des matières, recherche et aperçu des notes de bas de page
+- **Chaque page passe en mode lecture épuré** : vue Markdown avec table des matières, recherche et aperçu des notes de bas de page ; les formules mathématiques, les diagrammes et les tableaux s'affichent correctement
 - **Surlignage en cinq couleurs, avec notes** : les surlignages et les notes survivent aux nouveaux rendus, à la traduction et aux modifications de la page
 - **Traduisez la page ou posez-lui vos questions** : traduction intégrale avec vue bilingue ; les réponses citent la source et y renvoient d'un clic
 - **Cherchez et révisez les mots au fil de la lecture** : le dictionnaire affiche d'abord le sens qui correspond à votre phrase ; les mots enregistrés gardent vos notes et leur statut d'apprentissage, et peuvent être envoyés vers Anki ou Eudic. En option, des packs de dictionnaires hors connexion chinois-anglais et anglais-chinois

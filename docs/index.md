@@ -18,6 +18,11 @@ A Chrome extension for [Pinboard](https://pinboard.in) with AI tags and summarie
 - Manual schema v3 JSON backups contain settings and can optionally include reader highlights, notes, and vocabulary from the current Pinboard account.
 - Google Drive can sync the current Pinboard account's vocabulary after you connect it separately on each device, on which you also need to be signed in to Chrome.
 
+## Video pages
+
+- On YouTube and bilibili video pages the reader loads the video beside its subtitles and treats the transcript as the article. Subtitle access is asked for once per site, from a button in the preview; nothing is fetched from either site before that click.
+- `yt-embed.html` on this site is the relay page the reader frames to load YouTube's player: Chrome sends no Referer from extension pages, so the player refuses to load there directly. The relay passes play and seek commands between the reader and the player, answers only the page that opened it, and stores nothing.
+
 ## Documents
 
 - [Privacy Policy](./privacy.html)

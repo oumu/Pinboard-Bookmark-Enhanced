@@ -24,12 +24,12 @@ Rozszerzenie Chrome dla [Pinboard](https://pinboard.in): tagi i streszczenia od 
 ![Zapis jednym kliknięciem, tagi i streszczenie od AI](docs/cws-assets/originals/screenshot-1-save.png)
 
 ### Tagi
-- **Tagi i streszczenie od AI** — AI czyta treść artykułu bez reklam, menu i pasków bocznych; własny klucz API, 14 dostawców lub dowolny endpoint zgodny z OpenAI
+- **Tagi i streszczenie od AI** — AI czyta treść artykułu bez reklam, menu i pasków bocznych; własny klucz API, 15 dostawców lub dowolny endpoint zgodny z OpenAI
 - **Autouzupełnianie** — z własnych tagów, podpowiedzi Pinboarda i gotowych zestawów na jedno kliknięcie
 - **Porządki w tagach** — znajdź duplikaty i rzadko używane tagi, po czym scal je partiami
 
 ### Czytanie
-- **Każda strona staje się czytelna** — widok Markdown ze spisem treści, wyszukiwaniem i podglądem przypisów
+- **Każda strona staje się czytelna** — widok Markdown ze spisem treści, wyszukiwaniem i podglądem przypisów; wzory matematyczne, diagramy i tabele wyświetlają się poprawnie
 - **Zakreślenia w pięciu kolorach, z notatkami** — jedne i drugie przetrwają ponowne renderowanie, tłumaczenie, a nawet zmiany na stronie
 - **Przetłumacz stronę albo zadaj jej pytanie** — tłumaczenie całości z widokiem dwujęzycznym; odpowiedzi cytują źródło i prowadzą prosto do niego
 - **Sprawdzaj i powtarzaj słownictwo podczas czytania** — słownik pokazuje najpierw znaczenie pasujące do bieżącego zdania; zapisane słówka mogą mieć notatki i status opanowania, można je też wysyłać do Anki i Eudic. Do wyboru są pakiety słowników offline: chińsko-angielski i angielsko-chiński.
