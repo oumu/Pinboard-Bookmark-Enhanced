@@ -548,7 +548,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     "ai-behavior": {
       fields: {
         "opt-ai-tag-lang": "en", "opt-ai-summary-lang": "auto", "opt-ai-cache-duration": "60",
-        "opt-ai-auto-tags": false, "opt-ai-tag-separator": "-",
+        "opt-ai-auto-tags": false, "opt-ai-use-transcript": true, "opt-ai-tag-separator": "-",
         "opt-custom-tag-prompt": "", "opt-custom-summary-prompt": ""
       },
       radios: { "ai-content-source": "local" }
@@ -1185,6 +1185,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     "opt-readlater-default": s.optReadlaterDefault, "opt-auto-description": s.optAutoDescription,
     "opt-blockquote": s.optBlockquote, "opt-include-referrer": s.optIncludeReferrer,
     "opt-ai-auto-tags": s.optAiAutoTags,
+    "opt-ai-use-transcript": s.aiUseTranscript !== false, // default-true boolean: absent on pre-key settings
     "qs-auto-notes": s.qsAutoNotes, "qs-blockquote": s.qsBlockquote,
     "qs-ai-tags": s.qsAiTags, "qs-ai-summary": s.qsAiSummary,
     "rl-auto-notes": s.rlAutoNotes, "rl-blockquote": s.rlBlockquote,
@@ -1792,6 +1793,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       customModel: $id("opt-custom-model").value.trim(),
       // AI Behavior & Prompts
       optAiAutoTags: $id("opt-ai-auto-tags").checked,
+      aiUseTranscript: $id("opt-ai-use-transcript").checked,
       aiTagLang: $id("opt-ai-tag-lang").value,
       aiSummaryLang: $id("opt-ai-summary-lang").value,
       aiCacheDuration: (() => {

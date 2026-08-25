@@ -35,7 +35,7 @@ Une extension Chrome pour [Pinboard](https://pinboard.in) : étiquettes et résu
 - **Cherchez et révisez les mots au fil de la lecture** : le dictionnaire affiche d'abord le sens qui correspond à votre phrase ; les mots enregistrés gardent vos notes et leur statut d'apprentissage, et peuvent être envoyés vers Anki ou Eudic. En option, des packs de dictionnaires hors connexion chinois-anglais et anglais-chinois
 - **Une page entière pour les notes et le vocabulaire** : vos mots enregistrés et vos surlignages réunis au même endroit, avec recherche dans le dictionnaire et gestion par lots
 - **Envoyer ou télécharger** : vers [Obsidian](https://obsidian.md), Notion, NotebookLM, un Gist GitHub ou n'importe quel webhook ; ou en `.md`, `.html`, `.epub` pour votre liseuse
-- **Regarder en lisant** : les aperçus de pages YouTube et Bilibili chargent la vidéo et ses sous-titres multilingues côte à côte, sautent dans le lecteur depuis n'importe quelle ligne et copient la transcription en Markdown
+- **Regarder en lisant** : les aperçus de pages YouTube et Bilibili chargent la vidéo et ses sous-titres multilingues côte à côte, gardent la transcription synchronisée avec la lecture, sautent dans le lecteur depuis n'importe quelle ligne, et les tags et résumés IA peuvent lire les sous-titres plutôt que la page
 
 ![Lecture claire avec traduction bilingue et surlignages](docs/cws-assets/originals/screenshot-2-reader.png)
 

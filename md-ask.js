@@ -470,9 +470,15 @@ function pbpAskBuildNearContext(blocks, curSec, budgetTokens) {
   const cur = Number(curSec) || 0;
   let ci = 0;
   for (let i = 0; i < timed.length; i++) if (timed[i].t <= cur) ci = i;
-  const win = timed.slice(Math.max(0, ci - 2), ci + 3);
+  // Neighbours in DOCUMENT order around the current timed paragraph, timed
+  // or not: paragraph times are stamped partially (text-anchored alignment
+  // skips what it cannot anchor), so slicing the timed list alone could
+  // leap over untimed paragraphs in between (review).
+  const at = list.indexOf(timed[ci].b);
+  const win = (at >= 0 ? list.slice(Math.max(0, at - 2), at + 3) : [timed[ci].b])
+    .map((b) => ({ b, t: (b && b.el && b.el.dataset && b.el.dataset.t !== "" && b.el.dataset.t != null) ? Number(b.el.dataset.t) : null }));
   const fmt = (typeof pbpVideoFmtTime === "function") ? pbpVideoFmtTime : (s) => String(Math.floor(s)) + "s";
-  const lines = win.map(({ b, t: tv }) => "[P" + b.n + "] (" + fmt(tv) + ") "
+  const lines = win.map(({ b, t: tv }) => "[P" + b.n + "]" + (Number.isFinite(tv) ? " (" + fmt(tv) + ")" : "") + " "
     + String(pbpAiTextOfKatex(b.n) || "").slice(0, PBP_ASK_BLOCK_CAP).replace(/\s+/g, " ").trim());
   const sent = new Set(win.map(({ b }) => b.n));
   return { text: lines.join("\n"), sentBlocks: lines.length, totalBlocks: list.length, sent, near: true };
@@ -2543,8 +2549,12 @@ function _pbpExplainPackContext(cap) {
   // and its neighbours. No block number (chips never point at rows).
   const rowEl = (!blockEl && node && node.closest) ? node.closest(".pbv-row") : null;
   if (rowEl) {
+    // The side the selection sits on: a click in the row's translation /
+    // companion line (.pbv-tr) wants THAT language as its context, not the
+    // original next to it (review).
+    const side = (node.closest && node.closest(".pbv-tr")) ? ".pbv-tr" : ".pbv-text";
     const rowText = (el) => {
-      const sp = el && el.querySelector ? el.querySelector(".pbv-text") : null;
+      const sp = el && el.querySelector ? el.querySelector(":scope > " + side) : null;
       return sp ? String(sp.textContent || "").trim() : "";
     };
     const cur = rowText(rowEl);

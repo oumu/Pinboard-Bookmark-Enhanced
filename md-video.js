@@ -1,8 +1,9 @@
 // ============================================================
 // Pinboard Bookmark Enhanced — md-video.js (md-preview only)
 // Video + subtitles panel for video-page bookmarks. PURE section first
-// (URL detect / watch-page scrape / timedtext parsers /
-// paragraph merge) — loaded file:// by tests/md-video-tests.html.
+// (watch-page scrape / timedtext parsers / paragraph merge) — loaded
+// file:// by tests/md-video-tests.html (with shared.js: pbpVideoDetect
+// lives there, so the popup can detect a video page without this file).
 // Runtime section (fetch + panel DOM) is guarded behind typeof checks.
 // Subtitle fetches run in the preview page itself after a click-time
 // exact-origin grant for https://www.youtube.com/* — never in the
@@ -10,34 +11,6 @@
 // ============================================================
 
 // ── PURE SECTION (no DOM/chrome/fetch at load) ──
-
-function pbpVideoDetect(pageUrl) {
-  let u;
-  try { u = new URL(String(pageUrl || "")); } catch (_) { return null; }
-  const host = u.hostname.replace(/^www\.|^m\./, "");
-  const ID = /^[\w-]{6,20}$/;
-  if (host === "youtube.com") {
-    const v = u.searchParams.get("v");
-    if (v && ID.test(v)) return { provider: "youtube", videoId: v };
-    const m = u.pathname.match(/^\/shorts\/([\w-]{6,20})/);
-    if (m) return { provider: "youtube", videoId: m[1] };
-    return null;
-  }
-  if (host === "youtu.be") {
-    const m = u.pathname.match(/^\/([\w-]{6,20})/);
-    return m ? { provider: "youtube", videoId: m[1] } : null;
-  }
-  if (host === "bilibili.com") {
-    let bvid = "";
-    const m = u.pathname.match(/\/video\/(BV[\w]{8,12})/i);
-    if (m) bvid = m[1];
-    else if (/^BV[\w]{8,12}$/i.test(u.searchParams.get("bvid") || "")) bvid = u.searchParams.get("bvid");
-    if (!bvid) return null;
-    const p = parseInt(u.searchParams.get("p") || "1", 10);
-    return { provider: "bilibili", bvid: bvid, part: Number.isFinite(p) && p > 0 ? p : 1 };
-  }
-  return null;
-}
 
 // Deterministic poster URL -- no API call. hqdefault exists for every video;
 // maxresdefault does not, so prefer the one that always resolves. bilibili
@@ -58,6 +31,16 @@ function pbpYtTabEligible(tabUrl) {
     const u = new URL(String(tabUrl || ""));
     return u.protocol === "https:" && u.hostname === "www.youtube.com";
   } catch (_) { return false; }
+}
+
+// The exact origins a provider's caption flow asks for, in ONE prompt.
+// bilibili pairs its API origin with the embed's own origin so the player
+// bridge (bili-player-bridge.js) can report the position; YouTube's relay
+// page needs no grant of its own.
+function pbpVideoOriginPatterns(provider) {
+  return provider === "bilibili"
+    ? ["https://api.bilibili.com/*", "https://player.bilibili.com/*"]
+    : ["https://www.youtube.com/*"];
 }
 
 // Which tab to inject into. Ranked, never trusted: the id remembered at
@@ -129,7 +112,8 @@ function pbpYtExtractTracks(playerJson) {
     baseUrl: String(tr.baseUrl),
     lang: String(tr.languageCode || ""),
     label: (tr.name && (tr.name.simpleText || (Array.isArray(tr.name.runs) && tr.name.runs[0] && tr.name.runs[0].text))) || String(tr.languageCode || ""),
-    asr: tr.kind === "asr"
+    asr: tr.kind === "asr",
+    vssId: String(tr.vssId || ""), // the player's own track id (".en", "a.en", ".en.<hash>"): exact identity for the player-driven capture
   }));
 }
 
@@ -336,6 +320,53 @@ function pbpVideoParaStarts(segments, paras) {
   }
   if (pos !== total) return null; // leftover characters -- not the same text
   return starts;
+}
+
+// Text-anchored paragraph alignment for the gutter (para-times debt).
+// pbpVideoParaStarts times the RECORDS; applyParaTimes has to stamp the <p>
+// elements marked actually produced, and those two counts diverge whenever a
+// record's FIRST characters read as block markdown -- "- ", "* ", "3. ",
+// "> ", "## ", a code fence, "---" each render as something that is not a
+// direct-child <p> (and consecutive list records merge into ONE list), while
+// a record carrying raw markup splits into two <p>. Device report: 351
+// paragraphs vs 376 starts on youtube 3ryID_SwU5E. Matching
+// letters-and-digits prefixes with a forward-only pointer survives every one
+// of those without knowing which happened: an unmatched <p> is skipped, an
+// unmatched record is walked past, and what DID match still gets its time.
+const PBP_VIDEO_PARA_KEY = 24;    // normalized chars compared per paragraph
+const PBP_VIDEO_PARA_MINKEY = 6;  // shorter than this is too weak to anchor on
+
+// Letters and digits only: whitespace, every mark the AI tier may insert or
+// move, AND the markdown syntax marked consumes (# > - * ` | _ [ ] ~) all
+// drop out, so a record's key and the key of the element it rendered into
+// are equal by construction rather than by luck.
+function pbpVideoParaKey(text) {
+  return String(text || "").replace(/[^\p{L}\p{N}]/gu, "").slice(0, PBP_VIDEO_PARA_KEY);
+}
+
+// domKeys[i] -> record index, or -1 for "nothing anchors this element".
+// Forward-only: a record is consumed at most once and never revisited, so a
+// false positive can cost the paragraphs after it but can never loop or
+// double-stamp. Keys below MINKEY are not anchored on at all -- an
+// all-punctuation or two-letter paragraph prefix-matches anything.
+function pbpVideoAlignParas(recKeys, domKeys) {
+  const recs = recKeys || [], doms = domKeys || [];
+  const map = new Array(doms.length).fill(-1);
+  let j = 0, matched = 0;
+  for (let i = 0; i < doms.length; i++) {
+    const dk = doms[i];
+    if (!dk || dk.length < PBP_VIDEO_PARA_MINKEY) continue;
+    for (let k = j; k < recs.length; k++) {
+      const rk = recs[k];
+      if (!rk || rk.length < PBP_VIDEO_PARA_MINKEY) continue;
+      // One a prefix of the other: equality once both hit the cap, prefix
+      // when a record rendered into two <p> or a short record rendered whole.
+      if (rk === dk || rk.startsWith(dk) || dk.startsWith(rk)) {
+        map[i] = k; matched++; j = k + 1; break;
+      }
+    }
+  }
+  return { map, matched };
 }
 
 // Unpunctuated-track detection: ASR subtitles (bilibili's especially) carry
@@ -822,26 +853,30 @@ function _pbpVideoTrackDescribe(track, provider) {
   // through them once more and bilibili would lose everything (a descriptor
   // has no lan/lan_doc at all -> key "", empty labels), quietly degrading the
   // persisted track list one reload at a time. Pass a descriptor through
-  // unchanged instead; the four-field shape below is exactly what
-  // pbpVideoStateValidate enforces, and no provider-native track carries a
-  // `key` property.
+  // unchanged instead; the four typed fields below are exactly what
+  // pbpVideoStateValidate enforces (vssId rides along as an optional string:
+  // the player's own track id, so a hydrated session can still address one
+  // of two same-language variants -- review), and no provider-native track
+  // carries a `key` property.
   if (track && typeof track.key === "string" && typeof track.lang === "string"
       && typeof track.label === "string" && typeof track.asr === "boolean") {
-    return { key: track.key, lang: track.lang, label: track.label, asr: track.asr };
+    return { key: track.key, lang: track.lang, label: track.label, asr: track.asr, vssId: typeof track.vssId === "string" ? track.vssId : "" };
   }
   if (provider === "bilibili") {
     return {
       key: pbpVideoTrackKey(track, provider),
       lang: (track && track.lan) || "",
       label: (track && track.lan_doc) || "",
-      asr: !!(track && _pbpBiliIsAi(track))
+      asr: !!(track && _pbpBiliIsAi(track)),
+      vssId: ""
     };
   }
   return {
     key: pbpVideoTrackKey(track, provider),
     lang: (track && track.lang) || "",
     label: (track && track.label) || "",
-    asr: !!(track && track.asr)
+    asr: !!(track && track.asr),
+    vssId: (track && typeof track.vssId === "string") ? track.vssId : ""
   };
 }
 
@@ -1478,6 +1513,15 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
 
   const YT_ORIGIN = "https://www.youtube.com/*";
   const BILI_ORIGIN = "https://api.bilibili.com/*";
+  // The bilibili embed's own origin: granted in the SAME click as the
+  // caption origin, it lets bili-player-bridge.js (a dynamic content script
+  // registered only after that grant) report the player's position -- the
+  // one thing player.bilibili.com never exposes by itself.
+  const BILI_PLAYER_ORIGIN = "https://player.bilibili.com/*";
+  const BILI_PLAYER_MSG_ORIGIN = "https://player.bilibili.com";
+  const BILI_BRIDGE_ID = "pbp-bili-player-bridge";
+  let _biliPlayerGranted = null;   // null = not checked yet on this page
+  let _liveGate = null, _bridgeBtn = null, _biliReloadedForBridge = false;
   // Chrome sends no Referer from chrome-extension:// frames, and YouTube's
   // enablejsapi=1 path rejects that with "Error 153". This page lives on the
   // project's own GitHub Pages origin (docs/yt-embed.html, published verbatim
@@ -1637,18 +1681,24 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   const PBP_VIDEO_PUNCT_GEN = 2; // 2: key = the model callAI really uses (retro V3)
   let _aiSettingsSnap = null;
   let _aiAbort = null; // per-pass AbortController (research T4.4)
-  // The model identity the punctuation request is ACTUALLY sent with:
-  // callAI (ai.js) resolves provider-native model fields and ignores the
-  // reader override, so the key mirrors that resolution -- plus the base
-  // URL for OpenAI-compatible endpoints, where the same model name on two
-  // hosts is two different models (retro V3).
+  // The model identity the punctuation request is ACTUALLY sent with: the
+  // Reader model override (pbpAiResolveModelOverride, md-ai-core.js) when
+  // set -- callAI (ai.js) now honors opts.model exactly like callAIStream --
+  // else the provider's configured field; plus the base URL for
+  // OpenAI-compatible endpoints, where the same model name on two hosts is
+  // two different models (retro V3). Key and request read the SAME
+  // settings snapshot, so they can never disagree.
+  function punctModelOverride(sa) {
+    return (typeof pbpAiResolveModelOverride === "function") ? (pbpAiResolveModelOverride(sa) || undefined) : undefined;
+  }
   function punctModelId(sa) {
     const p = sa.aiProvider || "gemini";
-    if (p === "gemini") return "gemini:" + (sa.geminiModel || "default");
-    if (p === "claude") return "claude:" + (sa.claudeModel || "default");
-    if (p === "ollama") return "ollama:" + (sa.ollamaModel || "default") + "@" + (sa.ollamaBaseUrl || "");
+    const override = punctModelOverride(sa);
+    if (p === "gemini") return "gemini:" + (override || sa.geminiModel || "default");
+    if (p === "claude") return "claude:" + (override || sa.claudeModel || "default");
+    if (p === "ollama") return "ollama:" + (override || sa.ollamaModel || "default") + "@" + (sa.ollamaBaseUrl || "");
     const cfg = (typeof OPENAI_COMPAT_PROVIDERS === "object" && OPENAI_COMPAT_PROVIDERS[p]) || null;
-    const model = (cfg && ((cfg.modelField && sa[cfg.modelField]) || cfg.defaultModel)) || "default";
+    const model = override || (cfg && ((cfg.modelField && sa[cfg.modelField]) || cfg.defaultModel)) || "default";
     let base = "";
     try { base = (typeof _openaiCompatBase === "function" && cfg) ? String(_openaiCompatBase(cfg, sa) || "") : ""; } catch (_) {}
     return p + ":" + model + "@" + base;
@@ -1704,11 +1754,18 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   // clears the row highlight, and a paused player sends no new time events
   // to restore it -- so the re-render sites replay this instead.
   let _lastRelayTime = null;
+  // Duration as the PLAYER reports it (relay / bilibili bridge `d` field):
+  // authoritative when known, provider-agnostic, else null.
+  let _relayDuration = null;
 
   // Video duration for the header stats line (research T1.6): the last
   // segment's end IS the length, no network involved. md-preview.js reads
   // this from computeStatBase; 0 = no transcript yet, caller falls back.
   window.pbpVideoDuration = () => {
+    // The player's own duration first (relay / bridge report); the last
+    // segment's end is the estimate until then -- captions usually stop
+    // short of credits and trailing silence.
+    if (typeof _relayDuration === "number" && _relayDuration > 0) return Math.floor(_relayDuration);
     const s = _segments;
     return (s && s.length) ? Math.max(0, Math.floor(s[s.length - 1].to || 0)) : 0;
   };
@@ -1757,15 +1814,40 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     const starts = pbpVideoParaStarts(_segments, paras);
     if (!starts) { console.info("[pbp-video] para-times: stream mismatch -- gutter skipped"); return; }
     const ps = view.querySelectorAll(":scope > p");
-    if (ps.length !== starts.length) {
-      console.info("[pbp-video] para-times: " + ps.length + " paragraphs vs " + starts.length + " starts -- gutter skipped");
-      return;
+    // Count equality was the wrong gate (para-times debt): a record whose
+    // first characters read as block markdown renders as a list / quote /
+    // heading, not a direct-child <p>, so the counts diverge on perfectly
+    // good transcripts and the all-or-nothing skip took the Ask "near the
+    // current moment" scope down with the gutter. Anchor on text instead and
+    // stamp what matched. The gutter button is zero-text by contract (its
+    // label paints from CSS content:attr(data-label)) and .pb-tr
+    // translations are SIBLINGS, so p.textContent keys the same on a re-run
+    // and on a translated article.
+    const { map, matched } = pbpVideoAlignParas(
+      paras.map((x) => pbpVideoParaKey(x)),
+      Array.from(ps, (p) => pbpVideoParaKey(p.textContent))
+    );
+    if (matched !== ps.length || matched !== starts.length) {
+      console.info("[pbp-video] para-times: matched " + matched + " of " + ps.length + " paragraphs against "
+        + starts.length + " starts -- " + (ps.length - matched) + " paragraphs left untimed");
     }
+    if (!matched) return;
     ps.forEach((p, i) => {
+      const k = map[i];
+      if (k < 0) {
+        // Nothing anchors this element -- leave it untimed AND drop any stamp
+        // an earlier run left on it: applyParaTimes re-runs on the SAME DOM
+        // (loadFlow plus every pbp:article-replaced), and a stale data-t is a
+        // wrong time on a right paragraph, the one thing this must not do.
+        if (p.dataset.t != null) delete p.dataset.t;
+        const stale = p.querySelector(":scope > .pbv-ptime");
+        if (stale) stale.remove();
+        return;
+      }
       // Precise (ms): two paragraphs starting at 10.2 and 10.8 must not
       // collapse onto the same second (retro #3); labels and deep links
       // floor on their own.
-      const sec = Math.max(0, Math.round((Number(starts[i]) || 0) * 1000) / 1000);
+      const sec = Math.max(0, Math.round((Number(starts[k]) || 0) * 1000) / 1000);
       p.dataset.t = String(sec);
       let btn = p.querySelector(":scope > .pbv-ptime");
       if (!btn) {
@@ -1814,7 +1896,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   // something on THIS page/provider are listed.
   window.pbpVideoShortcutKeys = () => {
     const s = new Set(["[", "]", "c", "b"]);
-    if (!_isBili && _followBtn && !_followBtn.hidden) {
+    if (_followBtn && !_followBtn.hidden) { // visible = a position feed exists (relay, or the bilibili bridge)
       s.add("Space"); s.add("\u2190"); s.add("\u2192"); s.add("f");
       if (_loopBtn && !_loopBtn.hidden) s.add("r");
     }
@@ -2359,7 +2441,10 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   // caller can also skip its injection entirely via the stillWanted probe.
   const queueTabInjection = pbpVideoMakeInjectQueue();
 
-  async function ytTabPlayerCaptionCapture(tabId, langCode, videoId) {
+  // ident = the track descriptor's {asr, vssId}: same language, two tracks
+  // (manual + auto, or two manual variants) is real on YouTube, and lang
+  // alone let the player pick whichever it liked (Codex retro D).
+  async function ytTabPlayerCaptionCapture(tabId, langCode, ident, videoId) {
     // A live tab, resolved NOW (device error panel 2026-08-25: "No tab with
     // id" -- the remembered tab had been closed while another tab on the
     // same video was open the whole time). No tab is an expected state and
@@ -2372,7 +2457,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       inj = await chrome.scripting.executeScript({
         target: { tabId: liveTab },
         world: "MAIN", // the fetch/XHR taps must live in the page world
-        func: async (lang, vid) => {
+        func: async (lang, asr, vss, vid) => {
           // Wrong-tab guard: the tab may have navigated to another video
           // since it was picked as the fetch tab -- driving ITS player would
           // capture another video's captions.
@@ -2428,7 +2513,13 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
             const s = String(u || "");
             if (!/timedtext/.test(s)) return false;
             if (!lang) return true;
-            try { return new URL(s, location.href).searchParams.get("lang") === lang; } catch (_) { return true; }
+            try {
+              const q = new URL(s, location.href).searchParams;
+              if (q.get("lang") !== lang) return false;
+              // Auto-generated tracks carry kind=asr on their timedtext URL;
+              // a manual request must not be satisfied by one (or vice versa).
+              return (q.get("kind") === "asr") === !!asr;
+            } catch (_) { return true; }
           };
           let prior = null;
           try { prior = player.getOption("captions", "track"); } catch (_) {}
@@ -2456,14 +2547,39 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
             };
             tagTap();
             const backstop = (ms) => new Promise((r) => setTimeout(() => r(""), ms));
+            // false when the player's tracklist is known and the requested
+            // identity is not in it -- the player cannot serve it, so the
+            // 12s + 12s backstops would be a pure wait (review).
             const drive = () => {
               try { player.loadModule("captions"); } catch (_) {}
-              if (lang) { try { player.setOption("captions", "track", { languageCode: lang }); } catch (_) {} }
+              if (lang) {
+                try {
+                  // Exact identity: the player's own tracklist object whose
+                  // vss_id matches (probed live 2026-08-25: setOption with a
+                  // tracklist object selects an exact same-language variant;
+                  // a bare {languageCode} takes the first one), else the
+                  // languageCode + kind pair, else languageCode alone.
+                  let target = null;
+                  try {
+                    const tl = player.getOption("captions", "tracklist") || [];
+                    target = (vss && tl.find((tr) => tr && tr.vss_id === vss))
+                      || tl.find((tr) => tr && tr.languageCode === lang && ((tr.kind === "asr") === !!asr)) || null;
+                  } catch (_) {}
+                  if (!target) {
+                    let known = false;
+                    try { const tl = player.getOption("captions", "tracklist") || []; known = tl.length > 0 && tl.some((tr) => tr && tr.languageCode); } catch (_) {}
+                    if (known) return false;
+                    target = { languageCode: lang }; if (asr) target.kind = "asr";
+                  }
+                  player.setOption("captions", "track", target);
+                } catch (_) {}
+              }
+              return true;
             };
             // The deadline clock starts AFTER setOption (drive is synchronous),
             // so throttled timers can only delay the FAILURE exit, never the
             // success (event) path.
-            drive();
+            if (!drive()) return { body: "", trace: "player offers no track for " + lang + (asr ? " (asr)" : "") + (vss ? " " + vss : "") };
             await Promise.race([capReady, backstop(12000)]);
             if (!captured) {
               // a track the player already holds re-fetches only after a
@@ -2503,7 +2619,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
             if (window.__pbpTapLease === myLease) delete window.__pbpTapLease;
           }
         },
-        args: [langCode || "", videoId || ""],
+        args: [langCode || "", !!(ident && ident.asr), String((ident && ident.vssId) || ""), videoId || ""],
       });
     } catch (e) {
       const msg = (e && e.message) || String(e);
@@ -2633,11 +2749,19 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   function seekTo(sec, play) {
     if (!_iframe || !_iframe.contentWindow) return;
     const wantPlay = play !== false;
+    if (_isBili && _relayAlive) {
+      // Bridge alive: a plain seek on the media element, no reload, no
+      // flash -- the same path as YouTube from here on.
+      relayPost("seekTo", [sec, true]);
+      if (wantPlay || _relayState === 1) relayPost("playVideo");
+      markSeek(sec);
+      return;
+    }
     if (_isBili) {
-      // player.bilibili.com exposes no postMessage seek API; the only
-      // working jump is reloading the iframe with its t= start parameter.
-      // Announce it (audit U12 / 方案A): as a toast over the player -- it
-      // describes the player, not the caption toolbar.
+      // No bridge (origin not granted): player.bilibili.com exposes no
+      // seek API by itself; the only working jump is reloading the iframe
+      // with its t= start parameter. Announce it (audit U12 / 方案A): as a
+      // toast over the player -- it describes the player, not the toolbar.
       pbvToast(t("mdVideoSeeking", pbpVideoFmtTime(sec)));
       // Costs a reload flash, buys clickable transcript rows.
       try {
@@ -2688,8 +2812,8 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     updateBackBtn(); // a paused player sends no tick to refresh it (Codex retro 1c)
   }
   function relayPost(func, args) {
-    if (!_iframe || !_iframe.contentWindow || _isBili) return;
-    try { _iframe.contentWindow.postMessage({ pbpVideo: 1, func, args: args || [] }, RELAY_ORIGIN); } catch (_) {}
+    if (!_iframe || !_iframe.contentWindow) return;
+    try { _iframe.contentWindow.postMessage({ pbpVideo: 1, func, args: args || [] }, playerMsgOrigin()); } catch (_) {}
   }
   function relayPause() { relayPost("pauseVideo"); }
   function relayPlay() { relayPost("playVideo"); }
@@ -2700,7 +2824,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   }
   function togglePlay() { if (_relayState === 1) relayPause(); else relayPlay(); }
   function seekBy(delta) {
-    if (_lastRelayTime == null || _isBili) return;
+    if (_lastRelayTime == null || (_isBili && !_relayAlive)) return;
     seekTo(Math.max(0, Math.floor(_lastRelayTime + delta)));
   }
   function stepCue(dir) {
@@ -2793,7 +2917,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     restart.type = "button";
     go.addEventListener("click", () => {
       _resumeEl.hidden = true;
-      if (_isBili) {
+      if (_isBili && !_relayAlive) {
         // t= start parameter, no autoplay -- the player reloads paused there.
         try {
           const u = new URL(_iframe.src);
@@ -2829,7 +2953,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     return !!(sel && !sel.isCollapsed && typeof pbpStudyHost === "function" && pbpStudyHost(sel.anchorNode));
   }
   function lookupPauseCheck() {
-    if (_isBili || !_segments.length || !document.body.classList.contains("video-mode")) return;
+    if ((_isBili && !_relayAlive) || !_segments.length || !document.body.classList.contains("video-mode")) return;
     if (!_videoPrefs.pauseOnLookup) return; // settings: opt-out (research T3.5)
     if (_lookupTimer) clearTimeout(_lookupTimer);
     _lookupTimer = setTimeout(() => {
@@ -2849,7 +2973,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   // by default and says so.
   function estStop() { if (_estTimer) { clearInterval(_estTimer); _estTimer = null; } }
   function estAnchor(sec) {
-    if (!_estOn || !_biliPlaying) { estStop(); return; }
+    if (!_estOn || !_biliPlaying || _relayAlive) { estStop(); return; }
     _estAnchor = { sec: Math.max(0, sec), at: (typeof performance !== "undefined" ? performance.now() : Date.now()) };
     estStop();
     _estTimer = setInterval(() => {
@@ -2902,13 +3026,13 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     // timeline is the visible study view and the relay is reporting
     // (retro KBD-1/V8) -- in the reading view, or before the player has
     // spoken, they stay the browser's scroll keys.
-    const playerKeys = !!(list && !list.hidden) && _relayAlive && _lastRelayTime != null && !_isBili;
+    const playerKeys = !!(list && !list.hidden) && _relayAlive && _lastRelayTime != null; // a live feed (relay or bilibili bridge) is the gate, not the provider
     let handled = true;
     switch (e.key) {
       case " ": if (onControl || inList || !playerKeys) return; togglePlay(); break;
       case "ArrowLeft": case "ArrowRight": if (onControl || inList || !playerKeys) return; seekBy(e.key === "ArrowLeft" ? -3 : 3); break;
       case "[": case "]": stepCue(e.key === "[" ? -1 : 1); break;
-      case "r": case "R": if (_isBili || !_loopBtn || _loopBtn.hidden) return; setLoop(!_loopOn); break;
+      case "r": case "R": if (!_loopBtn || _loopBtn.hidden) return; setLoop(!_loopOn); break;
       case "f": case "F": if (!_followBtn || _followBtn.hidden || _followBtn.disabled) return; setFollow(!_followOn); break;
       case "c": case "C": jumpToCurrent(); break;
       case "b": case "B": toggleStudyView(); break;
@@ -2931,7 +3055,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   function sendRelayHello() {
     if (!_iframe || !_iframe.contentWindow) return;
     try {
-      _iframe.contentWindow.postMessage({ pbpVideo: 1, func: "hello", args: [] }, RELAY_ORIGIN);
+      _iframe.contentWindow.postMessage({ pbpVideo: 1, func: "hello", args: [] }, playerMsgOrigin());
     } catch (_) { /* frame gone mid-flight; the interval below stops itself */ }
   }
 
@@ -2939,10 +3063,79 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     if (_helloTimer) { clearInterval(_helloTimer); _helloTimer = null; }
   }
 
+  // ---- bilibili playback bridge (bili-player-bridge.js) --------------
+  // Same protocol as the YouTube relay, different counterpart: a content
+  // script inside the player frame. Everything below the origin check is
+  // shared with YouTube -- one state machine for both providers.
+  function playerMsgOrigin() { return _isBili ? BILI_PLAYER_MSG_ORIGIN : RELAY_ORIGIN; }
+  async function biliPlayerGranted() {
+    try { return await chrome.permissions.contains({ origins: [BILI_PLAYER_ORIGIN] }) === true; } catch (_) { return false; }
+  }
+  async function biliBridgeRegistered() {
+    try { const l = await chrome.scripting.getRegisteredContentScripts({ ids: [BILI_BRIDGE_ID] }); return !!(l && l.length); } catch (_) { return false; }
+  }
+  // Idempotent; the registration persists across browser sessions. Only
+  // ever called once the exact player origin is granted (registration is
+  // refused without it anyway).
+  async function ensureBiliBridgeRegistered() {
+    if (await biliBridgeRegistered()) return true;
+    try {
+      await chrome.scripting.registerContentScripts([{
+        id: BILI_BRIDGE_ID, matches: [BILI_PLAYER_ORIGIN], allFrames: true, js: ["bili-player-bridge.js"],
+        runAt: "document_idle", world: "ISOLATED", persistAcrossSessions: true,
+      }]);
+      return true;
+    } catch (e) { console.info("[pbp-video] bilibili bridge registration:", (e && e.message) || e); return false; }
+  }
+  // The bilibili frame's load handler: greet only when the bridge can be
+  // there (origin granted -> script registered). A grant made outside our
+  // own click (chrome://extensions site access) has no registration yet:
+  // register, then reload the frame ONCE so the script is inside it.
+  async function onBiliFrameLoad() {
+    if (_biliPlayerGranted == null) _biliPlayerGranted = await biliPlayerGranted();
+    if (!_biliPlayerGranted) { syncLiveControls(); return; }
+    if (!(await biliBridgeRegistered())) {
+      if (await ensureBiliBridgeRegistered() && !_biliReloadedForBridge && _iframe) {
+        _biliReloadedForBridge = true;
+        try { _iframe.src = _iframe.src; } catch (_) {}
+        return;
+      }
+    }
+    startRelayHello();
+  }
+  function onRelayAlive() {
+    if (_relayAlive) return;
+    _relayAlive = true;
+    if (_isBili) {
+      if (_estOn) setEstimate(false); // a real position feed supersedes the estimate clock
+      syncLiveControls();
+    }
+  }
+  // Which playback controls exist depends on whether a position feed does:
+  // always for YouTube (the relay), for bilibili only while the bridge is
+  // alive. Re-run whenever that changes (bridge ready, frame reload).
+  function syncLiveControls() {
+    const g = _liveGate;
+    if (!g) return;
+    const live = g.provider === "youtube" || _relayAlive;
+    if (_followBtn) _followBtn.hidden = !(g.hasSegs && document.body.classList.contains("video-mode") && live);
+    // Learning controls ride follow's visibility (research T3.2/T3.3).
+    const learn = !!(_followBtn && !_followBtn.hidden);
+    if (_loopBtn) _loopBtn.hidden = !learn;
+    if (_autoPauseBtn) _autoPauseBtn.hidden = !learn;
+    if (_rateSel) _rateSel.hidden = !learn;
+    // The estimate clock is the no-bridge fallback; the enable button is
+    // the way to the bridge for readers who granted captions before it
+    // existed.
+    if (_estBtn) _estBtn.hidden = !(g.hasSegs && g.provider === "bilibili" && !_relayAlive);
+    if (_bridgeBtn) _bridgeBtn.hidden = !(g.hasSegs && g.provider === "bilibili" && _biliPlayerGranted === false);
+  }
+
   function startRelayHello() {
     stopRelayHello();
     _relayAlive = false;
     _helloTries = 0;
+    syncLiveControls(); // a reloading bilibili frame is silent until its bridge answers
     sendRelayHello();
     _helloTimer = setInterval(() => {
       if (_relayAlive || !_iframe) { stopRelayHello(); return; }
@@ -2953,7 +3146,9 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         // study controls have nothing to work from). Say so once, transient,
         // never over a busy line -- a late answer still arms everything as
         // usual (Codex retro 1b).
-        if (_statusElRef && _segments.length && _statusElRef.dataset.state !== "busy") pbvSetStatus(_statusElRef, t("mdVideoRelaySilent"), false);
+        // bilibili: only worth saying when the bridge SHOULD be there (origin granted).
+        const silentKey = _isBili ? (_biliPlayerGranted ? "mdVideoBridgeSilent" : "") : "mdVideoRelaySilent";
+        if (silentKey && _statusElRef && _segments.length && _statusElRef.dataset.state !== "busy") pbvSetStatus(_statusElRef, t(silentKey), false);
         return;
       }
       sendRelayHello();
@@ -2967,15 +3162,23 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   // dropped in silence -- no logging (it would be a free console-spam channel
   // for third parties).
   function onRelayMessage(e) {
-    if (e.origin !== RELAY_ORIGIN) return;
+    if (e.origin !== playerMsgOrigin()) return;
     if (!_iframe || !_iframe.contentWindow || e.source !== _iframe.contentWindow) return;
     const d = e.data;
     if (!d || typeof d !== "object" || d.pbpVideo !== 1) return;
     // "ready" carries no data and moves nothing on screen; it is proof of
     // life only, which is what lets the greeting loop stop early.
-    if (d.event === "ready") { _relayAlive = true; return; }
+    if (d.event === "ready") { onRelayAlive(); return; }
     if (d.event !== "time") return;
-    _relayAlive = true;
+    onRelayAlive();
+    // Duration rides every report once the player knows it; independent of
+    // whether this report's position is usable. The FIRST arrival refreshes
+    // the header stats line, which was computed from the caption tail.
+    if (typeof d.d === "number" && isFinite(d.d) && d.d > 0 && d.d !== _relayDuration) {
+      const first = _relayDuration == null;
+      _relayDuration = d.d;
+      if (first && typeof window.pbpRefreshReadingStats === "function") { try { window.pbpRefreshReadingStats(); } catch (_) {} }
+    }
     if (typeof d.state === "number") {
       _relayState = d.state;
       // The lookup pause's right to resume ends the moment the reader
@@ -3031,7 +3234,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   // rows kept scrolling past a manual pause); the next row jump reloads the
   // player into a known state and re-anchors it.
   function onWindowBlur() {
-    if (!_isBili || !_iframe || document.activeElement !== _iframe) return;
+    if (!_isBili || _relayAlive || !_iframe || document.activeElement !== _iframe) return;
     _biliPlaying = false;
     if (!_estTimer) return;
     estStop();
@@ -3095,13 +3298,40 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     // (max-height 40vh); the video-mode workspace unclamps it, so the PAGE
     // scrolls. The overflow state IS the layout answer -- read it rather
     // than re-deriving the mode here.
-    if (list.scrollHeight > list.clientHeight + 4) {
+    const inList = list.scrollHeight > list.clientHeight + 4;
+    if (inList) {
       list.scrollTo({ top: Math.max(0, row.offsetTop - Math.round(list.clientHeight * 0.35)), behavior });
-      return;
+    } else {
+      const r = row.getBoundingClientRect();
+      const top = Math.max(0, (window.scrollY || 0) + r.top - Math.round(window.innerHeight * 0.35));
+      window.scrollTo({ top, behavior });
     }
-    const r = row.getBoundingClientRect();
-    const top = Math.max(0, (window.scrollY || 0) + r.top - Math.round(window.innerHeight * 0.35));
-    window.scrollTo({ top, behavior });
+    settleFollow(row, list, inList);
+  }
+  // Rows above a far target are content-visibility:auto -- their height is
+  // the contain-intrinsic-size ESTIMATE until they are laid out, so the
+  // target computed before the scroll lands short on a long jump (device
+  // 2026-08-25: settled at 15627px, the row sat at 17713px). Once the
+  // scroll settles (scrollend, or a timer when it was a no-op) re-measure
+  // with the real layout and correct instantly; a user scroll meanwhile
+  // has switched follow off, which the check honours.
+  let _settleTimer = null;
+  function settleFollow(row, list, inList) {
+    if (_settleTimer) { clearTimeout(_settleTimer); _settleTimer = null; }
+    const scroller = inList ? list : window;
+    const done = () => {
+      scroller.removeEventListener("scrollend", done);
+      if (_settleTimer) { clearTimeout(_settleTimer); _settleTimer = null; }
+      if (!_followOn || row !== _currentRowEl || !row.isConnected) return;
+      const r = row.getBoundingClientRect();
+      const want = Math.round((inList ? list.clientHeight : window.innerHeight) * 0.35);
+      const have = inList ? r.top - list.getBoundingClientRect().top : r.top;
+      if (Math.abs(have - want) <= 24) return;
+      if (inList) list.scrollTo({ top: Math.max(0, row.offsetTop - want), behavior: "auto" });
+      else window.scrollTo({ top: Math.max(0, (window.scrollY || 0) + r.top - want), behavior: "auto" });
+    };
+    scroller.addEventListener("scrollend", done, { once: true });
+    _settleTimer = setTimeout(done, 1500);
   }
 
   // Follow is only safe while the player stays put as the page scrolls. In
@@ -3422,8 +3652,20 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
   // Callers therefore check chrome.permissions.contains() first and only
   // reach this helper on a real click when that check came back false.
   async function requestVideoOrigin(detected) {
-    const originPat = detected.provider === "bilibili" ? BILI_ORIGIN : YT_ORIGIN;
-    try { return await chrome.permissions.request({ origins: [originPat] }) === true; } catch (_) { return false; }
+    const isBili = detected.provider === "bilibili";
+    // bilibili: captions AND the player bridge in ONE prompt (both exact
+    // bilibili origins). The bridge script goes in as soon as the grant
+    // stands; the player document that loaded before it is reloaded once
+    // so the script is inside it.
+    let granted = false;
+    try { granted = await chrome.permissions.request({ origins: pbpVideoOriginPatterns(detected.provider) }) === true; } catch (_) { granted = false; }
+    if (granted && isBili) {
+      _biliPlayerGranted = true;
+      await ensureBiliBridgeRegistered();
+      syncLiveControls();
+      if (_iframe && _iframe.isConnected) { try { _iframe.src = _iframe.src; } catch (_) {} }
+    }
+    return granted;
   }
 
   // Data-layer capture chain: URL detect -> permission check (contains
@@ -3517,9 +3759,12 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         // Hand-build a transcript-panel params token from the track list the
         // failed timedtext round already gave us (language + asr), so the
         // rescue no longer depends on finding an endpoint in the page data.
-        const rTrack = (res.tracks && res.tracks.length)
-          ? (pbpYtPickTrack(res.tracks, uiLang, PBP_VIDEO_PICK_HINTS.prefs, PBP_VIDEO_PICK_HINTS.preferKey) || res.tracks[0]) : null;
+        // Pick from the FILTERED list (review): the player route cannot serve
+        // an ASR track that a manual track of the same language shadows, so a
+        // remembered "yt:xx:asr" must not steer the capture into that wall.
         const rTracks = pbpYtRescueTracks(res.tracks);
+        const rTrack = rTracks.length
+          ? (pbpYtPickTrack(rTracks, uiLang, PBP_VIDEO_PICK_HINTS.prefs, PBP_VIDEO_PICK_HINTS.preferKey) || rTracks[0]) : null;
         // Success-tier memory (device round 3, plan 丙-乙): remember which
         // rescue tier fed this site last time and RUN IT FIRST next time --
         // reordering, never removing, so a stale memory only costs the old
@@ -3544,7 +3789,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         const tryCapture = async () => {
           if (!res.error) return;
           const capSegs = await queueTabInjection(
-            () => ytTabPlayerCaptionCapture(fetchTabId, rTrack ? rTrack.lang : null, detected.videoId));
+            () => ytTabPlayerCaptionCapture(fetchTabId, rTrack ? rTrack.lang : null, rTrack, detected.videoId));
           console.info("[pbp-video] player capture rescue:", capSegs ? capSegs.length + " segments" : "failed");
           if (capSegs && capSegs.length) res = { tracks: rTracks, track: rTrack, segments: capSegs, via: "capture" };
         };
@@ -3959,14 +4204,8 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     const hasSegs = (res.segments || []).length > 0;
     const tgEl = document.querySelector(".pbv-view-toggle");
     if (tgEl) tgEl.hidden = !hasSegs;
-    if (_followBtn) _followBtn.hidden = !(hasSegs && document.body.classList.contains("video-mode") && detected.provider === "youtube");
-    // Learning controls ride follow's visibility (research T3.2/T3.3); the
-    // bilibili estimate toggle needs only rows.
-    const learn = !!(_followBtn && !_followBtn.hidden);
-    if (_loopBtn) _loopBtn.hidden = !learn;
-    if (_autoPauseBtn) _autoPauseBtn.hidden = !learn;
-    if (_rateSel) _rateSel.hidden = !learn;
-    if (_estBtn) _estBtn.hidden = !(hasSegs && detected.provider === "bilibili");
+    _liveGate = { hasSegs, provider: detected.provider };
+    syncLiveControls();
     _segments = res.segments || [];
     // ONE meta construction (pbpVideoTranscriptMeta) shared with md-preview.js:
     // Copy, the first-run commit below, and the AI-punctuation commit all read
@@ -4072,8 +4311,12 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
             return;
           }
           const liveTracks = Array.isArray(fresh.tracks) ? fresh.tracks : [];
-          const live = liveTracks.find((tr) => pbpVideoTrackKey(tr, detected.provider) === key)
-            || liveTracks.find((tr) => pbpVideoTrackKey(tr, detected.provider) === bare)
+          // By stable VALUE (buildTrackValues numbers duplicates #2, #3 ...):
+          // a suffixed key must land on ITS duplicate, never on the first
+          // same-language track (review); bare fallback only for a bare key.
+          const liveIdx = buildTrackValues(liveTracks, detected.provider).indexOf(key);
+          const live = (liveIdx >= 0 ? liveTracks[liveIdx] : null)
+            || (key === bare ? liveTracks.find((tr) => pbpVideoTrackKey(tr, detected.provider) === bare) : null)
             || null;
           if (live) { selTrack = live; endpoint = (isBili ? live.subtitle_url : live.baseUrl) || ""; }
           // The rescue tier below is per-LANGUAGE, not per-endpoint, and it
@@ -4128,7 +4371,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
           // (saving its whole in-tab budget), and two captures can never
           // overlap in the tab.
           segs = (await queueTabInjection(
-            () => ytTabPlayerCaptionCapture(_ytFetchTabId, selTrack.lang, detected.videoId),
+            () => ytTabPlayerCaptionCapture(_ytFetchTabId, selTrack.lang, selTrack, detected.videoId),
             () => seq === _trackSwitchSeq)) || [];
           if (seq !== _trackSwitchSeq) return;
         }
@@ -4261,8 +4504,9 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         const fresh = await refreshTrackDirectory();
         if (!fresh || !fresh.granted) return [];
         const liveTracks = Array.isArray(fresh.tracks) ? fresh.tracks : [];
-        const live = liveTracks.find((tr) => pbpVideoTrackKey(tr, detected.provider) === key)
-          || liveTracks.find((tr) => pbpVideoTrackKey(tr, detected.provider) === bare) || null;
+        const liveIdx = buildTrackValues(liveTracks, detected.provider).indexOf(key); // #N-aware (review)
+        const live = (liveIdx >= 0 ? liveTracks[liveIdx] : null)
+          || (key === bare ? liveTracks.find((tr) => pbpVideoTrackKey(tr, detected.provider) === bare) : null) || null;
         if (live) { selTrack = live; endpoint = (isBili ? live.subtitle_url : live.baseUrl) || ""; }
         _ytFetchFn = fresh.ytFetchFn || _ytFetchFn;
         if (typeof fresh.ytFetchTabId === "number") _ytFetchTabId = fresh.ytFetchTabId;
@@ -4274,7 +4518,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         : [];
       if (!segs.length && !isBili && selTrack) {
         segs = (await queueTabInjection(
-          () => ytTabPlayerCaptionCapture(_ytFetchTabId, selTrack.lang, detected.videoId), stillWanted || (() => true))) || [];
+          () => ytTabPlayerCaptionCapture(_ytFetchTabId, selTrack.lang, selTrack, detected.videoId), stillWanted || (() => true))) || [];
       }
       return segs;
     }
@@ -4670,7 +4914,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
     // below can swap the label without wiping the note.
     const posterLabelEl = el("span", "pbv-poster-label");
     posterLabelEl.appendChild(el("span", "pbv-poster-label-text", posterLabel));
-    const posterNote = el("span", "pbv-poster-note", t("mdVideoGrantScope"));
+    const posterNote = el("span", "pbv-poster-note", t(detected.provider === "bilibili" ? "mdVideoGrantScopeBili" : "mdVideoGrantScope")); // bilibili's one prompt covers the player origin too (bridge)
     posterNote.hidden = !firstRun;
     posterLabelEl.appendChild(posterNote);
     cta.appendChild(posterLabelEl);
@@ -4721,9 +4965,9 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       _iframe = document.createElement("iframe");
       _isBili = detected.provider === "bilibili";
       _iframe.src = detected.provider === "bilibili"
-        ? "https://player.bilibili.com/player.html?bvid=" + detected.bvid + "&page=" + detected.part + "&high_quality=1&danmaku=0"
+        ? "https://player.bilibili.com/player.html?bvid=" + detected.bvid + "&page=" + detected.part + "&high_quality=1&danmaku=0&autoplay=0" // explicit: with autoplay delegated to the frame (bridge), the embed's default would start playing on open
         : RELAY_BASE + "?v=" + encodeURIComponent(detected.videoId);
-      _iframe.allow = "encrypted-media; picture-in-picture; fullscreen";
+      _iframe.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen"; // autoplay: the bridge's playVideo needs the delegation
       _iframe.title = t("mdVideoTitle");
       // Greet only once the relay DOCUMENT is up: posting into a
       // not-yet-loaded frame hits its initial extension-origin document, and
@@ -4731,20 +4975,21 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
       // (device round 4's error-list bulk, 20+ entries). load re-fires after
       // every src change (the seek fallback rewrites src), so each
       // navigation re-arms its own greeting loop; the loop itself covers the
-      // relay being slow to ANSWER after load. bilibili's player speaks no
-      // relay protocol -- never greet it.
-      if (detected.provider === "youtube") _iframe.addEventListener("load", startRelayHello);
+      // relay being slow to ANSWER after load. bilibili's player speaks the
+      // same protocol only through the bridge script, so its handler greets
+      // only once that can be there (origin granted).
+      _iframe.addEventListener("load", detected.provider === "youtube" ? startRelayHello : onBiliFrameLoad);
       media.appendChild(_iframe);
       const bar = el("div", "pbv-bar");
       // No aria-live here (research T7.4): announcements go through the
       // srAnnounce mirror, which pbvSetStatus feeds for every write except
       // the per-batch "busy-quiet" progress ticks.
-      const status = el("span", "pbv-status");
+      const status = el("span", "pbv-status msg-bar");
       statusRef = status;
       _statusElRef = status;
       // Continue-watching strip (research T6.3): message-bar look, two
       // explicit actions; filled by offerResume, hidden until then.
-      const resume = el("div", "pbv-resume");
+      const resume = el("div", "pbv-resume msg-bar");
       resume.hidden = true;
       _resumeEl = resume;
       const trackSel = document.createElement("select");
@@ -5014,7 +5259,7 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
             // primary suspect behind "clicked AI punctuation, nothing changed"
             // (device report 2026-08-24). 2 tokens/char + headroom covers every
             // provider's tokenizer; 4096 is within all providers' caps.
-            const text = await callAI(sa, prompt, { maxTokens: Math.min(4096, b.length * 2 + 256), signal: _aiAbort ? _aiAbort.signal : undefined });
+            const text = await callAI(sa, prompt, { maxTokens: Math.min(4096, b.length * 2 + 256), signal: _aiAbort ? _aiAbort.signal : undefined, model: punctModelOverride(sa) }); // same override the cache key hashes
             if (superseded()) return;
             // fail-closed per batch: a batch the model rewrote keeps its input.
             // One resilience step first: strip a markdown code fence the model
@@ -5291,13 +5536,14 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         if (_aiAbort) { try { _aiAbort.abort(); } catch (_) {} } // research T4.4
       });
       bar.appendChild(trackSel); bar.appendChild(auxSel); bar.appendChild(copyGroup); bar.appendChild(aiBtn); bar.appendChild(aiNote); bar.appendChild(aiCancelBtn); bar.appendChild(retryBtn);
-      if (detected.provider === "youtube") {
+      {
         // Follow toggle (Task 6). Same bar-button family as Copy / AI
         // punctuation (.pbv-copy, .pbv-ai-punct in md-preview.css), plus the
         // project's standard pressed vocabulary for a real toggle button
         // (aria-pressed, no checkbox, no checkmark glyph). Labelled text, so
-        // no icon and no separate aria-label. YouTube-only (this branch) and
-        // video-mode-only: the position protocol exists for the relay player,
+        // no icon and no separate aria-label. Built for BOTH providers and
+        // video-mode-only: syncLiveControls shows it once a position feed
+        // exists (YouTube's relay always; bilibili once its bridge answers),
         // and the timeline it scrolls lives in the workspace study column.
         const followBtn = el("button", "pbv-follow");
         followBtn.type = "button";
@@ -5381,6 +5627,35 @@ async function pbpBiliFetchSubtitleBody(subtitleUrl, fetchFn) {
         estBtn.addEventListener("click", () => setEstimate(!_estOn));
         _estBtn = estBtn;
         bar.appendChild(estBtn);
+        // Readers who granted captions before the bridge existed: one click
+        // requests exactly the player origin (the click IS the gesture),
+        // registers the bridge and reloads the frame paused where it was.
+        const bridgeBtn = el("button", "action-btn pbv-bridge-enable", t("mdVideoBridgeEnable"));
+        bridgeBtn.type = "button";
+        bridgeBtn.hidden = true;
+        bridgeBtn.title = t("mdVideoBridgeEnableHint");
+        bridgeBtn.addEventListener("click", async () => {
+          if (bridgeBtn.disabled) return;
+          bridgeBtn.disabled = true;
+          let g = false;
+          try { g = await chrome.permissions.request({ origins: [BILI_PLAYER_ORIGIN] }) === true; } catch (_) {}
+          bridgeBtn.disabled = false;
+          if (!g) return;
+          _biliPlayerGranted = true;
+          await ensureBiliBridgeRegistered();
+          syncLiveControls();
+          if (!_iframe) return;
+          _biliPlaying = false; // the reload below lands PAUSED: nothing to extrapolate from
+          estAnchor(_lastRelayTime != null ? _lastRelayTime : 0); // -> stops the clock
+          try {
+            const u = new URL(_iframe.src);
+            if (_lastRelayTime != null) u.searchParams.set("t", String(Math.max(0, Math.floor(_lastRelayTime))));
+            u.searchParams.set("autoplay", "0");
+            _iframe.src = u.toString();
+          } catch (_) {}
+        });
+        _bridgeBtn = bridgeBtn;
+        bar.appendChild(bridgeBtn);
       }
       // Player-failure degrade for BOTH providers (audit U12: bilibili had
       // no way out when its embed or login wall misbehaved): an

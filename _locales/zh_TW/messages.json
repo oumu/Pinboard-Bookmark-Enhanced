@@ -1245,6 +1245,8 @@
   "optAiAutoTags": {
     "message": "開啟彈出式視窗時自動產生 AI 標籤"
   },
+  "optAiUseTranscript": { "message": "影片頁優先以字幕作為 AI 內容來源" },
+  "optAiUseTranscriptHint": { "message": "在 YouTube 與 B 站影片頁，AI 標籤與摘要改讀字幕而非頁面文字。僅在你已授權讀取字幕後生效，不會自動跳出授權請求。" },
   "labelAiTagLang": {
     "message": "AI 標籤語言"
   },
@@ -1601,6 +1603,7 @@
   "mdStripPreview": {
     "message": "預覽"
   },
+  "mdStripPreviewVideo": { "message": "預覽字幕" },
   "mdStripDownloadMd": {
     "message": "下載 .md"
   },
@@ -1902,6 +1905,7 @@
   "aiStage_extracting": {
     "message": "擷取頁面內容…"
   },
+  "aiStage_transcript": { "message": "讀取字幕…" },
   "aiStage_calling": {
     "message": "呼叫 {provider}…"
   },
@@ -3683,6 +3687,10 @@
   "mdVideoBiliBodyFailed": { "message": "已找到字幕軌，但字幕內容下載失敗。請重試，或切換另一條字幕軌。" },
   "mdVideoRelaySilent": { "message": "播放器未回傳進度（YouTube 播放器介面未載入）：跟隨、快捷鍵與學習控制暫不可用" },
   "mdVideoUnplayable": { "message": "YouTube 回報此影片目前無法播放（$STATUS$），與字幕無關。可點「在 YouTube 上開啟」查看原因。", "placeholders": { "status": { "content": "$1" } } },
+  "mdVideoBridgeEnable": { "message": "啟用播放跟隨" },
+  "mdVideoBridgeEnableHint": { "message": "授權擴充功能讀取 player.bilibili.com 播放器的播放位置（僅在本預覽頁內，只讀進度與播放狀態），字幕即可像 YouTube 一樣跟隨、循環、句尾暫停。" },
+  "mdVideoGrantScopeBili": { "message": "授權範圍：B 站字幕介面與播放器頁面（讀取字幕與播放進度）" },
+  "mdVideoBridgeSilent": { "message": "播放器未回傳進度：可改用「估計播放位置」，或重新開啟預覽再試" },
   "mdVideoTimelineAria": { "message": "字幕時間軸" },
   "kbdHelpVideoPlay": { "message": "播放 / 暫停" },
   "kbdHelpVideoSeek": { "message": "後退 / 前進 3 秒" },

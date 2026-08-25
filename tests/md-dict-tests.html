@@ -616,6 +616,39 @@ section("vocab echo: article replacement");
   }
 }
 
+section("vocab echo: timeline row / translation keys");
+{
+  const host = document.createElement("div");
+  host.innerHTML = '<div id="rendered-view"></div><div class="pbv-col-study"><div class="pbv-list">'
+    + '<div class="pbv-row" data-i="0"><button class="pbv-time">0:00</button><span class="pbv-text">first row text</span></div>'
+    + '<div class="pbv-row pbv-row--tr" data-i="1"><button class="pbv-time">0:05</button><span class="pbv-text">second row text</span><span class="pbv-tr" lang="en">second row translated</span></div>'
+    + '</div></div>';
+  const prevView = document.getElementById("rendered-view");
+  document.body.appendChild(host);
+  const hadTrOnly = document.body.classList.contains("tr-only");
+  try {
+    const keys = _echoBlockKeys();
+    assert(keys.includes("r0") && !keys.includes("rt0"), "a row without a translation line yields r<i> only");
+    assert(keys.includes("r1") && keys.includes("rt1"), "a row with a .pbv-tr line yields BOTH r<i> and rt<i>");
+    document.body.classList.add("tr-only");
+    assertEq(_echoKeyEl("r1").className, "pbv-text", "r<i> is always the original side, even in tr-only on a projected row");
+    document.body.classList.toggle("tr-only", hadTrOnly);
+    assertEq(_echoKeyEl("rt1").className, "pbv-tr", "rt<i> resolves the row's .pbv-tr line");
+    assertEq(_echoKeyEl("rt0"), null, "rt<i> is null for a row without a translation line");
+    assertEq(_echoKeyEl("r9"), null, "out-of-range row index resolves to null");
+    assertEq(_echoKeyEl("rt9"), null, "out-of-range rt index resolves to null");
+    const tr = host.querySelector(".pbv-tr");
+    assertEq(_echoKeyOf(tr), "rt1", "_echoKeyOf(.pbv-tr) keys the line by its row's data-i");
+    assertEq(_echoKeyOf(host.querySelector('.pbv-row[data-i="1"]')), "r1", "_echoKeyOf(.pbv-row) is unchanged");
+    const orphan = document.createElement("span"); orphan.className = "pbv-tr";
+    assertEq(_echoKeyOf(orphan), null, "a detached .pbv-tr cannot be keyed (full rescan path)");
+  } finally {
+    document.body.classList.toggle("tr-only", hadTrOnly);
+    host.remove();
+    if (prevView && !document.getElementById("rendered-view")) document.body.appendChild(prevView);
+  }
+}
+
 async function runDictNetworkTests() {
   section("dictionary abort causes / circuit runtime");
   const parent = new AbortController();

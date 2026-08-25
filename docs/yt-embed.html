@@ -14,7 +14,7 @@
 // It speaks a tiny two-way protocol with its opener (the reader):
 //   inbound  {pbpVideo:1, func:"hello"|"seekTo"|"playVideo", args:[]}
 //   outbound {pbpVideo:1, event:"ready"}
-//            {pbpVideo:1, event:"time", t:<seconds>, state:<YT state int>}
+//            {pbpVideo:1, event:"time", t:<seconds>, state:<YT state int>, d?:<duration seconds, once known>}
 // `state` (YT.PlayerState) is read by the reader: PLAYING gates the cue loop and
 // position saves, a PAUSED report is saved as the resting position, ENDED clears it.
 //
@@ -28,7 +28,7 @@
 //
 // Privacy stance for the outbound half: the ONLY thing that ever leaves this
 // page is the playback position of a public video the user is watching right
-// now, plus the player's own state integer. No identifiers, no cookies, no
+// now, plus the player's own state integer and, once the player knows it, the video's total duration (the same public figure the YouTube page displays). No identifiers, no cookies, no
 // account data, nothing read out of the YouTube frame. And it goes to exactly
 // one place: the origin that proved itself by messaging in first (captured
 // from that message's e.origin). Before that handshake this page posts
@@ -63,13 +63,19 @@
 
   function postTime() {
     if (!player || typeof player.getCurrentTime !== "function") return;
-    var t, state;
+    var t, state, dur;
     try {
       t = player.getCurrentTime();
       state = typeof player.getPlayerState === "function" ? player.getPlayerState() : -1;
+      dur = typeof player.getDuration === "function" ? player.getDuration() : NaN;
     } catch (_) { return; }
     if (typeof t !== "number" || !isFinite(t)) return;
-    post({ pbpVideo: 1, event: "time", t: t, state: state });
+    var msg = { pbpVideo: 1, event: "time", t: t, state: state };
+    // Duration only when the player knows it (0 / NaN before metadata): the
+    // reader treats an absent field as "unknown" and keeps its caption-tail
+    // estimate, so no sentinel value is ever sent.
+    if (typeof dur === "number" && isFinite(dur) && dur > 0) msg.d = dur;
+    post(msg);
   }
 
   function stopTimer() { if (timer) { clearInterval(timer); timer = 0; } }

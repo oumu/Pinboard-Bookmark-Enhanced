@@ -74,10 +74,17 @@ function clearAiProgress(buttonId) {
 // fell back to local Defuddle must not persist local-content results
 // into the jina namespace. Remembered on pageInfo for the session so a
 // second op reuses the same answer.
-async function ensurePageText(s) {
+async function ensurePageText(s, buttonId) {
   s = s || settings;
   if (pageInfo.pageText) {
     return pageInfo._pbpTextSource || (s.aiContentSource === "jina" ? "jina" : "local");
+  }
+  // Video pages (T7.13): the subtitles ARE the content. Only where the
+  // caption origin grant already stands (contains, never a prompt); any
+  // miss falls through to the configured source untouched.
+  if (s.aiUseTranscript !== false) {
+    const tx = await pbpAiTranscriptText(s, buttonId);
+    if (tx) { pageInfo.pageText = tx; pageInfo._pbpTextSource = "transcript"; return "transcript"; }
   }
   if (s.aiContentSource === "jina") {
     // Throws only on host_permission (surface the grant flow); any other
@@ -126,6 +133,67 @@ async function enrichPageTextIfJina(s) {
     if (e?.code === "host_permission") throw e;
     console.warn("Jina content enrichment failed, using local content:", e.message);
   }
+}
+
+// The cache namespaces a fast-path read may hit, most specific first: on a
+// video page with the transcript tier on, the "transcript" namespace (that
+// is where the last run wrote) before the configured source (review: a
+// miss here re-ran the whole caption capture on every popup open).
+async function pbpAiFastCached(kind, s, account) {
+  const sources = [];
+  if (s.aiUseTranscript !== false && typeof pbpVideoDetect === "function" && pageInfo && pageInfo.url && pbpVideoDetect(pageInfo.url)) sources.push("transcript");
+  sources.push(s.aiContentSource);
+  for (const src of sources) {
+    const hit = await getAICache(pageInfo.url, kind, s.aiCacheDuration, src, account, s);
+    if (hit) return hit;
+  }
+  return null;
+}
+
+// ---- Video transcript as AI content (T7.13) ----
+// md-video.js is 300KB: loaded on demand, only on a video page and only
+// once an AI action asks for content. Same runtime <script> shape as
+// ensureTurndown (popup.js); same-origin packaged file, allowed by the
+// extension CSP. Its load-time listeners all bail outside video-mode.
+let _videoModulePromise = null;
+function pbpEnsureVideoModule() {
+  if (typeof window.pbpPrepareVideoSession === "function") return Promise.resolve();
+  if (_videoModulePromise) return _videoModulePromise;
+  _videoModulePromise = new Promise((resolve, reject) => {
+    const el = document.createElement("script");
+    el.src = "md-video.js";
+    el.onload = () => resolve();
+    el.onerror = () => { _videoModulePromise = null; reject(new Error("md-video.js failed to load")); };
+    document.head.appendChild(el);
+  });
+  return _videoModulePromise;
+}
+// "" when this is not a video page, the caption origin is not granted, or
+// no transcript came back -- the caller then uses the configured source.
+// contains() ONLY on this path: the first grant belongs to the preview's
+// own "Enable subtitles & load video" click, never to a popup AI action.
+async function pbpAiTranscriptText(s, buttonId) {
+  const det = (typeof pbpVideoDetect === "function" && pageInfo && pageInfo.url) ? pbpVideoDetect(pageInfo.url) : null;
+  if (!det) return "";
+  const originPat = det.provider === "bilibili" ? PBP_BILI_ORIGIN_PATTERN : PBP_YT_ORIGIN_PATTERN;
+  let granted = false;
+  try { granted = await chrome.permissions.contains({ origins: [originPat] }) === true; } catch (_) {}
+  if (!granted) return "";
+  if (buttonId) setAiProgress(buttonId, { provider: s.aiProvider, stage: "transcript" });
+  try { await pbpEnsureVideoModule(); } catch (e) { console.warn("[pbp-video] popup transcript module:", e && e.message); return ""; }
+  let sess = null;
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    sess = await window.pbpPrepareVideoSession({ pageUrl: pageInfo.url, tabId: tab ? tab.id : null });
+  } catch (e) {
+    console.warn("[pbp-video] popup transcript:", e && e.name, e && e.message); // no page text, no token
+    return "";
+  }
+  const segs = (sess && sess.segments) || [];
+  if (!segs.length) return "";
+  // Plain paragraphs, not the transcript markdown: no heading / source line
+  // eating into the prompt's content window.
+  return (typeof pbpVideoMergeParagraphs === "function") ? pbpVideoMergeParagraphs(segs).join("\n\n") : segs.map((x) => x.content).join(" ");
 }
 
 // ---- URL-edit guard (audit A1) ----
@@ -824,7 +892,7 @@ async function doAISummary(forceRefresh, sOverride) {
   if (!_aiOpStillCurrent(account)) return;
 
   if (!forceRefresh) {
-    const cached = await getAICache(pageInfo.url, "summary", s.aiCacheDuration, s.aiContentSource, account, s);
+    const cached = await pbpAiFastCached("summary", s, account);
     if (cached && _aiOpStillCurrent(account)) {
       const adopted = await _aiRestoreSummaryOwnership(account, pageInfo.url, cached);
       if (!_aiOpStillCurrent(account)) return;
@@ -841,7 +909,7 @@ async function doAISummary(forceRefresh, sOverride) {
   }
   try {
     if (showProgressOnBtn) setAiProgress("ai-summary-btn", { provider: s.aiProvider, stage: "extracting" });
-    const contentSource = await ensurePageText(s);
+    const contentSource = await ensurePageText(s, showProgressOnBtn ? "ai-summary-btn" : "");
     if (!_aiOpStillCurrent(account)) return;
     if (!pageInfo.pageText) { showStatus("status-msg", t("aiNoContent"), "error"); return; }
     if (showProgressOnBtn) setAiProgress("ai-summary-btn", { provider: s.aiProvider, stage: "calling" });
@@ -950,7 +1018,7 @@ async function doAITags(forceRefresh, sOverride) {
   }
 
   if (!forceRefresh) {
-    const cached = await getAICache(pageInfo.url, "tags", s.aiCacheDuration, s.aiContentSource, account, s);
+    const cached = await pbpAiFastCached("tags", s, account);
     if (cached && _aiOpStillCurrent(account)) {
       renderAITags(cached, true);
       return;
@@ -966,7 +1034,7 @@ async function doAITags(forceRefresh, sOverride) {
 
   try {
     if (btn) setAiProgress("ai-tags-btn", { provider: s.aiProvider, stage: "extracting" });
-    const contentSource = await ensurePageText(s);
+    const contentSource = await ensurePageText(s, btn ? "ai-tags-btn" : "");
     if (!_aiOpStillCurrent(account)) return;
     if (!pageInfo.pageText) { showStatus("status-msg", t("aiNoContent"), "error"); return; }
     if (btn) setAiProgress("ai-tags-btn", { provider: s.aiProvider, stage: "calling" });

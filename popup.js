@@ -604,6 +604,22 @@ async function htmlToMarkdownAsync(html, opts) {
 
   // ---- Markdown export button ----
   const jinaMdBtn = $id("jina-md-btn");
+  // Video pages (T7.13): the preview strip's entry opens the caption
+  // workbench, so its label says so. Detection is a URL parse (shared.js),
+  // no permission probe and no video module load; the ATTRIBUTES are
+  // rewritten too so i18n.js's locale re-run keeps the video label.
+  try {
+    const vidUrl = (pageInfo && pageInfo.url) || $id("url-input")?.value || "";
+    if (typeof pbpVideoDetect === "function" && pbpVideoDetect(vidUrl)) {
+      const prevBtn = $id("md-strip-preview");
+      if (prevBtn) {
+        prevBtn.setAttribute("data-i18n-title", "mdStripPreviewVideo");
+        prevBtn.setAttribute("data-i18n-aria", "mdStripPreviewVideo");
+        prevBtn.title = t("mdStripPreviewVideo");
+        prevBtn.setAttribute("aria-label", t("mdStripPreviewVideo"));
+      }
+    }
+  } catch (_) {}
   if (jinaMdBtn) {
     let jinaGrantPending = false;
     jinaMdBtn.title = settings.aiContentSource === "jina" ? t("jinaMarkdownTitleJina") : t("jinaMarkdownTitle");

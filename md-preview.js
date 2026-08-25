@@ -84,7 +84,7 @@ function pbpVideoHydrationAccept(info, vDetected, canonicalMd) {
 // past the directory refresh (review F2).
 function pbpVideoHydrationTracks(vState) {
   return (Array.isArray(vState && vState.tracks) ? vState.tracks : [])
-    .map((tr) => ({ key: tr.key, lang: tr.lang, label: tr.label, asr: tr.asr }));
+    .map((tr) => ({ key: tr.key, lang: tr.lang, label: tr.label, asr: tr.asr, vssId: typeof tr.vssId === "string" ? tr.vssId : "" }));
 }
 // The ONE track-resolution decision hydration makes: address by exact key;
 // no match (or no selection) is the honest null -- the neutral placeholder,
@@ -852,9 +852,10 @@ function pbpApplyColorScheme(mode) {
     // video-mode BEFORE any extraction work: the page is a watch page no
     // matter how the extraction turns out, so the shell should not spend the
     // whole (possibly slow) attempt styled as an ordinary article and then
-    // reflow. md-video.js is the last defer script and this runs before the
-    // barrier below, so the typeof guard covers "not parsed yet"; the
-    // post-failure path re-adds the class once the barrier has passed.
+    // reflow. pbpVideoDetect ships in shared.js (loaded before this file),
+    // so the class is deterministic here; the typeof guard stays as a
+    // no-cost safety net, and the post-failure path re-adds the class once
+    // the barrier has passed.
     if (typeof pbpVideoDetect === "function" && pbpVideoDetect(sourceTabUrl || url)) {
       document.body.classList.add("video-mode");
     }
@@ -1666,6 +1667,9 @@ function pbpApplyColorScheme(mode) {
     };
     queueReadingStats = queueStats;
     refreshReadingStats = () => { computeStatBase(); queueStats(); };
+    // md-video.js calls this when the player first reports its duration
+    // (the stats line was computed from the caption tail until then).
+    window.pbpRefreshReadingStats = () => refreshReadingStats();
     window.addEventListener("scroll", queueStats, { passive: true });
     window.addEventListener("resize", queueStats);
   }

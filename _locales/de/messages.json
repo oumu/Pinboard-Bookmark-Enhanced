@@ -1245,6 +1245,8 @@
   "optAiAutoTags": {
     "message": "KI-Tags beim Öffnen des Popups automatisch generieren"
   },
+  "optAiUseTranscript": { "message": "Auf Videoseiten die Untertitel als KI-Inhaltsquelle nutzen" },
+  "optAiUseTranscriptHint": { "message": "Auf YouTube- und Bilibili-Videoseiten lesen KI-Tags und -Zusammenfassungen die Untertitel statt des Seitentexts. Nur aktiv, wenn du den Untertitelzugriff bereits erlaubt hast; es fragt nie von selbst nach." },
   "labelAiTagLang": {
     "message": "KI-Tag-Sprache"
   },
@@ -1601,6 +1603,7 @@
   "mdStripPreview": {
     "message": "Vorschau"
   },
+  "mdStripPreviewVideo": { "message": "Untertitel-Vorschau" },
   "mdStripDownloadMd": {
     "message": ".md laden"
   },
@@ -1902,6 +1905,7 @@
   "aiStage_extracting": {
     "message": "Seiteninhalt wird abgerufen…"
   },
+  "aiStage_transcript": { "message": "Untertitel werden gelesen…" },
   "aiStage_calling": {
     "message": "{provider} wird aufgerufen…"
   },
@@ -3683,6 +3687,10 @@
   "mdVideoBiliBodyFailed": { "message": "Eine Untertitelspur wurde gefunden, ihr Text ließ sich aber nicht laden. Erneut versuchen oder eine andere Spur wählen." },
   "mdVideoRelaySilent": { "message": "Der Player meldet keine Position (die YouTube-Player-API wurde nicht geladen): Mitlaufen, Tastenkürzel und Lernsteuerung sind vorerst nicht verfügbar" },
   "mdVideoUnplayable": { "message": "YouTube meldet, dass dieses Video derzeit nicht abspielbar ist ($STATUS$); das hat nichts mit Untertiteln zu tun. Öffne es auf YouTube, um den Grund zu sehen.", "placeholders": { "status": { "content": "$1" } } },
+  "mdVideoBridgeEnable": { "message": "Wiedergabe-Sync aktivieren" },
+  "mdVideoBridgeEnableHint": { "message": "Erlaubt der Erweiterung, die Abspielposition des player.bilibili.com-Players zu lesen (nur in dieser Vorschau; nur Position und Abspielzustand), damit Untertitel wie bei YouTube mitlaufen, loopen und am Satzende pausieren." },
+  "mdVideoGrantScopeBili": { "message": "Die Freigabe umfasst Bilibilis Untertitel-API und die Player-Seite (Untertitel und Abspielposition)" },
+  "mdVideoBridgeSilent": { "message": "Der Player meldet keine Position: Nutze die geschätzte Position oder öffne die Vorschau erneut" },
   "mdVideoTimelineAria": { "message": "Untertitel-Zeitleiste" },
   "kbdHelpVideoPlay": { "message": "Wiedergabe / Pause" },
   "kbdHelpVideoSeek": { "message": "3 s zurück / vor" },

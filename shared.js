@@ -15,6 +15,10 @@ const OVERLAY_BYTE_LIMIT = 50 * 1024;
 const PBP_JINA_ORIGIN_PATTERN = "https://r.jina.ai/*";
 const PBP_VOCAB_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.appdata";
 const PBP_VOCAB_DRIVE_ORIGIN_PATTERN = "https://www.googleapis.com/*";
+// Video caption origins (mirror md-video.js's IIFE-local YT_ORIGIN /
+// BILI_ORIGIN): the popup checks these with permissions.contains ONLY.
+const PBP_YT_ORIGIN_PATTERN = "https://www.youtube.com/*";
+const PBP_BILI_ORIGIN_PATTERN = "https://api.bilibili.com/*";
 
 function pbpVocabDriveOAuthActive(manifest) {
   const permissions = Array.isArray(manifest?.optional_permissions)
@@ -265,6 +269,38 @@ function pbpAuthorizePinboardApiUrl(raw, currentToken) {
   }
 }
 
+// Video-page detection (moved here from md-video.js so the popup can tell a
+// video page apart without loading the 300KB video module). Pure: URL parse
+// + host / path / param matching. YouTube: watch?v=, /shorts/<id>, youtu.be;
+// bilibili: /video/BV<id> (+ ?p= part).
+function pbpVideoDetect(pageUrl) {
+  let u;
+  try { u = new URL(String(pageUrl || "")); } catch (_) { return null; }
+  const host = u.hostname.replace(/^www\.|^m\./, "");
+  const ID = /^[\w-]{6,20}$/;
+  if (host === "youtube.com") {
+    const v = u.searchParams.get("v");
+    if (v && ID.test(v)) return { provider: "youtube", videoId: v };
+    const m = u.pathname.match(/^\/shorts\/([\w-]{6,20})/);
+    if (m) return { provider: "youtube", videoId: m[1] };
+    return null;
+  }
+  if (host === "youtu.be") {
+    const m = u.pathname.match(/^\/([\w-]{6,20})/);
+    return m ? { provider: "youtube", videoId: m[1] } : null;
+  }
+  if (host === "bilibili.com") {
+    let bvid = "";
+    const m = u.pathname.match(/\/video\/(BV[\w]{8,12})/i);
+    if (m) bvid = m[1];
+    else if (/^BV[\w]{8,12}$/i.test(u.searchParams.get("bvid") || "")) bvid = u.searchParams.get("bvid");
+    if (!bvid) return null;
+    const p = parseInt(u.searchParams.get("p") || "1", 10);
+    return { provider: "bilibili", bvid: bvid, part: Number.isFinite(p) && p > 0 ? p : 1 };
+  }
+  return null;
+}
+
 function pbpOptionsUrl(panel) {
   const p = /^[a-z0-9-]+$/.test(String(panel || "")) ? String(panel) : "general";
   const path = "options.html#" + p;
@@ -453,6 +489,7 @@ const SETTINGS_DEFAULTS = {
   mdVideoUseLogin: true,
   mdVideoLangPref: "",        // ordered caption-language preference, "" = auto (research T6.1)
   mdVideoPauseOnLookup: true, // pause the player while a word is looked up (research T3.5)
+  aiUseTranscript: true, // popup AI: prefer the video's subtitles as the content on video pages -- only where the caption origin grant already stands (contains only, never prompts)
   selectionTrigger: "icon"
 };
 

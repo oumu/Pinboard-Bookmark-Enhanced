@@ -136,11 +136,18 @@ test("bookmarks def resets tag-sync-mode to cached", () => {
 // ---- C4: AI panel resets ai-content-source radio + opt-ai-tag-lang select ----
 </script>
 <div id="fixture-ai" style="display:none">
+  <input type="checkbox" id="opt-ai-use-transcript">
   <input type="radio" name="ai-content-source" value="local">
   <input type="radio" name="ai-content-source" value="jina">
   <select id="opt-ai-tag-lang"><option value="auto"></option><option value="en"></option><option value="ja"></option></select>
 </div>
 <script>
+test("ai def resets opt-ai-use-transcript to checked (T7.13)", () => {
+  const box = document.getElementById("opt-ai-use-transcript");
+  box.checked = false;
+  applyPanelReset({ fields: { "opt-ai-use-transcript": true } }, qsa);
+  if (!box.checked) throw new Error("opt-ai-use-transcript not reset to checked");
+});
 test("ai def resets ai-content-source to local", () => {
   document.querySelector('input[name="ai-content-source"][value="jina"]').checked = true;
   applyPanelReset({ radios: { "ai-content-source": "local" } }, qsa);

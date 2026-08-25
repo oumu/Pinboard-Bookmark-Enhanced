@@ -108,10 +108,11 @@ test("posts/add default remains replace=yes for existing callers", () => {
 
 (async () => {
   try {
-    const [source, backgroundSource, popupAiSource] = await Promise.all([
+    const [source, backgroundSource, popupAiSource, popupHtml] = await Promise.all([
       fetch("../popup.js").then((response) => response.text()),
       fetch("../background.js").then((response) => response.text()),
       fetch("../popup-ai.js").then((response) => response.text()),
+      fetch("../popup.html").then((response) => response.text())
     ]);
     const start = source.indexOf("function setupSubmit(token)");
     const handlerEnd = source.indexOf('  document.addEventListener("keydown"', start);
@@ -553,6 +554,20 @@ test("posts/add default remains replace=yes for existing callers", () => {
       assert(!/enrichPageTextIfJina\(s\);\s*return/.test(fn), "unconditional return after Jina must be gone");
       assert(fn.includes('return "jina"') && fn.includes('return "local"'),
         "ensurePageText must report the ACTUAL source (r2 M2)");
+    });
+
+    test("video transcript tier: contains-only, before the configured source, zero cost off video pages (T7.13)", () => {
+      const fnStart = popupAiSource.indexOf("async function ensurePageText");
+      const fnEnd = popupAiSource.indexOf("async function enrichPageTextIfJina", fnStart);
+      const fn = popupAiSource.slice(fnStart, fnEnd);
+      assert(fn.includes('return "transcript"'), "transcript source reported");
+      assert(fn.indexOf("pbpAiTranscriptText(") < fn.indexOf('if (s.aiContentSource === "jina") {'), "transcript tier runs before the jina branch");
+      assert(!popupAiSource.includes("permissions.request"), "popup-ai.js must never request a permission (automatic path)");
+      const helper = popupAiSource.slice(popupAiSource.indexOf("async function pbpAiTranscriptText"));
+      assert(helper.indexOf("pbpVideoDetect(") < helper.indexOf("permissions.contains"), "URL detect precedes the permission probe: non-video pages never touch permissions");
+      assert(helper.includes("permissions.contains"), "the tier is gated on an existing grant");
+      assert(popupAiSource.includes('"md-video.js"'), "the video module is loaded at runtime, on demand");
+      assert(!popupHtml.includes("md-video.js"), "popup.html never lists md-video.js: zero parse cost on non-video pages");
     });
 
     test("a rider on an in-flight combined never re-enters the combined branch (r2 M4)", () => {
@@ -1114,7 +1129,12 @@ test("posts/add default remains replace=yes for existing callers", () => {
       const doTags = popupAiSource.slice(popupAiSource.indexOf("async function doAITags"), popupAiSource.indexOf("function renderAITags"));
       assert(setupAi.includes("restoreAccount") && setupAi.includes("_aiOpStillCurrent(restoreAccount)"),
         "cached summary restore lacks owner recheck (stillCurrent = account + URL liveness)");
-      assert(doSummary.includes('getAICache(pageInfo.url, "summary", s.aiCacheDuration, s.aiContentSource, account, s)') &&
+      // The fast-path read goes through pbpAiFastCached (transcript namespace
+      // first on video pages, T7.13); it must still carry the account and the
+      // settings fingerprint into every getAICache probe it makes.
+      const fastCached = popupAiSource.slice(popupAiSource.indexOf("async function pbpAiFastCached"), popupAiSource.indexOf("// ---- Video transcript as AI content"));
+      assert(doSummary.includes('pbpAiFastCached("summary", s, account)') &&
+        fastCached.includes("getAICache(pageInfo.url, kind, s.aiCacheDuration, src, account, s)") &&
         doSummary.includes('setAICache(pageInfo.url, "summary", summary, s.aiCacheDuration, contentSource, account, s)'),
         "doAISummary cache calls lack owner+fingerprint settings (write keyed by ACTUAL source, r2 M2)");
       assert((doSummary.match(/_aiOpStillCurrent\(account\)|pbpPopupAiAccountIsCurrent\(account\)/g) || []).length >= 5,

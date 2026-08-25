@@ -1577,17 +1577,42 @@ html.motion-ready .send-menu[hidden] {
 .send-mi-tag { margin-left: auto; font-size: 11px; color: var(--fg-muted); }
 .send-mi-foot { border-top: 1px solid var(--border, #d8dee4); margin-top: 4px;
   border-radius: 0; opacity: .8; font-size: 12px; }
-.send-status {
-  margin-top: 8px; padding: 8px 10px;
-  font-size: 12px; line-height: 1.45; word-break: break-word;
+/* Message bar (T7.9): the one look every inline notice shares -- own row,
+   light ground, 3px semantic stripe. Tones: info/busy ride the link stripe
+   (default), errors the danger one (.error class or data-state="error"),
+   success is a consumer override (.send-status). busy pulses the stripe
+   (indeterminate progress); transient info fades via data-fading. Consumers
+   (.send-status, .skim-stale, .pbv-status, .pbv-resume) carry only their
+   deltas: layout, spacing, type size, default tone. */
+.msg-bar {
+  padding: 6px 10px; line-height: 1.45; word-break: break-word;
   color: var(--fg-secondary); background: var(--btn-bg);
-  border: 1px solid var(--border); border-left: 3px solid var(--success);
-  border-radius: 6px; cursor: pointer;
+  border: 1px solid var(--border); border-left: 3px solid var(--link);
+  border-radius: 6px;
 }
-.send-status.error { color: var(--danger); border-left-color: var(--danger); }
+.msg-bar[hidden] { display: none; }
+.msg-bar.error, .msg-bar[data-state="error"] { color: var(--danger); border-left-color: var(--danger); }
+.msg-bar[data-fading="1"] { opacity: 0; }
+@keyframes msg-bar-busy-pulse {
+  50% { border-left-color: color-mix(in srgb, var(--link) 30%, transparent); }
+}
+html.motion-ready .msg-bar { transition: opacity 0.3s; }
+html.motion-ready .msg-bar[data-state="busy"] { animation: msg-bar-busy-pulse 1.2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  html.motion-ready .msg-bar { transition: none; }
+  html.motion-ready .msg-bar[data-state="busy"] { animation: none; }
+}
+@media (forced-colors: active) {
+  .msg-bar.error, .msg-bar[data-state="error"] { outline: 1px solid Highlight; }
+}
+/* Send result: success tone by default (it only ever appears after a
+   completed send); click-to-dismiss. */
+.send-status {
+  margin-top: 8px; padding: 8px 10px; font-size: 12px;
+  border-left-color: var(--success); cursor: pointer;
+}
 .send-status a { color: var(--link); font-weight: 600; text-decoration: underline; white-space: nowrap; }
 .send-status a:hover { color: var(--link-hover); }
-.send-status[hidden] { display: none; }
 /* Embed-export partial-coverage notice (Task 4): informational only, no click
    affordance -- unlike .send-status it self-hides via a timer, not a click. */
 .export-note {
@@ -3437,12 +3462,8 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
 }
 .skim-stale {
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-  margin-top: 8px; padding: 6px 10px;
-  font-size: 0.8em; color: var(--fg-secondary);
-  background: var(--btn-bg); border: 1px solid var(--border);
-  border-left: 3px solid var(--link); border-radius: 6px;
+  margin-top: 8px; font-size: 0.8em;
 }
-#skim-stale[hidden] { display: none; }
 .skim-stale-btn { padding: 3px 10px; font-size: 0.8em; }
 #skim-body { margin-top: 8px; }
 #skim-body > :first-child { margin-top: 0; }
@@ -3467,7 +3488,8 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
    mode the two new nodes never render. */
 #pb-hl-bar .pb-hl-seek-btn, #pb-hl-bar .pb-hl-hint { display: none; }
 #pb-hl-bar.pb-hl-bar--timeline .pb-hl-dot, #pb-hl-bar.pb-hl-bar--timeline .pb-hl-note-btn { display: none; }
-#pb-hl-bar.pb-hl-bar--timeline .pb-hl-seek-btn { display: flex; } /* same box as .pb-hl-dict-btn (device feedback 2026-08-25: the bare button chrome read as a foreign control) */
+#pb-hl-bar.pb-hl-bar--timeline .pb-hl-seek-btn { display: flex; }
+@media (pointer: coarse) { #pb-hl-bar .pb-hl-explain-btn, #pb-hl-bar .pb-hl-dict-btn, #pb-hl-bar .pb-hl-seek-btn { min-height: 44px; min-width: 44px; } } /* T7.8 */ /* same box as .pb-hl-dict-btn (device feedback 2026-08-25: the bare button chrome read as a foreign control) */
 #pb-hl-bar.pb-hl-bar--timeline .pb-hl-hint { display: inline-block; font-size: 0.78em; color: var(--fg-muted); padding: 0 6px; align-self: center; white-space: nowrap; }
 
 /* ---- video panel (md-video.js) ---- */
@@ -3504,6 +3526,13 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
 .pbv-media { margin-bottom: 8px; position: relative; }
 .pbv-media iframe { border: 0; border-radius: 10px; }
 .pbv-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+/* Three semantic groups (T7.6) read through spacing alone, no dividers:
+   tracks / status | transcript actions (copy, AI) | playback / view. The
+   gap sits on each group's first child (.pb-hl-explain-btn uses the same
+   first-child idiom); .pbv-follow and .pbv-estimate are never visible
+   together (syncLiveControls), so the third gap applies once. A hidden
+   first child collapses its gap with it -- an empty group gets no gap. */
+.pbv-copy-group, .pbv-follow, .pbv-estimate { margin-left: 12px; }
 .pbv-tracks {
   font: inherit; max-width: 16em; padding: 4px 10px; border-radius: 6px;
   border: 1px solid var(--btn-border); background-color: var(--btn-bg); color: var(--btn-fg);
@@ -3516,13 +3545,17 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
    rule enumerates CLASSES (not `button`) because .pbv-open-ext is an <a> --
    a bare `button svg` selector would leave it at its embedded 14px and the
    row would mix glyph sizes. */
-.pbv-copy, .pbv-ai-punct, .pbv-follow, .pbv-retry, .pbv-ai-cancel, .pbv-loop, .pbv-autopause, .pbv-estimate {
+.pbv-copy, .pbv-ai-punct, .pbv-follow, .pbv-retry, .pbv-ai-cancel, .pbv-loop, .pbv-autopause, .pbv-estimate, .pbv-open-ext {
   min-height: 28px; min-width: 28px; padding: 4px; font: inherit; cursor: pointer;
   display: inline-flex; align-items: center; justify-content: center;
   border: 1px solid var(--btn-border); background: var(--btn-bg); color: var(--btn-fg); border-radius: 6px;
 }
-.pbv-copy:hover, .pbv-ai-punct:hover, .pbv-follow:hover, .pbv-retry:hover, .pbv-ai-cancel:hover, .pbv-loop:hover, .pbv-autopause:hover, .pbv-estimate:hover { background: var(--btn-hover); }
-.pbv-copy:focus-visible, .pbv-ai-punct:focus-visible, .pbv-follow:focus-visible, .pbv-retry:focus-visible, .pbv-ai-cancel:focus-visible, .pbv-loop:focus-visible, .pbv-autopause:focus-visible, .pbv-estimate:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.pbv-copy:hover, .pbv-ai-punct:hover, .pbv-follow:hover, .pbv-retry:hover, .pbv-ai-cancel:hover, .pbv-loop:hover, .pbv-autopause:hover, .pbv-estimate:hover, .pbv-open-ext:hover { background: var(--btn-hover); }
+.pbv-copy:focus-visible, .pbv-ai-punct:focus-visible, .pbv-follow:focus-visible, .pbv-retry:focus-visible, .pbv-ai-cancel:focus-visible, .pbv-loop:focus-visible, .pbv-autopause:focus-visible, .pbv-estimate:focus-visible, .pbv-open-ext:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+/* Coarse pointers (T7.8): every bar control reaches the 44px target. */
+@media (pointer: coarse) {
+  .pbv-copy, .pbv-ai-punct, .pbv-follow, .pbv-retry, .pbv-ai-cancel, .pbv-loop, .pbv-autopause, .pbv-estimate, .pbv-open-ext, .pbv-copy-caret { min-height: 44px; min-width: 44px; }
+}
 .pbv-copy svg, .pbv-ai-punct svg, .pbv-follow svg, .pbv-retry svg, .pbv-ai-cancel svg, .pbv-open-ext svg, .pbv-loop svg, .pbv-autopause svg, .pbv-estimate svg { width: 16px; height: 16px; }
 .pbv-loop[hidden], .pbv-autopause[hidden], .pbv-estimate[hidden], .pbv-rate[hidden] { display: none; }
 /* Playback-rate select: the track picker's form-control family, narrower. */
@@ -3567,39 +3600,20 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
    .srch-regex / .typo-seg-btn. Declared after :hover so the pressed state
    wins while the pointer is over it. */
 .pbv-follow[aria-pressed="true"], .pbv-loop[aria-pressed="true"], .pbv-autopause[aria-pressed="true"], .pbv-estimate[aria-pressed="true"] { background: var(--btn-hover); border-color: var(--link); color: var(--link); }
-/* Status as a MESSAGE BAR (audit U5 / 方案A), in the .send-status family
-   look: own row, light ground, 3px semantic stripe. busy/info ride the
-   link stripe, errors the danger one; transient info fades out via
-   data-fading (driven by pbvSetStatus). Empty = gone. */
-.pbv-status {
-  flex-basis: 100%; padding: 6px 10px;
-  font-size: 0.85em; line-height: 1.45; word-break: break-word;
-  color: var(--fg-secondary); background: var(--btn-bg);
-  border: 1px solid var(--border); border-left: 3px solid var(--link);
-  border-radius: 6px;
+/* Forced colors strip the pressed tint (T7.8): a system-color outline is
+   the one signal that survives, and this state is otherwise colour-only. */
+@media (forced-colors: active) {
+  .pbv-follow[aria-pressed="true"], .pbv-loop[aria-pressed="true"], .pbv-autopause[aria-pressed="true"], .pbv-estimate[aria-pressed="true"] { outline: 2px solid Highlight; outline-offset: -2px; }
 }
+/* Status as a MESSAGE BAR (audit U5 / 方案A): .msg-bar (T7.9) carries the
+   look and the busy / error / fading states (driven by pbvSetStatus's
+   data-state / data-fading). Own full-width row; empty = gone. */
+.pbv-status { flex-basis: 100%; font-size: 0.85em; }
 .pbv-status:empty { display: none; }
 /* Continue-watching strip (research T6.3): message-bar look plus two
    explicit actions -- the reader chooses; nothing seeks on its own. */
-.pbv-resume {
-  flex-basis: 100%; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-  padding: 6px 10px; font-size: 0.85em; line-height: 1.45;
-  color: var(--fg-secondary); background: var(--btn-bg);
-  border: 1px solid var(--border); border-left: 3px solid var(--link); border-radius: 6px;
-}
-.pbv-resume[hidden] { display: none; }
+.pbv-resume { flex-basis: 100%; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 0.85em; }
 .pbv-resume .pbv-resume-text { margin-right: auto; }
-.pbv-status[data-state="error"] { color: var(--danger); border-left-color: var(--danger); }
-.pbv-status[data-fading="1"] { opacity: 0; }
-/* busy = ongoing work (research T7.4): before this rule "still running" and
-   "finished, message standing" were visually identical. The stripe pulses
-   as an indeterminate-progress cue; reduced-motion keeps the static link
-   stripe (already the base), which stays a real busy signal because
-   transient info fades and busy does not. */
-@keyframes pbv-busy-pulse {
-  50% { border-left-color: color-mix(in srgb, var(--link) 30%, transparent); }
-}
-html.motion-ready .pbv-status[data-state="busy"] { animation: pbv-busy-pulse 1.2s ease-in-out infinite; }
 /* Screen-reader-only live region fed by md-video.js's srAnnounce
    (research T7.4) -- visually hidden, never display:none (that would mute
    the live region itself). */
@@ -3638,12 +3652,11 @@ html.motion-ready .pbv-status[data-state="busy"] { animation: pbv-busy-pulse 1.2
    doors as the rest of this file -- html.motion-ready (no first-paint
    tweens) and the reduced-motion opt-out. Correctness never depends on the
    animation: the fade timers in md-video.js remove the text either way. */
-html.motion-ready .pbv-status, html.motion-ready .pbv-toast { transition: opacity 0.3s; }
+html.motion-ready .pbv-toast { transition: opacity 0.3s; }
 html.motion-ready .pbv-ai-punct .pbv-ring circle { transition: stroke-dashoffset 0.3s; }
 @media (prefers-reduced-motion: reduce) {
-  html.motion-ready .pbv-status, html.motion-ready .pbv-toast { transition: none; }
+  html.motion-ready .pbv-toast { transition: none; }
   html.motion-ready .pbv-ai-punct .pbv-ring circle { transition: none; }
-  html.motion-ready .pbv-status[data-state="busy"] { animation: none; }
 }
 /* Grant-scope note on the first-run poster card (audit U2; research T7.1
    moved it INSIDE the absolutely-positioned label bar -- as the card's only
@@ -3665,7 +3678,7 @@ html.motion-ready .pbv-ai-punct .pbv-ring circle { transition: stroke-dashoffset
 .pbv-row {
   display: flex; flex-wrap: wrap; gap: 10px; align-items: baseline; text-align: left;
   padding: 4px 8px; border-radius: 6px; cursor: pointer;
-  content-visibility: auto; contain-intrinsic-size: auto 28px;
+  content-visibility: auto; contain-intrinsic-size: auto 44px; /* a one-line cue row measures ~43px; the closer the estimate, the shorter a far follow-jump lands (settleFollow corrects the rest) */
 }
 /* Paragraph density (research T7.10): one row per reading paragraph. */
 .pbv-row--para { padding: 8px; }
@@ -3691,6 +3704,7 @@ body.tr-only .pbv-row--tr > .pbv-text { display: none; }
 }
 .pbv-time:hover { background: var(--row-hover, rgba(127,127,127,.14)); opacity: 0.85; }
 .pbv-time:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+@media (pointer: coarse) { .pbv-time { min-height: 44px; } } /* T7.8: height only -- a 44px-wide inline timestamp would balloon the row */
 .pbv-row--static .pbv-time { cursor: default; }
 .pbv-row--static .pbv-time:hover { background: transparent; opacity: 0.65; }
 .pbv-text { flex: 1; cursor: text; }
@@ -3700,6 +3714,12 @@ body.tr-only .pbv-row--tr > .pbv-text { display: none; }
    it adds no border box and no layout shift as the marker moves down the
    list four times a second. */
 .pbv-row--current { background: var(--btn-hover); box-shadow: inset 2px 0 0 0 var(--link); }
+/* Forced colors drop both the tint and the inset shadow (T7.8): outline
+   with a negative offset stays inside the row box, so the list's own
+   overflow never clips it. */
+@media (forced-colors: active) {
+  .pbv-row--current { outline: 2px solid Highlight; outline-offset: -2px; }
+}
 /* Paragraph time gutter in the reading view (research T1.1): a zero-text
    button at each paragraph's start; the label is CSS content so no text
    consumer (highlight anchors, translation hashes, copy) ever sees it.
@@ -3714,6 +3734,7 @@ body.video-mode #rendered-view > p > .pbv-ptime {
 body.video-mode #rendered-view > p > .pbv-ptime::before { content: attr(data-label); }
 body.video-mode #rendered-view > p > .pbv-ptime:hover { background: var(--row-hover, rgba(127,127,127,.14)); opacity: 0.85; }
 body.video-mode #rendered-view > p > .pbv-ptime:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+@media (pointer: coarse) { body.video-mode #rendered-view > p > .pbv-ptime { min-height: 44px; } } /* T7.8: height only, the badge sits in running text */
 
 /* ---- video-mode workspace (A2) ---- */
 /* Widens the reading column edge-to-edge for the two-column layout below.

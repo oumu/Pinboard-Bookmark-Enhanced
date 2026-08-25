@@ -1245,6 +1245,8 @@
   "optAiAutoTags": {
     "message": "ポップアップを開いたときに AI タグを自動生成"
   },
+  "optAiUseTranscript": { "message": "動画ページでは字幕を AI の内容ソースにする" },
+  "optAiUseTranscriptHint": { "message": "YouTube と Bilibili の動画ページでは、AI タグと要約がページ本文ではなく字幕を読みます。字幕の読み取りを許可済みの場合のみ有効で、自動で許可を求めることはありません。" },
   "labelAiTagLang": {
     "message": "AI タグの言語"
   },
@@ -1601,6 +1603,7 @@
   "mdStripPreview": {
     "message": "プレビュー"
   },
+  "mdStripPreviewVideo": { "message": "字幕をプレビュー" },
   "mdStripDownloadMd": {
     "message": ".md をダウンロード"
   },
@@ -1902,6 +1905,7 @@
   "aiStage_extracting": {
     "message": "ページ内容を取得中…"
   },
+  "aiStage_transcript": { "message": "字幕を読み込み中…" },
   "aiStage_calling": {
     "message": "{provider} を呼び出し中…"
   },
@@ -3683,6 +3687,10 @@
   "mdVideoBiliBodyFailed": { "message": "字幕トラックは見つかりましたが、字幕本文のダウンロードに失敗しました。再試行するか、別のトラックを選んでください。" },
   "mdVideoRelaySilent": { "message": "プレーヤーが再生位置を返していません（YouTube プレーヤー API が読み込まれていません）。追従・ショートカット・学習コントロールは現在使えません" },
   "mdVideoUnplayable": { "message": "YouTube はこの動画を現在再生できないと報告しています（$STATUS$）。字幕の問題ではありません。YouTube で開いて理由を確認してください。", "placeholders": { "status": { "content": "$1" } } },
+  "mdVideoBridgeEnable": { "message": "再生追従を有効化" },
+  "mdVideoBridgeEnableHint": { "message": "拡張機能に player.bilibili.com プレーヤーの再生位置の読み取りを許可します（このプレビュー内のみ、位置と再生状態だけ）。字幕が YouTube と同様に追従・ループ・文末停止できるようになります。" },
+  "mdVideoGrantScopeBili": { "message": "許可の範囲：Bilibili の字幕 API とプレーヤーページ（字幕と再生位置の読み取り）" },
+  "mdVideoBridgeSilent": { "message": "プレーヤーが再生位置を返していません。「推定再生位置」を使うか、プレビューを開き直してください" },
   "mdVideoTimelineAria": { "message": "字幕タイムライン" },
   "kbdHelpVideoPlay": { "message": "再生 / 一時停止" },
   "kbdHelpVideoSeek": { "message": "3 秒戻る / 進む" },

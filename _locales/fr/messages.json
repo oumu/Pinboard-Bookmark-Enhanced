@@ -1245,6 +1245,8 @@
   "optAiAutoTags": {
     "message": "Générer automatiquement des tags IA à l'ouverture du popup"
   },
+  "optAiUseTranscript": { "message": "Sur les pages vidéo, utiliser les sous-titres comme source de contenu IA" },
+  "optAiUseTranscriptHint": { "message": "Sur les pages vidéo YouTube et Bilibili, les tags et résumés IA lisent les sous-titres plutôt que le texte de la page. Actif uniquement après avoir accordé l'accès aux sous-titres ; ne demande jamais l'autorisation de lui-même." },
   "labelAiTagLang": {
     "message": "Langue des tags IA"
   },
@@ -1601,6 +1603,7 @@
   "mdStripPreview": {
     "message": "Aperçu"
   },
+  "mdStripPreviewVideo": { "message": "Aperçu des sous-titres" },
   "mdStripDownloadMd": {
     "message": "Télécharger .md"
   },
@@ -1902,6 +1905,7 @@
   "aiStage_extracting": {
     "message": "extraction du contenu…"
   },
+  "aiStage_transcript": { "message": "lecture des sous-titres…" },
   "aiStage_calling": {
     "message": "appel à {provider}…"
   },
@@ -3683,6 +3687,10 @@
   "mdVideoBiliBodyFailed": { "message": "Une piste de sous-titres a été trouvée, mais son texte n'a pas pu être téléchargé. Réessayez ou choisissez une autre piste." },
   "mdVideoRelaySilent": { "message": "Le lecteur ne transmet pas sa position (l'API du lecteur YouTube n'a pas chargé) : suivi, raccourcis et commandes d'étude indisponibles pour l'instant" },
   "mdVideoUnplayable": { "message": "YouTube indique que cette vidéo n'est pas lisible pour le moment ($STATUS$) ; cela ne concerne pas les sous-titres. Ouvrez-la sur YouTube pour en connaître la raison.", "placeholders": { "status": { "content": "$1" } } },
+  "mdVideoBridgeEnable": { "message": "Activer le suivi de lecture" },
+  "mdVideoBridgeEnableHint": { "message": "Autorise l'extension à lire la position du lecteur player.bilibili.com (dans cet aperçu seulement ; position et état de lecture, rien d'autre) pour que les sous-titres suivent, bouclent et se mettent en pause comme sur YouTube." },
+  "mdVideoGrantScopeBili": { "message": "L'autorisation couvre l'API de sous-titres de Bilibili et sa page lecteur (sous-titres et position de lecture)" },
+  "mdVideoBridgeSilent": { "message": "Le lecteur ne transmet pas sa position : utilisez la position estimée ou rouvrez l'aperçu" },
   "mdVideoTimelineAria": { "message": "Chronologie des sous-titres" },
   "kbdHelpVideoPlay": { "message": "Lecture / pause" },
   "kbdHelpVideoSeek": { "message": "Reculer / avancer de 3 s" },

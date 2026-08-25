@@ -411,6 +411,73 @@ suite("_pbpChainAbort", () => {
 </script>
 
 <script>
+// ============ ai.js: callAI honors opts.model (Reader model override) ============
+// callAIStream has taken opts.model for a while; callAI (the non-streaming
+// path the video punctuation pass uses) silently ignored it, so the request
+// went to the provider's configured model while the cache key named the
+// override. Every provider branch must send the override when given and
+// the configured model when not. fetch is mocked to CAPTURE the request.
+(async function () {
+  const host = document.createElement("div");
+  host.className = "suite";
+  const h = document.createElement("h2");
+  h.textContent = "callAI: opts.model override (async)";
+  host.appendChild(h);
+  document.getElementById("results").appendChild(host);
+  function report(name, err) {
+    const div = document.createElement("div");
+    if (!err) { PASS++; div.className = "case pass"; div.textContent = "PASS " + name; }
+    else { FAIL++; div.className = "case fail"; div.textContent = "FAIL " + name + "\n  " + err.message; }
+    host.appendChild(div);
+  }
+  async function atest(name, fn) { try { await fn(); report(name); } catch (e) { report(name, e); } }
+  function ok(cond, msg) { if (!cond) throw new Error(msg || "assert"); }
+  if (typeof callAI !== "function" || typeof OPENAI_COMPAT_PROVIDERS !== "object") { report("SKIP callAI suite (ai.js not loaded)"); return; }
+  const realFetch = window.fetch;
+  const seen = [];
+  // One response body that satisfies every provider's parser.
+  const body = { choices: [{ message: { content: "ok" } }], candidates: [{ content: { parts: [{ text: "ok" }] } }], content: [{ type: "text", text: "ok" }], message: { content: "ok" }, response: "ok" };
+  window.fetch = async (url, init) => {
+    let model = null;
+    try { model = JSON.parse(init && init.body || "{}").model || null; } catch (_) {}
+    seen.push({ url: String(url), model });
+    return { ok: true, status: 200, json: async () => body, text: async () => JSON.stringify(body), headers: { get: () => "application/json" } };
+  };
+  try {
+    const cfg = OPENAI_COMPAT_PROVIDERS.deepseek;
+    const sDeep = { aiProvider: "deepseek", [cfg.keyField]: "k", [cfg.modelField]: "configured-model" };
+    await atest("openai-compatible: without opts.model the configured model is sent", async () => {
+      seen.length = 0; await callAI(sDeep, "hi", {});
+      ok(seen.length >= 1 && seen[0].model === "configured-model", "sent " + JSON.stringify(seen));
+    });
+    await atest("openai-compatible: opts.model overrides the configured model", async () => {
+      seen.length = 0; await callAI(sDeep, "hi", { model: "override-model" });
+      ok(seen[0] && seen[0].model === "override-model", "sent " + JSON.stringify(seen));
+    });
+    await atest("gemini: opts.model lands in the generateContent URL", async () => {
+      seen.length = 0; await callAI({ aiProvider: "gemini", geminiApiKey: "k", geminiModel: "gemini-configured" }, "hi", { model: "gemini-override" });
+      ok(seen[0] && /\/models\/gemini-override:generateContent/.test(seen[0].url), "url " + (seen[0] && seen[0].url));
+      seen.length = 0; await callAI({ aiProvider: "gemini", geminiApiKey: "k", geminiModel: "gemini-configured" }, "hi", {});
+      ok(seen[0] && /\/models\/gemini-configured:generateContent/.test(seen[0].url), "url " + (seen[0] && seen[0].url));
+    });
+    await atest("claude: opts.model overrides claudeModel in the request body", async () => {
+      seen.length = 0; await callAI({ aiProvider: "claude", claudeApiKey: "k", claudeModel: "claude-configured" }, "hi", { model: "claude-override" });
+      ok(seen[0] && seen[0].model === "claude-override", "sent " + JSON.stringify(seen));
+    });
+    await atest("ollama: opts.model overrides ollamaModel in the request body", async () => {
+      seen.length = 0; await callAI({ aiProvider: "ollama", ollamaBaseUrl: "http://127.0.0.1:11434", ollamaModel: "llama-configured" }, "hi", { model: "llama-override" });
+      ok(seen[0] && seen[0].model === "llama-override", "sent " + JSON.stringify(seen));
+    });
+    await atest("an empty override falls back to the configured model (no empty model name is ever sent)", async () => {
+      seen.length = 0; await callAI(sDeep, "hi", { model: "" });
+      ok(seen[0] && seen[0].model === "configured-model", "sent " + JSON.stringify(seen));
+    });
+  } finally {
+    window.fetch = realFetch;
+  }
+})();
+</script>
+<script>
 // ============ Task 3: pbpAiHash (FNV-1a 32-bit hex) ============
 suite("pbpAiHash", () => {
   test("empty string is FNV offset basis", () => {

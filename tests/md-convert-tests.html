@@ -3021,6 +3021,32 @@ section("table: synthetic header only when the source has one");
   check("header table still renders th", /<th[\s>]/i.test(renderedWithTh));
 })();
 
+section("transcript paragraph shapes vs marked block syntax");
+(() => {
+  // WHY md-video.js cannot match paragraph records to <p> by count: a
+  // transcript paragraph whose FIRST characters read as block markdown does
+  // not render as one direct-child <p>. Real caption shapes: a dialogue
+  // dash, a sentence starting with a number, a ">>" speaker marker, a line
+  // the AI punctuation pass turned into a heading.
+  const recs = [
+    "welcome back to the channel today",
+    "- and then he said okay",
+    "3. the third one is the interesting one",
+    ">> SPEAKER: hello everyone",
+    "## 5 is the number we want",
+    "and that is all there is to it"
+  ];
+  const host = document.createElement("div");
+  host.innerHTML = renderMarkdown(recs.join("\n\n"));
+  const ps = host.querySelectorAll(":scope > p");
+  check("six transcript paragraphs render as two direct-child <p>",
+    recs.length === 6 && ps.length === 2, "got " + ps.length + " <p>");
+  check("list-shaped paragraphs leave the direct-child <p> stream entirely",
+    host.querySelectorAll(":scope > ul li, :scope > ol li").length === 2, host.innerHTML);
+  check("a >> speaker marker buries its <p> inside a blockquote",
+    host.querySelectorAll("blockquote p").length === 1, host.innerHTML);
+})();
+
 section("TeX survives table-cell escaping");
 (function () {
   // Fix round 2: these were `.includes("\\,")` substring checks -- BLIND,

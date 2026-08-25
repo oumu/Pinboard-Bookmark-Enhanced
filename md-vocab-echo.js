@@ -140,8 +140,11 @@ function _echoView() { return document.getElementById("rendered-view"); }
 // unpainted ranges cost nothing and mode switches are class-only mutations
 // this module deliberately does not observe.
 // Video pages (research T2.2): the timeline rows are a third block family,
-// keyed "r<index>" -- the row's .pbv-text span is what gets scanned (never
-// the time button's label). Rows are rebuilt by track switches and AI
+// keyed "r<index>" for the row's .pbv-text span (never the time button's
+// label) and "rt<index>" for its .pbv-tr line (a projected translation or a
+// companion-track line) when one is present -- both scanned unconditionally
+// regardless of tr-only / tr-bilingual, same "unpainted ranges cost nothing"
+// rationale as o<n>/t<n> above. Rows are rebuilt by track switches and AI
 // passes, both of which end in an article commit that restarts this module.
 function _echoTimelineList() {
   return document.querySelector(".pbv-col-study .pbv-list");
@@ -155,22 +158,29 @@ function _echoBlockKeys() {
     if (sib && sib.classList && sib.classList.contains("pb-tr")) keys.push("t" + b.n);
   }
   const list = _echoTimelineList();
-  if (list) for (let i = 0; i < list.children.length; i++) keys.push("r" + i);
+  if (list) {
+    for (let i = 0; i < list.children.length; i++) {
+      keys.push("r" + i);
+      if (list.children[i].querySelector(":scope > .pbv-tr")) keys.push("rt" + i);
+    }
+  }
   return keys;
 }
 
 function _echoKeyEl(key) {
+  if (key.slice(0, 2) === "rt") {
+    const list = _echoTimelineList();
+    const row = list ? list.children[Number(key.slice(2))] : null;
+    return row ? row.querySelector(":scope > .pbv-tr") : null;
+  }
   const n = Number(key.slice(1));
   if (key[0] === "r") {
+    // Always the original side: the .pbv-tr line has its own key now, so
+    // the old "visible side" redirect (retro VID-R1-07) is unnecessary --
+    // a hidden original's ranges simply never paint.
     const list = _echoTimelineList();
     const row = list ? list.children[n] : null;
-    if (!row) return null;
-    // The VISIBLE side of the row (retro VID-R1-07): translated-only hides
-    // the original on projected rows; companion-track lines always show
-    // next to the original, so the original keeps the echo there.
-    const tr = row.querySelector(":scope > .pbv-tr");
-    if (tr && document.body.classList.contains("tr-only") && row.classList.contains("pbv-row--tr")) return tr;
-    return row.querySelector(":scope > .pbv-text");
+    return row ? row.querySelector(":scope > .pbv-text") : null;
   }
   const el = typeof pbpAiBlockEl === "function" ? pbpAiBlockEl(n) : null;
   if (!el) return null;
@@ -184,6 +194,16 @@ function _echoKeyOf(el) {
   if (el.classList && el.classList.contains("pb-tr")) {
     const prev = el.previousElementSibling;
     if (prev && prev.dataset && prev.dataset.pb) return "t" + prev.dataset.pb;
+  }
+  if (el.classList && el.classList.contains("pbv-tr")) {
+    // setRowLine appends the line straight into its row, so the parent IS
+    // the row; same index rule as the row itself.
+    const row = el.parentElement;
+    if (row && row.classList && row.classList.contains("pbv-row")) {
+      if (row.dataset && row.dataset.i != null) return "rt" + row.dataset.i;
+      if (row.parentElement) return "rt" + Array.prototype.indexOf.call(row.parentElement.children, row);
+    }
+    return null;
   }
   if (el.classList && el.classList.contains("pbv-row")) {
     // Rows carry their index (data-i, stamped at render); indexOf over
@@ -323,7 +343,7 @@ function _echoObserve() {
     let unresolvable = false;
     const mark = (node) => {
       const el = node.nodeType === 1 ? node : node.parentElement;
-      const host = el && el.closest ? el.closest("[data-pb], .pb-tr, .pbv-row") : null;
+      const host = el && el.closest ? el.closest("[data-pb], .pb-tr, .pbv-tr, .pbv-row") : null;
       if (host) {
         const key = _echoKeyOf(host);
         if (key) { _echoDirty.add(key); return; }
@@ -334,10 +354,10 @@ function _echoObserve() {
       if (m.type === "characterData") { mark(m.target); continue; }
       for (const node of m.addedNodes) mark(node);
       for (const node of m.removedNodes) {
-        // Detached nodes have lost their siblings; a removed block/.pb-tr
-        // can't be keyed reliably -> full rescan.
+        // Detached nodes have lost their siblings/parent; a removed block,
+        // .pb-tr or .pbv-tr can't be keyed reliably -> full rescan.
         if (node.nodeType === 1 && node.matches
-            && node.matches("[data-pb], .pb-tr, .pbv-row")) unresolvable = true;
+            && node.matches("[data-pb], .pb-tr, .pbv-tr, .pbv-row")) unresolvable = true;
         else mark(m.target);
       }
     }
@@ -446,6 +466,10 @@ function _echoOnArticle(detail) {
   // dedups an identical fn on the same element, and survives the container
   // ever being replaced wholesale.
   if (view) view.addEventListener("click", _echoOnClick, true);
+  // Timeline rows carry echo ranges too (r<i>/rt<i>); their clicks were
+  // never wired (review) -- same handler, once per list element.
+  const tl = _echoTimelineList();
+  if (tl && !tl._pbpEchoClick) { tl._pbpEchoClick = true; tl.addEventListener("click", _echoOnClick, true); }
   _echoReadEnabled().then((on) => {
     if (readSeq !== _echoReadSeq || owner !== _echoOwner) return;
     _echoEnabled = on;

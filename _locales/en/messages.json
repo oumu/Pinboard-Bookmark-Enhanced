@@ -1245,6 +1245,8 @@
   "optAiAutoTags": {
     "message": "Auto-generate AI tags on popup open"
   },
+  "optAiUseTranscript": { "message": "Use video captions as the AI content source" },
+  "optAiUseTranscriptHint": { "message": "On YouTube and bilibili video pages, AI tags and summaries read the subtitles instead of the page text. Active only after you have granted subtitle access; it never prompts on its own." },
   "labelAiTagLang": {
     "message": "AI Tag Language"
   },
@@ -1601,6 +1603,7 @@
   "mdStripPreview": {
     "message": "Preview"
   },
+  "mdStripPreviewVideo": { "message": "Preview captions" },
   "mdStripDownloadMd": {
     "message": "Download .md"
   },
@@ -1872,6 +1875,7 @@
   "aiStage_extracting": {
     "message": "extracting page content…"
   },
+  "aiStage_transcript": { "message": "reading captions…" },
   "aiStage_calling": {
     "message": "calling {provider}…"
   },
@@ -3677,6 +3681,10 @@
   "mdVideoBiliBodyFailed": { "message": "A subtitle track was found, but its text failed to download. Retry, or pick another track." },
   "mdVideoRelaySilent": { "message": "The player is not reporting its position (the YouTube player API did not load): follow, shortcuts and study controls are unavailable for now" },
   "mdVideoUnplayable": { "message": "YouTube reports this video as not playable right now ($STATUS$); this is not about subtitles. Open it on YouTube to see why.", "placeholders": { "status": { "content": "$1" } } },
+  "mdVideoBridgeEnable": { "message": "Enable playback sync" },
+  "mdVideoBridgeEnableHint": { "message": "Let the extension read the player.bilibili.com player's position (inside this preview only; position and play state, nothing else) so captions follow, loop and auto-pause as they do on YouTube." },
+  "mdVideoGrantScopeBili": { "message": "The grant covers bilibili's subtitle API and its player page (subtitles and the playback position)" },
+  "mdVideoBridgeSilent": { "message": "The player is not reporting its position: use the estimated position instead, or reopen the preview to try again" },
   "mdVideoTimelineAria": { "message": "Caption timeline" },
   "kbdHelpVideoPlay": { "message": "Play / pause" },
   "kbdHelpVideoSeek": { "message": "Back / forward 3 s" },

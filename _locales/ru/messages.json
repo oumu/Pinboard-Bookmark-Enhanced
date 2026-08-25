@@ -1245,6 +1245,8 @@
   "optAiAutoTags": {
     "message": "Автоматически генерировать AI-метки при открытии окна"
   },
+  "optAiUseTranscript": { "message": "На страницах видео использовать субтитры как источник контента для ИИ" },
+  "optAiUseTranscriptHint": { "message": "На страницах видео YouTube и Bilibili ИИ-теги и резюме читают субтитры, а не текст страницы. Работает только после того, как вы разрешили доступ к субтитрам; само разрешение не запрашивает." },
   "labelAiTagLang": {
     "message": "Язык AI-меток"
   },
@@ -1601,6 +1603,7 @@
   "mdStripPreview": {
     "message": "Просмотр"
   },
+  "mdStripPreviewVideo": { "message": "Предпросмотр субтитров" },
   "mdStripDownloadMd": {
     "message": "Скачать .md"
   },
@@ -1902,6 +1905,7 @@
   "aiStage_extracting": {
     "message": "извлечение содержимого…"
   },
+  "aiStage_transcript": { "message": "чтение субтитров…" },
   "aiStage_calling": {
     "message": "вызов {provider}…"
   },
@@ -3683,6 +3687,10 @@
   "mdVideoBiliBodyFailed": { "message": "Дорожка субтитров найдена, но их текст не загрузился. Повторите попытку или выберите другую дорожку." },
   "mdVideoRelaySilent": { "message": "Плеер не сообщает позицию (API плеера YouTube не загрузился): слежение, горячие клавиши и учебные элементы пока недоступны" },
   "mdVideoUnplayable": { "message": "YouTube сообщает, что это видео сейчас недоступно для воспроизведения ($STATUS$); субтитры здесь ни при чём. Откройте его на YouTube, чтобы узнать причину.", "placeholders": { "status": { "content": "$1" } } },
+  "mdVideoBridgeEnable": { "message": "Включить синхронизацию" },
+  "mdVideoBridgeEnableHint": { "message": "Разрешает расширению читать позицию плеера player.bilibili.com (только в этом предпросмотре; только позицию и состояние воспроизведения), чтобы субтитры следовали, зацикливались и останавливались в конце фразы, как на YouTube." },
+  "mdVideoGrantScopeBili": { "message": "Разрешение охватывает API субтитров Bilibili и страницу плеера (субтитры и позиция воспроизведения)" },
+  "mdVideoBridgeSilent": { "message": "Плеер не сообщает позицию: используйте оценочную позицию или откройте предпросмотр заново" },
   "mdVideoTimelineAria": { "message": "Шкала субтитров" },
   "kbdHelpVideoPlay": { "message": "Воспроизведение / пауза" },
   "kbdHelpVideoSeek": { "message": "Назад / вперёд на 3 с" },

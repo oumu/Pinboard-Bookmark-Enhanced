@@ -208,7 +208,7 @@ function _pbpSkimBuildSection(view) {
     '  <button type="button" id="skim-regen" class="skim-ic" data-i18n-title="skimRegen" data-i18n-aria="skimRegen">' + refreshSvg + '</button>',
     '  <button type="button" id="skim-collapse" class="skim-ic" aria-expanded="true" aria-controls="skim-body" data-i18n-title="skimCollapseAria" data-i18n-aria="skimCollapseAria">' + collapseSvg + '</button>',
     '</div>',
-    '<div id="skim-stale" class="skim-stale" hidden>',
+    '<div id="skim-stale" class="skim-stale msg-bar" hidden>',
     '  <span data-i18n="skimStaleNote"></span>',
     '  <button type="button" id="skim-stale-regen" class="action-btn skim-stale-btn">' + (typeof PBP_ICONS !== "undefined" ? PBP_ICONS.refresh : "") + '<span data-i18n="skimRegen"></span></button>',
     '</div>',

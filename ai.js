@@ -405,13 +405,13 @@ async function callAI(s, prompt, opts = {}) {
   if (p === "ollama") return callOllama(s, prompt, opts);
   const cfg = OPENAI_COMPAT_PROVIDERS[p];
   if (!cfg) throw new Error("Unknown provider: " + p);
-  const model = s[cfg.modelField] || cfg.defaultModel;
+  const model = opts.model || s[cfg.modelField] || cfg.defaultModel;
   return _aiWithThinkingFallback(p, model, cfg, (extraBody) =>
     callOpenAICompat(_openaiCompatBase(cfg, s), s[cfg.keyField], model, prompt, { ...opts, extraBody }));
 }
 
 async function callGemini(s, prompt, opts = {}) {
-  const model = s.geminiModel || "gemini-3.5-flash-lite";
+  const model = opts.model || s.geminiModel || "gemini-3.5-flash-lite";
   const maxTokens = opts.maxTokens || 1024;
   // Gemini API requires key as URL param (no Authorization header support) — API design limitation
   const res = await fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${s.geminiApiKey}`, {
@@ -429,7 +429,7 @@ async function callClaude(s, prompt, opts = {}) {
   const res = await fetchWithTimeout("https://api.anthropic.com/v1/messages", {
     method: "POST", signal: opts.signal,
     headers: { "Content-Type": "application/json", "x-api-key": s.claudeApiKey, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
-    body: JSON.stringify({ model: s.claudeModel || "claude-haiku-4-5", max_tokens: maxTokens, messages: [{ role: "user", content: prompt }] })
+    body: JSON.stringify({ model: opts.model || s.claudeModel || "claude-haiku-4-5", max_tokens: maxTokens, messages: [{ role: "user", content: prompt }] })
   });
   if (!res.ok) await handleAIError(res, "Claude");
   const text = (await res.json()).content?.[0]?.text?.trim();
@@ -460,7 +460,7 @@ async function callOllama(s, prompt, opts = {}) {
     // size the output budget per request (AI punctuation batches) silently got
     // the server default and truncated long outputs.
     body: JSON.stringify({
-      model: s.ollamaModel || "llama3.2", messages: [{ role: "user", content: prompt }], stream: false,
+      model: opts.model || s.ollamaModel || "llama3.2", messages: [{ role: "user", content: prompt }], stream: false,
       options: { num_predict: opts.maxTokens || 1024 }
     })
   });

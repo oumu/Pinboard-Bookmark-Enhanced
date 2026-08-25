@@ -11,6 +11,7 @@ h2 { margin-top: 24px; }
 <div id="summary"></div>
 <div id="results"></div>
 
+<script src="../shared.js"></script>
 <script src="../md-video.js"></script>
 <script>
 const root = document.getElementById("results");
@@ -166,6 +167,15 @@ section("pbpVideoApplyPunctText");
   assertEq(applied[0].from, 0, "apply: timing preserved");
   assert(pbpVideoApplyPunctText(segs, "我们几千年前就蒸包子。为什么蒸汽机是外国人发明的呢？") === null, "apply: rewritten text fails closed");
   assert(pbpVideoApplyPunctText(segs, "我们几千年前就蒸馒头") === null, "apply: short text fails closed");
+})();
+
+section("pbpVideoOriginPatterns");
+(() => {
+  const b = pbpVideoOriginPatterns("bilibili");
+  check("bilibili asks for BOTH exact bilibili origins in one prompt (captions + player bridge)", b.length === 2 && b[0] === "https://api.bilibili.com/*" && b[1] === "https://player.bilibili.com/*");
+  const y = pbpVideoOriginPatterns("youtube");
+  check("youtube asks only for www.youtube.com (the relay page needs no grant)", y.length === 1 && y[0] === "https://www.youtube.com/*");
+  check("every pattern is an exact https origin, never a wildcard host", b.concat(y).every((p) => /^https:\/\/[a-z0-9.-]+\/\*$/.test(p)));
 })();
 
 section("pbpYtPickCaptureTab");
@@ -1177,6 +1187,45 @@ section("extracted runtime primitives (audit E1/E4/E5)");
   assert(JSON.stringify(pbpVideoParaStarts(anSegs, ["第一句话还", "没完隔了很久的第二段继续说"])) === "[0,2]", "starts: a paragraph cut inside segment 2 starts at segment 2 (not the paragraph boundary before it)");
   assert(pbpVideoParaStarts(anSegs, ["第一句话还没完。"]) === null, "starts: leftover characters fail closed (null)");
   assert(pbpVideoParaStarts(anSegs, aiParas.concat(["多出来的段落"])) === null, "starts: paragraphs past the stream fail closed (null)");
+  // ---- paragraph/time alignment (para-times debt) ----------------------
+  // DOM texts are HAND-WRITTEN as marked renders each record shape, never
+  // derived from the records -- the whole point is that they do NOT
+  // correspond 1:1.
+  const alKey = (a) => a.map((x) => pbpVideoParaKey(x));
+  const alRecs = [
+    "welcome back to the channel today we are starting",
+    "- and then he said okay that is fine with me",
+    "3. the third one is the interesting one here",
+    "and that is really all there is to say about it",
+  ];
+  // "- ..." became <li>, "3. ..." became <li>: two direct-child <p> for four records.
+  const alDom = ["welcome back to the channel today we are starting",
+    "and that is really all there is to say about it"];
+  const al = pbpVideoAlignParas(alKey(alRecs), alKey(alDom));
+  assert(al.matched === 2 && JSON.stringify(al.map) === "[0,3]",
+    "align: records that rendered as list items are walked past; the ones after them still line up");
+  // A record that split into TWO <p> (raw markup in the caption text): the
+  // first <p> carries the record's opening words and is timed, the tail <p>
+  // anchors on nothing and is skipped rather than stealing the next record.
+  const alRecs2 = ["before the interruption happened here", "the following paragraph continues the story"];
+  const alDom2 = ["before the interruption happened here", "inside the markup", "the following paragraph continues the story"];
+  const al2 = pbpVideoAlignParas(alKey(alRecs2), alKey(alDom2));
+  assert(al2.matched === 2 && JSON.stringify(al2.map) === "[0,-1,1]",
+    "align: an unmatched <p> is skipped without consuming a record");
+  const al3 = pbpVideoAlignParas(alKey(alRecs2), alKey(alRecs2));
+  assert(al3.matched === 2 && JSON.stringify(al3.map) === "[0,1]", "align: an undamaged article still maps 1:1");
+  assert(pbpVideoParaKey("\u2026\u2026") === "" && pbpVideoParaKey("\u597d\u7684\u3002") === "\u597d\u7684",
+    "key: marks and whitespace drop out, letters and digits survive");
+  assert(pbpVideoParaKey("- 3. > ## `x` |") === "3x", "key: block-markdown markers are not part of the key");
+  const al4 = pbpVideoAlignParas(alKey(["\u2026\u2026", "the real paragraph text lives here"]),
+    alKey(["\u2026\u2026", "the real paragraph text lives here"]));
+  assert(al4.matched === 1 && JSON.stringify(al4.map) === "[-1,1]",
+    "align: a key below the minimum anchors nothing on either side");
+  const al5 = pbpVideoAlignParas(alKey(["thanks for watching everyone", "some other paragraph entirely", "thanks for watching everyone"]),
+    alKey(["some other paragraph entirely", "thanks for watching everyone"]));
+  assert(JSON.stringify(al5.map) === "[1,2]", "align: the record pointer only ever moves forward");
+  assert(pbpVideoAlignParas(null, null).matched === 0 && pbpVideoAlignParas([], ["abcdefgh"]).map[0] === -1,
+    "align: empty inputs are harmless");
   assert(pbpVideoDeepLink("https://www.youtube.com/watch?v=abcdefghijk", 754.9) === "https://www.youtube.com/watch?v=abcdefghijk&t=754s", "deep link: youtube t=Ns");
   assert(pbpVideoDeepLink("https://www.bilibili.com/video/BV1YGKk6dE8b/?p=2", 61) === "https://www.bilibili.com/video/BV1YGKk6dE8b/?p=2&t=61", "deep link: bilibili keeps the part and adds t");
   assert(pbpVideoDeepLink("https://example.com/x", 5) === "", "deep link: non-video URL yields empty");

@@ -1245,6 +1245,8 @@
   "optAiAutoTags": {
     "message": "Automatycznie generuj tagi AI po otwarciu okienka"
   },
+  "optAiUseTranscript": { "message": "Na stronach wideo używaj napisów jako źródła treści dla AI" },
+  "optAiUseTranscriptHint": { "message": "Na stronach wideo YouTube i Bilibili tagi i podsumowania AI czytają napisy zamiast tekstu strony. Działa tylko po udzieleniu dostępu do napisów; nigdy nie prosi o zgodę samo z siebie." },
   "labelAiTagLang": {
     "message": "Język tagów AI"
   },
@@ -1601,6 +1603,7 @@
   "mdStripPreview": {
     "message": "Podgląd"
   },
+  "mdStripPreviewVideo": { "message": "Podgląd napisów" },
   "mdStripDownloadMd": {
     "message": "Pobierz .md"
   },
@@ -1902,6 +1905,7 @@
   "aiStage_extracting": {
     "message": "pobieranie zawartości…"
   },
+  "aiStage_transcript": { "message": "odczyt napisów…" },
   "aiStage_calling": {
     "message": "wywoływanie {provider}…"
   },
@@ -3683,6 +3687,10 @@
   "mdVideoBiliBodyFailed": { "message": "Znaleziono ścieżkę napisów, ale nie udało się pobrać jej treści. Spróbuj ponownie lub wybierz inną ścieżkę." },
   "mdVideoRelaySilent": { "message": "Odtwarzacz nie zgłasza pozycji (API odtwarzacza YouTube nie załadowało się): śledzenie, skróty i sterowanie nauką są na razie niedostępne" },
   "mdVideoUnplayable": { "message": "YouTube zgłasza, że tego filmu nie można teraz odtworzyć ($STATUS$); nie dotyczy to napisów. Otwórz go w YouTube, aby poznać powód.", "placeholders": { "status": { "content": "$1" } } },
+  "mdVideoBridgeEnable": { "message": "Włącz synchronizację odtwarzania" },
+  "mdVideoBridgeEnableHint": { "message": "Pozwala rozszerzeniu odczytywać pozycję odtwarzacza player.bilibili.com (tylko w tym podglądzie; wyłącznie pozycję i stan odtwarzania), aby napisy podążały, zapętlały się i pauzowały jak w YouTube." },
+  "mdVideoGrantScopeBili": { "message": "Zgoda obejmuje API napisów Bilibili i stronę odtwarzacza (napisy i pozycję odtwarzania)" },
+  "mdVideoBridgeSilent": { "message": "Odtwarzacz nie zgłasza pozycji: użyj pozycji szacowanej lub otwórz podgląd ponownie" },
   "mdVideoTimelineAria": { "message": "Oś czasu napisów" },
   "kbdHelpVideoPlay": { "message": "Odtwarzaj / pauza" },
   "kbdHelpVideoSeek": { "message": "Cofnij / przewiń o 3 s" },
