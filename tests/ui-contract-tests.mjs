@@ -2848,6 +2848,18 @@ check(mdCss.includes("animation-timeline: scroll(self inline);"),
     `md-preview.js: the commit payload and the committed-transcript restore record disagree -- only in the payload: [${missingInRestore.join(", ")}]; only in the restore record: [${missingInPayload.join(", ")}]. Both write the same MP_KEY slot, so whichever wrote last decides what an F5 gets, and a field missing from one is lost the moment that one wins`);
 }
 
+// Rescue-tier traces are expected outcomes ("video has no caption tracks"),
+// not defects: chrome://extensions lists console.warn in its Errors panel, so
+// every `[pbp-video] ... trace` line reports at info (device 2026-08-26: the
+// DOM tier's line was the one left at warn and surfaced as three "errors").
+{
+  const mdVideoJs = read("md-video.js");
+  check(mdVideoJs.includes('console.info("[pbp-video] dom transcript:", r.trace)') &&
+    mdVideoJs.includes('console.info("[pbp-video] player capture:", r.trace)') &&
+    !/console\.warn\("\[pbp-video\] (dom transcript|player capture):", r\.trace\)/.test(mdVideoJs),
+    "md-video.js: a rescue-tier trace line reports at warn (it lands in the chrome://extensions Errors list); expected info");
+}
+
 if (fail.length) {
   console.error(fail.join("\n"));
   process.exit(1);

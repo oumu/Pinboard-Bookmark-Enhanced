@@ -2547,7 +2547,10 @@ async function pbpYtDomTranscriptInPage(vid, opts) {
       return null;
     }
     const r = inj && inj[0] && inj[0].result;
-    if (r && r.trace) console.warn("[pbp-video] dom transcript:", r.trace);
+    // The trace says why this tier stood down -- an expected outcome ("video
+    // has no caption tracks"), not a defect -- so it reports at info:
+    // chrome://extensions lists console.warn as an error (device 2026-08-26).
+    if (r && r.trace) console.info("[pbp-video] dom transcript:", r.trace);
     if (!r) return null;
     if (r.kind === "net") {
       try {
