@@ -121,6 +121,14 @@ function pbpEmbedBudget(totalBytes) {
   let used = 0;
   return {
     reserve(n) { if (!Number.isFinite(n) || n < 0 || used + n > totalBytes) return false; used += n; return true; },
+    // Refund bytes that never became a result. Streaming reserves chunk by
+    // chunk, so an image that is aborted (over perImageBytes, timed out,
+    // undecodable) has already charged the pool for everything it read --
+    // up to perImageBytes each, and TWICE for the hotlink subset, since the
+    // Referer retry round draws from this SAME budget. A handful of oversized
+    // photos would otherwise exhaust totalBytes and strand every ordinary
+    // image that follows as a remote URL.
+    release(n) { if (!Number.isFinite(n) || n <= 0) return; used = Math.max(0, used - n); },
     used() { return used; }
   };
 }
@@ -130,6 +138,10 @@ function pbpEmbedBudget(totalBytes) {
 async function _pbpEmbedFetchOne(url, budget, limits = PBP_EMBED_LIMITS) {
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), limits.timeoutMs); // 罩住整个 body 读取
+  // Reservation bookkeeping: only a call that hands its bytes back keeps them
+  // charged to the shared pool. Every other exit -- over-cap abort, timeout,
+  // network throw, a body the FileReader cannot encode -- refunds in finally.
+  let reserved = 0, kept = false;
   try {
     // cacheMode: normally "force-cache" (the images were just painted -- reuse
     // the disk cache, no second download). The hotlink retry MUST override it
@@ -153,6 +165,7 @@ async function _pbpEmbedFetchOne(url, budget, limits = PBP_EMBED_LIMITS) {
       if (size + value.length > limits.perImageBytes || !budget.reserve(value.length)) {
         ctl.abort(); return null;   // 流式计数，不信 Content-Length（spec §2 F4）
       }
+      reserved += value.length;
       size += value.length; chunks.push(value);
     }
     const bytes = new Uint8Array(size);
@@ -160,14 +173,21 @@ async function _pbpEmbedFetchOne(url, budget, limits = PBP_EMBED_LIMITS) {
     // Codex-C4: EPUB (keepUrls) only needs {mime, bytes} — the data URI is never
     // referenced, but building it doubles peak memory (base64 string ~4/3x bytes)
     // for nothing. limits.wantDataUri === false skips the FileReader round-trip.
-    if (limits.wantDataUri === false) return { mime, bytes };
+    if (limits.wantDataUri === false) { kept = true; return { mime, bytes }; }
     const dataUri = await new Promise((res, rej) => {
       const fr = new FileReader();
       fr.onload = () => res(fr.result); fr.onerror = () => rej(fr.error);
       fr.readAsDataURL(new Blob([bytes], { type: mime }));
     });
+    kept = true;
     return { dataUri, mime, bytes };
-  } catch (_) { return null; } finally { clearTimeout(timer); }
+  } catch (e) {
+    // null = "not embeddable, ship the remote URL instead". Leave the platform
+    // error's shape behind (AbortError on timeout, TypeError on a refused
+    // fetch/redirect, the FileReader's error) -- never the image URL.
+    console.warn("[embed] image fetch failed:", e && e.name, e && e.message);
+    return null;
+  } finally { clearTimeout(timer); if (!kept) budget.release(reserved); }
 }
 
 // sharedBudget (hotlink round): an optional caller-owned pbpEmbedBudget. The

@@ -376,10 +376,39 @@ function _pbpVocabBuildNoteEditor(w) {
     // chosen UI language. Everything static on this page takes its text the
     // same way for that reason.
     back.addEventListener("click", () => {
+      // Read the row to return to BEFORE the pane closes: the class removal
+      // below hides this whole pane at <=860px (library.css's
+      // `body:not(.lib-narrow-detail) .vocab-detail-pane`), and Chrome resets
+      // focus to <body> when the focused element's pane goes display:none --
+      // with no skip link on this page, the way back is a full Tab walk past
+      // the header, the search box, both filters and the batch controls.
+      // Clearing the detail also drops the aria-current marker this reads.
+      // The mirror image of _pbpVocabFocusNarrowBack, which already fixes the
+      // same fall-through on the way INTO the detail.
+      const row = document.querySelector("#vocab-list .vocab-card[aria-current] .notes-card-head");
       document.body.classList.remove("lib-narrow-detail");
       _pbpVocabRenderDetail(null);
+      if (row && row.isConnected) {
+        try { row.focus({ preventScroll: true }); } catch (_) { row.focus(); }
+      } else {
+        _pbpVocabFocusStable();
+      }
     });
   }
+}
+
+// Exactly one row carries aria-current, and it must name whatever the detail
+// pane is actually showing -- including "nothing", which is why this takes a
+// null id instead of only ever moving the marker. Twin of library-notes.js's
+// _pbpNotesMarkCurrentRow (same contract, this view's own row shape).
+// _pbpVocabActivateRow keeps marking its own card directly: it already holds
+// the element the click came from and needs no second lookup for it.
+function _pbpVocabMarkCurrentRow(id) {
+  document.querySelectorAll("#vocab-list .vocab-card[aria-current]")
+    .forEach((el) => el.removeAttribute("aria-current"));
+  if (!id) return;
+  const el = document.querySelector(`#vocab-list .vocab-card[data-vocab-id="${CSS.escape(id)}"]`);
+  if (el) el.setAttribute("aria-current", "true");
 }
 
 // Renders the master-detail right pane for the activated word (or clears it
@@ -402,14 +431,30 @@ function _pbpVocabRenderDetail(w, enterNarrow) {
   // Switching (or clearing) the shown word invalidates any in-flight
   // re-lookup immediately: opening a fresh word must fire zero network
   // requests on its own, and a stale online/local chain must never write
-  // into a dict area that now belongs to a different word.
-  if (_pbpVocabDictCtrl) { _pbpVocabDictCtrl.abort(); _pbpVocabDictCtrl = null; }
+  // into a dict area that now belongs to a different word. A REFRESH render
+  // of the SAME word is not that case: _pbpVocabReconcileDetail carries the
+  // rendered results (and the run still filling them) across the rebuild, so
+  // aborting here cancelled a lookup nobody asked to cancel -- switching tabs
+  // and back was enough to wipe a definition off the pane. A user activation
+  // still starts clean, even when it lands on the word already shown.
+  const sameWord = !!w && w.id === _pbpVocabDetailWordId;
+  if (_pbpVocabDictCtrl && (!sameWord || enterNarrow)) {
+    _pbpVocabDictCtrl.abort();
+    _pbpVocabDictCtrl = null;
+  }
   _pbpVocabDetailWordId = w ? w.id : null;
   empty.hidden = !!w;
   detail.hidden = !w;
   if (!w) document.body.classList.remove("lib-narrow-detail");
   else if (enterNarrow) document.body.classList.add("lib-narrow-detail");
-  if (!w) { detail.replaceChildren(); return; }
+  if (!w) {
+    detail.replaceChildren();
+    // Without this the list keeps a "you are here" row pointing at a pane
+    // that now says nothing -- painted as the selected fill plus an accent
+    // edge, and still announced as `current`.
+    _pbpVocabMarkCurrentRow(null);
+    return;
+  }
 
   const frag = document.createDocumentFragment();
 
@@ -670,6 +715,23 @@ function _pbpVocabDictRun(term, lang, els, sentence, rerun) {
 
   const cur = { term, lang, sentence };
   cur.rerun = () => { if (_pbpDictCurrent === cur) rerun(); };
+  // Form-of pointer jump (md-dict's .xp-dict-lemma-link): its click handler
+  // only fires when the LIVE run carries a rerunWith, so without this the
+  // lemma read as a link, was a real button, and did nothing at all on this
+  // page -- while the same control works in the reader. That link exists to
+  // open exactly the dead end a user with no AI key hits on an inflected
+  // form, so swallowing it here costs the feature its reason to exist.
+  // Same liveness guard as `rerun`; the re-entry keeps this run's language,
+  // slot pair and sentence and only swaps the query, the way md-dict's own
+  // rerunWith does with `{ ...cap, text: next }`. It re-points `rerun` at the
+  // base form too: the caller's callback re-runs the word this pane was
+  // opened for, which is no longer the query on screen after the jump.
+  cur.rerunWith = (base) => {
+    const next = pbpDictNormalizeTerm(base);
+    if (!next || _pbpDictCurrent !== cur) return;
+    const again = () => _pbpVocabDictRun(next, lang, els, sentence, again);
+    again();
+  };
   _pbpDictCurrent = cur;
   _pbpDictSlotSkeleton(onlineEl);
   _pbpDictEcdictSide(localEl, term, lang, signal, cur);
@@ -784,7 +846,7 @@ function _pbpVocabFreeLookup() {
   // The lookup result owns the detail host: drop any word-detail linkage so
   // reload paths do not resurrect a word over the result (they no-op on null).
   _pbpVocabDetailWordId = null;
-  document.querySelectorAll("#vocab-list .vocab-card[aria-current]").forEach((el) => el.removeAttribute("aria-current"));
+  _pbpVocabMarkCurrentRow(null);
   const empty = $id("vocab-detail-empty");
   const detail = $id("vocab-detail");
   if (!empty || !detail) return;
@@ -833,8 +895,7 @@ function _pbpVocabFreeLookup() {
       // An activation like a row click: it replaces this whole pane, so the
       // hint button focus sits on goes with it.
       _pbpVocabRenderDetail(fresh, true);
-      const row = document.querySelector(`#vocab-list .vocab-card[data-vocab-id="${CSS.escape(fresh.id)}"]`);
-      if (row) row.setAttribute("aria-current", "true");
+      _pbpVocabMarkCurrentRow(fresh.id);
     });
     frag.appendChild(hint);
   }
@@ -1059,6 +1120,37 @@ function _pbpVocabClearSelection() {
   _vocabLastSelectedId = null;
 }
 
+// "None of the selected words are in this group" is the one disable reason
+// with nothing on screen behind it, and a disabled button is the worst place
+// to keep it: it takes no Tab focus, so its title is unreachable by keyboard,
+// and a touch screen has no hover to reveal one either. Give the reason a
+// permanent, hideable home in the bar and point both controls it is about at
+// it with aria-describedby -- a hidden description is ignored, so it only
+// speaks while it is true. Built here rather than in the markup because t()
+// is only correct after applyI18n has settled the chosen UI language (same
+// timing note as _pbpVocabWireLookupBar); it reuses #vocab-remove-group's own
+// string, so no new locale key. Reuses an element from the markup if one
+// with this id is ever added there.
+function _pbpVocabGroupHelpEl() {
+  const existing = $id("vocab-remove-group-help");
+  if (existing) return existing;
+  const bar = $id("vocab-batch-toolbar");
+  if (!bar || !$id("vocab-remove-group")) return null; // options.html has no batch bar
+  const el = document.createElement("span");
+  el.id = "vocab-remove-group-help";
+  el.className = "vocab-group-help";
+  el.textContent = t("vocabRemoveGroupNoMatch");
+  el.hidden = true;
+  // Last child, on its own wrapped line: inserting it next to the unit it
+  // describes would push the action cluster onto a second row every time it
+  // appeared, and the actions' order is the stable thing here.
+  bar.appendChild(el);
+  for (const host of [$id("vocab-group-input"), $id("vocab-remove-group")]) {
+    if (host) host.setAttribute("aria-describedby", el.id);
+  }
+  return el;
+}
+
 function _pbpVocabSyncSelectionUi() {
   const validIds = new Set(_vocabViewRows.map((row) => row.id));
   for (const id of [..._vocabSelected]) if (!validIds.has(id)) _vocabSelected.delete(id);
@@ -1096,12 +1188,17 @@ function _pbpVocabSyncSelectionUi() {
   // removed" while changing nothing.
   if (removeBtn) {
     const inGroup = group && selectedCount ? _pbpVocabSelectedInGroup(group) : 0;
+    const noMatch = !!(group && selectedCount && !inGroup);
     removeBtn.disabled = _vocabBatchBusy || !selectedCount || !group || !inGroup;
     // "Selection and group don't overlap" is the one disable condition nothing
     // on screen explains; say it on hover. The fallback is the button's full
     // label -- it is icon-only now, so the title doubles as its tooltip name.
     // Never via #vocab-status, a live region the batch results keep rewriting.
-    removeBtn.title = (group && selectedCount && !inGroup) ? t("vocabRemoveGroupNoMatch") : t("vocabRemoveFromGroup");
+    removeBtn.title = noMatch ? t("vocabRemoveGroupNoMatch") : t("vocabRemoveFromGroup");
+    // The same sentence in text, for everyone the hover title never reaches
+    // (see _pbpVocabGroupHelpEl).
+    const help = _pbpVocabGroupHelpEl();
+    if (help) help.hidden = !noMatch;
   }
   if (deleteBtn) deleteBtn.disabled = _vocabBatchBusy || !selectedCount;
   const knownBtn = $id("vocab-mark-known");
@@ -1178,11 +1275,7 @@ function _pbpVocabRenderList(append) {
   // this covers search/filter/sort here; _pbpVocabReloadAfterMutation covers
   // its own reload the same way, since that path also re-renders the
   // detail pane's content (not just the marker).
-  if (!append && _pbpVocabDetailWordId) {
-    const current = document.querySelector(
-      `#vocab-list .vocab-card[data-vocab-id="${CSS.escape(_pbpVocabDetailWordId)}"]`);
-    if (current) current.setAttribute("aria-current", "true");
-  }
+  if (!append && _pbpVocabDetailWordId) _pbpVocabMarkCurrentRow(_pbpVocabDetailWordId);
 }
 
 // Render the read-only stats strip from the full owner row set (not the
@@ -1270,11 +1363,40 @@ function _pbpVocabReconcileDetail() {
   const liveGroup = detail.querySelector(".vocab-group-unit input");
   const draftNote = liveNote ? liveNote.value : null;
   const draftGroup = liveGroup ? liveGroup.value : "";
-  const fresh = _vocabViewRows.find((row) => row.id === _pbpVocabDetailWordId);
+  // A loaded definition is the user's too, and an expensive one: it cost a
+  // network round trip that only an explicit click may start. Carry the
+  // rendered nodes across the rebuild instead of re-querying -- the in-flight
+  // run writes into these very elements, so moving them keeps a slow lookup
+  // landing where it was aimed (nothing awaits between here and the
+  // re-insert, so md-dict's isConnected liveness checks never see the
+  // detached window). Without it, any sibling mutation -- or just leaving the
+  // tab and coming back, which library.js turns into a refresh -- emptied the
+  // dictionary area the user had just filled.
+  const dictHost = detail.querySelector(".vocab-detail-dict");
+  const dictNodes = dictHost ? [...dictHost.childNodes] : [];
+  const lookupSpent = !!detail.querySelector(".vocab-detail-relookup[hidden]");
+  // The owner's FULL row set, not the filtered view: the detail pane is not
+  // inside the filter's scope. With the list filtered to "learning", marking
+  // the open word as known drops it out of _vocabViewRows, and reading the
+  // word from there reset the pane the button was clicked in.
+  const fresh = _vocabRows.find((row) => row.id === _pbpVocabDetailWordId);
   _pbpVocabRenderDetail(fresh || null);
   if (!fresh) return;
-  const el = document.querySelector(`#vocab-list .vocab-card[data-vocab-id="${CSS.escape(fresh.id)}"]`);
-  if (el) el.setAttribute("aria-current", "true");
+  // No-op when the fresh row is outside the current view (filtered out, or
+  // past the load-more depth) -- the pane still reads it, the list just has
+  // no row to mark.
+  _pbpVocabMarkCurrentRow(fresh.id);
+  if (dictNodes.length) {
+    const host = detail.querySelector(".vocab-detail-dict");
+    if (host) host.replaceChildren(...dictNodes);
+  }
+  // One live lookup per detail render (see the button's own comment): a
+  // rebuild must not hand back a second one over results that are already
+  // there.
+  if (lookupSpent) {
+    const lookupBtn = detail.querySelector(".vocab-detail-relookup");
+    if (lookupBtn) lookupBtn.hidden = true;
+  }
   const note = detail.querySelector(".vocab-note-input");
   if (note && draftNote !== null && draftNote !== note.value) {
     note.value = draftNote;
@@ -1326,6 +1448,7 @@ async function _pbpVocabReloadAfterMutation(expectedOwner, requestedGen) {
   } catch (_) {
     if (gen !== _vocabRenderGen) return false;
     _pbpVocabClearVisibleState();
+    _pbpVocabRenderDetail(null); // I1: the clear never touched the detail pane
     _pbpVocabSetLoading(false);
     return false;
   }

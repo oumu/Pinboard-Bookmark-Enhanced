@@ -1367,7 +1367,13 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
   cursor: pointer;
 }
 .rail-sec-open svg { width: 15px; height: 15px; }
-.rail-sec-open:hover, .rail-sec-open:focus-visible { color: var(--fg); background: var(--btn-hover); outline: none; }
+.rail-sec-open:hover { color: var(--fg); background: var(--btn-hover); }
+/* Focus ring split out of :hover. Fused with outline:none the only keyboard
+   cue was the --btn-hover wash (~1.1:1 against --surface, far under WCAG
+   2.4.11's 3:1) and it was pixel-identical to hover. Compact control, so the
+   standard 2px ring family rather than the soft-ring recipe above; the
+   absolute box has clearance on every side inside #hl-rail-section. */
+.rail-sec-open:focus-visible { color: var(--fg); background: var(--btn-hover); outline: 2px solid var(--link); outline-offset: 2px; }
 /* !important: this collapse rule is (0,2,0) specificity, but several rail
    section rules scope through an ID (e.g. #tr-section .tr-row / .tr-target,
    (1,1,0)) which outspecifies it — those rows stayed visible through a
@@ -2336,9 +2342,20 @@ html.motion-ready #pb-hl-bar:popover-open {
   border: 1px solid rgba(128, 128, 128, 0.45); /* neutral gray: visible on light AND dark schemes (slate-tinted borders vanish on dark) */
   padding: 0;
   cursor: pointer;
+  position: relative;
   /* No glyph inside: the 1-5 digit legend was pulled on device feedback
      (2026-08-25); the swatch is the fill alone, named by title/aria-label. */
 }
+/* Hit pad to the 24px icon-button minimum, same idiom as .hl-filter-dot
+   below: the swatch stays 18px, an invisible pseudo-element carries the
+   target. The inset resolves against the PADDING box, so the 1px border
+   above is already subtracted -- 16px content + 4px per side is the 24px,
+   and it lands exactly 3px outside the 18px border box, i.e. half of
+   #pb-hl-bar's 6px gap. Neighbouring zones therefore meet without
+   overlapping -- the same trap .hl-filter-dot's comment records: an overlap
+   lets a click just right of one swatch create the NEXT colour's highlight.
+   Vertically the bar's own 6px padding leaves the same 3px free. */
+.pb-hl-dot::before { content: ""; position: absolute; inset: -4px; }
 /* L5: these dot swatches were fixed single values shared across both color
    schemes -- an identity-color legend, not a token, so it never followed
    the palette swap above. dot-4's saturated red now visually disagrees with
@@ -2374,8 +2391,21 @@ html.motion-ready #pb-hl-bar:popover-open {
   color: var(--fg-muted);
   cursor: pointer;
   border-radius: 4px;
+  position: relative;
 }
-.pb-hl-note-btn:hover, .pb-hl-note-btn:focus-visible { color: var(--fg); background: var(--btn-hover); outline: none; }
+/* 22px box -> 24px hit area. -1px (not the swatches' -4px) because this
+   button has no border and no padding, so its padding box -- what the inset
+   resolves against -- is the full 22px. 1px per side fits inside the bar's
+   6px gap, so the neighbouring swatch's own pad is still not touched. */
+.pb-hl-note-btn::before { content: ""; position: absolute; inset: -1px; }
+.pb-hl-note-btn:hover { color: var(--fg); background: var(--btn-hover); }
+/* Focus ring split out of :hover. Fused with outline:none the whole bar
+   spoke two focus languages -- the colour swatches above ring, these
+   buttons only swapped in the --btn-hover wash (~1.1:1 against --surface,
+   under WCAG 2.4.11's 3:1, and identical to hover), so a keyboard walk
+   lost the caret halfway across. Ring is inset 1px: #pb-hl-bar's padding is
+   6px and its edge is a pill, so an outward ring rides over that border. */
+.pb-hl-note-btn:focus-visible { color: var(--fg); background: var(--btn-hover); outline: 2px solid var(--link); outline-offset: -1px; }
 .pb-hl-note-btn svg { width: 13px; height: 13px; }
 /* Explain entry fused into this bar (formerly a standalone floating pill in
    md-ask.js). Same box as .pb-hl-note-btn, plus a divider on the left to set
@@ -2392,13 +2422,25 @@ html.motion-ready #pb-hl-bar:popover-open {
   color: var(--fg-muted);
   cursor: pointer;
   border-radius: 4px;
+  position: relative;
+}
+/* 22px tall -> 24px hit area (width already clears it: 8+13+4). Same 1px
+   pad as .pb-hl-note-btn above, absorbed by the bar's 6px gap. */
+.pb-hl-explain-btn::before, .pb-hl-dict-btn::before, .pb-hl-seek-btn::before {
+  content: ""; position: absolute; inset: -1px;
 }
 /* Only the first of the pair carries the group divider -- they act as one
    action group off the color dots/note button. */
 .pb-hl-explain-btn { margin-left: 2px; border-left: 1px solid var(--border); }
-.pb-hl-explain-btn:hover, .pb-hl-explain-btn:focus-visible,
-.pb-hl-dict-btn:hover, .pb-hl-dict-btn:focus-visible,
-.pb-hl-seek-btn:hover, .pb-hl-seek-btn:focus-visible { color: var(--fg); background: var(--btn-hover); outline: none; }
+.pb-hl-explain-btn:hover,
+.pb-hl-dict-btn:hover,
+.pb-hl-seek-btn:hover { color: var(--fg); background: var(--btn-hover); }
+/* Focus ring split out of :hover, same rationale and inset as
+   .pb-hl-note-btn above (these are the only controls left on the bar in
+   timeline mode, where the ringed swatches are display:none). */
+.pb-hl-explain-btn:focus-visible,
+.pb-hl-dict-btn:focus-visible,
+.pb-hl-seek-btn:focus-visible { color: var(--fg); background: var(--btn-hover); outline: 2px solid var(--link); outline-offset: -1px; }
 .pb-hl-explain-btn svg, .pb-hl-dict-btn svg, .pb-hl-seek-btn svg { width: 13px; height: 13px; }
 .pb-hl-explain-btn[hidden], .pb-hl-dict-btn[hidden] { display: none; }
 
@@ -2910,8 +2952,15 @@ body.ask-open main { margin-right: 396px; }
   border-radius: 50%;
   border: 2px solid transparent;
   cursor: pointer;
+  position: relative;
   transition: border-color 140ms var(--ease-out);
 }
+/* 22px swatch -> 24px hit area, same idiom as .pb-hl-dot above. -3px, not
+   -1px: the inset resolves against the padding box, and the 2px transparent
+   border (the selected-state ring) leaves only 18px there. The zone ends up
+   1px outside the border box on each side, well inside .hl-card-colors' 8px
+   gap. */
+.hl-card-dot::before { content: ""; position: absolute; inset: -3px; }
 /* L5 (edit-card dots, same swatch-legend rationale as .pb-hl-dot above). */
 .hl-card-dot-1 { background: light-dark(#f5c518, #D9A441); }
 .hl-card-dot-2 { background: light-dark(#4caf50, #5E9C69); }
@@ -3061,7 +3110,13 @@ body.ask-open main { margin-right: 396px; }
   cursor: pointer;
   transition: background-color 120ms ease, color 120ms ease;
 }
-.hl-item-del:hover, .hl-item-del:focus-visible { color: var(--danger); background: var(--border-light); outline: none; }
+.hl-item-del:hover { color: var(--danger); background: var(--border-light); }
+/* Focus ring split out of :hover (same WCAG 2.4.11 fix as .rail-sec-open):
+   the --border-light wash alone was both under 3:1 and identical to hover,
+   so tabbing off .hl-item-main -- which does ring, via the soft-focus
+   recipe -- looked like focus had left the row. Compact control, so the
+   standard 2px family; offset matches .hl-item-main's own ring. */
+.hl-item-del:focus-visible { color: var(--danger); background: var(--border-light); outline: 2px solid var(--link); outline-offset: 2px; }
 .hl-item-note {
   flex-basis: 100%;
   padding-left: 18px;

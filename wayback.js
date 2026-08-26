@@ -10,9 +10,17 @@ const WAYBACK_AUTH_TIMEOUT_MS = 10000;
 
 // ---- Pure functions (no chrome.*, no document) ----
 
-function pbpWaybackShouldAttempt(attemptsMap, url, now) {
-  if (!attemptsMap || !url) return true;
-  const lastAttempt = attemptsMap[url];
+// Dedup key for one attempt. The 24h window is per Pinboard account: the same
+// URL saved from a second account must still reach the archive, and the log
+// rows keyed alongside it must not outlive an account switch. A Pinboard
+// username cannot contain a newline, so the separator stays unambiguous.
+function pbpWaybackAttemptKey(account, url) {
+  return (account || "") + "\n" + (url || "");
+}
+
+function pbpWaybackShouldAttempt(attemptsMap, key, now) {
+  if (!attemptsMap || !key) return true;
+  const lastAttempt = attemptsMap[key];
   if (!lastAttempt) return true;
   return (now - lastAttempt) >= WAYBACK_DEDUP_WINDOW_MS;
 }
@@ -20,9 +28,9 @@ function pbpWaybackShouldAttempt(attemptsMap, url, now) {
 function pbpWaybackPruneAttempts(attemptsMap, now) {
   if (!attemptsMap) return {};
   const pruned = {};
-  for (const [url, ts] of Object.entries(attemptsMap)) {
+  for (const [key, ts] of Object.entries(attemptsMap)) {
     if ((now - ts) < WAYBACK_DEDUP_WINDOW_MS) {
-      pruned[url] = ts;
+      pruned[key] = ts;
     }
   }
   return pruned;
@@ -78,14 +86,14 @@ function pbpWaybackBuildRequest(url, s3Key, s3Secret) {
 
 // ---- Internal logging helper (chrome.* inside function body) ----
 
-// Remove a single url's dedup timestamp (re-read so we don't clobber a
+// Remove a single account+url dedup timestamp (re-read so we don't clobber a
 // concurrent prune/write). Best-effort — swallow storage errors.
-async function _pbpWaybackRollbackAttempt(url) {
+async function _pbpWaybackRollbackAttempt(key) {
   try {
     const stored = await chrome.storage.local.get({ _waybackAttempts: {} });
     const attempts = stored._waybackAttempts || {};
-    if (url in attempts) {
-      delete attempts[url];
+    if (key in attempts) {
+      delete attempts[key];
       await chrome.storage.local.set({ _waybackAttempts: attempts });
     }
   } catch (e) {
@@ -94,12 +102,15 @@ async function _pbpWaybackRollbackAttempt(url) {
 }
 
 // Best-effort, non-atomic read-modify-write: concurrent callers may drop one entry. Acceptable for an advisory log.
-async function _pbpWaybackLog(url, outcome) {
+// `account` is the non-secret Pinboard owner the save ran under ("" when logged
+// out). Rows carry it because the log lists bookmark URLs, private ones
+// included; readers must filter to the account currently signed in.
+async function _pbpWaybackLog(url, outcome, account) {
   try {
     const stored = await chrome.storage.local.get({ _waybackLog: [] });
     let log = stored._waybackLog || [];
     if (!Array.isArray(log)) log = [];
-    const entry = { url, ts: Date.now(), outcome };
+    const entry = { url, ts: Date.now(), outcome, account: account || "" };
     log = pbpWaybackAppendLog(log, entry, WAYBACK_LOG_CAP);
     await chrome.storage.local.set({ _waybackLog: log });
   } catch (e) {
@@ -129,9 +140,16 @@ function pbpWaybackShouldArchive({ enabled, skipPrivate, isPrivate, force, overr
 // ---- Orchestrator (chrome.* usage allowed inside function body) ----
 
 async function pbpWaybackArchive(url, settings, opts) {
+  // Both persistent traces of an archive attempt are account-scoped, so keep
+  // the owner in scope for the catch below as well. Derived from the same
+  // settings blob the save used; a logged-out save records "".
+  let account = "";
+  let attemptKey = pbpWaybackAttemptKey(account, url);
   try {
     // Step 1: Centralized archive decision (enabled + skip-private + per-save override)
     if (!settings) return;
+    account = pbpPinboardAccountFromToken(settings.pinboardToken);
+    attemptKey = pbpWaybackAttemptKey(account, url);
     const enabled = settings.waybackArchiveEnabled === true;
     const skipPrivate = settings.waybackSkipPrivate !== false; // default ON
     const isPrivate = !!(opts && opts.isPrivate);
@@ -142,7 +160,7 @@ async function pbpWaybackArchive(url, settings, opts) {
       // (enabled + auto path). Plain disabled / explicit untick stay silent —
       // preserving the prior "disabled = no log" behavior.
       if (override === undefined && !force && enabled && skipPrivate && isPrivate) {
-        await _pbpWaybackLog(url, "skippedPrivate");
+        await _pbpWaybackLog(url, "skippedPrivate", account);
       }
       return;
     }
@@ -151,11 +169,11 @@ async function pbpWaybackArchive(url, settings, opts) {
     try {
       const hasPermission = await chrome.permissions.contains({ origins: ["https://web.archive.org/*"] });
       if (!hasPermission) {
-        await _pbpWaybackLog(url, "permDenied");
+        await _pbpWaybackLog(url, "permDenied", account);
         return;
       }
     } catch (_) {
-      await _pbpWaybackLog(url, "permDenied");
+      await _pbpWaybackLog(url, "permDenied", account);
       return;
     }
 
@@ -163,15 +181,15 @@ async function pbpWaybackArchive(url, settings, opts) {
     const stored = await chrome.storage.local.get({ _waybackAttempts: {} });
     const attempts = stored._waybackAttempts || {};
     const now = Date.now();
-    if (!force && !pbpWaybackShouldAttempt(attempts, url, now)) {
-      await _pbpWaybackLog(url, "skipped");
+    if (!force && !pbpWaybackShouldAttempt(attempts, attemptKey, now)) {
+      await _pbpWaybackLog(url, "skipped", account);
       return;
     }
 
     // Step 4: Prune old attempts and record this one
     // Best-effort dedup: the read-modify-write below is not atomic; a rare concurrent save may double-fire. Acceptable — the server also dedups (30min default / if_not_archived_within).
     const pruned = pbpWaybackPruneAttempts(attempts, now);
-    pruned[url] = now;
+    pruned[attemptKey] = now;
     await chrome.storage.local.set({ _waybackAttempts: pruned });
 
     // Step 5: Build and send request
@@ -211,20 +229,20 @@ async function pbpWaybackArchive(url, settings, opts) {
     // Step 7: On a transient (non-retaining) outcome, roll back the pre-fetch
     // dedup write so auto re-archive isn't suppressed 24h after a failed attempt.
     if (!pbpWaybackOutcomeRetainsDedup(outcome)) {
-      await _pbpWaybackRollbackAttempt(url);
+      await _pbpWaybackRollbackAttempt(attemptKey);
     }
 
     // Step 8: Log the result
-    await _pbpWaybackLog(url, outcome);
+    await _pbpWaybackLog(url, outcome, account);
   } catch (e) {
     // Catch AbortError and other exceptions — never throw. These are always
     // transient, so roll back the dedup timestamp written in Step 4.
-    await _pbpWaybackRollbackAttempt(url);
+    await _pbpWaybackRollbackAttempt(attemptKey);
     if (e && (e.name === "AbortError" || e.name === "TimeoutError")) {
-      await _pbpWaybackLog(url, "timeout");
+      await _pbpWaybackLog(url, "timeout", account);
     } else {
       const msg = e?.message || String(e) || "unknown";
-      await _pbpWaybackLog(url, "error:" + msg);
+      await _pbpWaybackLog(url, "error:" + msg, account);
     }
   }
 }

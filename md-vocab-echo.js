@@ -326,6 +326,17 @@ async function _echoRestart() {
   // pbp:rendered; this mirrors md-ask's lazy backfill for safety.
   if (typeof pbpAiIndexBlocks === "function" && typeof pbpAiBlocks === "function"
       && !pbpAiBlocks().length) pbpAiIndexBlocks(view);
+  // _echoOwner is derived from the account the page render froze in, so a
+  // token swap in another tab would keep replaying the PREVIOUS account's
+  // words as underlines for whoever is logged in now. Check the live account
+  // before the read and fail closed -- paint nothing until md-preview.js's
+  // credential listener re-dispatches the owner (a read that throws counts as
+  // a mismatch; showing another account's vocabulary is the worse outcome).
+  if (typeof pbpVocabCurrentOwner === "function") {
+    const live = await pbpVocabCurrentOwner().catch(() => null);
+    if (epoch !== _echoEpoch || owner !== _echoOwner || !_echoEnabled) return;
+    if (live !== owner) return;
+  }
   const rows = await (typeof pbpVocabAll === "function" ? pbpVocabAll(owner).catch(() => []) : []);
   if (epoch !== _echoEpoch || owner !== _echoOwner || !_echoEnabled) return;
   _echoTerms = pbpEchoTermSet(rows);
@@ -481,6 +492,12 @@ document.addEventListener("pbp:rendered", (e) => _echoOnArticle((e && e.detail) 
 // Deliberately NOT {once:true}: one page life can see any number of
 // replacements (track switch, AI punctuation, promotion).
 document.addEventListener("pbp:article-replaced", (e) => _echoOnArticle((e && e.detail) || null));
+// Live Pinboard account switch (md-preview.js's credential listener), carrying
+// the same {account} detail. The response is the same full rebuild: the
+// previous owner's underlines must come down synchronously and the term set be
+// re-read for whoever is logged in now. Re-binding the click handlers is a
+// no-op here (addEventListener dedups an identical fn on the same element).
+document.addEventListener("pbp:account-changed", (e) => _echoOnArticle((e && e.detail) || null));
 
 document.addEventListener("pbp:vocab-changed", (e) => {
   const owner = e && e.detail ? e.detail.owner : "";

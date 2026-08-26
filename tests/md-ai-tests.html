@@ -5690,6 +5690,15 @@ suiteIf("pbpHlAppendNoteText", "pbpHlAppendNoteText", () => {
     div.textContent = "SKIP md-highlight dirty note save race (DOM layer not loaded)";
     host.appendChild(div); SKIP++; return;
   }
+  // Every <script> block after this one shares the module globals this suite
+  // stubs, and several of them reset _pbpHlState to null in their teardown. A
+  // commit now yields to the event loop while it takes the record's Web Lock
+  // (md-highlight.js serialises get -> patch -> set across reader tabs and
+  // library.html), which is long enough for the parser to run those blocks in
+  // the middle of this test. Start once there are no more of them.
+  if (document.readyState === "loading") {
+    await new Promise((r) => document.addEventListener("DOMContentLoaded", r, { once: true }));
+  }
   await atest("dirty card commit preserves answer appended while the card was dirty", async () => {
     const prevSave = _pbpHlSave;
     const prevRender = _pbpHlNotebookRender;
@@ -5699,9 +5708,15 @@ suiteIf("pbpHlAppendNoteText", "pbpHlAppendNoteText", () => {
     const prevCardBaseNote = _pbpHlCardBaseNote;
     const prevDirty = _pbpHlNoteDirty;
     const prevQueue = _pbpHlWriteQueue;
+    const prevLoadStrict = _pbpHlLoadStrict;
     const card = document.createElement("div");
     try {
       _pbpHlSave = async () => true;
+      // The commit path re-reads storage inside the write queue and patches by
+      // item.id -- memory is never authoritative. Stand in for the record this
+      // page would find there; without it the strict read returns null (no
+      // chrome.storage on file://) and the write is correctly abandoned.
+      _pbpHlLoadStrict = async () => structuredClone(_pbpHlState.items);
       _pbpHlNotebookRender = () => {};
       _pbpHlWriteQueue = Promise.resolve();
       const item = { id: "h1", n: 1, quote: "quote", note: "stored", color: 1, ts: 1 };
@@ -5723,7 +5738,7 @@ suiteIf("pbpHlAppendNoteText", "pbpHlAppendNoteText", () => {
       assertEq(ok, true, "attach reports success");
       _pbpHlCommitNote();
       await _pbpHlWriteQueue;
-      assertEq(item.note, "draft edit\n\nanswer from ask", "dirty draft and appended answer both survive");
+      assertEq(_pbpHlState.items[0].note, "draft edit\n\nanswer from ask", "dirty draft and appended answer both survive");
     } finally {
       _pbpHlSave = prevSave;
       _pbpHlNotebookRender = prevRender;
@@ -5733,6 +5748,7 @@ suiteIf("pbpHlAppendNoteText", "pbpHlAppendNoteText", () => {
       _pbpHlCardBaseNote = prevCardBaseNote;
       _pbpHlNoteDirty = prevDirty;
       _pbpHlWriteQueue = prevQueue;
+      _pbpHlLoadStrict = prevLoadStrict;
       card.remove();
     }
   });
@@ -9170,10 +9186,15 @@ window._t5AsyncDone = (async function () {
     const prevSave = _pbpHlSave, prevRender = _pbpHlNotebookRender, prevState = _pbpHlState;
     const prevCard = _pbpHlCard, prevId = _pbpHlCardItemId, prevBase = _pbpHlCardBaseNote;
     const prevDirty = _pbpHlNoteDirty, prevQueue = _pbpHlWriteQueue;
+    const prevLoadStrict = _pbpHlLoadStrict;
     const card = document.createElement("div");
     card.setAttribute("popover", "auto");
     try {
       _pbpHlSave = async () => true;
+      // Same reason as the dirty-card commit test above: the commit re-reads
+      // storage strictly and patches by item.id, so the fixture has to be
+      // reachable from that read, not only from memory.
+      _pbpHlLoadStrict = async () => structuredClone(_pbpHlState.items);
       _pbpHlNotebookRender = () => {};
       _pbpHlWriteQueue = Promise.resolve();
       const item = { id: "h5", n: 1, quote: "quote", note: "stored", color: 1, ts: 1 };
@@ -9196,7 +9217,7 @@ window._t5AsyncDone = (async function () {
       assertEq(item.note, "stored", "control: the draft is not in storage yet");
       _t5FireCard("pbp:article-will-replace", 1, "video-track-switch");
       await _pbpHlWriteQueue;
-      assertEq(item.note, "half-typed thought",
+      assertEq(_pbpHlState.items[0].note, "half-typed thought",
         "read synchronously and queued: the write outlives the swap");
       assertEq(card.matches(":popover-open"), false, "card closed -- it renders a Range about to detach");
       assertEq(_pbpHlCardItemId, null,
@@ -9205,6 +9226,7 @@ window._t5AsyncDone = (async function () {
       _pbpHlSave = prevSave; _pbpHlNotebookRender = prevRender; _pbpHlState = prevState;
       _pbpHlCard = prevCard; _pbpHlCardItemId = prevId; _pbpHlCardBaseNote = prevBase;
       _pbpHlNoteDirty = prevDirty; _pbpHlWriteQueue = prevQueue;
+      _pbpHlLoadStrict = prevLoadStrict;
       card.remove();
     }
   });

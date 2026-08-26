@@ -13,12 +13,15 @@ function pbpPopupAiAccount() {
 
 // WONTFIX (audit L14, documented): this guard compares against the
 // popup's in-memory settings snapshot, so an EXTERNAL credential change
-// (sync from another device, options page in another window) while the
-// popup is held open is not observed - stale ops can keep updating this
-// popup's UI. Popup lifetimes are seconds; the save path re-reads
-// credentials atomically (submitSaveIntent expectedAccount) and fails
-// closed, so nothing crosses accounts at rest. A storage listener that
-// invalidates the session was judged over-engineering for that window.
+// (sync from another device) while the popup is held open is not
+// observed - stale ops can keep updating this popup's UI. Popup lifetimes
+// are seconds; the save path re-reads credentials atomically
+// (submitSaveIntent expectedAccount) and fails closed, so nothing crosses
+// accounts at rest. Hardening this one guard would not even be
+// self-consistent: existingBookmark, allUserTags and the form fields are
+// exactly as stale after the same external change and none of them is
+// re-read either. A storage listener that invalidates the session was
+// judged over-engineering for that window.
 function pbpPopupAiAccountIsCurrent(account) {
   return !!account && pbpPopupAiAccount() === account;
 }
@@ -1004,6 +1007,14 @@ function showSummaryActions(fromCache) {
 
   regenLink.addEventListener("click", async (e) => {
     e.preventDefault();
+    // Guard FIRST. doAISummary refuses on an edited URL, and
+    // pbpAiSyncUrlEditState only disables #ai-summary-btn / #ai-tags-btn, so
+    // this link stays clickable: swapping the label before the refusal left it
+    // pinned on "Regenerating..." forever, with no request and no feedback.
+    if (!_aiUrlEquivalent($id("url-input").value, pageInfo.url)) {
+      showStatus("status-msg", t("aiUrlEdited"), "error");
+      return;
+    }
     wrap.querySelectorAll(".regen-link").forEach(l => l.classList.add("loading"));
     regenLink.textContent = t("aiRegenerating");
     await doAISummary(true);
@@ -1034,25 +1045,29 @@ async function doAITags(forceRefresh, sOverride) {
     }
   }
 
-  // doAITags uses bare `if (btn)` — ai-tags-btn is never hidden in normal flow,
-  // unlike ai-summary-btn (which hides via showSummaryActions). If that ever changes,
-  // mirror the showProgressOnBtn pattern from doAISummary.
-  if (btn) {
+  // ai-tags-btn now HIDES once chips render (renderAITags parks it instead of
+  // deleting it), so drive progress the way doAISummary always has - a hidden
+  // button must not collect stage labels a regenerate run would never show.
+  const showProgressOnBtn = btn && !btn.classList.contains("hidden");
+  if (showProgressOnBtn) {
     btn.classList.add("loading");
   }
 
   try {
-    if (btn) setAiProgress("ai-tags-btn", { provider: s.aiProvider, stage: "extracting" });
-    const contentSource = await ensurePageText(s, btn ? "ai-tags-btn" : "");
+    if (showProgressOnBtn) setAiProgress("ai-tags-btn", { provider: s.aiProvider, stage: "extracting" });
+    const contentSource = await ensurePageText(s, showProgressOnBtn ? "ai-tags-btn" : "");
     if (!_aiOpStillCurrent(account)) return;
     if (!pageInfo.pageText) { showStatus("status-msg", t("aiNoContent"), "error"); return; }
-    if (btn) setAiProgress("ai-tags-btn", { provider: s.aiProvider, stage: "calling" });
+    if (showProgressOnBtn) setAiProgress("ai-tags-btn", { provider: s.aiProvider, stage: "calling" });
     const tags = await fetchAIArtifacts("tags", forceRefresh, account, s, contentSource);
     // account-only here: cache the paid result regardless of URL drift;
     // the stillCurrent gate below protects the chip render.
     if (!pbpPopupAiAccountIsCurrent(account)) return;
-    if (btn) setAiProgress("ai-tags-btn", { provider: s.aiProvider, stage: "parsing" });
-    await setAICache(pageInfo.url, "tags", tags, s.aiCacheDuration, contentSource, account, s);
+    if (showProgressOnBtn) setAiProgress("ai-tags-btn", { provider: s.aiProvider, stage: "parsing" });
+    // Empty result = miss, never a cached fake success (same ruling as the
+    // combined-parse halves above): caching [] would make every later click
+    // return "no tags" for free until the entry expired.
+    if (tags.length) await setAICache(pageInfo.url, "tags", tags, s.aiCacheDuration, contentSource, account, s);
     if (!_aiOpStillCurrent(account)) return;
     renderAITags(tags, false);
     if (forceRefresh) {
@@ -1064,11 +1079,15 @@ async function doAITags(forceRefresh, sOverride) {
       e.permissionStage = "calling";
       e.permissionOrigins = _aiRequiredOriginPatterns(s);
     }
-    container.textContent = "";
-    container.classList.add("muted");
+    _aiClearTagsOutput(container);
+    container.classList.remove("muted");
+    _aiParkTagsBtn(container, true); // keep a retry entry once the error card is dismissed
     pbpAssignAltNumBadges(); // AI chips gone: re-slot so suggest-row digits/hint stay truthful
     showAIError("tags", e, s);
   } finally {
+    // Cleanup stays keyed on `btn`, not showProgressOnBtn: renderAITags may
+    // have parked (hidden) the button between the two, and both calls are
+    // idempotent no-ops when no progress was ever shown.
     if (btn && pbpPopupAiAccountIsCurrent(account)) {
       clearAiProgress("ai-tags-btn");
       btn.classList.remove("loading");
@@ -1082,16 +1101,46 @@ async function doAITags(forceRefresh, sOverride) {
 // AI provenance and must survive (audit A10).
 const _aiSessionAddedTags = new Set();
 
+// #ai-tags-btn is a CHILD of #ai-suggest-tags (popup.html) and nothing in the
+// codebase rebuilds it, so clearing the container wholesale used to delete the
+// only entry point for a rerun: once the user dismissed the error card (which
+// also drops the Retry action) Shift+Enter was all that was left, and that
+// fires the summary too. Remove only what a render produced, and PARK the
+// button - hidden while chips are up, visible again on error/empty - rather
+// than detaching it: $id drops detached nodes, so a removed button is gone
+// for the life of the popup.
+const AI_TAGS_OUTPUT_SEL = ".stag, .add-all-link, .cache-hint-wrap, .empty-state";
+function _aiClearTagsOutput(container) {
+  container.querySelectorAll(AI_TAGS_OUTPUT_SEL).forEach((n) => n.remove());
+}
+function _aiParkTagsBtn(container, visible) {
+  const btn = $id("ai-tags-btn");
+  if (!btn) return;
+  btn.classList.remove("loading");
+  btn.classList.toggle("hidden", !visible);
+  if (visible && container.firstChild !== btn) container.prepend(btn);
+}
+// injectEmptyState() clears its host; build it detached and move the block in
+// so the parked button above it survives.
+function _aiAppendEmptyState(container, svgKey, message) {
+  const holder = document.createElement("div");
+  injectEmptyState(holder, svgKey, message);
+  const node = holder.firstElementChild;
+  if (node) container.appendChild(node);
+}
+
 function renderAITags(tags, fromCache) {
   const container = $id("ai-suggest-tags");
-  container.innerHTML = "";
+  _aiClearTagsOutput(container);
+  container.classList.remove("muted");
 
   if (!tags.length) {
-    injectEmptyState(container, "spark", t("emptyAiTagsHint"));
-    container.classList.add("muted");
+    _aiAppendEmptyState(container, "spark", t("emptyAiTagsHint"));
+    _aiParkTagsBtn(container, true);
     pbpAssignAltNumBadges();
     return;
   }
+  _aiParkTagsBtn(container, false);
 
   // Render in the model's specificity order (most defining first); do NOT reorder
   // owned tags to the front — that would bury a new defining tag like "ai_token_relay".
@@ -1131,7 +1180,7 @@ function renderAITags(tags, fromCache) {
       _aiSessionAddedTags.add(el.dataset.tag.toLowerCase());
       el.classList.add("used");
     });
-    aa.innerHTML = PBP_ICONS.check; aa.disabled = true; aa.style.color = "#080";
+    aa.innerHTML = PBP_ICONS.check; aa.disabled = true; aa.classList.add("tag-copied-flash");
   });
   container.appendChild(aa);
   pbpAssignAltNumBadges();
@@ -1156,13 +1205,19 @@ function renderAITags(tags, fromCache) {
       link.textContent = mode === "append" ? t("aiRegenerate") : t("aiReplace");
       link.addEventListener("click", async (e) => {
         e.preventDefault();
-        hintWrap.querySelectorAll(".regen-link").forEach((l) => l.classList.add("loading"));
-        link.textContent = mode === "replace" ? t("aiReplacing") : t("aiRegenerating");
         // Codex r2 M3: the form may have been switched to another bookmark
         // (edit-from-recent) since these links rendered - doAITags would
         // refuse below, but the replace-mode removal would already have
-        // fired. Gate the whole handler on op liveness first.
-        if (!_aiUrlEquivalent($id("url-input").value, pageInfo.url)) return;
+        // fired. Gate the whole handler on op liveness first - and before the
+        // label/loading swap, which otherwise pinned the link on
+        // "Regenerating..." forever (these links are not covered by
+        // pbpAiSyncUrlEditState's disabled-link pass), with no feedback.
+        if (!_aiUrlEquivalent($id("url-input").value, pageInfo.url)) {
+          showStatus("status-msg", t("aiUrlEdited"), "error");
+          return;
+        }
+        hintWrap.querySelectorAll(".regen-link").forEach((l) => l.classList.add("loading"));
+        link.textContent = mode === "replace" ? t("aiReplacing") : t("aiRegenerating");
         if (mode === "replace") {
           // Retract only tags this session's AI chips added: a same-named
           // tag with no AI provenance (typed, or from the saved bookmark)

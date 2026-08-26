@@ -678,6 +678,21 @@ html.motion-ready .notes-card-top { transition: background-color var(--motion-st
    wrap it like the vocabulary filter row rather than hold one grid line. */
 .notes-list-pane .notes-toolbar { display: flex; flex-wrap: wrap; }
 .notes-list-pane .notes-toolbar input[type="search"] { flex: 1 1 180px; width: auto; min-width: 0; }
+/* Twin of .vocab-main-status, for this view's own status line (built by
+   library-notes.js's _pbpNotesStatusEl: the delete-failure sentence, in a
+   live region). This toolbar WRAPS instead of ending flush, so the message
+   takes a line of its own rather than the vocabulary row's `margin-left:auto`
+   slot -- a sentence ellipsised down to nothing is not a message.
+   `.save-status:empty` (declared BELOW, with the rest of that family) still
+   collapses it whenever there is nothing to say, so it costs no space the
+   rest of the time -- and `display` is the one property this rule leaves
+   alone, so that collapse keeps winning.
+   The #view-notes qualifier is for the cascade, not for scope: `.save-status`
+   carries `margin-left: var(--lib-sp-2)` at the SAME (0,1,0) specificity and
+   is declared LATER in this file, so the flush-left reset here was a dead
+   declaration until the id outranked it. (Its vocabulary twin only looks
+   fine because it happens to sit after .save-status.) */
+#view-notes .notes-main-status { flex: 1 1 100%; min-width: 0; margin-left: 0; }
 
 /* Highlight colour as one carrier property: the row's bar and the detail
    quote's edge both read --hl-color, so the five colours are declared once. */
@@ -1106,6 +1121,13 @@ html.motion-ready .notes-sib { transition: background-color var(--motion-state) 
 }
 .vocab-detail-footer > .vocab-detail-delete,
 .notes-detail-footer > .notes-detail-delete { margin-left: auto; }
+/* Notes only: below the two-pane threshold the list pane is taken off the page
+   while a highlight is open, so the delete-failure live region follows the
+   pressed control into this row (_pbpNotesStatusHost in library-notes.js).
+   That sentence claims a full line (`flex: 1 1 100%` above), which needs the
+   row to wrap. With the single Delete button this row normally holds, wrapping
+   changes nothing -- and the vocabulary twin is deliberately left alone. */
+.notes-detail-footer { flex-wrap: wrap; }
 /* `.btn`'s author-origin `display: inline-flex` outranks the UA
    `[hidden] { display: none }` rule (origin beats specificity), so
    `lookupBtn.hidden = true` in library-vocab.js -- which is how the button
@@ -2113,6 +2135,16 @@ html.motion-ready .notes-batch-bar.selecting {
   box-shadow: none;
 }
 .vocab-batch-cluster { display: inline-flex; gap: var(--lib-sp-1); flex: none; }
+/* "None of the selected words are in this group", in text (built and toggled
+   by library-vocab.js's _pbpVocabGroupHelpEl). The button that reason belongs
+   to is disabled while it applies, and a disabled button takes no focus: its
+   title is unreachable by keyboard and there is no hover to open one on
+   touch, so the sentence needs a home of its own. It takes a wrapped line
+   (flex-basis 100%) rather than a cell in the action row -- appearing must
+   not reshuffle the actions. No `display` here on purpose: the UA's
+   `[hidden] { display: none }` is what hides it, and any author display value
+   would outrank that. */
+.vocab-group-help { flex: 1 1 100%; min-width: 0; font-size: 12px; color: var(--lib-fg-muted); }
 .vocab-main-status {
   margin-left: auto;
   min-width: 0;
@@ -2354,7 +2386,7 @@ html[data-theme="nord-night"] {
   --lib-panel: #3b4252;
   --lib-fg: #d8dee9;
   --lib-fg-muted: #9cb5ce;
-  --lib-fg-hint: #abb3c3;
+  --lib-fg-hint: #9cb5ce;
   --lib-accent: #88c0d0;
   --lib-link: #88c0d0;
   --lib-save: #a3be8c;
@@ -2388,7 +2420,7 @@ html[data-theme="terminal"] {
   --lib-panel: #111111;
   --lib-fg: #33ff33;
   --lib-fg-muted: #24b324;
-  --lib-fg-hint: #5cad5c;
+  --lib-fg-hint: #5bae5b;
   --lib-accent: #33ff33;
   --lib-link: #33ff33;
   --lib-save: #008f00;
@@ -2525,7 +2557,7 @@ html[data-theme="flexoki-dark"] {
   --lib-bg: #1C1B1A;
   --lib-panel: #282726;
   --lib-fg: #cecdc3;
-  --lib-fg-muted: #9f9e9a;
+  --lib-fg-muted: #a09e9a;
   --lib-fg-hint: #a09e9a;
   --lib-accent: #4385BE;
   --lib-link: #5a94c6;
@@ -2629,7 +2661,7 @@ html[data-theme="catppuccin-latte"] {
   --lib-panel: #e6e9ef;
   --lib-fg: #4c4f69;
   --lib-fg-muted: #5e6174;
-  --lib-fg-hint: #5d6275;
+  --lib-fg-hint: #5d6174;
   --lib-accent: #1e66f5;
   --lib-link: #0b59f4;
   --lib-save: #307820;
@@ -2731,7 +2763,7 @@ html[data-theme="rose-pine"] {
   --lib-panel: #1f1d2e;
   --lib-fg: #e0def4;
   --lib-fg-muted: #908caa;
-  --lib-fg-hint: #8e8aa3;
+  --lib-fg-hint: #8e8ba3;
   --lib-accent: #c4a7e7;
   --lib-link: #c4a7e7;
   --lib-save: #9ccfd8;

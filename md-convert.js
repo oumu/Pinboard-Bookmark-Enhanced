@@ -795,16 +795,46 @@ function yamlString(s) {
   return '"' + escaped + '"';
 }
 
+// Trailing zone designator of a non-ISO date string: RFC 2822 / HTTP-date /
+// RSS pubDate shapes -- " GMT", " UTC", " UT", " Z", " +0800", " -05:00",
+// " GMT-0500", an obsolete US zone name (" EST"), each optionally followed by
+// an RFC 2822 comment (" -0500 (EST)"). Whitespace before the designator is
+// required so a trailing WORD can never be clipped off a zoneless string.
+// ISO-8601 shapes never reach this: they exit publishedIso at the prefix test.
+const _PBP_PUBLISHED_ZONE_TAIL =
+  /\s+(?:(?:GMT|UTC|UT)(?:\s*[+-]\d{2}:?\d{2})?|Z|[ECMP][SD]T|[+-]\d{2}:?\d{2})(?:\s*\([^()]*\))?\s*$/i;
+
 // Normalize a page's raw "published" metadata string to a YAML-safe date shape.
 // Called ONLY at meta-build time (md-preview.js buildMeta / popup.js's three meta
 // construction points) -- applyFrontmatter/composeStyledHtml/the webhook payload
 // never call this; they just format whatever meta.published already holds.
+//
+// CONTRACT (one rule, three branches): emit the calendar day the SOURCE writes,
+// never the reader's local rendering of it. `published` is metadata about the
+// article, so the same page exported from Shanghai and from Los Angeles must
+// yield byte-identical frontmatter (an Obsidian vault synced across devices
+// otherwise churns on the date line alone).
 //   - "/^\d{4}-\d{2}-\d{2}/" prefix (JSON-LD/meta datePublished mainstream ISO 8601
 //     shapes) -> take that 10-char YYYY-MM-DD prefix directly (zero timezone math).
-//   - Otherwise Date.parse()-able -> format the UTC calendar date as YYYY-MM-DD.
+//   - Date.parse()-able with an EXPLICIT zone (RFC 2822 / HTTP-date / RSS pubDate:
+//     "Mon, 05 Jan 2026 00:30:00 GMT", "... +1400") -> strip the designator and
+//     re-read the written wall-clock fields as UTC. Reading the parsed INSTANT's
+//     local fields instead moved that example to 2026-01-04 west of Greenwich and
+//     "... 23:30 GMT" to the 6th east of it -- a page that says the 5th must export
+//     the 5th everywhere. Stripping (rather than an offset table) is deliberate:
+//     the written fields ARE the answer whatever the designator means, so named
+//     zones need no lookup and no agreement with V8's reading of them, and the
+//     re-parse pins UTC so a local DST hole can never shift the day.
+//   - Date.parse()-able with NO zone ("March 4, 2026" -- the raw <time> textContent
+//     Defuddle hands over when there is no datetime attribute) -> LOCAL calendar
+//     fields. ECMA-262 parses these as LOCAL midnight, so reading UTC fields back
+//     rolled every export in a UTC+ zone one day earlier; reading the same fields
+//     the parse used keeps the round trip lossless, and matches md-preview.js's
+//     todayIso() for clipped. This branch is the ONLY timezone-dependent one, and
+//     only in the sense that it stays a no-op in every zone.
 //   - Unparseable -> return the input unchanged (caller must render it via
 //     yamlString, never as a bare YAML date scalar).
-// Empty in, empty out. Pure (no Date.now(), no locale, no DOM).
+// Empty in, empty out. No Date.now(), no DOM.
 function publishedIso(s) {
   if (!s) return "";
   const str = String(s);
@@ -812,10 +842,22 @@ function publishedIso(s) {
   if (isoPrefix) return isoPrefix[0];
   const t = Date.parse(str);
   if (Number.isNaN(t)) return str;
+  const zoneless = str.replace(_PBP_PUBLISHED_ZONE_TAIL, "");
+  if (zoneless !== str) {
+    // Re-parse pinned to UTC; on the rare shape that no longer parses without its
+    // designator, fall through to the local reading rather than losing the date.
+    const utc = Date.parse(zoneless + " GMT");
+    if (!Number.isNaN(utc)) {
+      const z = new Date(utc);
+      return z.getUTCFullYear() + "-" +
+        String(z.getUTCMonth() + 1).padStart(2, "0") + "-" +
+        String(z.getUTCDate()).padStart(2, "0");
+    }
+  }
   const d = new Date(t);
-  const y = d.getUTCFullYear();
-  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
-  const day = String(d.getUTCDate()).padStart(2, "0");
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
   return y + "-" + m + "-" + day;
 }
 

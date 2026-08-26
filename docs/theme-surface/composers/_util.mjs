@@ -1,6 +1,6 @@
 // Shared helpers for composers.
 
-import { hexToRgb, rgbToHex, rgbToHsl, hslToRgb, contrast, fgToAA, bgToAA, isHex } from "./_ui-derive.mjs";
+import { hexToRgb, rgbToHex, rgbToHsl, hslToRgb, contrast, fgToAA, fgToAAMulti, bgToAA, borderToAA, isHex } from "./_ui-derive.mjs";
 
 export function varName(slot) {
   return `--pinboard-${slot}`;
@@ -85,6 +85,74 @@ function deriveContrast(p) {
   return out;
 }
 
+// The four TEXT tiers, pushed to WCAG AA (4.5:1) against BOTH bases the
+// composer paints them on: the page `bg` and the elevated `bg-surface` (the
+// card/panel fill card-style pilots give every .bookmark). These are not
+// decoration — `muted` carries h2, the settings tabs, #right_bar headings and
+// the sort table's edit links; `muted-soft` carries the footer/colophon, the
+// per-bookmark edit/copy links, #tag_cloud_header and .description on the
+// pilots that opt into the muted description style. Neither had ANY 4.5:1
+// gate until 2026-08-26: the one `muted vs bg-surface` row contrast-audit
+// carried was the scrollbar thumb's 3:1 NON-text check, and the two entries
+// parked in its allowlist ("raising muted for the scrollbar would lighten
+// these themes' prose") had the argument backwards — the prose was the half
+// that needed lightening. flexoki:dark shipped 2.34:1 and solarized-dark
+// 2.79:1 body-adjacent text for months behind a green audit.
+//
+// Same shape as deriveBtnFamily/borderToAA above: minimum lightness movement,
+// hue+saturation preserved, identity when the tier already clears AA, so a
+// compliant pilot pays nothing. Gated by contrast-audit's four
+// `muted|muted-soft vs bg|bg-surface` rows — if one fails, THIS is what needs
+// fixing, never an allowlist entry.
+//
+// Measured breadth at introduction: 9 of the 28 (rendered palette x tier)
+// pairs are identity, 19 move. `muted-soft` is nearly all of the movement —
+// it cleared 4.5:1 on ZERO of the 14 rendered palettes before this (1.36:1 on
+// nord-night, 4.67:1 at best on flexoki:dark), so on the light themes it now
+// lands close to `muted` and the soft/muted ramp compresses. That is what a
+// two-step ramp costs once BOTH steps are held to a text floor; the way to
+// re-open the gap is to move `muted` and `fg` apart, not to put `muted-soft`
+// back under AA.
+//
+// Deliberately NOT widened to every surface muted-soft can land on: `a.help`
+// paints it on `accent-soft` and a private bookmark's row is `private-bg`.
+// Post-derivation those read better than before but are not guaranteed; same
+// disclosed-exposure terms as borderToAA's `bg`/`input-bg` note.
+//
+// `fg` / `fg-strong` joined the same loop 2026-08-26. Holding ONLY the two
+// secondary tiers to a 4.5:1 floor on `bg-surface` inverted the ramp on the
+// themes whose PRIMARY text never had that floor: solarized-dark's `fg` is
+// 4.11:1 on its own card fill and solarized-light's 4.39:1, so raising `muted`
+// to 4.5:1 pushed the secondary tier PAST the body text — an edit link
+// out-shouting the description it sits under. The audit could not see it
+// because the only primary-text row this file ever had was `bg vs fg` (the
+// PAGE background), never the elevated surface the same prose lands on inside
+// a card. Both tiers now clear the same two bases, so the ordering the pilots
+// declare is the ordering that ships. Identity on 12 of the 14 rendered
+// palettes at introduction; the two solarized ones move by less than one JND
+// (#839496 -> #8e9e9f, #586e75 -> #54696f) and stay inside their base ramps.
+function deriveTextTiers(p) {
+  const bases = [p["bg"], p["bg-surface"]].filter(isHex).map(hexToRgb);
+  if (!bases.length) return p;
+  const out = { ...p };
+  for (const key of ["fg", "fg-strong", "muted", "muted-soft"]) {
+    if (!isHex(p[key])) continue;
+    out[key] = rgbToHex(fgToAAMulti(hexToRgb(p[key]), bases));
+  }
+  // Scrollbar thumb as its OWN role, so "is the prose legible" and "is the
+  // thumb visible" stop being one decision. classic-list-v2 used to paint the
+  // thumb with `muted` directly, which is why raising `muted` was written up
+  // as a scrollbar risk. It is the reverse constraint anyway — the thumb only
+  // needs WCAG 1.4.11's 3:1 non-text floor against its track (`bg-surface`) —
+  // so it derives separately and a pilot may declare its own value.
+  const thumbSeed = p["scrollbar-thumb"] && isHex(p["scrollbar-thumb"]) ? p["scrollbar-thumb"] : out["muted"];
+  const track = isHex(p["bg-surface"]) ? p["bg-surface"] : p["bg"];
+  if (isHex(thumbSeed) && isHex(track)) {
+    out["scrollbar-thumb"] = rgbToHex(borderToAA(hexToRgb(thumbSeed), [hexToRgb(track)]));
+  }
+  return out;
+}
+
 // Palette expansion: fill optional slots with principled fallbacks so every
 // composer can reference a complete palette without null checks.
 export function expandPalette(p) {
@@ -93,7 +161,7 @@ export function expandPalette(p) {
   const muted = p.muted;
   const border = p.border;
   const accent = p.accent;
-  return deriveContrast({
+  return deriveTextTiers(deriveContrast({
     ...p,
     // strong / soft variants
     "fg-strong":      p["fg-strong"]      || fg,
@@ -123,7 +191,7 @@ export function expandPalette(p) {
     "url-link-bg":    p["url-link-bg"]    || p["tag-bg"] || accent,
     "url-link-fg":    p["url-link-fg"]    || fg,
     "unread":         p["unread"]         || p.destroy
-  });
+  }));
 }
 
 // Apply a state delta on top of a base palette object. Used by composers that

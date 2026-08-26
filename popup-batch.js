@@ -293,6 +293,10 @@ function renderBatchProgress(p, currentAccount) {
     const aiWarnMsg = p.aiFailed > 0 ? ` (AI failed: ${p.aiFailed})` : "";
     if (p.error === "not_logged_in") showStatus("status-msg", t("batchNotLoggedIn"), "error");
     else if (p.error === "account_changed") showStatus("status-msg", t("pinboardErrorAuth"), "error");
+    // The SW's interrupted-batch sweep writes this terminal record; without its
+    // own branch the raw token would leak into the UI via batchFailed. Same
+    // wording as the notification the sweep fires.
+    else if (p.error === "interrupted") showStatus("status-msg", t("batchInterrupted", String(cur), String(total)), "error");
     else if (p.error) showStatus("status-msg", t("batchFailed", p.error), "error");
     else {
       const hasFailure = (p.failed || 0) > 0 || (p.tooLong || 0) > 0;

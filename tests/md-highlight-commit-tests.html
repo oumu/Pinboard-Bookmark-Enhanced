@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>md-highlight commit tests</title>
+<style>
+body { font-family: monospace; padding: 16px; max-width: 1100px; }
+h2 { margin-top: 24px; font-size: 15px; }
+.case { padding: 4px 8px; margin: 3px 0; white-space: pre-wrap; }
+.pass { color: #0a0; background: #f0fff0; }
+.fail { color: #c00; background: #fff0f0; font-weight: bold; }
+#summary { font-weight: bold; margin: 8px 0; }
+#fixture { position: fixed; left: -9999px; top: 0; width: 800px; }
+</style></head>
+<body>
+<h1>md-highlight cross-writer commit tests</h1>
+<p>Storage is not owned by one page: library.html rewrites the same
+<code>pbp_hl_&lt;urlKey&gt;</code> record, and popup/background open a NEW reader tab per
+preview (they never reuse one), so two readers on one URL is ordinary. Every fixture
+below is a hand-written record in the shape <em>storage</em> hands back -- never one
+produced by <code>_pbpHlSave</code>, because a store that only ever echoes this file's own
+writer would agree with it no matter how wrong both are.</p>
+<div id="summary"></div>
+<div id="results"></div>
+
+<!-- Article fixture: the two indexed blocks the stubbed block index reports. -->
+<div id="fixture">
+  <div id="rendered-view">
+    <p data-pb="1">Alpha paragraph text for highlighting.</p>
+    <p data-pb="2">Beta paragraph text for highlighting.</p>
+  </div>
+  <div id="copy-status" role="status" aria-live="polite"></div>
+</div>
+
+<script>
+// ---- Collaborators md-highlight.js reads by name. Deliberately minimal: this
+// suite is about which ITEMS reach storage, not about anchoring or the card DOM.
+function t(key) { return key; }
+
+function pbpAiHash(s) {
+  let h = 0;
+  const str = String(s);
+  for (let i = 0; i < str.length; i++) h = (Math.imul(h, 31) + str.charCodeAt(i)) | 0;
+  return (h >>> 0).toString(36);
+}
+
+function pbpAiBlocks() {
+  return [...document.querySelectorAll("#rendered-view [data-pb]")]
+    .map((el) => ({ n: Number(el.dataset.pb), el }));
+}
+function pbpAiBlockEl(n) { return document.querySelector('#rendered-view [data-pb="' + n + '"]'); }
+function pbpAiTextOf(n) { const el = pbpAiBlockEl(n); return el ? el.textContent : ""; }
+
+// Same direction as md-ask.js's real helper (offsets -> live Range), walked over
+// text nodes; enough for pbpHlRestore to build ranges over the fixture.
+function _pbpAskRangeFromOffsets(el, start, end) {
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+  const r = document.createRange();
+  let pos = 0, started = false, node;
+  while ((node = walker.nextNode())) {
+    const len = node.nodeValue.length;
+    if (!started && start <= pos + len) { r.setStart(node, start - pos); started = true; }
+    if (end <= pos + len) { if (!started) return null; r.setEnd(node, end - pos); return r; }
+    pos += len;
+  }
+  return null;
+}
+
+// Records the call AND reproduces the label resolution the real
+// flashButtonLabel does (md-preview.js:3152-3153: write .btn-label when there
+// is one, else btn.textContent). Both halves matter here -- the routing
+// decision is _pbpHlToast's contract, and the textContent branch is the
+// mechanism that eats an icon-only button's SVG, so the suite can watch it
+// happen instead of taking it on faith.
+let FLASHED = [];
+function flashButtonLabel(btn, msg) {
+  FLASHED.push({ btn, msg });
+  const label = btn.querySelector(".btn-label");
+  if (label) label.textContent = msg; else btn.textContent = msg;
+}
+</script>
+
+<script>
+// ---- chrome.storage.local mock. Reads and writes structuredClone across the
+// boundary, like the real IPC does, so nothing in the page can hold a live
+// reference into the store (or notice a mutation it was never told about).
+const STORE = Object.create(null);
+const CHANGE_LISTENERS = [];
+let FAIL_READS = false;
+// Interleaving controls, inert unless a scenario arms them. They exist because
+// a lost update cannot be produced by "and then another write happened" -- it
+// needs one writer parked BETWEEN its own read and its own write while a second
+// writer runs to completion. ON_GET is where the second writer is started (the
+// instant the first has its base in hand); SET_GATE is what holds the first
+// writer's set until the second reaches its own.
+let ON_GET = null;   // fn(key), called synchronously inside get() for a string key
+let SET_GATE = null; // promise the NEXT set() awaits before it applies anything
+
+function _fire(key, oldValue, newValue) {
+  const changes = { [key]: {} };
+  if (oldValue !== undefined) changes[key].oldValue = structuredClone(oldValue);
+  if (newValue !== undefined) changes[key].newValue = structuredClone(newValue);
+  CHANGE_LISTENERS.forEach((fn) => fn(changes, "local"));
+}
+
+window.chrome = {
+  storage: {
+    local: {
+      get: async (keys) => {
+        if (FAIL_READS) throw new Error("simulated storage read failure");
+        if (keys && typeof keys === "object" && !Array.isArray(keys)) {
+          const out = {};
+          for (const k in keys) out[k] = (k in STORE) ? structuredClone(STORE[k]) : keys[k];
+          return out;
+        }
+        const k = String(keys);
+        const answer = (k in STORE) ? { [k]: structuredClone(STORE[k]) } : {};
+        // Synchronous on purpose: the second writer has to be launched while
+        // the first is still inside its own read-modify-write.
+        if (ON_GET) ON_GET(k);
+        return answer;
+      },
+      set: async (obj) => {
+        if (SET_GATE) { const gate = SET_GATE; SET_GATE = null; await gate; }
+        for (const k in obj) {
+          const old = STORE[k];
+          STORE[k] = structuredClone(obj[k]);
+          // Fired BEFORE this promise resolves on purpose: the platform gives no
+          // ordering guarantee, and an echo that outruns the write is the case
+          // the echo guard in md-highlight.js exists for.
+          _fire(k, old, STORE[k]);
+        }
+      },
+      remove: async (key) => {
+        const k = String(key);
+        if (!(k in STORE)) return;
+        const old = STORE[k];
+        delete STORE[k];
+        _fire(k, old, undefined);
+      },
+    },
+    onChanged: { addListener: (fn) => CHANGE_LISTENERS.push(fn) },
+  },
+};
+
+// "Another writer this page never heard about": library.html or a second reader
+// tab wrote while this one was asleep / the event was missed. The whole point of
+// the commit path is that a page cannot rely on having seen these.
+function setQuiet(key, rec) { STORE[key] = structuredClone(rec); }
+</script>
+
+<script src="../md-highlight.js"></script>
+
+<script>
+const PAGE_URL = "https://fixture.example/article";
+const KEY = "pbp_hl_" + pbpAiHash(PAGE_URL);
+const results = document.getElementById("results");
+let PASS = 0, FAIL = 0;
+
+function check(name, cond, detail) {
+  const div = document.createElement("div");
+  const ok = !!cond;
+  ok ? PASS++ : FAIL++;
+  div.className = "case " + (ok ? "pass" : "fail");
+  div.textContent = (ok ? "PASS " : "FAIL ") + name + (ok ? "" : "\n  " + (detail === undefined ? "" : String(detail)));
+  results.appendChild(div);
+}
+function section(title) {
+  const h = document.createElement("h2");
+  h.textContent = title;
+  results.appendChild(h);
+}
+
+const record = () => STORE[KEY];
+const storedIds = () => ((record() && record().items) || []).map((it) => it.id);
+const memoryIds = () => (_pbpHlState ? _pbpHlState.items.map((it) => it.id) : []);
+const storedItem = (id) => ((record() && record().items) || []).find((it) => it.id === id) || null;
+const sameSet = (a, b) => a.length === b.length && [...a].sort().join("|") === [...b].sort().join("|");
+const drain = () => _pbpHlQueueWrite(async () => {});
+// drain() only waits for the write QUEUE. The card-sync half of a note commit
+// runs in a .then on the commit promise, so anything asserting on the textarea
+// or the merge base has to let the microtask tail run out too.
+const flush = async () => { await drain(); await new Promise((r) => setTimeout(r, 0)); };
+
+// Hand-written record, exactly the shape chrome.storage.local.get hands back for
+// a page that already has highlights.
+function baseRecord() {
+  return {
+    v: 1,
+    url: PAGE_URL,
+    title: "Fixture article",
+    items: [
+      { id: "h-alpha", n: 1, quote: "Alpha", prefix: "", suffix: " paragraph", color: 1, note: "", ts: 1000 },
+      { id: "h-beta", n: 2, quote: "Beta", prefix: "", suffix: " paragraph", color: 3, note: "beta note", ts: 2000 },
+    ],
+  };
+}
+
+// Boot the module against a given record, as pbpHlInit would after a render.
+async function boot(rec) {
+  for (const k in STORE) delete STORE[k];
+  setQuiet(KEY, rec);
+  _pbpHlState = {
+    url: PAGE_URL,
+    title: rec.title,
+    items: structuredClone(rec.items),
+    ranges: Object.create(null),
+    degraded: Object.create(null),
+    resolvedN: Object.create(null),
+    orphans: Object.create(null),
+  };
+  _pbpHlEchoItems = null;
+  _pbpHlCardItemId = null;
+  _pbpHlNoteDirty = false;
+  _pbpHlCardBaseNote = "";
+  FLASHED = [];
+  await drain();
+}
+
+// The edit card's own DOM is not this suite's contract; _pbpHlOpenCard is
+// stubbed so failure branches that reposition it stay inert.
+window._pbpHlOpenCard = () => {};
+
+// Minimal card: only the two nodes the note commit path reads.
+const fakeCard = document.createElement("div");
+fakeCard.innerHTML = '<textarea class="hl-card-note"></textarea><button class="hl-card-save">Save</button>';
+document.getElementById("fixture").appendChild(fakeCard);
+const cardNote = fakeCard.querySelector(".hl-card-note");
+_pbpHlCard = fakeCard;
+
+function selectionRange(n, start, end) {
+  const el = pbpAiBlockEl(n);
+  const r = document.createRange();
+  r.setStart(el.firstChild, start);
+  r.setEnd(el.firstChild, end);
+  return r;
+}
+
+(async () => {
+  // ================= pure layer =================
+  section("pbpHlItemsSame (pure)");
+
+  const listA = [
+    { id: "x", n: 1, quote: "q", color: 2, note: "note", ts: 1 },
+    { id: "y", n: 3, quote: "r", color: 5, note: "", ts: 2 },
+  ];
+  check("two structurally equal lists compare same across object identities",
+    pbpHlItemsSame(listA, structuredClone(listA)));
+  check("a list is not the same as one with an extra entry",
+    !pbpHlItemsSame(listA, listA.concat([{ id: "z", n: 4, quote: "s", color: 1, note: "" }])));
+  check("reordering the same entries is a real change",
+    !pbpHlItemsSame(listA, [listA[1], listA[0]]));
+  check("non-arrays are never 'same' (callers only use it to skip work)",
+    !pbpHlItemsSame(listA, null) && !pbpHlItemsSame(null, null) && !pbpHlItemsSame(listA, undefined));
+
+  // Category, not instance list: every field a writer can change must be seen.
+  const MUTABLE_FIELDS = { id: "other", n: 99, quote: "changed", color: 4, note: "changed note" };
+  for (const field in MUTABLE_FIELDS) {
+    const other = structuredClone(listA);
+    other[0][field] = MUTABLE_FIELDS[field];
+    check("a change to item." + field + " is detected", !pbpHlItemsSame(listA, other),
+      JSON.stringify(other[0]));
+  }
+  // ts/fp/side/lang are stamped at creation and never edited, so they ride with
+  // the id -- documented here so a future writer that DOES edit one knows to widen.
+  const tsOnly = structuredClone(listA);
+  tsOnly[0].ts = 999999;
+  check("ts alone (never edited after creation) is not treated as a change",
+    pbpHlItemsSame(listA, tsOnly));
+
+  // ================= scenario 1: storage lost an item this page still holds =================
+  section("(1) creation must not resurrect what another writer deleted");
+
+  await boot(baseRecord());
+  // library.html (or the other reader tab) deletes h-beta. This page never hears it.
+  setQuiet(KEY, { ...baseRecord(), items: baseRecord().items.filter((it) => it.id !== "h-beta") });
+  const beforeCreate = storedIds();
+  check("precondition: memory holds an id storage no longer has",
+    memoryIds().includes("h-beta") && !beforeCreate.includes("h-beta"),
+    memoryIds() + " vs " + beforeCreate);
+
+  const created = await _pbpHlCreateFromRange(selectionRange(1, 0, 5), 2, null);
+  check("creation reports the items it made", created.length === 1 && !!created[0].id);
+  const createdIds = created.map((it) => it.id);
+  check("the written record is exactly what storage held plus the new ids",
+    sameSet(storedIds(), beforeCreate.concat(createdIds)), storedIds().join(","));
+  check("no id storage had already dropped comes back",
+    storedIds().every((id) => beforeCreate.includes(id) || createdIds.includes(id)),
+    storedIds().join(","));
+  check("in-memory items are re-based on what was actually written",
+    sameSet(memoryIds(), storedIds()), memoryIds().join(","));
+
+  // ================= scenario 2: the edited id is gone from storage =================
+  section("(2) edits abandon an id another writer removed -- never re-insert it");
+
+  // One case per edit path, asserted as a class: whatever the path, a vanished
+  // id must leave the record byte-identical and must not reappear anywhere.
+  // `applied` is what that same path looks like when it SUCCEEDS -- scenario 3b
+  // below replays the identical list against a record that gained a foreign
+  // item, so both halves of "patch the stored array by id" (keep theirs, apply
+  // mine) are checked for every writer, not just for delete.
+  const TYPED_NOTE = "a note typed on this page";
+  const EDIT_PATHS = [
+    {
+      name: "colour switch",
+      run: async (id) => { _pbpHlCardItemId = id; await _pbpHlSwitchColor(5); _pbpHlCardItemId = null; },
+      applied: (it) => Number(it.color) === 5,
+    },
+    {
+      name: "note commit",
+      run: async (id) => {
+        _pbpHlCardItemId = id;
+        cardNote.value = TYPED_NOTE;
+        _pbpHlCardBaseNote = "";
+        _pbpHlNoteDirty = true;
+        _pbpHlCommitNote();
+        await flush();
+        _pbpHlCardItemId = null;
+      },
+      applied: (it) => it.note === TYPED_NOTE,
+    },
+    {
+      name: "save-answer-as-note",
+      run: async (id) => { await pbpHlAttachNote({ itemId: id }, "an AI answer"); },
+      applied: (it) => (it.note || "").includes("an AI answer"),
+    },
+  ];
+
+  for (const path of EDIT_PATHS) {
+    await boot(baseRecord());
+    setQuiet(KEY, { ...baseRecord(), items: baseRecord().items.filter((it) => it.id !== "h-alpha") });
+    const snapshot = JSON.stringify(record());
+    await path.run("h-alpha");
+    check(path.name + " on a vanished id leaves the record untouched",
+      JSON.stringify(record()) === snapshot, JSON.stringify(record()));
+    check(path.name + " on a vanished id does not re-insert it",
+      !storedIds().includes("h-alpha"), storedIds().join(","));
+    check(path.name + " on a vanished id keeps every surviving id",
+      storedIds().includes("h-beta"), storedIds().join(","));
+  }
+
+  // ================= scenario 3: storage gained an item this page never saw =================
+  section("(3) deleting one item must not take another writer's item with it");
+
+  await boot(baseRecord());
+  const foreign = { id: "h-foreign", n: 2, quote: "Beta paragraph", prefix: "", suffix: "", color: 4, note: "written in another tab", ts: 3000 };
+  setQuiet(KEY, { ...baseRecord(), items: baseRecord().items.concat([foreign]) });
+  check("precondition: storage holds an id memory never saw",
+    storedIds().includes("h-foreign") && !memoryIds().includes("h-foreign"));
+
+  const deleted = await _pbpHlDeleteItem("h-beta", null);
+  check("the delete reports success", deleted === true);
+  check("the deleted id is gone", !storedIds().includes("h-beta"), storedIds().join(","));
+  check("every id this page did not delete survives, including the foreign one",
+    storedIds().includes("h-alpha") && storedIds().includes("h-foreign"), storedIds().join(","));
+  check("the foreign item's content is preserved verbatim",
+    JSON.stringify(storedItem("h-foreign")) === JSON.stringify(foreign),
+    JSON.stringify(storedItem("h-foreign")));
+
+  // ================= scenario 3b: the same, for every EDIT path =================
+  section("(3b) editing one item must not swallow another writer's item either");
+
+  // Deleting is not the only writer that hands back a full array: colour
+  // switch, note commit and save-answer-as-note each rebuild one too. Any of
+  // them mapping over the in-memory list instead of the stored one drops
+  // h-foreign on the floor, and until this loop existed only the delete path
+  // could see that happen.
+  for (const path of EDIT_PATHS) {
+    await boot(baseRecord());
+    setQuiet(KEY, { ...baseRecord(), items: baseRecord().items.concat([foreign]) });
+    await path.run("h-alpha");
+    await flush();
+    check(path.name + " keeps the foreign item this page never saw",
+      storedIds().includes("h-foreign"), storedIds().join(","));
+    check(path.name + " leaves the foreign item's content verbatim",
+      JSON.stringify(storedItem("h-foreign")) === JSON.stringify(foreign),
+      JSON.stringify(storedItem("h-foreign")));
+    check(path.name + " still applies this page's own edit",
+      !!storedItem("h-alpha") && path.applied(storedItem("h-alpha")),
+      JSON.stringify(storedItem("h-alpha")));
+  }
+
+  // ================= scenario 4: the page has no record at all =================
+  section("(4) a page with no record yet -- the first highlight must land");
+
+  // The read path answers three different things: NULL (the read itself failed
+  // -- abandon), [] (no record yet -- this is a fresh page), and the items.
+  // Every fixture above starts from a record that already has items, so the
+  // most ordinary path in the product -- the first highlight on a page -- was
+  // the one nothing exercised.
+  async function bootEmpty() {
+    for (const k in STORE) delete STORE[k];
+    // Deliberately NO setQuiet: "no record" is what storage really hands back
+    // for an untouched page (get -> {}), and an empty-shell {items: []} record
+    // is a shape _pbpHlSave never writes (it removes the key instead).
+    _pbpHlState = {
+      url: PAGE_URL,
+      title: "Fixture article",
+      items: [],
+      ranges: Object.create(null),
+      degraded: Object.create(null),
+      resolvedN: Object.create(null),
+      orphans: Object.create(null),
+    };
+    _pbpHlEchoItems = null;
+    _pbpHlCardItemId = null;
+    _pbpHlNoteDirty = false;
+    _pbpHlCardBaseNote = "";
+    FLASHED = [];
+    document.getElementById("copy-status").textContent = "";
+    await drain();
+  }
+
+  await bootEmpty();
+  check("precondition: this page has no record at all", record() === undefined, JSON.stringify(record()));
+  const firstCreated = await _pbpHlCreateFromRange(selectionRange(1, 0, 5), 2, null);
+  check("the first highlight on a fresh page is created",
+    firstCreated.length === 1 && !!firstCreated[0].id, JSON.stringify(firstCreated));
+  check("a missing record reads as 'no items', not as a read failure, so the write lands",
+    !!record() && storedIds().length === 1, JSON.stringify(record()));
+  check("the record written for a fresh page holds exactly the created id",
+    storedIds().length === 1 && sameSet(storedIds(), firstCreated.map((it) => it.id)), storedIds().join(","));
+  check("memory and storage agree after the very first write",
+    memoryIds().length === 1 && sameSet(memoryIds(), storedIds()), memoryIds().join(","));
+  check("the fresh record carries the url and title the aggregate view needs",
+    !!record() && record().url === PAGE_URL && record().title === "Fixture article", JSON.stringify(record()));
+  check("the first highlight toasts nothing (no save-failed on a fresh page)",
+    FLASHED.length === 0 && document.getElementById("copy-status").textContent === "",
+    FLASHED.length + " / " + document.getElementById("copy-status").textContent);
+
+  // Deleting the last item removes the KEY outright (spec 2: no empty shell),
+  // which puts the page back in exactly the state above -- the next highlight
+  // has to survive the same "no record" read.
+  await boot(baseRecord());
+  document.getElementById("copy-status").textContent = "";
+  await _pbpHlDeleteItem("h-alpha", null);
+  await _pbpHlDeleteItem("h-beta", null);
+  check("deleting down to zero items removes the record outright",
+    record() === undefined && memoryIds().length === 0,
+    JSON.stringify(record()) + " / " + memoryIds().join(","));
+  const reborn = await _pbpHlCreateFromRange(selectionRange(2, 0, 4), 4, null);
+  check("a highlight created after the key was removed still lands",
+    reborn.length === 1 && !!record() && storedIds().length === 1, JSON.stringify(record()));
+  check("the reborn record holds only the new id, in memory and in storage",
+    storedIds().length === 1 && sameSet(storedIds(), reborn.map((it) => it.id)) && sameSet(memoryIds(), storedIds()),
+    storedIds().join(",") + " / " + memoryIds().join(","));
+
+  // ================= idempotence + merge + read failure =================
+  section("commit-path invariants");
+
+  await boot(baseRecord());
+  setQuiet(KEY, { ...baseRecord(), items: baseRecord().items.filter((it) => it.id !== "h-alpha") });
+  const beforeDoubleDelete = JSON.stringify(record());
+  const secondDelete = await _pbpHlDeleteItem("h-alpha", null);
+  check("deleting an id another writer already deleted succeeds (idempotent), not fails",
+    secondDelete === true);
+  check("the idempotent delete changes nothing",
+    JSON.stringify(record()) === beforeDoubleDelete, JSON.stringify(record()));
+
+  // Three-way note merge: "theirs" must be read out of storage, not out of the
+  // stale in-memory item, or a note written in another tab is silently eaten.
+  await boot(baseRecord());
+  const theirs = baseRecord().items.map((it) => (it.id === "h-beta" ? { ...it, note: "beta note\n\ntheir addition" } : it));
+  setQuiet(KEY, { ...baseRecord(), items: theirs });
+  _pbpHlCardItemId = "h-beta";
+  cardNote.value = "beta note\n\nmy addition";
+  _pbpHlCardBaseNote = "beta note"; // what the card was opened with
+  _pbpHlNoteDirty = true;
+  _pbpHlCommitNote();
+  // The card stays open (nulling _pbpHlCardItemId here would hide the card-sync
+  // half of the commit, which is the second hop asserted just below).
+  await flush();
+  const mergedNote = (storedItem("h-beta") || {}).note || "";
+  check("a note edit keeps the other writer's addition", mergedNote.includes("their addition"), mergedNote);
+  check("a note edit keeps this page's own text", mergedNote.includes("my addition"), mergedNote);
+
+  // ...and the merge has to survive the NEXT keystroke on the same open card.
+  // A card left showing the pre-merge text while the base advanced to the
+  // merged text makes the following commit see stored === base, skip the merge
+  // and write the other writer's sentence away -- the same bug, one hop later.
+  check("the merged text is adopted by the card, not only by storage",
+    cardNote.value === mergedNote, cardNote.value + " vs " + mergedNote);
+  check("the base the next commit merges against is the merged text",
+    _pbpHlCardBaseNote === mergedNote, _pbpHlCardBaseNote);
+
+  cardNote.value = cardNote.value + "\n\none more line";
+  _pbpHlNoteDirty = true;
+  _pbpHlCommitNote();
+  await flush();
+  _pbpHlCardItemId = null;
+  const secondNote = (storedItem("h-beta") || {}).note || "";
+  check("a second edit on the still-open card keeps the other writer's addition",
+    secondNote.includes("their addition"), secondNote);
+  check("a second edit keeps both of this page's own lines",
+    secondNote.includes("my addition") && secondNote.includes("one more line"), secondNote);
+  check("a second edit does not duplicate the merged-in sentence",
+    secondNote.split("their addition").length === 2, secondNote);
+
+  // Kept typing while the merge was in flight: the card must NOT be rewritten
+  // under the caret, and the base must fall back to what this commit actually
+  // sent -- the merged text would claim their buffer already holds the other
+  // writer's addition, and the next commit would drop it.
+  await boot(baseRecord());
+  setQuiet(KEY, { ...baseRecord(), items: theirs });
+  _pbpHlCardItemId = "h-beta";
+  cardNote.value = "beta note\n\nmy addition";
+  _pbpHlCardBaseNote = "beta note";
+  _pbpHlNoteDirty = true;
+  _pbpHlCommitNote();
+  cardNote.value = "beta note\n\nmy addition!"; // a keystroke lands during the await
+  _pbpHlNoteDirty = true;
+  await flush();
+  check("a card the user kept typing into is not overwritten by the merge result",
+    cardNote.value === "beta note\n\nmy addition!", cardNote.value);
+  _pbpHlCommitNote();
+  await flush();
+  _pbpHlCardItemId = null;
+  const typedThroughNote = (storedItem("h-beta") || {}).note || "";
+  check("the still-dirty card's next commit STILL keeps the other writer's addition",
+    typedThroughNote.includes("their addition"), typedThroughNote);
+  check("and it keeps the characters typed while the first save was in flight",
+    typedThroughNote.includes("my addition!"), typedThroughNote);
+
+  // A failed re-read must abandon: treating it as "no items" would write that
+  // emptiness back over every highlight on the page.
+  await boot(baseRecord());
+  const beforeFailure = JSON.stringify(record());
+  FAIL_READS = true;
+  const failedCreate = await _pbpHlCreateFromRange(selectionRange(2, 0, 4), 1, null);
+  FAIL_READS = false;
+  check("a failed re-read abandons the write instead of writing an empty list",
+    JSON.stringify(record()) === beforeFailure, JSON.stringify(record()));
+  check("a failed re-read reports no created items", failedCreate.length === 0);
+  check("a failed re-read still leaves every stored highlight in place",
+    storedIds().length === baseRecord().items.length, storedIds().join(","));
+
+  // ================= onChanged absorption =================
+  section("storage.onChanged absorbs foreign records, skips self-write echoes");
+
+  await boot(baseRecord());
+  const realRestore = pbpHlRestore;
+  let restoreCalls = 0;
+  window.pbpHlRestore = function () { restoreCalls++; return realRestore.apply(this, arguments); };
+
+  // Foreign write: one item removed, one added.
+  const foreignItems = baseRecord().items
+    .filter((it) => it.id !== "h-alpha")
+    .concat([{ id: "h-new-elsewhere", n: 1, quote: "Alpha paragraph", prefix: "", suffix: "", color: 2, note: "", ts: 4000 }]);
+  restoreCalls = 0;
+  _fire(KEY, record(), { v: 1, url: PAGE_URL, title: "Fixture article", items: foreignItems });
+  check("a foreign change is absorbed into memory (no ghost rows left behind)",
+    sameSet(memoryIds(), foreignItems.map((it) => it.id)), memoryIds().join(","));
+  check("absorbing a foreign change re-derives the anchors", restoreCalls === 1, restoreCalls);
+
+  restoreCalls = 0;
+  _fire(KEY, record(), { v: 1, url: PAGE_URL, title: "Fixture article", items: structuredClone(_pbpHlState.items) });
+  check("a change whose content already matches memory is not re-absorbed", restoreCalls === 0, restoreCalls);
+
+  restoreCalls = 0;
+  const idsBeforeOtherKey = memoryIds();
+  _fire("pbp_hl_someotherpage", undefined, { v: 1, url: "https://other.example/", items: [] });
+  check("a change to another page's key is ignored",
+    restoreCalls === 0 && sameSet(memoryIds(), idsBeforeOtherKey),
+    restoreCalls + " / " + memoryIds().join(","));
+
+  // A local write's own echo reaches the listener before _pbpHlSave resolves
+  // (see the mock's set): it must not trigger a re-anchor pass.
+  await boot(baseRecord());
+  restoreCalls = 0;
+  await _pbpHlCreateFromRange(selectionRange(1, 6, 15), 3, null);
+  check("this page's own write echo does not trigger a restore", restoreCalls === 0, restoreCalls);
+  check("the echo did not disturb the freshly written items",
+    sameSet(memoryIds(), storedIds()), memoryIds().join(","));
+  window.pbpHlRestore = realRestore;
+
+  // ================= toast routing =================
+  section("_pbpHlToast never destroys an icon-only button");
+
+  const iconBtn = document.createElement("button");
+  iconBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 6l12 12"/></svg>';
+  document.getElementById("fixture").appendChild(iconBtn);
+  FLASHED = [];
+  document.getElementById("copy-status").textContent = "";
+  _pbpHlToast("hlSaveFailed", iconBtn);
+  check("an icon-only button is not label-flashed", FLASHED.length === 0);
+  check("its SVG survives the toast", !!iconBtn.querySelector("svg"), iconBtn.innerHTML);
+  check("the message still reaches the #copy-status live region",
+    document.getElementById("copy-status").textContent === "hlSaveFailed",
+    document.getElementById("copy-status").textContent);
+
+  // The bar's colour dots (.pb-hl-dot) and the card's (.hl-card-dot) are EMPTY
+  // buttons -- a 22px swatch painted by CSS background plus a ::before hit pad,
+  // no child element and no text node. "No children" alone reads them as plain
+  // text buttons and stuffs "save failed" into the swatch (button content is
+  // not clipped, so the dot row blows out for 1.5s). They are exactly the
+  // buttons the gone-elsewhere branches hand to this toast.
+  const dotBtn = document.createElement("button");
+  dotBtn.type = "button";
+  dotBtn.className = "pb-hl-dot pb-hl-dot-3";
+  dotBtn.title = "Example";
+  dotBtn.setAttribute("aria-label", "Example");
+  document.getElementById("fixture").appendChild(dotBtn);
+  FLASHED = [];
+  document.getElementById("copy-status").textContent = "";
+  _pbpHlToast("hlSaveFailed", dotBtn);
+  check("an empty colour swatch is not label-flashed", FLASHED.length === 0, dotBtn.outerHTML);
+  check("no text is stuffed into the swatch", dotBtn.textContent === "", JSON.stringify(dotBtn.textContent));
+  check("the swatch's message still reaches the #copy-status live region",
+    document.getElementById("copy-status").textContent === "hlSaveFailed",
+    document.getElementById("copy-status").textContent);
+
+  const labelBtn = document.createElement("button");
+  labelBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 6l12 12"/></svg><span class="btn-label">Copy</span>';
+  FLASHED = [];
+  _pbpHlToast("hlSaveFailed", labelBtn);
+  check("a button with a .btn-label wrapper is label-flashed", FLASHED.length === 1);
+  check("the label flash keeps its icon", !!labelBtn.querySelector("svg"));
+
+  const textBtn = document.createElement("button");
+  textBtn.textContent = "Save";
+  FLASHED = [];
+  _pbpHlToast("hlSaveFailed", textBtn);
+  check("a plain-text button (nothing to destroy) is still label-flashed", FLASHED.length === 1);
+
+  FLASHED = [];
+  document.getElementById("copy-status").textContent = "";
+  _pbpHlToast("hlSaveFailed", null);
+  check("a buttonless toast announces through #copy-status",
+    FLASHED.length === 0 && document.getElementById("copy-status").textContent === "hlSaveFailed");
+
+  // ================= cross-context serialisation =================
+  section("(5) two contexts, one record: nothing may land between this page's read and its write");
+
+  // The other writer is NOT a second copy of this module -- one document cannot
+  // hold two sets of module globals -- but it IS the other protocol this record
+  // really has: library.html's delete and a second reader tab both do
+  // get -> patch -> set on this key, under the lock named after the key
+  // (library-notes.js's _pbpNotesRecordLockName builds the same string). Web
+  // Locks are origin-scoped, so this is the very arbiter the product relies on,
+  // and it is the REAL one -- the storage mock below arbitrates nothing, exactly
+  // like chrome.storage.local, which has no compare-and-swap.
+  const LOCK_NAME = "pbp-hl:" + KEY;
+  check("the lock is named after the record's storage key (the contract with library-notes.js)",
+    _pbpHlLockName(PAGE_URL) === LOCK_NAME, _pbpHlLockName(PAGE_URL));
+  check("a different page gets a different lock name",
+    _pbpHlLockName("https://fixture.example/other") !== LOCK_NAME,
+    _pbpHlLockName("https://fixture.example/other"));
+
+  let FOREIGN_AT_SET = null; // fired the instant the other writer is about to set
+  async function foreignAppend(item) {
+    return navigator.locks.request(LOCK_NAME, async () => {
+      const rec = (await chrome.storage.local.get(KEY))[KEY];
+      const items = rec && Array.isArray(rec.items) ? rec.items : [];
+      if (FOREIGN_AT_SET) { const fire = FOREIGN_AT_SET; FOREIGN_AT_SET = null; fire(); }
+      await chrome.storage.local.set({
+        [KEY]: { v: 1, url: PAGE_URL, title: (rec && rec.title) || "Fixture article", items: items.concat([item]) },
+      });
+    });
+  }
+
+  await boot(baseRecord());
+  const FOREIGN_A = { id: "h-other-context", n: 2, quote: "Beta", prefix: "", suffix: "", color: 5, note: "written by library.html", ts: 5000 };
+  let foreignRun = null;
+  // The interleave is forced, not hoped for. The moment this page has its base
+  // in hand the other context starts its own read-modify-write, and this page's
+  // set is held until that writer reaches ITS set -- or until 400ms pass, which
+  // is what happens when the lock is doing its job and the other writer never
+  // gets that far. Unlocked, the two overlap and whoever sets last erases the
+  // other; locked, one runs strictly after the other and both survive.
+  SET_GATE = new Promise((resolve) => { FOREIGN_AT_SET = resolve; setTimeout(resolve, 400); });
+  ON_GET = (k) => { if (k !== KEY) return; ON_GET = null; foreignRun = foreignAppend(FOREIGN_A); };
+  const raced = await _pbpHlCreateFromRange(selectionRange(1, 0, 5), 2, null);
+  check("precondition: the other context really did start inside this page's commit",
+    !!foreignRun, String(foreignRun));
+  await foreignRun;
+  const racedIds = raced.map((it) => it.id);
+  check("this page's new highlight survives a concurrent write from another context",
+    racedIds.length === 1 && storedIds().includes(racedIds[0]), storedIds().join(","));
+  check("the other context's highlight survives too -- neither write is erased",
+    storedIds().includes(FOREIGN_A.id), storedIds().join(","));
+  check("the other context's item is stored verbatim",
+    JSON.stringify(storedItem(FOREIGN_A.id)) === JSON.stringify(FOREIGN_A),
+    JSON.stringify(storedItem(FOREIGN_A.id)));
+  check("and the highlights that were already there are still there",
+    storedIds().includes("h-alpha") && storedIds().includes("h-beta"), storedIds().join(","));
+  check("memory ends up agreeing with what was actually stored",
+    sameSet(memoryIds(), storedIds()) || storedIds().includes(FOREIGN_A.id),
+    memoryIds().join(",") + " vs " + storedIds().join(","));
+
+  // The mirror image: the other context is ALREADY holding the record when this
+  // page commits. Reading around a held record is the same lost update seen
+  // from the other side, so the commit has to wait and then build on what that
+  // writer left behind.
+  await boot(baseRecord());
+  const FOREIGN_B = { id: "h-held-elsewhere", n: 1, quote: "Alpha", prefix: "", suffix: "", color: 4, note: "", ts: 6000 };
+  let releaseHold;
+  const holdUntil = new Promise((resolve) => { releaseHold = resolve; });
+  let holding = false;
+  const holder = navigator.locks.request(LOCK_NAME, async () => {
+    const rec = (await chrome.storage.local.get(KEY))[KEY];
+    await chrome.storage.local.set({ [KEY]: { ...rec, items: rec.items.concat([FOREIGN_B]) } });
+    holding = true;
+    await holdUntil;
+  });
+  while (!holding) await new Promise((r) => setTimeout(r, 5));
+  const pending = _pbpHlCreateFromRange(selectionRange(2, 0, 4), 3, null);
+  await new Promise((r) => setTimeout(r, 150));
+  check("a commit raised while another context holds the record does not write early",
+    storedIds().length === 3 && storedIds().includes(FOREIGN_B.id), storedIds().join(","));
+  releaseHold();
+  await holder;
+  const late = await pending;
+  check("...and once that context lets go, this page's highlight lands",
+    late.length === 1 && storedIds().includes(late[0].id), storedIds().join(","));
+  check("...on top of what the other context wrote, not instead of it",
+    storedIds().includes(FOREIGN_B.id) && storedIds().length === 4, storedIds().join(","));
+
+  // Granularity: one lock per record, never one for the whole feature. A batch
+  // delete grinding through library.html must not freeze highlighting on an
+  // unrelated article.
+  await boot(baseRecord());
+  let releaseOther;
+  const otherHeld = new Promise((r) => { releaseOther = r; });
+  let otherHolding = false;
+  const otherHolder = navigator.locks.request(
+    _pbpHlLockName("https://fixture.example/some-other-article"),
+    async () => { otherHolding = true; await otherHeld; });
+  while (!otherHolding) await new Promise((r) => setTimeout(r, 5));
+  const madeAnyway = await Promise.race([
+    _pbpHlCreateFromRange(selectionRange(1, 0, 5), 2, null),
+    new Promise((r) => setTimeout(() => r("blocked by another record's lock"), 1500)),
+  ]);
+  check("a write to this record is not blocked by another record's lock",
+    Array.isArray(madeAnyway) && madeAnyway.length === 1 && storedIds().length === 3,
+    JSON.stringify(madeAnyway) + " / " + storedIds().join(","));
+  releaseOther();
+  await otherHolder;
+
+  // ================= Web Locks unavailable =================
+  section("(6) no Web Locks: writes still land, and the weaker guarantee is announced");
+
+  await boot(baseRecord());
+  const realWarn = console.warn;
+  const warned = [];
+  console.warn = (...args) => { warned.push(args.map(String).join(" ")); };
+  Object.defineProperty(navigator, "locks", { value: undefined, configurable: true });
+  _pbpHlLockWarned = false;
+  try {
+    const noLockCreate = await _pbpHlCreateFromRange(selectionRange(1, 0, 5), 2, null);
+    check("a highlight still saves where Web Locks do not exist",
+      noLockCreate.length === 1 && storedIds().includes(noLockCreate[0].id), storedIds().join(","));
+    await _pbpHlCreateFromRange(selectionRange(2, 0, 4), 3, null);
+    check("the degraded path leaves a trace instead of weakening in silence",
+      warned.filter((m) => m.includes("Web Locks unavailable")).length === 1, JSON.stringify(warned));
+  } finally {
+    delete navigator.locks; // back to the platform's own accessor
+    console.warn = realWarn;
+  }
+  check("the real lock manager is in place again afterwards",
+    !!navigator.locks && typeof navigator.locks.request === "function", String(navigator.locks));
+
+  // ================= a record that exists but cannot be read =================
+  section("(7) an existing record with an unusable shape is refused, never overwritten");
+
+  // Hand-written illegal schemas: what a partial write, a bad import, or a
+  // writer from another version could leave behind. Not one of them is a shape
+  // _pbpHlSave can produce -- which is exactly why they have to come from a
+  // fixture and not from this file's own writer. `undefined` is the ONLY answer
+  // that means "no record": starting from [] on any of the rest overwrites
+  // whatever the record really held.
+  const CORRUPT = [
+    ["items is a string", { v: 1, url: PAGE_URL, title: "Fixture article", items: "corrupt" }],
+    ["items is an object", { v: 1, url: PAGE_URL, title: "Fixture article", items: { 0: { id: "h-alpha" } } }],
+    ["items is missing", { v: 1, url: PAGE_URL, title: "Fixture article" }],
+    ["items is null", { v: 1, url: PAGE_URL, title: "Fixture article", items: null }],
+    ["the record is a bare array", [{ id: "h-alpha", n: 1, quote: "Alpha", color: 1, note: "", ts: 1000 }]],
+    ["the record is a string", "pbp_hl_alpha"],
+    ["the record is null", null],
+    ["the record is a number", 7],
+  ];
+
+  await boot(baseRecord());
+  check("a key that was never written reads as 'no items', not as a refusal",
+    JSON.stringify(await _pbpHlLoadStrict("https://fixture.example/never-highlighted")) === "[]",
+    JSON.stringify(await _pbpHlLoadStrict("https://fixture.example/never-highlighted")));
+
+  for (const [label, rec] of CORRUPT) {
+    await boot(baseRecord());
+    setQuiet(KEY, rec);
+    check("the read refuses a record where " + label,
+      (await _pbpHlLoadStrict(PAGE_URL)) === null, JSON.stringify(await _pbpHlLoadStrict(PAGE_URL)));
+
+    const snapshot = JSON.stringify(STORE[KEY]);
+    document.getElementById("copy-status").textContent = "";
+    const attempted = await _pbpHlCreateFromRange(selectionRange(1, 0, 5), 2, null);
+    check("creating over a record where " + label + " leaves it byte-identical",
+      JSON.stringify(STORE[KEY]) === snapshot, JSON.stringify(STORE[KEY]));
+    check("creating over a record where " + label + " creates nothing",
+      attempted.length === 0, JSON.stringify(attempted));
+    check("creating over a record where " + label + " says the save failed",
+      document.getElementById("copy-status").textContent === "hlSaveFailed",
+      document.getElementById("copy-status").textContent);
+  }
+
+  // Every other writer has to refuse too -- a delete or a note commit that
+  // treated an unusable record as empty would write the emptiness back just as
+  // surely as a creation would.
+  for (const path of EDIT_PATHS.concat([{ name: "delete", run: (id) => _pbpHlDeleteItem(id, null) }])) {
+    await boot(baseRecord());
+    setQuiet(KEY, { v: 1, url: PAGE_URL, title: "Fixture article", items: "corrupt" });
+    const snapshot = JSON.stringify(STORE[KEY]);
+    await path.run("h-alpha");
+    await flush();
+    check(path.name + " over an unusable record leaves it byte-identical",
+      JSON.stringify(STORE[KEY]) === snapshot, JSON.stringify(STORE[KEY]));
+  }
+
+  // The mount path is allowed to degrade -- an unreadable record shows no
+  // highlights rather than crashing the reader -- but it still must not touch
+  // what it could not read.
+  await boot(baseRecord());
+  setQuiet(KEY, { v: 1, url: PAGE_URL, title: "Fixture article", items: "corrupt" });
+  const mounted = await _pbpHlLoad(PAGE_URL);
+  check("the mount path degrades an unusable record to an empty view without touching it",
+    Array.isArray(mounted) && mounted.length === 0 && STORE[KEY].items === "corrupt",
+    JSON.stringify(STORE[KEY]));
+
+  const corruptWarnings = [];
+  const realWarn2 = console.warn;
+  console.warn = (...args) => { corruptWarnings.push(args.map(String).join(" ")); };
+  setQuiet(KEY, { v: 1, url: PAGE_URL, title: "Fixture article", items: [{ id: "h-secret", note: "a private reading note" }] });
+  await _pbpHlLoadStrict(PAGE_URL);
+  setQuiet(KEY, { v: 1, url: PAGE_URL, title: "Fixture article", items: "a private reading note" });
+  await _pbpHlLoadStrict(PAGE_URL);
+  console.warn = realWarn2;
+  check("refusing an unusable record leaves a trace",
+    corruptWarnings.some((m) => m.includes("unusable shape")), JSON.stringify(corruptWarnings));
+  check("a readable record is not warned about",
+    corruptWarnings.length === 1, JSON.stringify(corruptWarnings));
+  check("the trace carries the shape, never the record's contents",
+    !corruptWarnings.some((m) => m.includes("private reading note")), JSON.stringify(corruptWarnings));
+
+  document.getElementById("summary").textContent =
+    "PASS " + PASS + " / FAIL " + FAIL + " (total " + (PASS + FAIL) + ")";
+  document.getElementById("summary").style.color = FAIL ? "#c00" : "#0a0";
+})();
+</script>
+</body></html>

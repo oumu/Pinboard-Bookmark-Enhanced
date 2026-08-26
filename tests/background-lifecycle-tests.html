@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Background Lifecycle Tests</title>
+<style>body{font-family:monospace;padding:16px}.case{padding:6px}.pass{color:#0a0}.fail{color:#c00}</style>
+</head><body><h1>Background Lifecycle Tests</h1><div id="summary"></div><div id="results"></div>
+<!--
+  MV3 lifecycle behaviour of background.js that no other suite drives:
+    - pbpSweepInterruptedBatch: it must never close out a batch that a retry
+      claimed while the sweep was awaiting storage, and must never announce a
+      terminal state that storage refused to keep.
+    - the Undo notification record: it outlives the worker that created it, so it
+      lives in storage.session with an expiry, swept by a named alarm instead of
+      a setTimeout that dies with the worker.
+  Both harnesses run the real source sliced out of background.js.
+-->
+<script src="../shared.js"></script>
+<script>
+const root = document.getElementById("results"); let pass = 0, fail = 0;
+// A sync try/catch around a promise-returning chrome API "passes" every behavioural
+// assertion while leaking an unhandled rejection — watch for it directly.
+const unhandled = [];
+addEventListener("unhandledrejection", (event) => { unhandled.push(event.reason); event.preventDefault(); });
+function check(name, ok) {
+  ok ? pass++ : fail++;
+  const row = document.createElement("div");
+  row.className = "case " + (ok ? "pass" : "fail");
+  row.textContent = `${ok ? "✓" : "✗"} ${name}`;
+  root.appendChild(row);
+}
+
+// chrome.storage hands back a structured clone, never a live reference: a fake
+// that leaks the stored object would make a missing write-back look like a
+// success. Clone on the way in and on the way out.
+function makeStore(initial, hooks) {
+  const data = structuredClone(initial || {});
+  const h = hooks || {};
+  return {
+    data,
+    async get(key) {
+      if (h.onGet) await h.onGet();
+      const keys = typeof key === "string" ? [key] : Object.keys(key || data);
+      const out = {};
+      for (const k of keys) if (k in data) out[k] = structuredClone(data[k]);
+      return out;
+    },
+    async set(obj) {
+      if (h.onSet) await h.onSet();
+      for (const [k, v] of Object.entries(obj)) data[k] = structuredClone(v);
+    },
+    async remove(key) { delete data[key]; },
+  };
+}
+
+// ---- Batch sweep harness ----
+function buildSweepHarness(source, opts) {
+  const start = source.indexOf("let _batchRunning = false;");
+  const end = source.indexOf("function handleBatchSave", start);
+  if (start < 0 || end <= start) throw new Error("batch sweep source not found");
+  const notifications = [];
+  const local = makeStore({ batch_progress: opts.progress }, opts.hooks);
+  const deps = {
+    chrome: { storage: { local } },
+    batchIsRunning,
+    BATCH_STALE_TTL,
+    getCurrentPinboardAuth: async () => ({ token: "alice:t", account: opts.account || "alice", epoch: 0 }),
+    showNotification: (...args) => { notifications.push(args); },
+    t: (key, ...args) => (args.length ? `${key}:${args.join(":")}` : key),
+    console,
+  };
+  const factory = new Function(...Object.keys(deps), `${source.slice(start, end)}
+    return {
+      pbpSweepInterruptedBatch,
+      _writeBatchProgress,
+      setBatchRunning: (value) => { _batchRunning = value; },
+    };`);
+  return { ...factory(...Object.values(deps)), notifications, local };
+}
+
+// ---- Undo notification harness ----
+function buildUndoHarness(source, opts) {
+  const start = source.indexOf("// F7: Track recent saves");
+  const end = source.indexOf("// ---- Show Chrome notification", start);
+  if (start < 0 || end <= start) throw new Error("undo source not found");
+  const o = opts || {};
+  const cleared = [];
+  const alarms = [];
+  let pendingClear = null;
+  const session = makeStore(o.session || {}, o.hooks);
+  const deps = {
+    chrome: {
+      storage: { session },
+      notifications: {
+        clear: (id) => {
+          cleared.push(id);
+          // Deferred rejection: the caller can only survive it by awaiting the
+          // promise — a sync try/catch resolves before the rejection ever lands.
+          if (o.clearRejects) return new Promise((_, reject) => { pendingClear = reject; });
+          return Promise.resolve(true);
+        },
+      },
+      alarms: { create: (name, info) => { alarms.push({ name, info }); } },
+    },
+    console,
+  };
+  const factory = new Function(...Object.keys(deps), `${source.slice(start, end)}
+    return {
+      _recentSaves, PBP_UNDO_KEY, PBP_UNDO_TTL, PBP_UNDO_ALARM,
+      pbpRememberUndo, pbpTakeUndoRecord, pbpSweepExpiredUndo, pbpClearNotification,
+    };`);
+  return { ...factory(...Object.values(deps)), cleared, alarms, session,
+    rejectClear: (error) => { pendingClear && pendingClear(error); } };
+}
+
+(async () => {
+  const source = await fetch("../background.js").then((response) => response.text());
+  const STALE = { running: true, done: false, account: "alice", i: 3, total: 9, ts: Date.now() - 10 * 60 * 1000 };
+
+  // ---- pbpSweepInterruptedBatch ----
+  {
+    const h = buildSweepHarness(source, { progress: STALE });
+    await h.pbpSweepInterruptedBatch();
+    const written = h.local.data.batch_progress;
+    check("a stale running record is closed out and announced once",
+      written.running === false && written.done === true && written.error === "interrupted" &&
+      written.i === 3 && written.total === 9 && typeof written.ts === "number" &&
+      h.notifications.length === 1 && h.notifications[0][2] === "batchInterrupted:3:9");
+  }
+
+  {
+    const h = buildSweepHarness(source, { progress: { ...STALE, ts: Date.now() } });
+    await h.pbpSweepInterruptedBatch();
+    check("a fresh heartbeat is never swept",
+      h.local.data.batch_progress.running === true && h.notifications.length === 0);
+  }
+
+  {
+    const h = buildSweepHarness(source, { progress: { ...STALE, account: "bob" } });
+    await h.pbpSweepInterruptedBatch();
+    check("another account's record is left untouched",
+      h.local.data.batch_progress.running === true && h.notifications.length === 0);
+  }
+
+  {
+    // TOCTOU: startBatchSave reserves _batchRunning synchronously while the sweep
+    // is parked on its first storage read.
+    let harness;
+    harness = buildSweepHarness(source, {
+      progress: STALE,
+      hooks: { onGet: async () => { harness && harness.setBatchRunning(true); } },
+    });
+    await harness.pbpSweepInterruptedBatch();
+    check("a batch that starts during the sweep's storage read is left alone",
+      harness.local.data.batch_progress.running === true &&
+      harness.local.data.batch_progress.done === false &&
+      harness.notifications.length === 0);
+  }
+
+  {
+    // The retry already rewrote batch_progress: the sweep read one record and must
+    // only ever terminate that same record.
+    let gets = 0;
+    let harness;
+    harness = buildSweepHarness(source, {
+      progress: STALE,
+      hooks: { onGet: async () => {
+        // Hook runs before the read: replace on the second get, so the sweep sees
+        // the stale record first and the retry's record when it re-confirms.
+        if (++gets === 2) harness.local.data.batch_progress = { ...STALE, i: 0, ts: Date.now() };
+      } },
+    });
+    await harness.pbpSweepInterruptedBatch();
+    check("a record replaced mid-sweep is not overwritten with the stale one",
+      harness.local.data.batch_progress.running === true &&
+      harness.local.data.batch_progress.i === 0 &&
+      harness.notifications.length === 0);
+  }
+
+  {
+    const h = buildSweepHarness(source, {
+      progress: STALE,
+      hooks: { onSet: async () => { throw new Error("QUOTA_BYTES quota exceeded"); } },
+    });
+    await h.pbpSweepInterruptedBatch();
+    check("a failed terminal write suppresses the interrupted notification",
+      h.local.data.batch_progress.running === true && h.notifications.length === 0);
+    check("_writeBatchProgress reports whether the record landed",
+      (await h._writeBatchProgress({ running: true })) === false);
+  }
+
+  {
+    const h = buildSweepHarness(source, { progress: STALE });
+    check("_writeBatchProgress reports a successful write",
+      (await h._writeBatchProgress({ running: true, i: 1 })) === true &&
+      h.local.data.batch_progress.i === 1);
+  }
+
+  // ---- Undo notification record ----
+  {
+    const h = buildUndoHarness(source, {});
+    await h.pbpRememberUndo("qs-saved-1", { url: "https://example.com/a", account: "alice", expiresAt: Date.now() + h.PBP_UNDO_TTL });
+    check("persisting an undo record schedules the expiry alarm instead of a timer",
+      h.alarms.length === 1 && h.alarms[0].name === h.PBP_UNDO_ALARM &&
+      h.alarms[0].info.delayInMinutes >= 0.5 && !/setTimeout\(/.test(source.slice(
+        source.indexOf("// F7: Track recent saves"), source.indexOf("// F7: Handle undo button click"))));
+
+    // A new worker generation: the Map is gone, the toast is not.
+    h._recentSaves.clear();
+    const revived = await h.pbpTakeUndoRecord("qs-saved-1");
+    check("an undo record survives the worker generation that created it",
+      revived && revived.url === "https://example.com/a" && revived.account === "alice");
+    check("taking a record consumes it in session storage too",
+      Object.keys(h.session.data[h.PBP_UNDO_KEY] || {}).length === 0 &&
+      (await h.pbpTakeUndoRecord("qs-saved-1")) === null);
+  }
+
+  {
+    const expired = { url: "https://example.com/b", account: "alice", expiresAt: Date.now() - 1 };
+    const h = buildUndoHarness(source, { session: { _undoSaves: { "qs-saved-2": expired } } });
+    check("an expired record is refused even while still in session storage",
+      (await h.pbpTakeUndoRecord("qs-saved-2")) === null);
+  }
+
+  {
+    const h = buildUndoHarness(source, { session: { _undoSaves: {
+      "qs-saved-3": { url: "https://example.com/c", account: "alice", expiresAt: Date.now() - 1 },
+      "qs-saved-4": { url: "https://example.com/d", account: "alice", expiresAt: Date.now() + 60000 },
+    } } });
+    h._recentSaves.set("qs-saved-3", { url: "https://example.com/c", account: "alice", expiresAt: Date.now() - 1 });
+    await h.pbpSweepExpiredUndo();
+    const left = h.session.data[h.PBP_UNDO_KEY];
+    check("the expiry sweep drops timed-out records and clears their toasts",
+      h.cleared.length === 1 && h.cleared[0] === "qs-saved-3" &&
+      !("qs-saved-3" in left) && !h._recentSaves.has("qs-saved-3"));
+    check("the expiry sweep keeps a live record and schedules another pass",
+      "qs-saved-4" in left && h.alarms.some((a) => a.name === h.PBP_UNDO_ALARM));
+  }
+
+  {
+    // notifications.clear() rejects asynchronously: a sync try/catch would never
+    // see it and the sweep would abort with the record half-removed.
+    const h = buildUndoHarness(source, {
+      clearRejects: true,
+      session: { _undoSaves: { "qs-saved-5": { url: "https://example.com/e", account: "alice", expiresAt: Date.now() - 1 } } },
+    });
+    const leakedBefore = unhandled.length;
+    let outcome = null;
+    const sweeping = h.pbpSweepExpiredUndo().then(() => { outcome = "resolved"; }, () => { outcome = "threw"; });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const awaitedTheClear = outcome === null; // still parked on the pending clear
+    h.rejectClear(new Error("notification gone"));
+    await sweeping;
+    await new Promise((resolve) => setTimeout(resolve, 0)); // let unhandledrejection fire
+    check("a rejected notifications.clear() is awaited, caught, and does not abort the sweep",
+      awaitedTheClear && outcome === "resolved" && unhandled.length === leakedBefore &&
+      h.cleared.length === 1 && Object.keys(h.session.data[h.PBP_UNDO_KEY] || {}).length === 0);
+  }
+
+  {
+    const h = buildUndoHarness(source, { hooks: { onSet: async () => { throw new Error("session unavailable"); } } });
+    await h.pbpRememberUndo("qs-saved-6", { url: "https://example.com/f", account: "alice", expiresAt: Date.now() + 60000 });
+    const record = await h.pbpTakeUndoRecord("qs-saved-6");
+    check("a session-storage failure degrades to memory instead of losing Undo",
+      record && record.url === "https://example.com/f");
+  }
+
+  document.getElementById("summary").textContent = `pass=${pass} fail=${fail}`;
+})();
+</script></body></html>

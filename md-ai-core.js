@@ -509,8 +509,18 @@ if (typeof chrome !== "undefined" && chrome.storage?.onChanged) {
 
 function pbpAiGetSettings() {
   if (!_pbpAiSettingsPromise) {
-    _pbpAiSettingsPromise = pbpReadSettingsWithSecrets(SETTINGS_DEFAULTS)
-      .then((s) => deobfuscateSettings(s));
+    // Memoize the promise, but NEVER a rejected one: a rejected promise is
+    // truthy, so the `!_pbpAiSettingsPromise` guard above would pin one
+    // transient storage failure onto every AI entry point on the page (ask,
+    // translate, skim, video) and silently defeat md-ask.js's backoff retry.
+    // Same singleflight shape as background.js's loadSettings(); the identity
+    // guard keeps a concurrent onChanged reset from being clobbered.
+    const p = _pbpAiSettingsPromise = pbpReadSettingsWithSecrets(SETTINGS_DEFAULTS)
+      .then((s) => deobfuscateSettings(s))
+      .catch((e) => {
+        if (_pbpAiSettingsPromise === p) _pbpAiSettingsPromise = null;
+        throw e;
+      });
   }
   return _pbpAiSettingsPromise;
 }

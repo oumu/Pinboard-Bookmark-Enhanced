@@ -455,6 +455,17 @@
       }
     }
   },
+  "batchInterrupted": {
+    "message": "Enregistrement groupé interrompu à $DONE$/$TOTAL$. Relancez-le pour enregistrer les onglets restants.",
+    "placeholders": {
+      "done": {
+        "content": "$1"
+      },
+      "total": {
+        "content": "$2"
+      }
+    }
+  },
   "batchTaggedSuffix": {
     "message": " (tags : $TAGS$)",
     "placeholders": {
@@ -792,6 +803,9 @@
   "notesBatchDeleteConfirm": {
     "message": "Supprimer les $COUNT$ surlignages sélectionnés ?",
     "placeholders": { "count": { "content": "$1" } }
+  },
+  "notesDeleteFailed": {
+    "message": "Impossible de supprimer ces surlignages. Réessayez."
   },
   "tabQuickActions": {
     "message": "Actions rapides"
@@ -2204,6 +2218,9 @@
         "content": "$2"
       }
     }
+  },
+  "tagGovAlreadyOneTag": {
+    "message": "Ces étiquettes ne diffèrent que par la casse : Pinboard les enregistre déjà comme une seule étiquette, il n'y a donc rien à fusionner. La suggestion a été retirée."
   },
   "tagGovConfirmDelete": {
     "message": "Supprimer $N$ étiquettes sélectionnées ? (permanent)",

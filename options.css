@@ -176,10 +176,18 @@ html[data-options-ready] .container { visibility: visible; }
    the full width; without this it collapses into the ~160px sidebar column. */
 .container > h1 { grid-column: 1 / -1; }
 h1 { font-size: 18px; color: var(--opt-fg); margin-bottom: var(--opt-sp-7); border-bottom: 1px solid var(--opt-border-section); padding-bottom: var(--opt-sp-4); }
+/* Page-level alert band: full width, between the title and the tab strip, so a
+   standing auto-save failure is visible from whichever panel raised it. Pinned
+   to row 2 (nav and the active panel moved to row 3) instead of auto-placed --
+   both of those carry a definite row, so an auto-placed full-width item would
+   land BELOW them. While hidden it is display:none, hence not a grid item at
+   all: row 2 collapses to zero and the desktop grid has no row-gap, so the
+   layout is byte-identical to before. */
+#opt-global-alert { grid-column: 1 / -1; grid-row: 2; margin: 0 0 var(--opt-sp-5); }
 
 /* ---- Tabs ---- */
 .options-nav {
-  grid-column: 1; grid-row: 2;
+  grid-column: 1; grid-row: 3;
   align-self: start;
   position: sticky; top: 24px;
 }
@@ -255,7 +263,7 @@ h1 { font-size: 18px; color: var(--opt-fg); margin-bottom: var(--opt-sp-7); bord
    card -- its own fill separates it from the page, so the edge drops from
    the 3:1 structural --opt-border to the hairline divider weight. */
 .panel { background: var(--opt-panel); border: 1px solid var(--opt-border-section); display: none; }
-.panel.active { grid-column: 2; grid-row: 2; display: block; padding: var(--opt-sp-6); border-width: 1px; border-radius: var(--opt-radius-md); }
+.panel.active { grid-column: 2; grid-row: 3; display: block; padding: var(--opt-sp-6); border-width: 1px; border-radius: var(--opt-radius-md); }
 
 /* ---- Form groups ---- */
 .fg { margin-bottom: var(--opt-rhythm); }
@@ -322,6 +330,14 @@ html[data-theme] .panel-foot a { color: var(--opt-fg-hint, var(--opt-fg-muted));
 .fg + .hint { margin-top: -6px; }  /* a hint owned by the preceding group: pull close (net ~4px gap above, 10px below) */
 .hint a { color: var(--opt-accent); }
 .hint code { background: var(--opt-code-bg); border-radius: var(--opt-radius-sm); padding: 1px var(--opt-sp-2); font-size: 10px; font-family: "SF Mono", Consolas, Menlo, "Liberation Mono", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei", monospace; }
+/* A hint slot that doubles as a failure report (tag governance's AI status,
+   Batch's legacy-permission line): setStatusIcon() adds .bad, so the themed
+   danger token lands here instead of the inline #c00 those two used to set --
+   an inline colour outranks every theme and fell to 1.71:1 on Nord Night. */
+.hint.bad { color: var(--opt-danger); }
+/* Batch's permission status sits ON the label's own flex row, so .hint's
+   block rhythm margins would knock that row off centre. */
+#batch-perm-status { margin: 0; }
 
 /* ---- Markdown tab: keyboard shortcuts static list (Task 6, spec 5.3).
    kbd chip font stack mirrors the other mono stacks in this file (.hint
@@ -340,7 +356,12 @@ html[data-theme] .panel-foot a { color: var(--opt-fg-hint, var(--opt-fg-muted));
 /* Sub-heading between the two shortcut lists (reader keys / video-page keys);
    a real h3 so the outline stays navigable, sized like a row label. */
 .kbd-help-subtitle { font-size: 12px; font-weight: 600; margin: var(--opt-sp-4) 0 0; }
-.kbd-help-chips kbd {
+/* .shortcut-current holds the <kbd> options.js injects for each bound command.
+   Without a rule of its own it fell to the UA's `kbd { font-family: monospace }`
+   = the profile's Fixed-width font (font iron rule, form 3) AND read as bare
+   text beside the keycap chips ten lines below it in the same panel. */
+.kbd-help-chips kbd,
+.shortcut-current kbd {
   display: inline-block;
   padding: 1px var(--opt-sp-3);
   margin-right: var(--opt-sp-1);
@@ -544,6 +565,13 @@ input[type="checkbox"], input[type="radio"] {
 .fg textarea { resize: vertical; min-height: 80px; font-family: "SF Mono", Consolas, Menlo, "Liberation Mono", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei", monospace; font-size: 11px; line-height: 1.5; }
 .vocab-entry-row { display: flex; align-items: center; gap: var(--opt-sp-4); }
 .save-status { font-size: 12px; color: var(--opt-save); margin-left: var(--opt-sp-4); }
+/* Connectivity tests used to pin their three states with inline styles
+   (#888/#080/#c00), which no theme can override -- #c00 measured 1.71:1 on
+   Nord Night. The states are classes now: setStatusIcon() owns .ok/.bad,
+   options-connectivity.js owns .pending for the in-flight "Testing..." line.
+   .pending sits first so a stale marker can never outrank a real result. */
+.save-status.pending { color: var(--opt-fg-hint); }
+.save-status.ok { color: var(--opt-save); }
 .save-status.bad { color: var(--opt-danger); }
 /* Same precedent as .backup-actions below: the row's own flex gap already
    spaces button from status, so drop .save-status's inline indent here too. */
@@ -1214,7 +1242,7 @@ html[data-theme="flexoki-light"] {
   --opt-panel: #F2F0E5;
   --opt-tab: #F2F0E5;
   --opt-tab-active: #FFFCF0;
-  --opt-fg: #100F0F;
+  --opt-fg: #100f0f;
   --opt-fg-muted: #6a6964;
   --opt-fg-hint: #6F6E69;
   --opt-accent: #205EA6;
@@ -1246,7 +1274,7 @@ html[data-theme="flexoki-dark"] {
   --opt-panel: #282726;
   --opt-tab: #282726;
   --opt-tab-active: #1C1B1A;
-  --opt-fg: #CECDC3;
+  --opt-fg: #cecdc3;
   --opt-fg-muted: #9F9D96;
   --opt-fg-hint: #a09e9a;
   --opt-accent: #4385BE;
@@ -1441,7 +1469,7 @@ html[data-theme="rose-pine"] {
   --opt-tab-active: #191724;
   --opt-fg: #e0def4;
   --opt-fg-muted: #908caa;
-  --opt-fg-hint: #8e8aa3;
+  --opt-fg-hint: #8e8ba3;
   --opt-accent: #c4a7e7;
   --opt-save: #9ccfd8;
   --opt-border: #756da7;

@@ -290,6 +290,40 @@ suite("pbpWaybackShouldArchive", () => {
   });
 });
 
+// ============ account scoping (pbpWaybackAttemptKey) ============
+// The 24h dedup window and the archive log are BOTH per Pinboard account: the
+// log lists bookmark URLs (private ones included), and one account's window
+// must never suppress another's save of the same URL. Nothing else in this file
+// would notice the account being dropped -- the pure suites above are handed
+// whatever key shape they are asked about, and the runner case below runs
+// logged out.
+suite("pbpWaybackAttemptKey account scoping", () => {
+  test("the 24h window is per account, not per URL", () => {
+    const url = "https://example.com/shared-article";
+    const map = { [pbpWaybackAttemptKey("alice", url)]: T0 - 60*60*1000 };
+    assert(pbpWaybackShouldAttempt(map, pbpWaybackAttemptKey("alice", url), T0) === false, "alice is still inside her own window");
+    assert(pbpWaybackShouldAttempt(map, pbpWaybackAttemptKey("bob", url), T0) === true, "a second account must still reach the archive for the same URL");
+    assert(pbpWaybackShouldAttempt(map, pbpWaybackAttemptKey("", url), T0) === true, "a logged-out save is its own scope too");
+  });
+
+  test("distinct (account, url) pairs get distinct keys, and never the bare URL", () => {
+    const pairs = [
+      ["alice", "https://e.com/a"],
+      ["alice", "https://e.com/b"],
+      ["bob", "https://e.com/a"],
+      ["alicia", "https://e.com/a"],
+      ["", "https://e.com/a"]
+    ];
+    const keys = pairs.map(([account, url]) => pbpWaybackAttemptKey(account, url));
+    assert(new Set(keys).size === pairs.length, "keys collided across accounts: " + JSON.stringify(keys));
+    pairs.forEach(([account, url], i) => {
+      assert(keys[i] !== url, "key must not be the bare URL -- the pre-fix shape shared one window across accounts: " + JSON.stringify(keys[i]));
+      assert(keys[i].includes(url), "key must still carry the URL: " + JSON.stringify(keys[i]));
+      assert(keys[i].startsWith(account), "key must still carry the account: " + JSON.stringify(keys[i]));
+    });
+  });
+});
+
 (async function () {
   await atest("missing or unreadable permission preserves the enabled setting and performs no fetch", async () => {
     const prevChrome = globalThis.chrome;
@@ -321,6 +355,86 @@ suite("pbpWaybackShouldArchive", () => {
       assert(settingsWrites.length === 0, "permission failure must not disable Wayback");
       assert(fetches === 0, "permission failure must not fetch");
       assert(outcomes.join(",") === "permDenied,permDenied", "both failures should remain recoverable in the archive log");
+    } finally {
+      globalThis.chrome = prevChrome;
+      globalThis.fetch = prevFetch;
+    }
+  });
+
+  // Every archive attempt leaves two persistent traces, and both are keyed by
+  // the non-secret Pinboard owner the save ran under. Drive the real
+  // orchestrator so a revert to "bare url" keys or an untagged log row cannot
+  // pass -- the pure suite alone can't see which key shape the caller builds.
+  const ARCHIVE_SETTINGS = { waybackArchiveEnabled: true, waybackSkipPrivate: false };
+  function installArchiveStubs(store, counter) {
+    globalThis.fetch = async () => {
+      counter.fetches++;
+      return {
+        ok: true, status: 200,
+        headers: { get: () => "application/json" },
+        json: async () => ({ job_id: "job-" + counter.fetches })
+      };
+    };
+    globalThis.chrome = {
+      permissions: { contains: async () => true },
+      storage: { local: {
+        get: async (defaults) => {
+          const out = {};
+          for (const key of Object.keys(defaults)) out[key] = key in store ? store[key] : defaults[key];
+          return out;
+        },
+        set: async (payload) => { Object.assign(store, payload); }
+      } }
+    };
+  }
+
+  await atest("archive records an account-scoped dedup key and an account-tagged log row", async () => {
+    const prevChrome = globalThis.chrome;
+    const prevFetch = globalThis.fetch;
+    const ACCOUNT = "alice";
+    const SECRET = "DEADBEEFDEADBEEF";
+    const token = obfuscateKey(ACCOUNT + ":" + SECRET);
+    const url = "https://example.com/owned-article";
+    const store = {};
+    const counter = { fetches: 0 };
+    try {
+      installArchiveStubs(store, counter);
+      await pbpWaybackArchive(url, { ...ARCHIVE_SETTINGS, pinboardToken: token }, {});
+      assert(counter.fetches === 1, "the archive request went out");
+      const keys = Object.keys(store._waybackAttempts || {});
+      assert(keys.length === 1, "exactly one dedup timestamp was written, got " + keys.length);
+      assert(keys[0] !== url, "the dedup key must not be the bare URL -- that shape shares one 24h window across accounts");
+      assert(keys[0] === pbpWaybackAttemptKey(ACCOUNT, url), "the dedup key must be the account+URL composite, got " + JSON.stringify(keys[0]));
+      const row = (store._waybackLog || []).at(-1);
+      assert(row && row.url === url, "the attempt reached the archive log");
+      assert(row.account === ACCOUNT, "the log row must carry the owner so readers can filter to the signed-in account, got " + JSON.stringify(row.account));
+      const persisted = JSON.stringify(store);
+      assert(!persisted.includes(SECRET) && !persisted.includes(token), "the account is non-secret; no token material may be persisted with it");
+    } finally {
+      globalThis.chrome = prevChrome;
+      globalThis.fetch = prevFetch;
+    }
+  });
+
+  await atest("a second account is not silenced by the first account's 24h dedup window", async () => {
+    const prevChrome = globalThis.chrome;
+    const prevFetch = globalThis.fetch;
+    const url = "https://example.com/same-article";
+    const store = {};
+    const counter = { fetches: 0 };
+    const alice = { ...ARCHIVE_SETTINGS, pinboardToken: obfuscateKey("alice:AAAA1111") };
+    const bob = { ...ARCHIVE_SETTINGS, pinboardToken: obfuscateKey("bob:BBBB2222") };
+    try {
+      installArchiveStubs(store, counter);
+      await pbpWaybackArchive(url, alice, {});
+      assert(counter.fetches === 1, "alice's save archived");
+      await pbpWaybackArchive(url, alice, {});
+      assert(counter.fetches === 1, "alice's immediate re-save is suppressed by her own 24h window");
+      await pbpWaybackArchive(url, bob, {});
+      assert(counter.fetches === 2, "the same URL saved from another account must still reach the archive");
+      assert(Object.keys(store._waybackAttempts).length === 2, "each account keeps its own dedup timestamp, got " + JSON.stringify(Object.keys(store._waybackAttempts)));
+      const owners = (store._waybackLog || []).map((entry) => entry.account);
+      assert(owners.includes("alice") && owners.includes("bob"), "every log row records the account its save ran under, got " + JSON.stringify(owners));
     } finally {
       globalThis.chrome = prevChrome;
       globalThis.fetch = prevFetch;

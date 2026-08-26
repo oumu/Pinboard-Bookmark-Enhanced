@@ -64,6 +64,16 @@ function mkAbortError() {
   catch (_) { const e = new Error("aborted"); e.name = "AbortError"; return e; }
 }
 function bytesOf(str) { return new TextEncoder().encode(str); }
+// Budget wrapper exposing the high-water mark. "Everything was refunded" only
+// means something if bytes were actually reserved first, and used() alone can
+// never show that after the refund landed.
+function watchBudget(budget) {
+  const rawReserve = budget.reserve;
+  let peak = budget.used();
+  budget.reserve = (n) => { const ok = rawReserve(n); peak = Math.max(peak, budget.used()); return ok; };
+  budget.peak = () => peak;
+  return budget;
+}
 function expectedDataUri(mime, bytes) {
   let bin = "";
   for (const b of bytes) bin += String.fromCharCode(b);
@@ -71,8 +81,14 @@ function expectedDataUri(mime, bytes) {
 }
 // A reader whose read() resolves after chunkDelayMs with the next chunk, or
 // rejects with AbortError if the caller's signal fires first (mid-stream abort).
+// chunkDelayMs is either one number (every read waits that long) or an array
+// indexed by read order. The array form is what a REAL mid-stream timeout looks
+// like: the first chunk lands, its bytes are reserved on the shared pool, and
+// only a later read stalls -- a uniform delay aborts before any chunk arrives,
+// so nothing is ever reserved and every refund assertion is vacuous.
 function makeReader(chunks, signal, chunkDelayMs) {
   let i = 0;
+  const delayFor = (n) => (Array.isArray(chunkDelayMs) ? (chunkDelayMs[n] || 0) : (chunkDelayMs || 0));
   return {
     read() {
       return new Promise((resolve, reject) => {
@@ -84,7 +100,7 @@ function makeReader(chunks, signal, chunkDelayMs) {
           if (signal) signal.removeEventListener("abort", onAbort);
           if (i >= chunks.length) resolve({ done: true, value: undefined });
           else resolve({ done: false, value: chunks[i++] });
-        }, chunkDelayMs || 0);
+        }, delayFor(i));
         if (signal) signal.addEventListener("abort", onAbort, { once: true });
       });
     }
@@ -198,13 +214,45 @@ section("_pbpEmbedFetchOne perImageBytes cap");
   globalThis.fetch = tableFetch({
     "https://cdn.example.com/big.png": { contentType: "image/png", chunks: [new Uint8Array(40), new Uint8Array(40)] }
   });
+  // The pool is SHARED, so pre-charge it: on a FRESH budget release() clamps
+  // with Math.max(0, ...), which makes "refund my 40 bytes" and "refund a whole
+  // perImageBytes" both land on used() === 0. Seeded, the two are separable.
+  const PARKED = 50; // bytes an earlier image already holds in the pool
   const budget = pbpEmbedBudget(SHORT_LIMITS.totalBytes);
+  budget.reserve(PARKED);
   const got = await _pbpEmbedFetchOne("https://cdn.example.com/big.png", budget, SHORT_LIMITS);
   assertEq(got, null, "streamed body exceeding perImageBytes aborts and returns null");
-  // The perImageBytes check short-circuits BEFORE budget.reserve() for the chunk
-  // that would tip the image over the per-image cap, so only the 1st (accepted)
-  // 40-byte chunk was ever reserved — there is no rollback of that first reserve.
-  assertEq(budget.used(), 40, "only the accepted 1st chunk (40 bytes) was reserved; the 2nd (over-cap) chunk never reached budget.reserve()");
+  // Only a call that hands its bytes back keeps them charged to the shared
+  // pool: after the over-perImageBytes abort, every byte this call had already
+  // reserved (the accepted 1st 40-byte chunk) is refunded -- and nothing more.
+  assertEq(budget.used(), PARKED, "the over-cap abort refunds exactly the bytes IT reserved: no less (the pool would leak), no more (it would hand itself another image's quota)");
+}
+
+// ---- _pbpEmbedFetchOne: refund accounting across a shared pool ----
+section("_pbpEmbedFetchOne shared-pool refund accounting");
+{
+  // pbpEmbedFetchAll drives EVERY image -- plus the entire hotlink Referer
+  // retry round -- through ONE pbpEmbedBudget, so a refund is only correct when
+  // it returns exactly what this call reserved. Nothing single-call can prove
+  // that: this sequence can. An over-refund shows up as a pool that forgot the
+  // first image; a missing refund shows up twice over (wrong total, and a third
+  // image that no longer fits under totalBytes).
+  const KEEP = 50;
+  globalThis.fetch = tableFetch({
+    "https://cdn.example.com/keep1.png": { contentType: "image/png", chunks: [new Uint8Array(KEEP)] },
+    "https://cdn.example.com/over.png": { contentType: "image/png", chunks: [new Uint8Array(40), new Uint8Array(40)] },
+    "https://cdn.example.com/keep2.png": { contentType: "image/png", chunks: [new Uint8Array(KEEP)] }
+  });
+  const budget = pbpEmbedBudget(SHORT_LIMITS.totalBytes); // 128
+  const r1 = await _pbpEmbedFetchOne("https://cdn.example.com/keep1.png", budget, SHORT_LIMITS);
+  assert(r1 !== null, "1st image is kept (50 of 128)");
+  assertEq(budget.used(), KEEP, "a kept image stays charged to the shared pool");
+  const r2 = await _pbpEmbedFetchOne("https://cdn.example.com/over.png", budget, SHORT_LIMITS);
+  assertEq(r2, null, "the 2nd image blows perImageBytes and aborts");
+  assertEq(budget.used(), KEEP, "the aborted image refunds its own bytes and only its own -- the kept image's charge survives");
+  const r3 = await _pbpEmbedFetchOne("https://cdn.example.com/keep2.png", budget, SHORT_LIMITS);
+  assert(r3 !== null, "the refunded capacity is genuinely available again: a 3rd image still fits under totalBytes");
+  assertEq(budget.used(), KEEP * 2, "the pool ends up charged for exactly the two images that were kept");
 }
 
 // ---- _pbpEmbedFetchOne: shared budget exhaustion across sequential calls ----
@@ -239,11 +287,50 @@ section("_pbpEmbedFetchOne timeout abort");
 // ---- _pbpEmbedFetchOne: timeout abort mid-stream (headers arrive, body stalls) ----
 section("_pbpEmbedFetchOne timeout abort mid-stream");
 {
+  // Per-read delays, not a uniform one: the 1st chunk lands at once (its bytes
+  // get reserved on the pool) and the 2nd read stalls past timeoutMs. This is
+  // the path release()'s comment calls "timed out", and the only shape of it
+  // that has anything to refund.
   globalThis.fetch = tableFetch({
-    "https://cdn.example.com/stall.png": { contentType: "image/png", chunks: [bytesOf("x"), bytesOf("y")], chunkDelayMs: 5000 }
+    "https://cdn.example.com/stall.png": { contentType: "image/png", chunks: [bytesOf("x"), bytesOf("y")], chunkDelayMs: [0, 5000] }
   });
-  const got = await _pbpEmbedFetchOne("https://cdn.example.com/stall.png", pbpEmbedBudget(ABORT_LIMITS.totalBytes), ABORT_LIMITS);
+  const PARKED = 50; // bytes an earlier image already holds in the shared pool
+  const budget = watchBudget(pbpEmbedBudget(ABORT_LIMITS.totalBytes));
+  budget.reserve(PARKED);
+  const got = await _pbpEmbedFetchOne("https://cdn.example.com/stall.png", budget, ABORT_LIMITS);
   assertEq(got, null, "timeoutMs covers the whole body read, not just the initial fetch() — a stalled chunk read is also aborted");
+  assert(budget.peak() > PARKED, "the fixture really did deliver a chunk before the stall — without that the refund assertion below would be vacuous");
+  assertEq(budget.used(), PARKED, "the mid-stream abort refunds the bytes it had already read; what an earlier image parked in the shared pool is untouched");
+}
+
+// ---- _pbpEmbedFetchOne: undecodable body (FileReader failure) ----
+section("_pbpEmbedFetchOne undecodable body refund");
+{
+  // The third failure mode release()'s comment names ("undecodable"): the whole
+  // body was read and charged, then the data: URI encode failed. Nothing is
+  // handed back, so nothing may stay charged.
+  const png = bytesOf("PNGDATA");
+  globalThis.fetch = tableFetch({
+    "https://cdn.example.com/undecodable.png": { contentType: "image/png", chunks: [png] }
+  });
+  const PARKED = 50;
+  const budget = watchBudget(pbpEmbedBudget(SHORT_LIMITS.totalBytes));
+  budget.reserve(PARKED);
+  const realFileReader = globalThis.FileReader;
+  globalThis.FileReader = function FailingFileReader() {
+    this.onload = null; this.onerror = null; this.result = null;
+    this.error = new Error("cannot encode");
+    this.readAsDataURL = () => { setTimeout(() => { if (this.onerror) this.onerror(); }, 0); };
+  };
+  let got;
+  try {
+    got = await _pbpEmbedFetchOne("https://cdn.example.com/undecodable.png", budget, SHORT_LIMITS);
+  } finally {
+    globalThis.FileReader = realFileReader; // later suites encode for real
+  }
+  assertEq(got, null, "a body the FileReader cannot encode degrades to null instead of throwing");
+  assertEq(budget.peak(), PARKED + png.length, "the whole body was read and charged before the encode failed");
+  assertEq(budget.used(), PARKED, "an undecodable image refunds its entire read; only the earlier image stays charged");
 }
 
 // ---- pbpEmbedFetchAll: empty input short-circuits ----

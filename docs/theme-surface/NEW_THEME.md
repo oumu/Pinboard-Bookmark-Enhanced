@@ -99,6 +99,41 @@ by the minimum needed to clear WCAG AA against their text color. Hue and
 saturation survive; lightness may not. If you declare `#268bd2` and see
 `#2076b2` in `pinboard-themes.js`, that is the guard working, not drift.
 
+**The same is true of the four TEXT tiers.** `fg`, `fg-strong`, `muted` and
+`muted-soft` pass through `fgToAAMulti()` (`_util.mjs#deriveTextTiers`), which
+moves each one just far enough to clear 4.5:1 against **both** `bg` and
+`bg-surface` — the elevated fill a card-style pilot paints on every
+`.bookmark`, which is where most of this text actually lands. Hue and
+saturation survive. Declare `"muted": "#575653"` on a dark theme and
+`pinboard-themes.js` will say `#918f8a`; that is the guard, not drift.
+Two consequences worth planning for:
+
+* A two-step secondary ramp compresses. Once **both** `muted` and `muted-soft`
+  are held to a text floor, they land close together on light themes. Re-open
+  the gap by moving `muted` and `fg` apart, never by pushing `muted-soft` back
+  under AA.
+* Secondary text may not out-rank body text. `contrast-audit` fails a palette
+  where `muted`/`muted-soft` end up with *more* contrast against `bg` than `fg`
+  does. When that fires, the ramp is too narrow: move `fg` further from the
+  background, or pull `bg-surface` closer to `bg`. Do not lower the secondary
+  tier — it is already sitting on its AA floor.
+
+**Optional slot: `scrollbar-thumb`.** Defaults to the derived `muted`, then
+passes through `borderToAA()` against `bg-surface` (its track) at WCAG 1.4.11's
+3:1 **non-text** floor. It exists so "is the prose legible" and "is the thumb
+visible" stop being one decision; declare it only if your theme wants a thumb
+that is not a shade of its secondary text.
+
+**Hover has to look like something.** `contrast-audit` also pairs every rule
+whose selector carries `:hover` and sets a `color` with the same selector minus
+`:hover`, and measures the two in ΔE2000 (perceptual distance — the WCAG ratio
+is luminance-only and scores a green→pink hover the same as no change at all).
+Below ΔE 6 with no other channel changing (background, opacity, underline…) the
+pair is counted as debt and the ratchet may not grow. The usual cause is an
+`overrides.css` line that pins a `:hover` color to a value the palette has since
+moved onto: if you restate a hover color at all, restate it against the tier it
+has to differ from.
+
 The reverse applies to `palette.on-accent` and `palette.on-link-hover`: the
 composer derives them *for* you, so never declare them, and never assume
 `btn-fg` is what lands on an accent fill. **Two different tokens share the name

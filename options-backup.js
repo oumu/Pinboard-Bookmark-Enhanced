@@ -205,6 +205,63 @@ function pbpBackupImportResultKey(result) {
     : "backupImportNothing";
 }
 
+// This page is the THIRD writer of a pbp_hl_<page> record: the reader
+// (md-highlight.js) rewrites it from its own tab, library.html deletes from it,
+// and chrome.storage has no compare-and-swap. Restoring a backup is not itself
+// a read-modify-write -- it writes what the file says -- so it cannot lose its
+// OWN data, but it can land in the middle of somebody else's: a reader tab
+// reads X, this import writes Y, the reader writes back X+A and Y is gone.
+// Web Locks are origin-scoped, so every extension page and the MV3 worker queue
+// on one name. That name is the contract with md-highlight.js's _pbpHlLockName
+// and library-notes.js's _pbpNotesRecordLockName -- "pbp-hl:" + the storage key
+// -- and all three copies must keep producing the same string or the mutual
+// exclusion silently stops existing. Duplicated rather than hoisted into
+// shared.js for the same reason those two are: isolated script contexts, and
+// the shared thing is the string, not the function.
+const PBP_BACKUP_HL_RECORD_LOCK_PREFIX = "pbp-hl:";
+function pbpBackupHighlightLockName(key) { return PBP_BACKUP_HL_RECORD_LOCK_PREFIX + key; }
+
+let pbpBackupHighlightLockWarned = false;
+
+// Degrades to a bare call where Web Locks are missing (direct-open test pages,
+// insecure contexts): the import still lands, exactly as it did before the lock
+// existed. Says so once -- dropping to a weaker guarantee in silence is the
+// swallowed degradation the repo's leave-a-trace rule exists for.
+function pbpBackupHighlightWithRecordLock(key, work) {
+  const locks = typeof navigator !== "undefined" && navigator.locks;
+  if (locks && typeof locks.request === "function") return locks.request(pbpBackupHighlightLockName(key), work);
+  if (!pbpBackupHighlightLockWarned) {
+    pbpBackupHighlightLockWarned = true;
+    console.warn("[backup] Web Locks unavailable: highlight import is not serialised against the reader");
+  }
+  return Promise.resolve().then(work);
+}
+
+// One lock per record, taken and released around that record's own set --
+// never one lock over the whole batch, and never one global name: restoring 50
+// pages must not make page 2 wait on page 1's reader tab, and a reader
+// highlighting page B must not wait on this import writing page A. The price is
+// one storage trip per record instead of one for all of them, which is the
+// cheap half of the trade (storage.local has no write-rate quota; a lost
+// highlight has no undo).
+//
+// Only per-record keys need the lock. pbp_hl_last_color is a scalar nobody
+// read-modify-writes, and anything else that reaches here is not a highlight
+// record -- those go out in a single unlocked trip so they cost nothing.
+// Failures still propagate to the caller, which reports the section failed.
+async function pbpBackupWriteHighlights(cleaned) {
+  const records = [];
+  const rest = {};
+  for (const [key, value] of Object.entries(cleaned || {})) {
+    if (pbpIsHighlightBackupKey(key) && key !== "pbp_hl_last_color") records.push([key, value]);
+    else rest[key] = value;
+  }
+  if (Object.keys(rest).length) await chrome.storage.local.set(rest);
+  for (const [key, value] of records) {
+    await pbpBackupHighlightWithRecordLock(key, () => chrome.storage.local.set({ [key]: value }));
+  }
+}
+
 // Applies the selected sections of one already-preflighted backup. Each
 // section reports its own outcome so a later failure cannot hide earlier
 // committed writes.
@@ -342,7 +399,9 @@ async function pbpApplyBackupPayload(data, {
         result.highlights = "failed";
       } else {
         const cleaned = pbpCleanHighlightBackup(prepared.highlights);
-        if (Object.keys(cleaned).length) await chrome.storage.local.set(cleaned);
+        // Per-record locked write; see pbpBackupWriteHighlights. Empty input
+        // writes nothing and still reports applied, as the flat set did.
+        await pbpBackupWriteHighlights(cleaned);
         result.highlights = "applied";
       }
     } catch (_) {

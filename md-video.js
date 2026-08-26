@@ -1952,6 +1952,32 @@ async function pbpYtDomTranscriptInPage(vid, opts) {
   // Owner scope for that persistence (closing review M7): view choices are
   // per-Pinboard-account, like every other account-derived record.
   let _ownerNow = "ownerless";
+  // One spelling of the scope, shared by the mount and the switch below (it
+  // matches md-ai-core.js's _pbpTrOwnerScope; kept local so this file has no
+  // load-order dependency on it, and so retro V5's rule -- _ownerNow is
+  // ALREADY scoped, never re-scope it -- has a single place to live).
+  const _videoOwnerScope = (account) => (account ? "acct_" + encodeURIComponent(account) : "ownerless");
+  // A reader tab outlives an account switch, so this is a snapshot that has to
+  // be re-pointed rather than a constant. md-preview.js's credential listener
+  // dispatches the same frozen {account} detail the article events carry;
+  // pbpVideoInit reads the live previewAccount, so a switch arriving BEFORE
+  // the panel mounts is simply overwritten with the identical value.
+  //
+  // Nothing else moves with it, on purpose. _savedRec is a session snapshot
+  // whose density/rate/track choices are ALREADY applied to the UI -- dropping
+  // it would half-undo the reader's current session without restoring
+  // anything -- and _aiBatchCache holds punctuation this reader already paid
+  // for, keyed by cue text, not by account. Re-pointing the key is what stops
+  // the next write (resume position, view/density/track, the vpunct_ entry
+  // persistPunctBatch appends to) from landing in the previous account's
+  // partition; the reads that already happened stay as they are. A switch
+  // DURING an AI-punctuation pass therefore splits that run's batches across
+  // two vpunct_ entries -- each one still correct and keyed by its own cue
+  // hashes, and the next open re-pays only the batches its owner is missing.
+  document.addEventListener("pbp:account-changed", (e) => {
+    const account = (e && e.detail && typeof e.detail.account === "string") ? e.detail.account : "";
+    _ownerNow = _videoOwnerScope(account);
+  });
   // Per-view scroll memory within this page session (audit U11): both study
   // views share the PAGE scroller in video-mode, so switching used to dump
   // the reader at whatever offset the other view left behind.
@@ -2395,10 +2421,17 @@ async function pbpYtDomTranscriptInPage(vid, opts) {
   //  2. /youtubei/v1/player with the IOS client: its captionTracks baseUrls
   //     are not PO-Token-gated (community-verified 2026-01), then json3.
   async function ytTabPanelTranscript(tabId, videoId, hl, fallbackParams) {
+    // A live tab, resolved NOW, exactly as ytTabPlayerCaptionCapture does:
+    // prepareVideoSession picked the fetch tab before the timedtext routes
+    // and the earlier rescue tiers spent their budgets (tens of seconds
+    // each), and the user may have closed THAT tab meanwhile while another
+    // tab on the same video stayed open the whole time.
+    const liveTab = await ytFindFetchTab(tabId, videoId);
+    if (liveTab == null) { console.info("[pbp-video] panel rescue: no www.youtube.com tab is open"); return null; }
     let inj = null;
     try {
       inj = await chrome.scripting.executeScript({
-        target: { tabId },
+        target: { tabId: liveTab },
         world: "MAIN",
         func: async (vid, lang, fbParams) => {
           // out.trace carries WHY each route failed back to the extension
@@ -2502,7 +2535,10 @@ async function pbpYtDomTranscriptInPage(vid, opts) {
         args: [videoId, hl || "", fallbackParams || ""],
       });
     } catch (e) {
-      console.warn("[pbp-video] rescue injection failed:", (e && e.message) || e);
+      const msg = (e && e.message) || String(e);
+      // Closed between the query and the injection: expected, not an error.
+      if (/No tab with id/i.test(msg)) console.info("[pbp-video] panel rescue: the tab closed mid-run");
+      else console.warn("[pbp-video] rescue injection failed:", msg);
       return null;
     }
     const r = inj && inj[0] && inj[0].result;
@@ -2534,16 +2570,25 @@ async function pbpYtDomTranscriptInPage(vid, opts) {
   //     with scroll-and-accumulate, since the list is virtualized and
   //     recycles off-screen rows.
   async function ytTabDomTranscript(tabId, videoId) {
+    // A live tab, resolved NOW, exactly as ytTabPlayerCaptionCapture does:
+    // this is the LAST tier, minutes past the fetch tab's resolution, and
+    // the tab picked back then may be gone while another tab on the same
+    // video is still open.
+    const liveTab = await ytFindFetchTab(tabId, videoId);
+    if (liveTab == null) { console.info("[pbp-video] dom transcript: no www.youtube.com tab is open"); return null; }
     let inj = null;
     try {
       inj = await chrome.scripting.executeScript({
-        target: { tabId },
+        target: { tabId: liveTab },
         world: "MAIN", // the fetch/XHR taps must live in the page world
         args: [videoId || ""],
         func: pbpYtDomTranscriptInPage,
       });
     } catch (e) {
-      console.warn("[pbp-video] dom transcript injection failed:", (e && e.message) || e);
+      const msg = (e && e.message) || String(e);
+      // Closed between the query and the injection: expected, not an error.
+      if (/No tab with id/i.test(msg)) console.info("[pbp-video] dom transcript: the tab closed mid-run");
+      else console.warn("[pbp-video] dom transcript injection failed:", msg);
       return null;
     }
     const r = inj && inj[0] && inj[0].result;
@@ -5156,8 +5201,9 @@ async function pbpYtDomTranscriptInPage(vid, opts) {
       return;
     }
     _detectedNow = detected; // per-video persistence identity (audit U4)
-    _ownerNow = (typeof ctx.account === "string" && ctx.account)
-      ? "acct_" + encodeURIComponent(ctx.account) : "ownerless"; // owner scope (M7)
+    // Owner scope (M7). Re-pointed live afterwards by the pbp:account-changed
+    // listener up beside _ownerNow's declaration.
+    _ownerNow = _videoOwnerScope(typeof ctx.account === "string" ? ctx.account : "");
     const view = document.getElementById("rendered-view");
     if (!view || !view.parentNode || document.getElementById("video-panel")) {
       console.info("[pbp-video] mount skipped:", !view ? "no #rendered-view" : (document.getElementById("video-panel") ? "panel already mounted" : "detached view"));

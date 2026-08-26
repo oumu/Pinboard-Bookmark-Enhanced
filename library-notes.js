@@ -427,7 +427,21 @@ function _pbpNotesBuildBackBtn() {
   // cross, like the vocabulary pane's back control: closing the detail IS the
   // gesture, and the icon registry has no arrowLeft.
   setBtnIcon(back, "cross", t("libraryBack"));
-  back.addEventListener("click", () => _pbpNotesRenderDetail(null));
+  back.addEventListener("click", () => {
+    // Read the row to return to BEFORE the pane closes: _pbpNotesRenderDetail
+    // (null) drops `lib-narrow-notes`, which at <=860px takes this whole pane
+    // -- and with it the button focus is sitting on -- off screen, and it
+    // also clears the aria-current marker this query reads. Chrome then
+    // resets focus to <body>, and with no skip link on the page the way back
+    // is a full Tab walk through the header and the toolbar. Mirror image of
+    // _pbpNotesFocusNarrowBack, which fixes the same fall-through on the way
+    // INTO the detail.
+    const row = document.querySelector("#notes-list .notes-hit[aria-current] .notes-hit-btn");
+    _pbpNotesRenderDetail(null);
+    // _pbpNotesFocus reports a focus that did not take (a row the filter
+    // hides, or one the rebuild dropped), so the filter box catches those.
+    if (!_pbpNotesFocus(row)) _pbpNotesFocus($id("notes-filter"));
+  });
   return back;
 }
 
@@ -619,6 +633,103 @@ function _pbpNotesRenderList(hits) {
   _pbpNotesSyncSelectionUi();
 }
 
+// Where the status sentence lives. Two things make this a lookup rather than
+// a constant selector:
+//
+// 1. The class is not unique to this view. #view-vocab opens with a
+//    `<div class="notes-toolbar vocab-filter-toolbar">` of its own, EARLIER in
+//    document order, so an unscoped `document.querySelector(".notes-toolbar")`
+//    parked every notes message inside the vocabulary search row -- invisible
+//    while Notes is up (the whole view is `hidden`), unannounced (a live
+//    region in a display:none subtree says nothing), and then surfacing as a
+//    stale sentence next to #vocab-search on the way back.
+// 2. Below the two-pane threshold this view shows the list OR the detail, and
+//    the hidden half is `display: none` (`body.lib-narrow-notes
+//    .notes-list-pane`). The list toolbar is the right home whenever it is on
+//    the page -- it is also the ONLY home for batch failures, since clearing
+//    the selection collapses the batch bar to height 0 and takes the button
+//    that was pressed with it -- but when the list pane is gone the detail's
+//    own action row is what the user is looking at.
+function _pbpNotesStatusHost() {
+  const view = $id("view-notes");
+  if (!view) return null;
+  const toolbar = view.querySelector(".notes-toolbar");
+  // offsetParent is null exactly for a display:none subtree here (nothing in
+  // this view is position:fixed).
+  if (toolbar && toolbar.offsetParent) return toolbar;
+  return view.querySelector(".notes-detail-footer") || toolbar;
+}
+
+// Delete failures used to be colour only: a red edge on the row, or on the
+// button, with no words. Colour alone cannot say what failed or what to do
+// next, and it says nothing at all to a screen reader. This is the live
+// region that carries the sentence -- created once, empty, next to the list's
+// other counters, so it is already in the accessibility tree when text lands
+// in it (.save-status:empty collapses it the rest of the time). Reuses an
+// element from the markup if one with this id is ever added there.
+function _pbpNotesStatusEl() {
+  const host = _pbpNotesStatusHost();
+  if (!host) return null;
+  const existing = $id("notes-status");
+  // Move the same node rather than build a second one: one id, one live
+  // region. Callers reposition it while CLEARING (before the await that may
+  // fail), never in the tick the sentence is written, so the region is always
+  // settled in the accessibility tree by the time text lands in it.
+  if (existing) {
+    if (existing.parentNode !== host) host.appendChild(existing);
+    return existing;
+  }
+  const el = document.createElement("span");
+  el.id = "notes-status";
+  el.className = "save-status notes-main-status";
+  el.setAttribute("role", "status");
+  el.setAttribute("aria-live", "polite");
+  host.appendChild(el);
+  return el;
+}
+
+// `notesDeleteFailed` now ships in all nine locales, so t() answers with real
+// copy. The English fallback stays as a guard, not a placeholder: t() echoes
+// an UNKNOWN key straight back to the screen, so if a locale file ever loses
+// this entry the user would read the key name instead of a sentence.
+const PBP_NOTES_DELETE_FAILED_KEY = "notesDeleteFailed";
+function _pbpNotesSetStatus(text) {
+  const el = _pbpNotesStatusEl();
+  if (!el) return;
+  if (!text) { el.classList.remove("ok", "bad"); el.textContent = ""; return; }
+  setStatusIcon(el, false, text);
+}
+
+function _pbpNotesDeleteFailedText() {
+  const msg = t(PBP_NOTES_DELETE_FAILED_KEY);
+  return msg === PBP_NOTES_DELETE_FAILED_KEY ? "Couldn't delete these highlights. Try again." : msg;
+}
+
+// This page is not the only writer of a pbp_hl_<page> record: the reader
+// (md-highlight.js) rewrites the same key from its own tab, and chrome.storage
+// has no compare-and-swap -- get and set are two independent trips. Re-reading
+// immediately before the rewrite (below) narrows the lost-update window but
+// cannot close it: both contexts can read the same base and the later set wins.
+// Web Locks are origin-scoped, so library.html, every reader tab and the MV3
+// worker queue on one name. That name is the contract with md-highlight.js's
+// _pbpHlLockName -- "pbp-hl:" + the storage key, per record so one page's
+// delete never blocks another's. The helper is deliberately duplicated rather
+// than hoisted into shared.js: these are isolated script contexts and the
+// shared thing is the string, not the function.
+const PBP_NOTES_RECORD_LOCK_PREFIX = "pbp-hl:";
+function _pbpNotesRecordLockName(key) { return PBP_NOTES_RECORD_LOCK_PREFIX + key; }
+
+let _pbpNotesLockWarned = false;
+function _pbpNotesWithRecordLock(key, work) {
+  const locks = typeof navigator !== "undefined" && navigator.locks;
+  if (locks && typeof locks.request === "function") return locks.request(_pbpNotesRecordLockName(key), work);
+  if (!_pbpNotesLockWarned) {
+    _pbpNotesLockWarned = true;
+    console.warn("[notes] Web Locks unavailable: highlight deletes are not serialised against the reader");
+  }
+  return Promise.resolve().then(work);
+}
+
 // Same anchored confirm popover as every other destructive micro-action
 // (theme delete, tab reset, offline-queue remove) — never window.confirm.
 // showConfirmPopover lives in shared.js, which the standalone test page does
@@ -635,8 +746,18 @@ function _pbpNotesDelete(row, anchor) {
       // the list is rebuilt (the confirm popover restored focus to the delete
       // button, which the rebuild removes -- otherwise focus falls to <body>).
       const position = Math.max(0, _pbpNotesVisibleHits().findIndex((h) => h.key === _pbpNotesSelectedKey));
+      // A retry starts clean: the previous attempt's marks and sentence must
+      // not read as if they described this one.
+      _pbpNotesSetStatus("");
+      if (anchor) anchor.classList.remove("is-error");
+      const priorErr = _pbpNotesRowEl(_pbpNotesSelectedKey);
+      if (priorErr) priorErr.classList.remove("is-error");
       try {
-        await chrome.storage.local.remove(row.key);
+        // Under the record lock even though a whole-key remove is a single
+        // trip: without it the removal can land in the middle of a reader
+        // tab's get -> patch -> set, whose set then re-creates the record the
+        // user just deleted.
+        await _pbpNotesWithRecordLock(row.key, () => chrome.storage.local.remove(row.key));
       } catch (e) {
         // A swallowed failure looked identical to success (popover closed,
         // row still there, zero feedback). Pin it to the row it happened on
@@ -648,6 +769,12 @@ function _pbpNotesDelete(row, anchor) {
         // button the user actually pressed.
         if (rowEl) rowEl.classList.add("is-error");
         else if (anchor) anchor.classList.add("is-error");
+        // ...and colour is not a message: say what happened, in the live
+        // region, in words. Nothing was removed and nothing was rebuilt, so
+        // the record is intact and the confirm popover's focus restore has
+        // already put the caret back on the Delete button -- pressing it
+        // again is the retry.
+        _pbpNotesSetStatus(_pbpNotesDeleteFailedText());
         return;
       }
       _notesAllRows = _notesAllRows.filter((e) => e.row.key !== row.key);
@@ -681,10 +808,21 @@ function _pbpNotesBatchDelete() {
     noText: t("cancel"),
     onConfirm: async () => {
       if (_notesBatchBusy) return;
+      // A retry starts clean, same rule as the single-row delete: the previous
+      // attempt's mark and sentence must not read as if they described this
+      // one. Clearing here also settles the live region into the DOM before
+      // the awaits below, so anything written later is an update to a region
+      // the screen reader is already watching.
       button.classList.remove("is-error");
+      _pbpNotesSetStatus("");
       const now = _notesSelected;
       if (now.size !== snapshot.length || !snapshot.every((k) => now.has(k))) {
+        // Nothing was deleted, and the confirm counted a set that no longer
+        // exists. A red edge cannot say that; borrow the sentence the
+        // vocabulary list already ships for this exact guard (view-neutral
+        // wording, already in all nine locales).
         button.classList.add("is-error");
+        _pbpNotesSetStatus(t("vocabSelectionChanged"));
         return;
       }
       _notesBatchBusy = true;
@@ -693,28 +831,38 @@ function _pbpNotesBatchDelete() {
       let failed = 0;
       try {
         for (const { row } of _notesAllRows) {
+          // Pages this batch does not touch cost nothing: hit keys are
+          // `${row.key}#${id}`, so the selection already says which records
+          // will change. Reading (and locking) every other record just to
+          // filter it unchanged is work taken for nothing -- and a lock held
+          // for nothing is a reader tab blocked for nothing.
+          const prefix = row.key + "#";
+          if (!snapshot.some((k) => k.startsWith(prefix))) continue;
           try {
-            // Re-read immediately before the rewrite. The scan snapshot
-            // (`rec`) can be seconds old by the time a confirm is answered,
-            // and the reader writes these records from another tab -- a
-            // read-modify-write off the stale copy would silently discard
-            // every highlight added to that page in between. Deliberately
-            // NOT hoisted out of the loop: one page's write must not be
-            // based on a read taken before another page's write.
-            const fresh = (await chrome.storage.local.get(row.key))[row.key];
-            // Gone already (deleted elsewhere while the confirm was open):
-            // nothing to remove, and re-creating it would be worse.
-            if (!fresh) continue;
-            const items = Array.isArray(fresh.items) ? fresh.items : [];
-            // ponytail: _pbpNotesHitKey falls back to the array index for
-            // legacy items with no `id`, so on such a record a concurrent
-            // insertion could shift which item a key names. Every item the
-            // reader writes carries an id; upgrade path is an id backfill in
-            // md-highlight.js, not more logic here.
-            const keep = items.filter((it, idx) => !drop.has(_pbpNotesHitKey(row.key, it, idx)));
-            if (keep.length === items.length) continue;
-            if (keep.length) await chrome.storage.local.set({ [row.key]: { ...fresh, items: keep } });
-            else await chrome.storage.local.remove(row.key);
+            // Read AND rewrite inside the record's lock. The re-read alone
+            // (the scan snapshot `rec` can be seconds old by the time a
+            // confirm is answered, and the reader writes these records from
+            // another tab) only narrows the lost-update window; the lock is
+            // what stops the reader from committing between this get and this
+            // set. Per record, inside the loop, on purpose: one page's write
+            // must neither be based on a read taken before another page's
+            // write nor hold another page's lock while it happens.
+            await _pbpNotesWithRecordLock(row.key, async () => {
+              const fresh = (await chrome.storage.local.get(row.key))[row.key];
+              // Gone already (deleted elsewhere while the confirm was open):
+              // nothing to remove, and re-creating it would be worse.
+              if (!fresh) return;
+              const items = Array.isArray(fresh.items) ? fresh.items : [];
+              // ponytail: _pbpNotesHitKey falls back to the array index for
+              // legacy items with no `id`, so on such a record a concurrent
+              // insertion could shift which item a key names. Every item the
+              // reader writes carries an id; upgrade path is an id backfill in
+              // md-highlight.js, not more logic here.
+              const keep = items.filter((it, idx) => !drop.has(_pbpNotesHitKey(row.key, it, idx)));
+              if (keep.length === items.length) return;
+              if (keep.length) await chrome.storage.local.set({ [row.key]: { ...fresh, items: keep } });
+              else await chrome.storage.local.remove(row.key);
+            });
           } catch (e) {
             // Name/message only, never highlight or note content.
             console.warn("[notes] batch delete failed", e && e.name, e && e.message);
@@ -730,9 +878,16 @@ function _pbpNotesBatchDelete() {
       await renderNotesPanel();
       if (stillThere || !_pbpNotesFindHit(_pbpNotesSelectedKey)) _pbpNotesRenderDetail(null);
       // A swallowed failure looks exactly like success (popover closed, rows
-      // still there, no feedback) -- pin it to the button that was pressed,
-      // the one control guaranteed to still be on screen.
-      if (failed) button.classList.add("is-error");
+      // still there, no feedback). The mark still goes on the button that was
+      // pressed, but it cannot be the only signal: _pbpNotesClearSelection()
+      // above just dropped `.selecting` from the batch bar, which collapses it
+      // to height 0 / visibility hidden -- that button is off the screen by
+      // the time this runs. The sentence in the list toolbar's live region is
+      // what the user, and the screen reader, actually get.
+      if (failed) {
+        button.classList.add("is-error");
+        _pbpNotesSetStatus(_pbpNotesDeleteFailedText());
+      }
       _pbpNotesFocusAfterDelete(0);
     },
   });

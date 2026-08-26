@@ -455,6 +455,17 @@
       }
     }
   },
+  "batchInterrupted": {
+    "message": "Пакетное сохранение прервано на $DONE$/$TOTAL$ — запустите его снова, чтобы сохранить оставшиеся вкладки.",
+    "placeholders": {
+      "done": {
+        "content": "$1"
+      },
+      "total": {
+        "content": "$2"
+      }
+    }
+  },
   "batchTaggedSuffix": {
     "message": " (метки: $TAGS$)",
     "placeholders": {
@@ -792,6 +803,9 @@
   "notesBatchDeleteConfirm": {
     "message": "Удалить выбранные выделения ($COUNT$)?",
     "placeholders": { "count": { "content": "$1" } }
+  },
+  "notesDeleteFailed": {
+    "message": "Не удалось удалить эти выделения. Повторите попытку."
   },
   "tabQuickActions": {
     "message": "Быстрые действия"
@@ -2204,6 +2218,9 @@
         "content": "$2"
       }
     }
+  },
+  "tagGovAlreadyOneTag": {
+    "message": "Эти теги различаются только регистром — Pinboard и так хранит их как один тег, объединять нечего. Это предложение удалено из списка."
   },
   "tagGovConfirmDelete": {
     "message": "Удалить $N$ выбранных тегов? (безвозвратно)",

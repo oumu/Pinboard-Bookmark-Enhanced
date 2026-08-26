@@ -1729,6 +1729,25 @@ async function _pbpTrEnsureGlossary(st) {
   return st.glossary;
 }
 
+// Per-request stream options, shared by the batch queue (_pbpTrStart) and the
+// single-block retry (_pbpTrTranslateBlock). The two used to size their output
+// budget independently and drifted nearly 4x apart on the same CJK block.
+// pbpAiEstimateTokens is chars/4, a Latin calibration, and feeding it the
+// SOURCE length to size the OUTPUT under-provisions by exactly the expansion
+// factor when the source is CJK. The value goes straight to each provider's
+// hard max_tokens, so the translation is cut off mid-block rather than failing
+// loudly. Size the estimate off the projected output instead. Over-provisioning
+// is close to free: max_tokens is a ceiling, not a charge.
+function _pbpTrStreamOpts(sourceText, model, signal) {
+  const chars = String(sourceText || "").length;
+  const projected = chars * (1 + 3.5 * pbpTrCjkShare(sourceText));
+  return {
+    system: "", model, signal,
+    temperature: 0.1, noThinking: true,
+    maxTokens: Math.min(8192, Math.max(1024, pbpAiEstimateTokens(projected) * 3))
+  };
+}
+
 async function _pbpTrStart(st) {
   if (st.running) return;
   st.running = true;                       // claim the run synchronously so a double-click during
@@ -1803,22 +1822,8 @@ async function _pbpTrStart(st) {
   if (st.glossaryAuto) st.runMeta.ag = st.glossaryAuto;
   const model = pbpAiResolveModelOverride(st.s);
   const baseArgs = { targetLanguage: st.target.name, targetCode: st.target.code, title: st.title, summary };
-  // pbpAiEstimateTokens is chars/4, a Latin calibration, and it was being fed
-  // the SOURCE length to size the OUTPUT. That under-provisions by exactly the
-  // expansion factor when the source is CJK, and the value goes straight to
-  // each provider's hard max_tokens, so the translation is cut off mid-block
-  // rather than failing loudly. Size the estimate off the projected output
-  // instead. Over-provisioning is close to free: max_tokens is a ceiling, not
-  // a charge.
-  const streamOpts = (sourceText) => {
-    const chars = String(sourceText || "").length;
-    const projected = chars * (1 + 3.5 * pbpTrCjkShare(sourceText));
-    return {
-      system: "", model, signal: st.ctrl.signal,
-      temperature: 0.1, noThinking: true,
-      maxTokens: Math.min(8192, Math.max(1024, pbpAiEstimateTokens(projected) * 3))
-    };
-  };
+  // st.ctrl is re-read per call: the run installs a fresh controller each start.
+  const streamOpts = (sourceText) => _pbpTrStreamOpts(sourceText, model, st.ctrl.signal);
 
   const requestBatch = (segments, onItem) => {
     const glossary = pbpTrMatchGlossary(st.glossary, segments);
@@ -2265,6 +2270,17 @@ async function _pbpTrTranslateBlock(st, w, signal) {
     ? { chunks: [w.shielded.text], seps: [""] }
     : _pbpTrSplitText(w.shielded.text, PBP_TR_PART_LIMIT);
   const ctx = _pbpTrTableHeaderCtx(split.chunks);   // A7: same three-gate ctx as the batch queue path (_pbpTrStart)
+  const model = pbpAiResolveModelOverride(st.s);
+  // Same already-cached summary the batch path sends as reference context
+  // (never generates one -- strict user-invoked rule); read here rather than
+  // shared with _pbpTrStart because a retry can happen with no run in this
+  // session, so there is no run-scoped value to inherit.
+  let summary = "";
+  try {
+    const activeSeg = document.querySelector("#source-badge .src-seg.active");
+    const source = (activeSeg && activeSeg.getAttribute("data-engine") === "jina") ? "jina" : "local";
+    summary = (await getAICache(st.url, "summary", st.s.aiCacheDuration, source, st.account, st.s)) || "";
+  } catch (_) {}
   const out = [];
   let failedParts = 0;
   for (let i = 0; i < split.chunks.length; i++) {
@@ -2275,17 +2291,18 @@ async function _pbpTrTranslateBlock(st, w, signal) {
     const seg = { id: w.n, text: sendText };
     const hits = pbpTrMatchGlossary(glossary, [seg]);
     _pbpTrAddGlossaryHits(st, hits);
+    // Same baseArgs shape as the batch path: without targetCode the style pack
+    // silently degrades to the generic one, so a retried block comes back in a
+    // visibly different house style from its neighbours -- and gets cached that way.
     const { system, prompt } = pbpTrBuildPrompt({
-      targetLanguage: st.target.name, title: st.title,
-      glossary: hits, segments: [seg]
+      targetLanguage: st.target.name, targetCode: st.target.code, title: st.title,
+      summary, glossary: hits, segments: [seg]
     });
     let got = null;
     const parser = pbpAiMakeStreamJsonParser((it) => { if (it.id === w.n) got = it.text; });
-    const full = await callAIStream(st.s, prompt, {
-      system, model: pbpAiResolveModelOverride(st.s),
-      temperature: 0.1, noThinking: true, signal,
-      maxTokens: Math.min(8192, Math.max(1024, pbpAiEstimateTokens(sendText.length) * 3))
-    }, (d, acc) => parser.push(acc));
+    const opts = _pbpTrStreamOpts(sendText, model, signal);
+    opts.system = system;
+    const full = await callAIStream(st.s, prompt, opts, (d, acc) => parser.push(acc));
     parser.finish(full);
     // Conservation/length-ratio gates compare SENT vs RETURNED text, same as
     // the queue path -- ctx is present on both sides here, so it can't skew them.
@@ -2839,6 +2856,36 @@ function _pbpTrOnArticleReplaced(detail) {
   }).catch(() => {});
 }
 
+// Live Pinboard account switch (md-preview.js's credential listener, same
+// frozen {account} detail the article events carry). st.account is the owner
+// half of EVERY key this file writes -- tr_ block cache, gloss_ auto-glossary,
+// trview_ remembered view mode -- and it was frozen at pbpTrInit, so without
+// this a translation started after the switch was paid for by the new reader
+// and filed under the previous account: they never hit that cache again, and
+// the previous account gets a free ride on the next open.
+//
+// Deliberately NOT a teardown. Unlike will-replace, the ARTICLE did not
+// change: the translations on screen, st.work, st.trMd and the view mode are
+// all article-derived and stay exactly as the reader left them. Only the key
+// owner moves, so the NEXT read and the next write use the account that is
+// actually signed in -- the same "re-point, don't rebuild" response md-dict.js
+// gives this event.
+function _pbpTrOnAccountChanged(account) {
+  const st = _pbpTrState;
+  if (!st) return;                          // AI off / entry hidden: no keys exist yet
+  const acct = String(account || "");
+  if (st.account === acct) return;
+  st.account = acct;
+  // A run already in flight now finishes against the new owner's entry, and a
+  // replace write would DELETE whatever that account had cached for this
+  // url/lang/model and stand this run's blocks in its place. Disarm it for the
+  // same reason the will-replace teardown does: a merge can only add blocks,
+  // and every block is keyed by its own content hash, so the worst case is one
+  // run's output split across two accounts' entries -- never a partition
+  // clobbered by a run that was never about it.
+  st.replaceRun = false;
+}
+
 // Init hookup: top-level listener registration only (no other side effects;
 // the tests page loads this file on file:// and never fires the event).
 if (typeof document !== "undefined") {
@@ -2849,4 +2896,5 @@ if (typeof document !== "undefined") {
   // times in one page life (track switch, AI punctuation, promotion).
   document.addEventListener("pbp:article-will-replace", (e) => _pbpTrOnArticleWillReplace((e && e.detail) || {}));
   document.addEventListener("pbp:article-replaced", (e) => _pbpTrOnArticleReplaced((e && e.detail) || {}));
+  document.addEventListener("pbp:account-changed", (e) => _pbpTrOnAccountChanged((e && e.detail && e.detail.account) || ""));
 }

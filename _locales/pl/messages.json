@@ -455,6 +455,17 @@
       }
     }
   },
+  "batchInterrupted": {
+    "message": "Zapis zbiorczy przerwany na $DONE$/$TOTAL$ — uruchom go ponownie, aby zapisać pozostałe karty.",
+    "placeholders": {
+      "done": {
+        "content": "$1"
+      },
+      "total": {
+        "content": "$2"
+      }
+    }
+  },
   "batchTaggedSuffix": {
     "message": " (tagi: $TAGS$)",
     "placeholders": {
@@ -792,6 +803,9 @@
   "notesBatchDeleteConfirm": {
     "message": "Usunąć wybrane zaznaczenia ($COUNT$)?",
     "placeholders": { "count": { "content": "$1" } }
+  },
+  "notesDeleteFailed": {
+    "message": "Nie można usunąć tych zaznaczeń. Spróbuj ponownie."
   },
   "tabQuickActions": {
     "message": "Skróty"
@@ -2204,6 +2218,9 @@
         "content": "$2"
       }
     }
+  },
+  "tagGovAlreadyOneTag": {
+    "message": "Te tagi różnią się tylko wielkością liter — Pinboard i tak przechowuje je jako jeden tag, więc nie ma czego łączyć. Ta propozycja została usunięta."
   },
   "tagGovConfirmDelete": {
     "message": "Usunąć $N$ zaznaczonych tagów? (trwale)",

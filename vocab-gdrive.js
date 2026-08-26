@@ -978,7 +978,17 @@ function pbpCreateVocabDriveSyncRunner({
       }
 
       if (needsCheckpoint) {
-        await store.checkpointOwner(owner);
+        // The checkpoint rewrites one outbox row per record in a single IDB
+        // transaction, so a full disk or an exhausted quota aborts it. Claim it
+        // as "local_store" here: letting it reach the outer catch would blame
+        // Drive for a local write failure and skip finishFailure entirely,
+        // leaving the periodic alarm to fail the same way every 15 minutes.
+        try {
+          await store.checkpointOwner(owner);
+        } catch (error) {
+          console.warn("[vocab-drive] checkpoint failed:", error?.name, error?.message);
+          return finishFailure({ error: "local_store" });
+        }
         const cleared = stateWith({}, ["needsCheckpoint"]);
         if (!await store.putAccountState(cleared)) {
           return finishFailure({ error: "local_store" });

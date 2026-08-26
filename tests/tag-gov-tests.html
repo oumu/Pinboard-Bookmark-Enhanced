@@ -161,10 +161,97 @@ suite("pbpTagGovFindGroups: separator", () => {
     assert(sepGroups[0].members.length === 2, "2 members");
   });
 
-  test("no group when only one form exists", () => {
+  test("case-only family is off the table for every pass, not just separator", () => {
     const counts = { "machine-learning": 10 };
     const groups = pbpTagGovFindGroups(counts);
     assert(groups.length === 0, "no group with single form");
+
+    // Category assertion: a bucket whose members ALL lowercase to the same
+    // string is ONE tag server-side (Pinboard tags are case-insensitive). Two
+    // claims follow, and the second is the one that bites:
+    //   (1) it must not be emitted — it has no executable rename, so
+    //       pbpTagGovBuildPlan returns [] and Merge silently does nothing;
+    //   (2) no LATER pass may consume a member either — each spelling's count is
+    //       only a fragment of the family's real count, so a fragment reaching
+    //       the typo pass reads as a rare misspelling of whatever real tag sits
+    //       one edit away, and accepting that merge rewrites the whole family
+    //       (Pinboard filters AND replaces case-insensitively). "Not emitted"
+    //       alone cannot see claim (2): a corpus with no near neighbour returns
+    //       [] whether or not the fragments leaked, which is exactly how the
+    //       leak once shipped green.
+    // Corpora cover the class — arity 2/3, hyphen/underscore/plain spelling,
+    // leading-cap vs all-caps, decoy reached by substitution vs by deletion —
+    // and the predicate is on the class too: no group of ANY kind may name a
+    // family member.
+    const caseOnlyCorpora = [
+      { family: ["Design", "design"], counts: { Design: 40, design: 3 } },
+      { family: ["API", "Api", "api"], counts: { API: 9, Api: 4, api: 2 } },
+      { family: ["Read-Later", "read-later"], counts: { "Read-Later": 12, "read-later": 1 } },
+      { family: ["web_dev", "WEB_DEV"], counts: { web_dev: 7, WEB_DEV: 2 } },
+      // + a decoy one substitution away; the rare spelling is the fragment
+      { family: ["Sharing", "sharing"], counts: { Sharing: 2, sharing: 40, shaving: 12 } },
+      // + a decoy that outweighs the whole family
+      { family: ["Racket", "racket"], counts: { Racket: 1, racket: 20, rocket: 30 } },
+      // arity 3 + a decoy one deletion away
+      { family: ["Report", "report", "REPORT"], counts: { Report: 1, report: 30, REPORT: 2, repor: 20 } },
+      // hyphenated family + substitution decoy
+      { family: ["Read-Later", "read-later"], counts: { "Read-Later": 12, "read-later": 1, "read-latex": 20 } },
+      // underscored family + substitution decoy
+      { family: ["web_dev", "WEB_DEV"], counts: { web_dev: 7, WEB_DEV: 2, web_deb: 40 } }
+    ];
+    for (const { family, counts: cs } of caseOnlyCorpora) {
+      const gs = pbpTagGovFindGroups(cs);
+      const offenders = gs.filter(g => g.members.some(m => family.includes(m.tag)));
+      assert(offenders.length === 0, "case-only family consumed by " +
+        offenders.map(g => g.kind + " " + g.id).join(", ") +
+        " (corpus " + Object.keys(cs).join("/") + ")");
+      // Anything that DOES survive has to be actionable, or Merge is a no-op.
+      for (const g of gs) {
+        assert(pbpTagGovBuildPlan(g.members, g.suggestedCanonical).length > 0,
+          "emitted group needs an executable plan: " + g.id);
+      }
+    }
+
+    // Second class, and the one no `used`-claim in the separator pass could
+    // cover: when a higher-priority pass consumes part of a case family, the
+    // leftover spelling sits in a size-1 separator bucket — no sibling left to
+    // recognise it by — and reaches the typo pass still carrying a fragment
+    // count. A typo merge pairs UNRELATED tags, so it must never name
+    // a family member — while the legitimate plural/separator merge that ate the
+    // sibling must survive untouched (the guard has to be narrow, not a blanket
+    // ban on case families).
+    const fragmentSurvivorCorpora = [
+      // plural eats Design+designs; "design":2 leaks toward "resign":30
+      { family: ["Design", "design"], expectKind: "plural",
+        counts: { Design: 40, design: 2, designs: 1, resign: 30 } },
+      // plural eats Router+routers; "router":1 leaks toward "rooter":30
+      { family: ["Router", "router"], expectKind: "plural",
+        counts: { Router: 20, router: 1, routers: 6, rooter: 30 } }
+    ];
+    for (const { family, expectKind, counts: cs } of fragmentSurvivorCorpora) {
+      const gs = pbpTagGovFindGroups(cs);
+      const leaked = gs.filter(g => g.kind === "typo" && g.members.some(m => family.includes(m.tag)));
+      assert(leaked.length === 0, "case fragment reached the typo pass: " +
+        leaked.map(g => g.id).join(", ") + " (corpus " + Object.keys(cs).join("/") + ")");
+      assert(gs.some(g => g.kind === expectKind), "guard must not eat the legitimate " +
+        expectKind + " group (corpus " + Object.keys(cs).join("/") + ")");
+      for (const g of gs) {
+        assert(pbpTagGovBuildPlan(g.members, g.suggestedCanonical).length > 0,
+          "emitted group needs an executable plan: " + g.id);
+      }
+    }
+
+    // Positive control: the assertions above must be passing for the right
+    // reason. Same spellings and same gate-passing counts, minus the case twin —
+    // the typo pass fires, so an empty result upstream is the case-only rule at
+    // work and not a dead pass.
+    const live = pbpTagGovFindGroups({ sharing: 2, shaving: 40 });
+    assert(live.length === 1 && live[0].kind === "typo", "typo pass still live without a case twin");
+
+    // A bucket that mixes a case variant with a real separator variant still
+    // has work to do, so it must survive.
+    const mixed = pbpTagGovFindGroups({ "my-tag": 10, my_tag: 8, "My-Tag": 3 });
+    assert(mixed.length === 1 && mixed[0].members.length === 3, "mixed bucket still emitted");
   });
 });
 
@@ -306,6 +393,25 @@ suite("pbpTagGovBuildPlan", () => {
       [{tag:"my-tag",count:10},{tag:"my_tag",count:8},{tag:"My-Tag",count:3}], "my-tag");
     assert(plan.length === 1, "one rename survives");
     assert(plan[0].old === "my_tag" && plan[0].new === "my-tag", "sibling rename kept, case-variant skipped");
+
+    // End-to-end category: NO group pbpTagGovFindGroups emits may build an
+    // empty plan, whatever its kind — such a row renders a Merge button that
+    // does nothing and never disappears on reload. Detection and planning must
+    // agree on what counts as an executable rename.
+    const corpus = {
+      Design: 40, design: 3,
+      API: 9, Api: 4, api: 2,
+      "my-tag": 10, my_tag: 8, "My-Tag": 3,
+      "machine-learning": 10, machine_learning: 8, machinelearning: 5,
+      recipe: 10, recipes: 4,
+      javascript: 156, javascrip: 1
+    };
+    const emitted = pbpTagGovFindGroups(corpus);
+    assert(emitted.length > 0, "corpus produces groups to check");
+    for (const g of emitted) {
+      assert(pbpTagGovBuildPlan(g.members, g.suggestedCanonical).length > 0,
+        "group must build a non-empty plan: " + g.kind + " " + g.id);
+    }
   });
 });
 

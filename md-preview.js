@@ -24,6 +24,10 @@ function renderEmptyState(message) {
     view.removeAttribute("aria-busy");
     const wrap = document.createElement("div");
     wrap.className = "empty-state";
+    // The whole view is swapped out, so a screen reader parked in the old
+    // content is given no reason to look: announce the outcome (polite -- there
+    // is nothing to act on here, unlike renderErrorState's retry).
+    wrap.setAttribute("role", "status");
     const p = document.createElement("p");
     p.textContent = message;
     wrap.appendChild(p);
@@ -44,6 +48,9 @@ function renderErrorState(message, retryFn, permissionRequired) {
     view.removeAttribute("aria-busy");
     const wrap = document.createElement("div");
     wrap.className = "empty-state";
+    // assertive, unlike renderEmptyState: this state carries a recoverable
+    // failure and (usually) a retry the reader is expected to act on.
+    wrap.setAttribute("role", "alert");
     const p = document.createElement("p");
     p.textContent = message;
     wrap.appendChild(p);
@@ -55,7 +62,11 @@ function renderErrorState(message, retryFn, permissionRequired) {
       btn.addEventListener("click", async () => {
         if (btn.disabled) return;
         btn.disabled = true;
-        try { await retryFn(); } catch (_) {}
+        // Leave a trace before degrading: retryFn is the whole re-extraction
+        // flow, and a silent swallow left a re-enabled button as the only
+        // symptom. Name/message only -- no payload, no URL.
+        try { await retryFn(); }
+        catch (e) { console.warn("[preview] retry failed", e && e.name, e && e.message); }
         finally { btn.disabled = false; }
       });
       wrap.appendChild(btn);
@@ -105,11 +116,41 @@ async function pbpRequestJinaHostPermission() {
   }
 }
 
+// The page's one polite announcer. Deliberately OUTSIDE #rendered-view: that
+// element carries aria-busy="true" for the whole extraction wait, and an
+// aria-busy subtree is precisely what assistive tech is told not to report
+// changes from -- a live region parked inside it stays silent for exactly the
+// window it exists to narrate. Created once and left EMPTY, then written in a
+// later task: a live region that arrives with its text already in place is
+// widely not announced at all, and re-announcing the same string needs a real
+// mutation (hence the synchronous clear).
+let _pbpAnnouncer = null;
+function pbpAnnounce(text) {
+  const msg = String(text == null ? "" : text).trim();
+  if (!msg || !document.body) return;
+  if (!_pbpAnnouncer || !_pbpAnnouncer.isConnected) {
+    _pbpAnnouncer = document.createElement("div");
+    _pbpAnnouncer.className = "sr-only";
+    _pbpAnnouncer.setAttribute("role", "status");
+    _pbpAnnouncer.setAttribute("aria-live", "polite");
+    document.body.appendChild(_pbpAnnouncer);
+  }
+  const el = _pbpAnnouncer;
+  el.textContent = "";
+  setTimeout(() => { if (el.isConnected) el.textContent = msg; }, 0);
+}
+
 function renderLoadingState(message, note) {
   const view = document.getElementById("rendered-view");
   if (view) {
     const wrap = document.createElement("div");
     wrap.className = "preview-loading";
+    // No role=status on this wrap: #rendered-view goes aria-busy below and
+    // stays that way until a terminal state clears it, so a live region in
+    // here would never be reported. The wait is narrated through the
+    // page-level announcer instead (see pbpAnnounce above), which sits outside
+    // the busy subtree; aria-busy keeps its own job of telling AT that the
+    // region's contents are mid-flight.
     const sp = document.createElement("div");
     sp.className = "preview-spinner";
     sp.setAttribute("aria-hidden", "true");
@@ -127,6 +168,9 @@ function renderLoadingState(message, note) {
     view.setAttribute("aria-busy", "true");
   }
   document.body.classList.add("md-empty");
+  // Message + note, so a reader without sight of the spinner learns both which
+  // engine is running and (for Jina) that it may take a while.
+  pbpAnnounce(note ? message + " " + note : message);
 }
 
 // Heuristic detection of the ARTICLE's script from its text, so #rendered-view gets a
@@ -228,14 +272,26 @@ function pbpBuildBookmarkBadgeModel(resp) {
   return { show: true, tagsShown, tagsFull, isPrivate: resp.shared === "no" };
 }
 
+// Takes the badge off screen. It is account-derived data (a private bookmark's
+// tags and its padlock), so an account switch has to remove it even when the
+// new account's lookup never answers -- offline, no token, or a rejected
+// message all leave the previous account's tags sitting in the rail otherwise.
+function pbpClearBookmarkBadge() {
+  document.querySelectorAll(".bookmark-badge").forEach((el) => el.remove());
+}
+
 // Builds the bookmarked-badge DOM from a mdPreviewBookmarkInfo response and
-// inserts it right after #preview-url. No-op when the model says not to
-// show (unbookmarked / offline / no token / any exception — all collapse
-// to {bookmarked:false} in background.js, so this silently does nothing).
+// inserts it right after #preview-url. Clears any badge already there when
+// the model says not to show (unbookmarked / offline / no token / any
+// exception — all collapse to {bookmarked:false} in background.js).
 // Tags are remote data (Pinboard-stored, not this extension's own strings)
 // so they're only ever set via textContent/title, never innerHTML.
 function renderBookmarkBadge(resp, url) {
   const model = pbpBuildBookmarkBadgeModel(resp);
+  // Idempotent: a re-render after an account switch REPLACES the previous
+  // account's badge instead of stacking a second one after #preview-url, and a
+  // {bookmarked:false} answer clears rather than silently keeping the old one.
+  pbpClearBookmarkBadge();
   if (!model.show) return;
   const urlEl = document.getElementById("preview-url");
   if (!urlEl || !urlEl.parentNode) return;
@@ -370,12 +426,22 @@ function pbpRailCollapseState(stored, defaults) {
 // Read-modify-write a single key into the shared storage object so one
 // section's toggle never clobbers another's remembered state. Best-effort:
 // any failure (including no chrome.storage at all) degrades silently.
+//
+// The RMW is serialized through a page-local queue: two toggles landing inside
+// one storage round trip would both read the same `cur` and the later write
+// would drop the earlier section's new state. Deliberately NOT an onChanged
+// merge -- that would put a cross-window protocol behind a single interface
+// preference, which is well past what this best-effort store is for.
+let _pbpRailQ = Promise.resolve();
 function _pbpRailPersist(key, collapsed) {
   if (typeof chrome === "undefined" || !chrome.storage || !chrome.storage.local) return;
-  chrome.storage.local.get(PBP_RAIL_STORAGE_KEY).then((r) => {
+  // The catch sits at the tail so the chain is always handed on in a resolved
+  // state: one failed write must not poison every later toggle.
+  _pbpRailQ = _pbpRailQ.then(async () => {
+    const r = await chrome.storage.local.get(PBP_RAIL_STORAGE_KEY);
     const cur = (r && typeof r[PBP_RAIL_STORAGE_KEY] === "object" && r[PBP_RAIL_STORAGE_KEY]) || {};
     const next = Object.assign({}, cur, { [key]: collapsed });
-    return chrome.storage.local.set({ [PBP_RAIL_STORAGE_KEY]: next });
+    await chrome.storage.local.set({ [PBP_RAIL_STORAGE_KEY]: next });
   }).catch(() => {});
 }
 
@@ -582,6 +648,14 @@ function pbpReaderSchemeApply() {
   if (mode === _pbpScheme.applied) return; // body-class observer fires on every class flip
   _pbpScheme.applied = mode;
   pbpApplyColorScheme(mode);
+  // Mermaid renders to a data-URI <img>, so no CSS can restyle it -- the
+  // figures have to be re-rendered in the new theme. Hooked HERE rather than
+  // in md-mermaid.js's own listener because this is the ONE funnel all three
+  // scheme inputs pass through (the "Aa" override, the video-mode dark
+  // default, global optTheme), and because pbpMermaidIsDark reads the
+  // colorScheme this line just wrote. typeof guard: the file:// test page
+  // loads md-preview.js without md-mermaid.js.
+  if (typeof pbpMermaidRetheme === "function") pbpMermaidRetheme(document).catch(() => {});
 }
 // md-reader.js's "Aa" panel edits the override through these two hooks
 // (exposed on window: that script loads later and must not depend on load
@@ -732,17 +806,120 @@ window.pbpReaderSchemeSet = function (mode) {
   // it (the restore record carries this same fallback value forward); only
   // opening a fresh preview from the popup/shortcut seeds the real tab URL.
   const sourceTabUrl = (typeof info.sourceTabUrl === "string" && info.sourceTabUrl) || url || "";
-  const previewAccount = typeof info.account === "string" ? info.account : "";
-  const tags = Array.isArray(info.tags) ? info.tags : [];
-  const description = info.description || "";
+  // Not const: this is a SNAPSHOT of the account that was signed in when the
+  // preview was opened, and a reader tab outlives an account switch. Every
+  // owner-scoped consumer downstream (the vocabulary commit in md-dict.js, the
+  // vocab-echo underlines, the bookmark badge, the restore records) reads it
+  // live, so the listener further down re-points it instead of letting them
+  // keep serving the previous account. See the pbp:account-changed dispatch.
+  //
+  // tags/description are NOT independent of it: popup.js/background.js stamp
+  // all three in one breath off the same signed-in session (the save form's
+  // tags and note for THIS account's bookmark). background.js:2062 treats the
+  // storage slot's {account, tags, description} as one immutable ownership
+  // record and refuses to let a message replace it; this page owes the slot
+  // the same consistency, so they are mutable too and are retired together
+  // with the account below. Writing a new account's name over the previous
+  // account's tags/note would launder A's private bookmark data into a record
+  // that every later owner gate reads as B's -- and buildMeta() puts exactly
+  // those two fields into the export frontmatter Send-to ships out.
+  let previewAccount = typeof info.account === "string" ? info.account : "";
+  let tags = Array.isArray(info.tags) ? info.tags : [];
+  let description = info.description || "";
   // X4: raw metadata transported by popup.js/background.js's widened
   // extraction payload. Gated by buildMeta()'s exportSettings.mdExportExtendedMeta
   // check (design spec 4.2) -- this file only reads them here; T4's buildMeta()
   // consumes these consts by closure (same scope as `description` above).
+  // These four stay const: they describe the ARTICLE (its byline, publisher and
+  // hero image), not the reader's account, so an account switch leaves them
+  // alone.
   const author = info.author || "";
   const published = info.published || "";
   const site = info.site || "";
   const image = info.image || "";
+
+  // X2 bookmarked badge, one lookup per account. Armed only once the article
+  // runtime asks for the first time (far below): the pending/error shells
+  // return long before that, and an account switch must not conjure a badge
+  // onto a shell that never had one. Clearing first is the fail-closed half --
+  // an offline/no-token/rejected lookup for the NEW account leaves nothing on
+  // screen rather than the previous account's tags and padlock.
+  let _badgeArmed = false;
+  function refreshBookmarkBadge() {
+    pbpClearBookmarkBadge();
+    // Ownerless previews never ask: background.js answers {bookmarked:false}
+    // without a lookup, and asking anyway would spend a Pinboard call on a
+    // signed-out page.
+    if (url && previewAccount) {
+      chrome.runtime.sendMessage({ type: "mdPreviewBookmarkInfo", url, account: previewAccount })
+        .then((resp) => {
+          // Compared against the LIVE account, not the one this call was sent
+          // with: a second switch while it was in flight must not paint a
+          // stale answer.
+          if (resp?.account === previewAccount) renderBookmarkBadge(resp, url);
+        })
+        .catch(() => {});
+    }
+  }
+
+  // Live Pinboard account switch. Relevance test is library-vocab.js's: only
+  // the credential key and the two routing toggles that decide which area
+  // holds the effective token name a new account, and an identical rewrite
+  // (settings saved with the same token) names none. The account itself is
+  // re-derived through the one correct path -- pbpReadSettingsWithSecrets
+  // picks the routed area and overlays the local secret -- never from a
+  // single area's newValue.
+  if (chrome.storage.onChanged) {
+    let accountGen = 0;
+    chrome.storage.onChanged.addListener(async (changes, area) => {
+      if (area !== "sync" && area !== "local") return;
+      const relevant = [changes.pinboardToken, changes.optSyncEnabled, changes.syncApiKeys].filter(Boolean);
+      if (!relevant.length || relevant.every((c) => c.oldValue === c.newValue)) return;
+      const gen = ++accountGen;
+      let account = "";
+      try {
+        const s = await pbpReadSettingsWithSecrets({ pinboardToken: SETTINGS_DEFAULTS.pinboardToken });
+        account = pbpPinboardAccountFromToken(s.pinboardToken) || "";
+      } catch (e) {
+        // Leave the snapshot in place rather than guessing: md-dict.js and
+        // md-vocab-echo.js each re-check the live owner themselves and fail
+        // closed, so a failed read costs underlines, never a cross-account write.
+        console.warn("[preview] account re-read failed", e && e.name, e && e.message);
+        return;
+      }
+      if (gen !== accountGen || account === previewAccount) return; // a newer event already carried fresher state
+      previewAccount = account;
+      // The rest of the owner stamp retires with it. This page has no bookmark
+      // metadata for the new account (it never re-reads the popup's save form),
+      // so empty is the only honest value: every later slot write now carries a
+      // consistent triple, and exports drop the tags/description block instead
+      // of attributing the previous account's to this one.
+      tags = [];
+      description = "";
+      // Same reason, for the account-derived UI already on screen.
+      if (_badgeArmed) refreshBookmarkBadge();
+      else pbpClearBookmarkBadge();
+      // Same frozen {account} detail the article lifecycle events carry, so the
+      // owner-scoped modules re-derive their scope exactly as a fresh render
+      // makes them -- without claiming the article itself was replaced.
+      //
+      // CONTRACT for subscribers (md-dict.js, md-vocab-echo.js, and the ask /
+      // translate / video owner scopes):
+      //   * detail.account is the NEW account, "" when signed out; there is no
+      //     `previous` field on purpose -- every subscriber already holds the
+      //     account it scoped itself with, so `detail.account !== mine` is the
+      //     test, and the shape stays identical to pbp:rendered /
+      //     pbp:article-replaced so one handler can serve all three.
+      //   * fires only on a real change, after previewAccount has been
+      //     re-pointed, and never for a same-account settings rewrite.
+      //   * dispatch is synchronous and the handler list is unordered, so a
+      //     subscriber must not rely on another having run first.
+      //   * silence is NOT a guarantee of no change: the re-read above can
+      //     throw, so anything that persists under an owner still has to
+      //     re-check the live owner immediately before it writes.
+      document.dispatchEvent(new CustomEvent("pbp:account-changed", { detail: Object.freeze({ account }) }));
+    });
+  }
 
   // Engine-switch plumbing, hoisted above the pending-extraction branch so a failed
   // shortcut/reload attempt can offer a working Defuddle<->Jina escape hatch (below)
@@ -1680,14 +1857,11 @@ window.pbpReaderSchemeSet = function (mode) {
   // paint. Skipped entirely when there's no URL to look up; every failure
   // path (offline/no token/exception) resolves to {bookmarked:false} in the
   // handler, so renderBookmarkBadge's model.show stays false and nothing
-  // renders — no console noise, no visible error state.
-  if (url && previewAccount) {
-    chrome.runtime.sendMessage({ type: "mdPreviewBookmarkInfo", url, account: previewAccount })
-      .then((resp) => {
-        if (resp?.account === previewAccount) renderBookmarkBadge(resp, url);
-      })
-      .catch(() => {});
-  }
+  // renders — no console noise, no visible error state. Arming it here (and
+  // only here) is what lets an account switch re-run the same lookup: the
+  // helper lives up beside the account listener that re-fires it.
+  _badgeArmed = true;
+  refreshBookmarkBadge();
 
   const tokenEl = document.getElementById("token-count");
   if (source === "jina" && tokens && info.hasApiKey) {
@@ -3100,10 +3274,19 @@ window.pbpReaderSchemeSet = function (mode) {
   }
 
   await setupSendMenu();
-  chrome.storage.onChanged.addListener((changes) => {
-    if (changes.syncApiKeys || changes.exportTargets || changes.obsidianEnabled || changes.obsidianVault || changes.obsidianFolder) {
-      setupSendMenu();
-    }
+  // Only the area this device routes its settings to (settings batch D3): a
+  // synced write from a device that DOES sync must not re-render this menu --
+  // setupSendMenu() hides an open dropdown and drops focus to <body>, for data
+  // that never changed here. Same filter shape as md-translate.js's target-lang
+  // listener; optSyncEnabled flips the routing itself, so it always counts and
+  // setupSendMenu's own pbpReadSettingsWithSecrets re-reads from the new area.
+  chrome.storage.onChanged.addListener(async (changes, area) => {
+    const rerouted = area === "local" && !!changes.optSyncEnabled;
+    const touched = !!(changes.syncApiKeys || changes.exportTargets
+      || changes.obsidianEnabled || changes.obsidianVault || changes.obsidianFolder);
+    if ((area !== "sync" && area !== "local") || !(rerouted || touched)) return;
+    if (!rerouted && typeof pbpSettingsAreaName === "function" && area !== await pbpSettingsAreaName()) return;
+    setupSendMenu();
   });
 })().catch((e) => {
   // Top-level backstop: any unhandled throw in the init flow above (malformed HTML into

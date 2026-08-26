@@ -598,8 +598,14 @@ html[data-section="login"] .quick-actions { display: none !important; }
 
 .form-body { padding: var(--pp-sp-4) 0 var(--pp-sp-4); }
 /* Unsupported-URL empty state: hide the dead form, keep only #url-warning
-   (quick-actions live outside #main-section and stay functional). */
-#main-section.unsupported-url .form-body > *:not(#url-warning) { display: none; }
+   (quick-actions live outside #main-section and stay functional).
+   #status-msg and .feedback-card are carved out because both status outlets
+   mount INSIDE .form-body -- showStatus() writes #status-msg, and showFeedback()
+   (shared.js) inserts its card before .bottom-bar, i.e. also a direct child --
+   while the quick actions that keep working here (Bookmark All Tabs, Save Tab
+   Set, batch permission grant, the offline queue) report exclusively through
+   them. Hiding both turned every one of those outcomes into zero feedback. */
+#main-section.unsupported-url .form-body > *:not(#url-warning):not(#status-msg):not(.feedback-card) { display: none; }
 .row { display: flex; padding: var(--pp-sp-2) var(--pp-sp-5); gap: var(--pp-sp-4); }
 .label {
   width: 52px; flex-shrink: 0; text-align: right;
@@ -637,7 +643,12 @@ html[data-section="login"] .quick-actions { display: none !important; }
 
 .notes-bar { display: flex; justify-content: space-between; align-items: center; margin-top: var(--pp-sp-1); }
 #desc-char-count { font-size: 10px; color: var(--pp-fg-hint); }
-#desc-char-count.over-limit { font-weight: 600; }
+/* Both states carry their colour here, not from an inline style in popup.js --
+   an inline style outranks every rule in this file, which is what kept the
+   themed twin below dead and pinned "nearly full" to a literal #e80 (2.57:1 on
+   the default surface). --pp-offline-fg is the AA-derived warning role. */
+#desc-char-count.near-limit { color: var(--pp-offline-fg); font-weight: 600; }
+#desc-char-count.over-limit { color: var(--pp-danger); font-weight: 600; }
 /* Tag suggestion skeleton — opacity pulse on solid divider color. Gentler than the
    previous horizontal shimmer (which had a 14-unit luminance jump that read as harsh
    on dark backgrounds). var(--pp-divider) is theme-aware: every preset defines it. */
@@ -1322,7 +1333,11 @@ html[data-theme] .batch-progress-text {
    inline-flex + centring rather than `inline-grid; place-items:center`
    (§8.3): grid turns any empty trailing label span into a second 0px row and
    re-centres the icon across both. These two are built with a bare
-   innerHTML today, but flex is immune either way. */
+   innerHTML today, but flex is immune either way.
+   Both are native <button>s (they used to be role=button spans with hand-written
+   Enter/Space handlers), so each carries the same background/border reset as
+   the button-as-link family above -- the UA's ButtonFace fill and 2px outset
+   border would otherwise paint a chip around the icon and break the 24px box. */
 .recent-bm-del {
   flex-shrink: 0;
   color: var(--pp-fg-faint);
@@ -1331,6 +1346,8 @@ html[data-theme] .batch-progress-text {
   width: 24px;
   height: 24px;
   padding: 0;
+  background: none;
+  border: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1346,6 +1363,8 @@ html[data-theme] .batch-progress-text {
   width: 24px;
   height: 24px;
   padding: 0;
+  background: none;
+  border: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1354,14 +1373,18 @@ html[data-theme] .batch-progress-text {
   opacity: 0.7;
 }
 .recent-bm-edit:hover { opacity: 1; color: var(--pp-accent); }
-/* Keyboard parity: both are role=button spans with full key handling but fell
-   back to the UA default ring while every other custom control in this file
-   draws the token ring (.tag-remove / .edit-cancel convention). */
+/* Keyboard parity: activation and focus order are the platform's now, but the
+   ring stays token-drawn -- the UA default one matches nothing else in this
+   file (.tag-remove / .edit-cancel convention). */
 .recent-bm-edit:focus-visible, .recent-bm-del:focus-visible { outline: 1px solid var(--pp-accent); outline-offset: 2px; box-shadow: var(--pp-focus-ring); }
+/* Also a native <button> (was a role=button span). The rule already declares
+   its own fill, so only the UA's 2px outset border needs clearing to keep the
+   pre-conversion box. */
 .edit-cancel {
   display: inline-block;
   margin-left: var(--pp-sp-3);
   padding: 0 var(--pp-sp-3);
+  border: none;
   border-radius: var(--pp-radius-sm);
   background: color-mix(in srgb, var(--pp-scrim) 8%, transparent);
   color: var(--pp-edit-cancel-fg);
@@ -1741,7 +1764,7 @@ html[data-theme="flexoki-light"] {
   color-scheme: light;
   --pp-bg: #FFFCF0;
   --pp-bg2: #F2F0E5;
-  --pp-fg: #100F0F;
+  --pp-fg: #100f0f;
   --pp-fg-muted: #6a6964;
   --pp-fg-hint: #6a6964;
   --pp-link: #205EA6;
@@ -1795,7 +1818,7 @@ html[data-theme="flexoki-dark"] {
   color-scheme: dark;
   --pp-bg: #1C1B1A;
   --pp-bg2: #282726;
-  --pp-fg: #CECDC3;
+  --pp-fg: #cecdc3;
   --pp-fg-muted: #9F9D96;
   --pp-fg-hint: #a09e9a;
   --pp-link: #4385BE;
@@ -1849,7 +1872,7 @@ html[data-theme="solarized-light"] {
   color-scheme: light;
   --pp-bg: #fdf6e3;
   --pp-bg2: #eee8d5;
-  --pp-fg: #586e75;
+  --pp-fg: #54696f;
   --pp-fg-muted: #54696f;
   --pp-fg-hint: #5b6969;
   --pp-link: #1e6ca4;
@@ -1857,8 +1880,8 @@ html[data-theme="solarized-light"] {
   --pp-accent2: #6c71c4;
   --pp-border: #8f7d4f;
   --pp-divider: #d6cdb5;
-  --pp-input-bg: #e6e1d0;
-  --pp-input-bd: #e6e1d0;
+  --pp-input-bg: #e6e2d0;
+  --pp-input-bd: #e6e2d0;
   --pp-input-focus-bg: #fdf6e3;
   --pp-tag-bg: transparent;
   --pp-tag-fg: #1e746d;
@@ -1866,10 +1889,10 @@ html[data-theme="solarized-light"] {
   --pp-drop-hover: #eee8d5;
   --pp-chip-bg: transparent;
   --pp-chip-fg: #1e746d;
-  --pp-btn-bg: #e6e1d0;
-  --pp-btn-bd: #e6e1d0;
+  --pp-btn-bg: #e6e2d0;
+  --pp-btn-bd: #e6e2d0;
   --pp-btn-hover: #eee8d5;
-  --pp-btn-fg: #4f6369;
+  --pp-btn-fg: #506469;
   --pp-banner-bg: #e3e9e1;
   --pp-banner-bd: #a7cbdc;
   --pp-banner-fg: #1e6ca4;
@@ -2322,7 +2345,6 @@ html[data-theme] .stag.ai { color: var(--pp-accent2); }
 html[data-theme] .action-link { color: var(--pp-accent2); }
 html[data-theme] .regen-link { color: var(--pp-accent2); }
 html[data-theme] .regen-link + .regen-link { border-color: var(--pp-divider); }
-html[data-theme] #desc-char-count.over-limit { color: var(--pp-danger); }
 /* Themed skeleton: base rule's var(--pp-divider) already picks the theme's divider color. */
 /* on-accent falls back to the theme bg (the long-standing derivation); themes
    may pin an explicit --pp-on-accent via pilot ui overrides. */

@@ -455,6 +455,17 @@
       }
     }
   },
+  "batchInterrupted": {
+    "message": "批次儲存在 $DONE$/$TOTAL$ 處中斷，重新執行可儲存剩下的分頁。",
+    "placeholders": {
+      "done": {
+        "content": "$1"
+      },
+      "total": {
+        "content": "$2"
+      }
+    }
+  },
   "batchTaggedSuffix": {
     "message": "（標籤：$TAGS$）",
     "placeholders": {
@@ -792,6 +803,9 @@
   "notesBatchDeleteConfirm": {
     "message": "刪除選取的 $COUNT$ 則螢光標記？",
     "placeholders": { "count": { "content": "$1" } }
+  },
+  "notesDeleteFailed": {
+    "message": "刪除標記失敗，請再試一次。"
   },
   "tabQuickActions": {
     "message": "快捷操作"
@@ -2204,6 +2218,9 @@
         "content": "$2"
       }
     }
+  },
+  "tagGovAlreadyOneTag": {
+    "message": "這些標籤只是大小寫不同，Pinboard 本來就把它們視為同一個標籤，不需要合併。這項建議已移除。"
   },
   "tagGovConfirmDelete": {
     "message": "刪除 $N$ 個標籤？（永久操作）",

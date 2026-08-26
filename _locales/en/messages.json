@@ -455,6 +455,17 @@
       }
     }
   },
+  "batchInterrupted": {
+    "message": "Batch stopped at $DONE$/$TOTAL$. Run it again to save the remaining tabs.",
+    "placeholders": {
+      "done": {
+        "content": "$1"
+      },
+      "total": {
+        "content": "$2"
+      }
+    }
+  },
   "batchTaggedSuffix": {
     "message": " (tagged: $TAGS$)",
     "placeholders": {
@@ -792,6 +803,9 @@
   "notesBatchDeleteConfirm": {
     "message": "Delete $COUNT$ selected highlights?",
     "placeholders": { "count": { "content": "$1" } }
+  },
+  "notesDeleteFailed": {
+    "message": "Couldn't delete these highlights. Try again."
   },
   "tabQuickActions": {
     "message": "Quick Actions"
@@ -2204,6 +2218,9 @@
         "content": "$2"
       }
     }
+  },
+  "tagGovAlreadyOneTag": {
+    "message": "These tags differ only in capitalization, so Pinboard already stores them as one tag — there is nothing to merge. The suggestion has been removed."
   },
   "tagGovConfirmDelete": {
     "message": "Delete $N$ selected tags? (permanent)",

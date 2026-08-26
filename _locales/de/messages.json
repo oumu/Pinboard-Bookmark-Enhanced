@@ -455,6 +455,17 @@
       }
     }
   },
+  "batchInterrupted": {
+    "message": "Stapelspeicherung bei $DONE$/$TOTAL$ abgebrochen. Zum Speichern der übrigen Tabs erneut ausführen.",
+    "placeholders": {
+      "done": {
+        "content": "$1"
+      },
+      "total": {
+        "content": "$2"
+      }
+    }
+  },
   "batchTaggedSuffix": {
     "message": " (Tags: $TAGS$)",
     "placeholders": {
@@ -792,6 +803,9 @@
   "notesBatchDeleteConfirm": {
     "message": "$COUNT$ ausgewählte Markierungen löschen?",
     "placeholders": { "count": { "content": "$1" } }
+  },
+  "notesDeleteFailed": {
+    "message": "Diese Markierungen konnten nicht gelöscht werden. Bitte erneut versuchen."
   },
   "tabQuickActions": {
     "message": "Schnellaktionen"
@@ -2204,6 +2218,9 @@
         "content": "$2"
       }
     }
+  },
+  "tagGovAlreadyOneTag": {
+    "message": "Diese Tags unterscheiden sich nur in der Groß- und Kleinschreibung und werden von Pinboard ohnehin als ein einziger Tag gespeichert. Es gibt also nichts zusammenzuführen; der Vorschlag wurde entfernt."
   },
   "tagGovConfirmDelete": {
     "message": "$N$ ausgewählte Tags löschen? (permanent)",

@@ -14,7 +14,7 @@ const PINBOARD_THEMES = {
   --pinboard-fg: #1a1a2e;
   --pinboard-fg-strong: #3c4043;
   --pinboard-muted: #5f6368;
-  --pinboard-muted-soft: #9aa0a6;
+  --pinboard-muted-soft: #666d74;
   --pinboard-metadata-fg: #5f6368;
   --pinboard-border: #e8e8e8;
   --pinboard-border-strong: #dadce0;
@@ -48,6 +48,7 @@ const PINBOARD_THEMES = {
   --pinboard-btn-bg-hover: #174ea6;
   --pinboard-on-accent: #ffffff;
   --pinboard-on-link-hover: #ffffff;
+  --pinboard-scrollbar-thumb: #5f6368;
   --pinboard-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --pinboard-font-size-base: 13px;
   --pinboard-font-size-sm: 12px;
@@ -687,17 +688,21 @@ a.help { color: var(--pinboard-muted-soft) !important; background: var(--pinboar
 #footer, .colophon, .colophon a { color: var(--pinboard-muted-soft) !important; }
 
 /* ---- Scrollbars (Webkit + Firefox standard) ----
- * thumb uses muted (not muted-soft) so it stays visible against bg-surface
- * across all 13 themes. Audited: muted-soft fell to 1.36:1 contrast on
- * nord-night and 1.78:1 on gruvbox-dark — practically invisible. muted
- * lifts every theme to 3:1+ with most reaching 5:1+. */
+ * thumb uses its OWN role (scrollbar-thumb, _util.mjs#deriveTextTiers) rather
+ * than reading muted straight. Both used to be the same token, which is how
+ * "raising muted would hurt the scrollbar" ended up parked in contrast-audit's
+ * allowlist as an argument against fixing sub-AA prose. They are opposite
+ * constraints — the thumb is a non-text UI part needing WCAG 1.4.11's 3:1
+ * against its track (bg-surface), the prose needs 4.5:1 — so each derives to
+ * its own floor and neither pins the other. scrollbar-thumb defaults to muted,
+ * so themes whose muted already clears 3:1 render exactly as before. */
 html, body, textarea, .description, .pin-ac .bd {
   scrollbar-width: thin !important;
-  scrollbar-color: var(--pinboard-muted) var(--pinboard-bg-surface) !important;
+  scrollbar-color: var(--pinboard-scrollbar-thumb) var(--pinboard-bg-surface) !important;
 }
 ::-webkit-scrollbar { width: 10px !important; height: 10px !important; }
 ::-webkit-scrollbar-track { background: var(--pinboard-bg-surface) !important; border-left: 1px solid var(--pinboard-border) !important; }
-::-webkit-scrollbar-thumb { background: var(--pinboard-muted) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
+::-webkit-scrollbar-thumb { background: var(--pinboard-scrollbar-thumb) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
 ::-webkit-scrollbar-thumb:hover { background: var(--pinboard-accent) !important; }
 ::-webkit-scrollbar-corner { background: var(--pinboard-bg-surface) !important; }
 
@@ -784,7 +789,6 @@ a.url_link { font-size: 12px !important; padding: 1px 5px !important; border-rad
 .description { color: #5f6368 !important; font-size: 13px !important; margin-top: 4px !important; }
 a.cached { text-decoration: none !important; font-size: 12px !important; }
 .edit_links a { font-size: 11px !important; }
-.edit_links a:hover { color: #5f6368 !important; }
 a.unread { font-weight: 600 !important; }
 #right_bar { background: #fff !important; border: 1px solid #e8e8e8 !important; border-radius: 8px !important; }
 #right_bar h3 { color: #3c4043 !important; }
@@ -851,8 +855,8 @@ h2 { color: #3c4043 !important; }
   --pinboard-bg-surface: #3b4252;
   --pinboard-fg: #d8dee9;
   --pinboard-fg-strong: #eceff4;
-  --pinboard-muted: #81a1c1;
-  --pinboard-muted-soft: #4c566a;
+  --pinboard-muted: #9cb5ce;
+  --pinboard-muted-soft: #9cb5ce;
   --pinboard-metadata-fg: #9db3ca;
   --pinboard-border: #434c5e;
   --pinboard-border-strong: #4c566a;
@@ -886,6 +890,7 @@ h2 { color: #3c4043 !important; }
   --pinboard-sidebar-btn-bg-hover: #415d7e;
   --pinboard-on-accent: #384861;
   --pinboard-on-link-hover: #384861;
+  --pinboard-scrollbar-thumb: #9cb5ce;
   --pinboard-font-family: "Inter", -apple-system, sans-serif;
   --pinboard-font-size-base: 13px;
   --pinboard-font-size-sm: 12px;
@@ -1525,17 +1530,21 @@ a.help { color: var(--pinboard-muted-soft) !important; background: var(--pinboar
 #footer, .colophon, .colophon a { color: var(--pinboard-muted-soft) !important; }
 
 /* ---- Scrollbars (Webkit + Firefox standard) ----
- * thumb uses muted (not muted-soft) so it stays visible against bg-surface
- * across all 13 themes. Audited: muted-soft fell to 1.36:1 contrast on
- * nord-night and 1.78:1 on gruvbox-dark — practically invisible. muted
- * lifts every theme to 3:1+ with most reaching 5:1+. */
+ * thumb uses its OWN role (scrollbar-thumb, _util.mjs#deriveTextTiers) rather
+ * than reading muted straight. Both used to be the same token, which is how
+ * "raising muted would hurt the scrollbar" ended up parked in contrast-audit's
+ * allowlist as an argument against fixing sub-AA prose. They are opposite
+ * constraints — the thumb is a non-text UI part needing WCAG 1.4.11's 3:1
+ * against its track (bg-surface), the prose needs 4.5:1 — so each derives to
+ * its own floor and neither pins the other. scrollbar-thumb defaults to muted,
+ * so themes whose muted already clears 3:1 render exactly as before. */
 html, body, textarea, .description, .pin-ac .bd {
   scrollbar-width: thin !important;
-  scrollbar-color: var(--pinboard-muted) var(--pinboard-bg-surface) !important;
+  scrollbar-color: var(--pinboard-scrollbar-thumb) var(--pinboard-bg-surface) !important;
 }
 ::-webkit-scrollbar { width: 10px !important; height: 10px !important; }
 ::-webkit-scrollbar-track { background: var(--pinboard-bg-surface) !important; border-left: 1px solid var(--pinboard-border) !important; }
-::-webkit-scrollbar-thumb { background: var(--pinboard-muted) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
+::-webkit-scrollbar-thumb { background: var(--pinboard-scrollbar-thumb) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
 ::-webkit-scrollbar-thumb:hover { background: var(--pinboard-accent) !important; }
 ::-webkit-scrollbar-corner { background: var(--pinboard-bg-surface) !important; }
 
@@ -1630,9 +1639,7 @@ a { color: #81a1c1 !important; }
 #main_column form[name="sort"] table tr:hover { background: rgba(136,192,208,0.08) !important; }
 #main_column form[name="sort"] table input[name^="id_"] { width: 38px !important; min-width: 38px !important; max-width: 38px !important; padding: 3px 4px !important; margin-right: 10px !important; font-size: 12px !important; line-height: 1.2 !important; box-sizing: border-box !important; vertical-align: middle !important; border: 1px solid #4c566a !important; background: #3b4252 !important; font-weight: 600 !important; }
 #main_column form[name="sort"] table a.bundle { font-weight: 600 !important; border-radius: 3px !important; }
-#main_column form[name="sort"] table a[style*="color:#aaa"] { color: #4c566a !important; }
-#main_column form[name="sort"] table a[style*="color: #aaa"] { color: #4c566a !important; }
-#main_column form[name="sort"] table td a.edit { color: #4c566a !important; opacity: 0.75 !important; }
+#main_column form[name="sort"] table td a.edit { opacity: 0.75 !important; }
 #main_column form[name="sort"] table td a.destroy { font-weight: 600 !important; }
 #right_bar table td a.delete { color: #7b8594 !important; }
 #right_bar input#key { background: #3b4252 !important; border: 1px solid #4c566a !important; }
@@ -1649,7 +1656,7 @@ a { color: #81a1c1 !important; }
   --pinboard-fg: #33ff33;
   --pinboard-fg-strong: #66ff66;
   --pinboard-muted: #22aa22;
-  --pinboard-muted-soft: #336633;
+  --pinboard-muted-soft: #478f47;
   --pinboard-metadata-fg: #22aa22;
   --pinboard-border: #33ff3340;
   --pinboard-border-strong: #33ff3380;
@@ -1683,6 +1690,7 @@ a { color: #81a1c1 !important; }
   --pinboard-sidebar-btn-bg-hover: #005500;
   --pinboard-on-accent: #007000;
   --pinboard-on-link-hover: #007000;
+  --pinboard-scrollbar-thumb: #22aa22;
   --pinboard-font-family: "Fira Code", "Cascadia Code", "Consolas", monospace;
   --pinboard-font-size-base: 13px;
   --pinboard-font-size-sm: 12px;
@@ -2322,17 +2330,21 @@ a.help { color: var(--pinboard-muted-soft) !important; background: var(--pinboar
 #footer, .colophon, .colophon a { color: var(--pinboard-muted-soft) !important; }
 
 /* ---- Scrollbars (Webkit + Firefox standard) ----
- * thumb uses muted (not muted-soft) so it stays visible against bg-surface
- * across all 13 themes. Audited: muted-soft fell to 1.36:1 contrast on
- * nord-night and 1.78:1 on gruvbox-dark — practically invisible. muted
- * lifts every theme to 3:1+ with most reaching 5:1+. */
+ * thumb uses its OWN role (scrollbar-thumb, _util.mjs#deriveTextTiers) rather
+ * than reading muted straight. Both used to be the same token, which is how
+ * "raising muted would hurt the scrollbar" ended up parked in contrast-audit's
+ * allowlist as an argument against fixing sub-AA prose. They are opposite
+ * constraints — the thumb is a non-text UI part needing WCAG 1.4.11's 3:1
+ * against its track (bg-surface), the prose needs 4.5:1 — so each derives to
+ * its own floor and neither pins the other. scrollbar-thumb defaults to muted,
+ * so themes whose muted already clears 3:1 render exactly as before. */
 html, body, textarea, .description, .pin-ac .bd {
   scrollbar-width: thin !important;
-  scrollbar-color: var(--pinboard-muted) var(--pinboard-bg-surface) !important;
+  scrollbar-color: var(--pinboard-scrollbar-thumb) var(--pinboard-bg-surface) !important;
 }
 ::-webkit-scrollbar { width: 10px !important; height: 10px !important; }
 ::-webkit-scrollbar-track { background: var(--pinboard-bg-surface) !important; border-left: 1px solid var(--pinboard-border) !important; }
-::-webkit-scrollbar-thumb { background: var(--pinboard-muted) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
+::-webkit-scrollbar-thumb { background: var(--pinboard-scrollbar-thumb) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
 ::-webkit-scrollbar-thumb:hover { background: var(--pinboard-accent) !important; }
 ::-webkit-scrollbar-corner { background: var(--pinboard-bg-surface) !important; }
 
@@ -2488,7 +2500,7 @@ a.bookmark_title::before { color: #33ff3380 !important; }`
   --pinboard-fg: #2c2c2c;
   --pinboard-fg-strong: #6b4c3b;
   --pinboard-muted: #6b4c3b;
-  --pinboard-muted-soft: #999999;
+  --pinboard-muted-soft: #6b6b6b;
   --pinboard-metadata-fg: #6b4c3b;
   --pinboard-border: #d4c5a9;
   --pinboard-border-strong: #d4c5a9;
@@ -2522,6 +2534,7 @@ a.bookmark_title::before { color: #33ff3380 !important; }`
   --pinboard-sidebar-btn-bg-hover: #8b4513;
   --pinboard-on-accent: #faf8f5;
   --pinboard-on-link-hover: #faf8f5;
+  --pinboard-scrollbar-thumb: #6b4c3b;
   --pinboard-font-family: "Georgia", "Noto Serif", "Source Serif Pro", serif;
   --pinboard-font-size-base: 14px;
   --pinboard-font-size-sm: 12px;
@@ -3161,17 +3174,21 @@ a.help { color: var(--pinboard-muted-soft) !important; background: var(--pinboar
 #footer, .colophon, .colophon a { color: var(--pinboard-muted-soft) !important; }
 
 /* ---- Scrollbars (Webkit + Firefox standard) ----
- * thumb uses muted (not muted-soft) so it stays visible against bg-surface
- * across all 13 themes. Audited: muted-soft fell to 1.36:1 contrast on
- * nord-night and 1.78:1 on gruvbox-dark — practically invisible. muted
- * lifts every theme to 3:1+ with most reaching 5:1+. */
+ * thumb uses its OWN role (scrollbar-thumb, _util.mjs#deriveTextTiers) rather
+ * than reading muted straight. Both used to be the same token, which is how
+ * "raising muted would hurt the scrollbar" ended up parked in contrast-audit's
+ * allowlist as an argument against fixing sub-AA prose. They are opposite
+ * constraints — the thumb is a non-text UI part needing WCAG 1.4.11's 3:1
+ * against its track (bg-surface), the prose needs 4.5:1 — so each derives to
+ * its own floor and neither pins the other. scrollbar-thumb defaults to muted,
+ * so themes whose muted already clears 3:1 render exactly as before. */
 html, body, textarea, .description, .pin-ac .bd {
   scrollbar-width: thin !important;
-  scrollbar-color: var(--pinboard-muted) var(--pinboard-bg-surface) !important;
+  scrollbar-color: var(--pinboard-scrollbar-thumb) var(--pinboard-bg-surface) !important;
 }
 ::-webkit-scrollbar { width: 10px !important; height: 10px !important; }
 ::-webkit-scrollbar-track { background: var(--pinboard-bg-surface) !important; border-left: 1px solid var(--pinboard-border) !important; }
-::-webkit-scrollbar-thumb { background: var(--pinboard-muted) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
+::-webkit-scrollbar-thumb { background: var(--pinboard-scrollbar-thumb) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
 ::-webkit-scrollbar-thumb:hover { background: var(--pinboard-accent) !important; }
 ::-webkit-scrollbar-corner { background: var(--pinboard-bg-surface) !important; }
 
@@ -3255,8 +3272,7 @@ a.cached { color: #aaa !important; }
 a.url_link { padding: 1px 5px !important; }
 .description { color: #555 !important; font-size: 13px !important; line-height: 1.6 !important; margin-top: 4px !important; }
 a.sort_order_selected { background: #e0d5c1 !important; color: #6b4c3b !important; }
-.edit_links a { color: #aaa !important; font-family: -apple-system, sans-serif !important; font-size: 11px !important; }
-.edit_links a:hover { color: #666 !important; }
+.edit_links a { font-family: -apple-system, sans-serif !important; font-size: 11px !important; }
 #right_bar { border-left: 1px solid #e8dfd0 !important; }
 #right_bar h3 { font-family: "Georgia", serif !important; }
 #right_bar h4 { font-family: "Georgia", serif !important; }
@@ -3335,7 +3351,7 @@ h2 { font-family: "Georgia", serif !important; }`
   --pinboard-fg: #f8f8f2;
   --pinboard-fg-strong: #bd93f9;
   --pinboard-muted: #bd93f9;
-  --pinboard-muted-soft: #6272a4;
+  --pinboard-muted-soft: #8995ba;
   --pinboard-metadata-fg: #aeb6cf;
   --pinboard-border: #44475a;
   --pinboard-border-strong: #6272a4;
@@ -3369,6 +3385,7 @@ h2 { font-family: "Georgia", serif !important; }`
   --pinboard-sidebar-btn-bg-hover: #ff79c6;
   --pinboard-on-accent: #282a36;
   --pinboard-on-link-hover: #282a36;
+  --pinboard-scrollbar-thumb: #bd93f9;
   --pinboard-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --pinboard-font-size-base: 13px;
   --pinboard-font-size-sm: 12px;
@@ -4008,17 +4025,21 @@ a.help { color: var(--pinboard-muted-soft) !important; background: var(--pinboar
 #footer, .colophon, .colophon a { color: var(--pinboard-muted-soft) !important; }
 
 /* ---- Scrollbars (Webkit + Firefox standard) ----
- * thumb uses muted (not muted-soft) so it stays visible against bg-surface
- * across all 13 themes. Audited: muted-soft fell to 1.36:1 contrast on
- * nord-night and 1.78:1 on gruvbox-dark — practically invisible. muted
- * lifts every theme to 3:1+ with most reaching 5:1+. */
+ * thumb uses its OWN role (scrollbar-thumb, _util.mjs#deriveTextTiers) rather
+ * than reading muted straight. Both used to be the same token, which is how
+ * "raising muted would hurt the scrollbar" ended up parked in contrast-audit's
+ * allowlist as an argument against fixing sub-AA prose. They are opposite
+ * constraints — the thumb is a non-text UI part needing WCAG 1.4.11's 3:1
+ * against its track (bg-surface), the prose needs 4.5:1 — so each derives to
+ * its own floor and neither pins the other. scrollbar-thumb defaults to muted,
+ * so themes whose muted already clears 3:1 render exactly as before. */
 html, body, textarea, .description, .pin-ac .bd {
   scrollbar-width: thin !important;
-  scrollbar-color: var(--pinboard-muted) var(--pinboard-bg-surface) !important;
+  scrollbar-color: var(--pinboard-scrollbar-thumb) var(--pinboard-bg-surface) !important;
 }
 ::-webkit-scrollbar { width: 10px !important; height: 10px !important; }
 ::-webkit-scrollbar-track { background: var(--pinboard-bg-surface) !important; border-left: 1px solid var(--pinboard-border) !important; }
-::-webkit-scrollbar-thumb { background: var(--pinboard-muted) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
+::-webkit-scrollbar-thumb { background: var(--pinboard-scrollbar-thumb) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
 ::-webkit-scrollbar-thumb:hover { background: var(--pinboard-accent) !important; }
 ::-webkit-scrollbar-corner { background: var(--pinboard-bg-surface) !important; }
 
@@ -4157,10 +4178,10 @@ a { color: #bd93f9 !important; }`
     css: `:root {
   --pinboard-bg: #FFFCF0;
   --pinboard-bg-surface: #F2F0E5;
-  --pinboard-fg: #100F0F;
-  --pinboard-fg-strong: #100F0F;
-  --pinboard-muted: #6F6E69;
-  --pinboard-muted-soft: #B7B5AC;
+  --pinboard-fg: #100f0f;
+  --pinboard-fg-strong: #100f0f;
+  --pinboard-muted: #6a6964;
+  --pinboard-muted-soft: #6c6a5e;
   --pinboard-metadata-fg: #696863;
   --pinboard-border: #E6E4D9;
   --pinboard-border-strong: #DAD8CE;
@@ -4194,6 +4215,7 @@ a { color: #bd93f9 !important; }`
   --pinboard-sidebar-btn-bg-hover: #1b655f;
   --pinboard-on-accent: #fffcf0;
   --pinboard-on-link-hover: #1a1500;
+  --pinboard-scrollbar-thumb: #6a6964;
   --pinboard-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --pinboard-font-size-base: 13px;
   --pinboard-font-size-sm: 12px;
@@ -4833,17 +4855,21 @@ a.help { color: var(--pinboard-muted-soft) !important; background: var(--pinboar
 #footer, .colophon, .colophon a { color: var(--pinboard-muted-soft) !important; }
 
 /* ---- Scrollbars (Webkit + Firefox standard) ----
- * thumb uses muted (not muted-soft) so it stays visible against bg-surface
- * across all 13 themes. Audited: muted-soft fell to 1.36:1 contrast on
- * nord-night and 1.78:1 on gruvbox-dark — practically invisible. muted
- * lifts every theme to 3:1+ with most reaching 5:1+. */
+ * thumb uses its OWN role (scrollbar-thumb, _util.mjs#deriveTextTiers) rather
+ * than reading muted straight. Both used to be the same token, which is how
+ * "raising muted would hurt the scrollbar" ended up parked in contrast-audit's
+ * allowlist as an argument against fixing sub-AA prose. They are opposite
+ * constraints — the thumb is a non-text UI part needing WCAG 1.4.11's 3:1
+ * against its track (bg-surface), the prose needs 4.5:1 — so each derives to
+ * its own floor and neither pins the other. scrollbar-thumb defaults to muted,
+ * so themes whose muted already clears 3:1 render exactly as before. */
 html, body, textarea, .description, .pin-ac .bd {
   scrollbar-width: thin !important;
-  scrollbar-color: var(--pinboard-muted) var(--pinboard-bg-surface) !important;
+  scrollbar-color: var(--pinboard-scrollbar-thumb) var(--pinboard-bg-surface) !important;
 }
 ::-webkit-scrollbar { width: 10px !important; height: 10px !important; }
 ::-webkit-scrollbar-track { background: var(--pinboard-bg-surface) !important; border-left: 1px solid var(--pinboard-border) !important; }
-::-webkit-scrollbar-thumb { background: var(--pinboard-muted) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
+::-webkit-scrollbar-thumb { background: var(--pinboard-scrollbar-thumb) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
 ::-webkit-scrollbar-thumb:hover { background: var(--pinboard-accent) !important; }
 ::-webkit-scrollbar-corner { background: var(--pinboard-bg-surface) !important; }
 
@@ -4901,10 +4927,10 @@ a.tag.selected { color: var(--pinboard-destroy) !important; text-decoration-colo
 html.pbp-dark {
   --pinboard-bg: #1C1B1A;
   --pinboard-bg-surface: #282726;
-  --pinboard-fg: #CECDC3;
-  --pinboard-fg-strong: #CECDC3;
-  --pinboard-muted: #575653;
-  --pinboard-muted-soft: #878580;
+  --pinboard-fg: #cecdc3;
+  --pinboard-fg-strong: #cecdc3;
+  --pinboard-muted: #918f8a;
+  --pinboard-muted-soft: #918f8a;
   --pinboard-metadata-fg: #9f9d96;
   --pinboard-border: #403E3C;
   --pinboard-border-strong: #575653;
@@ -4938,6 +4964,7 @@ html.pbp-dark {
   --pinboard-sidebar-btn-bg-hover: #1b655f;
   --pinboard-on-accent: #171615;
   --pinboard-on-link-hover: #1c1b1a;
+  --pinboard-scrollbar-thumb: #918f8a;
   --pinboard-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --pinboard-font-size-base: 13px;
   --pinboard-font-size-sm: 12px;
@@ -5558,17 +5585,21 @@ html.pbp-dark #right_bar:has(#tag_cloud:empty) {
 html.pbp-dark #footer, html.pbp-dark .colophon, html.pbp-dark .colophon a { color: var(--pinboard-muted-soft) !important; }
 
 /* ---- Scrollbars (Webkit + Firefox standard) ----
- * thumb uses muted (not muted-soft) so it stays visible against bg-surface
- * across all 13 themes. Audited: muted-soft fell to 1.36:1 contrast on
- * nord-night and 1.78:1 on gruvbox-dark — practically invisible. muted
- * lifts every theme to 3:1+ with most reaching 5:1+. */
+ * thumb uses its OWN role (scrollbar-thumb, _util.mjs#deriveTextTiers) rather
+ * than reading muted straight. Both used to be the same token, which is how
+ * "raising muted would hurt the scrollbar" ended up parked in contrast-audit's
+ * allowlist as an argument against fixing sub-AA prose. They are opposite
+ * constraints — the thumb is a non-text UI part needing WCAG 1.4.11's 3:1
+ * against its track (bg-surface), the prose needs 4.5:1 — so each derives to
+ * its own floor and neither pins the other. scrollbar-thumb defaults to muted,
+ * so themes whose muted already clears 3:1 render exactly as before. */
 html.pbp-dark html, html.pbp-dark body, html.pbp-dark textarea, html.pbp-dark .description, html.pbp-dark .pin-ac .bd {
   scrollbar-width: thin !important;
-  scrollbar-color: var(--pinboard-muted) var(--pinboard-bg-surface) !important;
+  scrollbar-color: var(--pinboard-scrollbar-thumb) var(--pinboard-bg-surface) !important;
 }
 html.pbp-dark ::-webkit-scrollbar { width: 10px !important; height: 10px !important; }
 html.pbp-dark ::-webkit-scrollbar-track { background: var(--pinboard-bg-surface) !important; border-left: 1px solid var(--pinboard-border) !important; }
-html.pbp-dark ::-webkit-scrollbar-thumb { background: var(--pinboard-muted) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
+html.pbp-dark ::-webkit-scrollbar-thumb { background: var(--pinboard-scrollbar-thumb) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
 html.pbp-dark ::-webkit-scrollbar-thumb:hover { background: var(--pinboard-accent) !important; }
 html.pbp-dark ::-webkit-scrollbar-corner { background: var(--pinboard-bg-surface) !important; }
 
@@ -5635,7 +5666,6 @@ html.pbp-dark .bookmark { border-bottom: 1px solid var(--pinboard-border) !impor
 a.url_display { color: #66800B !important; font-size: 12px !important; }
 a.url_link { padding: 1px 5px !important; border-radius: 3px !important; }
 .description { color: #6F6E69 !important; }
-.edit_links a:hover { color: #6F6E69 !important; }
 #right_bar h3 { color: #5E409D !important; }
 #right_bar h4 { color: #5E409D !important; }
 #right_bar b { color: #5E409D !important; }
@@ -5664,10 +5694,6 @@ html.pbp-dark a.url_display { color: #879A39 !important; }
 html.pbp-dark a.url_link { background: #1C1B1A !important; }
 html.pbp-dark .description { color: #878580 !important; }
 html.pbp-dark .description blockquote { color: #878580 !important; border-left: 3px solid #403E3C !important; }
-html.pbp-dark a.cached { color: #575653 !important; }
-html.pbp-dark a.when { color: #575653 !important; }
-html.pbp-dark .edit_links a { color: #575653 !important; }
-html.pbp-dark .edit_links a:hover { color: #878580 !important; }
 html.pbp-dark #right_bar h3 { color: #8B7EC8 !important; }
 html.pbp-dark #right_bar h4 { color: #8B7EC8 !important; }
 html.pbp-dark #right_bar b { color: #8B7EC8 !important; }
@@ -5675,10 +5701,8 @@ html.pbp-dark #right_bar a:not(.tag) { color: #8B7EC8 !important; }
 html.pbp-dark #right_bar a:not(.tag):hover { color: #A699D0 !important; }
 html.pbp-dark a.bundle { color: #8B7EC8 !important; }
 html.pbp-dark a.bundle:hover { color: #A699D0 !important; }
-html.pbp-dark #tag_cloud_header a:not(.tag) { color: #575653 !important; }
 html.pbp-dark #tag_cloud_header a:not(.tag):hover { color: #8B7EC8 !important; }
 html.pbp-dark a.sort_order_selected { background: #343331 !important; color: #8B7EC8 !important; }
-html.pbp-dark #nextprev a.edit { color: #575653 !important; }
 html.pbp-dark input[type="text"] { border-color: #403E3C !important; }
 html.pbp-dark input:not([type]) { border-color: #403E3C !important; }
 html.pbp-dark input[type="password"] { border-color: #403E3C !important; }
@@ -5702,11 +5726,6 @@ html.pbp-dark #bulk_edit_box { background: #343331 !important; border-color: #40
 html.pbp-dark .bookmark_count { color: #878580 !important; }
 html.pbp-dark .bookmark_count_box { color: #878580 !important; }
 html.pbp-dark .user_navbar a { color: #8B7EC8 !important; }
-html.pbp-dark .rss_link { color: #575653 !important; }
-html.pbp-dark .rss_linkbox a { color: #575653 !important; }
-html.pbp-dark #footer { color: #575653 !important; }
-html.pbp-dark .colophon { color: #575653 !important; }
-html.pbp-dark .colophon a { color: #575653 !important; }
 html.pbp-dark h2 { color: #8B7EC8 !important; }
 #main_column form[name="sort"] table a.bundle { font-weight: 600 !important; }
 #main_column form[name="sort"] table tr:hover { background: rgba(32,94,166,0.08) !important; }
@@ -5746,10 +5765,10 @@ html.pbp-dark #tweet_searchbox input[type="submit"]:hover { background: #A8E4D5 
     css: `:root {
   --pinboard-bg: #fdf6e3;
   --pinboard-bg-surface: #eee8d5;
-  --pinboard-fg: #586e75;
-  --pinboard-fg-strong: #586e75;
-  --pinboard-muted: #586e75;
-  --pinboard-muted-soft: #93a1a1;
+  --pinboard-fg: #54696f;
+  --pinboard-fg-strong: #54696f;
+  --pinboard-muted: #54696f;
+  --pinboard-muted-soft: #5b6969;
   --pinboard-metadata-fg: #50666d;
   --pinboard-border: #d6cdb5;
   --pinboard-border-strong: #93a1a1;
@@ -5783,6 +5802,7 @@ html.pbp-dark #tweet_searchbox input[type="submit"]:hover { background: #A8E4D5 
   --pinboard-sidebar-btn-bg-hover: #1b6294;
   --pinboard-on-accent: #271d03;
   --pinboard-on-link-hover: #302403;
+  --pinboard-scrollbar-thumb: #54696f;
   --pinboard-font-family: "Inter", -apple-system, sans-serif;
   --pinboard-font-size-base: 13px;
   --pinboard-font-size-sm: 12px;
@@ -6422,17 +6442,21 @@ a.help { color: var(--pinboard-muted-soft) !important; background: var(--pinboar
 #footer, .colophon, .colophon a { color: var(--pinboard-muted-soft) !important; }
 
 /* ---- Scrollbars (Webkit + Firefox standard) ----
- * thumb uses muted (not muted-soft) so it stays visible against bg-surface
- * across all 13 themes. Audited: muted-soft fell to 1.36:1 contrast on
- * nord-night and 1.78:1 on gruvbox-dark — practically invisible. muted
- * lifts every theme to 3:1+ with most reaching 5:1+. */
+ * thumb uses its OWN role (scrollbar-thumb, _util.mjs#deriveTextTiers) rather
+ * than reading muted straight. Both used to be the same token, which is how
+ * "raising muted would hurt the scrollbar" ended up parked in contrast-audit's
+ * allowlist as an argument against fixing sub-AA prose. They are opposite
+ * constraints — the thumb is a non-text UI part needing WCAG 1.4.11's 3:1
+ * against its track (bg-surface), the prose needs 4.5:1 — so each derives to
+ * its own floor and neither pins the other. scrollbar-thumb defaults to muted,
+ * so themes whose muted already clears 3:1 render exactly as before. */
 html, body, textarea, .description, .pin-ac .bd {
   scrollbar-width: thin !important;
-  scrollbar-color: var(--pinboard-muted) var(--pinboard-bg-surface) !important;
+  scrollbar-color: var(--pinboard-scrollbar-thumb) var(--pinboard-bg-surface) !important;
 }
 ::-webkit-scrollbar { width: 10px !important; height: 10px !important; }
 ::-webkit-scrollbar-track { background: var(--pinboard-bg-surface) !important; border-left: 1px solid var(--pinboard-border) !important; }
-::-webkit-scrollbar-thumb { background: var(--pinboard-muted) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
+::-webkit-scrollbar-thumb { background: var(--pinboard-scrollbar-thumb) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
 ::-webkit-scrollbar-thumb:hover { background: var(--pinboard-accent) !important; }
 ::-webkit-scrollbar-corner { background: var(--pinboard-bg-surface) !important; }
 
@@ -6498,10 +6522,11 @@ body#pinboard { letter-spacing: 0.01em !important; }
 body:not(#pinboard) { letter-spacing: 0.01em !important; }
 a.bookmark_title { font-weight: 500 !important; }
 a.url_display { color: #859900 !important; font-family: "Fira Code", "Cascadia Code", monospace !important; }
+.bookmark .description { opacity: 1 !important; }
 a.url_link { padding: 1px 5px !important; }
 .description blockquote { border-left: 2px solid #268bd2 !important; }
 a.when { font-family: "Fira Code", "Cascadia Code", monospace !important; }
-.edit_links a:hover { color: #586e75 !important; }
+.edit_links a:hover { color: #073642 !important; }
 a.sort_order_selected { background: #eee8d5 !important; }
 .service_box { border-radius: 2px !important; }
 .help_box { border-radius: 2px !important; }
@@ -6527,10 +6552,10 @@ a.sort_order_selected { background: #eee8d5 !important; }
     css: `:root {
   --pinboard-bg: #002b36;
   --pinboard-bg-surface: #073642;
-  --pinboard-fg: #839496;
+  --pinboard-fg: #8e9e9f;
   --pinboard-fg-strong: #93a1a1;
-  --pinboard-muted: #586e75;
-  --pinboard-muted-soft: #586e75;
+  --pinboard-muted: #859ca3;
+  --pinboard-muted-soft: #859ca3;
   --pinboard-metadata-fg: #8fa0a2;
   --pinboard-border: #094b5a;
   --pinboard-border-strong: #586e75;
@@ -6564,6 +6589,7 @@ a.sort_order_selected { background: #eee8d5 !important; }
   --pinboard-sidebar-btn-bg-hover: #1b6294;
   --pinboard-on-accent: #271d03;
   --pinboard-on-link-hover: #302403;
+  --pinboard-scrollbar-thumb: #859ca3;
   --pinboard-font-family: "Inter", -apple-system, sans-serif;
   --pinboard-font-size-base: 13px;
   --pinboard-font-size-sm: 12px;
@@ -7203,17 +7229,21 @@ a.help { color: var(--pinboard-muted-soft) !important; background: var(--pinboar
 #footer, .colophon, .colophon a { color: var(--pinboard-muted-soft) !important; }
 
 /* ---- Scrollbars (Webkit + Firefox standard) ----
- * thumb uses muted (not muted-soft) so it stays visible against bg-surface
- * across all 13 themes. Audited: muted-soft fell to 1.36:1 contrast on
- * nord-night and 1.78:1 on gruvbox-dark — practically invisible. muted
- * lifts every theme to 3:1+ with most reaching 5:1+. */
+ * thumb uses its OWN role (scrollbar-thumb, _util.mjs#deriveTextTiers) rather
+ * than reading muted straight. Both used to be the same token, which is how
+ * "raising muted would hurt the scrollbar" ended up parked in contrast-audit's
+ * allowlist as an argument against fixing sub-AA prose. They are opposite
+ * constraints — the thumb is a non-text UI part needing WCAG 1.4.11's 3:1
+ * against its track (bg-surface), the prose needs 4.5:1 — so each derives to
+ * its own floor and neither pins the other. scrollbar-thumb defaults to muted,
+ * so themes whose muted already clears 3:1 render exactly as before. */
 html, body, textarea, .description, .pin-ac .bd {
   scrollbar-width: thin !important;
-  scrollbar-color: var(--pinboard-muted) var(--pinboard-bg-surface) !important;
+  scrollbar-color: var(--pinboard-scrollbar-thumb) var(--pinboard-bg-surface) !important;
 }
 ::-webkit-scrollbar { width: 10px !important; height: 10px !important; }
 ::-webkit-scrollbar-track { background: var(--pinboard-bg-surface) !important; border-left: 1px solid var(--pinboard-border) !important; }
-::-webkit-scrollbar-thumb { background: var(--pinboard-muted) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
+::-webkit-scrollbar-thumb { background: var(--pinboard-scrollbar-thumb) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
 ::-webkit-scrollbar-thumb:hover { background: var(--pinboard-accent) !important; }
 ::-webkit-scrollbar-corner { background: var(--pinboard-bg-surface) !important; }
 
@@ -7277,7 +7307,6 @@ body#pinboard { letter-spacing: 0.01em !important; }
 #search_query_field { width: 100% !important; background: #002b36 !important; }
 .bookmark { padding: 12px 14px !important; border-radius: 2px !important; border-left: 2px solid transparent !important; }
 body:not(#pinboard) { letter-spacing: 0.01em !important; }
-#sub_banner a { color: #93a1a1 !important; }
 #banner_searchbox input[type="text"] { background: #002b36 !important; }
 #search_query_field:focus { background: #073642 !important; }
 #banner_searchbox input[type="text"]:focus { background: #073642 !important; }
@@ -7285,25 +7314,14 @@ body:not(#pinboard) { letter-spacing: 0.01em !important; }
 a.bookmark_title { font-weight: 500 !important; }
 a.url_display { color: #859900 !important; font-family: "Fira Code", "Cascadia Code", monospace !important; }
 a.url_link { background: #002b36 !important; padding: 1px 5px !important; }
-.description { opacity: 0.8 !important; }
-.description blockquote { color: #93a1a1 !important; border-left: 2px solid #268bd2 !important; }
+.bookmark .description { opacity: 1 !important; }
+.description blockquote { border-left: 2px solid #268bd2 !important; }
 a.when { font-family: "Fira Code", "Cascadia Code", monospace !important; }
-.edit_links a:hover { color: #93a1a1 !important; }
-#right_bar h3 { color: #93a1a1 !important; }
-#right_bar h4 { color: #93a1a1 !important; }
-#right_bar b { color: #93a1a1 !important; }
+.edit_links a:hover { color: #eee8d5 !important; }
 a.sort_order_selected { background: #073642 !important; }
 .suggested_tag { color: #2aa198 !important; }
-.settings_tab { color: #93a1a1 !important; }
-.settings_heading { color: #93a1a1 !important; }
 .service_box { border-radius: 2px !important; }
 .help_box { border-radius: 2px !important; }
-#profile_main_column h2 { color: #93a1a1 !important; }
-#profile_left_column h2 { color: #93a1a1 !important; }
-#profile_right_column h2 { color: #93a1a1 !important; }
-.bookmark_count { color: #93a1a1 !important; }
-.bookmark_count_box { color: #93a1a1 !important; }
-h2 { color: #93a1a1 !important; }
 #main_column form[name="sort"] table tr:hover { background: rgba(38,139,210,0.1) !important; }
 #main_column form[name="sort"] table input[name^="id_"] { width: 38px !important; min-width: 38px !important; max-width: 38px !important; padding: 3px 4px !important; margin-right: 10px !important; font-size: 12px !important; line-height: 1.2 !important; border-radius: 3px !important; box-sizing: border-box !important; vertical-align: middle !important; border: 1px solid #586e75 !important; font-weight: 600 !important; }
 #main_column form[name="sort"] table input[name^="id_"]:focus { box-shadow: 0 0 0 2px rgba(38,139,210,0.3) !important; }
@@ -7323,9 +7341,9 @@ h2 { color: #93a1a1 !important; }
   --pinboard-bg: #eff1f5;
   --pinboard-bg-surface: #e6e9ef;
   --pinboard-fg: #4c4f69;
-  --pinboard-fg-strong: #6c6f85;
-  --pinboard-muted: #6c6f85;
-  --pinboard-muted-soft: #9ca0b0;
+  --pinboard-fg-strong: #63667a;
+  --pinboard-muted: #63667a;
+  --pinboard-muted-soft: #62667a;
   --pinboard-metadata-fg: #62657a;
   --pinboard-border: #ccd0da;
   --pinboard-border-strong: #8c8fa1;
@@ -7359,6 +7377,7 @@ h2 { color: #93a1a1 !important; }
   --pinboard-sidebar-btn-bg-hover: #0a51df;
   --pinboard-on-accent: #f5f6f9;
   --pinboard-on-link-hover: #151a22;
+  --pinboard-scrollbar-thumb: #63667a;
   --pinboard-font-family: "Nunito", "Inter", -apple-system, sans-serif;
   --pinboard-font-size-base: 13px;
   --pinboard-font-size-sm: 12px;
@@ -7998,17 +8017,21 @@ a.help { color: var(--pinboard-muted-soft) !important; background: var(--pinboar
 #footer, .colophon, .colophon a { color: var(--pinboard-muted-soft) !important; }
 
 /* ---- Scrollbars (Webkit + Firefox standard) ----
- * thumb uses muted (not muted-soft) so it stays visible against bg-surface
- * across all 13 themes. Audited: muted-soft fell to 1.36:1 contrast on
- * nord-night and 1.78:1 on gruvbox-dark — practically invisible. muted
- * lifts every theme to 3:1+ with most reaching 5:1+. */
+ * thumb uses its OWN role (scrollbar-thumb, _util.mjs#deriveTextTiers) rather
+ * than reading muted straight. Both used to be the same token, which is how
+ * "raising muted would hurt the scrollbar" ended up parked in contrast-audit's
+ * allowlist as an argument against fixing sub-AA prose. They are opposite
+ * constraints — the thumb is a non-text UI part needing WCAG 1.4.11's 3:1
+ * against its track (bg-surface), the prose needs 4.5:1 — so each derives to
+ * its own floor and neither pins the other. scrollbar-thumb defaults to muted,
+ * so themes whose muted already clears 3:1 render exactly as before. */
 html, body, textarea, .description, .pin-ac .bd {
   scrollbar-width: thin !important;
-  scrollbar-color: var(--pinboard-muted) var(--pinboard-bg-surface) !important;
+  scrollbar-color: var(--pinboard-scrollbar-thumb) var(--pinboard-bg-surface) !important;
 }
 ::-webkit-scrollbar { width: 10px !important; height: 10px !important; }
 ::-webkit-scrollbar-track { background: var(--pinboard-bg-surface) !important; border-left: 1px solid var(--pinboard-border) !important; }
-::-webkit-scrollbar-thumb { background: var(--pinboard-muted) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
+::-webkit-scrollbar-thumb { background: var(--pinboard-scrollbar-thumb) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
 ::-webkit-scrollbar-thumb:hover { background: var(--pinboard-accent) !important; }
 ::-webkit-scrollbar-corner { background: var(--pinboard-bg-surface) !important; }
 
@@ -8121,7 +8144,7 @@ a.help { background: #e6e9ef !important; }
   --pinboard-fg: #cdd6f4;
   --pinboard-fg-strong: #cba6f7;
   --pinboard-muted: #a6adc8;
-  --pinboard-muted-soft: #585b70;
+  --pinboard-muted-soft: #9c9eb1;
   --pinboard-metadata-fg: #a6adc8;
   --pinboard-border: #45475a;
   --pinboard-border-strong: #45475a;
@@ -8155,6 +8178,7 @@ a.help { background: #e6e9ef !important; }
   --pinboard-btn-bg-hover: #cba6f7;
   --pinboard-on-accent: #1e1e2e;
   --pinboard-on-link-hover: #1e1e2e;
+  --pinboard-scrollbar-thumb: #a6adc8;
   --pinboard-font-family: "Nunito", "Inter", -apple-system, sans-serif;
   --pinboard-font-size-base: 13px;
   --pinboard-font-size-sm: 12px;
@@ -8794,17 +8818,21 @@ a.help { color: var(--pinboard-muted-soft) !important; background: var(--pinboar
 #footer, .colophon, .colophon a { color: var(--pinboard-muted-soft) !important; }
 
 /* ---- Scrollbars (Webkit + Firefox standard) ----
- * thumb uses muted (not muted-soft) so it stays visible against bg-surface
- * across all 13 themes. Audited: muted-soft fell to 1.36:1 contrast on
- * nord-night and 1.78:1 on gruvbox-dark — practically invisible. muted
- * lifts every theme to 3:1+ with most reaching 5:1+. */
+ * thumb uses its OWN role (scrollbar-thumb, _util.mjs#deriveTextTiers) rather
+ * than reading muted straight. Both used to be the same token, which is how
+ * "raising muted would hurt the scrollbar" ended up parked in contrast-audit's
+ * allowlist as an argument against fixing sub-AA prose. They are opposite
+ * constraints — the thumb is a non-text UI part needing WCAG 1.4.11's 3:1
+ * against its track (bg-surface), the prose needs 4.5:1 — so each derives to
+ * its own floor and neither pins the other. scrollbar-thumb defaults to muted,
+ * so themes whose muted already clears 3:1 render exactly as before. */
 html, body, textarea, .description, .pin-ac .bd {
   scrollbar-width: thin !important;
-  scrollbar-color: var(--pinboard-muted) var(--pinboard-bg-surface) !important;
+  scrollbar-color: var(--pinboard-scrollbar-thumb) var(--pinboard-bg-surface) !important;
 }
 ::-webkit-scrollbar { width: 10px !important; height: 10px !important; }
 ::-webkit-scrollbar-track { background: var(--pinboard-bg-surface) !important; border-left: 1px solid var(--pinboard-border) !important; }
-::-webkit-scrollbar-thumb { background: var(--pinboard-muted) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
+::-webkit-scrollbar-thumb { background: var(--pinboard-scrollbar-thumb) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
 ::-webkit-scrollbar-thumb:hover { background: var(--pinboard-accent) !important; }
 ::-webkit-scrollbar-corner { background: var(--pinboard-bg-surface) !important; }
 
@@ -8929,8 +8957,8 @@ h2 { color: #cba6f7 !important; }`
   --pinboard-bg-surface: #3c3836;
   --pinboard-fg: #ebdbb2;
   --pinboard-fg-strong: #fbf1c7;
-  --pinboard-muted: #a89984;
-  --pinboard-muted-soft: #665c54;
+  --pinboard-muted: #b0a390;
+  --pinboard-muted-soft: #ada39c;
   --pinboard-metadata-fg: #bdae93;
   --pinboard-border: #504945;
   --pinboard-border-strong: #504945;
@@ -8964,6 +8992,7 @@ h2 { color: #cba6f7 !important; }`
   --pinboard-btn-bg-hover: #d3869b;
   --pinboard-on-accent: #282828;
   --pinboard-on-link-hover: #282828;
+  --pinboard-scrollbar-thumb: #b0a390;
   --pinboard-font-family: "IBM Plex Sans", "Inter", -apple-system, sans-serif;
   --pinboard-font-size-base: 13px;
   --pinboard-font-size-sm: 12px;
@@ -9603,17 +9632,21 @@ a.help { color: var(--pinboard-muted-soft) !important; background: var(--pinboar
 #footer, .colophon, .colophon a { color: var(--pinboard-muted-soft) !important; }
 
 /* ---- Scrollbars (Webkit + Firefox standard) ----
- * thumb uses muted (not muted-soft) so it stays visible against bg-surface
- * across all 13 themes. Audited: muted-soft fell to 1.36:1 contrast on
- * nord-night and 1.78:1 on gruvbox-dark — practically invisible. muted
- * lifts every theme to 3:1+ with most reaching 5:1+. */
+ * thumb uses its OWN role (scrollbar-thumb, _util.mjs#deriveTextTiers) rather
+ * than reading muted straight. Both used to be the same token, which is how
+ * "raising muted would hurt the scrollbar" ended up parked in contrast-audit's
+ * allowlist as an argument against fixing sub-AA prose. They are opposite
+ * constraints — the thumb is a non-text UI part needing WCAG 1.4.11's 3:1
+ * against its track (bg-surface), the prose needs 4.5:1 — so each derives to
+ * its own floor and neither pins the other. scrollbar-thumb defaults to muted,
+ * so themes whose muted already clears 3:1 render exactly as before. */
 html, body, textarea, .description, .pin-ac .bd {
   scrollbar-width: thin !important;
-  scrollbar-color: var(--pinboard-muted) var(--pinboard-bg-surface) !important;
+  scrollbar-color: var(--pinboard-scrollbar-thumb) var(--pinboard-bg-surface) !important;
 }
 ::-webkit-scrollbar { width: 10px !important; height: 10px !important; }
 ::-webkit-scrollbar-track { background: var(--pinboard-bg-surface) !important; border-left: 1px solid var(--pinboard-border) !important; }
-::-webkit-scrollbar-thumb { background: var(--pinboard-muted) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
+::-webkit-scrollbar-thumb { background: var(--pinboard-scrollbar-thumb) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
 ::-webkit-scrollbar-thumb:hover { background: var(--pinboard-accent) !important; }
 ::-webkit-scrollbar-corner { background: var(--pinboard-bg-surface) !important; }
 
@@ -9730,7 +9763,7 @@ h2 { color: #d3869b !important; }
   --pinboard-fg: #e0def4;
   --pinboard-fg-strong: #ebbcba;
   --pinboard-muted: #908caa;
-  --pinboard-muted-soft: #6e6a86;
+  --pinboard-muted-soft: #88859e;
   --pinboard-metadata-fg: #9c97b5;
   --pinboard-border: #26233a;
   --pinboard-border-strong: #403d52;
@@ -9764,6 +9797,7 @@ h2 { color: #d3869b !important; }
   --pinboard-btn-bg-hover: #ebbcba;
   --pinboard-on-accent: #191724;
   --pinboard-on-link-hover: #191724;
+  --pinboard-scrollbar-thumb: #908caa;
   --pinboard-font-family: "Lora", "Georgia", "Noto Serif", serif;
   --pinboard-font-size-base: 14px;
   --pinboard-font-size-sm: 12px;
@@ -10403,17 +10437,21 @@ a.help { color: var(--pinboard-muted-soft) !important; background: var(--pinboar
 #footer, .colophon, .colophon a { color: var(--pinboard-muted-soft) !important; }
 
 /* ---- Scrollbars (Webkit + Firefox standard) ----
- * thumb uses muted (not muted-soft) so it stays visible against bg-surface
- * across all 13 themes. Audited: muted-soft fell to 1.36:1 contrast on
- * nord-night and 1.78:1 on gruvbox-dark — practically invisible. muted
- * lifts every theme to 3:1+ with most reaching 5:1+. */
+ * thumb uses its OWN role (scrollbar-thumb, _util.mjs#deriveTextTiers) rather
+ * than reading muted straight. Both used to be the same token, which is how
+ * "raising muted would hurt the scrollbar" ended up parked in contrast-audit's
+ * allowlist as an argument against fixing sub-AA prose. They are opposite
+ * constraints — the thumb is a non-text UI part needing WCAG 1.4.11's 3:1
+ * against its track (bg-surface), the prose needs 4.5:1 — so each derives to
+ * its own floor and neither pins the other. scrollbar-thumb defaults to muted,
+ * so themes whose muted already clears 3:1 render exactly as before. */
 html, body, textarea, .description, .pin-ac .bd {
   scrollbar-width: thin !important;
-  scrollbar-color: var(--pinboard-muted) var(--pinboard-bg-surface) !important;
+  scrollbar-color: var(--pinboard-scrollbar-thumb) var(--pinboard-bg-surface) !important;
 }
 ::-webkit-scrollbar { width: 10px !important; height: 10px !important; }
 ::-webkit-scrollbar-track { background: var(--pinboard-bg-surface) !important; border-left: 1px solid var(--pinboard-border) !important; }
-::-webkit-scrollbar-thumb { background: var(--pinboard-muted) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
+::-webkit-scrollbar-thumb { background: var(--pinboard-scrollbar-thumb) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
 ::-webkit-scrollbar-thumb:hover { background: var(--pinboard-accent) !important; }
 ::-webkit-scrollbar-corner { background: var(--pinboard-bg-surface) !important; }
 
@@ -10534,7 +10572,7 @@ h2 { color: #ebbcba !important; }`
   --pinboard-bg-surface: #ffffff;
   --pinboard-fg: #1f2328;
   --pinboard-muted: #656d76;
-  --pinboard-muted-soft: #8c959f;
+  --pinboard-muted-soft: #68717c;
   --pinboard-metadata-fg: #656d76;
   --pinboard-border: #d0d7de;
   --pinboard-accent: #0969da;
@@ -10569,6 +10607,7 @@ h2 { color: #ebbcba !important; }`
   --pinboard-unread: #cf222e;
   --pinboard-on-accent: #ffffff;
   --pinboard-on-link-hover: #ffffff;
+  --pinboard-scrollbar-thumb: #656d76;
   --pinboard-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
   --pinboard-font-size-base: 13px;
   --pinboard-font-size-sm: 12px;
@@ -11208,17 +11247,21 @@ a.help { color: var(--pinboard-muted-soft) !important; background: var(--pinboar
 #footer, .colophon, .colophon a { color: var(--pinboard-muted-soft) !important; }
 
 /* ---- Scrollbars (Webkit + Firefox standard) ----
- * thumb uses muted (not muted-soft) so it stays visible against bg-surface
- * across all 13 themes. Audited: muted-soft fell to 1.36:1 contrast on
- * nord-night and 1.78:1 on gruvbox-dark — practically invisible. muted
- * lifts every theme to 3:1+ with most reaching 5:1+. */
+ * thumb uses its OWN role (scrollbar-thumb, _util.mjs#deriveTextTiers) rather
+ * than reading muted straight. Both used to be the same token, which is how
+ * "raising muted would hurt the scrollbar" ended up parked in contrast-audit's
+ * allowlist as an argument against fixing sub-AA prose. They are opposite
+ * constraints — the thumb is a non-text UI part needing WCAG 1.4.11's 3:1
+ * against its track (bg-surface), the prose needs 4.5:1 — so each derives to
+ * its own floor and neither pins the other. scrollbar-thumb defaults to muted,
+ * so themes whose muted already clears 3:1 render exactly as before. */
 html, body, textarea, .description, .pin-ac .bd {
   scrollbar-width: thin !important;
-  scrollbar-color: var(--pinboard-muted) var(--pinboard-bg-surface) !important;
+  scrollbar-color: var(--pinboard-scrollbar-thumb) var(--pinboard-bg-surface) !important;
 }
 ::-webkit-scrollbar { width: 10px !important; height: 10px !important; }
 ::-webkit-scrollbar-track { background: var(--pinboard-bg-surface) !important; border-left: 1px solid var(--pinboard-border) !important; }
-::-webkit-scrollbar-thumb { background: var(--pinboard-muted) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
+::-webkit-scrollbar-thumb { background: var(--pinboard-scrollbar-thumb) !important; border: 2px solid var(--pinboard-bg-surface) !important; border-radius: 6px !important; }
 ::-webkit-scrollbar-thumb:hover { background: var(--pinboard-accent) !important; }
 ::-webkit-scrollbar-corner { background: var(--pinboard-bg-surface) !important; }
 

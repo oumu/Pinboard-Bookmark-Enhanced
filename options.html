@@ -9,7 +9,18 @@
 </head>
 <body>
   <div class="container">
+    <!-- The auto-save hint is a peripheral indicator that changes on EVERY
+         debounced save (and again 1.5s later when it resets), so it is
+         deliberately not a live region: as one it announced twice per
+         keystroke burst. Failures announce through #opt-global-alert below. -->
     <h1><span data-i18n="optTitle">Pinboard Bookmark Enhanced - Settings</span> <span class="auto-save-hint" id="auto-save-status" data-i18n="optAutoSave">auto-save enabled</span></h1>
+
+    <!-- Page-level alert slot. Auto-save runs from every panel, so its standing
+         failure notice cannot live inside #panel-general (12 of the 13 panels
+         would have it under a display:none ancestor, silent for screen readers
+         too). Kept separate from #opt-sync-error so that slot's 8s auto-hide
+         cannot take an unrelated alert down with it. -->
+    <p id="opt-global-alert" class="opt-error hidden" role="alert"></p>
 
     <div class="options-nav">
       <div class="mobile-tab-picker">
@@ -74,7 +85,7 @@
         <p class="hint"><span data-i18n="hintApiToken">From</span> <a href="https://pinboard.in/settings/password" target="_blank" rel="noopener">pinboard.in/settings/password</a></p>
         <div style="display:flex;gap:8px;align-items:center;margin-top:6px;">
           <button class="btn btn-sm" id="test-pinboard-token" data-i18n="testConnection">Test Connection</button>
-          <span class="save-status" id="test-pinboard-status"></span>
+          <span class="save-status" id="test-pinboard-status" role="status" aria-live="polite"></span>
         </div>
       </div>
       <div class="divider"></div>
@@ -307,7 +318,7 @@
           <div class="fg" style="margin-top:10px">
             <div style="display:flex;gap:8px;align-items:center;">
               <span data-i18n="batchPermLabel">Legacy all-sites permission:</span>
-              <span id="batch-perm-status" style="font-size:11px;color:#666;"></span>
+              <span id="batch-perm-status" class="hint" role="status" aria-live="polite"></span>
             </div>
             <button class="btn btn-sm" id="batch-revoke-perm" style="margin-top:6px;" data-i18n="batchRevokeBtn">Revoke legacy all-sites access</button>
             <p class="hint" data-i18n="batchRevokeHint">Older versions could grant access to every site. New Batch runs request only the listed sites; this button removes the legacy broad grant.</p>
@@ -358,7 +369,7 @@
         <div class="fg"><label class="bl" for="opt-gemini-key" data-i18n="labelApiKey">API Key</label><span class="key-wrap"><input type="password" id="opt-gemini-key" placeholder="AIzaSy…" /><button type="button" class="key-toggle" data-target="opt-gemini-key" title="Show/hide key" data-i18n-title="showHideKey" data-i18n-aria="showHideKey" aria-label="Show/hide key"></button></span><p class="hint"><a href="https://aistudio.google.com/apikey" target="_blank" data-i18n="getKey" rel="noopener">Get key</a></p></div>
         <div class="fg"><label class="bl" for="opt-gemini-model" data-i18n="labelModel">Model</label><input type="text" id="opt-gemini-model" value="gemini-3.5-flash-lite" /></div>
         <button class="btn btn-sm" id="test-gemini" data-i18n="testConnection">Test Connection</button>
-        <span class="save-status" id="test-gemini-status"></span>
+        <span class="save-status" id="test-gemini-status" role="status" aria-live="polite"></span>
       </div>
 
       <!-- OpenAI -->
@@ -368,7 +379,7 @@
         <div class="fg"><label class="bl" for="opt-openai-model" data-i18n="labelModel">Model</label><input type="text" id="opt-openai-model" value="gpt-5.4-nano" /></div>
         <div class="fg"><label class="bl" for="opt-openai-baseurl" data-i18n="labelBaseUrl">Base URL</label><input type="text" id="opt-openai-baseurl" value="https://api.openai.com/v1" /><p class="hint" data-i18n="hintOpenAIBaseUrl">Change for proxy or compatible endpoint</p></div>
         <button class="btn btn-sm" id="test-openai" data-i18n="testConnection">Test Connection</button>
-        <span class="save-status" id="test-openai-status"></span>
+        <span class="save-status" id="test-openai-status" role="status" aria-live="polite"></span>
       </div>
 
       <!-- Claude -->
@@ -377,7 +388,7 @@
         <div class="fg"><label class="bl" for="opt-claude-key" data-i18n="labelApiKey">API Key</label><span class="key-wrap"><input type="password" id="opt-claude-key" placeholder="sk-ant-…" /><button type="button" class="key-toggle" data-target="opt-claude-key" title="Show/hide key" data-i18n-title="showHideKey" data-i18n-aria="showHideKey" aria-label="Show/hide key"></button></span><p class="hint"><a href="https://console.anthropic.com/settings/keys" target="_blank" data-i18n="getKey" rel="noopener">Get key</a></p></div>
         <div class="fg"><label class="bl" for="opt-claude-model" data-i18n="labelModel">Model</label><input type="text" id="opt-claude-model" value="claude-haiku-4-5" /><p class="hint" data-i18n="hintClaudeModel">e.g. claude-haiku-4-5-20251001, claude-sonnet-4-20250514</p></div>
         <button class="btn btn-sm" id="test-claude" data-i18n="testConnection">Test Connection</button>
-        <span class="save-status" id="test-claude-status"></span>
+        <span class="save-status" id="test-claude-status" role="status" aria-live="polite"></span>
       </div>
 
       <!-- DeepSeek -->
@@ -386,7 +397,7 @@
         <div class="fg"><label class="bl" for="opt-deepseek-key" data-i18n="labelApiKey">API Key</label><span class="key-wrap"><input type="password" id="opt-deepseek-key" placeholder="sk-…" /><button type="button" class="key-toggle" data-target="opt-deepseek-key" title="Show/hide key" data-i18n-title="showHideKey" data-i18n-aria="showHideKey" aria-label="Show/hide key"></button></span><p class="hint"><a href="https://platform.deepseek.com/api_keys" target="_blank" data-i18n="getKey" rel="noopener">Get key</a></p></div>
         <div class="fg"><label class="bl" for="opt-deepseek-model" data-i18n="labelModel">Model</label><input type="text" id="opt-deepseek-model" value="deepseek-v4-flash" /></div>
         <button class="btn btn-sm" id="test-deepseek" data-i18n="testConnection">Test Connection</button>
-        <span class="save-status" id="test-deepseek-status"></span>
+        <span class="save-status" id="test-deepseek-status" role="status" aria-live="polite"></span>
       </div>
 
       <!-- Qwen -->
@@ -395,7 +406,7 @@
         <div class="fg"><label class="bl" for="opt-qwen-key" data-i18n="labelApiKey">API Key</label><span class="key-wrap"><input type="password" id="opt-qwen-key" placeholder="sk-…" /><button type="button" class="key-toggle" data-target="opt-qwen-key" title="Show/hide key" data-i18n-title="showHideKey" data-i18n-aria="showHideKey" aria-label="Show/hide key"></button></span><p class="hint"><a href="https://dashscope.console.aliyun.com/apiKey" target="_blank" data-i18n="getKey" rel="noopener">Get key</a></p></div>
         <div class="fg"><label class="bl" for="opt-qwen-model" data-i18n="labelModel">Model</label><input type="text" id="opt-qwen-model" value="qwen-flash" /></div>
         <button class="btn btn-sm" id="test-qwen" data-i18n="testConnection">Test Connection</button>
-        <span class="save-status" id="test-qwen-status"></span>
+        <span class="save-status" id="test-qwen-status" role="status" aria-live="polite"></span>
       </div>
 
       <!-- MiniMax -->
@@ -404,7 +415,7 @@
         <div class="fg"><label class="bl" for="opt-minimax-key" data-i18n="labelApiKey">API Key</label><span class="key-wrap"><input type="password" id="opt-minimax-key" /><button type="button" class="key-toggle" data-target="opt-minimax-key" title="Show/hide key" data-i18n-title="showHideKey" data-i18n-aria="showHideKey" aria-label="Show/hide key"></button></span><p class="hint"><a href="https://platform.minimaxi.com/" target="_blank" data-i18n="getKey" rel="noopener">Get key</a></p></div>
         <div class="fg"><label class="bl" for="opt-minimax-model" data-i18n="labelModel">Model</label><input type="text" id="opt-minimax-model" value="MiniMax-M2" /></div>
         <button class="btn btn-sm" id="test-minimax" data-i18n="testConnection">Test Connection</button>
-        <span class="save-status" id="test-minimax-status"></span>
+        <span class="save-status" id="test-minimax-status" role="status" aria-live="polite"></span>
       </div>
 
       <!-- OpenRouter -->
@@ -413,7 +424,7 @@
         <div class="fg"><label class="bl" for="opt-openrouter-key" data-i18n="labelApiKey">API Key</label><span class="key-wrap"><input type="password" id="opt-openrouter-key" placeholder="sk-or-…" /><button type="button" class="key-toggle" data-target="opt-openrouter-key" title="Show/hide key" data-i18n-title="showHideKey" data-i18n-aria="showHideKey" aria-label="Show/hide key"></button></span><p class="hint"><a href="https://openrouter.ai/keys" target="_blank" data-i18n="getKey" rel="noopener">Get key</a>. <span data-i18n="openrouterTagline">Access 100+ models from one API.</span></p></div>
         <div class="fg"><label class="bl" for="opt-openrouter-model" data-i18n="labelModel">Model</label><input type="text" id="opt-openrouter-model" value="openai/gpt-oss-20b:free" /><p class="hint"><span data-i18n="browseModelsAt">Browse models at</span> <a href="https://openrouter.ai/models" target="_blank" rel="noopener">openrouter.ai/models</a></p></div>
         <button class="btn btn-sm" id="test-openrouter" data-i18n="testConnection">Test Connection</button>
-        <span class="save-status" id="test-openrouter-status"></span>
+        <span class="save-status" id="test-openrouter-status" role="status" aria-live="polite"></span>
       </div>
 
       <!-- Groq -->
@@ -422,7 +433,7 @@
         <div class="fg"><label class="bl" for="opt-groq-key" data-i18n="labelApiKey">API Key</label><span class="key-wrap"><input type="password" id="opt-groq-key" placeholder="gsk_…" /><button type="button" class="key-toggle" data-target="opt-groq-key" title="Show/hide key" data-i18n-title="showHideKey" data-i18n-aria="showHideKey" aria-label="Show/hide key"></button></span><p class="hint"><a href="https://console.groq.com/keys" target="_blank" data-i18n="getKey" rel="noopener">Get key</a></p></div>
         <div class="fg"><label class="bl" for="opt-groq-model" data-i18n="labelModel">Model</label><input type="text" id="opt-groq-model" value="llama-3.1-8b-instant" /></div>
         <button class="btn btn-sm" id="test-groq" data-i18n="testConnection">Test Connection</button>
-        <span class="save-status" id="test-groq-status"></span>
+        <span class="save-status" id="test-groq-status" role="status" aria-live="polite"></span>
       </div>
 
       <!-- Mistral -->
@@ -431,7 +442,7 @@
         <div class="fg"><label class="bl" for="opt-mistral-key" data-i18n="labelApiKey">API Key</label><span class="key-wrap"><input type="password" id="opt-mistral-key" /><button type="button" class="key-toggle" data-target="opt-mistral-key" title="Show/hide key" data-i18n-title="showHideKey" data-i18n-aria="showHideKey" aria-label="Show/hide key"></button></span><p class="hint"><a href="https://console.mistral.ai/api-keys" target="_blank" data-i18n="getKey" rel="noopener">Get key</a></p></div>
         <div class="fg"><label class="bl" for="opt-mistral-model" data-i18n="labelModel">Model</label><input type="text" id="opt-mistral-model" value="mistral-small-latest" /></div>
         <button class="btn btn-sm" id="test-mistral" data-i18n="testConnection">Test Connection</button>
-        <span class="save-status" id="test-mistral-status"></span>
+        <span class="save-status" id="test-mistral-status" role="status" aria-live="polite"></span>
       </div>
 
       <!-- Cohere -->
@@ -440,7 +451,7 @@
         <div class="fg"><label class="bl" for="opt-cohere-key" data-i18n="labelApiKey">API Key</label><span class="key-wrap"><input type="password" id="opt-cohere-key" /><button type="button" class="key-toggle" data-target="opt-cohere-key" title="Show/hide key" data-i18n-title="showHideKey" data-i18n-aria="showHideKey" aria-label="Show/hide key"></button></span><p class="hint"><a href="https://dashboard.cohere.com/api-keys" target="_blank" data-i18n="getKey" rel="noopener">Get key</a></p></div>
         <div class="fg"><label class="bl" for="opt-cohere-model" data-i18n="labelModel">Model</label><input type="text" id="opt-cohere-model" value="command-r7b-12-2024" /></div>
         <button class="btn btn-sm" id="test-cohere" data-i18n="testConnection">Test Connection</button>
-        <span class="save-status" id="test-cohere-status"></span>
+        <span class="save-status" id="test-cohere-status" role="status" aria-live="polite"></span>
       </div>
 
       <!-- SiliconFlow -->
@@ -449,7 +460,7 @@
         <div class="fg"><label class="bl" for="opt-siliconflow-key" data-i18n="labelApiKey">API Key</label><span class="key-wrap"><input type="password" id="opt-siliconflow-key" placeholder="sk-…" /><button type="button" class="key-toggle" data-target="opt-siliconflow-key" title="Show/hide key" data-i18n-title="showHideKey" data-i18n-aria="showHideKey" aria-label="Show/hide key"></button></span><p class="hint"><a href="https://cloud.siliconflow.cn/account/ak" target="_blank" data-i18n="getKey" rel="noopener">Get key</a></p></div>
         <div class="fg"><label class="bl" for="opt-siliconflow-model" data-i18n="labelModel">Model</label><input type="text" id="opt-siliconflow-model" value="Qwen/Qwen3-8B" /></div>
         <button class="btn btn-sm" id="test-siliconflow" data-i18n="testConnection">Test Connection</button>
-        <span class="save-status" id="test-siliconflow-status"></span>
+        <span class="save-status" id="test-siliconflow-status" role="status" aria-live="polite"></span>
       </div>
 
       <!-- Zhipu -->
@@ -458,7 +469,7 @@
         <div class="fg"><label class="bl" for="opt-zhipu-key" data-i18n="labelApiKey">API Key</label><span class="key-wrap"><input type="password" id="opt-zhipu-key" /><button type="button" class="key-toggle" data-target="opt-zhipu-key" title="Show/hide key" data-i18n-title="showHideKey" data-i18n-aria="showHideKey" aria-label="Show/hide key"></button></span><p class="hint"><a href="https://open.bigmodel.cn/usercenter/apikeys" target="_blank" data-i18n="getKey" rel="noopener">Get key</a></p></div>
         <div class="fg"><label class="bl" for="opt-zhipu-model" data-i18n="labelModel">Model</label><input type="text" id="opt-zhipu-model" value="glm-4.7-flash" /><p class="hint" data-i18n="hintZhipuModel">e.g. glm-4.7-flash, glm-4-flash, glm-4-plus</p></div>
         <button class="btn btn-sm" id="test-zhipu" data-i18n="testConnection">Test Connection</button>
-        <span class="save-status" id="test-zhipu-status"></span>
+        <span class="save-status" id="test-zhipu-status" role="status" aria-live="polite"></span>
       </div>
 
       <!-- Kimi -->
@@ -467,7 +478,7 @@
         <div class="fg"><label class="bl" for="opt-kimi-key" data-i18n="labelApiKey">API Key</label><span class="key-wrap"><input type="password" id="opt-kimi-key" placeholder="sk-…" /><button type="button" class="key-toggle" data-target="opt-kimi-key" title="Show/hide key" data-i18n-title="showHideKey" data-i18n-aria="showHideKey" aria-label="Show/hide key"></button></span><p class="hint"><a href="https://platform.moonshot.cn/console/api-keys" target="_blank" data-i18n="getKey" rel="noopener">Get key</a></p></div>
         <div class="fg"><label class="bl" for="opt-kimi-model" data-i18n="labelModel">Model</label><input type="text" id="opt-kimi-model" value="kimi-k2.6" /><p class="hint" data-i18n="hintKimiModel">e.g. kimi-k2.6, kimi-k2.5, moonshot-v1-32k, moonshot-v1-128k</p></div>
         <button class="btn btn-sm" id="test-kimi" data-i18n="testConnection">Test Connection</button>
-        <span class="save-status" id="test-kimi-status"></span>
+        <span class="save-status" id="test-kimi-status" role="status" aria-live="polite"></span>
       </div>
 
       <!-- GitHub Models -->
@@ -476,7 +487,7 @@
         <div class="fg"><label class="bl" for="opt-githubmodels-key" data-i18n="labelApiKey">API Key</label><span class="key-wrap"><input type="password" id="opt-githubmodels-key" placeholder="github_pat_…" /><button type="button" class="key-toggle" data-target="opt-githubmodels-key" title="Show/hide key" data-i18n-title="showHideKey" data-i18n-aria="showHideKey" aria-label="Show/hide key"></button></span><p class="hint"><a href="https://github.com/settings/personal-access-tokens" target="_blank" data-i18n="getKey" rel="noopener">Get key</a> <span data-i18n="hintGithubModelsScope">— a personal access token with the models:read scope.</span></p></div>
         <div class="fg"><label class="bl" for="opt-githubmodels-model" data-i18n="labelModel">Model</label><input type="text" id="opt-githubmodels-model" value="openai/gpt-4.1-mini" /><p class="hint" data-i18n="hintGithubModelsModel">Model IDs are publisher/name, e.g. openai/gpt-4.1-mini, openai/gpt-4.1, deepseek/DeepSeek-R1.</p></div>
         <button class="btn btn-sm" id="test-githubmodels" data-i18n="testConnection">Test Connection</button>
-        <span class="save-status" id="test-githubmodels-status"></span>
+        <span class="save-status" id="test-githubmodels-status" role="status" aria-live="polite"></span>
       </div>
 
       <!-- Ollama -->
@@ -485,7 +496,7 @@
         <div class="fg"><label class="bl" for="opt-ollama-baseurl" data-i18n="labelBaseUrl">Base URL</label><input type="text" id="opt-ollama-baseurl" value="http://localhost:11434" /></div>
         <div class="fg"><label class="bl" for="opt-ollama-model" data-i18n="labelModel">Model</label><input type="text" id="opt-ollama-model" value="llama3.2" /><p class="hint" data-i18n="hintOllamaModel">Run <code>ollama pull llama3.2</code> first</p></div>
         <button class="btn btn-sm" id="test-ollama" data-i18n="testConnection">Test Connection</button>
-        <span class="save-status" id="test-ollama-status"></span>
+        <span class="save-status" id="test-ollama-status" role="status" aria-live="polite"></span>
       </div>
 
       <!-- Custom -->
@@ -496,7 +507,7 @@
         <div class="fg"><label class="bl" for="opt-custom-key" data-i18n="labelApiKey">API Key</label><span class="key-wrap"><input type="password" id="opt-custom-key" /><button type="button" class="key-toggle" data-target="opt-custom-key" title="Show/hide key" data-i18n-title="showHideKey" data-i18n-aria="showHideKey" aria-label="Show/hide key"></button></span><p class="hint" data-i18n="hintCustomKey">Leave empty if not required</p></div>
         <div class="fg"><label class="bl" for="opt-custom-model" data-i18n="labelModel">Model</label><input type="text" id="opt-custom-model" placeholder="model-name" /></div>
         <button class="btn btn-sm" id="test-custom" data-i18n="testConnection">Test Connection</button>
-        <span class="save-status" id="test-custom-status"></span>
+        <span class="save-status" id="test-custom-status" role="status" aria-live="polite"></span>
       </div>
 
       <div class="divider"></div>

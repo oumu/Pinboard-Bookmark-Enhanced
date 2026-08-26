@@ -144,15 +144,18 @@ async function pbpMermaidRetheme(root) {
   }
 }
 
-// Theme wiring. optTheme changes land via storage (md-preview.js applies the
-// colorScheme in its own listener — defer one frame so pbpMermaidIsDark reads
-// the UPDATED value); OS flips matter only in "auto" mode and arrive via
-// matchMedia. Both guards mirror md-preview.js's typeof patterns so the
-// file:// test page can load this file without chrome.
+// Theme wiring. The primary trigger is md-preview.js's pbpReaderSchemeApply,
+// which calls pbpMermaidRetheme right after it writes the colorScheme — that
+// is the one funnel every scheme input passes through ("Aa" override, video
+// dark default, optTheme), and it needs no frame deferral because the value
+// pbpMermaidIsDark reads is already updated. This listener stays as a backstop
+// for an optTheme write that never reaches that funnel; OS flips matter only
+// in "auto" mode and arrive via matchMedia. Both guards mirror md-preview.js's
+// typeof patterns so the file:// test page can load this file without chrome.
 if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.onChanged) {
   chrome.storage.onChanged.addListener((changes, area) => {
     if ((area !== "sync" && area !== "local") || !changes.optTheme) return;
-    requestAnimationFrame(() => { pbpMermaidRetheme(document).catch(() => {}); });
+    pbpMermaidRetheme(document).catch(() => {});
   });
 }
 if (typeof window !== "undefined" && window.matchMedia) {

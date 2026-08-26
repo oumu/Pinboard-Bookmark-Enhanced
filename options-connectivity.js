@@ -30,6 +30,22 @@ function pbpLiveAiSettingsSnapshot(provider) {
 
 function setupApiTests() {
 
+  // State lives in classes only. An inline `style.color` outranks every themed
+  // rule, so the old hardcoded #888/#080/#c00 stayed put on the dark presets --
+  // #c00 measured 1.71:1 on Nord Night. .save-status.pending/.ok/.bad carry the
+  // themed tokens instead; setStatusIcon() owns .ok/.bad, these own .pending.
+  function setStatusPending(statusEl, text) {
+    if (!statusEl) return;
+    statusEl.classList.remove("ok", "bad");
+    statusEl.classList.add("pending");
+    statusEl.textContent = text;
+  }
+  function setStatusResult(statusEl, ok, text) {
+    if (!statusEl) return;
+    statusEl.classList.remove("pending");
+    setStatusIcon(statusEl, ok, text);
+  }
+
   // Every test result is wiped by a timer. Held anonymously, a finished run's
   // pending clear fires in the middle of the NEXT run for the same target and
   // erases a real result off screen. Keyed by target, each run cancels its
@@ -44,7 +60,7 @@ function setupApiTests() {
     _testClearTimers.set(key, setTimeout(() => {
       _testClearTimers.delete(key);
       statusEl.textContent = "";
-      statusEl.style.color = "";
+      statusEl.classList.remove("ok", "bad", "pending");
     }, ms));
   }
 
@@ -59,15 +75,12 @@ function setupApiTests() {
     if (btn) btn.disabled = true;
     cancelStatusClear(provider);
     try {
-      statusEl.classList.remove("ok", "bad");
-      statusEl.textContent = t("testTesting");
-      statusEl.style.color = "#888";
+      setStatusPending(statusEl, t("testTesting"));
 
       const cs = pbpLiveAiSettingsSnapshot(provider);
 
       if (!hasAIKey(cs)) {
-        setStatusIcon(statusEl, false, t("testNoApiKey"));
-        statusEl.style.color = "#c00";
+        setStatusResult(statusEl, false, t("testNoApiKey"));
         scheduleStatusClear(provider, statusEl, 5000);
         return;
       }
@@ -80,14 +93,12 @@ function setupApiTests() {
         originPattern = _aiTargetOriginPattern(cs);
         granted = await requestAIHostPermissions(cs);
       } catch (err) {
-        setStatusIcon(statusEl, false, err?.message || t("networkError"));
-        statusEl.style.color = "#c00";
+        setStatusResult(statusEl, false, err?.message || t("networkError"));
         scheduleStatusClear(provider, statusEl, 5000);
         return;
       }
       if (!granted) {
-        setStatusIcon(statusEl, false, t("aiErrorHostPermission", originPattern.replace(/\/\*$/, "")));
-        statusEl.style.color = "#c00";
+        setStatusResult(statusEl, false, t("aiErrorHostPermission", originPattern.replace(/\/\*$/, "")));
         scheduleStatusClear(provider, statusEl, 5000);
         return;
       }
@@ -95,8 +106,7 @@ function setupApiTests() {
       try {
         const result = await callAI(cs, "Reply with just the word: OK");
 
-        setStatusIcon(statusEl, true, t("testConnected", (result || "OK").substring(0, 20)));
-        statusEl.style.color = "#080";
+        setStatusResult(statusEl, true, t("testConnected", (result || "OK").substring(0, 20)));
         scheduleStatusClear(provider, statusEl, 4000);
       } catch (err) {
         let msg = err.name === "AbortError" ? t("testTimeout") : err.message;
@@ -104,8 +114,7 @@ function setupApiTests() {
           const mnf = pbpAiModelNotFoundText(cs.aiProvider);
           msg = mnf.msg + " " + mnf.hint;
         }
-        setStatusIcon(statusEl, false, msg);
-        statusEl.style.color = "#c00";
+        setStatusResult(statusEl, false, msg);
         scheduleStatusClear(provider, statusEl, 5000);
       }
     } finally {
@@ -134,34 +143,26 @@ function setupApiTests() {
     const statusEl = $id("test-pinboard-status");
     const token = tokenInput.value.trim();
     if (pbpIsValidTokenFormat(token) !== true) {
-      setStatusIcon(statusEl, false, t("loginInvalidFormat"));
-      statusEl.style.color = "#c00";
+      setStatusResult(statusEl, false, t("loginInvalidFormat"));
       scheduleStatusClear("pinboard", statusEl, 4000);
       return;
     }
     btn.disabled = true;
     cancelStatusClear("pinboard");
-    statusEl.classList.remove("ok", "bad");
-    statusEl.textContent = t("testTesting");
-    statusEl.style.color = "";
+    setStatusPending(statusEl, t("testTesting"));
     try {
       const resp = await chrome.runtime.sendMessage({ type: "test_pinboard_token", token });
       if (resp?.ok) {
-        setStatusIcon(statusEl, true, t("testConnected", token.split(":")[0]));
-        statusEl.style.color = "#080";
+        setStatusResult(statusEl, true, t("testConnected", token.split(":")[0]));
       } else if (resp?.error === "timeout") {
-        setStatusIcon(statusEl, false, t("testTimeout"));
-        statusEl.style.color = "#c00";
+        setStatusResult(statusEl, false, t("testTimeout"));
       } else if (resp?.error === "network") {
-        setStatusIcon(statusEl, false, t("networkError"));
-        statusEl.style.color = "#c00";
+        setStatusResult(statusEl, false, t("networkError"));
       } else {
-        setStatusIcon(statusEl, false, t("loginFailed"));
-        statusEl.style.color = "#c00";
+        setStatusResult(statusEl, false, t("loginFailed"));
       }
     } catch (_) {
-      setStatusIcon(statusEl, false, t("networkError"));
-      statusEl.style.color = "#c00";
+      setStatusResult(statusEl, false, t("networkError"));
     } finally {
       btn.disabled = false;
       scheduleStatusClear("pinboard", statusEl, 5000);

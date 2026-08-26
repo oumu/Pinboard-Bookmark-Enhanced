@@ -471,6 +471,28 @@ function pbpHlAppendNoteText(existing, answer) {
   return e.trim() ? e + "\n\n" + a : a;
 }
 
+// ---- Cross-writer change detection (pure/testable). storage.onChanged fires
+// for THIS page's own writes too, and absorbing one of those would re-derive
+// every Range on every save. Compared field by field over everything a writer
+// can change after creation (id / n / quote / color / note); ts, fp, side and
+// lang are stamped once at creation and travel with the id. Order counts: a
+// reordered list is a real rewrite by someone else, worth re-absorbing.
+// Anything that is not a pair of arrays is "not the same" -- callers use this
+// only to SKIP work, so the safe answer is to do the work.
+function pbpHlItemsSame(a, b) {
+  if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    const x = a[i] || {};
+    const y = b[i] || {};
+    if (x.id !== y.id
+      || (Number(x.n) || 0) !== (Number(y.n) || 0)
+      || x.quote !== y.quote
+      || (Number(x.color) || 0) !== (Number(y.color) || 0)
+      || (x.note || "") !== (y.note || "")) return false;
+  }
+  return true;
+}
+
 // ============================================================
 // DOM / UI layer. Lazily mounted: pbpHlInit runs on "pbp:rendered"
 // (same pattern as pbpTrInit / pbpAskInit).
@@ -482,18 +504,78 @@ function _pbpHlKey(url) {
   return "pbp_hl_" + pbpAiHash(String(url || ""));
 }
 
-// Degrades to [] on any storage failure or when chrome.storage is absent
-// (file:// tests) -- spec 6: a storage read failure silently disables
-// highlighting for this page instead of crashing.
-async function _pbpHlLoad(url) {
-  if (typeof chrome === "undefined" || !chrome.storage || !chrome.storage.local) return [];
+// chrome.storage offers no compare-and-swap: get and set are two independent
+// trips, so every read-modify-write has a lost-update window, and that window
+// is not this page's to close alone. popup/background open a NEW reader tab per
+// preview (they never reuse one) and library.html rewrites the same records, so
+// two writers on one key is ordinary -- and a promise queue only orders the
+// writer that owns it. Web Locks are origin-scoped and every extension page
+// plus the MV3 worker share one origin (the same property shared.js's
+// pbpWithSecretStorageLock relies on), so a lock NAMED AFTER THE RECORD makes
+// get -> patch -> set atomic against every other context. Named per record, not
+// once globally: highlighting article A must never wait on article B.
+function _pbpHlLockName(url) {
+  return "pbp-hl:" + _pbpHlKey(url);
+}
+
+let _pbpHlLockWarned = false;
+
+// library-notes.js holds the SAME name around its own deletes; the two files
+// keep separate copies of this helper on purpose (isolated script contexts,
+// no shared module) -- the contract between them is the lock NAME, so
+// _pbpHlLockName and _pbpNotesRecordLockName must keep producing the same
+// string for the same storage key.
+//
+// Degrades to a bare call where Web Locks are missing (direct-open test pages,
+// insecure contexts): this page's own queue still orders its own writes, which
+// is exactly the guarantee that existed before. Says so once -- silently
+// dropping to a weaker guarantee is the swallowed degradation the repo's
+// leave-a-trace rule exists for.
+function _pbpHlWithRecordLock(url, work) {
+  const locks = typeof navigator !== "undefined" && navigator.locks;
+  if (locks && typeof locks.request === "function") return locks.request(_pbpHlLockName(url), work);
+  if (!_pbpHlLockWarned) {
+    _pbpHlLockWarned = true;
+    console.warn("[hl] Web Locks unavailable: highlight writes are serialised within this page only");
+  }
+  return Promise.resolve().then(work);
+}
+
+// Returns the record's items, [] when this page has no record yet, or NULL
+// when the record must not be written -- the read ITSELF failed, chrome.storage
+// is absent (as on file://), or a record EXISTS but has a shape this code
+// cannot interpret. Only _pbpHlCommit wants that third answer, and it MUST have
+// it: any of those degraded to [] would be patched and written straight back,
+// erasing every highlight on the page -- the exact loss the commit path exists
+// to prevent. Only `undefined` means "no record": that is what get() hands back
+// for a key nobody has written, and it is the one case where starting from an
+// empty list destroys nothing.
+async function _pbpHlLoadStrict(url) {
+  if (typeof chrome === "undefined" || !chrome.storage || !chrome.storage.local) return null;
   try {
     const key = _pbpHlKey(url);
     const d = await chrome.storage.local.get(key);
     const rec = d && d[key];
-    if (!rec || typeof rec !== "object" || !Array.isArray(rec.items)) return [];
+    if (rec === undefined) return [];
+    if (!rec || typeof rec !== "object" || Array.isArray(rec) || !Array.isArray(rec.items)) {
+      // Shape only -- never the record's contents, which are reading notes.
+      console.warn("[hl] stored highlight record has an unusable shape; refusing to overwrite it",
+        Array.isArray(rec) ? "array" : typeof rec);
+      return null;
+    }
     return rec.items;
-  } catch (_) { return []; }
+  } catch (e) {
+    console.warn("[hl] highlight read failed", e && e.name, e && e.message);
+    return null;
+  }
+}
+
+// Degrades to [] on any storage failure or when chrome.storage is absent
+// (file:// tests) -- spec 6: a storage read failure silently disables
+// highlighting for this page instead of crashing. Mount path only; a WRITE
+// must go through _pbpHlLoadStrict.
+async function _pbpHlLoad(url) {
+  return (await _pbpHlLoadStrict(url)) || [];
 }
 
 // Single-key read-modify-write: caller passes the FULL current items array.
@@ -526,6 +608,47 @@ function _pbpHlQueueWrite(fn) {
   return run;
 }
 
+// The content this page most recently handed to storage. The onChanged echo of
+// our own write can arrive BEFORE _pbpHlSave's promise resolves, so the
+// listener at the bottom of this file cannot recognise it by comparing against
+// _pbpHlState.items alone -- that array is only swapped in once the save
+// returns.
+let _pbpHlEchoItems = null;
+
+// Sole commit path: re-read storage INSIDE the queue and apply this page's
+// intent by item.id. Never treat _pbpHlState.items as authoritative -- another
+// reader tab (popup/background open a NEW tab per preview, they never reuse
+// one) or library.html may have changed the record since this page loaded, and
+// writing the in-memory array back wholesale would resurrect what they deleted
+// and delete what they added. Same discipline as the fresh-read guard in
+// library-notes.js's batch delete.
+//
+// patch(stored) -> the next full items array, or null to abandon the write.
+// The queue still serialises this page's own writes; the re-read is what makes
+// a write correct against every OTHER writer -- and the record lock around the
+// whole read-modify-write is what keeps that re-read fresh until the set lands.
+// A fresh read WITHOUT the lock only narrows the window: two contexts can still
+// both read X, compute X+A and X+B, and have the later set erase the earlier.
+async function _pbpHlCommit(patch, btn) {
+  return _pbpHlQueueWrite(async () => {
+    if (!_pbpHlState) return false;
+    const url = _pbpHlState.url;
+    return _pbpHlWithRecordLock(url, async () => {
+      // Mount can have swapped state out while we waited for the lock.
+      if (!_pbpHlState || _pbpHlState.url !== url) return false;
+      const stored = await _pbpHlLoadStrict(url); // fresh, not pbpHlInit's snapshot
+      if (!stored) { _pbpHlToast(t("hlSaveFailed"), btn); return false; } // unreadable: [] here would wipe the page
+      const next = patch(stored);
+      if (!next) return false;
+      _pbpHlEchoItems = next;
+      const ok = await _pbpHlSave(url, next, btn);
+      if (!ok) { _pbpHlEchoItems = null; return false; } // nothing was written: a later foreign write of this exact content is NOT an echo
+      _pbpHlState.items = next;
+      return true;
+    });
+  });
+}
+
 async function _pbpHlLastColorGet() {
   if (typeof chrome === "undefined" || !chrome.storage || !chrome.storage.local) return 1;
   try {
@@ -548,8 +671,32 @@ async function _pbpHlLastColorSet(color) {
 // flash, so it falls back to the SAME #copy-status aria-live node
 // copyToClipboard's announce() already uses (md-preview.js:967) -- not a
 // new mechanism, the page's one buttonless toast channel.
+//
+// Not every button can take that flash: flashButtonLabel writes .btn-label when
+// the button has one and falls back to btn.textContent when it does not -- which
+// on an icon-only button REPLACES the SVG with text and then "restores" it as
+// "" (btn.textContent of an svg is empty), leaving the control permanently
+// blank. Most buttons that reach this toast are icon-only (the bar's colour
+// dots, the note/delete buttons), so flash only what survives it: a .btn-label
+// wrapper, or a button whose label really is plain text. Everything else falls
+// back to #copy-status -- the same live region flashButtonLabel itself
+// announces through, so only the inline flash is lost.
+//
+// "Plain text" means text is actually there: the bar's colour dots
+// (.pb-hl-dot) and the card's (.hl-card-dot) are EMPTY buttons -- a 22px
+// swatch drawn by CSS background + a ::before hit pad, no child element and no
+// text node -- so childElementCount === 0 alone would hand them the flash and
+// stuff "save failed" into a round swatch (button content is not clipped, the
+// dot row blows out for 1.5s). Require real text, not merely the absence of
+// children.
+function _pbpHlCanFlashLabel(btn) {
+  if (!btn) return false;
+  if (btn.querySelector(".btn-label")) return true;
+  return btn.childElementCount === 0 && !!(btn.textContent || "").trim();
+}
+
 function _pbpHlToast(msg, btn) {
-  if (btn && typeof flashButtonLabel === "function") { flashButtonLabel(btn, msg); return; }
+  if (typeof flashButtonLabel === "function" && _pbpHlCanFlashLabel(btn)) { flashButtonLabel(btn, msg); return; }
   const el = document.getElementById("copy-status");
   if (!el) return;
   el.textContent = msg;
@@ -1345,32 +1492,30 @@ async function _pbpHlCreateFromRange(range, color, btn) {
     created.push({ item, seg });
   }
   if (!created.length) return [];
-  return _pbpHlQueueWrite(async () => {
-    if (!_pbpHlState) return [];
-    const nextItems = _pbpHlState.items.concat(created.map((x) => x.item));
-    const ok = await _pbpHlSave(_pbpHlState.url, nextItems, btn);
-    if (!ok) return [];
-    _pbpHlState.items = nextItems;
-    created.forEach(({ item, seg }) => {
-      _pbpHlRegisterRange(item, seg.range.cloneRange());
-      // .pb-tr re-anchors via pbpHlReanchorTr (fired from _pbpTrFill), NOT the
-      // hljs/KaTeX watcher (which targets pbpAiBlockEl -- the original block).
-      if (seg.side !== "tr") _pbpHlArmBlockObserver(seg.el, seg.n);
-    });
-    await _pbpHlLastColorSet(color);
-    for (const { item } of created) pbpHlSyncMirror(item.n); // H5 (spec 1.5)
-    _pbpHlNotebookRender();
-    // Spec 1.3 trigger 4: the FIRST highlight created this session
-    // auto-expands the rail's hl section (session-visual only, via
-    // expand(temp) -- never persisted, never overwrites the user's
-    // stored collapse preference). A restore from storage (pbpHlInit)
-    // does NOT set this flag, only an actual creation does.
-    if (!_pbpHlAutoExpandedThisSession) {
-      _pbpHlAutoExpandedThisSession = true;
-      if (_pbpHlNbEls && _pbpHlNbEls.handle) _pbpHlNbEls.handle.expand(true);
-    }
-    return created.map((x) => x.item);
+  // Append to what storage HOLDS, not to the in-memory array: anything another
+  // reader tab added since this page loaded stays, anything it deleted stays
+  // deleted (_pbpHlCommit).
+  const ok = await _pbpHlCommit((stored) => stored.concat(created.map((x) => x.item)), btn);
+  if (!ok || !_pbpHlState) return [];
+  created.forEach(({ item, seg }) => {
+    _pbpHlRegisterRange(item, seg.range.cloneRange());
+    // .pb-tr re-anchors via pbpHlReanchorTr (fired from _pbpTrFill), NOT the
+    // hljs/KaTeX watcher (which targets pbpAiBlockEl -- the original block).
+    if (seg.side !== "tr") _pbpHlArmBlockObserver(seg.el, seg.n);
   });
+  await _pbpHlLastColorSet(color);
+  for (const { item } of created) pbpHlSyncMirror(item.n); // H5 (spec 1.5)
+  _pbpHlNotebookRender();
+  // Spec 1.3 trigger 4: the FIRST highlight created this session
+  // auto-expands the rail's hl section (session-visual only, via
+  // expand(temp) -- never persisted, never overwrites the user's
+  // stored collapse preference). A restore from storage (pbpHlInit)
+  // does NOT set this flag, only an actual creation does.
+  if (!_pbpHlAutoExpandedThisSession) {
+    _pbpHlAutoExpandedThisSession = true;
+    if (_pbpHlNbEls && _pbpHlNbEls.handle) _pbpHlNbEls.handle.expand(true);
+  }
+  return created.map((x) => x.item);
 }
 
 function _pbpHlRegisterRange(item, range) {
@@ -1546,7 +1691,7 @@ function _pbpHlOnClick(e) {
 // through the one creation path (_pbpHlCreateFromRange, last-used color) and
 // the note lands on the LAST item that call created (mirrors
 // _pbpHlCreateWithNote's own "open the last created item" choice). Persists
-// via _pbpHlSave + _pbpHlNotebookRender only (spec invariant 2). Returns
+// via _pbpHlCommit + _pbpHlNotebookRender only (spec invariant 2). Returns
 // false (after a hlSaveFailed toast) when creation fails so the caller's
 // button can re-enable itself; _pbpHlSave toasts its own failures.
 async function pbpHlAttachNote(target, answerText) {
@@ -1581,7 +1726,7 @@ async function pbpHlAttachNote(target, answerText) {
       item = best.item;
     } else {
       const color = await _pbpHlLastColorGet();
-      // ponytail: _pbpHlCreateFromRange already does its own _pbpHlSave +
+      // ponytail: _pbpHlCreateFromRange already does its own _pbpHlCommit +
       // _pbpHlNotebookRender internally before returning, with the new item's
       // note still "". The append below then triggers a SECOND save + render
       // with the real note. That is one extra storage.local write and a
@@ -1603,26 +1748,34 @@ async function pbpHlAttachNote(target, answerText) {
   const openNote = (_pbpHlCardItemId === itemId && _pbpHlCard) ? _pbpHlCard.querySelector(".hl-card-note") : null;
   const cardValueAtStart = openNote ? openNote.value : null;
 
-  return _pbpHlQueueWrite(async () => {
-    if (!_pbpHlState) { _pbpHlToast(t("hlSaveFailed")); return false; }
-    const current = _pbpHlState.items.find((it) => it.id === itemId);
-    if (!current) { _pbpHlToast(t("hlSaveFailed")); return false; }
-    const prev = current.note;
-    current.note = pbpHlAppendNoteText(current.note, answer);
-    const ok = await _pbpHlSave(_pbpHlState.url, _pbpHlState.items, null);
-    if (!ok) { current.note = prev; return false; } // roll back the in-memory append so a retry doesn't double-append
-    _pbpHlNotebookRender();
-    if (_pbpHlCard && _pbpHlCardItemId === current.id) {
-      const noteEl = _pbpHlCard.querySelector(".hl-card-note");
-      if (noteEl && _pbpHlNoteDirty) {
-        noteEl.value = pbpHlAppendNoteText(noteEl.value, answer);
-      } else if (noteEl && !_pbpHlNoteDirty && (cardValueAtStart === null || noteEl.value === cardValueAtStart)) {
-        noteEl.value = current.note;
-        _pbpHlCardBaseNote = current.note || "";
-      }
+  // The answer appends to the STORED note (another tab may have edited it
+  // since this page read the item), and the item is patched by id -- an item
+  // deleted elsewhere is abandoned, never re-inserted.
+  let mergedNote = "";
+  let gone = false;
+  const ok = await _pbpHlCommit((stored) => {
+    const current = stored.find((it) => it.id === itemId);
+    if (!current) { gone = true; return null; }
+    mergedNote = pbpHlAppendNoteText(current.note, answer);
+    return stored.map((it) => (it.id === itemId ? { ...it, note: mergedNote } : it));
+  }, null);
+  if (!ok) {
+    // Deleted elsewhere while the answer was streaming: say so rather than
+    // silently dropping it. A real write failure already toasted in _pbpHlSave.
+    if (gone) _pbpHlToast(t("hlSaveFailed"));
+    return false;
+  }
+  _pbpHlNotebookRender();
+  if (_pbpHlCard && _pbpHlCardItemId === itemId) {
+    const noteEl = _pbpHlCard.querySelector(".hl-card-note");
+    if (noteEl && _pbpHlNoteDirty) {
+      noteEl.value = pbpHlAppendNoteText(noteEl.value, answer);
+    } else if (noteEl && !_pbpHlNoteDirty && (cardValueAtStart === null || noteEl.value === cardValueAtStart)) {
+      noteEl.value = mergedNote;
+      _pbpHlCardBaseNote = mergedNote;
     }
-    return true;
-  });
+  }
+  return true;
 }
 window.pbpHlAttachNote = pbpHlAttachNote; // explicit window attach: makes the md-ask.js "Save as note" contract self-documenting.
 
@@ -1889,25 +2042,30 @@ async function _pbpHlSwitchColor(color) {
   const pendingId = _pbpHlCardItemId;
   const card = _pbpHlCard;
   const btn = card && card.querySelector(".hl-card-dot-" + color);
-  return _pbpHlQueueWrite(async () => {
-    if (!_pbpHlState) return;
-    const item = _pbpHlState.items.find((it) => it.id === pendingId);
-    if (!item || item.color === color) return;
-    const oldColor = item.color;
-    item.color = color;
-    const ok = await _pbpHlSave(_pbpHlState.url, _pbpHlState.items, btn);
-    if (!ok) {
-      if (item.color === color) item.color = oldColor;
-      if (_pbpHlCardItemId === item.id) _pbpHlOpenCard(item.id);
-      return;
-    }
-    if (typeof pbpHlRestore === "function") pbpHlRestore();
-    _pbpHlNotebookRender(); // list dot color + color-filter membership can both change
-    // Guard: only reopen/reposition the card onto this item if it's still the one displayed --
-    // the user may have closed this card and opened a different highlight's card while the
-    // save was in flight (same bug class as the run-start-pill guards in 57642a2).
-    if (_pbpHlCardItemId === item.id) _pbpHlOpenCard(item.id); // re-render the card's active dot + re-measure position
-  });
+  let gone = false;
+  let unchanged = false;
+  const ok = await _pbpHlCommit((stored) => {
+    const item = stored.find((it) => it.id === pendingId);
+    // Deleted elsewhere (library.html, another reader tab): abandon the edit.
+    // Re-inserting the item to carry a colour change is how a deleted
+    // highlight comes back from the dead.
+    if (!item) { gone = true; return null; }
+    if (item.color === color) { unchanged = true; return null; }
+    return stored.map((it) => (it.id === pendingId ? { ...it, color } : it));
+  }, btn);
+  if (!ok) {
+    if (unchanged) return;
+    if (gone) _pbpHlToast(t("hlSaveFailed"), btn); // _pbpHlSave toasts real write failures itself
+    // Re-render the card off whatever storage actually holds (its active dot
+    // still shows the click). Guard: only if it is still the card on screen --
+    // the user may have opened a different highlight's card while the save was
+    // in flight (same bug class as the run-start-pill guards in 57642a2).
+    if (_pbpHlCardItemId === pendingId) _pbpHlOpenCard(pendingId);
+    return;
+  }
+  if (typeof pbpHlRestore === "function") pbpHlRestore();
+  _pbpHlNotebookRender(); // list dot color + color-filter membership can both change
+  if (_pbpHlCardItemId === pendingId) _pbpHlOpenCard(pendingId); // re-render the card's active dot + re-measure position
 }
 
 let _pbpHlNoteDirty = false;
@@ -1928,12 +2086,19 @@ function _pbpHlCommitNote() {
   _pbpHlNoteDirty = false;
   // no pbpHlRestore -- notes never touch the Range/Highlight, but the
   // list's note-excerpt line does need to reflect the edit.
-  _pbpHlQueueWrite(async () => {
-    if (!_pbpHlState) return false;
-    const item = _pbpHlState.items.find((it) => it.id === pendingId);
-    if (!item) return false;
+  let mergedNote = nextNote;
+  let gone = false;
+  _pbpHlCommit((stored) => {
+    const item = stored.find((it) => it.id === pendingId);
+    // Deleted elsewhere while this note was being typed: drop the edit rather
+    // than re-inserting the item to carry it (the resurrection bug).
+    if (!item) { gone = true; return null; }
+    // The three-way merge's "theirs" side is the STORED note, never the
+    // in-memory copy: another tab's edit lands in storage without this page's
+    // item object ever hearing about it, and merging against the stale copy
+    // would silently swallow it.
     const oldNote = item.note || "";
-    let mergedNote = nextNote;
+    mergedNote = nextNote;
     if (oldNote !== baseNote && oldNote !== nextNote) {
       if (oldNote.startsWith(baseNote)) {
         const suffix = oldNote.slice(baseNote.length);
@@ -1944,17 +2109,34 @@ function _pbpHlCommitNote() {
         mergedNote = pbpHlAppendNoteText(mergedNote, oldNote);
       }
     }
-    item.note = mergedNote;
-    const ok = await _pbpHlSave(_pbpHlState.url, _pbpHlState.items, saveBtn);
+    return stored.map((it) => (it.id === pendingId ? { ...it, note: mergedNote } : it));
+  }, saveBtn).then((ok) => {
     if (!ok) {
-      item.note = oldNote;
-      _pbpHlNoteDirty = true;
+      if (gone) { _pbpHlToast(t("hlSaveFailed"), saveBtn); return false; }
+      _pbpHlNoteDirty = true; // a write failure is retryable, an abandoned edit is not
       const currentNote = _pbpHlCard && _pbpHlCard.querySelector(".hl-card-note");
-      if (_pbpHlCardItemId === item.id && currentNote && currentNote.value === nextNote) _pbpHlOpenCard(item.id);
+      if (_pbpHlCardItemId === pendingId && currentNote && currentNote.value === nextNote) _pbpHlOpenCard(pendingId);
       return false;
     }
     _pbpHlNotebookRender();
-    if (_pbpHlCardItemId === item.id) _pbpHlCardBaseNote = item.note || "";
+    // The merge protects only the save it ran in unless the CARD adopts its
+    // result too: leave the textarea showing the pre-merge text while the base
+    // advances to mergedNote and the next commit sees stored === base, skips
+    // the merge entirely, and writes the other tab's addition away. Same
+    // both-halves sync pbpHlAttachNote does above.
+    if (_pbpHlCardItemId === pendingId) {
+      const noteEl = _pbpHlCard && _pbpHlCard.querySelector(".hl-card-note");
+      // Adopt only into a card still showing exactly what this commit sent (or
+      // already re-rendered to the merged text): typing since then must not be
+      // overwritten, and neither must the caret be yanked to the end.
+      const synced = !!noteEl && !_pbpHlNoteDirty && (noteEl.value === nextNote || noteEl.value === mergedNote);
+      if (synced) noteEl.value = mergedNote;
+      // The base has to stay an ancestor of BOTH sides. Synced: both are
+      // mergedNote. Not synced: what the user holds is built on nextNote, and
+      // the merge only ever appends to that -- claiming mergedNote would be
+      // claiming their buffer already contains the other tab's addition.
+      _pbpHlCardBaseNote = synced ? mergedNote : nextNote;
+    }
     return true;
   });
 }
@@ -1966,23 +2148,23 @@ function _pbpHlCommitNote() {
 // opened a DIFFERENT highlight's card while this delete's save was in
 // flight, and that card must stay open (same bug class as the
 // run-start-pill guards in 57642a2).
-function _pbpHlDeleteItem(id, btn) {
-  return _pbpHlQueueWrite(async () => {
-    if (!_pbpHlState) return false;
-    const idx = _pbpHlState.items.findIndex((it) => it.id === id);
-    if (idx === -1) return false;
-    const removed = _pbpHlState.items[idx];
-    const removedN = Number(removed.n) || 0;
-    const nextItems = _pbpHlState.items.slice(0, idx).concat(_pbpHlState.items.slice(idx + 1));
-    const ok = await _pbpHlSave(_pbpHlState.url, nextItems, btn);
-    if (!ok) return false;
-    _pbpHlState.items = nextItems;
-    if (removedN && typeof pbpHlSyncMirror === "function") pbpHlSyncMirror(removedN); // H5 (spec 1.5)
-    if (typeof pbpHlRestore === "function") pbpHlRestore();
-    _pbpHlNotebookRender();
-    if (_pbpHlCard && _pbpHlCardItemId === id) _pbpHlCard.hidePopover();
-    return true;
-  });
+async function _pbpHlDeleteItem(id, btn) {
+  let removedN = 0;
+  // Removal by id over the STORED array: everything another tab added since
+  // this page loaded survives. An id that is already absent (deleted there
+  // first) is an idempotent no-op, NOT a failure -- the user's intent is
+  // exactly the state storage is already in.
+  const ok = await _pbpHlCommit((stored) => {
+    const removed = stored.find((it) => it.id === id);
+    if (removed) removedN = Number(removed.n) || 0;
+    return stored.filter((it) => it.id !== id);
+  }, btn);
+  if (!ok) return false;
+  if (removedN && typeof pbpHlSyncMirror === "function") pbpHlSyncMirror(removedN); // H5 (spec 1.5)
+  if (typeof pbpHlRestore === "function") pbpHlRestore();
+  _pbpHlNotebookRender();
+  if (_pbpHlCard && _pbpHlCardItemId === id) _pbpHlCard.hidePopover();
+  return true;
 }
 
 function _pbpHlDeleteCurrent() {
@@ -2265,13 +2447,29 @@ function _pbpHlNotebookJump(item) {
 }
 
 // Reactive trigger: fires on ANY write to this page's pbp_hl_<urlKey> key, regardless of
-// which code path performed it. _pbpHlState.items is always current by the time any write
-// lands (every mutator updates it in place BEFORE persisting), so this never reloads from
-// the change record (storage doesn't carry the transient `degraded` flag).
+// which code path performed it -- and this page is NOT the only writer. library.html
+// rewrites the same record, and popup/background open a fresh tab per preview, so two
+// reader tabs on one URL are ordinary. So the record itself is absorbed here, not just
+// re-rendered: without that, an item deleted elsewhere lingers as a ghost row that the
+// next local write would resurrect. The runtime-only maps (degraded / resolvedN /
+// orphans) live on _pbpHlState, not in storage, and pbpHlRestore rebuilds the whole set
+// of them from the new items -- which is why absorbing needs no help from the record.
 if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.onChanged) {
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== "local" || !_pbpHlState) return;
-    if (!(_pbpHlKey(_pbpHlState.url) in changes)) return;
+    const c = changes[_pbpHlKey(_pbpHlState.url)];
+    if (!c) return;
+    const next = (c.newValue && Array.isArray(c.newValue.items)) ? c.newValue.items : [];
+    // Self-write echo carries identical content; skip to avoid re-anchoring on
+    // every save. _pbpHlEchoItems covers the echo that outruns _pbpHlSave's own
+    // promise, _pbpHlState.items the one that arrives after it.
+    if (!pbpHlItemsSame(next, _pbpHlState.items) && !pbpHlItemsSame(next, _pbpHlEchoItems)) {
+      _pbpHlState.items = next;
+      // Retire the echo: it has been overtaken, and keeping it would mask a
+      // later foreign write that happens to restore that exact content.
+      _pbpHlEchoItems = null;
+      if (typeof pbpHlRestore === "function") pbpHlRestore();
+    }
     _pbpHlNotebookRender();
   });
 }

@@ -136,6 +136,7 @@ function invalidatePinboardAuthState() {
   statusCache.clear();
   _pendingChecks.clear();
   _lastIconState.clear();
+  _lastCheckedUrl.clear();
   try { Promise.resolve(chrome.storage.session.remove("_currentTab")).catch(() => {}); } catch (_) {}
   chrome.tabs.query({}).then((tabs) => {
     if (epoch !== _pinboardAuthEpoch) return;
@@ -236,8 +237,87 @@ function invalidateSettingsCache() {
   _settingsCache = null;
 }
 
-// F7: Track recent saves for undo via notification button
-const _recentSaves = new Map(); // notificationId -> { url, account }
+// F7: Track recent saves for undo via notification button.
+// MV3: this worker is killed after 30s idle, so the Map alone cannot own the undo
+// state — the toast outlives the worker and the button would then silently no-op.
+// storage.session is the source of truth (it lives exactly as long as the browser
+// session that can still show the toast); the Map is only this generation's warm
+// cache. Expiry runs off a named alarm, not setTimeout, for the same reason.
+const _recentSaves = new Map(); // notificationId -> { url, account, expiresAt }
+const PBP_UNDO_KEY = "_undoSaves";
+const PBP_UNDO_TTL = 30000;
+const PBP_UNDO_ALARM = "undo-expire";
+// A little past the TTL so a sweep never lands on a record that is one tick short
+// of expiring (Chrome clamps alarms under 30s anyway).
+const PBP_UNDO_ALARM_DELAY_MIN = (PBP_UNDO_TTL + 5000) / 60000;
+
+function pbpUndoSessionStore() {
+  try { return chrome.storage?.session || null; } catch (_) { return null; }
+}
+
+async function pbpRememberUndo(notifId, record) {
+  _recentSaves.set(notifId, record);
+  const store = pbpUndoSessionStore();
+  if (!store) return; // memory-only fallback: undo still works while this worker lives
+  try {
+    const map = (await store.get(PBP_UNDO_KEY))[PBP_UNDO_KEY] || {};
+    const now = Date.now();
+    for (const id of Object.keys(map)) { if (!(map[id]?.expiresAt > now)) delete map[id]; }
+    map[notifId] = record;
+    await store.set({ [PBP_UNDO_KEY]: map });
+    chrome.alarms.create(PBP_UNDO_ALARM, { delayInMinutes: PBP_UNDO_ALARM_DELAY_MIN });
+  } catch (e) {
+    // No secrets in the record (non-secret account + the saved URL), but log the
+    // platform failure: a lost record downgrades Undo to a dead button.
+    console.warn("[undo] cannot persist undo record:", e?.name, e?.message);
+  }
+}
+
+// Undo is single-use: drop the record from both tiers before the network call.
+// Returns null when the record is unknown (lost with an earlier worker) or expired.
+async function pbpTakeUndoRecord(notifId) {
+  let record = _recentSaves.get(notifId) || null;
+  _recentSaves.delete(notifId);
+  const store = pbpUndoSessionStore();
+  if (store) {
+    try {
+      const map = (await store.get(PBP_UNDO_KEY))[PBP_UNDO_KEY] || {};
+      if (!record) record = map[notifId] || null;
+      if (map[notifId]) { delete map[notifId]; await store.set({ [PBP_UNDO_KEY]: map }); }
+    } catch (e) {
+      console.warn("[undo] session lookup failed:", e?.name, e?.message);
+    }
+  }
+  if (!record) return null;
+  return (record.expiresAt && record.expiresAt <= Date.now()) ? null : record;
+}
+
+// chrome.notifications.clear() returns a promise — a sync try/catch never sees its
+// rejection. Await it and leave a trace (the id carries no user data).
+async function pbpClearNotification(notifId) {
+  try { await chrome.notifications.clear(notifId); }
+  catch (e) { console.warn("[undo] notification clear failed:", e?.name, e?.message); }
+}
+
+// Alarm-driven expiry: drop timed-out records and take their toasts down, so no
+// notification center keeps an Undo button that can no longer do anything.
+async function pbpSweepExpiredUndo() {
+  const now = Date.now();
+  for (const [id, record] of _recentSaves) { if (!(record?.expiresAt > now)) _recentSaves.delete(id); }
+  const store = pbpUndoSessionStore();
+  if (!store) return;
+  const map = (await store.get(PBP_UNDO_KEY))[PBP_UNDO_KEY] || {};
+  let changed = false;
+  for (const [id, record] of Object.entries(map)) {
+    if (record?.expiresAt > now) continue;
+    delete map[id];
+    changed = true;
+    await pbpClearNotification(id);
+  }
+  if (changed) await store.set({ [PBP_UNDO_KEY]: map });
+  // A save that landed between two sweeps is still pending: schedule one more pass.
+  if (Object.keys(map).length) chrome.alarms.create(PBP_UNDO_ALARM, { delayInMinutes: PBP_UNDO_ALARM_DELAY_MIN });
+}
 
 async function pbpReadFreshPinboardAuthForAccount(account) {
   while (true) {
@@ -269,9 +349,12 @@ async function showNotification(id, title, message, category, undoInfo) {
   const opts = { type: "basic", iconUrl: "icons/pin-default-48.png", title, message };
   if (undoInfo) {
     opts.buttons = [{ title: t("bgUndo") }];
-    _recentSaves.set(notifId, undoInfo);
-    // Auto-expire undo after 30s
-    setTimeout(() => _recentSaves.delete(notifId), 30000);
+    // Register before the toast exists, so the button can never be clicked ahead
+    // of its record. Chrome/OS notification centers keep the toast visible
+    // indefinitely, so the sweep clears it once the record expires.
+    await pbpRememberUndo(notifId, {
+      url: undoInfo.url, account: undoInfo.account, expiresAt: Date.now() + PBP_UNDO_TTL
+    });
   }
   chrome.notifications.create(notifId, opts);
 }
@@ -279,9 +362,14 @@ async function showNotification(id, title, message, category, undoInfo) {
 // F7: Handle undo button click on notifications
 chrome.notifications.onButtonClicked.addListener(async (notifId, btnIndex) => {
   if (btnIndex !== 0) return;
-  const info = _recentSaves.get(notifId);
-  if (!info) return;
-  _recentSaves.delete(notifId);
+  const info = await pbpTakeUndoRecord(notifId);
+  if (!info) {
+    // Expired, or lost with an earlier worker generation: the toast is still on
+    // screen offering an Undo that cannot happen. Take it down so the click at
+    // least removes the dead button instead of doing nothing at all.
+    await pbpClearNotification(notifId);
+    return;
+  }
   try {
     const auth = await pbpReadFreshPinboardAuthForAccount(info.account);
     if (!auth || !pbpPinboardAuthIsCurrent(auth)) return;
@@ -289,6 +377,14 @@ chrome.notifications.onButtonClicked.addListener(async (notifId, btnIndex) => {
     const data = await resp.json();
     if (data.result_code === "done") {
       pbpStatusCacheSet(info.url, auth, { bookmarked: false, timestamp: Date.now() });
+      // Same reset the bookmark_deleted handler does: _lastIconState dedup would
+      // otherwise pin the toolbar icon to "saved" until the user navigates away.
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (pbpPinboardAuthIsCurrent(auth) && tab?.id && pbpSameBookmark(tab.url, info.url)) {
+        setIcon(tab.id, "default");
+      }
+      // The "saved" toast is now false and its button is spent — replace it.
+      await pbpClearNotification(notifId);
       showNotification("undo-done", t("bgUndone"), t("bgBookmarkRemoved"));
     }
   } catch (e) {
@@ -1053,11 +1149,25 @@ async function _getFocusedActiveTab(expectedTabId, expectedUrl) {
   return tab;
 }
 
+// tabId -> last URL a status check was dispatched for. Read only by the
+// same-document arm of tabs.onUpdated, to tell a real in-page route change from a
+// pure #fragment jump; cleared on tab close and on any auth change (fail open).
+const _lastCheckedUrl = new Map();
+function _urlWithoutFragment(url) {
+  if (typeof url !== "string") return "";
+  const hash = url.indexOf("#");
+  return hash === -1 ? url : url.slice(0, hash);
+}
+
 function _scheduleCurrentTabRefresh(tabId, expectedUrl) {
+  if (typeof expectedUrl === "string") _lastCheckedUrl.set(tabId, expectedUrl);
   _scheduleTabCheck(tabId, async () => {
     try {
       const tab = await _getFocusedActiveTab(tabId, expectedUrl);
       if (!tab) return;
+      // onActivated/onFocusChanged can arrive without an expected URL; record what
+      // the check actually ran against so the fragment gate below has a baseline.
+      _lastCheckedUrl.set(tabId, tab.url);
 
       noteActivity();
       const bookmarked = await debouncedCheck(tab.url);
@@ -1083,10 +1193,25 @@ chrome.tabs.onActivated.addListener(({ tabId }) => {
   _scheduleCurrentTabRefresh(tabId);
 });
 
+// `changeInfo.url` is the same-document (history.pushState) signal: SPA sites
+// (YouTube, Twitter, Zhihu) never re-run loading->complete for an in-page route
+// change, and Chromium only clears the tab-scoped action icon on cross-document
+// navigation — so without this arm the icon stays stuck on the previous page's
+// state. Accept either signal; the 150ms per-tab debounce, the _pendingChecks
+// dedup and the 5-minute status cache keep the extra events off the network.
+// That same signal also fires for a bare #fragment jump (footnote, table of
+// contents), and Pinboard treats `page#note` as a DIFFERENT url than `page`:
+// re-checking it returns posts:[] and would flip a saved article's icon to "not
+// saved" on every anchor click, burning one 3.1s rate-limit slot each time.
+// Bookmark identity ignores the fragment, so a fragment-only move keeps the state
+// the page already has. A cross-document navigation carries a status transition;
+// a bare url change is the same-document (pushState/fragment) case.
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (changeInfo.status === "complete" && tab.url && tab.url.startsWith("http")) {
-    _scheduleCurrentTabRefresh(tabId, tab.url);
-  }
+  if (!(changeInfo.status === "complete" || changeInfo.url)) return;
+  if (!tab.url || !tab.url.startsWith("http")) return;
+  const sameDocument = !!changeInfo.url && changeInfo.status === undefined;
+  if (sameDocument && _urlWithoutFragment(tab.url) === _urlWithoutFragment(_lastCheckedUrl.get(tabId))) return;
+  _scheduleCurrentTabRefresh(tabId, tab.url);
 });
 
 chrome.windows.onFocusChanged.addListener((windowId) => {
@@ -1101,6 +1226,7 @@ chrome.tabs.onRemoved.addListener((tabId) => {
   const timer = _checkDebounceTimers.get(tabId);
   if (timer) { clearTimeout(timer); _checkDebounceTimers.delete(tabId); }
   _lastIconState.delete(tabId); // prevent Map leak over long sessions
+  _lastCheckedUrl.delete(tabId);
   pbpImgFixSweepRules(tabId);
 });
 
@@ -1359,7 +1485,11 @@ async function migrateBgSaveMode() {
     if (raw.bgSaveMode !== undefined) return; // already migrated or user-set
     const mode = (raw.bgSaveNoClobber === false) ? "overwrite" : "merge";
     await store.set({ bgSaveMode: mode });
-  } catch (_) {}
+  } catch (e) {
+    // MV3 rule: never swallow a platform API failure silently. No secrets here —
+    // bgSaveMode/bgSaveNoClobber are plain preference keys.
+    console.warn("bgSaveMode migration failed:", e?.name, e?.message);
+  }
 }
 // Keep the migration's promise: primeSettings callers await it first. Both are
 // read-then-write over bgSaveMode, and onInstalled fires primeSettings almost
@@ -1602,7 +1732,11 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === "keepalive") {
     processOfflineQueue().catch(() => {});
     updateBadge().catch(() => {});
+    pbpSweepInterruptedBatch().catch(() => {});
     ensureKeepAlive(); // if SW was revived mid-window by the alarm, resume pinging
+  }
+  if (alarm.name === PBP_UNDO_ALARM) {
+    pbpSweepExpiredUndo().catch((e) => console.warn("[undo] expiry sweep failed:", e?.name, e?.message));
   }
   if (alarm.name === "prewarm-tags") {
     prewarmTagsNow().catch(() => {});
@@ -2141,9 +2275,54 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 // the completion notification fires here regardless of popup state.
 let _batchRunning = false;
 
+// Returns whether the record actually landed: a caller that announces a terminal
+// state (the interrupted sweep) must not tell the user a story storage refused to
+// keep. In-loop callers ignore it — the progress UI degrades, the batch continues.
 async function _writeBatchProgress(p) {
-  try { await chrome.storage.local.set({ batch_progress: { ...p, ts: Date.now() } }); }
-  catch (_) { /* storage transient failure — progress UI degrades, batch continues */ }
+  try {
+    await chrome.storage.local.set({ batch_progress: { ...p, ts: Date.now() } });
+    return true;
+  } catch (e) {
+    // MV3 rule: never swallow a platform failure silently. No secrets in this
+    // record — counters plus the non-secret account.
+    console.warn("[batch] progress write failed:", e?.name, e?.message);
+    return false;
+  }
+}
+
+// A batch that died with the SW (browser quit, extension reload, crash) leaves
+// batch_progress stuck at running with no terminal record and no notification —
+// the user never learns which tab it stopped on. Re-running is cheap (AI results
+// come from the IDB cache, saves merge tags and keep the original time), so the
+// only fix needed is to close the record out loud. Runs on the existing keepalive
+// alarm: no new storage key, no new alarm.
+async function pbpSweepInterruptedBatch() {
+  if (_batchRunning) return; // this SW generation owns a live batch
+  const { batch_progress: bp } = await chrome.storage.local.get("batch_progress");
+  if (!bp || !bp.running || bp.done) return;
+  if (batchIsRunning(bp, Date.now(), BATCH_STALE_TTL)) return; // heartbeat still fresh
+  // Account isolation: the record is derived from the account that started the
+  // batch, so a different signed-in account may neither close it out nor be told
+  // about it. Leaving it untouched costs nothing — it is a single key that the
+  // next batch (any account) overwrites wholesale, its stale ts already reads as
+  // "not running" everywhere, and the owner's own session sweeps it on return.
+  const auth = await getCurrentPinboardAuth();
+  if (bp.account && bp.account !== auth.account) return;
+  // TOCTOU: the startBatchSave handler reserves _batchRunning synchronously and a
+  // live batch rewrites batch_progress with a fresh ts, and both awaits above gave
+  // a retry room to start. Re-check the flag AND confirm the record is still the
+  // exact one that was read — writing the "interrupted" shape over a batch that is
+  // actually running would report it as dead in the popup and in a notification.
+  if (_batchRunning) return;
+  const fresh = (await chrome.storage.local.get("batch_progress")).batch_progress;
+  if (!fresh || !fresh.running || fresh.done || fresh.ts !== bp.ts) return;
+  if (_batchRunning) return;
+  // Announce only what actually landed: a swallowed storage failure would leave the
+  // record stuck at running while the user reads an "interrupted" toast, and every
+  // later alarm tick would fire another one.
+  if (!(await _writeBatchProgress({ ...bp, running: false, done: true, error: "interrupted" }))) return;
+  showNotification("batch-error", t("bgBatchSaved"),
+    t("batchInterrupted", String(bp.i || 0), String(bp.total || 0)), "error");
 }
 
 function handleBatchSave(tabs, expectedAccount = "", reserved = false) {

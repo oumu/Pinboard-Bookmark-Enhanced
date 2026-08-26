@@ -764,25 +764,47 @@ document.addEventListener("DOMContentLoaded", async () => {
         testBtn.textContent = t("mdSendTest");
         const testStatus = document.createElement("span");
         testStatus.className = "et-test-status";
+        // Same live region the static #storage-status carries: the outcome
+        // (permission refused, 401, reachable) arrives seconds after the click
+        // and is otherwise announced to nobody. className is reassigned per run
+        // below, which only rewrites the class attribute -- these survive it.
+        testStatus.setAttribute("role", "status");
+        testStatus.setAttribute("aria-live", "polite");
         testBtn.addEventListener("click", async () => {
+          if (testBtn.disabled) return;
           const tokenInp = card.querySelector('[data-et="' + id + '.token"]');
           const portInp = card.querySelector('[data-et="' + id + '.port"]');
           const token = (tokenInp && tokenInp.value.trim()) || "";
           const port = (portInp && portInp.value.trim()) || "";
-          testStatus.className = "et-test-status";
-          if (!token) { testStatus.classList.add("warn"); testStatus.textContent = t("mdSendTestNoToken"); return; }
-          testStatus.textContent = t("mdSending");
+          // Busy state is set synchronously on purpose: the permission request
+          // below is the first await in this handler and must stay inside the
+          // click's own user-gesture stack, so nothing may be awaited before it.
+          testBtn.disabled = true;
+          testBtn.setAttribute("aria-busy", "true");
           try {
-            const granted = await chrome.permissions.request({ origins: [row.origin] });
-            if (!granted) { testStatus.classList.add("err"); testStatus.textContent = t("mdSendTestPerm"); return; }
-          } catch (_) { testStatus.classList.add("err"); testStatus.textContent = t("mdSendTestPerm"); return; }
-          try {
-            const pr = row.precheckRequest({ port }, token);
-            const resp = await fetch(pr.url, { method: pr.method, headers: pr.headers, body: pr.body, redirect: "error" });
-            if (resp.status === 401) { testStatus.classList.add("err"); testStatus.textContent = t("mdSendTestBadToken"); }
-            else if (!resp.ok) { testStatus.classList.add("err"); testStatus.textContent = t("mdSendTestDown"); }
-            else { testStatus.classList.add("ok"); testStatus.textContent = t("mdSendTestOk"); }
-          } catch (_) { testStatus.classList.add("err"); testStatus.textContent = t("mdSendTestDown"); }
+            testStatus.className = "et-test-status";
+            if (!token) { testStatus.classList.add("warn"); testStatus.textContent = t("mdSendTestNoToken"); return; }
+            testStatus.textContent = t("mdSending");
+            try {
+              const granted = await chrome.permissions.request({ origins: [row.origin] });
+              if (!granted) { testStatus.classList.add("err"); testStatus.textContent = t("mdSendTestPerm"); return; }
+            } catch (e) {
+              // Platform rejection folded into a product message -- leave the
+              // error's shape (never the origin or token) in the console.
+              console.warn("[export-target] permission request failed:", e && e.name, e && e.message);
+              testStatus.classList.add("err"); testStatus.textContent = t("mdSendTestPerm"); return;
+            }
+            try {
+              const pr = row.precheckRequest({ port }, token);
+              const resp = await fetch(pr.url, { method: pr.method, headers: pr.headers, body: pr.body, redirect: "error" });
+              if (resp.status === 401) { testStatus.classList.add("err"); testStatus.textContent = t("mdSendTestBadToken"); }
+              else if (!resp.ok) { testStatus.classList.add("err"); testStatus.textContent = t("mdSendTestDown"); }
+              else { testStatus.classList.add("ok"); testStatus.textContent = t("mdSendTestOk"); }
+            } catch (_) { testStatus.classList.add("err"); testStatus.textContent = t("mdSendTestDown"); }
+          } finally {
+            testBtn.disabled = false;
+            testBtn.removeAttribute("aria-busy");
+          }
         });
         testWrap.appendChild(testBtn); testWrap.appendChild(testStatus);
         card.appendChild(testWrap);
@@ -795,6 +817,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     // are rebuilt on panel reset -- bind the freshly created .key-toggle buttons
     // here so every render (initial and reset) gets a working show/hide.
     if (typeof setupSecretToggles === "function") setupSecretToggles(host);
+    // Same story for auto-save, with worse consequences: unbound inputs in a
+    // re-rendered card never reach storage, while the card's own Test button
+    // reads the DOM and still reports success on a token nothing will save.
+    bindAutoSave(host);
   }
 
   // Collect the rendered target cards back into an exportTargets object.
@@ -889,7 +915,14 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (panel === "markdown") renderExportTargets({});
         saveAllSafely();
         if (typeof def.after === "function") def.after();
+        // applyPanelReset assigns .value directly, which fires no 'change', so
+        // every control whose dependants live on a change listener has to be
+        // re-synced by hand. Missing this one left the AI panel showing the
+        // default provider in the dropdown while the OLD provider's key/model
+        // fields stayed on screen -- keys typed there landed on the wrong
+        // provider. Both calls are no-ops on panels that lack the control.
         syncTranslateLangCustomState();
+        updateProviderFields();
       },
     });
   });
@@ -1337,6 +1370,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   syncToggle?.addEventListener("change", async () => {
     const enabling = syncToggle.checked;
     let cancelled = false;
+    // Declared out here because the post-reload watchdog below has to know
+    // whether this run adopted the cloud profile (see its comment).
+    let useCloud = false;
     if (syncKeysToggle) syncKeysToggle.disabled = !enabling;
     const oldStorage = enabling ? chrome.storage.local : chrome.storage.sync;
     const newStorage = enabling ? chrome.storage.sync : chrome.storage.local;
@@ -1353,7 +1389,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
     try {
-      let useCloud = false;
       const beforeTransition = await chrome.storage.local.get({ optSyncEnabled: !enabling });
       // Never hold the origin-wide secret-storage Web Lock across a modal.
       // Chrome can suspend a tab-modal confirm when the options tab loses
@@ -1490,6 +1525,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       const errEl = $id("opt-sync-error");
       if (errEl) {
         errEl.textContent = t("syncMigrationFailed") || "Sync migration failed. Try again; if it persists, check available Chrome Sync storage.";
+        // Sync-migration errors own this General-panel slot outright: the
+        // standing auto-save alert lives in #opt-global-alert, so the 8s
+        // auto-hide below can never take an unrelated message with it.
         errEl.classList.remove("hidden");
         setTimeout(() => errEl.classList.add("hidden"), 8000);
       }
@@ -1502,6 +1540,45 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.body.style.transition = "opacity var(--motion-pop) var(--ease-out)";
     document.body.style.opacity = "0";
     setTimeout(() => location.reload(), 140);
+    // The reload is not guaranteed to happen: the tag-governance beforeunload
+    // guard asks "Reload this site?" whenever batches are unfinished, and
+    // answering Cancel leaves the page frozen at opacity 0 with auto-save still
+    // suspended -- from then on every edit is dropped and export/import park
+    // forever inside pauseOptionsAutoSave()'s wait loop. If we are still on
+    // screen well after the reload should have replaced us, undo both; when it
+    // does happen this timer dies with the page. Written inline rather than
+    // shared with the language switch below because this handler is executed in
+    // isolation by the settings-persist harness, which injects every free name
+    // it uses -- a helper call here would be an undefined identifier there.
+    //
+    // Auto-save is deliberately NOT resumed on the "use the cloud settings"
+    // path: that branch writes nothing but the device flag, so every field on
+    // screen still holds this device's old values and only the reload repaints
+    // them from sync. Resuming would schedule a save that pushes that stale
+    // form over the whole cloud profile the user just adopted -- and on to
+    // every other device. Staying frozen costs a dead export/import button
+    // until the page is reloaded, which the alert asks for; a silent overwrite
+    // of the cloud profile is not recoverable.
+    setTimeout(() => {
+      if (document.hidden) return;
+      document.body.style.opacity = "";
+      if (useCloud) {
+        const alertEl = $id("opt-global-alert");
+        if (alertEl) {
+          // t() echoes the key back when a message is missing (i18n.js:135), so
+          // `|| fallback` would put the raw key on screen. Compare instead: the
+          // English text retires itself the moment syncReloadNeeded lands in
+          // the nine locale files.
+          const localized = t("syncReloadNeeded");
+          alertEl.textContent = localized === "syncReloadNeeded"
+            ? "Reload this page to finish switching to the settings stored in Chrome Sync."
+            : localized;
+          alertEl.classList.remove("hidden");
+        }
+        return;
+      }
+      resumeOptionsAutoSave();
+    }, 2000);
   });
 
   // syncApiKeys toggle: on = copy local secrets up to sync (opt back into cloud
@@ -1533,6 +1610,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       const errEl = $id("opt-sync-error");
       if (errEl) {
         errEl.textContent = t("syncMigrationFailed") || "Sync migration failed. Try again; if it persists, check available Chrome Sync storage.";
+        // Sync-migration errors own this General-panel slot outright: the
+        // standing auto-save alert lives in #opt-global-alert, so the 8s
+        // auto-hide below can never take an unrelated message with it.
         errEl.classList.remove("hidden");
         setTimeout(() => errEl.classList.add("hidden"), 8000);
       }
@@ -1588,6 +1668,13 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     } catch (_) {}
     setTimeout(() => location.reload(), 140);
+    // Same watchdog as the sync toggle above: a refused reload would otherwise
+    // strand this page invisible with auto-save suspended for good.
+    setTimeout(() => {
+      if (document.hidden) return;
+      document.body.style.opacity = "";
+      resumeOptionsAutoSave();
+    }, 2000);
   });
   // Real-time switch when theme dropdown changes (affects options-page theme + preset preview)
   // Adaptive presets resolve to light/dark variant in pinboard-style.js content script;
@@ -1655,23 +1742,31 @@ document.addEventListener("DOMContentLoaded", async () => {
     const btn = e.currentTarget;
     const orig = btn.textContent;
     const statusEl = $id("batch-perm-status");
+    // The button label reverts after 2s, so this line is where the reason for a
+    // failed revoke survives -- tint it with the themed .hint.bad rather than
+    // leaving it in hint grey alongside the neutral outcomes.
+    function setPermStatus(text, failed) {
+      if (!statusEl) return;
+      statusEl.textContent = text;
+      statusEl.classList.toggle("bad", !!failed);
+    }
     btn.disabled = true;
     try {
       const result = await pbpRevokeLegacyAllSitesPermission(chrome.permissions);
       if (result.ok) {
         btn.textContent = t("batchRevokeSuccess");
-        if (statusEl) statusEl.textContent = t("batchPermRevoked");
+        setPermStatus(t("batchPermRevoked"), false);
         setTimeout(() => { btn.textContent = orig; }, 2000);
       } else {
         btn.textContent = t("batchRevokeFailed");
-        if (statusEl) statusEl.textContent = t("batchRevokeFailed") + ": " + result.missing.join(", ");
+        setPermStatus(t("batchRevokeFailed") + ": " + result.missing.join(", "), true);
         btn.disabled = result.wildcardAbsent;
         setTimeout(() => { btn.textContent = orig; }, 2000);
       }
     } catch (err) {
       console.error("revoke permission failed:", err);
       btn.textContent = t("batchRevokeFailed");
-      if (statusEl) statusEl.textContent = t("batchRevokeFailed") + ": " + ((err && err.message) || "permissions");
+      setPermStatus(t("batchRevokeFailed") + ": " + ((err && err.message) || "permissions"), true);
       btn.disabled = false;
       setTimeout(() => { btn.textContent = orig; }, 2000);
     }
@@ -1699,8 +1794,35 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // ---- Wayback: clear the archive log (display only; keeps the _waybackAttempts
   // dedup map so just-saved URLs are not immediately re-archivable) ----
+  // Owner-scoped: the list renders only the signed-in account's rows, so the
+  // button drops only those. Removing the whole `_waybackLog` key would clear
+  // other accounts' history from a button that never showed it, and would take
+  // the legacy rows (written before the log carried an owner) with it.
+  //
+  // Legacy rows are deliberately KEPT: their owner is unknowable, nobody can
+  // see them, and a button labelled "clear my archive log" must not delete what
+  // it never displayed. They are not permanent garbage either -- wayback.js
+  // appends through WAYBACK_LOG_CAP, so they age out of the ring on their own.
   $id("wayback-log-clear")?.addEventListener("click", async () => {
-    try { await chrome.storage.local.remove("_waybackLog"); } catch (_) {}
+    const account = await pbpWaybackLogAccount();
+    // null = the settings read failed, so we do not know whose rows these are.
+    if (account === null) { await renderWaybackLog(); return; }
+    try {
+      const data = await chrome.storage.local.get({ _waybackLog: [] });
+      const log = Array.isArray(data._waybackLog) ? data._waybackLog : [];
+      const kept = log.filter(entry => !pbpWaybackLogOwnedBy(entry, account));
+      if (kept.length !== log.length) {
+        // Re-derive the owner across the await: a token swap mid-click must not
+        // land a write computed for the previous account.
+        if ((await pbpWaybackLogAccount()) !== account) { await renderWaybackLog(); return; }
+        // Best-effort read-modify-write with the same caveat as wayback.js's own
+        // append: the service worker can interleave a write and cost one row.
+        // Acceptable for an advisory log, and there is no cross-context
+        // transaction available over chrome.storage.
+        if (kept.length) await chrome.storage.local.set({ _waybackLog: kept });
+        else await chrome.storage.local.remove("_waybackLog");
+      }
+    } catch (_) {}
     await renderWaybackLog();
   });
 
@@ -1713,8 +1835,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   // resumes. Without this, the flows shared one non-nesting boolean — one
   // flow's finally re-enabled auto-save inside another flow's protected
   // window, and Export could read storage an import was still half-applying.
-  // Flows that end in location.reload() never resume; queued waiters die
-  // with the page, which is the correct outcome for a page-replacing action.
+  // Flows that end in location.reload() never resume; queued waiters die with
+  // the page -- unless the reload is refused, which each of those flows arms a
+  // watchdog against (beforeunload can veto it; see the sync toggle handler).
   async function pauseOptionsAutoSave() {
     while (autoSaveState.suspended) {
       await new Promise((resolve) => autoSaveState.waiters.push(resolve));
@@ -1963,9 +2086,43 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
+  // "Some settings may already have been saved" is the one message on this page
+  // the user must not miss, and the header slot it used to be the sole home of
+  // wipes itself after 4s. Mirror it into the page-level role="alert" slot and
+  // leave it there until a save actually succeeds.
+  //
+  // That slot is #opt-global-alert, NOT #opt-sync-error: auto-save fires from
+  // whichever panel the user is editing, while #opt-sync-error sits inside
+  // #panel-general, so on the other 12 panels its display:none ancestor hid the
+  // message outright and kept the live region from announcing. #opt-sync-error
+  // stays the sync-migration slot (that error is raised by controls in that
+  // very panel, and its 8s auto-hide must not reach an unrelated alert).
+  // The marker records that this element's current text is ours to retire.
+  function setAutoSaveFailureAlert(text) {
+    const errEl = $id("opt-global-alert");
+    if (!errEl) return;
+    // Saves are debounced at 500ms and a failing storage area keeps failing:
+    // rewriting the same text into a role="alert" re-announces it on every
+    // keystroke burst. The standing message is already on screen -- leave it.
+    if (errEl.dataset.autosaveFailure === "1" && errEl.textContent === text) return;
+    errEl.textContent = text;
+    errEl.dataset.autosaveFailure = "1";
+    errEl.classList.remove("hidden");
+  }
+
+  function clearAutoSaveFailureAlert() {
+    const errEl = $id("opt-global-alert");
+    if (!errEl || errEl.dataset.autosaveFailure !== "1") return;
+    delete errEl.dataset.autosaveFailure;
+    errEl.textContent = "";
+    errEl.classList.add("hidden");
+  }
+
   function reportAutoSaveFailure(error) {
     console.error("[options] save failed", error);
+    const msg = t("optSaveFailed") || "Save did not complete; some settings may already have been saved";
     flashAutoSave("optSaveFailed", "Save did not complete; some settings may already have been saved", 4000, false);
+    setAutoSaveFailureAlert(msg);
     return { ok: false, error };
   }
 
@@ -1981,20 +2138,41 @@ document.addEventListener("DOMContentLoaded", async () => {
     saveTimer = setTimeout(saveAllSafely, 500);
   }
 
-  // Listen on all form inputs for auto-save
-  document.querySelectorAll('.panel input[type="checkbox"]:not([data-no-autosave])').forEach(el => {
-    el.addEventListener("change", scheduleAutoSave);
-  });
-  document.querySelectorAll('.panel input[type="text"]:not([data-no-autosave]), .panel input[type="password"]:not([data-no-autosave]), .panel input[type="number"]:not([data-no-autosave]), .panel textarea:not([data-no-autosave])').forEach(el => {
-    el.addEventListener("input", scheduleAutoSave);
-  });
-  document.querySelectorAll('.panel select:not([data-no-autosave])').forEach(el => {
-    el.addEventListener("change", scheduleAutoSave);
-  });
-  document.querySelectorAll('.panel input[type="radio"]').forEach(el => {
-    el.addEventListener("change", scheduleAutoSave);
-  });
+  // Listen on all form inputs for auto-save. The page has no manual Save and no
+  // beforeunload flush, so an unbound control silently discards whatever was
+  // typed into it -- and renderExportTargets() throws away and rebuilds every
+  // Send-to card, which left the Notion token / Webhook URL / Obsidian vault
+  // entered after a panel reset bound to nothing. Hence re-entrant: called once
+  // for the page and again at the end of each render, with a dataset marker so
+  // the first render (which runs BEFORE the page-level pass) binds only once.
+  // The binding table lives in the function body rather than beside it: that
+  // first render happens well above this line, where a const here is still TDZ.
+  function bindAutoSave(root) {
+    const bindings = [
+      { event: "change", selectors: ['input[type="checkbox"]:not([data-no-autosave])'] },
+      { event: "input", selectors: ['input[type="text"]:not([data-no-autosave])', 'input[type="password"]:not([data-no-autosave])', 'input[type="number"]:not([data-no-autosave])', 'textarea:not([data-no-autosave])'] },
+      { event: "change", selectors: ['select:not([data-no-autosave])'] },
+      { event: "change", selectors: ['input[type="radio"]'] },
+    ];
+    // Page scope stays panel-qualified (the tab strip and the mobile panel
+    // picker must never autosave); a subtree already sits inside a .panel, so
+    // it qualifies itself.
+    const scope = root || document;
+    const prefix = scope === document ? ".panel " : "";
+    bindings.forEach(({ event, selectors }) => {
+      scope.querySelectorAll(selectors.map(sel => prefix + sel).join(", ")).forEach(el => {
+        if (el.dataset.autosaveReady === "1") return;
+        el.dataset.autosaveReady = "1";
+        el.addEventListener(event, scheduleAutoSave);
+      });
+    });
+  }
+  bindAutoSave();
+
   function flashAutoSave(key = "optAutoSaved", fallback = "Saved", delay = 1500, ok = true) {
+    // A save that went through retires the standing failure alert; leaving it up
+    // would keep warning about settings that are on disk by now.
+    if (ok) clearAutoSaveFailureAlert();
     const el = $id("auto-save-status");
     if (!el) return;
     setStatusIcon(el, ok, t(key) || fallback);
@@ -2419,9 +2597,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     const statusEl = $id("tag-gov-ai-status");
     if (!hasAIKey(sNow)) {
       if (statusEl) {
+        // Failure colour comes from .hint.bad (setStatusIcon sets the class).
+        // The old inline #c00 outranked every theme and measured 1.71:1 on
+        // Nord Night; clearing the state means dropping the class, not a style.
         setStatusIcon(statusEl, false, t("tagGovAiNoKey"));
-        statusEl.style.color = "#c00";
-        setTimeout(() => { statusEl.textContent = ""; statusEl.style.color = ""; }, 5000);
+        setTimeout(() => { statusEl.textContent = ""; statusEl.classList.remove("ok", "bad"); }, 5000);
       }
       return;
     }
@@ -2429,7 +2609,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     let grantRetry = false;
     btn.disabled = true;
     btn.textContent = t("tagGovAiRunning");
-    if (statusEl) { statusEl.textContent = ""; statusEl.style.color = ""; }
+    if (statusEl) { statusEl.textContent = ""; statusEl.classList.remove("ok", "bad"); }
 
     try {
       const auth = await getTagGovAuth(sNow._tagGovExpectedAccount || "");
@@ -2464,8 +2644,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
       if (statusEl) {
         setStatusIcon(statusEl, false, msg);
-        statusEl.style.color = "#c00";
-        if (!grantRetry) setTimeout(() => { statusEl.textContent = ""; statusEl.style.color = ""; }, 5000);
+        if (!grantRetry) setTimeout(() => { statusEl.textContent = ""; statusEl.classList.remove("ok", "bad"); }, 5000);
       }
     } finally {
       btn.disabled = false;
@@ -2478,7 +2657,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const btn = $id("tag-gov-ai-btn");
     const statusEl = $id("tag-gov-ai-status");
     if (btn && !btn.disabled) btn.textContent = t("tagGovAiBtn");
-    if (statusEl) { statusEl.textContent = ""; statusEl.style.color = ""; }
+    if (statusEl) { statusEl.textContent = ""; statusEl.classList.remove("ok", "bad"); }
   });
 
   $id("tag-gov-ai-btn")?.addEventListener("click", async (event) => {
@@ -2653,10 +2832,107 @@ function formatTagGovEst(seconds) {
   return seconds < 90 ? Math.ceil(seconds) + "s" : Math.ceil(seconds / 60) + " min";
 }
 
+// Add one group id to this account's ignore list. Shared by the Ignore button
+// and by the unmergeable-group retirement below, so the two can never drift
+// apart on the owner checks: re-validated inside the account lock on BOTH
+// sides of the read, since a token swap mid-write must not push an id into
+// another account's list.
+async function _tagGovIgnoreGroup(account, groupId) {
+  const ignoredKey = pbpAccountStorageKey("_tagGovIgnored", account);
+  await _tagGovWithAccountLock(account, async () => {
+    if (!(await getTagGovAuth(account))) return;
+    const stored = await chrome.storage.local.get(ignoredKey);
+    const list = (_tagGovOwned(stored[ignoredKey], account)?.ids || []).slice();
+    if (list.includes(groupId)) return;
+    list.push(groupId);
+    if (!(await getTagGovAuth(account))) return;
+    await chrome.storage.local.set({ [ignoredKey]: { account, ids: list } });
+  });
+}
+
+// One-off note on the tag-governance progress card. That card is the section's
+// only aria-live surface (role="status") and the only one with a Dismiss
+// button, and ensureTagSnapshot already posts non-progress notes there.
+// Skipped while a batch is running -- the same line carries the live counter,
+// and stomping it would be the worse regression (ensureTagSnapshot withholds
+// its own note under the identical rule).
+function _tagGovShowNote(text, expectedAccount) {
+  if (_tagGovUnfinishedBatches !== 0) return;
+  _tagGovClaimProgress(expectedAccount);
+  if (!_tagGovUiOwned(expectedAccount)) return;
+  _tagGovSetProgress(0, expectedAccount);
+  const progress = $id("tag-gov-progress");
+  const progressText = $id("tag-gov-progress-text");
+  if (progress) progress.hidden = false;
+  if (progressText) progressText.textContent = text;
+  _tagGovSetProgressBtn("dismiss", expectedAccount);
+}
+
+// The "already one tag" sentence has no locale key yet (adding one is a
+// nine-locale change that belongs in the same commit as the strings
+// themselves), and t() echoes an unknown key straight back to the screen --
+// so fall back to English until the key lands, and pick it up automatically
+// once it does. Same pattern as library-notes.js's PBP_NOTES_DELETE_FAILED_KEY.
+const TAG_GOV_ALREADY_ONE_TAG_KEY = "tagGovAlreadyOneTag";
+function _tagGovAlreadyOneTagText() {
+  const msg = t(TAG_GOV_ALREADY_ONE_TAG_KEY);
+  return msg === TAG_GOV_ALREADY_ONE_TAG_KEY
+    ? "These tags differ only in capitalization, so Pinboard already stores them as one tag — there is nothing to merge. The suggestion has been removed."
+    : msg;
+}
+
+// pbpTagGovBuildPlan returns [] for two very different reasons, and only one of
+// them can honestly be told to the user as "already merged". True = every
+// member is the canonical tag under Pinboard's case-insensitive matching.
+// False = one of the builder's structural bail-outs (a member with no tag
+// string, a canonical outside the group, a leading-dot private tag). Mirrors
+// the builder's guard order so the two cannot disagree.
+function _tagGovPlanEmptyByCaseOnly(members, canonical) {
+  const tags = (Array.isArray(members) ? members : []).map(m => m && m.tag);
+  if (!canonical || !tags.length) return false;
+  if (!tags.every(tg => typeof tg === "string" && tg)) return false;
+  if (!tags.includes(canonical)) return false;
+  if (tags.some(tg => tg.startsWith("."))) return false;
+  return tags.every(tg => tg.toLowerCase() === canonical.toLowerCase());
+}
+
+// A group whose merge plan is empty can never be acted on: retire it instead of
+// leaving a button that does nothing. Uses the same ignore list as the Ignore
+// button, because AI groups live in a stored snapshot and a row merely dropped
+// from the DOM would be rebuilt by the very next render.
+async function _tagGovRetireUnmergeableGroup(group, canonical, expectedAccount) {
+  const auth = await getTagGovAuth(expectedAccount);
+  if (!auth) return;
+  // Note first: it must survive even if the ignore write below fails.
+  if (_tagGovPlanEmptyByCaseOnly(group.members, canonical)) {
+    _tagGovShowNote(_tagGovAlreadyOneTagText(), auth.account);
+  } else {
+    // Unreachable from either producer today -- pbpTagGovFindGroups and
+    // pbpTagGovParseAiResponse both drop dot-tags, non-string members and a
+    // canonical outside the group -- so this branch carries no locale string of
+    // its own. Leave a trace (tag names only, no token) rather than swallowing
+    // it, and still retire the row: an unactionable suggestion is unactionable
+    // whatever the reason.
+    console.warn("[tag-gov] empty merge plan with no case-only explanation:", group.id, "->", canonical);
+  }
+  await _tagGovIgnoreGroup(auth.account, group.id);
+  if (await getTagGovAuth(auth.account)) await renderTagGov();
+}
+
 async function confirmMergeGroup(group, canonical, anchorEl, expectedAccount) {
   if (!group || !group.members || group.members.length === 0) return;
   const plan = pbpTagGovBuildPlan(group.members, canonical);
-  if (plan.length === 0) return;
+  // An empty plan means every member already IS the canonical tag as far as
+  // Pinboard is concerned: its tags are case-insensitive, so a group whose
+  // members differ only in capitalization ("AI" / "ai") is a single tag
+  // server-side with nothing to rename. The heuristic detector no longer emits
+  // those, but AI-group members come straight from the model and
+  // pbpTagGovParseAiResponse does not case-dedupe them, so this stays live.
+  // Returning silently read as a dead Merge button.
+  if (plan.length === 0) {
+    await _tagGovRetireUnmergeableGroup(group, canonical, expectedAccount);
+    return;
+  }
   const renames = plan.filter(op => op.op === "rename");
   const summary = renames.map(op => op.old + " -> " + canonical).join(" | ");
   // Renames run as per-bookmark re-saves (tags/rename is broken server-side), so the
@@ -3426,15 +3702,7 @@ async function renderTagGov() {
     ignoreBtn.className = "btn btn-sm";
     ignoreBtn.textContent = t("tagGovIgnore");
     ignoreBtn.addEventListener("click", async () => {
-      await _tagGovWithAccountLock(auth.account, async () => {
-        if (!(await getTagGovAuth(auth.account))) return;
-        const result2 = await chrome.storage.local.get(ignoredKey);
-        const list = (_tagGovOwned(result2[ignoredKey], auth.account)?.ids || []).slice();
-        if (list.includes(group.id)) return;
-        list.push(group.id);
-        if (!(await getTagGovAuth(auth.account))) return;
-        await chrome.storage.local.set({ [ignoredKey]: { account: auth.account, ids: list } });
-      });
+      await _tagGovIgnoreGroup(auth.account, group.id);
       if (await getTagGovAuth(auth.account)) await renderTagGov();
     });
     btnGroup.appendChild(ignoreBtn);
@@ -3543,23 +3811,82 @@ function waybackErrorKey(detail) {
   return null;
 }
 
+// The signed-in Pinboard owner the archive log is scoped by: "" when signed
+// out (logged-out saves are logged with account ""), or null when the settings
+// read itself failed. Render and Clear MUST agree on this value -- when they
+// drifted apart, Clear wiped rows the list had never shown. Callers that
+// DELETE must treat null as "unknown, do nothing" rather than folding it into
+// the signed-out "" bucket, which would take the logged-out rows with it.
+async function pbpWaybackLogAccount() {
+  try {
+    const sNow = await pbpReadSettingsWithSecrets({ pinboardToken: SETTINGS_DEFAULTS.pinboardToken });
+    return pbpPinboardAccountFromToken(sNow.pinboardToken);
+  } catch (e) {
+    // Never token/account text -- only the platform error's shape.
+    console.warn("[wayback] owner read failed:", e && e.name, e && e.message);
+    return null;
+  }
+}
+
+// Rows belonging to `account`, using the exact predicate renderWaybackLog
+// filters with. Strict `===` on purpose: `(entry.account || "") === account`
+// would make a signed-out clear ("" account) also match the legacy rows that
+// carry no account field at all.
+function pbpWaybackLogOwnedBy(entry, account) {
+  return !!entry && typeof entry === "object" && entry.account === account;
+}
+
+// Runs concurrently (Clear, the retry timer, and the account-change listener
+// below can all be in flight at once) and every run appends into the same
+// container across two awaits. Without a generation stamp the run that STARTED
+// first could append last -- painting the previous account's rows on top of the
+// new account's freshly cleared list, which is exactly the leak the owner gate
+// exists to prevent. Newest run wins; older ones bail before they append.
+let _waybackLogRenderGen = 0;
+
 async function renderWaybackLog() {
+  const gen = ++_waybackLogRenderGen;
   const container = $id("wayback-log");
   if (!container) return;
 
   container.replaceChildren();
 
+  // Owner gate: every row is a page URL this account asked archive.org to keep,
+  // so it must never surface under a different (or signed-out) Pinboard login.
+  // Derived the one correct way -- the secret-aware settings read, never the
+  // token form field. Entries written before the log carried an owner have no
+  // account at all and stay hidden from everyone, signed out included.
+  // null (the read itself failed) is UNKNOWN, never signed-out: folding it into
+  // "" would hand the anonymous rows -- background.js logs archive_url saves
+  // with account "" when no token is set -- to whoever hits a transient storage
+  // error. Fail closed: no rows, no Clear, and no empty-state claim either.
+  const account = await pbpWaybackLogAccount();
+
   let log = [];
-  try {
-    const data = await chrome.storage.local.get({ _waybackLog: [] });
-    log = Array.isArray(data._waybackLog) ? data._waybackLog : [];
-  } catch (_) {
-    log = [];
+  if (account !== null) {
+    try {
+      const data = await chrome.storage.local.get({ _waybackLog: [] });
+      log = Array.isArray(data._waybackLog) ? data._waybackLog : [];
+    } catch (e) {
+      console.warn("[wayback] log read failed:", e && e.name, e && e.message);
+      log = [];
+    }
+    log = log.filter(entry => pbpWaybackLogOwnedBy(entry, account));
   }
+
+  // Both awaits are behind us; a newer run has already re-cleared the container
+  // and owns the paint from here on.
+  if (gen !== _waybackLogRenderGen) return;
 
   // Show the Clear button only when there's something to clear
   const clearBtn = $id("wayback-log-clear");
   if (clearBtn) clearBtn.style.display = log.length ? "" : "none";
+
+  // Unknown owner: leave the panel blank rather than assert "no requests yet",
+  // which would be a claim about a log we could not scope. Storage reads fail
+  // transiently, and every other entry point (reopening Settings, the retry
+  // timer, the account-change listener below) renders again from scratch.
+  if (account === null) return;
 
   if (!log.length) {
     const empty = document.createElement("div");
@@ -3698,6 +4025,21 @@ async function renderWaybackLog() {
     }
     container.appendChild(details);
   }
+}
+
+// The owner gate above runs once per render, and the Archive panel is NOT in
+// activateTab's lazy-rerender set -- so a token swap made in another tab of this
+// same page left the previous account's rows (page URLs, private bookmarks
+// included) on screen for as long as the page stayed open. Re-render on the
+// three keys that can change who is signed in, whichever area carries them;
+// renderWaybackLog re-derives the account itself and its generation stamp
+// settles concurrent runs. Same shape as options-vocab.js's account listener.
+if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.onChanged) {
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if ((area !== "sync" && area !== "local")
+        || !(changes.pinboardToken || changes.optSyncEnabled || changes.syncApiKeys)) return;
+    renderWaybackLog();
+  });
 }
 
 function _waybackRelTime(ts) {

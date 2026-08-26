@@ -1396,11 +1396,46 @@ async function run() {
       lateRejectValues.every((value) => value === lateRejectValues[0]) &&
       lateRejectValues[0]?.pinboardToken === "alice:fresh-pending" && lateRejectCache.cached() === lateRejectValues[0]);
 
+    // md-preview's memo is the same singleflight shape as loadSettings above,
+    // so it gets the same BEHAVIOR probe: source-text greps here would stay
+    // green for the bug they were meant to catch (a rejected promise is
+    // truthy, so `if (!_pbpAiSettingsPromise)` used to pin one transient
+    // storage failure onto every AI entry point for the rest of the session).
     const mdAiSource = await fetch("../md-ai-core.js").then((response) => response.text());
-    check("E4 md AI cache: storage changes invalidate the memoized settings promise",
-      mdAiSource.includes("chrome.storage.onChanged.addListener") &&
-      mdAiSource.includes("pbpSettingsKeysChanged(changes)") &&
-      mdAiSource.includes("_pbpAiSettingsPromise = null"));
+    const mdMemoStart = mdAiSource.indexOf("let _pbpAiSettingsPromise = null;");
+    const mdMemoEnd = mdAiSource.indexOf("// Gate: master switch on AND a usable AI key", mdMemoStart);
+    const mdMemoSource = mdAiSource.slice(mdMemoStart, mdMemoEnd);
+    const mdMemoFactory = new Function("chrome", "SETTINGS_DEFAULTS", "pbpReadSettingsWithSecrets",
+      "deobfuscateSettings", "pbpSettingsKeysChanged",
+      `${mdMemoSource}\nreturn { pbpAiGetSettings };`);
+
+    let mdOnChanged = null;
+    let mdReads = 0;
+    const mdFirstError = new Error("md settings unavailable");
+    const mdMemo = mdMemoFactory(
+      { storage: { onChanged: { addListener: (listener) => { mdOnChanged = listener; } } } },
+      SETTINGS_DEFAULTS,
+      () => {
+        mdReads++;
+        return mdReads === 1
+          ? Promise.reject(mdFirstError)
+          : Promise.resolve({ pinboardToken: obfuscateKey(`alice:md-${mdReads}`) });
+      },
+      deobfuscateSettings, pbpSettingsKeysChanged);
+
+    // Settled-wrapped so a regression (every later call replaying the pinned
+    // rejection) reports one red row instead of tearing down the whole suite.
+    const mdRead = () => mdMemo.pbpAiGetSettings().then((value) => ({ value }), (error) => ({ error }));
+    let mdRejectedWith = null;
+    try { await mdMemo.pbpAiGetSettings(); } catch (error) { mdRejectedWith = error; }
+    const mdRetried = await mdRead();
+    const mdMemoized = await mdRead();
+    mdOnChanged?.({ aiProvider: { oldValue: "gemini", newValue: "openai" } }, "local");
+    const mdAfterChange = await mdRead();
+    check("E4 md AI cache: a rejected read is not pinned and storage changes still invalidate",
+      mdRejectedWith === mdFirstError && mdReads === 3 && typeof mdOnChanged === "function" &&
+      mdRetried.value?.pinboardToken === "alice:md-2" && mdMemoized.value === mdRetried.value &&
+      mdAfterChange.value?.pinboardToken === "alice:md-3");
   })();
 
   // ---------- E5: three-state matrix + migration idempotency ----------

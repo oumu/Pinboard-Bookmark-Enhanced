@@ -572,17 +572,21 @@ a.help { color: ${v("muted-soft")} !important; background: ${v("accent-soft")} !
 #footer, .colophon, .colophon a { color: ${v("muted-soft")} !important; }
 
 /* ---- Scrollbars (Webkit + Firefox standard) ----
- * thumb uses muted (not muted-soft) so it stays visible against bg-surface
- * across all 13 themes. Audited: muted-soft fell to 1.36:1 contrast on
- * nord-night and 1.78:1 on gruvbox-dark — practically invisible. muted
- * lifts every theme to 3:1+ with most reaching 5:1+. */
+ * thumb uses its OWN role (scrollbar-thumb, _util.mjs#deriveTextTiers) rather
+ * than reading muted straight. Both used to be the same token, which is how
+ * "raising muted would hurt the scrollbar" ended up parked in contrast-audit's
+ * allowlist as an argument against fixing sub-AA prose. They are opposite
+ * constraints — the thumb is a non-text UI part needing WCAG 1.4.11's 3:1
+ * against its track (bg-surface), the prose needs 4.5:1 — so each derives to
+ * its own floor and neither pins the other. scrollbar-thumb defaults to muted,
+ * so themes whose muted already clears 3:1 render exactly as before. */
 html, body, textarea, .description, .pin-ac .bd {
   scrollbar-width: thin !important;
-  scrollbar-color: ${v("muted")} ${v("bg-surface")} !important;
+  scrollbar-color: ${v("scrollbar-thumb")} ${v("bg-surface")} !important;
 }
 ::-webkit-scrollbar { width: 10px !important; height: 10px !important; }
 ::-webkit-scrollbar-track { background: ${v("bg-surface")} !important; border-left: 1px solid ${v("border")} !important; }
-::-webkit-scrollbar-thumb { background: ${v("muted")} !important; border: 2px solid ${v("bg-surface")} !important; border-radius: 6px !important; }
+::-webkit-scrollbar-thumb { background: ${v("scrollbar-thumb")} !important; border: 2px solid ${v("bg-surface")} !important; border-radius: 6px !important; }
 ::-webkit-scrollbar-thumb:hover { background: ${v("accent")} !important; }
 ::-webkit-scrollbar-corner { background: ${v("bg-surface")} !important; }
 

@@ -1564,8 +1564,21 @@ async function pbpDictRun(cap, ctx, pop, ctrl, s) {
   }
   if (parsed) _pbpDictCtxSignal(body, ctxEl, ctxReady);
   if (vocabBtn && vocabBtn.dataset.runId === String(runId)) {
+    // Owner gate on the READ side as well: `hit` comes out of cur.owner's
+    // partition and everything derived from it -- the "already saved" face,
+    // the known toggle and the record id it carries -- answers "what is in
+    // THAT account's vocabulary". After a switch this popover must not answer
+    // that question for the account that is no longer signed in, so skip the
+    // lookup and keep the neutral save face. The save button still enables:
+    // its own commit gates refuse and flash, which reads better than a
+    // permanently dead button. Snapshot comparison only (no extra live read)
+    // -- this is display state on a per-lookup path, and the commit gates
+    // below are the ones that must be fail-closed against a token swap this
+    // page has not seen yet.
+    if (cur.owner !== _pbpDictOwner) { vocabBtn.disabled = false; return; }
     const hit = await pbpVocabGet(pbpDictVocabKey(cur.owner, effectiveLang, cur.term));
     if (signal.aborted || _pbpDictCurrent !== cur || vocabBtn.dataset.runId !== String(runId)) return;
+    if (cur.owner !== _pbpDictOwner) { vocabBtn.disabled = false; return; } // switch landed during the read
     if (hit) {
       cur.saved = true;
       // Icon + tooltip, same contract as the initial setup above: textContent
@@ -1590,19 +1603,42 @@ async function pbpDictRun(cap, ctx, pop, ctrl, s) {
       face();
       knownBtn.hidden = false;
       knownBtn.disabled = false;
+      // Refusal feedback, shared by the owner gates and by a failed write:
+      // nothing was persisted either way, so the button re-enables and pulses
+      // instead of silently reading as "done". A run that has been superseded
+      // owns the button now -- leave it alone, same invariant as below.
+      const refuse = () => {
+        if (_pbpDictCurrent !== cur) return;
+        knownBtn.disabled = false;
+        knownBtn.classList.remove("xp-flash-fail");
+        void knownBtn.offsetWidth; // restart the pulse on a repeat refusal
+        knownBtn.classList.add("xp-flash-fail");
+      };
       knownBtn.onclick = async () => {
         if (knownBtn.disabled) return;
         knownBtn.disabled = true;
+        // This handler is closed over `hit.id`, a record resolved under
+        // cur.owner, so it needs the SAME two commit gates pbpDictSaveCurrent
+        // applies -- re-scoping _pbpDictOwner on pbp:account-changed cannot
+        // reach into this closure. Without them a Pinboard account switch left
+        // the popover on screen fully live: the click would flip a status
+        // inside the PREVIOUS account's partition and queue that change into
+        // that account's Drive outbox. Snapshot check first (a switch this
+        // page already saw), then the live account before the write (a token
+        // swap made in another tab or in Options, which _pbpDictOwner has not
+        // caught up with yet -- both sides of the snapshot comparison come
+        // from the same previewAccount). Fail-closed: a read that throws
+        // counts as a mismatch.
+        if (cur.owner !== _pbpDictOwner) { refuse(); return; }
+        if (typeof pbpVocabCurrentOwner === "function") {
+          const live = await pbpVocabCurrentOwner().catch(() => null);
+          if (live !== cur.owner) { refuse(); return; }
+        }
         const ok = await pbpVocabBatchSetStatus([hit.id], cur.owner, known ? "new" : "known")
           .catch(() => false);
         if (_pbpDictCurrent !== cur) return; // superseded: leave the new run's button alone
+        if (!ok) { refuse(); return; }
         knownBtn.disabled = false;
-        if (!ok) {
-          knownBtn.classList.remove("xp-flash-fail");
-          void knownBtn.offsetWidth;
-          knownBtn.classList.add("xp-flash-fail");
-          return;
-        }
         known = !known;
         face();
         try {
@@ -1649,6 +1685,18 @@ async function pbpDictSaveCurrent() {
         if (dl) articleUrl = dl;
       }
     } catch (_) {}
+  }
+  // Commit-time owner check against the LIVE account, not the snapshot the
+  // page render froze into _pbpDictOwner: both sides of that comparison come
+  // from the same previewAccount, so a token swap in another tab (or in
+  // Options) left this reader happily writing the PREVIOUS account's
+  // partition -- invisible in the library, and uploaded to that account's
+  // Drive by its outbox. Same fail-closed semantics options-vocab.js applies
+  // before it builds an export (its vocabAccountChanged branch): refuse the
+  // write and let the caller report the failure.
+  if (typeof pbpVocabCurrentOwner === "function") {
+    const live = await pbpVocabCurrentOwner().catch(() => null);
+    if (live !== cur.owner) return false;
   }
   const entry = await pbpVocabSaveWord(cur.owner, {
     term: cur.term, lemma: cur.lemma, language: cur.lang || "und",
@@ -1701,3 +1749,17 @@ document.addEventListener("pbp:rendered", (e) => pbpDictOnArticle((e && e.detail
 // state, exactly as a fresh render would.
 document.addEventListener("pbp:article-will-replace", () => window.pbpDictOnActionSwitch());
 document.addEventListener("pbp:article-replaced", (e) => pbpDictOnArticle((e && e.detail) || null));
+// Live Pinboard account switch (md-preview.js's credential listener, same
+// {account} detail shape the article events carry). Only the owner moves --
+// the document underneath is unchanged, so the per-document manual language
+// and CLD prior stay exactly as the reader left them. Re-scoping does NOT by
+// itself neutralise the popover already on screen -- `cur`, its buttons and
+// the handlers closed over them all survive this listener untouched. What
+// fences it is that every vocabulary write in this file (pbpDictSaveCurrent
+// and the .xp-known toggle alike) compares cur.owner against _pbpDictOwner
+// AND re-reads the live account before it commits, so both refuse an entry
+// captured under the previous owner. Any new write path added here owes the
+// same two gates -- do not assume this listener covers it.
+document.addEventListener("pbp:account-changed", (e) => {
+  _pbpDictOwner = pbpDictOwnerScope(e && e.detail ? e.detail.account : "");
+});

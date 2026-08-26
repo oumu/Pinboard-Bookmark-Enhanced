@@ -2158,9 +2158,74 @@ section("site-rules: pbpUpgradeSrcsetImages");
   assertEq(publishedIso("2026-01-05T10:00:00+08:00"), "2026-01-05", "ISO datetime with offset -> date prefix");
   assertEq(publishedIso("2026-01-05"), "2026-01-05", "bare ISO date is idempotent");
 
-  // Date.parse()-able but not ISO-prefixed: RFC 2822 with an explicit GMT offset (TZ-independent --
-  // getUTCDate() reads an absolute instant, not a local-time interpretation of a date-only string).
-  assertEq(publishedIso("Tue, 05 Jan 2026 00:00:00 GMT"), "2026-01-05", "RFC 2822 (explicit GMT) -> UTC YYYY-MM-DD");
+  // Date.parse()-able but not ISO-prefixed. ONE contract covers both input
+  // classes below -- "emit the calendar day the SOURCE writes" -- so every
+  // expectation here is a TZ-INDEPENDENT literal, and this whole block is a
+  // live gate under any TZ the runner happens to have (verify the matrix with
+  // `TZ=Pacific/Kiritimati node .qa-scan/run-test.mjs tests/md-convert-tests.html`
+  // and friends; a UTC- / UTC / UTC+ trio covers the sign cases).
+  //
+  // Deliberately NOT an oracle derived from Date getters: an oracle phrased as
+  // "the local calendar date of the parsed instant" restates whichever getter
+  // the implementation picked, so it ratifies the very reader-clock coupling
+  // this contract forbids. Literals cannot -- these fixtures go red on BOTH
+  // historical implementations (getUTC* fields, and instant->local fields) in
+  // every zone including UTC.
+  {
+    // Class 1 -- no zone designator (the raw <time> textContent Defuddle hands
+    // over when there is no datetime attribute). ECMA-262 parses these as LOCAL
+    // midnight, so reading UTC fields back rolls UTC+ exports a day earlier.
+    // Last row is time-bearing: it also guards against a zone-tail matcher
+    // loose enough to clip a trailing non-zone word off a zoneless string.
+    for (const [input, expected] of [
+      ["March 4, 2026", "2026-03-04"],
+      ["Mar 4 2026", "2026-03-04"],
+      ["4 March 2026", "2026-03-04"],
+      ["January 1, 2026", "2026-01-01"],
+      ["December 31, 2025", "2025-12-31"],
+      ["Mar 4, 2026 11:30 PM", "2026-03-04"]
+    ]) {
+      assertEq(publishedIso(input), expected,
+        'date-only "' + input + '" keeps its own calendar date in any TZ');
+    }
+
+    // Class 2 -- an explicit zone (HTTP-date, or an RSS-style pubDate backfilled
+    // into <time> text). The zone the string names is the one that decides the
+    // day; the reader's clock never does. Coverage is by CATEGORY of designator,
+    // not by enumerating feeds: zero-offset spellings (GMT / +0000 / UTC / the
+    // military Z), both offset signs, the extreme +1400, an obsolete US zone
+    // NAME (no numeric offset to read), and an RFC 2822 trailing comment.
+    // 00:00 and 23:30 UTC-day ends are chosen so a reader-clock implementation
+    // is wrong west and east of Greenwich respectively; the >= 11h offsets are
+    // wrong in every zone including UTC.
+    const zoned = [
+      ["Mon, 05 Jan 2026 00:00:00 GMT", "2026-01-05"],
+      ["Mon, 05 Jan 2026 23:30:00 GMT", "2026-01-05"],
+      ["Mon, 05 Jan 2026 00:30:00 Z", "2026-01-05"],
+      ["Sun, 04 Jan 2026 22:15:00 +0000", "2026-01-04"],
+      ["Thu, 31 Dec 2026 23:55:00 UTC", "2026-12-31"],
+      ["Jan 5, 2026 19:00:00 GMT-0500", "2026-01-05"],
+      ["Fri, 02 Jan 2026 08:00:00 +1400", "2026-01-02"],
+      ["Sat, 03 Jan 2026 20:00:00 -1100", "2026-01-03"],
+      ["Mon, 05 Jan 2026 00:30:00 EST", "2026-01-05"],
+      ["Mon, 05 Jan 2026 00:30:00 -0500 (EST)", "2026-01-05"]
+    ];
+    for (const [input, expected] of zoned) {
+      assertEq(publishedIso(input), expected,
+        'explicit-zone "' + input + '" -> the day its own zone writes, in any TZ');
+    }
+    assert(zoned.every(([input]) => !Number.isNaN(Date.parse(input))),
+      "every explicit-zone fixture must stay Date.parse()-able, else it silently tests the return-as-is branch instead");
+
+    // The category statement the two branches owe each other: one instant, two
+    // encodings (ISO -> prefix branch, RFC 2822 -> zone branch) must normalize
+    // to ONE day. This is exactly what a reader-clock zone branch breaks, since
+    // the prefix branch does no timezone math at all.
+    assertEq(publishedIso("Mon, 05 Jan 2026 00:00:00 GMT"), publishedIso("2026-01-05T00:00:00Z"),
+      "RFC 2822 and ISO spellings of the UTC day's first instant agree");
+    assertEq(publishedIso("Mon, 05 Jan 2026 23:30:00 GMT"), publishedIso("2026-01-05T23:30:00Z"),
+      "RFC 2822 and ISO spellings of the UTC day's last instant agree");
+  }
 
   // Unparseable: returned unchanged so the caller renders it via yamlString, never as a bare date
   assertEq(publishedIso("not a real date at all"), "not a real date at all", "unparseable string returned as-is");

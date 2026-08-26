@@ -103,6 +103,18 @@ const rowKeys = () => [...document.querySelectorAll("#notes-list .notes-hit")].m
 const rowEl = (key) => [...document.querySelectorAll("#notes-list .notes-hit")].find((el) => el.dataset.notesKey === key);
 const detail = () => $id("notes-detail");
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
+// Deleting a highlight now happens inside that record's cross-context Web Lock
+// (library.html and every reader tab write the same pbp_hl_<page> key, and
+// chrome.storage has no compare-and-swap). Acquiring a lock is a round trip to
+// the browser process, so the write lands after an unpredictable number of task
+// turns -- counting `await tick()`s is a coin flip (measured: 2 turns passed,
+// 3 turns was flaky, and the flake looked like the delete never happening).
+// Wait for the OUTCOME instead, with a ceiling so a path that never completes
+// still fails its assertion rather than hanging the suite.
+const settle = async (done) => {
+  for (let i = 0; i < 300 && !done(); i++) await tick();
+  await tick(); // the list rebuild that follows the write is microtasks; drain them
+};
 
 (async () => {
   await renderNotesPanel();
@@ -333,7 +345,7 @@ const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
     const failBtn = $id("notes-batch-delete");
     failBtn.click();
     document.querySelector(".confirm-popover .confirm-yes").click();
-    await tick(); await tick();
+    await settle(() => !_notesBatchBusy);
     check("a failed batch delete marks the button that was pressed and keeps the row",
       failBtn.classList.contains("is-error") && rowKeys().includes("pbp_hl_alpha#a1"),
       failBtn.className + " | " + rowKeys());
@@ -356,7 +368,7 @@ const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
   store["pbp_hl_alpha"] = { ...store["pbp_hl_alpha"], items: [...store["pbp_hl_alpha"].items,
     { id: "a4", n: 4, quote: "arrived from another tab mid-confirm", color: 2, note: "", ts: 350 }] };
   batchPop.querySelector(".confirm-yes").click();
-  await tick(); await tick();
+  await settle(() => !_notesBatchBusy);
   check("a highlight written elsewhere during the confirm is not clobbered",
     store["pbp_hl_alpha"].items.some((it) => it.id === "a4") &&
     rowKeys().includes("pbp_hl_alpha#a4"),
@@ -376,7 +388,7 @@ const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
   btnOf("pbp_hl_orphan#c1").dispatchEvent(mouse({ ctrlKey: true }));
   $id("notes-batch-delete").click();
   document.querySelector(".confirm-popover .confirm-yes").click();
-  await tick(); await tick();
+  await settle(() => !_notesBatchBusy);
   check("deleting a page's last highlight drops the record itself",
     !("pbp_hl_orphan" in store) && !rowKeys().includes("pbp_hl_orphan"), rowKeys());
   _pbpNotesClearSelection(); _pbpNotesSyncSelectionUi();
@@ -391,7 +403,7 @@ const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
     popover && popover.querySelector(".confirm-msg").textContent.includes("Alpha article"),
     popover && popover.textContent);
   popover.querySelector(".confirm-yes").click();
-  await tick();
+  await settle(() => !rowKeys().includes("pbp_hl_alpha#"));
   check("confirming removes every row of that page",
     !rowKeys().includes("pbp_hl_alpha#"), rowKeys());
   check("the detail falls back to the empty state after its highlight is gone",
@@ -422,7 +434,7 @@ const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
     const failBtn = detail().querySelector(".notes-detail-delete");
     failBtn.click();
     document.querySelector(".confirm-popover .confirm-yes").click();
-    await tick();
+    await settle(() => failBtn.classList.contains("is-error"));
     check("a delete failure with no visible row marks the button that was pressed",
       failBtn.classList.contains("is-error") &&
       !document.querySelector("#notes-list .notes-hit.is-error"),

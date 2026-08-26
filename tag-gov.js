@@ -168,7 +168,16 @@ function _findSeparatorGroups(counts, used) {
   }
 
   for (const [, bucket] of buckets) {
-    if (bucket.length >= 2) {
+    // Members that only differ by case are the SAME tag server-side (Pinboard tags
+    // are case-insensitive), so such a bucket has no executable rename —
+    // pbpTagGovBuildPlan skips every case-only member and returns [], which the
+    // Merge button turns into a silent no-op. Require at least two distinct
+    // lowercase forms so mixed buckets ({my-tag, my_tag, My-Tag}) still surface.
+    // Skipping deliberately does NOT claim the bucket into `used`: keeping case
+    // fragments away from the typo pass is that pass's own job, because `used`
+    // cannot see a fragment whose siblings the plural pass already took.
+    const distinctLc = new Set(bucket.map((t) => t.toLowerCase()));
+    if (bucket.length >= 2 && distinctLc.size >= 2) {
       const members = bucket.map(tag => ({ tag, count: counts[tag] }));
       members.sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag));
       const canonical = members[0].tag;
@@ -191,8 +200,28 @@ function _findTypoGroups(counts, used) {
   // Typo gate requires both tags length >= 5 AND edit-distance 1; distance 1
   // implies |len(a)-len(b)| <= 1, so bucket by length and only compare a bucket
   // with itself and its +1 length neighbor. Prunes the O(n^2) scan for heavy users.
+  // Case fragments must never reach the rare-vs-common gate below. Two tags that
+  // share a lowercase form are ONE tag server-side, so each spelling carries only
+  // a fragment of the family's real count: {Sharing:2, sharing:40, shaving:12}
+  // would read "Sharing" as a rare typo of "shaving", and because Pinboard filters
+  // AND replaces case-insensitively, accepting that merge rewrites all 42
+  // sharing/Sharing bookmarks to shaving. This has to be gated here rather than
+  // by claiming case-only buckets into `used` upstream: when a higher-priority
+  // pass eats part of the family ({Design:40, design:2, designs:1} — plural takes
+  // Design+designs), the leftover fragment lands in a size-1 separator bucket with
+  // no sibling left to recognise it by, and leaks to "design -> resign".
+  const lcSeen = new Set();
+  const lcDupes = new Set();
+  for (const t of Object.keys(counts)) {
+    if (t.startsWith(".")) continue;
+    const lc = t.toLowerCase();
+    if (lcSeen.has(lc)) lcDupes.add(lc);
+    else lcSeen.add(lc);
+  }
+
   const tags = Object.keys(counts)
-    .filter(t => !t.startsWith(".") && !used.has(t) && t.length >= 5);
+    .filter(t => !t.startsWith(".") && !used.has(t) && t.length >= 5
+      && !lcDupes.has(t.toLowerCase()));
 
   const byLen = new Map();
   for (const tag of tags) {

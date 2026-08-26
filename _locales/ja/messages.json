@@ -455,6 +455,17 @@
       }
     }
   },
+  "batchInterrupted": {
+    "message": "一括保存が $DONE$/$TOTAL$ 件で中断しました。残りのタブはもう一度実行して保存してください。",
+    "placeholders": {
+      "done": {
+        "content": "$1"
+      },
+      "total": {
+        "content": "$2"
+      }
+    }
+  },
   "batchTaggedSuffix": {
     "message": "（タグ：$TAGS$）",
     "placeholders": {
@@ -792,6 +803,9 @@
   "notesBatchDeleteConfirm": {
     "message": "選択した $COUNT$ 件のハイライトを削除しますか?",
     "placeholders": { "count": { "content": "$1" } }
+  },
+  "notesDeleteFailed": {
+    "message": "ハイライトを削除できませんでした。もう一度お試しください。"
   },
   "tabQuickActions": {
     "message": "クイック操作"
@@ -2204,6 +2218,9 @@
         "content": "$2"
       }
     }
+  },
+  "tagGovAlreadyOneTag": {
+    "message": "これらのタグは大文字と小文字が異なるだけで、Pinboard では元々1つのタグとして扱われています。マージの必要はないため、この候補は削除しました。"
   },
   "tagGovConfirmDelete": {
     "message": "選択した $N$ 個のタグを削除しますか？（永続的）",

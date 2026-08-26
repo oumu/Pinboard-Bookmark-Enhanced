@@ -743,9 +743,132 @@ test("posts/add default remains replace=yes for existing callers", () => {
       const removeSrc = await fetch("../popup-tags.js").then(r => r.text());
       assert(removeSrc.includes("_aiSessionAddedTags.delete(tag.toLowerCase())"),
         "removeTag must drop AI provenance for re-added names");
-      const regenHandler = popupAiSource.slice(popupAiSource.indexOf('["append", "replace"].forEach'));
-      assert(regenHandler.includes('_aiUrlEquivalent($id("url-input").value, pageInfo.url)) return;'),
-        "replace handler must gate on op liveness before removing tags");
+      // The third leg of r2 M3 -- the replace-mode regen link must abort when
+      // the form was switched to another bookmark -- is a BEHAVIOUR, not a
+      // source spelling, so it is asserted by running the real handler in
+      // "replace-mode regen ..." below rather than by grepping this file.
+    });
+
+    // Builds the real regen links out of popup-ai.js's own renderAITags, plus
+    // the real _aiNormalizeUrl/_aiUrlEquivalent pair, so the r2 M3 + A10
+    // contracts can be exercised instead of spelled out. Every source grep we
+    // tried here was satisfiable by a guard whose result is discarded, or by
+    // one that only exists in a comment, while the retraction still fired.
+    // Injected: the ambient popup globals renderAITags closes over; local:
+    // currentTags (the handler REASSIGNS it, so the binding must live inside)
+    // and the provenance Set.
+    function regenRuntime({ formUrl, pageUrl, tags, seedTags = ["manual"], accept = tags }) {
+      const renderStart = popupAiSource.indexOf("function renderAITags(");
+      const renderEnd = popupAiSource.indexOf("\n}\n", renderStart);
+      assert(renderStart >= 0 && renderEnd > renderStart, "renderAITags source not found");
+      const urlStart = popupAiSource.indexOf("function _aiNormalizeUrl");
+      const urlEnd = popupAiSource.indexOf("function pbpAiSyncUrlEditState", urlStart);
+      assert(urlStart >= 0 && urlEnd > urlStart, "URL-equivalence helpers not found");
+
+      const container = document.createElement("div");
+      const urlInput = document.createElement("input");
+      urlInput.value = formUrl;
+      const calls = { renderTags: 0, doAITags: 0, status: [] };
+      // `const URL = ...` at the top of this page is a GLOBAL LEXICAL binding,
+      // so it shadows the constructor for new Function bodies AND for every
+      // other classic script in the realm -- hand the real one in explicitly.
+      // Corollary: shared.js's own `new URL()` throws here, so the real
+      // stripTrackingParams degrades to identity inside this page. Fragments
+      // are still dropped (that path uses the URL injected above), but do NOT
+      // write a tracking-param equivalence case here: it would pass vacuously.
+      const runtime = new Function(
+        "$id", "t", "PBP_ICONS", "allUserTagCounts", "pageInfo",
+        "renderTags", "doAITags", "showStatus", "pbpAssignAltNumBadges",
+        "_aiClearTagsOutput", "_aiAppendEmptyState", "_aiParkTagsBtn",
+        "stripTrackingParams", "URL", "seedTags",
+        "let currentTags = seedTags.slice();\n" +
+        "const _aiSessionAddedTags = new Set();\n" +
+        "function addTag(tag) {\n" +
+        "  if (!currentTags.some((x) => x.toLowerCase() === String(tag).toLowerCase())) currentTags.push(tag);\n" +
+        "}\n" +
+        popupAiSource.slice(urlStart, urlEnd) + "\n" +
+        popupAiSource.slice(renderStart, renderEnd + 2) + "\n" +
+        "return { renderAITags, provenance: _aiSessionAddedTags, tags: () => currentTags.slice() };"
+      )(
+        (id) => (id === "url-input" ? urlInput : id === "ai-suggest-tags" ? container : null),
+        (key) => key,
+        { check: "<svg></svg>" },
+        {},
+        { url: pageUrl },
+        () => { calls.renderTags++; },
+        async () => { calls.doAITags++; },
+        (id, message, kind) => calls.status.push({ id, message, kind }),
+        () => {},
+        () => {},
+        () => {},
+        () => {},
+        window.stripTrackingParams,
+        window.URL,
+        seedTags
+      );
+
+      runtime.renderAITags(tags, true); // fromCache: true is what renders the regen links
+      const acceptSet = new Set(accept.map((tag) => tag.toLowerCase()));
+      container.querySelectorAll(".stag.ai").forEach((chip) => {
+        if (acceptSet.has(chip.dataset.tag.toLowerCase())) chip.click();
+      });
+      const links = Array.from(container.querySelectorAll(".regen-link"));
+      const replaceLink = links.find((link) => link.dataset.mode === "replace");
+      assert(replaceLink, "renderAITags did not produce a replace-mode regen link");
+      return { container, urlInput, calls, links, replaceLink, ...runtime };
+    }
+
+    // A macrotask turn, not a bare microtask: if the guard ever moves behind an
+    // await, sync assertions would read the pre-retraction state and pass.
+    const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+    await testAsync("replace-mode regen aborts when the form points at another bookmark (r2 M3)", async () => {
+      const run = regenRuntime({
+        formUrl: "https://other.example/switched-bookmark",
+        pageUrl: URL,
+        tags: ["alpha", "beta"],
+      });
+      const before = run.tags();
+      const chipsBefore = run.container.querySelectorAll(".stag.ai").length;
+      assert(before.join("|") === "manual|alpha|beta" && run.provenance.size === 2,
+        "harness did not accept both AI chips, got " + before.join("|"));
+      run.replaceLink.click();
+      await settle();
+      assert(run.tags().join("|") === before.join("|"),
+        "a regen on a switched-away form retracted tags: " + run.tags().join("|"));
+      assert(run.container.querySelectorAll(".stag.ai").length === chipsBefore,
+        "a regen on a switched-away form rebuilt the AI chips");
+      assert(run.provenance.size === 2, "provenance was mutated, got " + run.provenance.size);
+      assert(run.calls.renderTags === 0 && run.calls.doAITags === 0,
+        "a stale regen must neither re-render the tag row nor start an AI call");
+      assert(run.links.every((link) => !link.classList.contains("loading")),
+        "a stale regen must not park the links in their loading state");
+      assert(run.replaceLink.textContent === "aiReplace",
+        "a stale regen must not pin the link on its in-flight label, got " + run.replaceLink.textContent);
+      assert(run.calls.status.length === 1 && run.calls.status[0].kind === "error",
+        "the switched-away form must be reported to the user");
+    });
+
+    await testAsync("replace-mode regen on the live URL retracts only session AI tags (A10)", async () => {
+      // "alpha" is already on the form without AI provenance (typed, or loaded
+      // from the saved bookmark) and its chip is never clicked, so the
+      // retraction may not take it even though the cached round offered it.
+      const run = regenRuntime({
+        formUrl: URL + "#frag", // still equivalent: _aiNormalizeUrl drops the fragment
+        pageUrl: URL,
+        tags: ["alpha", "beta"],
+        seedTags: ["manual", "alpha"],
+        accept: ["beta"],
+      });
+      run.replaceLink.click();
+      await settle();
+      assert(run.tags().join("|") === "manual|alpha",
+        "replace must retract exactly this session's AI tags, got " + run.tags().join("|"));
+      assert(run.calls.renderTags === 1, "the retraction must re-render the tag row");
+      assert(run.calls.doAITags === 1, "a live regen must start the AI call");
+      assert(run.links.every((link) => link.classList.contains("loading")),
+        "a live regen must show its loading state");
+      assert(run.calls.status.length === 0, "a live regen must not report a switched-away form");
     });
 
     test("replace-mode regen retracts only session-AI-added tags (A10)", () => {

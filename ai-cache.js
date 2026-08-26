@@ -287,7 +287,14 @@ async function _pbpAiWriteAndPrune(key, makeResult, ts, readExisting) {
       const getReq = store.get(key);
       getReq.onsuccess = () => write(getReq.result ? getReq.result.result : undefined);
     });
-  } catch (_) {}
+  } catch (e) {
+    // Degrading to a no-op stays the contract (a failed cache write must not
+    // break the paid call that produced the value), but the swallow still has
+    // to leave a trace. Log the POOL, never the key: `dict2_`/`dictctx2_`
+    // keys embed the looked-up word verbatim and `summary_owner_` embeds the
+    // Pinboard account name -- exactly what the leave-a-trace rule bars.
+    try { console.warn("[pbp-ai-cache] write failed pool=" + _pbpAiPoolForKey(key) + ":", (e && e.name) || "", (e && e.message) || ""); } catch (_) {}
+  }
 }
 
 async function pbpAiCacheSet(key, result, ts) {

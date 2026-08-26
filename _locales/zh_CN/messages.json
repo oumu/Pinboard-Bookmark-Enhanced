@@ -455,6 +455,17 @@
       }
     }
   },
+  "batchInterrupted": {
+    "message": "批量保存在 $DONE$/$TOTAL$ 处中断，重新运行可保存剩下的标签页。",
+    "placeholders": {
+      "done": {
+        "content": "$1"
+      },
+      "total": {
+        "content": "$2"
+      }
+    }
+  },
   "batchTaggedSuffix": {
     "message": "（标签：$TAGS$）",
     "placeholders": {
@@ -792,6 +803,9 @@
   "notesBatchDeleteConfirm": {
     "message": "删除选中的 $COUNT$ 条高亮？",
     "placeholders": { "count": { "content": "$1" } }
+  },
+  "notesDeleteFailed": {
+    "message": "删除高亮失败，请重试。"
   },
   "tabQuickActions": {
     "message": "快捷操作"
@@ -2204,6 +2218,9 @@
         "content": "$2"
       }
     }
+  },
+  "tagGovAlreadyOneTag": {
+    "message": "这些标签只是大小写不同，Pinboard 本来就把它们视为同一个标签，无需合并。这条建议已移除。"
   },
   "tagGovConfirmDelete": {
     "message": "删除 $N$ 个标签？（永久操作）",

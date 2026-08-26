@@ -1341,9 +1341,14 @@ function setupSubmit(token) {
         showStatus("status-msg", t("bookmarkSaved"), "success");
         setSubmitState("success");
         // Optimistic archive indicator (cosmetic only, never blocks save or auto-close)
+        // The dedup window is per Pinboard account, so probe _waybackAttempts with
+        // wayback.js's own composite key -- a bare URL never matches a stored entry
+        // and would show the indicator on saves the background will dedup-skip.
         try {
           const attempts = attemptsStored?._waybackAttempts || {};
-          if (archiveIndicatorRequested && typeof pbpWaybackShouldAttempt === "function" && pbpWaybackShouldAttempt(attempts, url, Date.now())) {
+          if (archiveIndicatorRequested
+            && typeof pbpWaybackShouldAttempt === "function" && typeof pbpWaybackAttemptKey === "function"
+            && pbpWaybackShouldAttempt(attempts, pbpWaybackAttemptKey(submitAccount, url), Date.now())) {
             const statusEl = $id("status-msg");
             if (statusEl) {
               const indicator = document.createElement("span");
@@ -1532,14 +1537,13 @@ async function loadBookmarkForEdit(url, token) {
   // Append cancel affordance to banner using safe DOM APIs (no innerHTML)
   const banner = $id("existing-banner");
   if (banner && !banner.querySelector(".edit-cancel")) {
-    const cancel = document.createElement("span");
+    const cancel = document.createElement("button");
+    cancel.type = "button";
     cancel.className = "edit-cancel";
     cancel.textContent = "×";
     cancel.title = t("editCancelTitle");
-    cancel.setAttribute("role", "button");
-    cancel.setAttribute("tabindex", "0");
+    cancel.setAttribute("aria-label", t("editCancelTitle"));
     cancel.addEventListener("click", exitEditMode);
-    cancel.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); exitEditMode(); } });
     banner.appendChild(document.createTextNode(" "));
     banner.appendChild(cancel);
   }
@@ -1590,26 +1594,23 @@ async function fetchRecentBookmarks(token) {
       try { const host = new URL(p.href).hostname.replace(/^www\./, ""); a.innerHTML = esc(titleText) + ` <span class="recent-bm-domain">${esc(host)}</span>`; }
       catch (_) { a.textContent = titleText; }
       row.appendChild(a);
-      const edit = document.createElement("span");
+      const edit = document.createElement("button");
+      edit.type = "button";
       edit.className = "recent-bm-edit";
       edit.innerHTML = PBP_ICONS.pencil;
       edit.title = t("recentEditTitle");
-      edit.setAttribute("role", "button");
-      edit.setAttribute("tabindex", "0");
       edit.setAttribute("aria-label", t("recentEditTitle"));
       const doEdit = async (e) => {
         if (e) e.preventDefault();
         await loadBookmarkForEdit(p.href, token);
       };
       edit.addEventListener("click", doEdit);
-      edit.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); doEdit(); } });
       row.appendChild(edit);
-      const del = document.createElement("span");
+      const del = document.createElement("button");
+      del.type = "button";
       del.className = "recent-bm-del";
       del.innerHTML = PBP_ICONS.cross;
       del.title = t("recentDeleteTitle");
-      del.setAttribute("role", "button");
-      del.setAttribute("tabindex", "0");
       del.setAttribute("aria-label", t("recentDeleteTitle"));
       const doDelete = () => {
         // Anchored confirm popover, matching the other destructive actions —
@@ -1630,7 +1631,6 @@ async function fetchRecentBookmarks(token) {
         });
       };
       del.addEventListener("click", doDelete);
-      del.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); doDelete(); } });
       row.appendChild(del);
       container.appendChild(row);
     });
@@ -1698,6 +1698,12 @@ function autoResizeTextarea(el) {
 }
 function updateCharCount() {
   const len = $id("description-input").value.length;
+  // Same shape the save path actually sends: re-saving an existing bookmark
+  // carries &dt=<original time> (~28 B once encoded, popup.js -> shared.js ->
+  // background.js `dt: plan.fields.time`) and replace=yes, while a create
+  // carries replace=no. Missing dt let the counter read under budget on a
+  // bookmark that posts/add then rejected as too_long.
+  const isUpdate = !!existingBookmark;
   const uriLen = buildPostsAddUri({
     token: settings.pinboardToken || "user:0000000000000000000000000000000000000000",
     url: $id("url-input").value,
@@ -1706,13 +1712,19 @@ function updateCharCount() {
     tags: currentTags.join(" "),
     shared: $id("private-check").checked ? "no" : "yes",
     toread: $id("readlater-check").checked ? "yes" : "no",
+    dt: isUpdate ? (existingBookmark.time || "") : undefined,
+    replace: isUpdate,
   }).length;
   const el = $id("desc-char-count");
   el.textContent = `${len} chars · ${uriLen}/${POSTS_ADD_URI_BUDGET} B`;
   const over = uriLen > POSTS_ADD_URI_BUDGET || len > 65000;
   const near = uriLen > POSTS_ADD_URI_BUDGET * 0.8 || len > 60000;
-  el.style.color = over ? "#c00" : near ? "#e80" : "";
+  // State classes only. The inline style this replaces always outranked the
+  // themed rules, so the "nearly full" signal was pinned to a literal #e80
+  // that reads 2.57:1 on the default surface -- unreadable exactly when it
+  // matters. --pp-danger / --pp-offline-fg are the AA-derived roles.
   el.classList.toggle("over-limit", over);
+  el.classList.toggle("near-limit", !over && near);
 
   // Gate submit on over-limit (without overriding unsupported-url disable path)
   const url = $id("url-input").value.trim();

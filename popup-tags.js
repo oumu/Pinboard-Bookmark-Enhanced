@@ -140,7 +140,7 @@ async function fetchPinboardSuggestTags(token, url) {
     const addAllSuggest = $id("add-all-suggest");
     addAllSuggest?.addEventListener("click", () => {
       container.querySelectorAll(".stag:not(.used)").forEach((el) => { addTag(el.dataset.tag); el.classList.add("used"); });
-      if (addAllSuggest) { addAllSuggest.innerHTML = PBP_ICONS.check; addAllSuggest.disabled = true; addAllSuggest.style.color = "#080"; }
+      if (addAllSuggest) { addAllSuggest.innerHTML = PBP_ICONS.check; addAllSuggest.disabled = true; addAllSuggest.classList.add("tag-copied-flash"); }
     });
   } catch (e) {
     if (!pbpPopupTagAccountIsCurrent(account)) return;

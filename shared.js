@@ -124,8 +124,16 @@ function setupSecretToggles(root) {
   (root || document).querySelectorAll(".key-toggle").forEach((btn) => {
     if (btn.dataset.secretToggleReady === "1") return;
     btn.dataset.secretToggleReady = "1";
-    btn.innerHTML = PBP_ICONS.eye;
-    btn.setAttribute("aria-pressed", "false");
+    // Derive the initial state from the live input: a `secret: true` field can be
+    // rendered as type="text" on purpose (the webhook URL -- see export-targets.js,
+    // where `type` governs readability and `secret` governs the storage/export
+    // channel), and such a field starts REVEALED. A hardcoded eye/aria-pressed=false
+    // would then describe the opposite of what is on screen, leaving the button one
+    // click behind for the rest of the session.
+    const inp = document.getElementById(btn.dataset.target);
+    const shown = !!inp && inp.type !== "password";
+    btn.innerHTML = shown ? PBP_ICONS.eyeOff : PBP_ICONS.eye;
+    btn.setAttribute("aria-pressed", String(shown));
     btn.addEventListener("click", () => {
       const input = $id(btn.dataset.target);
       if (!input) return;
@@ -1448,6 +1456,20 @@ async function pbpDrainOfflineQueue(queueIds, { getItem, sendItem, removeItem, o
 // vs when k exists explicitly. For users who never customized most settings, this slows
 // popup boot enough to surface the main-section flash. Calling primeSettings() on install/
 // update/startup writes only the missing keys (existing values are preserved).
+//
+// PRIME_EXCLUDED_KEYS: keys that must stay genuinely absent until their own
+// writer sets them, on BOTH storage areas.
+//   bgSaveMode -- background.js's migrateBgSaveMode() detects "not migrated yet"
+//   via `raw.bgSaveMode === undefined`. If a transient storage failure makes the
+//   migration give up, priming a default "merge" would make that probe read
+//   "already migrated" forever, permanently losing a legacy
+//   bgSaveNoClobber=false (overwrite) user's choice. Leaving the key absent lets
+//   the migration retry in the next SW generation. Every consumer already hard-
+//   falls back to "merge" when the key is missing (background.js's tri-state
+//   whitelists, options.js's `|| 'merge'`, and loadSettings()'s object-form get
+//   against SETTINGS_DEFAULTS), so absence costs nothing but the boot-lag
+//   micro-optimization on one key.
+const PRIME_EXCLUDED_KEYS = ["bgSaveMode"];
 async function primeSettings() {
   try {
     await pbpWithSecretStorageLock(async () => {
@@ -1455,7 +1477,8 @@ async function primeSettings() {
       const storage = flags.optSyncEnabled ? chrome.storage.sync : chrome.storage.local;
       _settingsStorageCache = storage;
       const keys = Object.keys(SETTINGS_DEFAULTS).filter((key) =>
-        storage !== chrome.storage.sync || (key !== "exportTargets" && !API_KEY_FIELDS.includes(key)));
+        !PRIME_EXCLUDED_KEYS.includes(key)
+        && (storage !== chrome.storage.sync || (key !== "exportTargets" && !API_KEY_FIELDS.includes(key))));
       const existing = await storage.get(keys); // array form: returns only keys that are set
       const missing = {};
       for (const k of keys) {
@@ -1463,7 +1486,13 @@ async function primeSettings() {
       }
       if (Object.keys(missing).length > 0) await storage.set(missing);
     });
-  } catch (_) { /* best-effort */ }
+  } catch (e) {
+    // Best-effort, but not silent: a prime that keeps failing (sync quota,
+    // storage kill switch) leaves every popup boot on the slow missing-key
+    // path forever, and that is otherwise invisible. Shape only -- the values
+    // being primed are defaults, never credentials.
+    console.warn("[prime] settings prime failed:", e && e.name, e && e.message);
+  }
 }
 
 // ---- Chunked sync storage for large values ----
@@ -2465,15 +2494,19 @@ async function pbpEnableSyncApiKeys() {
 }
 
 // ---- DOM cache helper (P1.6) ----
-// Popup/options DOM is static — elements never removed, only toggled via classList.
-// Memoize getElementById to avoid repeated DOM tree walks on hot paths.
-// null results are NOT cached (lets later queries succeed if element is added).
+// Popup/options DOM is MOSTLY static — elements are usually only toggled via
+// classList. But renderExportTargets() rebuilds #export-targets wholesale on
+// panel reset, so a cached ref can go stale and point at a detached node.
+// isConnected is an O(1) flag read on the node: it keeps the tree-walk savings
+// while dropping detached hits. null results are NOT cached (lets later queries
+// succeed if the element is added).
 const _domRefs = {};
 function $id(id) {
   const cached = _domRefs[id];
-  if (cached) return cached;
+  if (cached && cached.isConnected) return cached;
   const el = document.getElementById(id);
   if (el) _domRefs[id] = el;
+  else delete _domRefs[id];
   return el;
 }
 

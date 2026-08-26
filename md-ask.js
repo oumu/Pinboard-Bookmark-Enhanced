@@ -310,6 +310,23 @@ function _pbpAskSetOpen(open) {
 // IDB entry, and the semantics are genuinely arguable (from B's view its
 // just-finished answer SHOULD persist). Scope: same account, same URL,
 // two open readers, mid-stream clear - accepted as-is.
+// Visible half of a wipe: empty-state hint back, starter chips back. Shared by
+// Clear (which also erases the persisted history below) and by the account
+// switch (which must NOT erase anything -- it only stops showing the previous
+// account's thread). Kept byte-for-byte what Clear used to inline.
+function _pbpAskResetThreadView() {
+  const thread = document.getElementById("ask-thread");
+  if (thread) {
+    const empty = document.createElement("p");
+    empty.id = "ask-empty";
+    empty.className = "ask-empty";
+    empty.textContent = t("askEmptyHint");
+    thread.replaceChildren(empty);
+  }
+  const chips = document.getElementById("ask-chips");
+  if (chips) chips.hidden = false;
+}
+
 async function _pbpAskClearThread() {
   // Wipe the in-memory conversation FIRST: st.rounds feeds every future
   // prompt (_pbpAskRun/_pbpAskUpdateMeta), and aborting any in-flight
@@ -328,16 +345,7 @@ async function _pbpAskClearThread() {
     _pbpAskState.records = [];
     if (_pbpAskState.ctrl) _pbpAskState.ctrl.abort();
   }
-  const thread = document.getElementById("ask-thread");
-  if (thread) {
-    const empty = document.createElement("p");
-    empty.id = "ask-empty";
-    empty.className = "ask-empty";
-    empty.textContent = t("askEmptyHint");
-    thread.replaceChildren(empty);
-  }
-  const chips = document.getElementById("ask-chips");
-  if (chips) chips.hidden = false;
+  _pbpAskResetThreadView();
   if (_pbpAskState) await pbpAskHistSet(_pbpAskState.url, [], _pbpAskState.account);
   // Rounds were just wiped - drop the stale token estimate and the
   // long-thread window note from the transparency line immediately.
@@ -768,6 +776,13 @@ async function _pbpAskRun(question, aEl, opts) {
   // revision means "the page swapped the article out from under this stream",
   // not "the user pressed Stop" -- the two must not settle the same way.
   const runRev = _pbpAskArticleRev;
+  // Which account's history partition this answer belongs in. st.account is
+  // re-pointed live by the pbp:account-changed handler at the bottom of this
+  // file, so an answer that started under A must not be filed under B just
+  // because the switch landed while it streamed -- the question text is the
+  // reader's own words, and ask_<owner>_<url> is where the OTHER account will
+  // read it back.
+  const runAccount = st.account;
   st.ctrl = new AbortController();
   _pbpAskWireStop();
   const stopBtn = document.getElementById("ask-stop");
@@ -810,6 +825,16 @@ async function _pbpAskRun(question, aEl, opts) {
       const replacedErr = new Error("article replaced");
       replacedErr.name = "AbortError";
       throw replacedErr;
+    }
+    // Same shape, for the owner: the switch handler already aborted this
+    // stream and wiped the thread, but an abort can race the final chunk and
+    // lose. Route it down the identical branch -- nothing finalized (the
+    // element is detached by now), nothing counted, and above all nothing
+    // written into the new account's partition.
+    if (st.account !== runAccount) {
+      const switchedErr = new Error("account changed");
+      switchedErr.name = "AbortError";
+      throw switchedErr;
     }
     if (raf) { cancelAnimationFrame(raf); raf = 0; }
     aEl.classList.remove("streaming");
@@ -1555,6 +1580,13 @@ async function _pbpAskHistRestore() {
   // !_pbpAskHistRestored guards pass again), and a second re-entry would run two
   // restores concurrently and insert the transcript twice.
   const rev = _pbpAskArticleRev;
+  // Owner the transcript below is being read for. The account handler re-arms
+  // this restore for the NEW account, and its synchronous re-entry sets the
+  // single-shot flag back to true -- so the plain !_pbpAskHistRestored check
+  // after the await can no longer tell an account switch from a normal run
+  // (Clear, which never re-enters, still trips it). Without this the previous
+  // account's transcript would be inserted into the new account's thread.
+  const acct = _pbpAskHistAccount;
   let reentered = false;
   const superseded = () => {
     if (_pbpAskArticleRev === rev) return false;
@@ -1578,6 +1610,7 @@ async function _pbpAskHistRestore() {
   // repopulate st.records (export would copy erased history) or touch the
   // freshly-reset empty hint / starter chips.
   if (!_pbpAskHistRestored) return;
+  if (_pbpAskHistAccount !== acct) return;
   if (superseded()) return;
   if (!hist.length) return;
   if (_pbpAskState) _pbpAskState.records = hist.slice();
@@ -1615,11 +1648,14 @@ async function _pbpAskHistRestore() {
       // _pbpAskHistRestored back to false when the user hits Clear while
       // this chunked restore is still running. restore() is single-shot per
       // page (guarded by _pbpAskState.panel in _pbpAskBuildPanel, which
-      // calls it exactly once), so the flag only ever goes true->false here
-      // - never back to true mid-loop - making it safe to re-check directly
-      // (no ABA risk that would call for a generation token instead). Stop
-      // seeding st.rounds from now-erased history and never insert frag.
+      // calls it exactly once), so on THIS path the flag only ever goes
+      // true->false - making it safe to re-check directly. Stop seeding
+      // st.rounds from now-erased history and never insert frag.
       if (!_pbpAskHistRestored) { resolve(); return; }
+      // An account switch DOES flip it back to true (the handler re-arms the
+      // restore for the new owner synchronously), so that check alone is ABA-
+      // blind here: compare the owner this fragment was built for instead.
+      if (_pbpAskHistAccount !== acct) { resolve(); return; }
       // Article replaced between chunks: curFp below was taken against the old
       // index, so every remaining record would be judged with a fingerprint
       // that no longer describes the page.
@@ -1674,6 +1710,7 @@ async function _pbpAskHistRestore() {
   // last chunk (between its guard check and this line) must still block
   // the insert, or cleared history would silently reappear in the DOM.
   if (!_pbpAskHistRestored) return;
+  if (_pbpAskHistAccount !== acct) return; // same, for an account switch landing here
   if (superseded()) return;
   // Prepend: if a live round raced in before the async build finished,
   // restored history still reads in chronological order above it - and
@@ -1812,9 +1849,29 @@ function pbpExplainInit(detail) {
     // in-flight stream already captured its language and finishes
     // unaffected -- only the NEXT translate run picks up the new target.
     if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.onChanged) {
-      chrome.storage.onChanged.addListener((changes, area) => {
-        if ((area !== "sync" && area !== "local") || !changes.translateTargetLang) return;
-        _pbpExplainSettings.translateTargetLang = changes.translateTargetLang.newValue;
+      let explainLangGen = 0; // a slower reroute read must not overwrite a newer change
+      chrome.storage.onChanged.addListener(async (changes, area) => {
+        const rerouted = area === "local" && !!changes.optSyncEnabled;
+        if ((area !== "sync" && area !== "local") || !(rerouted || changes.translateTargetLang)) return;
+        // Only the area THIS device routes its settings to (settings batch D3):
+        // a synced value from another device must not retarget a local-settings
+        // device, or the selection-translate track would answer in a different
+        // language than the full-text track on the very same page. Runs BEFORE
+        // the generation is taken so a foreign-area event can never discard a
+        // reroute read still in flight.
+        if (!rerouted && typeof pbpSettingsAreaName === "function" && area !== await pbpSettingsAreaName()) return;
+        const gen = ++explainLangGen;
+        let value;
+        if (rerouted) {
+          // Routing switch: the key itself need not change, so re-read it from
+          // the newly routed area (shared.js already dropped its routing cache).
+          try { value = (await (await getSettingsStorage()).get({ translateTargetLang: "auto" })).translateTargetLang; }
+          catch (_) { return; }
+          if (gen !== explainLangGen) return; // a newer consumed event already carried fresher state
+        } else {
+          value = changes.translateTargetLang.newValue;
+        }
+        _pbpExplainSettings.translateTargetLang = value;
       });
     }
 
@@ -3036,9 +3093,59 @@ function _pbpAskOnArticleReplaced(detail) {
   _pbpAskHistRestore().catch(() => {});
 }
 
+// ============================================================
+// Live Pinboard account switch (md-preview.js's credential listener; same
+// frozen {account} detail the article events carry).
+// ============================================================
+// The ARTICLE is unchanged, so nothing article-derived is torn down: the
+// panel, the block index, st.ctx and the composed question all survive. What
+// moves is the history partition -- ask_<owner>_<url> -- and with it the two
+// things that read it: the persisted transcript on screen and st.records,
+// which is exactly what the export button copies. Showing (or exporting, or
+// feeding back into the next prompt) the previous account's questions under
+// the new login is the leak this handler exists to stop; the mirror-image
+// leak, filing the new account's questions into the old partition, is closed
+// by re-pointing st.account plus _pbpAskRun's runAccount fence.
+//
+// Nothing is ERASED: pbpAskHistSet is never called here. Both accounts keep
+// their own transcript; only which one this page displays changes.
+function _pbpAskOnAccountChanged(account) {
+  const acct = String(account || "");
+  if (acct === _pbpAskHistAccount && (!_pbpAskState || _pbpAskState.account === acct)) return;
+  // Re-point BEFORE the wipe: the restore re-armed at the bottom must read the
+  // new partition, and an older restore still parked on its IDB read/rAF loop
+  // compares against this same variable to discover it has been superseded.
+  _pbpAskHistAccount = acct;
+  const st = _pbpAskState;
+  if (st) {
+    st.account = acct;
+    // Same order Clear uses: memory first, then the DOM. An in-flight answer
+    // takes the AbortError branch, which never pushes to rounds/records and
+    // never persists.
+    st.rounds = [];
+    st.records = [];
+    if (st.ctrl) st.ctrl.abort();
+  }
+  _pbpAskResetThreadView();
+  // Clear affordances belong to a thread that had content: hide the button and
+  // drop a confirm strip the reader left open (its Yes would now erase the NEW
+  // account's history instead of the one it was opened over).
+  const clearBtn = document.getElementById("ask-clear");
+  if (clearBtn) clearBtn.hidden = true;
+  const strip = document.getElementById("ask-clear-confirm");
+  if (strip) strip.remove();
+  // Show the new owner's transcript for this URL, exactly as a fresh page open
+  // would. Safe to re-arm unconditionally (unlike the article-replaced path):
+  // the account fence inside the restore stops any older run from inserting.
+  _pbpAskHistRestored = false;
+  _pbpAskHistRestore().catch(() => {});
+  if (typeof _pbpAskUpdateMeta === "function") _pbpAskUpdateMeta();
+}
+
 if (typeof document !== "undefined") {
   // Deliberately NOT {once:true}: one page can commit any number of articles
   // (track switch, AI punctuation, first-authorization promotion).
   document.addEventListener("pbp:article-will-replace", (e) => _pbpAskOnArticleWillReplace((e && e.detail) || {}));
   document.addEventListener("pbp:article-replaced", (e) => _pbpAskOnArticleReplaced((e && e.detail) || {}));
+  document.addEventListener("pbp:account-changed", (e) => _pbpAskOnAccountChanged((e && e.detail && e.detail.account) || ""));
 }
