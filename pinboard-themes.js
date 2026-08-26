@@ -881,7 +881,7 @@ h2 { color: #3c4043 !important; }
   --pinboard-success-hover: #b5d19c;
   --pinboard-url-link-bg: #3b4252;
   --pinboard-url-link-fg: #ebcb8b;
-  --pinboard-link-hover: #88c0d0;
+  --pinboard-link-hover: #8fbcbb;
   --pinboard-link-visited: #b48ead;
   --pinboard-focus-ring: #88c0d0;
   --pinboard-unread: #bf616a;
@@ -889,7 +889,7 @@ h2 { color: #3c4043 !important; }
   --pinboard-sidebar-btn-fg: #eceff4;
   --pinboard-sidebar-btn-bg-hover: #415d7e;
   --pinboard-on-accent: #384861;
-  --pinboard-on-link-hover: #384861;
+  --pinboard-on-link-hover: #35435b;
   --pinboard-scrollbar-thumb: #9cb5ce;
   --pinboard-font-family: "Inter", -apple-system, sans-serif;
   --pinboard-font-size-base: 13px;
@@ -1662,7 +1662,7 @@ a { color: #81a1c1 !important; }
   --pinboard-border-strong: #33ff3380;
   --pinboard-border-soft: #33ff3325;
   --pinboard-accent: #33ff33;
-  --pinboard-accent-hover: #66ff66;
+  --pinboard-accent-hover: #99ff99;
   --pinboard-accent-soft: #1a3a1a;
   --pinboard-accent-alpha: rgba(51,255,51,0.3);
   --pinboard-input-bg: #111111;
@@ -1681,7 +1681,7 @@ a { color: #81a1c1 !important; }
   --pinboard-success-hover: #005500;
   --pinboard-url-link-bg: #0d1a0d;
   --pinboard-url-link-fg: #cccc00;
-  --pinboard-link-hover: #66ff66;
+  --pinboard-link-hover: #99ff99;
   --pinboard-link-visited: #aaaa33;
   --pinboard-focus-ring: #33ff33;
   --pinboard-unread: #ff3333;
@@ -1689,7 +1689,7 @@ a { color: #81a1c1 !important; }
   --pinboard-sidebar-btn-fg: #33ff33;
   --pinboard-sidebar-btn-bg-hover: #005500;
   --pinboard-on-accent: #007000;
-  --pinboard-on-link-hover: #007000;
+  --pinboard-on-link-hover: #007a00;
   --pinboard-scrollbar-thumb: #22aa22;
   --pinboard-font-family: "Fira Code", "Cascadia Code", "Consolas", monospace;
   --pinboard-font-size-base: 13px;
@@ -3357,7 +3357,7 @@ h2 { font-family: "Georgia", serif !important; }`
   --pinboard-border-strong: #6272a4;
   --pinboard-border-soft: #44475a;
   --pinboard-accent: #8be9fd;
-  --pinboard-accent-hover: #a4f0ff;
+  --pinboard-accent-hover: #c8f7ff;
   --pinboard-accent-soft: #21222c;
   --pinboard-accent-alpha: rgba(139,233,253,0.25);
   --pinboard-input-bg: #44475a;

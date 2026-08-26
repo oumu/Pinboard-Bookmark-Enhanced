@@ -70,17 +70,5 @@
     "solarized-light | #main_column form[name=\"sort\"] table td a.edit | #93a1a1 | page",
     "solarized-light | a.url_display | #859900 | page"
   ],
-  "hoverState": [
-    "dracula | #bulk_edit_box #confirm a:hover",
-    "nord-night | #main_column > p > a[style*=\"font-size:140%\"]:hover",
-    "nord-night | #tag_cloud a:not(.tag):hover",
-    "nord-night | .nav_nli:hover",
-    "terminal | #bulk_edit_box #confirm a:hover",
-    "terminal | #main_column > p > a[style*=\"font-size:140%\"]:hover",
-    "terminal | #tag_cloud a:not(.tag):hover",
-    "terminal | .nav_nli:hover",
-    "terminal | .next_prev:hover",
-    "terminal | .next_prev_widget a:hover",
-    "terminal | a:hover"
-  ]
+  "hoverState": []
 }
