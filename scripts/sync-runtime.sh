@@ -77,7 +77,13 @@ if [ -z "${SRC}" ] || [ ! -f "${SRC}/manifest.json" ]; then
 fi
 
 echo "  Mirroring $(basename "${ZIP_PATH}") -> ${DEST}"
-rsync -rt --delete --no-perms --no-owner --no-group "${SRC}/" "${DEST}/"
+# --checksum, not the size+mtime quick check: release.sh stamps every ZIP
+# entry with the same fixed 1980-01-01 mtime (reproducible builds), so a file
+# whose SIZE is unchanged between versions (manifest.json "2.107.3" ->
+# "2.107.5", a same-length one-line fix) looked identical to rsync and was
+# silently left stale in the mirror (device 2026-08-26: code 2.107.5,
+# manifest still 2.107.3). ~110 files; content hashing is cheap here.
+rsync -rtc --delete --no-perms --no-owner --no-group "${SRC}/" "${DEST}/"
 
 test -f "${DEST}/manifest.json" || {
   echo "  [sync-runtime] FAILED: manifest.json missing in destination after sync" >&2
