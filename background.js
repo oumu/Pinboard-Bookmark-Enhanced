@@ -2481,6 +2481,16 @@ function extractPageForMarkdown() {
       return best && bestArea >= 0.4 * vw * vh ? best : "";
     } catch (_) { return ""; }
   }
+  // "Nothing here" is judged on TEXT, not on the HTML string: Defuddle hands
+  // back the main container even when all it holds is an <iframe> (claude.ai
+  // artifact pages, device 2026-08-26), and a truthy-string gate let that empty
+  // shell pass as an article, so the frame offer below never appeared.
+  // Media-only articles (a comic, a gallery) stay content.
+  function extractionLooksEmpty(html) {
+    const s = String(html || "");
+    if (/<(img|picture|video|audio|svg|canvas|object|embed|math)\b/i.test(s)) return false;
+    return !/\S/.test(s.replace(/<[^>]*>/g, " ").replace(/&(nbsp|#160|#xa0);/gi, " "));
+  }
   try {
     if (typeof applySiteRule === "function") {
       const hit = applySiteRule(document, location.href);
@@ -2522,7 +2532,7 @@ function extractPageForMarkdown() {
     console.error = (...a) => { if (!String(a[0]).startsWith("Defuddle:")) _origCE.apply(console, a); };
     let result;
     try { result = new Defuddle(clone).parse(); } finally { console.error = _origCE; }
-    if (!result?.content) return { error: "No content extracted", frameOrigin: dominantFrameOrigin() };
+    if (!result?.content || extractionLooksEmpty(result.content)) return { error: "No content extracted", frameOrigin: dominantFrameOrigin() };
     // X4: mirrors popup.js's extractLocalMarkdown -- keep Defuddle's
     // author/published/site/image alongside content/title/url/math.
     return {

@@ -28,6 +28,16 @@ function extractDetector(src, label) {
   const body = src.slice(start, close + 1);
   return new Function(body + "\nreturn dominantFrameOrigin;")();
 }
+// Slice any inner `function NAME(...) { ... }` out of a source file by brace
+// matching from its header (the emptiness predicate is short and has no
+// string literals containing braces).
+function extractFunction(src, name, label) {
+  const start = src.indexOf("function " + name + "(");
+  if (start < 0) throw new Error(label + ": " + name + " not found");
+  let i = src.indexOf("{", start), depth = 0;
+  for (; i < src.length; i++) { if (src[i] === "{") depth++; else if (src[i] === "}" && --depth === 0) break; }
+  return new Function(src.slice(start, i + 1) + "\nreturn " + name + ";")();
+}
 const fx = document.getElementById("fx");
 const ORIGIN_A = "https://frame-a.invalid";
 function frame(attrs) {
@@ -68,6 +78,24 @@ function mount(build) {
       run((c) => c.appendChild(frame({ src: "http://frame-a.invalid/doc" }))) === "");
     check(label + ": only the VISIBLE intersection counts -- a wide frame mostly off-screen (20% on screen) is not a candidate",
       run((c) => c.appendChild(frame({ w: window.innerWidth, style: "position:relative;left:-" + Math.round(window.innerWidth * 0.8) + "px" }))) === "");
+    // "Nothing here" must be decided on TEXT, not on the HTML string: Defuddle
+    // hands back the main container even when all it holds is an <iframe>
+    // (claude.ai artifact pages, device 2026-08-26), and a truthy-string gate
+    // let that empty shell pass as an article, so the frame offer never came.
+    let looksEmpty;
+    try { looksEmpty = extractFunction(src, "extractionLooksEmpty", label); } catch (e) { check(label + ": emptiness predicate extracted", false, e.message); continue; }
+    check(label + ": content that is only an <iframe> inside a container looks empty",
+      looksEmpty('<div><iframe src="https://x.invalid/"></iframe></div>') === true);
+    check(label + ": a paragraph of text is content",
+      looksEmpty("<p>hello</p>") === false);
+    check(label + ": an image-only or media-only article is content (no text needed)",
+      looksEmpty('<div><img src="https://x.invalid/a.png"></div>') === false && looksEmpty("<figure><video></video></figure>") === false);
+    check(label + ": empty string and whitespace / &nbsp; only look empty",
+      looksEmpty("") === true && looksEmpty("<div> \n </div>") === true && looksEmpty("<p>&nbsp;</p>") === true);
+    check(label + ": a table with cell text is content",
+      looksEmpty("<table><tr><td>1</td></tr></table>") === false);
+    check(label + ": CJK text with no spaces is content",
+      looksEmpty("<p>中文正文</p>") === false);
   }
   fx.replaceChildren();
   document.title = (fail ? "FAIL " : "PASS ") + document.title;

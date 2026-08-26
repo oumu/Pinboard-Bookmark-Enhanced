@@ -1293,6 +1293,29 @@ for (const [id, label, heading] of [["opt-lang", "secLanguage", "sec-language"],
     check(start >= 0 && guards.every((g) => body.includes(g)),
       `${name}: the embedded-frame detector lost one of its guards (${guards.filter((g) => !body.includes(g)).join(", ") || "none"})`);
   }
+  // The "nothing here" gate must judge TEXT, not the HTML string (device
+  // 2026-08-26: Defuddle returned the <main> shell holding only the artifact
+  // <iframe> on claude.ai, a truthy string, so the frame offer never showed).
+  // Both injected copies carry the same predicate and both gates call it.
+  const predGuards = ['/<(img|picture|video|audio|svg|canvas|object|embed|math)\\b/i', 'replace(/<[^>]*>/g, " ")', '&(nbsp|#160|#xa0);'];
+  const sliceFn = (src, name) => {
+    const start = src.indexOf("function " + name + "(");
+    if (start < 0) return "";
+    let i = src.indexOf("{", start), depth = 0;
+    for (; i < src.length; i++) { if (src[i] === "{") depth++; else if (src[i] === "}" && --depth === 0) break; }
+    return src.slice(start, i + 1);
+  };
+  const predBodies = {};
+  for (const [name, src] of [["background.js", backgroundJs], ["popup.js", popupJs]]) {
+    const body = stripComments(sliceFn(src, "extractionLooksEmpty"));
+    predBodies[name] = body.replace(/^\s+/gm, "");
+    check(body && predGuards.every((g) => body.includes(g)),
+      `${name}: extractionLooksEmpty is missing or lost a guard (${predGuards.filter((g) => !body.includes(g)).join(", ") || "not found"})`);
+    check(stripComments(src).includes('if (!result?.content || extractionLooksEmpty(result.content)) return { error: "No content extracted", frameOrigin: dominantFrameOrigin() };'),
+      `${name}: the no-content gate must call extractionLooksEmpty(result.content) and still surface the frame candidate`);
+  }
+  check(predBodies["background.js"] && predBodies["background.js"] === predBodies["popup.js"],
+    "background.js and popup.js carry the same extractionLooksEmpty predicate (isolated-context twins must not drift)");
   const hStart = backgroundJs.indexOf('message.type === "reextractMarkdown"');
   const hEnd = backgroundJs.indexOf('message.type === "mdPreviewBookmarkInfo"', hStart);
   const handler = stripComments(backgroundJs.slice(hStart, hEnd));
