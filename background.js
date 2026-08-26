@@ -1390,41 +1390,6 @@ async function pbpMigrateLegacyWildcardPermission() {
 }
 pbpMigrateLegacyWildcardPermission().catch(() => {});
 
-const PBP_WEBDAV_REMOVAL_SESSION_KEY = "_webdavRemovalCleanupV1";
-const PBP_WEBDAV_REMOVAL_SYNC_KEYS = [
-  "webdavUrl",
-  "webdavUser",
-  "webdavPass",
-  "webdavFolderMode",
-  "webdavRelativePath",
-  "webdavLayoutVersion",
-];
-const PBP_WEBDAV_REMOVAL_LOCAL_KEYS = PBP_WEBDAV_REMOVAL_SYNC_KEYS.concat([
-  "webdavAutoPush",
-  "_webdavAutoPushLocalV1",
-  "_webdavSyncState",
-  "_webdavEtagState",
-  "webdavLastPush",
-]);
-
-async function pbpCleanupRemovedWebdav({
-  alarms = chrome.alarms,
-  local = chrome.storage.local,
-  sync = chrome.storage.sync,
-  session = chrome.storage.session,
-} = {}) {
-  const done = await session.get(PBP_WEBDAV_REMOVAL_SESSION_KEY);
-  if (done[PBP_WEBDAV_REMOVAL_SESSION_KEY] === true) return false;
-  await alarms.clear("webdav-push");
-  await local.remove(PBP_WEBDAV_REMOVAL_LOCAL_KEYS);
-  await sync.remove(PBP_WEBDAV_REMOVAL_SYNC_KEYS);
-  await session.set({ [PBP_WEBDAV_REMOVAL_SESSION_KEY]: true });
-  return true;
-}
-pbpCleanupRemovedWebdav().catch((error) => {
-  console.warn("[webdav-removal] legacy cleanup failed", error?.name || "Error");
-});
-
 // Credential-routing maintenance (batch (4)): idempotent, best-effort,
 // fire-and-forget at boot. It mirrors the last keys-on cloud snapshot locally
 // and, while keys are off, migrates/scrubs any stale cloud secret. The existing

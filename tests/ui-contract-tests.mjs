@@ -270,21 +270,6 @@ check(backgroundJs.includes('"vocab-store.js"') && backgroundJs.includes('"vocab
   "background.js does not load the vocabulary sync dependencies in order");
 check(vocabGdriveJs.includes("function pbpCreateVocabDriveSyncRunner("),
   "vocab-gdrive.js is missing the serialized sync runner");
-check(backgroundJs.includes("async function pbpCleanupRemovedWebdav("),
-  "background.js is missing the legacy cleanup migration");
-{
-  const cleanup = backgroundJs.slice(
-    backgroundJs.indexOf("const PBP_WEBDAV_REMOVAL_SESSION_KEY"),
-    backgroundJs.indexOf("pbpCleanupRemovedWebdav().catch")
-  );
-  const alarmAt = cleanup.indexOf('alarms.clear("webdav-push")');
-  const localAt = cleanup.indexOf("local.remove(PBP_WEBDAV_REMOVAL_LOCAL_KEYS)");
-  const syncAt = cleanup.indexOf("sync.remove(PBP_WEBDAV_REMOVAL_SYNC_KEYS)");
-  const markAt = cleanup.indexOf("session.set(");
-  check(alarmAt >= 0 && localAt > alarmAt && syncAt > localAt && markAt > syncAt &&
-    !/\bfetch\s*\(|permissions\.request|https?:\/\//.test(cleanup),
-    "background.js: legacy WebDAV cleanup is not local-only or marks completion too early");
-}
 
 
 {

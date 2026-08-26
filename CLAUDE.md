@@ -145,7 +145,7 @@ bash scripts/release.sh         # 打 ZIP + GH release + changelog；--build-onl
 
 ## 临时事项（有到期日，过期即清）
 
-- **WebDAV 删除清理代码**（引入 2026-07-24；最早清理 2026-08-24）：background.js 的 `pbpCleanupRemovedWebdav` 清旧 `webdav-push` alarm 与 local/sync 遗留配置。到期先核查已发布版本与用户升级情况，再删 `PBP_WEBDAV_REMOVAL_*`、清理函数及对应测试；不得按日期自动删除，历史审计文档继续保留。
+- （当前无；上一条 WebDAV 遗留清理迁移已于 2026-08-26 退役——自 v2.98 起随 10 个版本运行 33 天）
 
 ## 与 Claude Code 协作
 

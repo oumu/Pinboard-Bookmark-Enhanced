@@ -106,51 +106,6 @@ function buildLegacyPermissionMigrationHarness(source, chrome) {
     "; return { key: PBP_LEGACY_WILDCARD_CLEANUP_KEY, run: pbpMigrateLegacyWildcardPermission };")(chrome);
 }
 
-function buildWebdavRemovalHarness(source, failures = new Set()) {
-  const start = source.indexOf("const PBP_WEBDAV_REMOVAL_SESSION_KEY");
-  const end = source.indexOf("pbpCleanupRemovedWebdav().catch", start);
-  assert(start >= 0 && end > start, "removed WebDAV cleanup migration not found");
-  const calls = { alarm: [], local: [], sync: [], sessionGet: [], sessionSet: [] };
-  let marked = false;
-  const fail = (stage) => {
-    if (failures.has(stage)) throw new Error(stage + " unavailable");
-  };
-  const chrome = {
-    alarms: {
-      clear: async (name) => { calls.alarm.push(name); fail("alarm"); },
-    },
-    storage: {
-      local: {
-        remove: async (keys) => { calls.local.push(keys.slice()); fail("local"); },
-      },
-      sync: {
-        remove: async (keys) => { calls.sync.push(keys.slice()); fail("sync"); },
-      },
-      session: {
-        get: async (key) => {
-          calls.sessionGet.push(key);
-          return marked ? { [key]: true } : {};
-        },
-        set: async (value) => {
-          calls.sessionSet.push(value);
-          marked = true;
-        },
-      },
-    },
-  };
-  const api = new Function(
-    "chrome",
-    source.slice(start, end) +
-      "; return {" +
-      "key: PBP_WEBDAV_REMOVAL_SESSION_KEY," +
-      "syncKeys: PBP_WEBDAV_REMOVAL_SYNC_KEYS," +
-      "localKeys: PBP_WEBDAV_REMOVAL_LOCAL_KEYS," +
-      "run: pbpCleanupRemovedWebdav" +
-      "};"
-  )(chrome);
-  return { api, calls, mark: () => { marked = true; } };
-}
-
 function buildBackgroundSaveHarness(source, callAI, cached = {}, settingsPatch = {}, hasKey = true) {
   const start = source.indexOf("async function saveFromBackground");
   const end = source.indexOf("// Helper: resolve prefix-specific settings", start);
@@ -324,45 +279,6 @@ async function run() {
     let threw = false;
     try { await h.run(); } catch (_) { threw = true; }
     assert(threw && marker === null, "failed removal wrote a completion marker");
-  });
-
-  await test("removed WebDAV cleanup clears exact legacy state before marking the session", async () => {
-    const h = buildWebdavRemovalHarness(source);
-    const cleaned = await h.api.run();
-    assert(cleaned === true, "successful cleanup did not report work");
-    assert(JSON.stringify(h.calls.alarm) === JSON.stringify(["webdav-push"]),
-      "legacy alarm was not cleared exactly once");
-    assert(JSON.stringify(h.calls.local[0]) === JSON.stringify(h.api.localKeys),
-      "local cleanup keys drifted");
-    assert(JSON.stringify(h.calls.sync[0]) === JSON.stringify(h.api.syncKeys),
-      "sync cleanup keys drifted");
-    assert(h.calls.sessionSet.length === 1 &&
-      h.calls.sessionSet[0][h.api.key] === true,
-    "session completion marker was not written last");
-  });
-
-  await test("removed WebDAV cleanup skips a completed browser session", async () => {
-    const h = buildWebdavRemovalHarness(source);
-    h.mark();
-    const cleaned = await h.api.run();
-    assert(cleaned === false, "completed session did not short-circuit");
-    assert(h.calls.alarm.length === 0 && h.calls.local.length === 0 &&
-      h.calls.sync.length === 0 && h.calls.sessionSet.length === 0,
-    "completed session repeated cleanup writes");
-  });
-
-  await test("removed WebDAV cleanup never marks partial failures and retries", async () => {
-    for (const stage of ["alarm", "local", "sync"]) {
-      const failures = new Set([stage]);
-      const h = buildWebdavRemovalHarness(source, failures);
-      let rejected = false;
-      try { await h.api.run(); } catch (_) { rejected = true; }
-      assert(rejected && h.calls.sessionSet.length === 0,
-        stage + " failure wrote a completion marker");
-      failures.clear();
-      assert(await h.api.run() === true && h.calls.sessionSet.length === 1,
-        stage + " failure did not retry successfully");
-    }
   });
 
   await test("background save keeps the extraction fast path when AI is disabled", async () => {

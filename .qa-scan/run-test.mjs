@@ -32,7 +32,7 @@ const EXPECTED_RESULTS = Object.freeze({
   "tests/ai-cache-tests.html": 23,
   "tests/ai-tags-tests.html": 70,
   "tests/anki-connect-tests.html": 41,
-  "tests/background-active-tab-tests.html": 31,
+  "tests/background-active-tab-tests.html": 28,
   "tests/batch-dedup-tests.html": 24,
   "tests/contrast-tests.html": 6,
   "tests/dict-pack-tests.html": 187,
