@@ -3267,8 +3267,7 @@ a.bundle:hover { color: #8b4513 !important; }
 .selected_star { color: #d4a017 !important; }
 a.bookmark_title { font-weight: normal !important; letter-spacing: -0.01em !important; }
 a.url_display { color: #8b6c5b !important; font-size: 12px !important; font-family: -apple-system, sans-serif !important; }
-a.when { color: #999 !important; font-family: -apple-system, sans-serif !important; }
-a.cached { color: #aaa !important; }
+a.when { font-family: -apple-system, sans-serif !important; }
 a.url_link { padding: 1px 5px !important; }
 .description { color: #555 !important; font-size: 13px !important; line-height: 1.6 !important; margin-top: 4px !important; }
 a.sort_order_selected { background: #e0d5c1 !important; color: #6b4c3b !important; }
@@ -3284,8 +3283,6 @@ a.sort_order_selected { background: #e0d5c1 !important; color: #6b4c3b !importan
 #right_bar input#key { background: #f5f0e8 !important; color: #3b2e20 !important; border: 1px solid #c9b896 !important; border-radius: 4px !important; }
 #right_bar input#key:focus { border-color: #8b4513 !important; box-shadow: 0 0 0 2px rgba(139,69,19,0.18) !important; }
 #right_bar input[type="submit"] { border-radius: 4px !important; }
-#tag_cloud_header a:not(.tag) { color: #999 !important; }
-a.tag_heading_selected { color: #999 !important; }
 #tag_cloud_header a:not(.tag):hover { color: #6b4c3b !important; }
 #tweet_searchbox #search_query_field { background: #f5f0e8 !important; color: #3b2e20 !important; border: 1px solid #c9b896 !important; border-radius: 4px !important; font-size: 13px !important; }
 #tweet_searchbox #search_query_field:focus { border-color: #8b4513 !important; box-shadow: 0 0 0 2px rgba(139,69,19,0.18) !important; }
@@ -3317,27 +3314,19 @@ a.help { color: #aaa !important; background: #1a1a1a !important; }
 .note { border-bottom: 1px solid #e8dfd0 !important; }
 #bulk_top_bar { border: 1px solid #e8dfd0 !important; }
 #bulk_edit_box { border: 1px solid #e8dfd0 !important; }
-.bookmark_count { color: #999 !important; }
-.bookmark_count_box { color: #999 !important; }
 .user_navbar a { color: #6b4c3b !important; }
-.rss_link { color: #aaa !important; }
-.rss_linkbox a { color: #aaa !important; }
 #main_column form[name="sort"] > table { border-spacing: 0 6px !important; }
 #main_column form[name="sort"] table tr:hover { background: rgba(139,69,19,0.07) !important; }
 #main_column form[name="sort"] table td { padding: 7px 10px !important; font-family: "Georgia", "Noto Serif", serif !important; }
 #main_column form[name="sort"] table input[name^="id_"] { width: 38px !important; min-width: 38px !important; max-width: 38px !important; padding: 3px 4px !important; margin-right: 10px !important; font-size: 12px !important; line-height: 1.2 !important; box-sizing: border-box !important; vertical-align: middle !important; background: #fffdf6 !important; font-family: "Georgia", serif !important; font-weight: 600 !important; }
 #main_column form[name="sort"] table input[name^="id_"]:focus { border-color: #8b4513 !important; box-shadow: 0 0 0 2px rgba(139,69,19,0.18) !important; }
 #main_column form[name="sort"] table a.bundle { font-style: italic !important; letter-spacing: 0.02em !important; font-family: "Georgia", serif !important; }
-#main_column form[name="sort"] table a[style*="color:#aaa"] { color: #8b7c6a !important; font-style: italic !important; }
-#main_column form[name="sort"] table a[style*="color: #aaa"] { color: #8b7c6a !important; font-style: italic !important; }
+#main_column form[name="sort"] table a[style*="color:#aaa"] { font-style: italic !important; }
+#main_column form[name="sort"] table a[style*="color: #aaa"] { font-style: italic !important; }
 #main_column form[name="sort"] table a[style*="color:#aaa"]:hover { color: #8b4513 !important; }
-#main_column form[name="sort"] table td a.edit { color: #8b7c6a !important; opacity: 0.75 !important; font-style: italic !important; }
+#main_column form[name="sort"] table td a.edit { opacity: 0.75 !important; font-style: italic !important; }
 #main_column form[name="sort"] table td a.destroy { color: #a03024 !important; font-weight: 600 !important; font-style: italic !important; }
 #main_column form[name="sort"] table tr:hover td a.edit { color: #8b4513 !important; }
-#nextprev a.edit { color: #aaa !important; }
-#footer { color: #bbb !important; }
-.colophon { color: #bbb !important; }
-.colophon a { color: #bbb !important; }
 h2 { font-family: "Georgia", serif !important; }`
   },
 
@@ -4144,8 +4133,6 @@ input[type="checkbox"] { accent-color: #bd93f9 !important; }
 input[type="radio"] { accent-color: #bd93f9 !important; }
 #edit_bookmark_form { background: #44475a !important; border: 1px solid #6272a4 !important; }
 #settings_panel { background: #282a36 !important; color: #f8f8f2 !important; }
-.settings_tab { color: #6272a4 !important; }
-.settings_tab:hover { color: #bd93f9 !important; }
 .settings_tab_selected { color: #ff79c6 !important; border-top: 2px solid #ff79c6 !important; border-bottom-color: #282a36 !important; background: #282a36 !important; }
 .settings_tab_selected a { color: #ff79c6 !important; }
 a.help { background: #343746 !important; }
@@ -4159,10 +4146,8 @@ a.help { background: #343746 !important; }
 #main_column form[name="sort"] table input[name^="id_"] { width: 38px !important; min-width: 38px !important; max-width: 38px !important; padding: 3px 4px !important; margin-right: 10px !important; font-size: 12px !important; line-height: 1.2 !important; border-radius: 6px !important; box-sizing: border-box !important; vertical-align: middle !important; background: #21222c !important; font-weight: 600 !important; }
 #main_column form[name="sort"] table input[name^="id_"]:focus { border-color: #ff79c6 !important; box-shadow: 0 0 0 2px rgba(255,121,198,0.25) !important; }
 #main_column form[name="sort"] table a.bundle { border-radius: 3px !important; }
-#main_column form[name="sort"] table a[style*="color:#aaa"] { color: #6272a4 !important; }
-#main_column form[name="sort"] table a[style*="color: #aaa"] { color: #6272a4 !important; }
 #main_column form[name="sort"] table a[style*="color:#aaa"]:hover { color: #ff79c6 !important; }
-#main_column form[name="sort"] table td a.edit { color: #6272a4 !important; opacity: 0.75 !important; }
+#main_column form[name="sort"] table td a.edit { opacity: 0.75 !important; }
 #main_column form[name="sort"] table td a.destroy { opacity: 0.9 !important; font-weight: 600 !important; }
 #main_column form[name="sort"] table tr:hover td a.edit { color: #ff79c6 !important; }
 .next_prev { color: #bd93f9 !important; }
