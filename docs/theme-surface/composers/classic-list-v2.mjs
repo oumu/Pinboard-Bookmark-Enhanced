@@ -79,6 +79,21 @@ body:not(#pinboard) #popup_header { background: transparent !important; color: $
    "html.pbp-dark body { color-scheme: dark }". Pairs with the existing input accent-color. */
 body { color-scheme: ${schemeFor(tokens)} !important; }
 
+/* ---- Global anchor rest-colour fallback: emitted FIRST, not last ----
+   a:link is (0,1,1) — exactly the specificity of every a.CLASS / .CLASS a intent
+   rule further down — so while this lived at the tail it won the source-order tie
+   against ALL of them and repainted a.tag, a.url_link, a.delete, a.destroy,
+   a.unread, a.help, .edit_links a, .rss_linkbox a, .colophon a and .settings_tab a
+   with accent. (.bookmark a.when / .bookmark a.cached at (0,2,1) were written to
+   escape exactly this.) Emitting it first lets every later intent rule win its own
+   tie, with no specificity change — so the pilot overrides appended last still beat
+   the composer, which is what keeps a.url_display on each pilot own shipped colour.
+   Do NOT drop a:link or wrap this in :where(): that lowers the fallback below
+   (0,1,1) and revives the dead bare-a overrides two pilots still carry. Also note
+   prefixSelectors() splits selector lists on bare commas, so a :where(a, a:link)
+   here would be mangled inside every html.pbp-dark block. */
+a, a:link { color: ${v("accent")} !important; }
+
 /* ---- Banner & navigation ---- */
 #banner { background: ${v("bg-surface")} !important; border-color: ${v("border")} !important; ${maxWidth && maxWidth !== "none" ? `max-width: ${maxWidth} !important; box-sizing: border-box !important;` : ""} }
 #banner a, #top_menu a, .banner_username { color: ${v("accent")} !important; }
@@ -591,8 +606,11 @@ html, body, textarea, .description, .pin-ac .bd {
 ::-webkit-scrollbar-thumb:hover { background: ${v("accent")} !important; }
 ::-webkit-scrollbar-corner { background: ${v("bg-surface")} !important; }
 
-/* ---- Global anchor fallbacks ---- */
-a, a:link { color: ${v("accent")} !important; }
+/* ---- Global anchor STATE fallbacks ----
+   The rest-colour fallback is no longer here — it is emitted at the top of this
+   composer (see "Global anchor rest-colour fallback"). Only :hover / :visited /
+   :focus-visible stay at the tail, where they still beat the element+class rules
+   above, so hover and visited behaviour is unchanged. */
 a:hover { color: ${v("link-hover")} !important; }
 a:visited { color: ${v("link-visited")} !important; }
 a:focus-visible { outline: 2px solid ${v("focus-ring")} !important; outline-offset: 2px !important; }

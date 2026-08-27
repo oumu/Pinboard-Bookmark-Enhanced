@@ -29,6 +29,26 @@ const VERBOSE = process.argv.includes("--verbose");
 // `expected[prop]` is a substring that the winning selector MUST contain.
 // ----------------------------------------------------------------------------
 const PROBES = [
+  // --- REGRESSION PROBES: the same element as a REAL link (`:link` matches any
+  // <a href>). Without the :link state the simulated element can never match the
+  // global `a, a:link` fallback, so the (0,1,1) tie this file exists to catch is
+  // invisible to every probe below. ---
+  { name: "a.tag as a real link (:link)",
+    mode: "light",
+    elem: { tag: "a", classes: ["tag"], state: ["link"] },
+    expected: { color: "a.tag" } },
+  { name: "a.delete as a real link (:link)",
+    mode: "light",
+    elem: { tag: "a", classes: ["delete"], state: ["link"] },
+    expected: { color: "a.delete" } },
+  { name: "a.help as a real link (:link)",
+    mode: "light",
+    elem: { tag: "a", classes: ["help"], state: ["link"] },
+    expected: { color: "a.help" } },
+  { name: "a.url_display as a real link (:link)",
+    mode: "light",
+    elem: { tag: "a", classes: ["url_display"], state: ["link"] },
+    expected: { color: "a.url_display" } },
   { name: "a.tag at rest (inline)",
     mode: "light",
     elem: { tag: "a", classes: ["tag"] },
