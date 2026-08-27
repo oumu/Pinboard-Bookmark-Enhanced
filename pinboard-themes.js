@@ -303,7 +303,8 @@ a.tag {
 /* :hover and .selected: owned by tag-style pattern in _patterns.mjs */
 a.sort_order_selected { background: var(--pinboard-tag-bg) !important; color: var(--pinboard-accent) !important; }
 
-a.unread { color: var(--pinboard-destroy) !important; font-weight: bold !important; }
+/* Unread titles differ by weight only; no colour here on purpose (a:link tie, see git log). */
+a.unread { font-weight: bold !important; }
 .edit_links a, a.copy_link { color: var(--pinboard-muted-soft) !important; }
 .edit_links a:hover { color: var(--pinboard-fg) !important; }
 a.copy_link { color: var(--pinboard-accent) !important; }
@@ -1145,7 +1146,8 @@ a.tag {
 /* :hover and .selected: owned by tag-style pattern in _patterns.mjs */
 a.sort_order_selected { background: var(--pinboard-tag-bg) !important; color: var(--pinboard-accent) !important; }
 
-a.unread { color: var(--pinboard-destroy) !important; font-weight: bold !important; }
+/* Unread titles differ by weight only; no colour here on purpose (a:link tie, see git log). */
+a.unread { font-weight: bold !important; }
 .edit_links a, a.copy_link { color: var(--pinboard-muted-soft) !important; }
 .edit_links a:hover { color: var(--pinboard-fg) !important; }
 a.copy_link { color: var(--pinboard-accent) !important; }
@@ -1944,7 +1946,8 @@ a.tag {
 /* :hover and .selected: owned by tag-style pattern in _patterns.mjs */
 a.sort_order_selected { background: var(--pinboard-tag-bg) !important; color: var(--pinboard-accent) !important; }
 
-a.unread { color: var(--pinboard-destroy) !important; font-weight: bold !important; }
+/* Unread titles differ by weight only; no colour here on purpose (a:link tie, see git log). */
+a.unread { font-weight: bold !important; }
 .edit_links a, a.copy_link { color: var(--pinboard-muted-soft) !important; }
 .edit_links a:hover { color: var(--pinboard-fg) !important; }
 a.copy_link { color: var(--pinboard-accent) !important; }
@@ -2788,7 +2791,8 @@ a.tag {
 /* :hover and .selected: owned by tag-style pattern in _patterns.mjs */
 a.sort_order_selected { background: var(--pinboard-tag-bg) !important; color: var(--pinboard-accent) !important; }
 
-a.unread { color: var(--pinboard-destroy) !important; font-weight: bold !important; }
+/* Unread titles differ by weight only; no colour here on purpose (a:link tie, see git log). */
+a.unread { font-weight: bold !important; }
 .edit_links a, a.copy_link { color: var(--pinboard-muted-soft) !important; }
 .edit_links a:hover { color: var(--pinboard-fg) !important; }
 a.copy_link { color: var(--pinboard-accent) !important; }
@@ -3628,7 +3632,8 @@ a.tag {
 /* :hover and .selected: owned by tag-style pattern in _patterns.mjs */
 a.sort_order_selected { background: var(--pinboard-tag-bg) !important; color: var(--pinboard-accent) !important; }
 
-a.unread { color: var(--pinboard-destroy) !important; font-weight: bold !important; }
+/* Unread titles differ by weight only; no colour here on purpose (a:link tie, see git log). */
+a.unread { font-weight: bold !important; }
 .edit_links a, a.copy_link { color: var(--pinboard-muted-soft) !important; }
 .edit_links a:hover { color: var(--pinboard-fg) !important; }
 a.copy_link { color: var(--pinboard-accent) !important; }
@@ -4454,7 +4459,8 @@ a.tag {
 /* :hover and .selected: owned by tag-style pattern in _patterns.mjs */
 a.sort_order_selected { background: var(--pinboard-tag-bg) !important; color: var(--pinboard-accent) !important; }
 
-a.unread { color: var(--pinboard-destroy) !important; font-weight: bold !important; }
+/* Unread titles differ by weight only; no colour here on purpose (a:link tie, see git log). */
+a.unread { font-weight: bold !important; }
 .edit_links a, a.copy_link { color: var(--pinboard-muted-soft) !important; }
 .edit_links a:hover { color: var(--pinboard-fg) !important; }
 a.copy_link { color: var(--pinboard-accent) !important; }
@@ -5188,7 +5194,8 @@ html.pbp-dark .bookmark a.tag { font-size: 11px !important; }
 /* :hover and .selected: owned by tag-style pattern in _patterns.mjs */
 html.pbp-dark a.sort_order_selected { background: var(--pinboard-tag-bg) !important; color: var(--pinboard-accent) !important; }
 
-html.pbp-dark a.unread { color: var(--pinboard-destroy) !important; font-weight: bold !important; }
+/* Unread titles differ by weight only; no colour here on purpose (a:link tie, see git log). */
+html.pbp-dark a.unread { font-weight: bold !important; }
 html.pbp-dark .edit_links a, html.pbp-dark a.copy_link { color: var(--pinboard-muted-soft) !important; }
 html.pbp-dark .edit_links a:hover { color: var(--pinboard-fg) !important; }
 html.pbp-dark a.copy_link { color: var(--pinboard-accent) !important; }
@@ -6041,7 +6048,8 @@ a.tag {
 /* :hover and .selected: owned by tag-style pattern in _patterns.mjs */
 a.sort_order_selected { background: var(--pinboard-tag-bg) !important; color: var(--pinboard-accent) !important; }
 
-a.unread { color: var(--pinboard-destroy) !important; font-weight: bold !important; }
+/* Unread titles differ by weight only; no colour here on purpose (a:link tie, see git log). */
+a.unread { font-weight: bold !important; }
 .edit_links a, a.copy_link { color: var(--pinboard-muted-soft) !important; }
 .edit_links a:hover { color: var(--pinboard-fg) !important; }
 a.copy_link { color: var(--pinboard-accent) !important; }
@@ -6825,7 +6833,8 @@ a.tag {
 /* :hover and .selected: owned by tag-style pattern in _patterns.mjs */
 a.sort_order_selected { background: var(--pinboard-tag-bg) !important; color: var(--pinboard-accent) !important; }
 
-a.unread { color: var(--pinboard-destroy) !important; font-weight: bold !important; }
+/* Unread titles differ by weight only; no colour here on purpose (a:link tie, see git log). */
+a.unread { font-weight: bold !important; }
 .edit_links a, a.copy_link { color: var(--pinboard-muted-soft) !important; }
 .edit_links a:hover { color: var(--pinboard-fg) !important; }
 a.copy_link { color: var(--pinboard-accent) !important; }
@@ -7613,7 +7622,8 @@ a.tag {
 /* :hover and .selected: owned by tag-style pattern in _patterns.mjs */
 a.sort_order_selected { background: var(--pinboard-tag-bg) !important; color: var(--pinboard-accent) !important; }
 
-a.unread { color: var(--pinboard-destroy) !important; font-weight: bold !important; }
+/* Unread titles differ by weight only; no colour here on purpose (a:link tie, see git log). */
+a.unread { font-weight: bold !important; }
 .edit_links a, a.copy_link { color: var(--pinboard-muted-soft) !important; }
 .edit_links a:hover { color: var(--pinboard-fg) !important; }
 a.copy_link { color: var(--pinboard-accent) !important; }
@@ -8411,7 +8421,8 @@ a.tag {
 /* :hover and .selected: owned by tag-style pattern in _patterns.mjs */
 a.sort_order_selected { background: var(--pinboard-tag-bg) !important; color: var(--pinboard-accent) !important; }
 
-a.unread { color: var(--pinboard-destroy) !important; font-weight: bold !important; }
+/* Unread titles differ by weight only; no colour here on purpose (a:link tie, see git log). */
+a.unread { font-weight: bold !important; }
 .edit_links a, a.copy_link { color: var(--pinboard-muted-soft) !important; }
 .edit_links a:hover { color: var(--pinboard-fg) !important; }
 a.copy_link { color: var(--pinboard-accent) !important; }
@@ -9222,7 +9233,8 @@ a.tag {
 /* :hover and .selected: owned by tag-style pattern in _patterns.mjs */
 a.sort_order_selected { background: var(--pinboard-tag-bg) !important; color: var(--pinboard-accent) !important; }
 
-a.unread { color: var(--pinboard-destroy) !important; font-weight: bold !important; }
+/* Unread titles differ by weight only; no colour here on purpose (a:link tie, see git log). */
+a.unread { font-weight: bold !important; }
 .edit_links a, a.copy_link { color: var(--pinboard-muted-soft) !important; }
 .edit_links a:hover { color: var(--pinboard-fg) !important; }
 a.copy_link { color: var(--pinboard-accent) !important; }
@@ -10026,7 +10038,8 @@ a.tag {
 /* :hover and .selected: owned by tag-style pattern in _patterns.mjs */
 a.sort_order_selected { background: var(--pinboard-tag-bg) !important; color: var(--pinboard-accent) !important; }
 
-a.unread { color: var(--pinboard-destroy) !important; font-weight: bold !important; }
+/* Unread titles differ by weight only; no colour here on purpose (a:link tie, see git log). */
+a.unread { font-weight: bold !important; }
 .edit_links a, a.copy_link { color: var(--pinboard-muted-soft) !important; }
 .edit_links a:hover { color: var(--pinboard-fg) !important; }
 a.copy_link { color: var(--pinboard-accent) !important; }
@@ -10836,7 +10849,8 @@ a.tag {
 /* :hover and .selected: owned by tag-style pattern in _patterns.mjs */
 a.sort_order_selected { background: var(--pinboard-tag-bg) !important; color: var(--pinboard-accent) !important; }
 
-a.unread { color: var(--pinboard-destroy) !important; font-weight: bold !important; }
+/* Unread titles differ by weight only; no colour here on purpose (a:link tie, see git log). */
+a.unread { font-weight: bold !important; }
 .edit_links a, a.copy_link { color: var(--pinboard-muted-soft) !important; }
 .edit_links a:hover { color: var(--pinboard-fg) !important; }
 a.copy_link { color: var(--pinboard-accent) !important; }

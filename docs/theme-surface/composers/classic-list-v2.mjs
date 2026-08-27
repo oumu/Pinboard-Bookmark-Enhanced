@@ -187,7 +187,8 @@ a.tag {
 /* :hover and .selected: owned by tag-style pattern in _patterns.mjs */
 a.sort_order_selected { background: ${v("tag-bg")} !important; color: ${v("accent")} !important; }
 
-a.unread { color: ${v("destroy")} !important; font-weight: bold !important; }
+/* Unread titles differ by weight only; no colour here on purpose (a:link tie, see git log). */
+a.unread { font-weight: bold !important; }
 .edit_links a, a.copy_link { color: ${v("muted-soft")} !important; }
 .edit_links a:hover { color: ${v("fg")} !important; }
 a.copy_link { color: ${v("accent")} !important; }
