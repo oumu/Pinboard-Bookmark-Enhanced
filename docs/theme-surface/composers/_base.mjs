@@ -5,10 +5,13 @@
 //      Pinboard's inline style="" + onmouseover="this.style..." writes.
 // Every concrete composer MUST concatenate baseLayer(tokens) before its own output.
 
-import { expandPalette, varName } from "./_util.mjs";
+import { expandSitePalette, varName } from "./_util.mjs";
 
 export function baseLayer(tokens) {
-  const p = expandPalette(tokens.palette);
+  // expandSitePalette, not expandPalette: the pinboard.in surface adds a 4.5:1
+  // text floor for tag-fg / url-link-fg / destroy that is WRONG for the three
+  // extension surfaces (destroy is a FILL there). See that function's header.
+  const p = expandSitePalette(tokens.palette);
   const typo = tokens.typo;
   const space = tokens.space;
   const radius = tokens.radius || {};

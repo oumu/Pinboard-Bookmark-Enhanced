@@ -11,7 +11,7 @@
 import { readFileSync, readdirSync, realpathSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
-import { expandPalette } from "../composers/_util.mjs";
+import { expandSitePalette } from "../composers/_util.mjs";
 import { isHex, resolveOpaqueBg } from "../composers/_ui-derive.mjs";
 import { composeTheme } from "../composers/compose-theme.mjs";
 import { compose } from "../composers/classic-list-v2.mjs";
@@ -911,10 +911,16 @@ for (const f of pinFiles) {
 }
 
 function auditPalette(slug, rawPalette) {
-  // expandPalette, NOT the raw pilot: btn-bg and the on-<fill> tokens are DERIVED
-  // there (see _util.deriveContrast). Auditing the raw pilot was the coverage hole
-  // that let 22 sub-AA pairs ship behind a green audit.
-  const p = expandPalette(rawPalette);
+  // expandSitePalette, NOT the raw pilot: btn-bg and the on-<fill> tokens are
+  // DERIVED there (see _util.deriveContrast). Auditing the raw pilot was the
+  // coverage hole that let 22 sub-AA pairs ship behind a green audit.
+  // SITE variant specifically, because _base.mjs -- the only emitter of
+  // --pinboard-* -- is what this section audits: the tag-fg / url-link-fg /
+  // destroy floors live there and NOT in the shared expandPalette (which the
+  // popup/options/library sections below reach through their own shipped CSS).
+  // Auditing the shared expansion here would measure values pinboard.in never
+  // receives.
+  const p = expandSitePalette(rawPalette);
   const bg = hexRgb(p["bg"] || "");
   const fg = hexRgb(p["fg"] || "");
   const bgSurface = hexRgb(p["bg-surface"] || p["bg"] || "");
@@ -1007,6 +1013,66 @@ function auditPalette(slug, rawPalette) {
   ]) {
     const fill = hexRgb(p[fillKey] || ""), on = hexRgb(p[onKey] || "");
     if (fill && on) console.log(check("pinboard", slug, `${onKey} vs ${fillKey}`, cr(fill, on), 4.5));
+  }
+
+  // The three SEMANTIC ink roles (BLOCKING, 4.5:1). a.tag, the a.url_link pill
+  // and a.delete / a.destroy / a.tag.selected are ordinary body-adjacent TEXT
+  // and had no contrast gate of ANY kind until 2026-08-27 -- expandPalette gave
+  // each one a fallback (`tag-fg || accent`, `url-link-fg || fg`) and stopped
+  // there. Nine sub-AA landings were shipping across the 14 rendered palettes,
+  // invisible here because these rows did not exist and invisible to
+  // auditOverrideTextColors below because the composer reads them through
+  // var(), which that scan deliberately skips.
+  //
+  // Base per role is the composer's ACTUAL emission (classic-list-v2.mjs), not
+  // the token's name -- `a.tag` declares `background: transparent`, so `tag-bg`
+  // is NOT its fill and gating tag-fg against tag-bg would check a pair the
+  // site never paints (that pair is real on the POPUP surface only, where
+  // .tag-item does fill with it -- see COMPONENT_PAIR_SPEC's ["tag-fg",
+  // "tag-bg", 4.5, ["pp"]] row, a different surface and a different question).
+  // `a.url_link` is the one of the three with a fill of its own.
+  //
+  // All three derive to AA in _util.mjs#expandSitePalette, so a FAIL here is a
+  // derivation bug, never an allowlist entry -- same rule as the fg/muted tiers
+  // above and the fg/fill pairs before them. A MISSING token is itself a
+  // failure: after expandPalette every one of the three is guaranteed present
+  // (destroy is schema-required; the other two have fallback chains), so a
+  // silent skip here could only mean the expansion contract broke.
+  for (const key of ["tag-fg", "destroy"]) {
+    const rgb = hexRgb(p[key] || "");
+    if (!rgb) {
+      const line = `  pinboard  ${slug}  ${key}  MISSING TOKEN  FAIL`;
+      console.log(line);
+      violations.push(line);
+      continue;
+    }
+    if (bg) console.log(check("pinboard", slug, `${key} vs bg`, cr(bg, rgb), 4.5));
+    if (bgSurface) console.log(check("pinboard", slug, `${key} vs bg-surface`, cr(bgSurface, rgb), 4.5));
+  }
+  // url-link-fg vs the pill it actually sits in. resolveOpaqueBg over each page
+  // base, so a `url-link-bg` left at the "transparent" its fallback chain can
+  // reach (`|| tag-bg`, which 9 pilots declare transparent) is measured where
+  // it really lands instead of being read as black; when the pill is a plain
+  // hex -- all 14 rendered palettes today -- both resolutions collapse to one
+  // row.
+  const urlFg = hexRgb(p["url-link-fg"] || "");
+  if (!urlFg) {
+    const line = `  pinboard  ${slug}  url-link-fg  MISSING TOKEN  FAIL`;
+    console.log(line);
+    violations.push(line);
+  } else {
+    const pills = new Map();
+    for (const [label, base] of [["bg", bg], ["bg-surface", bgSurface]]) {
+      if (!base) continue;
+      const resolved = resolveOpaqueBg(p["url-link-bg"], base).map((c) => Math.round(c));
+      const k = resolved.join(",");
+      if (!pills.has(k)) pills.set(k, { rgb: resolved, labels: [] });
+      pills.get(k).labels.push(label);
+    }
+    for (const { rgb, labels } of pills.values()) {
+      const suffix = pills.size > 1 ? `@${labels.join("+")}` : "";
+      console.log(check("pinboard", slug, `url-link-fg vs url-link-bg${suffix}`, cr(rgb, urlFg), 4.5));
+    }
   }
 
   // Metadata strip (11px a.when/a.cached via the composer's .bookmark rules):

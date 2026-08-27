@@ -1,6 +1,6 @@
 // Shared helpers for composers.
 
-import { hexToRgb, rgbToHex, rgbToHsl, hslToRgb, contrast, fgToAA, fgToAAMulti, bgToAA, borderToAA, isHex } from "./_ui-derive.mjs";
+import { hexToRgb, rgbToHex, rgbToHsl, hslToRgb, contrast, fgToAA, fgToAAMulti, bgToAA, borderToAA, isHex, resolveOpaqueBg } from "./_ui-derive.mjs";
 
 export function varName(slot) {
   return `--pinboard-${slot}`;
@@ -153,8 +153,11 @@ function deriveTextTiers(p) {
   return out;
 }
 
-// Palette expansion: fill optional slots with principled fallbacks so every
-// composer can reference a complete palette without null checks.
+// Palette expansion (SHARED by all four theme systems): fill optional slots with
+// principled fallbacks so every composer can reference a complete palette
+// without null checks. Read expandSitePalette's header below before adding a
+// derivation here -- a rule that is right for one surface can be backwards on
+// another.
 export function expandPalette(p) {
   const bg = p.bg;
   const fg = p.fg;
@@ -192,6 +195,109 @@ export function expandPalette(p) {
     "url-link-fg":    p["url-link-fg"]    || fg,
     "unread":         p["unread"]         || p.destroy
   }));
+}
+
+// ============================================================================
+// SITE-ONLY palette layer.
+//
+// expandPalette() above is shared by all four theme systems (pinboard.in via
+// _base.mjs, plus popup / options / library via *-chrome.mjs). Everything it
+// derives is a rule that holds on all four -- `fg`/`muted` land on `bg` and
+// `bg-surface` on every surface, because deriveUiColors maps --{ns}-bg/-bg2
+// to those exact two palette slots.
+//
+// These three do NOT hold on all four, which is why they live behind their own
+// entry point instead of being folded into deriveTextTiers:
+//
+//   `destroy` is TEXT on pinboard.in (a.delete / a.destroy / a.tag.selected)
+//   and a FILL in the extension (--{ns}-danger, with --{ns}-on-danger painted
+//   ON it, plus the seed for popup's warn-bg tint). The two roles pull in
+//   OPPOSITE directions: pushing `destroy` up to 4.5:1 as text over a dark
+//   page lightens it, which is exactly how you wash out a danger BUTTON.
+//   Measured, not assumed: routing this through expandPalette() moved 32
+//   emitted values across popup.css/options.css/library.css -- nord-night's
+//   --lib-danger #d18d93 -> #d9a2a8, flexoki-dark's --pp-danger #D14D41 ->
+//   #db736a -- and red the popup `warn-fg vs warn-bg` gate on two pilots
+//   (solarized-light 4.48:1, catppuccin-latte 4.49:1), whose ui.popup.light
+//   pins warn-fg by hand against a warn-bg that is derived FROM destroy.
+//   `tag-fg` has the same shape one step further out: the extension re-derives
+//   it into chip-fg against the CHIP's fill, so seeding that from a
+//   site-page-corrected value only adds rounding drift.
+//   `url-link-fg` has no extension consumer at all.
+//
+// So: the site gets the site's floor, the extension keeps deriving its own
+// roles from the pilot's declared value, and neither surface's contrast math
+// is expressed in the other's bases. _base.mjs (the ONLY emitter of
+// --pinboard-*) is the single caller; contrast-audit's auditPalette calls it
+// too, so the gate and the emission agree by construction.
+//
+// The three floors themselves, with the base each one is MEASURED against
+// (read off classic-list-v2.mjs's emission, not inferred from the token name):
+//
+//   tag-fg      `a.tag` declares `background: transparent !important`, so
+//               `tag-bg` is NOT this rule's fill -- it paints
+//               a.sort_order_selected and the extension's chip role. a.tag
+//               lands on the page itself: `bg` for a flat-bookmark pilot,
+//               `bg-surface` inside a card-style .bookmark and inside
+//               #right_bar's #tag_cloud. Both bases.
+//   destroy     `a.delete, a.destroy` carries no fill either, and its live
+//               selectors span both bases (the per-bookmark edit strip,
+//               #right_bar's table, #main_column's sort table), as does the
+//               `a.tag.selected` colour _patterns.mjs paints with it.
+//   url-link-fg the one of the three with a fill of its own: `a.url_link`
+//               declares `background: url-link-bg`. Measuring it against the
+//               page bases would gate the wrong pair -- github-light's pill is
+//               #fff8c5, lighter than either base. resolveOpaqueBg() over each
+//               page base, so a pilot that leaves `url-link-bg` at the
+//               "transparent" its fallback chain can reach (`|| tag-bg`, which
+//               9 pilots declare transparent) falls through to the page
+//               instead of being read as black by hexToRgb.
+//
+// Nine sub-AA landings ship today across the 14 rendered palettes (flexoki
+// light a.tag #ad8301 at 3.39:1, github-light a.url_link #bf8700 on its
+// #fff8c5 pill at 2.92:1, nord-night a.delete #bf616a at 2.46:1 on the card
+// fill). None of them was reachable by any gate: no row existed here, and
+// contrast-audit's override scan skips `color: var(--pinboard-*)` on purpose.
+//
+// Same minimum-lightness-movement, hue+saturation-preserving, identity-when-
+// already-passing shape as everything else in this file, and gated by
+// contrast-audit's `tag-fg|destroy vs bg|bg-surface` and `url-link-fg vs
+// url-link-bg` rows -- a FAIL there is a bug in THIS function, never an
+// allowlist entry.
+//
+// Runs AFTER expandPalette, so its fallback chain has already resolved
+// `private-accent` / `unread` off the pilot's RAW `destroy`. Deliberate: those
+// two are the private-row inset bar and the .selected_star glyph -- WCAG
+// 1.4.11 shapes, not 1.4.3 text -- so a theme that declares only `destroy`
+// keeps the decorative colour it chose while the TEXT role moves.
+//
+// Deliberately NOT covered, same disclosed-exposure terms as deriveTextTiers'
+// `a.help` / `private-bg` note: the HOVER bands (`row-hover`, which both
+// #right_bar's table and #main_column's sort table paint on tr:hover, and the
+// ~6%-accent tint some pilots override that sort-table row to), and any of the
+// three inside a `.bookmark.private` row (`private-bg`). Those are transient or
+// tinted variants of the two bases above; post-derivation they measure
+// 3.81-5.61:1 on row-hover (up from 2.11-5.61) and 4.23-10.34:1 on private-bg
+// (up from 2.42-10.34), i.e. improved everywhere and still short of a
+// guarantee on catppuccin-latte / dracula / nord-night / flexoki:dark
+// row-hover. Widening this call to those bands is a design decision about the
+// hover tint, not a bug in it.
+export function expandSitePalette(raw) {
+  const p = expandPalette(raw);
+  const bg = isHex(p["bg"]) ? hexToRgb(p["bg"]) : null;
+  const bgSurface = isHex(p["bg-surface"]) ? hexToRgb(p["bg-surface"]) : bg;
+  const pageBases = [bg, bgSurface].filter(Boolean);
+  if (!pageBases.length) return p;
+  const out = { ...p };
+  for (const key of ["tag-fg", "destroy"]) {
+    if (!isHex(p[key])) continue;
+    out[key] = rgbToHex(fgToAAMulti(hexToRgb(p[key]), pageBases));
+  }
+  if (isHex(p["url-link-fg"])) {
+    const pill = pageBases.map((b) => resolveOpaqueBg(p["url-link-bg"], b));
+    out["url-link-fg"] = rgbToHex(fgToAAMulti(hexToRgb(p["url-link-fg"]), pill));
+  }
+  return out;
 }
 
 // Apply a state delta on top of a base palette object. Used by composers that
