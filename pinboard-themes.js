@@ -1641,7 +1641,6 @@ a { color: #81a1c1 !important; }
 #main_column form[name="sort"] table a.bundle { font-weight: 600 !important; border-radius: 3px !important; }
 #main_column form[name="sort"] table td a.edit { opacity: 0.75 !important; }
 #main_column form[name="sort"] table td a.destroy { font-weight: 600 !important; }
-#right_bar table td a.delete { color: #7b8594 !important; }
 #right_bar input#key { background: #3b4252 !important; border: 1px solid #4c566a !important; }
 #tweet_searchbox #search_query_field { background: #3b4252 !important; border: 1px solid #4c566a !important; font-size: 13px !important; }`
   },
@@ -6518,9 +6517,6 @@ a.sort_order_selected { background: #eee8d5 !important; }
 #main_column form[name="sort"] table tr:hover { background: rgba(38,139,210,0.08) !important; }
 #main_column form[name="sort"] table input[name^="id_"] { width: 38px !important; min-width: 38px !important; max-width: 38px !important; padding: 3px 4px !important; margin-right: 10px !important; font-size: 12px !important; line-height: 1.2 !important; border-radius: 3px !important; box-sizing: border-box !important; vertical-align: middle !important; border: 1px solid #93a1a1 !important; background: #eee8d5 !important; font-weight: 600 !important; }
 #main_column form[name="sort"] table a.bundle { font-weight: 600 !important; letter-spacing: 0.02em !important; border-radius: 3px !important; }
-#main_column form[name="sort"] table a[style*="color:#aaa"] { color: #93a1a1 !important; }
-#main_column form[name="sort"] table a[style*="color: #aaa"] { color: #93a1a1 !important; }
-#main_column form[name="sort"] table td a.edit { color: #93a1a1 !important; }
 #main_column form[name="sort"] table td a.destroy { font-weight: 600 !important; }
 #right_bar input#key { color: #586e75 !important; border: 1px solid #93a1a1 !important; border-radius: 4px !important; }
 #right_bar input#key:focus { box-shadow: 0 0 0 2px rgba(38,139,210,0.2) !important; }
@@ -8089,7 +8085,6 @@ a.url_link { padding: 2px 8px !important; border-radius: 10px !important; }
 .description { color: #5c5f77 !important; }
 .description blockquote { border-left: 3px solid #8839ef !important; padding-left: 12px !important; margin: 6px 0 !important; }
 a.sort_order_selected { background: #ccd0da !important; }
-#right_bar table td a.delete { color: #8c8fa1 !important; }
 #right_bar input#key { border: 1px solid #bcc0cc !important; border-radius: 4px !important; }
 #right_bar input#key:focus { box-shadow: 0 0 0 2px rgba(30,102,245,0.2) !important; }
 #right_bar input[type="submit"] { border-radius: 4px !important; }
@@ -8113,9 +8108,7 @@ a.help { background: #e6e9ef !important; }
 #main_column form[name="sort"] table input[name^="id_"] { width: 38px !important; min-width: 38px !important; max-width: 38px !important; padding: 3px 4px !important; margin-right: 10px !important; font-size: 12px !important; line-height: 1.2 !important; box-sizing: border-box !important; vertical-align: middle !important; background: #e6e9ef !important; font-weight: 600 !important; }
 #main_column form[name="sort"] table input[name^="id_"]:focus { box-shadow: 0 0 0 2px rgba(30,102,245,0.2) !important; }
 #main_column form[name="sort"] table a.bundle { font-weight: 600 !important; padding: 2px 6px !important; border-radius: 6px !important; }
-#main_column form[name="sort"] table a[style*="color:#aaa"] { color: #8c8fa1 !important; }
-#main_column form[name="sort"] table a[style*="color: #aaa"] { color: #8c8fa1 !important; }
-#main_column form[name="sort"] table td a.edit { color: #8c8fa1 !important; opacity: 0.75 !important; }
+#main_column form[name="sort"] table td a.edit { opacity: 0.75 !important; }
 #main_column form[name="sort"] table td a.destroy { font-weight: 600 !important; }`
   },
 
@@ -8895,7 +8888,6 @@ a.sort_order_selected { background: #313244 !important; }
 #right_bar h3 { color: #cba6f7 !important; }
 #right_bar h4 { color: #cba6f7 !important; }
 #right_bar b { color: #cba6f7 !important; }
-#right_bar table td a.delete { color: #6c7086 !important; }
 #right_bar input#key { border-radius: 4px !important; }
 #right_bar input#key:focus { box-shadow: 0 0 0 2px rgba(137,180,250,0.22) !important; }
 #right_bar input[type="submit"] { border-radius: 4px !important; }
@@ -8926,9 +8918,7 @@ select:focus { background: #313244 !important; }
 #main_column form[name="sort"] table tr:hover { background: rgba(137,180,250,0.08) !important; }
 #main_column form[name="sort"] table input[name^="id_"] { width: 38px !important; min-width: 38px !important; max-width: 38px !important; padding: 3px 4px !important; margin-right: 10px !important; font-size: 12px !important; line-height: 1.2 !important; box-sizing: border-box !important; vertical-align: middle !important; background: #313244 !important; font-weight: 600 !important; }
 #main_column form[name="sort"] table a.bundle { font-weight: 600 !important; padding: 2px 6px !important; border-radius: 6px !important; }
-#main_column form[name="sort"] table a[style*="color:#aaa"] { color: #7f849c !important; }
-#main_column form[name="sort"] table a[style*="color: #aaa"] { color: #7f849c !important; }
-#main_column form[name="sort"] table td a.edit { color: #7f849c !important; opacity: 0.75 !important; }
+#main_column form[name="sort"] table td a.edit { opacity: 0.75 !important; }
 #main_column form[name="sort"] table td a.destroy { opacity: 0.9 !important; font-weight: 600 !important; }
 h2 { color: #cba6f7 !important; }`
   },
@@ -9729,7 +9719,6 @@ h2 { color: #d3869b !important; }
 #main_column form[name="sort"] table input[name^="id_"] { width: 38px !important; min-width: 38px !important; max-width: 38px !important; padding: 3px 4px !important; margin-right: 10px !important; font-size: 12px !important; line-height: 1.2 !important; box-sizing: border-box !important; vertical-align: middle !important; border: 1px solid #504945 !important; background: #3c3836 !important; font-weight: 600 !important; }
 #main_column form[name="sort"] table a.bundle { letter-spacing: 0.02em !important; }
 #main_column form[name="sort"] table td a.destroy { opacity: 0.9 !important; }
-#right_bar table td a.delete { color: #928374 !important; }
 #right_bar input#key { border: 1px solid #504945 !important; border-radius: 4px !important; }
 #right_bar input#key:focus { box-shadow: 0 0 0 2px rgba(131,165,152,0.25) !important; }
 #right_bar input[type="submit"] { border-radius: 4px !important; }

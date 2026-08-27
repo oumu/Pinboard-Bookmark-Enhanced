@@ -28,27 +28,14 @@
     "(OVERRIDE_TEXT_DEBT_MAX / STATE_DELTA_DEBT_MAX) carried before identities replaced them."
   ],
   "overrideText": [
-    "catppuccin-latte | #main_column form[name=\"sort\"] table a[style*=\"color: #aaa\"] | #8c8fa1 | page",
-    "catppuccin-latte | #main_column form[name=\"sort\"] table a[style*=\"color:#aaa\"] | #8c8fa1 | page",
-    "catppuccin-latte | #main_column form[name=\"sort\"] table td a.edit | #8c8fa1 | page",
-    "catppuccin-latte | #right_bar table td a.delete | #8c8fa1 | page",
     "catppuccin-latte | .suggested_tag | #179299 | page",
     "catppuccin-latte | a.url_display | #40a02b | page",
-    "catppuccin-mocha | #main_column form[name=\"sort\"] table a[style*=\"color: #aaa\"] | #7f849c | page",
-    "catppuccin-mocha | #main_column form[name=\"sort\"] table a[style*=\"color:#aaa\"] | #7f849c | page",
-    "catppuccin-mocha | #main_column form[name=\"sort\"] table td a.edit | #7f849c | page",
-    "catppuccin-mocha | #right_bar table td a.delete | #6c7086 | page",
     "flexoki | #right_bar a:not(.tag):hover | #8b7ec8 | page",
     "flexoki | .suggested_tag | #ad8301 | page",
     "flexoki | a.bundle:hover | #8b7ec8 | page",
     "flexoki | a.url_display | #66800b | page",
     "flexoki:html.pbp-dark | html.pbp-dark a.help | #6b6963 | own #282726",
     "flexoki:html.pbp-dark | html.pbp-dark a.sort_order_selected | #8b7ec8 | own #343331",
-    "gruvbox-dark | #right_bar table td a.delete | #928374 | page",
-    "nord-night | #right_bar table td a.delete | #7b8594 | page",
-    "solarized-light | #main_column form[name=\"sort\"] table a[style*=\"color: #aaa\"] | #93a1a1 | page",
-    "solarized-light | #main_column form[name=\"sort\"] table a[style*=\"color:#aaa\"] | #93a1a1 | page",
-    "solarized-light | #main_column form[name=\"sort\"] table td a.edit | #93a1a1 | page",
     "solarized-light | a.url_display | #859900 | page"
   ],
   "hoverState": []
