@@ -398,7 +398,7 @@ input[type="file"]::file-selector-button:hover {
 .settings_tab_selected a { color: ${v("accent")} !important; }
 [class*="settings_tab_spacer"] { border-bottom-color: ${v("border")} !important; }
 .settings_heading { color: ${v("muted")} !important; background: transparent !important; border-bottom: ${v("border-width")} ${v("border-style")} ${v("border")} !important; padding-bottom: 6px !important; }
-a.help { color: ${v("muted-soft")} !important; background: ${v("accent-soft")} !important; }
+a.help { color: ${v("help-fg")} !important; background: ${v("accent-soft")} !important; }
 .email_secret { color: ${v("accent")} !important; }
 #settings_tab_panes { border: none !important; }
 #settings_tab_panes table td { color: ${v("fg")} !important; }

@@ -297,6 +297,13 @@ export function expandSitePalette(raw) {
     const pill = pageBases.map((b) => resolveOpaqueBg(p["url-link-bg"], b));
     out["url-link-fg"] = rgbToHex(fgToAAMulti(hexToRgb(p["url-link-fg"]), pill));
   }
+  // a.help badge: the composer pairs muted-soft text with an accent-soft fill,
+  // so the page bases are the wrong denominator there. Derive a dedicated
+  // help-fg against the badge fill resolved over both page bases.
+  if (isHex(p["muted-soft"])) {
+    const badge = pageBases.map((b) => resolveOpaqueBg(p["accent-soft"], b));
+    out["help-fg"] = rgbToHex(fgToAAMulti(hexToRgb(p["muted-soft"]), badge));
+  }
   return out;
 }
 

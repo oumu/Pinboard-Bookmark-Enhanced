@@ -49,6 +49,7 @@ const PINBOARD_THEMES = {
   --pinboard-on-accent: #ffffff;
   --pinboard-on-link-hover: #ffffff;
   --pinboard-scrollbar-thumb: #5f6368;
+  --pinboard-help-fg: #666d74;
   --pinboard-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --pinboard-font-size-base: 13px;
   --pinboard-font-size-sm: 12px;
@@ -514,7 +515,7 @@ input[type="file"]::file-selector-button:hover {
 .settings_tab_selected a { color: var(--pinboard-accent) !important; }
 [class*="settings_tab_spacer"] { border-bottom-color: var(--pinboard-border) !important; }
 .settings_heading { color: var(--pinboard-muted) !important; background: transparent !important; border-bottom: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important; padding-bottom: 6px !important; }
-a.help { color: var(--pinboard-muted-soft) !important; background: var(--pinboard-accent-soft) !important; }
+a.help { color: var(--pinboard-help-fg) !important; background: var(--pinboard-accent-soft) !important; }
 .email_secret { color: var(--pinboard-accent) !important; }
 #settings_tab_panes { border: none !important; }
 #settings_tab_panes table td { color: var(--pinboard-fg) !important; }
@@ -840,7 +841,7 @@ input[type="button"] { color: #fff !important; border: none !important; border-r
 .settings_tab { padding: 8px 16px 6px !important; }
 .settings_tab_selected { border-bottom-color: #fff !important; background: #fff !important; font-weight: 600 !important; }
 .settings_heading { color: #3c4043 !important; font-size: 15px !important; margin-top: 16px !important; }
-a.help { background: #e4e6e9 !important; text-decoration: none !important; }
+a.help { text-decoration: none !important; }
 #settings_tab_panes table td { color: #3c4043 !important; }
 .note { padding: 10px 0 !important; }
 #note_right_column { background: #fff !important; border-radius: 8px !important; }
@@ -910,6 +911,7 @@ h2 { color: #3c4043 !important; }
   --pinboard-on-accent: #384861;
   --pinboard-on-link-hover: #35435b;
   --pinboard-scrollbar-thumb: #9cb5ce;
+  --pinboard-help-fg: #9cb5ce;
   --pinboard-font-family: "Inter", -apple-system, sans-serif;
   --pinboard-font-size-base: 13px;
   --pinboard-font-size-sm: 12px;
@@ -1375,7 +1377,7 @@ input[type="file"]::file-selector-button:hover {
 .settings_tab_selected a { color: var(--pinboard-accent) !important; }
 [class*="settings_tab_spacer"] { border-bottom-color: var(--pinboard-border) !important; }
 .settings_heading { color: var(--pinboard-muted) !important; background: transparent !important; border-bottom: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important; padding-bottom: 6px !important; }
-a.help { color: var(--pinboard-muted-soft) !important; background: var(--pinboard-accent-soft) !important; }
+a.help { color: var(--pinboard-help-fg) !important; background: var(--pinboard-accent-soft) !important; }
 .email_secret { color: var(--pinboard-accent) !important; }
 #settings_tab_panes { border: none !important; }
 #settings_tab_panes table td { color: var(--pinboard-fg) !important; }
@@ -1728,6 +1730,7 @@ a { color: #81a1c1 !important; }
   --pinboard-on-accent: #007000;
   --pinboard-on-link-hover: #007a00;
   --pinboard-scrollbar-thumb: #22aa22;
+  --pinboard-help-fg: #5bae5b;
   --pinboard-font-family: "Fira Code", "Cascadia Code", "Consolas", monospace;
   --pinboard-font-size-base: 13px;
   --pinboard-font-size-sm: 12px;
@@ -2193,7 +2196,7 @@ input[type="file"]::file-selector-button:hover {
 .settings_tab_selected a { color: var(--pinboard-accent) !important; }
 [class*="settings_tab_spacer"] { border-bottom-color: var(--pinboard-border) !important; }
 .settings_heading { color: var(--pinboard-muted) !important; background: transparent !important; border-bottom: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important; padding-bottom: 6px !important; }
-a.help { color: var(--pinboard-muted-soft) !important; background: var(--pinboard-accent-soft) !important; }
+a.help { color: var(--pinboard-help-fg) !important; background: var(--pinboard-accent-soft) !important; }
 .email_secret { color: var(--pinboard-accent) !important; }
 #settings_tab_panes { border: none !important; }
 #settings_tab_panes table td { color: var(--pinboard-fg) !important; }
@@ -2519,7 +2522,6 @@ input[type="button"] { border: 1px solid #33ff3360 !important; font-family: inhe
 #settings_panel { background: #0a0a0a !important; color: #33ff33 !important; }
 .settings_tab_selected { border: 1px dashed #33ff3340 !important; border-bottom-color: #0a0a0a !important; background: #0a0a0a !important; }
 .settings_heading { color: #33ff33 !important; border-bottom: 1px dashed #33ff3340 !important; }
-a.help { background: #f0ede8 !important; }
 .email_secret { color: #00cccc !important; }
 .service_box { background: #111 !important; border: 1px dashed #33ff3340 !important; color: #33ff33 !important; }
 .help_box { background: #111 !important; border: 1px dashed #33ff3340 !important; color: #33ff33 !important; }
@@ -2591,6 +2593,7 @@ a.bookmark_title::before { color: #33ff3380 !important; }`
   --pinboard-on-accent: #faf8f5;
   --pinboard-on-link-hover: #faf8f5;
   --pinboard-scrollbar-thumb: #6b4c3b;
+  --pinboard-help-fg: #6b6b6b;
   --pinboard-font-family: "Georgia", "Noto Serif", "Source Serif Pro", serif;
   --pinboard-font-size-base: 14px;
   --pinboard-font-size-sm: 12px;
@@ -3056,7 +3059,7 @@ input[type="file"]::file-selector-button:hover {
 .settings_tab_selected a { color: var(--pinboard-accent) !important; }
 [class*="settings_tab_spacer"] { border-bottom-color: var(--pinboard-border) !important; }
 .settings_heading { color: var(--pinboard-muted) !important; background: transparent !important; border-bottom: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important; padding-bottom: 6px !important; }
-a.help { color: var(--pinboard-muted-soft) !important; background: var(--pinboard-accent-soft) !important; }
+a.help { color: var(--pinboard-help-fg) !important; background: var(--pinboard-accent-soft) !important; }
 .email_secret { color: var(--pinboard-accent) !important; }
 #settings_tab_panes { border: none !important; }
 #settings_tab_panes table td { color: var(--pinboard-fg) !important; }
@@ -3450,6 +3453,7 @@ h2 { font-family: "Georgia", serif !important; }`
   --pinboard-on-accent: #282a36;
   --pinboard-on-link-hover: #282a36;
   --pinboard-scrollbar-thumb: #bd93f9;
+  --pinboard-help-fg: #8995ba;
   --pinboard-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --pinboard-font-size-base: 13px;
   --pinboard-font-size-sm: 12px;
@@ -3915,7 +3919,7 @@ input[type="file"]::file-selector-button:hover {
 .settings_tab_selected a { color: var(--pinboard-accent) !important; }
 [class*="settings_tab_spacer"] { border-bottom-color: var(--pinboard-border) !important; }
 .settings_heading { color: var(--pinboard-muted) !important; background: transparent !important; border-bottom: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important; padding-bottom: 6px !important; }
-a.help { color: var(--pinboard-muted-soft) !important; background: var(--pinboard-accent-soft) !important; }
+a.help { color: var(--pinboard-help-fg) !important; background: var(--pinboard-accent-soft) !important; }
 .email_secret { color: var(--pinboard-accent) !important; }
 #settings_tab_panes { border: none !important; }
 #settings_tab_panes table td { color: var(--pinboard-fg) !important; }
@@ -4229,7 +4233,6 @@ input[type="radio"] { accent-color: #bd93f9 !important; }
 #settings_panel { background: #282a36 !important; color: #f8f8f2 !important; }
 .settings_tab_selected { color: #ff79c6 !important; border-top: 2px solid #ff79c6 !important; border-bottom-color: #282a36 !important; background: #282a36 !important; }
 .settings_tab_selected a { color: #ff79c6 !important; }
-a.help { background: #343746 !important; }
 .service_box { color: #f8f8f2 !important; border-radius: 6px !important; }
 .help_box { color: #f8f8f2 !important; border-radius: 6px !important; }
 #bulk_top_bar { background: #44475a !important; border: 1px solid #6272a4 !important; }
@@ -4295,6 +4298,7 @@ a { color: #bd93f9 !important; }`
   --pinboard-on-accent: #fffcf0;
   --pinboard-on-link-hover: #1a1500;
   --pinboard-scrollbar-thumb: #6a6964;
+  --pinboard-help-fg: #6c6a5e;
   --pinboard-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --pinboard-font-size-base: 13px;
   --pinboard-font-size-sm: 12px;
@@ -4760,7 +4764,7 @@ input[type="file"]::file-selector-button:hover {
 .settings_tab_selected a { color: var(--pinboard-accent) !important; }
 [class*="settings_tab_spacer"] { border-bottom-color: var(--pinboard-border) !important; }
 .settings_heading { color: var(--pinboard-muted) !important; background: transparent !important; border-bottom: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important; padding-bottom: 6px !important; }
-a.help { color: var(--pinboard-muted-soft) !important; background: var(--pinboard-accent-soft) !important; }
+a.help { color: var(--pinboard-help-fg) !important; background: var(--pinboard-accent-soft) !important; }
 .email_secret { color: var(--pinboard-accent) !important; }
 #settings_tab_panes { border: none !important; }
 #settings_tab_panes table td { color: var(--pinboard-fg) !important; }
@@ -5063,6 +5067,7 @@ html.pbp-dark {
   --pinboard-on-accent: #171615;
   --pinboard-on-link-hover: #1c1b1a;
   --pinboard-scrollbar-thumb: #918f8a;
+  --pinboard-help-fg: #a09e9a;
   --pinboard-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --pinboard-font-size-base: 13px;
   --pinboard-font-size-sm: 12px;
@@ -5512,7 +5517,7 @@ html.pbp-dark .settings_tab_selected {
 html.pbp-dark .settings_tab_selected a { color: var(--pinboard-accent) !important; }
 html.pbp-dark [class*="settings_tab_spacer"] { border-bottom-color: var(--pinboard-border) !important; }
 html.pbp-dark .settings_heading { color: var(--pinboard-muted) !important; background: transparent !important; border-bottom: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important; padding-bottom: 6px !important; }
-html.pbp-dark a.help { color: var(--pinboard-muted-soft) !important; background: var(--pinboard-accent-soft) !important; }
+html.pbp-dark a.help { color: var(--pinboard-help-fg) !important; background: var(--pinboard-accent-soft) !important; }
 html.pbp-dark .email_secret { color: var(--pinboard-accent) !important; }
 html.pbp-dark #settings_tab_panes { border: none !important; }
 html.pbp-dark #settings_tab_panes table td { color: var(--pinboard-fg) !important; }
@@ -5831,7 +5836,6 @@ html.pbp-dark #settings_panel { background: #1C1B1A !important; color: #CECDC3 !
 html.pbp-dark .settings_tab { color: #878580 !important; }
 html.pbp-dark .settings_tab_selected { border-bottom-color: #1C1B1A !important; background: #1C1B1A !important; }
 html.pbp-dark .settings_heading { color: #8B7EC8 !important; }
-html.pbp-dark a.help { color: #6B6963 !important; background: #282726 !important; }
 html.pbp-dark .note { border-bottom-color: #343331 !important; }
 html.pbp-dark .service_box { color: #CECDC3 !important; }
 html.pbp-dark .help_box { color: #CECDC3 !important; }
@@ -5920,6 +5924,7 @@ html.pbp-dark #tweet_searchbox input[type="submit"]:hover { background: #A8E4D5 
   --pinboard-on-accent: #271d03;
   --pinboard-on-link-hover: #302403;
   --pinboard-scrollbar-thumb: #54696f;
+  --pinboard-help-fg: #5b6969;
   --pinboard-font-family: "Inter", -apple-system, sans-serif;
   --pinboard-font-size-base: 13px;
   --pinboard-font-size-sm: 12px;
@@ -6385,7 +6390,7 @@ input[type="file"]::file-selector-button:hover {
 .settings_tab_selected a { color: var(--pinboard-accent) !important; }
 [class*="settings_tab_spacer"] { border-bottom-color: var(--pinboard-border) !important; }
 .settings_heading { color: var(--pinboard-muted) !important; background: transparent !important; border-bottom: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important; padding-bottom: 6px !important; }
-a.help { color: var(--pinboard-muted-soft) !important; background: var(--pinboard-accent-soft) !important; }
+a.help { color: var(--pinboard-help-fg) !important; background: var(--pinboard-accent-soft) !important; }
 .email_secret { color: var(--pinboard-accent) !important; }
 #settings_tab_panes { border: none !important; }
 #settings_tab_panes table td { color: var(--pinboard-fg) !important; }
@@ -6723,6 +6728,7 @@ a.sort_order_selected { background: #eee8d5 !important; }
   --pinboard-on-accent: #271d03;
   --pinboard-on-link-hover: #302403;
   --pinboard-scrollbar-thumb: #859ca3;
+  --pinboard-help-fg: #859ca3;
   --pinboard-font-family: "Inter", -apple-system, sans-serif;
   --pinboard-font-size-base: 13px;
   --pinboard-font-size-sm: 12px;
@@ -7188,7 +7194,7 @@ input[type="file"]::file-selector-button:hover {
 .settings_tab_selected a { color: var(--pinboard-accent) !important; }
 [class*="settings_tab_spacer"] { border-bottom-color: var(--pinboard-border) !important; }
 .settings_heading { color: var(--pinboard-muted) !important; background: transparent !important; border-bottom: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important; padding-bottom: 6px !important; }
-a.help { color: var(--pinboard-muted-soft) !important; background: var(--pinboard-accent-soft) !important; }
+a.help { color: var(--pinboard-help-fg) !important; background: var(--pinboard-accent-soft) !important; }
 .email_secret { color: var(--pinboard-accent) !important; }
 #settings_tab_panes { border: none !important; }
 #settings_tab_panes table td { color: var(--pinboard-fg) !important; }
@@ -7530,6 +7536,7 @@ a.sort_order_selected { background: #073642 !important; }
   --pinboard-on-accent: #f5f6f9;
   --pinboard-on-link-hover: #151a22;
   --pinboard-scrollbar-thumb: #63667a;
+  --pinboard-help-fg: #5d6174;
   --pinboard-font-family: "Nunito", "Inter", -apple-system, sans-serif;
   --pinboard-font-size-base: 13px;
   --pinboard-font-size-sm: 12px;
@@ -7995,7 +8002,7 @@ input[type="file"]::file-selector-button:hover {
 .settings_tab_selected a { color: var(--pinboard-accent) !important; }
 [class*="settings_tab_spacer"] { border-bottom-color: var(--pinboard-border) !important; }
 .settings_heading { color: var(--pinboard-muted) !important; background: transparent !important; border-bottom: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important; padding-bottom: 6px !important; }
-a.help { color: var(--pinboard-muted-soft) !important; background: var(--pinboard-accent-soft) !important; }
+a.help { color: var(--pinboard-help-fg) !important; background: var(--pinboard-accent-soft) !important; }
 .email_secret { color: var(--pinboard-accent) !important; }
 #settings_tab_panes { border: none !important; }
 #settings_tab_panes table td { color: var(--pinboard-fg) !important; }
@@ -8347,6 +8354,7 @@ a.help { background: #e6e9ef !important; }
   --pinboard-on-accent: #1e1e2e;
   --pinboard-on-link-hover: #1e1e2e;
   --pinboard-scrollbar-thumb: #a6adc8;
+  --pinboard-help-fg: #9c9eb1;
   --pinboard-font-family: "Nunito", "Inter", -apple-system, sans-serif;
   --pinboard-font-size-base: 13px;
   --pinboard-font-size-sm: 12px;
@@ -8812,7 +8820,7 @@ input[type="file"]::file-selector-button:hover {
 .settings_tab_selected a { color: var(--pinboard-accent) !important; }
 [class*="settings_tab_spacer"] { border-bottom-color: var(--pinboard-border) !important; }
 .settings_heading { color: var(--pinboard-muted) !important; background: transparent !important; border-bottom: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important; padding-bottom: 6px !important; }
-a.help { color: var(--pinboard-muted-soft) !important; background: var(--pinboard-accent-soft) !important; }
+a.help { color: var(--pinboard-help-fg) !important; background: var(--pinboard-accent-soft) !important; }
 .email_secret { color: var(--pinboard-accent) !important; }
 #settings_tab_panes { border: none !important; }
 #settings_tab_panes table td { color: var(--pinboard-fg) !important; }
@@ -9177,6 +9185,7 @@ h2 { color: #cba6f7 !important; }`
   --pinboard-on-accent: #282828;
   --pinboard-on-link-hover: #282828;
   --pinboard-scrollbar-thumb: #b0a390;
+  --pinboard-help-fg: #ada39c;
   --pinboard-font-family: "IBM Plex Sans", "Inter", -apple-system, sans-serif;
   --pinboard-font-size-base: 13px;
   --pinboard-font-size-sm: 12px;
@@ -9642,7 +9651,7 @@ input[type="file"]::file-selector-button:hover {
 .settings_tab_selected a { color: var(--pinboard-accent) !important; }
 [class*="settings_tab_spacer"] { border-bottom-color: var(--pinboard-border) !important; }
 .settings_heading { color: var(--pinboard-muted) !important; background: transparent !important; border-bottom: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important; padding-bottom: 6px !important; }
-a.help { color: var(--pinboard-muted-soft) !important; background: var(--pinboard-accent-soft) !important; }
+a.help { color: var(--pinboard-help-fg) !important; background: var(--pinboard-accent-soft) !important; }
 .email_secret { color: var(--pinboard-accent) !important; }
 #settings_tab_panes { border: none !important; }
 #settings_tab_panes table td { color: var(--pinboard-fg) !important; }
@@ -10000,6 +10009,7 @@ h2 { color: #d3869b !important; }
   --pinboard-on-accent: #191724;
   --pinboard-on-link-hover: #191724;
   --pinboard-scrollbar-thumb: #908caa;
+  --pinboard-help-fg: #8e8ba3;
   --pinboard-font-family: "Lora", "Georgia", "Noto Serif", serif;
   --pinboard-font-size-base: 14px;
   --pinboard-font-size-sm: 12px;
@@ -10465,7 +10475,7 @@ input[type="file"]::file-selector-button:hover {
 .settings_tab_selected a { color: var(--pinboard-accent) !important; }
 [class*="settings_tab_spacer"] { border-bottom-color: var(--pinboard-border) !important; }
 .settings_heading { color: var(--pinboard-muted) !important; background: transparent !important; border-bottom: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important; padding-bottom: 6px !important; }
-a.help { color: var(--pinboard-muted-soft) !important; background: var(--pinboard-accent-soft) !important; }
+a.help { color: var(--pinboard-help-fg) !important; background: var(--pinboard-accent-soft) !important; }
 .email_secret { color: var(--pinboard-accent) !important; }
 #settings_tab_panes { border: none !important; }
 #settings_tab_panes table td { color: var(--pinboard-fg) !important; }
@@ -10829,6 +10839,7 @@ h2 { color: #ebbcba !important; }`
   --pinboard-on-accent: #ffffff;
   --pinboard-on-link-hover: #ffffff;
   --pinboard-scrollbar-thumb: #656d76;
+  --pinboard-help-fg: #636c76;
   --pinboard-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
   --pinboard-font-size-base: 13px;
   --pinboard-font-size-sm: 12px;
@@ -11294,7 +11305,7 @@ input[type="file"]::file-selector-button:hover {
 .settings_tab_selected a { color: var(--pinboard-accent) !important; }
 [class*="settings_tab_spacer"] { border-bottom-color: var(--pinboard-border) !important; }
 .settings_heading { color: var(--pinboard-muted) !important; background: transparent !important; border-bottom: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-border) !important; padding-bottom: 6px !important; }
-a.help { color: var(--pinboard-muted-soft) !important; background: var(--pinboard-accent-soft) !important; }
+a.help { color: var(--pinboard-help-fg) !important; background: var(--pinboard-accent-soft) !important; }
 .email_secret { color: var(--pinboard-accent) !important; }
 #settings_tab_panes { border: none !important; }
 #settings_tab_panes table td { color: var(--pinboard-fg) !important; }
@@ -11569,7 +11580,6 @@ a.url_display { color: #57606a !important; font-size: 12px !important; }
 a.url_link { border-radius: 12px !important; }
 .description blockquote { border-left: 3px solid #0969da40 !important; }
 .suggested_tag { color: #1a7f37 !important; }
-a.help { background: #e8ecf0 !important; }
 #main_column form[name="sort"] table tr:hover { background: rgba(9,105,218,0.06) !important; }
 #main_column form[name="sort"] table input[name^="id_"] { width: 38px !important; min-width: 38px !important; max-width: 38px !important; padding: 3px 4px !important; margin-right: 10px !important; font-size: 12px !important; line-height: 1.2 !important; border-radius: 6px !important; box-sizing: border-box !important; vertical-align: middle !important; font-weight: 600 !important; }
 #right_bar table td a.delete { color: #6e7781 !important; }

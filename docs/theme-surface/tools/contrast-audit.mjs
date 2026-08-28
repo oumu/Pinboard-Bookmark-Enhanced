@@ -1055,6 +1055,26 @@ function auditPalette(slug, rawPalette) {
   // it really lands instead of being read as black; when the pill is a plain
   // hex -- all 14 rendered palettes today -- both resolutions collapse to one
   // row.
+  {
+    // a.help badge text on its accent-soft fill (see expandSitePalette's help-fg).
+    const helpFg = hexRgb(p["help-fg"] || "");
+    if (!helpFg) {
+      console.log(check("pinboard", slug, "help-fg vs accent-soft", 0, 4.5));
+    } else {
+      const fills = new Map();
+      for (const [label, base] of [["bg", bg], ["bg-surface", bgSurface]]) {
+        if (!base) continue;
+        const resolved = resolveOpaqueBg(p["accent-soft"], base).map((c) => Math.round(c));
+        const k = resolved.join(",");
+        if (!fills.has(k)) fills.set(k, { rgb: resolved, labels: [] });
+        fills.get(k).labels.push(label);
+      }
+      for (const { rgb, labels } of fills.values()) {
+        const suffix = fills.size > 1 ? `@${labels.join("+")}` : "";
+        console.log(check("pinboard", slug, `help-fg vs accent-soft${suffix}`, cr(rgb, helpFg), 4.5));
+      }
+    }
+  }
   const urlFg = hexRgb(p["url-link-fg"] || "");
   if (!urlFg) {
     const line = `  pinboard  ${slug}  url-link-fg  MISSING TOKEN  FAIL`;

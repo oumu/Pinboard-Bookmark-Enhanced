@@ -34,7 +34,6 @@
     "flexoki | .suggested_tag | #ad8301 | page",
     "flexoki | a.bundle:hover | #8b7ec8 | page",
     "flexoki | a.url_display | #66800b | page",
-    "flexoki:html.pbp-dark | html.pbp-dark a.help | #6b6963 | own #282726",
     "flexoki:html.pbp-dark | html.pbp-dark a.sort_order_selected | #8b7ec8 | own #343331",
     "solarized-light | a.url_display | #859900 | page"
   ],
