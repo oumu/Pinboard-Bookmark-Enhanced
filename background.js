@@ -1746,6 +1746,44 @@ async function pbpClaimLegacyHighlightOwners() {
 }
 pbpClaimLegacyHighlightOwners();
 
+// Conditional site-theme payload (roadmap #37, dynamic-registration variant):
+// pinboard-themes.js is a 704KB generated constant that every pinboard.in
+// navigation used to parse at document_start — to read ONE of its 13 css
+// strings, and only when a preset is set at all (themePresetKey defaults to
+// ""). It is now statically absent from the manifest and registered here only
+// while a preset is active, so the DEFAULT configuration pays nothing.
+// pinboard-style.js already typeof-guards PINBOARD_THEMES, and its consumers
+// run in async storage callbacks, so relative execution order between the
+// static and dynamic document_start scripts never matters. The full
+// css-as-files split was deliberately NOT done: it would re-anchor five
+// theme-factory gates (apply-tokens/diff-all/cascade-lint/handedit-audit/
+// override-drift all parse pinboard-themes.js) for marginal further gain.
+const PBP_SITE_THEME_SCRIPT_ID = "pbp-site-theme-css";
+async function pbpSyncSiteThemeScript() {
+  try {
+    if (!chrome.scripting || !chrome.scripting.registerContentScripts) return;
+    const s = await loadSettings();
+    const wantTheme = !!(s && s.themePresetKey);
+    const existing = await chrome.scripting.getRegisteredContentScripts({ ids: [PBP_SITE_THEME_SCRIPT_ID] }).catch(() => []);
+    const has = !!(existing && existing.length);
+    if (wantTheme && !has) {
+      await chrome.scripting.registerContentScripts([{
+        id: PBP_SITE_THEME_SCRIPT_ID,
+        matches: ["https://pinboard.in/*", "https://*.pinboard.in/*"],
+        js: ["pinboard-themes.js"],
+        runAt: "document_start",
+        world: "ISOLATED",
+        persistAcrossSessions: true,
+      }]);
+    } else if (!wantTheme && has) {
+      await chrome.scripting.unregisterContentScripts({ ids: [PBP_SITE_THEME_SCRIPT_ID] });
+    }
+  } catch (e) {
+    console.warn("site-theme script sync failed:", e?.name, e?.message);
+  }
+}
+pbpSyncSiteThemeScript();
+
 // Security-first permission migration. Older Batch versions could leave the
 // optional all-sites grant active. Removing it also clears matching exact
 // optional grants in Chrome, so configurations stay untouched and each feature
@@ -2016,6 +2054,12 @@ chrome.storage.onChanged.addListener((changes, area) => {
   const routingChanged = !!(changes.optSyncEnabled || changes.syncApiKeys);
   if ((area === "sync" || area === "local") && (routingChanged || changes.tagSyncMode || changes.pinboardToken)) {
     syncPrewarmTagsAlarm().catch(() => {});
+  }
+  // Conditional site-theme payload (roadmap #37): register/unregister the
+  // 704KB themes constant as the preset comes and goes (routing changes can
+  // flip the effective value too, so re-check on those as well).
+  if ((area === "sync" || area === "local") && (changes.themePresetKey || routingChanged)) {
+    pbpSyncSiteThemeScript();
   }
 });
 // Initial check
