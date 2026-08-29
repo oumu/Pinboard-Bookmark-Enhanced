@@ -466,6 +466,15 @@
       }
     }
   },
+  "batchCancel": {
+    "message": "取消批次儲存"
+  },
+  "batchCancelled": {
+    "message": "已取消批次儲存，先前儲存嘅 $SAVED$ 條不受影響。",
+    "placeholders": {
+      "saved": { "content": "$1" }
+    }
+  },
   "batchTaggedSuffix": {
     "message": "（標籤：$TAGS$）",
     "placeholders": {

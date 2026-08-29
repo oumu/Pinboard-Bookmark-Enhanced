@@ -466,6 +466,15 @@
       }
     }
   },
+  "batchCancel": {
+    "message": "Отменить пакетное сохранение"
+  },
+  "batchCancelled": {
+    "message": "Пакетное сохранение отменено — уже сохранённые вкладки ($SAVED$) остались.",
+    "placeholders": {
+      "saved": { "content": "$1" }
+    }
+  },
   "batchTaggedSuffix": {
     "message": " (метки: $TAGS$)",
     "placeholders": {

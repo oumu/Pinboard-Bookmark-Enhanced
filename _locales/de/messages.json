@@ -466,6 +466,15 @@
       }
     }
   },
+  "batchCancel": {
+    "message": "Stapelspeicherung abbrechen"
+  },
+  "batchCancelled": {
+    "message": "Stapelspeicherung abgebrochen – $SAVED$ Tabs waren bereits gespeichert.",
+    "placeholders": {
+      "saved": { "content": "$1" }
+    }
+  },
   "batchTaggedSuffix": {
     "message": " (Tags: $TAGS$)",
     "placeholders": {

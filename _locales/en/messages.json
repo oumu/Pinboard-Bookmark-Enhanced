@@ -466,6 +466,15 @@
       }
     }
   },
+  "batchCancel": {
+    "message": "Cancel batch save"
+  },
+  "batchCancelled": {
+    "message": "Batch save cancelled — $SAVED$ tabs were already saved.",
+    "placeholders": {
+      "saved": { "content": "$1" }
+    }
+  },
   "batchTaggedSuffix": {
     "message": " (tagged: $TAGS$)",
     "placeholders": {

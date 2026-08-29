@@ -285,6 +285,26 @@ function renderBatchProgress(p, currentAccount) {
   // Counts are integers -> safe to interpolate; SVG icons avoid emoji font fallback.
   const queuedMsg = p.queued > 0 ? `  ${t("offlineQueued", String(p.queued))}` : "";
   if (ptext) ptext.innerHTML = `${cur}/${total}  <span class="status-ic ok">${PBP_ICONS.check}</span>${p.saved || 0}  <span class="status-ic bad">${PBP_ICONS.cross}</span>${p.failed || 0}${queuedMsg}${p.aiFailed ? `  AI<span class="status-ic bad">${PBP_ICONS.cross}</span>${p.aiFailed}` : ""}`;
+  // Cancel affordance (roadmap #32): visible only while the batch is live.
+  // One-time listener wiring; the click just sets the cooperative flag the
+  // SW's loop polls before each item — pressed state sticks until the run
+  // acknowledges (terminal record) or a new run starts.
+  const cancelBtn = $id("batch-cancel-btn");
+  if (cancelBtn) {
+    if (!cancelBtn._pbpWired) {
+      cancelBtn._pbpWired = true;
+      const ic = cancelBtn.querySelector(".btn-ic");
+      if (ic && !ic.innerHTML) ic.innerHTML = PBP_ICONS.cross;
+      cancelBtn.addEventListener("click", () => {
+        cancelBtn.disabled = true;
+        try { chrome.storage.local.set({ batch_cancel_requested: true }).catch(() => {}); } catch (_) {}
+      });
+    }
+    cancelBtn.classList.toggle("hidden", !!p.done);
+    // disabled is owned by the click (pressed = stays disabled until the run
+    // acknowledges); the terminal record resets it for the next run.
+    if (p.done) cancelBtn.disabled = false;
+  }
   if (!batchBtn) return;
   if (p.done) {
     const skipMsg = p.skipped > 0 ? t("batchSkipped", String(p.skipped)) : "";
@@ -297,6 +317,8 @@ function renderBatchProgress(p, currentAccount) {
     // own branch the raw token would leak into the UI via batchFailed. Same
     // wording as the notification the sweep fires.
     else if (p.error === "interrupted") showStatus("status-msg", t("batchInterrupted", String(cur), String(total)), "error");
+    // User-requested cancel is an outcome, not a failure — info tone.
+    else if (p.error === "cancelled") showStatus("status-msg", t("batchCancelled", String(p.saved || 0)), "info");
     else if (p.error) showStatus("status-msg", t("batchFailed", p.error), "error");
     else {
       const hasFailure = (p.failed || 0) > 0 || (p.tooLong || 0) > 0;

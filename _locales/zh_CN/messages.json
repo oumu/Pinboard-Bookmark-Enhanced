@@ -466,6 +466,15 @@
       }
     }
   },
+  "batchCancel": {
+    "message": "取消批量保存"
+  },
+  "batchCancelled": {
+    "message": "已取消批量保存，此前保存的 $SAVED$ 条不受影响。",
+    "placeholders": {
+      "saved": { "content": "$1" }
+    }
+  },
   "batchTaggedSuffix": {
     "message": "（标签：$TAGS$）",
     "placeholders": {

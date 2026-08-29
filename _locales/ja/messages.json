@@ -466,6 +466,15 @@
       }
     }
   },
+  "batchCancel": {
+    "message": "一括保存をキャンセル"
+  },
+  "batchCancelled": {
+    "message": "一括保存をキャンセルしました。保存済みの $SAVED$ 件はそのまま残ります。",
+    "placeholders": {
+      "saved": { "content": "$1" }
+    }
+  },
   "batchTaggedSuffix": {
     "message": "（タグ：$TAGS$）",
     "placeholders": {

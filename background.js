@@ -2657,6 +2657,8 @@ async function _runBatchSave(tabs, expectedAccount) {
     }
     return auth;
   };
+  // A fresh run must not inherit a cancel meant for the previous one.
+  try { await chrome.storage.local.remove("batch_cancel_requested"); } catch (_) {}
   await _writeBatchProgress({ running: true, done: false, error: null, ...base() });
 
   try {
@@ -2698,6 +2700,19 @@ async function _runBatchSave(tabs, expectedAccount) {
 
     for (let i = 0; i < tabs.length; i++) {
       const tab = tabs[i];
+
+      // Cooperative cancel (roadmap #32): the popup writes this flag; one
+      // storage read per item is noise next to the 3.1s rate-limit spacing.
+      // Already-saved items stay saved — the terminal record says how many.
+      try {
+        const { batch_cancel_requested } = await chrome.storage.local.get("batch_cancel_requested");
+        if (batch_cancel_requested) {
+          await chrome.storage.local.remove("batch_cancel_requested");
+          await _writeBatchProgress({ running: false, done: true, error: "cancelled", ...base() });
+          showNotification("batch-cancelled", t("bgBatchSaved"), t("batchCancelled", String(saved)), "info");
+          return;
+        }
+      } catch (_) { /* cancel check is best-effort; the batch itself continues */ }
 
       try {
         await requireAccount();

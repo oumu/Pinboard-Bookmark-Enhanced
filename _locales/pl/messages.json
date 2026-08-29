@@ -466,6 +466,15 @@
       }
     }
   },
+  "batchCancel": {
+    "message": "Anuluj zapis wsadowy"
+  },
+  "batchCancelled": {
+    "message": "Zapis wsadowy anulowany — wcześniej zapisane karty ($SAVED$) pozostały.",
+    "placeholders": {
+      "saved": { "content": "$1" }
+    }
+  },
   "batchTaggedSuffix": {
     "message": " (tagi: $TAGS$)",
     "placeholders": {

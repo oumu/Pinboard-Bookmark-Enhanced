@@ -466,6 +466,15 @@
       }
     }
   },
+  "batchCancel": {
+    "message": "Annuler l’enregistrement par lot"
+  },
+  "batchCancelled": {
+    "message": "Enregistrement par lot annulé – $SAVED$ onglets déjà enregistrés sont conservés.",
+    "placeholders": {
+      "saved": { "content": "$1" }
+    }
+  },
   "batchTaggedSuffix": {
     "message": " (tags : $TAGS$)",
     "placeholders": {

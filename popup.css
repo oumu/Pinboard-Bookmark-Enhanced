@@ -1031,18 +1031,45 @@ html[data-theme] #submit-btn:disabled { background: var(--pp-btn-bg); border-col
   background: var(--pp-input-bg);
   border: 1px solid var(--pp-input-bg);
   border-radius: var(--pp-radius-full);
-  overflow: hidden;
+  /* visible (was hidden): the cancel button's 24px hit area overhangs the
+     14px bar. The fill's rounded clipping moves to border-radius: inherit
+     below — same visual result at every width. */
+  overflow: visible;
   animation: fadeSlideDown var(--pp-motion-duration) var(--ease-out);
 }
 .batch-progress-fill {
   position: absolute; inset: 0 auto 0 0;
   width: 0%;
   background: var(--pp-accent);
+  border-radius: var(--pp-radius-full); /* same token as the bar: replaces the old overflow:hidden clip */
   /* linear, not ease: this is a determinate bar driven by JS ticks. An eased
      curve decelerates into a stall between ticks, so steady progress reads as
      stuttering — the curve lies about the rate. */
   transition: width 0.25s linear;
 }
+/* Cancel (roadmap #32): overlaid on the bar's right end; 24px hit area per the
+   icon-button rule, 16px visual disc so it reads at the 14px bar height.
+   Token pairs only — the disc keeps the button legible over the moving fill. */
+.batch-cancel-btn {
+  position: absolute;
+  top: 50%; right: 1px;
+  transform: translateY(-50%);
+  width: 24px; height: 24px;
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 0; border: none; background: none;
+  cursor: pointer;
+  color: var(--pp-fg);
+}
+.batch-cancel-btn .btn-ic {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px;
+  border-radius: var(--pp-radius-full);
+  background: var(--pp-input-bg);
+  border: 1px solid var(--pp-border);
+}
+.batch-cancel-btn .btn-ic svg { width: 10px; height: 10px; }
+.batch-cancel-btn:hover .btn-ic { background: var(--pp-hover-bg); }
+.batch-cancel-btn:disabled { cursor: default; opacity: 0.55; }
 .batch-progress-text {
   position: relative;
   display: block;
