@@ -409,13 +409,33 @@ async function callAI(s, prompt, opts = {}) {
     callOpenAICompat(_openaiCompatBase(cfg, s), s[cfg.keyField], model, prompt, { ...opts, extraBody }));
 }
 
+// Non-streaming Gemini rides the same thinking-off self-heal as the OpenAI-
+// compat table. Every OTHER default-thinking provider already disables
+// reasoning on the tags/summary path, but the bespoke Gemini caller sent no
+// thinkingConfig — and gemini IS the default provider, so quick-save/batch
+// users paid reasoning tokens (and latency) on every request. The field is the
+// verified bespoke dialect (rules/ai-providers.md: thinkingConfig.thinkingBudget:0);
+// models that reject a zero budget (e.g. gemini-2.5-pro) heal via the shared
+// 400/422 strip-and-retry with the per-model memo — never a static allowlist,
+// because the model field is free text.
+const _GEMINI_THINKING_CFG = { thinkingOff: { thinkingConfig: { thinkingBudget: 0 } } };
+
 async function callGemini(s, prompt, opts = {}) {
   const model = opts.model || s.geminiModel || "gemini-3.5-flash-lite";
+  return _aiWithThinkingFallback("gemini", model, _GEMINI_THINKING_CFG, (extraBody) =>
+    _callGeminiOnce(s, model, prompt, opts, extraBody));
+}
+
+async function _callGeminiOnce(s, model, prompt, opts, extraBody) {
   const maxTokens = opts.maxTokens || 1024;
+  const generationConfig = { temperature: 0.3, maxOutputTokens: maxTokens };
+  // Gemini's dialect nests under generationConfig, unlike the top-level merge
+  // the OpenAI-compat callers use — apply the one relevant key explicitly.
+  if (extraBody && extraBody.thinkingConfig) generationConfig.thinkingConfig = extraBody.thinkingConfig;
   // Gemini API requires key as URL param (no Authorization header support) — API design limitation
   const res = await fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${s.geminiApiKey}`, {
     method: "POST", headers: { "Content-Type": "application/json" }, signal: opts.signal,
-    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.3, maxOutputTokens: maxTokens } })
+    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig })
   });
   if (!res.ok) await handleAIError(res, "Gemini");
   const text = (await res.json()).candidates?.[0]?.content?.parts?.[0]?.text?.trim();
