@@ -151,9 +151,13 @@ try {
         // missed mock — those FAIL the run (Codex review: a NOTE alone lets
         // code that swallows the network error stay green). DOM subresources
         // (an <img src> in a layout fixture, a stylesheet) are expected
-        // fixture noise: blocked and reported, not fatal.
+        // fixture noise: blocked and reported, not fatal. A subframe document
+        // load is the same class: an <iframe src> fixture declares it in the
+        // DOM, nothing programmatic swallowed an error. Main-frame navigation
+        // off-origin still fails.
         const rt = request.resourceType();
-        const subresource = rt === "image" || rt === "media" || rt === "font" || rt === "stylesheet";
+        const subresource = rt === "image" || rt === "media" || rt === "font" || rt === "stylesheet"
+          || (rt === "document" && request.frame() !== page.mainFrame());
         (subresource ? blockedExternal : blockedProgrammatic)
           .push(rt + " " + request.method() + " " + requestUrl);
         return route.abort("blockedbyclient");
