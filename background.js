@@ -852,7 +852,11 @@ function drainOfflineQueueIds(queueIds) {
         ? offlineQueue.find((item) => item?.queueId === queueId) || null
         : null;
     }),
-    sendItem: (item) => sendOfflineItem(item),
+    // noteActivity: replay work is activity (same rationale as batch progress —
+    // a long drain driven by the keepalive alarm must not idle-terminate
+    // mid-run). typeof-guarded: source-slice test pages execute this function
+    // without the keepalive block in scope.
+    sendItem: (item) => { if (typeof noteActivity === "function") noteActivity(); return sendOfflineItem(item); },
     removeItem: (queueId) => mutateOfflineQueue({ kind: "remove", queueId }),
     onSuccess: (_item, delivered) => applySaveResultSideEffects(delivered, delivered.settings, { auth: delivered.auth }),
   });
@@ -1316,7 +1320,9 @@ function pbpImgFixInstallRule({ domains, origin, tabId, docUrl }) {
   return _imgFixSerialize(async () => {
     // Live re-check (NOT the sender snapshot): if the tab navigated while this
     // request queued, the asking page is gone and the rule must never exist.
-    const live = await chrome.tabs.get(tabId);
+    // _cbTabsGet resolves null (lastError consumed) when the tab is gone —
+    // which lands in the same throw as "not a preview".
+    const live = await _cbTabsGet(tabId);
     if (!live || !_imgFixIsPreviewUrl(live.url)) throw new Error("tab_not_preview");
     const owner = _imgFixStripHash(docUrl || live.url);
     // Same PREVIEW page is not enough -- it must be the same preview DOCUMENT
@@ -1933,6 +1939,22 @@ chrome.runtime.onInstalled.addListener(({ reason }) => {
 // ---- 监听来自 popup 的消息 ----
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (!message || typeof message !== "object") { sendResponse({ error: "invalid" }); return true; }
+  // Structural gate (defense in depth): accept only messages from this
+  // extension's own PAGES. Today this is unreachable — no content script calls
+  // runtime.sendMessage and the manifest has no externally_connectable — but
+  // that safety is an environmental fact, not a guarantee: any future
+  // postMessage→sendMessage bridge in a content script (bili-player-bridge
+  // already listens for postMessage) would otherwise expose the privileged
+  // handlers below (pinboard_api_call dispatches with the live token).
+  // sender.url distinguishes the two: extension pages (popup, and options/
+  // library/md-preview which DO run in tabs, so sender.tab can't be the test)
+  // carry a chrome-extension://<own-id>/ URL; content scripts carry the web
+  // page's URL. Fail closed when absent.
+  if (!sender || sender.id !== chrome.runtime.id ||
+      typeof sender.url !== "string" || !sender.url.startsWith(chrome.runtime.getURL(""))) {
+    sendResponse({ error: "forbidden" });
+    return true;
+  }
   noteActivity(); // using the popup keeps the SW warm for the next open
 
   if (message.type === "PBP_VOCAB_DIRTY") {
@@ -2062,8 +2084,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.type === "archive_url" && typeof message.url === "string") {
-    loadSettings().then((s) => pbpWaybackArchive(message.url, s, { isPrivate: message.private === true, force: message.force === true })).catch(() => {});
-    return;
+    // Acknowledge AFTER the archive attempt has run and its log entry is
+    // written (pbpWaybackArchive resolves post-log and never throws), so the
+    // caller can re-render its log on response instead of guessing with a
+    // timer. This was the one branch of this listener with no sendResponse:
+    // the port closed synchronously and the retry button looked dead for the
+    // full 10-30s archive timeout.
+    loadSettings()
+      .then((s) => pbpWaybackArchive(message.url, s, { isPrivate: message.private === true, force: message.force === true }))
+      .then(() => sendResponse({ done: true }))
+      .catch((e) => {
+        console.warn("[wayback] archive_url failed:", e?.name, e?.message);
+        sendResponse({ done: false });
+      });
+    return true;
   }
 
   if (message.type === "bookmark_deleted" && message.url) {
@@ -2350,6 +2384,13 @@ let _batchRunning = false;
 // state (the interrupted sweep) must not tell the user a story storage refused to
 // keep. In-loop callers ignore it — the progress UI degrades, the batch continues.
 async function _writeBatchProgress(p) {
+  // Ongoing batch work IS activity: without this, a long batch (100 tabs with
+  // AI ≈ 13 min) outlives the 10-min keepalive window, and the next AI call
+  // that goes ~30s without touching a chrome.* API lets the SW idle-terminate
+  // mid-run. One call per processed item keeps the window open exactly as long
+  // as real work is progressing — no 24/7 drain. typeof-guarded: source-slice
+  // test pages execute this function without the keepalive block in scope.
+  if (typeof noteActivity === "function") noteActivity();
   try {
     await chrome.storage.local.set({ batch_progress: { ...p, ts: Date.now() } });
     return true;
@@ -2795,10 +2836,14 @@ async function extractForPreview({ tabId, url, engine, sourceTabUrl, frame, fram
   // Jina's canonicalized d.url, which never equals the tab's literal URL --
   // without the split, one Jina pass bricked the switch back to the local
   // engine with a spurious tab_navigated (Codex review).
-  try {
-    const live = await chrome.tabs.get(tabId);
-    if (!live || !live.url || live.url !== (sourceTabUrl || url)) return { error: "tab_navigated" };
-  } catch (_) { return { error: "tab_unavailable" }; }
+  // _cbTabsGet (ai.js, loaded via importScripts): callback form consumes
+  // lastError inside the callback — the promise form leaks "Unchecked
+  // runtime.lastError: No tab with id" when the tab closes mid-call, which is
+  // exactly this path's high-frequency scenario (user closes the source tab
+  // while switching engines / authorizing a frame).
+  const live = await _cbTabsGet(tabId);
+  if (!live) return { error: "tab_unavailable" };
+  if (!live.url || live.url !== (sourceTabUrl || url)) return { error: "tab_navigated" };
   // Defuddle is required; injection failure (tab closed / CSP / no permission) → degrade.
   // `frame` (2026-08-25): the reader asked for the embedded-frame pass after the
   // user granted that frame's exact origin -- inject into every frame Chrome
@@ -2816,20 +2861,17 @@ async function extractForPreview({ tabId, url, engine, sourceTabUrl, frame, fram
     // no matching frame, or no article in it, is "nothing here" -- never a
     // fallback to some other frame.
     if (!frameOrigin) return { error: "empty" };
-    const probe = await chrome.scripting
-      .executeScript({ target: { tabId, allFrames: true }, func: () => location.origin }).catch(() => null);
+    const probe = await _cbExecuteScript({ target: { tabId, allFrames: true }, func: () => location.origin });
     const frameIds = (Array.isArray(probe) ? probe : [])
       .filter((r) => r && r.frameId !== 0 && r.result === frameOrigin).map((r) => r.frameId);
     if (!frameIds.length) return { error: "empty" };
     target = { tabId, frameIds };
   }
-  const injected = await chrome.scripting
-    .executeScript({ target, files: ["vendor/defuddle.js"] }).catch(() => null);
+  const injected = await _cbExecuteScript({ target, files: ["vendor/defuddle.js"] });
   if (!injected) return { error: "tab_unavailable" };
   // site-rules.js is OPTIONAL — ignore failure so a broken rule can't mask Defuddle.
-  await chrome.scripting.executeScript({ target, files: ["site-rules.js"] }).catch(() => {});
-  const results = await chrome.scripting
-    .executeScript({ target, func: extractPageForMarkdown }).catch(() => null);
+  await _cbExecuteScript({ target, files: ["site-rules.js"] });
+  const results = await _cbExecuteScript({ target, func: extractPageForMarkdown });
   const top = results && results[0] && results[0].result;
   let out = top;
   let frameBase = "";

@@ -3992,10 +3992,14 @@ async function renderWaybackLog() {
       btn.title = t("archiveRetry");
       btn.setAttribute("aria-label", t("archiveRetry"));
       btn.innerHTML = PBP_ICONS.refresh;
-      btn.addEventListener("click", () => {
+      btn.addEventListener("click", async () => {
+        // The SW acknowledges AFTER the archive attempt has written its log
+        // entry, so re-rendering on response shows the real outcome — the old
+        // fixed 2.5s timer re-rendered long before the 10-30s archive timeout
+        // and made this button look dead.
         btn.disabled = true;
-        try { chrome.runtime.sendMessage({ type: "archive_url", url: entry.url, force: true }).catch(() => {}); } catch (_) {}
-        setTimeout(() => { renderWaybackLog(); }, 2500);
+        try { await chrome.runtime.sendMessage({ type: "archive_url", url: entry.url, force: true }); } catch (_) {}
+        renderWaybackLog();
       });
       row.appendChild(btn);
     }

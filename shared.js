@@ -630,7 +630,10 @@ let _pinboardProcessing = false;
 function pinboardFetch(url, options) {
   return new Promise((resolve, reject) => {
     _pinboardQueue.push({ url, options: options || {}, resolve, reject });
-    _processPinboardQueue();
+    // The pump settles each queued item's own promise; its return value is
+    // advisory. Swallow pump-level failures so they never surface as unhandled
+    // rejections (the finally inside guarantees the flag resets either way).
+    _processPinboardQueue().catch(() => {});
   });
 }
 
@@ -656,43 +659,61 @@ async function _authorizeFreshPinboardUrl(url) {
 async function _processPinboardQueue() {
   if (_pinboardProcessing || !_pinboardQueue.length) return;
   _pinboardProcessing = true;
-  while (_pinboardQueue.length) {
-    const { url, options, resolve, reject } = _pinboardQueue.shift();
-    // Cross-context coordination: read shared timestamp from storage
-    let lastCall = _pinboardLastCall;
-    try {
-      const stored = await chrome.storage.local.get("_pbRateLimitTs");
-      if (stored._pbRateLimitTs > lastCall) lastCall = stored._pbRateLimitTs;
-    } catch (_) {}
-    const now = Date.now();
-    const wait = Math.max(0, 3100 - (now - lastCall));
-    // Reserve the time slot BEFORE waiting/fetching to prevent race conditions
-    // between popup and background contexts reading stale timestamps
-    const reservedTime = now + wait;
-    _pinboardLastCall = reservedTime;
-    try { await chrome.storage.local.set({ _pbRateLimitTs: reservedTime }); } catch (_) {}
-    if (wait > 0) await new Promise(r => setTimeout(r, wait));
-    let authorizedUrl;
-    try {
-      authorizedUrl = await _authorizeFreshPinboardUrl(url);
-    } catch (error) {
-      reject(error);
-      continue;
+  try {
+    while (_pinboardQueue.length) {
+      const { url, options, resolve, reject } = _pinboardQueue.shift();
+      // Cross-context coordination: read shared timestamp from storage.
+      // _pbRateLimitTs is an ABSOLUTE persisted timestamp — after a backwards
+      // clock step (VM resume, NTP correction, dead CMOS battery) a stored
+      // value can sit far in the "future" and would stall this single-threaded
+      // pump (and every caller behind it) until the wall clock catches up.
+      // Legitimate reservations never exceed now + 3100 (+ concurrent-writer
+      // skew), so ignore anything beyond a 8100ms horizon as clock damage.
+      const now = Date.now();
+      let lastCall = _pinboardLastCall;
+      try {
+        const stored = await chrome.storage.local.get("_pbRateLimitTs");
+        if (stored._pbRateLimitTs > lastCall && stored._pbRateLimitTs <= now + 8100) {
+          lastCall = stored._pbRateLimitTs;
+        }
+      } catch (_) {}
+      // Clamp: 3100ms is the physical upper bound of this rate limit — a larger
+      // computed wait can only mean the time base is untrustworthy.
+      const wait = Math.min(3100, Math.max(0, 3100 - (now - lastCall)));
+      // Reserve the time slot BEFORE waiting/fetching to prevent race conditions
+      // between popup and background contexts reading stale timestamps
+      const reservedTime = now + wait;
+      _pinboardLastCall = reservedTime;
+      try { await chrome.storage.local.set({ _pbRateLimitTs: reservedTime }); } catch (_) {}
+      if (wait > 0) await new Promise(r => setTimeout(r, wait));
+      let authorizedUrl;
+      try {
+        authorizedUrl = await _authorizeFreshPinboardUrl(url);
+      } catch (error) {
+        reject(error);
+        continue;
+      }
+      // Fire without awaiting — rate limit is timing-based (gap between request starts),
+      // not completion-based. Awaiting each fetch caused queue starvation: a slow/hung
+      // request (e.g. suggest for a niche URL) would delay all subsequent queued requests
+      // by its full timeout duration.
+      _executePinboardFetch(authorizedUrl, options, resolve, reject);
     }
-    // Fire without awaiting — rate limit is timing-based (gap between request starts),
-    // not completion-based. Awaiting each fetch caused queue starvation: a slow/hung
-    // request (e.g. suggest for a niche URL) would delay all subsequent queued requests
-    // by its full timeout duration.
-    _executePinboardFetch(authorizedUrl, options, resolve, reject);
+  } finally {
+    // An escaped exception must never pin the flag: that would freeze this
+    // context's Pinboard queue for the rest of the worker/page generation.
+    _pinboardProcessing = false;
   }
-  _pinboardProcessing = false;
 }
 
 function _executePinboardFetch(url, options, resolve, reject) {
   const ctrl = new AbortController();
   const { timeoutMs = 15000, ...fetchOpts } = options;
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
-  fetch(url, { ...fetchOpts, signal: ctrl.signal })
+  // redirect:"error" — auth_token rides the query string (Pinboard v1 is
+  // GET-only), so following a redirect would replay it to the target. Normal
+  // v1 responses never redirect; export senders already enforce the same.
+  fetch(url, { ...fetchOpts, signal: ctrl.signal, redirect: "error" })
     .finally(() => clearTimeout(timer))
     .then(resolve, reject);
 }
