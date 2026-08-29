@@ -423,7 +423,6 @@ const SETTINGS_DEFAULTS = {
   siliconflowApiKey: "", siliconflowModel: "Qwen/Qwen3-8B",
   zhipuApiKey: "", zhipuModel: "glm-4.7-flash",
   kimiApiKey: "", kimiModel: "kimi-k2.6",
-  githubModelsApiKey: "", githubModelsModel: "openai/gpt-4.1-mini",
   ollamaBaseUrl: "http://localhost:11434", ollamaModel: "llama3.2",
   customApiKey: "", customModel: "", customBaseUrl: "", customName: "Custom",
   aiTagLang: "en", aiSummaryLang: "auto", aiCacheDuration: 60,
@@ -1914,7 +1913,7 @@ async function persistSettings(data) {
   }
 }
 
-const API_KEY_FIELDS = ["pinboardToken","geminiApiKey","openaiApiKey","claudeApiKey","deepseekApiKey","qwenApiKey","minimaxApiKey","openrouterApiKey","groqApiKey","mistralApiKey","cohereApiKey","siliconflowApiKey","zhipuApiKey","kimiApiKey","githubModelsApiKey","customApiKey","jinaApiKey","waybackS3Key","waybackS3Secret","dictAnkiKey","dictEudicToken"];
+const API_KEY_FIELDS = ["pinboardToken","geminiApiKey","openaiApiKey","claudeApiKey","deepseekApiKey","qwenApiKey","minimaxApiKey","openrouterApiKey","groqApiKey","mistralApiKey","cohereApiKey","siliconflowApiKey","zhipuApiKey","kimiApiKey","customApiKey","jinaApiKey","waybackS3Key","waybackS3Secret","dictAnkiKey","dictEudicToken"];
 
 function pbpExportTargetSecretKeys(targetId) {
   return targetId === "webhook" ? ["token", "url"] : ["token"];

@@ -1900,15 +1900,6 @@
   "hintKimiModel": {
     "message": "напр. kimi-k2.6, kimi-k2.5, moonshot-v1-32k, moonshot-v1-128k"
   },
-  "provGithubModels": {
-    "message": "GitHub Models"
-  },
-  "hintGithubModelsScope": {
-    "message": "— личный токен доступа с областью models:read."
-  },
-  "hintGithubModelsModel": {
-    "message": "Идентификаторы моделей имеют формат издатель/имя, например openai/gpt-4.1-mini, openai/gpt-4.1, deepseek/DeepSeek-R1."
-  },
   "mdPreviewEmpty": {
     "message": "Нет данных предпросмотра. Сначала нажмите кнопку Markdown во всплывающем окне."
   },

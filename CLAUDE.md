@@ -16,7 +16,7 @@ Chrome Extension (Manifest V3)，一键将当前页面保存到 Pinboard，支�
 | 平台 | Chrome Extension Manifest V3 |
 | 语言 | Vanilla JavaScript（无框架、无构建步骤、零运行时依赖——保持这一点） |
 | 存储 | Chrome Storage API（sync + local）+ IndexedDB |
-| AI providers | OpenAI / Anthropic / Gemini / DeepSeek / Qwen / MiniMax / OpenRouter / Groq / Mistral / Cohere / SiliconFlow / Zhipu (BigModel) / Moonshot / GitHub Models / Ollama (local) |
+| AI providers | OpenAI / Anthropic / Gemini / DeepSeek / Qwen / MiniMax / OpenRouter / Groq / Mistral / Cohere / SiliconFlow / Zhipu (BigModel) / Moonshot / Ollama (local) |
 | 页面正文抽取 | Defuddle（vendor/ 本地化，懒注入）；备用 Jina Reader API |
 | 主题生产 | 自建 theme factory（`docs/theme-surface/`） |
 
@@ -147,6 +147,7 @@ bash scripts/release.sh         # 打 ZIP + GH release + changelog；--build-onl
 
 - **`bgSaveMode` 迁移可退役（到期日 2026-09-30）**：background.js 的 `migrateBgSaveMode()` 自 v2.79 / 2026-06-10 上线，已远超 WebDAV 清理迁移的退役先例（10 个版本 / 33 天）。退役要连同三处 `_bgSaveModeMigration.then(() => primeSettings()).catch(() => {})` 门一并删掉、改回直接 `primeSettings().catch(() => {})`，否则留下悬空引用。
 - （WebDAV 遗留清理迁移已于 2026-08-26 退役——自 v2.98 起随 10 个版本运行 33 天）
+- **`migrateGithubModelsRetirement` 可退役（到期日 2026-10-15）**：GitHub Models 服务 2026-07-30 整体退役（端点 HTTP 410），provider 已于 2026-08-29 下线；background.js 的该迁移负责重置存量用户的 `aiProvider` 并清理两个 storage area 里的 `githubModelsApiKey`/`githubModelsModel`。按 WebDAV 先例（10 个版本/33 天）到期直接删函数与调用行即可，无接线门。
 
 ## 与 Claude Code 协作
 

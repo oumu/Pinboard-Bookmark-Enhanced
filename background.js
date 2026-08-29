@@ -1498,6 +1498,29 @@ async function migrateBgSaveMode() {
 // bgSaveNoClobber=false user's "overwrite" preference.
 const _bgSaveModeMigration = migrateBgSaveMode();
 
+// One-time cleanup: GitHub Models retired its inference API on 2026-07-30
+// (models.github.ai now answers HTTP 410), so the provider entry is gone from
+// the UI and registry. Reset any user still pointing at it to the default
+// provider and drop the stored PAT copy + model key. Both storage areas are
+// swept because credential routing (optSyncEnabled/syncApiKeys) may have left
+// copies in either; reads are quota-free and writes only fire while legacy
+// keys actually exist, so re-running every SW start stays cheap and idempotent.
+async function migrateGithubModelsRetirement() {
+  for (const area of [chrome.storage.local, chrome.storage.sync]) {
+    try {
+      const raw = await area.get(["aiProvider", "githubModelsApiKey", "githubModelsModel"]);
+      const dead = ["githubModelsApiKey", "githubModelsModel"].filter((k) => raw[k] !== undefined);
+      if (dead.length) await area.remove(dead);
+      if (raw.aiProvider === "githubmodels") await area.set({ aiProvider: "gemini" });
+    } catch (e) {
+      // MV3 rule: leave a trace before folding platform failures away. No
+      // secrets here — key names only, values never logged.
+      console.warn("githubmodels retirement cleanup failed:", e?.name, e?.message);
+    }
+  }
+}
+migrateGithubModelsRetirement();
+
 // Security-first permission migration. Older Batch versions could leave the
 // optional all-sites grant active. Removing it also clears matching exact
 // optional grants in Chrome, so configurations stay untouched and each feature

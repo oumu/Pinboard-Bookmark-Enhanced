@@ -24,7 +24,7 @@ Une extension Chrome pour [Pinboard](https://pinboard.in) : étiquettes et résu
 ![Enregistrement en un clic avec étiquettes et résumé par IA](docs/cws-assets/originals/screenshot-1-save.png)
 
 ### Étiquettes
-- **Étiquettes et résumé par IA** : l'IA lit le corps de l'article, débarrassé des publicités, des menus et des barres latérales ; votre propre clé API, 15 fournisseurs ou tout point de terminaison compatible OpenAI
+- **Étiquettes et résumé par IA** : l'IA lit le corps de l'article, débarrassé des publicités, des menus et des barres latérales ; votre propre clé API, 14 fournisseurs ou tout point de terminaison compatible OpenAI
 - **Autocomplétion** : à partir de vos étiquettes, des suggestions de Pinboard et de préréglages en un clic
 - **Nettoyage des étiquettes** : repérez les doublons et les étiquettes peu utilisées, puis fusionnez-les par lots
 

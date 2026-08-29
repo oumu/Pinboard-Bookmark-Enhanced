@@ -1900,15 +1900,6 @@
   "hintKimiModel": {
     "message": "ex. : kimi-k2.6, kimi-k2.5, moonshot-v1-32k, moonshot-v1-128k"
   },
-  "provGithubModels": {
-    "message": "GitHub Models"
-  },
-  "hintGithubModelsScope": {
-    "message": "— un jeton d'accès personnel avec la portée models:read."
-  },
-  "hintGithubModelsModel": {
-    "message": "Les identifiants de modèle suivent le format éditeur/nom, par exemple openai/gpt-4.1-mini, openai/gpt-4.1, deepseek/DeepSeek-R1."
-  },
   "mdPreviewEmpty": {
     "message": "Aucune donnée d'aperçu disponible. Cliquez d'abord sur Markdown dans le popup."
   },

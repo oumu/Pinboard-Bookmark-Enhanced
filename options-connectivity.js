@@ -23,7 +23,6 @@ function pbpLiveAiSettingsSnapshot(provider) {
     siliconflowApiKey: getOptVal("opt-siliconflow-key"), siliconflowModel: getOptVal("opt-siliconflow-model", "Qwen/Qwen3-8B"),
     zhipuApiKey: getOptVal("opt-zhipu-key"), zhipuModel: getOptVal("opt-zhipu-model", "glm-4.7-flash"),
     kimiApiKey: getOptVal("opt-kimi-key"), kimiModel: getOptVal("opt-kimi-model", "kimi-k2.6"),
-    githubModelsApiKey: getOptVal("opt-githubmodels-key"), githubModelsModel: getOptVal("opt-githubmodels-model", "openai/gpt-4.1-mini"),
     customApiKey: getOptVal("opt-custom-key"), customModel: getOptVal("opt-custom-model"), customBaseUrl: getOptVal("opt-custom-baseurl"),
   };
 }
@@ -122,7 +121,7 @@ function setupApiTests() {
     }
   }
 
-  ["gemini","openai","claude","deepseek","qwen","minimax","openrouter","groq","mistral","cohere","siliconflow","zhipu","kimi","githubmodels","ollama","custom"].forEach(p => {
+  ["gemini","openai","claude","deepseek","qwen","minimax","openrouter","groq","mistral","cohere","siliconflow","zhipu","kimi","ollama","custom"].forEach(p => {
     $id(`test-${p}`)?.addEventListener("click", () => testAIProvider(p));
   });
 

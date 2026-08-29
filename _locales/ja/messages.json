@@ -1900,15 +1900,6 @@
   "hintKimiModel": {
     "message": "例: kimi-k2.6, kimi-k2.5, moonshot-v1-32k, moonshot-v1-128k"
   },
-  "provGithubModels": {
-    "message": "GitHub Models"
-  },
-  "hintGithubModelsScope": {
-    "message": "— models:read スコープを持つ個人用アクセストークンが必要です。"
-  },
-  "hintGithubModelsModel": {
-    "message": "モデル ID は「発行元/名前」の形式です。例：openai/gpt-4.1-mini、openai/gpt-4.1、deepseek/DeepSeek-R1。"
-  },
   "mdPreviewEmpty": {
     "message": "プレビューデータがありません。まずポップアップの Markdown ボタンを使ってください。"
   },

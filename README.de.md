@@ -24,7 +24,7 @@ Eine Chrome-Erweiterung für [Pinboard](https://pinboard.in): KI-Tags und Zusamm
 ![Speichern mit einem Klick, KI-Tags und Zusammenfassung](docs/cws-assets/originals/screenshot-1-save.png)
 
 ### Tags
-- **KI-Tags und Zusammenfassung** – gelesen wird der Artikeltext ohne Werbung, Menüs und Seitenleisten; eigener API-Schlüssel, 15 Anbieter oder ein beliebiger OpenAI-kompatibler Endpunkt
+- **KI-Tags und Zusammenfassung** – gelesen wird der Artikeltext ohne Werbung, Menüs und Seitenleisten; eigener API-Schlüssel, 14 Anbieter oder ein beliebiger OpenAI-kompatibler Endpunkt
 - **Autovervollständigung** – aus deinen Tags, Pinboards Vorschlägen und Ein-Klick-Voreinstellungen
 - **Tags aufräumen** – doppelte und selten genutzte Tags finden und stapelweise zusammenführen
 

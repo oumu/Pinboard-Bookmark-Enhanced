@@ -19,7 +19,7 @@ paths:
 | openrouter | `{"reasoning":{"enabled":false}}`（勿用 exclude，仍计费） |
 | gemini | bespoke：`thinkingConfig.thinkingBudget:0` |
 | deepseek | thinkingOff（deepseek-reasoner 会拒收，靠 4xx 回退兜住） |
-| groq / githubmodels / custom / ollama | **不加 thinkingOff**（groq 逐模型枚举互斥；githubmodels 是多家 publisher 网关，无跨家安全字段；custom/ollama 方言未知） |
+| groq / custom / ollama | **不加 thinkingOff**（groq 逐模型枚举互斥；custom/ollama 方言未知） |
 
 改动后用 options 页联通性测试（options-connectivity.js）逐家验证；出现 400 先怀疑 thinking 字段与当前模型不兼容。
 

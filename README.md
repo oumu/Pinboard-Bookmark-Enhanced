@@ -24,7 +24,7 @@ A Chrome extension for [Pinboard](https://pinboard.in): AI tags and summaries, a
 ![One-click save with AI tags and summary](docs/cws-assets/originals/screenshot-1-save.png)
 
 ### Tag
-- **AI tags & summary**: the AI reads the article body with ads, menus, and sidebars stripped out; bring your own key (15 providers, or any OpenAI-compatible endpoint)
+- **AI tags & summary**: the AI reads the article body with ads, menus, and sidebars stripped out; bring your own key (14 providers, or any OpenAI-compatible endpoint)
 - **Autocomplete** from your own tags, Pinboard's suggested tags, and one-tap presets
 - **Tag cleanup**: find duplicate and rarely-used tags and merge them in batches
 
