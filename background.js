@@ -2332,9 +2332,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       }
       const immediate = message.immediate === true
         && new URL(authorizedUrl).pathname === "/v1/posts/suggest";
+      // timeoutMs pass-through (roadmap #23): options' tag-governance calls
+      // need 30s for posts/all-sized reads; clamp so a page can't park a
+      // queue slot forever.
+      const timeoutMs = Math.min(60000, Math.max(1000, Number(message.timeoutMs) || 15000));
       const res = immediate
         ? await pinboardFetchImmediate(authorizedUrl, { timeoutMs: 8000 })
-        : await pinboardFetch(authorizedUrl);
+        : await pinboardFetch(authorizedUrl, { timeoutMs });
         const text = await res.text();
         if (!pbpPinboardAuthIsCurrent(auth)) {
           sendResponse({ ok: false, status: 0, text: "", error: "account_changed" });

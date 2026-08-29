@@ -270,8 +270,28 @@ function pbpAuthorizePinboardApiUrl(raw, currentToken) {
     const suppliedAccount = pbpPinboardAccountFromToken(supplied[0]);
     const currentAccount = pbpPinboardAccountFromToken(token);
     if (!suppliedAccount || suppliedAccount !== currentAccount) return "";
-    url.searchParams.set("auth_token", token);
-    return url.toString();
+    // STRING-level token swap — never searchParams.set + toString. That pair
+    // re-serializes EVERY query param to form-urlencoded, changing byte
+    // length (space %20 -> "+" shrinks; ! ' ( ) * ~ each grow by 2 bytes),
+    // while POSTS_ADD_URI_BUDGET was measured against the caller's original
+    // encodeURIComponent shape — a URI the budget gate passed could come out
+    // the other side past Pinboard's ~4100-byte 414 cliff. Splitting on "?"
+    // and swapping only the auth_token pair keeps every other byte intact.
+    // Fail closed on anything unexpected (fragment noise, duplicate pairs).
+    const q = String(raw).indexOf("?");
+    if (q === -1) return "";
+    const head = String(raw).slice(0, q);
+    const query = String(raw).slice(q + 1);
+    let replaced = 0;
+    const parts = query.split("&").map((p) => {
+      if (p === "auth_token" || p.startsWith("auth_token=")) {
+        replaced++;
+        return "auth_token=" + encodeURIComponent(token);
+      }
+      return p;
+    });
+    if (replaced !== 1) return "";
+    return head + "?" + parts.join("&");
   } catch (_) {
     return "";
   }

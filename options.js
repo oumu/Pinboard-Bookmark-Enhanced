@@ -1,3 +1,37 @@
+// Route every Pinboard call through the SW's single rate-limit queue
+// (roadmap #23; the popup has done this since the 401-dialog fix). Running a
+// second _pinboardQueue in this page raced the SW over the shared
+// _pbRateLimitTs slot (the code below even attributed stray 429s to that
+// collision) and lost the SW proxy's 401 protection: a token revoked mid-
+// governance would have popped Chrome's NATIVE basic-auth dialog from this
+// page's own fetch. Function declarations are writable globals, so the
+// reassignment cleanly shadows shared.js's direct-fetch pair. timeoutMs
+// rides along — tag governance reads posts/all-sized payloads with 30s.
+function _pbpOptionsProxyPinboardFetch(url, options, immediate) {
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage({
+      type: "pinboard_api_call",
+      url,
+      immediate: immediate === true,
+      timeoutMs: options && options.timeoutMs,
+    }).then(resp => {
+      if (!resp) { reject(new Error("no background response")); return; }
+      resolve({
+        ok: resp.ok,
+        status: resp.status,
+        json: () => { try { return Promise.resolve(JSON.parse(resp.text || "{}")); } catch { return Promise.resolve({}); } },
+        text: () => Promise.resolve(resp.text || "")
+      });
+    }).catch(reject);
+  });
+}
+pinboardFetch = function(url, options) {
+  return _pbpOptionsProxyPinboardFetch(url, options, false);
+};
+pinboardFetchImmediate = function(url, options) {
+  return _pbpOptionsProxyPinboardFetch(url, options, true);
+};
+
 function pbpExactOriginPermissionSnapshot(origins) {
   const exact = [];
   for (const pattern of Array.isArray(origins) ? origins : []) {
@@ -3092,9 +3126,11 @@ async function retagBookmarksViaResave(expectedAccount, oldTag, newTag, onProgre
         });
         r = await pinboardFetch(retryUri);
         if (r.status === 429) {
-          // A persistent 429 on one bookmark is likely a transient cross-context
-          // collision (popup/background share the rate budget) — record it and move
-          // on instead of killing the whole run over a single bookmark.
+          // A persistent 429 on one bookmark: server-side throttling can still
+          // hit even now that every context rides the SW's single queue (the
+          // old cross-context slot collision is gone with the proxy rewire) —
+          // record it and move on instead of killing the whole run over one
+          // bookmark.
           failed++;
           problems.push({ url: post.href, title: post.description || post.href, kind: "failed", reason: "HTTP 429" });
           continue;

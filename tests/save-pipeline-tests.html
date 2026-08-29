@@ -1453,6 +1453,20 @@ await suite("unified save pipeline", async () => {
     assert(h.notifications[0][2].includes("batchDone:0:0"), "all-queued notification lacks completion summary");
     assert(h.notifications[0][2].includes("offlineQueued:2"), "all-queued notification lacks queued count");
   });
+
+  await test("authorize swaps ONLY the token bytes, preserving every other query byte", async () => {
+    // Roadmap #23 hardening: the old searchParams.set + toString pair
+    // re-serialized the whole query to form-urlencoded (%20 -> "+", ~ -> %7E),
+    // silently changing the byte length that POSTS_ADD_URI_BUDGET was measured
+    // against on the caller's side. The rewrite must be a pure token swap.
+    const trickyDesc = encodeURIComponent("a b!c'd(e)f*g~h"); // bytes URLSearchParams would rewrite
+    const raw = `https://api.pinboard.in/v1/posts/add?url=x&description=${trickyDesc}&auth_token=alice%3Aold&tags=t`;
+    const out = pbpAuthorizePinboardApiUrl(raw, obfuscateKey("alice:new"));
+    equal(out, `https://api.pinboard.in/v1/posts/add?url=x&description=${trickyDesc}&auth_token=alice%3Anew&tags=t`);
+    // Fail-closed edges: duplicate token pairs and cross-account swaps stay rejected.
+    equal(pbpAuthorizePinboardApiUrl(raw + "&auth_token=alice%3Aold", obfuscateKey("alice:new")), "");
+    equal(pbpAuthorizePinboardApiUrl(raw, obfuscateKey("bob:new")), "");
+  });
 });
 })();
 </script>

@@ -208,7 +208,15 @@ async function run() {
       url: "https://api.pinboard.in/v1/posts/get?auth_token=alice%3Aold&format=json",
       options: { method: "POST", headers: { Authorization: "attacker" } },
     });
-    assert(result.calls.fetch.length === 1 && result.calls.fetch[0].length === 1, "caller options reached pinboardFetch");
+    // Roadmap #23: the SW may pass its OWN options object, but it must be
+    // exactly the clamped-timeout shape — never the caller's options (method/
+    // headers smuggling). message.options above is deliberately hostile.
+    assert(result.calls.fetch.length === 1, "proxy did not dispatch exactly once");
+    const fwd = result.calls.fetch[0][1];
+    assert(fwd === undefined ||
+      (fwd && Object.keys(fwd).join(",") === "timeoutMs" && typeof fwd.timeoutMs === "number" &&
+       fwd.timeoutMs >= 1000 && fwd.timeoutMs <= 60000),
+      "pinboardFetch received something beyond the clamped timeoutMs shape");
     assert(result.branch.includes("pbpIsAllowedPinboardApiUrl(message.url)"), "branch does not call allowlist helper");
     assert(!result.branch.includes("message.options"), "branch still reads message.options");
     const override = popupSource.slice(popupSource.indexOf("pinboardFetch = function"), popupSource.indexOf("let currentTags"));
