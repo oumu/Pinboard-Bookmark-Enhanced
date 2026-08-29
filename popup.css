@@ -1069,7 +1069,7 @@ html[data-theme] #submit-btn:disabled { background: var(--pp-btn-bg); border-col
   border: 1px solid var(--pp-border);
 }
 .batch-cancel-btn .btn-ic svg { width: 10px; height: 10px; }
-.batch-cancel-btn:hover .btn-ic { background: var(--pp-hover-bg); }
+.batch-cancel-btn:hover .btn-ic { background: var(--pp-btn-hover); }
 .batch-cancel-btn:disabled { cursor: default; opacity: 0.55; }
 .batch-progress-text {
   position: relative;
