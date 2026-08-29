@@ -9,7 +9,9 @@ function check(name, ok) { ok ? pass++ : fail++; const row = document.createElem
   const source = await fetch("../background.js").then((response) => response.text());
   const imports = source.slice(source.indexOf("importScripts("), source.indexOf(");", source.indexOf("importScripts(")) + 2);
   const alarms = source.slice(source.indexOf("chrome.alarms.onAlarm.addListener"), source.indexOf("// React to settings change"));
-  const messages = source.slice(source.indexOf("chrome.runtime.onMessage.addListener"));
+  // Roadmap #35 named the router, so the body now STARTS at the function
+  // declaration and the addListener line trails it.
+  const messages = source.slice(source.indexOf("function handleRuntimeMessage"));
   const bootAt = source.indexOf("function pbpBootVocabDriveSync");
   const boot = source.slice(
     bootAt, source.indexOf("\nasync function pbpDisconnectVocabDrive", bootAt)
@@ -30,7 +32,9 @@ function check(name, ok) { ok ? pass++ : fail++; const row = document.createElem
   check("store and Drive scripts are imported in dependency order", imports.indexOf('"vocab-store.js"') >= 0 && imports.indexOf('"vocab-gdrive.js"') > imports.indexOf('"vocab-store.js"'));
   check("all three vocabulary alarm names are wired", ["vocab-sync-dirty", "vocab-sync-periodic", "vocab-sync-retry"].every((name) => source.includes(`"${name}"`)));
   check("alarm listener is registered synchronously at top level", /chrome\.alarms\.onAlarm\.addListener\(\(alarm\) =>/.test(alarms) && !/addListener\(async/.test(alarms));
-  check("runtime message listener is not async", /chrome\.runtime\.onMessage\.addListener\(\(message, sender, sendResponse\) =>/.test(messages) && !/onMessage\.addListener\(async/.test(messages));
+  check("runtime message listener is not async", /function handleRuntimeMessage\(message, sender, sendResponse\)/.test(messages) &&
+    !/async function handleRuntimeMessage/.test(messages) && !/onMessage\.addListener\(async/.test(messages) &&
+    messages.includes("chrome.runtime.onMessage.addListener(handleRuntimeMessage);"));
   check("dirty message schedules synchronization", messages.includes('message.type === "PBP_VOCAB_DIRTY"') && messages.includes("pbpVocabScheduleDirty"));
   check("connect message is handled", messages.includes('message.type === "vocabDriveConnect"'));
   check("status message is handled", messages.includes('message.type === "vocabDriveStatus"'));

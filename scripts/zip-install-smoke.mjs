@@ -109,7 +109,7 @@ function hasDriveOAuthCapability(manifest) {
     manifest.oauth2.client_id.trim().length > 0 &&
     scopes.length === 1 &&
     scopes[0] === 'https://www.googleapis.com/auth/drive.appdata' &&
-    (hosts.includes('https://www.googleapis.com/*') || hosts.includes('*://*/*'));
+    (hosts.includes('https://www.googleapis.com/*') || hosts.includes('https://*/*') || hosts.includes('*://*/*'));
 }
 const driveOAuthActive = hasDriveOAuthCapability(packagedManifest);
 const simulatedActiveDriveManifest = {
@@ -404,6 +404,49 @@ if (dnrFailures.length) {
   process.exit(1);
 }
 console.log('  image-fix DNR OK');
+
+// ---- Check 7: interrupted-batch resume wiring (roadmap #34) ----
+// The sweep must treat a stale running record WITH a valid job snapshot as
+// resumable, not dead. In this harness no Pinboard token exists, so a real
+// resume immediately terminates as account_changed and clears the snapshot —
+// exactly the trace that proves the resume path (not the interrupted path)
+// ran end-to-end through the REAL service worker, real storage, and real
+// function wiring. The interrupted path would have left error:"interrupted"
+// and fired a notification instead.
+console.log('[zip-smoke] check 7: interrupted-batch resume wiring...');
+try {
+  const outcome = await sw.evaluate(async () => {
+    const staleTs = Date.now() - (10 * 60 * 1000); // far past BATCH_STALE_TTL
+    await chrome.storage.local.set({
+      batch_progress: { running: true, done: false, error: null, account: 'alice', total: 3, i: 1, saved: 1, queued: 0, failed: 0, aiFailed: 0, skipped: 0, tooLong: 0, ts: staleTs },
+      batch_job: { account: 'alice', tabs: [{ id: 1, url: 'https://smoke.example/1' }, { id: 2, url: 'https://smoke.example/2' }, { id: 3, url: 'https://smoke.example/3' }], next: 1, counts: { processed: 1, saved: 1 }, resumeCount: 0, ts: staleTs },
+    });
+    await pbpSweepInterruptedBatch();
+    // The resumed run is fire-and-forget; give its early account check a beat.
+    await new Promise(r => setTimeout(r, 500));
+    const { batch_progress, batch_job } = await chrome.storage.local.get(['batch_progress', 'batch_job']);
+    await chrome.storage.local.remove(['batch_progress', 'batch_job', 'batch_cancel_requested']);
+    return { error: batch_progress && batch_progress.error, jobLeft: batch_job !== undefined };
+  });
+  if (outcome.error === 'interrupted') {
+    console.error('  FAIL: sweep declared a resumable batch interrupted instead of resuming it');
+    await ctx.close().catch(() => {});
+    cleanup();
+    process.exit(1);
+  }
+  if (outcome.error !== 'account_changed' || outcome.jobLeft) {
+    console.error(`  FAIL: resume trace wrong (error=${outcome.error}, jobLeft=${outcome.jobLeft}) — expected the tokenless resume to terminate account_changed and clear the snapshot`);
+    await ctx.close().catch(() => {});
+    cleanup();
+    process.exit(1);
+  }
+} catch (e) {
+  console.error(`  FAIL: batch resume check threw: ${e.message}`);
+  await ctx.close().catch(() => {});
+  cleanup();
+  process.exit(1);
+}
+console.log('  batch resume wiring OK');
 
 // ---- Teardown ----
 await ctx.close().catch(() => {});

@@ -31,7 +31,11 @@ function pbpVocabDriveOAuthActive(manifest) {
     typeof manifest?.oauth2?.client_id === "string" &&
     manifest.oauth2.client_id.trim().length > 0 &&
     scopes.length === 1 && scopes[0] === PBP_VOCAB_DRIVE_SCOPE &&
-    (hosts.includes(PBP_VOCAB_DRIVE_ORIGIN_PATTERN) || hosts.includes("*://*/*"));
+    // The ceiling only needs to ADMIT the exact googleapis origin request:
+    // the narrowed https://*/* ceiling (roadmap #33) covers it exactly like
+    // the legacy *://*/* wildcard did. Caught live by zip-smoke's mirrored
+    // assertion when the narrowing landed without this line.
+    (hosts.includes(PBP_VOCAB_DRIVE_ORIGIN_PATTERN) || hosts.includes("https://*/*") || hosts.includes("*://*/*"));
 }
 // Inline SVG icons -- replace emoji/color-glyphs that trigger a 1-3s Segoe UI Emoji
 // font-load stall on Windows high-DPI Chrome (DirectWrite system-font enumeration,
