@@ -23,7 +23,10 @@
     "https://pinboard.in/*"
   ],
   "optional_host_permissions": [
-    "*://*/*"
+    "https://*/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*",
+    "http://[::1]/*"
   ],
   "oauth2": {
     "client_id": "1002273768498-c6d7mdsd58dfoth1khb21uocmq8kveg5.apps.googleusercontent.com",

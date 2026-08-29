@@ -11,7 +11,20 @@ async function readBatchAccount() {
 }
 
 function batchAiPermissionOrigins(validTabs, s) {
-  const origins = validTabs.map(tab => new URL(tab.url).origin + "/*");
+  // Only origins inside the manifest's optional_host_permissions ceiling
+  // (https, plus literal-loopback http) can be requested — one out-of-ceiling
+  // origin in the list makes the whole permissions.request throw, killing the
+  // grant for every https tab too. Plain-http tabs are simply not requested:
+  // they still SAVE fine (posts/add needs no host grant); only the AI
+  // extraction degrades, which the batch loop already tolerates per tab.
+  const requestable = (tab) => {
+    try {
+      const u = new URL(tab.url);
+      return u.protocol === "https:" ||
+        (u.protocol === "http:" && ["localhost", "127.0.0.1", "[::1]"].includes(u.hostname));
+    } catch (_) { return false; }
+  };
+  const origins = validTabs.filter(requestable).map(tab => new URL(tab.url).origin + "/*");
   const providerOrigin = _aiTargetOriginPattern(s);
   if (providerOrigin) origins.push(providerOrigin);
   return [...new Set(origins)];

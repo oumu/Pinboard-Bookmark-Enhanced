@@ -240,14 +240,20 @@ async function createUiHarness(storedProgress, now) {
 }
 
 (async () => {
-  await test("Batch AI origins are exact, deduplicated, and include the provider", async () => {
+  await test("Batch AI origins are exact, deduplicated, ceiling-filtered, and include the provider", async () => {
     const h = await createPermissionHarness();
+    // Roadmap #33: the optional_host_permissions ceiling is https + literal-
+    // loopback http only. A plain-http origin in the request list would make
+    // the WHOLE permissions.request throw, so it must be filtered out here
+    // (the tab still saves; only its AI extraction degrades). Loopback http
+    // stays requestable (local Ollama precedent).
     const origins = h.batchAiPermissionOrigins([
       { url: "https://one.example/a" },
       { url: "https://one.example/b" },
       { url: "http://two.example:8080/c" },
+      { url: "http://127.0.0.1:3000/dev" },
     ], {});
-    equal(origins.join(","), "https://one.example/*,http://two.example:8080/*,https://api.example/*");
+    equal(origins.join(","), "https://one.example/*,http://127.0.0.1:3000/*,https://api.example/*");
   });
 
   await test("permission rows disclose every origin and name the AI provider", async () => {
