@@ -5785,21 +5785,21 @@ html.pbp-dark .bookmark { border-bottom: 1px solid var(--pinboard-border) !impor
 .selected_star { color: #AD8301 !important; }
 #sub_banner a { color: #5E409D !important; }
 .search_button input[type="submit"] { border: none !important; }
-a.url_display { color: #66800B !important; font-size: 12px !important; }
+a.url_display { color: #637c02 !important; font-size: 12px !important; }
 a.url_link { padding: 1px 5px !important; border-radius: 3px !important; }
 .description { color: #6F6E69 !important; }
 #right_bar h3 { color: #5E409D !important; }
 #right_bar h4 { color: #5E409D !important; }
 #right_bar b { color: #5E409D !important; }
 #right_bar a:not(.tag) { color: #5E409D !important; }
-#right_bar a:not(.tag):hover { color: #8B7EC8 !important; }
+#right_bar a:not(.tag):hover { color: #735EB5 !important; }
 a.bundle { color: #5E409D !important; }
-a.bundle:hover { color: #8B7EC8 !important; }
+a.bundle:hover { color: #735EB5 !important; }
 #tag_cloud_header a:not(.tag):hover { color: #5E409D !important; }
 a.sort_order_selected { background: #DAD8CE !important; color: #5E409D !important; }
 input[type="submit"] { border: none !important; }
 input[type="button"] { border: none !important; }
-.suggested_tag { color: #AD8301 !important; }
+.suggested_tag { color: #846401 !important; }
 #settings_panel { background: #FFFCF0 !important; }
 .settings_tab_selected { border-bottom-color: #FFFCF0 !important; background: #FFFCF0 !important; }
 .settings_heading { color: #5E409D !important; }
@@ -5824,7 +5824,7 @@ html.pbp-dark #right_bar a:not(.tag):hover { color: #A699D0 !important; }
 html.pbp-dark a.bundle { color: #8B7EC8 !important; }
 html.pbp-dark a.bundle:hover { color: #A699D0 !important; }
 html.pbp-dark #tag_cloud_header a:not(.tag):hover { color: #8B7EC8 !important; }
-html.pbp-dark a.sort_order_selected { background: #343331 !important; color: #8B7EC8 !important; }
+html.pbp-dark a.sort_order_selected { background: #343331 !important; color: #A699D0 !important; }
 html.pbp-dark input[type="text"] { border-color: #403E3C !important; }
 html.pbp-dark input:not([type]) { border-color: #403E3C !important; }
 html.pbp-dark input[type="password"] { border-color: #403E3C !important; }
@@ -6662,7 +6662,7 @@ body#pinboard { letter-spacing: 0.01em !important; }
 .bookmark { padding: 12px 14px !important; border-radius: 2px !important; border-left: 2px solid transparent !important; }
 body:not(#pinboard) { letter-spacing: 0.01em !important; }
 a.bookmark_title { font-weight: 500 !important; }
-a.url_display { color: #859900 !important; font-family: "Fira Code", "Cascadia Code", monospace !important; }
+a.url_display { color: #667700 !important; font-family: "Fira Code", "Cascadia Code", monospace !important; }
 .bookmark .description { opacity: 1 !important; }
 a.url_link { padding: 1px 5px !important; }
 .description blockquote { border-left: 2px solid #268bd2 !important; }
@@ -8277,7 +8277,7 @@ input[type="submit"], input[type="button"], .search_button input[type="submit"] 
 .bookmark { padding: 14px 18px !important; border-radius: 12px !important; margin-bottom: 8px !important; box-shadow: 0 1px 4px rgba(0,0,0,0.06) !important; }
 a.bookmark_title { font-weight: 600 !important; }
 a.bookmark_title:hover { text-decoration: none !important; }
-a.url_display { color: #40a02b !important; font-size: 12px !important; }
+a.url_display { color: #167e00 !important; font-size: 12px !important; }
 a.url_link { padding: 2px 8px !important; border-radius: 10px !important; }
 .description { color: #5c5f77 !important; }
 .description blockquote { border-left: 3px solid #8839ef !important; padding-left: 12px !important; margin: 6px 0 !important; }
@@ -8293,7 +8293,7 @@ input:not([type]) { border-radius: 8px !important; }
 input[type="password"] { border-radius: 8px !important; }
 textarea { border-radius: 8px !important; }
 select { border-radius: 8px !important; }
-.suggested_tag { color: #179299 !important; }
+.suggested_tag { color: #127076 !important; }
 #edit_bookmark_form { border-radius: 12px !important; }
 a.help { background: #e6e9ef !important; }
 .service_box { border-radius: 12px !important; box-shadow: 0 1px 4px rgba(0,0,0,0.06) !important; }

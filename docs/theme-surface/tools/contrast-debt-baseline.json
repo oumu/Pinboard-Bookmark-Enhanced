@@ -27,15 +27,6 @@
     "Seeded 2026-08-26 at 41 override + 11 hover entries: the exact debt the count-based ceilings",
     "(OVERRIDE_TEXT_DEBT_MAX / STATE_DELTA_DEBT_MAX) carried before identities replaced them."
   ],
-  "overrideText": [
-    "catppuccin-latte | .suggested_tag | #179299 | page",
-    "catppuccin-latte | a.url_display | #40a02b | page",
-    "flexoki | #right_bar a:not(.tag):hover | #8b7ec8 | page",
-    "flexoki | .suggested_tag | #ad8301 | page",
-    "flexoki | a.bundle:hover | #8b7ec8 | page",
-    "flexoki | a.url_display | #66800b | page",
-    "flexoki:html.pbp-dark | html.pbp-dark a.sort_order_selected | #8b7ec8 | own #343331",
-    "solarized-light | a.url_display | #859900 | page"
-  ],
+  "overrideText": [],
   "hoverState": []
 }
