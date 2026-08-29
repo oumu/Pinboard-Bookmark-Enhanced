@@ -1784,6 +1784,16 @@ async function pbpSyncSiteThemeScript() {
 }
 pbpSyncSiteThemeScript();
 
+// Trusted-only storage (roadmap #36): content scripts lose direct read access
+// to local/sync — the same areas that hold the Pinboard token and every BYO
+// API key. The pinboard.in scripts now fetch their handful of non-secret
+// prefs through the get_site_prefs message (allowlisted in the router gate),
+// so a content-script compromise no longer implies a credential read.
+// session is TRUSTED_CONTEXTS by default already. Top-level, every SW eval —
+// setAccessLevel is per-session state, so it must be re-asserted on wake.
+try { chrome.storage.local.setAccessLevel({ accessLevel: "TRUSTED_CONTEXTS" }).catch(() => {}); } catch (_) {}
+try { chrome.storage.sync.setAccessLevel({ accessLevel: "TRUSTED_CONTEXTS" }).catch(() => {}); } catch (_) {}
+
 // Security-first permission migration. Older Batch versions could leave the
 // optional all-sites grant active. Removing it also clears matching exact
 // optional grants in Chrome, so configurations stay untouched and each feature
@@ -2198,6 +2208,32 @@ function handleRuntimeMessage(message, sender, sendResponse) {
   // page's URL. Fail closed when absent.
   if (!sender || sender.id !== chrome.runtime.id ||
       typeof sender.url !== "string" || !sender.url.startsWith(chrome.runtime.getURL(""))) {
+    // One deliberate content-script window (roadmap #36): the pinboard.in
+    // scripts read their prefs via message now that storage is trusted-only.
+    // Same-extension sender + pinboard.in page + exactly this type; the
+    // handler returns only non-secret display prefs by construction.
+    if (sender && sender.id === chrome.runtime.id &&
+        typeof sender.url === "string" && /^https:\/\/([a-z0-9-]+\.)?pinboard\.in\//.test(sender.url) &&
+        message.type === "get_site_prefs") {
+      (async () => {
+        const s = await loadSettings();
+        const overlay = await pbpWithLargeStorageLock("customOverlayCSS", () =>
+          pbpReadLargeWithFallbackUnlocked("customOverlayCSS", async () => {
+            try {
+              const st = await getSettingsStorage();
+              return (await st.get("customOverlayCSS")).customOverlayCSS;
+            } catch (_) { return ""; }
+          }, ""));
+        sendResponse({
+          customFont: String(s.customFont || ""),
+          optTheme: String(s.optTheme || "auto"),
+          themePresetKey: String(s.themePresetKey || ""),
+          overlayCss: typeof overlay === "string" ? overlay : "",
+          tagSortByPopEnabled: s.tagSortByPopEnabled !== false,
+        });
+      })().catch(() => sendResponse(null));
+      return true;
+    }
     sendResponse({ error: "forbidden" });
     return true;
   }

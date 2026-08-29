@@ -64,14 +64,14 @@
     return !!(mc && mc.querySelector("div.bookmark"));
   }
 
-  // Inline storage selector (shared.js is unavailable to content scripts;
-  // mirrors pinboard-style.js). Default ON.
+  // Trusted-only storage (roadmap #36): prefs come from the SW's allowlisted
+  // get_site_prefs message — content scripts can no longer read chrome.storage
+  // directly (the same areas hold credentials). Default ON on any failure.
   async function readEnabled() {
     try {
-      const { optSyncEnabled } = await chrome.storage.local.get({ optSyncEnabled: false });
-      const storage = optSyncEnabled ? chrome.storage.sync : chrome.storage.local;
-      const { tagSortByPopEnabled } = await storage.get({ tagSortByPopEnabled: true });
-      return tagSortByPopEnabled;
+      const prefs = await chrome.runtime.sendMessage({ type: "get_site_prefs" });
+      if (prefs && typeof prefs === "object" && !prefs.error) return prefs.tagSortByPopEnabled !== false;
+      return true;
     } catch (_) {
       return true;
     }

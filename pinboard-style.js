@@ -65,64 +65,27 @@ if (_pbpHasTheme) {
 }
 
 (async () => {
-  // Inline storage selector (shared.js not available in content scripts)
-  async function getStorage() {
-    const { optSyncEnabled } = await chrome.storage.local.get({ optSyncEnabled: false });
-    return optSyncEnabled ? chrome.storage.sync : chrome.storage.local;
-  }
-
-  // Read large value — chunked from sync, direct from local. Mirrors
-  // shared.js's fallback-freshness rules (content scripts can't load shared.js
-  // or take its Web Locks): a quota-fallback record wins only while sync still
-  // shows the generation it was written against ("_base"); once another device
-  // commits a newer generation, sync wins. A generation swap racing these
-  // unlocked reads (meta read, then chunks already deleted) is retried once
-  // with fresh metadata instead of silently rendering without the overlay.
-  async function readChunkedSync(key, defaultValue) {
-    const storage = await getStorage();
-    if (storage === chrome.storage.local) {
-      const data = await chrome.storage.local.get({ [key]: defaultValue });
-      return data[key];
-    }
-    const fallbackKey = `${key}_localFallback`;
-    const fallback = await chrome.storage.local.get(fallbackKey);
-    if (typeof fallback[fallbackKey] === "string") return fallback[fallbackKey];
-    const record = fallback[fallbackKey];
-    const isRecord = !!(record && record._pbpLargeFallback === 1 && typeof record.value === "string");
-    // Last-known rescue (mirrors shared.js): when a record exists but sync
-    // cannot be read cleanly — committed metadata whose chunks are missing,
-    // or a newer generation whose chunks have not propagated yet — fall back
-    // to the record's value rather than rendering unthemed.
-    const rescue = isRecord ? record.value : null;
-    for (let attempt = 0; attempt < 2; attempt++) {
-      const meta = await chrome.storage.sync.get(key);
-      const stored = meta[key];
-      const generation = stored && typeof stored === "object" ? stored._generation : undefined;
-      if (isRecord && !(stored && typeof stored === "object" && generation === record._generation)) {
-        // Not the committed-then-crashed case; is the record still fresh?
-        const current = typeof generation === "string" ? generation : null;
-        const base = Object.prototype.hasOwnProperty.call(record, "_base") ? record._base : current;
-        if (current === base) return record.value;
-        // Stale record (another device committed a newer generation): sync
-        // wins when it reads; the rescue above covers the propagation gap.
-      }
-      if (typeof stored === "string") return stored;
-      const count = Number(stored && stored._chunks);
-      if (!Number.isInteger(count) || count < 1 || count > 512 ||
-          (generation !== undefined && (typeof generation !== "string" || !/^[a-z0-9]+$/i.test(generation)))) {
-        return rescue === null ? defaultValue : rescue;
-      }
-      const prefix = generation ? `${key}_${generation}_` : `${key}_`;
-      const chunkKeys = Array.from({ length: count }, (_, i) => `${prefix}${i}`);
-      const chunks = await chrome.storage.sync.get(chunkKeys);
-      if (chunkKeys.every((chunkKey) => typeof chunks[chunkKey] === "string")) {
-        return chunkKeys.map((chunkKey) => chunks[chunkKey]).join("") || defaultValue;
-      }
-      // Missing chunks: a writer likely swapped generations mid-read — loop
-      // once for fresh metadata, then rescue/default (the 400ms uncloak
-      // guard still applies either way).
-    }
-    return rescue === null ? defaultValue : rescue;
+  // Trusted-only storage (roadmap #36): this script can no longer read
+  // chrome.storage — local/sync also hold the Pinboard token and every BYO
+  // API key, and setAccessLevel(TRUSTED_CONTEXTS) closed that whole surface
+  // to content scripts. The handful of non-secret display prefs (and the
+  // overlay CSS, chunk-resolved by shared.js's full implementation on the
+  // trusted side) arrive through the SW's allowlisted get_site_prefs message
+  // instead. The old inline chunked-sync reader lived here only because
+  // content scripts couldn't load shared.js — moot now.
+  function fetchSitePrefs() {
+    return new Promise((resolve) => {
+      let settled = false;
+      const settle = (v) => { if (!settled) { settled = true; resolve(v); } };
+      try {
+        chrome.runtime.sendMessage({ type: "get_site_prefs" })
+          .then((resp) => settle(resp && typeof resp === "object" && !resp.error ? resp : null), () => settle(null));
+      } catch (_) { settle(null); }
+      // A cold SW can take a moment; the 400ms cloak guard below already
+      // bounds the visual cost — this bound only keeps the promise from
+      // hanging forever if the channel dies.
+      setTimeout(() => settle(null), 3000);
+    });
   }
 
   function uncloak() {
@@ -135,15 +98,14 @@ if (_pbpHasTheme) {
   setTimeout(uncloak, 400);
 
   try {
-    const storage = await getStorage();
-    const data = await storage.get({
-      customFont: "",
-      optTheme: "auto",
-      themePresetKey: "",
-    });
-
-    // The reader itself prefers this device's local quota fallback when present.
-    const overlay = await readChunkedSync("customOverlayCSS", "");
+    const prefs = await fetchSitePrefs();
+    if (!prefs) { uncloak(); return; } // channel down: render unthemed, cloak guard already bounded the wait
+    const data = {
+      customFont: typeof prefs.customFont === "string" ? prefs.customFont : "",
+      optTheme: typeof prefs.optTheme === "string" ? prefs.optTheme : "auto",
+      themePresetKey: typeof prefs.themePresetKey === "string" ? prefs.themePresetKey : "",
+    };
+    const overlay = typeof prefs.overlayCss === "string" ? prefs.overlayCss : "";
 
     // Inject pbp-dark class based on extension theme setting
     const isDark = data.optTheme === "dark" ||

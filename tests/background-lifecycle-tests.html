@@ -322,6 +322,9 @@ function buildUndoHarness(source, opts) {
       deobfuscateKey: (v) => v,
       showNotification: spy("notify"),
       t: (k, ...a) => (a.length ? `${k}:${a.join(":")}` : k),
+      pbpWithLargeStorageLock: (key, fn) => fn(),
+      pbpReadLargeWithFallbackUnlocked: async (key, read, dflt) => (await read()) ?? dflt,
+      getSettingsStorage: async () => ({ get: async () => ({ customOverlayCSS: "/*ov*/" }) }),
       console,
     };
     const factory = new Function(...Object.keys(deps), `${source.slice(start, end)}
@@ -384,6 +387,17 @@ function buildUndoHarness(source, opts) {
     const r = await h.invoke({ type: "totally_unknown_type" });
     check("router: an unknown type falls through quietly (no response, channel not held, no throw)",
       r.responses.length === 0 && r.held !== true);
+  }
+  {
+    const h = buildRouterHarness();
+    const site = { id: EXT_ID, url: "https://pinboard.in/u:alice/t:tag" };
+    const prefs = await h.invoke({ type: "get_site_prefs" }, site);
+    const smuggle = await h.invoke({ type: "save_intent" }, site);
+    const p = prefs.responses[0] || {};
+    check("router: pinboard.in content script gets ONLY non-secret site prefs; other types stay forbidden",
+      p.optTheme === "auto" && p.overlayCss === "/*ov*/" &&
+      !("pinboardToken" in p) && !Object.keys(p).some((k) => /token|key/i.test(k) && k !== "themePresetKey") &&
+      smuggle.responses[0]?.error === "forbidden");
   }
 
   document.getElementById("summary").textContent = `pass=${pass} fail=${fail}`;
