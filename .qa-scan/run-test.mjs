@@ -117,6 +117,7 @@ async function bounded(label, timeoutMs, task) {
 let browser;
 let browserDisconnected = false;
 const runtimeErrors = [];
+const blockedExternal = [];
 try {
   await bounded("server start", CLEANUP_TIMEOUT_MS, () => new Promise((resolveListen, rejectListen) => {
     const onError = (error) => rejectListen(error);
@@ -136,11 +137,18 @@ try {
     page.on("pageerror", (error) => runtimeErrors.push("PAGEERROR: " + error.message));
     page.on("crash", () => runtimeErrors.push("PAGECRASH: renderer crashed"));
     const localOrigin = new URL(url).origin;
+    // Closed network by default (same policy as scripts/perf-cold-sample.mjs):
+    // any http(s) request off the local test server is aborted and reported.
+    // A missed fetch mock must fail loudly here — not silently reach a real
+    // API and go green-online / red-offline. A suite that genuinely needs an
+    // external origin must mock it via page fixtures instead.
     await page.route("**/*", (route) => {
       const request = route.request();
       const requestUrl = request.url();
-      if (request.resourceType() === "image" && /^https?:/.test(requestUrl)
-          && new URL(requestUrl).origin !== localOrigin) return route.abort();
+      if (/^https?:/.test(requestUrl) && new URL(requestUrl).origin !== localOrigin) {
+        blockedExternal.push(request.method() + " " + requestUrl);
+        return route.abort("blockedbyclient");
+      }
       return route.continue();
     });
 
@@ -172,6 +180,10 @@ try {
   if (total !== expected) console.error(`ERROR: expected ${expected} result rows, found ${total}`);
   if (runtimeErrors.length) console.error("errors:\n  " + runtimeErrors.slice(0, 25).join("\n  "));
   if (browserDisconnected) console.error("ERROR: browser disconnected before the suite completed");
+  if (blockedExternal.length) {
+    const unique = [...new Set(blockedExternal)];
+    console.error(`NOTE: closed network blocked ${blockedExternal.length} external request(s):\n  ` + unique.slice(0, 10).join("\n  "));
+  }
   if (dom.fail > 0 || total !== expected || runtimeErrors.length > 0 || browserDisconnected) process.exitCode = 1;
 } catch (error) {
   console.error(`ERROR: ${error && error.message ? error.message : error}`);

@@ -633,15 +633,28 @@ order = ["feat", "fix", "perf", "style", "refactor", "docs", "security"]
 
 pattern = re.compile(r'^(\w+)(?:\(([^)]+)\))?!?:\s*(.+)$')
 
+skipped = []
 for msg in commits:
     m = pattern.match(msg)
     if not m:
+        skipped.append(msg)
         continue
     ctype, scope, subject = m.group(1).lower(), (m.group(2) or '').lower(), m.group(3)
     if ctype == 'fix' and scope == 'security':
         ctype = 'security'
     if ctype in groups:
         groups[ctype]["items"].append(subject)
+    else:
+        skipped.append(msg)
+
+# Skipped commits vanish from the release notes silently otherwise — surface
+# them on stderr so the release operator can double-check nothing user-visible
+# was dropped (chore/test/ci prefixes and free-form messages land here).
+if skipped:
+    import sys
+    print(f"NOTE: {len(skipped)} commit(s) not matched into the changelog:", file=sys.stderr)
+    for msg in skipped[:20]:
+        print(f"  - {msg}", file=sys.stderr)
 
 output = []
 for key in order:
