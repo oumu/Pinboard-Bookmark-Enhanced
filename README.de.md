@@ -19,7 +19,7 @@ Eine Chrome-Erweiterung für [Pinboard](https://pinboard.in): KI-Tags und Zusamm
 ### Speichern
 - **Ein Klick, alles ausgefüllt** – Titel, Beschreibung und markierter Text werden übernommen, Tracking-Parameter aus der URL entfernt
 - **Per Tastenkürzel speichern** – ohne das Popup zu öffnen; auf Wunsch alle offenen Tabs auf einmal
-- **Funktioniert auch offline** – Gespeichertes landet in einer lokalen Warteschlange und wird erneut gesendet, sobald du wieder online bist
+- **Funktioniert offline** – Gespeichertes landet in einer lokalen Warteschlange und wird gesendet, sobald du wieder online bist
 
 ![Speichern mit einem Klick, KI-Tags und Zusammenfassung](docs/cws-assets/originals/screenshot-1-save.png)
 
@@ -30,12 +30,12 @@ Eine Chrome-Erweiterung für [Pinboard](https://pinboard.in): KI-Tags und Zusamm
 
 ### Lesen
 - **Jede Seite wird zur Leseansicht** – Markdown-Ansicht mit Inhaltsverzeichnis, Suche und Fußnoten-Vorschau; Formeln, Diagramme und Tabellen werden sauber dargestellt
-- **Markieren in fünf Farben, mit Notizen** – Markierungen und Notizen überstehen erneutes Rendern, Übersetzung und Änderungen an der Seite
+- **Markieren in fünf Farben, mit Notizen** – beide überstehen erneutes Rendern, Übersetzung und Änderungen an der Seite
 - **Seite übersetzen oder befragen** – Ganzseiten-Übersetzung mit zweisprachiger Ansicht; Antworten zitieren die Quelle, ein Klick führt direkt zur Fundstelle
-- **Wörter beim Lesen nachschlagen und wiederholen**: Definitionen zeigen zuerst die zum Satz passende Bedeutung; gespeicherte Vokabeln lassen sich mit Notizen und einem Lernstatus versehen und an Anki oder Eudic senden. Optional gibt es Offline-Wörterbuchpakete für Chinesisch–Englisch und Englisch–Chinesisch
+- **Wörter beim Lesen nachschlagen**: Definitionen zeigen zuerst die zum Satz passende Bedeutung; gespeicherte Vokabeln tragen Notizen und Lernstatus und gehen auf Wunsch an Anki oder Eudic; optionale Offline-Wörterbuchpakete für Chinesisch–Englisch und Englisch–Chinesisch
 - **Eine eigene Seite für Notizen und Vokabeln**: gespeicherte Wörter und Markierungen an einem Ort, mit Wörterbuchsuche und Stapelbearbeitung
-- **Senden oder herunterladen** – an [Obsidian](https://obsidian.md), Notion, NotebookLM, ein GitHub Gist oder einen beliebigen Webhook senden; als `.md`, `.html` oder `.epub` für den E-Reader herunterladen
-- **Sehen beim Lesen** – Vorschauen von YouTube- und Bilibili-Seiten laden Video und mehrsprachige Untertitel nebeneinander, halten das Transkript mit der Wiedergabe im Takt, springen per Klick auf eine Zeile im Player, und KI-Tags und -Zusammenfassungen lesen auf Wunsch die Untertitel statt der Seite
+- **Senden oder herunterladen** – an [Obsidian](https://obsidian.md), Notion, NotebookLM, ein GitHub Gist oder einen beliebigen Webhook; als `.md`, `.html` oder `.epub` für den E-Reader
+- **Sehen beim Lesen** – YouTube- und Bilibili-Vorschauen zeigen Video und mehrsprachige Untertitel nebeneinander; das Transkript folgt der Wiedergabe, ein Klick auf eine Zeile springt im Player, und KI-Tags und -Zusammenfassungen lesen auf Wunsch die Untertitel statt der Seite
 
 ![Leseansicht mit zweisprachiger Übersetzung und Markierungen](docs/cws-assets/originals/screenshot-2-reader.png)
 
@@ -44,7 +44,7 @@ Eine Chrome-Erweiterung für [Pinboard](https://pinboard.in): KI-Tags und Zusamm
 ### Pinboard nach deinem Geschmack
 - **13 Themes für pinboard.in** (Dracula · Nord · Catppuccin · Solarized · …) plus dein eigenes CSS
 - **Automatisch in die [Wayback Machine](https://web.archive.org) archivieren** – auf Wunsch bei jedem Speichern; Seiten bleiben erreichbar, auch wenn der Originallink tot ist
-- **Sicherung und Synchronisierung**: Einstellungen über Chrome Sync, Vokabeln über dein eigenes Google Drive, dazu manuelle JSON-Sicherungen, die Markierungen, Notizen, Vokabeln und deine API-Schlüssel enthalten können. Jede dieser Optionen aktivierst du einzeln; die Einzelheiten stehen unten im Abschnitt Datenschutz
+- **Sicherung und Synchronisierung**: Einstellungen über Chrome Sync, Vokabeln über dein eigenes Google Drive, dazu manuelle JSON-Sicherungen mit Markierungen, Notizen, Vokabeln und deinen API-Schlüsseln; alles einzeln aktivierbar, Einzelheiten unten im Abschnitt Datenschutz
 - **9 Sprachen** · anpassbare Tastenkürzel · Speicherung primär lokal · kein Tracking
 
 ![13 Themes für pinboard.in](docs/cws-assets/originals/screenshot-4-themes.png)

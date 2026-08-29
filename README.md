@@ -17,25 +17,25 @@ A Chrome extension for [Pinboard](https://pinboard.in): AI tags and summaries, a
 ## Features
 
 ### Save
-- **One click, everything filled in**: the title, description, and selected text are picked up for you, and tracking parameters are stripped from the URL
-- **Save by hotkey**: skip the popup entirely, or batch-save every open tab at once
+- **One click, everything filled in**: title, description, and selected text, with tracking parameters stripped from the URL
+- **Save by hotkey**: skip the popup, or batch-save every open tab
 - **Works offline**: saves are queued locally and retried when you're back online
 
 ![One-click save with AI tags and summary](docs/cws-assets/originals/screenshot-1-save.png)
 
 ### Tag
-- **AI tags & summary**: the AI reads the article body with ads, menus, and sidebars stripped out; bring your own key (14 providers, or any OpenAI-compatible endpoint)
-- **Autocomplete** from your own tags, Pinboard's suggested tags, and one-tap presets
-- **Tag cleanup**: find duplicate and rarely-used tags and merge them in batches
+- **AI tags & summary**: reads the article body without the ads, menus, and sidebars; bring your own key (14 providers, or any OpenAI-compatible endpoint)
+- **Autocomplete** from your own tags, Pinboard's suggestions, and one-tap presets
+- **Tag cleanup**: find duplicate and rarely-used tags, merge them in batches
 
 ### Read
-- **Any page becomes a clean reader**: a Markdown view with a table of contents, search, and footnote peek; math, diagrams, and tables render properly
+- **Any page becomes a clean reader**: a Markdown view with table of contents, search, and footnote peek; math, diagrams, and tables render properly
 - **Five-color highlights with notes**: both survive re-renders, translation, even page edits
 - **Translate the page or ask it questions**: full-page translation with a bilingual view; answers cite the source and jump straight to it
-- **Look up and review words as you read**: definitions open on the sense that fits your sentence; saved words keep notes and a learning status, and can be sent to Anki or Eudic. Optional offline dictionary packs cover Chinese-English and English-Chinese
-- **A full page for notes and vocabulary**: your saved words and highlights in one place, with dictionary lookup and batch management
-- **Send or download**: send to [Obsidian](https://obsidian.md), Notion, NotebookLM, a GitHub Gist, or any webhook; download as `.md`, `.html`, or `.epub` for your e-reader
-- **Watch while you read**: previews of YouTube and bilibili pages load the video and its subtitles side by side, keep the transcript in step with playback on both sites, jump the player from any line, and let AI tags and summaries read the captions instead of the page
+- **Look up words as you read**: definitions open on the sense that fits your sentence; saved words keep notes and a learning status and can be sent to Anki or Eudic; optional offline dictionary packs for Chinese-English and English-Chinese
+- **A full page for notes and vocabulary**: saved words and highlights in one place, with dictionary lookup and batch management
+- **Send or download**: [Obsidian](https://obsidian.md), Notion, NotebookLM, a GitHub Gist, or any webhook; `.md`, `.html`, or `.epub` for your e-reader
+- **Watch while you read**: YouTube and bilibili previews pair the video with its subtitles; the transcript follows playback, any line jumps the player, and AI tags and summaries can read the captions instead of the page
 
 ![Reader with bilingual translation and highlights](docs/cws-assets/originals/screenshot-2-reader.png)
 
@@ -43,8 +43,8 @@ A Chrome extension for [Pinboard](https://pinboard.in): AI tags and summaries, a
 
 ### Make Pinboard yours
 - **13 themes for pinboard.in** (Dracula · Nord · Catppuccin · Solarized · …) plus your own custom CSS
-- **Auto-archive to the [Wayback Machine](https://web.archive.org)**: optionally submit every save, so pages stay reachable after the original link dies
-- **Backup and sync**: settings through Chrome Sync, vocabulary through your own Google Drive, and manual JSON backups that can include highlights, notes, vocabulary, and your API keys. Each one is opt-in; Privacy below has the exact terms
+- **Auto-archive to the [Wayback Machine](https://web.archive.org)**: optionally submit every save; pages stay reachable after the original link dies
+- **Backup and sync**: settings via Chrome Sync, vocabulary via your own Google Drive, manual JSON backups that can include highlights, notes, vocabulary, and your API keys; each is opt-in, with the exact terms under Privacy below
 - **9 languages** · configurable shortcuts · local-first storage · zero tracking
 
 ![13 themes for pinboard.in](docs/cws-assets/originals/screenshot-4-themes.png)

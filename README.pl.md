@@ -29,13 +29,13 @@ Rozszerzenie Chrome dla [Pinboard](https://pinboard.in): tagi i streszczenia od 
 - **Porządki w tagach** — znajdź duplikaty i rzadko używane tagi, po czym scal je partiami
 
 ### Czytanie
-- **Każda strona staje się czytelna** — widok Markdown ze spisem treści, wyszukiwaniem i podglądem przypisów; wzory matematyczne, diagramy i tabele wyświetlają się poprawnie
+- **Każda strona staje się czytelna** — widok Markdown ze spisem treści, wyszukiwaniem i podglądem przypisów; wzory, diagramy i tabele wyświetlają się poprawnie
 - **Zakreślenia w pięciu kolorach, z notatkami** — jedne i drugie przetrwają ponowne renderowanie, tłumaczenie, a nawet zmiany na stronie
 - **Przetłumacz stronę albo zadaj jej pytanie** — tłumaczenie całości z widokiem dwujęzycznym; odpowiedzi cytują źródło i prowadzą prosto do niego
-- **Sprawdzaj i powtarzaj słownictwo podczas czytania** — słownik pokazuje najpierw znaczenie pasujące do bieżącego zdania; zapisane słówka mogą mieć notatki i status opanowania, można je też wysyłać do Anki i Eudic. Do wyboru są pakiety słowników offline: chińsko-angielski i angielsko-chiński.
+- **Sprawdzaj słownictwo podczas czytania** — słownik pokazuje najpierw znaczenie pasujące do bieżącego zdania; zapisane słówka mają notatki i status opanowania i na życzenie trafiają do Anki lub Eudic; pakiety słowników offline (chińsko-angielski i angielsko-chiński) do wyboru
 - **Notatki i słówka mają własną stronę** — zapisane słówka i zakreślenia w jednym miejscu, z wyszukiwaniem w słowniku i zarządzaniem partiami
 - **Wyślij albo pobierz** — do [Obsidiana](https://obsidian.md), Notion, NotebookLM, do serwisu GitHub Gist lub dowolnego webhooka; albo jako `.md`, `.html`, `.epub` na czytnik e-booków
-- **Oglądaj podczas czytania** — podgląd stron YouTube i Bilibili wczytuje wideo i wielojęzyczne napisy obok siebie, utrzymuje transkrypcję w rytmie odtwarzania, przeskakuje w odtwarzaczu po kliknięciu wiersza, a tagi i podsumowania AI mogą czytać napisy zamiast strony
+- **Oglądaj podczas czytania** — podgląd stron YouTube i Bilibili wczytuje wideo i wielojęzyczne napisy obok siebie; transkrypcja podąża za odtwarzaniem, kliknięcie wiersza przeskakuje odtwarzacz, a tagi i podsumowania AI mogą czytać napisy zamiast strony
 
 ![Czytelny widok z tłumaczeniem dwujęzycznym i zakreśleniami](docs/cws-assets/originals/screenshot-2-reader.png)
 
@@ -44,7 +44,7 @@ Rozszerzenie Chrome dla [Pinboard](https://pinboard.in): tagi i streszczenia od 
 ### Personalizacja
 - **13 motywów dla pinboard.in** (Dracula · Nord · Catppuccin · Solarized · …) oraz własny CSS
 - **Automatyczna archiwizacja w [Wayback Machine](https://web.archive.org)** — opcjonalnie przy każdym zapisie; strony pozostają dostępne, nawet gdy oryginalny link przestanie działać
-- **Kopie zapasowe i synchronizacja** — ustawienia synchronizuje Chrome Sync, słówka trafiają na twój własny Google Drive, a do ręcznej kopii JSON możesz dołączyć zakreślenia, notatki, słówka i klucze API. Każda z tych funkcji jest opcjonalna; szczegóły znajdziesz w sekcji Prywatność poniżej.
+- **Kopie zapasowe i synchronizacja** — ustawienia synchronizuje Chrome Sync, słówka trafiają na twój własny Google Drive, a ręczna kopia JSON może objąć zakreślenia, notatki, słówka i klucze API; wszystko opcjonalne, szczegóły w sekcji Prywatność poniżej
 - **9 języków** · konfigurowalne skróty · dane przede wszystkim lokalnie · zero śledzenia
 
 ![13 motywów dla pinboard.in](docs/cws-assets/originals/screenshot-4-themes.png)
