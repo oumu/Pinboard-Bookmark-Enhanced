@@ -3,6 +3,11 @@
 // ============================================================
 
 let _i18nMessages = null;
+// Which language _i18nMessages actually holds. The version stamp lives in
+// SHARED localStorage — after a language switch, another page may have already
+// updated the stamp while THIS page still holds the old language's messages,
+// so the stamp alone must never short-circuit the refresh (Codex review P2).
+let _i18nMessagesLang = null;
 let _i18nReady = false;
 let _i18nRefreshGeneration = 0;
 
@@ -28,7 +33,10 @@ function initI18n() {
     if (lang && lang !== "auto") {
       const msgs = localStorage.getItem("pp-i18n-msgs");
       if (msgs) {
-        try { _i18nMessages = JSON.parse(msgs); } catch (_) {}
+        try {
+          _i18nMessages = JSON.parse(msgs);
+          _i18nMessagesLang = lang;
+        } catch (_) {}
       }
     }
   } catch (_) {}
@@ -62,6 +70,7 @@ async function _refreshI18nAsync() {
       const changed = _i18nMessages !== null;
       if (changed) {
         _i18nMessages = null;
+        _i18nMessagesLang = null;
         if (typeof applyI18n === "function") applyI18n();
       }
       return;
@@ -74,7 +83,7 @@ async function _refreshI18nAsync() {
     // open for manual-language users. Fail-open: any localStorage hiccup just
     // falls through to the full refresh below.
     try {
-      if (_i18nMessages &&
+      if (_i18nMessages && _i18nMessagesLang === optLang &&
           localStorage.getItem("pp-i18n-stamp") === optLang + "@" + chrome.runtime.getManifest().version) {
         return;
       }
@@ -107,6 +116,7 @@ async function _refreshI18nAsync() {
     const changed = prevLang !== optLang || _i18nMessages === null
       || JSON.stringify(_i18nMessages) !== JSON.stringify(msgs);
     _i18nMessages = msgs;
+    _i18nMessagesLang = optLang;
     if (changed && typeof applyI18n === "function") applyI18n();
   } catch (e) {
     console.warn("[i18n] async refresh failed:", e?.message || e);

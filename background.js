@@ -663,6 +663,10 @@ function mutateOfflineQueue(action) {
     const { offlineQueue = [] } = await chrome.storage.local.get("offlineQueue");
     const next = pbpOfflineQueueReduce(offlineQueue, action);
     await chrome.storage.local.set({ offlineQueue: next });
+    // A non-empty queue needs the (conditional) keepalive alarm alive to drive
+    // replay. typeof-guarded: source-slice test pages run this without the
+    // alarm block in scope.
+    if (next.length && typeof _ensureKeepaliveAlarmOnce === "function") _ensureKeepaliveAlarmOnce();
     return next;
   });
 }
@@ -1386,6 +1390,12 @@ function pbpImgFixRemoveRules(ruleIds, tabId, docUrl) {
 // kill rules a live preview installed while the SW slept, but only checking
 // "tab exists" would leave a rule stranded on a tab that has since navigated to
 // a normal site (confirm-review 2).
+// True once a FULL (no-tabId) sweep has completed successfully in this SW
+// generation. The navigation listener's no-owner fast path is only sound when
+// the startup sweep really ran: if its getSessionRules/tabs.query threw (the
+// catch below swallows it), the owner map is empty and skipping would strand
+// leftover rules with no leave-the-page cleanup (Codex review P2).
+let _imgFixStartupSweepOk = false;
 function pbpImgFixSweepRules(tabId) {
   if (!chrome.declarativeNetRequest || !chrome.declarativeNetRequest.getSessionRules) return Promise.resolve();
   return _imgFixSerialize(async () => {
@@ -1410,6 +1420,7 @@ function pbpImgFixSweepRules(tabId) {
       await chrome.declarativeNetRequest.updateSessionRules({ removeRuleIds: ids });
       ids.forEach((id) => _imgFixRuleOwner.delete(id));
     }
+    if (tabId === undefined) _imgFixStartupSweepOk = true;
   }).catch(() => { /* best-effort: a sweep failure must never break tab handling */ });
 }
 
@@ -1431,8 +1442,11 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
   // Without this early return, EVERY navigation on EVERY ordinary tab (including
   // pure #anchor jumps and SPA pushState storms) paid a getSessionRules() IPC —
   // and each chrome.* call resets the SW's 30s idle timer, silently defeating
-  // the "sleep after the keepalive window lapses" design.
-  if (!owner) return;
+  // the "sleep after the keepalive window lapses" design. Guarded on the
+  // startup sweep having actually succeeded: if it threw, the owner map is
+  // untrustworthy and we fall back to sweep-on-every-navigation (correctness
+  // over the optimization).
+  if (!owner && _imgFixStartupSweepOk) return;
   if (_imgFixIsPreviewUrl(changeInfo.url) && _imgFixStripHash(changeInfo.url) === owner) return;
   pbpImgFixSweepRules(tabId);
 });
@@ -1479,6 +1493,10 @@ function noteActivity() {
     try { chrome.storage.session.set({ _lastActivityTs }); } catch (_) {}
   }
   ensureKeepAlive();
+  // Activity (re)opens the window — make sure the conditional keepalive alarm
+  // exists again as the mid-window revival backstop (flag-throttled, so the
+  // high-frequency tab-event path pays no alarms.get IPC).
+  _ensureKeepaliveAlarmOnce();
 }
 
 // On (cold) SW startup, restore last activity and resume keepalive if still in window.
@@ -1502,7 +1520,61 @@ function ensurePeriodicAlarm(name, periodInMinutes) {
     if (!existing) chrome.alarms.create(name, { periodInMinutes });
   }).catch(() => {});
 }
-ensurePeriodicAlarm("keepalive", 4);
+
+// The keepalive alarm is CONDITIONAL, not 24/7. It exists while any of these
+// holds: (a) the activity window is open — the alarm is the revival backstop
+// for the 15s ping if Chrome reclaims the SW mid-window (memory pressure);
+// (b) the offline queue is non-empty — the alarm drives replay; (c) a batch
+// is running — the alarm drives the interrupted-batch sweep. When all three
+// are false the alarm's own handler clears it, so an idle browser stops
+// waking this worker every 4 minutes. Ensure points: SW top level (self-heal
+// on any wake), noteActivity, offline-queue writes, batch progress writes —
+// a missed wire is repaired on the next SW wake of any kind.
+let _keepaliveAlarmEnsured = false;
+function _ensureKeepaliveAlarmOnce() {
+  if (_keepaliveAlarmEnsured) return;
+  _keepaliveAlarmEnsured = true;
+  ensurePeriodicAlarm("keepalive", 4);
+}
+async function _keepaliveAlarmStillNeeded() {
+  const [{ offlineQueue = [], batch_progress }, sess] = await Promise.all([
+    chrome.storage.local.get(["offlineQueue", "batch_progress"]),
+    chrome.storage.session.get({ _lastActivityTs: 0 }).catch(() => ({ _lastActivityTs: 0 })),
+  ]);
+  const lastTs = Math.max(_lastActivityTs, Number(sess._lastActivityTs) || 0);
+  return (Date.now() - lastTs) < KEEPALIVE_WINDOW_MS ||
+    (Array.isArray(offlineQueue) && offlineQueue.length > 0) ||
+    !!(batch_progress && batch_progress.running);
+}
+async function _syncKeepaliveAlarm() {
+  try {
+    if (await _keepaliveAlarmStillNeeded()) _ensureKeepaliveAlarmOnce();
+  } catch (_) {}
+}
+async function _maybeReleaseKeepaliveAlarm() {
+  try {
+    if (await _keepaliveAlarmStillNeeded()) return;
+    _keepaliveAlarmEnsured = false;
+    await chrome.alarms.clear("keepalive");
+  } catch (_) {}
+}
+// Badge refresh is its own longer-period alarm: it is a NETWORK poll
+// (posts/all?toread=yes) and was riding the 4-min keepalive — 360 requests a
+// day for badge-on users. 15 min is plenty for an unread count; direct badge
+// updates on save/queue events still happen inline.
+async function _syncBadgeAlarm() {
+  try {
+    const s = await loadSettings();
+    if (s.optShowBadge) {
+      const existing = await chrome.alarms.get("badge-refresh");
+      if (!existing) chrome.alarms.create("badge-refresh", { periodInMinutes: 15 });
+    } else {
+      await chrome.alarms.clear("badge-refresh");
+    }
+  } catch (_) {}
+}
+_syncKeepaliveAlarm();
+_syncBadgeAlarm();
 // Periodically re-prime SETTINGS_DEFAULTS so chrome.storage doesn't go cold between
 // uses (Chrome evicts storage backend after inactivity, causing slow first-open).
 ensurePeriodicAlarm("storage-warm", 5);
@@ -1788,9 +1860,15 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   }
   if (alarm.name === "keepalive") {
     processOfflineQueue().catch(() => {});
-    updateBadge().catch(() => {});
     pbpSweepInterruptedBatch().catch(() => {});
     ensureKeepAlive(); // if SW was revived mid-window by the alarm, resume pinging
+    // Self-release: when the activity window lapsed AND there is no queued or
+    // running work left, clear this alarm so an idle browser stops waking the
+    // worker every 4 minutes. Any later activity/queue/batch re-creates it.
+    _maybeReleaseKeepaliveAlarm();
+  }
+  if (alarm.name === "badge-refresh") {
+    updateBadge().catch(() => {});
   }
   if (alarm.name === PBP_UNDO_ALARM) {
     pbpSweepExpiredUndo().catch((e) => console.warn("[undo] expiry sweep failed:", e?.name, e?.message));
@@ -2688,6 +2766,7 @@ chrome.storage.onChanged.addListener((changes) => {
     // The event can come from an inactive storage area. Resolve the effective
     // setting instead of trusting this area's candidate value.
     updateBadge().catch(() => {});
+    _syncBadgeAlarm(); // create/clear the 15-min network poll to match
   }
 });
 
