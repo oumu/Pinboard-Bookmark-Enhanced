@@ -3,10 +3,9 @@
 > Canonical archive of the Chrome Web Store developer-dashboard privacy tab.
 > Update this file whenever the dashboard text changes, and re-check it against
 > docs/privacy.md whenever a release adds a data exit or permission.
-> Last synced: 2026-07-28 (identity justification added for the optional Google
-> Drive vocabulary sync; provider count raised to 14 for GitHub Models; backup
-> feature list, exact-origin permissions, quick-save-with-AI, Embed/Fix image
-> origins, and credential-sync conditions are aligned with docs/privacy.md).
+> Last synced: 2026-08-29 (provider count lowered to 13 after the GitHub Models
+> service retirement and provider removal in v2.107.6; everything else
+> unchanged and still aligned with docs/privacy.md).
 
 ## Single purpose description (891/1000)
 
@@ -44,7 +43,7 @@ Run recurring background tasks: keep the service worker warm during active use, 
 
 ## Host permission justification (979/1000)
 
-Static hosts: api.pinboard.in and pinboard.in, for saving/fetching/managing bookmarks, pinboard.in themes and tag sorting, and cookie-based Save Tab Set. 14 user-selectable AI providers plus Jina Reader cover optional AI/extraction actions; each is contacted only when configured and only when you trigger the action. Optional hosts are requested at runtime as exact origins only: the selected tabs of a batch save, your custom OpenAI-compatible endpoint or non-loopback Ollama, GitHub Gist export, webhook export, web.archive.org for opt-in Wayback archiving, and the image origins needed when you choose the Embed (offline) export policy or click Fix on hotlink-blocked preview images. localhost/127.0.0.1 remain allowed for a local Ollama. The *://*/* manifest entry is only the declaration ceiling that lets Chrome offer these exact-origin prompts; the extension never requests that wildcard itself. Page content goes only to the service you selected, never to the developer.
+Static hosts: api.pinboard.in and pinboard.in, for saving/fetching/managing bookmarks, pinboard.in themes and tag sorting, and cookie-based Save Tab Set. 13 user-selectable AI providers plus Jina Reader cover optional AI/extraction actions; each is contacted only when configured and only when you trigger the action. Optional hosts are requested at runtime as exact origins only: the selected tabs of a batch save, your custom OpenAI-compatible endpoint or non-loopback Ollama, GitHub Gist export, webhook export, web.archive.org for opt-in Wayback archiving, and the image origins needed when you choose the Embed (offline) export policy or click Fix on hotlink-blocked preview images. localhost/127.0.0.1 remain allowed for a local Ollama. The *://*/* manifest entry is only the declaration ceiling that lets Chrome offer these exact-origin prompts; the extension never requests that wildcard itself. Page content goes only to the service you selected, never to the developer.
 
 ## declarativeNetRequestWithHostAccess justification (481/1000; field will appear on next submit)
 
