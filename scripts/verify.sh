@@ -42,6 +42,11 @@ git ls-files -- '*.js' '*.mjs' |
     node --check "$file"
   done
 
+echo "[eslint] correctness lint over runtime scripts (config: eslint.config.mjs)"
+# ESLint lives in .qa-scan's dev-only node_modules (same precedent as
+# playwright); the flat config self-collects this repo's cross-file globals.
+ESLINT_USE_FLAT_CONFIG=true npx --prefix .qa-scan eslint .
+
 echo "[ui-contract] checking static UI contracts"
 node "tests/ui-contract-tests.mjs"
 
