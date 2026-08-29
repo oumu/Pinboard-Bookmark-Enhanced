@@ -1759,7 +1759,17 @@ pbpClaimLegacyHighlightOwners();
 // theme-factory gates (apply-tokens/diff-all/cascade-lint/handedit-audit/
 // override-drift all parse pinboard-themes.js) for marginal further gain.
 const PBP_SITE_THEME_SCRIPT_ID = "pbp-site-theme-css";
-async function pbpSyncSiteThemeScript() {
+// Serialized (Codex final review): two overlapping syncs could commit the
+// OLDER settings' registration state (classic check-then-act). The tail chain
+// makes each run re-read settings after its predecessor finished, so the last
+// completed run always reflects the latest value.
+let _siteThemeSyncTail = Promise.resolve();
+function pbpSyncSiteThemeScript() {
+  const run = _siteThemeSyncTail.then(() => _pbpSyncSiteThemeScriptOnce());
+  _siteThemeSyncTail = run.catch(() => {});
+  return run;
+}
+async function _pbpSyncSiteThemeScriptOnce() {
   try {
     if (!chrome.scripting || !chrome.scripting.registerContentScripts) return;
     const s = await loadSettings();
@@ -2812,8 +2822,14 @@ async function _runBatchSave(tabs, expectedAccount, resumeState = null) {
     }
     return auth;
   };
-  // A fresh run must not inherit a cancel meant for the previous one.
-  try { await chrome.storage.local.remove("batch_cancel_requested"); } catch (_) {}
+  // A FRESH run must not inherit a cancel meant for the previous one — but a
+  // RESUMED run must honor it: after a cancel click, the flag can be the only
+  // persisted trace of the user's intent if the SW dies before the loop's
+  // next poll (Codex final review). The resumed loop consumes it on its very
+  // first iteration.
+  if (!resumeState) {
+    try { await chrome.storage.local.remove("batch_cancel_requested"); } catch (_) {}
+  }
   await _writeBatchProgress({ running: true, done: false, error: null, ...base() });
 
   try {

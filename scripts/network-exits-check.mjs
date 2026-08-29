@@ -61,6 +61,33 @@ for (const pattern of manifest.host_permissions || []) {
   if (m && !exits.has(m[1])) fail(`${m[1]}: manifest host_permissions entry missing from the oracle's exits`);
 }
 
+// 4. STRUCTURAL layer (Codex final review; CLAUDE.md's grep-is-not-consumption
+// rule): evaluate the provider registry the runtime actually dispatches
+// through and require every base host in it to be a disclosed exit. The text
+// scan above stays as the wide net (over-inclusive is safe — it can only
+// demand classification); this layer is the under-inclusion guard for the
+// registry, the single structure where endpoint hosts actually live.
+try {
+  const aiSrc = readFileSync(join(ROOT, "ai.js"), "utf8");
+  const regStart = aiSrc.indexOf("const OPENAI_COMPAT_PROVIDERS = {");
+  const regEnd = aiSrc.indexOf("\n};", regStart);
+  if (regStart < 0 || regEnd <= regStart) throw new Error("provider registry not found in ai.js");
+  const registry = new Function(aiSrc.slice(regStart, regEnd + 3) + "\nreturn OPENAI_COMPAT_PROVIDERS;")();
+  const bespoke = [
+    "https://generativelanguage.googleapis.com", // gemini
+    "https://api.anthropic.com",                 // claude
+  ];
+  const registryHosts = [
+    ...Object.values(registry).map((cfg) => cfg.base).filter(Boolean),
+    ...bespoke,
+  ].map((u) => new URL(u).hostname);
+  for (const host of registryHosts) {
+    if (!exits.has(host)) fail(`${host}: dispatched through the AI provider registry but not a disclosed exit`);
+  }
+} catch (e) {
+  fail(`provider-registry structural check failed to run: ${e.message}`);
+}
+
 if (failures) {
   console.error(`[network-exits] ${failures} problem(s)`);
   process.exit(1);

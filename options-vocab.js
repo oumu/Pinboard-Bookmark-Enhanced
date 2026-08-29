@@ -778,8 +778,14 @@ async function _pbpVocabTestAnki() {
     // what gets tested, then run a side-effect-free keyed call — a wrong key
     // surfaces here instead of at the first real send.
     if (perm.result.requireApiKey === true || perm.result.requireApikey === true) {
+      // Send-path parity incl. the RESULT check (Codex final review): a failed
+      // flush means the stored key may not be the one just pasted — testing
+      // the stale key could even report success for credentials the user has
+      // already replaced. Abort rather than test the wrong value.
       if (typeof window.pbpOptionsFlushAutoSave === "function") {
-        try { await window.pbpOptionsFlushAutoSave(); } catch (_) {}
+        let flushed = null;
+        try { flushed = await window.pbpOptionsFlushAutoSave(); } catch (_) {}
+        if (!flushed || !flushed.ok) { _pbpVocabFlashStatus(false, t("vocabSettingsSaveFailed")); return; }
       }
       const rawKey = await pbpReadSettingsWithSecrets({ dictAnkiKey: SETTINGS_DEFAULTS.dictAnkiKey });
       const key = deobfuscateSettings(rawKey).dictAnkiKey || "";
@@ -801,11 +807,13 @@ async function _pbpVocabTestEudic() {
   const orig = btn.textContent;
   try {
     btn.textContent = t("testTesting");
-    // Flush the 500ms auto-save debounce first (send-path parity, Codex
-    // review): a token pasted moments before the click must be the one
-    // tested, not the stale stored value.
+    // Flush the 500ms auto-save debounce first (send-path parity incl. the
+    // RESULT check, Codex final review): a token pasted moments before the
+    // click must be the one tested — and a failed flush means it is not.
     if (typeof window.pbpOptionsFlushAutoSave === "function") {
-      try { await window.pbpOptionsFlushAutoSave(); } catch (_) {}
+      let flushed = null;
+      try { flushed = await window.pbpOptionsFlushAutoSave(); } catch (_) {}
+      if (!flushed || !flushed.ok) { _pbpVocabFlashStatus(false, t("vocabSettingsSaveFailed")); return; }
     }
     const raw = await pbpReadSettingsWithSecrets({ dictEudicToken: SETTINGS_DEFAULTS.dictEudicToken });
     const s = deobfuscateSettings(raw);
