@@ -70,10 +70,14 @@ function buildFeatures(readmePath) {
   }
   const sections = lines.filter((line) => line.startsWith("# ")).length;
   const bullets = lines.filter((line) => line.startsWith("- ")).length;
-  if (sections !== 4 || bullets !== 15) {
-    throw new Error(`${readmePath}: expected 4 sections and 15 bullets, got ${sections}/${bullets}`);
+  // 4 sections is the README structural contract (docs-lint asserts it too);
+  // the bullet count is not pinned here — the nine locales must mirror each
+  // other, with the first locale (EN) as the baseline. A hardcoded count went
+  // stale silently when the READMEs grew from 15 to 17 bullets.
+  if (sections !== 4) {
+    throw new Error(`${readmePath}: expected 4 sections, got ${sections}`);
   }
-  return lines.join("\n").trim();
+  return { text: lines.join("\n").trim(), sections, bullets };
 }
 
 const disclosures = readExistingDisclosures();
@@ -90,8 +94,15 @@ const parts = [
   "> untouched.",
   "",
 ];
+let baseline = null;
 LOCALES.forEach(([label, readme], index) => {
-  parts.push("---", "", `## ${label}`, "", "```text", disclosures[index], "", buildFeatures(readme), "```", "");
+  const feat = buildFeatures(readme);
+  if (!baseline) {
+    baseline = { bullets: feat.bullets, path: readme };
+  } else if (feat.bullets !== baseline.bullets) {
+    throw new Error(`${readme}: ${feat.bullets} bullets do not mirror ${baseline.path} (${baseline.bullets})`);
+  }
+  parts.push("---", "", `## ${label}`, "", "```text", disclosures[index], "", feat.text, "```", "");
 });
 const output = parts.join("\n");
 

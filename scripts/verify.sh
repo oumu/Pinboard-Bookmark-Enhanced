@@ -62,6 +62,9 @@ node "scripts/ui-render-audit.mjs"
 echo "[docs-lint] checking README x9 mirror + prose contracts"
 node "scripts/docs-lint.mjs"
 
+echo "[store-descriptions] checking CWS store copy is regenerated from the READMEs"
+node "scripts/sync-store-descriptions.mjs" --check
+
 echo "[theme] checking generated theme integrity"
 node "docs/theme-surface/tools/diff-all.mjs" --strict
 node "docs/theme-surface/tools/token-coverage.mjs"
