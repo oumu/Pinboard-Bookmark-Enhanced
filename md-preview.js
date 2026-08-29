@@ -16,6 +16,27 @@ const pbpDeferredScriptsReady = document.readyState === "complete"
   ? Promise.resolve()
   : new Promise((resolve) => document.addEventListener("DOMContentLoaded", resolve, { once: true }));
 
+// md-video.js (~340KB, the largest reader module) is no longer a defer script:
+// most articles are not video pages, and pbpVideoDetect is a pure URL check
+// (shared.js) that can gate the load up front. Loaded lazily here the moment a
+// watch page is detected; every cross-module consumer (md-ask, md-dict,
+// md-highlight, md-reader) already typeof-guards the pbpVideo* globals, so a
+// non-video page simply never has them — same observable state as a load
+// failure before this change.
+let _videoModulePromise = null;
+function ensureVideoModule() {
+  if (typeof pbpVideoInit === "function") return Promise.resolve();
+  if (_videoModulePromise) return _videoModulePromise;
+  _videoModulePromise = new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = "md-video.js";
+    s.onload = () => resolve();
+    s.onerror = () => { _videoModulePromise = null; reject(new Error("md-video load failed")); };
+    document.head.appendChild(s);
+  });
+  return _videoModulePromise;
+}
+
 // Render the styled empty state and hide the rail so the page reads as
 // intentional (not a half-rendered document). textContent only — no innerHTML.
 function renderEmptyState(message) {
@@ -1129,6 +1150,9 @@ window.pbpReaderSchemeSet = function (mode) {
     // the barrier has passed.
     if (typeof pbpVideoDetect === "function" && pbpVideoDetect(sourceTabUrl || url)) {
       document.body.classList.add("video-mode");
+      // Warm the lazy video module in parallel with extraction — by the time
+      // the mount points below await it, the fetch is usually done.
+      ensureVideoModule().catch(() => {});
     }
 
     // One function drives the initial attempt, the error state's retry button, and the
@@ -1302,8 +1326,9 @@ window.pbpReaderSchemeSet = function (mode) {
       } else {
         inFlight = false;
       }
+      try { await ensureVideoModule(); } catch (_) {}
       if (typeof pbpVideoInit === "function") pbpVideoInit({ pageUrl: sourceTabUrl || url, title: title, tabId: srcTabId, account: previewAccount });
-      else console.warn("[pbp-video] mount unavailable: pbpVideoInit missing after deferred scripts");
+      else console.warn("[pbp-video] mount unavailable: md-video.js failed to load");
       applyAvailability(attemptedEngine);
     }
     if (sourceEl) {
@@ -1457,11 +1482,15 @@ window.pbpReaderSchemeSet = function (mode) {
       // before the article runtime exists, so anything committed later could
       // only reach the screen through a reload.
       _applyArticleCommit = () => { location.reload(); };
-      // pbpDeferredScriptsReady is already awaited above (video bootstrap),
-      // so md-video.js -- the LAST defer script -- has run by now; the
-      // typeof guard only covers it failing to load at all.
-      if (typeof pbpVideoInit === "function") pbpVideoInit({ pageUrl: sourceTabUrl || url, title: title, tabId: srcTabId, account: previewAccount });
-      else console.warn("[pbp-video] mount unavailable: pbpVideoInit missing after deferred scripts");
+      // md-video.js is lazy-loaded on video detection. pbpVideoInit's first
+      // act is its own pbpVideoDetect (no-op on non-video pages), so gating
+      // the load on the same detect preserves the old behavior exactly while
+      // sparing non-video empty pages the 340KB parse.
+      if (typeof pbpVideoDetect === "function" && pbpVideoDetect(sourceTabUrl || url)) {
+        try { await ensureVideoModule(); } catch (_) {}
+        if (typeof pbpVideoInit === "function") pbpVideoInit({ pageUrl: sourceTabUrl || url, title: title, tabId: srcTabId, account: previewAccount });
+        else console.warn("[pbp-video] mount unavailable: md-video.js failed to load");
+      }
       return;
     }
   }

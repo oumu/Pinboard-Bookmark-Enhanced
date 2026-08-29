@@ -130,6 +130,10 @@ async function enrichPageTextIfJina(s) {
       throw err;
     }
     if (!result.error && result.markdown) {
+      // markdownToPlainText lives in md-convert.js, which popup.html no longer
+      // eager-loads — settle the lazy load before use (throws into the catch
+      // below on load failure, which degrades to local content as before).
+      await ensureMdConvert();
       pageInfo.pageText = markdownToPlainText(result.markdown);
     }
   } catch (e) {

@@ -646,6 +646,25 @@ async function extractLocalMarkdown(tabId) {
   } catch (e) { return { error: e.message }; }
 }
 
+// Lazy-load md-convert.js on demand (saves ~79KB of parse/compile from every
+// popup open — its only popup consumers are the Markdown preview/copy/export
+// button flow and the AI pageText fallback, never the first paint). Same
+// pattern as ensureTurndown below; md-convert.js ships in the ZIP as a root
+// *.js automatically.
+let _mdConvertLoadPromise = null;
+function ensureMdConvert() {
+  if (typeof htmlToMarkdown !== "undefined") return Promise.resolve();
+  if (_mdConvertLoadPromise) return _mdConvertLoadPromise;
+  _mdConvertLoadPromise = new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = "md-convert.js";
+    s.onload = () => resolve();
+    s.onerror = () => { _mdConvertLoadPromise = null; reject(new Error("md-convert load failed")); };
+    document.head.appendChild(s);
+  });
+  return _mdConvertLoadPromise;
+}
+
 // Lazy-load Turndown library on demand (saves ~27KB from popup startup)
 let _turndownLoadPromise = null;
 function ensureTurndown() {
@@ -664,7 +683,9 @@ function ensureTurndown() {
 // Convert HTML to Markdown for clipboard. Lazy-loads Turndown, then
 // delegates to the shared global htmlToMarkdown() from md-convert.js.
 async function htmlToMarkdownAsync(html, opts) {
-  try { await ensureTurndown(); } catch (_) { return html; }
+  // md-convert.js (htmlToMarkdown) is lazy-loaded too — settle both deps here
+  // so every caller path is covered, not just the Markdown button flow.
+  try { await ensureMdConvert(); await ensureTurndown(); } catch (_) { return html; }
   return htmlToMarkdown(html, opts);
 }
 
@@ -777,6 +798,9 @@ async function htmlToMarkdownAsync(html, opts) {
         return;
       }
 
+      // Everything from here on (conversion, meta, compose/export) lives in
+      // md-convert.js, which is lazy-loaded — settle it once for the whole flow.
+      await ensureMdConvert();
       // Convert to markdown (Jina already has it, Local needs Turndown)
       const markdown = result.markdown || await htmlToMarkdownAsync(result.contentHtml, { baseUrl: result.url || url });
       const clippedDate = (() => { const d = new Date(); const p = (n) => (n < 10 ? "0" : "") + n; return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()); })();
