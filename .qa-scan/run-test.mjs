@@ -117,7 +117,8 @@ async function bounded(label, timeoutMs, task) {
 let browser;
 let browserDisconnected = false;
 const runtimeErrors = [];
-const blockedExternal = [];
+const blockedExternal = [];     // DOM subresources: blocked + reported, non-fatal
+const blockedProgrammatic = []; // fetch/xhr/etc: a missed mock — fails the run
 try {
   await bounded("server start", CLEANUP_TIMEOUT_MS, () => new Promise((resolveListen, rejectListen) => {
     const onError = (error) => rejectListen(error);
@@ -146,7 +147,15 @@ try {
       const request = route.request();
       const requestUrl = request.url();
       if (/^https?:/.test(requestUrl) && new URL(requestUrl).origin !== localOrigin) {
-        blockedExternal.push(request.method() + " " + requestUrl);
+        // Programmatic requests (fetch/xhr/websocket…) off-origin mean a
+        // missed mock — those FAIL the run (Codex review: a NOTE alone lets
+        // code that swallows the network error stay green). DOM subresources
+        // (an <img src> in a layout fixture, a stylesheet) are expected
+        // fixture noise: blocked and reported, not fatal.
+        const rt = request.resourceType();
+        const subresource = rt === "image" || rt === "media" || rt === "font" || rt === "stylesheet";
+        (subresource ? blockedExternal : blockedProgrammatic)
+          .push(rt + " " + request.method() + " " + requestUrl);
         return route.abort("blockedbyclient");
       }
       return route.continue();
@@ -182,9 +191,13 @@ try {
   if (browserDisconnected) console.error("ERROR: browser disconnected before the suite completed");
   if (blockedExternal.length) {
     const unique = [...new Set(blockedExternal)];
-    console.error(`NOTE: closed network blocked ${blockedExternal.length} external request(s):\n  ` + unique.slice(0, 10).join("\n  "));
+    console.error(`NOTE: closed network blocked ${blockedExternal.length} external subresource(s):\n  ` + unique.slice(0, 10).join("\n  "));
   }
-  if (dom.fail > 0 || total !== expected || runtimeErrors.length > 0 || browserDisconnected) process.exitCode = 1;
+  if (blockedProgrammatic.length) {
+    const unique = [...new Set(blockedProgrammatic)];
+    console.error(`ERROR: closed network blocked ${blockedProgrammatic.length} PROGRAMMATIC external request(s) — a mock is missing:\n  ` + unique.slice(0, 10).join("\n  "));
+  }
+  if (dom.fail > 0 || total !== expected || runtimeErrors.length > 0 || browserDisconnected || blockedProgrammatic.length > 0) process.exitCode = 1;
 } catch (error) {
   console.error(`ERROR: ${error && error.message ? error.message : error}`);
   if (runtimeErrors.length) console.error("errors:\n  " + runtimeErrors.slice(0, 25).join("\n  "));

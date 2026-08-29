@@ -146,7 +146,15 @@ async function _pbpNotesOwner() {
 }
 if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.onChanged) {
   chrome.storage.onChanged.addListener((changes) => {
-    if (changes.pinboardToken || changes.optSyncEnabled) _notesOwnerCache = null;
+    if (changes.pinboardToken || changes.optSyncEnabled) {
+      _notesOwnerCache = null;
+      // Fail-closed NOW, not at the next view activation: an account switch
+      // carries no pbp_hl_ write, so without this the old account's notes
+      // stay on screen indefinitely (Codex review P1; CLAUDE.md owner rule).
+      // renderNotesPanel re-resolves the owner and rebuilds list + detail;
+      // harmless when the notes view is not the active one.
+      if (typeof renderNotesPanel === "function") renderNotesPanel().catch(() => {});
+    }
   });
 }
 

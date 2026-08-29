@@ -212,7 +212,8 @@ check(!optionsHtml.includes('id="opt-webdav') &&
 check(!optionsJs.toLowerCase().includes("webdav"), "options.js still owns WebDAV behavior");
 check(!optionsCss.toLowerCase().includes("webdav"), "options.css still ships WebDAV styles");
 check(manifest.permissions.includes("alarms"), "shared alarms permission was removed");
-check(manifest.optional_host_permissions.join(",") === "*://*/*",
+check(manifest.optional_host_permissions.join(",") ===
+  "https://*/*,http://localhost/*,http://127.0.0.1/*,http://[::1]/*",
   "shared optional-host declaration changed");
 check(extensionIdFromKey(manifest.key || "") === "feoognahlmfmbllpmgailahcnjppiegb",
   "manifest.json: source build no longer has the verified development extension ID");
@@ -1358,8 +1359,12 @@ check(cleanHint.indexOf('hint.classList.add("hidden")') < cleanHint.indexOf("url
 
 check(manifest.host_permissions.join(",") === "https://api.pinboard.in/*,https://pinboard.in/*",
   "manifest.json: required hosts are not limited to core Pinboard access");
-check(manifest.optional_host_permissions.join(",") === "*://*/*",
-  "manifest.json: optional host ceiling is redundant or missing");
+// Roadmap #33: the ceiling is https-anywhere plus literal-loopback http only —
+// the exact set the endpoint validator enforces. Any wildcard-http regression
+// (or a lost loopback pattern breaking local Ollama/AnkiConnect) fails here.
+check(manifest.optional_host_permissions.join(",") ===
+  "https://*/*,http://localhost/*,http://127.0.0.1/*,http://[::1]/*",
+  "manifest.json: optional host ceiling must be https + literal-loopback http");
 
 for (const [name, html] of [["popup.html", popupHtml], ["options.html", optionsHtml], ["md-preview.html", mdHtml]]) {
   const links = html.matchAll(/<a\b[^>]*target="_blank"[^>]*>/g);

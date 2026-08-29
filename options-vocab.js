@@ -772,6 +772,21 @@ async function _pbpVocabTestAnki() {
     if (perm.result.permission !== "granted") { _pbpVocabFlashStatus(false, t("dictAnkiConnectPermissionDenied")); return; }
     const apiVersion = Number(perm.result.version);
     if (!Number.isFinite(apiVersion) || apiVersion < 6) { _pbpVocabFlashStatus(false, t("dictAnkiVersionUnsupported")); return; }
+    // A test must exercise the CONFIGURED credentials, not stop at the
+    // handshake (Codex review): when the server demands a key, flush the
+    // 500ms auto-save first (same as the send path) so a just-pasted key is
+    // what gets tested, then run a side-effect-free keyed call — a wrong key
+    // surfaces here instead of at the first real send.
+    if (perm.result.requireApiKey === true || perm.result.requireApikey === true) {
+      if (typeof window.pbpOptionsFlushAutoSave === "function") {
+        try { await window.pbpOptionsFlushAutoSave(); } catch (_) {}
+      }
+      const rawKey = await pbpReadSettingsWithSecrets({ dictAnkiKey: SETTINGS_DEFAULTS.dictAnkiKey });
+      const key = deobfuscateSettings(rawKey).dictAnkiKey || "";
+      if (!key) { _pbpVocabFlashStatus(false, t("dictAnkiKeyRequired")); return; }
+      const keyed = await pbpAnkiCall("version", {}, key, 10000, port);
+      if (!keyed.ok) { _pbpVocabFlashStatus(false, t("dictAnkiConnectPermissionFailed")); return; }
+    }
     _pbpVocabFlashStatus(true, t("testConnected", "AnkiConnect v" + apiVersion));
   } finally {
     btn.textContent = orig;
@@ -786,6 +801,12 @@ async function _pbpVocabTestEudic() {
   const orig = btn.textContent;
   try {
     btn.textContent = t("testTesting");
+    // Flush the 500ms auto-save debounce first (send-path parity, Codex
+    // review): a token pasted moments before the click must be the one
+    // tested, not the stale stored value.
+    if (typeof window.pbpOptionsFlushAutoSave === "function") {
+      try { await window.pbpOptionsFlushAutoSave(); } catch (_) {}
+    }
     const raw = await pbpReadSettingsWithSecrets({ dictEudicToken: SETTINGS_DEFAULTS.dictEudicToken });
     const s = deobfuscateSettings(raw);
     if (!s.dictEudicToken) { _pbpVocabFlashStatus(false, t("dictEudicTokenRequired")); return; }

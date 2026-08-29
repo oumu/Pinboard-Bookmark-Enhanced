@@ -1022,26 +1022,27 @@ html[data-theme] #submit-btn:disabled { background: var(--pp-btn-bg); border-col
 }
 
 /* Batch progress bar — visible while batch save iterates over tabs */
-.batch-progress {
+/* Positioning context for the cancel button, which must live OUTSIDE the
+   progressbar element (AT treats progressbar descendants as presentational). */
+.batch-progress-wrap {
   position: relative;
   /* symmetric 6px top/bottom so the bar isn't flush against the popup's bottom edge
      (.quick-actions has no bottom padding; this is the last visible element) */
   margin: var(--pp-sp-3) var(--pp-sp-5);
+}
+.batch-progress {
+  position: relative;
   height: 14px;
   background: var(--pp-input-bg);
   border: 1px solid var(--pp-input-bg);
   border-radius: var(--pp-radius-full);
-  /* visible (was hidden): the cancel button's 24px hit area overhangs the
-     14px bar. The fill's rounded clipping moves to border-radius: inherit
-     below — same visual result at every width. */
-  overflow: visible;
+  overflow: hidden;
   animation: fadeSlideDown var(--pp-motion-duration) var(--ease-out);
 }
 .batch-progress-fill {
   position: absolute; inset: 0 auto 0 0;
   width: 0%;
   background: var(--pp-accent);
-  border-radius: var(--pp-radius-full); /* same token as the bar: replaces the old overflow:hidden clip */
   /* linear, not ease: this is a determinate bar driven by JS ticks. An eased
      curve decelerates into a stall between ticks, so steady progress reads as
      stuttering — the curve lies about the rate. */

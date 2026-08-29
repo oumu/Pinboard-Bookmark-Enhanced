@@ -1569,8 +1569,16 @@ async function _syncKeepaliveAlarm() {
 async function _maybeReleaseKeepaliveAlarm() {
   try {
     if (await _keepaliveAlarmStillNeeded()) return;
+    // Drop the ensure flag BEFORE clearing, then re-check after: an event
+    // landing between the needed-check and clear() (queue write, activity)
+    // may have seen the old alarm still present and short-circuited its
+    // ensure — without the re-check, the clear would strand that work until
+    // the next SW wake (Codex review P2). The re-create path goes through
+    // ensurePeriodicAlarm's get-then-create, so a lost race merely leaves
+    // the alarm alive one extra cycle — the safe direction.
     _keepaliveAlarmEnsured = false;
     await chrome.alarms.clear("keepalive");
+    if (await _keepaliveAlarmStillNeeded()) _ensureKeepaliveAlarmOnce();
   } catch (_) {}
 }
 // Badge refresh is its own longer-period alarm: it is a NETWORK poll
@@ -1701,8 +1709,14 @@ async function pbpClaimLegacyHighlightOwners() {
       keys = Object.keys(await chrome.storage.local.get(null)).filter((k) => k.startsWith("pbp_hl_") && k !== "pbp_hl_last_color");
     }
     let claimed = 0;
+    let aborted = false;
     for (const key of keys) {
       await navigator.locks.request("pbp-hl:" + key, async () => {
+        // Per-write owner re-validation (Codex review; CLAUDE.md: async
+        // write-backs re-check the owner EVERY time): an account switch
+        // mid-walk must not keep claiming records for the departed account.
+        // Abort without the done flag — the next wake retries cleanly.
+        if ((await pbpVocabCurrentOwner()) !== scope) { aborted = true; return; }
         const d = await chrome.storage.local.get(key);
         const rec = d && d[key];
         if (!rec || typeof rec !== "object" || Array.isArray(rec) || !Array.isArray(rec.items)) return;
@@ -1716,7 +1730,14 @@ async function pbpClaimLegacyHighlightOwners() {
         });
         if (changed) { await chrome.storage.local.set({ [key]: { ...rec, items } }); claimed++; }
       });
+      if (aborted) break;
     }
+    if (aborted) {
+      console.warn("[hl-owner] claim aborted: account changed mid-walk; will retry");
+      return;
+    }
+    // Final gate before the flag for the same reason.
+    if ((await pbpVocabCurrentOwner()) !== scope) return;
     await chrome.storage.local.set({ _hlOwnerClaimDone: true });
     if (claimed) console.info(`[hl-owner] claimed legacy highlight items on ${claimed} page record(s)`);
   } catch (e) {

@@ -2490,6 +2490,25 @@ function _pbpHlNotebookJump(item) {
 // of them from the new items -- which is why absorbing needs no help from the record.
 if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.onChanged) {
   chrome.storage.onChanged.addListener((changes, area) => {
+    // Account switch while the reader stays open (Codex review P1, CLAUDE.md
+    // account-isolation rule: owner is re-validated on reads and commits, not
+    // frozen at boot). Token routing decides the area, so listen on both;
+    // re-resolve, then re-filter the display set from the raw mirror.
+    if ((area === "local" || area === "sync") &&
+        (changes.pinboardToken || changes.optSyncEnabled)) {
+      (async () => {
+        let scope = "";
+        try {
+          const raw = typeof pbpVocabCurrentOwner === "function" ? await pbpVocabCurrentOwner() : "";
+          scope = (raw && raw !== "ownerless") ? String(raw) : "";
+        } catch (_) { scope = ""; }
+        if (scope === _pbpHlOwner || !_pbpHlState) { _pbpHlOwner = scope; return; }
+        _pbpHlOwner = scope;
+        _pbpHlState.items = pbpHlVisibleItems(_pbpHlRawItems || [], _pbpHlOwner);
+        try { pbpHlRestore(); } catch (_) {}
+        try { _pbpHlNotebookRender(); } catch (_) {}
+      })();
+    }
     if (area !== "local" || !_pbpHlState) return;
     const c = changes[_pbpHlKey(_pbpHlState.url)];
     if (!c) return;

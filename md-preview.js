@@ -2570,11 +2570,18 @@ window.pbpReaderSchemeSet = function (mode) {
   // (renderArticleContent only swaps its children), so re-installing this per
   // render would stack duplicate observers on the same target for nothing.
   if (queueReadingStats && typeof ResizeObserver === "function") new ResizeObserver(queueReadingStats).observe(renderedView);
-  // pbpDeferredScriptsReady is already awaited by the video bootstrap above,
-  // so md-video.js -- the LAST defer script -- has run; the typeof guard only
-  // covers it failing to load at all.
-  if (typeof pbpVideoInit === "function") pbpVideoInit({ pageUrl: sourceTabUrl || url, title: title, tabId: srcTabId, account: previewAccount });
-  else console.warn("[pbp-video] mount unavailable: pbpVideoInit missing after deferred scripts");
+  // md-video.js is lazy-loaded on video detection (roadmap #27). This is the
+  // COMMON render path's mount (a normal video preview arrives here with its
+  // markdown already in the payload, never through the pending/restore
+  // branches), so it must settle the module itself — the Codex review caught
+  // that leaving only the typeof guard here silently dropped the player and
+  // caption panel for every ordinary video preview.
+  if (typeof pbpVideoDetect === "function" && pbpVideoDetect(sourceTabUrl || url)) {
+    ensureVideoModule().catch(() => {}).then(() => {
+      if (typeof pbpVideoInit === "function") pbpVideoInit({ pageUrl: sourceTabUrl || url, title: title, tabId: srcTabId, account: previewAccount });
+      else console.warn("[pbp-video] mount unavailable: md-video.js failed to load");
+    });
+  }
 
   // ---- Build TOC sidebar from the canonical markdown ----
   const tocNav = document.getElementById("toc");
