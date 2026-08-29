@@ -47,6 +47,12 @@ echo "[eslint] correctness lint over runtime scripts (config: eslint.config.mjs)
 # playwright); the flat config self-collects this repo's cross-file globals.
 ESLINT_USE_FLAT_CONFIG=true npx --prefix .qa-scan eslint .
 
+echo "[vendor-lock] verifying vendored artifacts against vendor/vendor-lock.json"
+node "scripts/vendor-lock-check.mjs"
+
+echo "[network-exits] cross-checking runtime hosts vs docs/network-exits.json vs privacy.md"
+node "scripts/network-exits-check.mjs"
+
 echo "[ui-contract] checking static UI contracts"
 node "tests/ui-contract-tests.mjs"
 

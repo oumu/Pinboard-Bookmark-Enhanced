@@ -1,0 +1,115 @@
+{
+  "_comment": "Hand-written network-exit oracle (roadmap #38). Every host the runtime can SEND a request to (fetch, script injection target, iframe/img subresource) must be listed under exits with its trigger surface and privacy.md coverage; hosts that appear in code only as outbound links / site-rule matchers / attribution URLs go under nonExitHosts. scripts/network-exits-check.mjs cross-checks: (1) every literal https host in runtime scripts is classified here, (2) every exit host (or its user-facing disclosedAs name) is mentioned in docs/privacy.md, (3) every manifest static host is a listed exit. Deliberately NOT generated from source — that would only prove the code agrees with itself. Update this file in the same commit as any new data exit, and privacy.md with it (release docs gate).",
+  "exits": {
+    "api.pinboard.in": {
+      "purpose": "Pinboard v1 API — every bookmark read/write (required host)"
+    },
+    "pinboard.in": {
+      "purpose": "Pinboard site — content scripts, tag pages, cookie-based Save Tab Set (required host)"
+    },
+    "r.jina.ai": {
+      "purpose": "Jina Reader — fallback article extraction (optional, user-triggered)"
+    },
+    "web.archive.org": {
+      "purpose": "Wayback Machine — opt-in archiving"
+    },
+    "api.github.com": {
+      "purpose": "GitHub Gist export (optional exact-origin grant)"
+    },
+    "api.notion.com": {
+      "purpose": "Notion export (optional exact-origin grant)"
+    },
+    "www.googleapis.com": {
+      "purpose": "Google Drive appData vocabulary sync (optional exact-origin grant)"
+    },
+    "freedictionaryapi.com": {
+      "purpose": "Dictionary lookup (optional exact-origin grant)"
+    },
+    "api.frdic.com": {
+      "purpose": "Eudic OpenAPI — send vocabulary / connection test (optional exact-origin grant)"
+    },
+    "www.youtube.com": {
+      "purpose": "YouTube caption chain — tab injection / extension-page fetch (optional exact-origin grant)"
+    },
+    "i.ytimg.com": {
+      "purpose": "YouTube thumbnails — subresource of the reader's video panel (no host grant needed)"
+    },
+    "pine2d.github.io": {
+      "purpose": "This project's Pages relay — embeds the YouTube player iframe (no host grant needed)"
+    },
+    "api.bilibili.com": {
+      "purpose": "Bilibili subtitle APIs (optional exact-origin grant, credentials included)"
+    },
+    "player.bilibili.com": {
+      "purpose": "Bilibili player bridge — playback sync content script (optional exact-origin grant)"
+    },
+    "www.bilibili.com": {
+      "purpose": "Bilibili watch pages — video workbench tab injection for subtitle rescue (covered by the same user-triggered caption grant flow)",
+      "disclosedAs": "bilibili"
+    },
+    "api.openai.com": {
+      "purpose": "AI provider: OpenAI (BYO key, user-selected)",
+      "disclosedAs": "OpenAI"
+    },
+    "api.anthropic.com": {
+      "purpose": "AI provider: Claude (BYO key, user-selected)",
+      "disclosedAs": "Anthropic"
+    },
+    "generativelanguage.googleapis.com": {
+      "purpose": "AI provider: Gemini (BYO key, user-selected, default)",
+      "disclosedAs": "Gemini"
+    },
+    "api.deepseek.com": {
+      "purpose": "AI provider: DeepSeek (BYO key, user-selected)",
+      "disclosedAs": "DeepSeek"
+    },
+    "dashscope.aliyuncs.com": {
+      "purpose": "AI provider: Qwen (BYO key, user-selected)",
+      "disclosedAs": "Qwen"
+    },
+    "api.minimaxi.com": {
+      "purpose": "AI provider: MiniMax (BYO key, user-selected)",
+      "disclosedAs": "MiniMax"
+    },
+    "openrouter.ai": {
+      "purpose": "AI provider: OpenRouter (BYO key, user-selected)",
+      "disclosedAs": "OpenRouter"
+    },
+    "api.groq.com": {
+      "purpose": "AI provider: Groq (BYO key, user-selected)",
+      "disclosedAs": "Groq"
+    },
+    "api.mistral.ai": {
+      "purpose": "AI provider: Mistral (BYO key, user-selected)",
+      "disclosedAs": "Mistral"
+    },
+    "api.cohere.ai": {
+      "purpose": "AI provider: Cohere (BYO key, user-selected)",
+      "disclosedAs": "Cohere"
+    },
+    "api.siliconflow.cn": {
+      "purpose": "AI provider: SiliconFlow (BYO key, user-selected)",
+      "disclosedAs": "SiliconFlow"
+    },
+    "open.bigmodel.cn": {
+      "purpose": "AI provider: Zhipu BigModel (BYO key, user-selected)",
+      "disclosedAs": "Zhipu"
+    },
+    "api.moonshot.cn": {
+      "purpose": "AI provider: Moonshot Kimi (BYO key, user-selected)",
+      "disclosedAs": "Moonshot"
+    }
+  },
+  "userConfiguredExits": "custom OpenAI-compatible endpoint, non-loopback Ollama, webhook export target and batch-save tab origins are user-supplied at runtime; the endpoint validator enforces HTTPS (loopback-literal HTTP only) and runtime grants are exact origins — see CLAUDE.md 跨领域安全铁律 and privacy.md.",
+  "nonExitHosts": {
+    "www.zhihu.com": "site-rule matcher string only",
+    "arxiv.org": "site-rule matcher string only",
+    "www.notion.so": "outbound link the user opens",
+    "notebooklm.google.com": "send-to target opened as a browser tab, no fetch",
+    "unpkg.com": "comment/documentation reference",
+    "lucide.dev": "icon-set attribution comment",
+    "www.mdbg.net": "dictionary attribution link the user opens",
+    "en.wiktionary.org": "dictionary attribution link the user opens",
+    "cc-cedict.org": "license attribution link the user opens"
+  }
+}

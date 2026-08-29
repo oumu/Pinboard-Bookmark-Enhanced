@@ -66,3 +66,9 @@ echo ""
 echo "Done. NOTE: a marked major bump may require adapting the custom renderer.heading"
 echo "in md-convert.js (v13+ passes a token object, not positional text/level/raw)."
 echo "katex/ is not refreshed here — see vendor/README.md. Run the test suite + zip-smoke."
+echo ""
+echo "vendor-lock: update vendor/vendor-lock.json in the SAME commit (versions above +"
+echo "these sha256 sums), or scripts/vendor-lock-check.mjs will fail verify.sh:"
+( cd "${REPO_ROOT}" && sha256sum vendor/defuddle.js vendor/turndown.js vendor/marked.min.js \
+    vendor/purify.min.js vendor/highlight.min.js vendor/hljs-github.min.css \
+    vendor/hljs-github-dark.min.css 2>/dev/null | sed 's/^/  /' ) || true
