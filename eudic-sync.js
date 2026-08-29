@@ -105,6 +105,30 @@ async function pbpEudicCall(body, token, timeoutMs) {
 // A 403 only proves that Eudic rejected the request; do not guess the cause
 // or a wait window. Break the circuit and let the UI suggest checking the
 // token before a later retry. ownerCheck runs before every POST.
+// Lightweight connectivity probe (roadmap #31): the official read-only
+// category-list endpoint on the SAME already-disclosed origin — no user data
+// leaves, only the Authorization header rides along. 401/403 -> "auth" so the
+// tester can point at the token; anything else network-ish -> "unreachable".
+const PBP_EUDIC_PING_PATH = "/api/open/v1/studylist/category?language=en";
+async function pbpEudicPing(auth, timeoutMs) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs || 10000);
+  try {
+    const resp = await fetch(PBP_EUDIC_ENDPOINT + PBP_EUDIC_PING_PATH, {
+      method: "GET",
+      headers: { "Authorization": pbpEudicAuthHeader(auth) },
+      signal: ctrl.signal
+    });
+    if (resp.status === 401 || resp.status === 403) return { ok: false, error: "auth" };
+    if (!resp.ok) return { ok: false, error: "http_" + resp.status };
+    return { ok: true, error: null };
+  } catch (e) {
+    return { ok: false, error: (e && e.name === "AbortError") ? "timeout" : "unreachable" };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function pbpEudicSendRows(rows, opts) {
   const token = (opts && opts.token) || "";
   const ownerCheck = (opts && opts.ownerCheck) || (async () => true);

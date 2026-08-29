@@ -3405,6 +3405,12 @@
   "dictEudicTokenHint": {
     "message": "從歐路授權頁面完整複製授權資訊"
   },
+  "dictAnkiTest": {
+    "message": "測試 AnkiConnect 連線"
+  },
+  "dictEudicTest": {
+    "message": "測試歐路詞典連線"
+  },
   "dictAnkiNothing": {
     "message": "暫時沒有可傳送的生詞。"
   },

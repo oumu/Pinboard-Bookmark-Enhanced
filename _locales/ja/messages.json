@@ -3405,6 +3405,12 @@
   "dictEudicTokenHint": {
     "message": "Eudic の認証情報を全文コピーしてください"
   },
+  "dictAnkiTest": {
+    "message": "AnkiConnect の接続をテスト"
+  },
+  "dictEudicTest": {
+    "message": "Eudic の接続をテスト"
+  },
   "dictAnkiNothing": {
     "message": "送信できる単語がまだありません。"
   },

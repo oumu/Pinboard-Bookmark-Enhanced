@@ -3405,6 +3405,12 @@
   "dictEudicTokenHint": {
     "message": "Skopiuj pełną wartość autoryzacji z Eudic"
   },
+  "dictAnkiTest": {
+    "message": "Przetestuj połączenie AnkiConnect"
+  },
+  "dictEudicTest": {
+    "message": "Przetestuj połączenie Eudic"
+  },
   "dictAnkiNothing": {
     "message": "Brak słówek do wysłania."
   },

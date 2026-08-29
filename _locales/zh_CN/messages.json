@@ -3405,6 +3405,12 @@
   "dictEudicTokenHint": {
     "message": "从欧路词典授权页面完整复制授权信息"
   },
+  "dictAnkiTest": {
+    "message": "测试 AnkiConnect 连接"
+  },
+  "dictEudicTest": {
+    "message": "测试欧路词典连接"
+  },
   "dictAnkiNothing": {
     "message": "暂无可发送的生词。"
   },

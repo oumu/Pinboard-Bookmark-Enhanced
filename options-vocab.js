@@ -745,6 +745,70 @@ if (_vocabAnkiBtn) _vocabAnkiBtn.addEventListener("click", _pbpVocabSendAnki);
 const _vocabEudicBtn = $id("vocab-eudic-btn");
 if (_vocabEudicBtn) _vocabEudicBtn.addEventListener("click", _pbpVocabSendEudic);
 
+// ---- Connection testers (roadmap #31): every AI provider has a one-click
+// connectivity check; the two vocab exporters previously only surfaced a
+// config error after the user had collected words and hit send. Same
+// permission discipline as the send paths: request the exact loopback /
+// HTTPS origin from this direct click, never in the background. Results go
+// through the vocab panel's own status line. Errors reuse the send paths'
+// established keys so wording stays identical.
+async function _pbpVocabTestAnki() {
+  const btn = $id("vocab-anki-test-btn");
+  if (!btn || btn.disabled) return;
+  btn.disabled = true;
+  const orig = btn.textContent;
+  try {
+    btn.textContent = t("testTesting");
+    const preRead = await pbpReadSettingsWithSecrets({
+      dictAnkiPort: SETTINGS_DEFAULTS.dictAnkiPort,
+    });
+    const port = preRead.dictAnkiPort;
+    const pattern = pbpEndpointOriginPattern(pbpAnkiEndpointFor(port));
+    let granted = false;
+    try { granted = await chrome.permissions.request({ origins: [pattern] }); } catch (_) {}
+    if (!granted) { _pbpVocabFlashStatus(false, t("dictAnkiHostPermissionDenied")); return; }
+    const perm = await pbpAnkiCall("requestPermission", {}, "", 120000, port);
+    if (!perm.ok || !perm.result) { _pbpVocabFlashStatus(false, t("dictAnkiConnectPermissionFailed")); return; }
+    if (perm.result.permission !== "granted") { _pbpVocabFlashStatus(false, t("dictAnkiConnectPermissionDenied")); return; }
+    const apiVersion = Number(perm.result.version);
+    if (!Number.isFinite(apiVersion) || apiVersion < 6) { _pbpVocabFlashStatus(false, t("dictAnkiVersionUnsupported")); return; }
+    _pbpVocabFlashStatus(true, t("testConnected", "AnkiConnect v" + apiVersion));
+  } finally {
+    btn.textContent = orig;
+    btn.disabled = false;
+  }
+}
+
+async function _pbpVocabTestEudic() {
+  const btn = $id("vocab-eudic-test-btn");
+  if (!btn || btn.disabled) return;
+  btn.disabled = true;
+  const orig = btn.textContent;
+  try {
+    btn.textContent = t("testTesting");
+    const raw = await pbpReadSettingsWithSecrets({ dictEudicToken: SETTINGS_DEFAULTS.dictEudicToken });
+    const s = deobfuscateSettings(raw);
+    if (!s.dictEudicToken) { _pbpVocabFlashStatus(false, t("dictEudicTokenRequired")); return; }
+    const pattern = pbpEndpointOriginPattern(PBP_EUDIC_ENDPOINT);
+    let granted = false;
+    try { granted = await chrome.permissions.request({ origins: [pattern] }); } catch (_) {}
+    if (!granted) { _pbpVocabFlashStatus(false, t("dictEudicHostPermissionDenied")); return; }
+    const r = await pbpEudicPing(s.dictEudicToken, 10000);
+    if (r.ok) _pbpVocabFlashStatus(true, t("testConnected", "OK"));
+    else if (r.error === "auth") _pbpVocabFlashStatus(false, t("dictEudicRejected"));
+    else _pbpVocabFlashStatus(false, t("dictEudicFailed"));
+  } finally {
+    btn.textContent = orig;
+    btn.disabled = false;
+  }
+}
+
+const _vocabAnkiTestBtn = $id("vocab-anki-test-btn");
+if (_vocabAnkiTestBtn) _vocabAnkiTestBtn.addEventListener("click", _pbpVocabTestAnki);
+
+const _vocabEudicTestBtn = $id("vocab-eudic-test-btn");
+if (_vocabEudicTestBtn) _vocabEudicTestBtn.addEventListener("click", _pbpVocabTestEudic);
+
 const _vocabExportBtn = $id("vocab-export-btn");
 if (_vocabExportBtn) _vocabExportBtn.addEventListener("click", _pbpVocabExport);
 

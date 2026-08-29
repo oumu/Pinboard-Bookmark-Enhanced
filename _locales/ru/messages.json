@@ -3405,6 +3405,12 @@
   "dictEudicTokenHint": {
     "message": "Скопируйте полное значение авторизации из Eudic"
   },
+  "dictAnkiTest": {
+    "message": "Проверить подключение AnkiConnect"
+  },
+  "dictEudicTest": {
+    "message": "Проверить подключение Eudic"
+  },
   "dictAnkiNothing": {
     "message": "Пока нет слов для отправки."
   },
