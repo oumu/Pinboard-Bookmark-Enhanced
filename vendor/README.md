@@ -13,7 +13,7 @@ For Chrome Web Store reviewers: every file in this directory is unmodified upstr
 | `marked.min.js` | 18.0.11 | https://github.com/markedjs/marked | MIT | Converts canonical Markdown to HTML for the preview render (then sanitized by DOMPurify). Loaded only inside `md-preview.html`. Vendored from the npm UMD build (`lib/marked.umd.js`) under the historical `.min.js` name. |
 | `purify.min.js` | 3.4.14 | https://github.com/cure53/DOMPurify | Apache-2.0 / MPL-2.0 | The single sanitize point: cleans all HTML before it enters the preview DOM (both `marked` output and arbitrary web-page Markdown). Loaded only inside `md-preview.html`. |
 | `highlight.min.js`, `hljs-github*.min.css` | 11.12.0 | https://github.com/highlightjs/highlight.js | BSD-3-Clause | Syntax-highlights fenced/auto-detected code blocks in the Markdown preview. Loaded only inside `md-preview.html`. |
-| `katex/` | 0.17.0 | https://github.com/KaTeX/KaTeX | MIT | Renders LaTeX math (`$...$` / `$$...$$`) in the Markdown preview. Lazy-loaded in `md-preview.html` only for content flagged math-bearing (e.g. arXiv abstracts) — never on other pages, so currency `$` is never touched. woff2 fonts only (Chrome supports woff2). |
+| `katex/` | 0.18.4 | https://github.com/KaTeX/KaTeX | MIT | Renders LaTeX math (`$...$` / `$$...$$`) in the Markdown preview. Lazy-loaded in `md-preview.html` only for content flagged math-bearing (e.g. arXiv abstracts) — never on other pages, so currency `$` is never touched. woff2 fonts only (Chrome supports woff2). |
 | `mermaid.min.js` | 11.17.0 | https://github.com/mermaid-js/mermaid | MIT | Renders Mermaid diagram code fences to inline SVG in the Markdown preview. Lazy-loaded by `md-mermaid.js` only when Mermaid-flagged content is present. Manually pinned from the jsDelivr CDN build — not covered by `scripts/update-vendor.sh`. |
 
 ## Reproduction (for source verification)
@@ -66,8 +66,8 @@ curl -fsSL https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.12.0/styles/gi
 
 ### `katex/`
 ```bash
-npm pack katex@0.17.0
-tar -xzf katex-0.17.0.tgz
+npm pack katex@0.18.4
+tar -xzf katex-0.18.4.tgz
 # vendor/katex/ = package/dist/{katex.min.js, katex.min.css, contrib/auto-render.min.js, fonts/*.woff2}
 # (auto-render.min.js flattened out of contrib/; .woff/.ttf fonts dropped — Chrome uses woff2)
 ```
