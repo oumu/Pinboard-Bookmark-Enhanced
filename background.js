@@ -2134,7 +2134,12 @@ chrome.runtime.onInstalled.addListener(({ reason }) => {
 });
 
 // ---- 监听来自 popup 的消息 ----
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+// Named, not an inline arrow (roadmap #35): the router is the single entry
+// for all four surfaces' messaging, and the project's source-slice test
+// technique can only reach NAMED functions — as an anonymous callback these
+// 21 branches were the largest untestable block in the extension. Behavior
+// is unchanged; registration stays top-level synchronous per MV3 rules.
+function handleRuntimeMessage(message, sender, sendResponse) {
   if (!message || typeof message !== "object") { sendResponse({ error: "invalid" }); return true; }
   // Structural gate (defense in depth): accept only messages from this
   // extension's own PAGES. Today this is unreachable — no content script calls
@@ -2573,7 +2578,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       .catch(() => sendResponse({ bookmarked: false, account: "" }));
     return true;
   }
-});
+}
+chrome.runtime.onMessage.addListener(handleRuntimeMessage);
 
 // ===================== Batch Bookmark 保存（后台） =====================
 // The batch loop moved out of popup-batch.js so it survives popup close.

@@ -262,6 +262,130 @@ function buildUndoHarness(source, opts) {
       record && record.url === "https://example.com/f");
   }
 
+  // ---- Message router (roadmap #35): the newly NAMED handleRuntimeMessage
+  // sliced with spy deps — shallow routing assertions: given a message.type,
+  // the expected internal function is reached and the async channel is held.
+  const EXT_ID = "feoognahlmfmbllpmgailahcnjppiegb";
+  const EXT_URL = `chrome-extension://${EXT_ID}/popup.html`;
+  function buildRouterHarness() {
+    const start = source.indexOf("function handleRuntimeMessage");
+    const end = source.indexOf("chrome.runtime.onMessage.addListener(handleRuntimeMessage);", start);
+    if (start < 0 || end <= start) throw new Error("router source not found");
+    const calls = [];
+    const spy = (name, ret) => (...args) => { calls.push([name, args]); return typeof ret === "function" ? ret(...args) : ret; };
+    const deps = {
+      chrome: {
+        runtime: { id: EXT_ID, getURL: (p) => `chrome-extension://${EXT_ID}/${p}` },
+        storage: {
+          local: { get: async () => ({}), set: async () => {}, remove: async () => {} },
+          session: { get: async () => ({}), set: async () => {} },
+        },
+        tabs: { query: async () => [] },
+      },
+      noteActivity: spy("noteActivity"),
+      PBP_VOCAB_DRIVE_CAPABLE: false,
+      PBP_VOCAB_DRIVE_CONNECTED_KEY: "k",
+      pbpVocabDriveIsConnected: spy("vocabConnected", Promise.resolve(false)),
+      pbpVocabScheduleDirty: spy("vocabDirty", Promise.resolve()),
+      pbpQueueVocabDriveSync: spy("vocabSync", Promise.resolve({ ok: true })),
+      pbpGetVocabDriveStatus: spy("vocabStatus", Promise.resolve({})),
+      pbpVocabDriveResponse: (r) => r,
+      pbpVocabClearNotices: spy("vocabClear", Promise.resolve()),
+      pbpDisconnectVocabDrive: spy("vocabDisc", Promise.resolve()),
+      pbpDictOwnerScope: (a) => "acct_" + a,
+      getCurrentPinboardAuth: async () => ({ token: "alice:t", account: "alice", epoch: 0 }),
+      pbpPinboardAuthIsCurrent: () => true,
+      pbpStatusCacheGet: () => null,
+      pbpStatusCacheSet: spy("cacheSet", true),
+      pbpSameBookmark: () => false,
+      pbpSaveFailure: (code) => ({ status: "failed", code }),
+      submitPopupSaveIntent: spy("saveIntent", Promise.resolve({ status: "saved" })),
+      handleBatchSave: spy("batchSave", Promise.resolve()),
+      handleSaveTabSet: spy("saveTabSet", Promise.resolve()),
+      loadSettings: async () => ({}),
+      pbpWaybackArchive: spy("wayback", Promise.resolve()),
+      pbpIsAllowedPinboardApiUrl: (u) => String(u).startsWith("https://api.pinboard.in/v1/"),
+      pbpAuthorizePinboardApiUrl: (u) => u,
+      pinboardFetch: spy("pinFetch", Promise.resolve({ ok: true, status: 200, text: async () => "{}" })),
+      pinboardFetchImmediate: spy("pinFetchNow", Promise.resolve({ ok: true, status: 200, text: async () => "{}" })),
+      retryOfflineItem: spy("retryItem", Promise.resolve({ ok: true, result: {} })),
+      readOfflineQueueWithIds: spy("readQueue", Promise.resolve([])),
+      mutateOfflineQueue: spy("mutQueue", Promise.resolve([])),
+      checkBookmarked: spy("checkBm", Promise.resolve(null)),
+      statusCache: new Map(),
+      extractForPreview: spy("extract", Promise.resolve({ error: "empty" })),
+      pbpImgFixInstallRule: spy("imgInstall", Promise.resolve(786001)),
+      pbpImgFixRemoveRules: spy("imgRemove", Promise.resolve()),
+      pbpImgFixSweepRules: spy("imgSweep", Promise.resolve()),
+      _imgFixIsPreviewUrl: (u) => typeof u === "string" && u.includes("md-preview.html"),
+      _batchRunning: false,
+      deobfuscateKey: (v) => v,
+      showNotification: spy("notify"),
+      t: (k, ...a) => (a.length ? `${k}:${a.join(":")}` : k),
+      console,
+    };
+    const factory = new Function(...Object.keys(deps), `${source.slice(start, end)}
+      return handleRuntimeMessage;`);
+    const handler = factory(...Object.values(deps));
+    const invoke = (message, sender) => new Promise((resolve) => {
+      const out = { responses: [], held: undefined };
+      const settle = () => resolve(out);
+      out.held = handler(message, sender || { id: EXT_ID, url: EXT_URL }, (r) => { out.responses.push(r); settle(); });
+      if (out.held !== true || out.responses.length) settle();
+      setTimeout(settle, 250); // async branch that never responds in stubs
+    });
+    return { invoke, calls };
+  }
+
+  {
+    const h = buildRouterHarness();
+    const foreign = await h.invoke({ type: "save_intent" }, { id: "other-ext", url: EXT_URL });
+    const contentScript = await h.invoke({ type: "save_intent" }, { id: EXT_ID, url: "https://pinboard.in/u:alice" });
+    check("router gate: foreign extensions and content-script senders are refused before any work",
+      foreign.responses[0]?.error === "forbidden" && contentScript.responses[0]?.error === "forbidden" &&
+      !h.calls.some(([n]) => n === "saveIntent"));
+  }
+  {
+    const h = buildRouterHarness();
+    const r = await h.invoke({ type: "save_intent", intent: { mode: "create" }, account: "alice" });
+    check("router: save_intent reaches submitPopupSaveIntent and holds the channel",
+      r.held === true && h.calls.some(([n]) => n === "saveIntent"));
+  }
+  {
+    const h = buildRouterHarness();
+    const r = await h.invoke({ type: "archive_url", url: "https://example.com/a" });
+    check("router: archive_url runs the archive and acknowledges with done",
+      r.held === true && h.calls.some(([n]) => n === "wayback") && r.responses[0]?.done === true);
+  }
+  {
+    const h = buildRouterHarness();
+    const bad = await h.invoke({ type: "pinboard_api_call", url: "https://evil.example/v1/posts/all" });
+    const good = await h.invoke({ type: "pinboard_api_call", url: "https://api.pinboard.in/v1/posts/get?auth_token=a%3Ab" });
+    check("router: pinboard_api_call enforces the allowlist before dispatch",
+      bad.responses[0]?.error === "invalid_pinboard_api_url" &&
+      good.responses[0]?.ok === true && h.calls.some(([n]) => n === "pinFetch"));
+  }
+  {
+    const h = buildRouterHarness();
+    // NOTE this branch keys on message.ACTION, not message.type — a wire-shape
+    // asymmetry the popup depends on; locking it here keeps it deliberate.
+    const r = await h.invoke({ action: "startBatchSave", tabs: [{ url: "https://x.example/" }], account: "alice" });
+    check("router: startBatchSave (action key) reserves and hands off to handleBatchSave",
+      r.responses[0]?.status === "started" && h.calls.some(([n]) => n === "batchSave"));
+  }
+  {
+    const h = buildRouterHarness();
+    const r = await h.invoke({ type: "vocabDriveStatus" });
+    check("router: drive-incapable build answers vocabDrive* with unavailable, not a crash",
+      r.responses[0]?.ok === false && r.responses[0]?.error === "unavailable");
+  }
+  {
+    const h = buildRouterHarness();
+    const r = await h.invoke({ type: "totally_unknown_type" });
+    check("router: an unknown type falls through quietly (no response, channel not held, no throw)",
+      r.responses.length === 0 && r.held !== true);
+  }
+
   document.getElementById("summary").textContent = `pass=${pass} fail=${fail}`;
 })();
 </script></body></html>
