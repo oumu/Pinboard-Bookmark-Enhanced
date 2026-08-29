@@ -854,6 +854,13 @@ function selectionRange(n, start, end) {
   check("visibility: filter never mutates and keeps order",
     pbpHlVisibleItems(vItems, vAlice).map((it) => it.id).join(",") === "v1,v2,v3" &&
     vItems.length === 4);
+  // Counter-example for the field-addition rule (Codex retrospective): an
+  // owner-ONLY change (what the claim migration writes) must NOT read as the
+  // same content, or an open reader skips the echo and keeps a stale mirror.
+  check("echo detection: an owner-only rewrite is a real change",
+    !pbpHlItemsSame(
+      [{ id: "e1", n: 1, quote: "q", color: 1, note: "" }],
+      [{ id: "e1", n: 1, quote: "q", color: 1, note: "", owner: "acct_alice" }]));
 
   document.getElementById("summary").textContent =
     "PASS " + PASS + " / FAIL " + FAIL + " (total " + (PASS + FAIL) + ")";

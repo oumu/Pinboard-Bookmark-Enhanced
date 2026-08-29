@@ -488,9 +488,13 @@ function pbpHlVisibleItems(items, owner) {
 // ---- Cross-writer change detection (pure/testable). storage.onChanged fires
 // for THIS page's own writes too, and absorbing one of those would re-derive
 // every Range on every save. Compared field by field over everything a writer
-// can change after creation (id / n / quote / color / note); ts, fp, side and
-// lang are stamped once at creation and travel with the id. Order counts: a
-// reordered list is a real rewrite by someone else, worth re-absorbing.
+// can change after creation (id / n / quote / color / note / owner); ts, fp,
+// side and lang are stamped once at creation and travel with the id. owner is
+// NOT in that immutable set: the one-shot claim migration rewrites it on
+// existing items, and skipping that echo left an open reader's raw mirror
+// stale — the account filter then kept showing the old account's items until
+// reload (Codex retrospective Top 1). Order counts: a reordered list is a
+// real rewrite by someone else, worth re-absorbing.
 // Anything that is not a pair of arrays is "not the same" -- callers use this
 // only to SKIP work, so the safe answer is to do the work.
 function pbpHlItemsSame(a, b) {
@@ -502,7 +506,8 @@ function pbpHlItemsSame(a, b) {
       || (Number(x.n) || 0) !== (Number(y.n) || 0)
       || x.quote !== y.quote
       || (Number(x.color) || 0) !== (Number(y.color) || 0)
-      || (x.note || "") !== (y.note || "")) return false;
+      || (x.note || "") !== (y.note || "")
+      || (x.owner || "") !== (y.owner || "")) return false;
   }
   return true;
 }
