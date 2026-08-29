@@ -790,7 +790,7 @@ window.pbpReaderSchemeSet = function (mode) {
   // AI-punctuation pass. A load that dies before the rewrite now re-renders
   // this same payload instead.
 
-  const { contentHtml, title, url, tokens, source } = info;
+  const { title, url, tokens, source } = info;
   const srcTabId = info.tabId;
   const baseUrl = info.baseUrl || url || "";
   // Immutable source-tab identity (hotlink round): `url`/`baseUrl` can be
@@ -1320,7 +1320,11 @@ window.pbpReaderSchemeSet = function (mode) {
   }
   // Canonical Markdown: Defuddle HTML -> Turndown; Jina already gives MD.
   // Single source of truth for Raw view, Copy MD, Download .md, and Rendered.
-  const _extractedMarkdown0 = info.markdown || (contentHtml ? htmlToMarkdown(contentHtml, { baseUrl }) : "");
+  const _extractedMarkdown0 = info.markdown || (info.contentHtml ? htmlToMarkdown(info.contentHtml, { baseUrl }) : "");
+  // Release the HTML handoff copy: it is only the fallback source for the line
+  // above (markdown wins when present), and keeping it on `info` would pin a
+  // string 3-5x the article's markdown size for the reader tab's lifetime.
+  info.contentHtml = "";
   // Math pages only: repair scraped TeX once at the source so the live view,
   // TOC, translate blocks, and every export see the same normalized text.
   // Applied to the EXTRACTED text only -- a caption transcript carries no

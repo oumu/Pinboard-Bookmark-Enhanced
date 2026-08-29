@@ -123,6 +123,9 @@ function invalidateBookmarkLookup() {
 
 let acIndex = -1;
 let settings = {};
+// Active tab resolved once at DOMContentLoaded and reused everywhere (a popup
+// closes on focus loss, so the active tab cannot change while it is open).
+let _activeTabAtOpen = null;
 
 async function resetPinboardSession() {
   try {
@@ -180,6 +183,9 @@ if (typeof requestAnimationFrame === "function") {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
+  // Settings is the longest await on the cold-open path — kick it off first so
+  // the tab/session IPCs below overlap it instead of queueing in front of it.
+  const settingsPromise = pbpReadSettingsWithSecrets(SETTINGS_DEFAULTS);
   document.querySelectorAll(".btn-ic[data-ic]").forEach(s => { s.innerHTML = PBP_ICONS[s.dataset.ic] || ""; });
   initI18n();
   applyI18n();
@@ -187,12 +193,18 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // B4: validate tab-data mirror against chrome.storage.session._currentTab
   // (set by SW on tab change). If mismatched (tabId or ts > 60s), clear prefill.
+  // The two reads are independent — resolve them in parallel. The active tab is
+  // resolved ONCE here and reused for the whole popup lifetime: a popup closes
+  // on focus loss, so the active tab cannot change while it is open.
   try {
-    const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    const sess = await chrome.storage.session.get("_currentTab");
+    const [tabResult, sess] = await Promise.all([
+      chrome.tabs.query({ active: true, currentWindow: true }),
+      chrome.storage.session.get("_currentTab"),
+    ]);
+    _activeTabAtOpen = (tabResult && tabResult[0]) || null;
     const _currentTab = sess._currentTab;
     const mirrorFresh = _currentTab && _currentTab.ts && (Date.now() - _currentTab.ts < 60000);
-    if (!mirrorFresh || !activeTab || _currentTab?.tabId !== activeTab.id) {
+    if (!mirrorFresh || !_activeTabAtOpen || _currentTab?.tabId !== _activeTabAtOpen.id) {
       const u = document.getElementById("url-input");
       const ti = document.getElementById("title-input");
       if (u && !document.activeElement?.isSameNode(u)) u.value = "";
@@ -200,7 +212,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   } catch (_) {}
 
-  settings = await pbpReadSettingsWithSecrets(SETTINGS_DEFAULTS);
+  settings = await settingsPromise;
   deobfuscateSettings(settings);
 
   // Apply theme: preset-based data-theme (if enabled); with no preset, dark
@@ -211,15 +223,23 @@ document.addEventListener("DOMContentLoaded", async () => {
     const prefersDark = settings.optTheme === "dark" ||
       (settings.optTheme === "auto" && window.matchMedia("(prefers-color-scheme: dark)").matches);
     const key = settings.optPopupFollowTheme !== false ? (settings.themePresetKey || "") : "";
+    let target = "";
     if (ADAPTIVE_THEME_MAP[key]) {
       const [light, dark] = ADAPTIVE_THEME_MAP[key];
-      document.documentElement.dataset.theme = prefersDark ? dark : light;
+      target = prefersDark ? dark : light;
     } else if (key) {
-      document.documentElement.dataset.theme = key;
+      target = key;
     } else if (prefersDark) {
-      document.documentElement.dataset.theme = "flexoki-dark";
-    } else {
-      delete document.documentElement.dataset.theme;
+      target = "flexoki-dark";
+    }
+    // Write only on change: theme-early already stamped the mirror's resolve on
+    // the common path, and re-stamping (or delete+reset) the attribute forces a
+    // full-document style recalc right in the cold-first-paint window.
+    const root = document.documentElement;
+    if (target) {
+      if (root.dataset.theme !== target) root.dataset.theme = target;
+    } else if ("theme" in root.dataset) {
+      delete root.dataset.theme;
     }
   }
   applyTheme();
@@ -352,7 +372,8 @@ async function showMain(token) {
     });
   }
 
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  // Reuse the tab resolved at DOMContentLoaded; re-query only if that read failed.
+  const tab = _activeTabAtOpen || (await chrome.tabs.query({ active: true, currentWindow: true }))[0];
   // Fill URL/Title immediately from tab info so the form isn't visibly blank while the
   // (slow) content-script injection runs. Tracking-param strip + selectedText/meta arrive later.
   if (tab) {
@@ -832,7 +853,12 @@ async function htmlToMarkdownAsync(html, opts) {
           await chrome.storage.local.set({
             ["md_preview_data_" + k]: {
               markdown: markdown || "",
-              contentHtml: result.contentHtml || "",
+              // contentHtml is ONLY the reader's fallback source when markdown
+              // is empty (md-preview derives everything from markdown when
+              // present). The HTML copy runs 3-5x the markdown's size, so
+              // double-writing it inflated the handoff write/read and the
+              // storage-quota pressure for zero benefit.
+              contentHtml: markdown ? "" : (result.contentHtml || ""),
               title: result.title || $id("title-input")?.value || "",
               url: result.url || url,
               baseUrl: result.url || url,
@@ -1083,7 +1109,9 @@ async function checkExistingBookmark(token, url, prefetch, forceFresh = false, s
       // B4: Write only public page identity for next-popup prefill. Existing-bookmark
       // state is account-specific and must come from the guarded background lookup.
       try {
-        const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        // Reuse the tab resolved at DOMContentLoaded: a fresh query here could
+        // pair a NEW tab's id with form values that came from the old tab.
+        const activeTab = _activeTabAtOpen;
         if (bookmarkLookup.generation === generation && bookmarkLookup.url === lookupUrl && $id("url-input").value.trim() === lookupUrl && activeTab?.url) {
           const mirror = {
             tabId: activeTab.id,

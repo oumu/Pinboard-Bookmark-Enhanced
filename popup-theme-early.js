@@ -73,26 +73,33 @@ chrome.storage.local.get({ optSyncEnabled: false }).then(({ optSyncEnabled }) =>
     localStorage.setItem("pp-popup-width", String(s.popupWidth || 550));
   } catch (_) {}
 
-  // Re-apply in case the mirror was stale (will be a no-op if mirror was correct)
+  // Re-apply in case the mirror was stale. Compute the target first and write
+  // ONLY on a real difference: the old delete-then-reset invalidated every
+  // :root[data-theme=...] rule and forced a full-document style recalc even
+  // when the mirror was already correct (the common case), right in the
+  // cold-first-paint window.
   const root = document.documentElement;
   const prefersDark = s.optTheme === "dark" ||
     (s.optTheme === "auto" && window.matchMedia("(prefers-color-scheme: dark)").matches);
   const key = s.optPopupFollowTheme !== false ? (s.themePresetKey || "") : "";
 
-  // Reset before re-applying
-  delete root.dataset.theme;
-
+  let target = "";
   if (PBP_POPUP_ADAPTIVE_MAP[key]) {
-    root.dataset.theme = prefersDark ? PBP_POPUP_ADAPTIVE_MAP[key][1] : PBP_POPUP_ADAPTIVE_MAP[key][0];
+    target = prefersDark ? PBP_POPUP_ADAPTIVE_MAP[key][1] : PBP_POPUP_ADAPTIVE_MAP[key][0];
   } else if (key) {
-    root.dataset.theme = key;
+    target = key;
   } else if (prefersDark) {
     // No-preset dark resolves to the flexoki-dark preset, the same fallback
     // Options / Library (options-theme-early.js) and the reader's own dark
     // palette use -- one warm-neutral dark across all four surfaces (theme
     // model 2026-08-25, batch 2 D6). popup.css carries no html.dark layer
     // any more (retired with this switch).
-    root.dataset.theme = "flexoki-dark";
+    target = "flexoki-dark";
+  }
+  if (target) {
+    if (root.dataset.theme !== target) root.dataset.theme = target;
+  } else if ("theme" in root.dataset) {
+    delete root.dataset.theme;
   }
 
   const w = Math.max(420, Math.min(720, Number(s.popupWidth) || 550));

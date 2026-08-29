@@ -45,14 +45,23 @@ async function _decodeIconSet(pathMap) {
   }
   return out;
 }
-(async () => {
-  try {
-    const [def, bm, tr] = await Promise.all([_decodeIconSet(ICONS_DEFAULT), _decodeIconSet(ICONS_BOOKMARKED), _decodeIconSet(ICONS_TOREAD)]);
-    _iconImageData.default = def;
-    _iconImageData.saved = bm;
-    _iconImageData.toread = tr;
-  } catch (_) { /* decode failed — setIcon keeps using the path: fallback */ }
-})();
+// Lazy: an MV3 "startup" is EVERY SW wake (alarms fire ~every 4 min), and a pure
+// alarm wake never calls setIcon — decoding 12 PNGs up front on each wake was
+// pure waste. First setIcon call kicks the decode; until it lands, setIcon's
+// path: fallback covers the gap.
+let _iconDecodeStarted = false;
+function _ensureIconDecode() {
+  if (_iconDecodeStarted) return;
+  _iconDecodeStarted = true;
+  (async () => {
+    try {
+      const [def, bm, tr] = await Promise.all([_decodeIconSet(ICONS_DEFAULT), _decodeIconSet(ICONS_BOOKMARKED), _decodeIconSet(ICONS_TOREAD)]);
+      _iconImageData.default = def;
+      _iconImageData.saved = bm;
+      _iconImageData.toread = tr;
+    } catch (_) { /* decode failed — setIcon keeps using the path: fallback */ }
+  })();
+}
 
 // URL 状态缓存
 const statusCache = new Map();
@@ -409,6 +418,7 @@ function setIcon(tabId, state) {
   // over and over — this guard eliminates that storm regardless of trigger frequency.
   if (_lastIconState.get(tabId) === state) return;
   _lastIconState.set(tabId, state);
+  _ensureIconDecode(); // lazy one-shot; path: fallback below covers until it lands
   try {
     const cached = _iconImageData[state];
     const details = cached
@@ -1408,7 +1418,16 @@ function pbpImgFixSweepRules(tabId) {
 chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
   if (!changeInfo.url) return;
   const owner = _imgFixTabDoc.get(tabId);
-  if (owner && _imgFixIsPreviewUrl(changeInfo.url) && _imgFixStripHash(changeInfo.url) === owner) return;
+  // No owner = this tab holds no rule in this SW generation, so there is nothing
+  // to sweep: the startup sweep below (queued at module evaluation, ahead of any
+  // listener work on the same serial queue) already dropped rules for tabs that
+  // are gone or no longer previews AND re-seeded owners for live previews.
+  // Without this early return, EVERY navigation on EVERY ordinary tab (including
+  // pure #anchor jumps and SPA pushState storms) paid a getSessionRules() IPC —
+  // and each chrome.* call resets the SW's 30s idle timer, silently defeating
+  // the "sleep after the keepalive window lapses" design.
+  if (!owner) return;
+  if (_imgFixIsPreviewUrl(changeInfo.url) && _imgFixStripHash(changeInfo.url) === owner) return;
   pbpImgFixSweepRules(tabId);
 });
 
@@ -1467,11 +1486,20 @@ chrome.storage.session.get({ _lastActivityTs: 0 }).then(({ _lastActivityTs: ts }
 }).catch(() => {});
 // ---------------------------------------------------------------------------
 
-// Keep service worker alive + periodic tasks
-chrome.alarms.create("keepalive", { periodInMinutes: 4 });
+// Keep service worker alive + periodic tasks. Same-name alarms.create() CANCELS
+// and REPLACES the existing alarm, resetting its clock — and this top level runs
+// on every SW wake. The keepalive alarm's own 4-min wake therefore kept resetting
+// storage-warm's 5-min clock, so storage-warm NEVER fired. Create only when
+// absent (same pattern as syncPrewarmTagsAlarm below).
+function ensurePeriodicAlarm(name, periodInMinutes) {
+  chrome.alarms.get(name).then((existing) => {
+    if (!existing) chrome.alarms.create(name, { periodInMinutes });
+  }).catch(() => {});
+}
+ensurePeriodicAlarm("keepalive", 4);
 // Periodically re-prime SETTINGS_DEFAULTS so chrome.storage doesn't go cold between
 // uses (Chrome evicts storage backend after inactivity, causing slow first-open).
-chrome.alarms.create("storage-warm", { periodInMinutes: 5 });
+ensurePeriodicAlarm("storage-warm", 5);
 
 sweepAICacheMigrationBackup().catch(() => {});
 sweepSuggestCache().catch(() => {});
@@ -1839,10 +1867,18 @@ async function sweepSuggestCache() {
 // stay in tabs.query with their ?k= intact) and drops the rest. The legacy no-token
 // global key `md_preview_data` (no trailing underscore) is deliberately excluded by
 // the prefix so a pre-update tab's fallback slot is never swept out from under it.
-// ponytail: get(null) enumerates ALL local keys — fine at current key counts;
-// upgrade to chrome.storage.local.getKeys() (Chrome ≥130) if this turns hot.
+// Throttled to ~once / 30 min via a persisted timestamp (same pattern as
+// sweepSuggestCache): "once per SW script evaluation" really meant once per SW
+// WAKE (~every 4 min via alarms), and the full get(null) fallback deserializes
+// the entire local area (jina_md_ page caches can reach MBs) — right when a
+// popup cold-open may be hitting the same storage backend. Orphaned keys are
+// harmless residue; letting them linger up to 30 min costs nothing.
+const PREVIEW_SWEEP_INTERVAL_MS = 30 * 60 * 1000;
 async function pbpSweepPreviewOrphans() {
   try {
+    const now = Date.now();
+    const { _previewSweepTs = 0 } = await chrome.storage.local.get({ _previewSweepTs: 0 });
+    if (now - _previewSweepTs < PREVIEW_SWEEP_INTERVAL_MS) return;
     const tabs = await chrome.tabs.query({});            // includes discarded tabs
     const base = chrome.runtime.getURL("md-preview.html");
     const live = new Set();
@@ -1852,18 +1888,30 @@ async function pbpSweepPreviewOrphans() {
         if (kk) live.add("md_preview_data_" + kk);
       }
     }
-    const all = await chrome.storage.local.get(null);
+    // Chrome ≥130 getKeys() lists keys without deserializing values; fall back
+    // to get(null) below min-chrome 130. Candidates then get a targeted get()
+    // just for their grace-window timestamps.
+    let candidates;
+    if (typeof chrome.storage.local.getKeys === "function") {
+      const keys = await chrome.storage.local.getKeys();
+      candidates = keys.filter((x) => x.startsWith("md_preview_data_") && !live.has(x));
+    } else {
+      const all = await chrome.storage.local.get(null);
+      candidates = Object.keys(all).filter((x) => x.startsWith("md_preview_data_") && !live.has(x));
+    }
     // Grace window: keep keys written in the last 60s even if their tab isn't in
     // tabs.query yet — closes the cold-start TOCTOU where popup set()s a token key
     // (waking the SW → this sweep) before its tabs.create() registers the ?k= tab.
-    const now = Date.now();
-    const stale = Object.keys(all).filter((x) =>
-      x.startsWith("md_preview_data_") && !live.has(x) &&
-      !(all[x] && all[x].ts && (now - all[x].ts) < 60000));
-    if (stale.length) await chrome.storage.local.remove(stale);
+    if (candidates.length) {
+      const entries = await chrome.storage.local.get(candidates);
+      const stale = candidates.filter((x) =>
+        !(entries[x] && entries[x].ts && (now - entries[x].ts) < 60000));
+      if (stale.length) await chrome.storage.local.remove(stale);
+    }
+    await chrome.storage.local.set({ _previewSweepTs: now });
   } catch (_) { /* best-effort: leaked keys just linger to the next sweep */ }
 }
-// Cold-start residue clean: runs once per SW script evaluation (fire-and-forget).
+// Cold-start residue clean (fire-and-forget; internally throttled).
 pbpSweepPreviewOrphans();
 
 // Startup: process offline queue + update badge + prime settings (cheap no-op when already primed)

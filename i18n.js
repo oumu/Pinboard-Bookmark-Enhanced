@@ -57,6 +57,7 @@ async function _refreshI18nAsync() {
       try {
         localStorage.setItem("pp-i18n-lang", "auto");
         localStorage.removeItem("pp-i18n-msgs");
+        localStorage.removeItem("pp-i18n-stamp");
       } catch (_) {}
       const changed = _i18nMessages !== null;
       if (changed) {
@@ -65,6 +66,19 @@ async function _refreshI18nAsync() {
       }
       return;
     }
+
+    // Version-stamp short circuit: messages.json only changes with the extension
+    // version, so when the mirror was written by THIS version for THIS language
+    // and boot already parsed it, there is nothing to fetch or diff. Saves a
+    // ~100KB fetch+parse plus three full JSON.stringify passes on every surface
+    // open for manual-language users. Fail-open: any localStorage hiccup just
+    // falls through to the full refresh below.
+    try {
+      if (_i18nMessages &&
+          localStorage.getItem("pp-i18n-stamp") === optLang + "@" + chrome.runtime.getManifest().version) {
+        return;
+      }
+    } catch (_) {}
 
     // Manual language: fetch locale messages
     const url = chrome.runtime.getURL(`_locales/${optLang}/messages.json`);
@@ -81,6 +95,7 @@ async function _refreshI18nAsync() {
     try {
       localStorage.setItem("pp-i18n-lang", optLang);
       localStorage.setItem("pp-i18n-msgs", JSON.stringify(msgs));
+      localStorage.setItem("pp-i18n-stamp", optLang + "@" + chrome.runtime.getManifest().version);
     } catch (_) {
       // localStorage may be full or unavailable (e.g. SW context); proceed without mirror
     }
