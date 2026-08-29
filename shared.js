@@ -2113,11 +2113,11 @@ function pbpCountBackupSecrets(data) {
 // Migration-scrub variant: removes tokens only, leaving a legacy plaintext
 // webhook URL in the sync copy. See pbpPlanSecretMigration for why deleting
 // that URL account-wide would strand late-upgrading devices.
-// TODO(two-release cleanup): a dormant export-target config never rewrites
-// itself, so this residue can outlive its purpose. Once a release with the
-// local-fill logic has been out long enough that every device of an account
-// has its own copy, a later release should scrub the legacy sync URL in one
-// shot.
+// The long-standing "two-release cleanup" TODO here is now DONE:
+// pbpScrubLegacySyncWebhookUrls (background.js, one-shot, flag-gated)
+// rescues any sync-only secret into local and then full-strips the sync
+// copy. This tokens-only variant remains for the in-flight migration path
+// until that scrub retires (2026-12-31, CLAUDE.md 临时事项).
 function pbpStripExportTargetTokensOnly(ets) {
   const cleaned = {};
   if (!ets || typeof ets !== "object") return cleaned;

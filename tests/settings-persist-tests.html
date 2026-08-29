@@ -1166,6 +1166,61 @@ async function run() {
         disabledSettingsSync.exportTargets.github.enabled === true &&
         !("token" in disabledSettingsSync.exportTargets.github));
 
+      // E4b: one-shot legacy webhook-URL scrub (background.js, roadmap #24).
+      // Slice the named function and drive it against the same install()
+      // fixture; the shared.js helpers it calls are the page globals.
+      {
+        const bgSource = await fetch("../background.js").then((r) => r.text());
+        const sStart = bgSource.indexOf("async function pbpScrubLegacySyncWebhookUrls");
+        const sEnd = bgSource.indexOf("pbpScrubLegacySyncWebhookUrls();", sStart);
+        check("E4b scrub: slice found", sStart >= 0 && sEnd > sStart);
+        const scrubFactory = new Function(
+          bgSource.slice(sStart, sEnd) + "\nreturn pbpScrubLegacySyncWebhookUrls;");
+
+        // keys-off with a legacy plaintext webhook URL in sync, empty local:
+        // rescue lands locally, sync keeps ordinary fields but loses secrets.
+        const scrubLocal1 = { optSyncEnabled: false };
+        const scrubSync1 = {
+          syncApiKeys: false,
+          exportTargets: { webhook: { enabled: true, url: "https://hook.example/cap-secret", token: "obf:hook-tok" } },
+        };
+        install(scrubLocal1, scrubSync1);
+        await scrubFactory()();
+        check("E4b scrub: rescued sync-only webhook secrets into local",
+          scrubLocal1.exportTargets.webhook.url === "https://hook.example/cap-secret" &&
+          scrubLocal1.exportTargets.webhook.token === "obf:hook-tok");
+        check("E4b scrub: sync copy keeps ordinary fields but loses url+token",
+          scrubSync1.exportTargets.webhook.enabled === true &&
+          !("url" in scrubSync1.exportTargets.webhook) &&
+          !("token" in scrubSync1.exportTargets.webhook) &&
+          scrubLocal1._webhookSyncScrubDone === true);
+
+        // keys-on: sync copy is live credential-sync data — untouched, flag set.
+        const scrubLocal2 = { optSyncEnabled: true };
+        const scrubSync2 = {
+          syncApiKeys: true,
+          exportTargets: { webhook: { enabled: true, url: "https://hook.example/live" } },
+        };
+        install(scrubLocal2, scrubSync2);
+        const scrubSync2Before = JSON.stringify(scrubSync2);
+        await scrubFactory()();
+        check("E4b scrub: keys-on sync copy untouched, flag set",
+          JSON.stringify(scrubSync2) === scrubSync2Before.replace('}', '}') &&
+          scrubSync2.exportTargets.webhook.url === "https://hook.example/live" &&
+          scrubLocal2._webhookSyncScrubDone === true);
+
+        // flag already set: full no-op, sync never rewritten.
+        const scrubLocal3 = { optSyncEnabled: false, _webhookSyncScrubDone: true };
+        const scrubSync3 = {
+          syncApiKeys: false,
+          exportTargets: { webhook: { enabled: true, url: "https://hook.example/left" } },
+        };
+        install(scrubLocal3, scrubSync3);
+        await scrubFactory()();
+        check("E4b scrub: done flag short-circuits, legacy sync value untouched",
+          scrubSync3.exportTargets.webhook.url === "https://hook.example/left");
+      }
+
       // Regression (602062f review): enabling key sync from a device that
       // holds NO credentials must not publish "" tombstones over values other
       // devices still rely on — a later keys-off copy-down would spread that

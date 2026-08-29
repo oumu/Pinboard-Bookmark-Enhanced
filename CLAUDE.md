@@ -147,6 +147,7 @@ bash scripts/release.sh         # 打 ZIP + GH release + changelog；--build-onl
 
 - **`bgSaveMode` 迁移可退役（到期日 2026-09-30）**：background.js 的 `migrateBgSaveMode()` 自 v2.79 / 2026-06-10 上线，已远超 WebDAV 清理迁移的退役先例（10 个版本 / 33 天）。退役要连同三处 `_bgSaveModeMigration.then(() => primeSettings()).catch(() => {})` 门一并删掉、改回直接 `primeSettings().catch(() => {})`，否则留下悬空引用。
 - （WebDAV 遗留清理迁移已于 2026-08-26 退役——自 v2.98 起随 10 个版本运行 33 天）
+- **`pbpScrubLegacySyncWebhookUrls` 可退役（到期日 2026-12-31）**：background.js 的一次性 scrub（2026-08-29 上线，flag `_webhookSyncScrubDone`）——keys-off 用户遗留在 chrome.storage.sync 的明文 webhook capability URL 先救进 local 再全剥。到期直接删函数与调用行；届时 `pbpStripExportTargetTokensOnly`（shared.js）若 migrate 路径仍在用则保留，其注释同步改。
 - **`migrateGithubModelsRetirement` 可退役（到期日 2026-10-15）**：GitHub Models 服务 2026-07-30 整体退役（端点 HTTP 410），provider 已于 2026-08-29 下线；background.js 的该迁移负责重置存量用户的 `aiProvider` 并清理两个 storage area 里的 `githubModelsApiKey`/`githubModelsModel`。按 WebDAV 先例（10 个版本/33 天）到期直接删函数与调用行即可，无接线门。
 
 ## 与 Claude Code 协作

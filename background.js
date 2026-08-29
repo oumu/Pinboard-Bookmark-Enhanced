@@ -1642,6 +1642,43 @@ async function migrateGithubModelsRetirement() {
 }
 migrateGithubModelsRetirement();
 
+// One-shot legacy scrub (roadmap #24; retires shared.js's "two-release
+// cleanup" TODO): keys-off migration used to strip only the token field,
+// leaving a legacy plaintext webhook capability URL in chrome.storage.sync
+// indefinitely after the user turned credential sync off. The local-fill
+// logic has been shipping since v2.99 (2026-07-28) — far past the
+// two-release window it was waiting for — so every active device holds its
+// own local copy. Flag-gated one-shot; a failure retries on the next SW
+// evaluation. Retire by 2026-12-31 (CLAUDE.md 临时事项).
+async function pbpScrubLegacySyncWebhookUrls() {
+  try {
+    const { _webhookSyncScrubDone } = await chrome.storage.local.get("_webhookSyncScrubDone");
+    if (_webhookSyncScrubDone) return;
+    await pbpWithSecretStorageLock(async () => {
+      // Re-read INSIDE the lock. keys-on means the sync copy is LIVE data
+      // owned by credential sync — nothing to scrub (a later keys-off runs
+      // pbpDisableSyncApiKeys' full strip anyway), just mark done.
+      const flags = await pbpReadSecretSyncStateUnlocked({ includeGlobalWhenSyncOff: true });
+      if (!flags.syncApiKeys) {
+        const { exportTargets } = await chrome.storage.sync.get("exportTargets");
+        if (pbpExportTargetsHaveSecrets(exportTargets)) {
+          // Rescue before scrub: fill any secret slot local does not hold, so
+          // this scrub can never destroy the account's last copy.
+          const { exportTargets: localTargets } = await chrome.storage.local.get("exportTargets");
+          const filled = pbpMergeExportTargetSecrets(localTargets, exportTargets, { fillWins: false });
+          await chrome.storage.local.set({ exportTargets: filled });
+          await chrome.storage.sync.set({ exportTargets: pbpStripExportTargetTokens(exportTargets) });
+          console.info("[secrets-migration] legacy sync webhook capability URLs scrubbed");
+        }
+      }
+      await chrome.storage.local.set({ _webhookSyncScrubDone: true });
+    });
+  } catch (e) {
+    console.warn("legacy webhook sync scrub failed:", e?.name, e?.message);
+  }
+}
+pbpScrubLegacySyncWebhookUrls();
+
 // Security-first permission migration. Older Batch versions could leave the
 // optional all-sites grant active. Removing it also clears matching exact
 // optional grants in Chrome, so configurations stay untouched and each feature
