@@ -1679,6 +1679,52 @@ async function pbpScrubLegacySyncWebhookUrls() {
 }
 pbpScrubLegacySyncWebhookUrls();
 
+// One-shot claim migration (roadmap #19, approved 2026-08-29): pre-existing
+// highlight items carry no owner field — claim them for the CURRENT Pinboard
+// account so the new per-account visibility rule has a defined baseline
+// (mirrors the offline queue's legacy-token rewrite). Waits until an account
+// exists: logged-out leaves items unclaimed (= visible to all) and re-checks
+// cheaply on later SW evaluations. Each record's read-modify-write holds the
+// same per-record Web Lock the reader's commit path uses ("pbp-hl:<key>"), so
+// a concurrent highlight save cannot be clobbered. Retire by 2026-12-31
+// (CLAUDE.md 临时事项, flag _hlOwnerClaimDone).
+async function pbpClaimLegacyHighlightOwners() {
+  try {
+    const { _hlOwnerClaimDone } = await chrome.storage.local.get("_hlOwnerClaimDone");
+    if (_hlOwnerClaimDone) return;
+    const scope = await pbpVocabCurrentOwner();
+    if (!scope || scope === "ownerless") return; // no account yet — retry on a later wake
+    let keys;
+    if (typeof chrome.storage.local.getKeys === "function") {
+      keys = (await chrome.storage.local.getKeys()).filter((k) => k.startsWith("pbp_hl_") && k !== "pbp_hl_last_color");
+    } else {
+      keys = Object.keys(await chrome.storage.local.get(null)).filter((k) => k.startsWith("pbp_hl_") && k !== "pbp_hl_last_color");
+    }
+    let claimed = 0;
+    for (const key of keys) {
+      await navigator.locks.request("pbp-hl:" + key, async () => {
+        const d = await chrome.storage.local.get(key);
+        const rec = d && d[key];
+        if (!rec || typeof rec !== "object" || Array.isArray(rec) || !Array.isArray(rec.items)) return;
+        let changed = false;
+        const items = rec.items.map((it) => {
+          if (it && typeof it === "object" && !Array.isArray(it) && typeof it.owner !== "string") {
+            changed = true;
+            return { ...it, owner: scope };
+          }
+          return it;
+        });
+        if (changed) { await chrome.storage.local.set({ [key]: { ...rec, items } }); claimed++; }
+      });
+    }
+    await chrome.storage.local.set({ _hlOwnerClaimDone: true });
+    if (claimed) console.info(`[hl-owner] claimed legacy highlight items on ${claimed} page record(s)`);
+  } catch (e) {
+    console.warn("highlight owner claim failed:", e?.name, e?.message);
+  }
+}
+pbpClaimLegacyHighlightOwners();
+
 // Security-first permission migration. Older Batch versions could leave the
 // optional all-sites grant active. Removing it also clears matching exact
 // optional grants in Chrome, so configurations stay untouched and each feature

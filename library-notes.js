@@ -126,8 +126,39 @@ let _notesSelected = new Set();
 let _notesLastSelectedKey = null;
 let _notesBatchBusy = false;
 
+// Account scoping (roadmap #19): memoized owner scope for the scan below. The
+// library page is long-lived and the account can change under it, so the
+// cache invalidates on any pinboardToken/optSyncEnabled change (either area —
+// credential routing decides which one holds the token). Rule mirrors
+// md-highlight's pbpHlItemVisibleFor: ownerless items are visible to
+// everyone, owned items only to their owner; resolve failure -> "" = only
+// ownerless items show (fail-closed for owned ones).
+let _notesOwnerCache = null; // null = unresolved; string = resolved scope ("" = ownerless)
+async function _pbpNotesOwner() {
+  if (_notesOwnerCache !== null) return _notesOwnerCache;
+  let scope = "";
+  try {
+    const raw = typeof pbpVocabCurrentOwner === "function" ? await pbpVocabCurrentOwner() : "";
+    scope = (raw && raw !== "ownerless") ? String(raw) : "";
+  } catch (_) { scope = ""; }
+  _notesOwnerCache = scope;
+  return scope;
+}
+if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.onChanged) {
+  chrome.storage.onChanged.addListener((changes) => {
+    if (changes.pinboardToken || changes.optSyncEnabled) _notesOwnerCache = null;
+  });
+}
+
 async function _pbpNotesScan() {
   if (typeof chrome === "undefined" || !chrome.storage || !chrome.storage.local) return [];
+  // Display-level only: batch delete operates on the visible ids, so foreign
+  // items are untouchable here by construction.
+  const _notesOwner = await _pbpNotesOwner();
+  const _itemVisible = (it) => {
+    const o = (it && typeof it.owner === "string") ? it.owner : "";
+    return !o || o === _notesOwner;
+  };
   let all;
   try {
     if (typeof chrome.storage.local.getKeys === "function") {
@@ -146,8 +177,14 @@ async function _pbpNotesScan() {
   const rows = [];
   for (const key of Object.keys(all || {})) {
     if (!key.startsWith("pbp_hl_") || key === "pbp_hl_last_color") continue;
-    const row = pbpNotesRow(key, all[key]);
-    if (row) rows.push({ row, rec: all[key] });
+    let rec = all[key];
+    // Owner filter on a COPY — never mutate the stored record shape.
+    if (rec && Array.isArray(rec.items) && rec.items.some((it) => !_itemVisible(it))) {
+      rec = { ...rec, items: rec.items.filter(_itemVisible) };
+      if (!rec.items.length) continue; // page fully foreign: no row at all
+    }
+    const row = pbpNotesRow(key, rec);
+    if (row) rows.push({ row, rec });
   }
   rows.sort((a, b) => b.row.lastTs - a.row.lastTs);
   return rows;

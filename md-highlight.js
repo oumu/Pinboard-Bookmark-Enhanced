@@ -471,6 +471,20 @@ function pbpHlAppendNoteText(existing, answer) {
   return e.trim() ? e + "\n\n" + a : a;
 }
 
+// ---- Account scoping (roadmap #19, approved 2026-08-29). Each item MAY carry
+// a non-secret owner scope (pbpDictOwnerScope shape, "acct_<name>"). Rule:
+// ownerless items (legacy, or made while logged out) are visible to everyone;
+// owned items only to their owner. Filtering happens at DISPLAY time only —
+// _pbpHlCommit's read-modify-write always carries the full stored array, so a
+// filtered view can never write another account's items out of storage. Pure.
+function pbpHlItemVisibleFor(item, owner) {
+  const o = (item && typeof item.owner === "string") ? item.owner : "";
+  return !o || o === String(owner || "");
+}
+function pbpHlVisibleItems(items, owner) {
+  return Array.isArray(items) ? items.filter((it) => pbpHlItemVisibleFor(it, owner)) : [];
+}
+
 // ---- Cross-writer change detection (pure/testable). storage.onChanged fires
 // for THIS page's own writes too, and absorbing one of those would re-derive
 // every Range on every save. Compared field by field over everything a writer
@@ -600,6 +614,17 @@ async function _pbpHlSave(url, items, btn) {
   }
 }
 
+// Page-boot owner scope for stamping and display filtering. Resolved once in
+// pbpHlInit; "" = logged out ("ownerless" normalizes to it) or resolve failure
+// — then new items stay fieldless (legacy shape) and only ownerless items
+// show (fail-closed for owned ones). An open reader outliving an account
+// switch keeps the boot scope; the library re-resolves per render.
+let _pbpHlOwner = "";
+// Last known FULL stored items array (unfiltered). The onChanged echo
+// comparison must run raw-vs-raw: _pbpHlState.items is the filtered display
+// set and would spuriously differ from every echo once foreign items exist.
+let _pbpHlRawItems = null;
+
 let _pbpHlWriteQueue = Promise.resolve();
 
 function _pbpHlQueueWrite(fn) {
@@ -643,7 +668,8 @@ async function _pbpHlCommit(patch, btn) {
       _pbpHlEchoItems = next;
       const ok = await _pbpHlSave(url, next, btn);
       if (!ok) { _pbpHlEchoItems = null; return false; } // nothing was written: a later foreign write of this exact content is NOT an echo
-      _pbpHlState.items = next;
+      _pbpHlRawItems = next;
+      _pbpHlState.items = pbpHlVisibleItems(next, _pbpHlOwner);
       return true;
     });
   });
@@ -785,7 +811,12 @@ async function pbpHlInit(detail) {
   try {
     const url = String((detail && detail.url) || "");
     const title = String((detail && detail.title) || "");
-    const items = await _pbpHlLoad(url);
+    try {
+      const scope = typeof pbpVocabCurrentOwner === "function" ? await pbpVocabCurrentOwner() : "";
+      _pbpHlOwner = (scope && scope !== "ownerless") ? String(scope) : "";
+    } catch (_) { _pbpHlOwner = ""; }
+    _pbpHlRawItems = await _pbpHlLoad(url);
+    const items = pbpHlVisibleItems(_pbpHlRawItems, _pbpHlOwner);
     _pbpHlState = { url, title, items, ranges: Object.create(null), degraded: Object.create(null), resolvedN: Object.create(null), orphans: Object.create(null) };
     pbpHlRestore();
     // Restored-from-storage highlights must surface the rail entry on first
@@ -1489,6 +1520,9 @@ async function _pbpHlCreateFromRange(range, color, btn) {
       item.side = "tr";
       item.lang = (seg.el.dataset && seg.el.dataset.pbTrLang) || "";
     }
+    // Account scope (roadmap #19): stamp the page-boot owner. Logged-out
+    // creation stays fieldless — the legacy shape, visible to everyone.
+    if (_pbpHlOwner) item.owner = _pbpHlOwner;
     created.push({ item, seg });
   }
   if (!created.length) return [];
@@ -2461,10 +2495,12 @@ if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.onChanged)
     if (!c) return;
     const next = (c.newValue && Array.isArray(c.newValue.items)) ? c.newValue.items : [];
     // Self-write echo carries identical content; skip to avoid re-anchoring on
-    // every save. _pbpHlEchoItems covers the echo that outruns _pbpHlSave's own
-    // promise, _pbpHlState.items the one that arrives after it.
-    if (!pbpHlItemsSame(next, _pbpHlState.items) && !pbpHlItemsSame(next, _pbpHlEchoItems)) {
-      _pbpHlState.items = next;
+    // every save. Compared RAW vs RAW (_pbpHlRawItems mirrors the last known
+    // full stored array): the display set is owner-filtered and would differ
+    // from every echo once another account's items share the record.
+    if (!pbpHlItemsSame(next, _pbpHlRawItems) && !pbpHlItemsSame(next, _pbpHlEchoItems)) {
+      _pbpHlRawItems = next;
+      _pbpHlState.items = pbpHlVisibleItems(next, _pbpHlOwner);
       // Retire the echo: it has been overtaken, and keeping it would mask a
       // later foreign write that happens to restore that exact content.
       _pbpHlEchoItems = null;

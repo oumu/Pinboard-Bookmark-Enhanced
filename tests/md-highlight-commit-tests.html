@@ -837,6 +837,24 @@ function selectionRange(n, start, end) {
   check("the trace carries the shape, never the record's contents",
     !corruptWarnings.some((m) => m.includes("private reading note")), JSON.stringify(corruptWarnings));
 
+  // ---- Account visibility rule (roadmap #19, pure layer) ----
+  const vAlice = "acct_alice";
+  const vItems = [
+    { id: "v1", quote: "q" },                       // legacy, no owner
+    { id: "v2", quote: "q", owner: "" },            // explicit ownerless
+    { id: "v3", quote: "q", owner: "acct_alice" },  // hers
+    { id: "v4", quote: "q", owner: "acct_bob" },    // someone else's
+  ];
+  check("visibility: ownerless and own items show for an account",
+    pbpHlItemVisibleFor(vItems[0], vAlice) && pbpHlItemVisibleFor(vItems[1], vAlice) &&
+    pbpHlItemVisibleFor(vItems[2], vAlice) && !pbpHlItemVisibleFor(vItems[3], vAlice));
+  check("visibility: logged out sees only ownerless items",
+    pbpHlItemVisibleFor(vItems[0], "") && !pbpHlItemVisibleFor(vItems[2], "") &&
+    pbpHlVisibleItems(vItems, "").length === 2);
+  check("visibility: filter never mutates and keeps order",
+    pbpHlVisibleItems(vItems, vAlice).map((it) => it.id).join(",") === "v1,v2,v3" &&
+    vItems.length === 4);
+
   document.getElementById("summary").textContent =
     "PASS " + PASS + " / FAIL " + FAIL + " (total " + (PASS + FAIL) + ")";
   document.getElementById("summary").style.color = FAIL ? "#c00" : "#0a0";
