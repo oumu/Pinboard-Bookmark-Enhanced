@@ -1360,7 +1360,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   const syncKeysToggle = $id("opt-sync-api-keys");
   if (syncKeysToggle) {
     syncKeysToggle.checked = syncApiKeys;
-    syncKeysToggle.disabled = !optSyncEnabled;
+    // Keep the toggle operable on a sync-off device while the account-wide
+    // marker says credentials still sit in chrome.storage.sync: turning it
+    // OFF there is the only product path that scrubs them (the enable
+    // direction stays a no-op — pbpEnableSyncApiKeys gates on optSyncEnabled
+    // and the checkbox snaps back). Disabled only when there is nothing to
+    // recover.
+    syncKeysToggle.disabled = !optSyncEnabled && !syncApiKeys;
   }
   await pbpRefreshSyncLocalFallbackStatus();
 
@@ -1371,7 +1377,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Declared out here because the post-reload watchdog below has to know
     // whether this run adopted the cloud profile (see its comment).
     let useCloud = false;
-    if (syncKeysToggle) syncKeysToggle.disabled = !enabling;
+    if (syncKeysToggle) syncKeysToggle.disabled = !enabling && !syncKeysToggle.checked;
     const oldStorage = enabling ? chrome.storage.local : chrome.storage.sync;
     const newStorage = enabling ? chrome.storage.sync : chrome.storage.local;
     // This action reloads the page and migrates the persisted snapshot. Freeze
@@ -1382,7 +1388,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!pendingSave.ok) {
       const actual = await chrome.storage.local.get({ optSyncEnabled: !enabling }).catch(() => ({ optSyncEnabled: !enabling }));
       syncToggle.checked = !!actual.optSyncEnabled;
-      if (syncKeysToggle) syncKeysToggle.disabled = !actual.optSyncEnabled;
+      if (syncKeysToggle) syncKeysToggle.disabled = !actual.optSyncEnabled && !syncKeysToggle.checked;
       resumeOptionsAutoSave();
       return;
     }
@@ -1407,7 +1413,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
       if (cancelled) {
         syncToggle.checked = false;
-        if (syncKeysToggle) syncKeysToggle.disabled = true;
+        if (syncKeysToggle) syncKeysToggle.disabled = !syncKeysToggle.checked;
         resumeOptionsAutoSave();
         return;
       }
@@ -1519,7 +1525,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       console.error("sync migration failed:", e);
       const actual = await chrome.storage.local.get({ optSyncEnabled: !enabling }).catch(() => ({ optSyncEnabled: !enabling }));
       syncToggle.checked = !!actual.optSyncEnabled;
-      if (syncKeysToggle) syncKeysToggle.disabled = !actual.optSyncEnabled;
+      if (syncKeysToggle) syncKeysToggle.disabled = !actual.optSyncEnabled && !syncKeysToggle.checked;
       const errEl = $id("opt-sync-error");
       if (errEl) {
         errEl.textContent = t("syncMigrationFailed") || "Sync migration failed. Try again; if it persists, check available Chrome Sync storage.";
@@ -1596,7 +1602,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
       const actual = await pbpReadSecretSyncState({ includeGlobalWhenSyncOff: true });
       syncKeysToggle.checked = !!actual.syncApiKeys;
-      syncKeysToggle.disabled = !actual.optSyncEnabled;
+      syncKeysToggle.disabled = !actual.optSyncEnabled && !actual.syncApiKeys;
     } catch (e) {
       console.error("syncApiKeys toggle failed:", e);
       // Reflect the authoritative account-wide marker; never infer a rollback
@@ -1604,7 +1610,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       const actual = await pbpReadSecretSyncState({ includeGlobalWhenSyncOff: true })
         .catch(() => ({ optSyncEnabled: true, syncApiKeys: !enabling }));
       syncKeysToggle.checked = !!actual.syncApiKeys;
-      syncKeysToggle.disabled = !actual.optSyncEnabled;
+      syncKeysToggle.disabled = !actual.optSyncEnabled && !actual.syncApiKeys;
       const errEl = $id("opt-sync-error");
       if (errEl) {
         errEl.textContent = t("syncMigrationFailed") || "Sync migration failed. Try again; if it persists, check available Chrome Sync storage.";

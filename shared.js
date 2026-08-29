@@ -2461,8 +2461,16 @@ async function pbpMigrateSecretsToLocal() {
 // (staleness is recoverable, destruction is not).
 async function pbpDisableSyncApiKeys() {
   await pbpWithSecretStorageLock(async () => {
-    const flags = await pbpReadSecretSyncStateUnlocked();
-    if (!flags.optSyncEnabled || !flags.syncApiKeys) return;
+    // includeGlobalWhenSyncOff + no optSyncEnabled gate: a device whose own
+    // settings sync is OFF must still be able to run this account-wide
+    // keys-off scrub. Otherwise credentials published to chrome.storage.sync
+    // are orphaned the moment the last sync-on device flips its device-local
+    // toggle off — the UI toggle greys out and NO product path can ever clear
+    // them again. The body below never depended on optSyncEnabled: it reads
+    // sync/local areas directly, confirms a local copy, then publishes the
+    // keys-off marker with credential tombstones.
+    const flags = await pbpReadSecretSyncStateUnlocked({ includeGlobalWhenSyncOff: true });
+    if (!flags.syncApiKeys) return;
 
     const keys = API_KEY_FIELDS.concat(["exportTargets"]);
     const [fromSync, localVals] = await Promise.all([
@@ -2471,22 +2479,39 @@ async function pbpDisableSyncApiKeys() {
     ]);
     const localPayload = {};
     API_KEY_FIELDS.forEach((key) => {
-      if (typeof fromSync[key] === "string" && fromSync[key] !== "") localPayload[key] = fromSync[key];
+      if (typeof fromSync[key] !== "string" || fromSync[key] === "") return;
+      // Sync-off recovery device: local is this device's INDEPENDENT truth (it
+      // never consumed the cloud copy while its settings sync was off), so a
+      // cloud value may only FILL an empty local slot, never overwrite. On a
+      // sync-on device the cloud copy IS current truth and replaces stale local.
+      if (!flags.optSyncEnabled &&
+          typeof localVals[key] === "string" && localVals[key] !== "") return;
+      localPayload[key] = fromSync[key];
     });
     const cloudTargets = fromSync.exportTargets;
     if (cloudTargets && typeof cloudTargets === "object" && !Array.isArray(cloudTargets)) {
-      // Cloud owns target existence and ordinary fields; this device's
-      // non-empty credential fields survive where the cloud copy carries none.
-      localPayload.exportTargets = pbpMergeExportTargetSecrets(
-        cloudTargets, localVals.exportTargets, { fillWins: false });
+      localPayload.exportTargets = flags.optSyncEnabled
+        // Cloud owns target existence and ordinary fields; this device's
+        // non-empty credential fields survive where the cloud copy carries none.
+        ? pbpMergeExportTargetSecrets(cloudTargets, localVals.exportTargets, { fillWins: false })
+        // Sync-off recovery: keep this device's own structure and secrets, and
+        // only rescue cloud secrets into slots local does not hold, so the
+        // scrub below never destroys the account's last copy.
+        : pbpMergeExportTargetSecrets(localVals.exportTargets, cloudTargets, { fillWins: false });
     }
 
     // Confirm the snapshot locally before atomically publishing the
     // account-wide keys-off marker and empty credential tombstones.
     if (Object.keys(localPayload).length) await chrome.storage.local.set(localPayload);
-    const scrubTargets = localPayload.exportTargets ||
-      (localVals.exportTargets && typeof localVals.exportTargets === "object"
-        ? localVals.exportTargets : (SETTINGS_DEFAULTS.exportTargets || {}));
+    // Scrub payload: strip tokens off the CLOUD structure. On a sync-off
+    // device localPayload carries this device's own target layout — publishing
+    // that would clobber ordinary fields other sync-on devices maintain.
+    const scrubTargets = (!flags.optSyncEnabled && cloudTargets &&
+        typeof cloudTargets === "object" && !Array.isArray(cloudTargets))
+      ? cloudTargets
+      : localPayload.exportTargets ||
+        (localVals.exportTargets && typeof localVals.exportTargets === "object"
+          ? localVals.exportTargets : (SETTINGS_DEFAULTS.exportTargets || {}));
     const scrub = {
       syncApiKeys: false,
       exportTargets: pbpStripExportTargetTokens(scrubTargets),

@@ -1139,18 +1139,32 @@ async function run() {
       check("E4 keys-on: fresh sync-off state performs zero sync writes",
         JSON.stringify(syncOffSync) === syncOffBefore);
 
+      // Orphan-recovery semantics (roadmap #21, approved 2026-08-29): a
+      // sync-off device is the ONLY remaining product path once every device
+      // turned its device-local sync off, so disable must work there too —
+      // but local is that device's independent truth: cloud values may only
+      // fill empty local slots (never overwrite), rescued cloud secrets land
+      // locally, and the scrub keeps the CLOUD structure's ordinary fields.
       const disabledSettingsLocal = { optSyncEnabled: false, openaiApiKey: "obf:local-current" };
       const disabledSettingsSync = {
         syncApiKeys: true,
         openaiApiKey: "obf:old-cloud",
+        geminiApiKey: "obf:cloud-only",
         exportTargets: { github: { enabled: true, token: "obf:old-cloud-target" } },
       };
       install(disabledSettingsLocal, disabledSettingsSync);
-      const disabledSettingsBefore = JSON.stringify(disabledSettingsSync);
       await pbpDisableSyncApiKeys();
-      check("E4 keys-off: sync-off device neither reads nor scrubs cloud credentials",
-        disabledSettingsLocal.openaiApiKey === "obf:local-current" &&
-        JSON.stringify(disabledSettingsSync) === disabledSettingsBefore);
+      check("E4 keys-off: sync-off recovery keeps local truth over the old cloud copy",
+        disabledSettingsLocal.openaiApiKey === "obf:local-current");
+      check("E4 keys-off: sync-off recovery rescues cloud-only credentials into local",
+        disabledSettingsLocal.geminiApiKey === "obf:cloud-only" &&
+        disabledSettingsLocal.exportTargets.github.token === "obf:old-cloud-target");
+      check("E4 keys-off: sync-off recovery scrubs the cloud and keeps its ordinary fields",
+        disabledSettingsSync.syncApiKeys === false &&
+        disabledSettingsSync.openaiApiKey === "" &&
+        disabledSettingsSync.geminiApiKey === "" &&
+        disabledSettingsSync.exportTargets.github.enabled === true &&
+        !("token" in disabledSettingsSync.exportTargets.github));
 
       // Regression (602062f review): enabling key sync from a device that
       // holds NO credentials must not publish "" tombstones over values other
