@@ -129,7 +129,20 @@ let _notesBatchBusy = false;
 async function _pbpNotesScan() {
   if (typeof chrome === "undefined" || !chrome.storage || !chrome.storage.local) return [];
   let all;
-  try { all = await chrome.storage.local.get(null); } catch (_) { return []; }
+  try {
+    if (typeof chrome.storage.local.getKeys === "function") {
+      // Chrome 130+: list keys without deserializing values, then fetch only
+      // the pbp_hl_ records. get(null) deserialized the ENTIRE local area
+      // (incl. MB-scale jina_md_ page caches) on every view activation AND
+      // every alt-tab back to this tab (visibilitychange re-mounts the view).
+      // min_chrome is 123, so the get(null) fallback below stays.
+      const keys = (await chrome.storage.local.getKeys())
+        .filter((k) => k.startsWith("pbp_hl_") && k !== "pbp_hl_last_color");
+      all = keys.length ? await chrome.storage.local.get(keys) : {};
+    } else {
+      all = await chrome.storage.local.get(null);
+    }
+  } catch (_) { return []; }
   const rows = [];
   for (const key of Object.keys(all || {})) {
     if (!key.startsWith("pbp_hl_") || key === "pbp_hl_last_color") continue;

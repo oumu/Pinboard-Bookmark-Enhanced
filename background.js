@@ -1453,6 +1453,21 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
 
 pbpImgFixSweepRules(); // SW start: drop rules whose tab is gone or no longer a preview; re-seed owners
 
+// Dynamic content-script hygiene: md-video.js registers the Bili player
+// bridge with persistAcrossSessions:true, so revoking the origin in
+// chrome://extensions left the REGISTRATION behind — if that origin were ever
+// granted again (user widens site access, a future broader grant), the script
+// would resurrect without fresh consent. Drop the registration the moment its
+// origin grant goes away. Top-level synchronous registration per MV3 rules;
+// the id string mirrors md-video.js's BILI_BRIDGE_ID (isolated script
+// contexts, deliberate duplication).
+chrome.permissions.onRemoved.addListener((perms) => {
+  const origins = (perms && perms.origins) || [];
+  if (origins.some((o) => typeof o === "string" && o.includes("player.bilibili.com"))) {
+    chrome.scripting.unregisterContentScripts({ ids: ["pbp-bili-player-bridge"] }).catch(() => {});
+  }
+});
+
 // ---- Activity-windowed keepalive ------------------------------------------
 // Keep the SW (and thus the extension renderer process) warm for a short window
 // after the user's last tab/popup activity, so clicking the toolbar icon during

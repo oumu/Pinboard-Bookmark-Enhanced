@@ -1721,7 +1721,12 @@ async function pbpResolveChunkedSettings(settings, storage, query) {
     requested.forEach((key) => { out[key] = pbpDecodeLargeValue(out[key], SETTINGS_DEFAULTS[key]); });
     return out;
   }
-  for (const key of requested) {
+  // Resolve all requested keys in PARALLEL: each key serializes under its own
+  // pbp-large-storage:<key> lock, so cross-key ordering carries no invariant —
+  // but the sequential for-await put 4 lock acquisitions and 8+ storage IPCs
+  // in a strict chain on every surface's startup read for sync-enabled users
+  // (usually just to fetch four empty strings).
+  await Promise.all(requested.map(async (key) => {
     // Metadata is (re-)read INSIDE the lock: the row captured by the caller's
     // bulk get() may predate a concurrent generation swap whose stale chunks
     // are already deleted. A metadata read failure degrades to that snapshot.
@@ -1732,7 +1737,7 @@ async function pbpResolveChunkedSettings(settings, storage, query) {
           return fresh[key];
         } catch (_) { return out[key]; }
       }, SETTINGS_DEFAULTS[key]));
-  }
+  }));
   return out;
 }
 
