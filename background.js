@@ -2716,6 +2716,29 @@ async function pbpSweepInterruptedBatch() {
   const fresh = (await chrome.storage.local.get("batch_progress")).batch_progress;
   if (!fresh || !fresh.running || fresh.done || fresh.ts !== bp.ts) return;
   if (_batchRunning) return;
+  // RESUME first (roadmap #34): when the interrupted worker left a valid job
+  // snapshot for this account with unprocessed tabs, pick the batch back up at
+  // its cursor instead of declaring it dead. Bounded to two revivals so a
+  // batch that keeps dying (e.g. an item that crashes the worker) converges to
+  // the interrupted terminal state instead of looping forever. Credentials are
+  // NEVER in the snapshot — the resumed run re-reads them like any fresh one.
+  try {
+    const { batch_job: job } = await chrome.storage.local.get("batch_job");
+    if (job && job.account === bp.account && Array.isArray(job.tabs) &&
+        Number(job.next) < job.tabs.length && Number(job.resumeCount || 0) < 2) {
+      if (_batchRunning) return; // last-moment TOCTOU re-check before reserving
+      _batchRunning = true;
+      const resumeState = {
+        startIndex: Number(job.next) || 0,
+        counts: job.counts || {},
+        resumeCount: Number(job.resumeCount || 0) + 1,
+      };
+      console.info(`[batch] resuming interrupted batch at ${resumeState.startIndex}/${job.tabs.length} (attempt ${resumeState.resumeCount})`);
+      handleBatchSave(job.tabs, job.account, true, resumeState).catch(() => {});
+      return;
+    }
+    if (job) await chrome.storage.local.remove("batch_job"); // unusable snapshot: fall through to interrupted
+  } catch (_) { /* resume is best-effort; the interrupted terminal state below still lands */ }
   // Announce only what actually landed: a swallowed storage failure would leave the
   // record stuck at running while the user reads an "interrupted" toast, and every
   // later alarm tick would fire another one.
@@ -2724,15 +2747,15 @@ async function pbpSweepInterruptedBatch() {
     t("batchInterrupted", String(bp.i || 0), String(bp.total || 0)), "error");
 }
 
-function handleBatchSave(tabs, expectedAccount = "", reserved = false) {
+function handleBatchSave(tabs, expectedAccount = "", reserved = false, resumeState = null) {
   if (!reserved) {
     if (_batchRunning) return Promise.resolve();
     _batchRunning = true;
   }
-  return _runBatchSave(tabs, expectedAccount).finally(() => { _batchRunning = false; });
+  return _runBatchSave(tabs, expectedAccount, resumeState).finally(() => { _batchRunning = false; });
 }
 
-async function _runBatchSave(tabs, expectedAccount) {
+async function _runBatchSave(tabs, expectedAccount, resumeState = null) {
   const startAuth = await getCurrentPinboardAuth();
   const account = expectedAccount || startAuth.account;
   if (!startAuth.token || !account || startAuth.account !== account) {
@@ -2752,13 +2775,34 @@ async function _runBatchSave(tabs, expectedAccount) {
         saved: 0, queued: 0, failed: 0, aiFailed: 0, skipped: 0, tooLong: 0
       });
     }
+    // A resumed run landing here means the account changed while the batch
+    // was down — its snapshot can never be finished by anyone. Drop it.
+    try { await chrome.storage.local.remove("batch_job"); } catch (_) {}
     _batchRunning = false;
     return;
   }
   const total = tabs.length;
-  let processed = 0;
-  let saved = 0, queued = 0, failed = 0, aiFailed = 0, skipped = 0, tooLong = 0;
+  // Resumable job (roadmap #34): counts and the cursor either start fresh or
+  // pick up where the interrupted worker generation left off.
+  const rc = (resumeState && resumeState.counts) || {};
+  let processed = Number(rc.processed) || 0;
+  let saved = Number(rc.saved) || 0, queued = Number(rc.queued) || 0, failed = Number(rc.failed) || 0,
+      aiFailed = Number(rc.aiFailed) || 0, skipped = Number(rc.skipped) || 0, tooLong = Number(rc.tooLong) || 0;
+  const startIndex = resumeState ? Math.max(0, Number(resumeState.startIndex) || 0) : 0;
   const base = () => ({ account, total, i: processed, saved, queued, failed, aiFailed, skipped, tooLong });
+  // Persist the job snapshot BEFORE the first item: everything a resume needs
+  // (public tab identity + cursor + counts), never a token. The per-item
+  // checkpoint below rewrites cursor+counts; every terminal path removes it.
+  const jobRecord = () => ({
+    account,
+    tabs: tabs.map((tb) => ({ id: tb.id, url: tb.url, title: tb.title, incognito: !!tb.incognito })),
+    next: processed,
+    counts: { processed, saved, queued, failed, aiFailed, skipped, tooLong },
+    resumeCount: (resumeState && resumeState.resumeCount) || 0,
+    ts: Date.now(),
+  });
+  const clearJob = async () => { try { await chrome.storage.local.remove("batch_job"); } catch (_) {} };
+  try { await chrome.storage.local.set({ batch_job: jobRecord() }); } catch (_) {}
   const requireAccount = async () => {
     const auth = await getCurrentPinboardAuth();
     if (auth.account !== account) {
@@ -2809,7 +2853,7 @@ async function _runBatchSave(tabs, expectedAccount) {
       }
     } catch (_) { /* no cache -> map stays empty, prompt unanchored (same as before) */ }
 
-    for (let i = 0; i < tabs.length; i++) {
+    for (let i = startIndex; i < tabs.length; i++) {
       const tab = tabs[i];
 
       // Cooperative cancel (roadmap #32): the popup writes this flag; one
@@ -2819,6 +2863,7 @@ async function _runBatchSave(tabs, expectedAccount) {
         const { batch_cancel_requested } = await chrome.storage.local.get("batch_cancel_requested");
         if (batch_cancel_requested) {
           await chrome.storage.local.remove("batch_cancel_requested");
+          await clearJob();
           await _writeBatchProgress({ running: false, done: true, error: "cancelled", ...base() });
           showNotification("batch-cancelled", t("bgBatchSaved"), t("batchCancelled", String(saved)), "info");
           return;
@@ -2937,11 +2982,16 @@ async function _runBatchSave(tabs, expectedAccount) {
       } finally {
         processed = i + 1;
         await _writeBatchProgress({ running: true, done: false, error: null, ...base() });
+        // Idempotent checkpoint: cursor + counts land after every item, so an
+        // interrupted worker resumes at the next unprocessed tab instead of
+        // reporting the whole run dead (roadmap #34).
+        try { await chrome.storage.local.set({ batch_job: jobRecord() }); } catch (_) {}
       }
     }
 
     if (saved > 0) await updateBadge().catch(() => {});
 
+    await clearJob();
     await _writeBatchProgress({ running: false, done: true, error: null, ...base() });
     const tagsSuffix = baseTags.length ? t("batchTaggedSuffix", baseTags.join(", ")) : "";
     const skippedMsg = skipped > 0 ? t("batchSkipped", String(skipped)) : "";
@@ -2953,6 +3003,9 @@ async function _runBatchSave(tabs, expectedAccount) {
       showNotification("batch-saved", title, message, "batchSave");
     }
   } catch (e) {
+    // A thrown error is a REAL terminal state (account switch, unexpected
+    // failure) — never resumable. Drop the job so the sweep cannot revive it.
+    await clearJob();
     await _writeBatchProgress({ running: false, done: true, error: e.message, ...base() });
     if (e?.code !== "account_changed") showNotification("batch-error", t("bgBatchSaved"), e.message, "error");
   } finally {

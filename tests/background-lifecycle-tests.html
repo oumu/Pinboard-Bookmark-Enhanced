@@ -57,6 +57,7 @@ function buildSweepHarness(source, opts) {
   if (start < 0 || end <= start) throw new Error("batch sweep source not found");
   const notifications = [];
   const local = makeStore({ batch_progress: opts.progress }, opts.hooks);
+  const resumes = [];
   const deps = {
     chrome: { storage: { local } },
     batchIsRunning,
@@ -64,6 +65,7 @@ function buildSweepHarness(source, opts) {
     getCurrentPinboardAuth: async () => ({ token: "alice:t", account: opts.account || "alice", epoch: 0 }),
     showNotification: (...args) => { notifications.push(args); },
     t: (key, ...args) => (args.length ? `${key}:${args.join(":")}` : key),
+    handleBatchSave: (tabs, account, reserved, resumeState) => { resumes.push({ tabs, account, reserved, resumeState }); return Promise.resolve(); },
     console,
   };
   const factory = new Function(...Object.keys(deps), `${source.slice(start, end)}
@@ -72,7 +74,7 @@ function buildSweepHarness(source, opts) {
       _writeBatchProgress,
       setBatchRunning: (value) => { _batchRunning = value; },
     };`);
-  return { ...factory(...Object.values(deps)), notifications, local };
+  return { ...factory(...Object.values(deps)), notifications, resumes, local };
 }
 
 // ---- Undo notification harness ----
@@ -123,6 +125,33 @@ function buildUndoHarness(source, opts) {
       written.running === false && written.done === true && written.error === "interrupted" &&
       written.i === 3 && written.total === 9 && typeof written.ts === "number" &&
       h.notifications.length === 1 && h.notifications[0][2] === "batchInterrupted:3:9");
+  }
+
+  // ---- Resume path (roadmap #34): a valid job snapshot revives the batch
+  // at its cursor instead of declaring it interrupted; the revival budget
+  // (resumeCount >= 2) converges a repeatedly-dying batch to interrupted.
+  {
+    const job = {
+      account: "alice",
+      tabs: [{ id: 1, url: "https://a/1" }, { id: 2, url: "https://a/2" }, { id: 3, url: "https://a/3" }],
+      next: 1, counts: { processed: 1, saved: 1 }, resumeCount: 0, ts: 1,
+    };
+    const h = buildSweepHarness(source, { progress: STALE });
+    h.local.data.batch_job = job;
+    await h.pbpSweepInterruptedBatch();
+    check("sweep resumes a valid interrupted job at its cursor instead of closing it",
+      h.resumes.length === 1 && h.resumes[0].reserved === true &&
+      h.resumes[0].account === "alice" && h.resumes[0].resumeState.startIndex === 1 &&
+      h.resumes[0].resumeState.resumeCount === 1 &&
+      h.notifications.length === 0 && h.local.data.batch_progress.error === undefined);
+  }
+  {
+    const h = buildSweepHarness(source, { progress: STALE });
+    h.local.data.batch_job = { account: "alice", tabs: [{ url: "https://a/1" }], next: 0, counts: {}, resumeCount: 2, ts: 1 };
+    await h.pbpSweepInterruptedBatch();
+    check("a job past its revival budget is dropped and the batch closes as interrupted",
+      h.resumes.length === 0 && !("batch_job" in h.local.data) &&
+      h.local.data.batch_progress.error === "interrupted" && h.notifications.length === 1);
   }
 
   {

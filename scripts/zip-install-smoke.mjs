@@ -416,17 +416,23 @@ console.log('  image-fix DNR OK');
 console.log('[zip-smoke] check 7: interrupted-batch resume wiring...');
 try {
   const outcome = await sw.evaluate(async () => {
-    const staleTs = Date.now() - (10 * 60 * 1000); // far past BATCH_STALE_TTL
+    // Empty account on purpose: this harness holds no Pinboard token, so the
+    // sweep's account gate (a different signed-in account may not touch the
+    // record) only opens for the "" account. The resumed run then hits
+    // _runBatchSave's no-account early exit, which CLEARS the job snapshot —
+    // while the interrupted path would instead stamp error:"interrupted".
+    // The two traces are disjoint, which is what this check keys on.
+    const staleTs = Date.now() - (10 * 60 * 1000); // far past BATCH_STALE_TTL (120s)
     await chrome.storage.local.set({
-      batch_progress: { running: true, done: false, error: null, account: 'alice', total: 3, i: 1, saved: 1, queued: 0, failed: 0, aiFailed: 0, skipped: 0, tooLong: 0, ts: staleTs },
-      batch_job: { account: 'alice', tabs: [{ id: 1, url: 'https://smoke.example/1' }, { id: 2, url: 'https://smoke.example/2' }, { id: 3, url: 'https://smoke.example/3' }], next: 1, counts: { processed: 1, saved: 1 }, resumeCount: 0, ts: staleTs },
+      batch_progress: { running: true, done: false, error: null, account: '', total: 3, i: 1, saved: 1, queued: 0, failed: 0, aiFailed: 0, skipped: 0, tooLong: 0, ts: staleTs },
+      batch_job: { account: '', tabs: [{ id: 1, url: 'https://smoke.example/1' }, { id: 2, url: 'https://smoke.example/2' }, { id: 3, url: 'https://smoke.example/3' }], next: 1, counts: { processed: 1, saved: 1 }, resumeCount: 0, ts: staleTs },
     });
     await pbpSweepInterruptedBatch();
     // The resumed run is fire-and-forget; give its early account check a beat.
     await new Promise(r => setTimeout(r, 500));
     const { batch_progress, batch_job } = await chrome.storage.local.get(['batch_progress', 'batch_job']);
     await chrome.storage.local.remove(['batch_progress', 'batch_job', 'batch_cancel_requested']);
-    return { error: batch_progress && batch_progress.error, jobLeft: batch_job !== undefined };
+    return { error: (batch_progress && batch_progress.error) ?? null, jobLeft: batch_job !== undefined };
   });
   if (outcome.error === 'interrupted') {
     console.error('  FAIL: sweep declared a resumable batch interrupted instead of resuming it');
@@ -434,8 +440,8 @@ try {
     cleanup();
     process.exit(1);
   }
-  if (outcome.error !== 'account_changed' || outcome.jobLeft) {
-    console.error(`  FAIL: resume trace wrong (error=${outcome.error}, jobLeft=${outcome.jobLeft}) — expected the tokenless resume to terminate account_changed and clear the snapshot`);
+  if (outcome.jobLeft) {
+    console.error(`  FAIL: resume trace wrong (error=${outcome.error}, jobLeft=true) — the resumed run's early exit should have cleared the snapshot`);
     await ctx.close().catch(() => {});
     cleanup();
     process.exit(1);

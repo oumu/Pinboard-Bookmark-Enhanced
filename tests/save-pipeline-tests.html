@@ -564,8 +564,14 @@ await suite("unified save pipeline", async () => {
   await test("preview bookmark lookup never crosses from captured account A into B", async () => {
     const source = await getBackgroundSource();
     const start = source.indexOf('if (message.type === "mdPreviewBookmarkInfo"');
-    const end = source.indexOf("\n});", start);
-    assert(start >= 0 && end > start, "preview bookmark branch not found");
+    // End anchor: this is the named router's LAST branch (roadmap #35 made
+    // the listener a named function, so the old "\n});" arrow-closer anchor
+    // no longer exists) — stop right before the branch's own "return true".
+    const endAnchor = "return true;\n  }\n}\nchrome.runtime.onMessage.addListener(handleRuntimeMessage);";
+    const anchorAt = source.indexOf(endAnchor, start);
+    // Include the branch's own "return true;\n  }" so the sliced if-block closes.
+    const end = anchorAt + "return true;\n  }".length;
+    assert(start >= 0 && anchorAt > start, "preview bookmark branch not found");
     const authA = { token: "alice:old", account: "alice", epoch: 1 };
     let current = authA;
     let checks = 0;
