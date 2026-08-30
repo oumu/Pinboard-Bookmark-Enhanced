@@ -77,6 +77,8 @@ try {
     "sync-all must run the override-debt gate");
   check(verifySource.includes('node "docs/theme-surface/tools/override-debt.mjs"'),
     "verify must run the repository override-debt baseline gate");
+  check(verifySource.includes('node "tests/theme-media-audit-tests.mjs"'),
+    "verify must run the media-preference oracle tests");
   check(preCommitSource.includes("tools/override-debt-baseline\\.json"),
     "pre-commit trigger must include the override-debt baseline");
 

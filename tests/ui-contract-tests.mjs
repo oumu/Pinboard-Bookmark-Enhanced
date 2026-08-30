@@ -815,7 +815,7 @@ function parseFocusShape(body) {
     d[decl.slice(0, i).trim().toLowerCase()] = decl.slice(i + 1).trim();
   }
   const num = (v) => { const n = parseFloat(v); return Number.isFinite(n) ? n : null; };
-  const COLOR = /var\([^)]*\)|#[0-9a-fA-F]{3,8}|rgba?\([^)]*\)|color-mix\([^)]*\)/;
+  const COLOR = /var\([^)]*\)|#[0-9a-fA-F]{3,8}|rgba?\([^)]*\)|color-mix\([^)]*\)|\bHighlight\b/i;
   let width = null, style = null, color = null;
   if (d.outline !== undefined) {
     const v = d.outline.trim();
@@ -840,22 +840,56 @@ function parseFocusShape(body) {
     borderColor: d["border-color"],
   };
 }
+function forcedColorsBodyRanges(css) {
+  const ranges = [];
+  for (const m of css.matchAll(/@media\s*\(\s*forced-colors\s*:\s*active\s*\)\s*\{/g)) {
+    const open = css.indexOf("{", m.index);
+    let depth = 1;
+    for (let i = open + 1; i < css.length; i += 1) {
+      if (css[i] === "{") depth += 1;
+      else if (css[i] === "}" && --depth === 0) {
+        ranges.push([open + 1, i]);
+        break;
+      }
+    }
+  }
+  return ranges;
+}
 for (const [file, css, ns] of [["popup.css", popupCss, "pp"], ["options.css", optionsCss, "opt"], ["library.css", libraryCss, "lib"]]) {
   const hand = stripGeneratedRegions(css).replace(/\/\*[\s\S]*?\*\//g, "");
+  const forcedColorsRanges = forcedColorsBodyRanges(hand);
   const rules = [];
   for (const m of hand.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
-    rules.push({ selector: m[1].trim().replace(/\s+/g, " "), body: m[2] });
+    rules.push({
+      selector: m[1].trim().replace(/\s+/g, " "),
+      body: m[2],
+      forcedColors: forcedColorsRanges.some(([start, end]) => m.index >= start && m.index < end),
+    });
   }
   const bySelector = new Map(rules.map(r => [r.selector, r.body]));
   const RING = `var(--${ns}-focus-ring)`, BD = `var(--${ns}-focus-bd)`, ACCENT = `var(--${ns}-accent)`;
   const bad = [];
-  for (const { selector, body } of rules) {
+  for (const { selector, body, forcedColors } of rules) {
     if (!/:focus-visible/.test(selector)) continue;
     if (FOCUS_SHAPE_EXEMPT.ring.some(re => re.test(selector))) continue;
     const s = parseFocusShape(body);
     const drawsOutline = s.style && s.style !== "none" && s.width > 0;
     const suppressesOutline = s.outlineTouched && (s.style === "none" || s.width === 0);
     const fail = (why) => bad.push(`${selector} — ${why}`);
+    if (forcedColors) {
+      // In forced-colours mode author shadows are suppressed and authored
+      // colours are remapped. Keep the normal §7.3 recipe in the base rule,
+      // then restore one structural edge with a system colour here. This is
+      // deliberately context-gated: the same spelling outside this media
+      // query is still rejected by the three-placement whitelist below.
+      if (!drawsOutline) fail("forced-colors focus adaptation must draw a system-colour outline");
+      else if (s.width !== 1) fail(`forced-colors outline must be 1px, got ${s.width}px`);
+      else if (s.style !== "solid") fail(`forced-colors outline must be solid, got ${s.style}`);
+      else if (!/^Highlight$/i.test(s.color || "")) fail(`forced-colors outline must use Highlight, got ${s.color}`);
+      else if (!s.offsetDeclared || s.offset < 0) fail(`forced-colors outline must declare a non-negative offset, got ${s.offset}`);
+      else if (s.shadow !== undefined && s.shadow !== "none") fail(`forced-colors adaptation must not draw an authored shadow, got ${s.shadow}`);
+      continue;
+    }
     if (drawsOutline) {
       // Placement is decided by the SIGN of the offset, so an omitted offset
       // is not a cosmetic slip: it silently becomes 0 and turns `inset` into

@@ -202,6 +202,102 @@
 //                      redesign: the 2px accent selection ring that
 //                      replaced the old border-drawn check tick.
 //
+// Media-preference coverage stays in this hand-written oracle for the same
+// reason as CHECKS: deriving the selectors from the generated CSS would let
+// a broken recipe redefine its own expected output. The runner crosses the
+// four representative theme states below with both scenarios and all three
+// surfaces, then asks evaluateMediaProbe() to fail closed on observable
+// outcomes. It deliberately does not require author colours to survive
+// forced-colors; the browser is expected to replace them with system colours.
+export const MEDIA_THEMES = ["", "github-light", "terminal", "flexoki-dark"];
+
+export const MEDIA_SCENARIOS = [
+  {
+    id: "forced-colors",
+    query: "(forced-colors: active)",
+    features: [{ name: "forced-colors", value: "active" }],
+  },
+  {
+    id: "more-contrast",
+    query: "(prefers-contrast: more)",
+    features: [{ name: "prefers-contrast", value: "more" }],
+  },
+];
+
+export const MEDIA_CHECKS = [
+  {
+    surface: "popup",
+    text: "#submit-btn",
+    control: "#submit-btn",
+    focus: "#submit-btn",
+    selected: null,
+    minTextContrast: 4.5,
+  },
+  {
+    surface: "options",
+    text: "#tab-general",
+    control: "#tab-general",
+    focus: "#tab-general",
+    selected: "#tab-general",
+    minTextContrast: 4.5,
+  },
+  {
+    surface: "library",
+    text: "#vocab-list .notes-card-head",
+    control: "#vocab-search",
+    focus: "#vocab-search",
+    selected: "#lib-tab-vocab",
+    minTextContrast: 4.5,
+  },
+];
+
+export function evaluateMediaProbe(probe, check) {
+  const failures = [];
+  const fail = (name, actual, expected, note) => failures.push({
+    check: name,
+    status: "FAIL",
+    actual,
+    expected,
+    note: note || null,
+  });
+
+  if (probe?.queryMatches !== true) {
+    fail("mediaQuery", probe?.queryMatches ?? null, true, "emulated media query did not match");
+  }
+
+  const textVisible = probe?.text?.found === true && probe.text.visible === true;
+  if (!textVisible) {
+    fail("textVisible", textVisible, true, `critical text not visible: ${check.text}`);
+  } else {
+    const minimum = check.minTextContrast ?? 4.5;
+    const contrast = probe.text.contrast;
+    if (!Number.isFinite(contrast) || contrast < minimum) {
+      fail("textContrast", Number.isFinite(contrast) ? contrast : null, minimum, `critical text loses contrast: ${check.text}`);
+    }
+  }
+
+  const controlVisible = probe?.control?.found === true && probe.control.visible === true;
+  if (!controlVisible) {
+    fail("controlVisible", controlVisible, true, `critical control not visible: ${check.control}`);
+  }
+
+  const focusVisible = probe?.focus?.found === true && probe.focus.visible === true;
+  const focusCue = focusVisible && probe.focus.active === true && probe.focus.cue === true;
+  if (!focusCue) {
+    fail("focusCue", focusCue, true, `focus indicator is missing or only changes colour: ${check.focus}`);
+  }
+
+  if (check.selected) {
+    const selectedVisible = probe?.selected?.found === true && probe.selected.visible === true;
+    const selectedCue = selectedVisible && probe.selected.selected === true && probe.selected.cue === true;
+    if (!selectedCue) {
+      fail("selectedCue", selectedCue, true, `selected state lacks semantics or a structural marker: ${check.selected}`);
+    }
+  }
+
+  return failures;
+}
+
 // Selectors below are written against the CURRENT shipped markup (pre-Task
 // 9/10 uplift). Task 9/10/12/13 migrate one selector's underlying CSS at a
 // time and delete the matching known-failures key as they land -- this file

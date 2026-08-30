@@ -45,7 +45,14 @@ import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
 
-import { CHECKS, THEMES } from "../tests/render-audit-checklist.mjs";
+import {
+  CHECKS,
+  THEMES,
+  MEDIA_CHECKS,
+  MEDIA_SCENARIOS,
+  MEDIA_THEMES,
+  evaluateMediaProbe,
+} from "../tests/render-audit-checklist.mjs";
 // Reused, not re-implemented, so this audit and contrast-audit.mjs's static
 // CSS-source audit can never quietly disagree on what a passing ratio is.
 import { cr, hexRgb, parseRgba, composite } from "../docs/theme-surface/tools/contrast-audit.mjs";
@@ -69,6 +76,7 @@ try {
 }
 
 const SURFACE_PAGES = { library: "library.html", options: "options.html", popup: "popup.html" };
+const MEDIA_THEME_SET = new Set(MEDIA_THEMES);
 
 // ---- Fixture identity. Any Pinboard-token-shaped string works here -- it
 // never leaves this machine and nothing validates it against the real API.
@@ -1823,6 +1831,202 @@ async function runSimpleTheme(page, url, theme, checks, results, surface, sw) {
   for (const check of checks) await runOneCheck(page, theme, check, results);
 }
 
+// Runs inside the page. It reports used values and structural state only;
+// the Node side owns contrast math so it reuses this audit's existing WCAG
+// primitives instead of introducing a second colour implementation.
+const MEDIA_DOM_PROBE = ({ check, query, focusBaseline }) => {
+  const visibleColor = (value) => {
+    const color = String(value || "").trim().toLowerCase();
+    if (!color || color === "transparent") return false;
+    return !/^rgba\([^)]*,\s*0(?:\.0+)?\s*\)$/.test(color);
+  };
+  const describe = (element) => {
+    if (!element) return { found: false, visible: false };
+    const style = getComputedStyle(element);
+    const rect = element.getBoundingClientRect();
+    return {
+      found: true,
+      visible: rect.width > 0 && rect.height > 0
+        && style.display !== "none" && style.visibility !== "hidden"
+        && Number.parseFloat(style.opacity || "1") > 0,
+    };
+  };
+  const focusStyle = (element) => {
+    if (!element) return null;
+    const style = getComputedStyle(element);
+    return {
+      outlineStyle: style.outlineStyle,
+      outlineWidth: Number.parseFloat(style.outlineWidth) || 0,
+      outlineOffset: Number.parseFloat(style.outlineOffset) || 0,
+      outlineColor: style.outlineColor,
+      boxShadow: style.boxShadow,
+      borderStyles: [style.borderTopStyle, style.borderRightStyle, style.borderBottomStyle, style.borderLeftStyle],
+      borderWidths: [style.borderTopWidth, style.borderRightWidth, style.borderBottomWidth, style.borderLeftWidth]
+        .map((value) => Number.parseFloat(value) || 0),
+      borderColors: [style.borderTopColor, style.borderRightColor, style.borderBottomColor, style.borderLeftColor],
+    };
+  };
+  // Chromium's forced-colors emulation can resolve an authored 1px outline
+  // to 0.666667 CSS px. The invariant here is structural presence, not a
+  // thickness rung: any positive used width is a real non-colour carrier.
+  const outlineVisible = (style) => !!style && style.outlineWidth > 0
+    && style.outlineStyle !== "none" && visibleColor(style.outlineColor);
+  const shadowVisible = (style) => !!style && style.boxShadow !== "none"
+    && visibleColor(style.boxShadow);
+  const borderVisible = (style, index, minimum = 1) => !!style
+    && style.borderWidths[index] >= minimum && style.borderStyles[index] !== "none"
+    && visibleColor(style.borderColors[index]);
+  const focusCue = (before, after) => {
+    if (!after) return false;
+    const outlineAppeared = outlineVisible(after) && (!outlineVisible(before)
+      || before.outlineWidth !== after.outlineWidth
+      || before.outlineStyle !== after.outlineStyle
+      || before.outlineOffset !== after.outlineOffset);
+    const shadowAppeared = shadowVisible(after) && (!shadowVisible(before) || before.boxShadow !== after.boxShadow);
+    const borderAppeared = [0, 1, 2, 3].some((index) => borderVisible(after, index)
+      && (!borderVisible(before, index)
+        || before.borderWidths[index] !== after.borderWidths[index]
+        || before.borderStyles[index] !== after.borderStyles[index]));
+    return outlineAppeared || shadowAppeared || borderAppeared;
+  };
+
+  const textElement = document.querySelector(check.text);
+  const text = describe(textElement);
+  if (textElement) {
+    text.color = getComputedStyle(textElement).color;
+    text.bgStack = [];
+    for (let node = textElement; node && node.nodeType === 1; node = node.parentElement) {
+      text.bgStack.push(getComputedStyle(node).backgroundColor);
+    }
+  }
+
+  const controlElement = document.querySelector(check.control);
+  const control = describe(controlElement);
+
+  const focusElement = document.querySelector(check.focus);
+  const focus = describe(focusElement);
+  const focusedStyle = focusStyle(focusElement);
+  focus.active = !!focusElement && document.activeElement === focusElement;
+  focus.cue = focusCue(focusBaseline, focusedStyle);
+  focus.style = focusedStyle;
+
+  let selected = null;
+  if (check.selected) {
+    const selectedElement = document.querySelector(check.selected);
+    selected = describe(selectedElement);
+    if (selectedElement) {
+      const style = focusStyle(selectedElement);
+      const ariaCurrent = selectedElement.getAttribute("aria-current");
+      selected.selected = selectedElement.getAttribute("aria-selected") === "true"
+        || selectedElement.getAttribute("aria-pressed") === "true"
+        || (ariaCurrent != null && ariaCurrent !== "false")
+        || selectedElement.classList.contains("active")
+        || selectedElement.matches(":checked");
+      selected.cue = outlineVisible(style) || shadowVisible(style)
+        || [0, 1, 2, 3].some((index) => borderVisible(style, index, 2));
+    }
+  }
+
+  return {
+    queryMatches: matchMedia(query).matches,
+    text,
+    control,
+    focus,
+    selected,
+  };
+};
+
+async function prepareMediaSurface(page, surface, theme) {
+  if (surface === "popup") {
+    const ready = await page.evaluate(() => {
+      const main = document.getElementById("main-section");
+      const submit = document.getElementById("submit-btn");
+      main?.classList.remove("hidden", "unsupported-url");
+      if (submit) submit.disabled = false;
+      return !!main && !!submit;
+    });
+    if (!ready) throw new Error(`MEDIA SETUP: popup controls missing (theme=${theme})`);
+  } else if (surface === "options") {
+    await page.click("#tab-general");
+  } else if (surface === "library") {
+    await page.click("#lib-tab-vocab");
+    await page.waitForSelector("#vocab-list .notes-card-head", { state: "visible", timeout: TIMEOUT_MS });
+    await page.evaluate(() => document.body.classList.remove("lib-narrow-detail"));
+  }
+  await page.evaluate(() => document.activeElement?.blur());
+  await page.waitForTimeout(260);
+}
+
+async function captureMediaProbe(page, scenario, check) {
+  const baseline = await page.evaluate(MEDIA_DOM_PROBE, {
+    check,
+    query: scenario.query,
+    focusBaseline: null,
+  });
+  await page.keyboard.press("Shift");
+  const focused = await page.evaluate((selector) => {
+    const element = document.querySelector(selector);
+    if (!element) return false;
+    element.focus();
+    return document.activeElement === element;
+  }, check.focus);
+  if (!focused) throw new Error(`MEDIA SETUP: could not focus ${check.focus}`);
+  await page.waitForTimeout(260);
+
+  const probe = await page.evaluate(MEDIA_DOM_PROBE, {
+    check,
+    query: scenario.query,
+    focusBaseline: baseline.focus?.style || null,
+  });
+  // Keep selection independent from the focus ring: otherwise the selected
+  // cue could pass only because the selected tab also happened to be focused.
+  probe.selected = baseline.selected;
+  if (probe.text?.found) {
+    const background = compositeStack(probe.text.bgStack || []);
+    const foreground = resolveColor(probe.text.color, background);
+    probe.text.contrast = foreground ? round2(cr(foreground, background)) : null;
+  }
+  return probe;
+}
+
+async function runMediaPreferenceChecks(page, cdp, surface, theme, results) {
+  const check = MEDIA_CHECKS.find((entry) => entry.surface === surface);
+  if (!check) throw new Error(`MEDIA SETUP: no hand-written check for ${surface}`);
+  await prepareMediaSurface(page, surface, theme);
+
+  let probes = 0;
+  for (const scenario of MEDIA_SCENARIOS) {
+    await cdp.send("Emulation.setEmulatedMedia", { features: scenario.features });
+    try {
+      await page.waitForTimeout(120);
+      const probe = await captureMediaProbe(page, scenario, check);
+      const selectorByCheck = {
+        mediaQuery: scenario.query,
+        textVisible: check.text,
+        textContrast: check.text,
+        controlVisible: check.control,
+        focusCue: check.focus,
+        selectedCue: check.selected,
+      };
+      for (const verdict of evaluateMediaProbe(probe, check)) {
+        results.push({
+          surface,
+          theme,
+          selector: selectorByCheck[verdict.check] || check.control,
+          state: `media:${scenario.id}`,
+          ...verdict,
+        });
+      }
+      probes += 1;
+    } finally {
+      await cdp.send("Emulation.setEmulatedMedia", { features: [] });
+      await page.evaluate(() => document.activeElement?.blur());
+      await page.waitForTimeout(260);
+    }
+  }
+  return probes;
+}
+
 function setTheme(sw, presetKey, mode) {
   return sw.evaluate(async ({ p, m }) => {
     await chrome.storage.local.set({ themePresetKey: p, optTheme: m });
@@ -2396,6 +2600,8 @@ async function main() {
   }
 
   const results = [];
+  const mediaSession = await ctx.newCDPSession(page);
+  let mediaProbeCount = 0;
   try {
     for (const surface of Object.keys(SURFACE_PAGES)) {
       const checks = CHECKS.filter((c) => c.surface === surface);
@@ -2408,6 +2614,9 @@ async function main() {
         await setTheme(sw, themePresetKey, optTheme);
         if (surface === "library") await runLibraryTheme(page, extBase, theme, checks, results);
         else await runSimpleTheme(page, `${extBase}${SURFACE_PAGES[surface]}`, theme, checks, results, surface, sw);
+        if (MEDIA_THEME_SET.has(theme)) {
+          mediaProbeCount += await runMediaPreferenceChecks(page, mediaSession, surface, theme, results);
+        }
       }
     }
 
@@ -2434,11 +2643,13 @@ async function main() {
       });
     }
   } finally {
+    await mediaSession.detach().catch(() => {});
     await page.close().catch(() => {});
     await ctx.close().catch(() => {});
     rmSync(userDataDir, { recursive: true, force: true });
   }
 
+  console.log(`[render-audit] media preferences: ${mediaProbeCount} probes across ${MEDIA_THEMES.length} themes x ${MEDIA_CHECKS.length} surfaces x ${MEDIA_SCENARIOS.length} scenarios`);
   report(results);
 }
 

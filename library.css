@@ -471,6 +471,16 @@ html[data-theme] .confirm-popover .confirm-no:hover { background: var(--lib-btn-
   position: relative;
   z-index: 1;
 }
+@media (forced-colors: active) {
+  /* Forced colours suppress the token shadow, while the field recipe's
+     outline:none leaves border colour as the only focus delta. Restore a
+     system-colour edge without opting out of the user's palette. */
+  .notes-toolbar input[type="search"]:focus-visible,
+  .vocab-lookup-bar input[type="search"]:focus-visible {
+    outline: 1px solid Highlight;
+    outline-offset: 2px;
+  }
+}
 .notes-count { color: var(--lib-fg-muted); font-size: 12px; white-space: nowrap; }
 .vocab-list-pane.vocab-signed-out > :not(.vocab-account-empty) { display: none !important; }
 .vocab-account-empty { margin: var(--lib-sp-3); padding: var(--lib-sp-4); text-align: left; }

@@ -56,7 +56,7 @@ node "scripts/network-exits-check.mjs"
 echo "[ui-contract] checking static UI contracts"
 node "tests/ui-contract-tests.mjs"
 
-echo "[render-audit] checking hand-written render oracle (contrast + geometry)"
+echo "[render-audit] checking hand-written render oracle (contrast + geometry + media preferences)"
 node "scripts/ui-render-audit.mjs"
 
 echo "[docs-lint] checking README x9 mirror + prose contracts"
@@ -71,6 +71,7 @@ node "tests/theme-contract-tests.mjs"
 node "tests/theme-css-syntax-tests.mjs"
 node "tests/theme-tooling-tests.mjs"
 node "tests/theme-ui-derive-tests.mjs"
+node "tests/theme-media-audit-tests.mjs"
 node "tests/theme-override-debt-tests.mjs"
 node "tests/theme-sync-check-tests.mjs"
 node "docs/theme-surface/tools/diff-all.mjs" --strict
