@@ -28,6 +28,77 @@ function check(name, cond) {
   root.appendChild(div);
 }
 async function run() {
+  // ---------- P0: Pinboard proxy preserves native Response.json failures ----------
+  {
+    const previousChrome = globalThis.chrome;
+    try {
+      globalThis.chrome = {
+        ...(previousChrome || {}),
+        runtime: {
+          ...((previousChrome && previousChrome.runtime) || {}),
+          sendMessage: async () => ({ ok: true, status: 200, text: "not-json" }),
+        },
+      };
+      const invalid = await _pbpOptionsProxyPinboardFetch("https://api.pinboard.in/v1/tags/get", {}, false);
+      let invalidRejected = false;
+      try { await invalid.json(); } catch (_) { invalidRejected = true; }
+      check("P0 Pinboard proxy rejects malformed JSON instead of inventing an empty object", invalidRejected);
+
+      globalThis.chrome.runtime.sendMessage = async () => ({ ok: true, status: 200, text: "" });
+      const empty = await _pbpOptionsProxyPinboardFetch("https://api.pinboard.in/v1/tags/get", {}, false);
+      let emptyRejected = false;
+      try { await empty.json(); } catch (_) { emptyRejected = true; }
+      check("P0 Pinboard proxy rejects an empty JSON body", emptyRejected);
+
+      globalThis.chrome.runtime.sendMessage = async () => ({ ok: true, status: 200, text: "{\"tag\":\"2\"}" });
+      const valid = await _pbpOptionsProxyPinboardFetch("https://api.pinboard.in/v1/tags/get", {}, false);
+      const parsed = await valid.json();
+      check("P0 Pinboard proxy still parses valid JSON", parsed && parsed.tag === "2");
+    } finally {
+      globalThis.chrome = previousChrome;
+    }
+  }
+
+  // ---------- P1: local-only, categorical connection health ----------
+  {
+    const previousChrome = globalThis.chrome;
+    const healthStore = {};
+    try {
+      globalThis.chrome = {
+        ...(previousChrome || {}),
+        storage: {
+          ...((previousChrome && previousChrome.storage) || {}),
+          local: {
+            async get(key) {
+              return key in healthStore ? { [key]: structuredClone(healthStore[key]) } : {};
+            },
+            async set(value) { Object.assign(healthStore, structuredClone(value)); },
+          },
+        },
+      };
+      const available = typeof pbpRecordConnectionHealth === "function";
+      if (available) await Promise.all([
+        pbpRecordConnectionHealth("pinboard", true, "connected"),
+        pbpRecordConnectionHealth("ai:openai", false, "permission_denied"),
+      ]);
+      const map = healthStore._connectionHealthV1 || {};
+      check("P1 concurrent connection results are serialized without losing either record",
+        available && map.pinboard?.ok === true && map["ai:openai"]?.ok === false &&
+        Number.isFinite(map.pinboard.checkedAt));
+
+      if (available) {
+        await pbpRecordConnectionHealth("eudic", false, "raw server message with token=secret");
+        await pbpRecordConnectionHealth("not/a/known/integration", true, "connected");
+      }
+      check("P1 connection health stores allowlisted ids and categorical codes only",
+        available && map !== healthStore._connectionHealthV1 &&
+        healthStore._connectionHealthV1.eudic?.code === "failed" &&
+        !("not/a/known/integration" in healthStore._connectionHealthV1));
+    } finally {
+      globalThis.chrome = previousChrome;
+    }
+  }
+
   // ---------- E1: persistSettings quota guard ----------
   const LARGE_KEYS = ["customTagPrompt","customSummaryPrompt","translateGlossary","tagPresets"];
 

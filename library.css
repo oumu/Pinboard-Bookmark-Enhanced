@@ -472,6 +472,12 @@ html[data-theme] .confirm-popover .confirm-no:hover { background: var(--lib-btn-
   z-index: 1;
 }
 .notes-count { color: var(--lib-fg-muted); font-size: 12px; white-space: nowrap; }
+.vocab-list-pane.vocab-signed-out > :not(.vocab-account-empty) { display: none !important; }
+.vocab-account-empty { margin: var(--lib-sp-3); padding: var(--lib-sp-4); text-align: left; }
+.vocab-account-empty h2 { margin: 0 0 var(--lib-sp-2); color: var(--lib-fg); font-size: 15px; }
+.vocab-account-empty p { margin: 0 0 var(--lib-sp-3); line-height: 1.55; }
+.vocab-account-actions { display: flex; align-items: center; gap: var(--lib-sp-2); flex-wrap: wrap; }
+.vocab-signed-out-lookup { display: none; }
 .notes-color-filters { display: flex; align-items: center; gap: var(--lib-sp-2); }
 .notes-filter-dot {
   display: inline-flex;
@@ -1004,6 +1010,7 @@ html.motion-ready .notes-sib { transition: background-color var(--motion-state) 
   /* The lookup row lives in the detail pane, which is display:none here
      until the body class flips -- so the list needs one door to it. */
   .vocab-filter-row > .vocab-lookup-narrow { display: inline-flex; }
+  .vocab-signed-out-lookup { display: inline-flex; }
   /* The one place the nowrap law above yields (found 2026-08-07, once the
      responsive fixture was realigned to the real markup). Four of this row's
      five children are `flex: none` -- two count chips, the sort segment and

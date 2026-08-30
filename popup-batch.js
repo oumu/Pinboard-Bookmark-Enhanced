@@ -297,20 +297,36 @@ function renderBatchProgress(p, currentAccount) {
   if (fill) fill.style.width = pct + "%";
   // Counts are integers -> safe to interpolate; SVG icons avoid emoji font fallback.
   const queuedMsg = p.queued > 0 ? `  ${t("offlineQueued", String(p.queued))}` : "";
-  if (ptext) ptext.innerHTML = `${cur}/${total}  <span class="status-ic ok">${PBP_ICONS.check}</span>${p.saved || 0}  <span class="status-ic bad">${PBP_ICONS.cross}</span>${p.failed || 0}${queuedMsg}${p.aiFailed ? `  AI<span class="status-ic bad">${PBP_ICONS.cross}</span>${p.aiFailed}` : ""}`;
+  const resumedMsg = p.resumeCount > 0 ? `  <span class="batch-resumed">${t("batchResumed", String(p.resumeCount), "2")}</span>` : "";
+  if (ptext) ptext.innerHTML = `${cur}/${total}  <span class="status-ic ok">${PBP_ICONS.check}</span>${p.saved || 0}  <span class="status-ic bad">${PBP_ICONS.cross}</span>${p.failed || 0}${queuedMsg}${p.aiFailed ? `  AI<span class="status-ic bad">${PBP_ICONS.cross}</span>${p.aiFailed}` : ""}${resumedMsg}`;
   // Cancel affordance (roadmap #32): visible only while the batch is live.
   // One-time listener wiring; the click just sets the cooperative flag the
   // SW's loop polls before each item — pressed state sticks until the run
   // acknowledges (terminal record) or a new run starts.
   const cancelBtn = $id("batch-cancel-btn");
   if (cancelBtn) {
+    const nextRunId = String(p.runId || "");
+    if (cancelBtn.dataset.runId && cancelBtn.dataset.runId !== nextRunId) cancelBtn.disabled = false;
+    cancelBtn.dataset.runId = nextRunId;
+    cancelBtn.dataset.account = String(currentAccount || "");
     if (!cancelBtn._pbpWired) {
       cancelBtn._pbpWired = true;
       const ic = cancelBtn.querySelector(".btn-ic");
       if (ic && !ic.innerHTML) ic.innerHTML = PBP_ICONS.cross;
-      cancelBtn.addEventListener("click", () => {
+      cancelBtn.addEventListener("click", async () => {
+        const runId = cancelBtn.dataset.runId;
+        const account = cancelBtn.dataset.account;
+        if (!runId || !account) return;
         cancelBtn.disabled = true;
-        try { chrome.storage.local.set({ batch_cancel_requested: true }).catch(() => {}); } catch (_) {}
+        try {
+          await chrome.storage.local.set({
+            batch_cancel_requested: { runId, account, ts: Date.now() },
+          });
+        } catch (e) {
+          console.warn("[batch] cancel request write failed:", e?.name, e?.message);
+          cancelBtn.disabled = false;
+          showStatus("status-msg", t("batchCancelFailed"), "error");
+        }
       });
     }
     cancelBtn.classList.toggle("hidden", !!p.done);

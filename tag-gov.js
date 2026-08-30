@@ -11,6 +11,27 @@ if (typeof window !== "undefined" && !window.__PBP_TYPO_CMP_COUNT) {
   window.__PBP_TYPO_CMP_COUNT = () => _c;
 }
 
+// Pinboard tags/get returns an object mapping tag names to usage counts. Real
+// clients have observed both JSON numbers and integer strings, so accept both
+// and normalize once. Any malformed member rejects the WHOLE snapshot: tag
+// governance uses this data as the safety backup before destructive changes.
+function pbpTagGovNormalizeCounts(raw) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const out = {};
+  for (const [tag, rawCount] of Object.entries(raw)) {
+    if (!tag || (typeof rawCount !== "number" && typeof rawCount !== "string")) return null;
+    if (typeof rawCount === "string" && !/^\d+$/.test(rawCount)) return null;
+    const count = Number(rawCount);
+    if (!Number.isSafeInteger(count) || count < 0) return null;
+    // defineProperty keeps a legitimate tag named "__proto__" as data rather
+    // than invoking Object.prototype's legacy setter.
+    Object.defineProperty(out, tag, {
+      value: count, enumerable: true, configurable: true, writable: true,
+    });
+  }
+  return out;
+}
+
 // Returns 0 (equal), 1 (exactly one edit), or 2 (more than one edit; sentinel).
 // Specialized Levenshtein for distance <= 1 detection only (no full DP).
 // Callers must pass normalized (lowercased) strings.

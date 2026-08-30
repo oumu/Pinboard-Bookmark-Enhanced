@@ -1801,8 +1801,37 @@ pbpSyncSiteThemeScript();
 // so a content-script compromise no longer implies a credential read.
 // session is TRUSTED_CONTEXTS by default already. Top-level, every SW eval —
 // setAccessLevel is per-session state, so it must be re-asserted on wake.
-try { chrome.storage.local.setAccessLevel({ accessLevel: "TRUSTED_CONTEXTS" }).catch(() => {}); } catch (_) {}
-try { chrome.storage.sync.setAccessLevel({ accessLevel: "TRUSTED_CONTEXTS" }).catch(() => {}); } catch (_) {}
+const PBP_STORAGE_ACCESS_RETRY_ALARM = "storage-access-retry";
+async function pbpRestrictStorageAccess() {
+  let failed = false;
+  for (const name of ["local", "sync"]) {
+    try {
+      await chrome.storage[name].setAccessLevel({ accessLevel: "TRUSTED_CONTEXTS" });
+    } catch (e) {
+      failed = true;
+      // Name/message only: storage errors carry no setting values or secrets.
+      console.warn(`[storage-access] ${name} trusted-only failed:`, e?.name, e?.message);
+    }
+  }
+  if (failed) {
+    try {
+      // One-shot and same-name: repeated failures replace rather than stack.
+      await chrome.alarms.create(PBP_STORAGE_ACCESS_RETRY_ALARM, { delayInMinutes: 1 });
+    } catch (e) {
+      console.warn("[storage-access] retry scheduling failed:", e?.name, e?.message);
+    }
+    return false;
+  }
+  try { await chrome.alarms.clear(PBP_STORAGE_ACCESS_RETRY_ALARM); }
+  catch (e) { console.warn("[storage-access] retry cleanup failed:", e?.name, e?.message); }
+  return true;
+}
+// Re-assert trusted-only storage on every SW generation. A transient platform
+// failure keeps at most one same-name one-shot retry scheduled; neither path
+// keeps the worker awake or stacks alarms.
+pbpRestrictStorageAccess().catch((e) => {
+  console.warn("[storage-access] setup failed:", e?.name, e?.message);
+});
 
 // Security-first permission migration. Older Batch versions could leave the
 // optional all-sites grant active. Removing it also clears matching exact
@@ -2030,6 +2059,11 @@ async function prewarmTagsNow() {
 }
 
 chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === PBP_STORAGE_ACCESS_RETRY_ALARM) {
+    pbpRestrictStorageAccess().catch((e) => {
+      console.warn("[storage-access] retry failed:", e?.name, e?.message);
+    });
+  }
   if (alarm.name === "vocab-sync-dirty" ||
       alarm.name === "vocab-sync-periodic" ||
       alarm.name === "vocab-sync-retry") {
@@ -2037,7 +2071,9 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   }
   if (alarm.name === "keepalive") {
     processOfflineQueue().catch(() => {});
-    pbpSweepInterruptedBatch().catch(() => {});
+    pbpSweepInterruptedBatch().catch((e) => {
+      console.warn("[batch] interrupted sweep failed:", e?.name, e?.message);
+    });
     ensureKeepAlive(); // if SW was revived mid-window by the alarm, resume pinging
     // Self-release: when the activity window lapsed AND there is no queued or
     // running work left, clear this alarm so an idle browser stops waking the
@@ -2677,6 +2713,26 @@ chrome.runtime.onMessage.addListener(handleRuntimeMessage);
 // the completion notification fires here regardless of popup state.
 let _batchRunning = false;
 
+function _newBatchRunId() {
+  return crypto.randomUUID();
+}
+
+// A cleanup from run A must never delete run B's newer snapshot/cancel marker.
+// Chrome storage has no compare-and-delete primitive, but the SW has one live
+// generation and _batchRunning serializes starts; the ownership re-read closes
+// the only practical stale-finally path.
+async function _removeBatchRecordIfOwned(key, runId) {
+  try {
+    const stored = await chrome.storage.local.get(key);
+    if (stored[key]?.runId !== runId) return false;
+    await chrome.storage.local.remove(key);
+    return true;
+  } catch (e) {
+    console.warn(`[batch] ${key} cleanup failed:`, e?.name, e?.message);
+    return false;
+  }
+}
+
 // Returns whether the record actually landed: a caller that announces a terminal
 // state (the interrupted sweep) must not tell the user a story storage refused to
 // keep. In-loop callers ignore it — the progress UI degrades, the batch continues.
@@ -2724,7 +2780,7 @@ async function pbpSweepInterruptedBatch() {
   // actually running would report it as dead in the popup and in a notification.
   if (_batchRunning) return;
   const fresh = (await chrome.storage.local.get("batch_progress")).batch_progress;
-  if (!fresh || !fresh.running || fresh.done || fresh.ts !== bp.ts) return;
+  if (!fresh || !fresh.running || fresh.done || fresh.runId !== bp.runId || fresh.ts !== bp.ts) return;
   if (_batchRunning) return;
   // RESUME first (roadmap #34): when the interrupted worker left a valid job
   // snapshot for this account with unprocessed tabs, pick the batch back up at
@@ -2734,21 +2790,33 @@ async function pbpSweepInterruptedBatch() {
   // NEVER in the snapshot — the resumed run re-reads them like any fresh one.
   try {
     const { batch_job: job } = await chrome.storage.local.get("batch_job");
-    if (job && job.account === bp.account && Array.isArray(job.tabs) &&
+    if (job && typeof bp.runId === "string" && bp.runId && job.runId === bp.runId &&
+        job.account === bp.account && Array.isArray(job.tabs) &&
         Number(job.next) < job.tabs.length && Number(job.resumeCount || 0) < 2) {
       if (_batchRunning) return; // last-moment TOCTOU re-check before reserving
       _batchRunning = true;
       const resumeState = {
+        runId: job.runId,
         startIndex: Number(job.next) || 0,
         counts: job.counts || {},
         resumeCount: Number(job.resumeCount || 0) + 1,
       };
       console.info(`[batch] resuming interrupted batch at ${resumeState.startIndex}/${job.tabs.length} (attempt ${resumeState.resumeCount})`);
-      handleBatchSave(job.tabs, job.account, true, resumeState).catch(() => {});
+      handleBatchSave(job.tabs, job.account, true, resumeState).catch((e) => {
+        console.warn("[batch] resumed run failed:", e?.name, e?.message);
+      });
       return;
     }
-    if (job) await chrome.storage.local.remove("batch_job"); // unusable snapshot: fall through to interrupted
-  } catch (_) { /* resume is best-effort; the interrupted terminal state below still lands */ }
+    if (job?.runId === bp.runId) await _removeBatchRecordIfOwned("batch_job", bp.runId);
+  } catch (e) {
+    // Resume is best-effort; the interrupted terminal state below still lands.
+    console.warn("[batch] resume snapshot read failed:", e?.name, e?.message);
+  }
+  // The snapshot read/removal above yielded. Confirm identity again so a new
+  // run that started in that window is neither overwritten nor announced dead.
+  if (_batchRunning) return;
+  const latest = (await chrome.storage.local.get("batch_progress")).batch_progress;
+  if (!latest || latest.runId !== bp.runId || latest.ts !== bp.ts || !latest.running || latest.done) return;
   // Announce only what actually landed: a swallowed storage failure would leave the
   // record stuck at running while the user reads an "interrupted" toast, and every
   // later alarm tick would fire another one.
@@ -2766,6 +2834,7 @@ function handleBatchSave(tabs, expectedAccount = "", reserved = false, resumeSta
 }
 
 async function _runBatchSave(tabs, expectedAccount, resumeState = null) {
+  const runId = resumeState?.runId || _newBatchRunId();
   const startAuth = await getCurrentPinboardAuth();
   const account = expectedAccount || startAuth.account;
   if (!startAuth.token || !account || startAuth.account !== account) {
@@ -2781,13 +2850,14 @@ async function _runBatchSave(tabs, expectedAccount, resumeState = null) {
     if (expectedAccount && account) {
       await _writeBatchProgress({
         running: false, done: true, error: "account_changed",
-        account, total: tabs.length, i: 0,
+        runId, account, total: tabs.length, i: 0,
         saved: 0, queued: 0, failed: 0, aiFailed: 0, skipped: 0, tooLong: 0
       });
     }
     // A resumed run landing here means the account changed while the batch
     // was down — its snapshot can never be finished by anyone. Drop it.
-    try { await chrome.storage.local.remove("batch_job"); } catch (_) {}
+    await _removeBatchRecordIfOwned("batch_job", runId);
+    await _removeBatchRecordIfOwned("batch_cancel_requested", runId);
     _batchRunning = false;
     return;
   }
@@ -2799,20 +2869,24 @@ async function _runBatchSave(tabs, expectedAccount, resumeState = null) {
   let saved = Number(rc.saved) || 0, queued = Number(rc.queued) || 0, failed = Number(rc.failed) || 0,
       aiFailed = Number(rc.aiFailed) || 0, skipped = Number(rc.skipped) || 0, tooLong = Number(rc.tooLong) || 0;
   const startIndex = resumeState ? Math.max(0, Number(resumeState.startIndex) || 0) : 0;
-  const base = () => ({ account, total, i: processed, saved, queued, failed, aiFailed, skipped, tooLong });
+  const resumeCount = Number(resumeState?.resumeCount) || 0;
+  const base = () => ({ runId, resumeCount, account, total, i: processed, saved, queued, failed, aiFailed, skipped, tooLong });
   // Persist the job snapshot BEFORE the first item: everything a resume needs
   // (public tab identity + cursor + counts), never a token. The per-item
   // checkpoint below rewrites cursor+counts; every terminal path removes it.
   const jobRecord = () => ({
+    runId,
     account,
     tabs: tabs.map((tb) => ({ id: tb.id, url: tb.url, title: tb.title, incognito: !!tb.incognito })),
     next: processed,
     counts: { processed, saved, queued, failed, aiFailed, skipped, tooLong },
-    resumeCount: (resumeState && resumeState.resumeCount) || 0,
+    resumeCount,
     ts: Date.now(),
   });
-  const clearJob = async () => { try { await chrome.storage.local.remove("batch_job"); } catch (_) {} };
-  try { await chrome.storage.local.set({ batch_job: jobRecord() }); } catch (_) {}
+  const clearJob = () => _removeBatchRecordIfOwned("batch_job", runId);
+  const clearCancel = () => _removeBatchRecordIfOwned("batch_cancel_requested", runId);
+  try { await chrome.storage.local.set({ batch_job: jobRecord() }); }
+  catch (e) { console.warn("[batch] initial checkpoint failed:", e?.name, e?.message); }
   const requireAccount = async () => {
     const auth = await getCurrentPinboardAuth();
     if (auth.account !== account) {
@@ -2822,14 +2896,8 @@ async function _runBatchSave(tabs, expectedAccount, resumeState = null) {
     }
     return auth;
   };
-  // A FRESH run must not inherit a cancel meant for the previous one — but a
-  // RESUMED run must honor it: after a cancel click, the flag can be the only
-  // persisted trace of the user's intent if the SW dies before the loop's
-  // next poll (Codex final review). The resumed loop consumes it on its very
-  // first iteration.
-  if (!resumeState) {
-    try { await chrome.storage.local.remove("batch_cancel_requested"); } catch (_) {}
-  }
+  // Cancel markers carry runId, so a fresh run ignores an old marker while a
+  // resumed run still honors the exact persisted intent on its first item.
   await _writeBatchProgress({ running: true, done: false, error: null, ...base() });
 
   try {
@@ -2838,6 +2906,8 @@ async function _runBatchSave(tabs, expectedAccount, resumeState = null) {
     const currentAuth = await requireAccount();
     const s = { ...loadedSettings, pinboardToken: currentAuth.token };
     if (!s.pinboardToken) {
+      await clearJob();
+      await clearCancel();
       await _writeBatchProgress({ running: false, done: true, error: "not_logged_in", ...base() });
       showNotification("batch-error", t("bgBatchSaved"), t("bgNotLoggedIn"), "error");
       return;
@@ -2877,14 +2947,18 @@ async function _runBatchSave(tabs, expectedAccount, resumeState = null) {
       // Already-saved items stay saved — the terminal record says how many.
       try {
         const { batch_cancel_requested } = await chrome.storage.local.get("batch_cancel_requested");
-        if (batch_cancel_requested) {
-          await chrome.storage.local.remove("batch_cancel_requested");
+        if (batch_cancel_requested?.runId === runId && batch_cancel_requested?.account === account) {
+          await clearCancel();
           await clearJob();
           await _writeBatchProgress({ running: false, done: true, error: "cancelled", ...base() });
           showNotification("batch-cancelled", t("bgBatchSaved"), t("batchCancelled", String(saved)), "info");
           return;
         }
-      } catch (_) { /* cancel check is best-effort; the batch itself continues */ }
+      } catch (e) {
+        // A failed read must not kill the save loop, but MV3 platform failures
+        // cannot disappear without a trace. No payload/account is logged.
+        console.warn("[batch] cancel check failed:", e?.name, e?.message);
+      }
 
       try {
         await requireAccount();
@@ -3001,13 +3075,15 @@ async function _runBatchSave(tabs, expectedAccount, resumeState = null) {
         // Idempotent checkpoint: cursor + counts land after every item, so an
         // interrupted worker resumes at the next unprocessed tab instead of
         // reporting the whole run dead (roadmap #34).
-        try { await chrome.storage.local.set({ batch_job: jobRecord() }); } catch (_) {}
+        try { await chrome.storage.local.set({ batch_job: jobRecord() }); }
+        catch (e) { console.warn("[batch] checkpoint failed:", e?.name, e?.message); }
       }
     }
 
     if (saved > 0) await updateBadge().catch(() => {});
 
     await clearJob();
+    await clearCancel();
     await _writeBatchProgress({ running: false, done: true, error: null, ...base() });
     const tagsSuffix = baseTags.length ? t("batchTaggedSuffix", baseTags.join(", ")) : "";
     const skippedMsg = skipped > 0 ? t("batchSkipped", String(skipped)) : "";
@@ -3022,6 +3098,7 @@ async function _runBatchSave(tabs, expectedAccount, resumeState = null) {
     // A thrown error is a REAL terminal state (account switch, unexpected
     // failure) — never resumable. Drop the job so the sweep cannot revive it.
     await clearJob();
+    await clearCancel();
     await _writeBatchProgress({ running: false, done: true, error: e.message, ...base() });
     if (e?.code !== "account_changed") showNotification("batch-error", t("bgBatchSaved"), e.message, "error");
   } finally {

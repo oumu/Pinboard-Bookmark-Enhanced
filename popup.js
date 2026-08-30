@@ -21,7 +21,7 @@ function _pbpProxyPinboardFetch(url, immediate) {
         resolve({
           ok: resp.ok,
           status: resp.status,
-          json: () => { try { return Promise.resolve(JSON.parse(resp.text || "{}")); } catch { return Promise.resolve({}); } },
+          json: () => pbpParseJsonText(resp.text),
           text: () => Promise.resolve(resp.text || "")
         });
       })
@@ -287,9 +287,11 @@ function showLogin() {
   const qa = document.querySelector(".quick-actions");
   if (qa) qa.classList.add("hidden");
 }
-// Login listener — bound once outside showLogin() to avoid duplicate listeners
-$id("login-btn").addEventListener("click", async (event) => {
-  const loginBtn = event.currentTarget;
+// Semantic form submit covers both the button and Enter in the token field.
+// Bound once outside showLogin() to avoid duplicate listeners.
+$id("login-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const loginBtn = $id("login-btn");
   if (loginBtn.disabled) return;
   loginBtn.disabled = true;
   const token = $id("token-input").value.trim();

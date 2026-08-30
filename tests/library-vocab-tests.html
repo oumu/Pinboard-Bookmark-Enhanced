@@ -21,7 +21,12 @@ body.test-narrow-back .vocab-detail-back{display:inline-flex}
      [hidden] default and the button stays visible. -->
 <div id="view-vocab" style="position:fixed;left:-9999px;top:0;width:960px">
   <div class="vocab-workbench">
-    <div class="vocab-list-pane">
+    <div class="vocab-list-pane" id="vocab-list-pane">
+      <div id="vocab-no-account" class="notes-empty vocab-account-empty" hidden>
+        <p>Sign in to keep vocabulary separate for each Pinboard account.</p>
+        <a id="vocab-open-account-settings" href="../options.html#general">Open account settings</a>
+        <button type="button" class="btn btn-sm vocab-signed-out-lookup" id="vocab-signed-out-lookup">Look up a word</button>
+      </div>
       <div class="notes-toolbar vocab-filter-toolbar">
         <input type="search" id="vocab-search" aria-label="Search words, definitions, context, and groups" autocomplete="off" />
       </div>
@@ -638,6 +643,32 @@ check("selection still covers all filtered results beyond rendered chunks", _voc
       check("vocabulary load failure uses its own message", $id("vocab-status").textContent.includes("vocabLoadFailed"));
     } finally {
       pbpVocabCurrentOwner = realOwner;
+    }
+  }
+
+  {
+    const realOwner = pbpVocabCurrentOwner;
+    const realAll = pbpVocabAll;
+    let reads = 0;
+    try {
+      pbpVocabCurrentOwner = async () => "ownerless";
+      pbpVocabAll = async () => { reads++; return [{ id:"leak", term:"legacy" }]; };
+      await renderVocabPanel();
+      check("signed-out Vocabulary shows one actionable account state without reading ownerless words, while lookup remains available",
+        reads === 0 && $id("vocab-list-pane").classList.contains("vocab-signed-out") &&
+        !$id("vocab-no-account").hidden && $id("vocab-list").children.length === 0 &&
+        !$id("vocab-lookup-bar").hidden && $id("vocab-detail-empty").textContent.includes("libraryLookupSignedOutHint"));
+      document.body.classList.remove("lib-narrow-detail");
+      $id("vocab-signed-out-lookup").click();
+      check("signed-out narrow state has a direct route to dictionary lookup",
+        document.body.classList.contains("lib-narrow-detail") &&
+        document.activeElement === $id("vocab-lookup-input"));
+    } finally {
+      pbpVocabCurrentOwner = realOwner;
+      pbpVocabAll = realAll;
+      $id("vocab-list-pane").classList.remove("vocab-signed-out");
+      $id("vocab-no-account").hidden = true;
+      document.body.classList.remove("lib-narrow-detail");
     }
   }
 

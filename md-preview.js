@@ -39,19 +39,27 @@ function ensureVideoModule() {
 
 // Render the styled empty state and hide the rail so the page reads as
 // intentional (not a half-rendered document). textContent only — no innerHTML.
-function renderEmptyState(message) {
+function renderEmptyState(message, actionKey) {
   const view = document.getElementById("rendered-view");
   if (view) {
     view.removeAttribute("aria-busy");
     const wrap = document.createElement("div");
     wrap.className = "empty-state";
     // The whole view is swapped out, so a screen reader parked in the old
-    // content is given no reason to look: announce the outcome (polite -- there
-    // is nothing to act on here, unlike renderErrorState's retry).
+    // content is given no reason to look: announce the outcome politely. An
+    // optional close action may be present, unlike renderErrorState's retry.
     wrap.setAttribute("role", "status");
     const p = document.createElement("p");
     p.textContent = message;
     wrap.appendChild(p);
+    if (actionKey) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "action-btn";
+      button.textContent = t(actionKey);
+      button.addEventListener("click", () => window.close());
+      wrap.appendChild(button);
+    }
     view.replaceChildren(wrap);
   }
   document.body.classList.add("md-empty");
@@ -61,8 +69,8 @@ function renderEmptyState(message) {
 // the rail (incl. the Defuddle/Jina engine-switch badge) visible/usable instead of hiding
 // it, and offers a retry button that re-runs retryFn (the same reextractMarkdown flow the
 // engine-switch control already uses — see the pending-extraction branch below). Bare
-// renderEmptyState stays reserved for genuinely nothing-to-do states (no preview data /
-// no content at all), where there is nothing to retry or switch.
+// renderEmptyState stays reserved for states with nothing to retry or switch (no preview
+// data / no content at all); it may still offer a simple close action.
 function renderErrorState(message, retryFn, permissionRequired) {
   const view = document.getElementById("rendered-view");
   if (view) {
@@ -800,7 +808,7 @@ window.pbpReaderSchemeSet = function (mode) {
   if (typeof pbpTypoApplyVars === "function") pbpTypoApplyVars(data.pbp_font_tier, data.pbp_leading_tier);
   const info = data[MP_KEY];
   if (!info) {
-    renderEmptyState(t("mdPreviewEmpty"));
+    renderEmptyState(t("mdPreviewEmpty"), "mdPreviewClose");
     return;
   }
   // Deferred cleanup (audit B5): the slot is REPLACED by the lighter restore

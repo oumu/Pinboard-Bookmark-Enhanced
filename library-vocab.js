@@ -1322,11 +1322,26 @@ function _pbpVocabApplyView(resetLimit) {
   _pbpVocabRenderStats();
 }
 
+function _pbpVocabSetAccountState(owner) {
+  const signedOut = !String(owner || "").startsWith("acct_");
+  const pane = $id("vocab-list-pane");
+  const empty = $id("vocab-no-account");
+  if (pane) pane.classList.toggle("vocab-signed-out", signedOut);
+  if (empty) empty.hidden = !signedOut;
+  const detailEmpty = $id("vocab-detail-empty");
+  if (detailEmpty && signedOut) detailEmpty.textContent = t("libraryLookupSignedOutHint");
+  else if (detailEmpty && !_pbpVocabDetailWordId) detailEmpty.textContent = t("libraryDetailEmpty");
+}
+
 function _pbpVocabClearVisibleState() {
   _vocabRows = [];
   _vocabViewRows = [];
   _vocabOwnerLabel = "";
   _vocabCurrentOwner = null;
+  const pane = $id("vocab-list-pane");
+  if (pane) pane.classList.remove("vocab-signed-out");
+  const noAccount = $id("vocab-no-account");
+  if (noAccount) noAccount.hidden = true;
   _pbpVocabClearSelection();
   const list = $id("vocab-list");
   if (list) list.replaceChildren();
@@ -1469,6 +1484,15 @@ async function renderVocabPanel() {
   let owner;
   try {
     owner = await pbpVocabCurrentOwner();
+    if (!String(owner || "").startsWith("acct_")) {
+      if (gen === _vocabRenderGen) {
+        _pbpVocabRenderDetail(null);
+        _pbpVocabSetAccountState(owner);
+        _vocabCurrentOwner = owner;
+        _pbpVocabSetLoading(false);
+      }
+      return;
+    }
     rows = await pbpVocabAll(owner);
     if (await pbpVocabCurrentOwner() !== owner) {
       // Same owner-isolation reset as every other account-change path (I1):
@@ -1496,6 +1520,7 @@ async function renderVocabPanel() {
   _vocabRows = rows;
   _vocabOwnerLabel = pbpVocabOwnerLabel(owner);
   _vocabCurrentOwner = owner;
+  _pbpVocabSetAccountState(owner);
   _pbpVocabSetLoading(false);
   _pbpVocabRefreshGroupOptions(false);
   _pbpVocabApplyView(true);
@@ -1531,6 +1556,14 @@ async function _pbpVocabSoftReload() {
     return;
   }
   if (gen !== _vocabRenderGen) return;
+  if (!String(owner || "").startsWith("acct_")) {
+    _pbpVocabClearVisibleState();
+    _pbpVocabRenderDetail(null);
+    _pbpVocabSetAccountState(owner);
+    _vocabCurrentOwner = owner;
+    _pbpVocabSetLoading(false);
+    return;
+  }
   if (owner !== _vocabCurrentOwner) {
     // The account actually moved between the last commit and this re-fire --
     // this is exactly the account-switch case, so reuse its exact path
@@ -1746,13 +1779,16 @@ _pbpVocabWireLookupBar();
 // display:none until `lib-narrow-detail` is on the body, so the list needs
 // one control that flips into the pane and puts the caret where the user was
 // heading. Nothing is looked up here -- it opens the tool, it does not run it.
-const _vocabLookupNarrow = $id("vocab-lookup-narrow");
-if (_vocabLookupNarrow) _vocabLookupNarrow.addEventListener("click", () => {
+function _pbpVocabOpenLookupPane() {
   document.body.classList.add("lib-narrow-detail");
   const input = $id("vocab-lookup-input");
   if (!input) return;
   try { input.focus({ preventScroll: true }); } catch (_) { input.focus(); }
-});
+}
+for (const id of ["vocab-lookup-narrow", "vocab-signed-out-lookup"]) {
+  const button = $id(id);
+  if (button) button.addEventListener("click", _pbpVocabOpenLookupPane);
+}
 // Sort only reorders the same visible set: keep the selection (desktop
 // convention), reset the shift anchor -- a range from a pre-sort anchor
 // would span an arbitrary interval in the new visual order.

@@ -55,7 +55,9 @@ body{font-family:monospace;padding:16px}.case{padding:5px;border-bottom:1px soli
       <div class="fg"><label class="bl" for="dict-anki-port">AnkiConnect port</label>
         <input type="text" id="dict-anki-port" placeholder="8765" spellcheck="false" /></div>
       <div class="fg"><label class="bl" for="dict-anki-key">AnkiConnect API key (optional)</label><input type="password" id="dict-anki-key" autocomplete="off" spellcheck="false" /></div>
+      <button type="button" id="vocab-anki-test-btn">Test AnkiConnect</button>
       <div class="fg"><label class="bl" for="dict-eudic-token">Eudic OpenAPI authorization</label><input type="password" id="dict-eudic-token" autocomplete="off" spellcheck="false" /></div>
+      <button type="button" id="vocab-eudic-test-btn">Test Eudic connection</button>
       <div class="vocab-toolbar">
         <button type="button" class="btn btn-sm" id="vocab-export-btn">Export all (.tsv)</button>
         <button type="button" class="btn btn-sm" id="vocab-anki-btn">Send all to Anki</button>
@@ -197,6 +199,8 @@ delete document.documentElement.dataset.theme;
   const realAnkiCall = pbpAnkiCall;
   const realAnkiSendRows = pbpAnkiSendRows;
   const realEudicSendRows = pbpEudicSendRows;
+  const realEudicPing = pbpEudicPing;
+  const realRecordHealth = window.pbpRecordConnectionHealth;
   const realChrome = window.chrome;
   const realFlush = window.pbpOptionsFlushAutoSave;
   const realReadSettings = pbpReadSettingsWithSecrets;
@@ -219,6 +223,7 @@ delete document.documentElement.dataset.theme;
     pbpAnkiCall = async () => ({ ok:true, result:{ permission:"granted", version:6 } });
     pbpAnkiSendRows = async () => ({ stage:"done", added:3, skipped:0, failed:0, error:null });
     pbpEudicSendRows = async () => ({ stage:"done", added:2, skipped:0, unsupported:1, failed:0, forbidden:false, generic:false, error:null });
+    pbpEudicPing = async () => ({ ok:true });
   };
   try {
     HTMLAnchorElement.prototype.click = () => {};
@@ -300,6 +305,34 @@ delete document.documentElement.dataset.theme;
     pbpEudicSendRows = async () => ({ stage:"done", added:0, skipped:0, unsupported:0, failed:3, forbidden:false, generic:false, error:null });
     await _pbpVocabSendEudic();
     check("generic Eudic failure no longer reuses a Jina conversion error", $id("vocab-status").textContent.includes("dictEudicFailed"));
+
+    resetActions();
+    pbpReadSettingsWithSecrets = async () => { throw new Error("storage unavailable"); };
+    let ankiRejected = false;
+    try { await _pbpVocabTestAnki(); } catch (_) { ankiRejected = true; }
+    check("Anki connection test contains unexpected rejections and restores its button",
+      !ankiRejected && $id("vocab-status").textContent.includes("dictAnkiFailed") &&
+      !$id("vocab-anki-test-btn").disabled);
+
+    resetActions();
+    pbpReadSettingsWithSecrets = async () => { throw new Error("storage unavailable"); };
+    let eudicRejected = false;
+    try { await _pbpVocabTestEudic(); } catch (_) { eudicRejected = true; }
+    check("Eudic connection test contains unexpected rejections and restores its button",
+      !eudicRejected && $id("vocab-status").textContent.includes("dictEudicFailed") &&
+      !$id("vocab-eudic-test-btn").disabled);
+
+    const healthCalls = [];
+    window.pbpRecordConnectionHealth = async (...args) => { healthCalls.push(args); };
+    resetActions();
+    await _pbpVocabTestAnki();
+    check("a successful Anki connection test records only a categorical health result",
+      healthCalls.some(([id, ok, code]) => id === "anki" && ok === true && code === "connected"));
+
+    resetActions();
+    await _pbpVocabTestEudic();
+    check("a successful Eudic connection test records only a categorical health result",
+      healthCalls.some(([id, ok, code]) => id === "eudic" && ok === true && code === "connected"));
   } finally {
     pbpVocabCurrentOwner = realOwner;
     pbpVocabAll = realAll;
@@ -307,6 +340,9 @@ delete document.documentElement.dataset.theme;
     pbpAnkiCall = realAnkiCall;
     pbpAnkiSendRows = realAnkiSendRows;
     pbpEudicSendRows = realEudicSendRows;
+    pbpEudicPing = realEudicPing;
+    if (realRecordHealth === undefined) delete window.pbpRecordConnectionHealth;
+    else window.pbpRecordConnectionHealth = realRecordHealth;
     if (realChrome === undefined) delete window.chrome; else window.chrome = realChrome;
     if (realFlush === undefined) delete window.pbpOptionsFlushAutoSave; else window.pbpOptionsFlushAutoSave = realFlush;
     pbpReadSettingsWithSecrets = realReadSettings;

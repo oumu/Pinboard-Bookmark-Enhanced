@@ -184,6 +184,34 @@ const mdDict = read("md-dict.js");
 const optionsThemeEarlyJs = read("options-theme-early.js");
 const popupTagsJs = read("popup-tags.js");
 
+check(/<form[^>]*id="login-form"[^>]*class="login-body"/.test(popupHtml) &&
+  /id="login-btn"[^>]*type="submit"[^>]*class="btn/.test(popupHtml) &&
+  /id="login-error"[^>]*role="alert"[^>]*aria-live="assertive"/.test(popupHtml) &&
+  popupJs.includes('$id("login-form").addEventListener("submit"'),
+  "popup login is not a semantic submit form with an announced inline error");
+
+check(mdPreviewJs.includes('renderEmptyState(t("mdPreviewEmpty"), "mdPreviewClose")') &&
+  /function renderEmptyState\(message, actionKey\)/.test(mdPreviewJs) &&
+  mdPreviewJs.includes("window.close()"),
+  "md-preview empty payload state does not offer a localized close action");
+
+{
+  const searchStart = optionsJs.indexOf("function setupOptionsSearch");
+  const searchEnd = optionsJs.indexOf("async function pbpBuildSanitizedDiagnostics", searchStart);
+  const searchSetup = searchStart >= 0 && searchEnd > searchStart ? optionsJs.slice(searchStart, searchEnd) : "";
+  check(/id="options-search-input"/.test(optionsHtml) &&
+    !/id="options-search-input"[^>]*aria-expanded=/.test(optionsHtml) &&
+    !/setAttribute\("aria-expanded"/.test(searchSetup),
+    "options searchbox uses aria-expanded without a combobox/listbox contract");
+}
+
+check(/\.connection-health\s*\{[^}]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/.test(optionsCss),
+  "connection overview does not use the balanced three-column desktop grid");
+
+check(/id="vocab-no-account"[^>]*role="region"[^>]*aria-labelledby="vocab-no-account-title"/.test(libraryHtml) &&
+  /id="vocab-signed-out-lookup"[^>]*data-i18n="libraryLookupOpen"/.test(libraryHtml),
+  "signed-out Vocabulary state lacks a named region or localized narrow lookup route");
+
 {
   // Bounded by the next declaration rather than by the export handler, which
   // has moved down the file before and would silently widen this slice.
@@ -997,8 +1025,9 @@ for (const [file, css, ns] of [["popup.css", popupCss, "pp"], ["options.css", op
   check(/@media \(max-width: 860px\) \{[\s\S]*?\.vocab-filter-row > \.vocab-lookup-narrow \{ display: inline-flex; \}[\s\S]*?\n\}/.test(libraryCss) &&
     /\.vocab-filter-row > \.vocab-lookup-narrow \{ display: none;/.test(libraryCss),
     "library.css: the narrow lookup door is not media-gated to the single-pane range (it is the door to a pane that is only hidden down there)");
-  check(/_vocabLookupNarrow\.addEventListener\("click", \(\) => \{\s*\n\s*document\.body\.classList\.add\("lib-narrow-detail"\);[\s\S]{0,200}?input\.focus\(/.test(libraryVocabJs),
-    "library-vocab.js: the narrow lookup door stopped opening the pane and focusing the lookup box");
+  check(/function _pbpVocabOpenLookupPane\(\) \{\s*\n\s*document\.body\.classList\.add\("lib-narrow-detail"\);[\s\S]{0,220}?input\.focus\(/.test(libraryVocabJs) &&
+    /\["vocab-lookup-narrow", "vocab-signed-out-lookup"\][\s\S]{0,160}?addEventListener\("click", _pbpVocabOpenLookupPane\)/.test(libraryVocabJs),
+    "library-vocab.js: a narrow lookup door stopped opening the pane and focusing the lookup box");
   check(/id="vocab-lookup-narrow"[^>]*data-i18n-title=/.test(libraryHtml) &&
     /id="vocab-lookup-narrow"[^>]*aria-label=/.test(libraryHtml) &&
     /id="vocab-lookup-narrow"[^>]*title=/.test(libraryHtml),

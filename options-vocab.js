@@ -597,7 +597,12 @@ async function _pbpVocabSendAnki() {
     const port = preRead.dictAnkiPort;
     const pattern = pbpEndpointOriginPattern(pbpAnkiEndpointFor(port));
     let granted = false;
-    try { granted = await chrome.permissions.request({ origins: [pattern] }); } catch (_) {}
+    try { granted = await chrome.permissions.request({ origins: [pattern] }); }
+    catch (e) {
+      console.warn("[vocab] Anki host permission request failed:", e?.name, e?.message);
+      _pbpVocabConnectionResult("anki", false, t("dictAnkiHostPermissionDenied"), "permission_error");
+      return;
+    }
     if (!granted) { _pbpVocabFlashStatus(false, t("dictAnkiHostPermissionDenied")); return; }
     // requestPermission FIRST (spec §3): the long human-approval wait happens
     // BEFORE owner derivation, so the owner snapshot below stays fresh.
@@ -752,6 +757,14 @@ if (_vocabEudicBtn) _vocabEudicBtn.addEventListener("click", _pbpVocabSendEudic)
 // HTTPS origin from this direct click, never in the background. Results go
 // through the vocab panel's own status line. Errors reuse the send paths'
 // established keys so wording stays identical.
+function _pbpVocabConnectionResult(id, ok, text, code) {
+  _pbpVocabFlashStatus(ok, text);
+  if (typeof pbpRecordConnectionHealth !== "function") return;
+  pbpRecordConnectionHealth(id, ok, code).catch((e) => {
+    console.warn(`[vocab] ${id} health record failed:`, e?.name, e?.message);
+  });
+}
+
 async function _pbpVocabTestAnki() {
   const btn = $id("vocab-anki-test-btn");
   if (!btn || btn.disabled) return;
@@ -766,12 +779,12 @@ async function _pbpVocabTestAnki() {
     const pattern = pbpEndpointOriginPattern(pbpAnkiEndpointFor(port));
     let granted = false;
     try { granted = await chrome.permissions.request({ origins: [pattern] }); } catch (_) {}
-    if (!granted) { _pbpVocabFlashStatus(false, t("dictAnkiHostPermissionDenied")); return; }
+    if (!granted) { _pbpVocabConnectionResult("anki", false, t("dictAnkiHostPermissionDenied"), "permission_denied"); return; }
     const perm = await pbpAnkiCall("requestPermission", {}, "", 120000, port);
-    if (!perm.ok || !perm.result) { _pbpVocabFlashStatus(false, t("dictAnkiConnectPermissionFailed")); return; }
-    if (perm.result.permission !== "granted") { _pbpVocabFlashStatus(false, t("dictAnkiConnectPermissionDenied")); return; }
+    if (!perm.ok || !perm.result) { _pbpVocabConnectionResult("anki", false, t("dictAnkiConnectPermissionFailed"), "unreachable"); return; }
+    if (perm.result.permission !== "granted") { _pbpVocabConnectionResult("anki", false, t("dictAnkiConnectPermissionDenied"), "addon_denied"); return; }
     const apiVersion = Number(perm.result.version);
-    if (!Number.isFinite(apiVersion) || apiVersion < 6) { _pbpVocabFlashStatus(false, t("dictAnkiVersionUnsupported")); return; }
+    if (!Number.isFinite(apiVersion) || apiVersion < 6) { _pbpVocabConnectionResult("anki", false, t("dictAnkiVersionUnsupported"), "unsupported"); return; }
     // A test must exercise the CONFIGURED credentials, not stop at the
     // handshake (Codex review): when the server demands a key, flush the
     // 500ms auto-save first (same as the send path) so a just-pasted key is
@@ -784,16 +797,20 @@ async function _pbpVocabTestAnki() {
       // already replaced. Abort rather than test the wrong value.
       if (typeof window.pbpOptionsFlushAutoSave === "function") {
         let flushed = null;
-        try { flushed = await window.pbpOptionsFlushAutoSave(); } catch (_) {}
-        if (!flushed || !flushed.ok) { _pbpVocabFlashStatus(false, t("vocabSettingsSaveFailed")); return; }
+        try { flushed = await window.pbpOptionsFlushAutoSave(); }
+        catch (e) { console.warn("[vocab] Anki settings flush failed:", e?.name, e?.message); }
+        if (!flushed || !flushed.ok) { _pbpVocabConnectionResult("anki", false, t("vocabSettingsSaveFailed"), "settings_save"); return; }
       }
       const rawKey = await pbpReadSettingsWithSecrets({ dictAnkiKey: SETTINGS_DEFAULTS.dictAnkiKey });
       const key = deobfuscateSettings(rawKey).dictAnkiKey || "";
-      if (!key) { _pbpVocabFlashStatus(false, t("dictAnkiKeyRequired")); return; }
+      if (!key) { _pbpVocabConnectionResult("anki", false, t("dictAnkiKeyRequired"), "missing_key"); return; }
       const keyed = await pbpAnkiCall("version", {}, key, 10000, port);
-      if (!keyed.ok) { _pbpVocabFlashStatus(false, t("dictAnkiConnectPermissionFailed")); return; }
+      if (!keyed.ok) { _pbpVocabConnectionResult("anki", false, t("dictAnkiConnectPermissionFailed"), "auth"); return; }
     }
-    _pbpVocabFlashStatus(true, t("testConnected", "AnkiConnect v" + apiVersion));
+    _pbpVocabConnectionResult("anki", true, t("testConnected", "AnkiConnect v" + apiVersion), "connected");
+  } catch (e) {
+    console.warn("[vocab] Anki connection test failed:", e?.name, e?.message);
+    _pbpVocabConnectionResult("anki", false, t("dictAnkiFailed"), "failed");
   } finally {
     btn.textContent = orig;
     btn.disabled = false;
@@ -812,20 +829,29 @@ async function _pbpVocabTestEudic() {
     // click must be the one tested — and a failed flush means it is not.
     if (typeof window.pbpOptionsFlushAutoSave === "function") {
       let flushed = null;
-      try { flushed = await window.pbpOptionsFlushAutoSave(); } catch (_) {}
-      if (!flushed || !flushed.ok) { _pbpVocabFlashStatus(false, t("vocabSettingsSaveFailed")); return; }
+      try { flushed = await window.pbpOptionsFlushAutoSave(); }
+      catch (e) { console.warn("[vocab] Eudic settings flush failed:", e?.name, e?.message); }
+      if (!flushed || !flushed.ok) { _pbpVocabConnectionResult("eudic", false, t("vocabSettingsSaveFailed"), "settings_save"); return; }
     }
     const raw = await pbpReadSettingsWithSecrets({ dictEudicToken: SETTINGS_DEFAULTS.dictEudicToken });
     const s = deobfuscateSettings(raw);
-    if (!s.dictEudicToken) { _pbpVocabFlashStatus(false, t("dictEudicTokenRequired")); return; }
+    if (!s.dictEudicToken) { _pbpVocabConnectionResult("eudic", false, t("dictEudicTokenRequired"), "missing_token"); return; }
     const pattern = pbpEndpointOriginPattern(PBP_EUDIC_ENDPOINT);
     let granted = false;
-    try { granted = await chrome.permissions.request({ origins: [pattern] }); } catch (_) {}
-    if (!granted) { _pbpVocabFlashStatus(false, t("dictEudicHostPermissionDenied")); return; }
+    try { granted = await chrome.permissions.request({ origins: [pattern] }); }
+    catch (e) {
+      console.warn("[vocab] Eudic host permission request failed:", e?.name, e?.message);
+      _pbpVocabConnectionResult("eudic", false, t("dictEudicHostPermissionDenied"), "permission_error");
+      return;
+    }
+    if (!granted) { _pbpVocabConnectionResult("eudic", false, t("dictEudicHostPermissionDenied"), "permission_denied"); return; }
     const r = await pbpEudicPing(s.dictEudicToken, 10000);
-    if (r.ok) _pbpVocabFlashStatus(true, t("testConnected", "OK"));
-    else if (r.error === "auth") _pbpVocabFlashStatus(false, t("dictEudicRejected"));
-    else _pbpVocabFlashStatus(false, t("dictEudicFailed"));
+    if (r.ok) _pbpVocabConnectionResult("eudic", true, t("testConnected", "OK"), "connected");
+    else if (r.error === "auth") _pbpVocabConnectionResult("eudic", false, t("dictEudicRejected"), "auth");
+    else _pbpVocabConnectionResult("eudic", false, t("dictEudicFailed"), "failed");
+  } catch (e) {
+    console.warn("[vocab] Eudic connection test failed:", e?.name, e?.message);
+    _pbpVocabConnectionResult("eudic", false, t("dictEudicFailed"), "failed");
   } finally {
     btn.textContent = orig;
     btn.disabled = false;

@@ -23,6 +23,11 @@
     <p id="opt-global-alert" class="opt-error hidden" role="alert"></p>
 
     <div class="options-nav">
+      <div class="options-search" role="search">
+        <label class="sr-only" for="options-search-input" data-i18n="settingsSearchLabel">Search settings</label>
+        <input type="search" id="options-search-input" autocomplete="off" placeholder="Search settings" data-i18n-placeholder="settingsSearchPlaceholder" data-i18n-aria="settingsSearchLabel" aria-label="Search settings" aria-controls="options-search-results" />
+        <div id="options-search-results" class="options-search-results" hidden></div>
+      </div>
       <div class="mobile-tab-picker">
         <label for="mobile-tab-select" data-i18n="settingsCategory">Settings category</label>
         <select id="mobile-tab-select">
@@ -88,6 +93,10 @@
           <span class="save-status" id="test-pinboard-status" role="status" aria-live="polite"></span>
         </div>
       </div>
+      <div class="divider"></div>
+      <h2 class="section-title" id="connection-overview-title" data-i18n="connectionOverviewTitle">Connection Status</h2>
+      <p class="hint" data-i18n="connectionOverviewHint">Status is based on configuration, granted permissions, and your latest manual tests. Opening Settings never contacts these services or requests permission.</p>
+      <div id="connection-health" class="connection-health" role="region" aria-labelledby="connection-overview-title"></div>
       <div class="divider"></div>
       <h2 class="section-title" id="sec-language" data-i18n="secLanguage">Language</h2>
       <div class="fg">
@@ -998,6 +1007,13 @@
       <div class="fg" style="margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
         <button type="button" class="btn" id="storage-clear-btn" data-i18n="storageClear">Clear selected</button>
         <span id="storage-status" class="et-test-status hidden" role="status" aria-live="polite"></span>
+      </div>
+      <div class="divider"></div>
+      <h2 class="section-title" data-i18n="diagnosticsTitle">Support Diagnostics</h2>
+      <p class="hint" data-i18n="diagnosticsHint">Copies extension, browser, feature, permission, storage and categorical error information. Credentials, account names, page URLs, content and custom endpoints are excluded.</p>
+      <div class="fg diagnostics-actions">
+        <button type="button" class="btn" id="copy-diagnostics-btn" data-i18n="diagnosticsCopy">Copy diagnostics</button>
+        <span id="diagnostics-status" class="et-test-status hidden" role="status" aria-live="polite"></span>
       </div>
     </div>
   </div>

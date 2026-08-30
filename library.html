@@ -19,7 +19,15 @@
   <main class="lib-main">
     <section id="view-vocab" class="lib-view" role="tabpanel" aria-labelledby="lib-tab-vocab">
       <div class="vocab-workbench">
-        <div class="vocab-list-pane">
+        <div class="vocab-list-pane" id="vocab-list-pane">
+          <div id="vocab-no-account" class="notes-empty vocab-account-empty" role="region" aria-labelledby="vocab-no-account-title" hidden>
+            <h2 id="vocab-no-account-title" data-i18n="libraryVocabSignedOutTitle">Sign in to use Vocabulary</h2>
+            <p data-i18n="libraryVocabSignedOutHint">Vocabulary is kept separate for each Pinboard account. Dictionary lookup remains available without signing in.</p>
+            <div class="vocab-account-actions">
+              <a class="btn btn-sm" id="vocab-open-account-settings" href="options.html#general" target="_blank" rel="noopener" data-i18n="libraryVocabOpenSettings">Open account settings</a>
+              <button type="button" class="btn btn-sm vocab-signed-out-lookup" id="vocab-signed-out-lookup" data-i18n="libraryLookupOpen">Look up a word</button>
+            </div>
+          </div>
       <!-- Header, round 2 (user ruling 2026-08-07): four bare rows, every one
            of them full width, split by ONE seam into "filter this list" /
            "what this list is". The lookup row that used to sit here has moved

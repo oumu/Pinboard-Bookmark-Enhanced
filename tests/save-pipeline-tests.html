@@ -336,6 +336,8 @@ async function createBatchSaveHarness(options) {
   const outcomes = opts.outcomes || [{ status: "saved", mutation: "created" }];
   let outcomeIndex = 0;
   const deps = {
+    _newBatchRunId: () => opts.runId || "test-batch-run",
+    _removeBatchRecordIfOwned: async () => true,
     _writeBatchProgress: async (value) => progress.push({ ...value }),
     loadSettings: opts.loadSettings || (async () => settings),
     getCurrentPinboardAuth: async () => ({ token: settings.pinboardToken, account: "alice", epoch: 0 }),

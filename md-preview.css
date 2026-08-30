@@ -941,6 +941,7 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
   color: var(--fg-muted);
 }
 .empty-state p { font-size: 15px; line-height: 1.6; }
+.empty-state .action-btn { margin-top: 16px; }
 
 /* ---- Loading State (shortcut pending placeholder) ---- */
 .preview-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; text-align: center; padding: 80px 32px; }

@@ -643,6 +643,14 @@ function resolveTagCase(tag, caseMap) {
   return caseMap[norm] || tag;
 }
 
+// Response.json() rejects an empty or malformed body. The popup/options SW
+// proxies expose the same contract even though they reconstruct a response
+// from message text; silently replacing parse failures with {} can turn a
+// broken destructive-operation snapshot into an apparently valid empty one.
+function pbpParseJsonText(text) {
+  return Promise.resolve().then(() => JSON.parse(String(text ?? "")));
+}
+
 // ---- Pinboard API rate limiter ----
 // Ensures minimum 3.1s between Pinboard API calls
 const _pinboardQueue = [];

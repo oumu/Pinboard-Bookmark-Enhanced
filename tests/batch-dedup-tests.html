@@ -87,12 +87,18 @@ function fakeElement() {
     innerHTML: "",
     textContent: "",
     children: [],
+    dataset: {},
     style: {},
     attributes: {},
     classList: {
       add: (name) => classes.add(name),
       remove: (name) => classes.delete(name),
       contains: (name) => classes.has(name),
+      toggle: (name, force) => {
+        const on = force === undefined ? !classes.has(name) : !!force;
+        if (on) classes.add(name); else classes.delete(name);
+        return on;
+      },
     },
     setAttribute(name, value) { this.attributes[name] = value; },
     replaceChildren(...children) { this.children = children; },
@@ -191,7 +197,7 @@ async function createBatchClickHarness({ ai = true, contains = false, request = 
   };
 }
 
-async function createUiHarness(storedProgress, now) {
+async function createUiHarness(storedProgress, now, opts = {}) {
   if (storedProgress) storedProgress = { account: "alice", ...storedProgress };
   // documentElement mirrors a page that never marks motion-ready, so the
   // progress teardown stays on its synchronous .hidden path under test.
@@ -201,15 +207,24 @@ async function createUiHarness(storedProgress, now) {
     "batch-progress": fakeElement(),
     "batch-progress-fill": fakeElement(),
     "batch-progress-text": fakeElement(),
+    "batch-cancel-btn": fakeButton(),
   };
+  elements["batch-cancel-btn"].querySelector = () => ({ innerHTML: "" });
   elements["batch-bookmark-btn"].focus = function () { this.focused = true; documentStub.activeElement = this; };
   elements["batch-progress"].focus = function () { this.focused = true; documentStub.activeElement = this; };
   const statuses = [];
+  const writes = [];
   let timer = null;
   const chromeStub = {
     storage: {
       onChanged: { addListener: () => {} },
-      local: { get: async () => ({ batch_progress: storedProgress }) },
+      local: {
+        get: async () => ({ batch_progress: storedProgress }),
+        set: async (value) => {
+          if (opts.setReject) throw new Error("storage unavailable");
+          writes.push(value);
+        },
+      },
     },
   };
   const source = await getPopupBatchProgressSource();
@@ -235,7 +250,7 @@ async function createUiHarness(storedProgress, now) {
   return {
     ...api,
     renderBatchProgress: (progress) => api.renderBatchProgress({ account: "alice", ...progress }, "alice"),
-    elements, statuses, runTimer: () => timer?.()
+    elements, statuses, writes, runTimer: () => timer?.()
   };
 }
 
@@ -435,6 +450,31 @@ async function createUiHarness(storedProgress, now) {
     equal(h.elements["batch-progress"].attributes["aria-valuenow"], "50");
     equal(h.elements["batch-progress"].attributes["aria-valuetext"], "batchProgress:2:4:1:0");
     equal(h.elements["batch-bookmark-btn"].disabled, true);
+  });
+
+  await test("resumed progress tells the user which recovery attempt is active", async () => {
+    const h = await createUiHarness(null, 5000);
+    h.renderBatchProgress({ runId: "run-a", resumeCount: 1, running: true, done: false, total: 4, i: 2, saved: 1, queued: 0, failed: 0 });
+    assert(h.elements["batch-progress-text"].innerHTML.includes("batchResumed:1:2"), "recovery attempt is invisible");
+  });
+
+  await test("cancel is bound to the latest rendered run identity", async () => {
+    const h = await createUiHarness(null, 5000);
+    h.renderBatchProgress({ runId: "run-a", running: true, done: false, total: 4, i: 1, saved: 1, failed: 0 });
+    h.renderBatchProgress({ runId: "run-b", running: true, done: false, total: 4, i: 0, saved: 0, failed: 0 });
+    await h.elements["batch-cancel-btn"].handlers.click();
+    const marker = h.writes[0]?.batch_cancel_requested;
+    assert(marker && marker.runId === "run-b" && marker.account === "alice" && Number.isFinite(marker.ts),
+      "cancel marker was not scoped to the latest run");
+  });
+
+  await test("a failed cancel write re-enables the control and reports the failure", async () => {
+    const h = await createUiHarness(null, 5000, { setReject: true });
+    h.renderBatchProgress({ runId: "run-a", running: true, done: false, total: 4, i: 1, saved: 1, failed: 0 });
+    await h.elements["batch-cancel-btn"].handlers.click();
+    equal(h.elements["batch-cancel-btn"].disabled, false, "cancel stayed disabled");
+    assert(h.statuses.some((entry) => entry.message === "batchCancelFailed" && entry.kind === "error"),
+      "cancel failure was silent");
   });
 
   await test("all-queued completion is informational", async () => {

@@ -179,6 +179,16 @@ async function loadLocale(loc) {
   check("H9 all locales expose the scalable vocabulary controls and complete status messages",
     LOCALES.every((loc) => VOCAB_SCALE_KEYS.every((key) => msgs[loc][key]?.message)),
     "one or more scalable-vocabulary messages are missing");
+  const USABILITY_KEYS = ["batchResumed", "batchCancelFailed", "connectionOverviewTitle",
+    "connectionOverviewHint", "connectionNeverTested", "connectionConnected", "connectionNotConnected",
+    "connectionNotConfigured", "connectionPermissionMissing", "connectionLastSuccess", "connectionLastFailure",
+    "settingsSearchLabel", "settingsSearchPlaceholder", "settingsSearchNoResults", "diagnosticsTitle",
+    "diagnosticsHint", "diagnosticsCopy", "diagnosticsCopied", "diagnosticsCopyFailed",
+    "libraryVocabSignedOutTitle", "libraryVocabSignedOutHint", "libraryVocabOpenSettings",
+    "libraryLookupSignedOutHint", "mdPreviewClose"];
+  check("H9c all locales expose batch recovery, settings search, diagnostics and signed-out recovery copy",
+    LOCALES.every((loc) => USABILITY_KEYS.every((key) => msgs[loc][key]?.message)),
+    "one or more usability messages are missing");
   check("H9 vocabulary placeholders keep the same runtime contract in every locale",
     LOCALES.every((loc) => ["vocabLoadMore", "vocabSelectWord", "vocabResultCount", "dictVocabEmpty",
       "vocabSelectedCount", "vocabBatchDeleteConfirm", "vocabBatchDeleted", "vocabBatchGrouped"]

@@ -464,7 +464,7 @@ of drifting.
 |------|------|
 | `tools/recipe-lint.mjs` | ~14 static checks on `ui-components.mjs` itself: paired-color law (any rule backgrounding must also color), chip geometry laws, the spacing-adapter accuracy check above, no direct `--{ns}-sp-N` reference outside the adapter, no `var(--x, fallback)` in rendered output, press-is-instant (no `transform` in `.btn`'s transition list), no `transition: all`, a ≤200ms motion budget on every duration token actually referenced, `.btn-ic` base rule presence, and the roundness laws (§9.2 below) — token-only radii, concentric nesting |
 | `tools/contrast-audit.mjs`'s `COMPONENT_PAIR_SPEC` | Component-pair AA/3:1 coverage — see the table in the "Contrast guard" section above |
-| `scripts/ui-render-audit.mjs` (repo root, not under `docs/theme-surface/`) | The completeness authority: an **independent, hand-written** checklist (`tests/render-audit-checklist.mjs`) drives playwright against an unpacked-extension load, reading real `getComputedStyle` per theme — deliberately never generated from `ui-components.mjs`, so a component the recipe forgot to register can't also make the oracle forget to check it. Wired into `scripts/verify.sh`'s `[render-audit]` section. `tests/render-audit-known-failures.json` is a migration-era baseline, currently 16 frozen popup button-geometry keys (popup's own six-recipe button family + hover-lift language is out of this campaign's scope, deferred to a follow-up) |
+| `scripts/ui-render-audit.mjs` (repo root, not under `docs/theme-surface/`) | The completeness authority: an **independent, hand-written** checklist (`tests/render-audit-checklist.mjs`) drives playwright against an unpacked-extension load, reading real `getComputedStyle` per theme — deliberately never generated from `ui-components.mjs`, so a component the recipe forgot to register can't also make the oracle forget to check it. Wired into `scripts/verify.sh`'s `[render-audit]` section. `tests/render-audit-known-failures.json` retains the migration-era baseline mechanism; the committed baseline is currently empty. |
 
 **Terminal's exemption — a template for a theme that wants a framed
 identity.** Every pilot in this campaign was flattened onto the Soft Fill
@@ -489,4 +489,3 @@ human-review checklist for what no automated gate can decide — icon
 semantics, which danger tier a new button belongs to, `is-error` class
 cascades). Consult it before touching `ui-components.mjs` by hand; it is the
 spec `recipe-lint` and the render oracle both check against.
-

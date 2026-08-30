@@ -29,6 +29,13 @@ function pbpLiveAiSettingsSnapshot(provider) {
 
 function setupApiTests() {
 
+  function recordHealth(id, ok, code) {
+    if (typeof pbpRecordConnectionHealth !== "function") return;
+    pbpRecordConnectionHealth(id, ok, code).catch((e) => {
+      console.warn("[connection-health] record failed:", e?.name, e?.message);
+    });
+  }
+
   // State lives in classes only. An inline `style.color` outranks every themed
   // rule, so the old hardcoded #888/#080/#c00 stayed put on the dark presets --
   // #c00 measured 1.71:1 on Nord Night. .save-status.pending/.ok/.bad carry the
@@ -80,6 +87,7 @@ function setupApiTests() {
 
       if (!hasAIKey(cs)) {
         setStatusResult(statusEl, false, t("testNoApiKey"));
+        recordHealth(`ai:${provider}`, false, "missing_key");
         scheduleStatusClear(provider, statusEl, 5000);
         return;
       }
@@ -92,12 +100,15 @@ function setupApiTests() {
         originPattern = _aiTargetOriginPattern(cs);
         granted = await requestAIHostPermissions(cs);
       } catch (err) {
+        console.warn("[connectivity] AI permission request failed:", err?.name, err?.message);
         setStatusResult(statusEl, false, err?.message || t("networkError"));
+        recordHealth(`ai:${provider}`, false, "permission_error");
         scheduleStatusClear(provider, statusEl, 5000);
         return;
       }
       if (!granted) {
         setStatusResult(statusEl, false, t("aiErrorHostPermission", originPattern.replace(/\/\*$/, "")));
+        recordHealth(`ai:${provider}`, false, "permission_denied");
         scheduleStatusClear(provider, statusEl, 5000);
         return;
       }
@@ -106,6 +117,7 @@ function setupApiTests() {
         const result = await callAI(cs, "Reply with just the word: OK");
 
         setStatusResult(statusEl, true, t("testConnected", (result || "OK").substring(0, 20)));
+        recordHealth(`ai:${provider}`, true, "connected");
         scheduleStatusClear(provider, statusEl, 4000);
       } catch (err) {
         let msg = err.name === "AbortError" ? t("testTimeout") : err.message;
@@ -114,6 +126,8 @@ function setupApiTests() {
           msg = mnf.msg + " " + mnf.hint;
         }
         setStatusResult(statusEl, false, msg);
+        recordHealth(`ai:${provider}`, false,
+          err?.name === "AbortError" ? "timeout" : (err?.code === "model_not_found" ? "model_not_found" : "failed"));
         scheduleStatusClear(provider, statusEl, 5000);
       }
     } finally {
@@ -143,6 +157,7 @@ function setupApiTests() {
     const token = tokenInput.value.trim();
     if (pbpIsValidTokenFormat(token) !== true) {
       setStatusResult(statusEl, false, t("loginInvalidFormat"));
+      recordHealth("pinboard", false, "invalid_token");
       scheduleStatusClear("pinboard", statusEl, 4000);
       return;
     }
@@ -153,15 +168,21 @@ function setupApiTests() {
       const resp = await chrome.runtime.sendMessage({ type: "test_pinboard_token", token });
       if (resp?.ok) {
         setStatusResult(statusEl, true, t("testConnected", token.split(":")[0]));
+        recordHealth("pinboard", true, "connected");
       } else if (resp?.error === "timeout") {
         setStatusResult(statusEl, false, t("testTimeout"));
+        recordHealth("pinboard", false, "timeout");
       } else if (resp?.error === "network") {
         setStatusResult(statusEl, false, t("networkError"));
+        recordHealth("pinboard", false, "network");
       } else {
         setStatusResult(statusEl, false, t("loginFailed"));
+        recordHealth("pinboard", false, "auth");
       }
-    } catch (_) {
+    } catch (e) {
+      console.warn("[connectivity] Pinboard test failed:", e?.name, e?.message);
       setStatusResult(statusEl, false, t("networkError"));
+      recordHealth("pinboard", false, "network");
     } finally {
       btn.disabled = false;
       scheduleStatusClear("pinboard", statusEl, 5000);

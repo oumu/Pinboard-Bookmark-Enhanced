@@ -50,6 +50,34 @@ function suite(name, fn) {
   results.appendChild(div);
 }
 
+// ============ pbpTagGovNormalizeCounts ============
+suite("pbpTagGovNormalizeCounts", () => {
+  test("accepts the real tags/get object shape and normalizes numeric strings", () => {
+    const counts = pbpTagGovNormalizeCounts({ javascript: "12", chrome: 3, unused: "0" });
+    assert(counts && counts.javascript === 12 && counts.chrome === 3 && counts.unused === 0,
+      "valid counts were not normalized");
+  });
+
+  test("accepts an empty account snapshot", () => {
+    const counts = pbpTagGovNormalizeCounts({});
+    assert(counts && Object.keys(counts).length === 0, "empty object should be a valid snapshot");
+  });
+
+  test("rejects non-object response bodies", () => {
+    assert(pbpTagGovNormalizeCounts(null) === null, "null accepted");
+    assert(pbpTagGovNormalizeCounts([]) === null, "array accepted");
+    assert(pbpTagGovNormalizeCounts("{}") === null, "string accepted");
+  });
+
+  test("rejects malformed tag counts instead of partially accepting the snapshot", () => {
+    for (const counts of [
+      { tag: -1 }, { tag: 1.5 }, { tag: "1.5" }, { tag: "many" }, { tag: "" }, { tag: 1e30 }
+    ]) {
+      assert(pbpTagGovNormalizeCounts(counts) === null, "accepted " + JSON.stringify(counts));
+    }
+  });
+});
+
 // ============ pbpTagGovLevenshtein ============
 suite("pbpTagGovLevenshtein", () => {
   test("equal strings return 0", () => {

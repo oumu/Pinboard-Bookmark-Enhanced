@@ -1,0 +1,207 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Options Usability Tests</title>
+<style>body{font-family:monospace;padding:16px}.case{padding:5px}.pass{color:#176}.fail{color:#b00}</style>
+</head><body>
+<div class="options-search" role="search">
+  <label for="options-search-input">Search settings</label>
+  <input id="options-search-input" type="search" />
+  <div id="options-search-results" hidden></div>
+</div>
+<button class="tab-btn" data-panel="general">General</button>
+<button class="tab-btn" data-panel="ai">AI Providers</button>
+<div id="panel-general" class="panel">
+  <h2>Pinboard Account</h2>
+  <div class="fg"><label for="secret-token">API Token</label><input id="secret-token" value="alice:TOP_SECRET" /></div>
+  <p class="hint">Use Chrome Sync on this device</p>
+</div>
+<div id="panel-ai" class="panel">
+  <h2>AI Provider</h2>
+  <div class="fg"><label for="model-name">Model name</label><input id="model-name" value="private-model" /></div>
+</div>
+
+<select id="opt-ai-provider"><option value="openai" selected>OpenAI</option></select>
+<input id="opt-openai-key" value="sk-LEAK-ME" />
+<input id="opt-openai-baseurl" value="https://private.example/v1" />
+<input id="opt-pinboard-token" value="alice:TOP_SECRET" />
+<input id="dict-anki-port" value="8765" />
+<input id="dict-eudic-token" value="EUDIC-SECRET" />
+<div id="connection-health"></div>
+<input id="opt-sync-enabled" type="checkbox" checked />
+<input id="opt-sync-api-keys" type="checkbox" />
+<input id="offline-queue-enabled" type="checkbox" checked />
+<input id="opt-ai-auto-tags" type="checkbox" checked />
+<input id="batch-ai-tags" type="checkbox" />
+<input id="batch-ai-summary" type="checkbox" checked />
+<input id="opt-preview-ai-enabled" type="checkbox" checked />
+<input id="opt-preview-skim" type="checkbox" />
+<input id="dict-echo-enabled" type="checkbox" checked />
+<input id="opt-wayback-enabled" type="checkbox" />
+<div id="results"></div>
+
+<script>
+document.addEventListener("DOMContentLoaded", (event) => event.stopImmediatePropagation(), { once:true });
+const localData = {
+  _connectionHealthV1: {
+    pinboard: { ok:true, code:"connected", checkedAt:1700000000000 },
+  },
+  vocabDriveConnected:true,
+  offlineQueue:[{ account:"alice", url:"https://secret.example/article", title:"Secret" }],
+  batch_progress:{ account:"alice", runId:"run-a", running:false, done:true, i:2, total:3, error:"private raw server message" },
+};
+function area(data, bytes) {
+  return {
+    async get(keys) {
+      const list = typeof keys === "string" ? [keys] : Array.isArray(keys) ? keys : Object.keys(keys || data);
+      const out = {};
+      for (const key of list) if (key in data) out[key] = structuredClone(data[key]);
+      return out;
+    },
+    async set(value) { Object.assign(data, structuredClone(value)); },
+    async remove(keys) { for (const key of [].concat(keys)) delete data[key]; },
+    async getBytesInUse() { return bytes; },
+  };
+}
+window.chrome = {
+  storage:{ local:area(localData,1234), sync:area({},567), session:area({},89), onChanged:{addListener(){}} },
+  permissions:{ async contains(query) { return !!(query.permissions?.includes("identity") || query.origins?.[0]?.includes("127.0.0.1")); } },
+  runtime:{ getManifest:()=>({version:"2.108"}), sendMessage:async()=>({}) },
+};
+function t(key, ...args) { return args.length ? key + ":" + args.join(":") : key; }
+function uiLangToBCP47() { return "en"; }
+function pbpLiveAiSettingsSnapshot() { return { aiProvider:"openai", openaiApiKey:"sk-LEAK-ME", openaiBaseUrl:"https://private.example/v1" }; }
+function hasAIKey(s) { return !!s.openaiApiKey; }
+function _aiTargetOriginPattern() { return "https://private.example/*"; }
+function pbpAnkiEndpointFor() { return "http://127.0.0.1:8765"; }
+function pbpEndpointOriginPattern(value) { return value + "/*"; }
+const PBP_EUDIC_ENDPOINT = "https://api.frdic.com";
+</script>
+<script src="../shared.js"></script>
+<script src="../vocab-store.js"></script>
+<script src="../options-backup.js"></script>
+<script src="../export-targets.js"></script>
+<script src="../options.js"></script>
+<script>
+const root = document.getElementById("results");
+let pass=0, fail=0;
+async function test(name, fn) {
+  let ok=true, detail="";
+  try { await fn(); } catch (e) { ok=false; detail=e.message; }
+  ok ? pass++ : fail++;
+  const row=document.createElement("div"); row.className="case "+(ok?"pass":"fail");
+  row.textContent=(ok?"PASS ":"FAIL ")+name+(detail?"\n  "+detail:""); root.appendChild(row);
+}
+function assert(value, message) { if (!value) throw new Error(message || "assertion failed"); }
+
+(async () => {
+  await test("search index uses labels and hints but never field values", async () => {
+    const index = pbpBuildSettingsSearchIndex(document);
+    assert(index.some((entry) => entry.text.includes("API Token") && entry.targetId === "secret-token"), "label missing");
+    assert(index.some((entry) => entry.text.includes("Chrome Sync")), "hint missing");
+    assert(!index.some((entry) => entry.text.includes("TOP_SECRET") || entry.text.includes("private-model")), "field value leaked");
+  });
+
+  await test("settings search returns panel-aware matches and caps empty queries", async () => {
+    const index = pbpBuildSettingsSearchIndex(document);
+    const matches = pbpSearchSettings(index, "model name");
+    assert(matches.length === 1 && matches[0].panel === "ai" && matches[0].targetId === "model-name", "wrong match");
+    assert(pbpSearchSettings(index, "   ").length === 0, "empty query returned everything");
+  });
+
+  await test("search Enter opens the first result and moves focus to its control", async () => {
+    let opened = "";
+    document.querySelector('.tab-btn[data-panel="ai"]').addEventListener("click", () => { opened = "ai"; });
+    setupOptionsSearch();
+    const input = document.getElementById("options-search-input");
+    input.value = "model name";
+    input.dispatchEvent(new Event("input"));
+    input.dispatchEvent(new KeyboardEvent("keydown", { key:"Enter", bubbles:true }));
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    assert(opened === "ai" && document.activeElement === document.getElementById("model-name"), "result did not open/focus");
+  });
+
+  await test("search no-results state is explicit and Escape clears it", async () => {
+    setupOptionsSearch();
+    const input = document.getElementById("options-search-input");
+    input.value = "definitely absent";
+    input.dispatchEvent(new Event("input"));
+    const host = document.getElementById("options-search-results");
+    assert(!host.hidden && host.textContent.includes("settingsSearchNoResults"), "no-results guidance missing");
+    input.dispatchEvent(new KeyboardEvent("keydown", { key:"Escape", bubbles:true }));
+    assert(input.value === "" && host.hidden, "Escape did not reset search");
+  });
+
+  await test("search index follows a late localization refresh", async () => {
+    document.querySelector('label[for="model-name"]').textContent = "Localized model label";
+    const input = document.getElementById("options-search-input");
+    input.value = "localized model";
+    input.dispatchEvent(new Event("input"));
+    const first = document.querySelector(".options-search-result-label");
+    assert(first && first.textContent.includes("Localized model label"), "search kept the pre-localization index");
+  });
+
+  await test("search dismisses results on outside pointer without unsupported ARIA", async () => {
+    const input = document.getElementById("options-search-input");
+    const host = document.getElementById("options-search-results");
+    assert(!input.hasAttribute("aria-expanded") && !host.hidden, "searchbox has unsupported expanded semantics");
+    document.body.dispatchEvent(new PointerEvent("pointerdown", { bubbles:true }));
+    assert(host.hidden, "outside pointer did not dismiss results");
+  });
+
+  await test("connection overview is read-only and never requests permission or contacts a service", async () => {
+    const source = renderConnectionOverview.toString();
+    assert(source.includes("permissions.contains") &&
+      !source.includes("permissions.request") && !source.includes("fetch(") && !source.includes("sendMessage("),
+      "overview contains an active permission or network path");
+  });
+
+  await test("Drive marker is not reported connected after its host permission was removed", async () => {
+    await renderConnectionOverview();
+    const drive = [...document.querySelectorAll(".connection-health-row")]
+      .find((row) => row.textContent.includes("Google Drive"));
+    assert(drive && drive.textContent.includes("connectionPermissionMissing"), "stale Drive marker still reads connected");
+  });
+
+  await test("default options hint text meets WCAG AA against the page background", async () => {
+    const css = await fetch("../options.css").then((response) => response.text());
+    const vars = {};
+    for (const match of css.matchAll(/(?:^|\n):root\s*\{([^}]*)\}/g)) {
+      for (const decl of match[1].matchAll(/--([\w-]+)\s*:\s*(#[0-9a-f]{6})\s*;/gi)) vars[decl[1]] = decl[2];
+    }
+    const rgb = (hex) => [1,3,5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+    const lum = (hex) => rgb(hex).map((value) => {
+      const channel = value / 255;
+      return channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+    }).reduce((sum, value, i) => sum + value * [0.2126, 0.7152, 0.0722][i], 0);
+    const hint = lum(vars["opt-fg-hint"]);
+    for (const surface of ["opt-bg", "opt-btn-bg"]) {
+      const bg = lum(vars[surface]);
+      const ratio = (Math.max(hint, bg) + 0.05) / (Math.min(hint, bg) + 0.05);
+      assert(ratio >= 4.5, `hint contrast on ${surface} is ${ratio.toFixed(2)}:1, below 4.5:1`);
+    }
+  });
+
+  let diagnostics = null;
+  let serialized = "";
+  await test("diagnostics expose useful version, feature, permission and storage categories", async () => {
+    diagnostics = await pbpBuildSanitizedDiagnostics();
+    serialized = JSON.stringify(diagnostics);
+    assert(diagnostics.schemaVersion === 1 && diagnostics.extension.version === "2.108", "version missing");
+    assert(diagnostics.storage.localBytes === 1234 && diagnostics.permissions.identity === true, "system categories missing");
+    assert(diagnostics.state.offlineQueueCount === 1 && diagnostics.state.batch.error === "failed", "runtime categories missing");
+  });
+
+  await test("diagnostics never contain credentials, owners, page URLs, titles or custom endpoints", async () => {
+    assert(diagnostics, "diagnostics unavailable");
+    for (const secret of ["TOP_SECRET", "LEAK-ME", "EUDIC-SECRET", "alice", "secret.example", "Secret", "private.example"])
+      assert(!serialized.includes(secret), "leaked " + secret);
+  });
+
+  await test("diagnostics permission data contains booleans, never granted origin strings", async () => {
+    assert(diagnostics, "diagnostics unavailable");
+    assert(Object.values(diagnostics.permissions).every((value) => value === true || value === false || value === null), "non-boolean permission");
+    assert(!serialized.includes("127.0.0.1") && !serialized.includes("api.frdic.com"), "origin leaked");
+  });
+
+  document.title = fail ? "FAIL Options Usability Tests" : "PASS Options Usability Tests";
+})();
+</script></body></html>

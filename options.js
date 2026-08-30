@@ -1,3 +1,339 @@
+// Local-only support metadata. Records contain only an allowlisted integration
+// id, a boolean, a categorical code and a timestamp — never endpoints,
+// credentials, account names or response text. The write tail prevents two
+// simultaneous connection tests from losing each other's read-modify-write.
+const PBP_CONNECTION_HEALTH_KEY = "_connectionHealthV1";
+const PBP_CONNECTION_HEALTH_IDS = new Set([
+  "pinboard", "anki", "eudic",
+  ...["gemini", "openai", "claude", "deepseek", "qwen", "minimax", "openrouter",
+    "groq", "mistral", "cohere", "siliconflow", "zhipu", "kimi", "ollama", "custom"]
+    .map((provider) => `ai:${provider}`),
+]);
+let _connectionHealthWriteTail = Promise.resolve();
+
+function pbpConnectionHealthMap(raw) {
+  const out = {};
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return out;
+  for (const [id, value] of Object.entries(raw)) {
+    if (!PBP_CONNECTION_HEALTH_IDS.has(id) || !value || typeof value !== "object") continue;
+    if (typeof value.ok !== "boolean" || !Number.isFinite(value.checkedAt)) continue;
+    const code = /^[a-z0-9_:-]{1,48}$/.test(String(value.code || "")) ? String(value.code) : "failed";
+    out[id] = { ok: value.ok, code, checkedAt: value.checkedAt };
+  }
+  return out;
+}
+
+function pbpRecordConnectionHealth(id, ok, rawCode) {
+  if (!PBP_CONNECTION_HEALTH_IDS.has(id)) return Promise.resolve(false);
+  const code = /^[a-z0-9_:-]{1,48}$/.test(String(rawCode || "")) ? String(rawCode) : "failed";
+  const run = _connectionHealthWriteTail.catch(() => {}).then(async () => {
+    try {
+      const stored = await chrome.storage.local.get(PBP_CONNECTION_HEALTH_KEY);
+      const map = pbpConnectionHealthMap(stored[PBP_CONNECTION_HEALTH_KEY]);
+      map[id] = { ok: ok === true, code, checkedAt: Date.now() };
+      await chrome.storage.local.set({ [PBP_CONNECTION_HEALTH_KEY]: map });
+      if (typeof renderConnectionOverview === "function") {
+        renderConnectionOverview().catch((e) => {
+          console.warn("[connection-health] refresh failed:", e?.name, e?.message);
+        });
+      }
+      return true;
+    } catch (e) {
+      console.warn("[connection-health] write failed:", e?.name, e?.message);
+      return false;
+    }
+  });
+  _connectionHealthWriteTail = run;
+  return run;
+}
+
+function pbpOpenOptionsTarget(panel, targetId) {
+  const tab = document.querySelector(`.tab-btn[data-panel="${panel}"]`);
+  if (!tab) return false;
+  tab.click();
+  requestAnimationFrame(() => {
+    const target = targetId ? $id(targetId) : $id(`panel-${panel}`);
+    if (target && typeof target.focus === "function") target.focus({ preventScroll: true });
+    if (target) pbpScrollIntoView(target, { block: "center", behavior: "smooth" });
+  });
+  return true;
+}
+
+function _pbpConnectionHealthDate(ts) {
+  try {
+    return new Intl.DateTimeFormat(typeof uiLangToBCP47 === "function" ? uiLangToBCP47() : undefined, {
+      dateStyle: "short", timeStyle: "short",
+    }).format(new Date(ts));
+  } catch (_) { return new Date(ts).toLocaleString(); }
+}
+
+async function renderConnectionOverview() {
+  const host = $id("connection-health");
+  if (!host || typeof pbpLiveAiSettingsSnapshot !== "function") return;
+  const provider = $id("opt-ai-provider")?.value || "gemini";
+  const liveAi = pbpLiveAiSettingsSnapshot(provider);
+  let stored = {};
+  try { stored = await chrome.storage.local.get([PBP_CONNECTION_HEALTH_KEY, "vocabDriveConnected"]); }
+  catch (e) { console.warn("[connection-health] read failed:", e?.name, e?.message); }
+  const health = pbpConnectionHealthMap(stored[PBP_CONNECTION_HEALTH_KEY]);
+  const permissionFor = async (query) => {
+    if (!query) return null;
+    try { return await chrome.permissions.contains(query); }
+    catch (e) {
+      console.warn("[connection-health] permission read failed:", e?.name, e?.message);
+      return null;
+    }
+  };
+  let aiPattern = "";
+  try { if (hasAIKey(liveAi)) aiPattern = _aiTargetOriginPattern(liveAi); }
+  catch (e) { console.warn("[connection-health] AI origin check failed:", e?.name, e?.message); }
+  const ankiPort = $id("dict-anki-port")?.value.trim() || "";
+  const [aiPermission, driveIdentity, driveHost, ankiPermission, eudicPermission] = await Promise.all([
+    permissionFor(aiPattern ? { origins: [aiPattern] } : null),
+    permissionFor({ permissions: ["identity"] }),
+    permissionFor({ origins: ["https://www.googleapis.com/*"] }),
+    permissionFor(ankiPort && typeof pbpAnkiEndpointFor === "function"
+      ? { origins: [pbpEndpointOriginPattern(pbpAnkiEndpointFor(ankiPort))] } : null),
+    permissionFor($id("dict-eudic-token")?.value.trim() && typeof PBP_EUDIC_ENDPOINT !== "undefined"
+      ? { origins: [pbpEndpointOriginPattern(PBP_EUDIC_ENDPOINT)] } : null),
+  ]);
+  const drivePermission = driveIdentity === false || driveHost === false
+    ? false : (driveIdentity === true && driveHost === true ? true : null);
+  const items = [
+    { id: "pinboard", name: "Pinboard", panel: "general", target: "test-pinboard-token",
+      configured: pbpIsValidTokenFormat($id("opt-pinboard-token")?.value.trim() || "") === true, permission: true },
+    { id: `ai:${provider}`, name: $id("opt-ai-provider")?.selectedOptions?.[0]?.textContent?.trim() || provider,
+      panel: "ai", target: `test-${provider}`, configured: hasAIKey(liveAi), permission: aiPermission },
+    { id: "drive", name: "Google Drive", panel: "vocab", target: "vocab-drive-connect",
+      connected: stored.vocabDriveConnected === true, permission: drivePermission },
+    { id: "anki", name: "AnkiConnect", panel: "vocab", target: "vocab-anki-test-btn",
+      configured: !!ankiPort, permission: ankiPermission },
+    { id: "eudic", name: "Eudic", panel: "vocab", target: "vocab-eudic-test-btn",
+      configured: !!$id("dict-eudic-token")?.value.trim(), permission: eudicPermission },
+  ];
+  host.replaceChildren();
+  for (const item of items) {
+    const record = health[item.id];
+    let stateKey = "connectionNeverTested", stateClass = "pending";
+    if (item.id === "drive") {
+      if (!item.connected) stateKey = "connectionNotConnected";
+      else if (item.permission === false) {
+        stateKey = "connectionPermissionMissing";
+        stateClass = "bad";
+      } else {
+        stateKey = "connectionConnected";
+        stateClass = "ok";
+      }
+    } else if (!item.configured) {
+      stateKey = "connectionNotConfigured";
+    } else if (item.permission === false) {
+      stateKey = "connectionPermissionMissing";
+      stateClass = "bad";
+    } else if (record) {
+      stateKey = record.ok ? "connectionLastSuccess" : "connectionLastFailure";
+      stateClass = record.ok ? "ok" : "bad";
+    }
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "connection-health-row";
+    button.addEventListener("click", () => pbpOpenOptionsTarget(item.panel, item.target));
+    const name = document.createElement("span");
+    name.className = "connection-health-name";
+    name.textContent = item.name;
+    const state = document.createElement("span");
+    state.className = `connection-health-state ${stateClass}`;
+    state.textContent = record && (stateKey === "connectionLastSuccess" || stateKey === "connectionLastFailure")
+      ? t(stateKey, _pbpConnectionHealthDate(record.checkedAt)) : t(stateKey);
+    button.append(name, state);
+    host.appendChild(button);
+  }
+}
+
+function _pbpSettingsSearchText(value) {
+  return String(value || "").normalize("NFKC").replace(/\s+/g, " ").trim().toLocaleLowerCase();
+}
+
+function pbpBuildSettingsSearchIndex(root = document) {
+  const entries = [];
+  const seen = new Set();
+  for (const panelEl of root.querySelectorAll('.panel[id^="panel-"]')) {
+    const panel = panelEl.id.slice("panel-".length);
+    const tab = root.querySelector(`.tab-btn[data-panel="${panel}"]`);
+    const panelLabel = (tab?.textContent || panelEl.querySelector("h2")?.textContent || panel)
+      .replace(/\s+/g, " ").trim();
+    const add = (text, targetId) => {
+      const clean = String(text || "").replace(/\s+/g, " ").trim();
+      if (!clean) return;
+      const key = `${panel}\n${targetId || ""}\n${clean}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      entries.push({ panel, panelLabel, text: clean, searchText: _pbpSettingsSearchText(`${panelLabel} ${clean}`), targetId: targetId || "" });
+    };
+    add(panelLabel, panelEl.querySelector("input,select,textarea,button")?.id || "");
+    for (const node of panelEl.querySelectorAll("h2,h3,label,.hint,button[data-i18n]")) {
+      let target = "";
+      if (node.matches("label")) target = node.htmlFor || node.querySelector("input,select,textarea,button")?.id || "";
+      else if (node.matches("button")) target = node.id;
+      else if (node.matches(".hint")) target = node.closest(".fg")?.querySelector("input,select,textarea,button")?.id || "";
+      else target = node.id || panelEl.querySelector("input,select,textarea,button")?.id || "";
+      add(node.textContent, target);
+    }
+  }
+  return entries;
+}
+
+function pbpSearchSettings(index, query, limit = 10) {
+  const normalized = _pbpSettingsSearchText(query);
+  if (!normalized) return [];
+  const terms = normalized.split(" ").filter(Boolean);
+  return (Array.isArray(index) ? index : [])
+    .filter((entry) => terms.every((term) => entry.searchText.includes(term)))
+    .slice(0, Math.max(1, Number(limit) || 10));
+}
+
+function setupOptionsSearch() {
+  const input = $id("options-search-input");
+  const host = $id("options-search-results");
+  if (!input || !host || input.dataset.searchWired === "1") return;
+  input.dataset.searchWired = "1";
+  const shell = input.closest(".options-search");
+  const setVisible = (visible) => { host.hidden = !visible; };
+  const clear = () => {
+    input.value = "";
+    host.replaceChildren();
+    setVisible(false);
+  };
+  const render = () => {
+    host.replaceChildren();
+    const query = input.value.trim();
+    if (!query) { setVisible(false); return; }
+    // i18n can replace visible labels after the page's first paint when a
+    // manual-locale mirror is stale. Rebuilding here keeps search aligned
+    // with what the user currently sees and still never reads field values.
+    const matches = pbpSearchSettings(pbpBuildSettingsSearchIndex(document), query);
+    setVisible(true);
+    if (!matches.length) {
+      const empty = document.createElement("p");
+      empty.className = "options-search-empty";
+      empty.setAttribute("role", "status");
+      empty.textContent = t("settingsSearchNoResults");
+      host.appendChild(empty);
+      return;
+    }
+    for (const entry of matches) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "options-search-result";
+      const label = document.createElement("span");
+      label.className = "options-search-result-label";
+      label.textContent = entry.text.length > 110 ? entry.text.slice(0, 107) + "..." : entry.text;
+      const panel = document.createElement("span");
+      panel.className = "options-search-result-panel";
+      panel.textContent = entry.panelLabel;
+      button.append(label, panel);
+      button.addEventListener("click", () => {
+        clear();
+        pbpOpenOptionsTarget(entry.panel, entry.targetId);
+      });
+      host.appendChild(button);
+    }
+  };
+  input.addEventListener("input", render);
+  input.addEventListener("focus", () => { if (input.value.trim()) render(); });
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      clear();
+    } else if (event.key === "Enter") {
+      const first = host.querySelector(".options-search-result");
+      if (first) { event.preventDefault(); first.click(); }
+    } else if (event.key === "ArrowDown") {
+      const first = host.querySelector(".options-search-result");
+      if (first) { event.preventDefault(); first.focus(); }
+    }
+  });
+  document.addEventListener("pointerdown", (event) => {
+    if (shell && !shell.contains(event.target)) setVisible(false);
+  });
+}
+
+async function pbpBuildSanitizedDiagnostics() {
+  const check = (id) => $id(id)?.checked === true;
+  const provider = $id("opt-ai-provider")?.value || "gemini";
+  const liveAi = typeof pbpLiveAiSettingsSnapshot === "function"
+    ? pbpLiveAiSettingsSnapshot(provider) : { aiProvider: provider };
+  const contains = async (query) => {
+    try { return await chrome.permissions.contains(query); }
+    catch (e) {
+      console.warn("[diagnostics] permission read failed:", e?.name, e?.message);
+      return null;
+    }
+  };
+  let aiPattern = "";
+  try { if (hasAIKey(liveAi)) aiPattern = _aiTargetOriginPattern(liveAi); }
+  catch (e) { console.warn("[diagnostics] AI origin check failed:", e?.name, e?.message); }
+  const ankiPort = $id("dict-anki-port")?.value.trim() || "";
+  const ankiPattern = ankiPort && typeof pbpAnkiEndpointFor === "function"
+    ? pbpEndpointOriginPattern(pbpAnkiEndpointFor(ankiPort)) : "";
+  const eudicPattern = $id("dict-eudic-token")?.value.trim() && typeof PBP_EUDIC_ENDPOINT !== "undefined"
+    ? pbpEndpointOriginPattern(PBP_EUDIC_ENDPOINT) : "";
+  const bytes = async (area, name) => {
+    try { return await area.getBytesInUse(null); }
+    catch (e) {
+      console.warn(`[diagnostics] ${name} usage read failed:`, e?.name, e?.message);
+      return null;
+    }
+  };
+  let local = {};
+  try {
+    local = await chrome.storage.local.get([
+      PBP_CONNECTION_HEALTH_KEY, "vocabDriveConnected", "offlineQueue", "batch_progress",
+    ]);
+  } catch (e) { console.warn("[diagnostics] state read failed:", e?.name, e?.message); }
+  const progress = local.batch_progress && typeof local.batch_progress === "object" ? local.batch_progress : null;
+  const knownBatchErrors = new Set(["cancelled", "interrupted", "account_changed", "not_logged_in"]);
+  const batchError = !progress?.error ? null : (knownBatchErrors.has(progress.error) ? progress.error : "failed");
+  const [identity, aiHost, driveApi, ankiHost, eudicHost, localBytes, syncBytes, sessionBytes] = await Promise.all([
+    contains({ permissions: ["identity"] }),
+    aiPattern ? contains({ origins: [aiPattern] }) : Promise.resolve(null),
+    contains({ origins: ["https://www.googleapis.com/*"] }),
+    ankiPattern ? contains({ origins: [ankiPattern] }) : Promise.resolve(null),
+    eudicPattern ? contains({ origins: [eudicPattern] }) : Promise.resolve(null),
+    bytes(chrome.storage.local, "local"), bytes(chrome.storage.sync, "sync"),
+    bytes(chrome.storage.session, "session"),
+  ]);
+  return {
+    schemaVersion: 1,
+    generatedAt: new Date().toISOString(),
+    extension: { version: chrome.runtime.getManifest().version },
+    browser: { userAgent: navigator.userAgent, language: navigator.language },
+    configuration: {
+      settingsSync: check("opt-sync-enabled"), credentialSync: check("opt-sync-api-keys"),
+      pinboardConfigured: pbpIsValidTokenFormat($id("opt-pinboard-token")?.value.trim() || "") === true,
+      aiProvider: provider, aiConfigured: typeof hasAIKey === "function" ? hasAIKey(liveAi) : false,
+      driveConnected: local.vocabDriveConnected === true, ankiConfigured: !!ankiPort,
+      eudicConfigured: !!$id("dict-eudic-token")?.value.trim(),
+    },
+    features: {
+      offlineQueue: check("offline-queue-enabled"), popupAiTags: check("opt-ai-auto-tags"),
+      batchAiTags: check("batch-ai-tags"), batchAiSummary: check("batch-ai-summary"),
+      readerAi: check("opt-preview-ai-enabled"), readerSkim: check("opt-preview-skim"),
+      vocabularyEcho: check("dict-echo-enabled"), wayback: check("opt-wayback-enabled"),
+    },
+    permissions: { identity, aiHost, driveApi, ankiHost, eudicHost },
+    storage: { localBytes, syncBytes, sessionBytes },
+    state: {
+      offlineQueueCount: Array.isArray(local.offlineQueue) ? local.offlineQueue.length : 0,
+      batch: progress ? {
+        running: progress.running === true, done: progress.done === true,
+        processed: Math.max(0, Number(progress.i) || 0), total: Math.max(0, Number(progress.total) || 0),
+        error: batchError,
+      } : null,
+      connectionHealth: pbpConnectionHealthMap(local[PBP_CONNECTION_HEALTH_KEY]),
+    },
+  };
+}
+
 // Route every Pinboard call through the SW's single rate-limit queue
 // (roadmap #23; the popup has done this since the 401-dialog fix). Running a
 // second _pinboardQueue in this page raced the SW over the shared
@@ -19,7 +355,7 @@ function _pbpOptionsProxyPinboardFetch(url, options, immediate) {
       resolve({
         ok: resp.ok,
         status: resp.status,
-        json: () => { try { return Promise.resolve(JSON.parse(resp.text || "{}")); } catch { return Promise.resolve({}); } },
+        json: () => pbpParseJsonText(resp.text),
         text: () => Promise.resolve(resp.text || "")
       });
     }).catch(reject);
@@ -445,6 +781,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
   _activateHashPanel();
   window.addEventListener("hashchange", _activateHashPanel);
+  setupOptionsSearch();
 
   // ---- Storage management (C2-6) ----
   // Category checkboxes over the reclaimable-cache allowlist in shared.js.
@@ -523,6 +860,30 @@ document.addEventListener("DOMContentLoaded", async () => {
       await renderStoragePanel();
       _storageClearBtn.disabled = false;
       showStorageStatus(t("storageCleared", pbpFormatBytes(freed)), "ok");
+    });
+  }
+  const _copyDiagnosticsBtn = $id("copy-diagnostics-btn");
+  if (_copyDiagnosticsBtn) {
+    _copyDiagnosticsBtn.addEventListener("click", async () => {
+      const status = $id("diagnostics-status");
+      _copyDiagnosticsBtn.disabled = true;
+      try {
+        const diagnostics = await pbpBuildSanitizedDiagnostics();
+        if (!navigator.clipboard?.writeText) throw new Error("clipboard unavailable");
+        await navigator.clipboard.writeText(JSON.stringify(diagnostics, null, 2));
+        if (status) {
+          status.textContent = t("diagnosticsCopied");
+          status.className = "et-test-status ok";
+        }
+      } catch (e) {
+        console.warn("[diagnostics] copy failed:", e?.name, e?.message);
+        if (status) {
+          status.textContent = t("diagnosticsCopyFailed");
+          status.className = "et-test-status err";
+        }
+      } finally {
+        _copyDiagnosticsBtn.disabled = false;
+      }
     });
   }
 
@@ -2235,6 +2596,27 @@ document.addEventListener("DOMContentLoaded", async () => {
     },
   });
   setupApiTests();
+  let _connectionOverviewTimer = 0;
+  const scheduleConnectionOverview = () => {
+    clearTimeout(_connectionOverviewTimer);
+    _connectionOverviewTimer = setTimeout(() => renderConnectionOverview().catch((e) => {
+      console.warn("[connection-health] render failed:", e?.name, e?.message);
+    }), 120);
+  };
+  for (const id of ["opt-pinboard-token", "opt-ai-provider", "opt-gemini-key", "opt-openai-key",
+    "opt-claude-key", "opt-deepseek-key", "opt-qwen-key", "opt-minimax-key", "opt-openrouter-key",
+    "opt-groq-key", "opt-mistral-key", "opt-cohere-key", "opt-siliconflow-key", "opt-zhipu-key",
+    "opt-kimi-key", "opt-ollama-baseurl", "opt-custom-key", "opt-custom-baseurl", "dict-anki-port",
+    "dict-eudic-token"]) {
+    const el = $id(id);
+    el?.addEventListener(el.tagName === "SELECT" ? "change" : "input", scheduleConnectionOverview);
+  }
+  chrome.storage.onChanged?.addListener((changes, area) => {
+    if (area === "local" && (changes[PBP_CONNECTION_HEALTH_KEY] || changes.vocabDriveConnected)) {
+      scheduleConnectionOverview();
+    }
+  });
+  scheduleConnectionOverview();
 
 
   // ---- Theme preset buttons ----
@@ -2830,7 +3212,8 @@ async function ensureTagSnapshot(expectedAccount) {
       _tagGovSetProgressBtn("dismiss", expectedAccount); // failure card must be closable on a fresh page
       return false;
     }
-    const counts = await resp.json();
+    const counts = pbpTagGovNormalizeCounts(await resp.json());
+    if (!counts) throw new Error("invalid tag snapshot");
     if (!(await getTagGovAuth(auth.account))) return false;
     const now = new Date();
     const pad = (n, w = 2) => String(n).padStart(w, "0");
@@ -3590,10 +3973,11 @@ async function loadTagCounts(forceFresh = false, expectedAccount = "") {
       const cached = await chrome.storage.local.get({ cached_user_tags: null });
       const entry = _tagGovOwned(cached.cached_user_tags, startAuth.account);
       if (entry) {
-        const { counts, timestamp } = entry;
+        const { counts: rawCounts, timestamp } = entry;
         if (Date.now() - timestamp < TAG_CACHE_TTL) {
+          const counts = pbpTagGovNormalizeCounts(rawCounts);
           if (!(await getTagGovAuth(startAuth.account))) return null;
-          return counts || null;
+          if (counts) return counts;
         }
       }
     }
@@ -3611,8 +3995,8 @@ async function loadTagCounts(forceFresh = false, expectedAccount = "") {
       resp = await pinboardFetch(url(auth.token), { timeoutMs: 30000 });
     }
     if (!resp || !resp.ok) return null;
-    const counts = await resp.json();
-    if (!counts || typeof counts !== "object") return null;
+    const counts = pbpTagGovNormalizeCounts(await resp.json());
+    if (!counts) return null;
     if (!(await getTagGovAuth(startAuth.account))) return null;
     await chrome.storage.local.set({
       cached_user_tags: { account: startAuth.account, counts, timestamp: Date.now() }

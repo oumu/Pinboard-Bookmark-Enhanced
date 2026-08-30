@@ -10,15 +10,15 @@
 <body>
   <div id="login-section" class="hidden">
     <div class="header-bar" data-i18n="appName">Pinboard Bookmark Enhanced</div>
-    <div class="login-body">
+    <form id="login-form" class="login-body">
       <p><span data-i18n="loginPrompt">Enter your API token from</span> <a href="https://pinboard.in/settings/password" target="_blank" rel="noopener"><span data-i18n="settingsPassword">settings/password</span></a></p>
       <div class="secret-field">
         <input type="password" id="token-input" placeholder="username:XXXXXXXXXXXXXX" data-i18n-placeholder="loginTokenPlaceholder" aria-label="API token" data-i18n-aria="labelApiToken" autocomplete="off" spellcheck="false" />
         <button type="button" class="key-toggle" data-target="token-input" title="Show/hide key" data-i18n-title="showHideKey" data-i18n-aria="showHideKey" aria-label="Show/hide key"></button>
       </div>
-      <button id="login-btn" data-i18n="login">Login</button>
-      <p id="login-error" class="error-text hidden"></p>
-    </div>
+      <button id="login-btn" type="submit" class="btn login-submit" data-i18n="login">Login</button>
+      <p id="login-error" class="error-text hidden" role="alert" aria-live="assertive" aria-atomic="true"></p>
+    </form>
   </div>
 
   <div id="main-section" class="hidden">
