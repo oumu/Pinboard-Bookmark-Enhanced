@@ -423,9 +423,10 @@ try {
     // while the interrupted path would instead stamp error:"interrupted".
     // The two traces are disjoint, which is what this check keys on.
     const staleTs = Date.now() - (10 * 60 * 1000); // far past BATCH_STALE_TTL (120s)
+    const runId = 'smoke-resume-run';
     await chrome.storage.local.set({
-      batch_progress: { running: true, done: false, error: null, account: '', total: 3, i: 1, saved: 1, queued: 0, failed: 0, aiFailed: 0, skipped: 0, tooLong: 0, ts: staleTs },
-      batch_job: { account: '', tabs: [{ id: 1, url: 'https://smoke.example/1' }, { id: 2, url: 'https://smoke.example/2' }, { id: 3, url: 'https://smoke.example/3' }], next: 1, counts: { processed: 1, saved: 1 }, resumeCount: 0, ts: staleTs },
+      batch_progress: { runId, running: true, done: false, error: null, account: '', total: 3, i: 1, saved: 1, queued: 0, failed: 0, aiFailed: 0, skipped: 0, tooLong: 0, ts: staleTs },
+      batch_job: { runId, account: '', tabs: [{ id: 1, url: 'https://smoke.example/1' }, { id: 2, url: 'https://smoke.example/2' }, { id: 3, url: 'https://smoke.example/3' }], next: 1, counts: { processed: 1, saved: 1 }, resumeCount: 0, ts: staleTs },
     });
     await pbpSweepInterruptedBatch();
     // The resumed run is fire-and-forget; give its early account check a beat.
