@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // sync-all — one-shot orchestrator for the theme-factory pipeline.
 //
-// Runs in order (11 steps; see the numbered console.log lines below for the
+// Runs in order (12 steps; see the numbered console.log lines below for the
 // authoritative list — this comment summarizes, it is not the source of
 // truth):
 //   1. tools/validate-contracts.mjs  — pilot schema + manifest cross-check
@@ -19,6 +19,7 @@
 //   9. tools/layout-lint.mjs         — advisory warnings + hard blockers
 //  10. tools/url-lint.mjs            — hardcoded URL drift
 //  11. tools/recipe-lint.mjs         — ui-components.mjs single-source checks
+//  12. tools/override-debt.mjs        — structural ratchet for overrides.css
 //
 // Exit code: 0 when every step above passes, 1 on any step failure.
 //
@@ -72,11 +73,11 @@ const runGate = (label, path) => {
 
 console.log(`=== sync-all: theme-factory pipeline (${CHECK ? "check mode; read-only" : "write mode"}) ===\n`);
 
-console.log("--- step 1/11: validate-contracts ---");
+console.log("--- step 1/12: validate-contracts ---");
 const contractOut = run("validate-contracts", [resolve(SURFACE, "tools/validate-contracts.mjs")]);
 console.log(contractOut.trim() + "\n");
 
-console.log("--- step 2/11: render-all ---");
+console.log("--- step 2/12: render-all ---");
 const renderOut = run("render-all", [
   resolve(PILOTS, "render-all.mjs"),
   ...(CHECK ? ["--check"] : []),
@@ -84,14 +85,14 @@ const renderOut = run("render-all", [
 const renderTail = renderOut.trim().split("\n").slice(-3).join("\n");
 console.log(renderTail + "\n");
 
-console.log(`--- step 3/11: apply-ui-themes (${CHECK ? "check" : "--write"}; popup/options/library generated regions) ---`);
+console.log(`--- step 3/12: apply-ui-themes (${CHECK ? "check" : "--write"}; popup/options/library generated regions) ---`);
 const uiThemesOut = run("apply-ui-themes", [
   resolve(SURFACE, "tools/apply-ui-themes.mjs"),
   ...(CHECK ? [] : ["--write"]),
 ]);
 console.log(uiThemesOut.trim() + "\n");
 
-console.log("--- step 4/11: apply-tokens (--force) ---");
+console.log("--- step 4/12: apply-tokens (--force) ---");
 const slugs = readdirSync(PILOTS)
   .filter(f => f.endsWith(".tokens.json"))
   .map(f => f.replace(/\.tokens\.json$/, ""))
@@ -109,7 +110,7 @@ for (const slug of slugs) {
 }
 console.log(`[sync-all] total bytes delta across ${slugs.length} themes: ${totalDelta >= 0 ? "+" : ""}${totalDelta} B\n`);
 
-console.log("--- step 5/11: diff-all (strict) ---");
+console.log("--- step 5/12: diff-all (strict) ---");
 const diffOut = run("diff-all", [
   resolve(SURFACE, "tools/diff-all.mjs"),
   "--strict",
@@ -127,24 +128,27 @@ if (!m) {
 const [, perfect, total, missing, extra] = m;
 const driftOk = perfect === total && missing === "0" && extra === "0";
 
-console.log("\n--- step 6/11: contrast-audit (WCAG AA gate) ---");
+console.log("\n--- step 6/12: contrast-audit (WCAG AA gate) ---");
 const auditOk = runGate("contrast-audit", resolve(SURFACE, "tools/contrast-audit.mjs"));
 
-console.log("\n--- step 7/11: css-region-audit (popup @generated region drift) ---");
+console.log("\n--- step 7/12: css-region-audit (popup @generated region drift) ---");
 const regionOk = runGate("css-region-audit", resolve(SURFACE, "tools/css-region-audit.mjs"));
 
-console.log("\n--- step 8/11: ui-token-coverage (--pp-* defined per theme) ---");
+console.log("\n--- step 8/12: ui-token-coverage (--pp-* defined per theme) ---");
 const tokenOk = runGate("ui-token-coverage", resolve(SURFACE, "tools/ui-token-coverage.mjs"));
 
-console.log("\n--- step 9/11: layout-lint (warnings advisory; blockers HARD GATE) ---");
+console.log("\n--- step 9/12: layout-lint (warnings advisory; blockers HARD GATE) ---");
 const layoutOk = runGate("layout-lint", resolve(SURFACE, "tools/layout-lint.mjs"));
 
-console.log("\n--- step 10/11: url-lint (hardcoded URL drift) ---");
+console.log("\n--- step 10/12: url-lint (hardcoded URL drift) ---");
 const urlOk = runGate("url-lint", resolve(SURFACE, "tools/url-lint.mjs"));
 
-console.log("\n--- step 11/11: recipe-lint (ui-components.mjs single-source checks) ---");
+console.log("\n--- step 11/12: recipe-lint (ui-components.mjs single-source checks) ---");
 const recipeOk = runGate("recipe-lint", resolve(SURFACE, "tools/recipe-lint.mjs"));
 
-const ok = driftOk && auditOk && regionOk && tokenOk && layoutOk && urlOk && recipeOk;
-console.log(`\n=== sync-all: ${ok ? "✅ ALL GATES PASSED" : "❌ FAILED"} — drift ${driftOk ? "ZERO" : "DETECTED"}, contrast ${auditOk ? "PASS" : "FAIL"}, region ${regionOk ? "PASS" : "FAIL"}, tokens ${tokenOk ? "PASS" : "FAIL"}, layout ${layoutOk ? "PASS" : "FAIL"}, url ${urlOk ? "PASS" : "FAIL"}, recipe ${recipeOk ? "PASS" : "FAIL"} ===`);
+console.log("\n--- step 12/12: override-debt (structural escape-hatch ratchet) ---");
+const overrideDebtOk = runGate("override-debt", resolve(SURFACE, "tools/override-debt.mjs"));
+
+const ok = driftOk && auditOk && regionOk && tokenOk && layoutOk && urlOk && recipeOk && overrideDebtOk;
+console.log(`\n=== sync-all: ${ok ? "✅ ALL GATES PASSED" : "❌ FAILED"} — drift ${driftOk ? "ZERO" : "DETECTED"}, contrast ${auditOk ? "PASS" : "FAIL"}, region ${regionOk ? "PASS" : "FAIL"}, tokens ${tokenOk ? "PASS" : "FAIL"}, layout ${layoutOk ? "PASS" : "FAIL"}, url ${urlOk ? "PASS" : "FAIL"}, recipe ${recipeOk ? "PASS" : "FAIL"}, override-debt ${overrideDebtOk ? "PASS" : "FAIL"} ===`);
 process.exit(ok ? 0 : 1);

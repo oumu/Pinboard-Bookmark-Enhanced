@@ -9,7 +9,9 @@ const sourceRecipePath = resolve(root, "docs/theme-surface/composers/ui-componen
 const sourceLintPath = resolve(root, "docs/theme-surface/tools/recipe-lint.mjs");
 const cssSyntaxPath = resolve(root, "docs/theme-surface/tools/css-syntax.mjs");
 const applyTokensPath = resolve(root, "docs/theme-surface/tools/apply-tokens.mjs");
+const syncAllPath = resolve(root, "docs/theme-surface/tools/sync-all.mjs");
 const preCommitPath = resolve(root, "scripts/pre-commit-hook.sh");
+const verifyPath = resolve(root, "scripts/verify.sh");
 const setupHooksPath = resolve(root, "scripts/setup-hooks.sh");
 const failures = [];
 const check = (ok, message) => { if (!ok) failures.push(message); };
@@ -58,6 +60,25 @@ try {
   check(!applyOutput.includes('hover-effect:"left-bar"') &&
     !applyOutput.includes('hover-effect:"underline"'),
   `apply-tokens must not recommend retired hover-effect values:\n${applyOutput}`);
+
+  const syncAllSource = readFileSync(syncAllPath, "utf8");
+  const preCommitSource = readFileSync(preCommitPath, "utf8");
+  const verifySource = readFileSync(verifyPath, "utf8");
+  for (const required of [
+    "tests/theme-ui-derive-tests.mjs",
+    "tests/theme-override-debt-tests.mjs",
+  ]) {
+    check(preCommitSource.includes(required),
+      `pre-commit must run ${required}`);
+    check(verifySource.includes(required),
+      `verify must run ${required}`);
+  }
+  check(syncAllSource.includes('runGate("override-debt"'),
+    "sync-all must run the override-debt gate");
+  check(verifySource.includes('node "docs/theme-surface/tools/override-debt.mjs"'),
+    "verify must run the repository override-debt baseline gate");
+  check(preCommitSource.includes("tools/override-debt-baseline\\.json"),
+    "pre-commit trigger must include the override-debt baseline");
 
   const fakeGitPath = resolve(temp, "git");
   writeFileSync(fakeGitPath, `#!/bin/sh

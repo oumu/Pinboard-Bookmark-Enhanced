@@ -1,6 +1,6 @@
 import { expandPalette } from "./_util.mjs";
 import { mergeTokens } from "./compose-theme.mjs";
-import { deriveUiColors, deriveUiRadius, regularizeUiRadius, fgToAA, fgToAAMulti, borderToAA, focusBdToAA, fillSeparate, hexToRgb, rgbToHex, resolveOpaqueBg, resolveChipBg } from "./_ui-derive.mjs";
+import { deriveUiColors, deriveUiRadius, regularizeUiRadius, fgToAA, finalizeUiControlRoles, hexToRgb, rgbToHex } from "./_ui-derive.mjs";
 import { POPUP_THEME_MAP } from "./popup-chrome.mjs";
 
 // Default-surface (no preset selected) component-layer baseline — Task 5,
@@ -93,7 +93,7 @@ const DEFAULT_LIGHT = {
 function emitOpt(ui, palette, overrides, radius, mode) {
   // --opt-save is success-coloured text shown on the panel/bg → make it AA on bg.
   const save = rgbToHex(fgToAA(hexToRgb(palette.success), hexToRgb(palette.bg)));
-  const map = {
+  let map = {
     bg: ui.bg, panel: ui.bg2, tab: ui.bg2, "tab-active": ui.bg,
     fg: ui.fg, "fg-muted": ui["fg-muted"], "fg-hint": ui["fg-hint"],
     accent: ui.accent, save,
@@ -113,95 +113,10 @@ function emitOpt(ui, palette, overrides, radius, mode) {
   // sm > md > lg inversion several pilots carry on the site side.
   Object.assign(map, regularizeUiRadius(map));
 
-  // Component-layer paired tokens (Task 5, fixed post-review Critical 2):
-  // computed HERE from the map's FINAL, post-override btn-bg/btn-hover/danger
-  // -- not at the palette layer inside deriveUiColors. A pilot's
-  // ui.options.<mode> override commonly replaces btn-bg/btn-hover/danger
-  // (dracula/nord/flexoki-dark/... all do; EVERY pilot supplies `danger`,
-  // there is no base-map fallback for it), so deriving against the
-  // pre-override palette value would guarantee AA for a color that isn't
-  // what's actually painted below.
-  // Soft Fill separation (design-uplift 2026-08-05, USER RULING) -- runs
-  // BEFORE border/btn-fg/chip-fg below, all of which derive against the
-  // button fill and must see its final value. With the resting frame
-  // collapsed into the fill, a fill that equals its own host surface is an
-  // invisible control: options' btn-bg is byte-identical to --opt-panel in 6
-  // of the 14 blocks and its input-bg in 3 (measured, not assumed).
-  // Skipped per-role when the pilot restores a real frame (terminal, via
-  // ui.options.<mode>["btn-border"]/["input-border"]): a framed control does
-  // not need its fill to carry the affordance.
-  const ovr = overrides ?? {};
-  const fgRgb = hexToRgb(map.fg);
-  // Two hosts: options' .btn appears inside .panel and on the page bg
-  // (toolbars, .panel-foot straddles both) -- separating from one alone can
-  // push the fill onto the other.
-  const hosts = [hexToRgb(map.panel), hexToRgb(map.bg)];
-  if (ovr["btn-border"] == null) map["btn-bg"] = rgbToHex(fillSeparate(hexToRgb(map["btn-bg"]), hosts, fgRgb));
-  map["btn-border"] = ovr["btn-border"] ?? map["btn-bg"];
-  if (ovr["input-border"] == null) map["input-bg"] = rgbToHex(fillSeparate(hexToRgb(map["input-bg"]), hosts, fgRgb));
-  map["input-border"] = ovr["input-border"] ?? map["input-bg"];
-  const bgRgb = hexToRgb(map.bg);
-  const panelRgb = hexToRgb(map.panel);
-  const btnBgRgb = hexToRgb(map["btn-bg"]);
-  // Hover has to stay a perceptible STEP from the new rest fill: on the
-  // default surface the old --opt-btn-hover was 1.00:1 against it once rest
-  // stopped being the panel colour. One host (the fill it must differ from);
-  // identity wherever the theme's hover already sits far enough away.
-  map["btn-hover"] = rgbToHex(fillSeparate(hexToRgb(map["btn-hover"]), [btnBgRgb], fgRgb));
-  const btnHoverRgb = hexToRgb(map["btn-hover"]);
-  // Focus edge (design-uplift follow-up 2026-08-06, independent review F1).
-  // §7.3's `bordered` placement makes this token the focus indicator's CORE,
-  // and Soft Fill collapsed the resting border into the fill (btn-border ==
-  // btn-bg, 1.00:1) -- so it is the ONLY thing carrying WCAG 1.4.11's 3:1 for
-  // the whole .btn family, every field and every fused shell. Derived against
-  // the two fills a focusable control actually wears; worst one wins.
-  // Guarded on the MAP rather than on `ovr` so it matches library-chrome's
-  // shape (that surface has two override sources); either way an override
-  // that already landed wins outright, which is how terminal / paper-ink /
-  // solarized keep their bespoke edges.
-  if (map["focus-bd"] == null) {
-    map["focus-bd"] = rgbToHex(focusBdToAA(hexToRgb(map.accent), hexToRgb(map["input-bg"]),
-      [btnBgRgb, hexToRgb(map["input-bg"])]));
-  }
-  const dangerRgb = hexToRgb(map.danger);
-  // border (design-uplift Task 16, USER RULING): same gap and same
-  // resolveOpaqueBg requirement (terminal's translucent #33ff3340) as
-  // popup-chrome.mjs's border derivation -- see its comment for the full
-  // rationale. Unlike popup, options' btn-bg and panel CAN genuinely
-  // differ post-override (dracula/nord-night/flexoki-dark all override
-  // options btn-bg without touching panel), so both are real, distinct
-  // constraints here, not a duplicated single value.
-  map["border"] = rgbToHex(borderToAA(resolveOpaqueBg(map.border, btnBgRgb), [btnBgRgb, panelRgb]));
-  map["btn-fg"] = rgbToHex(fgToAAMulti(hexToRgb(map.fg), [btnBgRgb, btnHoverRgb]));
-  map["danger-quiet-fg"] = rgbToHex(fgToAAMulti(dangerRgb, [bgRgb, panelRgb, btnBgRgb]));
-  map["on-danger"] = rgbToHex(fgToAA(hexToRgb(palette["btn-fg"]), dangerRgb));
-  // options has no tag-bg/tag-fg role of its own -- no pilot's ui.options.<mode>
-  // touches it -- so palette.tag-bg/tag-fg (post expandPalette) IS the input.
-  // 9 of 13 pilots declare tag-bg as the literal "transparent". chip-bg is a
-  // real pill fill (.tag-gov-kind-badge / library's .vocab-group-chip share
-  // this derivation), so it needs resolveChipBg's accent-tint synthesis, not
-  // resolveOpaqueBg's bare-panel fallback -- a pill whose bg exactly equals
-  // its own panel is just as invisible as literal `transparent` (see that
-  // function's comment, _ui-derive.mjs; vocab-group-inspect-report.md
-  // 2026-08-05 Finding 2 caught this live in library's dracula theme -- same
-  // bug, same root cause, this file shipped the identical
-  // `map["chip-bg"] = palette["tag-bg"]` verbatim-copy). chipBgRgb is reused
-  // below for chip-fg's contrast check so both derive from the same fill.
-  // Same separation floor as btn/input above (a chip IS a fill-only control,
-  // it never had a frame to lose). Identity on all 14 blocks today -- the
-  // 10%-accent tint resolveChipBg synthesises already clears 1.09:1 -- so
-  // this changes zero bytes; it is here so a future palette edit that
-  // flattens a chip onto its panel is corrected instead of shipped.
-  const chipBgRgb = fillSeparate(resolveChipBg(palette["tag-bg"], hexToRgb(map.accent), panelRgb), [panelRgb], fgRgb);
-  map["chip-bg"] = rgbToHex(chipBgRgb);
-  // fgToAAMulti, not fgToAA: a pressable chip ([aria-pressed]) swaps its
-  // hover fill for btn-hover (COMPONENTS §5.3), so chip-fg must clear AA
-  // against BOTH backgrounds, same shape as btn-fg above. Plain fgToAA
-  // against chip-bg alone left 7/13 themes under 4.5:1 on btn-hover
-  // (nord-night 3.62, solarized-dark 3.29, gruvbox-dark 3.16, and three more
-  // narrow misses) -- caught by contrast-audit's new chip-fg-vs-btn-hover
-  // pair (Task 7), fixed here rather than allowlisted.
-  map["chip-fg"] = rgbToHex(fgToAAMulti(hexToRgb(palette["tag-fg"]), [chipBgRgb, btnHoverRgb]));
+  // Shared final pass operates on the post-override map. It preserves framed
+  // controls, separates frameless fills from both hosts, and recomputes the
+  // five paired output roles against the values that will actually ship.
+  map = finalizeUiControlRoles(map, palette, overrides);
 
   // Returns the computed map alongside the rendered text (not just text):
   // composeOptionsThemes needs map.accent AFTER pilot overrides are applied

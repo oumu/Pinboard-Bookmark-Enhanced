@@ -61,6 +61,22 @@ try {
   check(outputOf(mismatchedId).includes("filename stem"),
     `filename/meta.id diagnostic must explain the mismatch:\n${outputOf(mismatchedId)}`);
 
+  for (const [surface, role] of [["options", "btn-fg"], ["popup", "spinner-fg"]]) {
+    const derivedOutputPilot = structuredClone(sourcePilot);
+    derivedOutputPilot.ui ??= {};
+    derivedOutputPilot.ui[surface] ??= {};
+    derivedOutputPilot.ui[surface].light ??= {};
+    derivedOutputPilot.ui[surface].light[role] = "#ff00ff";
+    writeFileSync(unknownRootPath, `${JSON.stringify(derivedOutputPilot, null, 2)}\n`);
+    const derivedOutput = run(["--pilot", unknownRootPath]);
+    const derivedOutputText = outputOf(derivedOutput);
+    check(derivedOutput.status === 1,
+      `${surface}.${role} derived output must fail validation, got exit ${derivedOutput.status}`);
+    check(derivedOutputText.includes(`/ui/${surface}/light/${role}`) &&
+      derivedOutputText.includes("derived output role"),
+    `derived-output diagnostic must name the JSON pointer and explain the contract:\n${derivedOutputText}`);
+  }
+
   const manifest = JSON.parse(readFileSync(resolve(root, "docs/theme-surface/manifest.json"), "utf8"));
   const unlistedManifest = structuredClone(manifest);
   unlistedManifest.page_templates["P1-list"].pages =

@@ -157,10 +157,10 @@ A composer that wants to reuse another composer's work can do so — see
 ### Contrast guard (automated)
 
 Every theme passes `tools/contrast-audit.mjs`, which the `tools/sync-all.mjs`
-pipeline runs automatically (11 steps: validate-contracts, render-all,
+pipeline runs automatically (12 steps: validate-contracts, render-all,
 apply-ui-themes --write, dynamic apply-tokens, diff-all --strict,
 contrast-audit, css-region-audit, ui-token-coverage, layout-lint, url-lint,
-recipe-lint).
+recipe-lint, override-debt).
 The git pre-commit hook runs the same pipeline in strict `--check` mode, then
 adds source/cascade/hand-edit/UI contract gates. `scripts/verify.sh` also runs
 the parser, CLI mutation and zero-write integration tests; see §9 for the
@@ -308,7 +308,7 @@ The factory is the build-time authoring source. `sync-all.mjs` composes every
 pilot and rewrites `pinboard-themes.js`; that generated file is then loaded at
 runtime only while a site preset is active. The same run rewrites the six
 generated regions in `popup.css`, `options.css`, and `library.css`. Its
-`--check` mode executes the same 11-step pipeline without writing reports,
+`--check` mode executes the same 12-step pipeline without writing reports,
 snapshots, CSS, or runtime artifacts, and requires byte-identical generated
 output. Never copy composer output or edit those generated artifacts by hand.
 
@@ -419,29 +419,20 @@ array generically, so all six regions (three ui-themes + three
 ui-components) are covered without any per-region code in the audit itself.
 
 **Colors inside the recipe are still `var()` references into §9's tokens**
-— the component layer never invents its own palette. It DOES need five
-paired color tokens §9's per-role derivations don't produce on their own:
-`btn-fg`, `danger-quiet-fg`, `on-danger`, `chip-bg`, `chip-fg`. Each
-composer computes these from its FINAL, post-`ui`-override map (so they stay
-AA-correct against whatever a pilot actually overrode — `btn-bg`, `danger`,
-etc.) using the `fgToAAMulti`/`resolveOpaqueBg`/`resolveChipBg` family from
-"Contrast derivation" above.
+— the component layer never invents its own palette. Five shared paired
+colors (`btn-fg`, `danger-quiet-fg`, `on-danger`, `chip-bg`, `chip-fg`) are
+computed by `_ui-derive.mjs#finalizeUiControlRoles` from the FINAL,
+post-`ui`-override map, so popup/options/library use one contrast and soft-fill
+algorithm. Popup then derives its surface-only `preset-fg` and `spinner-fg`.
 
-**Known limitation — these five tokens cannot be overridden by a pilot.**
-Because each composer recomputes them unconditionally from the
-post-override map, a `ui.popup/options/library.<mode>` block that tries to
-set `btn-fg`, `danger-quiet-fg`, `on-danger`, `chip-bg` or `chip-fg`
-directly will have that value silently discarded and replaced by the
-recomputed one. No shipped pilot does this today (0/13), so it's a real
-design gap, not a live bug — filed but not resolved as of this campaign
-(the alternative, an `if (name in overrides) skip` guard, was considered and
-deliberately deferred rather than merged half-verified). If your new theme
-needs one of these five to be something the derivation won't produce,
-**it currently cannot be done through the `ui` channel** — the derivation
-itself needs a per-pilot escape hatch added to `_ui-derive.mjs` first, or
-your theme needs to change the *inputs* the derivation reads instead
-(`btn-bg`, `danger`, `tag-bg`, `tag-fg`) and let the formula do its job. See
-NEW_THEME.md §6 for the full list of what IS overridable.
+**These seven names are derived outputs, not authoring inputs.**
+`validate-contracts.mjs` rejects the five shared names on every surface and
+also rejects `preset-fg` / `spinner-fg` under `ui.popup.*`, naming the exact
+JSON pointer. This replaces the former silent-discard limitation with an
+executable contract. Change supported inputs (`btn-bg`, `danger`, `tag-bg`,
+`tag-fg`, `preset-bg`, `spinner-bg`, etc.) and let the finalizer produce a
+passing pair; adding a genuinely new output escape hatch requires changing
+the derivation contract and its tests rather than hiding it in a pilot.
 
 **Spacing adapter.** The recipe declares padding/gap in plain px semantics;
 `ui-components.mjs`'s `sp(ns, px)` maps each value to that surface's

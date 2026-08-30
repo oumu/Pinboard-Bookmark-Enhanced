@@ -2,6 +2,24 @@
 // with contrast-aware tinting so status backgrounds clear WCAG AA by construction.
 // Pure functions only (unit-tested). No I/O.
 
+const COMMON_DERIVED_OUTPUT_ROLES = Object.freeze([
+  "btn-fg",
+  "danger-quiet-fg",
+  "on-danger",
+  "chip-bg",
+  "chip-fg",
+]);
+
+// Authoring contract shared with validate-contracts.mjs. These roles are
+// outputs of the final post-override contrast pass, not supported ui.* inputs:
+// accepting them would make a pilot look configurable while silently replacing
+// its value moments later. Popup has two additional paired outputs.
+export const UI_DERIVED_OUTPUT_ROLES = Object.freeze({
+  popup: Object.freeze([...COMMON_DERIVED_OUTPUT_ROLES, "preset-fg", "spinner-fg"]),
+  options: COMMON_DERIVED_OUTPUT_ROLES,
+  library: COMMON_DERIVED_OUTPUT_ROLES,
+});
+
 export function hexToRgb(h) {
   let s = String(h).replace(/^#/, "").trim();
   if (s.length === 3) s = s.split("").map(c => c + c).join("");
@@ -287,6 +305,77 @@ export function fillSeparate(fill, surfaces, fg, min = 1.06) {
     if (clears(out)) return out;
   }
   return mix(fill, fg, 0.5);
+}
+
+// Final post-override pass shared by popup/options/library. It owns only the
+// roles whose validity depends on several final control fills; surface-specific
+// status roles and popup's preset/spinner pairs remain in their composers.
+// Returns a new map so callers can safely retain their pre-finalization input.
+export function finalizeUiControlRoles(inputMap, palette, overrides = {}, config = {}) {
+  const {
+    panelRole = "panel",
+    buttonBorderRole = "btn-border",
+    inputBorderRole = "input-border",
+    chipMode = "tinted",
+  } = config;
+  if (chipMode !== "tinted" && chipMode !== "verbatim") {
+    throw new Error(`finalizeUiControlRoles: unsupported chipMode ${JSON.stringify(chipMode)}`);
+  }
+
+  const map = { ...inputMap };
+  const ovr = overrides ?? {};
+  const fgRgb = hexToRgb(map.fg);
+  const bgRgb = hexToRgb(map.bg);
+  const panelRgb = hexToRgb(map[panelRole]);
+  const hosts = [panelRgb, bgRgb];
+
+  if (ovr[buttonBorderRole] == null) {
+    map["btn-bg"] = rgbToHex(fillSeparate(hexToRgb(map["btn-bg"]), hosts, fgRgb));
+  }
+  map[buttonBorderRole] = ovr[buttonBorderRole] ?? map["btn-bg"];
+  if (ovr[inputBorderRole] == null) {
+    map["input-bg"] = rgbToHex(fillSeparate(hexToRgb(map["input-bg"]), hosts, fgRgb));
+  }
+  map[inputBorderRole] = ovr[inputBorderRole] ?? map["input-bg"];
+
+  const btnBgRgb = hexToRgb(map["btn-bg"]);
+  map["btn-hover"] = rgbToHex(fillSeparate(hexToRgb(map["btn-hover"]), [btnBgRgb], fgRgb));
+  const btnHoverRgb = hexToRgb(map["btn-hover"]);
+  if (map["focus-bd"] == null) {
+    map["focus-bd"] = rgbToHex(focusBdToAA(
+      hexToRgb(map.accent),
+      hexToRgb(map["input-focus-bg"] ?? map["input-bg"]),
+      [btnBgRgb, hexToRgb(map["input-bg"])],
+    ));
+  }
+
+  const dangerRgb = hexToRgb(map.danger);
+  map.border = rgbToHex(borderToAA(resolveOpaqueBg(map.border, btnBgRgb), [btnBgRgb, panelRgb]));
+  map["btn-fg"] = rgbToHex(fgToAAMulti(fgRgb, [btnBgRgb, btnHoverRgb]));
+  map["danger-quiet-fg"] = rgbToHex(fgToAAMulti(dangerRgb, [bgRgb, panelRgb, btnBgRgb]));
+  map["on-danger"] = rgbToHex(fgToAA(hexToRgb(palette["btn-fg"]), dangerRgb));
+
+  if (chipMode === "verbatim") {
+    map["chip-bg"] = map["tag-bg"];
+    map["chip-fg"] = rgbToHex(fgToAAMulti(
+      hexToRgb(map["tag-fg"]),
+      [resolveOpaqueBg(map["tag-bg"], panelRgb), btnHoverRgb],
+    ));
+  } else {
+    const tagBg = map["tag-bg"] ?? palette["tag-bg"];
+    const tagFg = map["tag-fg"] ?? palette["tag-fg"];
+    const chipBgRgb = fillSeparate(
+      resolveChipBg(tagBg, hexToRgb(map.accent), panelRgb),
+      [panelRgb],
+      fgRgb,
+    );
+    map["chip-bg"] = rgbToHex(chipBgRgb);
+    map["chip-fg"] = rgbToHex(fgToAAMulti(
+      hexToRgb(tagFg),
+      [chipBgRgb, btnHoverRgb],
+    ));
+  }
+  return map;
 }
 
 // Site radius scale -> extension UI radius scale.

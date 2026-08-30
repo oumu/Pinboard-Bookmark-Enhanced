@@ -1,6 +1,6 @@
 import { expandPalette } from "./_util.mjs";
 import { mergeTokens } from "./compose-theme.mjs";
-import { deriveUiColors, deriveUiRadius, regularizeUiRadius, fgToAA, fgToAAMulti, borderToAA, focusBdToAA, fillSeparate, mix, hexToRgb, rgbToHex, resolveOpaqueBg, resolveChipBg } from "./_ui-derive.mjs";
+import { deriveUiColors, deriveUiRadius, regularizeUiRadius, fgToAA, fgToAAMulti, finalizeUiControlRoles, mix, hexToRgb, rgbToHex } from "./_ui-derive.mjs";
 import { POPUP_THEME_MAP } from "./popup-chrome.mjs";
 
 // Accent-over-bg mixes library.css paints behind a row that is SELECTED for a
@@ -98,7 +98,7 @@ function emitLib(ui, palette, overrides, radius, focus = {}, mode) {
   // same two-background constraint fg/fg-muted above already enforce) -- a plain
   // fgToAA(accent, oneBg) could clear AA on bg and still fail on panel.
   const link = rgbToHex(fgToAAMulti(hexToRgb(palette.accent), [hexToRgb(ui.bg), hexToRgb(ui.bg2)]));
-  const map = {
+  let map = {
     bg: ui.bg, panel: ui.bg2,
     fg, "fg-muted": fgMuted, "fg-hint": ui["fg-hint"],
     accent: ui.accent, link, save, danger, warn,
@@ -132,83 +132,9 @@ function emitLib(ui, palette, overrides, radius, focus = {}, mode) {
   Object.assign(map, overrides ?? {});
   Object.assign(map, regularizeUiRadius(map));
 
-  // Component-layer paired tokens (Task 5, fixed post-review Critical 2/
-  // Important 3): computed HERE from the map's FINAL, post-override
-  // btn-bg/btn-hover/danger, same fix as options-chrome.mjs. No pilot
-  // currently carries a ui.library.<mode> override for these roles, but the
-  // map's own `danger` (above) is ALREADY a local re-derivation, not the raw
-  // palette value deriveUiColors returns -- computing danger-quiet-fg/
-  // on-danger against anything else would be wrong even without an override.
-  // Soft Fill separation (design-uplift 2026-08-05, USER RULING) -- runs
-  // BEFORE border/btn-fg/chip-fg, which all derive against the button fill.
-  // library is the worst case of the three surfaces: --lib-btn-bg is
-  // byte-identical to --lib-panel/--lib-pane-bg in ALL 14 blocks (no pilot
-  // overrides library's btn-bg), so with the frame collapsed every button in
-  // a detail pane would be a rectangle of pane colour on pane colour.
-  // Skipped per-role when the pilot restores a real frame (terminal, via
-  // ui.library.<mode>["btn-border"]/["input-border"]).
-  const ovr = overrides ?? {};
-  const fgRgb = hexToRgb(map.fg);
-  // Two hosts, and here they genuinely differ: the vocab/notes toolbars sit
-  // on --lib-bg, the detail panes on --lib-panel. Separating from panel
-  // alone lands modern-card's fill straight on its own page background.
-  const hosts = [hexToRgb(map.panel), hexToRgb(map.bg)];
-  if (ovr["btn-border"] == null) map["btn-bg"] = rgbToHex(fillSeparate(hexToRgb(map["btn-bg"]), hosts, fgRgb));
-  map["btn-border"] = ovr["btn-border"] ?? map["btn-bg"];
-  if (ovr["input-border"] == null) map["input-bg"] = rgbToHex(fillSeparate(hexToRgb(map["input-bg"]), hosts, fgRgb));
-  map["input-border"] = ovr["input-border"] ?? map["input-bg"];
-  const bgRgb = hexToRgb(map.bg);
-  const panelRgb = hexToRgb(map.panel);
-  const btnBgRgb = hexToRgb(map["btn-bg"]);
-  // Hover must stay a perceptible step from the new rest fill (1.01:1 on the
-  // default surface otherwise). row-selected-bg deliberately keeps the
-  // untouched drop-hover: a selected ROW sits on the panel, not on a button
-  // fill, so it is a different constraint and must not drift with this one.
-  map["btn-hover"] = rgbToHex(fillSeparate(hexToRgb(map["btn-hover"]), [btnBgRgb], fgRgb));
-  const btnHoverRgb = hexToRgb(map["btn-hover"]);
-  // Focus edge (design-uplift follow-up 2026-08-06, independent review F1).
-  // §7.3's `bordered` placement makes this token the focus indicator's CORE,
-  // and Soft Fill collapsed the resting border into the fill (btn-border ==
-  // btn-bg, 1.00:1) -- so it is the ONLY thing carrying WCAG 1.4.11's 3:1 for
-  // the whole .btn family, every field and every fused shell. Derived against
-  // the two fills a focusable control actually wears; worst one wins.
-  // Guarded on the MAP, not on `ovr`, because this surface has TWO override
-  // sources -- the `focus` argument (popup's pilot block, spread into the map
-  // literal above) and ui.library.<mode> -- and either one that already
-  // landed must win outright. That is how terminal / paper-ink / solarized
-  // keep their bespoke edges here.
-  if (map["focus-bd"] == null) {
-    map["focus-bd"] = rgbToHex(focusBdToAA(hexToRgb(map.accent), hexToRgb(map["input-bg"]),
-      [btnBgRgb, hexToRgb(map["input-bg"])]));
-  }
-  const dangerRgb = hexToRgb(map.danger);
-  // border (design-uplift Task 16, USER RULING): same gap, same
-  // resolveOpaqueBg requirement and same options-chrome.mjs rationale --
-  // no pilot currently overrides library's btn-bg/panel independently, so
-  // the two constraints are numerically identical today but kept separate
-  // for COMPONENTS.md §4.3 spec-conformance (same convention as its own
-  // danger-quiet-fg 3-bg call above).
-  map["border"] = rgbToHex(borderToAA(resolveOpaqueBg(map.border, btnBgRgb), [btnBgRgb, panelRgb]));
-  map["btn-fg"] = rgbToHex(fgToAAMulti(hexToRgb(map.fg), [btnBgRgb, btnHoverRgb]));
-  map["danger-quiet-fg"] = rgbToHex(fgToAAMulti(dangerRgb, [bgRgb, panelRgb, btnBgRgb]));
-  map["on-danger"] = rgbToHex(fgToAA(hexToRgb(palette["btn-fg"]), dangerRgb));
-  // library has no tag-bg/tag-fg role of its own -- no pilot's ui.library.<mode>
-  // touches it -- so palette.tag-bg/tag-fg is the final value. chip-bg is a
-  // real pill fill (not just an AA input like border/danger above), so a
-  // "transparent" tag-bg (9/13 pilots) needs resolveChipBg's accent-tint
-  // synthesis, not resolveOpaqueBg's bare-panel fallback -- see that
-  // function's comment (_ui-derive.mjs) for why bare panel is just as
-  // invisible a pill as the literal `transparent` it used to ship
-  // (vocab-group-inspect-report.md 2026-08-05 Finding 2). chipBgRgb is
-  // reused below for chip-fg's contrast check so both stay derived from the
-  // exact same resolved fill.
-  // Same separation floor as btn/input above; identity on all 14 blocks
-  // today (see options-chrome.mjs's twin comment).
-  const chipBgRgb = fillSeparate(resolveChipBg(palette["tag-bg"], hexToRgb(map.accent), panelRgb), [panelRgb], fgRgb);
-  map["chip-bg"] = rgbToHex(chipBgRgb);
-  // fgToAAMulti, not fgToAA -- same pressable-chip fix as options-chrome.mjs
-  // (COMPONENTS §5.3, Task 7's contrast-audit chip-fg-vs-btn-hover pair).
-  map["chip-fg"] = rgbToHex(fgToAAMulti(hexToRgb(palette["tag-fg"]), [chipBgRgb, btnHoverRgb]));
+  // The shared post-override pass keeps library's two-host soft-fill and
+  // contrast contract aligned with options without duplicating its algorithm.
+  map = finalizeUiControlRoles(map, palette, overrides);
 
   return [`  color-scheme: ${mode};`, ...Object.entries(map).map(([k, v]) => `  --lib-${k}: ${v};`)].join("\n");
 }

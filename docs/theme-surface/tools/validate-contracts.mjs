@@ -11,6 +11,7 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { basename, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { UI_DERIVED_OUTPUT_ROLES } from "../composers/_ui-derive.mjs";
 
 const toolsDir = dirname(fileURLToPath(import.meta.url));
 const surfaceDir = resolve(toolsDir, "..");
@@ -197,6 +198,16 @@ function validatePilot(pilot, path, schema, manifest, layoutModes, errors) {
   const supportedModes = new Set(manifest?.modes?.supported_modes ?? []);
   for (const mode of Object.keys(pilot?.modes ?? {})) {
     if (!supportedModes.has(mode)) errors.push(`${label}/modes/${pointerPart(mode)}: mode is not registered in manifest.json`);
+  }
+  for (const [surface, modes] of Object.entries(pilot?.ui ?? {})) {
+    const blocked = new Set(UI_DERIVED_OUTPUT_ROLES[surface] ?? []);
+    for (const [mode, roles] of Object.entries(modes ?? {})) {
+      for (const role of Object.keys(roles ?? {})) {
+        if (blocked.has(role)) {
+          errors.push(`${label}/ui/${pointerPart(surface)}/${pointerPart(mode)}/${pointerPart(role)}: derived output role is computed after supported ui overrides`);
+        }
+      }
+    }
   }
   if (errors.length > before) {
     for (let i = before; i < errors.length; i++) {

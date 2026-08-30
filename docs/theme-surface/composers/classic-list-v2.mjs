@@ -133,6 +133,7 @@ a, a:link { color: ${v("accent")} !important; }
 #searchbox { margin-bottom: 12px !important; }
 a.bundle { color: ${v("accent")} !important; }
 a.bundle:hover { color: ${v("link-hover")} !important; }
+#search_query_field { width: 100% !important; }
 #search_query_field, #banner_searchbox input[type="text"] {
   background: ${v("input-bg")} !important;
   color: ${v("fg")} !important;
@@ -285,7 +286,7 @@ a.delete, a.destroy { color: ${v("destroy")} !important; }
   background: ${v("input-bg")} !important; color: ${v("fg")} !important;
   border: ${v("border-width")} ${v("border-style")} ${v("border")} !important;
   border-radius: ${v("radius-sm")} !important;
-  padding: 6px 10px !important; font-size: ${sizeSm} !important;
+  padding: 6px 10px !important; font-size: 13px !important;
 }
 #tweet_searchbox #search_query_field:focus { border-color: ${v("accent")} !important; box-shadow: 0 0 0 2px ${v("accent-alpha")} !important; outline: none !important; }
 #tweet_searchbox input[type="submit"] {
@@ -466,7 +467,16 @@ a.help { color: ${v("help-fg")} !important; background: ${v("accent-soft")} !imp
   border: ${v("border-width")} ${v("border-style")} ${v("border")} !important;
   background: ${v("input-bg")} !important;
   color: ${v("fg")} !important;
-  width: 32px !important;
+  width: 38px !important;
+  min-width: 38px !important;
+  max-width: 38px !important;
+  padding: 3px 4px !important;
+  margin-right: 10px !important;
+  font-size: 12px !important;
+  line-height: 1.2 !important;
+  font-weight: 600 !important;
+  box-sizing: border-box !important;
+  vertical-align: middle !important;
   border-radius: ${v("radius-sm")} !important;
   text-align: center !important;
 }

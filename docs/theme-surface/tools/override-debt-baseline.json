@@ -1,0 +1,4223 @@
+{
+  "version": 1,
+  "identity": "at-rule context + selector + property + !important + theme; declaration values are intentionally excluded",
+  "themes": [
+    "catppuccin-latte",
+    "catppuccin-mocha",
+    "dracula",
+    "flexoki",
+    "github-light",
+    "gruvbox-dark",
+    "modern-card",
+    "nord-night",
+    "paper-ink",
+    "rose-pine",
+    "solarized-dark",
+    "solarized-light",
+    "terminal"
+  ],
+  "entries": [
+    {
+      "context": [],
+      "selector": "::selection",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".banner_username",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "dracula",
+        "modern-card",
+        "paper-ink"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".banner_username",
+      "property": "text-decoration",
+      "important": true,
+      "themes": [
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".bookmark .description",
+      "property": "opacity",
+      "important": true,
+      "themes": [
+        "solarized-dark",
+        "solarized-light"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".bookmark",
+      "property": "background",
+      "important": true,
+      "themes": [
+        "gruvbox-dark",
+        "modern-card"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".bookmark",
+      "property": "border-bottom",
+      "important": true,
+      "themes": [
+        "paper-ink",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".bookmark",
+      "property": "border-left",
+      "important": true,
+      "themes": [
+        "solarized-dark",
+        "solarized-light"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".bookmark",
+      "property": "border-radius",
+      "important": true,
+      "themes": [
+        "catppuccin-latte",
+        "gruvbox-dark",
+        "rose-pine",
+        "solarized-dark",
+        "solarized-light"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".bookmark",
+      "property": "box-shadow",
+      "important": true,
+      "themes": [
+        "catppuccin-latte",
+        "catppuccin-mocha",
+        "modern-card"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".bookmark",
+      "property": "margin-bottom",
+      "important": true,
+      "themes": [
+        "catppuccin-latte",
+        "catppuccin-mocha",
+        "gruvbox-dark",
+        "modern-card",
+        "rose-pine"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".bookmark",
+      "property": "padding",
+      "important": true,
+      "themes": [
+        "catppuccin-latte",
+        "catppuccin-mocha",
+        "dracula",
+        "flexoki",
+        "gruvbox-dark",
+        "modern-card",
+        "nord-night",
+        "paper-ink",
+        "rose-pine",
+        "solarized-dark",
+        "solarized-light",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".description blockquote",
+      "property": "border-left",
+      "important": true,
+      "themes": [
+        "catppuccin-latte",
+        "catppuccin-mocha",
+        "dracula",
+        "github-light",
+        "gruvbox-dark",
+        "nord-night",
+        "rose-pine",
+        "solarized-dark",
+        "solarized-light",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".description blockquote",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "dracula",
+        "gruvbox-dark",
+        "nord-night",
+        "rose-pine"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".description blockquote",
+      "property": "font-style",
+      "important": true,
+      "themes": [
+        "rose-pine"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".description blockquote",
+      "property": "margin",
+      "important": true,
+      "themes": [
+        "catppuccin-latte",
+        "catppuccin-mocha",
+        "rose-pine"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".description blockquote",
+      "property": "padding-left",
+      "important": true,
+      "themes": [
+        "catppuccin-latte",
+        "catppuccin-mocha",
+        "rose-pine"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".description",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "catppuccin-latte",
+        "catppuccin-mocha",
+        "flexoki",
+        "gruvbox-dark",
+        "modern-card",
+        "paper-ink",
+        "rose-pine",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".description",
+      "property": "font-size",
+      "important": true,
+      "themes": [
+        "modern-card",
+        "paper-ink",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".description",
+      "property": "font-style",
+      "important": true,
+      "themes": [
+        "rose-pine",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".description",
+      "property": "line-height",
+      "important": true,
+      "themes": [
+        "paper-ink"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".description",
+      "property": "margin-top",
+      "important": true,
+      "themes": [
+        "modern-card",
+        "paper-ink"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".description",
+      "property": "opacity",
+      "important": true,
+      "themes": [
+        "dracula",
+        "nord-night"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".edit_checkbox input",
+      "property": "accent-color",
+      "important": true,
+      "themes": [
+        "modern-card"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".edit_links a:hover",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "solarized-dark",
+        "solarized-light"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".edit_links a",
+      "property": "font-family",
+      "important": true,
+      "themes": [
+        "paper-ink"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".edit_links a",
+      "property": "font-size",
+      "important": true,
+      "themes": [
+        "modern-card",
+        "paper-ink"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".email_secret",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".formtable td",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "modern-card"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".help_box",
+      "property": "background",
+      "important": true,
+      "themes": [
+        "modern-card",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".help_box",
+      "property": "border-radius",
+      "important": true,
+      "themes": [
+        "catppuccin-latte",
+        "dracula",
+        "nord-night",
+        "rose-pine",
+        "solarized-dark",
+        "solarized-light"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".help_box",
+      "property": "border",
+      "important": true,
+      "themes": [
+        "paper-ink",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".help_box",
+      "property": "box-shadow",
+      "important": true,
+      "themes": [
+        "catppuccin-latte",
+        "catppuccin-mocha"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".help_box",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "dracula",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".next_prev_widget a:hover",
+      "property": "text-decoration",
+      "important": true,
+      "themes": [
+        "modern-card"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".next_prev_widget a",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "dracula",
+        "nord-night"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".next_prev_widget a",
+      "property": "text-decoration",
+      "important": true,
+      "themes": [
+        "modern-card"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".next_prev:hover",
+      "property": "text-decoration",
+      "important": true,
+      "themes": [
+        "modern-card"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".next_prev",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "dracula",
+        "nord-night"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".next_prev",
+      "property": "text-decoration",
+      "important": true,
+      "themes": [
+        "modern-card"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".note .note",
+      "property": "box-shadow",
+      "important": true,
+      "themes": [
+        "modern-card"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".note",
+      "property": "border-bottom",
+      "important": true,
+      "themes": [
+        "gruvbox-dark",
+        "paper-ink",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".note",
+      "property": "padding",
+      "important": true,
+      "themes": [
+        "modern-card"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".search_button input[type=\"submit\"]:hover",
+      "property": "border-color",
+      "important": true,
+      "themes": [
+        "gruvbox-dark"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".search_button input[type=\"submit\"]",
+      "property": "border-radius",
+      "important": true,
+      "themes": [
+        "modern-card"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".search_button input[type=\"submit\"]",
+      "property": "border",
+      "important": true,
+      "themes": [
+        "flexoki",
+        "modern-card",
+        "nord-night",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".search_button input[type=\"submit\"]",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "modern-card"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".search_button input[type=\"submit\"]",
+      "property": "font-family",
+      "important": true,
+      "themes": [
+        "rose-pine",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".search_button input[type=\"submit\"]",
+      "property": "font-size",
+      "important": true,
+      "themes": [
+        "modern-card",
+        "solarized-dark"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".search_button input[type=\"submit\"]",
+      "property": "font-weight",
+      "important": true,
+      "themes": [
+        "dracula",
+        "gruvbox-dark"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".search_button input[type=\"submit\"]",
+      "property": "letter-spacing",
+      "important": true,
+      "themes": [
+        "gruvbox-dark",
+        "solarized-dark"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".search_button input[type=\"submit\"]",
+      "property": "padding",
+      "important": true,
+      "themes": [
+        "modern-card"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".search_button input[type=\"submit\"]",
+      "property": "text-transform",
+      "important": true,
+      "themes": [
+        "gruvbox-dark",
+        "solarized-dark"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".selected_star",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "flexoki",
+        "modern-card",
+        "paper-ink"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".service_box",
+      "property": "background",
+      "important": true,
+      "themes": [
+        "modern-card",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".service_box",
+      "property": "border-radius",
+      "important": true,
+      "themes": [
+        "catppuccin-latte",
+        "dracula",
+        "nord-night",
+        "rose-pine",
+        "solarized-dark",
+        "solarized-light"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".service_box",
+      "property": "border",
+      "important": true,
+      "themes": [
+        "paper-ink",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".service_box",
+      "property": "box-shadow",
+      "important": true,
+      "themes": [
+        "catppuccin-latte",
+        "catppuccin-mocha"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".service_box",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "dracula",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".settings_heading",
+      "property": "border-bottom",
+      "important": true,
+      "themes": [
+        "paper-ink",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".settings_heading",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "catppuccin-mocha",
+        "flexoki",
+        "gruvbox-dark",
+        "modern-card",
+        "rose-pine",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".settings_heading",
+      "property": "font-family",
+      "important": true,
+      "themes": [
+        "paper-ink"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".settings_heading",
+      "property": "font-size",
+      "important": true,
+      "themes": [
+        "modern-card"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".settings_heading",
+      "property": "font-style",
+      "important": true,
+      "themes": [
+        "rose-pine"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".settings_heading",
+      "property": "font-weight",
+      "important": true,
+      "themes": [
+        "gruvbox-dark"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".settings_heading",
+      "property": "letter-spacing",
+      "important": true,
+      "themes": [
+        "gruvbox-dark"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".settings_heading",
+      "property": "margin-top",
+      "important": true,
+      "themes": [
+        "modern-card"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".settings_heading",
+      "property": "text-transform",
+      "important": true,
+      "themes": [
+        "gruvbox-dark"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".settings_tab_selected a",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "dracula"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".settings_tab_selected",
+      "property": "background",
+      "important": true,
+      "themes": [
+        "dracula",
+        "flexoki",
+        "modern-card",
+        "paper-ink",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".settings_tab_selected",
+      "property": "border-bottom-color",
+      "important": true,
+      "themes": [
+        "dracula",
+        "flexoki",
+        "modern-card",
+        "paper-ink",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".settings_tab_selected",
+      "property": "border-top",
+      "important": true,
+      "themes": [
+        "dracula"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".settings_tab_selected",
+      "property": "border",
+      "important": true,
+      "themes": [
+        "gruvbox-dark",
+        "paper-ink",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".settings_tab_selected",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "dracula"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".settings_tab_selected",
+      "property": "font-weight",
+      "important": true,
+      "themes": [
+        "modern-card",
+        "paper-ink"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".settings_tab",
+      "property": "border-bottom-color",
+      "important": true,
+      "themes": [
+        "paper-ink"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".settings_tab",
+      "property": "padding",
+      "important": true,
+      "themes": [
+        "modern-card"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".settings_tabs",
+      "property": "border-bottom",
+      "important": true,
+      "themes": [
+        "modern-card"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".settings_tabs",
+      "property": "border-color",
+      "important": true,
+      "themes": [
+        "paper-ink"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".star",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "modern-card",
+        "paper-ink",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".star",
+      "property": "cursor",
+      "important": true,
+      "themes": [
+        "modern-card"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".suggested_tag",
+      "property": "background",
+      "important": true,
+      "themes": [
+        "modern-card"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".suggested_tag",
+      "property": "border-radius",
+      "important": true,
+      "themes": [
+        "modern-card"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".suggested_tag",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "catppuccin-latte",
+        "flexoki",
+        "github-light",
+        "gruvbox-dark",
+        "modern-card",
+        "solarized-dark",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".suggested_tag",
+      "property": "padding",
+      "important": true,
+      "themes": [
+        "modern-card"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".user_navbar a:hover",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "modern-card"
+      ]
+    },
+    {
+      "context": [],
+      "selector": ".user_navbar a",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "dracula",
+        "flexoki",
+        "modern-card",
+        "nord-night",
+        "paper-ink",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "[class*=\"settings_tab_spacer\"]",
+      "property": "border-bottom-color",
+      "important": true,
+      "themes": [
+        "paper-ink"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#banner a:hover",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "modern-card",
+        "nord-night",
+        "paper-ink"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#banner a:hover",
+      "property": "text-decoration",
+      "important": true,
+      "themes": [
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#banner a",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "dracula",
+        "modern-card",
+        "paper-ink"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#banner a",
+      "property": "text-decoration",
+      "important": true,
+      "themes": [
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#banner_searchbox input[type=\"text\"]:focus",
+      "property": "background",
+      "important": true,
+      "themes": [
+        "catppuccin-mocha",
+        "gruvbox-dark",
+        "modern-card",
+        "solarized-dark"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#banner_searchbox input[type=\"text\"]:focus",
+      "property": "border-color",
+      "important": true,
+      "themes": [
+        "dracula",
+        "paper-ink"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#banner_searchbox input[type=\"text\"]:focus",
+      "property": "box-shadow",
+      "important": true,
+      "themes": [
+        "dracula",
+        "rose-pine",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#banner_searchbox input[type=\"text\"]",
+      "property": "background",
+      "important": true,
+      "themes": [
+        "modern-card",
+        "solarized-dark",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#banner_searchbox input[type=\"text\"]",
+      "property": "border-radius",
+      "important": true,
+      "themes": [
+        "catppuccin-latte",
+        "catppuccin-mocha",
+        "modern-card",
+        "rose-pine"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#banner_searchbox input[type=\"text\"]",
+      "property": "border",
+      "important": true,
+      "themes": [
+        "dracula",
+        "modern-card",
+        "nord-night",
+        "rose-pine"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#banner_searchbox input[type=\"text\"]",
+      "property": "font-family",
+      "important": true,
+      "themes": [
+        "paper-ink",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#banner_searchbox input[type=\"text\"]",
+      "property": "padding",
+      "important": true,
+      "themes": [
+        "modern-card"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#banner_searchbox input[type=\"text\"]",
+      "property": "width",
+      "important": true,
+      "themes": [
+        "modern-card"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#banner",
+      "property": "background",
+      "important": true,
+      "themes": [
+        "modern-card",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#banner",
+      "property": "border-bottom",
+      "important": true,
+      "themes": [
+        "dracula",
+        "modern-card",
+        "paper-ink",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#banner",
+      "property": "border-radius",
+      "important": true,
+      "themes": [
+        "catppuccin-latte",
+        "catppuccin-mocha",
+        "dracula",
+        "flexoki",
+        "github-light",
+        "gruvbox-dark",
+        "modern-card",
+        "nord-night",
+        "rose-pine",
+        "solarized-dark",
+        "solarized-light"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#banner",
+      "property": "box-shadow",
+      "important": true,
+      "themes": [
+        "modern-card"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#banner",
+      "property": "font-family",
+      "important": true,
+      "themes": [
+        "paper-ink"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#banner",
+      "property": "padding",
+      "important": true,
+      "themes": [
+        "catppuccin-latte",
+        "catppuccin-mocha",
+        "dracula",
+        "flexoki",
+        "github-light",
+        "gruvbox-dark",
+        "modern-card",
+        "nord-night",
+        "paper-ink",
+        "rose-pine",
+        "solarized-dark",
+        "solarized-light",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#bmarks_page_nav a.filter.selected:hover",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#bmarks_page_nav a.filter.selected",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#bmarks_page_nav a.rss_link:hover",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#bulk_edit_box",
+      "property": "background",
+      "important": true,
+      "themes": [
+        "dracula",
+        "modern-card",
+        "nord-night",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#bulk_edit_box",
+      "property": "border-radius",
+      "important": true,
+      "themes": [
+        "catppuccin-latte",
+        "catppuccin-mocha",
+        "modern-card"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#bulk_edit_box",
+      "property": "border",
+      "important": true,
+      "themes": [
+        "dracula",
+        "gruvbox-dark",
+        "nord-night",
+        "paper-ink",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#bulk_edit_box",
+      "property": "padding",
+      "important": true,
+      "themes": [
+        "modern-card"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#bulk_top_bar",
+      "property": "background",
+      "important": true,
+      "themes": [
+        "dracula",
+        "modern-card",
+        "nord-night",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#bulk_top_bar",
+      "property": "border-radius",
+      "important": true,
+      "themes": [
+        "catppuccin-latte",
+        "catppuccin-mocha",
+        "modern-card"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#bulk_top_bar",
+      "property": "border",
+      "important": true,
+      "themes": [
+        "dracula",
+        "gruvbox-dark",
+        "nord-night",
+        "paper-ink",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#bulk_top_bar",
+      "property": "padding",
+      "important": true,
+      "themes": [
+        "modern-card"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#edit_bookmark_form",
+      "property": "background",
+      "important": true,
+      "themes": [
+        "dracula",
+        "modern-card",
+        "nord-night",
+        "paper-ink",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#edit_bookmark_form",
+      "property": "border-radius",
+      "important": true,
+      "themes": [
+        "catppuccin-latte",
+        "catppuccin-mocha",
+        "modern-card",
+        "rose-pine"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#edit_bookmark_form",
+      "property": "border",
+      "important": true,
+      "themes": [
+        "dracula",
+        "nord-night",
+        "paper-ink",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#edit_bookmark_form",
+      "property": "box-shadow",
+      "important": true,
+      "themes": [
+        "modern-card"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#edit_bookmark_form",
+      "property": "padding",
+      "important": true,
+      "themes": [
+        "modern-card"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#main_column form[name=\"sort\"] > table",
+      "property": "border-spacing",
+      "important": true,
+      "themes": [
+        "paper-ink",
+        "rose-pine"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#main_column form[name=\"sort\"] table a.bundle::before",
+      "property": "content",
+      "important": true,
+      "themes": [
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#main_column form[name=\"sort\"] table a.bundle::before",
+      "property": "opacity",
+      "important": true,
+      "themes": [
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#main_column form[name=\"sort\"] table a.bundle",
+      "property": "border-radius",
+      "important": true,
+      "themes": [
+        "catppuccin-latte",
+        "catppuccin-mocha",
+        "dracula",
+        "modern-card",
+        "nord-night",
+        "rose-pine",
+        "solarized-dark",
+        "solarized-light"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#main_column form[name=\"sort\"] table a.bundle",
+      "property": "font-family",
+      "important": true,
+      "themes": [
+        "paper-ink"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#main_column form[name=\"sort\"] table a.bundle",
+      "property": "font-style",
+      "important": true,
+      "themes": [
+        "paper-ink",
+        "rose-pine"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#main_column form[name=\"sort\"] table a.bundle",
+      "property": "font-weight",
+      "important": true,
+      "themes": [
+        "catppuccin-latte",
+        "catppuccin-mocha",
+        "flexoki",
+        "nord-night",
+        "rose-pine",
+        "solarized-dark",
+        "solarized-light"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#main_column form[name=\"sort\"] table a.bundle",
+      "property": "letter-spacing",
+      "important": true,
+      "themes": [
+        "gruvbox-dark",
+        "paper-ink",
+        "rose-pine",
+        "solarized-dark",
+        "solarized-light",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#main_column form[name=\"sort\"] table a.bundle",
+      "property": "padding",
+      "important": true,
+      "themes": [
+        "catppuccin-latte",
+        "catppuccin-mocha"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#main_column form[name=\"sort\"] table a.bundle",
+      "property": "text-transform",
+      "important": true,
+      "themes": [
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#main_column form[name=\"sort\"] table a[style*=\"color: #aaa\"]",
+      "property": "font-style",
+      "important": true,
+      "themes": [
+        "paper-ink",
+        "rose-pine"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#main_column form[name=\"sort\"] table a[style*=\"color:#aaa\"]:hover",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "dracula",
+        "paper-ink"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#main_column form[name=\"sort\"] table a[style*=\"color:#aaa\"]",
+      "property": "font-style",
+      "important": true,
+      "themes": [
+        "paper-ink",
+        "rose-pine"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#main_column form[name=\"sort\"] table input[name^=\"id_\"]:focus",
+      "property": "border-color",
+      "important": true,
+      "themes": [
+        "dracula",
+        "paper-ink"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#main_column form[name=\"sort\"] table input[name^=\"id_\"]:focus",
+      "property": "box-shadow",
+      "important": true,
+      "themes": [
+        "catppuccin-latte",
+        "dracula",
+        "flexoki",
+        "paper-ink",
+        "solarized-dark",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#main_column form[name=\"sort\"] table input[name^=\"id_\"]",
+      "property": "background",
+      "important": true,
+      "themes": [
+        "catppuccin-latte",
+        "catppuccin-mocha",
+        "dracula",
+        "flexoki",
+        "gruvbox-dark",
+        "modern-card",
+        "nord-night",
+        "paper-ink",
+        "rose-pine",
+        "solarized-light",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#main_column form[name=\"sort\"] table input[name^=\"id_\"]",
+      "property": "border-radius",
+      "important": true,
+      "themes": [
+        "dracula",
+        "flexoki",
+        "github-light",
+        "solarized-dark",
+        "solarized-light",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#main_column form[name=\"sort\"] table input[name^=\"id_\"]",
+      "property": "border",
+      "important": true,
+      "themes": [
+        "gruvbox-dark",
+        "modern-card",
+        "nord-night",
+        "solarized-dark",
+        "solarized-light",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#main_column form[name=\"sort\"] table input[name^=\"id_\"]",
+      "property": "font-family",
+      "important": true,
+      "themes": [
+        "paper-ink",
+        "rose-pine",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#main_column form[name=\"sort\"] table td a.destroy",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "paper-ink",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#main_column form[name=\"sort\"] table td a.destroy",
+      "property": "font-style",
+      "important": true,
+      "themes": [
+        "paper-ink",
+        "rose-pine"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#main_column form[name=\"sort\"] table td a.destroy",
+      "property": "font-weight",
+      "important": true,
+      "themes": [
+        "catppuccin-latte",
+        "catppuccin-mocha",
+        "dracula",
+        "flexoki",
+        "nord-night",
+        "paper-ink",
+        "rose-pine",
+        "solarized-dark",
+        "solarized-light"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#main_column form[name=\"sort\"] table td a.destroy",
+      "property": "opacity",
+      "important": true,
+      "themes": [
+        "catppuccin-mocha",
+        "dracula",
+        "gruvbox-dark",
+        "rose-pine",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#main_column form[name=\"sort\"] table td a.edit",
+      "property": "font-style",
+      "important": true,
+      "themes": [
+        "paper-ink",
+        "rose-pine"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#main_column form[name=\"sort\"] table td a.edit",
+      "property": "opacity",
+      "important": true,
+      "themes": [
+        "catppuccin-latte",
+        "catppuccin-mocha",
+        "dracula",
+        "flexoki",
+        "modern-card",
+        "nord-night",
+        "paper-ink",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#main_column form[name=\"sort\"] table td a.edit",
+      "property": "transition",
+      "important": true,
+      "themes": [
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#main_column form[name=\"sort\"] table td",
+      "property": "font-family",
+      "important": true,
+      "themes": [
+        "gruvbox-dark",
+        "paper-ink",
+        "rose-pine",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#main_column form[name=\"sort\"] table td",
+      "property": "padding",
+      "important": true,
+      "themes": [
+        "paper-ink",
+        "rose-pine"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#main_column form[name=\"sort\"] table tr:hover td a.destroy",
+      "property": "text-shadow",
+      "important": true,
+      "themes": [
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#main_column form[name=\"sort\"] table tr:hover td a.edit",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "dracula",
+        "paper-ink"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#main_column form[name=\"sort\"] table tr:hover td a.edit",
+      "property": "text-shadow",
+      "important": true,
+      "themes": [
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#main_column form[name=\"sort\"] table tr:hover",
+      "property": "background",
+      "important": true,
+      "themes": [
+        "catppuccin-latte",
+        "catppuccin-mocha",
+        "dracula",
+        "flexoki",
+        "github-light",
+        "gruvbox-dark",
+        "modern-card",
+        "nord-night",
+        "paper-ink",
+        "rose-pine",
+        "solarized-dark",
+        "solarized-light",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#main_column form[name=\"sort\"] table tr",
+      "property": "border-radius",
+      "important": true,
+      "themes": [
+        "catppuccin-latte",
+        "catppuccin-mocha",
+        "dracula"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#main_column",
+      "property": "padding-top",
+      "important": true,
+      "themes": [
+        "modern-card"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#note_right_column",
+      "property": "background",
+      "important": true,
+      "themes": [
+        "modern-card",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#note_right_column",
+      "property": "border-left",
+      "important": true,
+      "themes": [
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#note_right_column",
+      "property": "border-radius",
+      "important": true,
+      "themes": [
+        "catppuccin-mocha",
+        "modern-card",
+        "rose-pine"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#note_right_column",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#pinboard_name a",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "dracula"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#pinboard_name a",
+      "property": "font-weight",
+      "important": true,
+      "themes": [
+        "github-light",
+        "modern-card",
+        "paper-ink"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#pinboard_name a",
+      "property": "letter-spacing",
+      "important": true,
+      "themes": [
+        "paper-ink"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#popup_header",
+      "property": "background",
+      "important": true,
+      "themes": [
+        "modern-card",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#profile_left_column h2",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "catppuccin-mocha",
+        "flexoki",
+        "gruvbox-dark",
+        "modern-card",
+        "rose-pine",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#profile_left_column h2",
+      "property": "font-family",
+      "important": true,
+      "themes": [
+        "paper-ink"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#profile_left_column h2",
+      "property": "letter-spacing",
+      "important": true,
+      "themes": [
+        "gruvbox-dark"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#profile_left_column h2",
+      "property": "text-transform",
+      "important": true,
+      "themes": [
+        "gruvbox-dark"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#profile_main_column h2",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "catppuccin-mocha",
+        "flexoki",
+        "gruvbox-dark",
+        "modern-card",
+        "rose-pine",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#profile_main_column h2",
+      "property": "font-family",
+      "important": true,
+      "themes": [
+        "paper-ink"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#profile_main_column h2",
+      "property": "letter-spacing",
+      "important": true,
+      "themes": [
+        "gruvbox-dark"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#profile_main_column h2",
+      "property": "text-transform",
+      "important": true,
+      "themes": [
+        "gruvbox-dark"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#profile_right_column h2",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "catppuccin-mocha",
+        "flexoki",
+        "gruvbox-dark",
+        "modern-card",
+        "rose-pine",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#profile_right_column h2",
+      "property": "font-family",
+      "important": true,
+      "themes": [
+        "paper-ink"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#profile_right_column h2",
+      "property": "letter-spacing",
+      "important": true,
+      "themes": [
+        "gruvbox-dark"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#profile_right_column h2",
+      "property": "text-transform",
+      "important": true,
+      "themes": [
+        "gruvbox-dark"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#right_bar a:not(.tag):hover",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "flexoki",
+        "modern-card",
+        "paper-ink",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#right_bar a:not(.tag)",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "dracula",
+        "flexoki",
+        "modern-card",
+        "nord-night",
+        "paper-ink",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#right_bar b",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "catppuccin-mocha",
+        "flexoki",
+        "gruvbox-dark",
+        "modern-card",
+        "rose-pine",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#right_bar b",
+      "property": "font-family",
+      "important": true,
+      "themes": [
+        "paper-ink"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#right_bar h3",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "catppuccin-mocha",
+        "flexoki",
+        "gruvbox-dark",
+        "modern-card",
+        "rose-pine",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#right_bar h3",
+      "property": "font-family",
+      "important": true,
+      "themes": [
+        "paper-ink"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#right_bar h4",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "catppuccin-mocha",
+        "flexoki",
+        "gruvbox-dark",
+        "modern-card",
+        "rose-pine",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#right_bar h4",
+      "property": "font-family",
+      "important": true,
+      "themes": [
+        "paper-ink"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#right_bar input[type=\"submit\"]",
+      "property": "border-radius",
+      "important": true,
+      "themes": [
+        "catppuccin-latte",
+        "catppuccin-mocha",
+        "dracula",
+        "flexoki",
+        "github-light",
+        "gruvbox-dark",
+        "paper-ink",
+        "solarized-dark",
+        "solarized-light"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#right_bar input#key:focus",
+      "property": "border-color",
+      "important": true,
+      "themes": [
+        "dracula",
+        "flexoki",
+        "paper-ink"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#right_bar input#key:focus",
+      "property": "box-shadow",
+      "important": true,
+      "themes": [
+        "catppuccin-latte",
+        "catppuccin-mocha",
+        "dracula",
+        "flexoki",
+        "gruvbox-dark",
+        "modern-card",
+        "paper-ink",
+        "rose-pine",
+        "solarized-light",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#right_bar input#key",
+      "property": "background",
+      "important": true,
+      "themes": [
+        "dracula",
+        "flexoki",
+        "modern-card",
+        "nord-night",
+        "paper-ink",
+        "rose-pine",
+        "solarized-dark",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#right_bar input#key",
+      "property": "border-radius",
+      "important": true,
+      "themes": [
+        "catppuccin-latte",
+        "catppuccin-mocha",
+        "dracula",
+        "flexoki",
+        "github-light",
+        "gruvbox-dark",
+        "paper-ink",
+        "solarized-dark",
+        "solarized-light"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#right_bar input#key",
+      "property": "border",
+      "important": true,
+      "themes": [
+        "catppuccin-latte",
+        "dracula",
+        "flexoki",
+        "gruvbox-dark",
+        "modern-card",
+        "nord-night",
+        "paper-ink",
+        "rose-pine",
+        "solarized-dark",
+        "solarized-light",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#right_bar input#key",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "github-light",
+        "modern-card",
+        "paper-ink",
+        "solarized-dark",
+        "solarized-light"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#right_bar table td a.delete",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "flexoki",
+        "github-light",
+        "paper-ink",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#right_bar table tr:hover td a.delete",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "paper-ink",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#right_bar table tr[onmouseover]:hover",
+      "property": "background",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#right_bar",
+      "property": "background",
+      "important": true,
+      "themes": [
+        "modern-card",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#right_bar",
+      "property": "border-left",
+      "important": true,
+      "themes": [
+        "paper-ink",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#right_bar",
+      "property": "border-radius",
+      "important": true,
+      "themes": [
+        "modern-card"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#right_bar",
+      "property": "border",
+      "important": true,
+      "themes": [
+        "modern-card"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#search_query_field:focus",
+      "property": "background",
+      "important": true,
+      "themes": [
+        "catppuccin-mocha",
+        "gruvbox-dark",
+        "modern-card",
+        "solarized-dark"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#search_query_field:focus",
+      "property": "border-color",
+      "important": true,
+      "themes": [
+        "dracula",
+        "paper-ink"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#search_query_field:focus",
+      "property": "box-shadow",
+      "important": true,
+      "themes": [
+        "dracula",
+        "rose-pine",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#search_query_field",
+      "property": "background",
+      "important": true,
+      "themes": [
+        "modern-card",
+        "solarized-dark",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#search_query_field",
+      "property": "border-radius",
+      "important": true,
+      "themes": [
+        "catppuccin-latte",
+        "catppuccin-mocha",
+        "modern-card",
+        "rose-pine"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#search_query_field",
+      "property": "border",
+      "important": true,
+      "themes": [
+        "dracula",
+        "modern-card",
+        "nord-night",
+        "rose-pine"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#search_query_field",
+      "property": "font-family",
+      "important": true,
+      "themes": [
+        "paper-ink",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#search_query_field",
+      "property": "padding",
+      "important": true,
+      "themes": [
+        "modern-card"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#settings_panel",
+      "property": "background",
+      "important": true,
+      "themes": [
+        "dracula",
+        "flexoki",
+        "modern-card",
+        "paper-ink",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#settings_panel",
+      "property": "border-radius",
+      "important": true,
+      "themes": [
+        "catppuccin-mocha",
+        "modern-card"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#settings_panel",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "dracula",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#settings_panel",
+      "property": "padding",
+      "important": true,
+      "themes": [
+        "modern-card"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#settings_tab_panes table td",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "modern-card"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#sub_banner a:hover",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "dracula"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#sub_banner a.selected",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "dracula"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#sub_banner a",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#sub_banner",
+      "property": "background",
+      "important": true,
+      "themes": [
+        "modern-card",
+        "paper-ink",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#sub_banner",
+      "property": "border-bottom",
+      "important": true,
+      "themes": [
+        "modern-card"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#sub_banner",
+      "property": "border-color",
+      "important": true,
+      "themes": [
+        "paper-ink",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#tag_cloud_header a:not(.tag):hover",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "dracula",
+        "flexoki",
+        "paper-ink"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#top_menu a:hover",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "modern-card",
+        "nord-night",
+        "paper-ink"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#top_menu a:hover",
+      "property": "text-decoration",
+      "important": true,
+      "themes": [
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#top_menu a",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "dracula",
+        "modern-card",
+        "paper-ink"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#top_menu a",
+      "property": "text-decoration",
+      "important": true,
+      "themes": [
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#tweet_searchbox #search_query_field:focus",
+      "property": "border-color",
+      "important": true,
+      "themes": [
+        "dracula",
+        "flexoki",
+        "paper-ink"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#tweet_searchbox #search_query_field:focus",
+      "property": "box-shadow",
+      "important": true,
+      "themes": [
+        "catppuccin-latte",
+        "catppuccin-mocha",
+        "dracula",
+        "flexoki",
+        "gruvbox-dark",
+        "modern-card",
+        "paper-ink",
+        "rose-pine",
+        "solarized-light",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#tweet_searchbox #search_query_field",
+      "property": "background",
+      "important": true,
+      "themes": [
+        "dracula",
+        "flexoki",
+        "modern-card",
+        "nord-night",
+        "paper-ink",
+        "rose-pine",
+        "solarized-dark",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#tweet_searchbox #search_query_field",
+      "property": "border-radius",
+      "important": true,
+      "themes": [
+        "catppuccin-latte",
+        "catppuccin-mocha",
+        "dracula",
+        "flexoki",
+        "github-light",
+        "gruvbox-dark",
+        "paper-ink",
+        "solarized-dark",
+        "solarized-light"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#tweet_searchbox #search_query_field",
+      "property": "border",
+      "important": true,
+      "themes": [
+        "catppuccin-latte",
+        "dracula",
+        "flexoki",
+        "gruvbox-dark",
+        "modern-card",
+        "nord-night",
+        "paper-ink",
+        "rose-pine",
+        "solarized-dark",
+        "solarized-light",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#tweet_searchbox #search_query_field",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "github-light",
+        "modern-card",
+        "paper-ink",
+        "solarized-dark",
+        "solarized-light"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "#tweet_searchbox input[type=\"submit\"]",
+      "property": "border-radius",
+      "important": true,
+      "themes": [
+        "catppuccin-latte",
+        "catppuccin-mocha",
+        "dracula",
+        "flexoki",
+        "github-light",
+        "gruvbox-dark",
+        "paper-ink",
+        "solarized-dark",
+        "solarized-light"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "a.bookmark_title::before",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "a.bookmark_title:hover",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "dracula",
+        "nord-night"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "a.bookmark_title:hover",
+      "property": "text-decoration",
+      "important": true,
+      "themes": [
+        "catppuccin-latte",
+        "catppuccin-mocha",
+        "rose-pine"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "a.bookmark_title",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "rose-pine"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "a.bookmark_title",
+      "property": "font-style",
+      "important": true,
+      "themes": [
+        "rose-pine"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "a.bookmark_title",
+      "property": "font-weight",
+      "important": true,
+      "themes": [
+        "catppuccin-latte",
+        "catppuccin-mocha",
+        "paper-ink",
+        "rose-pine",
+        "solarized-dark",
+        "solarized-light",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "a.bookmark_title",
+      "property": "letter-spacing",
+      "important": true,
+      "themes": [
+        "paper-ink"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "a.bundle:hover",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "flexoki",
+        "modern-card",
+        "paper-ink",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "a.bundle",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "dracula",
+        "flexoki",
+        "modern-card",
+        "nord-night",
+        "paper-ink",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "a.bundle",
+      "property": "text-decoration",
+      "important": true,
+      "themes": [
+        "modern-card"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "a.cached",
+      "property": "font-size",
+      "important": true,
+      "themes": [
+        "modern-card"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "a.cached",
+      "property": "text-decoration",
+      "important": true,
+      "themes": [
+        "modern-card"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "a.copy_link",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "dracula",
+        "nord-night"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "a.help",
+      "property": "background",
+      "important": true,
+      "themes": [
+        "catppuccin-latte",
+        "paper-ink"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "a.help",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "paper-ink"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "a.help",
+      "property": "text-decoration",
+      "important": true,
+      "themes": [
+        "modern-card"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "a.sort_order_selected",
+      "property": "background",
+      "important": true,
+      "themes": [
+        "catppuccin-latte",
+        "catppuccin-mocha",
+        "dracula",
+        "flexoki",
+        "gruvbox-dark",
+        "nord-night",
+        "paper-ink",
+        "rose-pine",
+        "solarized-dark",
+        "solarized-light",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "a.sort_order_selected",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "dracula",
+        "flexoki",
+        "gruvbox-dark",
+        "paper-ink"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "a.tag_heading_selected",
+      "property": "font-size",
+      "important": true,
+      "themes": [
+        "modern-card"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "a.unread",
+      "property": "font-weight",
+      "important": true,
+      "themes": [
+        "modern-card"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "a.url_display",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "catppuccin-latte",
+        "catppuccin-mocha",
+        "dracula",
+        "flexoki",
+        "github-light",
+        "gruvbox-dark",
+        "modern-card",
+        "nord-night",
+        "paper-ink",
+        "rose-pine",
+        "solarized-dark",
+        "solarized-light",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "a.url_display",
+      "property": "font-family",
+      "important": true,
+      "themes": [
+        "paper-ink",
+        "rose-pine",
+        "solarized-dark",
+        "solarized-light"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "a.url_display",
+      "property": "font-size",
+      "important": true,
+      "themes": [
+        "catppuccin-latte",
+        "catppuccin-mocha",
+        "dracula",
+        "flexoki",
+        "github-light",
+        "gruvbox-dark",
+        "modern-card",
+        "nord-night",
+        "paper-ink",
+        "rose-pine",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "a.url_display",
+      "property": "font-style",
+      "important": true,
+      "themes": [
+        "rose-pine"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "a.url_display",
+      "property": "text-decoration",
+      "important": true,
+      "themes": [
+        "modern-card"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "a.url_link",
+      "property": "background",
+      "important": true,
+      "themes": [
+        "catppuccin-mocha",
+        "dracula",
+        "gruvbox-dark",
+        "nord-night",
+        "solarized-dark",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "a.url_link",
+      "property": "border-radius",
+      "important": true,
+      "themes": [
+        "catppuccin-latte",
+        "flexoki",
+        "github-light",
+        "modern-card",
+        "rose-pine"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "a.url_link",
+      "property": "border",
+      "important": true,
+      "themes": [
+        "gruvbox-dark"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "a.url_link",
+      "property": "font-family",
+      "important": true,
+      "themes": [
+        "rose-pine"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "a.url_link",
+      "property": "font-size",
+      "important": true,
+      "themes": [
+        "modern-card"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "a.url_link",
+      "property": "font-style",
+      "important": true,
+      "themes": [
+        "rose-pine"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "a.url_link",
+      "property": "padding",
+      "important": true,
+      "themes": [
+        "catppuccin-latte",
+        "catppuccin-mocha",
+        "dracula",
+        "flexoki",
+        "gruvbox-dark",
+        "modern-card",
+        "nord-night",
+        "paper-ink",
+        "solarized-dark",
+        "solarized-light",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "a.when",
+      "property": "font-family",
+      "important": true,
+      "themes": [
+        "paper-ink",
+        "solarized-dark",
+        "solarized-light"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "a",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "dracula",
+        "nord-night"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "body:not(#pinboard)",
+      "property": "font-family",
+      "important": true,
+      "themes": [
+        "paper-ink"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "body:not(#pinboard)",
+      "property": "font-weight",
+      "important": true,
+      "themes": [
+        "gruvbox-dark"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "body:not(#pinboard)",
+      "property": "letter-spacing",
+      "important": true,
+      "themes": [
+        "solarized-dark",
+        "solarized-light"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "body:not(#pinboard)",
+      "property": "line-height",
+      "important": true,
+      "themes": [
+        "rose-pine"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "body#pinboard",
+      "property": "font-weight",
+      "important": true,
+      "themes": [
+        "gruvbox-dark"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "body#pinboard",
+      "property": "letter-spacing",
+      "important": true,
+      "themes": [
+        "solarized-dark",
+        "solarized-light"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "h2",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "catppuccin-mocha",
+        "flexoki",
+        "gruvbox-dark",
+        "modern-card",
+        "rose-pine",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "h2",
+      "property": "font-family",
+      "important": true,
+      "themes": [
+        "paper-ink"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "hr",
+      "property": "border-color",
+      "important": true,
+      "themes": [
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark .bookmark_count_box",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark .bookmark_count",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark .bookmark",
+      "property": "border-bottom-color",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark .description blockquote",
+      "property": "border-left",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark .description blockquote",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark .description",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark .help_box",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark .note",
+      "property": "border-bottom-color",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark .service_box",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark .settings_heading",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark .settings_tab_selected",
+      "property": "background",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark .settings_tab_selected",
+      "property": "border-bottom-color",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark .settings_tab",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark .suggested_tag",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark .user_navbar a",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark #banner_searchbox input[type=\"text\"]",
+      "property": "border-color",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark #bulk_edit_box",
+      "property": "background",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark #bulk_edit_box",
+      "property": "border-color",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark #bulk_top_bar",
+      "property": "background",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark #bulk_top_bar",
+      "property": "border-color",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark #edit_bookmark_form",
+      "property": "background",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark #edit_bookmark_form",
+      "property": "border-color",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark #main_column form[name=\"sort\"] table a[style*=\"color: #aaa\"]",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark #main_column form[name=\"sort\"] table a[style*=\"color:#aaa\"]",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark #main_column form[name=\"sort\"] table input[name^=\"id_\"]:focus",
+      "property": "box-shadow",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark #main_column form[name=\"sort\"] table input[name^=\"id_\"]",
+      "property": "background",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark #main_column form[name=\"sort\"] table input[name^=\"id_\"]",
+      "property": "border-color",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark #main_column form[name=\"sort\"] table td a.edit",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark #main_column form[name=\"sort\"] table tr:hover",
+      "property": "background",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark #profile_left_column h2",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark #profile_main_column h2",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark #profile_right_column h2",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark #right_bar a:not(.tag):hover",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark #right_bar a:not(.tag)",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark #right_bar b",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark #right_bar h3",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark #right_bar h4",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark #right_bar input[type=\"submit\"]:hover",
+      "property": "background",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark #right_bar input[type=\"submit\"]",
+      "property": "background",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark #right_bar input[type=\"submit\"]",
+      "property": "border-radius",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark #right_bar input#key:focus",
+      "property": "border-color",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark #right_bar input#key:focus",
+      "property": "box-shadow",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark #right_bar input#key",
+      "property": "background",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark #right_bar input#key",
+      "property": "border-radius",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark #right_bar table tr[onmouseover]:hover",
+      "property": "background",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark #search_query_field",
+      "property": "border-color",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark #settings_panel",
+      "property": "background",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark #settings_panel",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark #sub_banner a",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark #tag_cloud_header a:not(.tag):hover",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark #tweet_searchbox #search_query_field:focus",
+      "property": "border-color",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark #tweet_searchbox #search_query_field:focus",
+      "property": "box-shadow",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark #tweet_searchbox #search_query_field",
+      "property": "background",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark #tweet_searchbox #search_query_field",
+      "property": "border-radius",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark #tweet_searchbox #search_query_field",
+      "property": "font-size",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark #tweet_searchbox input[type=\"submit\"]:hover",
+      "property": "background",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark #tweet_searchbox input[type=\"submit\"]",
+      "property": "background",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark #tweet_searchbox input[type=\"submit\"]",
+      "property": "border-radius",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark a.bundle:hover",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark a.bundle",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark a.sort_order_selected",
+      "property": "background",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark a.sort_order_selected",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark a.url_display",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark a.url_link",
+      "property": "background",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark h2",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark input:not([type])",
+      "property": "border-color",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark input[type=\"password\"]",
+      "property": "border-color",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark input[type=\"text\"]",
+      "property": "border-color",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark select",
+      "property": "border-color",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "html.pbp-dark textarea",
+      "property": "border-color",
+      "important": true,
+      "themes": [
+        "flexoki"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "input:not([type]):focus",
+      "property": "background",
+      "important": true,
+      "themes": [
+        "catppuccin-mocha",
+        "gruvbox-dark"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "input:not([type]):focus",
+      "property": "border-color",
+      "important": true,
+      "themes": [
+        "dracula",
+        "paper-ink"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "input:not([type]):focus",
+      "property": "box-shadow",
+      "important": true,
+      "themes": [
+        "dracula",
+        "modern-card",
+        "rose-pine",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "input:not([type])",
+      "property": "background",
+      "important": true,
+      "themes": [
+        "modern-card",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "input:not([type])",
+      "property": "border-radius",
+      "important": true,
+      "themes": [
+        "catppuccin-latte",
+        "catppuccin-mocha",
+        "modern-card",
+        "rose-pine"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "input:not([type])",
+      "property": "border",
+      "important": true,
+      "themes": [
+        "dracula",
+        "modern-card",
+        "nord-night",
+        "rose-pine"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "input:not([type])",
+      "property": "font-family",
+      "important": true,
+      "themes": [
+        "modern-card",
+        "paper-ink",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "input:not([type])",
+      "property": "padding",
+      "important": true,
+      "themes": [
+        "modern-card",
+        "paper-ink"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "input[type=\"button\"]:hover",
+      "property": "border-color",
+      "important": true,
+      "themes": [
+        "gruvbox-dark"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "input[type=\"button\"]",
+      "property": "border-radius",
+      "important": true,
+      "themes": [
+        "modern-card"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "input[type=\"button\"]",
+      "property": "border",
+      "important": true,
+      "themes": [
+        "flexoki",
+        "modern-card",
+        "nord-night",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "input[type=\"button\"]",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "modern-card"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "input[type=\"button\"]",
+      "property": "font-family",
+      "important": true,
+      "themes": [
+        "paper-ink",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "input[type=\"button\"]",
+      "property": "font-size",
+      "important": true,
+      "themes": [
+        "modern-card"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "input[type=\"button\"]",
+      "property": "font-weight",
+      "important": true,
+      "themes": [
+        "dracula",
+        "gruvbox-dark"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "input[type=\"button\"]",
+      "property": "padding",
+      "important": true,
+      "themes": [
+        "modern-card",
+        "paper-ink"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "input[type=\"checkbox\"]",
+      "property": "accent-color",
+      "important": true,
+      "themes": [
+        "dracula"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "input[type=\"password\"]",
+      "property": "background",
+      "important": true,
+      "themes": [
+        "modern-card",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "input[type=\"password\"]",
+      "property": "border-radius",
+      "important": true,
+      "themes": [
+        "catppuccin-latte",
+        "catppuccin-mocha",
+        "modern-card",
+        "rose-pine"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "input[type=\"password\"]",
+      "property": "border",
+      "important": true,
+      "themes": [
+        "dracula",
+        "modern-card",
+        "nord-night",
+        "rose-pine"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "input[type=\"password\"]",
+      "property": "font-family",
+      "important": true,
+      "themes": [
+        "modern-card",
+        "paper-ink",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "input[type=\"password\"]",
+      "property": "padding",
+      "important": true,
+      "themes": [
+        "modern-card",
+        "paper-ink"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "input[type=\"radio\"]",
+      "property": "accent-color",
+      "important": true,
+      "themes": [
+        "dracula"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "input[type=\"submit\"]:hover",
+      "property": "border-color",
+      "important": true,
+      "themes": [
+        "gruvbox-dark"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "input[type=\"submit\"]",
+      "property": "border-radius",
+      "important": true,
+      "themes": [
+        "modern-card"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "input[type=\"submit\"]",
+      "property": "border",
+      "important": true,
+      "themes": [
+        "flexoki",
+        "modern-card",
+        "nord-night",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "input[type=\"submit\"]",
+      "property": "color",
+      "important": true,
+      "themes": [
+        "modern-card"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "input[type=\"submit\"]",
+      "property": "font-family",
+      "important": true,
+      "themes": [
+        "paper-ink",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "input[type=\"submit\"]",
+      "property": "font-size",
+      "important": true,
+      "themes": [
+        "modern-card"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "input[type=\"submit\"]",
+      "property": "font-weight",
+      "important": true,
+      "themes": [
+        "dracula",
+        "gruvbox-dark"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "input[type=\"submit\"]",
+      "property": "padding",
+      "important": true,
+      "themes": [
+        "modern-card",
+        "paper-ink"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "input[type=\"text\"]:focus",
+      "property": "background",
+      "important": true,
+      "themes": [
+        "catppuccin-mocha",
+        "gruvbox-dark"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "input[type=\"text\"]:focus",
+      "property": "border-color",
+      "important": true,
+      "themes": [
+        "dracula",
+        "paper-ink"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "input[type=\"text\"]:focus",
+      "property": "box-shadow",
+      "important": true,
+      "themes": [
+        "dracula",
+        "modern-card",
+        "rose-pine",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "input[type=\"text\"]",
+      "property": "background",
+      "important": true,
+      "themes": [
+        "modern-card",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "input[type=\"text\"]",
+      "property": "border-radius",
+      "important": true,
+      "themes": [
+        "catppuccin-latte",
+        "catppuccin-mocha",
+        "modern-card",
+        "rose-pine"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "input[type=\"text\"]",
+      "property": "border",
+      "important": true,
+      "themes": [
+        "dracula",
+        "modern-card",
+        "nord-night",
+        "rose-pine"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "input[type=\"text\"]",
+      "property": "font-family",
+      "important": true,
+      "themes": [
+        "modern-card",
+        "paper-ink",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "input[type=\"text\"]",
+      "property": "padding",
+      "important": true,
+      "themes": [
+        "modern-card",
+        "paper-ink"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "select:focus",
+      "property": "background",
+      "important": true,
+      "themes": [
+        "catppuccin-mocha",
+        "gruvbox-dark"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "select:focus",
+      "property": "border-color",
+      "important": true,
+      "themes": [
+        "dracula",
+        "paper-ink"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "select:focus",
+      "property": "box-shadow",
+      "important": true,
+      "themes": [
+        "dracula",
+        "modern-card",
+        "rose-pine",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "select",
+      "property": "background",
+      "important": true,
+      "themes": [
+        "modern-card",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "select",
+      "property": "border-radius",
+      "important": true,
+      "themes": [
+        "catppuccin-latte",
+        "catppuccin-mocha",
+        "modern-card",
+        "rose-pine"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "select",
+      "property": "border",
+      "important": true,
+      "themes": [
+        "dracula",
+        "modern-card",
+        "nord-night",
+        "rose-pine"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "select",
+      "property": "font-family",
+      "important": true,
+      "themes": [
+        "modern-card",
+        "paper-ink",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "select",
+      "property": "padding",
+      "important": true,
+      "themes": [
+        "modern-card",
+        "paper-ink"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "textarea:focus",
+      "property": "background",
+      "important": true,
+      "themes": [
+        "catppuccin-mocha",
+        "gruvbox-dark"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "textarea:focus",
+      "property": "border-color",
+      "important": true,
+      "themes": [
+        "dracula",
+        "paper-ink"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "textarea:focus",
+      "property": "box-shadow",
+      "important": true,
+      "themes": [
+        "dracula",
+        "modern-card",
+        "rose-pine",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "textarea",
+      "property": "background",
+      "important": true,
+      "themes": [
+        "modern-card",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "textarea",
+      "property": "border-radius",
+      "important": true,
+      "themes": [
+        "catppuccin-latte",
+        "catppuccin-mocha",
+        "modern-card",
+        "rose-pine"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "textarea",
+      "property": "border",
+      "important": true,
+      "themes": [
+        "dracula",
+        "modern-card",
+        "nord-night",
+        "rose-pine"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "textarea",
+      "property": "font-family",
+      "important": true,
+      "themes": [
+        "modern-card",
+        "paper-ink",
+        "terminal"
+      ]
+    },
+    {
+      "context": [],
+      "selector": "textarea",
+      "property": "padding",
+      "important": true,
+      "themes": [
+        "modern-card",
+        "paper-ink"
+      ]
+    }
+  ]
+}

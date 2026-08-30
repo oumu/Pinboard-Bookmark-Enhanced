@@ -392,26 +392,6 @@ export function patternsLayer(tokens) {
   }
   // "default" or missing → composer baseline
 
-  // ---- P6: sort-table-style ----
-  // Admin bookmark-sort table at `#main_column form[name="sort"]`. 13/13
-  // themes re-style the order-rank input (`input[name^="id_"]`) identically
-  // (38px fixed width, 3px/4px padding, 10px right margin, 12px font,
-  // weight 600) and apply a subtle accent-alpha tint on `tr:hover`. This
-  // pattern absorbs both, leaving background/border still token-driven.
-  //   "enabled" → emit full package (order input + row hover)
-  // Radius tunable via `ext.sort-input-radius` (default inherits from
-  // ext.searchbox-radius, else 3px).
-  const sortTable = pat["sort-table-style"];
-  if (sortTable === "enabled") {
-    const r = tokens.ext?.["sort-input-radius"] || tokens.ext?.["searchbox-radius"] || "3px";
-    out.push(
-      `#main_column form[name="sort"] table input[name^="id_"] { width: 38px !important; min-width: 38px !important; max-width: 38px !important; padding: 3px 4px !important; margin-right: 10px !important; font-size: 12px !important; line-height: 1.2 !important; font-weight: 600 !important; box-sizing: border-box !important; vertical-align: middle !important; background: ${v("bg-surface")} !important; color: ${v("fg")} !important; border: 1px solid ${v("border")} !important; border-radius: ${r} !important; }`,
-      `#main_column form[name="sort"] table input[name^="id_"]:focus { border-color: ${v("accent")} !important; box-shadow: 0 0 0 2px ${v("accent-alpha")} !important; outline: none !important; }`,
-      `#main_column form[name="sort"] table tr:hover { background: ${v("accent-alpha")} !important; }`
-    );
-  }
-  // "default" or missing → composer baseline
-
   // ---- P6: tag-hover-style ----
   // Delta on top of composer's baseline `a.tag:hover` (which sets bg to
   // accent-alpha, color to tag-fg, text-decoration:none). 10/13 shipped
@@ -500,21 +480,6 @@ export function patternsLayer(tokens) {
     );
   }
   // "default" or missing → composer baseline
-
-  // ---- P7: searchbox-width ----
-  // 7/13 themes force `#search_query_field { width: 100% }` to fight
-  // Pinboard's inline default width and fill the available column. This
-  // pattern centralizes that decl. Keep it separate from `searchbox-style`
-  // because a theme may want 100% width WITHOUT the boxed/outlined chrome
-  // (e.g. modern-card wants a full-width pill-style search).
-  //   "full" → width 100%
-  const searchboxWidth = pat["searchbox-width"];
-  if (searchboxWidth === "full") {
-    out.push(
-      `#search_query_field { width: 100% !important; }`
-    );
-  }
-  // "default" or missing → Pinboard's inline width stays
 
   // ---- P7: input-radius ----
   // 4/13 themes (catppuccin-pair, modern-card, paper-ink) apply the same

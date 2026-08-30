@@ -194,12 +194,10 @@ authoring overrides. Each is opt-in; omit a key to keep composer baseline.
 | `edit-form-surface` | `panel` \| `card` | Heavyweight form panels |
 | `sort-order-style` | `tinted` \| `accent-bg` \| `surface` | `a.sort_order_selected` |
 | `searchbox-style` | `boxed` \| `outlined-accent` \| `minimal` | Search input chrome |
-| `sort-table-style` | `enabled` | Order-rank input + row-hover treatment |
 | `tag-hover-style` | `underline` \| `accent-text` \| `underline-accent` | Delta on `a.tag:hover` |
 | `tag-selected-style` | `accent` \| `accent-soft` \| `bold-accent` | Delta on `a.tag.selected` |
 | `title-hover-style` | `no-underline` \| `accent-color` \| `muted` | Delta on `a.bookmark_title:hover` |
 | `description-tone` | `muted` \| `faint` | `.description` tone |
-| `searchbox-width` | `full` | `#search_query_field { width: 100% }` |
 | `input-radius` | `rounded` | Uniform radius across all form inputs (requires `ext.input-radius`) |
 
 `tag-style` is required because it owns the full tag visual. Without it the
@@ -233,6 +231,13 @@ Selectors currently scoped this way in `classic-list-v2.mjs`:
 - `#tag_cloud_header a:not(.tag)` + variants
 
 The lint hint will tell you exactly which `:not(...)` to add.
+
+`override-debt.mjs` separately ratchets the remaining escape hatch by parsed
+`(at-rule context, selector, property, !important, theme)` identity. Removing
+an override passes without touching the baseline; adding a new structural
+identity fails even if another declaration was deleted and the total count is
+unchanged. Do not refresh `tools/override-debt-baseline.json` merely to make a
+new rule pass—promote repeated behavior to a token, pattern, or composer rule.
 
 ---
 
@@ -322,18 +327,14 @@ Four rules, two carried over and regression-tested, two new this campaign:
   `@generated:ui-components` region's geometry recipe *consumes* these same
   tokens through a spacing adapter (below) — it does not let a theme make
   them vary either.
-- **Five component-pair color tokens cannot be overridden through `ui` at
-  all — known limitation, not yet fixed.** `btn-fg`, `danger-quiet-fg`,
-  `on-danger`, `chip-bg` and `chip-fg` are recomputed unconditionally by
-  each composer from the FINAL, post-`ui`-override map (so they stay
-  AA-correct against whatever else you did override), which means a `ui`
-  block that sets one of these five names directly has that value silently
-  discarded and replaced by the recomputation. No shipped pilot does this
-  today. If your theme's intent genuinely needs one of these five to be
-  something the AA derivation won't land on by itself, the derivation
-  itself needs a per-pilot escape hatch (not present as of this campaign)
-  — changing the *inputs* the formula reads (`btn-bg`, `danger`, `tag-bg`,
-  `tag-fg`) and trusting the formula is the only supported lever today.
+- **Derived component-pair colors are not `ui` inputs.** The shared
+  `btn-fg`, `danger-quiet-fg`, `on-danger`, `chip-bg`, `chip-fg` roles and
+  popup-only `preset-fg` / `spinner-fg` are computed from the FINAL,
+  post-override map. `validate-contracts.mjs` rejects these names at their
+  exact JSON pointer instead of silently discarding them. Change supported
+  inputs (`btn-bg`, `danger`, `tag-bg`, `tag-fg`, `preset-bg`, `spinner-bg`)
+  and trust the finalizer; a new output escape hatch requires an explicit
+  derivation-contract change plus tests.
 - **A pilot can restore a real border by declaring its own `-bd`/`-border`
   role — the terminal exemption.** Every theme's controls default to the
   Soft Fill language (COMPONENTS.md §9): no resting border, identity
@@ -364,7 +365,8 @@ Gates guard both regions, colors and structure alike:
 
 | Gate | What it checks |
 |------|----------------|
-| `validate-contracts.mjs` | Executes `tokens.schema.json`, checks filename ↔ `meta.id`, registered modes/composers, and manifest page/template/surface cross-references |
+| `validate-contracts.mjs` | Executes `tokens.schema.json`, rejects derived UI outputs used as inputs, checks filename ↔ `meta.id`, registered modes/composers, and manifest page/template/surface cross-references |
+| `override-debt.mjs` | Ratchets remaining `overrides.css` by parsed `(at-rule context, selector, property, !important, theme)` identity; removals pass, new structural debt fails even when total counts stay flat |
 | `contrast-audit.mjs` | WCAG AA (text) / 3:1 (icons, borders) for every popup/options/library status/text pair AND the component-pair table (`btn-fg`×`btn-bg`, `chip-fg`×`chip-bg`, `danger-quiet-fg`×`bg`/`panel`, `on-danger`×`danger`, `border`×`btn-bg`/`panel`, …) — see `README.md`'s "Contrast guard" section for the full pair list |
 | `css-region-audit.mjs` | Neither `@generated:ui-themes` NOR `@generated:ui-components` has been hand-edited — one generic check over all six regions, no new region needs new audit code |
 | `ui-token-coverage.mjs` | Every consumed `--pp-*` / `--opt-*` / `--lib-*` token (including ones only consumed inside `@generated:ui-components`) resolves to a definition per theme |
@@ -397,16 +399,16 @@ node docs/theme-surface/tools/sync-all.mjs --check   # same pipeline, strict rea
 bash scripts/verify.sh                               # contract/tool tests + all CI gates
 ```
 
-`sync-all` is the orchestrator — 11 steps: `validate-contracts`, `render-all`,
+`sync-all` is the orchestrator — 12 steps: `validate-contracts`, `render-all`,
 `apply-ui-themes --write` (both UI regions), dynamically discovered
 `apply-tokens`, `diff-all --strict`,
 `contrast-audit`, `css-region-audit`, `ui-token-coverage`, `layout-lint`,
-`url-lint`, `recipe-lint`. In `--check` mode, render/apply/diff steps suppress
+`url-lint`, `recipe-lint`, `override-debt`. In `--check` mode, render/apply/diff steps suppress
 all writes and compare generated output byte-for-byte; the integration test
 also snapshots file mtimes to enforce that contract. See §6 for these gates
 and the separate render oracle, `scripts/ui-render-audit.mjs`.
 
-The pre-commit hook runs the read-only 11-step pipeline and complementary gates automatically when any
+The pre-commit hook runs the read-only 12-step pipeline and complementary gates automatically when any
 `composers/`, `pilots/*.tokens.json`, `tools/*.mjs`, generated theme artifact,
 or three-surface CSS file is staged. It does not run the browser render oracle.
 A tokens-only theme addition still needs a manual write-mode `sync-all` and full
