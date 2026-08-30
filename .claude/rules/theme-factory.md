@@ -22,7 +22,7 @@ paths:
 
 ## 唯一编辑顺序
 
-改 `composers/*.mjs` 或 `pilots/*.tokens.json` → `node docs/theme-surface/tools/sync-all.mjs`（10 步：render-all → apply-ui-themes --write【双区写入】→ apply-tokens ×13 → diff-all --strict → contrast-audit → css-region-audit → ui-token-coverage → layout-lint → url-lint → recipe-lint）→ commit。**禁止手工编辑 `pinboard-themes.js` 与六个 `@generated:*` 区。**
+改 `composers/*.mjs` 或 `pilots/*.tokens.json` → `node docs/theme-surface/tools/sync-all.mjs`（11 步：validate-contracts → render-all → apply-ui-themes --write【双区写入】→ 动态 apply-tokens → diff-all --strict → contrast-audit → css-region-audit → ui-token-coverage → layout-lint → url-lint → recipe-lint）→ commit。**禁止手工编辑 `pinboard-themes.js` 与六个 `@generated:*` 区。**
 
 ## 间距边界（design-uplift 修订）
 
@@ -30,21 +30,22 @@ paths:
 
 ## 质量门地图
 
-Pre-commit 共 8 道，**同一组触发条件**（theme-surface 源、pinboard-themes.js 或三份 CSS 任一改动 → 8 道全部顺序执行），任一红即 block，禁止 `--no-verify`。
+Pre-commit 共 9 道，**同一组触发条件**（theme-surface 源、pinboard-themes.js 或三份 CSS 任一改动 → 9 道全部顺序执行），任一红即 block，禁止 `--no-verify`。
 
-**基础 5 道**：
-1. `diff-all --strict` — composer 输出 vs shipped CSS 字符级一致
-2. `token-coverage` — 所有 `v("...")` 引用可解析
-3. `cascade-lint` — CSS cascade 模拟（13 主题 × 15 探针，含 flexoki dark）
-4. `override-drift` — overrides 不重新拉宽 composer 的 `:not(...)` 限定
-5. `handedit-audit` — pinboard-themes.js 无 composer 不产出的规则
+**基础 6 道**：
+1. `validate-contracts` — 执行 tokens schema + filename/meta.id + manifest page/template/surface/composer/mode 交叉约束
+2. `diff-all --strict` — composer 输出 vs shipped CSS 字符级一致
+3. `token-coverage` — 所有 `v("...")` 引用可解析
+4. `cascade-lint` — CSS cascade 模拟（13 主题 × 15 探针，含 flexoki dark）
+5. `override-drift` — overrides 不重新拉宽 composer 的 `:not(...)` 限定
+6. `handedit-audit` — pinboard-themes.js 无 composer 不产出的规则
 
 **追加 3 道秒级门**（design-uplift final-fix Rec 1）：
-6. `css-region-audit` — 六个生成区无手改/漂移
-7. `recipe-lint` — ui-components.mjs 单源 14 类静态检查（paired-color 律、chip 几何律、SPACING 映射与三份 CSS `:root` 实值一致、无 `--sp-*` 直引、无带 fallback 的 var()、press 瞬时不进 transition、无 `transition: all`、motion budget ≤200ms、按钮族图标基础规则、圆角三律等）
-8. `tests/ui-contract-tests.mjs` — hex/rgba 零容忍比率、`var(--X, fallback)` 一致性 + **存在性**（fallback 消费的 token 全文件无定义即 FAIL）、chip 几何契约
+7. `css-region-audit` — 六个生成区无手改/漂移
+8. `recipe-lint` — ui-components.mjs 单源 14 类静态检查（paired-color 律、chip 几何律、SPACING 映射与三份 CSS `:root` 实值一致、无 `--sp-*` 直引、无带 fallback 的 var()、press 瞬时不进 transition、无 `transition: all`、motion budget ≤200ms、按钮族图标基础规则、圆角三律等）
+9. `tests/ui-contract-tests.mjs` — hex/rgba 零容忍比率、`var(--X, fallback)` 一致性 + **存在性**（fallback 消费的 token 全文件无定义即 FAIL）、chip 几何契约
 
-**verify.sh [theme] 段独有两道**（CI 执行，pre-commit 不含——改生成区前必须手动跑一次 sync-all 或 verify.sh）：`ui-token-coverage`（`--pp-*`/`--opt-*`/`--lib-*` 消费点逐主题可解析；ui-components 区内消费点算「区外」纳入扫描，该区本身无逐主题分块不单独审计）+ `contrast-audit`（WCAG AA + 组件层配对对比度，含默认表面）。
+**verify.sh [theme] 段**还执行 `tests/theme-contract-tests.mjs` / `tests/theme-tooling-tests.mjs` 两个真实 CLI/变异测试，以及 pre-commit 不含的 `ui-token-coverage`（`--pp-*`/`--opt-*`/`--lib-*` 消费点逐主题可解析）+ `contrast-audit`（WCAG AA + 组件层配对对比度，含默认表面）。
 
 **verify.sh [render-audit] 段**：`scripts/ui-render-audit.mjs` 用 playwright 装未打包扩展，逐主题量 `getComputedStyle` 与几何；断言清单来自**手写**的 `tests/render-audit-checklist.mjs`——**禁止从配方源生成**（同源会让「组件漏注册」类缺陷在生成器与审计器两侧同时消失）。`render-audit-known-failures.json` 是迁移期基线，**当前为空**（命中区债战役已清零，2026-08）。`hitAreaMin` 族不手工枚举选择器，由 runner 的 sweepProbe（family 4）类扫描全部无文字子节点的 `<button>`，一次通过覆盖全部主题。
 

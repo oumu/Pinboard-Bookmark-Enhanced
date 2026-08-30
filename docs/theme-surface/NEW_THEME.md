@@ -1,6 +1,6 @@
 # Adding a New Theme
 
-Step-by-step for adding a 14th+ theme to the factory. Distilled from the lessons
+Step-by-step for adding a theme preset to the factory. Distilled from the lessons
 of the tag-style cascade refactor — read this before you start so you don't
 spend rounds 2 through 6 of a 1-round task.
 
@@ -15,13 +15,16 @@ cp docs/theme-surface/pilots/github-light.tokens.json \
 
 # 2. edit the palette / typo / patterns to taste
 
-# 3. regenerate pinboard-themes.js AND the popup.css/options.css/library.css
+# 3. validate the executable pilot/schema/manifest contract
+node docs/theme-surface/tools/validate-contracts.mjs
+
+# 4. regenerate pinboard-themes.js AND the popup.css/options.css/library.css
 #    @generated:ui-themes regions (the sibling @generated:ui-components
 #    region in each file is structure, not color — it never changes when
 #    you only add a tokens file, see §6)
 node docs/theme-surface/tools/sync-all.mjs
 
-# 4. ensure all gates pass (sync-all already ran them; re-run to double-check)
+# 5. ensure all gates pass (sync-all already ran them; re-run to double-check)
 node docs/theme-surface/tools/diff-all.mjs --strict
 node docs/theme-surface/tools/cascade-lint.mjs
 node docs/theme-surface/tools/override-drift.mjs
@@ -60,7 +63,7 @@ your tokens.json must declare:
 
 | Key | Purpose |
 |-----|---------|
-| `slug` | Must match the filename stem |
+| `id` | Must match the filename stem |
 | `name` | Display name in the options dropdown |
 | `description` | One-line tagline |
 | `author` | Your handle |
@@ -69,7 +72,7 @@ your tokens.json must declare:
 
 | Key | Purpose |
 |-----|---------|
-| `mode` | Must be `"classic-list-v2"` (the only supported composer for shipped themes) |
+| `mode` | Must be `"classic-list"` for shipped presets; manifest maps it to the canonical `classic-list-v2.mjs` composer |
 | `max-width` | Optional column cap, e.g. `"1240px"` or `"none"` |
 | `bookmark-style` | `"flat"` or `"card"` |
 
@@ -359,19 +362,21 @@ Gates guard both regions, colors and structure alike:
 
 | Gate | What it checks |
 |------|----------------|
+| `validate-contracts.mjs` | Executes `tokens.schema.json`, checks filename ↔ `meta.id`, registered modes/composers, and manifest page/template/surface cross-references |
 | `contrast-audit.mjs` | WCAG AA (text) / 3:1 (icons, borders) for every popup/options/library status/text pair AND the component-pair table (`btn-fg`×`btn-bg`, `chip-fg`×`chip-bg`, `danger-quiet-fg`×`bg`/`panel`, `on-danger`×`danger`, `border`×`btn-bg`/`panel`, …) — see `README.md`'s "Contrast guard" section for the full pair list |
 | `css-region-audit.mjs` | Neither `@generated:ui-themes` NOR `@generated:ui-components` has been hand-edited — one generic check over all six regions, no new region needs new audit code |
 | `ui-token-coverage.mjs` | Every consumed `--pp-*` / `--opt-*` / `--lib-*` token (including ones only consumed inside `@generated:ui-components`) resolves to a definition per theme |
 | `recipe-lint.mjs` | Static checks on `ui-components.mjs` itself — paired-color law, chip geometry, the spacing-adapter mapping matches each surface's real `:root` values, no bare `--sp-*` reference, no fallback `var()`, press-is-instant, ≤200ms motion budget, roundness laws. Only relevant if you're editing the recipe itself, not authoring a tokens-only theme |
 | `scripts/ui-render-audit.mjs` (repo root) | The completeness authority — an independent, **hand-written** playwright oracle (`tests/render-audit-checklist.mjs`) that reads real `getComputedStyle`, never generated from the recipe. A brand-new theme rarely needs to touch this; it exists to catch a component the recipe forgot to register, which a same-source check couldn't |
 
-All except the render oracle run inside `sync-all`; the render oracle runs
+All except the render oracle and the two CLI mutation tests run inside
+`sync-all`; the render oracle runs
 inside `scripts/verify.sh`'s separate `[render-audit]` section (playwright +
 an unpacked-extension launch is too slow for the tight `sync-all` inner
-loop). The git pre-commit hook only runs the site-side five (`diff-all
---strict`, `token-coverage`, `cascade-lint`, `override-drift`,
-`handedit-audit`), so a UI-region change still needs a `sync-all` pass
-before you commit. **Do not hand-edit either generated region** in
+loop). The git pre-commit hook runs all nine cheap gates: contract validation,
+the site-side five, and the three generated-region/UI gates. A UI-region
+change still needs a `sync-all` pass for the CI-only contrast and UI token
+coverage checks. **Do not hand-edit either generated region** in
 `popup.css`, `options.css`, or `library.css` — both will be overwritten on
 the next `sync-all`. Component design authority for the structure region:
 `docs/theme-surface/COMPONENTS.md`.
@@ -380,17 +385,16 @@ the next `sync-all`. Component design authority for the structure region:
 
 ## 7 · Verification loop
 
-Run all four in this order. Each must exit 0.
+Run the orchestrator, then the full repository verifier. Each must exit 0.
 
 ```bash
 node docs/theme-surface/tools/sync-all.mjs           # regenerate + drift-guard
-node docs/theme-surface/tools/cascade-lint.mjs       # cascade conflicts
-node docs/theme-surface/tools/override-drift.mjs     # bare overrides on scoped composers
-node docs/theme-surface/tools/token-coverage.mjs     # missing token definitions
+bash scripts/verify.sh                               # contract/tool tests + all CI gates
 ```
 
-`sync-all` is the orchestrator — 10 steps: `render-all`, `apply-ui-themes
---write` (both UI regions), `apply-tokens` × 13, `diff-all --strict`,
+`sync-all` is the orchestrator — 11 steps: `validate-contracts`, `render-all`,
+`apply-ui-themes --write` (both UI regions), dynamically discovered
+`apply-tokens`, `diff-all --strict`,
 `contrast-audit`, `css-region-audit`, `ui-token-coverage`, `layout-lint`,
 `url-lint`, `recipe-lint`. The other three commands above are independent
 checks the pre-commit hook also runs; `css-region-audit` /
@@ -399,12 +403,11 @@ standalone inside `scripts/verify.sh`'s `[theme]` section (CI-gated) — see
 §6 above for what each of those four (plus the separate render oracle,
 `scripts/ui-render-audit.mjs`) checks.
 
-The pre-commit hook runs the four commands above automatically when any
-`composers/`, `pilots/*.tokens.json`, or `tools/*.mjs` file is staged — it
-does NOT run the four §6 UI gates or the render oracle (those need a real
-`sync-all` pass and, for the oracle, an unpacked-extension launch — both too
-slow for a commit-time hook). A tokens-only theme addition still needs a
-manual `sync-all` (or full `verify.sh`) pass before committing. Do not
+The pre-commit hook runs its nine cheap gates automatically when any
+`composers/`, `pilots/*.tokens.json`, `tools/*.mjs`, generated theme artifact,
+or three-surface CSS file is staged. It does not run the CI-only contrast/UI
+token checks or render oracle. A tokens-only theme addition still needs a
+manual `sync-all` and full `verify.sh` pass before committing. Do not
 bypass any of this with `--no-verify` — if a check fires it's a real bug.
 
 ---
@@ -447,7 +450,7 @@ bypass any of this with `--no-verify` — if a check fires it's a real bug.
    refresh icon on the unpacked extension card).
 2. Open Pinboard and switch your theme in the extension options.
 3. Compare against `docs/theme-surface/snapshots/` and `.qa-scan/` for the
-   reference state of the 13 pages × hover/focus/selection.
+   reference state of the 14 pages × hover/focus/selection.
 
 The four pages most worth checking by eye:
 - `home` — bookmark list, tag cloud, pagination

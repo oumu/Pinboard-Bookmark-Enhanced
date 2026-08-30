@@ -172,7 +172,7 @@ for (const ns of NS_LIST) {
 // ---------------------------------------------------------------------------
 // 6. pressInstant — .btn's own transition never lists transform
 // ---------------------------------------------------------------------------
-for (const ns of ["opt", "lib"]) { // pp has no .btn family this campaign
+for (const ns of NS_LIST) {
   const btn = familyRules(ns, "btn").find(r => r.selector === ".btn");
   const transition = btn?.decls.find(([p]) => p === "transition")?.[1] || "";
   if (/\btransform\b/.test(transition)) fail(`pressInstant: ${ns} .btn transition lists "transform" — press must stay instant (§3.1/§3.3)`);

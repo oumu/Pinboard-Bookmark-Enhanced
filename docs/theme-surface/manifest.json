@@ -900,11 +900,11 @@
       "bookmark-title-prefix": { "values": "literal string ≤8 chars", "affects": "a.bookmark_title::before content" },
       "heading-prefix": { "values": "literal string ≤8 chars", "affects": ".settings_heading::before content" },
       "url-link-style": { "values": ["plain", "capsule", "pill", "underline"], "affects": "a.url_link chrome" },
-      "private-badge": { "values": ["tint-bg", "border-left", "dashed", "stripe"], "affects": ".private marker" },
+      "private-badge": { "values": ["tint-bg", "inset-bar", "border-left", "dashed", "stripe"], "affects": ".private marker" },
       "focus-ring": { "values": ["none", "thin-solid", "dashed", "glow"], "affects": "input/textarea/select :focus outline" },
       "shape": { "values": ["sharp", "rounded", "pill"], "affects": "macro rewrite of --pinboard-radius-* at :root" },
       "density": { "values": ["compact", "default", "roomy"], "affects": "macro rewrite of --pinboard-space-* + .bookmark padding" },
-      "hover-effect": { "values": ["underline", "lift", "color-shift", "fade-bg"], "affects": ".bookmark:hover + title underline" },
+      "hover-effect": { "values": ["none"], "affects": "deprecated compatibility key; bookmark row hover effects are intentionally disabled" },
       "row-divider": { "values": ["none", "hairline", "dashed", "left-accent"], "affects": ".bookmark border treatment (border-bottom rule or border-left stripe)" },
       "heading-accent": { "values": ["plain", "caps", "dashed-underline"], "affects": ".settings_heading delta: uppercase+letter-spacing OR dashed bottom rule" },
       "card-shadow": { "values": ["none", "soft", "strong"], "affects": ".bookmark box-shadow; pair with row-divider:none for card-like rows" },
@@ -940,7 +940,7 @@
   "page_templates": {
     "P1-list": {
       "desc": "Bookmark list pages",
-      "pages": ["home", "network", "notes", "popular", "unread"],
+      "pages": ["home", "network", "notes", "popular", "unread", "url-detail"],
       "required_surfaces": ["shell.page","banner.root","banner.searchbox","banner.menu","sub_banner.root","main.column","bookmark.item","bookmark.title","bookmark.tag","bookmark.url_display","misc.colophon"],
       "optional_surfaces": ["right_bar.root","right_bar.tag","bookmark.star","bookmark.url_link","bookmark.private","bookmark.unread","pagination.controls"]
     },

@@ -66,6 +66,9 @@ echo "[store-descriptions] checking CWS store copy is regenerated from the READM
 node "scripts/sync-store-descriptions.mjs" --check
 
 echo "[theme] checking generated theme integrity"
+node "docs/theme-surface/tools/validate-contracts.mjs"
+node "tests/theme-contract-tests.mjs"
+node "tests/theme-tooling-tests.mjs"
 node "docs/theme-surface/tools/diff-all.mjs" --strict
 node "docs/theme-surface/tools/token-coverage.mjs"
 node "docs/theme-surface/tools/cascade-lint.mjs"

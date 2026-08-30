@@ -17,7 +17,7 @@
 //
 // Consumed by scripts/ui-render-audit.mjs. A CHECKS entry does NOT carry a
 // `theme` field: the runner crosses every entry against every value in
-// THEMES below, so "same selector, 16 themes" is a runner-level concern
+// THEMES below, so "same selector, 15 theme states" is a runner-level concern
 // (how do we reach a rendered instance), not an oracle-level one (what
 // should be true once we're there). The known-failures key format
 // (scripts/ui-render-audit.mjs) folds theme back in:
@@ -236,7 +236,7 @@ export const CHECKS = [
   // 多项选中进行操作的状态"). With the checkbox gone, "selected for a batch
   // action" and "current, i.e. the row the detail pane is reading" are two
   // accent-tinted fills on the same element -- a token change on any one of
-  // 16 themes could quietly collapse them into one look, and nothing else in
+  // 15 theme states could quietly collapse them into one look, and nothing else in
   // this oracle looks at two states of the same component at once.
   //
   // A pair passes on a fill gap of >= minDelta OR on a different marker
@@ -818,7 +818,7 @@ export const CHECKS = [
   // all three focus rules -- because that recipe is scoped to
   // `.notes-toolbar input[type="search"]`. What shipped was a UA-native search
   // box wearing the platform's own 2px inset bevel and its own focus ring.
-  // This one entry gates both halves at once on all 16 themes: `bordered`
+  // This one entry gates both halves at once on all 15 theme states: `bordered`
   // fails on a UA control (it draws an outline, paints no --lib-focus-ring
   // glow, and never moves its border-color), and a control that has no
   // authored border cannot pass the border-color half either.
@@ -833,7 +833,7 @@ export const CHECKS = [
   // full-width row families. Nothing here asserts a shadow LITERAL: the glow
   // is per-theme identity (terminal blur / paper-ink flat 1px / solarized
   // translucent 2px) and the runner only requires that a non-inset shadow
-  // exists and differs from the unfocused baseline -- true on all 16 themes,
+  // exists and differs from the unfocused baseline -- true on all 15 theme states,
   // false the moment the rule stops firing.
   { surface: "options", page: "options.html", selector: ".tab-btn", state: "focusWithin",
     focusTarget: ":scope", expect: { focusRecipe: "borderless" } },
@@ -846,7 +846,7 @@ export const CHECKS = [
     focusTarget: ":scope", expect: { focusRecipe: "borderless" } },
   // `bordered` on the generated .btn family itself -- the one entry that
   // proves the recipe reaches a real button through the live cascade on all
-  // 16 themes, including that `border-color` actually lands (a themed rest
+  // 15 theme states, including that `border-color` actually lands (a themed rest
   // rule out-ranking the focus rule is the failure mode this catches, and it
   // is exactly what popup's 5 bordered sites needed twins for).
   { surface: "library", page: "library.html", selector: ".vocab-detail-relookup", state: "focusWithin",
@@ -895,7 +895,7 @@ export const CHECKS = [
   // --lib-btn-fg on --lib-btn-bg. fg-vs-input-bg is a COMPONENTS.md §6.2
   // derivation requirement but is NOT in contrast-audit's
   // COMPONENT_PAIR_SPEC, so this render entry is the only gate on it -- and
-  // it covers all 16 themes rather than one token pair.
+  // it covers all 15 theme states rather than one token pair.
   // (Deliberately the detail-pane pair, not #vocab-add-group/#vocab-remove-
   // group: the batch bar's two steppers render :disabled on an untouched
   // page, and the runner correctly SKIPs contrast on disabled controls --
@@ -967,7 +967,7 @@ export const CHECKS = [
   // to permanently outrank `.submit-bar button.saved-success` (0,2,1) and its
   // themed twin (debt-sweep 2026-08-07, F8 in the popup-buttons review) --
   // setSubmitState() added the class every save, and the button never
-  // repainted on any of the 16 themes; only textContent changed. The fix
+  // repainted on any of the 15 theme states; only textContent changed. The fix
   // folds the id into both rules (same shape as the pre-existing
   // `#submit-btn:disabled` exemption above). classState is the first check
   // in this file to drive a state via classList rather than a real

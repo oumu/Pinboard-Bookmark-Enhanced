@@ -1,8 +1,8 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://pinboard-bookmark-enhanced/theme-surface/tokens.schema.json",
-  "title": "Pinboard Theme Tokens v1",
-  "version": "1.0.0",
+  "title": "Pinboard Theme Tokens v2",
+  "version": "2.0.0",
   "description": "Token dictionary for the Pinboard Theme Surface spec. Required slots cover every surface referenced by manifest.json; extension namespaces (fx/motion/assets/ext) are open for richer themes. Any theme that supplies the required slots can be composed by any composer.",
 
   "type": "object",
@@ -24,7 +24,7 @@
         "name": { "type": "string", "minLength": 1 },
         "mode": {
           "type": "string",
-          "enum": ["light", "dark", "auto"],
+          "enum": ["light", "dark", "adaptive"],
           "description": "Hint for UA color-scheme + selection fallbacks."
         },
         "family": {
@@ -224,8 +224,8 @@
       "properties": {
         "tag-style": {
           "type": "string",
-          "enum": ["plain", "hash-prefix", "pill", "bracketed"],
-          "description": "Visual treatment of a.tag. plain=composer default, hash-prefix=prepend '#', pill=rounded chip with padding, bracketed=wrap in [ ]."
+          "enum": ["flat", "underline"],
+          "description": "Visual treatment of a.tag. flat emits the full chip/state treatment; underline uses text decoration instead of a filled chip. Omit the key for the composer baseline."
         },
         "bookmark-title-prefix": {
           "type": "string",
@@ -365,17 +365,33 @@
             "light": { "type": "object", "additionalProperties": { "type": "string" } },
             "dark":  { "type": "object", "additionalProperties": { "type": "string" } }
           }
+        },
+        "library": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "light": { "type": "object", "additionalProperties": { "type": "string" } },
+            "dark":  { "type": "object", "additionalProperties": { "type": "string" } }
+          }
         }
       }
     },
 
     "overrides": {
       "type": "object",
-      "description": "Escape hatch: surface-keyed CSS rule fragments emitted verbatim AFTER the composer output. Use sparingly for bespoke surfaces the composer cannot express. Keys MUST match a surface id in manifest.json.",
-      "additionalProperties": {
-        "type": "object",
-        "additionalProperties": { "type": "string" },
-        "description": "Map of `&[:state]` -> CSS declarations string (without braces)."
+      "description": "Escape hatch appended verbatim AFTER composer and pattern output. Keep it for theme-unique CSS; repeated rules belong in a pattern or composer.",
+      "additionalProperties": false,
+      "properties": {
+        "css": { "type": "string" }
+      }
+    },
+
+    "modes": {
+      "type": "object",
+      "description": "Optional named variants. Supported names and trigger semantics are registered in manifest.json.",
+      "additionalProperties": false,
+      "properties": {
+        "dark": { "$ref": "#/definitions/modeVariant" }
       }
     },
 
@@ -411,6 +427,18 @@
         "motion": {
           "type": "object",
           "additionalProperties": true
+        }
+      }
+    },
+    "modeVariant": {
+      "type": "object",
+      "required": ["trigger", "palette"],
+      "additionalProperties": false,
+      "properties": {
+        "trigger": { "type": "string", "minLength": 1 },
+        "palette": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/definitions/color" }
         }
       }
     }

@@ -1,6 +1,6 @@
 # Pinboard Theme Surface — Spec v1
 
-Updated: 2026-08-05 · Version: 1.2.0
+Updated: 2026-08-30 · Version: 2.0.0
 
 A three-layer architecture for Pinboard custom themes that separates **what a
 surface is** (manifest) from **what colors/spacing it uses** (tokens) from
@@ -21,27 +21,28 @@ encoded the defenses per-theme. This spec lifts those defenses into a shared
 **base layer** so each theme only has to declare its tokens and pick a
 **composer** (layout mode).
 
-Evidence base: `docs/theme-surface/snapshots/` — 13 pages × (default + hover +
-focus + selection) screenshots + raw HTML + audit JSON, aggregated into
-`aggregate-report.json`.
+Evidence base: `manifest.json` records the empirical page/surface inventory;
+`docs/theme-surface/snapshots/` contains the supporting captures and audits.
+`tools/validate-contracts.mjs` executes the token schema and cross-checks the
+manifest registry before generation.
 
 ## §1 · Three-layer architecture
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
 │  Layer 1  MANIFEST   (manifest.json)                         │
-│  Semantic inventory: 35 surfaces × 13 pages × 4 templates.   │
+│  Semantic inventory: 102 surfaces × 14 pages × 4 templates.  │
 │  Records verified selectors + required token slots + states. │
 │  Source of truth for validators.                             │
 ├──────────────────────────────────────────────────────────────┤
 │  Layer 2  TOKENS     (tokens.schema.json + <theme>.tokens)   │
 │  Open dict of design decisions: palette, typo, space, radius,│
-│  border, fx, motion, assets, layout. Validated via schema.   │
+│  border, fx, motion, assets, layout. Executably validated.   │
 ├──────────────────────────────────────────────────────────────┤
 │  Layer 3  COMPOSER   (composers/*.mjs)                       │
 │  Pure fn: compose(tokens) -> cssString. Each composer renders│
 │  the same surfaces with a different layout philosophy.       │
-│  Ships: classic-list | dense | card-grid | magazine          │
+│  Canonical: classic-list-v2; demos: dense/card-grid/magazine │
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -51,8 +52,8 @@ are non-negotiable and applied uniformly.
 
 ## §2 · Manifest inventory
 
-`manifest.json` is the authoritative map of the Pinboard surface. Each of the
-35 surface entries records:
+`manifest.json` is the executable map of the Pinboard surface. Each of the
+102 surface entries records:
 
 | Field | Meaning |
 |-------|---------|
@@ -63,9 +64,9 @@ are non-negotiable and applied uniformly.
 | `layout_hook` | Whether composers may structurally restructure this surface (e.g. turn `.bookmark` into a card) |
 | `inline_quirks` | Empirical inline-style patterns with page frequency |
 
-13 pages are mapped to 4 templates:
+14 pages are mapped to 4 templates:
 
-- **P1-list** — home, network, notes, popular, unread
+- **P1-list** — home, network, notes, popular, unread, url-detail
 - **P2-form** — add, note-add, settings, profile
 - **P3-rightbar-heavy** — tweets, subscriptions-tags
 - **P4-table** — bundles, tabs
@@ -136,33 +137,35 @@ A composer that wants to reuse another composer's work can do so — see
 
 ### Option A · Pick an existing composer, supply tokens
 
-1. Start from an existing theme's token file (once Sprint 3 migrates them).
-2. Edit `palette`, `typo`, `space` — every change is a data tweak.
-3. Validate: `node scripts/validate-theme.mjs my-theme.tokens.json`.
-4. Preview: open `pinboard.in` with the theme applied.
+1. Copy an existing `pilots/*.tokens.json`; keep `meta.id` equal to its filename stem.
+2. Edit `palette`, `typo`, `space`, `patterns`, and optional `ui` overrides.
+3. Validate: `node docs/theme-surface/tools/validate-contracts.mjs --pilot docs/theme-surface/pilots/my-theme.tokens.json`.
+4. Regenerate and gate: `node docs/theme-surface/tools/sync-all.mjs`.
+5. Preview on the real Pinboard and extension surfaces.
 
 ### Option B · Create a new composer
 
-1. Copy `composers/classic-list.mjs` to `composers/my-mode.mjs`.
+1. Copy the closest composer to `composers/my-mode.mjs`.
 2. Rename `compose`, change `tokens.layout.mode` value you respond to.
 3. Keep `baseLayer(tokens)` at the top — do not skip.
 4. Restructure any surface with `layout_hook: true` in `manifest.json`.
    Surfaces without that flag should keep their semantic role intact.
 5. Add `my-mode` to `tokens.schema.json`'s `layout.mode` enum.
-6. Smoke test with the sample theme: `node scripts/smoke-compose.mjs my-mode`.
+6. Add a pilot fixture and run `validate-contracts`, `sync-all`, and the render oracle.
 
 ### Contrast guard (automated)
 
 Every theme passes `tools/contrast-audit.mjs`, which the `tools/sync-all.mjs`
-pipeline runs automatically (step 5 of its 10-step run: render-all,
-apply-ui-themes --write, apply-tokens ×13, diff-all --strict, contrast-audit,
-css-region-audit, ui-token-coverage, layout-lint, url-lint, recipe-lint).
+pipeline runs automatically (11 steps: validate-contracts, render-all,
+apply-ui-themes --write, dynamic apply-tokens, diff-all --strict,
+contrast-audit, css-region-audit, ui-token-coverage, layout-lint, url-lint,
+recipe-lint).
 `css-region-audit`, `ui-token-coverage`, `contrast-audit` and `recipe-lint`
 additionally run standalone inside `scripts/verify.sh`'s `[theme]` section
-(CI-gated); the git pre-commit hook only runs the site-side five
-(`diff-all --strict`, `token-coverage`, `cascade-lint`, `override-drift`,
-`handedit-audit`) — see §9 below for what the extra four (plus the
-independent `scripts/ui-render-audit.mjs` render oracle) cover. The audit
+(CI-gated); the git pre-commit hook runs nine cheap contract/site/UI gates,
+starting with `validate-contracts` and ending with `ui-contract` — see §9
+below for the two CI-only theme checks plus the independent
+`scripts/ui-render-audit.mjs` render oracle. The audit
 fails the run when a token pair drops below WCAG AA — the failure modes that
 produced past regressions:
 
@@ -302,20 +305,11 @@ Reference screenshots for all states: `docs/theme-surface/snapshots/<slug>/`.
 
 ## §6 · Integration with pinboard-themes.js
 
-This spec is **authoring scaffolding**, not a build artifact. Per project
-convention (zero-build, single-file source), the composers + base layer live
-in `docs/theme-surface/composers/` as the reference implementation. Runtime
-integration options:
-
-- **Sprint 3 inline** — the composer logic is inlined into
-  `pinboard-themes.js` so the extension can render a theme from its tokens at
-  runtime without an import step. This preserves the single-file model.
-- **Dev authoring** — contributors can `node` the composer locally against
-  their tokens and copy the resulting CSS string into `pinboard-themes.js` if
-  they prefer a snapshot workflow.
-
-Validators in Sprint 4 operate on tokens + manifest; they do not depend on
-which runtime strategy is in use.
+The factory is the build-time authoring source. `sync-all.mjs` composes every
+pilot and rewrites `pinboard-themes.js`; that generated file is then loaded at
+runtime only while a site preset is active. The same run rewrites the six
+generated regions in `popup.css`, `options.css`, and `library.css`. Never copy
+composer output or edit those generated artifacts by hand.
 
 ## §7 · Files in this spec
 
@@ -324,15 +318,16 @@ docs/theme-surface/
 ├── README.md                ← this file
 ├── manifest.json            ← Layer 1: surface inventory
 ├── tokens.schema.json       ← Layer 2: token schema
-├── aggregate-report.json    ← empirical evidence behind the manifest
-├── composers/               ← Layer 3: reference composers
+├── COMPONENTS.md / NEW_THEME.md
+├── composers/               ← Layer 3: site/UI composers + component recipe
 │   ├── _base.mjs            ← inline-override layer (non-negotiable)
 │   ├── _util.mjs            ← helpers
-│   ├── classic-list.mjs
-│   ├── dense.mjs
-│   ├── card-grid.mjs
-│   └── magazine.mjs
-└── snapshots/               ← 13 pages × (default/hover/focus/selection)
+│   ├── classic-list-v2.mjs
+│   ├── *-chrome.mjs
+│   └── ui-components.mjs
+├── pilots/                  ← 13 token sources + generated authoring snapshots
+├── tools/                   ← compiler, validator, audits, sync-all
+└── snapshots/               ← 14-page empirical captures
     └── <slug>/
         ├── raw.html
         ├── default.png
