@@ -6,49 +6,22 @@ import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { compose } from "../composers/classic-list-v2.mjs";
 import { composeTheme } from "../composers/compose-theme.mjs";
+import { declarationMap, declarationValueMap, parseRuleKey } from "./css-syntax.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "..", "..", "..");
 const PILOTS = resolve(__dirname, "..", "pilots");
 const src = readFileSync(resolve(ROOT, "pinboard-themes.js"), "utf8");
+const CHECK = process.argv.includes("--check");
 
-const strip = css => css.replace(/\/\*[\s\S]*?\*\//g, "");
 function parseBlocks(css) {
-  const out = new Map();
-  const body = strip(css);
-  let i = 0;
-  while (i < body.length) {
-    const open = body.indexOf("{", i);
-    if (open === -1) break;
-    let depth = 1, close = -1;
-    for (let j = open + 1; j < body.length; j++) {
-      if (body[j] === "{") depth++;
-      else if (body[j] === "}") { depth--; if (depth === 0) { close = j; break; } }
-    }
-    if (close === -1) break;
-    const rawSel = body.slice(i, open).trim();
-    const block = body.slice(open + 1, close);
-    i = close + 1;
-    if (!rawSel || rawSel === ":root" || rawSel.startsWith("@") || block.includes("{")) continue;
-    const decls = block.split(";").map(d => d.trim()).filter(Boolean).map(d => d.replace(/\s+/g, " ").toLowerCase());
-    for (const sel of rawSel.split(",").map(s => s.trim().replace(/\s+/g, " ")).filter(Boolean)) {
-      if (!out.has(sel)) out.set(sel, new Set());
-      for (const d of decls) out.get(sel).add(d);
-    }
-  }
-  return out;
+  return new Map([...declarationMap(css, { lowercase: true })]
+    .map(([selector, declarations]) => [selector, new Set(declarations)]));
 }
 
-function varTableFromCss(css, selPattern) {
-  const map = new Map();
-  const re = new RegExp(`(?:^|\\n)\\s*${selPattern}\\s*\\{([\\s\\S]*?)\\}`, "g");
-  for (const match of css.matchAll(re)) {
-    for (const line of match[1].split(";")) {
-      const mm = line.trim().match(/^(--[\w-]+)\s*:\s*(.+)$/);
-      if (mm) map.set(mm[1], mm[2].trim());
-    }
-  }
-  return map;
+function varTableFromCss(css, selector) {
+  return new Map([...declarationValueMap(css, selector)]
+    .filter(([property]) => property.startsWith("--")));
 }
 
 function driftFor(slug, tokens) {
@@ -61,9 +34,10 @@ function driftFor(slug, tokens) {
   const baseVars = varTableFromCss(generated, ":root");
   const modeVars = new Map();
   if (tokens.modes) for (const [n, mode] of Object.entries(tokens.modes))
-    if (mode?.trigger) modeVars.set(mode.trigger, varTableFromCss(generated, mode.trigger.replace(/\./g, "\\.")));
+    if (mode?.trigger) modeVars.set(mode.trigger, varTableFromCss(generated, mode.trigger));
 
   const tableFor = sel => {
+    sel = parseRuleKey(sel).selector;
     for (const [trigger, vars] of modeVars)
       if (sel.startsWith(trigger + " ") || sel === trigger) {
         const merged = new Map(baseVars);
@@ -151,8 +125,10 @@ for (const file of readdirSync(PILOTS).filter(f => f.endsWith(".tokens.json"))) 
   if (r) rows.push(r);
 }
 
-writeFileSync(resolve(PILOTS, "drift-matrix.json"),
-  JSON.stringify({ generated_at: new Date().toISOString(), rows }, null, 2));
+if (!CHECK) {
+  writeFileSync(resolve(PILOTS, "drift-matrix.json"),
+    JSON.stringify({ generated_at: new Date().toISOString(), rows }, null, 2));
+}
 
 const col = (s, w) => String(s).padEnd(w);
 console.log("\n=== DECL-LEVEL DRIFT MATRIX (post compose-theme fix) ===\n");

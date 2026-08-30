@@ -18,6 +18,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
+import { parseDeclarations, parseStyleRules, splitSelectorList } from "./css-syntax.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "..", "..", "..");
@@ -179,33 +180,14 @@ function extractThemes(src) {
 // Returns an array of { selectorText, decls, lineNum, sourceOrder }.
 // ----------------------------------------------------------------------------
 function parseRules(css) {
-  // Strip block comments but keep line offsets so lineNum stays accurate.
-  const stripped = css.replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, " "));
   const rules = [];
-  let i = 0, order = 0;
-  while (i < stripped.length) {
-    const open = stripped.indexOf("{", i);
-    if (open === -1) break;
-    let depth = 1, close = -1;
-    for (let j = open + 1; j < stripped.length; j++) {
-      if (stripped[j] === "{") depth++;
-      else if (stripped[j] === "}") { depth--; if (depth === 0) { close = j; break; } }
-    }
-    if (close === -1) break;
-    const rawSel = stripped.slice(i, open).trim();
-    const body = stripped.slice(open + 1, close);
-    const lineNum = stripped.slice(0, i).split("\n").length;
-    i = close + 1;
-    if (!rawSel || rawSel.startsWith("@") || body.includes("{")) continue;
-    if (rawSel === ":root") continue;
-
-    const decls = parseDecls(body);
+  let order = 0;
+  for (const rule of parseStyleRules(css)) {
+    const decls = parseDecls(rule.body);
     if (decls.size === 0) continue;
-
-    for (const sel of splitTopLevelCommas(rawSel)) {
-      const selTrim = sel.trim().replace(/\s+/g, " ");
-      if (!selTrim) continue;
-      rules.push({ selectorText: selTrim, decls, lineNum, sourceOrder: order++ });
+    for (const selector of rule.selectors) {
+      if (selector === ":root") continue;
+      rules.push({ selectorText: selector, decls, lineNum: rule.lineNum, sourceOrder: order++ });
     }
   }
   return rules;
@@ -213,45 +195,9 @@ function parseRules(css) {
 
 function parseDecls(body) {
   const out = new Map();
-  let depth = 0, start = 0;
-  const parts = [];
-  for (let i = 0; i < body.length; i++) {
-    const c = body[i];
-    if (c === "(") depth++;
-    else if (c === ")") depth--;
-    else if (c === ";" && depth === 0) {
-      parts.push(body.slice(start, i));
-      start = i + 1;
-    }
+  for (const { property, value, important } of parseDeclarations(body)) {
+    out.set(property, { value, important });
   }
-  if (start < body.length) parts.push(body.slice(start));
-  for (const raw of parts) {
-    const decl = raw.trim();
-    if (!decl) continue;
-    const colon = decl.indexOf(":");
-    if (colon === -1) continue;
-    const prop = decl.slice(0, colon).trim().toLowerCase();
-    let value = decl.slice(colon + 1).trim();
-    const important = /!important\s*$/i.test(value);
-    if (important) value = value.replace(/!important\s*$/i, "").trim();
-    out.set(prop, { value, important });
-  }
-  return out;
-}
-
-function splitTopLevelCommas(s) {
-  const out = [];
-  let depth = 0, start = 0;
-  for (let i = 0; i < s.length; i++) {
-    const c = s[i];
-    if (c === "(" || c === "[") depth++;
-    else if (c === ")" || c === "]") depth--;
-    else if (c === "," && depth === 0) {
-      out.push(s.slice(start, i));
-      start = i + 1;
-    }
-  }
-  out.push(s.slice(start));
   return out;
 }
 
@@ -321,8 +267,8 @@ function parseCompound(text) {
         const inner = text.slice(i + 1, j);
         i = j + 1;
         if (name === "not") {
-          for (const part of splitTopLevelCommas(inner)) {
-            c.negations.push(parseCompound(part.trim()));
+          for (const part of splitSelectorList(inner)) {
+            c.negations.push(parseCompound(part));
           }
         } else {
           c.states.push({ name, arg: inner });

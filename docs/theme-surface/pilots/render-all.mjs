@@ -5,9 +5,11 @@
 import { readFileSync, writeFileSync, readdirSync } from "node:fs";
 import { compose } from "../composers/classic-list-v2.mjs";
 import { composeTheme } from "../composers/compose-theme.mjs";
+import { parseStyleRules } from "../tools/css-syntax.mjs";
 
 const here = new URL("./", import.meta.url);
 const src = readFileSync(new URL("../../../pinboard-themes.js", import.meta.url), "utf8");
+const CHECK = process.argv.includes("--check");
 
 const extractShipped = slug => {
   // Regex: tolerate presence/absence of trailing comma after the closing "}"
@@ -16,13 +18,12 @@ const extractShipped = slug => {
   return m ? m[1] : null;
 };
 
-const stripComments = css => css.replace(/\/\*[\s\S]*?\*\//g, "");
 const extractSels = css => {
   const sels = new Set();
-  for (const m of stripComments(css).matchAll(/([^{}]+)\{[^{}]*\}/g)) {
-    const sel = m[1].trim();
-    if (!sel || sel === ":root" || sel.startsWith("@")) continue;
-    for (const s of sel.split(",")) { const t = s.trim(); if (t) sels.add(t); }
+  for (const rule of parseStyleRules(css)) {
+    for (const selector of rule.selectors) {
+      if (selector !== ":root") sels.add(selector);
+    }
   }
   return sels;
 };
@@ -37,7 +38,7 @@ for (const file of tokenFiles) {
   if (!shipped) { rows.push({ slug, status: "NO_SHIPPED" }); continue; }
 
   const generated = composeTheme(tokens, compose);
-  writeFileSync(new URL(`./${slug}.generated.css`, here), generated);
+  if (!CHECK) writeFileSync(new URL(`./${slug}.generated.css`, here), generated);
 
   const ship = extractSels(shipped), gen = extractSels(generated);
   const covered = [...ship].filter(s => gen.has(s)).length;
@@ -71,7 +72,10 @@ for (const file of tokenFiles) {
   });
 }
 
-writeFileSync(new URL("./migration-matrix.json", here), JSON.stringify({ generated_at: new Date().toISOString(), rows }, null, 2));
+if (!CHECK) {
+  writeFileSync(new URL("./migration-matrix.json", here),
+    JSON.stringify({ generated_at: new Date().toISOString(), rows }, null, 2));
+}
 
 console.log("\n=== SPRINT 3 MIGRATION MATRIX ===\n");
 const col = (s, w) => String(s).padEnd(w);

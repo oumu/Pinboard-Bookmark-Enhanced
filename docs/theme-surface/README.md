@@ -141,7 +141,8 @@ A composer that wants to reuse another composer's work can do so — see
 2. Edit `palette`, `typo`, `space`, `patterns`, and optional `ui` overrides.
 3. Validate: `node docs/theme-surface/tools/validate-contracts.mjs --pilot docs/theme-surface/pilots/my-theme.tokens.json`.
 4. Regenerate and gate: `node docs/theme-surface/tools/sync-all.mjs`.
-5. Preview on the real Pinboard and extension surfaces.
+5. Prove the synchronized tree is byte-exact and read-only: `node docs/theme-surface/tools/sync-all.mjs --check`.
+6. Preview on the real Pinboard and extension surfaces.
 
 ### Option B · Create a new composer
 
@@ -160,12 +161,10 @@ pipeline runs automatically (11 steps: validate-contracts, render-all,
 apply-ui-themes --write, dynamic apply-tokens, diff-all --strict,
 contrast-audit, css-region-audit, ui-token-coverage, layout-lint, url-lint,
 recipe-lint).
-`css-region-audit`, `ui-token-coverage`, `contrast-audit` and `recipe-lint`
-additionally run standalone inside `scripts/verify.sh`'s `[theme]` section
-(CI-gated); the git pre-commit hook runs nine cheap contract/site/UI gates,
-starting with `validate-contracts` and ending with `ui-contract` — see §9
-below for the two CI-only theme checks plus the independent
-`scripts/ui-render-audit.mjs` render oracle. The audit
+The git pre-commit hook runs the same pipeline in strict `--check` mode, then
+adds source/cascade/hand-edit/UI contract gates. `scripts/verify.sh` also runs
+the parser, CLI mutation and zero-write integration tests; see §9 for the
+independent `scripts/ui-render-audit.mjs` render oracle. The audit
 fails the run when a token pair drops below WCAG AA — the failure modes that
 produced past regressions:
 
@@ -308,8 +307,10 @@ Reference screenshots for all states: `docs/theme-surface/snapshots/<slug>/`.
 The factory is the build-time authoring source. `sync-all.mjs` composes every
 pilot and rewrites `pinboard-themes.js`; that generated file is then loaded at
 runtime only while a site preset is active. The same run rewrites the six
-generated regions in `popup.css`, `options.css`, and `library.css`. Never copy
-composer output or edit those generated artifacts by hand.
+generated regions in `popup.css`, `options.css`, and `library.css`. Its
+`--check` mode executes the same 11-step pipeline without writing reports,
+snapshots, CSS, or runtime artifacts, and requires byte-identical generated
+output. Never copy composer output or edit those generated artifacts by hand.
 
 ## §7 · Files in this spec
 
@@ -326,7 +327,7 @@ docs/theme-surface/
 │   ├── *-chrome.mjs
 │   └── ui-components.mjs
 ├── pilots/                  ← 13 token sources + generated authoring snapshots
-├── tools/                   ← compiler, validator, audits, sync-all
+├── tools/                   ← compiler, shared css-syntax scanner, validators, audits, sync-all
 └── snapshots/               ← 14-page empirical captures
     └── <slug>/
         ├── raw.html

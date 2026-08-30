@@ -89,9 +89,7 @@ body { color-scheme: ${schemeFor(tokens)} !important; }
    tie, with no specificity change — so the pilot overrides appended last still beat
    the composer, which is what keeps a.url_display on each pilot own shipped colour.
    Do NOT drop a:link or wrap this in :where(): that lowers the fallback below
-   (0,1,1) and revives the dead bare-a overrides two pilots still carry. Also note
-   prefixSelectors() splits selector lists on bare commas, so a :where(a, a:link)
-   here would be mangled inside every html.pbp-dark block. */
+   (0,1,1) and revives the dead bare-a overrides two pilots still carry. */
 a, a:link { color: ${v("accent")} !important; }
 
 /* ---- Banner & navigation ---- */
@@ -173,8 +171,7 @@ a.url_display, a.when, a.cached { color: ${v("muted-soft")} !important; font-siz
    including :hover/:visited. Hover keeps the AA metadata color (link-hover
    fails 4.5:1 on six theme surfaces) and signals with an underline instead.
    url_display is NOT migrated: its per-pilot override colors are shipped
-   visual identity. No :is() here — prefixSelectors() dark-prefixing splits on
-   bare commas and would corrupt a functional pseudo-class. */
+   visual identity. */
 .bookmark a.when,
 .bookmark a.cached { color: ${v("metadata-fg")} !important; font-size: ${sizeXs} !important; }
 .bookmark a.when:hover,

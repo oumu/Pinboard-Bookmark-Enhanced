@@ -24,8 +24,10 @@ node docs/theme-surface/tools/validate-contracts.mjs
 #    you only add a tokens file, see §6)
 node docs/theme-surface/tools/sync-all.mjs
 
-# 5. ensure all gates pass (sync-all already ran them; re-run to double-check)
-node docs/theme-surface/tools/diff-all.mjs --strict
+# 5. prove the synchronized tree is byte-exact and the check path writes nothing
+node docs/theme-surface/tools/sync-all.mjs --check
+
+# 6. run complementary source/cascade gates
 node docs/theme-surface/tools/cascade-lint.mjs
 node docs/theme-surface/tools/override-drift.mjs
 node docs/theme-surface/tools/token-coverage.mjs
@@ -369,14 +371,16 @@ Gates guard both regions, colors and structure alike:
 | `recipe-lint.mjs` | Static checks on `ui-components.mjs` itself — paired-color law, chip geometry, the spacing-adapter mapping matches each surface's real `:root` values, no bare `--sp-*` reference, no fallback `var()`, press-is-instant, ≤200ms motion budget, roundness laws. Only relevant if you're editing the recipe itself, not authoring a tokens-only theme |
 | `scripts/ui-render-audit.mjs` (repo root) | The completeness authority — an independent, **hand-written** playwright oracle (`tests/render-audit-checklist.mjs`) that reads real `getComputedStyle`, never generated from the recipe. A brand-new theme rarely needs to touch this; it exists to catch a component the recipe forgot to register, which a same-source check couldn't |
 
-All except the render oracle and the two CLI mutation tests run inside
-`sync-all`; the render oracle runs
+All generated-artifact, contrast and layout gates run inside `sync-all`;
+the shared complex-CSS parser test and complementary source/cascade/hand-edit
+checks run from pre-commit and `verify.sh`. The render oracle runs
 inside `scripts/verify.sh`'s separate `[render-audit]` section (playwright +
 an unpacked-extension launch is too slow for the tight `sync-all` inner
-loop). The git pre-commit hook runs all nine cheap gates: contract validation,
-the site-side five, and the three generated-region/UI gates. A UI-region
-change still needs a `sync-all` pass for the CI-only contrast and UI token
-coverage checks. **Do not hand-edit either generated region** in
+loop). The git pre-commit hook runs `sync-all --check` plus the complementary
+gates, so contrast and UI token coverage are no longer deferred. The hook
+installed by `scripts/setup-hooks.sh` delegates to the tracked script and
+therefore follows future gate updates without reinstallation. **Do not
+hand-edit either generated region** in
 `popup.css`, `options.css`, or `library.css` — both will be overwritten on
 the next `sync-all`. Component design authority for the structure region:
 `docs/theme-surface/COMPONENTS.md`.
@@ -389,6 +393,7 @@ Run the orchestrator, then the full repository verifier. Each must exit 0.
 
 ```bash
 node docs/theme-surface/tools/sync-all.mjs           # regenerate + drift-guard
+node docs/theme-surface/tools/sync-all.mjs --check   # same pipeline, strict read-only proof
 bash scripts/verify.sh                               # contract/tool tests + all CI gates
 ```
 
@@ -396,18 +401,16 @@ bash scripts/verify.sh                               # contract/tool tests + all
 `apply-ui-themes --write` (both UI regions), dynamically discovered
 `apply-tokens`, `diff-all --strict`,
 `contrast-audit`, `css-region-audit`, `ui-token-coverage`, `layout-lint`,
-`url-lint`, `recipe-lint`. The other three commands above are independent
-checks the pre-commit hook also runs; `css-region-audit` /
-`ui-token-coverage` / `contrast-audit` / `recipe-lint` additionally run
-standalone inside `scripts/verify.sh`'s `[theme]` section (CI-gated) — see
-§6 above for what each of those four (plus the separate render oracle,
-`scripts/ui-render-audit.mjs`) checks.
+`url-lint`, `recipe-lint`. In `--check` mode, render/apply/diff steps suppress
+all writes and compare generated output byte-for-byte; the integration test
+also snapshots file mtimes to enforce that contract. See §6 for these gates
+and the separate render oracle, `scripts/ui-render-audit.mjs`.
 
-The pre-commit hook runs its nine cheap gates automatically when any
+The pre-commit hook runs the read-only 11-step pipeline and complementary gates automatically when any
 `composers/`, `pilots/*.tokens.json`, `tools/*.mjs`, generated theme artifact,
-or three-surface CSS file is staged. It does not run the CI-only contrast/UI
-token checks or render oracle. A tokens-only theme addition still needs a
-manual `sync-all` and full `verify.sh` pass before committing. Do not
+or three-surface CSS file is staged. It does not run the browser render oracle.
+A tokens-only theme addition still needs a manual write-mode `sync-all` and full
+`verify.sh` pass before committing. Do not
 bypass any of this with `--no-verify` — if a check fires it's a real bug.
 
 ---

@@ -29,6 +29,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { compose } from "../composers/classic-list-v2.mjs";
 import { composeTheme } from "../composers/compose-theme.mjs";
+import { parseDeclarations, parseStyleRules } from "./css-syntax.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PILOTS = resolve(__dirname, "..", "pilots");
@@ -36,22 +37,6 @@ const PILOTS = resolve(__dirname, "..", "pilots");
 // ----------------------------------------------------------------------------
 // Selector helpers.
 // ----------------------------------------------------------------------------
-function splitTopLevelCommas(s) {
-  const out = [];
-  let depth = 0, start = 0;
-  for (let i = 0; i < s.length; i++) {
-    const c = s[i];
-    if (c === "(" || c === "[") depth++;
-    else if (c === ")" || c === "]") depth--;
-    else if (c === "," && depth === 0) {
-      out.push(s.slice(start, i));
-      start = i + 1;
-    }
-  }
-  out.push(s.slice(start));
-  return out;
-}
-
 // Strip :not(...) (one or more, possibly chained) from a selector.
 // `#tag_cloud_header a:not(.tag):not(.tag_heading_selected)` -> `#tag_cloud_header a`
 // Iterative to handle chains and nested parens defensively.
@@ -83,28 +68,11 @@ function norm(sel) {
 // Extract individual top-level selectors from a raw CSS body and return
 // `{ selector, lineNum }` per occurrence. Skips @-rules and :root.
 function extractSelectors(css) {
-  const stripped = css.replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, " "));
   const out = [];
-  let i = 0;
-  while (i < stripped.length) {
-    const open = stripped.indexOf("{", i);
-    if (open === -1) break;
-    let depth = 1, close = -1;
-    for (let j = open + 1; j < stripped.length; j++) {
-      if (stripped[j] === "{") depth++;
-      else if (stripped[j] === "}") { depth--; if (depth === 0) { close = j; break; } }
-    }
-    if (close === -1) break;
-    const rawSel = stripped.slice(i, open).trim();
-    const body = stripped.slice(open + 1, close);
-    const lineNum = stripped.slice(0, i).split("\n").length;
-    i = close + 1;
-    if (!rawSel || rawSel.startsWith("@") || body.includes("{")) continue;
-    if (rawSel === ":root") continue;
-    for (const sel of splitTopLevelCommas(rawSel)) {
-      const selN = norm(sel);
-      if (!selN) continue;
-      out.push({ selector: selN, lineNum });
+  for (const rule of parseStyleRules(css)) {
+    for (const selector of rule.selectors) {
+      if (selector === ":root") continue;
+      out.push({ selector: norm(selector), lineNum: rule.lineNum });
     }
   }
   return out;
@@ -112,13 +80,10 @@ function extractSelectors(css) {
 
 // First non-whitespace declaration line (for the drift-report hint).
 function firstDecl(css, selector) {
-  const re = new RegExp(escapeReg(selector) + "\\s*\\{([^}]*)\\}");
-  const m = css.match(re);
-  if (!m) return "";
-  const body = m[1].split(";").map(s => s.trim()).filter(Boolean)[0] || "";
-  return body;
+  const rule = parseStyleRules(css).find((candidate) =>
+    candidate.selectors.some((item) => norm(item) === norm(selector)));
+  return rule ? parseDeclarations(rule.body)[0]?.raw || "" : "";
 }
-function escapeReg(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
 
 // ----------------------------------------------------------------------------
 // Per-theme drift check.

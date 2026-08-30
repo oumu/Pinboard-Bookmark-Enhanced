@@ -56,6 +56,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { renderComponents, familyRules, FAMILIES, SPACING, CHIP_GEOM, CHIP_TARGETS } from "../composers/ui-components.mjs";
+import { declarationValueMap, parseDeclarations, parseStyleRules } from "./css-syntax.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "..", "..", "..");
@@ -114,8 +115,10 @@ for (const ns of NS_LIST) {
   for (const ns of NS_LIST) {
     const css = readFileSync(CSS_PATH[ns], "utf8");
     actual[ns] = {};
-    for (const m of css.matchAll(new RegExp(`--${ns}-sp-(\\d+):\\s*(\\d+)px`, "g"))) {
-      actual[ns][m[1]] = Number(m[2]);
+    for (const [property, value] of declarationValueMap(css, ":root")) {
+      const name = new RegExp(`^--${ns}-sp-(\\d+)$`).exec(property);
+      const px = /^(\d+)px$/.exec(value);
+      if (name && px) actual[ns][name[1]] = Number(px[1]);
     }
   }
   for (const ns of NS_LIST) {
@@ -182,7 +185,10 @@ for (const ns of NS_LIST) {
 // 7. noTransitionAll
 // ---------------------------------------------------------------------------
 for (const ns of NS_LIST) {
-  if (/transition\s*:\s*all\b/.test(renderComponents(ns, FAMILIES))) fail(`noTransitionAll: ${ns} recipe uses "transition: all"`);
+  const hasTransitionAll = parseStyleRules(renderComponents(ns, FAMILIES))
+    .some((rule) => parseDeclarations(rule.body)
+      .some((declaration) => declaration.property === "transition" && /^all\b/.test(declaration.value)));
+  if (hasTransitionAll) fail(`noTransitionAll: ${ns} recipe uses "transition: all"`);
 }
 
 // ---------------------------------------------------------------------------
@@ -193,11 +199,16 @@ for (const ns of NS_LIST) {
   const VETTED = new Set(["var(--motion-state)", "var(--pp-motion-state)"]);
   for (const ns of NS_LIST) {
     const css = readFileSync(CSS_PATH[ns], "utf8");
-    const m = new RegExp(`${MOTION_TOKEN[ns]}:\\s*(\\d+)ms`).exec(css);
-    if (!m) fail(`motionBudget: ${ns} ${MOTION_TOKEN[ns]} not found in ${CSS_PATH[ns]}`);
-    else if (Number(m[1]) > 200) fail(`motionBudget: ${ns} ${MOTION_TOKEN[ns]} is ${m[1]}ms, over the 200ms budget (§3.3)`);
-    for (const t of renderComponents(ns, FAMILIES).matchAll(/transition\s*:\s*([^;]+);/g)) {
-      for (const tok of t[1].matchAll(/var\(--[a-z0-9-]*motion[a-z0-9-]*\)/g)) {
+    const motionValue = declarationValueMap(css, ":root").get(MOTION_TOKEN[ns]);
+    const duration = /^(\d+)ms$/.exec(motionValue || "");
+    if (!duration) fail(`motionBudget: ${ns} ${MOTION_TOKEN[ns]} not found in ${CSS_PATH[ns]}`);
+    else if (Number(duration[1]) > 200) fail(`motionBudget: ${ns} ${MOTION_TOKEN[ns]} is ${duration[1]}ms, over the 200ms budget (§3.3)`);
+    const transitions = parseStyleRules(renderComponents(ns, FAMILIES))
+      .flatMap((rule) => parseDeclarations(rule.body))
+      .filter((declaration) => declaration.property === "transition")
+      .map((declaration) => declaration.value);
+    for (const transition of transitions) {
+      for (const tok of transition.matchAll(/var\(--[a-z0-9-]*motion[a-z0-9-]*\)/g)) {
         if (!VETTED.has(tok[0])) fail(`motionBudget: ${ns} transition references unvetted duration token ${tok[0]} — vet its :root value (<=200ms) before adding it here`);
       }
     }
@@ -296,17 +307,18 @@ for (const ns of NS_LIST) {
   // is a registry bug and fails loudly rather than passing vacuously.
   const radiusOf = (ns, selector) => {
     const css = cssFor(ns);
-    const re = new RegExp(selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\s*\\{([^}]*)\\}", "g");
     let px = null;
-    for (const m of css.matchAll(re)) {
-      const d = /border-radius\s*:\s*([^;]+);/.exec(m[1]);
-      if (!d) continue;
-      const v = d[1].trim();
+    for (const rule of parseStyleRules(css)) {
+      if (!rule.selectors.includes(selector)) continue;
+      const declaration = parseDeclarations(rule.body)
+        .find((item) => item.property === "border-radius");
+      if (!declaration) continue;
+      const v = declaration.value;
       if (v === "inherit") { px = "inherit"; continue; }
       const tok = /^var\(--(?:pp|opt|lib)-radius-(sm|md|lg|full)\)$/.exec(v);
       if (tok) {
-        const root = new RegExp(`--${ns}-radius-${tok[1]}:\\s*([0-9.]+)px`).exec(css);
-        px = root ? parseFloat(root[1]) : null;
+        const rootValue = declarationValueMap(css, ":root").get(`--${ns}-radius-${tok[1]}`);
+        px = rootValue?.endsWith("px") ? parseFloat(rootValue) : null;
       } else px = parseFloat(v);
     }
     return px;

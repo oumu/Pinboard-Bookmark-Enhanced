@@ -1,6 +1,7 @@
 #!/bin/sh
 # Theme-surface drift guard. When a theme contract/source or generated runtime
-# file is staged, runs all nine theme gates and blocks the commit on failure.
+# file is staged, runs the read-only factory pipeline plus the complementary
+# source/cascade/hand-edit/UI contract gates and blocks on any failure.
 #
 # Installed as .git/hooks/pre-commit via scripts/setup-hooks.sh
 CHANGED=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^(docs/theme-surface/(pilots/[^/]+\.tokens\.json|composers/[^/]+\.mjs|tools/[^/]+\.mjs|manifest\.json|tokens\.schema\.json)|pinboard-themes\.js|popup\.css|options\.css|library\.css)$')
@@ -9,7 +10,7 @@ if [ -z "$CHANGED" ]; then
   exit 0
 fi
 
-echo "[drift-guard] theme-surface files changed — running diff-all --strict"
+echo "[drift-guard] theme-surface files changed — running read-only factory gates"
 echo "$CHANGED" | sed 's/^/  /'
 
 if ! command -v node >/dev/null 2>&1; then
@@ -21,18 +22,18 @@ fi
 REPO_ROOT=$(git rev-parse --show-toplevel)
 cd "$REPO_ROOT/docs/theme-surface" || exit 1
 
-echo "[theme-contract] validating pilot schema and manifest cross-references"
-if ! node tools/validate-contracts.mjs; then
+echo "[css-syntax] checking complex selector/declaration parsing contracts"
+if ! node "$REPO_ROOT/tests/theme-css-syntax-tests.mjs"; then
   echo ""
-  echo "[theme-contract] COMMIT BLOCKED — pilot/schema/manifest contract is invalid" >&2
-  echo "  Fix the reported JSON pointer or registry reference, then re-run the validator." >&2
+  echo "[css-syntax] COMMIT BLOCKED — shared CSS scanner regressed on nested syntax or at-rule context" >&2
   exit 1
 fi
 
-if ! node tools/diff-all.mjs --strict; then
+echo "[theme-sync] verifying the complete factory pipeline without writing files"
+if ! node tools/sync-all.mjs --check; then
   echo ""
-  echo "[drift-guard] COMMIT BLOCKED — a theme has missing decls vs shipped CSS." >&2
-  echo "  Fix: node docs/theme-surface/tools/generate-overrides.mjs <slug> --inject" >&2
+  echo "[theme-sync] COMMIT BLOCKED — generated artifacts drifted or a factory gate failed" >&2
+  echo "  Fix: node docs/theme-surface/tools/sync-all.mjs" >&2
   exit 1
 fi
 
@@ -67,28 +68,6 @@ if ! node tools/handedit-audit.mjs; then
   echo "[handedit-audit] COMMIT BLOCKED — hand-edited rule detected in pinboard-themes.js" >&2
   echo "  Diagnose: node docs/theme-surface/tools/handedit-audit.mjs --verbose" >&2
   echo "  Fix: migrate the rule to composers/ or pilots/<slug>.tokens.json overrides.css, then re-run sync-all" >&2
-  exit 1
-fi
-
-# Three more gates, added when popup.css/options.css/library.css themselves
-# changed (not just theme-surface sources) -- design-uplift final-fix Rec 1.
-# All three measured ~0.06s+0.03s+0.16s, cheap enough to run on every
-# matching commit rather than waiting for CI. Full paths (not cd-relative
-# "tools/...") because all three resolve their own file locations off
-# import.meta.url, not cwd -- safe to call from this hook's already-cd'd
-# $REPO_ROOT/docs/theme-surface working directory.
-echo "[css-region-audit] checking generated regions for drift/hand-edits"
-if ! node "$REPO_ROOT/docs/theme-surface/tools/css-region-audit.mjs"; then
-  echo ""
-  echo "[css-region-audit] COMMIT BLOCKED — a @generated region drifted from composer output or was hand-edited" >&2
-  echo "  Fix: node docs/theme-surface/tools/apply-ui-themes.mjs --write" >&2
-  exit 1
-fi
-
-echo "[recipe-lint] checking ui-components.mjs recipe source"
-if ! node "$REPO_ROOT/docs/theme-surface/tools/recipe-lint.mjs"; then
-  echo ""
-  echo "[recipe-lint] COMMIT BLOCKED — component recipe violates a static law (paired-color / chip geometry / SPACING map / no bare --sp-* / no fallback var() / press excluded from transition / no transition:all / motion budget / button-icon rules / radius laws)" >&2
   exit 1
 fi
 

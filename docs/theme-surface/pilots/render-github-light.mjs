@@ -2,6 +2,7 @@
 // Pilot: render github-light via classic-list composer, diff against shipped CSS.
 import { readFileSync, writeFileSync } from "node:fs";
 import { compose } from "../composers/classic-list.mjs";
+import { parseStyleRules } from "../tools/css-syntax.mjs";
 
 const tokens = JSON.parse(readFileSync(new URL("./github-light.tokens.json", import.meta.url), "utf8"));
 const generated = compose(tokens);
@@ -17,10 +18,10 @@ writeFileSync(new URL("./github-light.shipped.css", import.meta.url), shipped);
 // Selector-level coverage analysis
 const extractSelectors = css => {
   const sels = new Set();
-  for (const m of css.matchAll(/([^{}]+)\{[^{}]*\}/g)) {
-    const sel = m[1].trim();
-    if (!sel || sel.startsWith("/*") || sel === ":root") continue;
-    for (const s of sel.split(",")) sels.add(s.trim());
+  for (const rule of parseStyleRules(css)) {
+    for (const selector of rule.selectors) {
+      if (selector !== ":root") sels.add(selector);
+    }
   }
   return sels;
 };

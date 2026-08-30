@@ -24,6 +24,7 @@
 //
 // Usage:
 //   node docs/theme-surface/tools/sync-all.mjs
+//   node docs/theme-surface/tools/sync-all.mjs --check  # verify, write nothing
 //   # or from anywhere with the repo as cwd:
 //   node tools/sync-all.mjs
 
@@ -35,11 +36,22 @@ import { dirname, resolve } from "node:path";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SURFACE = resolve(__dirname, "..");
 const PILOTS = resolve(SURFACE, "pilots");
+const args = process.argv.slice(2);
+const unknown = args.filter((arg) => arg !== "--check");
+if (unknown.length) {
+  console.error(`usage: sync-all.mjs [--check]\nunknown argument(s): ${unknown.join(", ")}`);
+  process.exit(2);
+}
+const CHECK = args.includes("--check");
 
 const run = (label, args) => {
   const t0 = Date.now();
-  const r = spawnSync("node", args, { stdio: ["ignore", "pipe", "inherit"], encoding: "utf8" });
+  const r = spawnSync(process.execPath, args, { stdio: ["ignore", "pipe", "inherit"], encoding: "utf8" });
   const ms = Date.now() - t0;
+  if (r.error) {
+    console.error(`\n[sync-all] ${label} COULD NOT START (${ms}ms): ${r.error.code || r.error.name}: ${r.error.message}`);
+    process.exit(1);
+  }
   if (r.status !== 0) {
     console.error(`\n[sync-all] ${label} FAILED (${ms}ms, exit ${r.status})`);
     if (r.stdout) console.error(r.stdout);
@@ -49,19 +61,34 @@ const run = (label, args) => {
   return r.stdout;
 };
 
-console.log("=== sync-all: theme-factory pipeline ===\n");
+const runGate = (label, path) => {
+  const r = spawnSync(process.execPath, [path], { stdio: "inherit" });
+  if (r.error) {
+    console.error(`[sync-all] ${label} COULD NOT START: ${r.error.code || r.error.name}: ${r.error.message}`);
+    return false;
+  }
+  return r.status === 0;
+};
+
+console.log(`=== sync-all: theme-factory pipeline (${CHECK ? "check mode; read-only" : "write mode"}) ===\n`);
 
 console.log("--- step 1/11: validate-contracts ---");
 const contractOut = run("validate-contracts", [resolve(SURFACE, "tools/validate-contracts.mjs")]);
 console.log(contractOut.trim() + "\n");
 
 console.log("--- step 2/11: render-all ---");
-const renderOut = run("render-all", [resolve(PILOTS, "render-all.mjs")]);
+const renderOut = run("render-all", [
+  resolve(PILOTS, "render-all.mjs"),
+  ...(CHECK ? ["--check"] : []),
+]);
 const renderTail = renderOut.trim().split("\n").slice(-3).join("\n");
 console.log(renderTail + "\n");
 
-console.log("--- step 3/11: apply-ui-themes (--write; popup/options/library @generated:ui-themes regions) ---");
-const uiThemesOut = run("apply-ui-themes", [resolve(SURFACE, "tools/apply-ui-themes.mjs"), "--write"]);
+console.log(`--- step 3/11: apply-ui-themes (${CHECK ? "check" : "--write"}; popup/options/library generated regions) ---`);
+const uiThemesOut = run("apply-ui-themes", [
+  resolve(SURFACE, "tools/apply-ui-themes.mjs"),
+  ...(CHECK ? [] : ["--write"]),
+]);
 console.log(uiThemesOut.trim() + "\n");
 
 console.log("--- step 4/11: apply-tokens (--force) ---");
@@ -74,7 +101,8 @@ let totalDelta = 0;
 for (const slug of slugs) {
   const out = run(`  apply-tokens ${slug}`, [
     resolve(SURFACE, "tools/apply-tokens.mjs"),
-    slug, "--write", "--force"
+    slug,
+    ...(CHECK ? ["--check"] : ["--write", "--force"]),
   ]);
   const m = out.match(/\((\d+) B → (\d+) B\)/);
   if (m) totalDelta += parseInt(m[2]) - parseInt(m[1]);
@@ -82,7 +110,11 @@ for (const slug of slugs) {
 console.log(`[sync-all] total bytes delta across ${slugs.length} themes: ${totalDelta >= 0 ? "+" : ""}${totalDelta} B\n`);
 
 console.log("--- step 5/11: diff-all (strict) ---");
-const diffOut = run("diff-all", [resolve(SURFACE, "tools/diff-all.mjs")]);
+const diffOut = run("diff-all", [
+  resolve(SURFACE, "tools/diff-all.mjs"),
+  "--strict",
+  ...(CHECK ? ["--check"] : []),
+]);
 const diffTail = diffOut.trim().split("\n").slice(-5).join("\n");
 console.log(diffTail);
 
@@ -96,22 +128,22 @@ const [, perfect, total, missing, extra] = m;
 const driftOk = perfect === total && missing === "0" && extra === "0";
 
 console.log("\n--- step 6/11: contrast-audit (WCAG AA gate) ---");
-const auditOk = spawnSync("node", [resolve(SURFACE, "tools/contrast-audit.mjs")], { stdio: "inherit" }).status === 0;
+const auditOk = runGate("contrast-audit", resolve(SURFACE, "tools/contrast-audit.mjs"));
 
 console.log("\n--- step 7/11: css-region-audit (popup @generated region drift) ---");
-const regionOk = spawnSync("node", [resolve(SURFACE, "tools/css-region-audit.mjs")], { stdio: "inherit" }).status === 0;
+const regionOk = runGate("css-region-audit", resolve(SURFACE, "tools/css-region-audit.mjs"));
 
 console.log("\n--- step 8/11: ui-token-coverage (--pp-* defined per theme) ---");
-const tokenOk = spawnSync("node", [resolve(SURFACE, "tools/ui-token-coverage.mjs")], { stdio: "inherit" }).status === 0;
+const tokenOk = runGate("ui-token-coverage", resolve(SURFACE, "tools/ui-token-coverage.mjs"));
 
 console.log("\n--- step 9/11: layout-lint (warnings advisory; blockers HARD GATE) ---");
-const layoutOk = spawnSync("node", [resolve(SURFACE, "tools/layout-lint.mjs")], { stdio: "inherit" }).status === 0;
+const layoutOk = runGate("layout-lint", resolve(SURFACE, "tools/layout-lint.mjs"));
 
 console.log("\n--- step 10/11: url-lint (hardcoded URL drift) ---");
-const urlOk = spawnSync("node", [resolve(SURFACE, "tools/url-lint.mjs")], { stdio: "inherit" }).status === 0;
+const urlOk = runGate("url-lint", resolve(SURFACE, "tools/url-lint.mjs"));
 
 console.log("\n--- step 11/11: recipe-lint (ui-components.mjs single-source checks) ---");
-const recipeOk = spawnSync("node", [resolve(SURFACE, "tools/recipe-lint.mjs")], { stdio: "inherit" }).status === 0;
+const recipeOk = runGate("recipe-lint", resolve(SURFACE, "tools/recipe-lint.mjs"));
 
 const ok = driftOk && auditOk && regionOk && tokenOk && layoutOk && urlOk && recipeOk;
 console.log(`\n=== sync-all: ${ok ? "✅ ALL GATES PASSED" : "❌ FAILED"} — drift ${driftOk ? "ZERO" : "DETECTED"}, contrast ${auditOk ? "PASS" : "FAIL"}, region ${regionOk ? "PASS" : "FAIL"}, tokens ${tokenOk ? "PASS" : "FAIL"}, layout ${layoutOk ? "PASS" : "FAIL"}, url ${urlOk ? "PASS" : "FAIL"}, recipe ${recipeOk ? "PASS" : "FAIL"} ===`);

@@ -15,6 +15,7 @@ import { expandSitePalette } from "../composers/_util.mjs";
 import { isHex, resolveOpaqueBg } from "../composers/_ui-derive.mjs";
 import { composeTheme } from "../composers/compose-theme.mjs";
 import { compose } from "../composers/classic-list-v2.mjs";
+import { parseDeclarations, parseStyleRules } from "./css-syntax.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "..", "..", "..");
@@ -130,14 +131,13 @@ const resolveColor = (s, bg) => {
 // a one-line way to walk a violation straight past the override scan below
 // (Codex round-2, low 9, bypass #3). These helpers read the value that would
 // actually paint instead.
-const declRe = (prop) => new RegExp("(?:^|[^-\\w])" + prop + "\\s*:\\s*([^;{}]+)", "g");
 function effectiveDecl(body, prop) {
+  const properties = new Set(Array.isArray(prop) ? prop : [prop]);
   let normal = null, important = null;
-  for (const m of body.matchAll(declRe(prop))) {
-    const raw = m[1].trim();
-    const bang = /!\s*important$/i.test(raw);
-    const value = bang ? raw.replace(/!\s*important$/i, "").trim() : raw;
-    if (bang) important = value; else normal = value;
+  for (const declaration of parseDeclarations(body)) {
+    if (!properties.has(declaration.property)) continue;
+    if (declaration.important) important = declaration.value;
+    else normal = declaration.value;
   }
   return important !== null ? important : normal;
 }
@@ -358,9 +358,9 @@ const COMPONENT_PAIR_SPEC = [
 // emitted into this block is what ends up in the dict, nothing assumed.
 function tokenDict(body) {
   const dict = {};
-  const re = /--([a-z0-9-]+)\s*:\s*([^;]+);/gi;
-  let m;
-  while ((m = re.exec(body)) !== null) dict[m[1]] = m[2].trim();
+  for (const { property, value } of parseDeclarations(body)) {
+    if (property.startsWith("--")) dict[property.slice(2)] = value;
+  }
   return dict;
 }
 
@@ -371,18 +371,15 @@ function tokenDict(body) {
 // (bg/panel/btn-bg/danger/border/...) plus the generated block appended at
 // the end of @generated:ui-themes (Task 5's 5 new tokens only). Folding both
 // in source order reproduces what the browser actually resolves.
-function foldSelectorBlocks(text, selectorSrc) {
-  const re = new RegExp(selectorSrc + "\\s*\\{([^}]*)\\}", "g");
+function foldSelectorBlocks(text, selector) {
   const dict = {};
-  let m;
-  while ((m = re.exec(text)) !== null) Object.assign(dict, tokenDict(m[1]));
+  for (const rule of parseStyleRules(text)) {
+    if (rule.context.length === 0 && rule.selectors.includes(selector)) {
+      Object.assign(dict, tokenDict(rule.body));
+    }
+  }
   return dict;
 }
-// selectorSrc is a literal-ish selector like ":root" or "html\\.dark" -- this
-// has no idea about @media-wrapped rules (a `@media (...) { :root {...} }`
-// block would match too, since the regex doesn't track brace nesting). No
-// generated block is ever @media-wrapped today, so this is a known, currently
-// non-triggering limitation, not a silent gap.
 
 // Runs COMPONENT_PAIR_SPEC against one already-parsed token dict (a themed
 // block's body, or a folded default-surface dict). `strict` distinguishes
@@ -611,16 +608,9 @@ function auditOverrideTextColors(baseSlug, tokens) {
   const modes = Object.values(tokens.modes || {})
     .filter((m) => m?.trigger && m?.palette)
     .map((m) => [m.trigger, { ...base, ...m.palette }]);
-  // No override block in any pilot nests braces (verified), so a flat
-  // `<selector> { <body> }` scan is exact here rather than an approximation.
-  const re = /([^{}]+)\{([^{}]*)\}/g;
-  let m;
-  while ((m = re.exec(css)) !== null) {
-    const sel = m[1].replace(/\/\*[\s\S]*?\*\//g, "").trim().replace(/\s+/g, " ");
-    // Strip comments from the BODY too, not just the selector: a commented-out
-    // `color:` is not a declaration, and last-wins would otherwise let one
-    // parked at the end of a block decide what this gate measures.
-    const body = m[2].replace(/\/\*[\s\S]*?\*\//g, "");
+  for (const rule of parseStyleRules(css)) {
+    const sel = rule.selectorText;
+    const body = rule.body;
     if (!sel) continue;
     if (OVERRIDE_SCAN_SKIP_SELECTOR.some((r) => r.test(sel))) continue;
     const colorRaw = effectiveDecl(body, "color");
@@ -638,7 +628,7 @@ function auditOverrideTextColors(baseSlug, tokens) {
     });
 
     // Which surface(s) can this text actually land on?
-    const bgRaw = effectiveDecl(body, "background(?:-color)?");
+    const bgRaw = effectiveDecl(body, ["background", "background-color"]);
     let basis, bases;
     if (!bgRaw || NO_OWN_FILL.test(bgRaw)) {
       basis = "page";
@@ -728,37 +718,15 @@ const STATE_OTHER_CHANNEL = /(?:^|[;\s])(background|opacity|text-decoration|bord
 const stateDebt = [];
 const rgbHex = (rgb) => "#" + rgb.map((c) => c.toString(16).padStart(2, "0")).join("");
 
-// Flat iterator over `selector { body }` rules, descending into @-blocks so a
-// rule parked inside `@media print` is not silently invisible.
-function* cssRules(css) {
-  const clean = css.replace(/\/\*[\s\S]*?\*\//g, "");
-  let i = 0;
-  while (i < clean.length) {
-    const open = clean.indexOf("{", i);
-    if (open === -1) break;
-    let depth = 1, j = open + 1;
-    for (; j < clean.length; j++) {
-      if (clean[j] === "{") depth++;
-      else if (clean[j] === "}") { depth--; if (!depth) break; }
-    }
-    const sel = clean.slice(i, open).trim();
-    const body = clean.slice(open + 1, j);
-    if (sel.startsWith("@")) yield* cssRules(body);
-    else if (sel) yield [sel, body];
-    i = j + 1;
-  }
-}
-
 function auditStateDeltas(baseSlug, tokens) {
   const css = composeTheme(tokens, compose);
   const triggers = Object.values(tokens.modes || {}).map((m) => m?.trigger).filter(Boolean);
   const scopes = ["", ...triggers];
   const vars = {}, colorOf = {}, bodyOf = {};
   for (const s of scopes) { vars[s] = {}; colorOf[s] = new Map(); bodyOf[s] = new Map(); }
-  for (const [selectorList, body] of cssRules(css)) {
-    for (const raw of selectorList.split(",")) {
-      const part = raw.trim();
-      if (!part) continue;
+  for (const rule of parseStyleRules(css)) {
+    const body = rule.body;
+    for (const part of rule.selectors) {
       // composeTheme rewrites a mode's `:root` into the bare trigger and
       // prefixes every other selector with `<trigger> `.
       let scope = "", sel = part;
@@ -767,7 +735,11 @@ function auditStateDeltas(baseSlug, tokens) {
         if (part.startsWith(t + " ")) { scope = t; sel = part.slice(t.length + 1); break; }
       }
       if (sel === ":root") {
-        for (const d of body.matchAll(/--pinboard-([a-z0-9-]+)\s*:\s*([^;]+);/g)) vars[scope][d[1]] = d[2].trim();
+        for (const declaration of parseDeclarations(body)) {
+          if (declaration.property.startsWith("--pinboard-")) {
+            vars[scope][declaration.property.slice("--pinboard-".length)] = declaration.value;
+          }
+        }
         continue;
       }
       // effectiveDecl, not `.match()`: same last-wins / !important cascade the
@@ -1308,9 +1280,9 @@ auditLibraryThemes(resolve(ROOT, "library.css"));
 // simply never declared (e.g. options' default has no --opt-btn-bg/
 // --opt-btn-hover yet, pre-Task-9) is an in-scope-elsewhere gap, not a
 // regression to fail on.
-function auditComponentPairsDefault(scope, ns, cssPath, selectorSrc, blockLabel) {
+function auditComponentPairsDefault(scope, ns, cssPath, selector, blockLabel) {
   const text = readFileSync(cssPath, "utf8");
-  const dict = foldSelectorBlocks(text, selectorSrc);
+  const dict = foldSelectorBlocks(text, selector);
   // Guard against the whole default-surface probe silently degrading to a
   // no-op. `strict=false` below means an unresolvable role SKIPs rather than
   // FAILs -- correct for a role Task 5 legitimately never touched, but if
@@ -1324,7 +1296,7 @@ function auditComponentPairsDefault(scope, ns, cssPath, selectorSrc, blockLabel)
   // (verified for all three), so its absence from the fold means the
   // selector regex missed the block entirely, not a legitimate gap -- FAIL.
   if (Object.keys(dict).length === 0 || !dict[`${ns}-bg`]) {
-    const line = "  " + scope.padEnd(10) + " " + blockLabel.padEnd(20) + " (sentinel)".padEnd(28) + ` FAIL (no "${selectorSrc}" block matched, or missing --${ns}-bg)`;
+    const line = "  " + scope.padEnd(10) + " " + blockLabel.padEnd(20) + " (sentinel)".padEnd(28) + ` FAIL (no "${selector}" block matched, or missing --${ns}-bg)`;
     console.log(line);
     violations.push(line);
     return;

@@ -70,11 +70,17 @@ export function expectedCss(surface) {
 if (import.meta.url === `file://${process.argv[1]}`) {
   const write = process.argv.includes("--write");
   const only = (process.argv.find(a => a.startsWith("--surface=")) || "").split("=")[1];
+  let drifts = 0;
   for (const s of SURFACES) {
     if (only && s.name !== only) continue;
     const css = readFileSync(s.cssPath, "utf8");
     const next = spliceRegion(css, s.render(), s.start, s.end);
     if (write) { writeFileSync(s.cssPath, next); console.log(`apply-ui-themes: wrote ${s.name}`); }
-    else console.log(next === css ? `apply-ui-themes: ${s.name} in sync` : `apply-ui-themes: ${s.name} DRIFT (run with --write)`);
+    else if (next === css) console.log(`apply-ui-themes: ${s.name} in sync`);
+    else {
+      console.log(`apply-ui-themes: ${s.name} DRIFT (run with --write)`);
+      drifts++;
+    }
   }
+  if (!write && drifts) process.exit(1);
 }

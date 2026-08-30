@@ -208,9 +208,7 @@ body { color-scheme: light !important; }
    tie, with no specificity change — so the pilot overrides appended last still beat
    the composer, which is what keeps a.url_display on each pilot own shipped colour.
    Do NOT drop a:link or wrap this in :where(): that lowers the fallback below
-   (0,1,1) and revives the dead bare-a overrides two pilots still carry. Also note
-   prefixSelectors() splits selector lists on bare commas, so a :where(a, a:link)
-   here would be mangled inside every html.pbp-dark block. */
+   (0,1,1) and revives the dead bare-a overrides two pilots still carry. */
 a, a:link { color: var(--pinboard-accent) !important; }
 
 /* ---- Banner & navigation ---- */
@@ -290,8 +288,7 @@ a.url_display, a.when, a.cached { color: var(--pinboard-muted-soft) !important; 
    including :hover/:visited. Hover keeps the AA metadata color (link-hover
    fails 4.5:1 on six theme surfaces) and signals with an underline instead.
    url_display is NOT migrated: its per-pilot override colors are shipped
-   visual identity. No :is() here — prefixSelectors() dark-prefixing splits on
-   bare commas and would corrupt a functional pseudo-class. */
+   visual identity. */
 .bookmark a.when,
 .bookmark a.cached { color: var(--pinboard-metadata-fg) !important; font-size: 11px !important; }
 .bookmark a.when:hover,
@@ -1070,9 +1067,7 @@ body { color-scheme: dark !important; }
    tie, with no specificity change — so the pilot overrides appended last still beat
    the composer, which is what keeps a.url_display on each pilot own shipped colour.
    Do NOT drop a:link or wrap this in :where(): that lowers the fallback below
-   (0,1,1) and revives the dead bare-a overrides two pilots still carry. Also note
-   prefixSelectors() splits selector lists on bare commas, so a :where(a, a:link)
-   here would be mangled inside every html.pbp-dark block. */
+   (0,1,1) and revives the dead bare-a overrides two pilots still carry. */
 a, a:link { color: var(--pinboard-accent) !important; }
 
 /* ---- Banner & navigation ---- */
@@ -1152,8 +1147,7 @@ a.url_display, a.when, a.cached { color: var(--pinboard-muted-soft) !important; 
    including :hover/:visited. Hover keeps the AA metadata color (link-hover
    fails 4.5:1 on six theme surfaces) and signals with an underline instead.
    url_display is NOT migrated: its per-pilot override colors are shipped
-   visual identity. No :is() here — prefixSelectors() dark-prefixing splits on
-   bare commas and would corrupt a functional pseudo-class. */
+   visual identity. */
 .bookmark a.when,
 .bookmark a.cached { color: var(--pinboard-metadata-fg) !important; font-size: 11px !important; }
 .bookmark a.when:hover,
@@ -1889,9 +1883,7 @@ body { color-scheme: dark !important; }
    tie, with no specificity change — so the pilot overrides appended last still beat
    the composer, which is what keeps a.url_display on each pilot own shipped colour.
    Do NOT drop a:link or wrap this in :where(): that lowers the fallback below
-   (0,1,1) and revives the dead bare-a overrides two pilots still carry. Also note
-   prefixSelectors() splits selector lists on bare commas, so a :where(a, a:link)
-   here would be mangled inside every html.pbp-dark block. */
+   (0,1,1) and revives the dead bare-a overrides two pilots still carry. */
 a, a:link { color: var(--pinboard-accent) !important; }
 
 /* ---- Banner & navigation ---- */
@@ -1971,8 +1963,7 @@ a.url_display, a.when, a.cached { color: var(--pinboard-muted-soft) !important; 
    including :hover/:visited. Hover keeps the AA metadata color (link-hover
    fails 4.5:1 on six theme surfaces) and signals with an underline instead.
    url_display is NOT migrated: its per-pilot override colors are shipped
-   visual identity. No :is() here — prefixSelectors() dark-prefixing splits on
-   bare commas and would corrupt a functional pseudo-class. */
+   visual identity. */
 .bookmark a.when,
 .bookmark a.cached { color: var(--pinboard-metadata-fg) !important; font-size: 11px !important; }
 .bookmark a.when:hover,
@@ -2752,9 +2743,7 @@ body { color-scheme: light !important; }
    tie, with no specificity change — so the pilot overrides appended last still beat
    the composer, which is what keeps a.url_display on each pilot own shipped colour.
    Do NOT drop a:link or wrap this in :where(): that lowers the fallback below
-   (0,1,1) and revives the dead bare-a overrides two pilots still carry. Also note
-   prefixSelectors() splits selector lists on bare commas, so a :where(a, a:link)
-   here would be mangled inside every html.pbp-dark block. */
+   (0,1,1) and revives the dead bare-a overrides two pilots still carry. */
 a, a:link { color: var(--pinboard-accent) !important; }
 
 /* ---- Banner & navigation ---- */
@@ -2834,8 +2823,7 @@ a.url_display, a.when, a.cached { color: var(--pinboard-muted-soft) !important; 
    including :hover/:visited. Hover keeps the AA metadata color (link-hover
    fails 4.5:1 on six theme surfaces) and signals with an underline instead.
    url_display is NOT migrated: its per-pilot override colors are shipped
-   visual identity. No :is() here — prefixSelectors() dark-prefixing splits on
-   bare commas and would corrupt a functional pseudo-class. */
+   visual identity. */
 .bookmark a.when,
 .bookmark a.cached { color: var(--pinboard-metadata-fg) !important; font-size: 11px !important; }
 .bookmark a.when:hover,
@@ -3612,9 +3600,7 @@ body { color-scheme: dark !important; }
    tie, with no specificity change — so the pilot overrides appended last still beat
    the composer, which is what keeps a.url_display on each pilot own shipped colour.
    Do NOT drop a:link or wrap this in :where(): that lowers the fallback below
-   (0,1,1) and revives the dead bare-a overrides two pilots still carry. Also note
-   prefixSelectors() splits selector lists on bare commas, so a :where(a, a:link)
-   here would be mangled inside every html.pbp-dark block. */
+   (0,1,1) and revives the dead bare-a overrides two pilots still carry. */
 a, a:link { color: var(--pinboard-accent) !important; }
 
 /* ---- Banner & navigation ---- */
@@ -3694,8 +3680,7 @@ a.url_display, a.when, a.cached { color: var(--pinboard-muted-soft) !important; 
    including :hover/:visited. Hover keeps the AA metadata color (link-hover
    fails 4.5:1 on six theme surfaces) and signals with an underline instead.
    url_display is NOT migrated: its per-pilot override colors are shipped
-   visual identity. No :is() here — prefixSelectors() dark-prefixing splits on
-   bare commas and would corrupt a functional pseudo-class. */
+   visual identity. */
 .bookmark a.when,
 .bookmark a.cached { color: var(--pinboard-metadata-fg) !important; font-size: 11px !important; }
 .bookmark a.when:hover,
@@ -4457,9 +4442,7 @@ body { color-scheme: light !important; }
    tie, with no specificity change — so the pilot overrides appended last still beat
    the composer, which is what keeps a.url_display on each pilot own shipped colour.
    Do NOT drop a:link or wrap this in :where(): that lowers the fallback below
-   (0,1,1) and revives the dead bare-a overrides two pilots still carry. Also note
-   prefixSelectors() splits selector lists on bare commas, so a :where(a, a:link)
-   here would be mangled inside every html.pbp-dark block. */
+   (0,1,1) and revives the dead bare-a overrides two pilots still carry. */
 a, a:link { color: var(--pinboard-accent) !important; }
 
 /* ---- Banner & navigation ---- */
@@ -4539,8 +4522,7 @@ a.url_display, a.when, a.cached { color: var(--pinboard-muted-soft) !important; 
    including :hover/:visited. Hover keeps the AA metadata color (link-hover
    fails 4.5:1 on six theme surfaces) and signals with an underline instead.
    url_display is NOT migrated: its per-pilot override colors are shipped
-   visual identity. No :is() here — prefixSelectors() dark-prefixing splits on
-   bare commas and would corrupt a functional pseudo-class. */
+   visual identity. */
 .bookmark a.when,
 .bookmark a.cached { color: var(--pinboard-metadata-fg) !important; font-size: 11px !important; }
 .bookmark a.when:hover,
@@ -5093,10 +5075,12 @@ html.pbp-dark {
 /* === inline_base_rules (manifest.json §inline_base_rules) === */
 
 /* override.tr-onmouseover-yellow — defeat inline style.background on row hover */
-html.pbp-dark #right_bar table tr[onmouseover], html.pbp-dark #main_column table tr[onmouseover] {
+html.pbp-dark #right_bar table tr[onmouseover],
+html.pbp-dark #main_column table tr[onmouseover] {
   background: transparent !important;
 }
-html.pbp-dark #right_bar table tr[onmouseover]:hover, html.pbp-dark #main_column table tr[onmouseover]:hover {
+html.pbp-dark #right_bar table tr[onmouseover]:hover,
+html.pbp-dark #main_column table tr[onmouseover]:hover {
   background: var(--pinboard-row-hover) !important;
 }
 
@@ -5106,7 +5090,9 @@ html.pbp-dark #main_column .bookmark[style*="border-top"] {
 }
 
 /* override.private-bg — tokenize inline pink private bg + suppress pink border */
-html.pbp-dark .bookmark.private[style*="background"], html.pbp-dark .bookmark[style*="#fff1f1"], html.pbp-dark .bookmark[style*="#fff4f4"] {
+html.pbp-dark .bookmark.private[style*="background"],
+html.pbp-dark .bookmark[style*="#fff1f1"],
+html.pbp-dark .bookmark[style*="#fff4f4"] {
   background: var(--pinboard-private-bg) !important;
   border-top-color: transparent !important;
   border-right-color: transparent !important;
@@ -5114,12 +5100,14 @@ html.pbp-dark .bookmark.private[style*="background"], html.pbp-dark .bookmark[st
 }
 
 /* override.sub-banner-count-color — tokenize hardcoded #aa5511 */
-html.pbp-dark #sub_banner [style*="#aa5511"], html.pbp-dark .bookmark_count[style*="color"] {
+html.pbp-dark #sub_banner [style*="#aa5511"],
+html.pbp-dark .bookmark_count[style*="color"] {
   color: var(--pinboard-accent) !important;
 }
 
 /* override.muted-aaa — tokenize widespread inline #aaa */
-html.pbp-dark [style*="color:#aaa"], html.pbp-dark [style*="color: #aaa"] {
+html.pbp-dark [style*="color:#aaa"],
+html.pbp-dark [style*="color: #aaa"] {
   color: var(--pinboard-muted) !important;
 }
 
@@ -5151,7 +5139,9 @@ html.pbp-dark #bulk_edit_box #confirm {
   margin-top: 4px !important;
   border-radius: 4px !important;
 }
-html.pbp-dark #bulk_edit_box #confirm, html.pbp-dark #bulk_edit_box #confirm > span, html.pbp-dark #bulk_edit_box #confirm > #confirm_message {
+html.pbp-dark #bulk_edit_box #confirm,
+html.pbp-dark #bulk_edit_box #confirm > span,
+html.pbp-dark #bulk_edit_box #confirm > #confirm_message {
   color: var(--pinboard-fg) !important;
 }
 html.pbp-dark #bulk_edit_box #confirm a {
@@ -5173,8 +5163,8 @@ html.pbp-dark font[color], html.pbp-dark font[size] { color: inherit !important;
 html.pbp-dark table[width]:not([width="100%"]) { width: auto !important; max-width: 100% !important; }
 
 /* === selection (applied globally; composers may override scoped) === */
-html.pbp-dark ::selection { background: var(--pinboard-selection-bg); color: var(--pinboard-selection-fg); }
-html.pbp-dark ::-moz-selection { background: var(--pinboard-selection-bg); color: var(--pinboard-selection-fg); }
+html.pbp-dark ::selection          { background: var(--pinboard-selection-bg); color: var(--pinboard-selection-fg); }
+html.pbp-dark ::-moz-selection     { background: var(--pinboard-selection-bg); color: var(--pinboard-selection-fg); }
 
 /* === composer: classic-list-v2 — canonical surface inventory === */
 
@@ -5186,7 +5176,10 @@ html.pbp-dark body#pinboard {
   font-size: 13px !important;
   line-height: var(--pinboard-line-height) !important;
 }
-html.pbp-dark body#pinboard table, html.pbp-dark body#pinboard td, html.pbp-dark body#pinboard th, html.pbp-dark body#pinboard p, html.pbp-dark body#pinboard b, html.pbp-dark body#pinboard strong, html.pbp-dark body#pinboard label, html.pbp-dark body#pinboard span, html.pbp-dark body#pinboard li:not(.pin-ac li), html.pbp-dark body#pinboard dd, html.pbp-dark body#pinboard dt { color: inherit !important; }
+html.pbp-dark body#pinboard table, html.pbp-dark body#pinboard td, html.pbp-dark body#pinboard th,
+html.pbp-dark body#pinboard p, html.pbp-dark body#pinboard b, html.pbp-dark body#pinboard strong,
+html.pbp-dark body#pinboard label, html.pbp-dark body#pinboard span, html.pbp-dark body#pinboard li:not(.pin-ac li),
+html.pbp-dark body#pinboard dd, html.pbp-dark body#pinboard dt { color: inherit !important; }
 
 /* ---- Popup / iframe frame (body:not(#pinboard)) ---- */
 html.pbp-dark body:not(#pinboard) {
@@ -5194,7 +5187,9 @@ html.pbp-dark body:not(#pinboard) {
   color: var(--pinboard-fg) !important;
   font-family: var(--pinboard-font-family) !important;
 }
-html.pbp-dark body:not(#pinboard) table, html.pbp-dark body:not(#pinboard) td, html.pbp-dark body:not(#pinboard) p, html.pbp-dark body:not(#pinboard) label, html.pbp-dark body:not(#pinboard) span { color: inherit !important; }
+html.pbp-dark body:not(#pinboard) table, html.pbp-dark body:not(#pinboard) td,
+html.pbp-dark body:not(#pinboard) p, html.pbp-dark body:not(#pinboard) label,
+html.pbp-dark body:not(#pinboard) span { color: inherit !important; }
 html.pbp-dark body:not(#pinboard) #popup_header { background: transparent !important; color: var(--pinboard-fg) !important; }
 
 /* Native form controls (checkbox/radio/select/scrollbar) follow color-scheme (an INHERITED property),
@@ -5213,9 +5208,7 @@ html.pbp-dark body { color-scheme: dark !important; }
    tie, with no specificity change — so the pilot overrides appended last still beat
    the composer, which is what keeps a.url_display on each pilot own shipped colour.
    Do NOT drop a:link or wrap this in :where(): that lowers the fallback below
-   (0,1,1) and revives the dead bare-a overrides two pilots still carry. Also note
-   prefixSelectors() splits selector lists on bare commas, so a :where(a, a:link)
-   here would be mangled inside every html.pbp-dark block. */
+   (0,1,1) and revives the dead bare-a overrides two pilots still carry. */
 html.pbp-dark a, html.pbp-dark a:link { color: var(--pinboard-accent) !important; }
 
 /* ---- Banner & navigation ---- */
@@ -5295,10 +5288,11 @@ html.pbp-dark a.url_display, html.pbp-dark a.when, html.pbp-dark a.cached { colo
    including :hover/:visited. Hover keeps the AA metadata color (link-hover
    fails 4.5:1 on six theme surfaces) and signals with an underline instead.
    url_display is NOT migrated: its per-pilot override colors are shipped
-   visual identity. No :is() here — prefixSelectors() dark-prefixing splits on
-   bare commas and would corrupt a functional pseudo-class. */
-html.pbp-dark .bookmark a.when, html.pbp-dark .bookmark a.cached { color: var(--pinboard-metadata-fg) !important; font-size: 11px !important; }
-html.pbp-dark .bookmark a.when:hover, html.pbp-dark .bookmark a.cached:hover { text-decoration: underline !important; }
+   visual identity. */
+html.pbp-dark .bookmark a.when,
+html.pbp-dark .bookmark a.cached { color: var(--pinboard-metadata-fg) !important; font-size: 11px !important; }
+html.pbp-dark .bookmark a.when:hover,
+html.pbp-dark .bookmark a.cached:hover { text-decoration: underline !important; }
 html.pbp-dark a.url_link {
   color: var(--pinboard-url-link-fg) !important;
   background: var(--pinboard-url-link-bg) !important;
@@ -5330,7 +5324,8 @@ html.pbp-dark a.copy_link { color: var(--pinboard-accent) !important; }
 html.pbp-dark a.delete, html.pbp-dark a.destroy { color: var(--pinboard-destroy) !important; }
 
 /* ---- Private bookmarks ---- */
-html.pbp-dark .bookmark.private, html.pbp-dark .bookmark.private[style*="background"] { background: var(--pinboard-private-bg) !important; box-shadow: inset 3px 0 0 var(--pinboard-private-accent) !important; border-top-color: transparent !important; border-right-color: transparent !important; border-left-color: transparent !important; }
+html.pbp-dark .bookmark.private,
+html.pbp-dark .bookmark.private[style*="background"] { background: var(--pinboard-private-bg) !important; box-shadow: inset 3px 0 0 var(--pinboard-private-accent) !important; border-top-color: transparent !important; border-right-color: transparent !important; border-left-color: transparent !important; }
 
 /* ---- Right bar ---- */
 html.pbp-dark #right_bar {
@@ -5594,7 +5589,8 @@ html.pbp-dark #main_column form[name="sort"] table input[name^="id_"] {
 }
 html.pbp-dark #main_column form[name="sort"] table input[name^="id_"]:focus { border-color: var(--pinboard-accent) !important; box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important; outline: none !important; }
 html.pbp-dark #main_column form[name="sort"] table a.bundle { font-weight: var(--pinboard-weight-heading) !important; font-style: normal !important; letter-spacing: 0.01em !important; padding: 2px 4px !important; border-radius: var(--pinboard-radius-sm) !important; }
-html.pbp-dark #main_column form[name="sort"] table a[style*="color:#aaa"], html.pbp-dark #main_column form[name="sort"] table a[style*="color: #aaa"] { color: var(--pinboard-muted) !important; opacity: 1 !important; text-decoration: none !important; font-size: 12px !important; margin-left: 4px !important; }
+html.pbp-dark #main_column form[name="sort"] table a[style*="color:#aaa"],
+html.pbp-dark #main_column form[name="sort"] table a[style*="color: #aaa"] { color: var(--pinboard-muted) !important; opacity: 1 !important; text-decoration: none !important; font-size: 12px !important; margin-left: 4px !important; }
 html.pbp-dark #main_column form[name="sort"] table a[style*="color:#aaa"]:hover { color: var(--pinboard-accent) !important; text-decoration: underline !important; }
 html.pbp-dark #main_column form[name="sort"] table td a.edit { color: var(--pinboard-muted) !important; opacity: 0.8 !important; transition: opacity 0.15s ease !important; }
 html.pbp-dark #main_column form[name="sort"] table td a.destroy { color: var(--pinboard-destroy) !important; opacity: 0.85 !important; font-weight: var(--pinboard-weight-heading) !important; }
@@ -5610,7 +5606,8 @@ html.pbp-dark #nextprev a.edit { color: var(--pinboard-muted-soft) !important; }
 html.pbp-dark #main_welcome, html.pbp-dark .homepage_quad { color: var(--pinboard-fg) !important; }
 html.pbp-dark .homepage_heading { color: var(--pinboard-fg-strong) !important; font-weight: var(--pinboard-weight-heading) !important; }
 html.pbp-dark .homepage_subheading { color: var(--pinboard-muted) !important; }
-html.pbp-dark .signup_button, html.pbp-dark .signup_button[style*="background"] {
+html.pbp-dark .signup_button,
+html.pbp-dark .signup_button[style*="background"] {
   background: var(--pinboard-btn-bg) !important;
   color: var(--pinboard-btn-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-btn-bg) !important;
@@ -5651,7 +5648,8 @@ html.pbp-dark #language_box { color: var(--pinboard-muted) !important; }
 html.pbp-dark #language_box p { margin: 2px 0 !important; }
 html.pbp-dark #language_box a { color: var(--pinboard-muted) !important; padding: 1px 6px !important; border-radius: var(--pinboard-radius-sm) !important; text-decoration: none !important; }
 html.pbp-dark #language_box a:hover { color: var(--pinboard-accent) !important; background: var(--pinboard-accent-alpha) !important; }
-html.pbp-dark #language_box a[style*="background:#ffa"], html.pbp-dark #language_box a[style*="background: #ffa"] { background: var(--pinboard-accent-alpha) !important; color: var(--pinboard-accent) !important; }
+html.pbp-dark #language_box a[style*="background:#ffa"],
+html.pbp-dark #language_box a[style*="background: #ffa"] { background: var(--pinboard-accent-alpha) !important; color: var(--pinboard-accent) !important; }
 html.pbp-dark .nli { color: var(--pinboard-muted) !important; }
 html.pbp-dark .nav_nli { color: var(--pinboard-accent) !important; text-decoration: none !important; }
 html.pbp-dark .nav_nli:hover { color: var(--pinboard-link-hover) !important; }
@@ -6083,9 +6081,7 @@ body { color-scheme: light !important; }
    tie, with no specificity change — so the pilot overrides appended last still beat
    the composer, which is what keeps a.url_display on each pilot own shipped colour.
    Do NOT drop a:link or wrap this in :where(): that lowers the fallback below
-   (0,1,1) and revives the dead bare-a overrides two pilots still carry. Also note
-   prefixSelectors() splits selector lists on bare commas, so a :where(a, a:link)
-   here would be mangled inside every html.pbp-dark block. */
+   (0,1,1) and revives the dead bare-a overrides two pilots still carry. */
 a, a:link { color: var(--pinboard-accent) !important; }
 
 /* ---- Banner & navigation ---- */
@@ -6165,8 +6161,7 @@ a.url_display, a.when, a.cached { color: var(--pinboard-muted-soft) !important; 
    including :hover/:visited. Hover keeps the AA metadata color (link-hover
    fails 4.5:1 on six theme surfaces) and signals with an underline instead.
    url_display is NOT migrated: its per-pilot override colors are shipped
-   visual identity. No :is() here — prefixSelectors() dark-prefixing splits on
-   bare commas and would corrupt a functional pseudo-class. */
+   visual identity. */
 .bookmark a.when,
 .bookmark a.cached { color: var(--pinboard-metadata-fg) !important; font-size: 11px !important; }
 .bookmark a.when:hover,
@@ -6887,9 +6882,7 @@ body { color-scheme: dark !important; }
    tie, with no specificity change — so the pilot overrides appended last still beat
    the composer, which is what keeps a.url_display on each pilot own shipped colour.
    Do NOT drop a:link or wrap this in :where(): that lowers the fallback below
-   (0,1,1) and revives the dead bare-a overrides two pilots still carry. Also note
-   prefixSelectors() splits selector lists on bare commas, so a :where(a, a:link)
-   here would be mangled inside every html.pbp-dark block. */
+   (0,1,1) and revives the dead bare-a overrides two pilots still carry. */
 a, a:link { color: var(--pinboard-accent) !important; }
 
 /* ---- Banner & navigation ---- */
@@ -6969,8 +6962,7 @@ a.url_display, a.when, a.cached { color: var(--pinboard-muted-soft) !important; 
    including :hover/:visited. Hover keeps the AA metadata color (link-hover
    fails 4.5:1 on six theme surfaces) and signals with an underline instead.
    url_display is NOT migrated: its per-pilot override colors are shipped
-   visual identity. No :is() here — prefixSelectors() dark-prefixing splits on
-   bare commas and would corrupt a functional pseudo-class. */
+   visual identity. */
 .bookmark a.when,
 .bookmark a.cached { color: var(--pinboard-metadata-fg) !important; font-size: 11px !important; }
 .bookmark a.when:hover,
@@ -7695,9 +7687,7 @@ body { color-scheme: light !important; }
    tie, with no specificity change — so the pilot overrides appended last still beat
    the composer, which is what keeps a.url_display on each pilot own shipped colour.
    Do NOT drop a:link or wrap this in :where(): that lowers the fallback below
-   (0,1,1) and revives the dead bare-a overrides two pilots still carry. Also note
-   prefixSelectors() splits selector lists on bare commas, so a :where(a, a:link)
-   here would be mangled inside every html.pbp-dark block. */
+   (0,1,1) and revives the dead bare-a overrides two pilots still carry. */
 a, a:link { color: var(--pinboard-accent) !important; }
 
 /* ---- Banner & navigation ---- */
@@ -7777,8 +7767,7 @@ a.url_display, a.when, a.cached { color: var(--pinboard-muted-soft) !important; 
    including :hover/:visited. Hover keeps the AA metadata color (link-hover
    fails 4.5:1 on six theme surfaces) and signals with an underline instead.
    url_display is NOT migrated: its per-pilot override colors are shipped
-   visual identity. No :is() here — prefixSelectors() dark-prefixing splits on
-   bare commas and would corrupt a functional pseudo-class. */
+   visual identity. */
 .bookmark a.when,
 .bookmark a.cached { color: var(--pinboard-metadata-fg) !important; font-size: 11px !important; }
 .bookmark a.when:hover,
@@ -8513,9 +8502,7 @@ body { color-scheme: dark !important; }
    tie, with no specificity change — so the pilot overrides appended last still beat
    the composer, which is what keeps a.url_display on each pilot own shipped colour.
    Do NOT drop a:link or wrap this in :where(): that lowers the fallback below
-   (0,1,1) and revives the dead bare-a overrides two pilots still carry. Also note
-   prefixSelectors() splits selector lists on bare commas, so a :where(a, a:link)
-   here would be mangled inside every html.pbp-dark block. */
+   (0,1,1) and revives the dead bare-a overrides two pilots still carry. */
 a, a:link { color: var(--pinboard-accent) !important; }
 
 /* ---- Banner & navigation ---- */
@@ -8595,8 +8582,7 @@ a.url_display, a.when, a.cached { color: var(--pinboard-muted-soft) !important; 
    including :hover/:visited. Hover keeps the AA metadata color (link-hover
    fails 4.5:1 on six theme surfaces) and signals with an underline instead.
    url_display is NOT migrated: its per-pilot override colors are shipped
-   visual identity. No :is() here — prefixSelectors() dark-prefixing splits on
-   bare commas and would corrupt a functional pseudo-class. */
+   visual identity. */
 .bookmark a.when,
 .bookmark a.cached { color: var(--pinboard-metadata-fg) !important; font-size: 11px !important; }
 .bookmark a.when:hover,
@@ -9344,9 +9330,7 @@ body { color-scheme: dark !important; }
    tie, with no specificity change — so the pilot overrides appended last still beat
    the composer, which is what keeps a.url_display on each pilot own shipped colour.
    Do NOT drop a:link or wrap this in :where(): that lowers the fallback below
-   (0,1,1) and revives the dead bare-a overrides two pilots still carry. Also note
-   prefixSelectors() splits selector lists on bare commas, so a :where(a, a:link)
-   here would be mangled inside every html.pbp-dark block. */
+   (0,1,1) and revives the dead bare-a overrides two pilots still carry. */
 a, a:link { color: var(--pinboard-accent) !important; }
 
 /* ---- Banner & navigation ---- */
@@ -9426,8 +9410,7 @@ a.url_display, a.when, a.cached { color: var(--pinboard-muted-soft) !important; 
    including :hover/:visited. Hover keeps the AA metadata color (link-hover
    fails 4.5:1 on six theme surfaces) and signals with an underline instead.
    url_display is NOT migrated: its per-pilot override colors are shipped
-   visual identity. No :is() here — prefixSelectors() dark-prefixing splits on
-   bare commas and would corrupt a functional pseudo-class. */
+   visual identity. */
 .bookmark a.when,
 .bookmark a.cached { color: var(--pinboard-metadata-fg) !important; font-size: 11px !important; }
 .bookmark a.when:hover,
@@ -10168,9 +10151,7 @@ body { color-scheme: dark !important; }
    tie, with no specificity change — so the pilot overrides appended last still beat
    the composer, which is what keeps a.url_display on each pilot own shipped colour.
    Do NOT drop a:link or wrap this in :where(): that lowers the fallback below
-   (0,1,1) and revives the dead bare-a overrides two pilots still carry. Also note
-   prefixSelectors() splits selector lists on bare commas, so a :where(a, a:link)
-   here would be mangled inside every html.pbp-dark block. */
+   (0,1,1) and revives the dead bare-a overrides two pilots still carry. */
 a, a:link { color: var(--pinboard-accent) !important; }
 
 /* ---- Banner & navigation ---- */
@@ -10250,8 +10231,7 @@ a.url_display, a.when, a.cached { color: var(--pinboard-muted-soft) !important; 
    including :hover/:visited. Hover keeps the AA metadata color (link-hover
    fails 4.5:1 on six theme surfaces) and signals with an underline instead.
    url_display is NOT migrated: its per-pilot override colors are shipped
-   visual identity. No :is() here — prefixSelectors() dark-prefixing splits on
-   bare commas and would corrupt a functional pseudo-class. */
+   visual identity. */
 .bookmark a.when,
 .bookmark a.cached { color: var(--pinboard-metadata-fg) !important; font-size: 11px !important; }
 .bookmark a.when:hover,
@@ -10998,9 +10978,7 @@ body { color-scheme: light !important; }
    tie, with no specificity change — so the pilot overrides appended last still beat
    the composer, which is what keeps a.url_display on each pilot own shipped colour.
    Do NOT drop a:link or wrap this in :where(): that lowers the fallback below
-   (0,1,1) and revives the dead bare-a overrides two pilots still carry. Also note
-   prefixSelectors() splits selector lists on bare commas, so a :where(a, a:link)
-   here would be mangled inside every html.pbp-dark block. */
+   (0,1,1) and revives the dead bare-a overrides two pilots still carry. */
 a, a:link { color: var(--pinboard-accent) !important; }
 
 /* ---- Banner & navigation ---- */
@@ -11080,8 +11058,7 @@ a.url_display, a.when, a.cached { color: var(--pinboard-muted-soft) !important; 
    including :hover/:visited. Hover keeps the AA metadata color (link-hover
    fails 4.5:1 on six theme surfaces) and signals with an underline instead.
    url_display is NOT migrated: its per-pilot override colors are shipped
-   visual identity. No :is() here — prefixSelectors() dark-prefixing splits on
-   bare commas and would corrupt a functional pseudo-class. */
+   visual identity. */
 .bookmark a.when,
 .bookmark a.cached { color: var(--pinboard-metadata-fg) !important; font-size: 11px !important; }
 .bookmark a.when:hover,

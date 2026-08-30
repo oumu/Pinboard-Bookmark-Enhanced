@@ -4,6 +4,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { compose } from "../composers/classic-list-v2.mjs";
 import { composeTheme } from "../composers/compose-theme.mjs";
+import { parseStyleRules } from "../tools/css-syntax.mjs";
 
 const tokens = JSON.parse(readFileSync(new URL("./flexoki.tokens.json", import.meta.url), "utf8"));
 const generated = composeTheme(tokens, compose);
@@ -16,18 +17,11 @@ if (!m) { console.error("cannot locate flexoki shipped CSS"); process.exit(1); }
 const shipped = m[1];
 writeFileSync(new URL("./flexoki.shipped.css", import.meta.url), shipped);
 
-// Strip comments before extraction (lesson learned: lazy regex swallows comments into selectors)
-const stripComments = css => css.replace(/\/\*[\s\S]*?\*\//g, "");
-
 const extractSelectors = css => {
   const sels = new Set();
-  const clean = stripComments(css);
-  for (const m of clean.matchAll(/([^{}]+)\{[^{}]*\}/g)) {
-    const sel = m[1].trim();
-    if (!sel || sel === ":root" || sel.startsWith("@")) continue;
-    for (const s of sel.split(",")) {
-      const t = s.trim();
-      if (t) sels.add(t);
+  for (const rule of parseStyleRules(css)) {
+    for (const selector of rule.selectors) {
+      if (selector !== ":root") sels.add(selector);
     }
   }
   return sels;
