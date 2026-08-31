@@ -239,9 +239,9 @@ export function expandPalette(p) {
 //               a.sort_order_selected and the extension's chip role. a.tag
 //               lands on the page itself: `bg` for a flat-bookmark pilot,
 //               `bg-surface` inside a card-style .bookmark and inside
-//               #right_bar's #tag_cloud. Both bases.
+//               #right_bar's #tag_cloud, or `private-bg` in a private row.
 //   destroy     `a.delete, a.destroy` carries no fill either, and its live
-//               selectors span both bases (the per-bookmark edit strip,
+//               selectors span all three bases (the per-bookmark edit strip,
 //               #right_bar's table, #main_column's sort table), as does the
 //               `a.tag.selected` colour _patterns.mjs paints with it.
 //   url-link-fg the one of the three with a fill of its own: `a.url_link`
@@ -261,9 +261,9 @@ export function expandPalette(p) {
 //
 // Same minimum-lightness-movement, hue+saturation-preserving, identity-when-
 // already-passing shape as everything else in this file, and gated by
-// contrast-audit's `tag-fg|destroy vs bg|bg-surface` and `url-link-fg vs
-// url-link-bg` rows -- a FAIL there is a bug in THIS function, never an
-// allowlist entry.
+// contrast-audit's `tag-fg|destroy vs bg|bg-surface|private-bg` and
+// `url-link-fg vs url-link-bg` rows -- a FAIL there is a bug in THIS function,
+// never an allowlist entry.
 //
 // Runs AFTER expandPalette, so its fallback chain has already resolved
 // `private-accent` / `unread` off the pilot's RAW `destroy`. Deliberate: those
@@ -271,27 +271,45 @@ export function expandPalette(p) {
 // 1.4.11 shapes, not 1.4.3 text -- so a theme that declares only `destroy`
 // keeps the decorative colour it chose while the TEXT role moves.
 //
-// Deliberately NOT covered, same disclosed-exposure terms as deriveTextTiers'
-// `a.help` / `private-bg` note: the HOVER bands (`row-hover`, which both
+// Deliberately NOT covered: the HOVER bands (`row-hover`, which both
 // #right_bar's table and #main_column's sort table paint on tr:hover, and the
-// ~6%-accent tint some pilots override that sort-table row to), and any of the
-// three inside a `.bookmark.private` row (`private-bg`). Those are transient or
-// tinted variants of the two bases above; post-derivation they measure
-// 3.81-5.61:1 on row-hover (up from 2.11-5.61) and 4.23-10.34:1 on private-bg
-// (up from 2.42-10.34), i.e. improved everywhere and still short of a
-// guarantee on catppuccin-latte / dracula / nord-night / flexoki:dark
-// row-hover. Widening this call to those bands is a design decision about the
-// hover tint, not a bug in it.
+// ~6%-accent tint some pilots override that sort-table row to). Private rows
+// are persistent bookmark surfaces and therefore ARE blocking below; transient
+// table hover tints remain a separate state-pair decision.
 export function expandSitePalette(raw) {
   const p = expandPalette(raw);
   const bg = isHex(p["bg"]) ? hexToRgb(p["bg"]) : null;
   const bgSurface = isHex(p["bg-surface"]) ? hexToRgb(p["bg-surface"]) : bg;
-  const pageBases = [bg, bgSurface].filter(Boolean);
+  const privateBg = isHex(p["private-bg"]) ? hexToRgb(p["private-bg"]) : null;
+  const pageBases = [bg, bgSurface, privateBg].filter(Boolean);
   if (!pageBases.length) return p;
   const out = { ...p };
-  for (const key of ["tag-fg", "destroy"]) {
+
+  // Site-only text inks. The extension surfaces derive their own semantic
+  // roles, while Pinboard reuses accent/link colors directly for 11–15px text
+  // on flat, elevated and private bookmark rows. Keep the shared palette
+  // untouched and correct only the values emitted as --pinboard-*.
+  for (const key of [
+    "fg", "fg-strong", "muted", "muted-soft", "metadata-fg",
+    "accent", "accent-hover", "link-hover", "link-visited", "success",
+    "tag-fg", "destroy"
+  ]) {
     if (!isHex(p[key])) continue;
     out[key] = rgbToHex(fgToAAMulti(hexToRgb(p[key]), pageBases));
+  }
+
+  // accent/link-hover are dual-purpose site tokens: text in ordinary links,
+  // fills in selected navigation controls. If their text floor moved the fill,
+  // re-derive the corresponding on-color against the emitted value.
+  for (const [fillKey, onKey] of [["accent", "on-accent"], ["link-hover", "on-link-hover"]]) {
+    if (!isHex(out[fillKey]) || !isHex(out[onKey])) continue;
+    out[onKey] = rgbToHex(fgToAA(hexToRgb(out[onKey]), hexToRgb(out[fillKey])));
+  }
+
+  // Focus outlines are non-text UI boundaries (WCAG 1.4.11), including links
+  // focused inside a private bookmark row.
+  if (isHex(p["focus-ring"])) {
+    out["focus-ring"] = rgbToHex(fgToAAMulti(hexToRgb(p["focus-ring"]), pageBases, 3));
   }
   if (isHex(p["url-link-fg"])) {
     const pill = pageBases.map((b) => resolveOpaqueBg(p["url-link-bg"], b));

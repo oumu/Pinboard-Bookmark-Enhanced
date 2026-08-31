@@ -896,6 +896,7 @@ function auditPalette(slug, rawPalette) {
   const bg = hexRgb(p["bg"] || "");
   const fg = hexRgb(p["fg"] || "");
   const bgSurface = hexRgb(p["bg-surface"] || p["bg"] || "");
+  const privateBg = hexRgb(p["private-bg"] || "");
   const btnBg = hexRgb(p["btn-bg"] || p["accent"] || "");
   const btnBgHover = hexRgb(p["btn-bg-hover"] || p["link-hover"] || p["accent-hover"] || p["btn-bg"] || p["accent"] || "");
   const btnFg = hexRgb(p["btn-fg"] || "");
@@ -915,6 +916,8 @@ function auditPalette(slug, rawPalette) {
   if (bgSurface && fg) console.log(check("pinboard", slug, "bg-surface vs fg", cr(bgSurface, fg), 4.5));
   const fgStrong = hexRgb(p["fg-strong"] || "");
   if (bgSurface && fgStrong) console.log(check("pinboard", slug, "bg-surface vs fg-strong", cr(bgSurface, fgStrong), 4.5));
+  if (privateBg && fg) console.log(check("pinboard", slug, "private-bg vs fg", cr(privateBg, fg), 4.5));
+  if (privateBg && fgStrong) console.log(check("pinboard", slug, "private-bg vs fg-strong", cr(privateBg, fgStrong), 4.5));
   // Button text must clear AA against its hand-tuned btn-bg. Composer falls back btn-bg -> accent
   // when btn-bg unset, so this also catches the terminal-style accent==btn-fg crash since the
   // effective button bg would equal accent and contrast against btn-fg would collapse.
@@ -944,6 +947,7 @@ function auditPalette(slug, rawPalette) {
     if (!rgb) continue;
     if (bg) console.log(check("pinboard", slug, `${key} vs bg`, cr(bg, rgb), 4.5));
     if (bgSurface) console.log(check("pinboard", slug, `${key} vs bg-surface`, cr(bgSurface, rgb), 4.5));
+    if (privateBg) console.log(check("pinboard", slug, `${key} vs private-bg`, cr(privateBg, rgb), 4.5));
   }
   // TIER ORDER (BLOCKING). AA floors alone cannot express "secondary text must
   // not out-shout the body text it sits under": raising `muted`/`muted-soft`
@@ -987,6 +991,34 @@ function auditPalette(slug, rawPalette) {
     if (fill && on) console.log(check("pinboard", slug, `${onKey} vs ${fillKey}`, cr(fill, on), 4.5));
   }
 
+  // Site link/status inks are ordinary body-adjacent text. `accent` carries
+  // bookmark titles and most links; the hover/visited variants and `success`
+  // carry equally small text. They can land on flat rows, elevated rows and
+  // private bookmark rows, so all three opaque bases are blocking.
+  for (const key of ["accent", "accent-hover", "link-hover", "link-visited", "success"]) {
+    const rgb = hexRgb(p[key] || "");
+    if (!rgb) {
+      const line = `  pinboard  ${slug}  ${key}  MISSING TOKEN  FAIL`;
+      console.log(line);
+      violations.push(line);
+      continue;
+    }
+    for (const [label, base] of [["bg", bg], ["bg-surface", bgSurface], ["private-bg", privateBg]]) {
+      if (base) console.log(check("pinboard", slug, `${key} vs ${label}`, cr(base, rgb), 4.5));
+    }
+  }
+
+  const focusRing = hexRgb(p["focus-ring"] || "");
+  if (!focusRing) {
+    const line = `  pinboard  ${slug}  focus-ring  MISSING TOKEN  FAIL`;
+    console.log(line);
+    violations.push(line);
+  } else {
+    for (const [label, base] of [["bg", bg], ["bg-surface", bgSurface], ["private-bg", privateBg]]) {
+      if (base) console.log(check("pinboard", slug, `focus-ring vs ${label}`, cr(base, focusRing), 3));
+    }
+  }
+
   // The three SEMANTIC ink roles (BLOCKING, 4.5:1). a.tag, the a.url_link pill
   // and a.delete / a.destroy / a.tag.selected are ordinary body-adjacent TEXT
   // and had no contrast gate of ANY kind until 2026-08-27 -- expandPalette gave
@@ -1020,6 +1052,7 @@ function auditPalette(slug, rawPalette) {
     }
     if (bg) console.log(check("pinboard", slug, `${key} vs bg`, cr(bg, rgb), 4.5));
     if (bgSurface) console.log(check("pinboard", slug, `${key} vs bg-surface`, cr(bgSurface, rgb), 4.5));
+    if (privateBg) console.log(check("pinboard", slug, `${key} vs private-bg`, cr(privateBg, rgb), 4.5));
   }
   // url-link-fg vs the pill it actually sits in. resolveOpaqueBg over each page
   // base, so a `url-link-bg` left at the "transparent" its fallback chain can
@@ -1071,7 +1104,6 @@ function auditPalette(slug, rawPalette) {
   // AA against every base it can sit on. A MISSING token is itself a failure —
   // silent skips are exactly how the last two coverage holes shipped green.
   const metadataFg = hexRgb(p["metadata-fg"] || "");
-  const privateBg = hexRgb(p["private-bg"] || "");
   if (!metadataFg) {
     const line = `  pinboard  ${slug}  metadata-fg  MISSING TOKEN  FAIL`;
     console.log(line);

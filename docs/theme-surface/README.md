@@ -177,6 +177,9 @@ produced past regressions:
 | `pinboard.sidebar-btn-hover vs fg` | 4.5:1 | same, hover state |
 | `pinboard.on-accent vs accent` | 4.5:1 | text on an accent fill (selected page-nav chip, RSS hover) |
 | `pinboard.on-link-hover vs link-hover` | 4.5:1 | same, hover fill |
+| `pinboard.fg / fg-strong / muted / muted-soft / metadata-fg vs bg / bg-surface / private-bg` | 4.5:1 | every persistent bookmark-row text base, including private rows |
+| `pinboard.accent / accent-hover / link-hover / link-visited / success / tag-fg / destroy vs bg / bg-surface / private-bg` | 4.5:1 | site link, status and semantic text roles on every persistent row base |
+| `pinboard.focus-ring vs bg / bg-surface / private-bg` | 3:1 | focus boundary visibility, including links inside private rows |
 | `pinboard.muted vs bg-surface` | 3:1 | scrollbar thumb visibility |
 | `popup.fg vs bg` (`--pp-*`) | 4.5:1 | popup body |
 | `popup.fg-hint vs bg` | 4.5:1 | char counters, hints |
@@ -218,9 +221,11 @@ render oracle (`tests/render-audit-checklist.mjs`, run via
 supplement to it, not a replacement (see §9).
 
 **What the audit reads matters as much as the table.** It runs on
-`_util.mjs#expandPalette` output, not the raw pilot, because `btn-bg`,
+`_util.mjs#expandSitePalette` output, not the raw pilot, because `btn-bg`,
 `sidebar-btn-*` and the `on-<fill>` tokens are *derived* there (see "Contrast
-derivation" below). It also iterates every `modes.<name>` palette, not just the
+derivation" below), and site text roles are rechecked against `private-bg`
+without changing the extension surfaces. It also iterates every
+`modes.<name>` palette, not just the
 base. Both were coverage holes: reading raw pilots hid 22 sub-AA pairs behind a
 green run (worst was nord-night's selected page-nav chip at 1.74:1), and
 skipping mode palettes hid the whole of Flexoki's dark mode.

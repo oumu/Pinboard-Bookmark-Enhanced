@@ -104,13 +104,16 @@ by the minimum needed to clear WCAG AA against their text color. Hue and
 saturation survive; lightness may not. If you declare `#268bd2` and see
 `#2076b2` in `pinboard-themes.js`, that is the guard working, not drift.
 
-**The same is true of the four TEXT tiers.** `fg`, `fg-strong`, `muted` and
-`muted-soft` pass through `fgToAAMulti()` (`_util.mjs#deriveTextTiers`), which
-moves each one just far enough to clear 4.5:1 against **both** `bg` and
-`bg-surface` — the elevated fill a card-style pilot paints on every
-`.bookmark`, which is where most of this text actually lands. Hue and
-saturation survive. Declare `"muted": "#575653"` on a dark theme and
-`pinboard-themes.js` will say `#918f8a`; that is the guard, not drift.
+**The same is true of site TEXT roles.** The shared `fg`, `fg-strong`, `muted`
+and `muted-soft` tiers first pass through `fgToAAMulti()` against `bg` and
+`bg-surface`. The site-only `expandSitePalette()` pass then checks those tiers,
+`metadata-fg`, `accent`, `accent-hover`, `link-hover`, `link-visited`,
+`success`, `tag-fg` and `destroy` against **all three** opaque Pinboard row
+fills: `bg`, `bg-surface` and `private-bg`. `focus-ring` uses the same bases at
+the 3:1 non-text floor. Hue and saturation survive; only the emitted
+`--pinboard-*` values move, so the extension surfaces keep their own semantic
+derivations. Declare `"muted": "#575653"` on a dark theme and
+`pinboard-themes.js` may say `#918f8a`; that is the guard, not drift.
 Two consequences worth planning for:
 
 * A two-step secondary ramp compresses. Once **both** `muted` and `muted-soft`
