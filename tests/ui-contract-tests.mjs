@@ -542,6 +542,61 @@ check(sharedJs.includes('const state = ok ? "ok" : "bad"') &&
   sharedJs.includes('el.classList.toggle("bad", !ok)') && sharedJs.includes('ic.className = "status-ic " + state'),
   "shared.js: setStatusIcon does not apply matching ok/bad host and icon states");
 {
+  const removedOptionsHints = [
+    "apiKeySecurityHint", "backupHint", "optBgSaveModeHint", "qsHint", "shortcutsManual",
+    "rlHint", "batchHint", "hintClaudeModel", "hintZhipuModel", "hintKimiModel",
+    "mdExportExtendedMetaHint", "secSendDestinationsHint", "optTagSortByPopHint",
+    "customStyleHint", "customFontHint", "themePresetsHint", "kbdHelpVideoNote",
+    "previewAiSectionHint", "previewAiEnabledHint", "previewAiModelHint",
+    "optVideoDarkSchemeHint", "optVideoPauseOnLookupHint",
+  ];
+  check(removedOptionsHints.every((key) => !optionsHtml.includes(`data-i18n="${key}"`)),
+    "options.html: redundant helper copy returned after the settings-density reduction");
+  const requiredDisclosures = [
+    "syncApiKeysHint", "backupPlaintextDisclosure", "backupIncludeSecretsHint", "batchAiHint",
+    "skimEnableHint", "optVideoUseLoginHint", "vocabDriveDisclosure",
+    "ecdictFormatNote", "tagGovIrreversibleWarn", "optWaybackHint", "storageIntro", "diagnosticsHint",
+  ];
+  check(requiredDisclosures.every((key) => optionsHtml.includes(`data-i18n="${key}"`)),
+    "options.html: settings-density reduction removed a security, privacy, cost, or irreversible-action disclosure");
+  const readerPanel = optionsHtml.slice(
+    optionsHtml.indexOf('id="panel-reader"'), optionsHtml.indexOf('id="panel-vocab"'));
+  check(readerPanel.includes('id="open-shortcuts-link-md"') &&
+    !readerPanel.includes('class="kbd-help-list"') && !readerPanel.includes('data-i18n="kbdHelpIntro"'),
+    "options.html: Reader still duplicates its in-page shortcut help or lost the Chrome shortcut entry point");
+  check(!/\.kbd-help-(list|row|chips|subtitle)/.test(optionsCss),
+    "options.css: removed Reader shortcut list left dead layout rules behind");
+}
+{
+  const ankiTest = optionsHtml.indexOf('id="vocab-anki-test-btn"');
+  const ankiStatus = optionsHtml.indexOf('id="vocab-anki-test-status"', ankiTest);
+  const eudicTest = optionsHtml.indexOf('id="vocab-eudic-test-btn"');
+  const eudicStatus = optionsHtml.indexOf('id="vocab-eudic-test-status"', eudicTest);
+  const vocabToolbar = optionsHtml.indexOf('class="vocab-toolbar"', eudicStatus);
+  const toolbarStatus = optionsHtml.indexOf('id="vocab-status"', vocabToolbar);
+  check(ankiTest >= 0 && ankiStatus > ankiTest && ankiStatus < eudicTest &&
+    eudicTest >= 0 && eudicStatus > eudicTest && eudicStatus < vocabToolbar &&
+    vocabToolbar >= 0 && toolbarStatus > vocabToolbar,
+    "options.html: vocabulary connection tests or export actions lost their local status slot");
+  check(/\.vocab-drive-actions \.save-status,\s*\.vocab-toolbar \.save-status\s*\{\s*margin-left:\s*0/.test(optionsCss),
+    "options.css: vocabulary action rows double-apply gap and save-status margin");
+  check(!optionsVocabJs.includes('_pbpVocabConnectionResult(id, ok, text, code) {\n  _pbpVocabFlashStatus(ok, text);'),
+    "options-vocab.js: connection tests still route feedback through the vocabulary toolbar status");
+  for (const [buttonId, statusId] of [
+    ["vocab-drive-sync", "vocab-drive-action-status"],
+    ["ecdict-pack-import", "ecdict-pack-action-status"],
+    ["dict-pack-import", "dict-pack-action-status"],
+  ]) {
+    const button = optionsHtml.indexOf(`id="${buttonId}"`);
+    const status = optionsHtml.indexOf(`id="${statusId}"`, button);
+    check(button >= 0 && status > button,
+      `options.html: #${buttonId} lost its nearby #${statusId} feedback slot`);
+  }
+  check(optionsVocabJs.includes('_pbpVocabFlashLocalStatus("vocab-drive-action-status"') &&
+    optionsVocabJs.includes('_pbpVocabFlashLocalStatus("dict-pack-action-status"') &&
+    optionsVocabJs.includes('_pbpVocabFlashLocalStatus("ecdict-pack-action-status"'),
+    "options-vocab.js: Drive or dictionary-pack outcomes still escape their own card");
+
   const packSection = optionsHtml.indexOf('data-i18n="dictPackSection"');
   const packHint = optionsHtml.indexOf('data-i18n="dictPackHint"', packSection);
   const packStatus = optionsHtml.indexOf('id="dict-pack-status"', packSection);
@@ -685,10 +740,9 @@ check(/\{ chips: \["t"\], key: "kbdHelpTranslate" \}/.test(mdReaderJsSource) &&
   /\{ chips: \["d"\], key: "kbdHelpDictionary" \}/.test(mdReaderJsSource) &&
   /\{ chips: \["v"\], key: "kbdHelpToggleView" \}/.test(mdReaderJsSource) &&
   /\{ chips: \["h", "1-5"\], key: "kbdHelpHighlight" \}/.test(mdReaderJsSource) &&
-  /<kbd>t<\/kbd>[\s\S]*data-i18n="kbdHelpTranslate"/.test(optionsHtml) &&
-  /<kbd>d<\/kbd>[\s\S]*data-i18n="kbdHelpDictionary"/.test(optionsHtml) &&
+  !optionsHtml.includes('class="kbd-help-list"') &&
   !optionsHtml.includes("<kbd>V</kbd>") && !optionsHtml.includes("<kbd>H</kbd>"),
-  "keyboard help does not expose t/d and lowercase v/h consistently");
+  "reader keyboard help lost t/d/v/h or the removed Settings duplicate returned");
 check(/btn\.setAttribute\("aria-keyshortcuts", "t"\)/.test(mdTranslateJs) &&
   /wrap\.setAttribute\("aria-keyshortcuts", "v"\)/.test(mdTranslateJs) &&
   /b\.setAttribute\("aria-pressed", "false"\)/.test(mdTranslateJs) &&

@@ -15,6 +15,7 @@
 // whole script.
 var _vocabRenderGen = 0; // guards stale async renders (account switch mid-fetch)
 var _vocabFlashTimer = 0; // guards two flashes racing to clear each other's text early
+const _vocabLocalFlashTimers = new Map();
 let _vocabDriveBusy = false;
 let _vocabDriveActionSeq = 0;
 const PBP_VOCAB_GOOGLE_API_ORIGIN = "https://www.googleapis.com/*";
@@ -312,7 +313,7 @@ async function _pbpVocabDriveRefresh(gen, requestSync) {
     const synced = await chrome.runtime.sendMessage({ type: "vocabDriveSyncNow" });
     if (gen !== _vocabRenderGen || actionSeq !== _vocabDriveActionSeq) return;
     _pbpVocabDriveApplyResponse(synced, response.status);
-    if (synced?.ok) _pbpVocabFlashStatus(true, t("vocabDriveSynced"));
+    if (synced?.ok) _pbpVocabFlashLocalStatus("vocab-drive-action-status", true, t("vocabDriveSynced"));
   } catch (_) {
     if (gen !== _vocabRenderGen ||
         (actionSeq && actionSeq !== _vocabDriveActionSeq)) return;
@@ -352,7 +353,7 @@ async function _pbpVocabDriveSend(type, force, gen, actionSeq, sourceButton, foc
     // new words shows up on the library page's own next render -- this page
     // has no word list to reconcile.)
     if (response?.ok && type !== "vocabDriveDisconnect") {
-      _pbpVocabFlashStatus(true, t("vocabDriveSynced"));
+      _pbpVocabFlashLocalStatus("vocab-drive-action-status", true, t("vocabDriveSynced"));
     }
   } catch (_) {
     if (gen === _vocabRenderGen && actionSeq === _vocabDriveActionSeq) {
@@ -757,8 +758,21 @@ if (_vocabEudicBtn) _vocabEudicBtn.addEventListener("click", _pbpVocabSendEudic)
 // HTTPS origin from this direct click, never in the background. Results go
 // through the vocab panel's own status line. Errors reuse the send paths'
 // established keys so wording stays identical.
+function _pbpVocabFlashLocalStatus(targetId, ok, text) {
+  const el = $id(targetId);
+  if (el) {
+    setStatusIcon(el, ok, text);
+    clearTimeout(_vocabLocalFlashTimers.get(targetId));
+    _vocabLocalFlashTimers.set(targetId, setTimeout(() => {
+      _vocabLocalFlashTimers.delete(targetId);
+      el.textContent = "";
+      el.classList.remove("ok", "bad");
+    }, 3000));
+  }
+}
+
 function _pbpVocabConnectionResult(id, ok, text, code) {
-  _pbpVocabFlashStatus(ok, text);
+  _pbpVocabFlashLocalStatus(`vocab-${id}-test-status`, ok, text);
   if (typeof pbpRecordConnectionHealth !== "function") return;
   pbpRecordConnectionHealth(id, ok, code).catch((e) => {
     console.warn(`[vocab] ${id} health record failed:`, e?.name, e?.message);
@@ -956,9 +970,9 @@ function _pbpPackWire() {
         const now = performance.now();
         if (el && now - lastShown >= 1000) { lastShown = now; el.textContent = t("dictPackImporting", String(n)); }
       });
-      _pbpVocabFlashStatus(true, t("dictPackDone", String(res.entries)));
+      _pbpVocabFlashLocalStatus("dict-pack-action-status", true, t("dictPackDone", String(res.entries)));
     } catch (_) {
-      _pbpVocabFlashStatus(false, t("dictPackFailed"));
+      _pbpVocabFlashLocalStatus("dict-pack-action-status", false, t("dictPackFailed"));
     } finally {
       imp.disabled = false;
       _pbpPackRefreshStatus();
@@ -1048,7 +1062,7 @@ function _pbpEcdictWire() {
       // import, 38 MB vs 14 MB stored. All six resource gates pass at R3
       // (scripts/ecdict-import-perf.mjs --fixture real --rung R3).
       const res = await pbpEcdictImportFile(f, { rung: "R3", onParsed: tick, onProgress: tick });
-      _pbpVocabFlashStatus(true, t("dictPackDone", String(res.entries)));
+      _pbpVocabFlashLocalStatus("ecdict-pack-action-status", true, t("dictPackDone", String(res.entries)));
     } catch (e) {
       const msg = String((e && e.message) || "");
       // Distinguish "this is not the right kind of file" from "this file is too
@@ -1059,7 +1073,7 @@ function _pbpEcdictWire() {
         : /too large|payload above/.test(msg) ? "ecdictTooLarge"
         : /entry count above/.test(msg) ? "ecdictTooManyEntries"
         : "ecdictParseFailed";
-      _pbpVocabFlashStatus(false, t(key));
+      _pbpVocabFlashLocalStatus("ecdict-pack-action-status", false, t(key));
       // "Wrong file" is an expected outcome the user already sees in the status
       // line; logging it at warn level put it in chrome://extensions' Errors
       // panel, where it reads like the extension broke. Only unexpected faults

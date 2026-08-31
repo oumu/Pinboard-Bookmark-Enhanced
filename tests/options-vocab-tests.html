@@ -13,7 +13,6 @@ body{font-family:monospace;padding:16px}.case{padding:5px;border-bottom:1px soli
   <a class="btn btn-sm" id="vocab-open-library" href="library.html#vocab" target="_blank" rel="noopener">
     <span class="btn-ic" data-ic="bookMarked"></span><span>Open notes and vocabulary</span>
   </a>
-  <span class="save-status" id="vocab-status" role="status" aria-live="polite"></span>
 
   <details class="vocab-disclosure" data-acc-key="vocab-reading">
     <summary>Reading hints</summary>
@@ -43,6 +42,7 @@ body{font-family:monospace;padding:16px}.case{padding:5px;border-bottom:1px soli
         <button id="vocab-drive-connect" hidden></button>
         <button id="vocab-drive-sync" hidden></button>
         <button id="vocab-drive-disconnect" hidden></button>
+        <span class="save-status" id="vocab-drive-action-status" role="status" aria-live="polite"></span>
       </div>
     </div>
   </details>
@@ -55,13 +55,20 @@ body{font-family:monospace;padding:16px}.case{padding:5px;border-bottom:1px soli
       <div class="fg"><label class="bl" for="dict-anki-port">AnkiConnect port</label>
         <input type="text" id="dict-anki-port" placeholder="8765" spellcheck="false" /></div>
       <div class="fg"><label class="bl" for="dict-anki-key">AnkiConnect API key (optional)</label><input type="password" id="dict-anki-key" autocomplete="off" spellcheck="false" /></div>
-      <button type="button" id="vocab-anki-test-btn">Test AnkiConnect</button>
+      <div class="vocab-entry-row">
+        <button type="button" id="vocab-anki-test-btn">Test AnkiConnect</button>
+        <span class="save-status" id="vocab-anki-test-status" role="status" aria-live="polite"></span>
+      </div>
       <div class="fg"><label class="bl" for="dict-eudic-token">Eudic OpenAPI authorization</label><input type="password" id="dict-eudic-token" autocomplete="off" spellcheck="false" /></div>
-      <button type="button" id="vocab-eudic-test-btn">Test Eudic connection</button>
+      <div class="vocab-entry-row">
+        <button type="button" id="vocab-eudic-test-btn">Test Eudic connection</button>
+        <span class="save-status" id="vocab-eudic-test-status" role="status" aria-live="polite"></span>
+      </div>
       <div class="vocab-toolbar">
         <button type="button" class="btn btn-sm" id="vocab-export-btn">Export all (.tsv)</button>
         <button type="button" class="btn btn-sm" id="vocab-anki-btn">Send all to Anki</button>
         <button type="button" class="btn btn-sm" id="vocab-eudic-btn" hidden>Send all supported words to Eudic</button>
+        <span class="save-status" id="vocab-status" role="status" aria-live="polite"></span>
       </div>
     </div>
   </details>
@@ -74,6 +81,7 @@ body{font-family:monospace;padding:16px}.case{padding:5px;border-bottom:1px soli
       <div class="vocab-toolbar">
         <button type="button" class="btn btn-sm" id="ecdict-pack-import">Import file</button>
         <button type="button" class="btn btn-sm" id="ecdict-pack-delete" hidden>Delete</button>
+        <span class="save-status" id="ecdict-pack-action-status" role="status" aria-live="polite"></span>
       </div>
       <input type="file" id="ecdict-pack-file" accept=".csv,.txt,.gz,.zip" hidden />
     </div>
@@ -88,6 +96,7 @@ body{font-family:monospace;padding:16px}.case{padding:5px;border-bottom:1px soli
         <button type="button" class="btn btn-sm" id="dict-pack-open"></button>
         <button type="button" class="btn btn-sm" id="dict-pack-import"></button>
         <button type="button" class="btn btn-sm" id="dict-pack-delete" hidden></button>
+        <span class="save-status" id="dict-pack-action-status" role="status" aria-live="polite"></span>
       </div>
       <input type="file" id="dict-pack-file" accept=".txt,.txt.gz,.gz,.zip" hidden />
     </div>
@@ -212,6 +221,8 @@ delete document.documentElement.dataset.theme;
   ];
   const resetActions = () => {
     $id("vocab-status").textContent = "";
+    $id("vocab-anki-test-status").textContent = "";
+    $id("vocab-eudic-test-status").textContent = "";
     window.chrome = { permissions: { request: async () => true } };
     window.pbpOptionsFlushAutoSave = async () => ({ ok:true });
     pbpReadSettingsWithSecrets = async () => ({
@@ -310,17 +321,17 @@ delete document.documentElement.dataset.theme;
     pbpReadSettingsWithSecrets = async () => { throw new Error("storage unavailable"); };
     let ankiRejected = false;
     try { await _pbpVocabTestAnki(); } catch (_) { ankiRejected = true; }
-    check("Anki connection test contains unexpected rejections and restores its button",
-      !ankiRejected && $id("vocab-status").textContent.includes("dictAnkiFailed") &&
-      !$id("vocab-anki-test-btn").disabled);
+    check("Anki connection test reports beside its button and leaves the toolbar status untouched",
+      !ankiRejected && $id("vocab-anki-test-status").textContent.includes("dictAnkiFailed") &&
+      !$id("vocab-status").textContent && !$id("vocab-anki-test-btn").disabled);
 
     resetActions();
     pbpReadSettingsWithSecrets = async () => { throw new Error("storage unavailable"); };
     let eudicRejected = false;
     try { await _pbpVocabTestEudic(); } catch (_) { eudicRejected = true; }
-    check("Eudic connection test contains unexpected rejections and restores its button",
-      !eudicRejected && $id("vocab-status").textContent.includes("dictEudicFailed") &&
-      !$id("vocab-eudic-test-btn").disabled);
+    check("Eudic connection test reports beside its button and leaves the toolbar status untouched",
+      !eudicRejected && $id("vocab-eudic-test-status").textContent.includes("dictEudicFailed") &&
+      !$id("vocab-status").textContent && !$id("vocab-eudic-test-btn").disabled);
 
     const healthCalls = [];
     window.pbpRecordConnectionHealth = async (...args) => { healthCalls.push(args); };
@@ -673,6 +684,9 @@ delete document.documentElement.dataset.theme;
       `owner=${$id("vocab-drive-owner").textContent} busy=${_vocabDriveBusy} disabled=${$id("vocab-drive-sync").disabled} aria=${$id("vocab-drive-sync").getAttribute("aria-disabled")}`);
     resolveCurrentAction({ ok:true, status:bobStatus });
     await task(); await task();
+    check("a successful Drive action reports inside the Drive card rather than the export toolbar",
+      $id("vocab-drive-action-status").textContent.includes("vocabDriveSynced") &&
+      !$id("vocab-status").textContent);
 
     _pbpVocabDriveRender({ ...driveStatus, retryAt:null, lastError:null });
     let resolveMutationStale;

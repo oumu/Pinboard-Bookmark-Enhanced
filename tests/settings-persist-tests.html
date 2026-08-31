@@ -2293,7 +2293,7 @@ async function run() {
     }
     const wrap = document.createElement("div");
     try {
-      wrap.innerHTML = '<button id="export-settings" type="button"></button><button id="import-settings" type="button"></button><input id="import-settings-file" type="file"><span id="import-status"></span><input id="opt-backup-include-highlights" type="checkbox"><input id="opt-backup-include-vocabulary" type="checkbox" checked>';
+      wrap.innerHTML = '<button id="export-settings" type="button"></button><button id="import-settings" type="button"></button><input id="import-settings-file" type="file"><span id="import-status"></span><input id="opt-backup-include-highlights" type="checkbox"><input id="opt-backup-include-vocabulary" type="checkbox" checked><input id="opt-backup-include-secrets" type="checkbox"><p id="backup-secrets-warning" hidden>Plaintext credentials warning</p>';
       document.body.appendChild(wrap);
       document.getElementById("opt-backup-include-highlights").checked = false;
       _settingsStorageCache = null;
@@ -2320,6 +2320,15 @@ async function run() {
           return true;
         },
       });
+      const secretsToggle = document.getElementById("opt-backup-include-secrets");
+      const secretsWarning = document.getElementById("backup-secrets-warning");
+      const warningStartsHidden = secretsWarning.hidden;
+      secretsToggle.checked = true;
+      secretsToggle.dispatchEvent(new Event("change"));
+      check("E7 credential-export warning appears only when credential export is selected",
+        warningStartsHidden && secretsWarning.hidden === false);
+      secretsToggle.checked = false;
+      secretsToggle.dispatchEvent(new Event("change"));
       let importPickerOpened = false;
       document.getElementById("import-settings-file").click = () => { importPickerOpened = true; };
       document.getElementById("import-settings").click();

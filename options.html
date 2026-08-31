@@ -123,14 +123,13 @@
       <p id="opt-sync-error" class="opt-error hidden" role="alert"></p>
       <div class="divider"></div>
       <h2 class="section-title" data-i18n="secBackupRestore">Backup &amp; Restore</h2>
-      <p class="hint" data-i18n="backupHint">Export or import settings and selected data. Credentials are left out unless you ask for them.</p>
       <p class="hint hint-warn backup-plaintext" data-i18n="backupPlaintextDisclosure">Backup files are plain JSON. They may contain settings, highlights, page URLs, vocabulary, and context excerpts.</p>
       <div class="fg"><label><input type="checkbox" id="opt-backup-include-highlights" checked /> <span data-i18n="backupIncludeHighlightsLabel">Include highlights and notes in backups</span></label></div>
       <p class="hint" data-i18n="backupIncludeHighlightsHint">Includes page URLs, titles, selected text, notes, colors, and timestamps.</p>
       <div class="fg"><label><input type="checkbox" id="opt-backup-include-vocabulary" checked /> <span data-i18n="backupIncludeVocabularyLabel">Include vocabulary in backups</span></label></div>
       <p class="hint" data-i18n="backupIncludeVocabularyHint">Includes vocabulary only for the current Pinboard account.</p>
-      <div class="fg"><label><input type="checkbox" id="opt-backup-include-secrets" /> <span data-i18n="backupIncludeSecretsLabel">Include API keys and tokens in backups</span></label></div>
-      <p class="hint hint-warn" data-i18n="backupIncludeSecretsHint">Writes every credential to the file in plain text: your Pinboard token, all AI provider keys, and the Jina, Wayback, Anki, Eudic, Gist and Webhook credentials. Anyone who opens the file can use them. Keep it where you would keep a password.</p>
+      <div class="fg"><label><input type="checkbox" id="opt-backup-include-secrets" aria-describedby="backup-secrets-warning" /> <span data-i18n="backupIncludeSecretsLabel">Include API keys and tokens in backups</span></label></div>
+      <p class="hint hint-warn" id="backup-secrets-warning" data-i18n="backupIncludeSecretsHint" hidden>Writes every credential to the file in plain text: your Pinboard token, all AI provider keys, and the Jina, Wayback, Anki, Eudic, Gist and Webhook credentials. Anyone who opens the file can use them. Keep it where you would keep a password.</p>
       <div class="backup-actions">
         <button class="btn" id="export-settings" data-i18n="exportSettings">Export Settings</button>
         <button type="button" class="btn" id="import-settings" title="Import settings from JSON file" data-i18n="importSettings" data-i18n-title="importSettingsTitle">Import Settings</button>
@@ -245,7 +244,6 @@
         <div><label><input type="radio" name="bgsave-mode" id="opt-bgsave-merge" value="merge" /> <span data-i18n="optBgSaveModeMerge">Merge (default, combines new tags with existing)</span></label></div>
         <div><label><input type="radio" name="bgsave-mode" id="opt-bgsave-skip" value="skip" /> <span data-i18n="optBgSaveModeSkip">Skip (if URL already saved, do nothing)</span></label></div>
         <div><label><input type="radio" name="bgsave-mode" id="opt-bgsave-overwrite" value="overwrite" /> <span data-i18n="optBgSaveModeOverwrite">Overwrite (replace all tags, no merge)</span></label></div>
-        <p class="hint" data-i18n="optBgSaveModeHint">Merge: reads existing bookmark tags and combines with new tags. Skip: avoids duplicate-URL saves. Overwrite: replaces tags entirely (foreground edits always replace).</p>
       </div>
       <div class="divider"></div>
       <h2 class="section-title" data-i18n="secNotesBehavior">Notes Behavior</h2>
@@ -276,9 +274,7 @@
           <span class="accordion-arrow"></span> <span data-i18n="secQuickSave">Quick Save</span>
         </button>
         <div class="accordion-body" id="acc-qs">
-          <p class="hint" data-i18n="qsHint">Save the current page instantly via keyboard shortcut (without opening popup).</p>
           <p style="margin-bottom:8px;"><span data-i18n="labelShortcut">Shortcut</span>: <span class="shortcut-current" data-command="quick_save"></span> <a href="chrome://extensions/shortcuts" id="open-shortcuts-link" class="btn btn-sm" style="text-decoration:none;margin-left:8px;" data-i18n="openShortcuts">Open Chrome Shortcut Settings</a></p>
-          <p class="hint"><span data-i18n="shortcutsManual">Or navigate manually:</span> <code>chrome://extensions/shortcuts</code></p>
           <div class="fg"><label><input type="checkbox" id="qs-auto-notes" checked /> <span data-i18n="qsAutoNotes">Auto-add page description to notes</span></label></div>
           <div class="fg"><label><input type="checkbox" id="qs-blockquote" checked /> <span data-i18n="qsBlockquote">Wrap selected text with blockquote</span></label></div>
           <div class="fg">
@@ -295,7 +291,6 @@
           <span class="accordion-arrow"></span> <span data-i18n="secReadLater">Read Later</span>
         </button>
         <div class="accordion-body" id="acc-rl">
-          <p class="hint" data-i18n="rlHint">Save current page as "Read Later" via keyboard shortcut. Automatically marks as unread.</p>
           <p style="margin-bottom:8px;"><span data-i18n="labelShortcut">Shortcut</span>: <span class="shortcut-current" data-command="read_later"></span> <a href="chrome://extensions/shortcuts" id="open-shortcuts-link-rl" class="btn btn-sm" style="text-decoration:none;margin-left:8px;" data-i18n="openShortcuts">Open Chrome Shortcut Settings</a></p>
           <div class="fg"><label><input type="checkbox" id="rl-auto-notes" checked /> <span data-i18n="qsAutoNotes">Auto-add page description to notes</span></label></div>
           <div class="fg"><label><input type="checkbox" id="rl-blockquote" checked /> <span data-i18n="qsBlockquote">Wrap selected text with blockquote</span></label></div>
@@ -313,7 +308,6 @@
           <span class="accordion-arrow"></span> <span data-i18n="secBatchSave">Batch Save</span>
         </button>
         <div class="accordion-body" id="acc-batch">
-          <p class="hint" data-i18n="batchHint">Save each open tab as an individual bookmark.</p>
           <div class="fg"><label><input type="checkbox" id="opt-batch-tag-enabled" checked /> <span data-i18n="batchAutoAddTags">Auto-add tags</span></label></div>
           <div class="fg">
             <label class="bl" for="opt-batch-tag" data-i18n="batchTagsLabel">Tags (comma-separated)</label>
@@ -359,8 +353,6 @@
         </select>
       </div>
 
-      <p class="hint" data-i18n="apiKeySecurityHint">New users keep credentials on this device by default. Existing cloud credentials may keep account-wide sync on after upgrade. Only devices with settings sync enabled participate; synced credentials are obfuscated, not encrypted.</p>
-
       <details class="free-tier-help">
         <summary data-i18n="freeTierTitle">Which providers offer free API access?</summary>
         <p class="hint" data-i18n="freeTierResourcesPrefix">Free tiers change too often to list here. These community lists keep up; your actual quota is whatever your provider's console shows:</p>
@@ -394,7 +386,7 @@
       <div class="pf" hidden id="fields-claude">
         <h3 data-i18n="provClaude">Anthropic Claude</h3>
         <div class="fg"><label class="bl" for="opt-claude-key" data-i18n="labelApiKey">API Key</label><span class="key-wrap"><input type="password" id="opt-claude-key" placeholder="sk-ant-…" /><button type="button" class="key-toggle" data-target="opt-claude-key" title="Show/hide key" data-i18n-title="showHideKey" data-i18n-aria="showHideKey" aria-label="Show/hide key"></button></span><p class="hint"><a href="https://console.anthropic.com/settings/keys" target="_blank" data-i18n="getKey" rel="noopener">Get key</a></p></div>
-        <div class="fg"><label class="bl" for="opt-claude-model" data-i18n="labelModel">Model</label><input type="text" id="opt-claude-model" value="claude-haiku-4-5" /><p class="hint" data-i18n="hintClaudeModel">e.g. claude-haiku-4-5-20251001, claude-sonnet-4-20250514</p></div>
+        <div class="fg"><label class="bl" for="opt-claude-model" data-i18n="labelModel">Model</label><input type="text" id="opt-claude-model" value="claude-haiku-4-5" /></div>
         <button class="btn btn-sm" id="test-claude" data-i18n="testConnection">Test Connection</button>
         <span class="save-status" id="test-claude-status" role="status" aria-live="polite"></span>
       </div>
@@ -475,7 +467,7 @@
       <div class="pf" hidden id="fields-zhipu">
         <h3 data-i18n="provZhipu">Zhipu</h3>
         <div class="fg"><label class="bl" for="opt-zhipu-key" data-i18n="labelApiKey">API Key</label><span class="key-wrap"><input type="password" id="opt-zhipu-key" /><button type="button" class="key-toggle" data-target="opt-zhipu-key" title="Show/hide key" data-i18n-title="showHideKey" data-i18n-aria="showHideKey" aria-label="Show/hide key"></button></span><p class="hint"><a href="https://open.bigmodel.cn/usercenter/apikeys" target="_blank" data-i18n="getKey" rel="noopener">Get key</a></p></div>
-        <div class="fg"><label class="bl" for="opt-zhipu-model" data-i18n="labelModel">Model</label><input type="text" id="opt-zhipu-model" value="glm-4.7-flash" /><p class="hint" data-i18n="hintZhipuModel">e.g. glm-4.7-flash, glm-4-flash, glm-4-plus</p></div>
+        <div class="fg"><label class="bl" for="opt-zhipu-model" data-i18n="labelModel">Model</label><input type="text" id="opt-zhipu-model" value="glm-4.7-flash" /></div>
         <button class="btn btn-sm" id="test-zhipu" data-i18n="testConnection">Test Connection</button>
         <span class="save-status" id="test-zhipu-status" role="status" aria-live="polite"></span>
       </div>
@@ -484,7 +476,7 @@
       <div class="pf" hidden id="fields-kimi">
         <h3 data-i18n="provKimi">Kimi</h3>
         <div class="fg"><label class="bl" for="opt-kimi-key" data-i18n="labelApiKey">API Key</label><span class="key-wrap"><input type="password" id="opt-kimi-key" placeholder="sk-…" /><button type="button" class="key-toggle" data-target="opt-kimi-key" title="Show/hide key" data-i18n-title="showHideKey" data-i18n-aria="showHideKey" aria-label="Show/hide key"></button></span><p class="hint"><a href="https://platform.moonshot.cn/console/api-keys" target="_blank" data-i18n="getKey" rel="noopener">Get key</a></p></div>
-        <div class="fg"><label class="bl" for="opt-kimi-model" data-i18n="labelModel">Model</label><input type="text" id="opt-kimi-model" value="kimi-k2.6" /><p class="hint" data-i18n="hintKimiModel">e.g. kimi-k2.6, kimi-k2.5, moonshot-v1-32k, moonshot-v1-128k</p></div>
+        <div class="fg"><label class="bl" for="opt-kimi-model" data-i18n="labelModel">Model</label><input type="text" id="opt-kimi-model" value="kimi-k2.6" /></div>
         <button class="btn btn-sm" id="test-kimi" data-i18n="testConnection">Test Connection</button>
         <span class="save-status" id="test-kimi-status" role="status" aria-live="polite"></span>
       </div>
@@ -608,11 +600,9 @@
     <!-- Tab: Reader -->
     <div id="panel-reader" class="panel" role="tabpanel" aria-labelledby="tab-reader">
       <h2 class="section-title" data-i18n="secPreviewAi">Preview Page AI</h2>
-      <p class="hint" data-i18n="previewAiSectionHint">Explain selection, Ask, and full-text translation on the Markdown preview page are user-invoked and use the AI provider and key configured on the AI Providers tab. If the opt-in key-points skim is enabled, it may run when Markdown preview opens; nothing runs as a hidden background task.</p>
 
       <div class="fg">
         <label><input type="checkbox" id="opt-preview-ai-enabled" checked /> <span data-i18n="previewAiEnabled">Enable AI features on the preview page</span></label>
-        <p class="hint" data-i18n="previewAiEnabledHint">Turning this off removes every AI entry point from the preview page. Entry points are also hidden automatically when no API key is configured.</p>
       </div>
 
       <div class="fg">
@@ -621,7 +611,6 @@
         <!-- Filled by syncPreviewModelToProvider (options.js): names the provider
              this input currently edits, so a provider switch visibly swaps it. -->
         <p class="hint" id="preview-ai-model-provider"></p>
-        <p class="hint" data-i18n="previewAiModelHint">Model name used only by preview-page AI features, saved separately for each provider. Leave empty to use the model configured on the AI Providers tab.</p>
       </div>
 
       <div class="fg">
@@ -680,12 +669,10 @@
         <p class="hint" id="opt-md-video-lang-hint"><span data-i18n="optVideoLangPrefHint">ISO 639-1 language codes in order of preference, comma separated, e.g. en, zh (English first, then Chinese). A full tag such as zh-Hant is matched exactly before falling back to zh. Leave empty to follow the interface language.</span> <a href="https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes" target="_blank" rel="noopener" data-i18n="optVideoLangCodesLink">Language code list</a></p>
       </div>
       <div class="fg">
-        <label><input type="checkbox" id="opt-md-video-dark" aria-describedby="opt-md-video-dark-hint" /> <span data-i18n="optVideoDarkScheme">Open video pages in dark</span></label>
-        <p class="hint" id="opt-md-video-dark-hint" data-i18n="optVideoDarkSchemeHint">With Theme set to Auto or Light, video pages still open in the dark reading palette. The reader's "Aa" panel can override this for every reader page on this device.</p>
+        <label><input type="checkbox" id="opt-md-video-dark" /> <span data-i18n="optVideoDarkScheme">Open video pages in dark</span></label>
       </div>
       <div class="fg">
-        <label><input type="checkbox" id="opt-md-video-pause-lookup" checked aria-describedby="opt-md-video-pause-lookup-hint" /> <span data-i18n="optVideoPauseOnLookup">Pause the player while looking a word up</span></label>
-        <p class="hint" id="opt-md-video-pause-lookup-hint" data-i18n="optVideoPauseOnLookupHint">Selecting text or opening the explain popover pauses the player (YouTube; bilibili once playback follow is enabled); it resumes when the lookup ends.</p>
+        <label><input type="checkbox" id="opt-md-video-pause-lookup" checked /> <span data-i18n="optVideoPauseOnLookup">Pause the player while looking a word up</span></label>
       </div>
       <div class="fg">
         <label><input type="checkbox" id="opt-md-video-use-login" checked aria-describedby="opt-md-video-use-login-hint" /> <span data-i18n="optVideoUseLogin">Send YouTube login cookies with subtitle requests</span></label>
@@ -701,34 +688,6 @@
           <a href="chrome://extensions/shortcuts" id="open-shortcuts-link-md" class="btn btn-sm" style="text-decoration:none;margin-left:8px;" data-i18n="openShortcuts">Open Chrome Shortcut Settings</a>
         </p>
       </div>
-      <p class="hint" data-i18n="kbdHelpIntro">These shortcuts work on the reader page (not here in Settings).</p>
-      <ul class="kbd-help-list">
-        <li class="kbd-help-row"><span class="kbd-help-chips"><kbd>t</kbd></span><span data-i18n="kbdHelpTranslate">Start or continue translating the article</span></li>
-        <li class="kbd-help-row"><span class="kbd-help-chips"><kbd>v</kbd></span><span data-i18n="kbdHelpToggleView">Cycle through original, bilingual, and translated views</span></li>
-        <li class="kbd-help-row"><span class="kbd-help-chips"><kbd>d</kbd></span><span data-i18n="kbdHelpDictionary">Look up the current selection</span></li>
-        <li class="kbd-help-row"><span class="kbd-help-chips"><kbd>e</kbd></span><span data-i18n="kbdHelpExplain">Explain the current selection</span></li>
-        <li class="kbd-help-row"><span class="kbd-help-chips"><kbd>h</kbd> <kbd>1-5</kbd></span><span data-i18n="kbdHelpHighlight">Highlight the current selection (h = last color used, 1-5 = pick a color)</span></li>
-        <li class="kbd-help-row"><span class="kbd-help-chips"><kbd>a</kbd></span><span data-i18n="kbdHelpAsk">Open the Ask-the-page panel</span></li>
-        <li class="kbd-help-row"><span class="kbd-help-chips"><kbd>/</kbd></span><span data-i18n="kbdHelpSearch">Search within the article</span></li>
-        <li class="kbd-help-row"><span class="kbd-help-chips"><kbd>z</kbd></span><span data-i18n="kbdHelpZen">Toggle zen (focus) mode</span></li>
-        <li class="kbd-help-row"><span class="kbd-help-chips"><kbd>?</kbd></span><span data-i18n="kbdHelpShowHelp">Show this shortcuts list</span></li>
-        <li class="kbd-help-row"><span class="kbd-help-chips"><kbd>Esc</kbd></span><span data-i18n="kbdHelpClose">Close the open popover</span></li>
-      </ul>
-      <!-- Video pages: same rows as md-reader.js PBP_KBD_HELP_VIDEO_ROWS, same order. -->
-      <h3 class="kbd-help-subtitle" data-i18n="kbdHelpVideoSection">Video pages</h3>
-      <ul class="kbd-help-list">
-        <li class="kbd-help-row"><span class="kbd-help-chips"><kbd>Space</kbd></span><span data-i18n="kbdHelpVideoPlay">Play / pause</span></li>
-        <!-- Key names as text, not arrow glyphs: Options is cold-start
-             sensitive and literal symbol characters risk the slow-font
-             fallback (CLAUDE.md font iron rule). -->
-        <li class="kbd-help-row"><span class="kbd-help-chips"><kbd>Left</kbd> <kbd>Right</kbd></span><span data-i18n="kbdHelpVideoSeek">Back / forward 3 s</span></li>
-        <li class="kbd-help-row"><span class="kbd-help-chips"><kbd>[</kbd> <kbd>]</kbd></span><span data-i18n="kbdHelpVideoCue">Previous / next cue</span></li>
-        <li class="kbd-help-row"><span class="kbd-help-chips"><kbd>r</kbd></span><span data-i18n="kbdHelpVideoLoop">Repeat this cue</span></li>
-        <li class="kbd-help-row"><span class="kbd-help-chips"><kbd>f</kbd></span><span data-i18n="kbdHelpVideoFollow">Follow playback</span></li>
-        <li class="kbd-help-row"><span class="kbd-help-chips"><kbd>c</kbd></span><span data-i18n="kbdHelpVideoCurrent">Back to the current cue</span></li>
-        <li class="kbd-help-row"><span class="kbd-help-chips"><kbd>b</kbd></span><span data-i18n="kbdHelpVideoView">Reading / timeline</span></li>
-      </ul>
-      <p class="hint" data-i18n="kbdHelpVideoNote">Space, the arrow keys, r and f need the player to report its position: always on YouTube, on bilibili once playback follow is enabled.</p>
     </div>
 
     <!-- Tab: Vocabulary -->
@@ -738,7 +697,6 @@
         <a class="btn btn-sm" id="vocab-open-library" href="library.html#vocab" target="_blank" rel="noopener">
           <span class="btn-ic" data-ic="bookMarked"></span><span data-i18n="libraryOpen">Open notes and vocabulary</span>
         </a>
-        <span class="save-status" id="vocab-status" role="status" aria-live="polite"></span>
       </div>
 
       <details class="vocab-disclosure" data-acc-key="vocab-reading">
@@ -769,6 +727,7 @@
             <button type="button" class="btn btn-sm" id="vocab-drive-connect" data-i18n="vocabDriveConnect" hidden>Connect Google Drive</button>
             <button type="button" class="btn btn-sm" id="vocab-drive-sync" data-i18n="vocabDriveSyncNow" hidden>Sync now</button>
             <button type="button" class="btn btn-sm" id="vocab-drive-disconnect" data-i18n="vocabDriveDisconnect" hidden>Disconnect this device</button>
+            <span class="save-status" id="vocab-drive-action-status" role="status" aria-live="polite"></span>
           </div>
         </div>
       </details>
@@ -781,13 +740,14 @@
           <div class="fg"><label class="bl" for="dict-anki-port" data-i18n="dictAnkiPortLabel">AnkiConnect port</label>
             <input type="text" id="dict-anki-port" placeholder="8765" spellcheck="false" /></div>
           <div class="fg"><label class="bl" for="dict-anki-key" data-i18n="dictAnkiKeyLabel">AnkiConnect API key (optional)</label><span class="key-wrap"><input type="password" id="dict-anki-key" autocomplete="off" spellcheck="false" /><button type="button" class="key-toggle" data-target="dict-anki-key" title="Show/hide key" data-i18n-title="showHideKey" data-i18n-aria="showHideKey" aria-label="Show/hide key"></button></span>
-            <p class="hint"><button type="button" class="btn btn-sm" id="vocab-anki-test-btn" data-i18n="dictAnkiTest">Test AnkiConnect</button></p></div>
+            <div class="vocab-entry-row"><button type="button" class="btn btn-sm" id="vocab-anki-test-btn" data-i18n="dictAnkiTest">Test AnkiConnect</button><span class="save-status" id="vocab-anki-test-status" role="status" aria-live="polite"></span></div></div>
           <div class="fg"><label class="bl" for="dict-eudic-token" data-i18n="dictEudicTokenLabel">Eudic OpenAPI authorization</label><span class="key-wrap"><input type="password" id="dict-eudic-token" autocomplete="off" spellcheck="false" /><button type="button" class="key-toggle" data-target="dict-eudic-token" title="Show/hide key" data-i18n-title="showHideKey" data-i18n-aria="showHideKey" aria-label="Show/hide key"></button></span><p class="hint"><a href="https://my.eudic.net/OpenAPI/Authorization" target="_blank" rel="noopener noreferrer" data-i18n="dictEudicTokenHint">Copy the full authorization value from Eudic</a></p><p class="hint" data-i18n="dictEudicSupportedHint">Eudic supports only English, French, German, and Spanish (en/fr/de/es); other words are skipped.</p>
-            <p class="hint"><button type="button" class="btn btn-sm" id="vocab-eudic-test-btn" data-i18n="dictEudicTest">Test Eudic connection</button></p></div>
+            <div class="vocab-entry-row"><button type="button" class="btn btn-sm" id="vocab-eudic-test-btn" data-i18n="dictEudicTest">Test Eudic connection</button><span class="save-status" id="vocab-eudic-test-status" role="status" aria-live="polite"></span></div></div>
           <div class="vocab-toolbar">
             <button type="button" class="btn btn-sm" id="vocab-export-btn" data-i18n="dictExportTsv">Export all (.tsv)</button>
             <button type="button" class="btn btn-sm" id="vocab-anki-btn" data-i18n="dictAnkiSend">Send all to Anki</button>
             <button type="button" class="btn btn-sm" id="vocab-eudic-btn" data-i18n="dictEudicSend" hidden>Send all supported words to Eudic</button>
+            <span class="save-status" id="vocab-status" role="status" aria-live="polite"></span>
           </div>
         </div>
       </details>
@@ -801,6 +761,7 @@
           <div class="vocab-toolbar">
             <button type="button" class="btn btn-sm" id="ecdict-pack-import" data-i18n="ecdictImportFile">Import file</button>
             <button type="button" class="btn btn-sm" id="ecdict-pack-delete" data-i18n="delete" hidden>Delete</button>
+            <span class="save-status" id="ecdict-pack-action-status" role="status" aria-live="polite"></span>
           </div>
           <input type="file" id="ecdict-pack-file" accept=".csv,.txt,.gz,.zip" hidden />
         </div>
@@ -816,6 +777,7 @@
             <button type="button" class="btn btn-sm" id="dict-pack-open"><svg class="ext-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg><span data-i18n="dictPackOpen">Open download page</span></button>
             <button type="button" class="btn btn-sm" id="dict-pack-import" data-i18n="dictPackImport">Import file</button>
             <button type="button" class="btn btn-sm" id="dict-pack-delete" data-i18n="delete" hidden>Delete</button>
+            <span class="save-status" id="dict-pack-action-status" role="status" aria-live="polite"></span>
           </div>
           <input type="file" id="dict-pack-file" accept=".txt,.txt.gz,.gz,.zip" hidden />
         </div>
@@ -827,7 +789,6 @@
       <h2 class="section-title" data-i18n="secMdExport">Markdown Export Defaults</h2>
       <div class="fg"><label><input type="checkbox" id="opt-md-frontmatter" checked /> <span data-i18n="mdExportFrontmatter">Add YAML frontmatter to exported Markdown</span></label></div>
       <div class="fg"><label><input type="checkbox" id="opt-md-extended-meta" checked /> <span data-i18n="mdExportExtendedMeta">Include extended metadata (author, published, site, image, word count)</span></label></div>
-      <p class="hint" data-i18n="mdExportExtendedMetaHint">Adds these fields to frontmatter, the HTML byline, and webhook payloads when available. Turn off for byte-identical legacy exports.</p>
       <div class="fg">
         <label class="bl" for="opt-md-image-policy" data-i18n="mdExportImagePolicy">Image handling</label>
         <select id="opt-md-image-policy">
@@ -842,7 +803,6 @@
 
       <div class="divider"></div>
       <h2 class="section-title" data-i18n="secSendDestinations">Send-to Destinations</h2>
-      <p class="hint" data-i18n="secSendDestinationsHint">Each enabled destination appears in the preview page's "Send to" menu.</p>
       <div id="export-targets"></div>
     </div>
 
@@ -850,7 +810,6 @@
     <div id="panel-tags" class="panel" role="tabpanel" aria-labelledby="tab-tags">
       <h2 class="section-title" data-i18n="secPinboardTagPages">Pinboard.in Tag Pages</h2>
       <div class="fg"><label><input type="checkbox" id="opt-tag-sort-by-pop" checked /> <span data-i18n="optTagSortByPop">Add a popularity sort control on tag pages</span></label></div>
-      <p class="hint" data-i18n="optTagSortByPopHint">On pinboard.in tag pages, adds a "pop" control that sorts the current page’s bookmarks by how many people saved each link; click again to restore.</p>
 
       <div class="divider"></div>
       <h2 class="section-title" data-i18n="tagGovGroupsTitle">Similar Tag Groups</h2>
@@ -939,11 +898,9 @@
 
       <div class="divider"></div>
       <h2 class="section-title" data-i18n="secCustomStyle">Pinboard.in Custom Style</h2>
-      <p class="hint" data-i18n="customStyleHint">Inject custom CSS into pinboard.in pages. Useful for changing fonts, colors, layout etc.</p>
       <div class="fg">
         <label class="bl" for="opt-custom-font" data-i18n="labelCustomFont">Custom Font</label>
         <input type="text" id="opt-custom-font" placeholder="e.g. 'Noto Sans SC', 'Fira Code', sans-serif" data-i18n-placeholder="customFontPlaceholder" />
-        <p class="hint" data-i18n="customFontHint">Applied to <code>body</code> on pinboard.in. Leave empty to keep default.</p>
       </div>
       <div class="fg">
         <label class="bl" data-i18n="labelThemePresets">Theme Presets</label>
@@ -971,7 +928,6 @@
           <button class="btn btn-sm theme-preset-btn" data-theme="gruvbox-dark" aria-pressed="false">Gruvbox Dark</button>
           <button class="btn btn-sm theme-preset-btn" data-theme="rose-pine" aria-pressed="false">Rosé Pine</button>
         </div>
-        <p class="hint" data-i18n="themePresetsHint">Click a preset to load its CSS. Adaptive themes follow your Theme (light/dark) setting.</p>
       </div>
       <div class="fg" id="saved-themes-section" style="display:none">
         <label class="bl" data-i18n="labelSavedThemes">Saved Themes</label>

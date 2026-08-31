@@ -464,6 +464,13 @@ function setupBackup({ exportableKeys, saveOverlayWithFallback, loadThemes, befo
   let selectionToken = 0;
   let selectionText = "";
   let busyToken = null;
+  const secretsToggle = $id("opt-backup-include-secrets");
+  const secretsWarning = $id("backup-secrets-warning");
+  const syncSecretsWarning = () => {
+    if (secretsWarning) secretsWarning.hidden = secretsToggle?.checked !== true;
+  };
+  secretsToggle?.addEventListener("change", syncSecretsWarning);
+  syncSecretsWarning();
   const readOwner = async () => {
     const secret = await pbpReadSettingsWithSecrets({ pinboardToken: "" });
     return pbpPinboardAccountFromToken(secret.pinboardToken);

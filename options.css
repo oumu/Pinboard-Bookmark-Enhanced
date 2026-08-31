@@ -368,28 +368,9 @@ html[data-theme] .panel-foot a { color: var(--opt-fg-hint, var(--opt-fg-muted));
    block rhythm margins would knock that row off centre. */
 #batch-perm-status { margin: 0; }
 
-/* ---- Markdown tab: keyboard shortcuts static list (Task 6, spec 5.3).
-   kbd chip font stack mirrors the other mono stacks in this file (.hint
-   code just above, .fg textarea): named Latin fonts first, then CJK named
-   families -- including the localized YaHei name -- before the generic
-   `monospace` keyword (font iron rule), so CJK glyphs never fall through
-   to the trailing generic (= Fixed-width CJK stall).
-   Colors below are hardcoded light-mode literals + an html[data-theme]
-   override, same two-layer convention .hint code above already uses in
-   this file -- this is options.css's OWN token system (--opt-*), a
-   separate hand-maintained surface outside the theme factory and outside
-   md-preview.css's light-dark() token system. */
-.kbd-help-list { list-style: none; margin: var(--opt-sp-4) 0 0; padding: 0; display: flex; flex-direction: column; gap: var(--opt-sp-3); }
-.kbd-help-row { display: flex; align-items: baseline; gap: var(--opt-sp-4); font-size: 12px; }
-.kbd-help-chips { flex: none; min-width: 70px; }
-/* Sub-heading between the two shortcut lists (reader keys / video-page keys);
-   a real h3 so the outline stays navigable, sized like a row label. */
-.kbd-help-subtitle { font-size: 12px; font-weight: 600; margin: var(--opt-sp-4) 0 0; }
 /* .shortcut-current holds the <kbd> options.js injects for each bound command.
    Without a rule of its own it fell to the UA's `kbd { font-family: monospace }`
-   = the profile's Fixed-width font (font iron rule, form 3) AND read as bare
-   text beside the keycap chips ten lines below it in the same panel. */
-.kbd-help-chips kbd,
+   = the profile's Fixed-width font (font iron rule, form 3). */
 .shortcut-current kbd {
   display: inline-block;
   padding: 1px var(--opt-sp-3);
@@ -2451,6 +2432,10 @@ html[data-theme="flexoki-dark"] #panel-vocab .vocab-details-body > .hint {
   flex-wrap: wrap;
   margin: var(--opt-sp-4) 0 var(--opt-sp-5);
 }
+/* Both rows already space children with gap; do not add .save-status's
+   standalone inline indent a second time. */
+.vocab-drive-actions .save-status,
+.vocab-toolbar .save-status { margin-left: 0; }
 @media (max-width: 720px) {
   .container {
     grid-template-columns: 1fr;
