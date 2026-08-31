@@ -2676,48 +2676,65 @@ function showConfirmPopover(anchor, opts) {
     try { pop.showPopover(); } catch (_) {}
   }
 
-  const anchorRect = anchor.getBoundingClientRect();
-  const popRect = pop.getBoundingClientRect();
   const gap = 4;
-  const viewportWidth = document.documentElement.clientWidth;
-  const viewportHeight = document.documentElement.clientHeight;
-  // Align the popover's left edge to the anchor's and let it grow rightwards.
-  // Aligning the RIGHT edges instead (the earlier rule) pushes a wide popover
-  // left across whatever the anchor sits beside: for a button in the settings
-  // pane that is the sidebar nav, which it then covers. Flip to right-edge
-  // alignment only when growing rightwards would leave the CONTENT edge --
-  // the nearest .panel, not the viewport: on a wide window the settings card
-  // ends far left of the viewport, and a row-trailing delete button anchored
-  // a popover that jutted past the card border into the void (real-device
-  // report, the mirror image of the earlier left-edge clip). popup has no
-  // .panel and keeps the viewport bound. Clamp as a last resort for a popover
-  // wider than the bound itself.
-  const panelEl = typeof anchor.closest === "function" ? anchor.closest(".panel") : null;
-  const rightBound = Math.min(viewportWidth - gap,
-    panelEl ? panelEl.getBoundingClientRect().right : Infinity);
-  const left = anchorRect.left + popRect.width <= rightBound
-    ? Math.max(gap, anchorRect.left)
-    : Math.max(gap, Math.min(anchorRect.right - popRect.width, rightBound - popRect.width));
-  const below = anchorRect.bottom + gap;
-  const top = below + popRect.height <= viewportHeight - gap
-    ? below
-    : Math.max(gap, anchorRect.top - popRect.height - gap);
-  Object.assign(pop.style, {
-    position: "fixed",
-    left: `${Math.round(left)}px`,
-    top: `${Math.round(top)}px`,
-    right: "auto",
-    bottom: "auto",
-  });
-
   let dismissed = false;
+  // Portal positioning is bounded by the surface the user can actually see,
+  // not merely by the browser viewport. This matters most for browser-action
+  // popups: during Chrome's final-size negotiation the tab viewport can be
+  // wider than <body>, so a viewport-only clamp visibly escapes the popup.
+  function position() {
+    if (dismissed || !pop.isConnected || !anchor.isConnected) return;
+    const viewportWidth = document.documentElement.clientWidth;
+    const viewportHeight = document.documentElement.clientHeight;
+    const panelEl = typeof anchor.closest === "function" ? anchor.closest(".panel") : null;
+    const surfaceEl = panelEl || document.body;
+    const surfaceRect = surfaceEl?.getBoundingClientRect?.();
+    const hasSurface = surfaceRect && surfaceRect.width > gap * 2;
+    let leftBound = Math.max(gap, hasSurface ? surfaceRect.left + gap : gap);
+    let rightBound = Math.min(viewportWidth - gap,
+      hasSurface ? surfaceRect.right - gap : viewportWidth - gap);
+    if (rightBound <= leftBound) {
+      leftBound = gap;
+      rightBound = Math.max(gap, viewportWidth - gap);
+    }
+
+    // Preserve each surface's authored max-width, but lower it to the actual
+    // room available before measuring. Otherwise max-content can remain wider
+    // than the clamp and no left coordinate can prevent overflow.
+    pop.style.maxWidth = "";
+    const authoredMax = Number.parseFloat(getComputedStyle(pop).maxWidth);
+    const availableWidth = Math.max(0, rightBound - leftBound);
+    const maxWidth = Number.isFinite(authoredMax) && authoredMax > 0
+      ? Math.min(authoredMax, availableWidth)
+      : availableWidth;
+    pop.style.maxWidth = `${Math.floor(maxWidth)}px`;
+
+    const anchorRect = anchor.getBoundingClientRect();
+    const popRect = pop.getBoundingClientRect();
+    let left = anchorRect.left;
+    if (left + popRect.width > rightBound) left = anchorRect.right - popRect.width;
+    left = Math.max(leftBound, Math.min(left, rightBound - popRect.width));
+    const below = anchorRect.bottom + gap;
+    const top = below + popRect.height <= viewportHeight - gap
+      ? below
+      : Math.max(gap, anchorRect.top - popRect.height - gap);
+    Object.assign(pop.style, {
+      position: "fixed",
+      left: `${Math.round(left)}px`,
+      top: `${Math.round(top)}px`,
+      right: "auto",
+      bottom: "auto",
+    });
+  }
+  position();
+
   function dismiss({ restoreFocus = true, animate = true } = {}) {
     if (dismissed) return;
     dismissed = true;
     if (_activeConfirmPopover?.pop === pop) _activeConfirmPopover = null;
     document.removeEventListener("keydown", onKey, true);
     document.removeEventListener("pointerdown", onDocPointerDown, true);
-    window.removeEventListener("resize", dismiss);
+    window.removeEventListener("resize", position);
     window.removeEventListener("scroll", dismiss, true);
     if (restoreFocus && opener && opener.isConnected && typeof opener.focus === "function") opener.focus();
 
@@ -2772,7 +2789,7 @@ function showConfirmPopover(anchor, opts) {
   _activeConfirmPopover = { anchor, pop, dismiss };
   document.addEventListener("keydown", onKey, true);
   document.addEventListener("pointerdown", onDocPointerDown, true);
-  window.addEventListener("resize", dismiss);
+  window.addEventListener("resize", position);
   window.addEventListener("scroll", dismiss, true);
   no.focus();
 }

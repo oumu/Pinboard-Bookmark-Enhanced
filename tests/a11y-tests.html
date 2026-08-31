@@ -1,6 +1,13 @@
 <!DOCTYPE html>
 <html><head><meta charset="UTF-8"><title>A11y Tests</title>
-<style>.case.pass{color:#0a0;}.case.fail{color:#c00;font-weight:bold;}</style>
+<style>
+.case.pass{color:#0a0;}.case.fail{color:#c00;font-weight:bold;}
+/* Exercise the shared placement helper with the same intrinsic-width shape
+   used by the four shipped surfaces. Surface CSS is separately pinned by
+   ui-contract-tests.mjs; this fixture keeps the behavioural test self-contained. */
+.confirm-popover{box-sizing:border-box;display:flex;align-items:center;gap:6px;width:max-content;max-width:min(60ch,78vw);padding:4px 8px;white-space:nowrap;}
+.confirm-popover button{flex:none;}
+</style>
 </head>
 <body>
 <div id="results"></div>
@@ -225,6 +232,41 @@ function buildRecentControl(kind){
     assert(logged, "confirm error escaped its handler");
     assert(document.activeElement === anchor, "confirm did not restore focus");
   });
+})();
+
+// G6b: a browser-action popup can become narrower while Chrome resolves its
+// final size. The confirm must stay inside the actual content surface and
+// reposition on resize instead of flashing and disappearing.
+(function(){
+  const panel = document.createElement("div");
+  panel.className = "panel";
+  panel.style.cssText = "position:fixed;left:24px;top:24px;width:280px;height:80px";
+  const anchor = document.createElement("button");
+  anchor.type = "button";
+  anchor.textContent = "Sign out";
+  anchor.style.cssText = "position:absolute;right:0;top:0";
+  panel.appendChild(anchor);
+  document.body.appendChild(panel);
+
+  test("G6b: narrow confirm stays inside its content surface",()=>{
+    showConfirmPopover(anchor, { msg: "Sign out from Pinboard on this device?" });
+    const pop = document.body.querySelector(".confirm-popover");
+    const surfaceRect = panel.getBoundingClientRect();
+    const popRect = pop.getBoundingClientRect();
+    assert(popRect.left >= surfaceRect.left + 3, `left overflow: ${popRect.left} < ${surfaceRect.left}`);
+    assert(popRect.right <= surfaceRect.right - 3, `right overflow: ${popRect.right} > ${surfaceRect.right}`);
+    pop.querySelector(".confirm-no").click();
+  });
+
+  test("G6b: resize repositions instead of dismissing confirm",()=>{
+    showConfirmPopover(anchor, { msg: "Sign out from Pinboard on this device?" });
+    const pop = document.body.querySelector(".confirm-popover");
+    window.dispatchEvent(new Event("resize"));
+    assert(pop.isConnected, "resize dismissed the confirm");
+    pop.querySelector(".confirm-no").click();
+  });
+
+  panel.remove();
 })();
 
 test("G7: applyI18n synchronizes the document language",()=>{

@@ -378,11 +378,12 @@ input[type="checkbox"], input[type="radio"] {
 /* ---- Confirm popover (replaces native confirm()) ---- */
 .confirm-popover {
   position: absolute; left: 0; right: auto; top: auto; bottom: calc(100% + 4px); z-index: var(--lib-z-menu, 10);
+  box-sizing: border-box;
   width: max-content;   /* the anchor is typically a narrow column; without this the
                            popover shrink-to-fits to that width and its row of buttons cramps */
   display: flex; align-items: center; gap: 6px; /* no --lib-sp-* step matches options.css's 6px (opt-sp-3); library's 5-step scale skips it */
   flex-wrap: wrap;       /* long tag lists: buttons drop to their own row */
-  max-width: min(60ch, 78vw);
+  max-width: min(60ch, 78vw); white-space: normal;
   padding: var(--lib-sp-1) var(--lib-sp-2); font-size: 11px; color: var(--lib-danger);
   background: var(--lib-panel, #fff); border: 1px solid var(--lib-border, #ccc); border-radius: var(--lib-radius-sm);
   box-shadow: 0 4px 12px color-mix(in srgb, var(--lib-fg) 22%, transparent), 0 2px 4px color-mix(in srgb, var(--lib-fg) 12%, transparent);
@@ -402,9 +403,9 @@ html.motion-ready .confirm-popover.is-closing {
 }
 /* pre-line: messages may embed a real newline (summary line + time estimate);
    under nowrap it collapses to one ever-wider unwrappable line. */
-.confirm-popover .confirm-msg { font-weight: bold; color: inherit; white-space: pre-line; }
+.confirm-popover .confirm-msg { flex: 1 1 16ch; min-width: 0; font-weight: bold; color: inherit; white-space: pre-line; overflow-wrap: anywhere; }
 .confirm-popover button {
-  padding: 2px var(--lib-sp-2); font-size: 11px; cursor: pointer; border-radius: var(--lib-radius-sm); border: 1px solid;
+  flex: none; padding: 2px var(--lib-sp-2); font-size: 11px; cursor: pointer; border-radius: var(--lib-radius-sm); border: 1px solid;
 }
 /* .confirm-yes (solid danger tier, default light state) now comes from
    @generated:ui-components above (COMPONENTS.md §4.2) — only .confirm-no

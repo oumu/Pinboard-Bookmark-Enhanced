@@ -430,11 +430,6 @@ html[data-theme] .panel-foot a { color: var(--opt-fg-hint, var(--opt-fg-muted));
   background-repeat: no-repeat;
   background-size: contain;
 }
-.free-tier-help { margin: var(--opt-sp-4) 0 var(--opt-rhythm); font-size: 12px; color: var(--opt-fg-soft); }
-.free-tier-help summary { cursor: pointer; padding: var(--opt-sp-2) 0; color: var(--opt-accent); user-select: none; }
-.free-tier-help summary:hover { text-decoration: underline; }
-.free-tier-help[open] summary { margin-bottom: var(--opt-sp-2); }
-html[data-theme] .free-tier-help { color: var(--opt-fg-muted); }
 .opt-error { font-size: 12px; color: var(--opt-danger); margin: var(--opt-sp-2) 0 var(--opt-sp-4); padding: var(--opt-sp-3) var(--opt-sp-4); background: color-mix(in srgb, var(--opt-danger) 8%, var(--opt-bg)); border: 1px solid var(--opt-error-border); border-radius: var(--opt-radius-sm); }
 .opt-error.hidden { display: none; }
 /* Generic utility (same convention as popup.css). options.css historically only had
@@ -904,7 +899,6 @@ html.motion-ready details.motion-toggle[open]::details-content {
    platform and read dated; every <details> surface in Options shares this.
    Drawn with borders, never a glyph (font-fallback stall rule). */
 details.vocab-disclosure > summary,
-details.free-tier-help > summary,
 details.et-onboarding > summary,
 #tag-gov-lowcount > summary,
 #preset-preview-section > summary {
@@ -928,12 +922,10 @@ details.et-onboarding > summary,
    padding here. */
 #tag-gov-lowcount > summary { padding: var(--opt-sp-3) 0; }
 details.vocab-disclosure > summary::-webkit-details-marker,
-details.free-tier-help > summary::-webkit-details-marker,
 details.et-onboarding > summary::-webkit-details-marker,
 #tag-gov-lowcount > summary::-webkit-details-marker,
 #preset-preview-section > summary::-webkit-details-marker { display: none; }
 details.vocab-disclosure > summary::after,
-details.free-tier-help > summary::after,
 details.et-onboarding > summary::after,
 #tag-gov-lowcount > summary::after,
 #preset-preview-section > summary::after {
@@ -944,7 +936,6 @@ details.et-onboarding > summary::after,
   color: var(--opt-fg-muted);
 }
 details.vocab-disclosure[open] > summary::after,
-details.free-tier-help[open] > summary::after,
 details.et-onboarding[open] > summary::after,
 #tag-gov-lowcount[open] > summary::after,
 #preset-preview-section[open] > summary::after { transform: translateY(1px) rotate(225deg); }
@@ -954,7 +945,6 @@ details.vocab-disclosure > summary::after,
 #tag-gov-lowcount > summary::after,
 #preset-preview-section > summary::after { margin-left: auto; }
 html.motion-ready details.vocab-disclosure > summary::after,
-html.motion-ready details.free-tier-help > summary::after,
 html.motion-ready details.et-onboarding > summary::after,
 html.motion-ready #tag-gov-lowcount > summary::after,
 html.motion-ready #preset-preview-section > summary::after {
@@ -1851,11 +1841,12 @@ html[data-theme] textarea::-webkit-scrollbar-corner { background: var(--opt-pane
 .reset-tab-btn { position: relative; }
 .confirm-popover {
   position: absolute; left: 0; right: auto; top: auto; bottom: calc(100% + 4px); z-index: var(--opt-z-menu);
+  box-sizing: border-box;
   width: max-content;   /* the anchor (reset link) is a narrow sidebar column; without this the
                            popover shrink-to-fits to that width and its row of buttons cramps */
   display: flex; align-items: center; gap: var(--opt-sp-3);
   flex-wrap: wrap;       /* long tag lists: buttons drop to their own row */
-  max-width: min(60ch, 78vw);
+  max-width: min(60ch, 78vw); white-space: normal;
   padding: var(--opt-sp-2) var(--opt-sp-4); font-size: 11px; color: var(--opt-danger);
   background: var(--opt-panel); border: 1px solid var(--opt-border); border-radius: var(--opt-radius-sm);
   box-shadow: var(--opt-shadow-md);
@@ -1876,9 +1867,9 @@ html.motion-ready .confirm-popover.is-closing {
 /* pre-line: the tag-gov messages embed a real newline (summary line + time estimate);
    under the old nowrap it collapsed to one ever-wider unwrappable line that could
    run far past the viewport with a long member list. */
-.confirm-popover .confirm-msg { font-weight: bold; color: inherit; white-space: pre-line; }
+.confirm-popover .confirm-msg { flex: 1 1 16ch; min-width: 0; font-weight: bold; color: inherit; white-space: pre-line; overflow-wrap: anywhere; }
 .confirm-popover button {
-  padding: var(--opt-sp-1) var(--opt-sp-4); font-size: 11px; cursor: pointer; border-radius: var(--opt-radius-sm); border: 1px solid;
+  flex: none; padding: var(--opt-sp-1) var(--opt-sp-4); font-size: 11px; cursor: pointer; border-radius: var(--opt-radius-sm); border: 1px solid;
 }
 /* .confirm-yes (solid danger tier, default light state) now comes from
    @generated:ui-components above (COMPONENTS.md §4.2) — only .confirm-no

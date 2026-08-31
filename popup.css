@@ -2458,15 +2458,17 @@ html[data-theme="terminal"] .field > textarea { font-family: "Courier New", Cons
 /* ===================== Confirm Popover (shared helper) ===================== */
 .confirm-popover {
   position: absolute; right: 0; top: calc(100% + 4px); z-index: var(--pp-z-menu);
-  display: flex; align-items: center; gap: var(--pp-sp-3);
-  padding: var(--pp-sp-2) var(--pp-sp-4); font-size: 11px; color: var(--pp-danger); white-space: nowrap;
+  box-sizing: border-box;
+  width: max-content; max-width: min(60ch, calc(100vw - 8px));
+  display: flex; align-items: center; gap: var(--pp-sp-3); flex-wrap: wrap;
+  padding: var(--pp-sp-2) var(--pp-sp-4); font-size: 11px; color: var(--pp-danger); white-space: normal;
   background: var(--pp-bg); border: 1px solid var(--pp-border); border-radius: var(--pp-radius-sm);
   box-shadow: var(--pp-shadow-md);
   animation: confirmFadeIn 0.12s var(--ease-out);
 }
-.confirm-popover .confirm-msg { font-weight: bold; color: inherit; }
+.confirm-popover .confirm-msg { flex: 1 1 16ch; min-width: 0; font-weight: bold; color: inherit; white-space: pre-line; overflow-wrap: anywhere; }
 .confirm-popover button {
-  padding: var(--pp-sp-1) var(--pp-sp-4); font-size: 11px; cursor: pointer; border-radius: var(--pp-radius-sm); border: 1px solid;
+  flex: none; padding: var(--pp-sp-1) var(--pp-sp-4); font-size: 11px; cursor: pointer; border-radius: var(--pp-radius-sm); border: 1px solid;
 }
 /* .confirm-yes (solid danger tier) now comes from @generated:ui-components
    above (COMPONENTS.md §4.2), on all three layers -- same shape options.css

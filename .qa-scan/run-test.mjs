@@ -28,7 +28,7 @@ const CLEANUP_TIMEOUT_MS = 5000;
 // row per test() block. Count rows in the page, not assert calls; an
 // unregistered suite is rejected instead of guessed complete.
 const EXPECTED_RESULTS = Object.freeze({
-  "tests/a11y-tests.html": 32,
+  "tests/a11y-tests.html": 34,
   "tests/ai-cache-tests.html": 23,
   "tests/ai-tags-tests.html": 70,
   "tests/anki-connect-tests.html": 41,

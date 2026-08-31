@@ -554,8 +554,9 @@ check(sharedJs.includes('const state = ok ? "ok" : "bad"') &&
     "options.html: redundant helper copy returned after the settings-density reduction");
   const requiredDisclosures = [
     "syncApiKeysHint", "backupPlaintextDisclosure", "backupIncludeSecretsHint", "batchAiHint",
-    "skimEnableHint", "optVideoUseLoginHint", "vocabDriveDisclosure",
-    "ecdictFormatNote", "tagGovIrreversibleWarn", "optWaybackHint", "storageIntro", "diagnosticsHint",
+    "skimEnableHint", "optVideoUseLoginHint", "vocabDriveScope", "vocabDriveDisclosure",
+    "ecdictFormatNote", "tagGovIrreversibleWarn", "tagGovBundlesWarn", "optWaybackHint",
+    "optWaybackBatchHint", "optWaybackS3Hint", "storageIntro", "diagnosticsHint",
   ];
   check(requiredDisclosures.every((key) => optionsHtml.includes(`data-i18n="${key}"`)),
     "options.html: settings-density reduction removed a security, privacy, cost, or irreversible-action disclosure");
@@ -568,16 +569,21 @@ check(sharedJs.includes('const state = ok ? "ok" : "bad"') &&
     "options.css: removed Reader shortcut list left dead layout rules behind");
 
   const contextualHelpKeys = [
-    "connectionOverviewHint", "optSyncHint", "backupIncludeHighlightsHint",
+    "connectionOverviewHint", "optSyncHint", "syncApiKeysHint", "backupPlaintextDisclosure",
+    "backupIncludeHighlightsHint",
     "backupIncludeVocabularyHint", "optPopupWidthHelp", "tagSyncHint",
-    "tagPresetsHint", "batchTagsHint", "batchRevokeHint", "hintOpenAIBaseUrl",
+    "tagPresetsHint", "batchTagsHint", "batchAiHint", "batchRevokeHint", "hintOpenAIBaseUrl",
     "hintOllamaModel", "hintCustomBaseUrl", "hintCustomKey",
+    "freeTierTitle", "freeTierResourcesPrefix", "openrouterTagline", "jinaFreeTierHint",
     "aiContentSourceLocalHint", "aiContentSourceJinaHint", "optAiUseTranscriptHint",
     "aiCacheHint", "promptsHint", "tagPromptHint", "summaryPromptHint",
-    "translateGlossaryHint", "optVideoLangPrefHint", "dictEchoHint",
-    "dictEudicSupportedHint", "ecdictHint", "dictPackHint",
-    "dictPackImportHint", "mdExportImagePolicyHint", "archiveLogNote",
+    "translateGlossaryHint", "skimEnableHint", "optVideoLangPrefHint", "optVideoUseLoginHint",
+    "dictEchoHint", "vocabDriveScope", "vocabDriveDisclosure",
+    "dictEudicSupportedHint", "ecdictHint", "ecdictFormatNote", "dictPackHint",
+    "dictPackImportHint", "mdExportImagePolicyHint", "optWaybackHint", "optWaybackBatchHint",
+    "optWaybackS3Hint", "archiveLogNote",
     "optThemeHint", "popupFollowHint", "customCSSOverlayHelp", "saveAsThemeHint",
+    "storageIntro", "diagnosticsHint",
   ];
   const isInsideContextHelp = (key) => {
     const marker = optionsHtml.indexOf(`data-i18n="${key}"`);
@@ -602,8 +608,27 @@ check(sharedJs.includes('const state = ok ? "ok" : "bad"') &&
   check(/const det = e\.target\.matches\?\.\("details\[data-acc-key\]"\) \? e\.target : null/.test(optionsJs) &&
     !/const det = e\.target\.closest\?\.\("details\[data-acc-key\]"\)/.test(optionsJs),
     "options.js: nested contextual help can overwrite its parent accordion persistence state");
-  check(requiredDisclosures.every((key) => !isInsideContextHelp(key)),
-    "options.html: a security, privacy, cost, or irreversible-action disclosure was hidden behind contextual help");
+  const directWarnings = ["backupIncludeSecretsHint", "tagGovIrreversibleWarn", "tagGovBundlesWarn"];
+  check(directWarnings.every((key) => !isInsideContextHelp(key)),
+    "options.html: a conditional or irreversible-action warning was hidden behind contextual help");
+
+  // Field help expands between the label and its control. Putting <details>
+  // after a tall textarea/input makes the question icon and its answer appear
+  // in different visual regions even though both are inside the same host.
+  const helpBeforeControl = {
+    tagPresetsHint: "opt-tag-presets", batchTagsHint: "opt-batch-tag",
+    hintOpenAIBaseUrl: "opt-openai-baseurl", hintOllamaModel: "opt-ollama-model",
+    hintCustomBaseUrl: "opt-custom-baseurl", hintCustomKey: "opt-custom-key",
+    aiCacheHint: "opt-ai-cache-duration", tagPromptHint: "opt-custom-tag-prompt",
+    summaryPromptHint: "opt-custom-summary-prompt", translateGlossaryHint: "opt-translate-glossary",
+    optVideoLangPrefHint: "opt-md-video-lang", dictEudicSupportedHint: "dict-eudic-token",
+    mdExportImagePolicyHint: "opt-md-image-policy", customCSSOverlayHelp: "opt-custom-css",
+  };
+  check(Object.entries(helpBeforeControl).every(([key, id]) => {
+    const help = optionsHtml.indexOf(`data-i18n="${key}"`);
+    const control = optionsHtml.indexOf(`id="${id}"`);
+    return help >= 0 && control >= 0 && help < control;
+  }), "options.html: field contextual help expands after its control instead of directly below the label");
 
   const themeTitle = optionsHtml.indexOf('id="sec-theme"');
   const themeSelect = optionsHtml.indexOf('id="opt-theme"', themeTitle);
@@ -617,6 +642,22 @@ check(sharedJs.includes('const state = ok ? "ok" : "bad"') &&
   check(/class="fg context-help-host wayback-log-host"[\s\S]{0,120}class="wayback-log-heading"[\s\S]{0,240}data-i18n="archiveLogTitle"[\s\S]{0,240}id="wayback-log-clear"[\s\S]{0,120}<\/div>/.test(optionsHtml) &&
     /\.wayback-log-host \.wayback-log-heading \{ padding-right: calc\(24px \+ var\(--opt-sp-2\)\); \}/.test(optionsCss),
     "options.html: Wayback Clear still burns a standalone action row");
+}
+
+{
+  for (const [file, css] of [["popup.css", popupCss], ["options.css", optionsCss],
+    ["library.css", libraryCss], ["md-preview.css", mdCss]]) {
+    const popoverRule = css.match(/\.confirm-popover\s*\{([\s\S]*?)\}/)?.[1] || "";
+    const messageRule = css.match(/\.confirm-popover \.confirm-msg\s*\{([\s\S]*?)\}/)?.[1] || "";
+    check(/box-sizing:\s*border-box/.test(popoverRule) && /flex-wrap:\s*wrap/.test(popoverRule) &&
+      !/white-space:\s*nowrap/.test(popoverRule) && /min-width:\s*0/.test(messageRule) &&
+      /overflow-wrap:\s*anywhere/.test(messageRule),
+    `${file}: confirm popover can overflow a narrow content surface`);
+  }
+  check(/window\.addEventListener\("resize",\s*position\)/.test(sharedJs) &&
+    /window\.removeEventListener\("resize",\s*position\)/.test(sharedJs) &&
+    !/window\.addEventListener\("resize",\s*dismiss\)/.test(sharedJs),
+  "shared.js: resize still dismisses the active confirm instead of repositioning it");
 }
 {
   const ankiTest = optionsHtml.indexOf('id="vocab-anki-test-btn"');
@@ -1347,8 +1388,8 @@ check(/result && typeof result\.catch === "function"\) result\.catch\(reportConf
 // bound is the nearest .panel's right edge (falling back to the viewport) --
 // on wide windows the settings card ends far left of the viewport, and a
 // row-trailing anchor used to jut the popover past the card border.
-check(/anchorRect\.left \+ popRect\.width <= rightBound/.test(sharedJs) &&
-  /\? Math\.max\(gap, anchorRect\.left\)/.test(sharedJs),
+check(/let left = anchorRect\.left/.test(sharedJs) &&
+  /if \(left \+ popRect\.width > rightBound\) left = anchorRect\.right - popRect\.width/.test(sharedJs),
   "shared.js: the confirm popover went back to trailing-edge alignment (it then covers whatever sits left of the anchor)");
 check(/anchor\.closest\("\.panel"\)/.test(sharedJs),
   "shared.js: the confirm popover lost its panel right-edge clamp (wide windows let it jut past the card border)");
