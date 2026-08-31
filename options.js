@@ -1373,10 +1373,22 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.addEventListener("click", (e) => {
     const summary = e.target.closest("summary");
     const det = summary && summary.closest("details");
-    if (det) pbpMotionMark(det);
+    if (!det) return;
+    // Context help is deliberately transient: keep at most one explanation
+    // open in a panel, and close its sibling through the same native-details
+    // motion gate before the browser opens the newly clicked one.
+    if (det.matches("details.context-help") && !det.open) {
+      const panel = det.closest(".panel");
+      panel?.querySelectorAll("details.context-help[open]").forEach((other) => {
+        if (other === det) return;
+        pbpMotionMark(other);
+        other.open = false;
+      });
+    }
+    pbpMotionMark(det);
   }, true);
   document.addEventListener("toggle", (e) => {
-    const det = e.target.closest?.("details[data-acc-key]");
+    const det = e.target.matches?.("details[data-acc-key]") ? e.target : null;
     if (!det || pbpAccRestoring) return;
     pbpAccSet(det.dataset.accKey, det.open);
   }, true);
@@ -2127,11 +2139,15 @@ document.addEventListener("DOMContentLoaded", async () => {
   (async () => {
     try {
       const has = await chrome.permissions.contains({ origins: ["*://*/*"] });
+      const batchLegacy = $id("batch-legacy-permission");
       const statusEl = $id("batch-perm-status");
       const btn = $id("batch-revoke-perm");
+      if (batchLegacy) batchLegacy.hidden = !has;
       if (!has) {
         if (statusEl) statusEl.textContent = t("batchPermNone");
         if (btn) btn.disabled = true;
+      } else if (btn) {
+        btn.disabled = false;
       }
     } catch (_) {}
   })();
@@ -2155,7 +2171,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (result.ok) {
         btn.textContent = t("batchRevokeSuccess");
         setPermStatus(t("batchPermRevoked"), false);
-        setTimeout(() => { btn.textContent = orig; }, 2000);
+        setTimeout(() => {
+          btn.textContent = orig;
+          const batchLegacy = $id("batch-legacy-permission");
+          if (batchLegacy) batchLegacy.hidden = true;
+        }, 2000);
       } else {
         btn.textContent = t("batchRevokeFailed");
         setPermStatus(t("batchRevokeFailed") + ": " + result.missing.join(", "), true);

@@ -1247,6 +1247,9 @@
   "showHideKey": {
     "message": "Show/hide key"
   },
+  "contextHelpTitle": {
+    "message": "More information"
+  },
   "hintOpenAIBaseUrl": {
     "message": "Change for proxy or compatible endpoint"
   },
@@ -3068,7 +3071,7 @@
       }
     },
     "vocabDriveNoticesClear": {
-      "message": "Dismiss notices"
+      "message": "Dismiss conflict notice"
     },
     "vocabDriveBlockedNotice": {
       "message": "Google Drive vocabulary sync stopped and will not retry on its own. Open Settings to see why."

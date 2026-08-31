@@ -1247,6 +1247,9 @@
   "showHideKey": {
     "message": "顯示/隱藏金鑰"
   },
+  "contextHelpTitle": {
+    "message": "更多說明"
+  },
   "hintOpenAIBaseUrl": {
     "message": "可修改為代理或相容端點網址"
   },
@@ -3068,7 +3071,7 @@
       }
     },
     "vocabDriveNoticesClear": {
-      "message": "清除提示"
+      "message": "關閉衝突提示"
     },
     "vocabDriveBlockedNotice": {
       "message": "Google Drive 生詞同步已停止，且不會自動重試。請開啟設定查看原因。"

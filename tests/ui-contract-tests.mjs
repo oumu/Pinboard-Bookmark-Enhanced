@@ -566,6 +566,57 @@ check(sharedJs.includes('const state = ok ? "ok" : "bad"') &&
     "options.html: Reader still duplicates its in-page shortcut help or lost the Chrome shortcut entry point");
   check(!/\.kbd-help-(list|row|chips|subtitle)/.test(optionsCss),
     "options.css: removed Reader shortcut list left dead layout rules behind");
+
+  const contextualHelpKeys = [
+    "connectionOverviewHint", "optSyncHint", "backupIncludeHighlightsHint",
+    "backupIncludeVocabularyHint", "optPopupWidthHelp", "tagSyncHint",
+    "tagPresetsHint", "batchTagsHint", "batchRevokeHint", "hintOpenAIBaseUrl",
+    "hintOllamaModel", "hintCustomBaseUrl", "hintCustomKey",
+    "aiContentSourceLocalHint", "aiContentSourceJinaHint", "optAiUseTranscriptHint",
+    "aiCacheHint", "promptsHint", "tagPromptHint", "summaryPromptHint",
+    "translateGlossaryHint", "optVideoLangPrefHint", "dictEchoHint",
+    "dictEudicSupportedHint", "ecdictHint", "dictPackHint",
+    "dictPackImportHint", "mdExportImagePolicyHint", "archiveLogNote",
+    "optThemeHint", "popupFollowHint", "customCSSOverlayHelp", "saveAsThemeHint",
+  ];
+  const isInsideContextHelp = (key) => {
+    const marker = optionsHtml.indexOf(`data-i18n="${key}"`);
+    if (marker < 0) return false;
+    const open = optionsHtml.lastIndexOf('<details class="context-help', marker);
+    const close = optionsHtml.lastIndexOf("</details>", marker);
+    return open > close;
+  };
+  check(contextualHelpKeys.every(isInsideContextHelp),
+    "options.html: routine explanatory copy is still permanently expanded instead of using contextual help");
+  const contextHelpCount = [...optionsHtml.matchAll(/<details class="context-help(?:\s|\")/g)].length;
+  const contextHelpSummaries = [...optionsHtml.matchAll(
+    /<summary class="btn btn-sm ghost context-help-toggle"[^>]*data-i18n-title="contextHelpTitle"[^>]*data-i18n-aria="contextHelpTitle"[^>]*>[\s\S]*?<span class="btn-ic" data-ic="help"><\/span>[\s\S]*?<\/summary>/g
+  )].length;
+  check(contextHelpCount >= 25 && contextHelpSummaries === contextHelpCount,
+    "options.html: contextual-help toggles are missing the shared ghost/help-icon/accessibility contract");
+  check(/html\.motion-ready details\.motion-toggle::details-content[\s\S]{0,240}var\(--motion-collapse\) var\(--ease-in-out\)/.test(optionsCss) &&
+    !/\.context-help[^{]*\{[^}]*transition\s*:/.test(optionsCss),
+    "options.css: contextual help no longer reuses the native-details accordion motion");
+  check(/const det = summary && summary\.closest\("details"\);[\s\S]{0,500}details\.context-help\[open\]/.test(optionsJs),
+    "options.js: contextual help lost the native-details motion gate or one-open-per-panel behavior");
+  check(/const det = e\.target\.matches\?\.\("details\[data-acc-key\]"\) \? e\.target : null/.test(optionsJs) &&
+    !/const det = e\.target\.closest\?\.\("details\[data-acc-key\]"\)/.test(optionsJs),
+    "options.js: nested contextual help can overwrite its parent accordion persistence state");
+  check(requiredDisclosures.every((key) => !isInsideContextHelp(key)),
+    "options.html: a security, privacy, cost, or irreversible-action disclosure was hidden behind contextual help");
+
+  const themeTitle = optionsHtml.indexOf('id="sec-theme"');
+  const themeSelect = optionsHtml.indexOf('id="opt-theme"', themeTitle);
+  const themeHelp = optionsHtml.lastIndexOf('<details class="context-help"', themeSelect);
+  check(themeTitle >= 0 && themeHelp > themeTitle && themeHelp < themeSelect,
+    "options.html: theme help is anchored over the select chevron instead of beside the section title");
+
+  check(/id="batch-legacy-permission"[^>]*hidden/.test(optionsHtml) &&
+    /batchLegacy = \$id\("batch-legacy-permission"\)[\s\S]{0,300}batchLegacy\.hidden = !has/.test(optionsJs),
+    "options: the legacy all-sites maintenance block still occupies space when no broad grant exists");
+  check(/class="fg context-help-host wayback-log-host"[\s\S]{0,120}class="wayback-log-heading"[\s\S]{0,240}data-i18n="archiveLogTitle"[\s\S]{0,240}id="wayback-log-clear"[\s\S]{0,120}<\/div>/.test(optionsHtml) &&
+    /\.wayback-log-host \.wayback-log-heading \{ padding-right: calc\(24px \+ var\(--opt-sp-2\)\); \}/.test(optionsCss),
+    "options.html: Wayback Clear still burns a standalone action row");
 }
 {
   const ankiTest = optionsHtml.indexOf('id="vocab-anki-test-btn"');
@@ -596,6 +647,8 @@ check(sharedJs.includes('const state = ok ? "ok" : "bad"') &&
     optionsVocabJs.includes('_pbpVocabFlashLocalStatus("dict-pack-action-status"') &&
     optionsVocabJs.includes('_pbpVocabFlashLocalStatus("ecdict-pack-action-status"'),
     "options-vocab.js: Drive or dictionary-pack outcomes still escape their own card");
+  check(/class="vocab-drive-notice-row"[\s\S]{0,240}id="vocab-drive-notices"[\s\S]{0,240}class="btn btn-sm ghost vocab-drive-notice-dismiss"[^>]*id="vocab-drive-clear-notices"[\s\S]{0,240}<span class="btn-ic" data-ic="cross"><\/span>/.test(optionsHtml),
+    "options.html: Drive conflict notices still use a detached full-width clear action");
 
   const packSection = optionsHtml.indexOf('data-i18n="dictPackSection"');
   const packHint = optionsHtml.indexOf('data-i18n="dictPackHint"', packSection);

@@ -1247,6 +1247,9 @@
   "showHideKey": {
     "message": "キーの表示/非表示"
   },
+  "contextHelpTitle": {
+    "message": "詳細情報"
+  },
   "hintOpenAIBaseUrl": {
     "message": "プロキシや互換エンドポイントに変更可能"
   },
@@ -3068,7 +3071,7 @@
       }
     },
     "vocabDriveNoticesClear": {
-      "message": "通知を消去"
+      "message": "競合通知を閉じる"
     },
     "vocabDriveBlockedNotice": {
       "message": "Google Drive の単語同期が停止し、自動では再試行されません。設定で理由を確認してください。"

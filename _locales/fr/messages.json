@@ -1247,6 +1247,9 @@
   "showHideKey": {
     "message": "Afficher/masquer la clé"
   },
+  "contextHelpTitle": {
+    "message": "Plus d’informations"
+  },
   "hintOpenAIBaseUrl": {
     "message": "Modifier pour un proxy ou un endpoint compatible"
   },
@@ -3068,7 +3071,7 @@
       }
     },
     "vocabDriveNoticesClear": {
-      "message": "Effacer les avis"
+      "message": "Fermer l’avis de conflit"
     },
     "vocabDriveBlockedNotice": {
       "message": "La synchronisation du vocabulaire Google Drive s'est arrêtée et ne réessaiera pas d'elle-même. Ouvrez les paramètres pour en connaître la raison."

@@ -311,6 +311,44 @@ h1 { font-size: 18px; color: var(--opt-fg); margin-bottom: var(--opt-sp-7); bord
 .fg-stack > div:has(input[type="number"]),
 .fg-stack > div:has(input[type="text"]) { margin-top: var(--opt-sp-2); margin-bottom: var(--opt-sp-3); }
 .fg label.bl { display: block; font-weight: bold; margin-bottom: var(--opt-sp-2); cursor: default; font-size: 12px; color: var(--opt-fg-soft); }
+/* Contextual help is native <details>, so its body inherits the exact same
+   height/content-visibility transition, duration and easing as every other
+   disclosure below. The compact summary is absolutely parked beside the
+   field label and therefore contributes no row while closed. */
+.context-help-host { position: relative; }
+.context-help-host > label,
+.context-help-host > .bl,
+.context-help-section > .section-title { padding-right: calc(24px + var(--opt-sp-2)); }
+.context-help { margin: 0; }
+.context-help > summary.context-help-toggle {
+  position: absolute;
+  top: calc(-1 * var(--opt-sp-1));
+  right: 0;
+  min-width: 24px;
+  width: 24px;
+  min-height: 24px;
+  height: 24px;
+  padding: 0;
+  color: var(--opt-fg-hint);
+  list-style: none;
+}
+.context-help > summary.context-help-toggle::-webkit-details-marker { display: none; }
+.context-help > summary.context-help-toggle:hover,
+.context-help[open] > summary.context-help-toggle { color: var(--opt-fg-muted); }
+.context-help-toggle .btn-ic { margin: 0; }
+.context-help-body {
+  max-width: 76ch;
+  margin: var(--opt-sp-2) 0 0;
+  padding-right: calc(24px + var(--opt-sp-2));
+}
+.context-help-body + .context-help-body { margin-top: var(--opt-sp-1); }
+.context-help-link { margin-right: calc(24px + var(--opt-sp-2)); }
+.context-help-inline { flex: 1; min-width: 0; }
+.context-help-inline > summary.context-help-toggle { position: static; }
+.context-help-inline .context-help-body { padding-right: 0; }
+.wayback-log-heading { display: flex; align-items: center; justify-content: space-between; gap: var(--opt-sp-3); }
+.wayback-log-host .wayback-log-heading { padding-right: calc(24px + var(--opt-sp-2)); }
+.wayback-log-heading .bl { margin-bottom: 0; }
 /* Base field recipe (width/padding/border/radius/background-color/font-size/
    font-family/appearance/box-shadow/transition), hover border-color, focus/
    focus-visible and the checkbox/radio accent-color all now come from
@@ -2397,11 +2435,20 @@ html.motion-ready #tag-gov-progress:not([hidden]) {
 .vocab-drive-fields dt { color: var(--opt-fg-muted); }
 .vocab-drive-fields dd { min-width: 0; margin: 0; overflow-wrap: anywhere; }
 .vocab-drive-notices {
-  margin: var(--opt-sp-2) 0;
+  min-width: 0;
+  margin: 0;
   color: var(--opt-fg-muted);
   overflow-wrap: anywhere;
 }
 .vocab-drive-notices.bad { color: var(--opt-danger); }
+.vocab-drive-notice-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--opt-sp-2);
+  margin: var(--opt-sp-2) 0;
+}
+.vocab-drive-notice-row[hidden] { display: none; }
+.vocab-drive-notice-dismiss { flex: none; min-width: 24px; width: 24px; min-height: 24px; height: 24px; padding: 0; }
 .vocab-drive-actions {
   display: flex;
   flex-wrap: wrap;

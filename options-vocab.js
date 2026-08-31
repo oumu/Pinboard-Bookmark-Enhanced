@@ -77,7 +77,8 @@ async function _pbpVocabUpdateExternalActions() {
 
 function _pbpVocabDriveClear() {
   const clearNotices = $id("vocab-drive-clear-notices");
-  if (clearNotices) clearNotices.hidden = true;
+  const noticeRow = clearNotices?.closest(".vocab-drive-notice-row");
+  if (noticeRow) noticeRow.hidden = true;
   for (const id of [
     "vocab-drive-state", "vocab-drive-account", "vocab-drive-owner",
     "vocab-drive-last-success", "vocab-drive-pending-words",
@@ -246,7 +247,8 @@ function _pbpVocabDriveRender(status) {
     notices.classList.toggle("bad", noticeCount > 0);
   }
   const clearNoticesBtn = $id("vocab-drive-clear-notices");
-  if (clearNoticesBtn) clearNoticesBtn.hidden = noticeCount === 0;
+  const noticeRow = clearNoticesBtn?.closest(".vocab-drive-notice-row");
+  if (noticeRow) noticeRow.hidden = noticeCount === 0;
   if (status.lastError) {
     _pbpVocabDriveShowError(status.lastError, status.retryAt, status.blocked === true, true);
   }

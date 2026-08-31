@@ -36,8 +36,10 @@ body{font-family:monospace;padding:16px}.case{padding:5px;border-bottom:1px soli
         <dt>Pending batches</dt><dd id="vocab-drive-pending-batches"></dd>
       </dl>
       <p id="vocab-drive-error" class="field-error" role="status" aria-live="polite"></p>
-      <p id="vocab-drive-notices" class="vocab-drive-notices" role="status" aria-live="polite"></p>
-      <button type="button" class="btn btn-sm" id="vocab-drive-clear-notices" hidden></button>
+      <div class="vocab-drive-notice-row" hidden>
+        <p id="vocab-drive-notices" class="vocab-drive-notices" role="status" aria-live="polite"></p>
+        <button type="button" class="btn btn-sm ghost vocab-drive-notice-dismiss" id="vocab-drive-clear-notices"></button>
+      </div>
       <div class="vocab-drive-actions" id="vocab-drive-actions" hidden>
         <button id="vocab-drive-connect" hidden></button>
         <button id="vocab-drive-sync" hidden></button>
@@ -577,7 +579,7 @@ delete document.documentElement.dataset.theme;
       notices:2, noticeTerms:["blossom", "ephemeral"]
     });
     const noticeText = $id("vocab-drive-notices").textContent;
-    const clearShown = $id("vocab-drive-clear-notices").hidden === false;
+    const clearShown = $id("vocab-drive-clear-notices").closest(".vocab-drive-notice-row").hidden === false;
     _pbpVocabDriveRender({ ...driveStatus, retryAt:null, lastError:null, notices:0, noticeTerms:[] });
     check("a conflict notice names the words and offers a way to dismiss",
       noticeText.includes("vocabDriveNotices") &&
@@ -585,7 +587,7 @@ delete document.documentElement.dataset.theme;
       noticeText.includes("blossom") && noticeText.includes("ephemeral") &&
       clearShown &&
       $id("vocab-drive-notices").textContent === "" &&
-      $id("vocab-drive-clear-notices").hidden === true);
+      $id("vocab-drive-clear-notices").closest(".vocab-drive-notice-row").hidden === true);
 
     _pbpVocabDriveShowError("pinboard_auth", null, false, false);
     const pinboardText = $id("vocab-drive-error").textContent;

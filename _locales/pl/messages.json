@@ -1247,6 +1247,9 @@
   "showHideKey": {
     "message": "Pokaż/ukryj klucz"
   },
+  "contextHelpTitle": {
+    "message": "Więcej informacji"
+  },
   "hintOpenAIBaseUrl": {
     "message": "Zmień dla proxy lub kompatybilnego endpointu"
   },
@@ -3068,7 +3071,7 @@
       }
     },
     "vocabDriveNoticesClear": {
-      "message": "Odrzuć powiadomienia"
+      "message": "Zamknij powiadomienie o konflikcie"
     },
     "vocabDriveBlockedNotice": {
       "message": "Synchronizacja słówek z Dyskiem Google została zatrzymana i nie ponowi próby samoczynnie. Otwórz ustawienia, aby poznać przyczynę."

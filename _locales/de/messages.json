@@ -1247,6 +1247,9 @@
   "showHideKey": {
     "message": "Key anzeigen/verbergen"
   },
+  "contextHelpTitle": {
+    "message": "Weitere Informationen"
+  },
   "hintOpenAIBaseUrl": {
     "message": "Ändern für Proxy oder kompatiblen Endpunkt"
   },
@@ -3068,7 +3071,7 @@
       }
     },
     "vocabDriveNoticesClear": {
-      "message": "Hinweise verwerfen"
+      "message": "Konflikthinweis schließen"
     },
     "vocabDriveBlockedNotice": {
       "message": "Die Google-Drive-Vokabelsynchronisierung wurde angehalten und versucht es nicht von selbst erneut. Öffne die Einstellungen, um den Grund zu sehen."

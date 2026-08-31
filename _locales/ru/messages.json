@@ -1247,6 +1247,9 @@
   "showHideKey": {
     "message": "Показать/скрыть ключ"
   },
+  "contextHelpTitle": {
+    "message": "Подробнее"
+  },
   "hintOpenAIBaseUrl": {
     "message": "Измените для прокси или совместимого эндпоинта"
   },
@@ -3068,7 +3071,7 @@
       }
     },
     "vocabDriveNoticesClear": {
-      "message": "Скрыть уведомления"
+      "message": "Закрыть уведомление о конфликте"
     },
     "vocabDriveBlockedNotice": {
       "message": "Синхронизация слов с Google Диском остановлена и не возобновится сама. Откройте настройки, чтобы узнать причину."
