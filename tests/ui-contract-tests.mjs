@@ -572,15 +572,13 @@ check(sharedJs.includes('const state = ok ? "ok" : "bad"') &&
     "connectionOverviewHint", "optSyncHint", "syncApiKeysHint", "backupPlaintextDisclosure",
     "backupIncludeHighlightsHint",
     "backupIncludeVocabularyHint", "optPopupWidthHelp", "tagSyncHint",
-    "tagPresetsHint", "batchTagsHint", "batchAiHint", "batchRevokeHint", "hintOpenAIBaseUrl",
+    "tagPresetsHint", "batchTagsHint", "batchAiHint", "hintOpenAIBaseUrl",
     "hintOllamaModel", "hintCustomBaseUrl", "hintCustomKey",
     "freeTierTitle", "freeTierResourcesPrefix", "openrouterTagline", "jinaFreeTierHint",
     "aiContentSourceLocalHint", "aiContentSourceJinaHint", "optAiUseTranscriptHint",
     "aiCacheHint", "promptsHint", "tagPromptHint", "summaryPromptHint",
     "translateGlossaryHint", "skimEnableHint", "optVideoLangPrefHint", "optVideoUseLoginHint",
-    "dictEchoHint", "vocabDriveScope", "vocabDriveDisclosure",
-    "dictEudicSupportedHint", "ecdictHint", "ecdictFormatNote", "dictPackHint",
-    "dictPackImportHint", "mdExportImagePolicyHint", "optWaybackHint", "optWaybackBatchHint",
+    "dictEchoHint", "dictEudicSupportedHint", "mdExportImagePolicyHint", "optWaybackHint", "optWaybackBatchHint",
     "optWaybackS3Hint", "archiveLogNote",
     "optThemeHint", "popupFollowHint", "customCSSOverlayHelp", "saveAsThemeHint",
     "storageIntro", "diagnosticsHint",
@@ -639,8 +637,16 @@ check(sharedJs.includes('const state = ok ? "ok" : "bad"') &&
   check(/id="batch-legacy-permission"[^>]*hidden/.test(optionsHtml) &&
     /batchLegacy = \$id\("batch-legacy-permission"\)[\s\S]{0,300}batchLegacy\.hidden = !has/.test(optionsJs),
     "options: the legacy all-sites maintenance block still occupies space when no broad grant exists");
-  check(/class="fg context-help-host wayback-log-host"[\s\S]{0,120}class="wayback-log-heading"[\s\S]{0,240}data-i18n="archiveLogTitle"[\s\S]{0,240}id="wayback-log-clear"[\s\S]{0,120}<\/div>/.test(optionsHtml) &&
-    /\.wayback-log-host \.wayback-log-heading \{ padding-right: calc\(24px \+ var\(--opt-sp-2\)\); \}/.test(optionsCss),
+  const waybackHost = optionsHtml.indexOf('class="fg wayback-log-host"');
+  const waybackHeading = optionsHtml.indexOf('class="wayback-log-heading"', waybackHost);
+  const waybackHelp = optionsHtml.indexOf('class="context-help-host wayback-log-help"', waybackHeading);
+  const waybackTitle = optionsHtml.indexOf('data-i18n="archiveLogTitle"', waybackHelp);
+  const waybackNote = optionsHtml.indexOf('data-i18n="archiveLogNote"', waybackTitle);
+  const waybackClear = optionsHtml.indexOf('id="wayback-log-clear"', waybackNote);
+  const waybackLog = optionsHtml.indexOf('id="wayback-log"', waybackClear);
+  check(waybackHost >= 0 && waybackHeading > waybackHost && waybackHelp > waybackHeading &&
+    waybackTitle > waybackHelp && waybackNote > waybackTitle && waybackClear > waybackNote &&
+    waybackLog > waybackClear && /\.wayback-log-help \{ flex: 1; min-width: 0; \}/.test(optionsCss),
     "options.html: Wayback Clear still burns a standalone action row");
 }
 

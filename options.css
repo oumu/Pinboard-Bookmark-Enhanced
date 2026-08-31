@@ -313,41 +313,60 @@ h1 { font-size: 18px; color: var(--opt-fg); margin-bottom: var(--opt-sp-7); bord
 .fg label.bl { display: block; font-weight: bold; margin-bottom: var(--opt-sp-2); cursor: default; font-size: 12px; color: var(--opt-fg-soft); }
 /* Contextual help is native <details>, so its body inherits the exact same
    height/content-visibility transition, duration and easing as every other
-   disclosure below. The compact summary is absolutely parked beside the
-   field label and therefore contributes no row while closed. */
-.context-help-host { position: relative; }
+   disclosure below. Hosts form one wrapping row: the summary follows the
+   text it explains, while ::details-content owns a full-width second row.
+   This keeps visual ownership and DOM ownership identical without measuring
+   localized labels in JavaScript. */
+.context-help-host {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  column-gap: var(--opt-sp-1);
+}
 .context-help-host > label,
 .context-help-host > .bl,
-.context-help-section > .section-title { padding-right: calc(24px + var(--opt-sp-2)); }
+.context-help-section > .section-title {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: calc(100% - 24px - var(--opt-sp-1));
+}
+.context-help-host > .context-help { display: contents; }
+.context-help-host > .context-help::details-content {
+  flex: 0 0 100%;
+  min-width: 0;
+  width: 100%;
+}
+.context-help-host > .context-help ~ * { flex: 1 0 100%; min-width: 0; }
 .context-help { margin: 0; }
 .context-help > summary.context-help-toggle {
-  position: absolute;
-  top: calc(-1 * var(--opt-sp-1));
-  right: 0;
+  position: static;
+  flex: none;
+  margin-top: calc(-1 * var(--opt-sp-1));
   min-width: 24px;
   width: 24px;
   min-height: 24px;
   height: 24px;
   padding: 0;
   color: var(--opt-fg-hint);
+  opacity: 0.72;
   list-style: none;
 }
 .context-help > summary.context-help-toggle::-webkit-details-marker { display: none; }
 .context-help > summary.context-help-toggle:hover,
-.context-help[open] > summary.context-help-toggle { color: var(--opt-fg-muted); }
+.context-help[open] > summary.context-help-toggle { color: var(--opt-fg-muted); opacity: 1; }
 .context-help-toggle .btn-ic { margin: 0; }
+.context-help-toggle .btn-ic svg { width: 13px; height: 13px; }
 .context-help-body {
   max-width: 76ch;
   margin: var(--opt-sp-2) 0 0;
-  padding-right: calc(24px + var(--opt-sp-2));
 }
 .context-help-body + .context-help-body { margin-top: var(--opt-sp-1); }
-.context-help-link { margin-right: calc(24px + var(--opt-sp-2)); }
+.context-help-link { margin-right: 0; }
 .context-help-inline { flex: 1; min-width: 0; }
-.context-help-inline > summary.context-help-toggle { position: static; }
 .context-help-inline .context-help-body { padding-right: 0; }
 .wayback-log-heading { display: flex; align-items: center; justify-content: space-between; gap: var(--opt-sp-3); }
-.wayback-log-host .wayback-log-heading { padding-right: calc(24px + var(--opt-sp-2)); }
+.wayback-log-help { flex: 1; min-width: 0; }
 .wayback-log-heading .bl { margin-bottom: 0; }
 /* Base field recipe (width/padding/border/radius/background-color/font-size/
    font-family/appearance/box-shadow/transition), hover border-color, focus/
@@ -622,6 +641,7 @@ input[type="checkbox"], input[type="radio"] {
   gap: var(--opt-sp-3);
   margin: var(--opt-sp-4) 0 var(--opt-sp-5);
 }
+.connection-health:empty { display: none; }
 .connection-health-row {
   min-height: 42px;
   display: flex;
@@ -669,6 +689,10 @@ input[type="checkbox"], input[type="radio"] {
 .backup-actions .save-status,
 .backup-export-note { margin-left: 0; }
 .backup-export-note { display: block; min-height: 18px; margin-top: var(--opt-sp-2); }
+.backup-export-note:empty,
+#ecdict-pack-status:empty,
+#dict-pack-status:empty,
+.wayback-perm-status:empty { display: none; }
 .backup-import-preview,
 .backup-import-result {
   min-width: 0;

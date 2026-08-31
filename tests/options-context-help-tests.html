@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Options Context Help Tests</title>
+<style>
+.case.pass{color:#0a0}.case.fail{color:#c00;font-weight:bold}
+#fixture{position:absolute;left:-10000px;top:0;width:1500px;height:9000px;border:0}
+</style>
+</head><body>
+<div id="results"></div>
+<iframe id="fixture" title="Options layout fixture"></iframe>
+<script>
+const results = document.getElementById("results");
+function report(name, error) {
+  const row = document.createElement("div");
+  row.className = "case " + (error ? "fail" : "pass");
+  row.textContent = (error ? "X " : "OK ") + name + (error ? " :: " + error.message : "");
+  results.appendChild(row);
+}
+function assert(condition, message) { if (!condition) throw new Error(message); }
+function test(name, fn) {
+  try { fn(); report(name); } catch (error) { report(name, error); }
+}
+
+(async () => {
+  const source = await fetch("../options.html").then((response) => response.text());
+  const inert = source
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
+    .replace("<head>", "<head><base href=\"../\"><style>.panel{display:block!important}</style>");
+  const frame = document.getElementById("fixture");
+  const loaded = new Promise((resolve) => frame.addEventListener("load", resolve, { once: true }));
+  frame.srcdoc = inert;
+  await loaded;
+  const doc = frame.contentDocument;
+  doc.querySelectorAll(".context-help-toggle .btn-ic").forEach((slot) => {
+    slot.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"></svg>';
+  });
+
+  test("context help has one adjacent text anchor", () => {
+    const disclosures = [...doc.querySelectorAll("details.context-help:not(.context-help-inline)")];
+    assert(disclosures.length >= 25, "too few contextual disclosures: " + disclosures.length);
+    disclosures.forEach((details) => {
+      const host = details.parentElement;
+      const anchor = details.previousElementSibling;
+      const key = details.querySelector(".context-help-body")?.dataset.i18n || "unknown";
+      assert(host?.classList.contains("context-help-host"), key + " left its contextual-help host");
+      assert(anchor?.matches("label,.section-title,.bl,.context-help-anchor"), key + " has no adjacent text anchor");
+      assert(anchor.textContent.trim(), key + " anchor is empty");
+    });
+  });
+
+  test("closed help toggles follow their anchor instead of the right edge", () => {
+    const disclosures = [...doc.querySelectorAll(".context-help-host > details.context-help")]
+      .filter((details) => details.parentElement.getBoundingClientRect().width > 0);
+    assert(disclosures.length >= 25, "too few visible disclosures: " + disclosures.length);
+    disclosures.forEach((details) => {
+      const anchor = details?.previousElementSibling;
+      const toggle = details?.querySelector(":scope > summary.context-help-toggle");
+      if (!anchor || !toggle) return;
+      details.open = false;
+      const a = anchor.getBoundingClientRect();
+      const t = toggle.getBoundingClientRect();
+      const key = details.querySelector(".context-help-body")?.dataset.i18n || "unknown";
+      assert(t.left >= a.right && t.left - a.right <= 4, key + " gap=" + (t.left - a.right));
+      assert(t.top < a.bottom && t.bottom > a.top, key + " is not aligned with its anchor");
+      assert(t.width >= 24 && t.height >= 24, key + " lost the 24px hit target");
+      const icon = toggle.querySelector("svg")?.getBoundingClientRect();
+      assert(icon && icon.width <= 14 && icon.height <= 14, key + " icon is too prominent");
+    });
+  });
+
+  test("batch AI help opens below an explicit group title", () => {
+    const body = doc.querySelector('[data-i18n="batchAiHint"]');
+    const details = body?.closest("details.context-help");
+    const host = details?.parentElement;
+    const anchor = details?.previousElementSibling;
+    assert(host?.classList.contains("context-help-host"), "batch AI has no contextual-help host");
+    assert(anchor?.dataset.i18n === "tabGroupAI", "batch AI is not owned by the AI group title");
+    const closedToggle = details.querySelector("summary").getBoundingClientRect();
+    details.open = true;
+    const openToggle = details.querySelector("summary").getBoundingClientRect();
+    const h = host.getBoundingClientRect();
+    const b = body.getBoundingClientRect();
+    assert(Math.abs(openToggle.left - closedToggle.left) <= 1, "toggle moved when help opened");
+    assert(b.top >= anchor.getBoundingClientRect().bottom, "answer opened above its group title");
+    assert(Math.abs(b.left - h.left) <= 1 && b.width > 0, "answer does not open below the group row");
+  });
+
+  test("existing feature disclosures do not nest another unanchored disclosure", () => {
+    const nested = doc.querySelectorAll("details.vocab-disclosure > .vocab-details-body.context-help-host > details.context-help");
+    assert(nested.length === 0, "nested contextual disclosures=" + nested.length);
+    ["vocabDriveScope", "vocabDriveDisclosure", "ecdictHint", "ecdictFormatNote", "dictPackHint", "dictPackImportHint"].forEach((key) => {
+      const copy = doc.querySelector(`[data-i18n="${key}"]`);
+      assert(copy?.closest("details.vocab-disclosure"), key + " left its feature disclosure");
+    });
+    const legacy = doc.querySelector('[data-i18n="batchRevokeHint"]');
+    assert(legacy && !legacy.closest("details.context-help"), "conditional legacy guidance is hidden twice");
+  });
+
+  test("empty backup status does not reserve a blank row", () => {
+    const note = doc.getElementById("backup-export-note");
+    const actions = doc.querySelector(".backup-actions");
+    const divider = doc.getElementById("backup-import-result")?.nextElementSibling;
+    assert(note && actions && divider?.classList.contains("divider"), "backup layout fixture incomplete");
+    assert(note.getBoundingClientRect().height === 0, "empty status height=" + note.getBoundingClientRect().height);
+    const gap = divider.getBoundingClientRect().top - actions.getBoundingClientRect().bottom;
+    assert(gap >= 12 && gap <= 20, "actions-to-divider gap=" + gap);
+  });
+
+  test("other empty standalone status blocks collapse until populated", () => {
+    ["connection-health", "ecdict-pack-status", "dict-pack-status", "wayback-perm-status"].forEach((id) => {
+      const node = doc.getElementById(id);
+      assert(node, "missing #" + id);
+      assert(getComputedStyle(node).display === "none", "#" + id + " display=" + getComputedStyle(node).display);
+      assert(node.getBoundingClientRect().height === 0, "#" + id + " height=" + node.getBoundingClientRect().height);
+    });
+  });
+})().catch((error) => {
+  for (let i = results.children.length; i < 6; i++) report("fixture setup", error);
+});
+</script>
+</body></html>

@@ -353,7 +353,8 @@
             <input type="text" id="opt-batch-tag" value="batch_saved" />
           </div>
           <div class="fg"><label><input type="checkbox" id="batch-skip-existing" /> <span data-i18n="batchSkipExisting">Skip already bookmarked URLs</span></label></div>
-          <div class="fg fg-stack context-help-host" role="group">
+          <div class="fg fg-stack context-help-host" role="group" aria-labelledby="batch-ai-title">
+            <div class="bl context-help-anchor" id="batch-ai-title" data-i18n="tabGroupAI">AI</div>
             <details class="context-help">
               <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
               <p class="hint context-help-body" data-i18n="batchAiHint">AI runs one call per tab and may be slow. On first use, Batch asks only for the listed tab sites and current AI provider.</p>
@@ -361,15 +362,12 @@
             <div><label><input type="checkbox" id="batch-ai-tags" /> <span data-i18n="batchAiTags">Auto-generate AI tags for each tab</span></label></div>
             <div><label><input type="checkbox" id="batch-ai-summary" /> <span data-i18n="batchAiSummary">Auto-generate AI summary for each tab</span></label></div>
           </div>
-          <div class="fg context-help-host" id="batch-legacy-permission" style="margin-top:10px" hidden>
+          <div class="fg" id="batch-legacy-permission" style="margin-top:10px" hidden>
             <div style="display:flex;gap:8px;align-items:center;">
               <span data-i18n="batchPermLabel">Legacy all-sites permission:</span>
               <span id="batch-perm-status" class="hint" role="status" aria-live="polite"></span>
             </div>
-            <details class="context-help">
-              <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
-              <p class="hint context-help-body" data-i18n="batchRevokeHint">Older versions could grant access to every site. New Batch runs request only the listed sites; this button removes the legacy broad grant.</p>
-            </details>
+            <p class="hint" data-i18n="batchRevokeHint">Older versions could grant access to every site. New Batch runs request only the listed sites; this button removes the legacy broad grant.</p>
             <button class="btn btn-sm" id="batch-revoke-perm" style="margin-top:6px;" data-i18n="batchRevokeBtn">Revoke legacy all-sites access</button>
           </div>
         </div>
@@ -801,12 +799,9 @@
 
       <details class="vocab-disclosure" data-acc-key="vocab-google-drive" open>
         <summary data-i18n="vocabDriveSection">Google Drive vocabulary sync</summary>
-        <div class="vocab-details-body context-help-host" id="vocab-drive-body">
-          <details class="context-help">
-            <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
-            <p class="hint context-help-body vocab-drive-copy" data-i18n="vocabDriveScope">Syncs vocabulary for the current Pinboard account only. Settings and API keys are not synced.</p>
-            <p class="hint context-help-body vocab-drive-copy" id="vocab-drive-disclosure" data-i18n="vocabDriveDisclosure">The extension stores a plaintext copy in its private appDataFolder on your Google Drive. The copy is not end-to-end encrypted and may include words, definitions, notes, source URLs, article titles, and context excerpts.</p>
-          </details>
+        <div class="vocab-details-body" id="vocab-drive-body">
+          <p class="hint vocab-drive-copy" data-i18n="vocabDriveScope">Syncs vocabulary for the current Pinboard account only. Settings and API keys are not synced.</p>
+          <p class="hint vocab-drive-copy" id="vocab-drive-disclosure" data-i18n="vocabDriveDisclosure">The extension stores a plaintext copy in its private appDataFolder on your Google Drive. The copy is not end-to-end encrypted and may include words, definitions, notes, source URLs, article titles, and context excerpts.</p>
           <p id="vocab-drive-state" class="save-status vocab-drive-state" role="status" aria-live="polite" data-i18n="vocabDriveUnavailable">Google Drive vocabulary sync is not available in this build because OAuth activation is still pending.</p>
           <dl id="vocab-drive-fields" class="vocab-drive-fields" hidden>
             <dt data-i18n="vocabDriveAccountLabel">Google account</dt><dd id="vocab-drive-account"></dd>
@@ -851,12 +846,9 @@
 
       <details class="vocab-disclosure" data-acc-key="vocab-ecdict-pack">
         <summary data-i18n="ecdictSection">Offline English–Chinese dictionary</summary>
-        <div class="vocab-details-body context-help-host">
-          <details class="context-help">
-            <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
-            <p class="hint context-help-body" data-i18n="ecdictHint">Adds Chinese definitions above the English entry when you look up an English word. The English entry still loads as usual.</p>
-            <p class="hint context-help-body" data-i18n="ecdictFormatNote">Expects a CSV file whose first line is the column header and includes word, translation, tag, collins, oxford, frq and bnc. Prebuilt dictionary packages such as mdx, eudic, stardict, mobi and sqlite are different formats and cannot be imported. This project does not provide, recommend or verify a source for the data, and is not affiliated with it. You supply the file and are responsible for its licence.</p>
-          </details>
+        <div class="vocab-details-body">
+          <p class="hint" data-i18n="ecdictHint">Adds Chinese definitions above the English entry when you look up an English word. The English entry still loads as usual.</p>
+          <p class="hint" data-i18n="ecdictFormatNote">Expects a CSV file whose first line is the column header and includes word, translation, tag, collins, oxford, frq and bnc. Prebuilt dictionary packages such as mdx, eudic, stardict, mobi and sqlite are different formats and cannot be imported. This project does not provide, recommend or verify a source for the data, and is not affiliated with it. You supply the file and are responsible for its licence.</p>
           <p class="save-status" id="ecdict-pack-status" role="status" aria-live="polite"></p>
           <div class="vocab-toolbar">
             <button type="button" class="btn btn-sm" id="ecdict-pack-import" data-i18n="ecdictImportFile">Import file</button>
@@ -869,12 +861,9 @@
 
       <details class="vocab-disclosure" data-acc-key="vocab-dictionary-pack">
         <summary data-i18n="dictPackSection">Offline Chinese–English dictionary</summary>
-        <div class="vocab-details-body context-help-host">
-          <details class="context-help">
-            <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
-            <p class="hint context-help-body" data-i18n="dictPackHint">CC-CEDICT looks up Simplified or Traditional Chinese terms and returns English definitions.</p>
-            <p class="hint context-help-body" data-i18n="dictPackImportHint">Import a CC-CEDICT .txt, .txt.gz, or .zip file.</p>
-          </details>
+        <div class="vocab-details-body">
+          <p class="hint" data-i18n="dictPackHint">CC-CEDICT looks up Simplified or Traditional Chinese terms and returns English definitions.</p>
+          <p class="hint" data-i18n="dictPackImportHint">Import a CC-CEDICT .txt, .txt.gz, or .zip file.</p>
           <p class="save-status" id="dict-pack-status" role="status" aria-live="polite"></p>
           <div class="vocab-toolbar">
             <button type="button" class="btn btn-sm" id="dict-pack-open"><svg class="ext-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg><span data-i18n="dictPackOpen">Open download page</span></button>
@@ -988,15 +977,17 @@
       <p class="hint"><a href="https://archive.org/account/s3.php" target="_blank" rel="noopener" data-i18n="getKey">Get key</a></p>
       <span id="wayback-perm-status" class="wayback-perm-status"></span>
       <div class="divider"></div>
-      <div class="fg context-help-host wayback-log-host">
+      <div class="fg wayback-log-host">
         <div class="wayback-log-heading">
-          <div class="bl" data-i18n="archiveLogTitle">Recent archive requests</div>
+          <div class="context-help-host wayback-log-help">
+            <div class="bl" data-i18n="archiveLogTitle">Recent archive requests</div>
+            <details class="context-help">
+              <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
+              <p class="hint context-help-body" data-i18n="archiveLogNote">A successful submission does not mean the snapshot is instantly visible; the Wayback Machine usually takes a few minutes (sometimes longer) to index new captures.</p>
+            </details>
+          </div>
           <button type="button" class="btn btn-sm ghost" id="wayback-log-clear" style="display:none;" data-i18n="archiveLogClear">Clear</button>
         </div>
-        <details class="context-help">
-          <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
-          <p class="hint context-help-body" data-i18n="archiveLogNote">A successful submission does not mean the snapshot is instantly visible; the Wayback Machine usually takes a few minutes (sometimes longer) to index new captures.</p>
-        </details>
         <div id="wayback-log"></div>
       </div>
     </div>
