@@ -269,6 +269,23 @@ inline 元素的默认基线对齐在「图标 + 文字」场景下几乎总是�
 - UI 里禁止字面 emoji / dingbat 字符（⚠ ✓ ✗ ↻ ▸ ▾ ℹ …），一律走 `PBP_ICONS` 内联 SVG。
   `U+FE0E` 与 `font-variant-emoji: text` 在 Chrome 实测无效，不要依赖。
 
+### 2.5 options 上下文帮助（`.context-help-*`）
+
+上下文帮助借用 `.btn.btn-sm.ghost` 的颜色、焦点与 Lucide 图标，但布局属于 options 页面层，
+不进入 composer，也不随主题写几何覆盖。每个宿主必须且只能声明一个
+`data-help-role="section|field|choice|group|action"`；角色决定文字度量与光学校准，主题只提供颜色。
+每次 i18n 应用后，options 再按锚点**实际渲染文案**标记
+`data-help-script="cjk|alphabetic"`；不得用页面 `lang` 推断，因为中文界面仍包含 `API Key` 等纯拉丁标签。
+
+- 第一行固定为「语义锚点 + 24×24px 命中区」，13px help SVG 只移动可见墨迹，不移动 summary 的
+  命中盒或焦点盒；说明正文由同一个 `<details>` 在第二行全宽展开。
+- 校准最多按「角色 × 实际文案文字系统族」声明一次；禁止 ID、文案、单项 class、主题选择器或内联 transform。
+  同一角色出现不同偏差时先修 DOM/布局异常，不新增例外。
+- `<details>` 继续复用全局 disclosure 的 `::details-content` 动画与 one-open-per-panel 行为，组件层
+  不另写 transition。
+- 门：`options-context-help-tests.html` 扫完整角色注册表、相邻锚点、24px 命中区、展开归属与间距；
+  `options-help-render-audit.mjs` 用真实截图像素覆盖 zh-CN/en、DPR 1/1.25/1.5/2 和五种角色。
+
 ---
 
 ## 3. 状态反馈（hover / active / focus-visible / disabled）
@@ -372,8 +389,8 @@ quiet 档在 popup 目前只有 `.del-btn` 一个消费者。
 
 | 属性 | token | 派生要求 |
 |---|---|---|
-| quiet 前景 | **`--{ns}-danger-quiet-fg`** | `fgToAAMulti(danger, [bg, panel, btn-bg])` ≥4.5:1。**三个背景**：quiet 档会出现在页面底（详情面板 ghost）、面板底（卡片内）、按钮底（工具条 `.btn`） |
-| quiet hover 底 | `color-mix(danger ≤10%, <已审计背景>)` | 混入比例 ≤10%，使被审计的 `danger-quiet-fg × 背景` 配对仍具代表性（`contrast-audit` 解析不了 `color-mix`） |
+| quiet 前景 | **`--{ns}-danger-quiet-fg`** | `fgToAAMulti(danger, [bg, panel, btn-bg, mix(danger 8%, bg), mix(danger 8%, btn-bg)])` ≥4.5:1。前三项覆盖静止态页面底/面板底/按钮底，后两项覆盖 ghost 与常规按钮的最终 hover 填色 |
+| quiet hover 底 | `color-mix(danger 8%, <bg / btn-bg>)` | 两种最终填色都纳入 `danger-quiet-fg` 派生；render audit 等状态过渡结束后再测实际 `color-mix` 结果 |
 | solid 底 | `--{ns}-danger` | 既有 |
 | solid 前景 | **`--{ns}-on-danger`** | `pairToAA(danger)` ≥4.5:1。现状 `.confirm-yes` 用 `--lib-panel` / `--opt-panel` 当前景，这是**未经审计的借用**，本 token 就是来取代它的 |
 

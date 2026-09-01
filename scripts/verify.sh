@@ -59,6 +59,9 @@ node "tests/ui-contract-tests.mjs"
 echo "[render-audit] checking hand-written render oracle (contrast + geometry + media preferences)"
 node "scripts/ui-render-audit.mjs"
 
+echo "[options-help-render] checking semantic roles and raster alignment"
+node "scripts/options-help-render-audit.mjs"
+
 echo "[docs-lint] checking README x9 mirror + prose contracts"
 node "scripts/docs-lint.mjs"
 

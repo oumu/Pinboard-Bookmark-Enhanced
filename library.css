@@ -2393,7 +2393,7 @@ html[data-theme="modern-card"] {
   --lib-btn-border: #eaeaec;
   --lib-focus-bd: #3b86e9;
   --lib-btn-fg: #1a1a2e;
-  --lib-danger-quiet-fg: #c72c22;
+  --lib-danger-quiet-fg: #b6281f;
   --lib-on-danger: #ffffff;
   --lib-chip-bg: #e8f0fe;
   --lib-chip-fg: #175ec0;
@@ -2427,7 +2427,7 @@ html[data-theme="nord-night"] {
   --lib-btn-border: #3f4656;
   --lib-focus-bd: #75a0b0;
   --lib-btn-fg: #d8dee9;
-  --lib-danger-quiet-fg: #ddaaaf;
+  --lib-danger-quiet-fg: #e3b9bc;
   --lib-on-danger: #293547;
   --lib-chip-bg: #434f5f;
   --lib-chip-fg: #b3c9a0;
@@ -2497,7 +2497,7 @@ html[data-theme="paper-ink"] {
   --lib-radius-lg: 4px;
   --lib-btn-border: #eee9e1;
   --lib-btn-fg: #2c2c2c;
-  --lib-danger-quiet-fg: #c0392b;
+  --lib-danger-quiet-fg: #af3427;
   --lib-on-danger: #faf8f5;
   --lib-chip-bg: #dfdeda;
   --lib-chip-fg: #8b4513;
@@ -2531,7 +2531,7 @@ html[data-theme="dracula"] {
   --lib-btn-border: #2e2f38;
   --lib-focus-bd: #6ba0b4;
   --lib-btn-fg: #f8f8f2;
-  --lib-danger-quiet-fg: #ff6969;
+  --lib-danger-quiet-fg: #ff7474;
   --lib-on-danger: #282a36;
   --lib-chip-bg: #2c3641;
   --lib-chip-fg: #50fa7b;
@@ -2599,7 +2599,7 @@ html[data-theme="flexoki-dark"] {
   --lib-btn-border: #2d2c2b;
   --lib-focus-bd: #4079a9;
   --lib-btn-fg: #cecdc3;
-  --lib-danger-quiet-fg: #dd7b73;
+  --lib-danger-quiet-fg: #df837b;
   --lib-on-danger: #1c1b1a;
   --lib-chip-bg: #2b3035;
   --lib-chip-fg: #d0a215;
@@ -2633,7 +2633,7 @@ html[data-theme="solarized-light"] {
   --lib-btn-border: #e6e2d0;
   --lib-focus-bd: #2485c9;
   --lib-btn-fg: #506469;
-  --lib-danger-quiet-fg: #c22421;
+  --lib-danger-quiet-fg: #b0211e;
   --lib-on-danger: #fdf6e3;
   --lib-chip-bg: #dadfd5;
   --lib-chip-fg: #1b6863;
@@ -2668,7 +2668,7 @@ html[data-theme="solarized-dark"] {
   --lib-radius-lg: 4px;
   --lib-btn-border: #0d3b46;
   --lib-btn-fg: #94a3a4;
-  --lib-danger-quiet-fg: #e9807d;
+  --lib-danger-quiet-fg: #eb8886;
   --lib-on-danger: #302403;
   --lib-chip-bg: #0a3f50;
   --lib-chip-fg: #30b9af;
@@ -2702,7 +2702,7 @@ html[data-theme="catppuccin-latte"] {
   --lib-btn-border: #dfe2e9;
   --lib-focus-bd: #3f7bf3;
   --lib-btn-fg: #4c4f69;
-  --lib-danger-quiet-fg: #c80e36;
+  --lib-danger-quiet-fg: #b50d31;
   --lib-on-danger: #eff1f5;
   --lib-chip-bg: #dce0e8;
   --lib-chip-fg: #10686d;
@@ -2736,7 +2736,7 @@ html[data-theme="catppuccin-mocha"] {
   --lib-btn-border: #353648;
   --lib-focus-bd: #6582b5;
   --lib-btn-fg: #cdd6f4;
-  --lib-danger-quiet-fg: #f38ba8;
+  --lib-danger-quiet-fg: #f494af;
   --lib-on-danger: #1e1e2e;
   --lib-chip-bg: #45475a;
   --lib-chip-fg: #94e2d5;
@@ -2770,7 +2770,7 @@ html[data-theme="gruvbox-dark"] {
   --lib-btn-border: #403c39;
   --lib-focus-bd: #718c81;
   --lib-btn-fg: #ebdbb2;
-  --lib-danger-quiet-fg: #fc887a;
+  --lib-danger-quiet-fg: #fc9184;
   --lib-on-danger: #282828;
   --lib-chip-bg: #434340;
   --lib-chip-fg: #b8bb26;
@@ -2838,7 +2838,7 @@ html[data-theme="github-light"] {
   --lib-btn-border: #f0f1f1;
   --lib-focus-bd: #458ce0;
   --lib-btn-fg: #1f2328;
-  --lib-danger-quiet-fg: #cf222e;
+  --lib-danger-quiet-fg: #bd1f2a;
   --lib-on-danger: #ffffff;
   --lib-chip-bg: #ddf4ff;
   --lib-chip-fg: #0550ae;

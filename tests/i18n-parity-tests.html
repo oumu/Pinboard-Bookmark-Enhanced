@@ -25,6 +25,15 @@ async function loadLocale(loc) {
   const msgs = {};
   for (const l of LOCALES) msgs[l] = await loadLocale(l);
 
+  check("Localized help anchors classify by their actual writing system",
+    typeof pbpI18nScriptFamily === "function" &&
+      pbpI18nScriptFamily("AI 缓存时长（分钟）") === "cjk" &&
+      pbpI18nScriptFamily("archive.org S3 Access Key（可选）") === "cjk" &&
+      pbpI18nScriptFamily("API Key") === "alphabetic" &&
+      pbpI18nScriptFamily("Подсказка") === "alphabetic" &&
+      pbpI18nScriptFamily("プロンプト") === "cjk",
+    "mixed CJK text and pure alphabetic text no longer choose distinct optical calibration families");
+
   check("Removed WebDAV messages stay absent in every locale",
     LOCALES.every((loc) => !Object.keys(msgs[loc]).some((key) => key.startsWith("webdav"))));
   const BACKUP_RESTORE_TITLES = {

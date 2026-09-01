@@ -33,6 +33,10 @@
 //                      ratio must be >= this floor (§2.2, WCAG 1.4.11)
 //   iconVCenter    -- |svg boundingRect center Y - host button's content-box
 //                      center Y| must be <= this many px (§2.3 `iconVCenter`)
+//   backgroundAlphaMax -- computed background alpha must be <= this ceiling.
+//                      Used when an icon-only affordance keeps a larger hit
+//                      target but must not expose that target as a painted
+//                      button shell in a low-emphasis state.
 //   padGteRadiusH  -- computed padding-inline (px) >= min(border-radius px,
 //                      height/2) -- pill law 2 (§5.1, §5.4 `padGteRadiusH`)
 //   padVMin        -- computed padding-block (px) >= this many px --
@@ -514,6 +518,12 @@ export const CHECKS = [
   // themed states go dark and this check starts failing (§1.3).
   { surface: "options", page: "options.html", selector: ".btn", state: "default",
     expect: { textContrast: 4.5 } },
+
+  // Context help is intentionally quieter than an ordinary ghost action:
+  // the 24px hit target remains, while hover is communicated by glyph
+  // color/opacity rather than exposing the whole target as a filled button.
+  { surface: "options", page: "options.html", selector: ".context-help > summary.context-help-toggle", state: "hover",
+    expect: { backgroundAlphaMax: 0 } },
 
   // ---- defect 3: .vocab-group-chip is `padding: 0 4px` on a `radius-full`
   // pill -- both pill laws violated (COMPONENTS.md §5.1, §5.4). ----

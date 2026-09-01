@@ -175,6 +175,14 @@ function uiLangToBCP47() {
   return lang.split("-")[0];
 }
 
+// Optical alignment follows the writing system that actually rendered, not
+// the page locale: a Chinese settings page still contains labels such as
+// "API Key", while mixed labels such as "AI 缓存" use CJK ink metrics.
+function pbpI18nScriptFamily(value) {
+  return /[\u3040-\u30ff\u3100-\u312f\u3400-\u4dbf\u4e00-\u9fff\uac00-\ud7af\uf900-\ufaff]/u
+    .test(String(value || "")) ? "cjk" : "alphabetic";
+}
+
 /**
  * Apply translations to all elements with data-i18n attributes.
  * Supports:
@@ -208,4 +216,5 @@ function applyI18n(root) {
     const k5 = el.getAttribute("data-i18n-label");
     if (k5) el.setAttribute("label", t(k5));
   });
+  document.dispatchEvent(new Event("pbp:i18n-applied"));
 }

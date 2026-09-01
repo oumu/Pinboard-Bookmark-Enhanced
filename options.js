@@ -1,3 +1,22 @@
+function pbpRefreshContextHelpScriptFamilies(root = document) {
+  root.querySelectorAll("[data-help-role]").forEach((host) => {
+    const details = host.querySelector(":scope > details.context-help");
+    const anchor = details?.previousElementSibling;
+    const copyNode = host.dataset.helpRole === "choice"
+      ? (anchor?.querySelector("span[data-i18n]") || anchor)
+      : host.dataset.helpRole === "action"
+        ? (anchor?.querySelector("button") || anchor)
+        : anchor;
+    if (!copyNode) return;
+    host.dataset.helpScript = pbpI18nScriptFamily(copyNode.textContent);
+  });
+}
+if (typeof document !== "undefined") {
+  document.addEventListener("pbp:i18n-applied", () => {
+    pbpRefreshContextHelpScriptFamilies(document);
+  });
+}
+
 // Local-only support metadata. Records contain only an allowlisted integration
 // id, a boolean, a categorical code and a timestamp — never endpoints,
 // credentials, account names or response text. The write tail prevents two
@@ -174,7 +193,7 @@ function pbpBuildSettingsSearchIndex(root = document) {
       let target = "";
       if (node.matches("label")) target = node.htmlFor || node.querySelector("input,select,textarea,button")?.id || "";
       else if (node.matches("button")) target = node.id;
-      else if (node.matches(".hint")) target = node.closest(".fg")?.querySelector("input,select,textarea,button")?.id || "";
+      else if (node.matches(".hint")) target = node.closest(".choice-row,.fg")?.querySelector("input,select,textarea,button")?.id || "";
       else target = node.id || panelEl.querySelector("input,select,textarea,button")?.id || "";
       add(node.textContent, target);
     }

@@ -598,6 +598,15 @@ check(sharedJs.includes('const state = ok ? "ok" : "bad"') &&
   )].length;
   check(contextHelpCount >= 25 && contextHelpSummaries === contextHelpCount,
     "options.html: contextual-help toggles are missing the shared ghost/help-icon/accessibility contract");
+  const contextHelpHosts = [...optionsHtml.matchAll(
+    /<div\s+class="[^"]*(?:context-help-host|context-help-action-row)[^"]*"[^>]*>/g
+  )].map((match) => match[0]);
+  const contextHelpRoles = new Set(["section", "field", "choice", "group", "action"]);
+  check(contextHelpHosts.length === contextHelpCount && contextHelpHosts.every((tag) => {
+    const roles = [...tag.matchAll(/data-help-role="([^"]+)"/g)].map((match) => match[1]);
+    return roles.length === 1 && contextHelpRoles.has(roles[0]);
+  }) && [...contextHelpRoles].every((role) => contextHelpHosts.some((tag) => tag.includes(`data-help-role="${role}"`))),
+  "options.html: contextual-help hosts no longer have one complete semantic-role registry");
   check(/html\.motion-ready details\.motion-toggle::details-content[\s\S]{0,240}var\(--motion-collapse\) var\(--ease-in-out\)/.test(optionsCss) &&
     !/\.context-help[^{]*\{[^}]*transition\s*:/.test(optionsCss),
     "options.css: contextual help no longer reuses the native-details accordion motion");
@@ -660,10 +669,12 @@ check(sharedJs.includes('const state = ok ? "ok" : "bad"') &&
       /overflow-wrap:\s*anywhere/.test(messageRule),
     `${file}: confirm popover can overflow a narrow content surface`);
   }
-  check(/window\.addEventListener\("resize",\s*position\)/.test(sharedJs) &&
-    /window\.removeEventListener\("resize",\s*position\)/.test(sharedJs) &&
+  check(/window\.addEventListener\("resize",\s*schedulePosition\)/.test(sharedJs) &&
+    /window\.removeEventListener\("resize",\s*schedulePosition\)/.test(sharedJs) &&
+    /new ResizeObserver\(schedulePosition\)/.test(sharedJs) &&
+    /visualViewport\?\.addEventListener\("resize",\s*schedulePosition\)/.test(sharedJs) &&
     !/window\.addEventListener\("resize",\s*dismiss\)/.test(sharedJs),
-  "shared.js: resize still dismisses the active confirm instead of repositioning it");
+  "shared.js: confirm positioning does not track viewport and content-surface resizes");
 }
 {
   const ankiTest = optionsHtml.indexOf('id="vocab-anki-test-btn"');

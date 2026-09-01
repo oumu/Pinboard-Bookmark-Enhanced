@@ -7,6 +7,7 @@
 </head><body>
 <div id="results"></div>
 <iframe id="fixture" title="Options layout fixture"></iframe>
+<script src="../i18n.js"></script>
 <script>
 const results = document.getElementById("results");
 function report(name, error) {
@@ -22,17 +23,91 @@ function test(name, fn) {
 
 (async () => {
   const source = await fetch("../options.html").then((response) => response.text());
+  const cssSource = await fetch("../options.css").then((response) => response.text());
   const inert = source
     .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
-    .replace("<head>", "<head><base href=\"../\"><style>.panel{display:block!important}</style>");
+    .replace("<head>", "<head><base href=\"../\">");
   const frame = document.getElementById("fixture");
   const loaded = new Promise((resolve) => frame.addEventListener("load", resolve, { once: true }));
   frame.srcdoc = inert;
   await loaded;
   const doc = frame.contentDocument;
+  doc.documentElement.lang = "zh-Hans";
   doc.querySelectorAll(".context-help-toggle .btn-ic").forEach((slot) => {
-    slot.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"></svg>';
+    slot.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>';
   });
+  const zhMessages = await fetch("../_locales/zh_CN/messages.json").then((response) => response.json());
+  doc.querySelectorAll("details.context-help").forEach((details) => {
+    const body = details.querySelector(".context-help-body[data-i18n]");
+    const anchor = details.previousElementSibling;
+    const anchorCopy = anchor?.matches("[data-i18n]")
+      ? anchor
+      : anchor?.querySelector("[data-i18n]");
+    const actionCopy = anchor?.matches(".save-theme-wrap")
+      ? anchor.querySelector("[data-i18n]")
+      : null;
+    [body, anchorCopy, actionCopy].filter(Boolean).forEach((node) => {
+      const message = zhMessages[node.dataset.i18n]?.message;
+      if (typeof message === "string") node.textContent = message;
+    });
+    const host = details.parentElement;
+    const copyNode = host?.dataset.helpRole === "choice"
+      ? (anchor?.querySelector("span[data-i18n]") || anchor)
+      : host?.dataset.helpRole === "action"
+        ? (anchor?.querySelector("button") || anchor)
+        : anchor;
+    if (host && copyNode) host.dataset.helpScript = pbpI18nScriptFamily(copyNode.textContent);
+  });
+
+  const layoutCases = [
+    ["optSyncHint", "field"],
+    ["storageIntro", "section"],
+    ["batchAiHint", "group"],
+    ["saveAsThemeHint", "action"],
+  ];
+
+  function reveal(details) {
+    const panel = details.closest(".panel");
+    assert(panel, "context help has no panel");
+    doc.querySelectorAll(".panel").forEach((candidate) => {
+      candidate.classList.toggle("active", candidate === panel);
+    });
+    for (let node = details.parentElement; node && node !== panel; node = node.parentElement) {
+      if (node.hidden) node.hidden = false;
+      if (node.matches("details")) node.open = true;
+      if (node.classList.contains("accordion-section")) node.classList.add("open");
+    }
+  }
+
+  function parts(key) {
+    const body = doc.querySelector(`[data-i18n="${key}"]`);
+    const details = body?.closest("details.context-help");
+    assert(details, key + " has no contextual disclosure");
+    reveal(details);
+    doc.querySelectorAll("details.context-help[open]").forEach((candidate) => {
+      if (candidate !== details) candidate.open = false;
+    });
+    details.open = false;
+    return {
+      body,
+      details,
+      host: details.parentElement,
+      anchor: details.previousElementSibling,
+      toggle: details.querySelector(":scope > summary.context-help-toggle"),
+    };
+  }
+
+  function textInkRect(anchor) {
+    if (anchor.matches(".save-theme-wrap")) {
+      return (anchor.querySelector("button") || anchor).getBoundingClientRect();
+    }
+    const textNode = anchor.matches("label")
+      ? (anchor.querySelector("span[data-i18n]") || anchor)
+      : anchor;
+    const range = doc.createRange();
+    range.selectNodeContents(textNode);
+    return range.getBoundingClientRect();
+  }
 
   test("context help has one adjacent text anchor", () => {
     const disclosures = [...doc.querySelectorAll("details.context-help:not(.context-help-inline)")];
@@ -47,36 +122,187 @@ function test(name, fn) {
     });
   });
 
-  test("closed help toggles follow their anchor instead of the right edge", () => {
-    const disclosures = [...doc.querySelectorAll(".context-help-host > details.context-help")]
-      .filter((details) => details.parentElement.getBoundingClientRect().width > 0);
-    assert(disclosures.length >= 25, "too few visible disclosures: " + disclosures.length);
+  test("every contextual help host declares one semantic typography role", () => {
+    const validRoles = new Set(["section", "field", "choice", "group", "action"]);
+    const transformByRole = new Map();
+    const disclosures = [...doc.querySelectorAll("details.context-help")];
+    const violations = [];
+    assert(disclosures.length >= 25, "too few contextual disclosures: " + disclosures.length);
     disclosures.forEach((details) => {
-      const anchor = details?.previousElementSibling;
-      const toggle = details?.querySelector(":scope > summary.context-help-toggle");
-      if (!anchor || !toggle) return;
+      const body = details.querySelector(".context-help-body");
+      const key = body?.dataset.i18n || "unknown";
+      const host = details.parentElement;
+      const anchor = details.previousElementSibling;
+      const toggle = details.querySelector(":scope > summary.context-help-toggle");
+      const role = host?.dataset.helpRole;
+      const script = host?.dataset.helpScript;
+      if (!validRoles.has(role)) violations.push(key + " role=" + (role || "missing"));
+      if (!new Set(["cjk", "alphabetic"]).has(script)) {
+        violations.push(key + " script=" + (script || "missing"));
+      }
+      const expectedRole = host?.classList.contains("context-help-action-row") ? "action"
+        : host?.classList.contains("context-help-section") ? "section"
+        : anchor?.matches("label") && anchor.querySelector('input[type="checkbox"],input[type="radio"]') ? "choice"
+        : anchor?.matches("label.bl") ? "field"
+        : anchor?.matches(".bl,.context-help-anchor") ? "group"
+        : null;
+      if (role !== expectedRole) violations.push(`${key} declared=${role || "missing"}, expected=${expectedRole || "unknown"}`);
+      assert(anchor && toggle, key + " has no measurable anchor/toggle pair");
+      reveal(details);
+      doc.querySelectorAll("details.context-help[open]").forEach((candidate) => {
+        if (candidate !== details) candidate.open = false;
+      });
       details.open = false;
-      const a = anchor.getBoundingClientRect();
+      const a = textInkRect(anchor);
       const t = toggle.getBoundingClientRect();
-      const key = details.querySelector(".context-help-body")?.dataset.i18n || "unknown";
-      assert(t.left >= a.right && t.left - a.right <= 4, key + " gap=" + (t.left - a.right));
-      assert(t.top < a.bottom && t.bottom > a.top, key + " is not aligned with its anchor");
       assert(t.width >= 24 && t.height >= 24, key + " lost the 24px hit target");
       const icon = toggle.querySelector("svg")?.getBoundingClientRect();
       assert(icon && icon.width <= 14 && icon.height <= 14, key + " icon is too prominent");
+      const visualGap = icon.left - a.right;
+      if (visualGap < 6 || visualGap > 8) violations.push(key + " visual gap=" + visualGap);
+      const iconStyle = frame.contentWindow.getComputedStyle(toggle.querySelector(".btn-ic"));
+      const transformKey = role + "/" + script;
+      const priorTransform = transformByRole.get(transformKey);
+      if (priorTransform && priorTransform !== iconStyle.transform) {
+        violations.push(`${key} role=${role} script=${script} transform=${iconStyle.transform}, expected=${priorTransform}`);
+      } else {
+        transformByRole.set(transformKey, iconStyle.transform);
+      }
+      if (toggle.style.transform || toggle.querySelector(".btn-ic").style.transform) {
+        violations.push(key + " has a per-instance inline transform");
+      }
+    });
+    const calibrationBlocks = [...cssSource.matchAll(/([^{}]+)\{([^{}]*--context-help-optical-y\s*:[^{}]+)\}/g)];
+    assert(calibrationBlocks.length >= 1, "context-help optical calibration contract missing");
+    calibrationBlocks.forEach(([, selector]) => {
+      assert(selector.includes("[data-help-role"), "non-role optical calibration selector=" + selector.trim());
+    });
+    assert(!violations.length, violations.slice(0, 12).join("; "));
+  });
+
+  test("opening help never moves its owning row", () => {
+    layoutCases.forEach(([key, type]) => {
+      const { details, anchor, toggle } = parts(key);
+      const beforeAnchor = anchor.getBoundingClientRect();
+      const beforeToggle = toggle.getBoundingClientRect();
+      details.open = true;
+      const afterAnchor = anchor.getBoundingClientRect();
+      const afterToggle = toggle.getBoundingClientRect();
+      assert(Math.abs(afterAnchor.top - beforeAnchor.top) <= 1, type + "/" + key + " anchor shifted=" + (afterAnchor.top - beforeAnchor.top));
+      assert(Math.abs(afterToggle.top - beforeToggle.top) <= 1, type + "/" + key + " toggle shifted=" + (afterToggle.top - beforeToggle.top));
     });
   });
 
+  test("expanded help opens below and from the start of its owning row", () => {
+    layoutCases.forEach(([key, type]) => {
+      const { details, host, anchor, toggle, body } = parts(key);
+      details.open = true;
+      const h = host.getBoundingClientRect();
+      const a = anchor.getBoundingClientRect();
+      const t = toggle.getBoundingClientRect();
+      const b = body.getBoundingClientRect();
+      const rowBottom = Math.max(a.bottom, t.bottom);
+      assert(b.top >= rowBottom && b.top - rowBottom <= 4, type + "/" + key + " top gap=" + (b.top - rowBottom));
+      assert(Math.abs(b.left - h.left) <= 1, type + "/" + key + " left delta=" + (b.left - h.left));
+    });
+  });
+
+  test("expanded help uses the full width of its owning settings row", () => {
+    const disclosures = [...doc.querySelectorAll("details.context-help:not(.context-help-inline)")];
+    disclosures.forEach((details) => {
+      const body = details.querySelector(":scope > .context-help-body");
+      const key = body?.dataset.i18n || "unknown";
+      reveal(details);
+      doc.querySelectorAll("details.context-help[open]").forEach((candidate) => {
+        if (candidate !== details) candidate.open = false;
+      });
+      details.open = true;
+      const hostRect = details.parentElement.getBoundingClientRect();
+      const bodyRect = body.getBoundingClientRect();
+      assert(
+        bodyRect.width >= hostRect.width - 2,
+        key + " answer width=" + bodyRect.width + ", host width=" + hostRect.width,
+      );
+    });
+  });
+
+  test("expanded field help contributes only one gap before the next setting", () => {
+    const { details, host, body } = parts("optSyncHint");
+    const next = host.nextElementSibling;
+    const nextLabel = next?.querySelector(":scope > label");
+    assert(next?.classList.contains("context-help-host") && nextLabel, "sync fixture has no following setting");
+    details.open = true;
+    const gap = textInkRect(nextLabel).top - textInkRect(body).bottom;
+    assert(gap >= 6 && gap <= 10, "sync answer-to-next visual gap=" + gap);
+  });
+
+  test("expanded field help is visually owned by its label, not its input", () => {
+    const { details, anchor, body } = parts("aiCacheHint");
+    const control = details.nextElementSibling;
+    assert(control?.matches('input[type="number"]'), "AI cache fixture lost its owned input");
+    details.open = true;
+    const anchorInk = textInkRect(anchor);
+    const bodyInk = textInkRect(body);
+    const controlRect = control.getBoundingClientRect();
+    const ownerGap = bodyInk.top - anchorInk.bottom;
+    const controlGap = controlRect.top - bodyInk.bottom;
+    assert(ownerGap >= 4 && ownerGap <= 8, "label-to-answer gap=" + ownerGap);
+    assert(controlGap >= 9 && controlGap <= 13, "answer-to-input gap=" + controlGap);
+    assert(ownerGap < controlGap, `answer is closer to input (${controlGap}) than label (${ownerGap})`);
+  });
+
+  test("coherent choice groups use the compact stack rhythm", () => {
+    const groups = [
+      ["opt-sync-enabled", "opt-sync-api-keys"],
+      ["opt-backup-include-highlights", "opt-backup-include-vocabulary", "opt-backup-include-secrets"],
+      ["notify-quick-save", "notify-read-later", "notify-tab-set", "notify-batch-save", "notify-errors"],
+      ["opt-check-bookmark-status", "opt-auto-close", "offline-queue-enabled"],
+      ["opt-show-search", "opt-show-recent", "opt-show-badge", "opt-show-suggest-tags", "opt-show-ai-summary", "opt-show-ai-tags", "opt-show-quick-links", "opt-show-quick-row"],
+      ["opt-private-default", "opt-private-incognito", "opt-readlater-default"],
+      ["opt-auto-description", "opt-blockquote", "opt-include-referrer"],
+      ["qs-auto-notes", "qs-blockquote"],
+      ["qs-ai-tags", "qs-ai-summary"],
+      ["rl-auto-notes", "rl-blockquote"],
+      ["rl-ai-tags", "rl-ai-summary"],
+      ["opt-ai-src-local", "opt-ai-src-jina", "opt-ai-use-transcript"],
+      ["opt-md-video-dark", "opt-md-video-pause-lookup", "opt-md-video-use-login"],
+      ["opt-md-frontmatter", "opt-md-extended-meta"],
+      ["opt-md-include-toc", "opt-md-include-hl"],
+      ["opt-wayback-enabled", "opt-wayback-batch", "opt-wayback-skip-private"],
+    ];
+    groups.forEach((ids) => {
+      const rows = ids.map((id) => doc.getElementById(id)?.closest(".choice-row"));
+      assert(rows.every(Boolean), ids[0] + " group has an unmarked row");
+      const stack = rows[0].closest(".choice-stack.fg-stack");
+      assert(stack && rows.every((row) => row.parentElement === stack), ids[0] + " group is not one compact stack");
+    });
+    const aiRows = ["opt-ai-src-local", "opt-ai-src-jina", "opt-ai-use-transcript"]
+      .map((id) => doc.getElementById(id).closest(".choice-row"));
+    const aiPanel = doc.getElementById("panel-ai-behavior");
+    doc.querySelectorAll(".panel").forEach((panel) => panel.classList.toggle("active", panel === aiPanel));
+    aiRows.forEach((row, index) => {
+      if (!index) return;
+      const previous = aiRows[index - 1].getBoundingClientRect();
+      const current = row.getBoundingClientRect();
+      const step = current.top - previous.top;
+      assert(step >= 26 && step <= 30, aiRows[index].querySelector("input").id + " row step=" + step);
+    });
+  });
+
+  test("support diagnostics belongs to General, not Storage", () => {
+    const diagnostics = doc.getElementById("copy-diagnostics-btn")?.closest(".support-diagnostics");
+    assert(diagnostics, "support diagnostics section missing");
+    assert(diagnostics.closest("#panel-general"), "support diagnostics did not move to General");
+    assert(!doc.querySelector("#panel-storage .support-diagnostics"), "Storage still owns support diagnostics");
+  });
+
   test("batch AI help opens below an explicit group title", () => {
-    const body = doc.querySelector('[data-i18n="batchAiHint"]');
-    const details = body?.closest("details.context-help");
-    const host = details?.parentElement;
-    const anchor = details?.previousElementSibling;
+    const { body, details, host, anchor, toggle } = parts("batchAiHint");
     assert(host?.classList.contains("context-help-host"), "batch AI has no contextual-help host");
     assert(anchor?.dataset.i18n === "tabGroupAI", "batch AI is not owned by the AI group title");
-    const closedToggle = details.querySelector("summary").getBoundingClientRect();
+    const closedToggle = toggle.getBoundingClientRect();
     details.open = true;
-    const openToggle = details.querySelector("summary").getBoundingClientRect();
+    const openToggle = toggle.getBoundingClientRect();
     const h = host.getBoundingClientRect();
     const b = body.getBoundingClientRect();
     assert(Math.abs(openToggle.left - closedToggle.left) <= 1, "toggle moved when help opened");
@@ -96,6 +322,7 @@ function test(name, fn) {
   });
 
   test("empty backup status does not reserve a blank row", () => {
+    parts("backupPlaintextDisclosure");
     const note = doc.getElementById("backup-export-note");
     const actions = doc.querySelector(".backup-actions");
     const divider = doc.getElementById("backup-import-result")?.nextElementSibling;
@@ -114,7 +341,7 @@ function test(name, fn) {
     });
   });
 })().catch((error) => {
-  for (let i = results.children.length; i < 6; i++) report("fixture setup", error);
+  for (let i = results.children.length; i < 13; i++) report("fixture setup", error);
 });
 </script>
 </body></html>

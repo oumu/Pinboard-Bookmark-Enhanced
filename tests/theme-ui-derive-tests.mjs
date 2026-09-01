@@ -41,6 +41,28 @@ check(ratio(finalized["btn-fg"], finalized["btn-bg"]) >= 4.5 &&
 check([finalized.bg, finalized.panel, finalized["btn-bg"]]
   .every((bg) => ratio(finalized["danger-quiet-fg"], bg) >= 4.5),
 "quiet danger text must clear AA on every supported host");
+
+// github-light's real ghost-danger hover fill: 8% #cf222e over 92% #f6f8fa,
+// hand-composited and rounded to the emitted sRGB byte values. The resting
+// hosts all pass with the raw danger red, while this tint drops it to 4.44:1.
+const githubLike = finalizeUiControlRoles({
+  bg: "#f6f8fa",
+  panel: "#ffffff",
+  fg: "#1f2328",
+  accent: "#0969da",
+  danger: "#cf222e",
+  border: "#d0d7de",
+  "btn-bg": "#f6f8fa",
+  "btn-hover": "#ddf4ff",
+  "input-bg": "#f6f8fa",
+}, {
+  "btn-fg": "#ffffff",
+  "tag-bg": "transparent",
+  "tag-fg": "#0550ae",
+});
+check(ratio(githubLike["danger-quiet-fg"], "#f3e7ea") >= 4.5 &&
+  ratio(githubLike["danger-quiet-fg"], "#ece0e3") >= 4.5,
+"quiet danger text must clear AA on settled 8% ghost and regular hover fills");
 check(ratio(finalized["on-danger"], finalized.danger) >= 4.5,
   "solid danger foreground must clear AA");
 check(finalized["chip-bg"] !== "transparent" &&

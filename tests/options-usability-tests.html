@@ -13,6 +13,10 @@
   <h2>Pinboard Account</h2>
   <div class="fg"><label for="secret-token">API Token</label><input id="secret-token" value="alice:TOP_SECRET" /></div>
   <p class="hint">Use Chrome Sync on this device</p>
+  <div class="fg choice-stack">
+    <div class="choice-row"><label for="sync-first">First sync choice</label><input id="sync-first" /><p class="hint">First sync explanation</p></div>
+    <div class="choice-row"><label for="sync-second">Second sync choice</label><input id="sync-second" /><p class="hint">Second sync explanation</p></div>
+  </div>
 </div>
 <div id="panel-ai" class="panel">
   <h2>AI Provider</h2>
@@ -98,6 +102,12 @@ function assert(value, message) { if (!value) throw new Error(message || "assert
     assert(index.some((entry) => entry.text.includes("API Token") && entry.targetId === "secret-token"), "label missing");
     assert(index.some((entry) => entry.text.includes("Chrome Sync")), "hint missing");
     assert(!index.some((entry) => entry.text.includes("TOP_SECRET") || entry.text.includes("private-model")), "field value leaked");
+  });
+
+  await test("grouped help search results target their owning choice", async () => {
+    const index = pbpBuildSettingsSearchIndex(document);
+    const second = index.find((entry) => entry.text.includes("Second sync explanation"));
+    assert(second?.targetId === "sync-second", "grouped hint targeted " + (second?.targetId || "nothing"));
   });
 
   await test("settings search returns panel-aware matches and caps empty queries", async () => {

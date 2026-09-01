@@ -1555,7 +1555,7 @@ html[data-theme="modern-card"] {
   --pp-offline-bd: #fddd99;
   --pp-offline-fg: #995700;
   --pp-danger: #d93025;
-  --pp-danger-quiet-fg: #c82c22;
+  --pp-danger-quiet-fg: #b6281f;
   --pp-on-danger: #ffffff;
   --pp-spinner-bg: #e8e8e8;
   --pp-spinner-fg: #1a73e8;
@@ -1608,7 +1608,7 @@ html[data-theme="nord-night"] {
   --pp-offline-bd: #7a705e;
   --pp-offline-fg: #ebcb8b;
   --pp-danger: #d08a91;
-  --pp-danger-quiet-fg: #dca7ac;
+  --pp-danger-quiet-fg: #e2b6ba;
   --pp-on-danger: #293547;
   --pp-spinner-bg: #434c5e;
   --pp-spinner-fg: #88c0d0;
@@ -1717,7 +1717,7 @@ html[data-theme="paper-ink"] {
   --pp-offline-bd: #d4bb6e;
   --pp-offline-fg: #866500;
   --pp-danger: #c0392b;
-  --pp-danger-quiet-fg: #c0392b;
+  --pp-danger-quiet-fg: #af3427;
   --pp-on-danger: #faf8f5;
   --pp-spinner-bg: #d4c5a9;
   --pp-spinner-fg: #1a3a5c;
@@ -1772,7 +1772,7 @@ html[data-theme="dracula"] {
   --pp-offline-bd: #787d58;
   --pp-offline-fg: #f1fa8c;
   --pp-danger: #ff5555;
-  --pp-danger-quiet-fg: #ff6969;
+  --pp-danger-quiet-fg: #ff7474;
   --pp-on-danger: #282a36;
   --pp-spinner-bg: #44475a;
   --pp-spinner-fg: #8be9fd;
@@ -1880,7 +1880,7 @@ html[data-theme="flexoki-dark"] {
   --pp-offline-bd: #664D01;
   --pp-offline-fg: #DFB431;
   --pp-danger: #D14D41;
-  --pp-danger-quiet-fg: #dd7b72;
+  --pp-danger-quiet-fg: #df837a;
   --pp-on-danger: #0c0c0b;
   --pp-spinner-bg: #403E3C;
   --pp-spinner-fg: #528fc3;
@@ -1934,7 +1934,7 @@ html[data-theme="solarized-light"] {
   --pp-offline-bd: #e0ca88;
   --pp-offline-fg: #846400;
   --pp-danger: #dc322f;
-  --pp-danger-quiet-fg: #c22321;
+  --pp-danger-quiet-fg: #b0201e;
   --pp-on-danger: #fefcf6;
   --pp-spinner-bg: #d6cdb5;
   --pp-spinner-fg: #2074af;
@@ -1988,7 +1988,7 @@ html[data-theme="solarized-dark"] {
   --pp-offline-bd: #7a5e05;
   --pp-offline-fg: #bd961b;
   --pp-danger: #e98077;
-  --pp-danger-quiet-fg: #e98077;
+  --pp-danger-quiet-fg: #ec9089;
   --pp-on-danger: #433205;
   --pp-spinner-bg: #094b5a;
   --pp-spinner-fg: #3b99dc;
@@ -2043,7 +2043,7 @@ html[data-theme="catppuccin-latte"] {
   --pp-offline-bd: #e9c99f;
   --pp-offline-fg: #8c5912;
   --pp-danger: #d20f39;
-  --pp-danger-quiet-fg: #c80e36;
+  --pp-danger-quiet-fg: #b50d31;
   --pp-on-danger: #eff1f5;
   --pp-spinner-bg: #ccd0da;
   --pp-spinner-fg: #1e66f5;
@@ -2096,7 +2096,7 @@ html[data-theme="catppuccin-mocha"] {
   --pp-offline-bd: #8a7a55;
   --pp-offline-fg: #f9e2af;
   --pp-danger: #f38ba8;
-  --pp-danger-quiet-fg: #f38ba8;
+  --pp-danger-quiet-fg: #f494af;
   --pp-on-danger: #1e1e2e;
   --pp-spinner-bg: #45475a;
   --pp-spinner-fg: #89b4fa;
@@ -2149,7 +2149,7 @@ html[data-theme="gruvbox-dark"] {
   --pp-offline-bd: #7c642b;
   --pp-offline-fg: #fabd2f;
   --pp-danger: #fc6a52;
-  --pp-danger-quiet-fg: #fd8470;
+  --pp-danger-quiet-fg: #fd9584;
   --pp-on-danger: #282828;
   --pp-spinner-bg: #504945;
   --pp-spinner-fg: #83a598;
@@ -2256,7 +2256,7 @@ html[data-theme="github-light"] {
   --pp-offline-bd: #eedcab;
   --pp-offline-fg: #9a6700;
   --pp-danger: #cf222e;
-  --pp-danger-quiet-fg: #cf222e;
+  --pp-danger-quiet-fg: #bd1f2a;
   --pp-on-danger: #ffffff;
   --pp-spinner-bg: #d0d7de;
   --pp-spinner-fg: #0969da;

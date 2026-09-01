@@ -532,6 +532,17 @@ function evaluateCheck(check, raw, theme) {
         round2(Math.abs(hostCenter - svgCenter)), exp.iconVCenter));
     }
   }
+  if ("backgroundAlphaMax" in exp) {
+    const parsed = parseRgba(raw.backgroundColor);
+    const alpha = parsed?.[3];
+    out.push(verdict(
+      "backgroundAlphaMax",
+      alpha != null && alpha <= exp.backgroundAlphaMax + 0.0001,
+      alpha == null ? null : round2(alpha),
+      exp.backgroundAlphaMax,
+      alpha == null ? `unparseable computed background: ${raw.backgroundColor}` : undefined,
+    ));
+  }
   // A higher-specificity base rule (classically an #id selector) can leave a
   // state-driven class sitting inert in the DOM -- the class is there, the
   // cascade still paints the resting colour. Compares the SAME element's
@@ -1522,6 +1533,11 @@ async function runOneCheck(page, theme, check, results, extBase) {
     // drives getComputedStyle exactly the way a real user's cursor would --
     // no need to fake it by toggling a class the CSS never checks for.
     await page.hover(check.selector);
+    // Read the settled state, not the first interpolation frame. Buttons
+    // transition background/color for --*-motion-state; an immediate read
+    // can serialize the 0% frame as transparent oklab(), making a hover
+    // assertion accidentally inspect the resting paint.
+    await page.waitForTimeout(260);
   } else if (check.state !== "default" && check.state !== "classState") {
     throw new Error(`unsupported state "${check.state}" on ${check.selector} -- extend runOneCheck() before adding non-default states to the checklist`);
   }

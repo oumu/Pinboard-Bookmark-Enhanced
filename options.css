@@ -300,10 +300,12 @@ h1 { font-size: 18px; color: var(--opt-fg); margin-bottom: var(--opt-sp-7); bord
 /* Stacked sub-options. Three-tier spacing:
    - title (label.bl) → first option: 6px (group separation)
    - option ↔ option: 4px margin + 2px×2 label padding = ~8px visual
+   - dense peer choices (.choice-row): 2px margin + label padding = ~6px visual
    - last option → hint: 6px (footer breathing)
    - rows containing an inline <input> (e.g. popup-width custom): a touch more
      vertical margin to balance the taller control. */
 .fg-stack > div { margin-bottom: var(--opt-sp-2); }
+.fg-stack > .choice-row { margin-bottom: var(--opt-sp-1); }
 .fg-stack > div:last-child { margin-bottom: 0; }
 .fg-stack > div > label { padding: var(--opt-sp-1) 0; margin-bottom: 0; }
 .fg-stack > label.bl { margin-bottom: var(--opt-sp-3); }
@@ -311,43 +313,60 @@ h1 { font-size: 18px; color: var(--opt-fg); margin-bottom: var(--opt-sp-7); bord
 .fg-stack > div:has(input[type="number"]),
 .fg-stack > div:has(input[type="text"]) { margin-top: var(--opt-sp-2); margin-bottom: var(--opt-sp-3); }
 .fg label.bl { display: block; font-weight: bold; margin-bottom: var(--opt-sp-2); cursor: default; font-size: 12px; color: var(--opt-fg-soft); }
-/* Contextual help is native <details>, so its body inherits the exact same
-   height/content-visibility transition, duration and easing as every other
-   disclosure below. Hosts form one wrapping row: the summary follows the
-   text it explains, while ::details-content owns a full-width second row.
-   This keeps visual ownership and DOM ownership identical without measuring
-   localized labels in JavaScript. */
-.context-help-host {
+/* Contextual help keeps native <details> motion, but its visible pieces are
+   placed on an explicit grid: anchor + compact help target in row 1, answer
+   across row 2, and any owned controls in later full-width rows. Unlike the
+   former wrapping flex layout, opening an answer cannot recenter an action or
+   make heading margins pull the help target off its text. */
+.context-help-host,
+.context-help-action-row {
   position: relative;
-  display: flex;
-  align-items: flex-start;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: auto 24px minmax(0, 1fr);
+  align-items: center;
   column-gap: var(--opt-sp-1);
 }
-.context-help-host > label,
-.context-help-host > .bl,
-.context-help-section > .section-title {
-  flex: 0 1 auto;
+.context-help-host[data-help-role="choice"] > label,
+.context-help-host[data-help-role="field"] > label.bl,
+.context-help-host[data-help-role="group"] > .bl,
+.context-help-host[data-help-role="section"] > .section-title,
+.context-help-action-row[data-help-role="action"] > .save-theme-wrap {
+  grid-column: 1;
+  grid-row: 1;
   min-width: 0;
-  max-width: calc(100% - 24px - var(--opt-sp-1));
+  margin: 0;
+  justify-self: start;
 }
-.context-help-host > .context-help { display: contents; }
-.context-help-host > .context-help::details-content {
-  flex: 0 0 100%;
+.context-help-section { padding-block: var(--opt-sp-2); }
+.context-help-section > .section-title { margin: 0; }
+.context-help-host > .context-help,
+.context-help-action-row > .context-help { display: contents; }
+.context-help-host > .context-help::details-content,
+.context-help-action-row > .context-help::details-content {
+  grid-column: 1 / -1;
+  grid-row: 2;
   min-width: 0;
   width: 100%;
 }
-.context-help-host > .context-help ~ * { flex: 1 0 100%; min-width: 0; }
+.context-help-host > .context-help ~ *,
+.context-help-action-row > .context-help ~ * {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+.context-help-action-row { margin-top: var(--opt-sp-3); }
 .context-help { margin: 0; }
 .context-help > summary.context-help-toggle {
   position: static;
-  flex: none;
-  margin-top: calc(-1 * var(--opt-sp-1));
+  grid-column: 2;
+  grid-row: 1;
+  align-self: center;
+  margin: 0;
   min-width: 24px;
   width: 24px;
   min-height: 24px;
   height: 24px;
-  padding: 0;
+  padding: 0 0 0 var(--opt-sp-2);
+  justify-content: flex-start;
   color: var(--opt-fg-hint);
   opacity: 0.72;
   list-style: none;
@@ -355,15 +374,31 @@ h1 { font-size: 18px; color: var(--opt-fg); margin-bottom: var(--opt-sp-7); bord
 .context-help > summary.context-help-toggle::-webkit-details-marker { display: none; }
 .context-help > summary.context-help-toggle:hover,
 .context-help[open] > summary.context-help-toggle { color: var(--opt-fg-muted); opacity: 1; }
-.context-help-toggle .btn-ic { margin: 0; }
-.context-help-toggle .btn-ic svg { width: 13px; height: 13px; }
-.context-help-body {
-  max-width: 76ch;
-  margin: var(--opt-sp-2) 0 0;
+.context-help > summary.context-help-toggle:hover:not(:disabled) { background: transparent; }
+/* Optical calibration belongs to semantic role + the writing system in the
+   rendered anchor copy. options.js refreshes data-help-script after every
+   i18n pass, so a Chinese page can distinguish a CJK/mixed label from a pure
+   "API Key" label without per-setting exceptions. The 24px summary target
+   itself never moves, so focus and pointer geometry stay stable. */
+[data-help-role] { --context-help-optical-y: 0px; }
+[data-help-script="alphabetic"][data-help-role="section"],
+[data-help-script="alphabetic"][data-help-role="choice"],
+[data-help-script="alphabetic"][data-help-role="group"] { --context-help-optical-y: 0.5px; }
+[data-help-script="alphabetic"][data-help-role="field"] { --context-help-optical-y: 0.75px; }
+[data-help-script="alphabetic"][data-help-role="action"] { --context-help-optical-y: -1.5px; }
+[data-help-script="cjk"][data-help-role="action"] { --context-help-optical-y: -1px; }
+.context-help-toggle .btn-ic {
+  margin: 0;
+  transform: translateY(var(--context-help-optical-y));
 }
+.context-help-toggle .btn-ic svg { width: 13px; height: 13px; }
+.context-help .context-help-body {
+  margin: 0;
+}
+.context-help-host > .context-help + * { margin-top: var(--opt-sp-4); }
 .context-help-body + .context-help-body { margin-top: var(--opt-sp-1); }
 .context-help-link { margin-right: 0; }
-.context-help-inline { flex: 1; min-width: 0; }
+.context-help-inline { min-width: 0; }
 .context-help-inline .context-help-body { padding-right: 0; }
 .wayback-log-heading { display: flex; align-items: center; justify-content: space-between; gap: var(--opt-sp-3); }
 .wayback-log-help { flex: 1; min-width: 0; }
@@ -663,6 +698,7 @@ input[type="checkbox"], input[type="radio"] {
 .connection-health-state.ok { color: var(--opt-save); }
 .connection-health-state.bad { color: var(--opt-danger); }
 .diagnostics-actions { display: flex; align-items: center; gap: var(--opt-sp-4); flex-wrap: wrap; }
+.support-diagnostics .diagnostics-actions { margin-bottom: 0; }
 /* Same precedent as .backup-actions below: the row's own flex gap already
    spaces button from status, so drop .save-status's inline indent here too. */
 .vocab-entry-row .save-status { margin-left: 0; }
@@ -1190,7 +1226,7 @@ html[data-theme="modern-card"] {
   --opt-btn-border: #eaeaec;
   --opt-focus-bd: #3b86e9;
   --opt-btn-fg: #1a1a2e;
-  --opt-danger-quiet-fg: #c5221f;
+  --opt-danger-quiet-fg: #bc201e;
   --opt-on-danger: #ffffff;
   --opt-chip-bg: #e8f0fe;
   --opt-chip-fg: #175ec0;
@@ -1222,7 +1258,7 @@ html[data-theme="nord-night"] {
   --opt-btn-border: #434c5e;
   --opt-focus-bd: #75a0b0;
   --opt-btn-fg: #d8dee9;
-  --opt-danger-quiet-fg: #e3aeb3;
+  --opt-danger-quiet-fg: #e8bdc1;
   --opt-on-danger: #35435b;
   --opt-chip-bg: #434f5f;
   --opt-chip-fg: #c2d4b3;
@@ -1320,7 +1356,7 @@ html[data-theme="dracula"] {
   --opt-btn-border: #343746;
   --opt-focus-bd: #6ba0b4;
   --opt-btn-fg: #f8f8f2;
-  --opt-danger-quiet-fg: #ff7e7e;
+  --opt-danger-quiet-fg: #ff8888;
   --opt-on-danger: #282a36;
   --opt-chip-bg: #2c3641;
   --opt-chip-fg: #50fa7b;
@@ -1384,7 +1420,7 @@ html[data-theme="flexoki-dark"] {
   --opt-btn-border: #343331;
   --opt-focus-bd: #4280b6;
   --opt-btn-fg: #cecdc3;
-  --opt-danger-quiet-fg: #eb8071;
+  --opt-danger-quiet-fg: #ec887a;
   --opt-on-danger: #1c1b1a;
   --opt-chip-bg: #2b3035;
   --opt-chip-fg: #d9a916;
@@ -1416,7 +1452,7 @@ html[data-theme="solarized-light"] {
   --opt-btn-border: #f4efdd;
   --opt-focus-bd: #588fb3;
   --opt-btn-fg: #52666d;
-  --opt-danger-quiet-fg: #c02b28;
+  --opt-danger-quiet-fg: #b82926;
   --opt-on-danger: #fdf6e3;
   --opt-chip-bg: #d9dcd0;
   --opt-chip-fg: #1b6863;
@@ -1449,7 +1485,7 @@ html[data-theme="solarized-dark"] {
   --opt-focus-ring: 0 0 0 2px rgba(38,139,210,0.25);
   --opt-btn-border: #0d3b46;
   --opt-btn-fg: #aeb9b9;
-  --opt-danger-quiet-fg: #e98077;
+  --opt-danger-quiet-fg: #ec9089;
   --opt-on-danger: #433205;
   --opt-chip-bg: #0a3f50;
   --opt-chip-fg: #35c9be;
@@ -1481,7 +1517,7 @@ html[data-theme="catppuccin-latte"] {
   --opt-btn-border: #e0e2e8;
   --opt-focus-bd: #4f7fdc;
   --opt-btn-fg: #4c4f69;
-  --opt-danger-quiet-fg: #b90d32;
+  --opt-danger-quiet-fg: #af0c2f;
   --opt-on-danger: #eff1f5;
   --opt-chip-bg: #dce0e8;
   --opt-chip-fg: #10686d;
@@ -1513,7 +1549,7 @@ html[data-theme="catppuccin-mocha"] {
   --opt-btn-border: #45475a;
   --opt-focus-bd: #7496d0;
   --opt-btn-fg: #cdd6f4;
-  --opt-danger-quiet-fg: #f59db6;
+  --opt-danger-quiet-fg: #f7b0c4;
   --opt-on-danger: #1e1e2e;
   --opt-chip-bg: #45475a;
   --opt-chip-fg: #9ce4d8;
@@ -1545,7 +1581,7 @@ html[data-theme="gruvbox-dark"] {
   --opt-btn-border: #504945;
   --opt-focus-bd: #7e9e92;
   --opt-btn-fg: #ebdbb2;
-  --opt-danger-quiet-fg: #fea38d;
+  --opt-danger-quiet-fg: #feb3a1;
   --opt-on-danger: #282828;
   --opt-chip-bg: #434340;
   --opt-chip-fg: #dcde5e;
@@ -1609,7 +1645,7 @@ html[data-theme="github-light"] {
   --opt-btn-border: #f0f1f1;
   --opt-focus-bd: #458ce0;
   --opt-btn-fg: #1f2328;
-  --opt-danger-quiet-fg: #cf222e;
+  --opt-danger-quiet-fg: #bd1f2a;
   --opt-on-danger: #ffffff;
   --opt-chip-bg: #ddf4ff;
   --opt-chip-fg: #0550ae;

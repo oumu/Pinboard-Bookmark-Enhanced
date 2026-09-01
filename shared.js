@@ -2678,34 +2678,54 @@ function showConfirmPopover(anchor, opts) {
 
   const gap = 4;
   let dismissed = false;
+  let positionFrame = 0;
+  let surfaceObserver = null;
+  const visualViewport = window.visualViewport || null;
+  const panelEl = typeof anchor.closest === "function" ? anchor.closest(".panel") : null;
+  const surfaceEl = panelEl || document.body;
+
+  function schedulePosition() {
+    if (dismissed || positionFrame) return;
+    positionFrame = requestAnimationFrame(() => {
+      positionFrame = 0;
+      position();
+    });
+  }
+
   // Portal positioning is bounded by the surface the user can actually see,
   // not merely by the browser viewport. This matters most for browser-action
   // popups: during Chrome's final-size negotiation the tab viewport can be
   // wider than <body>, so a viewport-only clamp visibly escapes the popup.
   function position() {
     if (dismissed || !pop.isConnected || !anchor.isConnected) return;
-    const viewportWidth = document.documentElement.clientWidth;
-    const viewportHeight = document.documentElement.clientHeight;
-    const panelEl = typeof anchor.closest === "function" ? anchor.closest(".panel") : null;
-    const surfaceEl = panelEl || document.body;
+    const viewportLeft = Number.isFinite(visualViewport?.offsetLeft) ? visualViewport.offsetLeft : 0;
+    const viewportTop = Number.isFinite(visualViewport?.offsetTop) ? visualViewport.offsetTop : 0;
+    const viewportWidth = Number.isFinite(visualViewport?.width) && visualViewport.width > 0
+      ? visualViewport.width
+      : document.documentElement.clientWidth;
+    const viewportHeight = Number.isFinite(visualViewport?.height) && visualViewport.height > 0
+      ? visualViewport.height
+      : document.documentElement.clientHeight;
+    const viewportRight = viewportLeft + viewportWidth;
+    const viewportBottom = viewportTop + viewportHeight;
     const surfaceRect = surfaceEl?.getBoundingClientRect?.();
     const hasSurface = surfaceRect && surfaceRect.width > gap * 2;
-    let leftBound = Math.max(gap, hasSurface ? surfaceRect.left + gap : gap);
-    let rightBound = Math.min(viewportWidth - gap,
-      hasSurface ? surfaceRect.right - gap : viewportWidth - gap);
+    let leftBound = Math.max(viewportLeft + gap, hasSurface ? surfaceRect.left + gap : viewportLeft + gap);
+    let rightBound = Math.min(viewportRight - gap,
+      hasSurface ? surfaceRect.right - gap : viewportRight - gap);
     if (rightBound <= leftBound) {
-      leftBound = gap;
-      rightBound = Math.max(gap, viewportWidth - gap);
+      leftBound = viewportLeft + gap;
+      rightBound = Math.max(leftBound, viewportRight - gap);
     }
 
     // Preserve each surface's authored max-width, but lower it to the actual
     // room available before measuring. Otherwise max-content can remain wider
     // than the clamp and no left coordinate can prevent overflow.
     pop.style.maxWidth = "";
-    const authoredMax = Number.parseFloat(getComputedStyle(pop).maxWidth);
+    const authoredWidth = pop.getBoundingClientRect().width;
     const availableWidth = Math.max(0, rightBound - leftBound);
-    const maxWidth = Number.isFinite(authoredMax) && authoredMax > 0
-      ? Math.min(authoredMax, availableWidth)
+    const maxWidth = Number.isFinite(authoredWidth) && authoredWidth > 0
+      ? Math.min(authoredWidth, availableWidth)
       : availableWidth;
     pop.style.maxWidth = `${Math.floor(maxWidth)}px`;
 
@@ -2715,9 +2735,12 @@ function showConfirmPopover(anchor, opts) {
     if (left + popRect.width > rightBound) left = anchorRect.right - popRect.width;
     left = Math.max(leftBound, Math.min(left, rightBound - popRect.width));
     const below = anchorRect.bottom + gap;
-    const top = below + popRect.height <= viewportHeight - gap
+    const topBound = viewportTop + gap;
+    const bottomBound = viewportBottom - gap;
+    let top = below + popRect.height <= bottomBound
       ? below
-      : Math.max(gap, anchorRect.top - popRect.height - gap);
+      : Math.max(topBound, anchorRect.top - popRect.height - gap);
+    top = Math.max(topBound, Math.min(top, bottomBound - popRect.height));
     Object.assign(pop.style, {
       position: "fixed",
       left: `${Math.round(left)}px`,
@@ -2725,8 +2748,19 @@ function showConfirmPopover(anchor, opts) {
       right: "auto",
       bottom: "auto",
     });
+
+    // A final rect read catches sub-pixel rounding and late intrinsic sizing
+    // (notably translated button text) before the popover reaches the edge.
+    const settledRect = pop.getBoundingClientRect();
+    let correctedLeft = left;
+    let correctedTop = top;
+    if (settledRect.right > rightBound) correctedLeft -= settledRect.right - rightBound;
+    if (settledRect.left < leftBound) correctedLeft += leftBound - settledRect.left;
+    if (settledRect.bottom > bottomBound) correctedTop -= settledRect.bottom - bottomBound;
+    if (settledRect.top < topBound) correctedTop += topBound - settledRect.top;
+    if (Math.abs(correctedLeft - left) >= 0.5) pop.style.left = `${Math.round(correctedLeft)}px`;
+    if (Math.abs(correctedTop - top) >= 0.5) pop.style.top = `${Math.round(correctedTop)}px`;
   }
-  position();
 
   function dismiss({ restoreFocus = true, animate = true } = {}) {
     if (dismissed) return;
@@ -2734,8 +2768,13 @@ function showConfirmPopover(anchor, opts) {
     if (_activeConfirmPopover?.pop === pop) _activeConfirmPopover = null;
     document.removeEventListener("keydown", onKey, true);
     document.removeEventListener("pointerdown", onDocPointerDown, true);
-    window.removeEventListener("resize", position);
+    window.removeEventListener("resize", schedulePosition);
     window.removeEventListener("scroll", dismiss, true);
+    visualViewport?.removeEventListener("resize", schedulePosition);
+    visualViewport?.removeEventListener("scroll", schedulePosition);
+    surfaceObserver?.disconnect();
+    if (positionFrame) cancelAnimationFrame(positionFrame);
+    positionFrame = 0;
     if (restoreFocus && opener && opener.isConnected && typeof opener.focus === "function") opener.focus();
 
     const animateOut = animate
@@ -2789,9 +2828,17 @@ function showConfirmPopover(anchor, opts) {
   _activeConfirmPopover = { anchor, pop, dismiss };
   document.addEventListener("keydown", onKey, true);
   document.addEventListener("pointerdown", onDocPointerDown, true);
-  window.addEventListener("resize", position);
+  window.addEventListener("resize", schedulePosition);
   window.addEventListener("scroll", dismiss, true);
+  visualViewport?.addEventListener("resize", schedulePosition);
+  visualViewport?.addEventListener("scroll", schedulePosition);
+  if (typeof ResizeObserver === "function") {
+    surfaceObserver = new ResizeObserver(schedulePosition);
+    surfaceObserver.observe(surfaceEl);
+  }
+  position();
   no.focus();
+  schedulePosition();
 }
 
 // ===================== Feedback Card (B2) =====================

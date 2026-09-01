@@ -350,9 +350,18 @@ export function finalizeUiControlRoles(inputMap, palette, overrides = {}, config
   }
 
   const dangerRgb = hexToRgb(map.danger);
+  // Quiet destructive text is also rendered on the settled 8% danger hover
+  // fills emitted by ui-components.mjs. Auditing only the three resting
+  // hosts is insufficient near AA: github-light clears on bg/btn-bg but
+  // falls to 4.44:1 once the ghost hover tint is actually painted.
+  const dangerGhostHoverRgb = mix(bgRgb, dangerRgb, 0.08);
+  const dangerButtonHoverRgb = mix(btnBgRgb, dangerRgb, 0.08);
   map.border = rgbToHex(borderToAA(resolveOpaqueBg(map.border, btnBgRgb), [btnBgRgb, panelRgb]));
   map["btn-fg"] = rgbToHex(fgToAAMulti(fgRgb, [btnBgRgb, btnHoverRgb]));
-  map["danger-quiet-fg"] = rgbToHex(fgToAAMulti(dangerRgb, [bgRgb, panelRgb, btnBgRgb]));
+  map["danger-quiet-fg"] = rgbToHex(fgToAAMulti(
+    dangerRgb,
+    [bgRgb, panelRgb, btnBgRgb, dangerGhostHoverRgb, dangerButtonHoverRgb],
+  ));
   map["on-danger"] = rgbToHex(fgToAA(hexToRgb(palette["btn-fg"]), dangerRgb));
 
   if (chipMode === "verbatim") {

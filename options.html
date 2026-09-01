@@ -94,7 +94,7 @@
         </div>
       </div>
       <div class="divider"></div>
-      <div class="context-help-host context-help-section">
+      <div class="context-help-host context-help-section" data-help-role="section">
         <h2 class="section-title" id="connection-overview-title" data-i18n="connectionOverviewTitle">Connection Status</h2>
         <details class="context-help">
           <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
@@ -119,42 +119,46 @@
         </select>
       </div>
       <div class="divider"></div>
-      <h2 class="section-title" data-i18n="secSync">Data Sync</h2>
-      <div class="fg context-help-host"><label><input type="checkbox" id="opt-sync-enabled" /> <span data-i18n="optSyncEnabled">Use Chrome Sync for settings on this device</span></label>
+      <h2 class="section-title" id="sec-sync" data-i18n="secSync">Data Sync</h2>
+      <div class="fg fg-stack choice-stack" role="group" aria-labelledby="sec-sync">
+      <div class="choice-row context-help-host" data-help-role="choice"><label><input type="checkbox" id="opt-sync-enabled" /> <span data-i18n="optSyncEnabled">Use Chrome Sync for settings on this device</span></label>
         <details class="context-help">
           <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
           <p class="hint context-help-body" data-i18n="optSyncHint">This checkbox applies to this device only. Settings are shared between the devices where you turn it on; devices with it off keep their own local settings.</p>
         </details>
       </div>
-      <div class="fg context-help-host"><label><input type="checkbox" id="opt-sync-api-keys" /> <span data-i18n="syncApiKeysLabel">Sync credentials for this Google account</span></label>
+      <div class="choice-row context-help-host" data-help-role="choice"><label><input type="checkbox" id="opt-sync-api-keys" /> <span data-i18n="syncApiKeysLabel">Sync credentials for this Google account</span></label>
         <details class="context-help">
           <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
           <p class="hint context-help-body" data-i18n="syncApiKeysHint">This is one account-wide choice, but only devices with settings sync enabled participate; other devices keep using local credentials. New users start off. If an upgrade finds non-empty credentials already in Chrome Sync, it stays on to avoid data loss. Synced API keys, tokens, passwords, and export credentials are obfuscated, not encrypted.</p>
         </details>
       </div>
+      </div>
       <p id="opt-sync-local-only" class="sync-local-only" role="status" aria-live="polite" hidden></p>
       <p id="opt-sync-error" class="opt-error hidden" role="alert"></p>
       <div class="divider"></div>
-      <div class="context-help-host context-help-section">
-        <h2 class="section-title" data-i18n="secBackupRestore">Backup &amp; Restore</h2>
+      <div class="context-help-host context-help-section" data-help-role="section">
+        <h2 class="section-title" id="sec-backup-restore" data-i18n="secBackupRestore">Backup &amp; Restore</h2>
         <details class="context-help">
           <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
           <p class="hint context-help-body" data-i18n="backupPlaintextDisclosure">Backup files are plain JSON. They may contain settings, highlights, page URLs, vocabulary, and context excerpts.</p>
         </details>
       </div>
-      <div class="fg context-help-host"><label><input type="checkbox" id="opt-backup-include-highlights" checked /> <span data-i18n="backupIncludeHighlightsLabel">Include highlights and notes in backups</span></label>
+      <div class="fg fg-stack choice-stack" role="group" aria-labelledby="sec-backup-restore">
+      <div class="choice-row context-help-host" data-help-role="choice"><label><input type="checkbox" id="opt-backup-include-highlights" checked /> <span data-i18n="backupIncludeHighlightsLabel">Include highlights and notes in backups</span></label>
         <details class="context-help">
           <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
           <p class="hint context-help-body" data-i18n="backupIncludeHighlightsHint">Includes page URLs, titles, selected text, notes, colors, and timestamps.</p>
         </details>
       </div>
-      <div class="fg context-help-host"><label><input type="checkbox" id="opt-backup-include-vocabulary" checked /> <span data-i18n="backupIncludeVocabularyLabel">Include vocabulary in backups</span></label>
+      <div class="choice-row context-help-host" data-help-role="choice"><label><input type="checkbox" id="opt-backup-include-vocabulary" checked /> <span data-i18n="backupIncludeVocabularyLabel">Include vocabulary in backups</span></label>
         <details class="context-help">
           <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
           <p class="hint context-help-body" data-i18n="backupIncludeVocabularyHint">Includes vocabulary only for the current Pinboard account.</p>
         </details>
       </div>
-      <div class="fg"><label><input type="checkbox" id="opt-backup-include-secrets" aria-describedby="backup-secrets-warning" /> <span data-i18n="backupIncludeSecretsLabel">Include API keys and tokens in backups</span></label></div>
+      <div class="choice-row"><label><input type="checkbox" id="opt-backup-include-secrets" aria-describedby="backup-secrets-warning" /> <span data-i18n="backupIncludeSecretsLabel">Include API keys and tokens in backups</span></label></div>
+      </div>
       <p class="hint hint-warn" id="backup-secrets-warning" data-i18n="backupIncludeSecretsHint" hidden>Writes every credential to the file in plain text: your Pinboard token, all AI provider keys, and the Jina, Wayback, Anki, Eudic, Gist and Webhook credentials. Anyone who opens the file can use them. Keep it where you would keep a password.</p>
       <div class="backup-actions">
         <button class="btn" id="export-settings" data-i18n="exportSettings">Export Settings</button>
@@ -196,12 +200,29 @@
         <div><span data-i18n="backupSectionSecrets">API keys and tokens</span><span id="backup-result-secrets"></span></div>
       </div>
       <div class="divider"></div>
-      <h2 class="section-title" data-i18n="secNotifications">Notifications</h2>
-      <div class="fg"><label><input type="checkbox" id="notify-quick-save" checked /> <span data-i18n="notifyQuickSave">Quick save</span></label></div>
-      <div class="fg"><label><input type="checkbox" id="notify-read-later" checked /> <span data-i18n="notifyReadLater">Read Later save</span></label></div>
-      <div class="fg"><label><input type="checkbox" id="notify-tab-set" checked /> <span data-i18n="notifyTabSet">Tab Set save</span></label></div>
-      <div class="fg"><label><input type="checkbox" id="notify-batch-save" checked /> <span data-i18n="notifyBatchSave">Batch save</span></label></div>
-      <div class="fg"><label><input type="checkbox" id="notify-errors" checked /> <span data-i18n="notifyErrors">Error notifications</span></label></div>
+      <h2 class="section-title" id="sec-notifications" data-i18n="secNotifications">Notifications</h2>
+      <div class="fg fg-stack choice-stack" role="group" aria-labelledby="sec-notifications">
+        <div class="choice-row"><label><input type="checkbox" id="notify-quick-save" checked /> <span data-i18n="notifyQuickSave">Quick save</span></label></div>
+        <div class="choice-row"><label><input type="checkbox" id="notify-read-later" checked /> <span data-i18n="notifyReadLater">Read Later save</span></label></div>
+        <div class="choice-row"><label><input type="checkbox" id="notify-tab-set" checked /> <span data-i18n="notifyTabSet">Tab Set save</span></label></div>
+        <div class="choice-row"><label><input type="checkbox" id="notify-batch-save" checked /> <span data-i18n="notifyBatchSave">Batch save</span></label></div>
+        <div class="choice-row"><label><input type="checkbox" id="notify-errors" checked /> <span data-i18n="notifyErrors">Error notifications</span></label></div>
+      </div>
+
+      <div class="divider"></div>
+      <section class="support-diagnostics" aria-labelledby="support-diagnostics-title">
+        <div class="context-help-host context-help-section" data-help-role="section">
+          <h2 class="section-title" id="support-diagnostics-title" data-i18n="diagnosticsTitle">Support Diagnostics</h2>
+          <details class="context-help">
+            <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
+            <p class="hint context-help-body" data-i18n="diagnosticsHint">Copies extension, browser, feature, permission, storage and categorical error information. Credentials, account names, page URLs, content and custom endpoints are excluded.</p>
+          </details>
+        </div>
+        <div class="fg diagnostics-actions">
+          <button type="button" class="btn" id="copy-diagnostics-btn" data-i18n="diagnosticsCopy">Copy diagnostics</button>
+          <span id="diagnostics-status" class="et-test-status hidden" role="status" aria-live="polite"></span>
+        </div>
+      </section>
 
       <div class="panel-foot">
         <a href="https://github.com/pine2D/Pinboard-Bookmark-Enhanced/issues" target="_blank" rel="noopener"><span data-i18n="optFeedback">Feedback &amp; Issues</span><svg class="ext-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg></a>
@@ -210,7 +231,7 @@
 
     <!-- Tab 2: Popup -->
     <div id="panel-popup" class="panel" role="tabpanel" aria-labelledby="tab-popup">
-      <h2 class="section-title" data-i18n="secPopupBehavior">Popup Behavior</h2>
+      <h2 class="section-title" id="sec-popup-behavior" data-i18n="secPopupBehavior">Popup Behavior</h2>
       <div class="fg">
         <label class="bl" data-i18n="labelOpenPopupShortcut">Open popup shortcut</label>
         <p class="hint">
@@ -218,10 +239,12 @@
           <a href="chrome://extensions/shortcuts" class="btn btn-sm" style="text-decoration:none;margin-left:8px;" data-i18n="openShortcuts">Open Chrome Shortcut Settings</a>
         </p>
       </div>
-      <div class="fg"><label><input type="checkbox" id="opt-check-bookmark-status" checked /> <span data-i18n="optCheckBookmarkStatus">Show bookmark status via icon (check if current page is saved)</span></label></div>
-      <div class="fg"><label><input type="checkbox" id="opt-auto-close" checked /> <span data-i18n="optAutoClose">Auto-close popup after save</span></label></div>
-      <div class="fg"><label><input type="checkbox" id="offline-queue-enabled" /> <span data-i18n="optOfflineQueue">Enable offline save queue</span></label></div>
-      <div class="fg fg-stack context-help-host" role="group" aria-labelledby="popup-width-label">
+      <div class="fg fg-stack choice-stack" role="group" aria-labelledby="sec-popup-behavior">
+        <div class="choice-row"><label><input type="checkbox" id="opt-check-bookmark-status" checked /> <span data-i18n="optCheckBookmarkStatus">Show bookmark status via icon (check if current page is saved)</span></label></div>
+        <div class="choice-row"><label><input type="checkbox" id="opt-auto-close" checked /> <span data-i18n="optAutoClose">Auto-close popup after save</span></label></div>
+        <div class="choice-row"><label><input type="checkbox" id="offline-queue-enabled" /> <span data-i18n="optOfflineQueue">Enable offline save queue</span></label></div>
+      </div>
+      <div class="fg fg-stack context-help-host" data-help-role="field" role="group" aria-labelledby="popup-width-label">
         <label class="bl" id="popup-width-label" data-i18n="optPopupWidthTitle">Popup width</label>
         <details class="context-help">
           <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
@@ -251,23 +274,27 @@
         <textarea id="opt-urlclean-exclude" rows="3" style="width:100%" placeholder="tag&#10;ref&#10;si" data-i18n-placeholder="optUrlCleanExcludePlaceholder"></textarea>
       </div>
       <div class="divider"></div>
-      <h2 class="section-title" data-i18n="secPopupElements">Popup Elements</h2>
-      <div class="fg"><label><input type="checkbox" id="opt-show-search" /> <span data-i18n="optShowSearch">Show search bar in popup</span></label></div>
-      <div class="fg"><label><input type="checkbox" id="opt-show-recent" /> <span data-i18n="optShowRecent">Show recent bookmarks in popup</span></label></div>
-      <div class="fg"><label><input type="checkbox" id="opt-show-badge" /> <span data-i18n="optShowBadge">Show unread count badge on icon</span></label></div>
-      <div class="fg"><label><input type="checkbox" id="opt-show-suggest-tags" checked /> <span data-i18n="optShowSuggestTags">Show Pinboard suggested tags in popup</span></label></div>
-      <div class="fg"><label><input type="checkbox" id="opt-show-ai-summary" checked /> <span data-i18n="optShowAiSummary">Show AI summary button in popup</span></label></div>
-      <div class="fg"><label><input type="checkbox" id="opt-show-ai-tags" checked /> <span data-i18n="optShowAiTags">Show AI tags row in popup</span></label></div>
-      <div class="fg"><label><input type="checkbox" id="opt-show-quick-links" checked /> <span data-i18n="optShowQuickLinks">Show quick links row</span> (<span data-i18n="qlSets">Sets</span> · <span data-i18n="qlNetwork">Network</span> · <span data-i18n="qlUnread">Unread</span> · <span data-i18n="qlNotes">Notes</span> · <span data-i18n="qlPopular">Popular</span>)</label></div>
-      <div class="fg"><label><input type="checkbox" id="opt-show-quick-row" checked /> <span data-i18n="optShowQuickRow">Show quick action buttons (Save Tabs · Batch Save · Markdown)</span></label></div>
+      <h2 class="section-title" id="sec-popup-elements" data-i18n="secPopupElements">Popup Elements</h2>
+      <div class="fg fg-stack choice-stack" role="group" aria-labelledby="sec-popup-elements">
+        <div class="choice-row"><label><input type="checkbox" id="opt-show-search" /> <span data-i18n="optShowSearch">Show search bar in popup</span></label></div>
+        <div class="choice-row"><label><input type="checkbox" id="opt-show-recent" /> <span data-i18n="optShowRecent">Show recent bookmarks in popup</span></label></div>
+        <div class="choice-row"><label><input type="checkbox" id="opt-show-badge" /> <span data-i18n="optShowBadge">Show unread count badge on icon</span></label></div>
+        <div class="choice-row"><label><input type="checkbox" id="opt-show-suggest-tags" checked /> <span data-i18n="optShowSuggestTags">Show Pinboard suggested tags in popup</span></label></div>
+        <div class="choice-row"><label><input type="checkbox" id="opt-show-ai-summary" checked /> <span data-i18n="optShowAiSummary">Show AI summary button in popup</span></label></div>
+        <div class="choice-row"><label><input type="checkbox" id="opt-show-ai-tags" checked /> <span data-i18n="optShowAiTags">Show AI tags row in popup</span></label></div>
+        <div class="choice-row"><label><input type="checkbox" id="opt-show-quick-links" checked /> <span data-i18n="optShowQuickLinks">Show quick links row</span> (<span data-i18n="qlSets">Sets</span> · <span data-i18n="qlNetwork">Network</span> · <span data-i18n="qlUnread">Unread</span> · <span data-i18n="qlNotes">Notes</span> · <span data-i18n="qlPopular">Popular</span>)</label></div>
+        <div class="choice-row"><label><input type="checkbox" id="opt-show-quick-row" checked /> <span data-i18n="optShowQuickRow">Show quick action buttons (Save Tabs · Batch Save · Markdown)</span></label></div>
+      </div>
     </div>
 
     <!-- Tab 3: Bookmarks -->
     <div id="panel-bookmarks" class="panel" role="tabpanel" aria-labelledby="tab-bookmarks">
-      <h2 class="section-title" data-i18n="secSaveDefaults">Save Defaults</h2>
-      <div class="fg"><label><input type="checkbox" id="opt-private-default" /> <span data-i18n="optPrivateDefault">Private by default</span></label></div>
-      <div class="fg"><label><input type="checkbox" id="opt-private-incognito" /> <span data-i18n="optPrivateIncognito">Private in Incognito</span></label></div>
-      <div class="fg"><label><input type="checkbox" id="opt-readlater-default" /> <span data-i18n="optReadlaterDefault">Read Later by default</span></label></div>
+      <h2 class="section-title" id="sec-save-defaults" data-i18n="secSaveDefaults">Save Defaults</h2>
+      <div class="fg fg-stack choice-stack" role="group" aria-labelledby="sec-save-defaults">
+        <div class="choice-row"><label><input type="checkbox" id="opt-private-default" /> <span data-i18n="optPrivateDefault">Private by default</span></label></div>
+        <div class="choice-row"><label><input type="checkbox" id="opt-private-incognito" /> <span data-i18n="optPrivateIncognito">Private in Incognito</span></label></div>
+        <div class="choice-row"><label><input type="checkbox" id="opt-readlater-default" /> <span data-i18n="optReadlaterDefault">Read Later by default</span></label></div>
+      </div>
       <div class="fg fg-stack" role="group" aria-labelledby="bgsave-mode-label">
         <label class="bl" id="bgsave-mode-label" data-i18n="optBgSaveMode">Background save mode</label>
         <div><label><input type="radio" name="bgsave-mode" id="opt-bgsave-merge" value="merge" /> <span data-i18n="optBgSaveModeMerge">Merge (default, combines new tags with existing)</span></label></div>
@@ -275,14 +302,16 @@
         <div><label><input type="radio" name="bgsave-mode" id="opt-bgsave-overwrite" value="overwrite" /> <span data-i18n="optBgSaveModeOverwrite">Overwrite (replace all tags, no merge)</span></label></div>
       </div>
       <div class="divider"></div>
-      <h2 class="section-title" data-i18n="secNotesBehavior">Notes Behavior</h2>
-      <div class="fg"><label><input type="checkbox" id="opt-auto-description" checked /> <span data-i18n="optAutoDescription">Auto-fill meta description into notes</span></label></div>
-      <div class="fg"><label><input type="checkbox" id="opt-blockquote" checked /> <span data-i18n="optBlockquote">Wrap selected text with &lt;blockquote&gt;</span></label></div>
-      <div class="fg"><label><input type="checkbox" id="opt-include-referrer" /> <span data-i18n="optIncludeReferrer">Include referrer in Notes</span></label></div>
+      <h2 class="section-title" id="sec-notes-behavior" data-i18n="secNotesBehavior">Notes Behavior</h2>
+      <div class="fg fg-stack choice-stack" role="group" aria-labelledby="sec-notes-behavior">
+        <div class="choice-row"><label><input type="checkbox" id="opt-auto-description" checked /> <span data-i18n="optAutoDescription">Auto-fill meta description into notes</span></label></div>
+        <div class="choice-row"><label><input type="checkbox" id="opt-blockquote" checked /> <span data-i18n="optBlockquote">Wrap selected text with &lt;blockquote&gt;</span></label></div>
+        <div class="choice-row"><label><input type="checkbox" id="opt-include-referrer" /> <span data-i18n="optIncludeReferrer">Include referrer in Notes</span></label></div>
+      </div>
       <div class="divider"></div>
       <h2 class="section-title" data-i18n="secTags">Tags</h2>
       <div class="fg"><label><input type="checkbox" id="opt-respect-tag-case" /> <span data-i18n="optRespectTagCase">Respect existing tag case (match most-used casing)</span></label></div>
-      <div class="fg fg-stack context-help-host" role="group" aria-labelledby="tag-sync-label">
+      <div class="fg fg-stack context-help-host" data-help-role="field" role="group" aria-labelledby="tag-sync-label">
         <label class="bl" id="tag-sync-label" data-i18n="tagSyncLabel">Tag Cache Strategy</label>
         <details class="context-help">
           <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
@@ -292,7 +321,7 @@
         <div><label><input type="radio" name="tag-sync-mode" id="opt-tag-sync-fresh" value="fresh" /> <span data-i18n="tagSyncFresh">Live (fetches on every popup, slower)</span></label></div>
         <div><label><input type="radio" name="tag-sync-mode" id="opt-tag-sync-prewarmed" value="prewarmed" /> <span data-i18n="tagSyncPrewarmed">Prewarmed (background fetch every 15 min, instant popup)</span></label></div>
       </div>
-      <div class="fg context-help-host">
+      <div class="fg context-help-host" data-help-role="field">
         <label class="bl" for="opt-tag-presets" data-i18n="labelTagPresets">Tag Presets</label>
         <details class="context-help">
           <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
@@ -310,14 +339,18 @@
         </button>
         <div class="accordion-body" id="acc-qs">
           <p style="margin-bottom:8px;"><span data-i18n="labelShortcut">Shortcut</span>: <span class="shortcut-current" data-command="quick_save"></span> <a href="chrome://extensions/shortcuts" id="open-shortcuts-link" class="btn btn-sm" style="text-decoration:none;margin-left:8px;" data-i18n="openShortcuts">Open Chrome Shortcut Settings</a></p>
-          <div class="fg"><label><input type="checkbox" id="qs-auto-notes" checked /> <span data-i18n="qsAutoNotes">Auto-add page description to notes</span></label></div>
-          <div class="fg"><label><input type="checkbox" id="qs-blockquote" checked /> <span data-i18n="qsBlockquote">Wrap selected text with blockquote</span></label></div>
+          <div class="fg fg-stack choice-stack">
+            <div class="choice-row"><label><input type="checkbox" id="qs-auto-notes" checked /> <span data-i18n="qsAutoNotes">Auto-add page description to notes</span></label></div>
+            <div class="choice-row"><label><input type="checkbox" id="qs-blockquote" checked /> <span data-i18n="qsBlockquote">Wrap selected text with blockquote</span></label></div>
+          </div>
           <div class="fg">
             <label class="bl" for="qs-default-tags" data-i18n="labelDefaultTags">Default Tags (comma-separated)</label>
             <input type="text" id="qs-default-tags" placeholder="tag1, tag2" data-i18n-placeholder="placeholderTags" autocomplete="off" spellcheck="false" />
           </div>
-          <div class="fg"><label><input type="checkbox" id="qs-ai-tags" /> <span data-i18n="qsAiTags">Auto-generate AI tags</span></label></div>
-          <div class="fg"><label><input type="checkbox" id="qs-ai-summary" /> <span data-i18n="qsAiSummary">Auto-generate AI summary in notes</span></label></div>
+          <div class="fg fg-stack choice-stack">
+            <div class="choice-row"><label><input type="checkbox" id="qs-ai-tags" /> <span data-i18n="qsAiTags">Auto-generate AI tags</span></label></div>
+            <div class="choice-row"><label><input type="checkbox" id="qs-ai-summary" /> <span data-i18n="qsAiSummary">Auto-generate AI summary in notes</span></label></div>
+          </div>
         </div>
       </div>
 
@@ -327,14 +360,18 @@
         </button>
         <div class="accordion-body" id="acc-rl">
           <p style="margin-bottom:8px;"><span data-i18n="labelShortcut">Shortcut</span>: <span class="shortcut-current" data-command="read_later"></span> <a href="chrome://extensions/shortcuts" id="open-shortcuts-link-rl" class="btn btn-sm" style="text-decoration:none;margin-left:8px;" data-i18n="openShortcuts">Open Chrome Shortcut Settings</a></p>
-          <div class="fg"><label><input type="checkbox" id="rl-auto-notes" checked /> <span data-i18n="qsAutoNotes">Auto-add page description to notes</span></label></div>
-          <div class="fg"><label><input type="checkbox" id="rl-blockquote" checked /> <span data-i18n="qsBlockquote">Wrap selected text with blockquote</span></label></div>
+          <div class="fg fg-stack choice-stack">
+            <div class="choice-row"><label><input type="checkbox" id="rl-auto-notes" checked /> <span data-i18n="qsAutoNotes">Auto-add page description to notes</span></label></div>
+            <div class="choice-row"><label><input type="checkbox" id="rl-blockquote" checked /> <span data-i18n="qsBlockquote">Wrap selected text with blockquote</span></label></div>
+          </div>
           <div class="fg">
             <label class="bl" for="rl-default-tags" data-i18n="labelDefaultTags">Default Tags (comma-separated)</label>
             <input type="text" id="rl-default-tags" placeholder="tag1, tag2" data-i18n-placeholder="placeholderTags" autocomplete="off" spellcheck="false" />
           </div>
-          <div class="fg"><label><input type="checkbox" id="rl-ai-tags" /> <span data-i18n="qsAiTags">Auto-generate AI tags</span></label></div>
-          <div class="fg"><label><input type="checkbox" id="rl-ai-summary" /> <span data-i18n="qsAiSummary">Auto-generate AI summary in notes</span></label></div>
+          <div class="fg fg-stack choice-stack">
+            <div class="choice-row"><label><input type="checkbox" id="rl-ai-tags" /> <span data-i18n="qsAiTags">Auto-generate AI tags</span></label></div>
+            <div class="choice-row"><label><input type="checkbox" id="rl-ai-summary" /> <span data-i18n="qsAiSummary">Auto-generate AI summary in notes</span></label></div>
+          </div>
         </div>
       </div>
 
@@ -344,7 +381,7 @@
         </button>
         <div class="accordion-body" id="acc-batch">
           <div class="fg"><label><input type="checkbox" id="opt-batch-tag-enabled" checked /> <span data-i18n="batchAutoAddTags">Auto-add tags</span></label></div>
-          <div class="fg context-help-host">
+          <div class="fg context-help-host" data-help-role="field">
             <label class="bl" for="opt-batch-tag" data-i18n="batchTagsLabel">Tags (comma-separated)</label>
             <details class="context-help">
               <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
@@ -353,7 +390,7 @@
             <input type="text" id="opt-batch-tag" value="batch_saved" />
           </div>
           <div class="fg"><label><input type="checkbox" id="batch-skip-existing" /> <span data-i18n="batchSkipExisting">Skip already bookmarked URLs</span></label></div>
-          <div class="fg fg-stack context-help-host" role="group" aria-labelledby="batch-ai-title">
+          <div class="fg fg-stack context-help-host" data-help-role="group" role="group" aria-labelledby="batch-ai-title">
             <div class="bl context-help-anchor" id="batch-ai-title" data-i18n="tabGroupAI">AI</div>
             <details class="context-help">
               <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
@@ -376,7 +413,7 @@
 
     <!-- Tab 5: AI -->
     <div id="panel-ai" class="panel" role="tabpanel" aria-labelledby="tab-ai">
-      <div class="context-help-host context-help-section">
+      <div class="context-help-host context-help-section" data-help-role="section">
         <h2 class="section-title" id="sec-ai-provider" data-i18n="secAiProvider">AI Provider</h2>
         <details class="context-help">
           <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
@@ -423,7 +460,7 @@
         <h3 data-i18n="provOpenai">OpenAI (ChatGPT)</h3>
         <div class="fg"><label class="bl" for="opt-openai-key" data-i18n="labelApiKey">API Key</label><span class="key-wrap"><input type="password" id="opt-openai-key" placeholder="sk-…" /><button type="button" class="key-toggle" data-target="opt-openai-key" title="Show/hide key" data-i18n-title="showHideKey" data-i18n-aria="showHideKey" aria-label="Show/hide key"></button></span><p class="hint"><a href="https://platform.openai.com/api-keys" target="_blank" data-i18n="getKey" rel="noopener">Get key</a></p></div>
         <div class="fg"><label class="bl" for="opt-openai-model" data-i18n="labelModel">Model</label><input type="text" id="opt-openai-model" value="gpt-5.4-nano" /></div>
-        <div class="fg context-help-host"><label class="bl" for="opt-openai-baseurl" data-i18n="labelBaseUrl">Base URL</label><details class="context-help"><summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary><p class="hint context-help-body" data-i18n="hintOpenAIBaseUrl">Change for proxy or compatible endpoint</p></details><input type="text" id="opt-openai-baseurl" value="https://api.openai.com/v1" /></div>
+        <div class="fg context-help-host" data-help-role="field"><label class="bl" for="opt-openai-baseurl" data-i18n="labelBaseUrl">Base URL</label><details class="context-help"><summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary><p class="hint context-help-body" data-i18n="hintOpenAIBaseUrl">Change for proxy or compatible endpoint</p></details><input type="text" id="opt-openai-baseurl" value="https://api.openai.com/v1" /></div>
         <button class="btn btn-sm" id="test-openai" data-i18n="testConnection">Test Connection</button>
         <span class="save-status" id="test-openai-status" role="status" aria-live="polite"></span>
       </div>
@@ -467,7 +504,7 @@
       <!-- OpenRouter -->
       <div class="pf" hidden id="fields-openrouter">
         <h3 data-i18n="provOpenrouter">OpenRouter</h3>
-        <div class="fg context-help-host"><label class="bl" for="opt-openrouter-key" data-i18n="labelApiKey">API Key</label><details class="context-help"><summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary><p class="hint context-help-body" data-i18n="openrouterTagline">Access 100+ models from one API.</p></details><span class="key-wrap"><input type="password" id="opt-openrouter-key" placeholder="sk-or-…" /><button type="button" class="key-toggle" data-target="opt-openrouter-key" title="Show/hide key" data-i18n-title="showHideKey" data-i18n-aria="showHideKey" aria-label="Show/hide key"></button></span><p class="hint"><a href="https://openrouter.ai/keys" target="_blank" data-i18n="getKey" rel="noopener">Get key</a></p></div>
+        <div class="fg context-help-host" data-help-role="field"><label class="bl" for="opt-openrouter-key" data-i18n="labelApiKey">API Key</label><details class="context-help"><summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary><p class="hint context-help-body" data-i18n="openrouterTagline">Access 100+ models from one API.</p></details><span class="key-wrap"><input type="password" id="opt-openrouter-key" placeholder="sk-or-…" /><button type="button" class="key-toggle" data-target="opt-openrouter-key" title="Show/hide key" data-i18n-title="showHideKey" data-i18n-aria="showHideKey" aria-label="Show/hide key"></button></span><p class="hint"><a href="https://openrouter.ai/keys" target="_blank" data-i18n="getKey" rel="noopener">Get key</a></p></div>
         <div class="fg"><label class="bl" for="opt-openrouter-model" data-i18n="labelModel">Model</label><input type="text" id="opt-openrouter-model" value="openai/gpt-oss-20b:free" /><p class="hint"><span data-i18n="browseModelsAt">Browse models at</span> <a href="https://openrouter.ai/models" target="_blank" rel="noopener">openrouter.ai/models</a></p></div>
         <button class="btn btn-sm" id="test-openrouter" data-i18n="testConnection">Test Connection</button>
         <span class="save-status" id="test-openrouter-status" role="status" aria-live="polite"></span>
@@ -531,7 +568,7 @@
       <div class="pf" hidden id="fields-ollama">
         <h3 data-i18n="provOllama">Ollama (Local)</h3>
         <div class="fg"><label class="bl" for="opt-ollama-baseurl" data-i18n="labelBaseUrl">Base URL</label><input type="text" id="opt-ollama-baseurl" value="http://localhost:11434" /></div>
-        <div class="fg context-help-host"><label class="bl" for="opt-ollama-model" data-i18n="labelModel">Model</label><details class="context-help"><summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary><p class="hint context-help-body" data-i18n="hintOllamaModel">Run <code>ollama pull llama3.2</code> first</p></details><input type="text" id="opt-ollama-model" value="llama3.2" /></div>
+        <div class="fg context-help-host" data-help-role="field"><label class="bl" for="opt-ollama-model" data-i18n="labelModel">Model</label><details class="context-help"><summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary><p class="hint context-help-body" data-i18n="hintOllamaModel">Run <code>ollama pull llama3.2</code> first</p></details><input type="text" id="opt-ollama-model" value="llama3.2" /></div>
         <button class="btn btn-sm" id="test-ollama" data-i18n="testConnection">Test Connection</button>
         <span class="save-status" id="test-ollama-status" role="status" aria-live="polite"></span>
       </div>
@@ -540,8 +577,8 @@
       <div class="pf" hidden id="fields-custom">
         <h3 data-i18n="provCustom">Custom OpenAI-compatible</h3>
         <div class="fg"><label class="bl" for="opt-custom-name" data-i18n="labelDisplayName">Display Name</label><input type="text" id="opt-custom-name" value="Custom" /></div>
-        <div class="fg context-help-host"><label class="bl" for="opt-custom-baseurl" data-i18n="labelBaseUrl">Base URL</label><details class="context-help"><summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary><p class="hint context-help-body" data-i18n="hintCustomBaseUrl">Must support <code>/chat/completions</code> endpoint</p></details><input type="text" id="opt-custom-baseurl" placeholder="https://api.example.com/v1" /></div>
-        <div class="fg context-help-host"><label class="bl" for="opt-custom-key" data-i18n="labelApiKey">API Key</label><details class="context-help"><summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary><p class="hint context-help-body" data-i18n="hintCustomKey">Leave empty if not required</p></details><span class="key-wrap"><input type="password" id="opt-custom-key" /><button type="button" class="key-toggle" data-target="opt-custom-key" title="Show/hide key" data-i18n-title="showHideKey" data-i18n-aria="showHideKey" aria-label="Show/hide key"></button></span></div>
+        <div class="fg context-help-host" data-help-role="field"><label class="bl" for="opt-custom-baseurl" data-i18n="labelBaseUrl">Base URL</label><details class="context-help"><summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary><p class="hint context-help-body" data-i18n="hintCustomBaseUrl">Must support <code>/chat/completions</code> endpoint</p></details><input type="text" id="opt-custom-baseurl" placeholder="https://api.example.com/v1" /></div>
+        <div class="fg context-help-host" data-help-role="field"><label class="bl" for="opt-custom-key" data-i18n="labelApiKey">API Key</label><details class="context-help"><summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary><p class="hint context-help-body" data-i18n="hintCustomKey">Leave empty if not required</p></details><span class="key-wrap"><input type="password" id="opt-custom-key" /><button type="button" class="key-toggle" data-target="opt-custom-key" title="Show/hide key" data-i18n-title="showHideKey" data-i18n-aria="showHideKey" aria-label="Show/hide key"></button></span></div>
         <div class="fg"><label class="bl" for="opt-custom-model" data-i18n="labelModel">Model</label><input type="text" id="opt-custom-model" placeholder="model-name" /></div>
         <button class="btn btn-sm" id="test-custom" data-i18n="testConnection">Test Connection</button>
         <span class="save-status" id="test-custom-status" role="status" aria-live="polite"></span>
@@ -549,7 +586,7 @@
 
       <div class="divider"></div>
       <h2 class="section-title" data-i18n="secJinaReader">Jina Reader</h2>
-      <div class="fg context-help-host">
+      <div class="fg context-help-host" data-help-role="field">
         <label class="bl" for="opt-jina-key" data-i18n="jinaApiKeyLabel">API Key (optional)</label>
         <details class="context-help">
           <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
@@ -564,27 +601,29 @@
 
     <!-- Tab: AI Behavior -->
     <div id="panel-ai-behavior" class="panel" role="tabpanel" aria-labelledby="tab-ai-behavior">
-      <h2 class="section-title" data-i18n="secAiContentSource">AI Content Source</h2>
-      <div class="fg context-help-host">
+      <h2 class="section-title" id="sec-ai-content-source" data-i18n="secAiContentSource">AI Content Source</h2>
+      <div class="fg fg-stack choice-stack" role="group" aria-labelledby="sec-ai-content-source">
+      <div class="choice-row context-help-host" data-help-role="choice">
         <label><input type="radio" name="ai-content-source" id="opt-ai-src-local" value="local" checked /> <span data-i18n="aiContentSourceLocal">Local (Defuddle)</span></label>
         <details class="context-help">
           <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
           <p class="hint context-help-body" data-i18n="aiContentSourceLocalHint">Extract the main content of the page locally (offline, fast).</p>
         </details>
       </div>
-      <div class="fg context-help-host">
+      <div class="choice-row context-help-host" data-help-role="choice">
         <label><input type="radio" name="ai-content-source" id="opt-ai-src-jina" value="jina" /> <span data-i18n="aiContentSourceJina">Jina Reader</span></label>
         <details class="context-help">
           <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
           <p class="hint context-help-body" data-i18n="aiContentSourceJinaHint">Fetch cleaned Markdown via Jina Reader API (requires network; API key optional for higher quota).</p>
         </details>
       </div>
-      <div class="fg context-help-host">
+      <div class="choice-row context-help-host" data-help-role="choice">
         <label><input type="checkbox" id="opt-ai-use-transcript" /> <span data-i18n="optAiUseTranscript">Use video captions as the AI content source</span></label>
         <details class="context-help">
           <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
           <p class="hint context-help-body" data-i18n="optAiUseTranscriptHint">On YouTube and bilibili video pages, AI tags and summaries read the subtitles instead of the page text. Active only after you have granted subtitle access; it never prompts on its own.</p>
         </details>
+      </div>
       </div>
 
       <div class="divider"></div>
@@ -622,7 +661,7 @@
           <option value="zh-HK" data-i18n="langZhHK">中文（香港）</option>
         </select>
       </div>
-      <div class="fg context-help-host">
+      <div class="fg context-help-host" data-help-role="field">
         <label class="bl" for="opt-ai-cache-duration" data-i18n="labelAiCache">AI Cache Duration (minutes)</label>
         <details class="context-help">
           <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
@@ -641,7 +680,7 @@
       </div>
 
       <div class="divider"></div>
-      <div class="context-help-host context-help-section">
+      <div class="context-help-host context-help-section" data-help-role="section">
         <h2 class="section-title" data-i18n="secPrompts">Prompts</h2>
         <details class="context-help">
           <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
@@ -649,7 +688,7 @@
         </details>
       </div>
 
-      <div class="fg context-help-host">
+      <div class="fg context-help-host" data-help-role="field">
         <label class="bl" for="opt-custom-tag-prompt" data-i18n="labelTagPrompt">AI Tags Prompt</label>
         <details class="context-help">
           <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
@@ -659,7 +698,7 @@
         <button class="btn btn-sm" id="reset-tag-prompt" style="margin-top:4px" data-i18n="resetToDefault">Reset to default</button>
       </div>
 
-      <div class="fg context-help-host">
+      <div class="fg context-help-host" data-help-role="field">
         <label class="bl" for="opt-custom-summary-prompt" data-i18n="labelSummaryPrompt">AI Summary Prompt</label>
         <details class="context-help">
           <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
@@ -714,7 +753,7 @@
         <input type="text" id="translate-target-lang-custom" class="hidden" style="margin-top:6px;" aria-labelledby="translate-target-lang-label" placeholder="Any language name, e.g. Latin, Classical Chinese" data-i18n-placeholder="translateLangCustomPlaceholder" autocomplete="off" spellcheck="false" />
       </div>
 
-      <div class="fg context-help-host">
+      <div class="fg context-help-host" data-help-role="field">
         <label class="bl" for="opt-translate-glossary" data-i18n="translateGlossaryLabel">Translation glossary</label>
         <details class="context-help">
           <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
@@ -732,7 +771,7 @@
         </select>
       </div>
 
-      <div class="fg context-help-host">
+      <div class="fg context-help-host" data-help-role="choice">
         <label><input type="checkbox" id="opt-preview-skim" /> <span data-i18n="skimEnable">Generate an AI key-points summary on the preview page</span></label>
         <details class="context-help">
           <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
@@ -741,8 +780,8 @@
       </div>
 
       <div class="divider"></div>
-      <h2 class="section-title" data-i18n="secVideoPreview">Video pages</h2>
-      <div class="fg context-help-host">
+      <h2 class="section-title" id="sec-video-preview" data-i18n="secVideoPreview">Video pages</h2>
+      <div class="fg context-help-host" data-help-role="field">
         <label class="bl" for="opt-md-video-lang" data-i18n="optVideoLangPref">Preferred caption languages</label>
         <details class="context-help">
           <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
@@ -751,18 +790,20 @@
         <input type="text" id="opt-md-video-lang" placeholder="en, zh" maxlength="80" autocomplete="off" spellcheck="false" />
         <p class="hint context-help-link"><a href="https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes" target="_blank" rel="noopener" data-i18n="optVideoLangCodesLink">Language code list</a></p>
       </div>
-      <div class="fg">
+      <div class="fg fg-stack choice-stack" role="group" aria-labelledby="sec-video-preview">
+      <div class="choice-row">
         <label><input type="checkbox" id="opt-md-video-dark" /> <span data-i18n="optVideoDarkScheme">Open video pages in dark</span></label>
       </div>
-      <div class="fg">
+      <div class="choice-row">
         <label><input type="checkbox" id="opt-md-video-pause-lookup" checked /> <span data-i18n="optVideoPauseOnLookup">Pause the player while looking a word up</span></label>
       </div>
-      <div class="fg context-help-host">
+      <div class="choice-row context-help-host" data-help-role="choice">
         <label><input type="checkbox" id="opt-md-video-use-login" checked /> <span data-i18n="optVideoUseLogin">Send YouTube login cookies with subtitle requests</span></label>
         <details class="context-help">
           <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
           <p class="hint context-help-body" id="opt-md-video-use-login-hint" data-i18n="optVideoUseLoginHint">Only affects the fallback request the reader sends itself when no www.youtube.com tab is open; with a YouTube tab open, captions are read through that tab and its own session. On by default.</p>
         </details>
+      </div>
       </div>
 
       <div class="divider"></div>
@@ -788,7 +829,7 @@
       <details class="vocab-disclosure" data-acc-key="vocab-reading">
         <summary data-i18n="vocabReadingSection">Reading hints</summary>
         <div class="vocab-details-body">
-          <div class="fg context-help-host"><label><input type="checkbox" id="dict-echo-enabled" /> <span data-i18n="dictEchoToggle">Underline saved words while reading</span></label>
+          <div class="fg context-help-host" data-help-role="choice"><label><input type="checkbox" id="dict-echo-enabled" /> <span data-i18n="dictEchoToggle">Underline saved words while reading</span></label>
             <details class="context-help">
               <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
               <p class="hint context-help-body" data-i18n="dictEchoHint">Dotted underlines mark words already in your vocabulary. Click one to open the dictionary.</p>
@@ -833,7 +874,7 @@
             <input type="text" id="dict-anki-port" placeholder="8765" spellcheck="false" /></div>
           <div class="fg"><label class="bl" for="dict-anki-key" data-i18n="dictAnkiKeyLabel">AnkiConnect API key (optional)</label><span class="key-wrap"><input type="password" id="dict-anki-key" autocomplete="off" spellcheck="false" /><button type="button" class="key-toggle" data-target="dict-anki-key" title="Show/hide key" data-i18n-title="showHideKey" data-i18n-aria="showHideKey" aria-label="Show/hide key"></button></span>
             <div class="vocab-entry-row"><button type="button" class="btn btn-sm" id="vocab-anki-test-btn" data-i18n="dictAnkiTest">Test AnkiConnect</button><span class="save-status" id="vocab-anki-test-status" role="status" aria-live="polite"></span></div></div>
-          <div class="fg context-help-host"><label class="bl" for="dict-eudic-token" data-i18n="dictEudicTokenLabel">Eudic OpenAPI authorization</label><details class="context-help"><summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary><p class="hint context-help-body" data-i18n="dictEudicSupportedHint">Eudic supports only English, French, German, and Spanish (en/fr/de/es); other words are skipped.</p></details><span class="key-wrap"><input type="password" id="dict-eudic-token" autocomplete="off" spellcheck="false" /><button type="button" class="key-toggle" data-target="dict-eudic-token" title="Show/hide key" data-i18n-title="showHideKey" data-i18n-aria="showHideKey" aria-label="Show/hide key"></button></span><p class="hint"><a href="https://my.eudic.net/OpenAPI/Authorization" target="_blank" rel="noopener noreferrer" data-i18n="dictEudicTokenHint">Copy the full authorization value from Eudic</a></p>
+          <div class="fg context-help-host" data-help-role="field"><label class="bl" for="dict-eudic-token" data-i18n="dictEudicTokenLabel">Eudic OpenAPI authorization</label><details class="context-help"><summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary><p class="hint context-help-body" data-i18n="dictEudicSupportedHint">Eudic supports only English, French, German, and Spanish (en/fr/de/es); other words are skipped.</p></details><span class="key-wrap"><input type="password" id="dict-eudic-token" autocomplete="off" spellcheck="false" /><button type="button" class="key-toggle" data-target="dict-eudic-token" title="Show/hide key" data-i18n-title="showHideKey" data-i18n-aria="showHideKey" aria-label="Show/hide key"></button></span><p class="hint"><a href="https://my.eudic.net/OpenAPI/Authorization" target="_blank" rel="noopener noreferrer" data-i18n="dictEudicTokenHint">Copy the full authorization value from Eudic</a></p>
             <div class="vocab-entry-row"><button type="button" class="btn btn-sm" id="vocab-eudic-test-btn" data-i18n="dictEudicTest">Test Eudic connection</button><span class="save-status" id="vocab-eudic-test-status" role="status" aria-live="polite"></span></div></div>
           <div class="vocab-toolbar">
             <button type="button" class="btn btn-sm" id="vocab-export-btn" data-i18n="dictExportTsv">Export all (.tsv)</button>
@@ -878,10 +919,12 @@
 
     <!-- Tab: Markdown -->
     <div id="panel-markdown" class="panel" role="tabpanel" aria-labelledby="tab-markdown">
-      <h2 class="section-title" data-i18n="secMdExport">Markdown Export Defaults</h2>
-      <div class="fg"><label><input type="checkbox" id="opt-md-frontmatter" checked /> <span data-i18n="mdExportFrontmatter">Add YAML frontmatter to exported Markdown</span></label></div>
-      <div class="fg"><label><input type="checkbox" id="opt-md-extended-meta" checked /> <span data-i18n="mdExportExtendedMeta">Include extended metadata (author, published, site, image, word count)</span></label></div>
-      <div class="fg context-help-host">
+      <h2 class="section-title" id="sec-md-export" data-i18n="secMdExport">Markdown Export Defaults</h2>
+      <div class="fg fg-stack choice-stack" role="group" aria-labelledby="sec-md-export">
+        <div class="choice-row"><label><input type="checkbox" id="opt-md-frontmatter" checked /> <span data-i18n="mdExportFrontmatter">Add YAML frontmatter to exported Markdown</span></label></div>
+        <div class="choice-row"><label><input type="checkbox" id="opt-md-extended-meta" checked /> <span data-i18n="mdExportExtendedMeta">Include extended metadata (author, published, site, image, word count)</span></label></div>
+      </div>
+      <div class="fg context-help-host" data-help-role="field">
         <label class="bl" for="opt-md-image-policy" data-i18n="mdExportImagePolicy">Image handling</label>
         <details class="context-help">
           <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
@@ -893,8 +936,10 @@
           <option value="strip" data-i18n="mdImagePolicyStrip">Strip images</option>
         </select>
       </div>
-      <div class="fg"><label><input type="checkbox" id="opt-md-include-toc" /> <span data-i18n="mdExportIncludeToc">Include table of contents</span></label></div>
-      <div class="fg"><label><input type="checkbox" id="opt-md-include-hl" checked /> <span data-i18n="mdOptIncludeHl">Include highlights</span></label></div>
+      <div class="fg fg-stack choice-stack" role="group" aria-labelledby="sec-md-export">
+        <div class="choice-row"><label><input type="checkbox" id="opt-md-include-toc" /> <span data-i18n="mdExportIncludeToc">Include table of contents</span></label></div>
+        <div class="choice-row"><label><input type="checkbox" id="opt-md-include-hl" checked /> <span data-i18n="mdOptIncludeHl">Include highlights</span></label></div>
+      </div>
 
       <div class="divider"></div>
       <h2 class="section-title" data-i18n="secSendDestinations">Send-to Destinations</h2>
@@ -944,23 +989,25 @@
 
     <!-- Tab: Archive -->
     <div id="panel-archive" class="panel" role="tabpanel" aria-labelledby="tab-archive">
-      <h2 class="section-title" data-i18n="secWayback">Wayback Machine Archiving</h2>
-      <div class="fg context-help-host"><label><input type="checkbox" id="opt-wayback-enabled" /> <span data-i18n="optWayback">Archive saved pages to the Wayback Machine</span></label>
+      <h2 class="section-title" id="sec-wayback" data-i18n="secWayback">Wayback Machine Archiving</h2>
+      <div class="fg fg-stack choice-stack" role="group" aria-labelledby="sec-wayback">
+      <div class="choice-row context-help-host" data-help-role="choice"><label><input type="checkbox" id="opt-wayback-enabled" /> <span data-i18n="optWayback">Archive saved pages to the Wayback Machine</span></label>
         <details class="context-help">
           <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
           <p class="hint context-help-body" data-i18n="optWaybackHint">After each save, ask the Internet Archive to snapshot the page (best effort, never blocks saving). Sends the saved URL to archive.org; off by default.</p>
         </details>
       </div>
-      <div class="fg context-help-host" style="margin-left:20px">
+      <div class="choice-row context-help-host" data-help-role="choice" style="margin-left:20px">
         <label><input type="checkbox" id="opt-wayback-batch" /> <span data-i18n="optWaybackBatch">Also archive during batch save</span></label>
         <details class="context-help">
           <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
           <p class="hint context-help-body" data-i18n="optWaybackBatchHint">Batch saves can fire many archive requests at once; anonymous quota is limited.</p>
         </details>
       </div>
-      <div class="fg"><label><input type="checkbox" id="opt-wayback-skip-private" /> <span data-i18n="waybackSkipPrivate">Never archive bookmarks you save as private</span></label></div>
+      <div class="choice-row"><label><input type="checkbox" id="opt-wayback-skip-private" /> <span data-i18n="waybackSkipPrivate">Never archive bookmarks you save as private</span></label></div>
+      </div>
       <div class="divider"></div>
-      <div class="fg context-help-host" style="margin-top:10px">
+      <div class="fg context-help-host" data-help-role="field" style="margin-top:10px">
         <label class="bl" for="opt-wayback-s3key" data-i18n="optWaybackS3Key">archive.org S3 Access Key (optional)</label>
         <details class="context-help">
           <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
@@ -979,7 +1026,7 @@
       <div class="divider"></div>
       <div class="fg wayback-log-host">
         <div class="wayback-log-heading">
-          <div class="context-help-host wayback-log-help">
+          <div class="context-help-host wayback-log-help" data-help-role="group">
             <div class="bl" data-i18n="archiveLogTitle">Recent archive requests</div>
             <details class="context-help">
               <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
@@ -994,7 +1041,7 @@
 
     <!-- Tab 6: Appearance -->
     <div id="panel-appearance" class="panel" role="tabpanel" aria-labelledby="tab-appearance">
-      <div class="context-help-host context-help-section">
+      <div class="context-help-host context-help-section" data-help-role="section">
         <h2 class="section-title" id="sec-theme" data-i18n="secTheme">Theme</h2>
         <details class="context-help">
           <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
@@ -1009,7 +1056,7 @@
         </select>
       </div>
 
-      <div class="fg context-help-host">
+      <div class="fg context-help-host" data-help-role="choice">
         <label><input type="checkbox" id="opt-popup-follow-theme" checked /> <span data-i18n="optPopupFollowTheme">Extension pages follow the Pinboard theme preset</span></label>
         <details class="context-help">
           <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
@@ -1054,7 +1101,7 @@
         <label class="bl" data-i18n="labelSavedThemes">Saved Themes</label>
         <div id="saved-themes-list" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;"></div>
       </div>
-      <div class="fg context-help-host">
+      <div class="fg context-help-host" data-help-role="field">
         <label class="bl" for="opt-custom-css" data-i18n="labelCustomCSSOverlay">Custom CSS Overlay</label>
         <details class="context-help">
           <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
@@ -1064,7 +1111,7 @@
         <div class="overlay-meta-row">
           <span id="overlay-byte-counter" class="overlay-byte-counter">0 B / 50 KB</span>
         </div>
-        <div class="context-help-action-row" style="display:flex;gap:8px;align-items:center;margin-top:6px;">
+        <div class="context-help-action-row" data-help-role="action">
           <span class="save-theme-wrap">
             <button class="btn btn-sm" id="save-custom-theme" data-i18n="saveAsTheme" data-i18n-title="saveAsThemeDisabledHint" title="Modify Custom CSS first to save as theme" disabled>Save as theme</button>
           </span>
@@ -1084,7 +1131,7 @@
 
     <!-- Tab 7: Storage -->
     <div id="panel-storage" class="panel" role="tabpanel" aria-labelledby="tab-storage">
-      <div class="context-help-host context-help-section">
+      <div class="context-help-host context-help-section" data-help-role="section">
         <h2 class="section-title" data-i18n="secStorage">Storage Management</h2>
         <details class="context-help">
           <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
@@ -1095,18 +1142,6 @@
       <div class="fg" style="margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
         <button type="button" class="btn" id="storage-clear-btn" data-i18n="storageClear">Clear selected</button>
         <span id="storage-status" class="et-test-status hidden" role="status" aria-live="polite"></span>
-      </div>
-      <div class="divider"></div>
-      <div class="context-help-host context-help-section">
-        <h2 class="section-title" data-i18n="diagnosticsTitle">Support Diagnostics</h2>
-        <details class="context-help">
-          <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
-          <p class="hint context-help-body" data-i18n="diagnosticsHint">Copies extension, browser, feature, permission, storage and categorical error information. Credentials, account names, page URLs, content and custom endpoints are excluded.</p>
-        </details>
-      </div>
-      <div class="fg diagnostics-actions">
-        <button type="button" class="btn" id="copy-diagnostics-btn" data-i18n="diagnosticsCopy">Copy diagnostics</button>
-        <span id="diagnostics-status" class="et-test-status hidden" role="status" aria-live="polite"></span>
       </div>
     </div>
   </div>

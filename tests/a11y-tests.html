@@ -18,6 +18,7 @@
 function pass(n){const d=document.createElement("div");d.className="case pass";d.textContent="OK "+n;results.appendChild(d);}
 function fail(n,m){const d=document.createElement("div");d.className="case fail";d.textContent="X "+n+" :: "+m;results.appendChild(d);}
 function test(n,fn){try{fn();pass(n);}catch(e){fail(n,e.message);}}
+function asyncTest(n,fn){Promise.resolve().then(fn).then(()=>pass(n)).catch(e=>fail(n,e.message));}
 const results=document.getElementById("results");
 
 function assert(cond,msg){if(!cond)throw new Error(msg||"assertion failed");}
@@ -258,15 +259,19 @@ function buildRecentControl(kind){
     pop.querySelector(".confirm-no").click();
   });
 
-  test("G6b: resize repositions instead of dismissing confirm",()=>{
+  asyncTest("G6b: content-surface resize repositions without a window resize",async()=>{
     showConfirmPopover(anchor, { msg: "Sign out from Pinboard on this device?" });
     const pop = document.body.querySelector(".confirm-popover");
-    window.dispatchEvent(new Event("resize"));
-    assert(pop.isConnected, "resize dismissed the confirm");
+    panel.style.width = "190px";
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    const surfaceRect = panel.getBoundingClientRect();
+    const popRect = pop.getBoundingClientRect();
+    assert(pop.isConnected, "surface resize dismissed the confirm");
+    assert(popRect.left >= surfaceRect.left + 3, `left overflow after shrink: ${popRect.left} < ${surfaceRect.left}`);
+    assert(popRect.right <= surfaceRect.right - 3, `right overflow after shrink: ${popRect.right} > ${surfaceRect.right}`);
     pop.querySelector(".confirm-no").click();
+    panel.remove();
   });
-
-  panel.remove();
 })();
 
 test("G7: applyI18n synchronizes the document language",()=>{
