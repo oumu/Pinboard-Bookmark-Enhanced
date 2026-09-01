@@ -296,6 +296,39 @@ function test(name, fn) {
     assert(!doc.querySelector("#panel-storage .support-diagnostics"), "Storage still owns support diagnostics");
   });
 
+  test("connection overview is a closed accordion on first render", () => {
+    const body = doc.getElementById("acc-connection-overview");
+    const header = doc.querySelector('.accordion-header[data-target="acc-connection-overview"]');
+    const section = header?.closest(".accordion-section");
+    const health = doc.getElementById("connection-health");
+    const hint = doc.querySelector('[data-i18n="connectionOverviewHint"]');
+    assert(section && header && body, "connection overview has no accordion structure");
+    assert(!section.classList.contains("open"), "connection overview HTML default is open");
+    assert(header.getAttribute("aria-expanded") === "false", "connection overview does not expose its closed state");
+    assert(getComputedStyle(body).display === "none" && body.getBoundingClientRect().height === 0,
+      "connection overview body is visible before interaction");
+    assert(body.contains(health) && body.contains(hint), "connection overview content escaped its disclosure body");
+  });
+
+  test("connection overview presents one separator before Language", () => {
+    const section = doc.querySelector('.accordion-header[data-target="acc-connection-overview"]')
+      ?.closest(".accordion-section");
+    const language = doc.getElementById("sec-language");
+    assert(section && language, "connection overview separator fixture incomplete");
+    const separators = [];
+    const sectionStyle = getComputedStyle(section);
+    if (parseFloat(sectionStyle.borderBottomWidth) > 0 && sectionStyle.borderBottomStyle !== "none") {
+      separators.push(section.getBoundingClientRect().bottom);
+    }
+    for (let node = section.nextElementSibling; node && node !== language; node = node.nextElementSibling) {
+      const style = getComputedStyle(node);
+      if (parseFloat(style.borderTopWidth) > 0 && style.borderTopStyle !== "none") {
+        separators.push(node.getBoundingClientRect().top);
+      }
+    }
+    assert(separators.length === 1, "connection overview renders " + separators.length + " separators before Language");
+  });
+
   test("batch AI help opens below an explicit group title", () => {
     const { body, details, host, anchor, toggle } = parts("batchAiHint");
     assert(host?.classList.contains("context-help-host"), "batch AI has no contextual-help host");
@@ -341,7 +374,7 @@ function test(name, fn) {
     });
   });
 })().catch((error) => {
-  for (let i = results.children.length; i < 13; i++) report("fixture setup", error);
+  for (let i = results.children.length; i < 15; i++) report("fixture setup", error);
 });
 </script>
 </body></html>

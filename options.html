@@ -94,15 +94,16 @@
         </div>
       </div>
       <div class="divider"></div>
-      <div class="context-help-host context-help-section" data-help-role="section">
-        <h2 class="section-title" id="connection-overview-title" data-i18n="connectionOverviewTitle">Connection Status</h2>
-        <details class="context-help">
-          <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
-          <p class="hint context-help-body" data-i18n="connectionOverviewHint">Status is based on configuration, granted permissions, and your latest manual tests. Opening Settings never contacts these services or requests permission.</p>
-        </details>
+      <div class="accordion-section">
+        <button type="button" class="accordion-header" data-target="acc-connection-overview" aria-controls="acc-connection-overview" aria-expanded="false">
+          <span class="accordion-arrow"></span>
+          <span id="connection-overview-title" data-i18n="connectionOverviewTitle">Connection Status</span>
+        </button>
+        <div class="accordion-body" id="acc-connection-overview">
+          <p class="hint" data-i18n="connectionOverviewHint">Status is based on configuration, granted permissions, and your latest manual tests. Opening Settings never contacts these services or requests permission.</p>
+          <div id="connection-health" class="connection-health" role="region" aria-labelledby="connection-overview-title"></div>
+        </div>
       </div>
-      <div id="connection-health" class="connection-health" role="region" aria-labelledby="connection-overview-title"></div>
-      <div class="divider"></div>
       <h2 class="section-title" id="sec-language" data-i18n="secLanguage">Language</h2>
       <div class="fg">
         <select id="opt-lang" aria-labelledby="sec-language">

@@ -569,7 +569,7 @@ check(sharedJs.includes('const state = ok ? "ok" : "bad"') &&
     "options.css: removed Reader shortcut list left dead layout rules behind");
 
   const contextualHelpKeys = [
-    "connectionOverviewHint", "optSyncHint", "syncApiKeysHint", "backupPlaintextDisclosure",
+    "optSyncHint", "syncApiKeysHint", "backupPlaintextDisclosure",
     "backupIncludeHighlightsHint",
     "backupIncludeVocabularyHint", "optPopupWidthHelp", "tagSyncHint",
     "tagPresetsHint", "batchTagsHint", "batchAiHint", "hintOpenAIBaseUrl",
