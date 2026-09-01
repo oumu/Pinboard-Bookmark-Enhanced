@@ -384,8 +384,9 @@ h1 { font-size: 18px; color: var(--opt-fg); margin-bottom: var(--opt-sp-7); bord
 [data-help-script="alphabetic"][data-help-role="section"],
 [data-help-script="alphabetic"][data-help-role="choice"],
 [data-help-script="alphabetic"][data-help-role="group"] { --context-help-optical-y: 0.5px; }
-[data-help-script="alphabetic"][data-help-role="field"] { --context-help-optical-y: 0.75px; }
+[data-help-script="alphabetic"][data-help-role="field"] { --context-help-optical-y: 0.375px; }
 [data-help-script="alphabetic"][data-help-role="action"] { --context-help-optical-y: -1.5px; }
+[data-help-script="cjk"][data-help-role="section"] { --context-help-optical-y: -0.25px; }
 [data-help-script="cjk"][data-help-role="action"] { --context-help-optical-y: -1px; }
 .context-help-toggle .btn-ic {
   margin: 0;

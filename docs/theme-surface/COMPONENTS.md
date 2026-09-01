@@ -280,7 +280,8 @@ inline 元素的默认基线对齐在「图标 + 文字」场景下几乎总是�
 - 第一行固定为「语义锚点 + 24×24px 命中区」，13px help SVG 只移动可见墨迹，不移动 summary 的
   命中盒或焦点盒；说明正文由同一个 `<details>` 在第二行全宽展开。
 - 校准最多按「角色 × 实际文案文字系统族」声明一次；禁止 ID、文案、单项 class、主题选择器或内联 transform。
-  同一角色出现不同偏差时先修 DOM/布局异常，不新增例外。
+  同一角色出现不同偏差时先修 DOM/布局异常，不新增例外；校准值必须同时落在 Windows 常用字体与
+  CI 的 Liberation Sans/WenQuanYi 字体栅格交集内，门禁容许至多 2 个物理像素的抗锯齿量化差异。
 - `<details>` 继续复用全局 disclosure 的 `::details-content` 动画与 one-open-per-panel 行为，组件层
   不另写 transition。
 - 门：`options-context-help-tests.html` 扫完整角色注册表、相邻锚点、24px 命中区、展开归属与间距；

@@ -19,7 +19,11 @@ const LOCALES = Object.freeze([
   { id: "en", messagesDir: "en" },
 ]);
 const DPR_VALUES = Object.freeze([1, 1.25, 1.5, 2]);
-const MAX_CENTER_DELTA_PHYSICAL_PX = 1.5;
+// One CSS layout can land on opposite half-pixel edges under Verdana/YaHei
+// and Liberation/WenQuanYi rasterization. Two physical pixels keep both font
+// paths within 1 CSS px at DPR 2 while still rejecting the visible 3px drift
+// this oracle was introduced to catch.
+const MAX_CENTER_DELTA_PHYSICAL_PX = 2;
 const HELP_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>';
 
 const html = readFileSync(resolve(ROOT, "options.html"), "utf8")
