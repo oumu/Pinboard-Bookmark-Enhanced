@@ -581,6 +581,35 @@ function pbpAiEffectiveModel(s) {
   return String(conf).trim() || (reg && reg.defaultModel) || "default";
 }
 
+// Full cache identity for the reader's paid per-article caches (tr_, gloss_,
+// skim_): provider + effective model + the network ENDPOINT whenever it
+// deviates from the provider's built-in base. The configurable-base providers
+// (ollama, and any OPENAI_COMPAT provider through its baseField) can point the
+// SAME provider:model at a different backend — the same model name on two
+// hosts is two different models, so identity that stopped at the model kept
+// replaying the previous backend's output after a base-URL switch. ai.js's
+// aiCacheFingerprint hashes the endpoint for the popup's tags/summary and
+// md-video.js's punctModelId does it for vpunct_; this is that dimension for
+// the reader. Only a DEVIATION contributes a term, so a default configuration
+// keeps the key shape it already has instead of orphaning stored entries.
+function pbpAiCacheModelKey(s) {
+  const st = s || {};
+  const p = st.aiProvider || "gemini";
+  const norm = (v) => String(v || "").trim().replace(/\/+$/, "");
+  let base = "";
+  let builtIn = "";
+  if (p === "ollama") {
+    base = norm(st.ollamaBaseUrl);
+    builtIn = "http://localhost:11434";
+  } else {
+    const reg = (typeof OPENAI_COMPAT_PROVIDERS === "object" && OPENAI_COMPAT_PROVIDERS[p]) || null;
+    base = (reg && reg.baseField) ? norm(st[reg.baseField]) : "";
+    builtIn = norm(reg && reg.base);
+  }
+  const endpoint = (base && base !== builtIn) ? ":e" + pbpAiHash(base) : "";
+  return p + ":" + pbpAiEffectiveModel(st) + endpoint;
+}
+
 // A permission prompt is only legal from a real user gesture. Error UIs call this
 // directly from their existing Retry/Regenerate click; the callback is untouched
 // until the exact provider origin is granted, so denial leaves state and caches alone.
@@ -603,8 +632,9 @@ function _pbpTrOwnerScope(account) {
   return account ? "acct_" + encodeURIComponent(String(account)) : "ownerless";
 }
 
-// Shared cache-key URL normalization (extracted from md-skim.js so ask
-// history and skim agree byte-for-byte): drop #fragments except hash
+// Shared cache-key URL normalization for EVERY per-article family below
+// (tr_/trview_/gloss_/ask_, and skim_ in md-skim.js), so one article reached
+// through different links keys to one entry: drop #fragments except hash
 // ROUTERS (#/docs/x, #!page — those address content), then strip the known
 // tracking-param set with default settings (deterministic key, independent
 // of the user's strip config). Any parse failure falls back to the input.
@@ -621,7 +651,11 @@ function pbpAiCacheUrlNorm(url) {
   return u;
 }
 function _pbpTrCacheKey(url, lang, model, account) {
-  return "tr_" + _pbpTrOwnerScope(account) + "_" + lang + "_" + model + "_" + pbpAiHash(String(url || ""));
+  // URL-normalized (pbpAiCacheUrlNorm) like ask and skim: arriving at the same
+  // article through a #comments anchor or a ?utm_source= link must not buy a
+  // second full translation of it — the entry these 300 no-TTL slots exist to
+  // keep (ai-cache.js) is exactly what a raw-URL key threw away.
+  return "tr_" + _pbpTrOwnerScope(account) + "_" + lang + "_" + model + "_" + pbpAiHash(pbpAiCacheUrlNorm(url));
 }
 
 // ---- tr_ cache meta helpers (ZH-1a; pure, unit-tested) ----
@@ -683,7 +717,9 @@ function _pbpAskHistKey(url, account) {
 }
 function _pbpAskHistLegacyKey(url) { return "ask_" + pbpAiHash(String(url || "")); }
 function _pbpTrViewKey(url, account) {
-  return "trview_" + _pbpTrOwnerScope(account) + "_" + pbpAiHash(String(url || ""));
+  // Same normalized URL as tr_: the remembered view mode has to come back for
+  // the article, not for the particular link that opened it.
+  return "trview_" + _pbpTrOwnerScope(account) + "_" + pbpAiHash(pbpAiCacheUrlNorm(url));
 }
 function _pbpAskHistTrim(arr) {
   return Array.isArray(arr) ? arr.slice(-PBP_ASK_HIST_MAX) : [];
@@ -732,7 +768,8 @@ function _pbpTrGlossaryCacheKey(url, lang, model, account) {
   // md-translate.js's pure top (next to the prompt it covers) and resolved at
   // call time; md-preview.html and the test page load both files.
   const gen = (typeof PBP_TR_GLOSSARY_GEN === "number") ? PBP_TR_GLOSSARY_GEN : 0;
-  return "gloss_" + _pbpTrOwnerScope(account) + "_g" + gen + "_" + lang + "_" + model + "_" + pbpAiHash(String(url || ""));
+  // URL-normalized like tr_ (same article, one extraction).
+  return "gloss_" + _pbpTrOwnerScope(account) + "_g" + gen + "_" + lang + "_" + model + "_" + pbpAiHash(pbpAiCacheUrlNorm(url));
 }
 async function pbpTrGlossaryCacheGet(url, lang, model, account) {
   const entry = await pbpAiCacheGet(_pbpTrGlossaryCacheKey(url, lang, model, account));

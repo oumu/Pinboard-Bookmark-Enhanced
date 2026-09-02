@@ -9,9 +9,12 @@
 // none of them are hardwired to #ask-thread/#ask-panel) and
 // md-ai-core.js's block index (pbpAiBlocks/pbpAiIndexBlocks/
 // pbpAiBlocksFingerprint/pbpAiHash/pbpAiParseCites), both of which
-// load earlier in the script chain -- every cross-file call below is
-// still typeof-guarded per this codebase's convention rather than
-// assumed always-present.
+// load earlier in the script chain -- calls into md-ask.js's own
+// pieces stay typeof-guarded (a sibling feature may be absent), while
+// the ai.js / md-ai-core.js helpers this file cannot run without
+// (pbpAiGetSettings, pbpAiCacheModelKey, pbpAiErrorText,
+// pbpAiOverrideErrHint, ...) are called directly, as md-ask.js does:
+// a guard there would only mask a real load-order regression.
 // Design: docs/superpowers/specs/2026-07-07-skim-layer-design.md
 // sections 1.1-1.3 (mechanism), 3 (invariants), 6 (acceptance).
 // ============================================================
@@ -107,15 +110,14 @@ function _pbpSkimCacheKey(url) {
 
 function _pbpSkimCacheMeta(st) {
   const s = (st && st.s) || {};
-  const provider = s.aiProvider || "gemini";
-  // pbpAiEffectiveModel (not just the override): with no preview override,
-  // switching the provider's configured model must invalidate the cache —
-  // "openai:default" served model A's summary after switching to model B.
-  const model = (typeof pbpAiEffectiveModel === "function")
-    ? pbpAiEffectiveModel(s) : (pbpAiResolveModelOverride(s) || "default");
+  // pbpAiCacheModelKey (md-ai-core.js), not just the override: with no preview
+  // override, switching the provider's configured model must invalidate the
+  // cache ("openai:default" served model A's summary after switching to model
+  // B), and so must pointing the same provider:model at another backend
+  // through a custom base URL.
   return {
     langKey: aiSummaryLangInstruction(s),
-    modelKey: provider + ":" + model
+    modelKey: pbpAiCacheModelKey(s)
   };
 }
 
@@ -287,7 +289,13 @@ function _pbpSkimWireCollapse(sec, collapseBtn) {
     const collapsed = !isCollapsed;
     setCollapsed(collapsed, true);
     if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.local) {
-      try { chrome.storage.local.set({ pbp_skim_collapsed: collapsed }); } catch (_) {}
+      // .catch() as well as try/catch: the callback-less MV3 set() returns a
+      // promise, and a QUOTA_BYTES failure rejects it rather than throwing --
+      // without this, collapsing the panel on a near-full storage.local leaves
+      // an unhandled rejection in the reader console. Same shape as
+      // md-reader.js's pbp_srch_regex / pbp_zen_width / pbp_font_tier writes:
+      // losing this one preference write is the acceptable degradation.
+      try { chrome.storage.local.set({ pbp_skim_collapsed: collapsed }).catch(() => {}); } catch (_) {}
     }
   });
 }
@@ -525,8 +533,24 @@ function _pbpSkimShowError(error) {
   body.replaceChildren();
   const p = document.createElement("p");
   p.className = "skim-err";
-  p.textContent = (error && error.code === "host_permission" && error.message)
-    ? error.message : t("skimFailed");
+  // Classified like the ask and translate panels, not folded into one line:
+  // an expired key, an exhausted quota and a mistyped model each need a
+  // different fix, and a generic sentence plus a Retry that fails again names
+  // none of them. pbpAiErrorText (ai.js) is the shared classifier (coded error
+  // -> its own message, 401/403 -> key, 429 -> quota, 5xx -> network, and it
+  // logs the raw shape); pbpAiOverrideErrHint names the preview model override
+  // on model-shaped failures — the one failure source the AI Providers test
+  // connection never exercises. t("skimFailed") stays the fallback for a
+  // rejection with no message at all: pbpAiErrorText's own fallback there is a
+  // hardcoded English "translation failed" that would read as translate chrome
+  // inside the key-points panel.
+  const raw = String((error && error.message) || "");
+  if (error && error.code === "host_permission" && raw) {
+    p.textContent = raw;
+  } else {
+    const hint = pbpAiOverrideErrHint(error, _pbpSkimState && _pbpSkimState.s);
+    p.textContent = (raw ? pbpAiErrorText(error) : t("skimFailed")) + (hint ? " " + hint : "");
+  }
   const retry = document.createElement("button");
   retry.type = "button";
   retry.className = "action-btn skim-retry";
