@@ -55,6 +55,15 @@
   --selection: light-dark(#bfdbfe, #324B61);
   --surface: light-dark(#ffffff, #282726);
   --danger: light-dark(#dc2626, #D9827C);
+  /* Foreground for a SOLID --danger fill -- the confirm popover's destructive
+     button is the only one. Same output role popup/options/library derive per
+     preset (--pp-on-danger and friends); the reader is the one surface that
+     does not go through the theme factory, so it names the role by hand.
+     White holds 4.83:1 on the light branch, but only 2.82:1 over the dark
+     branch's lighter coral -- under AA at the popover's 12px. The page's own
+     near-black gets 6.09:1 there, the same call library.css's flexoki-dark
+     block already makes on this palette. */
+  --on-danger: light-dark(#fff, #1C1B1A);
   /* D8-7: --pre-bg is intentionally darker than --surface's dark value so
      the code-block container reads as a step below panel-level surfaces.
      Under the old Slate palette this was tuned to literally equal
@@ -1500,9 +1509,27 @@ body.raw-active .pbv-view-toggle,
 body.raw-active .pbv-list,
 body.raw-active details#video-description { display: none; }
 
-/* Empty state: hide the rail + reset the doc offset so the .empty-state centers. */
-body.md-empty .rail { display: none; }
+/* Empty state: hide the rail + reset the doc offset so the .empty-state centers.
+   The drawer toggle goes with it -- below 1000px it is the rail's only opener,
+   and opening the drawer onto a display:none rail would just dim the page and
+   inert <main> behind a scrim with no rail to show. */
+body.md-empty .rail, body.md-empty .rail-toggle { display: none; }
 body.md-empty main { margin-left: 0; }
+
+/* Extraction shell (md-preview.js's pending/restore branch, body.md-shell):
+   renderErrorState deliberately drops body.md-empty so the rail -- and with it
+   the Defuddle/Jina switch, the engine status and the retry button -- stays
+   reachable. That also exposes md-preview.html's static Export block and the
+   Raw/Rendered toggle, and BOTH are wired only after that branch has returned:
+   no collapse header, no click handlers, no Send-to label. Hide the two dead
+   ones; #send-split and #send-status are inside #export-section and go with it.
+   The video panel is NOT hidden -- md-video.js mounts a fully wired one onto
+   this same shell. Same shape as the body.raw-active hides above.
+   `.rail > .view-toggle` is the STATIC Raw/Rendered pair only; md-translate.js
+   builds its own .view-toggle nested inside #tr-section, which cannot exist
+   here (it is created on "pbp:rendered") and must not be caught either way. */
+body.md-shell #export-section,
+body.md-shell .rail > .view-toggle { display: none; }
 
 /* ---- Screen-reader only utility ---- */
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; border: 0; }
@@ -2272,7 +2299,7 @@ body.tr-only #rendered-view [data-pb-hl-mirror="5"] { box-shadow: inset 3px 0 0 
   border-radius: 6px;
   border: 1px solid;
 }
-.confirm-popover .confirm-yes { background: var(--danger); color: #fff; border-color: var(--danger); }
+.confirm-popover .confirm-yes { background: var(--danger); color: var(--on-danger); border-color: var(--danger); }
 .confirm-popover .confirm-no { background: none; color: var(--fg-secondary); border-color: var(--border); }
 .confirm-popover button:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
 /* Same enter/exit recipe as options.css/popup.css: shared.js dismiss() adds
@@ -2840,8 +2867,11 @@ body.ask-open main { margin-right: 396px; }
      computes display:flex (for the slide-out transition) at id+attr
      specificity, which outranks a bare #ask-panel here -- without the
      [hidden] variant a closed panel would print as flex and only rely on
-     its off-canvas transform to happen to fall outside the page. */
-  #ask-panel, #ask-panel[hidden], #ask-section, #fn-pop, #skim-section { display: none; }
+     its off-canvas transform to happen to fall outside the page. It carries
+     !important (it has to outrank the page-wide `[hidden]` fallback), so the
+     print hide needs the same weight; source order decides between the two. */
+  #ask-panel, #ask-section, #fn-pop, #skim-section { display: none; }
+  #ask-panel[hidden] { display: none !important; }
   /* #ask-tip hangs off document.body AND md-ask.js shows it via an INLINE
      display:block — only !important outranks that in print (hover a chip,
      then Ctrl+P). */
@@ -3613,7 +3643,11 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
   border: 1px solid var(--btn-border); border-radius: 6px;
   background: var(--btn-bg); color: var(--btn-fg); cursor: pointer; text-decoration: none;
 }
-.pbv-bar > :where(select, button, a):hover, .pbv-copy-group > :where(button):hover { background: var(--btn-hover); }
+/* Hover feedback only while the control can act on it. The negation is
+   wrapped in :where() so it stays weightless: the family comment above pins
+   these rules at .pbv-bar's own specificity precisely so the per-class rules
+   below (pressed, copied, narrow) keep winning by source order alone. */
+.pbv-bar > :where(select, button, a):where(:not(:disabled)):hover, .pbv-copy-group > :where(button):where(:not(:disabled)):hover { background: var(--btn-hover); }
 .pbv-bar > :where(select, button, a):focus-visible, .pbv-copy-group > :where(button):focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
 .pbv-tracks { max-width: 16em; }
 /* Playback-rate select: the same family, narrower. */
@@ -3665,6 +3699,13 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
 @media (forced-colors: active) {
   .pbv-follow[aria-pressed="true"], .pbv-loop[aria-pressed="true"], .pbv-autopause[aria-pressed="true"], .pbv-estimate[aria-pressed="true"] { outline: 2px solid Highlight; outline-offset: -2px; }
 }
+/* Disabled members, same recipe as .src-seg:disabled. The family's explicit
+   background/color override the UA's own greying, so without this a control
+   md-video.js disables looks exactly like a live one -- and follow keeps
+   aria-pressed="true" while it is disabled in the reading view, so the
+   pressed tint above would otherwise paint a lit toggle that does nothing.
+   No `a` in the selector: :disabled never matches the family's one anchor. */
+.pbv-bar > :where(select, button):disabled, .pbv-copy-group > :where(button):disabled { opacity: 0.45; cursor: not-allowed; }
 /* Status as a MESSAGE BAR (audit U5 / 方案A): .msg-bar (T7.9) carries the
    look and the busy / error / fading states (driven by pbvSetStatus's
    data-state / data-fading). Own full-width row; empty = gone. */

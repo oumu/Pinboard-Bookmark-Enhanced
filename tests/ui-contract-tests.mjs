@@ -3093,6 +3093,96 @@ check(mdCss.includes("animation-timeline: scroll(self inline);"),
     "md-video.js: a rescue-tier trace line reports at warn (it lands in the chrome://extensions Errors list); expected info");
 }
 
+// The reader's page-wide `[hidden] { display: none !important; }` fallback is
+// an AUTHOR important declaration: it beats every normal display rule in the
+// file no matter how specific. Two contracts follow from that, and both were
+// broken silently for a month.
+//
+// (1) #rail-toggle must express its visibility in CSS ALONE. Below 1000px the
+// rail is an off-canvas drawer (transform: translateX(-100%)) whose only
+// opener is that button, and the markup shipped a static `hidden` attribute
+// that nothing ever removes -- so the media query's `display: inline-flex`
+// lost to the fallback, and export / TOC / engine switch / Ask / zen were
+// unreachable at any width the media query covers. A source check, not a
+// render check: the attribute is the whole defect.
+{
+  const toggleTag = (mdHtml.match(/<button\b[^>]*id="rail-toggle"[^>]*>/) || [])[0] || "";
+  check(!!toggleTag, "md-preview.html: #rail-toggle button markup not found");
+  check(!/\shidden(\s|=|>)/.test(toggleTag),
+    "md-preview.html: #rail-toggle carries a `hidden` attribute again -- the page-wide `[hidden]{display:none!important}` rule outranks the <=1000px `.rail-toggle{display:inline-flex}` reveal, so the off-canvas rail loses its only opener and every rail control (export, TOC, engine switch, Ask, zen) becomes unreachable on a narrow window. Visibility for this button lives in md-preview.css and nowhere else");
+}
+// (1b) Any render path that SHOWS the hamburger must also wire it. The error
+// shell drops body.md-empty (md-preview.js renderErrorState) so the toggle
+// paints below 1000px, and that branch returns before the fully-rendered
+// path's setupDrawer() call -- an unwired toggle there is a lit no-op.
+{
+  const earlyReturn = mdPreviewJs.indexOf("await attemptExtract(info.engine);");
+  const mainSetup = mdPreviewJs.lastIndexOf("setupDrawer();");
+  check(earlyReturn > 0 && mainSetup > earlyReturn,
+    "md-preview.js: the pending-extraction branch anchor moved -- re-derive this check before trusting it");
+  check(mdPreviewJs.slice(0, earlyReturn).includes("setupDrawer();"),
+    "md-preview.js: the error-shell early-return path no longer calls setupDrawer() -- renderErrorState removes body.md-empty, so below 1000px the drawer hamburger paints with no click/Esc listener and the rail stays off-canvas (a lit no-op control)");
+}
+// (2) #ask-panel INVERTS the meaning of [hidden]: it stays display:flex while
+// closed and hides with transform+visibility, because a transform cannot
+// animate across display:none. Restating display for that rule therefore
+// needs the same weight as the fallback, in the base rule and again in the
+// print hide that has to beat it back down.
+{
+  const bare = mdCss.replace(/\/\*[\s\S]*?\*\//g, "");
+  check(/#ask-panel\[hidden\]\s*\{[^}]*display:\s*flex\s*!important/.test(bare),
+    "md-preview.css: the closed #ask-panel no longer restates `display: flex !important` -- the page-wide `[hidden]{display:none!important}` fallback wins instead, the panel computes display:none while closed, and both 200ms slides (side panel and narrow bottom sheet) collapse into a hard cut");
+  // Brace-depth scan rather than a lazy regex: the file carries several
+  // @media print blocks and the hide has to live inside one of them.
+  const printBlocks = [];
+  for (const m of bare.matchAll(/@media\s+print\s*\{/g)) {
+    let i = m.index + m[0].length, depth = 1;
+    while (i < bare.length && depth > 0) {
+      if (bare[i] === "{") depth++;
+      else if (bare[i] === "}") depth--;
+      i++;
+    }
+    printBlocks.push(bare.slice(m.index, i));
+  }
+  check(printBlocks.some((b) => /#ask-panel\[hidden\]\s*\{[^}]*display:\s*none\s*!important/.test(b)),
+    "md-preview.css: the print hide for a CLOSED #ask-panel lost its !important -- the base rule is important now, so a normal `display: none` here loses and the panel prints as an off-canvas flex column");
+}
+// The reader is the one surface that does not go through the theme factory,
+// so nothing derives an on-danger foreground for it. A literal foreground on
+// a themed --danger fill is exactly the shape that passes review in one
+// colour scheme and fails AA in the other (white on the dark branch's coral
+// measured 2.82:1). Asked as a category, not as a .confirm-yes special case.
+{
+  const offenders = [];
+  for (const m of mdCss.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    const body = ";" + m[2];
+    if (!/(?:^|;)\s*background(?:-color)?\s*:[^;]*var\(--danger\)/.test(body)) continue;
+    if (/(?:^|;)\s*color\s*:\s*(#|rgba?\(|hsla?\(|white\b|black\b)/.test(body)) offenders.push(m[1].trim().replace(/\s+/g, " "));
+  }
+  check(offenders.length === 0,
+    `md-preview.css: a solid var(--danger) fill pairs with a hardcoded foreground -- pair it with var(--on-danger), the role this file names for exactly that (white is 2.82:1 over the dark branch's --danger). Offenders: ${offenders.join(" | ")}`);
+  check(/--on-danger:\s*light-dark\(/.test(mdCss),
+    "md-preview.css: --on-danger is gone from the token block -- the confirm popover's destructive button has no scheme-aware foreground left");
+}
+// The video toolbar paints its own background/color, which overrides the UA's
+// greying for a disabled control -- and md-video.js disables members of that
+// family for long stretches (follow in the reading view, the track select and
+// the AI button during a batch, the AI button permanently once a pass is
+// done) without ever clearing aria-pressed. Without a disabled state a lit
+// toggle that does nothing is the result, hover tint included.
+{
+  const rules = [...mdCss.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+    .map((m) => [m[1].trim().replace(/\s+/g, " "), m[2]]);
+  const family = (sel) => /\.pbv-(bar|copy-group)\s*>/.test(sel);
+  const hovers = rules.filter(([sel]) => family(sel) && sel.includes(":hover"));
+  const count = (str, needle) => str.split(needle).length - 1;
+  check(hovers.length > 0 && hovers.every(([sel]) => count(sel, ":not(:disabled)") >= count(sel, ":hover")),
+    "md-preview.css: a .pbv-bar hover rule no longer excludes :disabled -- a disabled toolbar control lights up under the pointer as if it were live");
+  check(rules.some(([sel, body]) => family(sel) && sel.includes(":disabled") &&
+      /opacity:\s*0?\.\d/.test(body) && /cursor:\s*not-allowed/.test(body)),
+    "md-preview.css: the .pbv-bar control family lost its :disabled state (opacity + not-allowed, same recipe as .src-seg:disabled) -- the family's own background/color mask the UA greying, so a disabled control is pixel-identical to a live one");
+}
+
 if (fail.length) {
   console.error(fail.join("\n"));
   process.exit(1);
