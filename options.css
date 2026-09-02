@@ -194,6 +194,21 @@ h1 { font-size: 18px; color: var(--opt-fg); margin-bottom: var(--opt-sp-7); bord
   align-self: start;
   position: sticky; top: 24px;
 }
+/* The sidebar is 679px tall (measured: search + 13 tabs + 5 group labels +
+   Reset This Tab) and it is the page, not the sidebar, that scrolls. A sticky
+   box grows no inner scroller, so once the viewport is shorter than the sidebar
+   its tail -- Appearance, Storage, Reset This Tab -- sits permanently below the
+   fold and no amount of page scrolling brings it up. The width breakpoint below
+   cannot help (1080p at 150% zoom is ~1280x633: short, but far wider than
+   720px), so drop sticky on height instead and let the nav scroll with the
+   page, exactly as the mobile layout already does. 760px = the 679px column
+   plus its 24px offset, plus headroom for a longer locale. Deliberately not an
+   overflow-y scroller on .options-nav: that computes overflow-x to auto too,
+   and .options-search-results is an absolutely positioned 360px child of a
+   ~180px column. */
+@media (max-height: 760px) {
+  .options-nav { position: static; }
+}
 .mobile-tab-picker { display: none; }
 .options-search { position: relative; margin-bottom: var(--opt-sp-5); }
 .options-search input[type="search"] {
@@ -492,6 +507,19 @@ html[data-theme] .panel-foot a { color: var(--opt-fg-hint, var(--opt-fg-muted));
    progress card and attention list) were never actually hidden, so the Dismiss
    button appeared to do nothing. */
 .hidden { display: none !important; }
+/* The hidden ATTRIBUTE must always win too. The UA's [hidden]{display:none} is
+   a NORMAL declaration, so any author display beats it by origin -- .btn's
+   inline-flex and .vocab-drive-actions' flex did exactly that, and every
+   `el.hidden = true` in options-vocab.js was a visual no-op (measured live: the
+   three mutually exclusive Google Drive buttons all computed display:flex at
+   once, and a Delete showed for a dictionary pack that was never imported).
+   The four local [hidden] patches further down (.backup-import-preview /
+   .backup-import-result, .pf, #tag-gov-progress, .vocab-drive-fields /
+   .vocab-drive-notice-row) fought the same defect case by case; this ends the
+   class. Discrete display transitions still run -- transition declarations
+   outrank important author ones -- so the reveal recipes below are unaffected.
+   md-preview.css:1517 closed the same hole the same way. */
+[hidden] { display: none !important; }
 /* Danger reads from a left strip, not a full-strength perimeter -- the full
    --opt-danger ring looked like an alert frame on dark themes. */
 html[data-theme] .opt-error {
@@ -783,6 +811,22 @@ html.motion-ready .backup-import-result:not([hidden]) {
 }
 .backup-section-picker legend { padding: 0 var(--opt-sp-2); color: var(--opt-fg-muted); }
 .backup-section-picker label { min-width: 0; }
+/* Disabled checkbox rows. :disabled was styled only on the .btn family, so a row
+   the user cannot tick kept full-contrast text and (inside .fg) a pointer
+   cursor -- worst in the import preview, the one screen where the user is
+   deciding what to import. Three sites disable a checkbox, all with the same
+   <label><input><span> shape, so the adjacent sibling lands with no JS change
+   and no :has() (hot path): options-backup.js renderPreview (a section the
+   backup file does not carry), options.js's storage category list (a category
+   measuring 0 bytes), and options.js's credential-sync toggle (settings sync
+   off, which is every new profile's default). Dim reuses .btn:disabled's step
+   rather than inventing a second one. */
+.backup-section-picker input:disabled + span,
+.storage-cats input:disabled + span,
+.choice-row input:disabled + span { opacity: 0.45; }
+.backup-section-picker input:disabled,
+.storage-cats input:disabled,
+.choice-row input:disabled { cursor: not-allowed; }
 .backup-apply-row { min-width: 0; }
 .backup-import-result {
   display: grid;

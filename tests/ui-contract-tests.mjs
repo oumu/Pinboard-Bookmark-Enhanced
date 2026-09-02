@@ -1833,6 +1833,45 @@ check(/@media \(max-width: 720px\)[\s\S]*\.options-nav\s*{[\s\S]*position:\s*sta
   /@media \(max-width: 720px\)[\s\S]*\.tabs\s*{\s*display:\s*none/.test(optionsCss),
   "options.css: mobile category select does not replace the desktop tablist");
 
+// The UA's `[hidden] { display: none }` is a NORMAL declaration, so any author
+// `display` beats it by origin -- and options.html hands the bare attribute to
+// controls that carry .btn (inline-flex) or .vocab-drive-actions (flex).
+// options-vocab.js drives eight of them purely through the hidden property,
+// including the three mutually exclusive Drive buttons, so the global fallback
+// is load-bearing rather than tidiness. Counted from the markup so the check
+// survives new hidden controls instead of enumerating today's eight.
+{
+  const globalHidden = /(^|\n)\s*\[hidden\]\s*\{[^}]*display:\s*none\s*!important/;
+  const hiddenAttrs = (optionsHtml.match(/<[a-zA-Z][^>]*\shidden(?=[\s/>=])[^>]*>/g) || []).length;
+  check(hiddenAttrs > 0 && globalHidden.test(optionsCss),
+    `options.css: ${hiddenAttrs} element(s) in options.html ship the bare hidden attribute but options.css has no global [hidden] { display: none !important } fallback -- author display declarations outrank the UA rule by origin, so every hidden = true assignment is a visual no-op`);
+  // library.css must stay out of this: .vocab-note-save[hidden] deliberately
+  // keeps its layout slot via visibility:hidden (asserted above), and a global
+  // display:none would take the reserved box away again.
+  check(!globalHidden.test(libraryCss),
+    "library.css: a global [hidden] { display: none !important } rule landed here -- it overrides .vocab-note-save[hidden]'s deliberate visibility:hidden and the note textarea jumps again");
+}
+
+// .options-nav is position:sticky and roughly 700px tall (search + 13 tabs + 5
+// group labels + Reset This Tab). A sticky box has no inner scroll and the page
+// scroll cannot move it, so on a viewport shorter than its own height the tail
+// of the list is permanently below the fold. Accepts either escape hatch: drop
+// sticky on a height breakpoint, or cap the height and scroll inside.
+check(/@media[^{]*\(max-height:[^)]*\)\s*\{[\s\S]*?\.options-nav\s*\{[^}]*position:\s*static/.test(optionsCss)
+  || /(^|\n)\.options-nav\s*\{[^}]*max-height:/.test(optionsCss),
+  "options.css: .options-nav is sticky with no height escape hatch -- on a viewport shorter than the sidebar (1080p at 150% zoom is ~633px) the last tabs and Reset This Tab are unreachable");
+
+// Disabled checkboxes had no visual state on this page: :disabled was only ever
+// styled on the .btn family. Every site that disables a checkbox uses the same
+// <label><input><span> row, so each container needs the adjacent-sibling dim.
+{
+  const disabledRow = ["backup-section-picker", "storage-cats", "choice-row"];
+  const missing = disabledRow.filter((cls) =>
+    !new RegExp(`\\.${cls}[^{}]*input:disabled\\s*\\+\\s*span`).test(optionsCss));
+  check(missing.length === 0,
+    `options.css: disabled checkbox rows keep full-contrast text in ${missing.map((c) => "." + c).join(", ")} -- the user cannot tick them and the page never says why`);
+}
+
 function runOptionsEarly({ mode = "auto", preset = "", dark = false, chrome } = {}) {
   const root = { dataset: { theme: "stale" } };
   const values = new Map([["pp-theme", mode], ["pp-theme-preset", preset]]);
