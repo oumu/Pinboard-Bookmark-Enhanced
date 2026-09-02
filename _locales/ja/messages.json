@@ -3210,6 +3210,17 @@
         }
       }
     },
+    "notesResultCount": {
+      "message": "$RESULTS$ 件表示・全 $TOTAL$ 件のハイライト",
+      "placeholders": {
+        "results": {
+          "content": "$1"
+        },
+        "total": {
+          "content": "$2"
+        }
+      }
+    },
     "vocabSelectedCount": {
       "message": "選択済み：$COUNT$ 件",
       "placeholders": {

@@ -3210,6 +3210,17 @@
         }
       }
     },
+    "notesResultCount": {
+      "message": "显示 $RESULTS$ 条，共 $TOTAL$ 条高亮",
+      "placeholders": {
+        "results": {
+          "content": "$1"
+        },
+        "total": {
+          "content": "$2"
+        }
+      }
+    },
     "vocabSelectedCount": {
       "message": "已选 $COUNT$ 条",
       "placeholders": {

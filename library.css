@@ -511,6 +511,13 @@ html[data-theme] .confirm-popover .confirm-no:hover { background: var(--lib-btn-
    semantic (danger / currentColor) edge -- so focus recolours that edge and
    adds the themed glow, losing no information. */
 .notes-filter-dot:focus-visible { outline: none; border-color: var(--lib-focus-bd); box-shadow: var(--lib-focus-ring); }
+/* Hover feedback, the surface's ghost-tier recipe (.vocab-selection-actions
+   .btn:hover, and the generated .btn.ghost:hover emit the same mix): these
+   five dots were the one filter family on the page with no pointer feedback
+   at all. background-color joins the transition below, which until now
+   animated opacity only. */
+.notes-filter-dot { transition: background-color var(--motion-state) ease; }
+.notes-filter-dot:hover:not(:disabled) { background: color-mix(in srgb, var(--lib-fg) 6%, var(--lib-bg)); }
 /* The "filtered out" dimming sits on the SWATCH, not on the button. A focus
    ring paints at its own element's opacity -- border and box-shadow alike --
    so dimming the button would render the ring above at a third strength on

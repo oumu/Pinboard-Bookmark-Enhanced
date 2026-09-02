@@ -3210,6 +3210,17 @@
         }
       }
     },
+    "notesResultCount": {
+      "message": "$RESULTS$ affichés · $TOTAL$ surlignages au total",
+      "placeholders": {
+        "results": {
+          "content": "$1"
+        },
+        "total": {
+          "content": "$2"
+        }
+      }
+    },
     "vocabSelectedCount": {
       "message": "Sélection : $COUNT$",
       "placeholders": {

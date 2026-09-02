@@ -3210,6 +3210,17 @@
         }
       }
     },
+    "notesResultCount": {
+      "message": "顯示 $RESULTS$ 筆，共 $TOTAL$ 筆標記",
+      "placeholders": {
+        "results": {
+          "content": "$1"
+        },
+        "total": {
+          "content": "$2"
+        }
+      }
+    },
     "vocabSelectedCount": {
       "message": "已選取 $COUNT$ 筆",
       "placeholders": {

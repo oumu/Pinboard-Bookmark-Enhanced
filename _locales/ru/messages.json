@@ -3210,6 +3210,17 @@
         }
       }
     },
+    "notesResultCount": {
+      "message": "Показано $RESULTS$ · всего $TOTAL$ выделений",
+      "placeholders": {
+        "results": {
+          "content": "$1"
+        },
+        "total": {
+          "content": "$2"
+        }
+      }
+    },
     "vocabSelectedCount": {
       "message": "Выбрано: $COUNT$",
       "placeholders": {

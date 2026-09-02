@@ -114,6 +114,15 @@ const PBP_NOTES_COLORS = [1, 2, 3, 4, 5];
 const PBP_NOTES_COLOR_KEYS = ["hlColorQuote", "hlColorDefinition", "hlColorExample", "hlColorDoubt", "hlColorTodo"];
 let _notesAllRows = []; // [{ row, rec }], last full scan, sorted lastTs desc
 let _notesActiveColors = new Set(PBP_NOTES_COLORS);
+// Render cap, the vocabulary list's contract (library-vocab.js's
+// _vocabRenderLimit / PBP_VOCAB_RENDER_BATCH): the two lists on this page grow
+// the same way. A heavy highlighter has hundreds of hits and every one of them
+// is ~8 elements, two listeners, a toLocaleDateString and a <mark> split --
+// paid in full on every keystroke in the filter box, for rows nobody scrolled
+// to. Reset by whatever changes WHICH rows exist (filter, colour), preserved
+// across a rescan so a background refresh never collapses what was expanded.
+const PBP_NOTES_RENDER_BATCH = 100;
+let _notesRenderLimit = PBP_NOTES_RENDER_BATCH;
 // The highlight the detail pane is reading, as "<storage key>#<item id>".
 // Same job _pbpVocabDetailWordId does for the vocabulary view: it outlives
 // every rebuild, so a rescan can put the selection back where it was.
@@ -164,7 +173,7 @@ if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.onChanged)
         // screen -- and that button targets the previous account's record.
         // Same gap, same fix, as library-vocab.js's account-switch path.
         _pbpNotesRenderDetail(null);
-        _pbpNotesRenderList(_pbpNotesVisibleHits());
+        _pbpNotesRender(true);
         renderNotesPanel().catch(() => {});
       }
     }
@@ -226,9 +235,19 @@ async function _pbpNotesScan() {
   return rows;
 }
 
+// Follows the extension UI language, not the browser's: this date sits inside
+// a row whose every other word is already translated, and en-US 9/2/2026 next
+// to de-DE 2.9.2026 is the disagreement users read first. uiLangToBCP47() ends
+// in split("-")[0] over an arbitrary stored tag, so a malformed one can reach
+// Intl and throw -- fall back to the browser default rather than losing the
+// date, and keep the outer catch for an unparseable timestamp.
 function _pbpNotesFormatDate(ts) {
   if (!ts) return "";
-  try { return new Date(ts).toLocaleDateString(); } catch (_) { return ""; }
+  try {
+    const locale = typeof uiLangToBCP47 === "function" ? uiLangToBCP47() : undefined;
+    try { return new Date(ts).toLocaleDateString(locale); }
+    catch (_) { return new Date(ts).toLocaleDateString(); }
+  } catch (_) { return ""; }
 }
 
 function _pbpNotesColorOf(it) {
@@ -270,10 +289,12 @@ function _pbpNotesHits() {
 // item does" and pbpNotesEntryHasColor's "any item is in the set" both collapse
 // to exactly the per-highlight question when items is [this one]. No second
 // copy of either rule, and a title match still surfaces the page's highlights.
-function _pbpNotesVisibleHits() {
+// `all` lets one render reuse a flatten it already paid for (see
+// _pbpNotesRender); omitted, it takes its own.
+function _pbpNotesVisibleHits(all) {
   const filterInput = $id("notes-filter");
   const q = filterInput ? filterInput.value : "";
-  return _pbpNotesHits().filter((hit) => {
+  return (all || _pbpNotesHits()).filter((hit) => {
     const one = { title: hit.row.title, url: hit.row.url, items: [hit.item] };
     return pbpNotesMatch(one, q) && pbpNotesEntryHasColor(one, _notesActiveColors);
   });
@@ -298,6 +319,11 @@ function _pbpNotesMarkText(host, text, query) {
   const needle = (query || "").trim().toLowerCase();
   if (!needle) { host.appendChild(document.createTextNode(value)); return; }
   const lower = value.toLowerCase();
+  // toLowerCase is not length-preserving (U+0130 folds to two code units) and
+  // every offset below indexes `lower` while slicing `value` -- once the two
+  // lengths part company the marks wrap text that never matched. Drop the
+  // highlight rather than point at the wrong characters.
+  if (lower.length !== value.length) { host.appendChild(document.createTextNode(value)); return; }
   let idx = 0, pos = lower.indexOf(needle);
   while (pos !== -1) {
     host.appendChild(document.createTextNode(value.slice(idx, pos)));
@@ -343,6 +369,9 @@ function _pbpNotesBuildRow(hit) {
   btn.type = "button";
   btn.className = "notes-hit-btn";
   btn.setAttribute("aria-keyshortcuts", "Control+Space Shift+Space");
+  // Roving tabindex (see _pbpNotesSyncRowTabStops): every row builds OUT of
+  // the tab order, and exactly one is put back after the render.
+  btn.tabIndex = -1;
 
   const bar = document.createElement("span");
   bar.className = "notes-hit-bar notes-c" + _pbpNotesColorOf(hit.item);
@@ -433,8 +462,13 @@ function _pbpNotesClearSelection() {
 // with the selection set -- a range gesture and Select all both mutate rows
 // that were never the click target. Prunes keys the current view no longer
 // contains first, the same way _pbpVocabSyncSelectionUi does.
-function _pbpNotesSyncSelectionUi() {
-  const visible = new Set(_pbpNotesVisibleHits().map((h) => h.key));
+// `hits` is the CURRENT VISIBLE SET, not the rendered slice: selection spans
+// everything the filter admits (the vocabulary list reads _vocabViewRows the
+// same way), so the render cap must not shrink what Select all takes or what
+// the pruning below keeps. The querySelectorAll only reaches rendered rows,
+// which is correct -- the rest carry no band to sync.
+function _pbpNotesSyncSelectionUi(hits) {
+  const visible = new Set((hits || _pbpNotesVisibleHits()).map((h) => h.key));
   for (const key of [..._notesSelected]) if (!visible.has(key)) _notesSelected.delete(key);
   for (const el of document.querySelectorAll("#notes-list .notes-hit")) {
     const on = _notesSelected.has(el.dataset.notesKey);
@@ -471,11 +505,47 @@ function _pbpNotesMarkCurrentRow() {
   if (el) el.setAttribute("aria-current", "true");
 }
 
+// Roving tabindex for the row grid. #notes-list declares role="grid" and this
+// list has no render cap at all, so a heavy highlighter's several hundred rows
+// were several hundred Tab stops between the filter box and the batch bar --
+// and the arrow keys that role promises did nothing, which left the
+// Ctrl/Shift+Space selection chords reachable only by tabbing row by row. One
+// stop for the whole list instead, with the arrows doing the moving. Twin of
+// library-vocab.js's _pbpVocabRowHeads family, minus its Left/Right: a notes
+// row carries exactly one button (the inline delete is deliberately absent).
+function _pbpNotesRowButtons() {
+  const list = $id("notes-list");
+  return list ? [...list.querySelectorAll(".notes-hit .notes-hit-btn")] : [];
+}
+
+function _pbpNotesSetRowTabStop(btn) {
+  if (!btn) return;
+  for (const el of _pbpNotesRowButtons()) el.tabIndex = el === btn ? 0 : -1;
+}
+
+// Re-derived after every render: rows are rebuilt wholesale on filter, colour
+// change and reload, and a stop pointing at a discarded node leaves the list
+// with none at all. A stop that survived the rebuild wins, then the row the
+// detail pane is reading, then the first row.
+function _pbpNotesSyncRowTabStops() {
+  const btns = _pbpNotesRowButtons();
+  if (!btns.length) return;
+  const list = $id("notes-list");
+  const current = list && list.querySelector(".notes-hit[aria-current] .notes-hit-btn");
+  _pbpNotesSetRowTabStop(btns.find((el) => el.tabIndex === 0) || current || btns[0]);
+}
+
 function _pbpNotesSelectRow(key) {
   const hit = _pbpNotesFindHit(key);
   if (!hit) return;
   _pbpNotesSelectedKey = key;
   _pbpNotesMarkCurrentRow();
+  // Keep the list's single tab stop on the row the detail pane is showing:
+  // that is what the narrow-mode Back button and every focus-restore path in
+  // this file already treat as "where the user was", so the two must not
+  // disagree.
+  const rowEl = _pbpNotesRowEl(key);
+  if (rowEl) _pbpNotesSetRowTabStop(rowEl.querySelector(".notes-hit-btn"));
   _pbpNotesRenderDetail(hit, true);
 }
 
@@ -658,12 +728,49 @@ function _pbpNotesRenderDetail(hit, enterNarrow) {
   }
 
   detail.replaceChildren(frag);
+  // The scroll container is the PANE, not this inner div: library.css caps
+  // .notes-detail-pane and gives it overflow-y:auto, and replaceChildren is
+  // one atomic mutation, so it keeps the previous highlight's scrollTop.
+  const pane = $id("notes-detail-pane");
+  if (pane) pane.scrollTop = 0;
   if (enterNarrow) _pbpNotesFocusNarrowBack(detail);
 }
 
+// Same guard the two failure sentences above use: t() echoes an unknown key
+// straight back to the screen, and this one lands in a live region.
+const PBP_NOTES_RESULT_COUNT_KEY = "notesResultCount";
+function _pbpNotesResultCountText(visible, total) {
+  const msg = t(PBP_NOTES_RESULT_COUNT_KEY, String(visible), String(total));
+  return msg === PBP_NOTES_RESULT_COUNT_KEY
+    ? String(visible) + " shown · " + String(total) + " highlights"
+    : msg;
+}
+
+// #notes-count is aria-live, and "12 / 340" announces as an unlabelled pair of
+// numbers -- the vocabulary view's twin counter has said a full sentence since
+// it shipped (t("vocabResultCount")). The compact pair stays the VISIBLE text:
+// .notes-toolbar is a fixed three-column grid already carrying four children,
+// and a sentence in that cell pushes the colour filters and Select all onto
+// another row in the longer locales. The sentence rides in an .sr-only sibling
+// instead (the utility library.html already uses for the vocabulary toolbar's
+// labels), so the announcement gains words at zero layout cost.
 function _pbpNotesRenderToolbar(total, visible) {
   const count = $id("notes-count");
-  if (count) count.textContent = String(visible) + " / " + String(total);
+  if (!count) return;
+  let compact = count.querySelector(".notes-count-compact");
+  let spoken = count.querySelector(".notes-count-spoken");
+  if (!compact || !spoken) {
+    compact = document.createElement("span");
+    compact.className = "notes-count-compact";
+    compact.setAttribute("aria-hidden", "true");
+    spoken = document.createElement("span");
+    spoken.className = "sr-only notes-count-spoken";
+    count.replaceChildren(compact, spoken);
+  }
+  // textContent on the existing nodes, never a rebuild: replacing a live
+  // region's children on every keystroke re-announces the whole thing.
+  compact.textContent = String(visible) + " / " + String(total);
+  spoken.textContent = _pbpNotesResultCountText(visible, total);
 }
 
 function _pbpNotesBuildColorFilters() {
@@ -675,7 +782,13 @@ function _pbpNotesBuildColorFilters() {
     b.type = "button";
     b.className = "notes-filter-dot";
     b.setAttribute("aria-pressed", "true");
-    b.setAttribute("aria-label", t(PBP_NOTES_COLOR_KEYS[idx]));
+    // Icon-only button: title AND aria-label, per CLAUDE.md's icon contract.
+    // The 8px swatch is the whole visible content, so without the title the
+    // five meanings (quote / definition / example / doubt / todo) reach screen
+    // readers only and a pointer user has to click each dot to find out.
+    const label = t(PBP_NOTES_COLOR_KEYS[idx]);
+    b.setAttribute("aria-label", label);
+    b.title = label;
     const dot = document.createElement("span");
     dot.className = "note-dot c" + c;
     dot.setAttribute("aria-hidden", "true");
@@ -685,38 +798,111 @@ function _pbpNotesBuildColorFilters() {
       else _notesActiveColors.add(c);
       b.setAttribute("aria-pressed", _notesActiveColors.has(c) ? "true" : "false");
       // A colour filter is a filter: same rule as the search box, it clears
-      // the batch selection rather than leaving rows selected off-screen.
+      // the batch selection rather than leaving rows selected off-screen, and
+      // it starts the list back at the first batch.
       _pbpNotesClearSelection();
-      _pbpNotesRenderList(_pbpNotesVisibleHits());
+      _pbpNotesRender(true);
     });
     wrap.appendChild(b);
   });
 }
 
-function _pbpNotesRenderList(hits) {
+// One flatten+sort per render. _pbpNotesHits() rebuilds and re-sorts every
+// highlight of every page, and a render used to call it three times over: the
+// caller's visible set, this list's total and the selection sync's own visible
+// set -- all of it on every keystroke in the filter box, which is not debounced
+// (the vocabulary list is not either; the render cap is what makes that
+// affordable). Route renders through here so the three share one array.
+function _pbpNotesRender(resetLimit) {
+  if (resetLimit) _notesRenderLimit = PBP_NOTES_RENDER_BATCH;
+  const all = _pbpNotesHits();
+  _pbpNotesRenderList(_pbpNotesVisibleHits(all), all);
+}
+
+// Load more, the vocabulary list's control in the notes list's region: same
+// .btn.btn-sm family, the same .vocab-load-more geometry and the same locale
+// key (its wording never mentions words, so nothing here is borrowed copy).
+// Built in JS rather than in library.html for one reason: the rule that beats
+// the .btn `display` for a hidden control is scoped to #view-vocab, so this
+// button LEAVES the DOM when there is nothing left to load instead of relying
+// on an `hidden` attribute that would not reach this view.
+function _pbpNotesSyncLoadMore(remaining) {
+  const list = $id("notes-list");
+  const existing = $id("notes-load-more");
+  if (!list || remaining <= 0) {
+    if (existing) existing.remove();
+    return;
+  }
+  const more = existing || document.createElement("button");
+  if (!existing) {
+    more.type = "button";
+    more.id = "notes-load-more";
+    more.className = "btn btn-sm vocab-load-more";
+    more.addEventListener("click", _pbpNotesLoadMore);
+  }
+  more.textContent = t("vocabLoadMore", String(Math.min(PBP_NOTES_RENDER_BATCH, remaining)));
+  // Sibling of the list, never a child: #notes-list is role="grid" and takes
+  // rows only (same placement #notes-empty already has).
+  if (more.previousElementSibling !== list) list.after(more);
+}
+
+function _pbpNotesLoadMore() {
+  const list = $id("notes-list");
+  const appendedAt = list ? list.children.length : 0;
+  const all = _pbpNotesHits();
+  const hits = _pbpNotesVisibleHits(all);
+  _notesRenderLimit = Math.min(hits.length, _notesRenderLimit + PBP_NOTES_RENDER_BATCH);
+  _pbpNotesRenderList(hits, all, true);
+  // The LAST click removes the button it came from, and Chrome then drops
+  // focus on <body> -- with no skip link on this page the way on is a full Tab
+  // walk from the header. Hand it to the first row this click appended, and
+  // move the roving stop with it or the list would answer the next Tab from an
+  // older row. Twin of the vocabulary list's own load-more handover.
+  if ($id("notes-load-more")) return;
+  const appended = list && list.children[appendedAt];
+  const btn = appended ? appended.querySelector(".notes-hit-btn") : null;
+  // Nothing appended (a re-render raced this click): the filter box is the
+  // landing spot every other path in this file falls back to.
+  if (!btn) { _pbpNotesFocus($id("notes-filter")); return; }
+  _pbpNotesSetRowTabStop(btn);
+  _pbpNotesFocus(btn);
+}
+
+// `allHits` is the unfiltered flatten this render already paid for; `append`
+// grows the rendered slice in place (a full rebuild would empty the scroll
+// container and snap the reader back to the top of the list).
+function _pbpNotesRenderList(hits, allHits, append) {
   const list = $id("notes-list");
   if (!list) return;
-  const total = _pbpNotesHits().length;
+  const total = (allHits || _pbpNotesHits()).length;
   _pbpNotesRenderToolbar(total, hits.length);
-  list.replaceChildren();
+  if (!append) list.replaceChildren();
   // The empty state is a SIBLING of the list, never a child: #notes-list is
-  // role="list", whose only valid children are listitems (same placement the
+  // role="grid", whose only valid children are rows (same placement the
   // vocabulary view uses for #vocab-empty / #vocab-no-results).
   const empty = $id("notes-empty");
   if (empty) {
     empty.hidden = hits.length > 0;
     if (!hits.length) empty.textContent = total ? t("notesFilterEmpty") : t("notesEmpty");
   }
-  if (!hits.length) { _pbpNotesSyncSelectionUi(); return; }
+  // Storage scope, only when there is nothing at all to show: with a filter
+  // active the user plainly has highlights, and the sentence would be noise.
+  const scopeNote = $id("notes-scope-note");
+  if (scopeNote) scopeNote.hidden = !!total || hits.length > 0;
+  if (!hits.length) { _pbpNotesSyncLoadMore(0); _pbpNotesSyncSelectionUi(hits); return; }
+  const target = Math.min(hits.length, _notesRenderLimit);
+  const start = append ? Math.min(list.children.length, target) : 0;
   const frag = document.createDocumentFragment();
-  hits.forEach((hit) => frag.appendChild(_pbpNotesBuildRow(hit)));
+  for (let i = start; i < target; i++) frag.appendChild(_pbpNotesBuildRow(hits[i]));
   list.appendChild(frag);
+  _pbpNotesSyncLoadMore(hits.length - target);
   // A rebuild drops the marker even though the detail pane still reads that
   // highlight -- re-derive it from the surviving selection key.
   _pbpNotesMarkCurrentRow();
   // Same for the batch selection: rows are rebuilt from _notesSelected, and
   // this prunes whatever the fresh view no longer contains.
-  _pbpNotesSyncSelectionUi();
+  _pbpNotesSyncSelectionUi(hits);
+  _pbpNotesSyncRowTabStops();
 }
 
 // Where the status sentence lives. Two things make this a lookup rather than
@@ -916,7 +1102,10 @@ function _pbpNotesDelete(row, anchor) {
       _notesAllRows = _notesAllRows.filter((e) => e.row.key !== row.key);
       // The detail was reading one of the highlights that just went away.
       if (_pbpNotesSelectedKey && _pbpNotesSelectedKey.startsWith(row.key + "#")) _pbpNotesRenderDetail(null);
-      _pbpNotesRenderList(_pbpNotesVisibleHits());
+      // Render depth survives a delete: a mutation is not a filter change, and
+      // collapsing the list back to the first batch under the user is not what
+      // pressing Delete asked for.
+      _pbpNotesRender();
       _pbpNotesFocusAfterDelete(position);
     },
   });
@@ -1044,9 +1233,24 @@ function _pbpNotesFocusAfterDelete(position) {
 // Re-scans storage every activation (no "already inited" guard), matching
 // renderStoragePanel()'s convention.
 async function renderNotesPanel() {
-  if (!$id("notes-list")) return;
+  const list = $id("notes-list");
+  if (!list) return;
   _pbpNotesBuildColorFilters();
-  const rows = await _pbpNotesScan();
+  // The scan is a real storage round trip (getKeys + get over every pbp_hl_
+  // record), and until it lands this grid is empty -- indistinguishable from
+  // "this account has nothing saved" to anything reading the accessibility
+  // tree. #vocab-list has reported aria-busy through its own load since
+  // _pbpVocabSetLoading shipped; this is the same contract on its twin.
+  // Cleared in `finally`: an account switch re-enters this function through
+  // the onChanged path, and a busy grid left behind by a failed read would
+  // never say it had stopped loading.
+  list.setAttribute("aria-busy", "true");
+  let rows;
+  try {
+    rows = await _pbpNotesScan();
+  } finally {
+    list.setAttribute("aria-busy", "false");
+  }
   if (!rows) {
     // The read failed (null, not an empty array). Rendering the empty result
     // here would write "select text on a preview page to highlight it" over a
@@ -1065,7 +1269,10 @@ async function renderNotesPanel() {
   // reader is never told the failure is over. Only ours -- see _notesLoadFailed.
   if (_notesLoadFailed) _pbpNotesSetStatus("");
   _notesAllRows = rows;
-  _pbpNotesRenderList(_pbpNotesVisibleHits());
+  // No limit reset: a rescan is a refresh, not a filter change, and the 250ms
+  // pbp_hl_ debounce fires one behind every write the reader makes in another
+  // tab -- collapsing an expanded list under the user each time.
+  _pbpNotesRender();
 }
 
 // The filter input is static markup (never recreated), so bind its listener
@@ -1087,7 +1294,7 @@ if (typeof $id === "function") {
       // would keep it; this view has no sort.)
       _pbpNotesClearSelection();
       _pbpNotesBuildColorFilters();
-      _pbpNotesRenderList(_pbpNotesVisibleHits());
+      _pbpNotesRender(true);
     });
   }
   const _notesSelectAll = $id("notes-select-all");
@@ -1113,6 +1320,30 @@ if (typeof $id === "function") {
   });
   const _notesBatchDeleteBtn = $id("notes-batch-delete");
   if (_notesBatchDeleteBtn) _notesBatchDeleteBtn.addEventListener("click", _pbpNotesBatchDelete);
+  // Grid navigation. Bound on the container, so it survives every row rebuild
+  // and stays scoped to the list: Home/End must not reach the toolbar's filter
+  // field, where they are the caret's own keys. ArrowUp/Down are
+  // preventDefault'd (they would otherwise scroll the page) but never activate
+  // -- opening a highlight stays a click or an unmodified Space, and the
+  // modified Space chords keep their own handler on the row button.
+  const _notesListEl = $id("notes-list");
+  if (_notesListEl) _notesListEl.addEventListener("keydown", (e) => {
+    if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+    const row = e.target && typeof e.target.closest === "function" ? e.target.closest(".notes-hit") : null;
+    if (!row) return;
+    const btns = _pbpNotesRowButtons();
+    const at = btns.indexOf(row.querySelector(".notes-hit-btn"));
+    let next = null;
+    if (e.key === "ArrowDown") next = btns[Math.min(at + 1, btns.length - 1)];
+    else if (e.key === "ArrowUp") next = btns[Math.max(at - 1, 0)];
+    else if (e.key === "Home") next = btns[0];
+    else if (e.key === "End") next = btns[btns.length - 1];
+    else return;
+    e.preventDefault();
+    if (!next) return;
+    _pbpNotesSetRowTabStop(next);
+    next.focus();
+  });
 }
 
 // Re-scan and re-render without throwing away what the user was reading.

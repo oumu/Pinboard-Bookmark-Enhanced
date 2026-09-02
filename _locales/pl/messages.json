@@ -3210,6 +3210,17 @@
         }
       }
     },
+    "notesResultCount": {
+      "message": "Wyświetlono $RESULTS$ · łącznie $TOTAL$ zaznaczeń",
+      "placeholders": {
+        "results": {
+          "content": "$1"
+        },
+        "total": {
+          "content": "$2"
+        }
+      }
+    },
     "vocabSelectedCount": {
       "message": "Zaznaczono: $COUNT$",
       "placeholders": {
