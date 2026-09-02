@@ -1459,6 +1459,17 @@ async function _pbpVocabReloadAfterMutation(expectedOwner, requestedGen) {
     // aria-current across the whole restored depth.
     _pbpVocabApplyView(false);
     _pbpVocabReconcileDetail();
+    // Vocabulary lives in IndexedDB, so there is no storage.onChanged for an
+    // open reader to hear: a word deleted or marked known here would keep its
+    // dotted underline in md-preview until that tab is reloaded. Same message
+    // shape the service worker's Drive pull sends (background.js
+    // pbpBroadcastVocabSynced) and md-vocab-echo.js already listens for --
+    // it re-checks message.owner, and the sender never receives its own
+    // message, so this page keeps refreshing through the reload above.
+    try {
+      const pending = chrome.runtime.sendMessage({ type: "PBP_VOCAB_SYNCED", owner: expectedOwner });
+      if (pending && typeof pending.catch === "function") pending.catch(() => {});
+    } catch (_) {}
     return true;
   } catch (_) {
     if (gen !== _vocabRenderGen) return false;

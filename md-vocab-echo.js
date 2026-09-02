@@ -128,6 +128,7 @@ let _echoCounts = new Map();      // term key -> drawn count
 let _echoTotal = 0;
 let _echoTerms = [];
 let _echoObserver = null;
+let _echoListWatch = null;  // container watched only until .pbv-list exists
 let _echoDirty = new Set();
 let _echoDebounce = 0;
 let _echoIdles = new Set(); // ALL pending idle handles (concurrent scan loops)
@@ -234,6 +235,16 @@ function _echoRequestIdle(step) {
   _echoIdles.add(id);
 }
 
+// Dropping the painted ranges is not the same as standing down: the term set
+// survives _echoClearAll and the observer keeps running, so the very next
+// article mutation would draw the same words again. Every bail-out that still
+// owns the current generation goes through here, mirroring the synchronous
+// teardown _echoOnArticle does.
+function _echoStandDown() {
+  _echoTerms = [];
+  _echoDisconnect();
+}
+
 function _echoClearAll() {
   for (const id of _echoIdles) cancelIdleCallback(id);
   _echoIdles.clear();
@@ -321,7 +332,7 @@ async function _echoRestart() {
   const owner = _echoOwner;
   _echoClearAll();
   const view = _echoView();
-  if (!_echoEnabled || !view) return;
+  if (!_echoEnabled || !view) { _echoStandDown(); return; }
   // Ask/translate init owns the canonical pbpAiIndexBlocks call on
   // pbp:rendered; this mirrors md-ask's lazy backfill for safety.
   if (typeof pbpAiIndexBlocks === "function" && typeof pbpAiBlocks === "function"
@@ -334,8 +345,10 @@ async function _echoRestart() {
   // a mismatch; showing another account's vocabulary is the worse outcome).
   if (typeof pbpVocabCurrentOwner === "function") {
     const live = await pbpVocabCurrentOwner().catch(() => null);
+    // A newer generation already owns this module's state; it decides what the
+    // term set and the observer hold, not this stale continuation.
     if (epoch !== _echoEpoch || owner !== _echoOwner || !_echoEnabled) return;
-    if (live !== owner) return;
+    if (live !== owner) { _echoStandDown(); return; }
   }
   const rows = await (typeof pbpVocabAll === "function" ? pbpVocabAll(owner).catch(() => []) : []);
   if (epoch !== _echoEpoch || owner !== _echoOwner || !_echoEnabled) return;
@@ -343,6 +356,22 @@ async function _echoRestart() {
   if (!_echoTerms.length) return;
   _echoScheduleScan(_echoBlockKeys());
   _echoObserve();
+}
+
+// The timeline list is built by md-video's workspace mount, which is lazy
+// (md-preview.js injects md-video.js without awaiting it) and, when an already
+// committed transcript is re-hydrated after a reload, never commits the
+// article again -- so .pbv-list can appear long AFTER this module wired
+// itself, with nothing left to run the wiring. Arming is therefore repeated
+// rather than one-shot, and idempotent: observe() on an already-observed node
+// replaces that registration instead of adding a second one, and the click
+// binding is flagged on the element.
+function _echoArmTimeline() {
+  const list = _echoTimelineList();
+  if (!list) return false;
+  if (_echoObserver) _echoObserver.observe(list, { childList: true, subtree: true, characterData: true });
+  if (!list._pbpEchoClick) { list._pbpEchoClick = true; list.addEventListener("click", _echoOnClick, true); }
+  return true;
 }
 
 // ---- Mutation tracking (dirty blocks, immediate invalidation) -----------
@@ -362,6 +391,15 @@ function _echoObserve() {
       unresolvable = true;
     };
     for (const m of muts) {
+      if (_echoListWatch && m.target === _echoListWatch) {
+        // This registration exists only to notice .pbv-list being mounted.
+        // The container's own children (the video workspace, the key-points
+        // section) carry no echo ranges, so they must not reach mark() and
+        // force a full rescan -- that would drop and repaint every underline
+        // in the article for an insert that changed none of them.
+        _echoArmTimeline();
+        continue;
+      }
       if (m.type === "characterData") { mark(m.target); continue; }
       for (const node of m.addedNodes) mark(node);
       for (const node of m.removedNodes) {
@@ -395,12 +433,19 @@ function _echoObserve() {
   _echoObserver.observe(view, { childList: true, subtree: true, characterData: true });
   // Timeline rows arrive in rAF batches and are rebuilt on every track
   // switch / AI pass (research T2.2): the same observer watches the list.
-  const list = _echoTimelineList();
-  if (list) _echoObserver.observe(list, { childList: true, subtree: true, characterData: true });
+  // No list yet means md-video has not mounted the workspace (it may never
+  // have committed an article in this page life) -- watch the container it
+  // will be mounted into and arm on arrival instead of losing the rows for
+  // the rest of the page's life.
+  if (!_echoArmTimeline()) {
+    _echoListWatch = view.parentNode || null;
+    if (_echoListWatch) _echoObserver.observe(_echoListWatch, { childList: true });
+  }
 }
 
 function _echoDisconnect() {
   if (_echoObserver) { _echoObserver.disconnect(); _echoObserver = null; }
+  _echoListWatch = null; // its registration died with the observer
 }
 
 // ---- Click (capture phase; yields to real highlights) -------------------
@@ -478,9 +523,10 @@ function _echoOnArticle(detail) {
   // ever being replaced wholesale.
   if (view) view.addEventListener("click", _echoOnClick, true);
   // Timeline rows carry echo ranges too (r<i>/rt<i>); their clicks were
-  // never wired (review) -- same handler, once per list element.
-  const tl = _echoTimelineList();
-  if (tl && !tl._pbpEchoClick) { tl._pbpEchoClick = true; tl.addEventListener("click", _echoOnClick, true); }
+  // never wired (review) -- same handler, once per list element. The observer
+  // is disconnected right now, so this binds the click only; _echoObserve
+  // arms the list for mutations (and binds a list that shows up later).
+  _echoArmTimeline();
   _echoReadEnabled().then((on) => {
     if (readSeq !== _echoReadSeq || owner !== _echoOwner) return;
     _echoEnabled = on;
@@ -506,9 +552,13 @@ document.addEventListener("pbp:vocab-changed", (e) => {
 });
 
 // pbp:vocab-changed only covers saves made in THIS document. A Drive pull
-// writes from the service worker, so without this the underlines keep matching
-// the term set captured when the preview opened. The service worker only sends
-// this when local records actually moved.
+// writes from the service worker and the vocabulary view of library.html
+// writes straight to IndexedDB, so without this the underlines keep matching
+// the term set captured when the preview opened -- a word deleted or marked
+// known elsewhere would keep its underline while the dictionary card it opens
+// says "not saved". Both senders broadcast only when local records actually
+// moved, and message.owner is re-checked below so another account's write can
+// never repaint this document.
 if (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.onMessage) {
   chrome.runtime.onMessage.addListener((message) => {
     if (!message || message.type !== "PBP_VOCAB_SYNCED") return;

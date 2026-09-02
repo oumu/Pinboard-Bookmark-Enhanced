@@ -649,6 +649,116 @@ section("vocab echo: timeline row / translation keys");
   }
 }
 
+// Two runtime halves the DOM-free sections above cannot reach: the account
+// this document rendered under can move away under it (a token swap in
+// another tab), and the video workspace that owns the timeline list is
+// mounted lazily -- both leave the module wired to state it must not paint
+// from, or unwired from DOM it must paint.
+async function runVocabEchoWiringTests() {
+  const tick = () => new Promise((r) => setTimeout(r, 0));
+
+  section("vocab echo: fail-closed restart");
+  {
+    const saved = { owner: _echoOwner, enabled: _echoEnabled, epoch: _echoEpoch, terms: _echoTerms, total: _echoTotal };
+    const realAll = window.pbpVocabAll;
+    const hadOwnerFn = "pbpVocabCurrentOwner" in window;
+    const realOwnerFn = window.pbpVocabCurrentOwner;
+    const prevView = document.getElementById("rendered-view");
+    if (prevView) prevView.remove();
+    const docBody = document.createElement("div");
+    const view = document.createElement("div");
+    view.id = "rendered-view";
+    docBody.appendChild(view);
+    document.body.appendChild(docBody);
+    try {
+      window.pbpVocabAll = async () => [{ term: "residue" }];
+      // The live account (B) is no longer the one this document rendered
+      // under (A) -- the fail-closed branch.
+      window.pbpVocabCurrentOwner = async () => "acct_Yg";
+      _echoOwner = "acct_YQ";
+      _echoEnabled = true;
+      _echoTerms = pbpEchoTermSet([{ term: "residue" }]);
+      _echoObserve();
+      assert(_echoObserver !== null, "precondition: the previous account's scan left the observer attached");
+      await _echoRestart();
+      assertEq(_echoTerms.length, 0, "a live-account mismatch drops the rendered account's term set, not only its painted ranges");
+      assertEq(_echoObserver, null, "and disconnects the observer, so no later article mutation can repaint from it");
+
+      _echoTerms = pbpEchoTermSet([{ term: "residue" }]);
+      _echoObserve();
+      _echoEnabled = false;
+      await _echoRestart();
+      assertEq(_echoTerms.length, 0, "restarting while the feature is switched off drops the term set too");
+      assertEq(_echoObserver, null, "and leaves no observer running behind it");
+
+      window.pbpVocabCurrentOwner = async () => "acct_YQ";
+      _echoEnabled = true;
+      await _echoRestart();
+      assert(_echoTerms.length === 1 && _echoTerms[0].key === "residue", "a matching live account still loads the owner's terms");
+      assert(_echoObserver !== null, "and arms the observer");
+    } finally {
+      _echoEnabled = false;
+      _echoClearAll();
+      _echoDisconnect();
+      docBody.remove();
+      window.pbpVocabAll = realAll;
+      if (hadOwnerFn) window.pbpVocabCurrentOwner = realOwnerFn; else delete window.pbpVocabCurrentOwner;
+      _echoOwner = saved.owner; _echoEnabled = saved.enabled; _echoEpoch = saved.epoch;
+      _echoTerms = saved.terms; _echoTotal = saved.total;
+      if (prevView && !document.getElementById("rendered-view")) document.body.appendChild(prevView);
+    }
+  }
+
+  section("vocab echo: timeline list mounted after the observer");
+  {
+    const saved = { enabled: _echoEnabled };
+    const prevView = document.getElementById("rendered-view");
+    if (prevView) prevView.remove();
+    const docBody = document.createElement("div"); // stands in for .doc-body
+    const view = document.createElement("div");
+    view.id = "rendered-view";
+    docBody.appendChild(view);
+    document.body.appendChild(docBody);
+    try {
+      _echoDisconnect();
+      _echoEnabled = true;
+      _echoRanges.set("o1", []); // one painted block: a full rescan would queue it
+      _echoObserve();
+      assert(_echoObserver !== null, "precondition: the observer arms with no timeline list in the document yet");
+      // md-video mounts its workspace long after this module wired itself:
+      // the script is lazy-loaded, and a re-hydrated committed transcript
+      // never commits the article again.
+      const studyCol = document.createElement("div");
+      studyCol.className = "pbv-col-study";
+      const list = document.createElement("div");
+      list.className = "pbv-list";
+      studyCol.appendChild(list);
+      docBody.appendChild(studyCol);
+      await tick();
+      assertEq(_echoDirty.size, 0, "mounting the workspace does not force a full rescan of the article (no repaint flicker)");
+      assertEq(list._pbpEchoClick, true, "a timeline list that appears later still gets the row-click binding");
+      const row = document.createElement("div");
+      row.className = "pbv-row";
+      row.appendChild(document.createElement("button")).className = "pbv-time";
+      const text = document.createElement("span");
+      text.className = "pbv-text";
+      text.textContent = "late row";
+      row.appendChild(text);
+      list.appendChild(row);
+      await tick();
+      assert(_echoDirty.has("r0"), "and the late list is observed: a row added to it is queued for scanning");
+    } finally {
+      _echoEnabled = false;
+      _echoClearAll();
+      _echoDisconnect();
+      docBody.remove();
+      _echoRanges.clear(); _echoDirty.clear();
+      _echoEnabled = saved.enabled;
+      if (prevView && !document.getElementById("rendered-view")) document.body.appendChild(prevView);
+    }
+  }
+}
+
 async function runDictNetworkTests() {
   section("dictionary abort causes / circuit runtime");
   const parent = new AbortController();
@@ -1227,6 +1337,7 @@ async function runDictResolveLangLadderTests() {
 }
 
 (async function () {
+  await runVocabEchoWiringTests();
   await runDictNetworkTests();
   await runDictLookupChainTests();
   await runDictPackRoutingTests();
