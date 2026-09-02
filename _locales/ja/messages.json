@@ -105,6 +105,14 @@
       }
     }
   },
+  "descCharCount": {
+    "message": "$COUNT$ 文字",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
   "clear": {
     "message": "クリア"
   },
@@ -188,6 +196,9 @@
   },
   "editingExisting": {
     "message": "既存のブックマークを編集中"
+  },
+  "saveNeedsReview": {
+    "message": "すでにブックマーク済みです。内容を確認して、もう一度「更新」を押してください。"
   },
   "recentEditTitle": {
     "message": "読み込んで編集"

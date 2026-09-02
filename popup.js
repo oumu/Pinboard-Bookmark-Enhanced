@@ -42,6 +42,12 @@ let allUserTags = [];
 let allUserTagCounts = {};
 let tagCaseMap = {};
 let pageInfo = {};
+// Submit stays gated until page info has landed and setupSubmit() -- the only
+// binder of the click / Ctrl+Enter handlers -- has run. Disabling the button once
+// is not enough: updateCharCount() re-derives `disabled` from the URL and length
+// alone, and renderTags() calls it on every tag the user adds, so a tag typed
+// during the wait would hand back an enabled button with no handler behind it.
+let _pageInfoReady = false;
 let existingBookmark = null;
 let bookmarkLookup = { status: "idle", url: "", generation: 0, promise: null, formLoaded: false };
 // P2: track which form fields the user has edited so the async existing-bookmark
@@ -63,11 +69,27 @@ function pbpRebasePopupTags(serverTags, submittedTags, liveTags) {
 // Wayback per-save toggle: defaults to the auto-decision and tracks the private
 // checkbox until the user manually overrides it (then it sticks).
 let _archiveUserTouched = false;
+// waybackArchiveEnabled rides Chrome Sync, but the web.archive.org host grant is
+// per device -- and pbpWaybackArchive (wayback.js) drops the archive at its own
+// permissions gate, leaving a permDenied row only the options archive log shows.
+// Mirror that gate here so neither the checkbox nor the "archive requested"
+// indicator can promise an archive that never leaves this device. Probe only:
+// automatic paths must never call permissions.request (CLAUDE.md host rule).
+let _waybackHostGranted = false;
+async function refreshWaybackHostPermission() {
+  try {
+    _waybackHostGranted = (await chrome.permissions.contains({ origins: ["https://web.archive.org/*"] })) === true;
+  } catch (e) {
+    console.warn("wayback permission probe failed:", e && e.name, e && e.message);
+    _waybackHostGranted = false;
+  }
+  return _waybackHostGranted;
+}
 function recomputeArchiveCheck() {
   if (_archiveUserTouched) return;
   const el = $id("archive-check");
   if (!el) return;
-  el.checked = pbpWaybackShouldArchive({
+  el.checked = _waybackHostGranted && pbpWaybackShouldArchive({
     enabled: settings.waybackArchiveEnabled === true,
     skipPrivate: settings.waybackSkipPrivate !== false,
     isPrivate: $id("private-check").checked,
@@ -136,6 +158,11 @@ async function resetPinboardSession() {
   invalidateBookmarkLookup();
   const recent = $id("recent-bookmarks");
   if (recent) { recent.replaceChildren(); recent.classList.add("hidden"); }
+  // The reload destroys every status surface, so leave a one-shot marker for the
+  // login screen to read: a popup that forgets the token with no explanation
+  // reads as a bug, and a server-side revocation is exactly what the user needs
+  // to know before typing the same token back in.
+  try { sessionStorage.setItem("pp-auth-reset", "1"); } catch (_) {}
   window.location.reload();
   return true;
 }
@@ -257,6 +284,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   $id("options-link").addEventListener("click", (e) => {
     e.preventDefault(); pbpOpenOptionsTab("general");
   });
+  // The login screen hides #main-section, so its header carries its own gear --
+  // a distinct id, because $id() memoizes and a duplicate would shadow the one
+  // in the main header.
+  $id("login-options-link").addEventListener("click", (e) => {
+    e.preventDefault(); pbpOpenOptionsTab("general");
+  });
   $id("logout-link").addEventListener("click", (e) => {
     e.preventDefault();
     // Anchored confirm popover, matching every other destructive action —
@@ -286,6 +319,12 @@ function showLogin() {
   $id("main-section").classList.add("hidden");
   const qa = document.querySelector(".quick-actions");
   if (qa) qa.classList.add("hidden");
+  let authReset = false;
+  try {
+    authReset = sessionStorage.getItem("pp-auth-reset") === "1";
+    if (authReset) sessionStorage.removeItem("pp-auth-reset");
+  } catch (_) {}
+  if (authReset) showElement("login-error", t("pinboardErrorAuth"));
 }
 // Semantic form submit covers both the button and Enter in the token field.
 // Bound once outside showLogin() to avoid duplicate listeners.
@@ -387,10 +426,28 @@ async function showMain(token) {
   // Bind extraction and bookmark prefetch to the same URL so a mid-open navigation cannot
   // pair content from the new page with the old bookmark request.
   const _pageInfoPromise = tab ? getPageInfoFromTab(tab.id, { expectedUrl: tab.url || "" }) : Promise.resolve(null);
-  const _bookmarkPrefetchUrl = tab?.url || "";
+  const _ucs = _loadUrlCleanSettings();
+  // Key the prefetch on the URL the lookup will actually ask for. The strip below
+  // runs before checkExistingBookmark, which reuses a prefetch only when the key
+  // matches its lookup URL exactly -- keying on the raw tab URL threw the result
+  // away (and paid for a second lookup message) on every link carrying utm_* or
+  // fbclid, which is most of what gets shared and saved.
+  const _bookmarkPrefetchUrl = tab?.url
+    ? (_ucs.enabled && _ucs.onPopupOpen ? stripTrackingParams(tab.url, _ucs).cleaned : tab.url)
+    : "";
   const _bookmarkPrefetchPromise = _bookmarkPrefetchUrl
     ? chrome.runtime.sendMessage({ type: "get_bookmark_data", url: _bookmarkPrefetchUrl, account: sessionAccount }).catch(() => null)
     : Promise.resolve(null);
+  // Tag entry only needs the DOM, so wire it before the wait below: typing tags
+  // is the first thing a keyboard user does once the form paints.
+  setupTagsInput();
+  // Saving cannot work yet, so stop the button from claiming otherwise:
+  // setupSubmit() -- the only binder of the click and Ctrl+Enter handlers -- runs
+  // after this await, and until page info lands the URL is still unstripped and
+  // the notes still lack the selection quote. A busy target tab can stretch that
+  // window to seconds (getPageInfoFromTab has no timeout); a normal page flips
+  // back within tens of milliseconds.
+  $id("submit-btn").disabled = true;
   if (!tab) {
     pageInfo = { url: "", title: "", selectedText: "", metaDescription: "", referrer: "", pageText: "" };
   } else {
@@ -399,7 +456,6 @@ async function showMain(token) {
     };
   }
 
-  const _ucs = await _loadUrlCleanSettings();
   let targetUrl = pageInfo.url;
   if (_ucs.enabled && _ucs.onPopupOpen && pageInfo.url) {
     const { cleaned, removedCount, original } = stripTrackingParams(pageInfo.url, _ucs);
@@ -501,6 +557,7 @@ async function showMain(token) {
   if (settings.optPrivateDefault) $id("private-check").checked = true;
   if (settings.optPrivateIncognito && tab.incognito) $id("private-check").checked = true;
   if (settings.optReadlaterDefault) $id("readlater-check").checked = true;
+  await refreshWaybackHostPermission();
   recomputeArchiveCheck();
   $id("private-check").addEventListener("change", recomputeArchiveCheck);
   $id("archive-check").addEventListener("change", async (e) => {
@@ -508,6 +565,7 @@ async function showMain(token) {
     if (e.target.checked) {
       try {
         const granted = await chrome.permissions.request({ origins: ["https://web.archive.org/*"] });
+        _waybackHostGranted = granted === true;
         if (!granted) {
           e.target.checked = false;
           showStatus("status-msg", t("waybackPermDenied"), "error");
@@ -520,8 +578,12 @@ async function showMain(token) {
   });
 
   // Setup UI features immediately — don't block on network requests
-  setupTagsInput();
+  // (setupTagsInput ran before the page-info await above.)
   setupSubmit(token);
+  // Handlers are bound and the fields hold the stripped URL and the selection
+  // quote, so a click now does what it looks like it does.
+  _pageInfoReady = true;
+  updateCharCount();
   setupAIFeatures();
   setupDescriptionCounter();
   setupTagPresets();
@@ -1086,9 +1148,14 @@ async function checkExistingBookmark(token, url, prefetch, forceFresh = false, s
       }
       if (!data) {
         const resp = await pinboardFetch(`https://api.pinboard.in/v1/posts/get?url=${enc(lookupUrl)}&auth_token=${token}&format=json`);
-        if (resp.status === 401) throw new Error("HTTP 401"); // pinboardFetch already redirected to login
-        if (resp.status === 0) throw new Error("HTTP 0");
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        // Carry the status on the error so the catch can name the failure
+        // (and stay silent on 401, where pinboardFetch already swapped in the
+        // login screen).
+        if (!resp.ok || resp.status === 0) {
+          const httpError = new Error(`HTTP ${resp.status}`);
+          httpError.status = resp.status;
+          throw httpError;
+        }
         data = await resp.json();
       }
 
@@ -1152,7 +1219,17 @@ async function checkExistingBookmark(token, url, prefetch, forceFresh = false, s
     } catch (e) {
       if (bookmarkLookup.generation === generation && bookmarkLookup.url === lookupUrl && $id("url-input").value.trim() === lookupUrl) {
         bookmarkLookup = { status: "failed", url: lookupUrl, generation, promise: null, formLoaded: false };
-        console.error("user info banner error:", e);
+        console.warn("bookmark lookup failed:", e && e.name, e && e.message);
+        // Silence here left the form identical to a brand-new page: no banner,
+        // no Delete button, the submit button still reading Save. 401 stays
+        // silent because the popup is already showing the login screen.
+        if (e?.status !== 401) {
+          // Pass the numeric status when there is one: classifyPinboardError's
+          // response branch requires !("name" in input), which no Error can
+          // satisfy (name comes off the prototype), so an Error instance would
+          // report every 5xx as "offline".
+          showStatus("status-msg", t(classifyPinboardError(typeof e?.status === "number" ? e.status : e)), "error");
+        }
         return { status: "failed", url: lookupUrl };
       }
       return { status: "stale", url: lookupUrl };
@@ -1239,7 +1316,8 @@ function setupSubmit(token) {
       });
       if (!savePolicy.allow) {
         if (savePolicy.reason === "review_required") {
-          showStatus("status-msg", t("editingExisting"), "info");
+          // Not a state label: nothing was saved and the user has to press again.
+          showStatus("status-msg", t("saveNeedsReview"), "info");
           setSubmitState("idle");
         } else {
           showStatus("status-msg", t("networkError"), "error");
@@ -1308,7 +1386,11 @@ function setupSubmit(token) {
       );
       Object.keys(fieldDirtyFlags).forEach((id) => { fieldDirtyFlags[id] = false; });
 
-      const archiveIndicatorRequested = (savePolicy.mode !== "merge" || intent.archive !== undefined)
+      // Host permission first: without it the background's archive call returns
+      // at wayback.js's own permissions gate, so the indicator would claim an
+      // archive the user could only disprove in the options archive log.
+      const archiveIndicatorRequested = _waybackHostGranted
+        && (savePolicy.mode !== "merge" || intent.archive !== undefined)
         && pbpWaybackShouldArchive({
           enabled: settings.waybackArchiveEnabled === true,
           skipPrivate: settings.waybackSkipPrivate !== false,
@@ -1354,7 +1436,8 @@ function setupSubmit(token) {
           return;
         }
         if (conflictLookup.status === "found") {
-          showStatus("status-msg", t("editingExisting"), "info");
+          // Same shape as review_required: the save did not land, press again.
+          showStatus("status-msg", t("saveNeedsReview"), "info");
           setSubmitState("idle");
           return;
         }
@@ -1494,13 +1577,20 @@ function setupSubmit(token) {
     } else if (e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey && e.key === "Enter") {
       const mainSection = $id("main-section");
       if (mainSection.classList.contains("hidden")) return;
+      // Gate on the same two display toggles showMain() reads: a hidden action
+      // must not stay reachable from the keyboard, or a feature the user turned
+      // off still spends tokens and writes into fields they cannot see. With
+      // both off the key keeps its browser default (no preventDefault).
+      const wantSummary = settings.optShowAiSummary !== false;
+      const wantTags = settings.optShowAiTags !== false;
+      if (!wantSummary && !wantTags) return;
       e.preventDefault();
       // Shift+Enter fires AI summary AND tags together. They share one combined
       // API call: whichever runs first issues the combined request and caches the
       // other half, so the second is an instant cache hit (one call fills both).
       // Already-present halves re-render from cache; re-roll uses the regenerate links.
-      if (typeof doAISummary === "function") doAISummary(false);
-      if (typeof doAITags === "function") doAITags(false);
+      if (wantSummary && typeof doAISummary === "function") doAISummary(false);
+      if (wantTags && typeof doAITags === "function") doAITags(false);
     } else if (e.key === "Escape") {
       // No .del-confirm-popover branch here any more: the delete confirm is
       // a shared showConfirmPopover() now, and that helper installs its own
@@ -1675,12 +1765,24 @@ async function fetchRecentBookmarks(token) {
           noText: t("cancel"),
           onConfirm: async () => {
             try {
-              const data = await (await pinboardFetch(`https://api.pinboard.in/v1/posts/delete?url=${enc(p.href)}&auth_token=${token}&format=json`)).json();
+              const resp = await pinboardFetch(`https://api.pinboard.in/v1/posts/delete?url=${enc(p.href)}&auth_token=${token}&format=json`);
+              if (resp.status === 401) return; // pinboardFetch already redirected to login
+              const data = await resp.json();
               if (data.result_code === "done" || data.result_code === "item not found") {
                 row.remove();
-                chrome.runtime.sendMessage({ type: "bookmark_deleted", url: p.href, account });
+                // Promise form: an unhandled rejection here (no receiver) would
+                // escape this handler entirely.
+                chrome.runtime.sendMessage({ type: "bookmark_deleted", url: p.href, account })?.catch?.(() => {});
+              } else {
+                // Same feedback the main Delete button gives -- a failed delete
+                // that leaves the row in place is otherwise indistinguishable
+                // from a list that simply did not refresh.
+                showStatus("status-msg", `Error: ${data.result_code}`, "error");
               }
-            } catch (_) {}
+            } catch (e) {
+              console.warn("recent delete failed:", e && e.name, e && e.message);
+              showStatus("status-msg", t("networkError"), "error");
+            }
           },
         });
       };
@@ -1770,7 +1872,8 @@ function updateCharCount() {
     replace: isUpdate,
   }).length;
   const el = $id("desc-char-count");
-  el.textContent = `${len} chars · ${uriLen}/${POSTS_ADD_URI_BUDGET} B`;
+  // "B" is a unit symbol and stays; the word for characters is not.
+  el.textContent = `${t("descCharCount", String(len))} · ${uriLen}/${POSTS_ADD_URI_BUDGET} B`;
   const over = uriLen > POSTS_ADD_URI_BUDGET || len > 65000;
   const near = uriLen > POSTS_ADD_URI_BUDGET * 0.8 || len > 60000;
   // State classes only. The inline style this replaces always outranked the
@@ -1784,7 +1887,7 @@ function updateCharCount() {
   const url = $id("url-input").value.trim();
   const urlBad = !url || (!url.startsWith("http://") && !url.startsWith("https://"));
   const sub = $id("submit-btn");
-  if (!sub.classList.contains("loading")) sub.disabled = urlBad || over;
+  if (!sub.classList.contains("loading")) sub.disabled = urlBad || over || !_pageInfoReady;
   sub.title = over ? t("submitUriTooLong") : urlBad ? t("urlCannotSave") : "";
 }
 function showElement(id, text) { const el = $id(id); el.textContent = text; el.classList.remove("hidden"); }

@@ -105,6 +105,14 @@
       }
     }
   },
+  "descCharCount": {
+    "message": "$COUNT$ Zeichen",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
   "clear": {
     "message": "Löschen"
   },
@@ -188,6 +196,9 @@
   },
   "editingExisting": {
     "message": "Vorhandenes Lesezeichen bearbeiten"
+  },
+  "saveNeedsReview": {
+    "message": "Bereits als Lesezeichen gespeichert. Prüfe die Felder und klicke erneut auf „Aktualisieren“."
   },
   "recentEditTitle": {
     "message": "Zum Bearbeiten laden"

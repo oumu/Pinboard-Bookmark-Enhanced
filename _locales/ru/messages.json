@@ -105,6 +105,14 @@
       }
     }
   },
+  "descCharCount": {
+    "message": "$COUNT$ симв.",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
   "clear": {
     "message": "очистить"
   },
@@ -188,6 +196,9 @@
   },
   "editingExisting": {
     "message": "Редактирование существующей закладки"
+  },
+  "saveNeedsReview": {
+    "message": "Страница уже в закладках. Проверьте поля и снова нажмите «Обновить»."
   },
   "recentEditTitle": {
     "message": "Загрузить для редактирования"

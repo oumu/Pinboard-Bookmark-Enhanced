@@ -168,7 +168,7 @@ test("posts/add default remains replace=yes for existing callers", () => {
       return element;
     }
 
-    function createSubmitHarness({ archiveRequested = false, archiveUserTouched = false, deferWayback = false, lookupFailed = false } = {}) {
+    function createSubmitHarness({ archiveRequested = false, archiveUserTouched = false, deferWayback = false, lookupFailed = false, waybackHostGranted = true } = {}) {
       const elements = {
         "submit-btn": createElementStub(),
         "delete-btn": createElementStub({ classes: ["hidden"] }),
@@ -277,6 +277,7 @@ test("posts/add default remains replace=yes for existing callers", () => {
         existingBookmark: null,
         currentTags,
         _archiveUserTouched: archiveUserTouched,
+        _waybackHostGranted: waybackHostGranted,
         settings,
         chrome: chromeStub,
         window: windowStub,
@@ -374,6 +375,17 @@ test("posts/add default remains replace=yes for existing callers", () => {
         const indicatorShown = harness.elements["status-msg"].children.some((child) => child.className === "wayback-indicator");
         assert(indicatorShown === archiveRequested, `manual ${archiveRequested} indicator disagrees with the submitted override`);
       }
+    });
+
+    await testAsync("an ungranted web.archive.org permission cancels the archive claim, not the request", async () => {
+      const harness = createSubmitHarness({ archiveRequested: true, archiveUserTouched: true, waybackHostGranted: false });
+      const pending = harness.click();
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      assert(harness.messages[0].intent.archive === true, "the explicit archive override must still reach the background");
+      harness.resolveSave({ status: "saved", mutation: "created" });
+      await pending;
+      assert(!harness.elements["status-msg"].children.some((child) => child.className === "wayback-indicator"),
+        "a missing host permission still produced an optimistic archive indicator");
     });
 
     await testAsync("real submit callback preserves edits made while save is pending", async () => {
@@ -477,6 +489,22 @@ test("posts/add default remains replace=yes for existing callers", () => {
       assert(!submit.includes("pinboardFetch("), "Popup submit still performs direct Pinboard delivery");
     });
 
+    test("submit stays inert until its own handlers are bound", () => {
+      const showMainStart = source.indexOf("async function showMain(");
+      const bindIndex = source.indexOf("  setupSubmit(token);", showMainStart);
+      const readyIndex = source.indexOf("  _pageInfoReady = true;", showMainStart);
+      assert(bindIndex > showMainStart && readyIndex > bindIndex,
+        "the submit gate opens before setupSubmit() binds the click and Ctrl+Enter handlers");
+      const counterStart = source.indexOf("function updateCharCount()");
+      const counterSource = source.slice(counterStart, source.indexOf("\n}\n", counterStart));
+      const disableLine = counterSource.split("\n").find((line) => /\bsub\.disabled\s*=/.test(line));
+      assert(disableLine && disableLine.includes("_pageInfoReady"),
+        "the char counter re-derives submit.disabled without consulting page-info readiness");
+      const waitStart = source.indexOf("await _pageInfoPromise", showMainStart);
+      assert(waitStart > showMainStart && !/disabled\s*=\s*false/.test(source.slice(waitStart, bindIndex)),
+        "something re-enables submit between the page-info wait and the handler binding");
+    });
+
     test("update forwards only the exact loaded server time", () => {
       const timeStart = submit.indexOf('if (savePolicy.mode === "update")', intentIndex);
       const timeBlock = submit.slice(timeStart, submit.indexOf("let attemptsStored", timeStart));
@@ -522,7 +550,8 @@ test("posts/add default remains replace=yes for existing callers", () => {
       const authEnd = ownershipAfterSend;
       const auth = submit.slice(authStart, authEnd);
       assert(conflict.includes('result.reason === "conflict"') && conflict.includes("checkExistingBookmark(token, url, null, true, tags)"), "skipped/conflict refresh path missing");
-      assert(conflict.includes('t("editingExisting")'), "conflict does not repopulate for a reviewed update");
+      assert(conflict.includes('t("saveNeedsReview")') && !conflict.includes('t("editingExisting")'),
+        "conflict re-check must own a key that says the save did not land, not the banner's state label");
       assert(auth.includes("await resetPinboardSession()"), "auth failure does not use the shared session reset");
       assert(authStart < ownershipAfterSend, "auth failure is suppressed by stale form ownership");
     });
@@ -757,15 +786,30 @@ test("posts/add default remains replace=yes for existing callers", () => {
     // Injected: the ambient popup globals renderAITags closes over; local:
     // currentTags (the handler REASSIGNS it, so the binding must live inside)
     // and the provenance Set.
-    function regenRuntime({ formUrl, pageUrl, tags, seedTags = ["manual"], accept = tags }) {
+    // attach: put the actions bar in the document, which is what tells the
+    // handler its regen refused without rebuilding (see the finally block in
+    // renderAITags). Detached is the "the op rebuilt this bar" shape.
+    // duringCall: runs inside the doAITags stub, i.e. while the regen is
+    // in flight -- the only place the form can be switched to another bookmark
+    // after the handler's entry guard has already passed.
+    function regenRuntime({ formUrl, pageUrl, tags, seedTags = ["manual"], accept = tags, attach = false, duringCall = null }) {
       const renderStart = popupAiSource.indexOf("function renderAITags(");
       const renderEnd = popupAiSource.indexOf("\n}\n", renderStart);
       assert(renderStart >= 0 && renderEnd > renderStart, "renderAITags source not found");
       const urlStart = popupAiSource.indexOf("function _aiNormalizeUrl");
       const urlEnd = popupAiSource.indexOf("function pbpAiSyncUrlEditState", urlStart);
       assert(urlStart >= 0 && urlEnd > urlStart, "URL-equivalence helpers not found");
+      // The real op-liveness guard, not a stub: it is what decides whether the
+      // handler's finally may write the retraction back into the form.
+      const acctStart = popupAiSource.indexOf("function pbpPopupAiAccount()");
+      const acctEnd = popupAiSource.indexOf("function setAiProgress", acctStart);
+      assert(acctStart >= 0 && acctEnd > acctStart, "account helpers not found");
+      const liveStart = popupAiSource.indexOf("function _aiOpStillCurrent");
+      const liveEnd = popupAiSource.indexOf("function pbpAiWrapSummary", liveStart);
+      assert(liveStart >= 0 && liveEnd > liveStart, "op-liveness guard not found");
 
       const container = document.createElement("div");
+      if (attach) document.body.appendChild(container);
       const urlInput = document.createElement("input");
       urlInput.value = formUrl;
       const calls = { renderTags: 0, doAITags: 0, status: [] };
@@ -780,13 +824,15 @@ test("posts/add default remains replace=yes for existing callers", () => {
         "$id", "t", "PBP_ICONS", "allUserTagCounts", "pageInfo",
         "renderTags", "doAITags", "showStatus", "pbpAssignAltNumBadges",
         "_aiClearTagsOutput", "_aiAppendEmptyState", "_aiParkTagsBtn",
-        "stripTrackingParams", "URL", "seedTags",
+        "stripTrackingParams", "URL", "seedTags", "settings",
         "let currentTags = seedTags.slice();\n" +
         "const _aiSessionAddedTags = new Set();\n" +
         "function addTag(tag) {\n" +
         "  if (!currentTags.some((x) => x.toLowerCase() === String(tag).toLowerCase())) currentTags.push(tag);\n" +
         "}\n" +
+        popupAiSource.slice(acctStart, acctEnd) + "\n" +
         popupAiSource.slice(urlStart, urlEnd) + "\n" +
+        popupAiSource.slice(liveStart, liveEnd) + "\n" +
         popupAiSource.slice(renderStart, renderEnd + 2) + "\n" +
         "return { renderAITags, provenance: _aiSessionAddedTags, tags: () => currentTags.slice() };"
       )(
@@ -796,7 +842,7 @@ test("posts/add default remains replace=yes for existing callers", () => {
         {},
         { url: pageUrl },
         () => { calls.renderTags++; },
-        async () => { calls.doAITags++; },
+        async () => { calls.doAITags++; if (duringCall) duringCall(urlInput); },
         (id, message, kind) => calls.status.push({ id, message, kind }),
         () => {},
         () => {},
@@ -804,7 +850,11 @@ test("posts/add default remains replace=yes for existing callers", () => {
         () => {},
         window.stripTrackingParams,
         window.URL,
-        seedTags
+        seedTags,
+        // pbpPopupAiAccount derives the owner from this token via shared.js's
+        // real pbpPinboardAccountFromToken, so the account half of the liveness
+        // guard runs for real and only the URL half varies per case.
+        { pinboardToken: "alice:0123456789ABCDEF" }
       );
 
       runtime.renderAITags(tags, true); // fromCache: true is what renders the regen links
@@ -869,6 +919,67 @@ test("posts/add default remains replace=yes for existing callers", () => {
       assert(run.links.every((link) => link.classList.contains("loading")),
         "a live regen must show its loading state");
       assert(run.calls.status.length === 0, "a live regen must not report a switched-away form");
+    });
+
+    await testAsync("a regen that refuses without rebuilding restores the links and the retraction", async () => {
+      // doAITags has early returns the regen link cannot see (no API key,
+      // account drift, no page text) that neither re-render the chips nor clear
+      // them, so the actions bar it swapped is still on screen when the call
+      // resolves. Modelled here by leaving the bar in the document: the handler
+      // must undo the swap, or the link stays pinned on its in-flight label
+      // (.regen-link.loading is pointer-events:none) with the session's AI tags
+      // dropped for the life of the popup.
+      const run = regenRuntime({
+        formUrl: URL,
+        pageUrl: URL,
+        tags: ["alpha", "beta"],
+        seedTags: ["manual"],
+        attach: true,
+      });
+      try {
+        run.replaceLink.click();
+        await settle();
+        assert(run.calls.doAITags === 1, "the regen must still start the AI call");
+        assert(run.links.every((link) => !link.classList.contains("loading")),
+          "a refusal left the links parked in their loading state");
+        assert(run.replaceLink.textContent === "aiReplace",
+          "a refusal left the link pinned on its in-flight label, got " + run.replaceLink.textContent);
+        assert(run.tags().join("|") === "manual|alpha|beta",
+          "a refusal dropped this session's AI tags for good, got " + run.tags().join("|"));
+      } finally {
+        run.container.remove();
+      }
+    });
+
+    await testAsync("a refusal on a form switched away mid-flight must not replay the retraction", async () => {
+      // Same shape as above -- the bar is still in the document because the
+      // refusal never rebuilt it -- except the form was switched to another
+      // bookmark WHILE doAITags was in flight, after the handler's entry guard
+      // had already passed. Nothing clears this bar on a URL edit, so being
+      // connected proves nothing about which bookmark the tag field now holds:
+      // replaying the retraction here would add the previous page's AI tags to
+      // a different bookmark, which the user would then save.
+      const run = regenRuntime({
+        formUrl: URL,
+        pageUrl: URL,
+        tags: ["alpha", "beta"],
+        seedTags: ["manual"],
+        attach: true,
+        duringCall: (urlInput) => { urlInput.value = "https://other.example/switched-bookmark"; },
+      });
+      try {
+        run.replaceLink.click();
+        await settle();
+        assert(run.calls.doAITags === 1, "the regen must still start the AI call");
+        assert(run.tags().join("|") === "manual",
+          "the switched-away form was given the previous bookmark's AI tags, got " + run.tags().join("|"));
+        assert(run.links.every((link) => !link.classList.contains("loading")),
+          "the links must still leave their loading state");
+        assert(run.replaceLink.textContent === "aiReplace",
+          "the link must still drop its in-flight label, got " + run.replaceLink.textContent);
+      } finally {
+        run.container.remove();
+      }
     });
 
     test("replace-mode regen retracts only session-AI-added tags (A10)", () => {

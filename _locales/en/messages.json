@@ -105,6 +105,14 @@
       }
     }
   },
+  "descCharCount": {
+    "message": "$COUNT$ chars",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
   "clear": {
     "message": "clear"
   },
@@ -188,6 +196,9 @@
   },
   "editingExisting": {
     "message": "Editing existing bookmark"
+  },
+  "saveNeedsReview": {
+    "message": "Already bookmarked. Check the fields, then press Update again."
   },
   "recentEditTitle": {
     "message": "Load for editing"

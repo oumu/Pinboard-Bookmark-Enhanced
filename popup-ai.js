@@ -621,19 +621,23 @@ function setupAIFeatures() {
   const restoreAccount = pbpPopupAiAccount();
   // Same namespace rule as a click (review C9): a video summary made from
   // the captions lives under "transcript", not the configured source.
-  pbpAiFastCached("summary", settings, restoreAccount).then(async (cached) => {
-    await _aiAwaitBookmarkLookup();
-    if (!_aiOpStillCurrent(restoreAccount)) return;
-    if (existingBookmark) {
-      await _aiRestoreSummaryOwnership(restoreAccount, pageInfo.url, cached);
-      return;
-    }
-    if (cached &&
-        pbpShouldRestoreCachedSummary(existingBookmark, $id("description-input").value)) {
-      upsertSummary(cached);
-      showSummaryActions(true);
-    }
-  });
+  // The user switched the AI summary UI off: do not push cached summary text
+  // into the notes (and resurrect the regenerate/remove links) behind their back.
+  if (settings.optShowAiSummary !== false) {
+    pbpAiFastCached("summary", settings, restoreAccount).then(async (cached) => {
+      await _aiAwaitBookmarkLookup();
+      if (!_aiOpStillCurrent(restoreAccount)) return;
+      if (existingBookmark) {
+        await _aiRestoreSummaryOwnership(restoreAccount, pageInfo.url, cached);
+        return;
+      }
+      if (cached &&
+          pbpShouldRestoreCachedSummary(existingBookmark, $id("description-input").value)) {
+        upsertSummary(cached);
+        showSummaryActions(true);
+      }
+    });
+  }
 
   $id("ai-tags-btn").addEventListener("click", async (e) => {
     e.preventDefault();

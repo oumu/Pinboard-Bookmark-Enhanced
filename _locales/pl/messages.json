@@ -105,6 +105,14 @@
       }
     }
   },
+  "descCharCount": {
+    "message": "$COUNT$ zn.",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
   "clear": {
     "message": "wyczyść"
   },
@@ -188,6 +196,9 @@
   },
   "editingExisting": {
     "message": "Edytowanie istniejącej zakładki"
+  },
+  "saveNeedsReview": {
+    "message": "Ta strona jest już w zakładkach. Sprawdź pola i naciśnij ponownie „Aktualizuj”."
   },
   "recentEditTitle": {
     "message": "Załaduj do edycji"

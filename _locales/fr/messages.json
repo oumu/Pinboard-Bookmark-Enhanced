@@ -105,6 +105,14 @@
       }
     }
   },
+  "descCharCount": {
+    "message": "$COUNT$ car.",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
   "clear": {
     "message": "effacer"
   },
@@ -188,6 +196,9 @@
   },
   "editingExisting": {
     "message": "Modification du signet existant"
+  },
+  "saveNeedsReview": {
+    "message": "Déjà dans vos signets. Vérifiez les champs, puis appuyez de nouveau sur « Mettre à jour »."
   },
   "recentEditTitle": {
     "message": "Charger pour modifier"

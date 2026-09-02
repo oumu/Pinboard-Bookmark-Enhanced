@@ -105,6 +105,14 @@
       }
     }
   },
+  "descCharCount": {
+    "message": "$COUNT$ 字元",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
   "clear": {
     "message": "清除"
   },
@@ -188,6 +196,9 @@
   },
   "editingExisting": {
     "message": "正在編輯已有書籤"
+  },
+  "saveNeedsReview": {
+    "message": "此頁已收藏，核對欄位後再按一次更新"
   },
   "recentEditTitle": {
     "message": "載入並編輯"

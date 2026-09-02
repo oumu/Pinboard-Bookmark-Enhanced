@@ -105,6 +105,14 @@
       }
     }
   },
+  "descCharCount": {
+    "message": "$COUNT$ 字符",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
   "clear": {
     "message": "清除"
   },
@@ -188,6 +196,9 @@
   },
   "editingExisting": {
     "message": "正在编辑已有书签"
+  },
+  "saveNeedsReview": {
+    "message": "此页已收藏，核对字段后再按一次更新"
   },
   "recentEditTitle": {
     "message": "加载并编辑"
