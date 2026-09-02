@@ -63,6 +63,28 @@ function buildHarness(source, queryTabs, bookmarkResult = true) {
   return { api, calls, wait: () => scheduledWork };
 }
 
+// The tabs.onUpdated listener decides two things per event: whether to schedule
+// a status check, and whether the per-tab icon dedup entry still describes what
+// the toolbar shows. Both are behavioural, so drive the real listener with the
+// real _urlWithoutFragment rather than reading the source as text.
+function buildTabUpdateHarness(source) {
+  const helperStart = source.indexOf("function _urlWithoutFragment");
+  const helperEnd = source.indexOf("function _scheduleCurrentTabRefresh", helperStart);
+  const listener = source.match(/chrome\.tabs\.onUpdated\.addListener\(\(tabId, changeInfo, tab\) => \{[\s\S]*?\n\}\);/);
+  assert(helperStart >= 0 && helperEnd > helperStart && listener, "tabs.onUpdated listener not found");
+  const calls = { refresh: [] };
+  const state = { icons: new Map(), checked: new Map() };
+  let handler = null;
+  const deps = {
+    chrome: { tabs: { onUpdated: { addListener: (fn) => { handler = fn; } } } },
+    _lastIconState: state.icons,
+    _lastCheckedUrl: state.checked,
+    _scheduleCurrentTabRefresh: (tabId, tabUrl) => calls.refresh.push({ tabId, url: tabUrl }),
+  };
+  new Function(...Object.keys(deps), source.slice(helperStart, helperEnd) + listener[0])(...Object.values(deps));
+  return { fire: (...args) => handler(...args), calls, ...state };
+}
+
 function buildProxyHarness(source) {
   const start = source.indexOf('if (message.type === "pinboard_api_call")');
   const end = source.indexOf('if (message.type === "retry_offline_item"', start);
@@ -375,6 +397,91 @@ async function run() {
     assert(activated.includes("_scheduleCurrentTabRefresh(tabId)"), "activated listener bypasses scheduler");
     assert(updated.includes("_scheduleCurrentTabRefresh(tabId, tab.url)"), "updated listener bypasses scheduler");
     assert(!/noteActivity|debouncedCheck|_writeCurrentTabMirror/.test(activated + updated), "listener performs unguarded work");
+  });
+
+  await test("token test fetch refuses redirects and keeps its deadline", async () => {
+    // Pinboard v1 is GET-only, so the token rides the query string: following a
+    // 3xx would hand the plaintext token to whatever host the Location names,
+    // and CORS only withholds the response, never the request. Same invariant
+    // shared.js's _executePinboardFetch enforces for every other v1 call.
+    const start = source.indexOf('if (message.type === "test_pinboard_token"');
+    const end = source.indexOf("// ---- Image-fix Referer rules", start);
+    assert(start >= 0 && end > start, "token test branch not found");
+    const calls = [];
+    const responses = [];
+    const runBranch = new Function("message", "sendResponse", "fetch",
+      source.slice(start, end));
+    runBranch(
+      { type: "test_pinboard_token", token: "alice:secret" },
+      (response) => responses.push(response),
+      (requestUrl, init) => { calls.push({ url: requestUrl, init }); return Promise.resolve({ ok: true, status: 200 }); }
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    assert(calls.length === 1, "token test did not reach fetch");
+    assert(calls[0].init?.redirect === "error", "a 3xx would replay the plaintext token to its target");
+    assert(calls[0].init?.signal instanceof AbortSignal, "token test lost its timeout");
+    assert(calls[0].url.includes("auth_token=alice%3Asecret"), "token is not carried on the query string any more");
+    assert(responses[0]?.ok === true, "token test stopped answering its caller");
+  });
+
+  await test("tab-set save carries a deadline and reports the abort", async () => {
+    // The message handler is fire-and-forget and the popup re-enables its button
+    // on a timer, so these notifications are the only feedback a stalled
+    // pinboard.in can still produce.
+    const start = source.indexOf("async function handleSaveTabSet");
+    const end = source.indexOf("// ---- Storage change listener ----", start);
+    assert(start >= 0 && end > start, "tab set handler not found");
+    const calls = [];
+    const notifications = [];
+    const deps = {
+      chrome: { tabs: { create: () => {} } },
+      fetch: async (requestUrl, init) => {
+        calls.push({ url: requestUrl, init });
+        throw Object.assign(new Error("signal timed out"), { name: "TimeoutError" });
+      },
+      showNotification: (...args) => notifications.push(args),
+      t: (key, ...args) => (args.length ? `${key}:${args.join(":")}` : key),
+    };
+    const handleSaveTabSet = new Function(...Object.keys(deps),
+      source.slice(start, end) + "; return handleSaveTabSet;")(...Object.values(deps));
+    await handleSaveTabSet([{ title: "A", url: "https://a.example/" }]);
+    assert(calls[0]?.init?.signal instanceof AbortSignal, "tab-set save has no deadline");
+    assert(notifications.length === 1 && notifications[0][0] === "tabset-error" && notifications[0][3] === "error",
+      "a timed-out tab-set save produced no feedback");
+  });
+
+  await test("a cross-document navigation invalidates the icon dedup entry, a same-document one keeps it", () => {
+    const other = "https://example.com/other";
+    // Chromium clears the tab-scoped action icon when a cross-document
+    // navigation commits, so a dedup entry that survives it makes setIcon skip
+    // the identical recomputed state and the toolbar keeps the default pin.
+    const reload = buildTabUpdateHarness(source);
+    reload.icons.set(7, "saved");
+    reload.checked.set(7, url);
+    reload.fire(7, { status: "complete" }, { id: 7, url });
+    assert(!reload.icons.has(7), "reload kept a dedup entry the platform already invalidated");
+    assert(reload.calls.refresh.length === 1, "reload did not enter the shared scheduler");
+
+    // The loading half of that same navigation carries changeInfo.url too.
+    const committing = buildTabUpdateHarness(source);
+    committing.icons.set(7, "toread");
+    committing.fire(7, { status: "loading", url: other }, { id: 7, url: other });
+    assert(!committing.icons.has(7), "a committing navigation kept a stale dedup entry");
+
+    // Same-document moves leave the icon on screen, so the entry stays true.
+    const fragment = buildTabUpdateHarness(source);
+    fragment.icons.set(7, "saved");
+    fragment.checked.set(7, url);
+    fragment.fire(7, { url: url + "#note" }, { id: 7, url: url + "#note" });
+    assert(fragment.icons.get(7) === "saved", "fragment jump discarded a still-valid dedup entry");
+    assert(fragment.calls.refresh.length === 0, "fragment jump burned a rate-limited status check");
+
+    const route = buildTabUpdateHarness(source);
+    route.icons.set(7, "saved");
+    route.checked.set(7, url);
+    route.fire(7, { url: other }, { id: 7, url: other });
+    assert(route.icons.get(7) === "saved", "in-page route change discarded a still-valid dedup entry");
+    assert(route.calls.refresh.length === 1, "in-page route change skipped the scheduler");
   });
 
   await test("window focus listener ignores WINDOW_ID_NONE and enters the same scheduler", () => {

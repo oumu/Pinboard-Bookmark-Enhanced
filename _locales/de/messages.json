@@ -570,6 +570,9 @@
   "bgUndone": {
     "message": "Pinboard: Rückgängig gemacht"
   },
+  "bgUndoFailed": {
+    "message": "Pinboard: Rückgängig machen fehlgeschlagen"
+  },
   "bgBookmarkRemoved": {
     "message": "Lesezeichen entfernt."
   },

@@ -89,9 +89,24 @@ function buildStorageAccessHarness(source, opts) {
       if (o.rejectArea === name) throw new Error(name + " unavailable");
     },
   });
+  // storage.session outlives the worker but not the browser session, so a
+  // caller can hand the SAME object to several harnesses to model consecutive
+  // worker generations — which is the only way a retry budget can be observed.
+  const session = o.session || {};
+  const sessionArea = {
+    async get(query) {
+      const out = {};
+      for (const [key, fallback] of Object.entries(query || {})) {
+        out[key] = key in session ? session[key] : fallback;
+      }
+      return out;
+    },
+    async set(obj) { Object.assign(session, structuredClone(obj)); },
+    async remove(key) { for (const k of [].concat(key)) delete session[k]; },
+  };
   const deps = {
     chrome: {
-      storage: { local: area("local"), sync: area("sync") },
+      storage: { local: area("local"), sync: area("sync"), session: sessionArea },
       alarms: {
         create: async (...args) => { calls.create.push(args); },
         clear: async (...args) => { calls.clear.push(args); return true; },
@@ -100,8 +115,49 @@ function buildStorageAccessHarness(source, opts) {
     console: { warn: (...args) => calls.warn.push(args) },
   };
   const factory = new Function(...Object.keys(deps), `${source.slice(start, end)}
-    return { PBP_STORAGE_ACCESS_RETRY_ALARM, pbpRestrictStorageAccess };`);
-  return { ...factory(...Object.values(deps)), calls };
+    return {
+      PBP_STORAGE_ACCESS_RETRY_ALARM, PBP_STORAGE_ACCESS_RETRY_KEY,
+      PBP_STORAGE_ACCESS_MAX_RETRIES, pbpRestrictStorageAccess,
+    };`);
+  return { ...factory(...Object.values(deps)), calls, session };
+}
+
+// Cold-start Drive sync: this call sits at the SW top level, so it re-runs on
+// EVERY wake, and an idle browser is still woken every 5 minutes by the
+// storage-warm alarm. Only the wake path carries a throttle; the vocab-sync-*
+// alarms are the real schedule and must stay immediate.
+function buildBootVocabSyncHarness(source, opts) {
+  const start = source.indexOf("const PBP_VOCAB_BOOT_SYNC_KEY");
+  const end = source.indexOf("async function pbpDisconnectVocabDrive", start);
+  if (start < 0 || end <= start) return null;
+  const o = opts || {};
+  const local = o.local || {};
+  const syncs = [];
+  const deps = {
+    chrome: {
+      storage: { local: {
+        async get(query) {
+          const out = {};
+          for (const [key, fallback] of Object.entries(query || {})) {
+            out[key] = key in local ? local[key] : fallback;
+          }
+          return out;
+        },
+        async set(obj) { Object.assign(local, structuredClone(obj)); },
+      } },
+      permissions: { contains: async () => true },
+      alarms: { clear: async () => true },
+    },
+    PBP_VOCAB_DRIVE_CAPABLE: true,
+    PBP_VOCAB_DRIVE_CONNECTED_KEY: "vocabDriveConnected",
+    PBP_GOOGLE_API_ORIGIN: "https://www.googleapis.com/*",
+    pbpVocabDriveIsConnected: async () => true,
+    pbpQueueVocabDriveSync: async (options) => { syncs.push(options); return { ok: true }; },
+    console,
+  };
+  const factory = new Function(...Object.keys(deps), `${source.slice(start, end)}
+    return { PBP_VOCAB_BOOT_SYNC_KEY, PBP_VOCAB_BOOT_SYNC_MIN_MS, pbpBootVocabDriveSync };`);
+  return { ...factory(...Object.values(deps)), syncs, local };
 }
 
 // ---- Undo notification harness ----
@@ -304,9 +360,79 @@ function buildUndoHarness(source, opts) {
       h.calls.create.length === 1 && h.calls.create[0][0] === h.PBP_STORAGE_ACCESS_RETRY_ALARM &&
       h.calls.create[0][1]?.delayInMinutes >= 0.5);
   }
+  {
+    // A permanently unavailable API (missing on this Chrome build, refused by
+    // policy) used to re-arm the one-shot alarm every minute forever, waking the
+    // worker and re-running the whole boot sequence with it. Each retry starts a
+    // FRESH worker generation, so the budget has to survive one.
+    const session = {};
+    const delays = [];
+    for (let generation = 0; generation < 9; generation++) {
+      const h = buildStorageAccessHarness(source, { rejectArea: "local", session });
+      await h.pbpRestrictStorageAccess();
+      for (const args of h.calls.create) delays.push(args[1]?.delayInMinutes);
+    }
+    const budget = buildStorageAccessHarness(source, {}).PBP_STORAGE_ACCESS_MAX_RETRIES;
+    check("repeated trusted-only failures stop re-arming the retry alarm instead of looping forever",
+      budget >= 1 && delays.length === budget &&
+      delays.every((delay, i) => delay === Math.min(30, 2 ** i)) &&
+      delays[delays.length - 1] > delays[0]);
+  }
+  {
+    const session = {};
+    const failed = buildStorageAccessHarness(source, { rejectArea: "sync", session });
+    await failed.pbpRestrictStorageAccess();
+    const recovered = buildStorageAccessHarness(source, { session });
+    await recovered.pbpRestrictStorageAccess();
+    // Read the budget where it matters: right after the success, before the
+    // next failure writes its own attempt back into the same store.
+    const budgetCleared = !(recovered.PBP_STORAGE_ACCESS_RETRY_KEY in session);
+    const failedAgain = buildStorageAccessHarness(source, { rejectArea: "sync", session });
+    await failedAgain.pbpRestrictStorageAccess();
+    check("a successful re-assert clears the retry budget for the next failure",
+      budgetCleared &&
+      recovered.calls.clear.some((args) => args[0] === recovered.PBP_STORAGE_ACCESS_RETRY_ALARM) &&
+      failedAgain.calls.create.length === 1 &&
+      failedAgain.calls.create[0][1]?.delayInMinutes === failed.calls.create[0][1]?.delayInMinutes);
+  }
   check("the storage-access retry alarm calls the same idempotent setup function",
     source.includes('alarm.name === PBP_STORAGE_ACCESS_RETRY_ALARM') &&
     source.includes('pbpRestrictStorageAccess().catch'));
+
+  // ---- Cold-start Drive sync throttle ----
+  {
+    const local = {};
+    const first = buildBootVocabSyncHarness(source, { local });
+    const window = first.PBP_VOCAB_BOOT_SYNC_MIN_MS;
+    await first.pbpBootVocabDriveSync({ throttleMs: window });
+    const second = buildBootVocabSyncHarness(source, { local });
+    await second.pbpBootVocabDriveSync({ throttleMs: window });
+    const third = buildBootVocabSyncHarness(source, { local });
+    await third.pbpBootVocabDriveSync({ throttleMs: window });
+    const stamped = Number(local[first.PBP_VOCAB_BOOT_SYNC_KEY]) || 0;
+    check("a wake within the throttle window opens no second Drive session",
+      window >= 15 * 60 * 1000 && first.syncs.length === 1 &&
+      second.syncs.length === 0 && third.syncs.length === 0 && stamped > 0);
+
+    local[first.PBP_VOCAB_BOOT_SYNC_KEY] = stamped - window - 1;
+    const later = buildBootVocabSyncHarness(source, { local });
+    await later.pbpBootVocabDriveSync({ throttleMs: window });
+    check("a wake past the throttle window syncs again",
+      later.syncs.length === 1 && later.syncs[0].interactive === false);
+  }
+  {
+    // vocab-sync-dirty / -periodic / -retry drive the real schedule: a word the
+    // user just saved must not wait out somebody else's cold-start window.
+    const local = {};
+    const alarmDriven = buildBootVocabSyncHarness(source, { local });
+    await alarmDriven.pbpBootVocabDriveSync();
+    await alarmDriven.pbpBootVocabDriveSync();
+    await alarmDriven.pbpBootVocabDriveSync();
+    const alarmBranch = source.slice(source.indexOf('alarm.name === "vocab-sync-dirty"'));
+    check("alarm-driven vocabulary syncs are never throttled",
+      alarmDriven.syncs.length === 3 &&
+      /pbpBootVocabDriveSync\(\)\.catch/.test(alarmBranch.slice(0, 400)));
+  }
 
   // ---- Undo notification record ----
   {

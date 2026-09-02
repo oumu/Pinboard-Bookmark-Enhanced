@@ -570,6 +570,9 @@
   "bgUndone": {
     "message": "Pinboard: Undone"
   },
+  "bgUndoFailed": {
+    "message": "Pinboard: Undo failed"
+  },
   "bgBookmarkRemoved": {
     "message": "Bookmark removed."
   },

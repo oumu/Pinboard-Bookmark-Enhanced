@@ -570,6 +570,9 @@
   "bgUndone": {
     "message": "Pinboard：已撤销"
   },
+  "bgUndoFailed": {
+    "message": "Pinboard：撤销失败"
+  },
   "bgBookmarkRemoved": {
     "message": "书签已移除。"
   },

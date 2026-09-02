@@ -570,6 +570,9 @@
   "bgUndone": {
     "message": "Pinboard：取り消しました"
   },
+  "bgUndoFailed": {
+    "message": "Pinboard：取り消しに失敗"
+  },
   "bgBookmarkRemoved": {
     "message": "ブックマークを削除しました。"
   },

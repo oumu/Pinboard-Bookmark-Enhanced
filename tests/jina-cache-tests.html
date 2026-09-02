@@ -58,9 +58,45 @@ async function acheck(name, fn) {
   catch (e) { console.error(name, e); check(name, false); }
 }
 
+// Source-sliced harness for background.js's recurring cache sweep. The sweep is
+// the only writer that can evict a jina_md_ entry, and jina.js reads those back
+// through the USER's aiCacheDuration, so the two thresholds have to agree —
+// asserting resolveCacheMs boundaries with a hand-passed TTL never touched that.
+// Entries are written in the shapes their real writers produce: jina.js stores
+// { result, timestamp }, popup-tags.js stores { data, timestamp, account }.
+function buildSuggestSweepHarness(source, options) {
+  const o = options || {};
+  const start = source.indexOf("const SUGGEST_SWEEP_INTERVAL_MS");
+  const end = source.indexOf("// Best-effort sweep of orphaned per-tab preview payloads", start);
+  if (start < 0 || end <= start) throw new Error("suggest sweep source not found");
+  const data = structuredClone(o.entries || {});
+  const removed = [];
+  const deps = {
+    chrome: { storage: { local: {
+      async get(query) {
+        if (query === null || query === undefined) return structuredClone(data);
+        const out = {};
+        for (const [key, fallback] of Object.entries(query)) {
+          out[key] = key in data ? structuredClone(data[key]) : fallback;
+        }
+        return out;
+      },
+      async set(obj) { for (const [key, value] of Object.entries(obj)) data[key] = structuredClone(value); },
+      async remove(keys) {
+        for (const key of [].concat(keys)) { removed.push(key); delete data[key]; }
+      },
+    } } },
+    pbpReadSettingsWithSecrets: async (defaults) => ({ ...defaults, ...(o.settings || {}) }),
+    console,
+  };
+  const factory = new Function(...Object.keys(deps), `${source.slice(start, end)}\nreturn sweepSuggestCache;`);
+  return { run: factory(...Object.values(deps)), data, removed };
+}
+
 (async function () {
   const realChrome = window.chrome;
   const realFetch = window.fetch;
+  const backgroundSource = await fetch("../background.js").then((response) => response.text());
   try {
     await acheck("Jina cache hit needs neither permission check nor fetch", async () => {
       let checks = 0, fetches = 0;
@@ -119,6 +155,33 @@ async function acheck(name, fn) {
       };
       const result = await fetchJinaMarkdown("https://example.com/test", { cacheDuration: 0 });
       if (result.error || result.markdown !== "test" || fetches !== 1) throw new Error("non-extension compatibility failed");
+    });
+    // ---- sweepSuggestCache honours the configured AI cache duration ----
+    const HOURS_2 = 2 * 60 * 60 * 1000;
+    const entries = () => ({
+      _suggestSweepTs: 0,
+      "jina_md_https://example.com/a": { result: { markdown: "# A", title: "A", url: "https://example.com/a" }, timestamp: Date.now() - HOURS_2 },
+      "cached_suggest_https://example.com/a": { data: [{ popular: ["news"] }, { recommended: ["news", "web"] }], timestamp: Date.now() - HOURS_2, account: "alice" },
+    });
+
+    await acheck("sweep keeps a jina_md_ entry the user's longer AI cache duration still covers", async () => {
+      const h = buildSuggestSweepHarness(backgroundSource, { settings: { aiCacheDuration: 1440 }, entries: entries() });
+      await h.run();
+      if (h.removed.includes("jina_md_https://example.com/a")) throw new Error("swept an entry the reader would still serve");
+    });
+
+    await acheck("sweep still drops a cached_suggest_ entry past its own hour, whatever the AI cache duration", async () => {
+      const h = buildSuggestSweepHarness(backgroundSource, { settings: { aiCacheDuration: 1440 }, entries: entries() });
+      await h.run();
+      if (!h.removed.includes("cached_suggest_https://example.com/a")) throw new Error("suggest cache outlived its own TTL");
+    });
+
+    await acheck("sweep drops every jina_md_ entry when AI caching is turned off", async () => {
+      const fresh = entries();
+      fresh["jina_md_https://example.com/a"].timestamp = Date.now();
+      const h = buildSuggestSweepHarness(backgroundSource, { settings: { aiCacheDuration: 0 }, entries: fresh });
+      await h.run();
+      if (!h.removed.includes("jina_md_https://example.com/a")) throw new Error("disabled cache kept an unreachable entry forever");
     });
   } finally {
     window.chrome = realChrome;

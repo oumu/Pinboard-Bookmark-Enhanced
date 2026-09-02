@@ -1207,7 +1207,7 @@ await suite("unified save pipeline", async () => {
     }
   });
 
-  await test("Undo rereads the current token, rejects logout/account switch, and accepts same-account rotation", async () => {
+  await test("Undo rereads the current token, rejects logout/account switch, and reports every failure", async () => {
     let releaseSave;
     let saveStartedResolve;
     const saveStarted = new Promise((resolve) => { saveStartedResolve = resolve; });
@@ -1231,12 +1231,21 @@ await suite("unified save pipeline", async () => {
     let authEpoch = 0;
     let switchDuringRead = false;
     const deleteCalls = [];
+    // The slice contains the real showNotification, so its own chrome call is
+    // the only honest place to observe a toast (and it keeps the notifyErrors
+    // gate in the path). posts/delete answers are written in the server's shape:
+    // an HTTP status plus a result_code body.
+    const toasts = [];
+    let deleteAnswer = () => ({ ok: true, status: 200, json: async () => ({ result_code: "done" }) });
     const notificationChrome = {
       notifications: {
         onButtonClicked: { addListener(fn) { clickHandler = fn; } },
-        create() {},
+        create(id, opts) { toasts.push({ id, title: opts?.title, message: opts?.message }); },
+        clear: async () => true,
       },
+      tabs: { query: async () => [] },
     };
+    const settled = async () => { await new Promise((resolve) => setTimeout(resolve, 0)); };
     const deps = {
       chrome: notificationChrome,
       SETTINGS_DEFAULTS,
@@ -1255,9 +1264,14 @@ await suite("unified save pipeline", async () => {
       pbpPinboardAuthEpoch: () => authEpoch,
       pbpPinboardAuthIsCurrent: (auth) => !!auth?.account && auth.epoch === authEpoch,
       pinboardFetch: async (url) => {
+        const answer = deleteAnswer();
         deleteCalls.push(url);
-        return { json: async () => ({ result_code: "done" }) };
+        if (answer instanceof Error) throw answer;
+        return answer;
       },
+      getCurrentPinboardAuth: async () => ({
+        token: currentToken, account: pbpPinboardAccountFromToken(currentToken), epoch: authEpoch,
+      }),
       getSettingsStorage: async () => ({ get: async (defaults) => defaults }),
       statusCache: new Map(),
       pbpCapturePinboardAuth: (token) => ({ account: pbpPinboardAccountFromToken(token), epoch: authEpoch }),
@@ -1278,13 +1292,19 @@ await suite("unified save pipeline", async () => {
     authEpoch++;
     currentToken = "";
     await clickHandler("logout", 0);
+    await settled();
     equal(deleteCalls.length, 0, "logout must not reuse an Undo credential");
+    equal(toasts.length, 1, "a spent Undo on a logged-out account must say so");
+    equal(toasts[0].title, "bgUndoFailed");
+    equal(toasts[0].message, "pinboardErrorAuth");
 
     recent.set("switched", { url: BASE_INTENT.url, account: captured.account });
     authEpoch++;
     currentToken = "bob:current";
     await clickHandler("switched", 0);
+    await settled();
     equal(deleteCalls.length, 0, "account switch must not delete the prior account bookmark");
+    equal(toasts.length, 1, "a cross-account cancel stays silent, like every other isolation cancel");
 
     recent.set("switch-during-read", { url: BASE_INTENT.url, account: "alice" });
     authEpoch++;
@@ -1297,8 +1317,45 @@ await suite("unified save pipeline", async () => {
     authEpoch++;
     currentToken = "alice:rotated";
     await clickHandler("rotated", 0);
+    await settled();
     equal(deleteCalls.length, 1, "same-account token rotation should keep Undo usable");
     equal(new URL(deleteCalls[0]).searchParams.get("auth_token"), "alice:rotated");
+    equal(toasts.length, 2, "a completed Undo replaces the saved toast");
+    equal(toasts[1].title, "bgUndone");
+
+    // Every remaining failure shape used to end in silence while the bookmark
+    // stayed on Pinboard: an HTTP error (whose body is not even JSON), an
+    // unexpected result_code, and a dead connection.
+    const failures = [
+      ["http-500", () => ({ ok: false, status: 500, json: async () => { throw new Error("not json"); } }), "pinboardErrorServer"],
+      ["rate-limited", () => ({ ok: false, status: 429, json: async () => { throw new Error("not json"); } }), "pinboardErrorRateLimit"],
+      ["api-error", () => ({ ok: true, status: 200, json: async () => ({ result_code: "something went wrong" }) }), "something went wrong"],
+      ["offline", () => new TypeError("Failed to fetch"), "pinboardErrorOffline"],
+    ];
+    for (const [id, answer, expectedMessage] of failures) {
+      const before = toasts.length;
+      deleteAnswer = answer;
+      recent.set(id, { url: BASE_INTENT.url, account: "alice" });
+      authEpoch++;
+      currentToken = "alice:rotated";
+      await clickHandler(id, 0);
+      await settled();
+      equal(toasts.length, before + 1, `${id} failed Undo left the user with no feedback`);
+      equal(toasts[before].title, "bgUndoFailed", id);
+      equal(toasts[before].message, expectedMessage, id);
+    }
+
+    // posts/delete answers "item not found" when the bookmark is already gone —
+    // that is the end state the click asked for, not a failure.
+    const beforeGone = toasts.length;
+    deleteAnswer = () => ({ ok: true, status: 200, json: async () => ({ result_code: "item not found" }) });
+    recent.set("already-gone", { url: BASE_INTENT.url, account: "alice" });
+    authEpoch++;
+    currentToken = "alice:rotated";
+    await clickHandler("already-gone", 0);
+    await settled();
+    equal(toasts.length, beforeGone + 1);
+    equal(toasts[beforeGone].title, "bgUndone", "an already-removed bookmark must not raise an error toast");
   });
 
   await test("queued background save notifies without success or opportunistic drain", async () => {
@@ -1460,6 +1517,31 @@ await suite("unified save pipeline", async () => {
     equal(h.notifications[0][1], "bgQueuedOffline");
     assert(h.notifications[0][2].includes("batchDone:0:0"), "all-queued notification lacks completion summary");
     assert(h.notifications[0][2].includes("offlineQueued:2"), "all-queued notification lacks queued count");
+  });
+
+  await test("all-failed Batch reports the outcome instead of finishing in silence", async () => {
+    // A token revoked server-side answers 401 on every item: not retryable, so
+    // nothing is queued either. Batch is built to run with the popup closed and
+    // the popup only replays a terminal record for BATCH_STALE_TTL, so this
+    // notification is the only feedback the run can still produce.
+    const h = await createBatchSaveHarness({
+      outcomes: [{ status: "failed", reason: "not_logged_in", httpStatus: 401 }],
+    });
+    await h.handleBatchSave(batchTabs(3));
+    const done = h.progress[h.progress.length - 1];
+    equal(done.failed, 3);
+    equal(done.saved, 0);
+    equal(h.badgeCalls.length, 0);
+    equal(h.notifications.length, 1, "an all-failed Batch must not finish silently");
+    equal(h.notifications[0][0], "batch-error");
+    equal(h.notifications[0][3], "error", "a total failure must not ride the success category");
+    assert(h.notifications[0][2].includes("batchDone:0:3"), "all-failed notification lacks the completion summary");
+
+    const tooLong = await createBatchSaveHarness({ outcomes: [{ status: "failed", reason: "too_long", detail: "4200" }] });
+    await tooLong.handleBatchSave(batchTabs(2));
+    equal(tooLong.notifications.length, 1, "an all-too-long Batch must not finish silently");
+    equal(tooLong.notifications[0][0], "batch-error");
+    assert(tooLong.notifications[0][2].includes("batchTooLong:2"), "too-long count missing from the notification");
   });
 
   await test("authorize swaps ONLY the token bytes, preserving every other query byte", async () => {

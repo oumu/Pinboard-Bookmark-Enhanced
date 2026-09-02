@@ -570,6 +570,9 @@
   "bgUndone": {
     "message": "Pinboard: Cofnięto"
   },
+  "bgUndoFailed": {
+    "message": "Pinboard: Cofnięcie nie powiodło się"
+  },
   "bgBookmarkRemoved": {
     "message": "Zakładka usunięta."
   },

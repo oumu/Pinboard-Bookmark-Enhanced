@@ -570,6 +570,9 @@
   "bgUndone": {
     "message": "Pinboard: Отменено"
   },
+  "bgUndoFailed": {
+    "message": "Pinboard: Не удалось отменить"
+  },
   "bgBookmarkRemoved": {
     "message": "Закладка удалена."
   },

@@ -570,6 +570,9 @@
   "bgUndone": {
     "message": "Pinboard : Annulé"
   },
+  "bgUndoFailed": {
+    "message": "Pinboard : Échec de l'annulation"
+  },
   "bgBookmarkRemoved": {
     "message": "Signet supprimé."
   },

@@ -368,6 +368,17 @@ async function showNotification(id, title, message, category, undoInfo) {
   chrome.notifications.create(notifId, opts);
 }
 
+// Undo failure feedback: the bookmark is still on Pinboard, so the "saved"
+// toast stays truthful and is left in place — what the click needs is to hear
+// that the removal did not happen. Same showNotification error family (and the
+// same notifyErrors gate) every other Pinboard write path uses; the body is the
+// server's own result_code when it sent one, else the key classifyPinboardError
+// derives from the response or the thrown error.
+function pbpNotifyUndoFailed(cause) {
+  const message = (typeof cause === "string" && cause) ? cause : t(classifyPinboardError(cause));
+  showNotification("undo-error", t("bgUndoFailed"), message, "error");
+}
+
 // F7: Handle undo button click on notifications
 chrome.notifications.onButtonClicked.addListener(async (notifId, btnIndex) => {
   if (btnIndex !== 0) return;
@@ -381,24 +392,51 @@ chrome.notifications.onButtonClicked.addListener(async (notifId, btnIndex) => {
   }
   try {
     const auth = await pbpReadFreshPinboardAuthForAccount(info.account);
-    if (!auth || !pbpPinboardAuthIsCurrent(auth)) return;
+    if (!auth || !pbpPinboardAuthIsCurrent(auth)) {
+      // A different signed-in account is the deliberate isolation cancel — the
+      // record belongs to an account this session may not act for, the same
+      // reason the catch below exempts account_changed from even a log. A
+      // cleared token is a real failure the click deserves to hear about; 401
+      // is the shape classifyPinboardError maps to the auth copy.
+      const current = await getCurrentPinboardAuth().catch(() => null);
+      if (!current?.token) pbpNotifyUndoFailed(401);
+      return;
+    }
     const resp = await pinboardFetch(`https://api.pinboard.in/v1/posts/delete?auth_token=${auth.token}&url=${encodeURIComponent(info.url)}&format=json`);
-    const data = await resp.json();
-    if (data.result_code === "done") {
+    // Classify the HTTP layer first, the way deliverSaveIntent does: 401/403/429
+    // and 5xx answer with an HTML body, so reading result_code first turned every
+    // one of them into a silent JSON parse failure.
+    if (!resp.ok) { pbpNotifyUndoFailed(resp); return; }
+    let data = null;
+    try { data = await resp.json(); } catch (_) { /* classified below */ }
+    const code = typeof data?.result_code === "string" ? data.result_code : "";
+    // "item not found" means the bookmark is already gone — that IS the state the
+    // user asked for, so finish it exactly like a delete this click performed.
+    if (code === "done" || /item\s+not\s+found/i.test(code)) {
       pbpStatusCacheSet(info.url, auth, { bookmarked: false, timestamp: Date.now() });
-      // Same reset the bookmark_deleted handler does: _lastIconState dedup would
-      // otherwise pin the toolbar icon to "saved" until the user navigates away.
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (pbpPinboardAuthIsCurrent(auth) && tab?.id && pbpSameBookmark(tab.url, info.url)) {
-        setIcon(tab.id, "default");
+      try {
+        // Same reset the bookmark_deleted handler does: _lastIconState dedup would
+        // otherwise pin the toolbar icon to "saved" until the user navigates away.
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (pbpPinboardAuthIsCurrent(auth) && tab?.id && pbpSameBookmark(tab.url, info.url)) {
+          setIcon(tab.id, "default");
+        }
+      } catch (e) {
+        // The removal already landed: a failed icon reset must never reach the
+        // user as a failed Undo.
+        console.warn("[undo] icon reset failed:", e?.name, e?.message);
       }
       // The "saved" toast is now false and its button is spent — replace it.
       await pbpClearNotification(notifId);
       showNotification("undo-done", t("bgUndone"), t("bgBookmarkRemoved"));
+      return;
     }
+    pbpNotifyUndoFailed(code);
   } catch (e) {
+    if (e?.code === "account_changed") return;
     // Undo path failure — user expects feedback, log so it's debuggable
-    if (e?.code !== "account_changed") console.warn("[undo] bookmark removal failed:", e?.message || e);
+    console.warn("[undo] bookmark removal failed:", e?.message || e);
+    pbpNotifyUndoFailed(e);
   }
 });
 
@@ -1229,6 +1267,13 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (!tab.url || !tab.url.startsWith("http")) return;
   const sameDocument = !!changeInfo.url && changeInfo.status === undefined;
   if (sameDocument && _urlWithoutFragment(tab.url) === _urlWithoutFragment(_lastCheckedUrl.get(tabId))) return;
+  // Chromium clears the tab-scoped action icon on a cross-document navigation
+  // (the platform behaviour this listener already relies on), so the dedup entry
+  // stops describing what the toolbar shows. Recomputing the SAME state after a
+  // reload, or on a saved -> saved hop, would then short-circuit setIcon and
+  // leave the default pin up. Same rule invalidatePinboardAuthState follows:
+  // when the truth behind the dedup moves, the dedup entry goes first.
+  if (!sameDocument) _lastIconState.delete(tabId);
   _scheduleCurrentTabRefresh(tabId, tab.url);
 });
 
@@ -1802,6 +1847,31 @@ pbpSyncSiteThemeScript();
 // session is TRUSTED_CONTEXTS by default already. Top-level, every SW eval —
 // setAccessLevel is per-session state, so it must be re-asserted on wake.
 const PBP_STORAGE_ACCESS_RETRY_ALARM = "storage-access-retry";
+// Retry budget for that alarm. The count lives in storage.session, not in a
+// module variable: every retry wakes a FRESH worker generation, so an in-memory
+// counter restarts at zero each time and a permanently failing platform call
+// (the API missing on this Chrome build, an enterprise policy refusal) re-arms
+// the one-shot alarm every minute for as long as the browser runs — waking the
+// worker and re-running the whole boot sequence with it. Session scope is the
+// right lifetime: a browser restart may well be a new Chrome build, so the
+// budget starts over then. Giving up is an acceptable end state — the
+// pinboard.in content scripts read their prefs through get_site_prefs and no
+// longer touch storage directly, so trusted-only is defense in depth here.
+const PBP_STORAGE_ACCESS_RETRY_KEY = "_storageAccessRetries";
+const PBP_STORAGE_ACCESS_MAX_RETRIES = 5;
+
+async function pbpStorageAccessRetryCount() {
+  try {
+    const stored = await chrome.storage.session.get({ [PBP_STORAGE_ACCESS_RETRY_KEY]: 0 });
+    return Number(stored?.[PBP_STORAGE_ACCESS_RETRY_KEY]) || 0;
+  } catch (e) {
+    // Unknown count: fail toward retrying (a session-storage failure is itself
+    // the transient kind), but leave the trace MV3 requires.
+    console.warn("[storage-access] retry counter read failed:", e?.name, e?.message);
+    return 0;
+  }
+}
+
 async function pbpRestrictStorageAccess() {
   let failed = false;
   for (const name of ["local", "sync"]) {
@@ -1814,9 +1884,20 @@ async function pbpRestrictStorageAccess() {
     }
   }
   if (failed) {
+    const attempt = await pbpStorageAccessRetryCount();
+    if (attempt >= PBP_STORAGE_ACCESS_MAX_RETRIES) {
+      console.warn(`[storage-access] trusted-only still unavailable after ${attempt} retries; not rescheduling`);
+      return false;
+    }
+    try { await chrome.storage.session.set({ [PBP_STORAGE_ACCESS_RETRY_KEY]: attempt + 1 }); }
+    catch (e) { console.warn("[storage-access] retry counter write failed:", e?.name, e?.message); }
     try {
       // One-shot and same-name: repeated failures replace rather than stack.
-      await chrome.alarms.create(PBP_STORAGE_ACCESS_RETRY_ALARM, { delayInMinutes: 1 });
+      // Exponential backoff (1, 2, 4, 8, 16 minutes) because a failure that
+      // outlives the first minute is usually the permanent kind.
+      await chrome.alarms.create(PBP_STORAGE_ACCESS_RETRY_ALARM, {
+        delayInMinutes: Math.min(30, 2 ** attempt),
+      });
     } catch (e) {
       console.warn("[storage-access] retry scheduling failed:", e?.name, e?.message);
     }
@@ -1824,6 +1905,12 @@ async function pbpRestrictStorageAccess() {
   }
   try { await chrome.alarms.clear(PBP_STORAGE_ACCESS_RETRY_ALARM); }
   catch (e) { console.warn("[storage-access] retry cleanup failed:", e?.name, e?.message); }
+  try {
+    // Read-then-remove: success is the every-wake path, so it must not write.
+    if (await pbpStorageAccessRetryCount() > 0) {
+      await chrome.storage.session.remove(PBP_STORAGE_ACCESS_RETRY_KEY);
+    }
+  } catch (e) { console.warn("[storage-access] retry counter cleanup failed:", e?.name, e?.message); }
   return true;
 }
 // Re-assert trusted-only storage on every SW generation. A transient platform
@@ -1976,7 +2063,18 @@ async function pbpVocabDriveResponse(result) {
   return response;
 }
 
-async function pbpBootVocabDriveSync() {
+// Floor between two cold-start syncs. This function runs at the top level, and
+// an MV3 "startup" is EVERY SW wake (see the lazy icon-decode note at the top of
+// this file) — with storage-warm waking an idle browser every 5 minutes, a
+// connected device opened a Drive session (an about() round trip, plus another
+// on a successful finish) that often, while the design cadence is the 15-minute
+// vocab-sync-periodic alarm. Alarm-driven runs carry the real schedule and pass
+// no throttle, so a freshly dirtied word still syncs immediately. The stamp is
+// persisted because the throttle has to survive the worker that set it.
+const PBP_VOCAB_BOOT_SYNC_KEY = "_vocabBootSyncTs";
+const PBP_VOCAB_BOOT_SYNC_MIN_MS = 15 * 60 * 1000;
+
+async function pbpBootVocabDriveSync({ throttleMs = 0 } = {}) {
   if (!PBP_VOCAB_DRIVE_CAPABLE) return { ok: true };
   if (!await pbpVocabDriveIsConnected()) return { ok: true };
   const granted = await chrome.permissions.contains({
@@ -1991,6 +2089,21 @@ async function pbpBootVocabDriveSync() {
       chrome.alarms.clear("vocab-sync-retry")
     ]);
     return { ok: false, error: "permission" };
+  }
+  if (throttleMs > 0) {
+    const now = Date.now();
+    let last = 0;
+    try {
+      const stored = await chrome.storage.local.get({ [PBP_VOCAB_BOOT_SYNC_KEY]: 0 });
+      last = Number(stored?.[PBP_VOCAB_BOOT_SYNC_KEY]) || 0;
+    } catch (e) {
+      console.warn("[vocab-sync] boot throttle read failed:", e?.name, e?.message);
+    }
+    // Stamp BEFORE the run: a failed sync sets its own retryAt/backoff and owns
+    // the vocab-sync-retry alarm, so the wake path must not hammer it either.
+    if (now - last < throttleMs) return { ok: true, throttled: true };
+    try { await chrome.storage.local.set({ [PBP_VOCAB_BOOT_SYNC_KEY]: now }); }
+    catch (e) { console.warn("[vocab-sync] boot throttle write failed:", e?.name, e?.message); }
   }
   return pbpQueueVocabDriveSync({ interactive: false });
 }
@@ -2022,7 +2135,7 @@ async function pbpDisconnectVocabDrive() {
   return { ok: true, status: await pbpGetVocabDriveStatus() };
 }
 
-pbpBootVocabDriveSync().catch(() => {});
+pbpBootVocabDriveSync({ throttleMs: PBP_VOCAB_BOOT_SYNC_MIN_MS }).catch(() => {});
 
 const queuePrewarmAlarmSync = pbpCreateRecoveringTail();
 function syncPrewarmTagsAlarm() {
@@ -2141,20 +2254,34 @@ async function sweepAICacheMigrationBackup() {
 // ~once / 6h to bound the get(null) scan; drops entries older than 1h (past the TTL).
 const SUGGEST_SWEEP_INTERVAL_MS = 6 * 60 * 60 * 1000;
 const SUGGEST_STALE_MS = 60 * 60 * 1000;
-const JINA_STALE_MS = 60 * 60 * 1000; // 1 hour, same as suggest cache
 // Recurring sweep of per-URL cache (cached_suggest_* and jina_md_*). Both write
 // entries with a read-TTL but never evict them, so without this they accumulate
 // unbounded in storage.local and slow reads. Gated to ~once / 6h to bound the
-// get(null) scan; drops entries older than their 1h TTL.
+// get(null) scan. The two families expire on DIFFERENT clocks: cached_suggest_
+// has a fixed 10-min read TTL (1h here is the generous side of it), while
+// jina_md_ is read back through resolveCacheMs(aiCacheDuration) (jina.js) — a
+// user-settable duration of up to 7 days. Sweeping those on a hardcoded hour
+// silently voided the setting and re-billed the next preview to r.jina.ai, so
+// resolve the same value the reader uses; 0 there means caching is off, which
+// makes every stored entry unreachable and therefore sweepable.
 async function sweepSuggestCache() {
   try {
     const now = Date.now();
     const { _suggestSweepTs = 0 } = await chrome.storage.local.get({ _suggestSweepTs: 0 });
     if (now - _suggestSweepTs < SUGGEST_SWEEP_INTERVAL_MS) return;
+    let jinaStaleMs = resolveCacheMs(SETTINGS_DEFAULTS.aiCacheDuration);
+    try {
+      const raw = await pbpReadSettingsWithSecrets({ aiCacheDuration: SETTINGS_DEFAULTS.aiCacheDuration });
+      jinaStaleMs = resolveCacheMs(raw.aiCacheDuration);
+    } catch (e) {
+      // MV3 rule: leave a trace instead of folding the failure away. No secrets
+      // here — the read asks for one duration key.
+      console.warn("[cache-sweep] cache duration read failed:", e?.name, e?.message);
+    }
     const all = await chrome.storage.local.get(null);
     const stale = Object.keys(all).filter((k) => {
       if (k.startsWith("cached_suggest_")) return isStaleCacheEntry(all[k], now, SUGGEST_STALE_MS);
-      if (k.startsWith("jina_md_")) return isStaleCacheEntry(all[k], now, JINA_STALE_MS);
+      if (k.startsWith("jina_md_")) return jinaStaleMs === 0 || isStaleCacheEntry(all[k], now, jinaStaleMs);
       return false;
     });
     if (stale.length) await chrome.storage.local.remove(stale);
@@ -2526,7 +2653,11 @@ function handleRuntimeMessage(message, sender, sendResponse) {
   if (message.type === "test_pinboard_token" && message.token) {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 15000);
-    fetch(`https://api.pinboard.in/v1/user/api_token/?auth_token=${encodeURIComponent(message.token)}&format=json`, { signal: ctrl.signal })
+    // redirect:"error" — same invariant _executePinboardFetch enforces: the
+    // auth_token rides the query string, so following a 3xx would replay the
+    // plaintext token to whatever host the Location names. A 3xx now rejects
+    // into the existing .catch and reports as a network failure.
+    fetch(`https://api.pinboard.in/v1/user/api_token/?auth_token=${encodeURIComponent(message.token)}&format=json`, { signal: ctrl.signal, redirect: "error" })
       .then(res => { clearTimeout(timer); sendResponse({ ok: res.ok, status: res.status }); })
       .catch(err => { clearTimeout(timer); sendResponse({ ok: false, error: err.name === "AbortError" ? "timeout" : "network" }); });
     return true; // keep channel open for async response
@@ -3089,10 +3220,21 @@ async function _runBatchSave(tabs, expectedAccount, resumeState = null) {
     const skippedMsg = skipped > 0 ? t("batchSkipped", String(skipped)) : "";
     const tooLongMsg = tooLong > 0 ? t("batchTooLong", String(tooLong)) : "";
     const queuedMsg = queued > 0 ? ` · ${t("offlineQueued", String(queued))}` : "";
-    if (saved > 0 || queued > 0) {
-      const title = saved > 0 ? t("bgBatchSaved") : t("bgQueuedOffline");
+    if (saved > 0 || queued > 0 || failed > 0 || tooLong > 0) {
       const message = t("batchDone", String(saved), String(failed)) + skippedMsg + tooLongMsg + queuedMsg + tagsSuffix;
-      showNotification("batch-saved", title, message, "batchSave");
+      if (saved > 0 || queued > 0) {
+        const title = saved > 0 ? t("bgBatchSaved") : t("bgQueuedOffline");
+        showNotification("batch-saved", title, message, "batchSave");
+      } else {
+        // Nothing landed at all (a server-revoked token answers 401 -> not
+        // retryable -> not even queued). Batch is built to outlive the popup,
+        // and the popup only replays a terminal record for BATCH_STALE_TTL, so
+        // without this the whole run vanishes without a word. Report it in the
+        // error family the other terminal batch failures use — never as a
+        // "Saved 0 bookmarks" success. An all-SKIPPED run stays silent: nothing
+        // failed there, the bookmarks were already saved.
+        showNotification("batch-error", t("bgBatchSaved"), message, "error");
+      }
     }
   } catch (e) {
     // A thrown error is a REAL terminal state (account switch, unexpected
@@ -3113,7 +3255,15 @@ async function handleSaveTabSet(tabsData) {
     const result = { browser: "chrome", windows: [tabsData.map(t => ({ title: t.title, url: t.url }))] };
     const formData = new FormData();
     formData.append("data", JSON.stringify(result));
-    const resp = await fetch("https://pinboard.in/tabs/save/", { method: "POST", body: formData, credentials: "include" });
+    // Deadline (same 20s tier as md-export-send): the caller is fire-and-forget
+    // and the popup re-enables its button on a 2s timer, so these notifications
+    // are the user's only feedback — a hung socket would silence both of them
+    // and keep the worker alive until Chrome's own network timeout. AbortError
+    // lands in the catch below as an ordinary tabset-error.
+    const resp = await fetch("https://pinboard.in/tabs/save/", {
+      method: "POST", body: formData, credentials: "include",
+      signal: AbortSignal.timeout(20000),
+    });
     if (resp.ok) {
       // /tabs/save/ only STAGES the tabs — Pinboard requires the user to click
       // "Save" on /tabs/show/ to actually bookmark them. So we open that page and
