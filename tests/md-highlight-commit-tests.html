@@ -34,6 +34,14 @@ writer would agree with it no matter how wrong both are.</p>
 // suite is about which ITEMS reach storage, not about anchoring or the card DOM.
 function t(key) { return key; }
 
+// The live Pinboard account, re-read by md-highlight.js inside every commit.
+// "ownerless" is what shared.js's pbpVocabCurrentOwner answers when no token is
+// stored, and it is the value every scenario but the account-switch one runs
+// under. Moving it mid-suite is what a token swap in another tab looks like
+// from this page: the answer changes before the page hears about it.
+let OWNER_NOW = "ownerless";
+async function pbpVocabCurrentOwner() { return OWNER_NOW; }
+
 function pbpAiHash(s) {
   let h = 0;
   const str = String(s);
@@ -224,6 +232,11 @@ fakeCard.innerHTML = '<textarea class="hl-card-note"></textarea><button class="h
 document.getElementById("fixture").appendChild(fakeCard);
 const cardNote = fakeCard.querySelector(".hl-card-note");
 _pbpHlCard = fakeCard;
+// The real card is a [popover] element and the teardown paths call hidePopover
+// on it. A bare <div> has no such method, so the call would be swallowed by the
+// teardown's own try/catch and no assertion could ever see it happen.
+let CARD_HIDDEN = 0;
+fakeCard.hidePopover = () => { CARD_HIDDEN++; };
 
 function selectionRange(n, start, end) {
   const el = pbpAiBlockEl(n);
@@ -861,6 +874,96 @@ function selectionRange(n, start, end) {
     !pbpHlItemsSame(
       [{ id: "e1", n: 1, quote: "q", color: 1, note: "" }],
       [{ id: "e1", n: 1, quote: "q", color: 1, note: "", owner: "acct_alice" }]));
+
+  // ================= scenario 8: the account changed under an open card =================
+  section("(8) an account switch takes the card down and locks its edits out");
+
+  const ALICE = "acct_alice", BOB = "acct_bob";
+  // Hand-written record in the shape storage holds once items carry an owner:
+  // one of Alice's, plus a legacy ownerless one (visible to everybody, the
+  // documented terminal state for pre-scoping highlights).
+  function ownedRecord() {
+    return {
+      v: 1,
+      url: PAGE_URL,
+      title: "Fixture article",
+      items: [
+        { id: "h-hers", n: 1, quote: "Alpha", prefix: "", suffix: " paragraph", color: 1, note: "hers", ts: 1000, owner: ALICE },
+        { id: "h-legacy", n: 2, quote: "Beta", prefix: "", suffix: " paragraph", color: 3, note: "", ts: 2000 },
+      ],
+    };
+  }
+  // Mount as `owner`, with the raw mirror and the display set the account
+  // filter would have produced -- what pbpHlInit leaves behind on a page whose
+  // record already holds another account's items.
+  async function bootAs(owner) {
+    await boot(ownedRecord());
+    OWNER_NOW = owner;
+    _pbpHlOwner = owner === "ownerless" ? "" : owner;
+    _pbpHlRawItems = structuredClone(ownedRecord().items);
+    _pbpHlState.items = pbpHlVisibleItems(structuredClone(ownedRecord().items), _pbpHlOwner);
+  }
+  // What chrome.storage fires when Options rewrites the token in another tab.
+  // Only the changed KEY reaches the listener's decision; the value stays
+  // opaque to it (the account itself comes from a re-read, not from here).
+  async function switchAccountTo(owner) {
+    OWNER_NOW = owner;
+    CHANGE_LISTENERS.forEach((fn) => fn({ pinboardToken: { oldValue: "old", newValue: "new" } }, "local"));
+    await flush();
+  }
+
+  await bootAs(ALICE);
+  _pbpHlCardItemId = "h-hers";
+  cardNote.value = "half a sentence";
+  _pbpHlCardBaseNote = "";
+  _pbpHlNoteDirty = true;
+  _pbpHlBarRange = selectionRange(1, 0, 5);
+  CARD_HIDDEN = 0;
+  await switchAccountTo(BOB);
+  check("the switch hides the card describing the previous account's item",
+    CARD_HIDDEN === 1, CARD_HIDDEN);
+  check("the switch unbinds the card, so nothing can still commit through it",
+    _pbpHlCardItemId === null, String(_pbpHlCardItemId));
+  check("the switch drops the selection the old account's bar was holding",
+    _pbpHlBarRange === null, String(_pbpHlBarRange));
+  check("the half-typed note is dropped, never saved into the account just left",
+    (storedItem("h-hers") || {}).note === "hers", JSON.stringify(storedItem("h-hers")));
+  check("the previous account's record is left byte-identical by the switch",
+    JSON.stringify(record().items) === JSON.stringify(ownedRecord().items), JSON.stringify(record()));
+
+  // Taking the card down is the first line of defence; the gate on the WRITE is
+  // what holds when this page never hears about the switch at all (its own
+  // re-read can fail, and silence is not a guarantee of no change). Each edit
+  // path runs with a stale card put back over the previous account's item.
+  for (const path of EDIT_PATHS) {
+    await bootAs(ALICE);
+    OWNER_NOW = BOB; // switched in another tab; this page's listener never ran
+    const snapshot = JSON.stringify(record());
+    await path.run("h-hers");
+    await flush();
+    check(path.name + " cannot reach an item owned by the account this page left",
+      JSON.stringify(record()) === snapshot, JSON.stringify(record()));
+  }
+
+  await bootAs(ALICE);
+  OWNER_NOW = BOB;
+  const refusedDelete = await _pbpHlDeleteItem("h-hers", null);
+  check("deleting the previous account's highlight is refused, not reported done",
+    refusedDelete === false && !!storedItem("h-hers"), JSON.stringify(record()));
+
+  // Counter-example for the gate: it is per item, not "refuse every write".
+  // A legacy ownerless highlight belongs to whoever is reading, so every path
+  // still applies to it across the very same switch.
+  for (const path of EDIT_PATHS) {
+    await bootAs(ALICE);
+    OWNER_NOW = BOB;
+    await path.run("h-legacy");
+    await flush();
+    check(path.name + " still applies to a legacy ownerless item after the switch",
+      path.applied(storedItem("h-legacy") || {}), JSON.stringify(storedItem("h-legacy")));
+  }
+  OWNER_NOW = "ownerless";
+  _pbpHlOwner = "";
 
   document.getElementById("summary").textContent =
     "PASS " + PASS + " / FAIL " + FAIL + " (total " + (PASS + FAIL) + ")";

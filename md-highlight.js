@@ -193,14 +193,26 @@ function pbpHlGlobalLocateNormalized(blocks, item) {
 // exists and this tier must never run: an unmatched highlight belongs in the
 // Notebook as an orphan, not mis-anchored into another language's text.
 //
-// The mark class below is byte-for-byte the class pbpVideoPunctConserved
-// strips before comparing. The two definitions are a matched pair -- widening
-// this one without widening the gate would let a real content difference hide
-// inside "punctuation". Written with \u escapes (project rule: no literal
-// non-ASCII in .js source): full-width comma, ideographic full stop,
-// full-width ! ? ; :, ideographic comma, curly quotes, full-width parens,
-// double angle brackets, lenticular brackets, ellipsis, em dash, middle dot.
-const PBP_HL_PUNCT_RE = /[\s\uFF0C\u3002\uFF01\uFF1F\uFF1B\uFF1A\u3001\u201C\u201D\u2018\u2019\uFF08\uFF09\u300A\u300B\u3010\u3011\u2026\u2014,.!?;:'"()\[\]{}\u00B7-]/;
+// The mark class below must be a SUPERSET of the class pbpVideoPunctConserved
+// strips before comparing (PBP_VIDEO_MARK_RE, md-video.js). That gate decides
+// which characters the AI tier may insert, so every mark it lets through has
+// to reduce away here too -- otherwise a batch the gate accepted as conserved
+// still moves the quote out of reach and the highlight orphans. Only the drift
+// in THAT direction is dangerous: widening this class past the gate merely
+// makes the reducer more lenient, and the gate has already refused any batch
+// that touched a real word. Equality is not the invariant and cannot be -- the
+// gate exempts word-internal middle dots, apostrophes, periods and hyphens
+// (pbpVideoIsIntraMark) which this class always strips.
+// tests/md-ai-tests.html pins the superset relation.
+// Written with \u escapes (project rule: no literal non-ASCII in .js source):
+// full-width comma, ideographic full stop, full-width ! ? ; :, ideographic
+// comma, curly quotes, full-width parens, double angle brackets, lenticular
+// brackets, corner brackets, white corner brackets, ellipsis, em dash,
+// katakana middle dot, wave dash, full-width tilde, middle dot. The corner
+// brackets, the katakana middle dot and the two tildes joined the gate a day
+// after this class was written (08a8118: CJK models punctuate with them
+// routinely) and were missing here until the pair was re-aligned.
+const PBP_HL_PUNCT_RE = /[\s\uFF0C\u3002\uFF01\uFF1F\uFF1B\uFF1A\u3001\u201C\u201D\u2018\u2019\uFF08\uFF09\u300A\u300B\u3010\u3011\u300C\u300D\u300E\u300F\u2026\u2014\u30FB\u301C\uFF5E,.!?;:'"()\[\]{}\u00B7-]/;
 
 // text -> {reduced, map}: every punctuation/whitespace character dropped, and
 // reduced[i] came from text[map[i]]. The map is the whole point -- it is what
@@ -619,11 +631,13 @@ async function _pbpHlSave(url, items, btn) {
   }
 }
 
-// Page-boot owner scope for stamping and display filtering. Resolved once in
-// pbpHlInit; "" = logged out ("ownerless" normalizes to it) or resolve failure
-// — then new items stay fieldless (legacy shape) and only ownerless items
-// show (fail-closed for owned ones). An open reader outliving an account
-// switch keeps the boot scope; the library re-resolves per render.
+// Owner scope for stamping and display filtering. Resolved in pbpHlInit and
+// refreshed by the account-switch branch at the bottom of this file; "" =
+// logged out ("ownerless" normalizes to it) or resolve failure — then new
+// items stay fieldless (legacy shape) and only ownerless items show
+// (fail-closed for owned ones). This is a DISPLAY cache: no write may trust
+// it, because the refresh is async and its own re-read can fail —
+// _pbpHlLiveOwner below is what every commit gates on.
 let _pbpHlOwner = "";
 // Last known FULL stored items array (unfiltered). The onChanged echo
 // comparison must run raw-vs-raw: _pbpHlState.items is the filtered display
@@ -644,6 +658,25 @@ function _pbpHlQueueWrite(fn) {
 // _pbpHlState.items alone -- that array is only swapped in once the save
 // returns.
 let _pbpHlEchoItems = null;
+
+// The account this page is allowed to write for, read live rather than taken
+// from _pbpHlOwner: the switch branch that refreshes that cache is async, and
+// its own settings read can fail outright, so a commit that trusted the cache
+// could still land in the account the reader has already left. null means "the
+// account could not be established" and callers treat it as a mismatch
+// (fail-closed, same shape as md-dict.js's pre-write re-check). When the helper
+// is absent altogether — a test page loading this file on its own — the cached
+// scope stands: there is no account for it to disagree with.
+async function _pbpHlLiveOwner() {
+  if (typeof pbpVocabCurrentOwner !== "function") return _pbpHlOwner;
+  try {
+    const raw = await pbpVocabCurrentOwner();
+    return (raw && raw !== "ownerless") ? String(raw) : "";
+  } catch (e) {
+    console.warn("pbp: highlight owner re-read failed", e && e.name, e && e.message);
+    return null;
+  }
+}
 
 // Sole commit path: re-read storage INSIDE the queue and apply this page's
 // intent by item.id. Never treat _pbpHlState.items as authoritative -- another
@@ -670,6 +703,27 @@ async function _pbpHlCommit(patch, btn) {
       if (!stored) { _pbpHlToast(t("hlSaveFailed"), btn); return false; } // unreadable: [] here would wipe the page
       const next = patch(stored);
       if (!next) return false;
+      // Account gate on the WRITE, not only on the display (CLAUDE.md: owner is
+      // re-validated on reads, async write-backs and UI commits alike). The
+      // display filter cannot cover this path -- patch() is handed the FULL
+      // stored array and every edit path resolves its target by id inside it --
+      // so a card, a bar or an in-flight AI answer left over from before an
+      // account switch would otherwise still write a note, a colour or a delete
+      // into the previous account's items, invisibly to the account now logged
+      // in. Stated as an invariant instead of a per-caller check: whatever the
+      // patch did, the items this account cannot SEE must come back byte-
+      // identical, in the same order. Ownerless legacy items belong to whoever
+      // is reading and stay editable (pbpHlItemVisibleFor's documented rule).
+      const liveOwner = await _pbpHlLiveOwner();
+      if (liveOwner === null) return false;
+      const hiddenBefore = stored.filter((it) => !pbpHlItemVisibleFor(it, liveOwner));
+      const hiddenAfter = next.filter((it) => !pbpHlItemVisibleFor(it, liveOwner));
+      if (!pbpHlItemsSame(hiddenBefore, hiddenAfter)) {
+        // A refused write is otherwise indistinguishable from a no-op; leave a
+        // trace. The reason only -- no ids, no owner, no quote or note text.
+        console.warn("pbp: highlight write refused, it would change items owned by another account");
+        return false;
+      }
       _pbpHlEchoItems = next;
       const ok = await _pbpHlSave(url, next, btn);
       if (!ok) { _pbpHlEchoItems = null; return false; } // nothing was written: a later foreign write of this exact content is NOT an echo
@@ -2509,6 +2563,18 @@ if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.onChanged)
         } catch (_) { scope = ""; }
         if (scope === _pbpHlOwner || !_pbpHlState) { _pbpHlOwner = scope; return; }
         _pbpHlOwner = scope;
+        // Take every account-scoped surface down before the repaint: the card
+        // and the selection bar describe items the new account is about to
+        // stop seeing, yet their buttons stay live. Same teardown
+        // _pbpHlOnArticleWillReplace runs, minus its note rescue -- an unsaved
+        // note here belongs to the account being left, so it is dropped rather
+        // than saved. The binding goes FIRST for that reason: hiding the
+        // popover blurs the textarea, and the blur listener would otherwise
+        // route that half-typed note straight back into the old account.
+        _pbpHlCardItemId = null;
+        if (_pbpHlCard) { try { _pbpHlCard.hidePopover(); } catch (_) {} }
+        _pbpHlHideBar();
+        _pbpHlBarRange = null;
         _pbpHlState.items = pbpHlVisibleItems(_pbpHlRawItems || [], _pbpHlOwner);
         try { pbpHlRestore(); } catch (_) {}
         try { _pbpHlNotebookRender(); } catch (_) {}

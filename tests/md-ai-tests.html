@@ -8250,6 +8250,43 @@ suiteIf("T5 pbpHlPunctTolerantFind (AI-punctuation tolerant anchor)", "pbpHlPunc
       "real offsets always follow the article's own punctuation");
   });
 
+  test("the reduce class is a SUPERSET of the video conservation gate's marks", () => {
+    // md-video.js's PBP_VIDEO_MARK_RE decides which characters the AI
+    // punctuation tier is allowed to insert; every one of them has to reduce
+    // away here, or a batch the gate accepted still moves the quote out of
+    // reach and the highlight orphans instead of re-anchoring. Equality is NOT
+    // the invariant and never can be: the gate exempts word-internal · ' . -
+    // (pbpVideoIsIntraMark) while this class strips them unconditionally,
+    // which only makes the reducer MORE lenient -- the safe direction. Drift
+    // the other way is what this pins: the gate was widened for CJK models and
+    // the reducer was left behind.
+    const missing = [];
+    for (let cp = 0; cp <= 0xFFFF; cp++) {
+      const ch = String.fromCharCode(cp);
+      if (PBP_VIDEO_MARK_RE.test(ch) && !PBP_HL_PUNCT_RE.test(ch)) {
+        missing.push("U+" + cp.toString(16).toUpperCase().padStart(4, "0"));
+      }
+    }
+    assertEq(missing.join(","), "", "marks the gate lets through that the reducer would not strip");
+  });
+
+  test("CJK marks the gate accepts do not orphan a highlight", () => {
+    // The shape of that drift in the product: a model punctuating a Chinese or
+    // Japanese transcript inserts 「」 (or ・ or 〜) inside an existing
+    // highlight's span, the gate passes the batch as conserved, and the third
+    // tier has to find the quote again.
+    const article = "他说「今天天气很好」我们去公园吧";
+    const r = pbpHlPunctTolerantFind(article, "今天天气很好我们去公园");
+    assert(r, "found across the inserted corner brackets");
+    assertEq(article.slice(r.start, r.end), "今天天气很好」我们去公园",
+      "real offsets: the opening bracket falls outside the span, the closing one inside");
+    assert(pbpHlPunctTolerantFind("三時〜四時のあいだ", "三時四時のあいだ"),
+      "wave dash likewise");
+    assert(pbpHlPunctTolerantFind("あれ・これ を 見る", "あれこれ を 見る"),
+      "and a katakana middle dot, which this class strips unconditionally -- the " +
+      "gate keeps a word-internal one, so the reducer is the more lenient side here");
+  });
+
   test("pbpHlPunctReduce: the map is what makes the offsets real", () => {
     const red = pbpHlPunctReduce("a, b. c");
     assertEq(red.reduced, "abc", "marks and whitespace dropped");
