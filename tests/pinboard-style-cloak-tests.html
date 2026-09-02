@@ -128,6 +128,92 @@ check("themed: both preset and font → flag=true",
 })();
 
 // ============================================================
+// Assertion D — per-mode cloak cache: whatever the last render painted must
+// be what the next cold load reads back.
+//
+// The read runs at document_start, where optTheme is not knowable yet, so it
+// can only probe by the OS mode (osDark first, then the other key). The write
+// happens after the theme applied, where the resolved mode folds optTheme in.
+// The two quantities disagree exactly when the user pins an explicit
+// light/dark against the opposite OS setting — so the write side has to make
+// sure the probe cannot land on the other mode's stale colour.
+// ============================================================
+const CLOAK_BG_RE = /^rgba?\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(?:,\s*(?:0|1|0?\.\d+)\s*)?\)$/;
+const cloakKey = (isDark) => (isDark ? "pbp_cloak_bg_d" : "pbp_cloak_bg_l");
+
+// document_start probe (mirrors the shipped read order)
+function cloakProbe(store, osDark) {
+  for (const key of [cloakKey(osDark), cloakKey(!osDark)]) {
+    const cached = store[key] || "";
+    if (CLOAK_BG_RE.test(cached)) return cached;
+  }
+  return "";
+}
+// post-render cache (mirrors the shipped write policy)
+function cloakCache(store, optTheme, isDark, bg) {
+  if (optTheme !== "auto") delete store[cloakKey(!isDark)];
+  store[cloakKey(isDark)] = bg;
+}
+
+const LIGHT = "rgb(250, 249, 246)", DARK = "rgb(28, 27, 26)";
+(function assertExplicitOverrideNeverReadsOppositeMode() {
+  let worst = "";
+  // Both keys already populated (an earlier auto-mode session cached each),
+  // then the user pins an explicit mode. Every OS state must still read back
+  // the colour that the pinned mode actually renders.
+  for (const [optTheme, isDark, rendered] of [["light", false, LIGHT], ["dark", true, DARK]]) {
+    for (const osDark of [true, false]) {
+      const store = { pbp_cloak_bg_l: LIGHT, pbp_cloak_bg_d: DARK };
+      cloakCache(store, optTheme, isDark, rendered);
+      const got = cloakProbe(store, osDark);
+      if (got !== rendered) worst = `optTheme=${optTheme} osDark=${osDark} read ${got}, rendered ${rendered}`;
+    }
+  }
+  check("cloak cache: an explicit light/dark override is never read back as the opposite mode's colour",
+    worst === "", worst);
+})();
+(function assertAutoModeKeepsBothModesCached() {
+  const store = {};
+  cloakCache(store, "auto", false, LIGHT); // a light-OS session
+  cloakCache(store, "auto", true, DARK);   // then the OS flipped to dark
+  check("cloak cache: auto mode keeps both modes, so an OS flip between loads still paints the right shade",
+    cloakProbe(store, true) === DARK && cloakProbe(store, false) === LIGHT,
+    `d=${cloakProbe(store, true)} l=${cloakProbe(store, false)}`);
+})();
+
+// ============================================================
+// Assertion E — the shipped source implements the policies above.
+// The mirrors in D define the behaviour; these bind pinboard-style.js to it,
+// so the mirror cannot silently drift away from the file it describes.
+// (Served over http by .qa-scan/run-test.mjs, so fetch resolves.)
+// ============================================================
+(async () => {
+  const src = await (await fetch("../pinboard-style.js")).text();
+  check("#51 source: an explicit light/dark override drops the opposite mode's cloak key",
+    /optTheme !== "auto"\)\s*localStorage\.removeItem\(pbpCloakBgKey\(!isDark\)\);/.test(src),
+    "cacheCloakBg still leaves the other mode's stale colour for the next cold load to find");
+  check("#110 source: auto mode follows an OS light/dark flip while the tab stays open",
+    /data\.optTheme === "auto"\)\s*\{\s*\n\s*window\.matchMedia\("\(prefers-color-scheme: dark\)"\)\.addEventListener\("change"/.test(src),
+    "no matchMedia change listener — a parked pinboard.in tab keeps the old variant until reload");
+  const at = src.indexOf('.addEventListener("change"');
+  const handler = at === -1 ? "" : src.slice(at, at + 500);
+  check("#110 source: the OS-flip re-apply re-runs the theme through applyTheme",
+    /isDark = !!e\.matches;\s*\n\s*applyTheme\(isDark\);/.test(handler),
+    "the flip handler does not re-resolve the mode and re-apply it");
+  check("#110 source: the OS-flip re-apply re-keys the cloak cache to the mode now on screen",
+    /cacheCloakBg\(\);/.test(handler),
+    "after a flip the next cold load would paint the other mode's cached background");
+  check("#110 source: applying a theme reuses the existing #pbp-injected node",
+    /document\.getElementById\("pbp-injected"\)/.test(src),
+    "a re-apply would stack a second style element instead of rewriting the first");
+
+  const summary = document.createElement("div");
+  summary.style.cssText = "margin-top:1em;font-family:monospace;font-weight:bold";
+  summary.textContent = `pass=${pass} fail=${fail} skip=${skip} title="pinboard-style cloak gate tests"`;
+  root.appendChild(summary);
+})();
+
+// ============================================================
 // SKIP — cold-start visual timing (MANUAL-VERIFY on real device)
 // ============================================================
 skipCase(
@@ -144,13 +230,17 @@ skipCase(
   "   DevTools assertion: localStorage.getItem('pbp_has_theme') === '1'\n" +
   "   and #pbp-cloak was present at document_start (opacity 0 during theme load)"
 );
+skipCase(
+  "MANUAL-VERIFY: OS light/dark flip re-themes an already-open pinboard.in tab",
+  "Set extension appearance = Auto and site preset = Catppuccin (or Solarized / Flexoki).\n" +
+  "   Open pinboard.in, leave the tab parked, then flip the OS between light and dark.\n" +
+  "   Expected: the tab re-themes in place with no reload — one #pbp-injected node,\n" +
+  "   rewritten (document.querySelectorAll('#pbp-injected').length === 1), and\n" +
+  "   document.documentElement.classList.contains('pbp-dark') follows the OS.\n" +
+  "   With appearance pinned to Light or Dark the same flip must change nothing."
+);
 
-// ============================================================
-// Summary
-// ============================================================
-const summary = document.createElement("div");
-summary.style.cssText = "margin-top:1em;font-family:monospace;font-weight:bold";
-summary.textContent = `pass=${pass} fail=${fail} skip=${skip} title="pinboard-style cloak gate tests"`;
-root.appendChild(summary);
+// The summary row is appended by the async source-binding block above, once
+// every assertion has landed.
 </script>
 </body></html>

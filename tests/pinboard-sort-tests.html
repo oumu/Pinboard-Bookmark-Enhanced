@@ -94,6 +94,44 @@ check("arrow contains an inline <svg>", !!arr.querySelector("svg"));
 check("arrow has NO literal U+21F3 glyph", arr.textContent.indexOf("⇳") === -1);
 check("arrow svg uses currentColor (theme-inherits)", arr.innerHTML.indexOf("currentColor") !== -1);
 
+// --- #112: the inject gate needs popularity DATA, not just bookmarks ---
+// Popularity is read only from a.url_link ("N others"); a page where no
+// bookmark carries one sorts to the identical order, so the control would
+// light up over a list that never moves.
+const hasPop = (mc) => (typeof F.hasPopData === "function" ? F.hasPopData(mc) : null);
+check("hasPopData exposed", typeof F.hasPopData === "function");
+assertEq(hasPop(doc.getElementById("main_column")), true, "hasPopData: page with N-others badges -> true");
+const barrenMc = new DOMParser().parseFromString(
+  '<div id="main_column"><div class="bookmark"><div class="display"></div></div>' +
+  '<div class="bookmark"><div class="display"></div></div></div>', "text/html").getElementById("main_column");
+assertEq(hasPop(barrenMc), false, "hasPopData: bookmarks but no N-others badge -> false");
+const strayMc = new DOMParser().parseFromString(
+  '<div id="main_column"><div class="rss_linkbox"><a class="url_link">3 others</a></div>' +
+  '<div class="bookmark"><div class="display"></div></div></div>', "text/html").getElementById("main_column");
+assertEq(hasPop(strayMc), false, "hasPopData: a url_link outside every bookmark does not open the gate");
+assertEq(hasPop(null), false, "hasPopData: no main_column -> false");
+
+// --- C4: the pop control is a toggle, so it must expose a pressed state ---
+const popLink = typeof F.makePopLink === "function" ? F.makePopLink() : document.createElement("a");
+check("makePopLink exposed", typeof F.makePopLink === "function");
+assertEq(popLink.getAttribute("role"), "button", "pop control reports role=button, not a link");
+assertEq(popLink.getAttribute("aria-pressed"), "false", "pop control starts un-pressed");
+assertEq(popLink.getAttribute("href"), "#", "pop control keeps href=# (focusable + inherits host link colour)");
+// State source is `sorted`; the class and aria-pressed must never disagree.
+const togMc = document.createElement("div");
+togMc.innerHTML =
+  '<div class="bookmark"><div class="display"><a class="url_link">1 other</a></div></div>' +
+  '<div class="bookmark"><div class="display"><a class="url_link">7 others</a></div></div>';
+const runToggle = () => { try { if (typeof F.onToggle === "function") F.onToggle(togMc, popLink); } catch (_) {} };
+runToggle();
+check("onToggle: sorted state is both painted and announced",
+  popLink.classList.contains("pbp-pop-active") && popLink.getAttribute("aria-pressed") === "true",
+  "class=" + popLink.className + " aria-pressed=" + popLink.getAttribute("aria-pressed"));
+runToggle();
+check("onToggle: restoring original order clears the class AND the pressed state",
+  !popLink.classList.contains("pbp-pop-active") && popLink.getAttribute("aria-pressed") === "false",
+  "class=" + popLink.className + " aria-pressed=" + popLink.getAttribute("aria-pressed"));
+
 console.log(`PASS ${pass} | FAIL ${fail}`);
 </script>
 </body></html>

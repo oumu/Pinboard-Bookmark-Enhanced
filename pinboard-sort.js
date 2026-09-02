@@ -41,6 +41,14 @@
     return link ? parsePopCount(link.textContent) : 0;
   }
 
+  // Does this page carry anything to sort BY? Popularity comes only from the
+  // "N others" badge, so a page where no loaded bookmark has one scores 0
+  // across the board — the stable sort returns the identical order and the
+  // control would highlight itself over a list that never moves.
+  function hasPopData(mc) {
+    return !!(mc && mc.querySelector("div.bookmark a.url_link"));
+  }
+
   // Stable descending order by pop. Ties keep original document order.
   // Returns a NEW array of the same elements; does not mutate the input.
   function computeSortedOrder(bookmarkEls) {
@@ -52,16 +60,22 @@
 
   // Expose for the test harness (harmless in the isolated content world).
   if (typeof window !== "undefined") {
-    window.__PBP_POPSORT__ = { parsePopCount, extractPop, computeSortedOrder, getBookmarkRows, makeFallbackArrow };
+    window.__PBP_POPSORT__ = {
+      parsePopCount, extractPop, hasPopData, computeSortedOrder, getBookmarkRows,
+      makeFallbackArrow, makePopLink, onToggle,
+    };
   }
 
   // ---------- everything below only runs on a real tag page ----------
 
-  // Only tag list pages: /t:..., /u:x/t:..., incl. multi-tag.
+  // Only tag list pages: /t:..., /u:x/t:..., incl. multi-tag — and only when
+  // the page carries popularity data to sort by. Judged once, at document_idle:
+  // if an infinite-scroll pager later appends a page that does have badges, the
+  // control stays absent, which is the same stance onToggle takes on appended
+  // pages (load more, click again — we never watch for them).
   function isTagListPage() {
     if (!/(^|\/)(u:[^/]+\/)?t:/.test(location.pathname)) return false;
-    const mc = document.getElementById("main_column");
-    return !!(mc && mc.querySelector("div.bookmark"));
+    return hasPopData(document.getElementById("main_column"));
   }
 
   // Trusted-only storage (roadmap #36): prefs come from the SW's allowlisted
@@ -146,7 +160,10 @@
     } else {
       reorder(mc, originalOrder); // restore the captured order
     }
+    // `sorted` is the single source of truth: paint it and announce it at the
+    // same point, so the two can never disagree.
     link.classList.toggle("pbp-pop-active", sorted);
+    link.setAttribute("aria-pressed", sorted ? "true" : "false");
   }
 
   function injectStyle() {
@@ -165,6 +182,12 @@
     a.id = CONTROL_ID;
     a.href = "#";
     a.textContent = "pop";
+    // It is a toggle, not a navigation. href="#" stays: it carries both
+    // focusability and the host themes' link colour. role only changes what
+    // assistive tech is told, never the rendering; aria-pressed then carries
+    // the state the bold+underline shows sighted users.
+    a.setAttribute("role", "button");
+    a.setAttribute("aria-pressed", "false");
     let popTitle = "Sort this page by popularity";
     try {
       const m = chrome.i18n && chrome.i18n.getMessage("popSortTitle");
@@ -225,6 +248,14 @@
     }
     injectStyle();
     link.addEventListener("click", (e) => {
+      e.preventDefault();
+      try { onToggle(mc, link); } catch (_) { /* never break the host page */ }
+    });
+    // Enter already arrives as a click on an anchor; Space does not, and its
+    // default would scroll the page instead of toggling. role="button" promises
+    // Space works, so make it work.
+    link.addEventListener("keydown", (e) => {
+      if (e.key !== " " && e.key !== "Spacebar") return;
       e.preventDefault();
       try { onToggle(mc, link); } catch (_) { /* never break the host page */ }
     });

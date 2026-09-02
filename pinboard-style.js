@@ -107,48 +107,66 @@ if (_pbpHasTheme) {
     };
     const overlay = typeof prefs.overlayCss === "string" ? prefs.overlayCss : "";
 
-    // Inject pbp-dark class based on extension theme setting
-    const isDark = data.optTheme === "dark" ||
-      (data.optTheme === "auto" && window.matchMedia("(prefers-color-scheme: dark)").matches);
-    document.documentElement.classList.toggle("pbp-dark", isDark);
-
-    // Resolve preset CSS from PINBOARD_THEMES (loaded above us as content script)
-    let presetCss = "";
-    if (data.themePresetKey && typeof PINBOARD_THEMES !== "undefined") {
-      // Adaptive presets: prefer the explicit variant if it exists in
-      // PINBOARD_THEMES (solarized-light, catppuccin-mocha, etc.), otherwise
-      // fall back to the parent entry. Flexoki ships ONE css string that
-      // toggles via the `html.pbp-dark` class, so its variant keys don't
-      // exist as separate entries — using the parent is correct.
-      let themeKey = data.themePresetKey;
-      if (PBP_ADAPTIVE_THEME_MAP[themeKey]) {
-        const variantKey = PBP_ADAPTIVE_THEME_MAP[themeKey][isDark ? 1 : 0];
-        if (PINBOARD_THEMES[variantKey]) themeKey = variantKey;
+    // The whole stylesheet for one resolved mode. Only the adaptive presets
+    // differ between light and dark; the font rule and the user overlay do not.
+    const buildCombined = (dark) => {
+      // Resolve preset CSS from PINBOARD_THEMES (loaded above us as content script)
+      let presetCss = "";
+      if (data.themePresetKey && typeof PINBOARD_THEMES !== "undefined") {
+        // Adaptive presets: prefer the explicit variant if it exists in
+        // PINBOARD_THEMES (solarized-light, catppuccin-mocha, etc.), otherwise
+        // fall back to the parent entry. Flexoki ships ONE css string that
+        // toggles via the `html.pbp-dark` class, so its variant keys don't
+        // exist as separate entries — using the parent is correct.
+        let themeKey = data.themePresetKey;
+        if (PBP_ADAPTIVE_THEME_MAP[themeKey]) {
+          const variantKey = PBP_ADAPTIVE_THEME_MAP[themeKey][dark ? 1 : 0];
+          if (PINBOARD_THEMES[variantKey]) themeKey = variantKey;
+        }
+        if (PINBOARD_THEMES[themeKey]) presetCss = PINBOARD_THEMES[themeKey].css || "";
       }
-      if (PINBOARD_THEMES[themeKey]) presetCss = PINBOARD_THEMES[themeKey].css || "";
-    }
 
-    let combined = "";
-    if (data.customFont) {
-      combined += `body, .bookmark_title, .bookmark_description, .tag { font-family: ${data.customFont} !important; }\n`;
-    }
-    if (presetCss) {
-      combined += `/* === preset: ${data.themePresetKey} === */\n${presetCss}\n`;
-    }
-    if (overlay) {
-      combined += `/* === user overlay === */\n${overlay}\n`;
-    }
+      let combined = "";
+      if (data.customFont) {
+        combined += `body, .bookmark_title, .bookmark_description, .tag { font-family: ${data.customFont} !important; }\n`;
+      }
+      if (presetCss) {
+        combined += `/* === preset: ${data.themePresetKey} === */\n${presetCss}\n`;
+      }
+      if (overlay) {
+        combined += `/* === user overlay === */\n${overlay}\n`;
+      }
+      return combined;
+    };
+
+    // Inject the pbp-dark class and the stylesheet for one resolved mode.
+    // Re-runnable: rewrite the existing style node rather than stacking a
+    // second one, so an OS flip mid-session lands in the same place the first
+    // pass did (and un-themed users still get no node at all).
+    const applyTheme = (dark) => {
+      document.documentElement.classList.toggle("pbp-dark", dark);
+      const combined = buildCombined(dark);
+      let style = document.getElementById("pbp-injected");
+      if (!style) {
+        if (!combined) return;
+        style = document.createElement("style");
+        style.id = "pbp-injected";
+        (document.head || document.documentElement).appendChild(style);
+      }
+      style.textContent = combined;
+    };
+
+    // Resolve the extension theme setting into light/dark. `let`, not `const`:
+    // in auto mode the OS can flip while this tab stays open, and every
+    // consumer below (the cloak-bg cache key especially) has to follow the mode
+    // that is actually on screen.
+    let isDark = data.optTheme === "dark" ||
+      (data.optTheme === "auto" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    applyTheme(isDark);
 
     // Persist cheap synchronous evidence for NEXT cold load's cloak gate.
     const _pbpThemed = !!(data.themePresetKey || data.customFont || overlay);
     try { localStorage.setItem("pbp_has_theme", _pbpThemed ? "1" : "0"); } catch (_) {}
-
-    if (combined) {
-      const style = document.createElement("style");
-      style.id = "pbp-injected";
-      style.textContent = combined;
-      (document.head || document.documentElement).appendChild(style);
-    }
 
     // Cache the background this load actually rendered, for the NEXT cold
     // load's cloak. Deferred to `load` because at document_start the page's own
@@ -163,6 +181,11 @@ if (_pbpHasTheme) {
           localStorage.removeItem(pbpCloakBgKey(false));
           return;
         }
+        // An explicit light/dark override renders one mode only, but the next
+        // cold load probes the OS mode first — optTheme is unreadable that
+        // early. Dropping the other key keeps that probe from landing on a
+        // colour no render will ever produce again.
+        if (data.optTheme !== "auto") localStorage.removeItem(pbpCloakBgKey(!isDark));
         const bg = getComputedStyle(document.body).backgroundColor;
         if (PBP_CLOAK_BG_RE.test(bg) && bg !== "rgba(0, 0, 0, 0)") {
           localStorage.setItem(pbpCloakBgKey(isDark), bg);
@@ -171,6 +194,21 @@ if (_pbpHasTheme) {
     };
     if (document.readyState === "complete") cacheCloakBg();
     else window.addEventListener("load", cacheCloakBg, { once: true });
+
+    // Follow the OS while the tab stays open, the way popup.js and
+    // options-theme-early.js already do — without this a parked pinboard.in
+    // tab keeps the light variant (and a stale pbp-dark class) after a flip
+    // until it is manually reloaded. Only `auto` follows; an explicit
+    // light/dark stays pinned. Un-themed tabs register nothing.
+    if (_pbpThemed && data.optTheme === "auto") {
+      window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (e) => {
+        isDark = !!e.matches;
+        applyTheme(isDark);
+        // Re-key the cloak cache to the mode now on screen; otherwise the next
+        // cold load in this mode paints the other mode's background.
+        if (document.readyState === "complete") cacheCloakBg();
+      });
+    }
   } catch (_) {}
 
   uncloak();
