@@ -247,6 +247,16 @@ delete document.documentElement.dataset.theme;
     check("Export all uses every current-owner row rather than the selection", exportedRows?.length === 3);
 
     resetActions();
+    pbpVocabAll = async () => [];
+    let emptyExportTsvCalls = 0;
+    pbpDictTsv = (rows) => { emptyExportTsvCalls++; return "tsv"; };
+    await _pbpVocabExport();
+    check("an empty vocabulary is refused instead of downloading a header-only file",
+      $id("vocab-status").textContent.includes("dictAnkiNothing") &&
+      $id("vocab-status").classList.contains("bad") && emptyExportTsvCalls === 0,
+      `status=${$id("vocab-status").textContent} tsvCalls=${emptyExportTsvCalls}`);
+
+    resetActions();
     window.pbpOptionsFlushAutoSave = async () => ({ ok:false });
     await _pbpVocabExport();
     check("export reports settings-save failure accurately", $id("vocab-status").textContent.includes("vocabSettingsSaveFailed"));
@@ -308,6 +318,30 @@ delete document.documentElement.dataset.theme;
     pbpEudicSendRows = async (rows) => { eudicRows = rows; return { stage:"done", added:2, skipped:0, unsupported:1, failed:0, forbidden:false, generic:false }; };
     await _pbpVocabSendEudic();
     check("Eudic receives all current-owner rows and applies supported-language filtering downstream", eudicRows?.length === 3);
+
+    resetActions();
+    pbpVocabAll = async () => [];
+    let emptyEudicCalls = 0;
+    pbpEudicSendRows = async () => {
+      emptyEudicCalls++;
+      return { stage:"done", added:0, skipped:0, unsupported:0, failed:0, forbidden:false, generic:false };
+    };
+    await _pbpVocabSendEudic();
+    check("an empty vocabulary answers Eudic the way Anki does instead of reporting a successful send",
+      $id("vocab-status").textContent.includes("dictAnkiNothing") &&
+      $id("vocab-status").classList.contains("bad") && emptyEudicCalls === 0,
+      `status=${$id("vocab-status").textContent} calls=${emptyEudicCalls}`);
+
+    resetActions();
+    pbpEudicSendRows = async () => ({ stage:"done", added:0, skipped:0, unsupported:3,
+      unsupportedTerms:["all-zh", "another-zh", "third-zh"], failed:0, forbidden:false, generic:false });
+    await _pbpVocabSendEudic();
+    check("a send that reached no word at all is not styled as a success",
+      $id("vocab-status").classList.contains("bad") &&
+      !$id("vocab-status").classList.contains("ok") &&
+      $id("vocab-status").textContent.includes("dictEudicResult") &&
+      $id("vocab-status").textContent.includes("vocabUnsupportedTerms"),
+      `class=${$id("vocab-status").className} status=${$id("vocab-status").textContent}`);
 
     resetActions();
     pbpEudicSendRows = async () => ({ stage:"done", added:0, skipped:0, unsupported:0, failed:3, forbidden:true, generic:false });
@@ -629,6 +663,44 @@ delete document.documentElement.dataset.theme;
     check("the conflict counter stays silent at zero and speaks when it is not",
       quietNotices === "" && loudNotices.includes("vocabDriveNotices") &&
       $id("vocab-drive-notices").classList.contains("bad"));
+
+    // The sentences around these counts come from t() (extension UI language),
+    // so the digit grouping has to follow the same source rather than the
+    // browser locale. Rendering the same status under two locales that group
+    // differently catches a bare toLocaleString(), which emits the browser's
+    // grouping for both regardless of the locale the page is showing.
+    const bigCounts = { ...driveStatus, retryAt:null, lastError:null,
+      pendingWords:1234567, pendingBatches:12345, notices:4321, noticeTerms:[] };
+    const realUiLang = window.uiLangToBCP47;
+    try {
+      window.uiLangToBCP47 = () => "de";
+      _pbpVocabDriveRender(bigCounts);
+      const deWords = $id("vocab-drive-pending-words").textContent;
+      const deBatches = $id("vocab-drive-pending-batches").textContent;
+      const deNotices = $id("vocab-drive-notices").textContent;
+      window.uiLangToBCP47 = () => "en";
+      _pbpVocabDriveRender(bigCounts);
+      const enWords = $id("vocab-drive-pending-words").textContent;
+      check("Drive counts group digits by the extension UI language, not the browser locale",
+        deWords === (1234567).toLocaleString("de") &&
+        deBatches === (12345).toLocaleString("de") &&
+        deNotices.includes((4321).toLocaleString("de")) &&
+        enWords === (1234567).toLocaleString("en") && deWords !== enWords,
+        `de=${deWords}/${deBatches}/${deNotices} en=${enWords}`);
+
+      // uiLangToBCP47() ends in split("-")[0] over an arbitrary stored tag, so
+      // a malformed one can reduce to a string Intl rejects.
+      window.uiLangToBCP47 = () => "";
+      let malformedThrew = false;
+      try { _pbpVocabDriveRender(bigCounts); } catch (_) { malformedThrew = true; }
+      check("a malformed UI language tag keeps the counts rendering instead of throwing",
+        !malformedThrew && /\d/.test($id("vocab-drive-pending-words").textContent) &&
+        $id("vocab-drive-owner").textContent === "alice",
+        `threw=${malformedThrew} words=${$id("vocab-drive-pending-words").textContent}`);
+    } finally {
+      if (realUiLang === undefined) delete window.uiLangToBCP47;
+      else window.uiLangToBCP47 = realUiLang;
+    }
 
     window.chrome.runtime.sendMessage = async (message) => message.type === "vocabDriveStatus"
       ? { ok:true, status:{ ...driveStatus, retryAt:null, lastError:"corrupt", blocked:false } }

@@ -1185,7 +1185,21 @@ async function checkExistingBookmark(token, url, prefetch, forceFresh = false, s
           const parts = [];
           if (timeStr) {
             const d = new Date(timeStr);
-            parts.push(t("savedOnDate", d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })));
+            // Format for the extension UI language, not the browser's: this
+            // date is embedded in a t() sentence, and en-US 9/2/2026 beside a
+            // German banner is the mismatch users read first. uiLangToBCP47()
+            // ends in split("-")[0] over an arbitrary stored tag, so a
+            // malformed one can reach Intl and throw -- fall back to the
+            // browser default rather than losing the whole banner.
+            const dOpts = { year: "numeric", month: "short", day: "numeric" };
+            let dateStr;
+            try {
+              const locale = typeof uiLangToBCP47 === "function" ? uiLangToBCP47() : undefined;
+              dateStr = d.toLocaleDateString(locale, dOpts);
+            } catch (_) {
+              dateStr = d.toLocaleDateString(undefined, dOpts);
+            }
+            parts.push(t("savedOnDate", dateStr));
           }
           const tagCount = existingBookmark.tags?.trim() ? existingBookmark.tags.trim().split(/\s+/).length : 0;
           if (tagCount > 0) parts.push(tagCount > 1 ? t("tagCountPlural", String(tagCount)) : t("tagCount", String(tagCount)));

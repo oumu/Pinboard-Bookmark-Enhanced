@@ -110,6 +110,22 @@ function _pbpVocabDriveDate(value) {
   }
 }
 
+// Counts sit inside sentences that come from t(), i.e. the extension UI
+// language, so their digit grouping follows the same locale the date above
+// does -- a bare toLocaleString() would take the browser's instead and put
+// two typographic systems in one line. uiLangToBCP47() ends in split("-")[0]
+// over an arbitrary stored tag, so a malformed one can reach Intl and throw:
+// fall back to the browser default rather than losing the whole panel render.
+function _pbpVocabNum(value) {
+  const n = Number.isFinite(value) ? value : 0;
+  try {
+    const locale = typeof uiLangToBCP47 === "function" ? uiLangToBCP47() : undefined;
+    return n.toLocaleString(locale);
+  } catch (_) {
+    return n.toLocaleString();
+  }
+}
+
 function _pbpVocabDriveErrorKey(code) {
   return ({
     auth: "vocabDriveErrorAuth",
@@ -228,10 +244,10 @@ function _pbpVocabDriveRender(status) {
     _pbpVocabDriveDate(status.lastSuccessAt) || t("vocabDriveNever");
   const pendingWords = $id("vocab-drive-pending-words");
   if (pendingWords) pendingWords.textContent =
-    Math.max(0, Number(status.pendingWords) || 0).toLocaleString();
+    _pbpVocabNum(Math.max(0, Number(status.pendingWords) || 0));
   const pendingBatches = $id("vocab-drive-pending-batches");
   if (pendingBatches) pendingBatches.textContent =
-    Math.max(0, Number(status.pendingBatches) || 0).toLocaleString();
+    _pbpVocabNum(Math.max(0, Number(status.pendingBatches) || 0));
   const notices = $id("vocab-drive-notices");
   // Zero is the normal state; rendering "Delete conflict notices: 0" leaves a
   // permanent line of jargon on a healthy account and makes the live region
@@ -241,7 +257,7 @@ function _pbpVocabDriveRender(status) {
   const noticeCount = Math.max(0, Number(status.notices) || 0);
   if (notices) {
     const terms = Array.isArray(status.noticeTerms) ? status.noticeTerms : [];
-    const parts = noticeCount > 0 ? [t("vocabDriveNotices", noticeCount.toLocaleString())] : [];
+    const parts = noticeCount > 0 ? [t("vocabDriveNotices", _pbpVocabNum(noticeCount))] : [];
     if (terms.length) parts.push(t("vocabDriveNoticesExplain", terms.join(", ")));
     notices.textContent = parts.join(" ");
     notices.classList.toggle("bad", noticeCount > 0);
@@ -455,6 +471,13 @@ async function _pbpVocabExport() {
       _pbpVocabFlashStatus(false, t("vocabAccountChanged"));
       return;
     }
+    // Nothing to write: pbpDictTsv([]) still emits the three Anki header lines,
+    // so without this the click downloads a wordless file and says nothing.
+    // Answered the same way as the two sibling buttons in this toolbar --
+    // dictAnkiNothing names no target ("No words to send yet."), so it is
+    // reused here instead of duplicated under an export-specific key. Placed
+    // before the enrichment awaits: an empty set has nothing to enrich.
+    if (!rows.length) { _pbpVocabFlashStatus(false, t("dictAnkiNothing")); return; }
     // Enrichment is another await, so the owner is rechecked AFTER it and before
     // a Blob exists: the file must never be built from a previous account's rows.
     const zhMap = await _pbpVocabZhMap(rows);
@@ -699,6 +722,13 @@ async function _pbpVocabSendEudic() {
     const owner = await pbpVocabCurrentOwner();
     const rows = await pbpVocabAll(owner);
     if ((await pbpVocabCurrentOwner()) !== owner) { _pbpVocabFlashStatus(false, t("vocabAccountChanged")); return; }
+    // pbpEudicSendRows sends nothing for an empty set and still returns
+    // stage "done" with all-zero counters, which the branch below would flash
+    // as a successful send. Same guard, same order and same key as the Anki
+    // twin above (dictAnkiNothing names no target, so it is reused, not
+    // duplicated); the button can outlive the words that revealed it, since
+    // its visibility is only re-evaluated on panel render and token changes.
+    if (!rows.length) { _pbpVocabFlashStatus(false, t("dictAnkiNothing")); return; }
     const res = await pbpEudicSendRows(rows, {
       token: s.dictEudicToken,
       ownerCheck: async () => (await pbpVocabCurrentOwner()) === owner
@@ -725,7 +755,10 @@ async function _pbpVocabSendEudic() {
       if (res.unsupported > 0 && Array.isArray(res.unsupportedTerms) && res.unsupportedTerms.length) {
         msg += " · " + t("vocabUnsupportedTerms", _pbpVocabTermList(res.unsupportedTerms));
       }
-      _pbpVocabFlashStatus(true, msg);
+      // Words existed but none were in a language Eudic takes: nothing was
+      // accepted or deduplicated away, so the counts must not read as a
+      // successful send just because no request failed.
+      _pbpVocabFlashStatus(res.added > 0 || res.skipped > 0, msg);
     }
   } catch (_) {
     _pbpVocabFlashStatus(false, t("dictEudicFailed"));
