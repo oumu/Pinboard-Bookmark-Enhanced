@@ -223,7 +223,8 @@ function pbpCreateVocabDriveClient({
       try {
         await identityApi().removeCachedAuthToken({ token });
         token = tokenValue(await identityApi().getAuthToken({ interactive: false }));
-      } catch (_) {
+      } catch (error) {
+        console.warn("[vocab-drive] token renew failed:", error?.name, error?.message);
         return mintFailure(false, fileId);
       }
       if (typeof token !== "string" || !token) return mintFailure(false, fileId);
@@ -526,7 +527,8 @@ function pbpCreateVocabDriveClient({
       try {
         await identityApi().removeCachedAuthToken({ token });
         renewed = tokenValue(await identityApi().getAuthToken({ interactive: false }));
-      } catch (_) {
+      } catch (error) {
+        console.warn("[vocab-drive] token renew failed:", error?.name, error?.message);
         return mintFailure(false, fileId);
       }
       if (typeof renewed !== "string" || !renewed) {
@@ -695,6 +697,15 @@ function pbpCreateVocabDriveSyncRunner({
       const next = { ...state, ...patch };
       for (const key of remove) delete next[key];
       return next;
+    };
+    // Drive answers a stale or malformed page token with 400/404, which is not
+    // retryable: the account is blocked with the rejected cursor still in its
+    // row, so the forced run the panel asks for would replay the same token and
+    // block again. Remember the rejection instead, and let force restart.
+    const noteCursorRejected = (page) => {
+      if (!state || state.cursorRejected === true || page?.retryable === true) return;
+      if (page?.status !== 400 && page?.status !== 404) return;
+      state = stateWith({ cursorRejected: true });
     };
     const stillCurrent = async () => {
       const current = await getCurrentPinboardAuth();
@@ -878,10 +889,32 @@ function pbpCreateVocabDriveSyncRunner({
         displayName: session.displayName || "",
         ownerHash,
         bootstrapComplete: state?.bootstrapComplete === true,
-        pageToken: state?.pageToken || null
+        pageToken: state?.pageToken || null,
+        // Persist it with the very first account row rather than keeping it in
+        // a local: bootstrap commits several rows before the changes loop
+        // reaches the point that writes the flag, and a failure in between
+        // would leave a row that never checkpoints -- the second account would
+        // download forever and never upload this device's vocabulary.
+        ...(freshAccount || state?.needsCheckpoint === true
+          ? { needsCheckpoint: true } : {})
       };
-      if (force && (state.retryAttempt || state.retryAt || state.lastError)) {
-        const reset = stateWith({ retryAttempt: 0, retryAt: null, lastError: null });
+      // A cursor Drive has rejected cannot be resumed, so for that one case
+      // force means "start the bootstrap over"; every other force still resumes
+      // where the last run stopped. The rebuilt outbox has to carry the whole
+      // local library up, hence the checkpoint.
+      const restartBootstrap = force && state.cursorRejected === true;
+      if (force && (restartBootstrap || state.retryAttempt || state.retryAt || state.lastError)) {
+        const reset = restartBootstrap
+          ? stateWith({
+            retryAttempt: 0,
+            retryAt: null,
+            lastError: null,
+            bootstrapComplete: false,
+            pageToken: null,
+            needsCheckpoint: true
+          }, ["cursorRejected", "bootstrapStartToken", "bootstrapListComplete",
+            "bootstrapFilePageToken", "bootstrapChangePageToken"])
+          : stateWith({ retryAttempt: 0, retryAt: null, lastError: null });
         if (!await store.putAccountState(reset)) {
           return finishFailure({ error: "local_store" });
         }
@@ -895,7 +928,7 @@ function pbpCreateVocabDriveSyncRunner({
       const meta = await store.getMeta();
       if (!meta?.deviceId) return finishFailure({ error: "invalid_response" });
       const deviceId = meta.deviceId;
-      let needsCheckpoint = state.needsCheckpoint === true || freshAccount;
+      let needsCheckpoint = state.needsCheckpoint === true;
 
       if (!state.bootstrapComplete) {
         while (true) {
@@ -919,7 +952,10 @@ function pbpCreateVocabDriveSyncRunner({
           let pageToken = state.bootstrapFilePageToken || undefined;
           while (true) {
             const page = await session.listFiles(ownerHash, pageToken);
-            if (!page.ok) return finishFailure(page);
+            if (!page.ok) {
+              if (pageToken) noteCursorRejected(page);
+              return finishFailure(page);
+            }
             if (!await stillCurrent()) return normalizedFailure({ error: "account_changed" });
             const next = page.nextPageToken
               ? stateWith({ bootstrapFilePageToken: page.nextPageToken })
@@ -935,7 +971,10 @@ function pbpCreateVocabDriveSyncRunner({
         let changeToken = state.bootstrapChangePageToken || state.bootstrapStartToken;
         while (true) {
           const page = await session.listChanges(changeToken);
-          if (!page.ok) return finishFailure(page);
+          if (!page.ok) {
+            noteCursorRejected(page);
+            return finishFailure(page);
+          }
           if (!await stillCurrent()) return normalizedFailure({ error: "account_changed" });
           const selected = changesMetadata(page.changes, false, deviceId);
           if (!selected.ok) return finishFailure({ error: "invalid_response" });
@@ -959,7 +998,10 @@ function pbpCreateVocabDriveSyncRunner({
         if (!changeToken) return finishFailure({ error: "invalid_response" });
         while (true) {
           const page = await session.listChanges(changeToken);
-          if (!page.ok) return finishFailure(page);
+          if (!page.ok) {
+            noteCursorRejected(page);
+            return finishFailure(page);
+          }
           if (!await stillCurrent()) return normalizedFailure({ error: "account_changed" });
           const selected = changesMetadata(page.changes, true, deviceId);
           if (!selected.ok) return finishFailure({ error: "invalid_response" });
@@ -1061,7 +1103,7 @@ function pbpCreateVocabDriveSyncRunner({
         lastError: null,
         retryAttempt: 0,
         retryAt: null
-      });
+      }, ["cursorRejected"]);
       if (!await store.putAccountState(success)) {
         return finishFailure({ error: "local_store" });
       }

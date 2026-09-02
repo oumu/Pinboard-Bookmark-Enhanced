@@ -678,6 +678,39 @@ function syncHarness(options = {}) {
       identity.removed.length === 1;
   });
 
+  await asyncCheck("a failed token renewal after 401 leaves a console trace", async () => {
+    const warnings = [];
+    const realWarn = console.warn;
+    const failingRenew = () => ({
+      async getAuthToken() { return { token: "token-a" }; },
+      async removeCachedAuthToken() { throw new TypeError("renew unavailable"); }
+    });
+    let plain;
+    let inSession;
+    console.warn = (...args) => { warnings.push(args.map((value) => String(value)).join(" ")); };
+    try {
+      plain = await pbpCreateVocabDriveClient({
+        identity: failingRenew(),
+        fetchImpl: async () => new Response(null, { status: 401 })
+      }).about();
+      const sessionClient = pbpCreateVocabDriveClient({
+        identity: failingRenew(),
+        fetchImpl: async (url) => new URL(url).pathname === "/drive/v3/about"
+          ? jsonResponse({ user: { permissionId: "perm-a" } })
+          : new Response(null, { status: 401 })
+      });
+      const session = await sessionClient.openSession(false);
+      inSession = session.ok ? await session.generateId() : session;
+    } finally {
+      console.warn = realWarn;
+    }
+    return !plain.ok && plain.error === "auth" &&
+      !inSession.ok && inSession.error === "auth" &&
+      warnings.filter((line) => line.includes("[vocab-drive]") &&
+        line.includes("TypeError") && line.includes("renew unavailable")).length === 2 &&
+      !warnings.some((line) => line.includes("token-a"));
+  });
+
   await asyncCheck("403/404 are permanent and oversized headers fail before reading", async () => {
     const permanent = [];
     for (const status of [403, 404]) {
@@ -1347,6 +1380,58 @@ function syncHarness(options = {}) {
       resumed.ok && h.calls.filter((call) => call === "checkpoint").length === 1 &&
       h.state().pageToken === "stable-new" &&
       h.state().needsCheckpoint === undefined;
+  });
+
+  await asyncCheck("a new account persists its checkpoint flag before the first cursor commit", async () => {
+    const h = syncHarness({
+      filePages: [
+        { ok: false, error: "server", retryable: true },
+        { ok: true, files: [], nextPageToken: null }
+      ]
+    });
+    const interrupted = await h.runner()();
+    const persistedFlag = h.state()?.needsCheckpoint === true;
+    const resumed = await h.runner()({ force: true });
+    return !interrupted.ok && interrupted.error === "network" && persistedFlag &&
+      resumed.ok && h.calls.filter((call) => call === "checkpoint").length === 1 &&
+      h.state().needsCheckpoint === undefined;
+  });
+
+  await asyncCheck("a cursor Drive rejects is dropped only for the forced retry that follows", async () => {
+    const rejected = syncHarness({
+      accountState: {
+        key: `account:perm-a:${OWNER_HASH}`, drivePermissionId: "perm-a",
+        ownerHash: OWNER_HASH, bootstrapComplete: true, pageToken: "poisoned-cursor"
+      },
+      changePages: [
+        { ok: false, error: "remote", retryable: false, status: 400 },
+        { ok: true, changes: [], nextPageToken: null, newStartPageToken: "stable-new" }
+      ]
+    });
+    const blocked = await rejected.runner()();
+    const forced = await rejected.runner()({ force: true });
+    const restarted =
+      rejected.calls.filter((call) => call === "changes:poisoned-cursor").length === 1 &&
+      rejected.calls.includes("start") && rejected.calls.includes("changes:start-T");
+    const kept = syncHarness({
+      accountState: {
+        key: `account:perm-a:${OWNER_HASH}`, drivePermissionId: "perm-a",
+        ownerHash: OWNER_HASH, bootstrapComplete: true, pageToken: "healthy-cursor"
+      },
+      changePages: [
+        { ok: false, error: "remote", retryable: false, status: 403 },
+        { ok: true, changes: [], nextPageToken: null, newStartPageToken: "stable-new" }
+      ]
+    });
+    const keptBlocked = await kept.runner()();
+    const keptForced = await kept.runner()({ force: true });
+    return !blocked.ok && blocked.error === "remote" && forced.ok && restarted &&
+      rejected.state().pageToken === "stable-new" &&
+      rejected.state().needsCheckpoint === undefined &&
+      rejected.calls.filter((call) => call === "checkpoint").length === 1 &&
+      !keptBlocked.ok && keptBlocked.error === "remote" && keptForced.ok &&
+      kept.calls.filter((call) => call === "changes:healthy-cursor").length === 2 &&
+      !kept.calls.includes("start") && kept.state().pageToken === "stable-new";
   });
 
   await asyncCheck("legacy seed loops in batches of one hundred", async () => {

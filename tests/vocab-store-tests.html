@@ -403,6 +403,30 @@ async function runIdbChecks() {
   const unseededResult = await pbpVocabApplyRemotePage("acct_a", OWNER_HASH_A, [batch(OWNER_HASH_A, [unseededRemote])], null);
   check("an unseeded local row is a local store fault, not remote corruption",
     task3ApiReady && unseededResult.error === "local_store");
+
+  // Both swallow sites fold unrelated causes into one code: a wrong owner, a
+  // corrupt record or an exhausted quota all leave the caller with the same
+  // answer, and local_store additionally blocks Drive sync until a forced run.
+  // The console trace is the only place the cause survives.
+  const warned = [];
+  const realWarn = console.warn;
+  let blockedMutation;
+  let blockedApply;
+  console.warn = (...args) => { warned.push(args.map((value) => String(value)).join(" ")); };
+  try {
+    blockedMutation = await pbpVocabDelete(local.id, "acct_wrong");
+    blockedApply = await pbpVocabApplyRemotePage("acct_a", OWNER_HASH_A,
+      [batch(OWNER_HASH_A, [unseededRemote])], null);
+  } finally {
+    console.warn = realWarn;
+  }
+  check("swallowed store faults leave a console trace",
+    task3ApiReady && blockedMutation === false && blockedApply.error === "local_store" &&
+    warned.length === 2 &&
+    warned.every((line) => line.startsWith("[vocab-store] ") && line.includes("Error")) &&
+    warned.some((line) => line.includes("owner mismatch")) &&
+    warned.some((line) => line.includes("unseeded local record")) &&
+    !warned.some((line) => line.includes("must-survive") || line.includes("local-2")));
   const dominated = remoteLive("en|word", localDevice, 1, eventValue(local, { gloss: "old-remote" }));
   const cursor = { key: `account:drive-a:${OWNER_HASH_A}`, drivePermissionId: "drive-a", ownerHash: OWNER_HASH_A, pageToken: "next-1" };
   await pbpVocabPutAccountState({ ...cursor, pageToken: "before" });

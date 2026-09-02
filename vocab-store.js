@@ -478,7 +478,11 @@ async function _pbpVocabLocalMutation(owner, itemsOrLoad, mutate, requireExistin
     await done;
     _pbpVocabDirty(scope);
     return { ok: true, changed: changed.length, results: actions.map((action) => action.result) };
-  } catch (_) {
+  } catch (error) {
+    // Owner mismatch, corrupt record metadata, an exhausted counter and a
+    // failed IndexedDB write all collapse into the same bare answer here, so
+    // name the cause before it is lost. Never the word itself.
+    console.warn("[vocab-store] local mutation failed:", error?.name, error?.message);
     try { if (tx) tx.abort(); } catch (_) {}
     if (done) await done.catch(() => {});
     return { ok: false, changed: 0, results: [] };
@@ -935,7 +939,12 @@ async function pbpVocabApplyRemotePage(owner, ownerHash, batches, cursorCommit) 
     if (cursorCommit) sync.put({ ...cursorCommit });
     await done;
     return { ok: true, applied, merged, ignored };
-  } catch (_) {
+  } catch (error) {
+    // "local_store" is not retryable, so a single local fault here blocks Drive
+    // sync until the user forces a run: leave the reason behind before the
+    // cause is folded into the code. Never the entries themselves.
+    console.warn("[vocab-store] remote page apply failed:",
+      remoteFault ? "remote" : "local", error?.name, error?.message);
     try { if (tx) tx.abort(); } catch (_) {}
     if (done) await done.catch(() => {});
     return remoteFault
