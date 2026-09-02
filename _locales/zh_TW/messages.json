@@ -980,6 +980,12 @@
   "backupVocabOwnerMissing": {
     "message": "目前沒有可用的 Pinboard 帳號，因此未包含生詞。其他已選資料仍已匯出。"
   },
+  "backupHighlightsOwnerMissing": {
+    "message": "目前沒有可用的 Pinboard 帳號，因此未包含歸屬帳號的標記與筆記。其他已選資料仍已匯出。"
+  },
+  "backupHighlightsVocabOwnerMissing": {
+    "message": "目前沒有可用的 Pinboard 帳號，因此未包含生詞和歸屬帳號的標記與筆記。其他已選資料仍已匯出。"
+  },
   "backupPreviewTitle": {
     "message": "匯入預覽"
   },

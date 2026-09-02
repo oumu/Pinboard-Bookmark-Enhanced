@@ -980,6 +980,12 @@
   "backupVocabOwnerMissing": {
     "message": "Le vocabulaire n’a pas été inclus, car aucun compte Pinboard n’est disponible. Les autres données sélectionnées ont été exportées."
   },
+  "backupHighlightsOwnerMissing": {
+    "message": "Les surlignages et notes rattachés à un compte n’ont pas été inclus, car aucun compte Pinboard n’est disponible. Les autres données sélectionnées ont été exportées."
+  },
+  "backupHighlightsVocabOwnerMissing": {
+    "message": "Le vocabulaire ainsi que les surlignages et notes rattachés à un compte n’ont pas été inclus, car aucun compte Pinboard n’est disponible. Les autres données sélectionnées ont été exportées."
+  },
   "backupPreviewTitle": {
     "message": "Aperçu de l’importation"
   },

@@ -980,6 +980,12 @@
   "backupVocabOwnerMissing": {
     "message": "利用できる Pinboard アカウントがないため、単語は含まれませんでした。ほかに選択したデータはエクスポートされています。"
   },
+  "backupHighlightsOwnerMissing": {
+    "message": "利用できる Pinboard アカウントがないため、アカウントに紐づくハイライトとメモは含まれませんでした。ほかに選択したデータはエクスポートされています。"
+  },
+  "backupHighlightsVocabOwnerMissing": {
+    "message": "利用できる Pinboard アカウントがないため、単語とアカウントに紐づくハイライトとメモは含まれませんでした。ほかに選択したデータはエクスポートされています。"
+  },
   "backupPreviewTitle": {
     "message": "インポートのプレビュー"
   },

@@ -207,10 +207,11 @@ function pbpBackupImportResultKey(result) {
 
 // This page is the THIRD writer of a pbp_hl_<page> record: the reader
 // (md-highlight.js) rewrites it from its own tab, library.html deletes from it,
-// and chrome.storage has no compare-and-swap. Restoring a backup is not itself
-// a read-modify-write -- it writes what the file says -- so it cannot lose its
-// OWN data, but it can land in the middle of somebody else's: a reader tab
-// reads X, this import writes Y, the reader writes back X+A and Y is gone.
+// and chrome.storage has no compare-and-swap. Restoring a backup is a
+// read-modify-write like the other two -- it re-reads the record to keep the
+// items belonging to OTHER accounts (pbpMergeHighlightBackupRecord) -- and it
+// can also land in the middle of somebody else's: a reader tab reads X, this
+// import writes Y, the reader writes back X+A and Y is gone.
 // Web Locks are origin-scoped, so every extension page and the MV3 worker queue
 // on one name. That name is the contract with md-highlight.js's _pbpHlLockName
 // and library-notes.js's _pbpNotesRecordLockName -- "pbp-hl:" + the storage key
@@ -249,7 +250,18 @@ function pbpBackupHighlightWithRecordLock(key, work) {
 // read-modify-writes, and anything else that reaches here is not a highlight
 // record -- those go out in a single unlocked trip so they cost nothing.
 // Failures still propagate to the caller, which reports the section failed.
-async function pbpBackupWriteHighlights(cleaned) {
+//
+// ownerScope is decided once, before the first record; from there each record
+// costs its own lock and its own storage round trip, so a fifty-page restore
+// spans enough time for the user to switch Pinboard accounts in another tab.
+// verifyOwner is the caller's re-read of the live account and must throw when it
+// no longer matches -- without it the tail of the loop would keep claiming the
+// file's ownerless items for an account that is no longer signed in, and keep
+// deciding which stored items count as "somebody else's" by the old scope. It is
+// required, not optional: a caller that forgets it fails loudly instead of
+// writing unverified. Same cadence as the vocabulary import, which re-checks
+// before and after every batch.
+async function pbpBackupWriteHighlights(cleaned, ownerScope, verifyOwner) {
   const records = [];
   const rest = {};
   for (const [key, value] of Object.entries(cleaned || {})) {
@@ -258,8 +270,15 @@ async function pbpBackupWriteHighlights(cleaned) {
   }
   if (Object.keys(rest).length) await chrome.storage.local.set(rest);
   for (const [key, value] of records) {
-    await pbpBackupHighlightWithRecordLock(key, () => chrome.storage.local.set({ [key]: value }));
+    await verifyOwner();
+    // Read and write inside the same lock: the merge is only sound against the
+    // record as it stands at write time.
+    await pbpBackupHighlightWithRecordLock(key, async () => {
+      const stored = await chrome.storage.local.get(key);
+      await chrome.storage.local.set({ [key]: pbpMergeHighlightBackupRecord(stored[key], value, ownerScope) });
+    });
   }
+  await verifyOwner();
 }
 
 // Applies the selected sections of one already-preflighted backup. Each
@@ -398,13 +417,23 @@ async function pbpApplyBackupPayload(data, {
         highlightsSkipped = true;
         result.highlights = "failed";
       } else {
-        const cleaned = pbpCleanHighlightBackup(prepared.highlights);
-        // Per-record locked write; see pbpBackupWriteHighlights. Empty input
-        // writes nothing and still reports applied, as the flat set did.
-        await pbpBackupWriteHighlights(cleaned);
+        // Scope before writing: the file's ownerless items are claimed by this
+        // account and another account's items never enter storage from a file.
+        const ownerScope = pbpBackupOwnerScope(currentOwner);
+        const cleaned = pbpScopeHighlightBackupImport(pbpCleanHighlightBackup(prepared.highlights), ownerScope);
+        // Per-record locked read-modify-write; see pbpBackupWriteHighlights.
+        // Empty input writes nothing and still reports applied, as the flat set did.
+        await pbpBackupWriteHighlights(cleaned, ownerScope, async () => {
+          if (pbpBackupOwnerScope(await getOwner()) !== ownerScope) throw new Error("highlight owner mismatch");
+        });
         result.highlights = "applied";
       }
-    } catch (_) {
+    } catch (error) {
+      // The UI only ever sees "failed", which reads the same for a quota
+      // error, a missing Web Lock and an owner mismatch. Leave the platform
+      // reason in the console -- name and message only, never highlight text,
+      // page URLs or the account.
+      console.warn("[backup] highlight import failed:", error && error.name, error && error.message);
       highlightsSkipped = true;
       result.highlights = "failed";
     }
@@ -425,7 +454,11 @@ async function pbpApplyBackupPayload(data, {
         if (pbpBackupOwnerScope(await getOwner()) !== scope) throw new Error("vocabulary owner mismatch");
       }
       result.vocabulary = "applied";
-    } catch (_) {
+    } catch (error) {
+      // Same reason as the highlight sibling above: an IndexedDB failure and
+      // a mid-import account switch both surface as "failed". Name and
+      // message only -- never the words themselves or the owner scope.
+      console.warn("[backup] vocabulary import failed:", error && error.name, error && error.message);
       result.vocabulary = "failed";
     }
     if (result.vocabularyApplied || result.vocabulary === "applied") {
@@ -611,15 +644,31 @@ function setupBackup({ exportableKeys, saveOverlayWithFallback, loadThemes, befo
       if (raw.backupIncludeHighlights !== false || includeVocabulary) {
         try { owner = pbpCanonicalBackupOwner(await readOwner()); } catch (_) {}
       }
+      let highlightsOwnerDropped = false;
       if (raw.backupIncludeHighlights !== false) {
         const allLocal = await chrome.storage.local.get(null);
-        highlights = pbpBuildHighlightBackup(allLocal);
+        // Same owner scoping the vocabulary branch below applies: the file is
+        // labelled with this account, so it may only carry this account's (and
+        // ownerless) items.
+        highlights = pbpBuildHighlightBackup(allLocal, pbpBackupOwnerScope(owner));
         if (highlights) highlightsOwner = owner;
+        // Without a readable account that filter keeps ownerless items only, so
+        // every account-owned highlight on this device misses the file. Ticking
+        // "include highlights" and getting none of them back is the one outcome
+        // the user cannot see in the file, so it is said out loud here -- the
+        // vocabulary side has said it since backupVocabOwnerMissing landed.
+        highlightsOwnerDropped = !owner && pbpHighlightBackupHasOwnedItems(allLocal);
       }
       const exportNote = $id("backup-export-note");
+      // Both account-scoped sections share this one line, so it names whichever
+      // combination was actually left out rather than claiming "the other
+      // selected data was exported" over a section that was also dropped.
+      let exportNoteKey = "";
       if (includeVocabulary) {
         if (!owner) {
-          if (exportNote) setStatusIcon(exportNote, false, t("backupVocabOwnerMissing"));
+          exportNoteKey = highlightsOwnerDropped
+            ? "backupHighlightsVocabOwnerMissing"
+            : "backupVocabOwnerMissing";
         } else {
           const scope = pbpDictOwnerScope(owner);
           const records = await pbpVocabAll(scope);
@@ -627,10 +676,12 @@ function setupBackup({ exportableKeys, saveOverlayWithFallback, loadThemes, befo
             throw new Error("Pinboard account changed during backup");
           }
           vocabulary = { owner, records };
-          if (exportNote) exportNote.textContent = "";
         }
-      } else if (exportNote) {
-        exportNote.textContent = "";
+      }
+      if (!exportNoteKey && highlightsOwnerDropped) exportNoteKey = "backupHighlightsOwnerMissing";
+      if (exportNote) {
+        if (exportNoteKey) setStatusIcon(exportNote, false, t(exportNoteKey));
+        else exportNote.textContent = "";
       }
       const exportData = pbpBuildBackupSnapshot(raw, {
         overlay,

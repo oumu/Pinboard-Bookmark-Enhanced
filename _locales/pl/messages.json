@@ -980,6 +980,12 @@
   "backupVocabOwnerMissing": {
     "message": "Zapisane słówka nie zostały uwzględnione, ponieważ nie jest dostępne konto Pinboard. Pozostałe wybrane dane zostały wyeksportowane."
   },
+  "backupHighlightsOwnerMissing": {
+    "message": "Zaznaczenia i notatki powiązane z kontem nie zostały uwzględnione, ponieważ nie jest dostępne konto Pinboard. Pozostałe wybrane dane zostały wyeksportowane."
+  },
+  "backupHighlightsVocabOwnerMissing": {
+    "message": "Zapisane słówka oraz zaznaczenia i notatki powiązane z kontem nie zostały uwzględnione, ponieważ nie jest dostępne konto Pinboard. Pozostałe wybrane dane zostały wyeksportowane."
+  },
   "backupPreviewTitle": {
     "message": "Podgląd importu"
   },

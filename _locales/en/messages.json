@@ -980,6 +980,12 @@
   "backupVocabOwnerMissing": {
     "message": "Vocabulary was not included because no Pinboard account is available. The other selected data was exported."
   },
+  "backupHighlightsOwnerMissing": {
+    "message": "Account-owned highlights and notes were not included because no Pinboard account is available. The other selected data was exported."
+  },
+  "backupHighlightsVocabOwnerMissing": {
+    "message": "Vocabulary and account-owned highlights and notes were not included because no Pinboard account is available. The other selected data was exported."
+  },
   "backupPreviewTitle": {
     "message": "Import preview"
   },

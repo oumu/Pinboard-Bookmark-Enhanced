@@ -898,10 +898,26 @@ function pbpIsHighlightBackupKey(key) {
   return typeof key === "string" && key.startsWith("pbp_hl_");
 }
 
+// The display rule md-highlight.js's pbpHlItemVisibleFor applies, restated for
+// the backup layer (isolated script contexts; md-highlight.js is not loaded by
+// the options page): an ownerless item belongs to everyone, an owned item only
+// to its owner. Pure.
+function pbpHighlightBackupItemInScope(item, ownerScope) {
+  const owner = (item && typeof item.owner === "string") ? item.owner : "";
+  return !owner || owner === String(ownerScope || "");
+}
+
+// owner and fp are part of the item, not decoration: owner ("acct_<name>", the
+// pbpDictOwnerScope shape) is what keeps a highlight bound to one Pinboard
+// account, and fp is the anchoring fingerprint pbpHlRestore trusts item.n
+// against -- an item without it falls back to the legacy relocation path. Both
+// are non-secret strings, so they travel in the file; dropping them turned an
+// export/import round trip into "every note becomes ownerless and re-anchors
+// from scratch". Older backups simply have neither, exactly as before.
 function pbpSanitizeHighlightBackupItem(item) {
   if (!item || typeof item !== "object" || Array.isArray(item)) return null;
   const out = {};
-  ["id", "quote", "prefix", "suffix", "note", "side", "lang"].forEach((k) => {
+  ["id", "quote", "prefix", "suffix", "note", "side", "lang", "owner", "fp"].forEach((k) => {
     if (typeof item[k] === "string") out[k] = item[k];
   });
   ["n", "color", "ts"].forEach((k) => {
@@ -923,7 +939,14 @@ function pbpSanitizeHighlightBackupRecord(value) {
   return out;
 }
 
-function pbpBuildHighlightBackup(allLocal) {
+// Records are keyed by page (pbp_hl_<url>) and hold the items of every account
+// that has read that page on this device, so the export has to scope them the
+// way the reader does -- otherwise a file labelled _highlightsOwner: A carries
+// B's quotes, notes and page URLs. ownerScope is the exporting account's
+// pbpBackupOwnerScope value; "" (logged out, or the account could not be read)
+// exports exactly what that user sees, i.e. ownerless items only. A record with
+// no item in scope is left out entirely rather than exported empty.
+function pbpBuildHighlightBackup(allLocal, ownerScope) {
   const out = {};
   for (const [key, value] of Object.entries(allLocal || {})) {
     if (!pbpIsHighlightBackupKey(key)) continue;
@@ -932,9 +955,25 @@ function pbpBuildHighlightBackup(allLocal) {
       continue;
     }
     const cleaned = pbpSanitizeHighlightBackupRecord(value);
-    if (cleaned) out[key] = cleaned;
+    if (!cleaned) continue;
+    cleaned.items = cleaned.items.filter((item) => pbpHighlightBackupItemInScope(item, ownerScope));
+    if (cleaned.items.length) out[key] = cleaned;
   }
   return Object.keys(out).length ? out : null;
+}
+
+// Whether this device stores any highlight bound to an account. With no
+// readable owner pbpBuildHighlightBackup keeps ownerless items only, so this is
+// what separates "there was nothing to export" from "everything this account
+// wrote was dropped": the export surface warns on the second, the way the
+// vocabulary side warns when the account cannot be read. Pure.
+function pbpHighlightBackupHasOwnedItems(allLocal) {
+  for (const [key, value] of Object.entries(allLocal || {})) {
+    if (!pbpIsHighlightBackupKey(key) || key === "pbp_hl_last_color") continue;
+    if (!value || typeof value !== "object" || !Array.isArray(value.items)) continue;
+    if (value.items.some((item) => item && typeof item.owner === "string" && item.owner)) return true;
+  }
+  return false;
 }
 
 function pbpCleanHighlightBackup(highlights) {
@@ -949,6 +988,55 @@ function pbpCleanHighlightBackup(highlights) {
     if (cleaned) out[key] = cleaned;
   }
   return out;
+}
+
+// Brings one restored file's items into the importing account's scope.
+// Ownerless items are adopted by that account: the file may predate per-item
+// owners, and leaving them ownerless would make the restored notes readable and
+// deletable by every Pinboard account on the device (the same claim
+// background.js's pbpClaimLegacyHighlightOwners makes for stored legacy items).
+// Items naming a DIFFERENT account are dropped -- a backup file is untrusted
+// input, and the only account whose highlights a restore may create is the one
+// restoring. A record left with no item is dropped rather than written empty,
+// since an empty record restores as "this page has no highlights". Logged out
+// (ownerScope "") nothing is claimed, so a legacy file stays legacy. Pure.
+function pbpScopeHighlightBackupImport(highlights, ownerScope) {
+  const scope = String(ownerScope || "");
+  const out = {};
+  for (const [key, value] of Object.entries(highlights || {})) {
+    if (key === "pbp_hl_last_color" || !value || !Array.isArray(value.items)) {
+      out[key] = value;
+      continue;
+    }
+    const items = [];
+    value.items.forEach((item) => {
+      const owner = (item && typeof item.owner === "string") ? item.owner : "";
+      if (!owner) items.push(scope ? Object.assign({}, item, { owner: scope }) : item);
+      else if (owner === scope) items.push(item);
+    });
+    if (items.length) out[key] = Object.assign({}, value, { items });
+  }
+  return out;
+}
+
+// A restore replaces only what the importing account can see. The file carries
+// just that account's items (pbpBuildHighlightBackup scopes the export), while
+// the stored record is shared by every account that highlighted the page, so a
+// flat record overwrite would delete another account's highlights. stored is
+// what the record holds right now, read inside the record lock; items owned by
+// somebody else are carried across unchanged, and an incoming item wins over a
+// stored one with the same id. Pure.
+function pbpMergeHighlightBackupRecord(stored, incoming, ownerScope) {
+  if (!stored || typeof stored !== "object" || Array.isArray(stored) || !Array.isArray(stored.items)) return incoming;
+  const incomingItems = (incoming && Array.isArray(incoming.items)) ? incoming.items : [];
+  const incomingIds = new Set(incomingItems
+    .map((item) => (item && typeof item.id === "string") ? item.id : null)
+    .filter((id) => id));
+  const foreign = stored.items.filter((item) =>
+    !pbpHighlightBackupItemInScope(item, ownerScope) &&
+    !(item && typeof item.id === "string" && incomingIds.has(item.id)));
+  if (!foreign.length) return incoming;
+  return Object.assign({}, incoming, { items: incomingItems.concat(foreign) });
 }
 
 function pbpIsPlainRecord(value) {

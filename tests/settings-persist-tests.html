@@ -2246,6 +2246,71 @@ async function run() {
     !("pbp_hl_last_color" in pbpCleanHighlightBackup({ pbp_hl_last_color: "4" })) &&
     !("pbp_hl_last_color" in pbpCleanHighlightBackup({ pbp_hl_last_color: { color: 4 } })));
 
+  // Items as md-highlight.js stores them: a non-secret "acct_<name>" owner and
+  // the base36 anchoring fingerprint stamped at commit time.
+  const hlOwnedInput = {
+    pbp_hl_mine: {
+      v: 1,
+      url: "https://mine.test/",
+      title: "Mine",
+      items: [
+        { id: "a", n: 1, quote: "mine", prefix: "p", suffix: "s", color: 1, ts: 10, owner: "acct_me", fp: "1r4tz9" },
+        { id: "b", n: 2, quote: "theirs", color: 2, ts: 11, owner: "acct_them", fp: "1r4tza" },
+        { id: "c", n: 3, quote: "nobody", color: 3, ts: 12 },
+      ],
+    },
+    pbp_hl_theirs: {
+      v: 1,
+      url: "https://theirs.test/",
+      title: "Theirs",
+      items: [{ id: "d", n: 1, quote: "theirs only", color: 1, ts: 13, owner: "acct_them" }],
+    },
+  };
+  const scopedExport = pbpBuildHighlightBackup(hlOwnedInput, "acct_me");
+  check("E6 build highlights: item owner and anchoring fingerprint survive the export whitelist",
+    scopedExport.pbp_hl_mine.items[0].owner === "acct_me" && scopedExport.pbp_hl_mine.items[0].fp === "1r4tz9");
+  check("E6 build highlights: export keeps this account's and ownerless items only",
+    scopedExport.pbp_hl_mine.items.map((item) => item.id).join(",") === "a,c" &&
+    !("pbp_hl_theirs" in scopedExport));
+  const cleanedOwned = pbpCleanHighlightBackup(hlOwnedInput);
+  check("E6 clean highlights: item owner and anchoring fingerprint survive the import whitelist",
+    cleanedOwned.pbp_hl_mine.items[0].owner === "acct_me" && cleanedOwned.pbp_hl_mine.items[0].fp === "1r4tz9");
+  const scopedImport = pbpScopeHighlightBackupImport(cleanedOwned, "acct_me");
+  check("E6 scope highlights on import: ownerless items are claimed, other accounts' items dropped",
+    scopedImport.pbp_hl_mine.items.map((item) => item.id + ":" + item.owner).join(",") === "a:acct_me,c:acct_me" &&
+    !("pbp_hl_theirs" in scopedImport));
+  const mergedRecord = pbpMergeHighlightBackupRecord(
+    {
+      v: 1,
+      url: "https://mine.test/",
+      title: "Mine",
+      items: [
+        { id: "a", n: 1, quote: "stale mine", color: 1, ts: 10, owner: "acct_me" },
+        { id: "b", n: 2, quote: "theirs", color: 2, ts: 11, owner: "acct_them" },
+      ],
+    },
+    {
+      v: 1,
+      url: "https://mine.test/",
+      title: "Mine",
+      items: [{ id: "a", n: 1, quote: "restored", color: 4, ts: 20, owner: "acct_me" }],
+    },
+    "acct_me");
+  check("E6 merge highlight record: a restore replaces this account's items and keeps other accounts'",
+    mergedRecord.items.map((item) => item.id).join(",") === "a,b" &&
+    mergedRecord.items[0].quote === "restored" && mergedRecord.items[1].owner === "acct_them");
+  check("E6 highlight export: account-bound items are detectable so a scoped-out export can be announced",
+    pbpHighlightBackupHasOwnedItems(hlOwnedInput) === true &&
+    pbpHighlightBackupHasOwnedItems({
+      pbp_hl_only_ownerless: { v: 1, url: "https://n.test/", title: "N", items: [{ id: "c", n: 3, quote: "nobody" }] },
+      pbp_hl_last_color: 4,
+    }) === false &&
+    pbpHighlightBackupHasOwnedItems({
+      pbp_hl_bad: { v: 1, items: "nope" },
+      not_hl: { items: [{ id: "z", owner: "acct_me" }] },
+    }) === false &&
+    pbpHighlightBackupHasOwnedItems(null) === false);
+
   // ---------- E7: manual export uses the live highlight-backup checkbox ----------
   let e7ExportedVocabScope = "";
   let e7ExportOwnerReads = 0;
@@ -2270,6 +2335,21 @@ async function run() {
         github: { enabled: true, token: "obf:github" },
       },
       pbp_hl_good: { v: 1, url: "https://x.test", title: "X", items: [{ id: "a", n: 1, quote: "q", color: 1 }] },
+      pbp_hl_mixed: {
+        v: 1,
+        url: "https://mixed.test/",
+        title: "Mixed",
+        items: [
+          { id: "mine", n: 1, quote: "mine", color: 1, ts: 1, owner: "acct_backup-owner", fp: "1r4tz9" },
+          { id: "theirs", n: 2, quote: "theirs", color: 2, ts: 2, owner: "acct_other" },
+        ],
+      },
+      pbp_hl_theirs: {
+        v: 1,
+        url: "https://theirs.test/",
+        title: "Theirs",
+        items: [{ id: "t", n: 1, quote: "theirs only", color: 1, ts: 3, owner: "acct_other" }],
+      },
       pbp_hl_last_color: 4,
     });
     function storageGet(keys) {
@@ -2293,7 +2373,7 @@ async function run() {
     }
     const wrap = document.createElement("div");
     try {
-      wrap.innerHTML = '<button id="export-settings" type="button"></button><button id="import-settings" type="button"></button><input id="import-settings-file" type="file"><span id="import-status"></span><input id="opt-backup-include-highlights" type="checkbox"><input id="opt-backup-include-vocabulary" type="checkbox" checked><input id="opt-backup-include-secrets" type="checkbox"><p id="backup-secrets-warning" hidden>Plaintext credentials warning</p>';
+      wrap.innerHTML = '<button id="export-settings" type="button"></button><button id="import-settings" type="button"></button><input id="import-settings-file" type="file"><span id="import-status"></span><input id="opt-backup-include-highlights" type="checkbox"><input id="opt-backup-include-vocabulary" type="checkbox" checked><input id="opt-backup-include-secrets" type="checkbox"><p id="backup-secrets-warning" hidden>Plaintext credentials warning</p><span id="backup-export-note"></span>';
       document.body.appendChild(wrap);
       document.getElementById("opt-backup-include-highlights").checked = false;
       _settingsStorageCache = null;
@@ -2351,6 +2431,21 @@ async function run() {
         exported.exportTargets.webhook.enabled === true &&
         !("url" in exported.exportTargets.webhook) && !("token" in exported.exportTargets.webhook) &&
         !("token" in exported.exportTargets.github));
+      exportedBlob = null;
+      document.getElementById("opt-backup-include-highlights").checked = true;
+      document.getElementById("export-settings").click();
+      for (let i = 0; i < 20 && !exportedBlob; i++) {
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+      }
+      const exportedWithHighlights = exportedBlob ? JSON.parse(await exportedBlob.text()) : null;
+      const exportedHl = (exportedWithHighlights && exportedWithHighlights._highlights) || {};
+      check("E7 manual export: highlights carry this account's and ownerless items only",
+        exportedWithHighlights?._highlightsOwner === "backup-owner" &&
+        "pbp_hl_good" in exportedHl && !("pbp_hl_theirs" in exportedHl) &&
+        exportedHl.pbp_hl_mixed?.items.map((item) => item.id).join(",") === "mine" &&
+        exportedHl.pbp_hl_mixed?.items[0].owner === "acct_backup-owner" &&
+        exportedHl.pbp_hl_mixed?.items[0].fp === "1r4tz9");
+      document.getElementById("opt-backup-include-highlights").checked = false;
       const vocabReadsBeforeDisabledExport = e7ExportOwnerReads;
       const vocabStoreReadsBeforeDisabledExport = e7VocabReadCalls;
       exportedBlob = null;
@@ -2364,6 +2459,46 @@ async function run() {
         !("_vocabulary" in exportedWithoutVocab) &&
         e7ExportOwnerReads === vocabReadsBeforeDisabledExport &&
         e7VocabReadCalls === vocabStoreReadsBeforeDisabledExport;
+
+      // No readable Pinboard account: the export scope keeps ownerless items
+      // only, so every account-owned highlight on this device misses the file.
+      // The page has to say which sections were left out -- the file itself
+      // cannot show what is not in it.
+      const note = document.getElementById("backup-export-note");
+      const previousExportT = globalThis.t;
+      globalThis.t = (key) => key;
+      let noteHighlightsOnly = "";
+      let noteBothSections = "";
+      let noteVocabOnly = "";
+      let noteIconRendered = false;
+      const runOwnerlessExport = async () => {
+        exportedBlob = null;
+        document.getElementById("export-settings").click();
+        for (let i = 0; i < 20 && !exportedBlob; i++) {
+          await new Promise((resolve) => requestAnimationFrame(resolve));
+        }
+        return note.textContent.trim();
+      };
+      try {
+        localArea.pinboardToken = "";
+        _settingsStorageCache = null;
+        document.getElementById("opt-backup-include-highlights").checked = true;
+        document.getElementById("opt-backup-include-vocabulary").checked = false;
+        noteHighlightsOnly = await runOwnerlessExport();
+        noteIconRendered = !!note.querySelector("svg");
+        document.getElementById("opt-backup-include-vocabulary").checked = true;
+        noteBothSections = await runOwnerlessExport();
+        document.getElementById("opt-backup-include-highlights").checked = false;
+        noteVocabOnly = await runOwnerlessExport();
+      } finally {
+        if (previousExportT === undefined) delete globalThis.t;
+        else globalThis.t = previousExportT;
+      }
+      check("E7 manual export: an unreadable account announces the highlights left out of the file",
+        noteHighlightsOnly === "backupHighlightsOwnerMissing" && noteIconRendered &&
+        noteBothSections === "backupHighlightsVocabOwnerMissing");
+      check("E7 manual export: the vocabulary-only owner warning is unchanged",
+        noteVocabOnly === "backupVocabOwnerMissing");
     } finally {
       globalThis.chrome = prevChromeE7;
       URL.createObjectURL = prevCreateObjectURL;
@@ -3329,14 +3464,25 @@ async function run() {
     let settingsWrites = 0;
     let themeWrites = 0;
     let highlightWrites = 0;
+    let sectionHighlightWrites = 0;
+    let switchedHighlightOwnerReads = 0;
     let vocabWrites = 0;
     let sectionResults = [];
+    // Highlight records are read back inside the per-record lock, so the local
+    // area has to behave like storage, not like an empty stub.
+    const hlStore = {};
     try {
       globalThis.chrome = {
         storage: {
           local: {
-            get: async () => ({}),
-            set: async (data) => { if (Object.keys(data).some((key) => key.startsWith("pbp_hl_"))) highlightWrites++; },
+            get: async (keys) => (typeof keys === "string" && keys in hlStore ? { [keys]: hlStore[keys] } : {}),
+            set: async (data) => {
+              Object.entries(data).forEach(([key, value]) => {
+                if (!key.startsWith("pbp_hl_")) return;
+                highlightWrites++;
+                hlStore[key] = value;
+              });
+            },
             remove: async () => {},
           },
           sync: { get: async () => ({}), set: async () => {}, remove: async () => {} },
@@ -3367,6 +3513,36 @@ async function run() {
       sectionResults.push(await pbpApplyBackupPayload({
         _schemaVersion: 3, _backup: metadata, _vocabulary: vocabulary,
       }, { ...common, sections: { settings: false, themes: false, highlights: false, vocabulary: true } }));
+      sectionHighlightWrites = highlightWrites;
+      // Same page already carries this account's stale item and another
+      // account's item; the file's item is ownerless (pre-owner backup).
+      hlStore.pbp_hl_shared = {
+        v: 1,
+        url: "https://shared.test/",
+        title: "Shared",
+        items: [
+          { id: "stale", n: 1, quote: "stale mine", color: 1, ts: 1, owner: pbpDictOwnerScope(backupOwner) },
+          { id: "theirs", n: 2, quote: "theirs", color: 2, ts: 2, owner: "acct_other" },
+        ],
+      };
+      sectionResults.push(await pbpApplyBackupPayload({
+        _schemaVersion: 3, _backup: metadata, _highlightsOwner: backupOwner,
+        _highlights: { pbp_hl_shared: { v: 1, url: "https://shared.test/", title: "Shared", items: [{ id: "restored", n: 1, quote: "restored", color: 1, ts: 3 }] } },
+      }, { ...common, sections: { settings: false, themes: false, highlights: true, vocabulary: false } }));
+      // Every record costs its own lock and its own storage round trip, so the
+      // account can change halfway down a multi-page restore. The third owner
+      // read lands between record one and record two.
+      sectionResults.push(await pbpApplyBackupPayload({
+        _schemaVersion: 3, _backup: metadata, _highlightsOwner: backupOwner,
+        _highlights: {
+          pbp_hl_switch1: { v: 1, url: "https://s1.test/", title: "S1", items: [{ id: "s1", n: 1, quote: "one", color: 1, ts: 1 }] },
+          pbp_hl_switch2: { v: 1, url: "https://s2.test/", title: "S2", items: [{ id: "s2", n: 1, quote: "two", color: 1, ts: 2 }] },
+        },
+      }, {
+        ...common,
+        sections: { settings: false, themes: false, highlights: true, vocabulary: false },
+        readCurrentOwner: async () => (++switchedHighlightOwnerReads < 3 ? backupOwner : "different-owner"),
+      }));
     } catch (_) {
       sectionResults = [];
     } finally {
@@ -3381,8 +3557,15 @@ async function run() {
       themeWrites === 1 && sectionResults[1]?.themes === "applied" &&
       sectionResults[1]?.settings === "skipped");
     check("E11 highlights section can be applied independently",
-      highlightWrites === 1 && sectionResults[2]?.highlights === "applied" &&
+      sectionHighlightWrites === 1 && sectionResults[2]?.highlights === "applied" &&
       sectionResults[2]?.vocabulary === "skipped");
+    check("E11 highlight restore claims ownerless items and keeps another account's items",
+      sectionResults[4]?.highlights === "applied" &&
+      (hlStore.pbp_hl_shared?.items || []).map((item) => item.id + ":" + item.owner).join(",") ===
+        "restored:" + pbpDictOwnerScope(backupOwner) + ",theirs:acct_other");
+    check("E11 highlight restore stops writing when the account changes mid-restore",
+      sectionResults[5]?.highlights === "failed" &&
+      "pbp_hl_switch1" in hlStore && !("pbp_hl_switch2" in hlStore));
     check("E11 vocabulary section can be applied independently",
       vocabWrites === 1 && sectionResults[3]?.vocabulary === "applied" &&
       sectionResults[3]?.vocabularyApplied === 1);

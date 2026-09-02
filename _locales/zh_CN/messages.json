@@ -980,6 +980,12 @@
   "backupVocabOwnerMissing": {
     "message": "当前没有可用的 Pinboard 账号，因此未包含生词。其他已选数据仍已导出。"
   },
+  "backupHighlightsOwnerMissing": {
+    "message": "当前没有可用的 Pinboard 账号，因此未包含归属账号的高亮和笔记。其他已选数据仍已导出。"
+  },
+  "backupHighlightsVocabOwnerMissing": {
+    "message": "当前没有可用的 Pinboard 账号，因此未包含生词和归属账号的高亮和笔记。其他已选数据仍已导出。"
+  },
   "backupPreviewTitle": {
     "message": "导入预览"
   },

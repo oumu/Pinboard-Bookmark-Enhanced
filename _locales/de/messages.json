@@ -980,6 +980,12 @@
   "backupVocabOwnerMissing": {
     "message": "Vokabeln wurden nicht einbezogen, weil kein Pinboard-Konto verfügbar ist. Die anderen ausgewählten Daten wurden exportiert."
   },
+  "backupHighlightsOwnerMissing": {
+    "message": "Kontogebundene Markierungen und Notizen wurden nicht einbezogen, weil kein Pinboard-Konto verfügbar ist. Die anderen ausgewählten Daten wurden exportiert."
+  },
+  "backupHighlightsVocabOwnerMissing": {
+    "message": "Vokabeln sowie kontogebundene Markierungen und Notizen wurden nicht einbezogen, weil kein Pinboard-Konto verfügbar ist. Die anderen ausgewählten Daten wurden exportiert."
+  },
   "backupPreviewTitle": {
     "message": "Importvorschau"
   },
