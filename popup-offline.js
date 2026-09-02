@@ -134,21 +134,45 @@
     });
   }
 
+  // background.js answers { ok, result } where result is a pbpSaveFailure envelope
+  // (sendOfflineItem / retryOfflineItem). Collapsing it to a boolean left the red
+  // pulse as the only feedback, and two of those reasons are permanent dead ends:
+  // replay is fail-closed, so an item queued under another account (the row's meta
+  // already prints its @account) can never succeed however often it is clicked.
+  // Same reason -> message table the save path uses in popup.js.
+  function retryFailureMessage(result) {
+    const reason = result && typeof result === "object" ? result.reason : "";
+    if (reason === "account_mismatch") return t("offlineRetryWrongAccount");
+    if (reason === "not_logged_in") return t("batchNotLoggedIn");
+    if (reason === "too_long") return t("uriTooLong", String(result.detail || ""), String(POSTS_ADD_URI_BUDGET));
+    if (reason === "http" && result.httpStatus) return `HTTP ${result.httpStatus}`;
+    if (reason === "api" && result.detail) return `Error: ${result.detail}`;
+    return t("networkError");
+  }
+
   async function onRetry(queueId, btn) {
     btn.disabled = true;
     btn.classList.add("loading");
     try {
-      const ok = await new Promise((resolve) => {
-        chrome.runtime.sendMessage({ type: "retry_offline_item", queueId }, (resp) => {
-          resolve(!!(resp && resp.ok));
+      const resp = await new Promise((resolve) => {
+        chrome.runtime.sendMessage({ type: "retry_offline_item", queueId }, (r) => {
+          if (chrome.runtime.lastError) {
+            console.warn("offline retry message failed:", chrome.runtime.lastError.message);
+            resolve(null);
+            return;
+          }
+          resolve(r || null);
         });
       });
-      if (!ok) {
+      if (!resp || !resp.ok) {
         btn.disabled = false;
         btn.classList.remove("loading");
         btn.innerHTML = PBP_ICONS.refresh;
         btn.classList.add("offline-queue-failed");
         setTimeout(() => btn.classList.remove("offline-queue-failed"), 1200);
+        // The pulse acknowledges the click in place; the reason goes to the
+        // popup's error card, the same surface batch and save failures use.
+        showStatus("status-msg", retryFailureMessage(resp && resp.result), "error");
         return;
       }
       // Success — background has removed this item; refresh list

@@ -9,7 +9,18 @@ body { font-family: monospace; padding: 16px; max-width: 900px; }
 <body>
 <h1>Popup tag cache account isolation tests</h1>
 <div id="results"></div>
-<script>let settings = { pinboardToken: "alice:token" };</script>
+<script>
+let settings = { pinboardToken: "alice:token" };
+// Ambient popup globals popup-tags.js closes over (declared in popup.js there).
+let currentTags = [];
+let allUserTags = [];
+let allUserTagCounts = {};
+let tagCaseMap = null;
+let acIndex = -1;
+const statusCalls = [];
+function t(key, ...args) { return args.length ? key + ":" + args.join(",") : key; }
+function showStatus(id, msg, kind) { statusCalls.push({ id, msg, kind }); }
+</script>
 <script src="../shared.js"></script>
 <script src="../popup-tags.js"></script>
 <script>
@@ -79,5 +90,200 @@ test("in-memory result guard follows the live popup account", () => {
   assert(!pbpPopupTagAccountIsCurrent("alice"));
   assert(pbpPopupTagAccountIsCurrent("bob"));
 });
+
+// ---------------------------------------------------------------------------
+// Tag input / suggest-row behaviour. The real setupTagsInput() and
+// fetchPinboardSuggestTags() are driven against a fixture that mirrors
+// popup.html's markup (skeleton spans included), so these assert what a
+// keystroke actually does rather than how the source is spelled.
+// ---------------------------------------------------------------------------
+async function testAsync(name, fn) {
+  let ok = true;
+  let detail = "";
+  try { await fn(); }
+  catch (error) { ok = false; detail = "\n  " + error.message; }
+  const row = document.createElement("div");
+  row.className = "case " + (ok ? "pass" : "fail");
+  row.textContent = `${ok ? "PASS" : "FAIL"} ${name}${detail}`;
+  document.getElementById("results").appendChild(row);
+}
+
+const nextFrame = () => new Promise((r) => requestAnimationFrame(() => r()));
+const SKEL = '<span class="tag-skel"></span><span class="tag-skel"></span>'
+  + '<span class="tag-skel"></span><span class="tag-skel"></span>';
+
+const fixture = document.createElement("div");
+fixture.innerHTML = `
+  <div id="suggest-row" class="row hidden">
+    <div id="pinboard-suggest-tags" class="suggest-area" aria-busy="true">${SKEL}</div>
+  </div>
+  <div class="tags-input-wrap">
+    <span id="tags-display"></span>
+    <input id="tags-input" type="text">
+  </div>
+  <div id="tags-autocomplete" class="autocomplete-dropdown hidden"></div>
+  <a id="tags-clear-all" href="#"></a>
+  <a id="tags-copy-all" href="#"></a>
+  <div id="tags-last-used" class="hidden"></div>`;
+document.body.appendChild(fixture);
+
+const tagsInput = document.getElementById("tags-input");
+const dropdown = document.getElementById("tags-autocomplete");
+const suggestRow = document.getElementById("suggest-row");
+const suggestBox = document.getElementById("pinboard-suggest-tags");
+
+// Storage is deferred on purpose: the suggest skeleton must outlive the first
+// await, and a resolved-promise stub would hide that.
+let releaseStorage = () => {};
+let storagePayload = {};
+window.chrome = {
+  storage: {
+    local: {
+      get: () => new Promise((resolve) => { releaseStorage = () => resolve(storagePayload); }),
+      set: () => Promise.resolve(),
+    },
+  },
+};
+
+settings.pinboardToken = "alice:token";
+setupTagsInput();
+
+function resetInput(tags) {
+  currentTags = [];
+  allUserTags = tags || [];
+  allUserTagCounts = {};
+  acIndex = -1;
+  tagsInput.value = "";
+  dropdown.innerHTML = "";
+  dropdown.classList.add("hidden");
+  statusCalls.length = 0;
+}
+function key(init) { return new KeyboardEvent("keydown", { bubbles: true, ...init }); }
+function typeInto(value) {
+  tagsInput.value = value;
+  tagsInput.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
+(async () => {
+  await test("composing Space never submits the uncommitted IME string", () => {
+    resetInput();
+    tagsInput.value = "biaoqian";
+    tagsInput.dispatchEvent(key({ key: " ", isComposing: true }));
+    assert(currentTags.length === 0, "a candidate-pick Space added a tag: " + currentTags.join("|"));
+    assert(tagsInput.value === "biaoqian", "a candidate-pick Space cleared the composition");
+  });
+
+  await test("an IME commit keydown (keyCode 229) never submits", () => {
+    resetInput();
+    tagsInput.value = "biaoqian";
+    ["Enter", "Tab", " ", "，"].forEach((k) => {
+      tagsInput.dispatchEvent(key({ key: k, keyCode: 229 }));
+    });
+    assert(currentTags.length === 0, "an IME commit key added a tag: " + currentTags.join("|"));
+    assert(tagsInput.value === "biaoqian", "an IME commit key cleared the composition");
+  });
+
+  await test("a genuine Space still commits the typed tag", () => {
+    resetInput();
+    tagsInput.value = "biaoqian";
+    tagsInput.dispatchEvent(key({ key: " " }));
+    assert(currentTags.join("|") === "biaoqian", "guard swallowed a real keystroke: " + currentTags.join("|"));
+  });
+
+  await testAsync("Enter before the pending rebuild commits the current input, not the last frame's", async () => {
+    resetInput();
+    typeInto("jso");
+  await nextFrame();
+    assert(dropdown.querySelector(".ac-new-hint")?.dataset.tag === "jso", "fixture never rendered the new-tag hint");
+    typeInto("json"); // rebuild is queued for the next frame and must not be read stale
+    tagsInput.dispatchEvent(key({ key: "Enter" }));
+    assert(currentTags.join("|") === "json", "Enter committed the previous frame: " + currentTags.join("|"));
+  });
+
+  await testAsync("Enter before the pending rebuild picks from the fresh match list", async () => {
+    resetInput(["jsdoc", "json-api"]);
+    typeInto("js");
+  await nextFrame();
+    assert(dropdown.querySelectorAll(".ac-item").length === 2, "fixture never rendered both matches");
+    typeInto("jso"); // only json-api still matches
+    tagsInput.dispatchEvent(key({ key: "Enter" }));
+    assert(currentTags.join("|") === "json-api", "Enter used the stale match list: " + currentTags.join("|"));
+  });
+
+  await test("a hidden Suggest row sends the tag-sync error to the popup error card", () => {
+    resetInput();
+    suggestRow.classList.add("hidden");
+    suggestBox.textContent = "";
+    showTagSyncError("pinboardErrorRateLimit");
+    assert(statusCalls.length === 1 && statusCalls[0].kind === "error",
+      "no error card was raised, got " + JSON.stringify(statusCalls));
+    assert(statusCalls[0].msg === "pinboardErrorRateLimit", "wrong message: " + statusCalls[0].msg);
+    assert(suggestBox.textContent === "", "wrote into the hidden container anyway");
+  });
+
+  await test("an already-filled suggest container sends the tag-sync error to the error card", () => {
+    resetInput();
+    suggestRow.classList.remove("hidden");
+    suggestBox.innerHTML = '<div class="suggest-group"></div>';
+    showTagSyncError("pinboardErrorOffline");
+    assert(statusCalls.length === 1 && statusCalls[0].msg === "pinboardErrorOffline",
+      "suggest results swallowed the sync error, got " + JSON.stringify(statusCalls));
+  });
+
+  await test("a still-pulsing skeleton counts as occupied", () => {
+    resetInput();
+    suggestRow.classList.remove("hidden");
+    suggestBox.innerHTML = SKEL;
+    showTagSyncError("pinboardErrorServer");
+    assert(statusCalls.length === 1 && statusCalls[0].msg === "pinboardErrorServer",
+      "the message was written under a skeleton that suggest will overwrite");
+    assert(suggestBox.querySelectorAll(".tag-skel").length === 4, "the skeleton was replaced mid-flight");
+  });
+
+  await test("a visible, empty Suggest row keeps the inline message", () => {
+    resetInput();
+    suggestRow.classList.remove("hidden");
+    suggestBox.textContent = "";
+    showTagSyncError("pinboardErrorTimeout");
+    assert(suggestBox.textContent === "pinboardErrorTimeout", "inline message lost: " + suggestBox.textContent);
+    assert(statusCalls.length === 0, "raised a redundant error card");
+  });
+
+  await testAsync("the suggest skeleton survives until the data lands", async () => {
+    resetInput();
+    settings.pinboardToken = "alice:token";
+    suggestRow.classList.remove("hidden");
+    suggestBox.innerHTML = SKEL;
+    suggestBox.setAttribute("aria-busy", "true");
+    const url = "https://example.com/article";
+    storagePayload = {
+      ["cached_suggest_" + url]: {
+        account: "alice",
+        timestamp: Date.now(),
+        data: [{ popular: ["js"] }, { recommended: ["css"] }],
+      },
+    };
+    const done = fetchPinboardSuggestTags("alice:token", url);
+    assert(suggestBox.querySelectorAll(".tag-skel").length === 4,
+      "the skeleton was wiped before the first await, so it can never paint");
+    releaseStorage();
+  await done;
+    assert(suggestBox.querySelectorAll(".tag-skel").length === 0, "the skeleton outlived the data");
+    assert(suggestBox.querySelectorAll(".stag").length === 2,
+      "suggested chips missing, got " + suggestBox.querySelectorAll(".stag").length);
+    assert(suggestBox.getAttribute("aria-busy") === "false", "aria-busy stayed true");
+  });
+
+  await testAsync("a bail-out for another account takes the skeleton down", async () => {
+    resetInput();
+    settings.pinboardToken = "bob:token";
+    suggestBox.innerHTML = SKEL;
+    suggestBox.setAttribute("aria-busy", "true");
+  await fetchPinboardSuggestTags("alice:token", "https://example.com/other");
+    assert(suggestBox.querySelectorAll(".tag-skel").length === 0, "left a skeleton pulsing forever");
+    assert(suggestBox.getAttribute("aria-busy") === "false", "aria-busy stayed true");
+    settings.pinboardToken = "alice:token";
+  });
+})();
 </script>
 </body></html>

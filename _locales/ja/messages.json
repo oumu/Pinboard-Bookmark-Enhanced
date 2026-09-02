@@ -505,6 +505,9 @@
   "offlineRetry": {
     "message": "今すぐ再試行"
   },
+  "offlineRetryWrongAccount": {
+    "message": "この項目は別の Pinboard アカウントで保存待ちになっています。そのアカウントでログインすると送信できます。"
+  },
   "offlineRemove": {
     "message": "キューから削除"
   },
@@ -1995,9 +1998,6 @@
   },
   "emptyTagSuggestions": {
     "message": "タグの候補はありません"
-  },
-  "emptyAiTagsHint": {
-    "message": "クリックして生成"
   },
   "optPopupWidthTitle": {
     "message": "ポップアップの幅"

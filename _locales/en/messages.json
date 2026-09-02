@@ -505,6 +505,9 @@
   "offlineRetry": {
     "message": "Retry now"
   },
+  "offlineRetryWrongAccount": {
+    "message": "This item was queued under a different Pinboard account. Sign in to that account to send it."
+  },
   "offlineRemove": {
     "message": "Remove from queue"
   },
@@ -1965,9 +1968,6 @@
   },
   "emptyTagSuggestions": {
     "message": "No tag suggestions"
-  },
-  "emptyAiTagsHint": {
-    "message": "Click to generate"
   },
   "optPopupWidthTitle": {
     "message": "Popup width"

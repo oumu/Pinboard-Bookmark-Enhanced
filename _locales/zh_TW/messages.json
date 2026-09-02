@@ -505,6 +505,9 @@
   "offlineRetry": {
     "message": "立即重試"
   },
+  "offlineRetryWrongAccount": {
+    "message": "這個項目是用另一個 Pinboard 帳戶存的。登入該帳戶才能傳送。"
+  },
   "offlineRemove": {
     "message": "從佇列移除"
   },
@@ -1995,9 +1998,6 @@
   },
   "emptyTagSuggestions": {
     "message": "暫無標籤建議"
-  },
-  "emptyAiTagsHint": {
-    "message": "點擊生成"
   },
   "optPopupWidthTitle": {
     "message": "Popup 寬度"

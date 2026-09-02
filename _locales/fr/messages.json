@@ -505,6 +505,9 @@
   "offlineRetry": {
     "message": "Réessayer maintenant"
   },
+  "offlineRetryWrongAccount": {
+    "message": "Cet élément a été mis en file d'attente avec un autre compte Pinboard. Connectez-vous à ce compte pour l'envoyer."
+  },
   "offlineRemove": {
     "message": "Retirer de la file"
   },
@@ -1995,9 +1998,6 @@
   },
   "emptyTagSuggestions": {
     "message": "Aucune suggestion de tag"
-  },
-  "emptyAiTagsHint": {
-    "message": "Cliquez pour générer"
   },
   "optPopupWidthTitle": {
     "message": "Largeur de la popup"

@@ -505,6 +505,9 @@
   "offlineRetry": {
     "message": "立即重试"
   },
+  "offlineRetryWrongAccount": {
+    "message": "这条是用另一个 Pinboard 账号存的。登录那个账号才能发送。"
+  },
   "offlineRemove": {
     "message": "从队列移除"
   },
@@ -1995,9 +1998,6 @@
   },
   "emptyTagSuggestions": {
     "message": "暂无标签建议"
-  },
-  "emptyAiTagsHint": {
-    "message": "点击生成"
   },
   "optPopupWidthTitle": {
     "message": "弹窗宽度"

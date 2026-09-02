@@ -505,6 +505,9 @@
   "offlineRetry": {
     "message": "Jetzt erneut versuchen"
   },
+  "offlineRetryWrongAccount": {
+    "message": "Dieser Eintrag wurde für ein anderes Pinboard-Konto in die Warteschlange gestellt. Melde dich mit diesem Konto an, um ihn zu senden."
+  },
   "offlineRemove": {
     "message": "Aus Warteschlange entfernen"
   },
@@ -1995,9 +1998,6 @@
   },
   "emptyTagSuggestions": {
     "message": "Keine Tag-Vorschläge"
-  },
-  "emptyAiTagsHint": {
-    "message": "Zum Generieren klicken"
   },
   "optPopupWidthTitle": {
     "message": "Popup-Breite"

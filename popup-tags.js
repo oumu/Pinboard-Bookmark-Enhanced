@@ -28,11 +28,17 @@ async function fetchPinboardSuggestTags(token, url) {
   const account = pbpPinboardAccountFromToken(token);
 
   if (!account || !pbpPopupTagAccountIsCurrent(account)) {
+    // Nothing will be fetched, so take the markup's skeleton down here: this
+    // bail-out is outside the try below, so its finally never runs.
+    container.replaceChildren();
     container.setAttribute("aria-busy", "false");
     return;
   }
-  container.replaceChildren();
 
+  // The four .tag-skel bars popup.html ships stay up until content lands.
+  // Clearing them here ran in the same task as popup.js unhiding #suggest-row,
+  // so the browser never painted them and the whole request read as an empty
+  // row; every writer below replaces the container's children wholesale.
   try {
   let data;
   try {
@@ -150,6 +156,9 @@ async function fetchPinboardSuggestTags(token, url) {
   }
   } finally {
     container.setAttribute("aria-busy", "false");
+    // A mid-flight bail-out (account drifted) writes nothing, and the skeleton
+    // is no longer wiped up front -- it would pulse for the life of the popup.
+    if (container.querySelector(".tag-skel")) container.replaceChildren();
     // Every exit path (chips rendered, empty, auth/429/network error) re-slots
     // Alt+N across both rows -- AI chips may already be on screen and must
     // keep working digits + the hint even when suggest came back empty.
@@ -225,11 +234,21 @@ async function fetchAllUserTags(token) {
 
 // Surface user-tag sync errors in the same container as suggest errors (unified "tag help" area).
 // Does not overwrite when suggest has already rendered tags — muted class signals error state.
+// When that container cannot speak — #suggest-row is hidden (optShowSuggestTags off) or suggest
+// already filled it — fall back to the popup's .feedback-card error, the surface the save and
+// batch failures use. tags/get is the only source for autocomplete, tag counts, case folding and
+// the AI prompt's "existing tags", so its failure must never be silent.
 function showTagSyncError(i18nKey) {
   const container = $id("pinboard-suggest-tags");
-  if (!container) return;
-  // Don't overwrite suggest results or an already-shown error/timeout message
-  if (container.querySelector(".suggest-group") || container.textContent.trim()) return;
+  const rowHidden = !!$id("suggest-row")?.classList.contains("hidden");
+  // .tag-skel counts as occupied: suggest is still in flight and will replace
+  // whatever we write here, so an inline message would be eaten unseen.
+  const occupied = !!container
+    && !!(container.querySelector(".suggest-group, .tag-skel") || container.textContent.trim());
+  if (!container || rowHidden || occupied) {
+    showStatus("status-msg", t(i18nKey), "error");
+    return;
+  }
   container.textContent = t(i18nKey);
   container.classList.add("muted");
 }
@@ -335,11 +354,29 @@ function setupTagsInput() {
     }
   });
   input.addEventListener("keydown", (e) => {
-    const items = dropdown.querySelectorAll(".ac-item");
-    const acVisible = !dropdown.classList.contains("hidden") && items.length > 0;
+    // IME composition dispatches Enter (confirm) and Space (candidate pick) as
+    // real keydowns while input.value still holds the uncommitted string, so
+    // without this the branches below submit half-typed pinyin/kana as a tag
+    // (same guard as md-ask.js / library-vocab.js; keyCode 229 covers the
+    // ordering where compositionend fires first).
+    if (e.isComposing || e.keyCode === 229) return;
+    let items = dropdown.querySelectorAll(".ac-item");
+    let acVisible = !dropdown.classList.contains("hidden") && items.length > 0;
     if (e.key === "ArrowDown" && acVisible) { e.preventDefault(); acIndex = acIndex >= items.length - 1 ? 0 : acIndex + 1; updateAc(items, input); }
     else if (e.key === "ArrowUp" && acVisible) { e.preventDefault(); acIndex = acIndex <= 0 ? items.length - 1 : acIndex - 1; updateAc(items, input); }
     else if (e.key === "Enter" || e.key === "Tab") {
+      // The rebuild is coalesced into a rAF, and a keydown can drain before
+      // that frame runs (cold popup, janked main thread). The dropdown then
+      // still describes the PREVIOUS input string -- committing items[0], or
+      // the ac-new-hint carrying the truncated value, adds the wrong tag.
+      // Flush the pending rebuild first, then read it.
+      if (acRaf) {
+        cancelAnimationFrame(acRaf);
+        acRaf = 0;
+        handleTagInput();
+        items = dropdown.querySelectorAll(".ac-item");
+        acVisible = !dropdown.classList.contains("hidden") && items.length > 0;
+      }
       const hasPending = input.value.trim().length > 0;
       if (e.key === "Tab" && !acVisible && !hasPending) return;
       e.preventDefault();

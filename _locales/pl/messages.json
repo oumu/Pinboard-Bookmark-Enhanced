@@ -505,6 +505,9 @@
   "offlineRetry": {
     "message": "Spróbuj ponownie"
   },
+  "offlineRetryWrongAccount": {
+    "message": "Ten element trafił do kolejki na innym koncie Pinboard. Zaloguj się na tamto konto, aby go wysłać."
+  },
   "offlineRemove": {
     "message": "Usuń z kolejki"
   },
@@ -1995,9 +1998,6 @@
   },
   "emptyTagSuggestions": {
     "message": "Brak sugestii tagów"
-  },
-  "emptyAiTagsHint": {
-    "message": "Kliknij, aby wygenerować"
   },
   "optPopupWidthTitle": {
     "message": "Szerokość okienka"

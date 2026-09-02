@@ -1025,7 +1025,20 @@ function showSummaryActions(fromCache) {
     }
     wrap.querySelectorAll(".regen-link").forEach(l => l.classList.add("loading"));
     regenLink.textContent = t("aiRegenerating");
-    await doAISummary(true);
+    try {
+      await doAISummary(true);
+    } finally {
+      // Every doAISummary path that actually ran rebuilds this bar (success and
+      // catch both call showSummaryActions, which drops the old wrap), so a wrap
+      // still in the document means it refused early -- no key, account drift,
+      // no page text. Undo the optimistic swap, or the label stays pinned on
+      // "Regenerating..." and .regen-link.loading keeps every link inert
+      // (Remove included) for the life of the popup.
+      if (wrap.isConnected) {
+        wrap.querySelectorAll(".regen-link").forEach(l => l.classList.remove("loading"));
+        regenLink.textContent = t("aiRegenerate");
+      }
+    }
   });
 }
 
@@ -1143,7 +1156,11 @@ function renderAITags(tags, fromCache) {
   container.classList.remove("muted");
 
   if (!tags.length) {
-    _aiAppendEmptyState(container, "spark", t("emptyAiTagsHint"));
+    // The only way here is a run that just happened and came back with nothing:
+    // an empty result is never cached (see doAITags), so the cache-hit call
+    // cannot land on this branch. "Click to generate" described the opposite
+    // situation and invited paying for the same empty answer again.
+    _aiAppendEmptyState(container, "spark", t("emptyTagSuggestions"));
     _aiParkTagsBtn(container, true);
     pbpAssignAltNumBadges();
     return;
@@ -1224,17 +1241,43 @@ function renderAITags(tags, fromCache) {
           showStatus("status-msg", t("aiUrlEdited"), "error");
           return;
         }
+        // The account this op belongs to, captured before the first await so
+        // the finally below can tell whether the form still holds it.
+        const opAccount = pbpPopupAiAccount();
         hintWrap.querySelectorAll(".regen-link").forEach((l) => l.classList.add("loading"));
         link.textContent = mode === "replace" ? t("aiReplacing") : t("aiRegenerating");
+        // Retract only tags this session's AI chips added: a same-named
+        // tag with no AI provenance (typed, or from the saved bookmark)
+        // stays (audit A10).
+        const wasAddedByThisRound = (t) =>
+          cachedTagSet.has(t.toLowerCase()) && _aiSessionAddedTags.has(t.toLowerCase());
+        let retracted = [];
         if (mode === "replace") {
-          // Retract only tags this session's AI chips added: a same-named
-          // tag with no AI provenance (typed, or from the saved bookmark)
-          // stays (audit A10).
-          currentTags = currentTags.filter(t =>
-            !(cachedTagSet.has(t.toLowerCase()) && _aiSessionAddedTags.has(t.toLowerCase())));
+          retracted = currentTags.filter(wasAddedByThisRound);
+          currentTags = currentTags.filter(t => !wasAddedByThisRound(t));
           renderTags();
         }
-        await doAITags(true);
+        try {
+          await doAITags(true);
+        } finally {
+          // Every doAITags path that actually ran rebuilds this bar (success
+          // re-renders the chips, catch clears them), so a hintWrap still in the
+          // document means it refused early -- no key, account drift, no page
+          // text. Undo the optimistic swap: otherwise the link stays pinned on
+          // its in-flight label with .regen-link.loading making it inert, and
+          // replace mode has silently dropped tags that nothing will bring back.
+          if (hintWrap.isConnected) {
+            hintWrap.querySelectorAll(".regen-link").forEach((l) => l.classList.remove("loading"));
+            link.textContent = mode === "replace" ? t("aiReplace") : t("aiRegenerate");
+            // Resetting the label is pure appearance, but putting tags BACK is a
+            // write to the form, and isConnected cannot tell "refused early"
+            // from "the form was switched to another bookmark (or the account
+            // drifted) mid-flight" -- nothing clears this bar on a URL edit, so
+            // it stays connected there too. Re-check op liveness or the
+            // retraction gets replayed into a DIFFERENT bookmark's tag field.
+            if (_aiOpStillCurrent(opAccount)) retracted.forEach((tag) => addTag(tag));
+          }
+        }
       });
       hintWrap.appendChild(link);
     });

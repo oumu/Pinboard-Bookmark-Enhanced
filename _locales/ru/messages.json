@@ -505,6 +505,9 @@
   "offlineRetry": {
     "message": "Повторить сейчас"
   },
+  "offlineRetryWrongAccount": {
+    "message": "Эта запись поставлена в очередь под другой учётной записью Pinboard. Войдите в неё, чтобы отправить запись."
+  },
   "offlineRemove": {
     "message": "Удалить из очереди"
   },
@@ -1995,9 +1998,6 @@
   },
   "emptyTagSuggestions": {
     "message": "Нет предложений тегов"
-  },
-  "emptyAiTagsHint": {
-    "message": "Нажмите, чтобы создать"
   },
   "optPopupWidthTitle": {
     "message": "Ширина всплывающего окна"
