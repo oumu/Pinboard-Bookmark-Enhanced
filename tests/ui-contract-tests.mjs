@@ -523,7 +523,13 @@ check(!read("anki-connect.js").includes("PBP_ANKI_ENDPOINT"),
     // to -- on its OWN body class, and with the focus handoff at the render
     // root every activation passes through.
     libraryNotesJs.includes('if (enterNarrow) document.body.classList.add("lib-narrow-notes")') &&
-    /detail\.replaceChildren\(frag\);[\s\S]{0,200}if \(enterNarrow\) _pbpNotesFocusNarrowBack\(detail\)/.test(libraryNotesJs) &&
+    // Same 400-char budget as the vocabulary twin above, not a tighter 200:
+    // both exits now carry the pane scrollTop reset (#86 made the detail panes
+    // scroll containers) plus the comment explaining why the reset targets the
+    // pane and not the div replaceChildren rewrites. The window still buys
+    // adjacency -- the handoff has to stay at this render root, not migrate to
+    // a call site -- it just no longer doubles as a comment-length tripwire.
+    /detail\.replaceChildren\(frag\);[\s\S]{0,400}if \(enterNarrow\) _pbpNotesFocusNarrowBack\(detail\)/.test(libraryNotesJs) &&
     // preventScroll lives in the one focus primitive every notes path calls
     // (row refocus, post-delete neighbour, narrow back, detail restore).
     /function _pbpNotesFocus\(el\)[\s\S]{0,300}focus\(\{ preventScroll: true \}\)/.test(libraryNotesJs) &&
@@ -1154,6 +1160,50 @@ for (const [file, css, ns] of [["popup.css", popupCss, "pp"], ["options.css", op
   const paneChildCaps = (libraryCss.match(/\.(notes-detail-quote|notes-detail-note|vocab-detail-gloss|vocab-detail-context|vocab-note-edit)\b[^{}]*\{[^}]*max-width:\s*6[68]ch/g) || []);
   check(paneChildCaps.length === 0,
     `library.css: per-child reading-measure caps are back inside the detail panes — the pane's own column already caps and CENTRES them, and a child cap only re-creates the left-hugging prose it replaced: ${paneChildCaps.join(" | ")}`);
+  // Prose that keeps its own newlines (`white-space: pre-wrap`) sits inside a
+  // `minmax(0, 66ch)` column that shrinks rather than widens, so an unbreakable
+  // run — a data URI, a hash, a long identifier lifted out of a code block —
+  // paints straight through the pane's border unless the rule also names a
+  // break policy. Asked as a CATEGORY ("every pre-wrap/pre-line rule in the
+  // hand layer"), not as the selectors that carry it today: the simplest
+  // counter-example is a fifth quote/gloss block added later with pre-wrap and
+  // no overflow-wrap, which a named list would never see.
+  const libHand = stripGeneratedRegions(libraryCss).replace(/\/\*[\s\S]*?\*\//g, "");
+  const unbrokenProse = [...libHand.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+    .filter(([, , body]) => /white-space:\s*pre-(wrap|line)/.test(body) && !/overflow-wrap:\s*anywhere/.test(body))
+    .map(([, sel]) => sel.trim().split("\n").pop().trim());
+  check(unbrokenProse.length === 0,
+    `library.css: a pre-wrap prose rule declares no break policy — inside the detail panes' 66ch column an unbreakable run overflows the pane instead of wrapping: ${unbrokenProse.join(" | ")}`);
+  // Both panes are sticky inside a grid row as tall as the LIST column, so an
+  // uncapped pane taller than the viewport keeps its top edge pinned while
+  // everything past the fold stays unreachable until the whole list has been
+  // scrolled through (the relookup result lands there, i.e. on the main path).
+  // The cap has to be a border-box cap — both panes carry 16px block padding
+  // and a 1px border, which content-box would add on top of it.
+  const paneRules = [...libraryCss.matchAll(/\.(notes|vocab)-detail-pane \{([^}]*)\}/g)];
+  const stickyPanes = paneRules.filter(([, , body]) => /position:\s*sticky/.test(body));
+  const uncappedPanes = stickyPanes
+    .filter(([, , body]) => !(/box-sizing:\s*border-box/.test(body) && /max-height:\s*calc\(100vh[^;]*\)/.test(body) && /overflow-y:\s*auto/.test(body)))
+    .map(([, name]) => `.${name}-detail-pane`);
+  check(stickyPanes.length === 2 && uncappedPanes.length === 0,
+    `library.css: a sticky detail pane has no border-box height cap (${stickyPanes.length} sticky panes seen; uncapped: ${uncappedPanes.join(", ") || "none"}) — pinned, its lower half is unreachable until the list column has been scrolled to its end`);
+  const releasedPanes = (libraryCss.match(/\.(?:notes|vocab)-detail-pane \{ position: static; max-height: none; overflow: visible; \}/g) || []);
+  check(releasedPanes.length === 2,
+    "library.css: a detail pane keeps its sticky height cap in the <=860px single-pane layout — there the pane IS the page, so the cap only nests a second scroller inside the page's own");
+  // The five colour-filter dots are real <button>s (library-notes.js), the one
+  // interactive family on this page that used to fall through to the UA focus
+  // ring. The ring must also be legible in the OFF state — the state a keyboard
+  // user is most likely to be switching back on — and `outline` paints at its
+  // own element's opacity, so the "filtered out" dimming belongs on the swatch
+  // inside the button, never on the button itself.
+  // Existence only: the §7.3 placement gate above already polices the SHAPE of
+  // every hand-written :focus-visible rule on this surface, and duplicating its
+  // recipe here would just be a second place to update.
+  check(/\.notes-filter-dot:focus-visible \{/.test(libraryCss),
+    "library.css: .notes-filter-dot has no :focus-visible rule — the colour dots fall back to the UA default ring while every neighbouring family declares a themed one");
+  check(!/\.notes-filter-dot\[aria-pressed="false"\]\s*\{[^}]*opacity/.test(libraryCss) &&
+    /\.notes-filter-dot\[aria-pressed="false"\] \.note-dot \{[^}]*opacity/.test(libraryCss),
+    "library.css: the colour dot's off-state opacity is back on the BUTTON — a focus ring paints at its own element's opacity (border and box-shadow alike), so it would render at a third strength on exactly the dots a keyboard user is about to re-enable");
   // Both panes end the same way: one rule-topped row, destructive action
   // pushed to its right end. Two panes, one closing gesture.
   check(/\.vocab-detail-footer,\s*\n\.notes-detail-footer \{[^}]*border-top:/.test(libraryCss) &&
@@ -1691,6 +1741,66 @@ check(doSendStart >= 0 && doSendEnd > doSendStart &&
   doSend.indexOf("await pbpRequestTargetPermission(id, cfg)") >= 0 &&
   doSend.indexOf("await pbpRequestTargetPermission(id, cfg)") < doSend.indexOf("await pbpSetLastTarget(id)"),
   "md-preview.js: Send-to permission request is not the first await before last-target storage");
+// Send-to status honesty. `.send-status` defaults to the SUCCESS stripe
+// (md-preview.css: it is "only ever shown after a completed send"), so a
+// failure that forgets isError paints a green bar for a send that never left
+// the page -- md-export-send.js's required-settings guard returns
+// "missing:<key>" before any request is fired. Category check over every
+// branch keyed on res.error, not a list of codes, so a new error code added
+// later is covered without editing this test.
+{
+  const branches = doSend.split(/\}\s*else\s+if\s*\(/).slice(1);
+  const keyedOnError = branches.filter((b) => /^[^)]*res\.error/.test(b) && b.includes("showSendStatus("));
+  check(keyedOnError.length >= 6,
+    "md-preview.js: the Send-to failure ladder no longer parses as else-if branches -- re-derive this check before trusting it");
+  check(keyedOnError.every((b) => /showSendStatus\([^;]*?,\s*true[,)]/.test(b)),
+    "md-preview.js: a Send-to branch keyed on res.error paints its status with isError=false -- nothing was sent, but .send-status keeps its default success stripe, so a blocked/failed send looks identical to a completed one");
+}
+// ... and a failure must not be swept away on a timer: mdSendApiBadToken and
+// mdSendNotionNotShared are instructions to leave the reader and change a
+// setting elsewhere. Only link-less SUCCESS auto-hides; click-to-dismiss and
+// the next send's clearTimeout already bound an error's lifetime, the same
+// lifetime md-video.js's pbvSetStatus gives kind "error".
+{
+  const fnStart = mdPreviewJs.indexOf("function showSendStatus(msg, isError, url, viewLabel)");
+  const fn = mdPreviewJs.slice(fnStart, mdPreviewJs.indexOf("\n    }", fnStart));
+  const autoHide = (fn.match(/^.*sendStatusTimer = setTimeout.*$/m) || [""])[0];
+  check(fnStart > 0 && /!isError/.test(autoHide),
+    "md-preview.js: showSendStatus arms its 6s auto-hide without excluding errors -- the failure copy that tells the user to go re-paste a token or share a Notion page disappears before it can be read or acted on");
+}
+// Engine segments express structural unavailability with aria-disabled, never
+// the disabled property: a disabled control receives no pointer events in
+// Chromium (so its explanatory title never renders) and leaves the tab order
+// (so a screen-reader user cannot reach the explanation either). Same choice
+// md-preview.js's img-fix button and md-reader.js's typo steps already state.
+{
+  const applyStart = mdPreviewJs.indexOf("function applyAvailability(curEngine)");
+  const applyFn = mdPreviewJs.slice(applyStart, mdPreviewJs.indexOf("// Why a transcript commit happened", applyStart));
+  check(applyStart > 0 && !/seg\.disabled = unavail/.test(applyFn) && applyFn.includes('seg.setAttribute("aria-disabled", "true")'),
+    "md-preview.js: applyAvailability marks an unavailable engine segment with the disabled property -- the mdEngineTabGone title it sets in the same breath can then never be shown or focused");
+  check(!/\|\|\s*seg\.disabled\)/.test(mdPreviewJs),
+    "md-preview.js: an engine-segment click guard still reads seg.disabled -- availability now lives in aria-disabled, so the guard would let a click through");
+}
+// The three download exits share one re-entrancy gate plus a busy indicator.
+// With imagePolicy=embed a download runs a host-permission prompt and a
+// budgeted image-fetch round, seconds to tens of seconds with the page still:
+// an ungated second click starts a second full pass and lands a second file.
+for (const id of ["btn-dl-md", "btn-dl-html", "btn-dl-epub"]) {
+  const at = mdPreviewJs.indexOf('document.getElementById("' + id + '").addEventListener("click"');
+  const head = mdPreviewJs.slice(at, at + 300);
+  check(at > 0 && /if \(_exporting\) return;/.test(head) && /setExportBusy\(true\)/.test(head),
+    "md-preview.js: #" + id + " has no re-entrancy gate or no busy indicator before its first await -- an embed export is silent for seconds, so the second click a user makes runs a whole second export");
+}
+// TOC current-section state must exist for assistive tech, not only as a
+// colour: aria-current is this project's established "you are here" carrier
+// (library-notes.js, library-vocab.js, md-video.js's caption cursor).
+{
+  const saStart = mdPreviewJs.indexOf("const setActive = (slug) => {");
+  const setActiveFn = mdPreviewJs.slice(saStart, mdPreviewJs.indexOf("// Track which headings", saStart));
+  check(saStart > 0 && setActiveFn.includes('removeAttribute("aria-current")')
+    && /setAttribute\("aria-current", "location"\)/.test(setActiveFn),
+    "md-preview.js: the scroll-spy marks the current TOC entry with .active alone -- the current section is invisible to a screen reader, and a stale aria-current on the previous entry is worse than none");
+}
 
 check(/const PBP_JINA_ORIGIN_PATTERN = "https:\/\/r\.jina\.ai\/\*";/.test(sharedJs) &&
   !/const\s+JINA_ORIGIN_PATTERN/.test(jinaJs) && /PBP_JINA_ORIGIN_PATTERN/.test(jinaJs),

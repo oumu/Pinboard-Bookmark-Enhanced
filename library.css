@@ -502,10 +502,22 @@ html[data-theme] .confirm-popover .confirm-no:hover { background: var(--lib-btn-
   cursor: pointer;
   margin: 0;
   padding: 0;
-  transition: opacity var(--motion-state) ease;
 }
-.notes-filter-dot[aria-pressed="false"] { opacity: .32; }
-.notes-filter-dot .note-dot { margin-top: 0; }
+/* The themed focus ring every other interactive family on this page declares;
+   without it these five dots were the one family left on the UA default ring.
+   COMPONENTS.md §7.3 `bordered`, not the rows' `inset` or .chip-remove's
+   `borderless`: this is not a row or a cell in a fused control, and the 1px
+   edge it already wears is neutral chrome derived from --lib-border, not a
+   semantic (danger / currentColor) edge -- so focus recolours that edge and
+   adds the themed glow, losing no information. */
+.notes-filter-dot:focus-visible { outline: none; border-color: var(--lib-focus-bd); box-shadow: var(--lib-focus-ring); }
+/* The "filtered out" dimming sits on the SWATCH, not on the button. A focus
+   ring paints at its own element's opacity -- border and box-shadow alike --
+   so dimming the button would render the ring above at a third strength on
+   exactly the dots a keyboard user is about to switch back on, while a blanket
+   `opacity: 1` on focus would erase the pressed-state readout instead. */
+.notes-filter-dot[aria-pressed="false"] .note-dot { opacity: .32; }
+.notes-filter-dot .note-dot { margin-top: 0; transition: opacity var(--motion-state) ease; }
 
 .notes-card {
   /* Soft Fill (COMPONENTS.md §9 law 4): list rows separate by spacing and
@@ -623,7 +635,7 @@ html.motion-ready .notes-card-top { transition: background-color var(--motion-st
 .note-dot.c5 { background: var(--lib-note-c5, #c084fc); }
 /* Kept for the vocabulary detail pane's context quotes (the notes list no
    longer builds .notes-item* rows -- see the master-detail block below). */
-.notes-item-quote { color: var(--lib-fg-muted); white-space: pre-wrap; }
+.notes-item-quote { color: var(--lib-fg-muted); white-space: pre-wrap; overflow-wrap: anywhere; }
 .notes-empty { font-size: 12px; color: var(--lib-fg-muted); padding: var(--lib-sp-3) 0; }
 
 /* Ghost X delete button (options.css's shared recipe for vocab AND notes rows;
@@ -825,6 +837,19 @@ html.motion-ready .notes-hit-btn { transition: background-color var(--motion-sta
   grid-template-columns: minmax(0, 66ch);
   justify-content: center;
   position: sticky; top: calc(var(--lib-header-h) + var(--lib-sp-2)); /* below the sticky .lib-header, with a visible gap */
+  /* A sticky element's pinned range is its GRID AREA -- here the row's height,
+     i.e. the taller LIST column. Uncapped, a pane longer than the viewport
+     keeps its top edge pinned while everything past the fold stays unreachable
+     until the whole list has been scrolled through. Cap it to what the sticky
+     offset actually leaves (viewport - header - the same 8px gap at the top and
+     at the bottom = --lib-sp-4) and let the pane scroll itself.
+     box-sizing: border-box so the cap counts this rule's own padding and
+     border; under the default content-box the pane would end 34px below the
+     viewport. Reset in the max-width: 860px block below, where the pane is
+     static and IS the page -- a cap there would only nest a second scroller. */
+  box-sizing: border-box;
+  max-height: calc(100vh - var(--lib-header-h) - var(--lib-sp-4));
+  overflow-y: auto;
   background: var(--lib-pane-bg);
   border: 1px solid var(--lib-pane-divider);
   border-radius: var(--lib-radius-lg);
@@ -841,8 +866,14 @@ html.motion-ready .notes-hit-btn { transition: background-color var(--motion-sta
   padding-left: var(--lib-sp-3);
   border-left: 3px solid var(--hl-color, var(--lib-note-c1));
   white-space: pre-wrap;
+  /* Same break policy the list side already applies to this exact quote
+     (.notes-hit-text): a highlight can carry an unbreakable run -- a data
+     URI, a hash, a long identifier -- and the pane's `minmax(0, 66ch)` column
+     shrinks rather than widening, so without this the run paints straight
+     through the pane's border instead of wrapping. */
+  overflow-wrap: anywhere;
 }
-.notes-detail-note { margin: var(--lib-sp-3) 0 0; white-space: pre-wrap; color: var(--lib-fg-muted); }
+.notes-detail-note { margin: var(--lib-sp-3) 0 0; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--lib-fg-muted); }
 .notes-detail-siblings {
   margin-top: var(--lib-sp-5);
   padding-top: var(--lib-sp-3);
@@ -885,7 +916,9 @@ html.motion-ready .notes-sib { transition: background-color var(--motion-state) 
    since it is no longer beside anything). */
 @media (max-width: 860px) {
   .notes-workbench { grid-template-columns: 1fr; }
-  .notes-detail-pane { position: static; }
+  /* Uncapped along with it: in single-pane mode the pane IS the page, so the
+     sticky-height cap would only nest a scroller inside the page's own. */
+  .notes-detail-pane { position: static; max-height: none; overflow: visible; }
   /* Narrow mode is list OR detail, driven by this view's own body class. */
   body.lib-narrow-notes .notes-list-pane { display: none; }
   body:not(.lib-narrow-notes) .notes-detail-pane { display: none; }
@@ -938,6 +971,13 @@ html.motion-ready .notes-sib { transition: background-color var(--motion-state) 
   grid-template-columns: minmax(0, 66ch);
   justify-content: center;
   position: sticky; top: calc(var(--lib-header-h) + var(--lib-sp-2)); /* below the sticky .lib-header, with a visible gap */
+  /* Same sticky-height cap as .notes-detail-pane; see that rule's comment for
+     why the pinned range makes an uncapped pane unreachable, and why the cap
+     is reset again at <=860px. The trigger is larger on this side: a relookup
+     fills .vocab-detail-dict, which has no cap of its own. */
+  box-sizing: border-box;
+  max-height: calc(100vh - var(--lib-header-h) - var(--lib-sp-4));
+  overflow-y: auto;
   background: var(--lib-pane-bg);
   border: 1px solid var(--lib-pane-divider);
   border-radius: var(--lib-radius-lg);
@@ -1013,7 +1053,8 @@ html.motion-ready .notes-sib { transition: background-color var(--motion-state) 
    since it is no longer beside anything). */
 @media (max-width: 860px) {
   .vocab-workbench { grid-template-columns: 1fr; }
-  .vocab-detail-pane { position: static; }
+  /* Uncapped along with it, for the reason .notes-detail-pane's twin says. */
+  .vocab-detail-pane { position: static; max-height: none; overflow: visible; }
   /* Narrow mode is list OR detail, driven by a body class */
   body.lib-narrow-detail .vocab-list-pane { display: none; }
   body:not(.lib-narrow-detail) .vocab-detail-pane { display: none; }
@@ -1115,7 +1156,7 @@ html.motion-ready .notes-sib { transition: background-color var(--motion-state) 
 /* Touch has no :hover to reveal the remove "x" -- same fallback .row-del-x
    already uses (library.css, @media (hover:none) block). */
 @media (hover: none) { .chip-remove { opacity: 1; } }
-.vocab-detail-gloss { margin: var(--lib-sp-3) 0; white-space: pre-wrap; }
+.vocab-detail-gloss { margin: var(--lib-sp-3) 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 .vocab-gloss-ipa { color: var(--lib-fg-muted); }
 .vocab-detail-context { margin: var(--lib-sp-3) 0; padding-left: var(--lib-sp-3); border-left: 3px solid var(--lib-border); }
 .vocab-detail-context mark { background: transparent; color: var(--lib-accent); font-weight: 600; }
@@ -1139,13 +1180,21 @@ html.motion-ready .notes-sib { transition: background-color var(--motion-state) 
 }
 .vocab-detail-footer > .vocab-detail-delete,
 .notes-detail-footer > .notes-detail-delete { margin-left: auto; }
-/* Notes only: below the two-pane threshold the list pane is taken off the page
-   while a highlight is open, so the delete-failure live region follows the
-   pressed control into this row (_pbpNotesStatusHost in library-notes.js).
-   That sentence claims a full line (`flex: 1 1 100%` above), which needs the
-   row to wrap. With the single Delete button this row normally holds, wrapping
-   changes nothing -- and the vocabulary twin is deliberately left alone. */
+/* Below the two-pane threshold the list pane is taken off the page while a
+   detail is open, so the delete-failure live region follows the pressed
+   control into this row (_pbpNotesStatusHost in library-notes.js,
+   _pbpVocabStatusHost in library-vocab.js -- the vocabulary twin joined this
+   seam with item #87: every single-word action fires from that pane in
+   exactly the state where its own count row is display:none). That sentence
+   claims a full line, which needs the row to wrap; with the buttons these
+   rows normally hold, wrapping changes nothing else. */
+.vocab-detail-footer,
 .notes-detail-footer { flex-wrap: wrap; }
+.vocab-detail-footer > .vocab-main-status {
+  flex: 1 1 100%;
+  margin-left: 0;
+  white-space: normal;
+}
 /* `.btn`'s author-origin `display: inline-flex` outranks the UA
    `[hidden] { display: none }` rule (origin beats specificity), so
    `lookupBtn.hidden = true` in library-vocab.js -- which is how the button
