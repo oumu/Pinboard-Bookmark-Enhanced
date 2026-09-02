@@ -135,6 +135,24 @@ function _pbpStripDisallowedAttrs(root, allowed) {
   });
 }
 
+// Final step of BOTH raw-HTML passthroughs below (complex/headerless tables,
+// image galleries). marked receives a passthrough block as a block-level HTML
+// block, and CommonMark's type-6 HTML block ENDS at the first blank line --
+// while turndown's collapseWhitespace deliberately does NOT touch <pre>
+// (its isPre exception), so one cell holding a multi-paragraph code sample
+// kept a literal "\n\n" in the serialization. marked then closed the block
+// there and re-parsed the table's own closing tags as markdown: literal
+// "</pre></td>…</table>" text in the reading surface and every later cell
+// dropped (Download .html and EPUB inherit it -- both route through
+// renderMarkdown). Emitting each newline as a numeric character reference
+// keeps the block on ONE line with no semantic loss: the parser turns "&#10;"
+// back into U+000A in the text node, and a LEADING one is stripped exactly as
+// a literal leading newline is (both verified in Chromium), so <pre> content
+// round-trips byte-for-byte. Attribute values accept the same reference.
+function _pbpRawBlockOneLine(html) {
+  return String(html).replace(/\n/g, "&#10;");
+}
+
 function _pbpSanitizeComplexTableHtml(node) {
   const clone = node.cloneNode(true);
   // A raw-HTML passthrough never runs the turndown "mathml" rule (this whole
@@ -159,7 +177,7 @@ function _pbpSanitizeComplexTableHtml(node) {
   // pass of its own) converges with the Defuddle path instead of leaking
   // source-page classes into the rendered DOM.
   _pbpStripDisallowedAttrs(clone, PBP_COMPLEX_TABLE_ATTRS);
-  return clone.outerHTML;
+  return _pbpRawBlockOneLine(clone.outerHTML);
 }
 
 // ---- Image galleries (MediaWiki ul.gallery.mw-gallery-traditional and
@@ -266,7 +284,7 @@ function _pbpGalleryGridHtml(node) {
   // the allowlist pass (which has no "class" entry and would otherwise strip
   // it exactly like any source-page class) rather than smuggled through the
   // scrub as a special case.
-  return '<div class="pbp-gallery">' + wrap.innerHTML + "</div>";
+  return _pbpRawBlockOneLine('<div class="pbp-gallery">' + wrap.innerHTML + "</div>");
 }
 
 function _pbpGetTurndown() {
@@ -864,7 +882,11 @@ function publishedIso(s) {
 // meta: {title,url,date,tags,source,description?,author?,published?,clipped?,site?,image?,words?}
 // opts.fields: ordered subset of [title,url,date,tags,source]; description always
 // trails (only when present). Bare scalars for url/date/source; quoted for
-// title/description; tags as an inline flow array. Extended fields (author/
+// title/description; tags as an inline flow array whose ITEMS are quoted the
+// same way -- Pinboard splits tags on whitespace only, so ",", "[", "]", '"'
+// and "#" are all legal inside one tag: a bare item silently splits "a,b" into
+// two tags, and one unbalanced bracket or quote breaks the whole front matter
+// (the reader then loses title/url/date too, not just the tags). Extended fields (author/
 // published/clipped/site/image/words) trail description in that fixed order, each only
 // when present on meta -- see applyFrontmatter's own tail below for the
 // emission rules.
@@ -877,7 +899,7 @@ function applyFrontmatter(md, meta, opts) {
     if (f === "title") lines.push("title: " + yamlString(meta.title || ""));
     else if (f === "url") lines.push("url: " + (meta.url || ""));
     else if (f === "date") lines.push("date: " + (meta.date || ""));
-    else if (f === "tags") lines.push("tags: [" + (Array.isArray(meta.tags) ? meta.tags.join(", ") : "") + "]");
+    else if (f === "tags") lines.push("tags: [" + (Array.isArray(meta.tags) ? meta.tags.map(yamlString).join(", ") : "") + "]");
     else if (f === "source") lines.push("source: " + (meta.source || ""));
   }
   if (meta.description) lines.push("description: " + yamlString(meta.description));

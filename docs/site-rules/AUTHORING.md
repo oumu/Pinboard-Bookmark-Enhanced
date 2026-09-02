@@ -53,11 +53,11 @@ Note: the CI/WSL environment can't load most CN or Cloudflare-fronted sites (ant
 }
 ```
 
-Shared helpers available to `extract`: `cleanBodyHtml(doc,html)` (HTML string → detached div → fix lazy images → innerHTML), `escapeHtml`, `pickText(doc,[sel|['sel','attr']...])`, `fixLazyImages` (promotes data-src/data-original/data-actualsrc), `readJsonLd(doc,type)` (JSON-LD node by @type), `readEntities(doc)` (Zhihu js-initialData), plus the Zhihu vote helpers `answerSection`/`parseCount`/`domVoteup`. Reuse helpers; avoid new per-site code where a helper fits. (Note: single-article container helpers were intentionally removed — single-article extraction is Defuddle's job.)
+Shared helpers available to `extract`: `cleanBodyHtml(html)` (HTML string → inert-document div (see inertDoc) → fix lazy images → innerHTML), `escapeHtml`, `pickText(doc,[sel|['sel','attr']...])`, `fixLazyImages` (promotes data-src/data-original/data-actualsrc), `readJsonLd(doc,type)` (JSON-LD node by @type), `readEntities(doc)` (Zhihu js-initialData), plus the Zhihu vote helpers `answerSection`/`parseCount`/`domVoteup`. Reuse helpers; avoid new per-site code where a helper fits. (Note: single-article container helpers were intentionally removed — single-article extraction is Defuddle's job.)
 
 ## Constraints
 
 - One file (`site-rules.js`); no over-split (project convention).
 - No literal emoji/dingbats (incl. `✓`/`❤`) anywhere — use words (`[accepted]`, `N votes`, `感谢 N`). They render in the preview and can trigger the font-fallback stall.
-- Read-only on the live DOM; mutate only detached clones (`cleanBodyHtml`/`extractContainer` already do).
+- Read-only on the live DOM; mutate only nodes of the inert document (`cleanBodyHtml` already does) — detaching is NOT enough: a div created from the live document still fetches every `<img>` it holds.
 - The long tail we don't rule-ify falls back to Defuddle; for perfect-fidelity bulk export, recommend users the dedicated tools (csdn2md, wechat-article-exporter, 简悦 SimpRead) rather than building.

@@ -3350,11 +3350,15 @@ function extractPageForMarkdown() {
     if (typeof applySiteRule === "function") {
       const hit = applySiteRule(document, location.href);
       if (hit && hit.contentHtml) {
-        // E1: normalize lazy-load img placeholders (data-src/srcset) on a
-        // DETACHED div -- the live DOM is never touched; pbpNormalizeLazyImages
-        // comes from site-rules.js, already injected by extractForPreview
-        // before this function runs (chrome.scripting.executeScript calls).
-        const div = document.createElement("div");
+        // E1: normalize lazy-load img placeholders (data-src/srcset) on an
+        // INERT-document div -- a div from the LIVE document fetches every
+        // <img> it holds even while detached, and fixLazyImages promotes
+        // data-src onto src first. Mirrors site-rules.js's inertDoc(), which
+        // this serialized page function cannot reach (closure-free by
+        // contract). pbpNormalizeLazyImages comes from site-rules.js, already
+        // injected by extractForPreview before this function runs
+        // (chrome.scripting.executeScript calls).
+        const div = document.implementation.createHTMLDocument("").createElement("div");
         div.innerHTML = hit.contentHtml;
         if (typeof pbpNormalizeLazyImages === "function") pbpNormalizeLazyImages(div, location.href);
         if (typeof pbpUpgradeSrcsetImages === "function") pbpUpgradeSrcsetImages(div, location.href);

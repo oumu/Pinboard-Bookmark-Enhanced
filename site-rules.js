@@ -151,12 +151,31 @@
     return count;
   }
 
+  // Scratch document for every "parse an HTML string, poke at it, read a
+  // string back" step in this file. It must NOT be the live page document:
+  // detaching a node is not enough, because the image-loading algorithm only
+  // suspends for a node document that is not fully active — a div created from
+  // the LIVE document fetches every <img> it holds even while orphaned (the
+  // `new Image().src = …` preload idiom is the same mechanism). fixLazyImages
+  // promotes data-original/data-actualsrc/data-src onto src first, so that
+  // would pull images the user never scrolled to, on a path (ai.js AI tags /
+  // summary / batch save) that reads text and discards every byte of them.
+  // createHTMLDocument() has no browsing context, so nothing loads. Built on
+  // first use; a context without a document never pays for it.
+  var _inertDoc = null;
+  function inertDoc() {
+    if (!_inertDoc && typeof document !== "undefined" && document.implementation) {
+      _inertDoc = document.implementation.createHTMLDocument("");
+    }
+    return _inertDoc;
+  }
+
   // Flatten a site-rule hit's contentHtml to prompt text (ai.js AI tags/
   // summary + batch save): newline after block closers and <br> so textContent
   // keeps block breaks — bare textContent glues "Line one<br>Line two" and
-  // adjacent table cells together. Detached div: nothing renders or loads.
+  // adjacent table cells together.
   function pbpSiteRuleText(html) {
-    var div = document.createElement("div");
+    var div = inertDoc().createElement("div");
     div.innerHTML = String(html == null ? "" : html)
       .replace(/<br\s*\/?>/gi, "\n")
       .replace(/<\/(p|div|h[1-6]|li|blockquote|tr|td|th)>/gi, "$&\n");
@@ -183,7 +202,8 @@
   }
 
   // Zhihu lazy-loads images: real URL in data-original / data-actualsrc / data-src. Promote
-  // to src so markdown keeps them. Operates on a DETACHED node (never the live DOM).
+  // to src so markdown keeps them. Operates on a node of the INERT document
+  // (see inertDoc) — never the live DOM, and never a node that could fetch.
   function fixLazyImages(root) {
     if (!root || !root.querySelectorAll) return root;
     root.querySelectorAll("img").forEach(function (img) {
@@ -197,10 +217,12 @@
     return root;
   }
 
-  // Parse an HTML string into a detached div, fix lazy images, return innerHTML.
-  function cleanBodyHtml(doc, html) {
+  // Parse an HTML string into an inert-document div, fix lazy images, return
+  // innerHTML. Takes no document: the source document is exactly what must
+  // never own this scratch node (see inertDoc).
+  function cleanBodyHtml(html) {
     if (!html) return "";
-    var tmp = doc.createElement("div");
+    var tmp = inertDoc().createElement("div");
     tmp.innerHTML = html;
     fixLazyImages(tmp);
     return tmp.innerHTML;
@@ -266,7 +288,7 @@
       var tEl = doc.querySelector(".Post-Title") || doc.querySelector("h1");
       if (tEl) title = tEl.textContent.trim();
     }
-    var contentHtml = cleanBodyHtml(doc, html);
+    var contentHtml = cleanBodyHtml(html);
     if (!contentHtml) return null;
     return { contentHtml: contentHtml, title: title || doc.title };
   }
@@ -288,7 +310,7 @@
                doc.querySelector(".QuestionHeader-detail");
       if (el) html = el.innerHTML;
     }
-    return cleanBodyHtml(doc, html);
+    return cleanBodyHtml(html);
   }
 
   // ---- Zhihu: single answer permalink (/question/{q}/answer/{a}) ---------
@@ -323,7 +345,7 @@
       if (aEl) author = aEl.textContent.trim();
     }
     if (!voteup && card) voteup = domVoteup(card);
-    var body = cleanBodyHtml(doc, bodyHtml);
+    var body = cleanBodyHtml(bodyHtml);
     if (!body) return null;
     var permalink = (qid && aid) ? "https://www.zhihu.com/question/" + qid + "/answer/" + aid : url;
     return { contentHtml: answerSection(author, voteup, permalink, body), title: questionTitle(doc, qid, ent) };
@@ -359,7 +381,7 @@
       if (seen[key]) return;
       seen[key] = 1;
       var permalink = (qid && aid) ? "https://www.zhihu.com/question/" + qid + "/answer/" + aid : "";
-      sections.push(answerSection(author, voteup, permalink, cleanBodyHtml(doc, bodyHtml)));
+      sections.push(answerSection(author, voteup, permalink, cleanBodyHtml(bodyHtml)));
     }
 
     // Source 1: rendered DOM cards in display (sort) order, enriched by initialData.
@@ -423,7 +445,7 @@
     var counters = { total: 0, capped: false };
     var qPost = doc.querySelector("#question");
     var q = doc.querySelector("#question .s-prose.js-post-body");
-    if (q) parts.push(cleanBodyHtml(doc, q.innerHTML));
+    if (q) parts.push(cleanBodyHtml(q.innerHTML));
     if (qPost) { var qc = soCommentsHtml(qPost, doc, counters); if (qc) parts.push(qc); }
     var disc = doc.querySelector("#replies-container");
     var discReplies = disc ? disc.querySelectorAll("[id^='reply-']") : [];
@@ -436,7 +458,7 @@
         var author = (rep.getAttribute("data-author-username") || "").trim();
         if (!author) { var uc = rep.querySelector(".s-user-card--link"); if (uc) author = uc.textContent.trim(); }
         var rbody = rep.querySelector(".s-prose.js-post-body") || rep.querySelector(".s-prose");
-        rlist.push({ author: author, bodyHtml: rbody ? cleanBodyHtml(doc, rbody.innerHTML) : "", depth: soReplyDepth(rep, disc) });
+        rlist.push({ author: author, bodyHtml: rbody ? cleanBodyHtml(rbody.innerHTML) : "", depth: soReplyDepth(rep, disc) });
       });
       parts.push(renderThreadHtml(buildDepthTree(rlist), 0, { headFn: soDiscReplyHtml, maxDepth: cfg("SO_DISC_MAX_DEPTH", SO_DISC_MAX_DEPTH) }));
     } else {
@@ -453,7 +475,7 @@
           var votes = vc ? vc.textContent.trim() : post.getAttribute("data-score");
           var accepted = post.classList.contains("accepted-answer"); // .js-accepted-answer-indicator exists (hidden) in every answer
           var head = (accepted ? "[accepted] " : "") + (author || "") + (votes ? " · " + votes + " votes" : "");
-          parts.push("<h3>" + escapeHtml(head.trim() || "answer") + "</h3>" + cleanBodyHtml(doc, body.innerHTML));
+          parts.push("<h3>" + escapeHtml(head.trim() || "answer") + "</h3>" + cleanBodyHtml(body.innerHTML));
           var ac = soCommentsHtml(post, doc, counters); if (ac) parts.push(ac);
         });
       }
@@ -468,7 +490,7 @@
     var title = pickText(doc, ["h1"]);
     var parts = [];
     var topic = doc.querySelector(".topic_content");
-    if (topic) parts.push(cleanBodyHtml(doc, topic.innerHTML));
+    if (topic) parts.push(cleanBodyHtml(topic.innerHTML));
     // 附言 (appendix) blocks: each .subtle is a separate OP addendum with its
     // own .fade header ("第 N 条附言 · 时间"). They used to be dumped bare
     // right after the main post, so multiple 附言 read as one undifferentiated
@@ -482,7 +504,7 @@
       var head = ((ap.querySelector(".fade") || {}).textContent || "").replace(/\s+/g, " ").trim()
         || ("附言 " + (i + 1));
       parts.push("<h3>" + escapeHtml(head) + "</h3>");
-      parts.push(cleanBodyHtml(doc, body.innerHTML));
+      parts.push(cleanBodyHtml(body.innerHTML));
     });
     var cells = doc.querySelectorAll('.cell[id^="r_"]');
     if (cells.length) {
@@ -518,7 +540,7 @@
         var refFloors = (text.match(/#(\d+)/g) || []).map(function (s) { return s.slice(1); });
         replies.push({
           id: cell.id, author: author, floor: floor, mentions: mentions, refFloors: refFloors,
-          bodyHtml: bodyEl ? cleanBodyHtml(doc, bodyEl.innerHTML) : "", thanks: thanks
+          bodyHtml: bodyEl ? cleanBodyHtml(bodyEl.innerHTML) : "", thanks: thanks
         });
       });
       parts.push("<h2>" + escapeHtml("回复 (" + replies.length + ")") + "</h2>");
@@ -554,7 +576,7 @@
     var parts = [];
     // Optional Ask-HN / self-post body (the toptext under the title).
     var top = doc.querySelector(".fatitem .toptext") || doc.querySelector("td.cell .toptext");
-    if (top && top.textContent.trim()) parts.push(cleanBodyHtml(doc, top.innerHTML));
+    if (top && top.textContent.trim()) parts.push(cleanBodyHtml(top.innerHTML));
 
     var rows = doc.querySelectorAll("table.comment-tree tr.athing.comtr");
     if (!rows.length) rows = doc.querySelectorAll("tr.athing.comtr");
@@ -577,7 +599,7 @@
         if (ia != null && ia !== "") depth = parseInt(ia, 10) || 0;
         else { var im = ind.querySelector("img"); if (im) depth = Math.round((parseInt(im.getAttribute("width"), 10) || 0) / 40); }
       }
-      var bodyHtml = bodyEl ? cleanBodyHtml(doc, bodyEl.innerHTML) : "";
+      var bodyHtml = bodyEl ? cleanBodyHtml(bodyEl.innerHTML) : "";
       if (row.querySelector(".comment .dead") || (!author && !bodyHtml)) {
         // Dead/deleted rows CAN have live deeper replies. Dropping the row
         // shifted buildDepthTree's stack, binding those replies to a stale
@@ -647,7 +669,7 @@
     var title = titleChars.length > 90 ? titleChars.slice(0, 87).join("") + "..." : titleText;
     var meta = author || when ? "<p><strong>" + escapeHtml(author || "X/Twitter") + "</strong>" +
       (when ? " · " + escapeHtml(when) : "") + "</p>" : "";
-    return { contentHtml: meta + '<div class="tweet-text">' + cleanBodyHtml(doc, textEl.innerHTML) + "</div>", title: title || doc.title };
+    return { contentHtml: meta + '<div class="tweet-text">' + cleanBodyHtml(textEl.innerHTML) + "</div>", title: title || doc.title };
   }
 
   // Decode TeX text-mode accents/ligatures in PROSE (e.g. Andr\'e -> André). Punctuation
@@ -779,9 +801,9 @@
   // DOM-first: drop a leading <a href="/member/..">@..</a>; else a leading "@token".
   function hideRefName(html) {
     if (!html) return html;
-    var doc = (typeof document !== "undefined") ? document : null;
-    if (doc) {
-      var tmp = doc.createElement("div");
+    var scratch = inertDoc();
+    if (scratch) {
+      var tmp = scratch.createElement("div");
       tmp.innerHTML = html;
       while (tmp.firstChild && tmp.firstChild.nodeType === 3 && !tmp.firstChild.nodeValue.trim()) tmp.removeChild(tmp.firstChild);
       var first = tmp.firstChild;

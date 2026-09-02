@@ -277,7 +277,7 @@ function assertEq(actual, expected, label) {
   assert(fm1.includes('title: "A: \\"quoted\\""'), "title escaped");
   assert(fm1.includes("url: https://e.com/p"), "url bare");
   assert(fm1.includes("date: 2026-06-03"), "date bare");
-  assert(fm1.includes("tags: [dev, go]"), "tags inline array");
+  assert(fm1.includes('tags: ["dev", "go"]'), "tags inline array, one quoted scalar per tag");
   assert(fm1.includes("source: defuddle"), "source bare");
   assert(fm1.includes('description: "Desc: with colon"'), "description escaped");
   assert(fm1.includes("\n---\n\n# Body"), "closes fence then body");
@@ -286,6 +286,14 @@ function assertEq(actual, expected, label) {
   const fm2 = applyFrontmatter("body", { title: "T", url: "u", date: "d", tags: [], source: "jina" }, {});
   assert(!fm2.includes("description:"), "no description field when absent");
   assert(fm2.includes("tags: []"), "empty tags renders empty array");
+
+  // Pinboard splits tags on whitespace ONLY, so ",", "[", "]", '"' and "#"
+  // are all legal characters inside a single tag. Bare flow-sequence items
+  // silently split "a,b" into two tags, and one unbalanced bracket or quote
+  // breaks the whole front matter (Obsidian then drops title/url/date too).
+  const fmMeta = applyFrontmatter("body", { tags: ["a,b", "[wip]", 'say "hi"', "c#"] }, { fields: ["tags"] });
+  assert(fmMeta.includes('tags: ["a,b", "[wip]", "say \\"hi\\"", "c#"]'),
+    "YAML meta-characters stay inside one quoted scalar per tag");
 
   // fields option restricts + orders output
   const fm3 = applyFrontmatter("body", { title: "T", url: "u", date: "d", tags: ["a"], source: "x" }, { fields: ["url", "title"] });
@@ -614,6 +622,47 @@ function assertEq(actual, expected, label) {
     const h = norm(renderMarkdown('<table><tbody><tr><th colspan="2">H</th></tr><tr><td rowspan="2">a</td><td>b</td></tr></tbody></table>'));
     check("A5 colspan survives the DOMPurify pass", /colspan="2"/.test(h), h);
     check("A5 rowspan survives the DOMPurify pass", /rowspan="2"/.test(h), h);
+  })();
+
+  // ---- Raw-HTML passthrough vs marked's HTML-block terminator ----
+  // A passthrough block is handed to marked as a block-level HTML block, and
+  // CommonMark's type-6 HTML block ENDS at the first blank line. turndown's
+  // whitespace collapse is no protection: <pre> is its isPre exception, so a
+  // cell holding a multi-paragraph code sample kept its literal blank line --
+  // marked then closed the block early and re-parsed the table's own closing
+  // tags as markdown (visible "</pre></td>…</table>" text in the reading
+  // surface, every later cell silently dropped, same breakage in Download
+  // .html / EPUB since both route through renderMarkdown).
+  section("raw-HTML passthrough survives a blank line inside a <pre> cell");
+  (() => {
+    const src = '<table><tr><th colspan="2">S</th></tr>' +
+      '<tr><td><pre>def f():\n\n    return 1</pre></td><td>b</td></tr></table>';
+    const md = htmlToMarkdown(src, {});
+    check("complex-table passthrough emits no literal newline for marked to break on",
+      !md.trim().includes("\n"), JSON.stringify(md));
+    const holder = document.createElement("div");
+    holder.innerHTML = renderMarkdown(md);
+    const pre = holder.querySelector("pre");
+    check("the <pre> cell keeps its blank line byte-for-byte",
+      !!pre && pre.textContent === "def f():\n\n    return 1",
+      pre ? JSON.stringify(pre.textContent) : "no <pre> rendered");
+    const cells = Array.from(holder.querySelectorAll("td")).map((td) => td.textContent);
+    check("the cell AFTER the <pre> cell survives",
+      cells.length === 2 && cells[1] === "b", JSON.stringify(cells));
+    check("no closing tag leaks into the reading surface as literal text",
+      !/<\/(?:td|tr|tbody|table|pre)>/.test(holder.textContent), holder.textContent);
+
+    // Same passthrough class, second surface. <pre> is the only newline that
+    // reaches a gallery caption -- turndown's collapseWhitespace flattens the
+    // source's inter-block newlines everywhere else -- so that is what the
+    // fixture carries, exactly as in the table case above.
+    const galleryMd = htmlToMarkdown('<ul class="gallery">' +
+      '<li><img src="pic-a.png" alt="a"><pre>a\n\nb</pre></li>' +
+      '<li><img src="pic-b.png" alt="b"><p>Cap B</p></li>' +
+      '<li><img src="pic-c.png" alt="c"><p>Cap C</p></li>' +
+      "</ul>");
+    check("gallery passthrough emits no literal newline either",
+      /class="pbp-gallery"/.test(galleryMd) && !galleryMd.trim().includes("\n"), JSON.stringify(galleryMd));
   })();
 
   // ---- Image galleries: MediaWiki ul.gallery -> a raw-HTML grid, not a
@@ -1821,6 +1870,61 @@ section("site-rules: pbpSiteRuleText (AI-path flatten)");
   check("pbpSiteRuleText → table cells not glued",
     /1\n\s*2/.test(pbpSiteRuleText('<table><tr><td>1</td><td>2</td></tr></table>')),
     JSON.stringify(pbpSiteRuleText('<table><tr><td>1</td><td>2</td></tr></table>')));
+})();
+
+// Extraction must never DOWNLOAD the page's images. A scratch <div> created
+// from the LIVE page document is not enough: "update the image data" only
+// suspends for a node document that is NOT fully active, so a detached-but-live
+// div fetches every <img> it holds -- and fixLazyImages promotes
+// data-original/data-actualsrc/data-src onto src first, so even images the user
+// never scrolled to get pulled. The ai.js AI-tags/summary/batch-save path then
+// throws every one of those bytes away (it reads text only). site-rules.js
+// therefore parses into a document.implementation.createHTMLDocument("").
+// Observation channel: Resource Timing, which only records subresources over
+// http(s) -- the .qa-scan runner serves this page, so the control row below is
+// the live-channel proof there; opened directly over file:// it is exempted and
+// the two probe rows pass vacuously.
+window._pbpInertDocDone = (async () => {
+  section("site-rules: extraction parses into an INERT document (no image downloads)");
+  const abs = (q) => new URL("../icons/pin-default-16.png?pbp-probe=" + q, location.href).href;
+  const probeText = abs("site-rule-text");
+  const probeClean = abs("clean-body-html");
+  const probeControl = abs("control");
+
+  // 1) pbpSiteRuleText: the ai.js flatten path, called exactly as ai.js does.
+  const flat = pbpSiteRuleText('<p>hello</p><img src="' + probeText + '">');
+
+  // 2) cleanBodyHtml, reached through applySiteRule with the LIVE document --
+  //    the runtime shape (ai.js / popup.js / background.js all pass `document`).
+  //    The fixture carries NO src, only data-original, so the live DOM itself
+  //    requests nothing: any request can only come from the src promotion that
+  //    happens inside the extraction scratch node.
+  const fixture = document.createElement("div");
+  fixture.className = "Post-RichText";
+  fixture.innerHTML = '<p>body</p><img data-original="' + probeClean + '">';
+  document.body.appendChild(fixture);
+  let hit = null;
+  try { hit = applySiteRule(document, "https://zhuanlan.zhihu.com/p/1"); }
+  finally { fixture.remove(); }
+
+  // 3) Control: the same markup through a live-document div, so a green probe
+  //    row can never mean "Resource Timing saw nothing at all here".
+  const control = document.createElement("div");
+  control.innerHTML = '<img src="' + probeControl + '">';
+
+  const seen = (u) => performance.getEntriesByName(u).length > 0;
+  const deadline = Date.now() + 3000;
+  while (!seen(probeControl) && Date.now() < deadline) await new Promise((r) => setTimeout(r, 50));
+  await new Promise((r) => setTimeout(r, 200)); // settle: probes 1-2 were issued BEFORE the control
+  check("control: a live-document div DOES fetch its <img> (probe channel is live)",
+    seen(probeControl) || location.protocol === "file:", "no resource-timing entry for " + probeControl);
+  check("pbpSiteRuleText downloads no <img> while flattening to text",
+    !seen(probeText) && flat === "hello", JSON.stringify(flat));
+  check("cleanBodyHtml downloads no promoted lazy <img> during extraction",
+    !seen(probeClean), "requested " + probeClean);
+  check("...and the lazy src is still promoted in the extracted HTML",
+    !!hit && hit.contentHtml.indexOf('src="' + probeClean + '"') !== -1,
+    hit ? hit.contentHtml : "no site-rule hit");
 })();
 
 section("site-rules: v2ex buildReplyTree multi-@ (pure)");
@@ -3246,6 +3350,7 @@ section("mathml + pbpLatexNormalize: doubled backslashes survive normalization")
 (async () => {
   if (window._pbpEpubIntegrationDone) await window._pbpEpubIntegrationDone;
   if (window._pbpEpubA8Done) await window._pbpEpubA8Done;
+  if (window._pbpInertDocDone) await window._pbpInertDocDone;
   document.getElementById("summary").textContent = `${pass} passed, ${fail} failed`;
   document.getElementById("summary").style.color = fail ? "#c00" : "#0a0";
 })();
