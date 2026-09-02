@@ -52,10 +52,14 @@ function setupApiTests() {
     setStatusIcon(statusEl, ok, text);
   }
 
-  // Every test result is wiped by a timer. Held anonymously, a finished run's
-  // pending clear fires in the middle of the NEXT run for the same target and
-  // erases a real result off screen. Keyed by target, each run cancels its
-  // predecessor's clear before scheduling its own.
+  // Only a SUCCESSFUL result is wiped by a timer. A failure is the one line the
+  // user has to read and usually copy -- the provider's own error body, the
+  // model_not_found hint, the rejected origin -- so it stays on screen until the
+  // next run for that target overwrites it (every run opens with
+  // cancelStatusClear + setStatusPending, so failures replace, never pile up).
+  // Held anonymously, a pending clear fires in the middle of the NEXT run for
+  // the same target and erases a real result off screen; keyed by target, each
+  // run cancels its predecessor's clear before scheduling its own.
   const _testClearTimers = new Map();
   function cancelStatusClear(key) {
     clearTimeout(_testClearTimers.get(key));
@@ -88,7 +92,6 @@ function setupApiTests() {
       if (!hasAIKey(cs)) {
         setStatusResult(statusEl, false, t("testNoApiKey"));
         recordHealth(`ai:${provider}`, false, "missing_key");
-        scheduleStatusClear(provider, statusEl, 5000);
         return;
       }
 
@@ -103,13 +106,11 @@ function setupApiTests() {
         console.warn("[connectivity] AI permission request failed:", err?.name, err?.message);
         setStatusResult(statusEl, false, err?.message || t("networkError"));
         recordHealth(`ai:${provider}`, false, "permission_error");
-        scheduleStatusClear(provider, statusEl, 5000);
         return;
       }
       if (!granted) {
         setStatusResult(statusEl, false, t("aiErrorHostPermission", originPattern.replace(/\/\*$/, "")));
         recordHealth(`ai:${provider}`, false, "permission_denied");
-        scheduleStatusClear(provider, statusEl, 5000);
         return;
       }
 
@@ -120,15 +121,18 @@ function setupApiTests() {
         recordHealth(`ai:${provider}`, true, "connected");
         scheduleStatusClear(provider, statusEl, 4000);
       } catch (err) {
-        let msg = err.name === "AbortError" ? t("testTimeout") : err.message;
+        // Two names, one meaning: the request deadline is an AbortSignal.timeout
+        // (TimeoutError) while a caller-driven cancel is AbortError — same pairing
+        // as pbpClassifyPinboardError and wayback.js.
+        const timedOut = err?.name === "AbortError" || err?.name === "TimeoutError";
+        let msg = timedOut ? t("testTimeout") : err.message;
         if (err?.code === "model_not_found") {
           const mnf = pbpAiModelNotFoundText(cs.aiProvider);
           msg = mnf.msg + " " + mnf.hint;
         }
         setStatusResult(statusEl, false, msg);
         recordHealth(`ai:${provider}`, false,
-          err?.name === "AbortError" ? "timeout" : (err?.code === "model_not_found" ? "model_not_found" : "failed"));
-        scheduleStatusClear(provider, statusEl, 5000);
+          timedOut ? "timeout" : (err?.code === "model_not_found" ? "model_not_found" : "failed"));
       }
     } finally {
       if (btn) btn.disabled = false;
@@ -158,7 +162,9 @@ function setupApiTests() {
     if (pbpIsValidTokenFormat(token) !== true) {
       setStatusResult(statusEl, false, t("loginInvalidFormat"));
       recordHealth("pinboard", false, "invalid_token");
-      scheduleStatusClear("pinboard", statusEl, 4000);
+      // This path returns above the cancelStatusClear below, so a clear armed by
+      // a preceding successful run has to be dropped here or it wipes this line.
+      cancelStatusClear("pinboard");
       return;
     }
     btn.disabled = true;
@@ -169,6 +175,7 @@ function setupApiTests() {
       if (resp?.ok) {
         setStatusResult(statusEl, true, t("testConnected", token.split(":")[0]));
         recordHealth("pinboard", true, "connected");
+        scheduleStatusClear("pinboard", statusEl, 5000);
       } else if (resp?.error === "timeout") {
         setStatusResult(statusEl, false, t("testTimeout"));
         recordHealth("pinboard", false, "timeout");
@@ -185,7 +192,6 @@ function setupApiTests() {
       recordHealth("pinboard", false, "network");
     } finally {
       btn.disabled = false;
-      scheduleStatusClear("pinboard", statusEl, 5000);
     }
   });
 }
