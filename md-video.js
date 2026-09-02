@@ -2143,6 +2143,18 @@ async function pbpYtDomTranscriptInPage(vid, opts) {
   // origins and the contains() answer are computed ahead of the click and
   // the request becomes the handler's FIRST await when a grant is missing.
   let _aiOrigins = null, _aiHostGranted = false;
+  // Is an AI provider configured at all? Settled once per loadFlow pass and
+  // read by refreshAiOffer. Module-level for the same reason the picker's
+  // change handler is wired once and never re-wired: that handler outlives the
+  // pass that registered it, and a loadFlow local would freeze the FIRST
+  // pass's answer into every later switch -- configure a provider between a
+  // failed load and the retry click, and the next track switch would hide the
+  // button again and claim "AI not configured" over a working one.
+  let _aiOk = false;
+  // The login opt-in this session's YouTube caption fetches ride, for the same
+  // reason: both wire-once handlers (track switch, companion track) read the
+  // value the CURRENT pass adopted, not the one their pass captured.
+  let _useLogin = false;
   // Last playback position the relay reported (audit B13): a re-render
   // clears the row highlight, and a paused player sends no new time events
   // to restore it -- so the re-render sites replay this instead.
@@ -2177,7 +2189,7 @@ async function pbpYtDomTranscriptInPage(vid, opts) {
       if (!chars) return base;
       const tok = (typeof pbpAiEstimateTokens === "function"
         ? pbpAiEstimateTokens(chars) : Math.ceil(chars / 4)) * 3;
-      return base + " · " + t("mdVideoAiPunctEst", tok.toLocaleString());
+      return base + " · " + t("mdVideoAiPunctEst", tok.toLocaleString(uiLangToBCP47()));
     } catch (_) { return base; }
   }
   function applyAiCostTitle(btn) {
@@ -2975,8 +2987,13 @@ async function pbpYtDomTranscriptInPage(vid, opts) {
         // Precise for the marker (the t= parameter above is floored): a
         // floored value sits a hair before the row's start and the marker
         // settles on the previous row (batch-F smoke).
-        setRelayTime(Math.max(0, Number(sec) || 0));
-        replayHighlight();
+        // Through markSeek like the other two branches: it is the one seek
+        // entry, so this jump also retires the continue-watching offer and
+        // refreshes the back-to-current button. Without a relay there is no
+        // tick to do either later (the relay's own dismissal at onRelayMessage
+        // never fires here), so the strip kept offering the old position over
+        // a player that had already moved.
+        markSeek(Math.max(0, Number(sec) || 0));
         // The reload is the ONE moment the player's state is known (autoplay
         // decides it); the estimate clock runs only from such a moment
         // (device feedback 2026-08-25: it kept scrolling past a manual pause).
@@ -3276,7 +3293,15 @@ async function pbpYtDomTranscriptInPage(vid, opts) {
       case "[": case "]": stepCue(e.key === "[" ? -1 : 1); break;
       case "r": case "R": if (!_loopBtn || _loopBtn.hidden) return; setLoop(!_loopOn); break;
       case "f": case "F": if (!_followBtn || _followBtn.hidden || _followBtn.disabled) return; setFollow(!_followOn); break;
-      case "c": case "C": jumpToCurrent(); break;
+      // Same action as .pbv-back-current, which declares this key with
+      // aria-keyshortcuts="c" -- that is a promise that the key activates the
+      // button, so it re-arms follow too. Re-arming is gated exactly like the
+      // `f` branch above, so a follow the toolbar cannot offer is never
+      // switched on invisibly.
+      case "c": case "C":
+        jumpToCurrent();
+        if (_followBtn && !_followBtn.hidden && !_followBtn.disabled) setFollow(true);
+        break;
       case "b": case "B": toggleStudyView(); break;
       default: handled = false;
     }
@@ -4057,8 +4082,16 @@ async function pbpYtDomTranscriptInPage(vid, opts) {
     let ytFetchTabId = null; // survives into the session: the track-switch player capture injects into it
     const tabId = ctx && typeof ctx.tabId === "number" ? ctx.tabId : null;
     // Both providers honour the "empty preference = interface language"
-    // promise of the caption-language setting (settings batch B1).
-    const uiLang = (chrome.i18n && chrome.i18n.getUILanguage && chrome.i18n.getUILanguage()) || "en";
+    // promise of the caption-language setting (settings batch B1). "Interface
+    // language" is the EXTENSION's own Language setting, so it resolves
+    // through i18n.js's uiLangToBCP47 like every other consumer of that phrase
+    // (translation target, dictionary, vocabulary): chrome.i18n.getUILanguage()
+    // is the browser's locale and never sees optLang. Both pickers reduce this
+    // to its base subtag and hl= accepts "zh-Hans", so nothing downstream
+    // changes; the browser locale stays the fallback for contexts without
+    // i18n.js.
+    const uiLang = (typeof uiLangToBCP47 === "function" && uiLangToBCP47())
+      || (chrome.i18n && chrome.i18n.getUILanguage && chrome.i18n.getUILanguage()) || "en";
     if (isBili) {
       res = await pbpBiliFetchTranscript(detected.bvid, detected.part, { uiLang });
     } else {
@@ -4121,8 +4154,21 @@ async function pbpYtDomTranscriptInPage(vid, opts) {
           const rec = (await chrome.storage.local.get("pbp_video_tier_youtube")).pbp_video_tier_youtube;
           if (rec && rec.via && Date.now() - (rec.ts || 0) < 7 * 24 * 3600 * 1000) cachedVia = rec.via;
         } catch (_) {}
+        // Say which tier is running (audit U9's sibling): a rescue chain can
+        // hold the panel for a minute while it visibly drives the reader's own
+        // YouTube tab, and until now the status line said "Loading subtitles…"
+        // for all of it. "busy-quiet" keeps the screen reader on its single
+        // announced milestone (the initial loading line) instead of three
+        // sentences per load. Only the FIRST-LOAD caller opts in: the
+        // track-switch refresh has its own "Switching to X…" line to keep, the
+        // boot shell has no panel yet, and the passive caller never gets here.
+        const tierStatus = (key) => {
+          if (!(ctx && ctx.tierProgress) || !_statusElRef) return;
+          pbvSetStatus(_statusElRef, t(key), "busy-quiet");
+        };
         const tryPanel = async () => {
           if (!res.error) return;
+          tierStatus("mdVideoTryPanel");
           const fbParams = pbpYtTranscriptParams(detected.videoId,
             rTrack ? rTrack.lang : (String(uiLang || "en").split("-")[0]), !!(rTrack && rTrack.asr));
           const segs = await ytTabPanelTranscript(fetchTabId, detected.videoId, uiLang, fbParams);
@@ -4135,6 +4181,7 @@ async function pbpYtDomTranscriptInPage(vid, opts) {
         // the DOM tier (real from/to timings, no panel scrape).
         const tryCapture = async () => {
           if (!res.error) return;
+          tierStatus("mdVideoTryCapture");
           const capSegs = await queueTabInjection(
             () => ytTabPlayerCaptionCapture(fetchTabId, rTrack ? rTrack.lang : null, rTrack, detected.videoId));
           console.info("[pbp-video] player capture rescue:", capSegs ? capSegs.length + " segments" : "failed");
@@ -4146,6 +4193,7 @@ async function pbpYtDomTranscriptInPage(vid, opts) {
         // a neutral placeholder instead).
         const tryDom = async () => {
           if (!res.error) return;
+          tierStatus("mdVideoTryDom");
           const domSegs = await queueTabInjection(() => ytTabDomTranscript(fetchTabId, detected.videoId));
           console.info("[pbp-video] dom rescue:", domSegs ? domSegs.length + " segments" : "failed");
           if (domSegs && domSegs.length) res = { tracks: rTracks, track: null, segments: domSegs, via: "dom" };
@@ -4212,6 +4260,70 @@ async function pbpYtDomTranscriptInPage(vid, opts) {
       if (ai) _freezeAi--;
       applyControlFreeze();
     };
+  }
+
+  // No re-offer only after an AI pass actually committed (videoAiPunct rode
+  // the payload): a committed page whose article is still the heuristic tier
+  // -- first-run promotion, or a track switch after an AI pass -- must keep
+  // the button, or the AI upgrade dead-ends forever on every committed page
+  // (device report 2026-08-23). Re-read per call, because a track-switch
+  // commit is exactly what flips that flag back to false.
+  //
+  // Module-level, not a loadFlow local: the track picker's change handler is
+  // registered ONCE (see the wire-once guard in loadFlow) and calls this on
+  // every switch for the rest of the page's life, so a per-pass copy would
+  // keep serving the first pass's captured state after a retry re-ran the
+  // flow. Every input it reads is module state for the same reason.
+  function refreshAiOffer() {
+    const aiBtn = _aiBtnEl;
+    if (!aiBtn) return;
+    const committedAi = !!(window.pbpVideoDoc && window.pbpVideoDoc.committed && window.pbpVideoDoc.aiPunct);
+    const show = !!(_wasUnpunct && _segments.length && _aiOk && !committedAi);
+    aiBtn.hidden = !show;
+    // Four kinds of "no button" used to be indistinguishable (device round
+    // 5: the user could not tell "already punctuated" from "feature
+    // gone"). A stable note next to the picker says which state this
+    // track is in; it stays empty only while there is no transcript.
+    if (_aiNoteEl) {
+      // 方案A: the chip shows the punctuation STATE only; the secondary
+      // facts (caption source tier -- audit U13 -- and the missing-AI
+      // hint) live in the chip's native tooltip so the toolbar stays calm.
+      let note = "";
+      let hint = "";
+      if (_segments.length) {
+        if (committedAi) note = t("mdVideoAiPunctDone");
+        else if (!_wasUnpunct) note = t("mdVideoPunctSource");
+        else {
+          note = t("mdVideoPunctHeuristic");
+          if (!_aiOk) hint = t("mdVideoAiUnconfigured");
+        }
+      }
+      const via = window.pbpVideoSession && window.pbpVideoSession.captionsVia;
+      const viaTxt = via === "panel" ? t("mdVideoViaPanel")
+        : via === "capture" ? t("mdVideoViaCapture")
+        : via === "dom" ? t("mdVideoViaDom") : "";
+      _aiNoteEl.textContent = note;
+      _aiNoteEl.title = [hint, viaTxt].filter(Boolean).join(" · ");
+      _aiNoteEl.hidden = !note;
+    }
+    // A re-offer has to arrive usable: a previous pass left the button
+    // retired under a "Punctuated" label, and a new track is a new pass.
+    // Clearing the latch and then re-deriving `disabled` from the freeze
+    // counters is what keeps this from handing the button back while a
+    // transaction still holds it (an unconditional `disabled = false` here
+    // would defeat the freeze it is called next to).
+    if (show) {
+      _aiPassDone = false;
+      // icon-only button: the offer state lives in title/aria-label --
+      // with the pre-click token estimate appended (research T4.2).
+      applyAiCostTitle(_aiBtnEl);
+      // Cross-session hits make the estimate cheaper (research T4.1).
+      try {
+        seedPunctCache(_aiSettingsSnap, pbpVideoSplitBatches(pbpVideoMergeParagraphs(_segments), 1600))
+          .then((n) => { if (n && _aiBtnEl && !_aiBtnEl.hidden) applyAiCostTitle(_aiBtnEl); });
+      } catch (_) {}
+    }
+    applyControlFreeze();
   }
 
   // Picker option values, one per track, index-aligned with the list.
@@ -4329,7 +4441,17 @@ async function pbpYtDomTranscriptInPage(vid, opts) {
     _dirRefreshInFlight = (async () => {
       const keep = window.pbpVideoSession;
       try {
-        return await prepareVideoSession({ pageUrl: (_meta && _meta.url) || "", tabId: _ctxTabId });
+        // passive: this caller wants the DIRECTORY only (granted / tracks /
+        // fetch handles), and the finally below throws the rest away. Without
+        // the flag a walled YouTube session ran a full rescue tier first --
+        // flipping the caption track of the reader's own watch tab, or opening
+        // and scrolling its transcript panel, for tens of seconds -- and then
+        // discarded every segment it captured, only for the switch below to
+        // drive the same player capture again for the track the reader chose.
+        // The raw (unfiltered) track list that comes back instead simply fails
+        // the `aligned` adoption check below; resolving the picked key against
+        // it is unaffected.
+        return await prepareVideoSession({ pageUrl: (_meta && _meta.url) || "", tabId: _ctxTabId, passive: true });
       } catch (e) {
         console.warn("[pbp-video] track directory refresh failed:", (e && e.name) || "", (e && e.message) || e);
         return null;
@@ -4366,14 +4488,19 @@ async function pbpYtDomTranscriptInPage(vid, opts) {
     const cached = window.pbpVideoSession;
     const session = (cached && pbpVideoSessionMatches(cached, detected) && cached.segments && cached.segments.length)
       ? cached
-      : await prepareVideoSession({ pageUrl: (_meta && _meta.url) || "", tabId: _ctxTabId });
+      // tierProgress: this is the ONE caller whose status line is the reader's
+      // only window into the rescue chain (the switch path names its own
+      // destination, the boot shell has no panel).
+      : await prepareVideoSession({ pageUrl: (_meta && _meta.url) || "", tabId: _ctxTabId, tierProgress: true });
     if (!session.granted) { pbvSetStatus(statusEl, t("mdVideoPermMissing"), true); return; }
     _ytFetchFn = session.ytFetchFn || null;
     _ytFetchTabId = (typeof session.ytFetchTabId === "number") ? session.ytFetchTabId : null;
-    // `let`: a hydrated session has no fetch handles at all (they are
-    // functions and tab ids, not persistable data), so a later track switch
-    // re-reads the directory and adopts that capture's handles instead.
-    let useLogin = session.useLogin;
+    // Reassignable, and module-level (_useLogin): a hydrated session has no
+    // fetch handles at all (they are functions and tab ids, not persistable
+    // data), so a later track switch re-reads the directory and adopts that
+    // capture's handles instead -- and the handlers that do so are wired once,
+    // outliving this pass.
+    _useLogin = session.useLogin;
     const ytHadTab = session.ytHadTab;
     const res = { tracks: session.tracks, track: session.track, segments: session.segments, error: session.error };
     if (res.error === "player" || res.error === "view") { pbvSetStatus(statusEl, t(isBili ? "mdVideoBiliFailed" : "mdVideoFailed"), true); return; }
@@ -4468,19 +4595,22 @@ async function pbpYtDomTranscriptInPage(vid, opts) {
     _aiPunctParas = (Array.isArray(session.paragraphs) && session.paragraphs.length)
       ? session.paragraphs.slice() : null;
     _wasUnpunct = !!session.wasUnpunct;
-    // Settled ONCE per mount and captured: the AI offer is recomputed after
-    // every track switch and after every commit, and an await inside those
-    // paths would race the transaction it follows.
-    let aiOk = false;
+    // Settled ONCE per pass, into module state: the AI offer is recomputed
+    // after every track switch and after every commit, and an await inside
+    // those paths would race the transaction it follows. Module state rather
+    // than a local because the wire-once handlers that recompute the offer
+    // outlive this pass -- a retry that lands after the provider was
+    // configured has to be the answer they read.
+    _aiOk = false;
     if (aiBtn) {
       try {
         const sa = typeof pbpAiGetSettings === "function" ? await pbpAiGetSettings() : null;
-        aiOk = !!(sa && typeof pbpAiAvailable === "function" && pbpAiAvailable(sa));
+        _aiOk = !!(sa && typeof pbpAiAvailable === "function" && pbpAiAvailable(sa));
         _aiSettingsSnap = sa;
         // Settle the provider's origin patterns and the contains() answer
         // NOW (audit B10): the AI click can then make permissions.request
         // its first await, inside the gesture's transient activation.
-        if (aiOk && typeof _aiRequiredOriginPatterns === "function") {
+        if (_aiOk && typeof _aiRequiredOriginPatterns === "function") {
           try { _aiOrigins = _aiRequiredOriginPatterns(sa); } catch (_) { _aiOrigins = null; }
           let g = false;
           try {
@@ -4490,62 +4620,6 @@ async function pbpYtDomTranscriptInPage(vid, opts) {
           _aiHostGranted = g;
         }
       } catch (_) {}
-    }
-    // No re-offer only after an AI pass actually committed (videoAiPunct rode
-    // the payload): a committed page whose article is still the heuristic tier
-    // -- first-run promotion, or a track switch after an AI pass -- must keep
-    // the button, or the AI upgrade dead-ends forever on every committed page
-    // (device report 2026-08-23). Re-read per call, because a track-switch
-    // commit is exactly what flips that flag back to false.
-    function refreshAiOffer() {
-      if (!aiBtn) return;
-      const committedAi = !!(window.pbpVideoDoc && window.pbpVideoDoc.committed && window.pbpVideoDoc.aiPunct);
-      const show = !!(_wasUnpunct && _segments.length && aiOk && !committedAi);
-      aiBtn.hidden = !show;
-      // Four kinds of "no button" used to be indistinguishable (device round
-      // 5: the user could not tell "already punctuated" from "feature
-      // gone"). A stable note next to the picker says which state this
-      // track is in; it stays empty only while there is no transcript.
-      if (_aiNoteEl) {
-        // 方案A: the chip shows the punctuation STATE only; the secondary
-        // facts (caption source tier -- audit U13 -- and the missing-AI
-        // hint) live in the chip's native tooltip so the toolbar stays calm.
-        let note = "";
-        let hint = "";
-        if (_segments.length) {
-          if (committedAi) note = t("mdVideoAiPunctDone");
-          else if (!_wasUnpunct) note = t("mdVideoPunctSource");
-          else {
-            note = t("mdVideoPunctHeuristic");
-            if (!aiOk) hint = t("mdVideoAiUnconfigured");
-          }
-        }
-        const via = window.pbpVideoSession && window.pbpVideoSession.captionsVia;
-        const viaTxt = via === "panel" ? t("mdVideoViaPanel")
-          : via === "capture" ? t("mdVideoViaCapture")
-          : via === "dom" ? t("mdVideoViaDom") : "";
-        _aiNoteEl.textContent = note;
-        _aiNoteEl.title = [hint, viaTxt].filter(Boolean).join(" · ");
-        _aiNoteEl.hidden = !note;
-      }
-      // A re-offer has to arrive usable: a previous pass left the button
-      // retired under a "Punctuated" label, and a new track is a new pass.
-      // Clearing the latch and then re-deriving `disabled` from the freeze
-      // counters is what keeps this from handing the button back while a
-      // transaction still holds it (an unconditional `disabled = false` here
-      // would defeat the freeze it is called next to).
-      if (show) {
-        _aiPassDone = false;
-        // icon-only button: the offer state lives in title/aria-label --
-        // with the pre-click token estimate appended (research T4.2).
-        applyAiCostTitle(_aiBtnEl);
-        // Cross-session hits make the estimate cheaper (research T4.1).
-        try {
-          seedPunctCache(_aiSettingsSnap, pbpVideoSplitBatches(pbpVideoMergeParagraphs(_segments), 1600))
-            .then((n) => { if (n && _aiBtnEl && !_aiBtnEl.hidden) applyAiCostTitle(_aiBtnEl); });
-        } catch (_) {}
-      }
-      applyControlFreeze();
     }
     copyBtn.hidden = !(res.segments || []).length;
     // Reveal the study-view toggle and the follow control only when there
@@ -4671,7 +4745,7 @@ async function pbpYtDomTranscriptInPage(vid, opts) {
           // case where YouTube's timedtext URLs are PO-Token-walled anyway.
           _ytFetchFn = fresh.ytFetchFn || _ytFetchFn;
           if (typeof fresh.ytFetchTabId === "number") _ytFetchTabId = fresh.ytFetchTabId;
-          useLogin = fresh.useLogin;
+          _useLogin = fresh.useLogin;
           // Adopt the live list into the session only when it lines up with
           // the picker ON SCREEN, key for key: this handler resolves a
           // duplicate-key option BY INDEX into _trackValues, so adopting a
@@ -4703,7 +4777,7 @@ async function pbpYtDomTranscriptInPage(vid, opts) {
         // failed instantly). Go straight to the capture tier.
         const timedtextDead = !isBili && window.pbpVideoSession && window.pbpVideoSession.captionsVia;
         let segs = (endpoint && !timedtextDead)
-          ? (isBili ? await pbpBiliFetchSubtitleBody(endpoint) : await pbpYtFetchCaptionBody(endpoint, _ytFetchFn || undefined, useLogin))
+          ? (isBili ? await pbpBiliFetchSubtitleBody(endpoint) : await pbpYtFetchCaptionBody(endpoint, _ytFetchFn || undefined, _useLogin))
           : [];
         if (seq !== _trackSwitchSeq) return; // a newer selection owns the panel now
         // Rescue cascade (device report 2026-08-23: no YouTube language
@@ -4853,11 +4927,11 @@ async function pbpYtDomTranscriptInPage(vid, opts) {
         if (live) { selTrack = live; endpoint = (isBili ? live.subtitle_url : live.baseUrl) || ""; }
         _ytFetchFn = fresh.ytFetchFn || _ytFetchFn;
         if (typeof fresh.ytFetchTabId === "number") _ytFetchTabId = fresh.ytFetchTabId;
-        useLogin = fresh.useLogin;
+        _useLogin = fresh.useLogin;
       }
       const timedtextDead = !isBili && window.pbpVideoSession && window.pbpVideoSession.captionsVia;
       let segs = (endpoint && !timedtextDead)
-        ? (isBili ? await pbpBiliFetchSubtitleBody(endpoint) : await pbpYtFetchCaptionBody(endpoint, _ytFetchFn || undefined, useLogin))
+        ? (isBili ? await pbpBiliFetchSubtitleBody(endpoint) : await pbpYtFetchCaptionBody(endpoint, _ytFetchFn || undefined, _useLogin))
         : [];
       if (!segs.length && !isBili && selTrack) {
         segs = (await queueTabInjection(
@@ -4966,6 +5040,21 @@ async function pbpYtDomTranscriptInPage(vid, opts) {
 
   window.pbpPrepareVideoSession = prepareVideoSession;
   window.pbpVideoEnsureReadingView = ensureReadingView;
+
+  // Read/write accessor for the study view, for md-reader.js's zen round trip:
+  // entering zen dispatches pbp:ensure-article-visible (which flips a reader
+  // parked on the timeline into the article), so zen exit has to be able to put
+  // the timeline back. Reading it takes no argument; writing it delegates to
+  // setStudyView WITHOUT the persist flag -- a programmatic flip must never
+  // overwrite the stored per-video view the reader picked (audit U4).
+  window.pbpVideoStudyView = function (mode) {
+    if (mode === undefined) {
+      if (!_studyReadingEl || !_studyListEl) return null;
+      return _studyReadingEl.hidden ? "timeline" : "reading";
+    }
+    setStudyView(mode === "timeline" ? "timeline" : "reading");
+    return undefined;
+  };
 
   // Reading/timeline toggle (Task 4). Pattern-matched on #source-badge/
   // .src-seg (md-preview.js's applyAvailability): same container+segment
@@ -5121,12 +5210,17 @@ async function pbpYtDomTranscriptInPage(vid, opts) {
     const studyCol = el("div", "pbv-col-study");
     const skimSlot = document.createElement("div");
     skimSlot.id = "video-skim-slot";
-    // md-skim.js builds #skim-section lazily on "pbp:rendered", which
-    // dispatches (md-preview.js) strictly after every pbpVideoInit call
-    // site -- so in practice this mount always runs first and there is
-    // nothing to adopt yet. Move an existing section into the slot anyway
-    // (appendChild moves, never clones) so a future build-order change
-    // can't strand key points outside the workspace.
+    // md-skim.js builds #skim-section lazily on "pbp:rendered". That used to
+    // dispatch strictly after every pbpVideoInit call site, so this mount
+    // always ran first and had nothing to adopt. It no longer does: md-video.js
+    // is lazy-loaded now (b887c7b), so md-preview.js reaches pbpVideoInit only
+    // after ensureVideoModule() resolves, while "pbp:rendered" goes out on the
+    // same render's own path -- a #skim-section can already exist when this
+    // runs. Adopting it (appendChild moves, never clones) is a live path, not
+    // future-proofing. md-vocab-echo.js absorbs the same reordering from its
+    // side: it observes #rendered-view's parent and arms the timeline scan when
+    // .pbv-list appears (_echoListWatch -> _echoArmTimeline), rather than
+    // assuming the workspace exists by the time it indexes.
     const existingSkim = document.getElementById("skim-section");
     studyCol.appendChild(skimSlot);
     if (existingSkim) skimSlot.appendChild(existingSkim);
@@ -5343,6 +5437,11 @@ async function pbpYtDomTranscriptInPage(vid, opts) {
       const trackSel = document.createElement("select");
       trackSel.className = "pbv-tracks";
       trackSel.hidden = true;
+      // title AND aria-label, like every other control in .pbv-bar: once a
+      // companion track is picked, two identically styled .pbv-tracks selects
+      // sit side by side and only a tooltip says which one re-fetches the
+      // whole article.
+      trackSel.title = t("mdVideoTrackAria");
       trackSel.setAttribute("aria-label", t("mdVideoTrackAria"));
       // Auxiliary track picker (research T5.2): a second native caption
       // track shown under each row, paired by time. Same form-control
@@ -5438,6 +5537,17 @@ async function pbpYtDomTranscriptInPage(vid, opts) {
           const nx = items[(i + (ev.key === "ArrowDown" ? 1 : items.length - 1)) % items.length];
           if (nx) nx.focus();
         }
+      });
+      // Tab-ing off the last (or first) item fires no click, so without this
+      // the menu stays open over the toolbar until the next click-outside --
+      // and its Escape handler is gone with the focus. Same fix the send-menu
+      // this idiom was copied from carries (md-preview.js, audit D5-3); the
+      // container is copyGroup, not copyMenu, because the caret lives outside
+      // the menu and must keep it open when focus lands back on it.
+      copyMenu.addEventListener("focusout", (e) => {
+        const next = e.relatedTarget;
+        if (next != null) { if (!copyGroup.contains(next)) closeCopyMenu(false); return; }
+        setTimeout(() => { if (!copyGroup.contains(document.activeElement)) closeCopyMenu(false); }, 0);
       });
       menuItem("mdVideoCopyMd", () => doCopy(pbpVideoTranscriptMarkdown(_segments, _meta, _aiPunctParas)));
       menuItem("mdVideoCopyTimed", () => doCopy(pbpVideoTimedMarkdown(_segments, _meta, _aiPunctParas)));
