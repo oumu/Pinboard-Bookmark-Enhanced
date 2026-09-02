@@ -816,6 +816,9 @@
   "notesDeleteFailed": {
     "message": "Couldn't delete these highlights. Try again."
   },
+  "notesLoadFailed": {
+    "message": "Couldn't read your saved highlights. Try again."
+  },
   "tabQuickActions": {
     "message": "Quick Actions"
   },

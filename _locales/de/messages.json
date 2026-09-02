@@ -816,6 +816,9 @@
   "notesDeleteFailed": {
     "message": "Diese Markierungen konnten nicht gelöscht werden. Bitte erneut versuchen."
   },
+  "notesLoadFailed": {
+    "message": "Deine gespeicherten Markierungen konnten nicht gelesen werden. Bitte erneut versuchen."
+  },
   "tabQuickActions": {
     "message": "Schnellaktionen"
   },

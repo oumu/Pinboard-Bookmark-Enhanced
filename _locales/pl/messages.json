@@ -816,6 +816,9 @@
   "notesDeleteFailed": {
     "message": "Nie można usunąć tych zaznaczeń. Spróbuj ponownie."
   },
+  "notesLoadFailed": {
+    "message": "Nie można odczytać zapisanych zaznaczeń. Spróbuj ponownie."
+  },
   "tabQuickActions": {
     "message": "Skróty"
   },

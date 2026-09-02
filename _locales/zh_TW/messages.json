@@ -816,6 +816,9 @@
   "notesDeleteFailed": {
     "message": "刪除標記失敗，請再試一次。"
   },
+  "notesLoadFailed": {
+    "message": "讀取標記失敗，請再試一次。"
+  },
   "tabQuickActions": {
     "message": "快捷操作"
   },

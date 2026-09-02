@@ -68,6 +68,10 @@ const store = {
   ] },
   "pbp_hl_last_color": 3, // reserved key: never a row
 };
+// library-notes.js registers its storage listeners at script-load time, and an
+// account switch carries no pbp_hl_ write -- the onChanged event IS the only
+// route into that path, so the mock has to be able to deliver one.
+const onChangedListeners = [];
 window.chrome = {
   storage: {
     local: {
@@ -81,7 +85,7 @@ window.chrome = {
       set: async (obj) => { Object.assign(store, obj); },
       remove: async (key) => { delete store[key]; },
     },
-    onChanged: { addListener: () => {} },
+    onChanged: { addListener: (fn) => { onChangedListeners.push(fn); } },
   },
 };
 </script>
@@ -115,6 +119,7 @@ const settle = async (done) => {
   for (let i = 0; i < 300 && !done(); i++) await tick();
   await tick(); // the list rebuild that follows the write is microtasks; drain them
 };
+const fireStorageChange = (changes, area) => { for (const fn of onChangedListeners) fn(changes, area); };
 
 (async () => {
   await renderNotesPanel();
@@ -444,6 +449,129 @@ const settle = async (done) => {
     $id("notes-filter").value = "";
     $id("notes-filter").dispatchEvent(new Event("input"));
   }
+
+  // ---- the page delete is owner-scoped, like the batch delete ----
+  // Two accounts highlighting the same page share ONE pbp_hl_ record: the key
+  // is owner-free and md-highlight stamps `owner` per item. The scan hides the
+  // other account's item and the confirm counts only what this account can
+  // see, so the delete may not take that item with it.
+  store["pbp_hl_shared"] = { v: 1, url: "https://shared.example/p", title: "Shared page", items: [
+    { id: "s1", n: 1, quote: "highlight from this account", color: 1, note: "", ts: 800 },
+    { id: "s2", n: 2, quote: "highlight from another account", color: 2, note: "", ts: 700, owner: "acct_other" },
+  ] };
+  await renderNotesPanel();
+  check("an item owned by another account never becomes a row",
+    rowKeys().includes("pbp_hl_shared#s1") && !rowKeys().includes("pbp_hl_shared#s2"), rowKeys());
+  rowEl("pbp_hl_shared#s1").querySelector(".notes-hit-btn").click();
+  detail().querySelector(".notes-detail-delete").click();
+  document.querySelector(".confirm-popover .confirm-yes").click();
+  await settle(() => !rowKeys().includes("pbp_hl_shared#"));
+  check("deleting a page keeps the highlights this account cannot see",
+    store["pbp_hl_shared"] && Array.isArray(store["pbp_hl_shared"].items) &&
+    store["pbp_hl_shared"].items.length === 1 && store["pbp_hl_shared"].items[0].id === "s2" &&
+    store["pbp_hl_shared"].title === "Shared page",
+    JSON.stringify(store["pbp_hl_shared"]));
+  check("deleting a page still clears this account's rows for it",
+    !rowKeys().includes("pbp_hl_shared#"), rowKeys());
+  // ...and a page nobody else has touched still loses its whole record: the
+  // storage shape has no "page with zero items" state.
+  store["pbp_hl_solo"] = { v: 1, url: "https://solo.example/p", title: "Solo page", items: [
+    { id: "o1", n: 1, quote: "sole highlight", color: 1, note: "", ts: 750 } ] };
+  await renderNotesPanel();
+  rowEl("pbp_hl_solo#o1").querySelector(".notes-hit-btn").click();
+  detail().querySelector(".notes-detail-delete").click();
+  document.querySelector(".confirm-popover .confirm-yes").click();
+  await settle(() => !("pbp_hl_solo" in store));
+  check("deleting a page with no foreign items drops the record itself",
+    !("pbp_hl_solo" in store) && !rowKeys().includes("pbp_hl_solo"), rowKeys());
+
+  // ---- an account switch clears the reading pane, not just the list ----
+  await renderNotesPanel();
+  rowEl("pbp_hl_beta#b1").querySelector(".notes-hit-btn").click();
+  check("a highlight is open before the account switch",
+    detail().hidden === false && _pbpNotesSelectedKey === "pbp_hl_beta#b1");
+  fireStorageChange({ pinboardToken: { oldValue: "one", newValue: "two" } }, "sync");
+  check("an account switch empties the reading pane at once",
+    detail().hidden === true && $id("notes-detail-empty").hidden === false &&
+    _pbpNotesSelectedKey === null &&
+    !document.querySelector("#notes-list .notes-hit[aria-current]"),
+    detail().hidden + " | " + _pbpNotesSelectedKey);
+  check("an account switch drops the previous account's rows before the rescan",
+    $id("notes-list").children.length === 0, rowKeys());
+  await settle(() => rowKeys().includes("pbp_hl_beta#b1"));
+  check("the rescan repopulates the list and leaves the reading pane closed",
+    rowKeys().includes("pbp_hl_beta#b1") && detail().hidden === true, rowKeys());
+
+  // ---- a confirm popover that outlives the account it was opened over ----
+  // The popover is a body child: an account switch clears the reading pane
+  // (and with it the delete button), but nothing removes the popover, so Yes
+  // is still answerable -- and by then the owner filter would name the NEXT
+  // account's items on that page, which the confirm sentence never counted.
+  const realOwnerFn = window.pbpVocabCurrentOwner;
+  let stubbedOwner = "acct_one";
+  window.pbpVocabCurrentOwner = async () => stubbedOwner;
+  try {
+    store["pbp_hl_switch"] = { v: 1, url: "https://switch.example/p", title: "Switch page", items: [
+      { id: "w1", n: 1, quote: "highlight owned by the first account", color: 1, note: "", ts: 900, owner: "acct_one" },
+      { id: "w2", n: 2, quote: "highlight owned by the second account", color: 2, note: "", ts: 850, owner: "acct_two" },
+    ] };
+    _notesOwnerCache = null;
+    await renderNotesPanel();
+    check("only the signed-in account's item on a shared page becomes a row",
+      rowKeys().includes("pbp_hl_switch#w1") && !rowKeys().includes("pbp_hl_switch#w2"), rowKeys());
+    rowEl("pbp_hl_switch#w1").querySelector(".notes-hit-btn").click();
+    detail().querySelector(".notes-detail-delete").click();
+    const staleYes = document.querySelector(".confirm-popover .confirm-yes");
+    stubbedOwner = "acct_two";
+    fireStorageChange({ pinboardToken: { oldValue: "one", newValue: "two" } }, "sync");
+    staleYes.click();
+    await settle(() => $id("notes-status").textContent.trim().length > 0);
+    check("answering a confirm opened by the previous account deletes nothing",
+      store["pbp_hl_switch"] && store["pbp_hl_switch"].items.length === 2 &&
+      store["pbp_hl_switch"].items.map((it) => it.id).join(",") === "w1,w2",
+      JSON.stringify(store["pbp_hl_switch"]));
+    check("...and says so, instead of failing silently",
+      $id("notes-status").textContent.includes("vocabSelectionChanged"),
+      $id("notes-status").className + " | " + $id("notes-status").textContent);
+  } finally {
+    window.pbpVocabCurrentOwner = realOwnerFn;
+    delete store["pbp_hl_switch"];
+    _notesOwnerCache = null;
+    _pbpNotesSetStatus("");
+    await renderNotesPanel();
+  }
+
+  // ---- a storage read failure is not painted as "nothing saved yet" ----
+  await renderNotesPanel();
+  const rowsBeforeFailure = rowKeys();
+  _pbpNotesSetStatus("");
+  const realGet = chrome.storage.local.get;
+  chrome.storage.local.get = async () => { throw new Error("io"); };
+  try {
+    await renderNotesPanel();
+    check("a failed scan keeps the rows that were already read",
+      rowKeys() === rowsBeforeFailure && rowsBeforeFailure.length > 0, rowKeys());
+    check("a failed scan never writes the onboarding empty state",
+      $id("notes-empty").hidden === true, $id("notes-empty").textContent);
+    check("a failed scan reports the failure in the status live region",
+      $id("notes-status") && $id("notes-status").classList.contains("bad") &&
+      $id("notes-status").textContent.trim().length > 0,
+      $id("notes-status") && ($id("notes-status").className + " | " + $id("notes-status").textContent));
+  } finally {
+    chrome.storage.local.get = realGet;
+  }
+  await renderNotesPanel();
+  check("a successful re-read retires the read-failure sentence",
+    $id("notes-status").textContent.trim() === "" && !$id("notes-status").classList.contains("bad"),
+    $id("notes-status").className + " | " + $id("notes-status").textContent);
+  // ...but only its own: a delete failure writes into the same region AFTER
+  // re-rendering, and the pbp_hl_ debounce re-scans behind it.
+  _pbpNotesSetStatus(t("notesDeleteFailed"));
+  await renderNotesPanel();
+  check("a successful re-read leaves a sentence it did not write alone",
+    $id("notes-status").textContent.includes("notesDeleteFailed"),
+    $id("notes-status").className + " | " + $id("notes-status").textContent);
+  _pbpNotesSetStatus("");
 
   // ---- empty states ----
   $id("notes-filter").value = "zzz-no-match";

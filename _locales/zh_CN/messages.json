@@ -816,6 +816,9 @@
   "notesDeleteFailed": {
     "message": "删除高亮失败，请重试。"
   },
+  "notesLoadFailed": {
+    "message": "读取高亮失败，请重试。"
+  },
   "tabQuickActions": {
     "message": "快捷操作"
   },

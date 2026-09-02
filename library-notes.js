@@ -151,22 +151,46 @@ if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.onChanged)
       // Fail-closed NOW, not at the next view activation: an account switch
       // carries no pbp_hl_ write, so without this the old account's notes
       // stay on screen indefinitely (Codex review P1; CLAUDE.md owner rule).
-      // renderNotesPanel re-resolves the owner and rebuilds list + detail;
-      // harmless when the notes view is not the active one.
-      if (typeof renderNotesPanel === "function") renderNotesPanel().catch(() => {});
+      // Harmless when the notes view is not the active one.
+      if (typeof renderNotesPanel === "function") {
+        // Drop what the previous account had on screen SYNCHRONOUSLY, then
+        // re-scan. renderNotesPanel is async and can fail (a failed read
+        // deliberately keeps the rendered list rather than painting an empty
+        // state over it), so leaving the old rows up until it returns would
+        // make "fail-closed" depend on the rescan succeeding.
+        _notesAllRows = [];
+        // The rebuild below never touches #notes-detail, so on its own it
+        // leaves the previous account's quote, note and delete button on
+        // screen -- and that button targets the previous account's record.
+        // Same gap, same fix, as library-vocab.js's account-switch path.
+        _pbpNotesRenderDetail(null);
+        _pbpNotesRenderList(_pbpNotesVisibleHits());
+        renderNotesPanel().catch(() => {});
+      }
     }
   });
 }
 
+// The owner rule for ONE stored item, in one place. The scan filters the
+// rendered list with it and both delete paths decide what they may remove with
+// it, so display and destruction can never drift apart -- an inverted second
+// copy of this test is exactly how a page delete came to take other accounts'
+// highlights with it. Mirrors md-highlight's pbpHlItemVisibleFor: ownerless
+// items belong to everyone, owned items only to their owner.
+function _pbpNotesItemVisible(it, owner) {
+  const o = (it && typeof it.owner === "string") ? it.owner : "";
+  return !o || o === owner;
+}
+
+// Scan result is `null` (not `[]`) when the storage read itself failed --
+// renderNotesPanel has to tell that apart from "this account has nothing
+// saved", which is the same picture with the opposite meaning.
 async function _pbpNotesScan() {
   if (typeof chrome === "undefined" || !chrome.storage || !chrome.storage.local) return [];
-  // Display-level only: batch delete operates on the visible ids, so foreign
-  // items are untouchable here by construction.
+  // Display-level only: both deletes operate through _pbpNotesItemVisible on a
+  // fresh read, so foreign items are untouchable here by construction.
   const _notesOwner = await _pbpNotesOwner();
-  const _itemVisible = (it) => {
-    const o = (it && typeof it.owner === "string") ? it.owner : "";
-    return !o || o === _notesOwner;
-  };
+  const _itemVisible = (it) => _pbpNotesItemVisible(it, _notesOwner);
   let all;
   try {
     if (typeof chrome.storage.local.getKeys === "function") {
@@ -181,7 +205,11 @@ async function _pbpNotesScan() {
     } else {
       all = await chrome.storage.local.get(null);
     }
-  } catch (_) { return []; }
+  } catch (e) {
+    // Name/message only, never highlight or note content.
+    console.warn("[notes] scan failed", e && e.name, e && e.message);
+    return null;
+  }
   const rows = [];
   for (const key of Object.keys(all || {})) {
     if (!key.startsWith("pbp_hl_") || key === "pbp_hl_last_color") continue;
@@ -751,9 +779,19 @@ function _pbpNotesStatusEl() {
 // an UNKNOWN key straight back to the screen, so if a locale file ever loses
 // this entry the user would read the key name instead of a sentence.
 const PBP_NOTES_DELETE_FAILED_KEY = "notesDeleteFailed";
+
+// True only while the read-failure sentence is the thing currently in the live
+// region. renderNotesPanel retires its OWN sentence on the next successful
+// read and must retire nothing else: the batch delete writes its failure text
+// after re-rendering, and the 250ms pbp_hl_ debounce re-scans behind it.
+let _notesLoadFailed = false;
+
 function _pbpNotesSetStatus(text) {
   const el = _pbpNotesStatusEl();
   if (!el) return;
+  // The flag follows the DOM: this write replaces whatever the region held,
+  // so whoever wrote it now owns the sentence.
+  _notesLoadFailed = false;
   if (!text) { el.classList.remove("ok", "bad"); el.textContent = ""; return; }
   setStatusIcon(el, false, text);
 }
@@ -761,6 +799,14 @@ function _pbpNotesSetStatus(text) {
 function _pbpNotesDeleteFailedText() {
   const msg = t(PBP_NOTES_DELETE_FAILED_KEY);
   return msg === PBP_NOTES_DELETE_FAILED_KEY ? "Couldn't delete these highlights. Try again." : msg;
+}
+
+// Same guard, same reason, for the read side: t() echoes an unknown key
+// straight back to the screen.
+const PBP_NOTES_LOAD_FAILED_KEY = "notesLoadFailed";
+function _pbpNotesLoadFailedText() {
+  const msg = t(PBP_NOTES_LOAD_FAILED_KEY);
+  return msg === PBP_NOTES_LOAD_FAILED_KEY ? "Couldn't read your saved highlights. Try again." : msg;
 }
 
 // This page is not the only writer of a pbp_hl_<page> record: the reader
@@ -795,6 +841,12 @@ function _pbpNotesWithRecordLock(key, work) {
 // never invoke this handler.
 function _pbpNotesDelete(row, anchor) {
   const label = row.title || row.url || t("notesUnknownPage");
+  // The account whose rows this popover was opened over. The popover is a
+  // body child dismissed only by Escape / an outside pointerdown / scroll / an
+  // answer, so an account switch (another tab, or another device through sync)
+  // leaves it on screen while _notesOwnerCache is invalidated underneath it --
+  // and the delete below resolves the owner again when it is answered.
+  const ownerAtOpen = _notesOwnerCache;
   showConfirmPopover(anchor, {
     msg: t("notesDeleteConfirm", label),
     yesText: t("delete"),
@@ -811,11 +863,37 @@ function _pbpNotesDelete(row, anchor) {
       const priorErr = _pbpNotesRowEl(_pbpNotesSelectedKey);
       if (priorErr) priorErr.classList.remove("is-error");
       try {
-        // Under the record lock even though a whole-key remove is a single
-        // trip: without it the removal can land in the middle of a reader
-        // tab's get -> patch -> set, whose set then re-creates the record the
-        // user just deleted.
-        await _pbpNotesWithRecordLock(row.key, () => chrome.storage.local.remove(row.key));
+        // Read AND rewrite inside the record's lock, byte-for-byte the batch
+        // delete's shape below, and for the same two reasons. The lock stops
+        // a reader tab from committing between this get and this set (its own
+        // set would otherwise re-create the record the user just deleted).
+        // The filter is what makes "this page's highlights" mean THIS
+        // account's: one pbp_hl_ record holds every account's items for that
+        // page, the list and the confirm sentence both counted only the ones
+        // _pbpNotesItemVisible admits, and highlights have no tombstone and no
+        // undo -- so the key itself goes only once nothing is left.
+        const owner = await _pbpNotesOwner();
+        if (owner !== ownerAtOpen) {
+          // The account changed while the confirm was open, so this filter
+          // would now match the NEW account's items on that page -- items the
+          // sentence the user read never counted. Same guard, same wording, as
+          // the batch delete's snapshot mismatch below: nothing was deleted.
+          // (`null` at open = the owner was never resolved, so a match cannot
+          // be proven either; fail closed.)
+          _pbpNotesSetStatus(t("vocabSelectionChanged"));
+          return;
+        }
+        await _pbpNotesWithRecordLock(row.key, async () => {
+          const fresh = (await chrome.storage.local.get(row.key))[row.key];
+          // Gone already (deleted elsewhere while the confirm was open):
+          // nothing to remove, and re-creating it would be worse.
+          if (!fresh) return;
+          const items = Array.isArray(fresh.items) ? fresh.items : [];
+          const keep = items.filter((it) => !_pbpNotesItemVisible(it, owner));
+          if (keep.length === items.length) return;
+          if (keep.length) await chrome.storage.local.set({ [row.key]: { ...fresh, items: keep } });
+          else await chrome.storage.local.remove(row.key);
+        });
       } catch (e) {
         // A swallowed failure looked identical to success (popover closed,
         // row still there, zero feedback). Pin it to the row it happened on
@@ -968,7 +1046,25 @@ function _pbpNotesFocusAfterDelete(position) {
 async function renderNotesPanel() {
   if (!$id("notes-list")) return;
   _pbpNotesBuildColorFilters();
-  _notesAllRows = await _pbpNotesScan();
+  const rows = await _pbpNotesScan();
+  if (!rows) {
+    // The read failed (null, not an empty array). Rendering the empty result
+    // here would write "select text on a preview page to highlight it" over a
+    // storage error -- pixel-identical to having lost every highlight, with
+    // nothing to retry. Say the read failed instead and leave whatever was
+    // already on screen alone; the next activation, visibilitychange or
+    // pbp_hl_ write re-scans. Same call the vocabulary list makes for the
+    // same situation, through this view's own live region.
+    _pbpNotesSetStatus(_pbpNotesLoadFailedText());
+    _notesLoadFailed = true;
+    return;
+  }
+  // The read worked. Nothing else ever clears that sentence, so without this
+  // one transient failure leaves "couldn't read your saved highlights" sitting
+  // over a fully rendered list for the rest of the page's life, and the screen
+  // reader is never told the failure is over. Only ours -- see _notesLoadFailed.
+  if (_notesLoadFailed) _pbpNotesSetStatus("");
+  _notesAllRows = rows;
   _pbpNotesRenderList(_pbpNotesVisibleHits());
 }
 

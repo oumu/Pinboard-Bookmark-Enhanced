@@ -816,6 +816,9 @@
   "notesDeleteFailed": {
     "message": "ハイライトを削除できませんでした。もう一度お試しください。"
   },
+  "notesLoadFailed": {
+    "message": "保存したハイライトを読み込めませんでした。もう一度お試しください。"
+  },
   "tabQuickActions": {
     "message": "クイック操作"
   },

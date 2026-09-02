@@ -816,6 +816,9 @@
   "notesDeleteFailed": {
     "message": "Impossible de supprimer ces surlignages. Réessayez."
   },
+  "notesLoadFailed": {
+    "message": "Impossible de lire vos surlignages enregistrés. Réessayez."
+  },
   "tabQuickActions": {
     "message": "Actions rapides"
   },

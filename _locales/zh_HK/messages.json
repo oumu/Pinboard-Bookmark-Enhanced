@@ -816,6 +816,9 @@
   "notesDeleteFailed": {
     "message": "未能刪除這些標記，請重試。"
   },
+  "notesLoadFailed": {
+    "message": "未能讀取已儲存的標記，請重試。"
+  },
   "tabQuickActions": {
     "message": "快捷操作"
   },
