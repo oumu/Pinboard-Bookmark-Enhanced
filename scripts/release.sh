@@ -42,6 +42,10 @@ while [ "$#" -gt 0 ]; do
 done
 
 REPO_ROOT=$(git rev-parse --show-toplevel)
+# Every pathspec below (docs freshness gate, packaging) is repo-relative, and
+# git resolves pathspecs against the current directory, so run from the root
+# no matter where the operator invoked the script from.
+cd "${REPO_ROOT}"
 RELEASE_DIR="${REPO_ROOT}/release"
 
 HEAD_SHA=$(git rev-parse HEAD)
@@ -290,6 +294,13 @@ fi
 # are genuinely current, re-run with --docs-ok to proceed.
 if [ "${BUILD_ONLY}" -eq 1 ]; then
   echo "  --build-only: skipping publication docs gate"
+  # The ZIP is built from the HEAD snapshot (git ls-tree + git cat-file), and
+  # the clean-tree abort above runs only on the publish path, so uncommitted
+  # work would be smoke-tested as whatever HEAD still says.
+  if [ -n "$(git status --porcelain --untracked-files=normal)" ]; then
+    echo "  [release] WARN: working tree is dirty; this ZIP packages HEAD ${HEAD_SHA}," >&2
+    echo "  [release]       so uncommitted changes are NOT validated by this run." >&2
+  fi
 elif [ "${DOCS_OK}" -eq 1 ]; then
   echo "  --docs-ok: skipping docs freshness gate"
 else
@@ -345,7 +356,6 @@ if [ -f "${ZIP_PATH}" ]; then
   rm -- "${ZIP_PATH}"
 fi
 
-cd "${REPO_ROOT}"
 python3 - "${ZIP_PATH}" "${VERSION}" "${HEAD_SHA}" <<'PYEOF'
 import base64, fnmatch, hashlib, json, pathlib, posixpath, re, subprocess, sys, zipfile
 
@@ -596,14 +606,19 @@ import sys, subprocess, re
 prev_tag = sys.argv[1] if len(sys.argv) > 1 and sys.argv[1] else ""
 snapshot = sys.argv[2]
 
+# Subject and body are needed: a BREAKING CHANGE footer lives in the body.
+# %x1f separates subject from body, %x1e terminates each commit record — the
+# same separator convention scripts/bump-version.sh uses.
+LOG_FORMAT = "--pretty=format:%s%x1f%b%x1e"
+
 if prev_tag:
     result = subprocess.run(
-        ["git", "log", f"{prev_tag}..{snapshot}", "--pretty=format:%s", "--no-merges"],
+        ["git", "log", f"{prev_tag}..{snapshot}", LOG_FORMAT, "--no-merges"],
         capture_output=True, text=True
     )
 else:
     result = subprocess.run(
-        ["git", "log", snapshot, "--pretty=format:%s", "--no-merges", "-20"],
+        ["git", "log", snapshot, LOG_FORMAT, "--no-merges", "-20"],
         capture_output=True, text=True
     )
 
@@ -611,16 +626,27 @@ if result.returncode != 0:
     print(result.stderr.strip() or "git log failed", file=sys.stderr)
     sys.exit(result.returncode)
 
-commits = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+commits = []
+for record in result.stdout.split("\x1e"):
+    record = record.strip()
+    if not record:
+        continue
+    subject, _, body = record.partition("\x1f")
+    commits.append((subject.strip(), body))
 
 # Skip release-infrastructure bookkeeping and internal maintenance noise.
 skip_patterns = [
     re.compile(r'^docs:\s*update version badge'),
     re.compile(r'^chore(?:\([^)]+\))?:'),
 ]
-commits = [c for c in commits if not any(p.match(c) for p in skip_patterns)]
+
+# Same two major triggers scripts/bump-version.sh recognises, so a release that
+# bumped major always renders a Breaking Changes section.
+breaking_body = re.compile(r'(^|\n)BREAKING(?: CHANGE|-CHANGE):')
+bang_subject = re.compile(r'^\w+(?:\([^)]+\))?!:')
 
 groups = {
+    "breaking": {"label": "Breaking Changes", "items": []},
     "feat":     {"label": "New Features",   "items": []},
     "fix":      {"label": "Bug Fixes",      "items": []},
     "perf":     {"label": "Performance",    "items": []},
@@ -629,12 +655,19 @@ groups = {
     "docs":     {"label": "Documentation",  "items": []},
     "security": {"label": "Security",       "items": []},
 }
-order = ["feat", "fix", "perf", "style", "refactor", "docs", "security"]
+order = ["breaking", "feat", "fix", "perf", "style", "refactor", "docs", "security"]
 
 pattern = re.compile(r'^(\w+)(?:\(([^)]+)\))?!?:\s*(.+)$')
 
 skipped = []
-for msg in commits:
+for msg, body in commits:
+    # Breaking changes outrank both the skip list and the type grouping, and
+    # keep their full subject so the `!` marker survives into the notes.
+    if bang_subject.match(msg) or breaking_body.search(body):
+        groups["breaking"]["items"].append(msg)
+        continue
+    if any(p.match(msg) for p in skip_patterns):
+        continue
     m = pattern.match(msg)
     if not m:
         skipped.append(msg)

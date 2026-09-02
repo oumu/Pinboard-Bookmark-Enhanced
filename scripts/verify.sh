@@ -68,6 +68,9 @@ node "scripts/docs-lint.mjs"
 echo "[store-descriptions] checking CWS store copy is regenerated from the READMEs"
 node "scripts/sync-store-descriptions.mjs" --check
 
+echo "[hooks] checking installed git hooks still delegate to the tracked scripts"
+sh "scripts/setup-hooks.sh" --check
+
 echo "[theme] checking generated theme integrity"
 node "docs/theme-surface/tools/validate-contracts.mjs"
 node "tests/theme-contract-tests.mjs"

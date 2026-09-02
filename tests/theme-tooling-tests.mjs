@@ -123,6 +123,26 @@ fi
   const secondHookRun = spawnSync("/bin/sh", [installedPreCommit], { cwd: hookRepo, encoding: "utf8" });
   check(secondHookRun.status === 0,
     `installed hook must pick up tracked script updates without reinstalling, got ${secondHookRun.status}`);
+
+  const driftCheckClean = spawnSync("/bin/sh", [setupHooksPath, "--check"], { cwd: hookRepo, encoding: "utf8" });
+  check(driftCheckClean.status === 0,
+    `hook drift check must pass right after installation, got ${driftCheckClean.status}:\n${driftCheckClean.stdout || ""}${driftCheckClean.stderr || ""}`);
+
+  writeFileSync(installedPreCommit, "#!/bin/sh\n# stale full-text copy of an older hook script\nexit 0\n");
+  chmodSync(installedPreCommit, 0o755);
+  const driftCheckStale = spawnSync("/bin/sh", [setupHooksPath, "--check"], { cwd: hookRepo, encoding: "utf8" });
+  const driftStaleOutput = `${driftCheckStale.stdout || ""}${driftCheckStale.stderr || ""}`;
+  check(driftCheckStale.status !== 0,
+    `hook drift check must fail on a hook that no longer delegates to the tracked script, got ${driftCheckStale.status}`);
+  check(driftStaleOutput.includes("scripts/setup-hooks.sh"),
+    `hook drift check must name the reinstall remedy:\n${driftStaleOutput}`);
+  check(readFileSync(installedPreCommit, "utf8").includes("stale full-text copy"),
+    "hook drift check must report drift instead of silently reinstalling");
+
+  rmSync(installedPreCommit, { force: true });
+  const driftCheckMissing = spawnSync("/bin/sh", [setupHooksPath, "--check"], { cwd: hookRepo, encoding: "utf8" });
+  check(driftCheckMissing.status === 0,
+    `hook drift check must skip hooks that are not installed at all (fresh CI checkout), got ${driftCheckMissing.status}`);
 } finally {
   rmSync(temp, { recursive: true, force: true });
 }

@@ -59,10 +59,24 @@ if (!zipPath) {
     console.error('[zip-smoke] no release/ dir; pass --zip <path>');
     process.exit(2);
   }
+  // release/ is gitignored and accumulates every past build, and filenames sort
+  // lexicographically as v2.99 > v2.109.1 — compare version components
+  // numerically so the newest artifact wins.
+  const versionOf = (name) => {
+    const m = name.match(/^pinboard-bookmark-enhanced-v(\d+(?:\.\d+)*)\.zip$/);
+    return m ? m[1].split('.').map(Number) : [];
+  };
   const zips = readdirSync(releaseDir)
     .filter(f => f.endsWith('.zip') && f.startsWith('pinboard-bookmark-enhanced-v'))
-    .sort()
-    .reverse();
+    .sort((a, b) => {
+      const va = versionOf(a);
+      const vb = versionOf(b);
+      for (let i = 0; i < Math.max(va.length, vb.length); i++) {
+        const d = (vb[i] || 0) - (va[i] || 0);
+        if (d) return d;
+      }
+      return a < b ? 1 : a > b ? -1 : 0;
+    });
   if (!zips.length) {
     console.error('[zip-smoke] no ZIP in release/; pass --zip <path>');
     process.exit(2);
