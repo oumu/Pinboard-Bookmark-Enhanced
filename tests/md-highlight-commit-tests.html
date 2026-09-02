@@ -71,6 +71,11 @@ function _pbpAskRangeFromOffsets(el, start, end) {
   return null;
 }
 
+// md-translate.js's anchored-popover placer (rect + popover height -> {top}).
+// Where the selection bar lands is not what this suite is about; a fixed
+// answer is enough to let _pbpHlShowBar run to completion.
+function pbpTrPeekPopPos() { return { top: 0 }; }
+
 // Records the call AND reproduces the label resolution the real
 // flashButtonLabel does (md-preview.js:3152-3153: write .btn-label when there
 // is one, else btn.textContent). Both halves matter here -- the routing
@@ -597,6 +602,13 @@ function selectionRange(n, start, end) {
   check("the message still reaches the #copy-status live region",
     document.getElementById("copy-status").textContent === "hlSaveFailed",
     document.getElementById("copy-status").textContent);
+  // #copy-status is .sr-only on md-preview.html, so the announcement on its own
+  // reaches screen readers and nobody else. Every button that lands in this
+  // branch is one flashButtonLabel must not touch, which used to leave a failed
+  // write with no visible trace at all. The visible half is the same one-shot
+  // .xp-flash-fail border pulse the dict/ask foot buttons already use.
+  check("an icon-only button also gets the visible failure pulse",
+    iconBtn.classList.contains("xp-flash-fail"), iconBtn.className);
 
   // The bar's colour dots (.pb-hl-dot) and the card's (.hl-card-dot) are EMPTY
   // buttons -- a 22px swatch painted by CSS background plus a ::before hit pad,
@@ -618,6 +630,13 @@ function selectionRange(n, start, end) {
   check("the swatch's message still reaches the #copy-status live region",
     document.getElementById("copy-status").textContent === "hlSaveFailed",
     document.getElementById("copy-status").textContent);
+  check("an empty colour swatch also gets the visible failure pulse",
+    dotBtn.classList.contains("xp-flash-fail"), dotBtn.className);
+  // Re-arming, not toggling: the second click on an item another tab already
+  // deleted is exactly when the user is waiting to be told something.
+  _pbpHlToast("hlSaveFailed", dotBtn);
+  check("a repeated failure leaves the swatch's pulse armed",
+    dotBtn.classList.contains("xp-flash-fail"), dotBtn.className);
 
   const labelBtn = document.createElement("button");
   labelBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 6l12 12"/></svg><span class="btn-label">Copy</span>';
@@ -625,18 +644,59 @@ function selectionRange(n, start, end) {
   _pbpHlToast("hlSaveFailed", labelBtn);
   check("a button with a .btn-label wrapper is label-flashed", FLASHED.length === 1);
   check("the label flash keeps its icon", !!labelBtn.querySelector("svg"));
+  // The label flash IS the visible feedback on these; a border pulse on top of
+  // it would be a second, unrelated failure vocabulary on the same button.
+  check("a label-flashed button is not also pulsed",
+    !labelBtn.classList.contains("xp-flash-fail"), labelBtn.className);
 
   const textBtn = document.createElement("button");
   textBtn.textContent = "Save";
   FLASHED = [];
   _pbpHlToast("hlSaveFailed", textBtn);
   check("a plain-text button (nothing to destroy) is still label-flashed", FLASHED.length === 1);
+  check("a plain-text button is not also pulsed",
+    !textBtn.classList.contains("xp-flash-fail"), textBtn.className);
 
   FLASHED = [];
   document.getElementById("copy-status").textContent = "";
   _pbpHlToast("hlSaveFailed", null);
   check("a buttonless toast announces through #copy-status",
     FLASHED.length === 0 && document.getElementById("copy-status").textContent === "hlSaveFailed");
+
+  // The creation paths (a bar swatch, the bar's note button) dismiss the bar
+  // BEFORE the write starts -- the selection dies the moment the popover takes
+  // over -- so a quota or unreadable-record failure comes back to a button that
+  // is no longer on screen and a pulse there would be shown to nobody. The bar
+  // is hand-built in the shape _pbpHlEnsureBar produces: the real builder reads
+  // the AI settings, which this suite deliberately does not stub.
+  const fakeBar = document.createElement("div");
+  fakeBar.id = "pb-hl-bar";
+  fakeBar.setAttribute("popover", "auto");
+  const barDot = document.createElement("button");
+  barDot.type = "button";
+  barDot.className = "pb-hl-dot pb-hl-dot-2";
+  fakeBar.appendChild(barDot);
+  document.body.appendChild(fakeBar);
+  _pbpHlBarEl = fakeBar;
+  _pbpHlShowBar(selectionRange(1, 0, 5), false);
+  _pbpHlHideBar();
+  check("(setup) the bar is dismissed while the write is in flight",
+    !fakeBar.matches(":popover-open"));
+  _pbpHlToast("hlSaveFailed", barDot);
+  check("a failed write brings the dismissed selection bar back on screen",
+    fakeBar.matches(":popover-open"));
+  check("and pulses the swatch that was clicked",
+    barDot.classList.contains("xp-flash-fail"), barDot.className);
+
+  // Every other anchor (the card's swatches, the note/delete buttons) is
+  // already on screen when its failure returns: yanking the selection bar open
+  // over the card would be a second surface nobody asked for.
+  _pbpHlHideBar();
+  _pbpHlToast("hlSaveFailed", iconBtn);
+  check("a toast for a button outside the bar leaves the bar closed",
+    !fakeBar.matches(":popover-open"));
+  fakeBar.remove();
+  _pbpHlBarEl = null;
 
   // ================= cross-context serialisation =================
   section("(5) two contexts, one record: nothing may land between this page's read and its write");

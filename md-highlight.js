@@ -780,12 +780,43 @@ function _pbpHlCanFlashLabel(btn) {
   return btn.childElementCount === 0 && !!(btn.textContent || "").trim();
 }
 
+// Visible half of the fallback branch. #copy-status is .sr-only (1px +
+// clip-path), so the announcement above reaches screen readers and NOBODY
+// else -- and the fallback is where every highlight button ends up, which
+// left a failed write with no on-screen trace at all: the swatch kept its
+// old colour, the card stayed open, and the user just clicked again. Reuse
+// the one-shot .xp-flash-fail inset border pulse md-preview.css already
+// defines for exactly this ("icon-only foot buttons ... failure feedback is
+// a fading border pulse plus the #copy-status announcement"), as md-dict.js
+// and md-ask.js do on their own icon-only buttons. Buttons that CAN take
+// flashButtonLabel never get here: the label swap is their visible half.
+function _pbpHlFlashFail(btn) {
+  if (!btn || !btn.classList) return;
+  // The creation paths dismiss the selection bar before the write starts (the
+  // selection dies the moment the popover takes over), so by the time a quota
+  // or unreadable-record failure comes back its swatch is off screen and a
+  // pulse there would be shown to nobody. Bring the bar back over the range it
+  // was last shown for -- the popover and its buttons are memoized, so this is
+  // the same node the caller handed us, and the retry lands on the same
+  // selection. Only for the bar: every other anchor (card swatches, the
+  // note/delete buttons) is already on screen when its failure returns.
+  if (_pbpHlBarEl && _pbpHlBarLastShown && _pbpHlBarLastShown.range
+    && _pbpHlBarEl.contains(btn) && !_pbpHlBarEl.matches(":popover-open")) {
+    try { _pbpHlShowBar(_pbpHlBarLastShown.range, _pbpHlBarLastShown.timeline); } catch (_) {}
+  }
+  btn.classList.remove("xp-flash-fail");
+  void btn.offsetWidth; // restart the pulse on a repeat failure
+  btn.classList.add("xp-flash-fail");
+}
+
 function _pbpHlToast(msg, btn) {
   if (typeof flashButtonLabel === "function" && _pbpHlCanFlashLabel(btn)) { flashButtonLabel(btn, msg); return; }
   const el = document.getElementById("copy-status");
-  if (!el) return;
-  el.textContent = msg;
-  setTimeout(() => { if (el.textContent === msg) el.textContent = ""; }, 1500);
+  if (el) {
+    el.textContent = msg;
+    setTimeout(() => { if (el.textContent === msg) el.textContent = ""; }, 1500);
+  }
+  _pbpHlFlashFail(btn);
 }
 
 // ---- Init + restore ----
@@ -1400,6 +1431,11 @@ function _pbpHlNewId() {
 // 4), horizontally clamped to the viewport the same way #explain-pop is. ----
 let _pbpHlBarEl = null;
 let _pbpHlBarRange = null;
+// Last _pbpHlShowBar arguments, kept ACROSS the dismissal: _pbpHlBarRange is
+// cleared by the popover's own "closed" toggle handler, and the creation paths
+// dismiss the bar before their write even starts. _pbpHlFlashFail needs them to
+// put the bar back when that write fails.
+let _pbpHlBarLastShown = null;
 
 function _pbpHlEnsureBar() {
   if (_pbpHlBarEl) return _pbpHlBarEl;
@@ -1517,6 +1553,7 @@ function _pbpHlShowBar(range, timeline) {
   const bar = _pbpHlEnsureBar();
   bar.classList.toggle("pb-hl-bar--timeline", !!timeline);
   _pbpHlBarRange = range;
+  _pbpHlBarLastShown = { range, timeline: !!timeline };
   if (typeof window.pbpExplainDismissIfUnpinned === "function") window.pbpExplainDismissIfUnpinned();
   try { bar.hidePopover(); } catch (_) {} // re-invoke while open: reset first (mirrors _pbpExplainOpenPop)
   bar.showPopover();
@@ -1620,11 +1657,22 @@ function _pbpHlRegisterRange(item, range) {
   _pbpHlState.resolvedN[item.id] = item.n; // fresh creation: painted exactly where recorded
 }
 
+// A failed write puts the bar back on screen so its swatch can pulse
+// (_pbpHlFlashFail). Dropping the selection then would trip the
+// selectionchange auto-hide below and take that feedback straight back off
+// screen -- along with the selection the retry needs. An open bar therefore
+// means "leave the selection alone"; the success and nothing-to-create paths
+// find it closed and clear as before.
+function _pbpHlBarBackAfterFailure() {
+  return !!(_pbpHlBarEl && _pbpHlBarEl.matches(":popover-open"));
+}
+
 async function _pbpHlCreateFromSelection(color, btn) {
   const range = _pbpHlBarRange;
   _pbpHlHideBar();
   if (!range) return;
   await _pbpHlCreateFromRange(range, color, btn);
+  if (_pbpHlBarBackAfterFailure()) return;
   const sel = window.getSelection();
   if (sel) sel.removeAllRanges();
 }
@@ -1635,8 +1683,10 @@ async function _pbpHlCreateWithNote(btn) {
   if (!range) return;
   const color = await _pbpHlLastColorGet();
   const created = await _pbpHlCreateFromRange(range, color, btn);
-  const sel = window.getSelection();
-  if (sel) sel.removeAllRanges();
+  if (!_pbpHlBarBackAfterFailure()) {
+    const sel = window.getSelection();
+    if (sel) sel.removeAllRanges();
+  }
   if (created.length && typeof window._pbpHlOpenCard === "function") {
     window._pbpHlOpenCard(created[created.length - 1].id); // Task 5's card (window hook; no-op until Task 5 lands)
   }
