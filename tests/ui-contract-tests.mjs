@@ -890,12 +890,28 @@ check(mdTranslateJs.includes('scrollIntoView({ block: "start", behavior: "instan
 }
 check(/orig\.dataset\.pbTrDone = "1";[\s\S]{0,380}_pbpTrSyncToc\(st, "translated"\)/.test(mdTranslateJs),
   "md-translate.js: progressively filled translated headings do not update the live TOC");
-check(mdTranslateJs.includes('const targetCode = plan.targetCode || ""') &&
-  mdTranslateJs.includes("pbpTrLengthRatioOk(seg.text, item.text, targetCode)") &&
-  mdTranslateJs.includes("pbpTrLengthRatioOk(seg.text, text, targetCode)") &&
-  mdTranslateJs.includes("pbpTrLengthRatioOk(sendText, got, st.target.code)") &&
-  /pbpTrRunQueue\(\{[\s\S]{0,140}targetCode:\s*st\.target\.code/.test(mdTranslateJs),
-  "md-translate.js: target language code does not reach batch, downgrade and manual retry quality gates");
+{
+  // Same intent as before item #39: the target language code must reach all
+  // three length-ratio gates. The manual-retry gate no longer reads
+  // st.target.code inline -- #39 pinned it at initiation instead (D8 snapshot
+  // discipline), so the chain is now three links and all three are asserted:
+  //   md-translate.js:2390  const lang = st.target.code;            (snapshot in _pbpTrRetryBlock)
+  //   md-translate.js:2407  _pbpTrTranslateBlock(st, w, ctrl.signal, lang, langName)
+  //   md-translate.js:2316  lang = st.target.code                   (default keeps 3-arg callers honest)
+  //   md-translate.js:2358  pbpTrLengthRatioOk(sendText, got, lang) (the gate itself)
+  // Anything that drops the code from the retry path breaks one of these.
+  const retryBlock = mdTranslateJs.slice(mdTranslateJs.indexOf("async function _pbpTrRetryBlock"),
+    mdTranslateJs.indexOf("function _pbpTrSyncRetryAll"));
+  check(mdTranslateJs.includes('const targetCode = plan.targetCode || ""') &&
+    mdTranslateJs.includes("pbpTrLengthRatioOk(seg.text, item.text, targetCode)") &&
+    mdTranslateJs.includes("pbpTrLengthRatioOk(seg.text, text, targetCode)") &&
+    mdTranslateJs.includes("lang = st.target.code, langName = st.target.name") &&
+    retryBlock.includes("const lang = st.target.code;") &&
+    retryBlock.includes("_pbpTrTranslateBlock(st, w, ctrl.signal, lang, langName)") &&
+    mdTranslateJs.includes("pbpTrLengthRatioOk(sendText, got, lang)") &&
+    /pbpTrRunQueue\(\{[\s\S]{0,140}targetCode:\s*st\.target\.code/.test(mdTranslateJs),
+    "md-translate.js: target language code does not reach batch, downgrade and manual retry quality gates");
+}
 {
   const waybackLog = optionsJs.slice(optionsJs.indexOf("function renderWaybackLog"),
     optionsJs.indexOf("function loadWaybackLog"));

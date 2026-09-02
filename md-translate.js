@@ -980,11 +980,12 @@ async function pbpTrInit(detail) {
     account: String((detail && detail.account) || ""),
     articleLang: view.lang || "",  // detectArticleLang result (md-preview.js:1562); "" for Latin/ambiguous
     target,
-    // pbpAiEffectiveModel (not just the override): with no preview override,
+    // pbpAiCacheModelKey (not just the override): with no preview override,
     // switching the provider's configured model must invalidate translation/
-    // glossary caches too — same defect skim's cache meta had.
-    modelKey: (s.aiProvider || "gemini") + ":" + ((typeof pbpAiEffectiveModel === "function")
-      ? pbpAiEffectiveModel(s) : (pbpAiResolveModelOverride(s) || "default")),
+    // glossary caches too — same defect skim's cache meta had — and so must
+    // pointing the same provider:model at a different backend through a
+    // custom base URL (md-ai-core.js pbpAiCacheModelKey).
+    modelKey: pbpAiCacheModelKey(s),
     work: [],                      // non-pre blocks: {n, md, hash, shielded:{text,slots}, rev}
     workReady: null,               // Promise: resolves once the rAF-chunked st.work build finishes
     // Article revision fence (in-place transcript replacement, md-preview.js
@@ -1197,7 +1198,17 @@ async function _pbpTrProbeCache(st) {
         st.staleVerdict = pbpTrCacheGenStale(cached.meta, { pg: PBP_TR_PROMPT_GEN, gf: _pbpTrCurrentGf(st) });
         _pbpTrSyncStaleNote(st);
       }
-      if (hits === st.work.length) {
+      // T3 skips settle BEFORE the completeness verdict, and AFTER the restore
+      // loop above so a cache hit still wins (skip detection never overwrites
+      // an existing st.trMd entry). A block already written in the target
+      // language is done without a request and is deliberately never cached,
+      // so counting cache hits alone made every article carrying one reopen as
+      // "partial" forever: the remembered bilingual/translated view was never
+      // restored and Continue quoted a price for blocks that would never be
+      // sent. The chain calls _pbpTrApplySkips again right after the probe --
+      // it is cumulative and idempotent.
+      _pbpTrApplySkips(st);
+      if (hits > 0 && st.work.every((w) => w.n in st.trMd)) {
         _pbpTrSetStatus(st, "done");
         _pbpTrShowViewToggle(st);
         const v = await pbpTrViewGet(st.url, st.account);
@@ -1249,6 +1260,22 @@ function _pbpTrApplySkips(st) {
   }
 }
 
+// "provider · model" for the cost line. pbpAiEffectiveModel resolves preview
+// override -> the provider's CONFIGURED model -> that provider's default, so
+// the one line carrying a price names the model the request will actually
+// bill, instead of printing the literal "default" placeholder as if it were a
+// model name. Same shape the explain footer uses. A provider whose default
+// model is empty (a custom endpoint with a blank model field) resolves to the
+// "default" sentinel -- name the provider alone there rather than a model that
+// does not exist. DISPLAY ONLY: request payloads keep passing
+// pbpAiResolveModelOverride, whose undefined is what lets ai.js fall through
+// to the provider's configured model.
+function _pbpTrModelLabel(s) {
+  const provider = (s && s.aiProvider) || "gemini";
+  const model = (typeof pbpAiEffectiveModel === "function") ? pbpAiEffectiveModel(s) : "";
+  return (model && model !== "default") ? provider + " · " + model : provider;
+}
+
 // Pre-request cost estimate (spec 4.1: chars/4 x 3). Written when the section
 // is built and rewritten whenever the article underneath it changes -- the
 // section survives an in-place replacement, so without the second call the
@@ -1257,8 +1284,7 @@ function _pbpTrRenderEstimate(st, est) {
   est = est || document.getElementById("tr-estimate");
   if (!est) return;
   const chars = st.approxChars || st.work.reduce((a, w) => a + w.shielded.text.length, 0);
-  est.textContent = t("trEstCost", String(pbpAiEstimateTokens(chars) * 3),
-    (st.s.aiProvider || "gemini") + "/" + (pbpAiResolveModelOverride(st.s) || "default"));
+  est.textContent = t("trEstCost", String(pbpAiEstimateTokens(chars) * 3), _pbpTrModelLabel(st.s));
 }
 
 function _pbpTrBuildSection(st) {
@@ -1631,6 +1657,15 @@ async function _pbpTrApplyTargetLang(st, s) {
   const uiLang = typeof uiLangToBCP47 === "function" ? uiLangToBCP47() : "";
   const prevCode = st.target && st.target.code;
   st.target = pbpTrResolveTargetLang(s, uiLang);
+  // window.pbpTrExportTargetLang (EPUB dc:language, md-preview.js) reads the
+  // RAW setting off st.s, which was frozen at pbpTrInit -- mirror just this
+  // ONE field so an export after a switch carries the language the reader
+  // actually picked. `s` is usually the partial {translateTargetLang} object
+  // the onChanged listener passes, never a full settings snapshot, so this
+  // must stay a single-field assignment. Done before the same-code early
+  // return: "auto" -> the code it already resolved to is a real change to the
+  // raw setting even though st.target.code does not move.
+  if (st.s) st.s.translateTargetLang = s.translateTargetLang;
   if (st.tgtTextEl) st.tgtTextEl.textContent = t("trTargetLang", st.target.display || st.target.name);
   if (st.target.code === prevCode) return;   // label refresh only: no real language change
   // Target language actually changed: every language-keyed derived state is now stale.
@@ -1645,7 +1680,16 @@ async function _pbpTrApplyTargetLang(st, s) {
   // visibilitychange flush, and st.cacheMeta.ag would inject the OLD
   // language's auto glossary into the new language's prompts.
   _pbpTrResetTranslations(st);
+  // st.approxChars was summed with the OLD target code (pbpTrBlockIsTargetLang
+  // excludes blocks already in the target language, which is language-
+  // dependent), and _pbpTrRenderEstimate prefers it -- while the idle branch
+  // only unhides the estimate without rewriting it. Drop the stale figure and
+  // re-price from st.work for the new language, or the rail keeps showing the
+  // previous target's number (a partial state's "remaining" quote, even
+  // though the reset just emptied st.trMd).
+  st.approxChars = 0;
   _pbpTrSetStatus(st, "idle");
+  _pbpTrRenderEstimate(st);
 }
 
 // Bounded-concurrency map: run fn over items, at most `limit` in flight, results
@@ -2264,7 +2308,12 @@ function _pbpTrMarkPartial(st, w, failedParts) {
 // the A7 shape gate below, which degrades just that one part instead (D7:
 // caller must skip caching when partial is true). Parts reassemble in order
 // with their original separators.
-async function _pbpTrTranslateBlock(st, w, signal) {
+// lang / langName: the target pinned by the caller at initiation (D8 snapshot
+// discipline). The per-chunk loop below re-reads them every pass, so reading
+// st.target here would let a target-language change landing mid-block bring
+// the later chunks back in a DIFFERENT language than the first. Callers that
+// pass nothing keep today's read-from-state behavior.
+async function _pbpTrTranslateBlock(st, w, signal, lang = st.target.code, langName = st.target.name) {
   const glossary = st.glossary || pbpTrParseGlossary(st.s.translateGlossary);
   const split = w.shielded.text.length <= PBP_TR_PART_LIMIT
     ? { chunks: [w.shielded.text], seps: [""] }
@@ -2295,7 +2344,7 @@ async function _pbpTrTranslateBlock(st, w, signal) {
     // silently degrades to the generic one, so a retried block comes back in a
     // visibly different house style from its neighbours -- and gets cached that way.
     const { system, prompt } = pbpTrBuildPrompt({
-      targetLanguage: st.target.name, targetCode: st.target.code, title: st.title,
+      targetLanguage: langName, targetCode: lang, title: st.title,
       summary, glossary: hits, segments: [seg]
     });
     let got = null;
@@ -2306,7 +2355,7 @@ async function _pbpTrTranslateBlock(st, w, signal) {
     parser.finish(full);
     // Conservation/length-ratio gates compare SENT vs RETURNED text, same as
     // the queue path -- ctx is present on both sides here, so it can't skew them.
-    if (typeof got !== "string" || !pbpTrPlaceholdersConserved(sendText, got) || !pbpTrLengthRatioOk(sendText, got, st.target.code)) {
+    if (typeof got !== "string" || !pbpTrPlaceholdersConserved(sendText, got) || !pbpTrLengthRatioOk(sendText, got, lang)) {
       throw new Error("invalid single-block translation");
     }
     const safe = _pbpTrCtxStripSafe(got, useCtx ? ctx.lines : 0);
@@ -2331,6 +2380,15 @@ async function _pbpTrRetryBlock(st, w, btn) {
   if (st.running) return;   // a batch run owns the queue + cache; don't fire a concurrent single-block request
   if (btn.disabled) return;
   btn.disabled = true;
+  // Target-language snapshot, same discipline as _pbpTrFlushCache's D8
+  // constraint: a language change is only DEFERRED while st.running is set,
+  // and this path deliberately never sets it -- so the switch (and the reset
+  // that comes with it) can land while this request is in flight. Pin the
+  // language at initiation, send it to the request, and re-check it after the
+  // await; tr_ entries have no TTL, so one old-language block filed under the
+  // new language's key would be restored as a "hit" indefinitely.
+  const lang = st.target.code;
+  const langName = st.target.name;
   const label = btn.querySelector("span");
   if (st.permissionError) {
     if (label) label.textContent = t("aiGrantRetry");
@@ -2346,7 +2404,16 @@ async function _pbpTrRetryBlock(st, w, btn) {
   const onHide = () => ctrl.abort();
   window.addEventListener("pagehide", onHide, { once: true });
   try {
-    const result = await _pbpTrTranslateBlock(st, w, ctrl.signal);
+    const result = await _pbpTrTranslateBlock(st, w, ctrl.signal, lang, langName);
+    if (st.target.code !== lang) {
+      // The reader switched target language while this was in flight.
+      // _pbpTrApplyTargetLang already emptied st.trMd and removed every .pb-tr
+      // / pill for this page, so this answer describes a language nobody asked
+      // for any more: never fill it, never cache it under either key.
+      btn.remove();
+      _pbpTrSyncRetryAll();
+      return;
+    }
     // Fill BEFORE removing the pill: _pbpTrFill creates/updates the .pb-tr
     // sibling we want to move focus into. If the pill (btn) is the currently
     // focused element, hand focus to that new .pb-tr instead of letting
@@ -2374,7 +2441,7 @@ async function _pbpTrRetryBlock(st, w, btn) {
       one[w.hash] = result.text;
       // st.runMeta may be undefined (retry without a prior run this session);
       // a meta-less write keeps the stored meta untouched (D5 semantics).
-      try { await pbpTrCacheSet(st.url, st.target.code, st.modelKey, one, st.account, st.runMeta); } catch (_) {}
+      try { await pbpTrCacheSet(st.url, lang, st.modelKey, one, st.account, st.runMeta); } catch (_) {}
     }
     _pbpTrShowViewToggle(st);
     if (st.work.every((x) => x.n in st.trMd)) _pbpTrSetStatus(st, "done");
@@ -2434,12 +2501,41 @@ async function _pbpTrRetryAllFailed(st) {
     if (recovered) st.permissionError = null;
     else canRetry = false;
   }
-  if (canRetry) {
+  if (canRetry && pills.length) {
+    // Every pass here is a full LLM round trip, and the only things that move
+    // are the pills scattered through the article -- almost never the part of
+    // the page the reader is looking at, since the click happened on the rail.
+    // Count the passes into the progress line (guaranteed visible in both
+    // statuses that show retry-all, see above) and into the collapsed-header
+    // mini counter, reusing the run's own trProgress wording and onProgress's
+    // write pattern. aria-busy for the same reason the run sets it: one
+    // announcement at the end, not one per block.
+    const prog = document.getElementById("tr-progress");
+    const headProg = document.querySelector("#tr-section .rail-sec-progress");
+    const total = pills.length;
+    const prevText = prog ? prog.textContent : "";
+    if (prog) prog.setAttribute("aria-busy", "true");
+    let i = 0;
     for (const btn of pills) {
+      // Written BEFORE the request: writing after each await would let the
+      // last pass overwrite the "Done · N segments" _pbpTrRetryBlock paints
+      // through _pbpTrSetStatus when the final outstanding block fills.
+      i += 1;
+      if (prog) prog.textContent = t("trProgress", String(i), String(total));
+      if (headProg) headProg.textContent = "(" + i + "/" + total + ")";
       const n = Number(btn.dataset.pbTrErr);
       const w = st.work.find((x) => x.n === n);
       if (w) await _pbpTrRetryBlock(st, w, btn);
       if (st.permissionError) break;
+    }
+    // The counter is transient; the terminal line belongs to whoever owns the
+    // end state. Everything filled -> _pbpTrRetryBlock already wrote trDone,
+    // leave it. Blocks still failing -> restore the failure summary the run
+    // left, or the rail would settle on a meaningless "N / N segments".
+    if (headProg) headProg.textContent = "";
+    if (prog) {
+      if (document.querySelectorAll(".pb-tr-err").length) prog.textContent = prevText;
+      prog.removeAttribute("aria-busy");
     }
   }
   _pbpTrSyncRetryAll();
@@ -2487,8 +2583,7 @@ function _pbpTrSetStatus(st, status) {
     const remaining = st.work.reduce((a, w) => (w.n in st.trMd) ? a : a + w.shielded.text.length, 0);
     if (remaining > 0) {
       est.hidden = false;
-      est.textContent = t("trEstCost", String(pbpAiEstimateTokens(remaining) * 3),
-        (st.s.aiProvider || "gemini") + "/" + (pbpAiResolveModelOverride(st.s) || "default"));
+      est.textContent = t("trEstCost", String(pbpAiEstimateTokens(remaining) * 3), _pbpTrModelLabel(st.s));
     } else {
       est.hidden = true;
     }
@@ -2512,8 +2607,7 @@ function _pbpTrSetStatus(st, status) {
       const chars = st.work.reduce((a, w) =>
         (st.skippedSet && st.skippedSet.has(w.n)) ? a : a + w.shielded.text.length, 0);
       est.hidden = false;
-      est.textContent = t("trEstCost", String(pbpAiEstimateTokens(chars) * 3),
-        (st.s.aiProvider || "gemini") + "/" + (pbpAiResolveModelOverride(st.s) || "default"));
+      est.textContent = t("trEstCost", String(pbpAiEstimateTokens(chars) * 3), _pbpTrModelLabel(st.s));
     } else {
       est.hidden = true;
     }
@@ -2535,6 +2629,18 @@ function _pbpTrSetStatus(st, status) {
     est.hidden = false;
     const usg = document.getElementById("tr-usage");
     if (usg) usg.hidden = true;          // T4: language reset clears the stale usage line
+  }
+  // #tr-progress is role=status + aria-live=polite and onProgress rewrites it
+  // once per filled OR failed block, so a long article queued one polite
+  // announcement per segment and buried the terminal summary under them. Same
+  // suppression .ask-a uses while streaming (md-ask.js): mute the region for
+  // the run, let the terminal text (trDone / the failure summary / idle) be
+  // the one thing a screen reader hears. Decided here for EVERY status rather
+  // than per branch, so a future fifth status can never strand the region
+  // permanently muted.
+  if (prog) {
+    if (status === "translating") prog.setAttribute("aria-busy", "true");
+    else prog.removeAttribute("aria-busy");
   }
   // The stale note's second action is status-dependent (partial-only): keep it
   // in step with every status transition through the one sync point.
