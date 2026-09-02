@@ -1121,6 +1121,20 @@ suite("md-ai IDB key conventions", () => {
     const k = _pbpTrCacheKey("https://a.test/x", "zh-CN", "gemini-3.5-flash-lite", "alice");
     assert(k === "tr_acct_alice_zh-CN_gemini-3.5-flash-lite_" + pbpAiHash("https://a.test/x"), "got: " + k);
   });
+  test("the translation families key off the NORMALIZED url, like ask_ and skim_", () => {
+    // A #anchor or ?utm= arrival of one article must not buy a second full
+    // translation (or a second glossary extraction, or a second view state).
+    const tr = (u) => _pbpTrCacheKey(u, "zh-CN", "m", "alice");
+    assertEq(tr("https://a.test/post#comments"), tr("https://a.test/post"), "plain fragment shares the tr_ entry");
+    assertEq(tr("https://a.test/post?utm_source=rss"), tr("https://a.test/post"), "tracker param shares the tr_ entry");
+    assert(tr("https://a.test/post#/doc/A") !== tr("https://a.test/post#/doc/B"), "hash-router routes stay distinct");
+    assert(tr("https://a.test/other") !== tr("https://a.test/post"), "different articles stay distinct");
+    const view = (u) => _pbpTrViewKey(u, "alice");
+    assertEq(view("https://a.test/post#comments"), view("https://a.test/post"), "trview_ normalized too");
+    const gloss = (u) => _pbpTrGlossaryCacheKey(u, "zh-CN", "m", "alice");
+    assertEq(gloss("https://a.test/post?utm_medium=x"), gloss("https://a.test/post"), "gloss_ normalized too");
+    assert(typeof tr("not a url") === "string", "unparsable url tolerated");
+  });
   test("ask_ includes the owner namespace and normalizes the URL", () => {
     assert(_pbpAskHistKey("https://a.test/x", "alice") === "ask_acct_alice_" + pbpAiHash(pbpAiCacheUrlNorm("https://a.test/x")), "owner-scoped ask key");
     assert(_pbpAskHistKey("https://a.test/x") === "ask_ownerless_" + pbpAiHash(pbpAiCacheUrlNorm("https://a.test/x")), "ownerless ask key");
@@ -2927,6 +2941,33 @@ suiteIf("ask chip pass", "pbpAskBuildContext", () => {
     assert(!chips[1].classList.contains("verified"), "unsent paragraph stays unverified");
     assertEq(chips[1].dataset.qs, undefined, "no offsets for unsent paragraph");
   });
+  test("a quote that only matches past the per-block send cap never earns verified", () => {
+    // pbpAskBuildContext.lineOf truncates every block at PBP_ASK_BLOCK_CAP
+    // before it reaches the model, so text beyond that point was never sent.
+    // Verifying against it would hand a solid "verified" chip - and precise
+    // jump offsets - to a quote the model could only have invented.
+    const head = "alpha beta gamma ".repeat(600);   // 10200 chars > PBP_ASK_BLOCK_CAP
+    makeBlocks("<p>" + head + "distinctive tail phrase never sent</p>");
+    assert(pbpAiTextOfKatex(1).length > PBP_ASK_BLOCK_CAP, "control: the block outgrows the cap");
+    const a = document.createElement("div");
+    a.innerHTML = "<p>See [P1].</p>";
+    _pbpAskChipPass(a, [{ p: 1, quote: "distinctive tail phrase never sent" }]);
+    const chip = a.querySelector(".ask-chip");
+    assert(chip && !chip.classList.contains("verified"), "beyond-cap hit stays unverified");
+    assertEq(chip.dataset.qs, undefined, "and carries no jump offsets");
+  });
+  test("a quote inside the send cap still verifies on an over-cap block", () => {
+    // Control for the test above: the truncation must bound the window, not
+    // disable verification on long blocks altogether.
+    const tail = " alpha beta gamma".repeat(600);
+    makeBlocks("<p>distinctive head phrase actually sent" + tail + "</p>");
+    const a = document.createElement("div");
+    a.innerHTML = "<p>See [P1].</p>";
+    _pbpAskChipPass(a, [{ p: 1, quote: "distinctive head phrase actually sent" }]);
+    const chip = a.querySelector(".ask-chip");
+    assert(chip && chip.classList.contains("verified"), "in-window hit still verifies");
+    assertEq(chip.dataset.qs, "0", "offsets stay block-relative");
+  });
   test("jump skips precise offsets inside KaTeX-rendered blocks", () => {
     const src = _pbpAskJump.toString();
     assert(src.indexOf('!orig.querySelector(".katex")') !== -1,
@@ -3810,6 +3851,21 @@ suiteIf("_pbpTrApplyTargetLang", "_pbpTrApplyTargetLang", () => {
     } finally {
       document.body.removeChild(note);
     }
+  });
+  test("#41: a real change refreshes the raw setting on st.s and drops the old-language char estimate", () => {
+    const st = {
+      s: { aiProvider: "gemini", translateTargetLang: "en", translateGlossary: "" },
+      target: { code: "en", name: "English", display: "English" },
+      work: [], trMd: {}, mode: "original", approxChars: 4321
+    };
+    _pbpTrApplyTargetLang(st, { translateTargetLang: "ja" });
+    // window.pbpTrExportTargetLang (EPUB dc:language) reads st.s, so a frozen
+    // value exports the PREVIOUS target language.
+    assertEq(st.s.translateTargetLang, "ja", "raw setting mirrored onto st.s");
+    assertEq(st.s.aiProvider, "gemini", "single-field update: the rest of the settings snapshot is untouched");
+    // approxChars was summed with the old target code (skip detection is
+    // language-dependent) and wins over st.work in _pbpTrRenderEstimate.
+    assertEq(st.approxChars, 0, "stale per-language char estimate dropped so the price is recomputed");
   });
 });
 
@@ -6051,6 +6107,100 @@ suiteIf("_pbpSearchRangesOverlap", "_pbpSearchRangesOverlap", () => {
   });
 });
 
+// ============ R4: _pbpSearchVisibleCandidates hidden-child filter (md-reader.js) ============
+suiteIf("_pbpSearchVisibleCandidates ([hidden] children)", "_pbpSearchVisibleCandidates", () => {
+  // Detached on purpose: the function only reads view.children plus body
+  // classes, so no mount is needed and no other suite's #rendered-view fixture
+  // is disturbed.
+  function view(html) {
+    const d = document.createElement("div");
+    d.innerHTML = html;
+    return d;
+  }
+  test("a rendered mermaid's hidden source <pre> is not a search candidate", () => {
+    // md-mermaid.js keeps the source <pre> in the DOM (re-render source +
+    // degrade surface) and sets pre.hidden; md-preview.css hides it with
+    // display:none !important.
+    const v = view('<p>visible prose</p><pre hidden>graph TD; A--&gt;B</pre>');
+    const out = _pbpSearchVisibleCandidates(v);
+    assertEq(out.length, 1, "hidden diagram source counted as a candidate");
+    assertEq(out[0].tagName, "P", "wrong candidate kept");
+  });
+  test("the filter is by the [hidden] attribute, not by tag: any hidden top-level child drops out", () => {
+    const v = view('<div hidden>hidden block</div><p>visible prose</p><section hidden>also hidden</section>');
+    const out = _pbpSearchVisibleCandidates(v);
+    assertEq(out.length, 1, "hidden children of other tags survived the filter");
+    assertEq(out[0].tagName, "P", "wrong candidate kept");
+  });
+  test("visible children are all still candidates (the filter did not narrow the search domain)", () => {
+    const v = view('<p>one</p><p>two</p><blockquote>three</blockquote>');
+    assertEq(_pbpSearchVisibleCandidates(v).length, 3, "visible blocks lost");
+  });
+});
+
+// ============ R4: page-session query memory across close/reopen (md-reader.js) ============
+suiteIf("_pbpSearchOpen (query memory)", "_pbpSearchOpen", () => {
+  // Prepended for the same reason _t4View prepends: another suite may already
+  // own the #rendered-view id and getElementById takes the first match.
+  function prependView(html) {
+    const v = document.createElement("div");
+    v.id = "rendered-view";
+    v.innerHTML = html;
+    document.body.insertBefore(v, document.body.firstChild);
+    return v;
+  }
+  function cleanup(v, realScroll) {
+    if (realScroll) window.pbpScrollIntoView = realScroll;
+    try { _pbpSearchTeardown(); } catch (_) {}
+    const pop = document.getElementById("search-pop");
+    if (pop && pop.matches(":popover-open")) pop.hidePopover();
+    if (v) v.remove();
+    _pbpSearchLastQuery = "";
+    _pbpSearchLastIdx = 0;
+  }
+  test("reopening the bar restores the last query instead of an empty box", () => {
+    const v = prependView("<p>gamma delta</p>");
+    try {
+      _pbpSearchOpen();
+      document.getElementById("search-input").value = "gamma";
+      _pbpSearchRun("gamma");
+      _pbpSearchOpen(); // models Esc (teardown) followed by "/" again
+      assertEq(document.getElementById("search-input").value, "gamma", "reopen cleared the query");
+    } finally { cleanup(v); }
+  });
+  test("reopening restores the remembered hit without scrolling back to hit 1", () => {
+    const v = prependView("<p>alpha one</p><p>alpha two</p><p>alpha three</p>");
+    const realScroll = window.pbpScrollIntoView;
+    let scrolls = 0;
+    window.pbpScrollIntoView = () => { scrolls++; };
+    try {
+      _pbpSearchOpen();
+      document.getElementById("search-input").value = "alpha";
+      _pbpSearchRun("alpha");
+      assertEq(_pbpSearchState.matches.length, 3, "fixture did not produce three hits");
+      assertEq(scrolls, 1, "a fresh run should jump to hit 1");
+      _pbpSearchStep(1); // the reader walked on to hit 2, then closed the bar
+      assertEq(scrolls, 2, "stepping should jump");
+      _pbpSearchOpen();
+      assertEq(document.getElementById("search-input").value, "alpha", "reopen cleared the query");
+      assertEq(_pbpSearchState.idx, 1, "reopen lost the reader's place in the match list");
+      assertEq(document.getElementById("search-count").textContent, "2 / 3", "counter does not describe the restored hit");
+      assertEq(scrolls, 2, "restoring the query yanked the viewport back to a hit");
+    } finally { cleanup(v, realScroll); }
+  });
+  test("clearing the box is itself remembered: the next open is empty", () => {
+    const v = prependView("<p>epsilon zeta</p>");
+    try {
+      _pbpSearchOpen();
+      document.getElementById("search-input").value = "epsilon";
+      _pbpSearchRun("epsilon");
+      _pbpSearchRun(""); // the reader deleted the query before closing
+      _pbpSearchOpen();
+      assertEq(document.getElementById("search-input").value, "", "a deleted query came back");
+    } finally { cleanup(v); }
+  });
+});
+
 // ============ Skim layer: pbpSkimBuildPrompt ============
 suiteIf("pbpSkimBuildPrompt", "pbpSkimBuildPrompt", () => {
   test("system requires 3-5 bullet points as a markdown unordered list", () => {
@@ -6122,6 +6272,36 @@ suiteIf("skim sent-set gating", "_pbpSkimFinalize", () => {
   });
 });
 
+suiteIf("skim error attribution", "_pbpSkimShowError", () => {
+  test("failures are classified and an active model override is named", () => {
+    const body = document.createElement("div");
+    body.id = "skim-body";
+    document.body.appendChild(body);
+    const saved = _pbpSkimState;
+    const text = () => body.querySelector(".skim-err").textContent;
+    try {
+      _pbpSkimState = { s: { aiProvider: "openai", previewAiModelByProvider: { openai: "gpt-oops" } } };
+      _pbpSkimShowError({ status: 401, message: "openai: Incorrect API key provided" });
+      assertEq(text(), "trErrKey", "401 names the key, not a generic failure");
+      _pbpSkimShowError({ status: 429, message: "slow down" });
+      assertEq(text(), "trErrQuota", "429 names the quota");
+      _pbpSkimShowError({ code: "model_not_found", message: "model gpt-oops does not exist" });
+      assertEq(text(), "model gpt-oops does not exist previewAiOverrideErrHint",
+        "a coded failure keeps its own message and names the preview override");
+      _pbpSkimShowError({});
+      assertEq(text(), "skimFailed",
+        "a message-less rejection falls back to skim's own line, never ai.js's translate literal");
+      _pbpSkimShowError({ code: "host_permission", message: "grant access to the provider" });
+      assertEq(text(), "grant access to the provider", "permission text still passes through verbatim");
+      assert(body.querySelector(".skim-retry").textContent.indexOf("aiGrantRetry") !== -1,
+        "and its retry keeps the grant-flavoured label");
+    } finally {
+      _pbpSkimState = saved;
+      body.remove();
+    }
+  });
+});
+
 suiteIf("skim cache key normalization", "_pbpSkimCacheKey", () => {
   test("fragment and tracking-param variants share one cache key", () => {
     const base = _pbpSkimCacheKey("https://e.com/article?id=7");
@@ -6149,6 +6329,26 @@ suiteIf("skim cache metadata", "_pbpSkimCacheMeta", () => {
     assert(a.modelKey !== b.modelKey, "configured-model switch changes identity");
     const g = _pbpSkimCacheMeta({ s: { aiProvider: "gemini", aiSummaryLang: "en" } });
     assertEq(g.modelKey, "gemini:gemini-3.5-flash-lite", "provider default resolved, not 'default'");
+  });
+
+  test("a custom backend for the SAME provider:model is a different identity", () => {
+    // Same model name on two hosts is two different models: a switched
+    // ollamaBaseUrl / baseField must miss instead of replaying the previous
+    // backend's paid key points.
+    const local = _pbpSkimCacheMeta({ s: { aiProvider: "ollama", ollamaModel: "llama3.2", aiSummaryLang: "en" } });
+    const remote = _pbpSkimCacheMeta({ s: { aiProvider: "ollama", ollamaModel: "llama3.2", ollamaBaseUrl: "http://192.168.1.9:11434", aiSummaryLang: "en" } });
+    assert(local.modelKey !== remote.modelKey, "ollama host switch changes identity");
+    const otherHost = _pbpSkimCacheMeta({ s: { aiProvider: "ollama", ollamaModel: "llama3.2", ollamaBaseUrl: "http://192.168.1.10:11434", aiSummaryLang: "en" } });
+    assert(remote.modelKey !== otherHost.modelKey, "two custom hosts stay distinct");
+    const proxied = _pbpSkimCacheMeta({ s: { aiProvider: "openai", openaiModel: "m-A", openaiBaseUrl: "https://proxy.test/v1", aiSummaryLang: "en" } });
+    assert(proxied.modelKey !== _pbpSkimCacheMeta({ s: { aiProvider: "openai", openaiModel: "m-A", aiSummaryLang: "en" } }).modelKey,
+      "openai baseField switch changes identity");
+    // A configuration that still points at the provider's built-in base keeps
+    // the key it already has -- an upgrade must not orphan stored entries.
+    assertEq(_pbpSkimCacheMeta({ s: { aiProvider: "ollama", ollamaModel: "llama3.2", ollamaBaseUrl: "http://localhost:11434/", aiSummaryLang: "en" } }).modelKey,
+      local.modelKey, "explicit default base (trailing slash included) = no endpoint term");
+    assertEq(_pbpSkimCacheMeta({ s: { aiProvider: "openai", openaiModel: "m-A", openaiBaseUrl: "https://api.openai.com/v1", aiSummaryLang: "en" } }).modelKey,
+      "openai:m-A", "explicit built-in base = no endpoint term");
   });
 
   test("cache entry with same blocks/lang/model matches", () => {
@@ -6851,6 +7051,44 @@ suite("skim status line", () => {
         wrap.remove();
       }
     });
+
+    // #100: retry-all is a sequential chain of full LLM round trips whose only
+    // moving parts are pills scattered through the article, so the rail (where
+    // the click happened) must say how far along it is.
+    await atest("retry-all reports its progress on the rail and restores the failure summary", async () => {
+      const realStream = window.callAIStream;
+      const wrap = document.createElement("div");
+      wrap.innerHTML =
+        '<div id="tr-section"><span class="rail-sec-progress"></span></div>' +
+        '<div id="tr-progress">2 segments failed: offline</div>' +
+        '<button id="tr-retry-all"><span>retry all</span></button>' +
+        '<button class="pb-tr-err" data-pb-tr-err="1"><span>retry</span></button>' +
+        '<button class="pb-tr-err" data-pb-tr-err="2"><span>retry</span></button>';
+      document.body.appendChild(wrap);
+      // Resolve the way production does (first match wins) so the assertions
+      // read exactly the node the code under test writes to.
+      const prog = document.getElementById("tr-progress");
+      const mini = document.querySelector("#tr-section .rail-sec-progress");
+      const entryText = prog.textContent;
+      const seen = [];
+      window.callAIStream = async () => {
+        seen.push({ mini: mini.textContent, moved: prog.textContent !== entryText });
+        throw new Error("still offline");
+      };
+      try {
+        await _pbpTrRetryAllFailed(retryAllState(null));
+        assertEq(seen.length, 2, "both pills were retried");
+        assertEq(seen.map((x) => x.mini).join(","), "(1/2),(2/2)",
+          "the collapsed-header counter advances once per pass");
+        assert(seen.every((x) => x.moved), "the progress line is rewritten while the retries run");
+        assertEq(mini.textContent, "", "mini counter cleared at the end");
+        assertEq(prog.textContent, entryText,
+          "still-failing blocks get the failure summary back, not a meaningless N / N");
+      } finally {
+        window.callAIStream = realStream;
+        wrap.remove();
+      }
+    });
   } finally {
     window.requestAIHostPermissions = realRequest;
   }
@@ -7216,6 +7454,40 @@ suiteIf("tr stale retranslate (ZH-1b)", "_pbpTrRetranslate", () => {
       assertEq(note.textContent, "trStaleMixed", "mixed gets its own wording");
       _pbpTrSyncStaleNote({ staleVerdict: null });
       assertEq(note.hidden, true); assertEq(note.textContent, "");
+    } finally { wrap.remove(); }
+  });
+});
+
+suiteIf("tr progress live region (#99)", "_pbpTrSetStatus", () => {
+  function liveFixture() {
+    const wrap = document.createElement("div");
+    wrap.innerHTML =
+      '<button id="btn-translate"><span class="btn-label">x</span></button>' +
+      '<button id="btn-tr-stop" hidden></button>' +
+      '<div id="tr-progress" role="status" aria-live="polite" hidden></div>' +
+      '<div id="tr-estimate" hidden></div>';
+    document.body.appendChild(wrap);
+    return wrap;
+  }
+  test("aria-busy suppresses the per-block counter during a run and clears on EVERY terminal status", () => {
+    const wrap = liveFixture();
+    try {
+      const prog = document.getElementById("tr-progress");   // the node production resolves too
+      const st = {
+        work: [{ n: 1, shielded: { text: "hello world" } }], trMd: {},
+        s: { aiProvider: "gemini" }, mode: "original"
+      };
+      _pbpTrSetStatus(st, "translating");
+      // onProgress rewrites this element once per filled/failed block; without
+      // the mute a 200-block article queues 200 polite announcements.
+      assertEq(prog.getAttribute("aria-busy"), "true", "muted while blocks stream in");
+      // Category, not instances: EVERY status that ends a run must unmute, or
+      // the region stays silent for the rest of the page's life.
+      for (const terminal of ["partial", "done", "idle"]) {
+        _pbpTrSetStatus(st, "translating");
+        _pbpTrSetStatus(st, terminal);
+        assertEq(prog.hasAttribute("aria-busy"), false, terminal + " unmutes the region");
+      }
     } finally { wrap.remove(); }
   });
 });
@@ -7665,6 +7937,95 @@ suiteIf("tr_ independent cache pool (ZH-6)", "_pbpAiTrRange", () => {
       assertEq(st.status, "idle", "no state transition on a full miss");
     } finally {
       await pbpAiCacheDelete(key);
+    }
+  });
+
+  // #40: skipped blocks (already written in the target language) are
+  // deliberately never cached, so a completeness verdict counting cache hits
+  // alone reopened every article carrying one as "partial" -- forever, since
+  // the skip pass runs after the probe and only re-renders a stale `done`.
+  const zhSkipBlock = "这是一段完全用简体中文书写的句子用来测试翻译跳过逻辑是否正确工作";
+  await atest("#40 probe: cache hits + already-target-language blocks together count as a FULL hit", async () => {
+    const url = "https://pbp-test/probe-skip-" + Date.now();
+    const key = _pbpTrCacheKey(url, "zh-Hans", "p:m", "acct");
+    await pbpTrCacheSet(url, "zh-Hans", "p:m", { hEN: "英文块的译文" }, "acct",
+      { pg: PBP_TR_PROMPT_GEN, gf: "", sm: 0 });
+    const dom = retrFixtureDom();
+    const st = retrFixtureSt(url);
+    st.status = "idle";
+    st.staleVerdict = null;
+    st.work = [
+      { n: 1, md: "hello world", hash: "hEN", shielded: { text: "hello world", slots: [] } },
+      { n: 2, md: zhSkipBlock, hash: "hZH", shielded: { text: zhSkipBlock, slots: [] } }
+    ];
+    try {
+      await _pbpTrProbeCache(st);
+      // "done" is also the ONLY branch that restores the remembered
+      // bilingual/translated view (pbpTrViewGet) and hides the Continue price.
+      assertEq(st.status, "done", "nothing left to request -> done, not partial");
+      assertEq(st.trMd[2], zhSkipBlock, "the skipped block counts as translated by its own original");
+    } finally {
+      dom.remove();
+      await pbpAiCacheDelete(key);
+      await pbpAiCacheDelete(_pbpTrViewKey(url, "acct"));
+    }
+  });
+
+  await atest("#40 counterpart: a genuinely untranslated block still reports partial", async () => {
+    const url = "https://pbp-test/probe-partial-" + Date.now();
+    const key = _pbpTrCacheKey(url, "zh-Hans", "p:m", "acct");
+    await pbpTrCacheSet(url, "zh-Hans", "p:m", { hEN: "英文块的译文" }, "acct",
+      { pg: PBP_TR_PROMPT_GEN, gf: "", sm: 0 });
+    const dom = retrFixtureDom();
+    const st = retrFixtureSt(url);
+    st.status = "idle";
+    st.staleVerdict = null;
+    const pending = "This second block is plain English prose that no skip rule may ever claim as done";
+    st.work = [
+      { n: 1, md: "hello world", hash: "hEN", shielded: { text: "hello world", slots: [] } },
+      { n: 2, md: pending, hash: "hMISS", shielded: { text: pending, slots: [] } }
+    ];
+    try {
+      await _pbpTrProbeCache(st);
+      assertEq(st.status, "partial", "a real hole still offers Continue");
+      assert(!(2 in st.trMd), "and the untranslated block stays pending");
+    } finally {
+      dom.remove();
+      await pbpAiCacheDelete(key);
+      await pbpAiCacheDelete(_pbpTrViewKey(url, "acct"));
+    }
+  });
+
+  await atest("#39: a target-language switch mid-retry discards the answer instead of filing it under the new key", async () => {
+    const url = "https://pbp-test/retry-lang-" + Date.now();
+    const dom = retrFixtureDom();
+    const st = retrFixtureSt(url);
+    st.status = "partial";
+    st.staleVerdict = null;
+    const pill = document.createElement("button");   // detached: retry-all suites walk .pb-tr-err document-wide
+    pill.className = "pb-tr-err";
+    pill.dataset.pbTrErr = "1";
+    pill.appendChild(document.createElement("span"));
+    const realStream = window.callAIStream;
+    const realSet = window.pbpTrCacheSet;
+    const writes = [];
+    window.pbpTrCacheSet = async (u, lang) => { writes.push(lang); };
+    window.callAIStream = async (s, prompt, opts, onDelta) => {
+      // The options page switches the target while this request is in flight;
+      // the retry path never sets st.running, so the change is applied at once.
+      st.target = { code: "ja", name: "Japanese" };
+      const full = '{"translations":[{"id":1,"text":"NEW TRANSLATION TEXT"}]}';
+      onDelta(full, full);
+      return full;
+    };
+    try {
+      await _pbpTrRetryBlock(st, st.work[0], pill);
+      assert(!(1 in st.trMd), "an old-language translation must not be filled into the new-language page");
+      assertEq(writes.length, 0, "and must not be written under ANY language key (tr_ entries have no TTL)");
+    } finally {
+      window.callAIStream = realStream;
+      window.pbpTrCacheSet = realSet;
+      dom.remove();
     }
   });
 
@@ -8791,6 +9152,103 @@ window._t4AsyncDone = (async function () {
     const clear = document.getElementById("ask-clear");
     if (clear) clear.remove();
   }
+
+  // #ask-thread is the panel's scroll container (md-preview.css: flex:1,
+  // min-height:0, overflow-y:auto) and an answer grows DOWNWARD, which browser
+  // scroll anchoring does not compensate. Give the harness thread the same
+  // shape so the follow behaviour is observable at all.
+  function mkScrollingThread() {
+    const bits = mkThread();
+    bits.thread.style.height = "60px";
+    bits.thread.style.overflowY = "auto";
+    const filler = document.createElement("div");
+    filler.style.height = "400px";
+    bits.thread.appendChild(filler);
+    return bits;
+  }
+  const LONG_ANSWER = "Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod. ".repeat(120);
+  function bottomGap(thread) {
+    return thread.scrollHeight - thread.scrollTop - thread.clientHeight;
+  }
+  // Streams one long delta in a single chunk, then hangs until abort.
+  function streamLongUntilAbort() {
+    return (s, prompt, opts, onDelta) => new Promise((resolve, reject) => {
+      onDelta(LONG_ANSWER, LONG_ANSWER);
+      opts.signal.addEventListener("abort", () => {
+        const err = new Error("aborted");
+        err.name = "AbortError";
+        reject(err);
+      });
+    });
+  }
+
+  await atest("the streaming paint keeps a bottom-parked thread at the bottom", async () => {
+    const bits = mkScrollingThread();
+    const saved = _pbpAskState, savedStream = window.callAIStream;
+    const st = mkAskState("https://example.test/t4-follow-" + Date.now());
+    _pbpAskState = st;
+    window.callAIStream = streamLongUntilAbort();
+    try {
+      const aEl = mkAnswerEl(bits.thread, "follow question");
+      bits.thread.scrollTop = bits.thread.scrollHeight;   // the reader is at the foot
+      assert(bottomGap(bits.thread) <= 32, "control: the thread starts parked at its bottom");
+      const p = _pbpAskRun("follow question", aEl);
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      assert(bits.thread.scrollHeight > 460, "control: the streamed answer overflows the container");
+      assert(bottomGap(bits.thread) <= 32,
+        "the rAF paint follows the stream (gap " + bottomGap(bits.thread) + "px)");
+      st.ctrl.abort();                                    // teardown only
+      await p;
+    } finally {
+      askCleanup(bits, saved, savedStream);
+    }
+  });
+
+  await atest("finalize re-pins after the markdown render and the chip/button row", async () => {
+    // The stream ends and the bubble grows AGAIN: plain text becomes rendered
+    // markdown, citation chips appear, and the copy/regenerate row is appended.
+    const bits = mkScrollingThread();
+    const saved = _pbpAskState, savedStream = window.callAIStream;
+    const st = mkAskState("https://example.test/t4-finalize-pin-" + Date.now());
+    _pbpAskState = st;
+    // Resolves immediately, so the pending rAF paint is cancelled and finalize
+    // is the only thing that can move the thread.
+    window.callAIStream = (s, prompt, opts, onDelta) => {
+      onDelta(LONG_ANSWER, LONG_ANSWER);
+      return Promise.resolve(LONG_ANSWER);
+    };
+    try {
+      const aEl = mkAnswerEl(bits.thread, "finalize question");
+      bits.thread.scrollTop = bits.thread.scrollHeight;
+      await _pbpAskRun("finalize question", aEl);
+      assert(aEl.querySelector(".ask-copy-btn"), "control: finalize ran and decorated the answer");
+      assert(bits.thread.scrollHeight > 460, "control: the finalized answer overflows the container");
+      assert(bottomGap(bits.thread) <= 32,
+        "the thread follows the finalized answer (gap " + bottomGap(bits.thread) + "px)");
+    } finally {
+      askCleanup(bits, saved, savedStream);
+    }
+  });
+
+  await atest("a reader who scrolled up is not dragged back by a streaming answer", async () => {
+    const bits = mkScrollingThread();
+    const saved = _pbpAskState, savedStream = window.callAIStream;
+    const st = mkAskState("https://example.test/t4-noyank-" + Date.now());
+    _pbpAskState = st;
+    window.callAIStream = streamLongUntilAbort();
+    try {
+      const aEl = mkAnswerEl(bits.thread, "scrolled question");
+      bits.thread.scrollTop = 0;                          // re-reading an earlier round
+      const p = _pbpAskRun("scrolled question", aEl);
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      assert(bits.thread.scrollHeight > 460, "control: the answer really did grow past the fold");
+      assertEq(bits.thread.scrollTop, 0, "the stream paint left the scroll position alone");
+      st.ctrl.abort();                                    // teardown only
+      await p;
+    } finally {
+      askCleanup(bits, saved, savedStream);
+    }
+  });
 
   await atest("user Stop finalizes the partial answer into the thread", async () => {
     const bits = mkThread();

@@ -400,13 +400,22 @@ let _pbpSearchMoTimer = null;
 // Regex-mode toggle: persisted in chrome.storage.local (pbp_srch_regex),
 // read once when the popover is first built (see _pbpSearchEnsurePop).
 let _pbpSearchRegexOn = false;
+// Page-session query memory (_pbpSearchOpen restores it). This bar replaces
+// native Ctrl+F, whose query survives a close/reopen within the tab -- "search
+// a term, Esc to read the context, / again to continue" is the normal rhythm
+// and used to cost a full retype. Deliberately NOT persisted: same
+// page-session-only scope as explain-pop's pin/drag state (rules/md-preview.md),
+// and _pbpSearchTeardown's reset of matches/ranges/observer stays untouched --
+// only the string and the step survive a close, never a stale Range.
+let _pbpSearchLastQuery = "";
+let _pbpSearchLastIdx = 0;
 
 // Candidate containers: #rendered-view's DIRECT children only (matches
 // spec sec.4 -- cross-top-level-block matches are out of scope), filtered
-// by the two known view-mode hidden-selectors (md-preview.css): a .pb-tr
-// sibling is hidden unless a translation view is active; an original
-// block carrying data-pb-tr-done is hidden in tr-only mode unless peeked
-// open via .pb-show-orig.
+// by the [hidden] attribute plus the two known view-mode hidden-selectors
+// (md-preview.css): a .pb-tr sibling is hidden unless a translation view is
+// active; an original block carrying data-pb-tr-done is hidden in tr-only
+// mode unless peeked open via .pb-show-orig.
 function _pbpSearchVisibleCandidates(view) {
   const bilingual = document.body.classList.contains("tr-bilingual");
   const trOnly = document.body.classList.contains("tr-only");
@@ -434,6 +443,15 @@ function _pbpSearchVisibleCandidates(view) {
     return out;
   }
   for (const el of view.children) {
+    // md-preview.css's `[hidden] { display: none !important; }` makes this
+    // unconditional, so an [hidden] child can never hold a visible match. A
+    // rendered mermaid diagram is exactly that shape: md-mermaid.js keeps the
+    // source <pre> in the DOM (re-render source + degrade surface) with
+    // pre.hidden = true, and its diagram source used to be counted into
+    // "1 / N" and stepped onto -- the counter moved while nothing on screen
+    // changed. Attribute-driven, so any future hidden top-level child is
+    // covered without a per-feature special case.
+    if (el.hidden) continue;
     if (el.classList.contains("pb-tr")) {
       if (!bilingual && !trOnly) continue;
     } else if (trOnly && el.hasAttribute("data-pb-tr-done") && !el.classList.contains("pb-show-orig")) {
@@ -543,10 +561,24 @@ function _pbpSearchRangeOverlapsAny(range, ranges) {
   return false;
 }
 
+// Records what a reopen should come back to. Called after every run and every
+// step, including a run of the empty string: clearing the box IS the reader
+// saying there is nothing to come back to, so the memory tracks the box rather
+// than the last non-empty query.
+function _pbpSearchRemember() {
+  const st = _pbpSearchState;
+  _pbpSearchLastQuery = typeof st.query === "string" ? st.query : "";
+  _pbpSearchLastIdx = st.idx >= 0 ? st.idx : 0;
+}
+
 // Re-run the whole scan against the CURRENT DOM. Called on input
 // (debounced in _pbpSearchOnInput) and on rescan triggers (view-mode
 // toggle / target-language change, observed via _pbpSearchArmObserver).
-function _pbpSearchRun(query) {
+// `opts.jump` (default true) is the restore seam: _pbpSearchOpen re-runs the
+// remembered query only to rebuild highlights and the counter, and must not
+// scroll -- the reader closed the bar to read somewhere, so yanking them back
+// to hit 1 would defeat the memory it exists for.
+function _pbpSearchRun(query, opts) {
   const st = _pbpSearchState;
   st.query = query;
   st.matches = [];
@@ -610,8 +642,9 @@ function _pbpSearchRun(query) {
     if (inputEl) inputEl.classList.toggle("srch-bad", bad);
   }
   st.idx = st.matches.length ? 0 : -1;
+  _pbpSearchRemember();
   _pbpSearchPaintAll();
-  _pbpSearchPaintCurrent(true);
+  _pbpSearchPaintCurrent(!(opts && opts.jump === false));
   _pbpSearchUpdateCounter();
 }
 
@@ -619,6 +652,7 @@ function _pbpSearchStep(dir) {
   const st = _pbpSearchState;
   if (!st.matches.length) return;
   st.idx = (st.idx + dir + st.matches.length) % st.matches.length;
+  _pbpSearchRemember();
   _pbpSearchPaintCurrent(true);
   _pbpSearchUpdateCounter();
 }
@@ -735,7 +769,13 @@ function _pbpSearchEnsurePop() {
     _pbpSearchRegexOn = !_pbpSearchRegexOn;
     regexBtn.setAttribute("aria-pressed", _pbpSearchRegexOn ? "true" : "false");
     if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.local) {
-      try { chrome.storage.local.set({ pbp_srch_regex: _pbpSearchRegexOn }); } catch (_) {}
+      // Same silent-but-handled contract as the other two preference writes in
+      // this file (_pbpZenCycleWidth, _pbpTypoPersist): the MV3 .set() returns a
+      // promise that REJECTS on QUOTA_BYTES, which the sync try/catch cannot
+      // catch -- without the .catch a full storage.local turns a toggle click
+      // into an unhandled rejection. Losing the preference is the accepted
+      // degradation; the toggle still works for this page's life.
+      try { chrome.storage.local.set({ pbp_srch_regex: _pbpSearchRegexOn }).catch(() => {}); } catch (_) {}
     }
     clearTimeout(_pbpSearchInputTimer);
     _pbpSearchRun(input.value);
@@ -787,13 +827,34 @@ function _pbpSearchEnsurePop() {
 function _pbpSearchOpen() {
   const pop = _pbpSearchEnsurePop();
   _pbpReaderHideOtherPopovers(pop);
+  // Reads the memory BEFORE the teardown/run below overwrite it (the run sets
+  // st.idx to 0 and remembers that).
+  const restoreQuery = _pbpSearchLastQuery;
+  const restoreIdx = _pbpSearchLastIdx;
   _pbpSearchTeardown();
   const input = pop.querySelector("#search-input");
-  input.value = "";
-  input.classList.remove("srch-bad"); // stale invalid-regex border must not survive a close/reopen
+  input.value = restoreQuery;
+  input.classList.remove("srch-bad"); // stale invalid-regex border must not survive a close/reopen (the run below re-derives it for the restored query)
+  if (restoreQuery) {
+    _pbpSearchRun(restoreQuery, { jump: false });
+    const st = _pbpSearchState;
+    if (st.matches.length) {
+      // Clamped, not trusted: the article may have been re-rendered,
+      // translated or view-switched while the bar was closed, so the
+      // remembered step can now be past the end. Repainting without a jump
+      // keeps the viewport exactly where the reader left it while the counter
+      // still points at the hit they were on.
+      st.idx = Math.min(Math.max(restoreIdx, 0), st.matches.length - 1);
+      _pbpSearchRemember();
+      _pbpSearchPaintCurrent(false);
+    }
+  }
   _pbpSearchUpdateCounter();
   if (!pop.matches(":popover-open")) pop.showPopover();
   input.focus();
+  // Selected, not just filled: the first keystroke replaces the restored query,
+  // so typing a fresh search feels identical to the empty box it replaces.
+  input.select();
   _pbpSearchArmObserver();
 }
 
@@ -999,6 +1060,16 @@ let _pbpZenWidthTouched = false; // user cycled before the async load landed -> 
 let _pbpZenBarEl = null;
 let _pbpZenFadeTimer = null;
 let _pbpZenInited = false;
+// Study view (video pages) captured on zen entry so zen exit can put it back:
+// entering zen surfaces the ARTICLE (the pbp:ensure-article-visible dispatch in
+// _pbpZenEnter), which silently discards a timeline the reader had picked by
+// hand. Scoped to the zen transition itself rather than to that shared event --
+// md-preview.js dispatches it for TOC jumps, Ask citations and highlight jumps
+// too, and restoring the timeline on THOSE would be a worse surprise than the
+// bug. Session-only, never persisted: md-video.js's stored per-video view must
+// only ever record a user choice (its audit U4 rule), so the restore goes
+// through the no-persist accessor.
+let _pbpZenPrevStudyView = null;
 
 // Width-cycle icon (spec sec.4: PBP_ICONS-style linear stroke, same
 // viewBox/stroke-width/linecap/linejoin family as PBP_SEARCH_PREV_SVG/
@@ -1124,20 +1195,36 @@ function _pbpZenSettleAfterLayout(anchor) {
   _pbpZenSettleTimer = setTimeout(_pbpZenSettleFire, 300);
 }
 
-// Width persistence: exact pbp_srch_regex shape (md-reader.js:565-575) --
-// chrome.storage.local.get with an inline default, both chrome/
-// chrome.storage typeof-guarded, read once here at init; written back
-// only from the cycle buttons below. An unrecognized stored value (e.g. a
-// stale format from a future/rolled-back version) degrades to the 880
-// default rather than propagating garbage into --pbp-width. Unified-width
-// round: the stored value now drives BOTH modes (--pbp-width on .doc-body,
-// md-preview.css ~:292), so the callback must APPLY it, not just remember
-// it for a later zen entry -- the page first paints at the 880 fallback and
-// settles to the stored step here (one animated max-width transition; the
-// existing scroll-anchor settle keeps the reading position through it).
-// Storage key stays pbp_zen_width: it predates the unification and a rename
-// would orphan every existing user's saved step for zero benefit.
+// Width persistence: chrome.storage.local, per-device, same shape as
+// pbp_srch_regex above. The storage key stays pbp_zen_width -- it predates the
+// zen/normal width unification and a rename would orphan every existing user's
+// saved step for zero benefit. The stored value drives BOTH modes (--pbp-width
+// on .doc-body, md-preview.css), so it has to be APPLIED, not just remembered
+// for a later zen entry.
+//
+// That apply happens BEFORE the first render, in md-preview.js: the value rides
+// the same storage read as the preview payload and the typography tiers, and is
+// handed over here through window._pbpZenWidthStored -- the identical
+// pre-render-apply + handoff pattern _pbpTypoInit already consumes for
+// pbp_font_tier/pbp_leading_tier. On that path this function is only the
+// in-memory mirror plus the control labels: _pbpZenInit runs on "pbp:rendered",
+// which is dispatched long after the first paint, so applying a non-880 step
+// here made every 680/1080 reader watch the article re-lay out from the 880 CSS
+// fallback once per open -- .doc-body's max-width has no transition to soften
+// it (md-preview.css) and the re-settle moved their scroll position too.
+//
+// The self-read below stays as the fallback for md-preview.js's init dying
+// before its storage read landed; only that async path can race a click, so
+// only it needs the touched-guard. An unrecognized stored value (a stale format
+// from a future/rolled-back version) degrades to the 880 default on both paths
+// rather than propagating garbage into --pbp-width.
 function _pbpZenLoadWidth() {
+  const stored = (typeof window !== "undefined" && window._pbpZenWidthStored) || null;
+  if (stored) {
+    _pbpZenWidth = PBP_ZEN_WIDTHS.indexOf(stored.width) !== -1 ? stored.width : 880;
+    _pbpZenUpdateWidthBtn(); // already applied pre-render; re-applying would only churn layout
+    return;
+  }
   if (typeof chrome === "undefined" || !chrome.storage || !chrome.storage.local) return;
   try {
     chrome.storage.local.get({ pbp_zen_width: 880 }, (res) => {
@@ -1284,7 +1371,13 @@ function _pbpZenDisarmFade() {
 function _pbpZenEnter() {
   if (document.body.classList.contains("zen")) return;
   // Zen is a reading mode of the ARTICLE: surface it if a video workspace
-  // has the timeline in front (audit U6; no-op elsewhere).
+  // has the timeline in front (audit U6; no-op elsewhere). Read the outgoing
+  // view FIRST so _pbpZenExit can restore it (see _pbpZenPrevStudyView).
+  // window.-qualified + typeof-guarded, exactly like this file's other
+  // md-video.js accessor call (window.pbpVideoShortcutKeys): that module is an
+  // IIFE that publishes its API on window, and a page without it (every
+  // non-video article) simply records null.
+  _pbpZenPrevStudyView = (typeof window.pbpVideoStudyView === "function") ? window.pbpVideoStudyView() : null;
   try { document.dispatchEvent(new CustomEvent("pbp:ensure-article-visible")); } catch (_) {}
   const anchor = _pbpZenCaptureAnchor();
   const ae = document.activeElement;
@@ -1310,6 +1403,15 @@ function _pbpZenExit() {
   // --pbp-width deliberately survives exit (mode-independent width).
   _pbpZenSettleAfterLayout(anchor);
   _pbpZenDisarmFade();
+  // Hand the timeline back if entering zen took it away (see
+  // _pbpZenPrevStudyView). No persist argument: this is the programmatic half
+  // of a round trip, not a view the reader picked. Runs after the settle so the
+  // accessor's own view-scroll bookkeeping sees the final article position.
+  const prev = _pbpZenPrevStudyView;
+  _pbpZenPrevStudyView = null;
+  if (prev === "timeline" && typeof window.pbpVideoStudyView === "function") {
+    try { window.pbpVideoStudyView("timeline"); } catch (_) {}
+  }
 }
 
 function _pbpZenToggle() {
