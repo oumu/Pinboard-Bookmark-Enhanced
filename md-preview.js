@@ -368,6 +368,51 @@ function renderBookmarkBadge(resp, url) {
   urlEl.insertAdjacentElement("afterend", a);
 }
 
+// Fills #preview-url with "host + rest", the rail's one-line link back to the
+// source page. Top-level (not inline in the render path) because BOTH shells
+// need it: the fully-rendered article and the pending/error shell, which
+// returns long before the render path runs and used to leave the link at its
+// markup default href="#" with no text at all. One copy only -- the IDN /
+// percent-encoding handling below is easy to let drift into two.
+//
+// Built via DOM API (textContent/createElement), never innerHTML, since `url`
+// is page-supplied data (sanitize discipline). Non-absolute/unparsable URLs
+// (no scheme, "about:", etc.) fall back to plain text.
+function fillPreviewUrl(url) {
+  const urlEl = document.getElementById("preview-url");
+  if (!urlEl) return;
+  urlEl.href = url || "#";
+  urlEl.textContent = "";
+  if (!url) { urlEl.removeAttribute("title"); return; }
+  urlEl.title = url;
+  // Split hostname (bold) from the rest so a long path/query still reads
+  // as "example.com/…" once .preview-url's single-line ellipsis clips it.
+  // Locate the parsed hostname in the ORIGINAL `url` string, not `u.href`
+  // (the normalized form punycode-encodes IDN hosts and percent-encodes
+  // the path) -- so the display keeps the user's original Unicode/encoding.
+  // Anything before the match (scheme, userinfo, etc.) is intentionally
+  // dropped; `title` already carries the full URL.
+  let host = "", rest = "";
+  try {
+    const u = new URL(url);
+    const idx = u.hostname ? url.indexOf(u.hostname) : -1;
+    if (idx < 0) throw new Error("hostname not found in raw url");
+    host = u.hostname;
+    rest = url.slice(idx + u.hostname.length);
+  } catch (_) {
+    host = "";
+  }
+  if (host) {
+    const hostSpan = document.createElement("span");
+    hostSpan.className = "url-host";
+    hostSpan.textContent = host;
+    urlEl.appendChild(hostSpan);
+    urlEl.appendChild(document.createTextNode(rest));
+  } else {
+    urlEl.textContent = url;
+  }
+}
+
 // ============================================================
 // Measured-height fold animation, shared by the rail accordion and the skim
 // layer (md-skim.js loads after this file; it calls at runtime only).
@@ -803,9 +848,24 @@ window.pbpReaderSchemeSet = function (mode) {
   // guard only covers shared.js failing to load at all. _pbpTypoStored hands
   // the raw tiers to md-reader.js's _pbpTypoInit so it doesn't re-read
   // storage.
-  const data = await chrome.storage.local.get([MP_KEY, "pbp_font_tier", "pbp_leading_tier"]);
+  const data = await chrome.storage.local.get([MP_KEY, "pbp_font_tier", "pbp_leading_tier", "pbp_zen_width"]);
   window._pbpTypoStored = { font: data.pbp_font_tier, leading: data.pbp_leading_tier };
   if (typeof pbpTypoApplyVars === "function") pbpTypoApplyVars(data.pbp_font_tier, data.pbp_leading_tier);
+  // Reading width (pbp_zen_width) rides this same read and is applied here for
+  // the same reason as the tiers above: md-reader.js's _pbpZenInit only runs on
+  // "pbp:rendered", long after the first paint, so a stored 680/1080 used to
+  // paint at the 880 CSS fallback and re-lay the whole article out once per
+  // open -- .doc-body's max-width has no transition to soften it. 880 is that
+  // CSS fallback, so only the two off-default steps need an inline style. The
+  // whitelist is written out literally instead of reading md-reader.js's
+  // PBP_ZEN_WIDTHS: that file is a LATER defer script (the same load-order race
+  // the tiers comment above documents). _pbpZenWidthStored hands the raw value
+  // to md-reader.js's _pbpZenLoadWidth so it neither re-reads storage nor
+  // re-applies.
+  window._pbpZenWidthStored = { width: data.pbp_zen_width };
+  if (data.pbp_zen_width === 680 || data.pbp_zen_width === 1080) {
+    document.body.style.setProperty("--pbp-width", data.pbp_zen_width + "px");
+  }
   const info = data[MP_KEY];
   if (!info) {
     renderEmptyState(t("mdPreviewEmpty"), "mdPreviewClose");
@@ -988,11 +1048,21 @@ window.pbpReaderSchemeSet = function (mode) {
       const unavail = engineUnavailable(e) && !active;
       seg.classList.toggle("active", active);
       seg.setAttribute("aria-pressed", active ? "true" : "false");
-      seg.disabled = unavail;
+      // Structural unavailability is aria-disabled, NOT the disabled property
+      // -- the same choice the img-fix button and md-reader.js's typo steps
+      // already document. A disabled control gets no pointer events in
+      // Chromium, so the explanatory title below never shows its tooltip, and
+      // it leaves the tab order, so a screen-reader user cannot reach the
+      // explanation either. Both click guards read the attribute instead.
+      // .disabled is left to the switch handler's transient "a switch is
+      // running" lock, and released here because every one of that handler's
+      // terminal paths ends in an applyAvailability() call.
+      seg.disabled = false;
       if (unavail) seg.setAttribute("aria-disabled", "true");
       else seg.removeAttribute("aria-disabled");
       if (!active && !unavail) seg.title = t("mdEngineSwitchTo", engineLabel(e));
       else if (unavail && e === "local") seg.title = t("mdEngineTabGone");
+      else if (unavail && e === "jina") seg.title = t("mdEngineJinaNeedsHttp");
       else seg.removeAttribute("title");
     });
   }
@@ -1146,8 +1216,19 @@ window.pbpReaderSchemeSet = function (mode) {
   // even when Jina needs a network round-trip). On success the SW has written the
   // full md_preview_data, so we reload into the normal render path.
   if (info.pending || info.restore) {
+    // Shell mode. renderErrorState drops body.md-empty so the rail (the engine
+    // switch above all) stays reachable, which also exposes md-preview.html's
+    // static Export block and the Raw/Rendered toggle -- and every one of those
+    // controls is wired AFTER this branch's return, so they are lit but dead.
+    // The class hides exactly those two; the title, URL, engine badge, engine
+    // status and the retry button are what the reader can actually act on here,
+    // and the video panel (mounted onto this same shell below) stays visible
+    // because it IS wired. Added once, never removed: every path out of this
+    // branch reloads the page.
+    document.body.classList.add("md-shell");
     const titleEl0 = document.getElementById("preview-title");
     if (titleEl0) { titleEl0.textContent = title || t("mdPreviewUntitled"); titleEl0.title = title || ""; }
+    fillPreviewUrl(url); // otherwise the shell's "open the original page" link stays href="#" with no text
     document.title = (title || "Markdown") + " — " + t("tabReader"); // the page is "Reader" everywhere now (batch 2 B4)
     // video-mode BEFORE any extraction work: the page is a watch page no
     // matter how the extraction turns out, so the shell should not spend the
@@ -1254,10 +1335,16 @@ window.pbpReaderSchemeSet = function (mode) {
       // the video IS the content, so "extraction failed" is not the whole
       // story. (Fixing only the later guard is why bilibili still showed a
       // bare error after the previous round.)
-      // md-video.js is the LAST defer script; this async flow can resume ahead
-      // of it (storage/sendMessage round-trips vary), and the typeof guard then
-      // silently skipped the mount -- the intermittent "no panel" of six device
-      // rounds. Wait for the defer chain before deciding.
+      // md-video.js stopped being a defer script when it went lazy
+      // (ensureVideoModule above); the chain waited for here is the rest of
+      // md-preview.html's defer list, which continues past this file through
+      // md-ai-core / md-translate / md-dict / md-ask / md-highlight /
+      // md-vocab-echo / md-reader / md-skim. This async flow can resume ahead
+      // of them (storage/sendMessage round-trips vary), and the typeof guards
+      // then silently skipped the mount -- the intermittent "no panel" of six
+      // device rounds. The pbpVideo* globals probed below come from the lazy
+      // module instead and stay typeof-guarded; ensureVideoModule() is awaited
+      // before the mount itself.
       await pbpDeferredScriptsReady;
       // Extraction dead-ended, but on a video page the transcript IS the
       // article: try the capture session and, when it yields captions,
@@ -1343,11 +1430,21 @@ window.pbpReaderSchemeSet = function (mode) {
       sourceEl.querySelectorAll(".src-seg").forEach((seg) => {
         seg.addEventListener("click", () => {
           const e = seg.getAttribute("data-engine");
-          if (inFlight || e === attemptedEngine || seg.disabled) return;
+          if (inFlight || e === attemptedEngine || seg.getAttribute("aria-disabled") === "true") return;
           attemptExtract(e);
         });
       });
     }
+    // The error shell (renderErrorState) drops body.md-empty so the rail --
+    // engine switch above all -- stays reachable, which below 1000px also
+    // paints the drawer hamburger. Wire the drawer here or that button is a
+    // no-op: setupDrawer() runs only on the fully-rendered path further down,
+    // and this branch returns before it. Wiring BEFORE the attempt (not before
+    // the return) closes the window where the shell is on screen but dead:
+    // renderErrorState paints while attemptExtract is still awaiting its own
+    // video/caption follow-up. Registering twice is impossible -- a successful
+    // attempt reloads the page instead of falling through.
+    setupDrawer();
     await attemptExtract(info.engine); // awaited so a synchronous throw here still reaches the IIFE's top-level .catch()
     return;
   }
@@ -1376,8 +1473,13 @@ window.pbpReaderSchemeSet = function (mode) {
   // in-place campaign). Committed payloads still hydrate synchronously (the
   // article is already decided; nothing here blocks on the network).
   {
-    // md-video.js is the LAST defer script; this async flow can resume ahead of
-    // it, so wait for the defer chain before probing for its globals.
+    // md-video.js stopped being a defer script when it went lazy
+    // (ensureVideoModule); the chain waited for here is the rest of
+    // md-preview.html's defer list, which continues past this file (md-ai-core
+    // through md-skim). This async flow can resume ahead of it, so wait before
+    // probing. md-video.js's own globals ride the lazy load instead and stay
+    // typeof-guarded below -- hydration simply declines when they are late,
+    // which is the same fail-closed outcome a schema mismatch produces.
     await pbpDeferredScriptsReady;
     const vDetected = typeof pbpVideoDetect === "function" ? pbpVideoDetect(sourceTabUrl || url) : null;
     if (vDetected) {
@@ -1855,43 +1957,7 @@ window.pbpReaderSchemeSet = function (mode) {
   const previewTitleEl = document.getElementById("preview-title");
   previewTitleEl.textContent = title || t("mdPreviewUntitled");
   previewTitleEl.title = title || t("mdPreviewUntitled");
-  const urlEl = document.getElementById("preview-url");
-  urlEl.href = url || "#";
-  urlEl.textContent = "";
-  if (url) {
-    urlEl.title = url;
-    // Split hostname (bold) from the rest so a long path/query still reads
-    // as "example.com/…" once .preview-url's single-line ellipsis clips it.
-    // Built via DOM API (textContent/createElement), never innerHTML, since
-    // `url` is page-supplied data (sanitize discipline). Non-absolute/
-    // unparsable URLs (no scheme, "about:", etc.) fall back to plain text.
-    // Locate the parsed hostname in the ORIGINAL `url` string, not `u.href`
-    // (the normalized form punycode-encodes IDN hosts and percent-encodes
-    // the path) -- so the display keeps the user's original Unicode/encoding.
-    // Anything before the match (scheme, userinfo, etc.) is intentionally
-    // dropped; `title` already carries the full URL.
-    let host = "", rest = "";
-    try {
-      const u = new URL(url);
-      const idx = u.hostname ? url.indexOf(u.hostname) : -1;
-      if (idx < 0) throw new Error("hostname not found in raw url");
-      host = u.hostname;
-      rest = url.slice(idx + u.hostname.length);
-    } catch (_) {
-      host = "";
-    }
-    if (host) {
-      const hostSpan = document.createElement("span");
-      hostSpan.className = "url-host";
-      hostSpan.textContent = host;
-      urlEl.appendChild(hostSpan);
-      urlEl.appendChild(document.createTextNode(rest));
-    } else {
-      urlEl.textContent = url;
-    }
-  } else {
-    urlEl.removeAttribute("title");
-  }
+  fillPreviewUrl(url);
 
   // X2: bookmarked badge. Fire-and-forget against the same checkBookmarked/
   // statusCache the toolbar icon uses (background.js) — never blocks first
@@ -1919,9 +1985,12 @@ window.pbpReaderSchemeSet = function (mode) {
     sourceEl.querySelectorAll(".src-seg").forEach((seg) => {
       seg.addEventListener("click", async () => {
         const e = seg.getAttribute("data-engine");
-        if (switching || e === curEngine || seg.disabled) return;
+        if (switching || e === curEngine || seg.getAttribute("aria-disabled") === "true") return;
         switching = true;
         sourceEl.setAttribute("aria-busy", "true");
+        // Transient lock only, for the duration of THIS switch: the disabled
+        // property carries no explanation to lose, and applyAvailability
+        // releases it on every path out of this handler.
         sourceEl.querySelectorAll(".src-seg").forEach((s) => { s.disabled = true; });
         if (e === "jina" && jinaPermissionMissing) {
           if (!await pbpRequestJinaHostPermission()) {
@@ -1953,7 +2022,9 @@ window.pbpReaderSchemeSet = function (mode) {
         if (e === "local" && r && (r.error === "tab_unavailable" || r.error === "tab_navigated")) {
           const localSeg = sourceEl.querySelector('.src-seg[data-engine="local"]');
           if (localSeg) {
-            localSeg.disabled = true;
+            // Same structural-unavailability shape applyAvailability writes
+            // (aria-disabled + title, never the disabled property): the tab is
+            // gone, and "why is Defuddle grey" has to stay readable.
             localSeg.setAttribute("aria-disabled", "true");
             localSeg.title = t("mdEngineTabGone");
           }
@@ -1980,8 +2051,8 @@ window.pbpReaderSchemeSet = function (mode) {
     const computeStatBase = () => {
       const stats = readingStats(getMarkdown());
       const wordLabel = stats.cjkChars > 0
-        ? `${t("mdStatWords", stats.words.toLocaleString())} · ${t("mdStatCjk", stats.cjkChars.toLocaleString())}`
-        : t("mdStatWords", stats.words.toLocaleString());
+        ? `${t("mdStatWords", stats.words.toLocaleString(uiLangToBCP47()))} · ${t("mdStatCjk", stats.cjkChars.toLocaleString(uiLangToBCP47()))}`
+        : t("mdStatWords", stats.words.toLocaleString(uiLangToBCP47()));
       // (research T1.6) a transcript's "~N min read" is the wrong axis --
       // neither watch time nor honest read time. The last segment's end IS
       // the video length; md-video.js exposes it, zero when no transcript
@@ -2860,9 +2931,9 @@ window.pbpReaderSchemeSet = function (mode) {
   // ---- R9: silent scroll-position restore (spec 2) ----
   // Records where the reader was (block index n + fraction scrolled into
   // that block) so a later reopen of the SAME article (exact tab.url string
-  // match, same limitation tr_/ask_ caches already accept) lands back there
-  // with zero UI. Storage: the generic IDB KV in ai-cache.js, keyed
-  // "scroll_" + pbpAiHash(url) -- pbpAiHash/pbpAiBlockEl are defined in
+  // match -- unlike the tr_/ask_/skim_ caches, which key off the normalized
+  // URL) lands back there with zero UI. Storage: the generic IDB KV in
+  // ai-cache.js, keyed "scroll_" + pbpAiHash(url) -- pbpAiHash/pbpAiBlockEl are defined in
   // md-ai-core.js, which loads AFTER this file (script tag order), hence the
   // typeof guards; pbpAiCacheGet/Set/Delete are in ai-cache.js, which loads
   // BEFORE this file, so those are called ungated (same as md-ai-core.js
@@ -3028,68 +3099,129 @@ window.pbpReaderSchemeSet = function (mode) {
 
   // Download buttons
   const safeTitle = safeFilename(title);
+  // Re-entrancy gate for the three download exits, the same shape doSend uses
+  // for Send-to. With imagePolicy=embed a download runs a host-permission
+  // prompt and then a budgeted image-fetch round (plus a Referer retry pass,
+  // plus pbpMermaidWarmExport for EPUB): seconds to tens of seconds with the
+  // page perfectly still, so a second click read as "the first one missed" and
+  // started a whole second pass that landed a second file of the same name.
+  // Copy is deliberately outside this: buildExportMarkdown clamps embed to
+  // keep, so no resolveEmbed pass runs, and copyToClipboard already flashes
+  // the button label.
+  let _exporting = false;
+  // Busy line for an export in flight. Deliberately NOT showExportNote: that
+  // helper arms a 4-12s self-hide, which would drop the indicator mid-run.
+  // Shares the same element (and its timer handle) so the two can never both
+  // be on screen. aria-busy, never the disabled property, on the buttons --
+  // disabling the control the user just pressed drops focus to <body> in
+  // Chromium (the rule the img-fix button and the engine segments follow).
+  const _dlButtons = ["btn-dl-md", "btn-dl-html", "btn-dl-epub"]
+    .map((id) => document.getElementById(id)).filter(Boolean);
+  function setExportBusy(on) {
+    _dlButtons.forEach((b) => b.setAttribute("aria-busy", on ? "true" : "false"));
+    const el = document.getElementById("export-note");
+    if (!el) return;
+    clearTimeout(el._t);
+    // Unhide BEFORE writing the text, so the aria-live region actually
+    // announces it (the same ordering showSendStatus documents).
+    if (on) { el.hidden = false; el.textContent = t("mdExportRunning"); }
+    else { el.textContent = ""; el.hidden = true; }
+  }
   document.getElementById("btn-dl-md").addEventListener("click", async () => {
-    imgFixExportNote(true); // sync, before the gesture-sensitive await below
-    // First await in the direct click chain: resolveEmbed()'s chrome.permissions.request()
-    // must run while the user gesture is still active (same invariant as Send-to below).
-    const meta = buildMeta(), opts = buildExportOpts();
-    const emb = await resolveEmbed(getViewMarkdown(), meta);
-    // imagePolicy is clamped to "keep" here -- the data URIs resolveEmbed already
-    // substituted have a scheme, so applyImagePolicy's "keep" pass absolutizes
-    // any remaining plain src and leaves data: URIs untouched (Codex-P1: one
-    // composeExport pass, no double transform of the export markdown).
-    const body = composeExport(emb.md, meta, { ...opts, imagePolicy: opts.imagePolicy === "embed" ? "keep" : opts.imagePolicy });
-    downloadFile(safeTitle + ".md", body, "text/markdown;charset=utf-8");
-    if (emb.note > 0) showExportNote(t("mdEmbedPartial", String(emb.note))); // args through t() -- chrome.i18n consumes $COUNT$ before a manual replace could
+    if (_exporting) return;
+    _exporting = true;
+    setExportBusy(true); // synchronous: the gesture-sensitive await below must still be the first one
+    let note = 0;
+    try {
+      // First await in the direct click chain: resolveEmbed()'s chrome.permissions.request()
+      // must run while the user gesture is still active (same invariant as Send-to below).
+      const meta = buildMeta(), opts = buildExportOpts();
+      const emb = await resolveEmbed(getViewMarkdown(), meta);
+      note = emb.note;
+      // imagePolicy is clamped to "keep" here -- the data URIs resolveEmbed already
+      // substituted have a scheme, so applyImagePolicy's "keep" pass absolutizes
+      // any remaining plain src and leaves data: URIs untouched (Codex-P1: one
+      // composeExport pass, no double transform of the export markdown).
+      const body = composeExport(emb.md, meta, { ...opts, imagePolicy: opts.imagePolicy === "embed" ? "keep" : opts.imagePolicy });
+      downloadFile(safeTitle + ".md", body, "text/markdown;charset=utf-8");
+    } finally {
+      setExportBusy(false);
+      _exporting = false;
+    }
+    // The honest notes speak AFTER the busy line is cleared, never before it:
+    // imgFixExportNote is a single merged call by design, and the busy text
+    // would have overwritten it.
+    imgFixExportNote(true);
+    if (note > 0) showExportNote(t("mdEmbedPartial", String(note))); // args through t() -- chrome.i18n consumes $COUNT$ before a manual replace could
   });
   document.getElementById("btn-dl-html").addEventListener("click", async () => {
+    if (_exporting) return;
+    _exporting = true;
+    setExportBusy(true);
+    let note = 0;
+    try {
+      // First await in the direct click chain: resolveEmbed()'s chrome.permissions.request()
+      // must run while the user gesture is still active, so it runs before the
+      // (also-awaited, but not gesture-sensitive) hljs/katex CSS loads below.
+      const meta = buildMeta(), opts = buildExportOpts();
+      const emb = await resolveEmbed(getViewMarkdown(), meta);
+      note = emb.note;
+      if (renderedView.querySelector("pre > code")) await ensureHljs(); // so composeStyledHtml highlights the export
+      const hljsCss = await loadHljsCss();
+      if (info.math) await ensureKatex(); // so composeStyledHtml renders math (mirrors hljs above)
+      const katexCss = info.math ? await loadKatexCss() : "";
+      // Follow the original/bilingual/translation-only view like the Markdown export
+      // does, but pass RAW view markdown (getViewMarkdown, no YAML frontmatter):
+      // composeStyledHtml turns frontmatter into a styled <header>. Passing the
+      // YAML-prefixed buildExportMarkdown() rendered the YAML into the body as text.
+      if (typeof pbpMermaidWarmExport === "function") await pbpMermaidWarmExport(renderedView);
+      const doc = composeStyledHtml(emb.md, meta, { ...opts, imagePolicy: opts.imagePolicy === "embed" ? "keep" : opts.imagePolicy, hljsCss, katexCss });
+      downloadFile(safeTitle + ".html", doc, "text/html;charset=utf-8");
+    } finally {
+      setExportBusy(false);
+      _exporting = false;
+    }
     imgFixExportNote(true);
-    // First await in the direct click chain: resolveEmbed()'s chrome.permissions.request()
-    // must run while the user gesture is still active, so it runs before the
-    // (also-awaited, but not gesture-sensitive) hljs/katex CSS loads below.
-    const meta = buildMeta(), opts = buildExportOpts();
-    const emb = await resolveEmbed(getViewMarkdown(), meta);
-    if (renderedView.querySelector("pre > code")) await ensureHljs(); // so composeStyledHtml highlights the export
-    const hljsCss = await loadHljsCss();
-    if (info.math) await ensureKatex(); // so composeStyledHtml renders math (mirrors hljs above)
-    const katexCss = info.math ? await loadKatexCss() : "";
-    // Follow the original/bilingual/translation-only view like the Markdown export
-    // does, but pass RAW view markdown (getViewMarkdown, no YAML frontmatter):
-    // composeStyledHtml turns frontmatter into a styled <header>. Passing the
-    // YAML-prefixed buildExportMarkdown() rendered the YAML into the body as text.
-    if (typeof pbpMermaidWarmExport === "function") await pbpMermaidWarmExport(renderedView);
-    const doc = composeStyledHtml(emb.md, meta, { ...opts, imagePolicy: opts.imagePolicy === "embed" ? "keep" : opts.imagePolicy, hljsCss, katexCss });
-    downloadFile(safeTitle + ".html", doc, "text/html;charset=utf-8");
-    if (emb.note > 0) showExportNote(t("mdEmbedPartial", String(emb.note))); // args through t() -- chrome.i18n consumes $COUNT$ before a manual replace could
+    if (note > 0) showExportNote(t("mdEmbedPartial", String(note))); // args through t() -- chrome.i18n consumes $COUNT$ before a manual replace could
   });
   document.getElementById("btn-dl-epub").addEventListener("click", async () => {
+    if (_exporting) return;
+    _exporting = true;
+    setExportBusy(true);
+    let note = 0;
+    try {
+      // First await in the direct click chain: resolveEmbed()'s chrome.permissions.request()
+      // must run while the user gesture is still active (same invariant as above).
+      // keepUrls:true (Task 6): successfully fetched images stay at their absolute
+      // URL in emb.md -- pbpBuildEpub finds them via <img src="abs"> and rewrites
+      // to a relative images/ path itself while adding the zip entry (emb.fetched).
+      const meta = buildMeta(), opts = buildExportOpts();
+      const emb = await resolveEmbed(getViewMarkdown(), meta, { keepUrls: true });
+      note = emb.note;
+      // Codex F5: EPUB gets its own composeExport call -- frontmatter/inline
+      // ==marks== don't belong in content.xhtml (dc:* metadata covers title/
+      // author/date/etc, and marked doesn't parse "==...==" so an inline mark
+      // would leak as literal text, same reasoning as composeStyledHtml above).
+      const md = composeExport(emb.md, meta, {
+        ...opts, frontmatter: false, highlightsInline: false,
+        imagePolicy: opts.imagePolicy === "embed" ? "keep" : opts.imagePolicy
+      });
+      // dc:language (spec §3): only meaningful once the reader is actually
+      // looking at a translated view; original/auto exports stay "und" (unknown)
+      // rather than guessing. md-translate.js loads after this file, hence the
+      // typeof guard on window.pbpTrExportTargetLang.
+      const inTrView = document.body.classList.contains("tr-only") || document.body.classList.contains("tr-bilingual");
+      // Codex-C3: pbpEpubLang canonicalizes to BCP-47 (or "und") -- the translate
+      // target can be a free-text label ("Classical Chinese") that isn't a legal tag.
+      meta.lang = pbpEpubLang((inTrView && typeof window.pbpTrExportTargetLang === "function" && window.pbpTrExportTargetLang()) || "und");
+      if (typeof pbpMermaidWarmExport === "function") await pbpMermaidWarmExport(renderedView);
+      downloadFile(safeTitle + ".epub", pbpBuildEpub({ md, meta, images: emb.fetched }), "application/epub+zip");
+    } finally {
+      setExportBusy(false);
+      _exporting = false;
+    }
     imgFixExportNote(true);
-    // First await in the direct click chain: resolveEmbed()'s chrome.permissions.request()
-    // must run while the user gesture is still active (same invariant as above).
-    // keepUrls:true (Task 6): successfully fetched images stay at their absolute
-    // URL in emb.md -- pbpBuildEpub finds them via <img src="abs"> and rewrites
-    // to a relative images/ path itself while adding the zip entry (emb.fetched).
-    const meta = buildMeta(), opts = buildExportOpts();
-    const emb = await resolveEmbed(getViewMarkdown(), meta, { keepUrls: true });
-    // Codex F5: EPUB gets its own composeExport call -- frontmatter/inline
-    // ==marks== don't belong in content.xhtml (dc:* metadata covers title/
-    // author/date/etc, and marked doesn't parse "==...==" so an inline mark
-    // would leak as literal text, same reasoning as composeStyledHtml above).
-    const md = composeExport(emb.md, meta, {
-      ...opts, frontmatter: false, highlightsInline: false,
-      imagePolicy: opts.imagePolicy === "embed" ? "keep" : opts.imagePolicy
-    });
-    // dc:language (spec §3): only meaningful once the reader is actually
-    // looking at a translated view; original/auto exports stay "und" (unknown)
-    // rather than guessing. md-translate.js loads after this file, hence the
-    // typeof guard on window.pbpTrExportTargetLang.
-    const inTrView = document.body.classList.contains("tr-only") || document.body.classList.contains("tr-bilingual");
-    // Codex-C3: pbpEpubLang canonicalizes to BCP-47 (or "und") -- the translate
-    // target can be a free-text label ("Classical Chinese") that isn't a legal tag.
-    meta.lang = pbpEpubLang((inTrView && typeof window.pbpTrExportTargetLang === "function" && window.pbpTrExportTargetLang()) || "und");
-    if (typeof pbpMermaidWarmExport === "function") await pbpMermaidWarmExport(renderedView);
-    downloadFile(safeTitle + ".epub", pbpBuildEpub({ md, meta, images: emb.fetched }), "application/epub+zip");
-    if (emb.note > 0) showExportNote(t("mdEmbedPartial", String(emb.note))); // args through t() -- chrome.i18n consumes $COUNT$ before a manual replace could
+    if (note > 0) showExportNote(t("mdEmbedPartial", String(note))); // args through t() -- chrome.i18n consumes $COUNT$ before a manual replace could
   });
 
   let _sendMenuCtl = null;
@@ -3154,10 +3286,16 @@ window.pbpReaderSchemeSet = function (mode) {
           sendStatus.appendChild(a);
         }
       }
-      // Plain messages auto-hide; a status carrying the gist link stays until the
-      // next send or a manual click-dismiss — so the sole URL isn't lost on a
-      // timer (and a focused link isn't yanked out from under the user).
-      if (!hasLink) sendStatusTimer = setTimeout(() => { sendStatus.hidden = true; sendStatus.textContent = ""; }, 6000);
+      // Plain SUCCESS messages auto-hide. Two kinds stay until the next send or
+      // a manual click-dismiss: one carrying the gist/Notion link, so the sole
+      // URL isn't lost on a timer (and a focused link isn't yanked out from
+      // under the user), and every failure — those are instructions to leave
+      // the reader and change something elsewhere (re-paste a PAT, share the
+      // Notion parent page, fill in a missing setting), which nobody reads and
+      // acts on inside six seconds. Same lifetime the other .msg-bar consumer
+      // gives an error: md-video.js's pbvSetStatus returns before arming any
+      // fade for kind "error".
+      if (!hasLink && !isError) sendStatusTimer = setTimeout(() => { sendStatus.hidden = true; sendStatus.textContent = ""; }, 6000);
     }
     if (sendStatus) sendStatus.addEventListener("click", () => {
       clearTimeout(sendStatusTimer); sendStatus.hidden = true; sendStatus.textContent = "";
@@ -3236,7 +3374,11 @@ window.pbpReaderSchemeSet = function (mode) {
         } else if (res.ok) {
           showSendStatus(t("mdSendTooLongFellBack").replace("{name}", row.label), false); // long -> roomy block
         } else if (typeof res.error === "string" && res.error.startsWith("missing:")) {
-          showSendStatus(t("mdSendNeedsSetup"), false);
+          // isError, like every other failure code here: md-export-send.js's
+          // required-settings guard returns this BEFORE any request is fired,
+          // so nothing was sent. The default .send-status stripe is the success
+          // green, which made a blocked send look exactly like a completed one.
+          showSendStatus(t("mdSendNeedsSetup"), true);
         } else if (res.error === "api-perm") {
           showSendStatus(t("mdSendApiPerm"), true);
         } else if (res.error === "api-insecure") {
@@ -3450,7 +3592,17 @@ function setupDrawer() {
       rail.setAttribute("aria-modal", "true");
       if (main) main.inert = true;
       requestAnimationFrame(() => requestAnimationFrame(() => {
-        if (isOpen()) (document.getElementById("btn-rendered") || rail).focus();
+        if (!isOpen()) return;
+        // #btn-rendered is the preferred landing spot, but it is not always
+        // focusable: on the extraction-failure shell body.md-shell hides
+        // `.rail > .view-toggle`, and focus() on a display:none element does
+        // nothing (nor does it on #rail, which carries no tabindex) -- that
+        // would open an aria-modal drawer with focus still on the hamburger
+        // outside it. Same visibility test focusables() uses.
+        const rendered = document.getElementById("btn-rendered");
+        ((rendered && rendered.offsetParent !== null)
+          ? rendered
+          : (focusables()[0] || rail)).focus();
       }));
     } else {
       pbpRailDrawerClose();
@@ -3565,10 +3717,21 @@ function setupScrollSpy(renderedView, tocList) {
   let activeSlug = null;
   const setActive = (slug) => {
     if (slug === activeSlug) return;
-    if (activeSlug && linkBySlug.has(activeSlug)) linkBySlug.get(activeSlug).classList.remove("active");
+    if (activeSlug && linkBySlug.has(activeSlug)) {
+      const prev = linkBySlug.get(activeSlug);
+      prev.classList.remove("active");
+      prev.removeAttribute("aria-current");
+    }
     const a = linkBySlug.get(slug);
     if (a) {
       a.classList.add("active");
+      // "location", not the "true" the library's row lists use: a TOC entry
+      // marks WHERE IN THE PAGE the reader is, which is exactly what
+      // aria-current="location" means, while "true" would claim the entry is
+      // the selected item of a set. Exactly one link carries it -- the removal
+      // above is the other half. rebuildToc() throws these <a> away wholesale,
+      // so nothing else has to clean up.
+      a.setAttribute("aria-current", "location");
       activeSlug = slug;
     }
   };

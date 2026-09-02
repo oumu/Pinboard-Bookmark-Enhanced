@@ -687,6 +687,9 @@
   "mdEngineTabGone": {
     "message": "Quell-Tab nicht mehr verfügbar. Seite erneut öffnen, um Defuddle zu nutzen"
   },
+  "mdEngineJinaNeedsHttp": {
+    "message": "Jina Reader kann nur http(s)-Seiten abrufen. Öffne die Seite über http(s), um es zu nutzen"
+  },
   "mdEngineGroupAria": {
     "message": "Extraktions-Engine"
   },
@@ -1697,6 +1700,9 @@
   "mdImgBrokenNote": {
     "message": "$COUNT$ Bild(er) konnten in dieser Vorschau nicht geladen werden und werden nach dem Export möglicherweise nicht angezeigt; „Einbetten“ packt Bilder in Downloads.",
     "placeholders": { "count": { "content": "$1" } }
+  },
+  "mdExportRunning": {
+    "message": "Export wird vorbereitet…"
   },
   "mdObsidianRoute": {
     "message": "Obsidian-Ziel"

@@ -687,6 +687,9 @@
   "mdEngineTabGone": {
     "message": "Onglet source indisponible. Rouvrez la page pour utiliser Defuddle"
   },
+  "mdEngineJinaNeedsHttp": {
+    "message": "Jina Reader ne récupère que les pages http(s). Ouvrez cette page en http(s) pour l’utiliser"
+  },
   "mdEngineGroupAria": {
     "message": "Moteur d'extraction"
   },
@@ -1697,6 +1700,9 @@
   "mdImgBrokenNote": {
     "message": "$COUNT$ image(s) n’ont pas pu se charger dans cet aperçu et pourraient ne pas s’afficher après l’export ; « Intégrer » les emballe dans les téléchargements.",
     "placeholders": { "count": { "content": "$1" } }
+  },
+  "mdExportRunning": {
+    "message": "Préparation de l’export…"
   },
   "mdObsidianRoute": {
     "message": "Destination Obsidian"

@@ -687,6 +687,9 @@
   "mdEngineTabGone": {
     "message": "Исходная вкладка недоступна — откройте страницу заново, чтобы использовать Defuddle"
   },
+  "mdEngineJinaNeedsHttp": {
+    "message": "Jina Reader читает только страницы по http(s) — откройте эту страницу по http(s), чтобы им воспользоваться"
+  },
   "mdEngineGroupAria": {
     "message": "Механизм извлечения"
   },
@@ -1697,6 +1700,9 @@
   "mdImgBrokenNote": {
     "message": "$COUNT$ изображений не загрузилось в этом просмотре и может не отображаться после экспорта; «Встроить» упакует изображения при скачивании.",
     "placeholders": { "count": { "content": "$1" } }
+  },
+  "mdExportRunning": {
+    "message": "Подготовка экспорта…"
   },
   "mdObsidianRoute": {
     "message": "Маршрут Obsidian"

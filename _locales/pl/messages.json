@@ -687,6 +687,9 @@
   "mdEngineTabGone": {
     "message": "Karta źródłowa niedostępna — otwórz stronę ponownie, aby użyć Defuddle"
   },
+  "mdEngineJinaNeedsHttp": {
+    "message": "Jina Reader pobiera tylko strony http(s) — otwórz tę stronę przez http(s), aby z niego skorzystać"
+  },
   "mdEngineGroupAria": {
     "message": "Silnik ekstrakcji"
   },
@@ -1697,6 +1700,9 @@
   "mdImgBrokenNote": {
     "message": "$COUNT$ obrazów nie wczytało się w tym podglądzie i może nie wyświetlać się po eksporcie; „Osadź” pakuje obrazy przy pobieraniu.",
     "placeholders": { "count": { "content": "$1" } }
+  },
+  "mdExportRunning": {
+    "message": "Przygotowywanie eksportu…"
   },
   "mdObsidianRoute": {
     "message": "Trasa Obsidian"

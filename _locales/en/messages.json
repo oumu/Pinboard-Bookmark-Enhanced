@@ -687,6 +687,9 @@
   "mdEngineTabGone": {
     "message": "Source tab no longer available. Reopen the page to use Defuddle"
   },
+  "mdEngineJinaNeedsHttp": {
+    "message": "Jina Reader only fetches http(s) pages. Open this page over http(s) to use it"
+  },
   "mdEngineGroupAria": {
     "message": "Extraction engine"
   },
@@ -1697,6 +1700,9 @@
   "mdImgBrokenNote": {
     "message": "$COUNT$ image link(s) failed to load in this preview and may not display after export; Embed packs images into downloads.",
     "placeholders": { "count": { "content": "$1" } }
+  },
+  "mdExportRunning": {
+    "message": "Preparing the export…"
   },
   "mdObsidianRoute": {
     "message": "Obsidian route"

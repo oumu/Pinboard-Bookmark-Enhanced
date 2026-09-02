@@ -687,6 +687,9 @@
   "mdEngineTabGone": {
     "message": "元のタブが利用できません。ページを開き直すと Defuddle を使えます"
   },
+  "mdEngineJinaNeedsHttp": {
+    "message": "Jina Reader が取得できるのは http(s) のページのみです。http(s) で開き直すと使えます"
+  },
   "mdEngineGroupAria": {
     "message": "抽出エンジン"
   },
@@ -1697,6 +1700,9 @@
   "mdImgBrokenNote": {
     "message": "$COUNT$ 枚の画像がプレビューで読み込めませんでした。エクスポート後も表示されない可能性があります。ダウンロードで「埋め込み」を選ぶと画像を同梱できます。",
     "placeholders": { "count": { "content": "$1" } }
+  },
+  "mdExportRunning": {
+    "message": "エクスポートを準備しています…"
   },
   "mdObsidianRoute": {
     "message": "Obsidian ルート"

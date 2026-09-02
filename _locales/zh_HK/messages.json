@@ -687,6 +687,9 @@
   "mdEngineTabGone": {
     "message": "來源標籤頁已無法使用，重新開啟該頁面才能使用 Defuddle"
   },
+  "mdEngineJinaNeedsHttp": {
+    "message": "Jina Reader 只能擷取 http(s) 頁面，用 http(s) 開啟此頁才能使用"
+  },
   "mdEngineGroupAria": {
     "message": "擷取引擎"
   },
@@ -1697,6 +1700,9 @@
   "mdImgBrokenNote": {
     "message": "$COUNT$ 張圖片在目前預覽中載入失敗，匯出後可能仍無法顯示；下載並選擇「內嵌」可打包圖片。",
     "placeholders": { "count": { "content": "$1" } }
+  },
+  "mdExportRunning": {
+    "message": "正在準備匯出…"
   },
   "mdObsidianRoute": {
     "message": "Obsidian 路由"

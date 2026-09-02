@@ -2107,10 +2107,20 @@ const drawerClose = mdPreviewJs.slice(drawerSetupEnd, drawerCloseEnd);
 check(drawerSetupStart >= 0 && drawerSetup.includes("main.inert = true") &&
   drawerSetup.includes('rail.setAttribute("aria-modal", "true")') &&
   drawerSetup.includes("requestAnimationFrame(() =>") &&
-  drawerSetup.includes('(document.getElementById("btn-rendered") || rail).focus()') &&
+  drawerSetup.includes('document.getElementById("btn-rendered")') &&
   drawerSetup.includes('window.matchMedia("(max-width: 1000px)").addEventListener("change"') &&
   drawerSetup.includes("if (!e.matches) pbpRailDrawerClose()"),
 "md-preview.js: drawer open/breakpoint state does not manage modal inertness");
+// Opening the drawer must land focus INSIDE the modal. Any preferred landing
+// element has to be visibility-tested first, with a fallback to the rail's own
+// focusable list: on the extraction-failure shell body.md-shell hides
+// `.rail > .view-toggle`, so focusing a hidden #btn-rendered is a silent no-op
+// and focus stays on the hamburger, outside the aria-modal drawer.
+const drawerOpenStart = drawerSetup.indexOf("if (main) main.inert = true");
+const drawerOpenFocus = drawerOpenStart < 0 ? ""
+  : drawerSetup.slice(drawerOpenStart, drawerSetup.indexOf("} else {", drawerOpenStart));
+check(drawerOpenFocus.includes("offsetParent !== null") && drawerOpenFocus.includes("focusables()"),
+  "md-preview.js: the drawer's open focus handoff is not visibility-gated -- a hidden landing element (body.md-shell hides the Raw/Rendered pair on the error shell) makes focus() a no-op, so the modal drawer opens with focus stranded outside it");
 check(drawerClose.includes('document.body.classList.remove("rail-open")') &&
   drawerClose.includes("scrim.hidden = true") && drawerClose.includes('rail.removeAttribute("aria-modal")') &&
   drawerClose.includes("main.inert = false"),
@@ -2260,9 +2270,21 @@ check(!mdReaderJs.includes("function pbpTypoApplyVars") && !mdReaderJs.includes(
   // review) -- the gate must catch removal, not just reordering.
   const applyAt = mdPreviewJs.indexOf("pbpTypoApplyVars(");
   const renderAt = mdPreviewJs.indexOf("renderedView.innerHTML = renderedHtml");
-  check(mdPreviewJs.includes('"pbp_font_tier", "pbp_leading_tier"]') &&
+  // Key membership, not the literal array text: the reading-width key rides
+  // the same get (item #93) and more may follow. What matters is that no
+  // reading preference costs a SECOND storage round trip, and that they are
+  // all applied before the first paint.
+  const preReadCall = (mdPreviewJs.match(/chrome\.storage\.local\.get\(\[MP_KEY[^\]]*\]\)/) || [""])[0];
+  check(preReadCall.includes('"pbp_font_tier"') && preReadCall.includes('"pbp_leading_tier"') &&
     applyAt >= 0 && renderAt >= 0 && applyAt < renderAt,
     "md-preview.js: typography tiers not applied before the first render (rode the MP_KEY read)");
+  // Same contract for the reading width: md-reader.js's _pbpZenInit only runs
+  // on "pbp:rendered", so a stored 680/1080 painted at the 880 CSS fallback
+  // and re-laid the whole article out once per open.
+  const widthAt = mdPreviewJs.indexOf('document.body.style.setProperty("--pbp-width"');
+  check(preReadCall.includes('"pbp_zen_width"') && widthAt >= 0 && widthAt < renderAt &&
+    mdPreviewJs.includes("window._pbpZenWidthStored = { width: data.pbp_zen_width }"),
+    "md-preview.js: the stored reading width no longer rides the pre-paint read (or no longer hands md-reader.js the raw value), so an off-default width paints at 880 and re-lays the article out after the first render");
 }
 // (2) Scroll grab: tier changes settle the anchor SYNCHRONOUSLY -- the 300ms
 // second phase belongs to the width path's max-width transition only.

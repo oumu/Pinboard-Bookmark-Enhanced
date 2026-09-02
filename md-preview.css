@@ -1259,6 +1259,13 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
 .export-fmt .action-btn { justify-content: center; }
 .export-fmt .action-btn.icon-only { padding: 6px 9px; justify-content: center; }
 .export-fmt .action-btn.icon-only svg { margin: 0; }
+/* Export in flight (md-preview.js's _exporting gate): an embed export spends
+   seconds behind a permission prompt and an image-fetch round. Two of the
+   three buttons are icon-only and have no label to swap, so the running state
+   is the #export-note line plus this dim. aria-busy, never the disabled
+   property -- disabling the button the user just pressed drops focus to
+   <body> (the same rule .pbp-img-fix-btn and .typo-step follow). */
+.export-fmt .action-btn[aria-busy="true"] { opacity: 0.55; cursor: wait; }
 /* EPUB row: no icon-only twin (Codex: no fake copy button for a binary
    format) -- its single download action spans the primary+icon columns and
    carries a visible label instead of being icon-only. */
@@ -1392,7 +1399,14 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
    a current or future rail section adds. */
 .rail-collapsed > *:not(.rail-sec-head) { display: none !important; }
 
-/* Drawer toggle (hamburger) + scrim — shown only in narrow mode */
+/* Drawer toggle (hamburger) + scrim — shown only in narrow mode.
+   The toggle's visibility is expressed HERE and only here: display:none by
+   default, display:inline-flex inside the <=1000px media query below. It must
+   NOT also carry a `hidden` attribute in md-preview.html -- the page-wide
+   `[hidden] { display: none !important; }` fallback further down beats any
+   normal declaration, so a second state source would pin the only opener of
+   the off-canvas rail to display:none at every width and strand the whole
+   rail (export, TOC, Ask, zen) off screen below the breakpoint. */
 .rail-toggle {
   position: fixed; top: 12px; left: 12px; z-index: 30;
   display: none; align-items: center; justify-content: center;
@@ -2720,7 +2734,13 @@ body.tr-only #rendered-view .pb-tr { cursor: pointer; }
    connected element to recompute a transition against and nothing flashes
    on initial paint. */
 #ask-panel[hidden] {
-  display: flex;
+  /* !important, unlike every other display restatement in this file: the
+     page-wide `[hidden] { display: none !important; }` fallback is an AUTHOR
+     important declaration, which no amount of specificity beats. Without the
+     same weight here the closed panel computes display:none, both 200ms
+     slides collapse into a hard cut, and md-ask.js's deliberate reflow force
+     (`void panel.offsetWidth`) has nothing to flush. */
+  display: flex !important;
   transform: translateX(calc(100% + 24px));
   visibility: hidden;
   transition: transform 200ms var(--ease-drawer), visibility 0s linear 200ms;
