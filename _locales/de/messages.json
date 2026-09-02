@@ -83,7 +83,7 @@
     "message": "Zuletzt:"
   },
   "loading": {
-    "message": "Laden..."
+    "message": "Laden…"
   },
   "private": {
     "message": "Privat"
@@ -129,7 +129,7 @@
     "message": "Authentifizierung fehlgeschlagen."
   },
   "settingsPassword": {
-    "message": "Einstellungen/Passwort"
+    "message": "pinboard.in/settings/password"
   },
   "labelUrl": {
     "message": "URL"
@@ -168,7 +168,7 @@
     "message": "Lesezeichen durchsuchen…"
   },
   "saving": {
-    "message": "Speichern..."
+    "message": "Speichern…"
   },
   "bookmarkSaved": {
     "message": "Lesezeichen gespeichert."
@@ -180,7 +180,7 @@
     "message": "Wiederholen"
   },
   "deleting": {
-    "message": "Löschen..."
+    "message": "Löschen…"
   },
   "deleted": {
     "message": "Gelöscht."
@@ -279,10 +279,10 @@
     "message": "Entfernen"
   },
   "aiRegenerating": {
-    "message": "Wird neu generiert..."
+    "message": "Wird neu generiert…"
   },
   "aiReplacing": {
-    "message": "Wird ersetzt..."
+    "message": "Wird ersetzt…"
   },
   "aiErrorTitle": {
     "message": "$OP$-Erstellung fehlgeschlagen",
@@ -333,7 +333,7 @@
     "message": "Erlauben und erneut versuchen"
   },
   "aiErrorModelNotFoundHint": {
-    "message": "Öffne Einstellungen > KI und wähle ein verfügbares Modell"
+    "message": "Öffne Einstellungen > KI-Anbieter und wähle ein verfügbares Modell"
   },
   "addAll": {
     "message": "Alle hinzufügen"
@@ -389,7 +389,7 @@
     "message": "Tabs einzeln speichern"
   },
   "batchSaving": {
-    "message": "Speichern..."
+    "message": "Speichern…"
   },
   "batchRunningBg": {
     "message": "Wird im Hintergrund gespeichert…"
@@ -731,7 +731,7 @@
     }
   },
   "bgTitleSavedAiSkipped": {
-    "message": "\"$TITLE$\" gespeichert. KI wurde nicht ausgeführt; Zugriff unter Einstellungen > KI > Test erlauben.",
+    "message": "\"$TITLE$\" gespeichert. KI wurde nicht ausgeführt; Zugriff unter Einstellungen > KI-Anbieter > Verbindung testen erlauben.",
     "placeholders": {
       "title": {
         "content": "$1"
@@ -795,7 +795,7 @@
     "message": "Zuletzt aktiv"
   },
   "notesEmpty": {
-    "message": "Markiere Text auf der Markdown-Vorschauseite, um ihn hervorzuheben oder eine Notiz hinzuzufügen."
+    "message": "Öffne eine Seite in der Leseansicht und markiere dort Text, um ihn hervorzuheben oder eine Notiz hinzuzufügen."
   },
   "notesFilterEmpty": {
     "message": "Keine Notizen entsprechen diesem Filter."
@@ -974,10 +974,10 @@
     "message": "API-Schlüssel und Tokens in Sicherungen einschließen"
   },
   "backupIncludeSecretsHint": {
-    "message": "Schreibt sämtliche Zugangsdaten im Klartext in die Datei: Pinboard-Token, alle Schlüssel der KI-Anbieter sowie die Zugangsdaten für Jina, Wayback, Anki, Eudic, Gist und Webhook. Wer die Datei öffnet, kann sie direkt verwenden. Bewahren Sie die Datei wie ein Passwort auf."
+    "message": "Schreibt sämtliche Zugangsdaten im Klartext in die Datei: Pinboard-Token, alle Schlüssel der KI-Anbieter sowie die Zugangsdaten für Jina, Wayback, Anki, Eudic, Gist und Webhook. Wer die Datei öffnet, kann sie direkt verwenden. Bewahre die Datei wie ein Passwort auf."
   },
   "backupSecretsExportConfirm": {
-    "message": "Diese Sicherung enthält Ihre API-Schlüssel und Tokens im Klartext. Senden Sie sie nicht über Kanäle, denen Sie nicht vertrauen, und löschen Sie sie nach der Wiederherstellung."
+    "message": "Diese Sicherung enthält deine API-Schlüssel und Tokens im Klartext. Sende sie nicht über Kanäle, denen du nicht vertraust, und lösche sie nach der Wiederherstellung."
   },
   "backupSecretsExportYes": {
     "message": "Exportieren"
@@ -1254,7 +1254,7 @@
     "message": "Verbindung testen"
   },
   "testTesting": {
-    "message": "Testen..."
+    "message": "Testen…"
   },
   "testConnected": {
     "message": "Verbunden ($RESULT$)",
@@ -1640,7 +1640,7 @@
     "message": "Bereinigtes Markdown über die Jina Reader API abrufen (Netzwerk erforderlich; API-Schlüssel optional für höheres Kontingent)."
   },
   "jinaAuthFailed": {
-    "message": "Jina API-Schlüssel ist ungültig oder abgelaufen. Öffne Einstellungen > Jina Reader, um ihn zu aktualisieren."
+    "message": "Jina API-Schlüssel ist ungültig oder abgelaufen. Öffne Einstellungen > KI-Anbieter > Jina Reader, um ihn zu aktualisieren."
   },
   "jinaFailedDetail": {
     "message": "Markdown-Abruf fehlgeschlagen: $ERROR$",
@@ -1939,7 +1939,7 @@
     "message": "z. B. kimi-k2.6, kimi-k2.5, moonshot-v1-32k, moonshot-v1-128k"
   },
   "mdPreviewEmpty": {
-    "message": "Keine Vorschaudaten verfügbar. Bitte zuerst im Popup auf Markdown klicken."
+    "message": "Hier gibt es noch nichts zu lesen. Öffne eine Seite und klicke dann im Popup der Erweiterung auf „Leseansicht“."
   },
   "freeTierTitle": {
     "message": "Welche Anbieter bieten kostenlosen API-Zugang?"
@@ -2643,7 +2643,7 @@
     "message": "Stopp"
   },
   "askPlaceholder": {
-    "message": "Frage zu diesem Artikel stellen... (Enter senden, Shift+Enter neue Zeile)"
+    "message": "Frage zu diesem Artikel stellen… (Enter senden, Shift+Enter neue Zeile)"
   },
   "askWillSend": {
     "message": "Sendet etwa $TOKENS$ Tokens an $MODEL$",
@@ -2914,13 +2914,13 @@
     "message": "Offline-Wörterbuch Englisch–Chinesisch"
   },
   "ecdictEmpty": {
-    "message": "Nicht importiert. Wählen Sie eine CSV-Datei im ECDICT-Feldlayout."
+    "message": "Nicht importiert. Wähle eine CSV-Datei im ECDICT-Feldlayout."
   },
   "ecdictHint": {
     "message": "Zeigt bei englischen Wörtern chinesische Bedeutungen über dem englischen Eintrag. Der englische Eintrag wird weiterhin geladen."
   },
   "ecdictFormatNote": {
-    "message": "Erwartet eine CSV-Datei, deren erste Zeile die Spaltenüberschrift ist und word, translation, tag, collins, oxford, frq und bnc enthält. Fertige Wörterbuchpakete wie mdx, eudic, stardict, mobi und sqlite sind andere Formate und lassen sich nicht importieren. Dieses Projekt stellt keine Datenquelle bereit, empfiehlt keine und prüft keine, und steht in keiner Verbindung dazu. Sie stellen die Datei bereit und sind für ihre Lizenz verantwortlich."
+    "message": "Erwartet eine CSV-Datei, deren erste Zeile die Spaltenüberschrift ist und word, translation, tag, collins, oxford, frq und bnc enthält. Fertige Wörterbuchpakete wie mdx, eudic, stardict, mobi und sqlite sind andere Formate und lassen sich nicht importieren. Dieses Projekt stellt keine Datenquelle bereit, empfiehlt keine und prüft keine, und steht in keiner Verbindung dazu. Du stellst die Datei bereit und bist für ihre Lizenz verantwortlich."
   },
   "ecdictImportFile": {
     "message": "Datei importieren"
@@ -2946,10 +2946,10 @@
     "message": "Diese Datei enthält mehr Einträge als der Import zulässt."
   },
   "ecdictStaleReload": {
-    "message": "Die Erweiterung wurde aktualisiert. Laden Sie diese Seite neu, um die Wörterbuchpakete zu verwenden."
+    "message": "Die Erweiterung wurde aktualisiert. Lade diese Seite neu, um die Wörterbuchpakete zu verwenden."
   },
   "vocabZhFromPack": {
-    "message": "Chinesisch aus Ihrem lokalen Paket"
+    "message": "Chinesisch aus deinem lokalen Paket"
   },
   "dictZhBlockTitle": {
     "message": "Chinesisch · ECDICT"
@@ -3050,7 +3050,7 @@
       "message": "Die Erweiterung speichert eine Klartextkopie im privaten appDataFolder der Erweiterung in deinem Google Drive. Sie ist nicht Ende-zu-Ende-verschlüsselt und kann Vokabeln, Definitionen, Notizen, Quell-URLs, Artikeltitel und Kontextauszüge enthalten."
     },
     "vocabDriveLoading": {
-      "message": "Google-Drive-Synchronisierungsstatus wird geladen..."
+      "message": "Google-Drive-Synchronisierungsstatus wird geladen…"
     },
     "vocabDriveDisconnected": {
       "message": "Google Drive ist auf diesem Gerät nicht verbunden."
@@ -3062,7 +3062,7 @@
       "message": "Warten auf die Google-Autorisierung. Schließe die Anmeldung und die Freigabe in dem Fenster ab, das Chrome geöffnet hat."
     },
     "vocabDriveWorking": {
-      "message": "Vokabeln werden mit Google Drive synchronisiert..."
+      "message": "Vokabeln werden mit Google Drive synchronisiert…"
     },
     "vocabDriveSynced": {
       "message": "Vokabeln mit Google Drive synchronisiert."
@@ -3782,7 +3782,7 @@
   "mdVideoStateOff": { "message": "aus" },
   "skimWaitingCaptions": { "message": "Kernpunkte werden erzeugt, sobald die Untertitel geladen sind; „Neu erzeugen“ erstellt sie sofort" },
   "batchResumed": { "message": "Stapel fortgesetzt · Versuch $ATTEMPT$ von $MAX$", "placeholders": { "attempt": { "content": "$1" }, "max": { "content": "$2" } } },
-  "batchCancelFailed": { "message": "Der Abbruch konnte nicht angefordert werden. Versuchen Sie es erneut." },
+  "batchCancelFailed": { "message": "Der Abbruch konnte nicht angefordert werden. Versuche es erneut." },
   "connectionOverviewTitle": { "message": "Verbindungsstatus" },
   "connectionOverviewHint": { "message": "Der Status beruht auf Konfiguration, erteilten Berechtigungen und den letzten manuellen Tests. Beim Öffnen der Einstellungen werden weder Dienste kontaktiert noch Berechtigungen angefordert." },
   "connectionNeverTested": { "message": "Noch nicht getestet" },
@@ -3794,15 +3794,15 @@
   "connectionLastFailure": { "message": "Letzter Test fehlgeschlagen · $TIME$", "placeholders": { "time": { "content": "$1" } } },
   "settingsSearchLabel": { "message": "Einstellungen durchsuchen" },
   "settingsSearchPlaceholder": { "message": "Einstellungen durchsuchen" },
-  "settingsSearchNoResults": { "message": "Keine passenden Einstellungen. Suchen Sie nach einer Funktion oder einem Bedienelement." },
+  "settingsSearchNoResults": { "message": "Keine passenden Einstellungen. Suche nach einer Funktion oder einem Bedienelement." },
   "diagnosticsTitle": { "message": "Support-Diagnose" },
   "diagnosticsHint": { "message": "Kopiert Angaben zu Erweiterung, Browser, Funktionen, Berechtigungen, Speicher und Fehlerkategorien. Zugangsdaten, Kontonamen, Seitenadressen, Inhalte und eigene Endpunkte bleiben ausgeschlossen." },
   "diagnosticsCopy": { "message": "Diagnose kopieren" },
   "diagnosticsCopied": { "message": "Diagnose kopiert" },
-  "diagnosticsCopyFailed": { "message": "Die Diagnose konnte nicht kopiert werden. Prüfen Sie den Zugriff auf die Zwischenablage und versuchen Sie es erneut." },
+  "diagnosticsCopyFailed": { "message": "Die Diagnose konnte nicht kopiert werden. Prüfe den Zugriff auf die Zwischenablage und versuche es erneut." },
   "libraryVocabSignedOutTitle": { "message": "Für Vokabeln anmelden" },
   "libraryVocabSignedOutHint": { "message": "Vokabeln werden für jedes Pinboard-Konto getrennt gespeichert. Die Wörterbuchsuche bleibt ohne Anmeldung verfügbar." },
   "libraryVocabOpenSettings": { "message": "Kontoeinstellungen öffnen" },
-  "libraryLookupSignedOutHint": { "message": "Schlagen Sie oben ein Wort nach. Melden Sie sich an, um es in den Vokabeln zu speichern." },
+  "libraryLookupSignedOutHint": { "message": "Schlag oben ein Wort nach. Melde dich an, um es in den Vokabeln zu speichern." },
   "mdPreviewClose": { "message": "Leser schließen" }
 }

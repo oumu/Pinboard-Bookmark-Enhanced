@@ -83,7 +83,7 @@
     "message": "前回："
   },
   "loading": {
-    "message": "読み込み中..."
+    "message": "読み込み中…"
   },
   "private": {
     "message": "非公開"
@@ -129,7 +129,7 @@
     "message": "認証に失敗しました。"
   },
   "settingsPassword": {
-    "message": "設定/パスワード"
+    "message": "pinboard.in/settings/password"
   },
   "labelUrl": {
     "message": "URL"
@@ -168,7 +168,7 @@
     "message": "ブックマークを検索…"
   },
   "saving": {
-    "message": "保存中..."
+    "message": "保存中…"
   },
   "bookmarkSaved": {
     "message": "ブックマークを保存しました。"
@@ -180,7 +180,7 @@
     "message": "再試行"
   },
   "deleting": {
-    "message": "削除中..."
+    "message": "削除中…"
   },
   "deleted": {
     "message": "削除しました。"
@@ -279,10 +279,10 @@
     "message": "削除"
   },
   "aiRegenerating": {
-    "message": "再生成中..."
+    "message": "再生成中…"
   },
   "aiReplacing": {
-    "message": "置換中..."
+    "message": "置換中…"
   },
   "aiErrorTitle": {
     "message": "$OP$ の生成に失敗",
@@ -333,7 +333,7 @@
     "message": "許可して再試行"
   },
   "aiErrorModelNotFoundHint": {
-    "message": "設定 > AI を開いて、利用可能なモデルを選択してください"
+    "message": "「設定 > AI プロバイダー」を開いて、利用可能なモデルを選択してください"
   },
   "addAll": {
     "message": "すべて追加"
@@ -389,7 +389,7 @@
     "message": "各タブを個別に保存"
   },
   "batchSaving": {
-    "message": "保存中..."
+    "message": "保存中…"
   },
   "batchRunningBg": {
     "message": "バックグラウンドで保存中…"
@@ -731,7 +731,7 @@
     }
   },
   "bgTitleSavedAiSkipped": {
-    "message": "\"$TITLE$\" を保存しました。AI は実行されませんでした。「設定 > AI > テスト」でアクセスを許可してください。",
+    "message": "\"$TITLE$\" を保存しました。AI は実行されませんでした。「設定 > AI プロバイダー > 接続テスト」でアクセスを許可してください。",
     "placeholders": {
       "title": {
         "content": "$1"
@@ -795,7 +795,7 @@
     "message": "最終更新"
   },
   "notesEmpty": {
-    "message": "Markdown プレビューページで文字を選択するとハイライトやメモを追加できます。"
+    "message": "リーダーでページを開き、文字を選択するとハイライトやメモを追加できます。"
   },
   "notesFilterEmpty": {
     "message": "この条件に一致するメモはありません。"
@@ -1254,7 +1254,7 @@
     "message": "接続テスト"
   },
   "testTesting": {
-    "message": "テスト中..."
+    "message": "テスト中…"
   },
   "testConnected": {
     "message": "接続成功（$RESULT$）",
@@ -1625,7 +1625,7 @@
     "message": "ページを Markdown に変換（Jina Reader）"
   },
   "jinaConverting": {
-    "message": "変換中..."
+    "message": "変換中…"
   },
   "jinaCopied": {
     "message": "コピー済み!"
@@ -1640,7 +1640,7 @@
     "message": "Jina Reader API で整形済み Markdown を取得します（ネットワーク必須、API キーは任意・より高いクォータに）。"
   },
   "jinaAuthFailed": {
-    "message": "Jina API キーが無効または期限切れです。設定 > Jina Reader で更新してください。"
+    "message": "Jina API キーが無効または期限切れです。「設定 > AI プロバイダー > Jina Reader」で更新してください。"
   },
   "jinaFailedDetail": {
     "message": "Markdown の取得に失敗しました：$ERROR$",
@@ -1939,7 +1939,7 @@
     "message": "例: kimi-k2.6, kimi-k2.5, moonshot-v1-32k, moonshot-v1-128k"
   },
   "mdPreviewEmpty": {
-    "message": "プレビューデータがありません。まずポップアップの Markdown ボタンを使ってください。"
+    "message": "まだ読むものがありません。ページを開いてから、拡張機能のポップアップで「リーダー」をクリックしてください。"
   },
   "freeTierTitle": {
     "message": "無料 API を提供するプロバイダーは？"
@@ -3050,7 +3050,7 @@
       "message": "Google Drive のこの拡張機能専用 appDataFolder に、単語データのコピーを平文で保存します。エンドツーエンド暗号化はされません。単語、定義、メモ、参照元 URL、記事タイトル、文脈の抜粋が含まれる場合があります。"
     },
     "vocabDriveLoading": {
-      "message": "Google Drive の同期状態を読み込んでいます..."
+      "message": "Google Drive の同期状態を読み込んでいます…"
     },
     "vocabDriveDisconnected": {
       "message": "このデバイスは Google Drive に接続されていません。"
@@ -3062,7 +3062,7 @@
       "message": "Google の認可を待っています。Chrome が開いたウィンドウでログインと許可を完了してください。"
     },
     "vocabDriveWorking": {
-      "message": "Google Drive と単語を同期しています..."
+      "message": "Google Drive と単語を同期しています…"
     },
     "vocabDriveSynced": {
       "message": "Google Drive と単語を同期しました。"

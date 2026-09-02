@@ -83,7 +83,7 @@
     "message": "Last used:"
   },
   "loading": {
-    "message": "loading..."
+    "message": "loading…"
   },
   "private": {
     "message": "private"
@@ -129,7 +129,7 @@
     "message": "Authentication failed."
   },
   "settingsPassword": {
-    "message": "settings/password"
+    "message": "pinboard.in/settings/password"
   },
   "labelUrl": {
     "message": "URL"
@@ -168,7 +168,7 @@
     "message": "Search your bookmarks…"
   },
   "saving": {
-    "message": "Saving..."
+    "message": "Saving…"
   },
   "bookmarkSaved": {
     "message": "Bookmark saved."
@@ -180,7 +180,7 @@
     "message": "Retry"
   },
   "deleting": {
-    "message": "Deleting..."
+    "message": "Deleting…"
   },
   "deleted": {
     "message": "Deleted."
@@ -279,10 +279,10 @@
     "message": "remove"
   },
   "aiRegenerating": {
-    "message": "regenerating..."
+    "message": "regenerating…"
   },
   "aiReplacing": {
-    "message": "replacing..."
+    "message": "replacing…"
   },
   "aiErrorTitle": {
     "message": "$OP$ generation failed",
@@ -333,7 +333,7 @@
     "message": "Grant and retry"
   },
   "aiErrorModelNotFoundHint": {
-    "message": "Visit Settings > AI to select an available model"
+    "message": "Open Settings > AI Providers to select an available model"
   },
   "addAll": {
     "message": "Add all"
@@ -389,7 +389,7 @@
     "message": "Bookmark All Tabs"
   },
   "batchSaving": {
-    "message": "Saving..."
+    "message": "Saving…"
   },
   "batchRunningBg": {
     "message": "Saving in background…"
@@ -731,7 +731,7 @@
     }
   },
   "bgTitleSavedAiSkipped": {
-    "message": "\"$TITLE$\" saved. AI did not run; grant access via Settings > AI > Test.",
+    "message": "\"$TITLE$\" saved. AI did not run; grant access via Settings > AI Providers > Test Connection.",
     "placeholders": {
       "title": {
         "content": "$1"
@@ -795,7 +795,7 @@
     "message": "Last active"
   },
   "notesEmpty": {
-    "message": "Select text on a Markdown preview page to highlight it or add a note."
+    "message": "Open a page in the reader, then select text to highlight it or add a note."
   },
   "notesFilterEmpty": {
     "message": "No notes match this filter."
@@ -1254,7 +1254,7 @@
     "message": "Test Connection"
   },
   "testTesting": {
-    "message": "Testing..."
+    "message": "Testing…"
   },
   "testConnected": {
     "message": "Connected ($RESULT$)",
@@ -1625,7 +1625,7 @@
     "message": "Convert page to Markdown (Jina Reader)"
   },
   "jinaConverting": {
-    "message": "Converting..."
+    "message": "Converting…"
   },
   "jinaCopied": {
     "message": "Copied!"
@@ -1640,7 +1640,7 @@
     "message": "Fetch cleaned Markdown via Jina Reader API (requires network; API key optional for higher quota)."
   },
   "jinaAuthFailed": {
-    "message": "Jina API key is invalid or expired. Open Settings > Jina Reader to update it."
+    "message": "Jina API key is invalid or expired. Open Settings > AI Providers > Jina Reader to update it."
   },
   "jinaFailedDetail": {
     "message": "Markdown fetch failed: $ERROR$",
@@ -1909,7 +1909,7 @@
     "message": "e.g. kimi-k2.6, kimi-k2.5, moonshot-v1-32k, moonshot-v1-128k"
   },
   "mdPreviewEmpty": {
-    "message": "No preview data available. Please use the Markdown button in the popup first."
+    "message": "Nothing to read here yet. Open a page, then click Reader in the extension popup."
   },
   "freeTierTitle": {
     "message": "Which providers offer free API access?"
@@ -2214,7 +2214,7 @@
     "message": "AI deep analysis"
   },
   "tagGovAiRunning": {
-    "message": "Analyzing..."
+    "message": "Analyzing…"
   },
   "tagGovAiNone": {
     "message": "No AI groups found"
@@ -2643,7 +2643,7 @@
     "message": "Stop"
   },
   "askPlaceholder": {
-    "message": "Ask about this article... (Enter to send, Shift+Enter for a new line)"
+    "message": "Ask about this article… (Enter to send, Shift+Enter for a new line)"
   },
   "askWillSend": {
     "message": "Will send about $TOKENS$ tokens to $MODEL$",
@@ -3050,7 +3050,7 @@
       "message": "The extension stores a plaintext copy in its private appDataFolder on your Google Drive. The copy is not end-to-end encrypted and may include words, definitions, notes, source URLs, article titles, and context excerpts."
     },
     "vocabDriveLoading": {
-      "message": "Loading Google Drive sync status..."
+      "message": "Loading Google Drive sync status…"
     },
     "vocabDriveDisconnected": {
       "message": "Google Drive is not connected on this device."
@@ -3062,7 +3062,7 @@
       "message": "Waiting for Google authorization. Complete the sign-in and approval in the window Chrome opened."
     },
     "vocabDriveWorking": {
-      "message": "Syncing vocabulary with Google Drive..."
+      "message": "Syncing vocabulary with Google Drive…"
     },
     "vocabDriveSynced": {
       "message": "Vocabulary synced with Google Drive."

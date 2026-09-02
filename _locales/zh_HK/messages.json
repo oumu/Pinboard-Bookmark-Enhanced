@@ -83,7 +83,7 @@
     "message": "上次："
   },
   "loading": {
-    "message": "載入中..."
+    "message": "載入中…"
   },
   "private": {
     "message": "私人"
@@ -129,7 +129,7 @@
     "message": "認證失敗"
   },
   "settingsPassword": {
-    "message": "設定/密碼"
+    "message": "pinboard.in/settings/password"
   },
   "labelUrl": {
     "message": "網址"
@@ -168,7 +168,7 @@
     "message": "搜尋你的書籤…"
   },
   "saving": {
-    "message": "儲存中..."
+    "message": "儲存中…"
   },
   "bookmarkSaved": {
     "message": "書籤已儲存"
@@ -180,7 +180,7 @@
     "message": "重試"
   },
   "deleting": {
-    "message": "刪除中..."
+    "message": "刪除中…"
   },
   "deleted": {
     "message": "已刪除"
@@ -279,10 +279,10 @@
     "message": "移除"
   },
   "aiRegenerating": {
-    "message": "重新產生中..."
+    "message": "重新產生中…"
   },
   "aiReplacing": {
-    "message": "替換中..."
+    "message": "替換中…"
   },
   "aiErrorTitle": {
     "message": "$OP$ 生成失敗",
@@ -333,7 +333,7 @@
     "message": "授權並重試"
   },
   "aiErrorModelNotFoundHint": {
-    "message": "前往設定 > AI，選擇一個可用的模型"
+    "message": "前往設定 > AI 服務商，選擇一個可用的模型"
   },
   "addAll": {
     "message": "全部新增"
@@ -389,7 +389,7 @@
     "message": "逐個收藏標籤頁"
   },
   "batchSaving": {
-    "message": "儲存中..."
+    "message": "儲存中…"
   },
   "batchRunningBg": {
     "message": "正在背景儲存…"
@@ -731,7 +731,7 @@
     }
   },
   "bgTitleSavedAiSkipped": {
-    "message": "\"$TITLE$\" 已儲存。AI 未執行；請前往「設定 > AI > 測試」授權。",
+    "message": "\"$TITLE$\" 已儲存。AI 未執行；請前往「設定 > AI 服務商 > 測試連接」授權。",
     "placeholders": {
       "title": {
         "content": "$1"
@@ -795,7 +795,7 @@
     "message": "最後活動"
   },
   "notesEmpty": {
-    "message": "在 Markdown 預覽頁選取文字即可標記或記筆記。"
+    "message": "在閱讀器中開啟頁面，選取文字即可標記或新增筆記。"
   },
   "notesFilterEmpty": {
     "message": "沒有符合篩選條件的筆記。"
@@ -1254,7 +1254,7 @@
     "message": "測試連接"
   },
   "testTesting": {
-    "message": "測試中..."
+    "message": "測試中…"
   },
   "testConnected": {
     "message": "已連接（$RESULT$）",
@@ -1640,7 +1640,7 @@
     "message": "透過 Jina Reader API 取得清洗過的 Markdown（需網絡；可選填 API Key 以獲得更高配額）。"
   },
   "jinaAuthFailed": {
-    "message": "Jina API Key 無效或已過期，請到 設定 > Jina Reader 中更新。"
+    "message": "Jina API Key 無效或已過期，請到設定 > AI 服務商 > Jina Reader 中更新。"
   },
   "jinaFailedDetail": {
     "message": "Markdown 抓取失敗：$ERROR$",
@@ -1939,7 +1939,7 @@
     "message": "範例：kimi-k2.6、kimi-k2.5、moonshot-v1-32k、moonshot-v1-128k"
   },
   "mdPreviewEmpty": {
-    "message": "暫無預覽資料，請先在彈窗中點擊 Markdown 按鈕。"
+    "message": "這裡還沒有內容。請先開啟網頁，再在擴充功能彈窗中點擊「閱讀器」。"
   },
   "freeTierTitle": {
     "message": "哪些 AI 服務商提供免費 API？"
@@ -2840,7 +2840,7 @@
     "message": "發音"
   },
   "dictSaveVocab": {
-    "message": "存入生詞庫"
+    "message": "存入生詞本"
   },
   "vocabNoteSaved": {
     "message": "備註已儲存"
@@ -2899,7 +2899,7 @@
     "message": "生詞未能保存"
   },
   "dictSavedVocab": {
-    "message": "已在生詞庫"
+    "message": "已在生詞本"
   },
   "dictUpdateVocab": {
     "message": "更新已儲存的生詞"
@@ -3050,7 +3050,7 @@
       "message": "擴充功能會在 Google Drive 的專用 appDataFolder 內，以明文格式儲存一份生詞副本。資料並非端對端加密，可能包括詞語、釋義、筆記、來源 URL、文章標題及語境摘錄。"
     },
     "vocabDriveLoading": {
-      "message": "正在讀取 Google Drive 同步狀態..."
+      "message": "正在讀取 Google Drive 同步狀態…"
     },
     "vocabDriveDisconnected": {
       "message": "這部裝置尚未連接 Google Drive。"
@@ -3062,7 +3062,7 @@
       "message": "正在等待 Google 授權。請在 Chrome 彈出的視窗中完成登入與授權。"
     },
     "vocabDriveWorking": {
-      "message": "正在與 Google Drive 同步生詞..."
+      "message": "正在與 Google Drive 同步生詞…"
     },
     "vocabDriveSynced": {
       "message": "生詞已與 Google Drive 同步。"
@@ -3281,7 +3281,7 @@
     "message": "閱讀時以底線標出已儲存的生詞"
   },
   "dictEchoHint": {
-    "message": "點狀底線標記生詞庫中已有的詞，按一下即可開啟詞典。"
+    "message": "點狀底線標記生詞本中已有的詞，按一下即可開啟詞典。"
   },
   "dictAnkiSend": {
     "message": "全部傳送到 Anki"
@@ -3444,7 +3444,7 @@
     "message": "暫時沒有可傳送的生詞。"
   },
   "dictDeleteWord": {
-    "message": "從生詞庫移除"
+    "message": "從生詞本移除"
   },
   "dictSource": {
     "message": "來源："
@@ -3461,7 +3461,7 @@
     }
   },
   "dictDeleteConfirm": {
-    "message": "從生詞庫移除「$TERM$」？",
+    "message": "從生詞本移除「$TERM$」？",
     "placeholders": {
       "term": {
         "content": "$1"
@@ -3678,7 +3678,7 @@
   "libraryLookupPlaceholder": { "message": "查詢任何詞語" },
   "libraryLookupGo": { "message": "查詞" },
   "libraryLookupOpen": { "message": "查詢單字" },
-  "libraryLookupSaved": { "message": "已在生詞庫 · 查看" },
+  "libraryLookupSaved": { "message": "已在生詞本 · 查看" },
   "mdVideoTitle": { "message": "影片與字幕" },
   "mdVideoLoad": { "message": "載入影片與字幕" },
   "mdVideoEnable": { "message": "啟用字幕並載入影片" },

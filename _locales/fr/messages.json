@@ -83,7 +83,7 @@
     "message": "Derniers :"
   },
   "loading": {
-    "message": "chargement..."
+    "message": "chargement…"
   },
   "private": {
     "message": "privé"
@@ -129,7 +129,7 @@
     "message": "Échec de l'authentification."
   },
   "settingsPassword": {
-    "message": "paramètres/mot de passe"
+    "message": "pinboard.in/settings/password"
   },
   "labelUrl": {
     "message": "URL"
@@ -168,7 +168,7 @@
     "message": "Rechercher dans vos signets…"
   },
   "saving": {
-    "message": "Enregistrement..."
+    "message": "Enregistrement…"
   },
   "bookmarkSaved": {
     "message": "Signet enregistré."
@@ -180,7 +180,7 @@
     "message": "Réessayer"
   },
   "deleting": {
-    "message": "Suppression..."
+    "message": "Suppression…"
   },
   "deleted": {
     "message": "Supprimé."
@@ -279,10 +279,10 @@
     "message": "supprimer"
   },
   "aiRegenerating": {
-    "message": "régénération..."
+    "message": "régénération…"
   },
   "aiReplacing": {
-    "message": "remplacement..."
+    "message": "remplacement…"
   },
   "aiErrorTitle": {
     "message": "Échec de la génération $OP$",
@@ -333,7 +333,7 @@
     "message": "Autoriser et réessayer"
   },
   "aiErrorModelNotFoundHint": {
-    "message": "Allez dans Paramètres > IA et choisissez un modèle disponible"
+    "message": "Allez dans Paramètres > Fournisseurs IA et choisissez un modèle disponible"
   },
   "addAll": {
     "message": "Tout ajouter"
@@ -389,7 +389,7 @@
     "message": "Marquer chaque onglet"
   },
   "batchSaving": {
-    "message": "Enregistrement..."
+    "message": "Enregistrement…"
   },
   "batchRunningBg": {
     "message": "Enregistrement en arrière-plan…"
@@ -731,7 +731,7 @@
     }
   },
   "bgTitleSavedAiSkipped": {
-    "message": "« $TITLE$ » enregistré. L'IA n'a pas été exécutée ; autorisez l'accès via Paramètres > IA > Tester.",
+    "message": "« $TITLE$ » enregistré. L'IA n'a pas été exécutée ; autorisez l'accès via Paramètres > Fournisseurs IA > Tester la connexion.",
     "placeholders": {
       "title": {
         "content": "$1"
@@ -795,7 +795,7 @@
     "message": "Dernière activité"
   },
   "notesEmpty": {
-    "message": "Sélectionnez du texte sur la page d'aperçu Markdown pour le surligner ou ajouter une note."
+    "message": "Ouvrez une page en mode Lecture, puis sélectionnez du texte pour le surligner ou ajouter une note."
   },
   "notesFilterEmpty": {
     "message": "Aucune note ne correspond à ce filtre."
@@ -1254,7 +1254,7 @@
     "message": "Tester la connexion"
   },
   "testTesting": {
-    "message": "Test en cours..."
+    "message": "Test en cours…"
   },
   "testConnected": {
     "message": "Connecté ($RESULT$)",
@@ -1640,7 +1640,7 @@
     "message": "Récupérer le Markdown nettoyé via l'API Jina Reader (réseau requis ; clé API optionnelle pour un quota plus élevé)."
   },
   "jinaAuthFailed": {
-    "message": "La clé API Jina est invalide ou expirée. Ouvrez Paramètres > Jina Reader pour la mettre à jour."
+    "message": "La clé API Jina est invalide ou expirée. Ouvrez Paramètres > Fournisseurs IA > Jina Reader pour la mettre à jour."
   },
   "jinaFailedDetail": {
     "message": "Échec de récupération Markdown : $ERROR$",
@@ -1939,7 +1939,7 @@
     "message": "ex. : kimi-k2.6, kimi-k2.5, moonshot-v1-32k, moonshot-v1-128k"
   },
   "mdPreviewEmpty": {
-    "message": "Aucune donnée d'aperçu disponible. Cliquez d'abord sur Markdown dans le popup."
+    "message": "Rien à lire pour l'instant. Ouvrez une page, puis cliquez sur « Lecture » dans le popup de l'extension."
   },
   "freeTierTitle": {
     "message": "Quels fournisseurs offrent un accès API gratuit ?"
@@ -2643,7 +2643,7 @@
     "message": "Arrêter"
   },
   "askPlaceholder": {
-    "message": "Posez une question sur cet article... (Entrée pour envoyer, Maj+Entrée pour une nouvelle ligne)"
+    "message": "Posez une question sur cet article… (Entrée pour envoyer, Maj+Entrée pour une nouvelle ligne)"
   },
   "askWillSend": {
     "message": "Enverra environ $TOKENS$ tokens à $MODEL$",
@@ -3050,7 +3050,7 @@
       "message": "L'extension stocke une copie en clair dans son dossier appDataFolder privé sur Google Drive. Cette copie n'est pas chiffrée de bout en bout et peut contenir des mots, des définitions, des notes, des URL sources, des titres d'articles et des extraits de contexte."
     },
     "vocabDriveLoading": {
-      "message": "Chargement de l'état de la synchronisation Google Drive..."
+      "message": "Chargement de l'état de la synchronisation Google Drive…"
     },
     "vocabDriveDisconnected": {
       "message": "Google Drive n'est pas connecté sur cet appareil."
@@ -3062,7 +3062,7 @@
       "message": "En attente de l'autorisation Google. Terminez la connexion et l'autorisation dans la fenêtre ouverte par Chrome."
     },
     "vocabDriveWorking": {
-      "message": "Synchronisation du vocabulaire avec Google Drive..."
+      "message": "Synchronisation du vocabulaire avec Google Drive…"
     },
     "vocabDriveSynced": {
       "message": "Vocabulaire synchronisé avec Google Drive."

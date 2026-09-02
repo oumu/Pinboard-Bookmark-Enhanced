@@ -83,7 +83,7 @@
     "message": "上次："
   },
   "loading": {
-    "message": "加载中..."
+    "message": "加载中…"
   },
   "private": {
     "message": "私密"
@@ -129,7 +129,7 @@
     "message": "认证失败"
   },
   "settingsPassword": {
-    "message": "设置/密码"
+    "message": "pinboard.in/settings/password"
   },
   "labelUrl": {
     "message": "网址"
@@ -168,7 +168,7 @@
     "message": "搜索你的书签…"
   },
   "saving": {
-    "message": "保存中..."
+    "message": "保存中…"
   },
   "bookmarkSaved": {
     "message": "书签已保存"
@@ -180,7 +180,7 @@
     "message": "重试"
   },
   "deleting": {
-    "message": "删除中..."
+    "message": "删除中…"
   },
   "deleted": {
     "message": "已删除"
@@ -279,10 +279,10 @@
     "message": "移除"
   },
   "aiRegenerating": {
-    "message": "重新生成中..."
+    "message": "重新生成中…"
   },
   "aiReplacing": {
-    "message": "替换中..."
+    "message": "替换中…"
   },
   "aiErrorTitle": {
     "message": "$OP$ 生成失败",
@@ -333,7 +333,7 @@
     "message": "授权并重试"
   },
   "aiErrorModelNotFoundHint": {
-    "message": "前往设置 > AI，选择一个可用的模型"
+    "message": "前往设置 > AI 服务商，选择一个可用的模型"
   },
   "addAll": {
     "message": "全部添加"
@@ -389,7 +389,7 @@
     "message": "逐个收藏标签页"
   },
   "batchSaving": {
-    "message": "保存中..."
+    "message": "保存中…"
   },
   "batchRunningBg": {
     "message": "正在后台保存…"
@@ -731,7 +731,7 @@
     }
   },
   "bgTitleSavedAiSkipped": {
-    "message": "\"$TITLE$\" 已保存。AI 未执行；请前往「设置 > AI > 测试」授权。",
+    "message": "\"$TITLE$\" 已保存。AI 未执行；请前往「设置 > AI 服务商 > 测试连接」授权。",
     "placeholders": {
       "title": {
         "content": "$1"
@@ -795,7 +795,7 @@
     "message": "最后活动"
   },
   "notesEmpty": {
-    "message": "在 Markdown 预览页选中文字即可高亮或记笔记。"
+    "message": "在阅读器中打开页面，选中文字即可高亮或添加笔记。"
   },
   "notesFilterEmpty": {
     "message": "没有符合筛选条件的笔记。"
@@ -1254,7 +1254,7 @@
     "message": "测试连接"
   },
   "testTesting": {
-    "message": "测试中..."
+    "message": "测试中…"
   },
   "testConnected": {
     "message": "已连接（$RESULT$）",
@@ -1625,7 +1625,7 @@
     "message": "将页面转换为 Markdown（Jina Reader）"
   },
   "jinaConverting": {
-    "message": "转换中..."
+    "message": "转换中…"
   },
   "jinaCopied": {
     "message": "已复制！"
@@ -1640,7 +1640,7 @@
     "message": "通过 Jina Reader API 获取清洗过的 Markdown（需联网；可选填 API Key 以获得更高配额）。"
   },
   "jinaAuthFailed": {
-    "message": "Jina API Key 无效或已过期，请到 设置 > Jina Reader 中更新。"
+    "message": "Jina API Key 无效或已过期，请到设置 > AI 服务商 > Jina Reader 中更新。"
   },
   "jinaFailedDetail": {
     "message": "Markdown 抓取失败：$ERROR$",
@@ -1939,7 +1939,7 @@
     "message": "示例：kimi-k2.6、kimi-k2.5、moonshot-v1-32k、moonshot-v1-128k"
   },
   "mdPreviewEmpty": {
-    "message": "暂无预览数据，请先在弹窗中点击 Markdown 按钮。"
+    "message": "这里还没有内容。请先打开网页，再在扩展弹窗中点击「阅读器」。"
   },
   "freeTierTitle": {
     "message": "哪些 AI 服务商有免费 API？"
@@ -2840,7 +2840,7 @@
     "message": "发音"
   },
   "dictSaveVocab": {
-    "message": "存入生词库"
+    "message": "存入生词本"
   },
   "vocabNoteSaved": {
     "message": "备注已保存"
@@ -2899,7 +2899,7 @@
     "message": "生词未能保存"
   },
   "dictSavedVocab": {
-    "message": "已在生词库"
+    "message": "已在生词本"
   },
   "dictUpdateVocab": {
     "message": "更新已保存的生词"
@@ -3281,7 +3281,7 @@
     "message": "阅读时用下划线标出已保存的生词"
   },
   "dictEchoHint": {
-    "message": "点状下划线标记生词库里已有的词，点击即可打开词典。"
+    "message": "点状下划线标记生词本里已有的词，点击即可打开词典。"
   },
   "dictAnkiSend": {
     "message": "全部发送到 Anki"
@@ -3444,7 +3444,7 @@
     "message": "暂无可发送的生词。"
   },
   "dictDeleteWord": {
-    "message": "从生词库移除"
+    "message": "从生词本移除"
   },
   "dictSource": {
     "message": "来源："
@@ -3461,7 +3461,7 @@
     }
   },
   "dictDeleteConfirm": {
-    "message": "从生词库移除「$TERM$」？",
+    "message": "从生词本移除「$TERM$」？",
     "placeholders": {
       "term": {
         "content": "$1"
@@ -3672,7 +3672,7 @@
   "libraryLookupPlaceholder": { "message": "查询任意词" },
   "libraryLookupGo": { "message": "查词" },
   "libraryLookupOpen": { "message": "查询任意词" },
-  "libraryLookupSaved": { "message": "已在生词库 · 查看" },
+  "libraryLookupSaved": { "message": "已在生词本 · 查看" },
   "mdVideoTitle": { "message": "视频与字幕" },
   "mdVideoLoad": { "message": "加载视频与字幕" },
   "mdVideoEnable": { "message": "启用字幕并加载视频" },

@@ -41,7 +41,7 @@ const EXPECTED_RESULTS = Object.freeze({
   "tests/eudic-sync-tests.html": 39,
   "tests/export-targets-tests.html": 138,
   "tests/frame-candidate-tests.html": 26,
-  "tests/i18n-parity-tests.html": 208,
+  "tests/i18n-parity-tests.html": 215,
   "tests/icon-state-tests.html": 11,
   "tests/jina-cache-tests.html": 28,
   "tests/library-notes-tests.html": 106,

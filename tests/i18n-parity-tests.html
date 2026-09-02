@@ -106,6 +106,8 @@ async function loadLocale(loc) {
   // H5: enumerate English-identical keys per locale, excluding brand/technical tokens
   const BRAND_OK = new Set([
     "extName","appName","labelUrl","labelApiKey","labelApiToken","labelBaseUrl",
+    // link text that is a URL path on an English-only page — see H18
+    "settingsPassword",
     "langZh","langZhTW","langZhHK","langEn","langJa","langKo","langFr","langDe","langEs","langRu",
     "provGemini","provOpenai","provClaude","provDeepseek","provQwen","provMinimax",
     "provOpenrouter","provGroq","provMistral","provCohere","provSiliconflow","provZhipu",
@@ -412,6 +414,57 @@ async function loadLocale(loc) {
     msgs[loc].aiSummaryMerged?.message !== SUMMARY_MERGED[loc]);
   check("H14 summary ownership loss is specific and actionable in every locale",
     mergedFailures.length === 0, `copy mismatch: ${mergedFailures.join(", ")}`);
+
+  // Progress copy must spell an ellipsis one way. ASCII "..." and U+2026 used
+  // to alternate inside a single flow (batchSaving next to batchRunningBg).
+  check("H15 no locale message spells an ellipsis as three ASCII dots",
+    LOCALES.every((loc) => Object.values(msgs[loc])
+      .every((m) => !((m && m.message) || "").includes("..."))),
+    "a message still carries ASCII '...' instead of U+2026");
+  // The reader empty state is the only way out of that screen, so it has to
+  // name the popup button by the label that button actually renders -- and
+  // each locale translates that label differently.
+  check("H16 reader empty state names the popup's own reader button",
+    LOCALES.every((loc) => {
+      const empty = msgs[loc].mdPreviewEmpty?.message || "";
+      return empty.includes(msgs[loc].jinaMarkdownBtn?.message || "\u0000") &&
+        !/Markdown/.test(empty);
+    }),
+    "mdPreviewEmpty points at a control name the popup never shows");
+  check("H16 notes empty state does not name a retired Markdown preview page",
+    LOCALES.every((loc) => !/Markdown/.test(msgs[loc].notesEmpty?.message || "")),
+    "notesEmpty still names the Markdown preview page instead of the reader");
+  // Settings paths must quote the sidebar tab label. "AI" is only a
+  // role=presentation group heading, so a path through it is a dead pointer.
+  check("H17 settings paths name the AI tab, section and button that exist",
+    LOCALES.every((loc) => {
+      const tab = msgs[loc].tabAI?.message || "\u0000";
+      return [msgs[loc].aiErrorModelNotFoundHint, msgs[loc].jinaAuthFailed,
+        msgs[loc].bgTitleSavedAiSkipped].every((m) => ((m && m.message) || "").includes(tab)) &&
+        (msgs[loc].jinaAuthFailed?.message || "").includes(msgs[loc].secJinaReader?.message || "\u0000") &&
+        (msgs[loc].bgTitleSavedAiSkipped?.message || "").includes(msgs[loc].testConnection?.message || "\u0000");
+    }),
+    "a settings path names a sidebar entry that does not exist");
+  // The login link text is a URL path on an English-only page, so it is not
+  // localizable content -- and options.html already prints it raw.
+  check("H18 the Pinboard token link text stays an untranslated URL path",
+    LOCALES.every((loc) => msgs[loc].settingsPassword?.message === "pinboard.in/settings/password"),
+    "settingsPassword was translated again");
+  // libraryTitle is the page's own name, so the Chinese locales carry exactly
+  // one word for the vocabulary book.
+  check("H19 Chinese locales use libraryTitle's vocabulary name everywhere",
+    ["zh_CN", "zh_TW", "zh_HK"].every((loc) => Object.values(msgs[loc])
+      .every((m) => !/生词库|生詞庫/.test((m && m.message) || ""))),
+    "a Chinese message still calls the vocabulary book 生词库/生詞庫");
+  // German keeps one register. Formal address surfaces as capitalised
+  // Ihr*/Ihnen, or as "Sie" mid-sentence -- third-person "sie" is lower case
+  // there, so a capitalised one can only be the polite form.
+  check("H20 German copy stays in the informal register",
+    Object.values(msgs.de).every((m) => {
+      const text = (m && m.message) || "";
+      return !/\bIhr(?:e|em|en|er|es)?\b|\bIhnen\b/.test(text) && !/[a-zäöüß,]\s+Sie\b/.test(text);
+    }),
+    "a German message switched back to the formal Sie/Ihr address");
 
   // A slower refresh for the old language must not overwrite the mirror after
   // a newer refresh has already selected and loaded another locale.

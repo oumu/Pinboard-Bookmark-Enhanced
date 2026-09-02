@@ -83,7 +83,7 @@
     "message": "Ostatnie:"
   },
   "loading": {
-    "message": "ładowanie..."
+    "message": "ładowanie…"
   },
   "private": {
     "message": "prywatne"
@@ -129,7 +129,7 @@
     "message": "Uwierzytelnianie nie powiodło się."
   },
   "settingsPassword": {
-    "message": "ustawienia/hasło"
+    "message": "pinboard.in/settings/password"
   },
   "labelUrl": {
     "message": "URL"
@@ -168,7 +168,7 @@
     "message": "Szukaj w zakładkach…"
   },
   "saving": {
-    "message": "Zapisywanie..."
+    "message": "Zapisywanie…"
   },
   "bookmarkSaved": {
     "message": "Zakładka zapisana."
@@ -180,7 +180,7 @@
     "message": "Ponów"
   },
   "deleting": {
-    "message": "Usuwanie..."
+    "message": "Usuwanie…"
   },
   "deleted": {
     "message": "Usunięto."
@@ -279,10 +279,10 @@
     "message": "usuń"
   },
   "aiRegenerating": {
-    "message": "ponowne generowanie..."
+    "message": "ponowne generowanie…"
   },
   "aiReplacing": {
-    "message": "zamiana..."
+    "message": "zamiana…"
   },
   "aiErrorTitle": {
     "message": "Generowanie $OP$ nie powiodło się",
@@ -333,7 +333,7 @@
     "message": "Przyznaj dostęp i ponów"
   },
   "aiErrorModelNotFoundHint": {
-    "message": "Przejdź do Ustawienia > AI i wybierz dostępny model"
+    "message": "Przejdź do Ustawienia > Dostawcy AI i wybierz dostępny model"
   },
   "addAll": {
     "message": "Dodaj wszystkie"
@@ -389,7 +389,7 @@
     "message": "Zapisz karty osobno"
   },
   "batchSaving": {
-    "message": "Zapisywanie..."
+    "message": "Zapisywanie…"
   },
   "batchRunningBg": {
     "message": "Zapisywanie w tle…"
@@ -731,7 +731,7 @@
     }
   },
   "bgTitleSavedAiSkipped": {
-    "message": "\"$TITLE$\" zapisano. AI nie uruchomiono; przyznaj dostęp w Ustawienia > AI > Testuj.",
+    "message": "\"$TITLE$\" zapisano. AI nie uruchomiono; przyznaj dostęp w Ustawienia > Dostawcy AI > Testuj połączenie.",
     "placeholders": {
       "title": {
         "content": "$1"
@@ -795,7 +795,7 @@
     "message": "Ostatnia aktywność"
   },
   "notesEmpty": {
-    "message": "Zaznacz tekst na stronie podglądu Markdown, aby go wyróżnić lub dodać notatkę."
+    "message": "Otwórz stronę w czytniku, a następnie zaznacz tekst, aby go wyróżnić lub dodać notatkę."
   },
   "notesFilterEmpty": {
     "message": "Żadne notatki nie pasują do tego filtra."
@@ -1254,7 +1254,7 @@
     "message": "Testuj połączenie"
   },
   "testTesting": {
-    "message": "Testowanie..."
+    "message": "Testowanie…"
   },
   "testConnected": {
     "message": "Połączono ($RESULT$)",
@@ -1640,7 +1640,7 @@
     "message": "Pobiera oczyszczony Markdown przez Jina Reader API (wymaga sieci; klucz API opcjonalny dla wyższego limitu)."
   },
   "jinaAuthFailed": {
-    "message": "Klucz API Jina jest nieprawidłowy lub wygasł. Otwórz Ustawienia > Jina Reader, aby go zaktualizować."
+    "message": "Klucz API Jina jest nieprawidłowy lub wygasł. Otwórz Ustawienia > Dostawcy AI > Jina Reader, aby go zaktualizować."
   },
   "jinaFailedDetail": {
     "message": "Pobieranie Markdown nie powiodło się: $ERROR$",
@@ -1939,7 +1939,7 @@
     "message": "np. kimi-k2.6, kimi-k2.5, moonshot-v1-32k, moonshot-v1-128k"
   },
   "mdPreviewEmpty": {
-    "message": "Brak danych podglądu. Najpierw użyj przycisku Markdown w popupie."
+    "message": "Nie ma tu jeszcze nic do czytania. Otwórz stronę, a następnie kliknij „Czytnik” w popupie rozszerzenia."
   },
   "freeTierTitle": {
     "message": "Którzy dostawcy oferują darmowy dostęp do API?"
@@ -2643,7 +2643,7 @@
     "message": "Zatrzymaj"
   },
   "askPlaceholder": {
-    "message": "Zadaj pytanie o ten artykuł... (Enter wysyła, Shift+Enter nowa linia)"
+    "message": "Zadaj pytanie o ten artykuł… (Enter wysyła, Shift+Enter nowa linia)"
   },
   "askWillSend": {
     "message": "Wyśle około $TOKENS$ tokenów do $MODEL$",
@@ -3050,7 +3050,7 @@
       "message": "Rozszerzenie zapisuje kopię w postaci zwykłego tekstu w swoim prywatnym folderze appDataFolder na Dysku Google. Kopia nie jest szyfrowana kompleksowo i może zawierać słowa, definicje, notatki, źródłowe adresy URL, tytuły artykułów oraz fragmenty kontekstu."
     },
     "vocabDriveLoading": {
-      "message": "Wczytywanie stanu synchronizacji z Dyskiem Google..."
+      "message": "Wczytywanie stanu synchronizacji z Dyskiem Google…"
     },
     "vocabDriveDisconnected": {
       "message": "Dysk Google nie jest połączony na tym urządzeniu."
@@ -3062,7 +3062,7 @@
       "message": "Oczekiwanie na autoryzację Google. Dokończ logowanie i zatwierdzenie w oknie otwartym przez Chrome."
     },
     "vocabDriveWorking": {
-      "message": "Synchronizowanie słówek z Dyskiem Google..."
+      "message": "Synchronizowanie słówek z Dyskiem Google…"
     },
     "vocabDriveSynced": {
       "message": "Zsynchronizowano słówka z Dyskiem Google."
