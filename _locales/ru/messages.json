@@ -3661,6 +3661,8 @@
   "libraryDetailTitle": { "message": "Подробности о слове" },
   "libraryDetailEmpty": { "message": "Выберите слово из списка, чтобы увидеть подробности." },
   "libraryNotesDetailEmpty": { "message": "Выберите выделение из списка, чтобы прочитать его целиком." },
+  "libraryNotesScopeHint": { "message": "Выделения и заметки хранятся только на этом устройстве и не синхронизируются. Чтобы перенести их на другое устройство, экспортируйте резервную копию на странице настроек и импортируйте её там." },
+  "libraryNotesScopeOpenBackup": { "message": "Открыть настройки резервного копирования" },
   "libraryRelookup": { "message": "Найти снова" },
   "libraryBack": { "message": "Назад к списку" },
   "libraryStatsWords": { "message": "Слова: $COUNT$", "placeholders": { "count": { "content": "$1" } } },

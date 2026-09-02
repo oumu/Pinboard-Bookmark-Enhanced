@@ -180,6 +180,40 @@ function _pbpVocabActivateRow(w, card) {
   _pbpVocabOnRowActivate(w);
   document.querySelectorAll("#vocab-list .vocab-card[aria-current]").forEach((el) => el.removeAttribute("aria-current"));
   card.setAttribute("aria-current", "true");
+  // Keep the list's single tab stop on the row the detail pane is showing:
+  // that is what the narrow-mode Back button and every focus-restore path
+  // already treat as "where the user was", so the two must not disagree.
+  _pbpVocabSetRowTabStop(card.querySelector(".notes-card-head"));
+}
+
+// Roving tabindex for the row grid. #vocab-list declares role="grid" and each
+// row carries two real buttons, so one render batch put 200 Tab stops between
+// the search box and "Load more" -- and the arrow keys that role promises did
+// nothing at all, which left the Ctrl/Shift+Space multi-select path above
+// reachable only by tabbing row by row. One stop for the whole list instead,
+// with the arrows doing the moving: the same recipe library.js uses for the
+// page's tab strip and options.js for its sidebar. The selection chords are
+// untouched -- navigation never activates or selects a row.
+function _pbpVocabRowHeads() {
+  const list = $id("vocab-list");
+  return list ? [...list.querySelectorAll(".vocab-card .notes-card-head")] : [];
+}
+
+function _pbpVocabSetRowTabStop(head) {
+  if (!head) return;
+  for (const el of _pbpVocabRowHeads()) el.tabIndex = el === head ? 0 : -1;
+}
+
+// Re-derived after every render: rows are rebuilt wholesale on filter, sort
+// and reload, and a stop pointing at a discarded node leaves the list with
+// none at all. An append render (Load more) keeps the stop it already has --
+// every row it added is fresh, hence tabIndex -1 from the builder.
+function _pbpVocabSyncRowTabStops() {
+  const heads = _pbpVocabRowHeads();
+  if (!heads.length) return;
+  const list = $id("vocab-list");
+  const current = list && list.querySelector(".vocab-card[aria-current] .notes-card-head");
+  _pbpVocabSetRowTabStop(heads.find((el) => el.tabIndex === 0) || current || heads[0]);
 }
 
 // No render-index parameter any more: its only job was the expandable body's
@@ -208,6 +242,9 @@ function _pbpVocabBuildRow(w) {
   head.type = "button";
   head.className = "notes-card-head";
   head.setAttribute("aria-keyshortcuts", "Control+Space Shift+Space");
+  // Roving tabindex (see _pbpVocabSyncRowTabStops): every row builds OUT of
+  // the tab order and exactly one is put back in per render.
+  head.tabIndex = -1;
 
   const main = document.createElement("span");
   main.className = "notes-card-main";
@@ -260,6 +297,12 @@ function _pbpVocabBuildRow(w) {
   const delBtn = document.createElement("button");
   delBtn.type = "button";
   delBtn.className = "btn btn-sm notes-row-del row-del-x";
+  // The row's second control, reached with ArrowRight rather than Tab: it is
+  // opacity:0 until its row is hovered or it takes focus, so leaving it in the
+  // tab order kept ~100 stops that land on something invisible (and it shares
+  // this row's single gridcell, which is what makes Left/Right the right key
+  // pair for it).
+  delBtn.tabIndex = -1;
   // Icon-only: the full sentence ate a third of every row. The name lives in
   // title/aria-label; the confirm popover still anchors to the button.
   setBtnIcon(delBtn, "cross", "");
@@ -318,6 +361,10 @@ function _pbpVocabBuildNoteEditor(w) {
   noteInput.placeholder = t("hlNotePlaceholder");
   noteInput.setAttribute("aria-label", t("hlNotePlaceholder"));
   noteInput.value = w.note || "";
+  // Announced, not labelled: the chord has no visible affordance of its own,
+  // and the page already declares its shortcuts this way (the row head's
+  // Control+Space / Shift+Space).
+  noteInput.setAttribute("aria-keyshortcuts", "Control+Enter");
   const noteSave = document.createElement("button");
   noteSave.type = "button";
   noteSave.className = "btn btn-sm vocab-note-save";
@@ -328,6 +375,27 @@ function _pbpVocabBuildNoteEditor(w) {
   noteSave.hidden = true;
   noteInput.addEventListener("input", () => {
     noteSave.hidden = noteInput.value === (w.note || "");
+  });
+  // Keyboard commit. The field and its Save are deliberately far apart (v2b:
+  // the button belongs to the pane's closing row), so the only keyboard route
+  // to it ran Tab past the dictionary result, "Look up again" and the danger
+  // "Delete word" -- a commit chord is the standing answer to that, and this
+  // extension already binds the same one for its other explicit save
+  // (popup.js's Ctrl/Cmd+Enter). Bound to the textarea, never the document:
+  // this page has other panes with their own fields. Inert while nothing is
+  // dirty (no redundant IDB write) or while a save is already running, and
+  // the propagation stops here because the row handlers upstream read Ctrl as
+  // a multi-select modifier.
+  noteInput.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" || !(e.ctrlKey || e.metaKey)) return;
+    // Same IME guard the lookup box carries: Chrome fires an Enter keydown
+    // with isComposing (keyCode 229 as the fallback signal) when a candidate
+    // is confirmed, and that Enter belongs to the composition, not to us.
+    if (e.isComposing || e.keyCode === 229) return;
+    if (noteSave.hidden || noteSave.disabled) return;
+    e.preventDefault();
+    e.stopPropagation();
+    noteSave.click();
   });
   noteSave.addEventListener("click", async () => {
     if (noteSave.disabled) return;
@@ -428,6 +496,10 @@ function _pbpVocabRenderDetail(w, enterNarrow) {
   // which co-loads both vocab halves but only ever mounts options.html's
   // expandable-card markup (no #vocab-detail-*).
   if (!empty || !detail) return;
+  // Every exit from here rebuilds or empties #vocab-detail, so rescue the
+  // status live region out of the closing row it may be parked in before the
+  // subtree goes (see _pbpVocabStatusHost); the rebuilt row re-adopts it below.
+  _pbpVocabStatusHost(false);
   // Switching (or clearing) the shown word invalidates any in-flight
   // re-lookup immediately: opening a fresh word must fire zero network
   // requests on its own, and a stale online/local chain must never write
@@ -658,6 +730,21 @@ function _pbpVocabRenderDetail(w, enterNarrow) {
   // mode, and the head button it started from has just been hidden with the
   // rest of the list.
   if (enterNarrow) _pbpVocabFocusNarrowBack();
+  // The scroll container is the PANE, not the #vocab-detail div this render
+  // replaces: library.css caps .vocab-detail-pane and gives it overflow-y,
+  // and replaceChildren is one atomic mutation, so the pane keeps the
+  // previous word's scrollTop and the next one would open wherever the last
+  // was left scrolled to. After the handoff above, not before: that is the
+  // one thing here that can move focus, and a reset it could undo would be
+  // no reset at all.
+  const pane = $id("vocab-detail-pane");
+  if (pane) pane.scrollTop = 0;
+  // The closing row exists now, so the status region can take its narrow-mode
+  // home -- this render's callers all write into it AFTER returning from here,
+  // so the region is settled in the accessibility tree before any sentence
+  // lands in it (moving a live region in the same breath as its text is what
+  // library-notes.js's twin avoids by repositioning while clearing).
+  _pbpVocabStatusHost(true);
 }
 
 // On-demand dictionary re-lookup inside the detail pane. Reuses md-dict's
@@ -850,6 +937,11 @@ function _pbpVocabFreeLookup() {
   const empty = $id("vocab-detail-empty");
   const detail = $id("vocab-detail");
   if (!empty || !detail) return;
+  // This view owns the detail host outright and replaces its children below;
+  // the status region may be parked in the word-detail closing row that is
+  // about to go with them (see _pbpVocabStatusHost). The result view has no
+  // closing row of its own, so its home is the list pane's count row.
+  _pbpVocabStatusHost(false);
   empty.hidden = true;
   detail.hidden = false;
   document.body.classList.add("lib-narrow-detail"); // narrow mode shows the result pane
@@ -904,6 +996,10 @@ function _pbpVocabFreeLookup() {
   host.className = "vocab-detail-dict";
   frag.appendChild(host);
   detail.replaceChildren(frag);
+  // Same reason as _pbpVocabRenderDetail's own reset: the pane is the scroll
+  // container, and replaceChildren preserves its scrollTop.
+  const resultPane = $id("vocab-detail-pane");
+  if (resultPane) resultPane.scrollTop = 0;
 
   // AMENDMENT (Task 2 review defect): _pbpVocabDictRun dereferences
   // _pbpVocabDictCtrl.signal.aborted, but nothing on this path ever created
@@ -962,12 +1058,65 @@ function _pbpVocabFocusNarrowBack() {
   try { back.focus({ preventScroll: true }); } catch (_) { back.focus(); }
 }
 
+// Where the vocabulary status sentence lives. #vocab-status is markup inside
+// .vocab-context-bar, which belongs to the LIST pane -- and below the two-pane
+// threshold `body.lib-narrow-detail .vocab-list-pane` takes that whole pane off
+// the page while a word is open. Every single-word action fires from the detail
+// pane in exactly that state (note save, status toggle, group +/-, a group
+// chip's x), so both "saved" and "save failed / account changed / refresh
+// failed" landed in a display:none subtree: invisible, and silent to a screen
+// reader, which ignores live regions that are not rendered. Move the one node
+// into the detail's own closing row while the list is off the page and hand it
+// back when the list returns -- the seam library-notes.js's _pbpNotesStatusHost
+// already owns for the highlight view. Deliberately OUTSIDE
+// _pbpVocabFlashStatus: that function is a byte-identical twin of
+// options-vocab.js's copy (tests/ui-contract-tests.mjs pins it), and the
+// options page has no detail pane to move anything into.
+//
+// The row it lands in has to WRAP for the sentence to survive the trip:
+// .vocab-main-status is `margin-left: auto` + `nowrap` + ellipsis, cut for the
+// count row's spare end slot, and .vocab-detail-footer already spends that slot
+// on Delete. Without `.vocab-detail-footer { flex-wrap: wrap }` and a
+// full-line rule for the status beside it (library.css, the resolution the
+// notes toolbar already carries for its own twin), the failure sentences this
+// move exists to deliver -- 74 characters for "saved, but the list could not
+// refresh" -- arrive as one clipped fragment, and a sentence ellipsised down
+// to nothing is not a message.
+//
+// `detailReady` says the detail pane is in its FINAL shape for this render.
+// Callers about to replaceChildren() it pass false, which parks the node back
+// in the count row first: a live region wiped out with the subtree it sits in
+// is gone for good ($id memoizes by id and would keep answering with the
+// orphan), and every message after that would be written into nothing.
+function _pbpVocabStatusHost(detailReady) {
+  const el = $id("vocab-status");
+  const bar = $id("vocab-context-bar");
+  if (!el || !bar) return el || null;
+  // The same condition library.css hides the list pane under, not a computed
+  // style read: _pbpVocabNarrowMode mirrors the 860px threshold the CSS owns,
+  // and this runs right after a class flip where a style read would force a
+  // recalc for an answer that only depends on the viewport.
+  const listGone = detailReady && _pbpVocabNarrowMode()
+    && document.body.classList.contains("lib-narrow-detail");
+  const host = (listGone && document.querySelector("#vocab-detail .vocab-detail-footer")) || bar;
+  if (el.parentNode !== host) host.appendChild(el);
+  return el;
+}
+
 // Split the quote around case-insensitive matches of the term; matches render
 // in <mark>. textContent-only construction — no innerHTML with stored text.
 function _pbpVocabHighlightTerm(host, quote, term) {
   const needle = (term || "").toLowerCase();
   if (!needle) { host.textContent = quote; return; }
   const lower = quote.toLowerCase();
+  // Every offset below is computed on the folded copy and then used to slice
+  // the ORIGINAL, which only works while the fold preserves length -- and
+  // toLowerCase does not: U+0130 (Turkish dotted capital I) folds to two code
+  // units, so from the first one onward the marks wrap text that never
+  // matched. Nothing upstream normalizes these away, so drop the highlight
+  // rather than point at the wrong characters; the quote itself still reads
+  // in full.
+  if (lower.length !== quote.length) { host.textContent = quote; return; }
   let idx = 0, pos = lower.indexOf(needle);
   while (pos !== -1) {
     host.appendChild(document.createTextNode(quote.slice(idx, pos)));
@@ -1276,6 +1425,8 @@ function _pbpVocabRenderList(append) {
   // its own reload the same way, since that path also re-renders the
   // detail pane's content (not just the marker).
   if (!append && _pbpVocabDetailWordId) _pbpVocabMarkCurrentRow(_pbpVocabDetailWordId);
+  // After the marker, not before: the current row is the stop this prefers.
+  _pbpVocabSyncRowTabStops();
 }
 
 // Render the read-only stats strip from the full owner row set (not the
@@ -1359,6 +1510,25 @@ function _pbpVocabClearVisibleState() {
   _pbpVocabSyncSelectionUi();
 }
 
+// Which control in the REBUILT pane inherits the focus the rebuild is about
+// to destroy, in preference order. Class-based, because every node in the pane
+// is replaced: the status toggle keeps its slot in .vocab-detail-actions while
+// its icon and label flip, the group stepper's input is rebuilt with the draft
+// name already carried into it, and Save is hidden again the moment the note
+// it committed matches the store -- so the field it belongs to is the honest
+// landing spot. A removed group chip has no counterpart at all; the input on
+// its own row is the nearest thing the user was working in.
+function _pbpVocabDetailFocusTargets(el) {
+  if (!el) return [];
+  if (el.classList.contains("vocab-note-save")) return [".vocab-note-save", ".vocab-note-input"];
+  if (el.closest(".vocab-note-edit")) return [".vocab-note-input"];
+  if (el.closest(".vocab-group-unit") || el.classList.contains("chip-remove")) return [".vocab-group-unit input"];
+  if (el.classList.contains("vocab-detail-relookup")) return [".vocab-detail-relookup"];
+  if (el.classList.contains("vocab-detail-delete")) return [".vocab-detail-delete"];
+  if (el.closest(".vocab-detail-actions")) return [".vocab-detail-actions .btn"];
+  return [];
+}
+
 // Detail pane follows the data: re-render the shown word from the freshly
 // read rows, or reset to the empty state when it is gone. Shared by the
 // mutation reload and by renderVocabPanel -- a view re-entry that dropped
@@ -1374,6 +1544,15 @@ function _pbpVocabReconcileDetail() {
   if (!_pbpVocabDetailWordId) return;
   const detail = $id("vocab-detail");
   if (!detail) return;
+  // Focus is user context too, and the one piece this reconcile used to drop.
+  // The button the mutation was fired from is inside the subtree the rebuild
+  // below replaces, so Chrome lands on <body> -- and below 860px the list is
+  // off the page, which makes the way back a full Tab walk from the header.
+  // Every list-side mutation in this file already restores focus (see
+  // _pbpVocabFocusStable's callers); the detail pane's four were the gap.
+  const wasFocused = document.activeElement;
+  const focusTargets = wasFocused && detail.contains(wasFocused)
+    ? _pbpVocabDetailFocusTargets(wasFocused) : [];
   const liveNote = detail.querySelector(".vocab-note-input");
   const liveGroup = detail.querySelector(".vocab-group-unit input");
   const draftNote = liveNote ? liveNote.value : null;
@@ -1420,6 +1599,23 @@ function _pbpVocabReconcileDetail() {
   }
   const group = detail.querySelector(".vocab-group-unit input");
   if (group && draftGroup) group.value = draftGroup;
+  // Only when the rebuild actually dropped it: these paths await an owner read
+  // and a full IDB re-read, and the user may well have clicked into the note
+  // box and started typing meanwhile -- taking that focus away would be worse
+  // than the bug. A counterpart that exists but is hidden (Save, once the note
+  // is committed; re-lookup, once it is spent) is no landing spot either, so
+  // fall through to the next one and finally to the same two fallbacks the
+  // list-side mutations use.
+  if (!focusTargets.length) return;
+  if (document.activeElement && document.activeElement !== document.body) return;
+  const next = focusTargets.map((sel) => detail.querySelector(sel)).find((el) => el && !el.hidden);
+  if (next) {
+    try { next.focus({ preventScroll: true }); } catch (_) { next.focus(); }
+  } else if (_pbpVocabNarrowMode()) {
+    _pbpVocabFocusNarrowBack();
+  } else {
+    _pbpVocabFocusStable();
+  }
 }
 
 async function _pbpVocabReloadAfterMutation(expectedOwner, requestedGen) {
@@ -1869,8 +2065,53 @@ if (_vocabInvert) _vocabInvert.addEventListener("click", () => {
 });
 const _vocabLoadMore = $id("vocab-load-more");
 if (_vocabLoadMore) _vocabLoadMore.addEventListener("click", () => {
+  const list = $id("vocab-list");
+  const appendedAt = list ? list.children.length : 0;
   _vocabRenderLimit = Math.min(_vocabViewRows.length, _vocabRenderLimit + PBP_VOCAB_RENDER_BATCH);
   _pbpVocabRenderList(true);
+  // The LAST click hides the button it came from (remaining hits zero), and
+  // Chrome then drops focus on <body> -- with no skip link on this page the
+  // way on is a full Tab walk from the header. Hand it to the first row this
+  // click appended: that is where the user was heading, and the roving stop
+  // has to move with it or the list would answer the next Tab from an older
+  // row. preventScroll deliberately -- the viewport must stay where they were
+  // reading. Nothing appended (a re-render raced this click) falls back to
+  // the landing spot every other path in this file uses.
+  if (!_vocabLoadMore.hidden) return;
+  const appended = list && list.children[appendedAt];
+  const head = appended ? appended.querySelector(".notes-card-head") : null;
+  if (!head) { _pbpVocabFocusStable(); return; }
+  _pbpVocabSetRowTabStop(head);
+  try { head.focus({ preventScroll: true }); } catch (_) { head.focus(); }
+});
+// Grid navigation. Bound on the container, so it survives every row rebuild
+// and stays scoped to the list: Home/End must not reach the toolbar's search
+// fields, where they are the caret's own keys. ArrowUp/Down are
+// preventDefault'd (they would otherwise scroll the page) but never activate
+// -- opening a word stays a click or an unmodified Space, and the modified
+// Space chords keep their own handler on the row head.
+const _vocabListEl = $id("vocab-list");
+if (_vocabListEl) _vocabListEl.addEventListener("keydown", (e) => {
+  if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+  const card = e.target && typeof e.target.closest === "function" ? e.target.closest(".vocab-card") : null;
+  if (!card) return;
+  const heads = _pbpVocabRowHeads();
+  const head = card.querySelector(".notes-card-head");
+  const at = heads.indexOf(head);
+  let next = null;
+  if (e.key === "ArrowDown") next = heads[Math.min(at + 1, heads.length - 1)];
+  else if (e.key === "ArrowUp") next = heads[Math.max(at - 1, 0)];
+  else if (e.key === "Home") next = heads[0];
+  else if (e.key === "End") next = heads[heads.length - 1];
+  else if (e.key === "ArrowRight") next = card.querySelector(".row-del-x");
+  else if (e.key === "ArrowLeft") next = head;
+  else return;
+  e.preventDefault();
+  if (!next) return;
+  // Left/Right move WITHIN one row (head and delete share its single
+  // gridcell), so the row keeps the tab stop either way.
+  _pbpVocabSetRowTabStop(next.classList.contains("notes-card-head") ? next : head);
+  next.focus();
 });
 const _vocabGroupInput = $id("vocab-group-input");
 if (_vocabGroupInput) _vocabGroupInput.addEventListener("input", _pbpVocabSyncSelectionUi);

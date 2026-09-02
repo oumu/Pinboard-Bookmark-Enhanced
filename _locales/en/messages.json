@@ -3655,6 +3655,8 @@
   "libraryDetailTitle": { "message": "Word details" },
   "libraryDetailEmpty": { "message": "Pick a word from the list to see its details." },
   "libraryNotesDetailEmpty": { "message": "Pick a highlight from the list to read it in full." },
+  "libraryNotesScopeHint": { "message": "Highlights and notes are stored on this device only and are not synced. To move them to another device, export a backup on the settings page and import it there." },
+  "libraryNotesScopeOpenBackup": { "message": "Open backup settings" },
   "libraryRelookup": { "message": "Look up again" },
   "libraryBack": { "message": "Back to list" },
   "libraryStatsWords": { "message": "$COUNT$ words", "placeholders": { "count": { "content": "$1" } } },

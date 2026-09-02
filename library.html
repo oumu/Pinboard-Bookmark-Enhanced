@@ -210,6 +210,25 @@
                  only (same placement as #vocab-empty above). Text is chosen in
                  JS between the empty and no-results wordings. -->
             <p id="notes-empty" class="notes-empty" hidden></p>
+            <!-- Storage scope, disclosed where the absence is read. Highlights
+                 and notes live in this device's chrome.storage.local and enter
+                 neither sync path -- settled design, but nothing on any screen
+                 said so, and on a second device (where Drive has already
+                 restored the vocabulary next door) an empty Notes tab reads as
+                 lost data rather than as a per-device store. Its own element,
+                 never inside #notes-empty: that paragraph's text is rewritten
+                 on every render and would wipe this. Shown only when there are
+                 no highlights AT ALL -- with a filter active the user plainly
+                 has some, and the sentence would be noise. Same block the
+                 signed-out vocabulary state uses (one sentence + one .btn.btn-sm
+                 door into settings), pointed at General, where the backup
+                 export/import that CAN move them lives. -->
+            <div id="notes-scope-note" class="notes-empty vocab-account-empty" hidden>
+              <p data-i18n="libraryNotesScopeHint">Highlights and notes are stored on this device only and are not synced. To move them to another device, export a backup on the settings page and import it there.</p>
+              <div class="vocab-account-actions">
+                <a class="btn btn-sm" id="notes-open-backup-settings" href="options.html#general" target="_blank" rel="noopener" data-i18n="libraryNotesScopeOpenBackup">Open backup settings</a>
+              </div>
+            </div>
             <div class="notes-batch-bar" id="notes-batch-toolbar" role="group" data-i18n-aria="notesBatchActions" aria-label="Actions for selected highlights">
               <span id="notes-selected-count" class="notes-count" aria-live="polite"></span>
               <button type="button" class="btn btn-sm" id="notes-invert-selection" data-i18n-title="vocabInvertSelection" data-i18n-aria="vocabInvertSelection" aria-label="Invert selection" title="Invert selection"><span class="btn-ic" data-ic="arrowRightLeft"></span></button>

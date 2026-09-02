@@ -3661,6 +3661,8 @@
   "libraryDetailTitle": { "message": "単語の詳細" },
   "libraryDetailEmpty": { "message": "一覧から単語を選ぶと、詳細が表示されます。" },
   "libraryNotesDetailEmpty": { "message": "一覧からハイライトを選ぶと、全文が表示されます。" },
+  "libraryNotesScopeHint": { "message": "ハイライトとメモはこのデバイスにのみ保存され、同期されません。別のデバイスに移すには、設定ページでバックアップを書き出し、そのデバイスで読み込んでください。" },
+  "libraryNotesScopeOpenBackup": { "message": "バックアップ設定を開く" },
   "libraryRelookup": { "message": "辞書で調べ直す" },
   "libraryBack": { "message": "一覧に戻る" },
   "libraryStatsWords": { "message": "$COUNT$ 語", "placeholders": { "count": { "content": "$1" } } },

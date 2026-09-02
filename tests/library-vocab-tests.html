@@ -7,6 +7,13 @@ body{font-family:monospace;padding:16px}.case{padding:5px;border-bottom:1px soli
    test that needs it (see its comment) so nothing else sees a narrow-mode
    stylesheet at this harness's 1280px viewport. */
 body.test-narrow-back .vocab-detail-back{display:inline-flex}
+/* Shrinks the wide layout's scroll cap on the reading pane so the fixture's
+   short words actually overflow it. library.css caps the pane at roughly the
+   viewport height and lets it scroll; the fixture never fills that, so without
+   this the pane is a scroll container on paper only. Scoped to the one test
+   that needs a real scrollTop, same convention as the rule above (and as
+   library-notes-tests.html's twin). */
+body.test-scroll-pane #vocab-detail-pane{max-height:60px;overflow-y:auto}
 </style></head>
 <body>
 <!-- vocab-workbench two-pane skeleton, copied from library.html (minus
@@ -1151,6 +1158,279 @@ check("selection still covers all filtered results beyond rendered chunks", _voc
       pbpVocabAll = sRealAll;
       _vocabViewShown = sRealViewShown;
       _vocabCurrentOwner = sRealCurrentOwner;
+    }
+  }
+
+  // ---- Search highlight boundaries (#25). Positions are computed on the
+  // case-folded copy and used to slice the ORIGINAL, which only holds while
+  // the fold preserves length -- and toLowerCase does not (U+0130 folds to
+  // two code units). Asserted as a category ("no mark ever carries text the
+  // needle does not match", "the quote still reads in full") rather than as
+  // the one İ instance, so any future length-changing fold has to satisfy it
+  // too. -----------------------------------------------------------------
+  {
+    const marksOf = (quote, term) => {
+      const host = document.createElement("div");
+      _pbpVocabHighlightTerm(host, quote, term);
+      return { host, marks: [...host.querySelectorAll("mark")].map((m) => m.textContent) };
+    };
+    const turkish = marksOf("İstanbul is big. İstanbul again.", "İstanbul");
+    check("a highlight never marks text the term does not match",
+      turkish.marks.every((text) => text.toLowerCase() === "İstanbul".toLowerCase()),
+      JSON.stringify(turkish.marks));
+    check("a quote whose fold changes length still reads in full",
+      turkish.host.textContent === "İstanbul is big. İstanbul again.",
+      JSON.stringify(turkish.host.textContent));
+    const shifted = marksOf("Visit İstanbul and see museums", "museums");
+    check("a length-changing character earlier in the quote does not shift later marks",
+      shifted.marks.every((text) => text === "museums") &&
+      shifted.host.textContent === "Visit İstanbul and see museums",
+      JSON.stringify(shifted.marks));
+    const plain = marksOf("the cat sat on the cat", "CAT");
+    check("length-preserving quotes still mark every case-insensitive match",
+      plain.marks.length === 2 && plain.marks.every((text) => text === "cat"));
+  }
+
+  // ---- Narrow-mode feedback (#87). Below 860px with a word open the whole
+  // list pane is display:none, and #vocab-status is markup inside it -- so
+  // every single-word action's success AND failure landed in a subtree that
+  // is invisible and, being unrendered, silent to a screen reader too. -----
+  {
+    const realNarrow = _pbpVocabNarrowMode;
+    const realDictRun = _pbpVocabDictRun;
+    try {
+      _pbpVocabDictRun = () => {};
+      const word = { id: "st1", term: "statusword", groups: [], contexts: [], note: "" };
+      _vocabRows = [word];
+      _pbpVocabNarrowMode = () => true;
+      _pbpVocabRenderDetail(word, true);
+      const footer = $id("vocab-detail").querySelector(".vocab-detail-footer");
+      check("narrow mode moves the status live region into the open detail's closing row",
+        !!footer && $id("vocab-status").parentNode === footer,
+        $id("vocab-status").parentNode && $id("vocab-status").parentNode.className);
+      _pbpVocabFlashStatus(true, "saved in the narrow pane");
+      check("a detail action's feedback is on screen instead of inside the hidden list pane",
+        $id("vocab-status").textContent.includes("saved in the narrow pane") &&
+        !$id("vocab-status").closest(".vocab-list-pane"));
+      check("the relocated region is still the same live region",
+        $id("vocab-status").getAttribute("role") === "status" &&
+        $id("vocab-status").getAttribute("aria-live") === "polite");
+      // The result view replaces the detail host wholesale: a live region
+      // wiped out with the subtree it sits in is silent for good.
+      $id("vocab-lookup-input").value = "rescue";
+      _pbpVocabFreeLookup();
+      check("a rebuild of the detail host never orphans the status region",
+        $id("vocab-status").isConnected &&
+        $id("vocab-status").parentNode === $id("vocab-context-bar"));
+      _pbpVocabNarrowMode = () => false;
+      _pbpVocabRenderDetail(word);
+      check("the two-pane layout keeps the status region in the list's count row",
+        $id("vocab-status").parentNode === $id("vocab-context-bar"));
+    } finally {
+      _pbpVocabNarrowMode = realNarrow;
+      _pbpVocabDictRun = realDictRun;
+      _pbpVocabRenderDetail(null);
+      $id("vocab-lookup-input").value = "";
+    }
+  }
+
+  // ---- Detail-pane focus handoff (#68). The mutation rebuilds the pane and
+  // destroys the control that was clicked; every list-side mutation in this
+  // file restores focus, the detail pane's four did not. ------------------
+  {
+    const word = { id: "fk1", term: "focuscarry", groups: ["G1"], contexts: [], note: "" };
+    _vocabRows = [word];
+    _pbpVocabRenderDetail(word);
+    const detail = $id("vocab-detail");
+    detail.querySelector(".vocab-group-unit input").focus();
+    _pbpVocabReconcileDetail();
+    check("a rebuild hands focus to the rebuilt counterpart of the control that had it",
+      document.activeElement === detail.querySelector(".vocab-group-unit input"),
+      document.activeElement && (document.activeElement.className || document.activeElement.tagName));
+    detail.querySelector(".vocab-detail-actions .btn").focus();
+    _pbpVocabReconcileDetail();
+    check("the status toggle keeps focus on its own rebuilt slot",
+      document.activeElement === detail.querySelector(".vocab-detail-actions .btn"),
+      document.activeElement && (document.activeElement.className || document.activeElement.tagName));
+    detail.querySelector(".vocab-detail-group-chips .chip-remove").focus();
+    _vocabRows = [{ ...word, groups: [] }];
+    _pbpVocabReconcileDetail();
+    check("a removed group chip falls back to the input on its own row",
+      document.activeElement === detail.querySelector(".vocab-group-unit input"),
+      document.activeElement && (document.activeElement.className || document.activeElement.tagName));
+    // These paths await an owner read and a full IDB re-read; the user may
+    // have clicked away and started typing meanwhile.
+    _vocabRows = [word];
+    $id("vocab-search").focus();
+    _pbpVocabReconcileDetail();
+    check("a rebuild never takes focus the user moved out of the pane",
+      document.activeElement === $id("vocab-search"));
+    _pbpVocabRenderDetail(null);
+  }
+
+  // ---- switching entries resets the reading pane's scroll ----------------
+  // The scroll container is #vocab-detail-pane, not the #vocab-detail div the
+  // render replaces: replaceChildren is one atomic mutation, so the pane keeps
+  // whatever scrollTop the previous entry was left at and the next one opens
+  // with its own term heading above the fold. Both exits that replace the
+  // host are covered -- the word detail and the free-lookup result render
+  // into the same pane. `scrolled > 0` is the anti-vacuity guard: if the
+  // stand-in rule above ever stops making the pane scrollable these fail
+  // instead of passing on a constant 0.
+  {
+    document.body.classList.add("test-scroll-pane");
+    const first = { id: "sc1", term: "scrollone", groups: [], contexts: [], note: "" };
+    const second = { id: "sc2", term: "scrolltwo", groups: [], contexts: [], note: "" };
+    _vocabRows = [first, second];
+    _pbpVocabRenderDetail(first);
+    const pane = $id("vocab-detail-pane");
+    pane.scrollTop = 40;
+    const scrolled = pane.scrollTop;
+    _pbpVocabRenderDetail(second);
+    check("opening another word returns the reading pane to the top",
+      scrolled > 0 && pane.scrollTop === 0,
+      "scrolled=" + scrolled + " after=" + pane.scrollTop);
+    pane.scrollTop = 40;
+    const scrolledLookup = pane.scrollTop;
+    $id("vocab-lookup-input").value = "scrollthree";
+    _pbpVocabFreeLookup();
+    check("a free-lookup result returns the reading pane to the top",
+      scrolledLookup > 0 && pane.scrollTop === 0,
+      "scrolled=" + scrolledLookup + " after=" + pane.scrollTop);
+    $id("vocab-lookup-input").value = "";
+    _pbpVocabRenderDetail(null);
+    document.body.classList.remove("test-scroll-pane");
+  }
+
+  // ---- Row grid navigation (#116) and the last Load more (#88). ---------
+  {
+    $id("vocab-search").value = "";
+    $id("vocab-group-filter").value = "";
+    $id("vocab-status-filter").value = "";
+    $id("vocab-sort").value = "latest";
+    _vocabRows = Array.from({ length: 150 }, (_, i) => ({
+      id: "grid" + i, term: "grid" + i, groups: [], contexts: [], updatedAt: 150 - i }));
+    _pbpVocabClearSelection();
+    _pbpVocabApplyView(true);
+    const list = $id("vocab-list");
+    const stops = () => [...list.querySelectorAll(".notes-card-head")].filter((el) => el.tabIndex === 0);
+    check("a rendered batch is one tab stop, not one per row",
+      list.querySelectorAll(".notes-card-head").length === 100 && stops().length === 1 &&
+      stops()[0] === list.children[0].querySelector(".notes-card-head"),
+      String(stops().length));
+    check("the row's delete button leaves the tab order with it",
+      [...list.querySelectorAll(".row-del-x")].every((el) => el.tabIndex === -1));
+    const heads = [...list.querySelectorAll(".notes-card-head")];
+    heads[0].focus();
+    const press = (key, extra) => document.activeElement.dispatchEvent(
+      new KeyboardEvent("keydown", Object.assign({ key, bubbles: true, cancelable: true }, extra || {})));
+    press("ArrowDown");
+    check("ArrowDown moves to the next row", document.activeElement === heads[1]);
+    check("the single tab stop follows the focused row",
+      heads[1].tabIndex === 0 && stops().length === 1);
+    press("ArrowRight");
+    check("ArrowRight reaches the row's own delete button",
+      document.activeElement === list.children[1].querySelector(".row-del-x"));
+    check("moving inside a row leaves the tab stop on that row",
+      heads[1].tabIndex === 0 && stops().length === 1);
+    press("ArrowLeft");
+    check("ArrowLeft returns to the row head", document.activeElement === heads[1]);
+    press("End");
+    check("End jumps to the last rendered row", document.activeElement === heads[99]);
+    press("ArrowDown");
+    check("ArrowDown at the last row stays put rather than wrapping",
+      document.activeElement === heads[99]);
+    press("Home");
+    check("Home jumps back to the first row", document.activeElement === heads[0]);
+    check("navigation keys are swallowed so the page does not scroll under them",
+      press("ArrowDown") === false && press("ArrowUp") === false);
+    // Navigation must not have eaten the selection chords the row owns.
+    _pbpVocabClearSelection();
+    heads[0].focus();
+    press(" ", { ctrlKey: true });
+    check("a modified Space still selects the row rather than navigating",
+      _vocabSelected.size === 1 && document.activeElement === heads[0]);
+    _pbpVocabClearSelection();
+    _pbpVocabSyncSelectionUi();
+
+    const more = $id("vocab-load-more");
+    check("a 150-row view still offers Load more", !more.hidden);
+    more.focus();
+    more.click();
+    check("the last Load more hides the control that was activated", more.hidden === true);
+    check("focus follows the last Load more onto the first row it appended",
+      document.activeElement === list.children[100].querySelector(".notes-card-head"),
+      document.activeElement && (document.activeElement.className || document.activeElement.id));
+    check("the row that takes that focus becomes the list's only tab stop",
+      document.activeElement.tabIndex === 0 && stops().length === 1);
+  }
+
+  // ---- Note commit chord (#92). The field and its Save are deliberately far
+  // apart (v2b), so the only keyboard route ran Tab past the danger Delete.
+  {
+    const rRealOwner = pbpVocabCurrentOwner;
+    const rRealAll = pbpVocabAll;
+    const rRealSetNote = pbpVocabSetNote;
+    try {
+      const word = { id: "ce1", owner: "acct_chord", term: "chord", groups: [], contexts: [], note: "old", updatedAt: 1 };
+      const saved = [];
+      pbpVocabCurrentOwner = async () => "acct_chord";
+      pbpVocabAll = async () => [{ ...word }];
+      pbpVocabSetNote = async (id, owner, value) => { saved.push(value); return true; };
+      _vocabRows = [word];
+      _pbpVocabApplyView(true);
+      _pbpVocabRenderDetail(word);
+      const field = () => $id("vocab-detail").querySelector(".vocab-note-input");
+      const saveBtn = () => $id("vocab-detail").querySelector(".vocab-note-save");
+      const type = (text) => {
+        field().value = text;
+        field().dispatchEvent(new Event("input", { bubbles: true }));
+      };
+      const chord = (extra) => field().dispatchEvent(new KeyboardEvent("keydown",
+        Object.assign({ key: "Enter", ctrlKey: true, bubbles: true, cancelable: true }, extra || {})));
+      check("the note field announces its commit chord",
+        field().getAttribute("aria-keyshortcuts") === "Control+Enter");
+      const clean = chord();
+      await settle();
+      check("the chord is inert on a clean field and lets the key through",
+        saved.length === 0 && clean === true && saveBtn().hidden === true);
+      type("typed by keyboard");
+      const dirty = chord();
+      await settle();
+      check("Ctrl+Enter commits a dirty note without tabbing past Delete",
+        saved.length === 1 && saved[0] === "typed by keyboard" && dirty === false,
+        JSON.stringify(saved));
+      type("second edit");
+      chord({ ctrlKey: false, metaKey: true });
+      await settle();
+      check("Cmd+Enter is the same chord", saved.length === 2 && saved[1] === "second edit",
+        JSON.stringify(saved));
+      type("ime candidate");
+      chord({ isComposing: true });
+      await settle();
+      check("an IME confirmation Enter never commits the text under it",
+        saved.length === 2, JSON.stringify(saved));
+      let release = null;
+      pbpVocabSetNote = (id, owner, value) => new Promise((resolve) => {
+        saved.push(value);
+        release = () => resolve(true);
+      });
+      type("slow save");
+      chord();
+      await settle();
+      check("the chord's save is in flight and holding the button",
+        saved.length === 3 && saveBtn().disabled === true, JSON.stringify(saved));
+      chord();
+      await settle();
+      check("a held chord cannot queue a second save over a running one",
+        saved.length === 3, JSON.stringify(saved));
+      if (release) release();
+      await settle();
+    } finally {
+      pbpVocabCurrentOwner = rRealOwner;
+      pbpVocabAll = rRealAll;
+      pbpVocabSetNote = rRealSetNote;
+      _pbpVocabRenderDetail(null);
     }
   }
 

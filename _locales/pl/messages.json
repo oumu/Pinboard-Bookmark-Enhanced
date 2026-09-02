@@ -3661,6 +3661,8 @@
   "libraryDetailTitle": { "message": "Szczegóły słówka" },
   "libraryDetailEmpty": { "message": "Wybierz słówko z listy, aby zobaczyć szczegóły." },
   "libraryNotesDetailEmpty": { "message": "Wybierz zaznaczenie z listy, aby przeczytać je w całości." },
+  "libraryNotesScopeHint": { "message": "Zaznaczenia i notatki są przechowywane tylko na tym urządzeniu i nie są synchronizowane. Aby przenieść je na inne urządzenie, wyeksportuj kopię zapasową na stronie ustawień i zaimportuj ją tam." },
+  "libraryNotesScopeOpenBackup": { "message": "Otwórz ustawienia kopii zapasowej" },
   "libraryRelookup": { "message": "Sprawdź ponownie w słowniku" },
   "libraryBack": { "message": "Wróć do listy" },
   "libraryStatsWords": { "message": "Słówka: $COUNT$", "placeholders": { "count": { "content": "$1" } } },

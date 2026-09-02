@@ -3661,6 +3661,8 @@
   "libraryDetailTitle": { "message": "詞條詳情" },
   "libraryDetailEmpty": { "message": "從清單中選一個詞，就能看到它的詳細內容。" },
   "libraryNotesDetailEmpty": { "message": "從清單中選一則標記，就能讀到全文。" },
+  "libraryNotesScopeHint": { "message": "標記和筆記只儲存在本裝置，不會同步。要移到其他裝置，請在設定頁匯出備份，再到那台裝置匯入。" },
+  "libraryNotesScopeOpenBackup": { "message": "開啟備份設定" },
   "libraryRelookup": { "message": "重新查詞典" },
   "libraryBack": { "message": "返回列表" },
   "libraryStatsWords": { "message": "$COUNT$ 個詞", "placeholders": { "count": { "content": "$1" } } },
