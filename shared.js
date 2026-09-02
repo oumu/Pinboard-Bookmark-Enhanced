@@ -495,6 +495,7 @@ const SETTINGS_DEFAULTS = {
   waybackS3Key: "",
   waybackS3Secret: "",
   backupIncludeHighlights: true,
+  backupIncludeVocabulary: true,
   // md-preview in-page AI (explain / ask / translate)
   previewAiEnabled: true,
   // R11 skim layer (key-points summary): default OFF, unlike previewAiEnabled --

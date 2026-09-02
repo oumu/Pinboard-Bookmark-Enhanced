@@ -11,8 +11,49 @@ function pbpRefreshContextHelpScriptFamilies(root = document) {
     host.dataset.helpScript = pbpI18nScriptFamily(copyNode.textContent);
   });
 }
+// applyI18n assigns textContent (i18n.js applies every translation as plain
+// text on purpose), which also drops the <code> chips authored inside the hint
+// bodies -- so the .hint code styling never survived the first translation
+// pass. The chip literals ({{title}}, an ollama command, a JSON shape) are
+// identical in every locale, so capture them from the markup before the first
+// pass and find them again by literal search afterwards. Chips are rebuilt as
+// fresh elements whose textContent is the literal; no markup is ever injected.
+const PBP_HINT_CODE_CHIPS = [];
+function pbpCaptureHintCodeChips(root = document) {
+  const byHost = new Map();
+  root.querySelectorAll("[data-i18n] code").forEach((code) => {
+    const host = code.closest("[data-i18n]");
+    if (!host) return;
+    if (!byHost.has(host)) byHost.set(host, []);
+    byHost.get(host).push(code.textContent);
+  });
+  for (const [el, literals] of byHost) PBP_HINT_CODE_CHIPS.push({ el, literals });
+}
+function pbpRestoreHintCodeChips() {
+  for (const { el, literals } of PBP_HINT_CODE_CHIPS) {
+    const text = el.textContent;
+    const frag = document.createDocumentFragment();
+    let cursor = 0;
+    for (const literal of literals) {
+      const at = literal ? text.indexOf(literal, cursor) : -1;
+      if (at < 0) continue;
+      if (at > cursor) frag.appendChild(document.createTextNode(text.slice(cursor, at)));
+      const code = document.createElement("code");
+      code.textContent = literal;
+      frag.appendChild(code);
+      cursor = at + literal.length;
+    }
+    // A translation that carries none of the literals keeps its plain text
+    // rather than being rebuilt from a partial match.
+    if (!frag.childNodes.length) continue;
+    if (cursor < text.length) frag.appendChild(document.createTextNode(text.slice(cursor)));
+    el.replaceChildren(frag);
+  }
+}
 if (typeof document !== "undefined") {
+  pbpCaptureHintCodeChips(document);
   document.addEventListener("pbp:i18n-applied", () => {
+    pbpRestoreHintCodeChips();
     pbpRefreshContextHelpScriptFamilies(document);
   });
 }
@@ -125,8 +166,13 @@ async function renderConnectionOverview() {
       panel: "ai", target: `test-${provider}`, configured: hasAIKey(liveAi), permission: aiPermission },
     { id: "drive", name: "Google Drive", panel: "vocab", target: "vocab-drive-connect",
       connected: stored.vocabDriveConnected === true, permission: drivePermission },
+    // The port input ships a default ("8765"), so a non-empty field proves
+    // nothing -- reading it as configuration put every user who never touched
+    // Anki into the red "permission missing" state. Evidence of actual use is
+    // the loopback grant or a recorded test, both reachable only from the
+    // Vocabulary panel's Anki buttons; same shape as the Drive row above.
     { id: "anki", name: "AnkiConnect", panel: "vocab", target: "vocab-anki-test-btn",
-      configured: !!ankiPort, permission: ankiPermission },
+      configured: ankiPermission === true || !!health.anki, permission: ankiPermission },
     { id: "eudic", name: "Eudic", panel: "vocab", target: "vocab-eudic-test-btn",
       configured: !!$id("dict-eudic-token")?.value.trim(), permission: eudicPermission },
   ];
@@ -168,8 +214,14 @@ async function renderConnectionOverview() {
   }
 }
 
+// Case folding must be locale-independent: a bare toLocaleLowerCase() follows
+// the HOST locale, so on tr/az it folds ASCII "I" to dotless "ı" on the index
+// side while the typed "i" stays U+0069 -- and pbpSearchSettings is a plain
+// substring match, so one divergent character loses the whole entry. Same
+// normalization library-vocab.js's pbpVocabSearchText settled on.
 function _pbpSettingsSearchText(value) {
-  return String(value || "").normalize("NFKC").replace(/\s+/g, " ").trim().toLocaleLowerCase();
+  return String(value || "").normalize("NFKC").replace(/\s+/g, " ").trim()
+    .toLowerCase().replace(/i\u0307/g, "i");
 }
 
 function pbpBuildSettingsSearchIndex(root = document) {
@@ -309,6 +361,7 @@ async function pbpBuildSanitizedDiagnostics() {
       PBP_CONNECTION_HEALTH_KEY, "vocabDriveConnected", "offlineQueue", "batch_progress",
     ]);
   } catch (e) { console.warn("[diagnostics] state read failed:", e?.name, e?.message); }
+  const health = pbpConnectionHealthMap(local[PBP_CONNECTION_HEALTH_KEY]);
   const progress = local.batch_progress && typeof local.batch_progress === "object" ? local.batch_progress : null;
   const knownBatchErrors = new Set(["cancelled", "interrupted", "account_changed", "not_logged_in"]);
   const batchError = !progress?.error ? null : (knownBatchErrors.has(progress.error) ? progress.error : "failed");
@@ -330,7 +383,11 @@ async function pbpBuildSanitizedDiagnostics() {
       settingsSync: check("opt-sync-enabled"), credentialSync: check("opt-sync-api-keys"),
       pinboardConfigured: pbpIsValidTokenFormat($id("opt-pinboard-token")?.value.trim() || "") === true,
       aiProvider: provider, aiConfigured: typeof hasAIKey === "function" ? hasAIKey(liveAi) : false,
-      driveConnected: local.vocabDriveConnected === true, ankiConfigured: !!ankiPort,
+      // Same evidence as the connection overview: the port default is not
+      // configuration, so only a granted loopback origin or a recorded test
+      // counts.
+      driveConnected: local.vocabDriveConnected === true,
+      ankiConfigured: ankiHost === true || !!health.anki,
       eudicConfigured: !!$id("dict-eudic-token")?.value.trim(),
     },
     features: {
@@ -348,7 +405,7 @@ async function pbpBuildSanitizedDiagnostics() {
         processed: Math.max(0, Number(progress.i) || 0), total: Math.max(0, Number(progress.total) || 0),
         error: batchError,
       } : null,
-      connectionHealth: pbpConnectionHealthMap(local[PBP_CONNECTION_HEALTH_KEY]),
+      connectionHealth: health,
     },
   };
 }
@@ -521,6 +578,26 @@ function pbpQueueOptionsSave(state, save) {
   return run;
 }
 
+// Apply one saved-theme mutation to a stored list. The page's savedThemes
+// array is a load-time snapshot while the key has other writers (a backup
+// import, a second options tab), so writing the whole snapshot back silently
+// dropped theirs; persistSavedThemes re-reads under the lock and merges
+// through here instead. Entries are addressed by name, the identity the UI
+// already uses (the overwrite prompt keys off it too).
+function pbpApplySavedThemeOp(list, op) {
+  const out = (Array.isArray(list) ? list : []).filter((theme) =>
+    theme && typeof theme.name === "string" && typeof theme.css === "string");
+  if (!op || typeof op.name !== "string") return out;
+  const at = out.findIndex((theme) => theme.name === op.name);
+  if (op.type === "delete") {
+    if (at >= 0) out.splice(at, 1);
+    return out;
+  }
+  if (at >= 0) out[at] = { name: op.name, css: op.css };
+  else out.push({ name: op.name, css: op.css });
+  return out;
+}
+
 let _tagGovVisibleAccount = "";
 
 // Enable decorative transitions only after the initial page has painted.
@@ -555,6 +632,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.querySelectorAll(".btn-ic[data-ic]").forEach(s => { s.innerHTML = PBP_ICONS[s.dataset.ic] || ""; });
   initI18n();
   applyI18n();
+  // The <title> is a literal, and applyI18n only rewrites elements carrying a
+  // data-i18n attribute -- so this long-lived tab kept an English label in the
+  // tab strip, tab search and bookmarks. Same one-liner library.js and
+  // md-preview.js use, over the key the <h1> already shows.
+  document.title = t("optTitle");
 
   function pbpBindLooseLabels(root) {
     (root || document).querySelectorAll("label.bl:not([for])").forEach((label) => {
@@ -655,7 +737,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (card) card.hidden = false;
         _tagGovSetProgress(100, auth.account);
         if (pt) {
-          pt.textContent = t("tagGovLastRun", new Date(lr.ts).toLocaleString()) + " "
+          pt.textContent = t("tagGovLastRun", new Date(lr.ts).toLocaleString(uiLangToBCP47())) + " "
             + t("tagGovDoneSummary", String(lr.ok), String(lr.fail))
             + (lr.skipped > 0 ? " · " + t("tagGovSkippedSummary", String(lr.skipped)) : "");
         }
@@ -912,6 +994,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       fields: {
         "opt-lang": "auto",
         "opt-backup-include-highlights": true,
+        "opt-backup-include-vocabulary": true,
         "notify-quick-save": true, "notify-read-later": true, "notify-tab-set": true,
         "notify-batch-save": true, "notify-errors": true
       },
@@ -1664,6 +1747,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     "rl-ai-tags": s.rlAiTags, "rl-ai-summary": s.rlAiSummary,
     "opt-batch-tag-enabled": s.optBatchTagEnabled,
     "opt-backup-include-highlights": s.backupIncludeHighlights !== false,
+    "opt-backup-include-vocabulary": s.backupIncludeVocabulary !== false,
     "batch-ai-tags": s.batchAiTags, "batch-ai-summary": s.batchAiSummary,
     "batch-skip-existing": s.batchSkipExisting,
     "opt-show-recent": s.optShowRecent, "opt-show-search": s.optShowSearch,
@@ -2144,12 +2228,18 @@ document.addEventListener("DOMContentLoaded", async () => {
   $id("opt-ai-provider").addEventListener("change", updateProviderFields);
 
   // ---- Reset prompt buttons ----
+  // Empty IS the default for these two fields: the placeholder shows the
+  // built-in prompt, the hint says "leave empty to use the default", ai.js
+  // resolves `customTagPrompt?.trim() || DEFAULT_TAG_PROMPT`, and the panel
+  // reset stores "". Writing the default text into the field instead pinned
+  // the user to today's wording (later releases could never reach them) and
+  // changed the AI cache fingerprint, invalidating every cached tag/summary.
   $id("reset-tag-prompt").addEventListener("click", () => {
-    $id("opt-custom-tag-prompt").value = DEFAULT_TAG_PROMPT;
+    $id("opt-custom-tag-prompt").value = "";
     saveAllSafely();
   });
   $id("reset-summary-prompt").addEventListener("click", () => {
-    $id("opt-custom-summary-prompt").value = DEFAULT_SUMMARY_PROMPT;
+    $id("opt-custom-summary-prompt").value = "";
     saveAllSafely();
   });
 
@@ -2458,6 +2548,12 @@ document.addEventListener("DOMContentLoaded", async () => {
       waybackS3Key: obfuscateKey($id("opt-wayback-s3key").value.trim()),
       waybackS3Secret: obfuscateKey($id("opt-wayback-s3secret").value.trim()),
       backupIncludeHighlights: $id("opt-backup-include-highlights").checked,
+      // Persisted like its highlights twin: the box is auto-save bound and
+      // defaults to ON, so leaving it unpersisted flashed "Saved" and then put
+      // the whole account's vocabulary back into the next plaintext export.
+      // (The credentials box next to it is deliberately per-export instead --
+      // see options-backup.js's "never remembered" note.)
+      backupIncludeVocabulary: $id("opt-backup-include-vocabulary").checked,
       themePresetKey: currentPresetKey,
       urlClean: {
         enabled: $id("opt-urlclean-enabled").checked,
@@ -2491,7 +2587,16 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   const savedState = {
-    settings: collectSettingsFromForm(),
+    // The delta baseline must not certify itself. collectSettingsFromForm
+    // hard-codes previewAiModel:"" to retire the legacy single key, so a
+    // baseline built from the same call always matches and the retiring write
+    // never enters the delta -- a stale legacy model then keeps leaking into
+    // every provider the per-provider map has no entry for (md-ai-core's
+    // read-time fallback). Seed that one key from storage so the first save
+    // clears it, after which the two agree and nothing is written again.
+    settings: Object.assign(collectSettingsFromForm(), {
+      previewAiModel: typeof s.previewAiModel === "string" ? s.previewAiModel : "",
+    }),
     overlay: $id("opt-custom-css").value,
   };
 
@@ -2636,6 +2741,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     afterApply: async () => {
       resumeOptionsAutoSave();
       await pbpRefreshSyncLocalFallbackStatus();
+      // An import writes savedThemes behind this page's back; without this the
+      // in-memory snapshot stayed pre-import and the next add/delete wrote it
+      // back over the freshly imported themes. Last, so a render failure here
+      // cannot cost the status line above (the caller swallows afterApply).
+      await loadSavedThemes();
     },
   });
   setupApiTests();
@@ -2658,6 +2768,39 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (area === "local" && (changes[PBP_CONNECTION_HEALTH_KEY] || changes.vocabDriveConnected)) {
       scheduleConnectionOverview();
     }
+  });
+  // A login or logout done in the popup writes pinboardToken while this page
+  // stays open. Tag governance and the archive log already re-render on that
+  // (their listeners above), but nothing refilled the token FIELD -- and the
+  // connection overview and Test Connection both read that field, so a
+  // logged-out page still reported the previous account as configured, tested
+  // "Connected as <old account>" and wrote that false success into
+  // _connectionHealthV1. Refill the input and the auto-save baseline together
+  // so the delta stays empty and the stale value is never written back. Same
+  // shape as the tag-governance listener above.
+  let _tokenFieldRefillTail = Promise.resolve();
+  chrome.storage.onChanged?.addListener((changes, area) => {
+    if ((area !== "sync" && area !== "local")
+        || !(changes.pinboardToken || changes.optSyncEnabled || changes.syncApiKeys)) return;
+    _tokenFieldRefillTail = _tokenFieldRefillTail.then(async () => {
+      const el = $id("opt-pinboard-token");
+      if (!el) return;
+      // Never fight live typing: auto-save is debounced, so a half-typed token
+      // reaches storage, comes back through this listener and would be pasted
+      // over the keystrokes made since.
+      if (document.hasFocus() && document.activeElement === el) return;
+      const fresh = await pbpReadSettingsWithSecrets({ pinboardToken: SETTINGS_DEFAULTS.pinboardToken });
+      const plain = deobfuscateKey(typeof fresh.pinboardToken === "string" ? fresh.pinboardToken : "");
+      if (el.value.trim() === plain) return;
+      el.value = plain;
+      // Move the auto-save baseline with the field (collectSettingsFromForm
+      // obfuscates the trimmed input), so the delta stays empty and a later
+      // save cannot push the value we just replaced back to storage.
+      savedState.settings.pinboardToken = obfuscateKey(el.value.trim());
+      scheduleConnectionOverview();
+    }).catch((e) => {
+      console.warn("[options] token field refresh failed:", e?.name, e?.message);
+    });
   });
   scheduleConnectionOverview();
 
@@ -2779,9 +2922,27 @@ document.addEventListener("DOMContentLoaded", async () => {
     renderSavedThemes();
   }
 
-  async function persistSavedThemes() {
+  // Merge, never overwrite: re-read the stored array inside the same lock the
+  // plain syncSetLarge wrapper takes, apply this one mutation, write it back.
+  // Without it a backup import (options-backup.js writes savedThemes too) or a
+  // second options tab lost its themes on the next add/delete here.
+  async function persistSavedThemes(op) {
     try {
-      await syncSetLarge("savedThemes", savedThemes);
+      return await pbpWithLargeStorageLock("savedThemes", async () => {
+        const merged = pbpApplySavedThemeOp(await pbpSyncGetLargeUnlocked("savedThemes", []), op);
+        try {
+          await pbpSyncSetLargeUnlocked("savedThemes", merged);
+        } catch (e) {
+          // Sync quota: the merged list IS stored, in the device-local
+          // fallback record the write just left behind, so the popover must
+          // still close and the list still repaint; #opt-sync-local-only
+          // (refreshed below) is the "this device only" feedback. Anything
+          // else is a genuine failure and reaches the caller.
+          if (!(e && e.pbpFellBackToLocal)) throw e;
+        }
+        savedThemes = merged;
+        return merged;
+      });
     } finally {
       await pbpRefreshSyncLocalFallbackStatus();
     }
@@ -2826,13 +2987,18 @@ document.addEventListener("DOMContentLoaded", async () => {
           yesText: t("delete"),
           noText: t("cancel"),
           onConfirm: async () => {
-            // Re-find by name in case the array mutated while popover was open.
-            const current = savedThemes.findIndex(th => th.name === theme.name);
-            if (current >= 0) {
-              savedThemes.splice(current, 1);
-              await persistSavedThemes();
-              renderSavedThemes();
+            // Re-find by name in case the array mutated while the popover was
+            // open; persistSavedThemes re-checks against the stored list too.
+            if (savedThemes.findIndex(th => th.name === theme.name) < 0) return;
+            try {
+              await persistSavedThemes({ type: "delete", name: theme.name });
+            } catch (error) {
+              // Without this the rejection escaped an un-caught async handler:
+              // the row stayed on screen with no error at all.
+              reportAutoSaveFailure(error);
+              return;
             }
+            renderSavedThemes();
           },
         });
       });
@@ -2923,12 +3089,14 @@ document.addEventListener("DOMContentLoaded", async () => {
         saveBtn.textContent = t("themeNameOverwriteBtn");
         return;
       }
-      if (existing >= 0) {
-        savedThemes[existing].css = css;
-      } else {
-        savedThemes.push({ name: trimmedName, css });
+      try {
+        await persistSavedThemes({ type: "save", name: trimmedName, css });
+      } catch (error) {
+        // Same rescue as the delete path: an escaping rejection left the
+        // popover open, the list stale and the user with no message at all.
+        reportAutoSaveFailure(error);
+        return;
       }
-      await persistSavedThemes();
       renderSavedThemes();
       dismiss();
     });

@@ -576,6 +576,69 @@ async function run() {
   check("E2 non-quota error rethrows (returns null sentinel)",
         importThemesResult(new SyntaxError("bad json")) === null);
 
+  // ---------- E2b: saved-theme writes merge instead of overwriting ----------
+  // savedThemes is a page-load snapshot in a page whose key has other writers
+  // (the backup import below, a second options tab). persistSavedThemes must
+  // re-read inside the lock, apply the single mutation, and report a quota
+  // fall-back as stored — the popover has to close and the list repaint —
+  // while a genuine storage failure still reaches the caller.
+  await (async () => {
+    const stored = [{ name: "T2", css: "b{}" }, { name: "T3", css: "c{}" }];
+    const appended = pbpApplySavedThemeOp(stored, { type: "save", name: "T1", css: "a{}" });
+    check("E2b saved-theme op appends onto whatever is stored now",
+      appended.map((theme) => theme.name).join(",") === "T2,T3,T1" &&
+      stored.map((theme) => theme.name).join(",") === "T2,T3");
+    check("E2b saved-theme op overwrites an existing name in place",
+      pbpApplySavedThemeOp([{ name: "T1", css: "a{}" }, { name: "T2", css: "b{}" }],
+        { type: "save", name: "T1", css: "z{}" }).map((theme) => theme.name + theme.css).join(",") === "T1z{},T2b{}");
+    check("E2b saved-theme op deletes by name and keeps the rest",
+      pbpApplySavedThemeOp([{ name: "T1", css: "a{}" }, { name: "T2", css: "b{}" }],
+        { type: "delete", name: "T1" }).map((theme) => theme.name).join(",") === "T2");
+    check("E2b saved-theme op drops entries that are not name/css records",
+      pbpApplySavedThemeOp([null, { name: 1, css: "x" }, { name: "ok", css: "y" }], null)
+        .map((theme) => theme.name).join(",") === "ok");
+
+    const optionsSource = await fetch("../options.js").then((response) => response.text());
+    const persistStart = optionsSource.indexOf("  async function persistSavedThemes(");
+    const persistEnd = optionsSource.indexOf("  function renderSavedThemes(", persistStart);
+    const persistSource = optionsSource.slice(persistStart, persistEnd);
+    const makePersist = (write) => {
+      const deps = {
+        savedThemes: [{ name: "T1", css: "a{}" }],
+        pbpApplySavedThemeOp,
+        pbpWithLargeStorageLock: (_key, work) => work(),
+        pbpSyncGetLargeUnlocked: async () => stored.map((theme) => ({ ...theme })),
+        pbpSyncSetLargeUnlocked: write,
+        pbpRefreshSyncLocalFallbackStatus: async () => {},
+      };
+      return new Function(...Object.keys(deps), persistSource + "\nreturn persistSavedThemes;")(
+        ...Object.values(deps));
+    };
+    const attempt = async (run) => {
+      try { return { ok: true, value: await run() }; } catch (error) { return { ok: false, error }; }
+    };
+
+    let written = null;
+    const merged = await attempt(() => makePersist(async (_key, value) => { written = value; })(
+      { type: "save", name: "T1", css: "a{}" }));
+    check("E2b persistSavedThemes writes the freshest stored list plus this mutation",
+      merged.ok && Array.isArray(written) &&
+      written.map((theme) => theme.name).join(",") === "T2,T3,T1" &&
+      merged.value.map((theme) => theme.name).join(",") === "T2,T3,T1");
+
+    const quota = await attempt(() => makePersist(async () => {
+      throw Object.assign(new Error("QUOTA_BYTES quota exceeded"), { pbpFellBackToLocal: true });
+    })({ type: "save", name: "T1", css: "a{}" }));
+    check("E2b persistSavedThemes treats a local fall-back as stored, not as a failure",
+      quota.ok && quota.value.map((theme) => theme.name).join(",") === "T2,T3,T1");
+
+    const failed = await attempt(() => makePersist(async () => {
+      throw new Error("storage down");
+    })({ type: "delete", name: "T2" }));
+    check("E2b persistSavedThemes still rejects a genuine storage failure",
+      !failed.ok && failed.error && failed.error.message === "storage down");
+  })();
+
   // ---------- E3: v1 themePresetKey routes through getSettingsStorage ----------
   // Stub both areas; record which one themePresetKey lands in.
   // (chrome is not defined in headless non-extension Chromium; we install a full stub)

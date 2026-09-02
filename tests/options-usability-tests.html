@@ -164,6 +164,45 @@ function assert(value, message) { if (!value) throw new Error(message || "assert
       "overview contains an active permission or network path");
   });
 
+  await test("AnkiConnect is not called configured just because the port field carries its default", async () => {
+    const realContains = chrome.permissions.contains;
+    chrome.permissions.contains = async (query) => !!query.permissions?.includes("identity");
+    try {
+      assert(document.getElementById("dict-anki-port").value === "8765", "fixture lost the default port");
+      await renderConnectionOverview();
+      const anki = [...document.querySelectorAll(".connection-health-row")]
+        .find((row) => row.textContent.includes("AnkiConnect"));
+      assert(anki && anki.textContent.includes("connectionNotConfigured"),
+        "default port read as configuration: " + (anki ? anki.textContent : "row missing"));
+      const diag = await pbpBuildSanitizedDiagnostics();
+      assert(diag.configuration.ankiConfigured === false, "diagnostics still call the default port configured");
+    } finally {
+      chrome.permissions.contains = realContains;
+      await renderConnectionOverview();
+    }
+  });
+
+  await test("settings search folds case without the host locale's dotless i", async () => {
+    assert(_pbpSettingsSearchText("AI Provider") === "ai provider", "ASCII folding changed");
+    assert(_pbpSettingsSearchText("İstanbul") === "istanbul",
+      "dotted capital I did not fold to a plain i: " + JSON.stringify(_pbpSettingsSearchText("İstanbul")));
+  });
+
+  await test("hint code chips survive the plain-text i18n pass", async () => {
+    const host = document.createElement("div");
+    host.innerHTML = '<p data-i18n="promptsHint">Use <code>{{title}}</code> and <code>{{url}}</code>.</p>';
+    document.body.appendChild(host);
+    pbpCaptureHintCodeChips(host);
+    const hint = host.querySelector("p");
+    // What applyI18n leaves behind: the translated sentence as plain text.
+    hint.textContent = "占位符 {{title}} 与 {{url}} 可用。";
+    pbpRestoreHintCodeChips();
+    const chips = [...hint.querySelectorAll("code")].map((code) => code.textContent);
+    assert(chips.join("|") === "{{title}}|{{url}}", "chips not restored: " + chips.join("|"));
+    assert(hint.textContent === "占位符 {{title}} 与 {{url}} 可用。", "translated text was altered");
+    host.remove();
+  });
+
   await test("Drive marker is not reported connected after its host permission was removed", async () => {
     await renderConnectionOverview();
     const drive = [...document.querySelectorAll(".connection-health-row")]
