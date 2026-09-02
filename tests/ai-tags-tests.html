@@ -610,6 +610,75 @@ suite("endpoint origin policy", () => {
       fixture.remove();
     });
 
+    // A failed test is the one status line worth reading twice -- the provider's
+    // own error body, the model_not_found hint, the rejected origin -- and it is
+    // often copied out. No failure path may arm a timer that blanks it.
+    await atest("failed connectivity tests arm no status-clear timer", async () => {
+      const fixture = document.createElement("div");
+      fixture.innerHTML = '<button id="test-gemini"></button><span id="test-gemini-status"></span>' +
+        '<input id="opt-pinboard-token" value="user:short"><span id="token-format-warn"></span>' +
+        '<button id="test-pinboard-token"></button><span id="test-pinboard-status"></span>';
+      document.body.appendChild(fixture);
+      window.chrome = {
+        i18n: { getMessage: (key) => key },
+        permissions: { request: async () => true },
+      };
+      const realSetTimeout = window.setTimeout;
+      const armed = [];
+      // The fixture carries ids the module resolves through $id(); leaving it
+      // attached after a failed assertion would hand the next test stale nodes.
+      try {
+        window.setTimeout = function (fn, ms) { armed.push(ms); return realSetTimeout.call(window, fn, ms); };
+        setupApiTests();
+        document.getElementById("test-gemini").click();
+        document.getElementById("test-pinboard-token").click();
+        window.setTimeout = realSetTimeout;
+        assertEq(armed.length, 0, "clear timers armed by failing tests");
+        assert(document.getElementById("test-gemini-status").textContent.includes("testNoApiKey"), "no-key status");
+        assert(document.getElementById("test-pinboard-status").textContent.includes("loginInvalidFormat"), "invalid-format status");
+      } finally {
+        window.setTimeout = realSetTimeout;
+        fixture.remove();
+      }
+    });
+
+    // The Pinboard invalid-format branch returns above the run's own
+    // cancelStatusClear, so it has to drop the clear a preceding successful run
+    // armed -- otherwise that timer fires on top of the new failure line.
+    await atest("a Pinboard failure drops the clear timer armed by the last success", async () => {
+      const fixture = document.createElement("div");
+      fixture.innerHTML = '<input id="opt-pinboard-token" value="user:0123456789abcdef">' +
+        '<span id="token-format-warn"></span>' +
+        '<button id="test-pinboard-token"></button><span id="test-pinboard-status"></span>';
+      document.body.appendChild(fixture);
+      window.chrome = {
+        i18n: { getMessage: (key) => key },
+        runtime: { sendMessage: async () => ({ ok: true }) },
+      };
+      const realSetTimeout = window.setTimeout;
+      const realClearTimeout = window.clearTimeout;
+      const timers = new Map();
+      let nextTimerId = 1;
+      try {
+        window.setTimeout = function (fn, ms) { const id = nextTimerId++; timers.set(id, ms); return id; };
+        window.clearTimeout = function (id) { timers.delete(id); };
+        setupApiTests();
+        document.getElementById("test-pinboard-token").click();
+        await new Promise((resolve) => realSetTimeout.call(window, resolve, 0));
+        assertEq(timers.size, 1, "clear timer armed by the successful run");
+        document.getElementById("opt-pinboard-token").value = "user:short";
+        document.getElementById("test-pinboard-token").click();
+        window.setTimeout = realSetTimeout;
+        window.clearTimeout = realClearTimeout;
+        assertEq(timers.size, 0, "clear timers still armed after the failure");
+        assert(document.getElementById("test-pinboard-status").textContent.includes("loginInvalidFormat"), "invalid-format status");
+      } finally {
+        window.setTimeout = realSetTimeout;
+        window.clearTimeout = realClearTimeout;
+        fixture.remove();
+      }
+    });
+
     await atest("live AI settings snapshot preserves the selected unsaved endpoint", async () => {
       const fixture = document.createElement("div");
       fixture.innerHTML = '<input id="opt-custom-key" value=" live-key ">' +
@@ -644,6 +713,85 @@ suite("endpoint origin policy", () => {
       await fetchWithTimeout("https://example.test/non-stream");
       await _pbpStreamRead("https://example.test/stream", {}, {}, "API", () => "");
       assertEq(redirects.join(","), "error,error", "redirect modes");
+    });
+
+    // The fetch promise settles on response HEADERS while every non-streaming
+    // caller then awaits res.json(): both the deadline and the caller's Cancel
+    // must survive that moment, or a stalled body hangs with nothing able to
+    // stop it.
+    await atest("fetchWithTimeout keeps the caller's cancel wired past response headers", async () => {
+      let seen = null;
+      window.fetch = async (_url, init) => { seen = init && init.signal; return new Response("{}", { status: 200 }); };
+      const caller = new AbortController();
+      await fetchWithTimeout("https://example.test/stalled-body", { signal: caller.signal });
+      assert(seen && !seen.aborted, "request signal still live once headers arrived");
+      caller.abort();
+      assert(seen.aborted, "caller cancel must still abort the in-flight body read");
+      assertEq(seen.reason && seen.reason.name, "AbortError", "caller cancel keeps AbortError");
+    });
+
+    await atest("fetchWithTimeout keeps its deadline armed past response headers", async () => {
+      let seen = null;
+      window.fetch = async (_url, init) => { seen = init && init.signal; return new Response("{}", { status: 200 }); };
+      await fetchWithTimeout("https://example.test/stalled-body", {}, 20);
+      assert(seen && !seen.aborted, "deadline still pending right after headers");
+      await new Promise((r) => setTimeout(r, 120));
+      assert(seen.aborted, "deadline must still fire while the body is being read");
+    });
+
+    // Gemini's bespoke stream branch: only the translate path asks for a zero
+    // thinking budget, and that request needs the same 400/422 strip-and-retry
+    // + per-model memo the non-streaming caller gets.
+    await atest("gemini translate stream strips a rejected thinking budget, retries and memoizes", async () => {
+      const bodies = [];
+      window.fetch = async (_url, init) => {
+        bodies.push(JSON.parse(init.body));
+        return bodies.length === 1
+          ? new Response(JSON.stringify({ error: { message: "thinkingBudget is not supported" } }), { status: 400 })
+          : new Response('data: {"candidates":[{"content":{"parts":[{"text":"bonjour"}]}}]}\n\n', { status: 200 });
+      };
+      const stored = {};
+      window.chrome = {
+        runtime: { id: "test-extension" },
+        i18n: { getMessage: () => "" },
+        permissions: { contains: async () => true },
+        storage: { local: {
+          get: async () => (stored.pbpThinkReject ? { pbpThinkReject: stored.pbpThinkReject } : {}),
+          set: async (o) => { Object.assign(stored, o); }
+        } }
+      };
+      const out = await callAIStream({ aiProvider: "gemini", geminiApiKey: "k", geminiModel: "gemini-2.5-pro" },
+        "hi", { noThinking: true, maxTokens: 64 }, () => {});
+      assertEq(out, "bonjour", "stream text after the retry");
+      assertEq(bodies.length, 2, "one strip-and-retry");
+      assertEq(bodies[0].generationConfig.thinkingConfig.thinkingBudget, 0, "first attempt disables thinking");
+      assertEq("thinkingConfig" in bodies[1].generationConfig, false, "retry drops the rejected field");
+      assertEq(!!(stored.pbpThinkReject && stored.pbpThinkReject["gemini:gemini-2.5-pro"]), true, "rejection memoized per model");
+    });
+
+    await atest("gemini stream honours the reject memo and leaves the reader default untouched", async () => {
+      const bodies = [];
+      window.fetch = async (_url, init) => {
+        bodies.push(JSON.parse(init.body));
+        return new Response('data: {"candidates":[{"content":{"parts":[{"text":"ok"}]}}]}\n\n', { status: 200 });
+      };
+      window.chrome = {
+        runtime: { id: "test-extension" },
+        i18n: { getMessage: () => "" },
+        permissions: { contains: async () => true },
+        storage: { local: {
+          get: async () => ({ pbpThinkReject: { "gemini:gemini-2.5-pro": true } }),
+          set: async () => {}
+        } }
+      };
+      const s = { aiProvider: "gemini", geminiApiKey: "k", geminiModel: "gemini-2.5-pro" };
+      await callAIStream(s, "hi", { noThinking: true, maxTokens: 64 }, () => {});
+      assertEq(bodies.length, 1, "memo skips the attempt known to fail");
+      assertEq("thinkingConfig" in bodies[0].generationConfig, false, "memoized model gets no thinking field");
+      // ask / skim / explain / dict pass no noThinking: streaming keeps thinking
+      // ON by default (3c03380 scoped the shared self-heal to callAI).
+      await callAIStream(s, "hi", { model: "gemini-3-pro", maxTokens: 64 }, () => {});
+      assertEq("thinkingConfig" in bodies[1].generationConfig, false, "reader path sends no thinking config either way");
     });
   } finally {
     window.fetch = realFetch;

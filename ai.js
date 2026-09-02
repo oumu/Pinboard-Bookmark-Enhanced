@@ -163,23 +163,27 @@ async function getPageInfoFromTab(tabId, opts = {}) {
 
 // ---- Fetch with timeout ----
 function fetchWithTimeout(url, options = {}, timeoutMs = 30000) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
   // A caller's signal is CHAINED, not replaced (research T4.4): Cancel in
   // the reader aborts the in-flight request instead of waiting out the
-  // round-trip; the timeout controller still governs on its own.
-  const caller = options.signal;
-  const onAbort = () => controller.abort();
-  if (caller) {
-    if (caller.aborted) controller.abort();
-    else caller.addEventListener("abort", onAbort, { once: true });
-  }
-  return fetch(url, { ...options, redirect: "error", signal: controller.signal }).finally(() => {
-    clearTimeout(timer);
-    // Unhook on settle (critic #5): one pass shares a signal across N batch
-    // requests, and { once } only fires-and-removes on abort, not on success.
-    if (caller) { try { caller.removeEventListener("abort", onAbort); } catch (_) {} }
-  });
+  // round-trip; the deadline still governs on its own.
+  // Both must outlive the fetch promise: it settles as soon as the response
+  // HEADERS arrive, while all four non-streaming callers then await res.json().
+  // Clearing a hand-rolled timer there — and unhooking the caller listener with
+  // it (critic #5, which kept one pass from leaking N listeners onto a shared
+  // signal) — disarmed the deadline AND the Cancel button for the whole body
+  // read, so a stalled body hung forever with nothing able to stop it.
+  // AbortSignal.any owns the listener lifetime itself, so that leak stays
+  // closed without an unhook, and AbortSignal.timeout stays armed until the
+  // response is consumed — same shape as shared.js _executePinboardFetch and
+  // vocab-gdrive.js requestWithToken. The deadline now rejects with
+  // TimeoutError (AbortError remains the caller's own cancel); surfaces that
+  // label a timeout classify the two names together, as wayback.js and
+  // pbpClassifyPinboardError already do.
+  const timeoutSignal = AbortSignal.timeout(timeoutMs);
+  const signal = options.signal
+    ? AbortSignal.any([options.signal, timeoutSignal])
+    : timeoutSignal;
+  return fetch(url, { ...options, redirect: "error", signal });
 }
 
 // ---- Unified AI error handler ----
@@ -782,7 +786,13 @@ async function _streamGemini(s, prompt, opts, onDelta) {
     maxOutputTokens: opts.maxTokens || 1024
   };
   // Translate path: hard-disable thinking so the output budget is all payload.
-  if (opts.noThinking) generationConfig.thinkingConfig = { thinkingBudget: 0 };
+  // The field arrives through extraBody from the shared self-heal wrapper (same
+  // read as _callGeminiOnce), so a model that rejects a zero budget gets it
+  // stripped on the retry and memoized instead of 400-ing every batch forever.
+  // opts.noThinking alone stays the fallback for a caller reaching this
+  // function without that wrapper.
+  if (opts.extraBody && opts.extraBody.thinkingConfig) generationConfig.thinkingConfig = opts.extraBody.thinkingConfig;
+  else if (opts.noThinking && !opts.extraBody) generationConfig.thinkingConfig = { thinkingBudget: 0 };
   const body = { contents: [{ parts: [{ text: prompt }] }], generationConfig };
   if (opts.system) body.systemInstruction = { parts: [{ text: opts.system }] };
   let full = "";
@@ -875,7 +885,7 @@ async function _streamOllama(s, prompt, opts, onDelta) {
 // callAIStream(s, prompt, opts, onDelta) -> Promise<string fullText>
 //   opts: { maxTokens?, model? (override provider default), system?,
 //           signal? (AbortSignal), temperature? (default 0.3),
-//           noThinking? (Gemini only),
+//           noThinking? (Gemini only — rides the shared 400/422 self-heal),
 //           onUsage?({inTok,outTok}) — T4: fired at most once after a NORMAL
 //             stream end IFF the provider opportunistically emitted usage in the
 //             stream (ZERO request mutation). Callers omitting it are unaffected. }
@@ -888,7 +898,19 @@ async function callAIStream(s, prompt, opts = {}, onDelta) {
   const cb = (typeof onDelta === "function") ? onDelta : () => {};
   await _ensureAIHostPermission(s);
   const p = s.aiProvider || "gemini";
-  if (p === "gemini") return _streamGemini(s, prompt, opts, cb);
+  if (p === "gemini") {
+    // Streaming keeps thinking ON by default — 3c03380 scoped the shared
+    // self-heal to the non-streaming caller. Only the translate path asks for a
+    // zero budget, and it is that request that needs the wrapper's 400/422
+    // strip-and-retry plus the per-model memo the bespoke branch never had:
+    // without it a model that rejects thinkingBudget:0 (e.g. gemini-2.5-pro)
+    // 400s on every batch of a full-text translation, retry ladder included,
+    // even after callGemini already memoized the rejection for that model.
+    if (!opts.noThinking) return _streamGemini(s, prompt, opts, cb);
+    const gModel = opts.model || s.geminiModel || "gemini-3.5-flash-lite";
+    return _aiWithThinkingFallback("gemini", gModel, _GEMINI_THINKING_CFG, (extraBody) =>
+      _streamGemini(s, prompt, { ...opts, model: gModel, extraBody }, cb));
+  }
   if (p === "claude") return _streamClaude(s, prompt, opts, cb);
   if (p === "ollama") return _streamOllama(s, prompt, opts, cb);
   const cfg = OPENAI_COMPAT_PROVIDERS[p];

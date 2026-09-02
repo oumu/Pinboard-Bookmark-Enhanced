@@ -3096,7 +3096,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         statusEl.textContent = t("tagGovAiNone");
       }
     } catch (err) {
-      let msg = err.name === "AbortError" ? t("testTimeout") : err.message;
+      // Two names, one meaning: the request deadline is an AbortSignal.timeout
+      // (TimeoutError) while a caller-driven cancel is AbortError — same pairing
+      // as pbpClassifyPinboardError and wayback.js.
+      let msg = (err?.name === "AbortError" || err?.name === "TimeoutError") ? t("testTimeout") : err.message;
       if (err?.code === "model_not_found") {
         msg = t("aiErrorModelNotFound", sNow.aiProvider) + " " + t("aiErrorModelNotFoundHint");
       } else if (err?.code === "host_permission" && $id("opt-ai-provider")?.value === sNow.aiProvider) {
