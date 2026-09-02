@@ -222,6 +222,65 @@ function buildRecentControl(kind){
     assert(cancelled, "onCancel was not called on outside dismiss");
     assert(document.activeElement === anchor, "outside dismiss did not restore focus");
   });
+  test("G6: focus leaving the confirm cancels it without stealing focus back",()=>{
+    const away = document.createElement("button");
+    away.type = "button";
+    away.textContent = "Elsewhere";
+    wrap.appendChild(away);
+    let cancelled = false;
+    anchor.focus();
+    showConfirmPopover(anchor, { msg: "Sure?", onCancel: () => { cancelled = true; } });
+    const pop = document.body.querySelector(".confirm-popover");
+    away.focus();
+    assert(!pop.isConnected, "focus left the confirm without dismissing it");
+    assert(cancelled, "onCancel was not called when focus left the confirm");
+    assert(document.activeElement === away, "dismissal stole focus back from the new target");
+    away.remove();
+  });
+  test("G6: focus inside the confirm or on its opener keeps it open",()=>{
+    anchor.focus();
+    showConfirmPopover(anchor, { msg: "Sure?" });
+    const pop = document.body.querySelector(".confirm-popover");
+    pop.querySelector(".confirm-yes").focus();
+    assert(pop.isConnected, "moving focus to Confirm dismissed the popover");
+    anchor.focus();
+    assert(pop.isConnected, "focusing the opener dismissed the popover");
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
+    assert(!pop.isConnected, "Escape did not close the popover");
+  });
+  test("G6: a window blur keeps the confirm, focus lost to <body> cancels it",()=>{
+    let cancelled = false;
+    anchor.focus();
+    showConfirmPopover(anchor, { msg: "Sure?", onCancel: () => { cancelled = true; } });
+    const pop = document.body.querySelector(".confirm-popover");
+    const no = pop.querySelector(".confirm-no");
+    const originalSetTimeout = window.setTimeout;
+    let settledCheck = null;
+    window.setTimeout = (fn, ms) => {
+      if (ms === 0) { settledCheck = fn; return 0; }
+      return originalSetTimeout(fn, ms);
+    };
+    try {
+      // Alt-tab: focusout carries a null relatedTarget while document.activeElement
+      // stays on the popover's own button.
+      no.dispatchEvent(new FocusEvent("focusout", { bubbles: true, relatedTarget: null }));
+      assert(pop.isConnected, "a null relatedTarget dismissed the confirm synchronously");
+      assert(typeof settledCheck === "function", "the settled-focus re-check was not scheduled");
+      settledCheck();
+      assert(pop.isConnected, "a window blur cancelled the confirm");
+      assert(!cancelled, "a window blur ran onCancel");
+      // Tab off the last body child: focus really goes nowhere.
+      settledCheck = null;
+      no.blur();
+      assert(typeof settledCheck === "function", "losing focus did not schedule the settled-focus re-check");
+      settledCheck();
+      assert(!pop.isConnected, "focus lost to <body> left the confirm open");
+      assert(cancelled, "onCancel did not run when focus was lost");
+      assert(document.activeElement === anchor, "focus was not handed back to the opener");
+    } finally {
+      window.setTimeout = originalSetTimeout;
+    }
+  });
   test("G6: synchronous confirm errors are contained",()=>{
     let logged = false;
     const originalError = console.error;

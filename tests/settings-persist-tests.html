@@ -59,6 +59,94 @@ async function run() {
     }
   }
 
+  // ---------- P0b: the Pinboard request deadline covers the body read ----------
+  // Server shape: the 200 response headers arrive and the body then stalls
+  // without closing the connection. fetch() settles at the headers, so only a
+  // still-armed abort signal can end the caller's await res.text()/.json().
+  {
+    const previousFetch = globalThis.fetch;
+    let init = null;
+    try {
+      globalThis.fetch = (_url, options) => { init = options; return Promise.resolve({ ok: true, status: 200 }); };
+      await new Promise((resolve, reject) => {
+        _executePinboardFetch("https://api.pinboard.in/v1/posts/get?auth_token=user:TOKEN0001&format=json",
+          { timeoutMs: 40 }, resolve, reject);
+      });
+      check("P0b Pinboard fetch sends redirect:error with an abort signal",
+        !!init && init.redirect === "error" && !!init.signal);
+      check("P0b Pinboard deadline is still armed when the response headers arrive",
+        !!init && !!init.signal && init.signal.aborted === false);
+      await new Promise((resolve) => setTimeout(resolve, 160));
+      check("P0b Pinboard deadline fires after the headers settled the fetch promise (body read stays bounded)",
+        !!init && !!init.signal && init.signal.aborted === true);
+      // The deadline's own rejection value, taken from the platform rather than
+      // hand-written, must reach the user as the timeout copy: an expired
+      // request classified as "offline" tells the user the wrong story.
+      check("P0b the deadline's abort reason is classified as a timeout, not as being offline",
+        !!init && !!init.signal &&
+        classifyPinboardError(init.signal.reason) === "pinboardErrorTimeout");
+    } finally {
+      globalThis.fetch = previousFetch;
+    }
+  }
+
+  // ---------- P0b2: every request-deadline rejection classifies as a timeout ----------
+  // Two abort flavours reach classifyPinboardError: AbortSignal.timeout rejects
+  // with TimeoutError, a caller-held AbortController with AbortError. Both are
+  // "ran out of time"; genuine network failures must stay in the offline class.
+  {
+    const abortReason = await new Promise((resolve) => {
+      const s = AbortSignal.timeout(20);
+      s.addEventListener("abort", () => resolve(s.reason), { once: true });
+    });
+    const ctrl = new AbortController();
+    ctrl.abort();
+    check("P0b2 both abort flavours of a request deadline map to the timeout copy",
+      classifyPinboardError(abortReason) === "pinboardErrorTimeout" &&
+      classifyPinboardError(ctrl.signal.reason) === "pinboardErrorTimeout");
+    check("P0b2 a genuine network failure still maps to the offline copy",
+      classifyPinboardError(new TypeError("Failed to fetch")) === "pinboardErrorOffline");
+  }
+
+  // ---------- P0c: free-text setting lists stay under the sync per-item cap ----------
+  // persistSettings writes every non-chunked key in ONE storage.set(), so a
+  // single value over QUOTA_BYTES_PER_ITEM (8192) rejects the whole batch.
+  {
+    const clamp = typeof pbpParamListClamp === "function" ? pbpParamListClamp : null;
+    const budget = typeof PBP_PARAM_LIST_BYTE_BUDGET === "number" ? PBP_PARAM_LIST_BYTE_BUDGET : NaN;
+    const available = !!clamp && Number.isFinite(budget);
+    const bytes = (value) => new TextEncoder().encode(JSON.stringify(value)).length;
+    check("P0c param-list clamp exists with a byte budget under the 8KB sync per-item cap",
+      available && budget > 0 && budget * 2 < 8192);
+    check("P0c a list inside the budget is kept verbatim",
+      available && JSON.stringify(clamp(["utm_source", "utm_medium", "fbclid"])) ===
+        JSON.stringify(["utm_source", "utm_medium", "fbclid"]));
+    check("P0c oversize input drops whole trailing entries instead of half a parameter name",
+      available && (() => {
+        const kept = clamp(["keep_me", "second_one", "third_entry"], 24);
+        return Array.isArray(kept) && kept.length < 3 &&
+          kept.every((entry) => ["keep_me", "second_one", "third_entry"].includes(entry)) &&
+          JSON.stringify(kept) === JSON.stringify(["keep_me", "second_one", "third_entry"].slice(0, kept.length));
+      })());
+    check("P0c the budget is measured in UTF-8 bytes, not characters",
+      available && clamp(["追踪参数"], 10).length === 0 &&
+        clamp(["追踪参数"], 20).length === 1);
+    check("P0c non-array input yields an empty list",
+      available && Array.isArray(clamp(null)) && clamp(null).length === 0 &&
+        clamp("utm_source").length === 0);
+    check("P0c two clamped lists plus the rest of urlClean fit one sync item",
+      available && (() => {
+        const flood = Array.from({ length: 4000 }, (_, i) => `tracking_parameter_${i}`);
+        const value = {
+          ...SETTINGS_DEFAULTS.urlClean,
+          customParams: clamp(flood),
+          excludeParams: clamp(flood),
+        };
+        return value.customParams.length > 0 && value.customParams.length < flood.length &&
+          "urlClean".length + bytes(value) <= 8192;
+      })());
+  }
+
   // ---------- P1: local-only, categorical connection health ----------
   {
     const previousChrome = globalThis.chrome;

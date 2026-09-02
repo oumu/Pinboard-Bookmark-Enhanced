@@ -2464,8 +2464,12 @@ document.addEventListener("DOMContentLoaded", async () => {
         onPopupOpen: $id("opt-urlclean-on-open").checked,
         onPaste: $id("opt-urlclean-on-paste").checked,
         aggressiveMode: $id("opt-urlclean-aggressive").checked,
-        customParams: $id("opt-urlclean-custom").value.split("\n").map(s => s.trim()).filter(Boolean),
-        excludeParams: $id("opt-urlclean-exclude").value.split("\n").map(s => s.trim()).filter(Boolean),
+        // Bounded before the value reaches persistSettings: urlClean rides the
+        // single non-chunked storage.set(), where one item over 8KB rejects the
+        // whole settings batch. Same collection-time clamp family as
+        // pbpVideoLangPrefsClamp above.
+        customParams: pbpParamListClamp($id("opt-urlclean-custom").value.split("\n").map(s => s.trim()).filter(Boolean)),
+        excludeParams: pbpParamListClamp($id("opt-urlclean-exclude").value.split("\n").map(s => s.trim()).filter(Boolean)),
       },
       // ---- Popup width (B9) ----
       ...(() => {

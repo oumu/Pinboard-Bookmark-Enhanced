@@ -1764,12 +1764,18 @@ async function runSimpleTheme(page, url, theme, checks, results, surface, sw) {
   // themed override re-outranking it is a per-theme render of the real
   // thing (COMPONENTS.md §7.1's two-door rule -- the static half lives in
   // tests/ui-contract-tests.mjs).
-  if (surface === "popup" && checks.some((c) => c.selector.startsWith(".confirm-popover"))) {
-    await page.evaluate(() => { document.getElementById("main-section")?.classList.remove("hidden"); });
-    await page.click("#logout-link");
-    await page.waitForSelector(".confirm-popover .confirm-yes", { timeout: TIMEOUT_MS });
-    await page.waitForTimeout(150);
-  }
+  //
+  // Opened LAST, in its own group immediately before its own checks, rather
+  // than here in shared setup: the popover light-dismisses on focusout
+  // (showConfirmPopover in shared.js), so the §8 focusWithin probes that come
+  // earlier in the popup checklist -- .qbtn, .md-strip-btn -- move focus onto
+  // a real element outside it and close it exactly the way a user tabbing
+  // away would. Same per-group setup discipline the options branch below
+  // spells out: a setup step must run next to the checks that need it, not
+  // once at the top for a loop that runs much later.
+  const confirmChecks = surface === "popup"
+    ? checks.filter((c) => c.selector.startsWith(".confirm-popover"))
+    : [];
   if (surface === "options") {
     // Two tab-scoped groups, each needs ITS OWN tab active when its checks
     // actually run -- NOT two independent "switch tab" steps that both fire
@@ -1844,7 +1850,18 @@ async function runSimpleTheme(page, url, theme, checks, results, surface, sw) {
     for (const check of otherChecks) await runOneCheck(page, theme, check, results);
     return;
   }
-  for (const check of checks) await runOneCheck(page, theme, check, results);
+  const confirmSet = new Set(confirmChecks);
+  for (const check of checks) {
+    if (confirmSet.has(check)) continue;
+    await runOneCheck(page, theme, check, results);
+  }
+  if (confirmChecks.length) {
+    await page.evaluate(() => { document.getElementById("main-section")?.classList.remove("hidden"); });
+    await page.click("#logout-link");
+    await page.waitForSelector(".confirm-popover .confirm-yes", { timeout: TIMEOUT_MS });
+    await page.waitForTimeout(150);
+    for (const check of confirmChecks) await runOneCheck(page, theme, check, results);
+  }
 }
 
 // Runs inside the page. It reports used values and structural state only;

@@ -739,15 +739,23 @@ async function _processPinboardQueue() {
 }
 
 function _executePinboardFetch(url, options, resolve, reject) {
-  const ctrl = new AbortController();
   const { timeoutMs = 15000, ...fetchOpts } = options;
-  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  // The deadline must outlive the fetch promise: it settles as soon as the
+  // response HEADERS arrive, while every caller then awaits res.text() /
+  // res.json(). A hand-cleared setTimeout disarms the abort at that moment and
+  // leaves a stalled body with no deadline at all (a save spinner that never
+  // resolves, and a service worker held alive by the pending read).
+  // AbortSignal.timeout stays armed until the response is consumed — the same
+  // shape as vocab-gdrive.js requestWithToken; md-embed.js keeps its manual
+  // timer alive across the body loop for the same reason.
+  const timeoutSignal = AbortSignal.timeout(timeoutMs);
+  const signal = fetchOpts.signal
+    ? AbortSignal.any([fetchOpts.signal, timeoutSignal])
+    : timeoutSignal;
   // redirect:"error" — auth_token rides the query string (Pinboard v1 is
   // GET-only), so following a redirect would replay it to the target. Normal
   // v1 responses never redirect; export senders already enforce the same.
-  fetch(url, { ...fetchOpts, signal: ctrl.signal, redirect: "error" })
-    .finally(() => clearTimeout(timer))
-    .then(resolve, reject);
+  fetch(url, { ...fetchOpts, signal, redirect: "error" }).then(resolve, reject);
 }
 
 // ---- Pinboard posts/add URI builder ----
@@ -1347,9 +1355,13 @@ function classifyPinboardError(input) {
     if (input >= 500) return "pinboardErrorServer";
     return "pinboardErrorOffline";
   }
-  // Error instance (network failure, AbortError, etc.)
+  // Error instance (network failure, AbortError, TimeoutError, etc.)
+  // The request deadline is an AbortSignal.timeout, which rejects with
+  // TimeoutError; a caller-driven AbortController rejects with AbortError.
+  // Both are "the request ran out of time" to the user (same pairing as
+  // wayback.js), so neither may fall through to the offline copy.
   const name = input?.name;
-  if (name === "AbortError") return "pinboardErrorTimeout";
+  if (name === "AbortError" || name === "TimeoutError") return "pinboardErrorTimeout";
   if (input instanceof TypeError) return "pinboardErrorOffline";
   return "pinboardErrorOffline";
 }
@@ -1991,6 +2003,33 @@ function pbpSettingsDelta(current, baseline) {
     if (!same) delta[key] = value;
   }
   return delta;
+}
+
+// Byte budget for ONE free-text list collected from the settings form (the
+// URL-clean custom/exclude parameter textareas, where pasting a published
+// tracking-parameter table is a realistic input). Two clamped lists plus the
+// rest of the urlClean object stay far below chrome.storage.sync's
+// QUOTA_BYTES_PER_ITEM (8192 bytes, measured on the JSON serialization plus
+// the key), which matters because persistSettings writes every non-chunked key
+// in ONE storage.set(): a single oversized value rejects the entire batch, so
+// the user loses every setting changed in that save, not just the long list.
+const PBP_PARAM_LIST_BYTE_BUDGET = 3000;
+
+// Bounded form of such a list. Whole entries only, like pbpVideoLangPrefsClamp:
+// half a parameter name would strip a different query key than the user typed.
+// Cost is measured on the stored JSON (UTF-8), so a non-ASCII entry is charged
+// what storage actually counts for it.
+function pbpParamListClamp(list, maxBytes = PBP_PARAM_LIST_BYTE_BUDGET) {
+  const out = [];
+  let bytes = 2; // the enclosing [] of the stored array
+  for (const raw of (Array.isArray(list) ? list : [])) {
+    const entry = String(raw ?? "");
+    const cost = PBP_UTF8_ENCODER.encode(JSON.stringify(entry)).length + (out.length ? 1 : 0);
+    if (bytes + cost > maxBytes) break;
+    out.push(entry);
+    bytes += cost;
+  }
+  return out;
 }
 
 // Persist the settings batch, routing the four large free-text keys through
@@ -2898,10 +2937,42 @@ function showConfirmPopover(anchor, opts) {
     dismiss();
     if (onCancel) onCancel();
   }
+  function withinConfirm(node) {
+    if (!node) return false;
+    // The anchor counts as inside, mirroring onDocPointerDown: clicking a
+    // button focuses it, so cancelling here would dismiss-then-reopen (and run
+    // onCancel) on every re-click of the opener.
+    return pop.contains(node) || (typeof anchor.contains === "function" && anchor.contains(node));
+  }
+  // Keyboard light dismiss: Tab produces no pointerdown, and the popover is
+  // portaled to the END of <body>, so a forward Tab off Cancel leaves it for
+  // <body> (no visible focus) while the popover stays open and Confirm is only
+  // reachable backwards. Same recipe as md-preview.js's #send-menu, including
+  // its null guard: relatedTarget is reliable for focus()/Tab moves inside the
+  // document but is null when the window itself loses focus, so that case
+  // re-checks activeElement once the change has settled instead of cancelling
+  // on every alt-tab. Focus that landed somewhere real is left alone; focus
+  // that landed nowhere is handed back to the opener by dismiss().
+  function onFocusOut(ev) {
+    if (dismissed) return;
+    const next = ev.relatedTarget;
+    if (next !== null && next !== undefined) {
+      if (withinConfirm(next)) return;
+      dismiss({ restoreFocus: false });
+      if (onCancel) onCancel();
+      return;
+    }
+    setTimeout(() => {
+      if (dismissed || withinConfirm(document.activeElement)) return;
+      dismiss();
+      if (onCancel) onCancel();
+    }, 0);
+  }
   function reportConfirmError(error) {
     console.error("[confirm] action failed", error);
   }
   pop.addEventListener("click", (e) => e.stopPropagation());
+  pop.addEventListener("focusout", onFocusOut);
   no.addEventListener("click", () => { dismiss(); if (onCancel) onCancel(); });
   yes.addEventListener("click", () => {
     dismiss();
