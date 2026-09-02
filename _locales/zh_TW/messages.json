@@ -2691,6 +2691,9 @@
   "askCopyAnswer": {
     "message": "複製回答"
   },
+  "askCopyThread": {
+    "message": "複製對話"
+  },
   "askCopied": {
     "message": "已複製!"
   },

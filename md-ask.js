@@ -160,7 +160,11 @@ function _pbpAskBuildPanel() {
   panel.innerHTML = [
     '<header class="ask-head">',
     '  <h2 id="ask-title" data-i18n="askTitle">Ask the page</h2>',
-    '  <button type="button" id="ask-export" class="ask-ic" data-i18n-title="mdCopyMarkdown" data-i18n-aria="mdCopyMarkdown">' + PBP_ASK_COPY_SVG + '</button>',
+    // askCopyThread, not mdCopyMarkdown: this button copies the Q&A thread
+    // (_pbpAskCopyThread), while the rail's #btn-copy-md copies the ARTICLE
+    // under that same key and the same clipboard icon. Sibling of askClear
+    // ("Clear conversation") and askCopyAnswer ("Copy answer").
+    '  <button type="button" id="ask-export" class="ask-ic" data-i18n-title="askCopyThread" data-i18n-aria="askCopyThread">' + PBP_ASK_COPY_SVG + '</button>',
     '  <button type="button" id="ask-clear" class="ask-ic" data-i18n-title="askClear" data-i18n-aria="askClear">' + PBP_ASK_CLEAR_SVG + '</button>',
     '  <button type="button" id="ask-close" class="ask-ic" data-i18n-title="askClose" data-i18n-aria="askClose">' + PBP_ASK_CLOSE_SVG + '</button>',
     '</header>',
@@ -647,12 +651,19 @@ function pbpAskBuildPrompt(args) {
 // _pbpAskSetOpen -> _pbpAskUpdateMeta.
 // ============================================================
 
-// "provider" or "provider/override" - shown in the transparency line and
-// persisted as the history record's model field.
+// "provider · model" - shown in the transparency line and persisted as the
+// history record's model field. pbpAiEffectiveModel (md-ai-core.js) resolves
+// override -> the provider's CONFIGURED model -> that provider's default, so
+// this stops going mute about the model whenever there is no preview override.
+// "default" is the custom provider's empty-defaultModel sentinel (ai.js), not
+// a real model name: fall back to the bare provider rather than print it.
+// DISPLAY ONLY -- the model: option handed to callAIStream must keep using
+// pbpAiResolveModelOverride, whose undefined is what lets ai.js fall through
+// to the provider's own configured model.
 function _pbpAskProviderLabel(s) {
   const provider = (s && s.aiProvider) || "gemini";
-  const override = pbpAiResolveModelOverride(s);
-  return override ? provider + "/" + override : provider;
+  const model = pbpAiEffectiveModel(s);
+  return (model && model !== "default") ? provider + " · " + model : provider;
 }
 
 // Transparency line (Task 12's _pbpAskSetOpen calls this seam on every
@@ -698,6 +709,28 @@ function _pbpAskWireStop() {
   btn.addEventListener("click", () => {
     if (_pbpAskState && _pbpAskState.ctrl) _pbpAskState.ctrl.abort();
   });
+}
+
+// How close to the foot of #ask-thread still counts as "the reader is at the
+// bottom" (px). Generous enough to survive sub-pixel rounding, tight enough
+// that one scrolled-up line already opts out of the follow.
+const PBP_ASK_PIN_SLACK = 32;
+
+// Run `mutate` and keep #ask-thread stuck to its bottom if it already was.
+// The thread is the panel's overflow-y:auto scroll container and an answer
+// grows DOWNWARD; browser scroll anchoring only compensates growth ABOVE the
+// anchor, so a streaming answer runs off below the fold with nothing following
+// it. Order is the whole point: whether the reader is at the bottom has to be
+// answered BEFORE the mutation, because the mutation is what changes
+// scrollHeight. A reader who scrolled up to re-read an earlier round falls
+// outside the slack and is left exactly where they are.
+function _pbpAskKeepPinned(mutate) {
+  const thread = document.getElementById("ask-thread");
+  const pinned = !!thread
+    && thread.scrollHeight - thread.scrollTop - thread.clientHeight <= PBP_ASK_PIN_SLACK;
+  const out = mutate();
+  if (pinned) thread.scrollTop = thread.scrollHeight;
+  return out;
 }
 
 // Append one Q/A round. Question is USER text -> textContent only. The
@@ -791,7 +824,7 @@ async function _pbpAskRun(question, aEl, opts) {
   if (sendBtn) sendBtn.disabled = true;
   let raf = 0;
   let acc = "";
-  const paint = () => { raf = 0; aEl.textContent = acc; };
+  const paint = () => { raf = 0; _pbpAskKeepPinned(() => { aEl.textContent = acc; }); };
   try {
     _pbpAskEnsureCtx(st);
     // Regenerate must not show the model the very answer it is replacing:
@@ -840,7 +873,10 @@ async function _pbpAskRun(question, aEl, opts) {
     aEl.classList.remove("streaming");
     aEl.removeAttribute("aria-busy");
     delete aEl.dataset.askStopped; // a re-run over a stopped round completed normally
-    const parsed = _pbpAskFinalize(aEl, full, st.ctx && st.ctx.sent);
+    // Same follow, once more: finalize swaps the plain text for rendered
+    // markdown and appends the cite chips plus the copy/regenerate row, so the
+    // bubble grows again after the last streamed frame.
+    const parsed = _pbpAskKeepPinned(() => _pbpAskFinalize(aEl, full, st.ctx && st.ctx.sent));
     const record = {
       q: question,
       a: full,
@@ -1058,7 +1094,16 @@ function _pbpAskChipPass(el, cites, sent) {
       // pbpAiTextOfKatex, not pbpAiTextOf: the model quoted against the
       // KaTeX-aware context lineOf() sends it (D10-1), so verification must
       // fuzzy-match against that same clean-text representation.
-      verifyByP.set(p, quote ? pbpAiFuzzyFind(quote, pbpAiTextOfKatex(p)) : null);
+      // Sliced to PBP_ASK_BLOCK_CAP for the same reason: both lineOf sites
+      // truncate a block there before it reaches the model, so a hit past that
+      // point would mark a quote verified against text that was never sent -
+      // the sentSet gate's other half, at block scope. It also bounds
+      // pbpAiFuzzyFind's exact-miss sliding scan, which is O(block length) and
+      // runs synchronously here (twenty restored records, two per frame).
+      // Offsets stay block-relative, so _pbpAskRangeFromOffsets is unaffected.
+      verifyByP.set(p, quote
+        ? pbpAiFuzzyFind(quote, String(pbpAiTextOfKatex(p) || "").slice(0, PBP_ASK_BLOCK_CAP))
+        : null);
     }
     return verifyByP.get(p);
   };
@@ -2159,12 +2204,16 @@ function _pbpExplainIconBtn(btn, svg, label) {
 
 const PBP_EXPLAIN_CLOSE_SVG = typeof PBP_ICONS !== "undefined" ? PBP_ICONS.cross : "";
 
-// Footer transparency label: "<provider> · <model>" — override wins, else the
-// provider's configured model key (e.g. s.geminiModel), else provider alone.
+// Footer transparency label: "<provider> · <model>". Same resolution as
+// _pbpAskProviderLabel: pbpAiEffectiveModel walks override -> configured model
+// -> provider default. Guessing the field name as s[p + "Model"] was wrong for
+// every OPENAI_COMPAT provider (they carry their key in reg.modelField), which
+// degraded those to a bare provider name. "default" is the custom provider's
+// sentinel, not a model. DISPLAY ONLY -- see _pbpAskProviderLabel.
 function _pbpExplainModelLabel(s) {
   const p = s.aiProvider || "gemini";
-  const m = pbpAiResolveModelOverride(s) || (typeof s[p + "Model"] === "string" ? s[p + "Model"] : "");
-  return m ? p + " · " + m : p;
+  const m = pbpAiEffectiveModel(s);
+  return (m && m !== "default") ? p + " · " + m : p;
 }
 
 // Bridge into the ask panel: close the popover, open the panel, prefill the

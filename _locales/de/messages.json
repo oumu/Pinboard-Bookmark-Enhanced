@@ -2691,6 +2691,9 @@
   "askCopyAnswer": {
     "message": "Antwort kopieren"
   },
+  "askCopyThread": {
+    "message": "Unterhaltung kopieren"
+  },
   "askCopied": {
     "message": "Kopiert!"
   },
