@@ -311,7 +311,12 @@ input[type="text"], input:not([type]), input[type="password"], textarea, select 
   border-radius: ${v("radius-sm")} !important;
   line-height: 1.4 !important;
 }
-input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: ${v("accent")} !important; outline: none !important; }
+/* Focus: accent border + 2px accent-alpha halo — the same house language as the sort-form
+   inputs below and the P1 focus-ring searchboxes. The halo is what replaces the UA focus ring
+   this rule suppresses; a 1px border-colour change alone leaves the add/edit-bookmark form
+   (url / title / description / tags) with no visible keyboard focus. Themes overriding the
+   ring keep winning from tokens.overrides.css on source order. */
+input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: ${v("accent")} !important; box-shadow: 0 0 0 2px ${v("accent-alpha")} !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
   background: ${v("btn-bg")} !important; color: ${v("btn-fg")} !important;
   border: ${v("border-width")} ${v("border-style")} ${v("btn-bg")} !important;

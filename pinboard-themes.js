@@ -428,7 +428,12 @@ input[type="text"], input:not([type]), input[type="password"], textarea, select 
   border-radius: var(--pinboard-radius-sm) !important;
   line-height: 1.4 !important;
 }
-input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
+/* Focus: accent border + 2px accent-alpha halo — the same house language as the sort-form
+   inputs below and the P1 focus-ring searchboxes. The halo is what replaces the UA focus ring
+   this rule suppresses; a 1px border-colour change alone leaves the add/edit-bookmark form
+   (url / title / description / tags) with no visible keyboard focus. Themes overriding the
+   ring keep winning from tokens.overrides.css on source order. */
+input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
   background: var(--pinboard-btn-bg) !important; color: var(--pinboard-btn-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-btn-bg) !important;
@@ -1297,7 +1302,12 @@ input[type="text"], input:not([type]), input[type="password"], textarea, select 
   border-radius: var(--pinboard-radius-sm) !important;
   line-height: 1.4 !important;
 }
-input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
+/* Focus: accent border + 2px accent-alpha halo — the same house language as the sort-form
+   inputs below and the P1 focus-ring searchboxes. The halo is what replaces the UA focus ring
+   this rule suppresses; a 1px border-colour change alone leaves the add/edit-bookmark form
+   (url / title / description / tags) with no visible keyboard focus. Themes overriding the
+   ring keep winning from tokens.overrides.css on source order. */
+input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
   background: var(--pinboard-btn-bg) !important; color: var(--pinboard-btn-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-btn-bg) !important;
@@ -2123,7 +2133,12 @@ input[type="text"], input:not([type]), input[type="password"], textarea, select 
   border-radius: var(--pinboard-radius-sm) !important;
   line-height: 1.4 !important;
 }
-input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
+/* Focus: accent border + 2px accent-alpha halo — the same house language as the sort-form
+   inputs below and the P1 focus-ring searchboxes. The halo is what replaces the UA focus ring
+   this rule suppresses; a 1px border-colour change alone leaves the add/edit-bookmark form
+   (url / title / description / tags) with no visible keyboard focus. Themes overriding the
+   ring keep winning from tokens.overrides.css on source order. */
+input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
   background: var(--pinboard-btn-bg) !important; color: var(--pinboard-btn-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-btn-bg) !important;
@@ -2993,7 +3008,12 @@ input[type="text"], input:not([type]), input[type="password"], textarea, select 
   border-radius: var(--pinboard-radius-sm) !important;
   line-height: 1.4 !important;
 }
-input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
+/* Focus: accent border + 2px accent-alpha halo — the same house language as the sort-form
+   inputs below and the P1 focus-ring searchboxes. The halo is what replaces the UA focus ring
+   this rule suppresses; a 1px border-colour change alone leaves the add/edit-bookmark form
+   (url / title / description / tags) with no visible keyboard focus. Themes overriding the
+   ring keep winning from tokens.overrides.css on source order. */
+input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
   background: var(--pinboard-btn-bg) !important; color: var(--pinboard-btn-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-btn-bg) !important;
@@ -3860,7 +3880,12 @@ input[type="text"], input:not([type]), input[type="password"], textarea, select 
   border-radius: var(--pinboard-radius-sm) !important;
   line-height: 1.4 !important;
 }
-input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
+/* Focus: accent border + 2px accent-alpha halo — the same house language as the sort-form
+   inputs below and the P1 focus-ring searchboxes. The halo is what replaces the UA focus ring
+   this rule suppresses; a 1px border-colour change alone leaves the add/edit-bookmark form
+   (url / title / description / tags) with no visible keyboard focus. Themes overriding the
+   ring keep winning from tokens.overrides.css on source order. */
+input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
   background: var(--pinboard-btn-bg) !important; color: var(--pinboard-btn-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-btn-bg) !important;
@@ -4712,7 +4737,12 @@ input[type="text"], input:not([type]), input[type="password"], textarea, select 
   border-radius: var(--pinboard-radius-sm) !important;
   line-height: 1.4 !important;
 }
-input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
+/* Focus: accent border + 2px accent-alpha halo — the same house language as the sort-form
+   inputs below and the P1 focus-ring searchboxes. The halo is what replaces the UA focus ring
+   this rule suppresses; a 1px border-colour change alone leaves the add/edit-bookmark form
+   (url / title / description / tags) with no visible keyboard focus. Themes overriding the
+   ring keep winning from tokens.overrides.css on source order. */
+input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
   background: var(--pinboard-btn-bg) !important; color: var(--pinboard-btn-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-btn-bg) !important;
@@ -5488,7 +5518,12 @@ html.pbp-dark input[type="text"], html.pbp-dark input:not([type]), html.pbp-dark
   border-radius: var(--pinboard-radius-sm) !important;
   line-height: 1.4 !important;
 }
-html.pbp-dark input[type="text"]:focus, html.pbp-dark input:not([type]):focus, html.pbp-dark textarea:focus, html.pbp-dark select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
+/* Focus: accent border + 2px accent-alpha halo — the same house language as the sort-form
+   inputs below and the P1 focus-ring searchboxes. The halo is what replaces the UA focus ring
+   this rule suppresses; a 1px border-colour change alone leaves the add/edit-bookmark form
+   (url / title / description / tags) with no visible keyboard focus. Themes overriding the
+   ring keep winning from tokens.overrides.css on source order. */
+html.pbp-dark input[type="text"]:focus, html.pbp-dark input:not([type]):focus, html.pbp-dark textarea:focus, html.pbp-dark select:focus { border-color: var(--pinboard-accent) !important; box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important; outline: none !important; }
 html.pbp-dark input[type="submit"], html.pbp-dark input[type="button"] {
   background: var(--pinboard-btn-bg) !important; color: var(--pinboard-btn-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-btn-bg) !important;
@@ -6371,7 +6406,12 @@ input[type="text"], input:not([type]), input[type="password"], textarea, select 
   border-radius: var(--pinboard-radius-sm) !important;
   line-height: 1.4 !important;
 }
-input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
+/* Focus: accent border + 2px accent-alpha halo — the same house language as the sort-form
+   inputs below and the P1 focus-ring searchboxes. The halo is what replaces the UA focus ring
+   this rule suppresses; a 1px border-colour change alone leaves the add/edit-bookmark form
+   (url / title / description / tags) with no visible keyboard focus. Themes overriding the
+   ring keep winning from tokens.overrides.css on source order. */
+input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
   background: var(--pinboard-btn-bg) !important; color: var(--pinboard-btn-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-btn-bg) !important;
@@ -7182,7 +7222,12 @@ input[type="text"], input:not([type]), input[type="password"], textarea, select 
   border-radius: var(--pinboard-radius-sm) !important;
   line-height: 1.4 !important;
 }
-input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
+/* Focus: accent border + 2px accent-alpha halo — the same house language as the sort-form
+   inputs below and the P1 focus-ring searchboxes. The halo is what replaces the UA focus ring
+   this rule suppresses; a 1px border-colour change alone leaves the add/edit-bookmark form
+   (url / title / description / tags) with no visible keyboard focus. Themes overriding the
+   ring keep winning from tokens.overrides.css on source order. */
+input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
   background: var(--pinboard-btn-bg) !important; color: var(--pinboard-btn-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-btn-bg) !important;
@@ -7997,7 +8042,12 @@ input[type="text"], input:not([type]), input[type="password"], textarea, select 
   border-radius: var(--pinboard-radius-sm) !important;
   line-height: 1.4 !important;
 }
-input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
+/* Focus: accent border + 2px accent-alpha halo — the same house language as the sort-form
+   inputs below and the P1 focus-ring searchboxes. The halo is what replaces the UA focus ring
+   this rule suppresses; a 1px border-colour change alone leaves the add/edit-bookmark form
+   (url / title / description / tags) with no visible keyboard focus. Themes overriding the
+   ring keep winning from tokens.overrides.css on source order. */
+input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
   background: var(--pinboard-btn-bg) !important; color: var(--pinboard-btn-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-btn-bg) !important;
@@ -8822,7 +8872,12 @@ input[type="text"], input:not([type]), input[type="password"], textarea, select 
   border-radius: var(--pinboard-radius-sm) !important;
   line-height: 1.4 !important;
 }
-input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
+/* Focus: accent border + 2px accent-alpha halo — the same house language as the sort-form
+   inputs below and the P1 focus-ring searchboxes. The halo is what replaces the UA focus ring
+   this rule suppresses; a 1px border-colour change alone leaves the add/edit-bookmark form
+   (url / title / description / tags) with no visible keyboard focus. Themes overriding the
+   ring keep winning from tokens.overrides.css on source order. */
+input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
   background: var(--pinboard-btn-bg) !important; color: var(--pinboard-btn-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-btn-bg) !important;
@@ -9660,7 +9715,12 @@ input[type="text"], input:not([type]), input[type="password"], textarea, select 
   border-radius: var(--pinboard-radius-sm) !important;
   line-height: 1.4 !important;
 }
-input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
+/* Focus: accent border + 2px accent-alpha halo — the same house language as the sort-form
+   inputs below and the P1 focus-ring searchboxes. The halo is what replaces the UA focus ring
+   this rule suppresses; a 1px border-colour change alone leaves the add/edit-bookmark form
+   (url / title / description / tags) with no visible keyboard focus. Themes overriding the
+   ring keep winning from tokens.overrides.css on source order. */
+input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
   background: var(--pinboard-btn-bg) !important; color: var(--pinboard-btn-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-btn-bg) !important;
@@ -10491,7 +10551,12 @@ input[type="text"], input:not([type]), input[type="password"], textarea, select 
   border-radius: var(--pinboard-radius-sm) !important;
   line-height: 1.4 !important;
 }
-input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
+/* Focus: accent border + 2px accent-alpha halo — the same house language as the sort-form
+   inputs below and the P1 focus-ring searchboxes. The halo is what replaces the UA focus ring
+   this rule suppresses; a 1px border-colour change alone leaves the add/edit-bookmark form
+   (url / title / description / tags) with no visible keyboard focus. Themes overriding the
+   ring keep winning from tokens.overrides.css on source order. */
+input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
   background: var(--pinboard-btn-bg) !important; color: var(--pinboard-btn-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-btn-bg) !important;
@@ -11328,7 +11393,12 @@ input[type="text"], input:not([type]), input[type="password"], textarea, select 
   border-radius: var(--pinboard-radius-sm) !important;
   line-height: 1.4 !important;
 }
-input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; outline: none !important; }
+/* Focus: accent border + 2px accent-alpha halo — the same house language as the sort-form
+   inputs below and the P1 focus-ring searchboxes. The halo is what replaces the UA focus ring
+   this rule suppresses; a 1px border-colour change alone leaves the add/edit-bookmark form
+   (url / title / description / tags) with no visible keyboard focus. Themes overriding the
+   ring keep winning from tokens.overrides.css on source order. */
+input[type="text"]:focus, input:not([type]):focus, textarea:focus, select:focus { border-color: var(--pinboard-accent) !important; box-shadow: 0 0 0 2px var(--pinboard-accent-alpha) !important; outline: none !important; }
 input[type="submit"], input[type="button"] {
   background: var(--pinboard-btn-bg) !important; color: var(--pinboard-btn-fg) !important;
   border: var(--pinboard-border-width) var(--pinboard-border-style) var(--pinboard-btn-bg) !important;
