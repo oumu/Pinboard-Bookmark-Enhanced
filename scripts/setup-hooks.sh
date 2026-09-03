@@ -46,6 +46,19 @@ check_hook() {
   if [ ! -e "$dst" ]; then
     return 0
   fi
+  # git silently skips a hook without the executable bit (modern git prints one
+  # hint line and commits anyway), so a 644 pre-commit means the eight theme
+  # drift gates stop running on every commit -- while this check, and verify.sh's
+  # [hooks] section reading it, would otherwise still report green. Restoring
+  # .git from a backup or an archive, copying the repo across filesystems, or any
+  # tool that rewrites a hook at 644 gets there. Answering "yes, the gate still
+  # runs" when it does not is the one thing this check exists to prevent.
+  if [ ! -x "$dst" ]; then
+    echo "Error: $dst is not executable; git will skip it." >&2
+    echo "       The commit-time gates it runs are silently not running." >&2
+    echo "       Fix: sh scripts/setup-hooks.sh" >&2
+    return 1
+  fi
   if grep -qF "$(delegator_marker "$script_name")" "$dst"; then
     return 0
   fi

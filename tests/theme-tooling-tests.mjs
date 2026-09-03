@@ -139,10 +139,46 @@ fi
   check(readFileSync(installedPreCommit, "utf8").includes("stale full-text copy"),
     "hook drift check must report drift instead of silently reinstalling");
 
+  // An installed delegator that lost its executable bit is drift too, and the
+  // most dangerous kind: git skips a non-executable hook with one hint line and
+  // commits anyway, so the gates stop running while --check (and verify.sh's
+  // [hooks] section, which reads its exit status) would otherwise say they do.
+  const setupAgain = spawnSync("/bin/sh", [setupHooksPath], { cwd: hookRepo, encoding: "utf8" });
+  check(setupAgain.status === 0,
+    `reinstalling the fixture hooks must succeed: ${setupAgain.stdout || ""}${setupAgain.stderr || ""}`);
+  chmodSync(installedPreCommit, 0o644);
+  const driftCheckNotExec = spawnSync("/bin/sh", [setupHooksPath, "--check"], { cwd: hookRepo, encoding: "utf8" });
+  const notExecOutput = `${driftCheckNotExec.stdout || ""}${driftCheckNotExec.stderr || ""}`;
+  check(driftCheckNotExec.status !== 0,
+    `hook drift check must fail on an installed hook git cannot execute, got ${driftCheckNotExec.status}`);
+  check(notExecOutput.includes("scripts/setup-hooks.sh"),
+    `the not-executable report must name the reinstall remedy:\n${notExecOutput}`);
+
   rmSync(installedPreCommit, { force: true });
   const driftCheckMissing = spawnSync("/bin/sh", [setupHooksPath, "--check"], { cwd: hookRepo, encoding: "utf8" });
   check(driftCheckMissing.status === 0,
     `hook drift check must skip hooks that are not installed at all (fresh CI checkout), got ${driftCheckMissing.status}`);
+
+  // install_hook aborts the whole setup when a tracked hook script is not
+  // executable, so every fresh clone would end up with no gates at all. The
+  // invariant is stated as a CLASS -- "every tracked script install_hook
+  // requires -x for" -- read out of setup-hooks.sh itself, so adding a third
+  // hook is covered without editing this assertion. 1f6ec40 fixed the mode on
+  // the two current scripts; nothing pinned it until now.
+  const setupSource = readFileSync(setupHooksPath, "utf8");
+  const installedScripts = [...setupSource.matchAll(/^install_hook "([^"]+)"/gm)].map((m) => m[1]);
+  check(installedScripts.length >= 2,
+    `could not read the install_hook script list out of setup-hooks.sh, found ${installedScripts.length}`);
+  const lsFiles = spawnSync("git", ["ls-files", "-s", ...installedScripts.map((n) => `scripts/${n}`)],
+    { cwd: root, encoding: "utf8" });
+  check(lsFiles.status === 0, `git ls-files must read the tracked hook script modes: ${lsFiles.stderr || ""}`);
+  const modeRows = (lsFiles.stdout || "").trim().split("\n").filter(Boolean)
+    .map((line) => ({ mode: line.slice(0, 6), path: line.trim().split("\t")[1] }));
+  check(modeRows.length === installedScripts.length,
+    `git ls-files listed ${modeRows.length} of ${installedScripts.length} hook scripts`);
+  const notExecutable = modeRows.filter((row) => row.mode !== "100755").map((row) => `${row.path} (${row.mode})`);
+  check(notExecutable.length === 0,
+    `every tracked hook script must be committed executable, or setup-hooks.sh aborts and a fresh clone gets no gates: ${notExecutable.join(", ")}`);
 } finally {
   rmSync(temp, { recursive: true, force: true });
 }
