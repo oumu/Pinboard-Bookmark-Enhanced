@@ -1360,6 +1360,25 @@ function pbpLatexNormalize(md) {
   return transformed.replace(/\x00T(\d+)\x00/g, (mm, k) => stash[+k] !== undefined ? stash[+k] : mm);
 }
 
+// Scratch document for the "parse an HTML string, poke at it, read a string
+// back" passes below. Same rule the three sites above already follow and the
+// same one site-rules.js's inertDoc() states: a div created from the LIVE
+// document fetches every <img> it holds even while orphaned, because the
+// image-loading algorithm only suspends for a node document that is not fully
+// active. composeStyledHtml re-parses the WHOLE article up to three times
+// (hljs, KaTeX, mermaid), so on the live document one Copy HTML / Download
+// .html click fired a fresh eager request for every remote image in the piece
+// -- eager, unlike the preview's own loading="lazy" copies -- and threw every
+// byte away. createHTMLDocument() has no browsing context, so nothing loads.
+// Cross-document is safe for all three passes: hljs only reads textContent and
+// writes innerHTML, KaTeX's nodes are adopted on insertion, and
+// pbpMermaidApplyCached already builds from root.ownerDocument.
+let _pbpConvertScratchDoc = null;
+function _pbpConvertScratchDiv() {
+  if (!_pbpConvertScratchDoc) _pbpConvertScratchDoc = document.implementation.createHTMLDocument("");
+  return _pbpConvertScratchDoc.createElement("div");
+}
+
 // composeStyledHtml: canonical markdown -> a complete self-contained HTML doc.
 // Honors imagePolicy + includeToc via composeExport; frontmatter is rendered as a
 // VISIBLE header (never YAML). renderMarkdown + highlightCodeBlocks run on a
@@ -1385,7 +1404,7 @@ function composeStyledHtml(canonicalMd, meta, opts) {
   });
   let article = renderMarkdown(bodyMd);
   if (typeof document !== "undefined" && typeof hljs !== "undefined") {
-    const tmp = document.createElement("div");
+    const tmp = _pbpConvertScratchDiv();
     tmp.innerHTML = article;
     highlightCodeBlocks(tmp);
     article = tmp.innerHTML;
@@ -1399,7 +1418,7 @@ function composeStyledHtml(canonicalMd, meta, opts) {
   // own test harness — that never vendors it), renderMathInElement is simply
   // undefined and the $...$ source passes through untouched (degrade, not throw).
   if (opts.math && typeof document !== "undefined" && typeof renderMathInElement === "function") {
-    const tmp = document.createElement("div");
+    const tmp = _pbpConvertScratchDiv();
     tmp.innerHTML = article;
     try {
       renderMathInElement(tmp, {
@@ -1413,7 +1432,7 @@ function composeStyledHtml(canonicalMd, meta, opts) {
   // their cached light-theme data-URI figures. typeof-guarded — the popup
   // and the test harness never load md-mermaid.js and keep the fence.
   if (typeof pbpMermaidApplyCached === "function") {
-    const tmp = document.createElement("div");
+    const tmp = _pbpConvertScratchDiv();
     tmp.innerHTML = article;
     try { pbpMermaidApplyCached(tmp); article = tmp.innerHTML; } catch (_) { /* fence stays */ }
   }

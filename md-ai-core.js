@@ -650,12 +650,29 @@ function pbpAiCacheUrlNorm(url) {
   } catch (_) {}
   return u;
 }
-function _pbpTrCacheKey(url, lang, model, account) {
+// One read-side rescue for entries written BEFORE the three families below
+// moved from the raw URL to pbpAiCacheUrlNorm. Those keys differ from today's
+// only in the url hash, so the getter re-asks under the raw-URL hash on a miss:
+// without it, upgrading silently invalidated a whole-article translation the
+// user had already paid for whenever they had opened the article through a
+// "#comments" anchor or a ?utm_source= link, and Translate quoted the full
+// price again. Read-only on purpose -- nothing is ever written back under a
+// legacy key, and ai-cache's LRU ages the old entries out. Returns null (no
+// second IDB read at all) when normalization is a no-op, which is the common
+// case, so the steady state pays nothing for this.
+// `urlHash` on each key builder exists ONLY for this path.
+async function _pbpAiCacheGetLegacyUrl(url, buildKey) {
+  const raw = pbpAiHash(String(url || ""));
+  if (raw === pbpAiHash(pbpAiCacheUrlNorm(url))) return null;
+  return await pbpAiCacheGet(buildKey(raw));
+}
+
+function _pbpTrCacheKey(url, lang, model, account, urlHash) {
   // URL-normalized (pbpAiCacheUrlNorm) like ask and skim: arriving at the same
   // article through a #comments anchor or a ?utm_source= link must not buy a
   // second full translation of it — the entry these 300 no-TTL slots exist to
   // keep (ai-cache.js) is exactly what a raw-URL key threw away.
-  return "tr_" + _pbpTrOwnerScope(account) + "_" + lang + "_" + model + "_" + pbpAiHash(pbpAiCacheUrlNorm(url));
+  return "tr_" + _pbpTrOwnerScope(account) + "_" + lang + "_" + model + "_" + (urlHash || pbpAiHash(pbpAiCacheUrlNorm(url)));
 }
 
 // ---- tr_ cache meta helpers (ZH-1a; pure, unit-tested) ----
@@ -716,17 +733,20 @@ function _pbpAskHistKey(url, account) {
   return "ask_" + _pbpTrOwnerScope(account) + "_" + pbpAiHash(pbpAiCacheUrlNorm(url));
 }
 function _pbpAskHistLegacyKey(url) { return "ask_" + pbpAiHash(String(url || "")); }
-function _pbpTrViewKey(url, account) {
+function _pbpTrViewKey(url, account, urlHash) {
   // Same normalized URL as tr_: the remembered view mode has to come back for
   // the article, not for the particular link that opened it.
-  return "trview_" + _pbpTrOwnerScope(account) + "_" + pbpAiHash(pbpAiCacheUrlNorm(url));
+  return "trview_" + _pbpTrOwnerScope(account) + "_" + (urlHash || pbpAiHash(pbpAiCacheUrlNorm(url)));
 }
 function _pbpAskHistTrim(arr) {
   return Array.isArray(arr) ? arr.slice(-PBP_ASK_HIST_MAX) : [];
 }
 
 async function pbpTrCacheGet(url, lang, model, account) {
-  const entry = await pbpAiCacheGet(_pbpTrCacheKey(url, lang, model, account));
+  let entry = await pbpAiCacheGet(_pbpTrCacheKey(url, lang, model, account));
+  if (!entry) {
+    entry = await _pbpAiCacheGetLegacyUrl(url, (h) => _pbpTrCacheKey(url, lang, model, account, h));
+  }
   const r = entry && entry.result;
   if (!r || typeof r !== "object" || !r.blocks || typeof r.blocks !== "object") return null;
   // ZH-1a D5: the allowlist carries meta through -- the strip here was one of
@@ -759,7 +779,7 @@ async function pbpTrCacheSet(url, lang, model, blocksMap, account, meta, replace
 
 // Auto-extracted terminology cache (spec T1): one entry per account/article/(lang, model),
 // parallel to the translation cache. Entry shape: {key, result:{terms:{...}}, ts}.
-function _pbpTrGlossaryCacheKey(url, lang, model, account) {
+function _pbpTrGlossaryCacheKey(url, lang, model, account, urlHash) {
   // ZH-1a D6: the extraction-prompt generation lives in the KEY, not in meta --
   // extraction has no "stale but usable" middle state; a bumped generation
   // should simply re-extract (one cheap noThinking call). This also closes the
@@ -769,10 +789,13 @@ function _pbpTrGlossaryCacheKey(url, lang, model, account) {
   // call time; md-preview.html and the test page load both files.
   const gen = (typeof PBP_TR_GLOSSARY_GEN === "number") ? PBP_TR_GLOSSARY_GEN : 0;
   // URL-normalized like tr_ (same article, one extraction).
-  return "gloss_" + _pbpTrOwnerScope(account) + "_g" + gen + "_" + lang + "_" + model + "_" + pbpAiHash(pbpAiCacheUrlNorm(url));
+  return "gloss_" + _pbpTrOwnerScope(account) + "_g" + gen + "_" + lang + "_" + model + "_" + (urlHash || pbpAiHash(pbpAiCacheUrlNorm(url)));
 }
 async function pbpTrGlossaryCacheGet(url, lang, model, account) {
-  const entry = await pbpAiCacheGet(_pbpTrGlossaryCacheKey(url, lang, model, account));
+  let entry = await pbpAiCacheGet(_pbpTrGlossaryCacheKey(url, lang, model, account));
+  if (!entry) {
+    entry = await _pbpAiCacheGetLegacyUrl(url, (h) => _pbpTrGlossaryCacheKey(url, lang, model, account, h));
+  }
   const r = entry && entry.result;
   if (!r || typeof r !== "object" || !r.terms || typeof r.terms !== "object") return null;
   return r.terms;
@@ -817,7 +840,10 @@ async function pbpAskHistReplaceLast(url, round, account) {
 }
 
 async function pbpTrViewGet(url, account) {
-  const entry = await pbpAiCacheGet(_pbpTrViewKey(url, account));
+  let entry = await pbpAiCacheGet(_pbpTrViewKey(url, account));
+  if (!entry) {
+    entry = await _pbpAiCacheGetLegacyUrl(url, (h) => _pbpTrViewKey(url, account, h));
+  }
   const r = entry && entry.result;
   if (!r || typeof r !== "object" || typeof r.mode !== "string") return null;
   return { mode: r.mode, lang: String(r.lang || "") };

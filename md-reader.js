@@ -1410,7 +1410,18 @@ function _pbpZenExit() {
   const prev = _pbpZenPrevStudyView;
   _pbpZenPrevStudyView = null;
   if (prev === "timeline" && typeof window.pbpVideoStudyView === "function") {
-    try { window.pbpVideoStudyView("timeline"); } catch (_) {}
+    // Only if the programmatic flip is still what is on screen. "b" works
+    // inside zen and persists (md-video.js toggleStudyView, persist=true), so a
+    // reader who switched views in there has already stated a preference --
+    // restoring over it would put the screen at odds with what was just
+    // written to pbp_video_view, and this restore does not persist, so the next
+    // open would flip back again. If the current view is no longer the
+    // "reading" that entering zen forced, the round trip is over.
+    let live = null;
+    try { live = window.pbpVideoStudyView(); } catch (_) {}
+    if (live === "reading") {
+      try { window.pbpVideoStudyView("timeline"); } catch (_) {}
+    }
   }
 }
 

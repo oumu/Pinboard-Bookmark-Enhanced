@@ -1683,11 +1683,20 @@ async function _pbpTrApplyTargetLang(st, s) {
   // st.approxChars was summed with the OLD target code (pbpTrBlockIsTargetLang
   // excludes blocks already in the target language, which is language-
   // dependent), and _pbpTrRenderEstimate prefers it -- while the idle branch
-  // only unhides the estimate without rewriting it. Drop the stale figure and
-  // re-price from st.work for the new language, or the rail keeps showing the
-  // previous target's number (a partial state's "remaining" quote, even
-  // though the reset just emptied st.trMd).
-  st.approxChars = 0;
+  // only unhides the estimate without rewriting it. Re-price for the NEW
+  // language, or the rail keeps showing the previous target's number (a partial
+  // state's "remaining" quote, even though the reset just emptied st.trMd).
+  // Same sum the initial estimate and the article-replaced re-price use, so all
+  // three quote one thing: zeroing it instead handed _pbpTrRenderEstimate its
+  // fallback, which sums EVERY block -- and _pbpTrApplySkips does not rebuild
+  // skippedSet for the new language until the next Translate/Continue click, so
+  // switching en->zh-Hans on a mixed article priced the Chinese paragraphs that
+  // the run will skip.
+  const priced = pbpAiBlocks().filter((b) => b.tag !== "pre" && (b.el.textContent || "").trim());
+  st.approxChars = priced.reduce((a, b) => {
+    const txt = b.el.textContent || "";
+    return pbpTrBlockIsTargetLang(txt, st.target.code) ? a : a + txt.length;
+  }, 0);
   _pbpTrSetStatus(st, "idle");
   _pbpTrRenderEstimate(st);
 }

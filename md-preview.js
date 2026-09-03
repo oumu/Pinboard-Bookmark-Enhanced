@@ -3132,6 +3132,7 @@ window.pbpReaderSchemeSet = function (mode) {
     _exporting = true;
     setExportBusy(true); // synchronous: the gesture-sensitive await below must still be the first one
     let note = 0;
+    let failed = false;
     try {
       // First await in the direct click chain: resolveEmbed()'s chrome.permissions.request()
       // must run while the user gesture is still active (same invariant as Send-to below).
@@ -3144,10 +3145,23 @@ window.pbpReaderSchemeSet = function (mode) {
       // composeExport pass, no double transform of the export markdown).
       const body = composeExport(emb.md, meta, { ...opts, imagePolicy: opts.imagePolicy === "embed" ? "keep" : opts.imagePolicy });
       downloadFile(safeTitle + ".md", body, "text/markdown;charset=utf-8");
+    } catch (e) {
+      // Without this the throw escaped the async listener: finally had
+      // already wiped the busy line, so the reader saw "Preparing the
+      // export..." appear and vanish, with no file and no word about it --
+      // indistinguishable from a finished export. resolveEmbed can throw
+      // (chrome.permissions.request), and so can Blob/createObjectURL.
+      // name/message only, per the swallowed-exception rule.
+      failed = true;
+      console.warn("[export] markdown download failed:", e && e.name, e && e.message);
     } finally {
       setExportBusy(false);
       _exporting = false;
     }
+    // Ahead of the honest-notes pair below: a failed export has no image note
+    // to give and no partial-embed count worth reporting, and either would
+    // paint over the only word the reader gets about the failure.
+    if (failed) { showExportNote(t("mdPreviewFailed")); return; }
     // The honest notes speak AFTER the busy line is cleared, never before it:
     // imgFixExportNote is a single merged call by design, and the busy text
     // would have overwritten it.
@@ -3159,6 +3173,7 @@ window.pbpReaderSchemeSet = function (mode) {
     _exporting = true;
     setExportBusy(true);
     let note = 0;
+    let failed = false;
     try {
       // First await in the direct click chain: resolveEmbed()'s chrome.permissions.request()
       // must run while the user gesture is still active, so it runs before the
@@ -3177,10 +3192,23 @@ window.pbpReaderSchemeSet = function (mode) {
       if (typeof pbpMermaidWarmExport === "function") await pbpMermaidWarmExport(renderedView);
       const doc = composeStyledHtml(emb.md, meta, { ...opts, imagePolicy: opts.imagePolicy === "embed" ? "keep" : opts.imagePolicy, hljsCss, katexCss });
       downloadFile(safeTitle + ".html", doc, "text/html;charset=utf-8");
+    } catch (e) {
+      // Without this the throw escaped the async listener: finally had
+      // already wiped the busy line, so the reader saw "Preparing the
+      // export..." appear and vanish, with no file and no word about it --
+      // indistinguishable from a finished export. resolveEmbed can throw
+      // (chrome.permissions.request), and so can Blob/createObjectURL.
+      // name/message only, per the swallowed-exception rule.
+      failed = true;
+      console.warn("[export] styled HTML download failed:", e && e.name, e && e.message);
     } finally {
       setExportBusy(false);
       _exporting = false;
     }
+    // Ahead of the honest-notes pair below: a failed export has no image note
+    // to give and no partial-embed count worth reporting, and either would
+    // paint over the only word the reader gets about the failure.
+    if (failed) { showExportNote(t("mdPreviewFailed")); return; }
     imgFixExportNote(true);
     if (note > 0) showExportNote(t("mdEmbedPartial", String(note))); // args through t() -- chrome.i18n consumes $COUNT$ before a manual replace could
   });
@@ -3189,6 +3217,7 @@ window.pbpReaderSchemeSet = function (mode) {
     _exporting = true;
     setExportBusy(true);
     let note = 0;
+    let failed = false;
     try {
       // First await in the direct click chain: resolveEmbed()'s chrome.permissions.request()
       // must run while the user gesture is still active (same invariant as above).
@@ -3216,10 +3245,24 @@ window.pbpReaderSchemeSet = function (mode) {
       meta.lang = pbpEpubLang((inTrView && typeof window.pbpTrExportTargetLang === "function" && window.pbpTrExportTargetLang()) || "und");
       if (typeof pbpMermaidWarmExport === "function") await pbpMermaidWarmExport(renderedView);
       downloadFile(safeTitle + ".epub", pbpBuildEpub({ md, meta, images: emb.fetched }), "application/epub+zip");
+    } catch (e) {
+      // Without this the throw escaped the async listener: finally had
+      // already wiped the busy line, so the reader saw "Preparing the
+      // export..." appear and vanish, with no file and no word about it --
+      // indistinguishable from a finished export. resolveEmbed can throw
+      // (chrome.permissions.request), and so can Blob/createObjectURL and
+      // pbpBuildEpub on malformed content.
+      // name/message only, per the swallowed-exception rule.
+      failed = true;
+      console.warn("[export] EPUB download failed:", e && e.name, e && e.message);
     } finally {
       setExportBusy(false);
       _exporting = false;
     }
+    // Ahead of the honest-notes pair below: a failed export has no image note
+    // to give and no partial-embed count worth reporting, and either would
+    // paint over the only word the reader gets about the failure.
+    if (failed) { showExportNote(t("mdPreviewFailed")); return; }
     imgFixExportNote(true);
     if (note > 0) showExportNote(t("mdEmbedPartial", String(note))); // args through t() -- chrome.i18n consumes $COUNT$ before a manual replace could
   });

@@ -1907,7 +1907,18 @@ window._pbpInertDocDone = (async () => {
   try { hit = applySiteRule(document, "https://zhuanlan.zhihu.com/p/1"); }
   finally { fixture.remove(); }
 
-  // 3) Control: the same markup through a live-document div, so a green probe
+  // 3b) composeStyledHtml (Copy HTML / Download .html): its hljs and KaTeX
+  //    passes each re-parse the WHOLE article into a scratch div. On the live
+  //    document those copies fetched every remote <img> in the piece -- eagerly,
+  //    unlike the preview's own loading="lazy" originals -- and discarded the
+  //    bytes. Both passes are armed here (highlight.min.js and katex are loaded
+  //    above, and the fixture carries a fenced block plus opts.math).
+  const probeExport = abs("compose-styled-html");
+  const styled = composeStyledHtml(
+    "![x](" + probeExport + ")\n\n```js\nvar a = 1;\n```\n\n$x^2$\n",
+    { title: "probe" }, { math: true });
+
+  // 4) Control: the same markup through a live-document div, so a green probe
   //    row can never mean "Resource Timing saw nothing at all here".
   const control = document.createElement("div");
   control.innerHTML = '<img src="' + probeControl + '">';
@@ -1925,6 +1936,9 @@ window._pbpInertDocDone = (async () => {
   check("...and the lazy src is still promoted in the extracted HTML",
     !!hit && hit.contentHtml.indexOf('src="' + probeClean + '"') !== -1,
     hit ? hit.contentHtml : "no site-rule hit");
+  check("composeStyledHtml downloads no <img> while re-parsing the article",
+    !seen(probeExport) && styled.indexOf(probeExport) !== -1,
+    seen(probeExport) ? "requested " + probeExport : "probe url missing from the export");
 })();
 
 section("site-rules: v2ex buildReplyTree multi-@ (pure)");

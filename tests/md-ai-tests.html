@@ -1316,6 +1316,36 @@ suite("md-ai IDB key conventions", () => {
     await pbpTrViewSet(url, { mode: "translated", lang }, "");
     assertEq((await pbpTrViewGet(url, "")).mode, "translated", "ownerless new view hit");
   });
+  await atest("entries keyed by the pre-normalization raw url are still found, not re-charged", async () => {
+    // These three families switched to pbpAiCacheUrlNorm without a migration.
+    // The user who translated an article reached through "#comments" or a
+    // ?utm_source= link had already paid for it; after the upgrade the probe
+    // asked a different key, missed, and quoted the whole article again while
+    // the paid entry sat in one of ai-cache's 300 no-TTL slots.
+    const base = "https://legacy-key.example/" + Date.now() + "_" + Math.random();
+    const opened = base + "#comments";
+    const lang = "zh-CN", model = "gemini:test", owner = "alice";
+    const rawHash = pbpAiHash(opened);
+    assert(rawHash !== pbpAiHash(pbpAiCacheUrlNorm(opened)), "fixture url must actually normalize");
+    await pbpAiCacheSet("tr_acct_alice_" + lang + "_" + model + "_" + rawHash,
+      { blocks: { b1: "paid for already" } }, Date.now());
+    await pbpAiCacheSet(_pbpTrGlossaryCacheKey(opened, lang, model, owner, rawHash),
+      { terms: { widget: "小部件" } }, Date.now());
+    await pbpAiCacheSet("trview_acct_alice_" + rawHash, { mode: "bilingual", lang }, Date.now());
+
+    const tr = await pbpTrCacheGet(opened, lang, model, owner);
+    assertEq(tr && tr.blocks.b1, "paid for already", "a pre-normalization translation is re-charged");
+    const gloss = await pbpTrGlossaryCacheGet(opened, lang, model, owner);
+    assertEq(gloss && gloss.widget, "小部件", "a pre-normalization glossary extraction is redone");
+    const view = await pbpTrViewGet(opened, owner);
+    assertEq(view && view.mode, "bilingual", "a pre-normalization view state is lost");
+
+    // Read-side only: the rescue must not resurrect the entry under a legacy
+    // key for another account, and it must not write anything back.
+    assertEq(await pbpTrCacheGet(opened, lang, model, "bob"), null, "the legacy rescue crossed accounts");
+    assertEq(await pbpAiCacheGet(_pbpTrCacheKey(opened, lang, model, owner)), null,
+      "the rescue wrote the entry forward instead of only reading it");
+  });
 })();
 </script>
 
@@ -3852,20 +3882,41 @@ suiteIf("_pbpTrApplyTargetLang", "_pbpTrApplyTargetLang", () => {
       document.body.removeChild(note);
     }
   });
-  test("#41: a real change refreshes the raw setting on st.s and drops the old-language char estimate", () => {
-    const st = {
-      s: { aiProvider: "gemini", translateTargetLang: "en", translateGlossary: "" },
-      target: { code: "en", name: "English", display: "English" },
-      work: [], trMd: {}, mode: "original", approxChars: 4321
-    };
-    _pbpTrApplyTargetLang(st, { translateTargetLang: "ja" });
-    // window.pbpTrExportTargetLang (EPUB dc:language) reads st.s, so a frozen
-    // value exports the PREVIOUS target language.
-    assertEq(st.s.translateTargetLang, "ja", "raw setting mirrored onto st.s");
-    assertEq(st.s.aiProvider, "gemini", "single-field update: the rest of the settings snapshot is untouched");
-    // approxChars was summed with the old target code (skip detection is
-    // language-dependent) and wins over st.work in _pbpTrRenderEstimate.
-    assertEq(st.approxChars, 0, "stale per-language char estimate dropped so the price is recomputed");
+  test("#41: a real change refreshes the raw setting on st.s and re-prices for the NEW language", () => {
+    // A mixed-language article, indexed the way the preview page indexes it.
+    // Switching the target to Simplified Chinese must quote only the English
+    // paragraph: the Chinese one is already in the target language, so the run
+    // will skip it. Zeroing approxChars instead handed _pbpTrRenderEstimate its
+    // fallback, which sums EVERY block -- and skippedSet is not rebuilt for the
+    // new language until the next Translate click, so nothing else excluded it.
+    const view = document.createElement("div");
+    const en = document.createElement("p");
+    en.textContent = "The quick brown fox jumps over the lazy dog again and again.";
+    const zh = document.createElement("p");
+    zh.textContent = "这是一段已经是目标语言的中文段落，翻译时会被跳过。";
+    view.append(en, zh);
+    document.body.appendChild(view);
+    const savedBlocks = pbpAiBlocks().slice();
+    try {
+      pbpAiIndexBlocks(view);
+      const st = {
+        s: { aiProvider: "gemini", translateTargetLang: "en", translateGlossary: "" },
+        target: { code: "en", name: "English", display: "English" },
+        work: [], trMd: {}, mode: "original", approxChars: 4321
+      };
+      _pbpTrApplyTargetLang(st, { translateTargetLang: "zh-Hans" });
+      // window.pbpTrExportTargetLang (EPUB dc:language) reads st.s, so a frozen
+      // value exports the PREVIOUS target language.
+      assertEq(st.s.translateTargetLang, "zh-Hans", "raw setting mirrored onto st.s");
+      assertEq(st.s.aiProvider, "gemini", "single-field update: the rest of the settings snapshot is untouched");
+      assert(pbpTrBlockIsTargetLang(zh.textContent, "zh-Hans"),
+        "fixture broken: the Chinese paragraph must read as already-in-target");
+      assertEq(st.approxChars, en.textContent.length,
+        "the re-price counted blocks the run will skip; got " + st.approxChars);
+    } finally {
+      view.remove();
+      _pbpAiBlockIndex = savedBlocks;
+    }
   });
 });
 
