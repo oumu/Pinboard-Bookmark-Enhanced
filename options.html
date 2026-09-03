@@ -894,7 +894,7 @@
           <p class="save-status" id="ecdict-pack-status" role="status" aria-live="polite"></p>
           <div class="vocab-toolbar">
             <button type="button" class="btn btn-sm" id="ecdict-pack-import" data-i18n="ecdictImportFile">Import file</button>
-            <button type="button" class="btn btn-sm" id="ecdict-pack-delete" data-i18n="delete" hidden>Delete</button>
+            <button type="button" class="btn btn-sm danger" id="ecdict-pack-delete" data-i18n="delete" hidden>Delete</button>
             <span class="save-status" id="ecdict-pack-action-status" role="status" aria-live="polite"></span>
           </div>
           <input type="file" id="ecdict-pack-file" accept=".csv,.txt,.gz,.zip" hidden />
@@ -910,7 +910,7 @@
           <div class="vocab-toolbar">
             <button type="button" class="btn btn-sm" id="dict-pack-open"><svg class="ext-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg><span data-i18n="dictPackOpen">Open download page</span></button>
             <button type="button" class="btn btn-sm" id="dict-pack-import" data-i18n="dictPackImport">Import file</button>
-            <button type="button" class="btn btn-sm" id="dict-pack-delete" data-i18n="delete" hidden>Delete</button>
+            <button type="button" class="btn btn-sm danger" id="dict-pack-delete" data-i18n="delete" hidden>Delete</button>
             <span class="save-status" id="dict-pack-action-status" role="status" aria-live="polite"></span>
           </div>
           <input type="file" id="dict-pack-file" accept=".txt,.txt.gz,.gz,.zip" hidden />
@@ -973,7 +973,7 @@
         <div style="margin-top:8px;display:flex;gap:8px;">
           <label><input type="checkbox" id="tag-gov-select-all" /> <span data-i18n="tagGovSelectAll">Select all</span></label>
         </div>
-        <button class="btn btn-sm tag-gov-delete-btn" id="tag-gov-delete-selected" data-i18n="tagGovDeleteSelected">Delete selected</button>
+        <button class="btn btn-sm danger tag-gov-delete-btn" id="tag-gov-delete-selected" data-i18n="tagGovDeleteSelected" disabled>Delete selected</button>
       </details>
       <div id="tag-gov-progress" hidden style="margin-top:10px;">
         <div id="tag-gov-progress-bar" class="progress-bar" role="progressbar" aria-labelledby="tag-gov-progress-text" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
@@ -997,6 +997,13 @@
           <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
           <p class="hint context-help-body" data-i18n="optWaybackHint">After each save, ask the Internet Archive to snapshot the page (best effort, never blocks saving). Sends the saved URL to archive.org; off by default.</p>
         </details>
+        <!-- After the <details>, so `.context-help-host > .context-help ~ *`
+             gives it a full-width row of its own under the checkbox that
+             requests the permission (it used to sit three blocks lower, past
+             both S3 fields). Live region like every other status slot on this
+             page; .wayback-perm-status stays for the :empty hide, which also
+             keeps .hint-warn's triangle off an empty row. -->
+        <span id="wayback-perm-status" class="hint hint-warn wayback-perm-status" role="status" aria-live="polite"></span>
       </div>
       <div class="choice-row context-help-host" data-help-role="choice" style="margin-left:20px">
         <label><input type="checkbox" id="opt-wayback-batch" /> <span data-i18n="optWaybackBatch">Also archive during batch save</span></label>
@@ -1023,7 +1030,6 @@
         <button type="button" class="key-toggle" data-target="opt-wayback-s3secret" title="Show/hide key" data-i18n-title="showHideKey" data-i18n-aria="showHideKey" aria-label="Show/hide key"></button></span>
       </div>
       <p class="hint"><a href="https://archive.org/account/s3.php" target="_blank" rel="noopener" data-i18n="getKey">Get key</a></p>
-      <span id="wayback-perm-status" class="wayback-perm-status"></span>
       <div class="divider"></div>
       <div class="fg wayback-log-host">
         <div class="wayback-log-heading">

@@ -17,6 +17,18 @@
     <div class="choice-row"><label for="sync-first">First sync choice</label><input id="sync-first" /><p class="hint">First sync explanation</p></div>
     <div class="choice-row"><label for="sync-second">Second sync choice</label><input id="sync-second" /><p class="hint">Second sync explanation</p></div>
   </div>
+  <!-- The two collapse mechanisms the real page buries settings in: a keyed
+       native <details> and a custom .accordion-section, both closed. -->
+  <details id="buried-disclosure" data-acc-key="buried-acc">
+    <summary>Offline dictionary shelf</summary>
+    <div class="fg"><label for="buried-input">Shelf option</label><input id="buried-input" /></div>
+  </details>
+  <div class="accordion-section" id="buried-section">
+    <button type="button" class="accordion-header" data-target="buried-acc-body" aria-controls="buried-acc-body" aria-expanded="false"><span class="accordion-arrow"></span> Webhook delivery card</button>
+    <div class="accordion-body" id="buried-acc-body">
+      <label><input type="checkbox" id="buried-checkbox" /> <span>Enable card delivery</span></label>
+    </div>
+  </div>
 </div>
 <div id="panel-ai" class="panel">
   <h2>AI Provider</h2>
@@ -40,6 +52,10 @@
 <input id="opt-preview-skim" type="checkbox" />
 <input id="dict-echo-enabled" type="checkbox" checked />
 <input id="opt-wayback-enabled" type="checkbox" />
+<!-- Tag-governance low-count list, outside every .panel so it stays out of the
+     settings-search index. -->
+<div id="tag-gov-lowcount-list"></div>
+<button type="button" class="btn btn-sm danger tag-gov-delete-btn" id="tag-gov-delete-selected">Delete selected</button>
 <div id="results"></div>
 
 <script>
@@ -155,6 +171,102 @@ function assert(value, message) { if (!value) throw new Error(message || "assert
     assert(!input.hasAttribute("aria-expanded") && !host.hidden, "searchbox has unsupported expanded semantics");
     document.body.dispatchEvent(new PointerEvent("pointerdown", { bubbles:true }));
     assert(host.hidden, "outside pointer did not dismiss results");
+  });
+
+  await test("search index reaches names that live on a collapsed section's own header", async () => {
+    const index = pbpBuildSettingsSearchIndex(document);
+    const shelf = index.find((entry) => entry.text.includes("Offline dictionary shelf"));
+    assert(shelf, "a <summary> section name is unsearchable");
+    assert(shelf.targetId === "buried-input", "summary result targeted " + JSON.stringify(shelf.targetId));
+    const card = index.find((entry) => entry.text.includes("Webhook delivery card"));
+    assert(card, "an accordion header name is unsearchable");
+    assert(card.targetId === "buried-checkbox", "accordion result targeted " + JSON.stringify(card.targetId));
+  });
+
+  await test("jumping to a buried setting opens every collapsed ancestor first", async () => {
+    const details = document.getElementById("buried-disclosure");
+    const section = document.getElementById("buried-section");
+    const header = section.querySelector(".accordion-header");
+    details.open = false;
+    section.classList.remove("open");
+    header.setAttribute("aria-expanded", "false");
+
+    pbpOpenOptionsTarget("general", "buried-input");
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    assert(details.open === true, "native <details> ancestor stayed collapsed");
+    assert(document.activeElement === document.getElementById("buried-input"), "focus never reached the buried control");
+
+    pbpOpenOptionsTarget("general", "buried-checkbox");
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    assert(section.classList.contains("open"), ".accordion-section ancestor stayed collapsed");
+    assert(header.getAttribute("aria-expanded") === "true", "accordion header kept a stale aria-expanded");
+    assert(document.activeElement === document.getElementById("buried-checkbox"), "focus never reached the buried checkbox");
+  });
+
+  await test("arrow keys keep moving once focus is inside the search results", async () => {
+    setupOptionsSearch();
+    const input = document.getElementById("options-search-input");
+    const host = document.getElementById("options-search-results");
+    input.value = "sync";
+    input.dispatchEvent(new Event("input"));
+    const items = [...host.querySelectorAll(".options-search-result")];
+    assert(items.length >= 3, "fixture produced too few results: " + items.length);
+    input.dispatchEvent(new KeyboardEvent("keydown", { key:"ArrowDown", bubbles:true }));
+    assert(document.activeElement === items[0], "ArrowDown from the input did not reach the first result");
+    items[0].dispatchEvent(new KeyboardEvent("keydown", { key:"ArrowDown", bubbles:true }));
+    assert(document.activeElement === items[1], "ArrowDown inside the list did not advance");
+    items[1].dispatchEvent(new KeyboardEvent("keydown", { key:"ArrowUp", bubbles:true }));
+    assert(document.activeElement === items[0], "ArrowUp inside the list did not go back");
+    items[0].dispatchEvent(new KeyboardEvent("keydown", { key:"End", bubbles:true }));
+    assert(document.activeElement === items[items.length - 1], "End did not jump to the last result");
+    document.activeElement.dispatchEvent(new KeyboardEvent("keydown", { key:"Home", bubbles:true }));
+    assert(document.activeElement === items[0], "Home did not jump to the first result");
+    items[0].dispatchEvent(new KeyboardEvent("keydown", { key:"Escape", bubbles:true }));
+    assert(host.hidden && input.value === "", "Escape inside the list did not close the results");
+    assert(document.activeElement === input, "Escape did not hand focus back to the search box");
+  });
+
+  await test("Export panel reset keeps every registry credential and clears everything else", async () => {
+    // Input shaped like a stored exportTargets object: one sentinel per
+    // declared setting, so the assertion is per CATEGORY (secret vs not),
+    // never a hand-listed set of field names.
+    const current = {};
+    for (const id of pbpExportTargetIds()) {
+      const row = PBP_EXPORT_TARGETS[id] || {};
+      current[id] = { enabled: true };
+      for (const setting of row.settings || []) current[id][setting.key] = "kept-" + id + "-" + setting.key;
+    }
+    const seed = pbpExportTargetsResetSeed(current);
+    for (const id of pbpExportTargetIds()) {
+      assert(!seed[id].enabled, id + " stayed enabled through the reset");
+      for (const setting of (PBP_EXPORT_TARGETS[id] || {}).settings || []) {
+        const isSecret = setting.type === "secret" || setting.secret === true;
+        const value = seed[id][setting.key];
+        if (isSecret) assert(value === current[id][setting.key], id + "." + setting.key + " credential was wiped by the reset");
+        else assert(value === undefined, id + "." + setting.key + " survived a reset that should clear it");
+      }
+    }
+  });
+
+  await test("empty-selection Delete disables the tag-governance button instead of dying silently", async () => {
+    const list = document.getElementById("tag-gov-lowcount-list");
+    const btn = document.getElementById("tag-gov-delete-selected");
+    list.replaceChildren();
+    for (const tag of ["alpha", "beta"]) {
+      const box = document.createElement("input");
+      box.type = "checkbox";
+      box.className = "tag-gov-lowcount-checkbox";
+      box.value = tag;
+      list.appendChild(box);
+    }
+    pbpSyncTagGovDeleteBtnState();
+    assert(btn.disabled === true, "Delete selected stayed clickable with nothing selected");
+    list.querySelector(".tag-gov-lowcount-checkbox").checked = true;
+    pbpSyncTagGovDeleteBtnState();
+    assert(btn.disabled === false, "Delete selected stayed disabled with a tag selected");
+    list.replaceChildren();
+    pbpSyncTagGovDeleteBtnState();
+    assert(btn.disabled === true, "Delete selected stayed enabled over an emptied list");
   });
 
   await test("connection overview is read-only and never requests permission or contacts a service", async () => {

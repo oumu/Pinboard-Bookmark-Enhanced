@@ -107,14 +107,49 @@ function pbpRecordConnectionHealth(id, ok, rawCode) {
   return run;
 }
 
+// Set only while pbpExpandOptionsAncestors flips a <details> open, and read by
+// the delegated toggle listener further down: a navigation must not rewrite the
+// collapse state the user has remembered. The .accordion-section half needs no
+// guard -- classList.add fires no event and the click delegate only reacts to
+// real clicks.
+let _pbpAccProgrammaticOpen = false;
+
+// Both collapse mechanisms on this page make their contents UNREACHABLE, not
+// merely scrolled past (.accordion-body is display:none, a closed <details> is
+// content-visibility:hidden), so a jump into one of them focused and scrolled
+// to nothing at all. Open every ancestor before measuring. Deliberately no
+// pbpMotionMark(): the height transition AND its @starting-style entry both sit
+// inside the .motion-toggle-gated rules, so an unmarked flip reveals instantly
+// -- the right reading for a move the user did not initiate, and it also means
+// the scroll below measures final geometry in this same frame.
+function pbpExpandOptionsAncestors(target) {
+  for (let node = target; node instanceof Element; node = node.parentElement) {
+    if (node.matches("details")) {
+      if (node.open) continue;
+      // The details 'toggle' event is queued as a task, so the guard has to
+      // outlive this call; a 0 ms timer runs after that queued task, the same
+      // ordering pbpAccRestore's restoring flag relies on.
+      _pbpAccProgrammaticOpen = true;
+      node.open = true;
+      setTimeout(() => { _pbpAccProgrammaticOpen = false; }, 0);
+    } else if (node.classList.contains("accordion-section") && !node.classList.contains("open")) {
+      node.classList.add("open");
+      const head = node.querySelector(":scope > .accordion-header");
+      if (head) head.setAttribute("aria-expanded", "true");
+    }
+  }
+}
+
 function pbpOpenOptionsTarget(panel, targetId) {
   const tab = document.querySelector(`.tab-btn[data-panel="${panel}"]`);
   if (!tab) return false;
   tab.click();
   requestAnimationFrame(() => {
     const target = targetId ? $id(targetId) : $id(`panel-${panel}`);
-    if (target && typeof target.focus === "function") target.focus({ preventScroll: true });
-    if (target) pbpScrollIntoView(target, { block: "center", behavior: "smooth" });
+    if (!target) return;
+    pbpExpandOptionsAncestors(target);
+    if (typeof target.focus === "function") target.focus({ preventScroll: true });
+    pbpScrollIntoView(target, { block: "center", behavior: "smooth" });
   });
   return true;
 }
@@ -241,9 +276,32 @@ function pbpBuildSettingsSearchIndex(root = document) {
       entries.push({ panel, panelLabel, text: clean, searchText: _pbpSettingsSearchText(`${panelLabel} ${clean}`), targetId: targetId || "" });
     };
     add(panelLabel, panelEl.querySelector("input,select,textarea,button")?.id || "");
-    for (const node of panelEl.querySelectorAll("h2,h3,label,.hint,button[data-i18n]")) {
+    // summary / .accordion-header carry the names of whole collapsed sections
+    // (the offline dictionaries, Google Drive sync, the Send-to cards); without
+    // them the user cannot search for the heading they are looking straight at.
+    // The context-help toggles are summaries too, but their only content is an
+    // icon span, so add() drops them on the empty-text guard.
+    for (const node of panelEl.querySelectorAll("h2,h3,label,.hint,button[data-i18n],summary,.accordion-header")) {
       let target = "";
       if (node.matches("label")) target = node.htmlFor || node.querySelector("input,select,textarea,button")?.id || "";
+      // A section name owns no control of its own: aim at the first control in
+      // the body it opens (pbpOpenOptionsTarget expands the ancestors on the
+      // way in), falling back to the body itself when it holds none. Accordion
+      // headers ARE buttons, so search the body -- never the whole section, or
+      // the header would match itself.
+      else if (node.matches("summary,.accordion-header")) {
+        const body = node.matches(".accordion-header")
+          ? node.closest(".accordion-section")?.querySelector(".accordion-body")
+          : node.parentElement;
+        // Skip controls the page keeps [hidden] for state reasons (the Drive
+        // buttons before a connection, a Delete for a pack never imported):
+        // focusing or scrolling to a display:none element is a silent no-op.
+        // A COLLAPSED disclosure is a different thing entirely -- it carries no
+        // [hidden], and opening it is exactly what the jump does.
+        const controls = body ? [...body.querySelectorAll("input,select,textarea,button")] : [];
+        target = controls.find((el) => el.id && !el.closest("[hidden]"))?.id
+          || body?.id || node.nextElementSibling?.id || "";
+      }
       else if (node.matches("button")) target = node.id;
       else if (node.matches(".hint")) target = node.closest(".choice-row,.fg")?.querySelector("input,select,textarea,button")?.id || "";
       else target = node.id || panelEl.querySelector("input,select,textarea,button")?.id || "";
@@ -322,6 +380,32 @@ function setupOptionsSearch() {
       const first = host.querySelector(".options-search-result");
       if (first) { event.preventDefault(); first.focus(); }
     }
+  });
+  // The input hands focus to the first result and the chain used to end there:
+  // no arrow keys, no Escape, only Tab out. Delegated because render() rebuilds
+  // every result button on each keystroke. Wrapping matches the tab strip's own
+  // ArrowUp/ArrowDown handler. No aria-expanded on the input: it is a plain
+  // <input type="search">, where that attribute is not valid ARIA, and turning
+  // the list into a real listbox would cost the two-line result buttons.
+  host.addEventListener("keydown", (event) => {
+    const current = event.target.closest?.(".options-search-result");
+    if (!current) return;
+    if (event.key === "Escape") {
+      event.preventDefault();
+      clear();
+      input.focus();
+      return;
+    }
+    const items = [...host.querySelectorAll(".options-search-result")];
+    const at = items.indexOf(current);
+    let n = -1;
+    if (event.key === "ArrowDown") n = (at + 1) % items.length;
+    else if (event.key === "ArrowUp") n = (at - 1 + items.length) % items.length;
+    else if (event.key === "Home") n = 0;
+    else if (event.key === "End") n = items.length - 1;
+    else return;
+    event.preventDefault();
+    items[n]?.focus();
   });
   document.addEventListener("pointerdown", (event) => {
     if (shell && !shell.contains(event.target)) setVisible(false);
@@ -596,6 +680,44 @@ function pbpApplySavedThemeOp(list, op) {
   if (at >= 0) out[at] = { name: op.name, css: op.css };
   else out.push({ name: op.name, css: op.css });
   return out;
+}
+
+// Seed for the Export panel's "Reset This Tab": enabled flags and ordinary
+// fields go back to defaults, credentials stay -- the same promise the AI,
+// Archive and Vocabulary panels make through def.skip. Those panels can use
+// skip because their credentials are static fields applyPanelReset walks by
+// id; the Send-to cards are built from the registry instead, so the walk never
+// sees them and a re-render with {} used to write empty Notion/Gist/Webhook
+// credentials straight to storage on the saveAll() that follows.
+// `current` is collectExportTargets()' output, i.e. secrets already obfuscated
+// -- exactly the shape renderExportTargets reads back.
+function pbpExportTargetsResetSeed(current) {
+  const seed = {};
+  if (typeof PBP_EXPORT_TARGETS === "undefined") return seed;
+  for (const id of pbpExportTargetIds()) {
+    const row = PBP_EXPORT_TARGETS[id] || {};
+    const cfg = (current && current[id]) || {};
+    const kept = {};
+    for (const setting of row.settings || []) {
+      if (setting.type !== "secret" && setting.secret !== true) continue;
+      if (cfg[setting.key]) kept[setting.key] = cfg[setting.key];
+    }
+    seed[id] = kept;
+  }
+  return seed;
+}
+
+// "Delete selected" is the most destructive control on this page and its
+// confirm text says "(permanent)", so an empty-selection click must not look
+// identical to a deletion that already ran. Follow the more conservative of
+// the two same-page precedents (#backup-import-apply stays disabled; Storage's
+// "Clear selected" answers with a warning) and gate the button on the
+// selection. Programmatic .checked writes (select-all, shift-range) fire no
+// 'change', so every path that can move a box calls this explicitly.
+function pbpSyncTagGovDeleteBtnState() {
+  const btn = $id("tag-gov-delete-selected");
+  if (!btn) return;
+  btn.disabled = !document.querySelector(".tag-gov-lowcount-checkbox:checked");
 }
 
 let _tagGovVisibleAccount = "";
@@ -998,6 +1120,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         "notify-quick-save": true, "notify-read-later": true, "notify-tab-set": true,
         "notify-batch-save": true, "notify-errors": true
       },
+      keepsSecrets: true,
       skip: ["opt-pinboard-token", "opt-sync-enabled"] // never reset token or sync toggle
     },
     popup: {
@@ -1039,6 +1162,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         "opt-ollama-baseurl": "http://localhost:11434", "opt-ollama-model": "llama3.2",
         "opt-custom-name": "Custom", "opt-custom-baseurl": "", "opt-custom-model": ""
       },
+      keepsSecrets: true,
       skip: ["opt-gemini-key","opt-openai-key","opt-claude-key","opt-deepseek-key","opt-qwen-key","opt-minimax-key","opt-openrouter-key","opt-groq-key","opt-mistral-key","opt-cohere-key","opt-siliconflow-key","opt-zhipu-key","opt-kimi-key","opt-custom-key","opt-jina-key"]
     },
     "ai-behavior": {
@@ -1074,7 +1198,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         "opt-md-frontmatter": true, "opt-md-extended-meta": true,
         "opt-md-image-policy": "keep", "opt-md-include-toc": false,
         "opt-md-include-hl": true
-      }
+      },
+      // The Send-to credentials are not static fields, so they cannot be
+      // listed in skip; the reset re-renders the cards through
+      // pbpExportTargetsResetSeed instead, which carries them over.
+      keepsSecrets: true
     },
     archive: {
       // Credentials live ONLY in skip: applyPanelReset iterates fields and
@@ -1084,6 +1212,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         "opt-wayback-enabled": false, "opt-wayback-batch": false,
         "opt-wayback-skip-private": true
       },
+      keepsSecrets: true,
       skip: ["opt-wayback-s3key", "opt-wayback-s3secret"]
     },
     appearance: {
@@ -1099,8 +1228,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       after: () => applyPreset("")
     },
     tags: {
-      fields: { "opt-tag-sort-by-pop": true },
-      skip: []
+      // No skip and no keepsSecrets: this panel holds no credential at all.
+      // The empty array it used to carry was truthy, so the confirm dialog
+      // promised "(keys kept)" over nothing.
+      fields: { "opt-tag-sort-by-pop": true }
     },
     vocab: {
       fields: {
@@ -1108,6 +1239,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         "dict-anki-deck": "Pinboard Vocab",
         "dict-anki-port": "8765"
       },
+      keepsSecrets: true,
       skip: ["dict-anki-key", "dict-eudic-token"]
     }
   };
@@ -1401,14 +1533,22 @@ document.addEventListener("DOMContentLoaded", async () => {
     const def = PANEL_DEFAULTS[panel];
     if (!def) return;
     showConfirmPopover(resetBtn, {
-      msg: t("resetConfirm", activeBtn.textContent) + (def.skip ? t("resetKeysKept") : ""),
+      // Driven by an explicit intent flag, never by whether def.skip exists:
+      // that truthiness test lied in both directions -- silent on the one
+      // panel that was wiping credentials, and promising "(keys kept)" on a
+      // panel that has none.
+      msg: t("resetConfirm", activeBtn.textContent) + (def.keepsSecrets ? t("resetKeysKept") : ""),
       yesText: t("reset"),
       noText: t("cancel"),
       onConfirm: () => {
+        const langBefore = $id("opt-lang")?.value;
         applyPanelReset(def, document);
-        // export-targets has no static fields; reset = re-render with defaults (all disabled).
-        // Must run BEFORE saveAll() so collectExportTargets() sees cleared cards, not stale ones.
-        if (panel === "markdown") renderExportTargets({});
+        // export-targets has no static fields; reset = re-render with the
+        // enabled flags and ordinary fields back at their defaults, keeping
+        // the stored credentials (the promise the confirm text now makes).
+        // Must run BEFORE saveAll() so collectExportTargets() sees the reset
+        // cards, not stale ones.
+        if (panel === "markdown") renderExportTargets(pbpExportTargetsResetSeed(collectExportTargets()));
         saveAllSafely();
         if (typeof def.after === "function") def.after();
         // applyPanelReset assigns .value directly, which fires no 'change', so
@@ -1419,6 +1559,17 @@ document.addEventListener("DOMContentLoaded", async () => {
         // provider. Both calls are no-ops on panels that lack the control.
         syncTranslateLangCustomState();
         updateProviderFields();
+        // Same class, one panel over: the General reset puts #opt-lang back to
+        // "auto" by assignment, so the language handler (pause auto-save ->
+        // flush -> prime the pp-i18n-* mirror -> reload) never ran and the page
+        // kept rendering the previously chosen locale until the next open.
+        // Conditional, because that handler ends in location.reload() and no
+        // reset should pay for a reload it does not need -- and LAST, because
+        // nothing after it would run.
+        const langEl = $id("opt-lang");
+        if (langEl && langBefore !== undefined && langBefore !== langEl.value) {
+          langEl.dispatchEvent(new Event("change", { bubbles: true }));
+        }
       },
     });
   });
@@ -1491,7 +1642,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   }, true);
   document.addEventListener("toggle", (e) => {
     const det = e.target.matches?.("details[data-acc-key]") ? e.target : null;
-    if (!det || pbpAccRestoring) return;
+    // _pbpAccProgrammaticOpen: a search/connection-status jump expands whatever
+    // hides its target, and this listener fires for ANY open change -- without
+    // the guard the jump would persist an open state the user never chose.
+    if (!det || pbpAccRestoring || _pbpAccProgrammaticOpen) return;
     pbpAccSet(det.dataset.accKey, det.open);
   }, true);
 
@@ -2317,6 +2471,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     let granted = false;
     try { granted = await chrome.permissions.request({ origins: ["https://web.archive.org/*"] }); }
     catch (err) { console.error("wayback permission request failed:", err); }
+    // Deliberately NOT unchecked on denial (9bcfa29 reverted exactly that,
+    // added in 6bd4cc5, and pinned it with a ui-contract gate): the box is the
+    // user's persisted intent, and a permission answer must never rewrite it
+    // from this page -- the grant can still arrive later from
+    // chrome://extensions. What the denial owes the user is unmissable
+    // feedback, which #wayback-perm-status now gives beside this very control.
     if (statusEl) statusEl.textContent = granted ? "" : t("waybackPermDenied");
   });
 
@@ -3206,14 +3366,17 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (btn) btn.disabled = true;
         if (!(await ensureTagSnapshot(expectedAccount))) {
           delTags.forEach(tg => _tagGovActiveTags.delete(tg)); // roll back reservation on snapshot failure
-          if (btn) btn.disabled = false;
+          // Re-derive rather than blanket-enable: a finished run re-renders the
+          // list without the deleted tags, and the button must follow the
+          // selection that is actually on screen now.
+          pbpSyncTagGovDeleteBtnState();
           return;
         }
         try {
           await runTagGovOps(selected.map(tag => ({ op: "delete", tag })), expectedAccount);
         } finally {
           delTags.forEach(tg => _tagGovActiveTags.delete(tg));
-          if (btn) btn.disabled = false;
+          pbpSyncTagGovDeleteBtnState();
         }
       }
     });
@@ -4365,7 +4528,7 @@ async function renderLowCountTags() {
   const listContainer = $id("tag-gov-lowcount-list");
   if (!listContainer) return;
   const auth = await getTagGovAuth();
-  if (!auth) { listContainer.replaceChildren(); return; }
+  if (!auth) { listContainer.replaceChildren(); pbpSyncTagGovDeleteBtnState(); return; }
 
   // Same scroll-jump guard as renderTagGov: never leave the container empty across
   // an await — build first, swap atomically.
@@ -4374,6 +4537,7 @@ async function renderLowCountTags() {
   const counts = _tagGovOwned(cached.cached_user_tags, auth.account)?.counts;
   if (!counts) {
     listContainer.replaceChildren();
+    pbpSyncTagGovDeleteBtnState();
     return;
   }
 
@@ -4382,6 +4546,7 @@ async function renderLowCountTags() {
     const empty = document.createElement("div");
     empty.textContent = t("tagGovNoLowCount");
     listContainer.replaceChildren(empty);
+    pbpSyncTagGovDeleteBtnState();
     return;
   }
 
@@ -4408,6 +4573,9 @@ async function renderLowCountTags() {
       } else {
         lastIdx = i;
       }
+      // Covers the shift-range branch too: it assigns .checked directly and
+      // fires no 'change'.
+      pbpSyncTagGovDeleteBtnState();
     });
     boxes.push(checkbox);
     label.appendChild(checkbox);
@@ -4418,6 +4586,7 @@ async function renderLowCountTags() {
     table.appendChild(row);
   });
   listContainer.replaceChildren(table);
+  pbpSyncTagGovDeleteBtnState();
 
   const summary = $id("tag-gov-lowcount")?.querySelector("summary");
   if (summary) summary.textContent = t("tagGovLowCountTitle") + " (" + lowCount.length + ")";
@@ -4428,6 +4597,7 @@ async function renderLowCountTags() {
     selectAll.onchange = () => {
       listContainer.querySelectorAll(".tag-gov-lowcount-checkbox")
         .forEach(cb => { cb.checked = selectAll.checked; });
+      pbpSyncTagGovDeleteBtnState();
     };
   }
 }
