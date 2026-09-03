@@ -679,6 +679,46 @@ check("selection still covers all filtered results beyond rendered chunks", _voc
     }
   }
 
+  // PBP_VOCAB_SYNCED is a "the store moved" signal, not a "this page
+  // re-rendered" one: every reader tab that hears it runs _echoRestart, which
+  // drops every painted range and repaints them from an idle callback up to a
+  // second later. A mutation earns that; a soft reload (visibilitychange, view
+  // re-entry) does not -- alt-tabbing back to this page must not make the
+  // dotted underlines blink in every open reader. This page has no chrome
+  // mock, so the stub also proves the send is reached at all on the mutation
+  // side (the broadcast sits inside a swallow-everything try).
+  {
+    const realOwner = pbpVocabCurrentOwner;
+    const realAll = pbpVocabAll;
+    const realViewShown = _vocabViewShown;
+    const realCurrentOwner = _vocabCurrentOwner;
+    const hadChrome = "chrome" in window;
+    const realChrome = window.chrome;
+    const sent = [];
+    try {
+      window.chrome = { runtime: { sendMessage: (msg) => { sent.push(msg); return Promise.resolve(); } } };
+      pbpVocabCurrentOwner = async () => "acct_sync";
+      pbpVocabAll = async () => [];
+      _vocabCurrentOwner = "acct_sync";
+      await _pbpVocabReloadAfterMutation("acct_sync");
+      check("a mutation reload tells open readers the vocabulary store moved",
+        sent.length === 1 && sent[0].type === "PBP_VOCAB_SYNCED" && sent[0].owner === "acct_sync",
+        JSON.stringify(sent));
+      sent.length = 0;
+      _vocabViewShown = true;
+      document.dispatchEvent(new CustomEvent("pbp-lib-view", { detail: { view: "vocab" } }));
+      await task(); await task(); await task();
+      check("returning to the page re-reads without claiming the store moved",
+        sent.length === 0, JSON.stringify(sent));
+    } finally {
+      if (hadChrome) window.chrome = realChrome; else delete window.chrome;
+      pbpVocabCurrentOwner = realOwner;
+      pbpVocabAll = realAll;
+      _vocabViewShown = realViewShown;
+      _vocabCurrentOwner = realCurrentOwner;
+    }
+  }
+
   // _pbpVocabSoftReload's owner-read catch (A2 fix). Reached only via the
   // pbp-lib-view RE-FIRE branch (_vocabViewShown already true -- a real
   // first-show/view-switch takes the renderVocabPanel branch instead, see
@@ -1290,6 +1330,17 @@ check("selection still covers all filtered results beyond rendered chunks", _voc
     check("opening another word returns the reading pane to the top",
       scrolled > 0 && pane.scrollTop === 0,
       "scrolled=" + scrolled + " after=" + pane.scrollTop);
+    // A REFRESH render of the SAME word must not: _pbpVocabSoftReload (tab
+    // re-entry) and _pbpVocabReconcileDetail (after a mutation) both land
+    // here with the entry unchanged, and their entire reason for existing is
+    // to leave the reader where they were -- the same render carries the
+    // rendered dictionary nodes across and refocuses with preventScroll.
+    pane.scrollTop = 40;
+    const scrolledSame = pane.scrollTop;
+    _pbpVocabRenderDetail(second);
+    check("a refresh render of the same word keeps the reading position",
+      scrolledSame > 0 && pane.scrollTop === scrolledSame,
+      "scrolled=" + scrolledSame + " after=" + pane.scrollTop);
     pane.scrollTop = 40;
     const scrolledLookup = pane.scrollTop;
     $id("vocab-lookup-input").value = "scrollthree";

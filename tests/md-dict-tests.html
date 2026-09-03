@@ -696,6 +696,17 @@ async function runVocabEchoWiringTests() {
       await _echoRestart();
       assert(_echoTerms.length === 1 && _echoTerms[0].key === "residue", "a matching live account still loads the owner's terms");
       assert(_echoObserver !== null, "and arms the observer");
+
+      // Emptying the vocabulary (deleting the last word, or marking every word
+      // known) is a bail-out of the same class as the two above. Without a
+      // stand-down the observer armed a moment ago stays attached, and every
+      // later article mutation -- streamed translation output, a rebuilt
+      // timeline -- still queues a debounced idle rescan over every block to
+      // find nothing at all.
+      window.pbpVocabAll = async () => [];
+      await _echoRestart();
+      assertEq(_echoTerms.length, 0, "an emptied vocabulary leaves no term set behind");
+      assertEq(_echoObserver, null, "and stands the observer down instead of leaving it rescanning for nothing");
     } finally {
       _echoEnabled = false;
       _echoClearAll();

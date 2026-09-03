@@ -127,6 +127,12 @@ let _notesRenderLimit = PBP_NOTES_RENDER_BATCH;
 // Same job _pbpVocabDetailWordId does for the vocabulary view: it outlives
 // every rebuild, so a rescan can put the selection back where it was.
 let _pbpNotesSelectedKey = null;
+// The key the detail pane was last RENDERED with, which is not the same thing
+// as the selection: a refresh (_pbpNotesRefreshPreservingState, fired by every
+// pbp_hl_ write from an open reader) re-renders the SAME key, and only an
+// actual entry change may reset the pane's scroll position. Twin of the
+// `sameWord` guard in library-vocab.js's _pbpVocabRenderDetail.
+let _notesRenderedDetailKey = null;
 // Batch selection (2026-08-06), same model as the vocabulary list: a Set of
 // hit keys plus the anchor a Shift gesture spans from. Distinct from
 // _pbpNotesSelectedKey above, which is "the one the detail pane is reading" --
@@ -613,11 +619,13 @@ function _pbpNotesRenderDetail(hit, enterNarrow) {
   detail.hidden = !hit;
   if (!hit) {
     _pbpNotesSelectedKey = null;
+    _notesRenderedDetailKey = null;
     document.body.classList.remove("lib-narrow-notes");
     detail.replaceChildren();
     _pbpNotesMarkCurrentRow();
     return;
   }
+  const sameHit = hit.key === _notesRenderedDetailKey;
   if (enterNarrow) document.body.classList.add("lib-narrow-notes");
 
   const q = _pbpNotesFilterQuery();
@@ -728,12 +736,18 @@ function _pbpNotesRenderDetail(hit, enterNarrow) {
   }
 
   detail.replaceChildren(frag);
+  if (enterNarrow) _pbpNotesFocusNarrowBack(detail);
   // The scroll container is the PANE, not this inner div: library.css caps
   // .notes-detail-pane and gives it overflow-y:auto, and replaceChildren is
-  // one atomic mutation, so it keeps the previous highlight's scrollTop.
+  // one atomic mutation, so it keeps the previous highlight's scrollTop. After
+  // the handoff above, not before -- same ordering as the vocabulary twin.
+  // Only on an actual ENTRY CHANGE, though: _pbpNotesRefreshPreservingState
+  // re-renders the same key on every pbp_hl_ write an open reader makes and on
+  // every view re-entry, and it restores window.scrollY and focus right
+  // afterwards -- resetting the pane there throws away what it preserves.
   const pane = $id("notes-detail-pane");
-  if (pane) pane.scrollTop = 0;
-  if (enterNarrow) _pbpNotesFocusNarrowBack(detail);
+  if (pane && !sameHit) pane.scrollTop = 0;
+  _notesRenderedDetailKey = hit.key;
 }
 
 // Same guard the two failure sentences above use: t() echoes an unknown key

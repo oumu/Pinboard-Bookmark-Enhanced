@@ -228,6 +228,16 @@ const fireStorageChange = (changes, area) => { for (const fn of onChangedListene
   check("rendering another highlight returns the reading pane to the top",
     scrolled > 0 && scrollPane.scrollTop === 0,
     "scrolled=" + scrolled + " after=" + scrollPane.scrollTop);
+  // A REFRESH render of the SAME highlight must not:
+  // _pbpNotesRefreshPreservingState re-renders the selected key on every
+  // pbp_hl_ write an open reader makes (250ms debounce) and on every view
+  // re-entry, and it restores window.scrollY and focus right afterwards.
+  scrollPane.scrollTop = 40;
+  const scrolledSame = scrollPane.scrollTop;
+  _pbpNotesRenderDetail(_pbpNotesFindHit("pbp_hl_alpha#a1"));
+  check("a refresh render of the same highlight keeps the reading position",
+    scrolledSame > 0 && scrollPane.scrollTop === scrolledSame,
+    "scrolled=" + scrolledSame + " after=" + scrollPane.scrollTop);
   document.body.classList.remove("test-scroll-pane");
 
   // ---- url-less and hostile-url records ----

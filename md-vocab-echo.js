@@ -353,7 +353,14 @@ async function _echoRestart() {
   const rows = await (typeof pbpVocabAll === "function" ? pbpVocabAll(owner).catch(() => []) : []);
   if (epoch !== _echoEpoch || owner !== _echoOwner || !_echoEnabled) return;
   _echoTerms = pbpEchoTermSet(rows);
-  if (!_echoTerms.length) return;
+  // An empty term set is a bail-out like the other two, so it stands down for
+  // the same reason: a bare return leaves the previous generation's observer
+  // watching the article, and every later mutation (streamed .pb-tr
+  // translation output, a rebuilt timeline) would still queue a debounced idle
+  // rescan of every block to find nothing. _echoStandDown is idempotent here
+  // -- the assignment above already emptied the set -- and it also releases
+  // the timeline list watch.
+  if (!_echoTerms.length) { _echoStandDown(); return; }
   _echoScheduleScan(_echoBlockKeys());
   _echoObserve();
 }

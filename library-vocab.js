@@ -737,8 +737,14 @@ function _pbpVocabRenderDetail(w, enterNarrow) {
   // was left scrolled to. After the handoff above, not before: that is the
   // one thing here that can move focus, and a reset it could undo would be
   // no reset at all.
+  // Only when the ENTRY CHANGED, though: this function is also the refresh
+  // path (_pbpVocabSoftReload on tab re-entry, _pbpVocabReconcileDetail after
+  // a mutation), and those exist precisely to keep the user where they were.
+  // Resetting there undoes the same render's other state-preserving work --
+  // the carried-over .vocab-detail-dict nodes and the focus({preventScroll})
+  // handoff both assume the viewport does not move.
   const pane = $id("vocab-detail-pane");
-  if (pane) pane.scrollTop = 0;
+  if (pane && !sameWord) pane.scrollTop = 0;
   // The closing row exists now, so the status region can take its narrow-mode
   // home -- this render's callers all write into it AFTER returning from here,
   // so the region is settled in the accessibility tree before any sentence
@@ -1618,7 +1624,15 @@ function _pbpVocabReconcileDetail() {
   }
 }
 
-async function _pbpVocabReloadAfterMutation(expectedOwner, requestedGen) {
+// `broadcast` defaults to true because every other caller of this function IS a
+// mutation. _pbpVocabSoftReload passes false: it re-reads on visibilitychange
+// and view re-entry, where nothing changed under the user, and the service
+// worker's twin (background.js pbpBroadcastVocabSynced) likewise only fires on
+// `ok && changed`. Broadcasting there made every alt-tab back to this page run
+// _echoRestart in every open reader -- _echoClearAll wipes the painted ranges
+// and the idle rescan repaints them up to a second later, so the dotted
+// underlines blink off and back on for a refresh that changed nothing.
+async function _pbpVocabReloadAfterMutation(expectedOwner, requestedGen, broadcast = true) {
   const gen = Number.isInteger(requestedGen) ? requestedGen : ++_vocabRenderGen;
   if (gen !== _vocabRenderGen) return false;
   _pbpVocabSetLoading(true);
@@ -1662,10 +1676,12 @@ async function _pbpVocabReloadAfterMutation(expectedOwner, requestedGen) {
     // pbpBroadcastVocabSynced) and md-vocab-echo.js already listens for --
     // it re-checks message.owner, and the sender never receives its own
     // message, so this page keeps refreshing through the reload above.
-    try {
-      const pending = chrome.runtime.sendMessage({ type: "PBP_VOCAB_SYNCED", owner: expectedOwner });
-      if (pending && typeof pending.catch === "function") pending.catch(() => {});
-    } catch (_) {}
+    if (broadcast) {
+      try {
+        const pending = chrome.runtime.sendMessage({ type: "PBP_VOCAB_SYNCED", owner: expectedOwner });
+        if (pending && typeof pending.catch === "function") pending.catch(() => {});
+      } catch (_) {}
+    }
     return true;
   } catch (_) {
     if (gen !== _vocabRenderGen) return false;
@@ -1787,7 +1803,8 @@ async function _pbpVocabSoftReload() {
   // (Render depth needs no snapshot: the reload preserves _vocabRenderLimit.)
   const savedSelection = new Set(_vocabSelected);
   const savedAnchor = _vocabLastSelectedId;
-  const reloaded = await _pbpVocabReloadAfterMutation(owner, gen);
+  // broadcast:false -- see the parameter's comment. Nothing changed here.
+  const reloaded = await _pbpVocabReloadAfterMutation(owner, gen, false);
   if (gen !== _vocabRenderGen) return;
   if (!reloaded) {
     // The read failed and the reload already cleared, fail-closed. Rendering

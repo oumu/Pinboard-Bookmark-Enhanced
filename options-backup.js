@@ -647,6 +647,15 @@ function setupBackup({ exportableKeys, saveOverlayWithFallback, loadThemes, befo
       let highlightsOwnerDropped = false;
       if (raw.backupIncludeHighlights !== false) {
         const allLocal = await chrome.storage.local.get(null);
+        // get(null) deserializes the ENTIRE local area (jina_md_ page caches
+        // included) -- a real round trip another tab can switch accounts
+        // across. The same re-check the vocabulary branch below makes after
+        // its own read: `owner` both filters the items and becomes the file's
+        // _highlightsOwner label, so a stale one ships the previous account's
+        // label on this account's download.
+        if (pbpCanonicalBackupOwner(await readOwner()) !== owner) {
+          throw new Error("Pinboard account changed during backup");
+        }
         // Same owner scoping the vocabulary branch below applies: the file is
         // labelled with this account, so it may only carry this account's (and
         // ownerless) items.
