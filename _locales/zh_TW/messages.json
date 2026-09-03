@@ -938,7 +938,7 @@
     "message": "每行一組預設：\n工作: project, review, report\n開發: programming, tutorial, tool"
   },
   "tagPresetsHint": {
-    "message": "格式：名稱: 標籤1, 標籤2, 標籤3。每組預設都會在彈出式視窗中顯示為快捷新增按鈕。"
+    "message": "格式：Name: tag1, tag2, tag3。每組預設都會在彈出式視窗中顯示為快捷新增按鈕。"
   },
   "secPopupBehavior": {
     "message": "彈出式視窗行為"

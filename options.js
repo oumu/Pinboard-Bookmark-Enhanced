@@ -14,10 +14,16 @@ function pbpRefreshContextHelpScriptFamilies(root = document) {
 // applyI18n assigns textContent (i18n.js applies every translation as plain
 // text on purpose), which also drops the <code> chips authored inside the hint
 // bodies -- so the .hint code styling never survived the first translation
-// pass. The chip literals ({{title}}, an ollama command, a JSON shape) are
-// identical in every locale, so capture them from the markup before the first
-// pass and find them again by literal search afterwards. Chips are rebuilt as
-// fresh elements whose textContent is the literal; no markup is ever injected.
+// pass. So capture them from the markup before the first pass and find them
+// again by literal search afterwards. Chips are rebuilt as fresh elements whose
+// textContent is the literal; no markup is ever injected.
+// The literal search only works while a chip literal is written VERBATIM in all
+// nine locales -- prompt variables, an ollama command and a JSON shape are that
+// by nature, and the EXAMPLE chips follow the same convention deliberately
+// (batchTagsHint keeps "batch_saved, research" in every locale, settingsPassword
+// keeps its URL path). tagPresetsHint used to translate its own example, which
+// quietly left that hint as plain text in eight of nine locales; i18n-parity's
+// H21 now pins the premise for every [data-i18n] <code> host in options.html.
 const PBP_HINT_CODE_CHIPS = [];
 function pbpCaptureHintCodeChips(root = document) {
   const byHost = new Map();
@@ -145,9 +151,26 @@ function pbpOpenOptionsTarget(panel, targetId) {
   if (!tab) return false;
   tab.click();
   requestAnimationFrame(() => {
-    const target = targetId ? $id(targetId) : $id(`panel-${panel}`);
+    let target = targetId ? $id(targetId) : $id(`panel-${panel}`);
     if (!target) return;
     pbpExpandOptionsAncestors(target);
+    // A target with no layout box swallows BOTH halves of the handoff: focus()
+    // on a display:none element is a silent no-op that leaves the caret on
+    // <body> (whose panel was just switched away), and scrollIntoView has
+    // nothing to scroll to -- the click looks like it did nothing. That is not
+    // hypothetical for the hard-coded connection-overview targets: options.css
+    // now really enforces [hidden] (it used to lose to .btn's inline-flex),
+    // #vocab-drive-connect is `hidden` exactly when Drive IS connected, and
+    // renderVocabPanel hides all three Drive buttons synchronously until the
+    // status round trip returns -- so at this frame it has no box on EVERY
+    // click. The search index guards its own side (!el.closest("[hidden]") when
+    // it picks a section's target); this is the counterpart for every target
+    // that is named at render time rather than found at search time.
+    // Climb to the nearest rendered ancestor: scrolling the section into view
+    // is the half that always works, and a container that happens to be
+    // focusable gets the focus too.
+    while (target && !target.getClientRects().length) target = target.parentElement;
+    if (!target) return;
     if (typeof target.focus === "function") target.focus({ preventScroll: true });
     pbpScrollIntoView(target, { block: "center", behavior: "smooth" });
   });
@@ -262,17 +285,29 @@ function _pbpSettingsSearchText(value) {
 function pbpBuildSettingsSearchIndex(root = document) {
   const entries = [];
   const seen = new Set();
+  // Section names (summary / .accordion-header) are deduped on TEXT ALONE
+  // within a panel. options.html carries tagGovLowCountTitle twice in the Tags
+  // panel -- once as the <h2 class="section-title"> and once as the <summary>
+  // of #tag-gov-lowcount -- and the two resolve to DIFFERENT targets (the
+  // panel's first control vs tag-gov-select-all), so the id-bearing key below
+  // let both through and the user read the same heading listed twice. The two
+  // texts only diverge once renderLowCountTags appends a "(N)" suffix, i.e.
+  // never while the user is signed out or has no low-count tags.
+  const seenText = new Set();
   for (const panelEl of root.querySelectorAll('.panel[id^="panel-"]')) {
     const panel = panelEl.id.slice("panel-".length);
     const tab = root.querySelector(`.tab-btn[data-panel="${panel}"]`);
     const panelLabel = (tab?.textContent || panelEl.querySelector("h2")?.textContent || panel)
       .replace(/\s+/g, " ").trim();
-    const add = (text, targetId) => {
+    const add = (text, targetId, sectionName) => {
       const clean = String(text || "").replace(/\s+/g, " ").trim();
       if (!clean) return;
+      const textKey = `${panel}\n${clean}`;
+      if (sectionName && seenText.has(textKey)) return;
       const key = `${panel}\n${targetId || ""}\n${clean}`;
       if (seen.has(key)) return;
       seen.add(key);
+      seenText.add(textKey);
       entries.push({ panel, panelLabel, text: clean, searchText: _pbpSettingsSearchText(`${panelLabel} ${clean}`), targetId: targetId || "" });
     };
     add(panelLabel, panelEl.querySelector("input,select,textarea,button")?.id || "");
@@ -283,13 +318,14 @@ function pbpBuildSettingsSearchIndex(root = document) {
     // icon span, so add() drops them on the empty-text guard.
     for (const node of panelEl.querySelectorAll("h2,h3,label,.hint,button[data-i18n],summary,.accordion-header")) {
       let target = "";
+      const isSectionName = node.matches("summary,.accordion-header");
       if (node.matches("label")) target = node.htmlFor || node.querySelector("input,select,textarea,button")?.id || "";
       // A section name owns no control of its own: aim at the first control in
       // the body it opens (pbpOpenOptionsTarget expands the ancestors on the
       // way in), falling back to the body itself when it holds none. Accordion
       // headers ARE buttons, so search the body -- never the whole section, or
       // the header would match itself.
-      else if (node.matches("summary,.accordion-header")) {
+      else if (isSectionName) {
         const body = node.matches(".accordion-header")
           ? node.closest(".accordion-section")?.querySelector(".accordion-body")
           : node.parentElement;
@@ -305,7 +341,7 @@ function pbpBuildSettingsSearchIndex(root = document) {
       else if (node.matches("button")) target = node.id;
       else if (node.matches(".hint")) target = node.closest(".choice-row,.fg")?.querySelector("input,select,textarea,button")?.id || "";
       else target = node.id || panelEl.querySelector("input,select,textarea,button")?.id || "";
-      add(node.textContent, target);
+      add(node.textContent, target, isSectionName);
     }
   }
   return entries;
@@ -355,7 +391,11 @@ function setupOptionsSearch() {
       button.className = "options-search-result";
       const label = document.createElement("span");
       label.className = "options-search-result-label";
-      label.textContent = entry.text.length > 110 ? entry.text.slice(0, 107) + "..." : entry.text;
+      // U+2026, not three ASCII dots: i18n-parity H15 holds every locale
+      // message to one spelling of an ellipsis, and copy this file builds
+      // renders beside that copy -- H15 only scans _locales, so nothing else
+      // would catch the drift. The budget keeps the same 110 total.
+      label.textContent = entry.text.length > 110 ? entry.text.slice(0, 109) + "…" : entry.text;
       const panel = document.createElement("span");
       panel.className = "options-search-result-panel";
       panel.textContent = entry.panelLabel;

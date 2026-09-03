@@ -938,7 +938,7 @@
     "message": "По одной предустановке на строку:\nРабота: project, review, report\nРазработка: programming, tutorial, tool"
   },
   "tagPresetsHint": {
-    "message": "Формат: Название: метка1, метка2, метка3 — отображаются как кнопки быстрого добавления."
+    "message": "Формат: Name: tag1, tag2, tag3 — отображаются как кнопки быстрого добавления."
   },
   "secPopupBehavior": {
     "message": "Поведение всплывающего окна"

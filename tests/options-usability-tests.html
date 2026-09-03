@@ -29,6 +29,19 @@
       <label><input type="checkbox" id="buried-checkbox" /> <span>Enable card delivery</span></label>
     </div>
   </div>
+  <!-- The same section name twice, as the real Tags panel carries
+       tagGovLowCountTitle: an <h2> and the <summary> of the disclosure it
+       introduces. They resolve to different targets, so an id-bearing dedupe
+       key lets both into the results. -->
+  <h2>Qwvb duplicate section name</h2>
+  <details id="dup-disclosure">
+    <summary>Qwvb duplicate section name</summary>
+    <div class="fg"><label for="dup-input">Qwvb option</label><input id="dup-input" /></div>
+  </details>
+  <!-- Long enough that the settings-search result label has to be trimmed
+       (>110 chars). "Zzqx" is a token nothing else in the fixture matches. -->
+  <div class="fg"><label for="long-hint-input">Zzqx probe</label><input id="long-hint-input" />
+    <p class="hint">Zzqx truncation probe sentence written deliberately long enough to run past the label budget so the search result has to be shortened before it is painted.</p></div>
 </div>
 <div id="panel-ai" class="panel">
   <h2>AI Provider</h2>
@@ -55,6 +68,13 @@
 <!-- Tag-governance low-count list, outside every .panel so it stays out of the
      settings-search index. -->
 <div id="tag-gov-lowcount-list"></div>
+<!-- A hard-coded jump target with no layout box, outside every .panel so it
+     stays out of the settings-search index. Stands in for the connection
+     overview's "vocab-drive-connect", which is `hidden` exactly when the Drive
+     row is worth clicking. -->
+<div id="hidden-jump-host"><span>Drive actions</span>
+  <button type="button" id="hidden-jump-target" hidden>Connect</button>
+</div>
 <button type="button" class="btn btn-sm danger tag-gov-delete-btn" id="tag-gov-delete-selected">Delete selected</button>
 <div id="results"></div>
 
@@ -118,6 +138,12 @@ function assert(value, message) { if (!value) throw new Error(message || "assert
     assert(index.some((entry) => entry.text.includes("API Token") && entry.targetId === "secret-token"), "label missing");
     assert(index.some((entry) => entry.text.includes("Chrome Sync")), "hint missing");
     assert(!index.some((entry) => entry.text.includes("TOP_SECRET") || entry.text.includes("private-model")), "field value leaked");
+  });
+
+  await test("a section named twice in one panel produces one search result", async () => {
+    const index = pbpBuildSettingsSearchIndex(document);
+    const hits = index.filter((entry) => entry.text === "Qwvb duplicate section name");
+    assert(hits.length === 1, "the same section name reached the results " + hits.length + " times");
   });
 
   await test("grouped help search results target their owning choice", async () => {
@@ -203,6 +229,27 @@ function assert(value, message) { if (!value) throw new Error(message || "assert
     assert(document.activeElement === document.getElementById("buried-checkbox"), "focus never reached the buried checkbox");
   });
 
+  await test("a jump target with no layout box lands on its nearest rendered ancestor", async () => {
+    // The connection overview names its targets at render time and clicks them
+    // later, so a target can be display:none by the time the jump runs (the
+    // Drive row's button is hidden whenever Drive is connected, and every
+    // Drive button is hidden until the status round trip returns). focus() and
+    // scrollIntoView are both silent no-ops on a box-less element, so without
+    // the climb the row click produces nothing at all.
+    const target = document.getElementById("hidden-jump-target");
+    const host = document.getElementById("hidden-jump-host");
+    assert(target.getClientRects().length === 0, "fixture target unexpectedly has a layout box");
+    const scrolled = [];
+    const origScroll = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = function (...args) { scrolled.push(this); return origScroll.apply(this, args); };
+    try {
+      pbpOpenOptionsTarget("general", "hidden-jump-target");
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    } finally { Element.prototype.scrollIntoView = origScroll; }
+    assert(scrolled.length === 1, "expected exactly one scroll, saw " + scrolled.length);
+    assert(scrolled[0] === host, "scroll landed on " + (scrolled[0] && scrolled[0].id));
+  });
+
   await test("arrow keys keep moving once focus is inside the search results", async () => {
     setupOptionsSearch();
     const input = document.getElementById("options-search-input");
@@ -224,6 +271,25 @@ function assert(value, message) { if (!value) throw new Error(message || "assert
     items[0].dispatchEvent(new KeyboardEvent("keydown", { key:"Escape", bubbles:true }));
     assert(host.hidden && input.value === "", "Escape inside the list did not close the results");
     assert(document.activeElement === input, "Escape did not hand focus back to the search box");
+  });
+
+  await test("an over-long search result label is trimmed with one ellipsis character", async () => {
+    // JS-built UI copy sits beside locale copy on the same line, and
+    // i18n-parity's H15 (one spelling of an ellipsis) only scans _locales --
+    // nothing else holds a string this file assembles to the same rule.
+    setupOptionsSearch();
+    const input = document.getElementById("options-search-input");
+    const host = document.getElementById("options-search-results");
+    input.value = "Zzqx truncation";
+    input.dispatchEvent(new Event("input"));
+    const labels = [...host.querySelectorAll(".options-search-result-label")]
+      .filter((el) => el.textContent.startsWith("Zzqx truncation probe"));
+    assert(labels.length === 1, "the probe hint never reached the results, saw " + labels.length);
+    const text = labels[0].textContent;
+    assert(text.length === 110, "label budget drifted: " + text.length);
+    assert(text.endsWith("\u2026"), "not trimmed with U+2026: " + JSON.stringify(text.slice(-4)));
+    assert(!text.includes("..."), "JS-built copy still spells the ellipsis as three ASCII dots");
+    input.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
   });
 
   await test("Export panel reset keeps every registry credential and clears everything else", async () => {

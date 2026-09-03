@@ -938,7 +938,7 @@
     "message": "Eine Vorlage pro Zeile:\nArbeit: project, review, report\nDev: programming, tutorial, tool"
   },
   "tagPresetsHint": {
-    "message": "Format: Name: Tag1, Tag2, Tag3. Jede Vorlage erscheint als Schaltfläche zum schnellen Hinzufügen im Popup."
+    "message": "Format: Name: tag1, tag2, tag3. Jede Vorlage erscheint als Schaltfläche zum schnellen Hinzufügen im Popup."
   },
   "secPopupBehavior": {
     "message": "Popup-Verhalten"

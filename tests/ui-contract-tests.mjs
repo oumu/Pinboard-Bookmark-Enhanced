@@ -1500,7 +1500,11 @@ for (const [id, label, heading] of [["opt-lang", "secLanguage", "sec-language"],
   const RESET_ALLOWLIST = {
     general: [
       "opt-sync-api-keys",                // credential routing toggle: a reset must never move secrets
-      "opt-backup-include-vocabulary", "opt-backup-include-secrets",   // export pickers: session UI
+      // opt-backup-include-vocabulary is NOT here: 84432e3 made it a real
+      // persisted setting (backupIncludeVocabulary), so PANEL_DEFAULTS.general
+      // must carry it -- an exemption would cover it instead, and deleting the
+      // entry from PANEL_DEFAULTS would then sail through this very gate.
+      "opt-backup-include-secrets",        // export picker: per-export, never persisted
       "backup-section-settings", "backup-section-themes", "backup-section-highlights",
       "backup-section-vocabulary", "backup-section-secrets",          // import preview pickers: session UI
     ],

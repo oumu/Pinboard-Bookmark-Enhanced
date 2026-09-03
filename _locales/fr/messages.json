@@ -938,7 +938,7 @@
     "message": "Un préréglage par ligne :\nTravail : projet, revue, rapport\nDév : programmation, tutoriel, outil"
   },
   "tagPresetsHint": {
-    "message": "Format : Nom : tag1, tag2, tag3. Chaque préréglage apparaît comme un bouton d'ajout rapide dans le popup."
+    "message": "Format : Name: tag1, tag2, tag3. Chaque préréglage apparaît comme un bouton d'ajout rapide dans le popup."
   },
   "secPopupBehavior": {
     "message": "Comportement du popup"

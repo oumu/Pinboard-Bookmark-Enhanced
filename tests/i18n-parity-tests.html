@@ -466,6 +466,41 @@ async function loadLocale(loc) {
     }),
     "a German message switched back to the formal Sie/Ihr address");
 
+  // H21: options.js rebuilds the <code> chips applyI18n strips (it assigns
+  // textContent) by searching the TRANSLATED hint for the literal it captured
+  // from the English markup. That only works while the literal is written
+  // verbatim in every locale -- the convention batchTagsHint and
+  // settingsPassword already follow, and the one tagPresetsHint broke by
+  // translating its own example ("名称: 标签1, 标签2, 标签3"), which silently
+  // left the chip as plain text in eight of nine locales. Derived from
+  // options.html and the locale files, so a new chip is covered without
+  // touching this check, and a future copy edit that translates one is caught.
+  {
+    const chipHtml = await (await fetch("../options.html")).text();
+    const hosts = [...chipHtml.matchAll(/<([a-z]+)[^>]*\bdata-i18n="([A-Za-z0-9_]+)"[^>]*>([\s\S]*?)<\/\1>/g)];
+    const unwrap = (s) => s.replace(/&quot;/g, '"').replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<").replace(/&gt;/g, ">");
+    const chipKeys = new Map();
+    for (const [, , key, inner] of hosts) {
+      const codes = [...inner.matchAll(/<code>([\s\S]*?)<\/code>/g)].map((m) => unwrap(m[1]));
+      if (codes.length) chipKeys.set(key, codes);
+    }
+    const chipOffenders = [];
+    for (const [key, codes] of chipKeys) {
+      for (const loc of LOCALES) {
+        const msg = msgs[loc][key]?.message;
+        if (typeof msg !== "string") { chipOffenders.push(`${loc}.${key} absent`); continue; }
+        for (const lit of codes) {
+          if (!msg.includes(lit)) chipOffenders.push(`${loc}.${key}: ${lit}`);
+        }
+      }
+    }
+    check("H21 every options.html code chip literal survives verbatim in all nine locales",
+      chipKeys.size > 0 && chipOffenders.length === 0,
+      chipKeys.size === 0 ? "the chip scan found no [data-i18n] <code> host at all"
+        : `chip lost: ${chipOffenders.slice(0, 12).join(", ")}`);
+  }
+
   // A slower refresh for the old language must not overwrite the mirror after
   // a newer refresh has already selected and loaded another locale.
   const previousChrome = globalThis.chrome;

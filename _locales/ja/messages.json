@@ -938,7 +938,7 @@
     "message": "1行に1セット：\n仕事: project, review, report\n開発: programming, tutorial, tool"
   },
   "tagPresetsHint": {
-    "message": "形式：名前: タグ1, タグ2, タグ3。各プリセットはポップアップにクイック追加ボタンとして表示されます。"
+    "message": "形式：Name: tag1, tag2, tag3。各プリセットはポップアップにクイック追加ボタンとして表示されます。"
   },
   "secPopupBehavior": {
     "message": "ポップアップの動作"

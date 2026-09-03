@@ -938,7 +938,7 @@
     "message": "Jeden zestaw na linię:\nPraca: projekt, recenzja, raport\nDev: programming, tutorial, tool"
   },
   "tagPresetsHint": {
-    "message": "Format: Nazwa: tag1, tag2, tag3 — wyświetlane jako przyciski szybkiego dodawania."
+    "message": "Format: Name: tag1, tag2, tag3 — wyświetlane jako przyciski szybkiego dodawania."
   },
   "secPopupBehavior": {
     "message": "Zachowanie okienka"

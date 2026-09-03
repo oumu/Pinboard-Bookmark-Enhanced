@@ -938,7 +938,7 @@
     "message": "每行一组预设：\n工作: project, review, report\n开发: programming, tutorial, tool"
   },
   "tagPresetsHint": {
-    "message": "格式：名称: 标签1, 标签2, 标签3。每组预设会在弹窗中显示为一个快捷添加按钮。"
+    "message": "格式：Name: tag1, tag2, tag3。每组预设会在弹窗中显示为一个快捷添加按钮。"
   },
   "secPopupBehavior": {
     "message": "弹窗行为"
