@@ -408,7 +408,14 @@ chrome.notifications.onButtonClicked.addListener(async (notifId, btnIndex) => {
     // one of them into a silent JSON parse failure.
     if (!resp.ok) { pbpNotifyUndoFailed(resp); return; }
     let data = null;
-    try { data = await resp.json(); } catch (_) { /* classified below */ }
+    // Leave a trace before folding this into a product error code: an empty
+    // `code` classifies as "you appear to be offline", which is exactly wrong
+    // for a 200 that carried a gateway interstitial or a maintenance page, and
+    // without this line the log says nothing at all about what happened.
+    // name/message only -- no token, no URL. (Same shape as the icon-reset
+    // warn below.)
+    try { data = await resp.json(); }
+    catch (e) { console.warn("[undo] delete response parse failed:", e?.name, e?.message); }
     const code = typeof data?.result_code === "string" ? data.result_code : "";
     // "item not found" means the bookmark is already gone — that IS the state the
     // user asked for, so finish it exactly like a delete this click performed.
@@ -2952,7 +2959,11 @@ async function pbpSweepInterruptedBatch() {
   // record stuck at running while the user reads an "interrupted" toast, and every
   // later alarm tick would fire another one.
   if (!(await _writeBatchProgress({ ...bp, running: false, done: true, error: "interrupted" }))) return;
-  showNotification("batch-error", t("bgBatchSaved"),
+  // Failure title, not the success one: showNotification's category only gates
+  // the on/off switch, and the icon is the same pin either way, so the title is
+  // the notification's ONLY semantic label -- "Batch Saved!" over "interrupted
+  // at 2 of 5" is a headline that contradicts its own body.
+  showNotification("batch-error", t("bgSaveFailed"),
     t("batchInterrupted", String(bp.i || 0), String(bp.total || 0)), "error");
 }
 
@@ -3040,7 +3051,7 @@ async function _runBatchSave(tabs, expectedAccount, resumeState = null) {
       await clearJob();
       await clearCancel();
       await _writeBatchProgress({ running: false, done: true, error: "not_logged_in", ...base() });
-      showNotification("batch-error", t("bgBatchSaved"), t("bgNotLoggedIn"), "error");
+      showNotification("batch-error", t("bgSaveFailed"), t("bgNotLoggedIn"), "error");
       return;
     }
 
@@ -3233,7 +3244,7 @@ async function _runBatchSave(tabs, expectedAccount, resumeState = null) {
         // error family the other terminal batch failures use — never as a
         // "Saved 0 bookmarks" success. An all-SKIPPED run stays silent: nothing
         // failed there, the bookmarks were already saved.
-        showNotification("batch-error", t("bgBatchSaved"), message, "error");
+        showNotification("batch-error", t("bgSaveFailed"), message, "error");
       }
     }
   } catch (e) {
@@ -3242,7 +3253,7 @@ async function _runBatchSave(tabs, expectedAccount, resumeState = null) {
     await clearJob();
     await clearCancel();
     await _writeBatchProgress({ running: false, done: true, error: e.message, ...base() });
-    if (e?.code !== "account_changed") showNotification("batch-error", t("bgBatchSaved"), e.message, "error");
+    if (e?.code !== "account_changed") showNotification("batch-error", t("bgSaveFailed"), e.message, "error");
   } finally {
     _batchRunning = false;
   }

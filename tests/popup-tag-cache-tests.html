@@ -240,6 +240,34 @@ function typeInto(value) {
     assert(suggestBox.querySelectorAll(".tag-skel").length === 4, "the skeleton was replaced mid-flight");
   });
 
+  await testAsync("a failed tag-cache write never masquerades as a failed sync", async () => {
+    // The tags themselves already landed (applyTagData ran), so autocomplete,
+    // the counts and the AI prompt's "existing tags" all work. A local-storage
+    // quota failure is a lost cache entry -- letting it reach the outer catch
+    // classified it as a Pinboard error and, with the skeletons still holding
+    // the inline container, escalated it to the full-width red card on every
+    // popup open.
+    resetInput();
+    settings.pinboardToken = "alice:token";
+    settings.tagSyncMode = "fresh"; // straight to the network leg
+    suggestRow.classList.remove("hidden");
+    suggestBox.innerHTML = SKEL;
+    const realFetch = window.pinboardFetch;
+    const realSet = chrome.storage.local.set;
+    window.pinboardFetch = async () => ({ ok: true, status: 200, json: async () => ({ js: 3, css: 1 }) });
+    chrome.storage.local.set = () => Promise.reject(new Error("QuotaExceededError"));
+    try {
+      await fetchAllUserTags("alice:token");
+    } finally {
+      window.pinboardFetch = realFetch;
+      chrome.storage.local.set = realSet;
+      delete settings.tagSyncMode;
+    }
+    assert(allUserTags.length === 2, "the tags never landed: " + allUserTags.join("|"));
+    assert(statusCalls.length === 0, "a lost cache entry raised a sync error card: " + JSON.stringify(statusCalls));
+    assert(suggestBox.querySelectorAll(".tag-skel").length === 4, "the suggest skeleton was overwritten");
+  });
+
   await test("a visible, empty Suggest row keeps the inline message", () => {
     resetInput();
     suggestRow.classList.remove("hidden");

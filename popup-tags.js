@@ -224,7 +224,18 @@ async function fetchAllUserTags(token) {
     if (!pbpPopupTagAccountIsCurrent(account)) return;
     applyTagData(data);
     const entry = pbpPopupTagCacheEnvelope(token, { counts: allUserTagCounts, timestamp: Date.now() });
-    if (entry) await chrome.storage.local.set({ [cacheKey]: entry });
+    // Caught here, not by the outer catch: applyTagData already ran, so
+    // autocomplete, the counts and the AI prompt's "existing tags" are all
+    // live. A local-storage quota failure (jina_md_ / cached_suggest_ can fill
+    // it on a heavy user) is a lost cache entry, not a failed sync -- letting
+    // it fall through classified it as "you appear to be offline" and, since
+    // the skeletons still occupy the inline container, showTagSyncError
+    // escalated it to the full-width red card on every popup open.
+    // Same treatment the suggest cache write already gets (.catch(() => {})).
+    if (entry) {
+      try { await chrome.storage.local.set({ [cacheKey]: entry }); }
+      catch (e) { console.warn("[tags] cache write failed:", e?.name, e?.message); }
+    }
   } catch (e) {
     if (!pbpPopupTagAccountIsCurrent(account)) return;
     console.error("user-tag sync failed:", e);

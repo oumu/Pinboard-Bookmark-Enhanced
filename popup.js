@@ -557,7 +557,15 @@ async function showMain(token) {
   if (settings.optPrivateDefault) $id("private-check").checked = true;
   if (settings.optPrivateIncognito && tab.incognito) $id("private-check").checked = true;
   if (settings.optReadlaterDefault) $id("readlater-check").checked = true;
-  await refreshWaybackHostPermission();
+  // Gated on the setting, because this await sits BEFORE setupSubmit(token)
+  // sets _pageInfoReady -- its round trip is added straight onto the window in
+  // which the Save button is disabled. Both readers of _waybackHostGranted
+  // (recomputeArchiveCheck here, archiveIndicatorRequested at save time) AND it
+  // with the same `waybackArchiveEnabled === true`, whose default is false, so
+  // for the users who never turned archiving on the answer was short-circuited
+  // away and the IPC was pure cold-start cost. Turning the checkbox on goes
+  // through chrome.permissions.request below, which sets the flag itself.
+  if (settings.waybackArchiveEnabled === true) await refreshWaybackHostPermission();
   recomputeArchiveCheck();
   $id("private-check").addEventListener("change", recomputeArchiveCheck);
   $id("archive-check").addEventListener("change", async (e) => {
@@ -1654,9 +1662,17 @@ function setupSubmit(token) {
         const delOrig = delBtn.textContent;
         delBtn.disabled = true; delBtn.classList.add("loading"); delBtn.textContent = t("deleting");
         try {
-          const data = await (await pinboardFetch(`https://api.pinboard.in/v1/posts/delete?url=${enc(deleteUrl)}&auth_token=${token}&format=json`)).json();
+          const resp = await pinboardFetch(`https://api.pinboard.in/v1/posts/delete?url=${enc(deleteUrl)}&auth_token=${token}&format=json`);
+          // Same gate the recent-bookmark delete uses: _pbpProxyPinboardFetch
+          // resolves a stand-in whose json() is {} on 401, so without this the
+          // result_code is undefined and the user reads the unlocalized
+          // "Error: undefined" instead of the login redirect already under way.
+          if (resp.status === 401) return; // pinboardFetch already redirected to login
+          const data = await resp.json();
           const deleted = data.result_code === "done" || data.result_code === "item not found";
-          if (deleted) chrome.runtime.sendMessage({ type: "bookmark_deleted", url: deleteUrl, account: submitAccount });
+          // Promise form: an unhandled rejection here (no receiver) would
+          // escape this handler entirely.
+          if (deleted) chrome.runtime.sendMessage({ type: "bookmark_deleted", url: deleteUrl, account: submitAccount })?.catch?.(() => {});
           if (!ownsDeleteForm()) return;
           if (deleted) {
             showStatus("status-msg", t("deleted"), "success");
@@ -1664,9 +1680,15 @@ function setupSubmit(token) {
           } else showStatus("status-msg", `Error: ${data.result_code}`, "error");
         } catch (e) {
           if (ownsDeleteForm()) showStatus("status-msg", t("networkError"), "error");
-        }
-        if (ownsDeleteForm()) {
-          delBtn.disabled = false; delBtn.classList.remove("loading"); delBtn.textContent = delOrig;
+        } finally {
+          // finally, not a trailing statement: the 401 gate above returns from
+          // inside the try, and on the one path where the redirect it trusts
+          // does not happen (persistSettings failing inside
+          // resetPinboardSession) a trailing restore would never run and leave
+          // a permanently disabled "Deleting..." button behind.
+          if (ownsDeleteForm()) {
+            delBtn.disabled = false; delBtn.classList.remove("loading"); delBtn.textContent = delOrig;
+          }
         }
       },
     });
@@ -1906,7 +1928,13 @@ function updateCharCount() {
   const urlBad = !url || (!url.startsWith("http://") && !url.startsWith("https://"));
   const sub = $id("submit-btn");
   if (!sub.classList.contains("loading")) sub.disabled = urlBad || over || !_pageInfoReady;
-  sub.title = over ? t("submitUriTooLong") : urlBad ? t("urlCannotSave") : "";
+  // Third rung for the not-ready window. getPageInfoFromTab has no timeout, so
+  // on a busy page this disable can last seconds; without a reason the user
+  // cannot tell "this page cannot be saved" from "still getting ready", and an
+  // empty title is exactly the state the other two rungs exist to avoid.
+  sub.title = over ? t("submitUriTooLong")
+    : urlBad ? t("urlCannotSave")
+    : !_pageInfoReady ? t("loading") : "";
 }
 function showElement(id, text) { const el = $id(id); el.textContent = text; el.classList.remove("hidden"); }
 function showStatus(id, msg, kind) {

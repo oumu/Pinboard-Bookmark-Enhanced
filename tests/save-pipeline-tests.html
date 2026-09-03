@@ -1535,12 +1535,18 @@ await suite("unified save pipeline", async () => {
     equal(h.notifications.length, 1, "an all-failed Batch must not finish silently");
     equal(h.notifications[0][0], "batch-error");
     equal(h.notifications[0][3], "error", "a total failure must not ride the success category");
+    // The title is the notification's only semantic label -- same pin icon for
+    // every category, and the category itself is just an on/off gate. A body
+    // reading "0 saved, 3 failed" under the headline "Batch Saved!" is a
+    // contradiction the user reads top-down.
+    equal(h.notifications[0][1], "bgSaveFailed", "a total failure must not be headlined as a saved batch");
     assert(h.notifications[0][2].includes("batchDone:0:3"), "all-failed notification lacks the completion summary");
 
     const tooLong = await createBatchSaveHarness({ outcomes: [{ status: "failed", reason: "too_long", detail: "4200" }] });
     await tooLong.handleBatchSave(batchTabs(2));
     equal(tooLong.notifications.length, 1, "an all-too-long Batch must not finish silently");
     equal(tooLong.notifications[0][0], "batch-error");
+    equal(tooLong.notifications[0][1], "bgSaveFailed", "an all-too-long Batch must not be headlined as a saved batch");
     assert(tooLong.notifications[0][2].includes("batchTooLong:2"), "too-long count missing from the notification");
   });
 
