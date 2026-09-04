@@ -660,6 +660,13 @@ function pbpAiCacheUrlNorm(url) {
 // legacy key, and ai-cache's LRU ages the old entries out. Returns null (no
 // second IDB read at all) when normalization is a no-op, which is the common
 // case, so the steady state pays nothing for this.
+// One-shot per article by construction: the callers only reach here on a miss
+// under today's key, so the first write under that key (pbpTrCacheSet stores
+// the run's new blocks, not the rescued ones) ends the rescue for good. What
+// the legacy entry held is therefore carried by whatever the reader still has
+// on screen from that read, not by the new entry -- accepted deliberately:
+// adopting the old entry would mean writing it back under the new key, and a
+// read-side rescue that writes is how one bad legacy record spreads.
 // `urlHash` on each key builder exists ONLY for this path.
 async function _pbpAiCacheGetLegacyUrl(url, buildKey) {
   const raw = pbpAiHash(String(url || ""));

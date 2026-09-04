@@ -171,8 +171,19 @@ function pbpOpenOptionsTarget(panel, targetId) {
     // focusable gets the focus too.
     while (target && !target.getClientRects().length) target = target.parentElement;
     if (!target) return;
-    if (typeof target.focus === "function") target.focus({ preventScroll: true });
-    pbpScrollIntoView(target, { block: "center", behavior: "smooth" });
+    const landing = target;
+    if (typeof landing.focus === "function") {
+      // The climb usually ends on a plain container (the Drive section's
+      // wrapper), and focus() on one is a silent no-op -- the caret stays on
+      // <body>, so the next Tab restarts at the top of a panel the reader did
+      // not ask for. Borrow tabindex for exactly as long as it holds focus,
+      // the same loan md-preview.js's imgFixMoveFocusOut makes.
+      const borrowed = !landing.hasAttribute("tabindex");
+      if (borrowed) landing.setAttribute("tabindex", "-1");
+      landing.focus({ preventScroll: true });
+      if (borrowed) landing.addEventListener("blur", () => landing.removeAttribute("tabindex"), { once: true });
+    }
+    pbpScrollIntoView(landing, { block: "center", behavior: "smooth" });
   });
   return true;
 }
@@ -286,31 +297,44 @@ function pbpBuildSettingsSearchIndex(root = document) {
   const entries = [];
   const seen = new Set();
   // Section names (summary / .accordion-header) are deduped on TEXT ALONE
-  // within a panel. options.html carries tagGovLowCountTitle twice in the Tags
-  // panel -- once as the <h2 class="section-title"> and once as the <summary>
-  // of #tag-gov-lowcount -- and the two resolve to DIFFERENT targets (the
-  // panel's first control vs tag-gov-select-all), so the id-bearing key below
-  // let both through and the user read the same heading listed twice. The two
-  // texts only diverge once renderLowCountTags appends a "(N)" suffix, i.e.
-  // never while the user is signed out or has no low-count tags.
-  const seenText = new Set();
+  // within a panel, because the id-bearing key below treats one heading spelled
+  // twice as two rows and the user reads the same line listed twice. The Tags
+  // panel used to do exactly that -- an <h2 class="section-title"> and the
+  // <summary> of #tag-gov-lowcount both carried tagGovLowCountTitle -- until
+  // the duplicate <h2> was deleted (the <summary> is the section header on its
+  // own). This stays as the general guard: nothing stops the next panel from
+  // repeating a heading, and the two copies would again resolve to DIFFERENT
+  // targets, so a text-only key is what catches them.
+  // The surviving row keeps the STRONGER target of the two: a heading that owns
+  // no control falls back to the panel's first one -- a jump to the top of the
+  // panel -- while a <summary> knows its own section's control. Value, not
+  // entry, so the row already in `entries` is the one upgraded.
+  const seenText = new Map();
   for (const panelEl of root.querySelectorAll('.panel[id^="panel-"]')) {
     const panel = panelEl.id.slice("panel-".length);
     const tab = root.querySelector(`.tab-btn[data-panel="${panel}"]`);
     const panelLabel = (tab?.textContent || panelEl.querySelector("h2")?.textContent || panel)
       .replace(/\s+/g, " ").trim();
-    const add = (text, targetId, sectionName) => {
+    // weakTarget: the id came from the panel-wide fallback (this panel's first
+    // control), not from anything the text names -- the only target a section
+    // name is allowed to overwrite.
+    const add = (text, targetId, sectionName, weakTarget) => {
       const clean = String(text || "").replace(/\s+/g, " ").trim();
       if (!clean) return;
       const textKey = `${panel}\n${clean}`;
-      if (sectionName && seenText.has(textKey)) return;
+      const prior = seenText.get(textKey);
+      if (sectionName && prior) {
+        if (targetId && prior.weak) { prior.entry.targetId = targetId; prior.weak = false; }
+        return;
+      }
       const key = `${panel}\n${targetId || ""}\n${clean}`;
       if (seen.has(key)) return;
       seen.add(key);
-      seenText.add(textKey);
-      entries.push({ panel, panelLabel, text: clean, searchText: _pbpSettingsSearchText(`${panelLabel} ${clean}`), targetId: targetId || "" });
+      const entry = { panel, panelLabel, text: clean, searchText: _pbpSettingsSearchText(`${panelLabel} ${clean}`), targetId: targetId || "" };
+      if (!prior) seenText.set(textKey, { entry, weak: !!weakTarget });
+      entries.push(entry);
     };
-    add(panelLabel, panelEl.querySelector("input,select,textarea,button")?.id || "");
+    add(panelLabel, panelEl.querySelector("input,select,textarea,button")?.id || "", false, true);
     // summary / .accordion-header carry the names of whole collapsed sections
     // (the offline dictionaries, Google Drive sync, the Send-to cards); without
     // them the user cannot search for the heading they are looking straight at.
@@ -318,6 +342,7 @@ function pbpBuildSettingsSearchIndex(root = document) {
     // icon span, so add() drops them on the empty-text guard.
     for (const node of panelEl.querySelectorAll("h2,h3,label,.hint,button[data-i18n],summary,.accordion-header")) {
       let target = "";
+      let weak = false;
       const isSectionName = node.matches("summary,.accordion-header");
       if (node.matches("label")) target = node.htmlFor || node.querySelector("input,select,textarea,button")?.id || "";
       // A section name owns no control of its own: aim at the first control in
@@ -340,8 +365,11 @@ function pbpBuildSettingsSearchIndex(root = document) {
       }
       else if (node.matches("button")) target = node.id;
       else if (node.matches(".hint")) target = node.closest(".choice-row,.fg")?.querySelector("input,select,textarea,button")?.id || "";
-      else target = node.id || panelEl.querySelector("input,select,textarea,button")?.id || "";
-      add(node.textContent, target, isSectionName);
+      else {
+        target = node.id || "";
+        if (!target) { target = panelEl.querySelector("input,select,textarea,button")?.id || ""; weak = true; }
+      }
+      add(node.textContent, target, isSectionName, weak);
     }
   }
   return entries;
@@ -2273,14 +2301,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (useCloud) {
         const alertEl = $id("opt-global-alert");
         if (alertEl) {
-          // t() echoes the key back when a message is missing (i18n.js:135), so
-          // `|| fallback` would put the raw key on screen. Compare instead: the
-          // English text retires itself the moment syncReloadNeeded lands in
-          // the nine locale files.
-          const localized = t("syncReloadNeeded");
-          alertEl.textContent = localized === "syncReloadNeeded"
-            ? "Reload this page to finish switching to the settings stored in Chrome Sync."
-            : localized;
+          alertEl.textContent = t("syncReloadNeeded");
           alertEl.classList.remove("hidden");
         }
         return;

@@ -3078,23 +3078,48 @@ window.pbpReaderSchemeSet = function (mode) {
     // crosses real async boundaries (ensureHljs's script load, loadHljsCss's fetches)
     // before ever touching it. Same fix already applied to btn-copy-md.
     const btn = e.currentTarget;
+    // Gated like the three downloads below, for the same reason: the label
+    // flash copyToClipboard gives is the LAST thing this handler does, and
+    // everything ahead of it runs with the page perfectly still -- a 122KB
+    // highlight.js injection, the KaTeX pair, and pbpMermaidWarmExport, which
+    // is seconds on an article carrying several diagrams. A second click on
+    // that silence read as "the first one missed" and ran a whole second
+    // pipeline that wrote the clipboard again.
+    if (_exporting) return;
+    _exporting = true;
+    setExportBusy(true);
+    let failed = false;
+    try {
+      // Same content as the HTML download: a complete styled doc that follows the
+      // original/bilingual/translation-only view (getViewMarkdown), copied as
+      // text — symmetric with Copy MD == Download MD. (Was renderedView.innerHTML,
+      // which always carried every .pb-tr block regardless of the selected view.)
+      // Pass RAW view markdown (no YAML frontmatter) — composeStyledHtml renders
+      // the frontmatter as a styled <header>, so feeding it the YAML-prefixed
+      // buildExportMarkdown() would double it into the body as plain text.
+      if (renderedView.querySelector("pre > code")) await ensureHljs(); // so composeStyledHtml highlights
+      const hljsCss = await loadHljsCss();
+      if (info.math) await ensureKatex(); // so composeStyledHtml renders math (mirrors hljs above)
+      const katexCss = info.math ? await loadKatexCss() : "";
+      const _copyOpts = buildExportOpts();
+      // Copy cannot embed: clamp like buildExportMarkdown above (Codex, plan A).
+      if (typeof pbpMermaidWarmExport === "function") await pbpMermaidWarmExport(renderedView);
+      const doc = composeStyledHtml(getViewMarkdown(), buildMeta(), { ..._copyOpts, imagePolicy: _copyOpts.imagePolicy === "embed" ? "keep" : _copyOpts.imagePolicy, hljsCss, katexCss });
+      await copyToClipboard(doc, btn);
+    } catch (err) {
+      // ensureHljs/ensureKatex reject on a failed injection and the mermaid warm
+      // pass can throw on malformed diagram source; name/message only, per the
+      // swallowed-exception rule.
+      failed = true;
+      console.warn("[export] styled HTML copy failed:", err && err.name, err && err.message);
+    } finally {
+      setExportBusy(false);
+      _exporting = false;
+    }
+    if (failed) { showExportNote(t("mdPreviewFailed")); return; }
+    // After the busy line is cleared, never before it -- the same ordering the
+    // downloads keep for their honest notes (the busy text shares this element).
     imgFixExportNote(false);
-    // Same content as the HTML download: a complete styled doc that follows the
-    // original/bilingual/translation-only view (getViewMarkdown), copied as
-    // text — symmetric with Copy MD == Download MD. (Was renderedView.innerHTML,
-    // which always carried every .pb-tr block regardless of the selected view.)
-    // Pass RAW view markdown (no YAML frontmatter) — composeStyledHtml renders
-    // the frontmatter as a styled <header>, so feeding it the YAML-prefixed
-    // buildExportMarkdown() would double it into the body as plain text.
-    if (renderedView.querySelector("pre > code")) await ensureHljs(); // so composeStyledHtml highlights
-    const hljsCss = await loadHljsCss();
-    if (info.math) await ensureKatex(); // so composeStyledHtml renders math (mirrors hljs above)
-    const katexCss = info.math ? await loadKatexCss() : "";
-    const _copyOpts = buildExportOpts();
-    // Copy cannot embed: clamp like buildExportMarkdown above (Codex, plan A).
-    if (typeof pbpMermaidWarmExport === "function") await pbpMermaidWarmExport(renderedView);
-    const doc = composeStyledHtml(getViewMarkdown(), buildMeta(), { ..._copyOpts, imagePolicy: _copyOpts.imagePolicy === "embed" ? "keep" : _copyOpts.imagePolicy, hljsCss, katexCss });
-    await copyToClipboard(doc, btn);
   });
 
   // Download buttons
@@ -3105,9 +3130,12 @@ window.pbpReaderSchemeSet = function (mode) {
   // plus pbpMermaidWarmExport for EPUB): seconds to tens of seconds with the
   // page perfectly still, so a second click read as "the first one missed" and
   // started a whole second pass that landed a second file of the same name.
-  // Copy is deliberately outside this: buildExportMarkdown clamps embed to
-  // keep, so no resolveEmbed pass runs, and copyToClipboard already flashes
-  // the button label.
+  // Copy HTML shares the gate (its handler above reads these through the
+  // closure): it runs no resolveEmbed pass, but it does lazily inject hljs and
+  // KaTeX and warm every mermaid diagram first, which is the same seconds of
+  // stillness from the reader's side. Copy MD is the only export exit left
+  // outside, and it earns that: buildExportMarkdown composes synchronously and
+  // its single await is the clipboard write copyToClipboard flashes about.
   let _exporting = false;
   // Busy line for an export in flight. Deliberately NOT showExportNote: that
   // helper arms a 4-12s self-hide, which would drop the indicator mid-run.

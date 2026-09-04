@@ -667,6 +667,11 @@ let _pbpHlEchoItems = null;
 // (fail-closed, same shape as md-dict.js's pre-write re-check). When the helper
 // is absent altogether — a test page loading this file on its own — the cached
 // scope stands: there is no account for it to disagree with.
+// One settings read per commit, paid inside the record lock. That is the right
+// trade at user-action frequency (a note saved, a colour switched, one delete),
+// where the read is far cheaper than the storage round trip it guards. A future
+// BATCH writer must not inherit it per item: hoist one read to the top of the
+// batch and pass the owner in, or a hundred-item pass buys a hundred reads.
 async function _pbpHlLiveOwner() {
   if (typeof pbpVocabCurrentOwner !== "function") return _pbpHlOwner;
   try {

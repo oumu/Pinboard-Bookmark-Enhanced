@@ -508,6 +508,10 @@
   "offlineRetryWrongAccount": {
     "message": "Cet élément a été mis en file d'attente avec un autre compte Pinboard. Connectez-vous à ce compte pour l'envoyer."
   },
+  "offlineRetryFailed": {
+    "message": "Impossible d'envoyer ce signet. Réessayez.",
+    "description": "Popup offline queue: a retry failed for a reason that is not the network and has no more specific message (storage full, internal error, invalid payload, conflict)."
+  },
   "offlineRemove": {
     "message": "Retirer de la file"
   },
@@ -1928,6 +1932,10 @@
   },
   "syncConflictOverwriteCloud": {
     "message": "Voulez-vous remplacer les paramètres de Chrome Sync par ceux de cet appareil ?\n\nChoisissez « Annuler » pour laisser Chrome Sync désactivé."
+  },
+  "syncReloadNeeded": {
+    "message": "Rechargez cette page pour terminer le passage aux paramètres enregistrés dans Chrome Sync.",
+    "description": "Options page alert after adopting the cloud settings profile: the page must be reloaded before the adopted settings take effect."
   },
   "jinaFreeTierHint": {
     "message": "Niveau gratuit : 20 RPM. Ajoutez une clé pour un quota plus élevé."

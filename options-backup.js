@@ -641,9 +641,30 @@ function setupBackup({ exportableKeys, saveOverlayWithFallback, loadThemes, befo
       let highlightsOwner = "";
       let vocabulary = null;
       let owner = "";
+      let ownerRead = false;
       if (raw.backupIncludeHighlights !== false || includeVocabulary) {
-        try { owner = pbpCanonicalBackupOwner(await readOwner()); } catch (_) {}
+        try { owner = pbpCanonicalBackupOwner(await readOwner()); ownerRead = true; }
+        catch (e) { console.warn("[export] account read failed:", e && e.name, e && e.message); }
       }
+      // Both account-scoped sections re-check the live account after their own
+      // storage round trip. Fail closed either way -- `owner` filters the items
+      // AND labels the file -- but only call it a switch when two successful
+      // reads actually disagree: a read that threw (or a first read that threw
+      // and left "" behind) is an account that could not be established, and
+      // "the account changed" would send whoever reads the log looking for a
+      // switch that never happened.
+      const confirmOwner = async () => {
+        let live;
+        try { live = pbpCanonicalBackupOwner(await readOwner()); }
+        catch (e) {
+          console.warn("[export] account re-read failed:", e && e.name, e && e.message);
+          throw new Error("Pinboard account could not be re-read during backup");
+        }
+        if (live === owner) return;
+        throw new Error(ownerRead
+          ? "Pinboard account changed during backup"
+          : "Pinboard account could not be read during backup");
+      };
       let highlightsOwnerDropped = false;
       if (raw.backupIncludeHighlights !== false) {
         const allLocal = await chrome.storage.local.get(null);
@@ -653,9 +674,7 @@ function setupBackup({ exportableKeys, saveOverlayWithFallback, loadThemes, befo
         // its own read: `owner` both filters the items and becomes the file's
         // _highlightsOwner label, so a stale one ships the previous account's
         // label on this account's download.
-        if (pbpCanonicalBackupOwner(await readOwner()) !== owner) {
-          throw new Error("Pinboard account changed during backup");
-        }
+        await confirmOwner();
         // Same owner scoping the vocabulary branch below applies: the file is
         // labelled with this account, so it may only carry this account's (and
         // ownerless) items.
@@ -681,9 +700,7 @@ function setupBackup({ exportableKeys, saveOverlayWithFallback, loadThemes, befo
         } else {
           const scope = pbpDictOwnerScope(owner);
           const records = await pbpVocabAll(scope);
-          if (pbpCanonicalBackupOwner(await readOwner()) !== owner) {
-            throw new Error("Pinboard account changed during backup");
-          }
+          await confirmOwner();
           vocabulary = { owner, records };
         }
       }

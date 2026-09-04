@@ -144,6 +144,11 @@ function assert(value, message) { if (!value) throw new Error(message || "assert
     const index = pbpBuildSettingsSearchIndex(document);
     const hits = index.filter((entry) => entry.text === "Qwvb duplicate section name");
     assert(hits.length === 1, "the same section name reached the results " + hits.length + " times");
+    // The <h2> wins on DOM order but owns no control, so it falls back to the
+    // panel's first one; the <summary> that loses knows the section's own
+    // control. The row that survives has to carry the target that opens the
+    // section, not the one that jumps to the top of the panel.
+    assert(hits[0].targetId === "dup-input", "the surviving row targeted " + JSON.stringify(hits[0].targetId));
   });
 
   await test("grouped help search results target their owning choice", async () => {
@@ -248,6 +253,14 @@ function assert(value, message) { if (!value) throw new Error(message || "assert
     } finally { Element.prototype.scrollIntoView = origScroll; }
     assert(scrolled.length === 1, "expected exactly one scroll, saw " + scrolled.length);
     assert(scrolled[0] === host, "scroll landed on " + (scrolled[0] && scrolled[0].id));
+    // The ancestor the climb lands on is a plain container, and focus() on one
+    // is a silent no-op: the caret would stay on <body> after the panel switch,
+    // so the next Tab restarts at the top of a panel nobody asked for. The
+    // borrowed tabindex must go back once focus leaves.
+    assert(document.activeElement === host, "focus stayed on " + (document.activeElement && document.activeElement.tagName));
+    assert(host.getAttribute("tabindex") === "-1", "the container was focused without a tabindex to make it focusable");
+    document.getElementById("options-search-input").focus();
+    assert(!host.hasAttribute("tabindex"), "the borrowed tabindex outlived the focus it was borrowed for");
   });
 
   await test("arrow keys keep moving once focus is inside the search results", async () => {

@@ -508,6 +508,10 @@
   "offlineRetryWrongAccount": {
     "message": "Эта запись поставлена в очередь под другой учётной записью Pinboard. Войдите в неё, чтобы отправить запись."
   },
+  "offlineRetryFailed": {
+    "message": "Не удалось отправить эту закладку. Повторите попытку.",
+    "description": "Popup offline queue: a retry failed for a reason that is not the network and has no more specific message (storage full, internal error, invalid payload, conflict)."
+  },
   "offlineRemove": {
     "message": "Удалить из очереди"
   },
@@ -1928,6 +1932,10 @@
   },
   "syncConflictOverwriteCloud": {
     "message": "Заменить настройки в Chrome Sync настройками с этого устройства?\n\nНажмите «Отмена», чтобы оставить Chrome Sync выключенным."
+  },
+  "syncReloadNeeded": {
+    "message": "Обновите страницу, чтобы завершить переход к настройкам из Chrome Sync.",
+    "description": "Options page alert after adopting the cloud settings profile: the page must be reloaded before the adopted settings take effect."
   },
   "jinaFreeTierHint": {
     "message": "Бесплатно: 20 RPM. Добавьте ключ для увеличения квоты."

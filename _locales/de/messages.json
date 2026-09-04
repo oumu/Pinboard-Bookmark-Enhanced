@@ -508,6 +508,10 @@
   "offlineRetryWrongAccount": {
     "message": "Dieser Eintrag wurde für ein anderes Pinboard-Konto in die Warteschlange gestellt. Melde dich mit diesem Konto an, um ihn zu senden."
   },
+  "offlineRetryFailed": {
+    "message": "Dieses Lesezeichen konnte nicht gesendet werden. Bitte erneut versuchen.",
+    "description": "Popup offline queue: a retry failed for a reason that is not the network and has no more specific message (storage full, internal error, invalid payload, conflict)."
+  },
   "offlineRemove": {
     "message": "Aus Warteschlange entfernen"
   },
@@ -1928,6 +1932,10 @@
   },
   "syncConflictOverwriteCloud": {
     "message": "Möchtest du die Einstellungen in Chrome Sync mit den Einstellungen dieses Geräts überschreiben?\n\nMit „Abbrechen“ bleibt Chrome Sync deaktiviert."
+  },
+  "syncReloadNeeded": {
+    "message": "Lade diese Seite neu, um den Wechsel zu den in Chrome Sync gespeicherten Einstellungen abzuschließen.",
+    "description": "Options page alert after adopting the cloud settings profile: the page must be reloaded before the adopted settings take effect."
   },
   "jinaFreeTierHint": {
     "message": "Kostenlos: 20 RPM. Key für höheres Kontingent hinzufügen."

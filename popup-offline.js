@@ -144,9 +144,16 @@
     const reason = result && typeof result === "object" ? result.reason : "";
     if (reason === "account_mismatch") return t("offlineRetryWrongAccount");
     if (reason === "not_logged_in") return t("batchNotLoggedIn");
+    if (reason === "account_changed") return t("pinboardErrorAuth");
     if (reason === "too_long") return t("uriTooLong", String(result.detail || ""), String(POSTS_ADD_URI_BUDGET));
     if (reason === "http" && result.httpStatus) return `HTTP ${result.httpStatus}`;
     if (reason === "api" && result.detail) return `Error: ${result.detail}`;
+    // Only reason "network" (and an answerless send -- a service worker that
+    // never replied) may claim the network. The pipeline also produces invalid,
+    // storage, internal and conflict, and each of those sends a reader who is
+    // told "network error" to test a connection that works: a full
+    // storage.local is emptied from Settings, not from the router.
+    if (reason && reason !== "network") return t("offlineRetryFailed");
     return t("networkError");
   }
 

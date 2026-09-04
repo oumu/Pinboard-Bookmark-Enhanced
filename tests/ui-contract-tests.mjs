@@ -523,12 +523,13 @@ check(!read("anki-connect.js").includes("PBP_ANKI_ENDPOINT"),
     // to -- on its OWN body class, and with the focus handoff at the render
     // root every activation passes through.
     libraryNotesJs.includes('if (enterNarrow) document.body.classList.add("lib-narrow-notes")') &&
-    // Same 400-char budget as the vocabulary twin above, not a tighter 200:
-    // both exits now carry the pane scrollTop reset (#86 made the detail panes
-    // scroll containers) plus the comment explaining why the reset targets the
-    // pane and not the div replaceChildren rewrites. The window still buys
-    // adjacency -- the handoff has to stay at this render root, not migrate to
-    // a call site -- it just no longer doubles as a comment-length tripwire.
+    // The window buys adjacency and nothing else: the handoff has to stay at
+    // this render root rather than migrate to a call site. Notes puts it on the
+    // very next line (the pane scrollTop reset #86 added follows it), so the
+    // budget matches the vocabulary twin above -- which needs the room for the
+    // comment standing between its own two anchors -- rather than being sized
+    // to this exit, where a tighter bound would only turn an edit to that
+    // comment into a red gate.
     /detail\.replaceChildren\(frag\);[\s\S]{0,400}if \(enterNarrow\) _pbpNotesFocusNarrowBack\(detail\)/.test(libraryNotesJs) &&
     // preventScroll lives in the one focus primitive every notes path calls
     // (row refocus, post-delete neighbour, narrow back, detail restore).
@@ -1794,6 +1795,22 @@ for (const id of ["btn-dl-md", "btn-dl-html", "btn-dl-epub"]) {
   const head = mdPreviewJs.slice(at, at + 300);
   check(at > 0 && /if \(_exporting\) return;/.test(head) && /setExportBusy\(true\)/.test(head),
     "md-preview.js: #" + id + " has no re-entrancy gate or no busy indicator before its first await -- an embed export is silent for seconds, so the second click a user makes runs a whole second export");
+}
+// Copy HTML runs no resolveEmbed pass, but it lazily injects highlight.js and
+// KaTeX and warms every mermaid diagram before copyToClipboard flashes the
+// button label -- the same seconds of stillness, so it holds the same gate.
+// Ordering, not adjacency: the handler carries enough comment that a fixed
+// character window would double as a comment-length tripwire.
+{
+  const at = mdPreviewJs.indexOf('document.getElementById("btn-copy-html").addEventListener("click"');
+  const end = mdPreviewJs.indexOf('document.getElementById("btn-dl-md")', at);
+  const handler = at > 0 && end > at ? mdPreviewJs.slice(at, end) : "";
+  const code = handler.split("\n").filter((line) => !line.trim().startsWith("//")).join("\n");
+  const gateAt = code.indexOf("if (_exporting) return;");
+  const busyAt = code.indexOf("setExportBusy(true)");
+  const awaitAt = code.indexOf("await ");
+  check(gateAt > 0 && busyAt > gateAt && awaitAt > busyAt,
+    "md-preview.js: #btn-copy-html has no re-entrancy gate or no busy indicator before its first await -- the reader gets no feedback until copyToClipboard finally flashes, so a second click on that silence runs a second full pipeline and writes the clipboard twice");
 }
 // TOC current-section state must exist for assistive tech, not only as a
 // colour: aria-current is this project's established "you are here" carrier

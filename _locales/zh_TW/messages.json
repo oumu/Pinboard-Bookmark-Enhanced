@@ -508,6 +508,10 @@
   "offlineRetryWrongAccount": {
     "message": "這個項目是用另一個 Pinboard 帳戶存的。登入該帳戶才能傳送。"
   },
+  "offlineRetryFailed": {
+    "message": "傳送這個書籤失敗，請再試一次。",
+    "description": "Popup offline queue: a retry failed for a reason that is not the network and has no more specific message (storage full, internal error, invalid payload, conflict)."
+  },
   "offlineRemove": {
     "message": "從佇列移除"
   },
@@ -1928,6 +1932,10 @@
   },
   "syncConflictOverwriteCloud": {
     "message": "要用此裝置的設定覆蓋 Chrome Sync 中的設定嗎？\n\n選擇「取消」將保持同步關閉。"
+  },
+  "syncReloadNeeded": {
+    "message": "重新載入本頁，才會套用 Chrome Sync 中儲存的設定。",
+    "description": "Options page alert after adopting the cloud settings profile: the page must be reloaded before the adopted settings take effect."
   },
   "jinaFreeTierHint": {
     "message": "免費額度：20 RPM。設定 key 可提高配額。"

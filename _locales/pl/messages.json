@@ -508,6 +508,10 @@
   "offlineRetryWrongAccount": {
     "message": "Ten element trafił do kolejki na innym koncie Pinboard. Zaloguj się na tamto konto, aby go wysłać."
   },
+  "offlineRetryFailed": {
+    "message": "Nie można wysłać tej zakładki. Spróbuj ponownie.",
+    "description": "Popup offline queue: a retry failed for a reason that is not the network and has no more specific message (storage full, internal error, invalid payload, conflict)."
+  },
   "offlineRemove": {
     "message": "Usuń z kolejki"
   },
@@ -1928,6 +1932,10 @@
   },
   "syncConflictOverwriteCloud": {
     "message": "Czy zastąpić ustawienia w Chrome Sync ustawieniami z tego urządzenia?\n\nWybierz „Anuluj”, aby pozostawić Chrome Sync wyłączone."
+  },
+  "syncReloadNeeded": {
+    "message": "Odśwież tę stronę, aby dokończyć przejście na ustawienia zapisane w Chrome Sync.",
+    "description": "Options page alert after adopting the cloud settings profile: the page must be reloaded before the adopted settings take effect."
   },
   "jinaFreeTierHint": {
     "message": "Darmowy poziom: 20 RPM. Dodaj klucz, aby uzyskać większy limit."

@@ -508,6 +508,10 @@
   "offlineRetryWrongAccount": {
     "message": "This item was queued under a different Pinboard account. Sign in to that account to send it."
   },
+  "offlineRetryFailed": {
+    "message": "Couldn't send this bookmark. Try again.",
+    "description": "Popup offline queue: a retry failed for a reason that is not the network and has no more specific message (storage full, internal error, invalid payload, conflict)."
+  },
   "offlineRemove": {
     "message": "Remove from queue"
   },
@@ -1898,6 +1902,10 @@
   },
   "syncConflictOverwriteCloud": {
     "message": "Replace the settings in Chrome Sync with this device's settings?\n\nChoose Cancel to leave Chrome Sync off."
+  },
+  "syncReloadNeeded": {
+    "message": "Reload this page to finish switching to the settings stored in Chrome Sync.",
+    "description": "Options page alert after adopting the cloud settings profile: the page must be reloaded before the adopted settings take effect."
   },
   "jinaFreeTierHint": {
     "message": "Free tier: 20 RPM. Add key for higher quota."

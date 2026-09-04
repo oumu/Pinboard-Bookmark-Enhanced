@@ -508,6 +508,10 @@
   "offlineRetryWrongAccount": {
     "message": "这条是用另一个 Pinboard 账号存的。登录那个账号才能发送。"
   },
+  "offlineRetryFailed": {
+    "message": "这条书签没能发送，请重试。",
+    "description": "Popup offline queue: a retry failed for a reason that is not the network and has no more specific message (storage full, internal error, invalid payload, conflict)."
+  },
   "offlineRemove": {
     "message": "从队列移除"
   },
@@ -1928,6 +1932,10 @@
   },
   "syncConflictOverwriteCloud": {
     "message": "要用此设备的设置覆盖 Chrome Sync 中的设置吗？\n\n选择「取消」将保持同步关闭。"
+  },
+  "syncReloadNeeded": {
+    "message": "刷新本页，才能用上 Chrome Sync 中保存的设置。",
+    "description": "Options page alert after adopting the cloud settings profile: the page must be reloaded before the adopted settings take effect."
   },
   "jinaFreeTierHint": {
     "message": "免费额度：20 RPM。配置 key 可提高配额。"

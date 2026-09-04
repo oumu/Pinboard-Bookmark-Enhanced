@@ -21,6 +21,14 @@ function _pbpProxyPinboardFetch(url, immediate) {
         resolve({
           ok: resp.ok,
           status: resp.status,
+          // The worker owns the real fetch, so every transport failure it hits
+          // comes back here as an ordinary status-0 answer -- the TypeError /
+          // AbortError / TimeoutError never crosses the message boundary. Its
+          // reason string is therefore the only thing separating "the token
+          // changed under this request" (account_changed) from "the network is
+          // down", and call sites that name failures to the user need to read
+          // it. Passing it through costs nothing for the ones that don't.
+          error: resp.error,
           json: () => pbpParseJsonText(resp.text),
           text: () => Promise.resolve(resp.text || "")
         });
@@ -786,7 +794,10 @@ async function htmlToMarkdownAsync(html, opts) {
   if (jinaMdBtn) {
     let jinaGrantPending = false;
     jinaMdBtn.title = settings.aiContentSource === "jina" ? t("jinaMarkdownTitleJina") : t("jinaMarkdownTitle");
-    // Disable on non-http pages
+    // Residual guard only: chrome://, about:, file://, the PDF viewer and the
+    // popup's own extension:// URL are already disabled in the unsupported-URL
+    // branch above, which returns long before this line. What is left for this
+    // to catch is a supported scheme that still produced an empty #url-input.
     const currentUrl = $id("url-input")?.value || "";
     if (!currentUrl.startsWith("http://") && !currentUrl.startsWith("https://")) {
       jinaMdBtn.disabled = true;
@@ -1162,10 +1173,13 @@ async function checkExistingBookmark(token, url, prefetch, forceFresh = false, s
         const resp = await pinboardFetch(`https://api.pinboard.in/v1/posts/get?url=${enc(lookupUrl)}&auth_token=${token}&format=json`);
         // Carry the status on the error so the catch can name the failure
         // (and stay silent on 401, where pinboardFetch already swapped in the
-        // login screen).
+        // login screen). Carry the worker's reason string as well: status 0 is
+        // what every proxied failure looks like, so without it an account
+        // switch mid-lookup is indistinguishable from a dead network.
         if (!resp.ok || resp.status === 0) {
           const httpError = new Error(`HTTP ${resp.status}`);
           httpError.status = resp.status;
+          if (resp.error) httpError.code = resp.error;
           throw httpError;
         }
         data = await resp.json();
@@ -1249,12 +1263,38 @@ async function checkExistingBookmark(token, url, prefetch, forceFresh = false, s
         // Silence here left the form identical to a brand-new page: no banner,
         // no Delete button, the submit button still reading Save. 401 stays
         // silent because the popup is already showing the login screen.
-        if (e?.status !== 401) {
-          // Pass the numeric status when there is one: classifyPinboardError's
+        //
+        // Only the transport can be named, though: this try also wraps the
+        // response parse and the whole form/banner fill below, and
+        // classifyPinboardError answers "offline" for every error it cannot
+        // recognise. A corrupt posts/get body or a throw while filling the form
+        // would therefore send the reader to check a connection that is working
+        // -- they keep the console.warn above and the "failed" lookup state, and
+        // say nothing.
+        //
+        // In the popup, "came from the transport" means exactly "carries a
+        // numeric status". pinboardFetch here is the service-worker proxy at the
+        // top of this file, so the real fetch happens in the worker: a dropped
+        // connection, an AbortError or a TimeoutError all arrive as a status-0
+        // *response*, never as an error with a matching name. Testing for those
+        // names here would only ever match a TypeError thrown by the form fill
+        // below -- exactly the misattribution this branch exists to avoid. The
+        // worker's reason string is the one detail that survives the flattening,
+        // which is why the throw above copies it onto .code.
+        if (e?.code === "account_changed") {
+          // The worker refuses to dispatch once the stored token stops matching
+          // the one it authorised this call with (background.js's
+          // pinboard_api_call handler answers { status: 0, error:
+          // "account_changed" }). The save path already names that cause with
+          // the auth copy; classifyPinboardError has no branch for it and would
+          // read the 0 as offline.
+          showStatus("status-msg", t("pinboardErrorAuth"), "error");
+        } else if (typeof e?.status === "number" && e.status !== 401) {
+          // Pass the numeric status, not the Error: classifyPinboardError's
           // response branch requires !("name" in input), which no Error can
           // satisfy (name comes off the prototype), so an Error instance would
           // report every 5xx as "offline".
-          showStatus("status-msg", t(classifyPinboardError(typeof e?.status === "number" ? e.status : e)), "error");
+          showStatus("status-msg", t(classifyPinboardError(e.status)), "error");
         }
         return { status: "failed", url: lookupUrl };
       }

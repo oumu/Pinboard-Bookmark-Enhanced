@@ -179,6 +179,80 @@ fi
   const notExecutable = modeRows.filter((row) => row.mode !== "100755").map((row) => `${row.path} (${row.mode})`);
   check(notExecutable.length === 0,
     `every tracked hook script must be committed executable, or setup-hooks.sh aborts and a fresh clone gets no gates: ${notExecutable.join(", ")}`);
+
+  // The release-notes generator is the one piece of the release chain nothing
+  // ever runs before a publish: CI runs release.sh --build-only, which exits at
+  // Step 1.5, and Step 3 is where this lives. A syntax error would at least
+  // abort under `set -euo pipefail`; a grouping mistake would not -- it would
+  // quietly publish wrong notes. Drive it on a fixture history written the way
+  // git actually stores commits (subject, blank line, body).
+  const changelogPath = resolve(root, "scripts/changelog.py");
+  const releaseSource = readFileSync(resolve(root, "scripts/release.sh"), "utf8");
+  check(releaseSource.includes('python3 "${REPO_ROOT}/scripts/changelog.py"'),
+    "release.sh must generate its changelog through scripts/changelog.py, or this fixture tests a file nothing runs");
+  const clRepo = resolve(temp, "changelog-repo");
+  mkdirSync(clRepo, { recursive: true });
+  const git = (...args) => spawnSync("git", args, { cwd: clRepo, encoding: "utf8" });
+  git("init", "--quiet");
+  git("config", "user.email", "fixture@example.invalid");
+  git("config", "user.name", "Changelog Fixture");
+  git("config", "commit.gpgsign", "false");
+  const fixtureCommits = [
+    "chore: bump manifest to 9.9.9",
+    "docs: update version badge",
+    "feat(tags): group the low-count list",
+    "fix(security): stop putting the token in the URL",
+    "fix(popup): keep the queue bar honest\n\nA body paragraph.\n\nfix(nothing): a body line that only LOOKS like a subject",
+    "refactor(store)!: drop the legacy record shape",
+    "perf(reader): reuse the parsed document\n\nBREAKING CHANGE: the export helper signature moved.",
+    "style(options): tighten the help column\n\nBREAKING-CHANGE: the stored token is now required.",
+    "chore(deps): retire the vendored copy\n\nBREAKING CHANGE: the vendored copy is gone.",
+    "wip on the thing",
+  ];
+  for (const message of fixtureCommits) {
+    writeFileSync(resolve(clRepo, "file.txt"), message);
+    git("add", "-A");
+    const made = spawnSync("git", ["commit", "--quiet", "--no-verify", "-m", message],
+      { cwd: clRepo, encoding: "utf8" });
+    check(made.status === 0, `changelog fixture commit failed (${message.split("\n")[0]}): ${made.stderr || ""}`);
+  }
+  const clRun = spawnSync("python3", [changelogPath, "", "HEAD"], { cwd: clRepo, encoding: "utf8" });
+  const notes = clRun.stdout || "";
+  const clNotes = clRun.stderr || "";
+  check(clRun.status === 0,
+    `changelog.py must render a fixture history, got exit ${clRun.status}:\n${clNotes}`);
+  const section = (label) => {
+    const at = notes.indexOf(`### ${label}`);
+    if (at === -1) return "";
+    const next = notes.indexOf("\n### ", at + 1);
+    return next === -1 ? notes.slice(at) : notes.slice(at, next);
+  };
+  const breaking = section("Breaking Changes");
+  // Both footer spellings and the `!` subject, and the `!` outranking the skip
+  // list -- these are the four triggers scripts/bump-version.sh reads for major.
+  check(breaking.includes("refactor(store)!: drop the legacy record shape"),
+    `a "!" subject is not in Breaking Changes (and its "!" must survive into the notes):\n${notes}`);
+  check(breaking.includes("reuse the parsed document"),
+    `a BREAKING CHANGE footer did not reach Breaking Changes:\n${notes}`);
+  check(breaking.includes("tighten the help column"),
+    `a BREAKING-CHANGE footer did not reach Breaking Changes:\n${notes}`);
+  check(breaking.includes("chore(deps): retire the vendored copy"),
+    `a breaking chore must outrank the chore skip pattern:\n${notes}`);
+  check(section("Security").includes("stop putting the token in the URL") &&
+    !section("Bug Fixes").includes("stop putting the token in the URL"),
+    `fix(security) must be grouped under Security, not Bug Fixes:\n${notes}`);
+  // The record separator: a body with blank lines must not split one commit
+  // into several, nor swallow the commit that follows it.
+  check(section("Bug Fixes").includes("keep the queue bar honest") &&
+    !notes.includes("only LOOKS like a subject"),
+    `a body line was rendered as its own entry -- the %x1f/%x1e record split is broken:\n${notes}`);
+  check(section("New Features").includes("group the low-count list"),
+    `a feat commit did not reach New Features:\n${notes}`);
+  check(!notes.includes("bump manifest") && !notes.includes("update version badge"),
+    `release bookkeeping is still rendered into the notes:\n${notes}`);
+  // Unmatched subjects vanish from the notes, so they have to be announced.
+  check(clNotes.includes("wip on the thing"),
+    `a commit no group claimed must be reported on stderr:\n${clNotes}`);
 } finally {
   rmSync(temp, { recursive: true, force: true });
 }

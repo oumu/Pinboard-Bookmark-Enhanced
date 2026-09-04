@@ -189,16 +189,27 @@ const LIGHT = "rgb(250, 249, 246)", DARK = "rgb(28, 27, 26)";
 // ============================================================
 (async () => {
   const src = await (await fetch("../pinboard-style.js")).text();
+  // Semantic slices, never source layout: these gates answer "does the shipped
+  // file still carry the policy", so putting braces on a one-line `if`, or
+  // moving a comment between two statements, must not make them red — a red
+  // gate has to mean a behaviour regression, or it stops being believed.
+  const cacheAt = src.indexOf("const cacheCloakBg");
+  const cacheEnd = src.indexOf("};", cacheAt);
+  // Both ends must be found, or the slice is empty and the check fails closed —
+  // slice(at, -1) would otherwise hand it the whole rest of the file.
+  const cacheBody = cacheAt === -1 || cacheEnd === -1 ? "" : src.slice(cacheAt, cacheEnd);
   check("#51 source: an explicit light/dark override drops the opposite mode's cloak key",
-    /optTheme !== "auto"\)\s*localStorage\.removeItem\(pbpCloakBgKey\(!isDark\)\);/.test(src),
+    cacheBody.includes('optTheme !== "auto"') && cacheBody.includes("removeItem(pbpCloakBgKey(!isDark))"),
     "cacheCloakBg still leaves the other mode's stale colour for the next cold load to find");
-  check("#110 source: auto mode follows an OS light/dark flip while the tab stays open",
-    /data\.optTheme === "auto"\)\s*\{\s*\n\s*window\.matchMedia\("\(prefers-color-scheme: dark\)"\)\.addEventListener\("change"/.test(src),
-    "no matchMedia change listener — a parked pinboard.in tab keeps the old variant until reload");
   const at = src.indexOf('.addEventListener("change"');
+  const registration = at === -1 ? "" : src.slice(Math.max(0, at - 200), at);
   const handler = at === -1 ? "" : src.slice(at, at + 500);
+  check("#110 source: auto mode follows an OS light/dark flip while the tab stays open",
+    registration.includes('optTheme === "auto"') &&
+    registration.includes('window.matchMedia("(prefers-color-scheme: dark)")'),
+    "no matchMedia change listener — a parked pinboard.in tab keeps the old variant until reload");
   check("#110 source: the OS-flip re-apply re-runs the theme through applyTheme",
-    /isDark = !!e\.matches;\s*\n\s*applyTheme\(isDark\);/.test(handler),
+    handler.includes("isDark = !!e.matches") && handler.includes("applyTheme(isDark)"),
     "the flip handler does not re-resolve the mode and re-apply it");
   check("#110 source: the OS-flip re-apply re-keys the cloak cache to the mode now on screen",
     /cacheCloakBg\(\);/.test(handler),

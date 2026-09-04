@@ -80,7 +80,15 @@ install_hook() {
     exit 1
   fi
   if ! check_hook "$script_name" "$hook_name" 2>/dev/null; then
-    echo "Replacing stale $hook_name hook (was not a delegator)."
+    # check_hook fails for two different reasons and stops at the first one, so
+    # report the same one it found: a delegator that merely lost its executable
+    # bit is not a stale hook body, and saying so sends the reader looking for
+    # a drift that is not there.
+    if [ ! -x "$dst" ]; then
+      echo "Reinstalling $hook_name hook (it was not executable, so git was skipping it)."
+    else
+      echo "Replacing stale $hook_name hook (was not a delegator)."
+    fi
   fi
   {
     printf '%s\n' '#!/bin/sh'
