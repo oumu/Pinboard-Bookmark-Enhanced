@@ -822,7 +822,7 @@
     <div id="panel-vocab" class="panel" role="tabpanel" aria-labelledby="tab-vocab">
       <h2 class="section-title" data-i18n="dictVocabSection">Vocabulary</h2>
       <div class="vocab-entry-row">
-        <a class="btn btn-sm" id="vocab-open-library" href="library.html#vocab" target="_blank" rel="noopener">
+        <a class="btn btn-sm" id="vocab-open-library" href="library.html#vocab" target="_blank" rel="noopener" style="text-decoration:none">
           <span class="btn-ic" data-ic="bookMarked"></span><span data-i18n="libraryOpen">Open notes and vocabulary</span>
         </a>
       </div>
@@ -966,7 +966,12 @@
         <div id="tag-gov-ai-status" class="hint" style="margin-top:4px;"></div>
       </div>
       <div class="divider"></div>
-      <h2 class="section-title" data-i18n="tagGovLowCountTitle">Low-count tags (1 use or fewer)</h2>
+      <!-- No <h2> above this disclosure: its own <summary> is the section
+           header (options.css gives #tag-gov-lowcount > summary the same
+           right-edge chevron family as details.vocab-disclosure). The heading
+           used to be spelled twice -- an <h2> and the <summary>, both carrying
+           tagGovLowCountTitle -- so the panel read the same line twice, 30px
+           apart, and the settings-search index had to dedupe them by text. -->
       <details id="tag-gov-lowcount">
         <summary data-i18n="tagGovLowCountTitle">Low-count tags (1 use or fewer)</summary>
         <div id="tag-gov-lowcount-list"></div>
@@ -1012,7 +1017,11 @@
           <p class="hint context-help-body" data-i18n="optWaybackBatchHint">Batch saves can fire many archive requests at once; anonymous quota is limited.</p>
         </details>
       </div>
-      <div class="choice-row"><label><input type="checkbox" id="opt-wayback-skip-private" /> <span data-i18n="waybackSkipPrivate">Never archive bookmarks you save as private</span></label></div>
+      <!-- Subordinate to #opt-wayback-enabled exactly like the batch row above
+           it (nothing is submitted to archive.org while archiving is off), so
+           it carries the same indent instead of sitting at the parent's own
+           level. -->
+      <div class="choice-row" style="margin-left:20px"><label><input type="checkbox" id="opt-wayback-skip-private" /> <span data-i18n="waybackSkipPrivate">Never archive bookmarks you save as private</span></label></div>
       </div>
       <div class="divider"></div>
       <div class="fg context-help-host" data-help-role="field" style="margin-top:10px">

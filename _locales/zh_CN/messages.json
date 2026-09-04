@@ -2542,7 +2542,7 @@
     "message": "仅译文"
   },
   "trEstCost": {
-    "message": "约 ~$COUNT$ tokens · $MODEL$",
+    "message": "约 $COUNT$ tokens · $MODEL$",
     "placeholders": {
       "count": {
         "content": "$1"
@@ -2595,7 +2595,7 @@
     "message": "本篇译文的部分段落来自不同版本的术语表或提示词"
   },
   "trRetranslateAll": {
-    "message": "重新翻译全文（约 ~$TOKENS$ tokens）",
+    "message": "重新翻译全文（约 $TOKENS$ tokens）",
     "placeholders": {
       "tokens": {
         "content": "$1"

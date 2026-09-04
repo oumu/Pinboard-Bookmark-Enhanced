@@ -503,6 +503,18 @@ async function showMain(token) {
     $id("submit-btn").title = t("urlCannotSave");
     $id("ai-summary-btn").classList.add("disabled-link");
     $id("ai-tags-btn").classList.add("disabled-link");
+    // The quick-actions bar survives this empty state, but the reader button
+    // is the one control on it that needs the page URL. Its non-web guard used
+    // to live with the rest of its wiring, several hundred lines past this
+    // `return`, so it never ran on the exact pages it was written for -- the
+    // button stayed full-strength while its click handler bailed on the
+    // now-empty #url-input: no status line, no log, nothing. Same shape as the
+    // save button two lines up, so it gets disabled in the same place.
+    const jinaBtn = $id("jina-md-btn");
+    if (jinaBtn) {
+      jinaBtn.disabled = true;
+      jinaBtn.title = t("jinaMdNonWebHint");
+    }
     return;
   }
 

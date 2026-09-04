@@ -2542,7 +2542,7 @@
     "message": "Tłu­ma­cze­nie"
   },
   "trEstCost": {
-    "message": "Około ~$COUNT$ tokenów · $MODEL$",
+    "message": "Około $COUNT$ tokenów · $MODEL$",
     "placeholders": {
       "count": {
         "content": "$1"

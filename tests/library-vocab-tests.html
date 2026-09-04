@@ -1630,6 +1630,31 @@ check("selection still covers all filtered results beyond rendered chunks", _voc
   await new Promise((resolve) => frame.contentWindow.requestAnimationFrame(resolve));
   check("browse-state batch bar reserves zero height",
     batchBar.getBoundingClientRect().height === 0);
+  // The detail pane's context quote is a real <blockquote> (library-vocab.js
+  // builds it that way), so the UA's `margin: 1em 40px` applies unless the rule
+  // resets it -- the quote then paints 40px right of the .vocab-detail-context
+  // rule that owns it and of the source link beneath it. Measured against the
+  // sibling link, which is the alignment a reader actually compares.
+  const detailPane = frame.contentDocument.querySelector(".vocab-detail-pane");
+  const contextProbe = frame.contentDocument.createElement("div");
+  contextProbe.className = "vocab-detail-context";
+  const probeQuote = frame.contentDocument.createElement("blockquote");
+  probeQuote.className = "notes-item-quote";
+  probeQuote.textContent = "context sentence";
+  const probeLink = frame.contentDocument.createElement("a");
+  probeLink.className = "notes-row-open";
+  probeLink.href = "https://example.com/";
+  probeLink.textContent = "Source article";
+  contextProbe.append(probeQuote, probeLink);
+  detailPane.appendChild(contextProbe);
+  const contextRect = contextProbe.getBoundingClientRect();
+  const quoteRect = probeQuote.getBoundingClientRect();
+  const linkRect = probeLink.getBoundingClientRect();
+  check("context quote aligns with its own rule and source link (no UA blockquote margin)",
+    quoteRect.width > 0 && Math.abs(quoteRect.left - linkRect.left) <= 1 &&
+    Math.abs(quoteRect.top - contextRect.top) <= 1,
+    `quote.left=${quoteRect.left.toFixed(1)} link.left=${linkRect.left.toFixed(1)} ` +
+    `quote.top=${quoteRect.top.toFixed(1)} context.top=${contextRect.top.toFixed(1)}`);
   frame.remove();
   document.title = fail ? "FAIL library-vocab Tests" : "PASS library-vocab Tests";
 })();

@@ -1471,6 +1471,130 @@ test("posts/add default remains replace=yes for existing callers", () => {
       assert(loginSource.includes("const saved = await persistSettings") && loginSource.indexOf("if (!saved.ok)") < loginSource.indexOf("settings.pinboardToken = token"), "login enters memory before persistence succeeds");
       assert(resetSource.includes('settings.pinboardToken = ""') && resetSource.includes("window.location.reload()"), "session reset does not clear memory and reload");
     });
+
+    // ---- Bookmark lookup failure copy, over the real proxy ----
+    // The popup replaces shared.js's pinboardFetch with a service-worker proxy,
+    // so the lookup's catch never sees a fetch rejection: the worker owns the
+    // fetch and answers every transport outcome as a RESOLVED status-0 response.
+    // Reading the failure copy off the shipped lookup alone would therefore
+    // prove nothing -- an earlier round shipped an account_changed branch that
+    // no reply could reach, because the proxy dropped the reason string on the
+    // way. These build the shipped proxy and the shipped lookup into one scope
+    // and feed them worker replies, so the whole chain has to carry the cause.
+    const proxySource = source.slice(source.indexOf("function _pbpProxyPinboardFetch"), source.indexOf("let currentTags"));
+
+    function createLookupHarness(workerReply, { nullField = "" } = {}) {
+      const statuses = [];
+      const warns = [];
+      const sent = [];
+      let resets = 0;
+      const elements = {
+        "url-input": createElementStub({ value: URL }),
+        "title-input": createElementStub(),
+        "description-input": createElementStub(),
+        "private-check": createElementStub(),
+        "readlater-check": createElementStub(),
+        "submit-btn": createElementStub(),
+        "delete-btn": createElementStub({ classes: ["hidden"] }),
+        "existing-banner": createElementStub({ classes: ["hidden"] }),
+        "status-msg": createElementStub(),
+      };
+      const dependencies = {
+        chrome: {
+          runtime: {
+            sendMessage(message) {
+              sent.push(message);
+              return Promise.resolve(typeof workerReply === "function" ? workerReply(message) : workerReply);
+            },
+          },
+        },
+        resetPinboardSession() { resets++; },
+        $id: (id) => (id === nullField ? null : (elements[id] ||= createElementStub())),
+        t: (key) => key,
+        showStatus: (...args) => statuses.push(args),
+        console: { warn: (...args) => warns.push(args) },
+        enc: encodeURIComponent,
+        shouldUpdateField: () => true,
+        invalidateBookmarkLookup() {},
+        recomputeArchiveCheck() {},
+        renderTags() {},
+        updateCharCount() {},
+        autoResizeTextarea() {},
+        setTimeout: () => 0,
+        localStorage: { setItem() {} },
+        uiLangToBCP47: () => "en",
+        _activeTabAtOpen: null,
+        pbpRebasePopupTags: rebasePopupTags,
+        // Production implementations, not test doubles: the classifier is the
+        // thing under test here as much as the lookup is.
+        pbpParseJsonText,
+        pbpPinboardAccountFromToken,
+        classifyPinboardError,
+        unionTags,
+      };
+      const body = [
+        'let bookmarkLookup = { status: "idle", url: "", generation: 0, promise: null, formLoaded: false };',
+        "let existingBookmark = null;",
+        "let currentTags = [];",
+        "let pinboardFetch, pinboardFetchImmediate;",
+        proxySource,
+        lookupSource,
+        "return { checkExistingBookmark, getLookup: () => bookmarkLookup };",
+      ].join("\n");
+      const names = Object.keys(dependencies);
+      const built = new Function(...names, body)(...names.map((name) => dependencies[name]));
+      return { run: (...args) => built.checkExistingBookmark("alice:token", URL, null, true, ...args), getLookup: built.getLookup, statuses, warns, sent, resets: () => resets };
+    }
+
+    const FOUND_BODY = JSON.stringify({ posts: [{ description: "Saved title", extended: "", tags: "alpha", shared: "no", toread: "no", time: "2026-01-01T00:00:00Z" }] });
+
+    await testAsync("an account switch mid-lookup is named as an auth failure, not offline", async () => {
+      const harness = createLookupHarness({ ok: false, status: 0, text: "", error: "account_changed" });
+      const result = await harness.run();
+      assert(result.status === "failed", "lookup did not fail: " + result.status);
+      assert(harness.statuses.length === 1, "expected one status message, got " + JSON.stringify(harness.statuses));
+      assert(harness.statuses[0][1] === "pinboardErrorAuth", "reported " + harness.statuses[0][1]);
+      assert(harness.warns.length === 1, "the named failure left no console trace");
+    });
+
+    await testAsync("a proxied network failure still reads as offline", async () => {
+      const harness = createLookupHarness({ ok: false, status: 0, text: "", error: "Failed to fetch" });
+      await harness.run();
+      assert(harness.statuses.length === 1 && harness.statuses[0][1] === "pinboardErrorOffline", JSON.stringify(harness.statuses));
+    });
+
+    await testAsync("a proxied 5xx still reads as a server failure", async () => {
+      const harness = createLookupHarness({ ok: false, status: 503, text: "" });
+      await harness.run();
+      assert(harness.statuses.length === 1 && harness.statuses[0][1] === "pinboardErrorServer", JSON.stringify(harness.statuses));
+    });
+
+    await testAsync("an unparseable posts/get body says nothing rather than blaming the connection", async () => {
+      const harness = createLookupHarness({ ok: true, status: 200, text: "<html>upstream error</html>" });
+      const result = await harness.run();
+      assert(result.status === "failed", "lookup did not fail: " + result.status);
+      assert(harness.statuses.length === 0, "a parse failure was reported as a transport failure: " + JSON.stringify(harness.statuses));
+      assert(harness.warns.length === 1, "the parse failure left no console trace");
+    });
+
+    await testAsync("a throw while filling the form is not blamed on the connection", async () => {
+      // The one error class that can still reach this catch by name is a
+      // TypeError raised by the form fill itself (a missing element), which has
+      // nothing to do with the transport -- naming it would send the reader to
+      // check a working connection.
+      const harness = createLookupHarness({ ok: true, status: 200, text: FOUND_BODY }, { nullField: "title-input" });
+      const result = await harness.run();
+      assert(result.status === "failed", "lookup did not fail: " + result.status);
+      assert(harness.warns.length === 1 && harness.warns[0][1] === "TypeError", "the form fill did not fail as expected: " + JSON.stringify(harness.warns));
+      assert(harness.statuses.length === 0, "a DOM failure was reported as a transport failure: " + JSON.stringify(harness.statuses));
+    });
+
+    await testAsync("a 401 lookup stays silent and hands off to the login screen", async () => {
+      const harness = createLookupHarness({ ok: false, status: 401, text: "" });
+      await harness.run();
+      assert(harness.statuses.length === 0, "401 spoke over the login screen: " + JSON.stringify(harness.statuses));
+      assert(harness.resets() === 1, "401 did not reset the session exactly once (" + harness.resets() + ")");
+    });
   } catch (error) {
     test("popup submit source contracts load", () => { throw error; });
   }

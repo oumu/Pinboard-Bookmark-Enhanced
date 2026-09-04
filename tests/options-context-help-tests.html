@@ -226,6 +226,32 @@ function test(name, fn) {
     });
   });
 
+  test("controls that follow contextual help keep their own button width", () => {
+    // The full-width row the rule above gives every post-help sibling is right
+    // for fields and status lines, but a grid item stretches by default, and a
+    // stretched .btn stops reading as a button (the two "Reset to default"
+    // buttons painted as panel-wide grey bars). Asserted on the painted result
+    // -- a button hugs its own label -- not on `justify-self`, so a future
+    // layout that reaches the same width by another route still fails here.
+    const buttons = [...doc.querySelectorAll(
+      ".context-help-host > .context-help ~ .btn, .context-help-action-row > .context-help ~ .btn")];
+    assert(buttons.length, "no .btn follows a contextual disclosure any more");
+    const stretched = [];
+    buttons.forEach((button) => {
+      const details = button.parentElement.querySelector(":scope > details.context-help");
+      assert(details, (button.id || "button") + " lost the disclosure it follows");
+      reveal(details);
+      const range = doc.createRange();
+      range.selectNodeContents(button);
+      const ink = range.getBoundingClientRect();
+      const box = button.getBoundingClientRect();
+      if (box.width - ink.width > 48) {
+        stretched.push(`${button.id || button.textContent.trim()} box=${Math.round(box.width)} label=${Math.round(ink.width)}`);
+      }
+    });
+    assert(!stretched.length, "stretched: " + stretched.join("; "));
+  });
+
   test("expanded field help contributes only one gap before the next setting", () => {
     const { details, host, body } = parts("optSyncHint");
     const next = host.nextElementSibling;
@@ -374,7 +400,7 @@ function test(name, fn) {
     });
   });
 })().catch((error) => {
-  for (let i = results.children.length; i < 15; i++) report("fixture setup", error);
+  for (let i = results.children.length; i < 16; i++) report("fixture setup", error);
 });
 </script>
 </body></html>

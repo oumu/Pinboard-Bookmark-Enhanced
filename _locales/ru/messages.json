@@ -2542,7 +2542,7 @@
     "message": "Перевод"
   },
   "trEstCost": {
-    "message": "Около ~$COUNT$ tokens · $MODEL$",
+    "message": "Около $COUNT$ tokens · $MODEL$",
     "placeholders": {
       "count": {
         "content": "$1"

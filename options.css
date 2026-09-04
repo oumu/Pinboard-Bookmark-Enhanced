@@ -368,6 +368,15 @@ h1 { font-size: 18px; color: var(--opt-fg); margin-bottom: var(--opt-sp-7); bord
   grid-column: 1 / -1;
   min-width: 0;
 }
+/* A full-width row is right for the fields and status lines that follow the
+   help, but a grid item stretches by default -- which painted the two "Reset
+   to default" buttons as panel-wide grey bars that read as dividers or a
+   disabled state instead of members of the button family. The label/title
+   group above already carries `justify-self: start` for the same reason; this
+   is the branch that batch missed. Scoped to .btn so textareas, inputs and
+   .hint rows keep the whole row. */
+.context-help-host > .context-help ~ .btn,
+.context-help-action-row > .context-help ~ .btn { justify-self: start; }
 .context-help-action-row { margin-top: var(--opt-sp-3); }
 .context-help { margin: 0; }
 .context-help > summary.context-help-toggle {

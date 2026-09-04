@@ -642,7 +642,12 @@ html.motion-ready .notes-card-top { transition: background-color var(--motion-st
 .note-dot.c5 { background: var(--lib-note-c5, #c084fc); }
 /* Kept for the vocabulary detail pane's context quotes (the notes list no
    longer builds .notes-item* rows -- see the master-detail block below). */
-.notes-item-quote { color: var(--lib-fg-muted); white-space: pre-wrap; overflow-wrap: anywhere; }
+/* `margin: 0` first, exactly like .notes-detail-quote below: this is a real
+   <blockquote>, so the UA's `margin: 1em 40px` otherwise pushes the quote 40px
+   right of the .vocab-detail-context rule it belongs to and of the source link
+   underneath it, and steals another 40px from an already narrow reading column
+   on the single-pane layout. */
+.notes-item-quote { margin: 0; color: var(--lib-fg-muted); white-space: pre-wrap; overflow-wrap: anywhere; }
 .notes-empty { font-size: 12px; color: var(--lib-fg-muted); padding: var(--lib-sp-3) 0; }
 
 /* Ghost X delete button (options.css's shared recipe for vocab AND notes rows;
