@@ -1240,6 +1240,7 @@ html[data-theme] .batch-progress-text {
   display: inline-flex;
   align-items: center;
   gap: var(--pp-sp-1);
+  min-height: 20px; /* sm rung (COMPONENTS.md §1.1): link-styled, but a 15px-tall text button is a hit-area problem, and the gate now measures both of these */
 }
 /* Expand/collapse caret, CSS-drawn (a ▸/▾ glyph fell back to Segoe UI Emoji
    and stalled first paint). 2026-08: thin chevron matching the disclosure
@@ -1257,6 +1258,7 @@ html[data-theme] .batch-progress-text {
   display: inline-flex;
   align-items: center;
   gap: var(--pp-sp-2);
+  min-height: 20px; /* sm rung, same reason as .offline-clear */
   color: inherit;
   text-decoration: none;
   cursor: pointer;

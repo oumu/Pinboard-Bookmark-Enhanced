@@ -2100,7 +2100,7 @@ const SWEEP_CFG = {
       "textarea",                                   // multi-line by nature
       "[role='tab']", ".tab-btn", ".lib-tab",       // tab family: 32px on both surfaces
       "#options-search-input",                      // the settings sidebar search box (34px, deliberate)
-      ".action-link", ".clear-all-link", ".offline-toggle", ".offline-clear", ".reset-tab-btn",
+      ".action-link", ".clear-all-link", ".reset-tab-btn",
       ".tr-link", ".xp-dict-more", ".xp-dict-lemma-link", ".pbp-img-fix-btn", // link-styled, no chrome (COMPONENTS.md §0)
       "summary", ".rail-sec-head", ".notes-hit-btn", ".notes-card-head", ".notes-card-top", ".notes-sib", ".connection-health-row", // row rung: whole-row clickables / section headers / status cards
       ".theme-preset-btn", ".saved-theme-btn",       // borderless swatch pills (user-selected variant A, d57cdcf): the sm rung minus the collapsed frame
@@ -2348,7 +2348,15 @@ function sweepProbe(cfg) {
     if (el.tagName === "INPUT") return !NON_FIELD_INPUT_TYPES.has((el.getAttribute("type") || "text").toLowerCase());
     return false;
   }
-  function isFlexOrGrid(cs) { return cs.display === "flex" || cs.display === "inline-flex" || cs.display === "grid" || cs.display === "inline-grid"; }
+  // A ROW container: a flex box laid out along the row axis, or a grid. A
+  // column flex box stacks rows (the reader's #rail: source badge, view
+  // toggle, bottom icon row) -- its children are not one visual row, and
+  // flattening through it compared an 18px fused inner with 26px buttons
+  // three rows away (12 phantom hits, 2026-09-06).
+  function isFlexOrGrid(cs) {
+    if (cs.display === "flex" || cs.display === "inline-flex") return !/^column/.test(cs.flexDirection);
+    return cs.display === "grid" || cs.display === "inline-grid";
+  }
   function collectControls(el, depth) {
     if (depth > 3 || !visible(el)) return [];
     if (isControl(el)) return [el];

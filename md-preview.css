@@ -285,9 +285,11 @@ button, input, select, textarea { font-family: inherit; }
   color: var(--fg-secondary);
   background: transparent;
   border: 0;
-  padding: var(--sp-0) var(--sp-2);
+  padding: 1px var(--sp-2);
   cursor: pointer;
-  line-height: 14px;       /* fused-shell inner on the sm rung: 2+14+2 = 18 + the shell's border = 20px */
+  line-height: 16px;       /* fused-shell inner on the sm rung: 1+16+1 = 18 + the shell's border = 20px.
+                              16 not 14: the 11px face's glyph box measures 14.67px and sits baseline-heavy,
+                              so 14 + 2/2 left 1.33px above the text (textInset); 16 + 1/1 centres it 1.67/1.67 */
   transition: background-color 150ms ease, color 150ms ease;
 }
 .src-seg:first-child { border-radius: var(--radius-md) 0 0 var(--radius-md); }
