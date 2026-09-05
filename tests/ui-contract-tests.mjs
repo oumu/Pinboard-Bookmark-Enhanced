@@ -3397,6 +3397,20 @@ check(mdCss.includes("animation-timeline: scroll(self inline);"),
     "md-preview.css: the .pbv-bar control family lost its :disabled state (opacity + not-allowed, same recipe as .src-seg:disabled) -- the family's own background/color mask the UA greying, so a disabled control is pixel-identical to a live one");
 }
 
+// .pop-panel (COMPONENTS.md §10.2): the five reader popovers take their chrome
+// from the primitive; an id rule no longer paints a fill or a border, so a
+// creator that forgets the class ships a transparent, borderless popover.
+for (const [src, file, v, id] of [
+  [mdReaderJsSource, "md-reader.js", "pop", "fn-pop"], [mdReaderJsSource, "md-reader.js", "pop", "search-pop"],
+  [mdReaderJsSource, "md-reader.js", "pop", "kbd-help-pop"], [mdReaderJsSource, "md-reader.js", "pop", "typo-pop"],
+  [mdHighlightJs, "md-highlight.js", "card", "pb-hl-card"],
+]) {
+  check(new RegExp(`${v}\\.id = "${id}";\\s*\\n\\s*${v}\\.className = "pop-panel";`).test(src),
+    `${file}: #${id} is created without class="pop-panel" -- its chrome lives on the primitive, not on the id`);
+}
+check(/^\.pop-panel \{[\s\S]*?\}/m.test(mdCss) && !/#pb-hl-card \{[^}]*box-shadow/.test(mdCss) && !/#fn-pop \{[^}]*box-shadow/.test(mdCss),
+  "md-preview.css: .pop-panel must exist and the popover id rules must not restate the panel shadow");
+
 if (fail.length) {
   console.error(fail.join("\n"));
   process.exit(1);

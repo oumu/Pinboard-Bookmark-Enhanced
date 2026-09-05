@@ -1959,6 +1959,7 @@ function _pbpHlEnsureCard() {
   if (_pbpHlCard) return _pbpHlCard;
   const card = document.createElement("div");
   card.id = "pb-hl-card";
+  card.className = "pop-panel";
   card.setAttribute("popover", "auto");
 
   const quote = document.createElement("blockquote");

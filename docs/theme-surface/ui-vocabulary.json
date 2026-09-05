@@ -304,6 +304,7 @@
       ],
       "primitives": [
         "msg-bar",
+        "pop-panel",
         "rail-label",
         "rail-sec-head",
         "rail-section",

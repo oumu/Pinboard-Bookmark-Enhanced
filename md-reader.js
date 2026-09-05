@@ -268,6 +268,7 @@ function _pbpFnEnsurePop() {
   if (_pbpFnPop) return _pbpFnPop;
   const pop = document.createElement("div");
   pop.id = "fn-pop";
+  pop.className = "pop-panel";
   pop.setAttribute("popover", "auto");
 
   const body = document.createElement("div");
@@ -719,6 +720,7 @@ function _pbpSearchEnsurePop() {
   if (_pbpSearchPopEl) return _pbpSearchPopEl;
   const pop = document.createElement("div");
   pop.id = "search-pop";
+  pop.className = "pop-panel";
   pop.setAttribute("popover", "auto"); // top-layer + Esc + light-dismiss for free
 
   const input = document.createElement("input");
@@ -915,6 +917,7 @@ function _pbpKbdHelpEnsurePop() {
   if (_pbpKbdHelpPopEl) return _pbpKbdHelpPopEl;
   const pop = document.createElement("div");
   pop.id = "kbd-help-pop";
+  pop.className = "pop-panel";
   pop.setAttribute("popover", "auto"); // top-layer + Esc + light-dismiss for this transient help surface
   const title = document.createElement("div");
   title.className = "kbd-help-title";
@@ -1549,6 +1552,7 @@ function _pbpTypoEnsurePop() {
   if (_pbpTypoPopEl) return _pbpTypoPopEl;
   const pop = document.createElement("div");
   pop.id = "typo-pop";
+  pop.className = "pop-panel";
   pop.setAttribute("popover", "auto");
   pop.setAttribute("aria-label", t("typoPanelAria"));
 

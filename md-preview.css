@@ -2997,6 +2997,23 @@ body.ask-open main { margin-right: calc(380px + var(--sp-4)); }
 .ask-copy-btn svg, .ask-regenerate svg { width: 13px; height: 13px; flex-shrink: 0; }
 
 /* ---- Highlight edit card (md-highlight.js) ---- */
+/* .pop-panel (COMPONENTS.md §10.2): the reader's floating panel chrome --
+   surface fill, hairline border, lg radius, the one panel shadow, 13px base
+   and an sp-3 inset. Five popovers restated these six declarations each
+   (#pb-hl-card, #fn-pop, #typo-pop, #kbd-help-pop, #search-pop); the id
+   rules keep only their own geometry (placement, size, flex direction, gap)
+   and, where the inset differs on purpose, override it: #kbd-help-pop is a
+   centred dialog at sp-4, #search-pop a one-line bar at sp-2 sp-3. */
+.pop-panel {
+  padding: var(--sp-3);
+  background: var(--surface);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 30px rgba(15, 23, 42, 0.22);
+  font-size: 13px;
+}
+
 #pb-hl-card {
   position: fixed;
   inset: auto;
@@ -3006,13 +3023,6 @@ body.ask-open main { margin-right: calc(380px + var(--sp-4)); }
   display: none;
   flex-direction: column;
   gap: var(--sp-2);
-  padding: var(--sp-3);
-  background: var(--surface);
-  color: var(--fg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 8px 30px rgba(15, 23, 42, 0.22);
-  font-size: 13px;
 }
 #pb-hl-card:popover-open { display: flex; }
 #pb-hl-card button, #pb-hl-card textarea { font-family: inherit; }
@@ -3225,13 +3235,6 @@ body.ask-open main { margin-right: calc(380px + var(--sp-4)); }
   display: none;
   flex-direction: column;
   gap: var(--sp-2);
-  padding: var(--sp-3);
-  background: var(--surface);
-  color: var(--fg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 8px 30px rgba(15, 23, 42, 0.22);
-  font-size: 13px;
 }
 #fn-pop:popover-open { display: flex; }
 /* Position is measured immediately after showPopover(), so the footnote
@@ -3286,13 +3289,7 @@ html.motion-ready #fn-pop:popover-open {
   margin: 0;
   align-items: center;
   gap: var(--sp-2);
-  padding: var(--sp-2) var(--sp-3);
-  background: var(--surface);
-  color: var(--fg);
-  border: 1px solid var(--btn-border);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 8px 30px rgba(15, 23, 42, 0.22);
-  font-size: 13px;
+  padding: var(--sp-2) var(--sp-3); /* one-line bar: block inset one rung under .pop-panel's */
 }
 #search-pop:popover-open { display: flex; }
 /* Styled after #ask-input (border/radius/background/font-size/focus all
@@ -3377,13 +3374,7 @@ html.motion-ready #fn-pop:popover-open {
   display: none;
   flex-direction: column;
   gap: var(--sp-3);
-  padding: var(--sp-4);
-  background: var(--surface);
-  color: var(--fg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 8px 30px rgba(15, 23, 42, 0.22);
-  font-size: 13px;
+  padding: var(--sp-4); /* dialog inset, one rung above .pop-panel's */
   overflow-y: auto;
 }
 #kbd-help-pop:popover-open { display: flex; }
@@ -3475,13 +3466,6 @@ html.motion-ready :is(#search-pop, #kbd-help-pop, #pb-hl-card):popover-open {
   flex-direction: column;
   gap: var(--sp-3);
   width: 232px;
-  padding: var(--sp-3);
-  background: var(--surface);
-  color: var(--fg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 8px 30px rgba(15, 23, 42, 0.22);
-  font-size: 13px;
 }
 #typo-pop:popover-open { display: flex; }
 /* Label ABOVE its control, not beside it: a side-by-side row overflowed the

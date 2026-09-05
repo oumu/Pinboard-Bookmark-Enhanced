@@ -1067,6 +1067,7 @@ label span（`<span class="btn-ic">svg</span><span></span>`），在 grid 下它
 | md-preview | `.rail-section` / `.rail-label` / `.rail-sec-head` | 侧栏分区容器 / 静态标题 / 可折叠标题（共享 margin sp-3 0 sp-2 契约） |
 | md-preview | `.msg-bar` | 状态/提示/错误条（padding sp-2 sp-3，与 `.send-status` / `.export-note` / `#ask-tip` 同一条家族；`data-state`） |
 | md-preview | `.send-menu` / `.send-mi` | 下拉菜单与菜单项 |
+| md-preview | `.pop-panel` | 浮层面板 chrome：`--surface` 底、`--border` 1px 边、`--radius-lg`、统一阴影、13px、内距 sp-3；高亮卡 / 脚注 / 字号面板 / 快捷键帮助 / 搜索条五个 popover 共用，id 规则只留各自的定位与尺寸（帮助对话框内距 sp-4、搜索条 sp-2 sp-3 属有意覆盖） |
 
 清点（2026-09-05 工作流，四表面 138/97/134/273 个 token）同时给出了**候选**原语——popup 的 `actions`/`field-foot`/`banner`/`card`/`list-row`、library 的 `lib-row`/`lib-cluster`/`lib-section`/`lib-block`/`lib-quote`、md-preview 的 `rail-row`/`panel-head`/`panel-actions`/`seg-row`/`stack`/`pop-body`/`scroll-list`——每个都能吸收 5～15 个遗留类。它们**尚未登记**：登记的时机是把对应遗留类真正迁过去的那次施工，不提前占名。
 

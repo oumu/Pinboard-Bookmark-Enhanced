@@ -166,11 +166,14 @@ function assertLayout(frame, locale) {
       probes.innerHTML = [
         '<div id="ask-tip" style="display:block">Citation</div>',
         '<div id="pb-hl-bar" style="display:flex">Highlight</div>',
-        '<div id="pb-hl-card" style="display:flex">Note</div>',
-        '<div id="fn-pop" style="display:flex">Footnote</div>',
-        '<div id="search-pop" style="display:flex">Search</div>',
-        '<div id="kbd-help-pop" style="display:flex">Shortcuts</div>',
-        '<div id="typo-pop" style="display:flex">Typography</div>',
+        // The five popovers take their chrome (fill, border, radius, shadow) from
+        // the .pop-panel primitive (COMPONENTS.md §10.2), as their creators in
+        // md-reader.js / md-highlight.js set it; the id rules keep only geometry.
+        '<div id="pb-hl-card" class="pop-panel" style="display:flex">Note</div>',
+        '<div id="fn-pop" class="pop-panel" style="display:flex">Footnote</div>',
+        '<div id="search-pop" class="pop-panel" style="display:flex">Search</div>',
+        '<div id="kbd-help-pop" class="pop-panel" style="display:flex">Shortcuts</div>',
+        '<div id="typo-pop" class="pop-panel" style="display:flex">Typography</div>',
         '<button class="pb-tr-err" data-tip="Translation failed">Retry</button>'
       ].join("");
       doc.body.appendChild(probes);
