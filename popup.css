@@ -488,7 +488,7 @@ html[data-section="login"] .quick-actions { display: none !important; }
    must inherit the card's foreground — which is AA against the card bg by construction.
    (Using --pp-fg-hint here, a main-bg grey, made "Details"/× unreadable on dark cards.)
    De-emphasis comes from smaller size + a subtle hover wash, not a different colour. */
-.fc-btn-secondary { border: 0; color: inherit; font-size: 10px; padding: var(--pp-sp-1) var(--pp-sp-3); }
+.fc-btn-secondary { border: 0; color: inherit; font-size: 11px; padding: var(--pp-sp-1) var(--pp-sp-3); }
 .fc-btn-secondary:hover { background: color-mix(in srgb, currentColor 14%, transparent); }
 .fc-btn-secondary:active:not(:disabled) { transform: scale(0.97); }
 .fc-dismiss {
@@ -502,7 +502,7 @@ html[data-section="login"] .quick-actions { display: none !important; }
   margin-top: var(--pp-sp-3); padding: var(--pp-sp-3) var(--pp-sp-4);
   max-height: 120px; overflow: auto;
   background: color-mix(in srgb, var(--pp-scrim) 4%, transparent);
-  font-family: "SF Mono", Consolas, Menlo, "Liberation Mono", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei", monospace; font-size: 10px;
+  font-family: "SF Mono", Consolas, Menlo, "Liberation Mono", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei", monospace; font-size: 11px;
   white-space: pre-wrap; word-break: break-all;
   border-radius: var(--pp-radius-sm);
 }
@@ -649,7 +649,7 @@ html[data-section="login"] .quick-actions { display: none !important; }
 }
 
 .notes-bar { display: flex; justify-content: space-between; align-items: center; margin-top: var(--pp-sp-1); }
-#desc-char-count { font-size: 10px; color: var(--pp-fg-hint); }
+#desc-char-count { font-size: 11px; color: var(--pp-fg-hint); }
 /* Both states carry their colour here, not from an inline style in popup.js --
    an inline style outranks every rule in this file, which is what kept the
    themed twin below dead and pinned "nearly full" to a literal #e80 (2.57:1 on
@@ -786,27 +786,27 @@ button.offline-clear:focus-visible, button.offline-toggle:focus-visible { outlin
 .ac-scroll { overflow-y: auto; flex: 1 1 auto; min-height: 0; }
 .ac-item { padding: var(--pp-sp-2) var(--pp-sp-3); cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: space-between; }
 .ac-item:hover, .ac-item.selected { background: var(--pp-drop-hover); }
-.ac-count { color: var(--pp-fg-hint); font-size: 10px; margin-left: var(--pp-sp-2); flex-shrink: 0; }
+.ac-count { color: var(--pp-fg-hint); font-size: 11px; margin-left: var(--pp-sp-2); flex-shrink: 0; }
 .ac-new-hint { color: var(--pp-fg-hint); font-style: italic; cursor: pointer; }
 .ac-new-hint:hover { background: var(--pp-drop-hover); color: var(--pp-fg); font-style: normal; }
 .ac-new-icon { color: var(--pp-accent); font-style: normal; font-weight: bold; margin-right: var(--pp-sp-1); }
 .ac-hint-footer {
   flex: 0 0 auto;
-  padding: var(--pp-sp-1) var(--pp-sp-3); font-size: 10px; color: var(--pp-fg-hint); border-top: 1px solid var(--pp-divider);
+  padding: var(--pp-sp-1) var(--pp-sp-3); font-size: 11px; color: var(--pp-fg-hint); border-top: 1px solid var(--pp-divider);
   background: var(--pp-bg2); user-select: none; cursor: default; line-height: 1.4;
 }
 .ac-hint-footer kbd {
   display: inline-block; padding: 0 var(--pp-sp-2); margin: 0 1px;
-  font-family: SFMono-Regular, "SF Mono", Consolas, Menlo, "Liberation Mono", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei", monospace; font-size: 9px;
+  font-family: SFMono-Regular, "SF Mono", Consolas, Menlo, "Liberation Mono", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei", monospace; font-size: 11px;
   color: var(--pp-fg-muted); background: var(--pp-bg); border: 1px solid var(--pp-border); border-radius: var(--pp-radius-sm);
   box-shadow: 0 1px 0 rgba(0,0,0,0.04); vertical-align: baseline;
 }
-.submit-hint { color: var(--pp-fg-hint); font-size: 10px; margin-left: auto; align-self: center; }
-.kb-hint { color: var(--pp-fg-hint); font-size: 10px; align-self: center; }
+.submit-hint { color: var(--pp-fg-hint); font-size: 11px; margin-left: auto; align-self: center; }
+.kb-hint { color: var(--pp-fg-hint); font-size: 11px; align-self: center; }
 #ai-summary-hint { margin-left: auto; margin-right: var(--pp-sp-3); }
 
 .clear-all-link {
-  font-size: 10px; color: var(--pp-fg-hint); cursor: pointer;
+  font-size: 11px; color: var(--pp-fg-hint); cursor: pointer;
   margin-top: var(--pp-sp-1); display: inline-flex; align-items: center; gap: var(--pp-sp-1);
 }
 .clear-all-link:hover { color: var(--pp-danger); text-decoration: underline; }
@@ -819,7 +819,7 @@ button.offline-clear:focus-visible, button.offline-toggle:focus-visible { outlin
 #tags-copy-all:hover { color: var(--pp-link); text-decoration: underline; }
 .last-used-hint {
   display: block; width: 100%; border: 0; background: none; text-align: left; font-family: inherit;
-  font-size: 10px; color: var(--pp-fg-hint); cursor: pointer;
+  font-size: 11px; color: var(--pp-fg-hint); cursor: pointer;
   margin-top: var(--pp-sp-1); padding: var(--pp-sp-1) 0;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
@@ -833,7 +833,7 @@ button.offline-clear:focus-visible, button.offline-toggle:focus-visible { outlin
 .suggest-area.muted { padding-top: var(--pp-sp-1); }
 .suggest-group { margin-bottom: var(--pp-sp-1); }
 .suggest-group:last-child { margin-bottom: 0; }
-.group-label { font-size: 10px; color: var(--pp-fg-hint); font-weight: bold; margin-right: var(--pp-sp-2); }
+.group-label { font-size: 11px; color: var(--pp-fg-hint); font-weight: bold; margin-right: var(--pp-sp-2); }
 .stag {
   border: 0; background: none; padding: 0; font-family: inherit;
   color: var(--pp-link); cursor: pointer; font-size: 12px; margin-right: var(--pp-sp-2); white-space: nowrap;
@@ -853,7 +853,7 @@ button.offline-clear:focus-visible, button.offline-toggle:focus-visible { outlin
    layers) at reduced size; aria-hidden in JS -- the accessible equivalent is
    aria-keyshortcuts on the button. Hidden once used: a struck-through chip
    keeps its slot reserved but the digit no longer does anything. */
-.stag .stag-num { font-size: 9px; opacity: 0.7; padding-right: var(--pp-sp-1); vertical-align: 1px; }
+.stag .stag-num { font-size: 11px; opacity: 0.7; padding-right: var(--pp-sp-1); vertical-align: 1px; }
 .stag.used .stag-num { visibility: hidden; }
 .add-all-link { border: 0; background: none; padding: 0; font-family: inherit; color: var(--pp-fg-hint); font-size: 11px; cursor: pointer; }
 .add-all-link:hover { text-decoration: underline; color: var(--pp-fg-muted); }
@@ -863,7 +863,7 @@ button.offline-clear:focus-visible, button.offline-toggle:focus-visible { outlin
 .bottom-bar { padding: var(--pp-sp-3) var(--pp-sp-5) var(--pp-sp-2) 72px; display: flex; gap: var(--pp-sp-6); font-size: 12px; }
 .bottom-bar label { display: inline-flex; align-items: center; gap: var(--pp-sp-2); cursor: pointer; }
 .bottom-bar input[type="checkbox"]:focus-visible { outline: 1px solid var(--pp-accent); outline-offset: 2px; box-shadow: var(--pp-focus-ring); }
-.submit-bar { padding: var(--pp-sp-2) var(--pp-sp-5) var(--pp-sp-3) 72px; display: flex; gap: var(--pp-sp-3); }
+.submit-bar { padding: var(--pp-sp-2) var(--pp-sp-5) var(--pp-sp-3) 72px; display: flex; gap: var(--pp-sp-4); } /* button-row gap: sp-4 on every surface (actionRowGap) */
 /* Both buttons in this bar carry class="btn" now, so their chrome (padding,
    border, fill, radius, transition, hover, press, focus, disabled) comes
    from @generated:ui-components. The .submit-bar button base rule that used
@@ -971,7 +971,7 @@ html[data-theme] #submit-btn:disabled { background: var(--pp-btn-bg); border-col
   /* wrap-not-truncate (project rule): de/fr labels fold to a 2+1 second row
      instead of squeezing three nowrap buttons into one. */
   flex-wrap: wrap;
-  gap: var(--pp-sp-2);
+  gap: var(--pp-sp-4);
 }
 .qbtn {
   flex: 1 1 auto;
@@ -1086,7 +1086,7 @@ html[data-theme] #submit-btn:disabled { background: var(--pp-btn-bg); border-col
   position: relative;
   display: block;
   text-align: center;
-  font-size: 10px;
+  font-size: 11px;
   line-height: 14px;
   color: var(--pp-progress-text-fg);
   font-variant-numeric: tabular-nums;
@@ -1141,7 +1141,7 @@ html[data-theme] .batch-progress-text {
   font: 10px/1.45 "SF Mono", Consolas, Menlo, "Liberation Mono", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei", monospace;
   overflow-wrap: anywhere;
 }
-.batch-permission-actions { display: flex; gap: var(--pp-sp-3); margin-top: var(--pp-sp-3); }
+.batch-permission-actions { display: flex; gap: var(--pp-sp-4); margin-top: var(--pp-sp-3); }
 /* Buttons are .fc-btn (ghost, family standard) in the markup; the primary
    action is bolded, de-emphasis via order not colour. */
 .batch-permission-actions .fc-btn:first-child { font-weight: 600; }
@@ -1150,7 +1150,7 @@ html[data-theme] .batch-progress-text {
 
 /* Cache hint & regenerate */
 .cache-hint {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--pp-fg-hint);
   font-style: italic;
   margin-left: var(--pp-sp-2);
@@ -1202,7 +1202,7 @@ html[data-theme] .batch-progress-text {
 .quick-links a:focus-visible { outline: 1px solid var(--pp-accent); outline-offset: 2px; box-shadow: var(--pp-focus-ring); }
 .ql-sep {
   color: var(--pp-fg-faint);
-  font-size: 10px;
+  font-size: 11px;
 }
 
 /* Offline Queue Bar */
@@ -1234,7 +1234,7 @@ html[data-theme] .batch-progress-text {
    render flush against each other. */
 .offline-clear {
   color: var(--pp-danger);
-  font-size: 10px;
+  font-size: 11px;
   cursor: pointer;
   position: relative;
   display: inline-flex;
@@ -1262,7 +1262,7 @@ html[data-theme] .batch-progress-text {
   cursor: pointer;
 }
 .offline-toggle:hover { text-decoration: none; }
-#offline-queue-chevron { font-size: 9px; opacity: 0.7; }
+#offline-queue-chevron { font-size: 11px; opacity: 0.7; }
 .offline-queue-list {
   max-height: 180px;
   overflow-y: auto;
@@ -1299,14 +1299,14 @@ html[data-theme] .batch-progress-text {
 }
 .offline-queue-meta {
   color: var(--pp-offline-queue-meta-fg);
-  font-size: 10px;
+  font-size: 11px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .offline-queue-actions {
   display: flex;
-  gap: var(--pp-sp-2);
+  gap: var(--pp-sp-4);
   flex-shrink: 0;
 }
 .offline-queue-actions button {
@@ -1339,7 +1339,7 @@ html[data-theme] .batch-progress-text {
 }
 .recent-bm-label {
   color: var(--pp-fg-hint);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: bold;
   margin-bottom: var(--pp-sp-1);
 }
@@ -1358,7 +1358,7 @@ html[data-theme] .batch-progress-text {
   white-space: nowrap;
 }
 .recent-bm-item:hover { text-decoration: underline; }
-.recent-bm-domain { color: var(--pp-fg-hint); font-size: 10px; }
+.recent-bm-domain { color: var(--pp-fg-hint); font-size: 11px; }
 /* The two row actions are 24x24 boxes, not padded glyphs (COMPONENTS.md §1.5
    "把整行升到 md 阶" branch). They measured 17x13 / 17x14 before, and the
    ::before hit pad this file uses everywhere else is NOT available to them:
@@ -1381,7 +1381,7 @@ html[data-theme] .batch-progress-text {
   flex-shrink: 0;
   color: var(--pp-fg-faint);
   cursor: pointer;
-  font-size: 10px;
+  font-size: 11px;
   width: 24px;
   height: 24px;
   padding: 0;
@@ -1398,7 +1398,7 @@ html[data-theme] .batch-progress-text {
   flex-shrink: 0;
   color: var(--pp-disabled-fg);
   cursor: pointer;
-  font-size: 10px;
+  font-size: 11px;
   width: 24px;
   height: 24px;
   padding: 0;
@@ -1472,7 +1472,7 @@ html[data-theme] .batch-progress-text {
 /* ===================== URL Cleaned Hint (B4) ===================== */
 .url-clean-hint {
   margin-top: var(--pp-sp-1);
-  font-size: 10px;
+  font-size: 11px;
   color: var(--pp-ok-fg);
   display: flex; gap: var(--pp-sp-3); align-items: center;
 }
@@ -1484,7 +1484,7 @@ html[data-theme] .batch-progress-text {
   color: var(--pp-fg-hint);
   text-decoration: underline;
   cursor: pointer;
-  font-size: 10px;
+  font-size: 11px;
 }
 .url-clean-hint .url-clean-undo:hover { color: var(--pp-fg); }
 .url-clean-hint .url-clean-undo:focus-visible { outline: 1px solid var(--pp-accent); outline-offset: 2px; box-shadow: var(--pp-focus-ring); }
@@ -1517,7 +1517,7 @@ html[data-theme] .batch-progress-text {
 /* ===================== AI Progress (B3) ===================== */
 .action-link .ai-progress-label {
   color: var(--pp-fg-hint);
-  font-size: 10px;
+  font-size: 11px;
   margin-left: 0;
 }
 .action-link.loading.slow .ai-progress-label::after {
@@ -2549,7 +2549,7 @@ html[data-theme] .confirm-popover button:focus-visible { outline-color: var(--pp
   display: flex;
   flex-wrap: wrap;
   align-items: stretch;
-  gap: var(--pp-sp-2);
+  gap: var(--pp-sp-4);
   margin-top: var(--pp-sp-3);
   padding: var(--pp-sp-3) var(--pp-sp-4);
   background: var(--pp-bg2);

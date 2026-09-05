@@ -20,7 +20,7 @@ paths:
 ## 新增任何 UI 元素，先答三问
 
 1. **它属于哪个既有原语？** 先查注册表该表面的 `primitives`（options：`.fg` / `.fg-stack` / `.fg-indent` / `.fg-actions` / `.hint` / `.section-title` / `.divider` / `.choice-row` / `details.disclosure` + `.disclosure-body` / `.context-help-host` / `.pf`；popup：`.row` / `.label` / `.field` / `.suggest-area` / `.divider`；library：`.notes-toolbar` / `.lib-batch-bar`（vocab/notes）/ `.notes-empty`；md-preview：`.rail-section` / `.rail-label` / `.rail-sec-head` / `.msg-bar` / `.send-menu` / `.send-mi`）。能用就用，不新造包装类。
-2. **它的几何落在哪个阶梯？** 按钮/字段高度只有 md 26px 与 sm 20px 两阶（COMPONENTS.md §1.1 / §6.3），图标按钮命中区 ≥24px；间距只用本表面的 `--*-sp-N` 刻度；圆角只用 `--*-radius-*` token。字面 px 是缺陷，不是微调。
+2. **它的几何落在哪个阶梯？** 按钮/字段高度只有 md 26px 与 sm 20px 两阶（COMPONENTS.md §1.1 / §6.3），图标按钮命中区 ≥24px；按钮行 gap 一律 8px；可见文字 ≥11px；间距只用本表面的 `--*-sp-N` 刻度（md-preview 是 `--sp-N`）；圆角只用 `--*-radius-*` token。字面 px 是缺陷，不是微调。
 3. **它的间距由谁拥有？** 关系规则（容器 margin-bottom、`.fg > .fg-actions` 这类相邻规则）拥有间距；元素自身不带 margin，HTML 不写内联 `style="margin/padding/gap"`（layout-lint RULE 5 会 BLOCK）。
 
 ## 真要新造一个结构类

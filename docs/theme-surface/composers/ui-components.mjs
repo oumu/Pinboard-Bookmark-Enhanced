@@ -279,7 +279,7 @@ export const CHIP_TARGETS = [
   { ns: "lib", selector: ".vocab-stat-chip", radius: "sm", pressable: true, padH: 8, fontSize: "12px" },
   // C10: padding-inline 6px->10px (+4px, law 2), radius-full; font-size unchanged
   // from current shipped value (10px) — Appendix C only calls out the padding/height change.
-  { ns: "opt", selector: ".tag-gov-kind-badge", radius: "full", pressable: false, padH: 10, fontSize: "10px" },
+  { ns: "opt", selector: ".tag-gov-kind-badge", radius: "full", pressable: false, padH: 10, fontSize: "11px" }, // 11px = the cross-surface text floor (COMPONENTS.md §10.3 textFloor)
 ];
 
 function chipRules(ns) {

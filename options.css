@@ -238,7 +238,7 @@ h1 { font-size: 18px; color: var(--opt-fg); margin-bottom: var(--opt-sp-7); bord
 .options-search-result:hover { background: var(--opt-btn-hover); }
 .options-search-result:focus-visible { outline: none; border-color: var(--opt-focus-bd); box-shadow: var(--opt-focus-ring); }
 .options-search-result-label { font-size: 12px; line-height: 1.35; }
-.options-search-result-panel { color: var(--opt-fg-hint); font-size: 10px; }
+.options-search-result-panel { color: var(--opt-fg-hint); font-size: 11px; }
 .options-search-empty { padding: var(--opt-sp-4); color: var(--opt-fg-hint); font-size: 11px; }
 .tabs {
   display: flex; flex-direction: column; align-items: stretch;
@@ -253,7 +253,7 @@ h1 { font-size: 18px; color: var(--opt-fg); margin-bottom: var(--opt-sp-7); bord
 .tab-group-label {
   padding: var(--opt-sp-1) var(--opt-sp-5) var(--opt-sp-1) calc(var(--opt-sp-5) + 2px);
   margin: var(--opt-sp-5) 0 var(--opt-sp-1);
-  font-size: 10px; font-weight: 600;
+  font-size: 11px; font-weight: 600;
   text-transform: uppercase; letter-spacing: 0.5px;
   color: var(--opt-fg-hint, var(--opt-fg-muted));
   user-select: none; pointer-events: none;
@@ -509,7 +509,7 @@ html[data-theme] .panel-foot a { color: var(--opt-fg-hint, var(--opt-fg-muted));
 .fg + .hint { margin-top: -6px; }  /* a hint owned by the preceding group: pull close (net ~4px gap above, 10px below) */
 .shortcut-current + .btn { margin-left: var(--opt-sp-4); }   /* "Shortcut: <keys> [Open Chrome Shortcut Settings]" lines */
 .hint a { color: var(--opt-accent); }
-.hint code { background: var(--opt-code-bg); border-radius: var(--opt-radius-sm); padding: 1px var(--opt-sp-2); font-size: 10px; font-family: "SF Mono", Consolas, Menlo, "Liberation Mono", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei", monospace; }
+.hint code { background: var(--opt-code-bg); border-radius: var(--opt-radius-sm); padding: 1px var(--opt-sp-2); font-size: 11px; font-family: "SF Mono", Consolas, Menlo, "Liberation Mono", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei", monospace; }
 /* A hint slot that doubles as a failure report (tag governance's AI status,
    Batch's legacy-permission line): setStatusIcon() adds .bad, so the themed
    danger token lands here instead of the inline #c00 those two used to set --
@@ -661,7 +661,7 @@ html[data-theme] .opt-error {
   display: inline-flex;
   align-items: center;
   padding: var(--opt-sp-1) 10px;
-  font-size: 10px;
+  font-size: 11px;
   line-height: 14px;
   border-radius: var(--opt-radius-full);
   background: var(--opt-chip-bg);
@@ -2355,7 +2355,7 @@ html.motion-ready .wayback-log-row:focus-within .wayback-perm-tip {
   margin: 0;
 }
 .tag-gov-reason {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--opt-fg-muted);
   display: block;
   margin-left: var(--opt-sp-4);
@@ -2480,6 +2480,7 @@ html.motion-ready #tag-gov-progress:not([hidden]) {
 }
 .tag-gov-reset-link {
   position: relative;
+  font-size: 11px; /* <small> would fall to 10.83px (UA `smaller`); 11px is the text floor (textFloor) */
 }
 
 /* ---- Vocabulary settings disclosures (hand-maintained): the Drive sync /

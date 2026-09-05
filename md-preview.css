@@ -21,6 +21,16 @@
   --radius-md: 8px;
   --radius-lg: 12px;
   --radius-full: 999px;
+  /* Spacing scale for the reader's CHROME (rail, toolbars, popovers) -- the
+     library ladder (4/8/12/16/24). Prose rhythm stays in em. Button rows use
+     --sp-2 like every other surface; the remaining literal margins/paddings
+     migrate to these rungs as they are touched (spacingScale is advisory
+     until then). */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
   /* A "warm-neutral reading" palette -- document-optimized. Single
      light-dark() definition per token (Chrome 123+); color-scheme tells
      the UA which branch to resolve and also themes native form controls /
@@ -1160,7 +1170,7 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
    identity lives in title + aria-label now. flex-wrap stays as a safety
    net; the icon-only padding keeps each chip past the 24px hit-area floor
    (6+14+6 tall, 9+14+9 wide). */
-.exp-toggles { display: flex; flex-wrap: wrap; gap: 6px; }
+.exp-toggles { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
 .exp-toggles .exp-tgl { flex: none; padding: 6px 9px; justify-content: center; }
 /* Pressed state reuses .toggle-btn.active's color declarations
    (md-preview.css ~:163) -- same --active-bg/--active-fg tokens, so the
@@ -1821,7 +1831,7 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
   flex: 1 0 100%;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 4px;
+  gap: var(--sp-2);
 }
 .xp-window-actions {
   display: flex;
@@ -2866,7 +2876,7 @@ body.ask-open main { margin-right: 396px; }
   line-height: 1.5;
 }
 #ask-input:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
-.ask-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.ask-actions { display: flex; justify-content: flex-end; gap: var(--sp-2); }
 #ask-send svg { width: 14px; height: 14px; flex-shrink: 0; }
 
 #ask-meta { min-height: 16px; font-size: 0.75em; line-height: 1.5; color: var(--fg-muted); }
@@ -3012,7 +3022,7 @@ body.ask-open main { margin-right: 396px; }
   white-space: pre-wrap;
 }
 .hl-card-degraded { color: var(--danger); font-size: 12px; }
-.hl-card-colors { display: flex; gap: 8px; }
+.hl-card-colors { display: flex; gap: var(--sp-2); }
 .hl-card-dot {
   width: 22px; height: 22px; padding: 0;
   border-radius: 50%;
@@ -3034,7 +3044,7 @@ body.ask-open main { margin-right: 396px; }
 .hl-card-dot-4 { background: light-dark(#ef4444, #B86F8C); }
 .hl-card-dot-5 { background: light-dark(#a855f7, #8B72AF); }
 .hl-card-dot.active, .hl-card-dot:focus-visible { border-color: var(--fg); }
-.hl-card-ai { display: flex; gap: 6px; }
+.hl-card-ai { display: flex; gap: var(--sp-2); }
 .hl-card-ai[hidden] { display: none; }
 .hl-card-ai-explain, .hl-card-ai-translate, .hl-card-ai-ask {
   /* Icon-only cells sharing the explain-pop trio; equal thirds of the 292px
@@ -3071,7 +3081,7 @@ body.ask-open main { margin-right: 396px; }
 }
 /* Delete (icon, left) vs Save (text CTA, right): the delete has no confirm
    popover, so the row's full width is the misclick guard. */
-.hl-card-foot { display: flex; justify-content: space-between; gap: 8px; }
+.hl-card-foot { display: flex; justify-content: space-between; gap: var(--sp-2); }
 .hl-card-save, .hl-card-delete {
   padding: 4px 10px;
   border: 1px solid var(--btn-border);
@@ -3099,7 +3109,7 @@ body.ask-open main { margin-right: 396px; }
 .hl-rail-btn { width: 100%; justify-content: center; }
 
 /* ---- Highlight notebook list (md-highlight.js, spec 2026-07-04 sec.2) ---- */
-.hl-filter-row { display: flex; gap: 6px; padding: 4px 2px 8px; }
+.hl-filter-row { display: flex; gap: var(--sp-2); padding: 4px 2px 8px; }
 .hl-filter-dot {
   width: 12px; height: 12px; padding: 0;
   border-radius: 50%;
@@ -3422,7 +3432,7 @@ html.motion-ready :is(#search-pop, #kbd-help-pop, #pb-hl-card):popover-open {
    background), so painting it here would be a visible no-op. */
 .rail-bottom-row {
   display: flex;
-  gap: 4px;
+  gap: var(--sp-2);
   margin-top: 10px;
 }
 .rail-kbd-help-btn {
@@ -3474,7 +3484,7 @@ html.motion-ready :is(#search-pop, #kbd-help-pop, #pb-hl-card):popover-open {
    width available to the controls in all 9 locales. */
 .typo-row { display: flex; flex-direction: column; align-items: stretch; gap: 6px; }
 .typo-label { color: var(--fg-secondary); }
-.typo-steps { display: flex; align-items: center; gap: 6px; }
+.typo-steps { display: flex; align-items: center; gap: var(--sp-2); }
 .typo-step {
   width: 26px;
   height: 24px;
@@ -3496,7 +3506,7 @@ html.motion-ready :is(#search-pop, #kbd-help-pop, #pb-hl-card):popover-open {
   text-align: center;
   font-variant-numeric: tabular-nums;
 }
-.typo-seg { display: flex; gap: 4px; }
+.typo-seg { display: flex; gap: var(--sp-1); } /* segmented strip, not a button row (actionRowGap exempt) */
 .typo-seg-btn {
   flex: 1 1 0;
   min-width: 0;

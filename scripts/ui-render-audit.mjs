@@ -2108,8 +2108,16 @@ const SWEEP_CFG = {
   // 8. actionRowGap -- a flex/grid row holding buttons must use one of the
   //    surface's allowed column gaps (space-between rows and fused/tab shells exempt).
   actionRowGap: {
-    allowed: { options: [8], library: [4, 8, 12], popup: [2, 4, 6, 8], "md-preview": [4, 6, 8] },
-    exempt: ".tabs, .lib-tabs, .vocab-sort-seg, .source-badge, .view-toggle, .vocab-group-unit, .tags-input-wrap, .send-split, .header-icons, .connection-health, .theme-presets-group", // tabs, fused shells, the status-card grid, swatch-pill rows
+    // One value on every surface (2026-09-05): popup rows were 4/6, the
+    // reader's 4/6/8, the library lookup bar 4 -- all moved to the 8px rung.
+    allowed: { options: [8], library: [8], popup: [8], "md-preview": [8] },
+    exempt: [
+      ".tabs, .lib-tabs",                                                     // tab strips
+      ".vocab-sort-seg, .source-badge, .view-toggle, .vocab-group-unit, .tags-input-wrap, .send-split, .typo-seg", // fused shells / segmented strips
+      ".header-icons, .xp-window-actions, .vocab-batch-cluster, .vocab-selection-actions, .notes-selection-actions", // tight icon/button clusters (candidate lib-cluster primitive, gap sp-1)
+      ".connection-health, .theme-presets-group, .kbd-help-chips, .rail-badges", // status-card grid, swatch-pill / chip rows
+      ".notes-card-top",                                                      // card head: title + chips, the remove X is absolutely positioned
+    ].join(", "),
   },
   // 9. radiusScale -- every chromed box's uniform border-radius must be one of
   //    the surface's radius TOKENS as currently resolved on <html> (they are
@@ -2117,6 +2125,9 @@ const SWEEP_CFG = {
   //    the live values; `tokens` below is only the fallback when none resolve)
   //    or a pill; fused-shell descendants carry concentric (token - border)
   //    radii and are exempt.
+  // 10. textFloor -- no visible text under 11px on any surface (popup and
+  //     options carried 10px and 9px captions; 11px is every surface's hint size).
+  textFloor: { min: 11, exempt: "sup, sub" },
   radiusScale: {
     prefix: { options: "--opt-radius-", popup: "--pp-radius-", library: "--lib-radius-", "md-preview": "--radius-" },
     names: ["sm", "md", "lg", "full", "tag"],
@@ -2456,6 +2467,12 @@ function sweepProbe(cfg) {
     }
     const rootCs = getComputedStyle(document.documentElement);
     const liveTokens = (cfg.radiusScale.names || []).map((n) => parseFloat(rootCs.getPropertyValue(`${cfg.radiusScale.prefix[surface] || "--radius-"}${n}`))).filter((v) => Number.isFinite(v));
+    for (const el of document.querySelectorAll("*")) {
+      if (!visible(el) || excluded(el) || el.closest("svg") || el.matches(cfg.textFloor.exempt)) continue;
+      if (![...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim())) continue;
+      const fs = parseFloat(getComputedStyle(el).fontSize);
+      if (fs < cfg.textFloor.min - 0.01) hits.push({ kind: "textFloor", path: pathOf(el), fontSize: Math.round(fs * 100) / 100, detail: `${fs}px` });
+    }
     const radiusTokens = liveTokens.length ? liveTokens : (cfg.radiusScale.tokens[surface] || []);
     for (const el of document.querySelectorAll("*")) {
       if (!visible(el) || excluded(el) || el.closest(cfg.radiusScale.exemptWithin)) continue;
@@ -2625,6 +2642,7 @@ function reportSweep(hits) {
     else if (h.kind === "headerFace") console.log(`  headerFace         [${h.surface}/${h.context}]  ${h.path}  face=${h.face}  majority=${h.majority}`);
     else if (h.kind === "actionRowGap") console.log(`  actionRowGap       [${h.surface}/${h.context}]  ${h.path}  gap=${h.gap}px  allowed=${h.allowed.join("|")}`);
     else if (h.kind === "radiusScale") console.log(`  radiusScale        [${h.surface}/${h.context}]  ${h.path}  radius=${h.radius}  tokens=${h.tokens.join("|")}`);
+    else if (h.kind === "textFloor") console.log(`  textFloor          [${h.surface}/${h.context}]  ${h.path}  font-size=${h.fontSize}px`);
   }
   console.log(unique.length ? "[render-audit --sweep] === hits found -- fix, then lock in as CHECKS entries ===" : "[render-audit --sweep] === clean ===");
   process.exit(0);
@@ -2876,6 +2894,7 @@ async function main() {
       headerFace: (h) => ({ actual: h.face, expected: h.majority, note: "section heading face differs from the surface majority" }),
       actionRowGap: (h) => ({ actual: h.gap, expected: h.allowed.join("|"), note: "column-gap of a button row (px)" }),
       radiusScale: (h) => ({ actual: h.radius, expected: h.tokens.map((t) => t + "px").join("|"), note: "border-radius off the surface's token scale" }),
+      textFloor: (h) => ({ actual: h.fontSize, expected: ">=11", note: "visible text below the 11px floor" }),
     };
     for (const h of sweepHits) {
       const f = FAMILY[h.kind];

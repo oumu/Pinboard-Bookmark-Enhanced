@@ -1489,8 +1489,9 @@ html.motion-ready .vocab-note-save {
      visible gaps (§8.1, and the #vocab-lookup-go note below) -- but
      .vocab-filter-toolbar's recipe carries no gap, so the input and the
      language select were flush (measured 0px live, 2026-08-25) and the
-     select painted over the focused input's right border + focus ring. */
-  gap: var(--lib-sp-1);
+     select painted over the focused input's right border + focus ring.
+     sp-2 like .notes-toolbar: one button-row gap on the surface (actionRowGap). */
+  gap: var(--lib-sp-2);
   border-bottom: 1px solid color-mix(in srgb, var(--lib-fg) var(--lib-seam-mix), var(--lib-pane-bg));
 }
 .vocab-filter-toolbar input[type="search"] {

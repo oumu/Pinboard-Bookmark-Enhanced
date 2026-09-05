@@ -436,12 +436,12 @@ quiet 档在 popup 目前只有 `.del-btn` 一个消费者。
 
 ```css
 /* chip 阶：line-height 14px + padding-block 2px -> 无边框高 18px（有效半径 9px）、带边框高 20px（10px）。
-   水平 10px 覆盖两种情况的有效半径。字号 10-12px 在阶内浮动，高度由 line-height 钉死。 */
+   水平 10px 覆盖两种情况的有效半径。字号 11-12px 在阶内浮动（11px 是全表面文字下限，§10.3 textFloor），高度由 line-height 钉死。 */
 .<chip> {
   display: inline-flex;
   align-items: center;
   padding: 2px 10px;
-  font-size: 11px;         /* 实例可取 10-12px，不改 line-height */
+  font-size: 11px;         /* 实例可取 11-12px，不改 line-height；10px 触 textFloor */
   line-height: 14px;
   border-radius: var(--{ns}-radius-full);
   background: var(--{ns}-chip-bg);
@@ -1076,10 +1076,12 @@ label span（`<span class="btn-ic">svg</span><span></span>`），在 grid 下它
 | `fgRhythm` | options `.fg` 内：`label.bl` → 控件 3–6px；任何动作行（`.fg-actions` / 裸按钮）上方 ≥4px | `[render]` family 5 |
 | `noInlineSpacing` | 四个表面 HTML 不得出现 `style="…margin/padding/gap…"` | `[static]` layout-lint RULE 5 |
 | `vocabRegistered` | 结构类名必须在注册表或遗留基线；基线只减不增 | `[static]` ui-vocabulary-lint |
-| `controlRung` | 所有可见 `input/select/.btn` 高度 ∈ {26±1, 20±1}；页签与整行可点元素白名单 | `[render]` 计划 family 6（第 2 步） |
-| `headerFace` | 同表面分区标题（h2 / `.disclosure > summary`）computed 字号/字重/颜色唯一 | `[render]` 计划 family 7 |
-| `actionRowGap` | 含 `.btn` 的 flex 行 gap 取值 ∈ 本表面允许集 | `[render]` 计划 family 8 |
-| `spacingScale` / `radiusScale` | margin/padding/border-radius 值 ∈ 本表面 token 刻度（基线 ratchet） | `[render]` 计划 family 9 |
+| `controlRung` | 所有可见 `input/select/.btn`/融合壳 高度 ∈ {26±1, 20±1}；结构性豁免：页签 32、textarea、设置搜索框、链接态按钮、整行可点元素与状态卡、无边框色板药丸、融合内层 | `[render]` family 6 |
+| `headerFace` | 同表面分区标题集（options：h2 + `.disclosure > summary`；md-preview：`.rail-label` + `.rail-sec-head`）computed 面唯一 | `[render]` family 7 |
+| `actionRowGap` | 含按钮的 flex/grid 行 column-gap **= 8px**（`--opt-sp-4` / `--pp-sp-4` / `--lib-sp-2` / `--sp-2`），四表面同一值；space-between 行、页签、融合壳、图标簇、色板/chip 行、分段条豁免 | `[render]` family 8 |
+| `radiusScale` | 有 chrome 的盒子统一圆角 ∈ 本表面 radius token 的**实时**值（token 逐主题不同）或 pill；融合壳后代豁免 | `[render]` family 9 |
+| `textFloor` | 任何可见文字 computed font-size ≥ 11px（`sup`/`sub` 除外；阅读器正文不在 chrome 扫描内） | `[render]` family 10 |
+| `spacingScale` | margin/padding 值 ∈ 本表面 sp 刻度（md-preview 已有 `--sp-1..5`，字面值随触碰迁移） | 计划：先 WARN 后门控 |
 
 ### 10.4 门与触发面
 
