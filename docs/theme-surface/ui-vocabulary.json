@@ -20,6 +20,7 @@
         "muted"
       ],
       "primitives": [
+        "actions",
         "divider",
         "field",
         "label",

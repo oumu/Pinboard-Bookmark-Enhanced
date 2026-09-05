@@ -1526,11 +1526,6 @@
     },
     {
       "surface": "popup",
-      "token": "batch-permission-actions",
-      "structural": true
-    },
-    {
-      "surface": "popup",
       "token": "batch-permission-list",
       "structural": true
     },
@@ -1636,11 +1631,6 @@
     },
     {
       "surface": "popup",
-      "token": "offline-queue-actions",
-      "structural": true
-    },
-    {
-      "surface": "popup",
       "token": "offline-queue-body",
       "structural": true
     },
@@ -1727,11 +1717,6 @@
     {
       "surface": "popup",
       "token": "suggest-group",
-      "structural": true
-    },
-    {
-      "surface": "popup",
-      "token": "tag-actions-row",
       "structural": true
     },
     {

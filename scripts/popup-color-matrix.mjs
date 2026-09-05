@@ -62,10 +62,10 @@ const PROBES = [
   [".offline-queue-empty", false],
   [".offline-queue-title", false],
   [".offline-queue-meta", false],
-  [".offline-queue-actions button", false],
-  [".offline-queue-actions button", true],
-  [".offline-queue-actions .offline-queue-remove", true],
-  [".offline-queue-actions .offline-queue-failed", false],
+  [".offline-queue-item > .actions button", false],
+  [".offline-queue-item > .actions button", true],
+  [".offline-queue-item > .actions .offline-queue-remove", true],
+  [".offline-queue-item > .actions .offline-queue-failed", false],
   [".recent-bm-area", false],
   [".recent-bm-del", false],
   [".recent-bm-edit", false],
@@ -233,7 +233,7 @@ async function dump() {
     if (list) {
       list.innerHTML = '<div class="offline-queue-item">'
         + '<div class="offline-queue-body"><div class="offline-queue-title">t</div><div class="offline-queue-meta">m</div></div>'
-        + '<div class="offline-queue-actions">'
+        + '<div class="actions">'
         + '<button type="button" class="offline-queue-retry">r</button>'
         + '<button type="button" class="offline-queue-remove">x</button>'
         + '<button type="button" class="offline-queue-failed">f</button>'

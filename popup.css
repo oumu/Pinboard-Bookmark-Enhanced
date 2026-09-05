@@ -615,6 +615,13 @@ html[data-section="login"] .quick-actions { display: none !important; }
 }
 .label.top { padding-top: var(--pp-sp-2); align-self: flex-start; }
 .field { flex: 1; min-width: 0; }
+/* .actions (COMPONENTS.md §10.2): a row of buttons -- flex, wrap, centred, the
+   surface's one button-row gap (sp-4 = 8px, actionRowGap). Margins belong to
+   the relationship (parent > .actions), never to the row itself. Absorbed
+   .tag-actions-row, .batch-permission-actions and .offline-queue-actions
+   (2026-09-06). .fc-actions stays a component of the shared feedback card;
+   .quick-row (space-between) and .submit-bar (an inset bar) are other shapes. */
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--pp-sp-4); }
 .field > input[type="text"], .field > textarea {
   width: 100%; padding: var(--pp-sp-2) var(--pp-sp-3); border: 1px solid var(--pp-input-bd); border-radius: var(--pp-radius-md);
   /* line-height pinned (COMPONENTS.md §1.1 / §6.3): 4+16+4+2 = the 26px md rung
@@ -814,8 +821,7 @@ button.offline-clear:focus-visible, button.offline-toggle:focus-visible { outlin
    the 10-11px text scale, and drop .btn-ic's button-sized margin (gap rules). */
 .clear-all-link .btn-ic, .offline-clear .btn-ic { margin-right: 0; vertical-align: 0; }
 .clear-all-link .btn-ic svg, .offline-clear .btn-ic svg { width: 11px; height: 11px; }
-.tag-actions-row { display: flex; gap: var(--pp-sp-4); align-items: center; }
-.tag-actions-row .clear-all-link { margin-top: var(--pp-sp-1); }
+.field > .actions > .clear-all-link { margin-top: var(--pp-sp-1); }
 #tags-copy-all:hover { color: var(--pp-link); text-decoration: underline; }
 .last-used-hint {
   display: block; width: 100%; border: 0; background: none; text-align: left; font-family: inherit;
@@ -1141,12 +1147,12 @@ html[data-theme] .batch-progress-text {
   font: 10px/1.45 "SF Mono", Consolas, Menlo, "Liberation Mono", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei", monospace;
   overflow-wrap: anywhere;
 }
-.batch-permission-actions { display: flex; gap: var(--pp-sp-4); margin-top: var(--pp-sp-3); }
+.batch-permission > .actions { margin-top: var(--pp-sp-3); }
 /* Buttons are .fc-btn (ghost, family standard) in the markup; the primary
    action is bolded, de-emphasis via order not colour. */
-.batch-permission-actions .fc-btn:first-child { font-weight: 600; }
-.batch-permission-actions button:disabled { opacity: 0.55; cursor: default; }
-.batch-permission-actions button:focus-visible { outline: 1px solid var(--pp-accent); outline-offset: 2px; box-shadow: var(--pp-focus-ring); }
+.batch-permission > .actions .fc-btn:first-child { font-weight: 600; }
+.batch-permission > .actions button:disabled { opacity: 0.55; cursor: default; }
+.batch-permission > .actions button:focus-visible { outline: 1px solid var(--pp-accent); outline-offset: 2px; box-shadow: var(--pp-focus-ring); }
 
 /* Cache hint & regenerate */
 .cache-hint {
@@ -1306,12 +1312,8 @@ html[data-theme] .batch-progress-text {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.offline-queue-actions {
-  display: flex;
-  gap: var(--pp-sp-4);
-  flex-shrink: 0;
-}
-.offline-queue-actions button {
+.offline-queue-item > .actions { flex-shrink: 0; }
+.offline-queue-item > .actions button {
   background: transparent;
   border: 1px solid color-mix(in srgb, var(--pp-scrim) 12%, transparent);
   border-radius: var(--pp-radius-sm);
@@ -1323,12 +1325,12 @@ html[data-theme] .batch-progress-text {
   position: relative;
   transition: background var(--pp-motion-state), color var(--pp-motion-state), border-color var(--pp-motion-state);
 }
-.offline-queue-actions button:focus-visible { outline: none; border-color: var(--pp-focus-bd); box-shadow: var(--pp-focus-ring); }
-.offline-queue-actions button:hover:not(:disabled) { background: color-mix(in srgb, var(--pp-scrim) 6%, transparent); color: var(--pp-accent); }
-.offline-queue-actions button:active:not(:disabled) { transform: scale(0.97); }
-.offline-queue-actions button:disabled { opacity: 0.5; cursor: default; }
-.offline-queue-actions .offline-queue-remove:hover:not(:disabled) { color: var(--pp-danger); }
-.offline-queue-actions .offline-queue-failed { color: var(--pp-danger); border-color: var(--pp-danger); }
+.offline-queue-item > .actions button:focus-visible { outline: none; border-color: var(--pp-focus-bd); box-shadow: var(--pp-focus-ring); }
+.offline-queue-item > .actions button:hover:not(:disabled) { background: color-mix(in srgb, var(--pp-scrim) 6%, transparent); color: var(--pp-accent); }
+.offline-queue-item > .actions button:active:not(:disabled) { transform: scale(0.97); }
+.offline-queue-item > .actions button:disabled { opacity: 0.5; cursor: default; }
+.offline-queue-item > .actions .offline-queue-remove:hover:not(:disabled) { color: var(--pp-danger); }
+.offline-queue-item > .actions .offline-queue-failed { color: var(--pp-danger); border-color: var(--pp-danger); }
 .offline-queue-retry.loading svg { animation: spin 0.6s linear infinite; }
 .offline-queue-retry.loading { opacity: 0.7; cursor: default; }
 
@@ -2442,10 +2444,10 @@ html[data-theme] .offline-queue-list { background: color-mix(in srgb, var(--pp-o
 html[data-theme] .offline-queue-item { border-bottom-color: color-mix(in srgb, var(--pp-fg) 10%, transparent); }
 html[data-theme] .offline-queue-title { color: var(--pp-fg); }
 html[data-theme] .offline-queue-meta { color: var(--pp-fg-hint); }
-html[data-theme] .offline-queue-actions button { border-color: color-mix(in srgb, var(--pp-fg) 18%, transparent); color: var(--pp-fg-muted); background: transparent; }
-html[data-theme] .offline-queue-actions button:focus-visible { border-color: var(--pp-focus-bd); box-shadow: var(--pp-focus-ring); }
-html[data-theme] .offline-queue-actions button:hover:not(:disabled) { background: color-mix(in srgb, var(--pp-accent) 10%, transparent); color: var(--pp-accent); }
-html[data-theme] .offline-queue-actions .offline-queue-remove:hover:not(:disabled) { color: var(--pp-danger); background: color-mix(in srgb, var(--pp-danger) 12%, transparent); }
+html[data-theme] .offline-queue-item > .actions button { border-color: color-mix(in srgb, var(--pp-fg) 18%, transparent); color: var(--pp-fg-muted); background: transparent; }
+html[data-theme] .offline-queue-item > .actions button:focus-visible { border-color: var(--pp-focus-bd); box-shadow: var(--pp-focus-ring); }
+html[data-theme] .offline-queue-item > .actions button:hover:not(:disabled) { background: color-mix(in srgb, var(--pp-accent) 10%, transparent); color: var(--pp-accent); }
+html[data-theme] .offline-queue-item > .actions .offline-queue-remove:hover:not(:disabled) { color: var(--pp-danger); background: color-mix(in srgb, var(--pp-danger) 12%, transparent); }
 /* The empty-state line sits ON the tinted .offline-queue-list strip (75%
    --pp-offline-bg over --pp-bg), so it reads the strip's own AA-derived text
    role: --pp-fg-hint painted at 3.7:1 on dracula's strip (4.4-4.5:1 on

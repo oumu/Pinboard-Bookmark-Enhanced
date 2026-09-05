@@ -1060,6 +1060,7 @@ label span（`<span class="btn-ic">svg</span><span></span>`），在 grid 下它
 | popup | `.row` / `.label` / `.field` | 表单行壳（flex，padding sp-2 sp-5，gap sp-4）/ 52px 标签槽 / 控件槽（flex:1，min-width:0） |
 | popup | `.suggest-area` | chip 流容器 |
 | popup | `.divider` | 表单与快捷区之间的分隔 |
+| popup | `.actions` | 按钮行（flex wrap，align center，gap sp-4）：标签操作行、批量授权操作行、离线队列条目操作；margin 由父级关系规则拥有（`.batch-permission > .actions`、`.offline-queue-item > .actions`）。`.fc-actions` 仍是共享反馈卡的组件；`.quick-row`（space-between）与 `.submit-bar`（带内距的条）是另外两种形状 |
 | library | `.notes-toolbar` | 控件行（flex wrap，gap sp-2，margin sp-2 0 sp-3），vocab/notes 共用 |
 | library | `.vocab-batch-bar` / `.notes-batch-bar` | 粘底批量条（同一选择器列表） |
 | library | `.notes-empty` | 空态块 |

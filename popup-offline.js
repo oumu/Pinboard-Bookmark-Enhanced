@@ -100,7 +100,7 @@
       body.appendChild(meta);
 
       const actions = document.createElement("div");
-      actions.className = "offline-queue-actions";
+      actions.className = "actions";
 
       const retry = document.createElement("button");
       retry.type = "button";
