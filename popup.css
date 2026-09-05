@@ -355,6 +355,7 @@ html[data-section="login"] .quick-actions { display: none !important; }
 .login-body p { margin-bottom: var(--pp-sp-4); font-size: 12px; color: var(--pp-fg); }
 .login-body input {
   width: 100%; padding: var(--pp-sp-2) var(--pp-sp-3); border: 1px solid var(--pp-input-bd); border-radius: var(--pp-radius-md); font-size: 12px;
+  line-height: 16px; /* md rung (26px) like every other field; `normal` measured 23.33px (controlRung scan) */
   font-family: "SF Mono", Consolas, Menlo, "Liberation Mono", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei", monospace; margin-bottom: var(--pp-sp-3); background: var(--pp-input-bg); color: var(--pp-fg);
   transition: border-color var(--pp-motion-state), background var(--pp-motion-state), box-shadow var(--pp-motion-state);
 }

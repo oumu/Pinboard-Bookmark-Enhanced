@@ -2249,7 +2249,9 @@ html.motion-ready .notes-batch-bar.selecting {
      in. It also keeps the 6px column gap reserved on the right so a long
      headline does not run under the absolutely-positioned X. */
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 6px; /* options --opt-sp-3 (6px) */
+  gap: var(--lib-sp-1); /* the surface's own tightest rung; the old literal 6px was
+    options' --opt-sp-3 borrowed across surfaces, the one 6px button-row gap the
+    actionRowGap scan found on this page (2026-09-05) */
   padding: 3px 6px; /* density pass (Task 2): tighter than --lib-sp-1 (4px), no
     token this small exists yet -- literal like the file's other sub-token
     values. Scoped to .vocab-card only: the shared .notes-card-top base stays

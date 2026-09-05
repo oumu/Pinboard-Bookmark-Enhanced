@@ -2074,7 +2074,56 @@ function setTheme(sw, presetKey, mode) {
 // imported from a CHECKS entry -- there IS no CHECKS entry until a hit gets
 // fixed and turned into one).
 // ============================================================================
-const SWEEP_CFG = { textInsetH: 4, textInsetV: 2, rowTolerance: 1, rhythmLabelMin: 3, rhythmLabelMax: 6, rhythmActionMin: 4 };
+const SWEEP_CFG = {
+  textInsetH: 4, textInsetV: 2, rowTolerance: 1, rhythmLabelMin: 3, rhythmLabelMax: 6, rhythmActionMin: 4,
+  // Families 6-9 (design-language gates, 2026-09-05). Geometry is a theme
+  // invariant, so one light pass per surface covers every preset.
+  // Prose in the reader is typography, not chrome: excluded wholesale.
+  excludeWithin: ".doc-body",
+  // 6. controlRung -- COMPONENTS.md §1.1 / §6.3: two control heights (md 26,
+  //    sm 20) besides the 24px icon target (family 4 owns icon-only buttons).
+  //    Exemptions are structural, each a family with its own rung, not a
+  //    per-instance allowlist:
+  rung: {
+    values: [26, 20], tol: 1,
+    exempt: [
+      "textarea",                                   // multi-line by nature
+      "[role='tab']", ".tab-btn", ".lib-tab",       // tab family: 32px on both surfaces
+      "#options-search-input",                      // the settings sidebar search box (34px, deliberate)
+      ".action-link", ".clear-all-link", ".offline-toggle", ".offline-clear", ".reset-tab-btn",
+      ".tr-link", ".xp-dict-more", ".xp-dict-lemma-link", ".pbp-img-fix-btn", // link-styled, no chrome (COMPONENTS.md §0)
+      "summary", ".rail-sec-head", ".notes-hit-btn", ".notes-card-head", ".notes-card-top", ".notes-sib", ".connection-health-row", // row rung: whole-row clickables / section headers / status cards
+      ".theme-preset-btn", ".saved-theme-btn",       // borderless swatch pills (user-selected variant A, d57cdcf): the sm rung minus the collapsed frame
+      ".tags-input-wrap > input", ".vocab-group-unit > input", ".source-badge > .src-seg", // fused-shell inners: the shell is measured instead
+    ],
+    // fused shells measured as the control they are (COMPONENTS.md §8)
+    shells: ".tags-input-wrap, .source-badge, .vocab-group-unit, .vocab-sort-seg",
+  },
+  // 7. headerFace -- one computed face (size/weight/colour/transform/tracking)
+  //    per surface for its section-heading set; anything off the majority is a hit.
+  headerSets: {
+    options: "h2.section-title, .disclosure > summary",
+    "md-preview": ".rail-label, .rail-sec-head",
+  },
+  // 8. actionRowGap -- a flex/grid row holding buttons must use one of the
+  //    surface's allowed column gaps (space-between rows and fused/tab shells exempt).
+  actionRowGap: {
+    allowed: { options: [8], library: [4, 8, 12], popup: [2, 4, 6, 8], "md-preview": [4, 6, 8] },
+    exempt: ".tabs, .lib-tabs, .vocab-sort-seg, .source-badge, .view-toggle, .vocab-group-unit, .tags-input-wrap, .send-split, .header-icons, .connection-health, .theme-presets-group", // tabs, fused shells, the status-card grid, swatch-pill rows
+  },
+  // 9. radiusScale -- every chromed box's uniform border-radius must be one of
+  //    the surface's radius TOKENS as currently resolved on <html> (they are
+  //    theme-variant: 15 presets restyle --opt-radius-md, so the probe reads
+  //    the live values; `tokens` below is only the fallback when none resolve)
+  //    or a pill; fused-shell descendants carry concentric (token - border)
+  //    radii and are exempt.
+  radiusScale: {
+    prefix: { options: "--opt-radius-", popup: "--pp-radius-", library: "--lib-radius-", "md-preview": "--radius-" },
+    names: ["sm", "md", "lg", "full", "tag"],
+    tokens: { options: [3, 8, 10], popup: [3, 8, 10], library: [4, 8, 12], "md-preview": [4, 8, 12] },
+    exemptWithin: ".vocab-sort-seg, .source-badge, .view-toggle, .vocab-group-unit, .tags-input-wrap, .send-split",
+  },
+};
 
 // Runs INSIDE the page (Playwright serializes this function's source, same
 // constraint as probeSelector -- self-contained, no outer references).
@@ -2361,6 +2410,69 @@ function sweepProbe(cfg) {
     }
   }
 
+  // ---- 6-9. design-language class scans (2026-09-05). Same philosophy as
+  // families 4/5: assert the law over every element of a class, never an
+  // enumerated instance, so a new control / heading / button row / chromed
+  // box is covered the moment it exists. Surface comes from the page URL so
+  // per-surface scales (gap sets, radius tokens) resolve inside the page.
+  {
+    const surface = (location.pathname.match(/\/(popup|options|library|md-preview)\.html$/) || [])[1] || "unknown";
+    const excluded = (el) => cfg.excludeWithin && el.closest(cfg.excludeWithin);
+    const controls = [...document.querySelectorAll(`button, .btn, a.btn, input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=color]), select, ${cfg.rung.shells}`)];
+    const shellSel = cfg.rung.shells;
+    for (const el of controls) {
+      if (!visible(el) || excluded(el)) continue;
+      if (cfg.rung.exempt.some((sel) => el.matches(sel))) continue;
+      if (el.matches("button, .btn, a.btn") && !el.matches(shellSel) && !el.textContent.trim()) continue; // icon-only: family 4
+      if (!el.matches(shellSel) && el.closest(shellSel)) continue; // inner of a fused shell: the shell is measured
+      const h = el.getBoundingClientRect().height;
+      if (!cfg.rung.values.some((v) => Math.abs(h - v) <= cfg.rung.tol)) {
+        hits.push({ kind: "controlRung", path: pathOf(el), height: Math.round(h * 100) / 100, detail: `${Math.round(h)}px` });
+      }
+    }
+    const headerSel = cfg.headerSets[surface];
+    if (headerSel) {
+      const faces = new Map();
+      const items = [...document.querySelectorAll(headerSel)].filter((el) => visible(el) && !excluded(el));
+      for (const el of items) {
+        const cs = getComputedStyle(el);
+        const face = `${cs.fontSize}/${cs.fontWeight}/${cs.color}/${cs.textTransform}/${cs.letterSpacing}`;
+        faces.set(face, (faces.get(face) || []).concat(el));
+      }
+      if (faces.size > 1) {
+        const [majority] = [...faces.entries()].sort((a, b) => b[1].length - a[1].length)[0];
+        for (const [face, els] of faces) if (face !== majority) for (const el of els) hits.push({ kind: "headerFace", path: pathOf(el), face, majority, detail: face });
+      }
+    }
+    const allowedGaps = cfg.actionRowGap.allowed[surface] || [];
+    for (const el of document.querySelectorAll("*")) {
+      if (!visible(el) || excluded(el) || el.matches(cfg.actionRowGap.exempt) || el.closest(cfg.actionRowGap.exempt)) continue;
+      const cs = getComputedStyle(el);
+      if (!/flex|grid/.test(cs.display) || cs.justifyContent === "space-between") continue;
+      const kids = Array.from(el.children).filter(visible);
+      if (kids.length < 2 || !kids.some((k) => k.matches("button, .btn, a.btn"))) continue;
+      const gap = cs.columnGap === "normal" ? 0 : Math.round(parseFloat(cs.columnGap));
+      if (!allowedGaps.includes(gap)) hits.push({ kind: "actionRowGap", path: pathOf(el), gap, allowed: allowedGaps, detail: `${gap}px` });
+    }
+    const rootCs = getComputedStyle(document.documentElement);
+    const liveTokens = (cfg.radiusScale.names || []).map((n) => parseFloat(rootCs.getPropertyValue(`${cfg.radiusScale.prefix[surface] || "--radius-"}${n}`))).filter((v) => Number.isFinite(v));
+    const radiusTokens = liveTokens.length ? liveTokens : (cfg.radiusScale.tokens[surface] || []);
+    for (const el of document.querySelectorAll("*")) {
+      if (!visible(el) || excluded(el) || el.closest(cfg.radiusScale.exemptWithin)) continue;
+      if (el.closest("svg")) continue;
+      const cs = getComputedStyle(el);
+      const chromed = (cs.backgroundColor !== "rgba(0, 0, 0, 0)" && cs.backgroundColor !== "transparent") || parseFloat(cs.borderTopWidth) > 0 || cs.outlineStyle !== "none";
+      if (!chromed) continue;
+      const corners = [cs.borderTopLeftRadius, cs.borderTopRightRadius, cs.borderBottomRightRadius, cs.borderBottomLeftRadius];
+      if (corners.some((c) => c !== corners[0]) || corners[0] === "0px") continue;
+      const r = corners[0];
+      if (/%$/.test(r)) continue;                       // 50% dots
+      const px = parseFloat(r);
+      if (px >= 999 || radiusTokens.some((t) => Math.abs(px - t) < 0.5)) continue;
+      hits.push({ kind: "radiusScale", path: pathOf(el), radius: r, tokens: radiusTokens, detail: r });
+    }
+  }
+
   return hits;
 }
 
@@ -2442,6 +2554,20 @@ async function runSweep(page, sw, extBase) {
     add(await page.evaluate(sweepProbe, SWEEP_CFG), "library", "notes-batch-bar");
   }
 
+  // ---- md-preview: the reader's chrome (rail, toolbar, source badge). The
+  // payload key is one-shot (md-preview consumes it on load), so it is seeded
+  // right before the navigation; prose is excluded by cfg.excludeWithin so the
+  // families measure chrome, not typography. Added 2026-09-05 when the reader
+  // joined the shared height/radius rungs. ----
+  await sw.evaluate((k) => chrome.storage.local.set({ [`md_preview_data_${k}`]: {
+    markdown: "# Render audit fixture\n\nA paragraph with a [link](https://example.com/).\n\n## Section\n\n- item one\n- item two\n\n`code` and **bold**.\n",
+    contentHtml: "", title: "Render Audit Fixture", url: "https://example.com/render-audit-fixture", baseUrl: "https://example.com/render-audit-fixture",
+    tags: ["qa"], tokens: 0, hasApiKey: true, source: "local", math: false, forum: false, ts: Date.now(),
+  } }), "render-audit-sweep");
+  await page.goto(`${extBase}md-preview.html?k=render-audit-sweep`, { waitUntil: "load", timeout: TIMEOUT_MS });
+  await page.waitForTimeout(900);
+  add(await page.evaluate(sweepProbe, SWEEP_CFG), "md-preview", "reader");
+
   // ---- popup: default light + no-preset dark (since batch 2 D6 the latter
   // resolves to the flexoki-dark preset, same as options/library; kept as a
   // separate sweep context because the popup's dark layout deltas live in
@@ -2484,7 +2610,7 @@ function reportSweep(hits) {
   const dedup = new Map();
   for (const h of hits) {
     const key = h.kind === "rowHeightEq" ? `${h.surface}|rowHeightEq|${[h.a, h.b].sort().join("~")}`
-      : `${h.surface}|${h.kind}|${h.path}${h.childKind ? "|" + h.childKind : ""}${h.rel ? "|" + h.rel : ""}`;
+      : `${h.surface}|${h.kind}|${h.path}${h.childKind ? "|" + h.childKind : ""}${h.rel ? "|" + h.rel : ""}${h.detail ? "|" + h.detail : ""}`;
     if (!dedup.has(key)) dedup.set(key, h);
   }
   const unique = [...dedup.values()];
@@ -2495,6 +2621,10 @@ function reportSweep(hits) {
     else if (h.kind === "rowHeightEq") console.log(`  rowHeightEq        [${h.surface}/${h.context}]  container=${h.containerPath}  ${h.a} vs ${h.b}  diff=${h.diff}px`);
     else if (h.kind === "hitAreaMin") console.log(`  hitAreaMin         [${h.surface}/${h.context}]  ${h.path}  shortSide=${h.shortSide}px`);
     else if (h.kind === "fgRhythm") console.log(`  fgRhythm           [${h.surface}/${h.context}]  ${h.path}  ${h.rel} gap=${h.gap}px`);
+    else if (h.kind === "controlRung") console.log(`  controlRung        [${h.surface}/${h.context}]  ${h.path}  height=${h.height}px`);
+    else if (h.kind === "headerFace") console.log(`  headerFace         [${h.surface}/${h.context}]  ${h.path}  face=${h.face}  majority=${h.majority}`);
+    else if (h.kind === "actionRowGap") console.log(`  actionRowGap       [${h.surface}/${h.context}]  ${h.path}  gap=${h.gap}px  allowed=${h.allowed.join("|")}`);
+    else if (h.kind === "radiusScale") console.log(`  radiusScale        [${h.surface}/${h.context}]  ${h.path}  radius=${h.radius}  tokens=${h.tokens.join("|")}`);
   }
   console.log(unique.length ? "[render-audit --sweep] === hits found -- fix, then lock in as CHECKS entries ===" : "[render-audit --sweep] === clean ===");
   process.exit(0);
@@ -2739,6 +2869,19 @@ async function main() {
         expected: h.rel === "label-control" ? "3..6" : ">=4",
         note: h.rel === "label-control" ? "label.bl -> control gap (px)" : "gap above an action row (px)",
       });
+    }
+    // ---- families 6-9 (design-language class scans): same gating shape.
+    const FAMILY = {
+      controlRung: (h) => ({ actual: h.height, expected: "26±1 | 20±1", note: "control height (COMPONENTS.md §1.1/§6.3); icon-only buttons are family 4" }),
+      headerFace: (h) => ({ actual: h.face, expected: h.majority, note: "section heading face differs from the surface majority" }),
+      actionRowGap: (h) => ({ actual: h.gap, expected: h.allowed.join("|"), note: "column-gap of a button row (px)" }),
+      radiusScale: (h) => ({ actual: h.radius, expected: h.tokens.map((t) => t + "px").join("|"), note: "border-radius off the surface's token scale" }),
+    };
+    for (const h of sweepHits) {
+      const f = FAMILY[h.kind];
+      if (!f) continue;
+      const { actual, expected, note } = f(h);
+      results.push({ surface: h.surface, theme: "", selector: h.path, state: h.context, check: h.kind, status: "FAIL", actual, expected, note });
     }
   } finally {
     await mediaSession.detach().catch(() => {});

@@ -2361,9 +2361,11 @@ html.motion-ready .wayback-log-row:focus-within .wayback-perm-tip {
   margin-left: var(--opt-sp-4);
   font-style: italic;
 }
+/* The row itself is a .fg-actions (options.js adds both classes): one
+   button-row gap for the page. This class only keeps the indent and the
+   popover anchor. It carried its own flex + 6px gap until the actionRowGap
+   scan (2026-09-05) flagged it as the page's one 6px button row. */
 .tag-gov-actions {
-  display: flex;
-  gap: var(--opt-sp-3);
   margin-left: var(--opt-sp-4);
 }
 .tag-gov-actions button { position: relative; }

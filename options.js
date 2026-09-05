@@ -4511,7 +4511,7 @@ async function renderTagGov() {
     }
 
     const btnGroup = document.createElement("div");
-    btnGroup.className = "tag-gov-actions";
+    btnGroup.className = "fg-actions tag-gov-actions";
 
     const mergeBtn = document.createElement("button");
     mergeBtn.className = "btn btn-sm";
